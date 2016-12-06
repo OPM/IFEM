@@ -62,7 +62,7 @@ bool ASMs3D::getQuasiInterplParameters (RealArray& prm, int dir) const
 
 
 bool ASMs3D::evaluate (const ASMbase* basis, const Vector& locVec,
-		       RealArray& vec, int basisNum) const
+                       RealArray& vec, int basisNum) const
 {
   const ASMs3D* pch = dynamic_cast<const ASMs3D*>(basis);
   if (!pch) return false;
@@ -96,13 +96,13 @@ bool ASMs3D::evaluate (const ASMbase* basis, const Vector& locVec,
   const Vector& vec2 = sValues;
   Go::SplineVolume* vol_new =
     Go::VolumeInterpolator::regularInterpolation(svol->basis(0),
-						 svol->basis(1),
-						 svol->basis(2),
-						 gpar[0], gpar[1], gpar[2],
-						 const_cast<Vector&>(vec2),
-						 sValues.rows(),
-						 svol->rational(),
-						 weights);
+                                                 svol->basis(1),
+                                                 svol->basis(2),
+                                                 gpar[0], gpar[1], gpar[2],
+                                                 const_cast<Vector&>(vec2),
+                                                 sValues.rows(),
+                                                 svol->rational(),
+                                                 weights);
 
   vec.assign(vol_new->coefs_begin(),vol_new->coefs_end());
   delete vol_new;
@@ -160,8 +160,8 @@ Go::GeomObject* ASMs3D::evalSolution (const IntegrandBase& integrand) const
 
 
 bool ASMs3D::globalL2projection (Matrix& sField,
-				 const IntegrandBase& integrand,
-				 bool continuous) const
+                                 const IntegrandBase& integrand,
+                                 bool continuous) const
 {
   if (!svol) return true; // silently ignore empty patches
 
@@ -207,8 +207,8 @@ bool ASMs3D::globalL2projection (Matrix& sField,
   if (!this->evalSolution(sField,integrand,gpar.data()))
   {
     std::cerr <<" *** ASMs3D::globalL2projection: Failed for patch "<< idx+1
-	      <<" nPoints="<< gpar[0].size()*gpar[1].size()*gpar[2].size()
-	      << std::endl;
+              <<" nPoints="<< gpar[0].size()*gpar[1].size()*gpar[2].size()
+              << std::endl;
     return false;
   }
 
@@ -231,50 +231,50 @@ bool ASMs3D::globalL2projection (Matrix& sField,
     for (int i2 = 0; i2 < nel2; i2++)
       for (int i1 = 0; i1 < nel1; i1++, iel++)
       {
-	if (MLGE[iel] < 1) continue; // zero-volume element
+        if (MLGE[iel] < 1) continue; // zero-volume element
 
-	if (continuous)
-	{
-	  // Set up control point (nodal) coordinates for current element
-	  if (!this->getElementCoordinates(Xnod,1+iel))
-	    return false;
-	  else if ((dV = 0.125*this->getParametricVolume(1+iel)) < 0.0)
-	    return false; // topology error (probably logic error)
-	}
+        if (continuous)
+        {
+          // Set up control point (nodal) coordinates for current element
+          if (!this->getElementCoordinates(Xnod,1+iel))
+            return false;
+          else if ((dV = 0.125*this->getParametricVolume(1+iel)) < 0.0)
+            return false; // topology error (probably logic error)
+        }
 
-	// --- Integration loop over all Gauss points in each direction --------
+        // --- Integration loop over all Gauss points in each direction --------
 
         int ip = ((i3*ng2*nel2 + i2)*ng1*nel1 + i1)*ng3;
         for (int k = 0; k < ng3; k++, ip += ng2*(nel2-1)*ng1*nel1)
           for (int j = 0; j < ng2; j++, ip += ng1*(nel1-1))
             for (int i = 0; i < ng1; i++, ip++)
-	    {
-	      if (continuous)
-		SplineUtils::extractBasis(spl1[ip],phi,dNdu);
-	      else
-		phi = spl0[ip].basisValues;
+            {
+              if (continuous)
+                SplineUtils::extractBasis(spl1[ip],phi,dNdu);
+              else
+                phi = spl0[ip].basisValues;
 
-	      // Compute the Jacobian inverse and derivatives
-	      double dJw = dV;
-	      if (continuous)
-	      {
-		dJw *= wg[i]*wg[j]*wg[k]*utl::Jacobian(J,dNdu,Xnod,dNdu,false);
-		if (dJw == 0.0) continue; // skip singular points
-	      }
+              // Compute the Jacobian inverse and derivatives
+              double dJw = dV;
+              if (continuous)
+              {
+                dJw *= wg[i]*wg[j]*wg[k]*utl::Jacobian(J,dNdu,Xnod,dNdu,false);
+                if (dJw == 0.0) continue; // skip singular points
+              }
 
-	      // Integrate the linear system A*x=B
-	      for (size_t ii = 0; ii < phi.size(); ii++)
-	      {
-		int inod = MNPC[iel][ii]+1;
-		for (size_t jj = 0; jj < phi.size(); jj++)
-		{
-		  int jnod = MNPC[iel][jj]+1;
-		  A(inod,jnod) += phi[ii]*phi[jj]*dJw;
-		}
-		for (size_t r = 1; r <= ncomp; r++)
-		  B(inod+(r-1)*nnod) += phi[ii]*sField(r,ip+1)*dJw;
-	      }
-	    }
+              // Integrate the linear system A*x=B
+              for (size_t ii = 0; ii < phi.size(); ii++)
+              {
+                int inod = MNPC[iel][ii]+1;
+                for (size_t jj = 0; jj < phi.size(); jj++)
+                {
+                  int jnod = MNPC[iel][jj]+1;
+                  A(inod,jnod) += phi[ii]*phi[jj]*dJw;
+                }
+                for (size_t r = 1; r <= ncomp; r++)
+                  B(inod+(r-1)*nnod) += phi[ii]*sField(r,ip+1)*dJw;
+              }
+            }
       }
 
   // Solve the patch-global equation system
@@ -426,13 +426,13 @@ Go::SplineVolume* ASMs3D::projectSolutionLocal (const IntegrandBase& integrand) 
     svol->getWeights(weights);
 
   return quasiInterpolation(svol->basis(0),
-			    svol->basis(1),
-			    svol->basis(2),
-			    gpar[0], gpar[1], gpar[2],
-			    sValues,
-			    sValues.rows(),
-			    svol->rational(),
-			    weights);
+                            svol->basis(1),
+                            svol->basis(2),
+                            gpar[0], gpar[1], gpar[2],
+                            sValues,
+                            sValues.rows(),
+                            svol->rational(),
+                            weights);
 }
 
 
@@ -455,11 +455,11 @@ Go::SplineVolume* ASMs3D::projectSolutionLocalApprox(const IntegrandBase& integr
     svol->getWeights(weights);
 
   return VariationDiminishingSplineApproximation(svol->basis(0),
-						 svol->basis(1),
-						 svol->basis(2),
-						 gpar[0], gpar[1], gpar[2],
-						 sValues,
-						 sValues.rows(),
-						 svol->rational(),
-						 weights);
+                                                 svol->basis(1),
+                                                 svol->basis(2),
+                                                 gpar[0], gpar[1], gpar[2],
+                                                 sValues,
+                                                 sValues.rows(),
+                                                 svol->rational(),
+                                                 weights);
 }

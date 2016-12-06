@@ -64,7 +64,7 @@ bool ASMs2D::getQuasiInterplParameters (RealArray& prm, int dir) const
 
 
 bool ASMs2D::evaluate (const ASMbase* basis, const Vector& locVec,
-		       RealArray& vec, int basisNum) const
+                       RealArray& vec, int basisNum) const
 {
   const ASMs2D* pch = dynamic_cast<const ASMs2D*>(basis);
   if (!pch) return false;
@@ -98,12 +98,12 @@ bool ASMs2D::evaluate (const ASMbase* basis, const Vector& locVec,
   const Vector& vec2 = sValues;
   Go::SplineSurface* surf_new =
     Go::SurfaceInterpolator::regularInterpolation(surf->basis(0),
-						  surf->basis(1),
-						  gpar[0], gpar[1],
-						  const_cast<Vector&>(vec2),
-						  sValues.rows(),
-						  surf->rational(),
-						  weights);
+                                                  surf->basis(1),
+                                                  gpar[0], gpar[1],
+                                                  const_cast<Vector&>(vec2),
+                                                  sValues.rows(),
+                                                  surf->rational(),
+                                                  weights);
 
   vec.assign(surf_new->coefs_begin(),surf_new->coefs_end());
   delete surf_new;
@@ -160,8 +160,8 @@ Go::GeomObject* ASMs2D::evalSolution (const IntegrandBase& integrand) const
 
 
 bool ASMs2D::globalL2projection (Matrix& sField,
-				 const IntegrandBase& integrand,
-				 bool continuous) const
+                                 const IntegrandBase& integrand,
+                                 bool continuous) const
 {
   if (!surf) return true; // silently ignore empty patches
 
@@ -201,7 +201,7 @@ bool ASMs2D::globalL2projection (Matrix& sField,
   if (!this->evalSolution(sField,integrand,gpar.data()))
   {
     std::cerr <<" *** ASMs2D::globalL2projection: Failed for patch "<< idx+1
-	      <<" nPoints="<< gpar[0].size()*gpar[1].size() << std::endl;
+              <<" nPoints="<< gpar[0].size()*gpar[1].size() << std::endl;
     return false;
   }
 
@@ -227,45 +227,45 @@ bool ASMs2D::globalL2projection (Matrix& sField,
 
       if (continuous)
       {
-	// Set up control point (nodal) coordinates for current element
-	if (!this->getElementCoordinates(Xnod,1+iel))
-	  return false;
-	else if ((dA = 0.25*this->getParametricArea(1+iel)) < 0.0)
-	  return false; // topology error (probably logic error)
+        // Set up control point (nodal) coordinates for current element
+        if (!this->getElementCoordinates(Xnod,1+iel))
+          return false;
+        else if ((dA = 0.25*this->getParametricArea(1+iel)) < 0.0)
+          return false; // topology error (probably logic error)
       }
 
       // --- Integration loop over all Gauss points in each direction ----------
 
       int ip = (i2*ng1*nel1 + i1)*ng2;
       for (int j = 0; j < ng2; j++, ip += ng1*(nel1-1))
-	for (int i = 0; i < ng1; i++, ip++)
-	{
-	  if (continuous)
-	    SplineUtils::extractBasis(spl1[ip],phi,dNdu);
-	  else
-	    phi = spl0[ip].basisValues;
+        for (int i = 0; i < ng1; i++, ip++)
+        {
+          if (continuous)
+            SplineUtils::extractBasis(spl1[ip],phi,dNdu);
+          else
+            phi = spl0[ip].basisValues;
 
-	  // Compute the Jacobian inverse and derivatives
-	  double dJw = 1.0;
-	  if (continuous)
-	  {
-	    dJw = dA*wg[i]*wg[j]*utl::Jacobian(J,dNdu,Xnod,dNdu,false);
-	    if (dJw == 0.0) continue; // skip singular points
-	  }
+          // Compute the Jacobian inverse and derivatives
+          double dJw = 1.0;
+          if (continuous)
+          {
+            dJw = dA*wg[i]*wg[j]*utl::Jacobian(J,dNdu,Xnod,dNdu,false);
+            if (dJw == 0.0) continue; // skip singular points
+          }
 
-	  // Integrate the linear system A*x=B
-	  for (size_t ii = 0; ii < phi.size(); ii++)
-	  {
-	    int inod = MNPC[iel][ii]+1;
-	    for (size_t jj = 0; jj < phi.size(); jj++)
-	    {
-	      int jnod = MNPC[iel][jj]+1;
-	      A(inod,jnod) += phi[ii]*phi[jj]*dJw;
-	    }
-	    for (size_t r = 1; r <= ncomp; r++)
-	      B(inod+(r-1)*nnod) += phi[ii]*sField(r,ip+1)*dJw;
-	  }
-	}
+          // Integrate the linear system A*x=B
+          for (size_t ii = 0; ii < phi.size(); ii++)
+          {
+            int inod = MNPC[iel][ii]+1;
+            for (size_t jj = 0; jj < phi.size(); jj++)
+            {
+              int jnod = MNPC[iel][jj]+1;
+              A(inod,jnod) += phi[ii]*phi[jj]*dJw;
+            }
+            for (size_t r = 1; r <= ncomp; r++)
+              B(inod+(r-1)*nnod) += phi[ii]*sField(r,ip+1)*dJw;
+          }
+        }
     }
 
 #if SP_DEBUG > 1
@@ -335,7 +335,7 @@ Go::SplineSurface* ASMs2D::scRecovery (const IntegrandBase& integrand) const
   for (size_t j = 0; j < gpar[1].size(); j++)
     for (size_t i = 0; i < gpar[0].size(); i++)
       std::cout <<"Gauss point "<< i <<","<< j <<" = "
-		<< gpar[0][i] <<" "<< gpar[1][j] << std::endl;
+                << gpar[0][i] <<" "<< gpar[1][j] << std::endl;
 #endif
 
   // Evaluate the secondary solution at all Gauss points
@@ -365,20 +365,20 @@ Go::SplineSurface* ASMs2D::scRecovery (const IntegrandBase& integrand) const
     {
       // Special case for the first and last Greville points in each direction
       if (ig == 0)
-	istart = 1;
+        istart = 1;
       else if (ig < gpar[0].size()-1)
-	istart = ig;
+        istart = ig;
       if (jg == 0)
-	jstart = 1;
+        jstart = 1;
       else if (jg < gpar[1].size()-1)
-	jstart = jg;
+        jstart = jg;
 
       // Physical coordinates of current Greville point
       surf->point(G,gpar[0][ig],gpar[1][jg]);
 
 #if SP_DEBUG > 1
       std::cout <<"\nGreville point "<< ig <<","<< jg <<" (u,v) = "
-		<< gpar[0][ig] <<" "<< gpar[1][jg] <<" X = "<< G << std::endl;
+                << gpar[0][ig] <<" "<< gpar[1][jg] <<" X = "<< G << std::endl;
 #endif
 
       // Set up the local projection matrices
@@ -388,40 +388,40 @@ Go::SplineSurface* ASMs2D::scRecovery (const IntegrandBase& integrand) const
       // Loop over all non-zero knot-spans in the support of
       // the basis function associated with current Greville point
       for (int js = jstart; js < jstart+n2; js++)
-	if (js >= p2-1 && surf->knotSpan(1,js) > 0.0)
-	  for (int is = istart; is < istart+n1; is++)
-	    if (is >= p1-1 && surf->knotSpan(0,is) > 0.0)
-	    {
-	      // Loop over the Gauss points in current knot-span
-	      int jp = ((js-p2+1)*ng1*nel1 + is-p1+1)*ng2 + 1;
-	      for (int j = 1; j <= ng2; j++, jp += ng1*(nel1-1))
-		for (int i = 1; i <= ng1; i++, jp++)
-		{
-		  // Fetch parameter values of current integration point
-		  double u = gaussPt[0](i,is-p1+2);
-		  double v = gaussPt[1](j,js-p2+2);
+        if (js >= p2-1 && surf->knotSpan(1,js) > 0.0)
+          for (int is = istart; is < istart+n1; is++)
+            if (is >= p1-1 && surf->knotSpan(0,is) > 0.0)
+            {
+              // Loop over the Gauss points in current knot-span
+              int jp = ((js-p2+1)*ng1*nel1 + is-p1+1)*ng2 + 1;
+              for (int j = 1; j <= ng2; j++, jp += ng1*(nel1-1))
+                for (int i = 1; i <= ng1; i++, jp++)
+                {
+                  // Fetch parameter values of current integration point
+                  double u = gaussPt[0](i,is-p1+2);
+                  double v = gaussPt[1](j,js-p2+2);
 
-		  // Evaluate the polynomial expansion at current Gauss point
-		  surf->point(X,u,v);
-		  evalMonomials(n1+1,n2+1,X[0]-G[0],X[1]-G[1],P);
+                  // Evaluate the polynomial expansion at current Gauss point
+                  surf->point(X,u,v);
+                  evalMonomials(n1+1,n2+1,X[0]-G[0],X[1]-G[1],P);
 
 #if SP_DEBUG > 1
-		  std::cout <<"Itg. point "<< i <<","<< j <<" (u,v) = "
-			    << u <<" "<< v <<" X = "<< X <<" P-matrix:"<< P;
+                  std::cout <<"Itg. point "<< i <<","<< j <<" (u,v) = "
+                            << u <<" "<< v <<" X = "<< X <<" P-matrix:"<< P;
 #endif
 
-		  for (k = 1; k <= nPol; k++)
-		  {
-		    // Accumulate the projection matrix, A += P^t * P
-		    for (l = k; l <= nPol; l++) // do the upper triangle only
-		      A(k,l) += P(k)*P(l);
+                  for (k = 1; k <= nPol; k++)
+                  {
+                    // Accumulate the projection matrix, A += P^t * P
+                    for (l = k; l <= nPol; l++) // do the upper triangle only
+                      A(k,l) += P(k)*P(l);
 
-		    // Accumulate the right-hand-side matrix, B += P^t * sigma
-		    for (l = 1; l <= nCmp; l++)
-		      B(k,l) += P(k)*sField(l,jp);
-		  }
-		}
-	    }
+                    // Accumulate the right-hand-side matrix, B += P^t * sigma
+                    for (l = 1; l <= nCmp; l++)
+                      B(k,l) += P(k)*sField(l,jp);
+                  }
+                }
+            }
 
 #if SP_DEBUG > 2
       std::cout <<"---- Matrix A -----"<< A
@@ -435,12 +435,12 @@ Go::SplineSurface* ASMs2D::scRecovery (const IntegrandBase& integrand) const
 
       // Evaluate the projected field at current Greville point (first row of B)
       for (l = 1; l <= nCmp; l++)
-	sValues(l,ip) = B(1,l);
+        sValues(l,ip) = B(1,l);
 
 #if SP_DEBUG > 1
       std::cout <<"Greville point "<< ig <<","<< jg <<" :";
       for (k = 1; k <= nCmp; k++)
-	std::cout <<" "<< sValues(k,ip);
+        std::cout <<" "<< sValues(k,ip);
       std::cout << std::endl;
 #endif
     }
@@ -454,11 +454,11 @@ Go::SplineSurface* ASMs2D::scRecovery (const IntegrandBase& integrand) const
 
   const Vector& vec = sValues;
   return Go::SurfaceInterpolator::regularInterpolation(surf->basis(0),
-						       surf->basis(1),
-						       gpar[0], gpar[1],
-						       const_cast<Vector&>(vec),
-						       nCmp, surf->rational(),
-						       weights);
+                                                       surf->basis(1),
+                                                       gpar[0], gpar[1],
+                                                       const_cast<Vector&>(vec),
+                                                       nCmp, surf->rational(),
+                                                       weights);
 }
 
 
@@ -560,13 +560,13 @@ Go::SplineSurface* ASMs2D::projectSolutionLeastSquare (const IntegrandBase& inte
     surf->getWeights(weights);
 
   return leastsquare_approximation(surf->basis(0),
-				   surf->basis(1),
-				   gpar[0], gpar[1],
-				   wgpar[0], wgpar[1],
-				   sValues,
-				   sValues.rows(),
-				   surf->rational(),
-				   weights);
+                                   surf->basis(1),
+                                   gpar[0], gpar[1],
+                                   wgpar[0], wgpar[1],
+                                   sValues,
+                                   sValues.rows(),
+                                   surf->rational(),
+                                   weights);
 }
 
 
@@ -590,12 +590,12 @@ Go::SplineSurface* ASMs2D::projectSolutionLocal (const IntegrandBase& integrand)
     surf->getWeights(weights);
 
   return quasiInterpolation(surf->basis(0),
-			    surf->basis(1),
-			    gpar[0], gpar[1],
-			    sValues,
-			    sValues.rows(),
-			    surf->rational(),
-			    weights);
+                            surf->basis(1),
+                            gpar[0], gpar[1],
+                            sValues,
+                            sValues.rows(),
+                            surf->rational(),
+                            weights);
 }
 
 
@@ -618,10 +618,10 @@ Go::SplineSurface* ASMs2D::projectSolutionLocalApprox (const IntegrandBase& inte
     surf->getWeights(weights);
 
   return VariationDiminishingSplineApproximation(surf->basis(0),
-						 surf->basis(1),
-						 gpar[0], gpar[1],
-						 sValues,
-						 sValues.rows(),
-						 surf->rational(),
-						 weights);
+                                                 surf->basis(1),
+                                                 gpar[0], gpar[1],
+                                                 sValues,
+                                                 sValues.rows(),
+                                                 surf->rational(),
+                                                 weights);
 }

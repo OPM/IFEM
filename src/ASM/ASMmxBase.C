@@ -37,7 +37,7 @@ void ASMmxBase::initMx (const std::vector<int>& MLGN, const int* sysMadof)
 
 
 void ASMmxBase::extractNodeVecMx (const Vector& globRes, Vector& nodeVec,
-				  int basis) const
+                                  int basis) const
 {
   if (basis > (int)nfx.size())
     basis = 0;
@@ -60,7 +60,7 @@ void ASMmxBase::extractNodeVecMx (const Vector& globRes, Vector& nodeVec,
     {
       idof = MADOF[i];
       for (j = 0; j < nfx[k-1]; j++, ldof++)
-	nodeVec[ldof] = globRes[idof++];
+        nodeVec[ldof] = globRes[idof++];
     }
     ofs += nb[k-1];
   }
@@ -82,14 +82,14 @@ void ASMmxBase::injectNodeVecMx (Vector& globRes, const Vector& nodeVec,
     {
       idof = MADOF[i];
       for (j = 0; j < nfx[k-1]; j++, ldof++)
-	globRes[idof++] = nodeVec[ldof];
+        globRes[idof++] = nodeVec[ldof];
     }
   }
 }
 
 
 bool ASMmxBase::getSolutionMx (Matrix& sField, const Vector& locSol,
-			       const std::vector<int>& nodes) const
+                               const std::vector<int>& nodes) const
 {
   if (nodes.empty()) return true;
 
@@ -112,7 +112,7 @@ bool ASMmxBase::getSolutionMx (Matrix& sField, const Vector& locSol,
     if (nodes[i] < low || nodes[i] > high)
     {
       std::cerr <<" *** ASMmxBase::getSolutionMx: Node #"<< nodes[i]
-		<<" is out of range ["<< low <<","<< high <<"]."<< std::endl;
+                <<" is out of range ["<< low <<","<< high <<"]."<< std::endl;
       return false;
     }
     else
@@ -120,7 +120,7 @@ bool ASMmxBase::getSolutionMx (Matrix& sField, const Vector& locSol,
       int idof = nvar*(nodes[i]-1);
       if (low > 1) idof += nfx[0]*nb[0];
       for (int j = 0; j < nvar; j++)
-	sField(j+1,i+1) = locSol[idof++];
+        sField(j+1,i+1) = locSol[idof++];
     }
 
   return true;

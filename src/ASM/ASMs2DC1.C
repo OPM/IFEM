@@ -21,8 +21,8 @@
 
 //! \brief Solves A1j*xi*eta + A2j*ci + A3j*eta = A4j, j=1,2 for xi,eta.
 extern "C" void dslbln_(const int& ipsw, const int& iwr, const double& eps,
-			const double* A, const double* B,
-			int& nsol, double* xi, double* eta);
+                        const double* A, const double* B,
+                        int& nsol, double* xi, double* eta);
 
 std::map<int,ASMs2DC1*> ASMs2DC1::neighbors;
 
@@ -46,7 +46,7 @@ bool ASMs2DC1::connectC1 (int edge, ASMs2DC1* neighbor, int nedge, bool revers)
   else if (shareFE || neighbor->shareFE)
   {
     std::cerr <<" *** ASMs2DC1::connectPatch: Logic error, cannot"
-	      <<" connect a sharedFE patch with an unshared one"<< std::endl;
+              <<" connect a sharedFE patch with an unshared one"<< std::endl;
     return false;
   }
 
@@ -75,7 +75,7 @@ bool ASMs2DC1::connectC1 (int edge, ASMs2DC1* neighbor, int nedge, bool revers)
 
     default:
       std::cerr <<" *** ASMs2DC1::connectPatch: Invalid slave edge "
-		<< edge << std::endl;
+                << edge << std::endl;
       return false;
     }
 
@@ -111,14 +111,14 @@ bool ASMs2DC1::connectC1 (int edge, ASMs2DC1* neighbor, int nedge, bool revers)
 
     default:
       std::cerr <<" *** ASMs2DC1::connectPatch: Invalid master edge "
-		<< nedge << std::endl;
+                << nedge << std::endl;
       return false;
     }
 
   if (n1 != (int)slaveNodes.front().size())
   {
     std::cerr <<" *** ASMs2DC1::connectPatch: Non-matching edges, sizes "
-	      << n1 <<" and "<< slaveNodes.front().size() << std::endl;
+              << n1 <<" and "<< slaveNodes.front().size() << std::endl;
     return false;
   }
 
@@ -130,7 +130,7 @@ bool ASMs2DC1::connectC1 (int edge, ASMs2DC1* neighbor, int nedge, bool revers)
     if (neighbor->myMLGN[node-1] == myMLGN[slave-1])
     {
       for (unsigned char d = 1; d <= nf; d++)
-	this->add3PC(MLGN[slave-1],d,neighbor->MLGN[master1-1],MLGN[master2-1]);
+        this->add3PC(MLGN[slave-1],d,neighbor->MLGN[master1-1],MLGN[master2-1]);
       neighbors[neighbor->MLGN[master1-1]] = neighbor;
       neighbors[MLGN[master2-1]] = this;
     }
@@ -151,19 +151,19 @@ void ASMs2DC1::closeEdges (int dir, int, int)
     case 1: // Edges are closed in I-direction
       for (int i2 = 1; i2 <= n2; i2++, master += n1)
       {
-	this->makePeriodic(master,master+n1-1);
-	for (unsigned char d = 1; d <= nf && n1 > 3; d++)
-	  this->add3PC(MLGN[master-1],d,MLGN[master],MLGN[master+n1-3]);
+        this->makePeriodic(master,master+n1-1);
+        for (unsigned char d = 1; d <= nf && n1 > 3; d++)
+          this->add3PC(MLGN[master-1],d,MLGN[master],MLGN[master+n1-3]);
       }
       break;
 
     case 2: // Edges are closed in J-direction
       for (int i1 = 1; i1 <= n1; i1++, master++)
       {
-	this->makePeriodic(master,master+n1*(n2-1));
-	for (unsigned char d = 1; d <= nf && n2 > 3; d++)
-	  this->add3PC(MLGN[master-1],d,MLGN[master+n1-1],
-		       MLGN[master+n1*(n2-2)-1]);
+        this->makePeriodic(master,master+n1*(n2-1));
+        for (unsigned char d = 1; d <= nf && n2 > 3; d++)
+          this->add3PC(MLGN[master-1],d,MLGN[master+n1-1],
+                       MLGN[master+n1*(n2-2)-1]);
       }
       break;
     }
@@ -182,19 +182,19 @@ void ASMs2DC1::constrainEdge (int dir, bool open, int dof, int code, char)
     case -1: // Left edge (negative I-direction)
       for (int i2 = 1; i2 <= n2; i2++, node += n1)
       {
-	if (open && (i2 == 1 || i2 == n2))
-	  continue; // Skip the end points
-	else if (dof%100)
-	  this->prescribe(node,dof%100,code);
-	if (dof >= 100)
-	{
-	  if (dof%100 && code == 0)
-	    // The edge is clamped, fix the neighboring node line
-	    this->prescribe(node-dir,dof/100,0);
-	  else
-	    // The edge has a prescribed rotation, add an MPC for that
-	    this->add2PC(MLGN[node-dir-1],dof/100,MLGN[node-1],code);
-	}
+        if (open && (i2 == 1 || i2 == n2))
+          continue; // Skip the end points
+        else if (dof%100)
+          this->prescribe(node,dof%100,code);
+        if (dof >= 100)
+        {
+          if (dof%100 && code == 0)
+            // The edge is clamped, fix the neighboring node line
+            this->prescribe(node-dir,dof/100,0);
+          else
+            // The edge has a prescribed rotation, add an MPC for that
+            this->add2PC(MLGN[node-dir-1],dof/100,MLGN[node-1],code);
+        }
       }
       break;
 
@@ -203,19 +203,19 @@ void ASMs2DC1::constrainEdge (int dir, bool open, int dof, int code, char)
     case -2: // Front edge (negative J-direction)
       for (int i1 = 1; i1 <= n1; i1++, node++)
       {
-	if (open && (i1 == 1 || i1 == n1))
-	  continue; // Skip the end points
-	else if (dof%100)
-	  this->prescribe(node,dof%100,code);
-	if (dof >= 100)
-	{
-	  if (dof%100 && code == 0)
-	    // Edge is clamped, fix the neighboring node line
-	    this->prescribe(node-n1*dir/2,dof/100,0);
-	  else
-	    // The edge has a prescribed rotation, add an MPC for that
-	    this->add2PC(MLGN[node-n1*dir/2-1],MLGN[node-1],dof/100,code);
-	}
+        if (open && (i1 == 1 || i1 == n1))
+          continue; // Skip the end points
+        else if (dof%100)
+          this->prescribe(node,dof%100,code);
+        if (dof >= 100)
+        {
+          if (dof%100 && code == 0)
+            // Edge is clamped, fix the neighboring node line
+            this->prescribe(node-n1*dir/2,dof/100,0);
+          else
+            // The edge has a prescribed rotation, add an MPC for that
+            this->add2PC(MLGN[node-n1*dir/2-1],MLGN[node-1],dof/100,code);
+        }
       }
       break;
     }
@@ -276,8 +276,8 @@ void ASMs2DC1::renumberNodes (const std::map<int,int>& old2new)
     if (it->first != it->second)
       if ((nit = neighbors.find(it->first)) != neighbors.end())
       {
-	neighbors[it->second] = nit->second;
-	neighbors.erase(nit);
+        neighbors[it->second] = nit->second;
+        neighbors.erase(nit);
       }
 }
 
@@ -408,42 +408,42 @@ bool ASMs2DC1::initConstraints ()
       size_t inod = this->getNodeIndex((*sit)->getSlave().node);
       for (size_t m = 0; m < nMaster && inod > 0; m++)
       {
-	X[m] = mpch->getCoord(inod);
-	inod = (*sit)->getMaster(m).node;
-	npit = neighbors.find(inod);
-	mpch = npit == neighbors.end() ? this : npit->second;
-	inod = mpch->getNodeIndex(inod);
+        X[m] = mpch->getCoord(inod);
+        inod = (*sit)->getMaster(m).node;
+        npit = neighbors.find(inod);
+        mpch = npit == neighbors.end() ? this : npit->second;
+        inod = mpch->getNodeIndex(inod);
       }
       if (inod > 0)
-	X.back() = mpch->getCoord(inod);
+        X.back() = mpch->getCoord(inod);
       else
       {
-	std::cerr <<" *** ASMs2DC1::initConstraints: Failed to initialize "
-		  << **sit <<"     MPC masters:";
-	for (npit = neighbors.begin(); npit != neighbors.end(); npit++)
-	  std::cerr <<" "<< npit->first;
-	std::cerr << std::endl;
-	return false;
+        std::cerr <<" *** ASMs2DC1::initConstraints: Failed to initialize "
+                  << **sit <<"     MPC masters:";
+        for (npit = neighbors.begin(); npit != neighbors.end(); npit++)
+          std::cerr <<" "<< npit->first;
+        std::cerr << std::endl;
+        return false;
       }
 
       switch (nMaster)
-	{
-	case 1:
-	  break;
-	case 2:
-	  initMPC2(*sit,X);
-	  break;
-	case 3:
-	  initMPC3(*sit,X);
-	  break;
-	case 4:
-	  if (initMPC4flat(*sit,X))
-	    break;
-	default:
-	  std::cerr <<" *** ASMs2DC1::initConstraints: Corner point with "
-		    << nMaster << " connections not supported."<< std::endl;
-	  return false;
-	}
+        {
+        case 1:
+          break;
+        case 2:
+          initMPC2(*sit,X);
+          break;
+        case 3:
+          initMPC3(*sit,X);
+          break;
+        case 4:
+          if (initMPC4flat(*sit,X))
+            break;
+        default:
+          std::cerr <<" *** ASMs2DC1::initConstraints: Corner point with "
+                    << nMaster << " connections not supported."<< std::endl;
+          return false;
+        }
     }
 
   return true;
@@ -451,7 +451,7 @@ bool ASMs2DC1::initConstraints ()
 
 
 bool ASMs2DC1::updateDirichlet (const std::map<int,RealFunc*>& func,
-				const std::map<int,VecFunc*>& vfunc,
+                                const std::map<int,VecFunc*>& vfunc,
                                 double time, const std::map<int,int>* g2l)
 {
   neighbors.clear();
@@ -473,14 +473,14 @@ bool ASMs2DC1::updateDirichlet (const std::map<int,RealFunc*>& func,
       double theta = 0.0;
       Vec4 X(this->getCoord(jnod),time);
       if ((fit = func.find(cit->second)) != func.end())
-	theta = (*fit->second)(X);
+        theta = (*fit->second)(X);
       else if ((vfit = vfunc.find(cit->second)) != vfunc.end())
-	theta = (*vfit->second)(X)[cit->first->getSlave().dof-1];
+        theta = (*vfit->second)(X)[cit->first->getSlave().dof-1];
       else
       {
-	std::cerr <<" *** ASMs2DC1::updateDirichlet: Code "<< cit->second
-		  <<" is not associated with any function."<< std::endl;
-	return false;
+        std::cerr <<" *** ASMs2DC1::updateDirichlet: Code "<< cit->second
+                  <<" is not associated with any function."<< std::endl;
+        return false;
       }
       // Update the slave coefficient, s = |X_j-X_i|*tan(theta)
       cit->first->setSlaveCoeff((this->getCoord(inod) - X).length()*tan(theta));

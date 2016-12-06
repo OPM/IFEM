@@ -103,14 +103,14 @@ void ASMs3DmxLag::initMADOF (const int* sysMadof)
 
 
 void ASMs3DmxLag::extractNodeVec (const Vector& globRes, Vector& nodeVec,
-				  unsigned char, int basis) const
+                                  unsigned char, int basis) const
 {
   this->extractNodeVecMx(globRes,nodeVec,basis);
 }
 
 
 bool ASMs3DmxLag::getSolution (Matrix& sField, const Vector& locSol,
-			       const IntVec& nodes) const
+                               const IntVec& nodes) const
 {
   return this->getSolutionMx(sField,locSol,nodes);
 }
@@ -131,7 +131,7 @@ bool ASMs3DmxLag::generateFEMTopology ()
   if (p1 < 2 || p2 < 2 || p3 < 2)
   {
     std::cerr <<" *** ASMs3DmxLag::generateFEMTopology: Too low order "<< p1
-	      <<","<< p2 <<","<< p3 <<" for the second basis."<< std::endl;
+              <<","<< p2 <<","<< p3 <<" for the second basis."<< std::endl;
     return false;
   }
 
@@ -174,7 +174,7 @@ bool ASMs3DmxLag::generateFEMTopology ()
   for (size_t i3 = 0; i3 < nzx[1]; i3++)
     for (size_t i2 = 0; i2 < nyx[1]; i2++)
       for (size_t i1 = 0; i1 < nxx[1]; i1++)
-	myMLGN.push_back(++gNod);
+        myMLGN.push_back(++gNod);
 
   // Number of elements in each direction
   const int nelx = (nxx[1]-1)/(p1-1);
@@ -187,27 +187,27 @@ bool ASMs3DmxLag::generateFEMTopology ()
     for (j = 0; j < nely; j++)
       for (i = 0; i < nelx; i++, iel++)
       {
-	size_t nen1 = myMNPC[iel].size();
-	myMNPC[iel].resize(nen1+p1*p2*p3);
+        size_t nen1 = myMNPC[iel].size();
+        myMNPC[iel].resize(nen1+p1*p2*p3);
 
-	// First node in current element
-	int corner = nb[0] + (p3-1)*nxx[1]*nyx[1]*k + (p2-1)*nxx[1]*j + (p1-1)*i;
+        // First node in current element
+        int corner = nb[0] + (p3-1)*nxx[1]*nyx[1]*k + (p2-1)*nxx[1]*j + (p1-1)*i;
 
-	for (size_t c = 0; c < p3; c++)
-	{
-	  int cornod = nen1 + p1*p2*c;
-	  myMNPC[iel][cornod] = corner + nxx[1]*nyx[1]*c;
-	  for (size_t b = 1; b < p2; b++)
-	  {
-	    int facenod = cornod + p1*b;
-	    myMNPC[iel][facenod] = myMNPC[iel][cornod] + nxx[1]*b;
-	    for (size_t a = 1; a < p1; a++)
-	    {
-	      myMNPC[iel][facenod+a] = myMNPC[iel][facenod] + a;
-	      myMNPC[iel][cornod+a]  = myMNPC[iel][cornod] + a;
-	    }
-	  }
-	}
+        for (size_t c = 0; c < p3; c++)
+        {
+          int cornod = nen1 + p1*p2*c;
+          myMNPC[iel][cornod] = corner + nxx[1]*nyx[1]*c;
+          for (size_t b = 1; b < p2; b++)
+          {
+            int facenod = cornod + p1*b;
+            myMNPC[iel][facenod] = myMNPC[iel][cornod] + nxx[1]*b;
+            for (size_t a = 1; a < p1; a++)
+            {
+              myMNPC[iel][facenod+a] = myMNPC[iel][facenod] + a;
+              myMNPC[iel][cornod+a]  = myMNPC[iel][cornod] + a;
+            }
+          }
+        }
       }
 
   return true;
@@ -215,7 +215,7 @@ bool ASMs3DmxLag::generateFEMTopology ()
 
 
 bool ASMs3DmxLag::connectPatch (int face, ASMs3D& neighbor,
-				int nface, int norient)
+                                int nface, int norient)
 {
   ASMs3DmxLag* neighMx = dynamic_cast<ASMs3DmxLag*>(&neighbor);
   if (!neighMx) return false;
@@ -264,8 +264,8 @@ bool ASMs3DmxLag::getSize (int& n1, int& n2, int& n3, int basis) const
 
 
 bool ASMs3DmxLag::integrate (Integrand& integrand,
-			     GlobalIntegral& glInt,
-			     const TimeDomain& time)
+                             GlobalIntegral& glInt,
+                             const TimeDomain& time)
 {
   if (!svol) return true; // silently ignore empty patches
 
@@ -309,7 +309,7 @@ bool ASMs3DmxLag::integrate (Integrand& integrand,
 
         // Set up control point coordinates for current element
         if (!this->getElementCoordinates(Xnod,++iel))
-	{
+        {
           ok = false;
           break;
         }
@@ -386,8 +386,8 @@ bool ASMs3DmxLag::integrate (Integrand& integrand,
 
 
 bool ASMs3DmxLag::integrate (Integrand& integrand, int lIndex,
-			     GlobalIntegral& glInt,
-			     const TimeDomain& time)
+                             GlobalIntegral& glInt,
+                             const TimeDomain& time)
 {
   if (!svol) return true; // silently ignore empty patches
 
@@ -395,7 +395,7 @@ bool ASMs3DmxLag::integrate (Integrand& integrand, int lIndex,
   if ((tit = threadGroupsFace.find(lIndex)) == threadGroupsFace.end())
   {
     std::cerr <<" *** ASMs3DLag::integrate: No thread groups for face "<< lIndex
-	      << std::endl;
+              << std::endl;
     return false;
   }
   const ThreadGroups& threadGrp = tit->second;
@@ -445,17 +445,17 @@ bool ASMs3DmxLag::integrate (Integrand& integrand, int lIndex,
         int i2  = (iel / nel1) % nel2;
         int i3  =  iel / (nel1*nel2);
 
-	// Set up control point coordinates for current element
-	if (!this->getElementCoordinates(Xnod,++iel))
+        // Set up control point coordinates for current element
+        if (!this->getElementCoordinates(Xnod,++iel))
         {
           ok = false;
           break;
         }
 
-	// Initialize element quantities
-	fe.iel = MLGE[iel-1];
+        // Initialize element quantities
+        fe.iel = MLGE[iel-1];
         LocalIntegral* A = integrand.getLocalIntegral(elem_size,fe.iel,true);
-	if (!integrand.initElementBou(MNPC[iel-1],elem_size,nb,*A))
+        if (!integrand.initElementBou(MNPC[iel-1],elem_size,nb,*A))
         {
           A->destruct();
           ok = false;
@@ -473,51 +473,51 @@ bool ASMs3DmxLag::integrate (Integrand& integrand, int lIndex,
         }
 
 
-	// --- Integration loop over all Gauss points in each direction --------
+        // --- Integration loop over all Gauss points in each direction --------
 
         int jp = (j2*nf1 + j1)*nGauss*nGauss;
         fe.iGP = firstp + jp; // Global integration point counter
 
-	for (int j = 0; j < nGauss; j++)
-	  for (int i = 0; i < nGauss; i++, fe.iGP++)
-	  {
-	    // Gauss point coordinates on the face
-	    xi[t0-1] = faceDir < 0 ? -1.0 : 1.0;
-	    xi[t1-1] = xg[i];
-	    xi[t2-1] = xg[j];
+        for (int j = 0; j < nGauss; j++)
+          for (int i = 0; i < nGauss; i++, fe.iGP++)
+          {
+            // Gauss point coordinates on the face
+            xi[t0-1] = faceDir < 0 ? -1.0 : 1.0;
+            xi[t1-1] = xg[i];
+            xi[t2-1] = xg[j];
 
-	    // Compute the basis functions and their derivatives, using
-	    // tensor product of one-dimensional Lagrange polynomials
+            // Compute the basis functions and their derivatives, using
+            // tensor product of one-dimensional Lagrange polynomials
             for (size_t b = 0; b < nxx.size(); ++b)
               if (!Lagrange::computeBasis(fe.basis(b+1), dNxdu[b],elem_sizes[b][0],xi[0],
                                           elem_sizes[b][1],xi[1],elem_sizes[b][2],xi[2]))
                 ok = false;
 
-	    // Compute basis function derivatives and the edge normal
-	    fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(geoBasis),Xnod,dNxdu[geoBasis-1],t1,t2);
-	    if (fe.detJxW == 0.0) continue; // skip singular points
+            // Compute basis function derivatives and the edge normal
+            fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(geoBasis),Xnod,dNxdu[geoBasis-1],t1,t2);
+            if (fe.detJxW == 0.0) continue; // skip singular points
             for (size_t b = 0; b < nxx.size(); ++b)
               if (b != (size_t)geoBasis-1)
                 fe.grad(b+1).multiply(dNxdu[b],Jac);
 
-	    if (faceDir < 0) normal *= -1.0;
+            if (faceDir < 0) normal *= -1.0;
 
-	    // Cartesian coordinates of current integration point
-	    X = Xnod * fe.basis(geoBasis);
-	    X.t = time.t;
+            // Cartesian coordinates of current integration point
+            X = Xnod * fe.basis(geoBasis);
+            X.t = time.t;
 
-	    // Evaluate the integrand and accumulate element contributions
-	    fe.detJxW *= wg[i]*wg[j];
-	    if (!integrand.evalBouMx(*A,fe,time,X,normal))
+            // Evaluate the integrand and accumulate element contributions
+            fe.detJxW *= wg[i]*wg[j];
+            if (!integrand.evalBouMx(*A,fe,time,X,normal))
               ok = false;
-	  }
+          }
 
         // Finalize the element quantities
         if (ok && !integrand.finalizeElementBou(*A,fe,time))
           ok = false;
 
-	// Assembly of global system integral
-	if (ok && !glInt.assemble(A->ref(),fe.iel))
+        // Assembly of global system integral
+        if (ok && !glInt.assemble(A->ref(),fe.iel))
           ok = false;
 
         A->destruct();
@@ -556,7 +556,7 @@ bool ASMs3DmxLag::evalSolution (Matrix& sField, const Vector& locSol,
 
 
 bool ASMs3DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
-				const RealArray*, bool) const
+                                const RealArray*, bool) const
 {
   sField.resize(0,0);
   if (!svol) return false;
@@ -599,17 +599,17 @@ bool ASMs3DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     size_t i, j, k, loc = 0;
     for (k = 0; k < p3; k++)
       for (j = 0; j < p2; j++)
-	for (i = 0; i < p1; i++, loc++)
-	{
-	  fe.xi   = -1.0 + i*incx;
-	  fe.eta  = -1.0 + j*incy;
-	  fe.zeta = -1.0 + k*incz;
+        for (i = 0; i < p1; i++, loc++)
+        {
+          fe.xi   = -1.0 + i*incx;
+          fe.eta  = -1.0 + j*incy;
+          fe.zeta = -1.0 + k*incz;
           for (size_t b = 0; b < nxx.size(); ++b)
             if (!Lagrange::computeBasis(fe.basis(b+1),dNxdu[b],elem_sizes[b][0],fe.xi,
                                         elem_sizes[b][1],fe.eta,elem_sizes[b][2],fe.zeta))
               return false;
 
-	  // Compute the Jacobian inverse
+          // Compute the Jacobian inverse
           fe.detJxW = utl::Jacobian(Jac,fe.grad(geoBasis),Xnod,dNxdu[geoBasis-1]);
 
           for (size_t b = 1; b <= nxx.size(); b++)
@@ -621,17 +621,17 @@ bool ASMs3DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
                 fe.grad(b).multiply(dNxdu[b-1],Jac);
             }
 
-	  // Now evaluate the solution field
-	  if (!integrand.evalSol(solPt,fe,Xnod*fe.basis(geoBasis),MNPC[iel-1],elem_size,nb))
-	    return false;
-	  else if (sField.empty())
-	    sField.resize(solPt.size(),nPoints,true);
+          // Now evaluate the solution field
+          if (!integrand.evalSol(solPt,fe,Xnod*fe.basis(geoBasis),MNPC[iel-1],elem_size,nb))
+            return false;
+          else if (sField.empty())
+            sField.resize(solPt.size(),nPoints,true);
 
-	  if (++check[mnpc1[loc]] == 1)
-	    globSolPt[mnpc1[loc]] = solPt;
-	  else
-	    globSolPt[mnpc1[loc]] += solPt;
-	}
+          if (++check[mnpc1[loc]] == 1)
+            globSolPt[mnpc1[loc]] = solPt;
+          else
+            globSolPt[mnpc1[loc]] += solPt;
+        }
   }
 
   for (size_t i = 0; i < nPoints; i++)

@@ -101,14 +101,14 @@ void ASMs2DmxLag::initMADOF (const int* sysMadof)
 
 
 void ASMs2DmxLag::extractNodeVec (const Vector& globRes, Vector& nodeVec,
-				  unsigned char, int basis) const
+                                  unsigned char, int basis) const
 {
   this->extractNodeVecMx(globRes,nodeVec,basis);
 }
 
 
 bool ASMs2DmxLag::getSolution (Matrix& sField, const Vector& locSol,
-			       const IntVec& nodes) const
+                               const IntVec& nodes) const
 {
   return this->getSolutionMx(sField,locSol,nodes);
 }
@@ -128,7 +128,7 @@ bool ASMs2DmxLag::generateFEMTopology ()
   if (p1 < 2 || p2 < 2)
   {
     std::cerr <<" *** ASMs2DmxLag::generateFEMTopology: Too low order "
-	      << p1 <<","<< p2 <<" for the second basis."<< std::endl;
+              << p1 <<","<< p2 <<" for the second basis."<< std::endl;
     return false;
   }
 
@@ -183,10 +183,10 @@ bool ASMs2DmxLag::generateFEMTopology ()
 
       for (size_t b = 0; b < p2; b++)
       {
-	int facenod = nen1 + b*p1;
-	myMNPC[iel][facenod] = corner + b*nxx[1];
-	for (size_t a = 1; a < p1; a++)
-	  myMNPC[iel][facenod+a] = myMNPC[iel][facenod] + a;
+        int facenod = nen1 + b*p1;
+        myMNPC[iel][facenod] = corner + b*nxx[1];
+        for (size_t a = 1; a < p1; a++)
+          myMNPC[iel][facenod+a] = myMNPC[iel][facenod] + a;
       }
     }
 
@@ -195,7 +195,7 @@ bool ASMs2DmxLag::generateFEMTopology ()
 
 
 bool ASMs2DmxLag::connectPatch (int edge, ASMs2D& neighbor,
-				int nedge, bool revers)
+                                int nedge, bool revers)
 {
   ASMs2DmxLag* neighMx = dynamic_cast<ASMs2DmxLag*>(&neighbor);
   if (!neighMx) return false;
@@ -237,8 +237,8 @@ bool ASMs2DmxLag::getSize (int& n1, int& n2, int basis) const
 
 
 bool ASMs2DmxLag::integrate (Integrand& integrand,
-			     GlobalIntegral& glInt,
-			     const TimeDomain& time)
+                             GlobalIntegral& glInt,
+                             const TimeDomain& time)
 {
   if (!surf) return true; // silently ignore empty patches
 
@@ -351,8 +351,8 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
 
 
 bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
-			     GlobalIntegral& glInt,
-			     const TimeDomain& time)
+                             GlobalIntegral& glInt,
+                             const TimeDomain& time)
 {
   if (!surf) return true; // silently ignore empty patches
 
@@ -394,12 +394,12 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
       // Skip elements that are not on current boundary edge
       bool skipMe = false;
       switch (edgeDir)
-	{
-	case -1: if (i1 > 0)      skipMe = true; break;
-	case  1: if (i1 < nelx-1) skipMe = true; break;
-	case -2: if (i2 > 0)      skipMe = true; break;
-	case  2: if (i2 < nely-1) skipMe = true; break;
-	}
+        {
+        case -1: if (i1 > 0)      skipMe = true; break;
+        case  1: if (i1 < nelx-1) skipMe = true; break;
+        case -2: if (i2 > 0)      skipMe = true; break;
+        case  2: if (i2 < nely-1) skipMe = true; break;
+        }
       if (skipMe) continue;
 
       // Set up control point coordinates for current element
@@ -417,34 +417,34 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
 
       for (int i = 0; i < nGauss && ok; i++, fe.iGP++)
       {
-	// Gauss point coordinates along the edge
-	xi[t1-1] = edgeDir < 0 ? -1.0 : 1.0;
-	xi[t2-1] = xg[i];
+        // Gauss point coordinates along the edge
+        xi[t1-1] = edgeDir < 0 ? -1.0 : 1.0;
+        xi[t2-1] = xg[i];
 
-	// Compute the basis functions and their derivatives, using
-	// tensor product of one-dimensional Lagrange polynomials
+        // Compute the basis functions and their derivatives, using
+        // tensor product of one-dimensional Lagrange polynomials
         for (size_t b = 0; b < nxx.size(); ++b)
           if (!Lagrange::computeBasis(fe.basis(b+1),dNxdu[b],elem_sizes[b][0],xi[0],
                                       elem_sizes[b][1],xi[1]))
             ok = false;
 
-	// Compute basis function derivatives and the edge normal
-	fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(geoBasis),Xnod,dNxdu[geoBasis-1],t1,t2);
-	if (fe.detJxW == 0.0) continue; // skip singular points
+        // Compute basis function derivatives and the edge normal
+        fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(geoBasis),Xnod,dNxdu[geoBasis-1],t1,t2);
+        if (fe.detJxW == 0.0) continue; // skip singular points
         for (size_t b = 0; b < nxx.size(); ++b)
           if (b != (size_t)geoBasis-1)
             fe.grad(b+1).multiply(dNxdu[b],Jac);
 
-	if (edgeDir < 0) normal *= -1.0;
+        if (edgeDir < 0) normal *= -1.0;
 
-	// Cartesian coordinates of current integration point
-	X = Xnod * fe.basis(geoBasis);
-	X.t = time.t;
+        // Cartesian coordinates of current integration point
+        X = Xnod * fe.basis(geoBasis);
+        X.t = time.t;
 
-	// Evaluate the integrand and accumulate element contributions
-	fe.detJxW *= wg[i];
-	if (ok && !integrand.evalBouMx(*A,fe,time,X,normal))
-	  ok = false;
+        // Evaluate the integrand and accumulate element contributions
+        fe.detJxW *= wg[i];
+        if (ok && !integrand.evalBouMx(*A,fe,time,X,normal))
+          ok = false;
       }
 
       // Finalize the element quantities
@@ -453,7 +453,7 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
 
       // Assembly of global system integral
       if (ok && !glInt.assemble(A->ref(),fe.iel))
-	ok = false;
+        ok = false;
 
       A->destruct();
 
@@ -491,7 +491,7 @@ bool ASMs2DmxLag::evalSolution (Matrix& sField, const Vector& locSol,
 
 
 bool ASMs2DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
-				const RealArray*, bool) const
+                                const RealArray*, bool) const
 {
   sField.resize(0,0);
   if (!surf) return false;
@@ -532,14 +532,14 @@ bool ASMs2DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     for (j = 0; j < p2; j++)
       for (i = 0; i < p1; i++, loc++)
       {
-	double xi  = -1.0 + i*incx;
-	double eta = -1.0 + j*incy;
+        double xi  = -1.0 + i*incx;
+        double eta = -1.0 + j*incy;
         for (size_t b = 0; b < nxx.size(); ++b)
           if (!Lagrange::computeBasis(fe.basis(b+1),dNxdu[b],elem_sizes[b][0],xi,
                                       elem_sizes[b][1],eta))
-	  return false;
+          return false;
 
-	// Compute the Jacobian inverse
+        // Compute the Jacobian inverse
         fe.detJxW = utl::Jacobian(Jac,fe.grad(geoBasis),Xnod,dNxdu[geoBasis-1]);
 
         for (size_t b = 1; b <= nxx.size(); b++)
@@ -551,16 +551,16 @@ bool ASMs2DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
               fe.grad(b).multiply(dNxdu[b-1],Jac);
           }
 
-	// Now evaluate the solution field
-	if (!integrand.evalSol(solPt,fe,Xnod*fe.basis(geoBasis),MNPC[iel-1],elem_size,nb))
-	  return false;
-	else if (sField.empty())
-	  sField.resize(solPt.size(),nPoints,true);
+        // Now evaluate the solution field
+        if (!integrand.evalSol(solPt,fe,Xnod*fe.basis(geoBasis),MNPC[iel-1],elem_size,nb))
+          return false;
+        else if (sField.empty())
+          sField.resize(solPt.size(),nPoints,true);
 
-	if (++check[mnpc1[loc]] == 1)
-	  globSolPt[mnpc1[loc]] = solPt;
-	else
-	  globSolPt[mnpc1[loc]] += solPt;
+        if (++check[mnpc1[loc]] == 1)
+          globSolPt[mnpc1[loc]] = solPt;
+        else
+          globSolPt[mnpc1[loc]] += solPt;
       }
   }
 

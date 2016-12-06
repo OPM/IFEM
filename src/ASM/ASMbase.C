@@ -32,7 +32,7 @@ bool ASMbase::fixHomogeneousDirichlet = true;
 static bool Aerror (const char* name)
 {
   std::cerr <<" *** ASMbase::"<< name
-	    <<": Must be implemented in sub-class."<< std::endl;
+            <<": Must be implemented in sub-class."<< std::endl;
   return false;
 }
 
@@ -356,15 +356,15 @@ public:
   {
     if (bc.node == myNode)
       for (int dof = myDofs; dof > 0; dof /= 10)
-	switch (dof%10)
-	  {
-	  case 1: return bc.CX == 0;
-	  case 2: return bc.CY == 0;
-	  case 3: return bc.CZ == 0;
-	  case 4: return bc.RX == 0;
-	  case 5: return bc.RY == 0;
-	  case 6: return bc.RZ == 0;
-	  }
+        switch (dof%10)
+          {
+          case 1: return bc.CX == 0;
+          case 2: return bc.CY == 0;
+          case 3: return bc.CZ == 0;
+          case 4: return bc.RX == 0;
+          case 5: return bc.RY == 0;
+          case 6: return bc.RZ == 0;
+          }
     return false;
   }
 };
@@ -462,7 +462,7 @@ bool ASMbase::addPeriodicity (size_t master, size_t slave, int dir)
   if (slaveNode < 1 || masterNode < 1)
   {
     std::cerr <<" *** ASMbase::addPeriodicity: Invalid node indices "
-	      << master <<", "<< slave << std::endl;
+              << master <<", "<< slave << std::endl;
     return false;
   }
 
@@ -471,8 +471,8 @@ bool ASMbase::addPeriodicity (size_t master, size_t slave, int dir)
     return true;
 
   std::cerr <<" *** ASMbase::addPeriodicity: Failed to connect nodes "
-	    << masterNode <<" and "<< slaveNode <<" in direction "
-	    << dir << std::endl;
+            << masterNode <<" and "<< slaveNode <<" in direction "
+            << dir << std::endl;
   return false;
 }
 
@@ -615,32 +615,32 @@ void ASMbase::mergeAndGetAllMPCs (const ASMVec& model, MPCSet& allMPCs)
     uniqueMPC.reserve((*it)->getNoMPCs());
     for (MPCIter cit = (*it)->begin_MPC(); cit != (*it)->end_MPC(); cit++)
       if ((ret = allMPCs.insert(*cit)).second)
-	uniqueMPC.push_back(*cit);
+        uniqueMPC.push_back(*cit);
       else
       {
-	// Merge multiple constraint equations with common slave definition
-	if ((*ret.first)->getSlave().coeff == 0.0 &&
-	    (*ret.first)->getNoMaster() > 1 &&
-	    (*ret.first)->merge(*cit))
-	{
+        // Merge multiple constraint equations with common slave definition
+        if ((*ret.first)->getSlave().coeff == 0.0 &&
+            (*ret.first)->getNoMaster() > 1 &&
+            (*ret.first)->merge(*cit))
+        {
 #if SP_DEBUG > 1
-	  std::cout <<"Merging constraint "<< **cit;
-	  std::cout <<"Resulting constraint "<< **ret.first;
+          std::cout <<"Merging constraint "<< **cit;
+          std::cout <<"Resulting constraint "<< **ret.first;
 #endif
-	  nmerged++;
-	}
-	else
-	{
-	  // The found constraint *ret.first is either a prescribed movement
-	  // or a single-master constraint. Such MPCs are not to be merged but
-	  // should superseed any multi-master constraints with matching slave.
+          nmerged++;
+        }
+        else
+        {
+          // The found constraint *ret.first is either a prescribed movement
+          // or a single-master constraint. Such MPCs are not to be merged but
+          // should superseed any multi-master constraints with matching slave.
 #if SP_DEBUG > 1
-	  std::cout <<"Deleted constraint "<< **cit;
+          std::cout <<"Deleted constraint "<< **cit;
 #endif
-	  ndeleted++;
-	}
-	(*it)->dCode.erase(*cit);
-	delete *cit;
+          ndeleted++;
+        }
+        (*it)->dCode.erase(*cit);
+        delete *cit;
       }
 
     if (uniqueMPC.size() < (*it)->getNoMPCs())
@@ -899,7 +899,7 @@ int ASMbase::renumberNodes (const ASMVec& model, std::map<int,int>& old2new)
   if (renum > 0)
     for (it = model.begin(); it != model.end(); it++)
       for (size_t i = 0; i < (*it)->myMLGN.size(); i++)
-	utl::renumber((*it)->myMLGN[i],old2new);
+        utl::renumber((*it)->myMLGN[i],old2new);
 
   return renum;
 }
@@ -933,8 +933,8 @@ bool ASMbase::renumberNodes (const std::map<int,int>& old2new, bool renumNodes)
   if (renumNodes)
     for (size_t j = 0; j < myMLGN.size(); j++)
       if (!utl::renumber(myMLGN[j],old2new,printInvalidNodes))
-	if (old2new.size() > 1)
-	  invalid++;
+        if (old2new.size() > 1)
+          invalid++;
 
   for (BCVec::iterator bit = BCode.begin(); bit != BCode.end();)
     if (utl::renumber(bit->node,old2new,printInvalidNodes))
@@ -1107,20 +1107,20 @@ bool ASMbase::injectNodeVec (const Vector& nodeVec, Vector& globRes,
 
 
 bool ASMbase::getSolution (Matrix& sField, const Vector& locSol,
-			   const IntVec& nodes) const
+                           const IntVec& nodes) const
 {
   sField.resize(nf,nodes.size());
   for (size_t i = 0; i < nodes.size(); i++)
     if (nodes[i] < 1 || (size_t)nodes[i] > MLGN.size())
     {
       std::cerr <<" *** ASMbase::getSolution: Node #"<< nodes[i]
-		<<" is out of range [1,"<< MLGN.size() <<"]."<< std::endl;
+                <<" is out of range [1,"<< MLGN.size() <<"]."<< std::endl;
       return false;
     }
     else if (this->isLMn(nodes[i]))
     {
       std::cerr <<"  ** ASMbase::getSolution: Node #"<< nodes[i]
-		<<" is a Lagrange multiplier, returning 0.0."<< std::endl;
+                <<" is a Lagrange multiplier, returning 0.0."<< std::endl;
       sField.fillColumn(i+1,RealArray(nf,0.0));
     }
     else
@@ -1166,21 +1166,21 @@ bool ASMbase::evalSolution (Matrix&, const Vector&, const int*) const
 
 
 bool ASMbase::evalSolution (Matrix&, const Vector&,
-			    const RealArray*, bool, int) const
+                            const RealArray*, bool, int) const
 {
   return Aerror("evalSolution(Matrix&,const Vector&,const RealArray*,bool,int)");
 }
 
 
 bool ASMbase::evalSolution (Matrix&, const IntegrandBase&,
-			    const int*, char) const
+                            const int*, char) const
 {
   return Aerror("evalSolution(Matrix&,const IntegrandBase&,const int*,char)");
 }
 
 
 bool ASMbase::evalSolution (Matrix&, const IntegrandBase&,
-			    const RealArray*, bool) const
+                            const RealArray*, bool) const
 {
   return Aerror("evalSolution(Matrix&,const IntegrandBase&,const RealArray*)");
 }

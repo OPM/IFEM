@@ -150,7 +150,7 @@ void ASMs3Dmx::initMADOF (const int* sysMadof)
 
 
 void ASMs3Dmx::extractNodeVec (const Vector& globRes, Vector& nodeVec,
-			       unsigned char, int basis) const
+                               unsigned char, int basis) const
 {
   this->extractNodeVecMx(globRes,nodeVec,basis);
 }
@@ -165,7 +165,7 @@ bool ASMs3Dmx::injectNodeVec (const Vector& nodeRes, Vector& globRes,
 
 
 bool ASMs3Dmx::getSolution (Matrix& sField, const Vector& locSol,
-			    const IntVec& nodes) const
+                            const IntVec& nodes) const
 {
   return this->getSolutionMx(sField,locSol,nodes);
 }
@@ -186,10 +186,10 @@ bool ASMs3Dmx::generateFEMTopology ()
   {
     if (nodeInd.size() == std::accumulate(nb.begin(), nb.end(), 0u)) return true;
     std::cerr <<" *** ASMs3Dmx::generateFEMTopology: Inconsistency between the"
-	      <<" number of FE nodes "<< nodeInd.size()
-	      <<"\n     and the number of spline coefficients "
+              <<" number of FE nodes "<< nodeInd.size()
+              <<"\n     and the number of spline coefficients "
               << std::accumulate(nb.begin(), nb.end(), 0)
-	      <<" in the patch."<< std::endl;
+              <<" in the patch."<< std::endl;
     return false;
   }
 
@@ -242,32 +242,32 @@ bool ASMs3Dmx::generateFEMTopology ()
   auto&& addBasis = [&](std::shared_ptr<Go::SplineVolume>& b, bool geo) {
     for (i3 = 1; i3 <= b->numCoefs(2); i3++)
       for (i2 = 1; i2 <= b->numCoefs(1); i2++)
-	for (i1 = 1; i1 <= b->numCoefs(0); i1++, inod++)
-	  if (i1 >= b->order(0) && i2 >= b->order(1) && i3 >= b->order(2))
-	  {
-	    if (b->knotSpan(0,i1-1) > 0.0)
-	      if (b->knotSpan(1,i2-1) > 0.0)
-		if (b->knotSpan(2,i3-1) > 0.0)
-		{
+        for (i1 = 1; i1 <= b->numCoefs(0); i1++, inod++)
+          if (i1 >= b->order(0) && i2 >= b->order(1) && i3 >= b->order(2))
+          {
+            if (b->knotSpan(0,i1-1) > 0.0)
+              if (b->knotSpan(1,i2-1) > 0.0)
+                if (b->knotSpan(2,i3-1) > 0.0)
+                {
                   if (geo)
                     myMLGE[iel] = ++gEl; // global element number over all patches
                   else
                     while (iel < myMNPC.size() && myMNPC[iel].empty()) iel++;
 
-		  int lnod = lnod2;
-		  myMNPC[iel].resize(lnod3,0);
-		  for (j3 = b->order(2)-1; j3 >= 0; j3--)
-		    for (j2 = b->order(1)-1; j2 >= 0; j2--)
-		      for (j1 = b->order(0)-1; j1 >= 0; j1--)
-			myMNPC[iel][lnod++] = inod - b->numCoefs(0)*b->numCoefs(1)*j3 - b->numCoefs(0)*j2 - j1;
+                  int lnod = lnod2;
+                  myMNPC[iel].resize(lnod3,0);
+                  for (j3 = b->order(2)-1; j3 >= 0; j3--)
+                    for (j2 = b->order(1)-1; j2 >= 0; j2--)
+                      for (j1 = b->order(0)-1; j1 >= 0; j1--)
+                        myMNPC[iel][lnod++] = inod - b->numCoefs(0)*b->numCoefs(1)*j3 - b->numCoefs(0)*j2 - j1;
 
                   if (!geo)
                     ++iel;
-		}
+                }
 
             if (geo)
               ++iel;
-	  }
+          }
   };
 
   iel = 0, inod = std::accumulate(nb.begin(),nb.begin()+geoBasis-1,0u);
@@ -341,7 +341,7 @@ bool ASMs3Dmx::getElementCoordinates (Matrix& X, int iel) const
   if (iel < 1 || (size_t)iel > MNPC.size())
   {
     std::cerr <<" *** ASMs3Dmx::getElementCoordinates: Element index "<< iel
-	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
+              <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
     return false;
   }
 #endif
@@ -386,7 +386,7 @@ Vec3 ASMs3Dmx::getCoord (size_t inod) const
   if (inod < 1 || inod > nodeInd.size())
   {
     std::cerr <<" *** ASMs3Dmx::getCoord: Node index "<< inod
-	      <<" out of range [1,"<< nodeInd.size() <<"]."<< std::endl;
+              <<" out of range [1,"<< nodeInd.size() <<"]."<< std::endl;
     return Vec3();
   }
 #endif
@@ -424,8 +424,8 @@ bool ASMs3Dmx::getSize (int& n1, int& n2, int& n3, int basis) const
 
 
 bool ASMs3Dmx::integrate (Integrand& integrand,
-			  GlobalIntegral& glInt,
-			  const TimeDomain& time)
+                          GlobalIntegral& glInt,
+                          const TimeDomain& time)
 {
   if (!svol) return true; // silently ignore empty patches
   if (m_basis.empty()) return false;
@@ -499,7 +499,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
         // Get element volume in the parameter space
         double dV = this->getParametricVolume(++iel);
         if (dV < 0.0) // topology error (probably logic error)
-	{
+        {
           ok = false;
           break;
         }
@@ -614,8 +614,8 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
 
 
 bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
-			  GlobalIntegral& glInt,
-			  const TimeDomain& time)
+                          GlobalIntegral& glInt,
+                          const TimeDomain& time)
 {
   if (!svol) return true; // silently ignore empty patches
   if (m_basis.empty()) return false;
@@ -628,7 +628,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
   if ((tit = threadGroupsFace.find(lIndex)) == threadGroupsFace.end())
   {
     std::cerr <<" *** ASMs3D::integrate: No thread groups for face "<< lIndex
-	      << std::endl;
+              << std::endl;
     return false;
   }
   const ThreadGroups& threadGrp = tit->second;
@@ -710,17 +710,17 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
         int i2 = p2 + (iel / nel1) % nel2;
         int i3 = p3 + iel / (nel1*nel2);
 
-	// Get element face area in the parameter space
-	double dA = this->getParametricArea(++iel,abs(faceDir));
-	if (dA < 0.0) // topology error (probably logic error)
-	{
+        // Get element face area in the parameter space
+        double dA = this->getParametricArea(++iel,abs(faceDir));
+        if (dA < 0.0) // topology error (probably logic error)
+        {
           ok = false;
           break;
         }
 
-	// Set up control point coordinates for current element
-	if (!this->getElementCoordinates(Xnod,iel))
-	{
+        // Set up control point coordinates for current element
+        if (!this->getElementCoordinates(Xnod,iel))
+        {
           ok = false;
           break;
         }
@@ -728,9 +728,9 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
         if (useElmVtx)
           this->getElementCorners(i1-1,i2-1,i3-1,fe.XC);
 
-	// Initialize element quantities
+        // Initialize element quantities
         LocalIntegral* A = integrand.getLocalIntegral(elem_sizes,fe.iel,true);
-	if (!integrand.initElementBou(MNPC[iel-1],elem_sizes,nb,*A))
+        if (!integrand.initElementBou(MNPC[iel-1],elem_sizes,nb,*A))
         {
           A->destruct();
           ok = false;
@@ -748,7 +748,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
         }
 
 
-	// --- Integration loop over all Gauss points in each direction --------
+        // --- Integration loop over all Gauss points in each direction --------
 
         int k1, k2, k3;
         int ip = (j2*nGauss*nf1 + j1)*nGauss;
@@ -811,8 +811,8 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
         if (ok && !integrand.finalizeElementBou(*A,fe,time))
           ok = false;
 
-	// Assembly of global system integral
-	if (ok && !glInt.assemble(A->ref(),fe.iel))
+        // Assembly of global system integral
+        if (ok && !glInt.assemble(A->ref(),fe.iel))
           ok = false;
 
         A->destruct();
@@ -912,7 +912,7 @@ bool ASMs3Dmx::evalSolution (Matrix& sField, const Vector& locSol,
 
 
 bool ASMs3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
-			     const RealArray* gpar, bool regular) const
+                             const RealArray* gpar, bool regular) const
 {
   sField.resize(0,0);
 
@@ -1037,7 +1037,7 @@ double ASMs3Dmx::getParametricVolume (int iel) const
   if (iel < 1 || (size_t)iel > MNPC.size())
   {
     std::cerr <<" *** ASMs3D::getParametricVolume: Element index "<< iel
-	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
+              <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
     return DERR;
   }
 #endif
@@ -1054,7 +1054,7 @@ double ASMs3Dmx::getParametricVolume (int iel) const
   if (inod1 < 0 || (size_t)inod1 >= nnod)
   {
     std::cerr <<" *** ASMs3Dmx::getParametricVolume: Node index "<< inod1
-	      <<" out of range [0,"<< nnod <<">."<< std::endl;
+              <<" out of range [0,"<< nnod <<">."<< std::endl;
     return DERR;
   }
 #endif
@@ -1072,7 +1072,7 @@ double ASMs3Dmx::getParametricArea (int iel, int dir) const
   if (iel < 1 || (size_t)iel > MNPC.size())
   {
     std::cerr <<" *** ASMs3D::getParametricArea: Element index "<< iel
-	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
+              <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
     return DERR;
   }
 #endif
@@ -1089,7 +1089,7 @@ double ASMs3Dmx::getParametricArea (int iel, int dir) const
   if (inod1 < 0 || (size_t)inod1 >= nnod)
   {
     std::cerr <<" *** ASMs3D::getParametricArea: Node index "<< inod1
-	      <<" out of range [0,"<< nnod <<">."<< std::endl;
+              <<" out of range [0,"<< nnod <<">."<< std::endl;
     return DERR;
   }
 #endif
@@ -1105,7 +1105,7 @@ double ASMs3Dmx::getParametricArea (int iel, int dir) const
     }
 
   std::cerr <<" *** ASMs3D::getParametricArea: Invalid face direction "
-	    << dir << std::endl;
+            << dir << std::endl;
   return DERR;
 }
 

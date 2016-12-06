@@ -343,7 +343,7 @@ quasiInterpolation(const Go::BsplineBasis& basis_u,
                                                        tg_pnt, basis_u,
                                                        j+countj, coefs);
                   cv_coefs.insert(cv_coefs.end(), coefs.begin(), coefs.end());
-                }			    
+                }                            
               }//else
               dcount = p+(m-2);
             }//end if multivalue 
@@ -414,7 +414,7 @@ quasiInterpolation(const Go::BsplineBasis& basis_u,
 
     if (count_multipl_knots_v == 0)
     {
-      for (int vi = 0; vi< vi_end;vi++)	
+      for (int vi = 0; vi< vi_end;vi++)        
       {
         std::vector<double> coefs_parts;
         std::vector<double> par_v_parts;
@@ -448,7 +448,7 @@ quasiInterpolation(const Go::BsplineBasis& basis_u,
             terminate = 2*ti+1;
 
             if ( (!(q&1) && !(m&1)) || ( (q&1) && (m&1) ) )
-            {	
+            {        
               int countj=0;
               for (int j= 0; j < (q-m+2)*0.5;j++){
                 std::vector<double> coefs_parts;
@@ -552,7 +552,7 @@ quasiInterpolation(const Go::BsplineBasis& basis_u,
                                                      tg_pnt, basis_v,
                                                      j+countj, sf_coefs_parts);
                 sf_coefs.insert(sf_coefs.end(), sf_coefs_parts.begin(), sf_coefs_parts.end());
-              }		    
+              }                    
             }//else
 
             dcount = q+(m-2);
@@ -743,14 +743,14 @@ quasiInterpolation(const Go::BsplineBasis& basis_u,
 
 static Go::SplineVolume*
 VariationDiminishingSplineApproximation(const Go::BsplineBasis& basis_u,
-					const Go::BsplineBasis& basis_v,
-					const Go::BsplineBasis& basis_w,
-					const RealArray& par_u,
-					const RealArray& par_v,
-					const RealArray& par_w,
-					const RealArray& points,
-					int dimension, bool rational,
-					const RealArray& weights)
+                                        const Go::BsplineBasis& basis_v,
+                                        const Go::BsplineBasis& basis_w,
+                                        const RealArray& par_u,
+                                        const RealArray& par_v,
+                                        const RealArray& par_w,
+                                        const RealArray& points,
+                                        int dimension, bool rational,
+                                        const RealArray& weights)
 {
   // Check input
   ASSERT(par_u.size()*par_v.size()*par_w.size() == points.size()/dimension);

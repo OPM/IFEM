@@ -35,7 +35,7 @@
 
 
 ASMs2Dmx::ASMs2Dmx (unsigned char n_s,
-		    const std::vector<unsigned char>& n_f)
+                    const std::vector<unsigned char>& n_f)
   : ASMs2D(n_s), ASMmxBase(n_f)
 {
 }
@@ -150,14 +150,14 @@ void ASMs2Dmx::initMADOF (const int* sysMadof)
 
 
 void ASMs2Dmx::extractNodeVec (const Vector& globRes, Vector& nodeVec,
-			       unsigned char, int basis) const
+                               unsigned char, int basis) const
 {
   this->extractNodeVecMx(globRes,nodeVec,basis);
 }
 
 
 bool ASMs2Dmx::injectNodeVec (const Vector& nodeRes, Vector& globRes,
-			      unsigned char, int basis) const
+                              unsigned char, int basis) const
 {
   this->injectNodeVecMx(globRes,nodeRes,basis);
   return true;
@@ -165,7 +165,7 @@ bool ASMs2Dmx::injectNodeVec (const Vector& nodeRes, Vector& globRes,
 
 
 bool ASMs2Dmx::getSolution (Matrix& sField, const Vector& locSol,
-			    const IntVec& nodes) const
+                            const IntVec& nodes) const
 {
   return this->getSolutionMx(sField,locSol,nodes);
 }
@@ -186,10 +186,10 @@ bool ASMs2Dmx::generateFEMTopology ()
   {
     if (nodeInd.size() == std::accumulate(nb.begin(), nb.end(), 0u)) return true;
     std::cerr <<" *** ASMs2Dmx::generateFEMTopology: Inconsistency between the"
-	      <<" number of FE nodes "<< nodeInd.size()
-	      <<"\n     and the number of spline coefficients "
+              <<" number of FE nodes "<< nodeInd.size()
+              <<"\n     and the number of spline coefficients "
               << std::accumulate(nb.begin(), nb.end(), 0)
-	      <<" in the patch."<< std::endl;
+              <<" in the patch."<< std::endl;
     return false;
   }
 
@@ -329,7 +329,7 @@ bool ASMs2Dmx::getElementCoordinates (Matrix& X, int iel) const
   if (iel < 1 || (size_t)iel > MNPC.size())
   {
     std::cerr <<" *** ASMs2Dmx::getElementCoordinates: Element index "<< iel
-	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
+              <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
     return false;
   }
 #endif
@@ -421,7 +421,7 @@ double ASMs2Dmx::getParametricArea (int iel) const
   if (iel < 1 || (size_t)iel > MNPC.size())
   {
     std::cerr <<" *** ASMs2Dmx::getParametricArea: Element index "<< iel
-	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
+              <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
     return DERR;
   }
 #endif
@@ -438,7 +438,7 @@ double ASMs2Dmx::getParametricArea (int iel) const
   if (inod1 < 0 || (size_t)inod1 >= nnod)
   {
     std::cerr <<" *** ASMs2Dmx::getParametricArea: Node index "<< inod1
-	      <<" out of range [0,"<< nnod <<">."<< std::endl;
+              <<" out of range [0,"<< nnod <<">."<< std::endl;
     return DERR;
   }
 #endif
@@ -456,7 +456,7 @@ double ASMs2Dmx::getParametricLength (int iel, int dir) const
   if (iel < 1 || (size_t)iel > MNPC.size())
   {
     std::cerr <<" *** ASMs2Dmx::getParametricLength: Element index "<< iel
-	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
+              <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
     return DERR;
   }
 #endif
@@ -473,7 +473,7 @@ double ASMs2Dmx::getParametricLength (int iel, int dir) const
   if (inod1 < 0 || (size_t)inod1 >= nnod)
   {
     std::cerr <<" *** ASMs2Dmx::getParametricLength: Node index "<< inod1
-	      <<" out of range [0,"<< nnod <<">."<< std::endl;
+              <<" out of range [0,"<< nnod <<">."<< std::endl;
     return DERR;
   }
 #endif
@@ -485,14 +485,14 @@ double ASMs2Dmx::getParametricLength (int iel, int dir) const
     }
 
   std::cerr <<" *** ASMs2Dmx::getParametricLength: Invalid edge direction "
-	    << dir << std::endl;
+            << dir << std::endl;
   return DERR;
 }
 
 
 bool ASMs2Dmx::integrate (Integrand& integrand,
-			  GlobalIntegral& glInt,
-			  const TimeDomain& time)
+                          GlobalIntegral& glInt,
+                          const TimeDomain& time)
 {
   if (!surf) return true; // silently ignore empty patches
 
@@ -663,8 +663,8 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
 
 
 bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
-			  GlobalIntegral& glInt,
-			  const TimeDomain& time)
+                          GlobalIntegral& glInt,
+                          const TimeDomain& time)
 {
   if (!surf) return true; // silently ignore empty patches
 
@@ -740,12 +740,12 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
       // Skip elements that are not on current boundary edge
       bool skipMe = false;
       switch (edgeDir)
-	{
-	case -1: if (i1 > p1) skipMe = true; break;
-	case  1: if (i1 < n1) skipMe = true; break;
-	case -2: if (i2 > p2) skipMe = true; break;
-	case  2: if (i2 < n2) skipMe = true; break;
-	}
+        {
+        case -1: if (i1 > p1) skipMe = true; break;
+        case  1: if (i1 < n1) skipMe = true; break;
+        case -2: if (i2 > p2) skipMe = true; break;
+        case  2: if (i2 < n2) skipMe = true; break;
+        }
       if (skipMe) continue;
 
       // Get element edge length in the parameter space
@@ -770,40 +770,40 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
 
       for (int i = 0; i < nGauss && ok; i++, ip++, fe.iGP++)
       {
-	// Parameter values of current integration point
-	if (gpar[0].size() > 1)
-	{
+        // Parameter values of current integration point
+        if (gpar[0].size() > 1)
+        {
           fe.xi = xg[i];
-	  fe.u = gpar[0](i+1,i1-p1+1);
-	}
-	if (gpar[1].size() > 1)
-	{
+          fe.u = gpar[0](i+1,i1-p1+1);
+        }
+        if (gpar[1].size() > 1)
+        {
           fe.eta = xg[i];
-	  fe.v = gpar[1](i+1,i2-p2+1);
-	}
+          fe.v = gpar[1](i+1,i2-p2+1);
+        }
 
-	// Fetch basis function derivatives at current integration point
+        // Fetch basis function derivatives at current integration point
         for (size_t b = 0; b < m_basis.size(); ++b)
           SplineUtils::extractBasis(splinex[b][ip],fe.basis(b+1),dNxdu[b]);
 
-	// Compute Jacobian inverse of the coordinate mapping and
-	// basis function derivatives w.r.t. Cartesian coordinates
+        // Compute Jacobian inverse of the coordinate mapping and
+        // basis function derivatives w.r.t. Cartesian coordinates
         fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(geoBasis),Xnod,dNxdu[geoBasis-1],t1,t2);
-	if (fe.detJxW == 0.0) continue; // skip singular points
+        if (fe.detJxW == 0.0) continue; // skip singular points
         for (size_t b = 0; b < m_basis.size(); ++b)
           if (b != (size_t)geoBasis-1)
             fe.grad(b+1).multiply(dNxdu[b],Jac);
 
-	if (edgeDir < 0) normal *= -1.0;
+        if (edgeDir < 0) normal *= -1.0;
 
-	// Cartesian coordinates of current integration point
-	X = Xnod * fe.basis(geoBasis);
-	X.t = time.t;
+        // Cartesian coordinates of current integration point
+        X = Xnod * fe.basis(geoBasis);
+        X.t = time.t;
 
-	// Evaluate the integrand and accumulate element contributions
-	fe.detJxW *= 0.5*dS*wg[i];
+        // Evaluate the integrand and accumulate element contributions
+        fe.detJxW *= 0.5*dS*wg[i];
 
-	ok = integrand.evalBouMx(*A,fe,time,X,normal);
+        ok = integrand.evalBouMx(*A,fe,time,X,normal);
       }
 
       // Finalize the element quantities
@@ -812,7 +812,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
 
       // Assembly of global system integral
       if (ok && !glInt.assemble(A->ref(),fe.iel))
-	return false;
+        return false;
 
       A->destruct();
 
@@ -907,7 +907,7 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const Vector& locSol,
 
 
 bool ASMs2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
-			     const RealArray* gpar, bool regular) const
+                             const RealArray* gpar, bool regular) const
 {
   sField.resize(0,0);
 

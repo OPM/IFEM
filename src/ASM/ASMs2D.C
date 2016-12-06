@@ -131,7 +131,7 @@ bool ASMs2D::read (std::istream& is)
   else if (surf->dimension() < 2)
   {
     std::cerr <<" *** ASMs2D::read: Invalid spline surface patch, dim="
-	      << surf->dimension() << std::endl;
+              << surf->dimension() << std::endl;
     delete surf;
     surf = 0;
     return false;
@@ -139,9 +139,9 @@ bool ASMs2D::read (std::istream& is)
   else if (surf->dimension() < nsd)
   {
     std::cerr <<"  ** ASMs2D::read: The dimension of this surface patch "
-	      << surf->dimension() <<" is less than nsd="<< (int)nsd
-	      <<".\n                   Resetting nsd to "<< surf->dimension()
-	      <<" for this patch."<< std::endl;
+              << surf->dimension() <<" is less than nsd="<< (int)nsd
+              <<".\n                   Resetting nsd to "<< surf->dimension()
+              <<" for this patch."<< std::endl;
     nsd = surf->dimension();
   }
 
@@ -355,10 +355,10 @@ bool ASMs2D::refine (int dir, const RealArray& xi)
     ucurr = *(uit++);
     if (ucurr > uprev)
       for (size_t i = 0; i < xi.size(); i++)
-	if (i > 0 && xi[i] < xi[i-1])
-	  return false;
-	else
-	  extraKnots.push_back(ucurr*xi[i] + uprev*(1.0-xi[i]));
+        if (i > 0 && xi[i] < xi[i-1])
+          return false;
+        else
+          extraKnots.push_back(ucurr*xi[i] + uprev*(1.0-xi[i]));
 
     uprev = ucurr;
   }
@@ -386,8 +386,8 @@ bool ASMs2D::uniformRefine (int dir, int nInsert)
     if (ucurr > uprev)
       for (int i = 0; i < nInsert; i++)
       {
-	double xi = (double)(i+1)/(double)(nInsert+1);
-	extraKnots.push_back(ucurr*xi + uprev*(1.0-xi));
+        double xi = (double)(i+1)/(double)(nInsert+1);
+        extraKnots.push_back(ucurr*xi + uprev*(1.0-xi));
       }
     uprev = ucurr;
   }
@@ -615,7 +615,7 @@ bool ASMs2D::connectBasis (int edge, ASMs2D& neighbor, int nedge, bool revers,
   else if (this->isShared() || neighbor.isShared())
   {
     std::cerr <<" *** ASMs2D::connectPatch: Logic error, cannot"
-	      <<" connect a shared patch with an unshared one"<< std::endl;
+              <<" connect a shared patch with an unshared one"<< std::endl;
     return false;
   }
 
@@ -642,7 +642,7 @@ bool ASMs2D::connectBasis (int edge, ASMs2D& neighbor, int nedge, bool revers,
 
     default:
       std::cerr <<" *** ASMs2D::connectPatch: Invalid slave edge "
-		<< edge << std::endl;
+                << edge << std::endl;
       return false;
     }
 
@@ -673,14 +673,14 @@ bool ASMs2D::connectBasis (int edge, ASMs2D& neighbor, int nedge, bool revers,
 
     default:
       std::cerr <<" *** ASMs2D::connectPatch: Invalid master edge "
-		<< nedge << std::endl;
+                << nedge << std::endl;
       return false;
     }
 
   if (n1 != (int)slaveNodes.size())
   {
     std::cerr <<" *** ASMs2D::connectPatch: Non-matching edges, sizes "
-	      << n1 <<" and "<< slaveNodes.size() << std::endl;
+              << n1 <<" and "<< slaveNodes.size() << std::endl;
     return false;
   }
 
@@ -691,9 +691,9 @@ bool ASMs2D::connectBasis (int edge, ASMs2D& neighbor, int nedge, bool revers,
     if (coordCheck && !neighbor.getCoord(node).equal(this->getCoord(slave),xtol))
     {
       std::cerr <<" *** ASMs2D::connectPatch: Non-matching nodes "
-		<< node <<": "<< neighbor.getCoord(node)
-		<<"\n                                          and "
-		<< slave <<": "<< this->getCoord(slave) << std::endl;
+                << node <<": "<< neighbor.getCoord(node)
+                <<"\n                                          and "
+                << slave <<": "<< this->getCoord(slave) << std::endl;
       return false;
     }
     else
@@ -714,12 +714,12 @@ void ASMs2D::closeEdges (int dir, int basis, int master)
     {
     case 1: // Edges are closed in I-direction
       for (int i2 = 1; i2 <= n2; i2++, master += n1)
-	this->makePeriodic(master,master+n1-1);
+        this->makePeriodic(master,master+n1-1);
       break;
 
     case 2: // Edges are closed in J-direction
       for (int i1 = 1; i1 <= n1; i1++, master++)
-	this->makePeriodic(master,master+n1*(n2-1));
+        this->makePeriodic(master,master+n1*(n2-1));
       break;
     }
 }
@@ -756,36 +756,36 @@ void ASMs2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
       node += n1-1;
     case -1: // Left edge (negative I-direction)
       if (!open)
-	this->prescribe(node,dof,bcode);
+        this->prescribe(node,dof,bcode);
       node += n1;
       for (int i2 = 2; i2 < n2; i2++, node += n1)
       {
-	// If the Dirichlet condition is to be projected, add this node to
-	// the set of nodes to receive prescribed value from the projection
-	// **unless this node already has a homogeneous constraint**
-	if (this->prescribe(node,dof,-code) == 0 && code > 0)
-	  dirich.back().nodes.push_back(std::make_pair(i2,node));
+        // If the Dirichlet condition is to be projected, add this node to
+        // the set of nodes to receive prescribed value from the projection
+        // **unless this node already has a homogeneous constraint**
+        if (this->prescribe(node,dof,-code) == 0 && code > 0)
+          dirich.back().nodes.push_back(std::make_pair(i2,node));
       }
       if (!open)
-	this->prescribe(node,dof,bcode);
+        this->prescribe(node,dof,bcode);
       break;
 
     case  2: // Back edge (positive J-direction)
       node += n1*(n2-1);
     case -2: // Front edge (negative J-direction)
       if (!open)
-	this->prescribe(node,dof,bcode);
+        this->prescribe(node,dof,bcode);
       node++;
       for (int i1 = 2; i1 < n1; i1++, node++)
       {
-	// If the Dirichlet condition is to be projected, add this node to
-	// the set of nodes to receive prescribed value from the projection
-	// **unless this node already has a homogeneous constraint**
-	if (this->prescribe(node,dof,-code) == 0 && code > 0)
-	  dirich.back().nodes.push_back(std::make_pair(i1,node));
+        // If the Dirichlet condition is to be projected, add this node to
+        // the set of nodes to receive prescribed value from the projection
+        // **unless this node already has a homogeneous constraint**
+        if (this->prescribe(node,dof,-code) == 0 && code > 0)
+          dirich.back().nodes.push_back(std::make_pair(i1,node));
       }
       if (!open)
-	this->prescribe(node,dof,bcode);
+        this->prescribe(node,dof,bcode);
       break;
     }
 
@@ -797,11 +797,11 @@ void ASMs2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
     {
       std::cout <<"Non-corner boundary nodes:";
       for (size_t i = 0; i < dirich.back().nodes.size(); i++)
-	std::cout <<" ("<< dirich.back().nodes[i].first
-		  <<","<< dirich.back().nodes[i].second
-		  <<")";
+        std::cout <<" ("<< dirich.back().nodes[i].first
+                  <<","<< dirich.back().nodes[i].second
+                  <<")";
       std::cout <<"\nThese nodes will be subjected to Dirichlet projection"
-		<< std::endl;
+                << std::endl;
     }
 #endif
 }
@@ -824,12 +824,12 @@ void ASMs2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
 */
 
 size_t ASMs2D::constrainEdgeLocal (int dir, bool open, int dof, int code,
-				   bool project)
+                                   bool project)
 {
   if (shareFE == 'F')
   {
     std::cerr <<"\n *** ASMs2D::constrainEdgeLocal: Logic error, can not have"
-	      <<" constraints in local CSs for shared patches."<< std::endl;
+              <<" constraints in local CSs for shared patches."<< std::endl;
     return 0;
   }
 
@@ -856,13 +856,13 @@ size_t ASMs2D::constrainEdgeLocal (int dir, bool open, int dof, int code,
   if (gNod < *std::max_element(MLGN.begin(),MLGN.end()))
   {
     std::cerr <<"\n *** ASMs2D::constrainEdgeLocal: Logic error, gNod = "<< gNod
-	      <<" is too small!"<< std::endl;
+              <<" is too small!"<< std::endl;
     return 0;
   }
   if (nf < nsd)
   {
     std::cerr <<"\n *** ASMs2D::constrainEdgeLocal: Not for scalar problems!"
-	      << std::endl;
+              << std::endl;
     return 0;
   }
 
@@ -1081,13 +1081,13 @@ bool ASMs2D::updateDirichlet (const std::map<int,RealFunc*>& func,
     else
     {
       std::cerr <<" *** ASMs2D::updateDirichlet: Code "<< dirich[i].code
-		<<" is not associated with any function."<< std::endl;
+                <<" is not associated with any function."<< std::endl;
       return false;
     }
     if (!dcrv)
     {
       std::cerr <<" *** ASMs2D::updateDirichlet: Projection failure."
-		<< std::endl;
+                << std::endl;
       return false;
     }
 
@@ -1095,23 +1095,23 @@ bool ASMs2D::updateDirichlet (const std::map<int,RealFunc*>& func,
     for (nit = dirich[i].nodes.begin(); nit != dirich[i].nodes.end(); ++nit)
       for (int dofs = dirich[i].dof; dofs > 0; dofs /= 10)
       {
-	int dof = dofs%10;
-	// Find the constraint equation for current (node,dof)
-	MPC pDOF(MLGN[nit->second-1],dof);
-	MPCIter mit = mpcs.find(&pDOF);
-	if (mit == mpcs.end()) continue; // probably a deleted constraint
+        int dof = dofs%10;
+        // Find the constraint equation for current (node,dof)
+        MPC pDOF(MLGN[nit->second-1],dof);
+        MPCIter mit = mpcs.find(&pDOF);
+        if (mit == mpcs.end()) continue; // probably a deleted constraint
 
-	// Find index to the control point value for this (node,dof) in dcrv
-	RealArray::const_iterator cit = dcrv->coefs_begin();
-	if (dcrv->dimension() > 1) // A vector field is specified
-	  cit += (nit->first-1)*dcrv->dimension() + (dof-1);
-	else // A scalar field is specified at this dof
-	  cit += (nit->first-1);
+        // Find index to the control point value for this (node,dof) in dcrv
+        RealArray::const_iterator cit = dcrv->coefs_begin();
+        if (dcrv->dimension() > 1) // A vector field is specified
+          cit += (nit->first-1)*dcrv->dimension() + (dof-1);
+        else // A scalar field is specified at this dof
+          cit += (nit->first-1);
 
-	// Now update the prescribed value in the constraint equation
-	(*mit)->setSlaveCoeff(*cit);
+        // Now update the prescribed value in the constraint equation
+        (*mit)->setSlaveCoeff(*cit);
 #if SP_DEBUG > 1
-	std::cout <<"Updated constraint: "<< **mit;
+        std::cout <<"Updated constraint: "<< **mit;
 #endif
       }
     delete dcrv;
@@ -1131,7 +1131,7 @@ double ASMs2D::getParametricArea (int iel) const
   if (iel < 1 || (size_t)iel > MNPC.size())
   {
     std::cerr <<" *** ASMs2D::getParametricArea: Element index "<< iel
-	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
+              <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
     return DERR;
   }
 #endif
@@ -1143,7 +1143,7 @@ double ASMs2D::getParametricArea (int iel) const
   if (inod1 < 0 || (size_t)inod1 >= nnod)
   {
     std::cerr <<" *** ASMs2D::getParametricArea: Node index "<< inod1
-	      <<" out of range [0,"<< nnod <<">."<< std::endl;
+              <<" out of range [0,"<< nnod <<">."<< std::endl;
     return DERR;
   }
 #endif
@@ -1161,7 +1161,7 @@ double ASMs2D::getParametricLength (int iel, int dir) const
   if (iel < 1 || (size_t)iel > MNPC.size())
   {
     std::cerr <<" *** ASMs2D::getParametricLength: Element index "<< iel
-	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
+              <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
     return DERR;
   }
 #endif
@@ -1173,7 +1173,7 @@ double ASMs2D::getParametricLength (int iel, int dir) const
   if (inod1 < 0 || (size_t)inod1 >= nnod)
   {
     std::cerr <<" *** ASMs2D::getParametricLength: Node index "<< inod1
-	      <<" out of range [0,"<< nnod <<">."<< std::endl;
+              <<" out of range [0,"<< nnod <<">."<< std::endl;
     return DERR;
   }
 #endif
@@ -1185,7 +1185,7 @@ double ASMs2D::getParametricLength (int iel, int dir) const
     }
 
   std::cerr <<" *** ASMs2D::getParametricLength: Invalid edge direction "
-	    << dir << std::endl;
+            << dir << std::endl;
   return DERR;
 }
 
@@ -1196,7 +1196,7 @@ int ASMs2D::coeffInd (size_t inod) const
   if (inod >= nnod)
   {
     std::cerr <<" *** ASMs2D::coeffInd: Node index "<< inod
-	      <<" out of range [0,"<< nnod <<">."<< std::endl;
+              <<" out of range [0,"<< nnod <<">."<< std::endl;
     return -1;
   }
 #endif
@@ -1230,7 +1230,7 @@ bool ASMs2D::getElementCoordinates (Matrix& X, int iel) const
   if (iel < 1 || (size_t)iel > MNPC.size())
   {
     std::cerr <<" *** ASMs2D::getElementCoordinates: Element index "<< iel
-	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
+              <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
     return false;
   }
 #endif
@@ -1267,7 +1267,7 @@ void ASMs2D::getNodalCoordinates (Matrix& X) const
     {
       int ip = (i2*n1 + i1)*surf->dimension();
       for (size_t i = 0; i < nsd; i++)
-	X(i+1,inod) = *(cit+(ip+i));
+        X(i+1,inod) = *(cit+(ip+i));
     }
 }
 
@@ -1280,8 +1280,8 @@ bool ASMs2D::updateCoords (const Vector& displ)
   if (displ.size() != nsd*MLGN.size())
   {
     std::cerr <<" *** ASMs2D::updateCoords: Invalid dimension "
-	      << displ.size() <<" on displacement vector, should be "
-	      << nsd*MLGN.size() << std::endl;
+              << displ.size() <<" on displacement vector, should be "
+              << nsd*MLGN.size() << std::endl;
     return false;
   }
 
@@ -1390,7 +1390,7 @@ size_t ASMs2D::getNoBoundaryElms (char lIndex, char ldim) const
 
 
 const Vector& ASMs2D::getGaussPointParameters (Matrix& uGP, int dir, int nGauss,
-					       const double* xi) const
+                                               const double* xi) const
 {
   int pm1 = (dir == 0 ? surf->order_u() : surf->order_v()) - 1;
   RealArray::const_iterator uit = surf->basis(dir).begin() + pm1;
@@ -1457,8 +1457,8 @@ std::ostream& operator<< (std::ostream& os, const Go::BasisDerivsSf& bder)
 
 
 bool ASMs2D::integrate (Integrand& integrand,
-			GlobalIntegral& glInt,
-			const TimeDomain& time)
+                        GlobalIntegral& glInt,
+                        const TimeDomain& time)
 {
   if (!surf) return true; // silently ignore empty patches
 
@@ -2057,8 +2057,8 @@ bool ASMs2D::integrate (Integrand& integrand,
 
 
 bool ASMs2D::integrate (Integrand& integrand, int lIndex,
-			GlobalIntegral& glInt,
-			const TimeDomain& time)
+                        GlobalIntegral& glInt,
+                        const TimeDomain& time)
 {
   if (!surf) return true; // silently ignore empty patches
 
@@ -2137,12 +2137,12 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
       // Skip elements that are not on current boundary edge
       bool skipMe = false;
       switch (edgeDir)
-	{
-	case -1: if (i1 > p1) skipMe = true; break;
-	case  1: if (i1 < n1) skipMe = true; break;
-	case -2: if (i2 > p2) skipMe = true; break;
-	case  2: if (i2 < n2) skipMe = true; break;
-	}
+        {
+        case -1: if (i1 > p1) skipMe = true; break;
+        case  1: if (i1 < n1) skipMe = true; break;
+        case -2: if (i2 > p2) skipMe = true; break;
+        case  2: if (i2 < n2) skipMe = true; break;
+        }
       if (skipMe) continue;
 
       // Get element edge length in the parameter space
@@ -2174,39 +2174,39 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
 
       for (int i = 0; i < nGP && ok; i++, ip++, fe.iGP++)
       {
-	// Local element coordinates and parameter values
-	// of current integration point
-	if (gpar[0].size() > 1)
-	{
-	  fe.xi = xg[i];
-	  fe.u = gpar[0](i+1,i1-p1+1);
-	}
-	if (gpar[1].size() > 1)
-	{
-	  fe.eta = xg[i];
-	  fe.v = gpar[1](i+1,i2-p2+1);
-	}
+        // Local element coordinates and parameter values
+        // of current integration point
+        if (gpar[0].size() > 1)
+        {
+          fe.xi = xg[i];
+          fe.u = gpar[0](i+1,i1-p1+1);
+        }
+        if (gpar[1].size() > 1)
+        {
+          fe.eta = xg[i];
+          fe.v = gpar[1](i+1,i2-p2+1);
+        }
 
-	// Fetch basis function derivatives at current integration point
-	SplineUtils::extractBasis(spline[ip],fe.N,dNdu);
+        // Fetch basis function derivatives at current integration point
+        SplineUtils::extractBasis(spline[ip],fe.N,dNdu);
 
-	// Compute basis function derivatives and the edge normal
-	fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,Xnod,dNdu,t1,t2);
-	if (fe.detJxW == 0.0) continue; // skip singular points
+        // Compute basis function derivatives and the edge normal
+        fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,Xnod,dNdu,t1,t2);
+        if (fe.detJxW == 0.0) continue; // skip singular points
 
-	if (edgeDir < 0) normal *= -1.0;
+        if (edgeDir < 0) normal *= -1.0;
 
-	// Compute G-matrix
-	if (integrand.getIntegrandType() & Integrand::G_MATRIX)
-	  utl::getGmat(Jac,dXidu,fe.G);
+        // Compute G-matrix
+        if (integrand.getIntegrandType() & Integrand::G_MATRIX)
+          utl::getGmat(Jac,dXidu,fe.G);
 
-	// Cartesian coordinates of current integration point
-	X = Xnod * fe.N;
-	X.t = time.t;
+        // Cartesian coordinates of current integration point
+        X = Xnod * fe.N;
+        X.t = time.t;
 
-	// Evaluate the integrand and accumulate element contributions
-	fe.detJxW *= dS*wg[i];
-	ok = integrand.evalBou(*A,fe,time,X,normal);
+        // Evaluate the integrand and accumulate element contributions
+        fe.detJxW *= dS*wg[i];
+        ok = integrand.evalBou(*A,fe,time,X,normal);
       }
 
       // Finalize the element quantities
@@ -2215,7 +2215,7 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
 
       // Assembly of global system integral
       if (ok && !glInt.assemble(A->ref(),fe.iel))
-	ok = false;
+        ok = false;
 
       A->destruct();
 
@@ -2247,7 +2247,7 @@ bool ASMs2D::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) const
   if (nSegPerSpan < 1)
   {
     std::cerr <<" *** ASMs2D::getGridParameters: Too few knot-span points "
-	      << nSegPerSpan+1 <<" in direction "<< dir << std::endl;
+              << nSegPerSpan+1 <<" in direction "<< dir << std::endl;
     return false;
   }
 
@@ -2258,11 +2258,11 @@ bool ASMs2D::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) const
     ucurr = *(uit++);
     if (ucurr > uprev)
       if (nSegPerSpan == 1)
-	prm.push_back(uprev);
+        prm.push_back(uprev);
       else for (int i = 0; i < nSegPerSpan; i++)
       {
-	double xg = (double)(2*i-nSegPerSpan)/(double)nSegPerSpan;
-	prm.push_back(0.5*(ucurr*(1.0+xg) + uprev*(1.0-xg)));
+        double xg = (double)(2*i-nSegPerSpan)/(double)nSegPerSpan;
+        prm.push_back(0.5*(ucurr*(1.0+xg) + uprev*(1.0-xg)));
       }
     uprev = ucurr;
   }
@@ -2309,7 +2309,7 @@ bool ASMs2D::tesselate (ElementBlock& grid, const int* npe) const
     for (i = ie = 1; i < nx; i++)
     {
       for (l = 0; l < 4; l++)
-	grid.setNode(ip++,n[l]++);
+        grid.setNode(ip++,n[l]++);
       grid.setElmId((j-1)*(nx-1)+i,(je-1)*nel1+ie);
       if (i%nse1 == 0) ie++;
     }
@@ -2321,7 +2321,7 @@ bool ASMs2D::tesselate (ElementBlock& grid, const int* npe) const
 
 
 void ASMs2D::scatterInd (int n1, int n2, int p1, int p2,
-			 const int* start, IntVec& index)
+                         const int* start, IntVec& index)
 {
   index.reserve(p1*p2);
   int ip = ((start[1]-p2+1))*n1 + (start[0]-p1+1);
@@ -2332,7 +2332,7 @@ void ASMs2D::scatterInd (int n1, int n2, int p1, int p2,
 
 
 bool ASMs2D::evalSolution (Matrix& sField, const Vector& locSol,
-			   const int* npe) const
+                           const int* npe) const
 {
   // Compute parameter values of the result sampling points
   std::array<RealArray,2> gpar;
@@ -2446,7 +2446,7 @@ bool ASMs2D::evalSolution (Matrix& sField, const Vector& locSol,
 
 
 bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
-			   const int* npe, char project) const
+                           const int* npe, char project) const
 {
   // Project the secondary solution onto the spline basis
   Go::SplineSurface* s = nullptr;
@@ -2501,7 +2501,7 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
 
 bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
-			   const RealArray* gpar, bool regular) const
+                           const RealArray* gpar, bool regular) const
 {
   sField.resize(0,0);
 

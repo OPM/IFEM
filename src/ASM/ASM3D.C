@@ -55,13 +55,13 @@ ASMbase* ASM3D::create (ASM::Discretization discretization,
 }
 
 
-#define TRY_CLONE1(classType,n) {					\
-    const classType* p = dynamic_cast<const classType*>(this);		\
+#define TRY_CLONE1(classType,n) {                                        \
+    const classType* p = dynamic_cast<const classType*>(this);                \
     if (p) return n.empty() ? new classType(*p) : new classType(*p,n[0]);\
   }
-#define TRY_CLONE2(classType,n) {					\
-    const classType* p = dynamic_cast<const classType*>(this);		\
-    if (p) return n.empty() ? new classType(*p) : new classType(*p,n);	\
+#define TRY_CLONE2(classType,n) {                                        \
+    const classType* p = dynamic_cast<const classType*>(this);                \
+    if (p) return n.empty() ? new classType(*p) : new classType(*p,n);        \
   }
 
 ASMbase* ASM3D::clone (const CharVec& nf) const
