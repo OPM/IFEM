@@ -218,12 +218,14 @@ bool SplineField2D::hessianFE(const FiniteElement& fe, Matrix& H) const
   Matrix dNdu, dNdX;
   IntVec ip;
 #pragma omp critical
-  if (surf == basis) {
+  if (surf == basis)
+  {
     surf->computeBasis(fe.u,fe.v,spline2);
 
     dNdu.resize(nen,2);
     d2Ndu2.resize(nen,2,2);
-    for (size_t n = 1; n <= nen; n++) {
+    for (size_t n = 1; n <= nen; n++)
+    {
       dNdu(n,1) = spline2.basisDerivs_u[n-1];
       dNdu(n,2) = spline2.basisDerivs_v[n-1];
       d2Ndu2(n,1,1) = spline2.basisDerivs_uu[n-1];
@@ -238,7 +240,8 @@ bool SplineField2D::hessianFE(const FiniteElement& fe, Matrix& H) const
     surf->computeBasis(fe.u,fe.v,spline);
 
     dNdu.resize(nen,2);
-    for (size_t n = 1; n <= nen; n++) {
+    for (size_t n = 1; n <= nen; n++)
+    {
       dNdu(n,1) = spline.basisDerivs_u[n-1];
       dNdu(n,2) = spline.basisDerivs_v[n-1];
     }
@@ -263,7 +266,8 @@ bool SplineField2D::hessianFE(const FiniteElement& fe, Matrix& H) const
     const size_t nbf = basis->order_u()*basis->order_v();
     dNdu.resize(nbf,2);
     d2Ndu2.resize(nbf,2,2);
-    for (size_t n = 1; n <= nbf; n++) {
+    for (size_t n = 1; n <= nbf; n++) 
+    {
       dNdu(n,1) = spline2.basisDerivs_u[n-1];
       dNdu(n,2) = spline2.basisDerivs_v[n-1];
       d2Ndu2(n,1,1) = spline2.basisDerivs_uu[n-1];

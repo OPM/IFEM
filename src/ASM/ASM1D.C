@@ -26,7 +26,8 @@ ASMbase* ASM1D::create (ASM::Discretization discretization, unsigned char nf)
 ASMbase* ASM1D::create (ASM::Discretization discretization,
                         unsigned char nd, unsigned char nf)
 {
-  switch (discretization) {
+  switch (discretization)
+  {
   case ASM::SplineC1:
     return new ASMs1DC1(nd,nf);
 

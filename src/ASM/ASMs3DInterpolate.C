@@ -198,7 +198,8 @@ quasiInterpolation(const Go::BsplineBasis& basis_u,
       int knot_intern_multipl;
       knot_intern_multipl = basis_u.knotMultiplicity(knots_simple_u[i]);
       multi_u[i]=knot_intern_multipl;
-      if (knot_intern_multipl > 1) {
+      if (knot_intern_multipl > 1)
+      {
         multi_idx_u[i]=1;
         multi_value_u = knots_simple_u[i];
       } else
@@ -213,8 +214,10 @@ quasiInterpolation(const Go::BsplineBasis& basis_u,
       pnts.insert(pnts.end(), points2.begin()+(kj*par_v.size()+ki)*perknot*par_u.size(),points2.begin()+(kj*par_v.size()+ki+1)*perknot*par_u.size());
       int ui_end =  par_u.size()+2*count_multipl_knots_u-basis_u.numCoefs()+1;
 
-      if (count_multipl_knots_u == 0) {
-        for (ui = 0; ui< ui_end;ui++) {
+      if (count_multipl_knots_u == 0)
+      {
+        for (ui = 0; ui< ui_end;ui++)
+        {
           std::vector<double> pnts_parts;
           std::vector<double> par_u_parts;
           par_u_parts.insert(par_u_parts.end(),par_u.begin()+ui*2,par_u.begin()+ui*2+(2*p-1));
@@ -228,7 +231,8 @@ quasiInterpolation(const Go::BsplineBasis& basis_u,
       }
       else
       {
-        if (p>1) {
+        if (p>1)
+        {
           int count = 0;
           int dcount = 0;
           int count_intern = 0;
@@ -401,7 +405,8 @@ quasiInterpolation(const Go::BsplineBasis& basis_u,
       int knot_intern_multipl;
       knot_intern_multipl = basis_v.knotMultiplicity(knots_simple_v[i]);
       multi_v[i]=knot_intern_multipl;
-      if (knot_intern_multipl > 1) {
+      if (knot_intern_multipl > 1)
+      {
         multi_idx_v[i]=1;
         multi_value_v = knots_simple_v[i];
       } else
@@ -613,9 +618,9 @@ quasiInterpolation(const Go::BsplineBasis& basis_u,
 
     std::vector<std::vector<double> > gm;
     std::vector<double> tmp;
-    for(int i = 0; i < gmyl ; i++)
+    for (int i = 0; i < gmyl ; i++)
     {
-      for(int  j=0 ; j < gmxl*perknot  ;j++)
+      for (int  j=0 ; j < gmxl*perknot  ;j++)
       {
         tmp.push_back( 0.0 );
       }
@@ -623,7 +628,7 @@ quasiInterpolation(const Go::BsplineBasis& basis_u,
     }
 
     std::vector<double> sf_coefs_solution;
-    for(int i = 0; i < n*m*perknot ; i++)
+    for (int i = 0; i < n*m*perknot ; i++)
       sf_coefs_solution.push_back( 0.0 );
 
     int starti, startj;

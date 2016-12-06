@@ -228,7 +228,8 @@ bool ASMs3DmxLag::connectPatch (int face, ASMs3D& neighbor,
 
   size_t nb1=0;
   size_t nb2=0;
-  for (size_t i = 1;i <= nxx.size(); ++i) {
+  for (size_t i = 1;i <= nxx.size(); ++i)
+  {
     if (!this->connectBasis(face,neighbor,nface,norient,i,nb1,nb2))
       return false;
     nb1 += nb[i-1];
@@ -243,7 +244,8 @@ bool ASMs3DmxLag::connectPatch (int face, ASMs3D& neighbor,
 void ASMs3DmxLag::closeFaces (int dir, int, int)
 {
   size_t nbi = 0;
-  for (size_t i = 1;i <= nxx.size(); ++i) {
+  for (size_t i = 1;i <= nxx.size(); ++i)
+  {
     this->ASMs3D::closeFaces(dir,i,nbi+1);
     nbi += nb[i-1];
   }

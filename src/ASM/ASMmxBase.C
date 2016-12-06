@@ -55,7 +55,8 @@ void ASMmxBase::extractNodeVecMx (const Vector& globRes, Vector& nodeVec,
   int idof, ldof = 0;
   size_t k=basis==0?1:basis;
   size_t ofs = std::accumulate(nb.begin(), nb.begin()+k-1, 0);
-  for (; k < (basis==0?nfx.size()+1:(size_t)basis+1); ++k) {
+  for (; k < (basis==0?nfx.size()+1:(size_t)basis+1); ++k)
+  {
     for (i = ofs; i < nb[k-1]+ofs; i++)
     {
       idof = MADOF[i];
@@ -77,7 +78,8 @@ void ASMmxBase::injectNodeVecMx (Vector& globRes, const Vector& nodeVec,
   int idof, ldof = 0;
   size_t k=basis==0?1:basis;
   size_t ofs = std::accumulate(nb.begin(), nb.begin()+k-1, 0);
-  for (; k < (basis==0?nfx.size()+1:(size_t)basis+1); ++k) {
+  for (; k < (basis==0?nfx.size()+1:(size_t)basis+1); ++k)
+  {
     for (i = ofs; i < nb[k-1]+ofs; i++)
     {
       idof = MADOF[i];
@@ -155,7 +157,8 @@ ASMmxBase::SurfaceVec ASMmxBase::establishBases(Go::SplineSurface* surf,
     for (i = 0; i < vg.size(); i++)
       vg[i] = b2.grevilleParameter(i);
 
-    if (surf->rational()) {
+    if (surf->rational())
+    {
       std::vector<double> rCoefs(surf->rcoefs_begin(), surf->rcoefs_end());
 
       // we normally would set coefs as (x*w, y*w, w)
@@ -269,7 +272,8 @@ ASMmxBase::VolumeVec ASMmxBase::establishBases(Go::SplineVolume* svol,
     for (i = 0; i < wg.size(); i++)
       wg[i] = b3.grevilleParameter(i);
 
-    if (svol->rational()) {
+    if (svol->rational())
+    {
       std::vector<double> rCoefs(svol->rcoefs_begin(), svol->rcoefs_end());
 
       // we normally would set coefs as (x*w, y*w, w)

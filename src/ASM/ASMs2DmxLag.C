@@ -202,7 +202,8 @@ bool ASMs2DmxLag::connectPatch (int edge, ASMs2D& neighbor,
 
   size_t nb1=0;
   size_t nb2=0;
-  for (size_t i = 1;i <= nxx.size(); ++i) {
+  for (size_t i = 1;i <= nxx.size(); ++i) 
+  {
     if (!this->connectBasis(edge,neighbor,nedge,revers,i,nb1,nb2))
       return false;
     nb1 += nb[i-1];
@@ -217,7 +218,8 @@ bool ASMs2DmxLag::connectPatch (int edge, ASMs2D& neighbor,
 void ASMs2DmxLag::closeEdges (int dir, int, int)
 {
   size_t nbi = 0;
-  for (size_t i = 1;i <= nxx.size(); ++i) {
+  for (size_t i = 1;i <= nxx.size(); ++i)
+  {
     this->ASMs2D::closeEdges(dir,i,nbi+1);
     nbi += nb[i-1];
   }

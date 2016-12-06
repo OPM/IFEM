@@ -571,7 +571,8 @@ int ASMbase::fix (size_t inod, int dirs)
   std::set<int> dofs(utl::getDigits(dirs));
   for (std::set<int>::const_iterator it = dofs.begin(); it != dofs.end(); ++it)
     if (*it <= nf)
-      switch (*it) {
+      switch (*it)
+      {
       case 1: bit->CX = 0; break;
       case 2: bit->CY = 0; break;
       case 3: bit->CZ = 0; break;

@@ -211,10 +211,12 @@ bool SplineField3D::hessianFE(const FiniteElement& fe, Matrix& H) const
   Matrix dNdu(nen,3), dNdX;
   IntVec ip;
 #pragma omp critical
-  if (vol == basis) {
+  if (vol == basis) 
+  {
     vol->computeBasis(fe.u,fe.v,fe.w,spline2);
     d2Ndu2.resize(nen,3,3);
-    for (size_t n = 1; n <= nen; n++) {
+    for (size_t n = 1; n <= nen; n++)
+    {
       dNdu(n,1) = spline2.basisDerivs_u[n-1];
       dNdu(n,2) = spline2.basisDerivs_v[n-1];
       dNdu(n,3) = spline2.basisDerivs_w[n-1];
@@ -230,7 +232,8 @@ bool SplineField3D::hessianFE(const FiniteElement& fe, Matrix& H) const
   }
   else {
     vol->computeBasis(fe.u,fe.v,fe.w,spline);
-    for (size_t n = 1; n <= nen; n++) {
+    for (size_t n = 1; n <= nen; n++)
+    {
       dNdu(n,1) = spline.basisDerivs_u[n-1];
       dNdu(n,2) = spline.basisDerivs_v[n-1];
       dNdu(n,3) = spline.basisDerivs_w[n-1];
@@ -246,14 +249,16 @@ bool SplineField3D::hessianFE(const FiniteElement& fe, Matrix& H) const
   utl::Jacobian(Jac,dNdX,Xnod,dNdu);
 
   // Evaluate the gradient of the solution field at the given point
-  if (basis != vol) {
+  if (basis != vol)
+  {
     // Mixed formulation, the solution uses a different basis than the geometry
     basis->computeBasis(fe.u,fe.v,fe.w,spline2);
 
     const size_t nbf = basis->order(0)*basis->order(1)*basis->order(2);
     dNdu.resize(nbf,3);
     d2Ndu2.resize(nbf,3,3);
-    for (size_t n = 1; n <= nbf; n++) {
+    for (size_t n = 1; n <= nbf; n++)
+    {
       dNdu(n,1) = spline2.basisDerivs_u[n-1];
       dNdu(n,2) = spline2.basisDerivs_v[n-1];
       dNdu(n,3) = spline2.basisDerivs_w[n-1];

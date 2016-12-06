@@ -41,14 +41,16 @@ void SplineInterpolator::interpolate(const std::vector<double>& params,
   // setting up interpolation matrix A
   int ti = 0; // index to first unused element of tangent_points
   std::vector<double> tmp(2*order);
-  for (i = 0; i < num_points; ++i) {
+  for (i = 0; i < num_points; ++i)
+  {
     bool der = false;
     double par = params[i];
     ki = basis.knotIntervalFuzzy(par); // knot-interval of param.
     basis.computeBasisValues(params[i], &tmp[0], 1);
 
     for (j = 0; j < order; ++j)
-      if ((ki-order+1+j>=0) && (ki-order+1+j<=num_coefs)) {
+      if ((ki-order+1+j>=0) && (ki-order+1+j<=num_coefs))
+      {
         A(i+ti+1,ki-order+1+j+1) = tmp[2*j];
         if (der)
           A(i+ti+1,ki-order+1+j+1) = tmp[2*j+1];
@@ -93,14 +95,15 @@ void SplineInterpolator::quasiinterpolate(const std::vector<double>& params,
 
   // setting up interpolation matrix A
   std::vector<double> tmp(2*order);
-  for (i = 0; i < num_points; ++i) {
+  for (i = 0; i < num_points; ++i)
+  {
     bool der = false;
     double par = params[i];
     ki = basis.knotIntervalFuzzy(par);
 
     basis.computeBasisValues(params[i], &tmp[0], 1);
     for (j = 0; j < order; ++j)
-      if((ki-order+1+j-index>=0) && (ki-order+1+j-index<num_coefs))
+      if ((ki-order+1+j-index>=0) && (ki-order+1+j-index<num_coefs))
       {
         A(i+1,ki-order+1+j-index+1) = tmp[2*j];
         if (der)

@@ -1155,7 +1155,8 @@ bool ASMs1D::evalSolution (Matrix& sField, const Vector& locSol,
   for (size_t i = 0; i < nPoints; i++)
   {
     IntVec ip;
-    switch (deriv) {
+    switch (deriv)
+    {
 
     case 0: // Evaluate the solution
       this->extractBasis(upar[i],basis);

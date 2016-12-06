@@ -2729,7 +2729,8 @@ bool ASMs3D::evalSolution (Matrix& sField, const Vector& locSol,
   {
     PROFILE2("Spline evaluation");
     nPoints *= gpar[1].size()*gpar[2].size();
-    switch (deriv) {
+    switch (deriv)
+    {
     case 0:
       svol->computeBasisGrid(gpar[0],gpar[1],gpar[2],spline0);
       break;
@@ -2747,7 +2748,8 @@ bool ASMs3D::evalSolution (Matrix& sField, const Vector& locSol,
   {
     PROFILE2("Spline evaluation");
     for (size_t i = 0; i < nPoints; i++)
-      switch (deriv) {
+      switch (deriv)
+      {
       case 0:
         svol->computeBasis(gpar[0][i],gpar[1][i],gpar[2][i],spline0[i]);
         break;
@@ -2784,7 +2786,8 @@ bool ASMs3D::evalSolution (Matrix& sField, const Vector& locSol,
   for (size_t i = 0; i < nPoints; i++)
   {
     IntVec ip;
-    switch (deriv) {
+    switch (deriv)
+    {
 
     case 0: // Evaluate the solution
       scatterInd(n1,n2,n3,p1,p2,p3,spline0[i].left_idx,ip);

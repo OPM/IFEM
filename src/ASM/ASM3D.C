@@ -30,7 +30,8 @@ ASMbase* ASM3D::create (ASM::Discretization discretization, unsigned char nf)
 ASMbase* ASM3D::create (ASM::Discretization discretization,
                         const CharVec& nf, bool mixedFEM)
 {
-  switch (discretization) {
+  switch (discretization)
+  {
 
   case ASM::Lagrange:
     if (nf.size() > 1 || mixedFEM)

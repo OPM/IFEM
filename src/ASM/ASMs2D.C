@@ -2356,7 +2356,8 @@ bool ASMs2D::evalSolution (Matrix& sField, const Vector& locSol,
   if (regular)
   {
     nPoints *= gpar[1].size();
-    switch (deriv) {
+    switch (deriv)
+    {
     case 0:
       surf->computeBasisGrid(gpar[0],gpar[1],spline0);
       break;
@@ -2373,7 +2374,8 @@ bool ASMs2D::evalSolution (Matrix& sField, const Vector& locSol,
   else if (nPoints == gpar[1].size())
   {
     for (size_t i = 0; i < nPoints; i++)
-      switch (deriv) {
+      switch (deriv)
+      {
       case 0:
         surf->computeBasis(gpar[0][i],gpar[1][i],spline0[i]);
         break;
@@ -2409,7 +2411,8 @@ bool ASMs2D::evalSolution (Matrix& sField, const Vector& locSol,
   for (size_t i = 0; i < nPoints; i++)
   {
     IntVec ip;
-    switch (deriv) {
+    switch (deriv)
+    {
 
     case 0: // Evaluate the solution
       scatterInd(n1,n2,p1,p2,spline0[i].left_idx,ip);

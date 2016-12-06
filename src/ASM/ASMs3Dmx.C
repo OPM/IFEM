@@ -196,7 +196,8 @@ bool ASMs3Dmx::generateFEMTopology ()
   if (shareFE == 'F') return true;
 
 #ifdef SP_DEBUG
-  for (auto it : m_basis) {
+  for (auto it : m_basis)
+  {
     std::cout <<"numCoefs: "<< it->numCoefs(0) <<" "
                             << it->numCoefs(1) <<" "<< it->numCoefs(2);
     std::cout <<"\norder: "<< it->order(0) <<" "
@@ -224,7 +225,8 @@ bool ASMs3Dmx::generateFEMTopology ()
 
   int i1, i2, i3, j1, j2, j3;
   size_t iel, inod = 0;
-  for (auto& it : m_basis) {
+  for (auto& it : m_basis)
+  {
     for (i3 = 0; i3 < it->numCoefs(2); i3++)
       for (i2 = 0; i2 <  it->numCoefs(1); i2++)
         for (i1 = 0; i1 < it->numCoefs(0); i1++)
@@ -239,7 +241,8 @@ bool ASMs3Dmx::generateFEMTopology ()
   int lnod2 = 0;
   int lnod3 = 0;
 
-  auto&& addBasis = [&](std::shared_ptr<Go::SplineVolume>& b, bool geo) {
+  auto&& addBasis = [&](std::shared_ptr<Go::SplineVolume>& b, bool geo)
+  {
     for (i3 = 1; i3 <= b->numCoefs(2); i3++)
       for (i2 = 1; i2 <= b->numCoefs(1); i2++)
         for (i1 = 1; i1 <= b->numCoefs(0); i1++, inod++)
@@ -282,7 +285,8 @@ bool ASMs3Dmx::generateFEMTopology ()
   // Create nodal connectivities for other bases
   inod = 0;
   lnod2 = 0;
-  for (size_t b = 0; b < m_basis.size(); ++b) {
+  for (size_t b = 0; b < m_basis.size(); ++b)
+  {
     iel = 0;
     if ((int)b != geoBasis-1)
       addBasis(m_basis[b],false);
@@ -311,7 +315,8 @@ bool ASMs3Dmx::connectPatch (int face, ASMs3D& neighbor, int nface, int norient,
     nface = 11-nface;
 
   size_t nb1 = 0, nb2 = 0;
-  for (size_t i = 1; i <= m_basis.size(); ++i) {
+  for (size_t i = 1; i <= m_basis.size(); ++i)
+  {
     if (basis == 0 || i == (size_t)basis)
       if (!this->connectBasis(face,neighbor,nface,norient,i,nb1,nb2,coordCheck))
         return false;
@@ -328,7 +333,8 @@ bool ASMs3Dmx::connectPatch (int face, ASMs3D& neighbor, int nface, int norient,
 void ASMs3Dmx::closeFaces (int dir, int, int)
 {
   size_t nbi = 1;
-  for (size_t i = 1;i <= m_basis.size(); ++i) {
+  for (size_t i = 1;i <= m_basis.size(); ++i)
+  {
     this->ASMs3D::closeFaces(dir,i,nbi);
     nbi += nb[i-1];
   }
@@ -448,7 +454,8 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
   // Evaluate basis function derivatives at all integration points
   std::vector<std::vector<Go::BasisDerivs>> splinex(m_basis.size());
   std::vector<std::vector<Go::BasisDerivs2>> splinex2(m_basis.size());
-  if (use2ndDer) {
+  if (use2ndDer)
+  {
 #pragma omp parallel for schedule(static)
     for (size_t i=0;i<m_basis.size();++i)
       m_basis[i]->computeBasisGrid(gpar[0],gpar[1],gpar[2],splinex2[i]);
@@ -476,9 +483,11 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
   // === Assembly loop over all elements in the patch ==========================
 
   bool ok=true;
-  for (size_t g=0;g<threadGroupsVol.size() && ok;++g) {
+  for (size_t g=0;g<threadGroupsVol.size() && ok;++g)
+  {
 #pragma omp parallel for schedule(static)
-    for (size_t t=0;t<threadGroupsVol[g].size();++t) {
+    for (size_t t=0;t<threadGroupsVol[g].size();++t)
+    {
       MxFiniteElement fe(elem_sizes);
       std::vector<Matrix> dNxdu(m_basis.size());
       std::vector<Matrix3D> d2Nxdu2(m_basis.size());
@@ -553,7 +562,8 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
               fe.w = gpar[2](k+1,i3-p3+1);
 
               // Fetch basis function derivatives at current integration point
-              if (use2ndDer) {
+              if (use2ndDer)
+              {
                 for (size_t b = 0; b < m_basis.size(); ++b)
                   SplineUtils::extractBasis(splinex2[b][ip],fe.basis(b+1),dNxdu[b], d2Nxdu2[b]);
               } else {
@@ -571,7 +581,8 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
                   fe.grad(b+1).multiply(dNxdu[b],Jac);
 
               // Compute Hessian of coordinate mapping and 2nd order derivatives
-              if (use2ndDer) {
+              if (use2ndDer)
+              {
                 if (!utl::Hessian(Hess,fe.hess(geoBasis),Jac,Xnod,
                                   d2Nxdu2[geoBasis-1],fe.grad(geoBasis),true))
                   ok = false;
@@ -687,9 +698,11 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
   // === Assembly loop over all elements on the patch face =====================
 
   bool ok = true;
-  for (size_t g = 0; g < threadGrp.size() && ok; ++g) {
+  for (size_t g = 0; g < threadGrp.size() && ok; ++g)
+  {
 #pragma omp parallel for schedule(static)
-    for (size_t t = 0; t < threadGrp[g].size(); ++t) {
+    for (size_t t = 0; t < threadGrp[g].size(); ++t)
+    {
       MxFiniteElement fe(elem_sizes);
       fe.xi = fe.eta = fe.zeta = faceDir < 0 ? -1.0 : 1.0;
       fe.u = gpar[0](1,1);
@@ -857,7 +870,8 @@ bool ASMs3Dmx::evalSolution (Matrix& sField, const Vector& locSol,
   }
   else if (gpar[0].size() == gpar[1].size() && gpar[0].size() == gpar[2].size())
   {
-    for (size_t b = 0; b < m_basis.size(); ++b) {
+    for (size_t b = 0; b < m_basis.size(); ++b)
+    {
       splinex[b].resize(gpar[0].size());
       for (size_t i = 0; i < splinex[b].size(); i++)
         m_basis[b]->computeBasis(gpar[0][i],gpar[1][i],gpar[2][i],splinex[b][i]);
@@ -870,7 +884,8 @@ bool ASMs3Dmx::evalSolution (Matrix& sField, const Vector& locSol,
   std::copy(nfx.begin(), nfx.end(), nc.begin());
 
   // assume first basis only
-  if (locSol.size() < std::inner_product(nb.begin(), nb.end(), nfx.begin(), 0u)) {
+  if (locSol.size() < std::inner_product(nb.begin(), nb.end(), nfx.begin(), 0u))
+  {
     std::fill(nc.begin(), nc.end(), 0);
     nc[0] = nfx[0];
   }
@@ -887,7 +902,8 @@ bool ASMs3Dmx::evalSolution (Matrix& sField, const Vector& locSol,
   for (size_t i = 0; i < nPoints; i++)
   {
     size_t comp=0;
-    for (size_t b = 0; b < m_basis.size(); ++b) {
+    for (size_t b = 0; b < m_basis.size(); ++b)
+    {
       if (nc[b] == 0)
         continue;
       IntVec ip;
@@ -927,7 +943,8 @@ bool ASMs3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   }
   else if (gpar[0].size() == gpar[1].size() && gpar[0].size() == gpar[2].size())
   {
-    for (size_t b = 0; b < m_basis.size(); ++b) {
+    for (size_t b = 0; b < m_basis.size(); ++b)
+    {
       splinex[b].resize(gpar[0].size());
       for (size_t i = 0; i < splinex[b].size(); i++)
         m_basis[b]->computeBasis(gpar[0][i],gpar[1][i],gpar[2][i],splinex[b][i]);
@@ -956,7 +973,8 @@ bool ASMs3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     std::vector<IntVec> ip(m_basis.size());
     IntVec ipa;
     size_t ofs = 0;
-    for (size_t b = 0; b < m_basis.size(); ++b) {
+    for (size_t b = 0; b < m_basis.size(); ++b)
+    {
       scatterInd(m_basis[b]->numCoefs(0),m_basis[b]->numCoefs(1),m_basis[b]->numCoefs(2),
                  m_basis[b]->order(0),m_basis[b]->order(1),m_basis[b]->order(2),
                  splinex[b][i].left_idx,ip[b]);

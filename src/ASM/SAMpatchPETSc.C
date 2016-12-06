@@ -29,7 +29,8 @@ SAMpatchPETSc::SAMpatchPETSc(const std::map<int,int>& g2ln,
 
 SAMpatchPETSc::~SAMpatchPETSc()
 {
-  for (auto& it : dofIS) {
+  for (auto& it : dofIS)
+  {
     if (it.second.scatterCreated)
       VecScatterDestroy(&it.second.ctx);
     ISDestroy(&it.second.local);
@@ -54,7 +55,8 @@ bool SAMpatchPETSc::init(const ASMVec& model, int numNod)
 Real SAMpatchPETSc::dot (const Vector& x, const Vector& y, char dofType) const
 {
 #ifdef HAVE_MPI
-  if (adm.isParallel()) {
+  if (adm.isParallel())
+  {
     if (dofIS.find(dofType) == dofIS.end())
       setupIS(dofType);
 
@@ -68,7 +70,8 @@ Real SAMpatchPETSc::dot (const Vector& x, const Vector& y, char dofType) const
     VecSetSizes(gy, dofIS[dofType].nDofs, PETSC_DETERMINE);
     VecSetFromOptions(gx);
     VecSetFromOptions(gy);
-    if (!dofIS[dofType].scatterCreated) {
+    if (!dofIS[dofType].scatterCreated)
+    {
       VecScatterCreate(lx, dofIS[dofType].local, gx, dofIS[dofType].global, &dofIS[dofType].ctx);
       dofIS[dofType].scatterCreated = true;
     }
@@ -96,7 +99,8 @@ Real SAMpatchPETSc::dot (const Vector& x, const Vector& y, char dofType) const
 Real SAMpatchPETSc::normL2(const Vector& x, char dofType) const
 {
 #ifdef HAVE_MPI
-  if (adm.isParallel()) {
+  if (adm.isParallel())
+  {
     if (dofIS.find(dofType) == dofIS.end())
       setupIS(dofType);
 
@@ -109,7 +113,8 @@ Real SAMpatchPETSc::normL2(const Vector& x, char dofType) const
     PetscInt n;
     VecGetSize(gx, &n);
 
-    if (!dofIS[dofType].scatterCreated) {
+    if (!dofIS[dofType].scatterCreated)
+    {
       VecScatterCreate(lx, dofIS[dofType].local, gx, dofIS[dofType].global, &dofIS[dofType].ctx);
       dofIS[dofType].scatterCreated = true;
     }
@@ -149,12 +154,15 @@ void SAMpatchPETSc::setupIS(char dofType) const
   if (adm.getProcId() > 0)
     adm.receive(gdof, adm.getProcId()-1);
 
-  for (size_t i = 0; i < adm.dd.getMLGN().size(); ++i) {
+  for (size_t i = 0; i < adm.dd.getMLGN().size(); ++i)
+  {
     if ((dofType == 'A' || nodeType.empty() || this->SAM::getNodeType(i+1) == dofType) &&
         adm.dd.getMLGN()[i] >= adm.dd.getMinNode() &&
-        adm.dd.getMLGN()[i] <= adm.dd.getMaxNode()) {
+        adm.dd.getMLGN()[i] <= adm.dd.getMaxNode())
+        {
       std::pair<int, int> dofs = this->SAM::getNodeDOFs(i+1);
-      for (int dof = dofs.first; dof <= dofs.second; ++dof) {
+      for (int dof = dofs.first; dof <= dofs.second; ++dof)
+      {
         ldofs.push_back(dof-1);
         gdofs.push_back(gdof++);
       }
@@ -179,8 +187,10 @@ bool SAMpatchPETSc::expandSolution(const SystemVector& solVec,
     return false;
 
 #ifdef HAVE_MPI
-  if (adm.isParallel()) {
-    if (!glob2LocEq) {
+  if (adm.isParallel())
+  {
+    if (!glob2LocEq)
+    {
       std::vector<int> mlgeq(adm.dd.getMLGEQ());
       for (auto& it : mlgeq)
         --it;
