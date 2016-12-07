@@ -152,7 +152,7 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
       const char* field = elem->Attribute("field");
       for (int i = 1; i <= nGlPatches; i++)
       {
-        std::vector<int> nodes;
+        IntVec nodes;
         ASMbase* pch = this->getPatch(i,true);
         if (pch && hdf5.readVector(0, field ? field : "node numbers", i, nodes))
           pch->setNodeNumbers(nodes);
@@ -392,7 +392,11 @@ bool SIMbase::parseBCTag (const TiXmlElement* elem)
       this->setPropertyType(code,Property::DIRICHLET_INHOM,comp,basis);
       IFEM::cout <<"\tDirichlet code "<< code;
       if (!type.empty()) IFEM::cout <<" ("<< type <<")";
-      myScalars[abs(code)] = utl::parseRealFunc(dval->Value(),type);
+      RealFunc* f = utl::parseRealFunc(dval->Value(),type);
+      if (!f)
+        return false;
+      else
+        myScalars[abs(code)] = f;
       IFEM::cout << std::endl;
     }
   }
@@ -1588,7 +1592,7 @@ void SIMbase::getBoundaryNodes (int pcode, IntVec& glbNodes, Vec3Vec* XYZ) const
         // The boundary is of one dimension lower than the patch
         IntVec nodes;
         pch->getBoundaryNodes(abs(p->lindx),nodes);
-        for (const auto& it : nodes)
+        for (const int& it : nodes)
           if (std::find(glbNodes.begin(),glbNodes.end(),it) == glbNodes.end()) {
             glbNodes.push_back(it);
             if (XYZ) {
@@ -2533,7 +2537,7 @@ size_t SIMbase::extractPatchSolution (const Vector& sol, Vector& vec,
       nndof != this->getNoFields(basis) && this->getNoFields(2) > 0)
   {
     // Need an additional MADOF
-    const std::vector<int>& madof = this->getMADOF(basis,nndof);
+    const IntVec& madof = this->getMADOF(basis,nndof);
     pch->extractNodalVec(sol,vec,madof.data(),madof.size());
   }
   else
@@ -2649,11 +2653,10 @@ bool SIMbase::refine (const LR::RefineData& prm,
 bool SIMbase::addMADOF (unsigned char basis, unsigned char nndof)
 {
   int key = basis << 16 + nndof;
-  auto it = mixedMADOFs.find(key);
-  if (it != mixedMADOFs.end())
+  if (mixedMADOFs.find(key) != mixedMADOFs.end())
     return false; // This MADOF already calculated
 
-  std::vector<int>& madof = mixedMADOFs[key];
+  IntVec& madof = mixedMADOFs[key];
   madof.resize(this->getNoNodes(true)+1,0);
 
   char nType = basis <= 1 ? 'D' : 'P' + basis-2;
@@ -2675,14 +2678,14 @@ bool SIMbase::addMADOF (unsigned char basis, unsigned char nndof)
 }
 
 
-const std::vector<int>& SIMbase::getMADOF (unsigned char basis,
-                                           unsigned char nndof) const
+const IntVec& SIMbase::getMADOF (unsigned char basis,
+                                 unsigned char nndof) const
 {
   int key = basis << 16 + nndof;
   auto it = mixedMADOFs.find(key);
   if (it != mixedMADOFs.end())
     return it->second;
 
-  static std::vector<int> empty;
+  static IntVec empty;
   return empty;
 }
