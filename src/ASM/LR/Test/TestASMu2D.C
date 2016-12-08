@@ -11,13 +11,13 @@
 //==============================================================================
 
 #include "ASMu2D.h"
-#include "IFEM.h"
 #include "SIM2D.h"
 
 #include "gtest/gtest.h"
 
 
-struct EdgeTest {
+struct EdgeTest
+{
   int edge;
   int edgeIdx;
   std::array<int,2> c1;
@@ -31,16 +31,29 @@ class TestASMu2D : public testing::Test,
 };
 
 
-TEST(TestASMu2D, BoundaryNodesE1)
+static void getBoundaryNodes (const char* edgeName, std::vector<int>& nodes)
 {
   SIM2D sim(1);
   sim.opt.discretization = ASM::LRSpline;
   ASSERT_TRUE(sim.read("src/ASM/LR/Test/refdata/boundary_nodes.xinp"));
-  sim.preprocess();
+  ASSERT_TRUE(sim.createFEMmodel());
+  sim.getBoundaryNodes(sim.getUniquePropertyCode(edgeName,0),nodes);
+}
 
-  int bcode = sim.getUniquePropertyCode("Edge1",0);
+
+static ASMu2D* getPatch (SIMinput& sim)
+{
+  sim.opt.discretization = ASM::LRSpline;
+  EXPECT_TRUE(sim.read("src/ASM/LR/Test/refdata/boundary_nodes.xinp"));
+  EXPECT_TRUE(sim.createFEMmodel());
+  return static_cast<ASMu2D*>(sim.getPatch(1));
+}
+
+
+TEST(TestASMu2D, BoundaryNodesE1)
+{
   std::vector<int> vec;
-  sim.getBoundaryNodes(bcode, vec);
+  getBoundaryNodes("Edge1",vec);
   ASSERT_EQ(vec.size(), 4U);
   for (int i = 0; i < 4; ++i)
     ASSERT_EQ(vec[i], 4*i+1);
@@ -49,14 +62,8 @@ TEST(TestASMu2D, BoundaryNodesE1)
 
 TEST(TestASMu2D, BoundaryNodesE2)
 {
-  SIM2D sim(1);
-  sim.opt.discretization = ASM::LRSpline;
-  ASSERT_TRUE(sim.read("src/ASM/LR/Test/refdata/boundary_nodes.xinp"));
-  sim.preprocess();
-
-  int bcode = sim.getUniquePropertyCode("Edge2",0);
   std::vector<int> vec;
-  sim.getBoundaryNodes(bcode, vec);
+  getBoundaryNodes("Edge2",vec);
   ASSERT_EQ(vec.size(), 4U);
   for (int i = 0; i < 4; ++i)
     ASSERT_EQ(vec[i], 2+4*i);
@@ -65,14 +72,8 @@ TEST(TestASMu2D, BoundaryNodesE2)
 
 TEST(TestASMu2D, BoundaryNodesE3)
 {
-  SIM2D sim(1);
-  sim.opt.discretization = ASM::LRSpline;
-  ASSERT_TRUE(sim.read("src/ASM/LR/Test/refdata/boundary_nodes.xinp"));
-  sim.preprocess();
-
-  int bcode = sim.getUniquePropertyCode("Edge3",0);
   std::vector<int> vec;
-  sim.getBoundaryNodes(bcode, vec);
+  getBoundaryNodes("Edge3",vec);
   ASSERT_EQ(vec.size(), 4U);
   for (int i = 0; i < 4; ++i)
     ASSERT_EQ(vec[i], i+1);
@@ -81,14 +82,8 @@ TEST(TestASMu2D, BoundaryNodesE3)
 
 TEST(TestASMu2D, BoundaryNodesE4)
 {
-  SIM2D sim(1);
-  sim.opt.discretization = ASM::LRSpline;
-  ASSERT_TRUE(sim.read("src/ASM/LR/Test/refdata/boundary_nodes.xinp"));
-  sim.preprocess();
-
-  int bcode = sim.getUniquePropertyCode("Edge4",0);
   std::vector<int> vec;
-  sim.getBoundaryNodes(bcode, vec);
+  getBoundaryNodes("Edge4",vec);
   ASSERT_EQ(vec.size(), 4U);
   for (int i = 0; i < 4; ++i)
     ASSERT_EQ(vec[i], 5+i);
@@ -98,14 +93,12 @@ TEST(TestASMu2D, BoundaryNodesE4)
 TEST_P(TestASMu2D, ConstrainEdge)
 {
   SIM2D sim(1);
-  sim.opt.discretization = ASM::LRSpline;
-  ASSERT_TRUE(sim.read("src/ASM/LR/Test/refdata/boundary_nodes.xinp"));
-  sim.preprocess();
-  ASMu2D* pch = static_cast<ASMu2D*>(sim.getPatch(1));
+  ASMu2D* pch = getPatch(sim);
+  ASSERT_TRUE(pch != nullptr);
   pch->constrainEdge(GetParam().edgeIdx, false, 1, 1, 1);
   std::vector<int> glbNodes;
   pch->getBoundaryNodes(GetParam().edge, glbNodes, 1);
-  for (auto& it : glbNodes)
+  for (int& it : glbNodes)
     ASSERT_TRUE(pch->findMPC(it, 1) != nullptr);
 }
 
@@ -113,10 +106,8 @@ TEST_P(TestASMu2D, ConstrainEdge)
 TEST_P(TestASMu2D, ConstrainEdgeOpen)
 {
   SIM2D sim(1);
-  sim.opt.discretization = ASM::LRSpline;
-  ASSERT_TRUE(sim.read("src/ASM/LR/Test/refdata/boundary_nodes.xinp"));
-  sim.preprocess();
-  ASMu2D* pch = static_cast<ASMu2D*>(sim.getPatch(1));
+  ASMu2D* pch = getPatch(sim);
+  ASSERT_TRUE(pch != nullptr);
   pch->constrainEdge(GetParam().edgeIdx, true, 1, 1, 1);
   std::vector<int> glbNodes;
   pch->getBoundaryNodes(GetParam().edge, glbNodes, 1);
@@ -126,7 +117,7 @@ TEST_P(TestASMu2D, ConstrainEdgeOpen)
   crn = pch->getCorner(GetParam().c2[0], GetParam().c2[1], 1);
   ASSERT_TRUE(pch->findMPC(crn, 1) == nullptr);
   glbNodes.erase(std::find(glbNodes.begin(), glbNodes.end(), crn));
-  for (auto& it : glbNodes)
+  for (int& it : glbNodes)
     ASSERT_TRUE(pch->findMPC(it, 1) != nullptr);
 }
 
@@ -136,7 +127,6 @@ static const std::vector<EdgeTest> edgeTestData =
          {2,  1, { 1, -1}, { 1 , 1}},
          {3, -2, {-1, -1}, { 1, -1}},
          {4,  2, {-1,  1}, { 1,  1}}};
-
 
 
 INSTANTIATE_TEST_CASE_P(TestASMu2D, TestASMu2D,

@@ -13,6 +13,7 @@
 #include "DomainDecomposition.h"
 #include "SAM.h"
 #include "SIM2D.h"
+#include "IntegrandBase.h"
 #include "gtest/gtest.h"
 #include <fstream>
 
@@ -21,8 +22,7 @@ typedef std::vector< std::vector<int> > IntMat;
 
 static IntMat readIntMatrix(size_t r, const std::string& file)
 {
-  std::vector< std::vector<int> > result;
-  result.resize(r);
+  IntMat result(r);
   std::ifstream f(file);
   for (size_t i=0;i<r;++i) {
     size_t size;
@@ -36,15 +36,13 @@ static IntMat readIntMatrix(size_t r, const std::string& file)
 }
 
 
-auto&& check_intmatrices_equal = [](const std::vector<std::vector<int>>& subdomains,
+auto&& check_intmatrices_equal = [](const IntMat& subdomains,
                                     const std::string& path)
 {
   IntMat B = readIntMatrix(subdomains.size(), path);
-  for (size_t i = 0; i < subdomains.size(); ++i) {
-    size_t j = 0;
-    for (const auto& it2 : subdomains[i])
-      ASSERT_EQ(it2, B[i][j++]);
-  }
+  for (size_t i = 0; i < subdomains.size(); i++)
+    for (size_t j = 0; j < subdomains[i].size(); j++)
+      ASSERT_EQ(subdomains[i][j], B[i][j]);
 };
 
 
@@ -92,9 +90,10 @@ TEST(TestDomainDecomposition, LocalGroups3DO2)
 
 TEST(TestDomainDecomposition, Setup)
 {
-  SIM2D sim(1);
-  sim.read("src/ASM/Test/refdata/DomainDecomposition_2D_1P.xinp");
-  sim.preprocess();
+  class Dummy : public IntegrandBase {};
+  SIM2D sim(new Dummy());
+  ASSERT_TRUE(sim.read("src/ASM/Test/refdata/DomainDecomposition_2D_1P.xinp"));
+  ASSERT_TRUE(sim.preprocess());
 
   DomainDecomposition dd;
   // TODO: Remove after integration
