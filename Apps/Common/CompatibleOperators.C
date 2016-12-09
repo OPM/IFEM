@@ -34,7 +34,7 @@ void CompatibleOperators::Weak::Convection(std::vector<Matrix>& EM,
                                            const Vec3& U,
                                            const Tensor& dUdX,
                                            double scale,
-                                           bool conservative)
+                                           WeakOperators::ConvectionForm form)
 {
   // Convection
   static const double vidx[3][3] = {{1, 6, 7},
@@ -121,7 +121,7 @@ void CompatibleOperators::Weak::Source(Vectors& EV,
 void CompatibleOperators::Residual::Convection(Vectors& EV, const FiniteElement& fe,
                                                const Vec3& U, const Tensor& dUdX,
                                                const Vec3& UC, double scale,
-                                               bool conservative)
+                                               WeakOperators::ConvectionForm form)
 {
   size_t nsd = fe.grad(1).cols();
   for (size_t n=1; n <= nsd; ++n) {
