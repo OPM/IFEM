@@ -2244,9 +2244,11 @@ bool ASMs2D::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) const
     return false;
   }
 
-  RealArray::const_iterator uit = surf->basis(dir).begin();
+  RealArray::const_iterator uit = surf->basis(dir).begin() + surf->basis(dir).order()-1;
+  RealArray::const_iterator uend = surf->basis(dir).begin() + surf->basis(dir).numCoefs()+1;
+
   double ucurr = 0.0, uprev = *(uit++);
-  while (uit != surf->basis(dir).end())
+  while (uit != uend)
   {
     ucurr = *(uit++);
     if (ucurr > uprev)

@@ -2601,9 +2601,10 @@ bool ASMs3D::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) const
     return false;
   }
 
-  RealArray::const_iterator uit = svol->basis(dir).begin();
+  RealArray::const_iterator uit = svol->basis(dir).begin() + svol->basis(dir).order()-1;
+  RealArray::const_iterator uend = svol->basis(dir).begin() + svol->basis(dir).numCoefs()+1;
   double ucurr = 0.0, uprev = *(uit++);
-  while (uit != svol->basis(dir).end())
+  while (uit != uend)
   {
     ucurr = *(uit++);
     if (ucurr > uprev)

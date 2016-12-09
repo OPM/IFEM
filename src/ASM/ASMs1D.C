@@ -1024,9 +1024,10 @@ bool ASMs1D::getGridParameters (RealArray& prm, int nSegPerSpan) const
     return false;
   }
 
-  RealArray::const_iterator uit = curv->basis().begin();
+  RealArray::const_iterator uit = curv->basis().begin() + curv->basis().order()-1;
+  RealArray::const_iterator uend = curv->basis().begin() + curv->basis().numCoefs()+1;
   double ucurr = 0.0, uprev = *(uit++);
-  while (uit != curv->basis().end())
+  while (uit != uend)
   {
     ucurr = *(uit++);
     if (ucurr > uprev)
