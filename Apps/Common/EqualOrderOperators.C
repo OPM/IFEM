@@ -72,10 +72,10 @@ void EqualOrderOperators::Weak::Advection(Matrix& EM, const FiniteElement& fe,
 
 void EqualOrderOperators::Weak::Convection(Matrix& EM, const FiniteElement& fe,
                                            const Vec3& U, const Tensor& dUdX,
-                                           double scale, bool conservative, int basis)
+                                           double scale, WeakOperators::ConvectionForm form, int basis)
 {
   size_t cmp = EM.rows() / fe.basis(basis).size();
-  if (conservative) {
+  if (form == WeakOperators::CONSERVATIVE) {
     Advection(EM, fe, U, -scale, basis);
     for (size_t i = 1;i <= fe.basis(basis).size();i++)
       for (size_t j = 1;j <= fe.basis(basis).size();j++) {
@@ -200,10 +200,10 @@ void EqualOrderOperators::Weak::Source(Vector& EV, const FiniteElement& fe,
 void EqualOrderOperators::Residual::Convection(Vector& EV, const FiniteElement& fe,
                                                 const Vec3& U, const Tensor& dUdX,
                                                const Vec3& UC, double scale,
-                                               bool conservative, int basis)
+                                               WeakOperators::ConvectionForm form, int basis)
 {
   size_t cmp = EV.size() / fe.basis(basis).size();
-  if (conservative) {
+  if (form == WeakOperators::CONSERVATIVE) {
     for (size_t i = 1;i <= fe.basis(basis).size();i++)
       for (size_t k = 1;k <= cmp;k++)
         for (size_t l = 1;l <= cmp;l++)

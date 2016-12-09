@@ -18,6 +18,19 @@ class Vec3;
 #include "FiniteElement.h"
 #include "MatVec.h"
 
+
+namespace WeakOperators
+{
+  //! \brief Enum for the form of the convection term
+  enum ConvectionForm
+  {
+    CONVECTIVE = 0,   //!<  u_i u_j,i v_j
+    CONSERVATIVE = 1, //!< -u_i u_j v_i,j
+    SKEWSYMMETRIC = 2 //!< (u_i u_j,i v_j - u_i u_j v_i,j)/2
+  };
+}
+
+
 /*! \brief Common discrete operators using equal-ordered discretizations.
  */
 
@@ -40,11 +53,12 @@ public:
     //! \param[out] EM The element matrix to add contribution to
     //! \param[in] fe The finite element to evaluate for
     //! \param[in] U  Advecting field
-    //! \param[in] conservative True to use the conservative formulation
+    //! \param[in] form Which form of the convective term to use
     //! \param[in] basis Basis to use
     static void Convection(Matrix& EM, const FiniteElement& fe,
                            const Vec3& U, const Tensor& dUdX, double scale,
-                           bool conservative=false, int basis=1);
+                           WeakOperators::ConvectionForm form=WeakOperators::CONVECTIVE,
+                           int basis=1);
 
     //! \brief Compute a divergence term.
     //! \param[out] EM The element matrix to add contribution to
@@ -135,11 +149,13 @@ public:
     //! \param[in] dUdX Advected field gradient
     //! \param[in] UC Advecting field
     //! \param[in] scale Scaling factor for contribution
-    //! \param[in] conservative True to use the conservative formulation
+    //! \param[in] form Which form of the convective term to use
     //! \param[in] basis Basis to use
     static void Convection(Vector& EV, const FiniteElement& fe,
                            const Vec3& U, const Tensor& dUdX, const Vec3& UC,
-                           double scale, bool conservative=false, int basis=1);
+                           double scale,
+                           WeakOperators::ConvectionForm form=WeakOperators::CONVECTIVE,
+                           int basis=1);
 
     //! \brief Compute a divergence term in a residual vector.
     //! \param EV The element vector to add contribution to

@@ -18,6 +18,7 @@ class Tensor;
 class Vec3;
 
 #include "MatVec.h"
+#include "EqualOrderOperators.h"
 
 /*! \brief Common operators using div-compatible discretizations.
  *  \details The operators use the block ordering used in the BlockElmMats class.
@@ -41,11 +42,11 @@ public:
     //! \param[out] EM The element matrix to add contribution to
     //! \param[in] fe The finite element to evaluate for
     //! \param[in] U  Advecting field
-    //! \param[in] conservative True to use the conservative formulation
+    //! \param[in] form Which form of the convective form to use
     //! \param[in] basis Basis to use
     static void Convection(std::vector<Matrix>& EM, const FiniteElement& fe,
                            const Vec3& U, const Tensor& dUdX, double scale,
-                           bool conservative=false);
+                           WeakOperators::ConvectionForm form=WeakOperators::CONVECTIVE);
 
     //! \brief Compute a gradient term.
     //! \param[out] EM The element matrix to add contribution to
@@ -104,11 +105,11 @@ public:
     //! \param[in] dUdX Advected field gradient
     //! \param[in] UC Advecting field
     //! \param[in] scale Scaling factor for contribution
-    //! \param[in] conservative True to use the conservative formulation
+    //! \param[in] form Which form of the convective form to use
     //! \param[in] basis Basis to use
     static void Convection(Vectors& EV, const FiniteElement& fe,
-                           const Vec3& U, const Tensor& dUdX, const Vec3& UC,
-                           double scale, bool conservative=false);
+                           const Vec3& U, const Tensor& dUdX, const Vec3& UC, double scale,
+                           WeakOperators::ConvectionForm form=WeakOperators::CONVECTIVE);
 
     //! \brief Compute a laplacian term in a residual vector.
     //! \param[out] EV The element vector to add contribution to
