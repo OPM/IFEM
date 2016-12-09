@@ -293,7 +293,7 @@ bool ASMs2Dmx::generateFEMTopology ()
 
 
 bool ASMs2Dmx::connectPatch (int edge, ASMs2D& neighbor, int nedge, bool revers,
-                             int basis, bool coordCheck)
+                             int basis, bool coordCheck, int thick)
 {
   ASMs2Dmx* neighMx = dynamic_cast<ASMs2Dmx*>(&neighbor);
   if (!neighMx) return false;
@@ -301,7 +301,7 @@ bool ASMs2Dmx::connectPatch (int edge, ASMs2D& neighbor, int nedge, bool revers,
   size_t nb1 = 0, nb2 = 0;
   for (size_t i = 1; i <= m_basis.size(); ++i) {
     if (basis == 0 || i == (size_t)basis)
-      if (!this->connectBasis(edge,neighbor,nedge,revers,i,nb1,nb2,coordCheck))
+      if (!this->connectBasis(edge,neighbor,nedge,revers,i,nb1,nb2,coordCheck,thick))
         return false;
 
     nb1 += nb[i-1];
@@ -1014,12 +1014,12 @@ void ASMs2Dmx::generateThreadGroups (const Integrand& integrand, bool silence,
 }
 
 
-void ASMs2Dmx::getBoundaryNodes (int lIndex, IntVec& nodes,
-                                 int basis, bool local) const
+void ASMs2Dmx::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
+                                 int thick, bool local) const
 {
   if (basis > 0)
-    this->ASMs2D::getBoundaryNodes(lIndex, nodes, basis, local);
+    this->ASMs2D::getBoundaryNodes(lIndex, nodes, basis, thick, local);
   else
     for (size_t b = 1; b <= this->getNoBasis(); ++b)
-      this->ASMs2D::getBoundaryNodes(lIndex, nodes, b, local);
+      this->ASMs2D::getBoundaryNodes(lIndex, nodes, b, thick, local);
 }

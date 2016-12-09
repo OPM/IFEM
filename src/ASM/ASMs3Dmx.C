@@ -299,7 +299,7 @@ bool ASMs3Dmx::generateFEMTopology ()
 
 
 bool ASMs3Dmx::connectPatch (int face, ASMs3D& neighbor, int nface, int norient,
-                             int basis, bool coordCheck)
+                             int basis, bool coordCheck, int thick)
 {
   ASMs3Dmx* neighMx = dynamic_cast<ASMs3Dmx*>(&neighbor);
   if (!neighMx) return false;
@@ -313,7 +313,7 @@ bool ASMs3Dmx::connectPatch (int face, ASMs3D& neighbor, int nface, int norient,
   size_t nb1 = 0, nb2 = 0;
   for (size_t i = 1; i <= m_basis.size(); ++i) {
     if (basis == 0 || i == (size_t)basis)
-      if (!this->connectBasis(face,neighbor,nface,norient,i,nb1,nb2,coordCheck))
+      if (!this->connectBasis(face,neighbor,nface,norient,i,nb1,nb2,coordCheck,thick))
         return false;
 
     nb1 += nb[i-1];
@@ -1109,12 +1109,12 @@ double ASMs3Dmx::getParametricArea (int iel, int dir) const
 }
 
 
-void ASMs3Dmx::getBoundaryNodes (int lIndex, IntVec& nodes,
-                                 int basis, bool local) const
+void ASMs3Dmx::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
+                                 int thick, bool local) const
 {
   if (basis > 0)
-    this->ASMs3D::getBoundaryNodes(lIndex, nodes, basis, local);
+    this->ASMs3D::getBoundaryNodes(lIndex, nodes, basis, thick, local);
   else
     for (size_t b = 1; b <= this->getNoBasis(); ++b)
-      this->ASMs3D::getBoundaryNodes(lIndex, nodes, b, local);
+      this->ASMs3D::getBoundaryNodes(lIndex, nodes, b, thick, local);
 }

@@ -591,7 +591,7 @@ bool ASMs2D::assignNodeNumbers (BlockNodes& nodes, int basis)
 
 
 bool ASMs2D::connectPatch (int edge, ASMs2D& neighbor, int nedge,
-                           bool revers, int, bool coordCheck)
+                           bool revers, int, bool coordCheck, int thick)
 {
   if (swapV && edge > 2) // Account for swapped parameter direction
     edge = 7-edge;
@@ -599,7 +599,7 @@ bool ASMs2D::connectPatch (int edge, ASMs2D& neighbor, int nedge,
   if (neighbor.swapV && nedge > 2) // Account for swapped parameter direction
     nedge = 7-nedge;
 
-  if (!this->connectBasis(edge,neighbor,nedge,revers,1,0,0,coordCheck))
+  if (!this->connectBasis(edge,neighbor,nedge,revers,1,0,0,coordCheck,thick))
     return false;
 
   this->addNeighbor(&neighbor);
@@ -608,96 +608,52 @@ bool ASMs2D::connectPatch (int edge, ASMs2D& neighbor, int nedge,
 
 
 bool ASMs2D::connectBasis (int edge, ASMs2D& neighbor, int nedge, bool revers,
-                           int basis, int slave, int master, bool coordCheck)
+                           int basis, int slave, int master,
+                           bool coordCheck, int thick)
 {
   if (this->isShared() && neighbor.isShared())
     return true;
   else if (this->isShared() || neighbor.isShared())
   {
-    std::cerr <<" *** ASMs2D::connectPatch: Logic error, cannot"
+    std::cerr <<" *** ASMs2D::connectBasis: Logic error, cannot"
 	      <<" connect a shared patch with an unshared one"<< std::endl;
     return false;
   }
 
   // Set up the slave node numbers for this surface patch
-
-  int n1, n2;
-  if (!this->getSize(n1,n2,basis)) return false;
-  int node = slave+1, i1 = 0;
-
-  switch (edge)
-    {
-    case 2: // Positive I-direction
-      node += n1-1;
-    case 1: // Negative I-direction
-      i1 = n1;
-      n1 = n2;
-      break;
-
-    case 4: // Positive J-direction
-      node += n1*(n2-1);
-    case 3: // Negative J-direction
-      i1 = 1;
-      break;
-
-    default:
-      std::cerr <<" *** ASMs2D::connectPatch: Invalid slave edge "
-		<< edge << std::endl;
-      return false;
-    }
-
-  int i;
-  IntVec slaveNodes(n1,0);
-  for (i = 0; i < n1; i++, node += i1)
-    slaveNodes[i] = node;
+  IntVec slaveNodes;
+  this->getBoundaryNodes(edge, slaveNodes, basis, thick, true);
+  for (int& it : slaveNodes)
+    it += slave;
 
   // Set up the master node numbers for the neighboring surface patch
+  IntVec masterNodes;
+  neighbor.getBoundaryNodes(nedge, masterNodes, basis, thick, true);
+  for (int& it : masterNodes)
+    it += master;
 
-  if (!neighbor.getSize(n1,n2,basis)) return false;
-  node = master+1; i1 = 0;
-
-  switch (nedge)
-    {
-    case 2: // Positive I-direction
-      node += n1-1;
-    case 1: // Negative I-direction
-      i1 = n1;
-      n1 = n2;
-      break;
-
-    case 4: // Positive J-direction
-      node += n1*(n2-1);
-    case 3: // Negative J-direction
-      i1 = 1;
-      break;
-
-    default:
-      std::cerr <<" *** ASMs2D::connectPatch: Invalid master edge "
-		<< nedge << std::endl;
-      return false;
-    }
-
-  if (n1 != (int)slaveNodes.size())
+  if (masterNodes.size() != slaveNodes.size())
   {
-    std::cerr <<" *** ASMs2D::connectPatch: Non-matching edges, sizes "
-	      << n1 <<" and "<< slaveNodes.size() << std::endl;
+    std::cerr <<" *** ASMs2D::connectBasis: Non-matching edges, sizes "
+	      << masterNodes.size() <<" and "<< slaveNodes.size() << std::endl;
     return false;
   }
 
   const double xtol = 1.0e-4;
-  for (i = 0; i < n1; i++, node += i1)
+  for (size_t i = 0; i < masterNodes.size(); ++i)
   {
-    int slave = slaveNodes[revers ? n1-i-1 : i];
+    int node = masterNodes[i];
+    int slave = slaveNodes[revers ? slaveNodes.size()-i-1 : i];
     if (!coordCheck)
       ASMbase::collapseNodes(neighbor,node,*this,slave);
     else if (neighbor.getCoord(node).equal(this->getCoord(slave),xtol))
       ASMbase::collapseNodes(neighbor,node,*this,slave);
     else
     {
-      std::cerr <<" *** ASMs2D::connectPatch: Non-matching nodes "
-		<< node <<": "<< neighbor.getCoord(node)
-		<<"\n                                          and "
-		<< slave <<": "<< this->getCoord(slave) << std::endl;
+      std::cerr <<" *** ASMs2D::connectBasis: Non-matching nodes "
+                << node <<": "<< neighbor.getCoord(node)
+                <<"\n                                          and "
+                << slave <<": "<< this->getCoord(slave) << std::endl;
       return false;
     }
   }
@@ -1292,7 +1248,8 @@ bool ASMs2D::updateCoords (const Vector& displ)
 }
 
 
-void ASMs2D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis, bool local) const
+void ASMs2D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
+                               int thick, bool local) const
 {
   if (basis == 0)
     basis = 1;
@@ -1307,23 +1264,25 @@ void ASMs2D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis, bool local)
   for (char i = 1; i <= basis; i++)
     if (!this->getSize(n1,n2,i))
       return;
-    else if (i < basis)
+    else if (i < basis && !local)
       node += n1*n2;
 
   switch (lIndex)
     {
     case  2: // Right edge (positive I-direction)
-      node += n1-1;
+      node += n1-thick;
     case 1: // Left edge (negative I-direction)
       for (int i2 = 1; i2 <= n2; i2++, node += n1)
-        nodes.push_back(local ? node : this->getNodeID(node));
+        for (int t = 0; t < thick; ++t)
+          nodes.push_back(local ? node+t : this->getNodeID(node+t));
       break;
 
     case  4: // Back edge (positive J-direction)
-      node += n1*(n2-1);
+      node += n1*(n2-thick);
     case  3: // Front edge (negative J-direction)
       for (int i1 = 1; i1 <= n1; i1++, node++)
-        nodes.push_back(local ? node : this->getNodeID(node));
+        for (int t = 0; t < thick; ++t)
+          nodes.push_back(local ? node + t*n1 : this->getNodeID(node + t*n1));
       break;
     }
 

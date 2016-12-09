@@ -46,6 +46,47 @@ SIM1D::SIM1D (IntegrandBase* itg, unsigned char n) : SIMgeneric(itg)
 }
 
 
+bool SIM1D::addConnection (int master, int slave, int mIdx,
+                           int sIdx, int orient, int basis,
+                           bool, int dim, int thick)
+{
+  if (orient < 0 || orient > 1) {
+    std::cerr <<" *** SIM1D::addConnection: Invalid orientation "<< orient <<".\n";
+    return false;
+  }
+  if (basis > 0) {
+    std::cerr <<" *** SIM1D::addConnection: Mixed not implemented.\n";
+    return false;
+  }
+  if (dim > 0) {
+    std::cerr <<" *** SIM1D::addConnection: Invalid dimensionality "<< dim <<".\n";
+    return false;
+  }
+
+  int lmaster = this->getLocalPatchIndex(master);
+  int lslave = this->getLocalPatchIndex(slave);
+
+  if (lmaster > 0 && lslave > 0)
+  {
+    IFEM::cout <<"\tConnecting P"<< slave <<" E"<< sIdx
+               <<" to P"<< master <<" E"<< mIdx
+               <<" reversed? "<< orient << std::endl;
+
+    ASMs1D* spch = static_cast<ASMs1D*>(myModel[lslave-1]);
+    ASMs1D* mpch = static_cast<ASMs1D*>(myModel[lmaster-1]);
+
+    if (!spch->connectPatch(sIdx,*mpch,mIdx,thick))
+      return false;
+  }
+  else
+    adm.dd.ghostConnections.insert(DomainDecomposition::Interface{master, slave,
+                                                                  mIdx, sIdx, orient,
+                                                                  dim, basis, thick});
+
+  return true;
+}
+
+
 bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
 {
   IFEM::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;

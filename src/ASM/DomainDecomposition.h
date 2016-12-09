@@ -41,6 +41,7 @@ public:
     int orient; //!< Orientation.
     int dim;    //!< Dimension of boundary.
     int basis;  //!< Basis of boundary.
+    int thick;  //!< Thickness of connection.
   };
 
   //! \brief Functor to order ghost connections.
@@ -184,10 +185,11 @@ private:
   //! \param pidx Patch index
   //! \param lidx Boundary index on patch
   //! \param cbasis If non-empty, bases to connect
+  //! \param thick Thickness of connection (subdivisions)
   std::vector<int> setupEquationNumbers(const SIMbase& sim,
                                         int pidx, int lidx,
                                         const std::set<int>& cbasis,
-                                        int dim);
+                                        int dim, int thick);
 
   //! \brief Setup node numbers for all bases on a boundary.
   //! \param basis Bases to grab nodes for
@@ -196,10 +198,11 @@ private:
   //! \param pch Patch to obtain nodes for
   //! \param dim Dimension of boundary to obtain nodes for
   //! \param lidx Local index of boundary to obtain nodes for
+  //! \param thick Thickness of connection (subdivisions)
   void setupNodeNumbers(int basis, std::vector<int>& lNodes,
                         std::set<int>& cbasis,
                         const ASMbase* pch,
-                        int dim, int lidx);
+                        int dim, int lidx, int thick);
 
   //! \brief Calculate the global node numbers for given finite element model.
   bool calcGlobalNodeNumbers(const ProcessAdm& adm, const SIMbase& sim);
