@@ -32,6 +32,9 @@ struct TopItem
   short int idim;  //!< Dimension on the local item [-3,3]
 
   //! \brief Default constructor.
+  //! \param[in] p Patch index
+  //! \param[in] i Index of topology item
+  //! \param[in] d Dimension of topology item
   TopItem(size_t p = 0, short int i = 0, short int d = 0)
   : patch(p), item(i), idim(d) {}
 
