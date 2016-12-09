@@ -10,14 +10,72 @@
 //!
 //==============================================================================
 
+#include "ASMs1D.h"
+#include "ASMs2D.h"
+#include "Functions.h"
 #include "IFEM.h"
 #include "MultiPatchModelGenerator.h"
 #include "SIM2D.h"
 #include "SIM3D.h"
+#include "SIMMultiPatchModelGen.h"
+#include "SplineUtils.h"
 #include "TopologySet.h"
 
 #include "gtest/gtest.h"
 #include "tinyxml.h"
+
+#include <GoTools/geometry/SplineCurve.h>
+#include <GoTools/geometry/SplineSurface.h>
+#include <GoTools/utils/Point.h>
+
+
+auto&& check_vector_int_equals_range = [](const std::vector<int>& arr,
+                                          const std::vector<int>& range)
+{
+  int el = range[0] - 1;
+  size_t len = range[1] - el;
+  ASSERT_EQ(arr.size(), len);
+  for (auto& it : arr)
+    ASSERT_EQ(it, ++el);
+};
+
+
+auto&& check_vector_int_equals = [](const std::vector<int>& arr1,
+                                    const std::vector<int>& arr2)
+{
+  ASSERT_EQ(arr1.size(), arr2.size());
+  auto it2 = arr2.begin();
+  for (auto& it1 : arr1) {
+    ASSERT_EQ(it1, *it2);
+    it2++;
+  }
+};
+
+
+auto&& check_vector_double_near = [](const std::vector<double>& arr1,
+                                     const std::vector<double>& arr2,
+                                     const double tol=1e-12)
+{
+  ASSERT_EQ(arr1.size(), arr2.size());
+  auto it2 = arr2.begin();
+  for (auto& it1 : arr1) {
+    ASSERT_NEAR(it1, *it2, tol);
+    it2++;
+  }
+};
+
+
+auto&& check_point_near = [](const Go::Point p1,
+                             const Go::Point p2,
+                             const double tol=1e-12)
+{
+  ASSERT_EQ(p1.dimension(), p2.dimension());
+  auto it2 = p2.begin();
+  for (auto& it1 : p1) {
+    ASSERT_NEAR(it1, *it2, tol);
+    it2++;
+  }
+};
 
 
 template<class Generator>
@@ -93,6 +151,41 @@ TEST_P(TestMultiPatchModelGenerator2D, Generate)
 }
 
 
+TEST(TestMultiPatchModelGenerator2D, Subdivisions)
+{
+  SIMMultiPatchModelGen<SIM2D> sim(1);
+  ASSERT_TRUE(sim.read("refdata/modelgen2d_subdivision.xinp"));
+
+  // check FEM topology
+  const SIM2D::PatchVec& model = sim.getFEModel();
+  int renum = 0, ngnod = 0;
+  std::map<int,int> g2l;
+  for (auto& it : model)
+    renum += it->renumberNodes(g2l, ngnod);
+  std::vector<std::vector<int>> mlgn =
+      {{ 1, 2, 3, 4, 5,
+         6, 7, 8, 9,10,
+        11,12,13,14,15,
+        16,17,18,19,20,
+        21,22,23,24,25},
+       { 4, 5,26,27,
+         9,10,28,29,
+        14,15,30,31,
+        19,20,32,33,
+        24,25,34,35},
+       {16,17,18,19,20,
+        21,22,23,24,25,
+        36,37,38,39,40,
+        41,42,43,44,45},
+       {19,20,32,33,
+        24,25,34,35,
+        39,40,46,47,
+        44,45,48,49}};
+  for (int i=0; i<4; i++)
+    check_vector_int_equals(mlgn[i], model[i]->getMyNodeNums());
+}
+
+
 TEST_P(TestMultiPatchModelGenerator3D, Generate)
 {
   TiXmlDocument doc;
@@ -103,6 +196,328 @@ TEST_P(TestMultiPatchModelGenerator3D, Generate)
   TopologySet sets = gen.createTopologySets(sim);
   DoTest(GetParam(), g2, sets);
 }
+
+
+struct SubPatchTest {
+  int n; // number of coefs in total model
+  int p; // polynomial order of basis
+  std::vector<double> knots; // knot vector of total model
+  int lknots0; // length of first subknot
+  int lknots1; // length of second subknot
+  std::vector<double> coefs; // control net of total model
+  std::vector<double> coefs0; // control net of first subdivision
+  std::vector<double> coefs1; // control net of second subdivision
+  int dim; // dimensionality of embedding space
+  bool rational; // rational or standard splines
+  std::vector<int> mlge1; // global element number range owned by patch 1
+  std::vector<int> mlgn1; // global node number range owned by patch 1
+};
+
+
+class TestGetSubPatch1D :
+  public testing::Test,
+  public testing::WithParamInterface<SubPatchTest>
+{
+};
+
+
+TEST_P(TestGetSubPatch1D, SubPatch)
+{
+  Go::SplineCurve cur(GetParam().n, GetParam().p+1, GetParam().knots.begin(),
+      GetParam().coefs.begin(), GetParam().dim, GetParam().rational);
+  size_t numcoefs0 = cur.basis().numCoefs()/2 + GetParam().p;
+  Go::SplineCurve cur0 = MultiPatchModelGenerator1D::getSubPatch(&cur,
+      0, numcoefs0, GetParam().p+1);
+  size_t numcoefs1 = cur.basis().numCoefs() - numcoefs0 + GetParam().p;
+  size_t start1 = numcoefs0 - GetParam().p;
+  Go::SplineCurve cur1 = MultiPatchModelGenerator1D::getSubPatch(&cur,
+      start1, numcoefs1, GetParam().p+1);
+
+  // Check first sub-knot-vector
+  std::vector<double> arr0(GetParam().knots.begin(), GetParam().knots.begin()+GetParam().lknots0);
+  std::vector<double> arr1(cur0.basis().begin(), cur0.basis().end());
+  std::cout << "sub-knot-vector 0" << std::endl;
+  check_vector_double_near(arr0, arr1);
+
+  // Check second sub-knot-vector
+  std::vector<double> arr2(GetParam().knots.end()-GetParam().lknots1, GetParam().knots.end());
+  std::vector<double> arr3(cur1.basis().begin(), cur1.basis().end());
+  std::cout << "sub-knot-vector 1" << std::endl;
+  check_vector_double_near(arr2, arr3);
+
+  // Check first sub-control net
+  std::vector<double>::const_iterator i0 = GetParam().rational ? cur0.rcoefs_begin() : cur0.coefs_begin();
+  std::vector<double>::const_iterator i1 = GetParam().rational ? cur0.rcoefs_end() : cur0.coefs_end();
+  std::vector<double> arr4(i0, i1);
+  std::cout << "sub-node-vector 0" << std::endl;
+  check_vector_double_near(GetParam().coefs0, arr4);
+
+  // Check second sub-control net
+  std::vector<double>::const_iterator i2 = GetParam().rational ? cur1.rcoefs_begin() : cur1.coefs_begin();
+  std::vector<double>::const_iterator i3 = GetParam().rational ? cur1.rcoefs_end() : cur1.coefs_end();
+  std::vector<double> arr5(i2, i3);
+  std::cout << "sub-node-vector 1" << std::endl;
+  check_vector_double_near(GetParam().coefs1, arr5);
+
+  // Evaluate function at points
+  double xiA(0.3333), xiB(GetParam().p+1), xiC(4.2);
+  std::string fstr = (GetParam().p == 2) ? "(1-x)*(3.14159-x)" : "x*(1-x)*(3.14159-x)";
+  RealFunc* f = utl::parseRealFunc(fstr, "expression");
+  Go::SplineCurve* fh = SplineUtils::project(&cur, *f);
+  Go::SplineCurve fh0 = MultiPatchModelGenerator1D::getSubPatch(fh, 0, numcoefs0, GetParam().p+1);
+  Go::SplineCurve fh1 = MultiPatchModelGenerator1D::getSubPatch(fh, start1, numcoefs1, GetParam().p+1);
+  Go::Point fA, fB, fC, fA0, fB0, fB1, fC1;
+  fh->point(fA, xiA);
+  fh->point(fB, xiB);
+  fh->point(fC, xiC);
+
+  std::cout << "point evaluation" << std::endl;
+  fh0.point(fA0, xiA);
+  check_point_near(fA, fA0);
+  fh0.point(fB0, xiB);
+  check_point_near(fB, fB0);
+  fh1.point(fB1, xiB);
+  check_point_near(fB, fB1);
+  fh1.point(fC1, xiC);
+  check_point_near(fC, fC1);
+
+  // Check FEM topology
+  std::stringstream str0, str1;
+  str0 << "100 1 0 0\n" << cur0;
+  str1 << "100 1 0 0\n" << cur1;
+  ASMs1D pch0, pch1;
+  pch0.resetNumbering();
+  pch0.read(str0);
+  pch1.read(str1);
+  std::cout << "element/node numbers" << std::endl;
+  ASSERT_TRUE(pch0.generateFEMTopology());
+  ASSERT_TRUE(pch1.generateFEMTopology());
+  std::vector<int> myMLGE = pch1.getMyElementNums();
+  check_vector_int_equals_range(myMLGE, GetParam().mlge1);
+  std::vector<int> myMLGN = pch1.getMyNodeNums();
+  check_vector_int_equals_range(myMLGN, GetParam().mlgn1);
+}
+
+
+const std::vector<SubPatchTest> SubPatch1D =
+  {
+   {7, 2, // non-rational, embedded in 1D, quadratic
+    {0,0,0,1,2,3,4,5,5,5},
+     8, 7,
+    {0,1,2,3,4,5,6},
+    {0,1,2,3,4},
+    {3,4,5,6},
+     1, false,
+    {4,5},
+    {6,9}},
+
+   {8, 3, // non-rational, embedded in 1D, cubic
+    {0,0,0,0,1,2,3,4,5,5,5,5},
+     11, 8,
+    {0,1,2,3,4,5,6,7},
+    {0,1,2,3,4,5,6},
+    {4,5,6,7},
+     1, false,
+    {5,5},
+    {8,11}},
+
+   {7, 2, // rational, embedded in 1D, quadratic
+    {0,0,0,1,2,3,4,5,5,5},
+     8, 7,
+    {0,1,1,1,2,1,3,1,4,1,5,1,6,1},
+    {0,1,1,1,2,1,3,1,4,1},
+    {3,1,4,1,5,1,6,1},
+     1, true,
+    {4,5},
+    {6,9}},
+
+   {7, 2, // rational, embedded in 2D, quadratic
+    {0,0,0,1,2,3,4,5,5,5},
+     8, 7,
+    {0,9,1,1,9,1,2,9,1,3,9,1,4,9,1,5,9,1,6,9,1},
+    {0,9,1,1,9,1,2,9,1,3,9,1,4,9,1},
+    {3,9,1,4,9,1,5,9,1,6,9,1},
+     2, true,
+    {4,5},
+    {6,9}},
+  };
+
+
+INSTANTIATE_TEST_CASE_P(TestGetSubPatch1D,
+                        TestGetSubPatch1D,
+                        testing::ValuesIn(SubPatch1D));
+
+
+class TestGetSubPatch2D :
+  public testing::Test,
+  public testing::WithParamInterface<SubPatchTest>
+{
+};
+
+
+TEST_P(TestGetSubPatch2D, SubPatch)
+{
+  Go::SplineSurface srf(GetParam().n, GetParam().n, GetParam().p+1, GetParam().p+1,
+      GetParam().knots.begin(), GetParam().knots.begin(),
+      GetParam().coefs.begin(), GetParam().dim, GetParam().rational);
+  size_t numcoefs0 = srf.basis_u().numCoefs()/2 + GetParam().p;
+  Go::SplineSurface srf0 = MultiPatchModelGenerator2D::getSubPatch(&srf,
+      0, numcoefs0, GetParam().p+1,
+      0, numcoefs0, GetParam().p+1);
+  size_t numcoefs1 = srf.basis_u().numCoefs() - numcoefs0 + GetParam().p;
+  size_t start1 = numcoefs0 - GetParam().p;
+  Go::SplineSurface srf1 = MultiPatchModelGenerator2D::getSubPatch(&srf,
+      start1, numcoefs1, GetParam().p+1,
+      0, numcoefs0, GetParam().p+1);
+
+  // Check first sub-knot-vector
+  std::vector<double> arr0(GetParam().knots.begin(), GetParam().knots.begin()+GetParam().lknots0);
+  std::vector<double> arr1(srf0.basis_u().begin(), srf0.basis_u().end());
+  std::cout << "sub-knot-vector 0" << std::endl;
+  check_vector_double_near(arr0, arr1);
+
+  // Check second sub-knot-vector
+  std::vector<double> arr2(GetParam().knots.end()-GetParam().lknots1, GetParam().knots.end());
+  std::vector<double> arr3(srf1.basis_u().begin(), srf1.basis_u().end());
+  std::cout << "sub-knot-vector 1" << std::endl;
+  check_vector_double_near(arr2, arr3);
+
+  // Check first sub-control net
+  std::vector<double>::const_iterator i0 = GetParam().rational ? srf0.rcoefs_begin() : srf0.coefs_begin();
+  std::vector<double>::const_iterator i1 = GetParam().rational ? srf0.rcoefs_end() : srf0.coefs_end();
+  std::vector<double> arr4(i0, i1);
+  std::cout << "sub-node-vector 0" << std::endl;
+  check_vector_double_near(GetParam().coefs0, arr4);
+
+  // Check second sub-control net
+  std::vector<double>::const_iterator i2 = GetParam().rational ? srf1.rcoefs_begin() : srf1.coefs_begin();
+  std::vector<double>::const_iterator i3 = GetParam().rational ? srf1.rcoefs_end() : srf1.coefs_end();
+  std::vector<double> arr5(i2, i3);
+  std::cout << "sub-node-vector 1" << std::endl;
+  check_vector_double_near(GetParam().coefs1, arr5);
+
+  // Evaluate function at points
+  double xiA(0.3333), xiB(2), xiC(4.2);
+  RealFunc* f = utl::parseRealFunc("(1-y*y)*(3.14159-x)", "expression");
+  Go::SplineSurface* fh = SplineUtils::project(&srf, *f);
+  Go::SplineSurface fh0 = MultiPatchModelGenerator2D::getSubPatch(fh,
+      0, numcoefs0, GetParam().p+1,
+      0, numcoefs0, GetParam().p+1);
+  Go::SplineSurface fh1 = MultiPatchModelGenerator2D::getSubPatch(fh,
+      start1, numcoefs1, GetParam().p+1,
+      0, numcoefs0, GetParam().p+1);
+  Go::Point fA, fB, fC, fA0, fB0, fB1, fC1;
+  fh->point(fA, xiA, xiA);
+  fh->point(fB, xiB, xiA);
+  fh->point(fC, xiC, xiA);
+
+  std::cout << "point evaluation" << std::endl;
+  fh0.point(fA0, xiA, xiA);
+  check_point_near(fA, fA0);
+  fh0.point(fB0, xiB, xiA);
+  check_point_near(fB, fB0);
+  fh1.point(fB1, xiB, xiA);
+  check_point_near(fB, fB1);
+  fh1.point(fC1, xiC, xiA);
+  check_point_near(fC, fC1);
+
+  // Check FEM topology
+  std::stringstream str0, str1;
+  str0 << "200 1 0 0\n" << srf0;
+  str1 << "200 1 0 0\n" << srf1;
+  ASMs2D pch0, pch1;
+  pch0.resetNumbering();
+  pch0.read(str0);
+  pch1.read(str1);
+  std::cout << "element/node numbers" << std::endl;
+  ASSERT_TRUE(pch0.generateFEMTopology());
+  ASSERT_TRUE(pch1.generateFEMTopology());
+  std::vector<int> myMLGE = pch1.getMyElementNums();
+  check_vector_int_equals_range(myMLGE, GetParam().mlge1);
+  std::vector<int> myMLGN = pch1.getMyNodeNums();
+  check_vector_int_equals_range(myMLGN, GetParam().mlgn1);
+}
+
+
+const std::vector<SubPatchTest> SubPatch2D =
+  {
+   {7, 2, // non-rational, embedded in 2D
+    {0,0,0,1,2,3,4,5,5,5},
+     8, 7,
+    {0,0,1,0,2,0,3,0,4,0,5,0,6,0,
+     0,1,1,1,2,1,3,1,4,1,5,1,6,1,
+     0,2,1,2,2,2,3,2,4,2,5,2,6,2,
+     0,3,1,3,2,3,3,3,4,3,5,3,6,3,
+     0,4,1,4,2,4,3,4,4,4,5,4,6,4,
+     0,5,1,5,2,5,3,5,4,5,5,5,6,5,
+     0,6,1,6,2,6,3,6,4,6,5,6,6,6},
+    {0,0,1,0,2,0,3,0,4,0,
+     0,1,1,1,2,1,3,1,4,1,
+     0,2,1,2,2,2,3,2,4,2,
+     0,3,1,3,2,3,3,3,4,3,
+     0,4,1,4,2,4,3,4,4,4},
+    {3,0,4,0,5,0,6,0,
+     3,1,4,1,5,1,6,1,
+     3,2,4,2,5,2,6,2,
+     3,3,4,3,5,3,6,3,
+     3,4,4,4,5,4,6,4},
+     2, false,
+    {10,15},
+    {26,45}},
+
+   {7, 2, // rational, embedded in 2D
+    {0,0,0,1,2,3,4,5,5,5},
+     8, 7,
+    {0,0,1,1,0,1,2,0,1,3,0,1,4,0,1,5,0,1,6,0,1,
+     0,1,1,1,1,1,2,1,1,3,1,1,4,1,1,5,1,1,6,1,1,
+     0,2,1,1,2,1,2,2,1,3,2,1,4,2,1,5,2,1,6,2,1,
+     0,3,1,1,3,1,2,3,1,3,3,1,4,3,1,5,3,1,6,3,1,
+     0,4,1,1,4,1,2,4,1,3,4,1,4,4,1,5,4,1,6,4,1,
+     0,5,1,1,5,1,2,5,1,3,5,1,4,5,1,5,5,1,6,5,1,
+     0,6,1,1,6,1,2,6,1,3,6,1,4,6,1,5,6,1,6,6,1},
+    {0,0,1,1,0,1,2,0,1,3,0,1,4,0,1,
+     0,1,1,1,1,1,2,1,1,3,1,1,4,1,1,
+     0,2,1,1,2,1,2,2,1,3,2,1,4,2,1,
+     0,3,1,1,3,1,2,3,1,3,3,1,4,3,1,
+     0,4,1,1,4,1,2,4,1,3,4,1,4,4,1},
+    {3,0,1,4,0,1,5,0,1,6,0,1,
+     3,1,1,4,1,1,5,1,1,6,1,1,
+     3,2,1,4,2,1,5,2,1,6,2,1,
+     3,3,1,4,3,1,5,3,1,6,3,1,
+     3,4,1,4,4,1,5,4,1,6,4,1},
+     2, true,
+    {10,15},
+    {26,45}},
+
+   {7, 2, // rational, embedded in 3D
+    {0,0,0,1,2,3,4,5,5,5},
+     8, 7,
+    {0,0,9,1,1,0,9,1,2,0,9,1,3,0,9,1,4,0,9,1,5,0,9,1,6,0,9,1,
+     0,1,9,1,1,1,9,1,2,1,9,1,3,1,9,1,4,1,9,1,5,1,9,1,6,1,9,1,
+     0,2,9,1,1,2,9,1,2,2,9,1,3,2,9,1,4,2,9,1,5,2,9,1,6,2,9,1,
+     0,3,9,1,1,3,9,1,2,3,9,1,3,3,9,1,4,3,9,1,5,3,9,1,6,3,9,1,
+     0,4,9,1,1,4,9,1,2,4,9,1,3,4,9,1,4,4,9,1,5,4,9,1,6,4,9,1,
+     0,5,9,1,1,5,9,1,2,5,9,1,3,5,9,1,4,5,9,1,5,5,9,1,6,5,9,1,
+     0,6,9,1,1,6,9,1,2,6,9,1,3,6,9,1,4,6,9,1,5,6,9,1,6,6,9,1},
+    {0,0,9,1,1,0,9,1,2,0,9,1,3,0,9,1,4,0,9,1,
+     0,1,9,1,1,1,9,1,2,1,9,1,3,1,9,1,4,1,9,1,
+     0,2,9,1,1,2,9,1,2,2,9,1,3,2,9,1,4,2,9,1,
+     0,3,9,1,1,3,9,1,2,3,9,1,3,3,9,1,4,3,9,1,
+     0,4,9,1,1,4,9,1,2,4,9,1,3,4,9,1,4,4,9,1},
+    {3,0,9,1,4,0,9,1,5,0,9,1,6,0,9,1,
+     3,1,9,1,4,1,9,1,5,1,9,1,6,1,9,1,
+     3,2,9,1,4,2,9,1,5,2,9,1,6,2,9,1,
+     3,3,9,1,4,3,9,1,5,3,9,1,6,3,9,1,
+     3,4,9,1,4,4,9,1,5,4,9,1,6,4,9,1},
+     3, true,
+    {10,15},
+    {26,45}},
+  };
+
+
+INSTANTIATE_TEST_CASE_P(TestGetSubPatch2D,
+                        TestGetSubPatch2D,
+                        testing::ValuesIn(SubPatch2D));
 
 
 const std::vector<GeomTest> geometry2D =

@@ -11,15 +11,25 @@
 //!
 //==============================================================================
 
+#include "ModelGenerator.h"
 #include "SIMMultiPatchModelGen.h"
 #include "MultiPatchModelGenerator.h"
 #include "IFEM.h"
+#include "SIM1D.h"
 #include "SIM2D.h"
 #include "SIM3D.h"
 
 
 template<>
-ModelGenerator* SIMMultiPatchModelGen<SIM2D>::getModelGenerator (const TiXmlElement* geo) const
+ModelGenerator* SIMMultiPatchModelGen<SIM1D>::getModelGenerator(const TiXmlElement* geo) const
+{
+  IFEM::cout <<"  Using multi-patch model generator" << std::endl;
+  return new MultiPatchModelGenerator1D(geo);
+}
+
+
+template<>
+ModelGenerator* SIMMultiPatchModelGen<SIM2D>::getModelGenerator(const TiXmlElement* geo) const
 {
   IFEM::cout <<"  Using multi-patch model generator" << std::endl;
   return new MultiPatchModelGenerator2D(geo);
@@ -27,7 +37,7 @@ ModelGenerator* SIMMultiPatchModelGen<SIM2D>::getModelGenerator (const TiXmlElem
 
 
 template<>
-ModelGenerator* SIMMultiPatchModelGen<SIM3D>::getModelGenerator (const TiXmlElement* geo) const
+ModelGenerator* SIMMultiPatchModelGen<SIM3D>::getModelGenerator(const TiXmlElement* geo) const
 {
   IFEM::cout <<"  Using multi-patch model generator" << std::endl;
   return new MultiPatchModelGenerator3D(geo);

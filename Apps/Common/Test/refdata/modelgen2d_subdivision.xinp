@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<simulation>
+  <geometry sets="true">
+    <subdivision nx="2" ny="2">
+      <raiseorder patch="1" u="1" v="1"/>
+      <refine patch="1" u="4" v="4"/>
+    </subdivision>
+  </geometry>
+</simulation>
