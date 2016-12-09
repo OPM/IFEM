@@ -199,9 +199,11 @@ public:
   //! \param[in] lIndex Local index of the boundary face
   //! \param nodes Array of node numbers
   //! \param basis Which basis to grab nodes for (0 for all)
-  //! \param local If \e true, return patch-local node numbers
-  virtual void getBoundaryNodes(int lIndex, IntVec& glbNodes, int basis,
-                                bool local) const;
+  //! \param thick Thickness of connection
+  //! \param local If true return patch-local node numbers
+  virtual void getBoundaryNodes(int lIndex, IntVec& nodes,
+                                int basis, int thick = 1,
+                                bool local = false) const;
 
   //! \brief Returns the node index for a given corner.
   virtual int getCorner(int I, int J, int K, int basis = 1) const;
@@ -326,6 +328,7 @@ public:
   //! \param[in] nface Local face index of neighbor patch, in range [1,6]
   //! \param[in] norient Relative face orientation flag (see below)
   //! \param[in] coordCheck False to disable coordinate checks (periodic connections)
+  //! \param[in] thick Thickness of connection
   //!
   //! \details The face orientation flag \a norient must be in range [0,7].
   //! When interpreted as a binary number, its 3 digits are decoded as follows:
@@ -333,7 +336,7 @@ public:
   //! - middle digit = 1: Parameter \a u in neighbor patch face is reversed
   //! - right digit = 1: Parameter \a v in neighbor patch face is reversed
   virtual bool connectPatch(int face, ASMs3D& neighbor, int nface, int norient,
-                            int = 0, bool coordCheck = true);
+                            int = 0, bool coordCheck = true, int thick = 1);
 
   //! \brief Makes two opposite boundary faces periodic.
   //! \param[in] dir Parameter direction defining the periodic faces
@@ -544,9 +547,10 @@ protected:
   //! \param[in] slave 0-based index of the first slave node in this basis
   //! \param[in] master 0-based index of the first master node in this basis
   //! \param[in] coordCheck False to turn off coordinate checks
+  //! \param[in] thick Thickness of connection
   bool connectBasis(int face, ASMs3D& neighbor, int nface, int norient,
                     int basis = 1, int slave = 0, int master = 0,
-                    bool coordCheck = true);
+                    bool coordCheck = true, int thick = 1);
 
   //! \brief Extracts parameter values of the Gauss points in one direction.
   //! \param[out] uGP Parameter values in given direction for all points
@@ -682,6 +686,13 @@ private:
   //! \param[in] basis Basis to find data for
   //! \return 1-based index of start node for basis
   int findStartNode(int& n1, int& n2, int& n3, char basis) const;
+
+  //! \brief Find local sizes for a given face.
+  //! \param[out] n1 Number of nodes in first local parameter direction on face
+  //! \param[out] n2 Number of nodes in second local parameter direction face
+  //! \param[in] basis Basis to obtain sizes for
+  //! \param[in] face Face to obtain sizes for
+  bool getFaceSize(int& n1, int& n2, int basis, int face) const;
 
 protected:
   Go::SplineVolume* svol;  //!< Pointer to the actual spline volume object

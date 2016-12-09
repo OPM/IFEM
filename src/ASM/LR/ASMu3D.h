@@ -89,10 +89,10 @@ public:
 
   //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
   //! \param[in] lIndex Local index of the boundary edge
-  //! \param nodes Array of global boundary node numbers
+  //! \param glbNodes Array of global boundary node numbers
   //! \param local If \e true return patch-local node numbers
   virtual void getBoundaryNodes(int lIndex, IntVec& nodes,
-                                int basis, bool local) const;
+                                int basis, int, bool local) const;
 
   //! \brief Returns the node index for a given corner.
   virtual int getCorner(int I, int J, int K, int basis = 1) const;

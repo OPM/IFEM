@@ -309,9 +309,11 @@ bool ASMs1D::generateTwistedFEModel (const RealFunc& twist, const Vec3& Zaxis)
 }
 
 
-bool ASMs1D::connectPatch (int vertex, ASMs1D& neighbor, int nvertex)
+bool ASMs1D::connectPatch (int vertex, ASMs1D& neighbor, int nvertex, int thick)
 {
-  if (!this->connectBasis(vertex,neighbor,nvertex))
+  int slave = vertex == 1 ? 0 : this->getSize(1)-thick;
+  int master = nvertex == 1 ? 0 : neighbor.getSize(1)-thick;
+  if (!this->connectBasis(vertex,neighbor,nvertex,1,slave,master,thick))
     return false;
 
   this->addNeighbor(&neighbor);
@@ -320,64 +322,40 @@ bool ASMs1D::connectPatch (int vertex, ASMs1D& neighbor, int nvertex)
 
 
 bool ASMs1D::connectBasis (int vertex, ASMs1D& neighbor, int nvertex,
-			   int basis, int slave, int master)
+                           int basis, int slave, int master, int thick)
 {
   if (shareFE && neighbor.shareFE)
     return true;
   else if (shareFE || neighbor.shareFE)
   {
-    std::cerr <<" *** ASMs1D::connectPatch: Logic error, cannot"
+    std::cerr <<" *** ASMs1D::connectBasis: Logic error, cannot"
 	      <<" connect a sharedFE patch with an unshared one"<< std::endl;
     return false;
-  }
-
-  // Set up the slave node number for this curve patch
-
-  int n1 = this->getSize(basis);
-
-  switch (vertex)
-    {
-    case 2: // Positive I-direction
-      slave += n1;
-    case 1: // Negative I-direction
-      slave += 1;
-      break;
-
-    default:
-      std::cerr <<" *** ASMs1D::connectPatch: Invalid slave vertex "
-		<< vertex << std::endl;
-      return false;
-    }
-
-  // Set up the master node number for the neighboring patch
-
-  n1 = neighbor.getSize(basis);
-
-  switch (nvertex)
-    {
-    case 2: // Positive I-direction
-      master += n1;
-    case 1: // Negative I-direction
-      master += 1;
-      break;
-
-    default:
-      std::cerr <<" *** ASMs1D::connectPatch: Invalid master vertex "
-		<< nvertex << std::endl;
-      return false;
-    }
-
-  const double xtol = 1.0e-4;
-  if (!neighbor.getCoord(master).equal(this->getCoord(slave),xtol))
-  {
-    std::cerr <<" *** ASMs1D::connectPatch: Non-matching nodes "
-	      << master <<": "<< neighbor.getCoord(master)
-	      <<"\n                                          and "
-	      << slave <<": "<< this->getCoord(slave) << std::endl;
+  } else if (vertex < 1 || vertex > 2) {
+    std::cerr <<" *** ASMs1D::connectBasis: Invalid slave vertex "
+              << vertex << std::endl;
+    return false;
+  } else if (nvertex < 1 || nvertex > 2) {
+    std::cerr <<" *** ASMs1D::connectBasis: Invalid master vertex "
+              << nvertex << std::endl;
     return false;
   }
-  else
-    ASMbase::collapseNodes(neighbor,master,*this,slave);
+
+  const double xtol = 1.0e-4;
+  for (int i = 0; i < thick; ++i) {
+    slave += 1; // add first, getCoord is 1-based
+    master += 1;
+    if (!neighbor.getCoord(master).equal(this->getCoord(slave),xtol))
+    {
+      std::cerr <<" *** ASMs1D::connectBasis: Non-matching nodes "
+                << master <<": "<< neighbor.getCoord(master)
+                <<"\n                                          and "
+                << slave <<": "<< this->getCoord(slave) << std::endl;
+      return false;
+    }
+    else
+      ASMbase::collapseNodes(neighbor,master,*this,slave);
+  }
 
   return true;
 }
@@ -585,19 +563,21 @@ bool ASMs1D::updateRotations (const Vector& displ, bool reInit)
 
 
 void ASMs1D::getBoundaryNodes (int lIndex, IntVec& nodes,
-                               int, bool local) const
+                               int, int thick, bool local) const
 {
   if (!curv) return; // silently ignore empty patches
 
   size_t iel = lIndex == 1 ? 0 : nel-1;
   if (MLGE[iel] > 0)
   {
-    int node;
-    if (lIndex == 1)
-      node = MNPC[iel].front();
-    else if (lIndex == 2)
-      node = MNPC[iel][curv->order()-1];
-    nodes.push_back(local ? node+1 : MLGN[node]);
+    for (int i = 0; i < thick; ++i) {
+      int node;
+      if (lIndex == 1)
+        node = MNPC[iel][i];
+      else if (lIndex == 2)
+        node = MNPC[iel][curv->order()-thick+i];
+      nodes.push_back(local ? node+1 : MLGN[node]);
+    }
   }
 }
 

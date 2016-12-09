@@ -80,9 +80,10 @@ public:
   //! \param[in] basis Which bases to connect (0 for all)
   //! \param[in] coordCheck If \e false, do not check for matching coordinates
   //! \param[in] dim Dimensionality of connection
-  virtual bool addConnection(int master, int slave, int mEdge, int sEdge,
-                             int orient, int basis = 0, bool coordCheck = true,
-                             int dim = 1);
+  //! \param thick Thickness of connection
+  bool addConnection(int master, int slave, int mIdx, int sIdx,
+                     int orient, int basis = 0, bool coordCheck = true,
+                     int dim = 1, int thick = 1);
 
   //! \brief Evaluates the primary solution at the given point.
   //! \param[in] psol Primary solution vector

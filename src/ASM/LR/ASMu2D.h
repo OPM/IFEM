@@ -94,9 +94,10 @@ public:
   //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
   //! \param[in] lIndex Local index of the boundary edge
   //! \param nodes Array of node numbers
-  //! \param local If true return patch-local node numbers
+  //! \param basis Which basis to grab nodes for (0 for all)
+  //! \param local If \e true return patch-local node numbers
   virtual void getBoundaryNodes(int lIndex, IntVec& nodes,
-                                int basis, bool local = false) const;
+                                int basis, int, bool local = false) const;
 
   //! \brief Returns the polynomial order in each parameter direction.
   //! \param[out] p1 Order in first (u) direction

@@ -103,8 +103,9 @@ public:
   //! \param[in] revers Indicates whether the two edges have opposite directions
   //! \param[in] basis The basis to connect (for mixed problems)
   //! \param[in] coordCheck False to disable coordinate checks (periodic connections)
+  //! \param[in] thick Thickness of connection
   virtual bool connectPatch(int edge, ASMs2D& neighbor, int nedge, bool revers,
-                            int basis = 0, bool coordCheck = true);
+                            int basis = 0, bool coordCheck = true, int thick = 1);
 
   //! \brief Makes two opposite boundary edges periodic.
   //! \param[in] dir Parameter direction defining the periodic edges
@@ -212,8 +213,10 @@ public:
   //! \param[in] lIndex Local index of the boundary edge
   //! \param nodes Array of node numbers
   //! \param basis Which basis to grab nodes for (0 for all)
-  virtual void getBoundaryNodes(int lIndex, IntVec& nodes,
-                                int basis, bool local = false) const;
+  //! \param thick Thickness of connection
+  //! \param local If \e true return patch-local node numbers
+  virtual void getBoundaryNodes(int lIndex, IntVec& nodes, int basis,
+                                int thick = 1, bool local = false) const;
 
 protected:
   std::vector<std::shared_ptr<Go::SplineSurface>> m_basis; //!< Vector of bases
