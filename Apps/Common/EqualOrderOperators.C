@@ -75,26 +75,40 @@ void EqualOrderOperators::Weak::Convection(Matrix& EM, const FiniteElement& fe,
                                            double scale, WeakOperators::ConvectionForm form, int basis)
 {
   size_t cmp = EM.rows() / fe.basis(basis).size();
-  if (form == WeakOperators::CONSERVATIVE) {
-    Advection(EM, fe, U, -scale, basis);
-    for (size_t i = 1;i <= fe.basis(basis).size();i++)
-      for (size_t j = 1;j <= fe.basis(basis).size();j++) {
-        for (size_t k = 1;k <= cmp;k++) {
-          for (size_t l = 1;l <= cmp;l++)
-            EM((j-1)*cmp+l,(i-1)*cmp+k) -= scale*U[l-1]*fe.basis(basis)(i)*fe.grad(basis)(j,k)*fe.detJxW;
+  double coef = scale*fe.detJxW;
+  double conv = 0.0;
+  for (size_t i = 1;i <= fe.basis(basis).size();i++)
+    for (size_t j = 1;j <= fe.basis(basis).size();j++)
+      for (size_t k = 1;k <= cmp;k++)
+        for (size_t l = 1;l <= cmp;l++) {
+          switch (form) {
+            case WeakOperators::CONVECTIVE:
+              conv = fe.basis(basis)(i)*dUdX(k,l)*fe.basis(basis)(j);
+              if (k==l)
+                for (size_t m = 1;m <= cmp;m++)
+                  conv += U[m-1]*fe.grad(basis)(j,m)*fe.basis(basis)(i);
+              break;
+            case WeakOperators::CONSERVATIVE:
+              conv = -U[k-1]*fe.basis(basis)(j)*fe.grad(basis)(i,l);
+              if (k==l)
+                for (size_t m = 1;m <= cmp;m++)
+                  conv -= fe.basis(basis)(j)*U[m-1]*fe.grad(basis)(i,m);
+              break;
+            case WeakOperators::SKEWSYMMETRIC:
+              conv = fe.basis(basis)(i)*dUdX(k,l)*fe.basis(basis)(j)
+                   - U[k-1]*fe.basis(basis)(j)*fe.grad(basis)(i,l);
+              if (k==l)
+                for (size_t m = 1;m <= cmp;m++)
+                  conv += U[m-1]*fe.grad(basis)(j,m)*fe.basis(basis)(i)
+                        - fe.basis(basis)(j)*U[m-1]*fe.grad(basis)(i,m);
+              conv *= 0.5;
+              break;
+            default:
+              std::cerr << "EqualOrderOperators::Weak::Convection: "
+                        << "Unknown form " << form << std::endl;
+          }
+          EM((i-1)*cmp+k,(j-1)*cmp+l) += coef*conv;
         }
-      }
-  }
-  else {
-    Advection(EM, fe, U, scale, basis);
-    for (size_t i = 1;i <= fe.basis(basis).size();i++)
-      for (size_t j = 1;j <= fe.basis(basis).size();j++) {
-        for (size_t k = 1;k <= cmp;k++) {
-          for (size_t l = 1;l <= cmp;l++)
-            EM((j-1)*cmp+l,(i-1)*cmp+k) += scale*dUdX(l,k)*fe.basis(basis)(j)*fe.basis(basis)(i)*fe.detJxW;
-        }
-      }
-  }
 }
 
 
@@ -203,25 +217,29 @@ void EqualOrderOperators::Residual::Convection(Vector& EV, const FiniteElement& 
                                                WeakOperators::ConvectionForm form, int basis)
 {
   size_t cmp = EV.size() / fe.basis(basis).size();
-  if (form == WeakOperators::CONSERVATIVE) {
-    for (size_t i = 1;i <= fe.basis(basis).size();i++)
-      for (size_t k = 1;k <= cmp;k++)
-        for (size_t l = 1;l <= cmp;l++)
-          // Convection
-          EV((i-1)*cmp + k) += scale*U[k-1]*UC[l-1]*fe.grad(basis)(i,l)*fe.detJxW;
-  }
-  else {
-    for (size_t k = 1;k <= cmp;k++) {
-      // Convection
-      double conv = 0.0;
-      for (size_t l = 1;l <= cmp;l++)
-        conv += UC[l-1]*dUdX(k,l);
-      conv *= scale*fe.detJxW;
-
-      for (size_t i = 1;i <= fe.basis(basis).size();i++)
-        EV((i-1)*cmp + k) -= conv*fe.basis(basis)(i);
-    }
-  }
+  double coef = scale * fe.detJxW;
+  double conv = 0.0;
+  for (size_t i = 1;i <= fe.basis(basis).size();i++)
+    for (size_t k = 1;k <= cmp;k++)
+      for (size_t l = 1;l <= cmp;l++) {
+        switch (form) {
+          case WeakOperators::CONVECTIVE:
+            conv = -UC[l-1]*dUdX(k,l)*fe.basis(basis)(i);
+            break;
+          case WeakOperators::CONSERVATIVE:
+            conv = U[k-1]*UC[l-1]*fe.grad(basis)(i,l);
+            break;
+          case WeakOperators::SKEWSYMMETRIC:
+            conv = U[k-1]*UC[l-1]*fe.grad(basis)(i,l)
+                 - UC[l-1]*dUdX(k,l)*fe.basis(basis)(i);
+            conv *= 0.5;
+            break;
+          default:
+            std::cerr << "EqualOrderOperators::Residual::Convection: "
+                      << "Unknown form " << form << std::endl;
+        }
+        EV((i-1)*cmp+k) += coef*conv;
+      }
 }
 
 

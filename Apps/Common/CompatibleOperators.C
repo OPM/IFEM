@@ -36,7 +36,6 @@ void CompatibleOperators::Weak::Convection(std::vector<Matrix>& EM,
                                            double scale,
                                            WeakOperators::ConvectionForm form)
 {
-  // Convection
   static const double vidx[3][3] = {{1, 6, 7},
                                     {10, 2, 11},
                                     {14, 15, 3}};
