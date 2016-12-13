@@ -13,7 +13,6 @@
 
 #include "XMLInputBase.h"
 #include "IFEM.h"
-
 #include "tinyxml.h"
 #include <algorithm>
 
@@ -39,10 +38,10 @@ void XMLInputBase::injectIncludeFiles (TiXmlElement* tag) const
         foundIncludes = true;
       }
       else
-	std::cerr << __PRETTY_FUNCTION__ <<": Failed to load "
-		  << elem->FirstChild()->Value()
-		  <<"\n\tError at line "<< doc.ErrorRow() <<": "
-		  << doc.ErrorDesc() << std::endl;
+        std::cerr <<" *** SIMadmin::read: Failed to load \""
+                  << elem->FirstChild()->Value()
+                  <<"\".\n\tError at line "<< doc.ErrorRow() <<": "
+                  << doc.ErrorDesc() << std::endl;
     }
 
   if (foundIncludes)
@@ -56,16 +55,16 @@ bool XMLInputBase::readXML (const char* fileName, bool verbose)
 {
   TiXmlDocument doc;
   if (!doc.LoadFile(fileName)) {
-    std::cerr << __PRETTY_FUNCTION__ <<": Failed to load "<< fileName
-	      <<"\n\tError at line "<< doc.ErrorRow() <<": "
-	      << doc.ErrorDesc() << std::endl;
+    std::cerr <<" *** SIMadmin::read: Failed to load \""<< fileName
+              <<"\".\n\tError at line "<< doc.ErrorRow() <<": "
+              << doc.ErrorDesc() << std::endl;
     return false;
   }
 
   const TiXmlElement* tag = doc.RootElement();
   if (!tag || strcmp(tag->Value(),"simulation")) {
-    std::cerr << __PRETTY_FUNCTION__ <<": Malformatted input file "<< fileName
-	      << std::endl;
+    std::cerr <<" *** SIMadmin::read: Malformatted input file \""<< fileName
+              <<"\"."<< std::endl;
     return false;
   }
 
@@ -83,8 +82,8 @@ bool XMLInputBase::readXML (const char* fileName, bool verbose)
       if (verbose)
         IFEM::cout <<"\nParsing <"<< tag->Value() <<">"<< std::endl;
       if (!this->parse(tag)) {
-        std::cerr <<" *** SIMinput::read: Failure occured while parsing \""
-                  << tag->Value() <<"\""<< std::endl;
+        std::cerr <<" *** SIMadmin::read: Failure occured while parsing \""
+                  << tag->Value() <<"\"."<< std::endl;
         return false;
       }
     }
@@ -97,7 +96,7 @@ bool XMLInputBase::readXML (const char* fileName, bool verbose)
 
 
 bool XMLInputBase::handlePriorityTags (const TiXmlElement* base,
-				       std::vector<const TiXmlElement*>& parsed,
+                                       std::vector<const TiXmlElement*>& parsed,
                                        bool verbose)
 {
   const char** q = this->getPrioritizedTags();
@@ -108,8 +107,8 @@ bool XMLInputBase::handlePriorityTags (const TiXmlElement* base,
       if (verbose)
         IFEM::cout <<"\nParsing <"<< elem->Value() <<">"<< std::endl;
       if (!this->parse(elem)) {
-        std::cerr <<" *** SIMinput::read: Failure occured while parsing \""
-                  << elem->Value() <<"\""<< std::endl;
+        std::cerr <<" *** SIMadmin::read: Failure occured while parsing \""
+                  << elem->Value() <<"\"."<< std::endl;
         return false;
       }
       parsed.push_back(elem);

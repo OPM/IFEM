@@ -14,7 +14,7 @@
 #ifndef _ADAPTIVE_SIM_H
 #define _ADAPTIVE_SIM_H
 
-#include "SIMinput.h"
+#include "SIMadmin.h"
 #include "MatVec.h"
 
 class SIMoutput;
@@ -26,7 +26,7 @@ class SIMoutput;
   problems adaptively, based on element error norms as refinement indicators.
 */
 
-class AdaptiveSIM : public SIMinput
+class AdaptiveSIM : public SIMadmin
 {
 public:
   //! \brief The constructor initializes default adaptation parameters.

@@ -19,16 +19,18 @@
 class TiXmlElement;
 
 
-/*! \brief Base class for XML based input file parsing.
- *  \details This is inherited by SIMinput for input parsing handling,
- *           and is also used in applications for pre-parsing the input file.
- */
+/*!
+  \brief Base class for XML based input file parsing.
+  \details This class is inherited by SIMadmin for input parsing handling,
+  and is also used in applications for pre-parsing of the input file.
+*/
+
 class XMLInputBase
 {
 public:
   //! \brief Reads an XML input file.
-  //! \param fileName File to read
-  //! \param verbose True to print the tags being parsed to output
+  //! \param[in] fileName File to read
+  //! \param[in] verbose True to print the tags being parsed to output
   bool readXML(const char* fileName, bool verbose = true);
 
 protected:

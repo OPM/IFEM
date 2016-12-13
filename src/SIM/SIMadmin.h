@@ -1,50 +1,52 @@
 // $Id$
 //==============================================================================
 //!
-//! \file SIMinput.h
+//! \file SIMadmin.h
 //!
 //! \date Jun 1 2010
 //!
 //! \author Knut Morten Okstad / SINTEF
 //!
-//! \brief Base class for simulators with input parsing functionality.
+//! \brief Administration base class for FEM simulators.
 //!
 //==============================================================================
 
-#ifndef _SIM_INPUT_H
-#define _SIM_INPUT_H
+#ifndef _SIM_ADMIN_H
+#define _SIM_ADMIN_H
 
+#include "XMLInputBase.h"
 #include "SIMoptions.h"
 #include "ProcessAdm.h"
-#include "XMLInputBase.h"
 #include <iostream>
-#include <vector>
+#include <string>
 
 
 /*!
-  \brief Base class for NURBS-based FEM simulators with input file parsing.
+  \brief Administration base class for FEM simulators.
+  \details This class serves as a common base for all types of simulator drivers
+  in IFEM and contains the general top-level methods for reading the model input
+  file, as well as data for administration of parallel executions.
 */
 
-class SIMinput : public XMLInputBase
+class SIMadmin : public XMLInputBase
 {
 protected:
   //! \brief The default constructor initializes the process administrator.
-  SIMinput(const char* heading = nullptr);
+  SIMadmin(const char* heading = nullptr);
   //! \brief Copy constructor.
-  SIMinput(SIMinput& anotherSIM);
+  SIMadmin(SIMadmin& anotherSIM);
 
 public:
   //! \brief Empty destructor.
-  virtual ~SIMinput() {}
+  virtual ~SIMadmin() {}
 
   //! \brief Reads model data from the specified input file \a *fileName.
   virtual bool read(const char* fileName);
 
 public:
+  using XMLInputBase::parse;
   //! \brief Parses a data section from an input stream.
   virtual bool parse(char* keyWord, std::istream& is);
-  //! \brief Parses a data section from an XML element.
-  virtual bool parse(const TiXmlElement* elem) = 0;
 
   //! \brief Returns the parallel process administrator.
   const ProcessAdm& getProcessAdm() const { return adm; }
@@ -59,24 +61,23 @@ public:
   void setHeading(const std::string& heading) { myHeading = heading; }
 
 protected:
-  //! \brief Prints the heading of this (sub-step) solver, if any, to std::cout.
+  //! \brief Prints the heading of this simulator, if any, to IFEM::cout.
   void printHeading(int& supStep) const;
 
-  //! \brief Reads a flat text input file (obsolete file format).
+  //! \brief Reads a flat text input file (the old file format).
   bool readFlat(const char* fileName);
 
 public:
-  static int msgLevel; //!< Controls the amount of console output during solving
-  SIMoptions& opt;     //!< Simulation control parameters
+  static int  msgLevel;  //!< Controls the console output amount during solving
+  SIMoptions& opt;       //!< Simulation control parameters
 
 private:
-  SIMoptions myOpts; //!< The actual control parameters owned by this simulator
+  SIMoptions  myOpts;    //!< Actual control parameters owned by this simulator
 
 protected:
-  ProcessAdm adm; //!< Parallel administrator
-  int myPid;      //!< Processor ID in parallel simulations
-  int nProc;      //!< Number of processors in parallel simulations
-
+  ProcessAdm  adm;       //!< Parallel administrator
+  int         myPid;     //!< Processor ID in parallel simulations
+  int         nProc;     //!< Number of processors in parallel simulations
   std::string myHeading; //!< Heading written before reading the input file
 };
 

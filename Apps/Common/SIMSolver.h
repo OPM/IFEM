@@ -14,7 +14,7 @@
 #ifndef _SIM_SOLVER_H_
 #define _SIM_SOLVER_H_
 
-#include "SIMinput.h"
+#include "SIMadmin.h"
 #include "DataExporter.h"
 #include "TimeStep.h"
 #include "IFEM.h"
@@ -49,11 +49,11 @@ int ConfigureSIM(T& t, char* infile,
   ISolver interface. It provides a time stepping loop with data output.
 */
 
-template<class T1> class SIMSolver : public SIMinput
+template<class T1> class SIMSolver : public SIMadmin
 {
 public:
   //! \brief The constructor initializes the reference to the actual solver.
-  SIMSolver(T1& s1) : SIMinput("Time integration driver"), S1(s1) {}
+  SIMSolver(T1& s1) : SIMadmin("Time integration driver"), S1(s1) {}
   //! \brief Empty destructor.
   virtual ~SIMSolver() {}
 

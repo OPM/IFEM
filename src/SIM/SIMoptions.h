@@ -15,7 +15,6 @@
 #define SIM_OPTIONS_H_
 
 #include "ASMenums.h"
-#include <iostream>
 #include <string>
 #include <map>
 

@@ -14,7 +14,7 @@
 #ifndef _MULTI_STEP_SIM_H
 #define _MULTI_STEP_SIM_H
 
-#include "SIMinput.h"
+#include "SIMadmin.h"
 #include "SIMenums.h"
 #include "MatVec.h"
 
@@ -28,7 +28,7 @@ struct TimeDomain;
   \brief Base class for multi-step solution drivers.
 */
 
-class MultiStepSIM : public SIMinput
+class MultiStepSIM : public SIMadmin
 {
 protected:
   //! \brief Enum describing reference norm options.

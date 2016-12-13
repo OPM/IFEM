@@ -18,7 +18,7 @@
 
 
 MultiStepSIM::MultiStepSIM (SIMbase& sim)
-  : SIMinput(sim), model(static_cast<SIMoutput&>(sim))
+  : SIMadmin(sim), model(static_cast<SIMoutput&>(sim))
 {
 #ifndef SP_DEBUG
   msgLevel = 1;   // prints the convergence history only

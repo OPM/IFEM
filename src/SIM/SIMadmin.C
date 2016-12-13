@@ -1,21 +1,20 @@
 // $Id$
 //==============================================================================
 //!
-//! \file SIMinput.C
+//! \file SIMadmin.C
 //!
 //! \date Jun 1 2010
 //!
 //! \author Knut Morten Okstad / SINTEF
 //!
-//! \brief Base class for simulators with input parsing functionality.
+//! \brief Administration base class for FEM simulators.
 //!
 //==============================================================================
 
-#include "SIMinput.h"
-#include "IFEM.h"
+#include "SIMadmin.h"
 #include "Utilities.h"
+#include "IFEM.h"
 #include "tinyxml.h"
-#include "SystemMatrix.h"
 #ifdef HAVE_MPI
 #include <mpi.h>
 #endif
@@ -25,10 +24,10 @@
 #define strcasestr strstr
 #endif
 
-int SIMinput::msgLevel = 2;
+int SIMadmin::msgLevel = 2;
 
 
-SIMinput::SIMinput (const char* heading) : opt(myOpts)
+SIMadmin::SIMadmin (const char* heading) : opt(myOpts)
 #ifdef HAS_PETSC
   , adm(PETSC_COMM_WORLD)
 #elif defined(HAVE_MPI)
@@ -44,7 +43,7 @@ SIMinput::SIMinput (const char* heading) : opt(myOpts)
 }
 
 
-SIMinput::SIMinput (SIMinput& anotherSIM) : opt(anotherSIM.myOpts)
+SIMadmin::SIMadmin (SIMadmin& anotherSIM) : opt(anotherSIM.myOpts)
 {
   adm = anotherSIM.adm;
   myPid = anotherSIM.myPid;
@@ -52,7 +51,7 @@ SIMinput::SIMinput (SIMinput& anotherSIM) : opt(anotherSIM.myOpts)
 }
 
 
-void SIMinput::printHeading (int& subStep) const
+void SIMadmin::printHeading (int& subStep) const
 {
   if (myHeading.empty())
     return;
@@ -66,7 +65,7 @@ void SIMinput::printHeading (int& subStep) const
 }
 
 
-bool SIMinput::read (const char* fileName)
+bool SIMadmin::read (const char* fileName)
 {
   static int substep = 0;
   this->printHeading(substep);
@@ -84,24 +83,24 @@ bool SIMinput::read (const char* fileName)
 }
 
 
-bool SIMinput::readFlat (const char* fileName)
+bool SIMadmin::readFlat (const char* fileName)
 {
   std::ifstream is(fileName);
   if (!is)
   {
-    std::cerr <<"\n *** SIMinput::read: Failure opening input file "
-              << fileName << std::endl;
+    std::cerr <<"\n *** SIMadmin::read: Failure opening input file \""
+              << fileName <<"\"."<< std::endl;
     return false;
   }
 
   IFEM::cout <<"\nReading input file "<< fileName << std::endl;
 
-  char* keyWord = 0;
+  char* keyWord = nullptr;
   while (is.good() && (keyWord = utl::readLine(is)))
     if (!this->parse(keyWord,is))
     {
-      std::cerr <<" *** SIMinput::read: Failure occured while parsing \""
-                << keyWord <<"\""<< std::endl;
+      std::cerr <<" *** SIMadmin::read: Failure occured while parsing \""
+                << keyWord <<"\"."<< std::endl;
       return false;
     }
 
@@ -111,9 +110,9 @@ bool SIMinput::readFlat (const char* fileName)
 }
 
 
-bool SIMinput::parse (char*, std::istream&)
+bool SIMadmin::parse (char*, std::istream&)
 {
-  std::cerr <<" *** SIMinput::parse(char*,std::istream&):"
+  std::cerr <<" *** SIMadmin::parse(char*,std::istream&):"
             <<" The flat file format is depreciated.\n"
             <<"     Use the XML format instead."<< std::endl;
   return false;

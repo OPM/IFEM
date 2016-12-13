@@ -14,7 +14,7 @@
 #ifndef _SIM_BASE_H
 #define _SIM_BASE_H
 
-#include "SIMinput.h"
+#include "SIMadmin.h"
 #include "SIMdependency.h"
 #include "TimeDomain.h"
 #include "TopologySet.h"
@@ -61,7 +61,7 @@ struct Mode
   Sub-classes are derived with additional info regarding the problem to solve.
 */
 
-class SIMbase : public SIMinput, public SIMdependency
+class SIMbase : public SIMadmin, public SIMdependency
 {
 protected:
   //! \brief The constructor initializes the pointers to dynamic data members.

@@ -40,7 +40,7 @@ public:
   //! \brief Empty destructor.
   virtual ~SIMOverride() {}
 
-  //! \copydoc SIMinput::read(const char*)
+  //! \copydoc SIMadmin::read(const char*)
   bool read(const char* fileName) { return base.read(fileName); }
 
   //! \copydoc ISolver::setInitialConditions()

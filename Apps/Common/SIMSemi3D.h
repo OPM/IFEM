@@ -14,7 +14,7 @@
 #ifndef _SIM_SEMI3D_H
 #define _SIM_SEMI3D_H
 
-#include "SIMinput.h"
+#include "SIMadmin.h"
 #include "SIMdependency.h"
 #include "SIMSolver.h"
 #include "IFEM.h"
@@ -42,7 +42,7 @@ extern std::vector< std::shared_ptr<std::ostream> > plane_log_files;
 */
 
 template<class PlaneSolver>
-class SIMSemi3D : public SIMinput, public SIMdependency
+class SIMSemi3D : public SIMadmin, public SIMdependency
 {
 public:
   typedef typename PlaneSolver::SetupProps SetupProps;
@@ -53,7 +53,7 @@ public:
     startCtx(0), planes(1), procs_per_plane(1), output_plane(-1),
     direction('Z'), props(props_)
   {
-    SIMinput::myHeading = "Plane-decoupled 3D simulation driver";
+    SIMadmin::myHeading = "Plane-decoupled 3D simulation driver";
   }
 
   //! \brief The destructor deletes the plane-wise sub-step solvers.
@@ -212,7 +212,7 @@ public:
   //! \param[in] fileName Name of input file to read data from
   virtual bool read(const char* fileName)
   {
-    if (!this->SIMinput::read(fileName))
+    if (!this->SIMadmin::read(fileName))
       return false;
 
     // Setup our communicator

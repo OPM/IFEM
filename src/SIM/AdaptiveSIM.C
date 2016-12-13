@@ -24,7 +24,7 @@
 #include <cstdio>
 
 
-AdaptiveSIM::AdaptiveSIM (SIMoutput& sim, bool sa) : SIMinput(sim), model(sim)
+AdaptiveSIM::AdaptiveSIM (SIMoutput& sim, bool sa) : SIMadmin(sim), model(sim)
 {
   alone  = sa;
   geoBlk = nBlock = 0;
