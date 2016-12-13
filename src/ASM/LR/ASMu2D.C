@@ -595,7 +595,7 @@ void ASMu2D::closeEdges (int dir, int basis, int master)
 */
 
 
-std::vector<int> ASMu2D::getEdgeNodes (int edge, int basis) const
+std::vector<int> ASMu2D::getEdgeNodes (int edge, int basis, bool sort) const
 {
   size_t ofs = 1;
   for (int i = 1; i < basis; i++)
@@ -604,6 +604,15 @@ std::vector<int> ASMu2D::getEdgeNodes (int edge, int basis) const
   std::vector<LR::Basisfunction*> edgeFunctions;
   this->getBasis(basis)->getEdgeFunctions(edgeFunctions,
                                           static_cast<LR::parameterEdge>(edge));
+
+  if (sort) {
+    int dir = (edge == LR::WEST || edge == LR::EAST) ? 1 : 0;
+    std::sort(edgeFunctions.begin(), edgeFunctions.end(),
+              [dir](const LR::Basisfunction* a, const LR::Basisfunction* b)
+              {
+                return a->getGrevilleParameter()[dir] < b->getGrevilleParameter()[dir];
+              });
+  }
 
   std::vector<int> result(edgeFunctions.size());
   std::transform(edgeFunctions.begin(), edgeFunctions.end(), result.begin(),
@@ -616,33 +625,22 @@ std::vector<int> ASMu2D::getEdgeNodes (int edge, int basis) const
 void ASMu2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
 {
   LR::parameterEdge edge;
-  int c1, c2;
   switch (dir) {
   case -2:
     edge = LR::SOUTH;
-    c1 = this->getCorner(-1, -1, basis);
-    c2 = this->getCorner( 1, -1, basis);
     break;
   case -1:
     edge = LR::WEST;
-    c1 = this->getCorner(-1, -1, basis);
-    c2 = this->getCorner(-1,  1, basis);
     break;
   case  1:
     edge = LR::EAST;
-    c1 = this->getCorner( 1, -1, basis);
-    c2 = this->getCorner( 1,  1, basis);
     break;
   case  2:
     edge = LR::NORTH;
-    c1 = this->getCorner(-1,  1, basis);
-    c2 = this->getCorner( 1,  1, basis);
     break;
   default: return;
   }
-  std::vector<int> nodes = this->getEdgeNodes(edge,basis);
-  nodes.erase(std::find(nodes.begin(), nodes.end(), c1));
-  nodes.erase(std::find(nodes.begin(), nodes.end(), c2));
+  std::vector<int> nodes = this->getEdgeNodes(edge,basis,true);
 
   int bcode = code;
   if (code > 0) {
@@ -654,14 +652,14 @@ void ASMu2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
 
   // Skip the first and last function if we are requesting an open boundary.
   if (!open)
-    this->prescribe(c1,dof,bcode);
+    this->prescribe(nodes.front(),dof,bcode);
 
-  for (size_t i = 0; i < nodes.size(); i++)
+  for (size_t i = 1; i < nodes.size()-1; i++)
     if (this->prescribe(nodes[i],dof,-code) == 0 && code > 0)
       dirich.back().nodes.push_back(std::make_pair(i+1,nodes[i]));
 
   if (!open)
-    this->prescribe(c2,dof,bcode);
+    this->prescribe(nodes.back(),dof,bcode);
 
   if (code > 0)
     if (dirich.back().nodes.empty())
