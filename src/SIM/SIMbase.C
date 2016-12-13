@@ -1893,8 +1893,8 @@ void SIMbase::printSolutionSummary (const Vector& solution, int printSol,
 {
   // Compute and print solution norms
   const size_t nf = this->getNoFields(1);
-  size_t iMax[nf];
-  double dMax[nf];
+  size_t iMax[nf > 0 ? nf : nsd];
+  double dMax[nf > 0 ? nf : nsd];
   double dNorm = this->solutionNorms(solution,dMax,iMax,nf);
 
   int oldPrec = adm.cout.precision();
