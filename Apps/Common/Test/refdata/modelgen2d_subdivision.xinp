@@ -1,9 +1,13 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <simulation>
   <geometry sets="true">
+    <partitioning procs="4" nperproc="1"/>
     <subdivision nx="2" ny="2">
       <raiseorder patch="1" u="1" v="1"/>
       <refine patch="1" u="4" v="4"/>
     </subdivision>
   </geometry>
+  <boundaryconditions>
+    <dirichlet set="Edge1" comp="1"/>
+  </boundaryconditions>
 </simulation>

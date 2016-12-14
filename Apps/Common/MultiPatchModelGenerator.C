@@ -126,8 +126,8 @@ MultiPatchModelGenerator1D::createGeometry (const SIMinput& sim) const
       size_t di = ni + p;
 
       Go::SplineCurve subcur = getSubPatch(cur, i0, di, p+1);
-      std::cout << "  Number of knot spans in patch " << i << ": "
-                << subcur.numCoefs()-subcur.order()+1 << std::endl;
+      IFEM::cout << "  Number of knot spans in patch " << i << ": "
+                 << subcur.numCoefs()-subcur.order()+1 << std::endl;
       str << header << subcur;
     }
     sim.readPatches(str,result,"\t");
@@ -372,9 +372,9 @@ MultiPatchModelGenerator2D::createGeometry (const SIMinput& sim) const
 
         Go::SplineSurface subsrf = getSubPatch(srf, i0, di, px+1,
                                                     j0, dj, py+1);
-        std::cout << "  Number of knot spans in patch (" << i << ", " << j << "): "
-                  << subsrf.numCoefs_u()-subsrf.order_u()+1 << "x"
-                  << subsrf.numCoefs_v()-subsrf.order_v()+1 << std::endl;
+        IFEM::cout << "  Number of knot spans in patch (" << i << ", " << j << "): "
+                   << subsrf.numCoefs_u()-subsrf.order_u()+1 << "x"
+                   << subsrf.numCoefs_v()-subsrf.order_v()+1 << std::endl;
         str << header << subsrf;
       }
     }
@@ -641,13 +641,13 @@ MultiPatchModelGenerator3D::createGeometry (const SIMinput& sim) const
         int nu, nv, nw;
         utl::getAttribute(sub,"u",nu);
         utl::getAttribute(sub,"v",nv);
-        utl::getAttribute(sub,"v",nw);
+        utl::getAttribute(sub,"w",nw);
         pch.raiseOrder(nu,nv,nw);
       } else if (strcasecmp(sub->Value(),"refine") == 0) {
         int nu, nv, nw;
         utl::getAttribute(sub,"u",nu);
         utl::getAttribute(sub,"v",nv);
-        utl::getAttribute(sub,"v",nw);
+        utl::getAttribute(sub,"w",nw);
         pch.uniformRefine(0,nu);
         pch.uniformRefine(1,nv);
         pch.uniformRefine(2,nw);
@@ -667,7 +667,7 @@ MultiPatchModelGenerator3D::createGeometry (const SIMinput& sim) const
     size_t nelemsx_rem = nelemsx % nx;
     size_t nelemsy_rem = nelemsy % ny;
     size_t nelemsz_rem = nelemsz % nz;
-    std::string header = "200 1 0 0\n";
+    std::string header = "700 1 0 0\n";
 
     // Extract subpatches
     std::stringstream str;
@@ -687,10 +687,10 @@ MultiPatchModelGenerator3D::createGeometry (const SIMinput& sim) const
           Go::SplineVolume subvol = getSubPatch(vol, i0, di, px+1,
                                                      j0, dj, py+1,
                                                      k0, dk, pz+1);
-          std::cout << "  Number of knot spans in patch (" << i << ", " << j << ", " << k << "): "
-                    << subvol.numCoefs(0)-subvol.order(0)+1 << "x"
-                    << subvol.numCoefs(1)-subvol.order(1)+1 << "x"
-                    << subvol.numCoefs(2)-subvol.order(2)+1 << std::endl;
+          IFEM::cout << "  Number of knot spans in patch (" << i << ", " << j << ", " << k << "): "
+                     << subvol.numCoefs(0)-subvol.order(0)+1 << "x"
+                     << subvol.numCoefs(1)-subvol.order(1)+1 << "x"
+                     << subvol.numCoefs(2)-subvol.order(2)+1 << std::endl;
           str << header << subvol;
         }
       }
@@ -739,22 +739,33 @@ bool MultiPatchModelGenerator3D::createTopology (SIMinput& sim) const
 
   auto&& IJK = [this](int i, int j, int k) { return 1 + (k*ny+j)*nx + i; };
 
+  int p1,p2,p3;
+  if (subdivision)
+    sim.getPatch(1)->getOrder(p1,p2,p3);
+
+  auto&& thick = [p1,p2,p3,this](int dir)
+  {
+    if (!subdivision)
+      return 1;
+    return dir == 1 ? p1-1 : (dir == 2 ? p2-1 : p3-1);
+  };
+
   for (size_t k = 0; k < nz; ++k)
     for (size_t j = 0; j < ny; ++j)
       for (size_t i = 0; i < nx-1; ++i)
-        if (!sim.addConnection(IJK(i,j,k), IJK(i+1,j,k), 2, 1, 0, 0, true, 2))
+        if (!sim.addConnection(IJK(i,j,k), IJK(i+1,j,k), 2, 1, 0, 0, true, 2, thick(1)))
           return false;
 
   for (size_t k = 0; k < nz; ++k)
     for (size_t j = 0; j < ny-1; ++j)
       for (size_t i = 0; i < nx; ++i)
-        if (!sim.addConnection(IJK(i,j,k), IJK(i,j+1,k), 4, 3, 0, 0, true, 2))
+        if (!sim.addConnection(IJK(i,j,k), IJK(i,j+1,k), 4, 3, 0, 0, true, 2, thick(2)))
           return false;
 
   for (size_t k = 0; k < nz-1; ++k)
     for (size_t j = 0; j < ny; ++j)
       for (size_t i = 0; i < nx; ++i)
-        if (!sim.addConnection(IJK(i,j,k), IJK(i,j,k+1), 6, 5, 0, 0, true, 2))
+        if (!sim.addConnection(IJK(i,j,k), IJK(i,j,k+1), 6, 5, 0, 0, true, 2, thick(3)))
           return false;
 
   if (periodic_x)
