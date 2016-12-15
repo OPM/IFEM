@@ -34,7 +34,7 @@ TEST(TestUtilities, ParseIntegers)
 
 TEST(TestUtilities, ParseKnots)
 {
-  std::string simple("0 0 0.5 0.9 1.0");
+  std::string simple("xi 0 0.5 0.9 1.0");
   strtok(const_cast<char*>(simple.c_str())," ");
   std::vector<double> xi;
   utl::parseKnots(xi);
@@ -43,6 +43,17 @@ TEST(TestUtilities, ParseKnots)
   ASSERT_FLOAT_EQ(xi[1], 0.5);
   ASSERT_FLOAT_EQ(xi[2], 0.9);
   ASSERT_FLOAT_EQ(xi[3], 1.0);
+
+  std::string graded5("xi C5 79 0.01 2.0");
+  strtok(const_cast<char*>(graded5.c_str())," ");
+  xi.clear();
+  utl::parseKnots(xi);
+  EXPECT_EQ(xi.size(), 79U);
+  EXPECT_FLOAT_EQ(xi[39], 0.5);
+  EXPECT_FLOAT_EQ(xi.front()+xi.back(), 1.0);
+
+  for (size_t i = 0; i < xi.size(); i++)
+    std::cout <<"xi["<< i <<"] = "<< xi[i] << std::endl;
 }
 
 TEST(TestUtilities, ReadLine)

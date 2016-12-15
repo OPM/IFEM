@@ -32,11 +32,53 @@ void utl::parseIntegers (std::vector<int>& values, const char* argv)
 }
 
 
+/*!
+  If the first character of the first token is a digit, it is assumed that
+  the knot values are listed explicitly by the remaining tokens. Otherwise,
+  various mesh grading schemes are assumed with the following syntax:
+  <UL>
+  <LI>G n alpha xi1 xi2 - Geometric grading</LI>
+  <LI>B n alpha xi1 xi2 - Biased geometric grading</LI>
+  <LI>C n alpha xi1 xi2 - Centered geometric grading</LI>
+  <LI>C5 n X1 X2 xi1 xi2 - Centred grading based on a 5th order function</LI>
+  </UL>
+  In each case the starting and ending knot values, xi1 and xi2, are optional.
+  If not specified, 0.0 and 1.0 is assumed.
+  The 4th scheme was proposed by Tymofiy Gerasimov 14.12.2016, and is described
+  in the file mesh-grading-function.pdf located in the doc folder.
+*/
+
 bool utl::parseKnots (std::vector<Real>& xi)
 {
   char* cline = strtok(nullptr," ");
   if (!cline)
     return false;
+  else if (toupper(cline[0]) == 'C' && cline[1] == '5')
+  {
+    // Centred grading using a 5'th order polynomial
+    int    nX = atoi(strtok(nullptr," "));
+    double X1 = (cline = strtok(nullptr," ")) ? atof(cline) : 1.0;
+    double X2 = (cline = strtok(nullptr," ")) ? atof(cline) : 1.0;
+    double y0 = (cline = strtok(nullptr," ")) ? atof(cline) : 0.0;
+    double y1 = (cline = strtok(nullptr," ")) ? atof(cline) : 1.0;
+    double dy = y1 - y0;
+    if (nX < 2 || nX%2 == 0 ||
+        X1 <= 0.0 || X1 >= 1.0 || X2 <= 1.0 ||
+        y0 < 0.0 || dy <= 0.0 || y1 > 1.0)
+      return false;
+
+    double A = ( 16.0*X1 +  8.0*X2 - 24.0)*dy;
+    double B = (-40.0*X1 - 20.0*X2 + 60.0)*dy;
+    double C = ( 32.0*X1 + 18.0*X2 - 50.0)*dy;
+    double E = ( -8.0*X1 -  7.0*X2 + 15.0)*dy;
+    double F = X2*dy;
+    dy /= (1+nX);
+    double y = y0 + dy;
+    if (y0 > 0.0) xi.push_back(y0);
+    for (int i = 0; i < nX; i++, y += dy)
+      xi.push_back(((((A*y+B)*y+C)*y+E)*y+F)*y+y0);
+    if (y1 < 1.0) xi.push_back(y1);
+  }
   else if (isalpha(cline[0]))
   {
     // Geometric grading
@@ -48,6 +90,7 @@ bool utl::parseKnots (std::vector<Real>& xi)
     double xi2   = (cline = strtok(nullptr," ")) ? atof(cline) : 1.0;
     if (xi1 < 0.0 || xi2 <= xi1 || xi2 > 1.0 || ru < 1)
       return false;
+
     if (biased && ru > 1 && alpha != 1.0)
       alpha = pow(alpha,1.0/double(ru));
     else if (centred && ru > 1)
