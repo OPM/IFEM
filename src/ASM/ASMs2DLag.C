@@ -742,7 +742,7 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 }
 
 
-void ASMs2DLag::generateThreadGroups (const Integrand&, bool)
+void ASMs2DLag::generateThreadGroups (const Integrand&, bool, bool)
 {
   const int p1 = surf->order_u();
   const int p2 = surf->order_v();

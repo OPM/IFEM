@@ -165,11 +165,13 @@ public:
 
   //! \brief Generates element groups for multi-threading of interior integrals.
   //! \param[in] silence If \e true, suppress threading group outprint
-  virtual void generateThreadGroups(const Integrand&, bool silence);
+  //! \param[in] ignoreGlobalLM If \e true ignore global multipliers in sanity check
+  virtual void generateThreadGroups(const Integrand&, bool silence,
+                                    bool ignoreGlobalLM);
   //! \brief Generates element groups for multi-threading of boundary integrals.
   //! \param[in] lIndex Local index [1,6] of the boundary face
   //! \param[in] silence If \e true, suppress threading group outprint
-  virtual void generateThreadGroups(char lIndex, bool silence);
+  virtual void generateThreadGroups(char lIndex, bool silence, bool);
 
   //! \brief Returns the number of elements on a boundary.
   virtual size_t getNoBoundaryElms(char lIndex, char ldim) const;
