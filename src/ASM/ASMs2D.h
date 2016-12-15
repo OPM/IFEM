@@ -526,13 +526,17 @@ protected:
   //! \brief Generates element groups for multi-threading of interior integrals.
   //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] silence If \e true, suppress threading group outprint
-  virtual void generateThreadGroups(const Integrand& integrand, bool silence);
+  //! \param[in] ignoreGlobalLM If \e true ignore global multipliers in sanity check
+  virtual void generateThreadGroups(const Integrand& integrand, bool silence,
+                                    bool ignoreGlobalLM);
 
   //! \brief Generates element groups for multi-threading of interior integrals.
   //! \param[in] strip1 Strip width in first direction
   //! \param[in] strip2 Strip width in second direction
   //! \param[in] silence If \e true, suppress threading group outprint
-  void generateThreadGroups(size_t strip1, size_t strip2, bool silence);
+  //! \param[in] ignoreGlobalLM If \e true ignore global multipliers in sanity check
+  void generateThreadGroups(size_t strip1, size_t strip2,
+                            bool silence, bool ignoreGlobalLM);
 
 public:
   //! \brief Auxilliary function for computation of basis function indices.

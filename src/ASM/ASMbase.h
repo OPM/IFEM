@@ -367,9 +367,9 @@ public:
   virtual void initMADOF(const int*) {}
 
   //! \brief Generates element groups for multi-threading of interior integrals.
-  virtual void generateThreadGroups(const Integrand&, bool = false) {}
+  virtual void generateThreadGroups(const Integrand&, bool = false, bool = false) {}
   //! \brief Generates element groups for multi-threading of boundary integrals.
-  virtual void generateThreadGroups(char, bool = false) {}
+  virtual void generateThreadGroups(char, bool = false, bool = false) {}
 
 
   // Methods for integration of finite element quantities.

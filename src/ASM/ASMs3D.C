@@ -2973,18 +2973,19 @@ bool ASMs3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 }
 
 
-void ASMs3D::generateThreadGroups (const Integrand& integrand, bool silence)
+void ASMs3D::generateThreadGroups (const Integrand& integrand, bool silence,
+                                   bool ignoreGlobalLM)
 {
   const int p1 = svol->order(0) - 1;
   const int p2 = svol->order(1) - 1;
   const int p3 = svol->order(2) - 1;
 
-  ASMs3D::generateThreadGroups(p1, p2, p3, silence);
+  ASMs3D::generateThreadGroups(p1, p2, p3, silence, ignoreGlobalLM);
 }
 
 
 void ASMs3D::generateThreadGroups (size_t strip1, size_t strip2, size_t strip3,
-                                   bool silence)
+                                   bool silence, bool ignoreGlobalLM)
 {
   const int p1 = svol->order(0) - 1;
   const int p2 = svol->order(1) - 1;
@@ -3041,7 +3042,8 @@ void ASMs3D::generateThreadGroups (size_t strip1, size_t strip2, size_t strip3,
       // Verify that the nodes on this thread are not present on the others
       for (k = 0; k < j; k++)
         for (nit = nodes[j].begin(); nit != nodes[j].end(); ++nit)
-          if (nodes[k].find(*nit) != nodes[k].end())
+          if ((this->getLMType(*nit+1) != 'G' || !ignoreGlobalLM) &&
+              nodes[k].find(*nit) != nodes[k].end())
             std::cout <<"\n  ** Warning: Node "<< *nit <<" is present on both"
                       <<" thread "<< k+1 <<" and thread "<< j+1;
     }
@@ -3050,7 +3052,7 @@ void ASMs3D::generateThreadGroups (size_t strip1, size_t strip2, size_t strip3,
 }
 
 
-void ASMs3D::generateThreadGroups (char lIndex, bool silence)
+void ASMs3D::generateThreadGroups (char lIndex, bool silence, bool)
 {
   if (threadGroupsFace.find(lIndex) != threadGroupsFace.end()) return;
 

@@ -740,6 +740,7 @@ protected:
 
   // Model attributes
   bool           isRefined; //!< Indicates if the model is adaptively refined
+  bool           lagMTOK;   //!< Indicates that global multipliers is okay with multithreading (app specific).
   unsigned char  nsd;       //!< Number of spatial dimensions
   PatchVec       myModel;   //!< The actual NURBS/spline model
   PropertyVec    myProps;   //!< Physical property mapping
