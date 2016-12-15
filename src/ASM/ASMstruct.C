@@ -84,3 +84,27 @@ bool ASMstruct::addXNodes (unsigned short int dim, size_t nXn, IntVec& nodes)
 
   return true;
 }
+
+
+bool ASMstruct::checkThreadGroups (const std::vector<std::set<int>>& nodes,
+                                   int group, bool ignoreGlobalLM)
+{
+#if SP_DEBUG > 1
+  auto nit = nodes[group].begin();
+  std::cout <<"\n\t   nodes: "<< *(nit++);
+  for (int k = 1; nit != nodes[group].end(); ++nit, k++)
+    std::cout << (k%10 > 0 ? " " : "\n\t          ") << *nit;
+#endif
+
+  bool ok = true;
+  for (int k = 0; k < group; k++)
+    for (const int& node : nodes[group])
+      if ((this->getLMType(node+1) != 'G' || !ignoreGlobalLM) &&
+          nodes[k].find(node) != nodes[k].end()) {
+        std::cout <<"\n  ** Warning: Node "<< node <<" is present on both"
+                  <<" thread "<< k+1 <<" and thread "<< group+1;
+        ok = false;
+      }
+
+  return ok;
+}
