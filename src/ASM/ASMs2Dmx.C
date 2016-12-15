@@ -999,7 +999,8 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 }
 
 
-void ASMs2Dmx::generateThreadGroups (const Integrand& integrand, bool silence)
+void ASMs2Dmx::generateThreadGroups (const Integrand& integrand, bool silence,
+                                     bool ignoreGlobalLM)
 {
   int p1 = 0, p2 = 0;
   for (const auto& it : m_basis) {
@@ -1009,7 +1010,7 @@ void ASMs2Dmx::generateThreadGroups (const Integrand& integrand, bool silence)
       p2 = it->order_v();
   }
 
-  ASMs2D::generateThreadGroups(p1-1, p2-1, silence);
+  ASMs2D::generateThreadGroups(p1-1, p2-1, silence, ignoreGlobalLM);
 }
 
 

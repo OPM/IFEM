@@ -57,6 +57,7 @@ SIMbase::SIMbase (IntegrandBase* itg) : g2l(&myGlb2Loc)
   myGen = nullptr;
   nGlPatches = 0;
   nIntGP = nBouGP = 0;
+  lagMTOK = false;
 
   MPCLess::compareSlaveDofOnly = true; // to avoid multiple slave definitions
 }
@@ -1066,7 +1067,7 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
   bool silence = msgLevel < 1 || (msgLevel < 2 && myModel.size() > 1);
   for (mit = myModel.begin(); mit != myModel.end() && myProblem; ++mit)
     if (!(*mit)->empty())
-      (*mit)->generateThreadGroups(*myProblem,silence);
+      (*mit)->generateThreadGroups(*myProblem,silence,lagMTOK);
 
   for (q = myProps.begin(); q != myProps.end(); ++q)
     if (q->pcode == Property::NEUMANN ||
@@ -1112,7 +1113,7 @@ void SIMbase::generateThreadGroups (const Property& p, bool silence)
 {
   ASMbase* pch = this->getPatch(p.patch);
   if (pch && abs(p.ldim)+1 == pch->getNoParamDim())
-    pch->generateThreadGroups(p.lindx,silence);
+    pch->generateThreadGroups(p.lindx,silence,lagMTOK);
 }
 
 

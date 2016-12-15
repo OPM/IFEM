@@ -2591,16 +2591,18 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 }
 
 
-void ASMs2D::generateThreadGroups (const Integrand& integrand, bool silence)
+void ASMs2D::generateThreadGroups (const Integrand& integrand, bool silence,
+                                   bool ignoreGlobalLM)
 {
   const int p1 = surf->order_u() - 1;
   const int p2 = surf->order_v() - 1;
 
-  generateThreadGroups(p1, p2, silence);
+  generateThreadGroups(p1, p2, silence, ignoreGlobalLM);
 }
 
 
-void ASMs2D::generateThreadGroups (size_t strip1, size_t strip2, bool silence)
+void ASMs2D::generateThreadGroups (size_t strip1, size_t strip2,
+                                   bool silence, bool ignoreGlobalLM)
 {
   const int n1 = surf->numCoefs_u();
   const int n2 = surf->numCoefs_v();
@@ -2652,7 +2654,8 @@ void ASMs2D::generateThreadGroups (size_t strip1, size_t strip2, bool silence)
       // Verify that the nodes on this thread are not present on the others
       for (k = 0; k < j; k++)
         for (nit = nodes[j].begin(); nit != nodes[j].end(); ++nit)
-          if (nodes[k].find(*nit) != nodes[k].end())
+          if ((this->getLMType(*nit+1) != 'G' || !ignoreGlobalLM) &&
+               nodes[k].find(*nit) != nodes[k].end())
             std::cout <<"\n  ** Warning: Node "<< *nit <<" is present on both"
                       <<" thread "<< k+1 <<" and thread "<< j+1;
     }

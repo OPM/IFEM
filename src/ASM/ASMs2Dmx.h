@@ -198,7 +198,9 @@ public:
   //! \brief Generates element groups for multi-threading of interior integrals.
   //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] silence If \e true, suppress threading group outprint
-  virtual void generateThreadGroups(const Integrand& integrand, bool silence);
+  //! \param[in] ignoreGlobalLM If \e true, ignore global multipliers in sanity check
+  virtual void generateThreadGroups(const Integrand& integrand, bool silence,
+                                    bool ignoreGlobalLM);
 
   //! \brief Returns the number of nodal points in each parameter direction.
   //! \param[out] n1 Number of nodes in first (u) direction
