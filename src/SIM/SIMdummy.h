@@ -14,7 +14,13 @@
 #ifndef _SIM_DUMMY_H_
 #define _SIM_DUMMY_H_
 
-#include "SIMbase.h"
+#include <vector>
+#include <iostream>
+
+class ASMbase;
+class IntegrandBase;
+class ModelGenerator;
+class TiXmlElement;
 
 
 /*!
@@ -34,11 +40,16 @@ public:
   //! \brief Returns the number of parameter dimensions in the model.
   virtual unsigned short int getNoParamDim() const { return 0; }
   //! \brief Reads a patch from given input stream.
-  virtual ASMbase* readPatch(std::istream&,int, const SIMbase::CharVec&) const
+  virtual ASMbase* readPatch(std::istream&,int,
+                             const std::vector<unsigned char>&) const
   { return nullptr; }
   //! \brief Reads patches from given input stream.
-  virtual bool readPatches(std::istream&,SIMdependency::PatchVec&,const char*) const
+  virtual bool readPatches(std::istream&,
+                           std::vector<ASMbase*>&,const char*) const
   { return false; }
+  //! \brief Creates the computational FEM model from the spline patches.
+  virtual bool createFEMmodel(char) { return false; }
+
 protected:
   //! \brief Preprocesses a user-defined Dirichlet boundary property.
   virtual bool addConstraint(int,int,int,int,int,int&,char)
