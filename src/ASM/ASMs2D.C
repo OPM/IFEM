@@ -2626,7 +2626,6 @@ void ASMs2D::generateThreadGroups (size_t strip1, size_t strip2,
   for (size_t i = 0; i < threadGroups.size(); i++)
   {
     std::vector< std::set<int> > nodes(threadGroups[i].size());
-    std::set<int>::const_iterator nit;
 
     std::cout <<"\n Thread group "<< i+1;
     for (size_t j = 0; j < threadGroups[i].size(); j++)
@@ -2645,19 +2644,9 @@ void ASMs2D::generateThreadGroups (size_t strip1, size_t strip2,
       }
       if (nzeroar > 0)
         std::cout <<" ("<< threadGroups[i][j].size() - nzeroar <<" real)";
-#if SP_DEBUG > 1
-      nit = nodes[j].begin();
-      std::cout <<"\n\t   nodes: "<< *(nit++);
-      for (k = 1; nit != nodes[j].end(); ++nit, k++)
-        std::cout << (k%10 > 0 ? " " : "\n\t          ") << *nit;
-#endif
+
       // Verify that the nodes on this thread are not present on the others
-      for (k = 0; k < j; k++)
-        for (nit = nodes[j].begin(); nit != nodes[j].end(); ++nit)
-          if ((this->getLMType(*nit+1) != 'G' || !ignoreGlobalLM) &&
-               nodes[k].find(*nit) != nodes[k].end())
-            std::cout <<"\n  ** Warning: Node "<< *nit <<" is present on both"
-                      <<" thread "<< k+1 <<" and thread "<< j+1;
+      this->checkThreadGroups(nodes, j, ignoreGlobalLM);
     }
   }
   std::cout << std::endl;

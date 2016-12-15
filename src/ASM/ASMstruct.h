@@ -76,6 +76,15 @@ protected:
   //! of the dimension-specific sub-classes.
   bool addXNodes(unsigned short int dim, size_t nXn, IntVec& nodes);
 
+  //! \brief Perform a sanity check on the thread groups.
+  //! \param[in] nodes The nodes to santiy check
+  //! \param[in] group The group to check for
+  //! \param[in] ignoreGlobalLM If \e true, ignore global lagrange multipliers
+  //! \return If \e true groups pass checks.
+  //! \details This checks that no nodes exist on several threads
+  bool checkThreadGroups(const std::vector<std::set<int>>& nodes,
+                         int group, bool ignoreGlobalLM);
+
 protected:
   Go::GeomObject* geo; //!< Pointer to the actual spline geometry object
 
