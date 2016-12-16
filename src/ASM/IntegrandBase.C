@@ -193,7 +193,7 @@ Vector* IntegrandBase::getNamedVector (const std::string& name) const
 }
 
 
-std::string IntegrandBase::getField1Name (size_t idx, const char* prefix) const 
+std::string IntegrandBase::getField1Name (size_t idx, const char* prefix) const
 {
   char name[32];
   sprintf(name,"primary solution %lu",1+idx);
@@ -201,7 +201,7 @@ std::string IntegrandBase::getField1Name (size_t idx, const char* prefix) const
 }
 
 
-std::string IntegrandBase::getField2Name (size_t idx, const char* prefix) const 
+std::string IntegrandBase::getField2Name (size_t idx, const char* prefix) const
 {
   char name[32];
   sprintf(name,"secondary solution %lu",1+idx);

@@ -117,7 +117,8 @@ bool Immersed::getQuadraturePoints (const Geometry& geo,
   double hy2 = hypot(x3-x2,y3-y2);
 
   // Loop over levels
-  for (int i_depth = 1; i_depth <= max_depth; i_depth++) {
+  for (int i_depth = 1; i_depth <= max_depth; i_depth++)
+  {
     double cellScale = pow(2.0,double(i_depth+1));
 
     // Define the tolerance epsilon of current depth.
@@ -128,7 +129,8 @@ bool Immersed::getQuadraturePoints (const Geometry& geo,
     double epsy = 0.002*(hy1+hy2)/cellScale;
 
     // Loop over all cells of the current depth
-    for (int i_cell = CellSet.size()-1; i_cell >= 0; i_cell--) {
+    for (int i_cell = CellSet.size()-1; i_cell >= 0; i_cell--)
+    {
       cell& curCell = CellSet[i_cell];
 
       // Check depth
@@ -213,11 +215,13 @@ bool Immersed::getQuadraturePoints (const Geometry& geo,
   }
 
   // Compute Gauss point coordinates
-  for (size_t i_cell = 0; i_cell < CellSet.size(); i_cell++) {
+  for (size_t i_cell = 0; i_cell < CellSet.size(); i_cell++)
+  {
     const cell& c = CellSet[i_cell];
     double cellScale = pow(2.0,double(c.depth+1));
     for (int jGP = 0; jGP < nGauss; jGP++)
-      for (int iGP = 0; iGP < nGauss; iGP++) {
+      for (int iGP = 0; iGP < nGauss; iGP++)
+      {
 
         // Compute global x,y-coordinates of current Gauss point
         // using the bilinear interpolation functions, N1...N4
@@ -231,7 +235,8 @@ bool Immersed::getQuadraturePoints (const Geometry& geo,
                    + N3*c.CellVerts[2] + N4*c.CellVerts[3];
 
         // Do inside-outside test, if Gauss point is inside -> append to list
-        if (geo.Alpha(Xg.x,Xg.y) > 0.0) {
+        if (geo.Alpha(Xg.x,Xg.y) > 0.0)
+        {
           GP1.push_back(CellSet[i_cell].xi  + LocGPxi[iGP]*2.0/cellScale);
           GP2.push_back(CellSet[i_cell].eta + LocGPxi[jGP]*2.0/cellScale);
           GPw.push_back(LocGPw[iGP]*LocGPw[jGP]*4.0/(cellScale*cellScale));
@@ -290,7 +295,8 @@ bool Immersed::getQuadraturePoints (const Geometry& geometry,
     int nsd = 0;
     std::array<RealArray,4> GP;
     const Real2DMat& X = elmCorner[e];
-    switch (X.size()) {
+    switch (X.size())
+    {
     case 4: // 2D element
       nsd = 2;
       ok = getQuadraturePoints(geometry,

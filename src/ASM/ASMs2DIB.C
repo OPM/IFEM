@@ -269,7 +269,8 @@ bool ASMs2DIB::integrate (Integrand& integrand,
   if (!this->integrate(integrand,glbInt,time,quadPoints))
     return false;
 
-  switch (Immersed::stabilization) {
+  switch (Immersed::stabilization)
+  {
   case Immersed::ALL_INTERFACES:
     return this->integrate(integrand,glbInt,time,Intersected(*this,true));
   case Immersed::SUBDIV_INTERFACES:

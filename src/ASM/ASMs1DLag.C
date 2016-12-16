@@ -132,7 +132,7 @@ bool ASMs1DLag::getElementCoordinates (Matrix& X, int iel) const
   if (iel < 1 || (size_t)iel > MNPC.size())
   {
     std::cerr <<" *** ASMs1DLag::getElementCoordinates: Element index "<< iel
-	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
+              <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
     return false;
   }
 
@@ -162,8 +162,8 @@ bool ASMs1DLag::updateCoords (const Vector& displ)
   if (displ.size() != nsd*coord.size())
   {
     std::cerr <<" *** ASMs1DLag::updateCoords: Invalid dimension "
-	      << displ.size() <<" on displ, should be "
-	      << nsd*coord.size() << std::endl;
+              << displ.size() <<" on displ, should be "
+              << nsd*coord.size() << std::endl;
     return false;
   }
 
@@ -191,8 +191,8 @@ static void getEndPoints (const Matrix& Xnod, Vec3Vec& XC)
 
 
 bool ASMs1DLag::integrate (Integrand& integrand,
-			   GlobalIntegral& glInt,
-			   const TimeDomain& time)
+                           GlobalIntegral& glInt,
+                           const TimeDomain& time)
 {
   if (!curv) return true; // silently ignore empty patches
 
@@ -254,11 +254,11 @@ bool ASMs1DLag::integrate (Integrand& integrand,
 
       for (int i = 0; i < nRed && ok; i++)
       {
-	// Local element coordinates of current integration point
-	fe.xi  = xr[i];
+        // Local element coordinates of current integration point
+        fe.xi  = xr[i];
 
-	// Parameter value of current integration point
-	fe.u = 0.5*(gpar[iel]*(1.0-xr[i]) + gpar[iel+1]*(1.0+xr[i]));
+        // Parameter value of current integration point
+        fe.u = 0.5*(gpar[iel]*(1.0-xr[i]) + gpar[iel+1]*(1.0+xr[i]));
 
         if (integrand.getIntegrandType() & Integrand::NO_DERIVATIVES)
           ok = Lagrange::computeBasis(fe.N,p1,xr[i]);
@@ -268,14 +268,14 @@ bool ASMs1DLag::integrate (Integrand& integrand,
           ok = Lagrange::computeBasis(fe.N,dNdu,p1,xr[i]);
           // Compute Jacobian inverse and derivatives
           fe.detJxW = utl::Jacobian(Jac,fe.dNdX,fe.Xn,dNdu)*wr[i];
-	}
+        }
 
-	// Cartesian coordinates of current integration point
-	X = fe.Xn * fe.N;
-	X.t = time.t;
+        // Cartesian coordinates of current integration point
+        X = fe.Xn * fe.N;
+        X.t = time.t;
 
-	// Compute the reduced integration terms of the integrand
-	ok &= integrand.reducedInt(*A,fe,X);
+        // Compute the reduced integration terms of the integrand
+        ok &= integrand.reducedInt(*A,fe,X);
       }
     }
 
@@ -329,8 +329,8 @@ bool ASMs1DLag::integrate (Integrand& integrand,
 
 
 bool ASMs1DLag::integrate (Integrand& integrand, int lIndex,
-			   GlobalIntegral& glInt,
-			   const TimeDomain& time)
+                           GlobalIntegral& glInt,
+                           const TimeDomain& time)
 {
   if (!curv) return true; // silently ignore empty patches
 
@@ -431,7 +431,7 @@ bool ASMs1DLag::tesselate (ElementBlock& grid, const int* npe) const
   if (p1 != npe[0])
   {
     std::cout <<"\nLagrange elements: The number of visualization points is "
-	      << p1 <<" by default\n"<< std::endl;
+              << p1 <<" by default\n"<< std::endl;
     const_cast<int*>(npe)[0] = p1;
   }
 
@@ -459,7 +459,7 @@ bool ASMs1DLag::tesselate (ElementBlock& grid, const int* npe) const
 
 
 bool ASMs1DLag::evalSolution (Matrix& sField, const Vector& locSol,
-			      const int*) const
+                              const int*) const
 {
   return this->evalSolution(sField,locSol,(const RealArray*)0,true);
 }
@@ -483,14 +483,14 @@ bool ASMs1DLag::evalSolution (Matrix& sField, const Vector& locSol,
 
 
 bool ASMs1DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
-			      const int*, bool) const
+                              const int*, bool) const
 {
   return this->evalSolution(sField,integrand,(const RealArray*)0,true);
 }
 
 
 bool ASMs1DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
-			      const RealArray*, bool) const
+                              const RealArray*, bool) const
 {
   sField.resize(0,0);
   if (!curv) return false;
@@ -531,14 +531,14 @@ bool ASMs1DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
       // Now evaluate the solution field
       if (!integrand.evalSol(solPt,fe,fe.Xn*fe.N,mnpc))
-	return false;
+        return false;
       else if (sField.empty())
-	sField.resize(solPt.size(),nPoints,true);
+        sField.resize(solPt.size(),nPoints,true);
 
       if (++check[mnpc[loc]] == 1)
-	globSolPt[mnpc[loc]] = solPt;
+        globSolPt[mnpc[loc]] = solPt;
       else
-	globSolPt[mnpc[loc]] += solPt;
+        globSolPt[mnpc[loc]] += solPt;
     }
   }
 

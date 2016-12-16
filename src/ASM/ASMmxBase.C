@@ -37,7 +37,7 @@ void ASMmxBase::initMx (const std::vector<int>& MLGN, const int* sysMadof)
 
 
 void ASMmxBase::extractNodeVecMx (const Vector& globRes, Vector& nodeVec,
-				  int basis) const
+                                  int basis) const
 {
   if (basis > (int)nfx.size())
     basis = 0;
@@ -55,12 +55,13 @@ void ASMmxBase::extractNodeVecMx (const Vector& globRes, Vector& nodeVec,
   int idof, ldof = 0;
   size_t k=basis==0?1:basis;
   size_t ofs = std::accumulate(nb.begin(), nb.begin()+k-1, 0);
-  for (; k < (basis==0?nfx.size()+1:(size_t)basis+1); ++k) {
+  for (; k < (basis==0?nfx.size()+1:(size_t)basis+1); ++k)
+  {
     for (i = ofs; i < nb[k-1]+ofs; i++)
     {
       idof = MADOF[i];
       for (j = 0; j < nfx[k-1]; j++, ldof++)
-	nodeVec[ldof] = globRes[idof++];
+        nodeVec[ldof] = globRes[idof++];
     }
     ofs += nb[k-1];
   }
@@ -77,19 +78,20 @@ void ASMmxBase::injectNodeVecMx (Vector& globRes, const Vector& nodeVec,
   int idof, ldof = 0;
   size_t k=basis==0?1:basis;
   size_t ofs = std::accumulate(nb.begin(), nb.begin()+k-1, 0);
-  for (; k < (basis==0?nfx.size()+1:(size_t)basis+1); ++k) {
+  for (; k < (basis==0?nfx.size()+1:(size_t)basis+1); ++k)
+  {
     for (i = ofs; i < nb[k-1]+ofs; i++)
     {
       idof = MADOF[i];
       for (j = 0; j < nfx[k-1]; j++, ldof++)
-	globRes[idof++] = nodeVec[ldof];
+        globRes[idof++] = nodeVec[ldof];
     }
   }
 }
 
 
 bool ASMmxBase::getSolutionMx (Matrix& sField, const Vector& locSol,
-			       const std::vector<int>& nodes) const
+                               const std::vector<int>& nodes) const
 {
   if (nodes.empty()) return true;
 
@@ -112,7 +114,7 @@ bool ASMmxBase::getSolutionMx (Matrix& sField, const Vector& locSol,
     if (nodes[i] < low || nodes[i] > high)
     {
       std::cerr <<" *** ASMmxBase::getSolutionMx: Node #"<< nodes[i]
-		<<" is out of range ["<< low <<","<< high <<"]."<< std::endl;
+                <<" is out of range ["<< low <<","<< high <<"]."<< std::endl;
       return false;
     }
     else
@@ -120,7 +122,7 @@ bool ASMmxBase::getSolutionMx (Matrix& sField, const Vector& locSol,
       int idof = nvar*(nodes[i]-1);
       if (low > 1) idof += nfx[0]*nb[0];
       for (int j = 0; j < nvar; j++)
-	sField(j+1,i+1) = locSol[idof++];
+        sField(j+1,i+1) = locSol[idof++];
     }
 
   return true;
@@ -155,7 +157,8 @@ ASMmxBase::SurfaceVec ASMmxBase::establishBases(Go::SplineSurface* surf,
     for (i = 0; i < vg.size(); i++)
       vg[i] = b2.grevilleParameter(i);
 
-    if (surf->rational()) {
+    if (surf->rational())
+    {
       std::vector<double> rCoefs(surf->rcoefs_begin(), surf->rcoefs_end());
 
       // we normally would set coefs as (x*w, y*w, w)
@@ -269,7 +272,8 @@ ASMmxBase::VolumeVec ASMmxBase::establishBases(Go::SplineVolume* svol,
     for (i = 0; i < wg.size(); i++)
       wg[i] = b3.grevilleParameter(i);
 
-    if (svol->rational()) {
+    if (svol->rational())
+    {
       std::vector<double> rCoefs(svol->rcoefs_begin(), svol->rcoefs_end());
 
       // we normally would set coefs as (x*w, y*w, w)

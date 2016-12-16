@@ -74,7 +74,7 @@ bool ASMs1D::read (std::istream& is)
   else if (curv->dimension() < 1)
   {
     std::cerr <<" *** ASMs1D::read: Invalid spline curve patch, dim="
-	      << curv->dimension() << std::endl;
+              << curv->dimension() << std::endl;
     delete curv;
     curv = nullptr;
     return false;
@@ -82,9 +82,9 @@ bool ASMs1D::read (std::istream& is)
   else if (curv->dimension() < nsd)
   {
     std::cout <<"  ** ASMs1D::read: The dimension of this curve patch "
-	      << curv->dimension() <<" is less than nsd="<< (int)nsd
-	      <<".\n                   Resetting nsd to "<< curv->dimension()
-	      <<" for this patch."<< std::endl;
+              << curv->dimension() <<" is less than nsd="<< (int)nsd
+              <<".\n                   Resetting nsd to "<< curv->dimension()
+              <<" for this patch."<< std::endl;
     nsd = curv->dimension();
   }
 
@@ -132,10 +132,10 @@ bool ASMs1D::refine (const RealArray& xi)
     ucurr = *(uit++);
     if (ucurr > uprev)
       for (size_t i = 0; i < xi.size(); i++)
-	if (i > 0 && xi[i] < xi[i-1])
-	  return false;
-	else
-	  extraKnots.push_back(ucurr*xi[i] + uprev*(1.0-xi[i]));
+        if (i > 0 && xi[i] < xi[i-1])
+          return false;
+        else
+          extraKnots.push_back(ucurr*xi[i] + uprev*(1.0-xi[i]));
 
     uprev = ucurr;
   }
@@ -159,8 +159,8 @@ bool ASMs1D::uniformRefine (int nInsert)
     if (ucurr > uprev)
       for (int i = 0; i < nInsert; i++)
       {
-	double xi = (double)(i+1)/(double)(nInsert+1);
-	extraKnots.push_back(ucurr*xi + uprev*(1.0-xi));
+        double xi = (double)(i+1)/(double)(nInsert+1);
+        extraKnots.push_back(ucurr*xi + uprev*(1.0-xi));
       }
     uprev = ucurr;
   }
@@ -242,12 +242,12 @@ bool ASMs1D::generateOrientedFEModel (const Vec3& Zaxis)
     {
       if (this->getKnotSpan(i1-1) > 0.0)
       {
-	myMLGE[nel] = ++gEl; // global element number over all patches
-	myMNPC[nel].resize(p1,0);
+        myMLGE[nel] = ++gEl; // global element number over all patches
+        myMNPC[nel].resize(p1,0);
 
-	int lnod = 0;
-	for (int j1 = p1-1; j1 >= 0; j1--)
-	  myMNPC[nel][lnod++] = nnod - j1;
+        int lnod = 0;
+        for (int j1 = p1-1; j1 >= 0; j1--)
+          myMNPC[nel][lnod++] = nnod - j1;
       }
 
       nel++;
@@ -320,14 +320,14 @@ bool ASMs1D::connectPatch (int vertex, ASMs1D& neighbor, int nvertex)
 
 
 bool ASMs1D::connectBasis (int vertex, ASMs1D& neighbor, int nvertex,
-			   int basis, int slave, int master)
+                           int basis, int slave, int master)
 {
   if (shareFE && neighbor.shareFE)
     return true;
   else if (shareFE || neighbor.shareFE)
   {
     std::cerr <<" *** ASMs1D::connectPatch: Logic error, cannot"
-	      <<" connect a sharedFE patch with an unshared one"<< std::endl;
+              <<" connect a sharedFE patch with an unshared one"<< std::endl;
     return false;
   }
 
@@ -345,7 +345,7 @@ bool ASMs1D::connectBasis (int vertex, ASMs1D& neighbor, int nvertex,
 
     default:
       std::cerr <<" *** ASMs1D::connectPatch: Invalid slave vertex "
-		<< vertex << std::endl;
+                << vertex << std::endl;
       return false;
     }
 
@@ -363,7 +363,7 @@ bool ASMs1D::connectBasis (int vertex, ASMs1D& neighbor, int nvertex,
 
     default:
       std::cerr <<" *** ASMs1D::connectPatch: Invalid master vertex "
-		<< nvertex << std::endl;
+                << nvertex << std::endl;
       return false;
     }
 
@@ -371,9 +371,9 @@ bool ASMs1D::connectBasis (int vertex, ASMs1D& neighbor, int nvertex,
   if (!neighbor.getCoord(master).equal(this->getCoord(slave),xtol))
   {
     std::cerr <<" *** ASMs1D::connectPatch: Non-matching nodes "
-	      << master <<": "<< neighbor.getCoord(master)
-	      <<"\n                                          and "
-	      << slave <<": "<< this->getCoord(slave) << std::endl;
+              << master <<": "<< neighbor.getCoord(master)
+              <<"\n                                          and "
+              << slave <<": "<< this->getCoord(slave) << std::endl;
     return false;
   }
   else
@@ -417,7 +417,7 @@ double ASMs1D::getParametricLength (int iel) const
   if (iel < 1 || (size_t)iel > MNPC.size())
   {
     std::cerr <<" *** ASMs1D::getParametricLength: Element index "<< iel
-	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
+              <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
     return DERR;
   }
 #endif
@@ -429,7 +429,7 @@ double ASMs1D::getParametricLength (int iel) const
   if (inod1 < 0 || (size_t)inod1 >= MLGN.size())
   {
     std::cerr <<" *** ASMs1D::getParametricLength: Node index "<< inod1
-	      <<" out of range [0,"<< MLGN.size() <<">."<< std::endl;
+              <<" out of range [0,"<< MLGN.size() <<">."<< std::endl;
     return DERR;
   }
 #endif
@@ -469,7 +469,7 @@ bool ASMs1D::getElementCoordinates (Matrix& X, int iel) const
   if (iel < 1 || (size_t)iel > MNPC.size())
   {
     std::cerr <<" *** ASMs1D::getElementCoordinates: Element index "<< iel
-	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
+              <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
     return false;
   }
 #endif
@@ -499,7 +499,7 @@ bool ASMs1D::getElementNodalRotations (TensorVec& T, size_t iel) const
   if (iel >= MNPC.size())
   {
     std::cerr <<" *** ASMs1D::getElementNodalRotations: Element index "<< iel
-	      <<" out of range [0,"<< MNPC.size() <<">."<< std::endl;
+              <<" out of range [0,"<< MNPC.size() <<">."<< std::endl;
     return false;
   }
 #endif
@@ -543,8 +543,8 @@ bool ASMs1D::updateCoords (const Vector& displ)
   if (displ.size() != nsd*MLGN.size())
   {
     std::cerr <<" *** ASMs1D::updateCoords: Invalid dimension "
-	      << displ.size() <<" on displ, should be "
-	      << nsd*MLGN.size() << std::endl;
+              << displ.size() <<" on displ, should be "
+              << nsd*MLGN.size() << std::endl;
     return false;
   }
 
@@ -560,8 +560,8 @@ bool ASMs1D::updateRotations (const Vector& displ, bool reInit)
   if (displ.size() != 6*myT.size())
   {
     std::cerr <<" *** ASMs1D::updateRotations: Invalid dimension "
-	      << displ.size() <<" on displ, should be "
-	      << 6*myT.size() << std::endl;
+              << displ.size() <<" on displ, should be "
+              << 6*myT.size() << std::endl;
     return false;
   }
 
@@ -665,7 +665,7 @@ int ASMs1D::getSize (int) const
 
 
 const Vector& ASMs1D::getGaussPointParameters (Matrix& uGP, int nGauss,
-					       const double* xi) const
+                                               const double* xi) const
 {
   int pm1 = curv->order() - 1;
   RealArray::const_iterator uit = curv->basis().begin() + pm1;
@@ -736,7 +736,7 @@ void ASMs1D::extractBasis (double u, Vector& N, Matrix& dNdu) const
 
 
 void ASMs1D::extractBasis (double u, Vector& N, Matrix& dNdu,
-			   Matrix3D& d2Ndu2) const
+                           Matrix3D& d2Ndu2) const
 {
   int p1 = curv->order();
 
@@ -756,8 +756,8 @@ void ASMs1D::extractBasis (double u, Vector& N, Matrix& dNdu,
 
 
 bool ASMs1D::integrate (Integrand& integrand,
-			GlobalIntegral& glInt,
-			const TimeDomain& time)
+                        GlobalIntegral& glInt,
+                        const TimeDomain& time)
 {
   if (!curv) return true; // silently ignore empty patches
 
@@ -837,11 +837,11 @@ bool ASMs1D::integrate (Integrand& integrand,
 
       for (int i = 0; i < nRed && ok; i++)
       {
-	// Local element coordinates of current integration point
-	fe.xi = xr[i];
+        // Local element coordinates of current integration point
+        fe.xi = xr[i];
 
-	// Parameter values of current integration point
-	fe.u = redpar(1+i,1+iel);
+        // Parameter values of current integration point
+        fe.u = redpar(1+i,1+iel);
 
         if (integrand.getIntegrandType() & Integrand::NO_DERIVATIVES)
           this->extractBasis(fe.u,fe.N);
@@ -854,12 +854,12 @@ bool ASMs1D::integrate (Integrand& integrand,
           fe.detJxW = utl::Jacobian(Jac,fe.dNdX,fe.Xn,dNdu)*wr[i];
         }
 
-	// Cartesian coordinates of current integration point
-	X = fe.Xn * fe.N;
-	X.t = time.t;
+        // Cartesian coordinates of current integration point
+        X = fe.Xn * fe.N;
+        X.t = time.t;
 
-	// Compute the reduced integration terms of the integrand
-	ok = integrand.reducedInt(*A,fe,X);
+        // Compute the reduced integration terms of the integrand
+        ok = integrand.reducedInt(*A,fe,X);
       }
     }
 
@@ -935,8 +935,8 @@ bool ASMs1D::integrate (Integrand& integrand,
 
 
 bool ASMs1D::integrate (Integrand& integrand, int lIndex,
-			GlobalIntegral& glInt,
-			const TimeDomain& time)
+                        GlobalIntegral& glInt,
+                        const TimeDomain& time)
 {
   if (!curv) return true; // silently ignore empty patches
 
@@ -1037,7 +1037,7 @@ bool ASMs1D::getGridParameters (RealArray& prm, int nSegPerSpan) const
   if (nSegPerSpan < 1)
   {
     std::cerr <<" *** ASMs1D::getGridParameters: Too few knot-span points "
-	      << nSegPerSpan+1 << std::endl;
+              << nSegPerSpan+1 << std::endl;
     return false;
   }
 
@@ -1048,11 +1048,11 @@ bool ASMs1D::getGridParameters (RealArray& prm, int nSegPerSpan) const
     ucurr = *(uit++);
     if (ucurr > uprev)
       if (nSegPerSpan == 1)
-	prm.push_back(uprev);
+        prm.push_back(uprev);
       else for (int i = 0; i < nSegPerSpan; i++)
       {
-	double xg = (double)(2*i-nSegPerSpan)/(double)nSegPerSpan;
-	prm.push_back(0.5*(ucurr*(1.0+xg) + uprev*(1.0-xg)));
+        double xg = (double)(2*i-nSegPerSpan)/(double)nSegPerSpan;
+        prm.push_back(0.5*(ucurr*(1.0+xg) + uprev*(1.0-xg)));
       }
     uprev = ucurr;
   }
@@ -1123,7 +1123,7 @@ void ASMs1D::scatterInd (int p1, int start, IntVec& index)
 
 
 bool ASMs1D::evalSolution (Matrix& sField, const Vector& locSol,
-			   const int* npe) const
+                           const int* npe) const
 {
   // Compute parameter values of the result sampling points
   RealArray gpar;
@@ -1155,7 +1155,8 @@ bool ASMs1D::evalSolution (Matrix& sField, const Vector& locSol,
   for (size_t i = 0; i < nPoints; i++)
   {
     IntVec ip;
-    switch (deriv) {
+    switch (deriv)
+    {
 
     case 0: // Evaluate the solution
       this->extractBasis(upar[i],basis);
@@ -1193,7 +1194,7 @@ bool ASMs1D::evalSolution (Matrix& sField, const Vector& locSol,
 
 
 bool ASMs1D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
-			   const int* npe, char project) const
+                           const int* npe, char project) const
 {
   if (npe)
   {
@@ -1202,21 +1203,21 @@ bool ASMs1D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     if (this->getGridParameters(gpar,npe[0]-1))
       if (project)
       {
-	// Project the secondary solution onto the spline basis
-	Go::SplineCurve* c = this->projectSolution(integrand);
-	if (c)
-	{
-	  // Evaluate the projected field at the result sampling points
-	  const Vector& svec = sField; // using utl::matrix cast operator
-	  sField.resize(c->dimension(),gpar.size());
-	  c->gridEvaluator(const_cast<Vector&>(svec),gpar);
-	  delete c;
-	  return true;
-	}
+        // Project the secondary solution onto the spline basis
+        Go::SplineCurve* c = this->projectSolution(integrand);
+        if (c)
+        {
+          // Evaluate the projected field at the result sampling points
+          const Vector& svec = sField; // using utl::matrix cast operator
+          sField.resize(c->dimension(),gpar.size());
+          c->gridEvaluator(const_cast<Vector&>(svec),gpar);
+          delete c;
+          return true;
+        }
       }
       else
-	// Evaluate the secondary solution directly at all sampling points
-	return this->evalSolution(sField,integrand,&gpar);
+        // Evaluate the secondary solution directly at all sampling points
+        return this->evalSolution(sField,integrand,&gpar);
   }
   else
   {
@@ -1268,15 +1269,15 @@ Go::SplineCurve* ASMs1D::projectSolution (const IntegrandBase& integrand) const
 
   const Vector& vec = sValues;
   return Go::CurveInterpolator::regularInterpolation(curv->basis(), gpar,
-						     const_cast<Vector&>(vec),
-						     sValues.rows(),
-						     curv->rational(),
-						     weights);
+                                                     const_cast<Vector&>(vec),
+                                                     sValues.rows(),
+                                                     curv->rational(),
+                                                     weights);
 }
 
 
 bool ASMs1D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
-			   const RealArray* gpar, bool) const
+                           const RealArray* gpar, bool) const
 {
   sField.resize(0,0);
 
@@ -1349,8 +1350,8 @@ bool ASMs1D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
 
 bool ASMs1D::globalL2projection (Matrix& sField,
-				 const IntegrandBase& integrand,
-				 bool continuous) const
+                                 const IntegrandBase& integrand,
+                                 bool continuous) const
 {
   if (!curv) return true; // silently ignore empty patches
 
@@ -1403,14 +1404,14 @@ bool ASMs1D::globalL2projection (Matrix& sField,
       // Integrate the linear system A*x=B
       for (size_t ii = 0; ii < phi.size(); ii++)
       {
-	int inod = MNPC[iel][ii]+1;
-	for (size_t jj = 0; jj < phi.size(); jj++)
-	{
-	  int jnod = MNPC[iel][jj]+1;
-	  A(inod,jnod) += phi[ii]*phi[jj];
-	}
-	for (size_t r = 1; r <= ncomp; r++)
-	  B(inod+(r-1)*nnod) += phi[ii]*sField(r,ip+1);
+        int inod = MNPC[iel][ii]+1;
+        for (size_t jj = 0; jj < phi.size(); jj++)
+        {
+          int jnod = MNPC[iel][jj]+1;
+          A(inod,jnod) += phi[ii]*phi[jj];
+        }
+        for (size_t r = 1; r <= ncomp; r++)
+          B(inod+(r-1)*nnod) += phi[ii]*sField(r,ip+1);
       }
     }
   }

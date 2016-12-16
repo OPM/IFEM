@@ -60,8 +60,8 @@ double SplineField2D::valueFE (const FiniteElement& fe) const
   // Evaluate the solution field at the given point
   IntVec ip;
   ASMs2D::scatterInd(basis->numCoefs_u(),basis->numCoefs_v(),
-		     basis->order_u(),basis->order_v(),
-		     spline.left_idx,ip);
+                     basis->order_u(),basis->order_v(),
+                     spline.left_idx,ip);
 
   Vector Vnod;
   utl::gather(ip,1,values,Vnod);
@@ -130,8 +130,8 @@ bool SplineField2D::valueGrid (RealArray& val, const int* npe) const
 
       IntVec ip;
       ASMs2D::scatterInd(basis->numCoefs_u(),basis->numCoefs_v(),
-			 basis->order_u(),basis->order_v(),
-			 spline.left_idx,ip);
+                         basis->order_u(),basis->order_v(),
+                         spline.left_idx,ip);
 
       Vector Vnod;
       utl::gather(ip,1,values,Vnod);
@@ -165,7 +165,7 @@ bool SplineField2D::gradFE (const FiniteElement& fe, Vector& grad) const
 
   IntVec ip;
   ASMs2D::scatterInd(surf->numCoefs_u(),surf->numCoefs_v(),
-		     uorder,vorder,spline.left_idx,ip);
+                     uorder,vorder,spline.left_idx,ip);
 
   // Evaluate the Jacobian inverse
   Matrix Xnod, Jac;
@@ -191,8 +191,8 @@ bool SplineField2D::gradFE (const FiniteElement& fe, Vector& grad) const
 
     ip.clear();
     ASMs2D::scatterInd(basis->numCoefs_u(),basis->numCoefs_v(),
-		       basis->order_u(),basis->order_v(),
-		       spline.left_idx,ip);
+                       basis->order_u(),basis->order_v(),
+                       spline.left_idx,ip);
   }
 
   Vector Vnod;
@@ -218,41 +218,44 @@ bool SplineField2D::hessianFE(const FiniteElement& fe, Matrix& H) const
   Matrix dNdu, dNdX;
   IntVec ip;
 #pragma omp critical
-  if (surf == basis) {
+  if (surf == basis)
+  {
     surf->computeBasis(fe.u,fe.v,spline2);
-    
+
     dNdu.resize(nen,2);
     d2Ndu2.resize(nen,2,2);
-    for (size_t n = 1; n <= nen; n++) {
+    for (size_t n = 1; n <= nen; n++)
+    {
       dNdu(n,1) = spline2.basisDerivs_u[n-1];
       dNdu(n,2) = spline2.basisDerivs_v[n-1];
       d2Ndu2(n,1,1) = spline2.basisDerivs_uu[n-1];
       d2Ndu2(n,1,2) = d2Ndu2(n,2,1) = spline2.basisDerivs_uv[n-1];
       d2Ndu2(n,2,2) = spline2.basisDerivs_vv[n-1];
     }
-    
+
     ASMs2D::scatterInd(surf->numCoefs_u(),surf->numCoefs_v(),
-		       uorder,vorder,spline2.left_idx,ip);
+                       uorder,vorder,spline2.left_idx,ip);
   }
   else {
     surf->computeBasis(fe.u,fe.v,spline);
-    
+
     dNdu.resize(nen,2);
-    for (size_t n = 1; n <= nen; n++) {
+    for (size_t n = 1; n <= nen; n++)
+    {
       dNdu(n,1) = spline.basisDerivs_u[n-1];
       dNdu(n,2) = spline.basisDerivs_v[n-1];
     }
-    
+
     ASMs2D::scatterInd(surf->numCoefs_u(),surf->numCoefs_v(),
-		       uorder,vorder,spline.left_idx,ip);
+                       uorder,vorder,spline.left_idx,ip);
   }
-  
+
   // Evaluate the Jacobian inverse
   Matrix Xnod, Jac;
   Vector Xctrl(&(*surf->coefs_begin()),surf->coefs_end()-surf->coefs_begin());
   utl::gather(ip,surf->dimension(),Xctrl,Xnod);
   utl::Jacobian(Jac,dNdX,Xnod,dNdu);
-  
+
   // Evaluate the gradient of the solution field at the given point
   if (basis != surf)
   {
@@ -263,7 +266,8 @@ bool SplineField2D::hessianFE(const FiniteElement& fe, Matrix& H) const
     const size_t nbf = basis->order_u()*basis->order_v();
     dNdu.resize(nbf,2);
     d2Ndu2.resize(nbf,2,2);
-    for (size_t n = 1; n <= nbf; n++) {
+    for (size_t n = 1; n <= nbf; n++) 
+    {
       dNdu(n,1) = spline2.basisDerivs_u[n-1];
       dNdu(n,2) = spline2.basisDerivs_v[n-1];
       d2Ndu2(n,1,1) = spline2.basisDerivs_uu[n-1];
@@ -273,8 +277,8 @@ bool SplineField2D::hessianFE(const FiniteElement& fe, Matrix& H) const
 
     ip.clear();
     ASMs2D::scatterInd(basis->numCoefs_u(),basis->numCoefs_v(),
-		       basis->order_u(),basis->order_v(),
-		       spline2.left_idx,ip);
+                       basis->order_u(),basis->order_v(),
+                       spline2.left_idx,ip);
   }
 
   Vector Vnod;

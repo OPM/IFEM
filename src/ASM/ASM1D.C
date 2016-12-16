@@ -26,7 +26,8 @@ ASMbase* ASM1D::create (ASM::Discretization discretization, unsigned char nf)
 ASMbase* ASM1D::create (ASM::Discretization discretization,
                         unsigned char nd, unsigned char nf)
 {
-  switch (discretization) {
+  switch (discretization)
+  {
   case ASM::SplineC1:
     return new ASMs1DC1(nd,nf);
 
@@ -42,9 +43,9 @@ ASMbase* ASM1D::create (ASM::Discretization discretization,
 }
 
 
-#define TRY_CLONE1(classType,n) {				\
-    const classType* p = dynamic_cast<const classType*>(this);	\
-    if (p) return n ? new classType(*p,*n) : new classType(*p);	\
+#define TRY_CLONE1(classType,n) {                                \
+    const classType* p = dynamic_cast<const classType*>(this);   \
+    if (p) return n ? new classType(*p,*n) : new classType(*p);  \
   }
 
 ASMbase* ASM1D::clone (unsigned char* nf) const

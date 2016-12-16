@@ -294,10 +294,10 @@ bool ASMs3D::refine (int dir, const RealArray& xi)
     ucurr = *(uit++);
     if (ucurr > uprev)
       for (size_t i = 0; i < xi.size(); i++)
-	if (i > 0 && xi[i] < xi[i-1])
-	  return false;
-	else
-	  extraKnots.push_back(ucurr*xi[i] + uprev*(1.0-xi[i]));
+        if (i > 0 && xi[i] < xi[i-1])
+          return false;
+        else
+          extraKnots.push_back(ucurr*xi[i] + uprev*(1.0-xi[i]));
 
     uprev = ucurr;
   }
@@ -321,8 +321,8 @@ bool ASMs3D::uniformRefine (int dir, int nInsert)
     if (ucurr > uprev)
       for (int i = 0; i < nInsert; i++)
       {
-	double xi = (double)(i+1)/(double)(nInsert+1);
-	extraKnots.push_back(ucurr*xi + uprev*(1.0-xi));
+        double xi = (double)(i+1)/(double)(nInsert+1);
+        extraKnots.push_back(ucurr*xi + uprev*(1.0-xi));
       }
     uprev = ucurr;
   }
@@ -510,96 +510,96 @@ bool ASMs3D::assignNodeNumbers (BlockNodes& nodes, int basis)
   for (int k = 1; k <= n3; k++)
     for (int j = 1; j <= n2; j++)
       for (int i = 1; i <= n1; i++, inod++)
-	if (k == 1)
-	{
-	  if (j == 1)
-	  {
-	    if (i == 1)
-	      myMLGN[inod] = nodes.ibnod[0];
-	    else if (i == n1)
-	      myMLGN[inod] = nodes.ibnod[1];
-	    else
-	      myMLGN[inod] = nodes.edges[0].next();
-	  }
-	  else if (j == n2)
-	  {
-	    if (i == 1)
-	      myMLGN[inod] = nodes.ibnod[2];
-	    else if (i == n1)
-	      myMLGN[inod] = nodes.ibnod[3];
-	    else
-	      myMLGN[inod] = nodes.edges[1].next();
-	  }
-	  else
-	  {
-	    if (i == 1)
-	      myMLGN[inod] = nodes.edges[4].next();
-	    else if (i == n1)
-	      myMLGN[inod] = nodes.edges[5].next();
-	    else
-	      myMLGN[inod] = nodes.faces[4].next();
-	  }
-	}
-	else if (k == n3)
-	{
-	  if (j == 1)
-	  {
-	    if (i == 1)
-	      myMLGN[inod] = nodes.ibnod[4];
-	    else if (i == n1)
-	      myMLGN[inod] = nodes.ibnod[5];
-	    else
-	      myMLGN[inod] = nodes.edges[2].next();
-	  }
-	  else if (j == n2)
-	  {
-	    if (i == 1)
-	      myMLGN[inod] = nodes.ibnod[6];
-	    else if (i == n1)
-	      myMLGN[inod] = nodes.ibnod[7];
-	    else
-	      myMLGN[inod] = nodes.edges[3].next();
-	  }
-	  else
-	  {
-	    if (i == 1)
-	      myMLGN[inod] = nodes.edges[6].next();
-	    else if (i == n1)
-	      myMLGN[inod] = nodes.edges[7].next();
-	    else
-	      myMLGN[inod] = nodes.faces[5].next();
-	  }
-	}
-	else
-	{
-	  if (j == 1)
-	  {
-	    if (i == 1)
-	      myMLGN[inod] = nodes.edges[8].next();
-	    else if (i == n1)
-	      myMLGN[inod] = nodes.edges[9].next();
-	    else
-	      myMLGN[inod] = nodes.faces[2].next();
-	  }
-	  else if (j == n2)
-	  {
-	    if (i == 1)
-	      myMLGN[inod] = nodes.edges[10].next();
-	    else if (i == n1)
-	      myMLGN[inod] = nodes.edges[11].next();
-	    else
-	      myMLGN[inod] = nodes.faces[3].next();
-	  }
-	  else
-	  {
-	    if (i == 1)
-	      myMLGN[inod] = nodes.faces[0].next();
-	    else if (i == n1)
-	      myMLGN[inod] = nodes.faces[1].next();
-	    else
-	      myMLGN[inod] = nodes.next();
-	  }
-	}
+        if (k == 1)
+        {
+          if (j == 1)
+          {
+            if (i == 1)
+              myMLGN[inod] = nodes.ibnod[0];
+            else if (i == n1)
+              myMLGN[inod] = nodes.ibnod[1];
+            else
+              myMLGN[inod] = nodes.edges[0].next();
+          }
+          else if (j == n2)
+          {
+            if (i == 1)
+              myMLGN[inod] = nodes.ibnod[2];
+            else if (i == n1)
+              myMLGN[inod] = nodes.ibnod[3];
+            else
+              myMLGN[inod] = nodes.edges[1].next();
+          }
+          else
+          {
+            if (i == 1)
+              myMLGN[inod] = nodes.edges[4].next();
+            else if (i == n1)
+              myMLGN[inod] = nodes.edges[5].next();
+            else
+              myMLGN[inod] = nodes.faces[4].next();
+          }
+        }
+        else if (k == n3)
+        {
+          if (j == 1)
+          {
+            if (i == 1)
+              myMLGN[inod] = nodes.ibnod[4];
+            else if (i == n1)
+              myMLGN[inod] = nodes.ibnod[5];
+            else
+              myMLGN[inod] = nodes.edges[2].next();
+          }
+          else if (j == n2)
+          {
+            if (i == 1)
+              myMLGN[inod] = nodes.ibnod[6];
+            else if (i == n1)
+              myMLGN[inod] = nodes.ibnod[7];
+            else
+              myMLGN[inod] = nodes.edges[3].next();
+          }
+          else
+          {
+            if (i == 1)
+              myMLGN[inod] = nodes.edges[6].next();
+            else if (i == n1)
+              myMLGN[inod] = nodes.edges[7].next();
+            else
+              myMLGN[inod] = nodes.faces[5].next();
+          }
+        }
+        else
+        {
+          if (j == 1)
+          {
+            if (i == 1)
+              myMLGN[inod] = nodes.edges[8].next();
+            else if (i == n1)
+              myMLGN[inod] = nodes.edges[9].next();
+            else
+              myMLGN[inod] = nodes.faces[2].next();
+          }
+          else if (j == n2)
+          {
+            if (i == 1)
+              myMLGN[inod] = nodes.edges[10].next();
+            else if (i == n1)
+              myMLGN[inod] = nodes.edges[11].next();
+            else
+              myMLGN[inod] = nodes.faces[3].next();
+          }
+          else
+          {
+            if (i == 1)
+              myMLGN[inod] = nodes.faces[0].next();
+            else if (i == n1)
+              myMLGN[inod] = nodes.faces[1].next();
+            else
+              myMLGN[inod] = nodes.next();
+          }
+        }
 
 #if SP_DEBUG > 2
   if (basis > 0) std::cout <<"\nBasis "<< basis <<":";
@@ -641,7 +641,7 @@ bool ASMs3D::connectBasis (int face, ASMs3D& neighbor, int nface, int norient,
   else if (this->isShared() || neighbor.isShared())
   {
     std::cerr <<" *** ASMs3D::connectPatch: Logic error, cannot"
-	      <<" connect a shared patch with an unshared one"<< std::endl;
+              <<" connect a shared patch with an unshared one"<< std::endl;
     return false;
   }
 
@@ -677,7 +677,7 @@ bool ASMs3D::connectBasis (int face, ASMs3D& neighbor, int nface, int norient,
 
     default:
       std::cerr <<" *** ASMs3D::connectPatch: Invalid slave face "
-		<< face << std::endl;
+                << face << std::endl;
       return false;
     }
 
@@ -718,14 +718,14 @@ bool ASMs3D::connectBasis (int face, ASMs3D& neighbor, int nface, int norient,
 
     default:
       std::cerr <<" *** ASMs3D::connectPatch: Invalid master face "
-		<< nface << std::endl;
+                << nface << std::endl;
       return false;
     }
 
   if (norient < 0 || norient > 7)
   {
     std::cerr <<" *** ASMs3D::connectPatch: Orientation flag "
-	      << norient <<" is out of range [0,7]"<< std::endl;
+              << norient <<" is out of range [0,7]"<< std::endl;
     return false;
   }
 
@@ -734,7 +734,7 @@ bool ASMs3D::connectBasis (int face, ASMs3D& neighbor, int nface, int norient,
   if (norient < 4 ? (n1 != m1 || n2 != m2) : (n2 != m1 || n1 != m2))
   {
     std::cerr <<" *** ASMs3D::connectPatch: Non-matching faces, sizes "
-	      << n1 <<","<< n2 <<" and "<< m1 <<","<< m2 << std::endl;
+              << n1 <<","<< n2 <<" and "<< m1 <<","<< m2 << std::endl;
     return false;
   }
 
@@ -744,28 +744,28 @@ bool ASMs3D::connectBasis (int face, ASMs3D& neighbor, int nface, int norient,
     {
       int k = i, l = j;
       switch (norient)
-	{
-	case  1: k =    i  ; l = n2-j-1; break;
-	case  2: k = n1-i-1; l =    j  ; break;
-	case  3: k = n1-i-1; l = n2-j-1; break;
-	case  4: k =    j  ; l =    i  ; break;
-	case  5: k =    j  ; l = n1-i-1; break;
-	case  6: k = n2-j-1; l =    i  ; break;
-	case  7: k = n2-j-1; l = n1-i-1; break;
-	default: k =    i  ; l = j     ;
-	}
+        {
+        case  1: k =    i  ; l = n2-j-1; break;
+        case  2: k = n1-i-1; l =    j  ; break;
+        case  3: k = n1-i-1; l = n2-j-1; break;
+        case  4: k =    j  ; l =    i  ; break;
+        case  5: k =    j  ; l = n1-i-1; break;
+        case  6: k = n2-j-1; l =    i  ; break;
+        case  7: k = n2-j-1; l = n1-i-1; break;
+        default: k =    i  ; l = j     ;
+        }
 
       int slave = slaveNodes[k][l];
       if (coordCheck && !neighbor.getCoord(node).equal(this->getCoord(slave),xtol))
       {
-	std::cerr <<" *** ASMs3D::connectPatch: Non-matching nodes "
-		  << node <<": "<< neighbor.getCoord(node)
-		  <<"\n                                          and "
-		  << slave <<": "<< this->getCoord(slave) << std::endl;
-	return false;
+        std::cerr <<" *** ASMs3D::connectPatch: Non-matching nodes "
+                  << node <<": "<< neighbor.getCoord(node)
+                  <<"\n                                          and "
+                  << slave <<": "<< this->getCoord(slave) << std::endl;
+        return false;
       }
       else
-	ASMbase::collapseNodes(neighbor,node,*this,slave);
+        ASMbase::collapseNodes(neighbor,node,*this,slave);
     }
 
   return true;
@@ -782,20 +782,20 @@ void ASMs3D::closeFaces (int dir, int basis, int master)
     {
     case 1: // Faces are closed in I-direction
       for (int i3 = 1; i3 <= n3; i3++)
-	for (int i2 = 1; i2 <= n2; i2++, master += n1)
-	  this->makePeriodic(master,master+n1-1);
+        for (int i2 = 1; i2 <= n2; i2++, master += n1)
+          this->makePeriodic(master,master+n1-1);
       break;
 
     case 2: // Faces are closed in J-direction
       for (int i3 = 1; i3 <= n3; i3++, master += n1*(n2-1))
-	for (int i1 = 1; i1 <= n1; i1++, master++)
-	  this->makePeriodic(master,master+n1*(n2-1));
+        for (int i1 = 1; i1 <= n1; i1++, master++)
+          this->makePeriodic(master,master+n1*(n2-1));
       break;
 
     case 3: // Faces are closed in K-direction
       for (int i2 = 1; i2 <= n2; i2++)
-	for (int i1 = 1; i1 <= n1; i1++, master++)
-	  this->makePeriodic(master,master+n1*n2*(n3-1));
+        for (int i1 = 1; i1 <= n1; i1++, master++)
+          this->makePeriodic(master,master+n1*n2*(n3-1));
       break;
     }
 }
@@ -843,57 +843,57 @@ void ASMs3D::constrainFace (int dir, bool open, int dof,
       node += n1-1;
     case -1: // Left face (negative I-direction)
       for (int i3 = 1; i3 <= n3; i3++)
-	for (int i2 = 1; i2 <= n2; i2++, node += n1)
-	  if (open && (i2 == 1 || i2 == n2 || i3 == 1 || i3 == n3))
-	    continue; // skip all edge nodes if an open boundary is requested
-	  else if ((i2 == 1 || i2 == n2) && (i3 == 1 || i3 == n3))
-	    this->prescribe(node,dof,bcode); // corner node
-	  else
-	  {
-	    // If the Dirichlet condition is to be projected, add this node to
-	    // the set of nodes to receive prescribed value from the projection
-	    // **unless this node already has a homogeneous constraint**
-	    if (this->prescribe(node,dof,-code) == 0 && code > 0)
-	      dirich.back().nodes.push_back(std::make_pair(n2*(i3-1)+i2,node));
-	  }
+        for (int i2 = 1; i2 <= n2; i2++, node += n1)
+          if (open && (i2 == 1 || i2 == n2 || i3 == 1 || i3 == n3))
+            continue; // skip all edge nodes if an open boundary is requested
+          else if ((i2 == 1 || i2 == n2) && (i3 == 1 || i3 == n3))
+            this->prescribe(node,dof,bcode); // corner node
+          else
+          {
+            // If the Dirichlet condition is to be projected, add this node to
+            // the set of nodes to receive prescribed value from the projection
+            // **unless this node already has a homogeneous constraint**
+            if (this->prescribe(node,dof,-code) == 0 && code > 0)
+              dirich.back().nodes.push_back(std::make_pair(n2*(i3-1)+i2,node));
+          }
       break;
 
     case  2: // Back face (positive J-direction)
       node += n1*(n2-1);
     case -2: // Front face (negative J-direction)
       for (int i3 = 1; i3 <= n3; i3++, node += n1*(n2-1))
-	for (int i1 = 1; i1 <= n1; i1++, node++)
-	  if (open && (i1 == 1 || i1 == n1 || i3 == 1 || i3 == n3))
-	    continue; // skip all edge nodes if an open boundary is requested
-	  else if ((i1 == 1 || i1 == n1) && (i3 == 1 || i3 == n3))
-	    this->prescribe(node,dof,bcode); // corner node
-	  else
-	  {
-	    // If the Dirichlet condition is to be projected, add this node to
-	    // the set of nodes to receive prescribed value from the projection
-	    // **unless this node already has a homogeneous constraint**
-	    if (this->prescribe(node,dof,-code) == 0 && code > 0)
-	      dirich.back().nodes.push_back(std::make_pair(n1*(i3-1)+i1,node));
-	  }
+        for (int i1 = 1; i1 <= n1; i1++, node++)
+          if (open && (i1 == 1 || i1 == n1 || i3 == 1 || i3 == n3))
+            continue; // skip all edge nodes if an open boundary is requested
+          else if ((i1 == 1 || i1 == n1) && (i3 == 1 || i3 == n3))
+            this->prescribe(node,dof,bcode); // corner node
+          else
+          {
+            // If the Dirichlet condition is to be projected, add this node to
+            // the set of nodes to receive prescribed value from the projection
+            // **unless this node already has a homogeneous constraint**
+            if (this->prescribe(node,dof,-code) == 0 && code > 0)
+              dirich.back().nodes.push_back(std::make_pair(n1*(i3-1)+i1,node));
+          }
       break;
 
     case  3: // Top face (positive K-direction)
       node += n1*n2*(n3-1);
     case -3: // Bottom face (negative K-direction)
       for (int i2 = 1; i2 <= n2; i2++)
-	for (int i1 = 1; i1 <= n1; i1++, node++)
-	  if (open && (i1 == 1 || i1 == n1 || i2 == 1 || i2 == n2))
-	    continue; // skip all edge nodes if an open boundary is requested
-	  else if ((i1 == 1 || i1 == n1) && (i2 == 1 || i2 == n2))
-	    this->prescribe(node,dof,bcode); // corner node
-	  else
-	  {
-	    // If the Dirichlet condition is to be projected, add this node to
-	    // the set of nodes to receive prescribed value from the projection
-	    // **unless this node already has a homogeneous constraint**
-	    if (this->prescribe(node,dof,-code) == 0 && code > 0)
-	      dirich.back().nodes.push_back(std::make_pair(n1*(i2-1)+i1,node));
-	  }
+        for (int i1 = 1; i1 <= n1; i1++, node++)
+          if (open && (i1 == 1 || i1 == n1 || i2 == 1 || i2 == n2))
+            continue; // skip all edge nodes if an open boundary is requested
+          else if ((i1 == 1 || i1 == n1) && (i2 == 1 || i2 == n2))
+            this->prescribe(node,dof,bcode); // corner node
+          else
+          {
+            // If the Dirichlet condition is to be projected, add this node to
+            // the set of nodes to receive prescribed value from the projection
+            // **unless this node already has a homogeneous constraint**
+            if (this->prescribe(node,dof,-code) == 0 && code > 0)
+              dirich.back().nodes.push_back(std::make_pair(n1*(i2-1)+i1,node));
+          }
       break;
     }
 }
@@ -915,7 +915,7 @@ void ASMs3D::constrainFace (int dir, bool open, int dof,
 */
 
 size_t ASMs3D::constrainFaceLocal (int dir, bool open, int dof, int code,
-				   bool project, char T1)
+                                   bool project, char T1)
 {
   if (shareFE == 'F')
   {
@@ -983,10 +983,10 @@ size_t ASMs3D::constrainFaceLocal (int dir, bool open, int dof, int code,
       face->getWeights(weights);
 
     locs = Go::SurfaceInterpolator::regularInterpolation(face->basis(0),
-							 face->basis(1),
-							 upar,vpar,gdata,3,
-							 face->rational(),
-							 weights);
+                                                         face->basis(1),
+                                                         upar,vpar,gdata,3,
+                                                         face->rational(),
+                                                         weights);
   }
 
   // Find start index and increment of the (slave) node with the global DOFs
@@ -1195,17 +1195,17 @@ void ASMs3D::constrainLine (int fdir, int ldir, double xi, int dof,
     case -1: // Left face (negative I-direction)
       if (ldir == 2)
       {
-	// Line goes in J-direction
-	node += n1*n2*int(0.5+(n3-1)*(swapW ? 1.0-xi : xi));
-	for (int i2 = 1; i2 <= n2; i2++, node += n1)
-	  this->prescribe(node,dof,code);
+        // Line goes in J-direction
+        node += n1*n2*int(0.5+(n3-1)*(swapW ? 1.0-xi : xi));
+        for (int i2 = 1; i2 <= n2; i2++, node += n1)
+          this->prescribe(node,dof,code);
       }
       else if (ldir == 3)
       {
-	// Line goes in K-direction
-	node += n1*int(0.5+(n2-1)*xi);
-	for (int i3 = 1; i3 <= n3; i3++, node += n1*n2)
-	  this->prescribe(node,dof,code);
+        // Line goes in K-direction
+        node += n1*int(0.5+(n2-1)*xi);
+        for (int i3 = 1; i3 <= n3; i3++, node += n1*n2)
+          this->prescribe(node,dof,code);
       }
       break;
 
@@ -1214,17 +1214,17 @@ void ASMs3D::constrainLine (int fdir, int ldir, double xi, int dof,
     case -2: // Front face (negative J-direction)
       if (ldir == 1)
       {
-	// Line goes in I-direction
-	node += n1*n2*int(0.5+(n3-1)*(swapW ? 1.0-xi : xi));
-	for (int i1 = 1; i1 <= n1; i1++, node++)
-	  this->prescribe(node,dof,code);
+        // Line goes in I-direction
+        node += n1*n2*int(0.5+(n3-1)*(swapW ? 1.0-xi : xi));
+        for (int i1 = 1; i1 <= n1; i1++, node++)
+          this->prescribe(node,dof,code);
       }
       else if (ldir == 3)
       {
-	// Line goes in K-direction
-	node += int(0.5+(n1-1)*xi);
-	for (int i3 = 1; i3 <= n3; i3++, node += n1*n2)
-	  this->prescribe(node,dof,code);
+        // Line goes in K-direction
+        node += int(0.5+(n1-1)*xi);
+        for (int i3 = 1; i3 <= n3; i3++, node += n1*n2)
+          this->prescribe(node,dof,code);
       }
       break;
 
@@ -1233,17 +1233,17 @@ void ASMs3D::constrainLine (int fdir, int ldir, double xi, int dof,
     case -3: // Bottom face (negative K-direction)
       if (ldir == 1)
       {
-	// Line goes in I-direction
-	node += n1*int(0.5+(n2-1)*xi);
-	for (int i1 = 1; i1 <= n1; i1++, node++)
-	  this->prescribe(node,dof,code);
+        // Line goes in I-direction
+        node += n1*int(0.5+(n2-1)*xi);
+        for (int i1 = 1; i1 <= n1; i1++, node++)
+          this->prescribe(node,dof,code);
       }
       else if (ldir == 2)
       {
-	// Line goes in J-direction
-	node += int(0.5+(n1-1)*xi);
-	for (int i2 = 1; i2 <= n2; i2++, node += n1)
-	  this->prescribe(node,dof,code);
+        // Line goes in J-direction
+        node += int(0.5+(n1-1)*xi);
+        for (int i2 = 1; i2 <= n2; i2++, node += n1)
+          this->prescribe(node,dof,code);
       }
       break;
     }
@@ -1262,7 +1262,7 @@ void ASMs3D::constrainCorner (int I, int J, int K, int dof,
 
 
 void ASMs3D::constrainNode (double xi, double eta, double zeta,
-			    int dof, int code, char basis)
+                            int dof, int code, char basis)
 {
   if (xi   < 0.0 || xi   > 1.0) return;
   if (eta  < 0.0 || eta  > 1.0) return;
@@ -1305,7 +1305,7 @@ void ASMs3D::setNodeNumbers (const std::vector<int>& nodes)
 */
 
 bool ASMs3D::updateDirichlet (const std::map<int,RealFunc*>& func,
-			      const std::map<int,VecFunc*>& vfunc, double time,
+                              const std::map<int,VecFunc*>& vfunc, double time,
                               const std::map<int,int>* g2l)
 {
   std::map<int,RealFunc*>::const_iterator fit;
@@ -1324,13 +1324,13 @@ bool ASMs3D::updateDirichlet (const std::map<int,RealFunc*>& func,
     else
     {
       std::cerr <<" *** ASMs3D::updateDirichlet: Code "<< dirich[i].code
-		<<" is not associated with any function."<< std::endl;
+                <<" is not associated with any function."<< std::endl;
       return false;
     }
     if (!dsurf)
     {
       std::cerr <<" *** ASMs3D::updateDirichlet: Projection failure."
-		<< std::endl;
+                << std::endl;
       return false;
     }
 
@@ -1374,7 +1374,7 @@ double ASMs3D::getParametricVolume (int iel) const
   if (iel < 1 || (size_t)iel > MNPC.size())
   {
     std::cerr <<" *** ASMs3D::getParametricVolume: Element index "<< iel
-	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
+              <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
     return DERR;
   }
 #endif
@@ -1386,7 +1386,7 @@ double ASMs3D::getParametricVolume (int iel) const
   if (inod1 < 0 || (size_t)inod1 >= nnod)
   {
     std::cerr <<" *** ASMs3D::getParametricVolume: Node index "<< inod1
-	      <<" out of range [0,"<< nnod <<">."<< std::endl;
+              <<" out of range [0,"<< nnod <<">."<< std::endl;
     return DERR;
   }
 #endif
@@ -1404,7 +1404,7 @@ double ASMs3D::getParametricArea (int iel, int dir) const
   if (iel < 1 || (size_t)iel > MNPC.size())
   {
     std::cerr <<" *** ASMs3D::getParametricArea: Element index "<< iel
-	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
+              <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
     return DERR;
   }
 #endif
@@ -1416,7 +1416,7 @@ double ASMs3D::getParametricArea (int iel, int dir) const
   if (inod1 < 0 || (size_t)inod1 >= nnod)
   {
     std::cerr <<" *** ASMs3D::getParametricArea: Node index "<< inod1
-	      <<" out of range [0,"<< nnod <<">."<< std::endl;
+              <<" out of range [0,"<< nnod <<">."<< std::endl;
     return DERR;
   }
 #endif
@@ -1432,7 +1432,7 @@ double ASMs3D::getParametricArea (int iel, int dir) const
     }
 
   std::cerr <<" *** ASMs3D::getParametricArea: Invalid face direction "
-	    << dir << std::endl;
+            << dir << std::endl;
   return DERR;
 }
 
@@ -1443,7 +1443,7 @@ int ASMs3D::coeffInd (size_t inod) const
   if (inod >= nnod)
   {
     std::cerr <<" *** ASMs3D::coeffInd: Node index "<< inod
-	      <<" out of range [0,"<< nnod <<">."<< std::endl;
+              <<" out of range [0,"<< nnod <<">."<< std::endl;
     return -1;
   }
 #endif
@@ -1480,7 +1480,7 @@ bool ASMs3D::getElementCoordinates (Matrix& X, int iel) const
   if (iel < 1 || (size_t)iel > MNPC.size())
   {
     std::cerr <<" *** ASMs3D::getElementCoordinates: Element index "<< iel
-	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
+              <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
     return false;
   }
 #endif
@@ -1517,9 +1517,9 @@ void ASMs3D::getNodalCoordinates (Matrix& X) const
     for (int i2 = 0; i2 < n2; i2++)
       for (int i1 = 0; i1 < n1; i1++, inod++)
       {
-	int ip = ((i3*n2 + i2)*n1 + i1)*svol->dimension();
-	for (size_t i = 0; i < 3; i++)
-	  X(i+1,inod) = *(cit+(ip+i));
+        int ip = ((i3*n2 + i2)*n1 + i1)*svol->dimension();
+        for (size_t i = 0; i < 3; i++)
+          X(i+1,inod) = *(cit+(ip+i));
       }
 }
 
@@ -1532,8 +1532,8 @@ bool ASMs3D::updateCoords (const Vector& displ)
   if (displ.size() != 3*MLGN.size())
   {
     std::cerr <<" *** ASMs3D::updateCoords: Invalid dimension "
-	      << displ.size() <<" on displacement vector, should be "
-	      << 3*MLGN.size() << std::endl;
+              << displ.size() <<" on displacement vector, should be "
+              << 3*MLGN.size() << std::endl;
     return false;
   }
 
@@ -1561,7 +1561,7 @@ void ASMs3D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis) const
       node += n1-1;
     case 1: // Left face (negative I-direction)
       for (int i3 = 1; i3 <= n3; i3++)
-	for (int i2 = 1; i2 <= n2; i2++, node += n1)
+        for (int i2 = 1; i2 <= n2; i2++, node += n1)
           nodes.push_back(getNodeID(node));
       break;
 
@@ -1569,7 +1569,7 @@ void ASMs3D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis) const
       node += n1*(n2-1);
     case 3: // Front face (negative J-direction)
       for (int i3 = 1; i3 <= n3; i3++, node += n1*(n2-1))
-	for (int i1 = 1; i1 <= n1; i1++, node++)
+        for (int i1 = 1; i1 <= n1; i1++, node++)
           nodes.push_back(getNodeID(node));
       break;
 
@@ -1577,7 +1577,7 @@ void ASMs3D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis) const
       node += n1*n2*(n3-1);
     case 5: // Bottom face (negative K-direction)
       for (int i2 = 1; i2 <= n2; i2++)
-	for (int i1 = 1; i1 <= n1; i1++, node++)
+        for (int i1 = 1; i1 <= n1; i1++, node++)
           nodes.push_back(getNodeID(node));
       break;
   }
@@ -1646,7 +1646,7 @@ size_t ASMs3D::getNoBoundaryElms (char lIndex, char ldim) const
 
 
 const Vector& ASMs3D::getGaussPointParameters (Matrix& uGP, int dir, int nGauss,
-					       const double* xi) const
+                                               const double* xi) const
 {
   int pm1 = svol->order(dir) - 1;
   RealArray::const_iterator uit = svol->basis(dir).begin() + pm1;
@@ -1704,8 +1704,8 @@ void ASMs3D::getElementCorners (int i1, int i2, int i3, Vec3Vec& XC) const
 
 
 bool ASMs3D::integrate (Integrand& integrand,
-			GlobalIntegral& glInt,
-			const TimeDomain& time)
+                        GlobalIntegral& glInt,
+                        const TimeDomain& time)
 {
   if (!svol) return true; // silently ignore empty patches
 
@@ -1981,8 +1981,8 @@ bool ASMs3D::integrate (Integrand& integrand,
 
 
 bool ASMs3D::integrate (Integrand& integrand,
-			GlobalIntegral& glInt,
-			const TimeDomain& time,
+                        GlobalIntegral& glInt,
+                        const TimeDomain& time,
                         const Real3DMat& itgPts)
 {
   if (!svol) return true; // silently ignore empty patches
@@ -2073,8 +2073,8 @@ bool ASMs3D::integrate (Integrand& integrand,
         {
           // Compute the element center
           this->getElementCorners(i1-1,i2-1,i3-1,fe.XC);
-	  X = 0.125*(fe.XC[0]+fe.XC[1]+fe.XC[2]+fe.XC[3]+
-		     fe.XC[4]+fe.XC[5]+fe.XC[6]+fe.XC[7]);
+          X = 0.125*(fe.XC[0]+fe.XC[1]+fe.XC[2]+fe.XC[3]+
+                     fe.XC[4]+fe.XC[5]+fe.XC[6]+fe.XC[7]);
         }
         else if (useElmVtx)
           this->getElementCorners(i1-1,i2-1,i3-1,fe.XC);
@@ -2177,8 +2177,8 @@ bool ASMs3D::integrate (Integrand& integrand,
 
 
 bool ASMs3D::integrate (Integrand& integrand, int lIndex,
-			GlobalIntegral& glInt,
-			const TimeDomain& time)
+                        GlobalIntegral& glInt,
+                        const TimeDomain& time)
 {
   if (!svol) return true; // silently ignore empty patches
 
@@ -2404,8 +2404,8 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
 
 
 bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
-			    GlobalIntegral& glInt,
-			    const TimeDomain& time)
+                            GlobalIntegral& glInt,
+                            const TimeDomain& time)
 {
   if (!svol) return true; // silently ignore empty patches
 
@@ -2423,15 +2423,15 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
     {
       gpar[d].resize(1,1);
       if (lEdge%4 == 1)
-	gpar[d].fill(svol->startparam(d));
+        gpar[d].fill(svol->startparam(d));
       else if (lEdge%4 == 0)
-	gpar[d].fill(svol->endparam(d));
+        gpar[d].fill(svol->endparam(d));
       else if (lEdge == 6 || lEdge == 10)
-	gpar[d].fill(d == 0 ? svol->endparam(d) : svol->startparam(d));
+        gpar[d].fill(d == 0 ? svol->endparam(d) : svol->startparam(d));
       else if (lEdge == 2 || lEdge == 11)
-	gpar[d].fill(d == 1 ? svol->endparam(d) : svol->startparam(d));
+        gpar[d].fill(d == 1 ? svol->endparam(d) : svol->startparam(d));
       else if (lEdge == 3 || lEdge == 7)
-	gpar[d].fill(d == 2 ? svol->endparam(d) : svol->startparam(d));
+        gpar[d].fill(d == 2 ? svol->endparam(d) : svol->startparam(d));
     }
     else
     {
@@ -2442,10 +2442,10 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
       gpar[d].resize(nGauss,nCol);
       for (int j = 1; j <= nCol; ++uit, j++)
       {
-	ucurr = *uit;
-	for (int i = 1; i <= nGauss; i++)
-	  gpar[d](i,j) = 0.5*((ucurr-uprev)*xg[i-1] + ucurr+uprev);
-	uprev = ucurr;
+        ucurr = *uit;
+        for (int i = 1; i <= nGauss; i++)
+          gpar[d](i,j) = 0.5*((ucurr-uprev)*xg[i-1] + ucurr+uprev);
+        uprev = ucurr;
       }
     }
 
@@ -2487,96 +2487,96 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
     for (int i2 = p2; i2 <= n2; i2++)
       for (int i1 = p1; i1 <= n1; i1++, iel++)
       {
-	fe.iel = MLGE[iel-1];
-	if (fe.iel < 1) continue; // zero-volume element
+        fe.iel = MLGE[iel-1];
+        if (fe.iel < 1) continue; // zero-volume element
 
-	// Skip elements that are not on current boundary edge
-	bool skipMe = false;
-	switch (lEdge)
-	  {
-	  case  1: if (i2 > p2 || i3 > p3) skipMe = true; break;
-	  case  2: if (i2 < n2 || i3 > p3) skipMe = true; break;
-	  case  3: if (i2 > p2 || i3 < n3) skipMe = true; break;
-	  case  4: if (i2 < n2 || i3 < n3) skipMe = true; break;
-	  case  5: if (i1 > p1 || i3 > p3) skipMe = true; break;
-	  case  6: if (i1 < n1 || i3 > p3) skipMe = true; break;
-	  case  7: if (i1 > p1 || i3 < n3) skipMe = true; break;
-	  case  8: if (i1 < n1 || i3 < n3) skipMe = true; break;
-	  case  9: if (i1 > p1 || i2 > p2) skipMe = true; break;
-	  case 10: if (i1 < n1 || i2 > p2) skipMe = true; break;
-	  case 11: if (i1 > p1 || i2 < n2) skipMe = true; break;
-	  case 12: if (i1 < n1 || i2 < n2) skipMe = true; break;
-	  }
-	if (skipMe) continue;
+        // Skip elements that are not on current boundary edge
+        bool skipMe = false;
+        switch (lEdge)
+          {
+          case  1: if (i2 > p2 || i3 > p3) skipMe = true; break;
+          case  2: if (i2 < n2 || i3 > p3) skipMe = true; break;
+          case  3: if (i2 > p2 || i3 < n3) skipMe = true; break;
+          case  4: if (i2 < n2 || i3 < n3) skipMe = true; break;
+          case  5: if (i1 > p1 || i3 > p3) skipMe = true; break;
+          case  6: if (i1 < n1 || i3 > p3) skipMe = true; break;
+          case  7: if (i1 > p1 || i3 < n3) skipMe = true; break;
+          case  8: if (i1 < n1 || i3 < n3) skipMe = true; break;
+          case  9: if (i1 > p1 || i2 > p2) skipMe = true; break;
+          case 10: if (i1 < n1 || i2 > p2) skipMe = true; break;
+          case 11: if (i1 > p1 || i2 < n2) skipMe = true; break;
+          case 12: if (i1 < n1 || i2 < n2) skipMe = true; break;
+          }
+        if (skipMe) continue;
 
-	// Get element edge length in the parameter space
-	double dS = 0.0;
-	int ip = MNPC[iel-1][svol->order(0)*svol->order(1)*svol->order(2)-1];
+        // Get element edge length in the parameter space
+        double dS = 0.0;
+        int ip = MNPC[iel-1][svol->order(0)*svol->order(1)*svol->order(2)-1];
 #ifdef INDEX_CHECK
-	if (ip < 0 || (size_t)ip >= nnod) return false;
+        if (ip < 0 || (size_t)ip >= nnod) return false;
 #endif
-	if (lEdge < 5)
-	{
-	  dS = svol->knotSpan(0,nodeInd[ip].I);
-	  ip = (i1-p1)*nGauss;
-	}
-	else if (lEdge < 9)
-	{
-	  dS = svol->knotSpan(1,nodeInd[ip].J);
-	  ip = (i2-p2)*nGauss;
-	}
-	else if (lEdge < 13)
-	{
-	  dS = svol->knotSpan(2,nodeInd[ip].K);
-	  ip = (i3-p3)*nGauss;
-	}
+        if (lEdge < 5)
+        {
+          dS = svol->knotSpan(0,nodeInd[ip].I);
+          ip = (i1-p1)*nGauss;
+        }
+        else if (lEdge < 9)
+        {
+          dS = svol->knotSpan(1,nodeInd[ip].J);
+          ip = (i2-p2)*nGauss;
+        }
+        else if (lEdge < 13)
+        {
+          dS = svol->knotSpan(2,nodeInd[ip].K);
+          ip = (i3-p3)*nGauss;
+        }
 
-	// Set up control point coordinates for current element
-	if (!this->getElementCoordinates(Xnod,iel)) return false;
+        // Set up control point coordinates for current element
+        if (!this->getElementCoordinates(Xnod,iel)) return false;
 
-	// Initialize element quantities
+        // Initialize element quantities
         LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
         bool ok = integrand.initElementBou(MNPC[iel-1],*A);
 
 
-	// --- Integration loop over all Gauss points along the edge -----------
+        // --- Integration loop over all Gauss points along the edge -----------
 
-	fe.iGP = firstp + ip; // Global integration point counter
+        fe.iGP = firstp + ip; // Global integration point counter
 
-	for (int i = 0; i < nGauss && ok; i++, ip++, fe.iGP++)
-	{
-	  // Parameter values of current integration point
-	  if (gpar[0].size() > 1) fe.u = gpar[0](i+1,i1-p1+1);
-	  if (gpar[1].size() > 1) fe.v = gpar[1](i+1,i2-p2+1);
-	  if (gpar[2].size() > 1) fe.w = gpar[2](i+1,i3-p3+1);
+        for (int i = 0; i < nGauss && ok; i++, ip++, fe.iGP++)
+        {
+          // Parameter values of current integration point
+          if (gpar[0].size() > 1) fe.u = gpar[0](i+1,i1-p1+1);
+          if (gpar[1].size() > 1) fe.v = gpar[1](i+1,i2-p2+1);
+          if (gpar[2].size() > 1) fe.w = gpar[2](i+1,i3-p3+1);
 
-	  // Fetch basis function derivatives at current integration point
-	  SplineUtils::extractBasis(spline[ip],fe.N,dNdu);
+          // Fetch basis function derivatives at current integration point
+          SplineUtils::extractBasis(spline[ip],fe.N,dNdu);
 
-	  // Compute basis function derivatives and the edge tang
-	  fe.detJxW = utl::Jacobian(Jac,tang,fe.dNdX,Xnod,dNdu,1+(lEdge-1)/4);
-	  if (fe.detJxW == 0.0) continue; // skip singular points
+          // Compute basis function derivatives and the edge tang
+          fe.detJxW = utl::Jacobian(Jac,tang,fe.dNdX,Xnod,dNdu,1+(lEdge-1)/4);
+          if (fe.detJxW == 0.0) continue; // skip singular points
 
-	  // Cartesian coordinates of current integration point
-	  X = Xnod * fe.N;
-	  X.t = time.t;
+          // Cartesian coordinates of current integration point
+          X = Xnod * fe.N;
+          X.t = time.t;
 
-	  // Evaluate the integrand and accumulate element contributions
-	  fe.detJxW *= 0.5*dS*wg[i];
+          // Evaluate the integrand and accumulate element contributions
+          fe.detJxW *= 0.5*dS*wg[i];
           ok = integrand.evalBou(*A,fe,time,X,tang);
-	}
+        }
 
         // Finalize the element quantities
         if (ok && !integrand.finalizeElementBou(*A,fe,time))
           ok = false;
 
-	// Assembly of global system integral
-	if (ok && !glInt.assemble(A->ref(),fe.iel))
-	  ok = false;
+        // Assembly of global system integral
+        if (ok && !glInt.assemble(A->ref(),fe.iel))
+          ok = false;
 
-	A->destruct();
+        A->destruct();
 
-	if (!ok) return false;
+        if (!ok) return false;
       }
 
   return true;
@@ -2606,7 +2606,7 @@ bool ASMs3D::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) const
   if (nSegPerSpan < 1)
   {
     std::cerr <<" *** ASMs3D::getGridParameters: Too few knot-span points "
-	      << nSegPerSpan+1 <<" in direction "<< dir << std::endl;
+              << nSegPerSpan+1 <<" in direction "<< dir << std::endl;
     return false;
   }
 
@@ -2617,11 +2617,11 @@ bool ASMs3D::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) const
     ucurr = *(uit++);
     if (ucurr > uprev)
       if (nSegPerSpan == 1)
-	prm.push_back(uprev);
+        prm.push_back(uprev);
       else for (int i = 0; i < nSegPerSpan; i++)
       {
-	double xg = (double)(2*i-nSegPerSpan)/(double)nSegPerSpan;
-	prm.push_back(0.5*(ucurr*(1.0+xg) + uprev*(1.0-xg)));
+        double xg = (double)(2*i-nSegPerSpan)/(double)nSegPerSpan;
+        prm.push_back(0.5*(ucurr*(1.0+xg) + uprev*(1.0-xg)));
       }
     uprev = ucurr;
   }
@@ -2675,10 +2675,10 @@ bool ASMs3D::tesselate (ElementBlock& grid, const int* npe) const
       n[7] = n[5] + nx-1;
       for (i = ie = 1; i < nx; i++)
       {
-	for (l = 0; l < 8; l++)
-	  grid.setNode(ip++,n[l]++);
-	grid.setElmId(((k-1)*(ny-1)+j-1)*(nx-1)+i,((ke-1)*nel2+je-1)*nel1+ie);
-	if (i%nse1 == 0) ie++;
+        for (l = 0; l < 8; l++)
+          grid.setNode(ip++,n[l]++);
+        grid.setElmId(((k-1)*(ny-1)+j-1)*(nx-1)+i,((ke-1)*nel2+je-1)*nel1+ie);
+        if (i%nse1 == 0) ie++;
       }
       if (j%nse2 == 0) je++;
     }
@@ -2690,7 +2690,7 @@ bool ASMs3D::tesselate (ElementBlock& grid, const int* npe) const
 
 
 void ASMs3D::scatterInd (int n1, int n2, int n3, int p1, int p2, int p3,
-			 const int* start, IntVec& index)
+                         const int* start, IntVec& index)
 {
   index.reserve(p1*p2*p3);
   int ip = ((start[2]-p3+1)*n2 + (start[1]-p2+1))*n1 + (start[0]-p1+1);
@@ -2702,7 +2702,7 @@ void ASMs3D::scatterInd (int n1, int n2, int n3, int p1, int p2, int p3,
 
 
 bool ASMs3D::evalSolution (Matrix& sField, const Vector& locSol,
-			   const int* npe) const
+                           const int* npe) const
 {
   // Compute parameter values of the result sampling points
   std::array<RealArray,3> gpar;
@@ -2729,7 +2729,8 @@ bool ASMs3D::evalSolution (Matrix& sField, const Vector& locSol,
   {
     PROFILE2("Spline evaluation");
     nPoints *= gpar[1].size()*gpar[2].size();
-    switch (deriv) {
+    switch (deriv)
+    {
     case 0:
       svol->computeBasisGrid(gpar[0],gpar[1],gpar[2],spline0);
       break;
@@ -2747,7 +2748,8 @@ bool ASMs3D::evalSolution (Matrix& sField, const Vector& locSol,
   {
     PROFILE2("Spline evaluation");
     for (size_t i = 0; i < nPoints; i++)
-      switch (deriv) {
+      switch (deriv)
+      {
       case 0:
         svol->computeBasis(gpar[0][i],gpar[1][i],gpar[2][i],spline0[i]);
         break;
@@ -2784,7 +2786,8 @@ bool ASMs3D::evalSolution (Matrix& sField, const Vector& locSol,
   for (size_t i = 0; i < nPoints; i++)
   {
     IntVec ip;
-    switch (deriv) {
+    switch (deriv)
+    {
 
     case 0: // Evaluate the solution
       scatterInd(n1,n2,n3,p1,p2,p3,spline0[i].left_idx,ip);
@@ -2821,7 +2824,7 @@ bool ASMs3D::evalSolution (Matrix& sField, const Vector& locSol,
 
 
 bool ASMs3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
-			   const int* npe, char project) const
+                           const int* npe, char project) const
 {
   // Project the secondary solution onto the spline basis
   Go::SplineVolume* v = nullptr;
@@ -2839,8 +2842,8 @@ bool ASMs3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     // Compute parameter values of the result sampling points
     std::array<RealArray,3> gpar;
     if (this->getGridParameters(gpar[0],0,npe[0]-1) &&
-	this->getGridParameters(gpar[1],1,npe[1]-1) &&
-	this->getGridParameters(gpar[2],2,npe[2]-1))
+        this->getGridParameters(gpar[1],1,npe[1]-1) &&
+        this->getGridParameters(gpar[2],2,npe[2]-1))
     {
       if (!project)
         // Evaluate the secondary solution directly at all sampling points
@@ -2877,7 +2880,7 @@ bool ASMs3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
 
 bool ASMs3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
-			   const RealArray* gpar, bool regular) const
+                           const RealArray* gpar, bool regular) const
 {
   sField.resize(0,0);
 
@@ -3058,14 +3061,14 @@ void ASMs3D::generateThreadGroups (char lIndex, bool silence, bool)
   for (int i3 = p3; i3 <= n3; i3++)
     for (int i2 = p2; i2 <= n2; i2++)
       for (int i1 = p1; i1 <= n1; i1++, iel++)
-	switch (lIndex)
+        switch (lIndex)
           {
-	  case 1: if (i1 == p1) map.push_back(iel); break;
-	  case 2: if (i1 == n1) map.push_back(iel); break;
-	  case 3: if (i2 == p2) map.push_back(iel); break;
-	  case 4: if (i2 == n2) map.push_back(iel); break;
-	  case 5: if (i3 == p3) map.push_back(iel); break;
-	  case 6: if (i3 == n3) map.push_back(iel); break;
+          case 1: if (i1 == p1) map.push_back(iel); break;
+          case 2: if (i1 == n1) map.push_back(iel); break;
+          case 3: if (i2 == p2) map.push_back(iel); break;
+          case 4: if (i2 == n2) map.push_back(iel); break;
+          case 5: if (i3 == p3) map.push_back(iel); break;
+          case 6: if (i3 == n3) map.push_back(iel); break;
           }
 
   std::vector<bool> el1, el2, el3;
@@ -3105,8 +3108,8 @@ void ASMs3D::generateThreadGroups (char lIndex, bool silence, bool)
     {
       std::cout <<"\n Thread group "<< i+1 <<" for boundary face "<<(int)lIndex;
       for (size_t j = 0; j < fGrp[i].size(); j++)
-	std::cout <<"\n\tthread "<< j+1
-		  << ": "<< fGrp[i][j].size() <<" elements";
+        std::cout <<"\n\tthread "<< j+1
+                  << ": "<< fGrp[i][j].size() <<" elements";
     }
 }
 

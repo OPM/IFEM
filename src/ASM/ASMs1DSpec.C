@@ -37,7 +37,7 @@ bool ASMs1DSpec::getGridParameters (RealArray& prm, int nSegPerSpan) const
   {
     nSegPerSpan = xGLL.size() - 1;
     std::cout <<"Spectral elements: Number of nodes per knot-span reset to "
-	      << nSegPerSpan <<" (GLL points)"<< std::endl;
+              << nSegPerSpan <<" (GLL points)"<< std::endl;
   }
 
   RealArray::const_iterator uit = curv->basis().begin();
@@ -47,7 +47,7 @@ bool ASMs1DSpec::getGridParameters (RealArray& prm, int nSegPerSpan) const
     ucurr = *(uit++);
     if (ucurr > uprev)
       for (int i = 1; i <= nSegPerSpan; i++)
-	prm.push_back(0.5*(ucurr-uprev)*(1.0+xGLL(i)) + uprev);
+        prm.push_back(0.5*(ucurr-uprev)*(1.0+xGLL(i)) + uprev);
     uprev = ucurr;
   }
 
@@ -57,8 +57,8 @@ bool ASMs1DSpec::getGridParameters (RealArray& prm, int nSegPerSpan) const
 
 
 bool ASMs1DSpec::integrate (Integrand& integrand,
-			    GlobalIntegral& glInt,
-			    const TimeDomain& time)
+                            GlobalIntegral& glInt,
+                            const TimeDomain& time)
 {
   if (!curv) return true; // silently ignore empty patches
 
@@ -109,13 +109,13 @@ bool ASMs1DSpec::integrate (Integrand& integrand,
       // Compute basis function derivatives at current integration point
       if (nGauss < 1)
       {
-	fe.N.fill(0.0);
-	fe.N(i+1) = 1.0;
-	dNdu.fillColumn(1,D1.getRow(i+1));
+        fe.N.fill(0.0);
+        fe.N(i+1) = 1.0;
+        dNdu.fillColumn(1,D1.getRow(i+1));
       }
       else
-	if (!Lagrange::computeBasis(fe.N,&dNdu,points1,xg1[i]))
-	  return false;
+        if (!Lagrange::computeBasis(fe.N,&dNdu,points1,xg1[i]))
+          return false;
 
       // Compute Jacobian inverse of coordinate mapping and derivatives
       fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
@@ -127,7 +127,7 @@ bool ASMs1DSpec::integrate (Integrand& integrand,
       // Evaluate the integrand and accumulate element contributions
       fe.detJxW *= wg1[i];
       if (!integrand.evalInt(*A,fe,time,X))
-	return false;
+        return false;
     }
 
     // Assembly of global system integral
@@ -142,8 +142,8 @@ bool ASMs1DSpec::integrate (Integrand& integrand,
 
 
 bool ASMs1DSpec::integrate (Integrand& integrand, int lIndex,
-			    GlobalIntegral& glInt,
-			    const TimeDomain& time)
+                            GlobalIntegral& glInt,
+                            const TimeDomain& time)
 {
   if (!curv) return true; // silently ignore empty patches
 
@@ -152,7 +152,7 @@ bool ASMs1DSpec::integrate (Integrand& integrand, int lIndex,
 
 
 bool ASMs1DSpec::evalSolution (Matrix& sField, const IntegrandBase& integrand,
-			       const RealArray*, bool) const
+                               const RealArray*, bool) const
 {
   sField.resize(0,0);
   if (!curv) return false;
@@ -189,14 +189,14 @@ bool ASMs1DSpec::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
       // Now evaluate the solution field
       if (!integrand.evalSol(solPt,fe,Xnod.getColumn(i+1),mnpc))
-	return false;
+        return false;
       else if (sField.empty())
-	sField.resize(solPt.size(),nPoints,true);
+        sField.resize(solPt.size(),nPoints,true);
 
       if (++check[mnpc[i]] == 1)
-	globSolPt[mnpc[i]] = solPt;
+        globSolPt[mnpc[i]] = solPt;
       else
-	globSolPt[mnpc[i]] += solPt;
+        globSolPt[mnpc[i]] += solPt;
     }
   }
 
