@@ -115,6 +115,10 @@ protected:
   //! \param[in] mindex Index into problem-dependent material property container
   //! \return The property code to be associated with the material
   int parseMaterialSet(const TiXmlElement* elem, int mindex);
+  //! \brief Parses the "set" attribute of a refine/raiseorder XML-tag.
+  //! \param[in] elem The XML element extract the set name from
+  //! \param[in] patches List of patch indices of the specified set
+  bool parseTopologySet(const TiXmlElement* elem, std::vector<int>& patches);
 
   //! \brief Creates a set of Property objects.
   //! \param[in] setName Name of the topology set the property is defined on

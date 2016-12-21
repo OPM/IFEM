@@ -52,19 +52,9 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
 
   if (!strcasecmp(elem->Value(),"refine"))
   {
-    int lowpatch = 1, uppatch = 1;
-    if (utl::getAttribute(elem,"patch",lowpatch))
-      uppatch = lowpatch;
-    if (utl::getAttribute(elem,"lowerpatch",lowpatch))
-      uppatch = myModel.size();
-    utl::getAttribute(elem,"upperpatch",uppatch);
-
-    if (lowpatch < 1 || uppatch > nGlPatches)
-    {
-      std::cerr <<" *** SIM1D::parse: Invalid patch indices, lower="
-                << lowpatch <<" upper="<< uppatch << std::endl;
+    IntVec patches;
+    if (!this->parseTopologySet(elem,patches))
       return false;
-    }
 
     ASM1D* pch = nullptr;
     RealArray xi;
@@ -72,7 +62,7 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
     {
       int addu = 0;
       utl::getAttribute(elem,"u",addu);
-      for (int j = lowpatch; j <= uppatch; j++)
+      for (int j : patches)
         if ((pch = dynamic_cast<ASM1D*>(this->getPatch(j,true))))
         {
           IFEM::cout <<"\tRefining P"<< j <<" "<< addu << std::endl;
@@ -80,7 +70,7 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
         }
     }
     else
-      for (int j = lowpatch; j <= uppatch; j++)
+      for (int j : patches)
         if ((pch = dynamic_cast<ASM1D*>(this->getPatch(j,true))))
         {
           IFEM::cout <<"\tRefining P"<< j
@@ -94,24 +84,14 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
 
   else if (!strcasecmp(elem->Value(),"raiseorder"))
   {
-    int lowpatch = 1, uppatch = 1;
-    if (utl::getAttribute(elem,"patch",lowpatch))
-      uppatch = lowpatch;
-    if (utl::getAttribute(elem,"lowerpatch",lowpatch))
-      uppatch = myModel.size();
-    utl::getAttribute(elem,"upperpatch",uppatch);
-
-    if (lowpatch < 1 || uppatch > nGlPatches)
-    {
-      std::cerr <<" *** SIM1D::parse: Invalid patch indices, lower="
-                << lowpatch <<" upper="<< uppatch << std::endl;
+    IntVec patches;
+    if (!this->parseTopologySet(elem,patches))
       return false;
-    }
 
     ASM1D* pch = nullptr;
     int addu = 0;
     utl::getAttribute(elem,"u",addu);
-    for (int j = lowpatch; j <= uppatch; j++)
+    for (int j : patches)
       if ((pch = dynamic_cast<ASM1D*>(this->getPatch(j,true))))
       {
         IFEM::cout <<"\tRaising order of P"<< j <<" "<< addu << std::endl;
@@ -462,7 +442,7 @@ bool SIM1D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
     IFEM::cout << " V"<< lndx;
   IFEM::cout <<" in direction(s) "<< dirs;
   if (code != 0) IFEM::cout <<" code = "<< code;
-  if (basis > 1) IFEM::cout <<" basis = "<< int(basis);
+  if (basis > 1) IFEM::cout <<" basis = "<< (int)basis;
 #if SP_DEBUG > 1
   std::cout << std::endl;
 #endif

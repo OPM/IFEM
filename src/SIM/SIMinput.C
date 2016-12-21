@@ -25,6 +25,7 @@
 #include "tinyxml.h"
 #include <fstream>
 #include <sstream>
+#include <numeric>
 
 
 bool SIMinput::parseGeometryTag (const TiXmlElement* elem)
@@ -419,6 +420,16 @@ bool SIMinput::parseICTag (const TiXmlElement* elem)
 }
 
 
+bool SIMinput::parseLinSolTag (const TiXmlElement* elem)
+{
+  if (!strcasecmp(elem->Value(),"class"))
+    if (elem->FirstChild())
+      opt.setLinearSolver(elem->FirstChild()->Value());
+
+  return true;
+}
+
+
 static bool noDumpDataYet = true; //!< To read only once in adaptive loops
 
 bool SIMinput::parseOutputTag (const TiXmlElement* elem)
@@ -515,9 +526,9 @@ bool SIMinput::parse (const TiXmlElement* elem)
 
 int SIMinput::parseMaterialSet (const TiXmlElement* elem, int mindex)
 {
-  std::string set;
-  utl::getAttribute(elem,"set",set);
-  int code = this->getUniquePropertyCode(set,0);
+  std::string setName;
+  utl::getAttribute(elem,"set",setName);
+  int code = this->getUniquePropertyCode(setName,0);
 
   if (code == 0)
     utl::getAttribute(elem,"code",code);
@@ -526,6 +537,51 @@ int SIMinput::parseMaterialSet (const TiXmlElement* elem, int mindex)
     this->setPropertyType(code,Property::MATERIAL,mindex);
 
   return code;
+}
+
+
+bool SIMinput::parseTopologySet (const TiXmlElement* elem, IntVec& patches)
+{
+  std::string setName;
+  if (utl::getAttribute(elem,"set",setName))
+  {
+    auto tit = myEntitys.find(setName);
+    if (tit == myEntitys.end())
+    {
+      std::cerr <<" *** SIMinput::parseTopologySet: Undefined topology set \""
+                << setName <<"\"."<< std::endl;
+      return false;
+    }
+
+    patches.clear();
+    for (const auto& top : tit->second)
+      if (top.idim == (short int)this->getNoParamDim())
+        patches.push_back(top.patch);
+    if (!patches.empty())
+      return true;
+
+    std::cerr <<" *** SIMinput::parseTopologySet: Invalid topology set \""
+              << setName <<"\" (no patches in this set)."<< std::endl;
+    return false;
+  }
+
+  int lowpatch = 1, uppatch = 1;
+  if (utl::getAttribute(elem,"patch",lowpatch))
+    uppatch = lowpatch;
+  if (utl::getAttribute(elem,"lowerpatch",lowpatch))
+    uppatch = myModel.size();
+  utl::getAttribute(elem,"upperpatch",uppatch);
+
+  if (lowpatch < 1 || uppatch > nGlPatches)
+  {
+    std::cerr <<" *** SIMinput::parseTopologySet: Invalid patch indices, lower="
+              << lowpatch <<" upper="<< uppatch << std::endl;
+    return false;
+  }
+
+  patches.resize(uppatch-lowpatch+1);
+  std::iota(patches.begin(),patches.end(),lowpatch);
+  return true;
 }
 
 
@@ -764,16 +820,6 @@ bool SIMinput::parse (char* keyWord, std::istream& is)
 }
 
 
-bool SIMinput::parseLinSolTag (const TiXmlElement* elem)
-{
-  if (!strcasecmp(elem->Value(),"class"))
-    if (elem->FirstChild())
-      opt.setLinearSolver(elem->FirstChild()->Value());
-
-  return true;
-}
-
-
 bool SIMinput::createFEMmodel (char resetNumb)
 {
   if (resetNumb)
@@ -852,7 +898,7 @@ bool SIMinput::createPropertySet (const std::string& setName, int pc)
   }
 
   // Create the actual property objects that are used during simulation
-  for (auto top : tit->second)
+  for (const auto& top : tit->second)
     myProps.push_back(Property(Property::UNDEFINED,pc,
                                top.patch,top.idim,top.item));
 
@@ -1033,7 +1079,7 @@ bool SIMinput::setInitialCondition (SIMdependency* fieldHolder,
   std::map<std::string,PatchVec> basisMap;
 
   // Loop over the initial conditions
-  for (auto it : info)
+  for (const auto& it : info)
   {
     // Do we have this field?
     Vector* field = fieldHolder->getField(it.sim_field);
@@ -1083,7 +1129,7 @@ bool SIMinput::setInitialCondition (SIMdependency* fieldHolder,
   }
 
   // Clean up basis patches
-  for (auto itb : basisMap)
+  for (const auto& itb : basisMap)
     for (size_t i = 0; i < itb.second.size(); i++)
       delete itb.second[i];
 
@@ -1098,10 +1144,10 @@ bool SIMinput::setInitialConditions (SIMdependency* fieldHolder)
     fieldHolder = this;
 
   bool result = true;
-  for (auto it : myICs)
+  for (const auto& it : myICs)
     if (it.first != "nofile")
       result &= this->setInitialCondition(fieldHolder,it.first,it.second);
-    else for (auto ic : it.second)
+    else for (const auto& ic : it.second)
     {
       // Do we have this field?
       Vector* field = fieldHolder->getField(ic.sim_field);
@@ -1123,8 +1169,8 @@ bool SIMinput::setInitialConditions (SIMdependency* fieldHolder)
 
 bool SIMinput::hasIC (const std::string& name) const
 {
-  for (auto it : myICs)
-    for (auto ic : it.second)
+  for (const auto& it : myICs)
+    for (const auto& ic : it.second)
       if (ic.sim_field.find(name) == 0)
         return true;
 

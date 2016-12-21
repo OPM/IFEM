@@ -49,7 +49,8 @@ bool SIM3D::addConnection (int master, int slave, int mIdx,
                            int sIdx, int orient, int basis,
                            bool coordCheck, int dim)
 {
-  if (orient < 0 || orient > 7) {
+  if (orient < 0 || orient > 7)
+  {
     std::cerr <<" *** SIM3D::addConnection: Invalid orientation "<< orient <<"."
               << std::endl;
     return false;
@@ -59,26 +60,27 @@ bool SIM3D::addConnection (int master, int slave, int mIdx,
   int lslave = this->getLocalPatchIndex(slave);
   if (lmaster > 0 && lslave > 0)
   {
-    if (dim > 1) {
-      IFEM::cout <<"\tConnecting P"<< slave <<" F"<< sIdx
-                 <<" to P"<< master <<" F"<< mIdx
-                 <<" orient "<< orient << std::endl;
+    if (dim < 2) return false;
 
-      ASMs3D* spch = static_cast<ASMs3D*>(myModel[lslave-1]);
-      ASMs3D* mpch = static_cast<ASMs3D*>(myModel[lmaster-1]);
+    IFEM::cout <<"\tConnecting P"<< slave <<" F"<< sIdx
+               <<" to P"<< master <<" F"<< mIdx
+               <<" orient "<< orient << std::endl;
 
-      std::set<int> bases;
-      if (basis == 0)
-        for (size_t b = 1; b <= spch->getNoBasis(); ++b)
-          bases.insert(b);
-      else
-        bases = utl::getDigits(basis);
+    ASMs3D* spch = static_cast<ASMs3D*>(myModel[lslave-1]);
+    ASMs3D* mpch = static_cast<ASMs3D*>(myModel[lmaster-1]);
 
-      for (const int& b : bases)
-        if (!spch->connectPatch(sIdx,*mpch,mIdx,orient,b,coordCheck))
-          return false;
-    }
-  } else
+    std::set<int> bases;
+    if (basis == 0)
+      for (size_t b = 1; b <= spch->getNoBasis(); ++b)
+        bases.insert(b);
+    else
+      bases = utl::getDigits(basis);
+
+    for (const int& b : bases)
+      if (!spch->connectPatch(sIdx,*mpch,mIdx,orient,b,coordCheck))
+        return false;
+  }
+  else
     adm.dd.ghostConnections.insert(DomainDecomposition::Interface{master, slave,
                                                                   mIdx, sIdx,
                                                                   orient, dim, basis});
@@ -93,19 +95,9 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
 
   if (!strcasecmp(elem->Value(),"refine") && !isRefined)
   {
-    int lowpatch = 1, uppatch = 1;
-    if (utl::getAttribute(elem,"patch",lowpatch))
-      uppatch = lowpatch;
-    if (utl::getAttribute(elem,"lowerpatch",lowpatch))
-      uppatch = myModel.size();
-    utl::getAttribute(elem,"upperpatch",uppatch);
-
-    if (lowpatch < 1 || uppatch > nGlPatches)
-    {
-      std::cerr <<" *** SIM3D::parse: Invalid patch indices, lower="
-                << lowpatch <<" upper="<< uppatch << std::endl;
+    IntVec patches;
+    if (!this->parseTopologySet(elem,patches))
       return false;
-    }
 
     ASM3D* pch = nullptr;
     RealArray xi;
@@ -115,7 +107,7 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
       utl::getAttribute(elem,"u",addu);
       utl::getAttribute(elem,"v",addv);
       utl::getAttribute(elem,"w",addw);
-      for (int j = lowpatch; j <= uppatch; j++)
+      for (int j : patches)
         if ((pch = dynamic_cast<ASM3D*>(this->getPatch(j,true))))
         {
           IFEM::cout <<"\tRefining P"<< j
@@ -130,7 +122,7 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
       // Non-uniform (graded) refinement
       int dir = 1;
       utl::getAttribute(elem,"dir",dir);
-      for (int j = lowpatch; j <= uppatch; j++)
+      for (int j : patches)
         if ((pch = dynamic_cast<ASM3D*>(this->getPatch(j,true))))
         {
           IFEM::cout <<"\tRefining P"<< j <<" dir="<< dir
@@ -145,26 +137,16 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
 
   else if (!strcasecmp(elem->Value(),"raiseorder") && !isRefined)
   {
-    int lowpatch = 1, uppatch = 1;
-    if (utl::getAttribute(elem,"patch",lowpatch))
-      uppatch = lowpatch;
-    if (utl::getAttribute(elem,"lowerpatch",lowpatch))
-      uppatch = myModel.size();
-    utl::getAttribute(elem,"upperpatch",uppatch);
-
-    if (lowpatch < 1 || uppatch > nGlPatches)
-    {
-      std::cerr <<" *** SIM3D::parse: Invalid patch indices, lower="
-                << lowpatch <<" upper="<< uppatch << std::endl;
+    IntVec patches;
+    if (!this->parseTopologySet(elem,patches))
       return false;
-    }
 
     ASM3D* pch = nullptr;
     int addu = 0, addv = 0, addw = 0;
     utl::getAttribute(elem,"u",addu);
     utl::getAttribute(elem,"v",addv);
     utl::getAttribute(elem,"w",addw);
-    for (int j = lowpatch; j <= uppatch; j++)
+    for (int j : patches)
       if ((pch = dynamic_cast<ASM3D*>(this->getPatch(j,true))))
       {
         IFEM::cout <<"\tRaising order of P"<< j
@@ -745,6 +727,7 @@ ASMbase* SIM3D::readPatch (std::istream& isp, int pchInd,
     else
       pch->idx = myModel.size();
   }
+
   if (checkRHSys && pch)
     if (dynamic_cast<ASM3D*>(pch)->checkRightHandSystem())
       IFEM::cout <<"\tSwapped."<< std::endl;
@@ -778,7 +761,7 @@ bool SIM3D::readPatches (std::istream& isp, PatchVec& patches,
           if (dynamic_cast<ASM3D*>(pch)->checkRightHandSystem())
             IFEM::cout <<"\tSwapped."<< std::endl;
       }
-  }
+    }
 
   return true;
 }

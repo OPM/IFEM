@@ -71,7 +71,8 @@ bool SIM2D::addConnection (int master, int slave, int mIdx,
                            int sIdx, int orient, int basis,
                            bool coordCheck, int dim)
 {
-  if (orient < 0 || orient > 1) {
+  if (orient < 0 || orient > 1)
+  {
     std::cerr <<" *** SIM2D::addConnection: Invalid orientation "<< orient <<"."
               << std::endl;
     return false;
@@ -79,28 +80,27 @@ bool SIM2D::addConnection (int master, int slave, int mIdx,
 
   int lmaster = this->getLocalPatchIndex(master);
   int lslave = this->getLocalPatchIndex(slave);
-
   if (lmaster > 0 && lslave > 0)
   {
-    if (dim > 0) {
-      IFEM::cout <<"\tConnecting P"<< slave <<" E"<< sIdx
-                 <<" to P"<< master <<" E"<< mIdx
-                 <<" reversed? "<< orient << std::endl;
+    if (dim < 1) return false;
 
-      ASMs2D* spch = static_cast<ASMs2D*>(myModel[lslave-1]);
-      ASMs2D* mpch = static_cast<ASMs2D*>(myModel[lmaster-1]);
+    IFEM::cout <<"\tConnecting P"<< slave <<" E"<< sIdx
+               <<" to P"<< master <<" E"<< mIdx
+               <<" reversed? "<< orient << std::endl;
 
-      std::set<int> bases;
-      if (basis == 0)
-        for (size_t b = 1; b <= spch->getNoBasis(); ++b)
-          bases.insert(b);
-      else
-        bases = utl::getDigits(basis);
+    ASMs2D* spch = static_cast<ASMs2D*>(myModel[lslave-1]);
+    ASMs2D* mpch = static_cast<ASMs2D*>(myModel[lmaster-1]);
 
-      for (const int& b : bases)
-        if (!spch->connectPatch(sIdx,*mpch,mIdx,orient,b,coordCheck))
-          return false;
-    }
+    std::set<int> bases;
+    if (basis == 0)
+      for (size_t b = 1; b <= spch->getNoBasis(); ++b)
+        bases.insert(b);
+    else
+      bases = utl::getDigits(basis);
+
+    for (const int& b : bases)
+      if (!spch->connectPatch(sIdx,*mpch,mIdx,orient,b,coordCheck))
+        return false;
   }
   else
     adm.dd.ghostConnections.insert(DomainDecomposition::Interface{master, slave,
@@ -117,19 +117,9 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
 
   if (!strcasecmp(elem->Value(),"refine") && !isRefined)
   {
-    int lowpatch = 1, uppatch = 1;
-    if (utl::getAttribute(elem,"patch",lowpatch))
-      uppatch = lowpatch;
-    if (utl::getAttribute(elem,"lowerpatch",lowpatch))
-      uppatch = myModel.size();
-    utl::getAttribute(elem,"upperpatch",uppatch);
-
-    if (lowpatch < 1 || uppatch > nGlPatches)
-    {
-      std::cerr <<" *** SIM2D::parse: Invalid patch indices, lower="
-                << lowpatch <<" upper="<< uppatch << std::endl;
+    IntVec patches;
+    if (!this->parseTopologySet(elem,patches))
       return false;
-    }
 
     ASM2D* pch = nullptr;
     RealArray xi;
@@ -138,7 +128,7 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
       int addu = 0, addv = 0;
       utl::getAttribute(elem,"u",addu);
       utl::getAttribute(elem,"v",addv);
-      for (int j = lowpatch; j <= uppatch; j++)
+      for (int j : patches)
         if ((pch = dynamic_cast<ASM2D*>(this->getPatch(j,true))))
         {
           IFEM::cout <<"\tRefining P"<< j
@@ -149,9 +139,10 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
     }
     else
     {
+      // Non-uniform (graded) refinement
       int dir = 1;
       utl::getAttribute(elem,"dir",dir);
-      for (int j = lowpatch; j <= uppatch; j++)
+      for (int j : patches)
         if ((pch = dynamic_cast<ASM2D*>(this->getPatch(j,true))))
         {
           IFEM::cout <<"\tRefining P"<< j <<" dir="<< dir
@@ -166,25 +157,15 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
 
   else if (!strcasecmp(elem->Value(),"raiseorder") && !isRefined)
   {
-    int lowpatch = 1, uppatch = 1;
-    if (utl::getAttribute(elem,"patch",lowpatch))
-      uppatch = lowpatch;
-    if (utl::getAttribute(elem,"lowerpatch",lowpatch))
-      uppatch = myModel.size();
-    utl::getAttribute(elem,"upperpatch",uppatch);
-
-    if (lowpatch < 1 || uppatch > nGlPatches)
-    {
-      std::cerr <<" *** SIM2D::parse: Invalid patch indices, lower="
-                << lowpatch <<" upper="<< uppatch << std::endl;
+    IntVec patches;
+    if (!this->parseTopologySet(elem,patches))
       return false;
-    }
 
     ASM2D* pch = nullptr;
     int addu = 0, addv = 0;
     utl::getAttribute(elem,"u",addu);
     utl::getAttribute(elem,"v",addv);
-    for (int j = lowpatch; j <= uppatch; j++)
+    for (int j : patches)
       if ((pch = dynamic_cast<ASM2D*>(this->getPatch(j,true))))
       {
         IFEM::cout <<"\tRaising order of P"<< j
@@ -614,7 +595,7 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
         IFEM::cout <<"\tConstraining P"<< patch
                    <<" point at "<< rx <<" "<< ry
                    <<" with code "<< bcode << std::endl;
-	pch->constrainNode(rx,ry,bcode);
+        pch->constrainNode(rx,ry,bcode);
       }
     }
   }
@@ -638,7 +619,7 @@ static bool constrError (const char* lab, int idx)
 
 
 bool SIM2D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
-			   int& ngnod, char basis)
+                           int& ngnod, char basis)
 {
   if (patch < 1 || patch > (int)myModel.size())
     return constrError("patch index ",patch);
@@ -653,7 +634,7 @@ bool SIM2D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
   IFEM::cout <<" in direction(s) "<< dirs;
   if (lndx < 0) IFEM::cout << (project ? " (local projected)" : " (local)");
   if (code != 0) IFEM::cout <<" code = "<< abs(code);
-  if (basis > 1) IFEM::cout <<" basis = "<< int(basis);
+  if (basis > 1) IFEM::cout <<" basis = "<< (int)basis;
 #if SP_DEBUG > 1
   std::cout << std::endl;
 #endif
@@ -749,8 +730,8 @@ bool SIM2D::readPatches (std::istream& isp, PatchVec& patches,
     {
       if (!pch->read(isp))
       {
-	delete pch;
-	return false;
+        delete pch;
+        return false;
       }
       else if (pch->empty() || this->getLocalPatchIndex(pchInd) < 1)
         delete pch;
@@ -782,7 +763,7 @@ void SIM2D::readNodes (std::istream& isn)
     if (!this->readNodes(isn,pid-1))
     {
       std::cerr <<" *** SIM2D::readNodes: Failed to assign node numbers"
-		<<" for patch "<< patch+1 << std::endl;
+                <<" for patch "<< patch+1 << std::endl;
       return;
     }
   }
