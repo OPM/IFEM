@@ -1292,7 +1292,7 @@ bool ASMs2D::updateCoords (const Vector& displ)
 }
 
 
-void ASMs2D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis) const
+void ASMs2D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis, bool local) const
 {
   if (basis == 0)
     basis = 1;
@@ -1316,14 +1316,14 @@ void ASMs2D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis) const
       node += n1-1;
     case 1: // Left edge (negative I-direction)
       for (int i2 = 1; i2 <= n2; i2++, node += n1)
-        nodes.push_back(getNodeID(node));
+        nodes.push_back(local ? node : this->getNodeID(node));
       break;
 
     case  4: // Back edge (positive J-direction)
       node += n1*(n2-1);
     case  3: // Front edge (negative J-direction)
       for (int i1 = 1; i1 <= n1; i1++, node++)
-        nodes.push_back(getNodeID(node));
+        nodes.push_back(local ? node : this->getNodeID(node));
       break;
     }
 

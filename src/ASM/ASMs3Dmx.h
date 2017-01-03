@@ -214,11 +214,13 @@ protected:
   //! \param[in] dir Local face index of the boundary face
   double getParametricArea(int iel, int dir) const;
 
-  //! \brief Finds the global numbers of the nodes on a patch boundary.
+  //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
   //! \param[in] lIndex Local index of the boundary edge
-  //! \param glbNodes Array of global boundary node numbers
+  //! \param nodes Array of global boundary node numbers
   //! \param basis Which basis to grab nodes for (0 for all)
-  virtual void getBoundaryNodes(int lIndex, IntVec& glbNodes, int basis = 0) const;
+  //! \param local If \e true, return patch-local node numbers
+  virtual void getBoundaryNodes(int lIndex, IntVec& nodes,
+                                int basis, bool local) const;
 
 private:
   std::vector<std::shared_ptr<Go::SplineVolume>> m_basis; //!< Vector of bases

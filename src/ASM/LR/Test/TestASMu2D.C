@@ -31,16 +31,6 @@ class TestASMu2D : public testing::Test,
 };
 
 
-static void getBoundaryNodes (const char* edgeName, std::vector<int>& nodes)
-{
-  SIM2D sim(1);
-  sim.opt.discretization = ASM::LRSpline;
-  ASSERT_TRUE(sim.read("src/ASM/LR/Test/refdata/boundary_nodes.xinp"));
-  ASSERT_TRUE(sim.createFEMmodel());
-  sim.getBoundaryNodes(sim.getUniquePropertyCode(edgeName,0),nodes);
-}
-
-
 static ASMu2D* getPatch (SIMinput& sim)
 {
   sim.opt.discretization = ASM::LRSpline;
@@ -50,54 +40,14 @@ static ASMu2D* getPatch (SIMinput& sim)
 }
 
 
-TEST(TestASMu2D, BoundaryNodesE1)
-{
-  std::vector<int> vec;
-  getBoundaryNodes("Edge1",vec);
-  ASSERT_EQ(vec.size(), 4U);
-  for (int i = 0; i < 4; ++i)
-    ASSERT_EQ(vec[i], 4*i+1);
-}
-
-
-TEST(TestASMu2D, BoundaryNodesE2)
-{
-  std::vector<int> vec;
-  getBoundaryNodes("Edge2",vec);
-  ASSERT_EQ(vec.size(), 4U);
-  for (int i = 0; i < 4; ++i)
-    ASSERT_EQ(vec[i], 2+4*i);
-}
-
-
-TEST(TestASMu2D, BoundaryNodesE3)
-{
-  std::vector<int> vec;
-  getBoundaryNodes("Edge3",vec);
-  ASSERT_EQ(vec.size(), 4U);
-  for (int i = 0; i < 4; ++i)
-    ASSERT_EQ(vec[i], i+1);
-}
-
-
-TEST(TestASMu2D, BoundaryNodesE4)
-{
-  std::vector<int> vec;
-  getBoundaryNodes("Edge4",vec);
-  ASSERT_EQ(vec.size(), 4U);
-  for (int i = 0; i < 4; ++i)
-    ASSERT_EQ(vec[i], 5+i);
-}
-
-
 TEST_P(TestASMu2D, ConstrainEdge)
 {
   SIM2D sim(1);
-  ASMu2D* pch = getPatch(sim);
+  ASMu2D*pch = getPatch(sim);
   ASSERT_TRUE(pch != nullptr);
   pch->constrainEdge(GetParam().edgeIdx, false, 1, 1, 1);
   std::vector<int> glbNodes;
-  pch->getBoundaryNodes(GetParam().edge, glbNodes, 1);
+  pch->getBoundaryNodes(GetParam().edge, glbNodes, 1, 1);
   for (int& it : glbNodes)
     ASSERT_TRUE(pch->findMPC(it, 1) != nullptr);
 }
@@ -110,7 +60,7 @@ TEST_P(TestASMu2D, ConstrainEdgeOpen)
   ASSERT_TRUE(pch != nullptr);
   pch->constrainEdge(GetParam().edgeIdx, true, 1, 1, 1);
   std::vector<int> glbNodes;
-  pch->getBoundaryNodes(GetParam().edge, glbNodes, 1);
+  pch->getBoundaryNodes(GetParam().edge, glbNodes, 1, 1);
   int crn = pch->getCorner(GetParam().c1[0], GetParam().c1[1], 1);
   ASSERT_TRUE(pch->findMPC(crn, 1) == nullptr);
   glbNodes.erase(std::find(glbNodes.begin(), glbNodes.end(), crn));

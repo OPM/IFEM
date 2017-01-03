@@ -1812,7 +1812,8 @@ bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 }
 
 
-void ASMu2D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis) const
+void ASMu2D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
+                               bool local) const
 {
   if (basis == 0)
     basis = 1;

@@ -195,11 +195,13 @@ public:
   //! \param[in] displ Incremental displacements to update the coordinates with
   virtual bool updateCoords(const Vector& displ);
 
-  //! \brief Finds the global numbers of the nodes on a patch boundary.
+  //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
   //! \param[in] lIndex Local index of the boundary face
-  //! \param glbNodes Array of global boundary node numbers
+  //! \param nodes Array of node numbers
   //! \param basis Which basis to grab nodes for (0 for all)
-  virtual void getBoundaryNodes(int lIndex, IntVec& glbNodes, int basis) const;
+  //! \param local If \e true, return patch-local node numbers
+  virtual void getBoundaryNodes(int lIndex, IntVec& glbNodes, int basis,
+                                bool local) const;
 
   //! \brief Returns the node index for a given corner.
   virtual int getCorner(int I, int J, int K, int basis = 1) const;
