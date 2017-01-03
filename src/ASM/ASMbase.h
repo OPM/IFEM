@@ -206,12 +206,12 @@ public:
   //! in one element
   virtual bool getElementCoordinates(Matrix& X, int iel) const = 0;
 
-  //! \brief Finds the global numbers of the nodes on a patch boundary.
+  //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
   //! \param[in] lIndex Local index of the boundary face/edge
-  //! \param glbNodes Array of global boundary node numbers
+  //! \param nodes Array of node numbers
   //! \param basis Which basis to grab nodes for (0 for all)
-  virtual void getBoundaryNodes(int lIndex, IntVec& glbNodes,
-                                int basis = 0) const = 0;
+  virtual void getBoundaryNodes(int lIndex, IntVec& nodes,
+                                int basis = 0, bool local = false) const = 0;
 
   //! \brief Finds the node that is closest to the given point.
   virtual std::pair<size_t,double> findClosestNode(const Vec3&) const

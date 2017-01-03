@@ -105,10 +105,12 @@ public:
   //! \brief Updates the previous nodal rotations for this patch at convergence.
   void updateRotations() { prevT = myT; }
 
-  //! \brief Finds the global number of the node on a patch end.
+  //! \brief Finds the global (or patch-local) node number on a patch end.
   //! \param[in] lIndex Local index of the end point
-  //! \param glbNodes Array of global boundary node numbers
-  virtual void getBoundaryNodes(int lIndex, IntVec& glbNodes, int) const;
+  //! \param nodes Array of global boundary node numbers
+  //! \param local If \e true, return patch-local node numbers
+  virtual void getBoundaryNodes(int lIndex, IntVec& nodes,
+                                int, bool local) const;
 
   //! \brief Finds the node that is closest to the given point.
   //! \param[in] X Global coordinates of point to search for

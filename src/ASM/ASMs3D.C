@@ -1542,7 +1542,8 @@ bool ASMs3D::updateCoords (const Vector& displ)
 }
 
 
-void ASMs3D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis) const
+void ASMs3D::getBoundaryNodes (int lIndex, IntVec& nodes,
+                               int basis, bool local) const
 {
   if (basis == 0)
     basis = 1;
@@ -1562,7 +1563,7 @@ void ASMs3D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis) const
     case 1: // Left face (negative I-direction)
       for (int i3 = 1; i3 <= n3; i3++)
 	for (int i2 = 1; i2 <= n2; i2++, node += n1)
-          nodes.push_back(getNodeID(node));
+          nodes.push_back(local ? node : this->getNodeID(node));
       break;
 
     case 4: // Back face (positive J-direction)
@@ -1570,7 +1571,7 @@ void ASMs3D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis) const
     case 3: // Front face (negative J-direction)
       for (int i3 = 1; i3 <= n3; i3++, node += n1*(n2-1))
 	for (int i1 = 1; i1 <= n1; i1++, node++)
-          nodes.push_back(getNodeID(node));
+          nodes.push_back(local ? node : this->getNodeID(node));
       break;
 
     case 6: // Top face (positive K-direction)
@@ -1578,7 +1579,7 @@ void ASMs3D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis) const
     case 5: // Bottom face (negative K-direction)
       for (int i2 = 1; i2 <= n2; i2++)
 	for (int i1 = 1; i1 <= n1; i1++, node++)
-          nodes.push_back(getNodeID(node));
+          nodes.push_back(local ? node : this->getNodeID(node));
       break;
   }
 

@@ -1109,11 +1109,12 @@ double ASMs3Dmx::getParametricArea (int iel, int dir) const
 }
 
 
-void ASMs3Dmx::getBoundaryNodes (int lIndex, IntVec& nodes, int basis) const
+void ASMs3Dmx::getBoundaryNodes (int lIndex, IntVec& nodes,
+                                 int basis, bool local) const
 {
   if (basis > 0)
-    this->ASMs3D::getBoundaryNodes(lIndex, nodes, basis);
+    this->ASMs3D::getBoundaryNodes(lIndex, nodes, basis, local);
   else
     for (size_t b = 1; b <= this->getNoBasis(); ++b)
-      this->ASMs3D::getBoundaryNodes(lIndex, nodes, b);
+      this->ASMs3D::getBoundaryNodes(lIndex, nodes, b, local);
 }
