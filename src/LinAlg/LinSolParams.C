@@ -146,6 +146,9 @@ bool LinSolParams::BlockParams::read(const TiXmlElement* elem, const std::string
   if (!hasValue("multigrid_finesmoother") && hasValue("multigrid_smoother"))
     addValue("multigrid_finesmoother", getStringValue("multigrid_smoother"));
 
+  if (!hasValue("multigrid_no_smooth") || getIntValue("multgrid_no_smooth") < 1)
+    addValue("multigrid_no_smooth", "1");
+
   return true;
 }
 
