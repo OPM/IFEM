@@ -500,8 +500,8 @@ bool PETScMatrix::solve (const SystemVector& b, SystemVector& x, bool newLHS)
 bool PETScMatrix::solve (const Vec& b, Vec& x, bool newLHS, bool knoll)
 {
   // Reset linear solver
-  if (nLinSolves && solParams.getIntValue("gmres_restart_iterations"))
-    if (nLinSolves%solParams.getIntValue("gmres_restart_iterations") == 0) {
+  if (nLinSolves && solParams.getIntValue("reset_solves"))
+    if (nLinSolves%solParams.getIntValue("reset_solves") == 0) {
       KSPDestroy(&ksp);
       KSPCreate(*adm.getCommunicator(),&ksp);
       setParams = true;
