@@ -534,7 +534,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
         // --- Integration loop over all Gauss points in each direction --------
 
         int ip = (((i3-p3)*nGauss*nel2 + i2-p2)*nGauss*nel1 + i1-p1)*nGauss;
-        int jp = (((i3-p3)*nel2 + i2-p2*nel1 + i1-p1))*nGauss*nGauss*nGauss;
+        int jp = (((i3-p3)*nel2 + i2-p2)*nel1 + i1-p1)*nGauss*nGauss*nGauss;
         fe.iGP = firstIp + jp; // Global integration point counter
 
         for (int k = 0; k < nGauss; k++, ip += nGauss*(nel2-1)*nGauss*nel1)
