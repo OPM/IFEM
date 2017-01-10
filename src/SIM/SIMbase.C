@@ -893,7 +893,7 @@ bool SIMbase::applyDirichlet (Vector& glbVec) const
 }
 
 
-bool SIMbase::solveSystem (Vector& solution, int printSol,
+bool SIMbase::solveSystem (Vector& solution, int printSol, double* rCond,
                            const char* compName, bool newLHS, size_t idxRHS)
 {
   SystemMatrix* A = myEqSys->getMatrix();
@@ -928,26 +928,27 @@ bool SIMbase::solveSystem (Vector& solution, int printSol,
     }
 
   // Solve the linear system of equations
-  bool status = true;
-  double rCond = 0.0;
+  if (msgLevel > 1)
+    IFEM::cout <<"\nSolving the equation system ..."<< std::endl;
+
+  double rcn = 0.0;
+  double* rp = msgLevel > 1 ? &rcn : rCond;
+
+  utl::profiler->start("Equation solving");
+  bool status = A->solve(*b,newLHS,rp);
+  utl::profiler->stop("Equation solving");
+
   if (msgLevel > 1)
   {
-    IFEM::cout <<"\nSolving the equation system ..."<< std::endl;
-    PROFILE1("Equation solving");
-    status = A->solve(*b,newLHS,&rCond);
+    if (rcn > 0.0)
+      IFEM::cout <<"\tCondition number: "<< 1.0/rcn << std::endl;
+    if (rCond) *rCond = rcn;
   }
-  else
-  {
-    PROFILE1("Equation solving");
-    status = A->solve(*b,newLHS);
-  }
-  if (rCond > 0.0)
-    IFEM::cout <<"\tCondition number: "<< 1.0/rCond << std::endl;
 
   // Dump solution vector to file, if requested
   for (it = solDump.begin(); it != solDump.end() && status; ++it)
     if (it->doDump()) {
-      IFEM::cout <<"\nDumping solution vector to file "<< it->fname << std::endl;
+      IFEM::cout <<"Dumping solution vector to file "<< it->fname << std::endl;
       std::ofstream os(it->fname.c_str());
       os << std::setprecision(17);
       b->dump(os,it->format,"b");
@@ -969,7 +970,7 @@ bool SIMbase::solveMatrixSystem (Vectors& solution, int printSol,
 {
   solution.resize(myEqSys->getNoRHS());
   for (size_t i = 0; i < solution.size(); i++)
-    if (!this->solveSystem(solution[i],printSol,compName,i==0,i))
+    if (!this->solveSystem(solution[i],printSol,nullptr,compName,i==0,i))
       return false;
     else
       printSol = 0; // Print summary only for the first solution

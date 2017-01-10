@@ -148,6 +148,8 @@ bool NonLinSIM::parse (const TiXmlElement* elem)
     }
     else if (!strcasecmp(child->Value(),"fromZero"))
       fromIni = true;
+    else if (!strcasecmp(child->Value(),"printCond"))
+      rCond = 0.0; // Compute and report condition number in the iteration log
 
   return true;
 }
@@ -233,7 +235,8 @@ ConvStatus NonLinSIM::solveStep (TimeStep& param, SolutionMode mode,
     if (!model.extractLoadVec(residual))
       return FAILURE;
 
-  if (!model.solveSystem(linsol,msgLevel-1))
+  double* rCondPtr = rCond < 0.0 ? nullptr : &rCond;
+  if (!model.solveSystem(linsol,msgLevel-1,rCondPtr))
     return FAILURE;
 
   while (param.iter <= maxit)
@@ -278,7 +281,7 @@ ConvStatus NonLinSIM::solveStep (TimeStep& param, SolutionMode mode,
 	if (!model.extractLoadVec(residual))
 	  return FAILURE;
 
-	if (!model.solveSystem(linsol,msgLevel-1))
+	if (!model.solveSystem(linsol,msgLevel-1,rCondPtr))
 	  return FAILURE;
 
 	if (!this->lineSearch(param))
@@ -302,7 +305,8 @@ SIM::ConvStatus NonLinSIM::solveIteration (TimeStep& param)
   if (!model.extractLoadVec(residual))
     return SIM::FAILURE;
 
-  if (!model.solveSystem(linsol,msgLevel-1))
+  double* rCondPtr = rCond < 0.0 ? nullptr : &rCond;
+  if (!model.solveSystem(linsol,msgLevel-1,rCondPtr))
     return SIM::FAILURE;
 
   if (!this->lineSearch(param))
@@ -446,6 +450,8 @@ ConvStatus NonLinSIM::checkConvergence (TimeStep& param)
          <<"  enen="<< enorm
          <<"  resn="<< resNorm
          <<"  incn="<< linsolNorm;
+    if (rCond > 0.0)
+      cout <<"  cond="<< 1.0/rCond;
     if (alphaO != 1.0)
       cout <<"  alpha="<< alphaO;
     cout << std::endl;

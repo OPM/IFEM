@@ -171,6 +171,7 @@ protected:
 
   NormOp refNopt; //!< Reference norm option
   double refNorm; //!< Reference norm value used in convergence checks
+  double rCond;   //!< Reciprocal condition number of the linear equation system
   SubIt  subiter; //!< Subiteration flag
   size_t nRHSvec; //!< Number of right-hand-side vectors to assemble
   char   rotUpd;  //!< Option for how to update of nodal rotations

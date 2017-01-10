@@ -28,6 +28,7 @@ MultiStepSIM::MultiStepSIM (SIMbase& sim)
 
   refNopt = MAX;
   refNorm = 0.0;
+  rCond   = -1.0;
   subiter = NONE;
   nRHSvec = 1;
   rotUpd  = false;
