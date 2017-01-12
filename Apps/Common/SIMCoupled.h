@@ -16,7 +16,6 @@
 
 #include "Function.h"
 #include "Property.h"
-#include "SIMenums.h"
 
 class SIMdependency;
 class ASMbase;
@@ -154,21 +153,6 @@ public:
       result = S2.getField(name);
 
     return result;
-  }
-
-  //! \brief Override this method to add additional convergence criteria.
-  virtual SIM::ConvStatus checkConvergence(const TimeStep&,
-                                           SIM::ConvStatus status1,
-                                           SIM::ConvStatus status2)
-  {
-    if (status1 == status2)
-      return status1;
-    else if (status1 == SIM::FAILURE || status2 == SIM::FAILURE)
-      return SIM::FAILURE;
-    else if (status1 == SIM::DIVERGED || status2 == SIM::DIVERGED)
-      return SIM::DIVERGED;
-    else
-      return SIM::OK;
   }
 
 protected:

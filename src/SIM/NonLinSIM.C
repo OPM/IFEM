@@ -263,9 +263,8 @@ ConvStatus NonLinSIM::solveStep (TimeStep& param, SolutionMode mode,
 	if (!this->updateConfiguration(param))
 	  return FAILURE;
 
-	if (subiter&FIRST && param.iter == 1)
-	  if (!model.updateDirichlet())
-	    return FAILURE;
+	if (subiter&FIRST && param.iter == 1 && !model.updateDirichlet())
+	  return FAILURE;
 
 	if (param.iter > nupdat)
 	{
@@ -296,6 +295,11 @@ ConvStatus NonLinSIM::solveStep (TimeStep& param, SolutionMode mode,
 
 SIM::ConvStatus NonLinSIM::solveIteration (TimeStep& param)
 {
+  if (param.iter == 0 && !model.updateDirichlet(param.time.t,&solution.front()))
+    return FAILURE;
+  else if (param.iter == 1 && !model.updateDirichlet())
+    return FAILURE;
+
   if (!model.setMode(SIM::STATIC))
     return SIM::FAILURE;
 

@@ -15,6 +15,7 @@
 #define SIM_COUPLED_SI_H_
 
 #include "SIMCoupled.h"
+#include "SIMenums.h"
 
 
 /*!
@@ -25,23 +26,22 @@ template<class T1, class T2>
 class SIMCoupledSI : public SIMCoupled<T1, T2>
 {
 public:
-  //! \brief The constructor initializes the references to the two solvers.
-  SIMCoupledSI(T1& t1_, T2& t2_) : SIMCoupled<T1,T2>(t1_,t2_) {}
+  //! \brief The constructor forwards to the parent class constructor.
+  SIMCoupledSI(T1& s1, T2& s2) : SIMCoupled<T1,T2>(s1,s2), maxIter(0) {}
   //! \brief Empty destructor.
   virtual ~SIMCoupledSI() {}
 
   //! \brief Computes the solution for the current time step.
   virtual bool solveStep(TimeStep& tp)
   {
-    int maxit = std::min(this->S1.getMaxit(),this->S2.getMaxit());
+    if (maxIter <= 0)
+      maxIter = std::min(this->S1.getMaxit(),this->S2.getMaxit());
 
-    this->S1.updateDirichlet(tp.time.t,&this->S1.getSolution(0));
-    this->S2.updateDirichlet(tp.time.t,&this->S2.getSolution(0));
     this->S1.getProcessAdm().cout <<"\n  step="<< tp.step
                                   <<"  time="<< tp.time.t << std::endl;
 
-    SIM::ConvStatus status1 = SIM::OK, status2 = SIM::OK;
-    for (tp.iter = 0; tp.iter < maxit; tp.iter++)
+    SIM::ConvStatus status1, status2, conv = SIM::OK;
+    for (tp.iter = 0; tp.iter <= maxIter && conv != SIM::CONVERGED; tp.iter++)
     {
       if ((status1 = this->S1.solveIteration(tp)) <= SIM::DIVERGED)
         return false;
@@ -49,14 +49,8 @@ public:
       if ((status2 = this->S2.solveIteration(tp)) <= SIM::DIVERGED)
         return false;
 
-      SIM::ConvStatus cstatus = this->checkConvergence(tp,status1,status2);
-      if (cstatus <= SIM::DIVERGED)
+      if ((conv = this->checkConvergence(tp,status1,status2)) <= SIM::DIVERGED)
         return false;
-      else if (cstatus == SIM::CONVERGED)
-        break; // Exit iteration loop when the coupled solver has converged
-
-      this->S1.updateDirichlet();
-      this->S2.updateDirichlet();
     }
 
     tp.time.first = false;
@@ -65,6 +59,26 @@ public:
 
     return true;
   }
+
+  //! \brief Override this method to add additional convergence criteria.
+  virtual SIM::ConvStatus checkConvergence(const TimeStep&,
+                                           SIM::ConvStatus status1,
+                                           SIM::ConvStatus status2)
+  {
+    if (status1 == status2)
+      return status1;
+
+    if (status1 == SIM::FAILURE || status2 == SIM::FAILURE)
+      return SIM::FAILURE;
+
+    if (status1 == SIM::DIVERGED || status2 == SIM::DIVERGED)
+      return SIM::DIVERGED;
+
+    return SIM::OK;
+  }
+
+protected:
+  int maxIter; // Maximum number of iterations
 };
 
 #endif

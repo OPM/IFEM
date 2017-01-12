@@ -394,11 +394,16 @@ SIM::ConvStatus NewmarkSIM::solveStep (TimeStep& param, SIM::SolutionMode,
 
 SIM::ConvStatus NewmarkSIM::solveIteration (TimeStep& param)
 {
-  bool ok = false;
+  bool ok = true;
+  if (param.iter == 0)
+    ok = model.updateDirichlet(param.time.t,&solution.front());
+  else if (param.iter == 1)
+    ok = model.updateDirichlet();
+
   if (param.iter > 0)
-    ok = this->correctStep(param);
+    ok &= this->correctStep(param);
   else
-    ok = this->predictStep(param);
+    ok &= this->predictStep(param);
   if (!ok)
     return SIM::FAILURE;
 
