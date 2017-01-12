@@ -96,6 +96,7 @@ public:
   //! \param[in] norient Relative face orientation flag (see class ASMs3D)
   //! \param[in] basis Which basis to connect, or 0 for all.
   //! \param[in] coordCheck False to disable coordinate checks (periodic connections)
+  //! \param[in] thick Thickness of connection
   virtual bool connectPatch(int face, ASMs3D& neighbor, int nface, int norient,
                             int basis = 0, bool coordCheck = true, int thick = 1);
 
