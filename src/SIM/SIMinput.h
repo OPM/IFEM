@@ -184,6 +184,7 @@ public:
   //! \param[in] basis Which bases to connect (0 for all)
   //! \param[in] coordCheck If \e false, do not check for matching coordinates
   //! \param[in] dim Dimensionality of connection
+  //! \param[in] thick Thickness of connection
   virtual bool addConnection(int master, int slave, int mIdx, int sIdx,
                              int orient, int basis = 0, bool coordCheck = true,
                              int dim = 1, int thick = 1) { return false; }
