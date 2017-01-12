@@ -43,7 +43,7 @@ static ASMu2D* getPatch (SIMinput& sim)
 TEST_P(TestASMu2D, ConstrainEdge)
 {
   SIM2D sim(1);
-  ASMu2D*pch = getPatch(sim);
+  ASMu2D* pch = getPatch(sim);
   ASSERT_TRUE(pch != nullptr);
   pch->constrainEdge(GetParam().edgeIdx, false, 1, 1, 1);
   std::vector<int> glbNodes;
