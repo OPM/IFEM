@@ -219,7 +219,7 @@ ConvStatus NonLinSIM::solveStep (TimeStep& param, SolutionMode mode,
   if (fromIni) // Always solve from initial configuration
     solution.front().fill(0.0);
 
-  if (!model.updateDirichlet(param.time.t,&solution.front()))
+  if (subiter&FIRST && !model.updateDirichlet(param.time.t,&solution.front()))
     return FAILURE;
 
   if (!model.setMode(mode))
@@ -263,7 +263,7 @@ ConvStatus NonLinSIM::solveStep (TimeStep& param, SolutionMode mode,
 	if (!this->updateConfiguration(param))
 	  return FAILURE;
 
-	if (param.iter == 1)
+	if (subiter&FIRST && param.iter == 1)
 	  if (!model.updateDirichlet())
 	    return FAILURE;
 
@@ -412,12 +412,13 @@ ConvStatus NonLinSIM::checkConvergence (TimeStep& param)
   double norm = iteNorm == ENERGY ? enorm : resNorm;
   if (iteNorm == L2SOL) norm = linsolNorm;
 
+  bool checkAllIt = (subiter & FIRST) && (refNopt == ALL);
   if (param.iter == 0)
   {
     if (linsolNorm == 0.0)
       return CONVERGED; // No load on this step
 
-    if (refNopt == ALL || fabs(norm) > refNorm)
+    if (checkAllIt || fabs(norm) > refNorm)
       refNorm = fabs(norm);
 
     if (refNorm*rTol > aTol) {
@@ -492,7 +493,7 @@ ConvStatus NonLinSIM::checkConvergence (TimeStep& param)
   }
 
   // Check for convergence or divergence
-  if (fabs(norm) < convTol && (param.iter > 0 || refNopt == ALL))
+  if (fabs(norm) < convTol && (param.iter > 0 || checkAllIt))
     status = CONVERGED;
   else if (std::isnan(linsolNorm))
     status = DIVERGED;
