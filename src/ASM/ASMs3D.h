@@ -201,7 +201,7 @@ public:
   //! \param basis Which basis to grab nodes for (0 for all)
   //! \param thick Thickness of connection
   //! \param local If true return patch-local node numbers
-  virtual void getBoundaryNodes(int lIndex, IntVec& glbNodes,
+  virtual void getBoundaryNodes(int lIndex, IntVec& nodes,
                                 int basis, int thick = 1,
                                 bool local = false) const;
 
