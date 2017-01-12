@@ -687,6 +687,13 @@ private:
   //! \return 1-based index of start node for basis
   int findStartNode(int& n1, int& n2, int& n3, char basis) const;
 
+  //! \brief Find local sizes for a given face.
+  //! \param[out] n1 Number of nodes in first local parameter direction on face
+  //! \param[out] n2 Number of nodes in second local parameter direction face
+  //! \param[in] basis Basis to obtain sizes for
+  //! \param[in] face Face to obtain sizes for
+  bool getFaceSize(int& n1, int& n2, int basis, int face) const;
+
 protected:
   Go::SplineVolume* svol;  //!< Pointer to the actual spline volume object
   bool              swapW; //!< Has the w-parameter direction been swapped?

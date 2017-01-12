@@ -658,22 +658,11 @@ bool ASMs3D::connectBasis (int face, ASMs3D& neighbor, int nface, int norient,
     return false;
   }
 
-  // lambda function to set correct dimension of face
-  auto&& correctSizes = [](int& n1, int& n2, int& n3, int face)
-                  {
-                    if (face == 1 || face == 2)
-                      n1 = n2, n2 = n3;
-                    else if (face == 3 || face == 4)
-                      n2 = n3;
-                  };
+  int m1, m2;
+  if (!this->getFaceSize(m1,m2,basis,face)) return false;
 
-  int m1, m2, m3;
-  if (!this->getSize(m1,m2,m3,basis)) return false;
-  correctSizes(m1,m2,m3,face);
-
-  int n1, n2, n3;
-  if (!neighbor.getSize(n1,n2,n3,basis)) return false;
-  correctSizes(n1,n2,n3,nface);
+  int n1, n2;
+  if (!neighbor.getFaceSize(n1,n2,basis,face)) return false;
 
   // Set up the slave node numbers for this volume patch
   IntVec slaveNodes;
@@ -3206,4 +3195,19 @@ int ASMs3D::getCorner (int I, int J, int K, int basis) const
   if (K > 0) node += n1*n2*(n3-1);
 
   return node;
+}
+
+
+bool ASMs3D::getFaceSize(int& n1, int& n2, int basis, int face) const
+{
+  int n3;
+  if (!this->getSize(n1,n2,n3,basis))
+    return false;
+
+  if (face == 1 || face == 2)
+    n1 = n2, n2 = n3;
+  else if (face == 3 || face == 4)
+    n2 = n3;
+
+  return true;
 }
