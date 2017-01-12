@@ -635,7 +635,7 @@ bool ASMs2D::connectBasis (int edge, ASMs2D& neighbor, int nedge, bool revers,
   if (masterNodes.size() != slaveNodes.size())
   {
     std::cerr <<" *** ASMs2D::connectBasis: Non-matching edges, sizes "
-	      << masterNodes.size() <<" and "<< slaveNodes.size() << std::endl;
+              << masterNodes.size() <<" and "<< slaveNodes.size() << std::endl;
     return false;
   }
 

@@ -322,7 +322,7 @@ bool ASMs1D::connectPatch (int vertex, ASMs1D& neighbor, int nvertex, int thick)
 
 
 bool ASMs1D::connectBasis (int vertex, ASMs1D& neighbor, int nvertex,
-			   int basis, int slave, int master, int thick)
+                           int basis, int slave, int master, int thick)
 {
   if (shareFE && neighbor.shareFE)
     return true;
@@ -348,9 +348,9 @@ bool ASMs1D::connectBasis (int vertex, ASMs1D& neighbor, int nvertex,
     if (!neighbor.getCoord(master).equal(this->getCoord(slave),xtol))
     {
       std::cerr <<" *** ASMs1D::connectBasis: Non-matching nodes "
-	        << master <<": "<< neighbor.getCoord(master)
-	        <<"\n                                          and "
-	        << slave <<": "<< this->getCoord(slave) << std::endl;
+                << master <<": "<< neighbor.getCoord(master)
+                <<"\n                                          and "
+                << slave <<": "<< this->getCoord(slave) << std::endl;
       return false;
     }
     else

@@ -301,7 +301,7 @@ protected:
   //! \param[in] master 0-based index of the first master node in this basis
   //! \param[in] thick Thickness of connection
   bool connectBasis(int vertex, ASMs1D& neighbor, int nvertex,
-		    int basis = 1, int slave = 0, int master = 0, int thick = 1);
+                    int basis = 1, int slave = 0, int master = 0, int thick = 1);
 
   //! \brief Extracts parameter values of the Gauss points.
   //! \param[out] uGP Parameter values for all points

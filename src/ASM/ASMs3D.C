@@ -654,7 +654,7 @@ bool ASMs3D::connectBasis (int face, ASMs3D& neighbor, int nface, int norient,
     return false;
   } else if (norient < 0 || norient > 7) {
     std::cerr <<" *** ASMs3D::connectPatch: Orientation flag "
-	      << norient <<" is out of range [0,7]"<< std::endl;
+              << norient <<" is out of range [0,7]"<< std::endl;
     return false;
   }
 
