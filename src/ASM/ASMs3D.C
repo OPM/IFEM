@@ -662,7 +662,7 @@ bool ASMs3D::connectBasis (int face, ASMs3D& neighbor, int nface, int norient,
   if (!this->getFaceSize(m1,m2,basis,face)) return false;
 
   int n1, n2;
-  if (!neighbor.getFaceSize(n1,n2,basis,face)) return false;
+  if (!neighbor.getFaceSize(n1,n2,basis,nface)) return false;
 
   // Set up the slave node numbers for this volume patch
   IntVec slaveNodes;
