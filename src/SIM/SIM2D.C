@@ -69,7 +69,7 @@ SIM2D::SIM2D (IntegrandBase* itg, unsigned char n, bool check) : SIMgeneric(itg)
 
 bool SIM2D::addConnection (int master, int slave, int mIdx,
                            int sIdx, int orient, int basis,
-                           bool coordCheck, int dim)
+                           bool coordCheck, int dim, int thick)
 {
   if (orient < 0 || orient > 1)
   {
@@ -99,13 +99,13 @@ bool SIM2D::addConnection (int master, int slave, int mIdx,
       bases = utl::getDigits(basis);
 
     for (const int& b : bases)
-      if (!spch->connectPatch(sIdx,*mpch,mIdx,orient,b,coordCheck))
+      if (!spch->connectPatch(sIdx,*mpch,mIdx,orient,b,coordCheck,thick))
         return false;
   }
   else
     adm.dd.ghostConnections.insert(DomainDecomposition::Interface{master, slave,
-                                                                  mIdx, sIdx,
-                                                                  orient, dim, basis});
+                                                                  mIdx, sIdx, orient,
+                                                                  dim, basis, thick});
 
   return true;
 }

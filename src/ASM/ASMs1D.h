@@ -105,10 +105,13 @@ public:
   //! \brief Updates the previous nodal rotations for this patch at convergence.
   void updateRotations() { prevT = myT; }
 
-  //! \brief Finds the global number of the node on a patch end.
+  //! \brief Finds the global (or patch-local) node number on a patch end.
   //! \param[in] lIndex Local index of the end point
-  //! \param glbNodes Array of global boundary node numbers
-  virtual void getBoundaryNodes(int lIndex, IntVec& glbNodes, int) const;
+  //! \param nodes Array of global boundary node numbers
+  //! \param thick Thickness of connection
+  //! \param local If \e true, return patch-local node numbers
+  virtual void getBoundaryNodes(int lIndex, IntVec& nodes,
+                                int, int thick, bool local) const;
 
   //! \brief Finds the node that is closest to the given point.
   //! \param[in] X Global coordinates of point to search for
@@ -147,7 +150,9 @@ public:
   //! \param[in] vertex Local vertex index of this patch, in range [1,2]
   //! \param neighbor The neighbor patch
   //! \param[in] nvertex Local vertex index of neighbor patch, in range [1,2]
-  virtual bool connectPatch(int vertex, ASMs1D& neighbor, int nvertex);
+  //! \param[in] thick Thickness of connection
+  virtual bool connectPatch(int vertex, ASMs1D& neighbor, int nvertex,
+                            int thick = 1);
 
   //! \brief Makes the two end vertices of the curve periodic.
   //! \param[in] basis Which basis to connect (mixed methods), 0 means both
@@ -294,8 +299,9 @@ protected:
   //! \param[in] basis Which basis to connect the nodes for (mixed methods)
   //! \param[in] slave 0-based index of the first slave node in this basis
   //! \param[in] master 0-based index of the first master node in this basis
+  //! \param[in] thick Thickness of connection
   bool connectBasis(int vertex, ASMs1D& neighbor, int nvertex,
-		    int basis = 1, int slave = 0, int master = 0);
+                    int basis = 1, int slave = 0, int master = 0, int thick = 1);
 
   //! \brief Extracts parameter values of the Gauss points.
   //! \param[out] uGP Parameter values for all points

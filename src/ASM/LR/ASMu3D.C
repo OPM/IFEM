@@ -1966,7 +1966,7 @@ std::vector<int> ASMu3D::getFaceNodes (int face, int basis) const
 }
 
 
-void ASMu3D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis) const
+void ASMu3D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis, int, bool) const
 {
   if (basis == 0)
     basis = 1;
