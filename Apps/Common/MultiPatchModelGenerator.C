@@ -170,6 +170,9 @@ MultiPatchModelGenerator1D::MultiPatchModelGenerator1D (const TiXmlElement* geo)
 
 bool MultiPatchModelGenerator1D::createTopology (SIMinput& sim) const
 {
+  if (!sim.createFEMmodel())
+    return false;
+
   int p1,p2,p3;
   if (subdivision)
     sim.getPatch(1)->getOrder(p1,p2,p3);

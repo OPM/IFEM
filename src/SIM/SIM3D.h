@@ -68,14 +68,14 @@ public:
   //! \brief Connects two patches.
   //! \param[in] master Master patch
   //! \param[in] slave Slave patch
-  //! \param[in] mFace Face index on master patch
-  //! \param[in] sFace Face index on slave patch
+  //! \param[in] mIdx Face index on master patch
+  //! \param[in] sIdx Face index on slave patch
   //! \param[in] orient Orientation flag for connection
   //! \param[in] basis Which bases to connect (0 for all)
   //! \param[in] coordCheck If \e false, do not check for matching coordinates
   //! \param[in] dim Dimensionality of connection
-  //! \param thick Thickness of connection
-  virtual bool addConnection(int master, int slave, int mFace, int sFace,
+  //! \param[in] thick Thickness of connection
+  virtual bool addConnection(int master, int slave, int mIdx, int sIdx,
                              int orient, int basis = 0, bool coordCheck = true,
                              int dim = 2, int thick = 1);
 
