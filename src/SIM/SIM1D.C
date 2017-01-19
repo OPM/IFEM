@@ -63,7 +63,8 @@ bool SIM1D::addConnection (int master, int slave, int mIdx, int sIdx,
     if (dim != 0) return false;
 
     IFEM::cout <<"\tConnecting P"<< slave <<" V"<< sIdx
-               <<" to P"<< master <<" V"<< mIdx << std::endl;
+               <<" to P"<< master <<" V"<< mIdx
+               <<" basis="<< basis <<" thick="<< thick << std::endl;
 
     ASMs1D* spch = static_cast<ASMs1D*>(myModel[lslave-1]);
     ASMs1D* mpch = static_cast<ASMs1D*>(myModel[lmaster-1]);

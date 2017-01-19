@@ -103,10 +103,12 @@ MultiPatchModelGenerator1D::createGeometry (const SIMinput& sim) const
       if (strcasecmp(sub->Value(),"raiseorder") == 0) {
         int nu;
         utl::getAttribute(sub,"u",nu);
+        IFEM::cout <<"\tRaising order of P1 " << nu << std::endl;
         pch.raiseOrder(nu);
       } else if (strcasecmp(sub->Value(),"refine") == 0) {
         int nu;
         utl::getAttribute(sub,"u",nu);
+        IFEM::cout <<"\tRefining P1 " << nu << std::endl;
         pch.uniformRefine(nu);
       }
 
@@ -341,11 +343,13 @@ MultiPatchModelGenerator2D::createGeometry (const SIMinput& sim) const
         int nu, nv;
         utl::getAttribute(sub,"u",nu);
         utl::getAttribute(sub,"v",nv);
+        IFEM::cout <<"\tRaising order of P1 " << nu <<" "<< nv << std::endl;
         pch.raiseOrder(nu,nv);
       } else if (strcasecmp(sub->Value(),"refine") == 0) {
         int nu, nv;
         utl::getAttribute(sub,"u",nu);
         utl::getAttribute(sub,"v",nv);
+        IFEM::cout <<"\tRefining P1 " << nu <<" "<< nv << std::endl;
         pch.uniformRefine(0,nu);
         pch.uniformRefine(1,nv);
       }
@@ -664,12 +668,14 @@ MultiPatchModelGenerator3D::createGeometry (const SIMinput& sim) const
         utl::getAttribute(sub,"u",nu);
         utl::getAttribute(sub,"v",nv);
         utl::getAttribute(sub,"w",nw);
+        IFEM::cout <<"\tRaising order of P1 " << nu <<" "<< nv <<" "<< nw << std::endl;
         pch.raiseOrder(nu,nv,nw);
       } else if (strcasecmp(sub->Value(),"refine") == 0) {
         int nu, nv, nw;
         utl::getAttribute(sub,"u",nu);
         utl::getAttribute(sub,"v",nv);
         utl::getAttribute(sub,"w",nw);
+        IFEM::cout <<"\tRefining P1 " << nu <<" "<< nv <<" "<< nw << std::endl;
         pch.uniformRefine(0,nu);
         pch.uniformRefine(1,nv);
         pch.uniformRefine(2,nw);

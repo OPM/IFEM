@@ -86,7 +86,8 @@ bool SIM2D::addConnection (int master, int slave, int mIdx,
 
     IFEM::cout <<"\tConnecting P"<< slave <<" E"<< sIdx
                <<" to P"<< master <<" E"<< mIdx
-               <<" reversed? "<< orient << std::endl;
+               <<" orient="<< orient <<" basis="<< basis
+               <<" thick="<< thick << std::endl;
 
     ASMs2D* spch = static_cast<ASMs2D*>(myModel[lslave-1]);
     ASMs2D* mpch = static_cast<ASMs2D*>(myModel[lmaster-1]);
