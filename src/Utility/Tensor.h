@@ -65,6 +65,12 @@ public:
   //! \brief Sets \a this to the 0-tensor.
   void zero() { std::fill(v.begin(),v.end(),Real(0)); }
 
+  //! \brief Sets \a this to a diagonal tensor with identical entries on the diagonal.
+  void diag(double value=1.0);
+
+  //! \brief Sets \a this to a diagonal tensor.
+  void diag(const Vec3& diagonal);
+
   //! \brief Type casting to a one-dimensional vector, for referencing.
   operator const std::vector<Real>&() const { return v; }
   //! \brief Type casting to a one-dimensional vector, for assignment.
