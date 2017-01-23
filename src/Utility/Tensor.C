@@ -255,6 +255,22 @@ Tensor::Tensor (const std::vector<Real>& a, bool transpose) : n(sqrt(a.size()))
 }
 
 
+void Tensor::diag(double value)
+{
+  this->zero();
+  for (t_ind i = 1; i <= n; i++)
+    (*this)(i,i) = value;
+}
+
+
+void Tensor::diag(const Vec3& diagonal)
+{
+  this->zero();
+  for (t_ind i = 1; i <= n; i++)
+    (*this)(i,i) = diagonal[i-1];
+}
+
+
 void Tensor::define3Dtransform (const Vec3& v1, const Vec3& v2, const Vec3& v3)
 {
   v.resize(9);
