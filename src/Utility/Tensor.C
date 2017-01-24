@@ -255,7 +255,7 @@ Tensor::Tensor (const std::vector<Real>& a, bool transpose) : n(sqrt(a.size()))
 }
 
 
-void Tensor::diag(double value)
+void Tensor::diag (Real value)
 {
   this->zero();
   for (t_ind i = 1; i <= n; i++)
@@ -263,7 +263,7 @@ void Tensor::diag(double value)
 }
 
 
-void Tensor::diag(const Vec3& diagonal)
+void Tensor::diag (const Vec3& diagonal)
 {
   this->zero();
   for (t_ind i = 1; i <= n; i++)

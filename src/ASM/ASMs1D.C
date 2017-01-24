@@ -568,14 +568,12 @@ void ASMs1D::getBoundaryNodes (int lIndex, IntVec& nodes,
   if (!curv) return; // silently ignore empty patches
 
   size_t iel = lIndex == 1 ? 0 : nel-1;
-  if (MLGE[iel] > 0)
+  if (MLGE[iel] > 0 && (lIndex == 1 || lIndex == 2))
   {
-    for (int i = 0; i < thick; ++i) {
-      int node;
-      if (lIndex == 1)
-        node = MNPC[iel][i];
-      else if (lIndex == 2)
-        node = MNPC[iel][curv->order()-thick+i];
+    int offset = lIndex == 1 ? 0 : curv->order() - thick;
+    for (int i = 0; i < thick; i++)
+    {
+      int node = MNPC[iel][offset+i];
       nodes.push_back(local ? node+1 : MLGN[node]);
     }
   }

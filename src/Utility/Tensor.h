@@ -62,13 +62,12 @@ public:
   //! \brief Constructor copying its content from a one-dimensional array.
   Tensor(const std::vector<Real>& a, bool transpose = false);
 
-  //! \brief Sets \a this to the 0-tensor.
+  //! \brief Sets \a *this to the 0-tensor.
   void zero() { std::fill(v.begin(),v.end(),Real(0)); }
 
-  //! \brief Sets \a this to a diagonal tensor with identical entries on the diagonal.
-  void diag(double value=1.0);
-
-  //! \brief Sets \a this to a diagonal tensor.
+  //! \brief Sets \a *this to a diagonal tensor with \a value on the diagonal.
+  void diag(Real value = Real(1));
+  //! \brief Sets \a *this to a diagonal tensor with given vector as diagonal.
   void diag(const Vec3& diagonal);
 
   //! \brief Type casting to a one-dimensional vector, for referencing.
