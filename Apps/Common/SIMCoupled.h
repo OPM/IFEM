@@ -53,9 +53,12 @@ public:
   }
 
   //! \brief Computes the solution for the current time step.
-  virtual bool solveStep(TimeStep& tp)
+  virtual bool solveStep(TimeStep& tp, bool firstS1 = true)
   {
-    return S1.solveStep(tp) && S2.solveStep(tp);
+    if (firstS1)
+      return S1.solveStep(tp) && S2.solveStep(tp);
+    else
+      return S2.solveStep(tp) && S1.solveStep(tp);
   }
 
   //! \brief Postprocesses the solution of current time step.

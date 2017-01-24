@@ -32,7 +32,7 @@ public:
   virtual ~SIMCoupledSI() {}
 
   //! \brief Computes the solution for the current time step.
-  virtual bool solveStep(TimeStep& tp)
+  virtual bool solveStep(TimeStep& tp, bool firstS1 = true)
   {
     if (maxIter <= 0)
       maxIter = std::min(this->S1.getMaxit(),this->S2.getMaxit());
@@ -40,13 +40,16 @@ public:
     this->S1.getProcessAdm().cout <<"\n  step="<< tp.step
                                   <<"  time="<< tp.time.t << std::endl;
 
-    SIM::ConvStatus status1, status2, conv = SIM::OK;
+    SIM::ConvStatus status1 = SIM::OK, status2 = SIM::OK, conv = SIM::OK;
     for (tp.iter = 0; tp.iter <= maxIter && conv != SIM::CONVERGED; tp.iter++)
     {
-      if ((status1 = this->S1.solveIteration(tp)) <= SIM::DIVERGED)
+      if (firstS1 && (status1 = this->S1.solveIteration(tp)) <= SIM::DIVERGED)
         return false;
 
       if ((status2 = this->S2.solveIteration(tp)) <= SIM::DIVERGED)
+        return false;
+
+      if (!firstS1 && (status1 = this->S1.solveIteration(tp)) <= SIM::DIVERGED)
         return false;
 
       if ((conv = this->checkConvergence(tp,status1,status2)) <= SIM::DIVERGED)
