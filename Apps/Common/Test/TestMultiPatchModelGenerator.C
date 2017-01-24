@@ -13,6 +13,8 @@
 #include "ASMs1D.h"
 #include "ASMs2D.h"
 #include "ASMs3D.h"
+#include "ASMmxBase.h"
+#include "SAM.h"
 #include "Functions.h"
 #include "IFEM.h"
 #include "MultiPatchModelGenerator.h"
@@ -197,6 +199,45 @@ TEST(TestMultiPatchModelGenerator2D, InnerPatches)
   TopologySet sets = gen.createTopologySets(sim);
   ASSERT_EQ(sets["InnerPatches"].size(), 1u);
   ASSERT_EQ(sets["InnerPatches"].begin()->patch, 5u);
+}
+
+
+TEST(TestMultiPatchModelGenerator2D, SubdivisionsMixed)
+{
+  ASMmxBase::Type = ASMmxBase::FULL_CONT_RAISE_BASIS1;
+  SIMMultiPatchModelGen<SIM2D> sim({1,1});
+  ASSERT_TRUE(sim.read("refdata/modelgen2d_subdivision_mixed.xinp"));
+  const SIM2D::PatchVec& model = sim.getFEModel();
+  sim.preprocess();
+
+  std::vector<std::vector<int>> mlgn =
+        {{1,2,3,4,5,6,7,8,9,10,11,12,13},
+         {2,3,14,5,6,15,8,9,16,11,17,13,18}};
+
+  std::vector<std::vector<int>> mlgeq1 =
+        {{0,1,2,0,3,4,0,5,6,7,8,9,10},
+         {1,2,11,3,4,12,5,6,13,8,14,10,15}};
+
+  for (int i=0; i<2; i++) {
+    check_vector_int_equals(mlgn[i], model[i]->getMyNodeNums());
+    for (size_t n = 0; n < mlgeq1[i].size(); ++n)
+      ASSERT_EQ(sim.getSAM()->getEquation(mlgn[i][n], 1), mlgeq1[i][n]);
+  }
+
+  SIMMultiPatchModelGen<SIM2D> sim2({2,1});
+  ASSERT_TRUE(sim2.read("refdata/modelgen2d_subdivision_mixed.xinp"));
+  sim2.preprocess();
+
+  std::vector<std::vector<int>> mlgeq2 =
+        {{0,1,2,3,4,5,0,6,7,8,9,10,0,11,12,13,14,15,16,17,18,19},
+         {2,3,4,5,20,21,7,8,9,10,22,23,12,13,14,15,24,25,17,26,19,27}};
+
+  for (int i = 0; i < 2; ++i) {
+    size_t k = 0;
+    for (size_t n = 0; n < mlgn[i].size(); ++n)
+      for(size_t d = 1; d <= (n < mlgn[i].size()-4 ? 2 : 1); ++d)
+        ASSERT_EQ(sim2.getSAM()->getEquation(mlgn[i][n], d), mlgeq2[i][k++]);
+  }
 }
 
 
@@ -590,6 +631,26 @@ const std::vector<SubPatchTest> SubPatch2D =
 INSTANTIATE_TEST_CASE_P(TestGetSubPatch2D,
                         TestGetSubPatch2D,
                         testing::ValuesIn(SubPatch2D));
+
+
+TEST(TestMultiPatchModelGenerator, ExtendedBasis2D)
+{
+  std::vector<double> knots {0.0, 0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.0};
+  Go::BsplineBasis basis(2, knots.begin(), knots.end());
+  Go::BsplineBasis nBasis = extendedBasis(basis);
+  std::vector<double> nknots {0.0, 0.0, 0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.0, 1.0};
+  check_vector_double_near(nBasis.getKnots(),nknots);
+
+  Go::BsplineBasis basis2(2, knots.begin(), knots.begin()+4);
+  nBasis = extendedBasis(basis2);
+  nknots = {0.0, 0.0, 0.0, 0.2, 0.4, 0.6};
+  check_vector_double_near(nBasis.getKnots(),nknots);
+
+  Go::BsplineBasis basis3(2, knots.begin()+4, knots.end());
+  nBasis = extendedBasis(basis3);
+  nknots = {0.4, 0.6, 0.8, 1.0, 1.0, 1.0};
+  check_vector_double_near(nBasis.getKnots(),nknots);
+}
 
 
 class TestGetSubPatch3D :

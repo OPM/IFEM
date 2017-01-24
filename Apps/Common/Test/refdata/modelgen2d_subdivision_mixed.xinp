@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<simulation>
+  <geometry dim="2" sets="true">
+    <subdivision nx="2" ny="1">
+      <refine type="uniform" patch="1" u="1" v="0"/>
+    </subdivision>
+  </geometry>
+  <boundaryconditions>
+    <dirichlet set="Edge1" basis="1" comp="1"/>
+  </boundaryconditions>
+</simulation>

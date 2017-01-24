@@ -635,13 +635,13 @@ bool ASMs2D::connectBasis (int edge, ASMs2D& neighbor, int nedge, bool revers,
   int n1, n2;
   if (!neighbor.getSize(n1,n2,basis)) return false;
   std::cout << "\tmaster coords:";
-  for (int i=1; i<=(nedge<3 ? n1 : n1*n2); i+=(nedge<3 ? 1 : n1))
+  for (int& i : masterNodes)
     std::cout << " " << neighbor.getCoord(i)[nedge<3 ? 0 : 1];
   std::cout << std::endl;
 
   if (!this->getSize(n1,n2,basis)) return false;
   std::cout << "\tslave coords:";
-  for (int i=1; i<=(nedge<3 ? n1 : n1*n2); i+=(nedge<3 ? 1 : n1))
+  for (int& i : slaveNodes)
     std::cout << " " << this->getCoord(i)[nedge<3 ? 0 : 1];
   std::cout << std::endl;
 
