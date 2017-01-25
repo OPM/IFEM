@@ -70,6 +70,10 @@ public:
         if (A.dim != B.dim)
           return A.dim < B.dim;
 
+        // then by basis
+        if (A.basis != B.basis)
+          return A.basis < B.basis;
+
         // finally by index on master
         return A.midx < B.midx;
       }
