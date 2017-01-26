@@ -708,15 +708,31 @@ void ASMs2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
   else if (code < 0)
     bcode = -code;
 
+  int i1 = 2;
+  int i2 = 2;
+  int i1e = n1;
+  int i2e = n2;
+  int order[2];
+  this->getOrder(order[0], order[1]);
+  int fmult, lmult; // multiplicities for first, last knot
   switch (dir)
     {
     case  1: // Right edge (positive I-direction)
       node += n1-1;
     case -1: // Left edge (negative I-direction)
-      if (!open)
-	this->prescribe(node,dof,bcode);
-      node += n1;
-      for (int i2 = 2; i2 < n2; i2++, node += n1)
+      if (!open) {
+        fmult = this->getBasis(basis)->basis_v().endMultiplicity(true);
+        lmult = this->getBasis(basis)->basis_v().endMultiplicity(false);
+        if (fmult == order[1]) {
+          this->prescribe(node,dof,bcode);
+          node += n1;
+        } else
+          i2 = 1;
+        if (lmult != order[1])
+          i2e = n2+1;
+      } else
+        node += n1;
+      for ( ; i2 < i2e; i2++, node += n1)
       {
 	// If the Dirichlet condition is to be projected, add this node to
 	// the set of nodes to receive prescribed value from the projection
@@ -725,16 +741,27 @@ void ASMs2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
 	  dirich.back().nodes.push_back(std::make_pair(i2,node));
       }
       if (!open)
-	this->prescribe(node,dof,bcode);
+        if (lmult == order[1])
+          this->prescribe(node,dof,bcode);
       break;
 
     case  2: // Back edge (positive J-direction)
       node += n1*(n2-1);
     case -2: // Front edge (negative J-direction)
-      if (!open)
-	this->prescribe(node,dof,bcode);
-      node++;
-      for (int i1 = 2; i1 < n1; i1++, node++)
+      if (!open) {
+        fmult = this->getBasis(basis)->basis_u().endMultiplicity(true);
+        lmult = this->getBasis(basis)->basis_u().endMultiplicity(false);
+        if (fmult == order[0]) {
+          this->prescribe(node,dof,bcode);
+          node++;
+        } else
+          i1 = 1;
+        if (lmult != order[0])
+          i1e = n1+1;
+      } else
+        node++;
+
+      for (; i1 < i1e; i1++, node++)
       {
 	// If the Dirichlet condition is to be projected, add this node to
 	// the set of nodes to receive prescribed value from the projection
@@ -743,7 +770,8 @@ void ASMs2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
 	  dirich.back().nodes.push_back(std::make_pair(i1,node));
       }
       if (!open)
-	this->prescribe(node,dof,bcode);
+        if (lmult == order[0])
+          this->prescribe(node,dof,bcode);
       break;
     }
 
