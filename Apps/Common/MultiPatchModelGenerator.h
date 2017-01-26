@@ -154,6 +154,9 @@ public:
       const size_t startu, const size_t numcoefsu, const int orderu,
       const size_t startv, const size_t numcoefsv, const int orderv,
       const size_t startw, const size_t numcoefsw, const int orderw);
+  //! \brief Establishes mixed subdivision bases.
+  //! \param sim Simulator object holding MixedType information
+  bool establishSubdivisionBases (SIMinput& sim) const;
 
 protected:
   //! \brief Generates the G2 description of the geometry.

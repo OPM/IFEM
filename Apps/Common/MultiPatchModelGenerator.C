@@ -16,6 +16,7 @@
 #include "ASMs2D.h"
 #include "ASMs2Dmx.h"
 #include "ASMs3D.h"
+#include "ASMs3Dmx.h"
 #include "IFEM.h"
 #include "SIMinput.h"
 #include "Utilities.h"
@@ -26,6 +27,7 @@
 #include <GoTools/geometry/BsplineBasis.h>
 #include <GoTools/geometry/ObjectHeader.h>
 #include <GoTools/geometry/SurfaceInterpolator.h>
+#include <GoTools/trivariate/VolumeInterpolator.h>
 #include <string>
 
 
@@ -834,41 +836,106 @@ Go::SplineVolume MultiPatchModelGenerator3D::getSubPatch(
 }
 
 
+bool MultiPatchModelGenerator3D::establishSubdivisionBases (SIMinput& sim) const
+{
+  if (sim.getNoPatches() == 1 || !subdivision)
+    return true;
+
+  const SIMdependency::PatchVec model = sim.getFEModel();
+  for (size_t i = 0; i < model.size() && sim.getNoFields(2) > 0; i++)
+  {
+    // TODO: only if pch indeed is mx, else break loop
+    ASMs3Dmx* pch = static_cast<ASMs3Dmx*>(model[i]);
+    Go::SplineVolume* vol = pch->getVolume();
+
+    // as ASMmxBase::establishBases except for extendedBasis()
+    std::vector<std::shared_ptr<Go::SplineVolume>> result(2);
+    if (ASMmxBase::Type == ASMmxBase::FULL_CONT_RAISE_BASIS1)
+    {
+      int ndim = vol->dimension();
+      Go::BsplineBasis b1 = extendedBasis(vol->basis(0));
+      Go::BsplineBasis b2 = extendedBasis(vol->basis(1));
+      Go::BsplineBasis b3 = extendedBasis(vol->basis(2));
+
+      RealArray ug(b1.numCoefs()), vg(b2.numCoefs()), wg(b3.numCoefs());
+      for (int i = 0; i < b1.numCoefs(); i++)
+        ug[i] = b1.grevilleParameter(i);
+      for (int j = 0; j < b2.numCoefs(); j++)
+        vg[j] = b2.grevilleParameter(j);
+      for (int k = 0; k < b3.numCoefs(); k++)
+        wg[k] = b3.grevilleParameter(k);
+
+      if (vol->rational()) {
+        std::cerr << "MultiPatchModelGenerator3D::establishSubdivisionBases:"
+                  << " Rational case not implemented." << std::endl;
+        return false;
+      } else {
+        RealArray XYZ(ndim*ug.size()*vg.size()*wg.size());
+        vol->gridEvaluator(ug,vg,wg,XYZ);
+        result[0].reset(Go::VolumeInterpolator::regularInterpolation(b1,b2,b3,
+                                                                     ug,vg,wg,XYZ,ndim,
+                                                                     false,XYZ));
+      }
+      result[1].reset(new Go::SplineVolume(*vol));
+    } else {
+      std::cerr << "MultiPatchModelGenerator3D::establishSubdivisionBases:"
+                << " MixedType " << ASMmxBase::Type << " not recognized."
+                << std::endl;
+      return false;
+    }
+    pch->setBases(result);
+  }
+  return true;
+}
+
+
 bool MultiPatchModelGenerator3D::createTopology (SIMinput& sim) const
 {
+  // Manually create subdivision-specific bases
+  if (!establishSubdivisionBases(sim))
+    return false;
+
   if (!sim.createFEMmodel())
     return false;
 
+  if (sim.getNoPatches() == 1)
+    return true;
+
   auto&& IJK = [this](int i, int j, int k) { return 1 + (k*ny+j)*nx + i; };
 
-  int p1,p2,p3;
-  if (subdivision)
-    sim.getPatch(1)->getOrder(p1,p2,p3);
+  ASMs3D* pch0 = static_cast<ASMs3D*>(sim.getPatch(1));
+  size_t nb = pch0->getNoBasis();
+  for (size_t b = 1; b <= nb; ++b) {
+    Go::SplineVolume* vol = pch0->getBasis(b);
+    int p1 = vol->order(0);
+    int p2 = vol->order(1);
+    int p3 = vol->order(2);
 
-  auto&& thick = [p1,p2,p3,this](int dir)
-  {
-    if (!subdivision)
-      return 1;
-    return dir == 1 ? p1-1 : (dir == 2 ? p2-1 : p3-1);
-  };
+    auto&& thick = [p1,p2,p3,this](int dir)
+    {
+      if (!subdivision)
+        return 1;
+      return dir == 1 ? p1-1 : (dir == 2 ? p2-1 : p3-1);
+    };
 
-  for (size_t k = 0; k < nz; ++k)
-    for (size_t j = 0; j < ny; ++j)
-      for (size_t i = 0; i < nx-1; ++i)
-        if (!sim.addConnection(IJK(i,j,k), IJK(i+1,j,k), 2, 1, 0, 0, true, 2, thick(1)))
-          return false;
+    for (size_t k = 0; k < nz; ++k)
+      for (size_t j = 0; j < ny; ++j)
+        for (size_t i = 0; i < nx-1; ++i)
+          if (!sim.addConnection(IJK(i,j,k), IJK(i+1,j,k), 2, 1, 0, b, true, 2, thick(1)))
+            return false;
 
-  for (size_t k = 0; k < nz; ++k)
-    for (size_t j = 0; j < ny-1; ++j)
-      for (size_t i = 0; i < nx; ++i)
-        if (!sim.addConnection(IJK(i,j,k), IJK(i,j+1,k), 4, 3, 0, 0, true, 2, thick(2)))
-          return false;
+    for (size_t k = 0; k < nz; ++k)
+      for (size_t j = 0; j < ny-1; ++j)
+        for (size_t i = 0; i < nx; ++i)
+          if (!sim.addConnection(IJK(i,j,k), IJK(i,j+1,k), 4, 3, 0, b, true, 2, thick(2)))
+            return false;
 
-  for (size_t k = 0; k < nz-1; ++k)
-    for (size_t j = 0; j < ny; ++j)
-      for (size_t i = 0; i < nx; ++i)
-        if (!sim.addConnection(IJK(i,j,k), IJK(i,j,k+1), 6, 5, 0, 0, true, 2, thick(3)))
-          return false;
+    for (size_t k = 0; k < nz-1; ++k)
+      for (size_t j = 0; j < ny; ++j)
+        for (size_t i = 0; i < nx; ++i)
+          if (!sim.addConnection(IJK(i,j,k), IJK(i,j,k+1), 6, 5, 0, b, true, 2, thick(3)))
+            return false;
+  }
 
   if (periodic_x)
     for (size_t k = 0; k < nz; ++k)

@@ -206,6 +206,10 @@ public:
   //! \param[out] n3 Number of nodes in third (w) direction
   //! \param[in] basis Which basis to return size parameters for
   virtual bool getSize(int& n1, int& n2, int& n3, int basis = 0) const;
+
+  //! \brief Manually set the bases for special purposes (e.g. subdivision).
+  //! \param[in] inp The custom constructed basis
+  void setBases(std::vector<std::shared_ptr<Go::SplineVolume>>& inp) { m_basis = inp; }
 protected:
   //! \brief Returns the volume in the parameter space for an element.
   //! \param[in] iel Element index
