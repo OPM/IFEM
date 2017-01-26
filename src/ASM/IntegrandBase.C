@@ -51,6 +51,11 @@ bool IntegrandBase::initElement (const std::vector<int>& MNPC,
     if (!primsol[i].empty())
       ierr = utl::gather(MNPC,npv,primsol[i],elmInt.vec[i]);
 
+#if SP_DEBUG > 2
+  for (size_t j = 0; j < elmInt.vec.size(); j++)
+    std::cout <<"Element solution vector "<< j+1 << elmInt.vec[j];
+#endif
+
   if (ierr == 0) return true;
 
   std::cerr <<" *** IntegrandBase::initElement: Detected "
@@ -96,6 +101,10 @@ bool IntegrandBase::initElementBou (const std::vector<int>& MNPC,
   elmInt.vec.resize(1);
   if (!primsol.empty() && !primsol.front().empty())
     ierr = utl::gather(MNPC,npv,primsol.front(),elmInt.vec.front());
+
+#if SP_DEBUG > 2
+  std::cout <<"Element solution vector"<< elmInt.vec.front();
+#endif
 
   if (ierr == 0) return true;
 

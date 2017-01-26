@@ -17,8 +17,9 @@
 
 
 bool AlgEqSystem::init (SystemMatrix::Type mtype, const LinSolParams* spar,
-			size_t nmat, size_t nvec, bool withReactions,
-			LinAlg::LinearSystemType ltype, int num_threads_SLU)
+                        size_t nmat, size_t nvec, size_t nscl,
+                        bool withReactions, LinAlg::LinearSystemType ltype,
+                        int num_threads_SLU)
 {
   // Using the sign of the num_threads_SLU argument to flag this (convenience)
   bool dontLockSparsityPattern = num_threads_SLU < 0;
@@ -32,6 +33,7 @@ bool AlgEqSystem::init (SystemMatrix::Type mtype, const LinSolParams* spar,
 
   A.resize(nmat);
   b.resize(nvec,nullptr);
+  c.resize(nscl,0.0);
   R.clear();
 
   for (i = 0; i < A.size(); i++)
@@ -85,6 +87,7 @@ void AlgEqSystem::clear ()
 
   A.clear();
   b.clear();
+  c.clear();
   R.clear();
 }
 
@@ -110,6 +113,9 @@ void AlgEqSystem::initialize (bool initLHS)
 
   for (i = 0; i < b.size(); i++)
     b[i]->init();
+
+  for (i = 0; i < c.size(); i++)
+    c[i] = 0.0;
 
   R.fill(0.0);
 }
@@ -177,6 +183,10 @@ bool AlgEqSystem::assemble (const LocalIntegral* elmObj, int elmId)
 	  status = sam.assembleSystem(*A[i]._A, elMat->A[i], elmId);
   }
 
+  // Assembly of scalar qunatities
+  for (i = 0; i < c.size() && i < elMat->c.size(); i++)
+    c[i] += elMat->c[i];
+
   if (!status)
     std::cerr <<" *** AlgEqSystem::assemble: Failure for element "<< elmId
 	      <<": size(A)="<< A.size() <<","<< elMat->A.size()
@@ -207,6 +217,14 @@ bool AlgEqSystem::finalize (bool newLHS)
 #if SP_DEBUG > 2
     else
       std::cout <<"\nSystem right-hand-side vector:"<< *b[i];
+
+  if (!c.empty())
+  {
+    std::cout <<"\nScalar quantities:";
+    for (size_t i = 0; i < c.size(); i++)
+      std::cout <<" "<< c[i];
+    std::cout << std::endl;
+  }
 #endif
 
   return true;

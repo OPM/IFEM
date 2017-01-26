@@ -42,11 +42,12 @@ public:
   //! \param[in] spar Input parameters for the linear equation solver
   //! \param[in] nmat Number of system matrices to allocate
   //! \param[in] nvec Number of system vectors to allocate
+  //! \param[in] nscl Number of scalar quantities to allocate
   //! \param[in] withReactions If \e false, no reaction forces will be computed
   //! \param[in] ltype Linear system type
   //! \param[in] num_threads_SLU Number of threads for SuperLU_MT
   bool init(SystemMatrix::Type mtype, const LinSolParams* spar,
-            size_t nmat, size_t nvec, bool withReactions,
+            size_t nmat, size_t nvec, size_t nscl, bool withReactions,
             LinAlg::LinearSystemType ltype, int num_threads_SLU = 1);
 
   //! \brief Erases the system matrices and frees dynamically allocated storage.
@@ -81,6 +82,8 @@ public:
   SystemMatrix* getMatrix(size_t i = 0) { return i < A.size() ? A[i]._A : 0; }
   //! \brief Returns the \a i'th right-hand-side vector of the equation system.
   SystemVector* getVector(size_t i = 0) { return i < b.size() ? b[i] : 0; }
+  //! \brief Returns the \a i'th scalar quantity.
+  double getScalar(size_t i = 0) { return i < c.size() ? c[i] : 0.0; }
 
   //! \brief Returns a pointer to the nodal reaction forces, if any.
   const Vector* getReactions() const { return R.empty() ? 0 : &R; }
@@ -97,6 +100,7 @@ private:
 
   std::vector<SysMatrixPair> A; //!< The actual coefficient matrices
   std::vector<SystemVector*> b; //!< The actual right-hand-side vectors
+  std::vector<double>        c; //!< Global scalar quantities
   Vector                     R; //!< Nodal reaction forces
 
   const SAM&        sam; //!< Data for FE assembly management

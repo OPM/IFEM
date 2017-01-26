@@ -91,9 +91,10 @@ public:
   //! \param[in] mType The matrix format to use
   //! \param[in] nMats Number of system matrices
   //! \param[in] nVec Number of system right-hand-side vectors
+  //! \param[in] nScl Number of global scalar quantities
   //! \param[in] withRF Whether nodal reaction forces should be computed or not
-  bool initSystem(int mType, size_t nMats = 1, size_t nVec = 1,
-                  bool withRF = true);
+  bool initSystem(int mType, size_t nMats = 1, size_t nVec = 1, size_t nScl = 0,
+                  bool withRF = false);
 
   //! \brief Associates a system vector to a system matrix.
   //! \sa AlgEqSystem::setAssociatedVector
@@ -240,6 +241,8 @@ public:
   //! \brief Extracts the assembled load vector for inspection/visualization.
   //! \param[out] loadVec Global load vector in DOF-order
   bool extractLoadVec(Vector& loadVec) const;
+  //! \brief Extracts an assembled global scalar quantity.
+  double extractScalar(size_t i = 0) const;
 
   //! \brief Applies the Dirichlet conditions to given vector.
   //! \param[out] glbVec Global vector in DOF-order
@@ -280,7 +283,7 @@ public:
   //! \param[in] eps Only record the energies larger than this tolerance
   //! \param[out] worst Node and local DOF number and values of the worst DOFs
   void getWorstDofs(const Vector& x, const Vector& r, size_t nWorst, double eps,
-		    std::map<std::pair<int,int>,RealArray>& worst) const;
+                    std::map<std::pair<int,int>,RealArray>& worst) const;
 
   //! \brief Evaluates some iteration norms for convergence assessment.
   //! \param[in] x Global primary solution vector
@@ -289,7 +292,7 @@ public:
   //! \param[out] rNorm Residual norm of solution increment
   //! \param[out] dNorm Displacement norm of solution increment
   void iterationNorms(const Vector& x, const Vector& r,
-		      double& eNorm, double& rNorm, double& dNorm) const;
+                      double& eNorm, double& rNorm, double& dNorm) const;
 
   //! \brief Evaluates some norms of the primary solution vector
   //! \param[in] x Global primary solution vector
@@ -335,7 +338,7 @@ public:
   //!
   //! \details Use this version for linear/stationary problems only.
   bool solutionNorms(const Vectors& psol, const Vectors& ssol,
-		     Matrix& eNorm, Vectors& gNorm)
+                     Matrix& eNorm, Vectors& gNorm)
   { return this->solutionNorms(TimeDomain(),psol,ssol,gNorm,&eNorm); }
   //! \brief Integrates some solution norm quantities.
   //! \param[in] psol Primary solution vectors
@@ -381,8 +384,8 @@ public:
   //! \param[in] iA Index of system matrix \b A in \a myEqSys->A
   //! \param[in] iB Index of system matrix \b B in \a myEqSys->A
   bool systemModes(std::vector<Mode>& solution,
-		   int nev, int ncv, int iop, double shift,
-		   size_t iA = 0, size_t iB = 1);
+                   int nev, int ncv, int iop, double shift,
+                   size_t iA = 0, size_t iB = 1);
   //! \brief Performs a generalized eigenvalue analysis of the assembled system.
   //! \param[out] solution Computed eigenvalues and associated eigenvectors
   //! \param[in] iA Index of system matrix \b A in \a myEqSys->A
