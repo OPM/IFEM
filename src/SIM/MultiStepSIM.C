@@ -64,9 +64,9 @@ bool MultiStepSIM::initSol (size_t nSol)
 }
 
 
-bool MultiStepSIM::initEqSystem (bool withRF)
+bool MultiStepSIM::initEqSystem (bool withRF, size_t nScl)
 {
-  return model.initSystem(opt.solver,1,nRHSvec,withRF);
+  return model.initSystem(opt.solver,1,nRHSvec,nScl,withRF);
 }
 
 

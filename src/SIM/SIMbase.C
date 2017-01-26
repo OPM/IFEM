@@ -397,7 +397,8 @@ RealFunc* SIMbase::getSclFunc (int code) const
 }
 
 
-bool SIMbase::initSystem (int mType, size_t nMats, size_t nVec, bool withRF)
+bool SIMbase::initSystem (int mType, size_t nMats, size_t nVec, size_t nScl,
+                          bool withRF)
 {
   if (!mySam) return true; // Silently ignore when no algebraic system
 
@@ -439,7 +440,7 @@ bool SIMbase::initSystem (int mType, size_t nMats, size_t nVec, bool withRF)
   }
 
   return myEqSys->init(static_cast<SystemMatrix::Type>(mType),
-                       mySolParams, nMats, nVec, withRF,
+                       mySolParams, nMats, nVec, nScl, withRF,
                        myProblem->getLinearSystemType(), opt.num_threads_SLU);
 }
 
@@ -890,6 +891,12 @@ bool SIMbase::extractLoadVec (Vector& loadVec) const
 }
 
 
+double SIMbase::extractScalar (size_t i) const
+{
+  return myEqSys ? myEqSys->getScalar(i) : 0.0;
+}
+
+
 bool SIMbase::applyDirichlet (Vector& glbVec) const
 {
   return mySam->applyDirichlet(glbVec);
@@ -998,8 +1005,10 @@ void SIMbase::printSolutionSummary (const Vector& solution, int printSol,
 
   if (compName)
     adm.cout <<"\n >>> Solution summary <<<\n\nL2-norm            : ";
-  else
+  else if (nf > 1)
     adm.cout <<"  Primary solution summary: L2-norm         : ";
+  else
+    adm.cout <<"  Primary solution summary: L2-norm      : ";
   adm.cout << utl::trunc(dNorm);
 
   if (nf == 1 && utl::trunc(dMax[0]) != 0.0)
@@ -1007,7 +1016,7 @@ void SIMbase::printSolutionSummary (const Vector& solution, int printSol,
     if (compName)
       adm.cout <<"\nMax "<< compName <<"   : ";
     else
-      adm.cout <<"\n                            Max value       : ";
+      adm.cout <<"\n                            Max value    : ";
     adm.cout << dMax[0] <<" node "<< iMax[0];
   }
   else if (nf > 1)
@@ -1386,7 +1395,7 @@ bool SIMbase::getCurrentReactions (RealArray& RF, const Vector& psol) const
 
   RF.resize(1+nsd);
   RF.front() = 2.0*mySam->normReact(psol,*reactionForces);
-  for (size_t dir = 1; dir < RF.size(); dir++)
+  for (unsigned char dir = 1; dir <= nsd; dir++)
     RF[dir] = mySam->getReaction(dir,*reactionForces);
 
   return true;
@@ -1406,7 +1415,7 @@ bool SIMbase::getCurrentReactions (RealArray& RF, int pcode) const
 
   RF.resize(nsd);
   for (unsigned char dir = 1; dir <= nsd; dir++)
-    RF[dir] = mySam->getReaction(dir,*reactionForces,&glbNodes);
+    RF[dir-1] = mySam->getReaction(dir,*reactionForces,&glbNodes);
 
   return true;
 }

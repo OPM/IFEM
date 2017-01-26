@@ -91,7 +91,7 @@ bool EigenModeSIM::initSol (size_t nSol)
 
   // Solve the eigenvalue problem giving the natural eigenfrequencies
   model.setMode(SIM::VIBRATION);
-  model.initSystem(opt.solver,2,0,false);
+  model.initSystem(opt.solver,2,0);
   model.setQuadratureRule(opt.nGauss[0],true);
   if (!model.assembleSystem())
     return false;

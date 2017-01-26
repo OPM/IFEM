@@ -41,7 +41,8 @@ public:
   //! \brief Defines the number of element matrices and vectors.
   //! \param[in] nA Number of element matrices
   //! \param[in] nB Number of element vectors
-  void resize(size_t nA, size_t nB) { A.resize(nA); b.resize(nB); }
+  //! \param[in] nC Number of scalar quantities
+  void resize(size_t nA, size_t nB, size_t nC = 0);
 
   //! \brief Sets the dimension of the element matrices and vectors.
   //! \param[in] ndim Number of rows and columns in the matrices/vectors
@@ -59,6 +60,7 @@ public:
 
   std::vector<Matrix> A; //!< The element coefficient matrices
   std::vector<Vector> b; //!< The element right-hand-side vectors
+  std::vector<double> c; //!< The scalar quantities
 
   bool rhsOnly; //!< If \e true, only the right-hand-sides are assembled
   bool withLHS; //!< If \e true, left-hand-side element matrices are present

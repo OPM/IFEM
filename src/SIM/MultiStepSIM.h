@@ -56,7 +56,8 @@ public:
 
   //! \brief Allocates the FE system matrices.
   //! \param[in] withRF Whether nodal reaction forces should be computed or not
-  bool initEqSystem(bool withRF = true);
+  //! \param[in] nScl Number of global scalar quantities to integrate
+  bool initEqSystem(bool withRF = true, size_t nScl = 0);
 
   //! \brief Advances the time/load step one step forward.
   //! \param param Time stepping parameters
