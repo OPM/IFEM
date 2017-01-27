@@ -467,10 +467,8 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
 
   const int n1 = svol->numCoefs(0);
   const int n2 = svol->numCoefs(1);
-  const int n3 = svol->numCoefs(2);
   const int nel1 = n1 - p1 + 1;
   const int nel2 = n2 - p2 + 1;
-  const int nel3 = n3 - p3 + 1;
 
   // === Assembly loop over all elements in the patch ==========================
 
@@ -492,7 +490,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
         if (fe.iel < 1) continue; // zero-volume element
 
         int i1 = p1 + iel % nel1;
-        int i2 = p2 + (iel / nel1) % nel3;
+        int i2 = p2 + (iel / nel1) % nel2;
         int i3 = p3 + iel / (nel1*nel2);
 
         // Get element volume in the parameter space
