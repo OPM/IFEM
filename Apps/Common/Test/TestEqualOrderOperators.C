@@ -15,12 +15,12 @@
 #include "FiniteElement.h"
 
 typedef std::vector<std::vector<double>> DoubleVec;
-const auto&& check_matrix_equal = [](const Matrix& A, const DoubleVec& B)
-                                  {
-                                    for (size_t i=1;i<=A.rows();++i)
-                                      for (size_t j=1;j<=A.cols();++j)
-                                        ASSERT_NEAR(A(i,j), B[i-1][j-1], 1e-13);
-                                  };
+const auto check_matrix_equal = [](const Matrix& A, const DoubleVec& B)
+                                {
+                                  for (size_t i=1;i<=A.rows();++i)
+                                    for (size_t j=1;j<=A.cols();++j)
+                                      ASSERT_NEAR(A(i,j), B[i-1][j-1], 1e-13);
+                                };
 
 static FiniteElement getFE()
 {
