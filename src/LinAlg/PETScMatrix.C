@@ -348,7 +348,7 @@ void PETScMatrix::initAssembly (const SAM& sam, bool b)
 
           // TODO: multiplier cause big overallocation due to no multiplicity handling
           for (auto& it : o_nnz)
-            it = std::min(it, dd.getNoGlbEqs(i+1));
+            it = std::min(it, dd.getNoGlbEqs(j+1));
 
           MatMPIAIJSetPreallocation(matvec[k],PETSC_DEFAULT,d_nnz[k].data(),
                                               PETSC_DEFAULT,o_nnz.data());
