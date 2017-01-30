@@ -25,7 +25,7 @@ DOXYFILE_ENCODING      = UTF-8
 # The PROJECT_NAME tag is a single word (or a sequence of words surrounded 
 # by quotes) that should identify the project.
 
-PROJECT_NAME           = IFEM
+PROJECT_NAME           = @CMAKE_PROJECT_NAME@
 
 # The PROJECT_NUMBER tag can be used to enter a project or revision number. 
 # This could be handy for archiving the generated documentation or 
@@ -564,10 +564,14 @@ WARN_LOGFILE           =
 # directories like "/usr/src/myproject". Separate the files or directories 
 # with spaces.
 
-INPUT                  = doc src \
-			 src/SIM src/ASM src/ASM/LR \
-			 src/Eig src/LinAlg src/Utility \
-			 @PROJECT_BINARY_DIR@
+INPUT                  = @IFEM_PATH@/src \
+                         @IFEM_PATH@/src/SIM @IFEM_PATH@/src/ASM \
+                         @IFEM_PATH@/src/ASM/LR \
+                         @IFEM_PATH@/src/Eig @IFEM_PATH@/src/LinAlg \
+                         @IFEM_PATH@/src/Utility \
+                         @IFEM_PATH@/Apps/Common \
+                         @PROJECT_BINARY_DIR@ \
+                         @EXTRA_DOXY_PATHS@
 
 # This tag can be used to specify the character encoding of the source files 
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding, which is 
