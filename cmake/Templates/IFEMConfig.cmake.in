@@ -15,6 +15,7 @@ if(NOT IFEM_FOUND)
 
   set(IFEM_REGTEST_SCRIPT ${IFEM_PATH}/scripts/regtest.sh.in)
   set(IFEM_CHECKCOMMITS_SCRIPT ${IFEM_PATH}/CheckCommits.cmake)
+  set(CMAKE_INSTALL_DOCDIR @CMAKE_INSTALL_DOCDIR@)
 
   add_library(IFEMAppCommon STATIC IMPORTED)
   set_target_properties(IFEMAppCommon PROPERTIES IMPORTED_LOCATION

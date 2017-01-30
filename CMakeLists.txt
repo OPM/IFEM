@@ -12,10 +12,6 @@ set(IFEM_ABI_VERSION ${IFEM_VERSION_MAJOR}.${IFEM_VERSION_MINOR})
 configure_file(${PROJECT_SOURCE_DIR}/src/IFEM.h.in
                IFEM.h @ONLY)
 
-# Generate doxy in build tree
-configure_file(${PROJECT_SOURCE_DIR}/Doxyfile.in
-               Doxyfile @ONLY)
-
 # Required defines (well, PROFILE_LEVEL is not actually required, but...)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DReal=double -DepsZ=1.0e-12 -DPROFILE_LEVEL=3")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DINDEX_CHECK=2")
@@ -125,14 +121,23 @@ target_link_libraries(IFEM ${IFEM_DEPLIBS})
 set_target_properties(IFEM PROPERTIES VERSION ${IFEM_VERSION}
                            SOVERSION ${IFEM_ABI_VERSION})
 
+set(IFEM_PATH ${PROJECT_SOURCE_DIR})
+if(NOT IFEM_SUBTREE_BUILD AND NOT IFEM_AS_SUBMODULE)
+  set(EXTRA_DOXY_PATHS ${PROJECT_SOURCE_DIR}/doc)
+endif()
+
+# Generate doxy in build tree
+configure_file(${PROJECT_SOURCE_DIR}/doc/Doxyfile.in
+               Doxyfile @ONLY)
+
 # For generating the doxy
 add_custom_target(lib_doc doxygen ${PROJECT_BINARY_DIR}/Doxyfile
                   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
                   COMMENT "Generating API documentation" VERBATIM)
-if(NOT TARGET doc)
+if(NOT TARGET doc AND NOT IFEM_AS_SUBMODULE)
   add_custom_target(doc)
+  add_dependencies(doc lib_doc)
 endif()
-add_dependencies(doc lib_doc)
 
 if(NOT IFEM_AS_SUBMODULE AND NOT IFEM_COMMON_APP_BUILD)
   set(IFEM_INTREE_BUILD ON)
@@ -202,8 +207,7 @@ else()
   install(FILES src/IFEM-test.C DESTINATION lib/IFEM/src)
 
   # documentation and license
-  option(INSTALL_DOXY "Install doxy with installation target?" ON)
-  if(INSTALL_DOXY)
+  if(IFEM_INSTALL_DOXY)
     install(CODE "EXECUTE_PROCESS(COMMAND ${CMAKE_BUILD_TOOL} doc WORKING_DIRECTORY \"${CMAKE_CURRENT_BINARY_DIR}\")" COMPONENT doc)
     install(DIRECTORY ${PROJECT_BINARY_DIR}/doc/html DESTINATION ${CMAKE_INSTALL_DOCDIR}
             COMPONENT doc
