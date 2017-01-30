@@ -442,6 +442,11 @@ bool MultiPatchModelGenerator2D::establishSubdivisionBases (SIMinput& sim) const
     // TODO: only if pch indeed is mx, else break loop
     ASMs2Dmx* pch = static_cast<ASMs2Dmx*>(model[i]);
     Go::SplineSurface* surf = pch->getSurface();
+    if (surf->rational()) {
+      std::cerr << "MultiPatchModelGenerator2D::establishSubdivisionBases:"
+                << " Rational case not implemented." << std::endl;
+      return false;
+    }
 
     // as ASMmxBase::establishBases except for extendedBasis()
     std::vector<std::shared_ptr<Go::SplineSurface>> result(2);
@@ -457,19 +462,50 @@ bool MultiPatchModelGenerator2D::establishSubdivisionBases (SIMinput& sim) const
       for (int j = 0; j < b2.numCoefs(); j++)
         vg[j] = b2.grevilleParameter(j);
 
-      if (surf->rational()) {
-        std::cerr << "MultiPatchModelGenerator2D::establishSubdivisionBases:"
-                  << " Rational case not implemented." << std::endl;
-        return false;
-      } else {
-        RealArray XYZ(ndim*ug.size()*vg.size());
-        surf->gridEvaluator(XYZ,ug,vg);
-        result[0].reset(Go::SurfaceInterpolator::regularInterpolation(b1,b2,
-                                                                      ug,vg,XYZ,ndim,
-                                                                      false,XYZ));
-      }
+      RealArray XYZ(ndim*ug.size()*vg.size());
+      surf->gridEvaluator(XYZ,ug,vg);
+      result[0].reset(Go::SurfaceInterpolator::regularInterpolation(b1,b2,
+                                                                    ug,vg,XYZ,ndim,
+                                                                    false,XYZ));
       result[1].reset(new Go::SplineSurface(*surf));
-    } else {
+    }
+    else if (ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
+    {
+      result.resize(3);
+
+      int ndim = surf->dimension();
+      Go::BsplineBasis a1 = surf->basis(0);
+      Go::BsplineBasis a2 = surf->basis(1);
+      Go::BsplineBasis b1 = extendedBasis(a1);
+      Go::BsplineBasis b2 = extendedBasis(a2);
+
+      RealArray u0(a1.numCoefs()), v0(a2.numCoefs());
+      for (int i = 0; i < a1.numCoefs(); i++)
+        u0[i] = a1.grevilleParameter(i);
+      for (int j = 0; j < a2.numCoefs(); j++)
+        v0[j] = a2.grevilleParameter(j);
+      RealArray ug(b1.numCoefs()), vg(b2.numCoefs());
+      for (int i = 0; i < b1.numCoefs(); i++)
+        ug[i] = b1.grevilleParameter(i);
+      for (int j = 0; j < b2.numCoefs(); j++)
+        vg[j] = b2.grevilleParameter(j);
+
+      // Evaluate the spline surface at all points
+      // Project the coordinates onto the new basis (the 2nd XYZ is dummy here)
+      RealArray XYZ0(ndim*ug.size()*v0.size()), XYZ1(ndim*u0.size()*vg.size());
+      surf->gridEvaluator(XYZ0,ug,v0);
+      surf->gridEvaluator(XYZ1,u0,vg);
+      result[2].reset(new Go::SplineSurface(*surf));
+      result[0].reset(Go::SurfaceInterpolator::regularInterpolation(b1,a2,
+                                                                    ug,v0,XYZ0,ndim,
+                                                                    false,XYZ0));
+      result[1].reset(Go::SurfaceInterpolator::regularInterpolation(a1,b2,
+                                                                    u0,vg,XYZ1,ndim,
+                                                                    false,XYZ1));
+      ASMmxBase::geoBasis = 3;
+    }
+    else
+    {
       std::cerr << "MultiPatchModelGenerator2D::establishSubdivisionBases:"
                 << " MixedType " << ASMmxBase::Type << " not recognized."
                 << std::endl;
@@ -877,7 +913,54 @@ bool MultiPatchModelGenerator3D::establishSubdivisionBases (SIMinput& sim) const
                                                                      false,XYZ));
       }
       result[1].reset(new Go::SplineVolume(*vol));
-    } else {
+    }
+    else if (ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
+    {
+      result.resize(4);
+
+      int ndim = vol->dimension();
+      Go::BsplineBasis a1 = vol->basis(0);
+      Go::BsplineBasis a2 = vol->basis(1);
+      Go::BsplineBasis a3 = vol->basis(2);
+      Go::BsplineBasis b1 = extendedBasis(a1);
+      Go::BsplineBasis b2 = extendedBasis(a2);
+      Go::BsplineBasis b3 = extendedBasis(a3);
+
+      RealArray u0(a1.numCoefs()), v0(a2.numCoefs()), w0(a3.numCoefs());
+      for (int i = 0; i < a1.numCoefs(); i++)
+        u0[i] = a1.grevilleParameter(i);
+      for (int j = 0; j < a2.numCoefs(); j++)
+        v0[j] = a2.grevilleParameter(j);
+      for (int k = 0; k < a3.numCoefs(); k++)
+        w0[k] = a3.grevilleParameter(k);
+      RealArray ug(b1.numCoefs()), vg(b2.numCoefs()), wg(b3.numCoefs());
+      for (int i = 0; i < b1.numCoefs(); i++)
+        ug[i] = b1.grevilleParameter(i);
+      for (int j = 0; j < b2.numCoefs(); j++)
+        vg[j] = b2.grevilleParameter(j);
+      for (int k = 0; k < b3.numCoefs(); k++)
+        wg[k] = b3.grevilleParameter(k);
+
+      // Evaluate the spline surface at all points
+      // Project the coordinates onto the new basis (the 2nd XYZ is dummy here)
+      RealArray XYZ0(ndim*ug.size()*v0.size()*w0.size()), XYZ1(ndim*u0.size()*vg.size()*w0.size()), XYZ2(ndim*u0.size()*v0.size()*wg.size());
+      vol->gridEvaluator(ug,v0,w0,XYZ0);
+      vol->gridEvaluator(u0,vg,w0,XYZ1);
+      vol->gridEvaluator(u0,v0,wg,XYZ2);
+      result[0].reset(Go::VolumeInterpolator::regularInterpolation(b1,a2,a3,
+                                                                   ug,v0,w0,XYZ0,ndim,
+                                                                   false,XYZ0));
+      result[1].reset(Go::VolumeInterpolator::regularInterpolation(a1,b2,a3,
+                                                                   u0,vg,w0,XYZ1,ndim,
+                                                                   false,XYZ1));
+      result[2].reset(Go::VolumeInterpolator::regularInterpolation(a1,a2,b3,
+                                                                   u0,v0,wg,XYZ2,ndim,
+                                                                   false,XYZ2));
+      result[3].reset(new Go::SplineVolume(*vol));
+      ASMmxBase::geoBasis = 4;
+    }
+    else
+    {
       std::cerr << "MultiPatchModelGenerator3D::establishSubdivisionBases:"
                 << " MixedType " << ASMmxBase::Type << " not recognized."
                 << std::endl;
