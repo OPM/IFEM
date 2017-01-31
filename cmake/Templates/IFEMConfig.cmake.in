@@ -21,4 +21,5 @@ if(NOT IFEM_FOUND)
   set_target_properties(IFEMAppCommon PROPERTIES IMPORTED_LOCATION
                         @CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_LIBDIR@/libIFEMAppCommon${CMAKE_STATIC_LIBRARY_SUFFIX})
   set(IFEM_FOUND 1)
+  include(IFEMDoxy)
 endif()

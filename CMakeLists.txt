@@ -201,6 +201,7 @@ else()
                 cmake/Scripts/CheckCommits.cmake
                 cmake/Scripts/DownloadGTest.cmake
                 cmake/Scripts/UseMultiArch.cmake
+                cmake/Scripts/IFEMDoxy.cmake
                 cmake/Scripts/IFEMTesting.cmake DESTINATION lib/IFEM)
 
   # source code
