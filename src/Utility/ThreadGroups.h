@@ -66,6 +66,8 @@ public:
   size_t size() const { return tg[1].empty() ? 1 : 2; }
   //! \brief Indexing operator.
   const IntMat& operator[](int i) const { return tg[i]; }
+  //! \brief Indexing operator.
+  IntMat& operator[](int i) { return tg[i]; }
 
 protected:
   //! \brief Calculates the parameter direction of the treading strips in 2D.

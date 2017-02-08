@@ -16,6 +16,7 @@
 
 #include "ASMunstruct.h"
 #include "ASM3D.h"
+#include "ThreadGroups.h"
 
 class FiniteElement;
 
@@ -312,6 +313,8 @@ public:
 
   //! \brief Returns the spline volume representing the basis of this patch.
   virtual const LR::LRSplineVolume* getBasis(int = 1) const { return lrspline.get(); }
+  //! \brief Returns the spline volume representing the basis of this patch.
+  virtual LR::LRSplineVolume* getBasis(int = 1) { return lrspline.get(); }
 
 private:
   //! \brief Projects the secondary solution field onto the primary basis.
@@ -361,8 +364,14 @@ public:
                                   const IntegrandBase& integrand,
                                   bool continuous = false) const;
 
-protected:
+  //! \brief Generates element groups for multi-threading of interior integrals.
+  //! \param[in] integrand Object with problem-specific data and methods
+  //! \param[in] silence If \e true, suppress threading group outprint
+  //! \param[in] ignoreGlobalLM If \e true ignore global multipliers in sanity check
+  void generateThreadGroups(const Integrand& integrand, bool silence,
+                            bool ignoreGlobalLM);
 
+protected:
   // Internal utility methods
   // ========================
 
@@ -438,6 +447,8 @@ protected:
 
   const std::vector<Matrix>& bezierExtract; //!< Bezier extraction matrices
   std::vector<Matrix>      myBezierExtract; //!< Bezier extraction matrices
+
+  ThreadGroups threadGroups; //!< Element groups for multi-threaded assembly
 };
 
 #endif
