@@ -171,8 +171,17 @@ public:
   virtual bool refine(const LR::RefineData& prm, Vectors& sol,
                       const char* fName = nullptr);
 
+protected:
+  //! \brief Generates element groups for multi-threading of interior integrals.
+  //! \param[in] integrand Object with problem-specific data and methods
+  //! \param[in] silence If \e true, suppress threading group outprint
+  //! \param[in] ignoreGlobalLM If \e true ignore global multipliers in sanity check
+  void generateThreadGroups(const Integrand& integrand, bool silence,
+                            bool ignoreGlobalLM);
+
 private:
   std::vector<std::shared_ptr<LR::LRSplineSurface>> m_basis;
+  int threadBasis = 1; //!< Basis for thread groups
 };
 
 #endif

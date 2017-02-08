@@ -17,6 +17,7 @@
 #include "ASMunstruct.h"
 #include "ASM2D.h"
 #include "LRSpline/LRSpline.h"
+#include "ThreadGroups.h"
 #include <memory>
 
 class FiniteElement;
@@ -473,6 +474,14 @@ protected:
   //! of an element.
   bool evaluateBasis(FiniteElement& el, int derivs = 0) const;
 
+  //! \brief Generates element groups for multi-threading of interior integrals.
+  //! \param[in] integrand Object with problem-specific data and methods
+  //! \param[in] silence If \e true, suppress threading group outprint
+  //! \param[in] ignoreGlobalLM If \e true ignore global multipliers in sanity check
+  void generateThreadGroups(const Integrand& integrand, bool silence,
+                            bool ignoreGlobalLM);
+
+
 public:
   //! \brief Returns the number of elements on a boundary.
   virtual size_t getNoBoundaryElms(char lIndex, char ldim) const;
@@ -480,7 +489,6 @@ public:
   typedef std::pair<int,int> Ipair; //!< Convenience type
 
 protected:
-
   std::shared_ptr<LR::LRSplineSurface> lrspline; //!< Pointer to the LR-spline surface object
 
   Go::SplineSurface* tensorspline; //!< Pointer to original tensor spline object
@@ -497,6 +505,8 @@ protected:
 
   Go::BsplineBasis bezier_u;
   Go::BsplineBasis bezier_v;
+
+  ThreadGroups threadGroups; //!< Element groups for multi-threaded assembly
 };
 
 #endif

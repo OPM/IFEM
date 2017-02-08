@@ -14,8 +14,14 @@
 #include "ASMunstruct.h"
 #include "LRSpline/LRSplineSurface.h"
 #include "Profiler.h"
+#include "ThreadGroups.h"
 #include <fstream>
+#include <numeric>
 #include <set>
+
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
 
 
 int LR::extendControlPoints (LR::LRSpline* basis, const Vector& v,
@@ -78,6 +84,53 @@ void LR::getGaussPointParameters (const LR::LRSpline* lrspline, RealArray& uGP,
   uGP.resize(nGauss);
   for (int i = 0; i < nGauss; i++)
     uGP[i] = 0.5*((ustop-ustart)*xi[i] + ustop+ustart);
+}
+
+
+void LR::generateThreadGroups (ThreadGroups& threadGroups, const LR::LRSpline* lr)
+{
+  int nElement = lr->nElements();
+  int nt = 1;
+#ifdef USE_OPENMP
+  nt = omp_get_max_threads();
+#endif
+  if (nt == 1) {
+    threadGroups[0].resize(1);
+    threadGroups[0][0].resize(nElement);
+    std::iota(threadGroups[0][0].begin(), threadGroups[0][0].end(), 0);
+  } else {
+    std::vector<int> status(nElement, 0); // status vector for elements: -1 is unusable for current color, 0 is available, any other is assigned color
+    std::vector<std::vector<int> > answer;
+    int fixedElements = 0;
+    int nColors       = 0;
+    while(fixedElements < nElement) {
+      // reset un-assigned element tags
+      for(int i=0; i<nElement; i++)
+        if(status[i]<0)
+          status[i] = 0;
+      std::vector<int> thisColor;
+
+      // look for available elements
+      for(auto e : lr->getAllElements() ) {
+        int i = e->getId();
+        if(status[i] == 0) {
+          status[i] = nColors+1;
+          thisColor.push_back(i);
+          fixedElements++;
+          for(auto b : e->support()) // for all basisfunctions with support here
+            for(auto el2 : b->support()) {// for all element this function supports
+              int j = el2->getId();
+              if(status[j] == 0)  // if not assigned a color yet
+                status[j] = -1; // set as unavailable (with current color)
+            }
+        }
+      }
+      answer.push_back(thisColor);
+      nColors++;
+    }
+
+    threadGroups[0] = answer;
+  }
 }
 
 

@@ -257,104 +257,128 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
   const double* wg = GaussQuadrature::getWeight(nGauss);
   if (!xg || !wg) return false;
 
-  std::vector<Matrix> dNxdu(m_basis.size());
-  Matrix   Xnod, Jac;
-  Vec4     X;
-
   // === Assembly loop over all elements in the patch ==========================
-
-  std::vector<LR::Element*>::iterator el1 = m_basis[geoBasis-1]->elementBegin();
-  for (int iel = 1; el1 != m_basis[geoBasis-1]->elementEnd(); ++el1, ++iel)
+  bool ok = true;
+  for (size_t t = 0; t < threadGroups[0].size() && ok; ++t)
   {
-    double uh = ((*el1)->umin()+(*el1)->umax())/2.0;
-    double vh = ((*el1)->vmin()+(*el1)->vmax())/2.0;
-    std::vector<size_t> els;
-    std::vector<size_t> elem_sizes;
-    for (size_t i=0; i < m_basis.size(); ++i) {
-      els.push_back(m_basis[i]->getElementContaining(uh, vh)+1);
-      elem_sizes.push_back((*(m_basis[i]->elementBegin()+els.back()-1))->nBasisFunctions());
-    }
-
-    int geoEl = els[geoBasis-1];
-
-    MxFiniteElement fe(elem_sizes);
-    fe.iel = MLGE[iel-1];
-
-    // Get element area in the parameter space
-    double dA = this->getParametricArea(geoEl);
-    if (dA < 0.0) return false; // topology error (probably logic error)
-
-    // Set up control point (nodal) coordinates for current element
-    if (!this->getElementCoordinates(Xnod,geoEl))
-      return false;
-
-    // Compute parameter values of the Gauss points over this element
-    std::array<RealArray,2> gpar;
-    for (int d = 0; d < 2; d++)
-      this->getGaussPointParameters(gpar[d],d,nGauss,geoEl,xg);
-
-    // Initialize element quantities
-    LocalIntegral* A = integrand.getLocalIntegral(elem_sizes,fe.iel,false);
-    if (!integrand.initElement(MNPC[iel-1], elem_sizes, nb, *A))
+#pragma omp parallel for schedule(static)
+    for (size_t e = 0; e < threadGroups[0][t].size(); ++e)
     {
-      A->destruct();
-      return false;
-    }
-
-    // --- Integration loop over all Gauss points in each direction ------------
-
-    int jp = (iel-1)*nGauss*nGauss;
-    fe.iGP = firstIp + jp; // Global integration point counter
-
-    for (int j = 0; j < nGauss; j++)
-      for (int i = 0; i < nGauss; i++, fe.iGP++)
-      {
-        // Local element coordinates of current integration point
-        fe.xi  = xg[i];
-        fe.eta = xg[j];
-
-        // Parameter values of current integration point
-        fe.u = gpar[0][i];
-        fe.v = gpar[1][j];
-
-        // Compute basis function derivatives at current integration point
-        std::vector<Go::BasisDerivsSf> splinex(m_basis.size());
-        for (size_t i=0; i < m_basis.size(); ++i) {
-          m_basis[i]->computeBasis(fe.u, fe.v, splinex[i], els[i]-1);
-          SplineUtils::extractBasis(splinex[i],fe.basis(i+1),dNxdu[i]);
-        }
-
-        // Compute Jacobian inverse of coordinate mapping and derivatives
-        // basis function derivatives w.r.t. Cartesian coordinates
-        fe.detJxW = utl::Jacobian(Jac,fe.grad(geoBasis),Xnod,dNxdu[geoBasis-1]);
-        if (fe.detJxW == 0.0) continue; // skip singular points
-        for (size_t b = 0; b < m_basis.size(); ++b)
-          if (b != (size_t)geoBasis-1)
-            fe.grad(b+1).multiply(dNxdu[b],Jac);
-
-        // Cartesian coordinates of current integration point
-        X = Xnod * fe.basis(geoBasis);
-        X.t = time.t;
-
-        // Evaluate the integrand and accumulate element contributions
-        fe.detJxW *= 0.25*dA*wg[i]*wg[j];
-        PROFILE3("Integrand::evalInt");
-        if (!integrand.evalIntMx(*A,fe,time,X))
-          return false;
+      if (!ok)
+        continue;
+      int iel = threadGroups[0][t][e] + 1;
+      auto el1 = this->getBasis(threadBasis)->elementBegin()+iel-1;
+      double uh = ((*el1)->umin()+(*el1)->umax())/2.0;
+      double vh = ((*el1)->vmin()+(*el1)->vmax())/2.0;
+      std::vector<size_t> els;
+      std::vector<size_t> elem_sizes;
+      for (size_t i=0; i < m_basis.size(); ++i) {
+        els.push_back(m_basis[i]->getElementContaining(uh, vh)+1);
+        elem_sizes.push_back((*(m_basis[i]->elementBegin()+els.back()-1))->nBasisFunctions());
       }
 
-    // Finalize the element quantities
-    if (!integrand.finalizeElement(*A,time,firstIp+jp))
-      return false;
+      int geoEl = els[geoBasis-1];
 
-    // Assembly of global system integral
-    if (!glInt.assemble(A->ref(),fe.iel))
-      return false;
+      MxFiniteElement fe(elem_sizes);
+      fe.iel = MLGE[geoEl-1];
+      std::vector<Matrix> dNxdu(m_basis.size());
+      Matrix   Xnod, Jac;
+      Vec4     X;
 
-    A->destruct();
+
+      // Get element area in the parameter space
+      double dA = this->getParametricArea(geoEl);
+      if (dA < 0.0)  // topology error (probably logic error)
+      {
+        ok = false;
+        continue;
+      }
+
+      // Set up control point (nodal) coordinates for current element
+      if (!this->getElementCoordinates(Xnod,geoEl))
+      {
+        ok = false;
+        continue;
+      }
+
+      // Compute parameter values of the Gauss points over this element
+      std::array<RealArray,2> gpar;
+      for (int d = 0; d < 2; d++)
+        this->getGaussPointParameters(gpar[d],d,nGauss,geoEl,xg);
+
+      // Initialize element quantities
+      LocalIntegral* A = integrand.getLocalIntegral(elem_sizes,fe.iel,false);
+      if (!integrand.initElement(MNPC[geoEl-1], elem_sizes, nb, *A))
+      {
+        A->destruct();
+        ok = false;
+        continue;
+      }
+
+      // --- Integration loop over all Gauss points in each direction ------------
+
+      int jp = (iel-1)*nGauss*nGauss;
+      fe.iGP = firstIp + jp; // Global integration point counter
+
+      for (int j = 0; j < nGauss; j++)
+        for (int i = 0; i < nGauss; i++, fe.iGP++)
+        {
+          // Local element coordinates of current integration point
+          fe.xi  = xg[i];
+          fe.eta = xg[j];
+
+          // Parameter values of current integration point
+          fe.u = gpar[0][i];
+          fe.v = gpar[1][j];
+
+          // Compute basis function derivatives at current integration point
+          std::vector<Go::BasisDerivsSf> splinex(m_basis.size());
+          for (size_t i=0; i < m_basis.size(); ++i) {
+            m_basis[i]->computeBasis(fe.u, fe.v, splinex[i], els[i]-1);
+            SplineUtils::extractBasis(splinex[i],fe.basis(i+1),dNxdu[i]);
+          }
+
+          // Compute Jacobian inverse of coordinate mapping and derivatives
+          // basis function derivatives w.r.t. Cartesian coordinates
+          fe.detJxW = utl::Jacobian(Jac,fe.grad(geoBasis),Xnod,dNxdu[geoBasis-1]);
+          if (fe.detJxW == 0.0) continue; // skip singular points
+          for (size_t b = 0; b < m_basis.size(); ++b)
+            if (b != (size_t)geoBasis-1)
+              fe.grad(b+1).multiply(dNxdu[b],Jac);
+
+          // Cartesian coordinates of current integration point
+          X = Xnod * fe.basis(geoBasis);
+          X.t = time.t;
+
+          // Evaluate the integrand and accumulate element contributions
+          fe.detJxW *= 0.25*dA*wg[i]*wg[j];
+          //PROFILE3("Integrand::evalInt");
+          if (!integrand.evalIntMx(*A,fe,time,X))
+          {
+            ok = false;
+            continue;
+          }
+        }
+
+      // Finalize the element quantities
+      if (!integrand.finalizeElement(*A,time,firstIp+jp))
+      {
+        ok = false;
+        continue;
+      }
+
+      // Assembly of global system integral
+      if (!glInt.assemble(A->ref(),fe.iel))
+      {
+        ok = false;
+        continue;
+      }
+
+      A->destruct();
+    }
   }
 
-  return true;
+  return ok;
 }
 
 
@@ -436,10 +460,10 @@ bool ASMu2Dmx::integrate (Integrand& integrand, int lIndex,
 
     // Initialize element quantities
     MxFiniteElement fe(elem_sizes);
-    fe.iel = MLGE[iel-1];
+    fe.iel = MLGE[geoEl-1];
     fe.xi = fe.eta = edgeDir < 0 ? -1.0 : 1.0;
     LocalIntegral* A = integrand.getLocalIntegral(elem_sizes,fe.iel,true);
-    if (!integrand.initElementBou(MNPC[iel-1], elem_sizes, nb, *A))
+    if (!integrand.initElementBou(MNPC[geoEl-1], elem_sizes, nb, *A))
     {
       A->destruct();
       return false;
@@ -708,4 +732,26 @@ Vec3 ASMu2Dmx::getCoord (size_t inod) const
     return Vec3();
   }
   return Vec3(&(*basis->cp()),nsd);
+}
+
+
+void ASMu2Dmx::generateThreadGroups (const Integrand& integrand, bool silence,
+                                     bool ignoreGlobalLM)
+{
+  // TODO: Support for div-compatible
+  int p1 = 0;
+  for (size_t i = 1; i <= m_basis.size(); ++i) {
+    if (this->getBasis(i)->order(0) > p1)
+      p1 = this->getBasis(i)->order(0), threadBasis = i;
+  }
+
+  LR::generateThreadGroups(threadGroups, this->getBasis(threadBasis));
+  if (silence || threadGroups[0].size() < 2) return;
+
+  std::cout <<"\nMultiple threads are utilized during element assembly.";
+  for (size_t i = 0; i < threadGroups[0].size(); i++)
+  {
+    std::cout <<"\n Color "<< i+1;
+    std::cout << ": "<< threadGroups[0][i].size() <<" elements";
+  }
 }

@@ -983,175 +983,209 @@ bool ASMu2D::integrate (Integrand& integrand,
   else if (nRed < 0)
     nRed = nGauss; // The integrand needs to know nGauss
 
-  Matrix   dNdu, Xnod, Jac;
-  Matrix3D d2Ndu2, Hess;
-  Vec4     X;
-
-
   // === Assembly loop over all elements in the patch ==========================
 
-  std::vector<LR::Element*>::iterator el = lrspline->elementBegin();
-  for (int iel = 1; el != lrspline->elementEnd(); el++, iel++)
+  bool ok = true;
+  for (size_t t = 0; t < threadGroups[0].size() && ok; ++t)
   {
+#pragma omp parallel for schedule(static)
+    for (size_t e = 0; e < threadGroups[0][t].size(); ++e)
+    {
+      if (!ok)
+        continue;
+
+      int iel = threadGroups[0][t][e] + 1;
+
 #ifdef SP_DEBUG
-    if (dbgElm < 0 && iel != -dbgElm)
-      continue; // Skipping all elements, except for -dbgElm
+      if (dbgElm < 0 && iel != -dbgElm)
+        continue; // Skipping all elements, except for -dbgElm
 #endif
+      FiniteElement fe(MNPC[iel-1].size());
+      fe.iel = MLGE[iel-1];
+      Matrix   dNdu, Xnod, Jac;
+      Matrix3D d2Ndu2, Hess;
+      Vec4     X;
 
-    FiniteElement fe(MNPC[iel-1].size());
-    fe.iel = MLGE[iel-1];
+      // Get element area in the parameter space
+      double dA = this->getParametricArea(iel);
+      if (dA < 0.0)
+      {
+        ok = false;
+        continue;
+      }
 
-    // Get element area in the parameter space
-    double dA = this->getParametricArea(iel);
-    if (dA < 0.0) return false; // topology error (probably logic error)
+      // Set up control point (nodal) coordinates for current element
+      if (!this->getElementCoordinates(Xnod,iel))
+      {
+        ok = false;
+        continue;
+      }
 
-    // Set up control point (nodal) coordinates for current element
-    if (!this->getElementCoordinates(Xnod,iel)) return false;
+      // Compute parameter values of the Gauss points over this element
+      std::array<RealArray,2> gpar, redpar;
+      for (int d = 0; d < 2; d++)
+      {
+        this->getGaussPointParameters(gpar[d],d,nGauss,iel,xg);
+        if (xr)
+          this->getGaussPointParameters(redpar[d],d,nRed,iel,xr);
+      }
 
-    // Compute parameter values of the Gauss points over this element
-    std::array<RealArray,2> gpar, redpar;
-    for (int d = 0; d < 2; d++)
-    {
-      this->getGaussPointParameters(gpar[d],d,nGauss,iel,xg);
+      if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
+        this->getElementCorners(iel,fe.XC);
+
+      if (integrand.getIntegrandType() & Integrand::ELEMENT_CENTER)
+      {
+        // Compute the element center
+        Go::Point X0;
+        double u0 = 0.5*(gpar[0].front() + gpar[0].back());
+        double v0 = 0.5*(gpar[1].front() + gpar[1].back());
+        lrspline->point(X0,u0,v0);
+        for (unsigned char i = 0; i < nsd; i++)
+          X[i] = X0[i];
+      }
+
+      // Initialize element quantities
+      LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
+      if (!integrand.initElement(MNPC[iel-1],fe,X,nRed*nRed,*A))
+      {
+        ok = false;
+        continue;
+      }
+
       if (xr)
-        this->getGaussPointParameters(redpar[d],d,nRed,iel,xr);
-    }
+      {
+        // --- Selective reduced integration loop --------------------------------
 
-    if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-      this->getElementCorners(iel,fe.XC);
+        for (int j = 0; j < nRed; j++)
+          for (int i = 0; i < nRed; i++)
+          {
+            // Local element coordinates of current integration point
+            fe.xi  = xr[i];
+            fe.eta = xr[j];
 
-    if (integrand.getIntegrandType() & Integrand::ELEMENT_CENTER)
-    {
-      // Compute the element center
-      Go::Point X0;
-      double u0 = 0.5*(gpar[0].front() + gpar[0].back());
-      double v0 = 0.5*(gpar[1].front() + gpar[1].back());
-      lrspline->point(X0,u0,v0);
-      for (unsigned char i = 0; i < nsd; i++)
-        X[i] = X0[i];
-    }
+            // Parameter values of current integration point
+            fe.u = redpar[0][i];
+            fe.v = redpar[1][j];
 
-    // Initialize element quantities
-    LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
-    if (!integrand.initElement(MNPC[iel-1],fe,X,nRed*nRed,*A)) return false;
+            // Compute basis function derivatives at current point
+            Go::BasisDerivsSf spline;
+            lrspline->computeBasis(fe.u,fe.v,spline,iel-1);
+            SplineUtils::extractBasis(spline,fe.N,dNdu);
 
-    if (xr)
-    {
-      // --- Selective reduced integration loop --------------------------------
+            // Compute Jacobian inverse and derivatives
+            fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
 
-      for (int j = 0; j < nRed; j++)
-        for (int i = 0; i < nRed; i++)
+            // Cartesian coordinates of current integration point
+            X = Xnod * fe.N;
+            X.t = time.t;
+
+            // Compute the reduced integration terms of the integrand
+            fe.detJxW *= 0.25*dA*wr[i]*wr[j];
+            if (!integrand.reducedInt(*A,fe,X))
+            {
+              ok = false;
+              continue;
+            }
+          }
+      }
+
+      // --- Integration loop over all Gauss points in each direction ------------
+
+      int jp = (iel-1)*nGauss*nGauss;
+      fe.iGP = firstIp + jp; // Global integration point counter
+
+      for (int j = 0; j < nGauss; j++)
+        for (int i = 0; i < nGauss; i++, fe.iGP++)
         {
           // Local element coordinates of current integration point
-          fe.xi  = xr[i];
-          fe.eta = xr[j];
+          fe.xi  = xg[i];
+          fe.eta = xg[j];
 
           // Parameter values of current integration point
-          fe.u = redpar[0][i];
-          fe.v = redpar[1][j];
+          fe.u = gpar[0][i];
+          fe.v = gpar[1][j];
 
-          // Compute basis function derivatives at current point
-          Go::BasisDerivsSf spline;
-          lrspline->computeBasis(fe.u,fe.v,spline,iel-1);
-          SplineUtils::extractBasis(spline,fe.N,dNdu);
+          // Compute basis function derivatives at current integration point
+          if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES) {
+            Go::BasisDerivsSf2 spline;
+            lrspline->computeBasis(fe.u,fe.v,spline,iel-1);
+            SplineUtils::extractBasis(spline,fe.N,dNdu,d2Ndu2);
+          }
+          else {
+            Go::BasisDerivsSf spline;
+            lrspline->computeBasis(fe.u,fe.v,spline, iel-1);
+            SplineUtils::extractBasis(spline,fe.N,dNdu);
+#if SP_DEBUG > 4
+            if (iel == dbgElm || iel == -dbgElm || dbgElm == 0)
+            {
+              std::cout <<"\nBasis functions at a integration point "
+                        <<" : (u,v) = "<< spline.param[0] <<" "<< spline.param[1]
+                        <<"  left_idx = "<< spline.left_idx[0]
+                        <<" "<< spline.left_idx[1];
+              for (size_t ii = 0; ii < spline.basisValues.size(); ii++)
+                std::cout <<'\n'<< 1+ii <<'\t' << spline.basisValues[ii] <<'\t'
+                          << spline.basisDerivs_u[ii] <<'\t'
+                          << spline.basisDerivs_v[ii];
+              std::cout << std::endl;
+            }
+#endif
+          }
 
-          // Compute Jacobian inverse and derivatives
+          // Compute Jacobian inverse of coordinate mapping and derivatives
           fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+          if (fe.detJxW == 0.0) continue; // skip singular points
+
+          // Compute Hessian of coordinate mapping and 2nd order derivatives
+          if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
+            if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
+            {
+              ok = false;
+              continue;
+            }
+
+#if SP_DEBUG > 4
+          if (iel == dbgElm || iel == -dbgElm || dbgElm == 0)
+            std::cout <<"\nN ="<< fe.N <<"dNdX ="<< fe.dNdX;
+#endif
 
           // Cartesian coordinates of current integration point
           X = Xnod * fe.N;
           X.t = time.t;
 
-          // Compute the reduced integration terms of the integrand
-          fe.detJxW *= 0.25*dA*wr[i]*wr[j];
-          if (!integrand.reducedInt(*A,fe,X))
-            return false;
-        }
-    }
-
-    // --- Integration loop over all Gauss points in each direction ------------
-
-    int jp = (iel-1)*nGauss*nGauss;
-    fe.iGP = firstIp + jp; // Global integration point counter
-
-    for (int j = 0; j < nGauss; j++)
-      for (int i = 0; i < nGauss; i++, fe.iGP++)
-      {
-        // Local element coordinates of current integration point
-        fe.xi  = xg[i];
-        fe.eta = xg[j];
-
-        // Parameter values of current integration point
-        fe.u = gpar[0][i];
-        fe.v = gpar[1][j];
-
-        // Compute basis function derivatives at current integration point
-        if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES) {
-          Go::BasisDerivsSf2 spline;
-          lrspline->computeBasis(fe.u,fe.v,spline,iel-1);
-          SplineUtils::extractBasis(spline,fe.N,dNdu,d2Ndu2);
-        }
-        else {
-          Go::BasisDerivsSf spline;
-          lrspline->computeBasis(fe.u,fe.v,spline, iel-1);
-          SplineUtils::extractBasis(spline,fe.N,dNdu);
-#if SP_DEBUG > 4
-          if (iel == dbgElm || iel == -dbgElm || dbgElm == 0)
+          // Evaluate the integrand and accumulate element contributions
+          fe.detJxW *= 0.25*dA*wg[i]*wg[j];
+          PROFILE3("Integrand::evalInt");
+          if (!integrand.evalInt(*A,fe,time,X))
           {
-            std::cout <<"\nBasis functions at a integration point "
-                      <<" : (u,v) = "<< spline.param[0] <<" "<< spline.param[1]
-                      <<"  left_idx = "<< spline.left_idx[0]
-                      <<" "<< spline.left_idx[1];
-            for (size_t ii = 0; ii < spline.basisValues.size(); ii++)
-              std::cout <<'\n'<< 1+ii <<'\t' << spline.basisValues[ii] <<'\t'
-                        << spline.basisDerivs_u[ii] <<'\t'
-                        << spline.basisDerivs_v[ii];
-            std::cout << std::endl;
+            ok = false;
+            continue;
           }
-#endif
         }
 
-        // Compute Jacobian inverse of coordinate mapping and derivatives
-        fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
-        if (fe.detJxW == 0.0) continue; // skip singular points
-
-        // Compute Hessian of coordinate mapping and 2nd order derivatives
-        if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
-          if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
-            return false;
-
-#if SP_DEBUG > 4
-        if (iel == dbgElm || iel == -dbgElm || dbgElm == 0)
-          std::cout <<"\nN ="<< fe.N <<"dNdX ="<< fe.dNdX;
-#endif
-
-        // Cartesian coordinates of current integration point
-        X = Xnod * fe.N;
-        X.t = time.t;
-
-        // Evaluate the integrand and accumulate element contributions
-        fe.detJxW *= 0.25*dA*wg[i]*wg[j];
-        PROFILE3("Integrand::evalInt");
-        if (!integrand.evalInt(*A,fe,time,X))
-          return false;
+      // Finalize the element quantities
+      if (!integrand.finalizeElement(*A,time,firstIp+jp))
+      {
+        ok = false;
+        continue;
       }
 
-    // Finalize the element quantities
-    if (!integrand.finalizeElement(*A,time,firstIp+jp))
-      return false;
+      // Assembly of global system integral
+      if (!glInt.assemble(A->ref(),fe.iel))
+      {
+        ok = false;
+        continue;
+      }
 
-    // Assembly of global system integral
-    if (!glInt.assemble(A->ref(),fe.iel))
-      return false;
-
-    A->destruct();
+      A->destruct();
 
 #ifdef SP_DEBUG
-    if (iel == -dbgElm) break; // Skipping all elements, except for -dbgElm
+      if (iel == -dbgElm)
+        continue; // Skipping all elements, except for -dbgElm
 #endif
+    }
   }
 
-  return true;
+  return ok;
 }
 
 
@@ -1176,112 +1210,136 @@ bool ASMu2D::integrate (Integrand& integrand,
   for (size_t i = MPitg.front() = 0; i < itgPts.size(); i++)
     MPitg[i+1] = MPitg[i] + itgPts[i].size();
 
-  Matrix   dNdu, Xnod, Jac;
-  Matrix3D d2Ndu2, Hess;
-  Vec4     X;
-
-
   // === Assembly loop over all elements in the patch ==========================
 
-  std::vector<LR::Element*>::iterator el = lrspline->elementBegin();
-  for (int iel = 1; el != lrspline->elementEnd(); el++, iel++)
+  bool ok = true;
+  for (size_t t = 0; t < threadGroups[0].size() && ok; ++t)
   {
-    FiniteElement fe(MNPC[iel-1].size());
-    fe.iel = MLGE[iel-1];
+#pragma omp parallel for schedule(static)
+    for (size_t e = 0; e < threadGroups[0][t].size(); ++e)
+    {
+      if (!ok)
+        continue;
 
-    // Get element area in the parameter space
-    double dA = this->getParametricArea(iel);
-    if (dA < 0.0) return false; // topology error (probably logic error)
-
+      int iel = threadGroups[0][t][e] + 1;
 #ifdef SP_DEBUG
-    if (dbgElm < 0 && iel != -dbgElm)
-      continue; // Skipping all elements, except for -dbgElm
+      if (dbgElm < 0 && iel != -dbgElm)
+        continue; // Skipping all elements, except for -dbgElm
 #endif
+      FiniteElement fe(MNPC[iel-1].size());
+      fe.iel = MLGE[iel-1];
+      Matrix   dNdu, Xnod, Jac;
+      Matrix3D d2Ndu2, Hess;
+      Vec4     X;
 
-    // Set up control point (nodal) coordinates for current element
-    if (!this->getElementCoordinates(Xnod,iel)) return false;
-
-    if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-      this->getElementCorners(iel,fe.XC);
-
-    if (integrand.getIntegrandType() & Integrand::ELEMENT_CENTER)
-    {
-      // Compute the element center
-      this->getElementCorners(iel,fe.XC);
-      X = 0.25*(fe.XC[0]+fe.XC[1]+fe.XC[2]+fe.XC[3]);
-    }
-
-    // Initialize element quantities
-    LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
-    if (!integrand.initElement(MNPC[iel-1],fe,X,0,*A)) return false;
-
-
-    // --- Integration loop over all quadrature points in this element ---------
-
-    size_t jp = MPitg[iel-1]; // Patch-wise integration point counter
-    fe.iGP = firstIp + jp;    // Global integration point counter
-
-    const Real2DMat& elmPts = itgPts[iel-1]; // points for current element
-    for (size_t ip = 0; ip < elmPts.size(); ip++, jp++, fe.iGP++)
-    {
-      // Parameter values of current integration point
-      fe.u = elmPts[ip][0];
-      fe.v = elmPts[ip][1];
-
-        // Compute basis function derivatives at current integration point
-      if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES) {
-        Go::BasisDerivsSf2 spline;
-        lrspline->computeBasis(fe.u,fe.v,spline,iel-1);
-        SplineUtils::extractBasis(spline,fe.N,dNdu,d2Ndu2);
-      }
-      else {
-        Go::BasisDerivsSf spline;
-        lrspline->computeBasis(fe.u,fe.v,spline,iel-1);
-        SplineUtils::extractBasis(spline,fe.N,dNdu);
+      // Get element area in the parameter space
+      double dA = this->getParametricArea(iel);
+      if (dA < 0.0)
+      {
+        ok = false;
+        continue;
       }
 
-      // Compute Jacobian inverse of coordinate mapping and derivatives
-      fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
-      if (fe.detJxW == 0.0) continue; // skip singular points
+      // Set up control point (nodal) coordinates for current element
+      if (!this->getElementCoordinates(Xnod,iel))
+      {
+        ok = false;
+        continue;
+      }
 
-      // Compute Hessian of coordinate mapping and 2nd order derivatives
-      if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
-        if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
-          return false;
+      if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
+        this->getElementCorners(iel,fe.XC);
+
+      if (integrand.getIntegrandType() & Integrand::ELEMENT_CENTER)
+      {
+        // Compute the element center
+        this->getElementCorners(iel,fe.XC);
+        X = 0.25*(fe.XC[0]+fe.XC[1]+fe.XC[2]+fe.XC[3]);
+      }
+
+      // Initialize element quantities
+      LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
+      if (!integrand.initElement(MNPC[iel-1],fe,X,0,*A))
+      {
+        ok = false;
+        continue;
+      }
+
+      // --- Integration loop over all quadrature points in this element ---------
+
+      size_t jp = MPitg[iel-1]; // Patch-wise integration point counter
+      fe.iGP = firstIp + jp;    // Global integration point counter
+
+      const Real2DMat& elmPts = itgPts[iel-1]; // points for current element
+      for (size_t ip = 0; ip < elmPts.size(); ip++, jp++, fe.iGP++)
+      {
+        // Parameter values of current integration point
+        fe.u = elmPts[ip][0];
+        fe.v = elmPts[ip][1];
+
+          // Compute basis function derivatives at current integration point
+        if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES) {
+          Go::BasisDerivsSf2 spline;
+          lrspline->computeBasis(fe.u,fe.v,spline,iel-1);
+          SplineUtils::extractBasis(spline,fe.N,dNdu,d2Ndu2);
+        }
+        else {
+          Go::BasisDerivsSf spline;
+          lrspline->computeBasis(fe.u,fe.v,spline,iel-1);
+          SplineUtils::extractBasis(spline,fe.N,dNdu);
+        }
+
+        // Compute Jacobian inverse of coordinate mapping and derivatives
+        fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+        if (fe.detJxW == 0.0) continue; // skip singular points
+
+        // Compute Hessian of coordinate mapping and 2nd order derivatives
+        if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
+          if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
+          {
+            ok = false;
+            continue;
+          }
 
 #if SP_DEBUG > 4
-      if (iel == dbgElm || iel == -dbgElm || dbgElm == 0)
-        std::cout <<"\niel, ip = "<< iel <<" "<< ip
-                  <<"\nN ="<< fe.N <<"dNdX ="<< fe.dNdX;
+        if (iel == dbgElm || iel == -dbgElm || dbgElm == 0)
+          std::cout <<"\niel, ip = "<< iel <<" "<< ip
+                    <<"\nN ="<< fe.N <<"dNdX ="<< fe.dNdX;
 #endif
 
-      // Cartesian coordinates of current integration point
-      X = Xnod * fe.N;
-      X.t = time.t;
+        // Cartesian coordinates of current integration point
+        X = Xnod * fe.N;
+        X.t = time.t;
 
-      // Evaluate the integrand and accumulate element contributions
-      fe.detJxW *= 0.25*dA*elmPts[ip][2];
-      PROFILE3("Integrand::evalInt");
-      if (!integrand.evalInt(*A,fe,time,X))
-        return false;
+        // Evaluate the integrand and accumulate element contributions
+        fe.detJxW *= 0.25*dA*elmPts[ip][2];
+        PROFILE3("Integrand::evalInt");
+        if (!integrand.evalInt(*A,fe,time,X))
+        {
+          ok = false;
+          continue;
+        }
+      }
+
+      // Finalize the element quantities
+      if (!integrand.finalizeElement(*A,time,firstIp+MPitg[iel]))
+      {
+        ok = false;
+        continue;
+      }
+
+      // Assembly of global system integral
+      if (!glInt.assemble(A->ref(),fe.iel))
+      {
+        ok = false;
+        continue;
+      }
+
+      A->destruct();
     }
-
-    // Finalize the element quantities
-    if (!integrand.finalizeElement(*A,time,firstIp+MPitg[iel]))
-      return false;
-
-    // Assembly of global system integral
-    if (!glInt.assemble(A->ref(),fe.iel))
-      return false;
-
-    A->destruct();
-
-#ifdef SP_DEBUG
-    if (iel == -dbgElm) break; // Skipping all elements, except for -dbgElm
-#endif
   }
 
-  return true;
+  return ok;
 }
 
 
@@ -2011,4 +2069,19 @@ bool ASMu2D::transferCntrlPtVars (const LR::LRSplineSurface* oldBasis,
   }
 
   return true;
+}
+
+
+void ASMu2D::generateThreadGroups (const Integrand& integrand, bool silence,
+                                   bool ignoreGlobalLM)
+{
+  LR::generateThreadGroups(threadGroups, this->getBasis(1));
+  if (silence || threadGroups[0].size() < 2) return;
+
+  std::cout <<"\nMultiple threads are utilized during element assembly.";
+  for (size_t i = 0; i < threadGroups[0].size(); i++)
+  {
+    std::cout <<"\n Color "<< i+1;
+    std::cout << ": "<< threadGroups[0][i].size() <<" elements";
+  }
 }

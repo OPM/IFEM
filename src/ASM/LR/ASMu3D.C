@@ -972,250 +972,269 @@ bool ASMu3D::integrate (Integrand& integrand,
   // === Assembly loop over all elements in the patch ==========================
 
   bool ok=true;
-  for(LR::Element *el : lrspline->getAllElements()) {
-    int iEl = el->getId();
-    int nBasis = el->nBasisFunctions();
-    FiniteElement fe(nBasis);
-    fe.iel = iEl+1;
-
-    Matrix   C = bezierExtract[iEl];
-    Matrix   dNdu, Xnod, Jac;
-    Matrix3D d2Ndu2, Hess;
-    double   dXidu[3];
-    Vec4     X;
-    // Get element volume in the parameter space
-    double du = el->umax() - el->umin();
-    double dv = el->vmax() - el->vmin();
-    double dw = el->wmax() - el->wmin();
-    double vol = el->volume();
-    if (vol < 0.0)
+  for (size_t t = 0; t < threadGroups[0].size() && ok; ++t)
+  {
+#pragma omp parallel for schedule(static)
+    for (size_t e = 0; e < threadGroups[0][t].size(); ++e)
     {
-      ok = false; // topology error (probably logic error)
-      break;
-    }
+      if (!ok)
+        continue;
+      int iEl = threadGroups[0][t][e];
+      auto el = *(lrspline->elementBegin()+iEl);
+      int nBasis = el->nBasisFunctions();
+      FiniteElement fe(nBasis);
+      fe.iel = iEl+1;
 
-    // Set up control point (nodal) coordinates for current element
-    if (!this->getElementCoordinates(Xnod,iEl+1))
-    {
-      ok = false;
-      break;
-    }
+      Matrix   C = bezierExtract[iEl];
+      Matrix   dNdu, Xnod, Jac;
+      Matrix3D d2Ndu2, Hess;
+      double   dXidu[3];
+      Vec4     X;
+      // Get element volume in the parameter space
+      double du = el->umax() - el->umin();
+      double dv = el->vmax() - el->vmin();
+      double dw = el->wmax() - el->wmin();
+      double vol = el->volume();
+      if (vol < 0.0)
+      {
+        ok = false; // topology error (probably logic error)
+        continue;
+      }
 
-    // Compute parameter values of the Gauss points over the whole element
-    std::array<RealArray,3> gpar, redpar;
-    for (int d = 0; d < 3; d++)
-    {
-      this->getGaussPointParameters(gpar[d],d,nGauss,iEl,xg);
+      // Set up control point (nodal) coordinates for current element
+      if (!this->getElementCoordinates(Xnod,iEl+1))
+      {
+        ok = false;
+        continue;
+      }
+
+      // Compute parameter values of the Gauss points over the whole element
+      std::array<RealArray,3> gpar, redpar;
+      for (int d = 0; d < 3; d++)
+      {
+        this->getGaussPointParameters(gpar[d],d,nGauss,iEl,xg);
+        if (xr)
+          this->getGaussPointParameters(redpar[d],d,nRed,iEl,xr);
+      }
+
+
+      if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
+        this->getElementCorners(iEl, fe.XC);
+
+      if (integrand.getIntegrandType() & Integrand::G_MATRIX)
+      {
+        // Element size in parametric space
+        dXidu[0] = el->getParmin(0);
+        dXidu[1] = el->getParmin(1);
+        dXidu[2] = el->getParmin(2);
+      }
+      else if (integrand.getIntegrandType() & Integrand::AVERAGE)
+      {
+        // --- Compute average value of basis functions over the element -----
+
+        fe.Navg.resize(nBasis,true);
+        double vol = 0.0;
+        for (int k = 0; k < nGauss; k++)
+          for (int j = 0; j < nGauss; j++)
+            for (int i = 0; i < nGauss; i++)
+            {
+              // Fetch basis function derivatives at current integration point
+              evaluateBasis(fe, dNdu);
+
+              // Compute Jacobian determinant of coordinate mapping
+              // and multiply by weight of current integration point
+              double detJac = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu,false);
+              double weight = 0.125*vol*wg[i]*wg[j]*wg[k];
+
+              // Numerical quadrature
+              fe.Navg.add(fe.N,detJac*weight);
+              vol += detJac*weight;
+        }
+
+        // Divide by element volume
+        fe.Navg /= vol;
+      }
+
+      else if (integrand.getIntegrandType() & Integrand::ELEMENT_CENTER)
+      {
+        // Compute the element center
+        Go::Point X0;
+        double u0 = 0.5*(el->getParmin(0) + el->getParmax(0));
+        double v0 = 0.5*(el->getParmin(1) + el->getParmax(1));
+        double w0 = 0.5*(el->getParmin(2) + el->getParmax(2));
+        lrspline->point(X0,u0,v0,w0);
+        X = SplineUtils::toVec3(X0);
+      }
+
+      // Initialize element quantities
+      LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
+      if (!integrand.initElement(MNPC[iEl],fe,X,nRed*nRed*nRed,*A))
+      {
+        A->destruct();
+        ok = false;
+        continue;
+      }
+
       if (xr)
-        this->getGaussPointParameters(redpar[d],d,nRed,iEl,xr);
-    }
+      {
+        std::cerr << "Haven't really figured out what this part does yet\n";
+        exit(42142);
+#if 0
+        // --- Selective reduced integration loop ----------------------------
+
+        int ip = (((i3-p3)*nRed*nel2 + i2-p2)*nRed*nel1 + i1-p1)*nRed;
+        for (int k = 0; k < nRed; k++, ip += nRed*(nel2-1)*nRed*nel1)
+          for (int j = 0; j < nRed; j++, ip += nRed*(nel1-1))
+            for (int i = 0; i < nRed; i++, ip++)
+            {
+              // Local element coordinates of current integration point
+              fe.xi   = xr[i];
+              fe.eta  = xr[j];
+              fe.zeta = xr[k];
+
+              // Parameter values of current integration point
+              fe.u = redpar[0](i+1,i1-p1+1);
+              fe.v = redpar[1](j+1,i2-p2+1);
+              fe.w = redpar[2](k+1,i3-p3+1);
+
+              // Fetch basis function derivatives at current point
+              evaluateBasis(fe, 1);
+
+              // Compute Jacobian inverse and derivatives
+              fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+
+              // Cartesian coordinates of current integration point
+              X = Xnod * fe.N;
+              X.t = time.t;
+
+              // Compute the reduced integration terms of the integrand
+              fe.detJxW *= 0.125*dV*wr[i]*wr[j]*wr[k];
+              if (!integrand.reducedInt(*A,fe,X))
+                ok = false;
+        }
+#endif
+      }
 
 
-    if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-      this->getElementCorners(iEl, fe.XC);
+      // --- Integration loop over all Gauss points in each direction --------
 
-    if (integrand.getIntegrandType() & Integrand::G_MATRIX)
-    {
-      // Element size in parametric space
-      dXidu[0] = el->getParmin(0);
-      dXidu[1] = el->getParmin(1);
-      dXidu[2] = el->getParmin(2);
-    }
-    else if (integrand.getIntegrandType() & Integrand::AVERAGE)
-    {
-      // --- Compute average value of basis functions over the element -----
+      fe.iGP = iEl*nGauss*nGauss; // Global integration point counter
 
-      fe.Navg.resize(nBasis,true);
-      double vol = 0.0;
+      Matrix B(p1*p2*p3, 4); // Bezier evaluation points and derivatives
+      int ig = 1;
       for (int k = 0; k < nGauss; k++)
         for (int j = 0; j < nGauss; j++)
-          for (int i = 0; i < nGauss; i++)
-          {
-            // Fetch basis function derivatives at current integration point
-            evaluateBasis(fe, dNdu);
-
-            // Compute Jacobian determinant of coordinate mapping
-            // and multiply by weight of current integration point
-            double detJac = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu,false);
-            double weight = 0.125*vol*wg[i]*wg[j]*wg[k];
-
-            // Numerical quadrature
-            fe.Navg.add(fe.N,detJac*weight);
-            vol += detJac*weight;
-      }
-
-      // Divide by element volume
-      fe.Navg /= vol;
-    }
-
-    else if (integrand.getIntegrandType() & Integrand::ELEMENT_CENTER)
-    {
-      // Compute the element center
-      Go::Point X0;
-      double u0 = 0.5*(el->getParmin(0) + el->getParmax(0));
-      double v0 = 0.5*(el->getParmin(1) + el->getParmax(1));
-      double w0 = 0.5*(el->getParmin(2) + el->getParmax(2));
-      lrspline->point(X0,u0,v0,w0);
-      X = SplineUtils::toVec3(X0);
-    }
-
-    // Initialize element quantities
-    LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
-    if (!integrand.initElement(MNPC[iEl],fe,X,nRed*nRed*nRed,*A))
-    {
-      A->destruct();
-      ok = false;
-      break;
-    }
-
-    if (xr)
-    {
-      std::cerr << "Haven't really figured out what this part does yet\n";
-      exit(42142);
-#if 0
-      // --- Selective reduced integration loop ----------------------------
-
-      int ip = (((i3-p3)*nRed*nel2 + i2-p2)*nRed*nel1 + i1-p1)*nRed;
-      for (int k = 0; k < nRed; k++, ip += nRed*(nel2-1)*nRed*nel1)
-        for (int j = 0; j < nRed; j++, ip += nRed*(nel1-1))
-          for (int i = 0; i < nRed; i++, ip++)
+          for (int i = 0; i < nGauss; i++, fe.iGP++, ig++)
           {
             // Local element coordinates of current integration point
-            fe.xi   = xr[i];
-            fe.eta  = xr[j];
-            fe.zeta = xr[k];
+            fe.xi   = xg[i];
+            fe.eta  = xg[j];
+            fe.zeta = xg[k];
 
             // Parameter values of current integration point
-            fe.u = redpar[0](i+1,i1-p1+1);
-            fe.v = redpar[1](j+1,i2-p2+1);
-            fe.w = redpar[2](k+1,i3-p3+1);
+            fe.u = gpar[0][i];
+            fe.v = gpar[1][j];
+            fe.w = gpar[2][k];
 
-            // Fetch basis function derivatives at current point
-            evaluateBasis(fe, 1);
+            // Extract bezier basis functions
+            B.fillColumn(1, BN.getColumn(ig));
+            B.fillColumn(2, BdNdu.getColumn(ig)*2.0/du);
+            B.fillColumn(3, BdNdv.getColumn(ig)*2.0/dv);
+            B.fillColumn(4, BdNdw.getColumn(ig)*2.0/dw);
 
-            // Compute Jacobian inverse and derivatives
+            // Fetch basis function derivatives at current integration point
+            if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
+              evaluateBasis(fe, dNdu, d2Ndu2);
+            else
+              evaluateBasis(fe, dNdu, C, B) ;
+
+            // look for errors in bezier extraction
+            /*
+            int N    = nBasis;
+            int allP = p1*p2*p3;
+            double sum = 0;
+            for(int qq=1; qq<=N; qq++) sum+= fe.N(qq);
+            if (fabs(sum-1) > 1e-10) {
+              std::cerr << "fe.N not sums to one at integration point #" << ig << std::endl;
+              exit(123);
+            }
+            sum = 0;
+            for(int qq=1; qq<=N; qq++) sum+= dNdu(qq,1);
+            if (fabs(sum) > 1e-10) {
+              std::cerr << "dNdu not sums to zero at integration point #" << ig << std::endl;
+              exit(123);
+            }
+            sum = 0;
+            for(int qq=1; qq<=N; qq++) sum+= dNdu(qq,2);
+            if (fabs(sum) > 1e-10) {
+              std::cerr << "dNdv not sums to zero at integration point #" << ig << std::endl;
+              exit(123);
+            }
+            sum = 0;
+            for(int qq=1; qq<=N; qq++) sum+= dNdu(qq,3);
+            if (fabs(sum) > 1e-10) {
+              std::cerr << "dNdw not sums to zero at integration point #" << ig << std::endl;
+              exit(123);
+            }
+            sum = 0;
+            for(int qq=1; qq<=allP; qq++) sum+= B(qq,1);
+            if (fabs(sum-1) > 1e-10) {
+              std::cerr << "Bezier basis not sums to one at integration point #" << ig << std::endl;
+              exit(123);
+            }
+            sum = 0;
+            for(int qq=1; qq<=allP; qq++) sum+= B(qq,2);
+            if (fabs(sum) > 1e-10) {
+              std::cerr << "Bezier derivatives not sums to zero at integration point #" << ig << std::endl;
+              exit(123);
+            }
+            */
+
+            // Compute Jacobian inverse of coordinate mapping and derivatives
             fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+            if (fe.detJxW == 0.0) continue; // skip singular points
+
+            // Compute Hessian of coordinate mapping and 2nd order derivatives
+            if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
+              if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
+              {
+                ok = false;
+                continue;
+              }
+
+            // Compute G-matrix
+            if (integrand.getIntegrandType() & Integrand::G_MATRIX)
+              utl::getGmat(Jac,dXidu,fe.G);
 
             // Cartesian coordinates of current integration point
-            X = Xnod * fe.N;
+            X   = Xnod * fe.N;
             X.t = time.t;
 
-            // Compute the reduced integration terms of the integrand
-            fe.detJxW *= 0.125*dV*wr[i]*wr[j]*wr[k];
-            if (!integrand.reducedInt(*A,fe,X))
+            // Evaluate the integrand and accumulate element contributions
+            fe.detJxW *= 0.125*vol*wg[i]*wg[j]*wg[k];
+            if (!integrand.evalInt(*A,fe,time,X))
+            {
               ok = false;
+              continue;
+            }
+          } // end gauss integrand
+
+      // Finalize the element quantities
+      if (ok && !integrand.finalizeElement(*A,time,0))
+      {
+        ok = false;
+        continue;
       }
-#endif
+
+      // Assembly of global system integral
+      if (ok && !glInt.assemble(A->ref(),fe.iel))
+      {
+        ok = false;
+        continue;
+      }
+
+      A->destruct();
     }
-
-
-    // --- Integration loop over all Gauss points in each direction --------
-
-    fe.iGP = iEl*nGauss*nGauss; // Global integration point counter
-
-    Matrix B(p1*p2*p3, 4); // Bezier evaluation points and derivatives
-    ig = 1;
-    for (int k = 0; k < nGauss; k++)
-      for (int j = 0; j < nGauss; j++)
-        for (int i = 0; i < nGauss; i++, fe.iGP++, ig++)
-        {
-          // Local element coordinates of current integration point
-          fe.xi   = xg[i];
-          fe.eta  = xg[j];
-          fe.zeta = xg[k];
-
-          // Parameter values of current integration point
-          fe.u = gpar[0][i];
-          fe.v = gpar[1][j];
-          fe.w = gpar[2][k];
-
-          // Extract bezier basis functions
-          B.fillColumn(1, BN.getColumn(ig));
-          B.fillColumn(2, BdNdu.getColumn(ig)*2.0/du);
-          B.fillColumn(3, BdNdv.getColumn(ig)*2.0/dv);
-          B.fillColumn(4, BdNdw.getColumn(ig)*2.0/dw);
-
-          // Fetch basis function derivatives at current integration point
-          if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
-            evaluateBasis(fe, dNdu, d2Ndu2);
-          else
-            evaluateBasis(fe, dNdu, C, B) ;
-
-          // look for errors in bezier extraction
-          /*
-          int N    = nBasis;
-          int allP = p1*p2*p3;
-          double sum = 0;
-          for(int qq=1; qq<=N; qq++) sum+= fe.N(qq);
-          if (fabs(sum-1) > 1e-10) {
-            std::cerr << "fe.N not sums to one at integration point #" << ig << std::endl;
-            exit(123);
-          }
-          sum = 0;
-          for(int qq=1; qq<=N; qq++) sum+= dNdu(qq,1);
-          if (fabs(sum) > 1e-10) {
-            std::cerr << "dNdu not sums to zero at integration point #" << ig << std::endl;
-            exit(123);
-          }
-          sum = 0;
-          for(int qq=1; qq<=N; qq++) sum+= dNdu(qq,2);
-          if (fabs(sum) > 1e-10) {
-            std::cerr << "dNdv not sums to zero at integration point #" << ig << std::endl;
-            exit(123);
-          }
-          sum = 0;
-          for(int qq=1; qq<=N; qq++) sum+= dNdu(qq,3);
-          if (fabs(sum) > 1e-10) {
-            std::cerr << "dNdw not sums to zero at integration point #" << ig << std::endl;
-            exit(123);
-          }
-          sum = 0;
-          for(int qq=1; qq<=allP; qq++) sum+= B(qq,1);
-          if (fabs(sum-1) > 1e-10) {
-            std::cerr << "Bezier basis not sums to one at integration point #" << ig << std::endl;
-            exit(123);
-          }
-          sum = 0;
-          for(int qq=1; qq<=allP; qq++) sum+= B(qq,2);
-          if (fabs(sum) > 1e-10) {
-            std::cerr << "Bezier derivatives not sums to zero at integration point #" << ig << std::endl;
-            exit(123);
-          }
-          */
-
-          // Compute Jacobian inverse of coordinate mapping and derivatives
-          fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
-          if (fe.detJxW == 0.0) continue; // skip singular points
-
-          // Compute Hessian of coordinate mapping and 2nd order derivatives
-          if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
-            if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
-              ok = false;
-
-          // Compute G-matrix
-          if (integrand.getIntegrandType() & Integrand::G_MATRIX)
-            utl::getGmat(Jac,dXidu,fe.G);
-
-          // Cartesian coordinates of current integration point
-          X   = Xnod * fe.N;
-          X.t = time.t;
-
-          // Evaluate the integrand and accumulate element contributions
-          fe.detJxW *= 0.125*vol*wg[i]*wg[j]*wg[k];
-          if (!integrand.evalInt(*A,fe,time,X))
-            ok = false;
-
-    } // end gauss integrand
-
-    // Finalize the element quantities
-    if (ok && !integrand.finalizeElement(*A,time,0))
-      ok = false;
-
-    // Assembly of global system integral
-    if (ok && !glInt.assemble(A->ref(),fe.iel))
-      ok = false;
-
-    A->destruct();
   }
 
   return ok;
@@ -2028,4 +2047,19 @@ int ASMu3D::getCorner(int I, int J, int K, int basis) const
     ofs += this->getNoNodes(i);
 
   return corner.front()->getId()+ofs;
+}
+
+
+void ASMu3D::generateThreadGroups (const Integrand& integrand, bool silence,
+                                   bool ignoreGlobalLM)
+{
+  LR::generateThreadGroups(threadGroups, this->getBasis(1));
+  if (silence || threadGroups[0].size() < 2) return;
+
+  std::cout <<"\nMultiple threads are utilized during element assembly.";
+  for (size_t i = 0; i < threadGroups[0].size(); i++)
+  {
+    std::cout <<"\n Color "<< i+1;
+    std::cout << ": "<< threadGroups[0][i].size() <<" elements";
+  }
 }
