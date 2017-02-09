@@ -202,19 +202,24 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
     utl::getAttribute(elem,"patch",patch);
     utl::getAttribute(elem,"dir",pfdir);
 
-    if (patch < 1 || patch > (int)myModel.size())
+    if (patch < 1 || patch > nGlPatches)
     {
       std::cerr <<" *** SIM3D::parse: Invalid patch index "
                 << patch << std::endl;
       return false;
     }
-    IFEM::cout <<"\tPeriodic "<< char('H'+pfdir) <<"-direction P"<< patch
-               << std::endl;
-    static_cast<ASMs3D*>(myModel[patch-1])->closeFaces(pfdir);
+
+    ASMs3D* pch;
+    if ((pch = dynamic_cast<ASMs3D*>(this->getPatch(patch,true))))
+    {
+      IFEM::cout <<"\tPeriodic "<< char('H'+pfdir) <<"-direction P"<< patch
+                 << std::endl;
+      pch->closeFaces(pfdir);
 #ifdef USE_OPENMP
-    // Cannot do multi-threaded assembly with periodicities
-    omp_set_num_threads(1);
+      // Cannot do multi-threaded assembly with periodicities
+      omp_set_num_threads(1);
 #endif
+    }
   }
 
   return true;
