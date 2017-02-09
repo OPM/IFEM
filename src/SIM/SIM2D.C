@@ -235,19 +235,24 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
     utl::getAttribute(elem,"patch",patch);
     utl::getAttribute(elem,"dir",pedir);
 
-    if (patch < 1 || patch > (int)myModel.size())
+    if (patch < 1 || patch > nGlPatches)
     {
       std::cerr <<" *** SIM2D::parse: Invalid patch index "
                 << patch << std::endl;
       return false;
     }
-    IFEM::cout <<"\tPeriodic "<< char('H'+pedir) <<"-direction P"<< patch
-               << std::endl;
-    static_cast<ASMs2D*>(myModel[patch-1])->closeEdges(pedir);
+
+    ASMs2D* pch;
+    if ((pch = dynamic_cast<ASMs2D*>(this->getPatch(patch,true))))
+    {
+      IFEM::cout <<"\tPeriodic "<< char('H'+pedir) <<"-direction P"<< patch
+                 << std::endl;
+      pch->closeEdges(pedir);
 #ifdef USE_OPENMP
-    // Cannot do multi-threaded assembly with periodicities
-    omp_set_num_threads(1);
+      // Cannot do multi-threaded assembly with periodicities
+      omp_set_num_threads(1);
 #endif
+    }
   }
 
   else if (!strcasecmp(elem->Value(),"immersedboundary"))
