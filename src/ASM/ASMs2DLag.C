@@ -131,7 +131,7 @@ bool ASMs2DLag::generateFEMTopology ()
 {
   if (!surf) return false;
 
-  // Order of the basis in the two parametric directions (order = degree + 1)
+  // Order of basis in the two parametric directions (order = degree + 1)
   const int p1 = surf->order_u();
   const int p2 = surf->order_v();
 
@@ -217,11 +217,12 @@ bool ASMs2DLag::getElementCoordinates (Matrix& X, int iel) const
   }
 
   // Number of nodes per element
-  const size_t nen = surf->order_u()*surf->order_v();
+  size_t nen = surf->order_u()*surf->order_v();
+  if (nen > MNPC[--iel].size()) nen = MNPC[iel].size();
 
   X.resize(nsd,nen);
   for (size_t i = 0; i < nen; i++)
-    X.fillColumn(i+1,coord[MNPC[iel-1][i]].ptr());
+    X.fillColumn(i+1,coord[MNPC[iel][i]].ptr());
 
   return true;
 }
@@ -473,7 +474,7 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
   const int t1 = abs(edgeDir); // tangent direction normal to the patch edge
   const int t2 = 3-t1;         // tangent direction along the patch edge
 
-  // Order of basis in the three parametric directions (order = degree + 1)
+  // Order of basis in the two parametric directions (order = degree + 1)
   const int p1 = surf->order_u();
   const int p2 = surf->order_v();
 

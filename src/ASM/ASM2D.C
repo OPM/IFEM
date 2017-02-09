@@ -14,6 +14,7 @@
 #include "ASM2D.h"
 #include "ASMs2DIB.h"
 #include "ASMs2DC1.h"
+#include "ASMs2DTri.h"
 #include "ASMs2Dmx.h"
 #include "ASMs2DmxLag.h"
 #include "ASMs2DSpec.h"
@@ -37,7 +38,9 @@ ASMbase* ASM2D::create (ASM::Discretization discretization,
     return new ASMs2DC1(nd,nf[0]);
 
   case ASM::Lagrange:
-    if (nf.size() > 1 || mixedFEM)
+    if (nf.size() > 1 && nf[1] == 'T') // hack for triangular mesh
+      return new ASMs2DTri(nd,nf[0]);
+    else if (nf.size() > 1 || mixedFEM)
       return new ASMs2DmxLag(nd,nf);
     else
       return new ASMs2DLag(nd,nf[0]);
@@ -80,6 +83,7 @@ ASMbase* ASM2D::clone (const CharVec& nf) const
   TRY_CLONE2(ASMs2DmxLag,nf)
   TRY_CLONE2(ASMs2Dmx,nf)
   TRY_CLONE1(ASMs2DSpec,nf)
+  TRY_CLONE1(ASMs2DTri,nf)
   TRY_CLONE1(ASMs2DLag,nf)
   TRY_CLONE1(ASMs2DC1,nf)
   TRY_CLONE1(ASMs2DIB,nf)

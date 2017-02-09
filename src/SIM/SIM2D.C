@@ -329,13 +329,19 @@ bool SIM2D::parse (const TiXmlElement* elem)
 {
   if (!strcasecmp(elem->Value(),"geometry"))
   {
-    // Check for immersed boundary calculation.
+    // Check for triangular mesh or immersed boundary calculation.
     // This code must be placed here (and not in parseGeometryTag)
-    // due to instanciation of the ASMs2DIB class.
+    // due to instantiation of the ASMs2D[T3|IB] class.
     int maxDepth = 0;
     const TiXmlElement* child = elem->FirstChildElement();
     for (; child; child = child->NextSiblingElement())
-      if (!strcasecmp(child->Value(),"immersedboundary"))
+      if (!strcasecmp(child->Value(),"triangular"))
+      {
+        nf.push_back('T');
+        // Triangular mesh also implies Lagrange interpolation (no splines)
+        opt.discretization = ASM::Lagrange;
+      }
+      else if (!strcasecmp(child->Value(),"immersedboundary"))
         if (utl::getAttribute(child,"max_depth",maxDepth))
         {
           nf.push_back('I');
