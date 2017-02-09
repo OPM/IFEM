@@ -63,6 +63,8 @@ public:
   size_t getNoElms() const { return MINEX.size(); }
   //! \brief Returns the number of nodes per element.
   size_t getNoElmNodes() const { return nen; }
+  //! \brief Sets the number of nodes per element.
+  void setNoElmNodes(size_t nenod) { nen = nenod; }
 
   //! \brief Merges another element block into this one.
   void merge(const ElementBlock* other, std::vector<int>& nodeNums);

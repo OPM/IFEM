@@ -14,11 +14,13 @@
 #include "ElementBlock.h"
 #include "Vec3Oper.h"
 #include <algorithm>
+#include <numeric>
 
 
 ElementBlock::ElementBlock (size_t nenod)
 {
-  if (nenod != 2 && nenod != 4 && nenod != 9 && nenod != 8 && nenod != 27)
+  if (nenod != 2 && nenod != 3 && nenod != 4 && nenod != 6 && nenod != 9 &&
+      nenod != 8 && nenod != 27)
   {
     std::cout <<"ElementBlock: Invalid number of element nodes "<< nenod
               <<" reset to 8"<< std::endl;
@@ -33,8 +35,12 @@ void ElementBlock::resize (size_t nI, size_t nJ, size_t nK)
   coord.resize(nI*nJ*nK);
   if (nen == 2 && nJ < 2 && nK < 2)
     MMNPC.resize(2*(nI-1));
+  else if (nen == 3 && nK < 2)
+    MMNPC.resize(6*(nI-1)*(nJ-1));
   else if (nen == 4 && nK < 2)
     MMNPC.resize(4*(nI-1)*(nJ-1));
+  else if (nen == 6 && nK < 2)
+    MMNPC.resize(12*(nI-1)*(nJ-1));
   else if (nen == 9 && nK < 2)
     MMNPC.resize(9*(nI-1)*(nJ-1)/4);
   else if (nen == 8)
@@ -43,6 +49,7 @@ void ElementBlock::resize (size_t nI, size_t nJ, size_t nK)
     MMNPC.resize(27*(nI-1)*(nJ-1)*(nK-1)/8);
 
   MINEX.resize(MMNPC.size()/nen,0);
+  std::iota(MINEX.begin(),MINEX.end(),1);
 }
 
 
@@ -51,6 +58,7 @@ void ElementBlock::unStructResize (size_t nEl, size_t nPts)
   coord.resize(nPts);
   MMNPC.resize(nen*nEl);
   MINEX.resize(MMNPC.size()/nen,0);
+  std::iota(MINEX.begin(),MINEX.end(),1);
 }
 
 

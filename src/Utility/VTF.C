@@ -839,6 +839,9 @@ bool VTF::writeElements (const char* partName, int iBlockID, int iNodeBlockID)
   case 2:
     ok = VTFA_SUCCESS(eBlock.AddElements(VTFA_BEAMS,mnpc,nel));
     break;
+  case 3:
+    ok = VTFA_SUCCESS(eBlock.AddElements(VTFA_TRIANGLES,mnpc,nel));
+    break;
   case 4:
     ok = VTFA_SUCCESS(eBlock.AddElements(VTFA_QUADS,mnpc,nel));
     break;
@@ -865,6 +868,9 @@ bool VTF::writeElements (const char* partName, int iBlockID, int iNodeBlockID)
   switch (grid->getNoElmNodes()) {
   case 2:
     ok = VTFA_SUCCESS(eBlock.AddElements(VTFXA_BEAMS,mnpc,nel));
+    break;
+  case 3:
+    ok = VTFA_SUCCESS(eBlock.AddElements(VTFXA_TRIANGLES,mnpc,nel));
     break;
   case 4:
     ok = VTFA_SUCCESS(eBlock.AddElements(VTFXA_QUADS,mnpc,nel));
