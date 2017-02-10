@@ -982,7 +982,7 @@ bool SIMinput::setTracProperty (int code, Property::Type ptype,
 bool SIMinput::setNeumann (const std::string& prop, const std::string& type,
                            int direction, int code)
 {
-  if (direction == 0 && this->getNoFields() == 1)
+  if ((direction == 0 && this->getNoFields() == 1) || direction > nsd)
   {
     RealFunc* f = utl::parseRealFunc(prop,type);
     if (!f)
