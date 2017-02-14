@@ -34,7 +34,7 @@ class SIMoutput : public SIMinput
 {
 protected:
   //! \brief The constructor just forwards to the base class constructor.
-  SIMoutput(IntegrandBase* itg) : SIMinput(itg), myGeomID(0), myVtf(nullptr) {}
+  SIMoutput(IntegrandBase* itg) : SIMinput(itg), myResPrec(3), myGeomID(0), myVtf(nullptr) {}
 
 public:
   //! \brief The destructor frees the dynamically allocated VTF object.
@@ -298,6 +298,7 @@ private:
   typedef std::pair<std::string,ResPointVec> ResPtPair; //!< Result point group
 
   std::vector<ResPtPair> myPoints; //!< User-defined result sampling points
+  int  myResPrec; //!< User-defined precision for result sampling
 
   int  myGeomID; //!< VTF geometry block ID for the first patch
   VTF* myVtf;    //!< VTF-file for result visualization
