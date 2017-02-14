@@ -79,6 +79,8 @@ bool SIMoutput::parseOutputTag (const TiXmlElement* elem)
   if (strcasecmp(elem->Value(),"resultpoints"))
     return this->SIMinput::parseOutputTag(elem);
 
+  utl::getAttribute(elem,"precision",myResPrec);
+
   std::string fname;
   if (utl::getAttribute(elem,"file",fname))
     this->setPointResultFile(fname,elem->FirstChildElement("dump_coordinates"));
@@ -1383,7 +1385,7 @@ bool SIMoutput::savePoints (const Vector& psol, double time, int step) const
       std::ofstream fs(myPoints[i].first.c_str(),
                        step == 1 ? std::ios::out : std::ios::app);
       utl::LogStream logs(fs);
-      if (!this->dumpResults(psol,time,logs,myPoints[i].second,false,3))
+      if (!this->dumpResults(psol,time,logs,myPoints[i].second,false,myResPrec))
         return false;
     }
   }
