@@ -194,8 +194,8 @@ bool ASMs2DmxLag::generateFEMTopology ()
 }
 
 
-bool ASMs2DmxLag::connectPatch (int edge, ASMs2D& neighbor,
-				int nedge, bool revers)
+bool ASMs2DmxLag::connectPatch (int edge, ASMs2D& neighbor, int nedge, bool revers,
+                                int basis, bool coordCheck, int thick)
 {
   ASMs2DmxLag* neighMx = dynamic_cast<ASMs2DmxLag*>(&neighbor);
   if (!neighMx) return false;
@@ -203,8 +203,9 @@ bool ASMs2DmxLag::connectPatch (int edge, ASMs2D& neighbor,
   size_t nb1=0;
   size_t nb2=0;
   for (size_t i = 1;i <= nxx.size(); ++i) {
-    if (!this->connectBasis(edge,neighbor,nedge,revers,i,nb1,nb2))
-      return false;
+    if (basis == 0 || i == (size_t)basis)
+      if (!this->connectBasis(edge,neighbor,nedge,revers,i,nb1,nb2,coordCheck,thick))
+        return false;
     nb1 += nb[i-1];
     nb2 += neighMx->nb[i-1];
   }

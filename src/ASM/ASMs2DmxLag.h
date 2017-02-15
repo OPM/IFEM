@@ -69,8 +69,11 @@ public:
   //! \param neighbor The neighbor patch
   //! \param[in] nedge Local edge index of neighbor patch, in range [1,4]
   //! \param[in] revers Indicates whether the two edges have opposite directions
-  virtual bool connectPatch(int edge, ASMs2D& neighbor, int nedge,
-			    bool revers = false);
+  //! \param[in] basis The basis to connect (for mixed problems)
+  //! \param[in] coordCheck False to disable coordinate checks (periodic connections)
+  //! \param[in] thick Thickness of connection
+  virtual bool connectPatch(int edge, ASMs2D& neighbor, int nedge, bool revers,
+                            int basis = 0, bool coordCheck = true, int thick = 1);
 
   //! \brief Makes two opposite boundary edges periodic.
   //! \param[in] dir Parameter direction defining the periodic edges
