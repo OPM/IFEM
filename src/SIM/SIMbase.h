@@ -369,6 +369,8 @@ public:
   //! \param[out] RF Reaction force in each spatial direction
   //! \param[in] pcode Property code identifying the boundary
   bool getCurrentReactions(RealArray& RF, int pcode) const;
+  //! \brief Returns current reaction force vector.
+  const Vector* getReactionForces() const;
 
   //! \brief Performs a generalized eigenvalue analysis of the assembled system.
   //! \param[in] iop Which eigensolver method to use

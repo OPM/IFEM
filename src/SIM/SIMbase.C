@@ -875,6 +875,9 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
 
 bool SIMbase::extractLoadVec (Vector& loadVec) const
 {
+  if (!myEqSys || !mySam)
+    return false;
+
   // Expand load vector from equation ordering to DOF-ordering
   SystemVector* b = myEqSys->getVector();
   if (!b || !mySam->expandSolution(*b,loadVec,0.0))
@@ -1143,6 +1146,8 @@ int SIMbase::getLocalNode (int node) const
 
 SystemVector* SIMbase::getRHSvector (size_t idx, bool copy) const
 {
+  if (!myEqSys) return nullptr;
+
   SystemVector* rhs = myEqSys->getVector(idx);
   return rhs && copy ? rhs->copy() : rhs;
 }
@@ -1150,6 +1155,8 @@ SystemVector* SIMbase::getRHSvector (size_t idx, bool copy) const
 
 void SIMbase::addToRHSvector (size_t idx, const SystemVector& vec, double scale)
 {
+  if (!myEqSys) return;
+
   SystemVector* rhs = myEqSys->getVector(idx);
   if (!rhs || scale == 0.0) return;
 
@@ -1371,8 +1378,11 @@ double SIMbase::externalEnergy (const Vectors& psol) const
 
 bool SIMbase::getCurrentReactions (RealArray& RF, const Vector& psol) const
 {
+  if (!myEqSys || !mySam)
+    return false;
+
   const Vector* reactionForces = myEqSys->getReactions();
-  if (!reactionForces || !mySam) return false;
+  if (!reactionForces) return false;
 
   RF.resize(1+nsd);
   RF.front() = 2.0*mySam->normReact(psol,*reactionForces);
@@ -1385,8 +1395,11 @@ bool SIMbase::getCurrentReactions (RealArray& RF, const Vector& psol) const
 
 bool SIMbase::getCurrentReactions (RealArray& RF, int pcode) const
 {
+  if (!myEqSys || !mySam)
+    return false;
+
   const Vector* reactionForces = myEqSys->getReactions();
-  if (!reactionForces || !mySam) return false;
+  if (!reactionForces) return false;
 
   IntVec glbNodes;
   this->getBoundaryNodes(pcode,glbNodes);
@@ -1396,6 +1409,12 @@ bool SIMbase::getCurrentReactions (RealArray& RF, int pcode) const
     RF[dir] = mySam->getReaction(dir,*reactionForces,&glbNodes);
 
   return true;
+}
+
+
+const Vector* SIMbase::getReactionForces () const
+{
+  return myEqSys ? myEqSys->getReactions() : nullptr;
 }
 
 
