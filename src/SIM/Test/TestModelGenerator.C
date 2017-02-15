@@ -25,6 +25,7 @@ template<class Generator>
 class TestModelGeneratorWrapper : public Generator {
 public:
   TestModelGeneratorWrapper(const TiXmlElement* geo) : Generator(geo) {}
+  using Generator::createG2;
   std::string createG2(int nsd)
   {
     return Generator::createG2(nsd);
