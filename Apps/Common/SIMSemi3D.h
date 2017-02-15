@@ -256,6 +256,7 @@ public:
     return true;
   }
 
+  using SIMadmin::parse;
   //! \brief Parses a data section from an XML element.
   //! \param[in] elem The XML element to parse
   virtual bool parse(const TiXmlElement* elem)

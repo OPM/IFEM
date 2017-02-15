@@ -529,6 +529,7 @@ protected:
   //! \param[out] XC Coordinates of the element corners
   void getElementCorners(int i1, int i2, std::vector<Vec3>& XC) const;
 
+  using ASMbase::generateThreadGroups;
   //! \brief Generates element groups for multi-threading of interior integrals.
   //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] silence If \e true, suppress threading group outprint
