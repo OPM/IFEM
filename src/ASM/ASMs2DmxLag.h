@@ -64,6 +64,7 @@ public:
   //! \brief Initializes the patch level MADOF array for mixed problems.
   virtual void initMADOF(const int* sysMadof);
 
+  using ASMs2D::connectPatch;
   //! \brief Connects all matching nodes on two adjacent boundary edges.
   //! \param[in] edge Local edge index of this patch, in range [1,4]
   //! \param neighbor The neighbor patch

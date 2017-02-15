@@ -64,6 +64,7 @@ public:
   //! \brief Initializes the patch level MADOF array for mixed problems.
   virtual void initMADOF(const int* sysMadof);
 
+  using ASMs3D::connectPatch;
   //! \brief Connects all matching nodes on two adjacent boundary faces.
   //! \param[in] face Local face index of this patch, in range [1,6]
   //! \param neighbor The neighbor patch
