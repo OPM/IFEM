@@ -266,7 +266,7 @@ void PETScMatrix::initAssembly (const SAM& sam, bool b)
 
     // map from sparse matrix indices to block matrix indices
     glb2Blk.resize(SparseMatrix::A.size());
-    std::vector<std::array<int,2>> eq2b(sam.getNoEquations(), {-1, 0}); // cache
+    std::vector<std::array<int,2>> eq2b(sam.getNoEquations(), {{-1, 0}}); // cache
     for (size_t j = 0; j < cols(); ++j) {
       for (int i = IA[j]; i < IA[j+1]; ++i) {
         int iblk = -1;

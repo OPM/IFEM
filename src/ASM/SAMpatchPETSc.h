@@ -94,12 +94,14 @@ private:
 
   // Parameters for parallel computing
   int    nProc;      //!< Number of processes
+#if IFEM_USE_PETSC
   int    nleq;       //!< Number of equations for this processor
   int    nnodGlob;   //!< Number of global nodes;
   IntVec ghostNodes; //!< Indices for the ghost nodes
   IntVec l2gn;       //!< Local-to-global node numbers for this processor
   int    ieqmin;     //!< Minium equation number
   int    ieqmax;     //!< Maximun equation number
+#endif
 
   const ProcessAdm& adm; //!< Parallel process administrator
 
