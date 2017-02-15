@@ -753,6 +753,32 @@ namespace utl //! General utility classes and functions.
       n[2] = n_3;
     }
 
+    //! \brief Constructor to read a matrix from a stream.
+    matrix3d(std::istream& is, std::streamsize max = 10)
+    {
+      // Read size
+      is.ignore(10, ':');
+      is.ignore(1);
+      for (size_t i=0; i<3; ++i)
+        is >> n[i];
+      is.ignore(1, '\n');
+
+      // Read contents
+      double num;
+      elem.resize(n[0]*n[1]*n[2]);
+      for (size_t k=0; k<n[2]; ++k) {
+        is.ignore(max, '\n');
+        for (size_t i=0; i<n[0]; ++i) {
+          is.ignore(max, ':');
+          for (size_t j=0; j<n[1]; ++j) {
+            is >> num;
+            elem[n[0]*n[1]*k + n[0]*j + i] = num;
+          }
+          is.ignore(1, '\n');
+        }
+      }
+    }
+
     //! \brief Resize the matrix to dimension \f$n_1 \times n_2 \times n_3\f$.
     //! \details Will erase the previous content, but only if both
     //! the total matrix size, and n_1 or n_2 in the matrix are changed.
@@ -821,6 +847,13 @@ namespace utl //! General utility classes and functions.
       return elem[i1-1 + n[0]*((i2-1) + n[1]*(i3-1))];
     }
 
+    //! \brief Add the given matrix \b X to \a *this.
+    matrix3d<T>& operator+=(const matrix3d<T>& X) { return this->add(X); }
+    //! \brief Subtract the given matrix \b X from \a *this.
+    matrix3d<T>& operator-=(const matrix3d<T>& X) { return this->add(X,T(-1)); }
+    //! \brief Add the given matrix \b X scaled by \a alfa to \a *this.
+    matrix3d<T>& add(const matrix3d<T>& X, T alfa = T(1));
+
     //! \brief Access through pointer.
     T* ptr() { return &elem.front(); }
     //! \brief Reference through pointer.
@@ -841,6 +874,9 @@ namespace utl //! General utility classes and functions.
     */
     bool multiply(const matrix<T>& A, const matrix3d<T>& B,
                   bool transA = false, bool addTo = false);
+
+    //! \brief Return the Euclidean norm of the matrix.
+    T norm2() const { return elem.norm2(); }
 
   private:
     //! \brief Check dimension compatibility for matrix-matrix multiplication.
@@ -982,6 +1018,22 @@ namespace utl //! General utility classes and functions.
 
   template<> inline
   matrix<double>& matrix<double>::add(const matrix<double>& X, double alfa)
+  {
+    size_t n = this->size() < X.size() ? this->size() : X.size();
+    cblas_daxpy(n,alfa,X.ptr(),1,this->ptr(),1);
+    return *this;
+  }
+
+  template<> inline
+  matrix3d<float>& matrix3d<float>::add(const matrix3d<float>& X, float alfa)
+  {
+    size_t n = this->size() < X.size() ? this->size() : X.size();
+    cblas_saxpy(n,alfa,X.ptr(),1,this->ptr(),1);
+    return *this;
+  }
+
+  template<> inline
+  matrix3d<double>& matrix3d<double>::add(const matrix3d<double>& X, double alfa)
   {
     size_t n = this->size() < X.size() ? this->size() : X.size();
     cblas_daxpy(n,alfa,X.ptr(),1,this->ptr(),1);
@@ -1408,6 +1460,16 @@ namespace utl //! General utility classes and functions.
   }
 
   template<class T> inline
+  matrix3d<T>& matrix3d<T>::add(const matrix3d<T>& X, T alfa)
+  {
+    T* p = this->ptr();
+    const T* q = X.ptr();
+    for (size_t i = 0; i < this->size() && i < X.size(); i++, p++, q++)
+      *p += alfa*(*q);
+    return *this;
+  }
+
+  template<class T> inline
   matrix<T>& matrix<T>::multiply(T c)
   {
     for (size_t i = 0; i < elem.size(); i++)
@@ -1626,7 +1688,7 @@ namespace utl //! General utility classes and functions.
   //! \brief Truncate a value to zero when it is less than a given threshold.
   //! \details Used when printing matrices for easy comparison with other
   //! matrices when they contain terms that are numerically zero, except for
-  //! some round-off noice. The value of the global variable \a zero_print_tol
+  //! some round-off noise. The value of the global variable \a zero_print_tol
   //! is used as a tolerance in this method.
   template<class T> inline T trunc(const T& v)
   {
@@ -1678,6 +1740,7 @@ namespace utl //! General utility classes and functions.
     if (A.empty())
       return s <<" (empty)"<< std::endl;
 
+    s <<"Dimension: "<< A.dim(1) <<" "<< A.dim(2) <<" "<< A.dim(3);
     matrix<T> B(A.dim(1),A.dim(2));
     const T* Aptr = A.ptr();
     for (size_t k = 0; k < A.dim(3); k++, Aptr += B.size())
