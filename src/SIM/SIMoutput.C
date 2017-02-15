@@ -16,7 +16,6 @@
 #include "ASMbase.h"
 #include "SAM.h"
 #include "IntegrandBase.h"
-#include "AlgEqSystem.h"
 #include "AnaSol.h"
 #include "Tensor.h"
 #include "Vec3Oper.h"
@@ -28,6 +27,14 @@
 #include <fstream>
 #include <iomanip>
 #include <array>
+
+
+SIMoutput::SIMoutput (IntegrandBase* itg) : SIMinput(itg)
+{
+  myPrec = 3;
+  myGeomID = 0;
+  myVtf = nullptr;
+}
 
 
 SIMoutput::~SIMoutput ()
@@ -79,7 +86,7 @@ bool SIMoutput::parseOutputTag (const TiXmlElement* elem)
   if (strcasecmp(elem->Value(),"resultpoints"))
     return this->SIMinput::parseOutputTag(elem);
 
-  utl::getAttribute(elem,"precision",myResPrec);
+  utl::getAttribute(elem,"precision",myPrec);
 
   std::string fname;
   if (utl::getAttribute(elem,"file",fname))
@@ -1180,8 +1187,21 @@ bool SIMoutput::dumpResults (const Vector& psol, double time,
 
   size_t i, j, k;
   Matrix sol1, sol2;
-  Vector reactionFS;
-  const Vector* reactionForces = myEqSys->getReactions();
+  Vector sol3, reactionFS;
+  Vec3   sol4;
+
+  const Vector* reactionForces = this->getReactionForces();
+  RealFunc*     psolScl = mySol ? mySol->getScalarSol() : nullptr;
+  VecFunc*      psolVec = mySol ? mySol->getVectorSol() : nullptr;
+  VecFunc*      ssolScl = mySol ? mySol->getScalarSecSol() : nullptr;
+  TensorFunc*   ssolVec = mySol ? mySol->getVectorSecSol() : nullptr;
+  STensorFunc*  ssolStr = mySol ? mySol->getStressSol() : nullptr;
+
+  size_t nxsol = 0;
+  if (psolScl)
+    nxsol = 1;
+  else if (psolVec)
+    nxsol = this->getNoSpaceDim();
 
   for (i = 0; i < myModel.size(); i++)
   {
@@ -1189,7 +1209,8 @@ bool SIMoutput::dumpResults (const Vector& psol, double time,
 
     ResPointVec::const_iterator p;
     std::array<RealArray,3> params;
-    IntVec points;
+    IntVec  points;
+    Vec3Vec Xp;
 
     // Find all evaluation points within this patch, if any
     for (j = 0, p = gPoints.begin(); p != gPoints.end(); j++, p++)
@@ -1199,9 +1220,13 @@ bool SIMoutput::dumpResults (const Vector& psol, double time,
           points.push_back(p->inod > 0 ? p->inod : -(j+1));
           for (k = 0; k < myModel[i]->getNoParamDim(); k++)
             params[k].push_back(p->u[k]);
+          if (mySol) Xp.push_back(p->X);
         }
         else if (p->inod > 0)
+        {
           points.push_back(p->inod);
+          if (mySol) Xp.push_back(p->X);
+        }
 
     if (points.empty()) continue; // no points in this patch
 
@@ -1246,12 +1271,32 @@ bool SIMoutput::dumpResults (const Vector& psol, double time,
       for (k = 1; k <= sol1.rows(); k++)
         os << std::setw(flWidth) << utl::trunc(sol1(k,j+1));
 
+      if (psolScl)
+        sol4.x = (*psolScl)(Vec4(Xp[j],time));
+      else if (psolVec)
+        sol4 = (*psolVec)(Vec4(Xp[j],time));
+      if (nxsol > 0)
+        os <<"\n\t\texact1";
+      for (k = 0; k < nxsol; k++)
+        os << std::setw(flWidth) << utl::trunc(sol4[k]);
+
       if (opt.discretization >= ASM::Spline)
       {
         if (formatted && sol2.rows() > 0)
           os <<"\n\t\tsol2 =";
         for (k = 1; k <= sol2.rows(); k++)
           os << std::setw(flWidth) << utl::trunc(sol2(k,j+1));
+
+        if (ssolScl || ssolVec || ssolStr)
+          os <<"\n\t\texact2";
+        if (ssolScl)
+          sol3 = (*ssolScl)(Vec4(Xp[j],time)).vec(this->getNoSpaceDim());
+        else if (ssolVec)
+          sol3 = (*ssolVec)(Vec4(Xp[j],time));
+        else if (ssolStr)
+          sol3 = (*ssolStr)(Vec4(Xp[j],time));
+        for (k = 0; k < sol3.size(); k++)
+          os << std::setw(flWidth) << utl::trunc(sol3[k]);
       }
 
       if (reactionForces && points[j] > 0)
@@ -1385,7 +1430,7 @@ bool SIMoutput::savePoints (const Vector& psol, double time, int step) const
       std::ofstream fs(myPoints[i].first.c_str(),
                        step == 1 ? std::ios::out : std::ios::app);
       utl::LogStream logs(fs);
-      if (!this->dumpResults(psol,time,logs,myPoints[i].second,false,myResPrec))
+      if (!this->dumpResults(psol,time,logs,myPoints[i].second,false,myPrec))
         return false;
     }
   }
