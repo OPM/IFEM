@@ -24,6 +24,17 @@
 //! \param[in] old Spline basis to extend
 //! \return New spline basis
 Go::BsplineBasis extendedBasis(const Go::BsplineBasis& old);
+//! \brief Helper for parsing periodic_? variable
+//! \param[in] nb Number of bases
+//! \param[in] basis Basis index under scrutiny
+//! \param[in] periodic Periodicity information to parse
+//! \return true if basis is periodic, false otherwise
+//! \return New spline basis
+static bool basisIsIn(size_t nb, int basis, int periodic) {
+  for (size_t p=0; p<nb; ++p)
+    if (basis == (periodic/(int)pow(10,p))%10)
+      return true;
+  return false; };
 
 
 /*!

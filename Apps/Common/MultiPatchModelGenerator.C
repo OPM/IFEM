@@ -533,6 +533,7 @@ bool MultiPatchModelGenerator2D::createTopology (SIMinput& sim) const
 
   ASMs2D* pch0 = static_cast<ASMs2D*>(sim.getPatch(1));
   size_t nb = pch0->getNoBasis();
+
   for (size_t b = 1; b <= nb; ++b) {
     Go::SplineSurface* srf = pch0->getBasis(b);
     int p1 = srf->order_u();
@@ -542,41 +543,37 @@ bool MultiPatchModelGenerator2D::createTopology (SIMinput& sim) const
 
     for (size_t j = 0; j < ny; ++j)
       for (size_t i = 0; i < nx-1; ++i) {
-        if (!sim.addConnection(IJ(i,j), IJ(i+1,j), 2, 1, 0, b, true, 1, thick(1)))
+        if (!sim.addConnection(IJ(i,j),IJ(i+1,j),2,1,0,b,true,1,thick(1)))
           return false;
       }
 
     for (size_t j = 0; j < ny-1; ++j)
       for (size_t i = 0; i < nx; ++i)
-        if (!sim.addConnection(IJ(i,j), IJ(i,j+1), 4, 3, 0, b, true, 1, thick(2)))
+        if (!sim.addConnection(IJ(i,j),IJ(i,j+1),4,3,0,b,true,1,thick(2)))
           return false;
+
+    if (basisIsIn(nb, b, periodic_x))
+      if (nx < 2) {
+        std::cerr << "MultiPatchModelGenerator2D::createTopology: smooth"
+                  << " periodicity only supported across patches (nx > 1).\n";
+        return false;
+      } else {
+        for (size_t j = 0; j < ny; ++j)
+          if (!sim.addConnection(IJ(0,j),IJ(nx-1,j),1,2,0,b,false,1,thick(1)))
+            return false;
+      }
+
+    if (basisIsIn(nb, b, periodic_y))
+      if (ny < 2) {
+        std::cerr << "MultiPatchModelGenerator2D::createTopology: smooth"
+                  << " periodicity only supported across patches (ny > 1).\n";
+        return false;
+      } else {
+        for (size_t i = 0; i < nx; ++i)
+          if (!sim.addConnection(IJ(i,0),IJ(i,ny-1),3,4,0,b,false,1,thick(2)))
+            return false;
+      }
   }
-
-  if (periodic_x)
-    for (size_t j = 0; j < ny; ++j)
-      if (nx > 1) {
-        if (!sim.addConnection(IJ(0,j), IJ(nx-1,j), 1, 2, 0, 0, false))
-          return false;
-      }
-      else {
-        IFEM::cout <<"\tPeriodic I-direction P"<< IJ(0,j) << std::endl;
-        ASMs2D* pch = dynamic_cast<ASMs2D*>(sim.getPatch(IJ(0,j), true));
-        if (pch)
-          pch->closeEdges(1);
-      }
-
-  if (periodic_y)
-    for (size_t i = 0; i < nx; ++i)
-      if (ny > 1) {
-        if (!sim.addConnection(IJ(i,0), IJ(i,ny-1), 3, 4, 0, 0, false))
-          return false;
-      }
-      else {
-        IFEM::cout <<"\tPeriodic J-direction P"<< IJ(i,0)<< std::endl;
-        ASMs2D* pch = dynamic_cast<ASMs2D*>(sim.getPatch(IJ(i,0), true));
-        if (pch)
-          pch->closeEdges(2);
-      }
 
   return true;
 }
@@ -988,6 +985,7 @@ bool MultiPatchModelGenerator3D::createTopology (SIMinput& sim) const
 
   ASMs3D* pch0 = static_cast<ASMs3D*>(sim.getPatch(1));
   size_t nb = pch0->getNoBasis();
+
   for (size_t b = 1; b <= nb; ++b) {
     Go::SplineVolume* vol = pch0->getBasis(b);
     int p1 = vol->order(0);
@@ -1004,60 +1002,57 @@ bool MultiPatchModelGenerator3D::createTopology (SIMinput& sim) const
     for (size_t k = 0; k < nz; ++k)
       for (size_t j = 0; j < ny; ++j)
         for (size_t i = 0; i < nx-1; ++i)
-          if (!sim.addConnection(IJK(i,j,k), IJK(i+1,j,k), 2, 1, 0, b, true, 2, thick(1)))
+          if (!sim.addConnection(IJK(i,j,k),IJK(i+1,j,k),2,1,0,b,true,2,thick(1)))
             return false;
 
     for (size_t k = 0; k < nz; ++k)
       for (size_t j = 0; j < ny-1; ++j)
         for (size_t i = 0; i < nx; ++i)
-          if (!sim.addConnection(IJK(i,j,k), IJK(i,j+1,k), 4, 3, 0, b, true, 2, thick(2)))
+          if (!sim.addConnection(IJK(i,j,k),IJK(i,j+1,k),4,3,0,b,true,2,thick(2)))
             return false;
 
     for (size_t k = 0; k < nz-1; ++k)
       for (size_t j = 0; j < ny; ++j)
         for (size_t i = 0; i < nx; ++i)
-          if (!sim.addConnection(IJK(i,j,k), IJK(i,j,k+1), 6, 5, 0, b, true, 2, thick(3)))
+          if (!sim.addConnection(IJK(i,j,k),IJK(i,j,k+1),6,5,0,b,true,2,thick(3)))
             return false;
+
+    if (basisIsIn(nb, b, periodic_x))
+      if (nx < 2) {
+        std::cerr << "MultiPatchModelGenerator3D::createTopology: smooth"
+                  << " periodicity only supported across patches (nx > 1).\n";
+        return false;
+      } else {
+        for (size_t k = 0; k < nz; ++k)
+          for (size_t j = 0; j < ny; ++j)
+            if (!sim.addConnection(IJK(0,j,k),IJK(nx-1,j,k),1,2,0,b,false,2,thick(1)))
+              return false;
+      }
+
+    if (basisIsIn(nb, b, periodic_y))
+      if (ny < 2) {
+        std::cerr << "MultiPatchModelGenerator3D::createTopology: smooth"
+                  << " periodicity only supported across patches (ny > 1).\n";
+        return false;
+      } else {
+        for (size_t k = 0; k < nz; ++k)
+          for (size_t i = 0; i < nx; ++i)
+            if (!sim.addConnection(IJK(i,0,k),IJK(i,ny-1,k),3,4,0,b,false,2,thick(2)))
+              return false;
+      }
+
+    if (basisIsIn(nb, b, periodic_z))
+      if (nz < 2) {
+        std::cerr << "MultiPatchModelGenerator3D::createTopology: smooth"
+                  << " periodicity only supported across patches (nz > 1).\n";
+        return false;
+      } else {
+        for (size_t j = 0; j < ny; ++j)
+          for (size_t i = 0; i < nx; ++i)
+            if (!sim.addConnection(IJK(i,j,0),IJK(i,j,nz-1),5,6,0,b,false,2,thick(3)))
+              return false;
+      }
   }
-
-  if (periodic_x)
-    for (size_t k = 0; k < nz; ++k)
-      for (size_t j = 0; j < ny; ++j)
-        if (nx > 1) {
-          if (!sim.addConnection(IJK(0,j,k), IJK(nx-1,j,k), 1, 2, 0, 0, false, 2))
-            return false;
-        } else {
-          IFEM::cout <<"\tPeriodic I-direction P"<< IJK(0,j,k) << std::endl;
-          ASMs3D* pch = dynamic_cast<ASMs3D*>(sim.getPatch(IJK(0,j,k), true));
-          if (pch)
-            pch->closeFaces(1);
-        }
-
-  if (periodic_y)
-    for (size_t k = 0; k < nz; ++k)
-      for (size_t i = 0; i < nx; ++i)
-        if (ny > 1) {
-          if (!sim.addConnection(IJK(i,0,k), IJK(i,ny-1,k), 3, 4, 0, 0, false, 2))
-            return false;
-         } else {
-          IFEM::cout <<"\tPeriodic J-direction P"<< IJK(i,0,k) << std::endl;
-          ASMs3D* pch = dynamic_cast<ASMs3D*>(sim.getPatch(IJK(i,0,k), true));
-          if (pch)
-            pch->closeFaces(2);
-         }
-
-  if (periodic_z)
-    for (size_t j = 0; j < ny; ++j)
-      for (size_t i = 0; i < nx; ++i)
-        if (nz > 1) {
-          if (!sim.addConnection(IJK(i,j,0), IJK(i,j,nz-1), 5, 6, 0, 0, false, 2))
-            return false;
-        } else {
-          IFEM::cout <<"\tPeriodic K-direction P"<< IJK(i,j,0) << std::endl;
-          ASMs3D* pch = dynamic_cast<ASMs3D*>(sim.getPatch(IJK(i,j,0), true));
-          if (pch)
-            pch->closeFaces(3);
-        }
 
   return true;
 }
