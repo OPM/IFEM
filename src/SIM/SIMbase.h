@@ -276,13 +276,15 @@ public:
   bool solveMatrixSystem(Vectors& solution, int printSol = 0,
                          const char* compName = "displacement");
 
-  //! \brief Finds the worst energy DOFs in the residual.
+  //! \brief Finds the DOFs showing the worst convergence behavior.
   //! \param[in] x Global primary solution vector
   //! \param[in] r Global residual vector associated with the solution vector
   //! \param[in] nWorst How many bad DOFs to detect
-  //! \param[in] eps Only record the energies larger than this tolerance
+  //! \param[in] eps Only record values larger than this tolerance
+  //! \param[in] iteNorm Which norm to consider (1=res, 2=dis, 3=energy)
   //! \param[out] worst Node and local DOF number and values of the worst DOFs
-  void getWorstDofs(const Vector& x, const Vector& r, size_t nWorst, double eps,
+  void getWorstDofs(const Vector& x, const Vector& r,
+                    size_t nWorst, double eps, int iteNorm,
                     std::map<std::pair<int,int>,RealArray>& worst) const;
 
   //! \brief Evaluates some iteration norms for convergence assessment.

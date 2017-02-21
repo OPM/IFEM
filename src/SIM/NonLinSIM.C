@@ -464,8 +464,9 @@ ConvStatus NonLinSIM::checkConvergence (TimeStep& param)
     if (status == SLOW && prnSlow > 0)
     {
       // Find and print out the worst DOF(s) when detecting slow convergence
+      double eps = convTol*refNorm;
       std::map<std::pair<int,int>,RealArray> worstDOFs;
-      model.getWorstDofs(linsol,residual,prnSlow,convTol*refNorm,worstDOFs);
+      model.getWorstDofs(linsol,residual,prnSlow,eps,iteNorm,worstDOFs);
       cout <<"  ** Slow convergence detected";
       if (worstDOFs.size() > 1)
         cout <<", here are the "<< worstDOFs.size() <<" worst DOFs:";

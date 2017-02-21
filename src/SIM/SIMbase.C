@@ -1081,7 +1081,7 @@ void SIMbase::printNorms (const Vectors& norms, size_t w) const
 
 
 void SIMbase::getWorstDofs (const Vector& u, const Vector& r,
-                            size_t nWorst, double eps,
+                            size_t nWorst, double eps, int iteNorm,
                             std::map<std::pair<int,int>,RealArray>& worst) const
 {
   size_t i;
@@ -1090,7 +1090,12 @@ void SIMbase::getWorstDofs (const Vector& u, const Vector& r,
 
   // Compute the energy at each DOF and insert into a map sorted on the energy
   for (i = 0; i < u.size() && i < r.size(); i++)
-    energy.insert(std::make_pair(fabs(u[i]*r[i]),i+1));
+    if (iteNorm == 1) // L2-norm of residual
+      energy.insert(std::make_pair(fabs(r[i]),i+1));
+    else if (iteNorm == 2) // L2-norm of solution correction
+      energy.insert(std::make_pair(fabs(u[i]),i+1));
+    else // Energy norm
+      energy.insert(std::make_pair(fabs(u[i]*r[i]),i+1));
 
   // Pick the nWorst highest energies from the back of the map
   std::multimap<double,size_t>::reverse_iterator rit = energy.rbegin();
