@@ -334,6 +334,23 @@ TEST(TestMultiPatchModelGenerator3D, SubdivisionsMixed)
 }
 
 
+TEST(TestMultiPatchModelGenerator2D, SubdivisionsPeriodic)
+{
+  ASMmxBase::Type = ASMmxBase::FULL_CONT_RAISE_BASIS1;
+  SIMMultiPatchModelGen<SIM2D> sim({1,1});
+  ASSERT_TRUE(sim.read("refdata/modelgen2d_subdivision_periodic.xinp"));
+  const SIM3D::PatchVec& model = sim.getFEModel();
+  sim.preprocess();
+
+  std::vector<std::vector<int>> mlgn =
+        {{1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23},
+         {4,5,1,2,9,10,6,7,14,15,11,12,19,24,16,23,25,20}};
+
+  for (int i=0; i<2; i++)
+    check_vector_int_equals(mlgn[i], model[i]->getMyNodeNums());
+}
+
+
 struct SubPatchTest {
   int n; // number of coefs in total model
   int p; // polynomial order of basis
