@@ -14,6 +14,15 @@
 #include "AlgEqSystem.h"
 #include "ElmMats.h"
 #include "SAM.h"
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
+
+
+AlgEqSystem::AlgEqSystem (const SAM& s, const ProcessAdm& a) : sam(s), adm(a)
+{
+  d = &c;
+}
 
 
 bool AlgEqSystem::init (SystemMatrix::Type mtype, const LinSolParams* spar,
@@ -85,6 +94,10 @@ void AlgEqSystem::clear ()
   for (i = 0; i < b.size(); i++)
     delete b[i];
 
+  if (d && d != &c)
+    delete[] d;
+  d = nullptr;
+
   A.clear();
   b.clear();
   c.clear();
@@ -116,6 +129,16 @@ void AlgEqSystem::initialize (bool initLHS)
 
   for (i = 0; i < c.size(); i++)
     c[i] = 0.0;
+
+#ifdef USE_OPENMP
+  size_t nthread = omp_get_max_threads();
+  if (nthread > 1 && !c.empty())
+  {
+    d = new std::vector<double>[nthread];
+    for (i = 0; i < nthread; i++)
+      d[i].resize(c.size(),0.0);
+  }
+#endif
 
   R.fill(0.0);
 }
@@ -183,9 +206,13 @@ bool AlgEqSystem::assemble (const LocalIntegral* elmObj, int elmId)
 	  status = sam.assembleSystem(*A[i]._A, elMat->A[i], elmId);
   }
 
-  // Assembly of scalar qunatities
+  // Assembly of scalar quantities
+  size_t it = 0;
+#ifdef USE_OPENMP
+  it = omp_get_thread_num();
+#endif
   for (i = 0; i < c.size() && i < elMat->c.size(); i++)
-    c[i] += elMat->c[i];
+    d[it][i] += elMat->c[i];
 
   if (!status)
     std::cerr <<" *** AlgEqSystem::assemble: Failure for element "<< elmId
@@ -217,14 +244,27 @@ bool AlgEqSystem::finalize (bool newLHS)
 #if SP_DEBUG > 2
     else
       std::cout <<"\nSystem right-hand-side vector:"<< *b[i];
+#endif
 
-  if (!c.empty())
+  if (c.empty()) return true;
+
+#ifdef USE_OPENMP
+  size_t nthread = omp_get_max_threads();
+  if (nthread > 1)
   {
-    std::cout <<"\nScalar quantities:";
-    for (size_t i = 0; i < c.size(); i++)
-      std::cout <<" "<< c[i];
-    std::cout << std::endl;
+    for (size_t i = 0; i < nthread; i++)
+      for (size_t j = 0; j < c.size(); j++)
+        c[j] += d[i][j];
+
+    delete[] d;
+    d = nullptr;
   }
+#endif
+#if SP_DEBUG > 2
+  std::cout <<"\nScalar quantities:";
+  for (size_t i = 0; i < c.size(); i++)
+    std::cout <<" "<< c[i];
+  std::cout << std::endl;
 #endif
 
   return true;

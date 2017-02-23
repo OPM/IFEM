@@ -32,7 +32,7 @@ class AlgEqSystem : public GlobalIntegral
 {
 public:
   //! \brief The constructor sets its reference to SAM and ProcessAdm objects.
-  AlgEqSystem(const SAM& _sam, const ProcessAdm& _adm) : sam(_sam), adm(_adm) {}
+  AlgEqSystem(const SAM& s, const ProcessAdm& a);
 
   //! \brief The destructor frees the dynamically allocated objects.
   virtual ~AlgEqSystem() { this->clear(); }
@@ -101,6 +101,7 @@ private:
   std::vector<SysMatrixPair> A; //!< The actual coefficient matrices
   std::vector<SystemVector*> b; //!< The actual right-hand-side vectors
   std::vector<double>        c; //!< Global scalar quantities
+  std::vector<double>*       d; //!< Multithreading buffer for the scalar values
   Vector                     R; //!< Nodal reaction forces
 
   const SAM&        sam; //!< Data for FE assembly management
