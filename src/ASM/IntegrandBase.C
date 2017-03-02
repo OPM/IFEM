@@ -46,14 +46,16 @@ bool IntegrandBase::initElement (const std::vector<int>& MNPC,
 {
   // Extract all primary solution vectors for this element
   int ierr = 0;
-  elmInt.vec.resize(primsol.empty() ? 1 : primsol.size());
-  for (size_t i = 0; i < primsol.size() && ierr == 0; i++)
+  size_t i, nsol = primsol.size();
+  while (nsol > 1 && primsol[nsol-1].empty()) nsol--;
+  elmInt.vec.resize(nsol > 1 ? nsol : 1);
+  for (i = 0; i < primsol.size() && ierr == 0; i++)
     if (!primsol[i].empty())
       ierr = utl::gather(MNPC,npv,primsol[i],elmInt.vec[i]);
 
 #if SP_DEBUG > 2
-  for (size_t j = 0; j < elmInt.vec.size(); j++)
-    std::cout <<"Element solution vector "<< j+1 << elmInt.vec[j];
+  for (i = 0; i < elmInt.vec.size(); i++)
+    std::cout <<"Element solution vector "<< i+1 << elmInt.vec[i];
 #endif
 
   if (ierr == 0) return true;
@@ -131,7 +133,7 @@ bool IntegrandBase::initElementBou (const std::vector<int>& MNPC,
 bool IntegrandBase::evalSol (Vector& s, const FiniteElement& fe,
                              const Vec3& X, const std::vector<int>& MNPC) const
 {
-  std::cerr << __PRETTY_FUNCTION__ <<": Not implemented."<< std::endl;
+  std::cerr <<" *** IntegrandBase::evalSol: Not implemented."<< std::endl;
   return false;
 }
 
@@ -252,11 +254,11 @@ LocalIntegral* NormBase::getLocalIntegral (size_t, size_t iEl, bool) const
 {
   if (lints && iEl > 0 && iEl <= lints->size()) return (*lints)[iEl-1];
 
-  // Element norms are not requested, so allocate one internally instead that
-  // will delete itself when invoking the destruct method.
-  size_t norms = 0;
+  // Element norms are not requested, so allocate one internally instead,
+  // that will delete itself when invoking the destruct method.
+  size_t j, norms = 0;
   size_t groups = this->getNoFields(0);
-  for (size_t j = 1; j <= groups; ++j)
+  for (j = 1; j <= groups; j++)
     norms += this->getNoFields(j);
 
   return new ElmNorm(norms);
@@ -265,14 +267,7 @@ LocalIntegral* NormBase::getLocalIntegral (size_t, size_t iEl, bool) const
 
 size_t NormBase::getNoFields (int group) const
 {
-  if (group > 0) return 0;
-
-  // Calculate the number of norm groups
-  size_t nf = 1;
-  for (size_t i = 0; i < prjsol.size(); i++)
-    if (!prjsol.empty()) nf++;
-
-  return nf;
+  return group > 0 ? 0 : 1 + prjsol.size();
 }
 
 
