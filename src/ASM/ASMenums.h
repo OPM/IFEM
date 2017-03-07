@@ -20,6 +20,7 @@ namespace ASM //! Assembly scope
   //! \brief Enum defining the available discretization methods.
   enum Discretization
   {
+    Triangle =-1,
     Lagrange = 0,
     Spectral = 1,
     // The spline entries need to be at the end and successively numbered
