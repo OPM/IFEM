@@ -102,6 +102,8 @@ bool SIMoptions::parseDiscretizationTag (const TiXmlElement* elem)
 	discretization = ASM::Spline;
       else if (discr == "lrsplines")
 	discretization = ASM::LRSpline;
+      else if (discr == "triangular")
+	discretization = ASM::Triangle;
     }
   }
 
@@ -235,6 +237,8 @@ bool SIMoptions::parseOldOptions (int argc, char** argv, int& i)
     solver = SystemMatrix::ISTL;
   else if (!strncmp(argv[i],"-lag",4))
     discretization = ASM::Lagrange;
+  else if (!strncmp(argv[i],"-tri",4))
+    discretization = ASM::Triangle;
   else if (!strncmp(argv[i],"-spec",5))
     discretization = ASM::Spectral;
   else if (!strncmp(argv[i],"-LR",3))
@@ -327,6 +331,8 @@ utl::LogStream& SIMoptions::print (utl::LogStream& os, bool addBlankLine) const
   switch (discretization) {
   case ASM::Lagrange:
     os <<"\nLagrangian basis functions are used"; break;
+  case ASM::Triangle:
+    os <<"\nLagrangian basis functions are used (with triangles)"; break;
   case ASM::Spectral:
     os <<"\nSpectral basis functions are used"; break;
   case ASM::LRSpline:
