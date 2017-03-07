@@ -103,18 +103,18 @@ function clone_module {
 
   # Hack due to mixed repo locations
   declare -A GH_USER
-  GH_USER[IFEM-AdvectionDiffusion]=SintefMath
+  GH_USER[IFEM-AdvectionDiffusion]=OPM
   GH_USER[IFEM-BeamEx]=SintefMath
-  GH_USER[IFEM-Darcy]=SintefMath
+  GH_USER[IFEM-Darcy]=OPM
   GH_USER[IFEM-Elasticity]=OPM
   GH_USER[IFEM-FiniteDeformation]=SintefMath
   GH_USER[IFEM-NavierStokes]=SintefMath
   GH_USER[IFEM-OpenFrac]=OPM
   GH_USER[IFEM-PoroElasticity]=OPM
   GH_USER[IFEM-Stokes]=SintefMath
-  GH_USER[IFEM-ThermoElasticity]=SintefMath
+  GH_USER[IFEM-ThermoElasticity]=OPM
   GH_USER[IFEM-FSI]=SintefMath
-  GH_USER[IFEM-Poisson]=SintefMath
+  GH_USER[IFEM-Poisson]=OPM
 
   if test -n "$GH_CREDENTIALS"
   then
