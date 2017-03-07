@@ -401,7 +401,7 @@ bool SIMoutput::writeGlvT (int iStep, int& geoBlk, int& nBlock) const
 
 
 bool SIMoutput::writeGlvV (const Vector& vec, const char* fieldName,
-                           int iStep, int& nBlock, int idBlock) const
+                           int iStep, int& nBlock, int idBlock, int ncmp) const
 {
   if (vec.empty())
     return true;
@@ -420,7 +420,7 @@ bool SIMoutput::writeGlvV (const Vector& vec, const char* fieldName,
     if (msgLevel > 1)
       IFEM::cout <<"Writing vector field for patch "<< i+1 << std::endl;
 
-    myModel[i]->extractNodeVec(vec,lovec);
+    myModel[i]->extractNodeVec(vec,lovec,ncmp);
     if (!myModel[i]->evalSolution(field,lovec,opt.nViz))
       return false;
 
