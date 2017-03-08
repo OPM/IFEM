@@ -559,7 +559,7 @@ bool ASMu3D::faceL2projection (const DirichletFace& edge,
         }
 
       // Evaluate basis function (geometry) derivatives at current integration points
-      this->evaluateBasis(fe, dNdu);
+      this->evaluateBasis(fe, dNdu, myGeoBasis);
 
       // Compute basis function derivatives and the edge normal
       fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,Xnod,dNdu,t1,t2);

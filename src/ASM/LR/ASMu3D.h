@@ -464,17 +464,17 @@ protected:
   double getElementCorners(int iel, std::vector<Vec3>& XC) const;
 
   //! \brief Evaluate all basis functions and \a derivs number of derivatives on one element
-  virtual void evaluateBasis(FiniteElement &el, int derivs) const;
+  virtual void evaluateBasis(FiniteElement &el, int derivs, int basis = 1) const;
 
   //! \brief Evaluate all basis functions and first derivatives on one element
   virtual void evaluateBasis(FiniteElement &el, Matrix &dNdu,
-                             const Matrix &C, const Matrix &B) const;
+                             const Matrix &C, const Matrix &B, int basis = 1) const;
 
   //! \brief Evaluate all basis functions and first derivatives on one element
-  virtual void evaluateBasis(FiniteElement &el, Matrix &dNdu) const;
+  virtual void evaluateBasis(FiniteElement &el, Matrix &dNdu, int basis = 1) const;
 
   //! \brief Evaluate all basis functions and second order derivatives on one element
-  virtual void evaluateBasis(FiniteElement &el, Matrix &dNdu, Matrix3D& d2Ndu2) const;
+  virtual void evaluateBasis(FiniteElement &el, Matrix &dNdu, Matrix3D& d2Ndu2, int basis = 1) const;
 
 public:
   //! \brief Returns the number of elements on a boundary.
@@ -489,12 +489,13 @@ protected:
   // of optimization since all mapping values and Jacobians may be performed on
   // this object for increased efficiency.
 
-  const std::vector<Matrix>& bezierExtract; //!< Bezier extraction matrices
-  std::vector<Matrix>      myBezierExtract; //!< Bezier extraction matrices
-
   std::vector<DirichletFace> dirich; //!< Inhomogeneous Dirichlet boundary condition data
+  int myGeoBasis; //!< Used with mixed
 
   ThreadGroups threadGroups; //!< Element groups for multi-threaded assembly
+private:
+  const Matrices& bezierExtract;   //!< Bezier extraction matrices
+  Matrices        myBezierExtract; //!< Bezier extraction matrices
 };
 
 #endif
