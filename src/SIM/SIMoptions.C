@@ -388,7 +388,6 @@ utl::LogStream& SIMoptions::print (utl::LogStream& os, bool addBlankLine) const
       projections.push_back(prj.second);
 
   if (!projections.empty()) {
-    ProjectionMap::const_iterator it = project.begin();
     os <<"\nEnabled projection(s): "<< projections.front();
     for (size_t i = 1; i < projections.size(); i++)
       os <<"\n                       "<< projections[i];

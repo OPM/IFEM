@@ -37,14 +37,14 @@
 
 ASMu3D::ASMu3D (unsigned char n_f)
   : ASMunstruct(3,3,n_f), lrspline(nullptr), tensorspline(nullptr),
-    bezierExtract(myBezierExtract)
+    myGeoBasis(1), bezierExtract(myBezierExtract)
 {
 }
 
 
 ASMu3D::ASMu3D (const ASMu3D& patch, unsigned char n_f)
   : ASMunstruct(patch,n_f), lrspline(patch.lrspline), tensorspline(nullptr),
-    bezierExtract(patch.myBezierExtract)
+    myGeoBasis(1), bezierExtract(patch.myBezierExtract)
 {
   // Need to set nnod here,
   // as hasXNodes might be invoked before the FE data is generated
@@ -224,11 +224,11 @@ bool ASMu3D::generateFEMTopology ()
   myMLGE.resize(nel);
   myMNPC.resize(nel);
 
-  myBezierExtract.resize(nel);
   lrspline->generateIDs();
 
   RealArray extrMat;
   std::vector<LR::Element*>::const_iterator eit = lrspline->elementBegin();
+  myBezierExtract.resize(nel);
   for (size_t iel = 0; iel < nel; iel++, ++eit)
   {
     myMLGE[iel] = ++gEl; // global element number over all patches
@@ -506,7 +506,7 @@ size_t ASMu3D::constrainFaceLocal(int dir, bool open, int dof, int code, bool pr
 }
 
 
-std::vector<int> ASMu3D::getEdge(int lEdge, bool open, int) const
+std::vector<int> ASMu3D::getEdge(int lEdge, bool open, int basis) const
 {
   // lEdge = 1-4, running index is u (vmin,wmin), (vmax,wmin), (vmin,wmax), (vmax,wmax)
   // lEdge = 5-8, running index is v (umin,wmin), (umax,wmin), (umin,wmax), (umax,wmax)
@@ -538,23 +538,28 @@ std::vector<int> ASMu3D::getEdge(int lEdge, bool open, int) const
   else if (lEdge == 12)
     edge = LR::NORTH  | LR::EAST;
 
+  // figure out function index offset (when using multiple basis)
+  size_t ofs = 1;
+  for (int i = 1; i < basis; i++)
+    ofs += this->getNoNodes(i);
+
   // get all the boundary functions from the LRspline object
   std::vector<LR::Basisfunction*> thisEdge;
-  lrspline->getEdgeFunctions(thisEdge, (LR::parameterEdge) edge, 1);
+  this->getBasis(basis)->getEdgeFunctions(thisEdge, (LR::parameterEdge) edge, 1);
   std::vector<int> result;
   for (LR::Basisfunction* b  : thisEdge)
-    result.push_back(b->getId()+1);
+    result.push_back(b->getId()+ofs);
 
   return result;
 }
 
-void ASMu3D::constrainEdge (int lEdge, bool open, int dof, int code, char)
+void ASMu3D::constrainEdge (int lEdge, bool open, int dof, int code, char basis)
 {
   if (open)
     std::cerr << "\nWARNING: ASMu3D::constrainEdge, open boundary conditions not supported yet. Treating it as closed" << std::endl;
 
   // enforce the boundary conditions
-  std::vector<int> nodes = this->getEdge(lEdge, open, 1);
+  std::vector<int> nodes = this->getEdge(lEdge, open, basis);
   for (const int& node : nodes)
     this->prescribe(node,dof,code);
 }
@@ -836,19 +841,19 @@ double ASMu3D::getElementCorners (int iEl, Vec3Vec& XC) const
 }
 
 
-void ASMu3D::evaluateBasis (FiniteElement &el, Matrix &dNdu) const
+void ASMu3D::evaluateBasis (FiniteElement &el, Matrix &dNdu, int basis) const
 {
   PROFILE2("Spline evaluation");
-  size_t nBasis = lrspline->getElement(el.iel-1)->nBasisFunctions();
+  size_t nBasis = this->getBasis(basis)->getElement(el.iel-1)->nBasisFunctions();
 
   std::vector<RealArray> result;
-  lrspline->computeBasis(el.u, el.v, el.w, result, 1, el.iel-1);
+  this->getBasis(basis)->computeBasis(el.u, el.v, el.w, result, 1, el.iel-1);
 
-  el.N.resize(nBasis);
+  el.basis(basis).resize(nBasis);
   dNdu.resize(nBasis,3);
   size_t jp, n = 1;
   for (jp = 0; jp < nBasis; jp++, n++) {
-    el.N(n)   = result[jp][0];
+    el.basis(basis)(n)   = result[jp][0];
     dNdu(n,1) = result[jp][1];
     dNdu(n,2) = result[jp][2];
     dNdu(n,3) = result[jp][3];
@@ -856,70 +861,70 @@ void ASMu3D::evaluateBasis (FiniteElement &el, Matrix &dNdu) const
 }
 
 void ASMu3D::evaluateBasis (FiniteElement &el, Matrix &dNdu,
-                            const Matrix &C, const Matrix &B) const
+                            const Matrix &C, const Matrix &B, int basis) const
 {
   PROFILE2("BeSpline evaluation");
   Matrix N = C*B;
-  size_t nBasis = lrspline->getElement(el.iel-1)->nBasisFunctions();
-  el.N = N.getColumn(1);
+  size_t nBasis = this->getBasis(basis)->getElement(el.iel-1)->nBasisFunctions();
+  el.basis(basis) = N.getColumn(1);
   dNdu.resize(nBasis,3);
   dNdu.fillColumn(1,N.getColumn(2));
   dNdu.fillColumn(2,N.getColumn(3));
   dNdu.fillColumn(3,N.getColumn(4));
 }
 
-void ASMu3D::evaluateBasis (FiniteElement &el, Matrix &dNdu, Matrix3D &d2Ndu2) const
+void ASMu3D::evaluateBasis (FiniteElement &el, Matrix &dNdu, Matrix3D &d2Ndu2, int basis) const
 {
   PROFILE2("Spline evaluation");
-  size_t nBasis = lrspline->getElement(el.iel-1)->nBasisFunctions();
+  size_t nBasis = this->getBasis(basis)->getElement(el.iel-1)->nBasisFunctions();
 
   std::vector<RealArray> result;
-  lrspline->computeBasis(el.u, el.v, el.w, result, 2, el.iel-1 );
+  this->getBasis(basis)->computeBasis(el.u, el.v, el.w, result, 2, el.iel-1 );
 
-  el.N.resize(nBasis);
+  el.basis(basis).resize(nBasis);
   dNdu.resize(nBasis,3);
   d2Ndu2.resize(nBasis,3,3);
   size_t jp, n = 1;
   for (jp = 0; jp < nBasis; jp++, n++) {
-    el.N   (n)    = result[jp][0];
-    dNdu (n,1)    = result[jp][1];
-    dNdu (n,2)    = result[jp][2];
-    dNdu (n,3)    = result[jp][3];
-    d2Ndu2(n,1,1) = result[jp][4];
-    d2Ndu2(n,1,2) = d2Ndu2(n,2,1) = result[jp][5];
-    d2Ndu2(n,1,3) = d2Ndu2(n,3,1) = result[jp][6];
-    d2Ndu2(n,2,2) = result[jp][7];
-    d2Ndu2(n,2,3) = d2Ndu2(n,3,2) = result[jp][8];
-    d2Ndu2(n,3,3) = result[jp][9];
+    el.basis(basis)(n) = result[jp][0];
+    dNdu (n,1)         = result[jp][1];
+    dNdu (n,2)         = result[jp][2];
+    dNdu (n,3)         = result[jp][3];
+    d2Ndu2(n,1,1)      = result[jp][4];
+    d2Ndu2(n,1,2)      = d2Ndu2(n,2,1) = result[jp][5];
+    d2Ndu2(n,1,3)      = d2Ndu2(n,3,1) = result[jp][6];
+    d2Ndu2(n,2,2)      = result[jp][7];
+    d2Ndu2(n,2,3)      = d2Ndu2(n,3,2) = result[jp][8];
+    d2Ndu2(n,3,3)      = result[jp][9];
   }
 }
 
-void ASMu3D::evaluateBasis (FiniteElement &el, int derivs) const
+void ASMu3D::evaluateBasis (FiniteElement &el, int derivs, int basis) const
 {
   PROFILE2("Spline evaluation");
-  size_t nBasis = lrspline->getElement(el.iel-1)->nBasisFunctions();
+  size_t nBasis = this->getBasis(basis)->getElement(el.iel-1)->nBasisFunctions();
 
   std::vector<RealArray> result;
-  lrspline->computeBasis(el.u, el.v, el.w, result, derivs, el.iel-1 );
+  this->getBasis(basis)->computeBasis(el.u, el.v, el.w, result, derivs, el.iel-1 );
 
-  el.N.resize(nBasis);
-  el.dNdX.resize(nBasis,3);
-  el.d2NdX2.resize(nBasis,3,3);
+  el.basis(basis).resize(nBasis);
+  el.grad(basis).resize(nBasis,3);
+  el.hess(basis).resize(nBasis,3,3);
   size_t jp, n = 1;
   for (jp = 0; jp < nBasis; jp++, n++) {
-    el.N   (n)      = result[jp][0];
+    el.basis(basis)(n)      = result[jp][0];
     if (derivs > 0) {
-      el.dNdX (n,1)    = result[jp][1];
-      el.dNdX (n,2)    = result[jp][2];
-      el.dNdX (n,3)    = result[jp][3];
+      el.grad(basis)(n,1)    = result[jp][1];
+      el.grad(basis)(n,2)    = result[jp][2];
+      el.grad(basis)(n,3)    = result[jp][3];
     }
     if (derivs > 1) {
-      el.d2NdX2(n,1,1) = result[jp][4];
-      el.d2NdX2(n,1,2) = el.d2NdX2(n,2,1) = result[jp][5];
-      el.d2NdX2(n,1,3) = el.d2NdX2(n,3,1) = result[jp][6];
-      el.d2NdX2(n,2,2) = result[jp][7];
-      el.d2NdX2(n,2,3) = el.d2NdX2(n,3,2) = result[jp][8];
-      el.d2NdX2(n,3,3) = result[jp][9];
+      el.hess(basis)(n,1,1) = result[jp][4];
+      el.hess(basis)(n,1,2) = el.hess(basis)(n,2,1) = result[jp][5];
+      el.hess(basis)(n,1,3) = el.hess(basis)(n,3,1) = result[jp][6];
+      el.hess(basis)(n,2,2) = result[jp][7];
+      el.hess(basis)(n,2,3) = el.hess(basis)(n,3,2) = result[jp][8];
+      el.hess(basis)(n,3,3) = result[jp][9];
     }
   }
 }

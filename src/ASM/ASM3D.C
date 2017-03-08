@@ -17,6 +17,7 @@
 #include "ASMs3DmxLag.h"
 #ifdef HAS_LRSPLINE
 #include "LR/ASMu3D.h"
+#include "LR/ASMu3Dmx.h"
 #endif
 #include "Vec3Oper.h"
 
@@ -43,7 +44,10 @@ ASMbase* ASM3D::create (ASM::Discretization discretization,
 
 #ifdef HAS_LRSPLINE
   case ASM::LRSpline:
-    return new ASMu3D(nf[0]);
+    if (nf.size() > 1 || mixedFEM)
+      return new ASMu3Dmx(nf);
+    else
+      return new ASMu3D(nf[0]);
 #endif
 
   default:
