@@ -56,7 +56,14 @@ namespace TimeIntegration //! Utilities for time integration.
     //! \brief Extrapolates values.
     //! \param[in] values The values to be extrapolated
     //! \return The extrapolated value
-    double extrapolate(const double* values) const;
+    template<class T>
+    T extrapolate(const std::vector<T>& values) const
+    {
+      if (step > 1 && this->getActualOrder() == 2) // second order
+        return 2.0*values[0] - values[1];
+      else // first order
+        return values[0];
+    }
 
   protected:
     int                 step;   //!< Time step counter
