@@ -19,7 +19,7 @@ int Order(Method method)
   if (method == EULER || method == BE)
     return 1;
 
-  if (method == HEUN || method == BDF2)
+  if (method == HEUN || method == BDF2 || method == THETA)
     return 2;
 
   if (method == RK3)
