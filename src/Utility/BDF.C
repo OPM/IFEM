@@ -57,15 +57,6 @@ const std::vector<double>& TimeIntegration::BDF::getCoefs () const
 }
 
 
-double TimeIntegration::BDF::extrapolate (const double* values) const
-{
-  if (step > 1 && this->getActualOrder() == 2) // second order
-    return 2.0*values[0] - values[1];
-  else // first order
-    return values[0];
-}
-
-
 void TimeIntegration::BDFD2::setOrder (int order)
 {
   if (order >= 1) {
