@@ -183,7 +183,7 @@ public:
       for (size_t i = 1;i <= fe.basis(basis).size();i++) {
         for (size_t k = 1;k <= cmp;k++) {
           double diff = 0.0;
-          for (size_t l = 1;l <= cmp;l++)
+          for (size_t l = 1;l <= fe.grad(basis).cols();l++)
             diff += dUdX(k,l)*fe.grad(basis)(i,l);
           diff *= scale*fe.detJxW;
 
