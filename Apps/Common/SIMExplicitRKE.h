@@ -60,7 +60,7 @@ public:
       this->RK.A(3,2) = 0.75;
       this->RK.A(4,1) = 2.0/9.0;
       this->RK.A(4,2) = 1.0/3.0;
-      this->RK.A(4,3) = 2.0/9.0;
+      this->RK.A(4,3) = 4.0/9.0;
     }
     if (type == FEHLBERG) {
       this->RK.order = 4;
