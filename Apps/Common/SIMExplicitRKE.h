@@ -24,9 +24,12 @@ namespace TimeIntegration {
 class SIMExplicitRKE : public SIMExplicitRK<Solver>
 {
 public:
-  //! \copydoc SIMExplicitRK::SIMExplicitRK()
-  SIMExplicitRKE(Solver& solv, Method type) : 
-    SIMExplicitRK<Solver>(solv, NONE)
+  //! \brief Constructor
+  //! \param solv The simulator to do time stepping for
+  //! \param type The Runge-Kutta scheme to use
+  //! \param tol Tolerance for ERK truncation error control
+  SIMExplicitRKE(Solver& solv, Method type, double tol) :
+    SIMExplicitRK<Solver>(solv, NONE), errTol(tol)
   {
     if (type == HEUNEULER) {
       this->RK.order = 1;
@@ -101,12 +104,14 @@ public:
   //! \copydoc ISolver::solveStep(TimeStep&)
   bool solveStep(TimeStep& tp)
   {
-    std::cout <<"\n  step = "<< tp.step <<"  time = "<< tp.time.t << std::endl;
+    this->solver.getProcessAdm().cout <<"\n  step = "<< tp.step <<"  time = "<< tp.time.t << std::endl;
 
     std::vector<Vector> stages;
-    Vector error(this->solver.getSolution());
+    Vector prevSol = this->solver.getSolution();
     bool ok = this->solveRK(stages, tp);
-    if (ok) {
+    double prevEst = 1.0;
+    while (ok && prevEst > errTol) {
+      Vector error(prevSol);
       // construct the error estimate
       for (size_t i=0;i<stages.size();++i)
         error.add(stages[i], tp.time.dt*bs[i]);
@@ -116,14 +121,26 @@ public:
       const size_t nf = this->solver.getNoFields(1);
       size_t iMax[nf];
       double dMax[nf];
-      double dNorm = this->solver.solutionNorms(error,dMax,iMax,nf);
-      std::cout << "Error estimate: " << utl::trunc(dNorm);
+      prevEst = this->solver.solutionNorms(error,dMax,iMax,nf);
+      this->solver.getProcessAdm().cout << "Error estimate: " << prevEst << std::endl;
+      if (prevEst > errTol) {
+        if (!tp.cutback())
+          return false;
+        this->solver.getSolution() = prevSol;
+        ok = this->solveRK(stages, tp);
+      }
+    }
+
+    if (ok && prevEst > 0.0) {
+      tp.time.dt = tp.time.dt * pow(errTol/prevEst,1.0/(this->RK.order+1));
+      this->solver.getProcessAdm().cout << "adjusting step size to " << tp.time.dt << std::endl;
     }
 
     return ok;
   }
 private:
   std::vector<double> bs; //!< Runge-Kutta coefficients for embedded method
+  double errTol; //!< Truncation error tolerance
 };
 
 }
