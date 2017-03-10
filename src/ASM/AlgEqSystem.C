@@ -206,6 +206,12 @@ bool AlgEqSystem::assemble (const LocalIntegral* elmObj, int elmId)
 	  status = sam.assembleSystem(*A[i]._A, elMat->A[i], elmId);
   }
 
+#if SP_DEBUG > 2
+  for (i = 0; i < elMat->c.size() && i < c.size(); i++)
+    std::cout <<"Scalar "<< i <<" for element "
+              << elmId <<": "<< elMat->c[i] << std::endl;
+#endif
+
   // Assembly of scalar quantities
   size_t it = 0;
 #ifdef USE_OPENMP

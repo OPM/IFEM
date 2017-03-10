@@ -21,11 +21,15 @@
 #include "tinyxml.h"
 
 
-//! \brief Structure for configuring a given simulator
-//! \details Your SIM need to specialize this for its type
+/*!
+  \brief Struct for configuring a given simulator.
+  \details Your SIM needs to specialize this for its type.
+*/
+
 template<class T>
-struct SolverConfigurator {
-  //! \brief Configure a simulator
+struct SolverConfigurator
+{
+  //! \brief Configures a simulator.
   //! \param sim The simulator to configure
   //! \param props The setup properties for the simulator
   //! \param infile The input file to parse
@@ -53,7 +57,11 @@ template<class T1> class SIMSolver : public SIMadmin
 {
 public:
   //! \brief The constructor initializes the reference to the actual solver.
-  SIMSolver(T1& s1) : SIMadmin("Time integration driver"), S1(s1) {}
+  SIMSolver(T1& s1) : SIMadmin("Time integration driver"), S1(s1)
+  {
+    saveDivergedSol = false;
+  }
+
   //! \brief Empty destructor.
   virtual ~SIMSolver() {}
 
@@ -83,7 +91,7 @@ public:
     // Solve for each time step up to final time
     for (int iStep = 1; this->advanceStep(); iStep++)
       if (!S1.solveStep(tp))
-        return 3;
+        return saveDivergedSol && !S1.saveStep(tp,nBlock) ? 4 : 3;
       else if (!this->saveState(exporter,geoBlk,nBlock))
         return 4;
       else
@@ -95,8 +103,20 @@ public:
 protected:
   //! \brief Parses a data section from an input stream.
   virtual bool parse(char* keyw, std::istream& is) { return tp.parse(keyw,is); }
+
   //! \brief Parses a data section from an XML element.
-  virtual bool parse(const TiXmlElement* elem) { return tp.parse(elem); }
+  virtual bool parse(const TiXmlElement* elem)
+  {
+    if (strcasecmp(elem->Value(),"postprocessing"))
+      return tp.parse(elem);
+
+    const TiXmlElement* child = elem->FirstChildElement();
+    for (; child; child = child->NextSiblingElement())
+      if (!strncasecmp(child->Value(),"savediverg",10))
+        saveDivergedSol = true;
+
+    return true;
+  }
 
   //! \brief Writes an application-specific heading, if provided
   void printHeading(const char* heading)
@@ -129,6 +149,10 @@ protected:
     return true;
   }
 
+private:
+  bool saveDivergedSol; //!< If \e true, save also the diverged solution to VTF
+
+protected:
   TimeStep tp; //!< Time stepping information
   T1&      S1; //!< The actual solver
 };
