@@ -49,6 +49,8 @@ public:
 
   //! \brief Returns the spline surface representing this patch.
   LR::LRSplineSurface* getSurface() { return lrspline.get(); }
+  //! \brief Returns the spline surface representing this patch.
+  const LR::LRSplineSurface* getSurface() const { return lrspline.get(); }
 
   //! \brief Returns the spline surface representing the basis of this patch.
   virtual const LR::LRSplineSurface* getBasis(int = 1) const { return lrspline.get(); }
