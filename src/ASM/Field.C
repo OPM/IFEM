@@ -17,11 +17,25 @@
 #include "LagrangeField3D.h"
 #include "ASMs2DLag.h"
 #include "ASMs3DLag.h"
+#ifdef HAS_LRSPLINE
+#include "LR/ASMu2D.h"
+#include "LR/ASMu3D.h"
+#include "LR/LRSplineField2D.h"
+#include "LR/LRSplineField3D.h"
+#endif
 
 
 Field* Field::create (const ASMbase* pch, const RealArray& v,
                       char basis, char cmp, const char* name)
 {
+#ifdef HAS_LRSPLINE
+  const ASMu2D* pu2 = dynamic_cast<const ASMu2D*>(pch);
+  if (pu2) return new LRSplineField2D(pu2,v,basis,cmp,name);
+
+  const ASMu3D* pu3 = dynamic_cast<const ASMu3D*>(pch);
+  if (pu3) return new LRSplineField3D(pu3,v,basis,cmp,name);
+#endif
+
   const ASMs2DLag* pl2 = dynamic_cast<const ASMs2DLag*>(pch);
   if (pl2) return new LagrangeField2D(pl2,v,basis,cmp,name);
 
