@@ -835,7 +835,8 @@ void ASMu3D::evaluateBasis (FiniteElement &el, Matrix &dNdu) const
   }
 }
 
-void ASMu3D::evaluateBasis (FiniteElement &el, Matrix &dNdu, Matrix &C, Matrix &B) const
+void ASMu3D::evaluateBasis (FiniteElement &el, Matrix &dNdu,
+                            const Matrix &C, const Matrix &B) const
 {
   PROFILE2("BeSpline evaluation");
   Matrix N = C*B;
@@ -985,7 +986,7 @@ bool ASMu3D::integrate (Integrand& integrand,
       FiniteElement fe(nBasis);
       fe.iel = iEl+1;
 
-      Matrix   C = bezierExtract[iEl];
+      const Matrix&  C = bezierExtract[iEl];
       Matrix   dNdu, Xnod, Jac;
       Matrix3D d2Ndu2, Hess;
       double   dXidu[3];
