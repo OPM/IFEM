@@ -13,6 +13,7 @@
 #include "EqualOrderOperators.h"
 #include "FiniteElement.h"
 #include "Vec3.h"
+#include "Vec3Oper.h"
 
 //! \brief Helper for adding an element matrix to several components.
 //! \param[out] EM The element matrix to add to.
@@ -208,6 +209,19 @@ void EqualOrderOperators::Weak::Source(Vector& EV, const FiniteElement& fe,
   for (size_t i = 1; i <= fe.basis(basis).size(); ++i)
     for (size_t k = 1; k <= cmp; ++k)
       EV(cmp*(i-1)+k) += scale*f[k-1]*fe.basis(basis)(i)*fe.detJxW;
+}
+
+
+void EqualOrderOperators::Residual::Advection(Vector& EV, const FiniteElement& fe,
+                                              const Vec3& AC, const Tensor& g,
+                                              double scale, int basis)
+{
+  size_t nsd = fe.grad(basis).cols();
+  for (size_t k = 1; k <= nsd; ++k) {
+    double ag = g[k-1]*AC;
+    for (size_t i = 1; i <= fe.basis(basis).size(); ++i)
+        EV((i-1)*nsd+k) = ag*scale*fe.basis(basis)(i)*fe.detJxW;
+  }
 }
 
 
