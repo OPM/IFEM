@@ -142,6 +142,16 @@ public:
   //! \brief Common weak residual operators using equal-ordered discretizations.
   class Residual {
   public:
+    //! \brief Compute an advection term.
+    //! \param[out] EM The element vector to add contribution to
+    //! \param[in] fe The finite element to evaluate for
+    //! \param[in] AC Advecting field
+    //! \param[in] scale Scaling factor for contribution
+    //! \param[in] basis Basis to use
+    static void Advection(Vector& EV, const FiniteElement& fe,
+                          const Vec3& AC, const Tensor& g,
+                          double scale = 1.0, int basis=1);
+
     //! \brief Compute a convection term in a residual vector.
     //! \param EV The element vector to add contribution to
     //! \param[in] fe The finite element to evaluate for
