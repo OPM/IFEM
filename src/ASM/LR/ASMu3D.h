@@ -424,7 +424,8 @@ protected:
   virtual void evaluateBasis(FiniteElement &el, int derivs) const;
 
   //! \brief Evaluate all basis functions and first derivatives on one element
-  virtual void evaluateBasis(FiniteElement &el, Matrix &dNdu, Matrix &C, Matrix &B) const ;
+  virtual void evaluateBasis(FiniteElement &el, Matrix &dNdu,
+                             const Matrix &C, const Matrix &B) const;
 
   //! \brief Evaluate all basis functions and first derivatives on one element
   virtual void evaluateBasis(FiniteElement &el, Matrix &dNdu) const;
