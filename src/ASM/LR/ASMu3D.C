@@ -1119,7 +1119,7 @@ bool ASMu3D::integrate (Integrand& integrand,
 
       // --- Integration loop over all Gauss points in each direction --------
 
-      fe.iGP = iEl*nGauss*nGauss; // Global integration point counter
+      fe.iGP = iEl*nGauss*nGauss*nGauss; // Global integration point counter
 
       Matrix B(p1*p2*p3, 4); // Bezier evaluation points and derivatives
       int ig = 1;
