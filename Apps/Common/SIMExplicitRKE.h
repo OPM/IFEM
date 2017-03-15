@@ -38,6 +38,7 @@ public:
       bs.push_back(0.5);
       bs.push_back(0.5);
       this->RK.c.push_back(0.0);
+      this->RK.c.push_back(1.0);
       this->RK.A.redim(2,2);
       this->RK.A(2,1) = 1.0;
     }
