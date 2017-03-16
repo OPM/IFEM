@@ -5,7 +5,7 @@
 
 IFEM is an object-oriented toolbox for implementing isogeometric finite element
 solvers for linear and nonlinear partial differential equations.
-The toolbox is developed through the ICADA project at SINTEF ICT, Trondheim.
+The toolbox was developed through the ICADA project at SINTEF Digital.
 The purpose of this code is to serve as a common base for isogeometric
 PDE-simulators, using splines and NURBS as basis functions in the finite element
 formulations. The toolbox contains methods for doing linear and non-linear,
@@ -15,20 +15,19 @@ stationary and dynamic time-domain analyses, as well as eigenvalue analyses.
 
 The simulation toolbox is organized into a set of modules,
 organized as class hierarchies implemented in the C++ language.
-The top-level driver is organized in the class SIMbase and its sub-classes.
+The top-level driver is organized in the class `SIMbase` and its sub-classes.
 These classes have methods for reading model data from an input file,
 to assemble the linearized algebraic system of equations resulting from the
 finite element discretization, and to solve that system.
 It also contains methods for writing a VTF-file with results.
-Problem-specific drivers and main programs are found in the sub-folder Apps.
 
 The core of the finite element implementation is contained in the class
-ASMbase and its sub-classes, which have methods for evaluating the element
+`ASMbase` and its sub-classes, which have methods for evaluating the element
 matrices involved and assembling them into the system matrices.
-There is typically one ASMbase object for each spline patch in the model.
+There is typically one `ASMbase` object for each spline patch in the model.
 
-The physical problem-dependent data and methods is accessed via an abstract
-interface class, Integrand, through which the application programmer can
+The physical problem-dependent data and methods are accessed via an abstract
+interface class, `Integrand`, through which the application programmer can
 implement the weak form of the underlying finite element problem.
 
 The actual splines evaluation is performed through the GoTools library, which is
@@ -43,54 +42,69 @@ export of simulations results to GLview VTF-files.
 A number of things need to be set up properly to compile the IFEM library.
 First, we will add inhouse dependencies by a secondary repository.
 
-1. Add the IFEM repository at https://launchpad.net/~ifem/ (follow the instructions on site)
+1. Add the IFEM repository at https://launchpad.net/~ifem/
+   (follow the instructions on that site)
+
 2. Install development tools and compilers by typing
 
     `sudo apt-get install cmake g++ gfortran`
 
-3. Install official libraries
+3. Install required official libraries
 
-    `sudo apt-get install python-dev libnewmat10ldbl libboost-dev libblas-dev liblapack-dev libarpack2-dev libsuperlu3-dev`
+    `sudo apt-get install libboost-dev libarpack2-dev libsuperlu3-dev`
 
-4. Install inhouse libraries
+4. Install required inhouse GoTools libraries by typing
 
-    `sudo apt-get install libgotools-compositemodel-dev libgotools-core-dev libgotools-igeslib-dev libgotools-implicitization-dev libgotools-intersections-dev libgotools-isogeometricmodel-dev libgotools-qualitymodule-dev libgotools-qualitymodule1 libgotools-parametrization-dev libgotools-topology-dev libgotools-trivariate-dev libgotools-trivariatemodel-dev libttl-dev libsisl-dev`
+    `sudo apt-get install libgotools-core-dev libgotools-trivariate-dev`
 
-5. **[optional]** Install petsc by the official webpage (http://www.mcs.anl.gov/petsc/download/)
+   There are a number of other GoTools libraries available also, but
+   the two above are the only ones required to build IFEM simulators.
+
+5. **[optional]** Install PETSc from the official webpage
+   http://www.mcs.anl.gov/petsc/download/
+
 6. **[optional]** Install LR-splines by typing
 
     `sudo apt-get install liblrspline1-dev`
 
-7. **[optional]** Install VTF writer. This is proprietary software and cannot be shared openly. E-mail Trond.Kvamsdal@sintef.no and ask for them.
+7. **[optional]** Install support for HDF5 output typing (one or both commands,
+   the second one is needed only if you want to build parallel applications)
 
+    `sudo apt-get install libhdf5-serial-dev`  
+    `sudo apt-get install libhdf5-openmpi-dev`
+
+8. **[optional]** Install the VTF writer.
+   This is proprietary software that cannot be shared openly.  
+   Send email to Trond.Kvamsdal@sintef.no and ask for them.
 
 ### Getting the code
 
-This is done by first navigating to the folder in which you want IFEM installed and typing
+Navigate to the folder in which you want the IFEM source installed and type
 
     git clone https://github.com/OPM/IFEM
 
-
 ### Compiling the code
 
-To compile, first navigate to the root catalogue of IFEM, here denoted by `<IFEM root>`.
+Navigate to the root folder of IFEM source, here denoted by `<IFEM root>`. Then
 
-1. `cd <IFEM root>`
-2. `mkdir Debug`
-3. `cd Debug`
-4. **[optional]** specify which submodules you have available in `<IFEM root>/cmake/Modules/IFEMoptions.cmake`
-5. `cmake -DCMAKE_BUILD_TYPE=Debug ..`
-6. `make `
+1. `mkdir Debug`
+2. `cd Debug`
+3. `cmake .. -DCMAKE_BUILD_TYPE=Debug [<IFEM-options>]`
+4. `make `
 
-this will compile the library.
-Change all instances of `Debug` with `Release` to drop debug-symbols, but get faster running code.
+where `<IFEM-options>` is an optional list of sub-modules
+you may choose to activate or deactivate in your build.
+See the file `<IFEM root>/cmake/Modules/IFEMOptions.cmake` for a complete list
+of available options and their default setting.
 
+This will compile the libraries which can be found in the `Debug/lib`sub-folder.
+Change all instances of `Debug` with `Release` to drop debug-symbols,
+and get a faster running code.
 
 ### Testing the code
 
-IFEM is using cmake test system. To compile run all regression- and unit-tests, navigate to your build
+IFEM uses the cmake test system.
+To compile and run all regression- and unit-tests, navigate to your build
 folder (i.e. `<IFEM root>/Debug`) and type
 
     make check
-
-
