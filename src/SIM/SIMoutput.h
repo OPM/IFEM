@@ -87,10 +87,19 @@ public:
   //! \param[in] fieldName Name identifying the vector field
   //! \param[in] iStep Load/time step identifier
   //! \param nBlock Running result block counter
-  //! \param[in] idBlock Starting value of result block numbering
+  //! \param[in] idBlock Result block ID number
   //! \param[in] ncmp Number of components in vector field
   bool writeGlvV(const Vector& vec, const char* fieldName,
                  int iStep, int& nBlock, int idBlock = 2, int ncmp = 0) const;
+
+  //! \brief Writes a scalar field for a given load/time step to the VTF-file.
+  //! \param[in] scl The scalar field to output (nodal values)
+  //! \param[in] fieldName Name identifying the scalar field
+  //! \param[in] iStep Load/time step identifier
+  //! \param nBlock Running result block counter
+  //! \param[in] idBlock Result block ID number
+  bool writeGlvS(const Vector& scl, const char* fieldName,
+                 int iStep, int& nBlock, int idBlock = 2) const;
 
   //! \brief Writes solution fields for a given load/time step to the VTF-file.
   //! \param[in] psol Primary solution vector
