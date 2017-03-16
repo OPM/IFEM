@@ -14,8 +14,8 @@
 
 #include "gtest/gtest.h"
 #include <numeric>
-
-#include <numeric>
+#include <iomanip>
+#include <fstream>
 
 
 TEST(TestMatrix, AddBlock)
@@ -60,4 +60,22 @@ TEST(TestMatrix, AddRows)
   for (size_t j = 1; j <= 5; j++, fasit++)
     for (size_t i = 1; i <= 2; i++, fasit++)
       ASSERT_EQ(a(i,j), fasit);
+}
+
+
+TEST(TestMatrix3D, DumpRead)
+{
+  size_t n0(2), n1(3), n2(4);
+  utl::matrix3d<double> A(n0, n1, n2);
+  Real* p = A.ptr();
+  for (size_t i = 0; i<A.size(); ++i, ++p)
+    *p = 3.14159*i*i;
+
+  std::string fname = std::tmpnam(nullptr);
+  std::ofstream os(fname);
+  os << std::setprecision(16) << A;
+  std::ifstream is(fname, std::ios::in);
+  utl::matrix3d<double> B(is);
+  B -= A;
+  ASSERT_NEAR(B.norm2(), 0.0, 1.0e-13);
 }
