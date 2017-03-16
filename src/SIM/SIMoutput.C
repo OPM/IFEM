@@ -434,6 +434,40 @@ bool SIMoutput::writeGlvV (const Vector& vec, const char* fieldName,
 }
 
 
+bool SIMoutput::writeGlvS (const Vector& scl, const char* fieldName,
+                           int iStep, int& nBlock, int idBlock) const
+{
+  if (scl.empty())
+    return true;
+  else if (!myVtf)
+    return false;
+
+  Matrix field;
+  Vector lovec;
+  IntVec sID;
+
+  int geomID = myGeomID;
+  for (size_t i = 0; i < myModel.size(); i++)
+  {
+    if (myModel[i]->empty()) continue; // skip empty patches
+
+    if (msgLevel > 1)
+      IFEM::cout <<"Writing scalar field for patch "<< i+1 << std::endl;
+
+    myModel[i]->extractNodeVec(scl,lovec,1);
+    if (!myModel[i]->evalSolution(field,lovec,opt.nViz))
+      return false;
+
+    if (!myVtf->writeNres(field,++nBlock,++geomID))
+      return false;
+    else
+      sID.push_back(nBlock);
+  }
+
+  return myVtf->writeSblk(sID,fieldName,idBlock,iStep);
+}
+
+
 bool SIMoutput::writeGlvS (const Vector& psol, int iStep, int& nBlock,
                            double time, const char* pvecName,
                            int idBlock, int psolComps)
