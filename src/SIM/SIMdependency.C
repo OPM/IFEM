@@ -141,7 +141,10 @@ bool SIMdependency::extractPatchDependencies (IntegrandBase* problem,
     patch = pindx < it->patches.size() ? it->patches[pindx] : model[pindx];
     // See ASMbase::extractNodeVec for interpretation of negative value on basis
     int basis = it->components < 0 ? it->components : it->differentBasis;
-    patch->extractNodeVec(*gvec,*lvec,abs(it->components),basis);
+    if (it->differentBasis && it->components != patch->getNoFields(basis))
+      patch->extractNodeVec(*gvec,*lvec);
+    else
+      patch->extractNodeVec(*gvec,*lvec,abs(it->components),basis);
     if (it->differentBasis > 0) {
       if (it->components == 1)
         problem->setNamedField(it->name,Field::create(patch,*lvec,
