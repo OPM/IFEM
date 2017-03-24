@@ -222,6 +222,9 @@ public:
   //! nullptr means this.
   bool setInitialConditions(SIMdependency* fieldHolder = nullptr);
 
+  //! \brief Deserialization support (for simulation restart).
+  virtual bool deSerialize(const std::map<std::string,std::string>&);
+
 private:
   //! \brief Sets initial conditions from a file.
   //! \param fieldHolder The SIM-object to inject the initial conditions into

@@ -16,6 +16,10 @@
 #include "IFEM.h"
 #include "tinyxml.h"
 #include <sstream>
+#ifdef HAS_CEREAL
+#include <cereal/cereal.hpp>
+#include <cereal/archives/binary.hpp>
+#endif
 
 
 TimeStep::TimeStep () : step(0), iter(time.it), lstep(0)
@@ -309,4 +313,53 @@ bool TimeStep::cutback ()
   IFEM::cout <<"  ** Iterations diverged, trying cut-back with dt="
              << time.dt << std::endl;
   return true;
+}
+
+
+#ifdef HAS_CEREAL
+/*!
+  \brief Serialize to/from archive.
+  \param ar Input or output archive
+*/
+
+template<class T> void doSerializeOps(T& ar, TimeStep& tp)
+{
+  ar(tp.step);
+  ar(tp.starTime);
+  ar(tp.maxCFL);
+  ar(tp.time.t);
+  ar(tp.time.dt);
+  ar(tp.time.dtn);
+  ar(tp.time.CFL);
+  ar(tp.time.first);
+}
+#endif
+
+
+bool TimeStep::serialize(std::map<std::string,std::string>& data)
+{
+#ifdef HAS_CEREAL
+  std::ostringstream str;
+  cereal::BinaryOutputArchive ar(str);
+  doSerializeOps(ar,*this);
+  data.insert(std::make_pair("TimeStep", str.str()));
+  return true;
+#endif
+  return false;
+}
+
+
+bool TimeStep::deSerialize(const std::map<std::string,std::string>& data)
+{
+#ifdef HAS_CEREAL
+  std::stringstream str;
+  auto it = data.find("TimeStep");
+  if (it != data.end()) {
+    str << it->second;
+    cereal::BinaryInputArchive ar(str);
+    doSerializeOps(ar,*this);
+    return true;
+  }
+#endif
+  return false;
 }

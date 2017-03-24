@@ -45,7 +45,12 @@ public:
 
   //! \brief Opens the file at a given time level.
   //! \param[in] level The requested time level
-  virtual void openFile(int level);
+  virtual void openFile(int level) { openFile(level, false); }
+
+  //! \brief Opens the file at a given time level.
+  //! \param[in] level The requested time level
+  //! \param[in] restart If true, open restart file
+  void openFile(int level, bool restart);
 
   //! \brief Closes the file.
   //! \param[in] level Level we just wrote to the file
@@ -74,11 +79,6 @@ public:
   virtual void writeSIM(int level, const DataEntry& entry,
                         bool geometryUpdated, const std::string& prefix);
 
-  //! \brief Reads data from a file into a SIM.
-  //! \param[in] level The time level to read the data at
-  //! \param[in] entry The DataEntry describing the SIM
-  virtual bool readSIM(int level, const DataEntry& entry);
-
   //! \brief Writes nodal forces to file.
   //! \param[in] level The time level to write the data at
   //! \param[in] entry The DataEntry describing the vector
@@ -100,11 +100,9 @@ public:
 
   //! \brief Writes time stepping info to file.
   //! \param[in] level The time level to write the info at
-  //! \param[in] order The temporal order
   //! \param[in] interval The number of time steps between each data dump
   //! \param[in] tp The current time stepping info
-  virtual bool writeTimeInfo(int level, int order, int interval,
-                             const TimeStep& tp);
+  virtual bool writeTimeInfo(int level, int interval, const TimeStep& tp);
 
   //! \brief Reads a text string.
   //! \param[in] name The name (path in HDF5 file) to the string
@@ -140,6 +138,24 @@ public:
   //! \param[in] level The time level to check
   //! \param[in] basisName Check for a particular basis
   bool hasGeometries(int level, const std::string& basisName = "");
+
+  //! \brief Write restart data.
+  //! \param level Level to write data at
+  //! \param data Data to write
+  bool writeRestartData(int level, const DataExporter::SerializeData& data);
+
+  //! \brief Read restart data from file.
+  //! \param data The map to store data in
+  //! \param level Level to read (-1 to read last level in file)
+  //! \returns Negative value on error, else restart level loaded
+  int readRestartData(DataExporter::SerializeData& data, int level = -1);
+
+  //! \brief Internal helper function. Reads an array into an array of chars.
+  //! \param[in] group The HDF5 group to read data from
+  //! \param[in] name The name of the array
+  //! \param[in] len The length of the data to read
+  //! \param[out] data The array to read data into
+  void readArray(int group, const std::string& name, int& len, char*& data);
 
 protected:
   //! \brief Internal helper function. Writes a data array to HDF5 file.
@@ -182,8 +198,11 @@ protected:
 
 private:
   int          m_file; //!< The HDF5 handle for our file
+  int  m_restart_file; //!< The HDF5 handle for our restart file
   unsigned int m_flag; //!< The file flags to open HDF5 file with
+  unsigned int m_restart_flag; //!< The file flags to open the restart file with
   bool     m_keepOpen; //!< If \e true, we always keep the file open
+  std::string m_restart_name; //!< The restart file to use
 #ifdef HAVE_MPI
   const ProcessAdm& m_adm;   //!< Pointer to process adm in use
 #endif

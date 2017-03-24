@@ -13,6 +13,7 @@
 #ifndef SIM_EXPLICIT_RK_H_
 #define SIM_EXPLICIT_RK_H_
 
+#include "DataExporter.h"
 #include "TimeIntUtils.h"
 #include "TimeStep.h"
 
@@ -139,6 +140,20 @@ public:
   bool saveStep(const TimeStep& tp, int& nBlock)
   {
     return solver.saveStep(tp, nBlock);
+  }
+
+  //! \brief Serialize internal state for restarting purposes.
+  //! \param data Container for serialized data
+  bool serialize(DataExporter::SerializeData& data)
+  {
+    return solver.serialize(data);
+  }
+
+  //! \brief Set internal state from a serialized state.
+  //! \param[in] data Container for serialized data
+  bool deSerialize(const DataExporter::SerializeData& data)
+  {
+    return solver.deSerialize(data);
   }
 
 protected:

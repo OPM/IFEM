@@ -15,8 +15,8 @@
 #define _SIM_SOLVER_H_
 
 #include "SIMadmin.h"
-#include "DataExporter.h"
 #include "TimeStep.h"
+#include "HDF5Writer.h"
 #include "IFEM.h"
 #include "tinyxml.h"
 
@@ -100,6 +100,20 @@ public:
     return 0;
   }
 
+  //! \brief Serialize internal state for restarting purposes.
+  //! \param data Container for serialized data
+  bool serialize(DataExporter::SerializeData& data)
+  {
+    return tp.serialize(data) && S1.serialize(data);
+  }
+
+  //! \brief Set internal state from a serialized state.
+  //! \param[in] data Container for serialized data
+  bool deSerialize(const DataExporter::SerializeData& data)
+  {
+    return tp.deSerialize(data) && S1.deSerialize(data);
+  }
+
 protected:
   //! \brief Parses a data section from an input stream.
   virtual bool parse(char* keyw, std::istream& is) { return tp.parse(keyw,is); }
@@ -143,10 +157,42 @@ protected:
     if (saveRes && !S1.saveStep(tp,nBlock))
       return false;
 
-    if (saveRes && exporter)
-      exporter->dumpTimeLevel(&tp,newMesh);
+    if (saveRes && exporter) {
+      DataExporter::SerializeData data;
+      if (exporter->dumpForRestart(&tp) && this->serialize(data))
+        return exporter->dumpTimeLevel(&tp,newMesh,&data);
+      else // no restart dump, or serialization failure
+        return exporter->dumpTimeLevel(&tp,newMesh);
+    }
 
     return true;
+  }
+
+public:
+  //! \brief Handles application restarts by reading a serialized solver state.
+  //! \param[in] restartFile File to read restart state from
+  //! \param[in] restartStep Index of the time step to read restart state for
+  //! \return One-based time step index of the restart state read.
+  //! If zero, no restart specified. If negative, read failure.
+  int restart(const std::string& restartFile, int restartStep)
+  {
+    if (restartFile.empty()) return 0;
+
+    DataExporter::SerializeData data;
+    HDF5Writer hdf(restartFile,adm,true);
+    if ((restartStep = hdf.readRestartData(data,restartStep)) >= 0)
+    {
+      IFEM::cout <<"\n === Restarting from a serialized state ==="
+                 <<"\n     file = "<< restartFile
+                 <<"\n     step = "<< restartStep << std::endl;
+      if (this->deSerialize(data))
+        return restartStep+1;
+      else
+        restartStep = -2;
+    }
+
+    std::cerr <<" *** SIMSolver: Failed to read restart data."<< std::endl;
+    return restartStep;
   }
 
 private:

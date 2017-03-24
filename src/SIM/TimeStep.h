@@ -18,6 +18,8 @@
 #include <vector>
 #include <cstddef>
 #include <iostream>
+#include <map>
+#include <string>
 
 class TiXmlElement;
 
@@ -58,6 +60,13 @@ public:
   //! \brief Restarts current increment with a smaller step size on divergence.
   //! \return \e false Cannot do further cut-back, time step size too small
   bool cutback();
+
+  //! \brief Serialize internal state for restarting purposes.
+  //! \param data Container for serialized data
+  bool serialize(std::map<std::string,std::string>& data);
+  //! \brief Set internal state from a serialized state.
+  //! \param[in] data Container for serialized data
+  bool deSerialize(const std::map<std::string,std::string>& data);
 
   int        step; //!< Time step counter
   int&       iter; //!< Iteration counter

@@ -40,7 +40,6 @@ public:
     int    patches;    //!< Number of patches in field
     int    components; //!< Number of components in field
     double timestep;   //!< The time step associated with the field
-    int    order;      //!< The temporal order associated with the field
     int    interval;   //!< The dumping interval for the field
     bool   once;       //!< If true, field is only stored at first time level
   };
@@ -86,11 +85,6 @@ public:
   virtual void writeSIM(int level, const DataEntry& entry,
                         bool, const std::string& prefix);
 
-  //! \brief Reads data from a file into SIM.
-  //! \param[in] level The time level to read the data at
-  //! \param[in] entry The DataEntry describing the SIM
-  virtual bool readSIM(int level, const DataEntry& entry);
-
   //! \brief Writes nodal forces to file.
   //! \param[in] level The time level to write the data at
   //! \param[in] entry The DataEntry describing the vector
@@ -105,11 +99,9 @@ public:
 
   //! \brief Writes time stepping info to file.
   //! \param[in] level The time level to write the info at
-  //! \param[in] order The temporal order
   //! \param[in] interval The number of time steps between each data dump
   //! \param[in] tp The current time stepping info
-  virtual bool writeTimeInfo(int level, int order, int interval,
-                             const TimeStep& tp);
+  virtual bool writeTimeInfo(int level, int interval, const TimeStep& tp);
 
   //! \brief Write a basis to file
   //! \param[in] level The time level to write the basis at
@@ -117,6 +109,13 @@ public:
   //! \param[in] prefix Prefix for basis
   virtual void writeBasis(int level, const DataEntry& entry,
                           const std::string& prefix) {}
+
+  //! \brief No XML for restart data
+  //! \param level Level to write data at
+  //! \param data Data to write
+  virtual bool writeRestartData(int level,
+                                const DataExporter::SerializeData& data)
+  { return true; }
 protected:
   //! \brief Internal helper function adding an XML-element to the file
   //! \param[in] name The name of the field to add
@@ -137,7 +136,6 @@ private:
   TiXmlNode*     m_node; //!< The document's root node
 
   double m_dt;       //!< The current (constant) time step size
-  int    m_order;    //!< The temporal order
   int    m_interval; //!< Stride for dumping (dump at every m_interval'th level)
 };
 

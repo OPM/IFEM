@@ -158,6 +158,20 @@ public:
     return result;
   }
 
+  //! \brief Serialize internal state for restarting purposes.
+  //! \param data Container for serialized data
+  bool serialize(DataExporter::SerializeData& data)
+  {
+    return S1.serialize(data) && S2.serialize(data);
+  }
+
+  //! \brief Set internal state from a serialized state.
+  //! \param[in] data Container for serialized data
+  bool deSerialize(const DataExporter::SerializeData& data)
+  {
+    return S1.deSerialize(data) && S2.deSerialize(data);
+  }
+
 protected:
   T1& S1; //!< First substep
   T2& S2; //!< Second substep
