@@ -17,8 +17,19 @@ mysim=$1
 cd `dirname $2`
 MAPFILE=`head -n1 $2`
 test  $? -eq 0 || exit 1
-test -n "$3" && mysim="mpirun -n $3 $mysim"
-$mysim $MAPFILE 2>&1 > @CMAKE_BINARY_DIR@/templog
+if test -z "$4"
+then
+  test -n "$3" && mysim="mpirun -n $3 $mysim"
+else
+  test -n "$5" && mysim="mpirun -n $5 $mysim"
+fi
+hdf5=""
+test -n "$4" && hdf5="-hdf5 @CMAKE_BINARY_DIR@/Testing/$3"
+$mysim $hdf5 $MAPFILE 2>&1 > @CMAKE_BINARY_DIR@/templog
+if test -n "$4"
+then
+  $mysim $MAPFILE -restart @CMAKE_BINARY_DIR@/Testing/$3_restart.hdf5 $4 2>&1 > @CMAKE_BINARY_DIR@/templog
+fi
 appres=$?
 globres=1
 IFS=$'\n'
