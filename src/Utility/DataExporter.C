@@ -95,13 +95,24 @@ bool DataExporter::setFieldValue (const std::string& name,
 }
 
 
-bool DataExporter::dumpTimeLevel (const TimeStep* tp, bool geometryUpdated)
+bool DataExporter::dumpForRestart (const TimeStep* tp) const
+{
+  return m_nrestart > 0 && tp && tp->step % m_nrestart == 0;
+}
+
+
+bool DataExporter::dumpTimeLevel (const TimeStep* tp, bool geometryUpdated,
+                                  SerializeData* serializeData)
 {
   // ignore multiple calls for the same time step
   if (tp && tp->step == m_last_step)
     return true;
 
-  if (tp && tp->step % m_ndump && tp->step % m_ndump > m_order)
+  bool writeData = !tp || tp->step % m_ndump == 0;
+  bool writeRestart = serializeData && this->dumpForRestart(tp);
+  int restartLevel = writeRestart ? tp->step / m_nrestart : 0;
+
+  if (!writeRestart && !writeData)
     return true;
 
   if (tp)
@@ -123,7 +134,8 @@ bool DataExporter::dumpTimeLevel (const TimeStep* tp, bool geometryUpdated)
           (*it2)->writeVector(m_level,*it);
           break;
         case SIM:
-          (*it2)->writeSIM(m_level,*it,geometryUpdated,it->second.prefix);
+          if (writeData)
+            (*it2)->writeSIM(m_level,*it,geometryUpdated,it->second.prefix);
           break;
         case NODALFORCES:
           (*it2)->writeNodalForces(m_level,*it);
@@ -141,7 +153,9 @@ bool DataExporter::dumpTimeLevel (const TimeStep* tp, bool geometryUpdated)
       }
     }
     if (tp)
-      (*it2)->writeTimeInfo(m_level,m_order,m_ndump,*tp);
+      (*it2)->writeTimeInfo(m_level,m_ndump,*tp);
+    if (writeRestart)
+      (*it2)->writeRestartData(restartLevel, *serializeData);
 
     (*it2)->closeFile(m_level);
   }
@@ -153,57 +167,6 @@ bool DataExporter::dumpTimeLevel (const TimeStep* tp, bool geometryUpdated)
       it->second.enabled = false;
 
   return true;
-}
-
-
-bool DataExporter::loadTimeLevel (int level, DataWriter* info,
-                                  DataWriter* input)
-{
-  if (!input)
-    if (m_writers.empty())
-      return false;
-    else if (m_dataReader)
-      input = m_dataReader;
-    else
-      input = m_writers.front();
-
-  if (!info)
-    if (m_infoReader)
-      info = m_infoReader;
-    else if (m_writers.size() < 2)
-      return false;
-    else
-      info = m_writers[1];
-
-  int level2=level;
-  if (level == -1)
-    if ((m_level = info->getLastTimeLevel()) < 0)
-      return false;
-    else
-      level2 = m_level;
-
-  bool ok = true;
-  input->openFile(level2);
-  std::map<std::string,FileEntry>::iterator it;
-  for (it = m_entry.begin(); it != m_entry.end() && ok; ++it) {
-    if (!it->second.data)
-      ok = false;
-    else switch (it->second.field)
-    {
-      case SIM:
-        ok = input->readSIM(level2,*it);
-        break;
-      default:
-        break;
-    }
-  }
-  input->closeFile(level2);
-  // if we load the last time level, we want to advance
-  // if we load a specified time level, we do not want to advance
-  if (level == -1)
-    m_level++;
-
-  return ok;
 }
 
 
@@ -236,13 +199,7 @@ void DataExporter::setNormPrefixes(const char** prefix)
 
 int DataExporter::realTimeLevel(int filelevel) const
 {
-  return realTimeLevel(filelevel,m_order,m_ndump);
-}
-
-
-int DataExporter::realTimeLevel(int filelevel, int order, int interval) const
-{
-  return filelevel/order*interval;
+  return filelevel*m_ndump;
 }
 
 

@@ -28,7 +28,7 @@ XMLWriter::XMLWriter (const std::string& name, const ProcessAdm& adm) :
   m_doc = nullptr;
   m_node = nullptr;
   m_dt = 0;
-  m_order = m_interval = 1;
+  m_interval = 1;
 }
 
 
@@ -73,7 +73,6 @@ void XMLWriter::closeFile(int level, bool force)
   TiXmlElement element3("timestep");
   sprintf(temp,"%f",m_dt);
   element3.SetAttribute("constant","1");
-  element3.SetAttribute("order",m_order);
   element3.SetAttribute("interval",m_interval);
   pNewNode = m_node->InsertEndChild(element3);
   TiXmlText value2(temp);
@@ -185,12 +184,6 @@ void XMLWriter::writeKnotspan(int level, const DataEntry& entry,
 }
 
 
-bool XMLWriter::readSIM (int level, const DataEntry& entry)
-{
-  return true;
-}
-
-
 void XMLWriter::writeSIM (int level, const DataEntry& entry, bool,
                           const std::string& prefix)
 {
@@ -215,22 +208,12 @@ void XMLWriter::writeSIM (int level, const DataEntry& entry, bool,
   else
     basisname = prefix+sim->getName()+"-1";
 
-  // restart vector
-  if (results & DataExporter::RESTART) {
-    addField(prefix+"restart",entry.second.description,basisname,
-             cmps,sim->getNoPatches(),"restart");
-  }
-
   if (results & DataExporter::PRIMARY) {
     if (entry.second.results < 0)
       addField(entry.second.description, entry.second.description,
                basisname, cmps, sim->getNoPatches(), "field");
     else if (sim->mixedProblem())
     {
-      // primary solution vector
-      addField(prefix+entry.first,entry.second.description,basisname,
-               0,sim->getNoPatches(),"restart");
-
       // primary solution fields
       for (int b=1; b <= sim->getNoBasis(); ++b) {
         std::stringstream str;
@@ -297,11 +280,9 @@ void XMLWriter::writeSIM (int level, const DataEntry& entry, bool,
 }
 
 
-bool XMLWriter::writeTimeInfo (int level, int order, int interval,
-                               const TimeStep& tp)
+bool XMLWriter::writeTimeInfo (int level, int interval, const TimeStep& tp)
 {
   m_dt = tp.time.dt;
-  m_order = order;
   m_interval = interval;
   return true;
 }

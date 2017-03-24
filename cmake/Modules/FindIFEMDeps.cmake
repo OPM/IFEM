@@ -222,6 +222,17 @@ if(IFEM_USE_ISTL)
   endif()
 endif()
 
+# Cereal
+if(IFEM_USE_CEREAL)
+  find_path(CEREAL_INCLUDE_DIRS NAMES cereal/cereal.hpp)
+  if(CEREAL_INCLUDE_DIRS)
+    list(APPEND IFEM_DEPINCLUDES ${CEREAL_INCLUDE_DIRS})
+    list(APPEND IFEM_DEFINITIONS -DHAS_CEREAL=1)
+    message(STATUS "Cereal serialization support enabled")
+    set(CEREAL_FOUND 1)
+  endif()
+endif()
+
 # Portability issues
 include(CheckFunctionExists)
 set(CMAKE_REQUIRED_DEFINITIONS)

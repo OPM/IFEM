@@ -15,8 +15,9 @@
 #define _DATA_EXPORTER_H
 
 #include "ControlFIFO.h"
-#include <vector>
 #include <map>
+#include <string>
+#include <vector>
 
 class DataWriter;
 class ProcessAdm;
@@ -33,6 +34,8 @@ class TimeStep;
 class DataExporter : public ControlCallback
 {
 public:
+  typedef std::map<std::string, std::string> SerializeData; //!< Convenience typedef
+
    //! \brief Supported field types
   enum FieldType {
     VECTOR,
@@ -51,7 +54,6 @@ public:
     NORMS        = 8,   //!< Storage of norms
     EIGENMODES   = 16,  //!< Storage of eigenmodes
     ONCE         = 32,  //!< Only write field once
-    RESTART      = 64,  //!< Write restart info
     GRID         = 128, //!< Always store an updated grid
     REDUNDANT    = 256  //!< Field is redundantly calculated on all processes
   };
@@ -74,11 +76,10 @@ public:
   //! \brief Default constructor.
   //! \param[in] dynWriters If \e true, delete the writers on destruction
   //! \param[in] ndump Interval between dumps
-  //! \param[in] order The temporal order of simulations
-  //! (always dumps order solutions in a row)
-  DataExporter(bool dynWriters = false, int ndump=1, int order=1) :
-    m_delete(dynWriters), m_level(-1), m_ndump(ndump), m_order(order),
-    m_last_step(-1), m_infoReader(0), m_dataReader(0) {}
+  //! \param[in] nrestart Restart stride. 0 to disable
+  DataExporter(bool dynWriters = false, int ndump=1, int nrestart=0) :
+    m_delete(dynWriters), m_level(-1), m_ndump(ndump),
+    m_last_step(-1), m_nrestart(nrestart), m_infoReader(0), m_dataReader(0) {}
 
   //! \brief The destructor deletes the writers if \a dynWriters was \e true.
   virtual ~DataExporter();
@@ -112,7 +113,9 @@ public:
   //! \brief Dumps all registered fields using the registered writers.
   //! \param[in] tp Current time stepping info
   //! \param[in] geometryUpdated Whether or not geometries are updated
-  bool dumpTimeLevel(const TimeStep* tp=nullptr, bool geometryUpdated=false);
+  //! \param[in] serializeData Serialized data from simulators for restart files
+  bool dumpTimeLevel(const TimeStep* tp=nullptr, bool geometryUpdated=false,
+                     SerializeData* serializeData = nullptr);
 
   //! \brief Loads last time level with first registered writer by default.
   //! \param[in] level Time level to load, defaults to last time level
@@ -124,10 +127,8 @@ public:
   //! \brief Returns the current time level of the exporter.
   int getTimeLevel();
 
-  //! \brief Calculates the real time level taking order and ndump into account.
+  //! \brief Calculates the real time level taking ndump into account.
   int realTimeLevel(int filelevel) const;
-  //! \brief Calculates the real time level taking order and ndump into account.
-  int realTimeLevel(int filelevel, int order, int interval) const;
 
   //! \brief Sets the prefices used for norm output.
   void setNormPrefixes(const char** prefix);
@@ -140,8 +141,11 @@ public:
   //! \brief Return name from data writer
   std::string getName() const;
 
+  //! \brief Returns visualization data stride
   int getStride() const { return m_ndump; }
-  int getOrder() const { return m_order; }
+
+  //! \brief Returns whether current step should be saved for restart or not.
+  bool dumpForRestart(const TimeStep* tp) const;
 
 protected:
   //! \brief Internal helper function.
@@ -155,8 +159,8 @@ protected:
   bool m_delete;    //!< If true, we are in charge of freeing up datawriters
   int  m_level;     //!< Current time level
   int  m_ndump;     //!< Time level stride for dumping
-  int  m_order;     //!< The temporal order used (needed to facilitate restart)
-  int  m_last_step; //!< Last time step we dumped for.
+  int  m_last_step; //!< Last time step we dumped for
+  int  m_nrestart;  //!< Stride for restart data dumping
 
   DataWriter* m_infoReader; //!< DataWriter to read data information from
   DataWriter* m_dataReader; //!< DataWriter to read numerical data from
@@ -234,17 +238,11 @@ public:
   virtual void writeBasis(int level, const DataEntry& entry,
                           const std::string& prefix) = 0;
 
-  //! \brief Reads data from a file into s SIM object.
-  //! \param[in] level The time level to read the data at
-  //! \param[in] entry The DataEntry describing the SIM
-  virtual bool readSIM(int level, const DataEntry& entry) = 0;
-
   //! \brief Writes time stepping info to file.
   //! \param[in] level The time level to write the info at
-  //! \param[in] order The temporal order
   //! \param[in] interval The number of time steps between each data dump
   //! \param[in] tp The current time stepping info
-  virtual bool writeTimeInfo(int level, int order, int interval,
+  virtual bool writeTimeInfo(int level, int interval,
                              const TimeStep& tp) = 0;
 
   //! \brief Sets the prefices used for norm output.
@@ -252,6 +250,11 @@ public:
 
   //! \brief Returns the name of the file
   const std::string& getName() const { return m_name; }
+
+  //! \brief Write restart data.
+  //! \param[in] step Level to write restart data at
+  //! \param[in] data Data to write
+  virtual bool writeRestartData(int level, const DataExporter::SerializeData& data) = 0;
 
 protected:
   std::string  m_name;   //!< File name

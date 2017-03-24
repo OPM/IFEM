@@ -49,6 +49,7 @@ SIMoptions::SIMoptions ()
   pSolOnly = false;
   enableController = false;
   restartInc = 0;
+  restartStep = -1;
 
   nGauss[0] = nGauss[1] = 4;
   nViz[0] = nViz[1] = nViz[2] = 2;
@@ -172,6 +173,17 @@ bool SIMoptions::parseOutputTag (const TiXmlElement* elem)
 }
 
 
+bool SIMoptions::parseRestartTag (const TiXmlElement* elem)
+{
+  if (!strcasecmp(elem->Value(),"restart")) {
+    utl::getAttribute(elem,"file",restartFile);
+    utl::getAttribute(elem,"step",restartStep);
+  }
+
+  return true;
+}
+
+
 bool SIMoptions::parseConsoleTag (const TiXmlElement* elem)
 {
   if (!strcasecmp(elem->Value(),"logging")) {
@@ -269,6 +281,14 @@ bool SIMoptions::parseOldOptions (int argc, char** argv, int& i)
   }
   else if (!strcmp(argv[i],"-saveInc") && i < argc-1)
     dtSave = atof(argv[++i]);
+  else if (!strcmp(argv[i],"-restart") && i < argc-1)
+  {
+    restartFile = strtok(argv[++i],".");
+    if (i+1 < argc && argv[i+1][0] != '-')
+      restartStep = atoi(argv[++i]);
+  }
+  else if (!strcmp(argv[i],"-restartInc") && i < argc-1)
+    restartInc = atoi(argv[++i]);
   else if (!strcmp(argv[i],"-eig") && i < argc-1)
     eig = atoi(argv[++i]);
   else if (!strcmp(argv[i],"-nev") && i < argc-1)

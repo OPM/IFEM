@@ -131,8 +131,7 @@ public:
     int plane = 1 + startCtx;
     for (size_t i = 0; i < m_planes.size(); i++, plane++)
       if (plane_exporters.size() <= i) {
-        DataExporter* exp = new DataExporter(true,exporter.getStride(),
-                                             exporter.getOrder());
+        DataExporter* exp = new DataExporter(true,exporter.getStride());
         std::stringstream str;
         str << "_plane" << plane;
         XMLWriter* xml = new XMLWriter(name+str.str(),
@@ -171,6 +170,12 @@ public:
     // Instead this method is used for the HDF5 export.
     return true;
   }
+
+  //! \brief No serialization support.
+  bool serialize(DataExporter::SerializeData& data) { return false; }
+
+  //! \brief No deserialization support.
+  bool deSerialize(const DataExporter::SerializeData& data) { return false; }
 
   //! \brief Solves the nonlinear equations by Newton-Raphson iterations.
   bool solveStep(TimeStep& tp)

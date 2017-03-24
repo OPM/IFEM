@@ -464,6 +464,8 @@ bool SIMinput::parse (const TiXmlElement* elem)
   bool result = true;
   if (!strcasecmp(elem->Value(),"discretization"))
     result = opt.parseDiscretizationTag(elem);
+  else if (!strcasecmp(elem->Value(),"restart"))
+    result = opt.parseRestartTag(elem);
   else if (!strcasecmp(elem->Value(),"initialcondition"))
     result = this->parseICTag(elem);
   else if (!strcasecmp(elem->Value(),"linearsolver"))
@@ -1174,5 +1176,13 @@ bool SIMinput::hasIC (const std::string& name) const
       if (ic.sim_field.find(name) == 0)
         return true;
 
+  return false;
+}
+
+
+bool SIMinput::deSerialize (const std::map<std::string,std::string>&)
+{
+  std::cerr <<" *** SIMinput::deSerialize: Must be implemented in sub-class.\n"
+            <<"     Restart not supported for "<< this->getName() << std::endl;
   return false;
 }

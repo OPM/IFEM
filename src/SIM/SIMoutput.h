@@ -269,6 +269,9 @@ public:
   //! \brief Checks whether point result files have been defined or not.
   bool hasPointResultFile() const;
 
+  //! \brief Serialization support.
+  virtual bool serialize(std::map<std::string,std::string>&) { return false; }
+
 protected:
   //! \brief Preprocesses the result sampling points.
   virtual void preprocessResultPoints();

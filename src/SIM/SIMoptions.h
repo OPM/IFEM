@@ -51,6 +51,8 @@ public:
   bool parseEigSolTag(const TiXmlElement* elem);
   //! \brief Parses a subelement of the \a resultoutput XML-tag.
   bool parseOutputTag(const TiXmlElement* elem);
+  //! \brief Parses the \a restart XML-tag.
+  bool parseRestartTag(const TiXmlElement* elem);
   //! \brief Parses a projection method XML-tag.
   bool parseProjectionMethod(const char* ptype);
 
@@ -83,11 +85,16 @@ public:
   int format;    //!< VTF-file format (-1=NONE, 0=ASCII, 1=BINARY)
   int nViz[3];   //!< Number of visualization points over each knot-span
   int saveInc;   //!< Number of load/time increments between each result output
-  int restartInc;//!< Number of load/time increments between each restart output
   double dtSave; //!< Time interval between each result output
   bool pSolOnly; //!< If \e true, don't save secondary solution variables
 
   std::string hdf5; //!< Prefix for HDF5-file
+
+  // Restart options
+  int         restartInc;  //!< Number of increments between each restart output
+  int         restartStep; //!< Index to the actual state to restart from
+  std::string restartFile; //!< File to read restart state data from
+
   bool enableController; //!< Whether or not to enable external program control
 
   int printPid; //!< PID to print info to screen for
