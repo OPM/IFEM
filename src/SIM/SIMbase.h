@@ -159,8 +159,6 @@ public:
   size_t getNoSolutions() const;
   //! \brief Returns the total number of patches in the model.
   int getNoPatches() const { return nGlPatches; }
-  //! \brief Returns the visualization dump interval.
-  int getDumpInterval() const { return opt.saveInc; }
   //! \brief Returns the number of right-hand-side vectors.
   virtual size_t getNoRHS() const;
   //! \brief Returns the number of bases in the model.
