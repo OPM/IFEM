@@ -83,6 +83,7 @@ public:
   int format;    //!< VTF-file format (-1=NONE, 0=ASCII, 1=BINARY)
   int nViz[3];   //!< Number of visualization points over each knot-span
   int saveInc;   //!< Number of load/time increments between each result output
+  int restartInc;//!< Number of load/time increments between each restart output
   double dtSave; //!< Time interval between each result output
   bool pSolOnly; //!< If \e true, don't save secondary solution variables
 

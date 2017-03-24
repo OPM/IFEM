@@ -48,6 +48,7 @@ SIMoptions::SIMoptions ()
   dtSave  =  0.0;
   pSolOnly = false;
   enableController = false;
+  restartInc = 0;
 
   nGauss[0] = nGauss[1] = 4;
   nViz[0] = nViz[1] = nViz[2] = 2;
@@ -121,6 +122,7 @@ bool SIMoptions::parseDiscretizationTag (const TiXmlElement* elem)
 
 bool SIMoptions::parseOutputTag (const TiXmlElement* elem)
 {
+  const char* value = nullptr;
   if (!strcasecmp(elem->Value(),"vtfformat")) {
     if (elem->FirstChild()) {
       if (!strcasecmp(elem->FirstChild()->Value(),"ascii"))
@@ -136,10 +138,13 @@ bool SIMoptions::parseOutputTag (const TiXmlElement* elem)
   }
 
   else if (!strcasecmp(elem->Value(),"stride")) {
-    const char* value = utl::getValue(elem,"stride");
+    value = utl::getValue(elem,"stride");
     if (value) saveInc = atoi(value);
     utl::getAttribute(elem,"dt",dtSave);
   }
+
+  else if ((value = utl::getValue(elem,"restartstride")))
+    restartInc = atoi(value);
 
   else if (!strcasecmp(elem->Value(),"hdf5")) {
     if (elem->FirstChild()) {
