@@ -16,6 +16,7 @@
 
 #include "Function.h"
 #include <iostream>
+#include <vector>
 
 class TiXmlElement;
 
@@ -27,8 +28,8 @@ class TiXmlElement;
 class AnaSol
 {
 protected:
-  RealFunc*    scalSol;    //!< Primary scalar solution field
-  VecFunc*     scalSecSol; //!< Secondary scalar solution field (gradient field)
+  std::vector<RealFunc*>    scalSol; //!< Primary scalar solution fields
+  std::vector<VecFunc*>  scalSecSol; //!< Secondary scalar solution fields (gradient fields)
 
   VecFunc*     vecSol;     //!< Primary vector solution field
   TensorFunc*  vecSecSol;  //!< Secondary solution field (vector gradient field)
@@ -45,25 +46,24 @@ public:
   //! \details It is assumed that all the arguments are pointers to dynamically
   //! allocated objects, as the class destructor will attempt to delete them.
   AnaSol(RealFunc* s1 = 0, VecFunc* s2 = 0,
-         VecFunc* v1 = 0, TensorFunc* v2 = 0, STensorFunc* v3 = 0)
-    : scalSol(s1), scalSecSol(s2), vecSol(v1), vecSecSol(v2), stressSol(v3) {}
+         VecFunc* v1 = 0, TensorFunc* v2 = 0, STensorFunc* v3 = 0);
 
   //! \brief Constructor initializing the primary and secondary solution fields.
   //! \param[in] s Primary scalar solution field
   //! \param[in] sigma Symmetric stress tensor field
   AnaSol(RealFunc* s, STensorFunc* sigma)
-    : scalSol(s), scalSecSol(0), vecSol(0), vecSecSol(0), stressSol(sigma) {}
+    : vecSol(0), vecSecSol(0), stressSol(sigma) { if (s) scalSol.push_back(s); }
 
   //! \brief Constructor initializing the primary and secondary solution fields.
   //! \param[in] v Primary vector solution field
   //! \param[in] sigma Symmetric stress tensor field
   AnaSol(VecFunc* v, STensorFunc* sigma)
-    : scalSol(0), scalSecSol(0), vecSol(v), vecSecSol(0), stressSol(sigma) {}
+    : vecSol(v), vecSecSol(0), stressSol(sigma) {}
 
   //! \brief Constructor initializing the symmetric stress tensor field only.
   //! \param[in] sigma Symmetric stress tensor field
   AnaSol(STensorFunc* sigma)
-    : scalSol(0), scalSecSol(0), vecSol(0), vecSecSol(0), stressSol(sigma) {}
+    : vecSol(0), vecSecSol(0), stressSol(sigma) {}
 
   //! \brief Constructor initializing expression functions by parsing a stream.
   //! \param is The file stream to read function definition from
@@ -78,11 +78,13 @@ public:
   //! \brief The destructor frees the analytical solution fields.
   virtual ~AnaSol()
   {
-    if (scalSol)    delete scalSol;
-    if (scalSecSol) delete scalSecSol;
-    if (vecSol)     delete vecSol;
-    if (vecSecSol)  delete vecSecSol;
-    if (stressSol)  delete stressSol;
+    for (auto& it : scalSol)
+      delete it;
+    for (auto& it : scalSecSol)
+      delete it;
+    delete vecSol;
+    delete vecSecSol;
+    delete stressSol;
   }
 
   //! \brief Checks whether a scalar solution is defined.
@@ -90,9 +92,9 @@ public:
   {
     if (stressSol && !vecSecSol && !vecSol)
       return 3;
-    else if (scalSecSol)
+    else if (!scalSecSol.empty())
       return 2;
-    else if (scalSol)
+    else if (!scalSol.empty())
       return 1;
     else
       return 0;
@@ -112,9 +114,11 @@ public:
   }
 
   //! \brief Returns the scalar solution, if any.
-  RealFunc*getScalarSol() const { return scalSol; }
+  RealFunc* getScalarSol(size_t idx = 0) const
+  { return scalSol.size() <= idx ? nullptr : scalSol[idx]; }
   //! \brief Returns the secondary scalar solution, if any.
-  VecFunc* getScalarSecSol() const { return scalSecSol; }
+  VecFunc* getScalarSecSol(size_t idx = 0) const
+  { return scalSecSol.size() <= idx ? nullptr : scalSecSol[idx]; }
 
   //! \brief Returns the vector solution, if any.
   VecFunc* getVectorSol() const { return vecSol; }
