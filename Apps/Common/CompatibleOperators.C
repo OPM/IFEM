@@ -36,9 +36,9 @@ void CompatibleOperators::Weak::Convection(std::vector<Matrix>& EM,
                                            double scale,
                                            WeakOperators::ConvectionForm form)
 {
-  static const double vidx[3][3] = {{1, 6, 7},
-                                    {10, 2, 11},
-                                    {14, 15, 3}};
+  static const double vidx[3][3] = {{ 1,  7,  8},
+                                    {12,  2, 13},
+                                    {17, 18,  3}};
   size_t nsd = fe.grad(1).cols();
   for (size_t m=1; m <= nsd; ++m)
     for (size_t i=1; i <= fe.basis(m).size(); ++i)
@@ -61,7 +61,7 @@ void CompatibleOperators::Weak::Gradient(std::vector<Matrix>& EM,
   for (size_t n = 1; n <= nsd; ++n)
     for (size_t i=1; i <= fe.basis(n).size(); ++i)
       for (size_t j=1; j <= fe.basis(nsd+1).size(); ++j)
-        EM[8+4*(n-1)](i,j) += -scale*fe.grad(n)(i,n)*fe.basis(nsd+1)(j)*fe.detJxW;
+        EM[10+5*(n-1)](i,j) += -scale*fe.grad(n)(i,n)*fe.basis(nsd+1)(j)*fe.detJxW;
 }
 
 
@@ -86,7 +86,7 @@ void CompatibleOperators::Weak::Laplacian(std::vector<Matrix>& EM,
     for (size_t i = 1; i <= fe.basis(m).size(); ++i)
       for (size_t n = m; n <= nsd; n++)
         for (size_t j = 1; j <= fe.basis(n).size(); ++j) {
-          int idx = m == n ? m : (m == 1 ? 5+n-m : 10+n-m);
+          int idx = m == n ? m : (m == 1 ? 6+n-m : 13);
           EM[idx](i,j) += scale* fe.grad(n)(j,m) * fe.grad(m)(i,n) * fe.detJxW;
         }
 }

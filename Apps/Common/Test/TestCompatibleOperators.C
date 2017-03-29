@@ -145,12 +145,12 @@ TEST(TestCompatibleOperators, Laplacian)
   check_matrix_equal(EM[2], EM_2_ref);
 
   // stress formulation
-  std::vector<Matrix> EM_stress(21);
+  std::vector<Matrix> EM_stress(36);
 
   EM_stress[1].resize(6,6);
+  EM_stress[7].resize(6,6);
+  EM_stress[12].resize(6,6);
   EM_stress[2].resize(6,6);
-  EM_stress[6].resize(6,6);
-  EM_stress[10].resize(6,6);
 
   CompatibleOperators::Weak::Laplacian(EM_stress, fe, 1.0, true);
   std::cout << EM_stress[1] << std::endl;
