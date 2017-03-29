@@ -87,6 +87,7 @@ public:
   int saveInc;   //!< Number of load/time increments between each result output
   double dtSave; //!< Time interval between each result output
   bool pSolOnly; //!< If \e true, don't save secondary solution variables
+  bool saveNorms;//!< If \e true, save element norms
 
   std::string hdf5; //!< Prefix for HDF5-file
 
