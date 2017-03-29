@@ -47,6 +47,7 @@ SIMoptions::SIMoptions ()
   saveInc =  1;
   dtSave  =  0.0;
   pSolOnly = false;
+  saveNorms = false;
   enableController = false;
 
   nGauss[0] = nGauss[1] = 4;
@@ -154,6 +155,9 @@ bool SIMoptions::parseOutputTag (const TiXmlElement* elem)
 
   else if (!strcasecmp(elem->Value(),"primarySolOnly"))
     pSolOnly = true;
+
+  else if (!strcasecmp(elem->Value(),"saveNorms"))
+    saveNorms = true;
 
   else if (!strcasecmp(elem->Value(),"projection")) {
     std::string type;
