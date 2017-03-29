@@ -27,7 +27,7 @@ class FiniteElement
 {
 public:
   //! \brief Default constructor.
-  FiniteElement(size_t n = 0, size_t i = 0) : iGP(i), N(n), iel(0), p(0), Te(3)
+  explicit FiniteElement(size_t n = 0, size_t i = 0) : iGP(i), N(n), iel(0), p(0), Te(3)
   { u = v = w = xi = eta = zeta = 0.0; detJxW = 1.0; }
 
   //! \brief Empty destructor.
