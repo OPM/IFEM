@@ -18,8 +18,17 @@
 #include "tinyxml.h"
 
 
+AnaSol::AnaSol(RealFunc* s1, VecFunc* s2, VecFunc* v1,
+               TensorFunc* v2, STensorFunc* v3) :
+  vecSol(v1), vecSecSol(v2), stressSol(v3)
+{
+  if (s1) scalSol.push_back(s1);
+  if (s2) scalSecSol.push_back(s2);
+}
+
+
 AnaSol::AnaSol (std::istream& is, const int nlines, bool scalarSol)
-  : scalSol(0), scalSecSol(0), vecSol(0), vecSecSol(0), stressSol(0)
+  : vecSol(0), vecSecSol(0), stressSol(0)
 {
   size_t pos = 0;
   std::string variables;
@@ -39,7 +48,7 @@ AnaSol::AnaSol (std::istream& is, const int nlines, bool scalarSol)
       std::string primary = function.substr(pos+8);
       IFEM::cout <<"\tPrimary="<< primary << std::endl;
       if (scalarSol)
-        scalSol = new EvalFunction((variables+primary).c_str());
+        scalSol.push_back(new EvalFunction((variables+primary).c_str()));
       else
         vecSol = new VecFuncExpr(primary,variables);
     }
@@ -49,7 +58,7 @@ AnaSol::AnaSol (std::istream& is, const int nlines, bool scalarSol)
       std::string secondary = function.substr(pos+10);
       IFEM::cout <<"\tSecondary="<< secondary << std::endl;
       if (scalarSol)
-        scalSecSol = new VecFuncExpr(secondary,variables);
+        scalSecSol.push_back(new VecFuncExpr(secondary,variables));
       else
         vecSecSol = new TensorFuncExpr(secondary,variables);
     }
@@ -65,7 +74,7 @@ AnaSol::AnaSol (std::istream& is, const int nlines, bool scalarSol)
 
 
 AnaSol::AnaSol (const TiXmlElement* elem, bool scalarSol)
-  : scalSol(0), scalSecSol(0), vecSol(0), vecSecSol(0), stressSol(0)
+  : vecSol(0), vecSecSol(0), stressSol(0)
 {
   std::string variables;
 
@@ -83,17 +92,18 @@ AnaSol::AnaSol (const TiXmlElement* elem, bool scalarSol)
     std::string primary = prim->FirstChild()->Value();
     IFEM::cout <<"\tPrimary="<< primary << std::endl;
     if (scalarSol)
-      scalSol = new EvalFunction((variables+primary).c_str());
+      scalSol.push_back(new EvalFunction((variables+primary).c_str()));
     else
       vecSol = new VecFuncExpr(primary,variables);
   }
 
   prim = elem->FirstChildElement("scalarprimary");
-  if (prim && prim->FirstChild())
+  while (prim && prim->FirstChild())
   {
     std::string primary = prim->FirstChild()->Value();
     IFEM::cout <<"\tScalar Primary="<< primary << std::endl;
-    scalSol = new EvalFunction((variables+primary).c_str());
+    scalSol.push_back(new EvalFunction((variables+primary).c_str()));
+    prim = prim->NextSiblingElement("scalarprimary");
   }
 
   const TiXmlElement* sec = elem->FirstChildElement("secondary");
@@ -102,17 +112,18 @@ AnaSol::AnaSol (const TiXmlElement* elem, bool scalarSol)
     std::string secondary = sec->FirstChild()->Value();
     IFEM::cout <<"\tSecondary="<< secondary << std::endl;
     if (scalarSol)
-      scalSecSol = new VecFuncExpr(secondary,variables);
+      scalSecSol.push_back(new VecFuncExpr(secondary,variables));
     else
       vecSecSol = new TensorFuncExpr(secondary,variables);
   }
 
   sec = elem->FirstChildElement("scalarsecondary");
-  if (sec && sec->FirstChild())
+  while (sec && sec->FirstChild())
   {
     std::string secondary = sec->FirstChild()->Value();
     IFEM::cout <<"\tScalar Secondary="<< secondary << std::endl;
-    scalSecSol = new VecFuncExpr(secondary,variables);
+    scalSecSol.push_back(new VecFuncExpr(secondary,variables));
+    sec = sec->NextSiblingElement("scalarsecondary");
   }
 
   const TiXmlElement* stress = elem->FirstChildElement("stress");
