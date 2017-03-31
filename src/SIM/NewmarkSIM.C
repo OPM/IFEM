@@ -357,6 +357,8 @@ SIM::ConvStatus NewmarkSIM::solveStep (TimeStep& param, SIM::SolutionMode,
         return SIM::CONVERGED;
 
       case SIM::DIVERGED:
+        model.getProcessAdm().cout <<" *** Iterations diverged, terminating..."
+                                   << std::endl;
         return SIM::DIVERGED;
 
       default:
@@ -388,6 +390,8 @@ SIM::ConvStatus NewmarkSIM::solveStep (TimeStep& param, SIM::SolutionMode,
           return SIM::FAILURE;
       }
 
+  model.getProcessAdm().cout <<" *** No convergence in "<< maxit
+                             <<" iterations, terminating..."<< std::endl;
   return SIM::DIVERGED;
 }
 
