@@ -184,6 +184,17 @@ public:
     //! \param[in] scale Scaling factor for contribution
     //! \param[in] stress Whether to add extra stress formulation terms
     //! \param[in] basis Basis to use
+    static void Laplacian(Vector& EV, const FiniteElement& fe,
+                          const Vec3& dUdX, double scale=1.0,
+                          int basis=1);
+
+    //! \brief Compute a laplacian term in a residual vector.
+    //! \param EV The element vector to add contribution to
+    //! \param[in] fe The finite element to evaluate for
+    //! \param[in] dUdX Current solution gradient
+    //! \param[in] scale Scaling factor for contribution
+    //! \param[in] stress Whether to add extra stress formulation terms
+    //! \param[in] basis Basis to use
     template<class T>
     static void Laplacian(Vector& EV, const FiniteElement& fe,
                           const T& dUdX, double scale=1.0,

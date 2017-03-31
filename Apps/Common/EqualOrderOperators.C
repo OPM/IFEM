@@ -268,3 +268,11 @@ void EqualOrderOperators::Residual::Divergence(Vector& EV, const FiniteElement& 
     EV(i) += scale*div*fe.basis(basis)(i)*fe.detJxW;
   }
 }
+
+
+void EqualOrderOperators::Residual::Laplacian(Vector& EV, const FiniteElement& fe,
+                                              const Vec3& dUdX, double scale, int basis)
+{
+  size_t nsd = fe.grad(basis).cols();
+  fe.grad(basis).multiply(Vector(dUdX.ptr(),nsd), EV, scale*fe.detJxW, 1);
+}
