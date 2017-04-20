@@ -73,7 +73,13 @@ First, we will add inhouse dependencies by a secondary repository.
     `sudo apt-get install libhdf5-serial-dev`  
     `sudo apt-get install libhdf5-openmpi-dev`
 
-8. **[optional]** Install the VTF writer.
+8. **[optional]** Install support for [de]serialization of simulator state.
+   This package is needed if you want to equip your simulator with restart
+   capabilities. Install it by typing
+
+    `sudo apt-get install libcereal-dev`
+
+9. **[optional]** Install the VTF writer.
    This is proprietary software that cannot be shared openly.  
    Send email to Trond.Kvamsdal@sintef.no and ask for them.
 
