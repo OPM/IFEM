@@ -37,11 +37,10 @@ public:
   virtual ~SIMSolverAdap() {}
 
   //! \brief Solves the problem up to the final time.
-  virtual int solveProblem(char* infile, DataExporter* exporter = nullptr,
-                           const char* heading = nullptr, bool = false)
+  virtual int solveProblem(char* infile, const char* heading, bool = false)
   {
-    if (exporter)
-      exporter->setNormPrefixes(aSim.getNormPrefixes());
+    if (SIMSolver<T1>::exporter)
+      SIMSolver<T1>::exporter->setNormPrefixes(aSim.getNormPrefixes());
 
     aSim.setupProjections();
     aSim.initAdaptor(0,2);
@@ -53,8 +52,8 @@ public:
         return 1;
       else if (!aSim.writeGlv(infile,iStep,aSim.getNoNorms()))
         return 2;
-      else if (exporter)
-        exporter->dumpTimeLevel(nullptr,true);
+      else if (SIMSolver<T1>::exporter)
+        SIMSolver<T1>::exporter->dumpTimeLevel(nullptr,true);
 
     return 0;
   }

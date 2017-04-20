@@ -43,8 +43,7 @@ public:
   virtual ~SIMSolverTS() {}
 
   //! \brief Solves the problem up to the final time.
-  virtual int solveProblem(char* infile, DataExporter* exporter = nullptr,
-                           const char* heading = nullptr, bool saveInit = true)
+  virtual int solveProblem(char* infile, const char* heading, bool saveInit)
   {
     // Perform some initial refinement to resolve geometric features, etc.
     if (!this->S1.initialRefine(beta,minFrac,maxRef))
@@ -52,7 +51,7 @@ public:
 
     // Save the initial FE model (and state) to VTF and HDF5 for visualization
     int geoBlk = 0, nBlock = 0;
-    if (!this->saveState(exporter,geoBlk,nBlock,true,infile,saveInit))
+    if (!this->saveState(geoBlk,nBlock,true,infile,saveInit))
       return 2;
 
     this->printHeading(heading);
@@ -81,7 +80,7 @@ public:
           if (!this->advanceStep()) // Final time reached
             // Save updated FE model if mesh has been refined
             // Save current results to VTF and HDF5 and then exit
-            return this->saveState(exporter,geoBlk,nBlock,refElms > 0) ? 0 : 2;
+            return this->saveState(geoBlk,nBlock,refElms > 0) ? 0 : 2;
           else if (!this->S1.solveStep(this->tp))
             return 3;
 
@@ -106,7 +105,7 @@ public:
         // The mesh is sufficiently refined at this state.
         // Save the current results to VTF and HDF5, and continue.
         // Note: We then miss the results from the preceding nPredict-1 steps.
-        if (!this->saveState(exporter,geoBlk,nBlock,refElms > 0))
+        if (!this->saveState(geoBlk,nBlock,refElms > 0))
           return 2;
       }
       else
@@ -124,7 +123,7 @@ public:
             return 0; // Final time reached, we're done
           else if (!this->S1.solveStep(this->tp))
             return 3;
-          else if (!this->saveState(exporter,geoBlk,nBlock,j < 1))
+          else if (!this->saveState(geoBlk,nBlock,j < 1))
             return 2;
       }
     }

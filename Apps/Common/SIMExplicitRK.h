@@ -13,9 +13,11 @@
 #ifndef SIM_EXPLICIT_RK_H_
 #define SIM_EXPLICIT_RK_H_
 
-#include "DataExporter.h"
 #include "TimeIntUtils.h"
 #include "TimeStep.h"
+
+class DataExporter;
+
 
 namespace TimeIntegration {
 
@@ -77,20 +79,18 @@ public:
   }
 
   //! \copydoc ISolver::solveStep(TimeStep&)
-  bool solveStep(TimeStep& tp)
+  virtual bool solveStep(TimeStep& tp)
   {
     std::cout <<"\n  step = "<< tp.step <<"  time = "<< tp.time.t << std::endl;
 
-    std::vector<Vector> stages;
-    return solveRK(stages, tp);
-
-    return true;
+    Vectors stages;
+    return this->solveRK(stages, tp);
   }
 
-  //! \brief Apply the Runge-Kutta scheme
+  //! \brief Applies the Runge-Kutta scheme.
   //! \param stages Vector of stage vectors
-  //! \param tp Time stepping information
-  bool solveRK(std::vector<Vector>& stages, TimeStep& tp)
+  //! \param[in] tp Time stepping information
+  bool solveRK(Vectors& stages, const TimeStep& tp)
   {
     TimeDomain time(tp.time);
     Vector dum;
@@ -142,16 +142,22 @@ public:
     return solver.saveStep(tp, nBlock);
   }
 
+  //! \copydoc ISolver::registerFields(DataExporter&)
+  void registerFields(DataExporter& exporter)
+  {
+    solver.registerFields(exporter);
+  }
+
   //! \brief Serialize internal state for restarting purposes.
   //! \param data Container for serialized data
-  bool serialize(DataExporter::SerializeData& data)
+  bool serialize(std::map<std::string,std::string>& data)
   {
     return solver.serialize(data);
   }
 
   //! \brief Set internal state from a serialized state.
   //! \param[in] data Container for serialized data
-  bool deSerialize(const DataExporter::SerializeData& data)
+  bool deSerialize(const std::map<std::string,std::string>& data)
   {
     return solver.deSerialize(data);
   }

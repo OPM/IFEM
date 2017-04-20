@@ -14,10 +14,11 @@
 #ifndef _SIM_SOLVER_H_
 #define _SIM_SOLVER_H_
 
+#include "IFEM.h"
 #include "SIMadmin.h"
 #include "TimeStep.h"
 #include "HDF5Writer.h"
-#include "IFEM.h"
+#include "XMLWriter.h"
 #include "tinyxml.h"
 
 
@@ -60,10 +61,11 @@ public:
   SIMSolver(T1& s1) : SIMadmin("Time integration driver"), S1(s1)
   {
     saveDivergedSol = false;
+    exporter = nullptr;
   }
 
-  //! \brief Empty destructor.
-  virtual ~SIMSolver() {}
+  //! \brief The destructor deletes the results data exporter object.
+  virtual ~SIMSolver() { delete exporter; }
 
   //! \brief Returns a const reference to the time stepping information.
   const TimeStep& getTimePrm() const { return tp; }
@@ -77,13 +79,13 @@ public:
   void postSolve(const TimeStep& t, bool rst = false) { S1.postSolve(t,rst); }
 
   //! \brief Solves the problem up to the final time.
-  virtual int solveProblem(char* infile, DataExporter* exporter = nullptr,
-                           const char* heading = nullptr, bool saveInit = true)
+  virtual int solveProblem(char* infile, const char* heading = nullptr,
+                           bool saveInit = true)
   {
     // Save FE model to VTF and HDF5 for visualization
     // Optionally save the initial configuration also
     int geoBlk = 0, nBlock = 0;
-    if (!this->saveState(exporter,geoBlk,nBlock,true,infile,saveInit))
+    if (!this->saveState(geoBlk,nBlock,true,infile,saveInit))
       return 2;
 
     this->printHeading(heading);
@@ -92,7 +94,7 @@ public:
     for (int iStep = 1; this->advanceStep(); iStep++)
       if (!S1.solveStep(tp))
         return saveDivergedSol && !S1.saveStep(tp,nBlock) ? 4 : 3;
-      else if (!this->saveState(exporter,geoBlk,nBlock))
+      else if (!this->saveState(geoBlk,nBlock))
         return 4;
       else
         IFEM::pollControllerFifo();
@@ -147,9 +149,8 @@ protected:
   }
 
   //! \brief Saves geometry and results to VTF and HDF5 for current time step.
-  bool saveState(DataExporter* exporter, int& geoBlk, int& nBlock,
-                 bool newMesh = false, char* infile = nullptr,
-                 bool saveRes = true)
+  bool saveState(int& geoBlk, int& nBlock, bool newMesh = false,
+                 char* infile = nullptr, bool saveRes = true)
   {
     if (newMesh && !S1.saveModel(infile,geoBlk,nBlock))
       return false;
@@ -195,12 +196,34 @@ public:
     return restartStep;
   }
 
+  //! \brief Handles application data output.
+  //! \param[in] hdf5file The file to save to
+  //! \param[in] saveInterval The stride in the output file
+  //! \param[in] restartInterval The stride in the restart file
+  void handleDataOutput(const std::string& hdf5file,
+                        int saveInterval = 1, int restartInterval = 0)
+  {
+    if (IFEM::getOptions().discretization < ASM::Spline && !hdf5file.empty())
+      IFEM::cout <<"\n  ** HDF5 output is available for spline discretization"
+                 <<" only. Deactivating...\n"<< std::endl;
+    else
+    {
+      exporter = new DataExporter(true,saveInterval,restartInterval);
+      exporter->registerWriter(new XMLWriter(hdf5file,adm));
+      exporter->registerWriter(new HDF5Writer(hdf5file,adm));
+      S1.registerFields(*exporter);
+      IFEM::registerCallback(*exporter);
+    }
+  }
+
 private:
   bool saveDivergedSol; //!< If \e true, save also the diverged solution to VTF
 
 protected:
   TimeStep tp; //!< Time stepping information
   T1&      S1; //!< The actual solver
+
+  DataExporter* exporter; //!< Administrator for result output to HDF5 file
 };
 
 #endif
