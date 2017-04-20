@@ -51,6 +51,7 @@ public:
   //! \param[out] X The Cartesian coordinates of the point
   //! \param[out] param The parameters of the point in the knot-span domain
   //! \param[in] patch 1-based patch index containing the evaluation point
+  //! \param[in] global If \e true, return global number, otherwise patch-local
   //! \return Patch-local or global node number of node that matches the point
   int evalPoint(const double* xi, Vec3& X, double* param = nullptr,
                 int patch = 1, bool global = false) const;

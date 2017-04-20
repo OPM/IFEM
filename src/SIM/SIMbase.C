@@ -1663,6 +1663,18 @@ bool SIMbase::extractPatchSolution (IntegrandBase* problem,
 }
 
 
+bool SIMbase::project (Vector& ssol, const Vector& psol,
+		       SIMoptions::ProjectionMethod pMethod) const
+{
+  Matrix stmp;
+  if (!this->project(stmp,psol,pMethod))
+    return false;
+
+  ssol = stmp;
+  return true;
+}
+
+
 size_t SIMbase::extractPatchSolution (const Vector& sol, Vector& vec,
                                       int pindx, unsigned char nndof,
                                       unsigned char basis) const

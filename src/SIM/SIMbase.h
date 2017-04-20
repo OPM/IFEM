@@ -28,7 +28,6 @@ class AnaSol;
 class SAM;
 class AlgEqSystem;
 class LinSolParams;
-class TimeStep;
 class SystemVector;
 class Vec4;
 
@@ -411,6 +410,14 @@ public:
   bool project(Matrix& ssol, const Vector& psol,
                SIMoptions::ProjectionMethod pMethod = SIMoptions::GLOBAL,
                const TimeDomain& time = TimeDomain()) const;
+  //! \brief Projects the secondary solution associated with a primary solution.
+  //! \param[out] ssol Vector of control point values of the secondary solution
+  //! \param[in] psol Vector of control point values of the primary solution
+  //! \param[in] pMethod Projection method to use
+  //!
+  //! \details Convenience overload, for stationary problems only.
+  bool project(Vector& ssol, const Vector& psol,
+               SIMoptions::ProjectionMethod pMethod = SIMoptions::GLOBAL) const;
 
   //! \brief Projects a scalar function onto the specified basis.
   //! \param[out] values Resulting control point values
