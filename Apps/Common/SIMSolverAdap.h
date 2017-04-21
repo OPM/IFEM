@@ -77,11 +77,18 @@ public:
     if (!aSim.initAdaptor())
       return 1;
 
-    if (SIMSolverStat<T1>::exporter)
+    if (SIMSolverStat<T1>::exporter) {
       SIMSolverStat<T1>::exporter->setFieldValue(exporterName, &this->S1,
                                                  &aSim.getSolution(),
                                                  &aSim.getProjections(),
                                                  &aSim.getEnorm());
+      if (!this->S1.opt.project.empty()) {
+        std::vector<std::string> pref;
+        for (const auto& it : this->S1.opt.project)
+          pref.push_back(it.second);
+        SIMSolverStat<T1>::exporter->setNormPrefixes(pref);
+      }
+    }
 
     for (int iStep = 1; aSim.adaptMesh(iStep); iStep++)
       if (!aSim.solveStep(infile,iStep))

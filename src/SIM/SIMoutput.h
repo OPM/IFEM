@@ -189,7 +189,7 @@ public:
   //! \param[in] prefix Prefices for projected solutions
   //! \param[in] idBlock Starting value of result block numbering
   bool writeGlvN(const Matrix& norms, int iStep, int& nBlock,
-                 const char** prefix = nullptr, int idBlock = 200);
+                 const std::vector<std::string>& prefix = {}, int idBlock = 200);
 
   //! \brief Writes a scalar function to the VTF-file.
   //! \param[in] f The function to output

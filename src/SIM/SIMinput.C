@@ -21,7 +21,6 @@
 #include "Functions.h"
 #include "Utilities.h"
 #include "HDF5Writer.h"
-#include "XMLWriter.h"
 #include "IFEM.h"
 #include "tinyxml.h"
 #include <fstream>
@@ -414,6 +413,7 @@ bool SIMinput::parseICTag (const TiXmlElement* elem)
     utl::getAttribute(elem,"file",file);
     utl::getAttribute(elem,"file_field",info.file_field);
     utl::getAttribute(elem,"file_level",info.file_level);
+    utl::getAttribute(elem,"file_basis",info.file_basis);
     utl::getAttribute(elem,"geo_level",info.geo_level);
   }
   else if (elem->FirstChild()) // function
@@ -1210,9 +1210,7 @@ bool SIMinput::setInitialCondition (SIMdependency* fieldHolder,
                                     const std::string& fileName,
                                     const InitialCondVec& info)
 {
-  XMLWriter xmlreader(fileName,adm);
   HDF5Writer hdf5reader(fileName,adm,true,true);
-  xmlreader.readInfo();
   hdf5reader.openFile(0);
 
   std::map<std::string,PatchVec> basisMap;
@@ -1224,46 +1222,35 @@ bool SIMinput::setInitialCondition (SIMdependency* fieldHolder,
     Vector* field = fieldHolder->getField(it.sim_field);
     if (!field) continue;
 
-    // Find entry in XML description file
-    auto itx = std::find_if(xmlreader.getEntries().begin(),
-                            xmlreader.getEntries().end(),
-                            [it](const XMLWriter::Entry& entry)
-                            { return entry.name == it.file_field; });
-    if (itx == xmlreader.getEntries().end())
-    {
-      std::cerr <<" *** SIMinput::setInitialConditions: Could not find IC ("
-                << it.file_field <<","<< it.file_level <<") -> ("
-                << it.sim_field <<")."<< std::endl;
-      return false;
-    }
-
     // Load basis
     CharVec nf(1,this->getNoFields(it.basis));
-    PatchVec& basisVec = basisMap[itx->basis];
-    if (basisVec.empty())
-      for (int i = 0; i < itx->patches; i++)
+    PatchVec& basisVec = basisMap[it.file_basis];
+    int nPatches = hdf5reader.getFieldSize(it.geo_level, it.file_basis+"/basis","");
+    if (basisVec.empty()) {
+      for (int i = 0; i < nPatches; i++)
         if (this->getLocalPatchIndex(i+1) > 0)
         {
           std::stringstream str, spg2;
-          str << it.geo_level <<"/basis/"<< itx->basis <<"/"<< i+1;
+          str << it.geo_level << "/" << it.file_basis << "/basis/" << i+1;
           std::string pg2;
           hdf5reader.readString(str.str(),pg2);
           spg2 << pg2;
           basisVec.push_back(this->readPatch(spg2,i,nf));
         }
+    }
 
     // Load result field, patch by patch
-    for (int i = 0; i < itx->patches; i++)
+    for (int i = 0; i < nPatches; i++)
     {
       int p = this->getLocalPatchIndex(i+1);
       ASMbase* pch = this->getPatch(p);
       if (!pch) continue;
 
       Vector loc, newloc;
-      hdf5reader.readVector(it.file_level, it.file_field, i+1, loc);
+      hdf5reader.readVector(it.file_level, it.file_basis+"/fields/"+it.file_field, i+1, loc);
       basisVec[p-1]->copyParameterDomain(pch);
       if (pch->evaluate(basisVec[p-1], loc, newloc, it.basis))
-        pch->injectNodeVec(newloc, *field, itx->components, it.basis);
+        pch->injectNodeVec(newloc, *field, newloc.size()/pch->getNoNodes(it.basis), it.basis);
     }
   }
 

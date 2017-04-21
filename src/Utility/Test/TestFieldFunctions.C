@@ -18,16 +18,16 @@
 TEST(TestFieldFunctions, 2D1P)
 {
   FieldFunction f2D_scalar("src/Utility/Test/refdata/Field2D-1P",
-                           "Stokes-2", "v", 1, 0);
+                           "Stokes-2", "v", 0);
 
   VecFieldFunction f2D_vec("src/Utility/Test/refdata/Field2D-1P",
-                           "Stokes-1", "u", 1, 0);
+                           "Stokes-1", "u", 0);
 
   TensorFieldFunction f2D_ten("src/Utility/Test/refdata/Field2D-1P",
-                              "Stokes-1", "u_x,x|u_x,y|u_y,x|u_y,y", 1, 0);
+                              "Stokes-1", "u_x,x|u_x,y|u_y,x|u_y,y", 0);
 
   STensorFieldFunction f2D_sten("src/Utility/Test/refdata/Field2D-1P",
-                                "Stokes-1", "u_x,x|u_y,y|u_x,y", 1, 0);
+                                "Stokes-1", "u_x,x|u_y,y|u_x,y", 0);
 
   double param[3] = {0.5, 0.5, 0.0};
   Vec4 X(param);
@@ -62,10 +62,10 @@ TEST(TestFieldFunctions, 2D1P)
 TEST(TestFieldFunctions, 2D2P)
 {
   FieldFunction f2D_scalar("src/Utility/Test/refdata/Field2D-2P",
-                           "Stokes-2", "v", 2, 0);
+                           "Stokes-2", "v", 0);
 
   VecFieldFunction f2D_vec("src/Utility/Test/refdata/Field2D-2P",
-                           "Stokes-1", "u", 2, 0);
+                           "Stokes-1", "u", 0);
 
   double param[3] = {0.5, 0.5, 0.0};
   Vec4 X(param);
@@ -84,16 +84,16 @@ TEST(TestFieldFunctions, 2D2P)
 TEST(TestFieldFunctions, 3D1P)
 {
   FieldFunction f3D_scalar("src/Utility/Test/refdata/Field3D-1P",
-                           "Stokes-2", "v", 1, 0);
+                           "Stokes-2", "v", 0);
 
   VecFieldFunction f3D_vec("src/Utility/Test/refdata/Field3D-1P",
-                           "Stokes-1", "u", 1, 0);
+                           "Stokes-1", "u", 0);
 
   TensorFieldFunction f3D_ten("src/Utility/Test/refdata/Field3D-1P",
-                              "Stokes-1", "u_x,x|u_y,x|u_z,x|u_x,y|u_y,y|u_z,y|u_x,z|u_x,y|u_z,z", 1, 0);
+                              "Stokes-1", "u_x,x|u_y,x|u_z,x|u_x,y|u_y,y|u_z,y|u_x,z|u_x,y|u_z,z", 0);
 
   STensorFieldFunction f3D_sten("src/Utility/Test/refdata/Field3D-1P",
-                                "Stokes-1", "u_x,x|u_y,y|u_z,z|u_x,y|u_z,x|u_x,y", 1, 0);
+                                "Stokes-1", "u_x,x|u_y,y|u_z,z|u_x,y|u_z,x|u_x,y", 0);
 
   double param[3] = {0.25, 0.25, 0.25};
   Vec4 X(param);
@@ -135,16 +135,16 @@ TEST(TestFieldFunctions, 3D1P)
 TEST(TestFieldFunctions, 3D2P)
 {
   FieldFunction f3D_scalar("src/Utility/Test/refdata/Field3D-2P",
-                           "Stokes-2", "v", 2, 0);
+                           "Stokes-2", "v", 0);
 
   VecFieldFunction f3D_vec("src/Utility/Test/refdata/Field3D-2P",
-                           "Stokes-1", "u", 2, 0);
+                           "Stokes-1", "u", 0);
 
   TensorFieldFunction f3D_ten("src/Utility/Test/refdata/Field3D-2P",
-                              "Stokes-1", "u_x,x|u_y,x|u_z,x|u_x,y|u_y,y|u_z,y|u_x,z|u_x,y|u_z,z", 2, 0);
+                              "Stokes-1", "u_x,x|u_y,x|u_z,x|u_x,y|u_y,y|u_z,y|u_x,z|u_x,y|u_z,z", 0);
 
   STensorFieldFunction f3D_sten("src/Utility/Test/refdata/Field3D-2P",
-                                "Stokes-1", "u_x,x|u_y,y|u_z,z|u_x,y|u_y,z|u_z,x", 2, 0);
+                                "Stokes-1", "u_x,x|u_y,y|u_z,z|u_x,y|u_y,z|u_z,x", 0);
 
   double param[3] = {0.25, 0.25, 0.25};
   Vec4 X(param);

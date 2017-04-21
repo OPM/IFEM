@@ -79,9 +79,13 @@ int FieldFuncBase::findClosestLevel (double time) const
 
 bool FieldFuncBase::load (const std::vector<std::string>& fieldNames,
                           const std::string& basisName, int level,
-                          size_t nPatches, bool isScalar)
+                          bool isScalar)
 {
   size_t nOK = 0;
+  size_t nPatches = 0;
+#ifdef HAS_HDF5
+  nPatches = hdf5->getFieldSize(level, basisName, fieldNames.front());
+#endif
   if (nPatches == 0)
     nPatches = patch.size();
   else if (patch.empty())
@@ -105,7 +109,7 @@ bool FieldFuncBase::load (const std::vector<std::string>& fieldNames,
       }
       std::string g2;
       std::stringstream sbasis;
-      sbasis << level <<"/basis/"<< basisName <<"/"<< ip+1;
+      sbasis << level << "/" << basisName << "/basis/"<< ip+1;
       hdf5->readString(sbasis.str(),g2);
       if (g2.compare(0,9,"200 1 0 0") == 0)
         patch[ip] = ASM2D::create(ASM::Spline,nFldC2D);
@@ -133,7 +137,7 @@ bool FieldFuncBase::load (const std::vector<std::string>& fieldNames,
       RealArrays coefs(nFldCmp);
       for (size_t i = 0; i < nFldCmp; i++)
       {
-        hdf5->readVector(level,fieldNames[i],ip+1,coefs[i]);
+        hdf5->readVector(level,basisName+"/fields/"+fieldNames[i],ip+1,coefs[i]);
 #if SP_DEBUG > 1
         std::cout <<"FieldFuncBase::load: Reading \""<< fieldNames[i]
                   <<"\" ("<< coefs[i].size() <<") for patch "<< ip+1;
@@ -158,12 +162,12 @@ bool FieldFuncBase::load (const std::vector<std::string>& fieldNames,
 FieldFunction::FieldFunction (const std::string& fileName,
                               const std::string& basisName,
                               const std::string& fieldName,
-                              size_t nPatches, int level)
+                              int level)
   : FieldFuncBase(fileName), currentLevel(level),
     fName(fieldName), bName(basisName)
 {
   if (level >= 0)
-    this->load({fieldName},basisName,level,nPatches,true);
+    this->load({fieldName},basisName,level,true);
 }
 
 
@@ -205,13 +209,13 @@ Real FieldFunction::evaluate (const Vec3& X) const
 FieldsFuncBase::FieldsFuncBase (const std::string& fileName,
                                 const std::string& basisName,
                                 const std::string& fieldName,
-                                size_t nPatches, int level)
+                                int level)
   : FieldFuncBase(fileName), currentLevel(level),
     fName(splitString(fieldName,[](int c){ return c == '|' ? 1 : 0; })),
     bName(basisName)
 {
   if (level >= 0)
-    this->load(fName,basisName,level,nPatches);
+    this->load(fName,basisName,level);
 }
 
 
@@ -265,8 +269,8 @@ RealArray FieldsFuncBase::getValues (const Vec3& X)
 VecFieldFunction::VecFieldFunction (const std::string& fileName,
                                     const std::string& basisName,
                                     const std::string& fieldName,
-                                    size_t nPatches, int level)
-  : FieldsFuncBase(fileName,basisName,fieldName,nPatches,level)
+                                    int level)
+  : FieldsFuncBase(fileName,basisName,fieldName,level)
 {
   if (!field.empty())
     ncmp = field.front()->getNoFields();
@@ -285,8 +289,8 @@ Vec3 VecFieldFunction::evaluate (const Vec3& X) const
 TensorFieldFunction::TensorFieldFunction (const std::string& fileName,
                                           const std::string& basisName,
                                           const std::string& fieldName,
-                                          size_t nPatches, int level)
-  : FieldsFuncBase(fileName,basisName,fieldName,nPatches,level)
+                                          int level)
+  : FieldsFuncBase(fileName,basisName,fieldName,level)
 {
   if (!field.empty())
     ncmp = field.front()->getNoFields();
@@ -305,8 +309,8 @@ Tensor TensorFieldFunction::evaluate (const Vec3& X) const
 STensorFieldFunction::STensorFieldFunction (const std::string& fileName,
                                             const std::string& basisName,
                                             const std::string& fieldName,
-                                            size_t nPatches, int level)
-  : FieldsFuncBase(fileName,basisName,fieldName,nPatches,level)
+                                            int level)
+  : FieldsFuncBase(fileName,basisName,fieldName,level)
 {
   if (!field.empty())
     ncmp = field.front()->getNoFields();
