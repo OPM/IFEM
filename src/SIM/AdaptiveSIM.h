@@ -117,7 +117,7 @@ private:
   int nBlock; //!< Running VTF result block counter
 
   std::vector<Vector>      projs;  //!< Projected secondary solutions
-  std::vector<const char*> prefix; //!< Norm prefices for VTF-output
+  std::vector<std::string> prefix; //!< Norm prefices for VTF-output
 
 protected:
   Vectors solution; //!< All solutions (galerkin projections)

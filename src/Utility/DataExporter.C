@@ -28,8 +28,6 @@ DataWriter::DataWriter (const std::string& name,
   else
     m_name = name;
 
-  m_prefix = nullptr;
-
   m_size = adm.getNoProcs();
   m_rank = adm.getProcId();
 }
@@ -56,7 +54,6 @@ bool DataExporter::registerField (const std::string& name,
   entry.description = description;
   entry.field = field;
   entry.results = results;
-  entry.data = entry.data2 = nullptr;
   entry.prefix = prefix;
   if (!prefix.empty())
     entry.prefix += ' ';
@@ -82,14 +79,20 @@ bool DataExporter::registerWriter (DataWriter* writer, bool info, bool data)
 
 
 bool DataExporter::setFieldValue (const std::string& name,
-                                  const void* data, const void* data2)
+                                  const void* data,
+                                  const void* data2,
+                                  const void* data3,
+                                  const void* data4)
 {
   std::map<std::string,FileEntry>::iterator it = m_entry.find(name);
   if (it == m_entry.end())
     return false;
 
   it->second.data = data;
-  it->second.data2 = data2;
+  it->second.data2.clear();
+  it->second.data2.push_back(data2);
+  it->second.data2.push_back(data3);
+  it->second.data2.push_back(data4);
   return true;
 }
 
@@ -152,7 +155,7 @@ bool DataExporter::dumpTimeLevel (const TimeStep* tp, bool geometryUpdated,
           break;
       }
     }
-    if (tp)
+    if (tp && tp->multiSteps())
       writer->writeTimeInfo(m_level,m_ndump,*tp);
     if (writeRestart)
       writer->writeRestartData(restartLevel, *serializeData);
@@ -188,7 +191,7 @@ int DataExporter::getWritersTimeLevel () const
 }
 
 
-void DataExporter::setNormPrefixes(const char** prefix)
+void DataExporter::setNormPrefixes(const std::vector<std::string>& prefix)
 {
   for (DataWriter* writer : m_writers)
     writer->setNormPrefixes(prefix);

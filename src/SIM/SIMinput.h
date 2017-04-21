@@ -43,6 +43,7 @@ public:
     char basis;     //!< The basis to inject field into (for mixed)
     char component; //!< Component for field (for functions)
     std::string sim_field;  //!< The name of the field in the SIM class
+    std::string file_basis; //!< Basis for field on file
     std::string file_field; //!< The field name in the file or type of function
     std::string function;   //!< Function if given in function form
     //! \brief Default constructor.

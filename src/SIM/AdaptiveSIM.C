@@ -54,8 +54,6 @@ AdaptiveSIM::AdaptiveSIM (SIMoutput& sim, bool sa) : SIMadmin(sim), model(sim)
 
 AdaptiveSIM::~AdaptiveSIM ()
 {
-  for (const char* pfx : prefix)
-    free(const_cast<char*>(pfx));
 }
 
 
@@ -215,7 +213,7 @@ bool AdaptiveSIM::initAdaptor (size_t normGroup)
   {
     prefix.reserve(opt.project.size());
     for (pit = opt.project.begin(); pit != opt.project.end(); ++pit)
-      prefix.push_back(strdup(pit->second.c_str()));
+      prefix.push_back(pit->second);
   }
 
   return true;
@@ -612,7 +610,7 @@ bool AdaptiveSIM::writeGlv (const char* infile, int iStep)
       return false;
 
   // Write element norms
-  if (!model.writeGlvN(eNorm,iStep,nBlock,prefix.data()))
+  if (!model.writeGlvN(eNorm,iStep,nBlock,prefix))
     return false;
 
   // Write state information

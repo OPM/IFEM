@@ -67,7 +67,7 @@ public:
                              //! want to use the description as name for the
                              //! primary vector, not the name of the Integrand.
     const void* data;        //!< Pointer to the primary data (e.g. a SIM class)
-    const void* data2;       //!< Pointer to the secondary data (e.g. a vector)
+    std::vector<const void*> data2; //!< Pointers to the secondary data (e.g. a vector)
     std::string prefix;      //!< Field name prefix
     bool enabled;            //!< Whether or not field is enabled
     int  ncmps;              //!< Number of components. Use to override SIM info
@@ -106,9 +106,13 @@ public:
   //! \param[in] name Name the field is registered with
   //! \param[in] data The value to set the field to
   //! \param[in] data2 (optional) The secondary data of the field
+  //! \param[in] data3 (optional) The third data of the field
+  //! \param[in] data4 (optional) The fourth data of the field
   bool setFieldValue(const std::string& name,
                      const void* data,
-                     const void* data2=nullptr);
+                     const void* data2=nullptr,
+                     const void* data3=nullptr,
+                     const void* data4=nullptr);
 
   //! \brief Dumps all registered fields using the registered writers.
   //! \param[in] tp Current time stepping info
@@ -131,7 +135,7 @@ public:
   int realTimeLevel(int filelevel) const;
 
   //! \brief Sets the prefices used for norm output.
-  void setNormPrefixes(const char** prefix);
+  void setNormPrefixes(const std::vector<std::string>& prefixes);
 
   //! \brief Callback on receiving a XML control block from external controller.
   virtual void OnControl(const TiXmlElement* context);
@@ -246,7 +250,7 @@ public:
                              const TimeStep& tp) = 0;
 
   //! \brief Sets the prefices used for norm output.
-  void setNormPrefixes(const char** prefix) { m_prefix = prefix; }
+  void setNormPrefixes(const std::vector<std::string>& prefix) { m_prefix = prefix; }
 
   //! \brief Returns the name of the file
   const std::string& getName() const { return m_name; }
@@ -258,7 +262,7 @@ public:
 
 protected:
   std::string  m_name;   //!< File name
-  const char** m_prefix; //!< The norm prefixes
+  std::vector<std::string> m_prefix; //!< The norm prefixes
 
   int m_size; //!< Number of MPI nodes (processors)
   int m_rank; //!< MPI rank (processor ID)

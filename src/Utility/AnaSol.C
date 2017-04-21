@@ -20,7 +20,6 @@
 #ifdef HAS_HDF5
 #include "ProcessAdm.h"
 #include "HDF5Writer.h"
-#include "XMLWriter.h"
 #include "FieldFunctions.h"
 #endif
 
@@ -237,38 +236,27 @@ void AnaSol::parseFieldFunctions(const TiXmlElement* elem, bool scalarSol)
   std::string file = elem->Attribute("file");
   int level = 0;
   utl::getAttribute(elem, "level", level);
-  ProcessAdm adm;
-  XMLWriter xml(file, adm);
-  xml.readInfo();
   const TiXmlElement* prim = elem->FirstChildElement("primary");
+  const char* basis = elem->Attribute("file_basis");
+  if (!basis) {
+    std::cerr << "No basis specified on file" << std::endl;
+    return;
+  }
   if (prim && prim->FirstChild())
   {
     std::string primary = prim->FirstChild()->Value();
     IFEM::cout <<"\tPrimary="<< primary << std::endl;
-    for (const XMLWriter::Entry& it : xml.getEntries()) {
-      if (it.name == primary) {
-        if (scalarSol)
-           scalSol.push_back(new FieldFunction(file, it.basis,
-                                               primary, it.patches, level));
-        else
-          vecSol = new VecFieldFunction(file, it.basis,
-                                        primary, it.patches,level);
-
-        break;
-      }
-    }
+    if (scalarSol)
+      scalSol.push_back(new FieldFunction(file, basis, primary, level));
+    else
+      vecSol = new VecFieldFunction(file, basis, primary, level);
   }
   prim = elem->FirstChildElement("scalarprimary");
   if (prim && prim->FirstChild())
   {
     std::string primary = prim->FirstChild()->Value();
     IFEM::cout <<"\tScalar Primary="<< primary << std::endl;
-    for (const XMLWriter::Entry& it : xml.getEntries())
-      if (it.name == primary) {
-        scalSol.push_back(new FieldFunction(file, it.basis,
-                                                 primary, it.patches, level));
-        break;
-      }
+    scalSol.push_back(new FieldFunction(file, basis, primary, level));
   }
   const TiXmlElement* sec = elem->FirstChildElement("secondary");
   if (sec && sec->FirstChild())
@@ -282,17 +270,10 @@ void AnaSol::parseFieldFunctions(const TiXmlElement* elem, bool scalarSol)
       sec = secondary;
     else
       sec = secondary.substr(0,pos);
-    for (const XMLWriter::Entry& it : xml.getEntries())
-      if (it.name == sec) {
-        if (scalarSol)
-          scalSecSol.push_back(new VecFieldFunction(file, it.basis, secondary,
-                                                    it.patches, level));
-        else
-          vecSecSol = new TensorFieldFunction(file, it.basis, secondary,
-                                              it.patches, level);
-
-        break;
-      }
+    if (scalarSol)
+      scalSecSol.push_back(new VecFieldFunction(file, basis, secondary, level));
+    else
+      vecSecSol = new TensorFieldFunction(file, basis, secondary, level);
   }
   sec = elem->FirstChildElement("scalarsecondary");
   if (sec && sec->FirstChild())
@@ -306,12 +287,7 @@ void AnaSol::parseFieldFunctions(const TiXmlElement* elem, bool scalarSol)
       sec = secondary;
     else
       sec = secondary.substr(0,pos);
-    for (const XMLWriter::Entry& it : xml.getEntries())
-      if (it.name == sec) {
-        scalSecSol.push_back(new VecFieldFunction(file, it.basis, secondary,
-                                                  it.patches, level));
-        break;
-      }
+    scalSecSol.push_back(new VecFieldFunction(file, basis, secondary, level));
   }
   sec = elem->FirstChildElement("stress");
   if (sec && sec->FirstChild())
@@ -325,13 +301,7 @@ void AnaSol::parseFieldFunctions(const TiXmlElement* elem, bool scalarSol)
       sec = secondary;
     else
       sec = secondary.substr(0,pos);
-    for (const XMLWriter::Entry& it : xml.getEntries())
-      if (it.name == sec) {
-        stressSol = new STensorFieldFunction(file, it.basis, secondary,
-                                             it.patches, level);
-
-        break;
-      }
+    stressSol = new STensorFieldFunction(file, basis, secondary, level);
   }
 #else
   std::cerr << "AnaSol::parseFieldFunctions(..): Compiled without HDF5 support"

@@ -164,15 +164,20 @@ public:
   //! \param[out] data The array to read data into
   void readArray(hid_t group, const std::string& name, int& len, char*& data);
 
+  //! \brief Returns number of patches for a field.
+  int getFieldSize(int level, const std::string& basisName,
+                   const std::string& fieldName);
+
 protected:
   //! \brief Internal helper function writing a data array to file.
   //! \param[in] group The HDF5 group to write data into
   //! \param[in] name The name of the array
+  //! \param[in] patch Patch number of the array
   //! \param[in] len The length of the array
   //! \param[in] data The array to write
   //! \param[in] type The HDF5 type for the data (see H5T)
   void writeArray(hid_t group, const std::string& name,
-                  int len, const void* data, hid_t type);
+                  int patch, int len, const void* data, hid_t type);
 
   //! \brief Internal helper function writing a SIM's basis (geometry) to file.
   //! \param[in] SIM The SIM we want to write basis for

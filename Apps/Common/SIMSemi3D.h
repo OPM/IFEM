@@ -23,7 +23,6 @@
 #include "Vec3.h"
 #include "DataExporter.h"
 #include "HDF5Writer.h"
-#include "XMLWriter.h"
 #include "tinyxml.h"
 #include <fstream>
 #include <memory>
@@ -136,11 +135,8 @@ public:
         DataExporter* exp = new DataExporter(true,exporter.getStride());
         std::stringstream str;
         str << "_plane" << plane;
-        XMLWriter* xml = new XMLWriter(name+str.str(),
-                                       m_planes[i]->getProcessAdm());
         HDF5Writer* hdf = new HDF5Writer(name+str.str(),
                                          m_planes[i]->getProcessAdm(),false);
-        exp->registerWriter(xml);
         exp->registerWriter(hdf);
         plane_exporters.push_back(exp);
         m_planes[i]->registerFields(*exp);

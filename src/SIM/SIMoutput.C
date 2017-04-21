@@ -1043,7 +1043,7 @@ bool SIMoutput::writeGlvM (const Mode& mode, bool freq, int& nBlock)
 
 
 bool SIMoutput::writeGlvN (const Matrix& norms, int iStep, int& nBlock,
-                           const char** prefix, int idBlock)
+                           const std::vector<std::string>& prefix, int idBlock)
 {
   if (norms.empty())
     return true;
@@ -1100,8 +1100,8 @@ bool SIMoutput::writeGlvN (const Matrix& norms, int iStep, int& nBlock,
     if (!norm->hasElementContributions(j,l))
       continue;
 
-    if (prefix && j > 1)
-      normName = norm->getName(j,l,prefix[j-2]);
+    if (!prefix.empty() && j > 1)
+      normName = norm->getName(j,l,prefix[j-2].c_str());
     else
       normName = norm->getName(j,l);
 

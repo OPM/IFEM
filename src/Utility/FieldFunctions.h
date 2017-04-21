@@ -46,11 +46,10 @@ protected:
   //! \param[in] fieldNames Name of the field components in the HDF5-file
   //! \param[in] basisName Name of the basis which the field values refer to
   //! \param[in] level Time level to read for
-  //! \param[in] nPatches Number of patches to read for
   //! \param[in] isScalar If \e true, assume this is a scalar field
   bool load(const std::vector<std::string>& fieldNames,
             const std::string& basisName, int level,
-            size_t nPatches = 0, bool isScalar = false);
+            bool isScalar = false);
 
   //! \brief Finds the level whose time is closest to the specified time.
   int findClosestLevel(double time) const;
@@ -87,12 +86,11 @@ public:
   //! \param[in] fileName Name of the HDF5-file
   //! \param[in] basisName Name of the basis which the field values refer to
   //! \param[in] fieldName Name of the field in the HDF5-file
-  //! \param[in] nPatches Number of patches to read for
   //! \param[in] level Time level to read for
   FieldFunction(const std::string& fileName,
                 const std::string& basisName,
                 const std::string& fieldName,
-                size_t nPatches = 1, int level = 0);
+                int level = 0);
   //! \brief The destructor deletes the scalar fields.
   virtual ~FieldFunction() { this->clearField(); }
 
@@ -131,12 +129,11 @@ protected:
   //! \param[in] fileName Name of the HDF5-file
   //! \param[in] basisName Name of the basis which the field values refer to
   //! \param[in] fieldName Name of the field in the HDF5-file
-  //! \param[in] nPatches Number of patches to read for
   //! \param[in] level Time level to read for
   FieldsFuncBase(const std::string& fileName,
                  const std::string& basisName,
                  const std::string& fieldName,
-                 size_t nPatches, int level);
+                 int level);
   //! \brief The destructor deletes the vector fields.
   virtual ~FieldsFuncBase() { this->clearField(); }
 
@@ -172,12 +169,11 @@ public:
   //! \param[in] fileName Name of the HDF5-file
   //! \param[in] basisName Name of the basis which the field values refer to
   //! \param[in] fieldName Name of the field in the HDF5-file
-  //! \param[in] nPatches Number of patches to read for
   //! \param[in] level Time level to read for
   VecFieldFunction(const std::string& fileName,
                    const std::string& basisName,
                    const std::string& fieldName,
-                   size_t nPatches = 1, int level = 0);
+                   int level = 0);
   //! \brief Empty destructor.
   virtual ~VecFieldFunction() {}
 
@@ -201,12 +197,11 @@ public:
   //! \param[in] fileName Name of the HDF5-file
   //! \param[in] basisName Name of the basis which the field values refer to
   //! \param[in] fieldName Name of the field in the HDF5-file
-  //! \param[in] nPatches Number of patches to read for
   //! \param[in] level Time level to read for
   TensorFieldFunction(const std::string& fileName,
                       const std::string& basisName,
                       const std::string& fieldName,
-                      size_t nPatches = 1, int level = 0);
+                      int level = 0);
   //! \brief Empty destructor.
   virtual ~TensorFieldFunction() {}
 
@@ -230,12 +225,11 @@ public:
   //! \param[in] fileName Name of the HDF5-file
   //! \param[in] basisName Name of the basis which the field values refer to
   //! \param[in] fieldName Name of the field in the HDF5-file
-  //! \param[in] nPatches Number of patches to read for
   //! \param[in] level Time level to read for
   STensorFieldFunction(const std::string& fileName,
                        const std::string& basisName,
                        const std::string& fieldName,
-                       size_t nPatches = 1, int level = 0);
+                       int level = 0);
   //! \brief Empty destructor.
   virtual ~STensorFieldFunction() {}
 

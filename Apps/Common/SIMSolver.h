@@ -18,7 +18,6 @@
 #include "SIMadmin.h"
 #include "TimeStep.h"
 #include "HDF5Writer.h"
-#include "XMLWriter.h"
 #include "tinyxml.h"
 
 
@@ -56,7 +55,6 @@ public:
     else
     {
       exporter = new DataExporter(true,saveInterval,restartInterval);
-      exporter->registerWriter(new XMLWriter(hdf5file,adm));
       exporter->registerWriter(new HDF5Writer(hdf5file,adm));
       S1.registerFields(*exporter);
       IFEM::registerCallback(*exporter);
