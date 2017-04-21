@@ -6,10 +6,7 @@
 //!
 //! \author Runar Holdahl / SINTEF
 //!
-//! \brief Implementation of Spalding parametrization of a turbulent
-//!        boundary layer. Computes the mean velocity uplus parallel
-//!        to a solid wall given the distance y and the tangential
-//!        velocity component ut.
+//! \brief Implementation of Spalding parametrization of a boundary layer.
 //!
 //==============================================================================
 
@@ -21,7 +18,10 @@
 
 /*!
   \brief Class representing Spalding parametrization of a turbulent
-         boundary layer
+         boundary layer.
+  \details Computes the mean velocity uplus parallel
+           to a solid wall given the distance y and the tangential
+           velocity component ut.
 */
 
 class Spalding

@@ -1,3 +1,15 @@
+//==============================================================================
+//!
+//! \file Spalding.C
+//!
+//! \date Jan 25 2011
+//!
+//! \author Runar Holdahl / SINTEF
+//!
+//! \brief Implementation of Spalding parametrization of a boundary layer.
+//!
+//==============================================================================
+
 #include "Spalding.h"
 #include <iostream>
 

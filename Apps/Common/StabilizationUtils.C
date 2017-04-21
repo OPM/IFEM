@@ -1,5 +1,18 @@
+//==============================================================================
+//!
+//! \file StabilizationUtils.C
+//!
+//! \date Oct 31 2012
+//!
+//! \author Arne Morten Kvarving / SINTEF
+//!
+//! \brief Various helpers for stabilized formulations.
+//!
+//==============================================================================
+
 #include "StabilizationUtils.h"
 #include "Vec3Oper.h"
+
 
 namespace StabilizationUtils {
 

@@ -1,3 +1,15 @@
+//==============================================================================
+//!
+//! \file StabilizationUtils.h
+//!
+//! \date Oct 31 2012
+//!
+//! \author Arne Morten Kvarving / SINTEF
+//!
+//! \brief Various helpers for stabilized formulations.
+//!
+//==============================================================================
+
 #ifndef STABILIZATIONUTILS_H_
 #define STABILIZATIONUTILS_H_
 
