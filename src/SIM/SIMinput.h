@@ -203,7 +203,7 @@ protected:
   virtual void readNodes(std::istream& isn) {}
 
   //! \brief Instantiates a FEM model generator.
-  //! \param[in] geo XML element containing geometry defintion
+  //! \param[in] geo XML element containing geometry definition
   virtual ModelGenerator* getModelGenerator(const TiXmlElement* geo) const = 0;
 
 public:

@@ -136,7 +136,7 @@ protected:
                              int dirs, int code, int& ngnod, char basis = 1);
 
   //! \brief Returns a FEM model generator for a default single-patch model.
-  //! \param[in] geo XML element containing geometry defintion
+  //! \param[in] geo XML element containing geometry definition
   virtual ModelGenerator* getModelGenerator(const TiXmlElement* geo) const;
 
 protected:
