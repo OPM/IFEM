@@ -207,14 +207,14 @@ void SIMoutput::preprocessResPtGroup (std::string& ptFile, ResPointVec& points)
 {
   for (ResPointVec::iterator p = points.begin(); p != points.end();)
   {
-    int pid = this->getLocalPatchIndex(p->patch);
-    if (pid < 1 || myModel[pid-1]->empty())
+    ASMbase* pch = this->getPatch(p->patch,true);
+    if (!pch || pch->empty())
       p = points.erase(p);
-    else if ((p->inod = myModel[pid-1]->evalPoint(p->u,p->u,p->X)) < 0)
+    else if ((p->inod = pch->evalPoint(p->u,p->u,p->X)) < 0)
       p = points.erase(p);
     else
     {
-      p->npar = myModel[pid-1]->getNoParamDim();
+      p->npar = pch->getNoParamDim();
       int ipt = 1 + (int)(p-points.begin());
       if (ipt == 1) IFEM::cout <<'\n';
       IFEM::cout <<"Result point #"<< ipt <<": patch #"<< p->patch;
@@ -229,7 +229,7 @@ void SIMoutput::preprocessResPtGroup (std::string& ptFile, ResPointVec& points)
       if (p->npar > 1) IFEM::cout <<')';
       if (p->inod > 0) IFEM::cout <<", node #"<< p->inod;
       if (p->inod > 0 && myModel.size() > 1)
-        IFEM::cout <<", global #"<< myModel[pid-1]->getNodeID(p->inod);
+        IFEM::cout <<", global #"<< pch->getNodeID(p->inod);
       IFEM::cout <<", X = "<< p->X << std::endl;
       p++;
     }

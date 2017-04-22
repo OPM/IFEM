@@ -56,11 +56,12 @@ Vector SIMgeneric::getSolution (const Vector& psol, const double* par,
 
 
 int SIMgeneric::evalPoint (const double* xi, Vec3& X, double* param,
-                           int patch) const
+                           int patch, bool global) const
 {
   ASMbase* pch = this->getPatch(patch,true);
   if (!pch) return -1;
 
   double dummy[3];
-  return pch->evalPoint(xi, param ? param : dummy, X);
+  int inod = pch->evalPoint(xi, param ? param : dummy, X);
+  return inod > 0 && global ? pch->getNodeID(inod) : inod;
 }
