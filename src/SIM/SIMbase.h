@@ -480,6 +480,9 @@ protected:
   virtual bool preprocessB() { return true; }
   //! \brief Preprocesses the result sampling points.
   virtual void preprocessResultPoints() = 0;
+  //! \brief Renumbers all global node numbers if the model.
+  //! \param[in] nodeMap Mapping from old to new node number
+  virtual bool renumberNodes(const std::map<int,int>& nodeMap);
 
   //! \brief Extracts all local solution vector(s) for a specified patch.
   //! \param[in] problem Integrand to receive the patch-level solution vectors

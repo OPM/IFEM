@@ -246,9 +246,9 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
   if (renum > 0)
     IFEM::cout <<"\nRenumbered "<< renum <<" nodes."<< std::endl;
 
-  for (mit = myModel.begin(); mit != myModel.end(); ++mit)
-    (*mit)->renumberNodes(*g2l);
-  ASMs2DC1::renumberNodes(*g2l);
+  // Apply the old-to-new node number mapping to all node tables in the model
+  if (!this->renumberNodes(*g2l))
+    return false;
 
   // Perform specialized preprocessing before the assembly initialization.
   // This typically involves the system-level Lagrange multipliers, etc.
@@ -365,6 +365,17 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
 
   // Now perform the sub-class specific final preprocessing, if any
   return this->preprocessB() && ierr == 0;
+}
+
+
+bool SIMbase::renumberNodes (const std::map<int,int>& nodeMap)
+{
+  bool ok = true;
+  for (PatchVec::const_iterator it = myModel.begin(); it != myModel.end(); ++it)
+    ok &= (*it)->renumberNodes(nodeMap);
+
+  ASMs2DC1::renumberNodes(nodeMap);
+  return ok;
 }
 
 
