@@ -16,7 +16,7 @@
 
 #include "SIMadmin.h"
 #include "SIMdependency.h"
-#include "SIMSolver.h"
+#include "SIMconfigure.h"
 #include "IFEM.h"
 #include "Utilities.h"
 #include "MatVec.h"

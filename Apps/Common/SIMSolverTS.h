@@ -19,7 +19,7 @@
 
 /*!
   \brief Template class for time-slab adaptive simulator drivers.
-  \details This template can be instanciated over any type implementing the
+  \details This template can be instantiated over any type implementing the
   ISolver interface. It provides a time stepping loop with data output,
   with mesh refinements at fixed time intervals. The refinement is based on the
   solution state a given number of increments ahead of the refinement time.

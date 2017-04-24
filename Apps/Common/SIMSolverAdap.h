@@ -20,15 +20,15 @@
 
 /*!
   \brief Template class for stationary adaptive simulator drivers.
-  \details This template can be instanciated over any type implementing the
+  \details This template can be instantiated over any type implementing the
   ISolver interface. It provides an adaptive loop with data output.
 */
 
-template<class T1> class SIMSolverAdap : public SIMSolver<T1>
+template<class T1> class SIMSolverAdap : public SIMSolverStat<T1>
 {
 public:
   //! \brief The constructor forwards to the parent class constructor.
-  SIMSolverAdap(T1& s1) : SIMSolver<T1>(s1), aSim(s1,false)
+  SIMSolverAdap(T1& s1) : SIMSolverStat<T1>(s1), aSim(s1,false)
   {
     this->S1.setSol(&aSim.getSolution());
   }
@@ -36,21 +36,22 @@ public:
   //! \brief Empty destructor.
   virtual ~SIMSolverAdap() {}
 
-  //! \brief Solves the problem up to the final time.
-  virtual int solveProblem(char* infile, const char* heading, bool = false)
+  //! \brief Reads solver data from the specified input file.
+  virtual bool read(const char* file) { return this->SIMadmin::read(file); }
+
+  //! \brief Solves the problem on a sequence of adaptively refined meshes.
+  virtual int solveProblem(char* infile, const char* = nullptr, bool = false)
   {
     if (!aSim.initAdaptor())
       return 1;
-
-    this->printHeading(heading);
 
     for (int iStep = 1; aSim.adaptMesh(iStep); iStep++)
       if (!aSim.solveStep(infile,iStep))
         return 1;
       else if (!aSim.writeGlv(infile,iStep))
         return 2;
-      else if (SIMSolver<T1>::exporter)
-        SIMSolver<T1>::exporter->dumpTimeLevel(nullptr,true);
+      else if (SIMSolverStat<T1>::exporter)
+        SIMSolverStat<T1>::exporter->dumpTimeLevel(nullptr,true);
 
     return 0;
   }
@@ -59,12 +60,12 @@ protected:
   //! \brief Parses a data section from an input stream.
   virtual bool parse(char* keyw, std::istream& is)
   {
-    return this->SIMSolver<T1>::parse(keyw,is) && aSim.parse(keyw,is);
+    return aSim.parse(keyw,is);
   }
   //! \brief Parses a data section from an XML element.
   virtual bool parse(const TiXmlElement* elem)
   {
-    return this->SIMSolver<T1>::parse(elem) && aSim.parse(elem);
+    return aSim.parse(elem);
   }
 
   AdaptiveSIM aSim; //!< Adaptive simulation driver
