@@ -45,7 +45,9 @@ template<class PlaneSolver>
 class SIMSemi3D : public SIMadmin, public SIMdependency
 {
 public:
-  typedef typename PlaneSolver::SetupProps SetupProps;
+  typedef typename PlaneSolver::SetupProps SetupProps; //!< Convenience type
+
+  //! \brief Enum announcing the dimensionality.
   enum { dimension = 2 };
 
   //! \brief The constructor initializes the setup properties.
@@ -122,7 +124,7 @@ public:
   }
 
   //! \brief Returns the name of this simulator (for use in the HDF5 export).
-  std::string getName() const { return "Semi3D"; }
+  virtual std::string getName() const { return "Semi3D"; }
 
   //! \brief Adds fields to a data exporter.
   void registerFields(DataExporter& exporter)
@@ -171,11 +173,10 @@ public:
     return true;
   }
 
-  //! \brief No serialization support.
-  bool serialize(DataExporter::SerializeData& data) { return false; }
-
-  //! \brief No deserialization support.
-  bool deSerialize(const DataExporter::SerializeData& data) { return false; }
+  //! \brief Dummy method, no serialization support.
+  bool serialize(DataExporter::SerializeData&) { return false; }
+  //! \brief Dummy method, no deserialization support.
+  bool deSerialize(const DataExporter::SerializeData&) { return false; }
 
   //! \brief Solves the nonlinear equations by Newton-Raphson iterations.
   bool solveStep(TimeStep& tp)
@@ -185,16 +186,6 @@ public:
       m_planes[i]->getProcessAdm().cout <<"\n  Plane = "<< startCtx+i+1 <<":";
       ok = m_planes[i]->solveStep(tp);
     }
-
-    return ok;
-  }
-
-  //! \brief Extracts the velocity vector from the nonlinear solution vector.
-  bool postSolve(const TimeStep& tp, bool restart = false)
-  {
-    bool ok = true;
-    for (size_t i = 0; i < m_planes.size() && ok; i++)
-      ok = m_planes[i]->postSolve(tp,restart);
 
     return ok;
   }
@@ -308,6 +299,7 @@ public:
   //! \param[in] nvc Number of components in field
   //! \param[in] patches The geometry the field is defined over
   //! \param[in] diffBasis Different basis for the SIM class and the field
+  //! \param[in] component Component to use from field
   template<class T>
   void registerDependency(SIMSemi3D<T>* sim, const std::string& name,
                           short int nvc, const PatchVec& patches,
@@ -372,12 +364,12 @@ public:
   }
 
   //! \brief Dummy method.
-  int getLocalNode(int node) const { return -1; }
+  int getLocalNode(int) const { return -1; }
   //! \brief Dummy method.
-  int getGlobalNode(int node) const { return -1; }
+  int getGlobalNode(int) const { return -1; }
 
   //! \brief Returns the number of bases in the model.
-  int getNoBasis() const { return m_planes[0]->getNoBasis(); }
+  int getNoBasis() const { return m_planes.front()->getNoBasis(); }
 
 protected:
   std::vector<PlaneSolver*> m_planes; //!< Planar solvers

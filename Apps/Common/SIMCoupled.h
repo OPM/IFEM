@@ -67,12 +67,6 @@ public:
       return S2.solveStep(tp) && S1.solveStep(tp);
   }
 
-  //! \brief Postprocesses the solution of current time step.
-  bool postSolve(const TimeStep& tp, bool restart = false)
-  {
-    return S1.postSolve(tp,restart) && S2.postSolve(tp,restart);
-  }
-
   //! \brief Saves the converged results to VTF-file of a given time step.
   virtual bool saveStep(const TimeStep& tp, int& nBlock)
   {

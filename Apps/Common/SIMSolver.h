@@ -72,11 +72,6 @@ public:
 
   //! \brief Advances the time step one step forward.
   bool advanceStep() { return tp.increment() && S1.advanceStep(tp); }
-  //! \brief Advances the time step \a n steps forward.
-  void fastForward(int n) { for (int i = 0; i < n; i++) this->advanceStep(); }
-
-  //! \brief Postprocesses the solution of current time step.
-  void postSolve(const TimeStep& t, bool rst = false) { S1.postSolve(t,rst); }
 
   //! \brief Solves the problem up to the final time.
   virtual int solveProblem(char* infile, const char* heading = nullptr,

@@ -26,7 +26,6 @@ public:
     preprocess_called(false),
     advancestep_called(false),
     solvestep_called(false),
-    postsolve_called(false),
     savestep_called(false),
     savemodel_called(false),
     init_called(false),
@@ -46,7 +45,6 @@ public:
   bool preprocess() { return preprocess_called = true; }
   bool advanceStep(TimeStep& tp) { return advancestep_called = true; }
   bool solveStep(TimeStep& tp) { return solvestep_called = true; }
-  bool postSolve(const TimeStep&, bool) { return postsolve_called = true; }
   bool saveStep(const TimeStep&, int&) { return savestep_called = true; }
   bool saveModel(char*, int&, int&) { return savemodel_called = true; }
   bool init(const TimeStep&) { return init_called = true; }
@@ -87,7 +85,6 @@ public:
   bool preprocess_called;
   bool advancestep_called;
   bool solvestep_called;
-  bool postsolve_called;
   bool savestep_called;
   bool savemodel_called;
   bool init_called;
@@ -115,7 +112,6 @@ TEST(TestSIMCoupled, Override)
   sim.preprocess();
   sim.advanceStep(tp);
   sim.solveStep(tp);
-  sim.postSolve(tp);
   sim.saveStep(tp, nBlock);
   sim.saveModel((char*)"", geoBlk, nBlock);
   sim.init(tp);
@@ -136,8 +132,6 @@ TEST(TestSIMCoupled, Override)
   ASSERT_TRUE(ovr2.advancestep_called);
   ASSERT_TRUE(ovr1.solvestep_called);
   ASSERT_TRUE(ovr2.solvestep_called);
-  ASSERT_TRUE(ovr1.postsolve_called);
-  ASSERT_TRUE(ovr2.postsolve_called);
   ASSERT_TRUE(ovr1.savemodel_called);
   ASSERT_TRUE(ovr1.init_called);
   ASSERT_TRUE(ovr2.init_called);
