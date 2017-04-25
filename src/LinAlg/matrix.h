@@ -124,7 +124,6 @@ namespace utl //! General utility classes and functions.
     vector<T>& operator+=(const vector<T>& X) { return this->add(X); }
     //! \brief Subtract the given vector \b X from \a *this.
     vector<T>& operator-=(const vector<T>& X) { return this->add(X,T(-1)); }
-
     //! \brief Add the given vector \b X scaled by \a alfa to \a *this.
     vector<T>& add(const std::vector<T>& X, T alfa = T(1));
 
@@ -232,34 +231,145 @@ namespace utl //! General utility classes and functions.
 
 
   /*!
+    \brief Common base class for multi-dimensional (2D and 3D) matrices.
+    \details Contains the methods that the 2D and 3D matrices have in common.
+  */
+
+  template<class T> class matrixBase
+  {
+  protected:
+    //! \brief The constructor is protected to allow sub-class instances only.
+    matrixBase() { n[0] = n[1] = n[2] = 0; }
+    //! \brief Constructor creating a matrix of dimension
+    //! \f$n_1 \times n_2 \times n_3\f$.
+    matrixBase(size_t n_1, size_t n_2, size_t n_3) : elem(n_1*n_2*n_3)
+    {
+      n[0] = n_1;
+      n[1] = n_2;
+      n[2] = n_3;
+    }
+    //! \brief Copy constructor, only copy the dimension of \a mat.
+    matrixBase(const matrixBase<T>& mat) : elem(mat.size())
+    {
+      memcpy(n,mat.n,sizeof(n));
+    }
+
+    //! \brief Resize the matrix to dimension \f$n_1 \times n_2 \times n_3\f$.
+    //! \details Will erase the previous content, but only if both the total
+    //! matrix size, and any of its dimensions except the last are changed.
+    //! It is therefore possible to add or remove a given number of elements in
+    //! the last dimension of the matrix without loosing the contents of the
+    //! other dimensions.
+    //! If \a forceClear is \e true, the old matrix content is always erased.
+    void redim(size_t n_1, size_t n_2, size_t n_3, bool forceClear)
+    {
+      if (forceClear)
+      {
+        // Erase previous content
+        if (this->size() == n_1*n_2*n_3)
+          this->fill(T(0));
+        else
+          this->clear();
+      }
+
+      if (n[0] == n_1 && n[1] == n_2 && n[2] == n_3) return; // nothing to do
+
+      size_t oldn1 = n[0];
+      size_t oldn2 = n[1];
+      size_t oldSize = this->size();
+      n[0] = n_1;
+      n[1] = n_2;
+      n[2] = n_3;
+      if (this->size() == oldSize) return; // no more to do, size is unchanged
+
+      // If the size in any of the matrix dimensions, except for the last one,
+      // are changed the previous matrix content must be cleared
+      if (!forceClear) this->clearIfNrowChanged(oldn1,oldn2);
+
+      elem.std::template vector<T>::resize(n[0]*n[1]*n[2],T(0));
+    }
+
+    // brief Clears the matrix content if the first dimension(s) changed.
+    virtual void clearIfNrowChanged(size_t n1, size_t n2) = 0;
+
+  public:
+    //! \brief Query dimensions.
+    size_t dim(short int d = 1) const { return d > 0 && d <= 3 ? n[d-1] : 0; }
+    //! \brief Query total matrix size.
+    size_t size() const { return n[0]*n[1]*n[2]; }
+    //! \brief Check if the matrix is empty.
+    bool empty() const { return elem.empty(); }
+
+    //! \brief Type casting to a one-dimensional vector.
+    operator const vector<T>&() const { return elem; }
+
+    //! \brief Access through pointer.
+    T* ptr(size_t c = 0) { return &elem[n[0]*c]; }
+    //! \brief Reference through pointer.
+    const T* ptr(size_t c = 0) const { return &elem[n[0]*c]; }
+
+    //! \brief Iterator to the start of the matrix elements.
+    typename std::vector<T>::iterator begin() { return elem.begin(); }
+    //! \brief Iterator to the end of the matrix elements.
+    typename std::vector<T>::iterator end() { return elem.end(); }
+
+    //! \brief Clears the matrix and sets its dimension to zero.
+    void clear() { n[0] = n[1] = n[2] = 0; elem.clear(); }
+
+    //! \brief Fill the matrix with a scalar value.
+    void fill(const T& s) { std::fill(elem.begin(),elem.end(),s); }
+    //! \brief Fill the matrix with data from an array.
+    void fill(const T* values, size_t n = 0) { elem.fill(values,n); }
+
+    //! \brief Add the given matrix \b A scaled by \a alfa to \a *this.
+    matrixBase<T>& add(const matrixBase<T>& A, const T& alfa);
+    //! \brief Multiplication of this matrix by a scalar \a c.
+    matrixBase<T>& multiply(const T& c);
+
+    //! \brief Return the Euclidean norm of the matrix.
+    //! \param[in] inc Increment in the matrix element vector indices
+    T norm2(int inc = 1) const { return elem.norm2(0,inc); }
+    //! \brief Return the sum of the absolute value of the matrix elements.
+    //! \param[in] inc Increment in the matrix element vector indices
+    T asum(int inc = 1) const { return elem.asum(0,inc); }
+    //! \brief Return the sum of the matrix elements.
+    //! \param[in] inc Increment in the matrix element vector indices
+    T sum(int inc = 1) const { return elem.sum(0,inc); }
+
+  protected:
+    size_t    n[3]; //!< Dimension of the matrix
+    vector<T> elem; //!< Actual matrix elements, stored column by column
+  };
+
+
+  /*!
     \brief Two-dimensional rectangular matrix with some algebraic operations.
     \details This is a 2D equivalent to the \a vector class. The matrix elements
     are stored column-wise in a one-dimensional array, such that its pointer
     might be passed to Fortran subroutines requiring 2D arrays as arguments.
   */
 
-  template<class T> class matrix
+  template<class T> class matrix : public matrixBase<T>
   {
   public:
     //! \brief Constructor creating an empty matrix.
-    matrix() : nrow(0), ncol(0) {}
+    matrix() : nrow(this->n[0]), ncol(this->n[1]) {}
     //! \brief Constructor creating a matrix of dimension \f$r \times c\f$.
-    matrix(size_t r, size_t c) : nrow(r), ncol(c), elem(r*c) {}
+    matrix(size_t r, size_t c)
+      : matrixBase<T>(r,c,1), nrow(this->n[0]), ncol(this->n[1]) {}
     //! \brief Copy constructor, optionally creates the transpose of \a mat.
-    matrix(const matrix<T>& mat, bool transposed = false) : elem(mat.size())
+    matrix(const matrix<T>& mat, bool transposed = false)
+      : matrixBase<T>(mat), nrow(this->n[0]), ncol(this->n[1])
     {
       nrow = transposed ? mat.ncol : mat.nrow;
       ncol = transposed ? mat.nrow : mat.ncol;
       if (transposed)
         for (size_t r = 0; r < ncol; r++)
           for (size_t c = 0; c < nrow; c++)
-            elem[c+nrow*r] = mat.elem[r+ncol*c];
+            this->elem[c+nrow*r] = mat.elem[r+ncol*c];
       else
-        elem.fill(mat.elem.ptr());
+        this->elem.fill(mat.elem.ptr());
     }
-
-    //! \brief Clears the matrix and sets its dimension to zero.
-    void clear() { nrow = ncol = 0; elem.clear(); }
 
     //! \brief Resize the matrix to dimension \f$r \times c\f$.
     //! \details Will erase the previous content, but only if both
@@ -269,27 +379,7 @@ namespace utl //! General utility classes and functions.
     //! If \a forceClear is \e true, the old matrix content is always erased.
     void resize(size_t r, size_t c, bool forceClear = false)
     {
-      if (forceClear)
-      {
-        // Erase previous content
-        if (nrow*ncol == r*c)
-          this->fill(T(0));
-        else
-          this->clear();
-      }
-
-      if (r == nrow && c == ncol) return; // nothing to do
-
-      size_t oldNrow = nrow;
-      size_t oldSize = this->size();
-      nrow = r;
-      ncol = c;
-      if (this->size() == oldSize) return; // no more to do, size is unchanged
-
-      // If the number of rows is changed the previous content must be cleared
-      if (!forceClear && r != oldNrow) elem.clear();
-
-      elem.std::template vector<T>::resize(r*c,T(0));
+      this->redim(r,c,1,forceClear);
     }
 
     //! \brief Increase or decrease the number of rows in the matrix.
@@ -297,11 +387,8 @@ namespace utl //! General utility classes and functions.
     {
       int newRows = nrow + incRows;
       if (newRows < 1 || ncol < 1)
-      {
         // The matrix is empty
-        nrow = 0;
-        elem.clear();
-      }
+        this->clear();
       else if (incRows < 0)
       {
         // The matrix size is reduced
@@ -309,20 +396,20 @@ namespace utl //! General utility classes and functions.
         for (size_t c = 1; c < ncol; c++, newMat += newRows)
           memmove(newMat,this->ptr(c),newRows*sizeof(T));
         nrow = newRows;
-        elem.std::template vector<T>::resize(nrow*ncol);
+        this->elem.std::template vector<T>::resize(nrow*ncol);
       }
       else if (incRows > 0)
       {
         // The matrix size is increased
         size_t oldRows = nrow;
         nrow = newRows;
-        elem.std::template vector<T>::resize(nrow*ncol,T(0));
+        this->elem.std::template vector<T>::resize(nrow*ncol,T(0));
         T* oldMat = this->ptr() + oldRows*(ncol-1);
         for (size_t c = ncol-1; c > 0; c--, oldMat -= oldRows)
         {
           memmove(this->ptr(c),oldMat,oldRows*sizeof(T));
           for (size_t r = nrow-1; r >= oldRows; r--)
-            elem[r+nrow*(c-1)] = T(0);
+            this->elem[r+nrow*(c-1)] = T(0);
         }
       }
       return *this;
@@ -332,30 +419,22 @@ namespace utl //! General utility classes and functions.
     size_t rows() const { return nrow; }
     //! \brief Query number of matrix columns.
     size_t cols() const { return ncol; }
-    //! \brief Query total matrix size.
-    size_t size() const { return nrow*ncol; }
-    //! \brief Check if the matrix is empty.
-    bool empty() const { return elem.empty(); }
 
-    //! \brief Access through pointer.
-    T* ptr(size_t c = 0) { return &elem[nrow*c]; }
-    //! \brief Reference through pointer.
-    const T* ptr(size_t c = 0) const { return &elem[nrow*c]; }
-    //! \brief Type casting to a one-dimensional vector.
-    operator const vector<T>&() const { return elem; }
-
-    //! \brief Iterator to the start of the matrix elements.
-    typename std::vector<T>::iterator begin() { return elem.begin(); }
-    //! \brief Iterator to the end of the matrix elements.
-    typename std::vector<T>::iterator end() { return elem.end(); }
+    //! \brief Assignment operator.
+    matrix<T>& operator=(const matrix<T>& A)
+    {
+      memcpy(this->n,A.n,sizeof(A.n));
+      this->elem = A.elem;
+      return *this;
+    }
 
     //! \brief Overloaded assignment operator.
     matrix<T>& operator=(const std::vector<T>& X)
     {
       // Do not use vector<T>::operator= because we don't want to alter size
-      size_t nval = X.size() < elem.size() ? X.size() : elem.size();
-      std::copy(X.begin(),X.begin()+nval,elem.begin());
-      std::fill(elem.begin()+nval,elem.end(),T(0));
+      size_t nval = X.size() < this->elem.size() ? X.size() : this->elem.size();
+      std::copy(X.begin(),X.begin()+nval,this->elem.begin());
+      std::fill(this->elem.begin()+nval,this->elem.end(),T(0));
       return *this;
     }
 
@@ -365,7 +444,7 @@ namespace utl //! General utility classes and functions.
     {
       CHECK_INDEX("matrix::operator(): Row-index ",r,nrow);
       CHECK_INDEX("matrix::operator(): Column-index ",c,ncol);
-      return elem[r-1+nrow*(c-1)];
+      return this->elem[r-1+nrow*(c-1)];
     }
 
     //! \brief Index-1 based element reference.
@@ -374,17 +453,17 @@ namespace utl //! General utility classes and functions.
     {
       CHECK_INDEX("matrix::operator(): Row-index ",r,nrow);
       CHECK_INDEX("matrix::operator(): Column-index ",c,ncol);
-      return elem[r-1+nrow*(c-1)];
+      return this->elem[r-1+nrow*(c-1)];
     }
 
     //! \brief Extract a row from the matrix.
     vector<T> getRow(size_t r) const
     {
       CHECK_INDEX("matrix::getRow: Row-index ",r,nrow);
-      if (nrow < 2) return elem;
+      if (nrow < 2) return this->elem;
       vector<T> row(ncol);
       for (size_t i = 0; i < ncol; i++)
-        row[i] = elem[r-1+nrow*i];
+        row[i] = this->elem[r-1+nrow*i];
       return row;
     }
 
@@ -392,7 +471,7 @@ namespace utl //! General utility classes and functions.
     vector<T> getColumn(size_t c) const
     {
       CHECK_INDEX("matrix::getColumn: Column-index ",c,ncol);
-      if (ncol < 2) return elem;
+      if (ncol < 2) return this->elem;
       vector<T> col(nrow);
       memcpy(col.ptr(),this->ptr(c-1),nrow*sizeof(T));
       return col;
@@ -418,15 +497,10 @@ namespace utl //! General utility classes and functions.
     {
       CHECK_INDEX("matrix::fillRow: Row-index ",r,nrow);
       if (nrow < 2)
-        elem.fill(data);
+        this->elem.fill(data);
       else for (size_t i = 0; i < ncol; i++)
-        elem[r-1+nrow*i] = data[i];
+        this->elem[r-1+nrow*i] = data[i];
     }
-
-    //! \brief Fill the matrix with a scalar value.
-    void fill(const T& s) { std::fill(elem.begin(),elem.end(),s); }
-    //! \brief Fill the matrix with data from an array.
-    void fill(const T* values, size_t n = 0) { elem.fill(values,n); }
 
     //! \brief Fill a block of the matrix with another matrix.
     void fillBlock(const matrix<T>& block, size_t r, size_t c,
@@ -435,8 +509,11 @@ namespace utl //! General utility classes and functions.
       size_t nr = transposed ? block.cols() : block.rows();
       size_t nc = transposed ? block.rows() : block.cols();
       for (size_t i = 1; i <= nr && i+r-1 <= nrow; i++)
-        for (size_t j = 1; j <= nc && j+c-1 <= ncol; j++)
-          elem[i+r-2+nrow*(j+c-2)] = transposed ? block(j,i) : block(i,j);
+      {
+        size_t ip = i+r-2 + nrow*(c-1);
+        for (size_t j = 1; j <= nc && j+c-1 <= ncol; j++, ip += nrow)
+          this->elem[ip] = transposed ? block(j,i) : block(i,j);
+      }
     }
 
     //! \brief Add a scalar multiple of another matrix to a block of the matrix.
@@ -446,8 +523,11 @@ namespace utl //! General utility classes and functions.
       size_t nr = transposed ? block.cols() : block.rows();
       size_t nc = transposed ? block.rows() : block.cols();
       for (size_t i = 1; i <= nr && i+r-1 <= nrow; i++)
-        for (size_t j = 1; j <= nc && j+c-1 <= ncol; j++)
-          elem[i+r-2+nrow*(j+c-2)] += s*(transposed ? block(j,i) : block(i,j));
+      {
+        size_t ip = i+r-2 + nrow*(c-1);
+        for (size_t j = 1; j <= nc && j+c-1 <= ncol; j++, ip += nrow)
+          this->elem[ip] += s*(transposed ? block(j,i) : block(i,j));
+      }
     }
 
     //! \brief Create a diagonal matrix.
@@ -458,7 +538,7 @@ namespace utl //! General utility classes and functions.
       else
         this->resize(nrow,ncol,true);
       for (size_t r = 0; r < nrow && r < ncol; r++)
-        elem[r+nrow*r] = d;
+        this->elem[r+nrow*r] = d;
       return *this;
     }
 
@@ -468,7 +548,7 @@ namespace utl //! General utility classes and functions.
       matrix<T> tmp(*this);
       for (size_t r = 0; r < nrow; r++)
         for (size_t c = 0; c < ncol; c++)
-          elem[c+ncol*r] = tmp.elem[r+nrow*c];
+          this->elem[c+ncol*r] = tmp.elem[r+nrow*c];
 
       nrow = tmp.ncol;
       ncol = tmp.nrow;
@@ -548,7 +628,7 @@ namespace utl //! General utility classes and functions.
       for (size_t r = 0; r < nrow; r++)
         for (size_t c = 0; c < r; c++)
         {
-          T diff = elem[r+nrow*c] - elem[c+nrow*r];
+          T diff = this->elem[r+nrow*c] - this->elem[c+nrow*r];
           if (diff < -tol || diff > tol) return false;
         }
 
@@ -560,14 +640,20 @@ namespace utl //! General utility classes and functions.
     //! \brief Subtract the given matrix \b A from \a *this.
     matrix<T>& operator-=(const matrix<T>& A) { return this->add(A,T(-1)); }
     //! \brief Add the given matrix \b A scaled by \a alfa to \a *this.
-    matrix<T>& add(const matrix<T>& A, T alfa = T(1));
+    matrix<T>& add(const matrix<T>& A, T alfa = T(1))
+    {
+      return static_cast<matrix<T>&>(this->matrixBase<T>::add(A,alfa));
+    }
 
     //! \brief Multiplication with a scalar.
     matrix<T>& operator*=(T c) { return this->multiply(c); }
     //! \brief Division by a scalar.
     matrix<T>& operator/=(T d) { return this->multiply(T(1)/d); }
     //! \brief Multiplication of this matrix by a scalar \a c.
-    matrix<T>& multiply(T c);
+    matrix<T>& multiply(T c)
+    {
+      return static_cast<matrix<T>&>(this->matrixBase<T>::multiply(c));
+    }
 
     /*! \brief Matrix-matrix multiplication.
       \details Performs one of the following operations (\b C = \a *this):
@@ -632,16 +718,13 @@ namespace utl //! General utility classes and functions.
       -# \f$ {\bf Y} = {\alpha}{\bf A}^T {\bf X} + {\beta}{\bf Y}\f$
     */
     bool multiply(const std::vector<T>& X, std::vector<T>& Y,
-                  double alpha, double beta, bool transA = false,
+                  T alpha, T beta, bool transA = false,
                   int stridex = 1, int stridey = 1,
                   int ofsx = 0, int ofsy = 0) const;
 
     //! \brief Outer product between two vectors.
     bool outer_product(const std::vector<T>& X, const std::vector<T>& Y,
                        bool addTo = false, T alpha = T(1));
-
-    //! \brief Return the Euclidean norm of the matrix.
-    T norm2() const { return elem.norm2(); }
 
     //! \brief Return the infinite norm of the matrix.
     T normInf() const
@@ -651,7 +734,7 @@ namespace utl //! General utility classes and functions.
       // Compute row sums
       vector<T> sums(nrow);
       for (size_t i = 0; i < nrow; i++)
-        sums[i] = elem.asum(i,ncol);
+        sums[i] = this->elem.asum(i,ncol);
       return *std::max_element(sums.begin(),sums.end());
     }
 
@@ -725,10 +808,30 @@ namespace utl //! General utility classes and functions.
       return false;
     }
 
+    //! \brief Check dimension compatibility for outer product multiplication.
+    bool compatible(const std::vector<T>& X, const std::vector<T>& Y)
+    {
+      if (X.size() == nrow && Y.size() == ncol) return true;
+
+      std::cerr <<"matrix::outer_product: Incompatible matrix and vectors: A("
+                << nrow <<','<< ncol <<"), X("
+                << X.size() <<"), Y("<< Y.size() <<")\n"
+                <<"                       when computing A += X*Y^t"
+                << std::endl;
+      ABORT_ON_INDEX_CHECK;
+      return false;
+    }
+
+  protected:
+    // brief Clears the content if the number of rows changed.
+    virtual void clearIfNrowChanged(size_t n1, size_t)
+    {
+      if (n1 != nrow) this->elem.clear();
+    }
+
   private:
-    size_t    nrow; //!< Number of matrix rows
-    size_t    ncol; //!< Number of matrix columns
-    vector<T> elem; //!< Actual matrix elements, stored column by column
+    size_t& nrow; //!< Number of matrix rows
+    size_t& ncol; //!< Number of matrix columns
   };
 
 
@@ -739,41 +842,32 @@ namespace utl //! General utility classes and functions.
     might be passed to Fortran subroutines requiring 3D arrays as arguments.
   */
 
-  template<class T> class matrix3d
+  template<class T> class matrix3d : public matrixBase<T>
   {
   public:
     //! \brief Constructor creating an empty matrix.
-    matrix3d() { n[0] = n[1] = n[2] = 0; }
+    matrix3d() {}
     //! \brief Constructor creating a matrix of dimension
     //! \f$n_1 \times n_2 \times n_3\f$.
-    matrix3d(size_t n_1, size_t n_2, size_t n_3) : elem(n_1*n_2*n_3)
-    {
-      n[0] = n_1;
-      n[1] = n_2;
-      n[2] = n_3;
-    }
-
+    matrix3d(size_t n_1, size_t n_2, size_t n_3) : matrixBase<T>(n_1,n_2,n_3) {}
     //! \brief Constructor to read a matrix from a stream.
     matrix3d(std::istream& is, std::streamsize max = 10)
     {
       // Read size
+      size_t n0, n1, n2;
       is.ignore(10, ':');
       is.ignore(1);
-      for (size_t i=0; i<3; ++i)
-        is >> n[i];
+      is >> n0 >> n1 >> n2;
       is.ignore(1, '\n');
 
       // Read contents
-      double num;
-      elem.resize(n[0]*n[1]*n[2]);
-      for (size_t k=0; k<n[2]; ++k) {
+      this->resize(n0,n1,n2);
+      for (size_t k = 0; k < n2; k++) {
         is.ignore(max, '\n');
-        for (size_t i=0; i<n[0]; ++i) {
+        for (size_t i = 0; i < n0; i++) {
           is.ignore(max, ':');
-          for (size_t j=0; j<n[1]; ++j) {
-            is >> num;
-            elem[n[0]*n[1]*k + n[0]*j + i] = num;
-          }
+          for (size_t j = 0; j < n1; j++)
+            is >> this->elem[n0*(n1*k + j) + i];
           is.ignore(1, '\n');
         }
       }
@@ -788,63 +882,27 @@ namespace utl //! General utility classes and functions.
     //! If \a forceClear is \e true, the old matrix content is always erased.
     void resize(size_t n_1, size_t n_2, size_t n_3, bool forceClear = false)
     {
-      if (forceClear)
-      {
-        // Erase previous content
-        if (n[0]*n[1]*n[2] == n_1*n_2*n_3)
-          this->fill(T(0));
-        else
-        {
-          n[0] = n[1] = n[2] = 0;
-          elem.clear();
-        }
-      }
-
-      if (n[0] == n_1 && n[1] == n_2 && n[2] == n_3) return; // nothing to do
-
-      size_t oldn1 = n[0];
-      size_t oldn2 = n[1];
-      size_t oldSize = this->size();
-      n[0] = n_1;
-      n[1] = n_2;
-      n[2] = n_3;
-      if (this->size() == oldSize) return; // no more to do, size is unchanged
-
-      // If the size in any of the first two dimensions are changed
-      // the previous content must be cleared
-      if (!forceClear && (n[0] != oldn1 || n[1] != oldn2)) elem.clear();
-
-      elem.std::template vector<T>::resize(n[0]*n[1]*n[2],T(0));
+      this->redim(n_1,n_2,n_3,forceClear);
     }
-
-    //! \brief Query dimensions.
-    size_t dim(short int d = 1) const { return d > 0 && d <= 3 ? n[d-1] : 0; }
-    //! \brief Query total matrix size.
-    size_t size() const { return n[0]*n[1]*n[2]; }
-    //! \brief Check if the matrix is empty.
-    bool empty() const { return elem.empty(); }
-
-    //! \brief Type casting to a one-dimensional vector.
-    operator const vector<T>&() const { return elem; }
 
     //! \brief Index-1 based element access.
     //! \details Assuming column-wise storage as in Fortran.
     T& operator()(size_t i1, size_t i2, size_t i3)
     {
-      CHECK_INDEX("matrix3d::operator(): First index " ,i1,n[0]);
-      CHECK_INDEX("matrix3d::operator(): Second index ",i2,n[1]);
-      CHECK_INDEX("matrix3d::operator(): Third index " ,i3,n[2]);
-      return elem[i1-1 + n[0]*((i2-1) + n[1]*(i3-1))];
+      CHECK_INDEX("matrix3d::operator(): First index " ,i1,this->n[0]);
+      CHECK_INDEX("matrix3d::operator(): Second index ",i2,this->n[1]);
+      CHECK_INDEX("matrix3d::operator(): Third index " ,i3,this->n[2]);
+      return this->elem[i1-1 + this->n[0]*((i2-1) + this->n[1]*(i3-1))];
     }
 
     //! \brief Index-1 based element access.
     //! \details Assuming column-wise storage as in Fortran.
     const T& operator()(size_t i1, size_t i2, size_t i3) const
     {
-      CHECK_INDEX("matrix3d::operator(): First index " ,i1,n[0]);
-      CHECK_INDEX("matrix3d::operator(): Second index ",i2,n[1]);
-      CHECK_INDEX("matrix3d::operator(): Third index " ,i3,n[2]);
-      return elem[i1-1 + n[0]*((i2-1) + n[1]*(i3-1))];
+      CHECK_INDEX("matrix3d::operator(): First index " ,i1,this->n[0]);
+      CHECK_INDEX("matrix3d::operator(): Second index ",i2,this->n[1]);
+      CHECK_INDEX("matrix3d::operator(): Third index " ,i3,this->n[2]);
+      return this->elem[i1-1 + this->n[0]*((i2-1) + this->n[1]*(i3-1))];
     }
 
     //! \brief Add the given matrix \b X to \a *this.
@@ -852,18 +910,16 @@ namespace utl //! General utility classes and functions.
     //! \brief Subtract the given matrix \b X from \a *this.
     matrix3d<T>& operator-=(const matrix3d<T>& X) { return this->add(X,T(-1)); }
     //! \brief Add the given matrix \b X scaled by \a alfa to \a *this.
-    matrix3d<T>& add(const matrix3d<T>& X, T alfa = T(1));
-
-    //! \brief Access through pointer.
-    T* ptr() { return &elem.front(); }
-    //! \brief Reference through pointer.
-    const T* ptr() const { return &elem.front(); }
-
-    //! \brief Fill the matrix with a scalar value.
-    void fill(const T& s) { std::fill(elem.begin(),elem.end(),s); }
+    matrix3d<T>& add(const matrix3d<T>& X, T alfa = T(1))
+    {
+      return static_cast<matrix3d<T>&>(this->matrixBase<T>::add(X,alfa));
+    }
 
     //! \brief Multiplication of this matrix by a scalar \a c.
-    matrix3d<T>& multiply(const T& c);
+    matrix3d<T>& multiply(T c)
+    {
+      return static_cast<matrix3d<T>&>(this->matrixBase<T>::multiply(c));
+    }
 
     /*! \brief Matrix-matrix multiplication.
       \details Performs one of the following operations (\b C = \a *this):
@@ -874,9 +930,6 @@ namespace utl //! General utility classes and functions.
     */
     bool multiply(const matrix<T>& A, const matrix3d<T>& B,
                   bool transA = false, bool addTo = false);
-
-    //! \brief Return the Euclidean norm of the matrix.
-    T norm2() const { return elem.norm2(); }
 
   private:
     //! \brief Check dimension compatibility for matrix-matrix multiplication.
@@ -897,9 +950,12 @@ namespace utl //! General utility classes and functions.
       return false;
     }
 
-  private:
-    size_t    n[3]; //!< Dimension of the 3D matrix
-    vector<T> elem; //!< Actual matrix elements, stored column by column
+  protected:
+    // brief Clears the content if any of the first two dimensions changed.
+    virtual void clearIfNrowChanged(size_t n1, size_t n2)
+    {
+      if (n1 != this->n[0] || n2 != this->n[1]) this->elem.clear();
+    }
   };
 
 
@@ -1009,60 +1065,32 @@ namespace utl //! General utility classes and functions.
   }
 
   template<> inline
-  matrix<float>& matrix<float>::add(const matrix<float>& X, float alfa)
+  matrixBase<float>& matrixBase<float>::add(const matrixBase<float>& A,
+                                            const float& alfa)
   {
-    size_t n = this->size() < X.size() ? this->size() : X.size();
-    cblas_saxpy(n,alfa,X.ptr(),1,this->ptr(),1);
+    size_t n = this->size() < A.size() ? this->size() : A.size();
+    cblas_saxpy(n,alfa,A.ptr(),1,this->ptr(),1);
     return *this;
   }
 
   template<> inline
-  matrix<double>& matrix<double>::add(const matrix<double>& X, double alfa)
+  matrixBase<double>& matrixBase<double>::add(const matrixBase<double>& A,
+                                              const double& alfa)
   {
-    size_t n = this->size() < X.size() ? this->size() : X.size();
-    cblas_daxpy(n,alfa,X.ptr(),1,this->ptr(),1);
+    size_t n = this->size() < A.size() ? this->size() : A.size();
+    cblas_daxpy(n,alfa,A.ptr(),1,this->ptr(),1);
     return *this;
   }
 
   template<> inline
-  matrix3d<float>& matrix3d<float>::add(const matrix3d<float>& X, float alfa)
-  {
-    size_t n = this->size() < X.size() ? this->size() : X.size();
-    cblas_saxpy(n,alfa,X.ptr(),1,this->ptr(),1);
-    return *this;
-  }
-
-  template<> inline
-  matrix3d<double>& matrix3d<double>::add(const matrix3d<double>& X, double alfa)
-  {
-    size_t n = this->size() < X.size() ? this->size() : X.size();
-    cblas_daxpy(n,alfa,X.ptr(),1,this->ptr(),1);
-    return *this;
-  }
-
-  template<> inline
-  matrix<float>& matrix<float>::multiply(float c)
+  matrixBase<float>& matrixBase<float>::multiply(const float& c)
   {
     cblas_sscal(this->size(),c,this->ptr(),1);
     return *this;
   }
 
   template<> inline
-  matrix<double>& matrix<double>::multiply(double c)
-  {
-    cblas_dscal(this->size(),c,this->ptr(),1);
-    return *this;
-  }
-
-  template<> inline
-  matrix3d<float>& matrix3d<float>::multiply(const float& c)
-  {
-    cblas_sscal(this->size(),c,this->ptr(),1);
-    return *this;
-  }
-
-  template<> inline
-  matrix3d<double>& matrix3d<double>::multiply(const double& c)
+  matrixBase<double>& matrixBase<double>::multiply(const double& c)
   {
     cblas_dscal(this->size(),c,this->ptr(),1);
     return *this;
@@ -1087,25 +1115,6 @@ namespace utl //! General utility classes and functions.
   }
 
   template<> inline
-  bool matrix<float>::multiply(const std::vector<float>& X,
-                               std::vector<float>& Y,
-                               double alpha, double beta, bool transA,
-                               int stridex, int stridey, int ofsx,
-                               int ofsy) const
-  {
-    if (!this->compatible(X,transA)) return false;
-
-    cblas_sgemv(CblasColMajor,
-                transA ? CblasTrans : CblasNoTrans,
-                nrow, ncol, alpha,
-                this->ptr(), nrow,
-                &X[ofsx], stridex, beta,
-                &Y[ofsy], stridey);
-
-    return true;
-  }
-
-  template<> inline
   bool matrix<double>::multiply(const std::vector<double>& X,
                                 std::vector<double>& Y,
                                 bool transA, char addTo) const
@@ -1119,6 +1128,25 @@ namespace utl //! General utility classes and functions.
                 this->ptr(), nrow,
                 &X.front(), 1, addTo ? 1.0 : 0.0,
                 &Y.front(), 1);
+
+    return true;
+  }
+
+  template<> inline
+  bool matrix<float>::multiply(const std::vector<float>& X,
+                               std::vector<float>& Y,
+                               float alpha, float beta, bool transA,
+                               int stridex, int stridey, int ofsx,
+                               int ofsy) const
+  {
+    if (!this->compatible(X,transA)) return false;
+
+    cblas_sgemv(CblasColMajor,
+                transA ? CblasTrans : CblasNoTrans,
+                nrow, ncol, alpha,
+                this->ptr(), nrow,
+                &X[ofsx], stridex, beta,
+                &Y[ofsy], stridey);
 
     return true;
   }
@@ -1293,24 +1321,14 @@ namespace utl //! General utility classes and functions.
   {
     if (!addTo)
       this->resize(X.size(),Y.size());
-    else if (X.size() != nrow || Y.size() != ncol)
-    {
-      std::cerr <<"matrix::outer_product: Incompatible matrix and vectors: A("
-                << nrow <<','<< ncol <<"), X("
-                << X.size() <<"), Y("<< Y.size() <<")\n"
-                <<"                       when computing A += X*Y^t"
-                << std::endl;
-      ABORT_ON_INDEX_CHECK;
+    else if (!this->compatible(X,Y))
       return false;
-    }
-    size_t M = X.size();
-    size_t N = Y.size();
-    size_t K = 1;
+
     cblas_sgemm(CblasColMajor,
                 CblasNoTrans, CblasTrans,
-                M, N, K, alpha,
-                X.data(), M,
-                Y.data(), N,
+                nrow, ncol, 1, alpha,
+                X.data(), nrow,
+                Y.data(), ncol,
                 addTo ? 1.0f : 0.0f,
                 this->ptr(), nrow);
 
@@ -1324,24 +1342,14 @@ namespace utl //! General utility classes and functions.
   {
     if (!addTo)
       this->resize(X.size(),Y.size());
-    else if (X.size() != nrow || Y.size() != ncol)
-    {
-      std::cerr <<"matrix::outer_product: Incompatible matrix and vectors: A("
-                << nrow <<','<< ncol <<"), X("
-                << X.size() <<"), Y("<< Y.size() <<")\n"
-                <<"                       when computing A += X*Y^t"
-                << std::endl;
-      ABORT_ON_INDEX_CHECK;
+    else if (!this->compatible(X,Y))
       return false;
-    }
-    size_t M = X.size();
-    size_t N = Y.size();
-    size_t K = 1;
+
     cblas_dgemm(CblasColMajor,
                 CblasNoTrans, CblasTrans,
-                M, N, K, alpha,
-                X.data(), M,
-                Y.data(), N,
+                nrow, ncol, 1, alpha,
+                X.data(), nrow,
+                Y.data(), ncol,
                 addTo ? 1.0 : 0.0,
                 this->ptr(), nrow);
 
@@ -1450,38 +1458,20 @@ namespace utl //! General utility classes and functions.
   }
 
   template<class T> inline
-  matrix<T>& matrix<T>::add(const matrix<T>& X, T alfa)
+  matrixBase<T>& matrixBase<T>::add(const matrixBase<T>& A, T alfa)
   {
     T* p = this->ptr();
-    const T* q = X.ptr();
-    for (size_t i = 0; i < this->size() && i < X.size(); i++, p++, q++)
+    const T* q = A.ptr();
+    for (size_t i = 0; i < this->size() && i < A.size(); i++, p++, q++)
       *p += alfa*(*q);
     return *this;
   }
 
   template<class T> inline
-  matrix3d<T>& matrix3d<T>::add(const matrix3d<T>& X, T alfa)
+  matrixBase<T>& matrixBase<T>::multiply(const T& c)
   {
-    T* p = this->ptr();
-    const T* q = X.ptr();
-    for (size_t i = 0; i < this->size() && i < X.size(); i++, p++, q++)
-      *p += alfa*(*q);
-    return *this;
-  }
-
-  template<class T> inline
-  matrix<T>& matrix<T>::multiply(T c)
-  {
-    for (size_t i = 0; i < elem.size(); i++)
-      elem[i] *= c;
-    return *this;
-  }
-
-  template<class T> inline
-  matrix3d<T>& matrix3d<T>::multiply(const T& c)
-  {
-    for (size_t i = 0; i < elem.size(); i++)
-      elem[i] *= c;
+    for (size_t i = 0; i < this->elem.size(); i++)
+      this->elem[i] *= c;
     return *this;
   }
 
@@ -1499,16 +1489,16 @@ namespace utl //! General utility classes and functions.
     for (size_t i = 0; i < Y.size(); i++)
       for (size_t j = 0; j < X.size(); j++)
         if (transA)
-          Y[i] += THIS(j+1,i+1) * (addTo > 0 ? X[j] : -X[j]);
+          Y[i] += THIS(j+1,i+1) * (addTo < 0 ? -X[j] : X[j]);
         else
-          Y[i] += THIS(i+1,j+1) * (addTo > 0 ? X[j] : -X[j]);
+          Y[i] += THIS(i+1,j+1) * (addTo < 0 ? -X[j] : X[j]);
 
     return true;
   }
 
   template<class T> inline
   bool matrix<T>::multiply(const std::vector<T>& X, std::vector<T>& Y,
-                           double alpha, double beta, bool transA,
+                           T alpha, T beta, bool transA,
                            int stridex, int stridey,
                            int ofsx, int ofsy) const
   {
@@ -1592,29 +1582,21 @@ namespace utl //! General utility classes and functions.
   template<class T> inline
   bool matrix<T>::outer_product(const std::vector<T>& X,
                                 const std::vector<T>& Y,
-                                bool addTo = false, T alpha = T(1))
+                                bool addTo, T alpha)
   {
     if (!addTo)
       this->resize(X.size(),Y.size());
-    else if (X.size() != nrow || Y.size() != ncol)
-    {
-      std::cerr <<"matrix::outer_product: Incompatible matrix and vectors: A("
-                << nrow <<','<< ncol <<"), X("
-                << X.size() <<"), Y("<< Y.size() <<")\n"
-                <<"                       when computing A += X*Y^t"
-                << std::endl;
-      ABORT_ON_INDEX_CHECK;
+    else if (!this->compatible(X,Y))
       return false;
-    }
 
     if (addTo)
       for (size_t j = 0; j < ncol; j++)
         for (size_t i = 0; i < nrow; i++)
-          elem[i+nrow*j] += alpha*X[i]*Y[j];
+          this->elem[i+nrow*j] += alpha*X[i]*Y[j];
     else
       for (size_t j = 0; j < ncol; j++)
         for (size_t i = 0; i < nrow; i++)
-          elem[i+nrow*j] = alpha*X[i]*Y[j];
+          this->elem[i+nrow*j] = alpha*X[i]*Y[j];
 
     return true;
   }
@@ -1627,10 +1609,10 @@ namespace utl //! General utility classes and functions.
     if (!this->compatible(A,B,transA,M,N,K)) return false;
     if (!addTo) this->resize(M,B.n[1],B.n[2],true);
 
-    for (size_t i = 1; i <= n[0]; i++)
-      for (size_t j = 1; j <= n[1]; j++)
+    for (size_t i = 1; i <= this->n[0]; i++)
+      for (size_t j = 1; j <= this->n[1]; j++)
         for (size_t k = 1; k <= K; k++)
-          for (size_t l = 1; l <= n[2]; l++)
+          for (size_t l = 1; l <= this->n[2]; l++)
             if (transA)
               this->operator()(i,j,l) += A(k,i)*B(k,j,l);
             else
