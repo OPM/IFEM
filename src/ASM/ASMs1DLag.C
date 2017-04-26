@@ -179,7 +179,7 @@ bool ASMs1DLag::updateCoords (const Vector& displ)
   \brief Extracts the element end points from the element coordinates.
 */
 
-static void getEndPoints (const Matrix& Xnod, Vec3Vec& XC)
+static double getEndPoints (const Matrix& Xnod, Vec3Vec& XC)
 {
   XC.resize(2);
   for (size_t i = 0; i < Xnod.cols(); i++)
@@ -187,6 +187,8 @@ static void getEndPoints (const Matrix& Xnod, Vec3Vec& XC)
     XC[0][i] = Xnod(i+1,1);
     XC[1][i] = Xnod(i+1,Xnod.rows());
   }
+
+  return (XC.back() - XC.front()).length(); // Element length
 }
 
 
@@ -236,7 +238,7 @@ bool ASMs1DLag::integrate (Integrand& integrand,
     if (!this->getElementCoordinates(fe.Xn,1+iel)) return false;
 
     if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-      getEndPoints(fe.Xn,fe.XC);
+      fe.h = getEndPoints(fe.Xn,fe.XC);
 
     if (integrand.getIntegrandType() & Integrand::NODAL_ROTATIONS)
     {
@@ -358,7 +360,7 @@ bool ASMs1DLag::integrate (Integrand& integrand, int lIndex,
   if (!this->getElementCoordinates(fe.Xn,1+iel)) return false;
 
   if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-    getEndPoints(fe.Xn,fe.XC);
+    fe.h = getEndPoints(fe.Xn,fe.XC);
 
   if (integrand.getIntegrandType() & Integrand::NODAL_ROTATIONS)
   {

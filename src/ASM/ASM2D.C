@@ -22,6 +22,7 @@
 #include "LR/ASMu2DIB.h"
 #include "LR/ASMu2Dmx.h"
 #endif
+#include "Vec3Oper.h"
 
 
 ASMbase* ASM2D::create (ASM::Discretization discretization, unsigned char nf)
@@ -101,3 +102,10 @@ ASMbase* ASM2D::clone (const CharVec& nf) const
 
 #undef TRY_CLONE1
 #undef TRY_CLONE2
+
+
+double ASM2D::getElementSize (const std::vector<Vec3>& XC)
+{
+  // Find longest diagonal (diameter av minste omskrivende sirkel)
+  return std::max((XC[3]-XC[0]).length(),(XC[2]-XC[1]).length());
+}

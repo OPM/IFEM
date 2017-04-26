@@ -206,10 +206,9 @@ public:
                                 bool local = false) const;
 
   //! \brief Returns the node index for a given corner.
-  virtual int getCorner(int I, int J, int K, int basis = 1) const;
-
+  virtual int getCorner(int I, int J, int K, int basis) const;
   //! \brief Returns the node indices for a given edge.
-  virtual std::vector<int> getEdge(int lEdge, bool open, int basis = 1) const;
+  virtual std::vector<int> getEdge(int lEdge, bool open, int basis) const;
 
   //! \brief Assigns new global node numbers for all nodes of the patch.
   //! \param nodes Object with global nodes numbers to assign to this patch
@@ -595,7 +594,8 @@ protected:
   //! \param[in] i2 Parameter index in v-direction
   //! \param[in] i3 Parameter index in w-direction
   //! \param[out] XC Coordinates of the element corners
-  void getElementCorners(int i1, int i2, int i3, std::vector<Vec3>& XC) const;
+  //! \return Characteristic element size
+  double getElementCorners(int i1, int i2, int i3, std::vector<Vec3>& XC) const;
 
   //! \brief Generates element groups for multi-threading of interior integrals.
   //! \param[in] integrand Object with problem-specific data and methods

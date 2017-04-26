@@ -109,9 +109,6 @@ public:
   //! \brief Returns the total number of nodes in this patch.
   virtual size_t getNoNodes(int basis = 0) const;
 
-  //! \brief Checks that the patch is modelled in a right-hand-side system.
-  virtual bool checkRightHandSystem();
-
   //! \brief Refines along the diagonal of the LR-spline patch.
   //! \details Progressively refine until the LR-spline object contains at least
   //! \a minBasisfunctions basis functions.
@@ -160,7 +157,8 @@ public:
   //! \param[in] open If \e true, exclude the end points of the edge
   //! \param[in] dof Which DOFs to constrain at each node on the edge
   //! \param[in] code Inhomogeneous dirichlet condition code
-  virtual void constrainEdge(int dir, bool open, int dof, int code, char);
+  //! \param[in] basis Which basis to constrain edge for
+  virtual void constrainEdge(int dir, bool open, int dof, int code, char basis);
   //! \brief Constrains all DOFs in local directions on a given boundary edge.
   //! \param[in] dir Parameter direction defining the edge to constrain
   //! \param[in] open If \e true, exclude the end points of the edge
@@ -242,9 +240,10 @@ public:
                                const std::map<int,int>* g2l = nullptr);
 
   //! \brief Returns the node index for a given corner.
-  virtual int getCorner(int I, int J, int basis = 1) const;
+  virtual int getCorner(int I, int J, int basis) const;
+
   //! \brief Returns the node indices for a given edge.
-  std::vector<int> getEdgeNodes(int edge, int basis = 1) const;
+  std::vector<int> getEdgeNodes(int edge, int basis) const;
 
 protected:
   //! \brief Evaluates an integral over the interior patch domain.
@@ -468,7 +467,8 @@ protected:
   //! \brief Computes the element corner coordinates.
   //! \param[in] iel Element index
   //! \param[out] XC Coordinates of the element corners
-  void getElementCorners(int iel, std::vector<Vec3>& XC) const;
+  //! \return Characteristic element size
+  double getElementCorners(int iel, std::vector<Vec3>& XC) const;
 
   //! \brief Evaluates the basis functions and derivatives of order \a derivs
   //! of an element.
@@ -503,8 +503,8 @@ protected:
   const std::vector<Matrix>& bezierExtract; //!< Bezier extraction matrices
   std::vector<Matrix>      myBezierExtract; //!< Bezier extraction matrices
 
-  Go::BsplineBasis bezier_u;
-  Go::BsplineBasis bezier_v;
+  Go::BsplineBasis bezier_u; //!< Bezier basis in the u-direction
+  Go::BsplineBasis bezier_v; //!< Bezier basis in the v-direction
 
   ThreadGroups threadGroups; //!< Element groups for multi-threaded assembly
 };

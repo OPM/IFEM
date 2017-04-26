@@ -190,7 +190,7 @@ public:
                                 bool local = false) const;
 
   //! \brief Returns the node index for a given corner.
-  virtual int getCorner(int I, int J, int basis = 1) const;
+  virtual int getCorner(int I, int J, int basis) const;
 
   //! \brief Assigns new global node numbers for all nodes of the patch.
   //! \param nodes Object with global nodes numbers to assign to this patch
@@ -527,7 +527,8 @@ protected:
   //! \param[in] i1 Parameter index in u-direction
   //! \param[in] i2 Parameter index in v-direction
   //! \param[out] XC Coordinates of the element corners
-  void getElementCorners(int i1, int i2, std::vector<Vec3>& XC) const;
+  //! \return Characteristic element size
+  double getElementCorners(int i1, int i2, std::vector<Vec3>& XC) const;
 
   using ASMbase::generateThreadGroups;
   //! \brief Generates element groups for multi-threading of interior integrals.

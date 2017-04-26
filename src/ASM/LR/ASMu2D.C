@@ -60,7 +60,8 @@ bool ASMu2D::read (std::istream& is)
 {
   if (shareFE) return false;
 
-  // read inputfile as either an LRSpline file directly or a tensor product B-spline and convert
+  // read inputfile as either an LRSpline file directly
+  // or a tensor product B-spline and convert
   char firstline[256];
   is.getline(firstline, 256);
   if (strncmp(firstline, "# LRSPLINE", 10) == 0) {
@@ -132,13 +133,6 @@ void ASMu2D::clear (bool retainGeometry)
   // Erase the FE data
   this->ASMbase::clear(retainGeometry);
   this->dirich.clear();
-}
-
-
-bool ASMu2D::checkRightHandSystem ()
-{
-  std::cout <<"ASMu2D::checkRightHandSystem(): Not available for LR-splines (ignored)."<< std::endl;
-  return false;
 }
 
 
@@ -930,14 +924,14 @@ void ASMu2D::getGaussPointParameters (RealArray& uGP, int dir, int nGauss,
 }
 
 
-void ASMu2D::getElementCorners (int iel, Vec3Vec& XC) const
+double ASMu2D::getElementCorners (int iel, Vec3Vec& XC) const
 {
 #ifdef INDEX_CHECK
   if (iel < 1 || iel > lrspline->nElements())
   {
     std::cerr <<" *** ASMu2D::getElementCorners: Element index "<< iel
-             <<" out of range [1,"<< lrspline->nElements() <<"]."<< std::endl;
-    return;
+              <<" out of range [1,"<< lrspline->nElements() <<"]."<< std::endl;
+    return 0.0;
   }
 #endif
 
@@ -954,6 +948,8 @@ void ASMu2D::getElementCorners (int iel, Vec3Vec& XC) const
     lrspline->point(point,u[i],v[i],iel-1);
     XC.push_back(SplineUtils::toVec3(point,nsd));
   }
+
+  return getElementSize(XC);
 }
 
 
@@ -1031,7 +1027,7 @@ bool ASMu2D::integrate (Integrand& integrand,
       }
 
       if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-        this->getElementCorners(iel,fe.XC);
+        fe.h = this->getElementCorners(iel,fe.XC);
 
       if (integrand.getIntegrandType() & Integrand::ELEMENT_CENTER)
       {
@@ -1054,7 +1050,7 @@ bool ASMu2D::integrate (Integrand& integrand,
 
       if (xr)
       {
-        // --- Selective reduced integration loop --------------------------------
+        // --- Selective reduced integration loop ------------------------------
 
         for (int j = 0; j < nRed; j++)
           for (int i = 0; i < nRed; i++)
@@ -1089,7 +1085,7 @@ bool ASMu2D::integrate (Integrand& integrand,
           }
       }
 
-      // --- Integration loop over all Gauss points in each direction ------------
+      // --- Integration loop over all Gauss points in each direction ----------
 
       int jp = (iel-1)*nGauss*nGauss;
       fe.iGP = firstIp + jp; // Global integration point counter
@@ -1248,12 +1244,12 @@ bool ASMu2D::integrate (Integrand& integrand,
       }
 
       if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-        this->getElementCorners(iel,fe.XC);
+        fe.h = this->getElementCorners(iel,fe.XC);
 
       if (integrand.getIntegrandType() & Integrand::ELEMENT_CENTER)
       {
         // Compute the element center
-        this->getElementCorners(iel,fe.XC);
+        fe.h = this->getElementCorners(iel,fe.XC);
         X = 0.25*(fe.XC[0]+fe.XC[1]+fe.XC[2]+fe.XC[3]);
       }
 
@@ -1265,7 +1261,7 @@ bool ASMu2D::integrate (Integrand& integrand,
         continue;
       }
 
-      // --- Integration loop over all quadrature points in this element ---------
+      // --- Integration loop over all quadrature points in this element -------
 
       size_t jp = MPitg[iel-1]; // Patch-wise integration point counter
       fe.iGP = firstIp + jp;    // Global integration point counter
@@ -1423,9 +1419,9 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
     this->getGaussPointParameters(gpar[t2-1],t2-1,nGP,iel,xg);
 
     if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-      this->getElementCorners(iel,fe.XC);
+      fe.h = this->getElementCorners(iel,fe.XC);
 
-    // --- Integration loop over all Gauss points along the edge -------------
+    // --- Integration loop over all Gauss points along the edge ---------------
 
     fe.iGP = firstp; // Global integration point counter
     firstp += nGP;

@@ -325,7 +325,8 @@ protected:
   //! \brief Computes the element end coordinates.
   //! \param[in] i Parameter index for the knot-span element
   //! \param[out] XC Coordinates of the element corners
-  void getElementEnds(int i, std::vector<Vec3>& XC) const;
+  //! \return Element length
+  double getElementEnds(int i, std::vector<Vec3>& XC) const;
 
   //! \brief Returns nodal rotation matrices for an element, if any.
   //! \param[out] T Array of nodal rotation matrices

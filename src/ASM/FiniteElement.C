@@ -14,18 +14,12 @@
 #include "FiniteElement.h"
 
 
-std::ostream& operator<< (std::ostream& os, const FiniteElement& fe)
-{
-  return fe.write(os);
-}
-
-
 std::ostream& FiniteElement::write (std::ostream& os) const
 {
   os <<"FiniteElement: iel="<< iel <<" iGP="<< iGP <<" p="<< p
      <<"\n               u, v, w: "<< u <<" "<< v <<" "<< w
      <<"\n               xi, eta, zeta: "<< xi <<" "<< eta <<" "<< zeta
-     <<"\n               detJxW: "<< detJxW << std::endl;
+     <<"\n               h, detJxW: "<< h <<" "<< detJxW << std::endl;
   if (!N.empty())      os <<"N:"<< N;
   if (!dNdX.empty())   os <<"dNdX:"<< dNdX;
   if (!d2NdX2.empty()) os <<"d2NdX2:"<< d2NdX2;

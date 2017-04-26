@@ -667,7 +667,7 @@ const Vector& ASMs1D::getGaussPointParameters (Matrix& uGP, int nGauss,
 }
 
 
-void ASMs1D::getElementEnds (int i, Vec3Vec& XC) const
+double ASMs1D::getElementEnds (int i, Vec3Vec& XC) const
 {
   RealArray::const_iterator uit = curv->basis().begin();
 
@@ -687,11 +687,14 @@ void ASMs1D::getElementEnds (int i, Vec3Vec& XC) const
   for (int j = 0; j < 2; j++, pt += dim)
     XC.push_back(Vec3(pt,dim));
 
-  if (elmCS.empty()) return;
+  // Calculate the element length
+  double h = (XC.back() - XC.front()).length();
+  if (elmCS.empty()) return h;
 
   // Add the local Z-axis as the third vector
   int iel = i - curv->order();
   XC.push_back(elmCS[iel][2]);
+  return h;
 }
 
 
@@ -800,7 +803,7 @@ bool ASMs1D::integrate (Integrand& integrand,
     if (!this->getElementCoordinates(fe.Xn,1+iel)) return false;
 
     if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-      this->getElementEnds(p1+iel,fe.XC);
+      fe.h = this->getElementEnds(p1+iel,fe.XC);
 
     if (integrand.getIntegrandType() & Integrand::NODAL_ROTATIONS)
     {
@@ -951,7 +954,7 @@ bool ASMs1D::integrate (Integrand& integrand, int lIndex,
   if (!this->getElementCoordinates(fe.Xn,1+iel)) return false;
 
   if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-    this->getElementEnds(iel+curv->order(),fe.XC);
+    fe.h = this->getElementEnds(iel+curv->order(),fe.XC);
 
   if (integrand.getIntegrandType() & Integrand::NODAL_ROTATIONS)
   {

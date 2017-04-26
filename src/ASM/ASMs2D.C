@@ -1384,7 +1384,7 @@ void ASMs2D::getElementBorders (int i1, int i2, double* u, double* v) const
 }
 
 
-void ASMs2D::getElementCorners (int i1, int i2, Vec3Vec& XC) const
+double ASMs2D::getElementCorners (int i1, int i2, Vec3Vec& XC) const
 {
   // Fetch parameter values of the element (knot-span) corners
   RealArray u(2), v(2);
@@ -1401,6 +1401,8 @@ void ASMs2D::getElementCorners (int i1, int i2, Vec3Vec& XC) const
   const double* pt = &XYZ.front();
   for (int i = 0; i < 4; i++, pt += dim)
     XC.push_back(Vec3(pt,dim));
+
+  return getElementSize(XC);
 }
 
 
@@ -1520,7 +1522,7 @@ bool ASMs2D::integrate (Integrand& integrand,
         }
 
         if (useElmVtx)
-          this->getElementCorners(i1-1,i2-1,fe.XC);
+          fe.h = this->getElementCorners(i1-1,i2-1,fe.XC);
 
         if (integrand.getIntegrandType() & Integrand::G_MATRIX)
         {
@@ -1787,11 +1789,11 @@ bool ASMs2D::integrate (Integrand& integrand,
         if (integrand.getIntegrandType() & Integrand::ELEMENT_CENTER)
         {
           // Compute the element center
-          this->getElementCorners(i1-1,i2-1,fe.XC);
+          fe.h = this->getElementCorners(i1-1,i2-1,fe.XC);
           X = 0.25*(fe.XC[0]+fe.XC[1]+fe.XC[2]+fe.XC[3]);
         }
         else if (useElmVtx)
-          this->getElementCorners(i1-1,i2-1,fe.XC);
+          fe.h = this->getElementCorners(i1-1,i2-1,fe.XC);
 
         if (integrand.getIntegrandType() & Integrand::G_MATRIX)
         {
@@ -1936,7 +1938,7 @@ bool ASMs2D::integrate (Integrand& integrand,
       this->getElementBorders(i1-1,i2-1,u,v);
 
       if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-        this->getElementCorners(i1-1,i2-1,fe.XC);
+        fe.h = this->getElementCorners(i1-1,i2-1,fe.XC);
 
       // Initialize element quantities
       LocalIntegral* A = integrand.getLocalIntegral(MNPC[jel].size(),fe.iel);
@@ -2141,7 +2143,7 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
       if (!this->getElementCoordinates(Xnod,iel)) return false;
 
       if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-        this->getElementCorners(i1-1,i2-1,fe.XC);
+        fe.h = this->getElementCorners(i1-1,i2-1,fe.XC);
 
       if (integrand.getIntegrandType() & Integrand::G_MATRIX)
       {

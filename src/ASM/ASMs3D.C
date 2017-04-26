@@ -1640,7 +1640,7 @@ void ASMs3D::getElementBorders (int i1, int i2, int i3,
 }
 
 
-void ASMs3D::getElementCorners (int i1, int i2, int i3, Vec3Vec& XC) const
+double ASMs3D::getElementCorners (int i1, int i2, int i3, Vec3Vec& XC) const
 {
   // Fetch parameter values of the element (knot-span) corners
   RealArray u(2), v(2), w(2);
@@ -1657,6 +1657,8 @@ void ASMs3D::getElementCorners (int i1, int i2, int i3, Vec3Vec& XC) const
   const double* pt = &XYZ.front();
   for (int i = 0; i < 8; i++, pt += dim)
     XC.push_back(Vec3(pt,dim));
+
+  return getElementSize(XC);
 }
 
 
@@ -1767,7 +1769,7 @@ bool ASMs3D::integrate (Integrand& integrand,
         }
 
         if (useElmVtx)
-          this->getElementCorners(i1-1,i2-1,i3-1,fe.XC);
+          fe.h = this->getElementCorners(i1-1,i2-1,i3-1,fe.XC);
 
         if (integrand.getIntegrandType() & Integrand::G_MATRIX)
         {
@@ -2048,12 +2050,12 @@ bool ASMs3D::integrate (Integrand& integrand,
         if (integrand.getIntegrandType() & Integrand::ELEMENT_CENTER)
         {
           // Compute the element center
-          this->getElementCorners(i1-1,i2-1,i3-1,fe.XC);
+          fe.h = this->getElementCorners(i1-1,i2-1,i3-1,fe.XC);
 	  X = 0.125*(fe.XC[0]+fe.XC[1]+fe.XC[2]+fe.XC[3]+
 		     fe.XC[4]+fe.XC[5]+fe.XC[6]+fe.XC[7]);
         }
         else if (useElmVtx)
-          this->getElementCorners(i1-1,i2-1,i3-1,fe.XC);
+          fe.h = this->getElementCorners(i1-1,i2-1,i3-1,fe.XC);
 
         if (integrand.getIntegrandType() & Integrand::G_MATRIX)
         {
@@ -2284,7 +2286,7 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
         }
 
         if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-          this->getElementCorners(i1-1,i2-1,i3-1,fe.XC);
+          fe.h = this->getElementCorners(i1-1,i2-1,i3-1,fe.XC);
 
         if (integrand.getIntegrandType() & Integrand::G_MATRIX)
         {

@@ -124,13 +124,6 @@ void ASMu3D::clear (bool retainGeometry)
 }
 
 
-bool ASMu3D::checkRightHandSystem ()
-{
-  std::cout <<"ASMu3D::checkRightHandSystem(): Not available for LR-splines (ignored)."<< std::endl;
-  return false;
-}
-
-
 bool ASMu3D::refine (int dir, const RealArray& xi)
 {
   if (!tensorspline || dir < 0 || dir > 2 || xi.empty()) return false;
@@ -795,7 +788,7 @@ void ASMu3D::getGaussPointParameters (RealArray& uGP, int dir, int nGauss,
 }
 
 
-void ASMu3D::getElementCorners (int iEl, Vec3Vec& XC) const
+double ASMu3D::getElementCorners (int iEl, Vec3Vec& XC) const
 {
   LR::Element* el = lrspline->getElement(iEl);
   double u[2] = { el->getParmin(0), el->getParmax(0) };
@@ -813,6 +806,8 @@ void ASMu3D::getElementCorners (int iEl, Vec3Vec& XC) const
         lrspline->point(pt,u[i],v[j],w[k],iEl);
         XC.push_back(SplineUtils::toVec3(pt));
       }
+
+  return getElementSize(XC);
 }
 
 
@@ -1020,7 +1015,7 @@ bool ASMu3D::integrate (Integrand& integrand,
 
 
       if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-        this->getElementCorners(iEl, fe.XC);
+        fe.h = this->getElementCorners(iEl,fe.XC);
 
       if (integrand.getIntegrandType() & Integrand::G_MATRIX)
       {
@@ -1031,7 +1026,7 @@ bool ASMu3D::integrate (Integrand& integrand,
       }
       else if (integrand.getIntegrandType() & Integrand::AVERAGE)
       {
-        // --- Compute average value of basis functions over the element -----
+        // --- Compute average value of basis functions over the element -------
 
         fe.Navg.resize(nBasis,true);
         double vol = 0.0;
@@ -1081,7 +1076,7 @@ bool ASMu3D::integrate (Integrand& integrand,
         std::cerr << "Haven't really figured out what this part does yet\n";
         exit(42142);
 #if 0
-        // --- Selective reduced integration loop ----------------------------
+        // --- Selective reduced integration loop ------------------------------
 
         int ip = (((i3-p3)*nRed*nel2 + i2-p2)*nRed*nel1 + i1-p1)*nRed;
         for (int k = 0; k < nRed; k++, ip += nRed*(nel2-1)*nRed*nel1)
@@ -1117,7 +1112,7 @@ bool ASMu3D::integrate (Integrand& integrand,
       }
 
 
-      // --- Integration loop over all Gauss points in each direction --------
+      // --- Integration loop over all Gauss points in each direction ----------
 
       fe.iGP = iEl*nGauss*nGauss*nGauss; // Global integration point counter
 
@@ -1331,7 +1326,7 @@ bool ASMu3D::integrate (Integrand& integrand, int lIndex,
     }
 
     if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-      this->getElementCorners(iEl,fe.XC);
+      fe.h = this->getElementCorners(iEl,fe.XC);
 
     if (integrand.getIntegrandType() & Integrand::G_MATRIX)
     {
@@ -1350,7 +1345,7 @@ bool ASMu3D::integrate (Integrand& integrand, int lIndex,
       break;
     }
 
-    // --- Integration loop over all Gauss points in each direction --------
+    // --- Integration loop over all Gauss points in each direction ------------
 
     fe.iGP = firstp; // Global integration point counter
     int k1,k2,k3;
@@ -1560,7 +1555,7 @@ bool ASMu3D::integrateEdge (Integrand& integrand, int lEdge,
   bool ok = integrand.initElementBou(MNPC[iel-1],*A);
 
 
-  // --- Integration loop over all Gauss points along the edge -----------
+  // --- Integration loop over all Gauss points along the edge -----------------
 
   fe.iGP = firstp + ip; // Global integration point counter
 

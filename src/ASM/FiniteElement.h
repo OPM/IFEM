@@ -27,8 +27,8 @@ class FiniteElement
 {
 public:
   //! \brief Default constructor.
-  explicit FiniteElement(size_t n = 0, size_t i = 0) : iGP(i), N(n), iel(0), p(0), Te(3)
-  { u = v = w = xi = eta = zeta = 0.0; detJxW = 1.0; }
+  explicit FiniteElement(size_t n = 0, size_t i = 0) : iGP(i), N(n), Te(3)
+  { iel = p = 0; u = v = w = xi = eta = zeta = h = 0.0; detJxW = 1.0; }
 
   //! \brief Empty destructor.
   virtual ~FiniteElement() {}
@@ -52,8 +52,11 @@ protected:
   //! \brief Writes the finite element object to the given output stream.
   virtual std::ostream& write(std::ostream& os) const;
 
-  //! \brief Global Output stream operator.
-  friend std::ostream& operator<<(std::ostream& os, const FiniteElement& fe);
+  //! \brief Global output stream operator.
+  friend std::ostream& operator<<(std::ostream& os, const FiniteElement& fe)
+  {
+    return fe.write(os);
+  }
 
 public:
   // Gauss point quantities
@@ -68,11 +71,12 @@ public:
   Vector     N;    //!< Basis function values
   Matrix    dNdX;  //!< First derivatives (gradient) of the basis functions
   Matrix3D d2NdX2; //!< Second derivatives of the basis functions
-  Matrix   G;      //!< Matrix used for stabilized methods
+  Matrix     G;    //!< Matrix used for stabilized methods
 
   // Element quantities
   int                 iel;  //!< Element identifier
   short int           p;    //!< Polynomial order of the basis functions
+  double              h;    //!< Characteristic element size/diameter
   Vec3Vec             XC;   //!< Array with element corner coordinate vectors
   Vector              Navg; //!< Volume-averaged basis function values
   Matrix              Xn;   //!< Matrix of element nodal coordinates
@@ -97,7 +101,7 @@ public:
   //! \brief Returns a const reference to the basis function values.
   virtual const Vector& basis(char b) const { return b == 1 ? N : Nx[b-2]; }
   //! \brief Returns a reference to the basis function values.
-  Vector& basis(char b) { return b == 1 ? N : Nx[b-2]; }
+  virtual Vector& basis(char b) { return b == 1 ? N : Nx[b-2]; }
 
   //! \brief Returns a const reference to the basis function derivatives.
   virtual const Matrix& grad(char b) const { return b == 1 ? dNdX : dNxdX[b-2]; }
@@ -114,9 +118,9 @@ protected:
   virtual std::ostream& write(std::ostream& os) const;
 
 private:
-  Vectors                 Nx;
-  std::vector<Matrix>    dNxdX;
-  std::vector<Matrix3D> d2NxdX2;
+  std::vector<Vector>     Nx;    //!< Basis function values
+  std::vector<Matrix>    dNxdX;  //!< First derivatives of the basis functions
+  std::vector<Matrix3D> d2NxdX2; //!< Second derivatives of the basis functions
 };
 
 #endif

@@ -19,6 +19,7 @@
 #include <cstddef>
 
 class ASMbase;
+class Vec3;
 
 
 /*!
@@ -63,7 +64,7 @@ public:
   ASMbase* clone(const CharVec& nf = CharVec()) const;
 
   //! \brief Checks that the patch is modelled in a right-hand-side system.
-  virtual bool checkRightHandSystem() = 0;
+  virtual bool checkRightHandSystem() { return false; }
 
   //! \brief Refines the parametrization by inserting extra knots uniformly.
   //! \param[in] dir Parameter direction to refine
@@ -161,10 +162,13 @@ public:
                                  int dir, int nSegSpan) const = 0;
 
   //! \brief Returns the node index for a given corner.
-  virtual int getCorner(int I, int J, int K, int basis = 1) const = 0;
-
+  virtual int getCorner(int I, int J, int K, int basis) const = 0;
   //! \brief Returns the node indices for a given edge.
-  virtual std::vector<int> getEdge(int lEdge, bool open, int basis = 1) const = 0;
+  virtual std::vector<int> getEdge(int lEdge, bool open, int basis) const = 0;
+
+protected:
+  //! \brief Returns characteristic element size based on corner coordinates.
+  static double getElementSize(const std::vector<Vec3>& XC);
 };
 
 #endif

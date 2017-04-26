@@ -89,26 +89,23 @@ public:
   std::vector<int> getFaceNodes(int face, int basis = 1) const;
 
   //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
-  //! \param[in] lIndex Local index of the boundary edge
-  //! \param glbNodes Array of global boundary node numbers
-  //! \param local If \e true return patch-local node numbers
+  //! \param[in] lIndex Local index of the boundary face
+  //! \param nodes Array of node numbers
+  //! \param basis Which basis to grab nodes for (0 for all)
+  //! \param local If \e true, return patch-local node numbers
   virtual void getBoundaryNodes(int lIndex, IntVec& nodes,
                                 int basis, int, bool local) const;
 
   //! \brief Returns the node index for a given corner.
-  virtual int getCorner(int I, int J, int K, int basis = 1) const;
-
+  virtual int getCorner(int I, int J, int K, int basis) const;
   //! \brief Returns the node indices for a given edge.
-  virtual std::vector<int> getEdge(int lEdge, bool open, int basis = 1) const;
+  virtual std::vector<int> getEdge(int lEdge, bool open, int basis) const;
 
   //! \brief Returns the polynomial order in each parameter direction.
   //! \param[out] p1 Order in first (u) direction
   //! \param[out] p2 Order in second (v) direction
   //! \param[out] p3 Order in third (w) direction
   virtual bool getOrder(int& p1, int& p2, int& p3) const;
-
-  //! \brief Checks that the patch is modelled in a right-hand-side system.
-  virtual bool checkRightHandSystem();
 
   //! \brief Refines the parametrization by inserting tensor knots uniformly.
   //! \param[in] dir Parameter direction to refine
@@ -418,7 +415,8 @@ protected:
   //! \brief Computes the element corner coordinates.
   //! \param[in] iel Element index
   //! \param[out] XC Coordinates of the element corners
-  void getElementCorners(int iel, std::vector<Vec3>& XC) const;
+  //! \return Characteristic element size
+  double getElementCorners(int iel, std::vector<Vec3>& XC) const;
 
   //! \brief Evaluate all basis functions and \a derivs number of derivatives on one element
   virtual void evaluateBasis(FiniteElement &el, int derivs) const;
