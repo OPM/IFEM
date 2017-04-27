@@ -441,8 +441,11 @@ protected:
   //! \param[in] basis Which basis to connect the nodes for (mixed methods)
   //! \param[in] slave 0-based index of the first slave node in this basis
   //! \param[in] master 0-based index of the first master node in this basis
+  //! \param[in] coordCheck False to disable coordinate checks (periodic connections)
+  //! \param[in] thick Thickness of connection
   bool connectBasis(int edge, ASMu2D& neighbor, int nedge, bool revers,
-                    int basis = 1, int slave = 0, int master = 0);
+                    int basis = 1, int slave = 0, int master = 0,
+                    bool coordCheck = true, int thick = 1);
 
   //! \brief Extracts parameter values of the Gauss points in one direction.
   //! \param[out] uGP Parameter values in given direction for all points
