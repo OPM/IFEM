@@ -616,19 +616,23 @@ bool ASMs3D::assignNodeNumbers (BlockNodes& nodes, int basis)
 }
 
 
-bool ASMs3D::connectPatch (int face, ASMs3D& neighbor, int nface,
+bool ASMs3D::connectPatch (int face, ASM3D& neighbor, int nface,
                            int norient, int, bool coordCheck, int thick)
 {
+  ASMs3D* neighS = dynamic_cast<ASMs3D*>(&neighbor);
+  if (!neighS)
+    return false;
+
   if (swapW && face > 4) // Account for swapped parameter direction
     face = 11-face;
 
-  if (neighbor.swapW && nface > 4) // Account for swapped parameter direction
+  if (neighS->swapW && nface > 4) // Account for swapped parameter direction
     nface = 11-nface;
 
-  if (!this->connectBasis(face,neighbor,nface,norient,1,0,0,coordCheck,thick))
+  if (!this->connectBasis(face,*neighS,nface,norient,1,0,0,coordCheck,thick))
     return false;
 
-  this->addNeighbor(&neighbor);
+  this->addNeighbor(neighS);
   return true;
 }
 

@@ -88,12 +88,12 @@ bool SIM2D::addConnection (int master, int slave, int mIdx,
                <<" to P"<< master <<" E"<< mIdx
                <<" reversed? "<< orient << std::endl;
 
-    ASMs2D* spch = static_cast<ASMs2D*>(myModel[lslave-1]);
-    ASMs2D* mpch = static_cast<ASMs2D*>(myModel[lmaster-1]);
+    ASM2D* spch = dynamic_cast<ASM2D*>(myModel[lslave-1]);
+    ASM2D* mpch = dynamic_cast<ASM2D*>(myModel[lmaster-1]);
 
     std::set<int> bases;
     if (basis == 0)
-      for (size_t b = 1; b <= spch->getNoBasis(); ++b)
+      for (size_t b = 1; b <= myModel[lslave-1]->getNoBasis(); ++b)
         bases.insert(b);
     else
       bases = utl::getDigits(basis);

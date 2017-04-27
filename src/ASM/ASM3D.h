@@ -166,6 +166,22 @@ public:
   //! \brief Returns the node indices for a given edge.
   virtual std::vector<int> getEdge(int lEdge, bool open, int basis) const = 0;
 
+  //! \brief Connects all matching nodes on two adjacent boundary faces.
+  //! \param[in] face Local face index of this patch, in range [1,6]
+  //! \param neighbor The neighbor patch
+  //! \param[in] nface Local face index of neighbor patch, in range [1,6]
+  //! \param[in] norient Relative face orientation flag (see below)
+  //! \param[in] coordCheck False to disable coordinate checks (periodic connections)
+  //! \param[in] thick Thickness of connection
+  //!
+  //! \details The face orientation flag \a norient must be in range [0,7].
+  //! When interpreted as a binary number, its 3 digits are decoded as follows:
+  //! - left digit = 1: The u and v parameters of the neighbor face are swapped
+  //! - middle digit = 1: Parameter \a u in neighbor patch face is reversed
+  //! - right digit = 1: Parameter \a v in neighbor patch face is reversed
+  virtual bool connectPatch(int face, ASM3D& neighbor, int nface, int norient,
+                            int = 0, bool coordCheck = true, int thick = 1) = 0;
+
 protected:
   //! \brief Returns characteristic element size based on corner coordinates.
   static double getElementSize(const std::vector<Vec3>& XC);

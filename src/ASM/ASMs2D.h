@@ -276,7 +276,7 @@ public:
   //! \param[in] revers Indicates whether the two edges have opposite directions
   //! \param[in] coordCheck False to disable coordinate checks (periodic connections)
   //! \param[in] thick Thickness of connection
-  virtual bool connectPatch(int edge, ASMs2D& neighbor, int nedge, bool revers,
+  virtual bool connectPatch(int edge, ASM2D& neighbor, int nedge, bool revers,
                             int = 0, bool coordCheck = true, int thick = 1);
 
   //! \brief Makes two opposite boundary edges periodic.

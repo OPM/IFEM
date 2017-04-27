@@ -334,7 +334,7 @@ public:
   //! - left digit = 1: The u and v parameters of the neighbor face are swapped
   //! - middle digit = 1: Parameter \a u in neighbor patch face is reversed
   //! - right digit = 1: Parameter \a v in neighbor patch face is reversed
-  virtual bool connectPatch(int face, ASMs3D& neighbor, int nface, int norient,
+  virtual bool connectPatch(int face, ASM3D& neighbor, int nface, int norient,
                             int = 0, bool coordCheck = true, int thick = 1);
 
   //! \brief Makes two opposite boundary faces periodic.

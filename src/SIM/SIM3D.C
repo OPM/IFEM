@@ -66,12 +66,12 @@ bool SIM3D::addConnection (int master, int slave, int mIdx,
                <<" to P"<< master <<" F"<< mIdx
                <<" orient "<< orient << std::endl;
 
-    ASMs3D* spch = static_cast<ASMs3D*>(myModel[lslave-1]);
-    ASMs3D* mpch = static_cast<ASMs3D*>(myModel[lmaster-1]);
+    ASM3D* spch = dynamic_cast<ASM3D*>(myModel[lslave-1]);
+    ASM3D* mpch = dynamic_cast<ASM3D*>(myModel[lmaster-1]);
 
     std::set<int> bases;
     if (basis == 0)
-      for (size_t b = 1; b <= spch->getNoBasis(); ++b)
+      for (size_t b = 1; b <= myModel[lslave-1]->getNoBasis(); ++b)
         bases.insert(b);
     else
       bases = utl::getDigits(basis);
