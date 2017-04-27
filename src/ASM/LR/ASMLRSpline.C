@@ -13,6 +13,7 @@
 
 #include "ASMunstruct.h"
 #include "LRSpline/LRSplineSurface.h"
+#include "LRSpline/Basisfunction.h"
 #include "Profiler.h"
 #include "ThreadGroups.h"
 #include <fstream>
@@ -304,4 +305,26 @@ IntVec ASMunstruct::getFunctionsForElements (const IntVec& elements)
   std::copy(functions.begin(), functions.end(), result.begin());
 
   return result;
+}
+
+
+void ASMunstruct::Sort(std::vector<LR::Basisfunction*>& functions)
+{
+  std::sort(functions.begin(), functions.end(),
+            [](const LR::Basisfunction* a, const LR::Basisfunction* b)
+            {
+              int ndir = a->getGrevilleParameter().size();
+              for (int dir = ndir-1; dir >= 0; --dir)
+                if (a->getGrevilleParameter()[dir] != b->getGrevilleParameter()[dir])
+                  return a->getGrevilleParameter()[dir] < b->getGrevilleParameter()[dir];
+
+              for (int dir = ndir-1; dir >= 0; --dir) {
+                size_t idx = 0;
+                for (auto& it : const_cast<LR::Basisfunction*>(a)->getknots(dir))
+                  if (it != const_cast<LR::Basisfunction*>(b)->getknots(dir)[idx])
+                    return it < const_cast<LR::Basisfunction*>(b)->getknots(dir)[idx++];
+               }
+
+              return false;
+            });
 }

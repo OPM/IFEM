@@ -42,7 +42,6 @@ ASMu2D::ASMu2D (unsigned char n_s, unsigned char n_f)
   : ASMunstruct(2,n_s,n_f), lrspline(nullptr), tensorspline(nullptr),
     bezierExtract(myBezierExtract)
 {
-  ASMunstruct::resetNumbering(); // Replace this when going multi-patch...
 }
 
 
@@ -418,20 +417,23 @@ bool ASMu2D::generateFEMTopology ()
   nnod = lrspline->nBasisFunctions();
   nel  = lrspline->nElements();
 
-  if (!MLGN.empty() && MLGN.size() != nnod)
-  {
-    std::cerr <<" *** ASMu2D::generateFEMTopology: Inconsistency"
-              <<" between the number of FE nodes "<< MLGN.size()
-              <<"\n     and the number of basis functions "<< nnod
-              <<" in the patch."<< std::endl;
-    return false;
-  }
-
   const int p1 = lrspline->order(0);
   const int p2 = lrspline->order(1);
 
   bezier_u = getBezierBasis(p1);
   bezier_v = getBezierBasis(p2);
+
+  if (!MLGN.empty()) {
+    if (MLGN.size() != nnod)
+    {
+      std::cerr <<" *** ASMu2D::generateFEMTopology: Inconsistency"
+                <<" between the number of FE nodes "<< MLGN.size()
+                <<"\n     and the number of basis functions "<< nnod
+                <<" in the patch."<< std::endl;
+      return false;
+    }
+    return true;
+  }
 
   if (shareFE) return true;
 
@@ -470,103 +472,77 @@ bool ASMu2D::generateFEMTopology ()
 }
 
 
-bool ASMu2D::connectPatch (int edge, ASM2D& neighbor, int nedge, bool revers,
-                           int basis, bool coordCheck, int thick)
+bool ASMu2D::connectPatch (int edge, ASM2D& neighbor, int nedge,
+                           bool revers, int, bool coordCheck, int thick)
 {
-  return false;
+  ASMu2D* neighU = dynamic_cast<ASMu2D*>(&neighbor);
+  if (!neighU)
+    return false;
+
+  if (!this->connectBasis(edge,*neighU,nedge,revers,1,0,0,coordCheck,thick))
+    return false;
+
+  this->addNeighbor(neighU);
+  return true;
 }
 
 
-/*
 bool ASMu2D::connectBasis (int edge, ASMu2D& neighbor, int nedge, bool revers,
-                           int basis, int slave, int master)
+                           int basis, int slave, int master,
+                           bool coordCheck, int thick)
 {
+  if (this->isShared() && neighbor.isShared())
+    return true;
+  else if (this->isShared() || neighbor.isShared())
+  {
+    std::cerr <<" *** ASMu2D::connectBasis: Logic error, cannot"
+	      <<" connect a shared patch with an unshared one"<< std::endl;
+    return false;
+  }
+
   // Set up the slave node numbers for this surface patch
-
-  int n1, n2;
-  if (!this->getSize(n1,n2,basis)) return false;
-  int node = slave+1, i1 = 0;
-
-  switch (edge)
-    {
-    case 2: // Positive I-direction
-      node += n1-1;
-    case 1: // Negative I-direction
-      i1 = n1;
-      n1 = n2;
-      break;
-
-    case 4: // Positive J-direction
-      node += n1*(n2-1);
-    case 3: // Negative J-direction
-      i1 = 1;
-      break;
-
-    default:
-      std::cerr <<" *** ASMu2D::connectPatch: Invalid slave edge "
-                << edge << std::endl;
-      return false;
-    }
-
-  int i;
-  IntVec slaveNodes(n1,0);
-  for (i = 0; i < n1; i++, node += i1)
-    slaveNodes[i] = node;
+  IntVec slaveNodes;
+  this->getBoundaryNodes(edge, slaveNodes, basis, thick, true);
+  for (int& it : slaveNodes)
+    it += slave;
 
   // Set up the master node numbers for the neighboring surface patch
+  IntVec masterNodes;
+  neighbor.getBoundaryNodes(nedge, masterNodes, basis, thick, true);
+  for (int& it : masterNodes)
+    it += master;
 
-  if (!neighbor.getSize(n1,n2,basis)) return false;
-  node = master+1; i1 = 0;
-
-  switch (nedge)
-    {
-    case 2: // Positive I-direction
-      node += n1-1;
-    case 1: // Negative I-direction
-      i1 = n1;
-      n1 = n2;
-      break;
-
-    case 4: // Positive J-direction
-      node += n1*(n2-1);
-    case 3: // Negative J-direction
-      i1 = 1;
-      break;
-
-    default:
-      std::cerr <<" *** ASMu2D::connectPatch: Invalid master edge "
-                << nedge << std::endl;
-      return false;
-    }
-
-  if (n1 != (int)slaveNodes.size())
+  if (masterNodes.size() != slaveNodes.size())
   {
-    std::cerr <<" *** ASMu2D::connectPatch: Non-matching edges, sizes "
-              << n1 <<" and "<< slaveNodes.size() << std::endl;
+    std::cerr <<" *** ASMu2D::connectBasis: Non-matching edges, sizes "
+              << masterNodes.size() <<" and "<< slaveNodes.size() << std::endl;
     return false;
   }
 
   const double xtol = 1.0e-4;
-  for (i = 0; i < n1; i++, node += i1)
+  for (size_t i = 0; i < masterNodes.size(); ++i)
   {
-    int k = revers ? n1-i-1 : i;
-    if (!neighbor.getCoord(node).equal(this->getCoord(slaveNodes[k]),xtol))
+    int node = masterNodes[i];
+    int slave = slaveNodes[revers ? slaveNodes.size()-i-1 : i];
+    if (!coordCheck)
+      ASMbase::collapseNodes(neighbor,node,*this,slave);
+    else if (neighbor.getCoord(node).equal(this->getCoord(slave),xtol))
+      ASMbase::collapseNodes(neighbor,node,*this,slave);
+    else
     {
-      std::cerr <<" *** ASMu2D::connectPatch: Non-matching nodes "
+      std::cerr <<" *** ASMu2D::connectBasis: Non-matching nodes "
                 << node <<": "<< neighbor.getCoord(node)
                 <<"\n                                          and "
-                << slaveNodes[k] <<": "<< this->getCoord(slaveNodes[k])
-                << std::endl;
+                << slave <<": "<< this->getCoord(slave) << std::endl;
       return false;
     }
-    else
-      ASMbase::collapseNodes(neighbor.MLGN[node-1],MLGN[slaveNodes[k]-1]);
   }
 
   return true;
 }
 
 
+/*
 void ASMu2D::closeEdges (int dir, int basis, int master)
 {
   int n1, n2;
@@ -596,9 +572,10 @@ std::vector<int> ASMu2D::getEdgeNodes (int edge, int basis) const
     ofs += this->getNoNodes(i);
 
   std::vector<LR::Basisfunction*> edgeFunctions;
-  this->getBasis(basis)->edgeCurve(static_cast<LR::parameterEdge>(edge),
-                                   edgeFunctions,false);
+  this->getBasis(basis)->getEdgeFunctions(edgeFunctions,
+                                          static_cast<LR::parameterEdge>(edge));
 
+  ASMunstruct::Sort(edgeFunctions);
   std::vector<int> result(edgeFunctions.size());
   std::transform(edgeFunctions.begin(), edgeFunctions.end(), result.begin(),
                  [ofs](LR::Basisfunction* a) { return a->getId()+ofs; });

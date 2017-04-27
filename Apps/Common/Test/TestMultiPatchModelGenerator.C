@@ -152,6 +152,28 @@ TEST_P(TestMultiPatchModelGenerator2D, Generate)
 }
 
 
+TEST(TestMultiPatchModelGenerator2D, GenerateLR)
+{
+  SIMMultiPatchModelGen<SIM2D> sim(1);
+  sim.opt.discretization = ASM::LRSpline;
+  ASSERT_TRUE(sim.read("refdata/modelgen2d_lr.xinp"));
+  sim.preprocess();
+  ASSERT_EQ(sim.getNoNodes(), 32U);
+  ASSERT_EQ(sim.getNoNodes(true), 28U);
+}
+
+
+TEST(TestMultiPatchModelGenerator2D, GenerateLRmx)
+{
+  SIMMultiPatchModelGen<SIM2D> sim({2,1});
+  sim.opt.discretization = ASM::LRSpline;
+  ASSERT_TRUE(sim.read("refdata/modelgen2d_lr.xinp"));
+  sim.preprocess();
+  ASSERT_EQ(sim.getNoNodes(), 82U);
+  ASSERT_EQ(sim.getNoNodes(true), 73U);
+}
+
+
 TEST(TestMultiPatchModelGenerator2D, Subdivisions)
 {
   SIMMultiPatchModelGen<SIM2D> sim(1);
@@ -209,6 +231,17 @@ TEST_P(TestMultiPatchModelGenerator3D, Generate)
   SIM3D sim;
   TopologySet sets = gen.createTopologySets(sim);
   DoTest(GetParam(), g2, sets);
+}
+
+
+TEST(TestMultiPatchModelGenerator3D, GenerateLR)
+{
+  SIMMultiPatchModelGen<SIM3D> sim(1);
+  sim.opt.discretization = ASM::LRSpline;
+  ASSERT_TRUE(sim.read("refdata/modelgen3d_lr.xinp"));
+  sim.preprocess();
+  ASSERT_EQ(sim.getNoNodes(), 128U);
+  ASSERT_EQ(sim.getNoNodes(true), 112U);
 }
 
 

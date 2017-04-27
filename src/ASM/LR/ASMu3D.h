@@ -86,7 +86,7 @@ public:
   virtual bool updateCoords(const Vector& displ);
 
   //! \brief Returns the node indices for a given face.
-  std::vector<int> getFaceNodes(int face, int basis = 1) const;
+  std::vector<int> getFaceNodes(int face, int basis = 1, int orient = -1) const;
 
   //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
   //! \param[in] lIndex Local index of the boundary face
@@ -383,8 +383,11 @@ protected:
   //! \param[in] basis Which basis to connect the nodes for (mixed methods)
   //! \param[in] slave 0-based index of the first slave node in this basis
   //! \param[in] master 0-based index of the first master node in this basis
+  //! \param[in] coordCheck False to turn off coordinate checks
+  //! \param[in] thick Thickness of connection
   bool connectBasis(int face, ASMu3D& neighbor, int nface, int norient,
-                    int basis = 1, int slave = 0, int master = 0);
+                    int basis = 1, int slave = 0, int master = 0,
+                    bool coordCheck = true, int thick = 1);
 
   //! \brief Extracts parameter values of the Gauss points in one direction.
   //! \param[out] uGP Parameter values in given direction for all points

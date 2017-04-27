@@ -38,7 +38,6 @@ ASMu3D::ASMu3D (unsigned char n_f)
   : ASMunstruct(3,3,n_f), lrspline(nullptr), tensorspline(nullptr),
     bezierExtract(myBezierExtract)
 {
-  ASMunstruct::resetNumbering(); // Replace this when going multi-patch...
 }
 
 
@@ -201,16 +200,19 @@ bool ASMu3D::generateFEMTopology ()
   nnod = lrspline->nBasisFunctions();
   nel  = lrspline->nElements();
 
-  if (!MLGN.empty() && MLGN.size() != nnod)
-  {
-    std::cerr <<" *** ASMu3D::generateFEMTopology: Inconsistency"
-              <<" between the number of FE nodes "<< MLGN.size()
-              <<"\n     and the number of basis functions "<< nnod
-              <<" in the patch."<< std::endl;
-    return false;
-  }
-  else if (shareFE)
+  if (!MLGN.empty()) {
+    if (MLGN.size() != nnod)
+    {
+      std::cerr <<" *** ASMu3D::generateFEMTopology: Inconsistency"
+        <<" between the number of FE nodes "<< MLGN.size()
+        <<"\n     and the number of basis functions "<< nnod
+        <<" in the patch."<< std::endl;
+      return false;
+    }
     return true;
+  }
+
+  if (shareFE) return true;
 
   const int p1 = lrspline->order(0);
   const int p2 = lrspline->order(1);
@@ -254,151 +256,85 @@ bool ASMu3D::generateFEMTopology ()
 bool ASMu3D::connectPatch (int face, ASM3D& neighbor, int nface,
                            int norient, int, bool coordCheck, int thick)
 {
-  return false;
+  ASMu3D* neighU = dynamic_cast<ASMu3D*>(&neighbor);
+  if (!neighU)
+    return false;
+
+  if (!this->connectBasis(face,*neighU,nface,norient,1,0,0,coordCheck,thick))
+    return false;
+
+  this->addNeighbor(neighU);
+  return true;
 }
 
 
-/*
-// this is connecting multiple patches and handling deformed geometries.
-// We'll deal with at a later time, for now we only allow single patch models
-
 bool ASMu3D::connectBasis (int face, ASMu3D& neighbor, int nface, int norient,
-                           int basis, int slave, int master)
+                           int basis, int slave, int master,
+                           bool coordCheck, int thick)
 {
-  if (shareFE && neighbor.shareFE)
+  if (this->isShared() && neighbor.isShared())
     return true;
-  else if (shareFE || neighbor.shareFE)
+  else if (this->isShared() || neighbor.isShared())
   {
     std::cerr <<" *** ASMu3D::connectPatch: Logic error, cannot"
-        <<" connect a sharedFE patch with an unshared one"<< std::endl;
+	      <<" connect a shared patch with an unshared one"<< std::endl;
+    return false;
+  } else if (face < 1 || face > 6) {
+    std::cerr <<" *** ASMu3D::connectPatch: Invalid slave face "
+              << face << std::endl;
+    return false;
+  } else if (nface < 1 || nface > 6) {
+    std::cerr <<" *** ASMu3D::connectPatch: Invalid master face "
+              << nface << std::endl;
     return false;
   }
 
   // Set up the slave node numbers for this volume patch
-
-  int n1, n2, n3;
-  if (!this->getSize(n1,n2,n3,basis)) return false;
-  int node = slave+1, i1 = 0, i2 = 0;
-
-  switch (face)
-    {
-    case 2: // Positive I-direction
-      node += n1-1;
-    case 1: // Negative I-direction
-      i1 = n1;
-      n1 = n2;
-      n2 = n3;
-      break;
-
-    case 4: // Positive J-direction
-      node += n1*(n2-1);
-    case 3: // Negative J-direction
-      i2 = n1*(n2-1);
-      i1 = 1;
-      n2 = n3;
-      break;
-
-    case 6: // Positive K-direction
-      node += n1*n2*(n3-1);
-    case 5: // Negative K-direction
-      i1 = 1;
-      break;
-
-    default:
-      std::cerr <<" *** ASMu3D::connectPatch: Invalid slave face "
-    << face << std::endl;
-      return false;
-    }
-
-  int i, j;
-  IntMat slaveNodes(n1,IntVec(n2,0));
-  for (j = 0; j < n2; j++, node += i2)
-    for (i = 0; i < n1; i++, node += i1)
-      slaveNodes[i][j] = node;
+  IntVec slaveNodes = this->getFaceNodes(face, basis, 0);
+  for (int& it : slaveNodes)
+    it += slave;
 
   // Set up the master node numbers for the neighboring volume patch
+  IntVec masterNodes = neighbor.getFaceNodes(nface, basis, norient);
+  for (int& it : masterNodes)
+    it += master;
 
-  if (!neighbor.getSize(n1,n2,n3,basis)) return false;
-  node = master+1; i1 = i2 = 0;
-
-  switch (nface)
-    {
-    case 2: // Positive I-direction
-      node += n1-1;
-    case 1: // Negative I-direction
-      i1 = n1;
-      n1 = n2;
-      n2 = n3;
-      break;
-
-    case 4: // Positive J-direction
-      node += n1*(n2-1);
-    case 3: // Negative J-direction
-      i2 = n1*(n2-1);
-      i1 = 1;
-      n2 = n3;
-      break;
-
-    case 6: // Positive K-direction
-      node += n1*n2*(n3-1);
-    case 5: // Negative K-direction
-      i1 = 1;
-      break;
-
-    default:
-      std::cerr <<" *** ASMu3D::connectPatch: Invalid master face "
-    << nface << std::endl;
-      return false;
-    }
-
-  if (norient < 0 || norient > 7)
-  {
-    std::cerr <<" *** ASMu3D::connectPatch: Orientation flag "
-        << norient <<" is out of range [0,7]"<< std::endl;
-    return false;
-  }
-
-  int m1 = slaveNodes.size();
-  int m2 = slaveNodes.front().size();
-  if (norient < 4 ? (n1 != m1 || n2 != m2) : (n2 != m1 || n1 != m2))
+  if (masterNodes.size() != slaveNodes.size())
   {
     std::cerr <<" *** ASMu3D::connectPatch: Non-matching faces, sizes "
-        << n1 <<","<< n2 <<" and "<< m1 <<","<< m2 << std::endl;
+              << masterNodes.size() <<" and "<< slaveNodes.size() << std::endl;
     return false;
   }
 
   const double xtol = 1.0e-4;
-  for (j = 0; j < n2; j++, node += i2)
-    for (i = 0; i < n1; i++, node += i1)
-    {
-      int k = i, l = j;
-      switch (norient)
+  for (size_t node = 0; node < masterNodes.size(); ++node)
   {
-  case  1: k =    i  ; l = n2-j-1; break;
-  case  2: k = n1-i-1; l =    j  ; break;
-  case  3: k = n1-i-1; l = n2-j-1; break;
-  case  4: k =    j  ; l =    i  ; break;
-  case  5: k =    j  ; l = n1-i-1; break;
-  case  6: k = n2-j-1; l =    i  ; break;
-  case  7: k = n2-j-1; l = n1-i-1; break;
-  default: k =    i  ; l = j     ;
-  }
+    for (int t = 0; t < thick; ++t)
+    {
+      int node2 = masterNodes[node*thick+t];
+      int slave = slaveNodes[node*thick+t];
 
-      int slave = slaveNodes[k][l];
-      if (!neighbor.getCoord(node).equal(this->getCoord(slave),xtol))
-      {
-  std::cerr <<" *** ASMu3D::connectPatch: Non-matching nodes "
-      << node <<": "<< neighbor.getCoord(node)
-      <<"\n                                          and "
-      << slave <<": "<< this->getCoord(slave) << std::endl;
-  return false;
-      }
+      if (!coordCheck)
+        ASMbase::collapseNodes(neighbor,node2,*this,slave);
+      else if (neighbor.getCoord(node2).equal(this->getCoord(slave),xtol))
+        ASMbase::collapseNodes(neighbor,node2,*this,slave);
       else
-  ASMbase::collapseNodes(neighbor,node,*this,slave);
+      {
+          std::cerr <<" *** ASMu3D::connectPatch: Non-matching nodes "
+                    << node2 <<": "<< neighbor.getCoord(node2)
+                    <<"\n                                          and "
+                    << slave <<": "<< this->getCoord(slave) << std::endl;
+        return false;
+      }
     }
+  }
 
   return true;
 }
+
+/*
+// this is connecting multiple patches and handling deformed geometries.
+// We'll deal with at a later time, for now we only allow single patch models
 
 
 void ASMu3D::closeFaces (int dir, int basis, int master)
@@ -980,7 +916,7 @@ bool ASMu3D::integrate (Integrand& integrand,
       auto el = *(lrspline->elementBegin()+iEl);
       int nBasis = el->nBasisFunctions();
       FiniteElement fe(nBasis);
-      fe.iel = iEl+1;
+      fe.iel = MLGE[iEl];
 
       const Matrix&  C = bezierExtract[iEl];
       Matrix   dNdu, Xnod, Jac;
@@ -1036,7 +972,9 @@ bool ASMu3D::integrate (Integrand& integrand,
             for (int i = 0; i < nGauss; i++)
             {
               // Fetch basis function derivatives at current integration point
+              fe.iel = iEl+1;
               evaluateBasis(fe, dNdu);
+              fe.iel = MLGE[iEl];
 
               // Compute Jacobian determinant of coordinate mapping
               // and multiply by weight of current integration point
@@ -1140,10 +1078,12 @@ bool ASMu3D::integrate (Integrand& integrand,
             B.fillColumn(4, BdNdw.getColumn(ig)*2.0/dw);
 
             // Fetch basis function derivatives at current integration point
+            fe.iel = iEl+1;
             if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
               evaluateBasis(fe, dNdu, d2Ndu2);
             else
               evaluateBasis(fe, dNdu, C, B) ;
+            fe.iel = MLGE[iEl];
 
             // look for errors in bezier extraction
             /*
@@ -1283,7 +1223,7 @@ bool ASMu3D::integrate (Integrand& integrand, int lIndex,
     int iEl = el->getId();
     int nBasis = el->nBasisFunctions();
     FiniteElement fe(nBasis);
-    fe.iel = iEl+1;
+    fe.iel = MLGE[iEl];
 
     // Compute parameter values of the Gauss points over the whole element
     std::array<Vector,3> gpar;
@@ -1379,7 +1319,9 @@ bool ASMu3D::integrate (Integrand& integrand, int lIndex,
         }
 
         // Fetch basis function derivatives at current integration point
+        fe.iel = iEl+1;
         evaluateBasis(fe, dNdu);
+        fe.iel = MLGE[iEl];
 
         // Compute basis function derivatives and the face normal
         fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,Xnod,dNdu,t1,t2);
@@ -1964,15 +1906,50 @@ bool ASMu3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 }
 
 
-std::vector<int> ASMu3D::getFaceNodes (int face, int basis) const
+std::vector<int> ASMu3D::getFaceNodes (int face, int basis, int orient) const
 {
   size_t ofs = 1;
   for (int i = 1; i < basis; i++)
     ofs += this->getNoNodes(i);
 
+  LR::parameterEdge edge;
+  switch (face) {
+  case 1: edge = LR::WEST; break;
+  case 2: edge = LR::EAST; break;
+  case 3: edge = LR::SOUTH; break;
+  case 4: edge = LR::NORTH; break;
+  case 5: edge = LR::BOTTOM; break;
+  case 6: edge = LR::TOP; break;
+  default: return std::vector<int>();
+  }
+
   std::vector<LR::Basisfunction*> edgeFunctions;
-  this->getBasis(basis)->getEdgeFunctions(edgeFunctions,
-                                          static_cast<LR::parameterEdge>(face));
+  this->getBasis(basis)->getEdgeFunctions(edgeFunctions, edge);
+  if (orient > -1) {
+    int dir = (face-1)/2;
+    int u = dir == 0;
+    int v = 1 + (dir != 2);
+    std::sort(edgeFunctions.begin(), edgeFunctions.end(),
+              [u,v,orient](const LR::Basisfunction* a, const LR::Basisfunction* b)
+              {
+                int p1 = a->getOrder(u);
+                int p2 = a->getOrder(v);
+
+                int idx1 = orient & 4 ? v : u;
+                int idx2 = orient & 4 ? u : v;
+
+                for (int i = 0; i < 1 + (orient < 4 ? p2 : p1); ++i)
+                  if ((*a)[idx1][i] != (*b)[idx1][i])
+                    return orient & 2 ? (*a)[idx1][i] > (*b)[idx1][i]
+                                      : (*a)[idx1][i] < (*b)[idx1][i];
+                for(int i = 0; i < 1 + (orient < 4 ? p1 : p2); ++i)
+                  if ((*a)[idx2][i] != (*b)[idx2][i])
+                    return orient & 1 ? (*a)[idx2][i] > (*b)[idx2][i]
+                                      : (*a)[idx2][i] < (*b)[idx2][i];
+
+                return false;
+              });
+  }
 
   std::vector<int> result(edgeFunctions.size());
   std::transform(edgeFunctions.begin(), edgeFunctions.end(), result.begin(),
@@ -1989,18 +1966,7 @@ void ASMu3D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis, int, bool) 
 
   if (!this->getBasis(basis)) return; // silently ignore empty patches
 
-  LR::parameterEdge edge;
-  switch (lIndex) {
-  case 1: edge = LR::WEST; break;
-  case 2: edge = LR::EAST; break;
-  case 3: edge = LR::SOUTH; break;
-  case 4: edge = LR::NORTH; break;
-  case 5: edge = LR::BOTTOM; break;
-  case 6: edge = LR::TOP; break;
-  default: return;
-  }
-
-  nodes = this->getFaceNodes(edge, basis);
+  nodes = this->getFaceNodes(lIndex, basis);
 
 #if SP_DEBUG > 1
   std::cout <<"Boundary nodes in patch "<< idx+1 <<" edge "<< lIndex <<":";

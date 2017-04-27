@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<simulation>
+  <geometry nx="2" sets="true">
+    <refine patch="1" u="2" v="2"/>
+    <refine patch="2" u="2" v="2"/>
+  </geometry>
+</simulation>

@@ -172,6 +172,16 @@ public:
   virtual bool refine(const LR::RefineData& prm, Vectors& sol,
                       const char* fName = nullptr);
 
+  //! \brief Connects all matching nodes on two adjacent boundary edges.
+  //! \param[in] edge Local edge index of this patch, in range [1,4]
+  //! \param neighbor The neighbor patch
+  //! \param[in] nedge Local edge index of neighbor patch, in range [1,4]
+  //! \param[in] revers Indicates whether the two edges have opposite directions
+  //! \param[in] coordCheck False to disable coordinate checks (periodic connections)
+  //! \param[in] thick Thickness of connection
+  virtual bool connectPatch(int edge, ASM2D& neighbor, int nedge, bool revers,
+                            int = 0, bool coordCheck = true, int thick = 1);
+
 protected:
   using ASMu2D::generateThreadGroups;
   //! \brief Generates element groups for multi-threading of interior integrals.

@@ -172,6 +172,9 @@ bool ASMu2Dmx::getSolution (Matrix& sField, const Vector& locSol,
 
 bool ASMu2Dmx::generateFEMTopology ()
 {
+  if (!myMLGN.empty())
+    return true;
+
   if (m_basis.empty()) {
     auto vec = ASMmxBase::establishBases(tensorspline, ASMmxBase::Type);
     m_basis.resize(vec.size());
@@ -754,4 +757,20 @@ void ASMu2Dmx::generateThreadGroups (const Integrand& integrand, bool silence,
     std::cout <<"\n Color "<< i+1;
     std::cout << ": "<< threadGroups[0][i].size() <<" elements";
   }
+}
+
+
+bool ASMu2Dmx::connectPatch (int edge, ASM2D& neighbor, int nedge, bool revers,
+                             int basis, bool coordCheck, int thick)
+{
+  ASMu2Dmx* neighMx = dynamic_cast<ASMu2Dmx*>(&neighbor);
+  if (!neighMx) return false;
+
+  for (size_t i = 1; i <= m_basis.size(); ++i)
+    if (basis == 0 || i == (size_t)basis)
+      if (!this->connectBasis(edge,*neighMx,nedge,revers,i,0,0,coordCheck,thick))
+        return false;
+
+  this->addNeighbor(neighMx);
+  return true;
 }
