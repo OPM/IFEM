@@ -194,21 +194,23 @@ public:
   void constrainNode(double xi, double eta, double zeta,
                      int dof = 123, int code = 0, char = 1);
 
-  /* More multipatch stuff, maybe later...
   //! \brief Connects all matching nodes on two adjacent boundary faces.
   //! \param[in] face Local face index of this patch, in range [1,6]
   //! \param neighbor The neighbor patch
   //! \param[in] nface Local face index of neighbor patch, in range [1,6]
   //! \param[in] norient Relative face orientation flag (see below)
+  //! \param[in] coordCheck False to disable coordinate checks (periodic connections)
+  //! \param[in] thick Thickness of connection
   //!
   //! \details The face orientation flag \a norient must be in range [0,7].
   //! When interpreted as a binary number, its 3 digits are decoded as follows:
   //! - left digit = 1: The u and v parameters of the neighbor face are swapped
   //! - middle digit = 1: Parameter \a u in neighbor patch face is reversed
   //! - right digit = 1: Parameter \a v in neighbor patch face is reversed
-  virtual bool connectPatch(int face, ASMu3D& neighbor, int nface,
-                            int norient = 0);
+  virtual bool connectPatch(int face, ASM3D& neighbor, int nface, int norient,
+                            int = 0, bool coordCheck = true, int thick = 1);
 
+  /* More multipatch stuff, maybe later...
   //! \brief Makes two opposite boundary faces periodic.
   //! \param[in] dir Parameter direction defining the periodic faces
   //! \param[in] basis Which basis to connect (mixed methods), 0 means both

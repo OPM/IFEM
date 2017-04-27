@@ -251,15 +251,16 @@ bool ASMu3D::generateFEMTopology ()
 }
 
 
+bool ASMu3D::connectPatch (int face, ASM3D& neighbor, int nface,
+                           int norient, int, bool coordCheck, int thick)
+{
+  return false;
+}
+
+
 /*
 // this is connecting multiple patches and handling deformed geometries.
 // We'll deal with at a later time, for now we only allow single patch models
-
-bool ASMu3D::connectPatch (int face, ASMu3D& neighbor, int nface, int norient)
-{
-  return this->connectBasis(face,neighbor,nface,norient);
-}
-
 
 bool ASMu3D::connectBasis (int face, ASMu3D& neighbor, int nface, int norient,
                            int basis, int slave, int master)

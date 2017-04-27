@@ -590,19 +590,23 @@ bool ASMs2D::assignNodeNumbers (BlockNodes& nodes, int basis)
 }
 
 
-bool ASMs2D::connectPatch (int edge, ASMs2D& neighbor, int nedge,
+bool ASMs2D::connectPatch (int edge, ASM2D& neighbor, int nedge,
                            bool revers, int, bool coordCheck, int thick)
 {
+  ASMs2D* neighS = dynamic_cast<ASMs2D*>(&neighbor);
+  if (!neighS)
+    return false;
+
   if (swapV && edge > 2) // Account for swapped parameter direction
     edge = 7-edge;
 
-  if (neighbor.swapV && nedge > 2) // Account for swapped parameter direction
+  if (neighS->swapV && nedge > 2) // Account for swapped parameter direction
     nedge = 7-nedge;
 
-  if (!this->connectBasis(edge,neighbor,nedge,revers,1,0,0,coordCheck,thick))
+  if (!this->connectBasis(edge,*neighS,nedge,revers,1,0,0,coordCheck,thick))
     return false;
 
-  this->addNeighbor(&neighbor);
+  this->addNeighbor(neighS);
   return true;
 }
 

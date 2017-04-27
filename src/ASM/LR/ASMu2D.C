@@ -470,16 +470,14 @@ bool ASMu2D::generateFEMTopology ()
 }
 
 
-/*
-// this is connecting multiple patches and handling deformed geometries.
-// We'll deal with at a later time, for now we only allow single patch models
-
-bool ASMu2D::connectPatch (int edge, ASMu2D& neighbor, int nedge, bool revers)
+bool ASMu2D::connectPatch (int edge, ASM2D& neighbor, int nedge, bool revers,
+                           int basis, bool coordCheck, int thick)
 {
-  return this->connectBasis(edge,neighbor,nedge,revers);
+  return false;
 }
 
 
+/*
 bool ASMu2D::connectBasis (int edge, ASMu2D& neighbor, int nedge, bool revers,
                            int basis, int slave, int master)
 {
@@ -598,8 +596,8 @@ std::vector<int> ASMu2D::getEdgeNodes (int edge, int basis) const
     ofs += this->getNoNodes(i);
 
   std::vector<LR::Basisfunction*> edgeFunctions;
-  this->getBasis(basis)->getEdgeFunctions(edgeFunctions,
-                                          static_cast<LR::parameterEdge>(edge));
+  this->getBasis(basis)->edgeCurve(static_cast<LR::parameterEdge>(edge),
+                                   edgeFunctions,false);
 
   std::vector<int> result(edgeFunctions.size());
   std::transform(edgeFunctions.begin(), edgeFunctions.end(), result.begin(),
