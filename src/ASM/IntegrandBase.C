@@ -302,6 +302,9 @@ bool NormBase::initElement (const std::vector<int>& MNPC,
 bool NormBase::initElementBou (const std::vector<int>& MNPC,
                                LocalIntegral& elmInt)
 {
+  if (projBou && !this->initProjection(MNPC,elmInt))
+    return false;
+
   return myProblem.initElementBou(MNPC,elmInt);
 }
 
@@ -311,6 +314,9 @@ bool NormBase::initElementBou (const std::vector<int>& MNPC,
                                const std::vector<size_t>& basis_sizes,
                                LocalIntegral& elmInt)
 {
+  if (projBou && !this->initProjection(MNPC,elmInt))
+    return false;
+
   return myProblem.initElementBou(MNPC,elem_sizes,basis_sizes,elmInt);
 }
 
@@ -319,18 +325,9 @@ std::string NormBase::getName (size_t i, size_t j, const char* prefix) const
 {
   char comp[32];
   sprintf(comp,"norm_%lu.%lu",i,j);
-  if (prefix)
-  {
-    std::string tmp(comp);
-    if (strlen(prefix)+1+tmp.size() < sizeof(comp))
-      strcpy(comp,prefix);
-    else
-      strncpy(comp,prefix,sizeof(comp)-1-tmp.size());
-    strcat(comp," ");
-    strcat(comp,tmp.c_str());
-  }
+  if (!prefix) return comp;
 
-  return comp;
+  return prefix + std::string(" ") + comp;
 }
 
 

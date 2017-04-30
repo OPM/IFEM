@@ -208,12 +208,13 @@ public:
   virtual bool diverged(size_t = 0) const { return false; }
 
   //! \brief Returns a pointer to an Integrand for solution norm evaluation.
-  virtual NormBase* getNormIntegrand(AnaSol* = 0) const { return 0; }
+  virtual NormBase* getNormIntegrand(AnaSol* = nullptr) const
+  { return nullptr; }
   //! \brief Returns a pointer to an Integrand for boundary force evaluation.
-  virtual ForceBase* getForceIntegrand(const Vec3*, AnaSol* = 0) const
-  { return 0; }
+  virtual ForceBase* getForceIntegrand(const Vec3*, AnaSol* = nullptr) const
+  { return nullptr; }
   //! \brief Returns a pointer to an Integrand for nodal force evaluation.
-  virtual ForceBase* getForceIntegrand() const { return 0; }
+  virtual ForceBase* getForceIntegrand() const { return nullptr; }
 
   //! \brief Returns the number of spatial dimensions.
   size_t getNoSpaceDim() const { return nsd; }
@@ -284,8 +285,8 @@ class NormBase : public Integrand
 {
 protected:
   //! \brief The default constructor is protected to allow sub-classes only.
-  NormBase(IntegrandBase& p) : myProblem(p), nrcmp(0), lints(0),
-                               finalOp(ASM::SQRT) {}
+  NormBase(IntegrandBase& p) : myProblem(p), projBou(false), nrcmp(0),
+                               lints(nullptr), finalOp(ASM::SQRT) {}
 
 public:
   //! \brief Empty destructor.
@@ -370,6 +371,7 @@ protected:
   IntegrandBase& myProblem; //!< The problem-specific data
 
   Vectors prjsol; //!< Projected secondary solution vectors for current patch
+  bool   projBou; //!< If \e true, the boundary integrand needs prjsol too
 
   unsigned short int nrcmp;   //!< Number of projected solution components
   LintegralVec*      lints;   //!< Local integrals used during norm integration
