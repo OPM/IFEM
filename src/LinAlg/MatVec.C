@@ -7,7 +7,7 @@
 //!
 //! \author Knut Morten Okstad / SINTEF
 //!
-//! \brief Index 1-based matrices and vectors for algebraic operations.
+//! \brief Global algebraic operations on index 1-based matrices and vectors.
 //!
 //! The two transformation functions defined in this file are rewritten versions
 //! of the Fortran subroutines MATTRA and VECTRA from the SAM library.
@@ -23,6 +23,67 @@
 int utl::nval_per_line = 6;
 double utl::zero_print_tol = 1.0e-6;
 
+
+// Global algebraic matrix-vector operators.
+
+Vector utl::operator* (const Vector& X, Real c)
+{
+  Vector result(X);
+  return result *= c;
+}
+
+
+Vector utl::operator+ (const Vector& X, const Vector& Y)
+{
+  Vector result(X);
+  return result.add(Y);
+}
+
+
+Vector utl::operator- (const Vector& X, const Vector& Y)
+{
+  Vector result(X);
+  return result.add(Y,Real(-1));
+}
+
+
+Matrix utl::operator* (const Matrix& A, Real c)
+{
+  Matrix B(A);
+  return B.multiply(c);
+}
+
+
+Vector utl::operator* (const Matrix& A, const Vector& X)
+{
+  Vector Y;
+  A.multiply(X,Y);
+  return Y;
+}
+
+
+Vector utl::operator* (const Vector& X, const Matrix& A)
+{
+  Vector Y;
+  A.multiply(X,Y,true);
+  return Y;
+}
+
+
+Matrix utl::operator* (const Matrix& A, const Matrix& B)
+{
+  Matrix C;
+  C.multiply(A,B);
+  return C;
+}
+
+
+/*!
+  The following matrix multiplication is performed by this function:
+  \f[ {\bf A} = {\bf T}^T{\bf A}{\bf T} \f]
+  where \b A is a full, symmetric matrix, and \b T is an identity matrix
+  with the nodal sub-matrix \b Tn inserted on the diagonal.
+*/
 
 bool utl::transform (Matrix& A, const Matrix& T, size_t K)
 {
@@ -74,6 +135,11 @@ bool utl::transform (Matrix& A, const Matrix& T, size_t K)
 }
 
 
+/*!
+  The vector \b V is pre-multiplied with the transformation matrix \b T which is
+  the identity matrix with the nodal sub-matrix \b Tn inserted on the diagonal.
+*/
+
 bool utl::transform (Vector& V, const Matrix& T, size_t K, bool transpose)
 {
   size_t M = V.size();
@@ -112,6 +178,13 @@ bool utl::invert (Matrix& A)
     return A.inverse() > 0.0;
 
 #ifdef HAS_BLAS
+  if (sizeof(Real) != sizeof(double))
+  {
+    std::cerr <<" *** utl::invert: Available for double precision matrices"
+              <<" only."<< std::endl;
+    return false;
+  }
+
   // Use LAPack/BLAS for larger matrices
   int INFO, N = A.rows() > A.cols() ? A.rows() : A.cols();
   int* IPIV = new int[N];

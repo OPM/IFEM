@@ -1626,44 +1626,6 @@ namespace utl //! General utility classes and functions.
   //===   Global operators   ===================================================
   //============================================================================
 
-  //! \brief Multiplication of a vector and a scalar.
-  //! \return \f$ {\bf Y} = c {\bf X} \f$
-  vector<Real> operator*(const vector<Real>& X, Real c);
-  //! \brief Multiplication of a scalar and a vector.
-  //! \return \f$ {\bf Y} = c {\bf X} \f$
-  vector<Real> operator*(Real c, const vector<Real>& X) ;
-
-  //! \brief Division of a vector by a scalar.
-  //! \return \f$ {\bf Y} = \frac{1}{d} {\bf X} \f$
-  vector<Real> operator/(const vector<Real>& X, Real d);
-
-  //! \brief Addition of two vectors.
-  //! \return \f$ {\bf Z} = {\bf X} + {\bf Y} \f$
-  vector<Real> operator+(const vector<Real>& X, const vector<Real>& Y);
-
-  //! \brief Subtraction of two vectors.
-  //! \return \f$ {\bf Z} = {\bf X} - {\bf Y} \f$
-  vector<Real> operator-(const vector<Real>& X, const vector<Real>& Y);
-
-  //! \brief Multiplication of a matrix and a scalar.
-  //! \return \f$ {\bf B} = c {\bf A} \f$
-  matrix<Real> operator*(const matrix<Real>& A, Real c);
-  //! \brief Multiplication of a scalar and a matrix.
-  //! \return \f$ {\bf B} = c {\bf A} \f$
-  matrix<Real> operator*(Real c, const matrix<Real>& A);
-
-  //! \brief Dot product of two vectors.
-  //! \return \f$ a = {\bf X^T} {\bf Y} \f$
-  Real operator*(const vector<Real>& X, const vector<Real>& Y);
-
-  //! \brief Multiplication of a matrix and a vector.
-  //! \return \f$ {\bf Y} = {\bf A} {\bf X} \f$
-  vector<Real> operator*(const matrix<Real>& A, const vector<Real>& X);
-
-  //! \brief Multiplication of two matrices.
-  //! \return \f$ {\bf C} = {\bf A} {\bf B} \f$
-  matrix<Real> operator*(const matrix<Real>& A, const matrix<Real>& B);
-
   extern double zero_print_tol; //!< Zero tolerance for printing numbers
   extern int    nval_per_line;  //!< Number of values to print per line
 
