@@ -128,11 +128,10 @@ public:
             return 2;
       }
     }
-
-    return 0;
   }
 
 protected:
+  using SIMSolver<T1>::parse;
   //! \brief Parses a data section from an XML element.
   virtual bool parse(const TiXmlElement* elem)
   {

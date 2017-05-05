@@ -32,7 +32,8 @@ public:
   virtual ~SIMCoupledSI() {}
 
   //! \brief Computes the solution for the current time step.
-  virtual bool solveStep(TimeStep& tp, bool firstS1 = true)
+  using SIMCoupled<T1,T2>::solveStep;
+  virtual bool solveStep(TimeStep& tp, bool firstS1)
   {
     if (maxIter <= 0)
       maxIter = std::min(this->S1.getMaxit(),this->S2.getMaxit());
