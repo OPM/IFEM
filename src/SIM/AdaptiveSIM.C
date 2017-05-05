@@ -16,7 +16,6 @@
 #include "SIMenums.h"
 #include "ASMunstruct.h"
 #include "IntegrandBase.h"
-#include "SystemMatrix.h"
 #include "Utilities.h"
 #include "IFEM.h"
 #include "tinyxml.h"
@@ -39,13 +38,13 @@ AdaptiveSIM::AdaptiveSIM (SIMoutput& sim, bool sa) : SIMadmin(sim), model(sim)
   scheme       = 0;     // fullspan
   symmetry     = 1;     // no symmetry
   knot_mult    = 1;     // maximum regularity (continuity)
-  trueBeta     = false; // beta measured in dimension increase
   threshold    = NONE;
   adaptor      = 0;
   adNorm       = 0;
   maxTjoints   = -1;
   maxAspRatio  = -1.0;
   closeGaps    = false;
+
   solution.resize(1);
 }
 
@@ -85,8 +84,8 @@ bool AdaptiveSIM::parse (const TiXmlElement* elem)
                   << value <<"\" (ignored)"<< std::endl;
       utl::getAttribute(child, "maxTjoints", maxTjoints);
       utl::getAttribute(child, "maxAspectRatio", maxAspRatio);
-      if (child->Attribute("closeGaps"))
-        closeGaps = true;
+      utl::getAttribute(child, "closeGaps", closeGaps);
+      IFEM::cout <<"\tRefinement scheme: "<< scheme << std::endl;
     }
     else if ((value = utl::getValue(child,"use_norm")))
       adaptor = atoi(value);
@@ -105,7 +104,9 @@ bool AdaptiveSIM::parse (const TiXmlElement* elem)
       else if (type.compare("minimum") == 0)
         threshold = MINIMUM;
       else if (type.compare("truebeta") == 0)
-        trueBeta = true;
+        threshold = TRUE_BETA;
+      IFEM::cout <<"\tRefinement percentage: "<< beta <<" type="<< threshold
+                 << std::endl;
     }
 
   return true;
@@ -151,7 +152,7 @@ bool AdaptiveSIM::parse (char* keyWord, std::istream& is)
 }
 
 
-bool AdaptiveSIM::initAdaptor (size_t indxProj, size_t nNormProj)
+bool AdaptiveSIM::initAdaptor (size_t indxProj)
 {
   if (indxProj > 0)
     adaptor = indxProj; // override value from XML input
@@ -176,8 +177,13 @@ bool AdaptiveSIM::initAdaptor (size_t indxProj, size_t nNormProj)
     return false;
   }
 
+  projs.resize(opt.project.size());
   if (opt.format >= 0)
+  {
     prefix.reserve(opt.project.size());
+    for (pit = opt.project.begin(); pit != opt.project.end(); ++pit)
+      prefix.push_back(pit->second.c_str());
+  }
 
   return true;
 }
@@ -206,10 +212,10 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep)
   model.setMode(SIM::STATIC,true);
   model.initSystem(opt.solver,1,model.getNoRHS(),0,true);
   model.setQuadratureRule(opt.nGauss[0],true);
-
   if (!model.assembleSystem())
     return false;
 
+  // Solve the linear system of equations
   if (!model.solveMatrixSystem(solution,1))
     return false;
 
@@ -220,15 +226,8 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep)
   model.setMode(SIM::RECOVERY);
   SIMoptions::ProjectionMap::const_iterator pit = opt.project.begin();
   for (size_t i = 0; pit != opt.project.end(); i++, pit++)
-  {
-    Matrix ssol;
-    if (!model.project(ssol,solution.front(),pit->first))
+    if (!model.project(projs[i],solution.front(),pit->first))
       return false;
-
-    projs[i] = ssol;
-    if (iStep == 1 && opt.format >= 0)
-      prefix.push_back(pit->second.c_str());
-  }
 
   if (msgLevel > 1 && !projs.empty())
     model.getProcessAdm().cout << std::endl;
@@ -298,9 +297,9 @@ bool AdaptiveSIM::adaptMesh (int iStep)
   prm.options.push_back(maxTjoints);
   prm.options.push_back(floor(maxAspRatio));
   prm.options.push_back(closeGaps);
-  prm.options.push_back(trueBeta);
+  prm.options.push_back(threshold == TRUE_BETA ? 1 : 0);
 
-  if (trueBeta)
+  if (threshold == TRUE_BETA)
   {
     IFEM::cout <<"\nRefining by increasing solution space by "<< beta
                <<" percent."<< std::endl;
@@ -338,7 +337,6 @@ bool AdaptiveSIM::adaptMesh (int iStep)
   // the variable 'toBeRefined' contains one of the following:
   //   - list of elements to be refined (if fullspan or minspan)
   //   - list of basisfunctions to be refined (if structured mesh)
-  //   - nothing if trueBeta (function returns above)
   size_t refineSize;
   double limit, sumErr = 0.0;
   switch (threshold) {
@@ -382,6 +380,8 @@ bool AdaptiveSIM::adaptMesh (int iStep)
   case MINIMUM:
     IFEM::cout << beta <<"% of min error ("<< limit <<")";
     break;
+  default:
+    break;
   }
   IFEM::cout << std::endl;
 /*
@@ -410,8 +410,7 @@ void AdaptiveSIM::printNorms (size_t w) const
 {
   model.printNorms(gNorm,w);
 
-  // TODO: This needs further work to enable print for all recovered solutions.
-  // As for now we only print the norm used for the mesh adaption.
+  // Print out the norm used for mesh adaptation
   size_t i, eRow = 4;
   if (adaptor > 0 && adaptor < gNorm.size())
   {
@@ -424,13 +423,10 @@ void AdaptiveSIM::printNorms (size_t w) const
     double refNorm = sqrt(fNorm(1)*fNorm(1) + aNorm(2)*aNorm(2));
 
     size_t g = adaptor+1;
-    IFEM::cout <<"Error estimate"
+    IFEM::cout <<"\nError estimate"
                << utl::adjustRight(w-14,norm->getName(g,2)) << aNorm(2)
                <<"\nRelative error (%) : "
                << 100.0*aNorm(2)/refNorm;
-    if (model.haveAnaSol() && aNorm.size() > 2)
-      IFEM::cout <<"\nProjective error"
-                 << utl::adjustRight(w-16,norm->getName(g,3)) << aNorm(3);
     if (model.haveAnaSol() && fNorm.size() > 3)
       IFEM::cout <<"\nEffectivity index  : "<< aNorm(2)/fNorm(4);
     IFEM::cout <<"\n"<< std::endl;
@@ -471,7 +467,7 @@ void AdaptiveSIM::printNorms (size_t w) const
 }
 
 
-bool AdaptiveSIM::writeGlv (const char* infile, int iStep, size_t nNormProj)
+bool AdaptiveSIM::writeGlv (const char* infile, int iStep)
 {
   if (opt.format < 0) return true;
 
@@ -498,28 +494,9 @@ bool AdaptiveSIM::writeGlv (const char* infile, int iStep, size_t nNormProj)
       return false;
 
   // Write element norms
-  if (model.haveAnaSol()) nNormProj += 2;
-  if (!model.writeGlvN(eNorm,iStep,nBlock,&prefix.front()))
+  if (!model.writeGlvN(eNorm,iStep,nBlock,prefix.data()))
     return false;
 
   // Write state information
   return model.writeGlvStep(iStep,iStep,1);
-}
-
-
-void AdaptiveSIM::setupProjections ()
-{
-  projs.resize(opt.project.size());
-}
-
-
-int AdaptiveSIM::getNoNorms () const
-{
-  NormBase* norm = model.getNormIntegrand();
-  if (!norm) return 0;
-
-  int result = norm->getNoFields(adaptor);
-  delete norm;
-
-  return result;
 }
