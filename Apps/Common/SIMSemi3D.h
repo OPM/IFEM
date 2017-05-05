@@ -302,7 +302,6 @@ public:
   }
 
   using SIMdependency::registerDependency;
-
   //! \brief Registers a dependency on a field from another SIM object.
   //! \param[in] sim The SIM object holding the field we depend on
   //! \param[in] name Name of field we depend on
@@ -312,12 +311,13 @@ public:
   template<class T>
   void registerDependency(SIMSemi3D<T>* sim, const std::string& name,
                           short int nvc, const PatchVec& patches,
-                          char diffBasis = 0)
+                          char diffBasis = 0, int component = 0)
   {
     for (size_t i=0;i<m_planes.size(); ++i)
       if (diffBasis)
         m_planes[i]->registerDependency(sim->getPlane(i), name, nvc,
-                                        sim->getPlane(i)->getFEModel(), true);
+                                        sim->getPlane(i)->getFEModel(),
+                                        diffBasis, component);
       else
         m_planes[i]->registerDependency(sim->getPlane(i), name, nvc);
   }
