@@ -39,18 +39,15 @@ public:
   //! \brief Solves the problem up to the final time.
   virtual int solveProblem(char* infile, const char* heading, bool = false)
   {
-    if (SIMSolver<T1>::exporter)
-      SIMSolver<T1>::exporter->setNormPrefixes(aSim.getNormPrefixes());
-
-    aSim.setupProjections();
-    aSim.initAdaptor(0,2);
+    if (!aSim.initAdaptor())
+      return 1;
 
     this->printHeading(heading);
 
     for (int iStep = 1; aSim.adaptMesh(iStep); iStep++)
       if (!aSim.solveStep(infile,iStep))
         return 1;
-      else if (!aSim.writeGlv(infile,iStep,aSim.getNoNorms()))
+      else if (!aSim.writeGlv(infile,iStep))
         return 2;
       else if (SIMSolver<T1>::exporter)
         SIMSolver<T1>::exporter->dumpTimeLevel(nullptr,true);

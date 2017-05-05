@@ -36,10 +36,9 @@ public:
   //! \brief Empty destructor.
   virtual ~AdaptiveSIM() {}
 
-  //! \brief Initializes index to element norms to base the mesh adaption on.
-  //! \param[in] indxProj Index to projection method to base mesh adaption on
-  //! \param[in] nNormProj Number of element norms per projection method
-  bool initAdaptor(size_t indxProj, size_t nNormProj);
+  //! \brief Sets the index to the norm group to base the mesh adaptation on.
+  //! \param[in] indxProj Index to projection method to base mesh adaptation on
+  bool initAdaptor(size_t indxProj = 0);
 
   //! \brief Assembles and solves the linear FE equations on current mesh.
   //! \param[in] inputfile File to read model parameters from after refinement
@@ -53,8 +52,7 @@ public:
   //! \brief Writes current mesh and results to the VTF-file.
   //! \param[in] infile File name used to construct the VTF-file name from
   //! \param[in] iStep  Refinement step identifier
-  //! \param[in] nNormProj Number of element norms per projection method
-  bool writeGlv(const char* infile, int iStep, size_t nNormProj);
+  bool writeGlv(const char* infile, int iStep);
 
   //! \brief Prints out the global norms to the log stream.
   void printNorms(size_t w = 36) const;
@@ -63,14 +61,6 @@ public:
   const Vector& getSolution(size_t idx = 0) const { return solution[idx]; }
   //! \brief Accesses the projections.
   const Vector& getProjection(size_t idx = 0) const { return projs[idx]; }
-  //! \brief Accesses the norm prefices.
-  const char** getNormPrefixes() { return &prefix.front(); }
-
-  //! \brief Initializes the projections.
-  void setupProjections();
-
-  //! \brief Returns the number of norms in adaptor group.
-  int getNoNorms() const;
 
   //! \brief Parses a data section from an input stream.
   //! \param[in] keyWord Keyword of current data section to read
@@ -95,17 +85,16 @@ private:
   int    maxTjoints;   //!< Maximum number of hanging nodes on one element
   double maxAspRatio;  //!< Maximum element aspect ratio
   bool   closeGaps;    //!< Split elements with a hanging node on each side
-  bool   trueBeta;     //!< Beta measured in solution space dimension increase
 
-  //! Beta generates a threshold error
-  enum { NONE, MAXIMUM, AVERAGE, MINIMUM } threshold;
+  //! Threshold flag for how to interpret the refinement percentage, \a beta
+  enum { NONE, MAXIMUM, AVERAGE, MINIMUM, TRUE_BETA } threshold;
 
   //! Refinement scheme: 0=fullspan, 1=minspan, 2=isotropic_elements,
   //! 3=isotropic_functions
   int scheme;
 
-  size_t  adaptor;  //!< Norm group to base the mesh adaption on
-  size_t  adNorm;   //!< Which norm to adapt based on
+  size_t  adaptor;  //!< Norm group to base the mesh adaptation on
+  size_t  adNorm;   //!< Which norm to base the mesh adaptation on
   Vectors solution; //!< All solutions (galerkin projections)
   Vectors gNorm;    //!< Global norms
   Matrix  eNorm;    //!< Element norms
