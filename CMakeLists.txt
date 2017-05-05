@@ -73,13 +73,6 @@ if(NOT CMAKE_INSTALL_DOCDIR)
   set(CMAKE_INSTALL_DOCDIR share/doc/libifem1)
 endif()
 
-if(NOT WIN32)
-  # Emit position-independent code, suitable for dynamic linking
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
-  # Enable all warnings
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-parentheses")
-endif()
-
 # Generate build flags in build tree
 configure_file(${PROJECT_SOURCE_DIR}/cmake/Modules/IFEMFlags.cmake.in
                IFEMFlags.cmake @ONLY)
