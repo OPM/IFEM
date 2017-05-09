@@ -80,16 +80,16 @@ namespace utl
 
   //! \brief Congruence transformation of a symmetric matrix.
   //! \param A The matrix to be transformed
-  //! \param[in] Tn Nodal transformation matrix
-  //! \param[in] k Index telling where to insert \b Tn on the diagonal of \b T
-  bool transform(Matrix& A, const Matrix& Tn, size_t k);
+  //! \param[in] T Nodal transformation matrix
+  //! \param[in] K Index telling where to insert \b T on the diagonal
+  bool transform(Matrix& A, const Matrix& T, size_t K);
 
   //! \brief Congruence transformation of a vector.
   //! \param V The vector to be transformed
-  //! \param[in] Tn Nodal transformation matrix
-  //! \param[in] k Index telling where to insert \b Tn on the diagonal of \b T
-  //! \param[in] transpose If \e true, the transpose of \b Tn is used instead
-  bool transform(Vector& V, const Matrix& Tn, size_t k, bool transpose = false);
+  //! \param[in] T Nodal transformation matrix
+  //! \param[in] K Index telling where to insert \b T on the diagonal
+  //! \param[in] transpose If \e true, the transpose of \b T is used instead
+  bool transform(Vector& V, const Matrix& T, size_t K, bool transpose = false);
 
   //! \brief Inverts the square matrix \b A.
   bool invert(Matrix& A);

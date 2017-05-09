@@ -20,7 +20,8 @@
 class ThreadGroups;
 
 
-namespace LR {
+namespace LR //! Utilities for LR-splines.
+{
   class LRSpline;
 
   /*!
@@ -72,12 +73,12 @@ namespace LR {
   //! \param[in] iel Element index
   //! \param[in] xi Dimensionless Gauss point coordinates [-1,1]
   void getGaussPointParameters(const LRSpline* spline, RealArray& uGP,
-                               int dir, int nGauss, int iel, const double* xi);
+                               int d, int nGauss, int iel, const double* xi);
 
-  //! \brief Generate thread groups for a LRSpline mesh.
+  //! \brief Generates thread groups for a LR-spline mesh.
   //! \param[out] threadGroups The generated thread groups
-  //! \param[in] lr The LR spline to generate thread groups for
-  void generateThreadGroups(ThreadGroups& threadGroups, const LR::LRSpline* lr);
+  //! \param[in] lr The LR-spline to generate thread groups for
+  void generateThreadGroups(ThreadGroups& threadGroups, const LRSpline* lr);
 }
 
 
@@ -104,7 +105,7 @@ public:
   virtual ~ASMunstruct();
 
   //! \brief Checks if the patch is empty.
-  virtual bool empty() const { return geo == 0; }
+  virtual bool empty() const { return geo == nullptr; }
 
   //! \brief Refines the mesh adaptively.
   //! \param[in] prm Input data used to control the mesh refinement
@@ -122,7 +123,8 @@ public:
   virtual LR::LRSpline* evalSolution(const IntegrandBase& integrand) const = 0;
 
   //! \brief Returns a Bezier basis of order \a p.
-  static Go::BsplineBasis getBezierBasis(int p, double start=-1.0, double end=1.0);
+  static Go::BsplineBasis getBezierBasis(int p,
+                                         double start = -1.0, double end = 1.0);
 
   //! \brief Returns a list of basis functions having support on given elements.
   IntVec getFunctionsForElements(const IntVec& elements);

@@ -289,7 +289,7 @@ namespace utl //! General utility classes and functions.
       elem.std::template vector<T>::resize(n[0]*n[1]*n[2],T(0));
     }
 
-    // brief Clears the matrix content if the first dimension(s) changed.
+    //! \brief Clears the matrix content if the first dimension(s) changed.
     virtual void clearIfNrowChanged(size_t n1, size_t n2) = 0;
 
   public:
@@ -823,7 +823,7 @@ namespace utl //! General utility classes and functions.
     }
 
   protected:
-    // brief Clears the content if the number of rows changed.
+    //! \brief Clears the content if the number of rows changed.
     virtual void clearIfNrowChanged(size_t n1, size_t)
     {
       if (n1 != nrow) this->elem.clear();
@@ -951,7 +951,7 @@ namespace utl //! General utility classes and functions.
     }
 
   protected:
-    // brief Clears the content if any of the first two dimensions changed.
+    //! \brief Clears the content if any of the first two dimensions changed.
     virtual void clearIfNrowChanged(size_t n1, size_t n2)
     {
       if (n1 != this->n[0] || n2 != this->n[1]) this->elem.clear();

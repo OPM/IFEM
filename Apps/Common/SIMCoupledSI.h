@@ -82,7 +82,7 @@ public:
   }
 
 protected:
-  int maxIter; // Maximum number of iterations
+  int maxIter; //!< Maximum number of iterations
 };
 
 #endif
