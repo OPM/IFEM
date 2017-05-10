@@ -333,9 +333,9 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
 
           // Compute basis function derivatives at current integration point
           std::vector<Go::BasisDerivsSf> splinex(m_basis.size());
-          for (size_t i=0; i < m_basis.size(); ++i) {
-            m_basis[i]->computeBasis(fe.u, fe.v, splinex[i], els[i]-1);
-            SplineUtils::extractBasis(splinex[i],fe.basis(i+1),dNxdu[i]);
+          for (size_t b=0; b < m_basis.size(); ++b) {
+            m_basis[b]->computeBasis(fe.u, fe.v, splinex[b], els[b]-1);
+            SplineUtils::extractBasis(splinex[b],fe.basis(b+1),dNxdu[b]);
           }
 
           // Compute Jacobian inverse of coordinate mapping and derivatives
@@ -491,9 +491,9 @@ bool ASMu2Dmx::integrate (Integrand& integrand, int lIndex,
 
       // Evaluate basis function derivatives at current integration points
       std::vector<Go::BasisDerivsSf> splinex(m_basis.size());
-      for (size_t i=0; i < m_basis.size(); ++i) {
-        m_basis[i]->computeBasis(fe.u, fe.v, splinex[i], els[i]-1);
-        SplineUtils::extractBasis(splinex[i],fe.basis(i+1),dNxdu[i]);
+      for (size_t b=0; b < m_basis.size(); ++b) {
+        m_basis[b]->computeBasis(fe.u, fe.v, splinex[b], els[b]-1);
+        SplineUtils::extractBasis(splinex[b],fe.basis(b+1),dNxdu[b]);
       }
 
       // Compute Jacobian inverse of the coordinate mapping and
