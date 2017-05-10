@@ -62,8 +62,10 @@ void utl::LogStream::addExtraLog(std::shared_ptr<std::ostream> extra, bool clear
 int utl::LogStream::precision(int streamsize)
 {
   int result = streamsize;
-  if (m_out)
-    result = m_out->precision(streamsize);
+  if (m_out) {
+    result = m_out->precision();
+    m_out->precision(streamsize);
+  }
   for (auto it : m_extra)
     it->precision(streamsize);
 
@@ -83,8 +85,10 @@ void utl::LogStream::flush()
 std::ios_base::fmtflags utl::LogStream::flags(std::ios_base::fmtflags flags)
 {
   std::ios_base::fmtflags result = flags;
-  if (m_out)
-    result = m_out->flags(flags);
+  if (m_out) {
+    result = m_out->flags();
+    m_out->flags(flags);
+  }
   for (auto it : m_extra)
     it->flags(flags);
 
