@@ -73,10 +73,10 @@ TEST_P(TestASMu2D, ConstrainEdgeOpen)
 
 
 static const std::vector<EdgeTest> edgeTestData =
-        {{1, -1, {-1, -1}, {-1 , 1}},
+        {{{1, -1, {-1, -1}, {-1 , 1}},
          {2,  1, { 1, -1}, { 1 , 1}},
          {3, -2, {-1, -1}, { 1, -1}},
-         {4,  2, {-1,  1}, { 1,  1}}};
+         {4,  2, {-1,  1}, { 1,  1}}}};
 
 
 INSTANTIATE_TEST_CASE_P(TestASMu2D, TestASMu2D,
