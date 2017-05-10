@@ -83,7 +83,7 @@ template<class Generator>
 class TestModelGeneratorWrapper : public Generator {
 public:
   TestModelGeneratorWrapper(const TiXmlElement* geo) : Generator(geo) {}
-  std::string createG2(int nsd)
+  virtual std::string createG2(int nsd) const
   {
     return Generator::createG2(nsd);
   }
