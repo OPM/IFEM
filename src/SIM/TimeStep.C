@@ -344,8 +344,9 @@ bool TimeStep::serialize(std::map<std::string,std::string>& data)
   doSerializeOps(ar,*this);
   data.insert(std::make_pair("TimeStep", str.str()));
   return true;
-#endif
+#else
   return false;
+#endif
 }
 
 
