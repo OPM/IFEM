@@ -1260,7 +1260,6 @@ bool ASMs3D::updateDirichlet (const std::map<int,RealFunc*>& func,
 {
   std::map<int,RealFunc*>::const_iterator fit;
   std::map<int,VecFunc*>::const_iterator vfit;
-  std::vector<DirichletFace>::const_iterator dit;
   std::vector<Ipair>::const_iterator nit;
 
   for (size_t i = 0; i < dirich.size(); i++)

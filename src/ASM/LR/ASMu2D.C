@@ -1912,7 +1912,6 @@ bool ASMu2D::updateDirichlet (const std::map<int,RealFunc*>& func,
   std::map<int,RealFunc*>::const_iterator    fit;
   std::map<int,VecFunc*>::const_iterator     vfit;
   std::map<int,int>::const_iterator          nit;
-  std::vector<DirichletEdge>::const_iterator dit;
 
   for (size_t i = 0; i < dirich.size(); i++)
   {
