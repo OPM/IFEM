@@ -370,17 +370,17 @@ bool AdaptiveSIM::adaptMesh (int iStep)
 
   switch (threshold) {
   case NONE:
-    IFEM::cout << beta <<"\% of all "
+    IFEM::cout << beta <<"% of all "
                << (scheme < 2 ? "elements" : "basis functions");
     break;
   case MAXIMUM:
-    IFEM::cout << beta <<"\% of max error ("<< limit << ")";
+    IFEM::cout << beta <<"% of max error ("<< limit << ")";
     break;
   case AVERAGE:
-    IFEM::cout << beta <<"\% of average error ("<< limit <<")";
+    IFEM::cout << beta <<"% of average error ("<< limit <<")";
     break;
   case MINIMUM:
-    IFEM::cout << beta <<"\% of min error ("<< limit <<")";
+    IFEM::cout << beta <<"% of min error ("<< limit <<")";
     break;
   }
   IFEM::cout << std::endl;
