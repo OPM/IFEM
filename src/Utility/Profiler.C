@@ -59,10 +59,11 @@ static double WallTime ()
 {
 #ifdef USE_OPENMP
   return omp_get_wtime();
-#endif
+#else
   timeval tmpTime;
   gettimeofday(&tmpTime,nullptr);
   return tmpTime.tv_sec + tmpTime.tv_usec/1.0e6;
+#endif
 }
 
 
