@@ -199,6 +199,7 @@ public:
   //! \brief Performs the matrix-vector multiplication \b C = \a *this * \b B.
   virtual bool multiply(const SystemVector& B, SystemVector& C) const;
 
+  using SystemMatrix::solve;
   //! \brief Solves the linear system of equations for a given right-hand-side.
   //! \param B Right-hand-side vector on input, solution vector on output
   //! \param[in] newLHS \e true if the left-hand-side matrix has been updated

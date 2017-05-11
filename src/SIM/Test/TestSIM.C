@@ -39,6 +39,7 @@ private:
   public:
     TestProjectIntegrand(int dim) : IntegrandBase(dim) {}
 
+    using IntegrandBase::evalSol;
     virtual bool evalSol(Vector& s, const FiniteElement&, const Vec3& X,
                          const std::vector<int>&) const
     {

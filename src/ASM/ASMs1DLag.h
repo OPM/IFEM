@@ -135,6 +135,7 @@ public:
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
 			    const RealArray* gpar, bool = true) const;
 
+  using ASMs1D::getSize;
   //! \brief Returns the number of nodal points in the patch.
   virtual int getSize(int = 0) const { return nx; }
 

@@ -109,6 +109,7 @@ public:
   virtual bool getSolution(Matrix& sField, const Vector& locSol,
                            const IntVec& nodes) const;
 
+  using ASMu2D::evalSolution;
   //! \brief Evaluates the primary solution field at the given points.
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector local to current patch
@@ -172,6 +173,7 @@ public:
                       const char* fName = nullptr);
 
 protected:
+  using ASMu2D::generateThreadGroups;
   //! \brief Generates element groups for multi-threading of interior integrals.
   //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] silence If \e true, suppress threading group outprint

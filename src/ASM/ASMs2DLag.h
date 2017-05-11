@@ -149,11 +149,13 @@ public:
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
 			    const RealArray* gpar, bool regular = true) const;
 
+  using ASMs2D::getSize;
   //! \brief Returns the number of nodal points in each parameter direction.
   //! \param[out] n1 Number of nodes in first (u) direction
   //! \param[out] n2 Number of nodes in second (v) direction
   virtual bool getSize(int& n1, int& n2, int = 0) const;
 
+  using ASMs2D::generateThreadGroups;
   //! \brief Generates element groups for multi-threading of interior integrals.
   //! \param[in] silence If \e true, suppress threading group outprint
   //! \param[in] ignoreGlobalLM If \e true ignore global multipliers in sanity check

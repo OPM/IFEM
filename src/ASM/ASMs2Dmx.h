@@ -150,6 +150,7 @@ public:
   virtual bool getSolution(Matrix& sField, const Vector& locSol,
 			   const IntVec& nodes) const;
 
+  using ASMs2D::evalSolution;
   //! \brief Evaluates the primary solution field at the given points.
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector local to current patch
@@ -196,6 +197,7 @@ public:
   virtual bool injectNodeVec(const Vector& nodeVec, Vector& globVec,
 			     unsigned char = 0, int basis = 0) const;
 
+  using ASMs2D::generateThreadGroups;
   //! \brief Generates element groups for multi-threading of interior integrals.
   //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] silence If \e true, suppress threading group outprint
@@ -203,6 +205,7 @@ public:
   virtual void generateThreadGroups(const Integrand& integrand, bool silence,
                                     bool ignoreGlobalLM);
 
+  using ASMs2D::getSize;
   //! \brief Returns the number of nodal points in each parameter direction.
   //! \param[out] n1 Number of nodes in first (u) direction
   //! \param[out] n2 Number of nodes in second (v) direction

@@ -179,6 +179,7 @@ public:
   //! \brief Empty destructor.
   virtual ~HHTSIM() {}
 
+  using NewmarkSIM::parse;
   //! \brief Parses a data section from an XML document.
   virtual bool parse(const TiXmlElement* elem);
 

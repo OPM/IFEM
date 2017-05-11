@@ -110,6 +110,7 @@ public:
   virtual bool getSolution(Matrix& sField, const Vector& locSol,
 			   const IntVec& nodes) const;
 
+  using ASMs2DLag::evalSolution;
   //! \brief Evaluates the primary solution field at the given points.
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector local to current patch
@@ -139,6 +140,7 @@ protected:
   // Internal utility methods
   // ========================
 
+  using ASMs2DLag::getSize;
   //! \brief Returns the number of nodal points in each parameter direction.
   //! \param[out] n1 Number of nodes in first (u) direction
   //! \param[out] n2 Number of nodes in second (v) direction

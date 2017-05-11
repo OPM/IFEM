@@ -143,6 +143,7 @@ public:
   virtual bool getSolution(Matrix& sField, const Vector& locSol,
 			   const IntVec& nodes) const;
 
+  using ASMs3D::evalSolution;
   //! \brief Evaluates the primary solution field at the given points.
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector local to current patch

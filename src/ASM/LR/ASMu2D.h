@@ -474,6 +474,7 @@ protected:
   //! of an element.
   bool evaluateBasis(FiniteElement& el, int derivs = 0) const;
 
+  using ASMunstruct::generateThreadGroups;
   //! \brief Generates element groups for multi-threading of interior integrals.
   //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] silence If \e true, suppress threading group outprint

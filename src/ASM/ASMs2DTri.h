@@ -92,6 +92,7 @@ public:
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
                             const RealArray* gpar, bool regular = true) const;
 
+  using ASMs2DLag::generateThreadGroups;
   //! \brief Generates element groups for multi-threading of interior integrals.
   virtual void generateThreadGroups(const Integrand&, bool, bool);
 };
