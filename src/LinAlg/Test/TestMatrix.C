@@ -47,7 +47,7 @@ TEST(TestMatrix, AddRows)
   a.expandRows(1);
   std::cout <<"B:"<< a;
   int fasit = 1;
-  for (size_t j = 1; j <= 5; j++)
+  for (size_t j = 1; j <= a.cols(); j++)
   {
     for (size_t i = 1; i <= 3; i++, fasit++)
       EXPECT_EQ(a(i,j), fasit);
@@ -57,7 +57,7 @@ TEST(TestMatrix, AddRows)
   a.expandRows(-2);
   std::cout <<"C:"<< a;
   fasit = 1;
-  for (size_t j = 1; j <= 5; j++, fasit++)
+  for (size_t j = 1; j <= a.cols(); j++, fasit++)
     for (size_t i = 1; i <= 2; i++, fasit++)
       EXPECT_EQ(a(i,j), fasit);
 }
@@ -73,6 +73,26 @@ TEST(TestMatrix, Norm)
   EXPECT_FLOAT_EQ(a.sum(5),34.0);
   EXPECT_FLOAT_EQ(a.asum(5),34.0);
   EXPECT_NEAR(a.norm2(5),sqrt(414.0),1.0e-15);
+}
+
+
+TEST(TestMatrix3D, GetColumn)
+{
+  utl::matrix3d<int> A(4,3,2);
+  std::iota(A.begin(),A.end(),1);
+  std::cout <<"A:"<< A;
+
+  int value = 0;
+  for (size_t c = 1; c <= A.dim(3); c++)
+    for (size_t r = 1; r <= A.dim(2); r++)
+    {
+      utl::vector<int> column = A.getColumn(r,c);
+      EXPECT_EQ(column.size(),A.dim(1));
+      for (int v : column)
+        EXPECT_EQ(++value, v);
+    }
+
+  EXPECT_EQ(value, (int)A.size());
 }
 
 

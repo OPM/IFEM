@@ -905,6 +905,17 @@ namespace utl //! General utility classes and functions.
       return this->elem[i1-1 + this->n[0]*((i2-1) + this->n[1]*(i3-1))];
     }
 
+    //! \brief Extract a column from the matrix.
+    vector<T> getColumn(size_t i2, size_t i3) const
+    {
+      CHECK_INDEX("matrix3d::getColumn: Second index ",i2,this->n[1]);
+      CHECK_INDEX("matrix3d::getColumn: Third index  ",i3,this->n[2]);
+      if (this->n[1] < 2 && this->n[2] < 2) return this->elem;
+      vector<T> col(this->n[0]);
+      memcpy(col.ptr(),this->ptr(i2-1+this->n[1]*(i3-1)),col.size()*sizeof(T));
+      return col;
+    }
+
     //! \brief Add the given matrix \b X to \a *this.
     matrix3d<T>& operator+=(const matrix3d<T>& X) { return this->add(X); }
     //! \brief Subtract the given matrix \b X from \a *this.
