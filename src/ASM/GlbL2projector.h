@@ -35,6 +35,7 @@ public:
   //! \brief Defines which FE quantities are needed by the integrand.
   virtual int getIntegrandType() const;
 
+  using Integrand::getLocalIntegral;
   //! \brief Returns a local integral contribution object for the given element.
   //! \param[in] nen Number of nodes on element
   //! \param[in] iEl Global element number (1-based)
@@ -71,6 +72,7 @@ public:
                               const std::vector<size_t>&,
                               LocalIntegral&) { return false; }
 
+  using Integrand::evalInt;
   //! \brief Evaluates the integrand at an interior point.
   //! \param elmInt The local integral object to receive the contributions
   //! \param[in] fe Finite element data of current integration point
@@ -78,6 +80,7 @@ public:
   virtual bool evalInt(LocalIntegral& elmInt,
                        const FiniteElement& fe, const Vec3& X) const;
 
+  using Integrand::evalIntMx;
   //! \brief Evaluates the integrand at an interior point.
   //! \param elmInt The local integral object to receive the contributions
   //! \param[in] fe Mixed finite element data of current integration point

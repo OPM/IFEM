@@ -58,6 +58,7 @@ public:
   // Post-processing methods
   // =======================
 
+  using ASMs2DLag::evalSolution;
   //! \brief Evaluates the secondary solution field at the given points.
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods

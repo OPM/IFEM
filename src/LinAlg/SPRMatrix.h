@@ -56,6 +56,7 @@ public:
   //! \brief Initializes the matrix to zero assuming it is properly dimensioned.
   virtual void init();
 
+  using SystemMatrix::assemble;
   //! \brief Adds an element matrix into the associated system matrix.
   //! \param[in] eM  The element matrix
   //! \param[in] sam Auxiliary data describing the FE model topology,
@@ -86,6 +87,7 @@ public:
   //! \brief Performs the matrix-vector multiplication \b C = \a *this * \b B.
   virtual bool multiply(const SystemVector& B, SystemVector& C) const;
 
+  using SystemMatrix::solve;
   //! \brief Solves the linear system of equations for a given right-hand-side.
   //! \param B Right-hand-side vector on input, solution vector on output
   virtual bool solve(SystemVector& B, bool, Real*);

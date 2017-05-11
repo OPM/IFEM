@@ -213,6 +213,7 @@ public:
                             const RealArray* gpar, bool = true,
                             int deriv = 0) const;
 
+  using ASMbase::evaluate;
   //! \brief Evaluates and interpolates a function over a given geometry.
   //! \param[in] func The function to evaluate
   //! \param[out] vec The obtained coefficients after interpolation
