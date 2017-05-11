@@ -25,6 +25,7 @@
 #define VTFA_SUCCESS(x) x > 0  //!< Convenience macro
 #endif
 #include "ElementBlock.h"
+#include "Function.h"
 #include "Tensor.h"
 #include <iostream>
 #include <cstdio>

@@ -14,8 +14,12 @@
 #ifndef UTL_FUNCTION_H
 #define UTL_FUNCTION_H
 
+#include "Vec3.h"
 #include <functional>
 #include <cstddef>
+
+class TensorFunc;
+class STensorFunc;
 
 
 namespace utl
@@ -28,8 +32,9 @@ namespace utl
   class Function : public std::unary_function<const Arg&,Result>
   {
   protected:
-    //! \brief Empty constructor.
+    //! \brief The constructor is protected to allow sub-class instances only.
     Function() {}
+
   public:
     //! \brief Empty destructor.
     virtual ~Function() {}
@@ -61,8 +66,9 @@ namespace utl
   class Function2 : public std::binary_function<const Arg&,const Arg&,Result>
   {
   protected:
-    //! \brief Empty constructor.
+    //! \brief The constructor is protected to allow sub-class instances only.
     Function2() {}
+
   public:
     //! \brief Empty destructor.
     virtual ~Function2() {}
@@ -82,28 +88,66 @@ namespace utl
     typedef Arg Input;     //!< Input type
     typedef Result Output; //!< Output type
   };
+
+
+  /*!
+    \brief Base class for unary spatial function of arbitrary result type.
+    \details Includes interfaces for evaluation of first and second derivates.
+  */
+
+  template<class Result>
+  class SpatialFunction : public Function<Vec3,Result>
+  {
+    Result zero; //!< Return value for default implementations of derivatives
+
+  protected:
+    //! \brief The constructor is protected to allow sub-class instances only.
+    SpatialFunction(const Result& val) : zero(val) {}
+
+  public:
+    //! \brief Empty destructor.
+    virtual ~SpatialFunction() {}
+
+    //! \brief Returns a first-derivative of the function.
+    virtual Result deriv(const Vec3& x, int dir) const { return zero; }
+    //! \brief Returns a second-derivative of the function.
+    virtual Result dderiv(const Vec3& x, int d1, int d2) const { return zero; }
+  };
 }
-
-
-class Vec3;
-class Tensor;
-class SymmTensor;
 
 
 //! \brief Scalar-valued unary function of a scalar value.
 typedef utl::Function<Real,Real> ScalarFunc;
 
-//! \brief Scalar-valued unary function of a spatial point.
-typedef utl::Function<Vec3,Real> RealFunc;
 
-//! \brief Vector-valued unary function of a spatial point.
-typedef utl::Function<Vec3,Vec3> VecFunc;
+/*!
+  \brief Scalar-valued unary function of a spatial point.
+*/
 
-//! \brief Tensor-valued unary function of a spatial point.
-typedef utl::Function<Vec3,Tensor> TensorFunc;
+class RealFunc : public utl::SpatialFunction<Real>
+{
+protected:
+  //! \brief The constructor is protected to allow sub-class instances only.
+  RealFunc() : utl::SpatialFunction<Real>(Real(0)) {}
+public:
+  //! \brief Empty destructor.
+  virtual ~RealFunc() {}
+};
 
-//! \brief Symmetric tensor-valued unary function of a spatial point.
-typedef utl::Function<Vec3,SymmTensor> STensorFunc;
+
+/*!
+  \brief Vector-valued unary function of a spatial point.
+*/
+
+class VecFunc : public utl::SpatialFunction<Vec3>
+{
+protected:
+  //! \brief The constructor is protected to allow sub-class instances only.
+  VecFunc() : utl::SpatialFunction<Vec3>(Vec3()) {}
+public:
+  //! \brief Empty destructor.
+  virtual ~VecFunc() {}
+};
 
 
 /*!
@@ -161,9 +205,9 @@ class TractionField : public TractionFunc
 
 public:
   //! \brief Constructor initializing the symmetric tensor function pointer.
-  TractionField(const STensorFunc& field) : sigma(&field), sigmaN(nullptr) {}
+  TractionField(const STensorFunc& field);
   //! \brief Constructor initializing the tensor function pointer.
-  TractionField(const TensorFunc& field) : sigma(nullptr), sigmaN(&field) {}
+  TractionField(const TensorFunc& field);
   //! \brief Empty destructor.
   virtual ~TractionField() {}
 

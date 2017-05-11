@@ -15,9 +15,6 @@
 #define _FUNCTIONS_H
 
 #include "Function.h"
-#include "ExprFunctions.h"
-#include "FieldFunctions.h"
-#include "Vec3.h"
 
 
 /*!
@@ -220,6 +217,11 @@ public:
   //! \brief Returns whether the function is time-independent or not.
   virtual bool isConstant() const { return this->isZero(); }
 
+  //! \brief Returns first-derivative of the function.
+  virtual Real deriv(const Vec3& X, int dir) const;
+  //! \brief Returns second-derivative of the function.
+  virtual Real dderiv(const Vec3& X, int dir1, int dir2) const;
+
 protected:
   //! \brief Evaluates the space-time function.
   virtual Real evaluate(const Vec3& X) const;
@@ -241,6 +243,9 @@ public:
 
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return a == Real(0) && b == Real(0); }
+
+  //! \brief Returns first-derivative of the function.
+  virtual Real deriv(const Vec3&, int dir) const;
 
 protected:
   //! \brief Evaluates the linear function.
@@ -264,6 +269,9 @@ public:
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return a == Real(0) && b == Real(0); }
 
+  //! \brief Returns first-derivative of the function.
+  virtual Real deriv(const Vec3&, int dir) const;
+
 protected:
   //! \brief Evaluates the linear function.
   virtual Real evaluate(const Vec3& X) const;
@@ -285,6 +293,9 @@ public:
 
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return a == Real(0) && b == Real(0); }
+
+  //! \brief Returns first-derivative of the function.
+  virtual Real deriv(const Vec3&, int dir) const;
 
 protected:
   //! \brief Evaluates the linear function.
@@ -309,6 +320,11 @@ public:
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return max == Real(0); }
 
+  //! \brief Returns first-derivative of the function.
+  virtual Real deriv(const Vec3& X, int dir) const;
+  //! \brief Returns second-derivative of the function.
+  virtual Real dderiv(const Vec3&, int dir1, int dir2) const;
+
 protected:
   //! \brief Evaluates the quadratic function.
   virtual Real evaluate(const Vec3& X) const;
@@ -332,6 +348,11 @@ public:
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return max == Real(0); }
 
+  //! \brief Returns first-derivative of the function.
+  virtual Real deriv(const Vec3& X, int dir) const;
+  //! \brief Returns second-derivative of the function.
+  virtual Real dderiv(const Vec3&, int dir1, int dir2) const;
+
 protected:
   //! \brief Evaluates the quadratic function.
   virtual Real evaluate(const Vec3& X) const;
@@ -354,6 +375,11 @@ public:
 
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return max == Real(0); }
+
+  //! \brief Returns first-derivative of the function.
+  virtual Real deriv(const Vec3& X, int dir) const;
+  //! \brief Returns second-derivative of the function.
+  virtual Real dderiv(const Vec3&, int dir1, int dir2) const;
 
 protected:
   //! \brief Evaluates the quadratic function.
@@ -389,6 +415,9 @@ public:
   virtual bool isZero() const { return A == Real(0); }
   //! \brief Returns whether the function is time-independent or not.
   virtual bool isConstant() const { return A == Real(0); }
+
+  //! \brief Returns first-derivative of the function.
+  virtual Real deriv(const Vec3&, int dir) const;
 
 protected:
   //! \brief Evaluates the rotation function.

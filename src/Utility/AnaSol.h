@@ -14,10 +14,13 @@
 #ifndef _ANA_SOL_H
 #define _ANA_SOL_H
 
-#include "Function.h"
 #include <iostream>
 #include <vector>
 
+class RealFunc;
+class VecFunc;
+class TensorFunc;
+class STensorFunc;
 class TiXmlElement;
 
 
@@ -28,12 +31,12 @@ class TiXmlElement;
 class AnaSol
 {
 protected:
-  std::vector<RealFunc*>    scalSol; //!< Primary scalar solution fields
-  std::vector<VecFunc*>  scalSecSol; //!< Secondary scalar solution fields (gradient fields)
+  std::vector<RealFunc*>   scalSol; //!< Primary scalar solution fields
+  std::vector<VecFunc*> scalSecSol; //!< Secondary scalar solution fields
 
-  VecFunc*     vecSol;     //!< Primary vector solution field
-  TensorFunc*  vecSecSol;  //!< Secondary solution field (vector gradient field)
-  STensorFunc* stressSol;  //!< Secondary solution field (stress field)
+  VecFunc*     vecSol;    //!< Primary vector solution field
+  TensorFunc*  vecSecSol; //!< Secondary solution field (vector gradient field)
+  STensorFunc* stressSol; //!< Secondary solution field (stress field)
 
 public:
   //! \brief Default constructor initializing all solution fields.
@@ -45,25 +48,25 @@ public:
   //!
   //! \details It is assumed that all the arguments are pointers to dynamically
   //! allocated objects, as the class destructor will attempt to delete them.
-  AnaSol(RealFunc* s1 = 0, VecFunc* s2 = 0,
-         VecFunc* v1 = 0, TensorFunc* v2 = 0, STensorFunc* v3 = 0);
+  AnaSol(RealFunc* s1 = nullptr, VecFunc* s2 = nullptr,
+         VecFunc* v1 = nullptr, TensorFunc* v2 = nullptr,
+         STensorFunc* v3 = nullptr);
 
   //! \brief Constructor initializing the primary and secondary solution fields.
   //! \param[in] s Primary scalar solution field
   //! \param[in] sigma Symmetric stress tensor field
-  AnaSol(RealFunc* s, STensorFunc* sigma)
-    : vecSol(0), vecSecSol(0), stressSol(sigma) { if (s) scalSol.push_back(s); }
+  AnaSol(RealFunc* s, STensorFunc* sigma);
 
   //! \brief Constructor initializing the primary and secondary solution fields.
   //! \param[in] v Primary vector solution field
   //! \param[in] sigma Symmetric stress tensor field
   AnaSol(VecFunc* v, STensorFunc* sigma)
-    : vecSol(v), vecSecSol(0), stressSol(sigma) {}
+    : vecSol(v), vecSecSol(nullptr), stressSol(sigma) {}
 
   //! \brief Constructor initializing the symmetric stress tensor field only.
   //! \param[in] sigma Symmetric stress tensor field
   AnaSol(STensorFunc* sigma)
-    : vecSol(0), vecSecSol(0), stressSol(sigma) {}
+    : vecSol(nullptr), vecSecSol(nullptr), stressSol(sigma) {}
 
   //! \brief Constructor initializing expression functions by parsing a stream.
   //! \param is The file stream to read function definition from
@@ -76,16 +79,7 @@ public:
   AnaSol(const TiXmlElement* elem, bool scalarSol = true);
 
   //! \brief The destructor frees the analytical solution fields.
-  virtual ~AnaSol()
-  {
-    for (auto& it : scalSol)
-      delete it;
-    for (auto& it : scalSecSol)
-      delete it;
-    delete vecSol;
-    delete vecSecSol;
-    delete stressSol;
-  }
+  virtual ~AnaSol();
 
   //! \brief Checks whether a scalar solution is defined.
   char hasScalarSol() const

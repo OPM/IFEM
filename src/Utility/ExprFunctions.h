@@ -15,6 +15,7 @@
 #define _EXPR_FUNCTIONS_H
 
 #include "Function.h"
+#include "TensorFunction.h"
 #include <string>
 #include <vector>
 #ifdef USE_OPENMP

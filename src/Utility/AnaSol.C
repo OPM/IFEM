@@ -13,22 +13,30 @@
 
 #include "AnaSol.h"
 #include "Functions.h"
-#include "IFEM.h"
+#include "ExprFunctions.h"
 #include "Utilities.h"
+#include "IFEM.h"
 #include "tinyxml.h"
 
 
-AnaSol::AnaSol(RealFunc* s1, VecFunc* s2, VecFunc* v1,
-               TensorFunc* v2, STensorFunc* v3) :
-  vecSol(v1), vecSecSol(v2), stressSol(v3)
+AnaSol::AnaSol (RealFunc* s1, VecFunc* s2,
+                VecFunc* v1, TensorFunc* v2, STensorFunc* v3)
+  : vecSol(v1), vecSecSol(v2), stressSol(v3)
 {
   if (s1) scalSol.push_back(s1);
   if (s2) scalSecSol.push_back(s2);
 }
 
 
+AnaSol::AnaSol (RealFunc* s, STensorFunc* sigma)
+  : vecSol(nullptr), vecSecSol(nullptr), stressSol(sigma)
+{
+  if (s) scalSol.push_back(s);
+}
+
+
 AnaSol::AnaSol (std::istream& is, const int nlines, bool scalarSol)
-  : vecSol(0), vecSecSol(0), stressSol(0)
+  : vecSol(nullptr), vecSecSol(nullptr), stressSol(nullptr)
 {
   size_t pos = 0;
   std::string variables;
@@ -74,7 +82,7 @@ AnaSol::AnaSol (std::istream& is, const int nlines, bool scalarSol)
 
 
 AnaSol::AnaSol (const TiXmlElement* elem, bool scalarSol)
-  : vecSol(0), vecSecSol(0), stressSol(0)
+  : vecSol(nullptr), vecSecSol(nullptr), stressSol(nullptr)
 {
   std::string variables;
 
@@ -133,4 +141,16 @@ AnaSol::AnaSol (const TiXmlElement* elem, bool scalarSol)
     IFEM::cout <<"\tStress="<< sigma << std::endl;
     stressSol = new STensorFuncExpr(sigma,variables);
   }
+}
+
+
+AnaSol::~AnaSol ()
+{
+  for (RealFunc* rf : scalSol)
+    delete rf;
+  for (VecFunc* vf : scalSecSol)
+    delete vf;
+  delete vecSol;
+  delete vecSecSol;
+  delete stressSol;
 }

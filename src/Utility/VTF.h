@@ -14,10 +14,12 @@
 #ifndef _VTF_H
 #define _VTF_H
 
-#include "Function.h"
 #include <vector>
+#include <cstddef>
 
 class ElementBlock;
+class RealFunc;
+class Tensor;
 class Vec3;
 
 typedef std::pair<int,const ElementBlock*> GridBlock; //!< Convenience type
@@ -130,8 +132,8 @@ public:
   //! \param[in] idBlock Scalar block identifier
   //! \param[in] iStep Load/Time step identifier
   //! \param[in] elementData false -> data per node, true -> data per element
-  bool writeSblk(int sBlockID, const char* resultName = nullptr, int idBlock = 1,
-                 int iStep = 1, bool elementData = false);
+  bool writeSblk(int sBlockID, const char* resultName = nullptr,
+                 int idBlock = 1, int iStep = 1, bool elementData = false);
   //! \brief Writes a scalar block definition to the VTF-file.
   //! \param[in] sBlockIDs All result blocks that make up this scalar block
   //! \param[in] resultName Name of the result quantity
@@ -170,7 +172,8 @@ public:
   //! \param[in] idBlock Transformation block identifier
   //! \param[in] iStep Load/Time step identifier
   bool writeTblk(const std::vector<int>& tBlockIDs,
-                 const char* resultName = nullptr, int idBlock = 1, int iStep = 1);
+                 const char* resultName = nullptr,
+                 int idBlock = 1, int iStep = 1);
 
   //! \brief Writes a state info block to the VTF-file.
   //! \param[in] iStep Load/Time step identifier

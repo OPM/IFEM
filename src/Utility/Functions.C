@@ -12,8 +12,10 @@
 //==============================================================================
 
 #include "Functions.h"
-#include "IFEM.h"
+#include "ExprFunctions.h"
+#include "FieldFunctions.h"
 #include "Vec3Oper.h"
+#include "IFEM.h"
 #include <cstring>
 #include <fstream>
 #include <sstream>
@@ -64,9 +66,29 @@ Real SpaceTimeFunc::evaluate (const Vec3& X) const
 }
 
 
+Real SpaceTimeFunc::deriv (const Vec3& X, int dir) const
+{
+  const Vec4* Xt = dynamic_cast<const Vec4*>(&X);
+  return sfunc->deriv(X,dir) * (*tfunc)(Xt ? Xt->t : Real(0));
+}
+
+
+Real SpaceTimeFunc::dderiv (const Vec3& X, int dir1, int dir2) const
+{
+  const Vec4* Xt = dynamic_cast<const Vec4*>(&X);
+  return sfunc->dderiv(X,dir1,dir2) * (*tfunc)(Xt ? Xt->t : Real(0));
+}
+
+
 Real LinearXFunc::evaluate (const Vec3& X) const
 {
   return a*X.x + b;
+}
+
+
+Real LinearXFunc::deriv (const Vec3&, int dir) const
+{
+  return dir == 1 ? a : Real(0);
 }
 
 
@@ -76,9 +98,21 @@ Real LinearYFunc::evaluate (const Vec3& X) const
 }
 
 
+Real LinearYFunc::deriv (const Vec3&, int dir) const
+{
+  return dir == 2 ? a : Real(0);
+}
+
+
 Real LinearZFunc::evaluate (const Vec3& X) const
 {
   return a*X.z + b;
+}
+
+
+Real LinearZFunc::deriv (const Vec3&, int dir) const
+{
+  return dir == 3 ? a : Real(0);
 }
 
 
@@ -89,6 +123,24 @@ Real QuadraticXFunc::evaluate (const Vec3& X) const
 }
 
 
+Real QuadraticXFunc::deriv (const Vec3& X, int dir) const
+{
+  if (dir != 1) return Real(0);
+
+  Real val = (a-b)/Real(2);
+  return max*(a+b-Real(2)*X.x)/(val*val);
+}
+
+
+Real QuadraticXFunc::dderiv (const Vec3&, int dir1, int dir2) const
+{
+  if (dir1 != 1 || dir2 != 1) return Real(0);
+
+  Real val = (a-b)/Real(2);
+  return -max*Real(2)/(val*val);
+}
+
+
 Real QuadraticYFunc::evaluate (const Vec3& X) const
 {
   Real val = (a-b)/Real(2);
@@ -96,10 +148,46 @@ Real QuadraticYFunc::evaluate (const Vec3& X) const
 }
 
 
+Real QuadraticYFunc::deriv (const Vec3& X, int dir) const
+{
+  if (dir != 2) return Real(0);
+
+  Real val = (a-b)/Real(2);
+  return max*(a+b-Real(2)*X.y)/(val*val);
+}
+
+
+Real QuadraticYFunc::dderiv (const Vec3&, int dir1, int dir2) const
+{
+  if (dir1 != 2 || dir2 != 2) return Real(0);
+
+  Real val = (a-b)/Real(2);
+  return -max*Real(2)/(val*val);
+}
+
+
 Real QuadraticZFunc::evaluate (const Vec3& X) const
 {
   Real val = (a-b)/Real(2);
   return max*(a-X.z)*(X.z-b)/(val*val);
+}
+
+
+Real QuadraticZFunc::dderiv (const Vec3&, int dir1, int dir2) const
+{
+  if (dir1 != 3 || dir2 != 3) return Real(0);
+
+  Real val = (a-b)/Real(2);
+  return -max*Real(2)/(val*val);
+}
+
+
+Real QuadraticZFunc::deriv (const Vec3& X, int dir) const
+{
+  if (dir != 3) return Real(0);
+
+  Real val = (a-b)/Real(2);
+  return max*(a+b-Real(2)*X.z)/(val*val);
 }
 
 
@@ -114,6 +202,23 @@ Real LinearRotZFunc::evaluate (const Vec3& X) const
   Real c = cos(A*Xt->t);
   Real s = sin(A*Xt->t);
   return rX ? x*c-y*s-x : x*s+y*c-y;
+}
+
+
+Real LinearRotZFunc::deriv (const Vec3& X, int dir) const
+{
+  if (dir > 2) return Real(0);
+
+  // Always return zero if the argument has no time component
+  const Vec4* Xt = dynamic_cast<const Vec4*>(&X);
+  if (!Xt) return Real(0);
+
+  if (dir == 1)
+    return rX ?  cos(A*Xt->t) - Real(1) : sin(A*Xt->t);
+  else if (dir == 2)
+    return rX ? -sin(A*Xt->t) : cos(A*Xt->t) - Real(1);
+  else
+    return Real(0);
 }
 
 

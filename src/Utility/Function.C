@@ -12,8 +12,7 @@
 //==============================================================================
 
 #include "Function.h"
-#include "Tensor.h"
-#include "Vec3.h"
+#include "TensorFunction.h"
 #include "Vec3Oper.h"
 
 
@@ -31,6 +30,20 @@ Vec3 PressureField::evaluate (const Vec3& x, const Vec3& n) const
     t = (t*n) * n;
 
   return t;
+}
+
+
+TractionField::TractionField (const STensorFunc& field)
+{
+  sigma = &field;
+  sigmaN = nullptr;
+}
+
+
+TractionField::TractionField (const TensorFunc& field)
+{
+  sigma = nullptr;
+  sigmaN = &field;
 }
 
 
