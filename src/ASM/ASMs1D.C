@@ -27,6 +27,7 @@
 #include "ElementBlock.h"
 #include "SplineUtils.h"
 #include "Utilities.h"
+#include "Function.h"
 #include "Vec3Oper.h"
 
 

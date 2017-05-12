@@ -26,10 +26,11 @@
 #include "GlbNorm.h"
 #include "ElmNorm.h"
 #include "AnaSol.h"
+#include "Function.h"
 #include "Vec3.h"
 #include "Vec3Oper.h"
-#include "Profiler.h"
 #include "Utilities.h"
+#include "Profiler.h"
 #include "IFEM.h"
 #include <fstream>
 #ifdef SP_DEBUG

@@ -15,6 +15,7 @@
 
 #include "ASMs2DC1.h"
 #include "Lagrange.h"
+#include "Function.h"
 #include "Vec3Oper.h"
 #include "Vec3.h"
 #include "MPC.h"

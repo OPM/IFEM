@@ -12,7 +12,7 @@
 //==============================================================================
 
 #include "SplineUtils.h"
-#include "MatVec.h"
+#include "Function.h"
 #include "Vec3.h"
 
 #include "GoTools/geometry/SplineCurve.h"

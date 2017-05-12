@@ -46,6 +46,12 @@ SIM1D::SIM1D (IntegrandBase* itg, unsigned char n) : SIMgeneric(itg)
 }
 
 
+SIM1D::~SIM1D ()
+{
+  delete twist;
+}
+
+
 bool SIM1D::addConnection (int master, int slave, int mIdx, int sIdx,
                            int, int basis, bool, int dim, int thick)
 {

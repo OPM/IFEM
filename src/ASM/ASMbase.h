@@ -16,7 +16,6 @@
 
 #include "MatVec.h"
 #include "MPCLess.h"
-#include "Function.h"
 #include <map>
 #include <set>
 
@@ -33,6 +32,8 @@ class GlobalIntegral;
 class IntegrandBase;
 class Integrand;
 class ASMbase;
+class RealFunc;
+class VecFunc;
 class Vec3;
 
 typedef std::vector<ASMbase*> ASMVec; //!< Spline patch container

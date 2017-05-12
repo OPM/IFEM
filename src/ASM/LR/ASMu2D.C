@@ -29,10 +29,11 @@
 #include "LagrangeInterpolator.h"
 #include "ElementBlock.h"
 #include "MPC.h"
+#include "Function.h"
+#include "Vec3Oper.h"
 #include "SplineUtils.h"
 #include "Utilities.h"
 #include "Profiler.h"
-#include "Vec3Oper.h"
 #include <array>
 #include <fstream>
 

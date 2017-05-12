@@ -38,7 +38,7 @@ public:
   //! \param[in] n Dimension of the primary solution field
   SIM1D(IntegrandBase* itg, unsigned char n = 1);
   //! \brief The destructor deletes the twist angle function.
-  virtual ~SIM1D() { delete twist; }
+  virtual ~SIM1D();
 
   //! \brief Returns the number of parameter dimensions in the model.
   virtual unsigned short int getNoParamDim() const { return 1; }

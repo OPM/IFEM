@@ -18,7 +18,6 @@
 #include "SIMdependency.h"
 #include "TimeDomain.h"
 #include "Property.h"
-#include "Function.h"
 #include "MatVec.h"
 
 class IntegrandBase;
@@ -29,7 +28,11 @@ class SAM;
 class AlgEqSystem;
 class LinSolParams;
 class SystemVector;
+class RealFunc;
+class VecFunc;
+class TractionFunc;
 class Vec4;
+class Vec3;
 
 //! Property code to integrand map
 typedef std::multimap<int,IntegrandBase*> IntegrandMap;

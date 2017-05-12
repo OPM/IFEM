@@ -14,10 +14,12 @@
 #ifndef _SPLINE_UTILS_H
 #define _SPLINE_UTILS_H
 
-#include "Function.h"
 #include "MatVec.h"
 
+class RealFunc;
+class VecFunc;
 class Vec4;
+class Vec3;
 
 namespace Go {
   class Point;
