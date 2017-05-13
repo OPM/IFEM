@@ -147,7 +147,7 @@ Real EvalFunc::evaluate (const Real& x) const
 }
 
 
-EvalFunction::EvalFunction (const char* function)
+EvalFunction::EvalFunction (const char* function) : gradient{}, dgradient{}
 {
   try {
     size_t nalloc = 1;
@@ -197,6 +197,48 @@ EvalFunction::~EvalFunction ()
     delete it;
   for (auto& it : v)
     delete it;
+  for (auto& it : gradient)
+    delete it;
+  for (auto& it : dgradient)
+    delete it;
+}
+
+
+/*!
+  \brief Static helper converting an index pair into a single index.
+  \details Assuming Voigt notation ordering; 11, 22, 33, 12, 23, 13.
+*/
+
+static int voigtIdx (int d1, int d2)
+{
+  if (d1 > d2)
+    std::swap(d1,d2); // Assuming symmetry
+
+  if (d1 < 1 || d2 > 3)
+    return -1; // Out-of-range
+  else if (d2-d1 == 0) // diagonal term, 11, 22 and 33
+    return d1-1;
+  else if (d2-d1 == 1) // off-diagonal term, 12 and 23
+    return d2+1;
+  else // off-diagonal term, 13
+    return 5;
+}
+
+
+void EvalFunction::addDerivative (const std::string& function,
+                                  const std::string& variables,
+                                  int d1, int d2)
+{
+  if (d1 > 0 && d1 <= 3 && d2 < 1) // A first derivative is specified
+  {
+    if (!gradient[--d1])
+      gradient[d1] = new EvalFunction((variables+function).c_str());
+  }
+  else if ((d1 = voigtIdx(d1,d2)) >= 0) // A second derivative is specified
+  {
+    if (!dgradient[d1])
+      dgradient[d1] = new EvalFunction((variables+function).c_str());
+  }
 }
 
 
@@ -223,11 +265,94 @@ Real EvalFunction::evaluate (const Vec3& X) const
 }
 
 
+Real EvalFunction::deriv (const Vec3& X, int dir) const
+{
+  if (dir < 1 || dir > 3 || !gradient[--dir])
+    return Real(0);
+
+  return gradient[dir]->evaluate(X);
+}
+
+
+Real EvalFunction::dderiv (const Vec3& X, int d1, int d2) const
+{
+  if (d1 > d2)
+    std::swap(d1,d2); // Assuming symmetry
+
+  if (d1 < 1 || d2 > 3)
+    return Real(0);
+
+  // Assuming Voigt notation ordering; 11, 22, 33, 12, 23, 13
+  if (d2-d1 == 0) // diagoal term, 11, 22 and 33
+    --d1;
+  else if (d2-d1 == 1) // off-diagonal term, 12 and 23
+    d1 = d2+1;
+  else // off-diagonal term, 13
+    d1 = 5;
+
+  return dgradient[d1] ? dgradient[d1]->evaluate(X) : Real(0);
+}
+
+
+/*!
+  \brief Static helper that splits a function expression into components.
+*/
+
+static std::vector<std::string> splitComps (const std::string& functions,
+                                            const std::string& variables)
+{
+  std::vector<std::string> comps;
+  size_t pos1 = functions.find("|");
+  size_t pos2 = 0;
+  while (pos2 < functions.size())
+  {
+    std::string func(variables);
+    if (!func.empty() && func[func.size()-1] != ';')
+      func += ';';
+    if (pos1 == std::string::npos)
+      func += functions.substr(pos2);
+    else
+      func += functions.substr(pos2,pos1-pos2);
+    comps.push_back(func);
+    pos2 = pos1 > 0 && pos1 < std::string::npos ? pos1+1 : pos1;
+    pos1 = functions.find("|",pos1+1);
+  }
+
+  return comps;
+}
+
+
+EvalFunctions::EvalFunctions (const std::string& functions,
+                              const std::string& variables)
+{
+  std::vector<std::string> components = splitComps(functions,variables);
+  for (const auto& comp : components)
+    p.push_back(new EvalFunction(comp.c_str()));
+}
+
+
+EvalFunctions::~EvalFunctions ()
+{
+  for (auto& it : p)
+    delete it;
+}
+
+
+void EvalFunctions::addDerivative (const std::string& functions,
+                                   const std::string& variables, int d1, int d2)
+{
+  std::vector<std::string> components = splitComps(functions,variables);
+  for (size_t i = 0; i < p.size() && i < components.size(); i++)
+    p[i]->addDerivative(components[i],variables,d1,d2);
+}
+
+
 template<>
 Vec3 VecFuncExpr::evaluate (const Vec3& X) const
 {
   Vec3 result;
-  for (size_t i = 0; i < 3 && i < p.size(); ++i)
+
+  for (size_t i = 0; i < 3 && i < nsd; ++i)
     result[i] = (*p[i])(X);
 
   return result;
@@ -235,12 +360,47 @@ Vec3 VecFuncExpr::evaluate (const Vec3& X) const
 
 
 template<>
+Vec3 VecFuncExpr::deriv (const Vec3& X, int dir) const
+{
+  Vec3 result;
+
+  for (size_t i = 0; i < 3 && i < nsd; ++i)
+    result[i] = p[i]->deriv(X,dir);
+
+  return result;
+}
+
+
+template<>
+Vec3 VecFuncExpr::dderiv (const Vec3& X, int d1, int d2) const
+{
+  Vec3 result;
+
+  for (size_t i = 0; i < 3 && i < nsd; ++i)
+    result[i] = p[i]->dderiv(X,d1,d2);
+
+  return result;
+}
+
+
+template<>
+void TensorFuncExpr::setNoDims ()
+{
+  if (p.size() > 8)
+    nsd = 3;
+  else if (p.size() > 3)
+    nsd = 2;
+  else if (p.size() > 0)
+    nsd = 1;
+}
+
+
+template<>
 Tensor TensorFuncExpr::evaluate (const Vec3& X) const
 {
-  int nsd = p.size() > 8 ? 3 : (p.size() > 3 ? 2 : (p.size() > 0 ? 1 : 0));
   Tensor sigma(nsd);
 
-  int i, j, k = 0;
+  size_t i, j, k = 0;
   for (i = 1; i <= nsd; ++i)
     for (j = 1; j <= nsd; ++j)
       sigma(i,j) = (*p[k++])(X);
@@ -250,18 +410,91 @@ Tensor TensorFuncExpr::evaluate (const Vec3& X) const
 
 
 template<>
+Tensor TensorFuncExpr::deriv (const Vec3& X, int dir) const
+{
+  Tensor sigma(nsd);
+
+  size_t i, j, k = 0;
+  for (i = 1; i <= nsd; ++i)
+    for (j = 1; j <= nsd; ++j)
+      sigma(i,j) = p[k++]->deriv(X,dir);
+
+  return sigma;
+}
+
+
+template<>
+Tensor TensorFuncExpr::dderiv (const Vec3& X, int d1, int d2) const
+{
+  Tensor sigma(nsd);
+
+  size_t i, j, k = 0;
+  for (i = 1; i <= nsd; ++i)
+    for (j = 1; j <= nsd; ++j)
+      sigma(i,j) = p[k++]->dderiv(X,d1,d2);
+
+  return sigma;
+}
+
+
+template<>
+void STensorFuncExpr::setNoDims ()
+{
+  if (p.size() > 5)
+    nsd = 3;
+  else if (p.size() > 2)
+    nsd = 2;
+  else if (p.size() > 0)
+    nsd = 1;
+}
+
+
+template<>
 SymmTensor STensorFuncExpr::evaluate (const Vec3& X) const
 {
-  int nsd = p.size() > 5 ? 3 : (p.size() > 2 ? 2 : (p.size() > 0 ? 1 : 0));
   SymmTensor sigma(nsd,p.size()==4);
 
-  int i, j, k = 0;
+  size_t i, j, k = 0;
   for (i = 1; i <= nsd; ++i)
     for (j = i; j <= nsd; ++j)
       sigma(i,j) = (*p[k++])(X);
 
   if (p.size() == 4)
     sigma(3,3) = (*p[3])(X);
+
+  return sigma;
+}
+
+
+template<>
+SymmTensor STensorFuncExpr::deriv (const Vec3& X, int dir) const
+{
+  SymmTensor sigma(nsd,p.size()==4);
+
+  size_t i, j, k = 0;
+  for (i = 1; i <= nsd; ++i)
+    for (j = i; j <= nsd; ++j)
+      sigma(i,j) = p[k++]->deriv(X,dir);
+
+  if (p.size() == 4)
+    sigma(3,3) = p[3]->deriv(X,dir);
+
+  return sigma;
+}
+
+
+template<>
+SymmTensor STensorFuncExpr::dderiv (const Vec3& X, int d1, int d2) const
+{
+  SymmTensor sigma(nsd,p.size()==4);
+
+  size_t i, j, k = 0;
+  for (i = 1; i <= nsd; ++i)
+    for (j = i; j <= nsd; ++j)
+      sigma(i,j) = p[k++]->dderiv(X,d1,d2);
+
+  if (p.size() == 4)
+    sigma(3,3) = p[3]->dderiv(X,d1,d2);
 
   return sigma;
 }

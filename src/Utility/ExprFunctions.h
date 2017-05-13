@@ -18,6 +18,7 @@
 #include "TensorFunction.h"
 #include <string>
 #include <vector>
+#include <array>
 #ifdef USE_OPENMP
 #include <omp.h>
 #endif
@@ -80,6 +81,9 @@ class EvalFunction : public RealFunc
 
   std::vector<Arg> arg; //!< Function argument values
 
+  std::array<EvalFunction*,3> gradient;  //!< First derivative expressions
+  std::array<EvalFunction*,6> dgradient; //!< Second derivative expressions
+
   bool IAmConstant; //!< Indicates whether the time coordinate is given or not
 
 public:
@@ -88,8 +92,17 @@ public:
   //! \brief The destructor frees the dynamically allocated objects.
   virtual ~EvalFunction();
 
+  //! \brief Adds an expression function for a first or second derivative.
+  void addDerivative(const std::string& function, const std::string& variables,
+                     int d1, int d2 = 0);
+
   //! \brief Returns whether the function is time-independent or not.
   virtual bool isConstant() const { return IAmConstant; }
+
+  //! \brief Returns first-derivative of the function.
+  virtual Real deriv(const Vec3& X, int dir) const;
+  //! \brief Returns second-derivative of the function.
+  virtual Real dderiv(const Vec3& X, int dir1, int dir2) const;
 
 protected:
   //! \brief Evaluates the function expression.
@@ -102,52 +115,64 @@ protected:
 
 
 /*!
+  \brief A base class for multi-component expression functions.
+*/
+
+class EvalFunctions
+{
+protected:
+  //! \brief The constructor parses the expression string for each component.
+  EvalFunctions(const std::string& functions, const std::string& variables);
+  //! \brief The destructor frees the dynamically allocated function components.
+  virtual ~EvalFunctions();
+
+public:
+  //! \brief Adds an expression function for a first or second derivative.
+  void addDerivative(const std::string& functions,
+                     const std::string& variables, int d1, int d2 = 0);
+
+protected:
+  std::vector<EvalFunction*> p; //!< Array of component expressions
+};
+
+
+/*!
   \brief A general spatial expression function of any return type.
   \details The function is implemented as an array of EvalFunction objects.
 */
 
 template <class ParentFunc, class Ret>
-class EvalMultiFunction : public ParentFunc
+class EvalMultiFunction : public ParentFunc, public EvalFunctions
 {
-  std::vector<EvalFunction*> p; //!< Array of component expressions
+  size_t nsd; //!< Number of spatial dimensions
 
 public:
   //! \brief The constructor parses the expression string for each component.
   EvalMultiFunction<ParentFunc,Ret>(const std::string& functions,
                                     const std::string& variables = "")
-  {
-    size_t pos = functions.find("|"), pos2 = 0;
-    for (int i = 0; pos2 < functions.size(); i++)
-    {
-      std::string func(variables);
-      if (!func.empty() && func[func.size()-1] != ';')
-        func += ';';
-      if (pos == std::string::npos)
-        func += functions.substr(pos2);
-      else
-        func += functions.substr(pos2,pos-pos2);
-      p.push_back(new EvalFunction(func.c_str()));
-      pos2 = pos > 0 && pos < std::string::npos ? pos+1 : pos;
-      pos = functions.find("|",pos+1);
-    }
-  }
+    : EvalFunctions(functions,variables), nsd(0) { this->setNoDims(); }
 
-  //! \brief The destructor frees the dynamically allocated function components.
-  virtual ~EvalMultiFunction<ParentFunc,Ret>()
-  {
-    for (size_t i = 0; i < p.size(); i++)
-      delete p[i];
-  }
+  //! \brief Empty destructor.
+  virtual ~EvalMultiFunction<ParentFunc,Ret>() {}
 
   //! \brief Returns whether the function is time-independent or not.
   virtual bool isConstant() const
   {
-    for (size_t i = 0; i < p.size(); i++)
-      if (!p[i]->isConstant()) return false;
+    for (EvalFunction* func : p)
+      if (!func->isConstant())
+        return false;
     return true;
   }
 
+  //! \brief Returns first-derivative of the function.
+  virtual Ret deriv(const Vec3& X, int dir) const;
+  //! \brief Returns second-derivative of the function.
+  virtual Ret dderiv(const Vec3& X, int dir1, int dir2) const;
+
 protected:
+  //! \brief Sets the number of spatial dimenions (default implementation).
+  void setNoDims() { nsd = p.size(); }
+
   //! \brief Evaluates the function expressions.
   virtual Ret evaluate(const Vec3& X) const;
 };
@@ -163,9 +188,22 @@ typedef EvalMultiFunction<STensorFunc,SymmTensor> STensorFuncExpr;
 template<> Vec3 VecFuncExpr::evaluate(const Vec3& X) const;
 
 //! \brief Specialization for tensor functions.
+template<> void TensorFuncExpr::setNoDims();
+//! \brief Specialization for tensor functions.
 template<> Tensor TensorFuncExpr::evaluate(const Vec3& X) const;
+//! \brief Specialization for tensor functions.
+template<> Tensor TensorFuncExpr::deriv(const Vec3& X, int dir) const;
+//! \brief Specialization for tensor functions.
+template<> Tensor TensorFuncExpr::dderiv(const Vec3& X, int d1, int d2) const;
 
 //! \brief Specialization for symmetric tensor functions.
+template<> void STensorFuncExpr::setNoDims();
+//! \brief Specialization for symmetric tensor functions.
 template<> SymmTensor STensorFuncExpr::evaluate(const Vec3& X) const;
+//! \brief Specialization for symmetric tensor functions.
+template<> SymmTensor STensorFuncExpr::deriv(const Vec3& X, int dir) const;
+//! \brief Specialization for symmetric tensor functions.
+template<> SymmTensor STensorFuncExpr::dderiv(const Vec3& X,
+                                              int d1, int d2) const;
 
 #endif

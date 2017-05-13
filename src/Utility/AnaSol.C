@@ -81,6 +81,29 @@ AnaSol::AnaSol (std::istream& is, const int nlines, bool scalarSol)
 }
 
 
+/*!
+  \brief Static helper to parse the derivative of an expression function.
+*/
+
+template <class T> void parseDerivatives (T* func, const std::string& variables,
+                                          const TiXmlElement* elem)
+{
+  const TiXmlElement* child = elem->FirstChildElement("derivative");
+  for (; child; child = child->NextSiblingElement("derivative"))
+  {
+    int dir1 = 0, dir2 = 0;
+    if (!utl::getAttribute(child,"dir",dir1))
+      if (utl::getAttribute(child,"d1",dir1))
+        utl::getAttribute(child,"d2",dir2);
+    IFEM::cout <<"\tDerivative_"<< dir1;
+    if (dir2 > 0) IFEM::cout << dir2;
+    std::string derivative = child->FirstChild()->Value();
+    IFEM::cout <<"="<< derivative << std::endl;
+    func->addDerivative(derivative,variables,dir1,dir2);
+  }
+}
+
+
 AnaSol::AnaSol (const TiXmlElement* elem, bool scalarSol)
   : vecSol(nullptr), vecSecSol(nullptr), stressSol(nullptr)
 {
@@ -100,9 +123,17 @@ AnaSol::AnaSol (const TiXmlElement* elem, bool scalarSol)
     std::string primary = prim->FirstChild()->Value();
     IFEM::cout <<"\tPrimary="<< primary << std::endl;
     if (scalarSol)
+    {
       scalSol.push_back(new EvalFunction((variables+primary).c_str()));
+      parseDerivatives(static_cast<EvalFunction*>(scalSol.back()),
+                       variables,prim);
+    }
     else
+    {
       vecSol = new VecFuncExpr(primary,variables);
+      parseDerivatives(static_cast<VecFuncExpr*>(vecSol),
+                       variables,prim);
+    }
   }
 
   prim = elem->FirstChildElement("scalarprimary");
@@ -120,9 +151,17 @@ AnaSol::AnaSol (const TiXmlElement* elem, bool scalarSol)
     std::string secondary = sec->FirstChild()->Value();
     IFEM::cout <<"\tSecondary="<< secondary << std::endl;
     if (scalarSol)
+    {
       scalSecSol.push_back(new VecFuncExpr(secondary,variables));
+      parseDerivatives(static_cast<VecFuncExpr*>(scalSecSol.back()),
+                       variables,sec);
+    }
     else
+    {
       vecSecSol = new TensorFuncExpr(secondary,variables);
+      parseDerivatives(static_cast<TensorFuncExpr*>(vecSecSol),
+                       variables,sec);
+    }
   }
 
   sec = elem->FirstChildElement("scalarsecondary");
@@ -140,6 +179,8 @@ AnaSol::AnaSol (const TiXmlElement* elem, bool scalarSol)
     std::string sigma = stress->FirstChild()->Value();
     IFEM::cout <<"\tStress="<< sigma << std::endl;
     stressSol = new STensorFuncExpr(sigma,variables);
+    parseDerivatives(static_cast<STensorFuncExpr*>(stressSol),
+                     variables,stress);
   }
 }
 
