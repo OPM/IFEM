@@ -454,13 +454,9 @@ SymmTensor STensorFuncExpr::evaluate (const Vec3& X) const
 {
   SymmTensor sigma(nsd,p.size()==4);
 
-  size_t i, j, k = 0;
-  for (i = 1; i <= nsd; ++i)
-    for (j = i; j <= nsd; ++j)
-      sigma(i,j) = (*p[k++])(X);
-
-  if (p.size() == 4)
-    sigma(3,3) = (*p[3])(X);
+  std::vector<Real>& svec = sigma;
+  for (size_t i = 0; i < svec.size(); i++)
+    svec[i] = (*p[i])(X);
 
   return sigma;
 }
@@ -471,13 +467,9 @@ SymmTensor STensorFuncExpr::deriv (const Vec3& X, int dir) const
 {
   SymmTensor sigma(nsd,p.size()==4);
 
-  size_t i, j, k = 0;
-  for (i = 1; i <= nsd; ++i)
-    for (j = i; j <= nsd; ++j)
-      sigma(i,j) = p[k++]->deriv(X,dir);
-
-  if (p.size() == 4)
-    sigma(3,3) = p[3]->deriv(X,dir);
+  std::vector<Real>& svec = sigma;
+  for (size_t i = 0; i < svec.size(); i++)
+    svec[i] = p[i]->deriv(X,dir);
 
   return sigma;
 }
@@ -488,13 +480,9 @@ SymmTensor STensorFuncExpr::dderiv (const Vec3& X, int d1, int d2) const
 {
   SymmTensor sigma(nsd,p.size()==4);
 
-  size_t i, j, k = 0;
-  for (i = 1; i <= nsd; ++i)
-    for (j = i; j <= nsd; ++j)
-      sigma(i,j) = p[k++]->dderiv(X,d1,d2);
-
-  if (p.size() == 4)
-    sigma(3,3) = p[3]->dderiv(X,d1,d2);
+  std::vector<Real>& svec = sigma;
+  for (size_t i = 0; i < svec.size(); i++)
+    svec[i] = p[i]->dderiv(X,d1,d2);
 
   return sigma;
 }
