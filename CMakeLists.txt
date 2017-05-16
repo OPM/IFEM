@@ -172,6 +172,9 @@ else()
                          src/LinAlg/*.h src/SIM/*.h
                          src/Utility/*.h
                          ${CMAKE_BINARY_DIR}/IFEM.h)
+  if(NOT IFEM_USE_SYSTEM_TINYXML)
+    list(APPEND IFEM_HEADERS 3rdparty/tinyxml/tinyxml.h)
+  endif()
   install(FILES ${IFEM_HEADERS}
           DESTINATION include/IFEM COMPONENT ${IFEM_DEV_COMPONENT})
 
