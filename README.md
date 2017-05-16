@@ -79,6 +79,8 @@ First, we will add inhouse dependencies by a secondary repository.
 
     `sudo apt-get install libcereal-dev`
 
+    Note: it is only available for Ubuntu 16.04 and later.
+
 9. **[optional]** Install the VTF writer.
    This is proprietary software that cannot be shared openly.  
    Send email to Trond.Kvamsdal@sintef.no and ask for them.
