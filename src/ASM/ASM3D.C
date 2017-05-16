@@ -85,10 +85,10 @@ ASMbase* ASM3D::clone (const CharVec& nf) const
 
 double ASM3D::getElementSize (const std::vector<Vec3>& XC)
 {
-  // Find the longest diagonal (diameter av minste omvskrivende kule)
+  // Find the longest diagonal (diameter av minste omskrivende kule)
   double siz = (XC[7] - XC[0]).length();
   for (int c = 1; c < 4; c++)
     siz = std::max(siz,(XC[7-c]-XC[c]).length());
 
-  return siz;
+  return siz / ASMbase::modelSize; // Scale down by model size
 }

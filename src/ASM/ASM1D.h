@@ -19,6 +19,7 @@
 #include <cstddef>
 
 class ASMbase;
+class Vec3;
 
 
 /*!
@@ -87,6 +88,9 @@ public:
   //! \param[in] nSegSpan Number of visualization segments over each knot-span
   virtual bool getGridParameters(std::vector<double>& prm,
                                  int nSegSpan) const = 0;
+
+  //! \brief Returns characteristic element size based on end point coordinates.
+  static double getElementSize(const std::vector<Vec3>& XC);
 };
 
 #endif

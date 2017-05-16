@@ -26,6 +26,12 @@
 bool ASMbase::fixHomogeneousDirichlet = true;
 int  ASMbase::dbgElm = 0;
 
+//! This quantitiy is used to scale the characteristic element sizes which
+//! are used by residual error estimates, etc., such that they always are in
+//! the range [0,1.0]. The applications have to set an appropriate value,
+//! when needed.
+double ASMbase::modelSize = 1.0;
+
 
 /*!
   \brief Convenience function writing error message for non-implemented methods.

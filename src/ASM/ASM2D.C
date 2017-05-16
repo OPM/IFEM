@@ -107,5 +107,6 @@ ASMbase* ASM2D::clone (const CharVec& nf) const
 double ASM2D::getElementSize (const std::vector<Vec3>& XC)
 {
   // Find longest diagonal (diameter av minste omskrivende sirkel)
-  return std::max((XC[3]-XC[0]).length(),(XC[2]-XC[1]).length());
+  double siz = std::max((XC[3]-XC[0]).length(),(XC[2]-XC[1]).length());
+  return siz / ASMbase::modelSize; // Scale down by model dimension
 }

@@ -373,9 +373,9 @@ public:
   virtual void initMADOF(const int*) {}
 
   //! \brief Generates element groups for multi-threading of interior integrals.
-  virtual void generateThreadGroups(const Integrand&, bool = false, bool = false) {}
+  virtual void generateThreadGroups(const Integrand&, bool, bool) {}
   //! \brief Generates element groups for multi-threading of boundary integrals.
-  virtual void generateThreadGroups(char, bool = false, bool = false) {}
+  virtual void generateThreadGroups(char, bool, bool) {}
 
 
   // Methods for integration of finite element quantities.
@@ -661,6 +661,8 @@ public:
   static bool fixHomogeneousDirichlet; //!< If \e true, pre-eliminate fixed DOFs
 
   static int dbgElm; //!< One-based element index to print debugging info for
+
+  static double modelSize; //!< Characteristic model size
 
   size_t idx; //!< Index of this patch in the multi-patch model
 

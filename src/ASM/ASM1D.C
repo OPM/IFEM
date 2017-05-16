@@ -15,6 +15,7 @@
 #include "ASMs1DC1.h"
 #include "ASMs1DLag.h"
 #include "ASMs1DSpec.h"
+#include "Vec3Oper.h"
 
 
 ASMbase* ASM1D::create (ASM::Discretization discretization, unsigned char nf)
@@ -59,3 +60,10 @@ ASMbase* ASM1D::clone (unsigned char* nf) const
 }
 
 #undef TRY_CLONE1
+
+
+double ASM1D::getElementSize (const std::vector<Vec3>& XC)
+{
+  // Find the element length
+  return (XC.back() - XC.front()).length() / ASMbase::modelSize;
+}

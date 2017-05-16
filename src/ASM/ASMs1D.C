@@ -688,8 +688,8 @@ double ASMs1D::getElementEnds (int i, Vec3Vec& XC) const
   for (int j = 0; j < 2; j++, pt += dim)
     XC.push_back(Vec3(pt,dim));
 
-  // Calculate the element length
-  double h = (XC.back() - XC.front()).length();
+  // Calculate the characteristic element size
+  double h = getElementSize(XC);
   if (elmCS.empty()) return h;
 
   // Add the local Z-axis as the third vector

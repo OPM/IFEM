@@ -24,7 +24,6 @@
 #include "GaussQuadrature.h"
 #include "ElementBlock.h"
 #include "Utilities.h"
-#include "Vec3Oper.h"
 
 
 ASMs1DLag::ASMs1DLag (unsigned char n_s, unsigned char n_f)
@@ -188,7 +187,7 @@ static double getEndPoints (const Matrix& Xnod, Vec3Vec& XC)
     XC[1][i] = Xnod(i+1,Xnod.rows());
   }
 
-  return (XC.back() - XC.front()).length(); // Element length
+  return ASM1D::getElementSize(XC);
 }
 
 

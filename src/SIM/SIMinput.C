@@ -498,6 +498,10 @@ bool SIMinput::parse (const TiXmlElement* elem)
       myEntitys = myGen->createTopologySets(*this);
     }
 
+  // Check if a characteristic model size is specified
+  if (!strcasecmp(elem->Value(),"geometry"))
+    utl::getAttribute(elem,"modelsize",ASMbase::modelSize);
+
   if (!strcasecmp(elem->Value(),"linearsolver"))
   {
     if (!mySolParams)
