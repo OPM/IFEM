@@ -621,10 +621,10 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
   bool useElmVtx = integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS;
 
   std::map<char,ThreadGroups>::const_iterator tit;
-  if ((tit = threadGroupsFace.find(lIndex)) == threadGroupsFace.end())
+  if ((tit = threadGroupsFace.find(lIndex%10)) == threadGroupsFace.end())
   {
-    std::cerr <<" *** ASMs3D::integrate: No thread groups for face "<< lIndex
-	      << std::endl;
+    std::cerr <<" *** ASMs3Dmx::integrate: No thread groups for face "
+              << lIndex%10 << std::endl;
     return false;
   }
   const ThreadGroups& threadGrp = tit->second;
@@ -635,7 +635,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
   if (!xg || !wg) return false;
 
   // Find the parametric direction of the face normal {-3,-2,-1, 1, 2, 3}
-  const int faceDir = (lIndex+1)/(lIndex%2 ? -2 : 2);
+  const int faceDir = (lIndex%10+1)/(lIndex%2 ? -2 : 2);
 
   const int t1 = 1 + abs(faceDir)%3; // first tangent direction
   const int t2 = 1 + t1%3;           // second tangent direction
@@ -655,6 +655,9 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
     }
     else
       this->getGaussPointParameters(gpar[d],d,nGauss,xg);
+
+  // Extract the Neumann order flag (1 or higher) for the integrand
+  integrand.setNeumannOrder(1 + lIndex/10);
 
   // Evaluate basis function derivatives at all integration points
   std::vector<std::vector<Go::BasisDerivs>> splinex(m_basis.size());
@@ -676,7 +679,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
   const int nel1 = n1 - p1 + 1;
   const int nel2 = n2 - p2 + 1;
 
-  std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex);
+  std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex%10);
   size_t firstp = iit == firstBp.end() ? 0 : iit->second;
 
 
@@ -1033,7 +1036,7 @@ double ASMs3Dmx::getParametricVolume (int iel) const
 #ifdef INDEX_CHECK
   if (iel < 1 || (size_t)iel > MNPC.size())
   {
-    std::cerr <<" *** ASMs3D::getParametricVolume: Element index "<< iel
+    std::cerr <<" *** ASMs3Dmx::getParametricVolume: Element index "<< iel
 	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
     return DERR;
   }
@@ -1068,7 +1071,7 @@ double ASMs3Dmx::getParametricArea (int iel, int dir) const
 #ifdef INDEX_CHECK
   if (iel < 1 || (size_t)iel > MNPC.size())
   {
-    std::cerr <<" *** ASMs3D::getParametricArea: Element index "<< iel
+    std::cerr <<" *** ASMs3Dmx::getParametricArea: Element index "<< iel
 	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
     return DERR;
   }
@@ -1085,7 +1088,7 @@ double ASMs3Dmx::getParametricArea (int iel, int dir) const
 #ifdef INDEX_CHECK
   if (inod1 < 0 || (size_t)inod1 >= nnod)
   {
-    std::cerr <<" *** ASMs3D::getParametricArea: Node index "<< inod1
+    std::cerr <<" *** ASMs3Dmx::getParametricArea: Node index "<< inod1
 	      <<" out of range [0,"<< nnod <<">."<< std::endl;
     return DERR;
   }
@@ -1101,7 +1104,7 @@ double ASMs3Dmx::getParametricArea (int iel, int dir) const
     case 3: return svol->knotSpan(0,ni)*svol->knotSpan(1,nj);
     }
 
-  std::cerr <<" *** ASMs3D::getParametricArea: Invalid face direction "
+  std::cerr <<" *** ASMs3Dmx::getParametricArea: Invalid face direction "
 	    << dir << std::endl;
   return DERR;
 }

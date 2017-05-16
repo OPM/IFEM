@@ -694,7 +694,7 @@ size_t ASMu3D::getNoBoundaryElms (char lIndex, char ldim) const
   if (!lrspline) return 0;
 
   LR::parameterEdge edge;
-  switch(lIndex)
+  switch (lIndex)
   {
   case 1: edge = LR::WEST;   break;
   case 2: edge = LR::EAST;   break;
@@ -1193,16 +1193,19 @@ bool ASMu3D::integrate (Integrand& integrand, int lIndex,
   if (!xg || !wg) return false;
 
   // Find the parametric direction of the face normal {-3,-2,-1, 1, 2, 3}
-  const int faceDir = (lIndex+1)/(lIndex%2 ? -2 : 2);
+  const int faceDir = (lIndex%10+1)/(lIndex%2 ? -2 : 2);
 
   const int t1 = 1 + abs(faceDir)%3; // first tangent direction
   const int t2 = 1 + t1%3;           // second tangent direction
 
-  std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex);
+  // Extract the Neumann order flag (1 or higher) for the integrand
+  integrand.setNeumannOrder(1 + lIndex/10);
+
+  std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex%10);
   size_t firstp = iit == firstBp.end() ? 0 : iit->second;
 
   LR::parameterEdge edge;
-  switch(lIndex)
+  switch (lIndex%10)
   {
   case 1: edge = LR::WEST;   break;
   case 2: edge = LR::EAST;   break;
@@ -1618,7 +1621,7 @@ bool ASMu3D::tesselate (ElementBlock& grid, const int* npe) const
   if (!lrspline) return false;
 
   if (npe[0] != npe[1] || npe[0] != npe[2]) {
-    std::cerr << "ASMu2D::tesselate does not support different tesselation resolution in "
+    std::cerr << "ASMu3D::tesselate does not support different tesselation resolution in "
               << "u- and v-direction. nviz u = " << npe[0] << ", nviz v = " << npe[1]
               << ", nviz w = " << npe[2] << std::endl;
     return false;
@@ -1778,7 +1781,7 @@ bool ASMu3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 {
   if (npe == nullptr || npe[0] != npe[1] || npe[0] != npe[2] || npe[1] != npe[2])
   {
-    std::cerr <<" *** ASMu2D::evalSolution: LR B-splines require the"
+    std::cerr <<" *** ASMu3D::evalSolution: LR B-splines require the"
               <<" same number of evaluation points in u-, v- and w-direction."
               << std::endl;
     return false;
@@ -1832,7 +1835,7 @@ bool ASMu3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     return true;
   }
 
-  std::cerr <<" *** ASMu2D::evalSolution: Failure!"<< std::endl;
+  std::cerr <<" *** ASMu3D::evalSolution: Failure!"<< std::endl;
   return false;
 }
 

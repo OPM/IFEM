@@ -395,10 +395,10 @@ bool ASMs3DmxLag::integrate (Integrand& integrand, int lIndex,
   if (!svol) return true; // silently ignore empty patches
 
   std::map<char,ThreadGroups>::const_iterator tit;
-  if ((tit = threadGroupsFace.find(lIndex)) == threadGroupsFace.end())
+  if ((tit = threadGroupsFace.find(lIndex%10)) == threadGroupsFace.end())
   {
-    std::cerr <<" *** ASMs3DLag::integrate: No thread groups for face "<< lIndex
-	      << std::endl;
+    std::cerr <<" *** ASMs3DmxLag::integrate: No thread groups for face "
+              << lIndex%10 << std::endl;
     return false;
   }
   const ThreadGroups& threadGrp = tit->second;
@@ -409,11 +409,14 @@ bool ASMs3DmxLag::integrate (Integrand& integrand, int lIndex,
   if (!xg || !wg) return false;
 
   // Find the parametric direction of the face normal {-3,-2,-1, 1, 2, 3}
-  const int faceDir = (lIndex+1)/(lIndex%2 ? -2 : 2);
+  const int faceDir = (lIndex%10+1)/(lIndex%2 ? -2 : 2);
 
   const int t0 = abs(faceDir); // unsigned normal direction of the face
   const int t1 = 1 + t0%3; // first tangent direction of the face
   const int t2 = 1 + t1%3; // second tangent direction of the face
+
+  // Extract the Neumann order flag (1 or higher) for the integrand
+  integrand.setNeumannOrder(1 + lIndex/10);
 
   std::vector<size_t> elem_size;
   for (size_t b = 0; b < nxx.size(); ++b)
@@ -423,7 +426,7 @@ bool ASMs3DmxLag::integrate (Integrand& integrand, int lIndex,
   const int nel1 = (nxx[geoBasis-1]-1)/(elem_sizes[geoBasis-1][0]-1);
   const int nel2 = (nyx[geoBasis-1]-1)/(elem_sizes[geoBasis-1][1]-1);
 
-  std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex);
+  std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex%10);
   size_t firstp = iit == firstBp.end() ? 0 : iit->second;
 
   // === Assembly loop over all elements on the patch face =====================

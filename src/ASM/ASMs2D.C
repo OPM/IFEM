@@ -2059,7 +2059,7 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
   if (!xg || !wg) return false;
 
   // Find the parametric direction of the edge normal {-2,-1, 1, 2}
-  const int edgeDir = (lIndex+1)/(lIndex%2 ? -2 : 2);
+  const int edgeDir = (lIndex%10+1) / (lIndex%2 ? -2 : 2);
 
   const int t1 = abs(edgeDir);   // Tangent direction normal to the patch edge
   const int t2 = 3-abs(edgeDir); // Tangent direction along the patch edge
@@ -2080,6 +2080,9 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
     else
       this->getGaussPointParameters(gpar[d],d,nGP,xg);
 
+  // Extract the Neumann order flag (1 or higher) for the integrand
+  integrand.setNeumannOrder(1 + lIndex/10);
+
   // Evaluate basis function derivatives at all integration points
   std::vector<Go::BasisDerivsSf> spline;
   surf->computeBasisGrid(gpar[0],gpar[1],spline);
@@ -2099,7 +2102,7 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
       return false;
     }
 
-  std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex);
+  std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex%10);
   size_t firstp = iit == firstBp.end() ? 0 : iit->second;
 
   FiniteElement fe(p1*p2);

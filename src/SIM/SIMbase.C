@@ -291,7 +291,8 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
         }
 
         if (dofs > 0)
-          if (this->addConstraint(q->patch,q->lindx,q->ldim,dofs,code,ngnod,q->basis))
+          if (this->addConstraint(q->patch,q->lindx,q->ldim,dofs,code,ngnod,
+                                  q->basis))
             IFEM::cout << std::endl;
           else
             ++ierr;
@@ -384,7 +385,7 @@ void SIMbase::generateThreadGroups (const Property& p, bool silence)
 {
   ASMbase* pch = this->getPatch(p.patch);
   if (pch && abs(p.ldim)+1 == pch->getNoParamDim())
-    pch->generateThreadGroups(p.lindx,silence,lagMTOK);
+    pch->generateThreadGroups(p.lindx%10,silence,lagMTOK);
 }
 
 
@@ -520,11 +521,12 @@ void SIMbase::setQuadratureRule (size_t ng, bool redimBuffers, bool printQP)
       // Account for possibly more than one Neumann property on a boundary
       bool notCounted = true;
       for (PropertyVec::const_iterator q = myProps.begin(); q != p; ++q)
-	if (q->patch == p->patch && q->lindx == p->lindx && q->pcode==p->pcode)
-	  notCounted = false;
+        if (q->patch == p->patch && q->lindx%10 == p->lindx%10 &&
+            q->pcode == p->pcode)
+          notCounted = false;
 
       if (notCounted) // Count the boundary integration points
-        myModel[p->patch-1]->getNoBouPoints(nBouGP,abs(p->ldim),p->lindx);
+        myModel[p->patch-1]->getNoBouPoints(nBouGP,abs(p->ldim),p->lindx%10);
     }
 
   // Let the integrands know how many integration points in total we have
@@ -695,7 +697,7 @@ void SIMbase::getBoundaryNodes (int pcode, IntVec& glbNodes, Vec3Vec* XYZ) const
       if (abs(p->ldim)+1 == pch->getNoParamDim()) {
         // The boundary is of one dimension lower than the patch
         IntVec nodes;
-        pch->getBoundaryNodes(abs(p->lindx),nodes);
+        pch->getBoundaryNodes(abs(p->lindx%10),nodes);
         for (const int& it : nodes)
           if (std::find(glbNodes.begin(),glbNodes.end(),it) == glbNodes.end()) {
             glbNodes.push_back(it);
@@ -845,7 +847,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
             {
               if (msgLevel > 1)
                 IFEM::cout <<"\nAssembling Neumann matrix terms for boundary "
-                           << (int)p->lindx <<" on P"<< p->patch << std::endl;
+                           << p->lindx%10 <<" on P"<< p->patch << std::endl;
               if (p->patch != lp)
                 ok &= this->extractPatchSolution(it->second,prevSol,p->patch-1);
               ok &= pch->integrate(*it->second,p->lindx,sysQ,time);
@@ -861,7 +863,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
             {
               if (msgLevel > 1)
                 IFEM::cout <<"\nAssembling Neumann matrix terms for edge "
-                           << (int)p->lindx <<" on P"<< p->patch << std::endl;
+                           << p->lindx%10 <<" on P"<< p->patch << std::endl;
               if (p->patch != lp)
                 ok &= this->extractPatchSolution(it->second,prevSol,p->patch-1);
               ok &= pch->integrateEdge(*it->second,p->lindx,sysQ,time);

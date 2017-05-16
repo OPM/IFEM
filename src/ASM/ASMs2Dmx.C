@@ -678,7 +678,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
   if (!xg || !wg) return false;
 
   // Find the parametric direction of the edge normal {-2,-1, 1, 2}
-  const int edgeDir = (lIndex+1)/(lIndex%2 ? -2 : 2);
+  const int edgeDir = (lIndex%10+1)/(lIndex%2 ? -2 : 2);
 
   const int t1 = abs(edgeDir);   // Tangent direction normal to the patch edge
   const int t2 = 3-abs(edgeDir); // Tangent direction along the patch edge
@@ -699,6 +699,9 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
     else
       this->getGaussPointParameters(gpar[d],d,nGauss,xg);
 
+  // Extract the Neumann order flag (1 or higher) for the integrand
+  integrand.setNeumannOrder(1 + lIndex/10);
+
   // Evaluate basis function derivatives at all integration points
   std::vector<std::vector<Go::BasisDerivsSf>> splinex(m_basis.size());
 #pragma omp parallel for schedule(static)
@@ -714,7 +717,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
   for (auto& it : m_basis)
     elem_sizes.push_back(it->order_u()*it->order_v());
 
-  std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex);
+  std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex%10);
   size_t firstp = iit == firstBp.end() ? 0 : iit->second;
 
   MxFiniteElement fe(elem_sizes);

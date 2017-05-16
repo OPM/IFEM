@@ -513,10 +513,10 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
   if (!svol) return true; // silently ignore empty patches
 
   std::map<char,ThreadGroups>::const_iterator tit;
-  if ((tit = threadGroupsFace.find(lIndex)) == threadGroupsFace.end())
+  if ((tit = threadGroupsFace.find(lIndex%10)) == threadGroupsFace.end())
   {
-    std::cerr <<" *** ASMs3DLag::integrate: No thread groups for face "<< lIndex
-	      << std::endl;
+    std::cerr <<" *** ASMs3DLag::integrate: No thread groups for face "
+              << lIndex%10 << std::endl;
     return false;
   }
   const ThreadGroups& threadGrp = tit->second;
@@ -528,7 +528,7 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
   if (!xg || !wg) return false;
 
   // Find the parametric direction of the face normal {-3,-2,-1, 1, 2, 3}
-  const int faceDir = (lIndex+1)/(lIndex%2 ? -2 : 2);
+  const int faceDir = (lIndex%10+1)/(lIndex%2 ? -2 : 2);
 
   const int t0 = abs(faceDir); // unsigned normal direction of the face
   const int t1 = 1 + t0%3; // first tangent direction of the face
@@ -557,17 +557,20 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
   if (vpar.empty()) this->getGridParameters(vpar,1,1);
   if (wpar.empty()) this->getGridParameters(wpar,2,1);
 
+  // Extract the Neumann order flag (1 or higher) for the integrand
+  integrand.setNeumannOrder(1 + lIndex/10);
+
   // Integrate the extraordinary elements?
   size_t doXelms = 0;
   if (integrand.getIntegrandType() & Integrand::XO_ELEMENTS)
     if ((doXelms = nel1*nel2*nel3)*2 > MNPC.size())
     {
-      std::cerr <<" *** ASMs2DLag::integrate: Too few XO-elements "
+      std::cerr <<" *** ASMs3DLag::integrate: Too few XO-elements "
                 << MNPC.size() - doXelms << std::endl;
       return false;
     }
 
-  std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex);
+  std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex%10);
   size_t firstp = iit == firstBp.end() ? 0 : iit->second;
 
 

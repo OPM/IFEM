@@ -49,6 +49,13 @@ public:
   //! \brief Empty destructor.
   virtual ~Integrand() {}
 
+  //! \brief Defines the Neumann order that is the subject of integration.
+  //! \details This method is invoked once before the integration loop over
+  //! a patch boundary for a certain property. Reimplement this method if your
+  //! integrand has a differential operator of second (or higher) order, for
+  //! which you need to have two (or more) distinct Neumann boundary conditions.
+  virtual void setNeumannOrder(char) {}
+
 
   // Element-level initialization interface
   // ======================================
@@ -258,7 +265,8 @@ public:
   //! It can also be used to implement multiple integration point loops within
   //! the same element, provided the necessary integration point values are
   //! stored internally in the object during the first integration loop.
-  virtual bool finalizeElementBou(LocalIntegral& elmInt, const FiniteElement& fe,
+  virtual bool finalizeElementBou(LocalIntegral& elmInt,
+                                  const FiniteElement& fe,
                                   const TimeDomain& time)
   {
     return true;

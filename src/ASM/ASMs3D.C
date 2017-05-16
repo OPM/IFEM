@@ -2171,10 +2171,10 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
   PROFILE2("ASMs3D::integrate(B)");
 
   std::map<char,ThreadGroups>::const_iterator tit;
-  if ((tit = threadGroupsFace.find(lIndex)) == threadGroupsFace.end())
+  if ((tit = threadGroupsFace.find(lIndex%10)) == threadGroupsFace.end())
   {
-    std::cerr <<" *** ASMs3D::integrate: No thread groups for face "<< lIndex
-              << std::endl;
+    std::cerr <<" *** ASMs3D::integrate: No thread groups for face "
+              << lIndex%10 << std::endl;
     return false;
   }
   const ThreadGroups& threadGrp = tit->second;
@@ -2186,7 +2186,7 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
   if (!xg || !wg) return false;
 
   // Find the parametric direction of the face normal {-3,-2,-1, 1, 2, 3}
-  const int faceDir = (lIndex+1)/(lIndex%2 ? -2 : 2);
+  const int faceDir = (lIndex%10+1)/(lIndex%2 ? -2 : 2);
 
   const int t1 = 1 + abs(faceDir)%3; // first tangent direction
   const int t2 = 1 + t1%3;           // second tangent direction
@@ -2206,6 +2206,9 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
     }
     else
       this->getGaussPointParameters(gpar[d],d,nGP,xg);
+
+  // Extract the Neumann order flag (1 or higher) for the integrand
+  integrand.setNeumannOrder(1 + lIndex/10);
 
   // Evaluate basis function derivatives at all integration points
   std::vector<Go::BasisDerivs> spline;
@@ -2235,7 +2238,7 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
       return false;
     }
 
-  std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex);
+  std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex%10);
   size_t firstp = iit == firstBp.end() ? 0 : iit->second;
 
 
@@ -3176,7 +3179,7 @@ bool ASMs3D::evaluate (const RealFunc* func, RealArray& vec,
   Go::SplineVolume* newVol = SplineUtils::project(oldVol,*func,time);
   if (!newVol)
   {
-    std::cerr <<" *** ASMs2D::evaluate: Projection failure."<< std::endl;
+    std::cerr <<" *** ASMs3D::evaluate: Projection failure."<< std::endl;
     return false;
   }
 

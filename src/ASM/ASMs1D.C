@@ -925,11 +925,14 @@ bool ASMs1D::integrate (Integrand& integrand, int lIndex,
 {
   if (!curv) return true; // silently ignore empty patches
 
+  // Extract the Neumann order flag (1 or higher) for the integrand
+  integrand.setNeumannOrder(1 + lIndex/10);
+
   // Integration of boundary point
 
   FiniteElement fe(curv->order());
   size_t iel = 0;
-  switch (lIndex)
+  switch (lIndex%10)
     {
     case 1:
       fe.xi = -1.0;
@@ -946,7 +949,7 @@ bool ASMs1D::integrate (Integrand& integrand, int lIndex,
       return false;
     }
 
-  std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex);
+  std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex%10);
   fe.iGP = iit == firstBp.end() ? 0 : iit->second;
   fe.iel = MLGE[iel];
   if (fe.iel < 1) return true; // zero-length element
@@ -980,7 +983,7 @@ bool ASMs1D::integrate (Integrand& integrand, int lIndex,
     utl::Jacobian(Jac,fe.dNdX,fe.Xn,dNdu);
 
     // Set up the normal vector
-    if (lIndex == 1)
+    if (lIndex%10 == 1)
       normal.x = -copysign(1.0,Jac(1,1));
     else
       normal.x = copysign(1.0,Jac(1,1));

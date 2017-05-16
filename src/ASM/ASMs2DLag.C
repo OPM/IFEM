@@ -469,7 +469,7 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
   if (!xg || !wg) return false;
 
   // Find the parametric direction of the edge normal {-2,-1, 1, 2}
-  const int edgeDir = (lIndex+1)/(lIndex%2 ? -2 : 2);
+  const int edgeDir = (lIndex%10+1)/(lIndex%2 ? -2 : 2);
 
   const int t1 = abs(edgeDir); // tangent direction normal to the patch edge
   const int t2 = 3-t1;         // tangent direction along the patch edge
@@ -496,6 +496,9 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
     fe.v = edgeDir < 0 ? surf->startparam_v() : surf->endparam_v();
   }
 
+  // Extract the Neumann order flag (1 or higher) for the integrand
+  integrand.setNeumannOrder(1 + lIndex/10);
+
   // Integrate the extraordinary elements?
   size_t doXelms = 0;
   if (integrand.getIntegrandType() & Integrand::XO_ELEMENTS)
@@ -506,7 +509,7 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
       return false;
     }
 
-  std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex);
+  std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex%10);
   size_t firstp = iit == firstBp.end() ? 0 : iit->second;
 
   Matrix dNdu, Xnod, Jac;

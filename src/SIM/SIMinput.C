@@ -265,24 +265,38 @@ bool SIMinput::parseBCTag (const TiXmlElement* elem)
     std::string set, type;
     utl::getAttribute(elem,"set",set);
     utl::getAttribute(elem,"type",type,true);
+
+    int ndir = 0, order = 1;
+    utl::getAttribute(elem,"direction",ndir);
+    utl::getAttribute(elem,"order",order);
+    size_t ip = myProps.size();
+
     int code = this->getUniquePropertyCode(set);
     if (code == 0) utl::getAttribute(elem,"code",code);
 
+    if (order > 1) // Flag Neumann order by increasing the topology index by 10
+      while (ip < myProps.size())
+        myProps[ip++].lindx += 10*(order-1);
+
     IFEM::cout <<"\tNeumann code "<< code;
+    if (order > 1)
+      IFEM::cout <<" order "<< order;
     if (type == "anasol")
-    {
       IFEM::cout <<" (analytic)";
-      this->setPropertyType(code,Property::NEUMANN_ANASOL);
+    else
+    {
+      if (type != "generic" || (nval && ndir > 0))
+        IFEM::cout <<" direction "<< ndir;
+      if (!type.empty())
+        IFEM::cout <<" ("<< type <<")";
     }
+
+    if (type == "anasol")
+      this->setPropertyType(code,Property::NEUMANN_ANASOL);
     else if (type == "generic")
     {
-      IFEM::cout <<" (generic)";
       if (nval)
       {
-        int ndir = 0;
-        utl::getAttribute(elem,"direction",ndir);
-        if (ndir > 0)
-          IFEM::cout <<" direction "<< ndir;
         this->setPropertyType(code,Property::ROBIN);
         this->setNeumann(nval->Value(),"expression",ndir,code);
       }
@@ -291,11 +305,6 @@ bool SIMinput::parseBCTag (const TiXmlElement* elem)
     }
     else
     {
-      int ndir = 0;
-      utl::getAttribute(elem,"direction",ndir);
-      IFEM::cout <<" direction "<< ndir;
-      if (!type.empty())
-        IFEM::cout <<" ("<< type <<")";
       if (nval)
         this->setNeumann(nval->Value(),type,ndir,code);
       else
@@ -534,7 +543,7 @@ int SIMinput::parseMaterialSet (const TiXmlElement* elem, int mindex)
 {
   std::string setName;
   utl::getAttribute(elem,"set",setName);
-  int code = this->getUniquePropertyCode(setName,0);
+  int code = this->getUniquePropertyCode(setName);
 
   if (code == 0)
     utl::getAttribute(elem,"code",code);

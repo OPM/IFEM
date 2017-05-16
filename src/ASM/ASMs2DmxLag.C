@@ -363,10 +363,13 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
   if (!xg || !wg) return false;
 
   // Find the parametric direction of the edge normal {-2,-1, 1, 2}
-  const int edgeDir = (lIndex+1)/(lIndex%2 ? -2 : 2);
+  const int edgeDir = (lIndex%10+1)/(lIndex%2 ? -2 : 2);
 
   const int t1 = abs(edgeDir); // tangent direction normal to the patch edge
   const int t2 = 3-t1;         // tangent direction along the patch edge
+
+  // Extract the Neumann order flag (1 or higher) for the integrand
+  integrand.setNeumannOrder(1 + lIndex/10);
 
   std::vector<size_t> elem_size;
   for (size_t b = 0; b < nxx.size(); ++b)
@@ -376,7 +379,7 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
   const int nelx = (nxx[geoBasis-1]-1)/(elem_sizes[geoBasis-1][0]-1);
   const int nely = (nyx[geoBasis-1]-1)/(elem_sizes[geoBasis-1][1]-1);
 
-  std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex);
+  std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex%10);
   size_t firstp = iit == firstBp.end() ? 0 : iit->second;
 
   MxFiniteElement fe(elem_size);

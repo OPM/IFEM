@@ -88,7 +88,7 @@ bool SIM::initBoundaryNodeMap (SIMbase* model, int code, GlbForceVec& force)
   for (p = model->begin_prop(); p != model->end_prop(); p++)
     if (abs(p->pindx) == code && (patch = model->getPatch(p->patch)))
       if (abs(p->ldim)+1 == patch->getNoParamDim())
-        patch->getBoundaryNodes(abs(p->lindx),glbNodes);
+        patch->getBoundaryNodes(abs(p->lindx)%10,glbNodes);
 
   return force.initNodeMap(glbNodes,model->getNoSpaceDim());
 }
