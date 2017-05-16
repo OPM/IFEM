@@ -52,32 +52,35 @@ std::string DefaultGeometry1D::createG2 (int nsd) const
   g2.append("\n2 2\n0 0 1 1\n");
 
   unsigned char d;
-  std::string XYZ;
-  if (utl::getAttribute(geo,"X0",XYZ))
+  std::string X0("0"), X1("1");
+  if (utl::getAttribute(geo,"X0",X0))
   {
-    IFEM::cout <<"\n\tX0 = "<< XYZ;
-    g2.append(XYZ);
+    IFEM::cout <<"\n\tX0 = "<< X0;
+    g2.append(X0);
   }
   else
   {
-    g2.append("0.0");
+    g2.append("0");
     for (d = 1; d < nsd; d++)
-      g2.append(" 0.0");
+      g2.append(" 0");
   }
   g2.append(rational ? " 1.0\n" : "\n");
-  if (utl::getAttribute(geo,"X1",XYZ))
+  if (utl::getAttribute(geo,"X1",X1))
   {
-    IFEM::cout <<"\n\tX1 = "<< XYZ;
-    g2.append(XYZ);
+    IFEM::cout <<"\n\tX1 = "<< X1;
+    g2.append(X1);
   }
   else
   {
-    XYZ = "1.0";
-    if (utl::getAttribute(geo,"L",XYZ))
-      IFEM::cout <<"\n\tLength = "<< XYZ;
-    g2.append(XYZ);
+    double Xend, L = 1.0;
+    std::stringstream is(X0); is >> Xend;
+    if (utl::getAttribute(geo,"L",L))
+      IFEM::cout <<"\n\tLength = "<< L;
+    Xend += L;
+    std::stringstream os; os << Xend;
+    g2.append(os.str());
     for (d = 1; d < nsd; d++)
-      g2.append(" 0.0");
+      g2.append(" 0");
   }
   g2.append(rational ? " 1.0\n" : "\n");
 

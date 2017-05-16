@@ -123,8 +123,8 @@ const std::vector<DefaultGeomTest> geometry1D =
     "1 0\n"
     "2 2\n"
     "0 0 1 1\n"
-    "0.0\n"
-    "1.0\n",
+    "0\n"
+    "1\n",
     "Boundary: 1 1 0 1 2 0 \n"
     "Corners: 1 1 0 1 2 0 \n"
     "Vertex1: 1 1 0 \n"
@@ -135,8 +135,8 @@ const std::vector<DefaultGeomTest> geometry1D =
     "3 0\n"
     "2 2\n"
     "0 0 1 1\n"
-    "0.0 0.0 0.0\n"
-    "1.0 0.0 0.0\n",
+    "0 0 0\n"
+    "1 0 0\n",
     ""},
 
    {"<geometry X0=\"1.0 1.0 0.0\" X1=\"1.0 2.0 0.0\"/>", 3,
@@ -148,13 +148,22 @@ const std::vector<DefaultGeomTest> geometry1D =
     "1.0 2.0 0.0\n",
     ""},
 
-   {"<geometry L=\"2.0\"/>", 1,
+   {"<geometry L=\"2\"/>", 1,
     "100 1 0 0\n"
     "1 0\n"
     "2 2\n"
     "0 0 1 1\n"
-    "0.0\n"
-    "2.0\n",
+    "0\n"
+    "2\n",
+    ""},
+
+   {"<geometry X0=\"-1\" L=\"2\"/>", 1,
+    "100 1 0 0\n"
+    "1 0\n"
+    "2 2\n"
+    "0 0 1 1\n"
+    "-1\n"
+    "1\n",
     ""},
 
    {"<geometry rational=\"true\" sets=\"true\"/>", 1,
@@ -162,8 +171,8 @@ const std::vector<DefaultGeomTest> geometry1D =
     "1 1\n"
     "2 2\n"
     "0 0 1 1\n"
-    "0.0 1.0\n"
-    "1.0 1.0\n",
+    "0 1.0\n"
+    "1 1.0\n",
     "Boundary: 1 1 0 1 2 0 \n"
     "Corners: 1 1 0 1 2 0 \n"
     "Vertex1: 1 1 0 \n"
