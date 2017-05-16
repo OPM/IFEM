@@ -392,6 +392,8 @@ void TensorFuncExpr::setNoDims ()
     nsd = 2;
   else if (p.size() > 0)
     nsd = 1;
+
+  ncmp = nsd*nsd;
 }
 
 
@@ -446,6 +448,8 @@ void STensorFuncExpr::setNoDims ()
     nsd = 2;
   else if (p.size() > 0)
     nsd = 1;
+
+  ncmp = p.size() == 4 ? 4 : (nsd+1)*nsd/2;
 }
 
 

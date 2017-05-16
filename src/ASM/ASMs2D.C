@@ -457,7 +457,7 @@ bool ASMs2D::generateFEMTopology ()
 #endif
   // Consistency checks, just to be fool-proof
   if (n1 <  2 || n2 <  2) return false;
-  if (p1 <  1 || p1 <  1) return false;
+  if (p1 <  1 || p2 <  1) return false;
   if (p1 > n1 || p2 > n2) return false;
 
   myMLGE.resize((n1-p1+1)*(n2-p2+1),0);
@@ -1036,7 +1036,7 @@ bool ASMs2D::updateDirichlet (const std::map<int,RealFunc*>& func,
     // Project the function onto the spline curve basis
     Go::SplineCurve* dcrv = 0;
     if ((fit = func.find(dirich[i].code)) != func.end())
-      dcrv = SplineUtils::project(dirich[i].curve,*fit->second,time);
+      dcrv = SplineUtils::project(dirich[i].curve,*fit->second,1,time);
     else if ((vfit = vfunc.find(dirich[i].code)) != vfunc.end())
       dcrv = SplineUtils::project(dirich[i].curve,*vfit->second,nf,time);
     else
@@ -2713,11 +2713,12 @@ short int ASMs2D::InterfaceChecker::hasContribution (int I, int J) const
 }
 
 
-bool ASMs2D::evaluate (const RealFunc* func, RealArray& vec,
+bool ASMs2D::evaluate (const FunctionBase* func, RealArray& vec,
                        int basisNum, double time) const
 {
   Go::SplineSurface* oldSurf = this->getBasis(basisNum);
-  Go::SplineSurface* newSurf = SplineUtils::project(oldSurf,*func,time);
+  Go::SplineSurface* newSurf = SplineUtils::project(oldSurf,*func,
+                                                    func->dim(),time);
   if (!newSurf)
   {
     std::cerr <<" *** ASMs2D::evaluate: Projection failure."<< std::endl;

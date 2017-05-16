@@ -177,10 +177,11 @@ public:
   //! \param neighbor The neighbor patch
   //! \param[in] nedge Local edge index of neighbor patch, in range [1,4]
   //! \param[in] revers Indicates whether the two edges have opposite directions
+  //! \param[in] basis Which basis to connect
   //! \param[in] coordCheck False to disable coordinate checks (periodic connections)
   //! \param[in] thick Thickness of connection
   virtual bool connectPatch(int edge, ASM2D& neighbor, int nedge, bool revers,
-                            int = 0, bool coordCheck = true, int thick = 1);
+                            int basis, bool coordCheck = true, int thick = 1);
 
 protected:
   //! \brief Assembles L2-projection matrices for the secondary solution.

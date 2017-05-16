@@ -390,7 +390,7 @@ bool ASMs3D::generateFEMTopology ()
 #endif
   // Consistency checks, just to be fool-proof
   if (n1 <  2 || n2 <  2 || n3 <  2) return false;
-  if (p1 <  1 || p1 <  1 || p3 <  1) return false;
+  if (p1 <  1 || p2 <  1 || p3 <  1) return false;
   if (p1 > n1 || p2 > n2 || p3 > n3) return false;
 
   myMLGE.resize((n1-p1+1)*(n2-p2+1)*(n3-p3+1),0);
@@ -692,7 +692,7 @@ bool ASMs3D::connectBasis (int face, ASMs3D& neighbor, int nface, int norient,
   for (int j = 0; j < n2; j++)
     for (int i = 0; i < n1; i++, ++node)
     {
-      int k = i, l = j;
+      int k, l;
       switch (norient)
 	{
 	case  1: k =    i  ; l = n2-j-1; break;
@@ -1271,7 +1271,7 @@ bool ASMs3D::updateDirichlet (const std::map<int,RealFunc*>& func,
     // Project the function onto the spline surface basis
     Go::SplineSurface* dsurf = nullptr;
     if ((fit = func.find(dirich[i].code)) != func.end())
-      dsurf = SplineUtils::project(dirich[i].surf,*fit->second,time);
+      dsurf = SplineUtils::project(dirich[i].surf,*fit->second,1,time);
     else if ((vfit = vfunc.find(dirich[i].code)) != vfunc.end())
       dsurf = SplineUtils::project(dirich[i].surf,*vfit->second,nf,time);
     else
@@ -3172,11 +3172,12 @@ short int ASMs3D::InterfaceChecker::hasContribution (int I, int J, int K) const
 }
 
 
-bool ASMs3D::evaluate (const RealFunc* func, RealArray& vec,
+bool ASMs3D::evaluate (const FunctionBase* func, RealArray& vec,
                        int basisNum, double time) const
 {
   Go::SplineVolume* oldVol = this->getBasis(basisNum);
-  Go::SplineVolume* newVol = SplineUtils::project(oldVol,*func,time);
+  Go::SplineVolume* newVol = SplineUtils::project(oldVol,*func,
+                                                  func->dim(),time);
   if (!newVol)
   {
     std::cerr <<" *** ASMs3D::evaluate: Projection failure."<< std::endl;

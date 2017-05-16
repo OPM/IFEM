@@ -22,14 +22,24 @@
   \brief Tensor-valued unary function of a spatial point.
 */
 
-class TensorFunc : public utl::SpatialFunction<Tensor>
+class TensorFunc : public utl::SpatialFunction<Tensor>, public FunctionBase
 {
 protected:
   //! \brief The constructor is protected to allow sub-class instances only.
-  TensorFunc(size_t n = 0) : utl::SpatialFunction<Tensor>(Tensor(n)) {}
+  TensorFunc(size_t n = 0) : utl::SpatialFunction<Tensor>(Tensor(n))
+  {
+    ncmp = zero.size();
+  }
+
 public:
   //! \brief Empty destructor.
   virtual ~TensorFunc() {}
+
+  //! \brief Returns the function value as an array.
+  virtual std::vector<Real> getValue(const Vec3& X) const
+  {
+    return this->evaluate(X);
+  }
 };
 
 
@@ -37,14 +47,26 @@ public:
   \brief Symmetric tensor-valued unary function of a spatial point.
 */
 
-class STensorFunc : public utl::SpatialFunction<SymmTensor>
+class STensorFunc : public utl::SpatialFunction<SymmTensor>,
+                    public FunctionBase
 {
 protected:
   //! \brief The constructor is protected to allow sub-class instances only.
-  STensorFunc(size_t n = 0) : utl::SpatialFunction<SymmTensor>(SymmTensor(n)) {}
+  STensorFunc(size_t n = 0, bool with33 = false)
+    : utl::SpatialFunction<SymmTensor>(SymmTensor(n,with33))
+  {
+    ncmp = zero.size();
+  }
+
 public:
   //! \brief Empty destructor.
   virtual ~STensorFunc() {}
+
+  //! \brief Returns the function value as an array.
+  virtual std::vector<Real> getValue(const Vec3& X) const
+  {
+    return this->evaluate(X);
+  }
 };
 
 #endif

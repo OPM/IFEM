@@ -34,6 +34,7 @@ class Integrand;
 class ASMbase;
 class SparseMatrix;
 class StdVector;
+class FunctionBase;
 class RealFunc;
 class VecFunc;
 class Vec3;
@@ -478,7 +479,7 @@ public:
   //! \param[out] vec The obtained coefficients after interpolation
   //! \param[in] basisNum The basis to evaluate for (mixed)
   //! \param[in] time Current time
-  virtual bool evaluate(const RealFunc* f, RealArray& vec,
+  virtual bool evaluate(const FunctionBase* f, RealArray& vec,
                         int basisNum = 1, double time = 0.0) const;
 
   //! \brief Evaluates the secondary solution field at all visualization points.

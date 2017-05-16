@@ -226,7 +226,7 @@ public:
   //! \param[out] vec The obtained coefficients after interpolation
   //! \param[in] basis Basis number (mixed)
   //! \param[in] time Current time
-  virtual bool evaluate(const RealFunc* func, RealArray& vec,
+  virtual bool evaluate(const FunctionBase* func, RealArray& vec,
                         int basis, double time) const;
 
   //! \brief Evaluates the secondary solution field at all visualization points.

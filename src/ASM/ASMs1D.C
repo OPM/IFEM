@@ -1451,10 +1451,10 @@ bool ASMs1D::getNoStructElms (int& n1, int& n2, int& n3) const
 }
 
 
-bool ASMs1D::evaluate (const RealFunc* func, RealArray& values,
+bool ASMs1D::evaluate (const FunctionBase* func, RealArray& values,
                        int, double time) const
 {
-  Go::SplineCurve* scrv = SplineUtils::project(curv,*func,time);
+  Go::SplineCurve* scrv = SplineUtils::project(curv,*func,func->dim(),time);
   if (!scrv)
   {
     std::cerr <<" *** ASMs1D::evaluate: Projection failure."<< std::endl;

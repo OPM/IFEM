@@ -16,8 +16,7 @@
 
 #include "MatVec.h"
 
-class RealFunc;
-class VecFunc;
+class FunctionBase;
 class Vec4;
 class Vec3;
 
@@ -61,26 +60,20 @@ namespace SplineUtils //! Various utility functions on spline objects.
   void extractBasis(const Go::BasisDerivs2& spline,
                     Vector& N, Matrix& dNdu, Matrix3D& d2Ndu2);
 
-  //! \brief Projects a scalar-valued function onto a spline curve.
+  //! \brief Projects a spatial function onto a spline curve.
   Go::SplineCurve* project(const Go::SplineCurve* curve,
-                           const RealFunc& f, Real time = Real(0));
-  //! \brief Projects a vector-valued function onto a spline curve.
-  Go::SplineCurve* project(const Go::SplineCurve* curve,
-                           const VecFunc& f, int nComp, Real time = Real(0));
+                           const FunctionBase& f,
+                           int nComp = 1, Real time = Real(0));
 
-  //! \brief Projects a scalar-valued function onto a spline surface.
+  //! \brief Projects a spatial function onto a spline surface.
   Go::SplineSurface* project(const Go::SplineSurface* surface,
-                             const RealFunc& f, Real time = Real(0));
-  //! \brief Projects a vector-valued function onto a spline surface.
-  Go::SplineSurface* project(const Go::SplineSurface* surface,
-                             const VecFunc& f, int nComp, Real time = Real(0));
+                             const FunctionBase& f,
+                             int nComp = 1, Real time = Real(0));
 
-  //! \brief Projects a scalar-valued function onto a spline volume.
+  //! \brief Projects a spatial function onto a spline volume.
   Go::SplineVolume* project(const Go::SplineVolume* volume,
-                            const RealFunc& f, Real time = Real(0));
-  //! \brief Projects a vector-valued function onto a spline volume.
-  Go::SplineVolume* project(const Go::SplineVolume* volume,
-                            const VecFunc& f, int nComp, Real time = Real(0));
+                            const FunctionBase& f,
+                            int nComp = 1, Real time = Real(0));
 }
 
 #endif

@@ -98,8 +98,6 @@ namespace utl
   template<class Result>
   class SpatialFunction : public Function<Vec3,Result>
   {
-    Result zero; //!< Return value for default implementations of derivatives
-
   protected:
     //! \brief The constructor is protected to allow sub-class instances only.
     SpatialFunction(const Result& val) : zero(val) {}
@@ -112,6 +110,9 @@ namespace utl
     virtual Result deriv(const Vec3& x, int dir) const { return zero; }
     //! \brief Returns a second-derivative of the function.
     virtual Result dderiv(const Vec3& x, int d1, int d2) const { return zero; }
+
+  protected:
+    Result zero; //!< Return value for default implementations of derivatives
   };
 }
 
@@ -121,17 +122,50 @@ typedef utl::Function<Real,Real> ScalarFunc;
 
 
 /*!
+  \brief Base class for unary spatial function of arbitrary result type.
+  \details Includes an interface for returning the function value as an array.
+*/
+
+class FunctionBase
+{
+protected:
+  //! \brief The constructor is protected to allow sub-class instances only.
+  FunctionBase() : ncmp(1) {}
+
+public:
+  //! \brief Empty destructor.
+  virtual ~FunctionBase() {}
+
+  //! \brief Returns the function value as an array.
+  virtual std::vector<Real> getValue(const Vec3& X) const = 0;
+
+  //! \brief Returns the number of components of the return value.
+  size_t dim() const { return ncmp; }
+
+protected:
+  size_t ncmp; //!< Number of components in the return value
+};
+
+
+/*!
   \brief Scalar-valued unary function of a spatial point.
 */
 
-class RealFunc : public utl::SpatialFunction<Real>
+class RealFunc : public utl::SpatialFunction<Real>, public FunctionBase
 {
 protected:
   //! \brief The constructor is protected to allow sub-class instances only.
   RealFunc() : utl::SpatialFunction<Real>(Real(0)) {}
+
 public:
   //! \brief Empty destructor.
   virtual ~RealFunc() {}
+
+  //! \brief Returns the function value as an array.
+  virtual std::vector<Real> getValue(const Vec3& X) const
+  {
+    return std::vector<Real>(1,this->evaluate(X));
+  }
 };
 
 
@@ -139,14 +173,21 @@ public:
   \brief Vector-valued unary function of a spatial point.
 */
 
-class VecFunc : public utl::SpatialFunction<Vec3>
+class VecFunc : public utl::SpatialFunction<Vec3>, public FunctionBase
 {
 protected:
   //! \brief The constructor is protected to allow sub-class instances only.
-  VecFunc() : utl::SpatialFunction<Vec3>(Vec3()) {}
+  VecFunc(size_t n = 3) : utl::SpatialFunction<Vec3>(Vec3()) { ncmp = n; }
+
 public:
   //! \brief Empty destructor.
   virtual ~VecFunc() {}
+
+  //! \brief Returns the function value as an array.
+  virtual std::vector<Real> getValue(const Vec3& X) const
+  {
+    return this->evaluate(X).vec(ncmp);
+  }
 };
 
 

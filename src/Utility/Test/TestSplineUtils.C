@@ -6,7 +6,7 @@
 //!
 //! \author Arne Morten Kvarving / SINTEF
 //!
-//! \brief Tests for various utility functions on spline objects - GoTools extensions.
+//! \brief Tests for various utility functions on spline objects.
 //!
 //==============================================================================
 
@@ -18,7 +18,6 @@
 #include "GoTools/geometry/Plane.h"
 #include "GoTools/trivariate/SphereVolume.h"
 #include "GoTools/trivariate/SplineVolume.h"
-#include "Vec3.h"
 #include "ExprFunctions.h"
 #include <fstream>
 
@@ -47,29 +46,26 @@ static Matrix3D readMatrices(size_t r, size_t c, size_t k, const std::string& fi
   return result;
 }
 
-#define CHECK_VECTORS_EQUAL(A,path) \
-  do { \
-  Matrix B = readMatrix(A.size(), 1, path); \
-  for (size_t i=1;i<=A.size();++i) \
-      ASSERT_NEAR(A(i), B(i,1), 1e-13); \
-  } while(0);
+#define CHECK_VECTORS_EQUAL(A,path) { \
+    Matrix B = readMatrix(A.size(), 1, path); \
+    for (size_t i=1;i<=A.size();++i) \
+      EXPECT_NEAR(A(i), B(i,1), 1e-13); \
+  }
 
-#define CHECK_MATRICES_EQUAL(A,path) \
-  do { \
-  Matrix B = readMatrix(A.rows(), A.cols(), path); \
-  for (size_t i=1;i<=A.rows();++i) \
-    for (size_t j=1;j<=A.cols();++j) \
-      ASSERT_NEAR(A(i,j), B(i,j), 1e-13); \
-  } while(0);
+#define CHECK_MATRICES_EQUAL(A,path) { \
+    Matrix B = readMatrix(A.rows(), A.cols(), path); \
+    for (size_t i=1;i<=A.rows();++i) \
+      for (size_t j=1;j<=A.cols();++j) \
+        EXPECT_NEAR(A(i,j), B(i,j), 1e-13); \
+  }
 
-#define CHECK_MATRICES3D_EQUAL(A,path) \
-  do { \
+#define CHECK_MATRICES3D_EQUAL(A,path) { \
     Matrix3D B = readMatrices(A.dim(1), A.dim(2), A.dim(3), path); \
     for (size_t i=1;i<=A.dim(1);++i) \
       for (size_t j=1;j<=A.dim(2);++j) \
         for (size_t k=1;k<=A.dim(3);++k) \
-          ASSERT_NEAR(A(i,j,k), B(i,j,k), 1e-13); \
-  } while(0);
+          EXPECT_NEAR(A(i,j,k), B(i,j,k), 1e-13); \
+  }
 
 TEST(TestSplineUtils, ToVec3)
 {
@@ -77,61 +73,61 @@ TEST(TestSplineUtils, ToVec3)
   Vec3 result1 = SplineUtils::toVec3(X,2);
   Vec3 result2 = SplineUtils::toVec3(X,3);
   Vec3 result3 = SplineUtils::toVec3(X);
-  ASSERT_FLOAT_EQ(result1[0], 1.0);
-  ASSERT_FLOAT_EQ(result1[1], 2.0);
-  ASSERT_FLOAT_EQ(result2[0], 1.0);
-  ASSERT_FLOAT_EQ(result2[1], 2.0);
-  ASSERT_FLOAT_EQ(result3[0], 1.0);
-  ASSERT_FLOAT_EQ(result3[1], 2.0);
-  ASSERT_FLOAT_EQ(result2[2], 3.0);
-  ASSERT_FLOAT_EQ(result3[2], 3.0);
+  EXPECT_FLOAT_EQ(result1.x, 1.0);
+  EXPECT_FLOAT_EQ(result1.y, 2.0);
+  EXPECT_FLOAT_EQ(result2.x, 1.0);
+  EXPECT_FLOAT_EQ(result2.y, 2.0);
+  EXPECT_FLOAT_EQ(result2.z, 3.0);
+  EXPECT_FLOAT_EQ(result3.x, 1.0);
+  EXPECT_FLOAT_EQ(result3.y, 2.0);
+  EXPECT_FLOAT_EQ(result3.z, 3.0);
 }
 
 TEST(TestSplineUtils, ToVec4)
 {
   Go::Point X(1.0, 2.0, 3.0);
-  Vec4 result1 = SplineUtils::toVec4(X,4.0);
-  ASSERT_FLOAT_EQ(result1[0], 1.0);
-  ASSERT_FLOAT_EQ(result1[1], 2.0);
-  ASSERT_FLOAT_EQ(result1[2], 3.0);
-  ASSERT_FLOAT_EQ(result1.t, 4.0);
+  Vec4 result = SplineUtils::toVec4(X,4.0);
+  EXPECT_FLOAT_EQ(result.x, 1.0);
+  EXPECT_FLOAT_EQ(result.y, 2.0);
+  EXPECT_FLOAT_EQ(result.z, 3.0);
+  EXPECT_FLOAT_EQ(result.t, 4.0);
 }
 
 TEST(TestSplineUtils, PointCurve)
 {
-  Vec3 result1;
-
   Go::Line line(Go::Point(0.0, 0.0, 0.0), Go::Point(1.0, 0.0, 0.0));
   Go::SplineCurve* crv = line.createSplineCurve();
-  SplineUtils::point(result1, 0.3, crv);
-  ASSERT_FLOAT_EQ(result1[0], 0.3);
-  ASSERT_FLOAT_EQ(result1[1], 0.0);
-  ASSERT_FLOAT_EQ(result1[2], 0.0);
+
+  Vec3 result;
+  SplineUtils::point(result, 0.3, crv);
+  EXPECT_FLOAT_EQ(result.x, 0.3);
+  EXPECT_FLOAT_EQ(result.y, 0.0);
+  EXPECT_FLOAT_EQ(result.z, 0.0);
 }
 
 TEST(TestSplineUtils, PointSurface)
 {
-  Vec3 result1;
-
   Go::Plane plane(Go::Point(0.0, 0.0, 0.0), Go::Point(1.0, 0.0, 0.0));
   Go::SplineSurface* srf = plane.createSplineSurface();
-  SplineUtils::point(result1, 0.3, 0.3, srf);
-  ASSERT_FLOAT_EQ(result1[0], 0.0);
-  ASSERT_FLOAT_EQ(result1[1], 0.3);
-  ASSERT_FLOAT_EQ(result1[2], 0.3);
+
+  Vec3 result;
+  SplineUtils::point(result, 0.3, 0.3, srf);
+  EXPECT_FLOAT_EQ(result.x, 0.0);
+  EXPECT_FLOAT_EQ(result.y, 0.3);
+  EXPECT_FLOAT_EQ(result.z, 0.3);
 }
 
 TEST(TestSplineUtils, PointVolume)
 {
-  Vec3 result1;
-
   Go::SphereVolume sphere(1.0, Go::Point(0.0, 0.0, 0.0),
                           Go::Point(0.0, 0.0, 1.0), Go::Point(1.0, 0.0, 0.0));
   Go::SplineVolume* vol = sphere.geometryVolume();
-  SplineUtils::point(result1, 0.3, 0.3, 0.3, vol);
-  ASSERT_FLOAT_EQ(result1[0], 0.2392104875250847);
-  ASSERT_FLOAT_EQ(result1[1], 0.1603249784385625);
-  ASSERT_FLOAT_EQ(result1[2], 0.08410852481577462);
+
+  Vec3 result;
+  SplineUtils::point(result, 0.3, 0.3, 0.3, vol);
+  EXPECT_FLOAT_EQ(result.x, 0.2392104875250847);
+  EXPECT_FLOAT_EQ(result.y, 0.1603249784385625);
+  EXPECT_FLOAT_EQ(result.z, 0.08410852481577462);
 }
 
 TEST(TestSplineUtils, ExtractBasisSurface)
@@ -148,6 +144,7 @@ TEST(TestSplineUtils, ExtractBasisSurface)
   srf->computeBasisGrid(gpar,gpar,spline);
   srf->raiseOrder(1,1);
   srf->computeBasisGrid(gpar,gpar,spline2);
+
   Vector N;
   Matrix dNdU;
   Matrix3D d2NdU2;
@@ -172,6 +169,7 @@ TEST(TestSplineUtils, ExtractBasisVolume)
   vol->computeBasisGrid(gpar,gpar,gpar,spline);
   vol->raiseOrder(1,1,1);
   vol->computeBasisGrid(gpar,gpar,gpar,spline2);
+
   Vector N;
   Matrix dNdU;
   Matrix3D d2NdU2;
@@ -190,7 +188,7 @@ TEST(TestSplineUtils, ProjectCurve)
 
   EvalFunction func("sin(x)*t");
   VecFuncExpr func2("sin(x)*t|cos(x)*t");
-  Go::SplineCurve* prjCrv = SplineUtils::project(crv, func, 0.1);
+  Go::SplineCurve* prjCrv  = SplineUtils::project(crv, func , 1, 0.1);
   Go::SplineCurve* prjCrv2 = SplineUtils::project(crv, func2, 2, 0.1);
 
   Vec3 result1, result2, result3, result4;
@@ -199,12 +197,12 @@ TEST(TestSplineUtils, ProjectCurve)
   SplineUtils::point(result3, 0.5, prjCrv2);
   SplineUtils::point(result4, 0.8, prjCrv2);
 
-  ASSERT_FLOAT_EQ(result1[0], -0.0783364);
-  ASSERT_FLOAT_EQ(result2[0], -0.0694399);
-  ASSERT_FLOAT_EQ(result3[0], -0.0783364);
-  ASSERT_FLOAT_EQ(result3[1], -0.0363385);
-  ASSERT_FLOAT_EQ(result4[0], -0.0694399);
-  ASSERT_FLOAT_EQ(result4[1], -0.0363385);
+  EXPECT_FLOAT_EQ(result1.x, -0.0783364);
+  EXPECT_FLOAT_EQ(result2.x, -0.0694399);
+  EXPECT_FLOAT_EQ(result3.x, -0.0783364);
+  EXPECT_FLOAT_EQ(result3.y, -0.0363385);
+  EXPECT_FLOAT_EQ(result4.x, -0.0694399);
+  EXPECT_FLOAT_EQ(result4.y, -0.0363385);
 }
 
 TEST(TestSplineUtils, ProjectSurface)
@@ -217,7 +215,7 @@ TEST(TestSplineUtils, ProjectSurface)
 
   EvalFunction func("sin(x)*sin(y)*t");
   VecFuncExpr func2("sin(x)*sin(y)*t|cos(x)*cos(y)*t");
-  Go::SplineSurface* prjSrf  = SplineUtils::project(srf, func, 0.1);
+  Go::SplineSurface* prjSrf  = SplineUtils::project(srf, func , 1, 0.1);
   Go::SplineSurface* prjSrf2 = SplineUtils::project(srf, func2, 2, 0.1);
 
   Vec3 result1, result2, result3, result4;
@@ -225,10 +223,10 @@ TEST(TestSplineUtils, ProjectSurface)
   SplineUtils::point(result2, 0.8, 0.8, prjSrf);
   SplineUtils::point(result3, 0.5, 0.5, prjSrf2);
   SplineUtils::point(result4, 0.8, 0.8, prjSrf2);
-  ASSERT_FLOAT_EQ(result1[0], 0.02110140763086564);
-  ASSERT_FLOAT_EQ(result2[0], -0.02189938149140131);
-  ASSERT_FLOAT_EQ(result3[0], 0.02110140763086564);
-  ASSERT_FLOAT_EQ(result3[1], 0.07889859236913437);
-  ASSERT_FLOAT_EQ(result4[0], -0.02189938149140131);
-  ASSERT_FLOAT_EQ(result4[1], 0.06514225417205573);
+  EXPECT_FLOAT_EQ(result1.x,  0.02110140763086564);
+  EXPECT_FLOAT_EQ(result2.x, -0.02189938149140131);
+  EXPECT_FLOAT_EQ(result3.x,  0.02110140763086564);
+  EXPECT_FLOAT_EQ(result3.y,  0.07889859236913437);
+  EXPECT_FLOAT_EQ(result4.x, -0.02189938149140131);
+  EXPECT_FLOAT_EQ(result4.y,  0.06514225417205573);
 }

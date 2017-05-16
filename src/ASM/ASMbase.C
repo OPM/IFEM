@@ -1206,7 +1206,7 @@ bool ASMbase::evaluate (const Field*, RealArray&, int) const
 }
 
 
-bool ASMbase::evaluate (const RealFunc*, RealArray&, int, double) const
+bool ASMbase::evaluate (const FunctionBase*, RealArray&, int, double) const
 {
-  return Aerror("evaluate(const RealFunc*,RealArray&,int,double)");
+  return Aerror("evaluate(const FunctionBase*,RealArray&,int,double)");
 }

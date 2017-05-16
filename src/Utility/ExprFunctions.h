@@ -170,8 +170,8 @@ public:
   virtual Ret dderiv(const Vec3& X, int dir1, int dir2) const;
 
 protected:
-  //! \brief Sets the number of spatial dimenions (default implementation).
-  void setNoDims() { nsd = p.size(); }
+  //! \brief Sets the number of spatial dimensions (default implementation).
+  void setNoDims() { ParentFunc::ncmp = nsd = p.size(); }
 
   //! \brief Evaluates the function expressions.
   virtual Ret evaluate(const Vec3& X) const;
