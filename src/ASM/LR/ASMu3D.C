@@ -27,6 +27,7 @@
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
 #include "ElementBlock.h"
+#include "MPC.h"
 #include "SplineUtils.h"
 #include "Utilities.h"
 #include "Profiler.h"
@@ -120,6 +121,7 @@ void ASMu3D::clear (bool retainGeometry)
 
   // Erase the FE data
   this->ASMbase::clear(retainGeometry);
+  this->dirich.clear();
 }
 
 
@@ -374,40 +376,126 @@ void ASMu3D::closeFaces (int dir, int basis, int master)
   non-constant functions).
 */
 
-void ASMu3D::constrainFace (int dir, bool open, int dof, int code, char)
+void ASMu3D::constrainFace (int dir, bool open, int dof, int code, char basis)
 {
-  if (open)
-    std::cerr << "\nWARNING: ASMu3D::constrainFace, open boundary conditions not supported yet. Treating it as closed" << std::endl;
+  // figure out function index offset (when using multiple basis)
+  size_t ofs = 1;
+  for (int i = 1; i < basis; i++)
+    ofs += this->getNoNodes(i);
 
-  int bcode = code;
-  if (code > 0) {// Dirichlet projection will be performed
-    std::cerr << "\nWARNING: Projective (nonhomogenuous) dirichlet boundary conditions not implemented. ";
-    std::cerr << "\n         Performing variational diminishing approximation instead" << std::endl;
-    // dirich.push_back(DirichletFace(this->getBoundary(dir),dof,code));
+  // figure out what edge we are at
+  LR::parameterEdge face;
+  switch (dir)
+  {
+  case -1: face = LR::WEST;   break;
+  case  1: face = LR::EAST;   break;
+  case -2: face = LR::SOUTH;  break;
+  case  2: face = LR::NORTH;  break;
+  case -3: face = LR::BOTTOM; break;
+  case  3: face = LR::TOP;    break;
+  default: return;
   }
-  else if (code < 0)
-    bcode = -code;
 
-  // get all the boundary functions from the LRspline object
-  std::vector<LR::Basisfunction*> thisEdge;
-  if (dir == -1)
-    lrspline->getEdgeFunctions(thisEdge, LR::WEST, 1);
-  else if (dir == 1)
-    lrspline->getEdgeFunctions(thisEdge, LR::EAST, 1);
-  else if (dir == -2)
-    lrspline->getEdgeFunctions(thisEdge, LR::SOUTH, 1);
-  else if (dir == 2)
-    lrspline->getEdgeFunctions(thisEdge, LR::NORTH, 1);
-  else if (dir == -3)
-    lrspline->getEdgeFunctions(thisEdge, LR::BOTTOM, 1);
-  else if (dir == 3)
-    lrspline->getEdgeFunctions(thisEdge, LR::TOP, 1);
+  // fetch the right basis to consider
+  LR::LRSplineVolume* lr = this->getBasis(basis);
 
-  std::cout << "\nNumber of constraints: " << thisEdge.size() << std::endl;
+  // get all elements and functions on this face
+  std::vector<LR::Basisfunction*> faceFunctions;
+  std::vector<LR::Element*>       faceElements;
+  lr->getEdgeFunctions(faceFunctions,face);
+  lr->getEdgeElements (faceElements ,face);
 
-  // enforce the boundary conditions
-  for(LR::Basisfunction* b  : thisEdge)
-    this->prescribe(b->getId()+1,dof,bcode);
+  // build up the local element/node correspondence needed by the projection
+  // call on this face by ASMu3D::updateDirichlet()
+  DirichletFace de(faceFunctions.size(), faceElements.size(), dof, code, basis);
+  de.edg  = face;
+  de.lr   = lr;
+
+  // find the corners since these are not to be included in the L2-fitting
+  // of the inhomogenuous dirichlet boundaries; corners are interpolatory.
+  // Optimization note: loop over the "edge"-container to manually pick up
+  // the end nodes. LRspline::getEdgeFunctions() does a global search.
+  std::vector<LR::Basisfunction*> c1, c2;
+  static const std::map<LR::parameterEdge,std::array<std::array<int,3>,4>> corners = {{
+        { LR::WEST, {{{-1, -1, -1},
+                      {-1,  1, -1},
+                      {-1, -1,  1},
+                      {-1,  1,  1}}}},
+        { LR::EAST,{{{  1, -1, -1},
+                      { 1,  1, -1},
+                      { 1, -1,  1},
+                      { 1,  1,  1}}}},
+        {LR::SOUTH,{{{-1, -1, -1},
+                      { 1, -1, -1},
+                      {-1, -1,  1},
+                      { 1, -1,  1}}}},
+        {LR::NORTH,{{{-1, -1, -1},
+                      { 1, -1, -1},
+                      {-1, -1,  1},
+                      { 1, -1,  1}}}},
+       {LR::BOTTOM,{{{-1, -1, -1},
+                      { 1, -1, -1},
+                      {-1,  1, -1},
+                      { 1,  1, -1}}}},
+          {LR::TOP,{{{-1, -1,  1},
+                      { 1, -1,  1},
+                      {-1,  1,  1},
+                      { 1,  1,  1}}}},
+  }};
+
+  int* c = de.corners;
+  for (const auto& it : corners.find(face)->second)
+    *c++ = this->getCorner(it[0], it[1], it[2], basis);
+
+  int bcode = abs(code);
+  for (auto b : faceFunctions)
+  {
+    de.MLGN.push_back(b->getId());
+    int* cid = std::find(de.corners, de.corners+4, b->getId()+ofs);
+    // skip corners for open boundaries
+    if (open && cid == de.corners+4)
+      continue;
+    else
+    {
+      // corners are interpolated (positive 'code')
+      if (cid != de.corners+4)
+        this->prescribe(b->getId()+ofs, dof,  bcode);
+      // inhomogenuous dirichlet conditions by function evaluation (negative 'code')
+      else if (code > 0)
+        this->prescribe(b->getId()+ofs, dof, -bcode);
+      // (in)homogenuous constant dirichlet conditions
+      else
+        this->prescribe(b->getId()+ofs, dof,  bcode);
+    }
+  }
+
+  // build MLGE and MNPC matrix
+  for (size_t i=0; i < faceElements.size(); i++)
+  {
+    LR::Element* el = faceElements[i];
+
+    // for mixed FEM models, let MLGE point to the *geometry* index
+    if (de.lr != this->lrspline.get())
+    {
+      double umid = (el->umax() + el->umin())/2.0;
+      double vmid = (el->vmax() + el->vmin())/2.0;
+      double wmid = (el->wmax() + el->wmin())/2.0;
+      de.MLGE[i] = lrspline->getElementContaining(umid, vmid, wmid);
+    }
+    else
+    {
+      de.MLGE[i] = el->getId();
+    }
+    for (auto b : el->support())
+    {
+      de.MNPC[i].push_back(-1);
+      for (size_t j = 0; j < de.MLGN.size(); j++)
+        if (b->getId() == de.MLGN[j])
+          de.MNPC[i].back() = j;
+    }
+  }
+  if (code > 0)
+    dirich.push_back(de);
 }
 
 size_t ASMu3D::constrainFaceLocal(int dir, bool open, int dof, int code, bool project, char T1)
@@ -2028,4 +2116,73 @@ void ASMu3D::generateThreadGroups (const Integrand& integrand, bool silence,
     std::cout <<"\n Color "<< i+1;
     std::cout << ": "<< threadGroups[0][i].size() <<" elements";
   }
+}
+
+
+bool ASMu3D::updateDirichlet (const std::map<int,RealFunc*>& func,
+                              const std::map<int,VecFunc*>& vfunc, double time,
+                              const std::map<int,int>* g2l)
+{
+
+  std::map<int,RealFunc*>::const_iterator    fit;
+  std::map<int,VecFunc*>::const_iterator     vfit;
+  std::map<int,int>::const_iterator          nit;
+
+  for (size_t i = 0; i < dirich.size(); i++)
+  {
+    // figure out function index offset (when using multiple basis)
+    size_t ofs = 1;
+    for (int j = 1; j < dirich[i].basis; j++)
+      ofs += this->getNoNodes(j);
+
+    Real2DMat edgeControlmatrix;
+    if ((fit = func.find(dirich[i].code)) != func.end())
+      this->faceL2projection(dirich[i], *fit->second, edgeControlmatrix, time);
+    else if ((vfit = vfunc.find(dirich[i].code)) != vfunc.end())
+      this->faceL2projection(dirich[i], *vfit->second, edgeControlmatrix, time);
+    else
+    {
+      std::cerr <<" *** ASMu3D::updateDirichlet: Code "<< dirich[i].code
+                <<" is not associated with any function."<< std::endl;
+      return false;
+    }
+    if (edgeControlmatrix.empty())
+    {
+      std::cerr <<" *** ASMu3D::updateDirichlet: Projection failure."
+                << std::endl;
+      return false;
+    }
+
+    // Loop over the nodes of this boundary curve
+    int j = 0;
+    for (int node : dirich[i].MLGN)
+    {
+      // skip corner nodes, since these are special cased (interpolatory)
+      auto it = std::find(dirich[i].corners, dirich[i].corners+4, node+ofs);
+      if (it != dirich[i].corners+4) {
+        ++j;
+        continue;
+      }
+
+      for (int dofs = dirich[i].dof; dofs > 0; dofs /= 10)
+      {
+        int dof = dofs%10;
+        // Find the constraint equation for current (node,dof)
+        MPC pDOF(node+ofs,dof);
+        MPCIter mit = mpcs.find(&pDOF);
+        if (mit == mpcs.end()) continue; // probably a deleted constraint
+
+        // Now update the prescribed value in the constraint equation
+        (*mit)->setSlaveCoeff(edgeControlmatrix[dirich[i].dof > 10 ? dof-1 : 0][j]);
+#if SP_DEBUG > 1
+        std::cout <<"Updated constraint: "<< **mit;
+#endif
+      }
+      ++j;
+    }
+  }
+
+  // The parent class method takes care of the corner nodes with direct
+  // evaluation of the Dirichlet functions; since they are interpolatory
+  return this->ASMbase::updateDirichlet(func,vfunc,time,g2l);
 }

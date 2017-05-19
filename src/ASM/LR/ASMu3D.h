@@ -16,6 +16,7 @@
 
 #include "ASMunstruct.h"
 #include "ASM3D.h"
+#include "LRSpline/LRSpline.h"
 #include "ThreadGroups.h"
 
 class FiniteElement;
@@ -246,6 +247,14 @@ public:
   virtual bool integrateEdge(Integrand& integrand, int lEdge,
                              GlobalIntegral& glbInt, const TimeDomain& time);
 
+  //! \brief Updates the time-dependent in-homogeneous Dirichlet coefficients.
+  //! \param[in] func Scalar property fields
+  //! \param[in] vfunc Vector property fields
+  //! \param[in] time Current time
+  //! \param[in] g2l Pointer to global-to-local node number mapping
+  virtual bool updateDirichlet(const std::map<int,RealFunc*>& func,
+                               const std::map<int,VecFunc*>& vfunc, double time,
+                               const std::map<int,int>* g2l = nullptr);
 
   // Post-processing methods
   // =======================
@@ -316,6 +325,24 @@ public:
   virtual LR::LRSplineVolume* getBasis(int = 1) { return lrspline.get(); }
 
 private:
+  //! \brief Struct representing an inhomogeneous Dirichlet boundary condition.
+  struct DirichletFace
+  {
+    LR::LRSplineVolume  *lr;       //!< Pointer to the right object (in case of multiple bases)
+    LR::parameterEdge   edg;       //!< Which edge is this
+    IntVec              MLGE;      //!< Local-to-Global Element numbers
+    IntVec              MLGN;      //!< Local-to-Global Nodal numbers
+    IntMat              MNPC;      //!< Matrix of Nodal-Point Correpondanse
+    int                 dof;       //!< Local DOF to constrain along the boundary
+    int                 code;      //!< Inhomogeneous Dirichlet condition code
+    int                 basis;     //!< Index to the basis used
+    int                 corners[4];//!< Index of the four corners of this face
+
+    //! \brief Default constructor.
+    DirichletFace(int numbBasis, int numbElements, int d = 0, int c = 0, int b = 1)
+    : MLGE(numbElements), MNPC(numbElements), dof(d), code(c), basis(b) {}
+  };
+
   //! \brief Projects the secondary solution field onto the primary basis.
   //! \param[in] integrand Object with problem-specific data and methods
   LR::LRSplineVolume* projectSolution(const IntegrandBase& integrand) const;
@@ -354,6 +381,16 @@ public:
   //! directly for each sampling point.
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
                             const RealArray* gpar, bool regular = true) const;
+
+  //! \brief Projects inhomogenuous (scalar) dirichlet conditions by continuous L2-fit.
+  //! \param[in] edge low-level edge information needed to do integration
+  //! \param[in] values inhomogenuous function which is to be fitted
+  //! \param[out] result fitted value in terms of control-point values
+  //! \param[in] time time used in dynamic problems
+  bool faceL2projection (const DirichletFace& edge,
+                         const FunctionBase& values,
+                         Real2DMat& result,
+                         double time) const;
 
   using ASMunstruct::generateThreadGroups;
   //! \brief Generates element groups for multi-threading of interior integrals.
@@ -454,6 +491,8 @@ protected:
 
   const std::vector<Matrix>& bezierExtract; //!< Bezier extraction matrices
   std::vector<Matrix>      myBezierExtract; //!< Bezier extraction matrices
+
+  std::vector<DirichletFace> dirich; //!< Inhomogeneous Dirichlet boundary condition data
 
   ThreadGroups threadGroups; //!< Element groups for multi-threaded assembly
 };

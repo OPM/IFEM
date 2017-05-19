@@ -19,10 +19,12 @@
 #include "GaussQuadrature.h"
 #include "SparseMatrix.h"
 #include "DenseMatrix.h"
+#include "FiniteElement.h"
 #include "SplineUtils.h"
 #include "Utilities.h"
 #include "Profiler.h"
 #include "IntegrandBase.h"
+#include "Vec3.h"
 #include <array>
 
 
@@ -453,4 +455,191 @@ LR::LRSplineVolume* ASMu3D::regularInterpolation (const RealArray& upar,
   ans->setControlPoints(interleave);
 
   return ans;
+}
+
+
+bool ASMu3D::faceL2projection (const DirichletFace& edge,
+                               const FunctionBase& values,
+                               Real2DMat& result,
+                               double time) const
+{
+  size_t n = edge.MLGN.size();
+  SparseMatrix A(SparseMatrix::SUPERLU);
+  std::vector<StdVector> B(values.dim(), StdVector(n));
+  A.resize(n,n);
+
+  // Get Gaussian quadrature points and weights
+  const double* xg = GaussQuadrature::getCoord(nGauss);
+  const double* wg = GaussQuadrature::getWeight(nGauss);
+  if (!xg || !wg) return false;
+
+  // find the normal and tangent direction for the edge
+  int faceDir=1;
+  switch (edge.edg)
+  {       //          id          normal  tangent
+    case LR::WEST:   faceDir = -1; break;
+    case LR::EAST:   faceDir = +1; break;
+    case LR::SOUTH:  faceDir = -2; break;
+    case LR::NORTH:  faceDir = +2; break;
+    case LR::BOTTOM: faceDir = -3; break;
+    case LR::TOP:    faceDir = +3; break;
+    default:         return false;
+  }
+  const int t1 = 1 + abs(faceDir)%3; // first tangent direction
+  const int t2 = 1 + t1%3;           // second tangent direction
+
+  Matrix dNdu, Xnod, Jac;
+  Vec4   X;
+  Vec3   normal;
+  int    iGp = 0;
+
+  // === Assembly loop over all elements on the patch edge =====================
+  for (size_t ie=0; ie<edge.MLGE.size(); ie++) // for all edge elements
+  {
+    FiniteElement fe(edge.MNPC[ie].size());
+    fe.iel = edge.MLGE[ie]+1;
+
+    std::array<Vector,3> gpar;
+    for (int d = 0; d < 3; d++)
+      if (-1-d == faceDir)
+      {
+        gpar[d].resize(1);
+        gpar[d].fill(lrspline->startparam(d));
+      }
+      else if (1+d == faceDir)
+      {
+        gpar[d].resize(1);
+        gpar[d].fill(lrspline->endparam(d));
+      }
+      else
+        this->getGaussPointParameters(gpar[d],d,nGauss,fe.iel-1,xg);
+
+    // Get element edge length in the parameter space
+    double dA = this->getParametricArea(fe.iel,abs(faceDir));
+    if (dA < 0.0) return false; // topology error (probably logic error)
+
+    // Set up control point coordinates for current element
+    if (!this->getElementCoordinates(Xnod,fe.iel)) return false;
+
+    // Initialize element quantities
+    fe.xi = fe.eta = fe.zeta = faceDir < 0 ? -1.0 : 1.0;
+    fe.u = gpar[0](1);
+    fe.v = gpar[1](1);
+    fe.w = gpar[2](1);
+    fe.iGP = iGp;
+
+    // --- Integration loop over all Gauss points along the edge -------------
+    for (int j = 0; j < nGauss; j++)
+      for (int i = 0; i < nGauss; i++, fe.iGP++, ++iGp)
+      {
+        // Local element coordinates and parameter values
+        // of current integration point
+        int k1,k2,k3;
+        switch (abs(faceDir))
+        {
+          case 1: k2 = i; k3 = j; k1 = 0; break;
+          case 2: k1 = i; k3 = j; k2 = 0; break;
+          case 3: k1 = i; k2 = j; k3 = 0; break;
+          default: k1 = k2 = k3 = 0;
+        }
+        if (gpar[0].size() > 1)
+        {
+          fe.xi = xg[k1];
+          fe.u = gpar[0](k1+1);
+        }
+        if (gpar[1].size() > 1)
+        {
+          fe.eta = xg[k2];
+          fe.v = gpar[1](k2+1);
+        }
+        if (gpar[2].size() > 1)
+        {
+          fe.zeta = xg[k3];
+          fe.w = gpar[2](k3+1);
+        }
+
+      // Evaluate basis function (geometry) derivatives at current integration points
+      this->evaluateBasis(fe, dNdu);
+
+      // Compute basis function derivatives and the edge normal
+      fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,Xnod,dNdu,t1,t2);
+      if (fe.detJxW == 0.0) continue; // skip singular points
+
+      if (faceDir < 0) normal *= -1.0;
+
+      // Cartesian coordinates of current integration point
+      X = Xnod * fe.N;
+      X.t = time;
+
+      // Evaluate the integrand and accumulate element contributions
+      fe.detJxW *= 0.25*dA*wg[i]*wg[j];
+
+      // For mixed basis, we need to compute functions separate from geometry
+      if (edge.lr != lrspline.get())
+      {
+        // different lrspline instances enumerate elements differently
+        int basis_el =  edge.lr->getElementContaining(fe.u, fe.v, fe.w);
+        Go::BasisDerivs spline;
+        edge.lr->computeBasis(fe.u, fe.v, fe.w, spline, basis_el);
+        SplineUtils::extractBasis(spline,fe.N,dNdu);
+      }
+
+      // Assemble into matrix A
+      for (size_t il=0; il<edge.MNPC[ie].size(); il++)     // local i-index
+        if (edge.MNPC[ie][il] != -1)
+        {
+          size_t ig = edge.MNPC[ie][il]+1;                 // global i-index
+          for (size_t jl=0; jl<edge.MNPC[ie].size(); jl++) // local j-index
+            if (edge.MNPC[ie][jl] != -1)
+            {
+              size_t jg = edge.MNPC[ie][jl]+1;             // global j-index
+              A(ig,jg) = A(ig,jg) + fe.N[il]*fe.N[jl]*fe.detJxW;
+          }
+          std::vector<Real> val = values.getValue(X);
+          for(size_t k=0; k < values.dim(); k++)
+            B[k](ig) = B[k](ig) + fe.N[il]*val[k]*fe.detJxW;
+      } // end basis-function loop
+    } // end gauss-point loop
+  } // end element loop
+
+#if SP_DEBUG > 2
+  std::cout <<"---- Matrix A -----\n"<< A
+            <<"-------------------"<< std::endl;
+  std::cout <<"---- Vector B -----\n"<< B
+            <<"-------------------"<< std::endl;
+
+  std::cout <<"---- Edge-nodes (g2l-mapping) -----\n";
+  int i=-1;
+  for (auto d : edge.MLGN) {
+    i++;
+    std::cout << d.first << ": " << d.second << std::endl;
+  }
+  std::cout <<"-------------------"<< std::endl;
+  std::cout <<"---- Element-nodes (-1 is interior element nodes) -----\n";
+  for (auto d : edge.MNPC) {
+    for (int c : d)
+      std::cout << c << " ";
+    std::cout << std::endl;
+  }
+  std::cout <<"-------------------"<< std::endl;
+#endif
+
+  // Solve the edge-global equation system
+  for (size_t k = 0; k < B.size(); k++)
+    if (!A.solve(B[k], false)) return false;
+
+#if SP_DEBUG > 2
+  std::cout <<"---- SOLUTION -----\n"<< B
+            <<"-------------------"<< std::endl;
+#endif
+
+  // Store the control-point values of the projected field
+  result.resize(values.dim());
+  for(size_t i = 0; i < values.dim(); i++)
+  {
+    result[i].resize(n);
+    std::copy(B[i].begin(), B[i].end(), result[i].begin());
+  }
+
+  return true;
 }
