@@ -444,7 +444,7 @@ public:
   bool evalSecondarySolution(Matrix& field, int pindx) const;
 
   //! \brief Returns whether an analytical solution is available or not.
-  bool haveAnaSol() const { return mySol ? true : false; }
+  virtual bool haveAnaSol() const { return mySol ? true : false; }
 
   //! \brief Returns a pointer to a norm integrand object for this simulator.
   //! \note The object is allocated dynamically and has therefore to be
