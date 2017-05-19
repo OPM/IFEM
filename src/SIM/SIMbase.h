@@ -28,6 +28,7 @@ class SAM;
 class AlgEqSystem;
 class LinSolParams;
 class SystemVector;
+class FunctionBase;
 class RealFunc;
 class VecFunc;
 class TractionFunc;
@@ -419,15 +420,17 @@ public:
   bool project(Vector& ssol, const Vector& psol,
                SIMoptions::ProjectionMethod pMethod = SIMoptions::GLOBAL) const;
 
-  //! \brief Projects a scalar function onto the specified basis.
+  //! \brief Projects a function onto the specified basis.
   //! \param[out] values Resulting control point values
   //! \param[in] f The function to evaluate
   //! \param[in] basis Which basis to consider
   //! \param[in] iField Field component offset in values vector
   //! \param[in] nFields Number of field components in values vector
+  //! \param[in] pMethod Projection method to use
   //! \param[in] time Current time
-  bool project(Vector& values, const RealFunc* f,
+  bool project(Vector& values, const FunctionBase* f,
                int basis = 1, int iField = 0, int nFields = 1,
+               SIMoptions::ProjectionMethod pMethod = SIMoptions::GLOBAL,
                double time = 0.0) const;
 
   //! \brief Evaluates the secondary solution field for specified patch.

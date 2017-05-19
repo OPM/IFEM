@@ -66,8 +66,9 @@ SIMbase::~SIMbase ()
   IFEM::cout <<"\nEntering SIMbase destructor"<< std::endl;
 #endif
 
-  for (IntegrandMap::iterator it = myInts.begin(); it != myInts.end(); ++it)
-    if (it->second != myProblem) delete it->second;
+  for (auto& itg : myInts)
+    if (itg.second != myProblem)
+      delete itg.second;
 
   if (myProblem)   delete myProblem;
   if (mySol)       delete mySol;
@@ -75,8 +76,8 @@ SIMbase::~SIMbase ()
   if (mySam)       delete mySam;
   if (mySolParams) delete mySolParams;
 
-  for (PatchVec::iterator i1 = myModel.begin(); i1 != myModel.end(); i1++)
-    delete *i1;
+  for (ASMbase* patch : myModel)
+    delete patch;
 
   myModel.clear();
   this->SIMbase::clearProperties();
@@ -89,14 +90,15 @@ SIMbase::~SIMbase ()
 
 void SIMbase::clearProperties ()
 {
-  for (PatchVec::iterator i1 = myModel.begin(); i1 != myModel.end(); i1++)
-    (*i1)->clear(true); // retain the geometry only
-  for (SclFuncMap::iterator i2 = myScalars.begin(); i2 != myScalars.end(); i2++)
-    delete i2->second;
-  for (VecFuncMap::iterator i3 = myVectors.begin(); i3 != myVectors.end(); i3++)
-    delete i3->second;
-  for (TracFuncMap::iterator i4 = myTracs.begin(); i4 != myTracs.end(); i4++)
-    delete i4->second;
+  for (ASMbase* patch : myModel)
+    patch->clear(true); // retain the geometry only
+
+  for (auto& i2 : myScalars)
+    delete i2.second;
+  for (auto& i3 : myVectors)
+    delete i3.second;
+  for (auto& i4 : myTracs)
+    delete i4.second;
 
   myPatches.clear();
   myGlb2Loc.clear();
@@ -164,13 +166,12 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
   if (!this->createFEMmodel('Y')) return false;
 
   PatchVec::const_iterator mit;
-  IntVec::const_iterator it;
   ASMbase* pch;
   size_t patch;
 
   // Erase all patches that should be ignored in the analysis
-  for (it = ignored.begin(); it != ignored.end(); ++it)
-    if ((pch = this->getPatch(*it)))
+  for (int idx : ignored)
+    if ((pch = this->getPatch(idx)))
       pch->clear();
 
   // If material properties are specified for at least one patch, assign the
@@ -1257,7 +1258,9 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
   norm->initIntegration(nIntGP,nBouGP);
 
   // Number of recovered solution components
-  size_t nCmp = ssol.empty() ? 0 : ssol.front().size() / mySam->getNoNodes();
+  size_t i, nCmp = 0;
+  for (i = 0; i < ssol.size() && nCmp == 0; i++)
+    nCmp = ssol[i].size() / mySam->getNoNodes();
 
 #ifdef USE_OPENMP
   // When assembling in parallel, we must always do the norm summation
@@ -1270,11 +1273,13 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
   // Initialize norm integral classes
   gNorm.resize(norm->getNoFields(0));
   size_t nNorms = 0;
-  for (size_t j = 0; j < gNorm.size(); j++) {
-    size_t nNrm = norm->getNoFields(1+j);
-    gNorm[j].resize(nNrm,true);
-    nNorms += nNrm;
-  }
+  for (i = 0; i < gNorm.size(); i++)
+    if (i == 0 || i > ssol.size() || !ssol[i-1].empty())
+    {
+      size_t nNrm = norm->getNoFields(1+i);
+      gNorm[i].resize(nNrm,true);
+      nNorms += nNrm;
+    }
 
   GlbNorm globalNorm(gNorm,norm->getFinalOperation());
   LintegralVec elementNorms;
@@ -1282,7 +1287,7 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
   {
     eNorm->resize(nNorms,mySam->getNoElms(),true);
     elementNorms.reserve(eNorm->cols());
-    for (size_t i = 0; i < eNorm->cols(); i++)
+    for (i = 0; i < eNorm->cols(); i++)
       elementNorms.push_back(new ElmNorm(eNorm->ptr(i),nNorms));
     norm->setLocalIntegrals(&elementNorms);
   }
@@ -1302,8 +1307,10 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
 	lp = p->patch;
 	ok = this->extractPatchSolution(psol,lp-1);
 	for (k = 0; k < ssol.size(); k++)
-	  if (!ssol[k].empty())
-	    pch->extractNodeVec(ssol[k],norm->getProjection(k),nCmp);
+          if (ssol[k].empty())
+            norm->getProjection(k).clear();
+          else
+            pch->extractNodeVec(ssol[k],norm->getProjection(k),nCmp);
 	ok &= pch->integrate(*norm,globalNorm,time);
       }
       else
@@ -1312,12 +1319,14 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
   if (lp == 0)
     // All patches are referring to the same material, and we assume it has
     // been initialized during input processing (thus no initMaterial call here)
-    for (size_t i = 0; i < myModel.size() && ok; i++)
+    for (i = 0; i < myModel.size() && ok; i++)
     {
       ok = this->extractPatchSolution(psol,i);
       for (k = 0; k < ssol.size(); k++)
-	if (!ssol[k].empty())
-	  myModel[i]->extractNodeVec(ssol[k],norm->getProjection(k),nCmp);
+        if (ssol[k].empty())
+          norm->getProjection(k).clear();
+        else
+          myModel[i]->extractNodeVec(ssol[k],norm->getProjection(k),nCmp);
       ok &= myModel[i]->integrate(*norm,globalNorm,time);
       lp = i+1;
     }
@@ -1560,7 +1569,7 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
     case SIMoptions::CGL2_INT:
       if (msgLevel > 1 && i == 0)
         IFEM::cout <<"\tContinuous global L2-projection"<< std::endl;
-      ok = myModel[i]->L2projection(values,*myProblem,time);
+      ok = myModel[i]->L2projection(values,myProblem,time);
       break;
 
     case SIMoptions::SCR:
@@ -1628,27 +1637,52 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
 }
 
 
-bool SIMbase::project (Vector& values, const RealFunc* f,
-                       int basis, int iField, int nFields, double time) const
+bool SIMbase::project (Vector& values, const FunctionBase* f,
+                       int basis, int iField, int nFields,
+                       SIMoptions::ProjectionMethod pMethod, double time) const
 {
   bool ok = true;
   for (size_t j = 0; j < myModel.size() && ok; j++)
   {
     if (myModel[j]->empty()) continue; // skip empty patches
 
-    Vector loc_scalar;
-    ok = myModel[j]->evaluate(f,loc_scalar,basis,time);
+    Vector loc_values;
+    Matrix f_values;
+    switch (pMethod) {
+    case SIMoptions::GLOBAL:
+      // Greville point projection
+      ok = myModel[j]->evaluate(f,loc_values,basis,time);
+      break;
 
-    if (nFields <= 1)
-      ok &= myModel[j]->injectNodeVec(loc_scalar,values,1,basis);
+    case SIMoptions::CGL2:
+    case SIMoptions::CGL2_INT:
+      // Continuous global L2-projection
+      ok = myModel[j]->L2projection(f_values,const_cast<FunctionBase*>(f),time);
+      loc_values = f_values;
+      break;
+
+    default:
+      std::cerr <<" *** SIMbase::project: Projection method "<< pMethod
+                <<" not implemented for functions."<< std::endl;
+      return false;
+    }
+
+    if (nFields <= (int)f->dim())
+      ok &= myModel[j]->injectNodeVec(loc_values,values,f->dim(),basis);
+    else if (f->dim() > 1)
+    {
+      std::cerr <<" *** SIMbase::project: Cannot interleave non-scalar function"
+                <<" into a multi-dimensional field."<< std::endl;
+      return false;
+    }
     else if (iField < nFields)
     {
       // Interleave
       size_t i, k = iField;
-      Vector loc_vector(loc_scalar.size()*nFields);
+      Vector loc_vector(loc_values.size()*nFields);
       myModel[j]->extractNodeVec(values,loc_vector,0,basis);
-      for (i = 0; i < loc_scalar.size(); i++, k += nFields)
-        loc_vector[k] = loc_scalar[i];
+      for (i = 0; i < loc_values.size(); i++, k += nFields)
+        loc_vector[k] = loc_values[i];
       ok &= myModel[j]->injectNodeVec(loc_vector,values,0,basis);
     }
     else

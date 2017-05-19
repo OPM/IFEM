@@ -533,9 +533,16 @@ public:
   //! problems using internal integration point buffers (with history-dependent
   //! data, etc.) and that must be traversed in the same sequence each time.
   //! \note The implementation of this method is placed in GlbL2projector.C
-  bool L2projection(Matrix& sField,
-                    const IntegrandBase& integrand,
+  bool L2projection(Matrix& sField, IntegrandBase* integrand,
                     const TimeDomain& time);
+
+  //! \brief Projects an explicit function using a continuous global L2-fit.
+  //! \param[out] fVals Control point values of the function
+  //! \param[in] function The function to project
+  //! \param[in] t Current time
+  //!
+  //! \note The implementation of this method is placed in GlbL2projector.C
+  bool L2projection(Matrix& fVals, FunctionBase* function, double t = 0.0);
 
 
   // Methods for result extraction

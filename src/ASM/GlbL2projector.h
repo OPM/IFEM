@@ -14,8 +14,13 @@
 #ifndef _GLB_L2_PROJECTOR_H
 #define _GLB_L2_PROJECTOR_H
 
-#include "IntegrandBase.h"
+#include "Integrand.h"
 #include "SparseMatrix.h"
+
+class IntegrandBase;
+class FunctionBase;
+
+typedef std::vector<size_t> uIntVec; //!< General unsigned integer vector
 
 
 /*!
@@ -28,7 +33,11 @@ public:
   //! \brief The constructor initializes the projection matrices.
   //! \param[in] p The main problem integrand
   //! \param[in] n Dimension of the L2-projection matrices (number of nodes)
-  GlbL2(IntegrandBase& p, size_t n);
+  GlbL2(IntegrandBase* p, size_t n);
+  //! \brief Alternative constructor for projection of explicit functions.
+  //! \param[in] f The function to to L2-projection on
+  //! \param[in] n Dimension of the L2-projection matrices (number of nodes)
+  GlbL2(FunctionBase* f, size_t n);
   //! \brief Empty destructor.
   virtual ~GlbL2() {}
 
@@ -52,24 +61,22 @@ public:
   virtual bool initElement(const IntVec& MNPC, const FiniteElement& fe,
                            const Vec3& X0, size_t nPt,
                            LocalIntegral& elmInt);
-  //! \brief Initializes current element for numerical integration (mixed integrands).
+  //! \brief Initializes current element for numerical integration (mixed).
   //! \param[in] MNPC1 Matrix of nodal point correspondance for current element
   //! \param[in] elem_sizes Size of each basis on the element
   //! \param[in] basis_sizes Size of each basis on the patch
   //! \param elmInt Local integral for element
   virtual bool initElement(const IntVec& MNPC1,
-                           const std::vector<size_t>& elem_sizes,
-                           const std::vector<size_t>& basis_sizes,
+                           const uIntVec& elem_sizes,
+                           const uIntVec& basis_sizes,
                            LocalIntegral& elmInt);
 
   //! \brief Dummy implementation.
   virtual bool initElement(const IntVec&, LocalIntegral&) { return false; }
-
   //! \brief Dummy implementation.
   virtual bool initElementBou(const IntVec&, LocalIntegral&) { return false; }
   //! \brief Dummy implementation.
-  virtual bool initElementBou(const IntVec&, const std::vector<size_t>&,
-                              const std::vector<size_t>&,
+  virtual bool initElementBou(const IntVec&, const uIntVec&, const uIntVec&,
                               LocalIntegral&) { return false; }
 
   using Integrand::evalInt;
@@ -97,8 +104,18 @@ public:
   //! \param[out] sField Nodal/control-point values of the projected results.
   bool solve(Matrix& sField);
 
+ protected:
+  //! \brief Integrates the L2-projection matrices.
+  //! \param[in] mnpc Matrix of nodal point correspondance
+  //! \param[in] solPt Integration point values of the field to project
+  //! \param[in] fe Finite element data of current integration point
+  //! \param[in] X Cartesian coordinates of current integration point
+  bool formL2Mats(const IntVec& mnpc, const Vector& solPt,
+                  const FiniteElement& fe, const Vec3& X) const;
+
 private:
-  IntegrandBase& problem; //!< The main problem integrand
+  IntegrandBase* problem; //!< The main problem integrand
+  FunctionBase* function; //!< Explicit function to L2-project
   mutable SparseMatrix A; //!< Left-hand-side matrix of the L2-projection
   mutable StdVector    B; //!< Right-hand-side vectors of the L2-projection
 };
