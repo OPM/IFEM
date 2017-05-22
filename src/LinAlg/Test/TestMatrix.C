@@ -82,17 +82,17 @@ TEST(TestMatrix3D, GetColumn)
   std::iota(A.begin(),A.end(),1);
   std::cout <<"A:"<< A;
 
-  int value = 0;
+  int value = 1;
   for (size_t c = 1; c <= A.dim(3); c++)
     for (size_t r = 1; r <= A.dim(2); r++)
     {
       utl::vector<int> column = A.getColumn(r,c);
-      EXPECT_EQ(column.size(),A.dim(1));
-      for (int v : column)
-        EXPECT_EQ(++value, v);
+      EXPECT_EQ(column.size(), A.dim(1));
+      for (size_t i = 0; i < column.size(); i++, value++)
+        EXPECT_EQ(value, column[i]);
     }
 
-  EXPECT_EQ(value, (int)A.size());
+  EXPECT_EQ(value, 1+(int)A.size());
 }
 
 
