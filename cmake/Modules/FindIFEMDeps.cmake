@@ -250,7 +250,7 @@ include_directories(${IFEM_INCLUDE_DIRS})
 add_definitions(${IFEM_DEFINITIONS})
 set(IFEM_CHECKCOMMITS_SCRIPT ${IFEM_PATH}/cmake/Scripts/CheckCommits.cmake)
 if(NOT CMAKE_INSTALL_DOCDIR)
-  set(CMAKE_INSTALL_DOCDIR libifem1)
+  set(CMAKE_INSTALL_DOCDIR share/doc/libifem1)
 endif()
 
 include(CheckCXXCompilerFlag)

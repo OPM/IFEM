@@ -8,6 +8,9 @@ macro(add_doc_target appname dox)
   configure_file(doc/${dox}.dox.in ${dox}.dox)
 
   if(IFEM_INSTALL_DOXY)
+    if(NOT CMAKE_INSTALL_DOCDIR)
+      set(CMAKE_INSTALL_DOCDIR share/doc/libifem1)
+    endif()
     install(CODE "EXECUTE_PROCESS(COMMAND ${CMAKE_BUILD_TOOL} doc WORKING_DIRECTORY \"${CMAKE_CURRENT_BINARY_DIR}\")" COMPONENT doc)
     install(DIRECTORY ${PROJECT_BINARY_DIR}/doc/html DESTINATION ${CMAKE_INSTALL_DOCDIR}/Apps/${appname}
             COMPONENT doc

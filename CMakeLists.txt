@@ -69,10 +69,6 @@ include_directories(${IFEM_INCLUDES})
 set(EXECUTABLE_OUTPUT_PATH bin)
 set(LIBRARY_OUTPUT_PATH lib)
 
-if(NOT CMAKE_INSTALL_DOCDIR)
-  set(CMAKE_INSTALL_DOCDIR share/doc/libifem1)
-endif()
-
 # Generate build flags in build tree
 configure_file(${PROJECT_SOURCE_DIR}/cmake/Modules/IFEMFlags.cmake.in
                IFEMFlags.cmake @ONLY)
