@@ -468,8 +468,8 @@ bool ASMbase::addPeriodicity (size_t master, size_t slave, int dir)
     return false;
   }
 
-  if (this->add2PC(masterNode,slaveNode,dir) ||
-      this->add2PC(slaveNode,masterNode,dir))
+  if (this->add2PC(masterNode,dir,slaveNode) ||
+      this->add2PC(slaveNode,dir,masterNode))
     return true;
 
   std::cerr <<" *** ASMbase::addPeriodicity: Failed to connect nodes "

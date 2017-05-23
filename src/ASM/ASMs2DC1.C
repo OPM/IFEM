@@ -215,7 +215,7 @@ void ASMs2DC1::constrainEdge (int dir, bool open, int dof, int code, char)
 	    this->prescribe(node-n1*dir/2,dof/100,0);
 	  else
 	    // The edge has a prescribed rotation, add an MPC for that
-	    this->add2PC(MLGN[node-n1*dir/2-1],MLGN[node-1],dof/100,code);
+	    this->add2PC(MLGN[node-n1*dir/2-1],dof/100,MLGN[node-1],code);
 	}
       }
       break;
