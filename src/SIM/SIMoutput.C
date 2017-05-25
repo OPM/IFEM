@@ -86,12 +86,7 @@ bool SIMoutput::parseOutputTag (const TiXmlElement* elem)
   if (strcasecmp(elem->Value(),"resultpoints"))
     return this->SIMinput::parseOutputTag(elem);
 
-  utl::getAttribute(elem,"precision",myPrec);
-
-  std::string fname;
-  if (utl::getAttribute(elem,"file",fname))
-    this->setPointResultFile(fname,elem->FirstChildElement("dump_coordinates"));
-
+  bool newGroup = true;
   const TiXmlElement* point = elem->FirstChildElement("point");
   for (int i = 1; point; i++, point = point->NextSiblingElement())
   {
@@ -107,10 +102,11 @@ bool SIMoutput::parseOutputTag (const TiXmlElement* elem)
     if (utl::getAttribute(point,"w",thePoint.u[2]))
       IFEM::cout <<' '<< thePoint.u[2];
     IFEM::cout << std::endl;
-    if (myPoints.empty())
+    if (newGroup)
       myPoints.push_back(std::make_pair("",ResPointVec(1,thePoint)));
     else
       myPoints.back().second.push_back(thePoint);
+    newGroup = false;
   }
 
   const TiXmlElement* line = elem->FirstChildElement("line");
@@ -132,10 +128,11 @@ bool SIMoutput::parseOutputTag (const TiXmlElement* elem)
     if (u0[0] == u1[0] && u0[1] == u1[1] && u0[2] == u1[2]) npt = 1;
 
     memcpy(thePoint.u,u0,3*sizeof(double));
-    if (myPoints.empty())
+    if (newGroup)
       myPoints.push_back(std::make_pair("",ResPointVec(1,thePoint)));
     else
       myPoints.back().second.push_back(thePoint);
+    newGroup = false;
 
     for (int i = 1; i < npt-1; i++)
     {
@@ -158,6 +155,12 @@ bool SIMoutput::parseOutputTag (const TiXmlElement* elem)
     }
     IFEM::cout << std::endl;
   }
+
+  utl::getAttribute(elem,"precision",myPrec);
+
+  std::string fname;
+  if (utl::getAttribute(elem,"file",fname))
+    this->setPointResultFile(fname,elem->FirstChildElement("dump_coordinates"));
 
   return true;
 }
@@ -1359,69 +1362,106 @@ bool SIMoutput::dumpVector (const Vector& vsol, const char* fname,
   if (vsol.empty() || myPoints.empty())
     return true;
 
-  size_t i, j, k;
+  size_t ngNodes = mySam->getNoNodes();
+  size_t nComp = vsol.size() / ngNodes;
+  if (nComp*ngNodes != vsol.size() || nComp == this->getNoFields())
+    nComp = 0; // Using the number of primary field components
+
+  size_t i, j, k, iPoint;
   Matrix sol1;
   Vector lsol;
 
-  for (i = 0; i < myModel.size(); i++)
+  bool ok = true;
+  std::ofstream* fs = nullptr;
+  std::streamsize flWidth = 8 + precision;
+  std::streamsize oldPrec;
+  std::ios::fmtflags oldFlgs;
+
+  std::vector<ResPtPair>::const_iterator pit;
+  ResPointVec::const_iterator p;
+
+  for (pit = myPoints.begin(); pit != myPoints.end(); ++pit)
   {
-    if (myModel[i]->empty()) continue; // skip empty patches
+    if (fname)
+    {
+      // Formatted output, use scientific notation with fixed field width
+      oldPrec = os.precision(precision);
+      oldFlgs = os.flags(std::ios::scientific | std::ios::right);
+    }
+    else if (!pit->first.empty())
+    {
+      // Output to a separate file for plotting
+      fs = new std::ofstream(pit->first.c_str(),std::ios::out);
+      oldPrec = fs->precision(precision);
+      oldFlgs = fs->flags(std::ios::scientific | std::ios::right);
+    }
+    else
+      continue; // Skip output for this point group
 
-    std::vector<ResPtPair>::const_iterator pit;
-    ResPointVec::const_iterator p;
-    std::array<RealArray,3> params;
-    IntVec points;
+    iPoint = 1;
+    for (i = 0; i < myModel.size(); i++)
+    {
+      if (myModel[i]->empty()) continue; // skip empty patches
 
-    // Find all evaluation points within this patch, if any
-    for (j = 0, pit = myPoints.begin(); pit != myPoints.end(); ++pit)
-      for (p = pit->second.begin(); p != pit->second.end(); j++, ++p)
+      // Find all evaluation points within this patch, if any
+      std::array<RealArray,3> params;
+      IntVec points;
+      for (j = 0, p = pit->second.begin(); p != pit->second.end(); j++, ++p)
         if (this->getLocalPatchIndex(p->patch) == (int)(i+1))
           if (opt.discretization >= ASM::Spline)
           {
-            points.push_back(p->inod > 0 ? p->inod : -(j+1));
+            points.push_back(p->inod > 0 ? p->inod : -(iPoint+j));
             for (k = 0; k < myModel[i]->getNoParamDim(); k++)
               params[k].push_back(p->u[k]);
           }
           else if (p->inod > 0)
             points.push_back(p->inod);
 
-    if (points.empty()) continue; // no points in this patch
+      if (points.empty()) continue; // no points in this patch
 
-    // Evaluate/extracto nodal solution variables
-    myModel[i]->extractNodeVec(vsol,lsol);
-    if (opt.discretization >= ASM::Spline)
-    {
-      if (!myModel[i]->evalSolution(sol1,lsol,params.data(),false))
-        return false;
+      // Evaluate/extract nodal solution variables
+      myModel[i]->extractNodeVec(vsol,lsol,nComp);
+      if (opt.discretization >= ASM::Spline)
+        ok = myModel[i]->evalSolution(sol1,lsol,params.data(),false);
+      else
+        ok = myModel[i]->ASMbase::getSolution(sol1,lsol,points);
+      if (!ok) return false;
+
+      if (fs) // Single-line output to separate file
+        for (j = 0; j < points.size(); j++, iPoint++)
+        {
+          *fs << iPoint;
+          for (k = 1; k <= sol1.rows(); k++)
+            *fs << std::setw(flWidth) << utl::trunc(sol1(k,j+1));
+          *fs << std::endl;
+        }
+
+      else // Formatted output to log stream
+        for (j = 0; j < points.size(); j++, iPoint++)
+        {
+          if (points[j] < 0)
+            os <<"  Point #"<< -points[j];
+          else
+          {
+            points[j] = myModel[i]->getNodeID(points[j]);
+            os <<"  Node #"<< points[j];
+          }
+
+          os <<":\t"<< fname <<" =";
+          for (k = 1; k <= sol1.rows(); k++)
+            os << std::setw(flWidth) << utl::trunc(sol1(k,j+1));
+
+          os << std::endl;
+        }
     }
+
+    if (fs)
+      delete fs;
     else
     {
-      if (!myModel[i]->ASMbase::getSolution(sol1,lsol,points))
-        return false;
+      os.precision(oldPrec);
+      os.flags(oldFlgs);
     }
-
-    // Formatted output, use scientific notation with fixed field width
-    std::streamsize flWidth = 8 + precision;
-    std::streamsize oldPrec = os.precision(precision);
-    std::ios::fmtflags oldF = os.flags(std::ios::scientific | std::ios::right);
-    for (j = 0; j < points.size(); j++)
-    {
-      if (points[j] < 0)
-        os <<"  Point #"<< -points[j];
-      else
-      {
-        points[j] = myModel[i]->getNodeID(points[j]);
-        os <<"  Node #"<< points[j];
-      }
-
-      os <<":\t"<< fname <<" =";
-      for (k = 1; k <= sol1.rows(); k++)
-        os << std::setw(flWidth) << utl::trunc(sol1(k,j+1));
-
-      os << std::endl;
-    }
-    os.precision(oldPrec);
-    os.flags(oldF);
   }
 
   return true;
@@ -1438,8 +1478,10 @@ bool SIMoutput::dumpResults (const Vector& psol, double time,
   myProblem->initResultPoints(time);
 
   for (size_t i = 0; i < myPoints.size(); i++)
-    if (!this->dumpResults(psol,time,os,myPoints[i].second,formatted,precision))
-      return false;
+    if (!formatted || myPoints[i].first.empty())
+      if (!this->dumpResults(psol,time,os,myPoints[i].second,
+                             formatted,precision))
+        return false;
 
   return true;
 }
