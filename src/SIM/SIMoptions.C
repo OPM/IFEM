@@ -14,9 +14,8 @@
 #include "SIMoptions.h"
 #include "SystemMatrix.h"
 #include "Utilities.h"
-#include "tinyxml.h"
 #include "IFEM.h"
-#include "LogStream.h"
+#include "tinyxml.h"
 #ifdef HAVE_MPI
 #include <mpi.h>
 #endif
@@ -169,8 +168,13 @@ bool SIMoptions::parseOutputTag (const TiXmlElement* elem)
     std::string type;
     if (utl::getAttribute(elem,"type",type))
       this->parseProjectionMethod(type.c_str());
-    for (const TiXmlNode* ch = elem->FirstChild(); ch; ch = ch->NextSibling())
-      this->parseProjectionMethod(ch->Value());
+    const TiXmlElement* child = elem->FirstChildElement();
+    for (; child; child = child->NextSiblingElement())
+    {
+      int version = 1;
+      utl::getAttribute(child,"version",version);
+      this->parseProjectionMethod(child->Value(),version);
+    }
   }
 
   return true;
@@ -312,14 +316,14 @@ bool SIMoptions::parseOldOptions (int argc, char** argv, int& i)
 }
 
 
-bool SIMoptions::parseProjectionMethod (const char* ptype)
+bool SIMoptions::parseProjectionMethod (const char* ptype, int version)
 {
   if (!strcasecmp(ptype,"global") || !strcasecmp(ptype,"grvl"))
     project[GLOBAL] = "Greville point projection";
   else if (!strcasecmp(ptype,"dgl2"))
     project[DGL2] = "Discrete global L2-projection";
   else if (!strcasecmp(ptype,"cgl2"))
-    project[CGL2] = "Continuous global L2-projection";
+    project[version == 1 ? CGL2 : CGL2_INT] = "Continuous global L2-projection";
   else if (!strcasecmp(ptype,"scr"))
     project[SCR] = "Superconvergent recovery";
   else if (!strcasecmp(ptype,"vdsa"))

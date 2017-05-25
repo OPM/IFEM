@@ -1512,8 +1512,11 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
   Vector count(myModel.size() > 1 ? ngNodes : 0);
 
   if (pMethod == SIMoptions::DGL2 || pMethod == SIMoptions::CGL2)
+    const_cast<SIMbase*>(this)->setQuadratureRule(opt.nGauss[1]);
+  else if (pMethod == SIMoptions::CGL2_INT)
   {
     // Reinitialize the integration point buffers within the integrands (if any)
+    // Note: We here use the same integration scheme as for the main problem
     const_cast<SIMbase*>(this)->setQuadratureRule(opt.nGauss[0]);
     myProblem->initIntegration(time,psol);
   }
@@ -1546,6 +1549,12 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
       break;
 
     case SIMoptions::CGL2:
+      if (msgLevel > 1 && i == 0)
+        IFEM::cout <<"\tContinuous global L2-projection"<< std::endl;
+      ok = myModel[i]->globalL2projection(values,*myProblem,true);
+      break;
+
+    case SIMoptions::CGL2_INT:
       if (msgLevel > 1 && i == 0)
         IFEM::cout <<"\tContinuous global L2-projection"<< std::endl;
       ok = myModel[i]->L2projection(values,*myProblem,time);

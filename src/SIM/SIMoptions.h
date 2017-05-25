@@ -53,8 +53,6 @@ public:
   bool parseOutputTag(const TiXmlElement* elem);
   //! \brief Parses the \a restart XML-tag.
   bool parseRestartTag(const TiXmlElement* elem);
-  //! \brief Parses a projection method XML-tag.
-  bool parseProjectionMethod(const char* ptype);
 
   //! \brief Parses obsolete command-line arguments (backward compatibility).
   bool parseOldOptions(int argc, char** argv, int& i);
@@ -66,6 +64,10 @@ public:
 
   //! \brief Prints out the simulation options to the given stream.
   utl::LogStream& print(utl::LogStream& os, bool addBlankLine = false) const;
+
+private:
+  //! \brief Parses a projection method XML-tag.
+  bool parseProjectionMethod(const char* ptype, int version = 1);
 
 public:
   ASM::Discretization discretization; //!< Spatial discretization option
@@ -98,11 +100,12 @@ public:
 
   bool enableController; //!< Whether or not to enable external program control
 
-  int printPid; //!< PID to print info to screen for
+  int         printPid;   //!< PID to print info to screen for
   std::string log_prefix; //!< Prefix for process log files
 
   //! \brief Enum defining the available projection methods.
-  enum ProjectionMethod { NONE, GLOBAL, DGL2, CGL2, SCR, VDSA, QUASI, LEASTSQ };
+  enum ProjectionMethod { NONE, GLOBAL, VDSA, QUASI, LEASTSQ,
+                          DGL2, CGL2, CGL2_INT, SCR };
   //! \brief Projection method name mapping.
   typedef std::map<ProjectionMethod,std::string> ProjectionMap;
 
