@@ -1194,12 +1194,6 @@ bool ASMbase::evalSolution (Matrix&, const IntegrandBase&,
 }
 
 
-bool ASMbase::globalL2projection (Matrix&, const IntegrandBase&, bool) const
-{
-  return Aerror("globalL2projection(Matrix&,const IntegrandBase&,bool)");
-}
-
-
 bool ASMbase::evaluate (const ASMbase*, const Vector&, RealArray&, int) const
 {
   return Aerror("evaluate(const ASMbase*,const Vector&,RealArray&,int)");

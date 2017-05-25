@@ -267,14 +267,6 @@ public:
   //! \param[in] nSegSpan Number of visualization segments over each knot-span
   virtual bool getGridParameters(RealArray& prm, int nSegSpan) const;
 
-  //! \brief Projects the secondary solution using a discrete global L2-norm.
-  //! \param[out] sField Secondary solution field control point values
-  //! \param[in] integrand Object with problem-specific data and methods
-  //! \param[in] continuous If \e true, a continuous L2-projection is used
-  virtual bool globalL2projection(Matrix& sField,
-				  const IntegrandBase& integrand,
-				  bool continuous = false) const;
-
   //! \brief Establishes the vector with basis function values.
   //! \param[in] u Parameter value of current integration point
   //! \param[out] N Basis function values
@@ -296,6 +288,15 @@ protected:
   // Internal utility methods
   // ========================
 
+  //! \brief Assembles L2-projection matrices for the secondary solution.
+  //! \param[out] A Left-hand-side matrix
+  //! \param[out] B Right-hand-side vectors
+  //! \param[in] integrand Object with problem-specific data and methods
+  //! \param[in] continuous If \e false, a discrete L2-projection is used
+  virtual bool assembleL2matrices(SparseMatrix& A, StdVector& B,
+                                  const IntegrandBase& integrand,
+                                  bool continuous) const;
+
   //! \brief Initializes the local element axes for a patch of beam elements.
   //! \param[in] Zaxis Vector defining a point in the local XZ-plane
   bool initLocalElementAxes(const Vec3& Zaxis);
@@ -309,7 +310,8 @@ protected:
   //! \param[in] master 0-based index of the first master node in this basis
   //! \param[in] thick Thickness of connection
   bool connectBasis(int vertex, ASMs1D& neighbor, int nvertex,
-                    int basis = 1, int slave = 0, int master = 0, int thick = 1);
+                    int basis = 1, int slave = 0, int master = 0,
+                    int thick = 1);
 
   //! \brief Extracts parameter values of the Gauss points.
   //! \param[out] uGP Parameter values for all points

@@ -1359,42 +1359,34 @@ bool ASMs1D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 }
 
 
-bool ASMs1D::globalL2projection (Matrix& sField,
-				 const IntegrandBase& integrand,
-				 bool continuous) const
+bool ASMs1D::assembleL2matrices (SparseMatrix& A, StdVector& B,
+                                 const IntegrandBase& integrand,
+                                 bool continuous) const
 {
-  if (!curv) return true; // silently ignore empty patches
-
-  if (continuous)
-  {
-    std::cerr <<" *** ASMs1D::globalL2projection: Only discrete L2-projection"
-              <<" is available in this method.\n                            "
-              <<"     Use ASMbase::L2projection instead."<< std::endl;
-  }
-
+  const size_t nnod = this->getNoNodes();
   const int p1 = curv->order();
 
-  // Get Gaussian quadrature point coordinates
-  const int ng1 = p1 - 1;
+  // Get Gaussian quadrature point coordinates (and weights if continuous)
+  const int ng1 = continuous ? nGauss : p1 - 1;
   const double* xg = GaussQuadrature::getCoord(ng1);
+  const double* wg = continuous ? GaussQuadrature::getWeight(nGauss) : nullptr;
   if (!xg) return false;
+  if (continuous && !wg) return false;
 
   // Compute parameter values of the Gauss points over the whole patch
-  Matrix gp;
+  // and evaluate the secondary solution at all integration points
+  Matrix gp, sField;
   RealArray gpar = this->getGaussPointParameters(gp,ng1,xg);
-
-  // Evaluate the secondary solution at all integration points
   if (!this->evalSolution(sField,integrand,&gpar))
+  {
+    std::cerr <<" *** ASMs1D::assembleL2matrices: Failed for patch "<< idx+1
+              <<" nPoints="<< gpar.size() << std::endl;
     return false;
+  }
 
-  // Set up the projection matrices
-  const size_t nnod = this->getNoNodes();
-  const size_t ncomp = sField.rows();
-  SparseMatrix A(SparseMatrix::SUPERLU);
-  StdVector B(nnod*ncomp);
-  A.redim(nnod,nnod);
-
+  double dL = 1.0;
   Vector phi(p1);
+  Matrix dNdu, Xnod, J;
 
 
   // === Assembly loop over all elements in the patch ==========================
@@ -1404,12 +1396,32 @@ bool ASMs1D::globalL2projection (Matrix& sField,
   {
     if (MLGE[iel] < 1) continue; // zero-area element
 
+    if (continuous)
+    {
+      // Set up control point (nodal) coordinates for current element
+      if (!this->getElementCoordinates(Xnod,1+iel))
+        return false;
+      else if ((dL = this->getParametricLength(1+iel)) < 0.0)
+        return false; // topology error (probably logic error)
+    }
+
     // --- Integration loop over all Gauss points in current element -----------
 
-    for (int i = 1; i <= ng1; i++, ip++)
+    for (int i = 0; i < ng1; i++, ip++)
     {
       // Fetch basis function values at current integration point
-      this->extractBasis(gp(i,1+iel),phi);
+      if (continuous)
+        this->extractBasis(gp(1+i,1+iel),phi,dNdu);
+      else
+        this->extractBasis(gp(1+i,1+iel),phi);
+
+      // Compute the Jacobian inverse and derivatives
+      double dJw = 1.0;
+      if (continuous)
+      {
+        dJw = 0.5*dL*wg[i]*utl::Jacobian(J,dNdu,Xnod,dNdu,false);
+        if (dJw == 0.0) continue; // skip singular points
+      }
 
       // Integrate the linear system A*x=B
       for (size_t ii = 0; ii < phi.size(); ii++)
@@ -1418,22 +1430,13 @@ bool ASMs1D::globalL2projection (Matrix& sField,
 	for (size_t jj = 0; jj < phi.size(); jj++)
 	{
 	  int jnod = MNPC[iel][jj]+1;
-	  A(inod,jnod) += phi[ii]*phi[jj];
+	  A(inod,jnod) += phi[ii]*phi[jj]*dJw;
 	}
-	for (size_t r = 1; r <= ncomp; r++)
-	  B(inod+(r-1)*nnod) += phi[ii]*sField(r,ip+1);
+	for (size_t r = 1; r <= sField.rows(); r++)
+	  B(inod+(r-1)*nnod) += phi[ii]*sField(r,ip+1)*dJw;
       }
     }
   }
-
-  // Solve the patch-global equation system
-  if (!A.solve(B)) return false;
-
-  // Store the control-point values of the projected field
-  sField.resize(ncomp,nnod);
-  for (size_t i = 1; i <= nnod; i++)
-    for (size_t j = 1; j <= ncomp; j++)
-      sField(j,i) = B(i+(j-1)*nnod);
 
   return true;
 }

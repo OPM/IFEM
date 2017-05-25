@@ -38,18 +38,18 @@
 #include <numeric>
 
 
-ASMu2Dmx::ASMu2Dmx (unsigned char n_s,
-                    const std::vector<unsigned char>& n_f)
+ASMu2Dmx::ASMu2Dmx (unsigned char n_s, const CharVec& n_f)
   : ASMu2D(n_s), ASMmxBase(n_f)
 {
+  threadBasis = nullptr;
 }
 
 
-ASMu2Dmx::ASMu2Dmx (const ASMu2Dmx& patch,
-                    const std::vector<unsigned char>& n_f)
+ASMu2Dmx::ASMu2Dmx (const ASMu2Dmx& patch, const CharVec& n_f)
   : ASMu2D(patch), ASMmxBase(n_f[0]==0?patch.nfx:n_f)
 {
   m_basis = patch.m_basis;
+  threadBasis = patch.threadBasis;
   nfx = patch.nfx;
   nb =  patch.nb;
 }
@@ -270,7 +270,7 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
       if (!ok)
         continue;
       int iel = threadGroups[0][t][e] + 1;
-      auto el1 = this->getBasis(threadBasis)->elementBegin()+iel-1;
+      auto el1 = threadBasis->elementBegin()+iel-1;
       double uh = ((*el1)->umin()+(*el1)->umax())/2.0;
       double vh = ((*el1)->vmin()+(*el1)->vmax())/2.0;
       std::vector<size_t> els;
@@ -725,7 +725,7 @@ Vec3 ASMu2Dmx::getCoord (size_t inod) const
 {
   size_t b = 0;
   size_t nbb = 0;
-  while (nbb + nb[b] < inod && b < nb.size())
+  while (b < nb.size() && nbb+nb[b] < inod)
     nbb += nb[b++];
   ++b;
 
@@ -745,20 +745,19 @@ void ASMu2Dmx::generateThreadGroups (const Integrand& integrand, bool silence,
 {
   // TODO: Support for div-compatible
   int p1 = 0;
-  for (size_t i = 1; i <= m_basis.size(); ++i) {
-    if (this->getBasis(i)->order(0) > p1)
-      p1 = this->getBasis(i)->order(0), threadBasis = i;
-  }
+  for (size_t i = 1; i <= m_basis.size(); ++i)
+    if (this->getBasis(i)->order(0) > p1) {
+      threadBasis = this->getBasis(i);
+      p1 = threadBasis->order(0);
+    }
 
-  LR::generateThreadGroups(threadGroups, this->getBasis(threadBasis));
+  LR::generateThreadGroups(threadGroups,threadBasis);
   if (silence || threadGroups[0].size() < 2) return;
 
   std::cout <<"\nMultiple threads are utilized during element assembly.";
   for (size_t i = 0; i < threadGroups[0].size(); i++)
-  {
-    std::cout <<"\n Color "<< i+1;
-    std::cout << ": "<< threadGroups[0][i].size() <<" elements";
-  }
+    std::cout <<"\n Color "<< i+1 <<": "
+              << threadGroups[0][i].size() <<" elements";
 }
 
 

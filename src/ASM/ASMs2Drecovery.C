@@ -159,13 +159,11 @@ Go::GeomObject* ASMs2D::evalSolution (const IntegrandBase& integrand) const
 }
 
 
-bool ASMs2D::globalL2projection (Matrix& sField,
-				 const IntegrandBase& integrand,
-				 bool continuous) const
+bool ASMs2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
+                                 const IntegrandBase& integrand,
+                                 bool continuous) const
 {
-  if (!surf) return true; // silently ignore empty patches
-
-  PROFILE2("ASMs2D::globalL2");
+  const size_t nnod = this->getNoNodes(1);
 
   const int p1 = surf->order_u();
   const int p2 = surf->order_v();
@@ -198,19 +196,13 @@ bool ASMs2D::globalL2projection (Matrix& sField,
     surf->computeBasisGrid(gpar[0],gpar[1],spl0);
 
   // Evaluate the secondary solution at all integration points
+  Matrix sField;
   if (!this->evalSolution(sField,integrand,gpar.data()))
   {
-    std::cerr <<" *** ASMs2D::globalL2projection: Failed for patch "<< idx+1
+    std::cerr <<" *** ASMs2D::assembleL2matrices: Failed for patch "<< idx+1
 	      <<" nPoints="<< gpar[0].size()*gpar[1].size() << std::endl;
     return false;
   }
-
-  // Set up the projection matrices
-  const size_t nnod = this->getNoNodes(1);
-  const size_t ncomp = sField.rows();
-  SparseMatrix A(SparseMatrix::SUPERLU);
-  StdVector B(nnod*ncomp);
-  A.redim(nnod,nnod);
 
   double dA = 1.0;
   Vector phi(p1*p2);
@@ -262,29 +254,11 @@ bool ASMs2D::globalL2projection (Matrix& sField,
 	      int jnod = MNPC[iel][jj]+1;
 	      A(inod,jnod) += phi[ii]*phi[jj]*dJw;
 	    }
-	    for (size_t r = 1; r <= ncomp; r++)
+	    for (size_t r = 1; r <= sField.rows(); r++)
 	      B(inod+(r-1)*nnod) += phi[ii]*sField(r,ip+1)*dJw;
 	  }
 	}
     }
-
-#if SP_DEBUG > 1
-  std::cout << " ---- Matrix A -----\n";
-  std::cout << A << std::endl;
-  std::cout << " -------------------\n";
-  std::cout << " ---- Vector B -----\n";
-  std::cout << B << std::endl;
-  std::cout << " -------------------\n";
-#endif
-
-  // Solve the patch-global equation system
-  if (!A.solve(B)) return false;
-
-  // Store the control-point values of the projected field
-  sField.resize(ncomp,nnod);
-  for (size_t i = 1; i <= nnod; i++)
-    for (size_t j = 1; j <= ncomp; j++)
-      sField(j,i) = B(i+(j-1)*nnod);
 
   return true;
 }

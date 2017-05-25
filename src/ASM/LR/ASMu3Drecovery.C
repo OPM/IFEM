@@ -100,13 +100,11 @@ LR::LRSpline* ASMu3D::evalSolution (const IntegrandBase& integrand) const
 }
 
 
-bool ASMu3D::globalL2projection (Matrix& sField,
+bool ASMu3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
                                  const IntegrandBase& integrand,
                                  bool continuous) const
 {
-  if (!lrspline) return true; // silently ignore empty patches
-
-  PROFILE2("ASMu3D::globalL2");
+  const size_t nnod = this->getNoNodes();
 
   const int p1 = lrspline->order(0);
   const int p2 = lrspline->order(1);
@@ -122,14 +120,6 @@ bool ASMu3D::globalL2projection (Matrix& sField,
   const double* wg = continuous ? GaussQuadrature::getWeight(nGauss) : nullptr;
   if (!xg || !yg || !zg) return false;
   if (continuous && !wg) return false;
-
-
-  // Set up the projection matrices
-  const size_t nnod = this->getNoNodes();
-  const size_t ncomp = integrand.getNoFields();
-  SparseMatrix A(SparseMatrix::SUPERLU);
-  StdVector B(nnod*ncomp);
-  A.redim(nnod,nnod);
 
   double dA = 0.0;
   Vector phi;
@@ -162,6 +152,7 @@ bool ASMu3D::globalL2projection (Matrix& sField,
     expandTensorGrid(gpar.data(),unstrGpar.data());
 
     // Evaluate the secondary solution at all integration points
+    Matrix sField;
     if (!this->evalSolution(sField,integrand,unstrGpar.data()))
       return false;
 
@@ -202,27 +193,11 @@ bool ASMu3D::globalL2projection (Matrix& sField,
               int jnod = MNPC[iel-1][jj]+1;
               A(inod,jnod) += phi[ii]*phi[jj]*dJw;
             }
-            for (size_t r = 1; r <= ncomp; r++)
+            for (size_t r = 1; r <= sField.rows(); r++)
               B(inod+(r-1)*nnod) += phi[ii]*sField(r,ip+1)*dJw;
           }
         }
   }
-
-#if SP_DEBUG > 2
-  std::cout <<"---- Matrix A -----"<< A
-            <<"-------------------"<< std::endl;
-  std::cout <<"---- Vector B -----"<< B
-            <<"-------------------"<< std::endl;
-#endif
-
-  // Solve the patch-global equation system
-  if (!A.solve(B)) return false;
-
-  // Store the control-point values of the projected field
-  sField.resize(ncomp,nnod);
-  for (size_t i = 1; i <= nnod; i++)
-    for (size_t j = 1; j <= ncomp; j++)
-      sField(j,i) = B(i+(j-1)*nnod);
 
   return true;
 }

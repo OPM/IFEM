@@ -32,6 +32,8 @@ class GlobalIntegral;
 class IntegrandBase;
 class Integrand;
 class ASMbase;
+class SparseMatrix;
+class StdVector;
 class RealFunc;
 class VecFunc;
 class Vec3;
@@ -622,6 +624,15 @@ protected:
   //! \param[in] tol Zero tolerance
   int searchCtrlPt(RealArray::const_iterator cit, RealArray::const_iterator end,
                    const Vec3& X, int dimension, double tol = 0.001) const;
+
+  //! \brief Assembles L2-projection matrices for the secondary solution.
+  //! \param[out] A Left-hand-side matrix
+  //! \param[out] B Right-hand-side vectors
+  //! \param[in] integrand Object with problem-specific data and methods
+  //! \param[in] continuous If \e false, a discrete L2-projection is used
+  virtual bool assembleL2matrices(SparseMatrix& A, StdVector& B,
+                                  const IntegrandBase& integrand,
+                                  bool continuous) const = 0;
 
 public:
   //! \brief Constrains all nodes in the patch.

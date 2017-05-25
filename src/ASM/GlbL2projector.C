@@ -37,11 +37,11 @@ public:
   //! \brief Destruction method to clean up after numerical integration.
   virtual void destruct() { delete elmData; delete this; }
 
-  GlbL2&         gl2Int;       //!< The global L2 projection integrand
-  LocalIntegral* elmData;      //!< Element data associated with problem integrand
-  IntVec         mnpc;         //!< Matrix of element nodal correspondance for bases
-  std::vector<size_t> elem_sizes;   //!< Size of each basis on the element
-  std::vector<size_t> basis_sizes;   //!< Size of each basis on the patch
+  GlbL2&         gl2Int;  //!< The global L2-projection integrand
+  LocalIntegral* elmData; //!< Element data associated with problem integrand
+  IntVec         mnpc;    //!< Matrix of element nodal correspondance
+  std::vector<size_t> elem_sizes;  //!< Size of each basis on the element
+  std::vector<size_t> basis_sizes; //!< Size of each basis on the patch
 };
 
 
@@ -63,7 +63,7 @@ LocalIntegral* GlbL2::getLocalIntegral (size_t nen, size_t iEl,
                                         bool neumann) const
 {
   return new L2Mats(*const_cast<GlbL2*>(this),
-		    problem.getLocalIntegral(nen,iEl,neumann));
+                    problem.getLocalIntegral(nen,iEl,neumann));
 }
 
 
@@ -85,7 +85,7 @@ bool GlbL2::initElement (const IntVec& MNPC1,
 {
   L2Mats& gl2 = static_cast<L2Mats&>(elmInt);
 
-  gl2.mnpc  = MNPC1;
+  gl2.mnpc = MNPC1;
   gl2.elem_sizes = elem_sizes;
   gl2.basis_sizes = basis_sizes;
   return problem.initElement(MNPC1,elem_sizes,basis_sizes,*gl2.elmData);
@@ -160,27 +160,35 @@ bool GlbL2::solve (Matrix& sField)
 {
   // Insert a 1.0 value on the diagonal for equations with no contributions.
   // Needed in immersed boundary calculations with "totally outside" elements.
-  size_t nnod = A.dim();
-  for (size_t j = 1; j <= nnod; j++)
-    if (A(j,j) == 0.0) A(j,j) = 1.0;
+  size_t i, nnod = A.dim();
+  for (i = 1; i <= nnod; i++)
+    if (A(i,i) == 0.0) A(i,i) = 1.0;
+
+#if SP_DEBUG > 1
+  std::cout <<"\nGlobal L2-projection matrix:\n"<< A;
+  std::cout <<"\nGlobal L2-projection RHS:"<< B;
+#endif
 
   // Solve the patch-global equation system
   if (!A.solve(B)) return false;
 
   // Store the nodal values of the projected field
-  size_t ncomp = B.dim() / nnod;
+  size_t j, ncomp = problem.getNoFields(2);
   sField.resize(ncomp,nnod);
-  for (size_t i = 1; i <= nnod; i++)
-    for (size_t j = 1; j <= ncomp; j++)
+  for (i = 1; i <= nnod; i++)
+    for (j = 1; j <= ncomp; j++)
       sField(j,i) = B(i+(j-1)*nnod);
 
+#if SP_DEBUG > 1
+  std::cout <<"\nSolution:"<< sField;
+#endif
   return true;
 }
 
 
 bool ASMbase::L2projection (Matrix& sField,
-			    const IntegrandBase& integrand,
-			    const TimeDomain& time)
+                            const IntegrandBase& integrand,
+                            const TimeDomain& time)
 {
   PROFILE2("ASMbase::L2projection");
 
@@ -189,4 +197,46 @@ bool ASMbase::L2projection (Matrix& sField,
 
   gl2.preAssemble(MNPC,this->getNoElms(true));
   return this->integrate(gl2,dummy,time) && gl2.solve(sField);
+}
+
+
+bool ASMbase::globalL2projection (Matrix& sField,
+                                  const IntegrandBase& integrand,
+                                  bool continuous) const
+{
+  if (this->empty()) return true; // silently ignore empty patches
+
+  PROFILE2("ASMbase::globalL2");
+
+  // Assemble the projection matrices
+  size_t i, nnod = this->getNoNodes(1);
+  size_t j, ncomp = integrand.getNoFields(2);
+  SparseMatrix A(SparseMatrix::SUPERLU);
+  StdVector B(nnod*ncomp);
+  A.redim(nnod,nnod);
+
+  if (!this->assembleL2matrices(A,B,integrand,continuous))
+    return false;
+
+#if SP_DEBUG > 1
+  std::cout <<"---- Matrix A -----\n"<< A
+            <<"-------------------"<< std::endl;
+  std::cout <<"---- Vector B -----"<< B
+            <<"-------------------"<< std::endl;
+#endif
+
+  // Solve the patch-global equation system
+  if (!A.solve(B)) return false;
+
+  // Store the control-point values of the projected field
+  sField.resize(ncomp,nnod);
+  for (i = 1; i <= nnod; i++)
+    for (j = 1; j <= ncomp; j++)
+      sField(j,i) = B(i+(j-1)*nnod);
+
+#if SP_DEBUG > 1
+  std::cout <<"- Solution Vector -"<< sField
+            <<"-------------------"<< std::endl;
+#endif
+  return true;
 }

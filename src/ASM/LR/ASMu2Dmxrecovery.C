@@ -15,17 +15,18 @@
 #include "LRSpline/Element.h"
 
 #include "ASMu2Dmx.h"
+#include "IntegrandBase.h"
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
 #include "SparseMatrix.h"
-#include "DenseMatrix.h"
 #include "SplineUtils.h"
-#include "Utilities.h"
 #include "Profiler.h"
-#include "IntegrandBase.h"
-
 #include <numeric>
 
+
+/*!
+  \brief Expands a tensor parametrization point to an unstructured one.
+*/
 
 static void expandTensorGrid (const RealArray* in, RealArray* out)
 {
@@ -41,14 +42,10 @@ static void expandTensorGrid (const RealArray* in, RealArray* out)
 }
 
 
-bool ASMu2Dmx::globalL2projection (Matrix& sField,
+bool ASMu2Dmx::assembleL2matrices (SparseMatrix& A, StdVector& B,
                                    const IntegrandBase& integrand,
                                    bool continuous) const
 {
-  if (!m_basis[0] || !m_basis[1]) return true; // silently ignore empty patches
-
-  PROFILE2("ASMu2Dmx::globalL2");
-
   const int p1 = m_basis[0]->order(0);
   const int p2 = m_basis[0]->order(1);
 
@@ -61,17 +58,10 @@ bool ASMu2Dmx::globalL2projection (Matrix& sField,
   if (!xg || !yg) return false;
   if (continuous && !wg) return false;
 
-
-  // Set up the projection matrices
-  const size_t nnod = std::inner_product(nb.begin(), nb.end(), nfx.begin(), 0);
-  SparseMatrix A(SparseMatrix::SUPERLU);
-  StdVector B(nnod);
-  A.redim(nnod,nnod);
-
   double dA = 0.0;
   Vectors phi(m_basis.size());
-  std::vector<Matrix> dNdu(m_basis.size());
-  Matrix Xnod, Jac;
+  Matrices dNdu(m_basis.size());
+  Matrix sField, Xnod, Jac;
   std::vector<Go::BasisDerivsSf> spl1(m_basis.size());
   std::vector<Go::BasisPtsSf> spl0(m_basis.size());
 
@@ -156,9 +146,8 @@ bool ASMu2Dmx::globalL2projection (Matrix& sField,
             for (size_t jj = 0; jj < phi[b].size(); jj++)
             {
               int jnod = MNPC[iel-1][jj+el_ofs]+1;
-              for (size_t k=1;k<=nfx[b];++k) {
+              for (size_t k=1;k<=nfx[b];++k)
                 A((inod-nod_ofs)*nfx[b]+k+eq_ofs,(jnod-nod_ofs)*nfx[b]+k+eq_ofs) += phi[b][ii]*phi[b][jj]*dJw;
-           }
             }
             for (size_t k=1;k<=nfx[b];++k)
               B((inod-nod_ofs)*nfx[b]+k+eq_ofs) += phi[b][ii]*sField(k,ip+1)*dJw;
@@ -170,10 +159,32 @@ bool ASMu2Dmx::globalL2projection (Matrix& sField,
       }
   }
 
-#if SP_DEBUG > 2
-  std::cout <<"---- Matrix A -----"<< A
+  return true;
+}
+
+
+bool ASMu2Dmx::globalL2projection (Matrix& sField,
+                                   const IntegrandBase& integrand,
+                                   bool continuous) const
+{
+  for (size_t b = 0; b < m_basis.size(); b++)
+    if (!m_basis[b]) return true; // silently ignore empty patches
+
+  PROFILE2("ASMu2Dmx::globalL2");
+
+  // Assemble the projection matrices
+  size_t nnod = std::inner_product(nb.begin(), nb.end(), nfx.begin(), 0);
+  SparseMatrix A(SparseMatrix::SUPERLU);
+  StdVector B(nnod);
+  A.redim(nnod,nnod);
+
+  if (!this->assembleL2matrices(A,B,integrand,continuous))
+    return false;
+
+#if SP_DEBUG > 1
+  std::cout <<"---- Matrix A -----\n"<< A
             <<"-------------------"<< std::endl;
-  std::cout <<"---- Vector B -----"<< B
+  std::cout <<"---- Vector B -----\n"<< B
             <<"-------------------"<< std::endl;
 #endif
 
@@ -184,15 +195,15 @@ bool ASMu2Dmx::globalL2projection (Matrix& sField,
   sField.resize(*std::max_element(nfx.begin(), nfx.end()),
                 std::accumulate(nb.begin(), nb.end(), 0));
 
-  size_t eq_ofs = 0;
-  size_t ofs = 0;
-  for (size_t b = 0; b < m_basis.size(); ++b) {
-    for (size_t i = 1; i <= nb[b]; i++)
-      for (size_t j = 1; j <= nfx[b]; j++)
-        sField(j,i+ofs) = B((i-1)*nfx[b]+j+eq_ofs);
-    eq_ofs += nb[b]*nfx[b];
-    ofs += nb[b];
-  }
+  size_t i, j, inod = 1, jnod = 1;
+  for (size_t b = 0; b < m_basis.size(); b++)
+    for (i = 1; i <= nb[b]; i++, inod++)
+      for (j = 1; j <= nfx[b]; j++, jnod++)
+        sField(j,inod) = B(jnod);
 
+#if SP_DEBUG > 1
+  std::cout <<"- Solution Vector -"<< sField
+            <<"-------------------"<< std::endl;
+#endif
   return true;
 }

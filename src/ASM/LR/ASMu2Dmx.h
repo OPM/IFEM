@@ -183,17 +183,26 @@ public:
                             int = 0, bool coordCheck = true, int thick = 1);
 
 protected:
+  //! \brief Assembles L2-projection matrices for the secondary solution.
+  //! \param[out] A Left-hand-side matrix
+  //! \param[out] B Right-hand-side vectors
+  //! \param[in] integrand Object with problem-specific data and methods
+  //! \param[in] continuous If \e false, a discrete L2-projection is used
+  virtual bool assembleL2matrices(SparseMatrix& A, StdVector& B,
+                                  const IntegrandBase& integrand,
+                                  bool continuous) const;
+
   using ASMu2D::generateThreadGroups;
   //! \brief Generates element groups for multi-threading of interior integrals.
   //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] silence If \e true, suppress threading group outprint
-  //! \param[in] ignoreGlobalLM If \e true ignore global multipliers in sanity check
+  //! \param[in] ignoreGlobalLM If \e true, ignore global multipliers in sanity check
   void generateThreadGroups(const Integrand& integrand, bool silence,
                             bool ignoreGlobalLM);
 
 private:
-  std::vector<std::shared_ptr<LR::LRSplineSurface>> m_basis;
-  int threadBasis = 1; //!< Basis for thread groups
+  std::vector<std::shared_ptr<LR::LRSplineSurface>> m_basis; //!< All bases
+  LR::LRSplineSurface* threadBasis; //!< Basis for thread groups
 };
 
 #endif

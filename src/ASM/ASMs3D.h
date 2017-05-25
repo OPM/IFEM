@@ -524,18 +524,19 @@ public:
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
 			    const RealArray* gpar, bool regular = true) const;
 
-  //! \brief Projects the secondary solution using a discrete global L2-norm.
-  //! \param[out] sField Secondary solution field control point values
-  //! \param[in] integrand Object with problem-specific data and methods
-  //! \param[in] continuous If \e true, a continuous L2-projection is used
-  virtual bool globalL2projection(Matrix& sField,
-				  const IntegrandBase& integrand,
-				  bool continuous = false) const;
-
 protected:
 
   // Internal utility methods
   // ========================
+
+  //! \brief Assembles L2-projection matrices for the secondary solution.
+  //! \param[out] A Left-hand-side matrix
+  //! \param[out] B Right-hand-side vectors
+  //! \param[in] integrand Object with problem-specific data and methods
+  //! \param[in] continuous If \e false, a discrete L2-projection is used
+  virtual bool assembleL2matrices(SparseMatrix& A, StdVector& B,
+                                  const IntegrandBase& integrand,
+                                  bool continuous) const;
 
   //! \brief Connects all matching nodes on two adjacent boundary faces.
   //! \param[in] face Local face index of this patch, in range [1,6]
