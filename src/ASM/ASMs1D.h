@@ -380,6 +380,11 @@ public:
   //! \param[out] n3 Number of elements in third (w) direction (always zero)
   virtual bool getNoStructElms(int& n1, int& n2, int& n3) const;
 
+  //! \brief Returns parameter values and node numbers of the domain corners.
+  //! \param[out] u Parameter values of the domain corners
+  //! \param[out] corners 1-based indices of the corner nodes (optional)
+  virtual bool getParameterDomain(Real2DMat& u, IntVec* corners) const;
+
 protected:
   Go::SplineCurve* curv; //!< Pointer to the actual spline curve object
 

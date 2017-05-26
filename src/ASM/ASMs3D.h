@@ -669,6 +669,11 @@ public:
   //! \brief Returns the number of elements on a boundary.
   virtual size_t getNoBoundaryElms(char lIndex, char ldim) const;
 
+  //! \brief Returns parameter values and node numbers of the domain corners.
+  //! \param[out] u Parameter values of the domain corners
+  //! \param[out] corners 1-based indices of the corner nodes (optional)
+  virtual bool getParameterDomain(Real2DMat& u, IntVec* corners) const;
+
   //! \brief Evaluates the basis functions at the specified point.
   //! \param[in] u First parameter value of evaluation point
   //! \param[in] v Second parameter value of evaluation point

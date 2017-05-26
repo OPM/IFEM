@@ -109,6 +109,9 @@ public:
   //! \brief Checks if the patch is empty.
   virtual bool empty() const { return geo == nullptr; }
 
+  //! \brief Returns parameter values and node numbers of the domain corners.
+  virtual bool getParameterDomain(Real2DMat&, IntVec*) const { return false; }
+
   //! \brief Refines the mesh adaptively.
   //! \param[in] prm Input data used to control the mesh refinement
   //! \param sol Control point results values that are transferred to new mesh

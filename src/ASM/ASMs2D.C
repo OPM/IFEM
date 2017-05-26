@@ -1408,6 +1408,28 @@ size_t ASMs2D::getNoBoundaryElms (char lIndex, char ldim) const
 }
 
 
+bool ASMs2D::getParameterDomain (Real2DMat& u, IntVec* corners) const
+{
+  u.resize(2,RealArray(2));
+  for (int d = 0; d < 2; d++)
+  {
+    u[d].front() = surf->basis(d).startparam();
+    u[d].back() = surf->basis(d).endparam();
+  }
+
+  if (corners)
+  {
+    corners->resize(4);
+    corners->at(0) = 1;
+    corners->at(1) = surf->numCoefs_u();
+    corners->at(2) = surf->numCoefs_u()*(surf->numCoefs_v()-1) + 1;
+    corners->at(3) = surf->numCoefs_u()*surf->numCoefs_v();
+  }
+
+  return true;
+}
+
+
 const Vector& ASMs2D::getGaussPointParameters (Matrix& uGP, int dir, int nGauss,
 					       const double* xi) const
 {

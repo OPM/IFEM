@@ -135,7 +135,7 @@ public:
   //! \param[in] nXn Number of extraordinary nodes
   //! \param[out] nodes Global numbers assigned to the extraordinary nodes
   virtual bool addXElms(short int dim, short int item, size_t nXn,
-                        std::vector<int>& nodes);
+                        IntVec& nodes);
 
   //! \brief Adds a set of Lagrange multipliers to the specified element.
   //! \param[in] iel 1-based element index local to current patch
@@ -194,7 +194,7 @@ public:
   //! \details If the given node number is not present, 0 is returned.
   //! \param[in] globalNum Global element number
   size_t getElmIndex(int globalNum) const;
-  //! \brief Returns the global element number for the given element
+  //! \brief Returns the global element number for the given element.
   //! \param[in] iel 1-based element index local to current patch
   int getElmID(size_t iel) const;
   //! \brief Returns the number of DOFs per node.
@@ -247,7 +247,7 @@ public:
   void printNodes(std::ostream& os, const char* heading = nullptr) const;
 
   //! \brief Sets the global node numbers for this patch.
-  void setGlobalNodeNums(const std::vector<int>& nodes) { myMLGN = nodes; }
+  void setGlobalNodeNums(const IntVec& nodes) { myMLGN = nodes; }
   //! \brief Returns the global node numbers of this patch.
   const IntVec& getGlobalNodeNums() const { return MLGN; }
   //! \brief Returns the actual global node numbers of this patch.
@@ -301,6 +301,12 @@ public:
   bool isShared() const { return shareFE == 'F'; }
   //! \brief Returns \e true if this patch has additional (extraordinary) nodes.
   bool hasXNodes() const { return MLGN.size() > nnod; }
+
+  //! \brief Returns parameter values and node numbers of the domain corners.
+  //! \param[out] u Parameter values of the domain corners
+  //! \param[out] corners 1-based indices of the corner nodes (optional)
+  virtual bool getParameterDomain(Real2DMat& u,
+                                  IntVec* corners = nullptr) const = 0;
 
 
   // Various preprocessing methods
@@ -372,7 +378,7 @@ public:
 
   //! \brief Sets the global node numbers for this patch.
   //! \param[in] nodes Vector of zero-based node numbers of this patch
-  virtual void setNodeNumbers(const std::vector<int>& nodes);
+  virtual void setNodeNumbers(const IntVec& nodes);
 
   //! \brief Checks for time-dependent in-homogeneous Dirichlet conditions.
   //! \param[in] func Scalar property fields
@@ -611,6 +617,7 @@ public:
   virtual Fields* getProjectedFields(const Vector&, size_t) const
   { return nullptr; }
 
+
   // Methods for result extraction
   // =============================
 
@@ -649,7 +656,7 @@ public:
   //! \param[in] madof Global Matrix of Accumulated DOFs
   //! \param[in] basis Which basis to inject nodal values for (mixed methods)
   bool injectNodalVec(const Vector& nodeVec, Vector& globVec,
-                      const std::vector<int>& madof, int basis = 0) const;
+                      const IntVec& madof, int basis = 0) const;
 
   //! \brief Creates and adds a two-point constraint to this patch.
   //! \param[in] slave Global node number of the node to constrain
@@ -695,6 +702,10 @@ protected:
   //! \param[in] neumann Whether or not we are assembling Neumann BCs
   int getNoGaussPt(int p, bool neumann = false) const;
 
+
+  // Miscellaneous methods for internal use
+  // ======================================
+
   //! \brief Helper method used by evalPoint to search for a control point.
   //! \param[in] cit iterator of array of control point coordinates
   //! \param[in] end iterator of array of control point coordinates
@@ -714,6 +725,10 @@ protected:
                                   bool continuous) const = 0;
 
 public:
+
+  // More methods for preprocessing of Dirichlet boundary conditions
+  // ===============================================================
+
   //! \brief Constrains all nodes in the patch.
   //! \param[in] dof Which DOFs to constrain at each node in the patch
   //! \param[in] code Inhomogeneous dirichlet condition code
@@ -781,7 +796,7 @@ protected:
   const IntVec& MLGN; //!< Matrix of Local to Global Node numbers
   const IntMat& MNPC; //!< Matrix of Nodal Point Correspondance
 
-  //! \brief Flag telling whether this patch shares its data with another patch
+  //! \brief Flag telling whether this patch shares its data with another patch.
   //! \details 'S' means this patch uses spline geometry of another patch.
   //! 'F' means this patch uses FE data and spline geometry of another patch.
   const char shareFE; //!< If \e true, this patch uses FE data of another patch

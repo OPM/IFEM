@@ -646,6 +646,23 @@ int ASMs1D::getSize (int) const
 }
 
 
+bool ASMs1D::getParameterDomain (Real2DMat& u, IntVec* corners) const
+{
+  u.resize(1,RealArray(2));
+  u.front().front() = curv->basis().startparam();
+  u.front().back() = curv->basis().endparam();
+
+  if (corners)
+  {
+    corners->resize(2);
+    corners->front() = 1;
+    corners->back() = curv->numCoefs();
+  }
+
+  return true;
+}
+
+
 const Vector& ASMs1D::getGaussPointParameters (Matrix& uGP, int nGauss,
 					       const double* xi) const
 {
