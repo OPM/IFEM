@@ -20,7 +20,7 @@
 
 /*!
   \brief Driver for assembly of unstructured 3D spline mixed FE models.
-  \details This class implements a three-field mixed formulation with splines as
+  \details This class implements a two-field mixed formulation with splines as
   basis functions. The first field is of one order higher than the second field,
   and its basis is obtained by order-elevating the input spline object once.
   By default, the geometry is represented by the second (lower order) basis,
@@ -165,10 +165,8 @@ public:
 
   //! \brief Returns the number of projection nodes for this patch.
   virtual size_t getNoProjectionNodes() const;
-
   //! \brief Returns the number of refinement nodes for this patch.
   virtual size_t getNoRefineNodes() const;
-
   //! \brief Returns the number of refinement elements for this patch.
   virtual size_t getNoRefineElms() const;
 
@@ -176,6 +174,15 @@ public:
   //! \param[in] coefs The coefficients for the field
   //! \param[in] nf Number of components
   virtual Fields* getProjectedFields(const Vector& coefs, size_t nf) const;
+
+  //! \brief Projects the secondary solution using a discrete global L2-norm.
+  //! \param[out] sField Secondary solution field control point values
+  //! \param[in] integrand Object with problem-specific data and methods
+  //! \param[in] continuous If \e true, a continuous L2-projection is used
+  //! \param[in] enforceEnds If \e true, enforce corner point value equality
+  virtual bool globalL2projection(Matrix& sField,
+                                  const IntegrandBase& integrand,
+                                  bool continuous, bool enforceEnds) const;
 
   using ASMu3D::refine;
   //! \brief Refines the mesh adaptively.
