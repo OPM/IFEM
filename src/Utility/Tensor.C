@@ -594,6 +594,32 @@ Real Tensor::trace () const
 }
 
 
+Vec3 Tensor::rotVec () const
+{
+  Vec3 rot;
+  if (n < 2) return rot;
+
+  double R = 0.5*this->trace() - 0.5;
+  double theta = R < 1.0 ? acos(R) : 0.0;
+
+  // Test if 1.0 = (1.0.-theta) in the computer
+  // (safe test to avoid division by zero)
+  double sinth = sin(theta);
+  if (1.0 > 1.0-fabs(sinth))
+    R = 0.5*theta/sinth;
+  else
+    R = 0.5;
+
+  // Compute rotation angles
+  rot.z = R*(v[this->index(2,1)] - v[this->index(1,2)]);
+  if (n < 3) return rot;
+
+  rot.x = R*(v[this->index(3,2)] - v[this->index(2,3)]);
+  rot.y = R*(v[this->index(1,3)] - v[this->index(3,1)]);
+  return rot;
+}
+
+
 Real Tensor::det () const
 {
   if (n == 3)
@@ -845,7 +871,6 @@ SymmTensor& SymmTensor::transform (const Tensor& T)
       v[0] = S11*T(1,1) + S12*T(1,2) + S13*T(1,3);
       v[1] = S21*T(2,1) + S22*T(2,2) + S23*T(2,3);
       v[2] = S31*T(3,1) + S32*T(3,2) + S33*T(3,3);
-
       v[3] = S11*T(2,1) + S12*T(2,2) + S13*T(2,3);
       v[4] = S21*T(3,1) + S22*T(3,2) + S23*T(3,3);
       v[5] = S31*T(1,1) + S32*T(1,2) + S33*T(1,3);
@@ -858,15 +883,12 @@ SymmTensor& SymmTensor::transform (const Tensor& T)
       S21 = T(2,1)*v[0] + T(2,2)*v[3];
       S22 = T(2,1)*v[3] + T(2,2)*v[1];
       S23 = T(2,1)*v[5] + T(2,2)*v[4];
-      S31 = v[5];
-      S32 = v[4];
-      S33 = v[2];
 
       v[0] = S11*T(1,1) + S12*T(1,2);
       v[1] = S21*T(2,1) + S22*T(2,2);
       v[3] = S11*T(2,1) + S12*T(2,2);
       v[4] = S23;
-      v[5] = S31*T(1,1) + S32*T(1,2);
+      v[5] = S13;
     }
     break;
 

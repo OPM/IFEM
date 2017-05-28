@@ -197,6 +197,13 @@ public:
   //! \note The number of element nodes must be set in \a grid on input.
   virtual bool tesselate(ElementBlock& grid, const int* npe) const;
 
+  //! \brief Extract the primary solution field at the specified nodes.
+  //! \param[out] sField Solution field
+  //! \param[in] locSol Solution vector local to current patch
+  //! \param[in] nodes 1-based local node numbers to extract solution for
+  virtual bool getSolution(Matrix& sField, const Vector& locSol,
+                           const IntVec& nodes) const;
+
   //! \brief Evaluates the primary solution field at all visualization points.
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector in DOF-order

@@ -147,6 +147,9 @@ public:
   //! \return Determinant of the tensor
   virtual Real inverse(Real tol = Real(0));
 
+  //! \brief Returns the rotation angles corresponding to the tensor.
+  Vec3 rotVec() const;
+
   // Global operators
 
   //! \brief Multiplication between a tensor and a point vector.

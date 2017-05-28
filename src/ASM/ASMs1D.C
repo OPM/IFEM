@@ -1108,6 +1108,28 @@ void ASMs1D::scatterInd (int p1, int start, IntVec& index)
 }
 
 
+bool ASMs1D::getSolution (Matrix& sField, const Vector& locSol,
+                          const IntVec& nodes) const
+{
+  if (!this->ASMbase::getSolution(sField,locSol,nodes))
+    return false;
+  else if (nf < 6)
+    return true;
+
+  // Extract the total angular rotations as components 4-6
+  for (size_t i = 0; i < nodes.size(); i++)
+    if (nodes[i] > 0 && (size_t)nodes[i] <= nodalT.size())
+    {
+      Vec3 rot = nodalT[nodes[i]-1].rotVec();
+      sField(4,1+i) = rot.x;
+      sField(5,1+i) = rot.y;
+      sField(6,1+i) = rot.z;
+    }
+
+  return true;
+}
+
+
 bool ASMs1D::evalSolution (Matrix& sField, const Vector& locSol,
 			   const int* npe) const
 {

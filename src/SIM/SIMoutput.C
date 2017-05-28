@@ -1396,7 +1396,7 @@ bool SIMoutput::dumpVector (const Vector& vsol, const char* fname,
     }
     else
     {
-      if (!myModel[i]->getSolution(sol1,lsol,points))
+      if (!myModel[i]->ASMbase::getSolution(sol1,lsol,points))
         return false;
     }
 
