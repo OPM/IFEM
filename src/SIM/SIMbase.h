@@ -420,6 +420,12 @@ public:
   bool project(Vector& ssol, const Vector& psol,
                SIMoptions::ProjectionMethod pMethod = SIMoptions::GLOBAL) const;
 
+  //! \brief Projects the analytical secondary solution, if any.
+  //! \param[out] ssol Vector of control point values of the secondary solution
+  //! \param[in] pMethod Projection method to use
+  bool projectAnaSol(Vector& ssol,
+                     SIMoptions::ProjectionMethod pMethod) const;
+
   //! \brief Projects a function onto the specified basis.
   //! \param[out] values Resulting control point values
   //! \param[in] f The function to evaluate

@@ -26,8 +26,7 @@
 #include "GlbNorm.h"
 #include "ElmNorm.h"
 #include "AnaSol.h"
-#include "Function.h"
-#include "Vec3.h"
+#include "TensorFunction.h"
 #include "Vec3Oper.h"
 #include "Utilities.h"
 #include "Profiler.h"
@@ -1720,6 +1719,36 @@ bool SIMbase::project (Vector& ssol, const Vector& psol,
     return false;
 
   ssol = stmp;
+  return true;
+}
+
+
+bool SIMbase::projectAnaSol (Vector& ssol,
+                             SIMoptions::ProjectionMethod pMethod) const
+{
+  if (!mySol) return true;
+
+  FunctionBase* f = mySol->getScalarSecSol();
+  if (f)
+  {
+    ssol.resize(f->dim()*mySam->getNoNodes());
+    return this->project(ssol,f,0,0,0,pMethod);
+  }
+
+  f = mySol->getVectorSecSol();
+  if (f)
+  {
+    ssol.resize(f->dim()*mySam->getNoNodes());
+    return this->project(ssol,f,0,0,0,pMethod);
+  }
+
+  f = mySol->getStressSol();
+  if (f)
+  {
+    ssol.resize(f->dim()*mySam->getNoNodes());
+    return this->project(ssol,f,0,0,0,pMethod);
+  }
+
   return true;
 }
 
