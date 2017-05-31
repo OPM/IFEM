@@ -310,26 +310,23 @@ bool VTF::writeVres (const std::vector<Real>& nodeResult,
     nvc = ncmp;
 
   // Cast to float
-  float* resVec = new float[3*nnod];
+  std::vector<float> resVec(3*nnod,0.0f);
   if (nres == 3*nnod && nvc == 3)
     for (size_t i = 0; i < nres; i++)
       resVec[i] = nodeResult[i];
   else if (nres == nnod && nvc == 1)
     for (size_t i = 0; i < nnod; i++)
-    {
       // Writing a scalar solution as Z-deflection
-      resVec[3*i] = resVec[3*i+1] = 0.0f;
       resVec[3*i+2] = nodeResult[i];
-    }
   else
     for (size_t i = 0; i < nnod; i++)
       for (size_t j = 0; j < 3; j++)
-        resVec[3*i+j] = j < nvc ? nodeResult[ncmp*i+j] : 0.0f;
+        if (j < nvc) resVec[3*i+j] = nodeResult[ncmp*i+j];
 
 #if HAS_VTFAPI == 1
   VTFAResultBlock dBlock(idBlock,VTFA_DIM_VECTOR,VTFA_RESMAP_NODE,0);
 
-  if (VTFA_FAILURE(dBlock.SetResults3D(resVec,nnod)))
+  if (VTFA_FAILURE(dBlock.SetResults3D(resVec.data(),nnod)))
     return showError("Error defining result block",idBlock);
 
   dBlock.SetMapToBlockID(myBlocks[geomID-1].first);
@@ -338,11 +335,10 @@ bool VTF::writeVres (const std::vector<Real>& nodeResult,
 #elif HAS_VTFAPI == 2
   VTFXAResultValuesBlock dBlock(idBlock,VTFXA_DIM_VECTOR,VTFXA_FALSE);
   dBlock.SetMapToBlockID(myBlocks[geomID-1].first,VTFXA_NODES);
-  dBlock.SetResultValues3D(resVec,nnod);
+  dBlock.SetResultValues3D(resVec.data(),nnod);
   if (VTFA_FAILURE(myDatabase->WriteBlock(&dBlock)))
     return showError("Error writing result block",idBlock);
 #endif
-  delete[] resVec;
 
   return true;
 }
@@ -363,14 +359,14 @@ bool VTF::writeEres (const std::vector<Real>& elementResult,
     showError("Warning: Fewer element results that anticipated",nres);
 
   // Cast to float
-  float* resVec = new float[nres];
+  std::vector<float> resVec(nres);
   for (size_t i = 0; i < nres; i++)
     resVec[i] = elementResult[i];
 
 #if HAS_VTFAPI == 1
   VTFAResultBlock dBlock(idBlock,VTFA_DIM_SCALAR,VTFA_RESMAP_ELEMENT,0);
 
-  if (VTFA_FAILURE(dBlock.SetResults1D(resVec,nres)))
+  if (VTFA_FAILURE(dBlock.SetResults1D(resVec.data(),nres)))
     return showError("Error defining result block",idBlock);
 
   dBlock.SetMapToBlockID(myBlocks[geomID-1].first);
@@ -379,12 +375,11 @@ bool VTF::writeEres (const std::vector<Real>& elementResult,
 #elif HAS_VTFAPI == 2
   VTFXAResultValuesBlock dBlock(idBlock,VTFXA_DIM_SCALAR,VTFXA_FALSE);
   dBlock.SetMapToBlockID(myBlocks[geomID-1].first,VTFXA_ELEMENTS);
-  dBlock.SetResultValues1D(resVec,nres);
+  dBlock.SetResultValues1D(resVec.data(),nres);
   if (VTFA_FAILURE(myDatabase->WriteBlock(&dBlock)))
     return showError("Error writing result block",idBlock);
 #endif
 
-  delete[] resVec;
   return true;
 }
 
@@ -402,14 +397,14 @@ bool VTF::writeNres (const std::vector<Real>& nodalResult,
     return showError("Invalid size of result array",nres);
 
   // Cast to float
-  float* resVec = new float[nres];
+  std::vector<float> resVec(nres);
   for (size_t i = 0; i < nres; i++)
     resVec[i] = nodalResult[i];
 
 #if HAS_VTFAPI == 1
   VTFAResultBlock dBlock(idBlock,VTFA_DIM_SCALAR,VTFA_RESMAP_NODE,0);
 
-  if (VTFA_FAILURE(dBlock.SetResults1D(resVec,nres)))
+  if (VTFA_FAILURE(dBlock.SetResults1D(resVec.data(),nres)))
     return showError("Error defining result block",idBlock);
 
   dBlock.SetMapToBlockID(myBlocks[geomID-1].first);
@@ -418,11 +413,10 @@ bool VTF::writeNres (const std::vector<Real>& nodalResult,
 #elif HAS_VTFAPI == 2
   VTFXAResultValuesBlock dBlock(idBlock,VTFXA_DIM_SCALAR,VTFXA_FALSE);
   dBlock.SetMapToBlockID(myBlocks[geomID-1].first,VTFXA_NODES);
-  dBlock.SetResultValues1D(resVec,nres);
+  dBlock.SetResultValues1D(resVec.data(),nres);
   if (VTFA_FAILURE(myDatabase->WriteBlock(&dBlock)))
     return showError("Error writing result block",idBlock);
 #endif
-  delete[] resVec;
 
   return true;
 }
@@ -438,7 +432,7 @@ bool VTF::writeNfunc (const RealFunc& f, Real time, int idBlock, int geomID)
   const size_t nres = grid->getNoNodes();
 
   // Evaluate the function at the grid points
-  float* resVec = new float[nres];
+  std::vector<float> resVec(nres);
   std::vector<Vec3>::const_iterator cit = grid->begin_XYZ();
   for (size_t i = 0; i < nres; i++, cit++)
     resVec[i] = f(Vec4(*cit,time));
@@ -446,7 +440,7 @@ bool VTF::writeNfunc (const RealFunc& f, Real time, int idBlock, int geomID)
 #if HAS_VTFAPI == 1
   VTFAResultBlock dBlock(idBlock,VTFA_DIM_SCALAR,VTFA_RESMAP_NODE,0);
 
-  if (VTFA_FAILURE(dBlock.SetResults1D(resVec,nres)))
+  if (VTFA_FAILURE(dBlock.SetResults1D(resVec.data(),nres)))
     return showError("Error defining result block",idBlock);
 
   dBlock.SetMapToBlockID(myBlocks[geomID-1].first);
@@ -455,11 +449,10 @@ bool VTF::writeNfunc (const RealFunc& f, Real time, int idBlock, int geomID)
 #elif HAS_VTFAPI == 2
   VTFXAResultValuesBlock dBlock(idBlock,VTFXA_DIM_SCALAR,VTFXA_FALSE);
   dBlock.SetMapToBlockID(myBlocks[geomID-1].first,VTFXA_NODES);
-  dBlock.SetResultValues1D(resVec,nres);
+  dBlock.SetResultValues1D(resVec.data(),nres);
   if (VTFA_FAILURE(myDatabase->WriteBlock(&dBlock)))
     return showError("Error writing result block",idBlock);
 #endif
-  delete[] resVec;
 
   return true;
 }
@@ -491,7 +484,7 @@ bool VTF::writeVectors (const std::vector<Vec3Pair>& pntResult, int& gID,
   else
     rBlock.SetMapToBlockID(pointGeoID);
 
-  int* mnpc = writePoints ? new int[np] : nullptr;
+  std::vector<int> mnpc(writePoints ? np : 0, 0);
   std::vector<Vec3Pair>::const_iterator cit;
   for (cit = pntResult.begin(); cit != pntResult.end(); cit++, i++)
     if (writePoints && VTFA_FAILURE(nBlock.AddNode(vecOffset[0]+cit->first.x,
@@ -512,9 +505,8 @@ bool VTF::writeVectors (const std::vector<Vec3Pair>& pntResult, int& gID,
     VTFAElementBlock eBlock(pointGeoID,0,0);
     eBlock.SetPartID(pointGeoID);
     eBlock.SetNodeBlockID(pointGeoID);
-    if (VTFA_FAILURE(eBlock.AddElements(VTFA_POINTS,mnpc,np)))
+    if (VTFA_FAILURE(eBlock.AddElements(VTFA_POINTS,mnpc.data(),np)))
       return showError("Error defining element block",pointGeoID);
-    delete[] mnpc;
 
     if (VTFA_FAILURE(myFile->WriteBlock(&nBlock)))
       return showError("Error writing node block",pointGeoID);
@@ -543,7 +535,7 @@ bool VTF::writePoints (const Vec3Vec& points, int& gID)
   if (VTFA_FAILURE(nBlock.SetNumNodes(np)))
     return showError("Error defining node block",gID);
 
-  int* mnpc = new int[np];
+  std::vector<int> mnpc(np,0);
   Vec3Vec::const_iterator cit;
   for (cit = points.begin(), i = 0; cit != points.end(); cit++, i++)
     if (VTFA_FAILURE(nBlock.AddNode(vecOffset[0]+cit->x,
@@ -558,9 +550,8 @@ bool VTF::writePoints (const Vec3Vec& points, int& gID)
   VTFAElementBlock eBlock(gID,0,0);
   eBlock.SetPartID(gID);
   eBlock.SetNodeBlockID(gID);
-  if (VTFA_FAILURE(eBlock.AddElements(VTFA_POINTS,mnpc,np)))
+  if (VTFA_FAILURE(eBlock.AddElements(VTFA_POINTS,mnpc.data(),np)))
     return showError("Error defining element block",gID);
-  delete[] mnpc;
 
   if (VTFA_FAILURE(myFile->WriteBlock(&nBlock)))
     return showError("Error writing node block",gID);

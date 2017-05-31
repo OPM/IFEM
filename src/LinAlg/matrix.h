@@ -1731,7 +1731,7 @@ namespace utl //! General utility classes and functions.
     else
       s <<"[";
 
-    size_t nsp = 4 + strlen(label);
+    size_t nsp = label ? 4 + strlen(label) : 1;
     for (size_t i = 1; i <= A.rows(); i++)
     {
       if (i > 1)

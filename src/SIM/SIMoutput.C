@@ -345,7 +345,7 @@ bool SIMoutput::writeGlvBC (int& nBlock, int iStep) const
     Matrix bc(nbc,nNodes);
     RealArray flag(3,0.0);
     ASMbase::BCVec::const_iterator bit;
-    for (bit = myModel[i]->begin_BC(); bit != myModel[i]->end_BC(); bit++)
+    for (bit = myModel[i]->begin_BC(); bit != myModel[i]->end_BC(); ++bit)
       if ((n = myModel[i]->getNodeIndex(bit->node,true)) && n <= bc.cols())
       {
         if (!bit->CX && nbc > 0) bc(1,n) = flag[0] = 1.0;
@@ -747,7 +747,7 @@ bool SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
       const ElementBlock* grid = myVtf->getBlock(geomID);
       Vec3Vec::const_iterator cit = grid->begin_XYZ();
       field.fill(0.0);
-      for (j = 1; cit != grid->end_XYZ() && haveAsol; j++, cit++)
+      for (j = 1; cit != grid->end_XYZ() && haveAsol; j++, ++cit)
       {
         Vec4 Xt(*cit,time);
         if (mySol->hasScalarSol() == 3 || mySol->hasVectorSol() == 3)
@@ -1250,7 +1250,7 @@ bool SIMoutput::dumpResults (const Vector& psol, double time,
     Vec3Vec Xp;
 
     // Find all evaluation points within this patch, if any
-    for (j = 0, p = gPoints.begin(); p != gPoints.end(); j++, p++)
+    for (j = 0, p = gPoints.begin(); p != gPoints.end(); j++, ++p)
       if (this->getLocalPatchIndex(p->patch) == (int)(i+1))
         if (opt.discretization >= ASM::Spline)
         {
@@ -1380,7 +1380,7 @@ bool SIMoutput::dumpVector (const Vector& vsol, const char* fname,
   std::vector<ResPtPair>::const_iterator pit;
   ResPointVec::const_iterator p;
 
-  for (pit = myPoints.begin(); pit != myPoints.end(); ++pit)
+  for (pit = myPoints.begin(); pit != myPoints.end() && ok; ++pit)
   {
     if (fname)
     {
@@ -1399,7 +1399,7 @@ bool SIMoutput::dumpVector (const Vector& vsol, const char* fname,
       continue; // Skip output for this point group
 
     iPoint = 1;
-    for (i = 0; i < myModel.size(); i++)
+    for (i = 0; i < myModel.size() && ok; i++)
     {
       if (myModel[i]->empty()) continue; // skip empty patches
 
@@ -1425,10 +1425,9 @@ bool SIMoutput::dumpVector (const Vector& vsol, const char* fname,
         ok = myModel[i]->evalSolution(sol1,lsol,params.data(),false);
       else
         ok = myModel[i]->ASMbase::getSolution(sol1,lsol,points);
-      if (!ok) return false;
 
       if (fs) // Single-line output to separate file
-        for (j = 0; j < points.size(); j++, iPoint++)
+        for (j = 0; j < points.size() && ok; j++, iPoint++)
         {
           *fs << iPoint;
           for (k = 1; k <= sol1.rows(); k++)
@@ -1437,7 +1436,7 @@ bool SIMoutput::dumpVector (const Vector& vsol, const char* fname,
         }
 
       else // Formatted output to log stream
-        for (j = 0; j < points.size(); j++, iPoint++)
+        for (j = 0; j < points.size() && ok; j++, iPoint++)
         {
           if (points[j] < 0)
             os <<"  Point #"<< -points[j];
@@ -1464,7 +1463,7 @@ bool SIMoutput::dumpVector (const Vector& vsol, const char* fname,
     }
   }
 
-  return true;
+  return ok;
 }
 
 

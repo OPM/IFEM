@@ -54,9 +54,10 @@ bool ASMs2DC1::connectC1 (int edge, ASMs2DC1* neighbor, int nedge, bool revers)
   // Set up the slave node numbers for this surface patch
 
   int n1, n2;
-  if (!this->getSize(n1,n2)) return false;
-  int node = 1, i1 = 0, i2 = 0;
+  if (!this->getSize(n1,n2))
+    return false;
 
+  int node = 1, i1 = 0, i2 = 0;
   switch (edge)
     {
     case 2: // Positive I-direction
@@ -90,9 +91,10 @@ bool ASMs2DC1::connectC1 (int edge, ASMs2DC1* neighbor, int nedge, bool revers)
 
   // Set up the master node numbers for the neighboring surface patch
 
-  if (!neighbor->getSize(n1,n2)) return false;
-  node = 1; i1 = i2 = 0;
+  if (!neighbor->getSize(n1,n2))
+    return false;
 
+  node = 1;
   switch (nedge)
     {
     case 2: // Positive I-direction
