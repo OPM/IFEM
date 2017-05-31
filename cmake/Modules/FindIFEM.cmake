@@ -155,5 +155,4 @@ if(NOT IFEM_TESTING_INCLUDED)
   include(../Scripts/IFEMTesting)
 endif()
 
-set(IFEM_REGTEST_SCRIPT ${IFEM_PATH}/Apps/Common/scripts/regtest.sh.in)
 include(../Scripts/IFEMDoxy)

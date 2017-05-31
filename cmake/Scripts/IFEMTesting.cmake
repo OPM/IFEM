@@ -152,6 +152,32 @@ macro(add_check_target)
                               -DCMAKE_BINARY_DIR=${CMAKE_BINARY_DIR}
                               -P ${IFEM_CHECKCOMMITS_SCRIPT})
   endif()
+
+  foreach(dep ${IFEM_INCLUDE_DIRS} ${IFEM_INCLUDES})
+    list(APPEND IPATHS -I ${dep})
+  endforeach()
+
+  find_program(CLANGCHECK_COMMAND clang-check)
+  find_program(CPPCHECK_COMMAND cppcheck)
+  foreach(src ${CHECK_SOURCES})
+    get_filename_component(name ${src} NAME)
+    get_filename_component(EXT ${src} EXT)
+    if(EXT STREQUAL .C)
+      if(NOT IS_ABSOLUTE ${src})
+        set(src ${PROJECT_SOURCE_DIR}/${src})
+      endif()
+      if(CLANGCHECK_COMMAND AND CMAKE_EXPORT_COMPILE_COMMANDS)
+        add_test(NAME clang-check+${name}
+                 COMMAND clang-check-test.sh ${CLANGCHECK_COMMAND} ${src}
+                 CONFIGURATIONS analyze clang-check)
+      endif()
+      if(CPPCHECK_COMMAND)
+        add_test(NAME cppcheck+${name}
+                 COMMAND cppcheck-test.sh ${CPPCHECK_COMMAND} ${src} ${IPATHS}
+                 CONFIGURATIONS analyze cppcheck)
+      endif()
+    endif()
+  endforeach()
 endmacro()
 
 if(IFEM_TEST_MEMCHECK)
@@ -174,3 +200,8 @@ elseif(NOT IFEM_AS_SUBMODULE AND NOT IFEM_LIBRARY_BUILD
     include_directories(${GTEST_INCLUDE_DIRS})
   endif()
 endif()
+
+# Generate regtest script with correct paths
+configure_file(${IFEM_REGTEST_SCRIPT} regtest.sh)
+configure_file(${IFEM_CLANG_CHECK_TEST_SCRIPT} clang-check-test.sh)
+configure_file(${IFEM_CPPCHECK_TEST_SCRIPT} cppcheck-test.sh)

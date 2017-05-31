@@ -79,7 +79,12 @@ function build_module {
   then
     cmake --build . --target testapps -- -j$nproc
     test $? -eq 0 || exit 2
-    ctest -T Test --test-timeout 180 --no-compress-output
+    if test -z "$CTEST_CONFIGURATION"
+    then
+      ctest -T Test --test-timeout 180 --no-compress-output
+    else
+      ctest -C $CTEST_CONFIGURATION -T Test --test-timeout 180 --no-compress-output
+    fi
     $WORKSPACE/deps/IFEM/jenkins/convert.py -x $WORKSPACE/deps/IFEM/jenkins/conv.xsl -t . > testoutput.xml
   else
     cmake --build . --target install -- -j$nproc

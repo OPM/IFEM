@@ -17,7 +17,10 @@ file(GLOB AppCommon_HEADERS *.h)
 add_library(IFEMAppCommon STATIC ${AppCommon_SOURCES})
 install(TARGETS IFEMAppCommon DESTINATION ${CMAKE_INSTALL_LIBDIR})
 install(FILES ${AppCommon_HEADERS} DESTINATION include/IFEM)
-install(FILES scripts/regtest.sh.in DESTINATION lib/IFEM/scripts
+install(FILES scripts/regtest.sh.in
+              scripts/clang-check-test.sh.in
+              scripts/cppcheck-test.sh.in
+        DESTINATION lib/IFEM/scripts
         PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
                     GROUP_READ GROUP_EXECUTE
                     WORLD_READ WORLD_EXECUTE)
@@ -39,3 +42,5 @@ endif()
 
 set(TEST_APPS ${TEST_APPS} PARENT_SCOPE)
 set(UNIT_TEST_NUMBER ${UNIT_TEST_NUMBER} PARENT_SCOPE)
+list(APPEND CHECK_SOURCES ${AppCommon_SOURCES})
+set(CHECK_SOURCES ${CHECK_SOURCES} PARENT_SCOPE)

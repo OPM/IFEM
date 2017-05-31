@@ -262,3 +262,7 @@ endif()
 if(HAS_PARENTHESES)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-parentheses")
 endif()
+
+set(IFEM_REGTEST_SCRIPT ${IFEM_PATH}/Apps/Common/scripts/regtest.sh.in)
+set(IFEM_CLANG_CHECK_TEST_SCRIPT ${IFEM_PATH}/Apps/Common/scripts/clang-check-test.sh.in)
+set(IFEM_CPPCHECK_TEST_SCRIPT ${IFEM_PATH}/Apps/Common/scripts/cppcheck-test.sh.in)
