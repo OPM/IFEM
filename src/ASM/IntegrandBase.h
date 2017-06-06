@@ -285,8 +285,8 @@ class NormBase : public Integrand
 {
 protected:
   //! \brief The default constructor is protected to allow sub-classes only.
-  NormBase(IntegrandBase& p) : myProblem(p), projBou(false), nrcmp(0),
-                               lints(nullptr), finalOp(ASM::SQRT) {}
+  explicit NormBase(IntegrandBase& p) : myProblem(p), projBou(false), nrcmp(0),
+                                        lints(nullptr), finalOp(ASM::SQRT) {}
 
 public:
   //! \brief Empty destructor.
