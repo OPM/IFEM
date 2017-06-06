@@ -1658,7 +1658,7 @@ namespace utl //! General utility classes and functions.
     if (X.size() < 1)
       s <<" (empty)";
     else for (size_t i = 0; i < X.size(); i++)
-      s << (i%nval_per_line ? ' ':'\n') << trunc(X[i]);
+      s << ((i%nval_per_line) ? ' ':'\n') << trunc(X[i]);
 
     return s << std::endl;
   }
