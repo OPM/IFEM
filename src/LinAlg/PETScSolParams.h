@@ -144,7 +144,7 @@ protected:
   const LinSolParams& params; //!< Reference to linear solver parameters.
   const ProcessAdm& adm;      //!< Reference to process administrator.
 
-  Mat Sp; //!< Schur complement.
+  Mat Sp = nullptr; //!< Schur complement.
   bool SPsetup = false; //!< True if Sp was set up
 };
 
