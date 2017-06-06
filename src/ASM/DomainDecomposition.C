@@ -292,6 +292,7 @@ std::vector<IntVec> DomainDecomposition::calcSubdomains3D(size_t nel1, size_t ne
 }
 
 
+#ifdef HAVE_MPI
 void DomainDecomposition::setupNodeNumbers(int basis, IntVec& lNodes,
                                            std::set<int>& cbasis,
                                            const ASMbase* pch,
@@ -337,6 +338,7 @@ void DomainDecomposition::setupNodeNumbers(int basis, IntVec& lNodes,
     } else
       pch->getBoundaryNodes(lidx, lNodes, it2, thick, false);
 }
+#endif
 
 
 bool DomainDecomposition::calcGlobalNodeNumbers(const ProcessAdm& adm,
@@ -473,6 +475,7 @@ bool DomainDecomposition::calcGlobalNodeNumbers(const ProcessAdm& adm,
 }
 
 
+#ifdef HAVE_MPI
 std::vector<int> DomainDecomposition::setupEquationNumbers(const SIMbase& sim,
                                                            int pidx, int lidx,
                                                            const std::set<int>& cbasis,
@@ -524,6 +527,7 @@ std::vector<int> DomainDecomposition::setupEquationNumbers(const SIMbase& sim,
 
   return result;
 }
+#endif
 
 
 bool DomainDecomposition::calcGlobalEqNumbers(const ProcessAdm& adm,
