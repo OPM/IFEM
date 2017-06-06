@@ -111,15 +111,15 @@ public:
   virtual Real Linfnorm() const;
 
 private:
-  int mpar[NS]; //!< Matrix of sparse PARameters
-  int* msica;   //!< Matrix of Storage Information for CA
-  int* msifa;   //!< Matrix of Storage Information for FA
-  int* mtrees;  //!< Matrix of elimination assembly TREES
-  int* mvarnc;  //!< Matrix of VARiable to Node Correspondence
-  Real* values; //!< The actual matrix VALUES
+  int mpar[NS] {};        //!< Matrix of sparse PARameters
+  int* msica = nullptr;   //!< Matrix of Storage Information for CA
+  int* msifa = nullptr;   //!< Matrix of Storage Information for FA
+  int* mtrees = nullptr;  //!< Matrix of elimination assembly TREES
+  int* mvarnc = nullptr;  //!< Matrix of VARiable to Node Correspondence
+  Real* values = nullptr; //!< The actual matrix VALUES
 
-  std::vector<int>  iWork; //!< Integer work array
-  std::vector<Real> rWork; //!< Real work array
+  std::vector<int>  iWork {}; //!< Integer work array
+  std::vector<Real> rWork {}; //!< Real work array
 };
 
 #endif
