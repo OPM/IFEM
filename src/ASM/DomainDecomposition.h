@@ -48,7 +48,7 @@ public:
   class SlaveOrder {
     public:
       //! \brief The constructor initializes the DomainDecomposition reference.
-      SlaveOrder(const DomainDecomposition& dd_) : dd(dd_) {}
+      explicit SlaveOrder(const DomainDecomposition& dd_) : dd(dd_) {}
       //! \brief Hide ill-formed default assignment operator.
       SlaveOrder& operator=(const SlaveOrder&) { return *this; }
       //! \brief Compare interfaces.

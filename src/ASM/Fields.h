@@ -36,7 +36,7 @@ class Fields
 protected:
   //! \brief The constructor sets the field name.
   //! \param[in] name Name of field
-  Fields(const char* name = 0) : nf(0), nelm(0), nno(0)
+  explicit Fields(const char* name = 0) : nf(0), nelm(0), nno(0)
   { if (name) fname = name; }
 
 public:

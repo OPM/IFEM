@@ -26,7 +26,7 @@ class Lagrange
 public:
   //! \brief Constructor initializing the reference to natural coordinates.
   //! \param[in] p Natural interpolation point coordinates in range [-1,1]
-  Lagrange(const RealArray& p) : points(p) {}
+  explicit Lagrange(const RealArray& p) : points(p) {}
 
   //! \brief Evaluates a 1D Lagrange polynomial.
   //! \param[in] polnum Which polynomial of the basis to evaluate

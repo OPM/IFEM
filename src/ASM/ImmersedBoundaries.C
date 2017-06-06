@@ -63,7 +63,7 @@ struct cell
   vertex CellVerts[4]; //!< Global coordinates of the cell vertices
 
   //! \brief Default constructor.
-  cell(int level = 0) : depth(level), xi(0.0), eta(0.0) {}
+  explicit cell(int level = 0) : depth(level), xi(0.0), eta(0.0) {}
 };
 
 

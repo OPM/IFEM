@@ -32,7 +32,7 @@ class SIMadmin : public XMLInputBase
 {
 protected:
   //! \brief The default constructor initializes the process administrator.
-  SIMadmin(const char* heading = nullptr);
+  explicit SIMadmin(const char* heading = nullptr);
   //! \brief Copy constructor.
   SIMadmin(SIMadmin& anotherSIM);
 

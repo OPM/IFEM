@@ -33,7 +33,7 @@ class ASMs3Dmx : public ASMs3D, private ASMmxBase
 {
 public:
   //! \brief The constructor initializes the dimension of each basis.
-  ASMs3Dmx(const CharVec& n_f);
+  explicit ASMs3Dmx(const CharVec& n_f);
   //! \brief Copy constructor.
   ASMs3Dmx(const ASMs3Dmx& patch, const CharVec& n_f = CharVec(2,0));
   //! \brief Empty destructor.

@@ -39,7 +39,7 @@ public:
   //! by the application, but are only used to assembly the global norms.
   //! To avoid the need for a global array of element norms in that case,
   //! an internal array is then used instead.
-  ElmNorm(size_t n) : buf(n,0.0), nnv(n) { ptr = &buf.front(); }
+  explicit ElmNorm(size_t n) : buf(n,0.0), nnv(n) { ptr = &buf.front(); }
   //! \brief Empty destructor.
   virtual ~ElmNorm() {}
 

@@ -39,7 +39,7 @@ class PETScVector : public StdVector
 {
 public:
   //! \brief Constructor creating an empty vector.
-  PETScVector(const ProcessAdm& padm);
+  explicit PETScVector(const ProcessAdm& padm);
   //! \brief Constructor creating a vector of length \a n.
   PETScVector(const ProcessAdm& padm, size_t n);
   //! \brief Constructor creating a vector from an array.

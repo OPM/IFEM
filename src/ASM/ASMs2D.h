@@ -91,7 +91,7 @@ protected:
     const ASMs2D& myPatch; //!< Reference to the patch being integrated
   public:
     //! \brief The constructor initialises the reference to current patch.
-    InterfaceChecker(const ASMs2D& pch) : myPatch(pch) {}
+    explicit InterfaceChecker(const ASMs2D& pch) : myPatch(pch) {}
     //! \brief Empty destructor.
     virtual ~InterfaceChecker() {}
     //! \brief Returns non-zero if the specified element have contributions.

@@ -25,7 +25,7 @@ class GenAlphaSIM : public NewmarkSIM
 {
 public:
   //! \brief The constructor initializes default solution parameters.
-  GenAlphaSIM(SIMbase& s);
+  explicit GenAlphaSIM(SIMbase& s);
   //! \brief Empty destructor.
   virtual ~GenAlphaSIM() {}
 

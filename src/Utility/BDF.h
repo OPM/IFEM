@@ -29,7 +29,7 @@ namespace TimeIntegration //! Utilities for time integration.
   public:
     //! \brief Default constructor.
     //! \param[in] order The order of the BDF scheme
-    BDF(int order = 0) : step(0), coefs1(1,1.0) { this->setOrder(order); }
+    explicit BDF(int order = 0) : step(0), coefs1(1,1.0) { this->setOrder(order); }
     //! \brief Empty destructor.
     virtual ~BDF() {}
 
