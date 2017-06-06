@@ -36,7 +36,7 @@ protected:
 
   //! \brief The constructor initializes the FE model reference.
   //! \param sim The FE model
-  MultiStepSIM(SIMbase& sim);
+  explicit MultiStepSIM(SIMbase& sim);
 
 public:
   //! \brief Empty destructor.
