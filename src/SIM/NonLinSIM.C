@@ -476,7 +476,7 @@ ConvStatus NonLinSIM::checkConvergence (TimeStep& param)
       else
         cout <<".";
       std::map<std::pair<int,int>,RealArray>::const_iterator it;
-      for (it = worstDOFs.begin(); it != worstDOFs.end(); it++)
+      for (it = worstDOFs.begin(); it != worstDOFs.end(); ++it)
       {
         cout <<"\n     Node "<< it->first.first
              <<" local DOF "<< it->first.second;
