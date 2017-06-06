@@ -42,7 +42,6 @@ public:
   ISTLVector(const ISTLVector& vec);
   //! \brief Destructor.
   virtual ~ISTLVector();
-#endif
 
   //! \brief Returns the vector type.
   virtual Type getType() const { return ISTL; }
@@ -161,3 +160,5 @@ protected:
   int                 nLinSolves;      //!< Number of linear solves
   LinAlg::LinearSystemType linsysType; //!< Linear system type
 };
+
+#endif
