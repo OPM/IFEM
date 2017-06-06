@@ -155,14 +155,13 @@ bool LinSolParams::BlockParams::read(const TiXmlElement* elem, const std::string
 
 bool LinSolParams::read (const TiXmlElement* elem)
 {
-  const char* value = 0;
-
   if (elem->Attribute("verbosity"))
     addValue("verbosity", elem->Attribute("verbosity"));
 
   const TiXmlElement* child = elem->FirstChildElement();
   int parseblock = 0;
-  for (; child; child = child->NextSiblingElement())
+  for (; child; child = child->NextSiblingElement()) {
+    const char* value = 0;
     if ((value = utl::getValue(child,"type")))
       addValue("type", value);
     else if ((value = utl::getValue(child,"gmres_restart_iterations")))
@@ -183,6 +182,7 @@ bool LinSolParams::read (const TiXmlElement* elem)
       addValue("dtol", value);
     else if ((value = utl::getValue(child,"maxits")))
       addValue("maxits", value);
+  }
 
   if (parseblock == 0)
     blocks.back().read(elem);
