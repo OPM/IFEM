@@ -69,7 +69,7 @@ namespace ExprEval
     class NotFoundException : public Exception
     {
     public:
-        NotFoundException(const ::std::string &name);
+        explicit NotFoundException(const ::std::string &name);
     };
 
     // Already exists exception (function or value already exists)
@@ -77,7 +77,7 @@ namespace ExprEval
     class AlreadyExistsException : public Exception
     {
     public:
-        AlreadyExistsException(const ::std::string &name);
+        explicit AlreadyExistsException(const ::std::string &name);
     };
 
     // A null pointer was passed
@@ -85,7 +85,7 @@ namespace ExprEval
     class NullPointerException : public Exception
     {
     public:
-        NullPointerException(const ::std::string &method);
+        explicit NullPointerException(const ::std::string &method);
     };
 
     // A bad math error occured
@@ -93,7 +93,7 @@ namespace ExprEval
     class MathException : public Exception
     {
     public:
-        MathException(const ::std::string &function);
+        explicit MathException(const ::std::string &function);
     };
 
     // Divide by zero exception
@@ -150,7 +150,7 @@ namespace ExprEval
     class InvalidArgumentCountException : public Exception
     {
     public:
-        InvalidArgumentCountException(const ::std::string &function);
+        explicit InvalidArgumentCountException(const ::std::string &function);
     };
 
     // Assign to a constant
@@ -158,7 +158,7 @@ namespace ExprEval
     class ConstantAssignException : public Exception
     {
     public:
-        ConstantAssignException(const ::std::string &value);
+        explicit ConstantAssignException(const ::std::string &value);
     };
 
     // Pass constant by reference
@@ -166,7 +166,7 @@ namespace ExprEval
     class ConstantReferenceException : public Exception
     {
     public:
-        ConstantReferenceException(const ::std::string &value);
+        explicit ConstantReferenceException(const ::std::string &value);
     };
 
     // A general syntax exception
