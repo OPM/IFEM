@@ -100,7 +100,7 @@ namespace utl
   {
   protected:
     //! \brief The constructor is protected to allow sub-class instances only.
-    SpatialFunction(const Result& val) : zero(val) {}
+    explicit SpatialFunction(const Result& val) : zero(val) {}
 
   public:
     //! \brief Empty destructor.
