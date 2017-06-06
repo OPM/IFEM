@@ -209,9 +209,11 @@ void VTF::writeGeometryBlocks (int iStep)
   if (myBlocks.empty())
     return;
 
+#if HAS_VTFAPI == 1 || HAS_VTFAPI == 2
   std::vector<int> geomID(myBlocks.size());
   for (size_t i = 0; i < myBlocks.size(); i++)
     geomID[i] = myBlocks[i].first;
+#endif
 
 #ifdef HAS_VTFAPI
   if (!myGBlock) myGBlock = new VTFAGeometryBlock();
