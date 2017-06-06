@@ -1639,7 +1639,7 @@ bool ASMu3D::tesselate (ElementBlock& grid, const int* npe) const
   std::vector<LR::Element*>::iterator el;
   int inod = 0;
   int iel = 0;
-  for(el=lrspline->elementBegin(); el<lrspline->elementEnd(); el++, iel++) {
+  for(el=lrspline->elementBegin(); el<lrspline->elementEnd(); ++el, iel++) {
     // evaluate element at element corner points
     double umin = (**el).umin();
     double umax = (**el).umax();
