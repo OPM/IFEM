@@ -656,7 +656,7 @@ const Vector& ASMs1D::getGaussPointParameters (Matrix& uGP, int nGauss,
   uGP.resize(nGauss,nCol);
 
   double uprev = *(uit++);
-  for (int j = 1; j <= nCol; uit++, j++)
+  for (int j = 1; j <= nCol; ++uit, j++)
   {
     double ucurr = *uit;
     for (int i = 1; i <= nGauss; i++)
