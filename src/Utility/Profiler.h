@@ -107,7 +107,7 @@ namespace utl
     const char* name; //!< Name tag on the local scope to profile
   public:
     //! \brief The constructor starts the profiling of the named task.
-    prof(const char* tag) : name(tag) { if (profiler) profiler->start(name); }
+    explicit prof(const char* tag) : name(tag) { if (profiler) profiler->start(name); }
     //! \brief The destructor stops the profiling.
     ~prof() { if (profiler) profiler->stop(name); }
   };
