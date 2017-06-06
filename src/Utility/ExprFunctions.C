@@ -113,7 +113,7 @@ EvalFunc::EvalFunc (const char* function, const char* x)
       arg[i] = v[i]->GetAddress(x);
     }
   }
-  catch (ExprEval::Exception e) {
+  catch (ExprEval::Exception& e) {
     ExprException(e,"parsing",function);
   }
 }
@@ -141,7 +141,7 @@ Real EvalFunc::evaluate (const Real& x) const
     *arg[i] = x;
     result = expr[i]->Evaluate();
   }
-  catch (ExprEval::Exception e) {
+  catch (ExprEval::Exception& e) {
     ExprException(e,"evaluating expression");
   }
 
@@ -182,7 +182,7 @@ EvalFunction::EvalFunction (const char* function) : gradient{}, dgradient{}
       arg[i].t = v[i]->GetAddress("t");
     }
   }
-  catch (ExprEval::Exception e) {
+  catch (ExprEval::Exception& e) {
     ExprException(e,"parsing",function);
   }
 
@@ -261,7 +261,7 @@ Real EvalFunction::evaluate (const Vec3& X) const
     *arg[i].t = Xt ? Xt->t : Real(0);
     result = expr[i]->Evaluate();
   }
-  catch (ExprEval::Exception e) {
+  catch (ExprEval::Exception& e) {
     ExprException(e,"evaluating expression");
   }
 
