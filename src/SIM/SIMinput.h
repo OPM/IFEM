@@ -56,7 +56,7 @@ public:
 
 protected:
   //! \brief The constructor just forwards to the base class constructor.
-  SIMinput(IntegrandBase* itg = nullptr) : SIMbase(itg), myGen(nullptr) {}
+  explicit SIMinput(IntegrandBase* itg = nullptr) : SIMbase(itg), myGen(nullptr) {}
 
 public:
   //! \brief Empty destructor.
