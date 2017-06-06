@@ -319,7 +319,7 @@ bool ASMs2DTri::integrate (Integrand& integrand, int lIndex,
   if (!xg || !wg) return false;
 
   // Find the parametric direction of the edge normal {-2,-1, 1, 2}
-  const int edgeDir = (lIndex%10+1)/(lIndex%2 ? -2 : 2);
+  const int edgeDir = (lIndex%10+1)/((lIndex%2) ? -2 : 2);
 
   const int t1 = abs(edgeDir); // tangent direction normal to the patch edge
 
