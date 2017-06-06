@@ -31,7 +31,7 @@ void ThreadGroups::calcGroups (const BoolVec& el1, const BoolVec& el2,
   for (i = 0; i < el2.size(); i++)
     if (el2[i]) nel2++;
 
-  int threads=1;
+  int threads;
   int stripsize=0;
   int remainder=0;
   int dir=0, mul=1;
@@ -62,6 +62,8 @@ void ThreadGroups::calcGroups (const BoolVec& el1, const BoolVec& el2,
             << "\n# of strips " << els/stripsize
             << "\nremainder " << remainder << std::endl;
 #endif
+#else
+  threads = 1;
 #endif
 
   nel1 = el1.size();
@@ -131,7 +133,7 @@ void ThreadGroups::calcGroups (const BoolVec& el1, const BoolVec& el2,
 
 void ThreadGroups::calcGroups (int nel1, int nel2, int minsize)
 {
-  int threads=1;
+  int threads;
   int stripsize=0;
   int remainder=0;
   int dir=0, mul=1;
@@ -159,6 +161,8 @@ void ThreadGroups::calcGroups (int nel1, int nel2, int minsize)
             << "\n# of strips " << els/stripsize
             << "\nremainder " << remainder << std::endl;
 #endif
+#else
+  threads = 1;
 #endif
 
   if (threads == 1)
@@ -241,7 +245,7 @@ void ThreadGroups::calcGroups (const BoolVec& el1, const BoolVec& el2,
   for (i = 0; i < el3.size(); i++)
     if (el3[i]) nel3++;
 
-  int threads=1;
+  int threads;
   int stripsize=0;
   int remainder=0;
   int dir=0, mul=1;
@@ -272,6 +276,8 @@ void ThreadGroups::calcGroups (const BoolVec& el1, const BoolVec& el2,
             << "\n# of strips " << els/stripsize
             << "\nremainder " << remainder << std::endl;
 #endif
+#else
+  threads = 1;
 #endif
 
   nel1 = el1.size();
@@ -345,7 +351,7 @@ void ThreadGroups::calcGroups (const BoolVec& el1, const BoolVec& el2,
 
 void ThreadGroups::calcGroups (int nel1, int nel2, int nel3, int minsize)
 {
-  int threads=1;
+  int threads;
   int stripsize=0;
   int remainder=0;
   int i, dir=0, mul=1;
@@ -373,6 +379,8 @@ void ThreadGroups::calcGroups (int nel1, int nel2, int nel3, int minsize)
             << "\n# of strips " << els/stripsize
             << "\nremainder " << remainder << std::endl;
 #endif
+#else
+  threads = 1;
 #endif
 
   if (threads == 1)
