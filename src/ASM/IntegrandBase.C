@@ -208,7 +208,7 @@ Vector* IntegrandBase::getNamedVector (const std::string& name) const
 std::string IntegrandBase::getField1Name (size_t idx, const char* prefix) const 
 {
   char name[32];
-  sprintf(name,"primary solution %lu",1+idx);
+  sprintf(name,"primary solution %zu",1+idx);
   return prefix ? prefix +  std::string(" ") + name : name;
 }
 
@@ -216,7 +216,7 @@ std::string IntegrandBase::getField1Name (size_t idx, const char* prefix) const
 std::string IntegrandBase::getField2Name (size_t idx, const char* prefix) const 
 {
   char name[32];
-  sprintf(name,"secondary solution %lu",1+idx);
+  sprintf(name,"secondary solution %zu",1+idx);
   return prefix ? prefix + std::string(" ") + name : name;
 }
 
@@ -355,7 +355,7 @@ bool NormBase::initElementBou (const std::vector<int>& MNPC,
 std::string NormBase::getName (size_t i, size_t j, const char* prefix) const
 {
   char comp[32];
-  sprintf(comp,"norm_%lu.%lu",i,j);
+  sprintf(comp,"norm_%zu.%zu",i,j);
   if (!prefix) return comp;
 
   return prefix + std::string(" ") + comp;
