@@ -31,7 +31,7 @@ class GlbForceVec : public GlobalIntegral
 {
 public:
   //! \brief The constructor only sets its reference to the SAM object.
-  GlbForceVec(const SAM& _sam) : sam(_sam) {}
+  explicit GlbForceVec(const SAM& _sam) : sam(_sam) {}
   //! \brief Empty destructor.
   virtual ~GlbForceVec() {}
 
