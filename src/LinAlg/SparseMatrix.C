@@ -117,6 +117,9 @@ struct SuperLUdata
     if (opts)   delete   opts;
   }
 #endif
+
+private:
+  SuperLUdata(const SuperLUdata&) = delete;
 };
 
 
