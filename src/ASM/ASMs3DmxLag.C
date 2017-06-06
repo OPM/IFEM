@@ -406,7 +406,7 @@ bool ASMs3DmxLag::integrate (Integrand& integrand, int lIndex,
   if (!xg || !wg) return false;
 
   // Find the parametric direction of the face normal {-3,-2,-1, 1, 2, 3}
-  const int faceDir = (lIndex%10+1)/(lIndex%2 ? -2 : 2);
+  const int faceDir = (lIndex%10+1)/((lIndex%2) ? -2 : 2);
 
   const int t0 = abs(faceDir); // unsigned normal direction of the face
   const int t1 = 1 + t0%3; // first tangent direction of the face
