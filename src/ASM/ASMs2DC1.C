@@ -275,7 +275,7 @@ void ASMs2DC1::renumberNodes (const std::map<int,int>& old2new)
 {
   std::map<int,int>::const_iterator it;
   std::map<int,ASMs2DC1*>::iterator nit;
-  for (it = old2new.begin(); it != old2new.end(); it++)
+  for (it = old2new.begin(); it != old2new.end(); ++it)
     if (it->first != it->second)
       if ((nit = neighbors.find(it->first)) != neighbors.end())
       {
@@ -356,7 +356,7 @@ static bool initMPC4flat (MPC* mpc, std::vector<Vec3>& X)
 
   double x[4], y[4], A[2][4];
   std::map<double,int>::const_iterator it;
-  for (i = 0, it = points.begin(); it != points.end(); it++, i++)
+  for (i = 0, it = points.begin(); it != points.end(); ++it, i++)
   {
     x[i] = X[it->second].x - X.front().x;
     y[i] = X[it->second].y - X.front().y;
@@ -388,7 +388,7 @@ static bool initMPC4flat (MPC* mpc, std::vector<Vec3>& X)
   Lagrange::computeBasis(N,2,x[0],2,y[0]);
   std::swap(N[2],N[3]);
 
-  for (i = 0, it = points.begin(); it != points.end(); it++, i++)
+  for (i = 0, it = points.begin(); it != points.end(); ++it, i++)
     mpc->updateMaster(it->second-1,N[i]);
 
   return true;
@@ -400,7 +400,7 @@ bool ASMs2DC1::initConstraints ()
   // Compute coupling coefficients for the constraint equations
   // enforcing C1-continuity in the solution
   std::map<int,ASMs2DC1*>::const_iterator npit;
-  for (MPCIter sit = mpcs.begin(); sit != mpcs.end(); sit++)
+  for (MPCIter sit = mpcs.begin(); sit != mpcs.end(); ++sit)
     if (dCode.find(*sit) == dCode.end())
     {
       // Extract coordinates of the control points involved, first the slave.
@@ -423,7 +423,7 @@ bool ASMs2DC1::initConstraints ()
       {
 	std::cerr <<" *** ASMs2DC1::initConstraints: Failed to initialize "
 		  << **sit <<"     MPC masters:";
-	for (npit = neighbors.begin(); npit != neighbors.end(); npit++)
+	for (npit = neighbors.begin(); npit != neighbors.end(); ++npit)
 	  std::cerr <<" "<< npit->first;
 	std::cerr << std::endl;
 	return false;
@@ -465,7 +465,7 @@ bool ASMs2DC1::updateDirichlet (const std::map<int,RealFunc*>& func,
   // prescribed 1st derivatives.
   std::map<int,RealFunc*>::const_iterator fit;
   std::map<int,VecFunc*>::const_iterator vfit;
-  for (MPCMap::iterator cit = dCode.begin(); cit != dCode.end(); cit++)
+  for (MPCMap::iterator cit = dCode.begin(); cit != dCode.end(); ++cit)
     if (cit->first->getNoMaster() == 1)
     {
       size_t inod = this->getNodeIndex(cit->first->getSlave().node);
