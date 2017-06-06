@@ -569,11 +569,12 @@ void ASMu3D::constrainNode (double xi, double eta, double zeta,
 {
   std::cerr << "ASMu3D::constrainNode not implemented properly yet" << std::endl;
   exit(776654);
+
+#if 0
   if (xi   < 0.0 || xi   > 1.0) return;
   if (eta  < 0.0 || eta  > 1.0) return;
   if (zeta < 0.0 || zeta > 1.0) return;
 
-#if 0
   int n1, n2, n3;
   if (!this->getSize(n1,n2,n3,1)) return;
 
@@ -889,9 +890,10 @@ bool ASMu3D::integrate (Integrand& integrand,
   }
 
   // Get the reduced integration quadrature points, if needed
+  int nRed = integrand.getReducedIntegration(nGauss);
+#if 0
   const double* xr = nullptr;
   const double* wr = nullptr;
-  int nRed = integrand.getReducedIntegration(nGauss);
   if (nRed > 0)
   {
     xr = GaussQuadrature::getCoord(nRed);
@@ -900,6 +902,7 @@ bool ASMu3D::integrate (Integrand& integrand,
   }
   else if (nRed < 0)
     nRed = nGauss; // The integrand needs to know nGauss
+#endif
 
 
   // === Assembly loop over all elements in the patch ==========================
@@ -942,12 +945,17 @@ bool ASMu3D::integrate (Integrand& integrand,
       }
 
       // Compute parameter values of the Gauss points over the whole element
-      std::array<RealArray,3> gpar, redpar;
+      std::array<RealArray,3> gpar;
+#if 0
+      std::array<RealArray,3>, redpar;
+#endif
       for (int d = 0; d < 3; d++)
       {
         this->getGaussPointParameters(gpar[d],d,nGauss,iEl,xg);
+#if 0
         if (xr)
           this->getGaussPointParameters(redpar[d],d,nRed,iEl,xr);
+#endif
       }
 
 
@@ -1010,11 +1018,11 @@ bool ASMu3D::integrate (Integrand& integrand,
         continue;
       }
 
+#if 0
       if (xr)
       {
         std::cerr << "Haven't really figured out what this part does yet\n";
         exit(42142);
-#if 0
         // --- Selective reduced integration loop ------------------------------
 
         int ip = (((i3-p3)*nRed*nel2 + i2-p2)*nRed*nel1 + i1-p1)*nRed;
@@ -1047,8 +1055,8 @@ bool ASMu3D::integrate (Integrand& integrand,
               if (!integrand.reducedInt(*A,fe,X))
                 ok = false;
         }
-#endif
       }
+#endif
 
 
       // --- Integration loop over all Gauss points in each direction ----------
