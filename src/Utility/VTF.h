@@ -212,6 +212,8 @@ public:
   static Real vecOffset[3]; //!< Optional offset for vector attack points
 
 private:
+  VTF(const VTF&) = delete;
+
   VTFAFile* myFile; //!< Pointer to the actual VTF-file being written
 #if HAS_VTFAPI == 2
   VTFXADatabase* myDatabase; //!< Pointer to VTFx database object for this file
