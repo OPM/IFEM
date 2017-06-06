@@ -44,12 +44,11 @@ ASMs3DLag::ASMs3DLag (const ASMs3DLag& patch, unsigned char n_f)
 
 
 ASMs3DLag::ASMs3DLag (const ASMs3DLag& patch)
-  : ASMs3D(patch), coord(myCoord)
+  : ASMs3D(patch), coord(myCoord), myCoord(patch.coord)
 {
   nx = patch.nx;
   ny = patch.ny;
   nz = patch.nz;
-  myCoord = patch.coord;
 }
 
 
