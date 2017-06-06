@@ -33,7 +33,7 @@ class ISTLVector : public StdVector
 {
 public:
   //! \brief Constructor creating an empty vector.
-  ISTLVector(const ProcessAdm& padm);
+  explicit ISTLVector(const ProcessAdm& padm);
   //! \brief Constructor creating a vector of length \a n.
   ISTLVector(const ProcessAdm& padm, size_t n);
   //! \brief Constructor creating a vector from an array.
