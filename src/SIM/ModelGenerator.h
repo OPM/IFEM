@@ -31,7 +31,7 @@ class ModelGenerator
 public:
   //! \brief The constructor initializes the common members.
   //!\ param elem XML element to parse
-  ModelGenerator(const TiXmlElement* elem) : geo(elem) {}
+  explicit ModelGenerator(const TiXmlElement* elem) : geo(elem) {}
   //! \brief Empty destructor.
   virtual ~ModelGenerator() {}
 
@@ -69,7 +69,7 @@ class DefaultGeometry1D : public ModelGenerator
 public:
   //! \brief The constructor forwards to the base class.
   //! \param[in] geo XML element containing geometry definition
-  DefaultGeometry1D(const TiXmlElement* geo) : ModelGenerator(geo) {}
+  explicit DefaultGeometry1D(const TiXmlElement* geo) : ModelGenerator(geo) {}
   //! \brief Empty destructor.
   virtual ~DefaultGeometry1D() {}
 
@@ -93,7 +93,7 @@ class DefaultGeometry2D : public ModelGenerator
 public:
   //! \brief The constructor forwards to the base class.
   //! \param[in] geo XML element containing geometry definition
-  DefaultGeometry2D(const TiXmlElement* geo) : ModelGenerator(geo) {}
+  explicit DefaultGeometry2D(const TiXmlElement* geo) : ModelGenerator(geo) {}
   //! \brief Empty destructor.
   virtual ~DefaultGeometry2D() {}
 
@@ -117,7 +117,7 @@ class DefaultGeometry3D : public ModelGenerator
 public:
   //! \brief The constructor forwards to the base class.
   //! \param[in] geo XML element containing geometry definition
-  DefaultGeometry3D(const TiXmlElement* geo) : ModelGenerator(geo) {}
+  explicit DefaultGeometry3D(const TiXmlElement* geo) : ModelGenerator(geo) {}
   //! \brief Empty destructor.
   virtual ~DefaultGeometry3D() {}
 
