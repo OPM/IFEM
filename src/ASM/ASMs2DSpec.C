@@ -176,7 +176,7 @@ bool ASMs2DSpec::integrate (Integrand& integrand, int lIndex,
   if (!surf) return true; // silently ignore empty patches
 
   // Find the parametric direction of the edge normal {-2,-1, 1, 2}
-  int edgeDir = lIndex = (lIndex+1)/(lIndex%2 ? -2 : 2);
+  int edgeDir = lIndex = (lIndex+1)/((lIndex%2) ? -2 : 2);
 
   const int t1 = abs(edgeDir);   // Tangent direction normal to the patch edge
   const int t2 = 3-abs(edgeDir); // Tangent direction along the patch edge
