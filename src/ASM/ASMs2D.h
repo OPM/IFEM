@@ -632,7 +632,7 @@ protected:
   std::vector<DirichletEdge> dirich;
 
   //! Element groups for multi-threaded assembly
-  ThreadGroups threadGroups;
+  ThreadGroups threadGroups {};
 };
 
 #endif
