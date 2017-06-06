@@ -302,7 +302,7 @@ void HDF5Writer::writeVector(int level, const DataEntry& entry)
     if (!(entry.second.results & DataExporter::REDUNDANT) || rank == 0)
       writeArray(level,entry.first,vector->size(),vector->data(),H5T_NATIVE_DOUBLE);
     if ((entry.second.results & DataExporter::REDUNDANT) && rank != 0) {
-      double dummy;
+      double dummy=0.0;
       writeArray(group,entry.first,0,&dummy,H5T_NATIVE_DOUBLE);
     }
   } else if (entry.second.field == DataExporter::INTVECTOR) {
@@ -310,7 +310,7 @@ void HDF5Writer::writeVector(int level, const DataEntry& entry)
     if (!(entry.second.results & DataExporter::REDUNDANT) || rank == 0)
       writeArray(group,entry.first,data->size(),&data->front(),H5T_NATIVE_INT);
     if ((entry.second.results & DataExporter::REDUNDANT) && rank != 0) {
-      int dummy;
+      int dummy=0;
       writeArray(group,entry.first,0,&dummy,H5T_NATIVE_INT);
     }
   }
@@ -513,7 +513,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
     }
     else // must write empty dummy records for the other patches
     {
-      double dummy;
+      double dummy=0.0;
       if (abs(results) & DataExporter::PRIMARY) {
         if (entry.second.results < 0) {
           writeArray(group2, entry.second.description,
@@ -588,7 +588,7 @@ void HDF5Writer::writeKnotspan (int level, const DataEntry& entry,
                  patchEnorm.getRow(1).ptr(),H5T_NATIVE_DOUBLE);
     }
     else { // must write empty dummy records for the other patches
-      double dummy;
+      double dummy=0.0;
       writeArray(group2,prefix+entry.second.description,0,&dummy,H5T_NATIVE_DOUBLE);
     }
 
@@ -633,7 +633,7 @@ void HDF5Writer::writeBasis (SIMbase* sim, const std::string& name,
       writeArray(group2, str2.str(), str.str().size(), str.str().c_str(),
                  H5T_NATIVE_CHAR);
     if (redundant && rank != 0) {
-      char dummy;
+      char dummy=0;
       writeArray(group2, str2.str(), 0, &dummy, H5T_NATIVE_CHAR);
     }
   }
@@ -707,7 +707,7 @@ void HDF5Writer::writeNodalForces(int level, const DataEntry& entry)
     }
     writeArray(group2,entry.first,results.size(),results.data(),H5T_NATIVE_DOUBLE);
   } else {
-    double dummy;
+    double dummy=0.0;
     writeArray(group2,entry.first,0,&dummy,H5T_NATIVE_DOUBLE);
   }
   H5Gclose(group2);
