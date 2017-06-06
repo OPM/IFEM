@@ -43,7 +43,7 @@ namespace ISTL
   class IOp2Pre : public Dune::InverseOperator2Preconditioner<Pre<ISTL::Mat>, Dune::SolverCategory::sequential> {
     typedef Dune::InverseOperator2Preconditioner<Pre<ISTL::Mat>, Dune::SolverCategory::sequential> SolverType;
   public:
-    IOp2Pre(Pre<ISTL::Mat>* iop) : SolverType(*iop)
+    explicit IOp2Pre(Pre<ISTL::Mat>* iop) : SolverType(*iop)
     {
       m_op.reset(iop);
     }
