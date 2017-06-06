@@ -103,8 +103,8 @@ private:
   Immersed::Geometry* myGeometry; //!< The physical geometry description
   ElementBlock*       myLines;    //!< Sub-cell grid lines (for plotting)
 
-  Real3DMat quadPoints; //!< The Gauss quadrature points for this patch
-  int       maxDepth;   //!< Maximum depth up to which to refine each element
+  Real3DMat quadPoints;   //!< The Gauss quadrature points for this patch
+  int       maxDepth = 0; //!< Maximum depth up to which to refine each element
 };
 
 #endif
