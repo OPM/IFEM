@@ -35,10 +35,9 @@ struct Interface
   std::pair<ASMs2DC1*,int> slave;  //!< Patch and edge index of the slave
   bool reversed;                   //!< Relative orientation toggle
   //! \brief Constructor initializing an Interface instance.
-  Interface(ASMs2DC1* m, int me, ASMs2DC1* s, int se, bool r = false)
+  Interface(ASMs2DC1* m, int me, ASMs2DC1* s, int se, bool r = false) :
+    master(std::make_pair(m,me)), slave(std::make_pair(s,se))
   {
-    master = std::make_pair(m,me);
-    slave = std::make_pair(s,se);
     reversed = r;
   }
 };
