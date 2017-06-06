@@ -34,7 +34,7 @@ class ElmMats : public LocalIntegral
 {
 public:
   //! \brief Default constructor.
-  ElmMats(bool lhs = true) : rhsOnly(false), withLHS(lhs) {}
+  explicit ElmMats(bool lhs = true) : rhsOnly(false), withLHS(lhs) {}
   //! \brief Empty destructor.
   virtual ~ElmMats() {}
 
