@@ -89,9 +89,11 @@ int EvalFunc::numError = 0;
 EvalFunc::EvalFunc (const char* function, const char* x)
 {
   try {
-    size_t nalloc = 1;
+    size_t nalloc;
 #ifdef USE_OPENMP
     nalloc = omp_get_max_threads();
+#else
+    nalloc = 1;
 #endif
     expr.resize(nalloc);
     f.resize(nalloc);
@@ -130,12 +132,12 @@ EvalFunc::~EvalFunc ()
 
 Real EvalFunc::evaluate (const Real& x) const
 {
-  size_t i = 0;
-#ifdef USE_OPENMP
-  i = omp_get_thread_num();
-#endif
   Real result = Real(0);
   try {
+    size_t i = 0;
+#ifdef USE_OPENMP
+    i = omp_get_thread_num();
+#endif
     *arg[i] = x;
     result = expr[i]->Evaluate();
   }
@@ -150,9 +152,11 @@ Real EvalFunc::evaluate (const Real& x) const
 EvalFunction::EvalFunction (const char* function) : gradient{}, dgradient{}
 {
   try {
-    size_t nalloc = 1;
+    size_t nalloc;
 #ifdef USE_OPENMP
     nalloc = omp_get_max_threads();
+#else
+    nalloc = 1;
 #endif
     expr.resize(nalloc);
     f.resize(nalloc);
