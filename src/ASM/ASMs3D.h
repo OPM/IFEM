@@ -710,7 +710,7 @@ protected:
   std::vector<DirichletFace> dirich;
 
   //! Element groups for multi-threaded volume assembly
-  ThreadGroups                threadGroupsVol;
+  ThreadGroups                threadGroupsVol {};
   //! Element groups for multi-threaded face assembly
   std::map<char,ThreadGroups> threadGroupsFace;
 };
