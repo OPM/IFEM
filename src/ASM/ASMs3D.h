@@ -83,7 +83,8 @@ public:
     int  indxJ;     //!< Running node index in the local J-direction
 
     //! \brief Default constructor.
-    BlockNodes() { iinod = inc[0] = inc[1] = inc[2] = 0; indxI = indxJ = 1; }
+    BlockNodes() : ibnod{}
+    { iinod = inc[0] = inc[1] = inc[2] = 0; indxI = indxJ = 1; nnodI = nnodJ = 0;}
     //! \brief Returns \a iinod which then is incremented.
     int next();
   };
