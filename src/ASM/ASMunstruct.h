@@ -47,7 +47,7 @@ namespace LR //! Utilities for LR-splines.
     RealArray errors;   //!< List of error indicators for the elements
 
     //! \brief Default constructor.
-    RefineData(bool rs = false) : refShare(rs) {}
+    explicit RefineData(bool rs = false) : refShare(rs) {}
   };
 
   //! \brief Expands the basis coefficients of an LR-spline object.
