@@ -34,10 +34,8 @@ ASMs2DmxLag::ASMs2DmxLag (unsigned char n_s, const CharVec& n_f)
 
 
 ASMs2DmxLag::ASMs2DmxLag (const ASMs2DmxLag& patch, const CharVec& n_f)
-  : ASMs2DLag(patch), ASMmxBase(n_f)
+  : ASMs2DLag(patch), ASMmxBase(n_f), nxx(patch.nxx), nyx(patch.nyx)
 {
-  nxx = patch.nxx;
-  nyx = patch.nyx;
 }
 
 
