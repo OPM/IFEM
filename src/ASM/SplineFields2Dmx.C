@@ -24,9 +24,8 @@
 SplineFields2Dmx::SplineFields2Dmx (const ASMs2Dmx* patch,
                                     const RealArray& v, char basis,
                                     const char* name)
-  : Fields(name), surf(patch)
+  : Fields(name), surf(patch), bases(utl::getDigits(basis))
 {
-  bases = utl::getDigits(basis);
   nf = 2;
   auto vit = v.begin();
   size_t ofs = 0;
