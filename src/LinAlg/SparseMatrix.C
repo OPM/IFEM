@@ -149,16 +149,13 @@ SparseMatrix::SparseMatrix (size_t m, size_t n)
 }
 
 
-SparseMatrix::SparseMatrix (const SparseMatrix& B)
+SparseMatrix::SparseMatrix (const SparseMatrix& B) :
+  elem(B.elem), IA(B.IA), JA(B.JA), A(B.A)
 {
   editable = B.editable;
   factored = false;
   nrow = B.nrow;
   ncol = B.ncol;
-  elem = B.elem;
-  IA = B.IA;
-  JA = B.JA;
-  A  = B.A;
   solver = B.solver;
   numThreads = B.numThreads;
   slu = 0; // The SuperLU data (if any) is not copied
