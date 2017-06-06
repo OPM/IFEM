@@ -89,8 +89,10 @@ public:
                               Real scaleSD = 1.0) const;
 
 private:
+#ifdef HAVE_MPI
   //! \brief Setup a parallel index set for a given dofType
   void setupIS(char dofType) const;
+#endif
 
   // Parameters for parallel computing
   int    nProc;      //!< Number of processes
