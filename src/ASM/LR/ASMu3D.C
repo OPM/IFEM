@@ -1193,7 +1193,7 @@ bool ASMu3D::integrate (Integrand& integrand, int lIndex,
   if (!xg || !wg) return false;
 
   // Find the parametric direction of the face normal {-3,-2,-1, 1, 2, 3}
-  const int faceDir = (lIndex%10+1)/(lIndex%2 ? -2 : 2);
+  const int faceDir = (lIndex%10+1)/((lIndex%2) ? -2 : 2);
 
   const int t1 = 1 + abs(faceDir)%3; // first tangent direction
   const int t2 = 1 + t1%3;           // second tangent direction
@@ -1938,17 +1938,17 @@ std::vector<int> ASMu3D::getFaceNodes (int face, int basis, int orient) const
                 int p1 = a->getOrder(u);
                 int p2 = a->getOrder(v);
 
-                int idx1 = orient & 4 ? v : u;
-                int idx2 = orient & 4 ? u : v;
+                int idx1 = (orient & 4) ? v : u;
+                int idx2 = (orient & 4) ? u : v;
 
                 for (int i = 0; i < 1 + (orient < 4 ? p2 : p1); ++i)
                   if ((*a)[idx1][i] != (*b)[idx1][i])
-                    return orient & 2 ? (*a)[idx1][i] > (*b)[idx1][i]
-                                      : (*a)[idx1][i] < (*b)[idx1][i];
+                    return (orient & 2) ? (*a)[idx1][i] > (*b)[idx1][i]
+                                        : (*a)[idx1][i] < (*b)[idx1][i];
                 for(int i = 0; i < 1 + (orient < 4 ? p1 : p2); ++i)
                   if ((*a)[idx2][i] != (*b)[idx2][i])
-                    return orient & 1 ? (*a)[idx2][i] > (*b)[idx2][i]
-                                      : (*a)[idx2][i] < (*b)[idx2][i];
+                    return (orient & 1) ? (*a)[idx2][i] > (*b)[idx2][i]
+                                        : (*a)[idx2][i] < (*b)[idx2][i];
 
                 return false;
               });
