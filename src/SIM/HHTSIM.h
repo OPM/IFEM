@@ -175,7 +175,7 @@ class HHTSIM : public NewmarkSIM
 {
 public:
   //! \brief The constructor initializes default solution parameters.
-  HHTSIM(SIMbase& sim);
+  explicit HHTSIM(SIMbase& sim);
   //! \brief Empty destructor.
   virtual ~HHTSIM() {}
 
