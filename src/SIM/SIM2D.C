@@ -219,7 +219,7 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
 
     // Second pass for C1-continuous patches, to set up additional constraints
     std::vector<Interface>::const_iterator it;
-    for (it = top.begin(); it != top.end(); it++)
+    for (it = top.begin(); it != top.end(); ++it)
       if (!it->slave.first->connectC1(it->slave.second,
                                       it->master.first,
                                       it->master.second,
@@ -504,7 +504,7 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
 
     // Second pass for C1-continuous patches, to set up additional constraints
     std::vector<Interface>::const_iterator it;
-    for (it = top.begin(); it != top.end(); it++)
+    for (it = top.begin(); it != top.end(); ++it)
       if (!it->slave.first->connectC1(it->slave.second,
 				      it->master.first,
 				      it->master.second,
