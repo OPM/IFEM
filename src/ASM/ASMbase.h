@@ -717,11 +717,11 @@ protected:
   //! Global indices to first integration point for the Neumann boundaries
   std::map<char,size_t> firstBp;
 
-  ASMVec neighbors; //!< Patches having nodes in common with this one
+  ASMVec neighbors {}; //!< Patches having nodes in common with this one
 
 private:
   std::pair<size_t,size_t> myLMs; //!< Nodal range of the Lagrange multipliers
-  std::vector<char>    myLMTypes; //!< Type of Lagrange multiplier ('L' or 'G')
+  std::vector<char>    myLMTypes {}; //!< Type of Lagrange multiplier ('L' or 'G')
 };
 
 #endif
