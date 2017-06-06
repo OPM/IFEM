@@ -175,7 +175,7 @@ class NewmarkNLSIM : public NewmarkSIM
 {
 public:
   //! \brief The constructor initializes default solution parameters.
-  NewmarkNLSIM(SIMbase& sim);
+  explicit NewmarkNLSIM(SIMbase& sim);
   //! \brief Empty destructor.
   virtual ~NewmarkNLSIM() {}
 
