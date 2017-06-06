@@ -234,7 +234,7 @@ void SIMoutput::preprocessResPtGroup (std::string& ptFile, ResPointVec& points)
       if (p->inod > 0 && myModel.size() > 1)
         IFEM::cout <<", global #"<< pch->getNodeID(p->inod);
       IFEM::cout <<", X = "<< p->X << std::endl;
-      p++;
+      ++p;
     }
   }
 
