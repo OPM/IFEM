@@ -561,12 +561,6 @@ void HDF5Writer::writeKnotspan (int level, const DataEntry& entry,
   Matrix infield(1,sol->size());
   infield.fillRow(1,sol->ptr());
 
-  std::string basisname;
-  if (prefix.empty())
-    basisname = sim->getName()+"-1";
-  else
-    basisname = prefix+sim->getName()+"-1";
-
 #ifdef HAS_HDF5
   for (int i = 0; i < sim->getNoPatches(); ++i) {
     std::stringstream str;
