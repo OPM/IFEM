@@ -235,12 +235,12 @@ private:
 
   std::vector<int> MLGN; //!< Process-local-to-global node numbers
   std::vector<BlockInfo> blocks; //!< Equation mappings for all matrix blocks.
-  int minDof; //!< First DOF we own
-  int maxDof; //!< Last DOF we own
-  int minNode; //!< First node we own
-  int maxNode; //!< Last node we own
+  int minDof = -1; //!< First DOF we own
+  int maxDof = -1; //!< Last DOF we own
+  int minNode = 1; //!< First node we own
+  int maxNode = 1; //!< Last node we own
 
-  const SAMpatch* sam; //!< The assembly handler the DD is constructed for.
+  const SAMpatch* sam = nullptr; //!< The assembly handler the DD is constructed for.
 };
 
 #endif
