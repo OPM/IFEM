@@ -46,7 +46,7 @@ bool SAMpatch::init (const ASMVec& model, int numNod)
     ndofs['D'] = ndofs['L'] = ndofs['P'] = ndofs['X'] = 0;
     for (size_t n = 0; n < nodeType.size(); n++)
       ndofs[nodeType[n]] += madof[n+1] - madof[n];
-    for (it = ndofs.begin(); it != ndofs.end(); it++)
+    for (it = ndofs.begin(); it != ndofs.end(); ++it)
       if (it->second > 0)
         IFEM::cout <<"Number of "<< it->first <<"-dofs      "
                    << it->second << std::endl;
@@ -115,7 +115,7 @@ bool SAMpatch::initNodeDofs (const ASMVec& model)
 
   ASMbase::BCVec::const_iterator bit;
   for (j = 0; j < model.size(); j++)
-    for (bit = model[j]->begin_BC(); bit != model[j]->end_BC(); bit++)
+    for (bit = model[j]->begin_BC(); bit != model[j]->end_BC(); ++bit)
     {
       int idof1 = madof[bit->node-1];
       int nndof = madof[bit->node] - idof1;
@@ -144,7 +144,7 @@ bool SAMpatch::initElementConn (const ASMVec& model)
   IntMat::const_iterator eit;
   IntVec::const_iterator nit;
   for (j = 0; j < model.size(); j++)
-    for (i = 1, eit = model[j]->begin_elm(); eit != model[j]->end_elm(); eit++)
+    for (i = 1, eit = model[j]->begin_elm(); eit != model[j]->end_elm(); ++eit)
       if (model[j]->getElmID(i++) > 0)
 	nmmnpc += eit->size();
 
@@ -157,11 +157,11 @@ bool SAMpatch::initElementConn (const ASMVec& model)
   mmnpc  = new int[nmmnpc];
   int ip = mpmnpc[0] = 1;
   for (j = 0; j < model.size(); j++)
-    for (i = 1, eit = model[j]->begin_elm(); eit != model[j]->end_elm(); eit++)
+    for (i = 1, eit = model[j]->begin_elm(); eit != model[j]->end_elm(); ++eit)
       if ((id = model[j]->getElmID(i++)) > 0)
       {
 	mpmnpc[ip] = mpmnpc[ip-1];
-	for (nit = eit->begin(); nit != eit->end(); nit++)
+	for (nit = eit->begin(); nit != eit->end(); ++nit)
 	  if (*nit == -2147483648) // Hack for node 0: Using -maxint as flag
 	    mmnpc[(mpmnpc[ip]++)-1] = -model[j]->getNodeID(1);
 	  else if (*nit < 0)
@@ -198,7 +198,7 @@ bool SAMpatch::initElementConn (const ASMVec& model)
   int* new_mmnpc  = new int[nmmnpc];
   ip = new_mpmnpc[0] = 1;
   std::map<int, std::pair<int,int> >::const_iterator it;
-  for (it = sortedElms.begin(); it != sortedElms.end(); it++, ip++)
+  for (it = sortedElms.begin(); it != sortedElms.end(); ++it, ip++)
   {
     int nen = it->second.second;
     new_mpmnpc[ip] = new_mpmnpc[ip-1] + nen;
@@ -220,7 +220,7 @@ bool SAMpatch::initConstraintEqs (const ASMVec& model)
   size_t j;
   MPCIter cit;
   for (j = 0; j < model.size(); j++)
-    for (cit = model[j]->begin_MPC(); cit != model[j]->end_MPC(); cit++)
+    for (cit = model[j]->begin_MPC(); cit != model[j]->end_MPC(); ++cit)
       nmmceq += 1 + (*cit)->getNoMaster(true);
 
   // Initialize the constraint equation arrays
@@ -231,7 +231,7 @@ bool SAMpatch::initConstraintEqs (const ASMVec& model)
   mmceq  = new int[nmmceq];
   ttcc   = new Real[nmmceq];
   for (j = 0; j < model.size(); j++)
-    for (cit = model[j]->begin_MPC(); cit != model[j]->end_MPC(); cit++, ip++)
+    for (cit = model[j]->begin_MPC(); cit != model[j]->end_MPC(); ++cit, ip++)
     {
       mpmceq[ip] = mpmceq[ip-1];
 
@@ -326,7 +326,7 @@ bool SAMpatch::updateConstraintEqs (const ASMVec& model, const Vector* prevSol)
 
   MPCIter cit;
   for (size_t j = 0; j < model.size(); j++)
-    for (cit = model[j]->begin_MPC(); cit != model[j]->end_MPC(); cit++)
+    for (cit = model[j]->begin_MPC(); cit != model[j]->end_MPC(); ++cit)
     {
       if ((*cit)->iceq < 0) continue; // Skip the ignored constraint equations
 
