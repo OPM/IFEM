@@ -38,7 +38,7 @@ class ASMu3D : public ASMunstruct, public ASM3D
 {
 public:
   //! \brief Default constructor.
-  ASMu3D(unsigned char n_f = 3);
+  explicit ASMu3D(unsigned char n_f = 3);
   //! \brief Copy constructor.
   ASMu3D(const ASMu3D& patch, unsigned char n_f = 0);
   //! \brief Empty destructor.
