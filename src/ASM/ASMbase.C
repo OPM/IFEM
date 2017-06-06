@@ -118,7 +118,7 @@ ASMbase::ASMbase (const ASMbase& patch)
 
 ASMbase::~ASMbase ()
 {
-  for (MPCIter it = mpcs.begin(); it != mpcs.end(); it++)
+  for (MPCIter it = mpcs.begin(); it != mpcs.end(); ++it)
     delete *it;
 }
 
@@ -147,7 +147,7 @@ void ASMbase::clear (bool retainGeometry)
     for (size_t i = 0; i < myMNPC.size(); i++) myMNPC[i].clear();
 
   // Erase the nodes, boundary conditions and multi-point constraints
-  for (MPCIter it = mpcs.begin(); it != mpcs.end(); it++)
+  for (MPCIter it = mpcs.begin(); it != mpcs.end(); ++it)
     delete *it;
 
   myLMs.first = myLMs.second = 0;
@@ -612,12 +612,12 @@ void ASMbase::mergeAndGetAllMPCs (const ASMVec& model, MPCSet& allMPCs)
   // Resolve this such that allMPCs only contains the set of unique MPCs.
   int nmerged = 0;
   int ndeleted = 0;
-  for (ASMVec::const_iterator it = model.begin(); it != model.end(); it++)
+  for (ASMVec::const_iterator it = model.begin(); it != model.end(); ++it)
   {
     std::pair<MPCIter,bool> ret;
     std::vector<MPC*> uniqueMPC;
     uniqueMPC.reserve((*it)->getNoMPCs());
-    for (MPCIter cit = (*it)->begin_MPC(); cit != (*it)->end_MPC(); cit++)
+    for (MPCIter cit = (*it)->begin_MPC(); cit != (*it)->end_MPC(); ++cit)
       if ((ret = allMPCs.insert(*cit)).second)
 	uniqueMPC.push_back(*cit);
       else
@@ -687,7 +687,7 @@ void ASMbase::resolveMPCchains (const MPCSet& allMPCs, bool setPtrOnly)
 #endif
 
   int nresolved = 0;
-  for (MPCIter cit = allMPCs.begin(); cit != allMPCs.end(); cit++)
+  for (MPCIter cit = allMPCs.begin(); cit != allMPCs.end(); ++cit)
     if (setPtrOnly)
       for (size_t i = 0; i < (*cit)->getNoMaster(); i++)
       {
@@ -763,7 +763,7 @@ bool ASMbase::hasTimeDependentDirichlet (const std::map<int,RealFunc*>& func,
 {
   std::map<int,RealFunc*>::const_iterator fit;
   std::map<int,VecFunc*>::const_iterator vfit;
-  for (MPCMap::iterator cit = dCode.begin(); cit != dCode.end(); cit++)
+  for (MPCMap::iterator cit = dCode.begin(); cit != dCode.end(); ++cit)
     if ((fit = func.find(cit->second)) != func.end())
     {
       if (!fit->second->isConstant())
@@ -785,7 +785,7 @@ bool ASMbase::updateDirichlet (const std::map<int,RealFunc*>& func,
 {
   std::map<int,RealFunc*>::const_iterator fit;
   std::map<int,VecFunc*>::const_iterator vfit;
-  for (MPCMap::iterator cit = dCode.begin(); cit != dCode.end(); cit++)
+  for (MPCMap::iterator cit = dCode.begin(); cit != dCode.end(); ++cit)
   {
     size_t inod = this->getNodeIndex(cit->first->getSlave().node);
     if (inod < 1)
@@ -887,13 +887,13 @@ int ASMbase::renumberNodes (const ASMVec& model, std::map<int,int>& old2new)
   ASMVec::const_iterator it;
   std::map<int,int>::iterator nit;
 
-  for (it = model.begin(); it != model.end(); it++)
+  for (it = model.begin(); it != model.end(); ++it)
     if (!(*it)->shareFE)
       for (size_t i = 0; i < (*it)->myMLGN.size(); i++)
         old2new[(*it)->myMLGN[i]] = (*it)->myMLGN[i];
 
   int n, renum = 0;
-  for (n = 1, nit = old2new.begin(); nit != old2new.end(); nit++, n++)
+  for (n = 1, nit = old2new.begin(); nit != old2new.end(); ++nit, n++)
     if (nit->second > n)
     {
       nit->second = n;
@@ -901,7 +901,7 @@ int ASMbase::renumberNodes (const ASMVec& model, std::map<int,int>& old2new)
     }
 
   if (renum > 0)
-    for (it = model.begin(); it != model.end(); it++)
+    for (it = model.begin(); it != model.end(); ++it)
       for (size_t i = 0; i < (*it)->myMLGN.size(); i++)
 	utl::renumber((*it)->myMLGN[i],old2new);
 
@@ -942,16 +942,16 @@ bool ASMbase::renumberNodes (const std::map<int,int>& old2new, bool renumNodes)
 
   for (BCVec::iterator bit = BCode.begin(); bit != BCode.end();)
     if (utl::renumber(bit->node,old2new,printInvalidNodes))
-      bit++;
+      ++bit;
     else if (old2new.size() > 1)
     {
       bit = BCode.erase(bit);
       invalid++;
     }
     else
-      bit++;
+      ++bit;
 
-  for (MPCIter mit = mpcs.begin(); mit != mpcs.end(); mit++)
+  for (MPCIter mit = mpcs.begin(); mit != mpcs.end(); ++mit)
     invalid += (*mit)->renumberNodes(old2new,printInvalidNodes);
 
   if (invalid == 0 || old2new.size() == 1) return true;
