@@ -42,7 +42,7 @@ public:
   //! \details The constructor also updates the global static pointer
   //! utl::profiler to point to \a *this, deleting any already pointed-to
   //! object first. This means, only one Profiler object can exist at any time.
-  Profiler(const std::string& name);
+  explicit Profiler(const std::string& name);
   //! \brief The destructor prints the profiling report to the console.
   ~Profiler();
 
