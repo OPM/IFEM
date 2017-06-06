@@ -59,9 +59,9 @@ bool NewmarkSIM::parse (const TiXmlElement* elem)
   utl::getAttribute(elem,"beta",beta);
   utl::getAttribute(elem,"gamma",gamma);
 
-  const char* value = 0;
   const TiXmlElement* child = elem->FirstChildElement();
-  for (; child; child = child->NextSiblingElement())
+  for (; child; child = child->NextSiblingElement()) {
+    const char* value = nullptr;
     if ((value = utl::getValue(child,"maxits")))
       maxit = atoi(value);
     else if ((value = utl::getValue(child,"maxIncr")))
@@ -103,6 +103,7 @@ bool NewmarkSIM::parse (const TiXmlElement* elem)
       rotUpd = tolower(value[0]);
     else if (!strncasecmp(child->Value(),"solve_dis",9))
       solveDisp = true; // no need for value here
+  }
 
   return true;
 }
