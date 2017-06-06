@@ -34,11 +34,8 @@ ASMs3DmxLag::ASMs3DmxLag (const CharVec& n_f)
 
 
 ASMs3DmxLag::ASMs3DmxLag (const ASMs3DmxLag& patch, const CharVec& n_f)
-  : ASMs3DLag(patch), ASMmxBase(n_f)
+  : ASMs3DLag(patch), ASMmxBase(n_f), nxx(patch.nxx), nyx(patch.nyx), nzx(patch.nzx)
 {
-  nxx = patch.nxx;
-  nyx = patch.nyx;
-  nzx = patch.nzx;
 }
 
 
