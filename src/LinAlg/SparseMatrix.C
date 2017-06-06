@@ -41,9 +41,9 @@
 struct SuperLUdata
 {
 #if defined(HAS_SUPERLU) || defined(HAS_SUPERLU_MT)
-  SuperMatrix A; //!< The unfactored coefficient matrix
-  SuperMatrix L; //!< The lower triangle factor
-  SuperMatrix U; //!< The upper triangle factor
+  SuperMatrix A {}; //!< The unfactored coefficient matrix
+  SuperMatrix L {}; //!< The lower triangle factor
+  SuperMatrix U {}; //!< The upper triangle factor
   Real*       R; //!< The row scale factors for \a A
   Real*       C; //!< The column scale factors for \a A
   int*   perm_r; //!< Row permutation vector
@@ -51,9 +51,9 @@ struct SuperLUdata
   int*    etree; //!< The elimination tree
   sluop_t* opts; //!< Input options for the SuperLU driver routine
 #ifdef HAS_SUPERLU_MT
-  equed_t equed; //!< Specifies the form of equilibration that was done
+  equed_t equed = NOEQUIL; //!< Specifies the form of equilibration that was done
 #else
-  char equed[1]; //!< Specifies the form of equilibration that was done
+  char equed[1] {}; //!< Specifies the form of equilibration that was done
 #endif
   Real    rcond; //!< Reciprocal condition number
   Real      rpg; //!< Reciprocal pivot growth
