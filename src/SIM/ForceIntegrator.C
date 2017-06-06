@@ -84,7 +84,7 @@ bool SIM::initBoundaryNodeMap (SIMbase* model, int code, GlbForceVec& force)
 {
   IntVec glbNodes;
   PropertyVec::const_iterator p;
-  for (p = model->begin_prop(); p != model->end_prop(); p++) {
+  for (p = model->begin_prop(); p != model->end_prop(); ++p) {
     ASMbase* patch;
     if (abs(p->pindx) == code && (patch = model->getPatch(p->patch)))
       if (abs(p->ldim)+1 == patch->getNoParamDim())
@@ -116,7 +116,7 @@ bool SIM::integrate(const Vectors& solution, SIMbase* model, int code,
   }
 
   PropertyVec::const_iterator p;
-  for (p = model->begin_prop(); p != model->end_prop() && ok; p++)
+  for (p = model->begin_prop(); p != model->end_prop() && ok; ++p)
     if (abs(p->pindx) == code)
     {
       ASMbase* patch = model->getPatch(p->patch);
