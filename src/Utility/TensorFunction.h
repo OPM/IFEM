@@ -26,7 +26,7 @@ class TensorFunc : public utl::SpatialFunction<Tensor>, public FunctionBase
 {
 protected:
   //! \brief The constructor is protected to allow sub-class instances only.
-  TensorFunc(size_t n = 0) : utl::SpatialFunction<Tensor>(Tensor(n))
+  explicit TensorFunc(size_t n = 0) : utl::SpatialFunction<Tensor>(Tensor(n))
   {
     ncmp = zero.size();
   }
