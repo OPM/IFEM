@@ -175,6 +175,8 @@ protected:
 
   //! \brief Evaluates the function expressions.
   virtual Ret evaluate(const Vec3& X) const;
+private:
+  EvalMultiFunction<ParentFunc,Ret>() = delete;
 };
 
 //! Vector-valued function expression
