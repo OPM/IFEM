@@ -123,7 +123,7 @@ protected:
 
 public:
   //! \brief Default constructor.
-  ASMs3D(unsigned char n_f = 3);
+  explicit ASMs3D(unsigned char n_f = 3);
   //! \brief Special copy constructor for sharing of FE data.
   ASMs3D(const ASMs3D& patch, unsigned char n_f);
   //! \brief Default copy constructor copying everything.
