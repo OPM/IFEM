@@ -220,7 +220,7 @@ void XMLWriter::writeSIM (int level, const DataEntry& entry, bool,
         str << sim->getName() << "-" << b;
         addField(prefix+prob->getField1Name(10+b),"primary",str.str(),
                  sim->getNoFields(b),sim->getNoPatches(),
-                 "field",results & DataExporter::ONCE?true:false);
+                 "field",(results & DataExporter::ONCE )? true : false);
       }
     }
     else
@@ -229,7 +229,8 @@ void XMLWriter::writeSIM (int level, const DataEntry& entry, bool,
       addField(usedescription ? entry.second.description:
                                 prefix+prob->getField1Name(11),
                entry.second.description,basisname,
-               cmps,sim->getNoPatches(),"field",results & DataExporter::ONCE?true:false);
+               cmps,sim->getNoPatches(),"field",
+               (results & DataExporter::ONCE) ? true : false);
     }
   }
 
