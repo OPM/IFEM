@@ -438,7 +438,7 @@ namespace utl
     int myValue; //!< The integer value to search for
   public:
     //! The constructor initializes the value to search for.
-    cmpInt(int value) : myValue(value) {}
+    explicit cmpInt(int value) : myValue(value) {}
     //! \brief Returns \e true if \a value.second equals \a myValue.
     bool operator()(const std::pair<int,int>& value) const
     {

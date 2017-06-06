@@ -25,7 +25,7 @@ class ElementBlock
 {
 public:
   //! The constructor defines the number of nodes per element \a nenod.
-  ElementBlock(size_t nenod = 8);
+  explicit ElementBlock(size_t nenod = 8);
 
   //! \brief Reallocates the internal arrays to fit a structured grid.
   //! \param[in] nI Number of element in I-direction

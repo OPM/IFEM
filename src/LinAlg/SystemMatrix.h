@@ -126,11 +126,11 @@ public:
   //! \brief Constructor creating an empty vector.
   StdVector() {}
   //! \brief Constructor creating a vector of length \a n.
-  StdVector(size_t n) : utl::vector<Real>(n) {}
+  explicit StdVector(size_t n) : utl::vector<Real>(n) {}
   //! \brief Constructor creating a vector from an array.
   StdVector(const Real* values, size_t n) : utl::vector<Real>(values,n) {}
   //! \brief Overloaded copy constructor.
-  StdVector(const std::vector<Real>& vec)
+  explicit StdVector(const std::vector<Real>& vec)
   { this->insert(this->end(),vec.begin(),vec.end()); }
 
   //! \brief Returns the vector type.

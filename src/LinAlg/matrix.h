@@ -61,7 +61,7 @@ namespace utl //! General utility classes and functions.
     //! \brief Constructor creating an empty vector.
     vector<T>() {}
     //! \brief Constructor creating a vector of length \a n.
-    vector<T>(size_t n) { this->resize(n); }
+    explicit vector<T>(size_t n) { this->resize(n); }
     //! \brief Constructor creating a vector from an array.
     vector<T>(const T* values, size_t n) { this->fill(values,n); }
 

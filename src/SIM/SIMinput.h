@@ -47,16 +47,16 @@ public:
     //! \brief Default constructor.
     ICInfo() : file_level(-1), geo_level(0), basis(1), component(0) {}
     //! \brief Constructor providing the field name.
-    ICInfo(const std::string& f) : file_level(-1), geo_level(0),
-                                   basis(1), component(0),
-                                   sim_field(f), file_field(f) {}
+    explicit ICInfo(const std::string& f) : file_level(-1), geo_level(0),
+                                            basis(1), component(0),
+                                            sim_field(f), file_field(f) {}
   };
   typedef std::vector<ICInfo> InitialCondVec; //!< Convenience declaration
   typedef std::vector<unsigned char> CharVec; //!< Convenience declaration
 
 protected:
   //! \brief The constructor just forwards to the base class constructor.
-  SIMinput(IntegrandBase* itg = nullptr) : SIMbase(itg), myGen(nullptr) {}
+  explicit SIMinput(IntegrandBase* itg = nullptr) : SIMbase(itg), myGen(nullptr) {}
 
 public:
   //! \brief Empty destructor.

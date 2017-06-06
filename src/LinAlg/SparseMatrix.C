@@ -59,7 +59,7 @@ struct SuperLUdata
   Real      rpg; //!< Reciprocal pivot growth
 
   //! \brief The constructor initializes the default input options.
-  SuperLUdata(int numThreads = 0)
+  explicit SuperLUdata(int numThreads = 0)
   {
     R = C = 0;
     perm_r = perm_c = etree = 0;

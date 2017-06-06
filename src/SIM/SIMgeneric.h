@@ -28,7 +28,7 @@ class SIMgeneric : public SIMoutput
 {
 protected:
   //! \brief Default constructor.
-  SIMgeneric(IntegrandBase* itg = nullptr) : SIMoutput(itg) {}
+  explicit SIMgeneric(IntegrandBase* itg = nullptr) : SIMoutput(itg) {}
 
 public:
   //! \brief Empty destructor.

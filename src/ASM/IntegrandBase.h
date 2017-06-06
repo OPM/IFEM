@@ -41,7 +41,7 @@ class IntegrandBase : public Integrand
 {
 protected:
   //! \brief The default constructor is protected to allow sub-classes only.
-  IntegrandBase(unsigned short int n = 0) : nsd(n), npv(1), m_mode(SIM::INIT) {}
+  explicit IntegrandBase(unsigned short int n = 0) : nsd(n), npv(1), m_mode(SIM::INIT) {}
 
 public:
   //! \brief Empty destructor.
@@ -285,8 +285,8 @@ class NormBase : public Integrand
 {
 protected:
   //! \brief The default constructor is protected to allow sub-classes only.
-  NormBase(IntegrandBase& p) : myProblem(p), projBou(false), nrcmp(0),
-                               lints(nullptr), finalOp(ASM::SQRT) {}
+  explicit NormBase(IntegrandBase& p) : myProblem(p), projBou(false), nrcmp(0),
+                                        lints(nullptr), finalOp(ASM::SQRT) {}
 
 public:
   //! \brief Empty destructor.
@@ -392,7 +392,7 @@ class ForceBase : public Integrand
 {
 protected:
   //! \brief The constructor is protected to allow sub-classes only.
-  ForceBase(IntegrandBase& p) : myProblem(p), eBuffer(nullptr) {}
+  explicit ForceBase(IntegrandBase& p) : myProblem(p), eBuffer(nullptr) {}
 
 public:
   //! \brief The destructor frees the internally allocated objects.

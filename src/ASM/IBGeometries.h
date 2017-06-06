@@ -93,7 +93,7 @@ public:
   //! \brief Default constructor.
   PerforatedPlate2D() {}
   //! \brief Constructor creating a single hole.
-  PerforatedPlate2D(Hole2D* hole) { holes.resize(1,hole); }
+  explicit PerforatedPlate2D(Hole2D* hole) { holes.resize(1,hole); }
   //! \brief The destructor deletes the holes.
   virtual ~PerforatedPlate2D();
 

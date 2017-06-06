@@ -31,7 +31,7 @@ class Field
 protected:
   //! \brief The constructor sets the field name.
   //! \param[in] name Optional name of field
-  Field(const char* name = nullptr) { if (name) fname = name; }
+  explicit Field(const char* name = nullptr) { if (name) fname = name; }
 
 public:
   //! \brief Empty destructor.

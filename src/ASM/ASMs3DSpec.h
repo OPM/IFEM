@@ -26,7 +26,7 @@ class ASMs3DSpec : public ASMs3DLag
 {
 public:
   //! \brief Default constructor.
-  ASMs3DSpec(unsigned char n_f = 3) : ASMs3DLag(n_f) {}
+  explicit ASMs3DSpec(unsigned char n_f = 3) : ASMs3DLag(n_f) {}
   //! \brief Copy constructor.
   ASMs3DSpec(const ASMs3DSpec& patch, unsigned char n_f = 0)
     : ASMs3DLag(patch,n_f) {}

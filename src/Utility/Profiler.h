@@ -42,7 +42,7 @@ public:
   //! \details The constructor also updates the global static pointer
   //! utl::profiler to point to \a *this, deleting any already pointed-to
   //! object first. This means, only one Profiler object can exist at any time.
-  Profiler(const std::string& name);
+  explicit Profiler(const std::string& name);
   //! \brief The destructor prints the profiling report to the console.
   ~Profiler();
 
@@ -106,7 +106,7 @@ namespace utl
     const char* name; //!< Name tag on the local scope to profile
   public:
     //! \brief The constructor starts the profiling of the named task.
-    prof(const char* tag) : name(tag) { if (profiler) profiler->start(name); }
+    explicit prof(const char* tag) : name(tag) { if (profiler) profiler->start(name); }
     //! \brief The destructor stops the profiling.
     ~prof() { if (profiler) profiler->stop(name); }
   };

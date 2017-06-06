@@ -6,7 +6,7 @@
 
 class LagrangeInterpolator {
   public:
-    LagrangeInterpolator(const std::vector<double>& grid_) :
+    explicit LagrangeInterpolator(const std::vector<double>& grid_) :
       grid(grid_)
     {
     }
