@@ -900,7 +900,9 @@ bool DomainDecomposition::setup(const ProcessAdm& adm, const SIMbase& sim)
   if (!sanityCheckCorners(sim))
     return false;
 
+#ifdef HAVE_MPI
   ok = 1;
+#endif
 
   // Establish local equation mappings for each block.
   if (sim.getSolParams() && sim.getSolParams()->getNoBlocks() > 1) {
@@ -950,7 +952,10 @@ bool DomainDecomposition::setup(const ProcessAdm& adm, const SIMbase& sim)
 
   // Establish global equation numbers for all blocks.
   if (!calcGlobalEqNumbers(adm, sim))
-    ok = 0;
+#ifdef HAVE_MPI
+    ok = 0
+#endif
+    ;
 
 #ifdef HAVE_MPI
   if (!adm.isParallel())
