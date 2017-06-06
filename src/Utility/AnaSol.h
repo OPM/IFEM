@@ -121,6 +121,8 @@ public:
 
   //! \brief Returns the stress solution, if any.
   STensorFunc* getStressSol() const { return stressSol; }
+private:
+  AnaSol(const AnaSol&) = delete;
 };
 
 #endif
