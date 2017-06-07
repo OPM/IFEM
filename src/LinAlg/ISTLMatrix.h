@@ -157,8 +157,8 @@ protected:
   const ProcessAdm&   adm;             //!< Process administrator
   ISTLSolParams       solParams;       //!< Linear solver parameters
   bool                setParams;       //!< If linear solver parameters are set
-  int                 nLinSolves;      //!< Number of linear solves
-  LinAlg::LinearSystemType linsysType; //!< Linear system type
+  int                 nLinSolves = 0;  //!< Number of linear solves
+  LinAlg::LinearSystemType linsysType = LinAlg::GENERAL_MATRIX; //!< Linear system type
 };
 
 #endif
