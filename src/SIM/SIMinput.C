@@ -22,6 +22,10 @@
 #include "HDF5Writer.h"
 #include "XMLWriter.h"
 #include "IFEM.h"
+#include "ASMu2D.h"
+#include "ASMu3D.h"
+#include "LRSpline/LRSplineSurface.h"
+#include "LRSpline/LRSplineVolume.h"
 #include "tinyxml.h"
 #include <fstream>
 #include <sstream>
@@ -1059,12 +1063,94 @@ bool SIMinput::refine (const LR::RefineData& prm,
         return false;
       }
 
-      if (!pch->refine(prm,sol,fName))
+      if (myModel.size() > 1) {
+        LR::RefineData prmloc(prm);
+        prmloc.elements.clear();
+        for (auto& it : prm.elements) {
+          int node = myModel[i]->getNodeIndex(it);
+          if (node > 0) // TODO: mixed
+            prmloc.elements.push_back(node-1);
+        }
+        if (!pch->refine(prmloc,sol,fName))
+          return false;
+      } else if (!pch->refine(prm,sol,fName))
         return false;
 
       isRefined = true;
     }
 
+  // fix up refinement for boundaries
+  if (isRefined && myModel.size() > 1)
+  {
+    bool extraRefine = true;
+    while (extraRefine)
+    {
+      extraRefine = false;
+      for (const auto& it : adm.dd.ghostConnections)
+      {
+        int sidx = this->getLocalPatchIndex(it.slave);
+        int midx = this->getLocalPatchIndex(it.master);
+
+        if (sidx > 0 && midx > 0) // TODO: mpi
+        {
+          ASMu2D* mpch2D = dynamic_cast<ASMu2D*>(this->getPatch(midx));
+          if (mpch2D) {
+            LR::parameterEdge sedge;
+            switch (it.sidx) {
+              case 1: sedge = LR::WEST; break;
+              case 2: sedge = LR::EAST; break;
+              default:
+              case  3: sedge = LR::SOUTH; break;
+              case  4: sedge = LR::NORTH; break;
+            }
+            LR::parameterEdge medge;
+            switch (it.midx) {
+              case 1: medge = LR::WEST; break;
+              case 2: medge = LR::EAST; break;
+              default:
+              case  3: medge = LR::SOUTH; break;
+              case  4: medge = LR::NORTH; break;
+            }
+            auto knots = static_cast<ASMu2D*>(this->getPatch(midx))->getBasis(1)->getEdgeKnots(medge, true);
+            extraRefine |= static_cast<ASMu2D*>(this->getPatch(sidx))->getBasis(1)->matchParametricEdge(sedge, knots, true);
+            knots = static_cast<ASMu2D*>(this->getPatch(sidx))->getBasis(1)->getEdgeKnots(sedge, true);
+            extraRefine |= static_cast<ASMu2D*>(this->getPatch(midx))->getBasis(1)->matchParametricEdge(medge, knots, true);
+            static_cast<ASMu2D*>(this->getPatch(sidx))->getBasis(1)->generateIDs();
+            static_cast<ASMu2D*>(this->getPatch(midx))->getBasis(1)->generateIDs();
+          } else {
+            LR::parameterEdge sedge;
+            switch(it.sidx)
+            {
+              case 1: sedge = LR::WEST;   break;
+              default:
+              case 2: sedge = LR::EAST;   break;
+              case 3: sedge = LR::SOUTH;  break;
+              case 4: sedge = LR::NORTH;  break;
+              case 5: sedge = LR::BOTTOM; break;
+              case 6: sedge = LR::TOP;    break;
+            }
+            LR::parameterEdge medge;
+            switch(it.midx)
+            {
+              case 1: medge = LR::WEST;   break;
+              default:
+              case 2: medge = LR::EAST;   break;
+              case 3: medge = LR::SOUTH;  break;
+              case 4: medge = LR::NORTH;  break;
+              case 5: medge = LR::BOTTOM; break;
+              case 6: medge = LR::TOP;    break;
+            }
+            auto knots = static_cast<ASMu3D*>(this->getPatch(midx))->getBasis(1)->getEdgeKnots(medge, true);
+            extraRefine |= static_cast<ASMu3D*>(this->getPatch(sidx))->getBasis(1)->matchParametricEdge(sedge, knots, true);
+            knots = static_cast<ASMu3D*>(this->getPatch(sidx))->getBasis(1)->getEdgeKnots(sedge, true);
+            extraRefine |= static_cast<ASMu3D*>(this->getPatch(midx))->getBasis(1)->matchParametricEdge(medge, knots, true);
+            static_cast<ASMu3D*>(this->getPatch(sidx))->getBasis(1)->generateIDs();
+            static_cast<ASMu3D*>(this->getPatch(midx))->getBasis(1)->generateIDs();
+          }
+        }
+      }
+    }
+  }
   return isRefined;
 }
 
