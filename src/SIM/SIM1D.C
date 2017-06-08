@@ -76,6 +76,9 @@ bool SIM1D::addConnection (int master, int slave, int mIdx, int sIdx,
 
     if (!spch->connectPatch(sIdx,*mpch,mIdx,thick))
       return false;
+
+    myInterfaces.push_back(ASM::Interface{master, slave, mIdx, sIdx, 0,
+                                          dim, basis, thick});
   }
   else
     adm.dd.ghostConnections.insert(ASM::Interface{master, slave,

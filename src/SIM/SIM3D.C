@@ -79,6 +79,9 @@ bool SIM3D::addConnection (int master, int slave, int mIdx,
     for (const int& b : bases)
       if (!spch->connectPatch(sIdx,*mpch,mIdx,orient,b,coordCheck,thick))
         return false;
+
+    myInterfaces.push_back(ASM::Interface{master, slave, mIdx, sIdx, orient,
+                                          dim, basis, thick});
   }
   else
     adm.dd.ghostConnections.insert(ASM::Interface{master, slave,
