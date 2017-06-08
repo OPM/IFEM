@@ -16,6 +16,7 @@
 
 #include "SIMadmin.h"
 #include "SIMdependency.h"
+#include "Interface.h"
 #include "TimeDomain.h"
 #include "Property.h"
 #include "MatVec.h"
@@ -622,8 +623,11 @@ protected:
   //! \brief Traction field container
   typedef std::map<int,TractionFunc*> TracFuncMap;
 
-  //! Property code to integrand map
+  //! \brief Property code to integrand map
   typedef std::multimap<int,IntegrandBase*> IntegrandMap;
+
+  //! \brief Interface container
+  typedef std::vector<ASM::Interface> InterfaceVec;
 
   // Model attributes
   bool           isRefined; //!< Indicates if the model is adaptively refined
@@ -637,6 +641,7 @@ protected:
   IntegrandBase* myProblem; //!< The main integrand of this simulator
   IntegrandMap   myInts;    //!< Set of all integrands involved
   AnaSol*        mySol;     //!< Analytical/Exact solution
+  InterfaceVec   myInterfaces; //!< Topology interface descriptions
 
   //! \brief A struct with data for system matrix/vector dumps.
   struct DumpData
