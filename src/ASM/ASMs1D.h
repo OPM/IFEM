@@ -108,10 +108,10 @@ public:
   //! \brief Finds the global (or patch-local) node number on a patch end.
   //! \param[in] lIndex Local index of the end point
   //! \param nodes Array of global boundary node numbers
-  //! \param thick Thickness of connection
-  //! \param local If \e true, return patch-local node numbers
+  //! \param[in] thick Thickness of connection
+  //! \param[in] local If \e true, return patch-local node numbers
   virtual void getBoundaryNodes(int lIndex, IntVec& nodes,
-                                int, int thick, bool local) const;
+                                int, int thick, int, bool local) const;
 
   //! \brief Finds the node that is closest to the given point.
   //! \param[in] X Global coordinates of point to search for

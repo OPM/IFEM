@@ -183,6 +183,17 @@ public:
   virtual bool connectPatch(int edge, ASM2D& neighbor, int nedge, bool revers,
                             int basis, bool coordCheck = true, int thick = 1);
 
+  //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
+  //! \param[in] lIndex Local index of the boundary edge
+  //! \param nodes Array of node numbers
+  //! \param[in] basis Which basis to grab nodes for (0 for all)
+  //! \param[in] thick Thickness of connection
+  //! \param[in] orient Orientation for returned boundary nodes
+  //! \param[in] local If \e true return patch-local node numbers
+  virtual void getBoundaryNodes(int lIndex, IntVec& nodes,
+                                int basis, int thick = 1,
+                                int orient = 0, bool local = false) const;
+
 protected:
   //! \brief Assembles L2-projection matrices for the secondary solution.
   //! \param[out] A Left-hand-side matrix

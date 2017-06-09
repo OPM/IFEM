@@ -798,3 +798,14 @@ bool ASMu2Dmx::connectPatch (int edge, ASM2D& neighbor, int nedge, bool revers,
   this->addNeighbor(neighMx);
   return true;
 }
+
+
+void ASMu2Dmx::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
+                                 int thick, int orient, bool local) const
+{
+  if (basis > 0)
+    this->ASMu2D::getBoundaryNodes(lIndex, nodes, basis, thick, orient, local);
+  else
+    for (size_t b = 1; b <= this->getNoBasis(); ++b)
+      this->ASMu2D::getBoundaryNodes(lIndex, nodes, b, thick, orient, local);
+}

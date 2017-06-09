@@ -506,7 +506,7 @@ size_t ASMu3D::constrainFaceLocal(int dir, bool open, int dof, int code, bool pr
 }
 
 
-std::vector<int> ASMu3D::getEdge(int lEdge, bool open, int basis) const
+std::vector<int> ASMu3D::getEdge(int lEdge, bool open, int basis, int orient) const
 {
   // lEdge = 1-4, running index is u (vmin,wmin), (vmax,wmin), (vmin,wmax), (vmax,wmax)
   // lEdge = 5-8, running index is v (umin,wmin), (umax,wmin), (umin,wmax), (umax,wmax)
@@ -546,6 +546,13 @@ std::vector<int> ASMu3D::getEdge(int lEdge, bool open, int basis) const
   // get all the boundary functions from the LRspline object
   std::vector<LR::Basisfunction*> thisEdge;
   this->getBasis(basis)->getEdgeFunctions(thisEdge, (LR::parameterEdge) edge, 1);
+  if (orient > -1) {
+    int dir = (edge-1)/4;
+    int u = dir == 0;
+    int v = 1 + (dir != 2);
+    ASMunstruct::Sort(u, v, orient, thisEdge);
+  }
+
   std::vector<int> result;
   for (LR::Basisfunction* b  : thisEdge)
     result.push_back(b->getId()+ofs);
@@ -559,7 +566,7 @@ void ASMu3D::constrainEdge (int lEdge, bool open, int dof, int code, char basis)
     std::cerr << "\nWARNING: ASMu3D::constrainEdge, open boundary conditions not supported yet. Treating it as closed" << std::endl;
 
   // enforce the boundary conditions
-  std::vector<int> nodes = this->getEdge(lEdge, open, basis);
+  std::vector<int> nodes = this->getEdge(lEdge, open, 1, -1);
   for (const int& node : nodes)
     this->prescribe(node,dof,code);
 }
@@ -2027,26 +2034,7 @@ std::vector<int> ASMu3D::getFaceNodes (int face, int basis, int orient) const
     int dir = (face-1)/2;
     int u = dir == 0;
     int v = 1 + (dir != 2);
-    std::sort(edgeFunctions.begin(), edgeFunctions.end(),
-              [u,v,orient](const LR::Basisfunction* a, const LR::Basisfunction* b)
-              {
-                int p1 = a->getOrder(u);
-                int p2 = a->getOrder(v);
-
-                int idx1 = orient & 4 ? v : u;
-                int idx2 = orient & 4 ? u : v;
-
-                for (int i = 0; i < 1 + (orient < 4 ? p2 : p1); ++i)
-                  if ((*a)[idx1][i] != (*b)[idx1][i])
-                    return orient & 2 ? (*a)[idx1][i] > (*b)[idx1][i]
-                                      : (*a)[idx1][i] < (*b)[idx1][i];
-                for(int i = 0; i < 1 + (orient < 4 ? p1 : p2); ++i)
-                  if ((*a)[idx2][i] != (*b)[idx2][i])
-                    return orient & 1 ? (*a)[idx2][i] > (*b)[idx2][i]
-                                      : (*a)[idx2][i] < (*b)[idx2][i];
-
-                return false;
-              });
+    ASMunstruct::Sort(u, v, orient, edgeFunctions);
   }
 
   std::vector<int> result(edgeFunctions.size());
@@ -2057,14 +2045,15 @@ std::vector<int> ASMu3D::getFaceNodes (int face, int basis, int orient) const
 }
 
 
-void ASMu3D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis, int, bool) const
+void ASMu3D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
+                               int, int orient, bool local) const
 {
   if (basis == 0)
     basis = 1;
 
   if (!this->getBasis(basis)) return; // silently ignore empty patches
 
-  nodes = this->getFaceNodes(lIndex, basis);
+  nodes = this->getFaceNodes(lIndex, basis, orient);
 
 #if SP_DEBUG > 1
   std::cout <<"Boundary nodes in patch "<< idx+1 <<" edge "<< lIndex <<":";
@@ -2072,6 +2061,10 @@ void ASMu3D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis, int, bool) 
     std::cout <<" "<< nodes[i];
   std::cout << std::endl;
 #endif
+
+  if (!local)
+    for (int& node : nodes)
+      node = this->getNodeID(node);
 }
 
 
@@ -2087,13 +2080,9 @@ bool ASMu3D::getOrder (int& p1, int& p2, int& p3) const
 
 int ASMu3D::getCorner(int I, int J, int K, int basis) const
 {
-  int edge = LR::NONE;
-  if (I > 0) edge |= LR::EAST;
-  else       edge |= LR::WEST;
-  if (J > 0) edge |= LR::NORTH;
-  else       edge |= LR::SOUTH;
-  if (K > 0) edge |= LR::TOP;
-  else       edge |= LR::BOTTOM;
+  int edge = (I > 0 ? LR::EAST  : LR::WEST  ) |
+             (J > 0 ? LR::NORTH : LR::SOUTH ) |
+             (K > 0 ? LR::TOP   : LR::BOTTOM);
 
   const LR::LRSplineVolume* vol = this->getBasis(basis);
 

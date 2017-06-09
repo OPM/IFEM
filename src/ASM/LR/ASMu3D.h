@@ -92,15 +92,16 @@ public:
   //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
   //! \param[in] lIndex Local index of the boundary face
   //! \param nodes Array of node numbers
-  //! \param basis Which basis to grab nodes for (0 for all)
-  //! \param local If \e true, return patch-local node numbers
+  //! \param[in] basis Which basis to grab nodes for (0 for all)
+  //! \param[in] orient Orientation of boundary
+  //! \param[in] local If \e true, return patch-local node numbers
   virtual void getBoundaryNodes(int lIndex, IntVec& nodes,
-                                int basis, int, bool local) const;
+                                int basis, int, int orient, bool local) const;
 
   //! \brief Returns the node index for a given corner.
   virtual int getCorner(int I, int J, int K, int basis) const;
   //! \brief Returns the node indices for a given edge.
-  virtual std::vector<int> getEdge(int lEdge, bool open, int basis) const;
+  virtual std::vector<int> getEdge(int lEdge, bool open, int basis, int orient) const;
 
   //! \brief Returns the polynomial order in each parameter direction.
   //! \param[out] p1 Order in first (u) direction

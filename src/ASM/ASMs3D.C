@@ -670,13 +670,13 @@ bool ASMs3D::connectBasis (int face, ASMs3D& neighbor, int nface, int norient,
 
   // Set up the slave node numbers for this volume patch
   IntVec slaveNodes;
-  this->getBoundaryNodes(face, slaveNodes, basis, thick, true);
+  this->getBoundaryNodes(face, slaveNodes, basis, thick, 0, true);
   for (int& it : slaveNodes)
     it += slave;
 
   // Set up the master node numbers for the neighboring volume patch
   IntVec masterNodes;
-  neighbor.getBoundaryNodes(nface, masterNodes, basis, thick, true);
+  neighbor.getBoundaryNodes(nface, masterNodes, basis, thick, 0, true);
   for (int& it : masterNodes)
     it += master;
 
@@ -1066,7 +1066,7 @@ size_t ASMs3D::constrainFaceLocal (int dir, bool open, int dof, int code,
 }
 
 
-std::vector<int> ASMs3D::getEdge (int lEdge, bool open, int basis) const
+std::vector<int> ASMs3D::getEdge (int lEdge, bool open, int basis, int) const
 {
   std::vector<int> result;
   int n1, n2, n3, n, inc = 1;
@@ -1496,7 +1496,7 @@ bool ASMs3D::updateCoords (const Vector& displ)
 
 
 void ASMs3D::getBoundaryNodes (int lIndex, IntVec& nodes,
-                               int basis, int thick, bool local) const
+                               int basis, int thick, int, bool local) const
 {
   if (basis == 0)
     basis = 1;

@@ -313,7 +313,7 @@ public:
   void constrainEdge(int item, int comp, int basis, int idx)
   {
     std::vector<int> map = { LR::WEST, LR::EAST, LR::SOUTH, LR::NORTH };
-    std::vector<int> nodes = pch->getEdgeNodes(map[item-1], basis);
+    std::vector<int> nodes = pch->getEdgeNodes(map[item-1], basis, 0);
     for (auto& it : nodes) {
       int gn = pch->getNodeID(it);
       if (gn != idx)
