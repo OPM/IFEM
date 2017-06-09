@@ -626,13 +626,13 @@ bool ASMs2D::connectBasis (int edge, ASMs2D& neighbor, int nedge, bool revers,
 
   // Set up the slave node numbers for this surface patch
   IntVec slaveNodes;
-  this->getBoundaryNodes(edge, slaveNodes, basis, thick, true);
+  this->getBoundaryNodes(edge, slaveNodes, basis, thick, 0, true);
   for (int& it : slaveNodes)
     it += slave;
 
   // Set up the master node numbers for the neighboring surface patch
   IntVec masterNodes;
-  neighbor.getBoundaryNodes(nedge, masterNodes, basis, thick, true);
+  neighbor.getBoundaryNodes(nedge, masterNodes, basis, thick, 0, true);
   for (int& it : masterNodes)
     it += master;
 
@@ -1252,7 +1252,7 @@ bool ASMs2D::updateCoords (const Vector& displ)
 
 
 void ASMs2D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
-                               int thick, bool local) const
+                               int thick, int, bool local) const
 {
   if (basis == 0)
     basis = 1;

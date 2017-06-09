@@ -564,7 +564,7 @@ bool ASMs1D::updateRotations (const Vector& displ, bool reInit)
 
 
 void ASMs1D::getBoundaryNodes (int lIndex, IntVec& nodes,
-                               int, int thick, bool local) const
+                               int, int thick, int, bool local) const
 {
   if (!curv) return; // silently ignore empty patches
 

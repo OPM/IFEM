@@ -215,11 +215,11 @@ public:
   //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
   //! \param[in] lIndex Local index of the boundary edge
   //! \param nodes Array of node numbers
-  //! \param basis Which basis to grab nodes for (0 for all)
-  //! \param thick Thickness of connection
-  //! \param local If \e true return patch-local node numbers
+  //! \param[in] basis Which basis to grab nodes for (0 for all)
+  //! \param[in] thick Thickness of connection
+  //! \param[in] local If \e true return patch-local node numbers
   virtual void getBoundaryNodes(int lIndex, IntVec& nodes, int basis,
-                                int thick = 1, bool local = false) const;
+                                int thick = 1, int = 0, bool local = false) const;
 
 protected:
   //! \brief Assembles L2-projection matrices for the secondary solution.

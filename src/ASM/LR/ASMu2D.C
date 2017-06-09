@@ -502,13 +502,13 @@ bool ASMu2D::connectBasis (int edge, ASMu2D& neighbor, int nedge, bool revers,
 
   // Set up the slave node numbers for this surface patch
   IntVec slaveNodes;
-  this->getBoundaryNodes(edge, slaveNodes, basis, thick, true);
+  this->getBoundaryNodes(edge, slaveNodes, basis, thick, 0, true);
   for (int& it : slaveNodes)
     it += slave;
 
   // Set up the master node numbers for the neighboring surface patch
   IntVec masterNodes;
-  neighbor.getBoundaryNodes(nedge, masterNodes, basis, thick, true);
+  neighbor.getBoundaryNodes(nedge, masterNodes, basis, thick, 0, true);
   for (int& it : masterNodes)
     it += master;
 
@@ -565,7 +565,7 @@ void ASMu2D::closeEdges (int dir, int basis, int master)
 */
 
 
-std::vector<int> ASMu2D::getEdgeNodes (int edge, int basis) const
+std::vector<int> ASMu2D::getEdgeNodes (int edge, int basis, int orient) const
 {
   size_t ofs = 1;
   for (int i = 1; i < basis; i++)
@@ -575,7 +575,9 @@ std::vector<int> ASMu2D::getEdgeNodes (int edge, int basis) const
   this->getBasis(basis)->getEdgeFunctions(edgeFunctions,
                                           static_cast<LR::parameterEdge>(edge));
 
-  ASMunstruct::Sort(edgeFunctions);
+  int v = (edge == 1 || edge == 2) ? 0 : 1;
+  int u = 1-v;
+  ASMunstruct::Sort(u, v, orient, edgeFunctions);
   std::vector<int> result(edgeFunctions.size());
   std::transform(edgeFunctions.begin(), edgeFunctions.end(), result.begin(),
                  [ofs](LR::Basisfunction* a) { return a->getId()+ofs; });
@@ -710,18 +712,8 @@ int ASMu2D::getCorner(int I, int J, int basis) const
   const LR::LRSplineSurface* srf = this->getBasis(basis);
 
   // Note: Corners are identified by "coordinates" {-1,-1} {-1,1} {1,-1} {1,1}.
-  if (I < 0) {
-    if (J < 0)
-      srf->getEdgeFunctions(edgeFunctions, LR::SOUTH_WEST);
-    else if (J > 0)
-      srf->getEdgeFunctions(edgeFunctions, LR::NORTH_WEST);
-  }
-  else if (I > 0) {
-    if (J < 0)
-      srf->getEdgeFunctions(edgeFunctions, LR::SOUTH_EAST);
-    else if (J > 0)
-      srf->getEdgeFunctions(edgeFunctions, LR::NORTH_EAST);
-  }
+  int dir = (I > 0 ? LR::EAST : LR::WEST) | (J > 0 ? LR::NORTH : LR::SOUTH);
+  srf->getEdgeFunctions(edgeFunctions, static_cast<LR::parameterEdge>(dir));
 
   if (edgeFunctions.empty()) {
     std::cerr <<" *** ASMu2D::constrainCorner: Invalid corner I,J="
@@ -1846,7 +1838,7 @@ bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
 
 void ASMu2D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
-                               int, bool local) const
+                               int, int orient, bool local) const
 {
   if (basis == 0)
     basis = 1;
@@ -1862,7 +1854,12 @@ void ASMu2D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
   default: return;
   }
 
-  nodes = this->getEdgeNodes(edge, basis);
+  if (nodes.empty())
+    nodes = this->getEdgeNodes(edge, basis, 0);
+  else {
+    IntVec nodes2 = this->getEdgeNodes(edge, basis, 0);
+    nodes.insert(nodes.end(), nodes2.begin(), nodes2.end());
+  }
 
 #if SP_DEBUG > 1
   std::cout <<"Boundary nodes in patch "<< idx+1 <<" edge "<< lIndex <<":";

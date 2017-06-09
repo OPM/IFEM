@@ -130,8 +130,8 @@ public:
   //! \brief Returns a list of basis functions having support on given elements.
   IntVec getFunctionsForElements(const IntVec& elements);
 
-  //! \brief Sort basis functions based on greville points and local knot vectors.
-  static void Sort(std::vector<LR::Basisfunction*>& functions);
+  //! \brief Sort basis functions based on local knot vectors.
+  static void Sort(int u, int v, int orient, std::vector<LR::Basisfunction*>& functions);
 
 protected:
   LR::LRSpline* geo; //!< Pointer to the actual spline geometry object

@@ -203,12 +203,12 @@ public:
   //! \param local If true return patch-local node numbers
   virtual void getBoundaryNodes(int lIndex, IntVec& nodes,
                                 int basis, int thick = 1,
-                                bool local = false) const;
+                                int = 0, bool local = false) const;
 
   //! \brief Returns the node index for a given corner.
   virtual int getCorner(int I, int J, int K, int basis) const;
   //! \brief Returns the node indices for a given edge.
-  virtual std::vector<int> getEdge(int lEdge, bool open, int basis) const;
+  virtual std::vector<int> getEdge(int lEdge, bool open, int basis, int = 0) const;
 
   //! \brief Assigns new global node numbers for all nodes of the patch.
   //! \param nodes Object with global nodes numbers to assign to this patch

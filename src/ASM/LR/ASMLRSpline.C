@@ -308,22 +308,26 @@ IntVec ASMunstruct::getFunctionsForElements (const IntVec& elements)
 }
 
 
-void ASMunstruct::Sort(std::vector<LR::Basisfunction*>& functions)
+void ASMunstruct::Sort(int u, int v, int orient,
+                       std::vector<LR::Basisfunction*>& functions)
 {
   std::sort(functions.begin(), functions.end(),
-            [](const LR::Basisfunction* a, const LR::Basisfunction* b)
+            [u,v,orient](const LR::Basisfunction* a, const LR::Basisfunction* b)
             {
-              int ndir = a->getGrevilleParameter().size();
-              for (int dir = ndir-1; dir >= 0; --dir)
-                if (a->getGrevilleParameter()[dir] != b->getGrevilleParameter()[dir])
-                  return a->getGrevilleParameter()[dir] < b->getGrevilleParameter()[dir];
+              int p1 = a->getOrder(u);
+              int p2 = a->getOrder(v);
 
-              for (int dir = ndir-1; dir >= 0; --dir) {
-                size_t idx = 0;
-                for (auto& it : const_cast<LR::Basisfunction*>(a)->getknots(dir))
-                  if (it != const_cast<LR::Basisfunction*>(b)->getknots(dir)[idx])
-                    return it < const_cast<LR::Basisfunction*>(b)->getknots(dir)[idx++];
-               }
+              int idx1 = orient & 4 ? v : u;
+              int idx2 = orient & 4 ? u : v;
+
+              for (int i = 0; i < 1 + (orient < 4 ? p2 : p1); ++i)
+                if ((*a)[idx1][i] != (*b)[idx1][i])
+                  return orient & 2 ? (*a)[idx1][i] > (*b)[idx1][i]
+                                    : (*a)[idx1][i] < (*b)[idx1][i];
+              for(int i = 0; i < 1 + (orient < 4 ? p1 : p2); ++i)
+                if ((*a)[idx2][i] != (*b)[idx2][i])
+                  return orient & 1 ? (*a)[idx2][i] > (*b)[idx2][i]
+                                    : (*a)[idx2][i] < (*b)[idx2][i];
 
               return false;
             });

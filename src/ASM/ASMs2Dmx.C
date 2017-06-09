@@ -1018,11 +1018,11 @@ void ASMs2Dmx::generateThreadGroups (const Integrand& integrand, bool silence,
 
 
 void ASMs2Dmx::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
-                                 int thick, bool local) const
+                                 int thick, int, bool local) const
 {
   if (basis > 0)
-    this->ASMs2D::getBoundaryNodes(lIndex, nodes, basis, thick, local);
+    this->ASMs2D::getBoundaryNodes(lIndex, nodes, basis, thick, 0, local);
   else
     for (size_t b = 1; b <= this->getNoBasis(); ++b)
-      this->ASMs2D::getBoundaryNodes(lIndex, nodes, b, thick, local);
+      this->ASMs2D::getBoundaryNodes(lIndex, nodes, b, thick, 0, local);
 }
