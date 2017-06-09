@@ -7,7 +7,7 @@
 //!
 //! \author Arne Morten Kvarving / SINTEF
 //!
-//! \brief Domain decomposition partitioning for structured models.
+//! \brief Domain decomposition partitioning for FE models.
 //!
 //==============================================================================
 
@@ -15,6 +15,7 @@
 #include "ASMstruct.h"
 #include "ASM2D.h"
 #include "ASM3D.h"
+#include "ASMunstruct.h"
 #include "LinSolParams.h"
 #include "ProcessAdm.h"
 #include "SAMpatch.h"
@@ -34,16 +35,33 @@ public:
   //! \param lIdx Index of boundary on slave
   //! \param basis Basis to use for boundary on slave
   //! \param dim Dimension to iterate over
-  NodeIterator(const ASMstruct* pch, int orient, int lIdx, int basis, int dim = 2)
+  NodeIterator(const ASMbase* pch, int orient, int lIdx, int basis, int dim = 2)
   {
     if (dim == 0) {
       nodes.resize(1);
       return;
     }
+    const ASMstruct* spch = dynamic_cast<const ASMstruct*>(pch);
+    const ASMunstruct* upch = dynamic_cast<const ASMunstruct*>(pch);
+
+    int nsd = pch->getNoSpaceDim();
+    if (upch) {
+      if (nsd == 3 && dim == 1) {
+        const ASM3D* pch3D = dynamic_cast<const ASM3D*>(pch);
+        nodes = pch3D->getEdge(lIdx, true, basis, -1);
+        std::iota(nodes.begin(), nodes.end(), 0);
+      } else if (nsd == 2 || dim == 2) {
+        pch->getBoundaryNodes(lIdx, nodes, basis);
+        if (orient == 0 || dim == 2)
+          std::iota(nodes.begin(), nodes.end(), 0);
+        else
+          std::iota(nodes.rbegin(), nodes.rend(), 0);
+      }
+      return;
+    }
 
     int n1, n2, n3;
-    pch->getSize(n1,n2,n3,basis);
-    int nsd = pch->getNoSpaceDim();
+    spch->getSize(n1,n2,n3,basis);
     if (nsd == 3) {
       if (dim == 1) {
         if (lIdx <= 4)
@@ -295,7 +313,7 @@ std::vector<IntVec> DomainDecomposition::calcSubdomains3D(size_t nel1, size_t ne
 void DomainDecomposition::setupNodeNumbers(int basis, IntVec& lNodes,
                                            std::set<int>& cbasis,
                                            const ASMbase* pch,
-                                           int dim, int lidx, int thick)
+                                           int dim, int lidx, int thick, int orient)
 {
   if (basis != 0) // specified base
     cbasis = utl::getDigits(basis);
@@ -304,7 +322,7 @@ void DomainDecomposition::setupNodeNumbers(int basis, IntVec& lNodes,
     for (size_t b = 1; b <= pch->getNoBasis(); ++b)
       cbasis.insert(b);
   else // directly add nodes, cbasis remains empty
-    pch->getBoundaryNodes(lidx, lNodes, 0, thick, false);
+    pch->getBoundaryNodes(lidx, lNodes, 0, thick, orient, false);
 
   const ASM2D* pch2D = dynamic_cast<const ASM2D*>(pch);
   const ASM3D* pch3D = dynamic_cast<const ASM3D*>(pch);
@@ -331,11 +349,11 @@ void DomainDecomposition::setupNodeNumbers(int basis, IntVec& lNodes,
         }
       lNodes.push_back(pch->getNodeID(node));
     } else if (dim == 1 && pch3D) {
-      std::vector<int> eNodes = pch3D->getEdge(lidx, false, it2);
+      std::vector<int> eNodes = pch3D->getEdge(lidx, false, it2, orient);
       for (const int& it : eNodes)
         lNodes.push_back(pch->getNodeID(it));
     } else
-      pch->getBoundaryNodes(lidx, lNodes, it2, thick, false);
+      pch->getBoundaryNodes(lidx, lNodes, it2, thick, orient, false);
 }
 
 
@@ -409,7 +427,7 @@ bool DomainDecomposition::calcGlobalNodeNumbers(const ProcessAdm& adm,
     size_t ofs = 0;
     for (size_t b = 1; b <= sim.getPatch(sidx)->getNoBasis(); ++b) {
       if (cbasis.empty() || cbasis.find(b) != cbasis.end()) {
-        NodeIterator iter(dynamic_cast<const ASMstruct*>(sim.getPatch(sidx)),
+        NodeIterator iter(sim.getPatch(sidx),
                           it.orient, it.sidx, b, it.dim);
         auto it_n = iter.begin();
         for (size_t i = 0; i < iter.size(); ++i, ++it_n) {
@@ -459,7 +477,7 @@ bool DomainDecomposition::calcGlobalNodeNumbers(const ProcessAdm& adm,
     std::set<int> cbasis;
     std::vector<int> glbNodes;
     setupNodeNumbers(it.basis, glbNodes, cbasis, sim.getPatch(midx),
-                     it.dim, it.midx, it.thick);
+                     it.dim, it.midx, it.thick, it.orient);
 
     for (size_t i = 0; i < glbNodes.size(); ++i)
       glbNodes[i] = MLGN[glbNodes[i]-1];
@@ -476,7 +494,7 @@ bool DomainDecomposition::calcGlobalNodeNumbers(const ProcessAdm& adm,
 std::vector<int> DomainDecomposition::setupEquationNumbers(const SIMbase& sim,
                                                            int pidx, int lidx,
                                                            const std::set<int>& cbasis,
-                                                           int dim, int thick)
+                                                           int dim, int thick, int orient)
 {
   std::vector<IntVec> lNodes(sim.getPatch(pidx)->getNoBasis());
   std::vector<int> result;
@@ -496,7 +514,7 @@ std::vector<int> DomainDecomposition::setupEquationNumbers(const SIMbase& sim,
       if (lNodes[basis-1].empty()) {
         IntSet dummy;
         setupNodeNumbers(basis, lNodes[basis-1], dummy, sim.getPatch(pidx),
-                         dim, lidx, thick);
+                         dim, lidx, thick, orient);
       }
 
       std::set<int> components;
@@ -656,8 +674,7 @@ bool DomainDecomposition::calcGlobalEqNumbers(const ProcessAdm& adm,
         } else
           components = utl::getDigits(sim.getSolParams()->getBlock(block-1).comps);
 
-        NodeIterator iter(dynamic_cast<const ASMstruct*>(sim.getPatch(sidx)),
-                          it.orient, it.sidx, basis, it.dim);
+        NodeIterator iter(sim.getPatch(sidx), it.orient, it.sidx, basis, it.dim);
         auto it_n = iter.begin();
         int nodeDofs = components.size();
         for (size_t i = 0; i < iter.size(); ++i, ++it_n) {
@@ -741,7 +758,7 @@ bool DomainDecomposition::calcGlobalEqNumbers(const ProcessAdm& adm,
       cbasis = utl::getDigits(it.basis);
 
     IntVec glbEqs = setupEquationNumbers(sim, midx, it.midx,
-                                         cbasis, it.dim, it.thick);
+                                         cbasis, it.dim, it.thick, it.orient);
     adm.send(int(glbEqs.size()), getPatchOwner(it.slave));
     adm.send(glbEqs, getPatchOwner(it.slave));
   }

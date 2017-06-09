@@ -7,7 +7,7 @@
 //!
 //! \author Arne Morten Kvarving / SINTEF
 //!
-//! \brief Domain decomposition related partitioning for structured models.
+//! \brief Domain decomposition related partitioning for FE models.
 //!
 //==============================================================================
 
@@ -190,10 +190,11 @@ private:
   //! \param lidx Boundary index on patch
   //! \param cbasis If non-empty, bases to connect
   //! \param thick Thickness of connection (subdivisions)
+  //! \param orient Orientation of boundary (needed for unstructured)
   std::vector<int> setupEquationNumbers(const SIMbase& sim,
                                         int pidx, int lidx,
                                         const std::set<int>& cbasis,
-                                        int dim, int thick);
+                                        int dim, int thick, int orient = 0);
 
   //! \brief Setup node numbers for all bases on a boundary.
   //! \param basis Bases to grab nodes for
@@ -203,10 +204,11 @@ private:
   //! \param dim Dimension of boundary to obtain nodes for
   //! \param lidx Local index of boundary to obtain nodes for
   //! \param thick Thickness of connection (subdivisions)
+  //! \param orient Orientation of boundary (needed for unstructured)
   void setupNodeNumbers(int basis, std::vector<int>& lNodes,
                         std::set<int>& cbasis,
                         const ASMbase* pch,
-                        int dim, int lidx, int thick);
+                        int dim, int lidx, int thick, int orient = 0);
 
   //! \brief Calculate the global node numbers for given finite element model.
   bool calcGlobalNodeNumbers(const ProcessAdm& adm, const SIMbase& sim);
