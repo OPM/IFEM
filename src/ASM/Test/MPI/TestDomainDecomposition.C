@@ -116,6 +116,30 @@ TEST_P(TestDomainDecomposition2D, Corner)
 }
 
 
+TEST_P(TestDomainDecomposition2D, CornerLR)
+{
+  DummySIM<SIM2D> sim;
+  sim.opt.discretization = ASM::LRSpline;
+  std::stringstream str;
+  str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_corner";
+  if (GetParam() == 1)
+    str << "_fail";
+  str << ".xinp";
+  sim.read(str.str().c_str());
+
+  if (GetParam() == 0) {
+    ASSERT_TRUE(sim.preprocess());
+    const ProcessAdm& adm = sim.getProcessAdm();
+    str.str("");
+    str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_cornerLR_nodes";
+    str << adm.getProcId() << ".ref";
+    IntVec B = readIntVector(str.str());
+    check_intvectors_equal(adm.dd.getMLGN(), B);
+  } else
+    ASSERT_FALSE(sim.preprocess());
+}
+
+
 TEST_P(TestDomainDecomposition2D, SetupSingleBasis)
 {
   SIM2D sim(2);
@@ -141,6 +165,29 @@ TEST_P(TestDomainDecomposition2D, SetupSingleBasis)
   B = readIntVector(str.str());
   check_intvectors_equal(adm.dd.getMLGEQ(), B);
   ASSERT_EQ(adm.dd.getMaxDOF(), 2*adm.dd.getMaxNode());
+}
+
+
+TEST_P(TestDomainDecomposition2D, SetupSingleBasisLR)
+{
+  SIM2D sim(2);
+  sim.opt.discretization = ASM::LRSpline;
+  std::stringstream str;
+  str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_orient";
+  str << GetParam() << ".xinp";
+  sim.read(str.str().c_str());
+  sim.preprocess();
+
+  const ProcessAdm& adm = sim.getProcessAdm();
+  const SAM* sam = sim.getSAM();
+  str.str("");
+  str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_LR_orient";
+  str << GetParam() << "_nodes" << adm.getProcId() << ".ref";
+  IntVec B = readIntVector(str.str());
+  check_intvectors_equal(adm.dd.getMLGN(), B);
+  ASSERT_EQ(sam->getNoNodes(), 9);
+  const std::vector<int> maxeqs {16, 26, 36, 44};
+  ASSERT_EQ(adm.dd.getMaxEq(), maxeqs[adm.getProcId()]);
 }
 
 
@@ -240,6 +287,30 @@ TEST_P(TestDomainDecomposition2D, SetupMixedBasis)
   check_intvectors_equal(adm.dd.getMLGEQ(), B);
   ASSERT_EQ(adm.dd.getMinDOF(), 2*(adm.dd.getMinNode()-1)+1);
   ASSERT_EQ(adm.dd.getMaxDOF(), 2*adm.dd.getMaxNode());
+}
+
+
+TEST_P(TestDomainDecomposition2D, SetupMixedBasisLR)
+{
+  SIM2D sim({2,2});
+  sim.opt.discretization = ASM::LRSpline;
+  std::stringstream str;
+  str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_orient";
+  str << GetParam() << ".xinp";
+  sim.read(str.str().c_str());
+  sim.preprocess();
+
+  const ProcessAdm& adm = sim.getProcessAdm();
+  const SAM* sam = sim.getSAM();
+  str.str("");
+  str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_mixed_LR_orient";
+  str << GetParam() << "_nodes" << adm.getProcId() << ".ref";
+  IntVec B = readIntVector(str.str());
+  check_intvectors_equal(adm.dd.getMLGN(), B);
+  ASSERT_EQ(sam->getNoNodes(), 25);
+  ASSERT_EQ(sam->getNoDOFs(), 50);
+  const std::vector<int> maxeqs {48, 81, 114, 140};
+  ASSERT_EQ(adm.dd.getMaxEq(), maxeqs[adm.getProcId()]);
 }
 
 
@@ -366,6 +437,29 @@ TEST_P(TestDomainDecomposition3D, SetupSingleBasis)
   B = readIntVector(str.str());
   check_intvectors_equal(adm.dd.getMLGEQ(), B);
   ASSERT_EQ(adm.dd.getMaxDOF(), 3*adm.dd.getMaxNode());
+}
+
+
+TEST_P(TestDomainDecomposition3D, SetupSingleBasisLR)
+{
+  SIM3D sim(3);
+  sim.opt.discretization = ASM::LRSpline;
+  std::stringstream str;
+  str << "src/ASM/Test/refdata/DomainDecomposition_MPI_3D_4_orient";
+  str << GetParam() << ".xinp";
+  sim.read(str.str().c_str());
+  sim.preprocess();
+
+  const ProcessAdm& adm = sim.getProcessAdm();
+  const SAM* sam = sim.getSAM();
+  str.str("");
+  str << "src/ASM/Test/refdata/DomainDecomposition_MPI_3D_4_LR_orient";
+  str << GetParam() << "_nodes" << adm.getProcId() << ".ref";
+  IntVec B = readIntVector(str.str());
+  check_intvectors_equal(adm.dd.getMLGN(), B);
+  ASSERT_EQ(sam->getNoNodes(), 45);
+  const std::vector<int> maxeqs {111, 195, 254, 300};
+  ASSERT_EQ(adm.dd.getMaxEq(), maxeqs[adm.getProcId()]);
 }
 
 
@@ -508,12 +602,12 @@ TEST_P(TestDomainDecomposition3D, Corner)
   DummySIM<SIM3D> sim;
   std::stringstream str;
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_3D_corner";
-  if (GetParam() == 1)
+  if (GetParam() > 0)
     str << "_fail";
   str << ".xinp";
   sim.read(str.str().c_str());
 
-  if (GetParam() == 0) {
+  if (GetParam() < 1) {
     ASSERT_TRUE(sim.preprocess());
     const ProcessAdm& adm = sim.getProcessAdm();
     str.str("");
@@ -525,6 +619,33 @@ TEST_P(TestDomainDecomposition3D, Corner)
     ASSERT_FALSE(sim.preprocess());
 }
 
+
+TEST_P(TestDomainDecomposition3D, CornerLR)
+{
+  if (GetParam() > 1)
+    return;
+
+  DummySIM<SIM3D> sim;
+  sim.opt.discretization = ASM::LRSpline;
+
+  std::stringstream str;
+  str << "src/ASM/Test/refdata/DomainDecomposition_MPI_3D_corner";
+  if (GetParam() > 0)
+    str << "_fail";
+  str << ".xinp";
+  sim.read(str.str().c_str());
+
+  if (GetParam() < 1) {
+    ASSERT_TRUE(sim.preprocess());
+    const ProcessAdm& adm = sim.getProcessAdm();
+    str.str("");
+    str << "src/ASM/Test/refdata/DomainDecomposition_MPI_3D_4_cornerLR_nodes";
+    str << adm.getProcId() << ".ref";
+    IntVec B = readIntVector(str.str());
+    check_intvectors_equal(adm.dd.getMLGN(), B);
+  } else
+    ASSERT_FALSE(sim.preprocess());
+}
 
 const std::vector<int> orientations2D = {0,1};
 INSTANTIATE_TEST_CASE_P(TestDomainDecomposition2D, TestDomainDecomposition2D, testing::ValuesIn(orientations2D));
