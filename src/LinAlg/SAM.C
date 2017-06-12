@@ -503,7 +503,7 @@ bool SAM::assembleSystem (SystemVector& sysRHS,
   }
 
   sysRHS.restore(sysrhsPtr);
-  if (!eS.empty())
+  if (reactionForces && !eS.empty())
     this->assembleReactions(*reactionForces,eS,iel);
 
   return true;
@@ -898,8 +898,16 @@ Real SAM::normReact (const Vector& u, const Vector& rf) const
   Real retVal = Real(0);
 
   for (int i = 0; i < ndof; i++)
-    if (msc[i] < 0 && -msc[i] <= (int)rf.size())
-      retVal += u[i]*rf(-msc[i]);
+    if (meqn[i] < 0 && msc[i] < 0 && -msc[i] <= (int)rf.size())
+      if (mpmceq[-meqn[i]] - mpmceq[-meqn[i]-1] == 1) // Only prescribed DOFs
+      {
+        retVal += u[i]*rf(-msc[i]);
+#if SP_DEBUG > 1
+        std::cout <<"SAM::normReact: idof="<< i+1 <<" SC="<< msc[i]
+                  <<" u="<< u[i] <<" RF="<< rf(-msc[i]) <<" --> "
+                  << 0.5*retVal << std::endl;
+#endif
+      }
 
   return 0.5*retVal;
 }

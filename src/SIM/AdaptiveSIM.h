@@ -43,7 +43,8 @@ public:
   //! \brief Assembles and solves the linear FE equations on current mesh.
   //! \param[in] inputfile File to read model parameters from after refinement
   //! \param[in] iStep Refinement step counter
-  bool solveStep(const char* inputfile, int iStep);
+  //! \param[in] withRF Whether nodal reaction forces should be computed or not
+  bool solveStep(const char* inputfile, int iStep, bool withRF = false);
 
   //! \brief Refines the current mesh based on the element norms.
   //! \param[in] iStep Refinement step counter

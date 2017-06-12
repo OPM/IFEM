@@ -266,6 +266,36 @@ LocalIntegral* NormBase::getLocalIntegral (size_t, size_t iEl, bool) const
 }
 
 
+double NormBase::applyFinalOp (double value) const
+{
+  switch (finalOp)
+    {
+    case ASM::ABS:
+      return fabs(value);
+    case ASM::SQRT:
+      return value < 0.0 ? -sqrt(-value) : sqrt(value);
+    default:
+      return value;
+    }
+}
+
+
+void NormBase::addBoundaryTerms (Vectors& gNorm, double energy) const
+{
+  if (gNorm.empty() || gNorm.front().size() < 2 || energy == 0.0) return;
+
+  double& extEnergy = gNorm.front()[1];
+#ifdef SP_DEBUG
+  if (extEnergy != 0.0)
+    std::cout <<"External energy contribution from interior terms: "
+              << this->applyFinalOp(extEnergy) << std::endl;
+  std::cout <<"External energy contribution from boundary terms: "
+            << this->applyFinalOp(energy) << std::endl;
+#endif
+  extEnergy += energy;
+}
+
+
 size_t NormBase::getNoFields (int group) const
 {
   return group > 0 ? 0 : 1 + prjsol.size();

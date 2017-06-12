@@ -21,7 +21,7 @@
 template<class Dim> class TestProjectSIM : public Dim
 {
 public:
-  TestProjectSIM(const SIMbase::CharVec& nf) : Dim(nf)
+  TestProjectSIM(const SIMinput::CharVec& nf) : Dim(nf)
   {
     Dim::myProblem = new TestProjectIntegrand(Dim::dimension);
     EXPECT_TRUE(this->createDefaultModel());

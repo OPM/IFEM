@@ -54,6 +54,7 @@ SIMbase::SIMbase (IntegrandBase* itg) : g2l(&myGlb2Loc)
   nGlPatches = 0;
   nIntGP = nBouGP = 0;
   lagMTOK = false;
+  extEnergy = 0.0;
 
   MPCLess::compareSlaveDofOnly = true; // to avoid multiple slave definitions
 }
@@ -1386,10 +1387,12 @@ double SIMbase::externalEnergy (const Vectors& psol) const
   if (psol.size() == 1)
     return mySam->normReact(psol.front(),*reactionForces);
 
-  static double extEnergy = 0.0;
-  static Vector prevForces(reactionForces->size());
-  extEnergy += mySam->normReact(psol[0]-psol[1],*reactionForces+prevForces);
+  if (prevForces.empty())
+    extEnergy += mySam->normReact(psol[0]-psol[1],*reactionForces);
+  else
+    extEnergy += mySam->normReact(psol[0]-psol[1],*reactionForces+prevForces);
   prevForces = *reactionForces;
+
   return extEnergy;
 }
 

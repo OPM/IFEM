@@ -51,7 +51,8 @@ public:
                                    basis(1), component(0),
                                    sim_field(f), file_field(f) {}
   };
-  typedef std::vector<ICInfo> InitialCondVec; //!< Initial condition container
+  typedef std::vector<ICInfo> InitialCondVec; //!< Convenience declaration
+  typedef std::vector<unsigned char> CharVec; //!< Convenience declaration
 
 protected:
   //! \brief The constructor just forwards to the base class constructor.

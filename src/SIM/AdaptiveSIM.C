@@ -189,7 +189,7 @@ bool AdaptiveSIM::initAdaptor (size_t indxProj)
 }
 
 
-bool AdaptiveSIM::solveStep (const char* inputfile, int iStep)
+bool AdaptiveSIM::solveStep (const char* inputfile, int iStep, bool withRF)
 {
   model.getProcessAdm().cout <<"\nAdaptive step "<< iStep << std::endl;
   if (iStep > 1)
@@ -210,7 +210,7 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep)
 
   // Assemble the linear FE equation system
   model.setMode(SIM::STATIC,true);
-  model.initSystem(opt.solver,1,model.getNoRHS(),0,true);
+  model.initSystem(opt.solver,1,model.getNoRHS(),0,withRF);
   model.setQuadratureRule(opt.nGauss[0],true);
   if (!model.assembleSystem())
     return false;

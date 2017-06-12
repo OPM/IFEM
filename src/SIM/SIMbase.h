@@ -34,9 +34,6 @@ class TractionFunc;
 class Vec4;
 class Vec3;
 
-//! Property code to integrand map
-typedef std::multimap<int,IntegrandBase*> IntegrandMap;
-
 
 /*!
   \brief Struct for storage of data associated with one mode shape.
@@ -612,8 +609,6 @@ public:
   static bool ignoreDirichlet; //!< Set to \e true for free vibration analysis
   static bool preserveNOrder;  //!< Set to \e true to preserve node ordering
 
-  typedef std::vector<unsigned char> CharVec; //!< Convenience declaration
-
 protected:
   //! \brief Scalar field container
   typedef std::map<int,RealFunc*>     SclFuncMap;
@@ -621,6 +616,9 @@ protected:
   typedef std::map<int,VecFunc*>      VecFuncMap;
   //! \brief Traction field container
   typedef std::map<int,TractionFunc*> TracFuncMap;
+
+  //! Property code to integrand map
+  typedef std::multimap<int,IntegrandBase*> IntegrandMap;
 
   // Model attributes
   bool           isRefined; //!< Indicates if the model is adaptively refined
@@ -670,6 +668,9 @@ private:
 
   //! Additional MADOF arrays for mixed problems (extraordinary DOF counts)
   std::map<int, std::vector<int> > mixedMADOFs;
+
+  mutable double extEnergy;  //!< Path integral of external forces
+  mutable Vector prevForces; //!< Reaction forces of previous time step
 };
 
 #endif

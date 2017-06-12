@@ -328,7 +328,9 @@ public:
   virtual bool hasBoundaryTerms() const { return false; }
 
   //! \brief Adds external energy terms to relevant norms.
-  virtual void addBoundaryTerms(Vectors&, double) const {}
+  //! \param gNorm Global norm quantities
+  //! \param[in] energy Global external energy
+  void addBoundaryTerms(Vectors& gNorm, double energy) const;
 
   //! \brief Returns the number of norm groups or size of a specified group.
   //! \details If \a group is zero, the number of norm groups is returned.
@@ -367,6 +369,9 @@ public:
 protected:
   //! \brief Initializes the projected fields for current element.
   bool initProjection(const std::vector<int>& MNPC, LocalIntegral& elmInt);
+
+  //! \brief Applies the operation \a finalOp on the given \a value.
+  double applyFinalOp(double value) const;
 
   IntegrandBase& myProblem; //!< The problem-specific data
 
