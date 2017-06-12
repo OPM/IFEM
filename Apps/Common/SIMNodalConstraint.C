@@ -326,63 +326,61 @@ protected:
 #endif
 
 
-template<>
-void NodalConstraintProcessor<SIM1D>::apply(SIM1D& sim, TopologySet& myEntitys,
-                                            const ConstraintVec& vConstr)
-{
-  for (const auto& it3 : vConstr) {
-    TopologySet::const_iterator it = myEntitys.find(it3.topset);
-    if (it != myEntitys.end()) {
-      ASMs1D* pch = static_cast<ASMs1D*>(sim.getPatch(it3.patch));
-      if (!pch)
-        continue;
-      NodalConstraintASMs1DHelper helper(pch);
-      int idx = pch->getNodeID(helper.getCorner(it3.vertex, it3.basis));
-      for (const auto& it2 : it->second) {
-        // vertex constraints
-        ASMs1D* pch2 = static_cast<ASMs1D*>(sim.getPatch(it2.patch));
-        if (!pch2)
-          continue;
-        NodalConstraintASMs1DHelper helper2(pch2);
-
-        if (it2.idim == 1)
-          helper2.constrainPatch(it3.comp, it3.basis, idx);
-        else if (it2.idim == 0)
-          helper.constrainVertex(it2.item, it3.comp, it3.basis, idx);
-      }
-    }
-  }
-}
-
+/*!
+  \brief Helper function to create a NodalConstraintASMHelper instance.
+*/
 
 static NodalConstraintASMHelper* get2DHelper(ASMbase* pch)
 {
   ASMs2D* spch = dynamic_cast<ASMs2D*>(pch);
   if (spch)
     return new NodalConstraintASMs2DHelper(spch);
+
 #ifdef HAS_LRSPLINE
-  else {
-    ASMu2D* upch = dynamic_cast<ASMu2D*>(pch);
-    if (upch)
-      return new NodalConstraintASMu2DHelper(upch);
-  }
+  ASMu2D* upch = dynamic_cast<ASMu2D*>(pch);
+  if (upch)
+    return new NodalConstraintASMu2DHelper(upch);
 #endif
 
   return nullptr;
 }
 
 
-template<>
-void NodalConstraintProcessor<SIM2D>::apply(SIM2D& sim, TopologySet& myEntitys,
-                                            const ConstraintVec& vConstr)
+template<> bool SIMNodalConstraint<SIM1D>::applyConstraint()
 {
-  for (const auto& it3 : vConstr) {
-    TopologySet::const_iterator it = myEntitys.find(it3.topset);
-    if (it != myEntitys.end()) {
-      std::unique_ptr<NodalConstraintASMHelper> helper(get2DHelper(sim.getPatch(it3.patch)));
+  for (const auto& it3 : vertConstraints) {
+    TopologySet::const_iterator it = SIM1D::myEntitys.find(it3.topset);
+    if (it != SIM1D::myEntitys.end()) {
+      ASMs1D* pch = static_cast<ASMs1D*>(this->getPatch(it3.patch));
+      if (!pch)
+        continue;
+      NodalConstraintASMs1DHelper helper(pch);
+      int idx = pch->getNodeID(helper.getCorner(it3.vertex, it3.basis));
+      for (const auto& it2 : it->second) {
+        ASMs1D* pch2 = static_cast<ASMs1D*>(this->getPatch(it2.patch));
+        if (!pch2)
+          continue;
+        NodalConstraintASMs1DHelper helper2(pch2);
+        if (it2.idim == 1)
+          helper2.constrainPatch(it3.comp, it3.basis, idx);
+        else if (it2.idim == 0) // vertex constraints
+          helper.constrainVertex(it2.item, it3.comp, it3.basis, idx);
+      }
+    }
+  }
+  return true;
+}
+
+
+template<> bool SIMNodalConstraint<SIM2D>::applyConstraint()
+{
+  for (const auto& it3 : vertConstraints) {
+    TopologySet::const_iterator it = SIM2D::myEntitys.find(it3.topset);
+    if (it != SIM2D::myEntitys.end()) {
+      std::unique_ptr<NodalConstraintASMHelper> helper(get2DHelper(this->getPatch(it3.patch)));
       int idx = helper->getCorner(it3.vertex, it3.basis);
       for (const auto& it2 : it->second) {
-        std::unique_ptr<NodalConstraintASMHelper> helper2(get2DHelper(sim.getPatch(it2.patch)));
+        std::unique_ptr<NodalConstraintASMHelper> helper2(get2DHelper(this->getPatch(it2.patch)));
         if (it2.idim == 2)
           helper2->constrainPatch(it3.comp, it3.basis, idx);
         else if (it2.idim == 1) // Edge constraints
@@ -392,28 +390,25 @@ void NodalConstraintProcessor<SIM2D>::apply(SIM2D& sim, TopologySet& myEntitys,
       }
     }
   }
+  return true;
 }
 
 
-template<>
-void NodalConstraintProcessor<SIM3D>::apply(SIM3D& sim, TopologySet& myEntitys,
-                                            const ConstraintVec& vConstr)
+template<> bool SIMNodalConstraint<SIM3D>::applyConstraint()
 {
-  for (const auto& it3 : vConstr) {
-    TopologySet::const_iterator it = myEntitys.find(it3.topset);
-    if (it != myEntitys.end()) {
-      ASMs3D* pch = static_cast<ASMs3D*>(sim.getPatch(it3.patch));
+  for (const auto& it3 : vertConstraints) {
+    TopologySet::const_iterator it = SIM3D::myEntitys.find(it3.topset);
+    if (it != SIM3D::myEntitys.end()) {
+      ASMs3D* pch = static_cast<ASMs3D*>(this->getPatch(it3.patch));
       if (!pch)
         continue;
       NodalConstraintASMs3DHelper helper(pch);
       int idx = helper.getCorner(it3.vertex, it3.basis);
       for (const auto& it2 : it->second) {
-        // vertex constraints
-        ASMs3D* pch2 = static_cast<ASMs3D*>(sim.getPatch(it2.patch));
+        ASMs3D* pch2 = static_cast<ASMs3D*>(this->getPatch(it2.patch));
         if (!pch2)
           continue;
         NodalConstraintASMs3DHelper helper2(pch2);
-
         if (it2.idim == 3)
           helper2.constrainPatch(it3.comp, it3.basis, idx);
         else if (it2.idim == 2) // Face constraints
@@ -425,4 +420,5 @@ void NodalConstraintProcessor<SIM3D>::apply(SIM3D& sim, TopologySet& myEntitys,
       }
     }
   }
+  return true;
 }

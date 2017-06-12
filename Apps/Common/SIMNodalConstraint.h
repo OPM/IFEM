@@ -11,8 +11,8 @@
 //!
 //==============================================================================
 
-#ifndef _SIM_NODALCONSTRAINT_H_
-#define _SIM_NODALCONSTRAINT_H_
+#ifndef _SIM_NODAL_CONSTRAINT_H_
+#define _SIM_NODAL_CONSTRAINT_H_
 
 #include "IFEM.h"
 #include "SIM1D.h"
@@ -20,12 +20,6 @@
 #include "SIM3D.h"
 #include "Utilities.h"
 #include "tinyxml.h"
-
-class ASMbase;
-class ASMs1D;
-class ASMs2D;
-class ASMs3D;
-class ASMu2D;
 
 
 //! \brief Describes a topologyset constrained to a vertex.
@@ -40,87 +34,57 @@ struct TopSetToVertex {
   TopSetToVertex() : basis(1), patch(1), vertex(1), comp(1) {}
 };
 
-
-//! \brief Helper class for constraining entities to a node
-template<class Dim>
-class NodalConstraintProcessor {
-public:
-  //! \brief Convenience typedef
-  typedef std::vector<TopSetToVertex> ConstraintVec;
-
-  //! \brief Apply nodal constraints
-  //! \param sim The simulator to apply the constraints to
-  //! \param myEntitys The topologysets of the simulator
-  //! \param vertConstraints Constraints to apply
-  static void apply(Dim& sim, TopologySet& myEntitys,
-                    const ConstraintVec& vertConstraints);
-};
-
-//! \brief Specialization for 1D
-template<>
-void NodalConstraintProcessor<SIM1D>::apply(SIM1D& sim, TopologySet& myEntitys,
-                                            const ConstraintVec& vConstr);
-
-
-//! \brief Specialization for 2D
-template<>
-void NodalConstraintProcessor<SIM2D>::apply(SIM2D& sim, TopologySet& myEntitys,
-                                            const ConstraintVec& vConstr);
-
-//! \brief Specialization for 3D
-template<>
-void NodalConstraintProcessor<SIM3D>::apply(SIM3D& sim, TopologySet& myEntitys,
-                                            const ConstraintVec& vConstr);
+typedef std::vector<TopSetToVertex> ConstraintVec; //!< Convenience type
 
 
 //! \brief Inherit this class to equip your SIM with nodal constraints.
-template<class Dim>
-class SIMNodalConstraint : public Dim {
-public:
-  //! \brief Default constructor.
-  //! \param[in] n1 Dimension of the primary solution field
-  //! \param[in] check If \e true, ensure the model is in a right-hand system
-  SIMNodalConstraint(const SIMbase::CharVec& unf,
-                     bool checkRHS=false) :
-    Dim(unf,checkRHS) {}
+template<class Dim> class SIMNodalConstraint : public Dim
+{
+  ConstraintVec vertConstraints; //!< Registered vertex constraints
 
-  //! \brief Empty destructor
+public:
+  //! \brief The constructor forwards to the parent class constructor.
+  SIMNodalConstraint(const std::vector<unsigned char>& unf) : Dim(unf) {}
+  //! \brief Empty destructor.
   virtual ~SIMNodalConstraint() {}
 
-  //! \copydoc SIMbase::preprocessBeforeAsmInit(int&)
-  //! \details Sets up the nodal constraints.
-  virtual bool preprocessBeforeAsmInit(int&)
-  {
-    NodalConstraintProcessor<Dim>::apply(*this, this->myEntitys,
-                                         vertConstraints);
-    return true;
-  }
+protected:
+  //! \brief Sets up the nodal constraints.
+  virtual bool preprocessBeforeAsmInit(int&) { return this->applyConstraint(); }
 
   using Dim::parse;
   //! \brief Parses a data section from an XML element.
   virtual bool parse(const TiXmlElement* elem)
   {
-    if (!strcasecmp(elem->Value(),"constraintovertex")) {
-      vertConstraints.resize(vertConstraints.size()+1);
-      utl::getAttribute(elem,"set",vertConstraints.back().topset);
-      utl::getAttribute(elem,"patch",vertConstraints.back().patch);
-      utl::getAttribute(elem,"vertex",vertConstraints.back().vertex);
-      utl::getAttribute(elem,"comp",vertConstraints.back().comp);
-      utl::getAttribute(elem,"basis",vertConstraints.back().basis);
-      IFEM::cout << "\tConstraining set \"" << vertConstraints.back().topset
-                 << "\" to P"<< vertConstraints.back().patch << "V"
-                 << vertConstraints.back().vertex
-                 << " in direction " << vertConstraints.back().comp;
-      if (vertConstraints.back().basis > 1)
-        IFEM::cout << " (basis " << vertConstraints.back().basis << ")";
-      IFEM::cout << std::endl;
-    } else
+    if (strcasecmp(elem->Value(),"constraintovertex"))
       return this->Dim::parse(elem);
 
+    TopSetToVertex topset;
+    utl::getAttribute(elem,"set",topset.topset);
+    utl::getAttribute(elem,"patch",topset.patch);
+    utl::getAttribute(elem,"vertex",topset.vertex);
+    utl::getAttribute(elem,"comp",topset.comp);
+    utl::getAttribute(elem,"basis",topset.basis);
+    vertConstraints.push_back(topset);
+    IFEM::cout <<"\tConstraining set \""<< topset.topset
+               <<"\" to P"<< topset.patch <<" V"<< topset.vertex
+               <<" in direction "<< topset.comp;
+    if (topset.basis > 1)
+      IFEM::cout <<" (basis "<< topset.basis <<")";
+    IFEM::cout << std::endl;
     return true;
   }
-protected:
-  std::vector<TopSetToVertex> vertConstraints; //!< Registered vertex constraints
+
+private:
+  //! \brief Applies the nodal constraints on the defined topology sets.
+  bool applyConstraint();
 };
+
+//! \brief Specialization for 1D
+template<> bool SIMNodalConstraint<SIM1D>::applyConstraint();
+//! \brief Specialization for 2D
+template<> bool SIMNodalConstraint<SIM2D>::applyConstraint();
+//! \brief Specialization for 3D
+template<> bool SIMNodalConstraint<SIM3D>::applyConstraint();
 
 #endif
