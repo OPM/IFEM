@@ -115,7 +115,7 @@ bool ASMu2Dmx::assembleL2matrices (SparseMatrix& A, StdVector& B,
         if (continuous)
         {
           for (size_t b = 0; b < m_basis.size(); ++b) {
-            m_basis[b]->computeBasis(gpar[0][i],gpar[1][j],spl0[b],els[b]-1);
+            m_basis[b]->computeBasis(gpar[0][i],gpar[1][j],spl1[b],els[b]-1);
             SplineUtils::extractBasis(spl1[b],phi[b],dNdu[b]);
           }
         }
