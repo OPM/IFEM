@@ -1,10 +1,10 @@
 # $Id$
 # Converts a log-file such that it can be used as reference in regression tests.
 # Basically, it deletes lines which are pointless in comparison with references.
-# Remember to manually insert the command-line arguments as the first line.
 
-1,/^ Executing command:/d
-1,15 s/^ *[^ ][^ ]* //
+1,5 d
+6 s/^ *[^ ][^ ]* //
+7,/^ *VTF support/d
 /^ *$/d
 /^ *iter=/d
 /^===============================================================/,$ d
