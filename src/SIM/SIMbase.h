@@ -350,11 +350,6 @@ public:
   bool solutionNorms(const Vectors& psol, Matrix& eNorm, Vectors& gNorm)
   { return this->solutionNorms(TimeDomain(),psol,Vectors(),gNorm,&eNorm); }
 
-  //! \brief Prints integrated solution norms to the log stream.
-  //! \param[in] norms The norm values
-  //! \param[in] w Total number of characters in the norm labels
-  virtual void printNorms(const Vectors& norms, size_t w = 36) const;
-
   //! \brief Prints a summary of the calculated solution to std::cout.
   //! \param[in] solution The solution vector
   //! \param[in] printSol Print solution only if size is less than this value

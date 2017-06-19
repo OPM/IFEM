@@ -269,6 +269,17 @@ public:
   //! \brief Checks whether point result files have been defined or not.
   bool hasPointResultFile() const;
 
+  //! \brief Prints integrated solution norms to the log stream.
+  //! \param[in] norms The norm values
+  //! \param[in] w Total number of characters in the norm labels
+  virtual void printNorms(const Vectors& norms, size_t w = 36) const;
+  //! \brief Prints a norm group to the log stream (app-specific).
+  virtual void printNormGroup(const Vector&, const Vector&,
+                              const std::string&) const {}
+
+  //! \brief Returns the reference norm to base mesh adaptation upon.
+  virtual double getReferenceNorm(const Vectors& gNorm, size_t adaptor) const;
+
   //! \brief Serialization support.
   virtual bool serialize(std::map<std::string,std::string>&) { return false; }
 

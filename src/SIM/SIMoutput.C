@@ -1522,3 +1522,49 @@ bool SIMoutput::hasPointResultFile () const
 
   return false;
 }
+
+
+void SIMoutput::printNorms (const Vectors& norms, size_t w) const
+{
+  if (norms.empty()) return;
+
+  NormBase* norm = this->getNormIntegrand();
+  const Vector& n = norms.front();
+
+  IFEM::cout <<"Energy norm"
+             << utl::adjustRight(w-11,norm->getName(1,1)) << n(1);
+  if (n(2) != 0.0)
+    IFEM::cout <<"\nExternal energy"
+               << utl::adjustRight(w-15,norm->getName(1,2)) << n(2);
+
+  if (this->haveAnaSol() && n.size() >= 4)
+    IFEM::cout <<"\nExact norm"
+               << utl::adjustRight(w-10,norm->getName(1,3)) << n(3)
+               <<"\nExact error"
+               << utl::adjustRight(w-11,norm->getName(1,4)) << n(4)
+               <<"\nExact relative error (%) : "<< 100.0*n(4)/n(3);
+
+  size_t j = 0;
+  for (const auto& prj : opt.project)
+    if (++j < norms.size())
+      this->printNormGroup(norms[j],n,prj.second);
+
+  IFEM::cout << std::endl;
+  delete norm;
+}
+
+
+double SIMoutput::getReferenceNorm (const Vectors& gNorm, size_t adaptor) const
+{
+  if (gNorm.empty() || gNorm.front().empty())
+    return 0.0;
+
+  const Vector& fNorm = gNorm.front();
+  if (adaptor < 1 && fNorm.size() > 2)
+    return fNorm(3); // Using the analytical solution, |u|_ref = |u|
+  else if (adaptor >= gNorm.size() || gNorm[adaptor].size() < 3)
+    return -(double)adaptor; // Norm group index is out of range
+
+  // |u|_ref = sqrt( |u^h|^2 + |e^*|^2 )
+  return hypot(fNorm(1),gNorm[adaptor](2));
+}

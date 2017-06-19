@@ -163,13 +163,17 @@ bool AdaptiveSIM::initAdaptor (size_t indxProj)
 
   IFEM::cout <<"\n\n >>> Starting adaptive simulation based on";
   if (pit != opt.project.end())
+  {
     IFEM::cout <<"\n     "<< pit->second
                <<" error estimates (norm group "<< adaptor
                <<") <<<"<< std::endl;
+    if (!adNorm) adNorm = 2; // Use norm 2, unless specified
+  }
   else if (model.haveAnaSol())
   {
     IFEM::cout <<" exact errors <<<"<< std::endl;
     adaptor = 0; // Assuming the exact errors are stored in the first group
+    if (!adNorm) adNorm = 4; // Use norm 4, unless specified
   }
   else
   {
@@ -264,22 +268,12 @@ bool AdaptiveSIM::adaptMesh (int iStep)
     return false;
 
   // Define the reference norm
-  double refNorm;
-  const Vector& fNorm = gNorm.front();
-  const Vector& aNorm = gNorm[adaptor];
-  if (adaptor == 0)
-    refNorm = fNorm(3); // Using the analytical solution, |u|_ref = |u|
-  else // |u|_ref = sqrt( |u^h|^2 + |e^*|^2 )
-    refNorm = sqrt(fNorm(1)*fNorm(1) + aNorm(2)*aNorm(2));
-
-  // Use norm 4 when adapting on exact errors,
-  // otherwise use norm 2 unless specified
-  if (!adNorm)
-    adNorm = (adaptor == 0 ? 4 : 2);
+  double refNorm = 0.01*model.getReferenceNorm(gNorm,adaptor);
+  if (refNorm <= 0.0) return false;
 
   // Check if further refinement is required
   if (iStep > maxStep || model.getNoDOFs() > (size_t)maxDOFs) return false;
-  if (eNorm.cols() < 1 || 100.0*aNorm(adNorm) < errTol*refNorm) return false;
+  if (eNorm.cols() < 1 || gNorm[adaptor](adNorm) < errTol*refNorm) return false;
 
   // Calculate row index in eNorm of the error norm to adapt based on
   size_t i, eRow = adNorm;
@@ -411,27 +405,24 @@ void AdaptiveSIM::printNorms (size_t w) const
   model.printNorms(gNorm,w);
 
   // Print out the norm used for mesh adaptation
-  size_t i, eRow = 4;
+  size_t i, eRow = adNorm;
   if (adaptor > 0 && adaptor < gNorm.size())
   {
     NormBase* norm = model.getNormIntegrand();
 
     const Vector& fNorm = gNorm.front();
     const Vector& aNorm = gNorm[adaptor];
-
-    // Define the reference norm, |u|_ref = sqrt( |u^h|^2 + |e^*|^2 )
-    double refNorm = sqrt(fNorm(1)*fNorm(1) + aNorm(2)*aNorm(2));
-
-    size_t g = adaptor+1;
     IFEM::cout <<"\nError estimate"
-               << utl::adjustRight(w-14,norm->getName(g,2)) << aNorm(2)
+               << utl::adjustRight(w-14,norm->getName(adaptor+1,adNorm))
+               << aNorm(adNorm)
                <<"\nRelative error (%) : "
-               << 100.0*aNorm(2)/refNorm;
-    if (model.haveAnaSol() && fNorm.size() > 3)
+               << 100.0*aNorm(adNorm)/model.getReferenceNorm(gNorm,adaptor);
+    if (model.haveAnaSol() && fNorm.size() > 3 && adNorm == 2)
       IFEM::cout <<"\nEffectivity index  : "<< aNorm(2)/fNorm(4);
     IFEM::cout <<"\n"<< std::endl;
 
-    for (i = 0, eRow = 2; i < adaptor; i++)
+    // Calculate the row-index for the corresponding element norms
+    for (i = 0; i < adaptor; i++)
       eRow += norm->getNoFields(i+1);
 
     delete norm;
