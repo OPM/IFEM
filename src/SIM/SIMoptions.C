@@ -177,6 +177,9 @@ bool SIMoptions::parseOutputTag (const TiXmlElement* elem)
     }
   }
 
+  else if (!strcasecmp(elem->Value(),"residual"))
+    project[NONE] = "Pure residuals";
+
   return true;
 }
 
@@ -332,6 +335,8 @@ bool SIMoptions::parseProjectionMethod (const char* ptype, int version)
     project[QUASI] = "Quasi-interpolated";
   else if (!strcasecmp(ptype,"lsq"))
     project[LEASTSQ] = "Least-square projected";
+  else if (!strncasecmp(ptype,"residual",8))
+    project[NONE] = "Pure residuals";
   else
     return false;
 
@@ -375,11 +380,18 @@ utl::LogStream& SIMoptions::print (utl::LogStream& os, bool addBlankLine) const
   default: break;
   }
 
-  if (!project.empty()) {
+  std::vector<std::string> projections;
+  for (const auto& prj : project)
+    if (prj.first == NONE)
+      os <<"\nPure residual error estimates enabled";
+    else
+      projections.push_back(prj.second);
+
+  if (!projections.empty()) {
     ProjectionMap::const_iterator it = project.begin();
-    os <<"\nEnabled projection(s): "<< it->second;
-    for (++it; it != project.end(); ++it)
-      os <<"\n                       "<< it->second;
+    os <<"\nEnabled projection(s): "<< projections.front();
+    for (size_t i = 1; i < projections.size(); i++)
+      os <<"\n                       "<< projections[i];
   }
 
   if (format >= 0) {

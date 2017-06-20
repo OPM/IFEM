@@ -158,7 +158,7 @@ bool AdaptiveSIM::initAdaptor (size_t indxProj)
     adaptor = indxProj; // override value from XML input
 
   SIMoptions::ProjectionMap::const_iterator pit = opt.project.begin();
-  for (size_t j = 1; pit != opt.project.end(); pit++, j++)
+  for (size_t j = 1; pit != opt.project.end(); ++pit, j++)
     if (j == adaptor) break;
 
   IFEM::cout <<"\n\n >>> Starting adaptive simulation based on";
@@ -227,10 +227,12 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep, bool withRF)
   gNorm.clear();
 
   // Project the secondary solution onto the splines basis
+  size_t idx = 0;
   model.setMode(SIM::RECOVERY);
-  SIMoptions::ProjectionMap::const_iterator pit = opt.project.begin();
-  for (size_t i = 0; pit != opt.project.end(); i++, pit++)
-    if (!model.project(projs[i],solution.front(),pit->first))
+  for (const auto& prj : opt.project)
+    if (prj.first <= SIMoptions::NONE)
+      projs[idx++].clear(); // No projection for this norm group
+    else if (!model.project(projs[idx++],solution.front(),prj.first))
       return false;
 
   if (msgLevel > 1 && !projs.empty())
@@ -316,8 +318,8 @@ bool AdaptiveSIM::adaptMesh (int iStep)
     IntVec::const_iterator nit;
     for (i = 0; i < patch->getNoNodes(); i++) // Loop over basis functions
       errors.push_back(DblIdx(0.0,i));
-    for (i = 1, eit = patch->begin_elm(); eit < patch->end_elm(); eit++, i++)
-      for (nit = eit->begin(); nit < eit->end(); nit++)
+    for (i = 1, eit = patch->begin_elm(); eit < patch->end_elm(); ++eit, i++)
+      for (nit = eit->begin(); nit < eit->end(); ++nit)
         errors[*nit].first += eNorm(eRow,i);
   }
   else
@@ -480,7 +482,7 @@ bool AdaptiveSIM::writeGlv (const char* infile, int iStep)
 
   // Write projected solution fields
   SIMoptions::ProjectionMap::const_iterator pit = opt.project.begin();
-  for (size_t i = 0; i < projs.size(); i++, pit++)
+  for (size_t i = 0; i < projs.size(); i++, ++pit)
     if (!model.writeGlvP(projs[i],iStep,nBlock,100+10*i,pit->second.c_str()))
       return false;
 
