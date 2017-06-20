@@ -93,7 +93,7 @@ bool SIM2D::addConnection (int master, int slave, int mIdx,
 
     std::set<int> bases;
     if (basis == 0)
-      for (size_t b = 1; b <= myModel[lslave-1]->getNoBasis(); ++b)
+      for (size_t b = 1; b <= myModel[lslave-1]->getNoBasis(); b++)
         bases.insert(b);
     else
       bases = utl::getDigits(basis);
@@ -224,12 +224,11 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
     }
 
     // Second pass for C1-continuous patches, to set up additional constraints
-    std::vector<Interface>::const_iterator it;
-    for (it = top.begin(); it != top.end(); it++)
-      if (!it->slave.first->connectC1(it->slave.second,
-                                      it->master.first,
-                                      it->master.second,
-                                      it->reversed)) return false;
+    for (const Interface& iface : top)
+      if (!iface.slave.first->connectC1(iface.slave.second,
+                                        iface.master.first,
+                                        iface.master.second,
+                                        iface.reversed)) return false;
   }
 
   else if (!strcasecmp(elem->Value(),"periodic"))
@@ -247,8 +246,8 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
       return false;
     }
 
-    ASMs2D* pch;
-    if ((pch = dynamic_cast<ASMs2D*>(this->getPatch(patch,true))))
+    ASMs2D* pch = dynamic_cast<ASMs2D*>(this->getPatch(patch,true));
+    if (pch)
     {
       IFEM::cout <<"\tPeriodic "<< char('H'+pedir) <<"-direction P"<< patch
                  << std::endl;
@@ -257,6 +256,29 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
       // Cannot do multi-threaded assembly with periodicities
       omp_set_num_threads(1);
 #endif
+    }
+  }
+
+  else if (!strcasecmp(elem->Value(),"collapse"))
+  {
+    if (!this->createFEMmodel()) return false;
+
+    int patch = 0, edge = 1;
+    utl::getAttribute(elem,"patch",patch);
+    utl::getAttribute(elem,"edge",edge);
+
+    if (patch < 1 || patch > nGlPatches)
+    {
+      std::cerr <<" *** SIM2D::parse: Invalid patch index "
+                << patch << std::endl;
+      return false;
+    }
+
+    ASMs2D* pch = dynamic_cast<ASMs2D*>(this->getPatch(patch,true));
+    if (pch)
+    {
+      IFEM::cout <<"\tCollapsed edge P"<< patch <<" E"<< edge << std::endl;
+      pch->collapseEdge(edge);
     }
   }
 
@@ -509,12 +531,11 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
     }
 
     // Second pass for C1-continuous patches, to set up additional constraints
-    std::vector<Interface>::const_iterator it;
-    for (it = top.begin(); it != top.end(); it++)
-      if (!it->slave.first->connectC1(it->slave.second,
-				      it->master.first,
-				      it->master.second,
-				      it->reversed)) return false;
+    for (const Interface& iface : top)
+      if (!iface.slave.first->connectC1(iface.slave.second,
+                                        iface.master.first,
+                                        iface.master.second,
+                                        iface.reversed)) return false;
   }
 
   else if (!strncasecmp(keyWord,"PERIODIC",8))

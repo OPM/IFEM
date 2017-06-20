@@ -286,6 +286,11 @@ public:
   //! \param[in] master 1-based index of the first master node in this basis
   virtual void closeEdges(int dir, int basis = 0, int master = 1);
 
+  //! \brief Collapses a degenereated edge into a single node.
+  //! \param[in] dir Parameter direction defining the edge to collapse
+  //! \param[in] basis Which basis to connect (mixed methods), 0 means both
+  virtual bool collapseEdge(int dir, int basis = 0);
+
   //! \brief Sets the global node numbers for this patch.
   //! \param[in] nodes Vector of global node numbers (zero-based)
   virtual void setNodeNumbers(const std::vector<int>& nodes);

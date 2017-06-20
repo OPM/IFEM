@@ -644,7 +644,7 @@ bool ASMs2D::connectBasis (int edge, ASMs2D& neighbor, int nedge, bool revers,
   }
 
   const double xtol = 1.0e-4;
-  for (size_t i = 0; i < masterNodes.size(); ++i)
+  for (size_t i = 0; i < masterNodes.size(); i++)
   {
     int node = masterNodes[i];
     int slave = slaveNodes[revers ? slaveNodes.size()-i-1 : i];
@@ -684,6 +684,59 @@ void ASMs2D::closeEdges (int dir, int basis, int master)
 	this->makePeriodic(master,master+n1*(n2-1));
       break;
     }
+}
+
+
+bool ASMs2D::collapseEdge (int edge, int basis)
+{
+  int i, n1, n2, node, nnod, incn = 1, master = 1;
+  if (basis < 1) basis = 1;
+  for (i = 1; i <= basis; i++)
+    if (!this->getSize(n1,n2,i))
+      return false;
+    else if (i < basis)
+      master += n1*n2;
+
+  if (swapV) // Account for swapped parameter direction
+    if (edge > 2) edge = 7-edge;
+
+  switch (edge)
+    {
+    case 2: // Right edge (positive I-direction)
+      master += n1-1;
+    case 1: // Left edge (negative I-direction)
+      node = master + n1;
+      nnod = n2;
+      incn = n1;
+      break;
+
+    case 4: // Back edge (positive J-direction)
+      master += n1*(n2-1);
+    case 3: // Front edge (negative J-direction)
+      node = master + 1;
+      nnod = n1;
+      break;
+
+    default:
+      return false;
+    }
+
+  const double xtol = 1.0e-4;
+  Vec3 Xmaster = this->getCoord(master);
+  for (i = 2; i <= nnod; i++, node += incn)
+    if (this->getCoord(node).equal(Xmaster,xtol))
+      ASMbase::collapseNodes(*this,master,*this,node);
+    else
+    {
+      std::cerr <<" *** ASMs2D::collapseEdge: Not all nodes on the edge"
+                <<" are co-located\n                           "
+                << master <<": "<< Xmaster
+                <<"\n                       and "
+                << node <<": "<< this->getCoord(node) << std::endl;
+      return false;
+    }
+
+  return true;
 }
 
 
@@ -1276,7 +1329,7 @@ void ASMs2D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
       node += n1-thick;
     case 1: // Left edge (negative I-direction)
       for (int i2 = 1; i2 <= n2; i2++, node += n1)
-        for (int t = 0; t < thick; ++t)
+        for (int t = 0; t < thick; t++)
           nodes.push_back(local ? node+t : this->getNodeID(node+t));
       break;
 
@@ -1284,7 +1337,7 @@ void ASMs2D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
       node += n1*(n2-thick);
     case  3: // Front edge (negative J-direction)
       for (int i1 = 1; i1 <= n1; i1++, node++)
-        for (int t = 0; t < thick; ++t)
+        for (int t = 0; t < thick; t++)
           nodes.push_back(local ? node + t*n1 : this->getNodeID(node + t*n1));
       break;
     }
@@ -1607,6 +1660,7 @@ bool ASMs2D::integrate (Integrand& integrand,
 
               // Compute Jacobian inverse and derivatives
               fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+              if (fe.detJxW == 0.0) continue; // skip singular points
 
               // Cartesian coordinates of current integration point
               X = Xnod * fe.N;
@@ -2575,6 +2629,7 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
     // Compute the Jacobian inverse and derivatives
     fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xtmp,dNdu);
+    if (fe.detJxW == 0.0) continue; // skip singular points
 
     // Compute Hessian of coordinate mapping and 2nd order derivatives
     if (use2ndDer)
