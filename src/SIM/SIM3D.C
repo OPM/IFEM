@@ -56,6 +56,10 @@ bool SIM3D::addConnection (int master, int slave, int mIdx,
     return false;
   }
 
+  adm.dd.ghostConnections.insert(DomainDecomposition::Interface{master, slave,
+                                                                mIdx, sIdx, orient,
+                                                                dim, basis, thick});
+
   int lmaster = this->getLocalPatchIndex(master);
   int lslave = this->getLocalPatchIndex(slave);
   if (lmaster > 0 && lslave > 0)
@@ -80,10 +84,6 @@ bool SIM3D::addConnection (int master, int slave, int mIdx,
       if (!spch->connectPatch(sIdx,*mpch,mIdx,orient,b,coordCheck,thick))
         return false;
   }
-  else
-    adm.dd.ghostConnections.insert(DomainDecomposition::Interface{master, slave,
-                                                                  mIdx, sIdx, orient,
-                                                                  dim, basis, thick});
 
   return true;
 }
