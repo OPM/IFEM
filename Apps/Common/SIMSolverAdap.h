@@ -67,7 +67,6 @@ protected:
     return this->SIMSolver<T1>::parse(elem) && aSim.parse(elem);
   }
 
-private:
   AdaptiveSIM aSim; //!< Adaptive simulation driver
 };
 

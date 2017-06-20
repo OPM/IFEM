@@ -36,9 +36,11 @@ public:
   //! \brief Empty destructor.
   virtual ~AdaptiveSIM() {}
 
-  //! \brief Sets the index to the norm group to base the mesh adaptation on.
-  //! \param[in] indxProj Index to projection method to base mesh adaptation on
-  bool initAdaptor(size_t indxProj = 0);
+  //! \brief Sets the norm group/index of the norm to base mesh adaptation on.
+  void setAdaptationNorm(size_t normGroup, size_t normIdx = 0);
+  //! \brief Initializes the \a projs and \a prefix arrays.
+  //! \param[in] normGroup Index to the norm group to base mesh adaptation on
+  bool initAdaptor(size_t normGroup = 0);
 
   //! \brief Assembles and solves the linear FE equations on current mesh.
   //! \param[in] inputfile File to read model parameters from after refinement

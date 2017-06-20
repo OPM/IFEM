@@ -88,7 +88,10 @@ bool AdaptiveSIM::parse (const TiXmlElement* elem)
       IFEM::cout <<"\tRefinement scheme: "<< scheme << std::endl;
     }
     else if ((value = utl::getValue(child,"use_norm")))
+    {
       adaptor = atoi(value);
+      utl::getAttribute(child, "index", adNorm);
+    }
     else if ((value = utl::getValue(child,"use_sub_norm")))
       adNorm = atoi(value);
     else if ((value = utl::getValue(child,"beta"))) {
@@ -152,10 +155,17 @@ bool AdaptiveSIM::parse (char* keyWord, std::istream& is)
 }
 
 
-bool AdaptiveSIM::initAdaptor (size_t indxProj)
+void AdaptiveSIM::setAdaptationNorm (size_t normGroup, size_t normIdx)
 {
-  if (indxProj > 0)
-    adaptor = indxProj; // override value from XML input
+  adaptor = normGroup;
+  adNorm  = normIdx;
+}
+
+
+bool AdaptiveSIM::initAdaptor (size_t normGroup)
+{
+  if (normGroup > 0)
+    adaptor = normGroup; // override value from XML input
 
   SIMoptions::ProjectionMap::const_iterator pit = opt.project.begin();
   for (size_t j = 1; pit != opt.project.end(); ++pit, j++)
