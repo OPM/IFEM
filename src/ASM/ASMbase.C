@@ -122,8 +122,8 @@ ASMbase::ASMbase (const ASMbase& patch)
 
 ASMbase::~ASMbase ()
 {
-  for (MPCIter it = mpcs.begin(); it != mpcs.end(); it++)
-    delete *it;
+  for (MPC* mpc : mpcs)
+    delete mpc;
 }
 
 
@@ -148,11 +148,12 @@ void ASMbase::clear (bool retainGeometry)
     myMNPC.clear();
   }
   else // Don't erase the elements, but set them to have zero nodes
-    for (size_t i = 0; i < myMNPC.size(); i++) myMNPC[i].clear();
+    for (IntVec& mnpc : myMNPC)
+      mnpc.clear();
 
   // Erase the nodes, boundary conditions and multi-point constraints
-  for (MPCIter it = mpcs.begin(); it != mpcs.end(); it++)
-    delete *it;
+  for (MPC* mpc : mpcs)
+    delete mpc;
 
   myLMs.first = myLMs.second = 0;
   myLMTypes.clear();
@@ -217,8 +218,8 @@ bool ASMbase::addLagrangeMultipliers (size_t iel, const IntVec& mGLag,
     // Extend the element connectivity table
     if (iel > 0)
       myMNPC[iel-1].push_back(node);
-    else for (auto& it : myMNPC)
-      it.push_back(node);
+    else for (IntVec& mnpc : myMNPC)
+      mnpc.push_back(node);
   }
 
   return true;
@@ -406,7 +407,7 @@ bool ASMbase::addMPC (MPC*& mpc, int code, bool silence)
   {
     // Silently ignore MPC's on dofs that already are marked as FIXED
     delete mpc;
-    mpc = 0;
+    mpc = nullptr;
     return true;
   }
 
@@ -432,6 +433,7 @@ bool ASMbase::addMPC (MPC*& mpc, int code, bool silence)
 bool ASMbase::add2PC (int slave, int dir, int master, int code)
 {
   if (dir < 1 || dir > nf) return true;
+  if (slave == master) return true;
 
   MPC* cons = new MPC(slave,dir);
   bool stat = this->addMPC(cons,code,true);
@@ -447,14 +449,17 @@ bool ASMbase::add2PC (int slave, int dir, int master, int code)
 
 bool ASMbase::add3PC (int slave, int dir, int master1, int master2, int code)
 {
+  if (master1 == master2)
+    return this->add2PC(slave,dir,master1,code);
+
   if (dir < 1 || dir > nf) return true;
 
   MPC* cons = new MPC(slave,dir);
   bool stat = this->addMPC(cons,code,true);
   if (!cons) return stat;
 
-  cons->addMaster(master1,dir);
-  cons->addMaster(master2,dir);
+  if (master1 != slave) cons->addMaster(master1,dir);
+  if (master2 != slave) cons->addMaster(master2,dir);
 #if SP_DEBUG > 1
   std::cout <<"Added constraint: "<< *cons;
 #endif
@@ -498,8 +503,8 @@ void ASMbase::makePeriodic (size_t master, size_t slave, int dirs)
   if (dofs.size() == nf && *dofs.rbegin() == nf)
     // If all DOFs are going to be coupled, assign a common global node number
     ASMbase::collapseNodes(*this,master,*this,slave);
-  else for (std::set<int>::iterator it = dofs.begin(); it != dofs.end(); ++it)
-    this->addPeriodicity(master,slave,*it);
+  else for (int dof : dofs)
+    this->addPeriodicity(master,slave,dof);
 }
 
 
@@ -525,18 +530,17 @@ int ASMbase::prescribe (size_t inod, int dirs, int code)
   if (node < 1 || dirs < 1) return dirs;
 
   int ignoredDirs = 0;
-  std::set<int> dofs(utl::getDigits(dirs));
-  for (std::set<int>::const_iterator it = dofs.begin(); it != dofs.end(); ++it)
-    if (*it <= nf)
+  for (int dof : utl::getDigits(dirs))
+    if (dof <= nf)
     {
-      MPC* mpc = new MPC(node,*it);
+      MPC* mpc = new MPC(node,dof);
       if (!this->addMPC(mpc,code))
-        ignoredDirs = 10*ignoredDirs + *it;
+        ignoredDirs = 10*ignoredDirs + dof;
     }
     else
     {
-      ignoredDirs = 10*ignoredDirs + *it;
-      std::cerr <<"  ** ASMbase::prescribe: Ignoring invalid DOF code "<< *it
+      ignoredDirs = 10*ignoredDirs + dof;
+      std::cerr <<"  ** ASMbase::prescribe: Ignoring invalid DOF code "<< dof
                 << std::endl;
     }
 
@@ -583,10 +587,9 @@ int ASMbase::fix (size_t inod, int dirs)
 #endif
 
   int invalidDOFs = 0;
-  std::set<int> dofs(utl::getDigits(dirs));
-  for (std::set<int>::const_iterator it = dofs.begin(); it != dofs.end(); ++it)
-    if (*it <= nf)
-      switch (*it) {
+  for (int dof : utl::getDigits(dirs))
+    if (dof <= nf)
+      switch (dof) {
       case 1: bit->CX = 0; break;
       case 2: bit->CY = 0; break;
       case 3: bit->CZ = 0; break;
@@ -596,8 +599,8 @@ int ASMbase::fix (size_t inod, int dirs)
       }
     else
     {
-      invalidDOFs = 10*invalidDOFs + *it;
-      std::cerr <<"  ** ASMbase::fix: Ignoring invalid DOF code "<< *it
+      invalidDOFs = 10*invalidDOFs + dof;
+      std::cerr <<"  ** ASMbase::fix: Ignoring invalid DOF code "<< dof
                 << std::endl;
     }
 
@@ -623,23 +626,23 @@ void ASMbase::mergeAndGetAllMPCs (const ASMVec& model, MPCSet& allMPCs)
   // Resolve this such that allMPCs only contains the set of unique MPCs.
   int nmerged = 0;
   int ndeleted = 0;
-  for (ASMVec::const_iterator it = model.begin(); it != model.end(); it++)
+  for (ASMbase* pch : model)
   {
     std::pair<MPCIter,bool> ret;
     std::vector<MPC*> uniqueMPC;
-    uniqueMPC.reserve((*it)->getNoMPCs());
-    for (MPCIter cit = (*it)->begin_MPC(); cit != (*it)->end_MPC(); cit++)
-      if ((ret = allMPCs.insert(*cit)).second)
-	uniqueMPC.push_back(*cit);
+    uniqueMPC.reserve(pch->getNoMPCs());
+    for (MPC* mpc : pch->mpcs)
+      if ((ret = allMPCs.insert(mpc)).second)
+	uniqueMPC.push_back(mpc);
       else
       {
 	// Merge multiple constraint equations with common slave definition
 	if ((*ret.first)->getSlave().coeff == 0.0 &&
 	    (*ret.first)->getNoMaster() > 1 &&
-	    (*ret.first)->merge(*cit))
+	    (*ret.first)->merge(mpc))
 	{
 #if SP_DEBUG > 1
-	  std::cout <<"Merging constraint "<< **cit;
+	  std::cout <<"Merging constraint "<< *mpc;
 	  std::cout <<"Resulting constraint "<< **ret.first;
 #endif
 	  nmerged++;
@@ -650,19 +653,19 @@ void ASMbase::mergeAndGetAllMPCs (const ASMVec& model, MPCSet& allMPCs)
 	  // or a single-master constraint. Such MPCs are not to be merged but
 	  // should superseed any multi-master constraints with matching slave.
 #if SP_DEBUG > 1
-	  std::cout <<"Deleted constraint "<< **cit;
+	  std::cout <<"Deleted constraint "<< *mpc;
 #endif
 	  ndeleted++;
 	}
-	(*it)->dCode.erase(*cit);
-	delete *cit;
+	pch->dCode.erase(mpc);
+	delete mpc;
       }
 
-    if (uniqueMPC.size() < (*it)->getNoMPCs())
+    if (uniqueMPC.size() < pch->getNoMPCs())
     {
       // Compress the MPC set for this patch removing duplicated entries
-      (*it)->mpcs.clear();
-      (*it)->mpcs.insert(uniqueMPC.begin(),uniqueMPC.end());
+      pch->mpcs.clear();
+      pch->mpcs.insert(uniqueMPC.begin(),uniqueMPC.end());
     }
   }
 
@@ -674,7 +677,7 @@ void ASMbase::mergeAndGetAllMPCs (const ASMVec& model, MPCSet& allMPCs)
 #if SP_DEBUG > 1
   if (allMPCs.empty()) return;
   std::cout <<"\nMulti-point constraints:\n";
-  for (MPCIter c = allMPCs.begin(); c != allMPCs.end(); c++) std::cout << **c;
+  for (const MPC* mpc : allMPCs) std::cout << *mpc;
 #endif
 }
 
@@ -694,20 +697,20 @@ void ASMbase::resolveMPCchains (const MPCSet& allMPCs, bool setPtrOnly)
 {
 #if SP_DEBUG > 1
   std::cout <<"\nResolving MPC chains"<< std::endl;
-  for (MPCIter c = allMPCs.begin(); c != allMPCs.end(); c++) std::cout << **c;
+  for (MPC* mpc : allMPCs) std::cout << *mpc;
 #endif
 
   int nresolved = 0;
-  for (MPCIter cit = allMPCs.begin(); cit != allMPCs.end(); cit++)
+  for (MPC* mpc : allMPCs)
     if (setPtrOnly)
-      for (size_t i = 0; i < (*cit)->getNoMaster(); i++)
+      for (size_t i = 0; i < mpc->getNoMaster(); i++)
       {
-        MPC master((*cit)->getMaster(i).node,(*cit)->getMaster(i).dof);
+        MPC master(mpc->getMaster(i).node,mpc->getMaster(i).dof);
         MPCIter chain = allMPCs.find(&master);
         if (chain != allMPCs.end())
-          (*cit)->updateMaster(i,*chain); // Set pointer to next MPC in chain
+          mpc->updateMaster(i,*chain); // Set pointer to next MPC in chain
       }
-    else if (ASMbase::resolveMPCchain(allMPCs,*cit))
+    else if (ASMbase::resolveMPCchain(allMPCs,mpc))
       nresolved++;
 
   if (nresolved > 0)
@@ -774,7 +777,7 @@ bool ASMbase::hasTimeDependentDirichlet (const std::map<int,RealFunc*>& func,
 {
   std::map<int,RealFunc*>::const_iterator fit;
   std::map<int,VecFunc*>::const_iterator vfit;
-  for (MPCMap::iterator cit = dCode.begin(); cit != dCode.end(); cit++)
+  for (MPCMap::iterator cit = dCode.begin(); cit != dCode.end(); ++cit)
     if ((fit = func.find(cit->second)) != func.end())
     {
       if (!fit->second->isConstant())
@@ -796,7 +799,7 @@ bool ASMbase::updateDirichlet (const std::map<int,RealFunc*>& func,
 {
   std::map<int,RealFunc*>::const_iterator fit;
   std::map<int,VecFunc*>::const_iterator vfit;
-  for (MPCMap::iterator cit = dCode.begin(); cit != dCode.end(); cit++)
+  for (MPCMap::iterator cit = dCode.begin(); cit != dCode.end(); ++cit)
   {
     size_t inod = this->getNodeIndex(cit->first->getSlave().node);
     if (inod < 1)
@@ -886,8 +889,8 @@ bool ASMbase::mergeNodes (size_t inod, int globalNum, bool silence)
 
   std::map<int,int> old2New;
   myMLGN[inod-1] = old2New[oldNum] = globalNum;
-  for (ASMVec::iterator it = neighbors.begin(); it != neighbors.end(); ++it)
-    (*it)->renumberNodes(old2New,true);
+  for (ASMbase* pch : neighbors)
+    pch->renumberNodes(old2New,true);
 
   return this->renumberNodes(old2New);
 }
@@ -895,16 +898,14 @@ bool ASMbase::mergeNodes (size_t inod, int globalNum, bool silence)
 
 int ASMbase::renumberNodes (const ASMVec& model, std::map<int,int>& old2new)
 {
-  ASMVec::const_iterator it;
-  std::map<int,int>::iterator nit;
-
-  for (it = model.begin(); it != model.end(); it++)
-    if (!(*it)->shareFE)
-      for (size_t i = 0; i < (*it)->myMLGN.size(); i++)
-        old2new[(*it)->myMLGN[i]] = (*it)->myMLGN[i];
+  for (const ASMbase* pch : model)
+    if (!pch->shareFE)
+      for (int n : pch->myMLGN)
+        old2new[n] = n;
 
   int n, renum = 0;
-  for (n = 1, nit = old2new.begin(); nit != old2new.end(); nit++, n++)
+  std::map<int,int>::iterator nit;
+  for (n = 1, nit = old2new.begin(); nit != old2new.end(); n++, ++nit)
     if (nit->second > n)
     {
       nit->second = n;
@@ -912,9 +913,9 @@ int ASMbase::renumberNodes (const ASMVec& model, std::map<int,int>& old2new)
     }
 
   if (renum > 0)
-    for (it = model.begin(); it != model.end(); it++)
-      for (size_t i = 0; i < (*it)->myMLGN.size(); i++)
-	utl::renumber((*it)->myMLGN[i],old2new);
+    for (ASMbase* pch : model)
+      for (int& node : pch->myMLGN)
+        utl::renumber(node,old2new);
 
   return renum;
 }
@@ -925,8 +926,8 @@ int ASMbase::renumberNodes (std::map<int,int>& old2new, int& nNod)
   if (shareFE) return 0;
 
   int renum = 0;
-  for (size_t j = 0; j < myMLGN.size(); j++)
-    if (utl::renumber(myMLGN[j],nNod,old2new))
+  for (int& node : myMLGN)
+    if (utl::renumber(node,nNod,old2new))
       renum++;
 
   if (renum == 0)
@@ -946,24 +947,24 @@ bool ASMbase::renumberNodes (const std::map<int,int>& old2new, bool renumNodes)
 
   int invalid = 0;
   if (renumNodes)
-    for (size_t j = 0; j < myMLGN.size(); j++)
-      if (!utl::renumber(myMLGN[j],old2new,printInvalidNodes))
+    for (int& node : myMLGN)
+      if (!utl::renumber(node,old2new,printInvalidNodes))
 	if (old2new.size() > 1)
 	  invalid++;
 
   for (BCVec::iterator bit = BCode.begin(); bit != BCode.end();)
     if (utl::renumber(bit->node,old2new,printInvalidNodes))
-      bit++;
+      ++bit;
     else if (old2new.size() > 1)
     {
       bit = BCode.erase(bit);
       invalid++;
     }
     else
-      bit++;
+      ++bit;
 
-  for (MPCIter mit = mpcs.begin(); mit != mpcs.end(); mit++)
-    invalid += (*mit)->renumberNodes(old2new,printInvalidNodes);
+  for (MPC* mpc : mpcs)
+    invalid += mpc->renumberNodes(old2new,printInvalidNodes);
 
   if (invalid == 0 || old2new.size() == 1) return true;
 
@@ -976,10 +977,10 @@ void ASMbase::extractElmRes (const Matrix& globRes, Matrix& elmRes) const
 {
   elmRes.resize(globRes.rows(),MLGE.size(),true);
 
-  size_t iel, ivel = 0;
-  for (iel = 0; iel < MLGE.size(); iel++)
-    if (MLGE[iel] > 0)
-      elmRes.fillColumn(++ivel,globRes.getColumn(MLGE[iel]));
+  size_t ivel = 0;
+  for (int iel : MLGE)
+    if (iel > 0)
+      elmRes.fillColumn(++ivel,globRes.getColumn(iel));
 
   elmRes.resize(globRes.rows(),ivel);
 }
@@ -996,9 +997,8 @@ bool ASMbase::extractNodalVec (const Vector& globRes, Vector& nodeVec,
   }
 
   nodeVec.reserve(nf*MLGN.size());
-  for (size_t i = 0; i < MLGN.size(); i++)
+  for (int inod : MLGN)
   {
-    int inod = MLGN[i];
     int idof = madof[inod-1] - 1;
     int jdof = madof[inod] - 1;
 #ifdef INDEX_CHECK
@@ -1029,12 +1029,11 @@ bool ASMbase::injectNodalVec (const Vector& nodeVec, Vector& globVec,
     return false;
   }
 
-  size_t ldof = 0;
+  size_t i = 0, ldof = 0;
   char bType = basis == 1 ? 'D' : 'P'+basis-2;
-  for (size_t i = 0; i < MLGN.size(); i++)
-    if (basis == 0 || this->getNodeType(i+1) == bType)
+  for (int inod : MLGN)
+    if (basis == 0 || this->getNodeType(++i) == bType)
     {
-      int inod = MLGN[i];
       int idof = madof[inod-1] - 1;
       int ndof = madof[inod] - 1 - idof;
 #ifdef INDEX_CHECK
