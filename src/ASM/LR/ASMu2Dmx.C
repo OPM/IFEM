@@ -35,6 +35,7 @@
 #include "Vec3.h"
 
 #include <array>
+#include <fstream>
 #include <numeric>
 
 
@@ -611,13 +612,32 @@ bool ASMu2Dmx::refine (const LR::RefineData& prm,
 {
   if (shareFE) return true;
 
+  auto&& storeMesh = [this, fName]()
+                     {
+                       for (size_t b = 1; b <= m_basis.size(); ++b) {
+                         std::stringstream str;
+                         str << "_basis" << b << "_" << fName;
+                         std::ofstream paramMeshFile("param"+str.str());
+                         this->getBasis(b)->writePostscriptMesh(paramMeshFile);
+                         std::ofstream physMeshFile("physical"+str.str());
+                         this->getBasis(b)->writePostscriptElements(physMeshFile);
+                         std::ofstream pdotFile("param_dot"+str.str());
+                         this->getBasis(b)->writePostscriptElements(pdotFile);
+                         std::ofstream physdotFile("physical_dot"+str.str());
+                         this->getBasis(b)->writePostscriptMeshWithControlPoints(physdotFile);
+                       }
+                     };
+
   char doRefine = 0;
   if (!prm.errors.empty())
     doRefine = 'E'; // Refine based on error indicators
   else if (!prm.elements.empty())
     doRefine = 'I'; // Refine the specified elements
-  else
+  else {
+    if (fName)
+      storeMesh();
     return true; // No refinement
+  }
 
   // which basis to refine
   size_t bas = (ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS2 ||
@@ -706,6 +726,9 @@ bool ASMu2Dmx::refine (const LR::RefineData& prm,
       LR::contractControlPoints(m_basis[j].get(), sol[i], nfx[j], ofs);
       ofs += nfx[j]*nb[j];
     }
+
+  if (fName)
+    storeMesh();
 
 #ifdef SP_DEBUG
   std::cout <<"Refined mesh: ";
