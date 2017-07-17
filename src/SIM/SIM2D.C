@@ -141,7 +141,9 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
     {
       // Non-uniform (graded) refinement
       int dir = 1;
+      double scale = 1.0;
       utl::getAttribute(elem,"dir",dir);
+      utl::getAttribute(elem,"scale",scale);
       for (int j : patches)
         if ((pch = dynamic_cast<ASM2D*>(this->getPatch(j,true))))
         {
@@ -150,7 +152,7 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
           for (size_t i = 0; i < xi.size(); i++)
             IFEM::cout << (i%10 || xi.size() < 11 ? " " : "\n\t") << xi[i];
           IFEM::cout << std::endl;
-          pch->refine(dir-1,xi);
+          pch->refine(dir-1,xi,scale);
         }
     }
   }

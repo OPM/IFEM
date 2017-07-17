@@ -139,7 +139,8 @@ public:
   //! "REFINE" keyword in the input file.
   //! \param[in] dir Parameter direction to refine
   //! \param[in] xi Relative positions of added knots in each existing knot span
-  virtual bool refine(int dir, const RealArray& xi);
+  //! \param[in] scale Scaling factor for the added knot values
+  virtual bool refine(int dir, const RealArray& xi, double scale);
   //! \brief Refines the parametrization based on a mesh density function.
   //! \param[in] refC Mesh refinement criteria function
   //! \param[in] refTol Mesh refinement threshold

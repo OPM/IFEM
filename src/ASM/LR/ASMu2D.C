@@ -253,10 +253,11 @@ bool ASMu2D::uniformRefine (int dir, int nInsert)
   return true;
 }
 
-bool ASMu2D::refine (int dir, const RealArray& xi)
+
+bool ASMu2D::refine (int dir, const RealArray& xi, double scale)
 {
   if (!tensorspline || dir < 0 || dir > 1 || xi.empty()) return false;
-  if (xi.front() < 0.0 || xi.back() > 1.0) return false;
+  if (xi.front() < 0.0 || xi.back() > scale || scale < 1.0) return false;
   if (shareFE) return true;
 
   RealArray extraKnots;
@@ -270,7 +271,7 @@ bool ASMu2D::refine (int dir, const RealArray& xi)
         if (i > 0 && xi[i] < xi[i-1])
           return false;
         else
-          extraKnots.push_back(ucurr*xi[i] + uprev*(1.0-xi[i]));
+          extraKnots.push_back(ucurr*xi[i]/scale + uprev*(1.0-xi[i]/scale));
 
     uprev = ucurr;
   }

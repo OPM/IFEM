@@ -77,7 +77,9 @@ public:
   //! \brief Refines the parametrization by inserting extra knots.
   //! \param[in] dir Parameter direction to refine
   //! \param[in] xi Relative positions of added knots in each existing knot span
-  virtual bool refine(int dir, const std::vector<double>& xi) = 0;
+  //! \param[in] scale Scaling factor for the added knot values
+  virtual bool refine(int dir, const std::vector<double>& xi,
+                      double scale = 1.0) = 0;
 
   //! \brief Constrains all DOFs on a given boundary edge.
   //! \param[in] dir Parameter direction defining the edge to constrain

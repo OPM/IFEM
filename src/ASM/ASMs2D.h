@@ -213,7 +213,8 @@ public:
   //! \brief Refines the parametrization by inserting extra knots.
   //! \param[in] dir Parameter direction to refine
   //! \param[in] xi Relative positions of added knots in each existing knot span
-  bool refine(int dir, const RealArray& xi);
+  //! \param[in] scale Scaling factor for the added knot values
+  bool refine(int dir, const RealArray& xi, double scale = 1.0);
   //! \brief Refines the parametrization by inserting extra knots uniformly.
   //! \param[in] dir Parameter direction to refine
   //! \param[in] nInsert Number of extra knots to insert in each knot-span
