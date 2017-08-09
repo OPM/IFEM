@@ -1075,11 +1075,52 @@ bool SIMinput::refine (const LR::RefineData& prm,
         return false;
       }
 
-      if (!pch->refine(prm,sol,fName))
+      if (myModel.size() > 1) {
+        LR::RefineData prmloc(prm);
+        if (prm.errors.size() > 0 ) { // refinement by true_beta
+          size_t n = myModel[i]->getNoElms();
+          prmloc.errors.resize(n);
+          for (size_t j = 0; j < n; j++) {
+            int el = myModel[i]->getElmID(j+1)-1;
+            prmloc.errors[j] = prm.errors[el];
+          }
+        } else {
+          prmloc.elements.clear();
+          for (int it : prm.elements) {
+            int node = myModel[i]->getNodeIndex(it+1)-1;
+            if(node > 0)
+              prmloc.elements.push_back(node);
+          }
+        }
+        if (!pch->refine(prmloc,sol,fName))
+          return false;
+      } else if (!pch->refine(prm,sol,fName))
         return false;
 
       isRefined = true;
     }
+
+  // fix up refinement for boundaries
+  if (isRefined && myModel.size() > 1)
+  {
+    bool extraRefine = true;
+    do
+    {
+      extraRefine = false;
+      for (const ASM::Interface& it : myInterfaces)
+      {
+        int sidx = this->getLocalPatchIndex(it.slave);
+        int midx = this->getLocalPatchIndex(it.master);
+        ASMunstruct* pch = dynamic_cast<ASMunstruct*>(this->getPatch(midx));
+        ASMunstruct* spch = dynamic_cast<ASMunstruct*>(this->getPatch(sidx));
+        if (pch && spch)
+          extraRefine |= pch->matchNeighbour(spch, it.midx, it.sidx, it.orient);
+      }
+#ifdef HAVE_MPI
+      //for (const ASM::Interface& it : adm.dd.ghostConnections) // TODO
+#endif
+    } while (extraRefine);
+  }
 
   return isRefined;
 }

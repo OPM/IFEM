@@ -424,6 +424,14 @@ public:
   bool transferCntrlPtVars(const LR::LRSplineSurface* oldBasis,
                            RealArray& newVars, int nGauss) const;
 
+  //! \brief Match neighbours after refinement in multipatch models.
+  //! \param neigh Neigbouring patch
+  //! \param[in] midx Index of face/edge on this patch
+  //! \param[in] sidx  Index of face/edge on neighbour
+  //! \param[in] orient Orientation flag for connection
+  virtual bool matchNeighbour(ASMunstruct* neigh,
+                              int midx, int sidx, int orient);
+
 protected:
 
   // Internal utility methods
@@ -492,6 +500,10 @@ protected:
   void generateThreadGroups(const Integrand& integrand, bool silence,
                             bool ignoreGlobalLM);
 
+  //! \brief Remap element wise errors to basis functions.
+  //! \param     errors The remapped errors
+  //! \param[in] origErr The element wise errors on the geometry mesh
+  virtual void remapErrors(RealArray& errors, const RealArray& origErr) const;
 
 public:
   //! \brief Returns the number of elements on a boundary.

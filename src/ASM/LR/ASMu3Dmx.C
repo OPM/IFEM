@@ -769,3 +769,18 @@ Vec3 ASMu3Dmx::getCoord (size_t inod) const
   }
   return Vec3(&(*basis->cp()),nsd);
 }
+
+
+void ASMu3Dmx::remapErrors(RealArray& errors, const RealArray& origErr) const
+{
+  const LR::LRSplineVolume* basis = this->getBasis(1);
+  const LR::LRSplineVolume* geo = this->getBasis(ASMmxBase::geoBasis);
+
+  for (LR::Element* elm : basis->getAllElements()) {
+    int gEl = geo->getElementContaining((elm->umin()+elm->umax())/2.0,
+                                        (elm->vmin()+elm->vmax())/2.0,
+                                        (elm->wmin()+elm->wmax())/2.0) + 1;
+    for (LR::Basisfunction* b : elm->support())
+      errors[b->getId()] += origErr[gEl-1];
+  }
+}

@@ -15,6 +15,7 @@
 #include "SIMoutput.h"
 #include "SIMenums.h"
 #include "ASMunstruct.h"
+#include "ASMmxBase.h"
 #include "IntegrandBase.h"
 #include "Utilities.h"
 #include "IFEM.h"
@@ -181,9 +182,12 @@ bool AdaptiveSIM::initAdaptor (size_t normGroup)
   }
   else if (model.haveAnaSol())
   {
-    IFEM::cout <<" exact errors <<<"<< std::endl;
     adaptor = 0; // Assuming the exact errors are stored in the first group
     if (!adNorm) adNorm = 4; // Use norm 4, unless specified
+    IFEM::cout <<" exact errors ";
+    if (adNorm != 4)
+      IFEM::cout <<"(norm index " << adNorm << ") ";
+    IFEM::cout <<"<<<" << std::endl;
   }
   else
   {
@@ -310,9 +314,15 @@ bool AdaptiveSIM::adaptMesh (int iStep)
 
   if (threshold == TRUE_BETA)
   {
+    if (model.getNoPatches() > 1) {
+      std::cerr << "True beta refinement not available for multi-patch models\n";
+      return false;
+    }
     IFEM::cout <<"\nRefining by increasing solution space by "<< beta
                <<" percent."<< std::endl;
-    prm.errors = eNorm.getRow(eRow);
+    prm.errors.resize(model.getPatch(1)->getNoNodes(1));
+    static_cast<ASMunstruct*>(model.getPatch(1))->remapErrors(prm.errors,
+                                                              eNorm.getRow(eRow));
     if (!storeMesh)
       return model.refine(prm);
 
@@ -322,22 +332,43 @@ bool AdaptiveSIM::adaptMesh (int iStep)
   }
 
   std::vector<DblIdx> errors;
-  if (scheme == 2)
+  if (scheme == 2) // use errors per function
   {
-    // Sum up the total error over all supported elements for each function
-    ASMbase* patch = model.getPatch(1);
-    if (!patch) return false;
-    IntMat::const_iterator eit;
-    IntVec::const_iterator nit;
-    for (i = 0; i < patch->getNoNodes(); i++) // Loop over basis functions
+    errors.reserve(model.getNoNodes());
+    for (i = 0; i < model.getNoNodes(); i++)
       errors.push_back(DblIdx(0.0,i));
-    for (i = 1, eit = patch->begin_elm(); eit < patch->end_elm(); ++eit, i++)
-      for (nit = eit->begin(); nit < eit->end(); ++nit)
-        errors[*nit].first += eNorm(eRow,i);
+
+    for (ASMbase* patch : model.getFEModel()) {
+      if (!patch) return false;
+
+      size_t rBasis = 1; // TODO: make this non-hardcoded.
+      size_t nOfs = 0; // first node on refinement basis for patch
+      for (i = 1; i < rBasis; ++i)
+        nOfs += patch->getNoNodes(i);
+
+      // extract element norms for this patch
+      Vector locNorm(patch->getNoElms());
+      for (i = 1; i <= patch->getNoElms(); ++i)
+        locNorm(i) = eNorm(eRow, patch->getElmID(i));
+
+      // remap from geometry basis to refinement basis
+      Vector locErr(patch->getNoNodes(rBasis));
+      static_cast<ASMunstruct*>(patch)->remapErrors(locErr, locNorm);
+
+      // insert into global error array
+      for (i = 0; i < locErr.size(); ++i)
+        errors[patch->getNodeID(i+1+nOfs)-1].first += locErr[i];
+    }
   }
-  else
+  else { // use errors per element
+    if (model.getNoPatches() > 1) // not supported for multi-patch models
+    {
+      std::cerr << "Multi-patch refinement only available for isotropic_function\n";
+      return false;
+    }
     for (i = 0; i < eNorm.cols(); i++)
       errors.push_back(DblIdx(eNorm(eRow,1+i),i));
+  }
 
   // Sort the elements in the sequence of decreasing errors
   std::sort(errors.begin(),errors.end(),std::greater<DblIdx>());
@@ -367,7 +398,8 @@ bool AdaptiveSIM::adaptMesh (int iStep)
     refineSize = ceil(errors.size()*beta/100.0);
   else
     refineSize = std::upper_bound(errors.begin(), errors.end(),
-                                  DblIdx(limit,0), std::greater_equal<DblIdx>())
+                                  DblIdx(limit,0),
+                                  std::greater_equal<DblIdx>())
                - errors.begin();
 
   IFEM::cout <<"\nRefining "<< refineSize

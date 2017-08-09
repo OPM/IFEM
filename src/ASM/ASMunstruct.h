@@ -131,7 +131,21 @@ public:
   IntVec getFunctionsForElements(const IntVec& elements);
 
   //! \brief Sort basis functions based on local knot vectors.
-  static void Sort(int u, int v, int orient, std::vector<LR::Basisfunction*>& functions);
+  static void Sort(int u, int v, int orient,
+                   std::vector<LR::Basisfunction*>& functions);
+
+  //! \brief Remap element wise errors from geometry mesh to refinement mesh.
+  //! \param     errors The remapped errors
+  //! \param[in] origErr The element wise errors on the geometry mesh
+  virtual void remapErrors(RealArray& errors, const RealArray& origErr) const = 0;
+
+  //! \brief Match neighbours after refinement in multipatch models.
+  //! \param neigh Neigbouring patch
+  //! \param[in] midx Index of face/edge on this patch
+  //! \param[in] sidx  Index of face/edge on neighbour
+  //! \param[in] orient Orientation flag for connection
+  virtual bool matchNeighbour(ASMunstruct* neigh,
+                              int midx, int sidx, int orient) = 0;
 
 protected:
   LR::LRSpline* geo; //!< Pointer to the actual spline geometry object
