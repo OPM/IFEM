@@ -388,7 +388,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
 
 
     if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-      this->getElementCorners(iEl+1, fe.XC);
+      fe.h = this->getElementCorners(iEl+1, fe.XC);
 
     if (integrand.getIntegrandType() & Integrand::G_MATRIX)
     {
@@ -633,7 +633,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
     }
 
     if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-      this->getElementCorners(iEl+1,fe.XC);
+      fe.h = this->getElementCorners(iEl+1,fe.XC);
 
     if (integrand.getIntegrandType() & Integrand::G_MATRIX)
     {
