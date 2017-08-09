@@ -1242,7 +1242,7 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
   // Number of recovered solution components
   size_t i, nCmp = 0;
   for (i = 0; i < ssol.size() && nCmp == 0; i++)
-    nCmp = ssol[i].size() / mySam->getNoNodes();
+    nCmp = ssol[i].size() / this->getNoNodes(1);
 
 #ifdef USE_OPENMP
   // When assembling in parallel, we must always do the norm summation
@@ -1292,7 +1292,7 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
           if (ssol[k].empty())
             norm->getProjection(k).clear();
           else
-            pch->extractNodeVec(ssol[k],norm->getProjection(k),nCmp);
+            this->extractPatchSolution(ssol[k],norm->getProjection(k),lp-1,nCmp,1);
 	ok &= pch->integrate(*norm,globalNorm,time);
       }
       else
@@ -1308,7 +1308,7 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
         if (ssol[k].empty())
           norm->getProjection(k).clear();
         else
-          myModel[i]->extractNodeVec(ssol[k],norm->getProjection(k),nCmp);
+          this->extractPatchSolution(ssol[k],norm->getProjection(k),i,nCmp,1);
       ok &= myModel[i]->integrate(*norm,globalNorm,time);
       lp = i+1;
     }
@@ -1500,7 +1500,7 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
   ssol.clear();
 
   size_t i, j, n;
-  size_t ngNodes = mySam->getNoNodes();
+  size_t ngNodes = this->getNoNodes(1);
 
   Matrix values;
   Vector count(myModel.size() > 1 ? ngNodes : 0);
