@@ -325,7 +325,8 @@ bool NormBase::initElement (const std::vector<int>& MNPC,
                             const std::vector<size_t>& basis_sizes,
                             LocalIntegral& elmInt)
 {
-  return this->initProjection(MNPC,elmInt) &&
+  std::vector<int> MNPC1(MNPC.begin(), MNPC.begin()+elem_sizes.front());
+  return this->initProjection(MNPC1,elmInt) &&
          myProblem.initElement(MNPC,elem_sizes,basis_sizes,elmInt);
 }
 
