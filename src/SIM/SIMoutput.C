@@ -846,7 +846,7 @@ bool SIMoutput::writeGlvP (const Vector& ssol, int iStep, int& nBlock,
       IFEM::cout <<"Writing projected solution for patch "<< i+1 << std::endl;
 
     // Evaluate the solution variables at the visualization points
-    myModel[i]->extractNodeVec(ssol,lovec,sID.size());
+    this->extractPatchSolution(ssol,lovec,i,sID.size(),1);
     if (!myModel[i]->evalSolution(field,lovec,opt.nViz))
       return false;
 
