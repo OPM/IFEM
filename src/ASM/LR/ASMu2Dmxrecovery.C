@@ -136,25 +136,18 @@ bool ASMu2Dmx::assembleL2matrices (SparseMatrix& A, StdVector& B,
         }
 
         // Integrate the linear system A*x=B
-        size_t el_ofs = 0;
-        size_t eq_ofs = 0;
-        size_t nod_ofs = 1;
-        for (size_t b = 0; b < m_basis.size(); ++b) {
-          for (size_t ii = 0; ii < phi[b].size(); ii++)
+        size_t ncmp = sField.rows();
+        for (size_t ii = 0; ii < phi[0].size(); ii++)
+        {
+          int inod = MNPC[els[geoBasis-1]-1][ii];
+          for (size_t jj = 0; jj < phi[0].size(); jj++)
           {
-            int inod = MNPC[iel-1][ii+el_ofs]+1;
-            for (size_t jj = 0; jj < phi[b].size(); jj++)
-            {
-              int jnod = MNPC[iel-1][jj+el_ofs]+1;
-              for (size_t k=1;k<=nfx[b];++k)
-                A((inod-nod_ofs)*nfx[b]+k+eq_ofs,(jnod-nod_ofs)*nfx[b]+k+eq_ofs) += phi[b][ii]*phi[b][jj]*dJw;
-            }
-            for (size_t k=1;k<=nfx[b];++k)
-              B((inod-nod_ofs)*nfx[b]+k+eq_ofs) += phi[b][ii]*sField(k,ip+1)*dJw;
+            int jnod = MNPC[els[geoBasis-1]-1][jj];
+            for (size_t k = 1; k <= ncmp; ++k)
+              A(inod*ncmp+k, jnod*ncmp+k) += phi[0][ii]*phi[0][jj]*dJw;
           }
-          el_ofs += elem_sizes[b];
-          eq_ofs += nb[b]*nfx[b];
-          nod_ofs += nb[b];
+          for (size_t k = 1; k <= ncmp; ++k)
+            B(inod*ncmp+k) += phi[0][ii]*sField(k,ip+1)*dJw;
         }
       }
   }
@@ -173,7 +166,7 @@ bool ASMu2Dmx::globalL2projection (Matrix& sField,
   PROFILE2("ASMu2Dmx::globalL2");
 
   // Assemble the projection matrices
-  size_t nnod = std::inner_product(nb.begin(), nb.end(), nfx.begin(), 0);
+  size_t nnod = integrand.getNoFields(2)*nb[0];
   SparseMatrix A(SparseMatrix::SUPERLU);
   StdVector B(nnod);
   A.redim(nnod,nnod);
@@ -192,14 +185,12 @@ bool ASMu2Dmx::globalL2projection (Matrix& sField,
   if (!A.solve(B)) return false;
 
   // Store the control-point values of the projected field
-  sField.resize(*std::max_element(nfx.begin(), nfx.end()),
-                std::accumulate(nb.begin(), nb.end(), 0));
+  sField.resize(integrand.getNoFields(2), nb[0]);
 
-  size_t i, j, inod = 1, jnod = 1;
-  for (size_t b = 0; b < m_basis.size(); b++)
-    for (i = 1; i <= nb[b]; i++, inod++)
-      for (j = 1; j <= nfx[b]; j++, jnod++)
-        sField(j,inod) = B(jnod);
+  size_t inod = 1, jnod = 1;
+  for (size_t i = 1; i <= nb[0]; i++, inod++)
+    for (size_t j = 1; j <= integrand.getNoFields(2); j++, jnod++)
+      sField(j,inod) = B(jnod);
 
 #if SP_DEBUG > 1
   std::cout <<"- Solution Vector -"<< sField
