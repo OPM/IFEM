@@ -602,7 +602,8 @@ protected:
   //! \brief Adds a MADOF with an extraordinary number of DOFs on a given basis.
   //! \param[in] basis The basis to specify number of DOFs for
   //! \param[in] nndof Number of nodal DOFs on the given basis
-  bool addMADOF(unsigned char basis, unsigned char nndof);
+  //! \param[in] otherbasis If true, include other bases in madof
+  bool addMADOF(unsigned char basis, unsigned char nndof, bool otherbasis = true);
 
 private:
   //! \brief Returns an extraordinary MADOF array.

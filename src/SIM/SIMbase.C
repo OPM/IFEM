@@ -106,6 +106,7 @@ void SIMbase::clearProperties ()
   myTracs.clear();
   myProps.clear();
   myInts.clear();
+  mixedMADOFs.clear();
 }
 
 
@@ -1803,7 +1804,7 @@ bool SIMbase::setPatchMaterial (size_t patch)
 }
 
 
-bool SIMbase::addMADOF (unsigned char basis, unsigned char nndof)
+bool SIMbase::addMADOF (unsigned char basis, unsigned char nndof, bool otherbasis)
 {
   if (!mySam) return false;
 
@@ -1821,7 +1822,7 @@ bool SIMbase::addMADOF (unsigned char basis, unsigned char nndof)
       int n = myModel[i]->getNodeID(j+1);
       if (n > 0 && myModel[i]->getNodeType(j+1) == nType)
         madof[n] = nndof;
-      else if (n > 0)
+      else if (n > 0 && otherbasis)
         madof[n] = myModel[i]->getNodalDOFs(j+1);
     }
 
