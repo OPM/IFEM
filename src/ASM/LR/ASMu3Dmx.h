@@ -164,11 +164,15 @@ public:
   virtual bool refine(const LR::RefineData& prm, Vectors& sol,
                       const char* fName = nullptr);
 
+  //! \brief Remap (geometry) element wise errors to refinement basis functions.
+  //! \param     errors The remapped errors
+  //! \param[in] origErr The element wise errors on the geometry mesh
+  virtual void remapErrors(RealArray& errors, const RealArray& origErr) const;
+
 private:
   std::vector<std::shared_ptr<LR::LRSplineVolume>> m_basis; //!< Spline bases
   const std::vector<Matrices>& bezierExtract;   //!< Bezier extraction matrices
   std::vector<Matrices>        myBezierExtract; //!< Bezier extraction matrices
-
 };
 
 #endif

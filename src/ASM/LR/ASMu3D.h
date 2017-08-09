@@ -325,6 +325,11 @@ public:
   //! \brief Returns the spline volume representing the basis of this patch.
   virtual LR::LRSplineVolume* getBasis(int = 1) { return lrspline.get(); }
 
+  //! \brief Remap element wise errors to basis functions.
+  //! \param     errors The remapped errors
+  //! \param[in] origErr The element wise errors on the geometry mesh
+  virtual void remapErrors(RealArray& errors, const RealArray& origErr) const;
+
 private:
   //! \brief Struct representing an inhomogeneous Dirichlet boundary condition.
   struct DirichletFace
@@ -400,6 +405,14 @@ public:
   //! \param[in] ignoreGlobalLM If \e true ignore global multipliers in sanity check
   void generateThreadGroups(const Integrand& integrand, bool silence,
                             bool ignoreGlobalLM);
+
+  //! \brief Match neighbours after refinement in multipatch models.
+  //! \param neigh Neigbouring patch
+  //! \param[in] midx Index of face/edge on this patch
+  //! \param[in] sidx  Index of face/edge on neighbour
+  //! \param[in] orient Orientation flag for connection
+  virtual bool matchNeighbour(ASMunstruct* neigh,
+                              int midx, int sidx, int orient);
 
 protected:
 

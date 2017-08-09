@@ -715,7 +715,7 @@ bool ASMu2Dmx::refine (const LR::RefineData& prm,
                      {
                        for (size_t b = 1; b <= m_basis.size(); ++b) {
                          std::stringstream str;
-                         str << "_basis" << b << "_" << fName;
+                         str << "_patch" << idx << "_basis" << b << "_" << fName;
                          std::ofstream paramMeshFile("param"+str.str());
                          this->getBasis(b)->writePostscriptMesh(paramMeshFile);
                          std::ofstream physMeshFile("physical"+str.str());
@@ -790,7 +790,7 @@ bool ASMu2Dmx::refine (const LR::RefineData& prm,
     m_basis[bas]->refineElement(prm.elements);
 
   const std::vector<LR::Meshline*> lines = m_basis[bas]->getAllMeshlines();
-  for (auto line : lines)
+  for (const LR::Meshline* line : lines)
     for (size_t j = 0; j < m_basis.size(); ++j)
       if (j == bas)
         continue;
@@ -801,7 +801,7 @@ bool ASMu2Dmx::refine (const LR::RefineData& prm,
           int p = m_basis[bas]->order(line->span_u_line_ ? 1 : 0)-1;
           int k = p - line->multiplicity_;
           int q = m_basis[j]->order(line->span_u_line_ ? 1 : 0)-1;
-          mult = q-k;
+          mult = std::max(1,q-k);
         }
         if (line->span_u_line_)
           m_basis[j]->insert_const_v_edge(line->const_par_,
@@ -907,4 +907,18 @@ void ASMu2Dmx::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
   else
     for (size_t b = 1; b <= this->getNoBasis(); ++b)
       this->ASMu2D::getBoundaryNodes(lIndex, nodes, b, thick, orient, local);
+}
+
+
+void ASMu2Dmx::remapErrors(RealArray& errors, const RealArray& origErr) const
+{
+  const LR::LRSplineSurface* basis = this->getBasis(1);
+  const LR::LRSplineSurface* geo = this->getBasis(ASMmxBase::geoBasis);
+
+  for (const LR::Element* elm : basis->getAllElements()) {
+    int gEl = geo->getElementContaining((elm->umin()+elm->umax())/2.0,
+                                        (elm->vmin()+elm->vmax())/2.0) + 1;
+    for (const LR::Basisfunction* b : elm->support())
+      errors[b->getId()] += origErr[gEl-1];
+  }
 }
