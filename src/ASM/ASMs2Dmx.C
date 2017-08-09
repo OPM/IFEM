@@ -567,7 +567,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
         }
 
         if (useElmVtx)
-          this->getElementCorners(i1-1,i2-1,fe.XC);
+          fe.h = this->getElementCorners(i1-1,i2-1,fe.XC);
 
         if (integrand.getIntegrandType() & Integrand::G_MATRIX)
         {
@@ -759,7 +759,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
       if (!this->getElementCoordinates(Xnod,iel)) return false;
 
       if (useElmVtx)
-        this->getElementCorners(i1-1,i2-1,fe.XC);
+        fe.h = this->getElementCorners(i1-1,i2-1,fe.XC);
 
       // Initialize element quantities
       LocalIntegral* A = integrand.getLocalIntegral(elem_sizes,fe.iel,true);
