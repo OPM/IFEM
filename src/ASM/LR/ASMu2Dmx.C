@@ -260,6 +260,7 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
   const double* xg = GaussQuadrature::getCoord(nGauss);
   const double* wg = GaussQuadrature::getWeight(nGauss);
   if (!xg || !wg) return false;
+  bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
 
   // === Assembly loop over all elements in the patch ==========================
   bool ok = true;
@@ -288,7 +289,8 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
       std::vector<Matrix> dNxdu(m_basis.size());
       Matrix   Xnod, Jac;
       Vec4     X;
-
+      std::vector<Matrix3D> d2Nxdu2(m_basis.size());
+      Matrix3D Hess;
 
       // Get element area in the parameter space
       double dA = this->getParametricArea(geoEl);
@@ -339,11 +341,18 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
           fe.v = gpar[1][j];
 
           // Compute basis function derivatives at current integration point
-          std::vector<Go::BasisDerivsSf> splinex(m_basis.size());
-          for (size_t b=0; b < m_basis.size(); ++b) {
-            m_basis[b]->computeBasis(fe.u, fe.v, splinex[b], els[b]-1);
-            SplineUtils::extractBasis(splinex[b],fe.basis(b+1),dNxdu[b]);
-          }
+          if (use2ndDer)
+            for (size_t b = 0; b < m_basis.size(); ++b) {
+              Go::BasisDerivsSf2 spline;
+              m_basis[b]->computeBasis(fe.u,fe.v,spline,els[b]-1);
+              SplineUtils::extractBasis(spline,fe.basis(b+1),dNxdu[b],d2Nxdu2[b]);
+            }
+          else
+            for (size_t b=0; b < m_basis.size(); ++b) {
+              Go::BasisDerivsSf spline;
+              m_basis[b]->computeBasis(fe.u, fe.v, spline, els[b]-1);
+              SplineUtils::extractBasis(spline,fe.basis(b+1),dNxdu[b]);
+            }
 
           // Compute Jacobian inverse of coordinate mapping and derivatives
           // basis function derivatives w.r.t. Cartesian coordinates
@@ -352,6 +361,18 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
           for (size_t b = 0; b < m_basis.size(); ++b)
             if (b != (size_t)geoBasis-1)
               fe.grad(b+1).multiply(dNxdu[b],Jac);
+
+          // Compute Hessian of coordinate mapping and 2nd order derivatives
+          if (use2ndDer) {
+            if (!utl::Hessian(Hess,fe.hess(geoBasis),Jac,Xnod,
+                              d2Nxdu2[geoBasis-1],fe.grad(geoBasis),true))
+              ok = false;
+
+            for (size_t b = 0; b < m_basis.size() && ok; ++b)
+              if ((int)b != geoBasis)
+                utl::Hessian(Hess,fe.hess(b+1),Jac,Xnod,
+                             d2Nxdu2[b],fe.grad(b+1),false);
+          }
 
           // Cartesian coordinates of current integration point
           X = Xnod * fe.basis(geoBasis);
