@@ -71,9 +71,9 @@ bool LRSplineFields2Dmx::valueFE (const FiniteElement& fe, Vector& vals) const
 
     size_t i = 1;
     Vector Vnod(elm->nBasisFunctions());
-    for (auto it  = elm->constSupportBegin();
-        it != elm->constSupportEnd(); ++it, ++i)
-      Vnod(i) = values((*it)->getId()+ofs+1);
+    for (auto eit  = elm->constSupportBegin();
+              eit != elm->constSupportEnd(); ++eit, ++i)
+      Vnod(i) = values((*eit)->getId()+ofs+1);
 
     *rit++ = Vnod.dot(spline.basisValues);
     ofs += surf->getNoNodes(it);
@@ -140,9 +140,9 @@ bool LRSplineFields2Dmx::gradFE (const FiniteElement& fe, Matrix& grad) const
 
     size_t i = 1;
     Matrix Vnod(nbf,1);
-    for (auto it  = elm->constSupportBegin();
-        it != elm->constSupportEnd(); ++it, ++i)
-      Vnod(i,1) = values((*it)->getId()+ofs+1);
+    for (auto eit  = elm->constSupportBegin();
+              eit != elm->constSupportEnd(); ++eit, ++i)
+      Vnod(i,1) = values((*eit)->getId()+ofs+1);
 
     Matrix grad2;
     grad2.multiply(Vnod,dNdX); // grad = Xnod * dNdX
