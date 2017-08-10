@@ -808,7 +808,7 @@ size_t ASMu3D::getNoBoundaryElms (char lIndex, char ldim) const
 void ASMu3D::getGaussPointParameters (RealArray& uGP, int dir, int nGauss,
                                       int iEl, const double* xi) const
 {
-  LR::Element* el = lrspline->getElement(iEl);
+  LR::Element* el = lrspline->getElement(iEl-1);
   double start = el->getParmin(dir);
   double stop  = el->getParmax(dir);
 
@@ -820,7 +820,7 @@ void ASMu3D::getGaussPointParameters (RealArray& uGP, int dir, int nGauss,
 
 double ASMu3D::getElementCorners (int iEl, Vec3Vec& XC) const
 {
-  LR::Element* el = lrspline->getElement(iEl);
+  LR::Element* el = lrspline->getElement(iEl-1);
   double u[2] = { el->getParmin(0), el->getParmax(0) };
   double v[2] = { el->getParmin(1), el->getParmax(1) };
   double w[2] = { el->getParmin(2), el->getParmax(2) };
@@ -833,7 +833,7 @@ double ASMu3D::getElementCorners (int iEl, Vec3Vec& XC) const
     for (int j = 0; j < 2; j++)
       for (int i = 0; i < 2; i++)
       {
-        lrspline->point(pt,u[i],v[j],w[k],iEl);
+        lrspline->point(pt,u[i],v[j],w[k],iEl-1);
         XC.push_back(SplineUtils::toVec3(pt));
       }
 
@@ -1038,14 +1038,14 @@ bool ASMu3D::integrate (Integrand& integrand,
       std::array<RealArray,3> gpar, redpar;
       for (int d = 0; d < 3; d++)
       {
-        this->getGaussPointParameters(gpar[d],d,nGauss,iEl,xg);
+        this->getGaussPointParameters(gpar[d],d,nGauss,iEl+1,xg);
         if (xr)
-          this->getGaussPointParameters(redpar[d],d,nRed,iEl,xr);
+          this->getGaussPointParameters(redpar[d],d,nRed,iEl+1,xr);
       }
 
 
       if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-        fe.h = this->getElementCorners(iEl,fe.XC);
+        fe.h = this->getElementCorners(iEl+1,fe.XC);
 
       if (integrand.getIntegrandType() & Integrand::G_MATRIX)
       {
@@ -1335,7 +1335,7 @@ bool ASMu3D::integrate (Integrand& integrand, int lIndex,
         gpar[d].fill(lrspline->endparam(d));
       }
       else
-        this->getGaussPointParameters(gpar[d],d,nGP,iEl,xg);
+        this->getGaussPointParameters(gpar[d],d,nGP,iEl+1,xg);
 
     fe.xi = fe.eta = fe.zeta = faceDir < 0 ? -1.0 : 1.0;
     fe.u = gpar[0](1);
@@ -1363,7 +1363,7 @@ bool ASMu3D::integrate (Integrand& integrand, int lIndex,
     }
 
     if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-      fe.h = this->getElementCorners(iEl,fe.XC);
+      fe.h = this->getElementCorners(iEl+1,fe.XC);
 
     if (integrand.getIntegrandType() & Integrand::G_MATRIX)
     {
@@ -1606,7 +1606,9 @@ bool ASMu3D::integrateEdge (Integrand& integrand, int lEdge,
     if (gpar[2].size() > 1) fe.w = gpar[2](i+1,i3-p3+1);
 
     // Fetch basis function derivatives at current integration point
+    fe.iel = iel;
     evaluateBasis(fe, dNdu);
+    fe.iel = MLGE[iel-1];
 
     // Compute basis function derivatives and the edge tang
     fe.detJxW = utl::Jacobian(Jac,tang,fe.dNdX,Xnod,dNdu,1+(lEdge-1)/4);

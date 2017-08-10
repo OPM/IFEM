@@ -68,7 +68,7 @@ public:
   virtual void clear(bool retainGeometry = false);
 
   //! \brief Returns a matrix with nodal coordinates for an element.
-  //! \param[in] iel Element index
+  //! \param[in] iel 1-based element index
   //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
   //! in one element
   virtual bool getElementCoordinates(Matrix& X, int iel) const;
@@ -432,7 +432,7 @@ protected:
   //! \param[out] uGP Parameter values in given direction for all points
   //! \param[in] dir Parameter direction (0,1,2)
   //! \param[in] nGauss Number of Gauss points along a knot-span
-  //! \param[in] iel Element index
+  //! \param[in] iel 1-based element index 
   //! \param[in] xi Dimensionless Gauss point coordinates [-1,1]
   //! \return The parameter value matrix casted into a one-dimensional vector
   void getGaussPointParameters(RealArray& uGP, int dir, int nGauss,
@@ -449,16 +449,16 @@ protected:
   bool getQuasiInterplParameters(RealArray& prm, int dir) const;
 
   //! \brief Returns the volume in the parameter space for an element.
-  //! \param[in] iel Element index
+  //! \param[in] iel 1-based element index
   double getParametricVolume(int iel) const;
 
   //! \brief Returns boundary face area in the parameter space for an element.
-  //! \param[in] iel Element index
+  //! \param[in] iel 1-based element index
   //! \param[in] dir Local face index of the boundary face
   double getParametricArea(int iel, int dir) const;
 
   //! \brief Computes the element corner coordinates.
-  //! \param[in] iel Element index
+  //! \param[in] iel 1-based element index
   //! \param[out] XC Coordinates of the element corners
   //! \return Characteristic element size
   double getElementCorners(int iel, std::vector<Vec3>& XC) const;

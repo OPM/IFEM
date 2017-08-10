@@ -512,7 +512,7 @@ bool ASMu3D::faceL2projection (const DirichletFace& edge,
         gpar[d].fill(lrspline->endparam(d));
       }
       else
-        this->getGaussPointParameters(gpar[d],d,nGauss,fe.iel-1,xg);
+        this->getGaussPointParameters(gpar[d],d,nGauss,fe.iel,xg);
 
     // Get element edge length in the parameter space
     double dA = this->getParametricArea(fe.iel,abs(faceDir));
