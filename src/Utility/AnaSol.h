@@ -65,7 +65,7 @@ public:
 
   //! \brief Constructor initializing the symmetric stress tensor field only.
   //! \param[in] sigma Symmetric stress tensor field
-  AnaSol(STensorFunc* sigma)
+  explicit AnaSol(STensorFunc* sigma)
     : vecSol(nullptr), vecSecSol(nullptr), stressSol(sigma) {}
 
   //! \brief Constructor initializing expression functions by parsing a stream.
@@ -121,6 +121,8 @@ public:
 
   //! \brief Returns the stress solution, if any.
   STensorFunc* getStressSol() const { return stressSol; }
+private:
+  AnaSol(const AnaSol&) = delete;
 };
 
 #endif

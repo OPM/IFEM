@@ -48,7 +48,7 @@ public:
   class SlaveOrder {
     public:
       //! \brief The constructor initializes the DomainDecomposition reference.
-      SlaveOrder(const DomainDecomposition& dd_) : dd(dd_) {}
+      explicit SlaveOrder(const DomainDecomposition& dd_) : dd(dd_) {}
       //! \brief Hide ill-formed default assignment operator.
       SlaveOrder& operator=(const SlaveOrder&) { return *this; }
       //! \brief Compare interfaces.
@@ -184,6 +184,7 @@ private:
                                                         size_t g1, size_t g2, size_t g3, size_t overlap);
 
 
+#ifdef HAVE_MPI
   //! \brief Setup equation numbers for all blocks on a boundary.
   //! \param sim Simulator with patches and linear solver block information
   //! \param pidx Patch index
@@ -207,6 +208,7 @@ private:
                         std::set<int>& cbasis,
                         const ASMbase* pch,
                         int dim, int lidx, int thick);
+#endif
 
   //! \brief Calculate the global node numbers for given finite element model.
   bool calcGlobalNodeNumbers(const ProcessAdm& adm, const SIMbase& sim);
@@ -235,12 +237,12 @@ private:
 
   std::vector<int> MLGN; //!< Process-local-to-global node numbers
   std::vector<BlockInfo> blocks; //!< Equation mappings for all matrix blocks.
-  int minDof; //!< First DOF we own
-  int maxDof; //!< Last DOF we own
-  int minNode; //!< First node we own
-  int maxNode; //!< Last node we own
+  int minDof = -1; //!< First DOF we own
+  int maxDof = -1; //!< Last DOF we own
+  int minNode = 1; //!< First node we own
+  int maxNode = 1; //!< Last node we own
 
-  const SAMpatch* sam; //!< The assembly handler the DD is constructed for.
+  const SAMpatch* sam = nullptr; //!< The assembly handler the DD is constructed for.
 };
 
 #endif

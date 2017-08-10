@@ -22,9 +22,9 @@ char ASMmxBase::geoBasis            = 2;
 ASMmxBase::MixedType ASMmxBase::Type = ASMmxBase::FULL_CONT_RAISE_BASIS1;
 
 
-ASMmxBase::ASMmxBase (const std::vector<unsigned char>& n_f)
+ASMmxBase::ASMmxBase (const std::vector<unsigned char>& n_f) :
+  nfx(n_f)
 {
-  nfx = n_f;
 }
 
 

@@ -26,7 +26,7 @@ class EigenModeSIM : public MultiStepSIM
 {
 public:
   //! \brief The constructor initializes the FE model reference.
-  EigenModeSIM(SIMbase& sim);
+  explicit EigenModeSIM(SIMbase& sim);
   //! \brief Empty destructor.
   virtual ~EigenModeSIM() {}
 

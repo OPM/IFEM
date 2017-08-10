@@ -53,7 +53,7 @@ bool ASMs2DTri::generateFEMTopology ()
   gEl += nquad;
 
   // Generate the triangular mesh topology
-  size_t i, j, iel;
+  size_t i, iel;
   for (iel = i = 0; iel < nel; i++, iel++)
   {
     myMNPC[iel].resize(3);
@@ -68,7 +68,7 @@ bool ASMs2DTri::generateFEMTopology ()
 
   // Convert to Union Jack pattern if even number of elements
   if (nx%2 == 1 && ny%2 == 1)
-    for (iel = j = 0; j+1 < ny; j++)
+    for (size_t j = iel = 0; j+1 < ny; j++)
       for (i = 0; i+1 < nx; i++, iel += 2)
         if (i%2 + j%2 == 1)
         {
@@ -319,7 +319,7 @@ bool ASMs2DTri::integrate (Integrand& integrand, int lIndex,
   if (!xg || !wg) return false;
 
   // Find the parametric direction of the edge normal {-2,-1, 1, 2}
-  const int edgeDir = (lIndex%10+1)/(lIndex%2 ? -2 : 2);
+  const int edgeDir = (lIndex%10+1)/((lIndex%2) ? -2 : 2);
 
   const int t1 = abs(edgeDir); // tangent direction normal to the patch edge
 

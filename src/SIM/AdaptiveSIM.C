@@ -54,10 +54,9 @@ bool AdaptiveSIM::parse (const TiXmlElement* elem)
   if (strcasecmp(elem->Value(),"adaptive"))
     return alone ? model.parse(elem) : true;
 
-  const char* value = nullptr;
   const TiXmlElement* child = elem->FirstChildElement();
-  for (; child; child = child->NextSiblingElement())
-
+  for (; child; child = child->NextSiblingElement()) {
+    const char* value;
     if ((value = utl::getValue(child,"maxstep")))
       maxStep = atoi(value);
     else if ((value = utl::getValue(child,"maxdof")))
@@ -111,6 +110,7 @@ bool AdaptiveSIM::parse (const TiXmlElement* elem)
       IFEM::cout <<"\tRefinement percentage: "<< beta <<" type="<< threshold
                  << std::endl;
     }
+  }
 
   return true;
 }

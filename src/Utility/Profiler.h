@@ -42,7 +42,7 @@ public:
   //! \details The constructor also updates the global static pointer
   //! utl::profiler to point to \a *this, deleting any already pointed-to
   //! object first. This means, only one Profiler object can exist at any time.
-  Profiler(const std::string& name);
+  explicit Profiler(const std::string& name);
   //! \brief The destructor prints the profiling report to the console.
   ~Profiler();
 
@@ -68,7 +68,8 @@ private:
     bool    running;   //!< Flag indicating if this task is currently running
 
     //! \brief The constructor initializes the total times to zero.
-    Profile() : nCalls(0), running(false) { totalCPU = totalWall = 0.0; }
+    Profile() : nCalls(0), running(false)
+    { totalCPU = totalWall = startWall = startCPU = 0.0; }
     //! \brief Checks if this profile item have any timing to report.
     bool haveTime() const { return totalCPU >= 0.005 || totalWall >= 0.005; }
   };
@@ -106,7 +107,7 @@ namespace utl
     const char* name; //!< Name tag on the local scope to profile
   public:
     //! \brief The constructor starts the profiling of the named task.
-    prof(const char* tag) : name(tag) { if (profiler) profiler->start(name); }
+    explicit prof(const char* tag) : name(tag) { if (profiler) profiler->start(name); }
     //! \brief The destructor stops the profiling.
     ~prof() { if (profiler) profiler->stop(name); }
   };

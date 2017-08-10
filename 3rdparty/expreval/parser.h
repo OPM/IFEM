@@ -75,7 +75,7 @@ namespace ExprEval
     public:
         typedef ::std::vector<Token*>::size_type size_type;
     
-        Parser(Expression *expr);
+        explicit Parser(Expression *expr);
         ~Parser();
                     
         Node *Parse(const ::std::string &exstr);

@@ -27,7 +27,7 @@ class ASMs3DLag : public ASMs3D
 {
 public:
   //! \brief Default constructor.
-  ASMs3DLag(unsigned char n_f = 3);
+  explicit ASMs3DLag(unsigned char n_f = 3);
   //! \brief Special copy constructor for sharing of FE data.
   ASMs3DLag(const ASMs3DLag& patch, unsigned char n_f);
   //! \brief Default copy constructor copying everything.

@@ -39,7 +39,7 @@ class PETScVector : public StdVector
 {
 public:
   //! \brief Constructor creating an empty vector.
-  PETScVector(const ProcessAdm& padm);
+  explicit PETScVector(const ProcessAdm& padm);
   //! \brief Constructor creating a vector of length \a n.
   PETScVector(const ProcessAdm& padm, size_t n);
   //! \brief Constructor creating a vector from an array.
@@ -163,9 +163,9 @@ public:
   virtual Real Linfnorm() const;
 
   //! \brief Returns the PETSc matrix (for assignment).
-  virtual Mat& getMatrix() { return A; }
+  virtual Mat& getMatrix() { return pA; }
   //! \brief Returns the PETSc matrix (for read access).
-  virtual const Mat& getMatrix() const { return A; }
+  virtual const Mat& getMatrix() const { return pA; }
 
   //! \brief Get vector of block matrices. Used for tests only.
   const std::vector<Mat>& getBlockMatrices() const { return matvec; }
@@ -182,7 +182,7 @@ protected:
   //! \brief Disabled copy constructor.
   PETScMatrix(const PETScMatrix& A) = delete;
 
-  Mat                 A;               //!< The actual PETSc matrix
+  Mat                 pA;              //!< The actual PETSc matrix
   KSP                 ksp;             //!< Linear equation solver
   MatNullSpace*       nsp;             //!< Null-space of linear operator
   const ProcessAdm&   adm;             //!< Process administrator

@@ -61,7 +61,7 @@ int SIMgeneric::evalPoint (const double* xi, Vec3& X, double* param,
   ASMbase* pch = this->getPatch(patch,true);
   if (!pch) return -1;
 
-  double dummy[3];
+  double dummy[3] {};
   int inod = pch->evalPoint(xi, param ? param : dummy, X);
   return inod > 0 && global ? pch->getNodeID(inod) : inod;
 }

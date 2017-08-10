@@ -69,11 +69,13 @@ int HDF5Writer::getLastTimeLevel ()
   if (m_flag == H5F_ACC_TRUNC)
     return -1;
 
-  hid_t acc_tpl = H5P_DEFAULT;
+  hid_t acc_tpl;
 #ifdef HAVE_MPI
   MPI_Info info = MPI_INFO_NULL;
   acc_tpl = H5Pcreate(H5P_FILE_ACCESS);
   H5Pset_fapl_mpio(acc_tpl, MPI_COMM_SELF, info);
+#else
+  acc_tpl = H5P_DEFAULT;
 #endif
 
   m_file = H5Fopen(m_name.c_str(),m_flag,acc_tpl);
@@ -101,11 +103,13 @@ void HDF5Writer::openFile(int level, bool restart)
     return;
   int file = 0;
 #ifdef HAS_HDF5
-  hid_t acc_tpl = H5P_DEFAULT;
+  hid_t acc_tpl;
 #ifdef HAVE_MPI
   MPI_Info info = MPI_INFO_NULL;
   acc_tpl = H5Pcreate(H5P_FILE_ACCESS);
   H5Pset_fapl_mpio(acc_tpl, *m_adm.getCommunicator(), info);
+#else
+  acc_tpl = H5P_DEFAULT;
 #endif
   unsigned int flag = restart ? m_restart_flag : m_flag;
   std::string fname = restart ? m_restart_name : m_name;
@@ -302,7 +306,7 @@ void HDF5Writer::writeVector(int level, const DataEntry& entry)
     if (!(entry.second.results & DataExporter::REDUNDANT) || rank == 0)
       writeArray(level,entry.first,vector->size(),vector->data(),H5T_NATIVE_DOUBLE);
     if ((entry.second.results & DataExporter::REDUNDANT) && rank != 0) {
-      double dummy;
+      double dummy=0.0;
       writeArray(group,entry.first,0,&dummy,H5T_NATIVE_DOUBLE);
     }
   } else if (entry.second.field == DataExporter::INTVECTOR) {
@@ -310,7 +314,7 @@ void HDF5Writer::writeVector(int level, const DataEntry& entry)
     if (!(entry.second.results & DataExporter::REDUNDANT) || rank == 0)
       writeArray(group,entry.first,data->size(),&data->front(),H5T_NATIVE_INT);
     if ((entry.second.results & DataExporter::REDUNDANT) && rank != 0) {
-      int dummy;
+      int dummy=0;
       writeArray(group,entry.first,0,&dummy,H5T_NATIVE_INT);
     }
   }
@@ -513,7 +517,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
     }
     else // must write empty dummy records for the other patches
     {
-      double dummy;
+      double dummy=0.0;
       if (abs(results) & DataExporter::PRIMARY) {
         if (entry.second.results < 0) {
           writeArray(group2, entry.second.description,
@@ -561,12 +565,6 @@ void HDF5Writer::writeKnotspan (int level, const DataEntry& entry,
   Matrix infield(1,sol->size());
   infield.fillRow(1,sol->ptr());
 
-  std::string basisname;
-  if (prefix.empty())
-    basisname = sim->getName()+"-1";
-  else
-    basisname = prefix+sim->getName()+"-1";
-
 #ifdef HAS_HDF5
   for (int i = 0; i < sim->getNoPatches(); ++i) {
     std::stringstream str;
@@ -588,7 +586,7 @@ void HDF5Writer::writeKnotspan (int level, const DataEntry& entry,
                  patchEnorm.getRow(1).ptr(),H5T_NATIVE_DOUBLE);
     }
     else { // must write empty dummy records for the other patches
-      double dummy;
+      double dummy=0.0;
       writeArray(group2,prefix+entry.second.description,0,&dummy,H5T_NATIVE_DOUBLE);
     }
 
@@ -633,7 +631,7 @@ void HDF5Writer::writeBasis (SIMbase* sim, const std::string& name,
       writeArray(group2, str2.str(), str.str().size(), str.str().c_str(),
                  H5T_NATIVE_CHAR);
     if (redundant && rank != 0) {
-      char dummy;
+      char dummy=0;
       writeArray(group2, str2.str(), 0, &dummy, H5T_NATIVE_CHAR);
     }
   }
@@ -707,7 +705,7 @@ void HDF5Writer::writeNodalForces(int level, const DataEntry& entry)
     }
     writeArray(group2,entry.first,results.size(),results.data(),H5T_NATIVE_DOUBLE);
   } else {
-    double dummy;
+    double dummy=0.0;
     writeArray(group2,entry.first,0,&dummy,H5T_NATIVE_DOUBLE);
   }
   H5Gclose(group2);
@@ -781,10 +779,12 @@ bool HDF5Writer::writeRestartData(int level, const DataExporter::SerializeData& 
     m_restart_flag = H5F_ACC_RDWR;
   openFile(level, true);
   int pid = 0;
-  int ptot = 1;
+  int ptot;
 #ifdef HAVE_MPI
   pid = m_adm.getProcId();
   ptot = m_adm.getNoProcs();
+#else
+  ptot = 1;
 #endif
   for (int p = 0; p < ptot; ++p) {
     for (auto& it : data) {

@@ -64,7 +64,7 @@ public:
     int  indxI;    //!< Running node index in the local I-direction
 
     //! \brief Default constructor.
-    BlockNodes() { iinod = inc[0] = inc[1] = 0; indxI = 1; }
+    BlockNodes()  : ibnod{} { iinod = inc[0] = inc[1] = 0; indxI = 1; nnodI = 0; }
     //! \brief Returns \a iinod which then is incremented.
     int next();
   };
@@ -91,7 +91,7 @@ protected:
     const ASMs2D& myPatch; //!< Reference to the patch being integrated
   public:
     //! \brief The constructor initialises the reference to current patch.
-    InterfaceChecker(const ASMs2D& pch) : myPatch(pch) {}
+    explicit InterfaceChecker(const ASMs2D& pch) : myPatch(pch) {}
     //! \brief Empty destructor.
     virtual ~InterfaceChecker() {}
     //! \brief Returns non-zero if the specified element have contributions.
@@ -632,7 +632,7 @@ protected:
   std::vector<DirichletEdge> dirich;
 
   //! Element groups for multi-threaded assembly
-  ThreadGroups threadGroups;
+  ThreadGroups threadGroups {};
 };
 
 #endif

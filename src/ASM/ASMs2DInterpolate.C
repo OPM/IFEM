@@ -327,26 +327,15 @@ quasiInterpolation(const Go::BsplineBasis& basis_u,
   q = basis_v.order()-1;
 
   std::vector<double> cv_coefs;
-  std::vector<double> tg_pnt;
-  std::vector<double> multi_u(knots_simple_u.size());
-  std::vector<double> multi_idx_u(knots_simple_u.size());
   double multi_value_u=-1.0;
-  multi_idx_u[0]=0;
-  multi_u[0]=1;
-  multi_idx_u[knots_simple_u.size()-1]=0;
-  multi_u[knots_simple_u.size()-1]=1;
 
   // create multiplicity index for case evaluation
   for (int i = 1;i<(int)knots_simple_u.size()-1;i++)
   {
     int knot_intern_multipl;
     knot_intern_multipl = basis_u.knotMultiplicity(knots_simple_u[i]);
-    multi_u[i]=knot_intern_multipl;
-    if (knot_intern_multipl > 1) {
-      multi_idx_u[i]=1;
+    if (knot_intern_multipl > 1)
       multi_value_u = knots_simple_u[i];
-    } else
-      multi_idx_u[i]= 0;
   }
 
   //----------------------------------------------------
@@ -367,23 +356,13 @@ quasiInterpolation(const Go::BsplineBasis& basis_u,
   // same principle as in u-direction
   //----------------------------------------------------
   //
-  std::vector<double> multi_v(knots_simple_v.size());
-  std::vector<double> multi_idx_v(knots_simple_v.size());
   double multi_value_v=-1.0;
-  multi_idx_v[0]=0;
-  multi_v[0]=1;
-  multi_idx_v[knots_simple_v.size()-1]=0;
-  multi_v[knots_simple_v.size()-1]=1;
   for (int i = 1;i<(int)knots_simple_v.size()-1;i++)
   {
     int knot_intern_multipl;
     knot_intern_multipl = basis_v.knotMultiplicity(knots_simple_v[i]);
-    multi_v[i]=knot_intern_multipl;
-    if (knot_intern_multipl > 1) {
-      multi_idx_v[i]=1;
+    if (knot_intern_multipl > 1)
       multi_value_v = knots_simple_v[i];
-    } else
-      multi_idx_v[i]= 0;
   }
   //----------------------------------------------------
 
@@ -406,7 +385,6 @@ quasiInterpolation(const Go::BsplineBasis& basis_u,
   int gmyl = spyl*invyl;
 
   std::vector<std::vector<double> > gm;
-  std::vector<double> tmp;
   gm.resize(gmyl);
   for(int i = 0; i < gmyl ; i++)
     gm[i].resize(gmxl*perknot);

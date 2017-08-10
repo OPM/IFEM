@@ -34,11 +34,8 @@ ASMs3DmxLag::ASMs3DmxLag (const CharVec& n_f)
 
 
 ASMs3DmxLag::ASMs3DmxLag (const ASMs3DmxLag& patch, const CharVec& n_f)
-  : ASMs3DLag(patch), ASMmxBase(n_f)
+  : ASMs3DLag(patch), ASMmxBase(n_f), nxx(patch.nxx), nyx(patch.nyx), nzx(patch.nzx)
 {
-  nxx = patch.nxx;
-  nyx = patch.nyx;
-  nzx = patch.nzx;
 }
 
 
@@ -409,7 +406,7 @@ bool ASMs3DmxLag::integrate (Integrand& integrand, int lIndex,
   if (!xg || !wg) return false;
 
   // Find the parametric direction of the face normal {-3,-2,-1, 1, 2, 3}
-  const int faceDir = (lIndex%10+1)/(lIndex%2 ? -2 : 2);
+  const int faceDir = (lIndex%10+1)/((lIndex%2) ? -2 : 2);
 
   const int t0 = abs(faceDir); // unsigned normal direction of the face
   const int t1 = 1 + t0%3; // first tangent direction of the face

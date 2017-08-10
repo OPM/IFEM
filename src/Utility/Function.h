@@ -100,7 +100,7 @@ namespace utl
   {
   protected:
     //! \brief The constructor is protected to allow sub-class instances only.
-    SpatialFunction(const Result& val) : zero(val) {}
+    explicit SpatialFunction(const Result& val) : zero(val) {}
 
   public:
     //! \brief Empty destructor.
@@ -246,9 +246,9 @@ class TractionField : public TractionFunc
 
 public:
   //! \brief Constructor initializing the symmetric tensor function pointer.
-  TractionField(const STensorFunc& field);
+  explicit TractionField(const STensorFunc& field);
   //! \brief Constructor initializing the tensor function pointer.
-  TractionField(const TensorFunc& field);
+  explicit TractionField(const TensorFunc& field);
   //! \brief Empty destructor.
   virtual ~TractionField() {}
 

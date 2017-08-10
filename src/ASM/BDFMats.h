@@ -28,7 +28,7 @@ class BDFMats : public NewmarkMats
 public:
   //! \brief The constructor initializes the time integration parameters.
   //! param[in] bdfscheme BDF time discretization scheme
-  BDFMats(const TimeIntegration::BDFD2& bdfscheme) : bdf(bdfscheme) {}
+  explicit BDFMats(const TimeIntegration::BDFD2& bdfscheme) : bdf(bdfscheme) {}
   //! \brief Empty destructor.
   virtual ~BDFMats() {}
 

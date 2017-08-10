@@ -89,19 +89,15 @@ public:
                               Real scaleSD = 1.0) const;
 
 private:
+#ifdef HAVE_MPI
   //! \brief Setup a parallel index set for a given dofType
   void setupIS(char dofType) const;
+#endif
 
   // Parameters for parallel computing
   int    nProc;      //!< Number of processes
   IntVec ghostNodes; //!< Indices for the ghost nodes
   IntVec l2gn;       //!< Local-to-global node numbers for this processor
-#ifdef HAVE_MPI
-  int    nleq;       //!< Number of equations for this processor
-  int    nnodGlob;   //!< Number of global nodes;
-  int    ieqmin;     //!< Minium equation number
-  int    ieqmax;     //!< Maximum equation number
-#endif
 
   const ProcessAdm& adm; //!< Parallel process administrator
 

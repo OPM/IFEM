@@ -32,7 +32,7 @@ class ASMmxBase
 protected:
   //! \brief The constructor sets the number of field variables.
   //! \param[in] n_f Number of nodal variables in each field
-  ASMmxBase(const std::vector<unsigned char>& n_f);
+  explicit ASMmxBase(const std::vector<unsigned char>& n_f);
 
   //! \brief Initializes the patch level MADOF array.
   //! \param[in] MLGN Matrix of local-to-global node numbers

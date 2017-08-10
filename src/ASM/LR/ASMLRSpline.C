@@ -91,9 +91,11 @@ void LR::getGaussPointParameters (const LR::LRSpline* lrspline, RealArray& uGP,
 void LR::generateThreadGroups (ThreadGroups& threadGroups, const LR::LRSpline* lr)
 {
   int nElement = lr->nElements();
-  int nt = 1;
+  int nt;
 #ifdef USE_OPENMP
   nt = omp_get_max_threads();
+#else
+  nt = 1;
 #endif
   if (nt == 1) {
     threadGroups[0].resize(1);

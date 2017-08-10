@@ -30,7 +30,7 @@ class ASMs3DmxLag : public ASMs3DLag, private ASMmxBase
 {
 public:
   //! \brief The constructor initializes the dimension of each basis.
-  ASMs3DmxLag(const CharVec& n_f);
+  explicit ASMs3DmxLag(const CharVec& n_f);
   //! \brief Copy constructor.
   ASMs3DmxLag(const ASMs3DmxLag& patch, const CharVec& n_f = CharVec(2,0));
   //! \brief Empty destructor.

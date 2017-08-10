@@ -27,7 +27,7 @@ class ConstantFunc : public ScalarFunc
 
 public:
   //! \brief Constructor initializing the function value.
-  ConstantFunc(Real v) : fval(v) {}
+  explicit ConstantFunc(Real v) : fval(v) {}
 
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return fval == Real(0); }
@@ -48,7 +48,7 @@ class LinearFunc : public ScalarFunc
 
 public:
   //! \brief Constructor initializing the function parameter.
-  LinearFunc(Real s = Real(1)) : scale(s) {}
+  explicit LinearFunc(Real s = Real(1)) : scale(s) {}
 
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return scale == Real(0); }
@@ -159,7 +159,7 @@ class ConstFunc : public RealFunc
 
 public:
   //! \brief Constructor initializing the function value.
-  ConstFunc(Real v) : fval(v) {}
+  explicit ConstFunc(Real v) : fval(v) {}
 
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return fval == Real(0); }
@@ -180,7 +180,7 @@ class ConstTimeFunc : public RealFunc
 
 public:
   //! \brief Constructor initializing the function value.
-  ConstTimeFunc(const ScalarFunc* f) : tfunc(f) {}
+  explicit ConstTimeFunc(const ScalarFunc* f) : tfunc(f) {}
   //! \brief The destructor frees the time function.
   virtual ~ConstTimeFunc() { delete tfunc; }
 
@@ -517,7 +517,7 @@ class ConstVecFunc : public VecFunc
 
 public:
   //! \brief Constructor initializing the function value.
-  ConstVecFunc(const Vec3& v) : fval(v) {}
+  explicit ConstVecFunc(const Vec3& v) : fval(v) {}
 
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return fval.isZero(0.0); }

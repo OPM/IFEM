@@ -27,7 +27,7 @@ class LogStream
 public:
   //! \brief Default constructor.
   //! \param out The output stream to wrap
-  LogStream(std::ostream* out = nullptr) : m_out(out) { m_ppid = m_pid = 0; }
+  explicit LogStream(std::ostream* out) : m_out(out) { m_ppid = m_pid = 0; }
   //! \brief Constructor initializing the output stream from a reference.
   //! \param out The output stream to wrap
   //! \param ppid The PID to print on

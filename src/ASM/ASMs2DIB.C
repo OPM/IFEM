@@ -29,9 +29,8 @@ ASMs2DIB::ASMs2DIB (unsigned char n_s, unsigned char n_f, int max_depth)
 
 
 ASMs2DIB::ASMs2DIB (const ASMs2DIB& patch, unsigned char n_f)
-  : ASMs2D(patch,n_f)
+  : ASMs2D(patch,n_f), quadPoints(patch.quadPoints)
 {
-  quadPoints = patch.quadPoints;
   myGeometry = nullptr;
   myLines = nullptr;
 }
@@ -175,18 +174,18 @@ bool ASMs2DIB::generateFEMTopology ()
 
   // Map Gauss point coordinates from bi-unit square to parameter domain (u,v)
   RealArray::const_iterator vit = surf->basis(1).begin() + p2-1;
-  double vcurr, vprev = *(vit++);
+  double vprev = *(vit++);
   for (e = 0, i2 = p2-1; i2 < n2; i2++, ++vit)
   {
-    vcurr = *vit;
+    double vcurr = *vit;
     RealArray::const_iterator uit = surf->basis(0).begin() + p1-1;
-    double ucurr, uprev = *(uit++);
+    double uprev = *(uit++);
     for (i1 = p1-1; i1 < n1; i1++, ++uit, e++)
     {
 #if SP_DEBUG > 1
       std::cout <<"\n Element "<< MLGE[e] <<":\n";
 #endif
-      ucurr = *uit;
+      double ucurr = *uit;
       for (i = 0; i < quadPoints[e].size(); i++)
       {
         double& xi  = quadPoints[e][i][0];

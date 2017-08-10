@@ -339,7 +339,8 @@ private:
 
     //! \brief Default constructor.
     DirichletEdge(int numbBasis, int numbElements, int d = 0, int c = 0, int b = 1)
-    : MLGE(numbElements), MNPC(numbElements), dof(d), code(c), basis(b) {}
+    : lr(nullptr), edg(LR::NORTH), MLGE(numbElements),
+      MNPC(numbElements), dof(d), code(c), basis(b), corners{} {}
   };
 
   //! \brief Projects the secondary solution field onto the primary basis.

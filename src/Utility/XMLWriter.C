@@ -160,7 +160,7 @@ void XMLWriter::writeNodalForces(int level, const DataEntry& entry)
   element.SetAttribute("name",entry.first.c_str());
   element.SetAttribute("description",entry.second.description.c_str());
   element.SetAttribute("type","nodalforces");
-  GlbForceVec* vec = (GlbForceVec*)entry.second.data;
+  const GlbForceVec* vec = static_cast<const GlbForceVec*>(entry.second.data);
   element.SetAttribute("size",vec->size());
   m_node->InsertEndChild(element);
 }
@@ -220,7 +220,7 @@ void XMLWriter::writeSIM (int level, const DataEntry& entry, bool,
         str << sim->getName() << "-" << b;
         addField(prefix+prob->getField1Name(10+b),"primary",str.str(),
                  sim->getNoFields(b),sim->getNoPatches(),
-                 "field",results & DataExporter::ONCE?true:false);
+                 "field",(results & DataExporter::ONCE )? true : false);
       }
     }
     else
@@ -229,7 +229,8 @@ void XMLWriter::writeSIM (int level, const DataEntry& entry, bool,
       addField(usedescription ? entry.second.description:
                                 prefix+prob->getField1Name(11),
                entry.second.description,basisname,
-               cmps,sim->getNoPatches(),"field",results & DataExporter::ONCE?true:false);
+               cmps,sim->getNoPatches(),"field",
+               (results & DataExporter::ONCE) ? true : false);
     }
   }
 
@@ -251,7 +252,7 @@ void XMLWriter::writeSIM (int level, const DataEntry& entry, bool,
   }
 
   // secondary solution fields
-  size_t i, j;
+  size_t j;
   if (results & DataExporter::SECONDARY)
     for (j = 0; j < prob->getNoFields(2); j++)
       addField(prefix+prob->getField2Name(j),"secondary", basisname,
@@ -262,7 +263,7 @@ void XMLWriter::writeSIM (int level, const DataEntry& entry, bool,
     // since the norm data isn't available, we have to instance the object
     NormBase* norm = sim->getNormIntegrand();
     if (norm) {
-      for (i = 1; i <= norm->getNoFields(0); ++i) {
+      for (size_t i = 1; i <= norm->getNoFields(0); ++i) {
         for (j = 1; j <= norm->getNoFields(i); ++j) {
           if (norm->hasElementContributions(i,j))
             addField(prefix+norm->getName(i,j,(i>1&&m_prefix)?m_prefix[i-2]:0),"knotspan wise norm",

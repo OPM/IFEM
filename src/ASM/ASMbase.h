@@ -68,7 +68,7 @@ public:
     char RY;  //!< Boundary condition code for Y-rotation
     char RZ;  //!< Boundary condition code for Z-rotation
     //! \brief Constructor initializing a BC instance.
-    BC(int n) : node(n), CX(1), CY(1), CZ(1), RX(1), RY(1), RZ(1) {}
+    explicit BC(int n) : node(n), CX(1), CY(1), CZ(1), RX(1), RY(1), RZ(1) {}
   };
 
   typedef std::vector<BC> BCVec; //!< Nodal boundary condition container
@@ -717,11 +717,11 @@ protected:
   //! Global indices to first integration point for the Neumann boundaries
   std::map<char,size_t> firstBp;
 
-  ASMVec neighbors; //!< Patches having nodes in common with this one
+  ASMVec neighbors {}; //!< Patches having nodes in common with this one
 
 private:
   std::pair<size_t,size_t> myLMs; //!< Nodal range of the Lagrange multipliers
-  std::vector<char>    myLMTypes; //!< Type of Lagrange multiplier ('L' or 'G')
+  std::vector<char>    myLMTypes {}; //!< Type of Lagrange multiplier ('L' or 'G')
 };
 
 #endif

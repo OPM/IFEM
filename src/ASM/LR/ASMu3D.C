@@ -133,10 +133,10 @@ bool ASMu3D::refine (int dir, const RealArray& xi)
 
   RealArray extraKnots;
   RealArray::const_iterator uit = tensorspline->basis(dir).begin();
-  double ucurr, uprev = *(uit++);
+  double uprev = *(uit++);
   while (uit != tensorspline->basis(dir).end())
   {
-    ucurr = *(uit++);
+    double ucurr = *(uit++);
     if (ucurr > uprev)
       for (size_t i = 0; i < xi.size(); i++)
         if (i > 0 && xi[i] < xi[i-1])
@@ -160,10 +160,10 @@ bool ASMu3D::uniformRefine (int dir, int nInsert)
 
   RealArray extraKnots;
   RealArray::const_iterator uit = tensorspline->basis(dir).begin();
-  double ucurr, uprev = *(uit++);
+  double uprev = *(uit++);
   while (uit != tensorspline->basis(dir).end())
   {
-    ucurr = *(uit++);
+    double ucurr = *(uit++);
     if (ucurr > uprev)
       for (int i = 0; i < nInsert; i++)
       {
@@ -662,11 +662,12 @@ void ASMu3D::constrainNode (double xi, double eta, double zeta,
 {
   std::cerr << "ASMu3D::constrainNode not implemented properly yet" << std::endl;
   exit(776654);
+
+#if 0
   if (xi   < 0.0 || xi   > 1.0) return;
   if (eta  < 0.0 || eta  > 1.0) return;
   if (zeta < 0.0 || zeta > 1.0) return;
 
-#if 0
   int n1, n2, n3;
   if (!this->getSize(n1,n2,n3,1)) return;
 
@@ -982,9 +983,10 @@ bool ASMu3D::integrate (Integrand& integrand,
   }
 
   // Get the reduced integration quadrature points, if needed
+  int nRed = integrand.getReducedIntegration(nGauss);
+#if 0
   const double* xr = nullptr;
   const double* wr = nullptr;
-  int nRed = integrand.getReducedIntegration(nGauss);
   if (nRed > 0)
   {
     xr = GaussQuadrature::getCoord(nRed);
@@ -993,6 +995,7 @@ bool ASMu3D::integrate (Integrand& integrand,
   }
   else if (nRed < 0)
     nRed = nGauss; // The integrand needs to know nGauss
+#endif
 
 
   // === Assembly loop over all elements in the patch ==========================
@@ -1035,12 +1038,17 @@ bool ASMu3D::integrate (Integrand& integrand,
       }
 
       // Compute parameter values of the Gauss points over the whole element
-      std::array<RealArray,3> gpar, redpar;
+      std::array<RealArray,3> gpar;
+#if 0
+      std::array<RealArray,3>, redpar;
+#endif
       for (int d = 0; d < 3; d++)
       {
         this->getGaussPointParameters(gpar[d],d,nGauss,iEl,xg);
+#if 0
         if (xr)
           this->getGaussPointParameters(redpar[d],d,nRed,iEl,xr);
+#endif
       }
 
 
@@ -1103,11 +1111,11 @@ bool ASMu3D::integrate (Integrand& integrand,
         continue;
       }
 
+#if 0
       if (xr)
       {
         std::cerr << "Haven't really figured out what this part does yet\n";
         exit(42142);
-#if 0
         // --- Selective reduced integration loop ------------------------------
 
         int ip = (((i3-p3)*nRed*nel2 + i2-p2)*nRed*nel1 + i1-p1)*nRed;
@@ -1140,8 +1148,8 @@ bool ASMu3D::integrate (Integrand& integrand,
               if (!integrand.reducedInt(*A,fe,X))
                 ok = false;
         }
-#endif
       }
+#endif
 
 
       // --- Integration loop over all Gauss points in each direction ----------
@@ -1286,7 +1294,7 @@ bool ASMu3D::integrate (Integrand& integrand, int lIndex,
   if (!xg || !wg) return false;
 
   // Find the parametric direction of the face normal {-3,-2,-1, 1, 2, 3}
-  const int faceDir = (lIndex%10+1)/(lIndex%2 ? -2 : 2);
+  const int faceDir = (lIndex%10+1)/((lIndex%2) ? -2 : 2);
 
   const int t1 = 1 + abs(faceDir)%3; // first tangent direction
   const int t2 = 1 + t1%3;           // second tangent direction
@@ -1732,7 +1740,7 @@ bool ASMu3D::tesselate (ElementBlock& grid, const int* npe) const
   std::vector<LR::Element*>::iterator el;
   int inod = 0;
   int iel = 0;
-  for(el=lrspline->elementBegin(); el<lrspline->elementEnd(); el++, iel++) {
+  for(el=lrspline->elementBegin(); el<lrspline->elementEnd(); ++el, iel++) {
     // evaluate element at element corner points
     double umin = (**el).umin();
     double umax = (**el).umax();
@@ -2031,17 +2039,17 @@ std::vector<int> ASMu3D::getFaceNodes (int face, int basis, int orient) const
                 int p1 = a->getOrder(u);
                 int p2 = a->getOrder(v);
 
-                int idx1 = orient & 4 ? v : u;
-                int idx2 = orient & 4 ? u : v;
+                int idx1 = (orient & 4) ? v : u;
+                int idx2 = (orient & 4) ? u : v;
 
                 for (int i = 0; i < 1 + (orient < 4 ? p2 : p1); ++i)
                   if ((*a)[idx1][i] != (*b)[idx1][i])
-                    return orient & 2 ? (*a)[idx1][i] > (*b)[idx1][i]
-                                      : (*a)[idx1][i] < (*b)[idx1][i];
+                    return (orient & 2) ? (*a)[idx1][i] > (*b)[idx1][i]
+                                        : (*a)[idx1][i] < (*b)[idx1][i];
                 for(int i = 0; i < 1 + (orient < 4 ? p1 : p2); ++i)
                   if ((*a)[idx2][i] != (*b)[idx2][i])
-                    return orient & 1 ? (*a)[idx2][i] > (*b)[idx2][i]
-                                      : (*a)[idx2][i] < (*b)[idx2][i];
+                    return (orient & 1) ? (*a)[idx2][i] > (*b)[idx2][i]
+                                        : (*a)[idx2][i] < (*b)[idx2][i];
 
                 return false;
               });

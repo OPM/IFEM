@@ -34,7 +34,7 @@ class SIMoutput : public SIMinput
 {
 protected:
   //! \brief The constructor just forwards to the base class constructor.
-  SIMoutput(IntegrandBase* itg);
+  explicit SIMoutput(IntegrandBase* itg);
 
 public:
   //! \brief The destructor frees the dynamically allocated VTF object.

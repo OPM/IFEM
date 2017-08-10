@@ -392,7 +392,7 @@ Vec3 ASMs2Dmx::getCoord (size_t inod) const
       + (J*m_basis[b]->numCoefs_u()+I) * m_basis[b]->dimension();
 
   Vec3 X;
-  for (size_t i = 0; i < nsd; i++, cit++)
+  for (size_t i = 0; i < nsd; i++, ++cit)
     X[i] = *cit;
 
   return X;
@@ -678,7 +678,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
   if (!xg || !wg) return false;
 
   // Find the parametric direction of the edge normal {-2,-1, 1, 2}
-  const int edgeDir = (lIndex%10+1)/(lIndex%2 ? -2 : 2);
+  const int edgeDir = (lIndex%10+1)/((lIndex%2) ? -2 : 2);
 
   const int t1 = abs(edgeDir);   // Tangent direction normal to the patch edge
   const int t2 = 3-abs(edgeDir); // Tangent direction along the patch edge

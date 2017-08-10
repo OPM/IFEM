@@ -83,7 +83,8 @@ public:
     int  indxJ;     //!< Running node index in the local J-direction
 
     //! \brief Default constructor.
-    BlockNodes() { iinod = inc[0] = inc[1] = inc[2] = 0; indxI = indxJ = 1; }
+    BlockNodes() : ibnod{}
+    { iinod = inc[0] = inc[1] = inc[2] = 0; indxI = indxJ = 1; nnodI = nnodJ = 0;}
     //! \brief Returns \a iinod which then is incremented.
     int next();
   };
@@ -110,7 +111,7 @@ protected:
     const ASMs3D& myPatch; //!< Reference to the patch being integrated
   public:
     //! \brief The constructor initialises the reference to current patch.
-    InterfaceChecker(const ASMs3D& pch) : myPatch(pch) {}
+    explicit InterfaceChecker(const ASMs3D& pch) : myPatch(pch) {}
     //! \brief Empty destructor.
     virtual ~InterfaceChecker() {}
     //! \brief Returns non-zero if the specified element have contributions.
@@ -122,7 +123,7 @@ protected:
 
 public:
   //! \brief Default constructor.
-  ASMs3D(unsigned char n_f = 3);
+  explicit ASMs3D(unsigned char n_f = 3);
   //! \brief Special copy constructor for sharing of FE data.
   ASMs3D(const ASMs3D& patch, unsigned char n_f);
   //! \brief Default copy constructor copying everything.
@@ -709,7 +710,7 @@ protected:
   std::vector<DirichletFace> dirich;
 
   //! Element groups for multi-threaded volume assembly
-  ThreadGroups                threadGroupsVol;
+  ThreadGroups                threadGroupsVol {};
   //! Element groups for multi-threaded face assembly
   std::map<char,ThreadGroups> threadGroupsFace;
 };

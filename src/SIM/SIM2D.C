@@ -35,10 +35,9 @@ struct Interface
   std::pair<ASMs2DC1*,int> slave;  //!< Patch and edge index of the slave
   bool reversed;                   //!< Relative orientation toggle
   //! \brief Constructor initializing an Interface instance.
-  Interface(ASMs2DC1* m, int me, ASMs2DC1* s, int se, bool r = false)
+  Interface(ASMs2DC1* m, int me, ASMs2DC1* s, int se, bool r = false) :
+    master(std::make_pair(m,me)), slave(std::make_pair(s,se))
   {
-    master = std::make_pair(m,me);
-    slave = std::make_pair(s,se);
     reversed = r;
   }
 };
@@ -161,17 +160,18 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
     if (!this->parseTopologySet(elem,patches))
       return false;
 
-    ASM2D* pch = nullptr;
     int addu = 0, addv = 0;
     utl::getAttribute(elem,"u",addu);
     utl::getAttribute(elem,"v",addv);
-    for (int j : patches)
+    for (int j : patches) {
+      ASM2D* pch;
       if ((pch = dynamic_cast<ASM2D*>(this->getPatch(j,true))))
       {
         IFEM::cout <<"\tRaising order of P"<< j
                    <<" "<< addu <<" "<< addv << std::endl;
         pch->raiseOrder(addu,addv);
       }
+    }
   }
 
   else if (!strcasecmp(elem->Value(),"topology"))
@@ -183,16 +183,18 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
     for (; child; child = child->NextSiblingElement())
     {
       int master = 0, slave = 0, mEdge = 0, sEdge = 0, orient = 0, basis = 0, dim = 1;
-      bool rever = false, periodic = false;
+      bool periodic = false;
       utl::getAttribute(child,"master",master);
       if (!utl::getAttribute(child,"midx",mEdge))
         utl::getAttribute(child,"medge",mEdge);
       utl::getAttribute(child,"slave",slave);
       if (!utl::getAttribute(child,"sidx",sEdge))
         utl::getAttribute(child,"sedge",sEdge);
-      if (!utl::getAttribute(child,"orient",orient))
+      if (!utl::getAttribute(child,"orient",orient)) {
+        bool rever = false;
         if (utl::getAttribute(child,"reverse",rever) && rever)
           orient = 1;
+      }
       utl::getAttribute(child,"basis",basis);
       utl::getAttribute(child,"periodic",periodic);
       utl::getAttribute(child,"dim",dim);
@@ -220,7 +222,7 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
 
     // Second pass for C1-continuous patches, to set up additional constraints
     std::vector<Interface>::const_iterator it;
-    for (it = top.begin(); it != top.end(); it++)
+    for (it = top.begin(); it != top.end(); ++it)
       if (!it->slave.first->connectC1(it->slave.second,
                                       it->master.first,
                                       it->master.second,
@@ -505,7 +507,7 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
 
     // Second pass for C1-continuous patches, to set up additional constraints
     std::vector<Interface>::const_iterator it;
-    for (it = top.begin(); it != top.end(); it++)
+    for (it = top.begin(); it != top.end(); ++it)
       if (!it->slave.first->connectC1(it->slave.second,
 				      it->master.first,
 				      it->master.second,
@@ -586,11 +588,11 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
     if (ignoreDirichlet) return true; // Ignore all boundary conditions
     if (!this->createFEMmodel()) return false;
 
-    ASM2D* pch = nullptr;
     int nfix = atoi(keyWord+9);
     IFEM::cout <<"\nNumber of fixed points: "<< nfix << std::endl;
     for (int i = 0; i < nfix && (cline = utl::readLine(is)); i++)
     {
+      ASM2D* pch = nullptr;
       int patch = atoi(strtok(cline," "));
       double rx = atof(strtok(nullptr," "));
       double ry = atof(strtok(nullptr," "));
@@ -730,9 +732,9 @@ ASMbase* SIM2D::readPatch (std::istream& isp, int pchInd,
 bool SIM2D::readPatches (std::istream& isp, PatchVec& patches,
                          const char* whiteSpace) const
 {
-  ASMbase* pch = nullptr;
   bool isMixed = nf.size() > 1 && nf[1] > 0;
-  for (int pchInd = 1; isp.good(); pchInd++)
+  for (int pchInd = 1; isp.good(); pchInd++) {
+    ASMbase* pch = nullptr;
     if ((pch = ASM2D::create(opt.discretization,nsd,nf,isMixed)))
     {
       if (!pch->read(isp))
@@ -753,6 +755,7 @@ bool SIM2D::readPatches (std::istream& isp, PatchVec& patches,
             IFEM::cout <<"\tSwapped."<< std::endl;
       }
     }
+  }
 
   return true;
 }
@@ -805,10 +808,11 @@ bool SIM2D::readNodes (std::istream& isn, int pchInd, int basis, bool oneBased)
 void SIM2D::clonePatches (const PatchVec& patches,
 			  const std::map<int,int>& glb2locN)
 {
-  ASM2D* pch = nullptr;
-  for (size_t i = 0; i < patches.size(); i++)
+  for (size_t i = 0; i < patches.size(); i++) {
+    ASM2D* pch = nullptr;
     if ((pch = dynamic_cast<ASM2D*>(patches[i])))
       myModel.push_back(pch->clone(nf));
+  }
 
   g2l = &glb2locN;
 

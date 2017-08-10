@@ -57,11 +57,10 @@ ASMs3D::ASMs3D (const ASMs3D& patch, unsigned char n_f)
 
 
 ASMs3D::ASMs3D (const ASMs3D& patch)
-  : ASMstruct(patch), svol(patch.svol), nodeInd(myNodeInd)
+  : ASMstruct(patch), svol(patch.svol), nodeInd(myNodeInd),
+    myNodeInd(patch.nodeInd), dirich(patch.dirich)
 {
   swapW = patch.swapW;
-  myNodeInd = patch.nodeInd;
-  dirich = patch.dirich;
 }
 
 
@@ -288,10 +287,10 @@ bool ASMs3D::refine (int dir, const RealArray& xi)
 
   RealArray extraKnots;
   RealArray::const_iterator uit = svol->basis(dir).begin();
-  double ucurr, uprev = *(uit++);
+  double uprev = *(uit++);
   while (uit != svol->basis(dir).end())
   {
-    ucurr = *(uit++);
+    double ucurr = *(uit++);
     if (ucurr > uprev)
       for (size_t i = 0; i < xi.size(); i++)
 	if (i > 0 && xi[i] < xi[i-1])
@@ -314,10 +313,10 @@ bool ASMs3D::uniformRefine (int dir, int nInsert)
 
   RealArray extraKnots;
   RealArray::const_iterator uit = svol->basis(dir).begin();
-  double ucurr, uprev = *(uit++);
+  double uprev = *(uit++);
   while (uit != svol->basis(dir).end())
   {
-    ucurr = *(uit++);
+    double ucurr = *(uit++);
     if (ucurr > uprev)
       for (int i = 0; i < nInsert; i++)
       {
@@ -1614,10 +1613,10 @@ const Vector& ASMs3D::getGaussPointParameters (Matrix& uGP, int dir, int nGauss,
   int nCol = svol->numCoefs(dir) - pm1;
   uGP.resize(nGauss,nCol);
 
-  double ucurr, uprev = *(uit++);
+  double uprev = *(uit++);
   for (int j = 1; j <= nCol; ++uit, j++)
   {
-    ucurr = *uit;
+    double ucurr = *uit;
     for (int i = 1; i <= nGauss; i++)
       uGP(i,j) = 0.5*((ucurr-uprev)*xi[i-1] + ucurr+uprev);
     uprev = ucurr;
@@ -2186,7 +2185,7 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
   if (!xg || !wg) return false;
 
   // Find the parametric direction of the face normal {-3,-2,-1, 1, 2, 3}
-  const int faceDir = (lIndex%10+1)/(lIndex%2 ? -2 : 2);
+  const int faceDir = (lIndex%10+1)/((lIndex%2) ? -2 : 2);
 
   const int t1 = 1 + abs(faceDir)%3; // first tangent direction
   const int t2 = 1 + t1%3;           // second tangent direction
@@ -2436,12 +2435,12 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
     {
       int pm1 = svol->order(d) - 1;
       RealArray::const_iterator uit = svol->basis(d).begin() + pm1;
-      double ucurr, uprev = *(uit++);
+      double uprev = *(uit++);
       int nCol = svol->numCoefs(d) - pm1;
       gpar[d].resize(nGauss,nCol);
       for (int j = 1; j <= nCol; ++uit, j++)
       {
-	ucurr = *uit;
+        double ucurr = *uit;
 	for (int i = 1; i <= nGauss; i++)
 	  gpar[d](i,j) = 0.5*((ucurr-uprev)*xg[i-1] + ucurr+uprev);
 	uprev = ucurr;

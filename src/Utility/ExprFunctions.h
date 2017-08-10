@@ -88,7 +88,7 @@ class EvalFunction : public RealFunc
 
 public:
   //! \brief The constructor parses the expression string.
-  EvalFunction(const char* function);
+  explicit EvalFunction(const char* function);
   //! \brief The destructor frees the dynamically allocated objects.
   virtual ~EvalFunction();
 
@@ -175,6 +175,8 @@ protected:
 
   //! \brief Evaluates the function expressions.
   virtual Ret evaluate(const Vec3& X) const;
+private:
+  EvalMultiFunction<ParentFunc,Ret>() = delete;
 };
 
 //! Vector-valued function expression

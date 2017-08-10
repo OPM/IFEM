@@ -34,10 +34,8 @@ ASMs2DmxLag::ASMs2DmxLag (unsigned char n_s, const CharVec& n_f)
 
 
 ASMs2DmxLag::ASMs2DmxLag (const ASMs2DmxLag& patch, const CharVec& n_f)
-  : ASMs2DLag(patch), ASMmxBase(n_f)
+  : ASMs2DLag(patch), ASMmxBase(n_f), nxx(patch.nxx), nyx(patch.nyx)
 {
-  nxx = patch.nxx;
-  nyx = patch.nyx;
 }
 
 
@@ -363,7 +361,7 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
   if (!xg || !wg) return false;
 
   // Find the parametric direction of the edge normal {-2,-1, 1, 2}
-  const int edgeDir = (lIndex%10+1)/(lIndex%2 ? -2 : 2);
+  const int edgeDir = (lIndex%10+1)/((lIndex%2) ? -2 : 2);
 
   const int t1 = abs(edgeDir); // tangent direction normal to the patch edge
   const int t2 = 3-t1;         // tangent direction along the patch edge

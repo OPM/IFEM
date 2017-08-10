@@ -44,9 +44,9 @@ DenseMatrix::DenseMatrix (size_t m, size_t n, bool s) : myMat(m,n)
 }
 
 
-DenseMatrix::DenseMatrix (const DenseMatrix& A)
+DenseMatrix::DenseMatrix (const DenseMatrix& A) :
+  myMat(A.myMat)
 {
-  myMat = A.myMat;
   ipiv = nullptr;
   symm = A.symm;
   if (A.ipiv)
@@ -67,9 +67,9 @@ DenseMatrix::DenseMatrix (const RealArray& data, size_t nrows)
 }
 
 
-DenseMatrix::DenseMatrix (const Matrix& A, bool s)
+DenseMatrix::DenseMatrix (const Matrix& A, bool s) :
+  myMat(A)
 {
-  myMat = A;
   ipiv = nullptr;
   symm = s;
 }
@@ -313,7 +313,7 @@ bool DenseMatrix::augment (const SparseMatrix& B, size_t r0, size_t c0)
   size_t newDim = newRow > newCol ? newRow : newCol;
 
   this->redim(newDim,newDim);
-  for (ValueIter it = elem.begin(); it != elem.end(); it++)
+  for (ValueIter it = elem.begin(); it != elem.end(); ++it)
   {
     myMat(r0+it->first.first,c0+it->first.second) += it->second;
     myMat(c0+it->first.second,r0+it->first.first) += it->second;

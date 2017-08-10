@@ -25,7 +25,7 @@ class NewmarkSIM : public MultiStepSIM
 {
 public:
   //! \brief The constructor initializes default solution parameters.
-  NewmarkSIM(SIMbase& sim);
+  explicit NewmarkSIM(SIMbase& sim);
   //! \brief Empty destructor.
   virtual ~NewmarkSIM() {}
 

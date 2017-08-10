@@ -14,16 +14,24 @@ shift 2
 
 tmpfil=`mktemp`
 $cppcheck_cmd $@ --force --enable=all --suppress=unusedFunction $source_file &> $tmpfil
-nmatch=`cat $tmpfil | grep "\[.*\]" | wc -l`
-nsys=`cat $tmpfil | grep "\[/usr.*\]" | wc -l`
-nnone=`cat $tmpfil | grep "\[\\*]" | wc -l`
-let "nval=$nmatch-$nsys-$nnone"
-if test $nval -gt 0
-then
-  cat $tmpfil
-  rm $tmpfil
-  exit 1
-fi
 
+declare -a ignorere
+ignorere=(\\[/usr.*\\]
+          \\[.*petsc.*.h:.*\\]:.*
+          \\[\\*\\]
+          \\[.*Utility/Vec3.h.*\\]:.*Vec[34]..has.a.constructor.with.1.argument.that.is.not.explicit.
+          \\[.*Utility/Tensor.h:.*\\]:.*SymmTensor..has.a.constructor.with.1.argument.that.is.not.explicit.
+          \\[.*Utility/Vec3.h:.*\\]:.*Vec3::v..is.not.initialized.in.the.constructor.
+          \\[.*Utility/Vec3.h:.*\\]:.*Vec3::v..is.not.assigned.a.value.in.*operator\=)
+
+nmatch=`cat $tmpfil | grep "\[.*\]" | wc -l`
+for RE in ${ignorere[*]}
+do
+  echo "RE=$RE"
+  nign=`cat $tmpfil | grep "$RE" | wc -l`
+  echo "ignoring $nign"
+  let "nmatch=$nmatch-$nign"
+done
+cat $tmpfil
 rm $tmpfil
-exit 0
+test $nmatch -eq 0 || exit 1

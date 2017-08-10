@@ -33,7 +33,7 @@ class ISTLVector : public StdVector
 {
 public:
   //! \brief Constructor creating an empty vector.
-  ISTLVector(const ProcessAdm& padm);
+  explicit ISTLVector(const ProcessAdm& padm);
   //! \brief Constructor creating a vector of length \a n.
   ISTLVector(const ProcessAdm& padm, size_t n);
   //! \brief Constructor creating a vector from an array.
@@ -42,7 +42,6 @@ public:
   ISTLVector(const ISTLVector& vec);
   //! \brief Destructor.
   virtual ~ISTLVector();
-#endif
 
   //! \brief Returns the vector type.
   virtual Type getType() const { return ISTL; }
@@ -146,18 +145,20 @@ public:
   virtual Real Linfnorm() const;
 
   //! \brief Returns the ISTL matrix (for assignment).
-  virtual ISTL::Mat& getMatrix() { return A; }
+  virtual ISTL::Mat& getMatrix() { return iA; }
   //! \brief Returns the ISTL matrix (for read access).
-  virtual const ISTL::Mat& getMatrix() const { return A; }
+  virtual const ISTL::Mat& getMatrix() const { return iA; }
 
 protected:
-  ISTL::Mat A; //!< The actual ISTL matrix
+  ISTL::Mat iA; //!< The actual ISTL matrix
   std::unique_ptr<ISTL::Operator> op; //!< The matrix adapter
   std::unique_ptr<ISTL::InverseOperator> solver; //!< Solver to use
   std::unique_ptr<ISTL::Preconditioner> pre; //!< Preconditioner to use
   const ProcessAdm&   adm;             //!< Process administrator
   ISTLSolParams       solParams;       //!< Linear solver parameters
   bool                setParams;       //!< If linear solver parameters are set
-  int                 nLinSolves;      //!< Number of linear solves
-  LinAlg::LinearSystemType linsysType; //!< Linear system type
+  int                 nLinSolves = 0;  //!< Number of linear solves
+  LinAlg::LinearSystemType linsysType = LinAlg::GENERAL_MATRIX; //!< Linear system type
 };
+
+#endif

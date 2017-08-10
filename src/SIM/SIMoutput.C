@@ -234,7 +234,7 @@ void SIMoutput::preprocessResPtGroup (std::string& ptFile, ResPointVec& points)
       if (p->inod > 0 && myModel.size() > 1)
         IFEM::cout <<", global #"<< pch->getNodeID(p->inod);
       IFEM::cout <<", X = "<< p->X << std::endl;
-      p++;
+      ++p;
     }
   }
 
@@ -313,7 +313,7 @@ bool SIMoutput::writeGlvG (int& nBlock, const char* inpFile, bool doClear)
   for (i = 0; i < myModel.size(); i++)
     if ((lvb = myModel[i]->immersedGeometry()))
     {
-      sprintf(pname,"Immersed boundary %ld",i+1);
+      sprintf(pname,"Immersed boundary %zu",i+1);
       if (!myVtf->writeGrid(lvb,pname,++nBlock))
         return false;
     }

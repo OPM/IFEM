@@ -1061,8 +1061,8 @@ bool SIMinput::refine (const LR::RefineData& prm,
                        Vectors& sol, const char* fName)
 {
   isRefined = false;
-  ASMunstruct* pch = nullptr;
-  for (size_t i = 0; i < myModel.size(); i++)
+  for (size_t i = 0; i < myModel.size(); i++) {
+    ASMunstruct* pch;
     if ((pch = dynamic_cast<ASMunstruct*>(myModel[i])))
     {
       if (isRefined && !sol.empty())
@@ -1077,6 +1077,7 @@ bool SIMinput::refine (const LR::RefineData& prm,
 
       isRefined = true;
     }
+  }
 
   return isRefined;
 }

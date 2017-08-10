@@ -203,5 +203,5 @@ endif()
 
 # Generate regtest script with correct paths
 configure_file(${IFEM_REGTEST_SCRIPT} regtest.sh)
-configure_file(${IFEM_CLANG_CHECK_TEST_SCRIPT} clang-check-test.sh)
-configure_file(${IFEM_CPPCHECK_TEST_SCRIPT} cppcheck-test.sh)
+configure_file(${IFEM_CLANG_CHECK_TEST_SCRIPT} clang-check-test.sh @ONLY)
+configure_file(${IFEM_CPPCHECK_TEST_SCRIPT} cppcheck-test.sh @ONLY)

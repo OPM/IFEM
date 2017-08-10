@@ -25,7 +25,7 @@ namespace ExprEval
     class Node
     {
     public:
-        Node(Expression *expr);
+        explicit Node(Expression *expr);
         virtual ~Node();
         
         virtual double DoEvaluate() = 0;
@@ -43,7 +43,7 @@ namespace ExprEval
     class FunctionNode : public Node
     {
     public:
-        FunctionNode(Expression *expr);
+        explicit FunctionNode(Expression *expr);
         ~FunctionNode();
         
         // Parse nodes and references
@@ -81,7 +81,7 @@ namespace ExprEval
     class MultiNode : public Node
     {
     public:
-        MultiNode(Expression *expr);
+        explicit MultiNode(Expression *expr);
         ~MultiNode();
         
         double DoEvaluate();
@@ -97,7 +97,7 @@ namespace ExprEval
     class AssignNode : public Node
     {
     public:
-        AssignNode(Expression *expr);
+        explicit AssignNode(Expression *expr);
         ~AssignNode();
         
         double DoEvaluate();
@@ -114,7 +114,7 @@ namespace ExprEval
     class AddNode : public Node
     {
     public:
-        AddNode(Expression *expr);
+        explicit AddNode(Expression *expr);
         ~AddNode();
         
         double DoEvaluate();
@@ -131,7 +131,7 @@ namespace ExprEval
     class SubtractNode : public Node
     {
     public:
-        SubtractNode(Expression *expr);
+        explicit SubtractNode(Expression *expr);
         ~SubtractNode();
         
         double DoEvaluate();
@@ -148,7 +148,7 @@ namespace ExprEval
     class MultiplyNode : public Node
     {
     public:
-        MultiplyNode(Expression *expr);
+        explicit MultiplyNode(Expression *expr);
         ~MultiplyNode();
         
         double DoEvaluate();
@@ -165,7 +165,7 @@ namespace ExprEval
     class DivideNode : public Node
     {
     public:
-        DivideNode(Expression *expr);
+        explicit DivideNode(Expression *expr);
         ~DivideNode();
         
         double DoEvaluate();
@@ -182,7 +182,7 @@ namespace ExprEval
     class NegateNode : public Node
     {
     public:
-        NegateNode(Expression *expr);
+        explicit NegateNode(Expression *expr);
         ~NegateNode();
         
         double DoEvaluate();
@@ -198,7 +198,7 @@ namespace ExprEval
     class ExponentNode : public Node
     {
     public:
-        ExponentNode(Expression *expr);
+        explicit ExponentNode(Expression *expr);
         ~ExponentNode();
         
         double DoEvaluate();
@@ -215,7 +215,7 @@ namespace ExprEval
     class VariableNode : public Node
     {
     public:
-        VariableNode(Expression *expr);
+        explicit VariableNode(Expression *expr);
         ~VariableNode();
         
         double DoEvaluate();
@@ -231,7 +231,7 @@ namespace ExprEval
     class ValueNode : public Node
     {
     public:
-        ValueNode(Expression *expr);
+        explicit ValueNode(Expression *expr);
         ~ValueNode();
         
         double DoEvaluate();

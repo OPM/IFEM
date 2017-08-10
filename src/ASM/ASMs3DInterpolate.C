@@ -176,7 +176,6 @@ quasiInterpolation(const Go::BsplineBasis& basis_u,
   // curves in the first parameter direction
   size_t ki, kj;
   int ui;
-  std::vector<double> sf_coefs;
   std::vector<double> volinput_coefs;
   std::vector<double> tg_pnt;
   int p,q;
@@ -626,7 +625,6 @@ quasiInterpolation(const Go::BsplineBasis& basis_u,
     for(int i = 0; i < n*m*perknot ; i++)
       sf_coefs_solution.push_back( 0.0 );
 
-    int starti, startj;
     if (invyl == 1 && invxl == 1)
     {
       sf_coefs_solution = sf_coefs;
@@ -637,8 +635,8 @@ quasiInterpolation(const Go::BsplineBasis& basis_u,
       {
         for (int a = 0; a < invxl; a++)
         {
-          starti = b*(2*q-1);
-          startj = a*(2*p-1);
+          int starti = b*(2*q-1);
+          int startj = a*(2*p-1);
           {if (invyl == 1)
             {if (a == 0)
               for (int i = starti;i<(starti+2*q-1);i++)

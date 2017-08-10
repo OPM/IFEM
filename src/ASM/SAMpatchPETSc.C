@@ -141,6 +141,7 @@ Real SAMpatchPETSc::normInf(const Vector& x, size_t& comp, char dofType) const
 }
 
 
+#ifdef HAVE_MPI
 void SAMpatchPETSc::setupIS(char dofType) const
 {
   PetscIntVec ldofs;
@@ -169,6 +170,7 @@ void SAMpatchPETSc::setupIS(char dofType) const
 
   dofIS[dofType].nDofs = gdof - gdofs.front();
 }
+#endif
 
 
 bool SAMpatchPETSc::expandSolution(const SystemVector& solVec,

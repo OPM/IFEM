@@ -133,7 +133,7 @@ bool ASMu3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
   // === Assembly loop over all elements in the patch ==========================
 
   std::vector<LR::Element*>::iterator el = lrspline->elementBegin();
-  for (int iel = 1; el != lrspline->elementEnd(); el++, iel++)
+  for (int iel = 1; el != lrspline->elementEnd(); ++el, iel++)
   {
     if (continuous)
     {
@@ -309,7 +309,7 @@ LR::LRSplineVolume* ASMu3D::scRecovery (const IntegrandBase& integrand) const
 
     // Loop over all non-zero knot-spans in the support of
     // the basis function associated with current Greville point
-    for (el = elStart; el != elEnd; el++)
+    for (el = elStart; el != elEnd; ++el)
     {
       int iel = (**el).getId()+1;
 

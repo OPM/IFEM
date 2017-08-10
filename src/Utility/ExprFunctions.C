@@ -89,9 +89,11 @@ int EvalFunc::numError = 0;
 EvalFunc::EvalFunc (const char* function, const char* x)
 {
   try {
-    size_t nalloc = 1;
+    size_t nalloc;
 #ifdef USE_OPENMP
     nalloc = omp_get_max_threads();
+#else
+    nalloc = 1;
 #endif
     expr.resize(nalloc);
     f.resize(nalloc);
@@ -111,7 +113,7 @@ EvalFunc::EvalFunc (const char* function, const char* x)
       arg[i] = v[i]->GetAddress(x);
     }
   }
-  catch (ExprEval::Exception e) {
+  catch (ExprEval::Exception& e) {
     ExprException(e,"parsing",function);
   }
 }
@@ -130,16 +132,16 @@ EvalFunc::~EvalFunc ()
 
 Real EvalFunc::evaluate (const Real& x) const
 {
-  size_t i = 0;
-#ifdef USE_OPENMP
-  i = omp_get_thread_num();
-#endif
   Real result = Real(0);
   try {
+    size_t i = 0;
+#ifdef USE_OPENMP
+    i = omp_get_thread_num();
+#endif
     *arg[i] = x;
     result = expr[i]->Evaluate();
   }
-  catch (ExprEval::Exception e) {
+  catch (ExprEval::Exception& e) {
     ExprException(e,"evaluating expression");
   }
 
@@ -150,9 +152,11 @@ Real EvalFunc::evaluate (const Real& x) const
 EvalFunction::EvalFunction (const char* function) : gradient{}, dgradient{}
 {
   try {
-    size_t nalloc = 1;
+    size_t nalloc;
 #ifdef USE_OPENMP
     nalloc = omp_get_max_threads();
+#else
+    nalloc = 1;
 #endif
     expr.resize(nalloc);
     f.resize(nalloc);
@@ -178,7 +182,7 @@ EvalFunction::EvalFunction (const char* function) : gradient{}, dgradient{}
       arg[i].t = v[i]->GetAddress("t");
     }
   }
-  catch (ExprEval::Exception e) {
+  catch (ExprEval::Exception& e) {
     ExprException(e,"parsing",function);
   }
 
@@ -257,7 +261,7 @@ Real EvalFunction::evaluate (const Vec3& X) const
     *arg[i].t = Xt ? Xt->t : Real(0);
     result = expr[i]->Evaluate();
   }
-  catch (ExprEval::Exception e) {
+  catch (ExprEval::Exception& e) {
     ExprException(e,"evaluating expression");
   }
 
