@@ -1895,7 +1895,7 @@ bool ASMu2D::updateDirichlet (const std::map<int,RealFunc*>& func,
   for (size_t i = 0; i < dirich.size(); i++)
   {
     // figure out function index offset (when using multiple basis)
-    size_t ofs = 0;
+    size_t ofs = 1;
     for (int j = 1; j < dirich[i].basis; j++)
       ofs += this->getNoNodes(j);
 
@@ -1929,7 +1929,7 @@ bool ASMu2D::updateDirichlet (const std::map<int,RealFunc*>& func,
       {
         int dof = dofs%10;
         // Find the constraint equation for current (node,dof)
-        MPC pDOF(MLGN[nit->second]+ofs,dof);
+        MPC pDOF(MLGN[nit->second+ofs-1],dof);
         MPCIter mit = mpcs.find(&pDOF);
         if (mit == mpcs.end()) continue; // probably a deleted constraint
 
