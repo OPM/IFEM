@@ -1872,7 +1872,7 @@ bool ASMu3D::evalSolution (Matrix& sField, const Vector& locSol,
 bool ASMu3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
                            const int* npe, char project) const
 {
-  if (npe == nullptr || npe[0] != npe[1] || npe[0] != npe[2] || npe[1] != npe[2])
+  if (npe && (npe[0] != npe[1] || npe[0] != npe[2] || npe[1] != npe[2]))
   {
     std::cerr <<" *** ASMu3D::evalSolution: LR B-splines require the"
               <<" same number of evaluation points in u-, v- and w-direction."
@@ -2173,7 +2173,7 @@ bool ASMu3D::updateDirichlet (const std::map<int,RealFunc*>& func,
       {
         int dof = dofs%10;
         // Find the constraint equation for current (node,dof)
-        MPC pDOF(node+ofs,dof);
+        MPC pDOF(MLGN[node+ofs-1],dof);
         MPCIter mit = mpcs.find(&pDOF);
         if (mit == mpcs.end()) continue; // probably a deleted constraint
 

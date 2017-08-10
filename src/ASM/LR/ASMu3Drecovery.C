@@ -30,7 +30,7 @@
 
 bool ASMu3D::getGrevilleParameters (RealArray& prm, int dir) const
 {
-  if (!lrspline || dir < 0 || dir > 1) return false;
+  if (!lrspline || dir < 0 || dir > 2) return false;
 
   prm.clear();
   prm.reserve(lrspline->nBasisFunctions());
