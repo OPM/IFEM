@@ -381,14 +381,14 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
     std::array<RealArray,3> gpar, redpar;
     for (int d = 0; d < 3; d++)
     {
-      this->getGaussPointParameters(gpar[d],d,nGauss,iEl,xg);
+      this->getGaussPointParameters(gpar[d],d,nGauss,iEl+1,xg);
       if (xr)
-        this->getGaussPointParameters(redpar[d],d,nRed,iEl,xr);
+        this->getGaussPointParameters(redpar[d],d,nRed,iEl+1,xr);
     }
 
 
     if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-      this->getElementCorners(iEl, fe.XC);
+      this->getElementCorners(iEl+1, fe.XC);
 
     if (integrand.getIntegrandType() & Integrand::G_MATRIX)
     {
@@ -604,7 +604,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
         gpar[d].fill(this->getBasis(geoBasis)->endparam(d));
       }
       else
-        this->getGaussPointParameters(gpar[d],d,nGP,iEl,xg);
+        this->getGaussPointParameters(gpar[d],d,nGP,iEl+1,xg);
 
     fe.xi = fe.eta = fe.zeta = faceDir < 0 ? -1.0 : 1.0;
     fe.u = gpar[0](1);
@@ -633,7 +633,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
     }
 
     if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-      this->getElementCorners(iEl,fe.XC);
+      this->getElementCorners(iEl+1,fe.XC);
 
     if (integrand.getIntegrandType() & Integrand::G_MATRIX)
     {
