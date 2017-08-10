@@ -201,8 +201,8 @@ bool SIMoutput::parse (char* keyWord, std::istream& is)
 
 void SIMoutput::preprocessResultPoints ()
 {
-  for (size_t i = 0; i < myPoints.size(); i++)
-    this->preprocessResPtGroup(myPoints[i].first,myPoints[i].second);
+  for (ResPtPair& rptp : myPoints)
+    this->preprocessResPtGroup(rptp.first,rptp.second);
 }
 
 
@@ -234,7 +234,7 @@ void SIMoutput::preprocessResPtGroup (std::string& ptFile, ResPointVec& points)
       if (p->inod > 0 && myModel.size() > 1)
         IFEM::cout <<", global #"<< pch->getNodeID(p->inod);
       IFEM::cout <<", X = "<< p->X << std::endl;
-      p++;
+      ++p;
     }
   }
 
@@ -1110,7 +1110,89 @@ bool SIMoutput::writeGlvE (const Vector& vec, int iStep, int& nBlock,
 void SIMoutput::closeGlv ()
 {
   if (myVtf) delete myVtf;
-  myVtf = 0;
+  myVtf = nullptr;
+}
+
+
+bool SIMoutput::dumpMatlabGrid (std::ostream& os, const std::string& name,
+                                const std::vector<std::string>& sets,
+                                double scale) const
+{
+  if (!mySam || this->getNoParamDim() != 2)
+  {
+    std::cerr <<" *** SIMoutput::dumpMatlabGrid: For 2D only."<< std::endl;
+    return false;
+  }
+
+  // Write function definition
+  os <<"function [Node, Element";
+  for (const std::string& setname : sets) os <<", "<< setname;
+  os <<"]="<< name << std::endl;
+
+  // Write out nodes for the specified topology sets
+  ASMbase* pch;
+  TopologySet::const_iterator tit;
+  for (const std::string& setname : sets)
+  {
+    std::set<int> nodeSet;
+    if ((tit = myEntitys.find(setname)) != myEntitys.end())
+      for (const TopItem& top : tit->second)
+        if ((pch = this->getPatch(top.patch)))
+          if (top.idim+1 == pch->getNoParamDim())
+          {
+            IntVec nodes;
+            pch->getBoundaryNodes(top.item,nodes);
+            for (int n : nodes) nodeSet.insert(n);
+          }
+
+    os <<"\n  "<< setname <<"=[";
+    int count = 0;
+    for (int node : nodeSet)
+      if (++count == 1)
+        os << node;
+      else if (count%16 == 1)
+        os <<",...\n    "<< node;
+      else
+        os <<", "<< node;
+    os <<"];"<< std::endl;
+  }
+
+  // Write out all nodes
+  os <<"\n  Node=[1";
+  size_t nnod = mySam->getNoNodes();
+  for (size_t inod = 1; inod <= nnod; inod++)
+  {
+    Vec3 X = this->getNodeCoord(inod);
+    if (inod > 1) os <<"\n        "<< inod;
+    for (size_t d = 0; d < nsd; d++)
+      os <<", "<< scale*X[d];
+  }
+  os <<"];\n  Node=Node(:,2:"<< 1+nsd <<");"<< std::endl;
+
+  // Write out all elements
+  os <<"\n  Element=[1";
+  size_t nen = 0, nel = mySam->getNoElms();
+  for (size_t iel = 1; iel <= nel; iel++)
+  {
+    IntVec nodes;
+    if (!mySam->getElmNodes(nodes,iel))
+      return false;
+    else if (nodes.size() == 4)
+      std::swap(nodes[2],nodes[3]);
+    if (iel > 1) os <<"\n           "<< iel;
+    for (int n : nodes) os <<", "<< n;
+    if (nen == 0)
+      nen = nodes.size();
+    else if (nen != nodes.size() || nen > 4)
+    {
+      std::cerr <<" *** SIMoutput::dumpMatlabGrid:"
+                <<" Only linear standard elements are supported.";
+      return false;
+    }
+  }
+  os <<"];\n  Element=Element(:,2:"<< 1+nen <<");"<< std::endl;
+
+  return true;
 }
 
 
@@ -1376,11 +1458,9 @@ bool SIMoutput::dumpVector (const Vector& vsol, const char* fname,
   std::streamsize flWidth = 8 + precision;
   std::streamsize oldPrec;
   std::ios::fmtflags oldFlgs;
-
-  std::vector<ResPtPair>::const_iterator pit;
   ResPointVec::const_iterator p;
 
-  for (pit = myPoints.begin(); pit != myPoints.end() && ok; ++pit)
+  for (const ResPtPair& rptp : myPoints)
   {
     if (fname)
     {
@@ -1388,10 +1468,10 @@ bool SIMoutput::dumpVector (const Vector& vsol, const char* fname,
       oldPrec = os.precision(precision);
       oldFlgs = os.flags(std::ios::scientific | std::ios::right);
     }
-    else if (!pit->first.empty())
+    else if (!rptp.first.empty())
     {
       // Output to a separate file for plotting
-      fs = new std::ofstream(pit->first.c_str(),std::ios::out);
+      fs = new std::ofstream(rptp.first.c_str(),std::ios::out);
       oldPrec = fs->precision(precision);
       oldFlgs = fs->flags(std::ios::scientific | std::ios::right);
     }
@@ -1406,7 +1486,7 @@ bool SIMoutput::dumpVector (const Vector& vsol, const char* fname,
       // Find all evaluation points within this patch, if any
       std::array<RealArray,3> params;
       IntVec points;
-      for (j = 0, p = pit->second.begin(); p != pit->second.end(); j++, ++p)
+      for (j = 0, p = rptp.second.begin(); p != rptp.second.end(); j++, ++p)
         if (this->getLocalPatchIndex(p->patch) == (int)(i+1))
           if (opt.discretization >= ASM::Spline)
           {
@@ -1476,10 +1556,9 @@ bool SIMoutput::dumpResults (const Vector& psol, double time,
 
   myProblem->initResultPoints(time);
 
-  for (size_t i = 0; i < myPoints.size(); i++)
-    if (!formatted || myPoints[i].first.empty())
-      if (!this->dumpResults(psol,time,os,myPoints[i].second,
-                             formatted,precision))
+  for (const ResPtPair& rptp : myPoints)
+    if (!formatted || rptp.first.empty())
+      if (!this->dumpResults(psol,time,os,rptp.second,formatted,precision))
         return false;
 
   return true;
@@ -1493,22 +1572,18 @@ bool SIMoutput::savePoints (const Vector& psol, double time, int step) const
 
   myProblem->initResultPoints(time);
 
-  for (size_t i = 0; i < myPoints.size(); i++)
-  {
-    if (myPoints[i].first.empty()) continue;
-
-    bool havePoints = false;
-    for (size_t j = 0; i < myPoints[i].second.size() && !havePoints; j++)
-      havePoints = this->getLocalPatchIndex(myPoints[i].second[j].patch) > 0;
-    if (havePoints)
-    {
-      std::ofstream fs(myPoints[i].first.c_str(),
-                       step == 1 ? std::ios::out : std::ios::app);
-      utl::LogStream logs(fs);
-      if (!this->dumpResults(psol,time,logs,myPoints[i].second,false,myPrec))
-        return false;
-    }
-  }
+  for (const ResPtPair& rptp : myPoints)
+    if (!rptp.first.empty())
+      for (const ResultPoint& resPt : rptp.second)
+        if (this->getLocalPatchIndex(resPt.patch) > 0)
+        {
+          std::ofstream fs(rptp.first.c_str(),
+                           step == 1 ? std::ios::out : std::ios::app);
+          utl::LogStream logs(fs);
+          if (!this->dumpResults(psol,time,logs,rptp.second,false,myPrec))
+            return false;
+          break;
+        }
 
   return true;
 }
@@ -1516,8 +1591,8 @@ bool SIMoutput::savePoints (const Vector& psol, double time, int step) const
 
 bool SIMoutput::hasPointResultFile () const
 {
-  for (size_t i = 0; i < myPoints.size(); i++)
-    if (!myPoints[i].first.empty())
+  for (const ResPtPair& rptp : myPoints)
+    if (!rptp.first.empty())
       return true;
 
   return false;

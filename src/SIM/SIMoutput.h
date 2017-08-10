@@ -219,6 +219,15 @@ public:
   //! \brief Initializes the geometry block counter.
   void setStartGeo(int gID) { myGeomID = gID; }
 
+  //! \brief Dumps the FE model to Matlab format.
+  //! \param os Output stream to write the grid data to
+  //! \param[in] name Name of the Matlab function returning the grid
+  //! \param[in] sets Names of nodal sets to be printed out in addition
+  //! \param[in] scale Scaling factor
+  bool dumpMatlabGrid(std::ostream& os, const std::string& name = "IFEM_Mesh",
+                      const std::vector<std::string>& sets = {},
+                      double scale = 1.0) const;
+
   //! \brief Dumps the (possibly refined) spline geometry in g2-format.
   //! \param os Output stream to write the geometry data to
   bool dumpGeometry(std::ostream& os) const;
