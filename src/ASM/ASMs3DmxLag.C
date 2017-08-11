@@ -11,8 +11,6 @@
 //!
 //==============================================================================
 
-#include "GoTools/trivariate/SplineVolume.h"
-
 #include "ASMs3DmxLag.h"
 #include "Lagrange.h"
 #include "TimeDomain.h"
@@ -125,21 +123,21 @@ bool ASMs3DmxLag::generateFEMTopology ()
   if ((haveFEdata && !shareFE) || !basis1IsOK) return basis1IsOK;
 
   // Order of 2nd basis in the three parametric directions (order = degree + 1)
-  const size_t p1 = svol->order(0)-1;
-  const size_t p2 = svol->order(1)-1;
-  const size_t p3 = svol->order(2)-1;
-  if (p1 < 2 || p2 < 2 || p3 < 2)
+  const size_t q1 = p1 - 1;
+  const size_t q2 = p2 - 1;
+  const size_t q3 = p3 - 1;
+  if (q1 < 2 || q2 < 2 || q3 < 2)
   {
-    std::cerr <<" *** ASMs3DmxLag::generateFEMTopology: Too low order "<< p1
-	      <<","<< p2 <<","<< p3 <<" for the second basis."<< std::endl;
+    std::cerr <<" *** ASMs3DmxLag::generateFEMTopology: Too low order "<< q1
+	      <<","<< q2 <<","<< q3 <<" for the second basis."<< std::endl;
     return false;
   }
 
   // Evaluate the parametric values
   RealArray gpar1, gpar2, gpar3;
-  if (!this->getGridParameters(gpar1,0,p1-1)) return false;
-  if (!this->getGridParameters(gpar2,1,p2-1)) return false;
-  if (!this->getGridParameters(gpar3,2,p3-1)) return false;
+  if (!this->getGridParameters(gpar1,0,q1-1)) return false;
+  if (!this->getGridParameters(gpar2,1,q2-1)) return false;
+  if (!this->getGridParameters(gpar3,2,q3-1)) return false;
 
   // Number of nodes in each direction for each basis
   nxx.resize(2);
@@ -154,12 +152,12 @@ bool ASMs3DmxLag::generateFEMTopology ()
 
   // Number of elements in each direction for each basis
   elem_sizes.resize(2);
-  elem_sizes[0][0] = p1+1;
-  elem_sizes[0][1] = p2+1;
-  elem_sizes[0][2] = p3+1;
-  elem_sizes[1][0] = p1;
-  elem_sizes[1][1] = p2;
-  elem_sizes[1][2] = p3;
+  elem_sizes[0][0] = p1;
+  elem_sizes[0][1] = p2;
+  elem_sizes[0][2] = p3;
+  elem_sizes[1][0] = q1;
+  elem_sizes[1][1] = q2;
+  elem_sizes[1][2] = q3;
 
   // Total number of nodes for each basis
   nb.resize(2);
@@ -177,9 +175,9 @@ bool ASMs3DmxLag::generateFEMTopology ()
 	myMLGN.push_back(++gNod);
 
   // Number of elements in each direction
-  const int nelx = (nxx[1]-1)/(p1-1);
-  const int nely = (nyx[1]-1)/(p2-1);
-  const int nelz = (nzx[1]-1)/(p3-1);
+  const int nelx = (nxx[1]-1)/(q1-1);
+  const int nely = (nyx[1]-1)/(q2-1);
+  const int nelz = (nzx[1]-1)/(q3-1);
 
   // Add connectivity for second basis: local --> global node relation
   int i, j, k, iel;
@@ -188,20 +186,20 @@ bool ASMs3DmxLag::generateFEMTopology ()
       for (i = 0; i < nelx; i++, iel++)
       {
 	size_t nen1 = myMNPC[iel].size();
-	myMNPC[iel].resize(nen1+p1*p2*p3);
+	myMNPC[iel].resize(nen1+q1*q2*q3);
 
 	// First node in current element
-	int corner = nb[0] + (p3-1)*nxx[1]*nyx[1]*k + (p2-1)*nxx[1]*j + (p1-1)*i;
+	int corner = nb[0] + (q3-1)*nxx[1]*nyx[1]*k + (q2-1)*nxx[1]*j + q1*i-i;
 
-	for (size_t c = 0; c < p3; c++)
+	for (size_t c = 0; c < q3; c++)
 	{
-	  int cornod = nen1 + p1*p2*c;
+	  int cornod = nen1 + q1*q2*c;
 	  myMNPC[iel][cornod] = corner + nxx[1]*nyx[1]*c;
-	  for (size_t b = 1; b < p2; b++)
+	  for (size_t b = 1; b < q2; b++)
 	  {
-	    int facenod = cornod + p1*b;
+	    int facenod = cornod + q1*b;
 	    myMNPC[iel][facenod] = myMNPC[iel][cornod] + nxx[1]*b;
-	    for (size_t a = 1; a < p1; a++)
+	    for (size_t a = 1; a < q1; a++)
 	    {
 	      myMNPC[iel][facenod+a] = myMNPC[iel][facenod] + a;
 	      myMNPC[iel][cornod+a]  = myMNPC[iel][cornod] + a;
@@ -270,7 +268,7 @@ bool ASMs3DmxLag::integrate (Integrand& integrand,
 			     GlobalIntegral& glInt,
 			     const TimeDomain& time)
 {
-  if (!svol) return true; // silently ignore empty patches
+  if (this->empty()) return true; // silently ignore empty patches
 
   // Get Gaussian quadrature points and weights
   const double* x = GaussQuadrature::getCoord(nGauss);
@@ -392,7 +390,7 @@ bool ASMs3DmxLag::integrate (Integrand& integrand, int lIndex,
 			     GlobalIntegral& glInt,
 			     const TimeDomain& time)
 {
-  if (!svol) return true; // silently ignore empty patches
+  if (this->empty()) return true; // silently ignore empty patches
 
   std::map<char,ThreadGroups>::const_iterator tit;
   if ((tit = threadGroupsFace.find(lIndex%10)) == threadGroupsFace.end())
@@ -565,24 +563,17 @@ bool ASMs3DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 				const RealArray*, bool) const
 {
   sField.resize(0,0);
-  if (!svol) return false;
-
-  const size_t p1 = svol->order(0);
-  const size_t p2 = svol->order(1);
-  const size_t p3 = svol->order(2);
-  const size_t q1 = p1 - 1;
-  const size_t q2 = p2 - 1;
-  const size_t q3 = p3 - 1;
-  double incx = 2.0/double(q1);
-  double incy = 2.0/double(q2);
-  double incz = 2.0/double(q3);
-
-  size_t nPoints = nb[0];
-  IntVec check(nPoints,0);
 
   std::vector<size_t> elem_size;
   for (size_t b = 0; b < nxx.size(); ++b)
     elem_size.push_back(elem_sizes[b][0]*elem_sizes[b][1]*elem_sizes[b][2]);
+
+  double incx = 2.0/double(p1-1);
+  double incy = 2.0/double(p2-1);
+  double incz = 2.0/double(p3-1);
+
+  size_t nPoints = nb[0];
+  IntVec check(nPoints,0);
 
   MxFiniteElement fe(elem_size);
   Vector          solPt;
@@ -602,7 +593,7 @@ bool ASMs3DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
     this->getElementCoordinates(Xnod,iel);
 
-    size_t i, j, k, loc = 0;
+    int i, j, k, loc = 0;
     for (k = 0; k < p3; k++)
       for (j = 0; j < p2; j++)
 	for (i = 0; i < p1; i++, loc++)

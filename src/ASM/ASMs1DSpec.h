@@ -44,7 +44,7 @@ public:
   //! \param glbInt The integrated quantity
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
   virtual bool integrate(Integrand& integrand,
-			 GlobalIntegral& glbInt, const TimeDomain& time);
+                         GlobalIntegral& glbInt, const TimeDomain& time);
 
   //! \brief Evaluates a boundary integral over a patch end.
   //! \param integrand Object with problem-specific data and methods
@@ -52,19 +52,18 @@ public:
   //! \param glbInt The integrated quantity
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
   virtual bool integrate(Integrand& integrand, int lIndex,
-			 GlobalIntegral& glbInt, const TimeDomain& time);
+                         GlobalIntegral& glbInt, const TimeDomain& time);
 
 
   // Post-processing methods
   // =======================
 
   using ASMs1DLag::evalSolution;
-  //! \brief Evaluates the secondary solution field at the given points.
+  //! \brief Evaluates the secondary solution field at the nodal points.
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
-  //! \param[in] gpar Parameter values of the result sampling points
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
-			    const RealArray* gpar, bool = true) const;
+                            const RealArray*, bool) const;
 
 protected:
 

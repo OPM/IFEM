@@ -30,13 +30,15 @@ ASMs1DLag::ASMs1DLag (unsigned char n_s, unsigned char n_f)
   : ASMs1D(n_s,n_f), coord(myCoord)
 {
   nx = 0;
+  p1 = 0;
 }
 
 
 ASMs1DLag::ASMs1DLag (const ASMs1DLag& patch, unsigned char n_f)
   : ASMs1D(patch,n_f), coord(patch.myCoord)
 {
-  nx = coord.size();
+  nx = patch.nx;
+  p1 = patch.p1;
 }
 
 
@@ -44,6 +46,7 @@ ASMs1DLag::ASMs1DLag (const ASMs1DLag& patch)
   : ASMs1D(patch), coord(myCoord)
 {
   nx = patch.nx;
+  p1 = patch.p1;
   myCoord = patch.coord;
 }
 
@@ -52,6 +55,7 @@ void ASMs1DLag::clear (bool retainGeometry)
 {
   myCoord.clear();
   nx = 0;
+  p1 = 0;
 
   this->ASMs1D::clear(retainGeometry);
 }
@@ -62,7 +66,7 @@ bool ASMs1DLag::generateOrientedFEModel (const Vec3& Zaxis)
   if (!curv) return false;
 
   // Order of the basis
-  const int p1 = curv->order();
+  p1 = curv->order();
 
   // Evaluate the parametric values
   RealArray gpar;
@@ -195,7 +199,7 @@ bool ASMs1DLag::integrate (Integrand& integrand,
 			   GlobalIntegral& glInt,
 			   const TimeDomain& time)
 {
-  if (!curv) return true; // silently ignore empty patches
+  if (this->empty()) return true; // silently ignore empty patches
 
   // Get Gaussian quadrature points and weights
   const double* xg = GaussQuadrature::getCoord(nGauss);
@@ -218,9 +222,6 @@ bool ASMs1DLag::integrate (Integrand& integrand,
   // Get parametric coordinates of the elements
   RealArray gpar;
   this->getGridParameters(gpar,1);
-
-  // Order of basis (order = degree + 1)
-  const int p1 = curv->order();
 
   FiniteElement fe(p1);
   Matrix dNdu, Jac;
@@ -333,25 +334,25 @@ bool ASMs1DLag::integrate (Integrand& integrand, int lIndex,
 			   GlobalIntegral& glInt,
 			   const TimeDomain& time)
 {
-  if (!curv) return true; // silently ignore empty patches
+  if (this->empty()) return true; // silently ignore empty patches
 
   // Extract the Neumann order flag (1 or higher) for the integrand
   integrand.setNeumannOrder(1 + lIndex/10);
 
   // Integration of boundary point
 
-  FiniteElement fe(curv->order());
+  FiniteElement fe(p1);
   size_t iel = 0;
   switch (lIndex%10)
     {
     case 1:
       fe.xi = -1.0;
-      fe.u = curv->startparam();
+      fe.u = curv ? curv->startparam() : 0.0;
       break;
 
     case 2:
       fe.xi = 1.0;
-      fe.u = curv->endparam();
+      fe.u = curv ? curv->endparam() : 1.0;
       iel = nel-1;
       break;
 
@@ -381,12 +382,12 @@ bool ASMs1DLag::integrate (Integrand& integrand, int lIndex,
   // Evaluate basis functions and corresponding derivatives
   Vec3 normal;
   if (integrand.getIntegrandType() & Integrand::NO_DERIVATIVES)
-    ok &= Lagrange::computeBasis(fe.N,curv->order(),fe.xi);
+    ok &= Lagrange::computeBasis(fe.N,p1,fe.xi);
   else
   {
     // Compute basis function derivatives
     Matrix dNdu, Jac;
-    ok &= Lagrange::computeBasis(fe.N,dNdu,curv->order(),fe.xi);
+    ok &= Lagrange::computeBasis(fe.N,dNdu,p1,fe.xi);
     utl::Jacobian(Jac,fe.dNdX,fe.Xn,dNdu);
 
     // Set up the normal vector
@@ -414,13 +415,14 @@ bool ASMs1DLag::integrate (Integrand& integrand, int lIndex,
 
 int ASMs1DLag::evalPoint (const double* xi, double* param, Vec3& X) const
 {
-  if (!curv) return -1;
-
-  param[0] = (1.0-xi[0])*curv->startparam() + xi[0]*curv->endparam();
+  if (curv)
+    param[0] = (1.0-xi[0])*curv->startparam() + xi[0]*curv->endparam();
+  else
+    param[0] = xi[0];
 
   // Evaluate the parametric values of the nodes
   RealArray u;
-  if (!this->getGridParameters(u,curv->order()-1)) return -1;
+  if (!this->getGridParameters(u,p1-1)) return -1;
 
   // Search for the closest node
   size_t n = utl::find_closest(u,param[0]);
@@ -432,7 +434,6 @@ int ASMs1DLag::evalPoint (const double* xi, double* param, Vec3& X) const
 
 bool ASMs1DLag::tesselate (ElementBlock& grid, const int* npe) const
 {
-  const int p1 = curv->order();
   if (p1 != npe[0])
   {
     std::cout <<"\nLagrange elements: The number of visualization points is "
@@ -466,7 +467,7 @@ bool ASMs1DLag::tesselate (ElementBlock& grid, const int* npe) const
 bool ASMs1DLag::evalSolution (Matrix& sField, const Vector& locSol,
 			      const int*) const
 {
-  return this->evalSolution(sField,locSol,(const RealArray*)0,true);
+  return this->evalSolution(sField,locSol,(const RealArray*)nullptr);
 }
 
 
@@ -488,9 +489,9 @@ bool ASMs1DLag::evalSolution (Matrix& sField, const Vector& locSol,
 
 
 bool ASMs1DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
-			      const int*, bool) const
+			      const int*, char) const
 {
-  return this->evalSolution(sField,integrand,(const RealArray*)0,true);
+  return this->evalSolution(sField,integrand,(const RealArray*)nullptr);
 }
 
 
@@ -498,9 +499,7 @@ bool ASMs1DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 			      const RealArray*, bool) const
 {
   sField.resize(0,0);
-  if (!curv) return false;
 
-  const int p1 = curv->order();
   double incx = 2.0/double(p1-1);
 
   size_t nPoints = coord.size();

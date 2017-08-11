@@ -82,11 +82,7 @@ bool ASMs2DSpec::integrate (Integrand& integrand,
 			    GlobalIntegral& glInt,
 			    const TimeDomain& time)
 {
-  if (!surf) return true; // silently ignore empty patches
-
-  // Order of basis in the two parametric directions (order = degree + 1)
-  const int p1 = surf->order_u();
-  const int p2 = surf->order_v();
+  if (this->empty()) return true; // silently ignore empty patches
 
   // Evaluate integration points (= nodal points) and weights
   Vector wg1,xg1,wg2,xg2;
@@ -173,7 +169,7 @@ bool ASMs2DSpec::integrate (Integrand& integrand, int lIndex,
 			    GlobalIntegral& glInt,
 			    const TimeDomain& time)
 {
-  if (!surf) return true; // silently ignore empty patches
+  if (this->empty()) return true; // silently ignore empty patches
 
   // Find the parametric direction of the edge normal {-2,-1, 1, 2}
   int edgeDir = lIndex = (lIndex+1)/(lIndex%2 ? -2 : 2);
@@ -181,27 +177,23 @@ bool ASMs2DSpec::integrate (Integrand& integrand, int lIndex,
   const int t1 = abs(edgeDir);   // Tangent direction normal to the patch edge
   const int t2 = 3-abs(edgeDir); // Tangent direction along the patch edge
 
-  // Order of basis in the two parametric directions (order = degree + 1)
-  int p[2];
-  p[0] = surf->order_u();
-  p[1] = surf->order_v();
-
   // Number of elements in each direction
   int n1, n2;
   this->getSize(n1,n2);
-  const int nelx = (n1-1)/(p[0]-1);
-  const int nely = (n2-1)/(p[1]-1);
+  const int nelx = (n1-1)/(p1-1);
+  const int nely = (n2-1)/(p2-1);
 
   // Evaluate integration points and weights
 
   std::array<Vector,2> wg, xg;
   std::array<Matrix,2> D;
+  std::array<int,2> p({p1,p2});
   for (int d = 0; d < 2; d++)
   {
     if (!Legendre::GLL(wg[d],xg[d],p[d])) return false;
     if (!Legendre::basisDerivatives(p[d],D[d])) return false;
   }
-  int nen = p[0]*p[1];
+  int nen = p1*p2;
 
   FiniteElement fe(nen);
   Matrix dNdu(nen,2), Xnod, Jac;
@@ -246,7 +238,7 @@ bool ASMs2DSpec::integrate (Integrand& integrand, int lIndex,
 
 	// Evaluate the basis functions and gradients using
 	// tensor product of one-dimensional Lagrange polynomials
-	evalBasis(xi[0],xi[1],p[0],p[1],D[0],D[1],fe.N,dNdu);
+	evalBasis(xi[0],xi[1],p1,p2,D[0],D[1],fe.N,dNdu);
 
 	// Compute basis function derivatives and the edge normal
 	fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,Xnod,dNdu,t1,t2);
@@ -283,10 +275,6 @@ bool ASMs2DSpec::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 			       const RealArray*, bool) const
 {
   sField.resize(0,0);
-  if (!surf) return false;
-
-  const int p1 = surf->order_u();
-  const int p2 = surf->order_v();
 
   Vector wg1,xg1,wg2,xg2;
   if (!Legendre::GLL(wg1,xg1,p1)) return false;

@@ -31,6 +31,7 @@
 ASMs3DLag::ASMs3DLag (unsigned char n_f) : ASMs3D(n_f), coord(myCoord)
 {
   nx = ny = nz = 0;
+  p1 = p2 = p3 = 0;
 }
 
 
@@ -40,6 +41,9 @@ ASMs3DLag::ASMs3DLag (const ASMs3DLag& patch, unsigned char n_f)
   nx = patch.nx;
   ny = patch.ny;
   nz = patch.nz;
+  p1 = patch.p1;
+  p2 = patch.p2;
+  p3 = patch.p3;
 }
 
 
@@ -49,6 +53,9 @@ ASMs3DLag::ASMs3DLag (const ASMs3DLag& patch)
   nx = patch.nx;
   ny = patch.ny;
   nz = patch.nz;
+  p1 = patch.p1;
+  p2 = patch.p2;
+  p3 = patch.p3;
   myCoord = patch.coord;
 }
 
@@ -57,6 +64,7 @@ void ASMs3DLag::clear (bool retainGeometry)
 {
   myCoord.clear();
   nx = ny = nz = 0;
+  p1 = p2 = p3 = 0;
 
   this->ASMs3D::clear(retainGeometry);
 }
@@ -67,10 +75,8 @@ bool ASMs3DLag::addXElms (short int dim, short int item, size_t nXn,
 {
   if (!this->addXNodes(dim,nXn,nodes))
     return false;
-
-  const int p1 = svol->order(0);
-  const int p2 = svol->order(1);
-  const int p3 = svol->order(2);
+  else if (p1 < 2 || p2 < 2 || p3 < 2)
+    return false;
 
   const int nel1 = (nx-1)/(p1-1);
   const int nel2 = (ny-1)/(p2-1);
@@ -142,9 +148,9 @@ bool ASMs3DLag::generateFEMTopology ()
   if (!svol) return false;
 
   // Order of basis in the three parametric directions (order = degree + 1)
-  const int p1 = svol->order(0);
-  const int p2 = svol->order(1);
-  const int p3 = svol->order(2);
+  p1 = svol->order(0);
+  p2 = svol->order(1);
+  p3 = svol->order(2);
 
   // Evaluate the parametric values
   RealArray gpar1, gpar2, gpar3;
@@ -242,11 +248,12 @@ bool ASMs3DLag::getElementCoordinates (Matrix& X, int iel) const
   }
 
   // Number of nodes per element
-  const size_t nen = svol->order(0)*svol->order(1)*svol->order(2);
+  size_t nen = p1*p2*p3;
+  if (nen > MNPC[--iel].size()) nen = MNPC[iel].size();
 
   X.resize(3,nen);
   for (size_t i = 0; i < nen; i++)
-    X.fillColumn(i+1,coord[MNPC[iel-1][i]].ptr());
+    X.fillColumn(i+1,coord[MNPC[iel][i]].ptr());
 
   return true;
 }
@@ -293,15 +300,15 @@ bool ASMs3DLag::getSize (int& n1, int& n2, int& n3, int) const
 
 size_t ASMs3DLag::getNoBoundaryElms (char lIndex, char ldim) const
 {
-  if (!svol) return 0;
-
   if (ldim < 1 && lIndex > 0)
     return 1;
+  else if (p1 < 2 || p2 < 2 || p3 < 2)
+    return 0;
 
   int nel[3]; // Number of elements in each direction
-  nel[0] = (nx-1)/(svol->order(0)-1);
-  nel[1] = (ny-1)/(svol->order(1)-1);
-  nel[2] = (nz-1)/(svol->order(2)-1);
+  nel[0] = (nx-1)/(p1-1);
+  nel[1] = (ny-1)/(p2-1);
+  nel[2] = (nz-1)/(p3-1);
 
   if (ldim < 2 && lIndex > 0 && lIndex <= 12)
     return nel[(lIndex-1)/4];
@@ -327,7 +334,7 @@ bool ASMs3DLag::integrate (Integrand& integrand,
 			   GlobalIntegral& glInt,
 			   const TimeDomain& time)
 {
-  if (!svol) return true; // silently ignore empty patches
+  if (this->empty()) return true; // silently ignore empty patches
 
   // Get Gaussian quadrature points and weights
   const double* xg = GaussQuadrature::getCoord(nGauss);
@@ -356,11 +363,6 @@ bool ASMs3DLag::integrate (Integrand& integrand,
   // Number of elements in each direction
   const int nel1 = upar.size() - 1;
   const int nel2 = vpar.size() - 1;
-
-  // Order of basis in the three parametric directions (order = degree + 1)
-  const int p1 = svol->order(0);
-  const int p2 = svol->order(1);
-  const int p3 = svol->order(2);
 
 
   // === Assembly loop over all elements in the patch ==========================
@@ -510,7 +512,7 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
 			   GlobalIntegral& glInt,
 			   const TimeDomain& time)
 {
-  if (!svol) return true; // silently ignore empty patches
+  if (this->empty()) return true; // silently ignore empty patches
 
   std::map<char,ThreadGroups>::const_iterator tit;
   if ((tit = threadGroupsFace.find(lIndex%10)) == threadGroupsFace.end())
@@ -533,11 +535,6 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
   const int t0 = abs(faceDir); // unsigned normal direction of the face
   const int t1 = 1 + t0%3; // first tangent direction of the face
   const int t2 = 1 + t1%3; // second tangent direction of the face
-
-  // Order of basis in the three parametric directions (order = degree + 1)
-  const int p1 = svol->order(0);
-  const int p2 = svol->order(1);
-  const int p3 = svol->order(2);
 
   // Number of elements in each direction
   const int nel1 = (nx-1)/(p1-1);
@@ -702,7 +699,7 @@ bool ASMs3DLag::integrateEdge (Integrand& integrand, int lEdge,
 			       GlobalIntegral& glInt,
 			       const TimeDomain& time)
 {
-  if (!svol) return true; // silently ignore empty patches
+  if (this->empty()) return true; // silently ignore empty patches
 
   // Parametric direction of the edge {0, 1, 2}
   const int lDir = (lEdge-1)/4;
@@ -711,11 +708,6 @@ bool ASMs3DLag::integrateEdge (Integrand& integrand, int lEdge,
   const double* xg = GaussQuadrature::getCoord(nGauss);
   const double* wg = GaussQuadrature::getWeight(nGauss);
   if (!xg || !wg) return false;
-
-  // Order of basis in the three parametric directions (order = degree + 1)
-  const int p1 = svol->order(0);
-  const int p2 = svol->order(1);
-  const int p3 = svol->order(2);
 
   // Number of elements in each direction
   const int nelx = (nx-1)/(p1-1);
@@ -836,14 +828,16 @@ bool ASMs3DLag::integrateEdge (Integrand& integrand, int lEdge,
 
 int ASMs3DLag::evalPoint (const double* xi, double* param, Vec3& X) const
 {
-  if (!svol) return -3;
-
   // Evaluate the parametric values of the point and nodes
   std::array<RealArray,3> u;
+  std::array<int,3> p({p1,p2,p3});
   for (int d = 0; d < 3; d++)
   {
-    param[d] = (1.0-xi[d])*svol->startparam(d) + xi[d]*svol->endparam(d);
-    if (!this->getGridParameters(u[d],d,svol->order(d)-1)) return -3;
+    if (svol)
+      param[d] = (1.0-xi[d])*svol->startparam(d) + xi[d]*svol->endparam(d);
+    else
+      param[d] = xi[d];
+    if (!this->getGridParameters(u[d],d,p[d]-1)) return -3;
   }
 
   // Search for the closest node
@@ -859,9 +853,6 @@ int ASMs3DLag::evalPoint (const double* xi, double* param, Vec3& X) const
 
 bool ASMs3DLag::tesselate (ElementBlock& grid, const int* npe) const
 {
-  const int p1 = svol->order(0);
-  const int p2 = svol->order(1);
-  const int p3 = svol->order(2);
   if (p1 != npe[0] || p2 != npe[1] || p2 != npe[2])
   {
     int* newnpe = const_cast<int*>(npe);
@@ -902,7 +893,7 @@ bool ASMs3DLag::tesselate (ElementBlock& grid, const int* npe) const
 bool ASMs3DLag::evalSolution (Matrix& sField, const Vector& locSol,
 			      const int*) const
 {
-  return this->evalSolution(sField,locSol,(const RealArray*)0,true);
+  return this->evalSolution(sField,locSol,(const RealArray*)nullptr);
 }
 
 
@@ -925,9 +916,9 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const Vector& locSol,
 
 
 bool ASMs3DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
-			      const int*, bool) const
+			      const int*, char) const
 {
-  return this->evalSolution(sField,integrand,(const RealArray*)0,true);
+  return this->evalSolution(sField,integrand,(const RealArray*)nullptr);
 }
 
 
@@ -936,9 +927,6 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 {
   sField.resize(0,0);
 
-  const int p1 = svol->order(0);
-  const int p2 = svol->order(1);
-  const int p3 = svol->order(2);
   double incx = 2.0/double(p1-1);
   double incy = 2.0/double(p2-1);
   double incz = 2.0/double(p3-1);
@@ -994,15 +982,7 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
 void ASMs3DLag::generateThreadGroups (const Integrand&, bool, bool)
 {
-  const int p1 = svol->order(0);
-  const int p2 = svol->order(1);
-  const int p3 = svol->order(2);
-
-  const int nel1 = (nx-1)/(p1-1);
-  const int nel2 = (ny-1)/(p2-1);
-  const int nel3 = (nz-1)/(p3-1);
-
-  threadGroupsVol.calcGroups(nel1,nel2,nel3,1);
+  threadGroupsVol.calcGroups((nx-1)/(p1-1),(ny-1)/(p2-1),(nz-1)/(p3-1),1);
 }
 
 
@@ -1010,9 +990,6 @@ void ASMs3DLag::generateThreadGroups (char lIndex, bool, bool)
 {
   if (threadGroupsFace.find(lIndex) != threadGroupsFace.end()) return;
 
-  const int p1 = svol->order(0);
-  const int p2 = svol->order(1);
-  const int p3 = svol->order(2);
   const int n1 = (nx-1)/(p1-1);
   const int n2 = (ny-1)/(p2-1);
   const int n3 = (nz-1)/(p3-1);

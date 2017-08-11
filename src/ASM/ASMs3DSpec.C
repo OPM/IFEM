@@ -83,12 +83,7 @@ bool ASMs3DSpec::integrate (Integrand& integrand,
 			    GlobalIntegral& glInt,
 			    const TimeDomain& time)
 {
-  if (!svol) return true; // silently ignore empty patches
-
-  // Order of basis in the three parametric directions (order = degree + 1)
-  const int p1 = svol->order(0);
-  const int p2 = svol->order(1);
-  const int p3 = svol->order(2);
+  if (this->empty()) return true; // silently ignore empty patches
 
   // Evaluate integration points (=nodal points) and weights
 
@@ -180,7 +175,7 @@ bool ASMs3DSpec::integrate (Integrand& integrand, int lIndex,
 			    GlobalIntegral& glInt,
 			    const TimeDomain& time)
 {
-  if (!svol) return true; // silently ignore empty patches
+  if (this->empty()) return true; // silently ignore empty patches
 
   std::map<char,ThreadGroups>::const_iterator tit;
   if ((tit = threadGroupsFace.find(lIndex)) == threadGroupsFace.end())
@@ -198,22 +193,17 @@ bool ASMs3DSpec::integrate (Integrand& integrand, int lIndex,
   const int t1 = 1 + t0%3; // first tangent direction of the face
   const int t2 = 1 + t1%3; // second tangent direction of the face
 
-  // Order of basis in the three parametric directions (order = degree + 1)
-  int p[3];
-  p[0] = svol->order(0);
-  p[1] = svol->order(1);
-  p[2] = svol->order(2);
-
   // Evaluate integration points (=nodal points) and weights
 
   std::array<Vector,3> xg, wg;
   std::array<Matrix,3> D;
+  std::array<int,3> p({p1,p2,p3});
   for (int d = 0; d < 3; d++)
   {
     if (!Legendre::GLL(wg[d],xg[d],p[d])) return false;
     if (!Legendre::basisDerivatives(p[d],D[d])) return false;
   }
-  int nen = p[0]*p[1]*p[2];
+  int nen = p1*p2*p3;
 
 
   // === Assembly loop over all elements on the patch face =====================
@@ -263,7 +253,7 @@ bool ASMs3DSpec::integrate (Integrand& integrand, int lIndex,
 
 	    // Compute the basis functions and their derivatives, using
 	    // tensor product of one-dimensional Lagrange polynomials
-	    evalBasis(xi[0],xi[1],xi[2],p[0],p[1],p[2],D[0],D[1],D[2],fe.N,dNdu);
+	    evalBasis(xi[0],xi[1],xi[2],p1,p2,p3,D[0],D[1],D[2],fe.N,dNdu);
 
 	    // Compute basis function derivatives and the face normal
 	    fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,Xnod,dNdu,t1,t2);
@@ -302,16 +292,12 @@ bool ASMs3DSpec::integrateEdge (Integrand& integrand, int lEdge,
 				GlobalIntegral& glInt,
 				const TimeDomain& time)
 {
-  if (!svol) return true; // silently ignore empty patches
+  if (this->empty()) return true; // silently ignore empty patches
 
   // Parametric direction of the edge {0, 1, 2}
   const int lDir = (lEdge-1)/4;
-
-  // Order of basis in the three parametric directions (order = degree + 1)
-  const int p1 = svol->order(0);
-  const int p2 = svol->order(1);
-  const int p3 = svol->order(2);
-  const int pe = svol->order(lDir);
+  // Order of basis in the edge directions (order = degree + 1)
+  const int pe = lDir == 0 ? p1 : (lDir == 1 ? p2 : p3);
 
   // Number of elements in each direction
   int n1, n2, n3;
@@ -434,11 +420,6 @@ bool ASMs3DSpec::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 			       const RealArray*, bool) const
 {
   sField.resize(0,0);
-  if (!svol) return false;
-
-  const int p1 = svol->order(0);
-  const int p2 = svol->order(1);
-  const int p3 = svol->order(2);
 
   Vector wg1,xg1,wg2,xg2,wg3,xg3;
   if (!Legendre::GLL(wg1,xg1,p1)) return false;

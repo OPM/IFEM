@@ -87,10 +87,8 @@ public:
   //! \brief Evaluates the secondary solution field at the given points.
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
-  //! \param[in] gpar Parameter values of the result sampling points
-  //! \param[in] regular Flag indicating how the sampling points are defined
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
-                            const RealArray* gpar, bool regular = true) const;
+                            const RealArray*, bool) const;
 
   using ASMs2DLag::generateThreadGroups;
   //! \brief Generates element groups for multi-threading of interior integrals.

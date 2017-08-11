@@ -77,7 +77,7 @@ public:
   //! \param glbInt The integrated quantity
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
   virtual bool integrate(Integrand& integrand,
-			 GlobalIntegral& glbInt, const TimeDomain& time);
+                         GlobalIntegral& glbInt, const TimeDomain& time);
 
   //! \brief Evaluates a boundary integral over a patch end.
   //! \param integrand Object with problem-specific data and methods
@@ -85,7 +85,7 @@ public:
   //! \param glbInt The integrated quantity
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
   virtual bool integrate(Integrand& integrand, int lIndex,
-			 GlobalIntegral& glbInt, const TimeDomain& time);
+                         GlobalIntegral& glbInt, const TimeDomain& time);
 
 
   // Post-processing methods
@@ -111,14 +111,13 @@ public:
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector in DOF-order
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-			    const int*) const;
+                            const int*) const;
 
-  //! \brief Evaluates the primary solution field at the given points.
+  //! \brief Evaluates the primary solution field at the nodal points.
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector local to current patch
-  //! \param[in] gpar Parameter values of the result sampling points
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-                            const RealArray* gpar, bool = true, int = 0) const;
+                            const RealArray*, bool = false, int = 0) const;
 
   //! \brief Evaluates the secondary solution field at all visualization points.
   //! \details The number of visualization points is the same as the order of
@@ -126,22 +125,23 @@ public:
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
-			    const int*, bool = false) const;
+                            const int*, char = 0) const;
 
-  //! \brief Evaluates the secondary solution field at the given points.
+  //! \brief Evaluates the secondary solution field at the nodal points.
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
-  //! \param[in] gpar Parameter values of the result sampling points
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
-			    const RealArray* gpar, bool = true) const;
+                            const RealArray*, bool = false) const;
 
   using ASMs1D::getSize;
   //! \brief Returns the number of nodal points in the patch.
   virtual int getSize(int = 0) const { return nx; }
 
-private:
+protected:
   size_t nx; //!< Number of nodes
+  int    p1; //!< Polynomial order of the basis
 
+private:
   const std::vector<Vec3>& coord; //!< Nodal coordinates
 
   std::vector<Vec3> myCoord; //!< The actual nodal coordinates

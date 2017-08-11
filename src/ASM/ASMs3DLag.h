@@ -86,7 +86,7 @@ public:
   //! \param glbInt The integrated quantity
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
   virtual bool integrate(Integrand& integrand,
-			 GlobalIntegral& glbInt, const TimeDomain& time);
+                         GlobalIntegral& glbInt, const TimeDomain& time);
 
   //! \brief Evaluates a boundary integral over a patch face.
   //! \param integrand Object with problem-specific data and methods
@@ -94,7 +94,7 @@ public:
   //! \param glbInt The integrated quantity
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
   virtual bool integrate(Integrand& integrand, int lIndex,
-			 GlobalIntegral& glbInt, const TimeDomain& time);
+                         GlobalIntegral& glbInt, const TimeDomain& time);
 
   //! \brief Evaluates a boundary integral over a patch edge.
   //! \param integrand Object with problem-specific data and methods
@@ -102,7 +102,7 @@ public:
   //! \param glbInt The integrated quantity
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
   virtual bool integrateEdge(Integrand& integrand, int lEdge,
- 			     GlobalIntegral& glbInt, const TimeDomain& time);
+                             GlobalIntegral& glbInt, const TimeDomain& time);
 
 
   // Post-processing methods
@@ -127,35 +127,28 @@ public:
   //! the Lagrange elements by default.
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector in DOF-order
-  //! \param[in] npe Number of visualization nodes over each knot span
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-			    const int* npe) const;
+                            const int*) const;
 
-  //! \brief Evaluates the primary solution field at the given points.
+  //! \brief Evaluates the primary solution field at the nodal points.
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector local to current patch
-  //! \param[in] gpar Parameter values of the result sampling points
-  //! \param[in] regular Flag indicating how the sampling points are defined
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-                            const RealArray* gpar, bool regular = true,
-                            int = 0) const;
+                            const RealArray*, bool = false, int = 0) const;
 
   //! \brief Evaluates the secondary solution field at all visualization points.
   //! \details The number of visualization points is the same as the order of
   //! the Lagrange elements by default.
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
-  //! \param[in] npe Number of visualization nodes over each knot span
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
-			    const int* npe, bool = false) const;
+                            const int*, char = 0) const;
 
-  //! \brief Evaluates the secondary solution field at the given points.
+  //! \brief Evaluates the secondary solution field at the nodal points.
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
-  //! \param[in] gpar Parameter values of the result sampling points
-  //! \param[in] regular Flag indicating how the sampling points are defined
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
-			    const RealArray* gpar, bool regular = true) const;
+                            const RealArray*, bool = false) const;
 
   //! \brief Returns the number of nodal points in each parameter direction.
   //! \param[out] n1 Number of nodes in first (u) direction
@@ -164,14 +157,10 @@ public:
   virtual bool getSize(int& n1, int& n2, int& n3, int = 0) const;
 
   //! \brief Generates element groups for multi-threading of interior integrals.
-  //! \param[in] silence If \e true, suppress threading group outprint
-  //! \param[in] ignoreGlobalLM If \e true ignore global multipliers in sanity check
-  virtual void generateThreadGroups(const Integrand&, bool silence,
-                                    bool ignoreGlobalLM);
+  virtual void generateThreadGroups(const Integrand&, bool, bool);
   //! \brief Generates element groups for multi-threading of boundary integrals.
   //! \param[in] lIndex Local index [1,6] of the boundary face
-  //! \param[in] silence If \e true, suppress threading group outprint
-  virtual void generateThreadGroups(char lIndex, bool silence, bool);
+  virtual void generateThreadGroups(char lIndex, bool, bool);
 
   //! \brief Returns the number of elements on a boundary.
   virtual size_t getNoBoundaryElms(char lIndex, char ldim) const;
@@ -180,6 +169,9 @@ protected:
   size_t nx; //!< Number of nodes in first parameter direction
   size_t ny; //!< Number of nodes in second parameter direction
   size_t nz; //!< Number of nodes in third parameter direction
+  int    p1; //!< Polynomial order in first parameter direction
+  int    p2; //!< Polynomial order in second parameter direction
+  int    p3; //!< Polynomial order in third parameter direction
 
 private:
   const std::vector<Vec3>& coord; //!< Nodal coordinates

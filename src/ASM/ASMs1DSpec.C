@@ -60,11 +60,7 @@ bool ASMs1DSpec::integrate (Integrand& integrand,
 			    GlobalIntegral& glInt,
 			    const TimeDomain& time)
 {
-  if (!curv) return true; // silently ignore empty patches
-
-  // Order of basis (order = degree + 1)
-  const int p1 = curv->order();
-  const int n1 = nGauss < 1 ? p1 : nGauss;
+  if (this->empty()) return true; // silently ignore empty patches
 
   // Evaluate integration points and weights
 
@@ -76,12 +72,12 @@ bool ASMs1DSpec::integrate (Integrand& integrand,
   if (nGauss < 1)
   {
     // We are using the nodal points themselves as integration points
-    if (!Legendre::basisDerivatives(n1,D1))
+    if (!Legendre::basisDerivatives(p1,D1))
       return false;
   }
   else
     // Using Gauss-Legendre scheme with nGauss points
-    if (!Legendre::GL(wg1,xg1,n1))
+    if (!Legendre::GL(wg1,xg1,nGauss))
       return false;
 
   FiniteElement fe(p1);
@@ -91,6 +87,7 @@ bool ASMs1DSpec::integrate (Integrand& integrand,
 
   // === Assembly loop over all elements in the patch ==========================
 
+  const int n1 = nGauss < 1 ? p1 : nGauss;
   const int nel = this->getNoElms();
   for (int iel = 1; iel <= nel; iel++)
   {
@@ -145,8 +142,6 @@ bool ASMs1DSpec::integrate (Integrand& integrand, int lIndex,
 			    GlobalIntegral& glInt,
 			    const TimeDomain& time)
 {
-  if (!curv) return true; // silently ignore empty patches
-
   return false; // not implemented
 }
 
@@ -155,9 +150,6 @@ bool ASMs1DSpec::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 			       const RealArray*, bool) const
 {
   sField.resize(0,0);
-  if (!curv) return false;
-
-  const int p1 = curv->order();
 
   Matrix D1;
   if (!Legendre::basisDerivatives(p1,D1))

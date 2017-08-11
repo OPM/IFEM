@@ -36,7 +36,7 @@ bool ASMs2DTri::generateFEMTopology ()
   else if (!wasEmpty)
     return true;
 
-  if (surf->order_u() != 2 || surf->order_v() != 2)
+  if (p1 != 2 || p2 != 2)
   {
     std::cerr <<" *** ASMs2DTri::generateFEMTopology:"
               <<" Currently implemented for linear triangles only."<< std::endl;
@@ -142,11 +142,8 @@ bool ASMs2DTri::integrate (Integrand& integrand,
                            GlobalIntegral& glInt,
                            const TimeDomain& time)
 {
-  if (!surf) return true; // silently ignore empty patches
+  if (this->empty()) return true; // silently ignore empty patches
 
-  // Order of basis in the two parametric directions (order = degree + 1)
-  const int p1 = surf->order_u();
-  const int p2 = surf->order_v();
   // Sanity check, the two parameter direction must have the same order
   if (p1 != p2)
   {
@@ -310,7 +307,7 @@ bool ASMs2DTri::integrate (Integrand& integrand, int lIndex,
                            GlobalIntegral& glInt,
                            const TimeDomain& time)
 {
-  if (!surf) return true; // silently ignore empty patches
+  if (this->empty()) return true; // silently ignore empty patches
 
   // Get Gaussian quadrature points and weights
   int nGP = integrand.getBouIntegrationPoints(2);
@@ -322,10 +319,6 @@ bool ASMs2DTri::integrate (Integrand& integrand, int lIndex,
   const int edgeDir = (lIndex%10+1)/(lIndex%2 ? -2 : 2);
 
   const int t1 = abs(edgeDir); // tangent direction normal to the patch edge
-
-  // Order of basis in the two parametric directions (order = degree + 1)
-  const int p1 = surf->order_u();
-  const int p2 = surf->order_v();
 
   // Number of elements in each direction
   const int nelx = (nx-1)/(p1-1);
@@ -533,7 +526,7 @@ bool ASMs2DTri::tesselate (ElementBlock& grid, const int* npe) const
 
 
 bool ASMs2DTri::evalSolution (Matrix& sField, const IntegrandBase& integrand,
-                             const RealArray*, bool) const
+                              const RealArray*, bool) const
 {
   sField.resize(0,0);
 

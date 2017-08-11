@@ -31,6 +31,7 @@ ASMs2DLag::ASMs2DLag (unsigned char n_s, unsigned char n_f)
   : ASMs2D(n_s,n_f), coord(myCoord)
 {
   nx = ny = 0;
+  p1 = p2 = 0;
 }
 
 
@@ -39,6 +40,8 @@ ASMs2DLag::ASMs2DLag (const ASMs2DLag& patch, unsigned char n_f)
 {
   nx = patch.nx;
   ny = patch.ny;
+  p1 = patch.p1;
+  p2 = patch.p2;
 }
 
 
@@ -47,6 +50,8 @@ ASMs2DLag::ASMs2DLag (const ASMs2DLag& patch)
 {
   nx = patch.nx;
   ny = patch.ny;
+  p1 = patch.p1;
+  p2 = patch.p2;
   myCoord = patch.coord;
 }
 
@@ -55,6 +60,7 @@ void ASMs2DLag::clear (bool retainGeometry)
 {
   myCoord.clear();
   nx = ny = 0;
+  p1 = p2 = 0;
 
   this->ASMs2D::clear(retainGeometry);
 }
@@ -65,9 +71,8 @@ bool ASMs2DLag::addXElms (short int dim, short int item, size_t nXn,
 {
   if (!this->addXNodes(dim,nXn,nodes))
     return false;
-
-  const int p1 = surf->order_u();
-  const int p2 = surf->order_v();
+  else if (p1 < 2 || p2 < 2)
+    return false;
 
   const int nelx = (nx-1)/(p1-1);
   const int nely = (ny-1)/(p2-1);
@@ -132,8 +137,8 @@ bool ASMs2DLag::generateFEMTopology ()
   if (!surf) return false;
 
   // Order of basis in the two parametric directions (order = degree + 1)
-  const int p1 = surf->order_u();
-  const int p2 = surf->order_v();
+  p1 = surf->order_u();
+  p2 = surf->order_v();
 
   // Evaluate the parametric values
   RealArray gpar1, gpar2;
@@ -217,7 +222,7 @@ bool ASMs2DLag::getElementCoordinates (Matrix& X, int iel) const
   }
 
   // Number of nodes per element
-  size_t nen = surf->order_u()*surf->order_v();
+  size_t nen = p1*p2;
   if (nen > MNPC[--iel].size()) nen = MNPC[iel].size();
 
   X.resize(nsd,nen);
@@ -268,8 +273,6 @@ bool ASMs2DLag::getSize (int& n1, int& n2, int) const
 
 size_t ASMs2DLag::getNoBoundaryElms (char lIndex, char ldim) const
 {
-  if (!surf) return 0;
-
   if (ldim < 1 && lIndex > 0)
     return 1;
 
@@ -277,10 +280,10 @@ size_t ASMs2DLag::getNoBoundaryElms (char lIndex, char ldim) const
     {
     case 1:
     case 2:
-      return (ny-1)/(surf->order_v()-1);
+      return p2 > 1 ? (ny-1)/(p2-1) : 0;
     case 3:
     case 4:
-      return (nx-1)/(surf->order_u()-1);
+      return p1 > 1 ? (nx-1)/(p1-1) : 0;
     }
 
   return 0;
@@ -291,7 +294,7 @@ bool ASMs2DLag::integrate (Integrand& integrand,
 			   GlobalIntegral& glInt,
 			   const TimeDomain& time)
 {
-  if (!surf) return true; // silently ignore empty patches
+  if (this->empty()) return true; // silently ignore empty patches
 
   // Get Gaussian quadrature points and weights
   const double* xg = GaussQuadrature::getCoord(nGauss);
@@ -318,10 +321,6 @@ bool ASMs2DLag::integrate (Integrand& integrand,
 
   // Number of elements in each direction
   const int nelx = upar.size() - 1;
-
-  // Order of basis in the two parametric directions (order = degree + 1)
-  const int p1 = surf->order_u();
-  const int p2 = surf->order_v();
 
 
   // === Assembly loop over all elements in the patch ==========================
@@ -460,7 +459,7 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
 			   GlobalIntegral& glInt,
 			   const TimeDomain& time)
 {
-  if (!surf) return true; // silently ignore empty patches
+  if (this->empty()) return true; // silently ignore empty patches
 
   // Get Gaussian quadrature points and weights
   int nGP = integrand.getBouIntegrationPoints(nGauss);
@@ -473,10 +472,6 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
 
   const int t1 = abs(edgeDir); // tangent direction normal to the patch edge
   const int t2 = 3-t1;         // tangent direction along the patch edge
-
-  // Order of basis in the two parametric directions (order = degree + 1)
-  const int p1 = surf->order_u();
-  const int p2 = surf->order_v();
 
   // Number of elements in each direction
   const int nelx = (nx-1)/(p1-1);
@@ -603,15 +598,18 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
 
 int ASMs2DLag::evalPoint (const double* xi, double* param, Vec3& X) const
 {
-  if (!surf) return -2;
-
-  param[0] = (1.0-xi[0])*surf->startparam_u() + xi[0]*surf->endparam_u();
-  param[1] = (1.0-xi[1])*surf->startparam_v() + xi[1]*surf->endparam_v();
+  if (surf)
+  {
+    param[0] = (1.0-xi[0])*surf->startparam_u() + xi[0]*surf->endparam_u();
+    param[1] = (1.0-xi[1])*surf->startparam_v() + xi[1]*surf->endparam_v();
+  }
+  else
+    memcpy(param,xi,2*sizeof(double));
 
   // Evaluate the parametric values of the nodes
   RealArray u, v;
-  if (!this->getGridParameters(u,0,surf->order_u()-1)) return -2;
-  if (!this->getGridParameters(v,1,surf->order_v()-1)) return -2;
+  if (!this->getGridParameters(u,0,p1-1)) return -2;
+  if (!this->getGridParameters(v,1,p2-1)) return -2;
 
   // Search for the closest node
   size_t i = utl::find_closest(u,param[0]);
@@ -625,8 +623,6 @@ int ASMs2DLag::evalPoint (const double* xi, double* param, Vec3& X) const
 
 bool ASMs2DLag::tesselate (ElementBlock& grid, const int* npe) const
 {
-  const int p1 = surf->order_u();
-  const int p2 = surf->order_v();
   if (p1 != npe[0] || p2 != npe[1])
   {
     int* newnpe = const_cast<int*>(npe);
@@ -660,7 +656,7 @@ bool ASMs2DLag::tesselate (ElementBlock& grid, const int* npe) const
 bool ASMs2DLag::evalSolution (Matrix& sField, const Vector& locSol,
 			      const int*) const
 {
-  return this->evalSolution(sField,locSol,(const RealArray*)0,true);
+  return this->evalSolution(sField,locSol,(const RealArray*)nullptr);
 }
 
 
@@ -683,9 +679,9 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const Vector& locSol,
 
 
 bool ASMs2DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
-			      const int*, bool) const
+			      const int*, char) const
 {
-  return this->evalSolution(sField,integrand,(const RealArray*)0,true);
+  return this->evalSolution(sField,integrand,(const RealArray*)nullptr);
 }
 
 
@@ -694,8 +690,6 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 {
   sField.resize(0,0);
 
-  const int p1 = surf->order_u();
-  const int p2 = surf->order_v();
   double incx = 2.0/double(p1-1);
   double incy = 2.0/double(p2-1);
 
@@ -748,11 +742,5 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
 void ASMs2DLag::generateThreadGroups (const Integrand&, bool, bool)
 {
-  const int p1 = surf->order_u();
-  const int p2 = surf->order_v();
-
-  const int nel1 = (nx-1)/(p1-1);
-  const int nel2 = (ny-1)/(p2-1);
-
-  threadGroups.calcGroups(nel1,nel2,1);
+  threadGroups.calcGroups((nx-1)/(p1-1),(ny-1)/(p2-1),1);
 }

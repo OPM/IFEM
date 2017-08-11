@@ -11,8 +11,6 @@
 //!
 //==============================================================================
 
-#include "GoTools/geometry/SplineSurface.h"
-
 #include "ASMs2DmxLag.h"
 #include "Lagrange.h"
 #include "TimeDomain.h"
@@ -123,19 +121,19 @@ bool ASMs2DmxLag::generateFEMTopology ()
   if ((haveFEdata && !shareFE) || !basis1IsOK) return basis1IsOK;
 
   // Order of 2nd basis in the two parametric directions (order = degree + 1)
-  const size_t p1 = surf->order_u()-1;
-  const size_t p2 = surf->order_v()-1;
-  if (p1 < 2 || p2 < 2)
+  const size_t q1 = p1 - 1;
+  const size_t q2 = p2 - 1;
+  if (q1 < 2 || q2 < 2)
   {
     std::cerr <<" *** ASMs2DmxLag::generateFEMTopology: Too low order "
-	      << p1 <<","<< p2 <<" for the second basis."<< std::endl;
+              << q1 <<","<< q2 <<" for the second basis."<< std::endl;
     return false;
   }
 
   // Evaluate the parametric values
   RealArray gpar1, gpar2;
-  if (!this->getGridParameters(gpar1,0,p1-1)) return false;
-  if (!this->getGridParameters(gpar2,1,p2-1)) return false;
+  if (!this->getGridParameters(gpar1,0,q1-1)) return false;
+  if (!this->getGridParameters(gpar2,1,q2-1)) return false;
 
   // Number of nodes in each direction for each basis
   nxx.resize(2);
@@ -147,10 +145,10 @@ bool ASMs2DmxLag::generateFEMTopology ()
 
   // Number of elements in each direction for each basis
   elem_sizes.resize(2);
-  elem_sizes[0][0] = p1+1;
-  elem_sizes[0][1] = p2+1;
-  elem_sizes[1][0] = p1;
-  elem_sizes[1][1] = p2;
+  elem_sizes[0][0] = p1;
+  elem_sizes[0][1] = p2;
+  elem_sizes[1][0] = q1;
+  elem_sizes[1][1] = q2;
 
   // Total number of nodes for each basis
   nb.resize(2);
@@ -167,8 +165,8 @@ bool ASMs2DmxLag::generateFEMTopology ()
       myMLGN.push_back(++gNod);
 
   // Number of elements in each direction
-  const int nelx = (nxx[1]-1)/(p1-1);
-  const int nely = (nyx[1]-1)/(p2-1);
+  const int nelx = (nxx[1]-1)/(q1-1);
+  const int nely = (nyx[1]-1)/(q2-1);
 
   // Add connectivity for second basis: local --> global node relation
   int i, j, iel;
@@ -176,16 +174,16 @@ bool ASMs2DmxLag::generateFEMTopology ()
     for (i = 0; i < nelx; i++, iel++)
     {
       size_t nen1 = myMNPC[iel].size();
-      myMNPC[iel].resize(nen1+p1*p2);
+      myMNPC[iel].resize(nen1+q1*q2);
 
       // First node in current element
-      int corner = nb[0] + (p2-1)*nxx[1]*j + (p1-1)*i;
+      int corner = nb[0] + (q2-1)*nxx[1]*j + (q1-1)*i;
 
-      for (size_t b = 0; b < p2; b++)
+      for (size_t b = 0; b < q2; b++)
       {
-	int facenod = nen1 + b*p1;
+	int facenod = nen1 + b*q1;
 	myMNPC[iel][facenod] = corner + b*nxx[1];
-	for (size_t a = 1; a < p1; a++)
+	for (size_t a = 1; a < q1; a++)
 	  myMNPC[iel][facenod+a] = myMNPC[iel][facenod] + a;
       }
     }
@@ -241,7 +239,7 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
 			     GlobalIntegral& glInt,
 			     const TimeDomain& time)
 {
-  if (!surf) return true; // silently ignore empty patches
+  if (this->empty()) return true; // silently ignore empty patches
 
   // Get Gaussian quadrature points and weights
   const double* xg = GaussQuadrature::getCoord(nGauss);
@@ -355,7 +353,7 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
 			     GlobalIntegral& glInt,
 			     const TimeDomain& time)
 {
-  if (!surf) return true; // silently ignore empty patches
+  if (this->empty()) return true; // silently ignore empty patches
 
   // Get Gaussian quadrature points and weights
   const double* xg = GaussQuadrature::getCoord(nGauss);
@@ -498,18 +496,13 @@ bool ASMs2DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 				const RealArray*, bool) const
 {
   sField.resize(0,0);
-  if (!surf) return false;
 
-  const size_t p1 = surf->order_u();
-  const size_t p2 = surf->order_v();
-  const size_t q1 = p1 - 1;
-  const size_t q2 = p2 - 1;
   std::vector<size_t> elem_size;
   for (size_t b = 0; b < nxx.size(); ++b)
     elem_size.push_back(elem_sizes[b][0]*elem_sizes[b][1]);
 
-  double incx = 2.0/double(q1);
-  double incy = 2.0/double(q2);
+  double incx = 2.0/double(p1-1);
+  double incy = 2.0/double(p2-1);
 
   size_t nPoints = nb[0];
   IntVec check(nPoints,0);
@@ -532,7 +525,7 @@ bool ASMs2DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
     this->getElementCoordinates(Xnod,iel);
 
-    size_t i, j, loc = 0;
+    int i, j, loc = 0;
     for (j = 0; j < p2; j++)
       for (i = 0; i < p1; i++, loc++)
       {
