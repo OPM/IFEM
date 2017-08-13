@@ -356,14 +356,21 @@ bool SIM2D::parse (const TiXmlElement* elem)
 {
   if (!strcasecmp(elem->Value(),"geometry"))
   {
-    // Check for triangular mesh or immersed boundary calculation.
+    // Check for triangular/Matlab mesh or immersed boundary calculation.
     // This code must be placed here (and not in parseGeometryTag)
-    // due to instantiation of the ASMs2D[Tri|IB] class.
+    // due to instantiation of the ASMs2D[Tri|IB|Matlab] class.
     int maxDepth = 0;
+    std::string type;
     const TiXmlElement* child = elem->FirstChildElement();
     for (; child; child = child->NextSiblingElement())
       if (!strcasecmp(child->Value(),"triangular"))
         opt.discretization = ASM::Triangle;
+      else if (!strcasecmp(child->Value(),"patchfile") &&
+               utl::getAttribute(child,"type",type,true) && type == "matlab")
+      {
+        opt.discretization = ASM::Lagrange;
+        nf.push_back('M');
+      }
       else if (!strcasecmp(child->Value(),"immersedboundary"))
         if (utl::getAttribute(child,"max_depth",maxDepth))
         {
@@ -718,6 +725,11 @@ bool SIM2D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
 
     case 2: // Face constraints
       myModel[patch-1]->constrainPatch(dirs,code);
+      break;
+
+    case 4: // Explicit nodal constrains
+      myModel[patch-1]->constrainNodes(myModel[patch-1]->getNodeSet(lndx),
+				       dirs,code);
       break;
 
     default:

@@ -145,9 +145,11 @@ bool SIMinput::parseGeometryTag (const TiXmlElement* elem)
           idim = 1;
         else if (type == "vertex" || type == "point")
           idim = 0;
+        else if (type == "nodes")
+          idim = 4;
         else
           utl::getAttribute(set,"dimension",idim);
-        if (idim > 0 && utl::getAttribute(set,"closure",type,true))
+        if (idim > 0 && idim < 4 && utl::getAttribute(set,"closure",type,true))
           if (type == "open") idim = -idim; // i.e. excluding its boundary
 
         TopEntity& top = myEntitys[name];
@@ -158,8 +160,11 @@ bool SIMinput::parseGeometryTag (const TiXmlElement* elem)
           utl::getAttribute(item,"patch",patch);
           if ((patch = this->getLocalPatchIndex(patch)) > 0)
           {
+            ASMbase* pch = nullptr;
             if (abs(idim) == (int)this->getNoParamDim())
               top.insert(TopItem(patch,0,idim));
+            else if (idim == 4 && (pch = this->getPatch(patch)))
+              top.insert(TopItem(patch,pch->getNodeSetIdx(name),idim));
             else if (item->FirstChild())
             {
               std::string value(item->FirstChild()->Value());
@@ -1189,8 +1194,8 @@ bool SIMinput::setInitialCondition (SIMdependency* fieldHolder,
 
   // Clean up basis patches
   for (const auto& itb : basisMap)
-    for (size_t i = 0; i < itb.second.size(); i++)
-      delete itb.second[i];
+    for (ASMbase* pch : itb.second)
+      delete pch;
 
   hdf5reader.closeFile(0,true);
   return true;
