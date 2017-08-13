@@ -212,6 +212,15 @@ Vec3 ASMs2DLag::getCoord (size_t inod) const
 }
 
 
+void ASMs2DLag::setCoord (size_t inod, const Vec3& Xnod)
+{
+  if (inod > nnod)
+    myCoord.resize(nnod = inod);
+
+  myCoord[inod-1] = Xnod;
+}
+
+
 bool ASMs2DLag::getElementCoordinates (Matrix& X, int iel) const
 {
   if (iel < 1 || (size_t)iel > MNPC.size())
@@ -320,7 +329,7 @@ bool ASMs2DLag::integrate (Integrand& integrand,
   this->getGridParameters(vpar,1,1);
 
   // Number of elements in each direction
-  const int nelx = upar.size() - 1;
+  const int nelx = upar.empty() ? 0 : upar.size() - 1;
 
 
   // === Assembly loop over all elements in the patch ==========================
@@ -337,11 +346,11 @@ bool ASMs2DLag::integrate (Integrand& integrand,
       for (size_t i = 0; i < threadGroups[g][t].size() && ok; i++)
       {
         int iel = threadGroups[g][t][i];
-        int i1  = iel % nelx;
-        int i2  = iel / nelx;
+        int i1  = nelx > 0 ? iel % nelx : 0;
+        int i2  = nelx > 0 ? iel / nelx : 0;
 
         // Set up nodal point coordinates for current element
-        if (!this->getElementCoordinates(Xnod,++iel))
+        if (!this->getElementCoordinates(Xnod,1+iel))
         {
           ok = false;
           break;
@@ -359,9 +368,9 @@ bool ASMs2DLag::integrate (Integrand& integrand,
         }
 
         // Initialize element quantities
-        fe.iel = MLGE[iel-1];
+        fe.iel = MLGE[iel];
         LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
-        if (!integrand.initElement(MNPC[iel-1],fe,X,nRed*nRed,*A))
+        if (!integrand.initElement(MNPC[iel],fe,X,nRed*nRed,*A))
         {
           A->destruct();
           ok = false;
@@ -380,8 +389,10 @@ bool ASMs2DLag::integrate (Integrand& integrand,
               fe.eta = xr[j];
 
               // Parameter value of current integration point
-              fe.u = 0.5*(upar[i1]*(1.0-xr[i]) + upar[i1+1]*(1.0+xr[i]));
-              fe.v = 0.5*(vpar[i2]*(1.0-xr[j]) + vpar[i2+1]*(1.0+xr[j]));
+              if (!upar.empty())
+                fe.u = 0.5*(upar[i1]*(1.0-xr[i]) + upar[i1+1]*(1.0+xr[i]));
+              if (!vpar.empty())
+                fe.v = 0.5*(vpar[i2]*(1.0-xr[j]) + vpar[i2+1]*(1.0+xr[j]));
 
               // Compute basis function derivatives at current point
               // using tensor product of one-dimensional Lagrange polynomials
@@ -405,7 +416,7 @@ bool ASMs2DLag::integrate (Integrand& integrand,
 
         // --- Integration loop over all Gauss points in each direction --------
 
-        int jp = (i2*nelx + i1)*nGauss*nGauss;
+        int jp = iel*nGauss*nGauss;
         fe.iGP = firstIp + jp; // Global integration point counter
 
         for (int j = 0; j < nGauss; j++)
@@ -416,8 +427,10 @@ bool ASMs2DLag::integrate (Integrand& integrand,
             fe.eta = xg[j];
 
             // Parameter value of current integration point
-            fe.u = 0.5*(upar[i1]*(1.0-xg[i]) + upar[i1+1]*(1.0+xg[i]));
-            fe.v = 0.5*(vpar[i2]*(1.0-xg[j]) + vpar[i2+1]*(1.0+xg[j]));
+            if (!upar.empty())
+              fe.u = 0.5*(upar[i1]*(1.0-xg[i]) + upar[i1+1]*(1.0+xg[i]));
+            if (!vpar.empty())
+              fe.v = 0.5*(vpar[i2]*(1.0-xg[j]) + vpar[i2+1]*(1.0+xg[j]));
 
             // Compute basis function derivatives at current integration point
             // using tensor product of one-dimensional Lagrange polynomials

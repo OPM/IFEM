@@ -260,7 +260,8 @@ bool ASMs1DLag::integrate (Integrand& integrand,
 	fe.xi  = xr[i];
 
 	// Parameter value of current integration point
-	fe.u = 0.5*(gpar[iel]*(1.0-xr[i]) + gpar[iel+1]*(1.0+xr[i]));
+        if (!gpar.empty())
+          fe.u = 0.5*(gpar[iel]*(1.0-xr[i]) + gpar[iel+1]*(1.0+xr[i]));
 
         if (integrand.getIntegrandType() & Integrand::NO_DERIVATIVES)
           ok = Lagrange::computeBasis(fe.N,p1,xr[i]);
@@ -293,7 +294,8 @@ bool ASMs1DLag::integrate (Integrand& integrand,
       fe.xi = xg[i];
 
       // Parameter value of current integration point
-      fe.u = 0.5*(gpar[iel]*(1.0-xg[i]) + gpar[iel+1]*(1.0+xg[i]));
+      if (!gpar.empty())
+        fe.u = 0.5*(gpar[iel]*(1.0-xg[i]) + gpar[iel+1]*(1.0+xg[i]));
 
       if (integrand.getIntegrandType() & Integrand::NO_DERIVATIVES)
         ok = Lagrange::computeBasis(fe.N,p1,xg[i]);
