@@ -18,6 +18,7 @@
 #include "MPCLess.h"
 #include <map>
 #include <set>
+#include <string>
 
 typedef std::vector<int>       IntVec;  //!< General integer vector
 typedef std::vector<IntVec>    IntMat;  //!< General 2D integer matrix
@@ -220,10 +221,15 @@ public:
   //! \param[in] basis Which basis to grab nodes for (0 for all)
   //! \param[in] thick Thickness of connection
   //! \param[in] orient Local orientation of the boundary face/edge
-  //! \param[in] local If true, return patch-local numbers
+  //! \param[in] local If \e true, return patch-local numbers
   virtual void getBoundaryNodes(int lIndex, IntVec& nodes,
                                 int basis = 0, int thick = 1,
                                 int orient = -1, bool local = false) const = 0;
+
+  //! \brief Returns (1-based) index of a predefined node set in the patch.
+  virtual int getNodeSetIdx(const std::string&) const { return 0; }
+  //! \brief Returns an indexed predefined node set.
+  virtual const IntVec& getNodeSet(int) const { static IntVec v; return v; }
 
   //! \brief Finds the node that is closest to the given point.
   virtual std::pair<size_t,double> findClosestNode(const Vec3&) const
@@ -652,6 +658,11 @@ public:
   //! \param[in] dof Which DOFs to constrain at each node in the patch
   //! \param[in] code Inhomogeneous dirichlet condition code
   void constrainPatch(int dof, int code = 0);
+  //! \brief Constrains a list of nodes in the patch.
+  //! \param[in] nodes 1-based list of nodes to constrain
+  //! \param[in] dof Which DOFs to constrain at each node
+  //! \param[in] code Inhomogeneous dirichlet condition code
+  void constrainNodes(const IntVec& nodes, int dof, int code = 0);
   //! \brief Constrains DOFs in the given node to the given value.
   //! \param[in] inod 1-based node index local to current patch
   //! \param[in] dirs Which local DOFs to constrain (1, 2, 3, 12, 23, 123)

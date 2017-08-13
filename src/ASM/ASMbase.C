@@ -521,6 +521,20 @@ void ASMbase::constrainPatch (int dof, int code)
 }
 
 
+void ASMbase::constrainNodes (const IntVec& nodes, int dof, int code)
+{
+  if (code < 0) code = -code;
+
+  for (int node : nodes)
+    if (node > 0 && node <= (int)this->getNoNodes(1))
+      this->prescribe(node,dof,code);
+    else
+      std::cerr <<"  ** ASMbase::constrainNodes: Node "<< node
+                <<" is out of range [1,"<< this->getNoNodes(1)
+                <<"]."<< std::endl;
+}
+
+
 int ASMbase::prescribe (size_t inod, int dirs, int code)
 {
   if (code == 0 && fixHomogeneousDirichlet)
