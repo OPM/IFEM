@@ -15,16 +15,14 @@
 #include "LRSpline/Element.h"
 
 #include "ASMu3D.h"
+#include "FiniteElement.h"
+#include "IntegrandBase.h"
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
 #include "SparseMatrix.h"
 #include "DenseMatrix.h"
-#include "FiniteElement.h"
 #include "SplineUtils.h"
-#include "Utilities.h"
 #include "Profiler.h"
-#include "IntegrandBase.h"
-#include "Vec3.h"
 #include <array>
 
 
@@ -417,7 +415,7 @@ LR::LRSplineVolume* ASMu3D::regularInterpolation (const RealArray& upar,
     return nullptr;
   }
 
-  SparseMatrix   A(SparseMatrix::SUPERLU);
+  SparseMatrix A(SparseMatrix::SUPERLU);
   A.resize(nBasis, nBasis);
   Matrix B2(points,true); // transpose to get one vector per field
   StdVector B(B2);
@@ -427,30 +425,26 @@ LR::LRSplineVolume* ASMu3D::regularInterpolation (const RealArray& upar,
   // (same row = same evaluation point)
   for (size_t i = 0; i < nBasis; i++)
   {
+    size_t k = 0;
     int iel = lrspline->getElementContaining(upar[i], vpar[i], wpar[i]);
     lrspline->computeBasis(upar[i],vpar[i],wpar[i],splineValues, iel);
-    size_t k = 0;
-    for (auto& function : lrspline->getElement(iel)->support()) {
-      int j = function->getId();
-      A(i+1,j+1) = splineValues.basisValues[k++];
-    }
+    for (LR::Basisfunction* function : lrspline->getElement(iel)->support())
+      A(i+1,function->getId()+1) = splineValues.basisValues[k++];
   }
 
   // Solve for all solution components - one right-hand-side for each
-  if (!A.solve(B))
-    return nullptr;
+  if (!A.solve(B)) return nullptr;
 
   // Copy all basis functions and mesh
   LR::LRSplineVolume* ans = lrspline->copy();
   ans->rebuildDimension(points.rows());
 
   // Back to interleaved data
-  std::vector<double> interleave;
+  RealArray interleave;
   interleave.reserve(B.dim());
-  for (size_t i = 0; i < nBasis; ++i)
-    for (size_t j = 0; j < points.rows(); j++) {
-        interleave.push_back(B(1+j*points.cols()+i));
-  }
+  for (size_t i = 0; i < nBasis; i++)
+    for (size_t j = 0; j < points.rows(); j++)
+      interleave.push_back(B(1+j*points.cols()+i));
 
   ans->setControlPoints(interleave);
 
@@ -464,8 +458,9 @@ bool ASMu3D::faceL2projection (const DirichletFace& edge,
                                double time) const
 {
   size_t n = edge.MLGN.size();
+  size_t m = values.dim();
   SparseMatrix A(SparseMatrix::SUPERLU);
-  std::vector<StdVector> B(values.dim(), StdVector(n));
+  StdVector B(n*m);
   A.resize(n,n);
 
   // Get Gaussian quadrature points and weights
@@ -530,7 +525,7 @@ bool ASMu3D::faceL2projection (const DirichletFace& edge,
 
     // --- Integration loop over all Gauss points along the edge -------------
     for (int j = 0; j < nGauss; j++)
-      for (int i = 0; i < nGauss; i++, fe.iGP++, ++iGp)
+      for (int i = 0; i < nGauss; i++, fe.iGP++, iGp++)
       {
         // Local element coordinates and parameter values
         // of current integration point
@@ -558,48 +553,47 @@ bool ASMu3D::faceL2projection (const DirichletFace& edge,
           fe.w = gpar[2](k3+1);
         }
 
-      // Evaluate basis function (geometry) derivatives at current integration points
-      this->evaluateBasis(fe, dNdu, myGeoBasis);
+        // Evaluate basis function (geometry) derivatives at integration points
+        this->evaluateBasis(fe, dNdu, myGeoBasis);
 
-      // Compute basis function derivatives and the edge normal
-      fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,Xnod,dNdu,t1,t2);
-      if (fe.detJxW == 0.0) continue; // skip singular points
+        // Compute basis function derivatives and the edge normal
+        fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,Xnod,dNdu,t1,t2);
+        if (fe.detJxW == 0.0) continue; // skip singular points
 
-      if (faceDir < 0) normal *= -1.0;
+        if (faceDir < 0) normal *= -1.0;
 
-      // Cartesian coordinates of current integration point
-      X = Xnod * fe.N;
-      X.t = time;
+        // Cartesian coordinates of current integration point
+        X = Xnod * fe.N;
+        X.t = time;
 
-      // Evaluate the integrand and accumulate element contributions
-      fe.detJxW *= 0.25*dA*wg[i]*wg[j];
+        // Evaluate the integrand and accumulate element contributions
+        fe.detJxW *= 0.25*dA*wg[i]*wg[j];
 
-      // For mixed basis, we need to compute functions separate from geometry
-      if (edge.lr != lrspline.get())
-      {
-        // different lrspline instances enumerate elements differently
-        int basis_el =  edge.lr->getElementContaining(fe.u, fe.v, fe.w);
-        Go::BasisDerivs spline;
-        edge.lr->computeBasis(fe.u, fe.v, fe.w, spline, basis_el);
-        SplineUtils::extractBasis(spline,fe.N,dNdu);
-      }
-
-      // Assemble into matrix A
-      for (size_t il=0; il<edge.MNPC[ie].size(); il++)     // local i-index
-        if (edge.MNPC[ie][il] != -1)
+        // For mixed basis, we need to compute functions separate from geometry
+        if (edge.lr != lrspline.get())
         {
-          size_t ig = edge.MNPC[ie][il]+1;                 // global i-index
-          for (size_t jl=0; jl<edge.MNPC[ie].size(); jl++) // local j-index
-            if (edge.MNPC[ie][jl] != -1)
-            {
-              size_t jg = edge.MNPC[ie][jl]+1;             // global j-index
-              A(ig,jg) = A(ig,jg) + fe.N[il]*fe.N[jl]*fe.detJxW;
-          }
-          std::vector<Real> val = values.getValue(X);
-          for(size_t k=0; k < values.dim(); k++)
-            B[k](ig) = B[k](ig) + fe.N[il]*val[k]*fe.detJxW;
-      } // end basis-function loop
-    } // end gauss-point loop
+          // different lrspline instances enumerate elements differently
+          Go::BasisDerivs spline;
+          int basis_el = edge.lr->getElementContaining(fe.u, fe.v, fe.w);
+          edge.lr->computeBasis(fe.u, fe.v, fe.w, spline, basis_el);
+          SplineUtils::extractBasis(spline,fe.N,dNdu);
+        }
+
+        // Assemble into matrix A and vector B
+        size_t il, jl;
+        int    ig, jg;
+        for (il = 0; il < edge.MNPC[ie].size(); il++) // local i-index
+          if ((ig = 1+edge.MNPC[ie][il]) > 0)         // global i-index
+          {
+            for (jl = 0; jl < edge.MNPC[ie].size(); jl++) // local j-index
+              if ((jg = 1+edge.MNPC[ie][jl]) > 0)         // global j-index
+                A(ig,jg) += fe.N[il]*fe.N[jl]*fe.detJxW;
+
+            RealArray val = values.getValue(X);
+            for (size_t k = 0; k < m; k++)
+              B(ig+k*n) += fe.N[il]*val[k]*fe.detJxW;
+          } // end basis-function loop
+      } // end gauss-point loop
   } // end element loop
 
 #if SP_DEBUG > 2
@@ -607,26 +601,21 @@ bool ASMu3D::faceL2projection (const DirichletFace& edge,
             <<"-------------------"<< std::endl;
   std::cout <<"---- Vector B -----\n"<< B
             <<"-------------------"<< std::endl;
-
-  std::cout <<"---- Edge-nodes (g2l-mapping) -----\n";
-  int i=-1;
-  for (auto d : edge.MLGN) {
-    i++;
-    std::cout << d.first << ": " << d.second << std::endl;
-  }
-  std::cout <<"-------------------"<< std::endl;
-  std::cout <<"---- Element-nodes (-1 is interior element nodes) -----\n";
-  for (auto d : edge.MNPC) {
+  std::cout <<"---- Edge-nodes (g2l-mapping) -----";
+  for (size_t i = 0; i < edge.MLGN.size(); i++)
+    std::cout <<"\n     "<< i <<": "<< edge.MLGN[i];
+  std::cout <<"\n-------------------";
+  std::cout <<"\n---- Element-nodes (-1 is interior element nodes) -----";
+  for (const IntVec& d : edge.MNPC) {
+    std::cout <<"\n    ";
     for (int c : d)
-      std::cout << c << " ";
-    std::cout << std::endl;
+      std::cout <<" "<< c;
   }
-  std::cout <<"-------------------"<< std::endl;
+  std::cout <<"\n-------------------"<< std::endl;
 #endif
 
   // Solve the edge-global equation system
-  for (size_t k = 0; k < B.size(); k++)
-    if (!A.solve(B[k], false)) return false;
+  if (!A.solve(B)) return false;
 
 #if SP_DEBUG > 2
   std::cout <<"---- SOLUTION -----\n"<< B
@@ -634,12 +623,10 @@ bool ASMu3D::faceL2projection (const DirichletFace& edge,
 #endif
 
   // Store the control-point values of the projected field
-  result.resize(values.dim());
-  for(size_t i = 0; i < values.dim(); i++)
-  {
-    result[i].resize(n);
-    std::copy(B[i].begin(), B[i].end(), result[i].begin());
-  }
+  result.resize(m,RealArray(n));
+  RealArray::const_iterator it = B.begin();
+  for (size_t i = 0; i < m; i++, it += n)
+    std::copy(it, it+n, result[i].begin());
 
   return true;
 }
