@@ -937,12 +937,11 @@ int ASMbase::renumberNodes (const ASMVec& model, std::map<int,int>& old2new)
 
 int ASMbase::renumberNodes (std::map<int,int>& old2new, int& nNod)
 {
-  if (shareFE) return 0;
-
   int renum = 0;
-  for (int& node : myMLGN)
-    if (utl::renumber(node,nNod,old2new))
-      renum++;
+  if (!shareFE)
+    for (int& node : myMLGN)
+      if (utl::renumber(node,nNod,old2new))
+        renum++;
 
   if (renum == 0)
     nNod = std::max(nNod,*std::max_element(MLGN.begin(),MLGN.end()));
