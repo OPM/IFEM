@@ -375,8 +375,8 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
 bool SIMbase::renumberNodes (const std::map<int,int>& nodeMap)
 {
   bool ok = true;
-  for (PatchVec::const_iterator it = myModel.begin(); it != myModel.end(); ++it)
-    ok &= (*it)->renumberNodes(nodeMap);
+  for (ASMbase* pch : myModel)
+    ok &= pch->renumberNodes(nodeMap);
 
   ASMs2DC1::renumberNodes(nodeMap);
   return ok;
@@ -703,15 +703,18 @@ void SIMbase::getBoundaryNodes (int pcode, IntVec& glbNodes, Vec3Vec* XYZ) const
   size_t node;
   for (PropertyVec::const_iterator p = myProps.begin(); p != myProps.end(); ++p)
     if (abs(p->pindx) == pcode && (pch = this->getPatch(p->patch))) {
-      if (abs(p->ldim)+1 == pch->getNoParamDim()) {
+      if (abs(p->ldim)+1 == pch->getNoParamDim() || p->ldim == 4) {
         // The boundary is of one dimension lower than the patch
         IntVec nodes;
-        pch->getBoundaryNodes(abs(p->lindx%10),nodes);
-        for (const int& it : nodes)
-          if (std::find(glbNodes.begin(),glbNodes.end(),it) == glbNodes.end()) {
-            glbNodes.push_back(it);
+        if (p->ldim == 4) // The boundary nodes are stored explicitly
+          nodes = pch->getNodeSet(p->lindx);
+        else
+          pch->getBoundaryNodes(abs(p->lindx%10),nodes);
+        for (int n : nodes)
+          if (std::find(glbNodes.begin(),glbNodes.end(),n) == glbNodes.end()) {
+            glbNodes.push_back(n);
             if (XYZ) {
-              if ((node = pch->getNodeIndex(it,true)))
+              if ((node = pch->getNodeIndex(n,true)))
                 XYZ->push_back(pch->getCoord(node));
               else
                 XYZ->push_back(Vec3());
@@ -1118,12 +1121,12 @@ Vec4 SIMbase::getNodeCoord (int inod) const
 {
   Vec4 Xnod;
   size_t node = 0;
-  for (PatchVec::const_iterator it = myModel.begin(); it != myModel.end(); ++it)
-    if ((node = (*it)->getNodeIndex(inod,true)))
+  for (ASMbase* pch : myModel)
+    if ((node = pch->getNodeIndex(inod,true)))
     {
-      Xnod = (*it)->getCoord(node);
+      Xnod = pch->getCoord(node);
       if (myModel.size() > 1)
-        Xnod.idx = (*it)->idx; // Store patch index, if multi-patch model
+        Xnod.idx = pch->idx; // Store patch index, if multi-patch model
       break;
     }
 
@@ -1134,9 +1137,9 @@ Vec4 SIMbase::getNodeCoord (int inod) const
 bool SIMbase::isFixed (int inod, int dof) const
 {
   size_t node = 0;
-  for (PatchVec::const_iterator it = myModel.begin(); it != myModel.end(); ++it)
-    if ((node = (*it)->getNodeIndex(inod,true)))
-      return (*it)->isFixed(node,dof,true);
+  for (ASMbase* pch : myModel)
+    if ((node = pch->getNodeIndex(inod,true)))
+      return pch->isFixed(node,dof,true);
 
   return true;
 }
