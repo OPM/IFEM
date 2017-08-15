@@ -216,10 +216,7 @@ const IntVec& ASMu2DLag::getNodeSet (int idx) const
 void ASMu2DLag::generateThreadGroups (const Integrand&, bool, bool)
 {
   // TODO: Add some coloring scheme later
-  threadGroups[0].resize(1);
-  threadGroups[1].resize(0);
-  threadGroups[0][0].resize(nel);
-  std::iota(threadGroups[0][0].begin(),threadGroups[0][0].end(),0);
+  threadGroups.oneGroup(nel);
 }
 
 

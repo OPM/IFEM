@@ -57,6 +57,9 @@ public:
   //! \param[in] nel3 Number of elements in the third direction
   //! \param[in] minsize Minimum element strip size
   void calcGroups(int nel1, int nel2, int nel3, int minsize);
+  //! \brief Initializes the threading groups in case of no multi-threading.
+  //! \param[in] nel Total number of elements
+  void oneGroup(size_t nel);
 
   //! \brief Maps a partitioning through a map.
   //! \details The original entry \a n in the group is mapped onto \a map[n].

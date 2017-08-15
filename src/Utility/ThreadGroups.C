@@ -12,12 +12,22 @@
 //==============================================================================
 
 #include "ThreadGroups.h"
+#include <numeric>
 #if SP_DEBUG > 1
 #include <iostream>
 #endif
 #ifdef USE_OPENMP
 #include <omp.h>
 #endif
+
+
+void ThreadGroups::oneGroup (size_t nel)
+{
+  tg[0].resize(1);
+  tg[1].resize(0);
+  tg[0][0].resize(nel);
+  std::iota(tg[0][0].begin(),tg[0][0].end(),0);
+}
 
 
 void ThreadGroups::calcGroups (const BoolVec& el1, const BoolVec& el2,
@@ -67,13 +77,7 @@ void ThreadGroups::calcGroups (const BoolVec& el1, const BoolVec& el2,
   nel1 = el1.size();
   nel2 = el2.size();
   if (threads == 1)
-  {
-    tg[0].resize(1);
-    tg[0][0].reserve(nel1*nel2);
-    for (i = 0; i < nel1*nel2; ++i)
-      tg[0][0].push_back(i);
-    tg[1].clear();
-  }
+    this->oneGroup(nel1*nel2);
   else
   {
     int i, j, t, zspan, offs = 0;
@@ -162,13 +166,7 @@ void ThreadGroups::calcGroups (int nel1, int nel2, int minsize)
 #endif
 
   if (threads == 1)
-  {
-    tg[0].resize(1);
-    tg[0][0].reserve(nel1*nel2);
-    for (int i = 0; i < nel1*nel2; ++i)
-      tg[0][0].push_back(i);
-    tg[1].clear();
-  }
+    this->oneGroup(nel1*nel2);
   else
   {
     int i, offs = 0;
@@ -278,13 +276,7 @@ void ThreadGroups::calcGroups (const BoolVec& el1, const BoolVec& el2,
   nel2 = el2.size();
   nel3 = el3.size();
   if (threads == 1)
-  {
-    tg[0].resize(1);
-    tg[0].reserve(nel1*nel2*nel3);
-    for (i = 0; i < nel1*nel2*nel3; ++i)
-      tg[0][0].push_back(i);
-    tg[1].clear();
-  }
+    this->oneGroup(nel1*nel2*nel3);
   else
   {
     int i, j, t, zspan, offs = 0;
@@ -376,13 +368,7 @@ void ThreadGroups::calcGroups (int nel1, int nel2, int nel3, int minsize)
 #endif
 
   if (threads == 1)
-  {
-    tg[0].resize(1);
-    tg[0].reserve(nel1*nel2*nel3);
-    for (i = 0; i < nel1*nel2*nel3; ++i)
-      tg[0][0].push_back(i);
-    tg[1].clear();
-  }
+    this->oneGroup(nel1*nel2*nel3);
   else
   {
     IntVec stripsizes[2];
