@@ -1087,7 +1087,7 @@ bool SIMinput::refine (const LR::RefineData& prm,
           }
         } else {
           prmloc.elements.clear();
-          for (auto &it : prm.elements) {
+          for (int it : prm.elements) {
             int node = myModel[i]->getNodeIndex(it+1)-1;
             if(node > 0)
               prmloc.elements.push_back(node);
@@ -1122,16 +1122,16 @@ bool SIMinput::refine (const LR::RefineData& prm,
               case 1: sedge = LR::WEST; break;
               case 2: sedge = LR::EAST; break;
               default:
-              case  3: sedge = LR::SOUTH; break;
-              case  4: sedge = LR::NORTH; break;
+              case 3: sedge = LR::SOUTH; break;
+              case 4: sedge = LR::NORTH; break;
             }
             LR::parameterEdge medge;
             switch (it.midx) {
               case 1: medge = LR::WEST; break;
               case 2: medge = LR::EAST; break;
               default:
-              case  3: medge = LR::SOUTH; break;
-              case  4: medge = LR::NORTH; break;
+              case 3: medge = LR::SOUTH; break;
+              case 4: medge = LR::NORTH; break;
             }
             LR::LRSplineSurface *master = static_cast<ASMu2D*>(this->getPatch(midx))->getBasis(1);
             LR::LRSplineSurface *slave  = static_cast<ASMu2D*>(this->getPatch(sidx))->getBasis(1);
