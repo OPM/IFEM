@@ -255,7 +255,7 @@ char ASMbase::getLMType (size_t inod) const
   return this->isLMn(inod) ? myLMTypes[inod-myLMs.first] : 0;
 }
 
-size_t ASMbase::getElmIndex (int globalNum, bool) const
+size_t ASMbase::getElmIndex (int globalNum) const
 {
   IntVec::const_iterator it = std::find(MLGE.begin(),MLGE.end(),globalNum);
   if (it == MLGE.end()) return 0;

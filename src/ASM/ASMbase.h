@@ -186,10 +186,10 @@ public:
   //! \brief Returns local 1-based index of the element with given global number.
   //! \details If the given node number is not present, 0 is returned.
   //! \param[in] globalNum Global node number
-  virtual size_t getElmIndex(int globalNum) const;
+  size_t getElmIndex(int globalNum) const;
   //! \brief Returns the global element number for the given element
   //! \param[in] iel 1-based element index local to current patch
-  virtual int getElmID(size_t iel) const;
+  int getElmID(size_t iel) const;
   //! \brief Returns the number of DOFs per node.
   //! \param[in] inod 1-based node index local to current patch
   virtual unsigned char getNodalDOFs(size_t inod) const;
