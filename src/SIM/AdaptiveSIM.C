@@ -319,7 +319,7 @@ bool AdaptiveSIM::adaptMesh (int iStep)
   }
 
   std::vector<DblIdx> errors;
-  if (scheme == 2)
+  if (scheme == 2) // use errors per function
   {
     // Sum up the total error over all supported elements for each function
     IntMat::const_iterator eit;
@@ -336,8 +336,8 @@ bool AdaptiveSIM::adaptMesh (int iStep)
       eOfs += patch->getNoElms();
     }
   }
-  else {
-    if (model.getNoPatches() > 1)
+  else { // use errors per element
+    if (model.getNoPatches() > 1) // not supported for multi-patch models
     {
       std::cerr << "Multi-patch refinement only available for isotropic_function\n";
       return false;
