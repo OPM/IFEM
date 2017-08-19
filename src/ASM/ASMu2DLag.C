@@ -195,9 +195,12 @@ bool ASMu2DLag::generateFEMTopology ()
 
 int ASMu2DLag::getNodeSetIdx (const std::string& setName) const
 {
-  std::map<std::string,IntVec>::const_iterator it = nodeSets.begin();
-  for (int i = 1; it != nodeSets.end(); i++, ++it)
-    if (it->first == setName) return i;
+  int idx = 1;
+  for (const auto& it : nodeSets)
+    if (it.first == setName)
+      return idx;
+    else
+      ++idx;
 
   return 0;
 }
@@ -205,9 +208,10 @@ int ASMu2DLag::getNodeSetIdx (const std::string& setName) const
 
 const IntVec& ASMu2DLag::getNodeSet (int idx) const
 {
-  std::map<std::string,IntVec>::const_iterator it = nodeSets.begin();
-  for (int i = 1; it != nodeSets.end(); i++, ++it)
-    if (i == idx) return it->second;
+  int count = 0;
+  for (const auto& it : nodeSets)
+    if (++count == idx)
+      return it.second;
 
   return this->ASMbase::getNodeSet(idx);
 }

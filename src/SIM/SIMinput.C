@@ -164,13 +164,18 @@ bool SIMinput::parseGeometryTag (const TiXmlElement* elem)
             if (abs(idim) == (int)this->getNoParamDim())
               top.insert(TopItem(patch,0,idim));
             else if (idim == 4 && (pch = this->getPatch(patch)))
+            {
+              if (item->FirstChild())
+                utl::parseIntegers(pch->getNodeSet(name),
+                                   item->FirstChild()->Value());
               top.insert(TopItem(patch,pch->getNodeSetIdx(name),idim));
+            }
             else if (item->FirstChild())
             {
-              std::string value(item->FirstChild()->Value());
-              char* cval = strtok(const_cast<char*>(value.c_str())," ");
-              for (; cval; cval = strtok(nullptr," "))
-                top.insert(TopItem(patch,atoi(cval),idim));
+              IntVec items;
+              utl::parseIntegers(items,item->FirstChild()->Value());
+              for (int item : items)
+                top.insert(TopItem(patch,item,idim));
             }
           }
         }
