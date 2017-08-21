@@ -444,13 +444,12 @@ SIM::ConvStatus NewmarkSIM::checkConvergence (TimeStep& param)
   model.iterationNorms(linsol,residual,norms[0],norms[1],norms[2]);
   double norm = norms[cNorm];
 
-  bool checkAllIt = (subiter & FIRST) && (refNopt == ALL);
   if (param.iter == 0)
   {
     if (norms[2] == 0.0)
       return SIM::CONVERGED; // No load on this step
 
-    if (checkAllIt || fabs(norm) > refNorm)
+    if ((subiter&FIRST && refNopt == ALL) || fabs(norm) > refNorm)
       refNorm = fabs(norm);
 
     if (refNorm*rTol > aTol) {
@@ -485,7 +484,7 @@ SIM::ConvStatus NewmarkSIM::checkConvergence (TimeStep& param)
 
   // Check for convergence or divergence
   SIM::ConvStatus status = SIM::OK;
-  if (fabs(norm) < convTol && (param.iter > 0 || checkAllIt))
+  if (fabs(norm) < convTol && (param.iter > 0 || refNopt == ALL))
     status = SIM::CONVERGED;
   else if (std::isnan(norms[2]))
     status = SIM::DIVERGED;

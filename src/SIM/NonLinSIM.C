@@ -416,13 +416,12 @@ ConvStatus NonLinSIM::checkConvergence (TimeStep& param)
   double norm = iteNorm == ENERGY ? enorm : resNorm;
   if (iteNorm == L2SOL) norm = linsolNorm;
 
-  bool checkAllIt = (subiter & FIRST) && (refNopt == ALL);
   if (param.iter == 0)
   {
     if (linsolNorm == 0.0)
       return CONVERGED; // No load on this step
 
-    if (checkAllIt || fabs(norm) > refNorm)
+    if ((subiter&FIRST && refNopt == ALL) || fabs(norm) > refNorm)
       refNorm = fabs(norm);
 
     if (refNorm*rTol > aTol) {
@@ -498,7 +497,7 @@ ConvStatus NonLinSIM::checkConvergence (TimeStep& param)
   }
 
   // Check for convergence or divergence
-  if (fabs(norm) < convTol && (param.iter > 0 || checkAllIt))
+  if (fabs(norm) < convTol && (param.iter > 0 || refNopt == ALL))
     status = CONVERGED;
   else if (std::isnan(linsolNorm))
     status = DIVERGED;
