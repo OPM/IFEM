@@ -489,18 +489,21 @@ bool SIMinput::parse (const TiXmlElement* elem)
     noDumpDataYet = lhsDump.empty() && rhsDump.empty();
 
   // Create the default geometry if no patchfile is specified
-  if (myModel.empty() && !strcasecmp(elem->Value(),"geometry"))
+  if (!strcasecmp(elem->Value(),"geometry"))
     if (this->getNoParamDim() > 0 && !elem->FirstChildElement("patchfile"))
     {
-      const TiXmlElement* part = elem->FirstChildElement("partitioning");
-      for (; part; part = part->NextSiblingElement("partitioning"))
-        result &= this->parseGeometryTag(part);
+      if (myModel.empty()) {
+        const TiXmlElement* part = elem->FirstChildElement("partitioning");
+        for (; part; part = part->NextSiblingElement("partitioning"))
+          result &= this->parseGeometryTag(part);
+      }
 
       myGen = this->getModelGenerator(elem);
       if (!myGen)
         return false;
 
-      myModel = myGen->createGeometry(*this);
+      if (myModel.empty())
+        myModel = myGen->createGeometry(*this);
       if (myPatches.empty())
         nGlPatches = myModel.size();
 
