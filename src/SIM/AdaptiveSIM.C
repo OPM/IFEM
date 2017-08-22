@@ -281,7 +281,10 @@ bool AdaptiveSIM::adaptMesh (int iStep)
 
   // Define the reference norm
   double refNorm = 0.01*model.getReferenceNorm(gNorm,adaptor);
-  if (refNorm <= 0.0) return false;
+  if (refNorm < -epsZ) {
+    std::cerr << "*** AdaptiveSIM::adaptMesh: Negative reference norm. Check orientation of your model." << std::endl;
+    return false;
+  }
 
   // Check if further refinement is required
   if (iStep > maxStep || model.getNoDOFs() > (size_t)maxDOFs) return false;
