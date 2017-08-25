@@ -10,17 +10,15 @@
 //!
 //==============================================================================
 
+#include "MultiPatchModelGenerator.h"
+#include "SIMMultiPatchModelGen.h"
+#include "SIM2D.h"
+#include "SIM3D.h"
 #include "ASMs1D.h"
 #include "ASMs2D.h"
 #include "ASMs3D.h"
 #include "Functions.h"
-#include "IFEM.h"
-#include "MultiPatchModelGenerator.h"
-#include "SIM2D.h"
-#include "SIM3D.h"
-#include "SIMMultiPatchModelGen.h"
 #include "SplineUtils.h"
-#include "TopologySet.h"
 
 #include "gtest/gtest.h"
 #include "tinyxml.h"
@@ -36,8 +34,8 @@ auto&& check_vector_int_equals_range = [](const std::vector<int>& arr,
   int el = range[0] - 1;
   size_t len = range[1] - el;
   ASSERT_EQ(arr.size(), len);
-  for (auto& it : arr)
-    ASSERT_EQ(it, ++el);
+  for (int i : arr)
+    EXPECT_EQ(i, ++el);
 };
 
 
@@ -46,8 +44,8 @@ auto&& check_vector_int_equals = [](const std::vector<int>& arr1,
 {
   ASSERT_EQ(arr1.size(), arr2.size());
   auto it2 = arr2.begin();
-  for (auto& it1 : arr1) {
-    ASSERT_EQ(it1, *it2);
+  for (int i : arr1) {
+    EXPECT_EQ(i, *it2);
     it2++;
   }
 };
@@ -59,8 +57,8 @@ auto&& check_vector_double_near = [](const std::vector<double>& arr1,
 {
   ASSERT_EQ(arr1.size(), arr2.size());
   auto it2 = arr2.begin();
-  for (auto& it1 : arr1) {
-    ASSERT_NEAR(it1, *it2, tol);
+  for (double d : arr1) {
+    EXPECT_NEAR(d, *it2, tol);
     it2++;
   }
 };
@@ -72,8 +70,8 @@ auto&& check_point_near = [](const Go::Point p1,
 {
   ASSERT_EQ(p1.dimension(), p2.dimension());
   auto it2 = p2.begin();
-  for (auto& it1 : p1) {
-    ASSERT_NEAR(it1, *it2, tol);
+  for (double d : p1) {
+    EXPECT_NEAR(d, *it2, tol);
     it2++;
   }
 };
@@ -121,7 +119,7 @@ class TestMultiPatchModelGenerator3D :
 auto&& DoTest = [](const GeomTest& ref, const std::string& gen,
                    const TopologySet& sets)
 {
-  ASSERT_STREQ(gen.c_str(), ref.g2.c_str());
+  EXPECT_STREQ(gen.c_str(), ref.g2.c_str());
 
   if (!ref.sets.empty()) {
     std::string gsets;
@@ -134,7 +132,7 @@ auto&& DoTest = [](const GeomTest& ref, const std::string& gen,
       }
       gsets += "\n";
     }
-    ASSERT_STREQ(gsets.c_str(), ref.sets.c_str());
+    EXPECT_STREQ(gsets.c_str(), ref.sets.c_str());
   }
 };
 
@@ -158,8 +156,7 @@ TEST(TestMultiPatchModelGenerator2D, GenerateLR)
   sim.opt.discretization = ASM::LRSpline;
   ASSERT_TRUE(sim.read("refdata/modelgen2d_lr.xinp"));
   sim.preprocess();
-  ASSERT_EQ(sim.getNoNodes(), 32U);
-  ASSERT_EQ(sim.getNoNodes(true), 28U);
+  ASSERT_EQ(sim.getNoNodes(), 28U);
 }
 
 
@@ -169,8 +166,7 @@ TEST(TestMultiPatchModelGenerator2D, GenerateLRmx)
   sim.opt.discretization = ASM::LRSpline;
   ASSERT_TRUE(sim.read("refdata/modelgen2d_lr.xinp"));
   sim.preprocess();
-  ASSERT_EQ(sim.getNoNodes(), 82U);
-  ASSERT_EQ(sim.getNoNodes(true), 73U);
+  ASSERT_EQ(sim.getNoNodes(), 73U);
 }
 
 
@@ -180,11 +176,6 @@ TEST(TestMultiPatchModelGenerator2D, Subdivisions)
   ASSERT_TRUE(sim.read("refdata/modelgen2d_subdivision.xinp"));
 
   // check FEM topology
-  const SIM2D::PatchVec& model = sim.getFEModel();
-  int renum = 0, ngnod = 0;
-  std::map<int,int> g2l;
-  for (auto& it : model)
-    renum += it->renumberNodes(g2l, ngnod);
   std::vector<std::vector<int>> mlgn =
       {{ 1, 2, 3, 4, 5,
          6, 7, 8, 9,10,
@@ -204,8 +195,12 @@ TEST(TestMultiPatchModelGenerator2D, Subdivisions)
         24,25,34,35,
         39,40,46,47,
         44,45,48,49}};
-  for (int i=0; i<4; i++)
-    check_vector_int_equals(mlgn[i], model[i]->getMyNodeNums());
+  int i = 0, ngnod = 0;
+  std::map<int,int> g2l;
+  for (ASMbase* pch : sim.getFEModel()) {
+    pch->renumberNodes(g2l,ngnod);
+    check_vector_int_equals(mlgn[i++],pch->getMyNodeNums());
+  }
 }
 
 
@@ -240,8 +235,7 @@ TEST(TestMultiPatchModelGenerator3D, GenerateLR)
   sim.opt.discretization = ASM::LRSpline;
   ASSERT_TRUE(sim.read("refdata/modelgen3d_lr.xinp"));
   sim.preprocess();
-  ASSERT_EQ(sim.getNoNodes(), 128U);
-  ASSERT_EQ(sim.getNoNodes(true), 112U);
+  ASSERT_EQ(sim.getNoNodes(), 112U);
 }
 
 
@@ -251,11 +245,6 @@ TEST(TestMultiPatchModelGenerator3D, Subdivisions)
   ASSERT_TRUE(sim.read("refdata/modelgen3d_subdivision.xinp"));
 
   // check FEM topology
-  const SIM3D::PatchVec& model = sim.getFEModel();
-  int renum = 0, ngnod = 0;
-  std::map<int,int> g2l;
-  for (auto& it : model)
-    renum += it->renumberNodes(g2l, ngnod);
   std::vector<std::vector<int>> mlgn = {
       {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,
        28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,
@@ -298,8 +287,12 @@ TEST(TestMultiPatchModelGenerator3D, Subdivisions)
        172,173,124,125,174,175,219,220,242,243,224,225,244,245,264,265,302,303,
        269,270,304,305,319,320,336,337,324,325,338,339,289,290,312,313,294,295,
        314,315,329,330,340,341,334,335,342,343}};
-  for (int i=0; i<8; i++)
-    check_vector_int_equals(mlgn[i], model[i]->getMyNodeNums());
+  int i = 0, ngnod = 0;
+  std::map<int,int> g2l;
+  for (ASMbase* pch : sim.getFEModel()) {
+    pch->renumberNodes(g2l,ngnod);
+    check_vector_int_equals(mlgn[i++],pch->getMyNodeNums());
+  }
 }
 
 

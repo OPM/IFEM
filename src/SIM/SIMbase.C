@@ -575,16 +575,23 @@ size_t SIMbase::getNoDOFs () const
 }
 
 
-size_t SIMbase::getNoNodes (bool unique, int basis) const
+size_t SIMbase::getNoNodes (int basis) const
 {
-  size_t nnod = 0;
-  if (unique && mySam)
-    nnod = mySam->getNoNodes(basis < 1 ? 'A' : (basis < 2 ? 'D' : 'N'+basis));
-  else
-    for (size_t i = 0; i < myModel.size(); i++)
-      nnod += myModel[i]->getNoNodes(basis);
+  if (mySam)
+  {
+    if (basis == 1) // Assume the X-nodes are associated with first basis only
+      return mySam->getNoNodes('D') + mySam->getNoNodes('X');
+    else if (basis > 1)
+      return mySam->getNoNodes('N'+basis);
+    else
+      return mySam->getNoNodes();
+  }
+  else if (myModel.size() == 1)
+    return myModel.front()->getNoNodes(basis);
 
-  return nnod;
+  std::cerr <<" *** SIMbase::getNoNodes: Number of nodes in a multi-patch model"
+            <<" is not known at this point."<< std::endl;
+  return 0;
 }
 
 
@@ -1798,12 +1805,14 @@ bool SIMbase::setPatchMaterial (size_t patch)
 
 bool SIMbase::addMADOF (unsigned char basis, unsigned char nndof)
 {
+  if (!mySam) return false;
+
   int key = basis << 16 + nndof;
   if (mixedMADOFs.find(key) != mixedMADOFs.end())
     return false; // This MADOF already calculated
 
   IntVec& madof = mixedMADOFs[key];
-  madof.resize(this->getNoNodes(true)+1,0);
+  madof.resize(mySam->getNoNodes()+1,0);
 
   char nType = basis <= 1 ? 'D' : 'P' + basis-2;
   for (size_t i = 0; i < myModel.size(); i++)

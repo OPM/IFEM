@@ -114,7 +114,7 @@ public:
   {
     planeNodes.resize(this->getNoPlanes());
     for (size_t i=0;i<m_planes.size();++i)
-      planeNodes[startCtx+i] = m_planes[i]->getNoNodes(true);
+      planeNodes[startCtx+i] = m_planes[i]->getNoNodes();
 
 #ifdef HAVE_MPI
     std::vector<int> send(planeNodes);

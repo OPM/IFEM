@@ -199,11 +199,11 @@ bool NewmarkSIM::predictStep (TimeStep& param)
   {
     // Initalize the total angular rotations for this time step
     Vector& psol = solution.front();
-    if (psol.size() != 6*model.getNoNodes(true))
+    if (psol.size() != 6*model.getNoNodes(1))
     {
       std::cerr <<" *** NewmarkSIM::predictStep: Invalid dimension on"
                 <<" the displacement vector "<< psol.size()
-                <<" != "<< 6*model.getNoNodes(true) << std::endl;
+                <<" != "<< 6*model.getNoNodes(1) << std::endl;
       return false;
     }
     for (size_t i = 3; i < psol.size(); i += 6)
