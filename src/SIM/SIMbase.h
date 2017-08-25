@@ -150,8 +150,9 @@ public:
   size_t getNoFields(int basis = 0) const;
   //! \brief Returns the model size in terms of number of DOFs.
   size_t getNoDOFs() const;
-  //! \brief Returns the model size in terms of number of (unique) nodes.
-  size_t getNoNodes(bool unique = false, int basis = 0) const;
+  //! \brief Returns the model size in terms of number of unique nodes.
+  //! \param[in] basis Which basis to return the number of nodes for (0 = all)
+  size_t getNoNodes(int basis = 0) const;
   //! \brief Returns the model size in terms of number of elements.
   //! \param[in] includeXElms If \e true, include any extra-ordinary elements
   size_t getNoElms(bool includeXElms = false) const;

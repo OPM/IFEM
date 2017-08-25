@@ -80,7 +80,7 @@ TEST(TestSIM2D, ProjectSolution)
   size_t n = 1;
   for (size_t j = 0; j < 2; ++j)
     for (size_t i = 0; i < 2; ++i)
-      ASSERT_FLOAT_EQ(ssol(1, n++), i + j);
+      EXPECT_FLOAT_EQ(ssol(1, n++), i + j);
 }
 
 
@@ -94,7 +94,7 @@ TEST(TestSIM2D, ProjectSolutionMixed)
   size_t n = 1;
   for (size_t j = 0; j < 3; ++j)
     for (size_t i = 0; i < 3; ++i)
-      ASSERT_FLOAT_EQ(ssol(1, n++), i/2.0 + j/2.0);
+      EXPECT_FLOAT_EQ(ssol(1, n++), i/2.0 + j/2.0);
 }
 
 
@@ -109,7 +109,7 @@ TEST(TestSIM3D, ProjectSolution)
   for (size_t k = 0; k < 2; ++k)
     for (size_t j = 0; j < 2; ++j)
       for (size_t i = 0; i < 2; ++i)
-        ASSERT_FLOAT_EQ(ssol(1, n++), i + j + k);
+        EXPECT_FLOAT_EQ(ssol(1, n++), i + j + k);
 }
 
 
@@ -124,7 +124,7 @@ TEST(TestSIM3D, ProjectSolutionMixed)
   for (size_t k = 0; k < 3; ++k)
     for (size_t j = 0; j < 3; ++j)
       for (size_t i = 0; i < 3; ++i)
-        ASSERT_FLOAT_EQ(ssol(1, n++), i/2.0 + j/2.0 + k/2.0);
+        EXPECT_FLOAT_EQ(ssol(1, n++), i/2.0 + j/2.0 + k/2.0);
 }
 
 
@@ -132,33 +132,33 @@ TEST(TestSIM, InjectPatchSolution)
 {
   TestProjectSIM<SIM2D> sim({1,1});
 
-  Vector sol(2*sim.getNoNodes(true, 1) + sim.getNoNodes(true, 2));
-  Vector lsol(2*sim.getNoNodes(true, 1));
+  Vector sol(2*sim.getNoNodes(1) + sim.getNoNodes(2));
+  Vector lsol(2*sim.getNoNodes(1));
   size_t i, ofs;
-  for (i = 0; i < sim.getNoNodes(true,1); i++)
+  for (i = 0; i < sim.getNoNodes(1); i++)
     lsol[2*i] = lsol[2*i+1] = i+1;
 
   ASSERT_TRUE(sim.addMixedMADOF(1, 2));
   sim.injectPatchSolution(sol, lsol, 0, 2, 1);
-  for (i = ofs = 0; i < sim.getNoNodes(true,1); i++, ofs += 2) {
-    ASSERT_FLOAT_EQ(sol[ofs], i+1);
-    ASSERT_FLOAT_EQ(sol[ofs+1], i+1);
+  for (i = ofs = 0; i < sim.getNoNodes(1); i++, ofs += 2) {
+    EXPECT_FLOAT_EQ(sol[ofs], i+1);
+    EXPECT_FLOAT_EQ(sol[ofs+1], i+1);
   }
-  for (i = 0; i < sim.getNoNodes(true,2); i++, ofs++)
-    ASSERT_FLOAT_EQ(sol[ofs], 0);
+  for (i = 0; i < sim.getNoNodes(2); i++, ofs++)
+    EXPECT_FLOAT_EQ(sol[ofs], 0);
 
   ASSERT_TRUE(sim.addMixedMADOF(2, 2));
-  Vector sol2(sim.getNoNodes(true, 1) + 2*sim.getNoNodes(true, 2));
-  Vector lsol2(2*sim.getNoNodes(true, 2));
-  for (i = 0; i < sim.getNoNodes(true,2); i++)
+  Vector sol2(sim.getNoNodes(1) + 2*sim.getNoNodes(2));
+  Vector lsol2(2*sim.getNoNodes(2));
+  for (i = 0; i < sim.getNoNodes(2); i++)
     lsol2[2*i] = lsol2[2*i+1] = i+1;
 
   sim.injectPatchSolution(sol2, lsol2, 0, 2, 2);
-  for (i = ofs = 0; i < sim.getNoNodes(true,1); i++, ofs++)
-    ASSERT_FLOAT_EQ(sol2[ofs], 0);
+  for (i = ofs = 0; i < sim.getNoNodes(1); i++, ofs++)
+    EXPECT_FLOAT_EQ(sol2[ofs], 0);
 
-  for (i = 0; i < sim.getNoNodes(true,2); i++, ofs += 2) {
-    ASSERT_FLOAT_EQ(sol2[ofs], i+1);
-    ASSERT_FLOAT_EQ(sol2[ofs+1], i+1);
+  for (i = 0; i < sim.getNoNodes(2); i++, ofs += 2) {
+    EXPECT_FLOAT_EQ(sol2[ofs], i+1);
+    EXPECT_FLOAT_EQ(sol2[ofs+1], i+1);
   }
 }
