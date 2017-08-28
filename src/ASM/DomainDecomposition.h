@@ -14,6 +14,7 @@
 #ifndef _DOMAIN_DECOMPOSITION_H
 #define _DOMAIN_DECOMPOSITION_H
 
+#include "Interface.h"
 #include <map>
 #include <set>
 #include <vector>
@@ -32,18 +33,6 @@ class SIMbase;
 class DomainDecomposition
 {
 public:
-  //! \brief Struct defining a domain interface.
-  struct Interface {
-    int master; //!< Master patch (global number).
-    int slave;  //!< Slave patch (global number).
-    int midx;   //!< Index of boundary on master.
-    int sidx;   //!< Index of boundary on slave.
-    int orient; //!< Orientation.
-    int dim;    //!< Dimension of boundary.
-    int basis;  //!< Basis of boundary.
-    int thick;  //!< Thickness of connection.
-  };
-
   //! \brief Functor to order ghost connections.
   class SlaveOrder {
     public:
@@ -52,7 +41,7 @@ public:
       //! \brief Hide ill-formed default assignment operator.
       SlaveOrder& operator=(const SlaveOrder&) { return *this; }
       //! \brief Compare interfaces.
-      bool operator()(const Interface& A, const Interface& B) const
+      bool operator()(const ASM::Interface& A, const ASM::Interface& B) const
       {
         // order by master owner id first
         if (dd.getPatchOwner(A.master) != dd.getPatchOwner(B.master))
@@ -81,7 +70,7 @@ public:
       const DomainDecomposition& dd;
   };
 
-  std::set<Interface, SlaveOrder> ghostConnections; //!< Connections to other processes.
+  std::set<ASM::Interface, SlaveOrder> ghostConnections; //!< Connections to other processes.
 
   //! \brief Default constructor.
   DomainDecomposition() : ghostConnections(SlaveOrder(*this)), blocks(1) {}

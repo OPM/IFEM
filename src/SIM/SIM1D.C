@@ -78,9 +78,9 @@ bool SIM1D::addConnection (int master, int slave, int mIdx, int sIdx,
       return false;
   }
   else
-    adm.dd.ghostConnections.insert(DomainDecomposition::Interface{master, slave,
-                                                                  mIdx, sIdx, 0,
-                                                                  dim, basis, thick});
+    adm.dd.ghostConnections.insert(ASM::Interface{master, slave,
+                                                  mIdx, sIdx, 0,
+                                                  dim, basis, thick});
 
   return true;
 }
