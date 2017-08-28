@@ -405,7 +405,7 @@ bool DomainDecomposition::calcGlobalNodeNumbers(const ProcessAdm& adm,
   std::map<int,int> old2new;
   for (const auto& it : ghostConnections) {
     int sidx = sim.getLocalPatchIndex(it.slave);
-    if (sidx < 1)
+    if (sidx < 1 || this->getPatchOwner(it.master) == adm.getProcId())
       continue;
 
     std::set<int> cbasis;
@@ -471,7 +471,7 @@ bool DomainDecomposition::calcGlobalNodeNumbers(const ProcessAdm& adm,
 
   for (const auto& it : ghostConnections) {
     int midx = sim.getLocalPatchIndex(it.master);
-    if (midx < 1)
+    if (midx < 1 || this->getPatchOwner(it.slave) == adm.getProcId())
       continue;
 
     std::set<int> cbasis;
@@ -632,7 +632,7 @@ bool DomainDecomposition::calcGlobalEqNumbers(const ProcessAdm& adm,
 
   for (const auto& it : ghostConnections) {
     int sidx = sim.getLocalPatchIndex(it.slave);
-    if (sidx < 1)
+    if (sidx < 1 || this->getPatchOwner(it.master) == adm.getProcId())
       continue;
 
     std::set<int> cbasis;
@@ -750,7 +750,7 @@ bool DomainDecomposition::calcGlobalEqNumbers(const ProcessAdm& adm,
 
   for (const auto& it : ghostConnections) {
     int midx = sim.getLocalPatchIndex(it.master);
-    if (midx < 1)
+    if (midx < 1  || this->getPatchOwner(it.slave) == adm.getProcId())
       continue;
 
     std::set<int> cbasis;

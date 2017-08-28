@@ -322,22 +322,32 @@ bool AdaptiveSIM::adaptMesh (int iStep)
   }
 
   std::vector<DblIdx> errors;
-  if (scheme == 2)
+  if (scheme == 2) // use errors per function
   {
     // Sum up the total error over all supported elements for each function
-    ASMbase* patch = model.getPatch(1);
-    if (!patch) return false;
     IntMat::const_iterator eit;
     IntVec::const_iterator nit;
-    for (i = 0; i < patch->getNoNodes(); i++) // Loop over basis functions
-      errors.push_back(DblIdx(0.0,i));
-    for (i = 1, eit = patch->begin_elm(); eit < patch->end_elm(); ++eit, i++)
-      for (nit = eit->begin(); nit < eit->end(); ++nit)
-        errors[*nit].first += eNorm(eRow,i);
+    int eOfs = 0;
+    errors.resize(model.getNoNodes(true));
+    for (ASMbase* patch : model.getFEModel()) {
+      for (i = 1, eit = patch->begin_elm(); eit < patch->end_elm(); eit++, i++)
+        for (nit = eit->begin(); nit < eit->end(); nit++) {
+          int node = patch->getNodeID(*nit+1)-1;
+          errors[node].first += eNorm(eRow,i+eOfs);
+          errors[node].second = node;
+        }
+      eOfs += patch->getNoElms();
+    }
   }
-  else
+  else { // use errors per element
+    if (model.getNoPatches() > 1) // not supported for multi-patch models
+    {
+      std::cerr << "Multi-patch refinement only available for isotropic_function\n";
+      return false;
+    }
     for (i = 0; i < eNorm.cols(); i++)
       errors.push_back(DblIdx(eNorm(eRow,1+i),i));
+  }
 
   // Sort the elements in the sequence of decreasing errors
   std::sort(errors.begin(),errors.end(),std::greater<DblIdx>());
