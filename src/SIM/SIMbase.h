@@ -352,6 +352,11 @@ public:
   bool solutionNorms(const Vectors& psol, Matrix& eNorm, Vectors& gNorm)
   { return this->solutionNorms(TimeDomain(),psol,Vectors(),gNorm,&eNorm); }
 
+  //! \brief Apply app-specific post-processing to element norms.
+  //! \param gNorm Vector with global norms
+  //! \param eNorm Matrix with element norms
+  virtual bool postProcessNorms(Vectors& gNorm, Matrix* eNorm) { return true; }
+
   //! \brief Prints a summary of the calculated solution to std::cout.
   //! \param[in] solution The solution vector
   //! \param[in] printSol Print solution only if size is less than this value
