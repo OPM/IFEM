@@ -126,6 +126,10 @@ public:
   //! \brief Returns a pointer to the problem-specific data object.
   const IntegrandBase* getProblem() const { return myProblem; }
 
+  //! \brief Returns interface checker type for model.
+  virtual ASM::InterfaceChecker* getInterfaceChecker(size_t) const
+  { return nullptr; }
+
   //! \brief Clears the reference to the problem-specific data object.
   //! \details This method is used when the same IntegrandBase object is shared
   //! by several SIMbase objects, to avoid that it is deleted more than once.
