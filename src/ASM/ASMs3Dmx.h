@@ -124,6 +124,13 @@ public:
   virtual bool integrate(Integrand& integrand, int lIndex,
 			 GlobalIntegral& glbInt, const TimeDomain& time);
 
+  //! \brief Evaluates an integral over element interfaces in the patch.
+  //! \param integrand Object with problem-specific data and methods
+  //! \param glbInt The integrated quantity
+  //! \param[in] time Parameters for nonlinear/time-dependent simulations
+  //! \param[in] iChk Object checking if an element interface has contributions
+  virtual bool integrate(Integrand& integrand, GlobalIntegral& glbInt,
+                         const TimeDomain& time, const ASM::InterfaceChecker& iChk);
 
   // Post-processing methods
   // =======================

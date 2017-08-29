@@ -829,6 +829,181 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
 }
 
 
+bool ASMs2Dmx::integrate (Integrand& integrand,
+                          GlobalIntegral& glInt,
+                          const TimeDomain& time,
+                          const ASM::InterfaceChecker& iChk)
+{
+  if (!surf) return true; // silently ignore empty patches
+  if (!(integrand.getIntegrandType() & Integrand::INTERFACE_TERMS)) return true;
+
+  PROFILE2("ASMs2Dmx::integrate(J)");
+
+  // Get Gaussian quadrature points and weights
+  const double* xg = GaussQuadrature::getCoord(nGauss);
+  const double* wg = GaussQuadrature::getWeight(nGauss);
+  if (!xg || !wg) return false;
+
+  const int p1 = surf->order_u();
+  const int p2 = surf->order_v();
+  const int n1 = surf->numCoefs_u();
+  const int n2 = surf->numCoefs_v();
+
+  std::vector<size_t> elem_sizes;
+  for (auto& it : m_basis)
+    elem_sizes.push_back(it->order_u()*it->order_v());
+  std::vector<size_t> elem_sizes2(elem_sizes);
+  std::copy(elem_sizes.begin(), elem_sizes.end(), std::back_inserter(elem_sizes2));
+
+  MxFiniteElement fe(elem_sizes2);
+  Matrix        dNdu, Xnod, Jac;
+  Vector        dN;
+  Vec4          X;
+  Vec3          normal;
+  double        u[2], v[2];
+  if (MLGE.size() > nel && MLGE.size() != 2*nel) {
+    std::cerr << "Interface elements not implemented for mixed integrands." << std::endl;
+    return false;
+  }
+
+  // === Assembly loop over all elements in the patch ==========================
+
+  int iel = 0;
+  for (int i2 = p2; i2 <= n2; i2++)
+    for (int i1 = p1; i1 <= n1; i1++, iel++)
+    {
+      fe.iel = abs(MLGE[iel]);
+      if (fe.iel < 1) continue; // zero-area element
+
+      short int status = iChk.hasContribution(iel,i1,i2);
+      if (!status) continue; // no interface contributions for this element
+
+#if SP_DEBUG > 3
+      std::cout <<"\n\nIntegrating interface terms for element "<< fe.iel
+                << std::endl;
+#endif
+
+      // Set up control point (nodal) coordinates for current element
+      if (!this->getElementCoordinates(Xnod,1+iel)) return false;
+
+      // Compute parameter values of the element edges
+      this->getElementBorders(i1-1,i2-1,u,v);
+
+      if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
+        fe.h = this->getElementCorners(i1-1,i2-1,fe.XC);
+
+      // Initialize element quantities
+      LocalIntegral* A = integrand.getLocalIntegral(elem_sizes,fe.iel);
+      bool ok = integrand.initElement(MNPC[iel],elem_sizes,nb,*A);
+      size_t origSize = A->vec.size();
+
+      // Loop over the element edges with contributions
+      int bit = 8;
+      for (int iedge = 4; iedge > 0 && status > 0 && ok; iedge--, bit /= 2)
+        if (status & bit)
+        {
+          // Find the parametric direction of the edge normal {-2,-1, 1, 2}
+          const int edgeDir = (iedge+1)/(iedge%2 ? -2 : 2);
+          const int t1 = abs(edgeDir);   // Tangent direction normal to the edge
+          const int t2 = 3-abs(edgeDir); // Tangent direction along the edge
+
+          int kel = iel;
+          if (t1 == 1)
+            kel += iedge > 1  ? 1 : -1;
+          else
+            kel += iedge > 3 ? n1-p1+1 : -(n1-p1+1);
+
+          // initialize neighbor element
+          LocalIntegral* A_neigh = integrand.getLocalIntegral(elem_sizes,kel+1);
+          ok &= integrand.initElement(MNPC[kel],elem_sizes,nb,*A_neigh);
+          if (!A_neigh->vec.empty()) {
+            A->vec.resize(origSize+A_neigh->vec.size());
+            std::copy(A_neigh->vec.begin(), A_neigh->vec.end(), A->vec.begin()+origSize);
+          }
+          A_neigh->destruct();
+
+          // Get element edge length in the parameter space
+          double dS = this->getParametricLength(1+iel,t2);
+          if (dS < 0.0) // topology error (probably logic error)
+            ok = false;
+
+          // --- Integration loop over all Gauss points along the edge ---------
+
+          for (int i = 0; i < nGauss && ok; i++)
+          {
+            // Local element coordinates and parameter values
+            // of current integration point
+            if (t1 == 1)
+            {
+              fe.xi = edgeDir;
+              fe.eta = xg[i];
+              fe.u = edgeDir > 0 ? u[1] : u[0];
+              fe.v = 0.5*((v[1]-v[0])*xg[i] + v[1]+v[0]);
+              fe.p = p1 - 1;
+            }
+            else
+            {
+              fe.xi = xg[i];
+              fe.eta = edgeDir/2;
+              fe.u = 0.5*((u[1]-u[0])*xg[i] + u[1]+u[0]);
+              fe.v = edgeDir > 0 ? v[1] : v[0];
+              fe.p = p2 - 1;
+            }
+
+            // Fetch basis function derivatives at current integration point
+            std::vector<Matrix> dNxdu(m_basis.size()*2);
+            for (size_t b = 0; b < m_basis.size(); ++b) {
+              Go::BasisDerivsSf spline;
+              this->getBasis(b+1)->computeBasis(fe.u, fe.v, spline, edgeDir < 0);
+              SplineUtils::extractBasis(spline, fe.basis(b+1), dNxdu[b]);
+              this->getBasis(b+1)->computeBasis(fe.u, fe.v, spline, edgeDir > 0);
+              SplineUtils::extractBasis(spline, fe.basis(b+1+m_basis.size()),
+                                        dNxdu[b+m_basis.size()]);
+            }
+
+            // Compute basis function derivatives and the edge normal
+            fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(geoBasis+m_basis.size()),Xnod,
+                                      dNxdu[geoBasis-1+m_basis.size()],t1,t2);
+            fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(geoBasis),Xnod,
+                                      dNxdu[geoBasis-1],t1,t2);
+            if (fe.detJxW == 0.0) continue; // skip singular points
+            for (size_t b = 0; b < m_basis.size(); ++b)
+              if (b != (size_t)geoBasis-1) {
+                fe.grad(b+1).multiply(dNxdu[b],Jac);
+                fe.grad(b+1+m_basis.size()).multiply(dNxdu[b+m_basis.size()],Jac);
+              }
+
+            if (edgeDir < 0) normal *= -1.0;
+
+            // Cartesian coordinates of current integration point
+            X = Xnod * fe.basis(geoBasis);
+            X.t = time.t;
+
+            if (integrand.getIntegrandType() & Integrand::NORMAL_DERIVS)
+            {
+              std::cerr << "Normal derivs not implemented for mixed integrands." << std::endl;
+              return false;
+            }
+
+            // Evaluate the integrand and accumulate element contributions
+            fe.detJxW *= 0.5*dS*wg[i];
+            ok = integrand.evalIntMx(*A,fe,time,X,normal);
+          }
+        }
+
+      // Assembly of global system integral
+      if (ok && !glInt.assemble(A->ref(),fe.iel))
+        ok = false;
+
+      A->destruct();
+
+      if (!ok) return false;
+    }
+
+  return true;
+}
+
+
 int ASMs2Dmx::evalPoint (const double* xi, double* param, Vec3& X) const
 {
   if (!surf) return -2;
