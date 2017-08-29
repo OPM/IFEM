@@ -39,6 +39,7 @@ class FunctionBase;
 class RealFunc;
 class VecFunc;
 class Vec3;
+namespace ASM { class InterfaceChecker; }
 
 typedef std::vector<ASMbase*> ASMVec; //!< Spline patch container
 
@@ -427,6 +428,14 @@ public:
  			     GlobalIntegral& glbInt,
 			     const TimeDomain& time) { return false; }
 
+  //! \brief Evaluates an integral over element interfaces in the patch.
+  //! \param integrand Object with problem-specific data and methods
+  //! \param glbInt The integrated quantity
+  //! \param[in] time Parameters for nonlinear/time-dependent simulations
+  //! \param[in] iChk Object checking if an element interface has contributions
+  virtual bool integrate(Integrand& integrand, GlobalIntegral& glbInt,
+                         const TimeDomain& time,
+                         const ASM::InterfaceChecker& iChk) { return true; }
 
   // Post-processing methods
   // =======================

@@ -832,6 +832,224 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
 }
 
 
+bool ASMs3Dmx::integrate (Integrand& integrand,
+                          GlobalIntegral& glInt,
+                          const TimeDomain& time,
+                          const ASM::InterfaceChecker& iChk)
+{
+  if (!svol) return true; // silently ignore empty patches
+  if (!(integrand.getIntegrandType() & Integrand::INTERFACE_TERMS)) return true;
+
+  PROFILE2("ASMs3Dmx::integrate(J)");
+
+  // Get Gaussian quadrature points and weights
+  int nGP = integrand.getBouIntegrationPoints(nGauss);
+  const double* xg = GaussQuadrature::getCoord(nGP);
+  const double* wg = GaussQuadrature::getWeight(nGP);
+  if (!xg || !wg) return false;
+
+  const int p1 = svol->order(0);
+  const int p2 = svol->order(1);
+  const int p3 = svol->order(2);
+  const int n1 = svol->numCoefs(0);
+  const int n2 = svol->numCoefs(1);
+  const int n3 = svol->numCoefs(2);
+  const int nel1 = n1 - p1 + 1;
+  const int nel2 = n2 - p2 + 1;
+
+  std::vector<size_t> elem_sizes;
+  for (auto& it : m_basis)
+    elem_sizes.push_back(it->order(0)*it->order(1)*it->order(2));
+  std::vector<size_t> elem_sizes2(elem_sizes);
+  std::copy(elem_sizes.begin(), elem_sizes.end(), std::back_inserter(elem_sizes2));
+
+  MxFiniteElement fe(elem_sizes2);
+  Matrix        dNdu, Xnod, Jac;
+  Vector        dN;
+  Vec4          X;
+  Vec3          normal;
+  double        u[2], v[2], w[2];
+  if (MLGE.size() > nel && MLGE.size() != 2*nel) {
+    std::cerr << "Interface elements not implemented for mixed integrands." << std::endl;
+    return false;
+  }
+
+  // === Assembly loop over all elements in the patch ==========================
+
+  int iel = 0;
+  for (int i3 = p3; i3 <= n3; i3++)
+    for (int i2 = p2; i2 <= n2; i2++)
+      for (int i1 = p1; i1 <= n1; i1++, iel++)
+      {
+        fe.iel = abs(MLGE[iel]);
+        if (fe.iel < 1) continue; // zero-area element
+
+        short int status = iChk.hasContribution(iel,i1,i2,i3);
+        if (!status) continue; // no interface contributions for this element
+
+  #if SP_DEBUG > 3
+        std::cout <<"\n\nIntegrating interface terms for element "<< fe.iel
+                  << std::endl;
+  #endif
+
+        // Set up control point (nodal) coordinates for current element
+        if (!this->getElementCoordinates(Xnod,1+iel)) return false;
+
+        // Compute parameter values of the element edges
+        this->getElementBorders(i1-1,i2-1,i3-1,u,v,w);
+
+        if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
+          fe.h = this->getElementCorners(i1-1,i2-1,i3-1,fe.XC);
+
+        // Initialize element quantities
+        LocalIntegral* A = integrand.getLocalIntegral(elem_sizes,fe.iel);
+        bool ok = integrand.initElement(MNPC[iel],elem_sizes,nb,*A);
+        size_t origSize = A->vec.size();
+
+        // Loop over the element edges with contributions
+        int bit = 32;
+        for (int iface = 6; iface > 0 && status > 0 && ok; iface--, bit /= 2)
+          if (status & bit)
+          {
+            // Find the parametric direction of the edge normal {-2,-1, 1, 2}
+            int faceDir;
+            switch(iface) {
+              case 1: faceDir = -1; break;
+              case 2: faceDir = 1; break;
+              case 3: faceDir = -2; break;
+              case 4: faceDir = 2; break;
+              case 5: faceDir = -3; break;
+              case 6: faceDir = 3; break;
+            }
+            const int t1 = 1 + abs(faceDir)%3; // first tangent direction
+            const int t2 = 1 + t1%3;           // second tangent direction
+
+            int kel = iel;
+            if (t1 == 2)
+              kel += iface > 1  ? 1 : -1;
+            else if (t1 == 3)
+              kel += iface == 4 ? n1-p1+1 : -(n1-p1+1);
+            else
+              kel += iface == 6 ? (n2-p2+1)*(n1-p1+1) : -(n2-p2+1)*(n1-p1+1);
+
+            // initialize neighbor element
+            LocalIntegral* A_neigh = integrand.getLocalIntegral(elem_sizes,kel+1);
+            ok &= integrand.initElement(MNPC[kel],elem_sizes,nb,*A_neigh);
+            if (!A_neigh->vec.empty()) {
+              A->vec.resize(origSize+A_neigh->vec.size());
+              std::copy(A_neigh->vec.begin(), A_neigh->vec.end(), A->vec.begin()+origSize);
+            }
+            A_neigh->destruct();
+
+            // Get element area in the parameter space
+            double dA = this->getParametricArea(1+iel,abs(faceDir));
+            if (dA < 0.0) // topology error (probably logic error)
+              ok = false;
+
+            // Define some loop control variables depending on which face we are on
+            int nf1, j1, j2;
+            switch (abs(faceDir))
+            {
+              case 1: nf1 = nel2; j2 = i3-p3; j1 = i2-p2; break;
+              case 2: nf1 = nel1; j2 = i3-p3; j1 = i1-p1; break;
+              case 3: nf1 = nel1; j2 = i2-p2; j1 = i1-p1; break;
+              default: nf1 = j1 = j2 = 0;
+            }
+
+            int ip = (j2*nGP*nf1 + j1)*nGP;
+
+            // --- Integration loop over all Gauss points along the face ---------
+
+            for (int j = 0; j < nGP && ok; j++, ip += nGP*(nf1-1))
+              for (int i = 0; i < nGP && ok; i++, ip++, fe.iGP++)
+              {
+                // Local element coordinates and parameter values
+                // of current integration point
+                if (abs(faceDir) == 1)
+                {
+                  fe.xi = faceDir > 0 ? 1.0 : 0.0;
+                  fe.eta = xg[i];
+                  fe.zeta = xg[j];
+                  fe.u = faceDir > 0 ? u[1] : u[0];
+                  fe.v = 0.5*((v[1]-v[0])*xg[i] + v[1]+v[0]);
+                  fe.w = 0.5*((w[1]-w[0])*xg[j] + w[1]+w[0]);
+                  fe.p = p1 - 1;
+                }
+                else if (abs(faceDir) == 2)
+                {
+                  fe.xi = xg[i];
+                  fe.eta = faceDir > 0 ? 1.0 : 0.0;
+                  fe.zeta = xg[j];
+                  fe.u = 0.5*((u[1]-u[0])*xg[i] + u[1]+u[0]);
+                  fe.u = faceDir > 0 ? u[1] : u[0];
+                  fe.w = 0.5*((w[1]-w[0])*xg[j] + w[1]+w[0]);
+                  fe.p = p2 - 1;
+                }
+                else
+                {
+                  fe.xi = xg[i];
+                  fe.eta = xg[j];
+                  fe.zeta = faceDir > 0 ? 1.0 : 0.0;
+                  fe.u = 0.5*((u[1]-u[0])*xg[i] + u[1]+u[0]);
+                  fe.v = 0.5*((v[1]-v[0])*xg[j] + v[1]+v[0]);
+                  fe.w = faceDir > 0 ? w[1] : w[0];
+                  fe.p = p3 - 1;
+                }
+
+                // Fetch basis function derivatives at current integration point
+                std::vector<Matrix> dNxdu(m_basis.size()*2);
+                for (size_t b = 0; b < m_basis.size(); ++b) {
+                  Go::BasisDerivs spline;
+                  this->getBasis(b+1)->computeBasis(fe.u, fe.v, fe.w, spline, faceDir < 0);
+                  SplineUtils::extractBasis(spline, fe.basis(b+1), dNxdu[b]);
+                  this->getBasis(b+1)->computeBasis(fe.u, fe.v, fe.w, spline, faceDir > 0);
+                  SplineUtils::extractBasis(spline, fe.basis(b+1+m_basis.size()),
+                                            dNxdu[b+m_basis.size()]);
+                }
+
+              // Compute basis function derivatives and the edge normal
+              fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(geoBasis+m_basis.size()),
+                                        Xnod,dNxdu[geoBasis-1+m_basis.size()],t1,t2);
+              fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(geoBasis),Xnod,
+                                        dNxdu[geoBasis-1],t1,t2);
+              if (fe.detJxW == 0.0) continue; // skip singular points
+              for (size_t b = 0; b < m_basis.size(); ++b)
+                if (b != (size_t)geoBasis-1) {
+                  fe.grad(b+1).multiply(dNxdu[b],Jac);
+                  fe.grad(b+1+m_basis.size()).multiply(dNxdu[b+m_basis.size()],Jac);
+                }
+
+              if (faceDir < 0) normal *= -1.0;
+
+              // Cartesian coordinates of current integration point
+              X = Xnod * fe.basis(geoBasis);
+              X.t = time.t;
+
+              if (integrand.getIntegrandType() & Integrand::NORMAL_DERIVS)
+              {
+                std::cerr << "Normal derivs not implemented for mixed integrands." << std::endl;
+                return false;
+              }
+
+              // Evaluate the integrand and accumulate element contributions
+              fe.detJxW *= 0.25*dA*wg[i]*wg[j];
+              ok = integrand.evalIntMx(*A,fe,time,X,normal);
+            }
+          }
+
+        // Assembly of global system integral
+        if (ok && !glInt.assemble(A->ref(),fe.iel))
+          ok = false;
+
+        A->destruct();
+
+        if (!ok) return false;
+      }
+
+  return true;
+}
+
+
 int ASMs3Dmx::evalPoint (const double* xi, double* param, Vec3& X) const
 {
   if (!svol) return -3;
