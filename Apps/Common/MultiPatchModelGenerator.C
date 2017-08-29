@@ -157,6 +157,7 @@ MultiPatchModelGenerator1D::MultiPatchModelGenerator1D (const TiXmlElement* geo)
   nx = 1;
   periodic_x = 0;
   subdivision = false;
+  if (!geo) return;
   utl::getAttribute(geo,"nx",nx);
   utl::getAttribute(geo,"subdivision",subdivision);
   utl::getAttribute(geo,"periodic_x", periodic_x);
@@ -231,6 +232,7 @@ MultiPatchModelGenerator2D::MultiPatchModelGenerator2D (const TiXmlElement* geo)
   nx = ny = 1;
   periodic_x = periodic_y = 0;
   subdivision = false;
+  if (!geo) return;
   utl::getAttribute(geo,"nx",nx);
   utl::getAttribute(geo,"ny",ny);
   utl::getAttribute(geo,"subdivision",subdivision);
@@ -539,6 +541,7 @@ MultiPatchModelGenerator3D::MultiPatchModelGenerator3D (const TiXmlElement* geo)
   nx = ny = nz = 1;
   periodic_x = periodic_y = periodic_z = 0;
   subdivision = false;
+  if (!geo) return;
   utl::getAttribute(geo,"nx",nx);
   utl::getAttribute(geo,"ny",ny);
   utl::getAttribute(geo,"nz",nz);
