@@ -38,6 +38,9 @@ public:
   //! \brief Returns a reference to the basis function values.
   virtual Vector& basis(char) { return N; }
 
+  //! \brief Returns number of bases
+  virtual size_t getNoBasis() const { return 1; }
+
   //! \brief Returns a const reference to the basis function derivatives.
   virtual const Matrix& grad(char) const { return dNdX; }
   //! \brief Returns a reference to the basis function derivatives.
@@ -102,6 +105,9 @@ public:
   virtual const Vector& basis(char b) const { return b == 1 ? N : Nx[b-2]; }
   //! \brief Returns a reference to the basis function values.
   virtual Vector& basis(char b) { return b == 1 ? N : Nx[b-2]; }
+
+  //! \brief Returns number of bases
+  virtual size_t getNoBasis() const { return 1+Nx.size(); }
 
   //! \brief Returns a const reference to the basis function derivatives.
   virtual const Matrix& grad(char b) const { return b == 1 ? dNdX : dNxdX[b-2]; }
