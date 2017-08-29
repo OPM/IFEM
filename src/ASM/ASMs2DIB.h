@@ -31,21 +31,20 @@ class ASMs2DIB : public ASMs2D
     element is intersected by the immersed boundary, or if it is neighbor to
     an element that is intersected.
   */
-  class Intersected : public InterfaceChecker
+  class Intersected : public ASMs2D::InterfaceChecker
   {
-    const ASMs2DIB& myPatch; //!< Reference to the patch being integrated
     bool            myAll;   //!< If \e true, consider all element interfaces
     bool            alsoSW;  //!< If \e true, consider south/west neighbors too
   public:
     //! \brief The constructor initialises the reference to current patch.
     Intersected(const ASMs2DIB& pch, bool all = false, bool sw = false)
-      : InterfaceChecker(pch), myPatch(pch), myAll(all), alsoSW(sw) {}
+      : InterfaceChecker(pch), myAll(all), alsoSW(sw) {}
     //! \brief Empty destructor.
     virtual ~Intersected() {}
     //! \brief Returns non-zero if the specified element have contributions.
     //! \param[in] I Index in first parameter direction of the element
     //! \param[in] J Index in second parameter direction of the element
-    virtual short int hasContribution(int I, int J) const;
+    virtual short int hasContribution(int, int I, int J, int = -1) const;
   };
 
 public:

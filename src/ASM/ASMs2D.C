@@ -245,7 +245,7 @@ bool ASMs2D::addXElms (short int dim, short int item, size_t nXn, IntVec& nodes)
 }
 
 
-bool ASMs2D::addInterfaceElms (const InterfaceChecker& iChk)
+bool ASMs2D::addInterfaceElms (const ASM::InterfaceChecker& iChk)
 {
   if (!surf || shareFE == 'F') return false;
 
@@ -270,7 +270,7 @@ bool ASMs2D::addInterfaceElms (const InterfaceChecker& iChk)
       if (MLGE[iel] < 1) continue; // Skip zero-area element
 
       // Loop over the (north and east only) element edges with contributions
-      short int status = iChk.hasContribution(i1,i2);
+      short int status = iChk.hasContribution(iel,i1,i2);
       for (int iedge = 1; iedge <= 4 && status > 0; iedge++, status /= 2)
         if (iedge%2 == 0 && status%2 == 1)
         {
@@ -1945,7 +1945,7 @@ bool ASMs2D::integrate (Integrand& integrand,
 bool ASMs2D::integrate (Integrand& integrand,
                         GlobalIntegral& glInt,
                         const TimeDomain& time,
-                        const InterfaceChecker& iChk)
+                        const ASM::InterfaceChecker& iChk)
 {
   if (!surf) return true; // silently ignore empty patches
   if (!(integrand.getIntegrandType() & Integrand::INTERFACE_TERMS)) return true;
@@ -1983,7 +1983,7 @@ bool ASMs2D::integrate (Integrand& integrand,
       fe.iel = abs(MLGE[jel]);
       if (fe.iel < 1) continue; // zero-area element
 
-      short int status = iChk.hasContribution(i1,i2);
+      short int status = iChk.hasContribution(iel,i1,i2);
       if (!status) continue; // no interface contributions for this element
 
 #if SP_DEBUG > 3
@@ -2758,7 +2758,7 @@ void ASMs2D::extractBasis (double u, double v, int dir, int p,
 }
 
 
-short int ASMs2D::InterfaceChecker::hasContribution (int I, int J) const
+short int ASMs2D::InterfaceChecker::hasContribution (int, int I, int J, int) const
 {
   bool neighbor[4];
   neighbor[0] = I > myPatch.surf->order_u();    // West neighbor

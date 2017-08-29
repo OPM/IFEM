@@ -2151,7 +2151,7 @@ bool ASMs3D::integrate (Integrand& integrand,
 bool ASMs3D::integrate (Integrand& integrand,
                         GlobalIntegral& glInt,
                         const TimeDomain& time,
-                        const InterfaceChecker& iChk)
+                        const ASM::InterfaceChecker& iChk)
 {
   if (!svol) return true; // silently ignore empty patches
   if (!(integrand.getIntegrandType() & Integrand::INTERFACE_TERMS)) return true;
@@ -3157,7 +3157,7 @@ void ASMs3D::extractBasis (double u, double v, double w, int dir, int p,
 }
 
 
-short int ASMs3D::InterfaceChecker::hasContribution (int I, int J, int K) const
+short int ASMs3D::InterfaceChecker::hasContribution (int, int I, int J, int K) const
 {
   bool neighbor[6];
   neighbor[0] = I > myPatch.svol->order(0);    // West neighbor

@@ -16,6 +16,7 @@
 
 #include "ASMstruct.h"
 #include "ASM2D.h"
+#include "Interface.h"
 #include "ThreadGroups.h"
 
 namespace Go {
@@ -84,10 +85,11 @@ private:
     : curve(sc), dof(d), code(c) {}
   };
 
-protected:
+public:
   //! \brief Base class that checks if an element has interface contributions.
-  class InterfaceChecker
+  class InterfaceChecker : public ASM::InterfaceChecker
   {
+  protected:
     const ASMs2D& myPatch; //!< Reference to the patch being integrated
   public:
     //! \brief The constructor initialises the reference to current patch.
@@ -97,10 +99,9 @@ protected:
     //! \brief Returns non-zero if the specified element have contributions.
     //! \param[in] I Index in first parameter direction of the element
     //! \param[in] J Index in second parameter direction of the element
-    virtual short int hasContribution(int I, int J) const;
+    virtual short int hasContribution(int, int I, int J, int = -1) const;
   };
 
-public:
   //! \brief Default constructor.
   ASMs2D(unsigned char n_s = 2, unsigned char n_f = 2);
   //! \brief Special copy constructor for sharing of FE data.
@@ -148,7 +149,7 @@ public:
 
   //! \brief Adds interface elements with coupling to all element DOFs.
   //! \param[in] iChk Object checking if an element interface has contributions
-  bool addInterfaceElms(const InterfaceChecker& iChk);
+  bool addInterfaceElms(const ASM::InterfaceChecker& iChk);
 
   //! \brief Returns local 1-based index of the node with given global number.
   //! \details If the given node number is not present, 0 is returned.
@@ -342,7 +343,7 @@ protected:
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
   //! \param[in] iChk Object checking if an element interface has contributions
   bool integrate(Integrand& integrand, GlobalIntegral& glbInt,
-                 const TimeDomain& time, const InterfaceChecker& iChk);
+                 const TimeDomain& time, const ASM::InterfaceChecker& iChk);
 
 public:
 

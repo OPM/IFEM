@@ -16,6 +16,7 @@
 
 #include "ASMstruct.h"
 #include "ASM3D.h"
+#include "Interface.h"
 #include "ThreadGroups.h"
 
 namespace Go {
@@ -88,6 +89,23 @@ public:
     int next();
   };
 
+  //! \brief Base class that checks if an element has interface contributions.
+  class InterfaceChecker : public ASM::InterfaceChecker
+  {
+  protected:
+    const ASMs3D& myPatch; //!< Reference to the patch being integrated
+  public:
+    //! \brief The constructor initialises the reference to current patch.
+    explicit InterfaceChecker(const ASMs3D& pch) : myPatch(pch) {}
+    //! \brief Empty destructor.
+    virtual ~InterfaceChecker() {}
+    //! \brief Returns non-zero if the specified element have contributions.
+    //! \param[in] I Index in first parameter direction of the element
+    //! \param[in] J Index in second parameter direction of the element
+    //! \param[in] K Index in third parameter direction of the element
+    virtual short int hasContribution(int, int I, int J, int K) const;
+  };
+
 private:
   typedef std::pair<int,int> Ipair; //!< Convenience type
 
@@ -101,23 +119,6 @@ private:
     //! \brief Default constructor.
     DirichletFace(Go::SplineSurface* ss = nullptr, int d = 0, int c = 0)
     : surf(ss), dof(d), code(c) {}
-  };
-
-protected:
-  //! \brief Base class that checks if an element has interface contributions.
-  class InterfaceChecker
-  {
-    const ASMs3D& myPatch; //!< Reference to the patch being integrated
-  public:
-    //! \brief The constructor initialises the reference to current patch.
-    explicit InterfaceChecker(const ASMs3D& pch) : myPatch(pch) {}
-    //! \brief Empty destructor.
-    virtual ~InterfaceChecker() {}
-    //! \brief Returns non-zero if the specified element have contributions.
-    //! \param[in] I Index in first parameter direction of the element
-    //! \param[in] J Index in second parameter direction of the element
-    //! \param[in] K Index in third parameter direction of the element
-    virtual short int hasContribution(int I, int J, int K) const;
   };
 
 public:
@@ -407,7 +408,7 @@ protected:
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
   //! \param[in] iChk Object checking if an element interface has contributions
   bool integrate(Integrand& integrand, GlobalIntegral& glbInt,
-                 const TimeDomain& time, const InterfaceChecker& iChk);
+                 const TimeDomain& time, const ASM::InterfaceChecker& iChk);
 
 public:
 
