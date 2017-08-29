@@ -222,6 +222,22 @@ public:
     return this->evalInt(elmInt,fe,X,normal);
   }
 
+  //! \brief Evaluates the integrand at an element interface point.
+  //! \param elmInt The local integral object to receive the contributions
+  //! \param[in] fe Finite element data of current integration point
+  //! \param[in] time Parameters for nonlinear and time-dependent simulations
+  //! \param[in] X Cartesian coordinates of current integration point
+  //! \param[in] normal Interface normal vector at current integration point
+  //!
+  //! \details The default implementation forwards to the stationary version.
+  //! Reimplement this method for time-dependent or non-linear problems.
+  virtual bool evalIntMx(LocalIntegral& elmInt, const MxFiniteElement& fe,
+                         const TimeDomain& time,
+                         const Vec3& X, const Vec3& normal) const
+  {
+    return this->evalIntMx(elmInt,fe,X,normal);
+  }
+
   //! \brief Finalizes the element quantities after the numerical integration.
   //! \param elmInt The local integral object to receive the contributions
   //! \param[in] fe Nodal and integration point data for current element
@@ -315,6 +331,9 @@ protected:
   //! \brief Evaluates the integrand at interface points for stationary problems.
   virtual bool evalInt(LocalIntegral&, const FiniteElement& fe,
                        const Vec3&, const Vec3&) const { return false; }
+  //! \brief Evaluates the integrand at interface points for stationary problems.
+  virtual bool evalIntMx(LocalIntegral&, const MxFiniteElement& fe,
+                         const Vec3&, const Vec3&) const { return false; }
 
   //! \brief Evaluates the integrand at boundary points for stationary problems.
   virtual bool evalBou(LocalIntegral&, const FiniteElement&,
