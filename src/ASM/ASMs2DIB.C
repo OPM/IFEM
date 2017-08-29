@@ -228,15 +228,17 @@ bool ASMs2DIB::generateFEMTopology ()
 }
 
 
-short int ASMs2DIB::Intersected::hasContribution (int I, int J) const
+short int ASMs2DIB::Intersected::hasContribution (int, int I, int J, int) const
 {
-  const int n1 = myPatch.surf->numCoefs_u();
-  const int n2 = myPatch.surf->numCoefs_v();
-  const int p1 = myPatch.surf->order_u();
-  const int p2 = myPatch.surf->order_v();
+  const ASMs2DIB& patch = static_cast<const ASMs2DIB&>(myPatch);
+
+  const int n1 = patch.surf->numCoefs_u();
+  const int n2 = patch.surf->numCoefs_v();
+  const int p1 = patch.surf->order_u();
+  const int p2 = patch.surf->order_v();
 
   int iel = I-p1 + (n1-p1+1)*(J-p2); // Zero-based index of this element
-  if (myPatch.quadPoints[iel].empty())
+  if (patch.quadPoints[iel].empty())
     return 0; // This element is completely outside the domain
 
   int jel[4];
@@ -246,14 +248,14 @@ short int ASMs2DIB::Intersected::hasContribution (int I, int J) const
   jel[3] = J < n2 ? iel + (n1-p1+1) : 0; // North neighbor
 
   // Check if the element itself is intersected
-  bool isCut = myAll || myPatch.isIntersected(iel);
+  bool isCut = myAll || patch.isIntersected(iel);
 
   // Check if any of the neighboring elements are intersected, or if
   // this element is intersected, only check if the neighbor is in the domain
   short int status = 0, s = 1;
   for (short int i = 0; i < 4; i++, s *= 2)
     if (alsoSW || i%2 == 1)
-      if (jel[i] && myPatch.isIntersected(jel[i],isCut))
+      if (jel[i] && patch.isIntersected(jel[i],isCut))
         status += s;
 
   return status;
