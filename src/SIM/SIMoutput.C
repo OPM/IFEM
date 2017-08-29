@@ -1009,7 +1009,7 @@ bool SIMoutput::writeGlvN (const Matrix& norms, int iStep, int& nBlock,
   NormBase* norm = myProblem->getNormIntegrand(mySol);
 
   Matrix field;
-  std::array<IntVec,20> sID;
+  std::array<IntVec,30> sID;
   const size_t maxN = sID.size();
 
   size_t i, j, k, l, m;
