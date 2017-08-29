@@ -1282,12 +1282,23 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
   // Initialize norm integral classes
   gNorm.resize(norm->getNoFields(0));
   size_t nNorms = 0;
+  auto prj_idx = opt.project.begin();
+  // count norms if they are:
+  // 1) associated with the primary solution
+  // 2) associated with a projected secondary solution
+  // 3) associated with a residual secondary solution
+  // 4) associated with a secondary solution provided through external means
+  // 5) associated with an additional group defined in the integrand
   for (i = 0; i < gNorm.size(); i++)
-    if (i == 0 || i > ssol.size() || !ssol[i-1].empty())
+    if (i == 0 || i > ssol.size() || (!ssol[i-1].empty() ||
+                                      prj_idx->first == SIMoptions::NONE ||
+                                      norm->hasExternalProjections()))
     {
       size_t nNrm = norm->getNoFields(1+i);
       gNorm[i].resize(nNrm,true);
       nNorms += nNrm;
+      if (i != 0 && i <= ssol.size())
+        ++prj_idx;
     }
 
   GlbNorm globalNorm(gNorm,norm->getFinalOperation());

@@ -366,6 +366,9 @@ public:
   virtual bool reducedInt(LocalIntegral& elmInt,
                           const FiniteElement& fe, const Vec3& X) const;
 
+  //! \brief Returns whether projections are fed through external means.
+  virtual bool hasExternalProjections() const { return false; }
+
 protected:
   //! \brief Initializes the projected fields for current element.
   bool initProjection(const std::vector<int>& MNPC, LocalIntegral& elmInt);
