@@ -1037,6 +1037,10 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
             }
           }
 
+        // Finalize the element quantities
+        if (ok && !integrand.finalizeElement(*A,time,0))
+          ok = false;
+
         // Assembly of global system integral
         if (ok && !glInt.assemble(A->ref(),fe.iel))
           ok = false;
