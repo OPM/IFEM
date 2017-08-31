@@ -50,6 +50,13 @@ AdaptiveSIM::AdaptiveSIM (SIMoutput& sim, bool sa) : SIMadmin(sim), model(sim)
 }
 
 
+AdaptiveSIM::~AdaptiveSIM ()
+{
+  for (const char* pfx : prefix)
+    free(const_cast<char*>(pfx));
+}
+
+
 bool AdaptiveSIM::parse (const TiXmlElement* elem)
 {
   if (strcasecmp(elem->Value(),"adaptive"))
@@ -200,7 +207,7 @@ bool AdaptiveSIM::initAdaptor (size_t normGroup)
   {
     prefix.reserve(opt.project.size());
     for (pit = opt.project.begin(); pit != opt.project.end(); ++pit)
-      prefix.push_back(pit->second.c_str());
+      prefix.push_back(strdup(pit->second.c_str()));
   }
 
   return true;
@@ -286,9 +293,12 @@ bool AdaptiveSIM::adaptMesh (int iStep)
   // Define the reference norm
   double refNorm = 0.01*model.getReferenceNorm(gNorm,adaptor);
   if (refNorm < -epsZ) {
-    std::cerr << "*** AdaptiveSIM::adaptMesh: Negative reference norm. Check orientation of your model." << std::endl;
+    std::cerr <<" *** AdaptiveSIM::adaptMesh: Negative reference norm."
+              <<" Check orientation of your model."<< std::endl;
     return false;
   }
+  else if (refNorm < epsZ)
+    return false; // Zero reference norm, probably no load on the model
 
   // Check if further refinement is required
   if (iStep > maxStep || model.getNoDOFs() > (size_t)maxDOFs) return false;
@@ -315,7 +325,8 @@ bool AdaptiveSIM::adaptMesh (int iStep)
   if (threshold == TRUE_BETA)
   {
     if (model.getNoPatches() > 1) {
-      std::cerr << "True beta refinement not available for multi-patch models\n";
+      std::cerr <<" *** AdaptiveSIM::adaptMesh: True beta refinement"
+                <<" is not available for multi-patch models."<< std::endl;
       return false;
     }
     IFEM::cout <<"\nRefining by increasing solution space by "<< beta
@@ -363,7 +374,8 @@ bool AdaptiveSIM::adaptMesh (int iStep)
   else { // use errors per element
     if (model.getNoPatches() > 1) // not supported for multi-patch models
     {
-      std::cerr << "Multi-patch refinement only available for isotropic_function\n";
+      std::cerr <<" *** AdaptiveSIM::adaptMesh: Multi-patch refinement"
+                <<" is available for isotropic_function only."<< std::endl;
       return false;
     }
     for (i = 0; i < eNorm.cols(); i++)
