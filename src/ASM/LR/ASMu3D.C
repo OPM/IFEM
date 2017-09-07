@@ -1963,6 +1963,14 @@ bool ASMu3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   Matrix   dNdu, Jac, Xnod;
   Matrix3D d2Ndu2, Hess;
 
+  const int p1 = lrspline->order(0);
+  const int p2 = lrspline->order(1);
+  const int p3 = lrspline->order(2);
+  Go::BsplineBasis basis1 = getBezierBasis(p1);
+  Go::BsplineBasis basis2 = getBezierBasis(p2);
+  Go::BsplineBasis basis3 = getBezierBasis(p3);
+  Matrix B(p1*p2*p3, 4); // Bezier evaluation points and derivatives
+
   // Evaluate the secondary solution field at each point
   for (size_t i = 0; i < nPoints; i++)
   {
@@ -1982,16 +1990,41 @@ bool ASMu3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     fe.v   = gpar[1][i];
     fe.w   = gpar[2][i];
     fe.iel = iel+1;
+
+    double du = lrspline->getElement(iel)->umax() - lrspline->getElement(iel)->umin();
+    double dv = lrspline->getElement(iel)->vmax() - lrspline->getElement(iel)->vmin();
+    double dw = lrspline->getElement(iel)->wmax() - lrspline->getElement(iel)->wmin();
+
+    double u[2*p1];
+    double v[2*p2];
+    double w[2*p3];
+    basis1.computeBasisValues(gpar[0][i], u, 1);
+    basis2.computeBasisValues(gpar[1][i], v, 1);
+    basis3.computeBasisValues(gpar[2][i], w, 1);
+
+    size_t ib=1; // basis function iterator
+    for(int kk=0; kk<p3; kk++) {
+      for(int jj=0; jj<p2; jj++) {
+        for(int ii=0; ii<p1; ii++, ib++) {
+          B(ib,1) = u[2*ii  ]*v[2*jj  ]*w[2*kk  ];
+          B(ib,2) = u[2*ii+1]*v[2*jj  ]*w[2*kk  ]*2.0/du;
+          B(ib,3) = u[2*ii  ]*v[2*jj+1]*w[2*kk  ]*2.0/dv;
+          B(ib,4) = u[2*ii  ]*v[2*jj  ]*w[2*kk+1]*2.0/dw;
+        }
+      }
+    }
+
     if (use2ndDer)
       evaluateBasis(fe, dNdu, d2Ndu2);
     else
-      evaluateBasis(fe, dNdu);
+      evaluateBasis(fe, dNdu, bezierExtract[iel], B);
 
     // Set up control point (nodal) coordinates for current element
     if (!this->getElementCoordinates(Xnod,iel+1)) return false;
 
     // Compute the Jacobian inverse
     fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+    if (fe.detJxW == 0.0) continue;
 
     // Compute Hessian of coordinate mapping and 2nd order derivatives
     if (use2ndDer)
