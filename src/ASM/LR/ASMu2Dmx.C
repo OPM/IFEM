@@ -266,7 +266,7 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
   bool ok = true;
   for (size_t t = 0; t < threadGroups[0].size() && ok; ++t)
   {
-#pragma omp parallel for schedule(static)
+//#pragma omp parallel for schedule(static)
     for (size_t e = 0; e < threadGroups[0][t].size(); ++e)
     {
       if (!ok)
