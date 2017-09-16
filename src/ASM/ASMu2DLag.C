@@ -142,7 +142,7 @@ bool ASMu2DLag::readMatlab (std::istream& is)
           cline.erase(i,1);
 
         int node;
-        IntVec& nodes = nodeSets[setname];
+        IntVec nodes;
         std::istringstream selem(cline);
         selem >> node;
         while (selem)
@@ -156,6 +156,7 @@ bool ASMu2DLag::readMatlab (std::istream& is)
         std::cout << std::endl;
 #endif
         std::getline(is,cline);
+        nodeSets.push_back(std::make_pair(setname,nodes));
       }
     }
 
@@ -214,6 +215,17 @@ const IntVec& ASMu2DLag::getNodeSet (int idx) const
       return it.second;
 
   return this->ASMbase::getNodeSet(idx);
+}
+
+
+IntVec& ASMu2DLag::getNodeSet (const std::string& setName)
+{
+  for (NodeSet& it : nodeSets)
+    if (it.first == setName)
+      return it.second;
+
+  nodeSets.push_back(std::make_pair(setName,IntVec()));
+  return nodeSets.back().second;
 }
 
 

@@ -15,7 +15,6 @@
 #define _ASM_S2D_MATLAB_H
 
 #include "ASMs2DLag.h"
-#include <unordered_map>
 
 
 /*!
@@ -57,7 +56,7 @@ public:
   //! \brief Returns an indexed pre-defined node set.
   virtual const IntVec& getNodeSet(int idx) const;
   //! \brief Returns a named node set for update.
-  virtual IntVec& getNodeSet(const std::string& name) { return nodeSets[name]; }
+  virtual IntVec& getNodeSet(const std::string& setName);
 
   using ASMs2DLag::generateThreadGroups;
   //! \brief Generates element groups for multi-threading of interior integrals.
@@ -73,8 +72,8 @@ public:
 
 private:
   char fileType; //!< Mesh file format
-  //! Pre-defined node sets for Dirichlet BCs
-  std::unordered_map<std::string,IntVec> nodeSets;
+  typedef std::pair<std::string,IntVec> NodeSet; //!< Named node set container
+  std::vector<NodeSet> nodeSets; //!< Pre-defined node sets for Dirichlet BCs
 };
 
 #endif
