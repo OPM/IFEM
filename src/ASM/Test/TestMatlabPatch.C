@@ -82,15 +82,26 @@ TEST(TestMatlabPatch, IO)
   ASMbase* pch2 = sim2.getPatch(1);
   ASSERT_TRUE(pch1 != nullptr);
   ASSERT_TRUE(pch2 != nullptr);
-  IntVec b1, b2 = pch2->getNodeSet(pch2->getNodeSetIdx("Boundary"));
+  int idx1 = pch2->getNodeSetIdx("Boundary");
+  int idx2 = pch2->getNodeSetIdx("Edge2");
+  pch2->getNodeSet("ACorner").push_back(1);
+  int idx3 = pch2->getNodeSetIdx("ACorner");
+  EXPECT_EQ(idx1,1);
+  EXPECT_EQ(idx2,2);
+  EXPECT_EQ(idx3,3);
+
+  IntVec b1, b2 = pch2->getNodeSet(idx1);
   for (int edge = 1; edge <= 4; edge++)
     pch1->getBoundaryNodes(edge,b1);
   std::set<int> b1set;
   for (int n : b1) b1set.insert(n);
   EXPECT_EQ(b1set.size(),b2.size());
   EXPECT_TRUE(IntVec(b1set.begin(),b1set.end()) == b2);
-  IntVec e1, e2 = pch2->getNodeSet(pch2->getNodeSetIdx("Edge2"));
+  IntVec e1, e2 = pch2->getNodeSet(idx2);
   pch1->getBoundaryNodes(2,e1);
   EXPECT_EQ(e1.size(),e2.size());
   EXPECT_TRUE(e1 == e2);
+  IntVec corner = pch2->getNodeSet(idx3);
+  ASSERT_EQ(corner.size(),1U);
+  EXPECT_EQ(corner.front(),1);
 }
