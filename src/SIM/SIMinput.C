@@ -460,10 +460,13 @@ bool SIMinput::parseOutputTag (const TiXmlElement* elem)
 
   if (elem->FirstChild() && noDumpDataYet)
   {
+    IntVec steps;
     DumpData dmp;
     std::string format;
     utl::getAttribute(elem,"format",format);
-    utl::getAttribute(elem,"step",dmp.step);
+    utl::getAttribute(elem,"step",steps);
+    utl::getAttribute(elem,"eps",dmp.eps);
+    dmp.step.insert(steps.begin(),steps.end());
     dmp.format = format[0];
     dmp.fname = elem->FirstChild()->Value();
     if (toupper(elem->Value()[5]) == 'R')

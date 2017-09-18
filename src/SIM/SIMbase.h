@@ -16,10 +16,10 @@
 
 #include "SIMadmin.h"
 #include "SIMdependency.h"
-#include "Interface.h"
 #include "TimeDomain.h"
 #include "Property.h"
 #include "MatVec.h"
+#include <set>
 
 class IntegrandBase;
 class NormBase;
@@ -63,7 +63,7 @@ class SIMbase : public SIMadmin, public SIMdependency
 {
 protected:
   //! \brief The constructor initializes the pointers to dynamic data members.
-  explicit SIMbase(IntegrandBase* itg = nullptr);
+  explicit SIMbase(IntegrandBase* itg);
 
 public:
   //! \brief The destructor frees the dynamically allocated objects.
@@ -602,8 +602,8 @@ protected:
   //! \brief Adds a MADOF with an extraordinary number of DOFs on a given basis.
   //! \param[in] basis The basis to specify number of DOFs for
   //! \param[in] nndof Number of nodal DOFs on the given basis
-  //! \param[in] otherbasis If true, include other bases in madof
-  bool addMADOF(unsigned char basis, unsigned char nndof, bool otherbasis = true);
+  //! \param[in] other If \e true, include other bases in MADOF as well
+  bool addMADOF(unsigned char basis, unsigned char nndof, bool other = true);
 
 private:
   //! \brief Returns an extraordinary MADOF array.
@@ -627,9 +627,6 @@ protected:
   //! \brief Property code to integrand map
   typedef std::multimap<int,IntegrandBase*> IntegrandMap;
 
-  //! \brief Interface container
-  typedef std::vector<ASM::Interface> InterfaceVec;
-
   // Model attributes
   bool           isRefined; //!< Indicates if the model is adaptively refined
   bool           lagMTOK;   //!< Indicates that global multipliers is okay with multithreading (app specific).
@@ -642,19 +639,19 @@ protected:
   IntegrandBase* myProblem; //!< The main integrand of this simulator
   IntegrandMap   myInts;    //!< Set of all integrands involved
   AnaSol*        mySol;     //!< Analytical/Exact solution
-  InterfaceVec   myInterfaces; //!< Topology interface descriptions
 
   //! \brief A struct with data for system matrix/vector dumps.
   struct DumpData
   {
-    std::string fname;  //!< File name
-    char        format; //!< File format flag
-    int         step;   //!< Dump step identifier
-    int         count;  //!< Internal step counter, dump only when step==count
+    std::string   fname;  //!< File name
+    char          format; //!< File format flag
+    std::set<int> step;   //!< Dump step identifiers
+    int           count;  //!< Internal step counter, dump only when step==count
+    double        eps;    //!< Zero tolerance for printing small values
     //! \brief Default constructor.
-    DumpData() : format('P'), step(1), count(0) {}
+    DumpData() : format('P'), count(0), eps(1.0e-6) { step.insert(1); }
     //! \brief Checks if the matrix or vector should be dumped now.
-    bool doDump() { return !fname.empty() && ++count == step; }
+    bool doDump() { return !fname.empty() && step.find(++count) != step.end(); }
   };
 
   // Post-processing attributes

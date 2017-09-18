@@ -11,11 +11,12 @@
 //!
 //==============================================================================
 
-#ifndef _SIM_MODEL_H
-#define _SIM_MODEL_H
+#ifndef _SIM_INPUT_H
+#define _SIM_INPUT_H
 
 #include "SIMbase.h"
 #include "TopologySet.h"
+#include "Interface.h"
 
 class ModelGenerator;
 
@@ -56,7 +57,7 @@ public:
 
 protected:
   //! \brief The constructor just forwards to the base class constructor.
-  explicit SIMinput(IntegrandBase* itg = nullptr) : SIMbase(itg), myGen(nullptr) {}
+  explicit SIMinput(IntegrandBase* itg) : SIMbase(itg), myGen(nullptr) {}
 
 public:
   //! \brief Empty destructor.
@@ -236,8 +237,11 @@ private:
                            const InitialCondVec& info);
 
 protected:
-  ModelGenerator* myGen;     //!< Model generator
-  TopologySet     myEntitys; //!< Set of named topological entities
+  ModelGenerator* myGen; //!< Model generator
+
+  TopologySet myEntitys; //!< Set of named topological entities
+
+  std::vector<ASM::Interface> myInterfaces; //!< Topology interface descriptions
 
   std::map<std::string,InitialCondVec> myICs; //!< Initial condition definitions
 };

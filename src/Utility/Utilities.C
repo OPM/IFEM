@@ -261,6 +261,18 @@ bool utl::getAttribute (const TiXmlElement* xml, const char* att,
 
 
 bool utl::getAttribute (const TiXmlElement* xml, const char* att,
+                        std::vector<int>& val)
+{
+  if (xml && xml->Attribute(att))
+    parseIntegers(val,xml->Attribute(att));
+  else
+    return false;
+
+  return true;
+}
+
+
+bool utl::getAttribute (const TiXmlElement* xml, const char* att,
                         std::string& val, bool toLower)
 {
   if (!xml || !xml->Attribute(att))

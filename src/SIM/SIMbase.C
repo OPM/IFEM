@@ -939,28 +939,43 @@ bool SIMbase::solveSystem (Vector& solution, int printSol, double* rCond,
   if (!A || !b) return false;
 
   // Dump system matrix to file, if requested
-  std::vector<DumpData>::iterator it;
-  for (it = lhsDump.begin(); it != lhsDump.end(); ++it)
-    if (it->doDump()) {
-      IFEM::cout <<"\nDumping system matrix to file "<< it->fname << std::endl;
-      std::ofstream os(it->fname.c_str());
+  for (DumpData& dmp : lhsDump)
+    if (dmp.doDump()) {
+      IFEM::cout <<"\nDumping system matrix to file "<< dmp.fname << std::endl;
+      std::ofstream os(dmp.fname.c_str(),
+                       dmp.step.size() == 1 ? std::ios::out : std::ios::app);
       os << std::setprecision(17);
+      double old_tol = utl::zero_print_tol;
+      utl::zero_print_tol = dmp.eps;
       SystemMatrix* M = myEqSys->getMatrix(0);
-      char matName[] = "A";
+      char matName[16];
+      if (dmp.step.size() == 1)
+        strcpy(matName,"A");
+      else
+        sprintf(matName,"A%d",dmp.count);
       for (int i = 0; M; M = myEqSys->getMatrix(++i), ++matName[0])
-        M->dump(os,it->format,matName); // label matrices as A,B,C,...
+        M->dump(os,dmp.format,matName); // label matrices as A,B,C,...
+      utl::zero_print_tol = old_tol;
     }
 
   // Dump right-hand-side vector to file, if requested
-  for (it = rhsDump.begin(); it != rhsDump.end(); ++it)
-    if (it->doDump()) {
-      IFEM::cout <<"\nDumping RHS vector to file "<< it->fname << std::endl;
-      std::ofstream os(it->fname.c_str());
+  for (DumpData& dmp : rhsDump)
+    if (dmp.doDump()) {
+      IFEM::cout <<"\nDumping RHS vector to file "<< dmp.fname << std::endl;
+      std::ofstream os(dmp.fname.c_str(),
+                       dmp.step.size() == 1 ? std::ios::out : std::ios::app);
       os << std::setprecision(17);
+      double old_tol = utl::zero_print_tol;
+      utl::zero_print_tol = dmp.eps;
       SystemVector* c = myEqSys->getVector(0);
-      char vecName[] = "b";
+      char vecName[16];
+      if (dmp.step.size() == 1)
+        strcpy(vecName,"b");
+      else
+        sprintf(vecName,"b%d",dmp.count);
       for (int i = 0; c; c = myEqSys->getVector(++i), ++vecName[0])
-        c->dump(os,it->format,vecName); // label vectors as b,c,d,...
+        c->dump(os,dmp.format,vecName); // label vectors as b,c,d,...
+      utl::zero_print_tol = old_tol;
     }
 
   // Solve the linear system of equations
@@ -982,12 +997,21 @@ bool SIMbase::solveSystem (Vector& solution, int printSol, double* rCond,
   }
 
   // Dump solution vector to file, if requested
-  for (it = solDump.begin(); it != solDump.end() && status; ++it)
-    if (it->doDump()) {
-      IFEM::cout <<"Dumping solution vector to file "<< it->fname << std::endl;
-      std::ofstream os(it->fname.c_str());
+  for (DumpData& dmp : solDump)
+    if (dmp.doDump()) {
+      IFEM::cout <<"Dumping solution vector to file "<< dmp.fname << std::endl;
+      std::ofstream os(dmp.fname.c_str(),
+                       dmp.step.size() == 1 ? std::ios::out : std::ios::app);
       os << std::setprecision(17);
-      b->dump(os,it->format,"b");
+      double old_tol = utl::zero_print_tol;
+      utl::zero_print_tol = dmp.eps;
+      char vecName[16];
+      if (dmp.step.size() == 1)
+        strcpy(vecName,"x");
+      else
+        sprintf(vecName,"x%d",dmp.count);
+      b->dump(os,dmp.format,vecName);
+      utl::zero_print_tol = old_tol;
     }
 
   // Expand solution vector from equation ordering to DOF-ordering
@@ -1807,7 +1831,7 @@ bool SIMbase::setPatchMaterial (size_t patch)
 }
 
 
-bool SIMbase::addMADOF (unsigned char basis, unsigned char nndof, bool otherbasis)
+bool SIMbase::addMADOF (unsigned char basis, unsigned char nndof, bool other)
 {
   if (!mySam) return false;
 
@@ -1825,7 +1849,7 @@ bool SIMbase::addMADOF (unsigned char basis, unsigned char nndof, bool otherbasi
       int n = myModel[i]->getNodeID(j+1);
       if (n > 0 && myModel[i]->getNodeType(j+1) == nType)
         madof[n] = nndof;
-      else if (n > 0 && otherbasis)
+      else if (n > 0 && other)
         madof[n] = myModel[i]->getNodalDOFs(j+1);
     }
 

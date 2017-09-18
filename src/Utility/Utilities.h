@@ -101,6 +101,15 @@ namespace utl
   //! otherwise \e false
   bool getAttribute(const TiXmlElement* xml, const char* att, Vec3& val,
                     int ncomp = 0);
+  //! \brief Extracts an integer vector attribute from specified XML-element.
+  //! \param[in] xml Pointer to XML-element to extract from
+  //! \param[in] att The attribute tag
+  //! \param[out] val The attribute value
+  //! \return \e true if the attribute \a att is found in \a xml,
+  //! otherwise \e false
+  bool getAttribute(const TiXmlElement* xml, const char* att,
+                    std::vector<int>& val);
+
   //! \brief Extracts a string attribute value from the specified XML-element.
   //! \param[in] xml Pointer to XML-element to extract from
   //! \param[in] att The attribute tag
