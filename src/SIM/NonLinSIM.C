@@ -207,7 +207,7 @@ ConvStatus NonLinSIM::solveStep (TimeStep& param, SolutionMode mode,
     double digits = log10(param.time.t)-log10(param.time.dt);
     std::streamsize oldPrec = digits > 6.0 ? cout.precision(ceil(digits)) : 0;
     cout <<"\n  step="<< param.step <<"  time="<< param.time.t;
-    if (param.maxCFL > 0.0)
+    if (param.maxCFL > 0.0 || param.maxCFL < -0.5)
       cout <<"  CFL = "<< param.time.CFL << std::endl;
     else
       cout << std::endl;
