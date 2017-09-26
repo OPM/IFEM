@@ -212,7 +212,17 @@ IF(IFEM_USE_OPENMP)
   ENDIF(OPENMP_FOUND)
 ENDIF(IFEM_USE_OPENMP)
 
-# ISTL
+# UMFPack
+if(IFEM_USE_UMFPACK)
+  find_package(SuiteSparse COMPONENTS umfpack)
+  if(SuiteSparse_UMFPACK_FOUND)
+    list(APPEND IFEM_DEFINITIONS -DHAS_UMFPACK=1)
+    list(APPEND IFEM_DEPINCLUDES ${UMFPACK_INCLUDE_DIR})
+    list(APPEND IFEM_DEPLIBS ${UMFPACK_LIBRARY})
+  endif()
+endif()
+
+# ISTL - need to be after UMFPack and SuperLU
 if(IFEM_USE_ISTL)
   find_package(ISTL)
   if(ISTL_FOUND)

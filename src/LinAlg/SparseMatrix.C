@@ -22,6 +22,9 @@
 #ifdef HAS_SAMG
 #include "samg.h"
 #endif
+#ifdef HAS_UMFPACK
+#include <umfpack.h>
+#endif
 #ifdef USE_OPENMP
 #include <omp.h>
 #endif
@@ -252,7 +255,7 @@ Real& SparseMatrix::operator () (size_t r, size_t c)
       return value;
     }
   }
-  else if (solver == SUPERLU) {
+  else if (solver == SUPERLU || solver == UMFPACK) {
     // Column-oriented format with 0-based indices
     IntVec::const_iterator begin = JA.begin() + IA[c-1];
     IntVec::const_iterator end = JA.begin() + IA[c];
@@ -289,7 +292,7 @@ const Real& SparseMatrix::operator () (size_t r, size_t c) const
     ValueIter vit = elem.find(IJPair(r,c));
     if (vit != elem.end()) return vit->second;
   }
-  else if (solver == SUPERLU) {
+  else if (solver == SUPERLU || solver == UMFPACK) {
     // Column-oriented format with 0-based indices
     IntVec::const_iterator begin = JA.begin() + IA[c-1];
     IntVec::const_iterator end = JA.begin() + IA[c];
@@ -321,7 +324,7 @@ void SparseMatrix::dump (std::ostream& os, char format, const char* label)
         for (ValueIter it = elem.begin(); it != elem.end(); it++)
           os << it->first.first <<' '<< it->first.second <<" "<< it->second
              <<";\n";
-      else if (solver == SUPERLU) {
+      else if (solver == SUPERLU || solver == UMFPACK) {
         // Column-oriented format with 0-based indices
         os << JA[0]+1 <<" 1 "<< A[0];
         for (size_t j = 1; j <= ncol; j++)
@@ -383,7 +386,7 @@ void SparseMatrix::printSparsity (std::ostream& os) const
     for (c = 1; c <= ncol; c++)
       if (editable)
         os << (elem.find(IJPair(r,c)) == elem.end() ? '.' : 'X');
-      else if (solver == SUPERLU) {
+      else if (solver == SUPERLU || solver == UMFPACK) {
         // Column-oriented format with 0-based indices
         IntVec::const_iterator begin = JA.begin() + IA[c-1];
         IntVec::const_iterator end = JA.begin() + IA[c];
@@ -488,7 +491,7 @@ bool SparseMatrix::add (const SystemMatrix& B, Real alpha)
   }
   else if (editable == 'P')
   {
-    if (solver == SUPERLU)
+    if (solver == SUPERLU || solver == UMFPACK)
       // Column-oriented format with 0-based indices
       for (size_t j = 1; j <= Bptr->ncol; j++)
         for (int i = Bptr->IA[j-1]; i < Bptr->IA[j]; i++)
@@ -704,6 +707,7 @@ void SparseMatrix::preAssemble (const SAM& sam, bool delayLocking)
              << nrow <<"x"<< ncol <<"): "<< std::flush;
 
   switch (solver) {
+  case UMFPACK:
   case SUPERLU: this->optimiseSLU(dofc); break;
   case S_A_M_G: this->optimiseSAMG(); break;
   default: break;
@@ -733,6 +737,7 @@ void SparseMatrix::preAssemble (const std::vector<IntVec>& MMNPC, size_t nel)
       }
 
   switch (solver) {
+  case UMFPACK:
   case SUPERLU: this->optimiseSLU(); break;
   case S_A_M_G: this->optimiseSAMG(); break;
   default: break;
@@ -962,6 +967,7 @@ bool SparseMatrix::solve (SystemVector& B, bool, Real* rc)
     {
     case SUPERLU: return this->solveSLUx(*Bptr,rc);
     case S_A_M_G: return this->solveSAMG(*Bptr);
+    case UMFPACK: return this->solveUMF(*Bptr,rc);
     default: std::cerr <<"SparseMatrix::solve: No equation solver"<< std::endl;
     }
 
@@ -1219,6 +1225,43 @@ bool SparseMatrix::solveSLUx (Vector& B, Real* rcond)
 }
 
 
+bool SparseMatrix::solveUMF (Vector& B, Real* rcond)
+{
+  if (!factored) this->optimiseSLU();
+
+#ifdef HAS_UMFPACK
+  double info[UMFPACK_INFO];
+  Vector X(B.size());
+  void* symbolic;
+  umfpack_di_symbolic(nrow, ncol, IA.data(), JA.data(),
+                      A.data(), &symbolic, nullptr, info);
+  if (info[UMFPACK_STATUS] != UMFPACK_OK)
+    return false;
+  void* numeric;
+  umfpack_di_numeric(IA.data(), JA.data(), A.data(), symbolic,
+                     &numeric, nullptr, info);
+  if (info[UMFPACK_STATUS] != UMFPACK_OK)
+  {
+    umfpack_di_free_symbolic(&symbolic);
+    return false;
+  }
+  if (rcond)
+    *rcond = info[UMFPACK_RCOND];
+  umfpack_di_solve(UMFPACK_A,
+                   IA.data(), JA.data(), A.data(),
+                   &X[0], &B[0], numeric, nullptr, info);
+  if (info[UMFPACK_STATUS] == UMFPACK_OK)
+    B = X;
+  umfpack_di_free_symbolic(&symbolic);
+  umfpack_di_free_numeric(&numeric);
+  return info[UMFPACK_STATUS] == UMFPACK_OK;
+#else
+  std::cerr <<"SparseMatrix::solve: UMFPACK solver not available"<< std::endl;
+  return false;
+#endif
+}
+
+
 bool SparseMatrix::solveSAMG (Vector& B)
 {
   int ierr = 1;
@@ -1290,7 +1333,7 @@ Real SparseMatrix::Linfnorm () const
   if (editable)
     for (ValueIter it = elem.begin(); it != elem.end(); ++it)
       sums[it->first.first-1] += fabs(it->second);
-  else if (solver == SUPERLU)
+  else if (solver == SUPERLU || solver == UMFPACK)
     // Column-oriented format with 0-based row-indices
     for (size_t j = 1; j <= ncol; j++)
       for (int i = IA[j-1]; i < IA[j]; i++)

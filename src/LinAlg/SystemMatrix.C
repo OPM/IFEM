@@ -118,6 +118,7 @@ SystemMatrix* SystemMatrix::create (const ProcessAdm& padm, Type matrixType,
     case SPR   : return new SPRMatrix();
     case SPARSE: return new SparseMatrix(SparseMatrix::SUPERLU,num_thread_SLU);
     case SAMG  : return new SparseMatrix(SparseMatrix::S_A_M_G);
+    case UMFPACK: return new SparseMatrix(SparseMatrix::UMFPACK);
 #ifdef HAS_ISTL
     case ISTL  : return new ISTLMatrix(padm,defaultPar,ltype);
 #endif

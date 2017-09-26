@@ -203,7 +203,7 @@ class SystemMatrix
 public:
   //! \brief The available system matrix formats.
   enum Type { DENSE = 0, SPR = 1, SPARSE = 2, SAMG = 3,
-              PETSC = 4, ISTL = 5 };
+              PETSC = 4, ISTL = 5, UMFPACK = 6 };
 
   //! \brief Static method creating a matrix of the given type.
   static SystemMatrix* create(const ProcessAdm& padm, Type matrixType,
