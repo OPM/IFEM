@@ -1,14 +1,3 @@
-*.log
-*.vtfx
-*.vtf
 *~
-*.eps
-Apps/AdvectionDiffusion
-Apps/Elasticity
-Apps/FSI
-Apps/NavierStokes
-Apps/Poisson
-Apps/PoroElasticity
-Apps/Stokes
 Release
 Debug
