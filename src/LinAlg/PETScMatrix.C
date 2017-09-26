@@ -476,7 +476,8 @@ bool PETScMatrix::solve (SystemVector& B, bool newLHS, Real*)
   VecDuplicate(Bptr->getVector(),&x);
   VecCopy(Bptr->getVector(),x);
 
-  bool result = this->solve(x,Bptr->getVector(),newLHS,true);
+  bool result = this->solve(x,Bptr->getVector(),newLHS,
+                            solParams.getStringValue("type") != "preonly");
   VecDestroy(&x);
 
   return result;
@@ -521,7 +522,8 @@ bool PETScMatrix::solve (const Vec& b, Vec& x, bool newLHS, bool knoll)
   if (knoll)
     KSPSetInitialGuessKnoll(ksp,PETSC_TRUE);
   else
-    KSPSetInitialGuessNonzero(ksp,PETSC_TRUE);
+    KSPSetInitialGuessNonzero(ksp,solParams.getStringValue("type") == "preonly" ?
+                                   PETSC_FALSE : PETSC_TRUE);
   KSPSolve(ksp,b,x);
   KSPConvergedReason reason;
   KSPGetConvergedReason(ksp,&reason);
