@@ -24,6 +24,9 @@
 #elif defined(HAVE_MPI)
 #include <mpi.h>
 #endif
+#ifdef HAS_UMFPACK
+#include <umfpack.h>
+#endif
 
 int IFEM::argc;
 char** IFEM::argv;
@@ -110,6 +113,14 @@ int IFEM::Init (int arg_c, char** arg_v, const char* title)
   std::cout <<"enabled (serial)";
 #elif HAS_SUPERLU_MT
   std::cout <<"enabled (multi-threaded)";
+#else
+  std::cout <<"disabled";
+#endif
+  std::cout <<"\n    UMFPack support: ";
+#if HAS_UMFPACK
+  std::cout <<"enabled (v" << UMFPACK_MAIN_VERSION <<"."
+                           << UMFPACK_SUB_VERSION <<"."
+                           << UMFPACK_SUBSUB_VERSION << ")";
 #else
   std::cout <<"disabled";
 #endif

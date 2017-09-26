@@ -39,7 +39,7 @@ class SparseMatrix : public SystemMatrix
 {
 public:
   //! \brief Available equation solvers for this matrix type.
-  enum SparseSolver { NONE, SUPERLU, S_A_M_G };
+  enum SparseSolver { NONE, SUPERLU, S_A_M_G, UMFPACK };
 
   //! \brief Default constructor creating an empty matrix.
   SparseMatrix(SparseSolver eqSolver = NONE, int nt = 1);
@@ -235,6 +235,11 @@ protected:
   //! \param B Right-hand-side vector on input, solution vector on output
   //! \param[out] rcond Reciprocal condition number of the LHS-matrix (optional)
   bool solveSLUx(Vector& B, Real* rcond);
+
+  //! \brief Invokes the UMFPACK equation solver for a given right-hand-side.
+  //! \param B Right-hand-side vector on input, solution vector on output
+  //! \param[out] rcond Reciprocal condition number of the LHS-matrix (optional)
+  bool solveUMF(Vector& B, Real* rcond);
 
   //! \brief Writes the system matrix to the given output stream.
   virtual std::ostream& write(std::ostream& os) const;

@@ -66,6 +66,8 @@ void SIMoptions::setLinearSolver (const std::string& eqsolver)
     solver = SystemMatrix::SPR;
   else if (eqsolver == "superlu")
     solver = SystemMatrix::SPARSE;
+  else if (eqsolver == "umfpack")
+    solver = SystemMatrix::UMFPACK;
   else if (eqsolver == "samg")
     solver = SystemMatrix::SAMG;
   else if (eqsolver == "petsc")
@@ -259,6 +261,8 @@ bool SIMoptions::parseOldOptions (int argc, char** argv, int& i)
   }
   else if (!strcmp(argv[i],"-samg"))
     solver = SystemMatrix::SAMG;
+  else if (!strcmp(argv[i],"-umfpack"))
+    solver = SystemMatrix::UMFPACK;
   else if (!strcmp(argv[i],"-petsc"))
     solver = SystemMatrix::PETSC;
   else if (!strcmp(argv[i],"-istl"))
