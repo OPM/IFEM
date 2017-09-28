@@ -15,7 +15,6 @@
 #include "LRSpline/Element.h"
 
 #include "ASMu3D.h"
-#include "FiniteElement.h"
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
@@ -45,7 +44,7 @@ bool ASMu3D::getGrevilleParameters (RealArray& prm, int dir) const
      in[0] = {0,1}
      in[1] = {2,3}
      in[2] = {7,9}
-   and expands this to an unstructred representation, i.e.,
+   and expands this to an unstructured representation, i.e.,
      out[0] = {0,1,0,1,0,1,0,1}
      out[1] = {2,2,3,3,2,2,3,3}
      out[2] = {7,7,7,7,9,9,9,9}
@@ -321,7 +320,7 @@ LR::LRSplineVolume* ASMu3D::scRecovery (const IntegrandBase& integrand) const
       std::cout << "Element " << **el << std::endl;
 #endif
 
-      // convert to unstructred mesh representation
+      // convert to unstructured mesh representation
       expandTensorGrid(gaussPt.data(),unstrGauss.data());
 
       // Evaluate the secondary solution at all Gauss points
@@ -452,12 +451,12 @@ LR::LRSplineVolume* ASMu3D::regularInterpolation (const RealArray& upar,
 }
 
 
-bool ASMu3D::faceL2projection (const DirichletFace& edge,
+bool ASMu3D::faceL2projection (const DirichletFace& face,
                                const FunctionBase& values,
                                Real2DMat& result,
                                double time) const
 {
-  size_t n = edge.MLGN.size();
+  size_t n = face.MLGN.size();
   size_t m = values.dim();
   SparseMatrix A(SparseMatrix::SUPERLU);
   StdVector B(n*m);
@@ -468,31 +467,29 @@ bool ASMu3D::faceL2projection (const DirichletFace& edge,
   const double* wg = GaussQuadrature::getWeight(nGauss);
   if (!xg || !wg) return false;
 
-  // find the normal and tangent direction for the edge
-  int faceDir=1;
-  switch (edge.edg)
-  {       //          id          normal  tangent
+  // find the normal direction for the face
+  int faceDir;
+  switch (face.edg)
+  {
     case LR::WEST:   faceDir = -1; break;
-    case LR::EAST:   faceDir = +1; break;
+    case LR::EAST:   faceDir =  1; break;
     case LR::SOUTH:  faceDir = -2; break;
-    case LR::NORTH:  faceDir = +2; break;
+    case LR::NORTH:  faceDir =  2; break;
     case LR::BOTTOM: faceDir = -3; break;
-    case LR::TOP:    faceDir = +3; break;
+    case LR::TOP:    faceDir =  3; break;
     default:         return false;
   }
   const int t1 = 1 + abs(faceDir)%3; // first tangent direction
   const int t2 = 1 + t1%3;           // second tangent direction
 
-  Matrix dNdu, Xnod, Jac;
+  Vector N;
+  Matrix dNdu, dNdX, Xnod, Jac;
   Vec4   X;
-  Vec3   normal;
-  int    iGp = 0;
 
-  // === Assembly loop over all elements on the patch edge =====================
-  for (size_t ie=0; ie<edge.MLGE.size(); ie++) // for all edge elements
+  // === Assembly loop over all elements on the patch face =====================
+  for (size_t ie = 0; ie < face.MLGE.size(); ie++) // for all face elements
   {
-    FiniteElement fe(edge.MNPC[ie].size());
-    fe.iel = edge.MLGE[ie]+1;
+    int iel = 1 + face.MLGE[ie];
 
     std::array<Vector,3> gpar;
     for (int d = 0; d < 3; d++)
@@ -507,29 +504,25 @@ bool ASMu3D::faceL2projection (const DirichletFace& edge,
         gpar[d].fill(lrspline->endparam(d));
       }
       else
-        this->getGaussPointParameters(gpar[d],d,nGauss,fe.iel,xg);
+        this->getGaussPointParameters(gpar[d],d,nGauss,iel,xg);
 
-    // Get element edge length in the parameter space
-    double dA = this->getParametricArea(fe.iel,abs(faceDir));
+    // Get element face area in the parameter space
+    double dA = 0.25*this->getParametricArea(iel,abs(faceDir));
     if (dA < 0.0) return false; // topology error (probably logic error)
 
     // Set up control point coordinates for current element
-    if (!this->getElementCoordinates(Xnod,fe.iel)) return false;
+    if (!this->getElementCoordinates(Xnod,iel)) return false;
 
-    // Initialize element quantities
-    fe.xi = fe.eta = fe.zeta = faceDir < 0 ? -1.0 : 1.0;
-    fe.u = gpar[0](1);
-    fe.v = gpar[1](1);
-    fe.w = gpar[2](1);
-    fe.iGP = iGp;
+    double u = gpar[0].front();
+    double v = gpar[1].front();
+    double w = gpar[2].front();
 
-    // --- Integration loop over all Gauss points along the edge -------------
+    // --- Integration loop over all Gauss points over the face -------------
     for (int j = 0; j < nGauss; j++)
-      for (int i = 0; i < nGauss; i++, fe.iGP++, iGp++)
+      for (int i = 0; i < nGauss; i++)
       {
-        // Local element coordinates and parameter values
-        // of current integration point
-        int k1,k2,k3;
+        // Parameter values of current integration point
+        int k1, k2, k3;
         switch (abs(faceDir))
         {
           case 1: k2 = i; k3 = j; k1 = 0; break;
@@ -537,61 +530,44 @@ bool ASMu3D::faceL2projection (const DirichletFace& edge,
           case 3: k1 = i; k2 = j; k3 = 0; break;
           default: k1 = k2 = k3 = 0;
         }
-        if (gpar[0].size() > 1)
-        {
-          fe.xi = xg[k1];
-          fe.u = gpar[0](k1+1);
-        }
-        if (gpar[1].size() > 1)
-        {
-          fe.eta = xg[k2];
-          fe.v = gpar[1](k2+1);
-        }
-        if (gpar[2].size() > 1)
-        {
-          fe.zeta = xg[k3];
-          fe.w = gpar[2](k3+1);
-        }
+        if (gpar[0].size() > 1) u = gpar[0](k1+1);
+        if (gpar[1].size() > 1) v = gpar[1](k2+1);
+        if (gpar[2].size() > 1) w = gpar[2](k3+1);
 
-        // Evaluate basis function (geometry) derivatives at integration points
-        this->evaluateBasis(fe, dNdu, myGeoBasis);
+        // Evaluate basis function derivatives at integration points
+        this->evaluateBasis(iel-1, u, v, w, N, dNdu, myGeoBasis);
 
-        // Compute basis function derivatives and the edge normal
-        fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,Xnod,dNdu,t1,t2);
-        if (fe.detJxW == 0.0) continue; // skip singular points
-
-        if (faceDir < 0) normal *= -1.0;
+        // Compute basis function derivatives
+        double dJxW = dA*wg[i]*wg[j]*utl::Jacobian(Jac,X,dNdX,Xnod,dNdu,t1,t2);
+        if (dJxW == 0.0) continue; // skip singular points
 
         // Cartesian coordinates of current integration point
-        X = Xnod * fe.N;
+        X = Xnod * N;
         X.t = time;
 
-        // Evaluate the integrand and accumulate element contributions
-        fe.detJxW *= 0.25*dA*wg[i]*wg[j];
-
         // For mixed basis, we need to compute functions separate from geometry
-        if (edge.lr != lrspline.get())
+        if (face.lr != lrspline.get())
         {
           // different lrspline instances enumerate elements differently
           Go::BasisDerivs spline;
-          int basis_el = edge.lr->getElementContaining(fe.u, fe.v, fe.w);
-          edge.lr->computeBasis(fe.u, fe.v, fe.w, spline, basis_el);
-          SplineUtils::extractBasis(spline,fe.N,dNdu);
+          face.lr->computeBasis(u, v, w, spline,
+                                face.lr->getElementContaining(u,v,w));
+          SplineUtils::extractBasis(spline,N,dNdu);
         }
 
         // Assemble into matrix A and vector B
         size_t il, jl;
         int    ig, jg;
-        for (il = 0; il < edge.MNPC[ie].size(); il++) // local i-index
-          if ((ig = 1+edge.MNPC[ie][il]) > 0)         // global i-index
+        for (il = 0; il < face.MNPC[ie].size(); il++) // local i-index
+          if ((ig = 1+face.MNPC[ie][il]) > 0)         // global i-index
           {
-            for (jl = 0; jl < edge.MNPC[ie].size(); jl++) // local j-index
-              if ((jg = 1+edge.MNPC[ie][jl]) > 0)         // global j-index
-                A(ig,jg) += fe.N[il]*fe.N[jl]*fe.detJxW;
+            for (jl = 0; jl < face.MNPC[ie].size(); jl++) // local j-index
+              if ((jg = 1+face.MNPC[ie][jl]) > 0)         // global j-index
+                A(ig,jg) += N[il]*N[jl]*dJxW;
 
             RealArray val = values.getValue(X);
             for (size_t k = 0; k < m; k++)
-              B(ig+k*n) += fe.N[il]*val[k]*fe.detJxW;
+              B(ig+k*n) += N[il]*val[k]*dJxW;
           } // end basis-function loop
       } // end gauss-point loop
   } // end element loop
@@ -601,12 +577,12 @@ bool ASMu3D::faceL2projection (const DirichletFace& edge,
             <<"-------------------"<< std::endl;
   std::cout <<"---- Vector B -----\n"<< B
             <<"-------------------"<< std::endl;
-  std::cout <<"---- Edge-nodes (g2l-mapping) -----";
-  for (size_t i = 0; i < edge.MLGN.size(); i++)
-    std::cout <<"\n     "<< i <<": "<< edge.MLGN[i];
+  std::cout <<"---- Face-nodes (g2l-mapping) -----";
+  for (size_t i = 0; i < face.MLGN.size(); i++)
+    std::cout <<"\n     "<< i <<": "<< face.MLGN[i];
   std::cout <<"\n-------------------";
   std::cout <<"\n---- Element-nodes (-1 is interior element nodes) -----";
-  for (const IntVec& d : edge.MNPC) {
+  for (const IntVec& d : face.MNPC) {
     std::cout <<"\n    ";
     for (int c : d)
       std::cout <<" "<< c;
@@ -614,7 +590,7 @@ bool ASMu3D::faceL2projection (const DirichletFace& edge,
   std::cout <<"\n-------------------"<< std::endl;
 #endif
 
-  // Solve the edge-global equation system
+  // Solve the face-global equation system
   if (!A.solve(B)) return false;
 
 #if SP_DEBUG > 2

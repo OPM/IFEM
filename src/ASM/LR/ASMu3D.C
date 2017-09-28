@@ -56,18 +56,18 @@ ASMu3D::ASMu3D (const ASMu3D& patch, unsigned char n_f)
 bool ASMu3D::read (std::istream& is)
 {
   if (shareFE) return true;
-        lrspline.reset();
 
-  // read inputfile as either an LRSpline file directly or a tensor product B-spline and convert
+  // read inputfile as either an LRSpline file directly
+  // or a tensor product B-spline and convert
   char firstline[256];
   is.getline(firstline, 256);
   if (strncmp(firstline, "# LRSPLINE", 10) == 0) {
-                lrspline.reset(new LR::LRSplineVolume());
+    lrspline.reset(new LR::LRSplineVolume());
     is >> *lrspline;
   } else { // probably a SplineVolume, so we'll read that and convert
     tensorspline = new Go::SplineVolume();
     is >> *tensorspline;
-                lrspline.reset(new LR::LRSplineVolume(tensorspline));
+    lrspline.reset(new LR::LRSplineVolume(tensorspline));
   }
 
   // Eat white-space characters to see if there is more data to read
@@ -81,18 +81,18 @@ bool ASMu3D::read (std::istream& is)
   if (!is.good() && !is.eof())
   {
     std::cerr <<" *** ASMu3D::read: Failure reading spline data"<< std::endl;
-                lrspline.reset();
+    lrspline.reset();
     return false;
   }
   else if (lrspline->dimension() < 3)
   {
     std::cerr <<" *** ASMu3D::read: Invalid spline volume patch, dim="
               << lrspline->dimension() << std::endl;
-                lrspline.reset();
+    lrspline.reset();
     return false;
   }
 
-        geo = lrspline.get();
+  geo = lrspline.get();
   return true;
 }
 
@@ -148,8 +148,8 @@ bool ASMu3D::refine (int dir, const RealArray& xi)
   }
 
   tensorspline->insertKnot(dir,extraKnots);
-        lrspline.reset(new LR::LRSplineVolume(tensorspline));
-        geo = lrspline.get();
+  lrspline.reset(new LR::LRSplineVolume(tensorspline));
+  geo = lrspline.get();
   return true;
 }
 
@@ -206,9 +206,9 @@ bool ASMu3D::generateFEMTopology ()
     if (MLGN.size() != nnod)
     {
       std::cerr <<" *** ASMu3D::generateFEMTopology: Inconsistency"
-        <<" between the number of FE nodes "<< MLGN.size()
-        <<"\n     and the number of basis functions "<< nnod
-        <<" in the patch."<< std::endl;
+                <<" between the number of FE nodes "<< MLGN.size()
+                <<"\n     and the number of basis functions "<< nnod
+                <<" in the patch."<< std::endl;
       return false;
     }
     return true;
@@ -224,11 +224,11 @@ bool ASMu3D::generateFEMTopology ()
   myMLGE.resize(nel);
   myMNPC.resize(nel);
 
+  myBezierExtract.resize(nel);
   lrspline->generateIDs();
 
   RealArray extrMat;
   std::vector<LR::Element*>::const_iterator eit = lrspline->elementBegin();
-  myBezierExtract.resize(nel);
   for (size_t iel = 0; iel < nel; iel++, ++eit)
   {
     myMLGE[iel] = ++gEl; // global element number over all patches
@@ -279,7 +279,7 @@ bool ASMu3D::connectBasis (int face, ASMu3D& neighbor, int nface, int norient,
   else if (this->isShared() || neighbor.isShared())
   {
     std::cerr <<" *** ASMu3D::connectPatch: Logic error, cannot"
-	      <<" connect a shared patch with an unshared one"<< std::endl;
+              <<" connect a shared patch with an unshared one"<< std::endl;
     return false;
   } else if (face < 1 || face > 6) {
     std::cerr <<" *** ASMu3D::connectPatch: Invalid slave face "
@@ -554,20 +554,19 @@ std::vector<int> ASMu3D::getEdge(int lEdge, bool open, int basis, int orient) co
   }
 
   std::vector<int> result;
-  for (LR::Basisfunction* b  : thisEdge)
+  for (LR::Basisfunction* b : thisEdge)
     result.push_back(b->getId()+ofs);
 
   return result;
 }
 
-void ASMu3D::constrainEdge (int lEdge, bool open, int dof, int code, char basis)
+void ASMu3D::constrainEdge (int lEdge, bool open, int dof, int code, char)
 {
   if (open)
     std::cerr << "\nWARNING: ASMu3D::constrainEdge, open boundary conditions not supported yet. Treating it as closed" << std::endl;
 
   // enforce the boundary conditions
-  std::vector<int> nodes = this->getEdge(lEdge, open, 1, -1);
-  for (const int& node : nodes)
+  for (int node : this->getEdge(lEdge, open, 1, -1))
     this->prescribe(node,dof,code);
 }
 
@@ -848,23 +847,28 @@ double ASMu3D::getElementCorners (int iEl, Vec3Vec& XC) const
 }
 
 
-void ASMu3D::evaluateBasis (FiniteElement &el, Matrix &dNdu, int basis) const
+void ASMu3D::evaluateBasis (int iel, double u, double v, double w,
+                            Vector& N, Matrix& dNdu, int basis) const
 {
   PROFILE2("Spline evaluation");
-  size_t nBasis = this->getBasis(basis)->getElement(el.iel-1)->nBasisFunctions();
 
   std::vector<RealArray> result;
-  this->getBasis(basis)->computeBasis(el.u, el.v, el.w, result, 1, el.iel-1);
+  this->getBasis(basis)->computeBasis(u, v, w, result, 1, iel);
+  size_t nBasis = result.size();
 
-  el.basis(basis).resize(nBasis);
+  N.resize(nBasis);
   dNdu.resize(nBasis,3);
-  size_t jp, n = 1;
-  for (jp = 0; jp < nBasis; jp++, n++) {
-    el.basis(basis)(n)   = result[jp][0];
-    dNdu(n,1) = result[jp][1];
-    dNdu(n,2) = result[jp][2];
-    dNdu(n,3) = result[jp][3];
+  for (size_t n = 1; n <= nBasis; n++) {
+    N(n)      = result[n-1][0];
+    dNdu(n,1) = result[n-1][1];
+    dNdu(n,2) = result[n-1][2];
+    dNdu(n,3) = result[n-1][3];
   }
+}
+
+void ASMu3D::evaluateBasis (FiniteElement &el, Matrix &dNdu, int basis) const
+{
+  this->evaluateBasis(el.iel-1, el.u, el.v, el.w, el.basis(basis), dNdu, basis);
 }
 
 void ASMu3D::evaluateBasis (FiniteElement &el, Matrix &dNdu,
@@ -1843,7 +1847,7 @@ bool ASMu3D::evalSolution (Matrix& sField, const Vector& locSol,
       return false;
 
     // Evaluate basis function values/derivatives at current parametric point
-    // and mulitiply with control point values to get the point-wise solution
+    // and multiply with control point values to get the point-wise solution
     switch (deriv) {
 
     case 0: // Evaluate the solution
@@ -2153,9 +2157,8 @@ bool ASMu3D::updateDirichlet (const std::map<int,RealFunc*>& func,
                               const std::map<int,int>* g2l)
 {
 
-  std::map<int,RealFunc*>::const_iterator    fit;
-  std::map<int,VecFunc*>::const_iterator     vfit;
-  std::map<int,int>::const_iterator          nit;
+  std::map<int,RealFunc*>::const_iterator fit;
+  std::map<int,VecFunc*>::const_iterator vfit;
 
   for (size_t i = 0; i < dirich.size(); i++)
   {
@@ -2258,11 +2261,22 @@ bool ASMu3D::matchNeighbour(ASMunstruct* neigh, int midx, int sidx, int orient)
 }
 
 
-void ASMu3D::remapErrors(RealArray& errors, const RealArray& origErr) const
+void ASMu3D::remapErrors (RealArray& errors, const RealArray& origErr) const
 {
   const LR::LRSplineVolume* basis = this->getBasis(1);
 
   for (const LR::Element* elm : basis->getAllElements())
     for (const LR::Basisfunction* b : elm->support())
       errors[b->getId()] += origErr[elm->getId()];
+}
+
+
+bool ASMu3D::evaluate (const FunctionBase* func, RealArray& vec,
+                       int, double time) const
+{
+  Matrix ctrlPvals;
+  ASMu3D* pch = const_cast<ASMu3D*>(this);
+  bool ok = pch->L2projection(ctrlPvals,const_cast<FunctionBase*>(func),time);
+  vec = ctrlPvals;
+  return ok;
 }

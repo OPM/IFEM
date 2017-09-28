@@ -47,15 +47,16 @@ public:
   //! \brief Empty destructor.
   virtual ~ASMu2D() { geo = nullptr; }
 
-  //! \brief Returns the spline surface representing this patch.
+  //! \brief Returns the spline surface representing the geometry of this patch.
   LR::LRSplineSurface* getSurface() { return lrspline.get(); }
-  //! \brief Returns the spline surface representing this patch.
+  //! \brief Returns the spline surface representing the geometry of this patch.
   const LR::LRSplineSurface* getSurface() const { return lrspline.get(); }
 
   //! \brief Returns the spline surface representing the basis of this patch.
   virtual const LR::LRSplineSurface* getBasis(int = 1) const { return lrspline.get(); }
   //! \brief Returns the spline surface representing the basis of this patch.
   virtual LR::LRSplineSurface* getBasis(int = 1) { return lrspline.get(); }
+
 
   // Methods for model generation and refinement
   // ===========================================
@@ -76,7 +77,7 @@ public:
   virtual void clear(bool retainGeometry = false);
 
   //! \brief Returns a matrix with nodal coordinates for an element.
-  //! \param[in] iel Element index
+  //! \param[in] iel 1-based element index
   //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
   //! in one element
   virtual bool getElementCoordinates(Matrix& X, int iel) const;
@@ -99,9 +100,9 @@ public:
   //! \param nodes Array of node numbers
   //! \param[in] basis Which basis to grab nodes for (0 for all)
   //! \param[in] orient Orientation of boundary (used for sorting)
-  //! \param[in] local If \e true return patch-local node numbers
-  virtual void getBoundaryNodes(int lIndex, IntVec& nodes,
-                                int basis, int, int orient, bool local = false) const;
+  //! \param[in] local If \e true, return patch-local node numbers
+  virtual void getBoundaryNodes(int lIndex, IntVec& nodes, int basis,
+                                int, int orient, bool local = false) const;
 
   //! \brief Returns the polynomial order in each parameter direction.
   //! \param[out] p1 Order in first (u) direction
@@ -128,15 +129,11 @@ public:
   //! \param[in] minBasisfunctions lower bound on number of basis functions
   bool uniformRefine(int minBasisfunctions);
   //! \brief Refines the parametrization by inserting tensor knots uniformly.
-  //! \details This method is mainly kept for backward compatability with the
-  //! "REFINE" keyword in the input file.
   //! \param[in] dir Parameter direction to refine
   //! \param[in] nInsert Number of extra knots to insert in each knot-span
   virtual bool uniformRefine(int dir, int nInsert);
   using ASMunstruct::refine;
   //! \brief Refines the parametrization by inserting extra tensor knots.
-  //! \details This method is mainly kept for backward compatability with the
-  //! "REFINE" keyword in the input file.
   //! \param[in] dir Parameter direction to refine
   //! \param[in] xi Relative positions of added knots in each existing knot span
   //! \param[in] scale Scaling factor for the added knot values
@@ -146,8 +143,6 @@ public:
   //! \param[in] refTol Mesh refinement threshold
   virtual bool refine(const RealFunc& refC, double refTol);
   //! \brief Raises the order of the tensor spline object for this patch.
-  //! \details This method is mainly kept for backward compatability with the
-  //! "RAISEORDER" keyword in the input file.
   //! \param[in] ru Number of times to raise the order in u-direction
   //! \param[in] rv Number of times to raise the order in v-direction
   virtual bool raiseOrder(int ru, int rv);
@@ -203,7 +198,7 @@ public:
   //! \param neighbor The neighbor patch
   //! \param[in] nedge Local edge index of neighbor patch, in range [1,4]
   //! \param[in] revers Indicates whether the two edges have opposite directions
-  //! \param[in] coordCheck False to disable coordinate checks (periodic connections)
+  //! \param[in] coordCheck False to disable coordinate checks
   //! \param[in] thick Thickness of connection
   virtual bool connectPatch(int edge, ASM2D& neighbor, int nedge, bool revers,
                             int = 0, bool coordCheck = true, int thick = 1);
@@ -296,17 +291,17 @@ public:
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector local to current patch
   //! \param[in] gpar Parameter values of the result sampling points
-  //! \param[in] regular Flag indicating how the sampling points are defined
   //! \param[in] deriv Derivative order to return
-  //!
-  //! \details When \a regular is \e true, it is assumed that the parameter
-  //! value array \a gpar forms a regular tensor-product point grid of dimension
-  //! \a gpar[0].size() \a X \a gpar[1].size().
-  //! Otherwise, we assume that it contains the \a u and \a v parameters
-  //! directly for each sampling point.
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-                            const RealArray* gpar, bool regular = false,
+                            const RealArray* gpar, bool = false,
                             int deriv = 0) const;
+
+  //! \brief Evaluates and interpolates a function over a given geometry.
+  //! \param[in] func The function to evaluate
+  //! \param[out] vec The obtained coefficients after interpolation
+  //! \param[in] time Current time
+  virtual bool evaluate(const FunctionBase* func, RealArray& vec,
+                        int, double time) const;
 
   //! \brief Evaluates the secondary solution field at all visualization points.
   //! \param[out] sField Solution field
@@ -332,7 +327,7 @@ private:
     LR::LRSplineSurface *lr;       //!< Pointer to the right object (in case of multiple bases)
     LR::parameterEdge   edg;       //!< Which edge is this
     IntVec              MLGE;      //!< Local-to-Global Element numbers
-    std::map<int,int>   MLGN;      //!< Local-to-Global Nodal numbers
+    IntVec              MLGN;      //!< Local-to-Global Nodal numbers
     IntMat              MNPC;      //!< Matrix of Nodal-Point Correpondanse
     int                 dof;       //!< Local DOF to constrain along the boundary
     int                 code;      //!< Inhomogeneous Dirichlet condition code
@@ -369,35 +364,21 @@ public:
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] gpar Parameter values of the result sampling points
-  //! \param[in] regular Flag indicating how the sampling points are defined
   //!
   //! \details The secondary solution is derived from the primary solution,
   //! which is assumed to be stored within the \a integrand for current patch.
-  //! When \a regular is \e true, it is assumed that the parameter value array
-  //! \a gpar forms a regular tensor-product point grid of dimension
-  //! \a gpar[0].size() \a X \a gpar[1].size().
-  //! Otherwise, we assume that it contains the \a u and \a v parameters
-  //! directly for each sampling point.
+  //! We assume that the parameter value array \a gpar contains
+  //! the \a u and \a v parameters directly for each sampling point.
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
-                            const RealArray* gpar, bool regular = true) const;
+                            const RealArray* gpar, bool = false) const;
 
-  //! \brief Projects inhomogenuous (scalar) dirichlet conditions by continuous L2-fit.
+  //! \brief Projects inhomogenuous dirichlet conditions by continuous L2-fit.
   //! \param[in] edge low-level edge information needed to do integration
   //! \param[in] values inhomogenuous function which is to be fitted
   //! \param[out] result fitted value in terms of control-point values
   //! \param[in] time time used in dynamic problems
   bool edgeL2projection (const DirichletEdge& edge,
-                         const RealFunc& values,
-                         RealArray& result,
-                         double time) const;
-
-  //! \brief Projects inhomogenuous (vector) dirichlet conditions by continuous L2-fit.
-  //! \param[in] edge low-level edge information needed to do integration
-  //! \param[in] values inhomogenuous function which is to be fitted
-  //! \param[out] result fitted value in terms of control-point values
-  //! \param[in] time time used in dynamic problems
-  bool edgeL2projection (const DirichletEdge& edge,
-                         const VecFunc& values,
+                         const FunctionBase& values,
                          Real2DMat& result,
                          double time) const;
 
@@ -454,7 +435,7 @@ protected:
   //! \param[in] basis Which basis to connect the nodes for (mixed methods)
   //! \param[in] slave 0-based index of the first slave node in this basis
   //! \param[in] master 0-based index of the first master node in this basis
-  //! \param[in] coordCheck False to disable coordinate checks (periodic connections)
+  //! \param[in] coordCheck False to disable coordinate checks
   //! \param[in] thick Thickness of connection
   bool connectBasis(int edge, ASMu2D& neighbor, int nedge, bool revers,
                     int basis = 1, int slave = 0, int master = 0,
@@ -464,7 +445,7 @@ protected:
   //! \param[out] uGP Parameter values in given direction for all points
   //! \param[in] dir Parameter direction (0,1)
   //! \param[in] nGauss Number of Gauss points along a knot-span
-  //! \param[in] iel Element index
+  //! \param[in] iel 1-based element index
   //! \param[in] xi Dimensionless Gauss point coordinates [-1,1]
   void getGaussPointParameters(RealArray& uGP, int dir, int nGauss,
                                int iel, const double* xi) const;
@@ -475,15 +456,15 @@ protected:
   bool getGrevilleParameters(RealArray& prm, int dir) const;
 
   //! \brief Returns the area in the parameter space for an element.
-  //! \param[in] iel Element index
+  //! \param[in] iel 1-based element index
   double getParametricArea(int iel) const;
   //! \brief Returns boundary edge length in the parameter space for an element.
-  //! \param[in] iel Element index
+  //! \param[in] iel 1-based element index
   //! \param[in] dir Local index of the boundary edge
   double getParametricLength(int iel, int dir) const;
 
   //! \brief Computes the element corner coordinates.
-  //! \param[in] iel Element index
+  //! \param[in] iel 1-based element index
   //! \param[out] XC Coordinates of the element corners
   //! \return Characteristic element size
   double getElementCorners(int iel, std::vector<Vec3>& XC) const;
@@ -509,8 +490,6 @@ public:
   //! \brief Returns the number of elements on a boundary.
   virtual size_t getNoBoundaryElms(char lIndex, char ldim) const;
 
-  typedef std::pair<int,int> Ipair; //!< Convenience type
-
 protected:
   std::shared_ptr<LR::LRSplineSurface> lrspline; //!< Pointer to the LR-spline surface object
 
@@ -523,8 +502,8 @@ protected:
   //! Inhomogeneous Dirichlet boundary condition data
   std::vector<DirichletEdge> dirich;
 
-  const std::vector<Matrix>& bezierExtract; //!< Bezier extraction matrices
-  std::vector<Matrix>      myBezierExtract; //!< Bezier extraction matrices
+  const Matrices& bezierExtract; //!< Bezier extraction matrices
+  Matrices      myBezierExtract; //!< Bezier extraction matrices
 
   Go::BsplineBasis bezier_u; //!< Bezier basis in the u-direction
   Go::BsplineBasis bezier_v; //!< Bezier basis in the v-direction

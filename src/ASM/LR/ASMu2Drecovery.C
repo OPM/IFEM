@@ -15,15 +15,12 @@
 #include "LRSpline/Element.h"
 
 #include "ASMu2D.h"
-#include "FiniteElement.h"
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
 #include "SparseMatrix.h"
 #include "DenseMatrix.h"
-#include "Function.h"
 #include "SplineUtils.h"
-#include "Utilities.h"
 #include "Profiler.h"
 #include <array>
 #include <fstream>
@@ -47,7 +44,7 @@ bool ASMu2D::getGrevilleParameters (RealArray& prm, int dir) const
   \details Takes as input a tensor mesh, for instance
      in[0] = {0,1,2}
      in[1] = {2,3,5}
-   and expands this to an unstructred representation, i.e.,
+   and expands this to an unstructured representation, i.e.,
      out[0] = {0,1,2,0,1,2,0,1,2}
      out[1] = {2,2,2,3,3,3,5,5,5}
 */
@@ -142,7 +139,7 @@ bool ASMu2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
     this->getGaussPointParameters(gpar[0],0,ng1,iel,xg);
     this->getGaussPointParameters(gpar[1],1,ng2,iel,yg);
 
-    // convert to unstructred mesh representation
+    // convert to unstructured mesh representation
     expandTensorGrid(gpar.data(),unstrGpar.data());
 
     // Evaluate the secondary solution at all integration points
@@ -306,7 +303,7 @@ LR::LRSplineSurface* ASMu2D::scRecovery (const IntegrandBase& integrand) const
       std::cout << "Element " << **el << std::endl;
 #endif
 
-      // convert to unstructred mesh representation
+      // convert to unstructured mesh representation
       expandTensorGrid(gaussPt.data(),unstrGauss.data());
 
       // Evaluate the secondary solution at all Gauss points
@@ -396,7 +393,7 @@ LR::LRSplineSurface* ASMu2D::regularInterpolation (const RealArray& upar,
     return nullptr;
   }
 
-  SparseMatrix   A(SparseMatrix::SUPERLU);
+  SparseMatrix A(SparseMatrix::SUPERLU);
   A.resize(nBasis, nBasis);
   Matrix B2(points,true); // transpose to get one vector per field
   StdVector B(B2);
@@ -406,30 +403,26 @@ LR::LRSplineSurface* ASMu2D::regularInterpolation (const RealArray& upar,
   // (same row = same evaluation point)
   for (size_t i = 0; i < nBasis; i++)
   {
+    size_t k = 0;
     int iel = lrspline->getElementContaining(upar[i], vpar[i]);
     lrspline->computeBasis(upar[i],vpar[i],splineValues, iel);
-    size_t k = 0;
-    for (auto& function : lrspline->getElement(iel)->support()) {
-      int j = function->getId();
-      A(i+1,j+1) = splineValues.basisValues[k++];
-    }
+    for (LR::Basisfunction* function : lrspline->getElement(iel)->support())
+      A(i+1,function->getId()+1) = splineValues.basisValues[k++];
   }
 
   // Solve for all solution components - one right-hand-side for each
-  if (!A.solve(B))
-    return nullptr;
+  if (!A.solve(B)) return nullptr;
 
   // Copy all basis functions and mesh
   LR::LRSplineSurface* ans = lrspline->copy();
   ans->rebuildDimension(points.rows());
 
   // Back to interleaved data
-  std::vector<double> interleave;
+  RealArray interleave;
   interleave.reserve(B.dim());
-  for (size_t i = 0; i < nBasis; ++i)
-    for (size_t j = 0; j < points.rows(); j++) {
-        interleave.push_back(B(1+j*points.cols()+i));
-  }
+  for (size_t i = 0; i < nBasis; i++)
+    for (size_t j = 0; j < points.rows(); j++)
+      interleave.push_back(B(1+j*points.cols()+i));
 
   ans->setControlPoints(interleave);
 
@@ -438,13 +431,14 @@ LR::LRSplineSurface* ASMu2D::regularInterpolation (const RealArray& upar,
 
 
 bool ASMu2D::edgeL2projection (const DirichletEdge& edge,
-                               const RealFunc& values,
-                               RealArray& result,
+                               const FunctionBase& values,
+                               Real2DMat& result,
                                double time) const
 {
   size_t n = edge.MLGN.size();
+  size_t m = values.dim();
   SparseMatrix A(SparseMatrix::SUPERLU);
-  StdVector    B(n);
+  StdVector B(n*m);
   A.resize(n,n);
 
   // Get Gaussian quadrature points and weights
@@ -455,11 +449,11 @@ bool ASMu2D::edgeL2projection (const DirichletEdge& edge,
   // find the normal and tangent direction for the edge
   int edgeDir, t1, t2;
   switch (edge.edg)
-  {       //          id          normal  tangent
-    case LR::WEST:  edgeDir = -1;  t1=1;    t2=2; break;
-    case LR::EAST:  edgeDir = +1;  t1=1;    t2=2; break;
-    case LR::SOUTH: edgeDir = -2;  t1=2;    t2=1; break;
-    case LR::NORTH: edgeDir = +2;  t1=2;    t2=1; break;
+  { //              id          normal  tangent
+    case LR::WEST:  edgeDir = -1; t1 = 1; t2 = 2; break;
+    case LR::EAST:  edgeDir =  1; t1 = 1; t2 = 2; break;
+    case LR::SOUTH: edgeDir = -2; t1 = 2; t2 = 1; break;
+    case LR::NORTH: edgeDir =  2; t1 = 2; t2 = 1; break;
     default:        return false;
   }
 
@@ -476,85 +470,69 @@ bool ASMu2D::edgeL2projection (const DirichletEdge& edge,
       gpar[d].fill(d == 0 ? lrspline->endparam(0) : lrspline->endparam(1));
     }
 
-
-  Matrix dNdu, Xnod, Jac;
+  Vector N;
+  Matrix dNdu, dNdX, Xnod, Jac;
   Vec4   X;
-  Vec3   normal;
-  int    iGp = 0;
 
   // === Assembly loop over all elements on the patch edge =====================
-  for (size_t i=0; i<edge.MLGE.size(); i++) // for all edge elements
+  for (size_t i = 0; i < edge.MLGE.size(); i++) // for all edge elements
   {
-    FiniteElement fe(edge.MNPC[i].size());
-    fe.iel = edge.MLGE[i];
+    int iel = 1 + edge.MLGE[i];
 
     // Get element edge length in the parameter space
-    double dS = this->getParametricLength(fe.iel+1,t1);
+    double dS = this->getParametricLength(iel,t1);
     if (dS < 0.0) return false; // topology error (probably logic error)
 
     // Set up control point coordinates for current element
-    if (!this->getElementCoordinates(Xnod,fe.iel+1)) return false;
-
-    // Initialize element quantities
-    fe.xi = fe.eta = edgeDir < 0 ? -1.0 : 1.0;
+    if (!this->getElementCoordinates(Xnod,iel)) return false;
 
     // Get integration gauss points over this element
-    this->getGaussPointParameters(gpar[t2-1],t2-1,nGauss,fe.iel+1,xg);
+    this->getGaussPointParameters(gpar[t2-1],t2-1,nGauss,iel,xg);
 
     // --- Integration loop over all Gauss points along the edge -------------
     for (int j = 0; j < nGauss; j++)
     {
-      fe.iGP = iGp++; // Global integration point counter
+      // Parameter values of current integration point
+      double u = gpar[0][j];
+      double v = gpar[1][j];
 
-      // Local element coordinates and parameter values
-      // of current integration point
-      fe.xi  = xg[j];
-      fe.eta = xg[j];
-      fe.u = gpar[0][j];
-      fe.v = gpar[1][j];
-
-      // Evaluate basis function (geometry) derivatives at current integration points
+      // Evaluate basis function derivatives at current integration points
       Go::BasisDerivsSf spline;
-      lrspline->computeBasis(fe.u, fe.v, spline, fe.iel);
+      lrspline->computeBasis(u,v,spline,iel-1);
 
       // Fetch basis function derivatives at current integration point
-      SplineUtils::extractBasis(spline,fe.N,dNdu);
+      SplineUtils::extractBasis(spline,N,dNdu);
 
-      // Compute basis function derivatives and the edge normal
-      fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,Xnod,dNdu,t1,t2);
-      if (fe.detJxW == 0.0) continue; // skip singular points
-
-      if (edgeDir < 0) normal *= -1.0;
+      // Compute basis function derivatives
+      double detJxW = 0.5*dS*utl::Jacobian(Jac,X,dNdX,Xnod,dNdu,t1,t2)*wg[j];
+      if (detJxW == 0.0) continue; // skip singular points
 
       // Cartesian coordinates of current integration point
-      X = Xnod * fe.N;
+      X = Xnod * N;
       X.t = time;
-
-      // Evaluate the integrand and accumulate element contributions
-      fe.detJxW *= 0.5*dS*wg[j];
 
       // For mixed basis, we need to compute functions separate from geometry
       if (edge.lr != lrspline.get())
       {
         // different lrspline instances enumerate elements differently
-        int basis_el =  edge.lr->getElementContaining(fe.u, fe.v);
-        edge.lr->computeBasis(fe.u, fe.v, spline, basis_el);
-        SplineUtils::extractBasis(spline,fe.N,dNdu);
+        edge.lr->computeBasis(u,v,spline,edge.lr->getElementContaining(u,v));
+        SplineUtils::extractBasis(spline,N,dNdu);
       }
 
-      // Assemble into matrix A
-      for (size_t il=0; il<edge.MNPC[i].size(); il++)     // local i-index
-        if (edge.MNPC[i][il] != -1)
+      // Assemble into matrix A and vector B
+      size_t il, jl;
+      int    ig, jg;
+      for (il = 0; il < edge.MNPC[i].size(); il++) // local i-index
+        if ((ig = 1+edge.MNPC[i][il]) > 0)         // global i-index
         {
-          size_t ig = edge.MNPC[i][il]+1;                 // global i-index
-          for (size_t jl=0; jl<edge.MNPC[i].size(); jl++) // local j-index
-            if (edge.MNPC[i][jl] != -1)
-            {
-              size_t jg = edge.MNPC[i][jl]+1;             // global j-index
-              A(ig,jg) = A(ig,jg) + fe.N[il]*fe.N[jl]*fe.detJxW;
-          }
-          B(ig) = B(ig) + fe.N[il]*values(X)*fe.detJxW;
-      } // end basis-function loop
+          for (jl = 0; jl < edge.MNPC[i].size(); jl++) // local j-index
+            if ((jg = 1+edge.MNPC[i][jl]) > 0)         // global j-index
+              A(ig,jg) += N[il]*N[jl]*detJxW;
+
+          RealArray val = values.getValue(X);
+          for (size_t k = 0; k < m; k++)
+            B(ig+k*n) += N[il]*val[k]*detJxW;
+        } // end basis-function loop
     } // end gauss-point loop
   } // end element loop
 
@@ -568,20 +546,17 @@ bool ASMu2D::edgeL2projection (const DirichletEdge& edge,
   std::ofstream out("mesh.eps");
   lrspline->writePostscriptFunctionSpace(out);
 
-  std::cout <<"---- Edge-nodes (g2l-mapping) -----\n";
-  int i=-1;
-  for (auto d : edge.MLGN) {
-    i++;
-    std::cout << d.first << ": " << d.second << std::endl;
-  }
-  std::cout <<"-------------------"<< std::endl;
-  std::cout <<"---- Element-nodes (-1 is interior element nodes) -----\n";
-  for (auto d : edge.MNPC) {
+  std::cout <<"---- Edge-nodes (g2l-mapping) -----";
+  for (size_t i = 0; i < edge.MLGN.size(); i++)
+    std::cout <<"\n     "<< i <<": "<< edge.MLGN[i];
+  std::cout <<"\n-------------------";
+  std::cout <<"\n---- Element-nodes (-1 is interior element nodes) -----";
+  for (const IntVec& d : edge.MNPC) {
+    std::cout <<"\n    ";
     for (int c : d)
-      std::cout << c << " ";
-    std::cout << std::endl;
+      std::cout <<" "<< c;
   }
-  std::cout <<"-------------------"<< std::endl;
+  std::cout <<"\n-------------------"<< std::endl;
 #endif
 
   // Solve the edge-global equation system
@@ -593,185 +568,10 @@ bool ASMu2D::edgeL2projection (const DirichletEdge& edge,
 #endif
 
   // Store the control-point values of the projected field
-  result.resize(n);
-  for (size_t i = 0; i < n; i++)
-    result[i] = B[i];
-
-  return true;
-}
-
-
-bool ASMu2D::edgeL2projection (const DirichletEdge& edge,
-                               const VecFunc& values,
-                               Real2DMat& result,
-                               double time) const
-{
-  size_t n = edge.MLGN.size();
-  SparseMatrix A(SparseMatrix::SUPERLU);
-  std::vector<StdVector> B(nsd, StdVector(n));
-  A.resize(n,n);
-
-  // Get Gaussian quadrature points and weights
-  const double* xg = GaussQuadrature::getCoord(nGauss);
-  const double* wg = GaussQuadrature::getWeight(nGauss);
-  if (!xg || !wg) return false;
-
-  // find the normal and tangent direction for the edge
-  int edgeDir, t1, t2;
-  switch (edge.edg)
-  {       //          id          normal  tangent
-    case LR::WEST:  edgeDir = -1;  t1=1;    t2=2; break;
-    case LR::EAST:  edgeDir = +1;  t1=1;    t2=2; break;
-    case LR::SOUTH: edgeDir = -2;  t1=2;    t2=1; break;
-    case LR::NORTH: edgeDir = +2;  t1=2;    t2=1; break;
-    default:        return false;
-  }
-
-  std::array<Vector,2> gpar;
-  for (int d = 0; d < 2; d++)
-    if (-1-d == edgeDir)
-    {
-      gpar[d].resize(nGauss);
-      gpar[d].fill(d == 0 ? lrspline->startparam(0) : lrspline->startparam(1));
-    }
-    else if (1+d == edgeDir)
-    {
-      gpar[d].resize(nGauss);
-      gpar[d].fill(d == 0 ? lrspline->endparam(0) : lrspline->endparam(1));
-    }
-
-
-  Matrix dNdu, Xnod, Jac;
-  Vec4   X;
-  Vec3   normal;
-  int    iGp = 0;
-
-  // === Assembly loop over all elements on the patch edge =====================
-  for (size_t i=0; i<edge.MLGE.size(); i++) // for all edge elements
-  {
-    FiniteElement fe(edge.MNPC[i].size());
-    fe.iel = edge.MLGE[i];
-
-    // Get element edge length in the parameter space
-    double dS = this->getParametricLength(fe.iel+1,t1);
-    if (dS < 0.0) return false; // topology error (probably logic error)
-
-    // Set up control point coordinates for current element
-    if (!this->getElementCoordinates(Xnod,fe.iel+1)) return false;
-
-    // Initialize element quantities
-    fe.xi = fe.eta = edgeDir < 0 ? -1.0 : 1.0;
-
-    // Get integration gauss points over this element
-    this->getGaussPointParameters(gpar[t2-1],t2-1,nGauss,fe.iel+1,xg);
-
-    // --- Integration loop over all Gauss points along the edge -------------
-    for (int j = 0; j < nGauss; j++)
-    {
-      fe.iGP = iGp++; // Global integration point counter
-
-      // Local element coordinates and parameter values
-      // of current integration point
-      fe.xi  = xg[j];
-      fe.eta = xg[j];
-      fe.u = gpar[0][j];
-      fe.v = gpar[1][j];
-
-      // Evaluate basis function derivatives at current integration points
-      Go::BasisDerivsSf spline;
-      lrspline->computeBasis(fe.u, fe.v, spline, fe.iel);
-
-      // Fetch basis function derivatives at current integration point
-      SplineUtils::extractBasis(spline,fe.N,dNdu);
-
-      // Compute basis function derivatives and the edge normal
-      fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,Xnod,dNdu,t1,t2);
-      if (fe.detJxW == 0.0) continue; // skip singular points
-
-      if (edgeDir < 0) normal *= -1.0;
-
-      // Cartesian coordinates of current integration point
-      X = Xnod * fe.N;
-      X.t = time;
-
-      // Evaluate the integrand and accumulate element contributions
-      fe.detJxW *= 0.5*dS*wg[j];
-
-      // For mixed basis, we need to compute functions separate from geometry
-      if (edge.lr != lrspline.get())
-      {
-        // different lrspline instances enumerate elements differently
-        int basis_el =  edge.lr->getElementContaining(fe.u, fe.v);
-        edge.lr->computeBasis(fe.u, fe.v, spline, basis_el);
-        SplineUtils::extractBasis(spline,fe.N,dNdu);
-      }
-
-      // Assemble into matrix A
-      for (size_t il=0; il<edge.MNPC[i].size(); il++)     // local i-index
-        if (edge.MNPC[i][il] != -1)
-        {
-          size_t ig = edge.MNPC[i][il]+1;                 // global i-index
-          for (size_t jl=0; jl<edge.MNPC[i].size(); jl++) // local j-index
-            if (edge.MNPC[i][jl] != -1)
-            {
-              size_t jg = edge.MNPC[i][jl]+1;             // global j-index
-              A(ig,jg) = A(ig,jg) + fe.N[il]*fe.N[jl]*fe.detJxW;
-          }
-          Vec3 val = values(X);
-          for(size_t k=0; k<nsd; k++)
-            B[k](ig) = B[k](ig) + fe.N[il]*val[k]*fe.detJxW;
-      } // end basis-function loop
-    } // end gauss-point loop
-  } // end element loop
-
-#if SP_DEBUG > 2
-  std::cout <<"---- Matrix A -----\n"<< A
-            <<"-------------------"<< std::endl;
-  for(size_t k=0; k<nsd; k++)
-  {
-    std::cout <<"--- Vector B(" << (k+1) << ") ----\n" << B[k]
-              <<"-------------------"<< std::endl;
-  }
-
-  // dump mesh enumerations to file
-  std::ofstream out("mesh.eps");
-  lrspline->writePostscriptFunctionSpace(out);
-
-  std::cout <<"---- Edge-nodes (g2l-mapping) -----\n";
-  int i=-1;
-  for (auto d : edge.MLGN) {
-    i++;
-    std::cout << d.first << ": " << d.second << std::endl;
-  }
-  std::cout <<"-------------------"<< std::endl;
-  std::cout <<"---- Element-nodes (-1 is interior element nodes) -----\n";
-  for (auto d : edge.MNPC) {
-    for (int c : d)
-      std::cout << c << " ";
-    std::cout << std::endl;
-  }
-  std::cout <<"-------------------"<< std::endl;
-#endif
-
-  // Solve the edge-global equation system
-  if (!A.solve(B[0], true)) return false;
-  // Solve the system for the rest of the right-hand-side components (re-use LU factorization)
-  for (size_t k=1; k<nsd; k++)
-    if (!A.solve(B[k], false)) return false;
-
-#if SP_DEBUG > 2
-  for(size_t k=0; k<nsd; k++)
-  {
-    std::cout <<"--- Solution(" << (k+1) << ") ----\n" << B[k]
-              <<"-------------------"<< std::endl;
-  }
-#endif
-  result.resize(nsd);
-  for(size_t i=0; i<nsd; i++)
-  {
-    result[i].resize(n);
-    std::copy(B[i].begin(), B[i].end(), result[i].begin());
-  }
+  result.resize(m,RealArray(n));
+  RealArray::const_iterator it = B.begin();
+  for (size_t i = 0; i < m; i++, it += n)
+    std::copy(it, it+n, result[i].begin());
 
   return true;
 }

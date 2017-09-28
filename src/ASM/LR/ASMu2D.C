@@ -29,11 +29,10 @@
 #include "LagrangeInterpolator.h"
 #include "ElementBlock.h"
 #include "MPC.h"
-#include "Function.h"
-#include "Vec3Oper.h"
 #include "SplineUtils.h"
 #include "Utilities.h"
 #include "Profiler.h"
+#include "Vec3Oper.h"
 #include <array>
 #include <fstream>
 
@@ -58,7 +57,7 @@ ASMu2D::ASMu2D (const ASMu2D& patch, unsigned char n_f)
 
 bool ASMu2D::read (std::istream& is)
 {
-  if (shareFE) return false;
+  if (shareFE) return true;
 
   // read inputfile as either an LRSpline file directly
   // or a tensor product B-spline and convert
@@ -90,7 +89,7 @@ bool ASMu2D::read (std::istream& is)
   else if (lrspline->dimension() < 2)
   {
     std::cerr <<" *** ASMu2D::read: Invalid spline lrsplineace patch, dim="
-        << lrspline->dimension() << std::endl;
+              << lrspline->dimension() << std::endl;
     lrspline.reset();
     return false;
   }
@@ -249,7 +248,6 @@ bool ASMu2D::uniformRefine (int dir, int nInsert)
 
   lrspline.reset(new LR::LRSplineSurface(tensorspline));
   geo = lrspline.get();
-
   return true;
 }
 
@@ -283,7 +281,6 @@ bool ASMu2D::refine (int dir, const RealArray& xi, double scale)
 
   lrspline.reset(new LR::LRSplineSurface(tensorspline));
   geo = lrspline.get();
-
   return true;
 }
 
@@ -497,7 +494,7 @@ bool ASMu2D::connectBasis (int edge, ASMu2D& neighbor, int nedge, bool revers,
   else if (this->isShared() || neighbor.isShared())
   {
     std::cerr <<" *** ASMu2D::connectBasis: Logic error, cannot"
-	      <<" connect a shared patch with an unshared one"<< std::endl;
+              <<" connect a shared patch with an unshared one"<< std::endl;
     return false;
   }
 
@@ -616,7 +613,7 @@ void ASMu2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
   // find the corners since these are not to be included in the L2-fitting
   // of the inhomogenuous dirichlet boundaries; corners are interpolatory.
   // Optimization note: loop over the "edge"-container to manually pick up
-  // the end nodes. LRspine::getEdgeFunctions() does a global search.
+  // the end nodes. LRspline::getEdgeFunctions() does a global search.
   std::vector<LR::Basisfunction*> c1, c2;
   switch (edge)
   {
@@ -648,10 +645,9 @@ void ASMu2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
   de.lr   = lr;
   int bcode = abs(code);
 
-  int j = 0;
   for (auto b : edgeFunctions)
   {
-    de.MLGN[j++] = b->getId();
+    de.MLGN.push_back(b->getId());
     // skip corners for open boundaries
     if (open && (b->getId() == de.corners[0] || b->getId() == de.corners[1]))
       continue;
@@ -688,10 +684,9 @@ void ASMu2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
     for (auto b : el->support())
     {
       de.MNPC[i].push_back(-1);
-      for (auto l2g : de.MLGN)
-        // can't do map::find, since this works on first
-        if (b->getId() == l2g.second)
-          de.MNPC[i].back() = l2g.first;
+      for (size_t j = 0; j < de.MLGN.size(); j++)
+        if (b->getId() == de.MLGN[j])
+          de.MNPC[i].back() = j;
     }
   }
   if (code > 0)
@@ -837,7 +832,7 @@ void ASMu2D::getNodalCoordinates (Matrix& X) const
 {
   X.resize(nsd,lrspline->nBasisFunctions());
 
-  int inod = 1;
+  size_t inod = 1;
   for (LR::Basisfunction* b : lrspline->getAllBasisfunctions())
     X.fillColumn(inod++,&(*b->cp()));
 }
@@ -948,6 +943,7 @@ bool ASMu2D::integrate (Integrand& integrand,
   else if (nRed < 0)
     nRed = nGauss; // The integrand needs to know nGauss
 
+
   // === Assembly loop over all elements in the patch ==========================
 
   bool ok = true;
@@ -1053,6 +1049,7 @@ bool ASMu2D::integrate (Integrand& integrand,
             }
           }
       }
+
 
       // --- Integration loop over all Gauss points in each direction ----------
 
@@ -1886,30 +1883,28 @@ bool ASMu2D::updateDirichlet (const std::map<int,RealFunc*>& func,
                               const std::map<int,int>* g2l)
 {
 
-  std::map<int,RealFunc*>::const_iterator    fit;
-  std::map<int,VecFunc*>::const_iterator     vfit;
-  std::map<int,int>::const_iterator          nit;
+  std::map<int,RealFunc*>::const_iterator fit;
+  std::map<int,VecFunc*>::const_iterator vfit;
 
-  for (size_t i = 0; i < dirich.size(); i++)
+  for (const DirichletEdge& dedg : dirich)
   {
     // figure out function index offset (when using multiple basis)
     size_t ofs = 1;
-    for (int j = 1; j < dirich[i].basis; j++)
+    for (int j = 1; j < dedg.basis; j++)
       ofs += this->getNoNodes(j);
 
-    RealArray edgeControlpoints;
     Real2DMat edgeControlmatrix;
-    if ((fit = func.find(dirich[i].code)) != func.end())
-      edgeL2projection(dirich[i], *fit->second, edgeControlpoints, time);
-    else if ((vfit = vfunc.find(dirich[i].code)) != vfunc.end())
-      edgeL2projection(dirich[i], *vfit->second, edgeControlmatrix, time);
+    if ((fit = func.find(dedg.code)) != func.end())
+      edgeL2projection(dedg, *fit->second, edgeControlmatrix, time);
+    else if ((vfit = vfunc.find(dedg.code)) != vfunc.end())
+      edgeL2projection(dedg, *vfit->second, edgeControlmatrix, time);
     else
     {
-      std::cerr <<" *** ASMu2D::updateDirichlet: Code "<< dirich[i].code
+      std::cerr <<" *** ASMu2D::updateDirichlet: Code "<< dedg.code
                 <<" is not associated with any function."<< std::endl;
       return false;
     }
-    if (edgeControlpoints.empty() && edgeControlmatrix.empty())
+    if (edgeControlmatrix.empty())
     {
       std::cerr <<" *** ASMu2D::updateDirichlet: Projection failure."
                 << std::endl;
@@ -1917,30 +1912,25 @@ bool ASMu2D::updateDirichlet (const std::map<int,RealFunc*>& func,
     }
 
     // Loop over the nodes of this boundary curve
-    for (nit = dirich[i].MLGN.begin(); nit != dirich[i].MLGN.end(); nit++)
-    {
+    for (size_t j = 0; j < dedg.MLGN.size(); j++)
       // skip corner nodes, since these are special cased (interpolatory)
-      if (nit->second == dirich[i].corners[0] ||
-          nit->second == dirich[i].corners[1])
-        continue;
-      for (int dofs = dirich[i].dof; dofs > 0; dofs /= 10)
-      {
-        int dof = dofs%10;
-        // Find the constraint equation for current (node,dof)
-        MPC pDOF(MLGN[nit->second+ofs-1],dof);
-        MPCIter mit = mpcs.find(&pDOF);
-        if (mit == mpcs.end()) continue; // probably a deleted constraint
-
-        // Now update the prescribed value in the constraint equation
-        if (edgeControlpoints.empty()) // vector conditions
-          (*mit)->setSlaveCoeff(edgeControlmatrix[dof-1][nit->first]);
-        else                           //scalar condition
-          (*mit)->setSlaveCoeff(edgeControlpoints[nit->first]);
+      if (dedg.MLGN[j] != dedg.corners[0] && dedg.MLGN[j] != dedg.corners[1])
+        for (int dofs = dedg.dof; dofs > 0; dofs /= 10)
+        {
+          int dof = dofs%10;
+          // Find the constraint equation for current (node,dof)
+          MPC pDOF(MLGN[dedg.MLGN[j]+ofs-1],dof);
+          MPCIter mit = mpcs.find(&pDOF);
+          if (mit != mpcs.end())
+          {
+            // Now update the prescribed value in the constraint equation
+            if (fit != func.end()) dof = 1; // scalar condition
+            (*mit)->setSlaveCoeff(edgeControlmatrix[dof-1][j]);
 #if SP_DEBUG > 1
-        std::cout <<"Updated constraint: "<< **mit;
+            std::cout <<"Updated constraint: "<< **mit;
 #endif
-      }
-    }
+          }
+        }
   }
 
   // The parent class method takes care of the corner nodes with direct
@@ -2052,14 +2042,13 @@ void ASMu2D::generateThreadGroups (const Integrand& integrand, bool silence,
 
   std::cout <<"\nMultiple threads are utilized during element assembly.";
   for (size_t i = 0; i < threadGroups[0].size(); i++)
-  {
-    std::cout <<"\n Color "<< i+1;
-    std::cout << ": "<< threadGroups[0][i].size() <<" elements";
-  }
+    std::cout <<"\n Color "<< i+1
+              <<": "<< threadGroups[0][i].size() <<" elements";
+  std::cout << std::endl;
 }
 
 
-bool ASMu2D::matchNeighbour(ASMunstruct* neigh, int midx, int sidx, int orient)
+bool ASMu2D::matchNeighbour (ASMunstruct* neigh, int midx, int sidx, int orient)
 {
   ASMu2D* slave = dynamic_cast<ASMu2D*>(neigh);
   if (!slave)
@@ -2094,11 +2083,22 @@ bool ASMu2D::matchNeighbour(ASMunstruct* neigh, int midx, int sidx, int orient)
 }
 
 
-void ASMu2D::remapErrors(RealArray& errors, const RealArray& origErr) const
+void ASMu2D::remapErrors (RealArray& errors, const RealArray& origErr) const
 {
   const LR::LRSplineSurface* basis = this->getBasis(1);
 
   for (const LR::Element* elm : basis->getAllElements())
     for (const LR::Basisfunction* b : elm->support())
       errors[b->getId()] += origErr[elm->getId()];
+}
+
+
+bool ASMu2D::evaluate (const FunctionBase* func, RealArray& vec,
+                       int, double time) const
+{
+  Matrix ctrlPvals;
+  ASMu2D* pch = const_cast<ASMu2D*>(this);
+  bool ok = pch->L2projection(ctrlPvals,const_cast<FunctionBase*>(func),time);
+  vec = ctrlPvals;
+  return ok;
 }
