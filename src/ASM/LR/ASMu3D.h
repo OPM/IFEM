@@ -18,6 +18,7 @@
 #include "ASM3D.h"
 #include "LRSpline/LRSpline.h"
 #include "ThreadGroups.h"
+#include <memory>
 
 class FiniteElement;
 
@@ -47,6 +48,11 @@ public:
 
   //! \brief Returns the spline volume representing the geometry of this patch.
   LR::LRSplineVolume* getVolume() const { return lrspline.get(); }
+
+  //! \brief Returns the spline volume representing the basis of this patch.
+  virtual const LR::LRSplineVolume* getBasis(int = 1) const { return lrspline.get(); }
+  //! \brief Returns the spline volume representing the basis of this patch.
+  virtual LR::LRSplineVolume* getBasis(int = 1) { return lrspline.get(); }
 
 
   // Methods for model generation and refinement
@@ -93,10 +99,10 @@ public:
   //! \param[in] lIndex Local index of the boundary face
   //! \param nodes Array of node numbers
   //! \param[in] basis Which basis to grab nodes for (0 for all)
-  //! \param[in] orient Orientation of boundary
+  //! \param[in] orient Orientation of boundary (used for sorting)
   //! \param[in] local If \e true, return patch-local node numbers
-  virtual void getBoundaryNodes(int lIndex, IntVec& nodes,
-                                int basis, int, int orient, bool local) const;
+  virtual void getBoundaryNodes(int lIndex, IntVec& nodes, int basis,
+                                int, int orient, bool local = false) const;
 
   //! \brief Returns the node index for a given corner.
   virtual int getCorner(int I, int J, int K, int basis) const;
@@ -133,7 +139,9 @@ public:
   //! \param[in] open If \e true, exclude all points along the face boundary
   //! \param[in] dof Which DOFs to constrain at each node on the face
   //! \param[in] code Inhomogeneous dirichlet condition code
-  void constrainFace(int dir, bool open, int dof = 123, int code = 0, char = 1);
+  //! \param[in] basis Which basis to constrain face for
+  virtual void constrainFace(int dir, bool open, int dof,
+                             int code = 0, char basis = 1);
   //! \brief Constrains all DOFs in local directions on a given boundary face.
   //! \param[in] dir Parameter direction defining the face to constrain
   //! \param[in] open If \e true, exclude all points along the face boundary
@@ -142,15 +150,16 @@ public:
   //! \param[in] project If \e true, the local axis directions are projected
   //! \param[in] T1 Desired global direction of first local tangent direction
   //! \return Number of additional nodes added due to local axis constraints
-  size_t constrainFaceLocal(int dir, bool open, int dof = 3, int code = 0,
-                            bool project = false, char T1 = '\0');
+  virtual size_t constrainFaceLocal(int dir, bool open, int dof, int code = 0,
+                                    bool project = false, char T1 = '\0');
 
   //! \brief Constrains all DOFs on a given boundary edge.
   //! \param[in] lEdge Local index [1,12] of the edge to constrain
   //! \param[in] open If \e true, exclude the end points of the edge
   //! \param[in] dof Which DOFs to constrain at each node on the edge
   //! \param[in] code Inhomogeneous dirichlet condition code
-  void constrainEdge(int lEdge, bool open, int dof = 123, int code = 0, char = 1);
+  virtual void constrainEdge(int lEdge, bool open, int dof,
+                             int code = 0, char = 1);
 
   //! \brief Constrains all DOFs along a line on a given boundary face.
   //! \param[in] fdir Parameter direction defining the face to constrain
@@ -166,8 +175,8 @@ public:
   //! parameter direction as indicated by \a xi. The actual value of \a xi
   //! is converted to the integer value closest to \a xi*n, where \a n is the
   //! number of nodes (control points) in that parameter direction.
-  void constrainLine(int fdir, int ldir, double xi,
-                     int dof = 123, int code = 0, char = 1);
+  virtual void constrainLine(int fdir, int ldir, double xi, int dof,
+                             int code = 0, char = 1);
 
   //! \brief Constrains a corner node identified by the three parameter indices.
   //! \param[in] I Parameter index in u-direction
@@ -179,8 +188,8 @@ public:
   //! \details The sign of the three indices is used to define whether we want
   //! the node at the beginning or the end of that parameter direction.
   //! The magnitude of the indices are not used.
-  void constrainCorner(int I, int J, int K,
-                       int dof = 123, int code = 0, char = 1);
+  virtual void constrainCorner(int I, int J, int K, int dof,
+                               int code = 0, char = 1);
   //! \brief Constrains a node identified by three relative parameter values.
   //! \param[in] xi Parameter in u-direction
   //! \param[in] eta Parameter in v-direction
@@ -193,8 +202,8 @@ public:
   //! in between, the actual index is taken as the integer value closest to
   //! \a r*n, where \a r denotes the given relative parameter value,
   //! and \a n is the number of nodes along that parameter direction.
-  void constrainNode(double xi, double eta, double zeta,
-                     int dof = 123, int code = 0, char = 1);
+  virtual void constrainNode(double xi, double eta, double zeta, int dof,
+                             int code = 0, char = 1);
 
   //! \brief Connects all matching nodes on two adjacent boundary faces.
   //! \param[in] face Local face index of this patch, in range [1,6]
@@ -291,17 +300,17 @@ public:
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector local to current patch
   //! \param[in] gpar Parameter values of the result sampling points
-  //! \param[in] regular Flag indicating how the sampling points are defined
   //! \param[in] deriv Derivative order to return
-  //!
-  //! \details When \a regular is \e true, it is assumed that the parameter
-  //! value array \a gpar forms a regular tensor-product point grid of dimension
-  //! \a gpar[0].size() \a X \a gpar[1].size() \a X \a gpar[2].size().
-  //! Otherwise, we assume that it contains the \a u, \a v and \a w parameters
-  //! directly for each sampling point.
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-                            const RealArray* gpar, bool regular = true,
+                            const RealArray* gpar, bool = false,
                             int deriv = 0) const;
+
+  //! \brief Evaluates and interpolates a function over a given geometry.
+  //! \param[in] func The function to evaluate
+  //! \param[out] vec The obtained coefficients after interpolation
+  //! \param[in] time Current time
+  virtual bool evaluate(const FunctionBase* func, RealArray& vec,
+                        int, double time) const;
 
   //! \brief Evaluates the secondary solution field at all visualization points.
   //! \param[out] sField Solution field
@@ -312,30 +321,20 @@ public:
   //!
   //! \details The secondary solution is derived from the primary solution,
   //! which is assumed to be stored within the \a integrand for current patch.
-  //! If \a npe is nullptr, the solution is recovered or evaluated at the Greville
+  //! If \a npe is null, the solution is recovered or evaluated at the Greville
   //! points and then projected onto the spline basis to obtain the control
   //! point values, which then are returned through \a sField.
-  //! If \a npe is not nullptr and \a project is defined, the solution is also
+  //! If \a npe is not null and \a project is defined, the solution is also
   //! projected onto the spline basis, and then evaluated at the \a npe points.
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
-                            const int* npe = 0, char project = '\0') const;
-
-  //! \brief Returns the spline volume representing the basis of this patch.
-  virtual const LR::LRSplineVolume* getBasis(int = 1) const { return lrspline.get(); }
-  //! \brief Returns the spline volume representing the basis of this patch.
-  virtual LR::LRSplineVolume* getBasis(int = 1) { return lrspline.get(); }
-
-  //! \brief Remap element wise errors to basis functions.
-  //! \param     errors The remapped errors
-  //! \param[in] origErr The element wise errors on the geometry mesh
-  virtual void remapErrors(RealArray& errors, const RealArray& origErr) const;
+                            const int* npe, char project = '\0') const;
 
 private:
   //! \brief Struct representing an inhomogeneous Dirichlet boundary condition.
   struct DirichletFace
   {
     LR::LRSplineVolume  *lr;       //!< Pointer to the right object (in case of multiple bases)
-    LR::parameterEdge   edg;       //!< Which edge is this
+    LR::parameterEdge   edg;       //!< Which face is this
     IntVec              MLGE;      //!< Local-to-Global Element numbers
     IntVec              MLGN;      //!< Local-to-Global Nodal numbers
     IntMat              MNPC;      //!< Matrix of Nodal-Point Correpondanse
@@ -370,41 +369,29 @@ private:
 public:
   //! \brief Projects the secondary solution field onto the primary basis.
   //! \param[in] integrand Object with problem-specific data and methods
-  virtual LR::LRSpline* evalSolution(const IntegrandBase& integrand) const ;
+  virtual LR::LRSpline* evalSolution(const IntegrandBase& integrand) const;
 
   //! \brief Evaluates the secondary solution field at the given points.
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] gpar Parameter values of the result sampling points
-  //! \param[in] regular Flag indicating how the sampling points are defined
   //!
   //! \details The secondary solution is derived from the primary solution,
   //! which is assumed to be stored within the \a integrand for current patch.
-  //! When \a regular is \e true, it is assumed that the parameter value array
-  //! \a gpar forms a regular tensor-product point grid of dimension
-  //! \a gpar[0].size() \a X \a gpar[1].size() \a X \a gpar[2].size().
-  //! Otherwise, we assume that it contains the \a u, \a v and \a w parameters
-  //! directly for each sampling point.
+  //! We assume that the parameter value array \a gpar contains
+  //! the \a u, \a v and \a w parameters directly for each sampling point.
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
-                            const RealArray* gpar, bool regular = true) const;
+                            const RealArray* gpar, bool = false) const;
 
-  //! \brief Projects inhomogenuous (scalar) dirichlet conditions by continuous L2-fit.
-  //! \param[in] edge low-level edge information needed to do integration
+  //! \brief Projects inhomogenuous dirichlet conditions by continuous L2-fit.
+  //! \param[in] face low-level face information needed to do integration
   //! \param[in] values inhomogenuous function which is to be fitted
   //! \param[out] result fitted value in terms of control-point values
   //! \param[in] time time used in dynamic problems
-  bool faceL2projection (const DirichletFace& edge,
+  bool faceL2projection (const DirichletFace& face,
                          const FunctionBase& values,
                          Real2DMat& result,
                          double time) const;
-
-  using ASMunstruct::generateThreadGroups;
-  //! \brief Generates element groups for multi-threading of interior integrals.
-  //! \param[in] integrand Object with problem-specific data and methods
-  //! \param[in] silence If \e true, suppress threading group outprint
-  //! \param[in] ignoreGlobalLM If \e true ignore global multipliers in sanity check
-  void generateThreadGroups(const Integrand& integrand, bool silence,
-                            bool ignoreGlobalLM);
 
   //! \brief Match neighbours after refinement in multipatch models.
   //! \param neigh Neigbouring patch
@@ -436,7 +423,7 @@ protected:
   //! \param[in] basis Which basis to connect the nodes for (mixed methods)
   //! \param[in] slave 0-based index of the first slave node in this basis
   //! \param[in] master 0-based index of the first master node in this basis
-  //! \param[in] coordCheck False to turn off coordinate checks
+  //! \param[in] coordCheck False to disable coordinate checks
   //! \param[in] thick Thickness of connection
   bool connectBasis(int face, ASMu3D& neighbor, int nface, int norient,
                     int basis = 1, int slave = 0, int master = 0,
@@ -446,11 +433,10 @@ protected:
   //! \param[out] uGP Parameter values in given direction for all points
   //! \param[in] dir Parameter direction (0,1,2)
   //! \param[in] nGauss Number of Gauss points along a knot-span
-  //! \param[in] iel 1-based element index 
+  //! \param[in] iel 1-based element index
   //! \param[in] xi Dimensionless Gauss point coordinates [-1,1]
-  //! \return The parameter value matrix casted into a one-dimensional vector
   void getGaussPointParameters(RealArray& uGP, int dir, int nGauss,
-                              int iel, const double* xi) const;
+                               int iel, const double* xi) const;
 
   //! \brief Calculates parameter values for the Greville points.
   //! \param[out] prm Parameter values in given direction for all points
@@ -477,18 +463,35 @@ protected:
   //! \return Characteristic element size
   double getElementCorners(int iel, std::vector<Vec3>& XC) const;
 
+  //! \brief Evaluate all basis functions and first derivatives on one element
+  void evaluateBasis(int iel, double u, double v, double w,
+                     Vector& N, Matrix& dNdu, int basis) const;
+
   //! \brief Evaluate all basis functions and \a derivs number of derivatives on one element
-  virtual void evaluateBasis(FiniteElement &el, int derivs, int basis = 1) const;
+  void evaluateBasis(FiniteElement &el, int derivs, int basis = 1) const;
 
   //! \brief Evaluate all basis functions and first derivatives on one element
-  virtual void evaluateBasis(FiniteElement &el, Matrix &dNdu,
-                             const Matrix &C, const Matrix &B, int basis = 1) const;
+  void evaluateBasis(FiniteElement &el, Matrix &dNdu,
+                     const Matrix &C, const Matrix &B, int basis = 1) const;
 
   //! \brief Evaluate all basis functions and first derivatives on one element
-  virtual void evaluateBasis(FiniteElement &el, Matrix &dNdu, int basis = 1) const;
+  void evaluateBasis(FiniteElement &el, Matrix &dNdu, int basis = 1) const;
 
   //! \brief Evaluate all basis functions and second order derivatives on one element
-  virtual void evaluateBasis(FiniteElement &el, Matrix &dNdu, Matrix3D& d2Ndu2, int basis = 1) const;
+  void evaluateBasis(FiniteElement &el, Matrix &dNdu, Matrix3D& d2Ndu2, int basis = 1) const;
+
+  using ASMunstruct::generateThreadGroups;
+  //! \brief Generates element groups for multi-threading of interior integrals.
+  //! \param[in] integrand Object with problem-specific data and methods
+  //! \param[in] silence If \e true, suppress threading group outprint
+  //! \param[in] ignoreGlobalLM If \e true ignore global multipliers in sanity check
+  void generateThreadGroups(const Integrand& integrand, bool silence,
+                            bool ignoreGlobalLM);
+
+  //! \brief Remap element wise errors to basis functions.
+  //! \param     errors The remapped errors
+  //! \param[in] origErr The element wise errors on the geometry mesh
+  virtual void remapErrors(RealArray& errors, const RealArray& origErr) const;
 
 public:
   //! \brief Returns the number of elements on a boundary.
@@ -503,13 +506,14 @@ protected:
   // of optimization since all mapping values and Jacobians may be performed on
   // this object for increased efficiency.
 
-  std::vector<DirichletFace> dirich; //!< Inhomogeneous Dirichlet boundary condition data
+  //! Inhomogeneous Dirichlet boundary condition data
+  std::vector<DirichletFace> dirich;
   int myGeoBasis; //!< Used with mixed
 
+  const Matrices& bezierExtract; //!< Bezier extraction matrices
+  Matrices      myBezierExtract; //!< Bezier extraction matrices
+
   ThreadGroups threadGroups; //!< Element groups for multi-threaded assembly
-private:
-  const Matrices& bezierExtract;   //!< Bezier extraction matrices
-  Matrices        myBezierExtract; //!< Bezier extraction matrices
 };
 
 #endif
