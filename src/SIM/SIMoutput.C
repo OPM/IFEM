@@ -359,7 +359,7 @@ bool SIMoutput::writeGlvBC (int& nBlock, int iStep) const
     if (msgLevel > 1)
       IFEM::cout <<"Writing boundary conditions for patch "<< i+1 << std::endl;
 
-    if (!myModel[i]->evalSolution(field,bc,opt.nViz))
+    if (!myModel[i]->evalSolution(field,bc,opt.nViz,nbc))
       return false;
 
     // The BC fields should either be 0.0 or 1.0
