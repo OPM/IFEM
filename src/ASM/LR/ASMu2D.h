@@ -284,8 +284,9 @@ public:
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector in DOF-order
   //! \param[in] npe Number of visualization nodes over each knot span
+  //! \param[in] nf If nonzero, mixed evaluates nf fields on first basis
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-                            const int* npe) const;
+                            const int* npe, int nf = 0) const;
 
   //! \brief Evaluates the primary solution field at the given points.
   //! \param[out] sField Solution field
@@ -294,7 +295,7 @@ public:
   //! \param[in] deriv Derivative order to return
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
                             const RealArray* gpar, bool = false,
-                            int deriv = 0) const;
+                            int deriv = 0, int = 0) const;
 
   //! \brief Evaluates and interpolates a function over a given geometry.
   //! \param[in] func The function to evaluate

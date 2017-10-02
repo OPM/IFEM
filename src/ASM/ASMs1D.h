@@ -209,7 +209,7 @@ public:
   //! \param[in] locSol Solution vector in DOF-order
   //! \param[in] npe Number of visualization nodes over each knot span
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-			    const int* npe) const;
+                            const int* npe, int = 0, int = 0) const;
 
   //! \brief Evaluates the primary solution field at the given points.
   //! \param[out] sField Solution field
@@ -218,7 +218,7 @@ public:
   //! \param[in] deriv Derivative order to return
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
                             const RealArray* gpar, bool = true,
-                            int deriv = 0) const;
+                            int deriv = 0, int = 0) const;
 
   using ASMbase::evaluate;
   //! \brief Evaluates and interpolates a function over a given geometry.

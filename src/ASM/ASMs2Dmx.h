@@ -157,6 +157,7 @@ public:
   //! \param[in] gpar Parameter values of the result sampling points
   //! \param[in] regular Flag indicating how the sampling points are defined
   //! \param[in] deriv Derivative order to return
+  //! \param[in] nf If nonzero, evaluate nf fields on first basis
   //!
   //! \details When \a regular is \e true, it is assumed that the parameter
   //! value array \a gpar forms a regular tensor-product point grid of dimension
@@ -165,7 +166,7 @@ public:
   //! directly for each sampling point.
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
                             const RealArray* gpar, bool regular = true,
-                            int deriv = 0) const;
+                            int deriv = 0, int nf = 0) const;
 
   //! \brief Evaluates the secondary solution field at the given points.
   //! \param[out] sField Solution field

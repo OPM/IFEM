@@ -1614,10 +1614,10 @@ bool ASMu2D::tesselate (ElementBlock& grid, const int* npe) const
 
 
 bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
-                           const int* npe) const
+                           const int* npe, int nf) const
 {
 #ifdef SP_DEBUG
-  std::cout <<"ASMu2D::evalSolution(Matrix&,const Vector&,const int*)\n";
+  std::cout <<"ASMu2D::evalSolution(Matrix&,const Vector&,const int*,int)\n";
 #endif
   // Compute parameter values of the result sampling points
   std::array<RealArray,2> gpar;
@@ -1626,12 +1626,12 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
       return false;
 
   // Evaluate the primary solution at all sampling points
-  return this->evalSolution(sField,locSol,gpar.data());
+  return this->evalSolution(sField,locSol,gpar.data(),false,0,nf);
 }
 
 
 bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
-                           const RealArray* gpar, bool, int deriv) const
+                           const RealArray* gpar, bool, int deriv, int) const
 {
 #ifdef SP_DEBUG
   std::cout <<"ASMu2D::evalSolution(Matrix&,const Vector&,const RealArray*,"

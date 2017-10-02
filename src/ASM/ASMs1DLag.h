@@ -111,13 +111,14 @@ public:
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector in DOF-order
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-                            const int*) const;
+                            const int*, int = 0) const;
 
   //! \brief Evaluates the primary solution field at the nodal points.
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector local to current patch
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-                            const RealArray*, bool = false, int = 0) const;
+                            const RealArray*, bool = false,
+                            int = 0, int = 0) const;
 
   //! \brief Evaluates the secondary solution field at all visualization points.
   //! \details The number of visualization points is the same as the order of

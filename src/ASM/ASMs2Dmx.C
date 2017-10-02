@@ -845,7 +845,7 @@ int ASMs2Dmx::evalPoint (const double* xi, double* param, Vec3& X) const
 
 
 bool ASMs2Dmx::evalSolution (Matrix& sField, const Vector& locSol,
-                             const RealArray* gpar, bool regular, int) const
+                             const RealArray* gpar, bool regular, int, int nf) const
 {
   // Evaluate the basis functions at all points
   std::vector<std::vector<Go::BasisPtsSf>> splinex(m_basis.size());
@@ -865,14 +865,12 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const Vector& locSol,
   else
     return false;
 
-  std::vector<size_t> nc(nfx.size());
-  std::copy(nfx.begin(), nfx.end(), nc.begin());
+  std::vector<size_t> nc(nfx.size(), 0);
+  if (nf)
+    nc[0] = nf;
+  else
+    std::copy(nfx.begin(), nfx.end(), nc.begin());
 
-  // assume first basis only
-  if (locSol.size() < std::inner_product(nb.begin(), nb.end(), nfx.begin(), 0u)) {
-    std::fill(nc.begin(), nc.end(), 0);
-    nc[0] = nfx[0];
-  }
 
   if (std::inner_product(nb.begin(), nb.end(), nc.begin(), 0u) != locSol.size())
     return false;

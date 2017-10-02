@@ -467,14 +467,14 @@ bool ASMs1DLag::tesselate (ElementBlock& grid, const int* npe) const
 
 
 bool ASMs1DLag::evalSolution (Matrix& sField, const Vector& locSol,
-			      const int*) const
+                              const int*, int) const
 {
-  return this->evalSolution(sField,locSol,(const RealArray*)nullptr);
+  return this->evalSolution(sField,locSol,nullptr,false,0,0);
 }
 
 
 bool ASMs1DLag::evalSolution (Matrix& sField, const Vector& locSol,
-                              const RealArray*, bool, int) const
+                              const RealArray*, bool, int, int) const
 {
   size_t nPoints = coord.size();
   size_t nComp = locSol.size() / nPoints;

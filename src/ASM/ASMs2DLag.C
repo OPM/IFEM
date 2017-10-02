@@ -667,14 +667,14 @@ bool ASMs2DLag::tesselate (ElementBlock& grid, const int* npe) const
 
 
 bool ASMs2DLag::evalSolution (Matrix& sField, const Vector& locSol,
-			      const int*) const
+                              const int*, int nf) const
 {
-  return this->evalSolution(sField,locSol,(const RealArray*)nullptr);
+  return this->evalSolution(sField,locSol,nullptr,true,0,nf);
 }
 
 
 bool ASMs2DLag::evalSolution (Matrix& sField, const Vector& locSol,
-                              const RealArray*, bool, int) const
+                              const RealArray*, bool, int, int) const
 {
   size_t nPoints = coord.size();
   size_t nNodes = this->getNoNodes(-1);
