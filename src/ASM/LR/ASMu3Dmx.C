@@ -729,19 +729,19 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
 
 
 bool ASMu3Dmx::evalSolution (Matrix& sField, const Vector& locSol,
-                             const RealArray* gpar, bool regular,
-                             int deriv) const
+                             const RealArray* gpar, bool,
+                             int deriv, int nf) const
 {
   return false;
 }
 
 
 bool ASMu3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
-                             const RealArray* gpar, bool regular) const
+                             const RealArray* gpar, bool) const
 {
   return evalSolution(sField,
                      const_cast<IntegrandBase&>(integrand).getSolution(0),
-                     gpar, regular, 0);
+                     gpar, false, 0);
 }
 
 

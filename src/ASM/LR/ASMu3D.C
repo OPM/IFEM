@@ -1795,7 +1795,7 @@ bool ASMu3D::tesselate (ElementBlock& grid, const int* npe) const
 
 
 bool ASMu3D::evalSolution (Matrix& sField, const Vector& locSol,
-                           const int* npe) const
+                           const int* npe, int nf) const
 {
   // Compute parameter values of the result sampling points
   std::array<RealArray,3> gpar;
@@ -1804,12 +1804,12 @@ bool ASMu3D::evalSolution (Matrix& sField, const Vector& locSol,
       return false;
 
   // Evaluate the primary solution at all sampling points
-  return this->evalSolution(sField,locSol,gpar.data());
+  return this->evalSolution(sField,locSol,gpar.data(),false,0,nf);
 }
 
 
 bool ASMu3D::evalSolution (Matrix& sField, const Vector& locSol,
-                           const RealArray* gpar, bool, int deriv) const
+                           const RealArray* gpar, bool, int deriv, int) const
 {
   size_t nComp = locSol.size() / this->getNoNodes();
   if (nComp*this->getNoNodes() != locSol.size())

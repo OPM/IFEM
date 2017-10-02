@@ -563,8 +563,8 @@ bool ASMu2Dmx::integrate (Integrand& integrand, int lIndex,
 
 
 bool ASMu2Dmx::evalSolution (Matrix& sField, const Vector& locSol,
-                             const RealArray* gpar, bool regular,
-                             int deriv) const
+                             const RealArray* gpar, bool,
+                             int deriv, int nf) const
 {
   size_t nPoints = gpar[0].size();
   if (nPoints != gpar[1].size())
@@ -576,16 +576,14 @@ bool ASMu2Dmx::evalSolution (Matrix& sField, const Vector& locSol,
 
   std::vector<Go::BasisPtsSf> splinex(m_basis.size());
 
-  std::vector<size_t> nc(nfx.size());
-  std::copy(nfx.begin(), nfx.end(), nc.begin());
-  // assume first basis only
-  if (locSol.size() < std::inner_product(nb.begin(), nb.end(), nfx.begin(), 0u)) {
-    std::fill(nc.begin(), nc.end(), 0);
-    nc[0] = nfx[0];
-  }
+  std::vector<size_t> nc(nfx.size(), 0);
+  if (nf)
+    nc[0] = nf;
+  else
+    std::copy(nfx.begin(), nfx.end(), nc.begin());
 
   // Evaluate the primary solution field at each point
-  sField.resize(std::accumulate(nfx.begin(), nfx.end(), 0), nPoints);
+  sField.resize(std::accumulate(nc.begin(), nc.end(), 0), nPoints);
   for (size_t i = 0; i < nPoints; i++)
   {
     size_t ofs=0;
@@ -602,7 +600,7 @@ bool ASMu2Dmx::evalSolution (Matrix& sField, const Vector& locSol,
       m_basis[j]->computeBasis(gpar[0][i],gpar[1][i],splinex[j],iel);
 
       std::vector<LR::Element*>::iterator el_it = m_basis[j]->elementBegin()+iel;
-      Matrix val1(nfx[j], splinex[j].basisValues.size());
+      Matrix val1(nc[j], splinex[j].basisValues.size());
       size_t col=1;
       for (auto* b : (*el_it)->support()) {
         for (size_t n = 1; n <= nc[j]; ++n)
@@ -623,7 +621,7 @@ bool ASMu2Dmx::evalSolution (Matrix& sField, const Vector& locSol,
 
 
 bool ASMu2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
-                             const RealArray* gpar, bool regular) const
+                             const RealArray* gpar, bool) const
 {
 #ifdef SP_DEBUG
   std::cout <<"ASMu2D::evalSolution(Matrix&,const IntegrandBase&,const RealArray*,bool)\n";

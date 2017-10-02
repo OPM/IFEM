@@ -2389,7 +2389,7 @@ void ASMs2D::scatterInd (int n1, int n2, int p1, int p2,
 
 
 bool ASMs2D::evalSolution (Matrix& sField, const Vector& locSol,
-			   const int* npe) const
+                           const int* npe, int nf) const
 {
   // Compute parameter values of the result sampling points
   std::array<RealArray,2> gpar;
@@ -2398,12 +2398,13 @@ bool ASMs2D::evalSolution (Matrix& sField, const Vector& locSol,
       return false;
 
   // Evaluate the primary solution at all sampling points
-  return this->evalSolution(sField,locSol,gpar.data());
+  return this->evalSolution(sField,locSol,gpar.data(),true,0,nf);
 }
 
 
 bool ASMs2D::evalSolution (Matrix& sField, const Vector& locSol,
-                           const RealArray* gpar, bool regular, int deriv) const
+                           const RealArray* gpar,
+                           bool regular, int deriv, int) const
 {
   // Evaluate the basis functions at all points
   size_t nPoints = gpar[0].size();
@@ -2558,7 +2559,7 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
 
 bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
-			   const RealArray* gpar, bool regular) const
+                           const RealArray* gpar, bool regular) const
 {
   sField.resize(0,0);
 

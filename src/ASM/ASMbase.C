@@ -1186,16 +1186,16 @@ int ASMbase::searchCtrlPt (RealArray::const_iterator cit,
 }
 
 
-bool ASMbase::evalSolution (Matrix&, const Vector&, const int*) const
+bool ASMbase::evalSolution (Matrix&, const Vector&, const int*, int) const
 {
-  return Aerror("evalSolution(Matrix&,const Vector&,const int*)");
+  return Aerror("evalSolution(Matrix&,const Vector&,const int*,int)");
 }
 
 
 bool ASMbase::evalSolution (Matrix&, const Vector&,
-			    const RealArray*, bool, int) const
+                            const RealArray*, bool, int, int) const
 {
-  return Aerror("evalSolution(Matrix&,const Vector&,const RealArray*,bool,int)");
+  return Aerror("evalSolution(Matrix&,const Vector&,const RealArray*,bool,int,int)");
 }
 
 

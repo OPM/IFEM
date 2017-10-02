@@ -125,14 +125,16 @@ public:
   //! the Lagrange elements by default.
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector in DOF-order
+  //! \param[in] nf If nonzero, mixed evaluates nf fields on first basis
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-                            const int*) const;
+                            const int*, int nf) const;
 
   //! \brief Evaluates the primary solution field at the nodal points.
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector local to current patch
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-                            const RealArray*, bool = false, int = 0) const;
+                            const RealArray* gpar, bool = false,
+                            int = 0, int = 0) const;
 
   using ASMs2D::evalSolution;
   //! \brief Evaluates the secondary solution field at all visualization points.

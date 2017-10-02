@@ -534,9 +534,9 @@ bool ASMs3DmxLag::integrate (Integrand& integrand, int lIndex,
 
 
 bool ASMs3DmxLag::evalSolution (Matrix& sField, const Vector& locSol,
-                                const RealArray*, bool, int) const
+                                const RealArray*, bool, int, int nf) const
 {
-  size_t nc1 = nfx[0];
+  size_t nc1 = nf ? nf : nfx[0];
   size_t nc2 = 0;
   if (nc1*nb[0] < locSol.size())
     nc2 = (locSol.size() - nc1*nb[0])/nb[1];

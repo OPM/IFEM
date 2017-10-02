@@ -114,8 +114,8 @@ public:
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector local to current patch
   //! \param[in] gpar Parameter values of the result sampling points
-  //! \param[in] regular Flag indicating how the sampling points are defined
   //! \param[in] deriv Derivative order to return
+  //! \param[in] nf If nonzero, evaluates nf fields on first basis
   //!
   //! \details When \a regular is \e true, it is assumed that the parameter
   //! value array \a gpar forms a regular tensor-product point grid of dimension
@@ -123,14 +123,13 @@ public:
   //! Otherwise, we assume that it contains the \a u and \a v parameters
   //! directly for each sampling point.
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-                            const RealArray* gpar, bool regular = true,
-                            int deriv = 0) const;
+                            const RealArray* gpar, bool = false,
+                            int deriv = 0, int nf = 0) const;
 
   //! \brief Evaluates the secondary solution field at the given points.
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] gpar Parameter values of the result sampling points
-  //! \param[in] regular Flag indicating how the sampling points are defined
   //!
   //! \details The secondary solution is derived from the primary solution,
   //! which is assumed to be stored within the \a integrand for current patch.
@@ -140,7 +139,7 @@ public:
   //! Otherwise, we assume that it contains the \a u and \a v parameters
   //! directly for each sampling point.
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
-                            const RealArray* gpar, bool regular = true) const;
+                            const RealArray* gpar, bool = false) const;
 
   //! \brief Extracts nodal results for this patch from the global vector.
   //! \param[in] globVec Global solution vector in DOF-order

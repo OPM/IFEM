@@ -454,8 +454,9 @@ public:
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector local to current patch
   //! \param[in] npe Number of visualization nodes over each knot span
+  //! \param[in] nf If nonzero, mixed evaluates nf fields on first basis
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-			    const int* npe) const;
+                            const int* npe, int nf = 0) const;
 
   //! \brief Evaluates the primary solution field at the given points.
   //! \param[out] sField Solution field
@@ -463,6 +464,7 @@ public:
   //! \param[in] gpar Parameter values of the result sampling points
   //! \param[in] regular Flag indicating how the sampling points are defined
   //! \param[in] deriv Derivative order to return
+  //! \param[in] nf If non-zero mixed evaluates nf fields on first basis
   //!
   //! \details When \a regular is \e true, it is assumed that the parameter
   //! value array \a gpar forms a regular tensor-product point grid of dimension
@@ -471,7 +473,7 @@ public:
   //! directly for each sampling point.
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
                             const RealArray* gpar, bool regular = true,
-                            int deriv = 0) const;
+                            int deriv = 0, int nf = 0) const;
 
   //! \brief Evaluates and interpolates a field over a given geometry.
   //! \param[in] basis The basis of the field to evaluate

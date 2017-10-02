@@ -1134,7 +1134,7 @@ bool ASMs1D::getSolution (Matrix& sField, const Vector& locSol,
 
 
 bool ASMs1D::evalSolution (Matrix& sField, const Vector& locSol,
-			   const int* npe) const
+                           const int* npe, int, int) const
 {
   // Compute parameter values of the result sampling points
   RealArray gpar;
@@ -1147,7 +1147,7 @@ bool ASMs1D::evalSolution (Matrix& sField, const Vector& locSol,
 
 
 bool ASMs1D::evalSolution (Matrix& sField, const Vector& locSol,
-                           const RealArray* gpar, bool, int deriv) const
+                           const RealArray* gpar, bool, int deriv, int) const
 {
   const int p1 = curv->order();
   size_t nComp = locSol.size() / curv->numCoefs();

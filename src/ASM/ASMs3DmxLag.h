@@ -114,8 +114,10 @@ public:
   //! \brief Evaluates the primary solution field at the given points.
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector local to current patch
+  //! \param[in] nf If non-zero evaluates nf fields on first basis
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-                            const RealArray*, bool, int) const;
+                            const RealArray*, bool = true,
+                            int = 0, int nf = 0) const;
 
   //! \brief Evaluates the secondary solution field at the given points.
   //! \param[out] sField Solution field
