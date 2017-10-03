@@ -674,7 +674,6 @@ bool SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
     opt.project.find(SIMoptions::GLOBAL) != opt.project.end();
 
   size_t sMAX = nf;
-  if (haveAsol) sMAX += nf;
   if (doProject) sMAX += nf;
   std::vector<IntVec> sID(sMAX);
   std::array<IntVec,2> vID;
@@ -746,7 +745,6 @@ bool SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
 
       const ElementBlock* grid = myVtf->getBlock(geomID);
       Vec3Vec::const_iterator cit = grid->begin_XYZ();
-      field.fill(0.0);
       for (j = 1; cit != grid->end_XYZ() && haveAsol; j++, ++cit)
       {
         Vec4 Xt(*cit,time);
@@ -756,15 +754,19 @@ bool SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
           haveAsol = myProblem->evalSol(lovec,*mySol->getScalarSecSol(),Xt);
         else
           haveAsol = myProblem->evalSol(lovec,*mySol->getVectorSecSol(),Xt);
+        if (haveAsol && j == 1)
+          field.resize(lovec.size(), field.cols());
         if (haveAsol)
           field.fillColumn(j,lovec);
       }
 
-      for (j = 1; j <= field.rows() && k < sMAX && haveAsol; j++)
+      for (j = 1; j <= field.rows() && haveAsol; j++, k++)
         if (!myVtf->writeNres(field.getRow(j),++nBlock,geomID))
           return false;
+        else if (k < sID.size())
+          sID[k].push_back(nBlock);
         else
-          sID[k++].push_back(nBlock);
+          sID.push_back(IntVec(1,nBlock));
     }
   }
 
@@ -787,7 +789,7 @@ bool SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
                             idBlock++,iStep)) return false;
 
   if (haveAsol)
-    for (i = 0; i < nf && j < sMAX && !sID[j].empty(); i++, j++)
+    for (i = 0; j < sID.size() && !sID[j].empty(); i++, j++)
       if (!myVtf->writeSblk(sID[j],myProblem->getField2Name(i,"Exact").c_str(),
                             idBlock++,iStep)) return false;
 
