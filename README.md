@@ -63,17 +63,21 @@ First, we will add inhouse dependencies by a secondary repository.
 5. **[optional]** Install PETSc from the official webpage
    http://www.mcs.anl.gov/petsc/download/
 
-6. **[optional]** Install LR-splines by typing
+6. **[optional]** Install UMFPACK direct solver
+
+    `sudo apt-get install libsuitesparse-dev`
+
+7. **[optional]** Install LR-splines by typing
 
     `sudo apt-get install liblrspline1-dev`
 
-7. **[optional]** Install support for HDF5 output typing (one or both commands,
+8. **[optional]** Install support for HDF5 output typing (one or both commands,
    the second one is needed only if you want to build parallel applications)
 
     `sudo apt-get install libhdf5-serial-dev`  
     `sudo apt-get install libhdf5-openmpi-dev`
 
-8. **[optional]** Install support for [de]serialization of simulator state.
+9. **[optional]** Install support for [de]serialization of simulator state.
    This package is needed if you want to equip your simulator with restart
    capabilities. Install it by typing
 
@@ -81,7 +85,7 @@ First, we will add inhouse dependencies by a secondary repository.
 
     Note: it is only available for Ubuntu 16.04 and later.
 
-9. **[optional]** Install the VTF writer.
+10. **[optional]** Install the VTF writer.
    This is proprietary software that cannot be shared openly.  
    Send email to Trond.Kvamsdal@sintef.no and ask for them.
 
