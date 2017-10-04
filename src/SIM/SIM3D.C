@@ -60,7 +60,7 @@ bool SIM3D::addConnection (int master, int slave, int mIdx,
   int lslave = this->getLocalPatchIndex(slave);
   if (lmaster > 0 && lslave > 0)
   {
-    if (dim < 2) return false;
+    if (dim < 2) return true; // ignored in serial
 
     IFEM::cout <<"\tConnecting P"<< slave <<" F"<< sIdx
                <<" to P"<< master <<" F"<< mIdx
