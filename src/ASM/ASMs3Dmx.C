@@ -178,6 +178,9 @@ bool ASMs3Dmx::generateFEMTopology ()
   if (m_basis.empty())
     m_basis = ASMmxBase::establishBases(svol, ASMmxBase::Type);
 
+  delete svol;
+  geo = svol = m_basis[geoBasis-1]->clone();
+
   nb.clear();
   for (auto it : m_basis)
     nb.push_back(it->numCoefs(0)*it->numCoefs(1)*it->numCoefs(2));
@@ -239,37 +242,6 @@ bool ASMs3Dmx::generateFEMTopology ()
   int lnod2 = 0;
   int lnod3 = 0;
 
-  auto&& addBasis = [&](std::shared_ptr<Go::SplineVolume>& b, bool geo) {
-    for (i3 = 1; i3 <= b->numCoefs(2); i3++)
-      for (i2 = 1; i2 <= b->numCoefs(1); i2++)
-	for (i1 = 1; i1 <= b->numCoefs(0); i1++, inod++)
-	  if (i1 >= b->order(0) && i2 >= b->order(1) && i3 >= b->order(2))
-	  {
-	    if (b->knotSpan(0,i1-1) > 0.0)
-	      if (b->knotSpan(1,i2-1) > 0.0)
-		if (b->knotSpan(2,i3-1) > 0.0)
-		{
-                  if (geo)
-                    myMLGE[iel] = ++gEl; // global element number over all patches
-                  else
-                    while (iel < myMNPC.size() && myMNPC[iel].empty()) iel++;
-
-		  int lnod = lnod2;
-		  myMNPC[iel].resize(lnod3,0);
-		  for (j3 = b->order(2)-1; j3 >= 0; j3--)
-		    for (j2 = b->order(1)-1; j2 >= 0; j2--)
-		      for (j1 = b->order(0)-1; j1 >= 0; j1--)
-			myMNPC[iel][lnod++] = inod - b->numCoefs(0)*b->numCoefs(1)*j3 - b->numCoefs(0)*j2 - j1;
-
-                  if (!geo)
-                    ++iel;
-		}
-
-            if (geo)
-              ++iel;
-	  }
-  };
-
   iel = 0, inod = std::accumulate(nb.begin(),nb.begin()+geoBasis-1,0u);
 
   for (i2 = 0; i2 < geoBasis-1; ++i2)
@@ -277,18 +249,53 @@ bool ASMs3Dmx::generateFEMTopology ()
   for (i2 = 0; i2 < (int)m_basis.size(); ++i2)
     lnod3 += m_basis[i2]->order(0)*m_basis[i2]->order(1)*m_basis[i2]->order(2);
 
-  // Create nodal connectivities for geometry basis
-  addBasis(m_basis[geoBasis-1],true);
-  // Create nodal connectivities for other bases
-  inod = 0;
-  lnod2 = 0;
-  for (size_t b = 0; b < m_basis.size(); ++b) {
-    iel = 0;
-    if ((int)b != geoBasis-1)
-      addBasis(m_basis[b],false);
-    else
-      inod += nb[b];
-    lnod2 += m_basis[b]->order(0)*m_basis[b]->order(1)*m_basis[b]->order(2);
+  // Create nodal connectivities for bases
+  Go::SplineVolume* b = m_basis[geoBasis-1].get();
+  auto knotw = b->basis(2).begin();
+  for (i3 = 1; i3 <= b->numCoefs(2); i3++, ++knotw) {
+    auto knotv = b->basis(1).begin();
+    for (i2 = 1; i2 <= b->numCoefs(1); i2++, ++knotv) {
+      auto knotu = b->basis(1).begin();
+      for (i1 = 1; i1 <= b->numCoefs(0); i1++, inod++, ++knotu)
+        if (i1 >= b->order(0) && i2 >= b->order(1) && i3 >= b->order(2))
+        {
+          if (b->knotSpan(0,i1-1) > 0.0)
+            if (b->knotSpan(1,i2-1) > 0.0)
+              if (b->knotSpan(2,i3-1) > 0.0)
+              {
+                myMLGE[iel] = ++gEl; // global element number over all patches
+
+                int lnod = lnod2;
+                myMNPC[iel].resize(lnod3,0);
+                for (j3 = b->order(2)-1; j3 >= 0; j3--)
+                  for (j2 = b->order(1)-1; j2 >= 0; j2--)
+                    for (j1 = b->order(0)-1; j1 >= 0; j1--)
+                      myMNPC[iel][lnod++] = inod - b->numCoefs(0)*b->numCoefs(1)*j3 - b->numCoefs(0)*j2 - j1;
+                // find knotspan spanning element for other bases
+                lnod = 0;
+                size_t lnod4 = 0;
+                for (size_t bas = 0; bas <  m_basis.size(); ++bas) {
+                  if (bas != (size_t)geoBasis-1) {
+                    double ku = *knotu;
+                    double kv = *knotv;
+                    double kw = *knotw;
+                    int bknotu = m_basis[bas]->basis(0).knotIntervalFuzzy(ku);
+                    int bknotv = m_basis[bas]->basis(1).knotIntervalFuzzy(kv);
+                    int bknotw = m_basis[bas]->basis(2).knotIntervalFuzzy(kw);
+                    size_t iinod = lnod4+(bknotw*m_basis[bas]->numCoefs(1)+bknotv)*m_basis[bas]->numCoefs(0) + bknotu;
+                    for (j3 = m_basis[bas]->order(2)-1; j3 >= 0; j3--)
+                      for (j2 = m_basis[bas]->order(1)-1; j2 >= 0; j2--)
+                        for (j1 = m_basis[bas]->order(0)-1; j1 >= 0; j1--)
+                          myMNPC[iel][lnod++] = iinod - (j3*m_basis[bas]->numCoefs(1)+j2)*m_basis[bas]->numCoefs(0) - j1;
+                  } else
+                    lnod += m_basis[bas]->order(0)*m_basis[bas]->order(1)*m_basis[bas]->order(2);
+                  lnod4 += nb[bas];
+                }
+              }
+
+          ++iel;
+        }
+    }
   }
 
 #ifdef SP_DEBUG

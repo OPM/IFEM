@@ -177,6 +177,8 @@ bool ASMs2Dmx::generateFEMTopology ()
 
   if (m_basis.empty())
     m_basis = ASMmxBase::establishBases(surf, ASMmxBase::Type);
+  delete surf;
+  geo = surf = m_basis[geoBasis-1]->clone();
 
   nb.clear();
   for (auto it : m_basis)
@@ -233,57 +235,57 @@ bool ASMs2Dmx::generateFEMTopology ()
       }
   }
 
-  int lnod2 = 0;
-  int lnod3 = 0;
-
-  auto&& addBasis = [&](std::shared_ptr<Go::SplineSurface>& b, bool geo) {
-    for (i2 = 1; i2 <= b->numCoefs_v(); i2++)
-      for (i1 = 1; i1 <= b->numCoefs_u(); i1++, inod++)
-        if (i1 >= b->order_u() && i2 >= b->order_v())
-        {
-          if (b->knotSpan(0,i1-1) > 0.0)
-            if (b->knotSpan(1,i2-1) > 0.0)
-            {
-              if (geo)
-                myMLGE[iel] = ++gEl; // global element number over all patches
-              else
-                while (iel < myMNPC.size() && myMNPC[iel].empty()) iel++;
-
-              int lnod = lnod2;
-              myMNPC[iel].resize(lnod3,0);
-
-              for (j2 = b->order_v()-1; j2 >= 0; j2--)
-                for (j1 = b->order_u()-1; j1 >= 0; j1--)
-                  myMNPC[iel][lnod++] = inod - b->numCoefs_u()*j2 - j1;
-              if (!geo)
-                ++iel;
-            }
-
-          if (geo)
-            ++iel;
-        }
-  };
-
   iel = 0, inod = std::accumulate(nb.begin(),nb.begin()+geoBasis-1,0u);
 
+  int lnod2 = 0;
+  int lnod3 = 0;
   for (i2 = 0; i2 < geoBasis-1; ++i2)
     lnod2 += m_basis[i2]->order_u()*m_basis[i2]->order_v();
   for (i2 = 0; i2 < (int)m_basis.size(); ++i2)
     lnod3 += m_basis[i2]->order_u()*m_basis[i2]->order_v();
 
-  // Create nodal connectivities for geometry basis
-  addBasis(m_basis[geoBasis-1],true);
-  // Create nodal connectivities for other bases
-  inod = 0;
-  lnod2 = 0;
-  for (size_t b = 0; b < m_basis.size(); ++b) {
-    iel = 0;
-    if ((int)b != geoBasis-1)
-      addBasis(m_basis[b],false);
-    else
-      inod += nb[b];
-    lnod2 += m_basis[b]->order_u()*m_basis[b]->order_v();
-  }
+  // Create nodal connectivities for bases
+  Go::SplineSurface* b = m_basis[geoBasis-1].get();
+  auto knotv = b->basis_v().begin();
+  for (i2 = 1; i2 <= b->numCoefs_v(); i2++, ++knotv) {
+    auto knotu = b->basis_u().begin();
+    for (i1 = 1; i1 <= b->numCoefs_u(); i1++, inod++, ++knotu)
+      if (i1 >= b->order_u() && i2 >= b->order_v())
+      {
+        if (b->knotSpan(0,i1-1) > 0.0)
+          if (b->knotSpan(1,i2-1) > 0.0)
+          {
+            myMLGE[iel] = ++gEl; // global element number over all patches
+
+            int lnod = lnod2;
+            myMNPC[iel].resize(lnod3,0);
+
+            for (j2 = b->order_v()-1; j2 >= 0; j2--)
+              for (j1 = b->order_u()-1; j1 >= 0; j1--)
+                myMNPC[iel][lnod++] = inod - b->numCoefs_u()*j2 - j1;
+
+            // find knotspan spanning element for other bases
+            lnod = 0;
+            size_t lnod4 = 0;
+            for (size_t bas = 0; bas <  m_basis.size(); ++bas) {
+              if (bas != (size_t)geoBasis-1) {
+                double ku = *knotu;
+                double kv = *knotv;
+                int bknotu = m_basis[bas]->basis_u().knotIntervalFuzzy(ku);
+                int bknotv = m_basis[bas]->basis_v().knotIntervalFuzzy(kv);
+                size_t iinod = lnod4+bknotv*m_basis[bas]->numCoefs_u() + bknotu;
+                for (j2 = m_basis[bas]->order_v()-1; j2 >= 0; j2--)
+                  for (j1 = m_basis[bas]->order_u()-1; j1 >= 0; j1--)
+                    myMNPC[iel][lnod++] = iinod - m_basis[bas]->numCoefs_u()*j2 - j1;
+              } else
+                lnod += m_basis[bas]->order_u()*m_basis[bas]->order_v();
+              lnod4 += nb[bas];
+            }
+          }
+
+          ++iel;
+      }
+    }
 
 #ifdef SP_DEBUG
   std::cout <<"NEL = "<< nel <<" NNOD = "<< nnod << std::endl;
