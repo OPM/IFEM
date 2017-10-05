@@ -21,6 +21,7 @@
 #include "ASMs2DSpec.h"
 #ifdef HAS_LRSPLINE
 #include "LR/ASMu2DIB.h"
+#include "LR/ASMu2DC1.h"
 #include "LR/ASMu2Dmx.h"
 #include "ASMu2Dnurbs.h"
 #endif
@@ -56,8 +57,10 @@ ASMbase* ASM2D::create (ASM::Discretization discretization,
 
 #ifdef HAS_LRSPLINE
   case ASM::LRSpline:
-    if (nf.size() > 1 && nf[1] == 'I') // hack for immersed boundary approach
+    if (nf.size() > 2 && nf[1] == 'I') // hack for immersed boundary approach
       return new ASMu2DIB(nd,nf[0],nf[2]);
+    else if (nf.size() > 2 && nf[1] == 'C' && nf[2] == '1') // hack for C1
+      return new ASMu2DC1(nd,nf.front());
     else if (nf.size() > 1 || mixedFEM)
       return new ASMu2Dmx(nd,nf);
     else
@@ -67,7 +70,7 @@ ASMbase* ASM2D::create (ASM::Discretization discretization,
 #endif
 
   default:
-    if (nf.size() > 1 && nf[1] == 'I') // hack for immersed boundary approach
+    if (nf.size() > 2 && nf[1] == 'I') // hack for immersed boundary approach
       return new ASMs2DIB(nd,nf[0],nf[2]);
     else if (nf.size() > 1 || mixedFEM)
       return new ASMs2Dmx(nd,nf);
@@ -99,6 +102,7 @@ ASMbase* ASM2D::clone (const CharVec& nf) const
   TRY_CLONE1(ASMs2D,nf)
 #ifdef HAS_LRSPLINE
   TRY_CLONE2(ASMu2Dmx,nf)
+  TRY_CLONE1(ASMu2DC1,nf)
   TRY_CLONE1(ASMu2DIB,nf)
   TRY_CLONE1(ASMu2D,nf)
 #endif
