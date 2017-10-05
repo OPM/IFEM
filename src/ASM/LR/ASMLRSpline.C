@@ -307,6 +307,26 @@ IntVec ASMunstruct::getFunctionsForElements (const IntVec& elements)
   return result;
 }
 
+IntVec ASMunstruct::getBoundaryNodesCovered (const IntVec& nodes) const
+{
+  geo->generateIDs();
+  IntVec oneBoundary, result;
+  int numbEdges = (getNoParamDim() == 2) ? 4 : 6;
+  for(int edge=1; edge<=numbEdges;  edge++)
+  {
+    getBoundaryNodes(edge, oneBoundary); // this returns a 1-indexed list
+    for(const int i : nodes)
+      for(const int j : oneBoundary)
+        if(geo->getBasisfunction(i)->contains(*geo->getBasisfunction(j-1)))
+          result.push_back(j-1);
+  }
+  // remove duplicate indices
+  std::sort(result.begin(), result.end());
+  auto last = std::unique(result.begin(), result.end());
+  result.erase(last, result.end());
+  return result;
+}
+
 
 void ASMunstruct::Sort(int u, int v, int orient,
                        std::vector<LR::Basisfunction*>& functions)
