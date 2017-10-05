@@ -69,6 +69,8 @@ void PETScSolParams::setupPC(PC& pc,
     setMLOptions(prefix, params.getBlock(block));
   else if (prec == "gamg")
     setGAMGOptions(prefix, params.getBlock(block));
+  else if (prec == "ilu")
+    PCFactorSetLevels(pc,params.getBlock(block).getIntValue("ilu_fill_level"));
 
   PCSetFromOptions(pc);
   PCSetUp(pc);
@@ -361,17 +363,19 @@ void PETScSolParams::setupAdditiveSchwarz(PC& pc, size_t block,
   PCSetFromOptions(pc);
   PCSetUp(pc);
 
-  if (asmlu) {
-    KSP* subksp;
-    PC   subpc;
-    PetscInt first, nlocal;
-    PCASMGetSubKSP(pc,&nlocal,&first,&subksp);
+  KSP* subksp;
+  PC   subpc;
+  PetscInt first, nlocal;
+  PCASMGetSubKSP(pc,&nlocal,&first,&subksp);
 
-    for (int i = 0; i < nlocal; i++) {
-      KSPGetPC(subksp[i],&subpc);
+  int fill_level = params.getBlock(block).getIntValue("ilu_fill_level");
+  for (int i = 0; i < nlocal; i++) {
+    KSPGetPC(subksp[i],&subpc);
+    if (asmlu) {
       PCSetType(subpc,PCLU);
       KSPSetType(subksp[i],KSPPREONLY);
-    }
+    } else
+      PCFactorSetLevels(subpc,fill_level);
   }
 }
 
