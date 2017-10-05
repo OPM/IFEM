@@ -478,6 +478,13 @@ int utl::findKey (const IntMap& iMap, int iVal)
 }
 
 
+int utl::findIndex (const std::vector<int>& iVec, int iVal)
+{
+  std::vector<int>::const_iterator it = std::find(iVec.begin(),iVec.end(),iVal);
+  return it == iVec.end() ? -1 : it - iVec.begin();
+}
+
+
 void utl::merge (std::vector<int>& a1, const std::vector<int>& a2)
 {
   for (size_t i = 0; i < a2.size(); i++)

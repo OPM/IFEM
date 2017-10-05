@@ -208,6 +208,9 @@ namespace utl
   //! \brief Returns the key corresponding to the value \a iVal.
   //! \details If not in the map, the value \a iVal is returned.
   int findKey(const IntMap& iMap, int iVal);
+  //! \brief Returns the vector index corresponding to the value \a iVal.
+  //! \details If not in the vector, -1 is returned.
+  int findIndex(const std::vector<int>& iVec, int iVal);
 
   //! \brief Merges integer array \a a2 into array \a a1.
   //! \details Does not require the arrays to be sorted.

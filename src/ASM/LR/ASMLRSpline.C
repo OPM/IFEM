@@ -18,6 +18,7 @@
 #include "Vec3.h"
 #include "Vec3Oper.h"
 #include "ThreadGroups.h"
+#include "Utilities.h"
 #include "Profiler.h"
 #include "IFEM.h"
 #include <fstream>
@@ -295,12 +296,7 @@ void ASMLRSpline::getFunctionsForElements (IntSet& functions,
   geo->generateIDs();
   for (int elmId : elements)
   {
-    int iel = elmId;
-    if (globalId)
-    {
-      IntVec::const_iterator it = std::find(MLGE.begin(),MLGE.end(),1+elmId);
-      iel = it != MLGE.end() ? it - MLGE.begin() : -1;
-    }
+    int iel = globalId ? utl::findIndex(MLGE,1+elmId) : elmId;
     if (iel >= 0 && iel < geo->nElements())
       for (LR::Basisfunction* b : geo->getElement(iel)->support())
         functions.insert(globalId ? this->getNodeID(b->getId()+1)-1:b->getId());
