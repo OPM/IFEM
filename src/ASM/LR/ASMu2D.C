@@ -335,12 +335,7 @@ double ASMu2D::getMinimumSize (int nrefinements) const
 bool ASMu2D::checkElementSize (int elmId, bool globalNum) const
 {
   if (globalNum)
-  {
-    IntVec::const_iterator it = std::find(MLGE.begin(),MLGE.end(),1+elmId);
-    if (it == MLGE.end()) return false;
-
-    elmId = it - MLGE.begin();
-  }
+    elmId = utl::findIndex(MLGE,1+elmId);
 
   if (elmId >= 0 && elmId < lrspline->nElements())
     return lrspline->getElement(elmId)->area() > aMin+1.0e-12;
@@ -710,113 +705,109 @@ IntVec ASMu2D::getEdgeNodes (int edge, int basis, int orient) const
 }
 
 
-void ASMu2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
+ASMu2D::DirichletEdge::DirichletEdge (LR::LRSplineSurface* sf,
+                                      int dir, int d, int c, int offset)
+  : lr(sf), edg(LR::NONE), dof(d), code(c)
 {
-  // figure out function index offset (when using multiple basis)
-  size_t ofs = 1;
-  for (int i = 1; i < basis; i++)
-    ofs += this->getNoNodes(i);
-
-  // figure out what edge we are at
-  LR::parameterEdge edge;
-  switch (dir) {
-  case -2: edge = LR::SOUTH; break;
-  case -1: edge = LR::WEST;  break;
-  case  1: edge = LR::EAST;  break;
-  case  2: edge = LR::NORTH; break;
-  default: return;
-  }
-
-  // fetch the right basis to consider
-  LR::LRSplineSurface* lr = this->getBasis(basis);
-
-  // get all elements and functions on this edge
-  std::vector<LR::Basisfunction*> edgeFunctions;
-  std::vector<LR::Element*>       edgeElements;
-  lr->getEdgeFunctions(edgeFunctions,edge);
-  lr->getEdgeElements (edgeElements ,edge);
-
+  // Figure out what edge we are at, and
   // find the corners since these are not to be included in the L2-fitting
   // of the inhomogenuous dirichlet boundaries; corners are interpolatory.
   // Optimization note: loop over the "edge"-container to manually pick up
   // the end nodes. LRspline::getEdgeFunctions() does a global search.
   std::vector<LR::Basisfunction*> c1, c2;
-  switch (edge)
+  switch (dir)
   {
-  case LR::SOUTH:
+  case -2:
+    edg = LR::SOUTH;
     lr->getEdgeFunctions(c1, LR::SOUTH_WEST);
     lr->getEdgeFunctions(c2, LR::SOUTH_EAST);
     break;
-  case LR::WEST:
+  case -1:
+    edg = LR::WEST;
     lr->getEdgeFunctions(c1, LR::SOUTH_WEST);
     lr->getEdgeFunctions(c2, LR::NORTH_WEST);
     break;
-  case LR::EAST:
+  case 1:
+    edg = LR::EAST;
     lr->getEdgeFunctions(c1, LR::NORTH_EAST);
     lr->getEdgeFunctions(c2, LR::SOUTH_EAST);
     break;
-  case LR::NORTH:
+  case 2:
+    edg = LR::NORTH;
     lr->getEdgeFunctions(c1, LR::NORTH_WEST);
     lr->getEdgeFunctions(c2, LR::NORTH_EAST);
     break;
-  default: return;
+  default:
+    corners[0] = corners[1] = 0;
+    return;
   }
 
-  // build up the local element/node correspondence needed by the projection
-  // call on this edge by ASMu2D::updateDirichlet()
-  DirichletEdge de(edgeFunctions.size(), edgeElements.size(), dof, code, basis);
-  de.corners[0] = c1[0]->getId();
-  de.corners[1] = c2[0]->getId();
-  de.edg  = edge;
-  de.lr   = lr;
-  int bcode = abs(code);
+  corners[0] = c1.front()->getId() + offset;
+  corners[1] = c2.front()->getId() + offset;
+}
 
+
+/*!
+  A negative \a code value implies direct evaluation of the Dirichlet condition
+  function at the control point. Positive \a code implies projection onto the
+  spline basis representing the boundary curve (needed for curved edges and/or
+  non-constant functions).
+*/
+
+void ASMu2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
+{
+  // Figure out function index offset (when using multiple basis)
+  int offset = 1;
+  for (int i = 1; i < basis; i++)
+    offset += this->getNoNodes(i);
+
+  // Figure out what edge we are at
+  DirichletEdge de(this->getBasis(basis), dir, dof, code, offset);
+
+  // Get all basis functions on this edge
+  std::vector<LR::Basisfunction*> edgeFunctions;
+  de.lr->getEdgeFunctions(edgeFunctions,de.edg);
+
+  // Add constraints for all basis functions on the edge
   for (LR::Basisfunction* b : edgeFunctions)
-  {
-    de.MLGN.push_back(b->getId());
-    // skip corners for open boundaries
-    if (open && (b->getId() == de.corners[0] || b->getId() == de.corners[1]))
-      continue;
-    else
-    {
-      // corners are interpolated (positive 'code')
-      if (b->getId() == de.corners[0] || b->getId() == de.corners[1])
-        this->prescribe(b->getId()+ofs, dof,  bcode);
-      // inhomogenuous dirichlet conditions by function evaluation (negative 'code')
-      else if (code > 0)
-        this->prescribe(b->getId()+ofs, dof, -bcode);
-      // (in)homogenuous constant dirichlet conditions
-      else
-        this->prescribe(b->getId()+ofs, dof,  bcode);
-    }
-  }
+    if (!de.isCorner(b->getId()+offset))
+      this->prescribe(b->getId()+offset, dof, -code);
+    else if (!open) // skip corners for open boundaries
+      // corners are always interpolated (positive 'code')
+      this->prescribe(b->getId()+offset, dof, abs(code));
 
-  // build MLGE and MNPC matrix
-  for (size_t i=0; i<edgeElements.size(); i++)
-  {
-    LR::Element* el = edgeElements[i];
+  if (code <= 0) return; // If no projection, we're done
 
+  // Build up the local edge-node correspondence for this edge
+  for (LR::Basisfunction* b : edgeFunctions)
+    de.MLGN.push_back(b->getId()+offset);
+
+  // Get all elements connected to this edge
+  std::vector<LR::Element*> edgeElements;
+  de.lr->getEdgeElements(edgeElements,de.edg);
+
+  // Build the MLGE and MNPC arrays
+  de.MLGE.reserve(edgeElements.size());
+  de.MNPC.reserve(edgeElements.size());
+  for (LR::Element* el : edgeElements)
+  {
     // for mixed FEM models, let MLGE point to the *geometry* index
     if (de.lr != this->lrspline.get())
     {
       double umid = (el->umax() + el->umin())/2.0;
       double vmid = (el->vmax() + el->vmin())/2.0;
-      de.MLGE[i] = lrspline->getElementContaining(umid, vmid);
+      de.MLGE.push_back(lrspline->getElementContaining(umid,vmid));
     }
     else
-    {
-      de.MLGE[i] = el->getId();
-    }
+      de.MLGE.push_back(el->getId());
+
+    IntVec mnpc; mnpc.reserve(el->support().size());
     for (LR::Basisfunction* b : el->support())
-    {
-      de.MNPC[i].push_back(-1);
-      for (size_t j = 0; j < de.MLGN.size(); j++)
-        if (b->getId() == de.MLGN[j])
-          de.MNPC[i].back() = j;
-    }
+      mnpc.push_back(utl::findIndex(de.MLGN,b->getId()+offset));
+    de.MNPC.push_back(mnpc);
   }
-  if (code > 0)
-    dirich.push_back(de);
+
+  dirich.push_back(de);
 }
 
 
@@ -858,10 +849,8 @@ int ASMu2D::getCorner(int I, int J, int basis) const
 
 void ASMu2D::constrainCorner (int I, int J, int dof, int code, char basis)
 {
-  int corner = getCorner(I, J, basis);
-  if (corner == 0)
-    return;
-  else
+  int corner = this->getCorner(I,J,basis);
+  if (corner > 0)
     this->prescribe(corner,dof,code);
 }
 
@@ -1822,7 +1811,7 @@ bool ASMu2D::tesselate (ElementBlock& grid, const int* npe) const
     double umin = el->umin();
     double vmin = el->vmin();
     double du = (el->umax() - umin)/(npe[0]-1);
-    double dv = (el->vmax() - vmin)/(npe[0]-1);
+    double dv = (el->vmax() - vmin)/(npe[1]-1);
     for (int iv = 0; iv < npe[1]; iv++)
       for (int iu = 0; iu < npe[0]; iu++, inod++) {
         Vec3 Xpt;
@@ -1831,7 +1820,6 @@ bool ASMu2D::tesselate (ElementBlock& grid, const int* npe) const
         grid.setCoor(inod, Xpt);
         grid.setParams(inod, U[0], U[1]);
       }
-    ++iel;
   }
 
   int iStart = iel = inod = 0;
@@ -2185,50 +2173,43 @@ bool ASMu2D::updateDirichlet (const std::map<int,RealFunc*>& func,
                               const std::map<int,VecFunc*>& vfunc, double time,
                               const std::map<int,int>* g2l)
 {
-
   std::map<int,RealFunc*>::const_iterator fit;
   std::map<int,VecFunc*>::const_iterator vfit;
 
   for (const DirichletEdge& dedg : dirich)
   {
-    // figure out function index offset (when using multiple basis)
-    size_t ofs = 1;
-    for (int j = 1; j < dedg.basis; j++)
-      ofs += this->getNoNodes(j);
-
-    Real2DMat edgeControlmatrix;
+    Real2DMat controlPts;
     if ((fit = func.find(dedg.code)) != func.end())
-      edgeL2projection(dedg, *fit->second, edgeControlmatrix, time);
+      this->edgeL2projection(dedg, *fit->second, controlPts, time);
     else if ((vfit = vfunc.find(dedg.code)) != vfunc.end())
-      edgeL2projection(dedg, *vfit->second, edgeControlmatrix, time);
+      this->edgeL2projection(dedg, *vfit->second, controlPts, time);
     else
     {
       std::cerr <<" *** ASMu2D::updateDirichlet: Code "<< dedg.code
                 <<" is not associated with any function."<< std::endl;
       return false;
     }
-    if (edgeControlmatrix.empty())
+    if (controlPts.empty())
     {
       std::cerr <<" *** ASMu2D::updateDirichlet: Projection failure."
                 << std::endl;
       return false;
     }
 
-    // Loop over the nodes of this boundary curve
+    // Loop over the (non-corner) nodes of this boundary curve
     for (size_t j = 0; j < dedg.MLGN.size(); j++)
-      // skip corner nodes, since these are special cased (interpolatory)
-      if (dedg.MLGN[j] != dedg.corners[0] && dedg.MLGN[j] != dedg.corners[1])
+      if (!dedg.isCorner(dedg.MLGN[j]))
         for (int dofs = dedg.dof; dofs > 0; dofs /= 10)
         {
           int dof = dofs%10;
           // Find the constraint equation for current (node,dof)
-          MPC pDOF(MLGN[dedg.MLGN[j]+ofs-1],dof);
+          MPC pDOF(MLGN[dedg.MLGN[j]-1],dof);
           MPCIter mit = mpcs.find(&pDOF);
           if (mit != mpcs.end())
           {
             // Now update the prescribed value in the constraint equation
             if (fit != func.end()) dof = 1; // scalar condition
-            (*mit)->setSlaveCoeff(edgeControlmatrix[dof-1][j]);
+            (*mit)->setSlaveCoeff(controlPts[dof-1][j]);
 #if SP_DEBUG > 1
             std::cout <<"Updated constraint: "<< **mit;
 #endif
@@ -2310,8 +2291,8 @@ bool ASMu2D::transferGaussPtVars (const LR::LRSpline* old_basis,
       LR::getGaussPointParameters(newBasis, UGP, i, nGauss, iEl+1, xi);
       double pmin = i == 0 ? oldEl->umin() : oldEl->vmin();
       double pmax = i == 0 ? oldEl->umax() : oldEl->vmax();
-      for (size_t j = 0; j < UGP.size(); j++)
-        UGP[j] = -1.0 + 2.0*(UGP[j]-pmin)/(pmax-pmin);
+      for (double& p : UGP)
+        p = -1.0 + 2.0*(p-pmin)/(pmax-pmin);
 
       // lagrangian interpolation
       I[i] = interp.get(UGP);
