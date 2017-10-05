@@ -296,15 +296,30 @@ Go::BsplineBasis ASMunstruct::getBezierBasis (int p, double start, double end)
 IntVec ASMunstruct::getFunctionsForElements (const IntVec& elements)
 {
   geo->generateIDs();
-  std::set<int> functions; // to get unique function IDs
+  IntSet functions; // to get unique function IDs
   for (const int iel : elements)
     for (LR::Basisfunction* b : geo->getElement(iel)->support())
       functions.insert(b->getId());
 
-  IntVec result(functions.size());
-  std::copy(functions.begin(), functions.end(), result.begin());
+  return IntVec(functions.begin(), functions.end());
+}
 
-  return result;
+
+IntVec ASMunstruct::getBoundaryNodesCovered (const IntSet& nodes) const
+{
+  IntSet result;
+  int numbEdges = (this->getNoParamDim() == 2) ? 4 : 6;
+  for (int edge = 1; edge <= numbEdges; edge++)
+  {
+    IntVec oneBoundary;
+    this->getBoundaryNodes(edge, oneBoundary, 1, 1, 0, true); // this returns a 1-indexed list
+    for (const int i : nodes)
+      for (const int j : oneBoundary)
+        if (geo->getBasisfunction(i)->contains(*geo->getBasisfunction(j-1)))
+          result.insert(j-1);
+  }
+
+  return IntVec(result.begin(), result.end());
 }
 
 

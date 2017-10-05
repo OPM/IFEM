@@ -17,6 +17,8 @@
 #include "ASMbase.h"
 #include "GoTools/geometry/BsplineBasis.h"
 
+typedef std::set<int> IntSet; //!< General integer set
+
 class ThreadGroups;
 
 
@@ -134,7 +136,13 @@ public:
   static void Sort(int u, int v, int orient,
                    std::vector<LR::Basisfunction*>& functions);
 
-  //! \brief Remap element wise errors from geometry mesh to refinement mesh.
+  //! \brief Returns all boundary functions that are covered by the given nodes.
+  //! \param[in] nodes Set of (0-based) patch local node IDs
+  //! \return 0-based node IDs for boundary functions whose support is
+  //! completely covered by the union of the support of the input nodes
+  IntVec getBoundaryNodesCovered(const IntSet& nodes) const;
+
+  //! \brief Remaps element-wise errors from geometry mesh to refinement mesh.
   //! \param     errors The remapped errors
   //! \param[in] origErr The element wise errors on the geometry mesh
   virtual void remapErrors(RealArray& errors, const RealArray& origErr) const = 0;
@@ -142,7 +150,7 @@ public:
   //! \brief Match neighbours after refinement in multipatch models.
   //! \param neigh Neigbouring patch
   //! \param[in] midx Index of face/edge on this patch
-  //! \param[in] sidx  Index of face/edge on neighbour
+  //! \param[in] sidx Index of face/edge on neighbour
   //! \param[in] orient Orientation flag for connection
   virtual bool matchNeighbour(ASMunstruct* neigh,
                               int midx, int sidx, int orient) = 0;

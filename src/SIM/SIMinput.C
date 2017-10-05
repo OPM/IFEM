@@ -1084,66 +1084,77 @@ bool SIMinput::refine (const LR::RefineData& prm,
 bool SIMinput::refine (const LR::RefineData& prm,
                        Vectors& sol, const char* fName)
 {
-  isRefined = false;
   ASMunstruct* pch = nullptr;
   for (size_t i = 0; i < myModel.size(); i++)
-    if ((pch = dynamic_cast<ASMunstruct*>(myModel[i])))
+    if (!(pch = dynamic_cast<ASMunstruct*>(myModel[i])))
     {
-      if (isRefined && !sol.empty())
-      {
-        std::cerr <<" *** SIMinput::refine: Solution transfer is not"
-                  <<" implemented for multi-patch models."<< std::endl;
-        return false;
-      }
-
-      if (myModel.size() > 1) {
-        LR::RefineData prmloc(prm);
-        if (prm.errors.size() > 0 ) { // refinement by true_beta
-          size_t n = myModel[i]->getNoElms();
-          prmloc.errors.resize(n);
-          for (size_t j = 0; j < n; j++) {
-            int el = myModel[i]->getElmID(j+1)-1;
-            prmloc.errors[j] = prm.errors[el];
-          }
-        } else {
-          prmloc.elements.clear();
-          for (int it : prm.elements) {
-            int node = myModel[i]->getNodeIndex(it+1)-1;
-            if(node > 0)
-              prmloc.elements.push_back(node);
-          }
-        }
-        if (!pch->refine(prmloc,sol,fName))
-          return false;
-      } else if (!pch->refine(prm,sol,fName))
-        return false;
-
-      isRefined = true;
+      std::cerr <<" *** SIMinput::refine: Model is not constructed from"
+                <<" unstructured (ASMunstruct) patches."<< std::endl;
+      return false;
     }
 
-  // fix up refinement for boundaries
-  if (isRefined && myModel.size() > 1)
+  // Single patch models only pass refinement call to the ASM level
+  if (myModel.size() == 1)
+    return (isRefined = pch->refine(prm,sol,fName));
+
+  if (!sol.empty())
   {
-    bool extraRefine = true;
-    do
-    {
-      extraRefine = false;
-      for (const ASM::Interface& it : myInterfaces)
-      {
-        int sidx = this->getLocalPatchIndex(it.slave);
-        int midx = this->getLocalPatchIndex(it.master);
-        ASMunstruct* pch = dynamic_cast<ASMunstruct*>(this->getPatch(midx));
-        ASMunstruct* spch = dynamic_cast<ASMunstruct*>(this->getPatch(sidx));
-        if (pch && spch)
-          extraRefine |= pch->matchNeighbour(spch, it.midx, it.sidx, it.orient);
-      }
-#ifdef HAVE_MPI
-      //for (const ASM::Interface& it : adm.dd.ghostConnections) // TODO
-#endif
-    } while (extraRefine);
+    std::cerr <<" *** SIMinput::refine: Solution transfer is not"
+              <<" implemented for multi-patch models."<< std::endl;
+    return false;
+  }
+  if (!prm.errors.empty()) // refinement by true_beta
+  {
+    std::cerr <<" *** SIMinput::refine: True beta refinement not"
+              <<" implemented for multi-patch models."<< std::endl;
+    return false;
   }
 
-  return isRefined;
+  // multipatch models need to pass refinement indices over patch boundaries
+  std::vector<LR::RefineData> prmloc(myModel.size(), LR::RefineData(prm));
+  std::vector<IntSet> refineIndices(myModel.size());
+  std::vector<IntSet> conformingIndices(myModel.size());
+  for (size_t i = 0; i < myModel.size(); i++)
+  {
+    // extract local indices from the vector of global indices
+    pch = dynamic_cast<ASMunstruct*>(myModel[i]);
+    for (int it : prm.elements) {
+      int node = myModel[i]->getNodeIndex(it+1);
+      if (node > 0)
+        refineIndices[i].insert(node-1);
+    }
+    // fetch all boundary nodes covered (may need to pass this to other patches)
+    IntVec bndry_nodes = pch->getBoundaryNodesCovered(refineIndices[i]);
+
+    // for all boundary nodes, check if these appear on other patches
+    for (int k : bndry_nodes)
+    {
+      int globId = pch->getNodeID(k+1);
+      for (size_t j = 0; j < myModel.size(); j++)
+        if (j != i)
+        {
+          int locId = myModel[j]->getNodeIndex(globId);
+          if (locId > 0)
+            conformingIndices[j].insert(locId-1);
+        }
+    }
+  }
+  for (size_t i = 0; i < myModel.size(); i++)
+    refineIndices[i].insert(conformingIndices[i].begin(),
+                            conformingIndices[i].end());
+
+  for (size_t i = 0; i < myModel.size(); i++)
+  {
+    pch = dynamic_cast<ASMunstruct*>(myModel[i]);
+    LR::RefineData prmloc(prm);
+    prmloc.elements = IntVec(refineIndices[i].begin(),refineIndices[i].end());
+    char patchName[256];
+    sprintf(patchName, "%lu_%s", i, fName);
+    if (!pch->refine(prmloc,sol,patchName))
+      return false;
+  }
+
+  return (isRefined = true);
 }
 
 
