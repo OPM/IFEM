@@ -202,9 +202,8 @@ TEST_P(TestSIMNodalConstraint, Edge2DLR)
   s.preprocess();
 
   const ASMu2D& pch = static_cast<const ASMu2D&>(*s.getPatch(1));
-  static const std::vector<LR::parameterEdge> E
-        {LR::WEST, LR::EAST, LR::SOUTH, LR::NORTH};
-  auto nodes = pch.getEdgeNodes(E[GetParam()-1], 1, 0);
+  IntVec nodes;
+  pch.getBoundaryNodes(GetParam(),nodes,1);
   for (size_t i=1; i <= pch.getNoNodes(); ++i) {
     if (std::find(nodes.begin(), nodes.end(), i) != nodes.end() &&
         i != (size_t)pch.getCorner(1,-1,1) && GetParam() == 1)
@@ -235,9 +234,8 @@ TEST_P(TestSIMNodalConstraint, Edge2DLRmx)
   s.preprocess();
 
   const ASMu2D& pch = static_cast<const ASMu2D&>(*s.getPatch(1));
-  static const std::vector<LR::parameterEdge> E
-        {LR::WEST, LR::EAST, LR::SOUTH, LR::NORTH};
-  auto nodes = pch.getEdgeNodes(E[GetParam()-1], 2, 0);
+  IntVec nodes;
+  pch.getBoundaryNodes(GetParam(),nodes,2);
   size_t ofs = pch.getNoNodes(1);
   for (size_t i=1; i <= pch.getNoNodes(1); ++i) {
     ASSERT_TRUE(pch.findMPC(i, 1) == nullptr);

@@ -34,44 +34,55 @@ class TestASMu2D : public testing::Test,
 };
 
 
-static ASMu2D* getPatch (SIMinput& sim)
+class TestSIM2D : public SIM2D
 {
-  sim.opt.discretization = ASM::LRSpline;
-  EXPECT_TRUE(sim.read("src/ASM/LR/Test/refdata/boundary_nodes.xinp"));
-  EXPECT_TRUE(sim.createFEMmodel());
-  return static_cast<ASMu2D*>(sim.getPatch(1));
-}
+public:
+  TestSIM2D() : SIM2D(1)
+  {
+    opt.discretization = ASM::LRSpline;
+    EXPECT_TRUE(this->read("src/ASM/LR/Test/refdata/boundary_nodes.xinp"));
+    EXPECT_TRUE(this->createFEMmodel());
+  }
+  virtual ~TestSIM2D() {}
+};
 
 
 TEST_P(TestASMu2D, ConstrainEdge)
 {
-  SIM2D sim(1);
-  ASMu2D* pch = getPatch(sim);
+  TestSIM2D sim;
+  ASMu2D* pch = static_cast<ASMu2D*>(sim.getPatch(1));
   ASSERT_TRUE(pch != nullptr);
+
   pch->constrainEdge(GetParam().edgeIdx, false, 1, 1, 1);
+
   std::vector<int> glbNodes;
-  pch->getBoundaryNodes(GetParam().edge, glbNodes, 1, 1, 0);
-  for (int& it : glbNodes)
-    ASSERT_TRUE(pch->findMPC(it, 1) != nullptr);
+  pch->getBoundaryNodes(GetParam().edge, glbNodes, 1);
+
+  for (int node : glbNodes)
+    EXPECT_TRUE(pch->findMPC(node,1) != nullptr);
 }
 
 
 TEST_P(TestASMu2D, ConstrainEdgeOpen)
 {
-  SIM2D sim(1);
-  ASMu2D* pch = getPatch(sim);
+  TestSIM2D sim;
+  ASMu2D* pch = static_cast<ASMu2D*>(sim.getPatch(1));
   ASSERT_TRUE(pch != nullptr);
+
   pch->constrainEdge(GetParam().edgeIdx, true, 1, 1, 1);
+
   std::vector<int> glbNodes;
-  pch->getBoundaryNodes(GetParam().edge, glbNodes, 1, 1, 0);
+  pch->getBoundaryNodes(GetParam().edge, glbNodes, 1);
+
   int crn = pch->getCorner(GetParam().c1[0], GetParam().c1[1], 1);
-  ASSERT_TRUE(pch->findMPC(crn, 1) == nullptr);
+  EXPECT_TRUE(pch->findMPC(crn,1) == nullptr);
   glbNodes.erase(std::find(glbNodes.begin(), glbNodes.end(), crn));
   crn = pch->getCorner(GetParam().c2[0], GetParam().c2[1], 1);
-  ASSERT_TRUE(pch->findMPC(crn, 1) == nullptr);
+  EXPECT_TRUE(pch->findMPC(crn,1) == nullptr);
   glbNodes.erase(std::find(glbNodes.begin(), glbNodes.end(), crn));
-  for (int& it : glbNodes)
-    ASSERT_TRUE(pch->findMPC(it, 1) != nullptr);
+
+  for (int node : glbNodes)
+    EXPECT_TRUE(pch->findMPC(node,1) != nullptr);
 }
 
 

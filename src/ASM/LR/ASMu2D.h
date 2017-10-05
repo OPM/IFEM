@@ -136,8 +136,8 @@ public:
   //! \param[in] basis Which basis to grab nodes for (0 for all)
   //! \param[in] orient Orientation of boundary (used for sorting)
   //! \param[in] local If \e true, return patch-local node numbers
-  virtual void getBoundaryNodes(int lIndex, IntVec& nodes, int basis,
-                                int, int orient, bool local = false) const;
+  virtual void getBoundaryNodes(int lIndex, IntVec& nodes, int basis, int = 1,
+                                int orient = 0, bool local = false) const;
 
   //! \brief Returns the polynomial order in each parameter direction.
   //! \param[out] p1 Order in first (u) direction
@@ -309,9 +309,6 @@ public:
   //! \param[in] J -1 or +1 for either vmin or vmax corner
   //! \param[in] basis which basis to consider (for mixed methods)
   virtual int getCorner(int I, int J, int basis) const;
-
-  //! \brief Returns the node indices for a given edge.
-  IntVec getEdgeNodes(int edge, int basis, int orient) const;
 
 protected:
   //! \brief Evaluates an integral over the interior patch domain.
@@ -552,6 +549,15 @@ protected:
   //! \param[out] XC Coordinates of the element corners
   //! \return Characteristic element size
   double getElementCorners(int iel, std::vector<Vec3>& XC) const;
+
+  //! \brief Returns the node indices for a given edge.
+  //! \param nodes Array of node numbers
+  //! \param[in] edge Local index of the boundary edge
+  //! \param[in] basis Which basis to grab nodes for
+  //! \param[in] orient Orientation of boundary (used for sorting)
+  //! \param[in] local If \e true, return patch-local node numbers
+  void getEdgeNodes(IntVec& nodes, int edge, int basis,
+                    int orient, bool local) const;
 
   //! \brief Evaluates the basis functions and derivatives of an element.
   //! \param[in] iel 0-based element index
