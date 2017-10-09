@@ -135,10 +135,15 @@ public:
                    std::vector<LR::Basisfunction*>& functions);
 
   //! \brief Return all boundary functions that are covered by the given set of input nodes
-  //! \param   nodes List of (0-indexed) patch local node IDs
-  //! \returns       Node IDs (0-indexed) for boundary functions whos support is
-  //                 completely covered by the union of the support in the input array
+  //! \param nodes List of (0-indexed) patch local node IDs (typically requested by adaptive refinement)
+  //! \returns     Node IDs (0-indexed) for boundary functions whos support is
+  //               completely covered by the union of the support in the input array
   virtual IntVec getBoundaryNodesCovered(const IntVec& nodes) const ;
+
+  //! \brief Return all functions whos support overlap with the input functions
+  //! \param nodes List of (0-indexed) patch local node IDs (typically requested by adaptive refinement)
+  //! \returns     Node IDs (0-indexed) for functions with overlapping support with the ones in boundary
+  virtual IntVec getOverlappingNodes(const IntVec& nodes) const ;
 
   //! \brief Remap element wise errors from geometry mesh to refinement mesh.
   //! \param     errors The remapped errors
