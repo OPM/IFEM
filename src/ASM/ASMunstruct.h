@@ -142,6 +142,13 @@ public:
   //! completely covered by the union of the support of the input nodes
   IntVec getBoundaryNodesCovered(const IntSet& nodes) const;
 
+  //! \brief Returns all functions whose support overlap with the input nodes.
+  //! \param[in] nodes List of (0-based) patch local node IDs
+  //! (typically requested by adaptive refinement)
+  //! \return 0-based node IDs for functions with overlapping support with
+  //! the ones in boundary
+  IntVec getOverlappingNodes(const IntSet& nodes) const;
+
   //! \brief Remaps element-wise errors from geometry mesh to refinement mesh.
   //! \param     errors The remapped errors
   //! \param[in] origErr The element wise errors on the geometry mesh

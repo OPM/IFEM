@@ -323,6 +323,21 @@ IntVec ASMunstruct::getBoundaryNodesCovered (const IntSet& nodes) const
 }
 
 
+IntVec ASMunstruct::getOverlappingNodes (const IntSet& nodes) const
+{
+  IntSet result;
+  for (const int i : nodes)
+  {
+    LR::Basisfunction *b = geo->getBasisfunction(i);
+    for (auto el : b->support()) // for all elements where *b has support
+      for (auto basis : el->support()) // for all functions on this element
+        result.insert(basis->getId());
+  }
+
+  return IntVec(result.begin(), result.end());
+}
+
+
 void ASMunstruct::Sort(int u, int v, int orient,
                        std::vector<LR::Basisfunction*>& functions)
 {
