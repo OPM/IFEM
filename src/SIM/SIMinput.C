@@ -1071,17 +1071,6 @@ bool SIMinput::refine (const LR::RefineData& prm,
 }
 
 
-/*!
-  \note Solution transfer is available for single-patch models only.
-  Therefore, we assume there is a one-to-one correspondance between the
-  patch-level and global-level node numbering, and we don't need to use
-  ASMbase::[extract|inject]NodeVec(), which in any case would not work
-  as we would have needed to regenerate the global node numbering data first.
-
-  TODO: If/when going adaptive multi-patch, the solution transfer has to be
-  done after preprocess().
-*/
-
 bool SIMinput::refine (const LR::RefineData& prm,
                        Vectors& sol, const char* fName)
 {
@@ -1110,15 +1099,6 @@ bool SIMinput::refine (const LR::RefineData& prm,
       isRefined = true;
       return true;
     }
-  }
-
-
-  // more  error test input
-  if (!sol.empty())
-  {
-    std::cerr <<" *** SIMinput::refine: Solution transfer is not"
-              <<" implemented for multi-patch models."<< std::endl;
-    return false;
   }
   if (prm.errors.size() > 0 ) // refinement by true_beta
   {
@@ -1186,6 +1166,9 @@ bool SIMinput::refine (const LR::RefineData& prm,
     for(int j : secondary)             // add depth refinement to make it conforming
       refineIndices[i].push_back(j);
   }
+
+  Vectors lsols(sol.size()*myModel.size());
+  size_t k = 0;
   for (size_t i = 0; i < myModel.size(); i++)
   {
     // make unique list of refinement indices
@@ -1198,9 +1181,15 @@ bool SIMinput::refine (const LR::RefineData& prm,
     prmloc.elements = refineIndices[i];
     char patchName[256];
     sprintf(patchName, "%d_%s", (int) i, fName);
-    if (!pch->refine(prmloc,sol,patchName))
+    Vectors lsol(sol.size());
+    for (size_t j = 0; j < sol.size(); ++j)
+      pch->extractNodeVec(sol[j], lsol[j], sol[j].size()/this->getNoNodes(1));
+    if (!pch->refine(prmloc,lsol,patchname))
       return false;
+    for (size_t j = 0; j < sol.size(); ++j)
+      lsols[k++] = lsol[j];
   }
+  sol = lsols;
 
   isRefined = true;
   return true;
