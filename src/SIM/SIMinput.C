@@ -1070,17 +1070,6 @@ bool SIMinput::refine (const LR::RefineData& prm,
 }
 
 
-/*!
-  \note Solution transfer is available for single-patch models only.
-  Therefore, we assume there is a one-to-one correspondance between the
-  patch-level and global-level node numbering, and we don't need to use
-  ASMbase::[extract|inject]NodeVec(), which in any case would not work
-  as we would have needed to regenerate the global node numbering data first.
-
-  TODO: If/when going adaptive multi-patch, the solution transfer has to be
-  done after preprocess().
-*/
-
 bool SIMinput::refine (const LR::RefineData& prm,
                        Vectors& sol, const char* fName)
 {
@@ -1097,12 +1086,6 @@ bool SIMinput::refine (const LR::RefineData& prm,
   if (myModel.size() == 1)
     return (isRefined = pch->refine(prm,sol,fName));
 
-  if (!sol.empty())
-  {
-    std::cerr <<" *** SIMinput::refine: Solution transfer is not"
-              <<" implemented for multi-patch models."<< std::endl;
-    return false;
-  }
   if (!prm.errors.empty()) // refinement by true_beta
   {
     std::cerr <<" *** SIMinput::refine: True beta refinement not"
@@ -1151,6 +1134,8 @@ bool SIMinput::refine (const LR::RefineData& prm,
     refineIndices[i].insert(secondary.begin(),secondary.end());
   }
 
+  Vectors lsols;
+  lsols.reserve(sol.size()*myModel.size());
   for (size_t i = 0; i < myModel.size(); i++)
   {
     pch = dynamic_cast<ASMunstruct*>(myModel[i]);
@@ -1158,9 +1143,15 @@ bool SIMinput::refine (const LR::RefineData& prm,
     prmloc.elements = IntVec(refineIndices[i].begin(),refineIndices[i].end());
     char patchName[256];
     sprintf(patchName, "%lu_%s", i, fName);
-    if (!pch->refine(prmloc,sol,patchName))
+    Vectors lsol(sol.size());
+    for (size_t j = 0; j < sol.size(); ++j)
+      pch->extractNodeVec(sol[j], lsol[j], sol[j].size()/this->getNoNodes(1));
+    if (!pch->refine(prmloc,lsol,patchName))
       return false;
+    for (const Vector& s : lsol)
+      lsols.push_back(s);
   }
+  sol = lsols;
 
   return (isRefined = true);
 }
