@@ -16,6 +16,7 @@
 #include "ModelGenerator.h"
 #include "ASMstruct.h"
 #include "ASMunstruct.h"
+#include "GlbL2projector.h"
 #include "LinSolParams.h"
 #include "Functions.h"
 #include "Utilities.h"
@@ -495,6 +496,9 @@ bool SIMinput::parse (const TiXmlElement* elem)
     std::string solver;
     if (utl::getAttribute(elem,"class",solver,true))
       opt.setLinearSolver(solver);
+    if (utl::getAttribute(elem,"l2class",solver,true))
+      if (solver == "petsc")
+        GlbL2::MatrixType = SystemMatrix::PETSC;
   }
   else if (!strcasecmp(elem->Value(),"eigensolver"))
     utl::getAttribute(elem,"mode",opt.eig);
@@ -532,6 +536,9 @@ bool SIMinput::parse (const TiXmlElement* elem)
     if (!mySolParams)
       mySolParams = new LinSolParams();
     result &= mySolParams->read(elem);
+    // for now use same solver parameters for l2
+    if (GlbL2::MatrixType == SystemMatrix::PETSC)
+      GlbL2::SolverParams = mySolParams;
   }
 
   const TiXmlElement* child = elem->FirstChildElement();

@@ -20,6 +20,15 @@
 #include "IntegrandBase.h"
 #include "Function.h"
 #include "Profiler.h"
+#ifdef HAS_PETSC
+#include "PETScMatrix.h"
+#include "LinSolParams.h"
+#include "ProcessAdm.h"
+#endif
+
+
+SystemMatrix::Type GlbL2::MatrixType = SystemMatrix::SPARSE;
+LinSolParams* GlbL2::SolverParams = nullptr;
 
 
 /*!
@@ -259,32 +268,50 @@ bool ASMbase::globalL2projection (Matrix& sField,
   // Assemble the projection matrices
   size_t i, nnod = this->getNoNodes(1);
   size_t j, ncomp = integrand.getNoFields(2);
-  SparseMatrix A(SparseMatrix::SUPERLU);
-  StdVector B(nnod*ncomp);
-  A.redim(nnod,nnod);
+  SparseMatrix* A;
+  StdVector* B;
+#ifdef HAS_PETSC
+  if (GlbL2::MatrixType == SystemMatrix::PETSC && GlbL2::SolverParams)
+  {
+    A = new PETScMatrix(ProcessAdm(), *GlbL2::SolverParams, LinAlg::SYMMETRIC);
+    B = new PETScVector(ProcessAdm(), nnod*ncomp);
+  }
+  else
+#endif
+  {
+    A = new SparseMatrix(SparseMatrix::SUPERLU);
+    B = new StdVector(nnod*ncomp);
+  }
+  A->redim(nnod,nnod);
 
-  if (!this->assembleL2matrices(A,B,integrand,continuous))
+  if (!this->assembleL2matrices(*A,*B,integrand,continuous))
+  {
+    delete A;
+    delete B;
     return false;
+  }
 
 #if SP_DEBUG > 1
-  std::cout <<"---- Matrix A -----\n"<< A
+  std::cout <<"---- Matrix A -----\n"<< *A
             <<"-------------------"<< std::endl;
-  std::cout <<"---- Vector B -----"<< B
+  std::cout <<"---- Vector B -----"<< *B
             <<"-------------------"<< std::endl;
 #endif
 
   // Solve the patch-global equation system
-  if (!A.solve(B)) return false;
+  if (!A->solve(*B)) return false;
 
   // Store the control-point values of the projected field
   sField.resize(ncomp,nnod);
   for (i = 1; i <= nnod; i++)
     for (j = 1; j <= ncomp; j++)
-      sField(j,i) = B(i+(j-1)*nnod);
+      sField(j,i) = (*B)(i+(j-1)*nnod);
 
 #if SP_DEBUG > 1
   std::cout <<"- Solution Vector -"<< sField
             <<"-------------------"<< std::endl;
 #endif
+  delete A;
+  delete B;
   return true;
 }

@@ -19,6 +19,7 @@
 
 class IntegrandBase;
 class FunctionBase;
+class LinSolParams;
 
 typedef std::vector<size_t> uIntVec; //!< General unsigned integer vector
 
@@ -30,6 +31,9 @@ typedef std::vector<size_t> uIntVec; //!< General unsigned integer vector
 class GlbL2 : public Integrand
 {
 public:
+  static SystemMatrix::Type MatrixType; //!< Matrix type for projection
+  static LinSolParams* SolverParams; //!< Linear solver params projection
+
   //! \brief The constructor initializes the projection matrices.
   //! \param[in] p The main problem integrand
   //! \param[in] n Dimension of the L2-projection matrices (number of nodes)
