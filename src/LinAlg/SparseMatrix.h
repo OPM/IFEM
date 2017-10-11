@@ -266,6 +266,10 @@ private:
   SuperLUdata*    slu; //!< Matrix data for the SuperLU equation solver
   int      numThreads; //!< Number of threads to use for the SuperLU_MT solver
 
+#ifdef HAS_UMFPACK
+  void* umfSymbolic; //!< Symbolically factored matrix for UMFPACK
+#endif
+
 protected:
   IntVec IA; //!< Identifies the beginning of each row or column
   IntVec JA; //!< Specifies column/row index of each nonzero element

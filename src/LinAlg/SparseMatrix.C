@@ -133,6 +133,9 @@ SparseMatrix::SparseMatrix (SparseSolver eqSolver, int nt)
   nrow = ncol = 0;
   solver = eqSolver;
   numThreads = nt;
+#ifdef HAS_UMFPACK
+  umfSymbolic = nullptr;
+#endif
   slu = 0;
 }
 
@@ -146,6 +149,9 @@ SparseMatrix::SparseMatrix (size_t m, size_t n)
   solver = NONE;
   numThreads = 0;
   slu = 0;
+#ifdef HAS_UMFPACK
+  umfSymbolic = nullptr;
+#endif
 }
 
 
@@ -162,12 +168,19 @@ SparseMatrix::SparseMatrix (const SparseMatrix& B)
   solver = B.solver;
   numThreads = B.numThreads;
   slu = 0; // The SuperLU data (if any) is not copied
+#ifdef HAS_UMFPACK
+  umfSymbolic = nullptr;
+#endif
 }
 
 
 SparseMatrix::~SparseMatrix ()
 {
   if (slu) delete slu;
+#ifdef HAS_UMFPACK
+  if (umfSymbolic)
+    umfpack_di_free_symbolic(&umfSymbolic);
+#endif
 }
 
 
@@ -203,6 +216,12 @@ void SparseMatrix::resize (size_t r, size_t c, bool forceEditable)
 
   if (slu) delete slu;
   slu = 0;
+#ifdef HAS_UMFPACK
+  if (umfSymbolic) {
+    umfpack_di_free_symbolic(&umfSymbolic);
+    umfSymbolic = nullptr;
+  }
+#endif
 }
 
 
@@ -1232,19 +1251,18 @@ bool SparseMatrix::solveUMF (Vector& B, Real* rcond)
 #ifdef HAS_UMFPACK
   double info[UMFPACK_INFO];
   Vector X(B.size());
-  void* symbolic;
-  umfpack_di_symbolic(nrow, ncol, IA.data(), JA.data(),
-                      A.data(), &symbolic, nullptr, info);
-  if (info[UMFPACK_STATUS] != UMFPACK_OK)
-    return false;
+  if (!umfSymbolic) {
+    umfpack_di_symbolic(nrow, ncol, IA.data(), JA.data(),
+                        A.data(), &umfSymbolic, nullptr, info);
+    if (info[UMFPACK_STATUS] != UMFPACK_OK)
+      return false;
+  }
+
   void* numeric;
-  umfpack_di_numeric(IA.data(), JA.data(), A.data(), symbolic,
+  umfpack_di_numeric(IA.data(), JA.data(), A.data(), umfSymbolic,
                      &numeric, nullptr, info);
   if (info[UMFPACK_STATUS] != UMFPACK_OK)
-  {
-    umfpack_di_free_symbolic(&symbolic);
     return false;
-  }
   if (rcond)
     *rcond = info[UMFPACK_RCOND];
   umfpack_di_solve(UMFPACK_A,
@@ -1252,7 +1270,6 @@ bool SparseMatrix::solveUMF (Vector& B, Real* rcond)
                    &X[0], &B[0], numeric, nullptr, info);
   if (info[UMFPACK_STATUS] == UMFPACK_OK)
     B = X;
-  umfpack_di_free_symbolic(&symbolic);
   umfpack_di_free_numeric(&numeric);
   return info[UMFPACK_STATUS] == UMFPACK_OK;
 #else
