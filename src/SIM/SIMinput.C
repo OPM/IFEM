@@ -1109,6 +1109,19 @@ bool SIMinput::refine (const LR::RefineData& prm,
     // fetch all boundary nodes covered (may need to pass this to other patches)
     IntVec bndry_nodes = pch->getBoundaryNodesCovered(refineIndices[i]);
 
+    // DESIGN NOTE: It is tempting here to use patch connectivity information.
+    // However this does not account (in the general case) for cross-connections
+    // in L-shape geometries, i.e.
+    //
+    // +-----+
+    // | #1  |
+    // |     |         patch #1 (edge 3) connected to patch #2 (edge 4)
+    // +-----+-----+   patch #2 (edge 2) connected to patch #3 (edge 1)
+    // | #2  | #3  |
+    // |     |     |   we need to pass the corner idx patch #3 (vertex 3)
+    // +-----+-----+   to patch #1 (vertex 2), but this connection is not
+    //                 guaranteed to appear in the input file
+
     // for all boundary nodes, check if these appear on other patches
     for (int k : bndry_nodes)
     {
@@ -1123,15 +1136,32 @@ bool SIMinput::refine (const LR::RefineData& prm,
         }
     }
   }
+
   for (size_t i = 0; i < myModel.size(); i++)
   {
     pch = dynamic_cast<ASMunstruct*>(myModel[i]);
-    IntVec secondary = pch->getOverlappingNodes(conformingIndices[i]);
-    // add refinement from neighbours
-    refineIndices[i].insert(conformingIndices[i].begin(),
-                            conformingIndices[i].end());
-    // add depth refinement to make it conforming
-    refineIndices[i].insert(secondary.begin(),secondary.end());
+    int nedg = (pch->getNoParamDim() == 2) ? 4 : 6;
+    std::vector<IntVec> bndry(nedg);
+    // OPTIMIZATION NOTE: if we by some clever datastructures already knew which edge
+    // each node in conformingIndices[i] was on, then we don't have to brute-force search
+    // for it like we do here. pch->getBoundaryNodes() above seem to compute this,
+    // but it is only for the sending patch boundary index, not the recieving patch boundary
+    // index.
+    for (int j = 1; j <= nedg; j++)
+      pch->getBoundaryNodes(j, bndry[j-1], 1, 1, 0, true);
+    for (int j : conformingIndices[i]) // add refinement from neighbours
+    {
+      bool done_with_this_node = false;
+      for (int edge = 0; edge < nedg && !done_with_this_node; edge++)
+        for (int edgeNode : bndry[edge])
+          if (edgeNode-1 == j)
+          {
+            IntVec secondary = pch->getOverlappingNodes(conformingIndices[i], edge/2);
+            refineIndices[i].insert(secondary.begin(),secondary.end());
+            done_with_this_node = true;
+            break;
+          }
+    }
   }
 
   Vectors lsols;
