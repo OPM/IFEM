@@ -28,9 +28,6 @@
 #include <sstream>
 #include <numeric>
 
-using namespace std;
-
-
 bool SIMinput::parseGeometryTag (const TiXmlElement* elem)
 {
   IFEM::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
@@ -1123,14 +1120,6 @@ bool SIMinput::refine (const LR::RefineData& prm,
     // fetch all boundary nodes covered (may need to pass this to other patches)
     IntVec bndry_nodes = pch->getBoundaryNodesCovered(refineIndices[i]);
 
-    cout << " == Patch #" << i << " ==\n";
-    cout << " Requested (inner) indices:\n";
-    for(int j : refineIndices[i])
-      cout << j << endl;
-    cout << " Covered (boundary) indices:\n";
-    for(int j : bndry_nodes)
-      cout << j << endl;
-
     // for all boundary nodes, check if these appear on other patches
     for (const int k : bndry_nodes)
     {
@@ -1143,28 +1132,41 @@ bool SIMinput::refine (const LR::RefineData& prm,
         int locId = pch2->getNodeIndex(globId);
         if(locId > 0) {
           conformingIndicies[j].push_back(locId-1);
-          cout << " #"<<i<<":"<< k << " <---> #"<<j<<":"<<locId-1<<endl;
         }
       }
     }
-    cout << " Transfered (multipatch) indices:\n";
     for (size_t j = 0; j < myModel.size(); j++)
     {
       std::sort(conformingIndicies[j].begin(), conformingIndicies[j].end());
       auto last = std::unique(conformingIndicies[j].begin(), conformingIndicies[j].end());
       conformingIndicies[j].erase(last, conformingIndicies[j].end());
-        for(int l : conformingIndicies[j])
-          cout << "#"<<j<<": "<<l << endl;
     }
   }
   for (size_t i = 0; i < myModel.size(); i++)
   {
     pch = dynamic_cast<ASMunstruct*>(myModel[i]);
-    IntVec secondary = pch->getOverlappingNodes(conformingIndicies[i]);
+    int nedg = (pch->getNoParamDim() == 2) ? 4 : 6;
+    std::vector<IntVec> bndry(nedg);
+    for(int j =1 ; j<=nedg; j++)
+      pch->getBoundaryNodes(j, bndry[j-1], 1, 1, 0, true);
     for(int j : conformingIndicies[i]) // add refinement from neighbours
-      refineIndices[i].push_back(j);
-    for(int j : secondary)             // add depth refinement to make it conforming
-      refineIndices[i].push_back(j);
+    {
+      bool done_with_this_node = false;
+      for(int edge=0;  edge<nedg && !done_with_this_node; edge++)
+      {
+        for(int edgeNode : bndry[edge])
+        {
+          if(edgeNode-1 == j)
+          {
+            IntVec secondary = pch->getOverlappingNodes(conformingIndicies[i], (edge-1)/2);
+            for(int k : secondary)
+              refineIndices[i].push_back(k);
+            done_with_this_node = true;
+            break;
+          }
+        }
+      }
+    }
   }
 
   Vectors lsols(sol.size()*myModel.size());
@@ -1184,7 +1186,7 @@ bool SIMinput::refine (const LR::RefineData& prm,
     Vectors lsol(sol.size());
     for (size_t j = 0; j < sol.size(); ++j)
       pch->extractNodeVec(sol[j], lsol[j], sol[j].size()/this->getNoNodes(1));
-    if (!pch->refine(prmloc,lsol,patchname))
+    if (!pch->refine(prmloc,lsol,patchName))
       return false;
     for (size_t j = 0; j < sol.size(); ++j)
       lsols[k++] = lsol[j];

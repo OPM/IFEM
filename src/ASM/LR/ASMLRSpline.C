@@ -327,15 +327,37 @@ IntVec ASMunstruct::getBoundaryNodesCovered (const IntVec& nodes) const
   return result;
 }
 
-IntVec ASMunstruct::getOverlappingNodes (const IntVec& nodes) const
+IntVec ASMunstruct::getOverlappingNodes (const IntVec& nodes, int dir) const
 {
   IntVec result;
   for(const int i : nodes)
   {
     LR::Basisfunction *b = geo->getBasisfunction(i);
     for(auto el : b->support()) // for all elements where *b has support
+    {
       for(auto basis : el->support()) // for all functions on this element
-        result.push_back(basis->getId());
+      {
+        if(dir == -1)
+        {
+          result.push_back(basis->getId());
+        }
+        else
+        {
+          bool support_only_bigger_in_dir_direction = true;
+          for(int j=0; j<b->nVariate(); j++)
+          {
+            if(j==dir) continue;
+            if(b->getParmin(j) > basis->getParmin(j) ||
+               b->getParmax(j) < basis->getParmax(j))
+            {
+              support_only_bigger_in_dir_direction = false;
+            }
+          }
+          if(support_only_bigger_in_dir_direction)
+            result.push_back(basis->getId());
+        }
+      }
+    }
   }
 
   // remove duplicate indices
