@@ -36,7 +36,10 @@ PETScVector::PETScVector(const ProcessAdm& padm, size_t n) :
   StdVector(n), adm(padm)
 {
   VecCreate(*adm.getCommunicator(),&x);
-  VecSetSizes(x,adm.dd.getMaxEq()-adm.dd.getMinEq()+1,PETSC_DECIDE);
+  if (adm.isParallel())
+    VecSetSizes(x,adm.dd.getMaxEq()-adm.dd.getMinEq()+1,PETSC_DECIDE);
+  else
+    VecSetSizes(x,n,PETSC_DECIDE);
   VecSetFromOptions(x);
   LinAlgInit::increfs();
 }
@@ -468,9 +471,8 @@ bool PETScMatrix::solve (SystemVector& B, bool newLHS, Real*)
   if (!Bptr)
     return false;
 
-  StdVector* Bsptr = dynamic_cast<StdVector*>(&B);
-  if (!Bsptr)
-    return false;
+  if (this->SparseMatrix::A.empty())
+    return this->solveDirect(*Bptr);
 
   Vec x;
   VecDuplicate(Bptr->getVector(),&x);
@@ -538,6 +540,64 @@ bool PETScMatrix::solve (const Vec& b, Vec& x, bool newLHS, bool knoll)
     PetscPrintf(PETSC_COMM_WORLD,"\n Iterations for %s = %D\n",solParams.getStringValue("type").c_str(),its);
   }
   nLinSolves++;
+
+  return true;
+}
+
+
+bool PETScMatrix::solveDirect(PETScVector& B)
+{
+  // the sparsity pattern has been grown in-place, we need to init PETsc state.
+  // this is currently only used for patch-global L2 systems.
+  if (!this->optimiseSLU())
+    return false;
+
+  // Set correct number of rows and columns for matrix.
+  size_t nrow = IA.size()-1;
+  MatSetSizes(A, nrow, nrow, PETSC_DECIDE, PETSC_DECIDE);
+  MatSetFromOptions(A);
+  PetscInt max = 0;
+  for (size_t i = 0; i < nrow; ++i) // symmetric so row/column sizes should be the same
+    if (IA[i+1]-IA[i] > max)
+      max = IA[i+1]-IA[i];
+  MatSeqAIJSetPreallocation(A, max, nullptr);
+  MatSetOption(A, MAT_NEW_NONZERO_LOCATION_ERR, PETSC_FALSE);
+  MatSetUp(A);
+
+  for (size_t j = 0; j < nrow; ++j)
+    for (int i = IA[j]; i < IA[j+1]; ++i)
+      MatSetValue(A, JA[i], j, SparseMatrix::A[i], INSERT_VALUES);
+
+  MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);
+  MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);
+
+  Vec B1, x;
+  VecCreate(PETSC_COMM_SELF, &B1);
+  VecCreate(PETSC_COMM_SELF, &x);
+  VecSetSizes(B1, nrow, PETSC_DECIDE);
+  VecSetSizes(x, nrow, PETSC_DECIDE);
+  VecSetFromOptions(B1);
+  VecSetFromOptions(x);
+
+  forcedKSPType = "gmres";
+  size_t nrhs = B.dim() / nrow;
+  for (size_t i = 0; i < nrhs; ++i) {
+    for (size_t j = 0; j < nrow; ++j)
+      VecSetValue(B1, j, B(i*nrow+j+1), INSERT_VALUES);
+
+    VecAssemblyBegin(B1);
+    VecAssemblyEnd(B1);
+    if (!this->solve(B1, x, i == 0, true))
+      return false;
+    PetscScalar* aa;
+    VecGetArray(x, &aa);
+    std::copy(aa, aa+nrow, B.getPtr()+i*nrow);
+    VecRestoreArray(x, &aa);
+  }
+  forcedKSPType.clear();
+
+  VecDestroy(&x);
+  VecDestroy(&B1);
 
   return true;
 }
@@ -612,7 +672,9 @@ Real PETScMatrix::Linfnorm () const
 bool PETScMatrix::setParameters(PETScMatrix* P, PETScVector* Pb)
 {
   // Set linear solver method
-  KSPSetType(ksp,solParams.getStringValue("type").c_str());
+  KSPSetType(ksp,
+             !forcedKSPType.empty() ? forcedKSPType.c_str()
+                                    : solParams.getStringValue("type").c_str());
   KSPSetTolerances(ksp,solParams.getDoubleValue("rtol"),
                    solParams.getDoubleValue("atol"),
                    solParams.getDoubleValue("dtol"),

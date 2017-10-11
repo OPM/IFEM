@@ -179,6 +179,12 @@ protected:
   //! \brief Solve a linear system
   bool solve(const Vec& b, Vec& x, bool newLHS, bool knoll);
 
+  //! \brief Solve system stored in the elem map.
+  //! \details Create matrix from elem table, and solve for (possibly) multiple
+  //!          right-hand-side vectors in B.
+  //! \param B Vector with right-hand-sides to solve for
+  bool solveDirect(PETScVector& B);
+
   //! \brief Disabled copy constructor.
   PETScMatrix(const PETScMatrix& A) = delete;
 
@@ -188,6 +194,7 @@ protected:
   const ProcessAdm&   adm;             //!< Process administrator
   PETScSolParams      solParams;       //!< Linear solver parameters
   bool                setParams;       //!< If linear solver parameters are set
+  std::string         forcedKSPType;   //!< Force a KSP type ignoring the parameters
   PetscInt            ISsize;          //!< Number of index sets/elements
   PetscRealVec        coords;          //!< Coordinates of local nodes (x0,y0,z0,x1,y1,...)
   ISMat               dirIndexSet;     //!< Direction ordering
