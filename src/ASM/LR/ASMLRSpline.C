@@ -331,20 +331,18 @@ IntVec ASMunstruct::getOverlappingNodes (const IntSet& nodes, int dir) const
     LR::Basisfunction *b = geo->getBasisfunction(i);
     for (auto el : b->support()) // for all elements where *b has support
       for (auto basis : el->support()) // for all functions on this element
-        if (dir == -1)
-          result.insert(basis->getId());
-        else
+      {
+        bool support_only_bigger_in_allowed_direction = true;
+        for (int j = 0; j < b->nVariate() && support_only_bigger_in_allowed_direction; j++)
         {
-          bool support_only_bigger_in_dir_direction = true;
-          for (int j = 0; j < b->nVariate() && support_only_bigger_in_dir_direction; j++)
-            if (j != dir)
-              if (b->getParmin(j) > basis->getParmin(j) ||
-                  b->getParmax(j) < basis->getParmax(j))
-                support_only_bigger_in_dir_direction = false;
-
-          if (support_only_bigger_in_dir_direction)
-            result.insert(basis->getId());
+          if ((1<<j) & dir) continue; // the function is allowed to grow in the direction j
+          if (b->getParmin(j) > basis->getParmin(j) ||
+              b->getParmax(j) < basis->getParmax(j))
+            support_only_bigger_in_allowed_direction = false;
         }
+        if (support_only_bigger_in_allowed_direction)
+          result.insert(basis->getId());
+      }
   }
 
   return IntVec(result.begin(), result.end());
