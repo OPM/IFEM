@@ -106,22 +106,22 @@ void LR::generateThreadGroups (ThreadGroups& threadGroups, const LR::LRSpline* l
     int nColors       = 0;
     while(fixedElements < nElement) {
       // reset un-assigned element tags
-      for(int i=0; i<nElement; i++)
-        if(status[i]<0)
+      for (int i=0; i<nElement; i++)
+        if (status[i]<0)
           status[i] = 0;
       std::vector<int> thisColor;
 
       // look for available elements
-      for(auto e : lr->getAllElements() ) {
+      for (auto e : lr->getAllElements() ) {
         int i = e->getId();
-        if(status[i] == 0) {
+        if (status[i] == 0) {
           status[i] = nColors+1;
           thisColor.push_back(i);
           fixedElements++;
-          for(auto b : e->support()) // for all basisfunctions with support here
-            for(auto el2 : b->support()) {// for all element this function supports
+          for (auto b : e->support()) // for all basisfunctions with support here
+            for (auto el2 : b->support()) {// for all element this function supports
               int j = el2->getId();
-              if(status[j] == 0)  // if not assigned a color yet
+              if (status[j] == 0)  // if not assigned a color yet
                 status[j] = -1; // set as unavailable (with current color)
             }
         }
@@ -307,17 +307,18 @@ IntVec ASMunstruct::getFunctionsForElements (const IntVec& elements)
   return result;
 }
 
+
 IntVec ASMunstruct::getBoundaryNodesCovered (const IntVec& nodes) const
 {
   IntVec result;
   int numbEdges = (getNoParamDim() == 2) ? 4 : 6;
-  for(int edge=1; edge<=numbEdges;  edge++)
+  for (int edge=1; edge<=numbEdges;  edge++)
   {
     IntVec oneBoundary;
     this->getBoundaryNodes(edge, oneBoundary, 1, 1, 0, true); // this returns a 1-indexed list
-    for(const int i : nodes)
-      for(const int j : oneBoundary)
-        if(geo->getBasisfunction(i)->contains(*geo->getBasisfunction(j-1)))
+    for (const int i : nodes)
+      for (const int j : oneBoundary)
+        if (geo->getBasisfunction(i)->contains(*geo->getBasisfunction(j-1)))
           result.push_back(j-1);
   }
   // remove duplicate indices
@@ -327,27 +328,28 @@ IntVec ASMunstruct::getBoundaryNodesCovered (const IntVec& nodes) const
   return result;
 }
 
+
 IntVec ASMunstruct::getOverlappingNodes (const IntVec& nodes, int dir) const
 {
   IntVec result;
-  for(const int i : nodes)
+  for (const int i : nodes)
   {
     LR::Basisfunction *b = geo->getBasisfunction(i);
-    for(auto el : b->support()) // for all elements where *b has support
+    for (auto el : b->support()) // for all elements where *b has support
     {
-      for(auto basis : el->support()) // for all functions on this element
+      for (auto basis : el->support()) // for all functions on this element
       {
         bool support_only_bigger_in_allowed_direction = true;
-        for(int j=0; j<b->nVariate(); j++)
+        for (int j=0; j<b->nVariate(); j++)
         {
-          if((1<<j) & dir ) continue; // the function is allowed to grow in the direction j
-          if(b->getParmin(j) > basis->getParmin(j) ||
+          if ((1<<j) & dir ) continue; // the function is allowed to grow in the direction j
+          if (b->getParmin(j) > basis->getParmin(j) ||
              b->getParmax(j) < basis->getParmax(j))
           {
             support_only_bigger_in_allowed_direction = false;
           }
         }
-        if(support_only_bigger_in_allowed_direction)
+        if (support_only_bigger_in_allowed_direction)
           result.push_back(basis->getId());
       }
     }
@@ -377,7 +379,7 @@ void ASMunstruct::Sort(int u, int v, int orient,
                 if ((*a)[idx1][i] != (*b)[idx1][i])
                   return orient & 2 ? (*a)[idx1][i] > (*b)[idx1][i]
                                     : (*a)[idx1][i] < (*b)[idx1][i];
-              for(int i = 0; i < 1 + (orient < 4 ? p1 : p2); ++i)
+              for (int i = 0; i < 1 + (orient < 4 ? p1 : p2); ++i)
                 if ((*a)[idx2][i] != (*b)[idx2][i])
                   return orient & 1 ? (*a)[idx2][i] > (*b)[idx2][i]
                                     : (*a)[idx2][i] < (*b)[idx2][i];

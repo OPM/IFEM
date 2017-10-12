@@ -1089,9 +1089,9 @@ bool SIMinput::refine (const LR::RefineData& prm,
   }
 
   // single patch models only pass refinement call to the ASM level
-  if(myModel.size() == 1)
+  if (myModel.size() == 1)
   {
-    if( !pch->refine(prm, sol, fName))
+    if ( !pch->refine(prm, sol, fName))
     {
       return false;
     }
@@ -1118,7 +1118,7 @@ bool SIMinput::refine (const LR::RefineData& prm,
     pch = dynamic_cast<ASMunstruct*>(myModel[i]);
     for (int it : prm.elements) {
       int node = myModel[i]->getNodeIndex(it+1);
-      if(node > 0)
+      if (node > 0)
         refineIndices[i].push_back(node-1);
     }
     // fetch all boundary nodes covered (may need to pass this to other patches)
@@ -1139,17 +1139,21 @@ bool SIMinput::refine (const LR::RefineData& prm,
     // for all boundary nodes, check if these appear on other patches
     for (const int k : bndry_nodes)
     {
-      conformingIndicies[i].push_back(k);
+      bool appears_elsewhere = false;
       int globId = pch->getNodeID(k+1);
       for (size_t j = 0; j < myModel.size(); j++)
       {
-        if( i == j) continue;
+        if ( i == j) continue;
         pch2 = dynamic_cast<ASMunstruct*>(myModel[j]);
         int locId = pch2->getNodeIndex(globId);
-        if(locId > 0) {
+        if (locId > 0)
+        {
           conformingIndicies[j].push_back(locId-1);
+          appears_elsewhere = true;
         }
       }
+      if (appears_elsewhere)
+        conformingIndicies[i].push_back(k);
     }
   }
 
@@ -1166,40 +1170,40 @@ bool SIMinput::refine (const LR::RefineData& prm,
     // for it like we do here. pch->getBoundaryNodes() above seem to compute this,
     // but it is only for the sending patch boundary index, not the recieving patch boundary
     // index.
-    if(pch->getNoParamDim() == 2) {
+    if (pch->getNoParamDim() == 2) {
       ASMu2D* lr = dynamic_cast<ASMu2D*>(myModel[i]);
       int nedg0d = 4;
       int nedg1d = 4;
       IntVec              bndry0;
       std::vector<IntVec> bndry1(nedg1d);
-      for(int j =0 ; j<nedg0d; j++)
+      for (int j =0 ; j<nedg0d; j++)
         bndry0.push_back(lr->getCorner((j%2)*2-1, (j/2)*2-1, 1));
-      for(int j =1 ; j<=nedg1d; j++)
+      for (int j =1 ; j<=nedg1d; j++)
         lr->getBoundaryNodes(j, bndry1[j-1], 1, 1, 0, true);
-      for(int j : conformingIndicies[i]) // add refinement from neighbours
+      for (int j : conformingIndicies[i]) // add refinement from neighbours
       {
         bool done_with_this_node = false;
         // check if node is a corner node, compute large extended domain (all directions)
-        for(int edgeNode : bndry0)
+        for (int edgeNode : bndry0)
         {
-          if(edgeNode-1 == j)
+          if (edgeNode-1 == j)
           {
             IntVec secondary = lr->getOverlappingNodes(j);
-            for(int k : secondary)
+            for (int k : secondary)
               refineIndices[i].push_back(k);
             done_with_this_node = true;
             break;
           }
         }
         // check if node is an edge node, compute small extended domain (one direction)
-        for(int edge1d=0;  edge1d<nedg1d && !done_with_this_node; edge1d++)
+        for (int edge1d=0;  edge1d<nedg1d && !done_with_this_node; edge1d++)
         {
-          for(int edgeNode : bndry1[edge1d])
+          for (int edgeNode : bndry1[edge1d])
           {
-            if(edgeNode-1 == j)
+            if (edgeNode-1 == j)
             {
               IntVec secondary = lr->getOverlappingNodes(j, edge1d/2+1);
-              for(int k : secondary)
+              for (int k : secondary)
                 refineIndices[i].push_back(k);
               done_with_this_node = true;
               break;
@@ -1216,45 +1220,45 @@ bool SIMinput::refine (const LR::RefineData& prm,
       IntVec              bndry0;
       std::vector<IntVec> bndry1;
       std::vector<IntVec> bndry2(nedg2d);
-      for(int K=-1; K<2; K+=2)
-        for(int J=-1; J<2; J+=2)
-          for(int I=-1; I<2; I+=2)
+      for (int K=-1; K<2; K+=2)
+        for (int J=-1; J<2; J+=2)
+          for (int I=-1; I<2; I+=2)
             bndry0.push_back(lr->getCorner(I,J,K, 1));
-      for(int j =1 ; j<=nedg1d; j++)
+      for (int j =1 ; j<=nedg1d; j++)
         bndry1.push_back(lr->getEdge(j, true, 1, 0));
-      for(int j =1 ; j<=nedg2d; j++)
+      for (int j =1 ; j<=nedg2d; j++)
         lr->getBoundaryNodes(j, bndry2[j-1], 1, 1, 0, true);
-      for(int j : conformingIndicies[i]) // add refinement from neighbours
+      for (int j : conformingIndicies[i]) // add refinement from neighbours
       {
         bool done_with_this_node = false;
         // check if node is a corner node, compute large extended domain (all directions)
-        for(int edgeNode : bndry0)
+        for (int edgeNode : bndry0)
         {
-          if(edgeNode-1 == j)
+          if (edgeNode-1 == j)
           {
             IntVec secondary = lr->getOverlappingNodes(j);
-            for(int k : secondary)
+            for (int k : secondary)
               refineIndices[i].push_back(k);
             done_with_this_node = true;
             break;
           }
         }
         // check if node is an edge node, compute moderate extended domain (2 directions)
-        for(int edge1d=0;  edge1d<nedg1d && !done_with_this_node; edge1d++)
+        for (int edge1d=0;  edge1d<nedg1d && !done_with_this_node; edge1d++)
         {
-          for(int edgeNode : bndry1[edge1d])
+          for (int edgeNode : bndry1[edge1d])
           {
-            if(edgeNode-1 == j)
+            if (edgeNode-1 == j)
             {
               int allowed_direction;
-              if(edge1d < 4)
+              if (edge1d < 4)
                 allowed_direction = 6; // bin(110), allowed to grow in v- and w-direction
-              else if(edge1d < 8)
+              else if (edge1d < 8)
                 allowed_direction = 5; // bin(101), allowed to grow in u- and w-direction
               else
                 allowed_direction = 3; // bin(011), allowed to grow in u- and v-direction
               IntVec secondary = lr->getOverlappingNodes(j, allowed_direction);
-              for(int k : secondary)
+              for (int k : secondary)
                 refineIndices[i].push_back(k);
               done_with_this_node = true;
               break;
@@ -1262,14 +1266,14 @@ bool SIMinput::refine (const LR::RefineData& prm,
           }
         }
         // check if node is a face node, compute small extended domain (1 direction)
-        for(int edge2d=0;  edge2d<nedg2d && !done_with_this_node; edge2d++)
+        for (int edge2d=0;  edge2d<nedg2d && !done_with_this_node; edge2d++)
         {
-          for(int edgeNode : bndry2[edge2d])
+          for (int edgeNode : bndry2[edge2d])
           {
-            if(edgeNode-1 == j)
+            if (edgeNode-1 == j)
             {
               IntVec secondary = lr->getOverlappingNodes(j, (1<<edge2d/2));
-              for(int k : secondary)
+              for (int k : secondary)
                 refineIndices[i].push_back(k);
               done_with_this_node = true;
               break;
@@ -1296,11 +1300,13 @@ bool SIMinput::refine (const LR::RefineData& prm,
     LR::RefineData prmloc(prm);
     prmloc.elements = refineIndices[i];
     char patchName[256];
-    sprintf(patchName, "%d_%s", (int) i, fName);
+    if (fName != nullptr)
+      sprintf(patchName, "%d_%s", (int) i, fName);
+
     Vectors lsol(sol.size());
     for (size_t j = 0; j < sol.size(); ++j)
       pch->extractNodeVec(sol[j], lsol[j], sol[j].size()/this->getNoNodes(1));
-    if (!pch->refine(prmloc,lsol,patchName))
+    if (!pch->refine(prmloc,lsol,(fName) ? patchName : fName))
       return false;
     for (size_t j = 0; j < sol.size(); ++j)
       lsols[k++] = lsol[j];
