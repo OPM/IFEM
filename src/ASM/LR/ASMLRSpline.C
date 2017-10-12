@@ -106,22 +106,22 @@ void LR::generateThreadGroups (ThreadGroups& threadGroups, const LR::LRSpline* l
     int nColors       = 0;
     while(fixedElements < nElement) {
       // reset un-assigned element tags
-      for(int i=0; i<nElement; i++)
-        if(status[i]<0)
+      for (int i=0; i<nElement; i++)
+        if (status[i]<0)
           status[i] = 0;
       std::vector<int> thisColor;
 
       // look for available elements
-      for(auto e : lr->getAllElements() ) {
+      for (auto e : lr->getAllElements() ) {
         int i = e->getId();
-        if(status[i] == 0) {
+        if (status[i] == 0) {
           status[i] = nColors+1;
           thisColor.push_back(i);
           fixedElements++;
-          for(auto b : e->support()) // for all basisfunctions with support here
-            for(auto el2 : b->support()) {// for all element this function supports
+          for (auto b : e->support()) // for all basisfunctions with support here
+            for (auto el2 : b->support()) {// for all element this function supports
               int j = el2->getId();
-              if(status[j] == 0)  // if not assigned a color yet
+              if (status[j] == 0)  // if not assigned a color yet
                 status[j] = -1; // set as unavailable (with current color)
             }
         }
@@ -365,7 +365,7 @@ void ASMunstruct::Sort(int u, int v, int orient,
                 if ((*a)[idx1][i] != (*b)[idx1][i])
                   return orient & 2 ? (*a)[idx1][i] > (*b)[idx1][i]
                                     : (*a)[idx1][i] < (*b)[idx1][i];
-              for(int i = 0; i < 1 + (orient < 4 ? p1 : p2); ++i)
+              for (int i = 0; i < 1 + (orient < 4 ? p1 : p2); ++i)
                 if ((*a)[idx2][i] != (*b)[idx2][i])
                   return orient & 1 ? (*a)[idx2][i] > (*b)[idx2][i]
                                     : (*a)[idx2][i] < (*b)[idx2][i];

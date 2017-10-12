@@ -1128,15 +1128,20 @@ bool SIMinput::refine (const LR::RefineData& prm,
     // for all boundary nodes, check if these appear on other patches
     for (int k : bndry_nodes)
     {
-      conformingIndices[i].insert(k);
+      bool appears_elsewhere = false;
       int globId = pch->getNodeID(k+1);
       for (size_t j = 0; j < myModel.size(); j++)
         if (j != i)
         {
           int locId = myModel[j]->getNodeIndex(globId);
           if (locId > 0)
+          {
             conformingIndices[j].insert(locId-1);
+            appears_elsewhere = true;
+          }
         }
+      if (appears_elsewhere)
+        conformingIndices[i].insert(k);
     }
   }
 
@@ -1256,11 +1261,13 @@ bool SIMinput::refine (const LR::RefineData& prm,
     LR::RefineData prmloc(prm);
     prmloc.elements = IntVec(refineIndices[i].begin(),refineIndices[i].end());
     char patchName[256];
-    sprintf(patchName, "%lu_%s", i, fName);
+    if (fName)
+      sprintf(patchName, "%lu_%s", i, fName);
+
     Vectors lsol(sol.size());
     for (size_t j = 0; j < sol.size(); ++j)
       pch->extractNodeVec(sol[j], lsol[j], sol[j].size()/this->getNoNodes(1));
-    if (!pch->refine(prmloc,lsol,patchName))
+    if (!pch->refine(prmloc,lsol, fName ? patchName : fName))
       return false;
     for (const Vector& s : lsol)
       lsols.push_back(s);
