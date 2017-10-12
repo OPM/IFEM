@@ -142,9 +142,17 @@ public:
 
   //! \brief Return all functions whos support overlap with the input functions
   //! \param nodes List of (0-indexed) patch local node IDs (typically requested by adaptive refinement)
-  //! \param dir   In which parametric direction the basis functions are allowed to have bigger support (-1 for all)
+  //! \param dir   3bit binary mask for which parametri directions are allowed to grow; i.e. bin(011)=dec(3) 
+  //               allows u-direction and v-direction to grow, default is bin(111)=dec(7) all directions
   //! \returns     Node IDs (0-indexed) for functions with overlapping support with the ones in boundary
-  virtual IntVec getOverlappingNodes(const IntVec& nodes, int dir=-1) const ;
+  virtual IntVec getOverlappingNodes(const IntVec& nodes, int dir=7) const ;
+
+  //! \brief Return all functions whos support overlap with the input functions
+  //! \param nodes List of (0-indexed) patch local node IDs (typically requested by adaptive refinement)
+  //! \param dir   3bit binary mask for which parametri directions are allowed to grow; i.e. bin(011)=dec(3) 
+  //               allows u-direction and v-direction to grow, default is bin(111)=dec(7) all directions
+  //! \returns     Node IDs (0-indexed) for functions with overlapping support with the ones in boundary
+  virtual IntVec getOverlappingNodes(int node, int dir=7) const { return getOverlappingNodes(IntVec(1, node), dir); }
 
   //! \brief Remap element wise errors from geometry mesh to refinement mesh.
   //! \param     errors The remapped errors

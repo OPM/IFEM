@@ -337,25 +337,18 @@ IntVec ASMunstruct::getOverlappingNodes (const IntVec& nodes, int dir) const
     {
       for(auto basis : el->support()) // for all functions on this element
       {
-        if(dir == -1)
+        bool support_only_bigger_in_allowed_direction = true;
+        for(int j=0; j<b->nVariate(); j++)
         {
-          result.push_back(basis->getId());
-        }
-        else
-        {
-          bool support_only_bigger_in_dir_direction = true;
-          for(int j=0; j<b->nVariate(); j++)
+          if((1<<j) & dir ) continue; // the function is allowed to grow in the direction j
+          if(b->getParmin(j) > basis->getParmin(j) ||
+             b->getParmax(j) < basis->getParmax(j))
           {
-            if(j==dir) continue;
-            if(b->getParmin(j) > basis->getParmin(j) ||
-               b->getParmax(j) < basis->getParmax(j))
-            {
-              support_only_bigger_in_dir_direction = false;
-            }
+            support_only_bigger_in_allowed_direction = false;
           }
-          if(support_only_bigger_in_dir_direction)
-            result.push_back(basis->getId());
         }
+        if(support_only_bigger_in_allowed_direction)
+          result.push_back(basis->getId());
       }
     }
   }

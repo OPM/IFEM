@@ -17,6 +17,10 @@
 #include "ASMstruct.h"
 #include "ASMunstruct.h"
 #include "GlbL2projector.h"
+#ifdef HAS_LRSPLINE
+  #include "ASMu2D.h"
+  #include "ASMu3D.h"
+#endif
 #include "LinSolParams.h"
 #include "Functions.h"
 #include "Utilities.h"
@@ -1120,9 +1124,9 @@ bool SIMinput::refine (const LR::RefineData& prm,
     // fetch all boundary nodes covered (may need to pass this to other patches)
     IntVec bndry_nodes = pch->getBoundaryNodesCovered(refineIndices[i]);
 
-    // it is tempting at this point to use patch connectivity information. However
-    // this does not account (in the general case) for cross-connections in L-shape
-    // geometries, i.e.
+    // DESIGN NOTE: it is tempting at this point to use patch connectivity information.
+    // However this does not account (in the general case) for cross-connections in
+    // L-shape geometries, i.e.
     //
     // +-----+
     // | #1  |
@@ -1149,6 +1153,7 @@ bool SIMinput::refine (const LR::RefineData& prm,
     }
   }
 
+#ifdef HAS_LRSPLINE
   for (size_t i = 0; i < myModel.size(); i++)
   {
     std::sort(conformingIndicies[i].begin(), conformingIndicies[i].end());
@@ -1156,34 +1161,127 @@ bool SIMinput::refine (const LR::RefineData& prm,
     conformingIndicies[i].erase(last, conformingIndicies[i].end());
 
     pch = dynamic_cast<ASMunstruct*>(myModel[i]);
-    int nedg = (pch->getNoParamDim() == 2) ? 4 : 6;
-    std::vector<IntVec> bndry(nedg);
     // OPTIMIZATION NOTE: if we by some clever datastructures already knew which edge
     // each node in conformingIndices[i] was on, then we don't have to brute-force search
     // for it like we do here. pch->getBoundaryNodes() above seem to compute this,
     // but it is only for the sending patch boundary index, not the recieving patch boundary
     // index.
-    for(int j =1 ; j<=nedg; j++)
-      pch->getBoundaryNodes(j, bndry[j-1], 1, 1, 0, true);
-    for(int j : conformingIndicies[i]) // add refinement from neighbours
-    {
-      bool done_with_this_node = false;
-      for(int edge=0;  edge<nedg && !done_with_this_node; edge++)
+    if(pch->getNoParamDim() == 2) {
+      ASMu2D* lr = dynamic_cast<ASMu2D*>(myModel[i]);
+      int nedg0d = 4;
+      int nedg1d = 4;
+      IntVec              bndry0;
+      std::vector<IntVec> bndry1(nedg1d);
+      for(int j =0 ; j<nedg0d; j++)
+        bndry0.push_back(lr->getCorner((j%2)*2-1, (j/2)*2-1, 1));
+      for(int j =1 ; j<=nedg1d; j++)
+        lr->getBoundaryNodes(j, bndry1[j-1], 1, 1, 0, true);
+      for(int j : conformingIndicies[i]) // add refinement from neighbours
       {
-        for(int edgeNode : bndry[edge])
+        bool done_with_this_node = false;
+        // check if node is a corner node, compute large extended domain (all directions)
+        for(int edgeNode : bndry0)
         {
           if(edgeNode-1 == j)
           {
-            IntVec secondary = pch->getOverlappingNodes(conformingIndicies[i], edge/2);
+            IntVec secondary = lr->getOverlappingNodes(j);
             for(int k : secondary)
               refineIndices[i].push_back(k);
             done_with_this_node = true;
             break;
           }
         }
+        // check if node is an edge node, compute small extended domain (one direction)
+        for(int edge1d=0;  edge1d<nedg1d && !done_with_this_node; edge1d++)
+        {
+          for(int edgeNode : bndry1[edge1d])
+          {
+            if(edgeNode-1 == j)
+            {
+              IntVec secondary = lr->getOverlappingNodes(j, edge1d/2+1);
+              for(int k : secondary)
+                refineIndices[i].push_back(k);
+              done_with_this_node = true;
+              break;
+            }
+          }
+        }
       }
     }
+    else //volumetric models
+    {
+      ASMu3D* lr = dynamic_cast<ASMu3D*>(myModel[i]);
+      int nedg1d = 12;
+      int nedg2d =  6;
+      IntVec              bndry0;
+      std::vector<IntVec> bndry1;
+      std::vector<IntVec> bndry2(nedg2d);
+      for(int K=-1; K<2; K+=2)
+        for(int J=-1; J<2; J+=2)
+          for(int I=-1; I<2; I+=2)
+            bndry0.push_back(lr->getCorner(I,J,K, 1));
+      for(int j =1 ; j<=nedg1d; j++)
+        bndry1.push_back(lr->getEdge(j, true, 1, 0));
+      for(int j =1 ; j<=nedg2d; j++)
+        lr->getBoundaryNodes(j, bndry2[j-1], 1, 1, 0, true);
+      for(int j : conformingIndicies[i]) // add refinement from neighbours
+      {
+        bool done_with_this_node = false;
+        // check if node is a corner node, compute large extended domain (all directions)
+        for(int edgeNode : bndry0)
+        {
+          if(edgeNode-1 == j)
+          {
+            IntVec secondary = lr->getOverlappingNodes(j);
+            for(int k : secondary)
+              refineIndices[i].push_back(k);
+            done_with_this_node = true;
+            break;
+          }
+        }
+        // check if node is an edge node, compute moderate extended domain (2 directions)
+        for(int edge1d=0;  edge1d<nedg1d && !done_with_this_node; edge1d++)
+        {
+          for(int edgeNode : bndry1[edge1d])
+          {
+            if(edgeNode-1 == j)
+            {
+              int allowed_direction;
+              if(edge1d < 4)
+                allowed_direction = 6; // bin(110), allowed to grow in v- and w-direction
+              else if(edge1d < 8)
+                allowed_direction = 5; // bin(101), allowed to grow in u- and w-direction
+              else
+                allowed_direction = 3; // bin(011), allowed to grow in u- and v-direction
+              IntVec secondary = lr->getOverlappingNodes(j, allowed_direction);
+              for(int k : secondary)
+                refineIndices[i].push_back(k);
+              done_with_this_node = true;
+              break;
+            }
+          }
+        }
+        // check if node is a face node, compute small extended domain (1 direction)
+        for(int edge2d=0;  edge2d<nedg2d && !done_with_this_node; edge2d++)
+        {
+          for(int edgeNode : bndry2[edge2d])
+          {
+            if(edgeNode-1 == j)
+            {
+              IntVec secondary = lr->getOverlappingNodes(j, (1<<edge2d/2));
+              for(int k : secondary)
+                refineIndices[i].push_back(k);
+              done_with_this_node = true;
+              break;
+            }
+          }
+        }
+      }
+    } // end volumetric
   }
+#else
+  return false;
+#endif
 
   Vectors lsols(sol.size()*myModel.size());
   size_t k = 0;
