@@ -1120,6 +1120,18 @@ bool SIMinput::refine (const LR::RefineData& prm,
     // fetch all boundary nodes covered (may need to pass this to other patches)
     IntVec bndry_nodes = pch->getBoundaryNodesCovered(refineIndices[i]);
 
+    // it is tempting at this point to use patch connectivity information. However
+    // this does not account (in the general case) for cross-connections in L-shape
+    // geometries, i.e.
+    //
+    // +-----+
+    // | #1  |
+    // |     |         patch #1 (edge 3) connected to patch #2 (edge 4)
+    // +-----+-----+   patch #2 (edge 2) connected to patch #3 (edge 1)
+    // | #2  | #3  |
+    // |     |     |   we need to pass the corner idx patch #3 (vertex 3) to patch #1 (vertex 2),
+    // +-----+-----+   but this connection is not guaranteed to appear in the input file
+
     // for all boundary nodes, check if these appear on other patches
     for (const int k : bndry_nodes)
     {
@@ -1135,18 +1147,22 @@ bool SIMinput::refine (const LR::RefineData& prm,
         }
       }
     }
-    for (size_t j = 0; j < myModel.size(); j++)
-    {
-      std::sort(conformingIndicies[j].begin(), conformingIndicies[j].end());
-      auto last = std::unique(conformingIndicies[j].begin(), conformingIndicies[j].end());
-      conformingIndicies[j].erase(last, conformingIndicies[j].end());
-    }
   }
+
   for (size_t i = 0; i < myModel.size(); i++)
   {
+    std::sort(conformingIndicies[i].begin(), conformingIndicies[i].end());
+    auto last = std::unique(conformingIndicies[i].begin(), conformingIndicies[i].end());
+    conformingIndicies[i].erase(last, conformingIndicies[i].end());
+
     pch = dynamic_cast<ASMunstruct*>(myModel[i]);
     int nedg = (pch->getNoParamDim() == 2) ? 4 : 6;
     std::vector<IntVec> bndry(nedg);
+    // OPTIMIZATION NOTE: if we by some clever datastructures already knew which edge
+    // each node in conformingIndices[i] was on, then we don't have to brute-force search
+    // for it like we do here. pch->getBoundaryNodes() above seem to compute this,
+    // but it is only for the sending patch boundary index, not the recieving patch boundary
+    // index.
     for(int j =1 ; j<=nedg; j++)
       pch->getBoundaryNodes(j, bndry[j-1], 1, 1, 0, true);
     for(int j : conformingIndicies[i]) // add refinement from neighbours
@@ -1158,7 +1174,7 @@ bool SIMinput::refine (const LR::RefineData& prm,
         {
           if(edgeNode-1 == j)
           {
-            IntVec secondary = pch->getOverlappingNodes(conformingIndicies[i], (edge-1)/2);
+            IntVec secondary = pch->getOverlappingNodes(conformingIndicies[i], edge/2);
             for(int k : secondary)
               refineIndices[i].push_back(k);
             done_with_this_node = true;
