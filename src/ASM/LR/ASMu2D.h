@@ -241,10 +241,13 @@ public:
                                const std::map<int,int>* g2l = nullptr);
 
   //! \brief Returns the node index for a given corner.
+  //! \param[in] I -1 or +1 for either umin or umax corner
+  //! \param[in] J -1 or +1 for either vmin or vmax corner
+  //! \param[in] basis which basis to consider (for mixed methods)
   virtual int getCorner(int I, int J, int basis) const;
 
   //! \brief Returns the node indices for a given edge.
-  std::vector<int> getEdgeNodes(int edge, int basis, int orient) const;
+  IntVec getEdgeNodes(int edge, int basis, int orient) const;
 
 protected:
   //! \brief Evaluates an integral over the interior patch domain.

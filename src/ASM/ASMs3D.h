@@ -198,17 +198,25 @@ public:
   //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
   //! \param[in] lIndex Local index of the boundary face
   //! \param nodes Array of node numbers
-  //! \param basis Which basis to grab nodes for (0 for all)
-  //! \param thick Thickness of connection
-  //! \param local If true return patch-local node numbers
+  //! \param[in] basis Which basis to grab nodes for (0 for all)
+  //! \param[in] thick Thickness of connection
+  //! \param[in] local If true return patch-local node numbers
   virtual void getBoundaryNodes(int lIndex, IntVec& nodes,
                                 int basis, int thick = 1,
                                 int = 0, bool local = false) const;
 
   //! \brief Returns the node index for a given corner.
+  //! \param[in] I -1 or +1 for either umin or umax corner
+  //! \param[in] J -1 or +1 for either vmin or vmax corner
+  //! \param[in] K -1 or +1 for either wmin or wmax corner
+  //! \param[in] basis which basis to consider (for mixed methods)
   virtual int getCorner(int I, int J, int K, int basis) const;
-  //! \brief Returns the node indices for a given edge.
-  virtual std::vector<int> getEdge(int lEdge, bool open, int basis, int = 0) const;
+
+  //! \brief Returns the (1-indexed) node indices for a given edge.
+  //! \param[in] lEdge index to local edge (1,2,...12)
+  //! \param[in] open include end points or not
+  //! \param[in] basis which basis to consider (for mixed methods)
+  virtual IntVec getEdge(int lEdge, bool open, int basis, int = 0) const;
 
   //! \brief Assigns new global node numbers for all nodes of the patch.
   //! \param nodes Object with global nodes numbers to assign to this patch
@@ -345,7 +353,7 @@ public:
 
   //! \brief Sets the global node numbers for this patch.
   //! \param[in] nodes Vector of global node numbers (zero-based)
-  virtual void setNodeNumbers(const std::vector<int>& nodes);
+  virtual void setNodeNumbers(const IntVec& nodes);
 
   //! \brief Updates the time-dependent in-homogeneous Dirichlet coefficients.
   //! \param[in] func Scalar property fields

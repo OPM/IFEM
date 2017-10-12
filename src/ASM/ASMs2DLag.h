@@ -120,6 +120,7 @@ public:
   //! \note The number of element nodes must be set in \a grid on input.
   virtual bool tesselate(ElementBlock& grid, const int* npe) const;
 
+  using ASMs2D::evalSolution;
   //! \brief Evaluates the primary solution field at all visualization points.
   //! \details The number of visualization points is the same as the order of
   //! the Lagrange elements by default.
@@ -127,16 +128,15 @@ public:
   //! \param[in] locSol Solution vector in DOF-order
   //! \param[in] nf If nonzero, mixed evaluates nf fields on first basis
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-                            const int*, int nf) const;
+                            const int*, int nf = 0) const;
 
   //! \brief Evaluates the primary solution field at the nodal points.
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector local to current patch
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-                            const RealArray* gpar, bool = false,
+                            const RealArray*, bool = false,
                             int = 0, int = 0) const;
 
-  using ASMs2D::evalSolution;
   //! \brief Evaluates the secondary solution field at all visualization points.
   //! \details The number of visualization points is the same as the order of
   //! the Lagrange elements by default.

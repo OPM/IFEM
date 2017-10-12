@@ -93,7 +93,7 @@ public:
   virtual bool updateCoords(const Vector& displ);
 
   //! \brief Returns the node indices for a given face.
-  std::vector<int> getFaceNodes(int face, int basis = 1, int orient = -1) const;
+  IntVec getFaceNodes(int face, int basis = 1, int orient = -1) const;
 
   //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
   //! \param[in] lIndex Local index of the boundary face
@@ -105,9 +105,18 @@ public:
                                 int, int orient, bool local = false) const;
 
   //! \brief Returns the node index for a given corner.
+  //! \param[in] I -1 or +1 for either umin or umax corner
+  //! \param[in] J -1 or +1 for either vmin or vmax corner
+  //! \param[in] K -1 or +1 for either wmin or wmax corner
+  //! \param[in] basis which basis to consider (for mixed methods)
   virtual int getCorner(int I, int J, int K, int basis) const;
-  //! \brief Returns the node indices for a given edge.
-  virtual std::vector<int> getEdge(int lEdge, bool open, int basis, int orient) const;
+
+  //! \brief Returns the (1-indexed) node indices for a given edge.
+  //! \param[in] lEdge index to local edge (1,2,...12)
+  //! \param[in] open include end points or not
+  //! \param[in] basis which basis to consider (for mixed methods)
+  //! \param[in] orient local orientation of indices, see ASMunstruct::Sort
+  virtual IntVec getEdge(int lEdge, bool open, int basis, int orient) const;
 
   //! \brief Returns the polynomial order in each parameter direction.
   //! \param[out] p1 Order in first (u) direction

@@ -190,6 +190,9 @@ public:
                                 int = 0, bool local = false) const;
 
   //! \brief Returns the node index for a given corner.
+  //! \param[in] I -1 or +1 for either umin or umax corner
+  //! \param[in] J -1 or +1 for either vmin or vmax corner
+  //! \param[in] basis which basis to consider (for mixed methods)
   virtual int getCorner(int I, int J, int basis) const;
 
   //! \brief Assigns new global node numbers for all nodes of the patch.
@@ -293,7 +296,7 @@ public:
 
   //! \brief Sets the global node numbers for this patch.
   //! \param[in] nodes Vector of global node numbers (zero-based)
-  virtual void setNodeNumbers(const std::vector<int>& nodes);
+  virtual void setNodeNumbers(const IntVec& nodes);
 
   //! \brief Updates the time-dependent in-homogeneous Dirichlet coefficients.
   //! \param[in] func Scalar property fields
