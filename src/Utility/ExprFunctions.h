@@ -57,6 +57,9 @@ protected:
   EvalFunc& operator=(const EvalFunc&);
   //! \brief Evaluates the function expression.
   virtual Real evaluate(const Real& x) const;
+
+  //! \brief Cleanup allocated data.
+  void cleanup();
 };
 
 
@@ -111,6 +114,9 @@ protected:
   EvalFunction(const EvalFunction&);
   //! \brief Non-implemented assignment operator to disallow copying.
   EvalFunction& operator=(const EvalFunction&);
+
+  //! \brief Cleanup allocated data.
+  void cleanup();
 };
 
 

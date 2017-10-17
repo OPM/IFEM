@@ -112,6 +112,7 @@ EvalFunc::EvalFunc (const char* function, const char* x)
     }
   }
   catch (ExprEval::Exception e) {
+    cleanup();
     ExprException(e,"parsing",function);
   }
 }
@@ -119,12 +120,22 @@ EvalFunc::EvalFunc (const char* function, const char* x)
 
 EvalFunc::~EvalFunc ()
 {
+  cleanup();
+}
+
+
+void EvalFunc::cleanup()
+{
   for (auto& it : expr)
     delete it;
   for (auto& it : f)
     delete it;
   for (auto& it : v)
     delete it;
+  arg.clear();
+  expr.clear();
+  f.clear();
+  v.clear();
 }
 
 
@@ -134,6 +145,8 @@ Real EvalFunc::evaluate (const Real& x) const
 #ifdef USE_OPENMP
   i = omp_get_thread_num();
 #endif
+  if (i >= arg.size())
+    return 0;
   Real result = Real(0);
   try {
     *arg[i] = x;
@@ -179,6 +192,7 @@ EvalFunction::EvalFunction (const char* function) : gradient{}, dgradient{}
     }
   }
   catch (ExprEval::Exception e) {
+    cleanup();
     ExprException(e,"parsing",function);
   }
 
@@ -191,6 +205,12 @@ EvalFunction::EvalFunction (const char* function) : gradient{}, dgradient{}
 
 EvalFunction::~EvalFunction ()
 {
+  cleanup();
+}
+
+
+void EvalFunction::cleanup()
+{
   for (auto& it : expr)
     delete it;
   for (auto& it : f)
@@ -201,6 +221,10 @@ EvalFunction::~EvalFunction ()
     delete it;
   for (auto& it : dgradient)
     delete it;
+  arg.clear();
+  expr.clear();
+  f.clear();
+  v.clear();
 }
 
 
@@ -251,6 +275,9 @@ Real EvalFunction::evaluate (const Vec3& X) const
 #ifdef USE_OPENMP
     i = omp_get_thread_num();
 #endif
+    if (i >= arg.size())
+      return 0;
+
     *arg[i].x = X.x;
     *arg[i].y = X.y;
     *arg[i].z = X.z;
