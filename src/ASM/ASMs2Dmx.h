@@ -222,6 +222,10 @@ public:
   virtual void getBoundaryNodes(int lIndex, IntVec& nodes, int basis,
                                 int thick = 1, int = 0, bool local = false) const;
 
+  //! \brief Manually set the bases for special purposes (e.g. subdivision).
+  //! \param[in] inp The custom constructed basis
+  void setBases(std::vector<std::shared_ptr<Go::SplineSurface>>& inp) { m_basis = inp; }
+
 protected:
   //! \brief Assembles L2-projection matrices for the secondary solution.
   //! \param[out] A Left-hand-side matrix

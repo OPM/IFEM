@@ -64,7 +64,8 @@ bool SIM3D::addConnection (int master, int slave, int mIdx,
 
     IFEM::cout <<"\tConnecting P"<< slave <<" F"<< sIdx
                <<" to P"<< master <<" F"<< mIdx
-               <<" orient "<< orient << std::endl;
+               <<" orient="<< orient <<" basis="<< basis
+               <<" thick="<< thick << std::endl;
 
     ASM3D* spch = dynamic_cast<ASM3D*>(myModel[lslave-1]);
     ASM3D* mpch = dynamic_cast<ASM3D*>(myModel[lmaster-1]);

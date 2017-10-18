@@ -636,6 +636,19 @@ bool ASMs2D::connectBasis (int edge, ASMs2D& neighbor, int nedge, bool revers,
   for (int& it : masterNodes)
     it += master;
 
+  int n1, n2;
+  if (!neighbor.getSize(n1,n2,basis)) return false;
+  std::cout << "\tmaster coords:";
+  for (int& i : masterNodes)
+    std::cout << " " << neighbor.getCoord(i)[nedge<3 ? 0 : 1];
+  std::cout << std::endl;
+
+  if (!this->getSize(n1,n2,basis)) return false;
+  std::cout << "\tslave coords:";
+  for (int& i : slaveNodes)
+    std::cout << " " << this->getCoord(i)[nedge<3 ? 0 : 1];
+  std::cout << std::endl;
+
   if (masterNodes.size() != slaveNodes.size())
   {
     std::cerr <<" *** ASMs2D::connectBasis: Non-matching edges, sizes "
@@ -765,15 +778,28 @@ void ASMs2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
   else if (code < 0)
     bcode = -code;
 
+  int i1 = 2;
+  int i2 = 2;
+  int i1e = n1;
+  int i2e = n2;
+  std::vector<int> mult;
   switch (dir)
     {
     case  1: // Right edge (positive I-direction)
       node += n1-1;
     case -1: // Left edge (negative I-direction)
-      if (!open)
-	this->prescribe(node,dof,bcode);
-      node += n1;
-      for (int i2 = 2; i2 < n2; i2++, node += n1)
+      this->getBasis(basis)->basis_v().knotMultiplicities(mult);
+      if (!open) {
+        if (mult[0] == this->getBasis(basis)->basis_v().order()) {
+          this->prescribe(node,dof,bcode);
+          node += n1;
+        } else
+          i2 = 1;
+        if (mult.back() != this->getBasis(basis)->basis_v().order())
+          i2e = n2+1;
+      } else
+        node += n1;
+      for ( ; i2 < i2e; i2++, node += n1)
       {
 	// If the Dirichlet condition is to be projected, add this node to
 	// the set of nodes to receive prescribed value from the projection
@@ -782,16 +808,25 @@ void ASMs2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
 	  dirich.back().nodes.push_back(std::make_pair(i2,node));
       }
       if (!open)
-	this->prescribe(node,dof,bcode);
+        if (mult.back() == this->getBasis(basis)->basis_v().order())
+          this->prescribe(node,dof,bcode);
       break;
 
     case  2: // Back edge (positive J-direction)
       node += n1*(n2-1);
     case -2: // Front edge (negative J-direction)
-      if (!open)
-	this->prescribe(node,dof,bcode);
-      node++;
-      for (int i1 = 2; i1 < n1; i1++, node++)
+      this->getBasis(basis)->basis_u().knotMultiplicities(mult);
+      if (!open) {
+        if (mult[0] == this->getBasis(basis)->basis_u().order()) {
+          this->prescribe(node,dof,bcode);
+          node++;
+        } else
+          i1 = 1;
+        if (mult.back() != this->getBasis(basis)->basis_u().order())
+          i1e = n1+1;
+      } else
+        node++;
+      for ( ; i1 < i1e; i1++, node++)
       {
 	// If the Dirichlet condition is to be projected, add this node to
 	// the set of nodes to receive prescribed value from the projection
@@ -800,7 +835,8 @@ void ASMs2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
 	  dirich.back().nodes.push_back(std::make_pair(i1,node));
       }
       if (!open)
-	this->prescribe(node,dof,bcode);
+        if (mult.back() == this->getBasis(basis)->basis_u().order())
+          this->prescribe(node,dof,bcode);
       break;
     }
 

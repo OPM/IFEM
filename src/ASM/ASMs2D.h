@@ -115,6 +115,8 @@ public:
   //! \brief Returns the spline curve representing a boundary of this patch.
   //! \param[in] dir Parameter direction defining which boundary to return
   virtual Go::SplineCurve* getBoundary(int dir, int = 1);
+  //! \brief Returns the number of bases.
+  virtual size_t getNoBasis() const { return 1; }
   //! \brief Returns the spline surface representing the basis of this patch.
   virtual Go::SplineSurface* getBasis(int = 1) const { return surf; }
   //! \brief Copies the parameter domain from the \a other patch.

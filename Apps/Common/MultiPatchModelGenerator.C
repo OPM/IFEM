@@ -14,7 +14,9 @@
 #include "MultiPatchModelGenerator.h"
 #include "ASMs1D.h"
 #include "ASMs2D.h"
+#include "ASMs2Dmx.h"
 #include "ASMs3D.h"
+#include "ASMs3Dmx.h"
 #include "IFEM.h"
 #include "SIMinput.h"
 #include "Utilities.h"
@@ -22,7 +24,10 @@
 #include "Vec3Oper.h"
 #include "tinyxml.h"
 #include <array>
+#include <GoTools/geometry/BsplineBasis.h>
 #include <GoTools/geometry/ObjectHeader.h>
+#include <GoTools/geometry/SurfaceInterpolator.h>
+#include <GoTools/trivariate/VolumeInterpolator.h>
 #include <string>
 
 
@@ -103,10 +108,12 @@ MultiPatchModelGenerator1D::createGeometry (const SIMinput& sim) const
       if (strcasecmp(sub->Value(),"raiseorder") == 0) {
         int nu;
         utl::getAttribute(sub,"u",nu);
+        IFEM::cout <<"\tRaising order of P1 " << nu << std::endl;
         pch.raiseOrder(nu);
       } else if (strcasecmp(sub->Value(),"refine") == 0) {
         int nu;
         utl::getAttribute(sub,"u",nu);
+        IFEM::cout <<"\tRefining P1 " << nu << std::endl;
         pch.uniformRefine(nu);
       }
 
@@ -343,11 +350,13 @@ MultiPatchModelGenerator2D::createGeometry (const SIMinput& sim) const
         int nu, nv;
         utl::getAttribute(sub,"u",nu);
         utl::getAttribute(sub,"v",nv);
+        IFEM::cout <<"\tRaising order of P1 " << nu <<" "<< nv << std::endl;
         pch.raiseOrder(nu,nv);
       } else if (strcasecmp(sub->Value(),"refine") == 0) {
         int nu, nv;
         utl::getAttribute(sub,"u",nu);
         utl::getAttribute(sub,"v",nv);
+        IFEM::cout <<"\tRefining P1 " << nu <<" "<< nv << std::endl;
         pch.uniformRefine(0,nu);
         pch.uniformRefine(1,nv);
       }
@@ -414,55 +423,159 @@ Go::SplineSurface MultiPatchModelGenerator2D::getSubPatch(
 }
 
 
+Go::BsplineBasis extendedBasis(const Go::BsplineBasis& bOld)
+{
+  auto i0 = bOld.begin(), i1 = bOld.end()-1;
+  std::vector<double> knots = const_cast<Go::BsplineBasis&>(bOld).getKnots();
+  knots.insert(knots.end(), *i1==1 ? 1 : *i1*2-*(i1-1));
+  knots.insert(knots.begin(), *i0==0 ? 0 : *i0*2-*(i0+1));
+  return Go::BsplineBasis(bOld.order()+1, knots.begin(), knots.end());
+}
+
+
+bool MultiPatchModelGenerator2D::establishSubdivisionBases (SIMinput& sim) const
+{
+  if (sim.getNoPatches() == 1 || !subdivision)
+    return true;
+
+  const SIMdependency::PatchVec model = sim.getFEModel();
+  for (size_t i = 0; i < model.size() && sim.getNoFields(2) > 0; i++)
+  {
+    // TODO: only if pch indeed is mx, else break loop
+    ASMs2Dmx* pch = static_cast<ASMs2Dmx*>(model[i]);
+    Go::SplineSurface* surf = pch->getSurface();
+    if (surf->rational()) {
+      std::cerr << "MultiPatchModelGenerator2D::establishSubdivisionBases:"
+                << " Rational case not implemented." << std::endl;
+      return false;
+    }
+
+    // as ASMmxBase::establishBases except for extendedBasis()
+    std::vector<std::shared_ptr<Go::SplineSurface>> result(2);
+    if (ASMmxBase::Type == ASMmxBase::FULL_CONT_RAISE_BASIS1)
+    {
+      int ndim = surf->dimension();
+      Go::BsplineBasis b1 = extendedBasis(surf->basis(0));
+      Go::BsplineBasis b2 = extendedBasis(surf->basis(1));
+
+      RealArray ug(b1.numCoefs()), vg(b2.numCoefs());
+      for (int i = 0; i < b1.numCoefs(); i++)
+        ug[i] = b1.grevilleParameter(i);
+      for (int j = 0; j < b2.numCoefs(); j++)
+        vg[j] = b2.grevilleParameter(j);
+
+      RealArray XYZ(ndim*ug.size()*vg.size());
+      surf->gridEvaluator(XYZ,ug,vg);
+      result[0].reset(Go::SurfaceInterpolator::regularInterpolation(b1,b2,
+                                                                    ug,vg,XYZ,ndim,
+                                                                    false,XYZ));
+      result[1].reset(new Go::SplineSurface(*surf));
+    }
+    else if (ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
+    {
+      result.resize(3);
+
+      int ndim = surf->dimension();
+      Go::BsplineBasis a1 = surf->basis(0);
+      Go::BsplineBasis a2 = surf->basis(1);
+      Go::BsplineBasis b1 = extendedBasis(a1);
+      Go::BsplineBasis b2 = extendedBasis(a2);
+
+      RealArray u0(a1.numCoefs()), v0(a2.numCoefs());
+      for (int i = 0; i < a1.numCoefs(); i++)
+        u0[i] = a1.grevilleParameter(i);
+      for (int j = 0; j < a2.numCoefs(); j++)
+        v0[j] = a2.grevilleParameter(j);
+      RealArray ug(b1.numCoefs()), vg(b2.numCoefs());
+      for (int i = 0; i < b1.numCoefs(); i++)
+        ug[i] = b1.grevilleParameter(i);
+      for (int j = 0; j < b2.numCoefs(); j++)
+        vg[j] = b2.grevilleParameter(j);
+
+      // Evaluate the spline surface at all points
+      // Project the coordinates onto the new basis (the 2nd XYZ is dummy here)
+      RealArray XYZ0(ndim*ug.size()*v0.size()), XYZ1(ndim*u0.size()*vg.size());
+      surf->gridEvaluator(XYZ0,ug,v0);
+      surf->gridEvaluator(XYZ1,u0,vg);
+      result[2].reset(new Go::SplineSurface(*surf));
+      result[0].reset(Go::SurfaceInterpolator::regularInterpolation(b1,a2,
+                                                                    ug,v0,XYZ0,ndim,
+                                                                    false,XYZ0));
+      result[1].reset(Go::SurfaceInterpolator::regularInterpolation(a1,b2,
+                                                                    u0,vg,XYZ1,ndim,
+                                                                    false,XYZ1));
+      ASMmxBase::geoBasis = 3;
+    }
+    else
+    {
+      std::cerr << "MultiPatchModelGenerator2D::establishSubdivisionBases:"
+                << " MixedType " << ASMmxBase::Type << " not recognized."
+                << std::endl;
+      return false;
+    }
+    pch->setBases(result);
+  }
+  return true;
+}
+
+
 bool MultiPatchModelGenerator2D::createTopology (SIMinput& sim) const
 {
+  // Manually create subdivision-specific bases
+  if (!establishSubdivisionBases(sim))
+    return false;
+
   if (!sim.createFEMmodel())
     return false;
 
+  if (sim.getNoPatches() == 1)
+    return true;
+
   auto&& IJ = [this](int i, int j) { return 1 + j*nx + i; };
 
-  int p1,p2,p3;
-  if (subdivision)
-    sim.getPatch(1)->getOrder(p1,p2,p3);
+  ASMs2D* pch0 = static_cast<ASMs2D*>(sim.getPatch(1));
+  size_t nb = pch0->getNoBasis();
 
-  auto&& thick = [p1,p2,this](int dir) { return subdivision ? dir == 1 ? p1-1 : p2-1 : 1; };
+  for (size_t b = 1; b <= nb; ++b) {
+    Go::SplineSurface* srf = pch0->getBasis(b);
+    int p1 = srf->order_u();
+    int p2 = srf->order_v();
 
-  for (size_t j = 0; j < ny; ++j)
-    for (size_t i = 0; i < nx-1; ++i) {
-      if (!sim.addConnection(IJ(i,j), IJ(i+1,j), 2, 1, 0, 0, true, 1, thick(1)))
-        return false;
-    }
+    auto&& thick = [p1,p2,this](int dir) { return subdivision ? dir == 1 ? p1-1 : p2-1 : 1; };
 
-  for (size_t j = 0; j < ny-1; ++j)
-    for (size_t i = 0; i < nx; ++i)
-      if (!sim.addConnection(IJ(i,j), IJ(i,j+1), 4, 3, 0, 0, true, 1, thick(2)))
-        return false;
-
-  if (periodic_x)
     for (size_t j = 0; j < ny; ++j)
-      if (nx > 1) {
-        if (!sim.addConnection(IJ(0,j), IJ(nx-1,j), 1, 2, 0, 0, false))
+      for (size_t i = 0; i < nx-1; ++i) {
+        if (!sim.addConnection(IJ(i,j),IJ(i+1,j),2,1,0,b,true,1,thick(1)))
           return false;
-      }
-      else {
-        IFEM::cout <<"\tPeriodic I-direction P"<< IJ(0,j) << std::endl;
-        ASMs2D* pch = dynamic_cast<ASMs2D*>(sim.getPatch(IJ(0,j), true));
-        if (pch)
-          pch->closeEdges(1);
       }
 
-  if (periodic_y)
-    for (size_t i = 0; i < nx; ++i)
-      if (ny > 1) {
-        if (!sim.addConnection(IJ(i,0), IJ(i,ny-1), 3, 4, 0, 0, false))
+    for (size_t j = 0; j < ny-1; ++j)
+      for (size_t i = 0; i < nx; ++i)
+        if (!sim.addConnection(IJ(i,j),IJ(i,j+1),4,3,0,b,true,1,thick(2)))
           return false;
+
+    if (basisIsIn(nb, b, periodic_x))
+      if (nx < 2) {
+        std::cerr << "MultiPatchModelGenerator2D::createTopology: smooth"
+                  << " periodicity only supported across patches (nx > 1).\n";
+        return false;
+      } else {
+        for (size_t j = 0; j < ny; ++j)
+          if (!sim.addConnection(IJ(0,j),IJ(nx-1,j),1,2,0,b,false,1,thick(1)))
+            return false;
       }
-      else {
-        IFEM::cout <<"\tPeriodic J-direction P"<< IJ(i,0)<< std::endl;
-        ASMs2D* pch = dynamic_cast<ASMs2D*>(sim.getPatch(IJ(i,0), true));
-        if (pch)
-          pch->closeEdges(2);
+
+    if (basisIsIn(nb, b, periodic_y))
+      if (ny < 2) {
+        std::cerr << "MultiPatchModelGenerator2D::createTopology: smooth"
+                  << " periodicity only supported across patches (ny > 1).\n";
+        return false;
+      } else {
+        for (size_t i = 0; i < nx; ++i)
+          if (!sim.addConnection(IJ(i,0),IJ(i,ny-1),3,4,0,b,false,1,thick(2)))
+            return false;
       }
+  }
 
   return true;
 }
@@ -667,12 +780,14 @@ MultiPatchModelGenerator3D::createGeometry (const SIMinput& sim) const
         utl::getAttribute(sub,"u",nu);
         utl::getAttribute(sub,"v",nv);
         utl::getAttribute(sub,"w",nw);
+        IFEM::cout <<"\tRaising order of P1 " << nu <<" "<< nv <<" "<< nw << std::endl;
         pch.raiseOrder(nu,nv,nw);
       } else if (strcasecmp(sub->Value(),"refine") == 0) {
         int nu, nv, nw;
         utl::getAttribute(sub,"u",nu);
         utl::getAttribute(sub,"v",nv);
         utl::getAttribute(sub,"w",nw);
+        IFEM::cout <<"\tRefining P1 " << nu <<" "<< nv <<" "<< nw << std::endl;
         pch.uniformRefine(0,nu);
         pch.uniformRefine(1,nv);
         pch.uniformRefine(2,nw);
@@ -757,80 +872,190 @@ Go::SplineVolume MultiPatchModelGenerator3D::getSubPatch(
 }
 
 
+bool MultiPatchModelGenerator3D::establishSubdivisionBases (SIMinput& sim) const
+{
+  if (sim.getNoPatches() == 1 || !subdivision)
+    return true;
+
+  const SIMdependency::PatchVec model = sim.getFEModel();
+  for (size_t i = 0; i < model.size() && sim.getNoFields(2) > 0; i++)
+  {
+    // TODO: only if pch indeed is mx, else break loop
+    ASMs3Dmx* pch = static_cast<ASMs3Dmx*>(model[i]);
+    Go::SplineVolume* vol = pch->getVolume();
+
+    // as ASMmxBase::establishBases except for extendedBasis()
+    std::vector<std::shared_ptr<Go::SplineVolume>> result(2);
+    if (ASMmxBase::Type == ASMmxBase::FULL_CONT_RAISE_BASIS1)
+    {
+      int ndim = vol->dimension();
+      Go::BsplineBasis b1 = extendedBasis(vol->basis(0));
+      Go::BsplineBasis b2 = extendedBasis(vol->basis(1));
+      Go::BsplineBasis b3 = extendedBasis(vol->basis(2));
+
+      RealArray ug(b1.numCoefs()), vg(b2.numCoefs()), wg(b3.numCoefs());
+      for (int i = 0; i < b1.numCoefs(); i++)
+        ug[i] = b1.grevilleParameter(i);
+      for (int j = 0; j < b2.numCoefs(); j++)
+        vg[j] = b2.grevilleParameter(j);
+      for (int k = 0; k < b3.numCoefs(); k++)
+        wg[k] = b3.grevilleParameter(k);
+
+      if (vol->rational()) {
+        std::cerr << "MultiPatchModelGenerator3D::establishSubdivisionBases:"
+                  << " Rational case not implemented." << std::endl;
+        return false;
+      } else {
+        RealArray XYZ(ndim*ug.size()*vg.size()*wg.size());
+        vol->gridEvaluator(ug,vg,wg,XYZ);
+        result[0].reset(Go::VolumeInterpolator::regularInterpolation(b1,b2,b3,
+                                                                     ug,vg,wg,XYZ,ndim,
+                                                                     false,XYZ));
+      }
+      result[1].reset(new Go::SplineVolume(*vol));
+    }
+    else if (ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
+    {
+      result.resize(4);
+
+      int ndim = vol->dimension();
+      Go::BsplineBasis a1 = vol->basis(0);
+      Go::BsplineBasis a2 = vol->basis(1);
+      Go::BsplineBasis a3 = vol->basis(2);
+      Go::BsplineBasis b1 = extendedBasis(a1);
+      Go::BsplineBasis b2 = extendedBasis(a2);
+      Go::BsplineBasis b3 = extendedBasis(a3);
+
+      RealArray u0(a1.numCoefs()), v0(a2.numCoefs()), w0(a3.numCoefs());
+      for (int i = 0; i < a1.numCoefs(); i++)
+        u0[i] = a1.grevilleParameter(i);
+      for (int j = 0; j < a2.numCoefs(); j++)
+        v0[j] = a2.grevilleParameter(j);
+      for (int k = 0; k < a3.numCoefs(); k++)
+        w0[k] = a3.grevilleParameter(k);
+      RealArray ug(b1.numCoefs()), vg(b2.numCoefs()), wg(b3.numCoefs());
+      for (int i = 0; i < b1.numCoefs(); i++)
+        ug[i] = b1.grevilleParameter(i);
+      for (int j = 0; j < b2.numCoefs(); j++)
+        vg[j] = b2.grevilleParameter(j);
+      for (int k = 0; k < b3.numCoefs(); k++)
+        wg[k] = b3.grevilleParameter(k);
+
+      // Evaluate the spline surface at all points
+      // Project the coordinates onto the new basis (the 2nd XYZ is dummy here)
+      RealArray XYZ0(ndim*ug.size()*v0.size()*w0.size()), XYZ1(ndim*u0.size()*vg.size()*w0.size()), XYZ2(ndim*u0.size()*v0.size()*wg.size());
+      vol->gridEvaluator(ug,v0,w0,XYZ0);
+      vol->gridEvaluator(u0,vg,w0,XYZ1);
+      vol->gridEvaluator(u0,v0,wg,XYZ2);
+      result[0].reset(Go::VolumeInterpolator::regularInterpolation(b1,a2,a3,
+                                                                   ug,v0,w0,XYZ0,ndim,
+                                                                   false,XYZ0));
+      result[1].reset(Go::VolumeInterpolator::regularInterpolation(a1,b2,a3,
+                                                                   u0,vg,w0,XYZ1,ndim,
+                                                                   false,XYZ1));
+      result[2].reset(Go::VolumeInterpolator::regularInterpolation(a1,a2,b3,
+                                                                   u0,v0,wg,XYZ2,ndim,
+                                                                   false,XYZ2));
+      result[3].reset(new Go::SplineVolume(*vol));
+      ASMmxBase::geoBasis = 4;
+    }
+    else
+    {
+      std::cerr << "MultiPatchModelGenerator3D::establishSubdivisionBases:"
+                << " MixedType " << ASMmxBase::Type << " not recognized."
+                << std::endl;
+      return false;
+    }
+    pch->setBases(result);
+  }
+  return true;
+}
+
+
 bool MultiPatchModelGenerator3D::createTopology (SIMinput& sim) const
 {
+  // Manually create subdivision-specific bases
+  if (!establishSubdivisionBases(sim))
+    return false;
+
   if (!sim.createFEMmodel())
     return false;
 
+  if (sim.getNoPatches() == 1)
+    return true;
+
   auto&& IJK = [this](int i, int j, int k) { return 1 + (k*ny+j)*nx + i; };
 
-  int p1,p2,p3;
-  if (subdivision)
-    sim.getPatch(1)->getOrder(p1,p2,p3);
+  ASMs3D* pch0 = static_cast<ASMs3D*>(sim.getPatch(1));
+  size_t nb = pch0->getNoBasis();
 
-  auto&& thick = [p1,p2,p3,this](int dir)
-  {
-    if (!subdivision)
-      return 1;
-    return dir == 1 ? p1-1 : (dir == 2 ? p2-1 : p3-1);
-  };
+  for (size_t b = 1; b <= nb; ++b) {
+    Go::SplineVolume* vol = pch0->getBasis(b);
+    int p1 = vol->order(0);
+    int p2 = vol->order(1);
+    int p3 = vol->order(2);
 
-  for (size_t k = 0; k < nz; ++k)
-    for (size_t j = 0; j < ny; ++j)
-      for (size_t i = 0; i < nx-1; ++i)
-        if (!sim.addConnection(IJK(i,j,k), IJK(i+1,j,k), 2, 1, 0, 0, true, 2, thick(1)))
-          return false;
+    auto&& thick = [p1,p2,p3,this](int dir)
+    {
+      if (!subdivision)
+        return 1;
+      return dir == 1 ? p1-1 : (dir == 2 ? p2-1 : p3-1);
+    };
 
-  for (size_t k = 0; k < nz; ++k)
-    for (size_t j = 0; j < ny-1; ++j)
-      for (size_t i = 0; i < nx; ++i)
-        if (!sim.addConnection(IJK(i,j,k), IJK(i,j+1,k), 4, 3, 0, 0, true, 2, thick(2)))
-          return false;
-
-  for (size_t k = 0; k < nz-1; ++k)
-    for (size_t j = 0; j < ny; ++j)
-      for (size_t i = 0; i < nx; ++i)
-        if (!sim.addConnection(IJK(i,j,k), IJK(i,j,k+1), 6, 5, 0, 0, true, 2, thick(3)))
-          return false;
-
-  if (periodic_x)
     for (size_t k = 0; k < nz; ++k)
       for (size_t j = 0; j < ny; ++j)
-        if (nx > 1) {
-          if (!sim.addConnection(IJK(0,j,k), IJK(nx-1,j,k), 1, 2, 0, 0, false, 2))
+        for (size_t i = 0; i < nx-1; ++i)
+          if (!sim.addConnection(IJK(i,j,k),IJK(i+1,j,k),2,1,0,b,true,2,thick(1)))
             return false;
-        } else {
-          IFEM::cout <<"\tPeriodic I-direction P"<< IJK(0,j,k) << std::endl;
-          ASMs3D* pch = dynamic_cast<ASMs3D*>(sim.getPatch(IJK(0,j,k), true));
-          if (pch)
-            pch->closeFaces(1);
-        }
 
-  if (periodic_y)
     for (size_t k = 0; k < nz; ++k)
-      for (size_t i = 0; i < nx; ++i)
-        if (ny > 1) {
-          if (!sim.addConnection(IJK(i,0,k), IJK(i,ny-1,k), 3, 4, 0, 0, false, 2))
+      for (size_t j = 0; j < ny-1; ++j)
+        for (size_t i = 0; i < nx; ++i)
+          if (!sim.addConnection(IJK(i,j,k),IJK(i,j+1,k),4,3,0,b,true,2,thick(2)))
             return false;
-         } else {
-          IFEM::cout <<"\tPeriodic J-direction P"<< IJK(i,0,k) << std::endl;
-          ASMs3D* pch = dynamic_cast<ASMs3D*>(sim.getPatch(IJK(i,0,k), true));
-          if (pch)
-            pch->closeFaces(2);
-         }
 
-  if (periodic_z)
-    for (size_t j = 0; j < ny; ++j)
-      for (size_t i = 0; i < nx; ++i)
-        if (nz > 1) {
-          if (!sim.addConnection(IJK(i,j,0), IJK(i,j,nz-1), 5, 6, 0, 0, false, 2))
+    for (size_t k = 0; k < nz-1; ++k)
+      for (size_t j = 0; j < ny; ++j)
+        for (size_t i = 0; i < nx; ++i)
+          if (!sim.addConnection(IJK(i,j,k),IJK(i,j,k+1),6,5,0,b,true,2,thick(3)))
             return false;
-        } else {
-          IFEM::cout <<"\tPeriodic K-direction P"<< IJK(i,j,0) << std::endl;
-          ASMs3D* pch = dynamic_cast<ASMs3D*>(sim.getPatch(IJK(i,j,0), true));
-          if (pch)
-            pch->closeFaces(3);
-        }
+
+    if (basisIsIn(nb, b, periodic_x))
+      if (nx < 2) {
+        std::cerr << "MultiPatchModelGenerator3D::createTopology: smooth"
+                  << " periodicity only supported across patches (nx > 1).\n";
+        return false;
+      } else {
+        for (size_t k = 0; k < nz; ++k)
+          for (size_t j = 0; j < ny; ++j)
+            if (!sim.addConnection(IJK(0,j,k),IJK(nx-1,j,k),1,2,0,b,false,2,thick(1)))
+              return false;
+      }
+
+    if (basisIsIn(nb, b, periodic_y))
+      if (ny < 2) {
+        std::cerr << "MultiPatchModelGenerator3D::createTopology: smooth"
+                  << " periodicity only supported across patches (ny > 1).\n";
+        return false;
+      } else {
+        for (size_t k = 0; k < nz; ++k)
+          for (size_t i = 0; i < nx; ++i)
+            if (!sim.addConnection(IJK(i,0,k),IJK(i,ny-1,k),3,4,0,b,false,2,thick(2)))
+              return false;
+      }
+
+    if (basisIsIn(nb, b, periodic_z))
+      if (nz < 2) {
+        std::cerr << "MultiPatchModelGenerator3D::createTopology: smooth"
+                  << " periodicity only supported across patches (nz > 1).\n";
+        return false;
+      } else {
+        for (size_t j = 0; j < ny; ++j)
+          for (size_t i = 0; i < nx; ++i)
+            if (!sim.addConnection(IJK(i,j,0),IJK(i,j,nz-1),5,6,0,b,false,2,thick(3)))
+              return false;
+      }
+  }
 
   return true;
 }
