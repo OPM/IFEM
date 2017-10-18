@@ -1110,8 +1110,8 @@ bool SIMinput::refine (const LR::RefineData& prm,
 
   // multipatch models need to pass refinement indices over patch boundaries
   std::vector<LR::RefineData> prmloc(myModel.size(), LR::RefineData(prm));
-  std::vector<IntVec> refineIndices(myModel.size());
-  std::vector<IntVec> conformingIndicies(myModel.size());
+  std::vector<std::set<int> > refineIndices(myModel.size());
+  std::vector<std::set<int> > conformingIndicies(myModel.size());
   for (size_t i = 0; i < myModel.size(); i++)
   {
     // extract local indices from the vector of global indices
@@ -1119,10 +1119,10 @@ bool SIMinput::refine (const LR::RefineData& prm,
     for (int it : prm.elements) {
       int node = myModel[i]->getNodeIndex(it+1);
       if (node > 0)
-        refineIndices[i].push_back(node-1);
+        refineIndices[i].insert(node-1);
     }
     // fetch all boundary nodes covered (may need to pass this to other patches)
-    IntVec bndry_nodes = pch->getBoundaryNodesCovered(refineIndices[i]);
+    IntVec bndry_nodes = pch->getBoundaryNodesCovered(IntVec(refineIndices[i].begin(), refineIndices[i].end()));
 
     // DESIGN NOTE: it is tempting at this point to use patch connectivity information.
     // However this does not account (in the general case) for cross-connections in
@@ -1148,22 +1148,18 @@ bool SIMinput::refine (const LR::RefineData& prm,
         int locId = pch2->getNodeIndex(globId);
         if (locId > 0)
         {
-          conformingIndicies[j].push_back(locId-1);
+          conformingIndicies[j].insert(locId-1);
           appears_elsewhere = true;
         }
       }
       if (appears_elsewhere)
-        conformingIndicies[i].push_back(k);
+        conformingIndicies[i].insert(k);
     }
   }
 
 #ifdef HAS_LRSPLINE
   for (size_t i = 0; i < myModel.size(); i++)
   {
-    std::sort(conformingIndicies[i].begin(), conformingIndicies[i].end());
-    auto last = std::unique(conformingIndicies[i].begin(), conformingIndicies[i].end());
-    conformingIndicies[i].erase(last, conformingIndicies[i].end());
-
     pch = dynamic_cast<ASMunstruct*>(myModel[i]);
     // OPTIMIZATION NOTE: if we by some clever datastructures already knew which edge
     // each node in conformingIndices[i] was on, then we don't have to brute-force search
@@ -1190,7 +1186,7 @@ bool SIMinput::refine (const LR::RefineData& prm,
           {
             IntVec secondary = lr->getOverlappingNodes(j);
             for (int k : secondary)
-              refineIndices[i].push_back(k);
+              refineIndices[i].insert(k);
             done_with_this_node = true;
             break;
           }
@@ -1204,7 +1200,7 @@ bool SIMinput::refine (const LR::RefineData& prm,
             {
               IntVec secondary = lr->getOverlappingNodes(j, edge1d/2+1);
               for (int k : secondary)
-                refineIndices[i].push_back(k);
+                refineIndices[i].insert(k);
               done_with_this_node = true;
               break;
             }
@@ -1238,7 +1234,7 @@ bool SIMinput::refine (const LR::RefineData& prm,
           {
             IntVec secondary = lr->getOverlappingNodes(j);
             for (int k : secondary)
-              refineIndices[i].push_back(k);
+              refineIndices[i].insert(k);
             done_with_this_node = true;
             break;
           }
@@ -1259,7 +1255,7 @@ bool SIMinput::refine (const LR::RefineData& prm,
                 allowed_direction = 3; // bin(011), allowed to grow in u- and v-direction
               IntVec secondary = lr->getOverlappingNodes(j, allowed_direction);
               for (int k : secondary)
-                refineIndices[i].push_back(k);
+                refineIndices[i].insert(k);
               done_with_this_node = true;
               break;
             }
@@ -1274,7 +1270,7 @@ bool SIMinput::refine (const LR::RefineData& prm,
             {
               IntVec secondary = lr->getOverlappingNodes(j, (1<<edge2d/2));
               for (int k : secondary)
-                refineIndices[i].push_back(k);
+                refineIndices[i].insert(k);
               done_with_this_node = true;
               break;
             }
@@ -1291,14 +1287,9 @@ bool SIMinput::refine (const LR::RefineData& prm,
   size_t k = 0;
   for (size_t i = 0; i < myModel.size(); i++)
   {
-    // make unique list of refinement indices
-    std::sort(refineIndices[i].begin(), refineIndices[i].end());
-    auto last = std::unique(refineIndices[i].begin(), refineIndices[i].end());
-    refineIndices[i].erase(last, refineIndices[i].end());
-
     pch = dynamic_cast<ASMunstruct*>(myModel[i]);
     LR::RefineData prmloc(prm);
-    prmloc.elements = refineIndices[i];
+    prmloc.elements = IntVec(refineIndices[i].begin(), refineIndices[i].end());
     char patchName[256];
     if (fName != nullptr)
       sprintf(patchName, "%d_%s", (int) i, fName);

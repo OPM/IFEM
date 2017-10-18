@@ -310,7 +310,7 @@ IntVec ASMunstruct::getFunctionsForElements (const IntVec& elements)
 
 IntVec ASMunstruct::getBoundaryNodesCovered (const IntVec& nodes) const
 {
-  IntVec result;
+  std::set<int> result;
   int numbEdges = (getNoParamDim() == 2) ? 4 : 6;
   for (int edge=1; edge<=numbEdges;  edge++)
   {
@@ -319,19 +319,15 @@ IntVec ASMunstruct::getBoundaryNodesCovered (const IntVec& nodes) const
     for (const int i : nodes)
       for (const int j : oneBoundary)
         if (geo->getBasisfunction(i)->contains(*geo->getBasisfunction(j-1)))
-          result.push_back(j-1);
+          result.insert(j-1);
   }
-  // remove duplicate indices
-  std::sort(result.begin(), result.end());
-  auto last = std::unique(result.begin(), result.end());
-  result.erase(last, result.end());
-  return result;
+  return IntVec(result.begin(), result.end());
 }
 
 
 IntVec ASMunstruct::getOverlappingNodes (const IntVec& nodes, int dir) const
 {
-  IntVec result;
+  std::set<int> result;
   for (const int i : nodes)
   {
     LR::Basisfunction *b = geo->getBasisfunction(i);
@@ -350,16 +346,12 @@ IntVec ASMunstruct::getOverlappingNodes (const IntVec& nodes, int dir) const
           }
         }
         if (support_only_bigger_in_allowed_direction)
-          result.push_back(basis->getId());
+          result.insert(basis->getId());
       }
     }
   }
 
-  // remove duplicate indices
-  std::sort(result.begin(), result.end());
-  auto last = std::unique(result.begin(), result.end());
-  result.erase(last, result.end());
-  return result;
+  return IntVec(result.begin(), result.end());
 }
 
 
