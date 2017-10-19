@@ -109,6 +109,9 @@ public:
   //! \param[out] sField Nodal/control-point values of the projected results.
   bool solve(Matrix& sField);
 
+  mutable SparseMatrix* pA; //!< Left-hand-side matrix of the L2-projection
+  mutable StdVector*    pB; //!< Right-hand-side vectors of the L2-projection
+
  protected:
   //! \brief Integrates the L2-projection matrices.
   //! \param[in] mnpc Matrix of nodal point correspondance
@@ -121,8 +124,6 @@ public:
 private:
   IntegrandBase* problem; //!< The main problem integrand
   FunctionBase* function; //!< Explicit function to L2-project
-  mutable SparseMatrix* pA; //!< Left-hand-side matrix of the L2-projection
-  mutable StdVector*    pB; //!< Right-hand-side vectors of the L2-projection
 #ifdef HAS_PETSC
   ProcessAdm*         adm; //!< Process administrator for PETSc
 #endif

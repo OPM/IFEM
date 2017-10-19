@@ -17,6 +17,7 @@
 #include "FiniteElement.h"
 #include "TimeDomain.h"
 #include "ASMbase.h"
+#include "ElmMats.h"
 #include "IntegrandBase.h"
 #include "Function.h"
 #include "Profiler.h"
@@ -35,13 +36,20 @@ LinSolParams* GlbL2::SolverParams = nullptr;
   \brief Local integral container class for L2-projections.
 */
 
-class L2Mats : public LocalIntegral
+class L2Mats : public ElmMats
 {
 public:
   //! \brief The constructor initializes pointers and references.
   //! \param[in] p The global L2 integrand object containing projection matrices
   //! \param[in] q Pointer to element data associated with the problem integrand
-  L2Mats(GlbL2& p, LocalIntegral* q = nullptr) : gl2Int(p), elmData(q) {}
+  L2Mats(GlbL2& p, size_t nen_, size_t nf, LocalIntegral* q = nullptr) :
+    gl2Int(p), elmData(q), nen(nen_)
+  {
+    this->resize(1,1);
+    this->redim(nen);
+    this->b.front().resize(nen*nf);
+  }
+
   //! \brief Empty destructor.
   virtual ~L2Mats() {}
 
@@ -51,9 +59,39 @@ public:
   GlbL2&         gl2Int;  //!< The global L2-projection integrand
   LocalIntegral* elmData; //!< Element data associated with problem integrand
 
+  size_t nen;
   IntVec  mnpc;        //!< Matrix of element nodal correspondance
   uIntVec elem_sizes;  //!< Size of each basis on the element
   uIntVec basis_sizes; //!< Size of each basis on the patch
+};
+
+
+class L2GlobalInt : public GlobalIntegral
+{
+public:
+  L2GlobalInt(SparseMatrix& A_, StdVector& B_) : A(A_), B(B_) {}
+
+  virtual bool assemble(const LocalIntegral* elmObj, int elmId)
+  {
+    const L2Mats& l2 = static_cast<const L2Mats&>(*elmObj);
+    const IntVec& mnpc = l2.mnpc;
+    size_t nnod = A.dim();
+    for (size_t a = 0; a < mnpc.size(); a++)
+    {
+      int inod = mnpc[a]+1;
+      for (size_t b = 0; b < mnpc.size(); b++)
+      {
+        int jnod = mnpc[b]+1;
+        A(inod,jnod) += l2.A.front()(a+1,b+1);
+      }
+      for (size_t i = 0; i < l2.b.front().size()/l2.nen; ++i)
+        B(nnod*i+inod) += l2.b.front()(l2.nen*i+a+1);
+    }
+    return true;
+  }
+protected:
+  SparseMatrix& A;
+  StdVector& B;
 };
 
 
@@ -129,10 +167,10 @@ LocalIntegral* GlbL2::getLocalIntegral (size_t nen, size_t iEl,
                                         bool neumann) const
 {
   if (problem)
-    return new L2Mats(*const_cast<GlbL2*>(this),
+    return new L2Mats(*const_cast<GlbL2*>(this),nen, problem->getNoFields(2),
                       problem->getLocalIntegral(nen,iEl,neumann));
   else
-    return new L2Mats(*const_cast<GlbL2*>(this));
+    return new L2Mats(*const_cast<GlbL2*>(this),nen, function->dim());
 }
 
 
@@ -182,6 +220,15 @@ bool GlbL2::evalInt (LocalIntegral& elmInt,
   }
   else if (function)
     solPt = function->getValue(X);
+
+  gl2.A.front().outer_product(fe.N, fe.N, true, fe.detJxW);
+
+  for (size_t i = 0; i < fe.N.size(); ++i)
+    for (size_t b = 0; b < solPt.size(); b++)
+      gl2.b.front()(1+i+b*fe.N.size()) += fe.N[i]*solPt[b]*fe.detJxW;
+
+  return true;
+
 
   return this->formL2Mats(gl2.mnpc,solPt,fe,X);
 }
@@ -280,7 +327,7 @@ bool ASMbase::L2projection (Matrix& sField,
   PROFILE2("ASMbase::L2projection");
 
   GlbL2 gl2(integrand,this->getNoNodes(1));
-  GlobalIntegral dummy;
+  L2GlobalInt dummy(*gl2.pA, *gl2.pB);
 
   gl2.preAssemble(MNPC,this->getNoElms(true));
   return this->integrate(gl2,dummy,time) && gl2.solve(sField);
@@ -292,7 +339,7 @@ bool ASMbase::L2projection (Matrix& sField, FunctionBase* function, double t)
   PROFILE2("ASMbase::L2projection");
 
   GlbL2 gl2(function,this->getNoNodes(1));
-  GlobalIntegral dummy;
+  L2GlobalInt dummy(*gl2.pA, *gl2.pB);
   TimeDomain time; time.t = t;
 
   gl2.preAssemble(MNPC,this->getNoElms(true));
