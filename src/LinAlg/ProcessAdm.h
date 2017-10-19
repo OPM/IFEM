@@ -58,7 +58,7 @@ public:
 #endif
 
   //! \brief The destructor releases the process administrator.
-  ~ProcessAdm();
+  virtual ~ProcessAdm();
 
   //! \brief Return process id
   int getProcId() const  { return myPid; }

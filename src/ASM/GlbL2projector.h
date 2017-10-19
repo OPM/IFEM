@@ -20,6 +20,7 @@
 class IntegrandBase;
 class FunctionBase;
 class LinSolParams;
+class ProcessAdm;
 
 typedef std::vector<size_t> uIntVec; //!< General unsigned integer vector
 
@@ -42,8 +43,8 @@ public:
   //! \param[in] f The function to to L2-projection on
   //! \param[in] n Dimension of the L2-projection matrices (number of nodes)
   GlbL2(FunctionBase* f, size_t n);
-  //! \brief Empty destructor.
-  virtual ~GlbL2() {}
+  //! \brief The destructor frees the system matrix and system vector.
+  virtual ~GlbL2();
 
   //! \brief Defines which FE quantities are needed by the integrand.
   virtual int getIntegrandType() const;
@@ -120,8 +121,11 @@ public:
 private:
   IntegrandBase* problem; //!< The main problem integrand
   FunctionBase* function; //!< Explicit function to L2-project
-  mutable SparseMatrix A; //!< Left-hand-side matrix of the L2-projection
-  mutable StdVector    B; //!< Right-hand-side vectors of the L2-projection
+  mutable SparseMatrix* pA; //!< Left-hand-side matrix of the L2-projection
+  mutable StdVector*    pB; //!< Right-hand-side vectors of the L2-projection
+#ifdef HAS_PETSC
+  ProcessAdm*         adm; //!< Process administrator for PETSc
+#endif
 };
 
 #endif

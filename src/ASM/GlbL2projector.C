@@ -57,23 +57,61 @@ public:
 };
 
 
-GlbL2::GlbL2 (IntegrandBase* p, size_t n) : A(SparseMatrix::SUPERLU)
+GlbL2::GlbL2 (IntegrandBase* p, size_t n)
 {
   problem = p;
   function = nullptr;
 
-  A.redim(n,n);
-  B.redim(n*p->getNoFields(2));
+#ifdef HAS_PETSC
+  adm = nullptr;
+  if (GlbL2::MatrixType == SystemMatrix::PETSC && GlbL2::SolverParams)
+  {
+    adm = new ProcessAdm();
+    pA = new PETScMatrix(*adm, *GlbL2::SolverParams, LinAlg::SYMMETRIC);
+    pB = new PETScVector(*adm, n*p->getNoFields(2));
+  }
+  else
+#endif
+  {
+    pA = new SparseMatrix(SparseMatrix::SUPERLU);
+    pB = new StdVector(n*p->getNoFields(2));
+  }
+
+  pA->redim(n,n);
 }
 
 
-GlbL2::GlbL2 (FunctionBase* f, size_t n) : A(SparseMatrix::SUPERLU)
+GlbL2::GlbL2 (FunctionBase* f, size_t n)
 {
   problem = nullptr;
   function = f;
 
-  A.redim(n,n);
-  B.redim(n*f->dim());
+#ifdef HAS_PETSC
+  adm = nullptr;
+  if (GlbL2::MatrixType == SystemMatrix::PETSC && GlbL2::SolverParams)
+  {
+    adm = new ProcessAdm();
+    pA = new PETScMatrix(*adm, *GlbL2::SolverParams, LinAlg::SYMMETRIC);
+    pB = new PETScVector(*adm, n*f->dim());
+  }
+  else
+#endif
+  {
+    pA = new SparseMatrix(SparseMatrix::SUPERLU);
+    pB = new StdVector(n*f->dim());
+  }
+
+  pA->redim(n,n);
+}
+
+
+GlbL2::~GlbL2()
+{
+  delete pA;
+  delete pB;
+#ifdef HAS_PETSC
+  delete adm;
+#endif
 }
 
 
@@ -173,6 +211,8 @@ bool GlbL2::evalIntMx (LocalIntegral& elmInt,
 bool GlbL2::formL2Mats (const IntVec& mnpc, const Vector& solPt,
                         const FiniteElement& fe, const Vec3& X) const
 {
+  SparseMatrix& A = *pA;
+  StdVector& B = *pB;
   size_t a, b, nnod = A.dim();
   for (a = 0; a < fe.N.size(); a++)
   {
@@ -192,12 +232,15 @@ bool GlbL2::formL2Mats (const IntVec& mnpc, const Vector& solPt,
 
 void GlbL2::preAssemble (const std::vector<IntVec>& MMNPC, size_t nel)
 {
-  A.preAssemble(MMNPC,nel);
+  pA->preAssemble(MMNPC,false);
 }
 
 
 bool GlbL2::solve (Matrix& sField)
 {
+  SparseMatrix& A = *pA;
+  StdVector& B = *pB;
+
   // Insert a 1.0 value on the diagonal for equations with no contributions.
   // Needed in immersed boundary calculations with "totally outside" elements.
   size_t i, nnod = A.dim();
@@ -271,10 +314,11 @@ bool ASMbase::globalL2projection (Matrix& sField,
   SparseMatrix* A;
   StdVector* B;
 #ifdef HAS_PETSC
+  ProcessAdm adm;
   if (GlbL2::MatrixType == SystemMatrix::PETSC && GlbL2::SolverParams)
   {
-    A = new PETScMatrix(ProcessAdm(), *GlbL2::SolverParams, LinAlg::SYMMETRIC);
-    B = new PETScVector(ProcessAdm(), nnod*ncomp);
+    A = new PETScMatrix(adm, *GlbL2::SolverParams, LinAlg::SYMMETRIC);
+    B = new PETScVector(adm, nnod*ncomp);
   }
   else
 #endif
