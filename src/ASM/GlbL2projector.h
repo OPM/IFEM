@@ -15,12 +15,17 @@
 #define _GLB_L2_PROJECTOR_H
 
 #include "Integrand.h"
-#include "SparseMatrix.h"
+#include "LinAlgenums.h"
+#include "MatVec.h"
 
 class IntegrandBase;
 class FunctionBase;
 class LinSolParams;
+class SparseMatrix;
+class StdVector;
+class ProcessAdm;
 
+typedef std::vector<int>           IntVec;      //!< Vector of integers
 typedef std::vector<size_t>        uIntVec;     //!< Vector of unsigned integers
 typedef std::vector<FunctionBase*> FunctionVec; //!< Vector of functions
 
@@ -47,8 +52,8 @@ public:
   //! \param[in] f The functions to do L2-projection on
   //! \param[in] n Dimension of the L2-projection matrices (number of nodes)
   GlbL2(const FunctionVec& f, size_t n);
-  //! \brief Empty destructor.
-  virtual ~GlbL2() {}
+  //! \brief The destructor frees the system matrix and system vector.
+  virtual ~GlbL2();
 
   //! \brief Defines which FE quantities are needed by the integrand.
   virtual int getIntegrandType() const;
@@ -116,14 +121,21 @@ public:
   //! \param[out] sField Nodal/control-point values of the projected results.
   bool solve(const std::vector<Matrix*>& sField);
 
+private:
+  //! \brief Allocates the system L2-projection matrices.
+  void allocate(size_t n);
+
 public:
-  mutable SparseMatrix A; //!< Left-hand-side matrix of the L2-projection
-  mutable StdVector    B; //!< Right-hand-side vectors of the L2-projection
+  mutable SparseMatrix* pA; //!< Left-hand-side matrix of the L2-projection
+  mutable StdVector*    pB; //!< Right-hand-side vectors of the L2-projection
 
 private:
   IntegrandBase* problem; //!< The main problem integrand
   FunctionVec  functions; //!< Explicit functions to L2-project
   size_t            nrhs; //!< Number of right-hand-size vectors
+#ifdef HAS_PETSC
+  ProcessAdm* adm; //!< Process administrator for PETSc
+#endif
 };
 
 #endif

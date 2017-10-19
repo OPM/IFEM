@@ -105,9 +105,6 @@ public:
   //! \brief Returns the matrix type.
   virtual LinAlg::MatrixType getType() const { return LinAlg::PETSC; }
 
-  //! \brief Returns the dimension of the system matrix.
-  virtual size_t dim(int = 1) const { return 0; }
-
   //! \brief Initializes the element assembly process.
   //! \details Must be called once before the element assembly loop.
   //! The PETSc data structures are initialized and the all symbolic operations

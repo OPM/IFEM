@@ -21,6 +21,7 @@
 #include "IntegrandBase.h"
 #include "Function.h"
 #include "Profiler.h"
+#include "SparseMatrix.h"
 #ifdef HAS_PETSC
 #include "PETScMatrix.h"
 #include "LinSolParams.h"
@@ -106,37 +107,57 @@ private:
 };
 
 
-GlbL2::GlbL2 (IntegrandBase* p, size_t n) : A(SparseMatrix::SUPERLU)
+GlbL2::GlbL2 (IntegrandBase* p, size_t n) : problem(p)
 {
-  problem = p;
   nrhs = p->getNoFields(2);
-
-  A.redim(n,n);
-  B.redim(n*nrhs);
+  this->allocate(n);
 }
 
 
-GlbL2::GlbL2 (FunctionBase* f, size_t n) : A(SparseMatrix::SUPERLU)
+GlbL2::GlbL2 (FunctionBase* f, size_t n) : problem(nullptr), functions({f})
 {
-  problem = nullptr;
-  functions = { f };
   nrhs = f->dim();
-
-  A.redim(n,n);
-  B.redim(n*nrhs);
+  this->allocate(n);
 }
 
 
-GlbL2::GlbL2 (const FunctionVec& f, size_t n) : A(SparseMatrix::SUPERLU)
+GlbL2::GlbL2 (const FunctionVec& f, size_t n) : problem(nullptr), functions(f)
 {
-  problem = nullptr;
-  functions = f;
   nrhs = 0;
   for (FunctionBase* func : f)
     nrhs += func->dim();
+  this->allocate(n);
+}
 
-  A.redim(n,n);
-  B.redim(n*nrhs);
+
+GlbL2::~GlbL2()
+{
+  delete pA;
+  delete pB;
+#ifdef HAS_PETSC
+  delete adm;
+#endif
+}
+
+
+void GlbL2::allocate (size_t n)
+{
+#ifdef HAS_PETSC
+  adm = nullptr;
+  if (GlbL2::MatrixType == LinAlg::PETSC && GlbL2::SolverParams)
+  {
+    adm = new ProcessAdm();
+    pA = new PETScMatrix(*adm,*GlbL2::SolverParams);
+    pB = new PETScVector(*adm,n*nrhs);
+  }
+  else
+#endif
+  {
+    pA = new SparseMatrix(SparseMatrix::SUPERLU);
+    pB = new StdVector(n*nrhs);
+  }
+
+  pA->redim(n,n);
 }
 
 
@@ -247,12 +268,15 @@ bool GlbL2::evalIntMx (LocalIntegral& elmInt,
 
 void GlbL2::preAssemble (const std::vector<IntVec>& MMNPC, size_t nel)
 {
-  A.preAssemble(MMNPC,nel);
+  pA->preAssemble(MMNPC,nel);
 }
 
 
 bool GlbL2::solve (Matrix& sField)
 {
+  SparseMatrix& A = *pA;
+  StdVector&    B = *pB;
+
   // Insert a 1.0 value on the diagonal for equations with no contributions.
   // Needed in immersed boundary calculations with "totally outside" elements.
   size_t i, j, nnod = A.dim();
@@ -288,6 +312,9 @@ bool GlbL2::solve (const std::vector<Matrix*>& sField)
               <<" != size(functions)="<< functions.size() << std::endl;
     return false;
   }
+
+  SparseMatrix& A = *pA;
+  StdVector&    B = *pB;
 
   // Insert a 1.0 value on the diagonal for equations with no contributions.
   // Needed in immersed boundary calculations with "totally outside" elements.
@@ -330,7 +357,7 @@ bool ASMbase::L2projection (Matrix& sField,
   PROFILE2("ASMbase::L2projection");
 
   GlbL2 gl2(integrand,this->getNoNodes(1));
-  L2GlobalInt dummy(gl2.A,gl2.B);
+  L2GlobalInt dummy(*gl2.pA,*gl2.pB);
 
   gl2.preAssemble(MNPC,this->getNoElms(true));
   return this->integrate(gl2,dummy,time) && gl2.solve(sField);
@@ -342,7 +369,7 @@ bool ASMbase::L2projection (Matrix& sField, FunctionBase* function, double t)
   PROFILE2("ASMbase::L2projection");
 
   GlbL2 gl2(function,this->getNoNodes(1));
-  L2GlobalInt dummy(gl2.A,gl2.B);
+  L2GlobalInt dummy(*gl2.pA,*gl2.pB);
   TimeDomain time; time.t = t;
 
   gl2.preAssemble(MNPC,this->getNoElms(true));
@@ -356,7 +383,7 @@ bool ASMbase::L2projection (const std::vector<Matrix*>& sField,
   PROFILE2("ASMbase::L2projection");
 
   GlbL2 gl2(function,this->getNoNodes(1));
-  L2GlobalInt dummy(gl2.A,gl2.B);
+  L2GlobalInt dummy(*gl2.pA,*gl2.pB);
   TimeDomain time; time.t = t;
 
   gl2.preAssemble(MNPC,this->getNoElms(true));
