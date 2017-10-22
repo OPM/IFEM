@@ -117,3 +117,11 @@ bool SIMadmin::parse (char*, std::istream&)
             <<"     Use the XML format instead."<< std::endl;
   return false;
 }
+
+
+bool SIMadmin::parse (const TiXmlElement* elem)
+{
+  const char* value = utl::getValue(elem,"messageLevel");
+  if (value) msgLevel = atoi(value);
+  return true;
+}

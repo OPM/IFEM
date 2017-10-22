@@ -2139,13 +2139,9 @@ void ASMu3D::generateThreadGroups (const Integrand& integrand, bool silence,
   if (silence || threadGroups[0].size() < 2) return;
 
   std::cout <<"\nMultiple threads are utilized during element assembly.";
-#if SP_DEBUG > 2
   for (size_t i = 0; i < threadGroups[0].size(); i++)
-  {
-    std::cout <<"\n Color "<< i+1;
-    std::cout << ": "<< threadGroups[0][i].size() <<" elements";
-  }
-#endif
+    std::cout <<"\n Color "<< i+1 <<": "
+              << threadGroups[0][i].size() <<" elements";
 }
 
 

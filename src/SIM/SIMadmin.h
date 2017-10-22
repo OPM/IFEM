@@ -44,9 +44,10 @@ public:
   virtual bool read(const char* fileName);
 
 public:
-  using XMLInputBase::parse;
   //! \brief Parses a data section from an input stream.
   virtual bool parse(char* keyWord, std::istream& is);
+  //! \brief Parses a data section from an xml document.
+  virtual bool parse(const TiXmlElement* elem);
 
   //! \brief Returns the parallel process administrator.
   const ProcessAdm& getProcessAdm() const { return adm; }
@@ -64,6 +65,7 @@ protected:
   //! \brief Prints the heading of this simulator, if any, to IFEM::cout.
   void printHeading(int& supStep) const;
 
+private:
   //! \brief Reads a flat text input file (the old file format).
   bool readFlat(const char* fileName);
 

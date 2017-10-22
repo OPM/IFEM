@@ -297,7 +297,7 @@ bool SIMoutput::writeGlvG (int& nBlock, const char* inpFile, bool doClear)
   {
     if (myModel[i]->empty()) continue; // skip empty patches
 
-    if (msgLevel > 0)
+    if (msgLevel > 1)
       IFEM::cout <<"Writing geometry for patch "<< i+1 << std::endl;
     size_t nd = myModel[i]->getNoParamDim();
     lvb = new ElementBlock(nd == 3 ? 8 : (nd == 2 ? 4 : 2));

@@ -326,7 +326,7 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
     ASMbase::resolveMPCchains(allMPCs,this->hasTimeDependentDirichlet());
 
   // Generate element groups for multi-threading
-  bool silence = msgLevel < 1 || (msgLevel < 2 && myModel.size() > 1);
+  bool silence = msgLevel < 1 || (msgLevel < 3 && nGlPatches > 1);
   for (mit = myModel.begin(); mit != myModel.end() && myProblem; ++mit)
     if (!(*mit)->empty())
       (*mit)->generateThreadGroups(*myProblem,silence,lagMTOK);
@@ -1149,7 +1149,7 @@ Vec4 SIMbase::getNodeCoord (int inod) const
     if ((node = pch->getNodeIndex(inod,true)))
     {
       Xnod = pch->getCoord(node);
-      if (myModel.size() > 1)
+      if (nGlPatches > 1)
         Xnod.idx = pch->idx; // Store patch index, if multi-patch model
       break;
     }

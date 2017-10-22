@@ -496,14 +496,15 @@ bool SIMinput::parse (const TiXmlElement* elem)
     std::string solver;
     if (utl::getAttribute(elem,"class",solver,true))
       opt.setLinearSolver(solver);
-    if (utl::getAttribute(elem,"l2class",solver,true))
-      if (solver == "petsc")
-        GlbL2::MatrixType = SystemMatrix::PETSC;
+    if (utl::getAttribute(elem,"l2class",solver,true) && solver == "petsc")
+      GlbL2::MatrixType = SystemMatrix::PETSC;
   }
   else if (!strcasecmp(elem->Value(),"eigensolver"))
     utl::getAttribute(elem,"mode",opt.eig);
   else if (!strcasecmp(elem->Value(),"postprocessing"))
     noDumpDataYet = lhsDump.empty() && rhsDump.empty();
+  else
+    result = this->SIMbase::parse(elem);
 
   // Create the default geometry if no patchfile is specified
   if (!strcasecmp(elem->Value(),"geometry"))
