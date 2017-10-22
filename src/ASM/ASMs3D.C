@@ -648,25 +648,23 @@ bool ASMs3D::connectBasis (int face, ASMs3D& neighbor, int nface, int norient,
     std::cerr <<" *** ASMs3D::connectPatch: Logic error, cannot"
 	      <<" connect a shared patch with an unshared one"<< std::endl;
     return false;
-  } else if (face < 1 || face > 6) {
-    std::cerr <<" *** ASMs3D::connectPatch: Invalid slave face "
-              << face << std::endl;
-    return false;
-  } else if (nface < 1 || nface > 6) {
-    std::cerr <<" *** ASMs3D::connectPatch: Invalid master face "
-              << nface << std::endl;
-    return false;
-  } else if (norient < 0 || norient > 7) {
-    std::cerr <<" *** ASMs3D::connectPatch: Orientation flag "
-              << norient <<" is out of range [0,7]"<< std::endl;
+  }
+  else if (norient < 0 || norient > 7)
+  {
+    std::cerr <<" *** ASMs3D::connectPatch: Orientation flag "<< norient
+              <<" is out of range [0,7]"<< std::endl;
     return false;
   }
 
   int m1, m2;
-  if (!this->getFaceSize(m1,m2,basis,face)) return false;
+  if (!this->getFaceSize(m1,m2,basis,face))
+    return false;
 
   int n1, n2;
-  if (!neighbor.getFaceSize(n1,n2,basis,nface)) return false;
+  if (!neighbor.getFaceSize(n1,n2,basis,nface))
+    return false;
+  else if (norient > 3)
+    std::swap(n1,n2);
 
   // Set up the slave node numbers for this volume patch
   IntVec slaveNodes;
@@ -680,32 +678,32 @@ bool ASMs3D::connectBasis (int face, ASMs3D& neighbor, int nface, int norient,
   for (int& it : masterNodes)
     it += master;
 
-  if (norient < 4 ? (n1 != m1 || n2 != m2) : (n2 != m1 || n1 != m2))
+  if (n1 == 0 || n2 == 0 || n1 != m1 || n2 != m2)
   {
     std::cerr <<" *** ASMs3D::connectPatch: Non-matching faces, sizes "
-	      << n1 <<","<< n2 <<" and "<< m1 <<","<< m2 << std::endl;
+              << n1 <<","<< n2 <<" and "<< m1 <<","<< m2 << std::endl;
     return false;
   }
 
   const double xtol = 1.0e-4;
   int node = 1;
   for (int j = 0; j < n2; j++)
-    for (int i = 0; i < n1; i++, ++node)
+    for (int i = 0; i < n1; i++, node++)
     {
       int k, l;
       switch (norient)
-	{
-	case  1: k =    i  ; l = n2-j-1; break;
-	case  2: k = n1-i-1; l =    j  ; break;
-	case  3: k = n1-i-1; l = n2-j-1; break;
-	case  4: k =    j  ; l =    i  ; break;
-	case  5: k =    j  ; l = n1-i-1; break;
-	case  6: k = n2-j-1; l =    i  ; break;
-	case  7: k = n2-j-1; l = n1-i-1; break;
-	default: k =    i  ; l = j     ;
-	}
+        {
+        case 0: k =    i  ; l =    j  ; break;
+        case 1: k =    i  ; l = n2-j-1; break;
+        case 2: k = n1-i-1; l =    j  ; break;
+        case 3: k = n1-i-1; l = n2-j-1; break;
+        case 4: k =    j  ; l =    i  ; break;
+        case 5: k =    j  ; l = n2-i-1; break;
+        case 6: k = n1-j-1; l =    i  ; break;
+        case 7: k = n1-j-1; l = n2-i-1; break;
+        }
 
-      for (int t = 0; t < thick; ++t)
+      for (int t = 0; t < thick; t++)
       {
         int slave = slaveNodes[(l*n1+k)*thick+t];
         int node2 = masterNodes[(node-1)*thick+t];
@@ -1066,9 +1064,9 @@ size_t ASMs3D::constrainFaceLocal (int dir, bool open, int dof, int code,
 }
 
 
-std::vector<int> ASMs3D::getEdge (int lEdge, bool open, int basis, int) const
+IntVec ASMs3D::getEdge (int lEdge, bool open, int basis, int) const
 {
-  std::vector<int> result;
+  IntVec result;
   int n1, n2, n3, n, inc = 1;
   int node = this->findStartNode(n1,n2,n3,basis);
   if (node < 1) return result;
@@ -1126,8 +1124,7 @@ std::vector<int> ASMs3D::getEdge (int lEdge, bool open, int basis, int) const
 void ASMs3D::constrainEdge (int lEdge, bool open, int dof,
                             int code, char basis)
 {
-  std::vector<int> nodes = this->getEdge(lEdge, open, basis);
-  for (const int& node : nodes)
+  for (const int& node : this->getEdge(lEdge,open,basis))
     this->prescribe(node,dof,code);
 }
 
@@ -1237,7 +1234,7 @@ void ASMs3D::constrainNode (double xi, double eta, double zeta,
 }
 
 
-void ASMs3D::setNodeNumbers (const std::vector<int>& nodes)
+void ASMs3D::setNodeNumbers (const IntVec& nodes)
 {
   this->ASMbase::setNodeNumbers(nodes);
   if (!swapW) return;
@@ -1519,7 +1516,7 @@ void ASMs3D::getBoundaryNodes (int lIndex, IntVec& nodes,
     case 1: // Left face (negative I-direction)
       for (int i3 = 1; i3 <= n3; i3++)
 	for (int i2 = 1; i2 <= n2; i2++, node += n1)
-          for (int t = 0; t < thick; ++t)
+          for (int t = 0; t < thick; t++)
             nodes.push_back(local ? node+t : this->getNodeID(node+t));
       break;
 
@@ -1528,7 +1525,7 @@ void ASMs3D::getBoundaryNodes (int lIndex, IntVec& nodes,
     case 3: // Front face (negative J-direction)
       for (int i3 = 1; i3 <= n3; i3++, node += n1*(n2-1))
 	for (int i1 = 1; i1 <= n1; i1++, node++)
-          for (int t = 0; t < thick; ++t)
+          for (int t = 0; t < thick; t++)
             nodes.push_back(local ? node+t*n1 : this->getNodeID(node+t*n1));
       break;
 
@@ -1537,7 +1534,7 @@ void ASMs3D::getBoundaryNodes (int lIndex, IntVec& nodes,
     case 5: // Bottom face (negative K-direction)
       for (int i2 = 1; i2 <= n2; i2++)
 	for (int i1 = 1; i1 <= n1; i1++, node++)
-          for (int t = 0; t < thick; ++t)
+          for (int t = 0; t < thick; t++)
             nodes.push_back(local ? node+t*n1*n2 : this->getNodeID(node+t*n1*n2));
       break;
   }
@@ -3209,7 +3206,7 @@ int ASMs3D::getCorner (int I, int J, int K, int basis) const
 }
 
 
-bool ASMs3D::getFaceSize(int& n1, int& n2, int basis, int face) const
+bool ASMs3D::getFaceSize (int& n1, int& n2, int basis, int face) const
 {
   int n3;
   if (!this->getSize(n1,n2,n3,basis))
@@ -3219,6 +3216,8 @@ bool ASMs3D::getFaceSize(int& n1, int& n2, int basis, int face) const
     n1 = n2, n2 = n3;
   else if (face == 3 || face == 4)
     n2 = n3;
+  else if (face != 5 && face != 6)
+    n1 = n2 = 0;
 
   return true;
 }

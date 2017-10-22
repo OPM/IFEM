@@ -280,14 +280,6 @@ bool ASMu3D::connectBasis (int face, ASMu3D& neighbor, int nface, int norient,
     std::cerr <<" *** ASMu3D::connectPatch: Logic error, cannot"
               <<" connect a shared patch with an unshared one"<< std::endl;
     return false;
-  } else if (face < 1 || face > 6) {
-    std::cerr <<" *** ASMu3D::connectPatch: Invalid slave face "
-              << face << std::endl;
-    return false;
-  } else if (nface < 1 || nface > 6) {
-    std::cerr <<" *** ASMu3D::connectPatch: Invalid master face "
-              << nface << std::endl;
-    return false;
   }
 
   // Set up the slave node numbers for this volume patch
@@ -300,7 +292,7 @@ bool ASMu3D::connectBasis (int face, ASMu3D& neighbor, int nface, int norient,
   for (int& it : masterNodes)
     it += master;
 
-  if (masterNodes.size() != slaveNodes.size())
+  if (masterNodes.empty() || masterNodes.size() != slaveNodes.size())
   {
     std::cerr <<" *** ASMu3D::connectPatch: Non-matching faces, sizes "
               << masterNodes.size() <<" and "<< slaveNodes.size() << std::endl;
@@ -309,9 +301,11 @@ bool ASMu3D::connectBasis (int face, ASMu3D& neighbor, int nface, int norient,
 
   const double xtol = 1.0e-4;
   for (size_t node = 0; node < masterNodes.size(); ++node)
-  {
     for (int t = 0; t < thick; ++t)
     {
+      // TODO: Hey, this looks suspicious. If thick > 1, this will clearly read
+      // outside the master/slaveNodes arrays. If thick > 1 is not supported
+      // for LR, please remove it alltogether in this class to avoid confusion.
       int node2 = masterNodes[node*thick+t];
       int slave = slaveNodes[node*thick+t];
 
@@ -321,14 +315,13 @@ bool ASMu3D::connectBasis (int face, ASMu3D& neighbor, int nface, int norient,
         ASMbase::collapseNodes(neighbor,node2,*this,slave);
       else
       {
-          std::cerr <<" *** ASMu3D::connectPatch: Non-matching nodes "
-                    << node2 <<": "<< neighbor.getCoord(node2)
-                    <<"\n                                          and "
-                    << slave <<": "<< this->getCoord(slave) << std::endl;
+        std::cerr <<" *** ASMu3D::connectPatch: Non-matching nodes "
+                  << node2 <<": "<< neighbor.getCoord(node2)
+                  <<"\n                                          and "
+                  << slave <<": "<< this->getCoord(slave) << std::endl;
         return false;
       }
     }
-  }
 
   return true;
 }

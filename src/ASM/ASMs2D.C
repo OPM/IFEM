@@ -636,7 +636,7 @@ bool ASMs2D::connectBasis (int edge, ASMs2D& neighbor, int nedge, bool revers,
   for (int& it : masterNodes)
     it += master;
 
-  if (masterNodes.size() != slaveNodes.size())
+  if (masterNodes.empty() || masterNodes.size() != slaveNodes.size())
   {
     std::cerr <<" *** ASMs2D::connectBasis: Non-matching edges, sizes "
               << masterNodes.size() <<" and "<< slaveNodes.size() << std::endl;
@@ -1055,7 +1055,7 @@ void ASMs2D::constrainNode (double xi, double eta, int dof, int code)
 }
 
 
-void ASMs2D::setNodeNumbers (const std::vector<int>& nodes)
+void ASMs2D::setNodeNumbers (const IntVec& nodes)
 {
   this->ASMbase::setNodeNumbers(nodes);
   if (!swapV) return;

@@ -510,7 +510,7 @@ bool ASMu2D::connectBasis (int edge, ASMu2D& neighbor, int nedge, bool revers,
   for (int& it : masterNodes)
     it += master;
 
-  if (masterNodes.size() != slaveNodes.size())
+  if (masterNodes.empty() || masterNodes.size() != slaveNodes.size())
   {
     std::cerr <<" *** ASMu2D::connectBasis: Non-matching edges, sizes "
               << masterNodes.size() <<" and "<< slaveNodes.size() << std::endl;
