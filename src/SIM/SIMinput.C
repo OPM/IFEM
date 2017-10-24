@@ -578,9 +578,10 @@ int SIMinput::parseMaterialSet (const TiXmlElement* elem, int mindex)
     utl::getAttribute(elem,"code",code);
 
   if (code > 0)
-    this->setPropertyType(code,Property::MATERIAL,mindex);
+    if (this->setPropertyType(code,Property::MATERIAL,mindex))
+      return mindex;
 
-  return code;
+  return 0;
 }
 
 
