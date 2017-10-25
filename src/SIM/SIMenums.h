@@ -39,7 +39,8 @@ namespace SIM //! Simulation scope
     MASS_ONLY,
     RHS_ONLY,
     INT_FORCES,
-    RECOVERY
+    RECOVERY,
+    NORMS
   };
 
   //! \brief Enum defining the various convergence statuses that may occur.

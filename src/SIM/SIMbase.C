@@ -787,8 +787,8 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
   PROFILE1("Element assembly");
 
   bool ok = true;
-  bool isAssembling = (myProblem->getMode() != SIM::INIT &&
-                       myProblem->getMode() != SIM::RECOVERY);
+  bool isAssembling = (myProblem->getMode() > SIM::INIT &&
+                       myProblem->getMode() < SIM::RECOVERY);
   if (isAssembling && myEqSys)
     myEqSys->initialize(newLHSmatrix);
 
@@ -1852,7 +1852,7 @@ bool SIMbase::project (Vector& ssol, const Vector& psol,
 bool SIMbase::projectAnaSol (Vector& ssol,
                              SIMoptions::ProjectionMethod pMethod) const
 {
-  if (!mySol) return true;
+  if (!mySol) return false;
 
   FunctionBase* f = mySol->getScalarSecSol();
   if (f)
@@ -1875,7 +1875,7 @@ bool SIMbase::projectAnaSol (Vector& ssol,
     return this->project(ssol,f,0,0,0,pMethod);
   }
 
-  return true;
+  return false;
 }
 
 
