@@ -76,7 +76,8 @@ LR::LRSplineSurface* ASMu2Dmx::getBasis (int basis)
 
 bool ASMu2Dmx::write (std::ostream& os, int basis) const
 {
-  return false;
+  os << *m_basis[basis-1];
+  return os.good();
 }
 
 
@@ -288,7 +289,8 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
       fe.iel = MLGE[geoEl-1];
       std::vector<Matrix> dNxdu(m_basis.size());
       Matrix   Xnod, Jac;
-      Vec4     X;
+      double   param[3] = { 0.0, 0.0, 0.0 };
+      Vec4     X(param);
       std::vector<Matrix3D> d2Nxdu2(m_basis.size());
       Matrix3D Hess;
 
@@ -337,8 +339,8 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
           fe.eta = xg[j];
 
           // Parameter values of current integration point
-          fe.u = gpar[0][i];
-          fe.v = gpar[1][j];
+          fe.u = param[0] = gpar[0][i];
+          fe.v = param[1] = gpar[1][j];
 
           // Compute basis function derivatives at current integration point
           if (use2ndDer)
@@ -375,7 +377,7 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
           }
 
           // Cartesian coordinates of current integration point
-          X = Xnod * fe.basis(geoBasis);
+          X.assign(Xnod * fe.basis(geoBasis));
           X.t = time.t;
 
           // Evaluate the integrand and accumulate element contributions
@@ -451,7 +453,8 @@ bool ASMu2Dmx::integrate (Integrand& integrand, int lIndex,
 
   std::vector<Matrix> dNxdu(m_basis.size());
   Matrix Xnod, Jac;
-  Vec4   X;
+  double   param[3] = { 0.0, 0.0, 0.0 };
+  Vec4   X(param);
   Vec3   normal;
 
   // === Assembly loop over all elements on the patch edge =====================
@@ -516,8 +519,8 @@ bool ASMu2Dmx::integrate (Integrand& integrand, int lIndex,
       // of current integration point
       fe.xi = xg[i];
       fe.eta = xg[i];
-      fe.u = gpar[0][i];
-      fe.v = gpar[1][i];
+      fe.u = param[0] = gpar[0][i];
+      fe.v = param[1] = gpar[1][i];
 
       // Evaluate basis function derivatives at current integration points
       std::vector<Go::BasisDerivsSf> splinex(m_basis.size());
@@ -538,7 +541,7 @@ bool ASMu2Dmx::integrate (Integrand& integrand, int lIndex,
         normal *= -1.0;
 
       // Cartesian coordinates of current integration point
-      X = Xnod * fe.basis(geoBasis);
+      X.assign(Xnod * fe.basis(geoBasis));
       X.t = time.t;
 
       // Evaluate the integrand and accumulate element contributions

@@ -81,20 +81,25 @@ double SplineField2D::valueFE (const FiniteElement& fe) const
 
 double SplineField2D::valueCoor (const Vec4& x) const
 {
-  // use with caution
-  Go::Point pt(3), clopt(3);
-  pt[0] = x[0];
-  pt[1] = x[1];
-  pt[2] = x[2];
-  double clo_u, clo_v, dist;
-#pragma omp critical
-  surf->closestPoint(pt, clo_u, clo_v, clopt, dist, 1e-5);
-
   FiniteElement fe;
-  fe.u = clopt[0];
-  fe.v = clopt[1];
+  if (x.u) {
+    fe.u = x.u[0];
+    fe.v = x.u[1];
+  }
+  else {
+    // use with caution
+    Go::Point pt(3), clopt(3);
+    pt[0] = x[0];
+    pt[1] = x[1];
+    pt[2] = x[2];
+    double clo_u, clo_v, dist;
+  #pragma omp critical
+    surf->closestPoint(pt, clo_u, clo_v, clopt, dist, 1e-10);
+    fe.u = clo_u;
+    fe.v = clo_v;
+  }
 
-  return valueFE(fe);
+  return this->valueFE(fe);
 }
 
 

@@ -82,8 +82,28 @@ double SplineField3D::valueFE (const FiniteElement& fe) const
 
 double SplineField3D::valueCoor (const Vec4& x) const
 {
-  // Not implemented yet
-  return 0.0;
+  FiniteElement fe;
+  if (x.u) {
+    fe.u = x.u[0];
+    fe.v = x.u[1];
+    fe.w = x.u[2];
+  }
+  else {
+    // use with caution
+    Go::Point pt(3), clopt(3);
+    pt[0] = x[0];
+    pt[1] = x[1];
+    pt[2] = x[2];
+    double clo_u, clo_v, clo_w, dist;
+  #pragma omp critical
+    vol->closestPoint(pt, clo_u, clo_v, clo_w, clopt, dist, 1e-5);
+
+    fe.u = clo_u;
+    fe.v = clo_v;
+    fe.w = clo_w;
+  }
+
+  return this->valueFE(fe);
 }
 
 

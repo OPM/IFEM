@@ -73,6 +73,15 @@ double LRSplineField3D::valueFE (const FiniteElement& fe) const
 
 double LRSplineField3D::valueCoor (const Vec4& x) const
 {
+  if (x.u) {
+    FiniteElement fe;
+    fe.u = x.u[0];
+    fe.v = x.u[1];
+    fe.w = x.u[2];
+
+    return this->valueFE(fe);
+  }
+
   assert(0);
   return 0.0;
 }

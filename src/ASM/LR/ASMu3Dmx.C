@@ -358,7 +358,8 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
     std::vector<Matrix3D> d2Nxdu2(m_basis.size());
     Matrix3D Hess;
     double   dXidu[3];
-    Vec4     X;
+    double   param[3] = { 0.0, 0.0, 0.0 };
+    Vec4     X(param);
     // Get element volume in the parameter space
     double du = el->umax() - el->umin();
     double dv = el->vmax() - el->vmin();
@@ -468,9 +469,9 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
           fe.zeta = xg[k];
 
           // Parameter values of current integration point
-          fe.u = gpar[0][i];
-          fe.v = gpar[1][j];
-          fe.w = gpar[2][k];
+          fe.u = param[0] = gpar[0][i];
+          fe.v = param[1] = gpar[1][j];
+          fe.w = param[2] = gpar[2][k];
 
           // Extract bezier basis functions
           for (size_t b = 0; b < m_basis.size(); ++b) {
@@ -512,7 +513,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
             utl::getGmat(Jac,dXidu,fe.G);
 
           // Cartesian coordinates of current integration point
-          X   = Xnod * fe.basis(geoBasis);
+          X.assign(Xnod * fe.basis(geoBasis));
           X.t = time.t;
 
           // Evaluate the integrand and accumulate element contributions
@@ -613,7 +614,9 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
 
     std::vector<Matrix> dNxdu(m_basis.size());
     Matrix Xnod, Jac;
-    Vec4   X;
+
+    double   param[3] = { fe.u, fe.v, fe.w };
+    Vec4   X(param);
     Vec3   normal;
     double dXidu[3];
 
@@ -671,17 +674,17 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
         if (gpar[0].size() > 1)
         {
           fe.xi = xg[k1];
-          fe.u = gpar[0](k1+1);
+          fe.u = param[0] = gpar[0](k1+1);
         }
         if (gpar[1].size() > 1)
         {
           fe.eta = xg[k2];
-          fe.v = gpar[1](k2+1);
+          fe.v = param[1] = gpar[1](k2+1);
         }
         if (gpar[2].size() > 1)
         {
           fe.zeta = xg[k3];
-          fe.w = gpar[2](k3+1);
+          fe.w = param[2] = gpar[2](k3+1);
         }
 
         // Fetch basis function derivatives at current integration point
@@ -703,7 +706,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
           utl::getGmat(Jac,dXidu,fe.G);
 
         // Cartesian coordinates of current integration point
-        X = Xnod * fe.basis(geoBasis);
+        X.assign(Xnod * fe.basis(geoBasis));
         X.t = time.t;
 
         // Evaluate the integrand and accumulate element contributions

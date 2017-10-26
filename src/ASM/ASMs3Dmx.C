@@ -489,7 +489,8 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
       Matrix3D Hess;
       double dXidu[3];
       Matrix Xnod, Jac;
-      Vec4   X;
+      double   param[3];
+      Vec4   X(param);
       for (size_t l = 0; l < threadGroupsVol[g][t].size() && ok; ++l)
       {
         int iel = threadGroupsVol[g][t][l];
@@ -552,9 +553,9 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
               fe.zeta = xg[k];
 
               // Parameter values of current integration point
-              fe.u = gpar[0](i+1,i1-p1+1);
-              fe.v = gpar[1](j+1,i2-p2+1);
-              fe.w = gpar[2](k+1,i3-p3+1);
+              fe.u = param[0] = gpar[0](i+1,i1-p1+1);
+              fe.v = param[1] = gpar[1](j+1,i2-p2+1);
+              fe.w = param[2] = gpar[2](k+1,i3-p3+1);
 
               // Fetch basis function derivatives at current integration point
               if (use2ndDer)
@@ -590,7 +591,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
                 utl::getGmat(Jac,dXidu,fe.G);
 
               // Cartesian coordinates of current integration point
-              X = Xnod * fe.basis(geoBasis);
+              X.assign(Xnod * fe.basis(geoBasis));
               X.t = time.t;
 
               // Evaluate the integrand and accumulate element contributions
@@ -704,6 +705,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
 
       std::vector<Matrix> dNxdu(m_basis.size());
       Matrix Xnod, Jac;
+      double   param[3] = { fe.u, fe.v, fe.w };
       Vec4   X;
       Vec3   normal;
       for (size_t l = 0; l < threadGrp[g][t].size() && ok; ++l)
@@ -776,17 +778,17 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
             if (gpar[0].size() > 1)
             {
               fe.xi = xg[k1];
-              fe.u = gpar[0](k1+1,i1-p1+1);
+              fe.u = param[0] = gpar[0](k1+1,i1-p1+1);
             }
             if (gpar[1].size() > 1)
             {
               fe.eta = xg[k2];
-              fe.v = gpar[1](k2+1,i2-p2+1);
+              fe.v = param[1] = gpar[1](k2+1,i2-p2+1);
             }
             if (gpar[2].size() > 1)
             {
               fe.zeta = xg[k3];
-              fe.w = gpar[2](k3+1,i3-p3+1);
+              fe.w = param[2] = gpar[2](k3+1,i3-p3+1);
             }
 
             // Fetch basis function derivatives at current integration point

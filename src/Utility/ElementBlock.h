@@ -15,7 +15,9 @@
 #define _ELEMENTBLOCK_H
 
 #include "Vec3.h"
+#include <array>
 #include <vector>
+
 
 /*!
   \brief Class for storage of a standard FE grid block.
@@ -45,6 +47,8 @@ public:
   //! \brief Defines the coordinates of node \a i.
   bool setCoor(size_t i, Real x, Real y, Real z)
   { return this->setCoor(i,Vec3(x,y,z)); }
+  //! \brief Defines the parameter values for node \a i.
+  bool setParams(size_t i, Real u, Real v, Real w = Real(0));
 
   //! \brief Defines the global number of element node \a i.
   bool setNode(size_t i, int nodeNumb);
@@ -76,14 +80,18 @@ public:
   //! \brief Returns the coordinate of a given node.
   const Vec3& getCoord(size_t i) const { return coord[i]; }
 
+  //! \brief Returns a pointer to the parameter values of a given node.
+  const Real* getParam(size_t i) const { return params[i].data(); }
+
   //! \brief Returns a pointer to the element connectivity array.
-  const int* getElements() const { return &MMNPC.front(); }
+  const int* getElements() const { return MMNPC.data(); }
 
 private:
   std::vector<Vec3> coord; //!< Vector of nodal coordinates
   std::vector<int>  MMNPC; //!< Matrix of Matrices of Nodal Point Correspondance
   std::vector<int>  MINEX; //!< Matrix of Internal to External element numbers
   size_t            nen;   //!< Number of Element Nodes
+  std::vector<std::array<Real,3>> params; //!< Parameter values where relevant
 };
 
 #endif

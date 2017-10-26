@@ -23,7 +23,7 @@
 
 SplineFields3D::SplineFields3D (const ASMs3D* patch,
                                 const RealArray& v, char nbasis,
-                                const char* name)
+                                int nnf, const char* name)
   : Fields(name), basis(patch->getBasis(nbasis)), vol(patch->getVolume())
 {
   const int n1 = basis->numCoefs(0);
@@ -41,17 +41,20 @@ SplineFields3D::SplineFields3D (const ASMs3D* patch,
     ofs += patch->getNoNodes(i)*patch->getNoFields(i);
   auto vit = v.begin()+ofs;
 
-  nf = 3;
+  if (nnf == 0)
+    nnf = 3;
+
+  nf = nnf;
   int nfc = patch->getNoFields(nbasis);
   values.resize(nno*nf);
   int ndof = nfc*nno;
   auto end = v.size() > ofs+ndof ? vit+ndof : v.end();
-  if (nfc == 3)
+  if (nfc == nf)
     std::copy(vit,end,values.begin());
   else
     for (size_t i = 0; i < nno && vit != end; ++i, vit += nfc)
-      for (size_t j = 0; j < 3; ++j)
-        values[3*i+j] = *(vit+j);
+      for (size_t j = 0; j < nf; ++j)
+        values[nf*i+j] = *(vit+j);
 }
 
 
@@ -90,8 +93,28 @@ bool SplineFields3D::valueFE (const FiniteElement& fe, Vector& vals) const
 
 bool SplineFields3D::valueCoor (const Vec4& x, Vector& vals) const
 {
-  // Not implemented yet
-  return false;
+  FiniteElement fe;
+  if (x.u) {
+    fe.u = x.u[0];
+    fe.v = x.u[1];
+    fe.w = x.u[2];
+  }
+  else {
+    // use with caution
+    Go::Point pt(3), clopt(3);
+    pt[0] = x[0];
+    pt[1] = x[1];
+    pt[2] = x[2];
+    double clo_u, clo_v, clo_w, dist;
+  #pragma omp critical
+    vol->closestPoint(pt, clo_u, clo_v, clo_w, clopt, dist, 1e-5);
+
+    fe.u = clo_u;
+    fe.v = clo_v;
+    fe.w = clo_w;
+  }
+
+  return this->valueFE(fe, vals);
 }
 
 

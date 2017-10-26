@@ -810,6 +810,8 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
                          << std::endl;
             ok &= this->initBodyLoad(lp);
             ok &= this->extractPatchSolution(it->second,prevSol,lp-1);
+            if (mySol)
+              mySol->initPatch(pch->idx);
             ok &= pch->integrate(*it->second,sysQ,time);
           }
           else
@@ -826,6 +828,8 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
                        << std::endl;
           ok &= this->initBodyLoad(lp);
           ok &= this->extractPatchSolution(it->second,prevSol,k);
+          if (mySol)
+            mySol->initPatch(myModel[k]->idx);
           ok &= myModel[k]->integrate(*it->second,sysQ,time);
         }
     }
@@ -845,6 +849,9 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
             ok = false;
             break;
           }
+
+          if (mySol)
+            mySol->initPatch(pch->idx);
 
           for (p2 = myProps.begin(); p2 != myProps.end() && ok; ++p2)
             if (p2->pcode == Property::MATERIAL && p->patch == p2->patch)
@@ -1331,6 +1338,8 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
             norm->getProjection(k).clear();
           else
             this->extractPatchSolution(ssol[k],norm->getProjection(k),lp-1,nCmp,1);
+        if (mySol)
+          mySol->initPatch(pch->idx);
 	ok &= pch->integrate(*norm,globalNorm,time);
       }
       else
@@ -1347,6 +1356,8 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
           norm->getProjection(k).clear();
         else
           this->extractPatchSolution(ssol[k],norm->getProjection(k),i,nCmp,1);
+      if (mySol)
+        mySol->initPatch(myModel[i]->idx);
       ok &= myModel[i]->integrate(*norm,globalNorm,time);
       lp = i+1;
     }
@@ -1362,6 +1373,8 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
 	  {
 	    if (p->patch != lp)
 	      ok = this->extractPatchSolution(psol,p->patch-1);
+            if (mySol)
+              mySol->initPatch(pch->idx);
 	    ok &= pch->integrate(*norm,p->lindx,globalNorm,time);
 	    lp = p->patch;
 	  }
@@ -1373,6 +1386,8 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
 	  {
 	    if (p->patch != lp)
 	      ok = this->extractPatchSolution(psol,p->patch-1);
+            if (mySol)
+              mySol->initPatch(pch->idx);
 	    ok &= pch->integrateEdge(*norm,p->lindx,globalNorm,time);
 	    lp = p->patch;
 	  }

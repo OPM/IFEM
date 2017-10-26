@@ -37,9 +37,11 @@ public:
   //! \param[in] patch The spline patch on which the field is to be defined
   //! \param[in] v Array of control point field values
   //! \param[in] basis Basis to use from patch
+  //! \param[in] nf Number of components to for field
   //! \param[in] name Name of spline field
   LRSplineFields3D(const ASMu3D* patch, const RealArray& v,
-                   char basis = 1, const char* name = nullptr);
+                   char basis = 1, int nf = 0, const char* name = nullptr);
+
   //! \brief Empty destructor.
   virtual ~LRSplineFields3D() {}
 

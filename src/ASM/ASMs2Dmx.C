@@ -543,7 +543,8 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
       Matrix3D Hess;
       double dXidu[2];
       Matrix Xnod, Jac;
-      Vec4   X;
+      double   param[3] = { 0.0, 0.0, 0.0 };
+      Vec4   X(param);
       for (size_t i = 0; i < threadGroups[g][t].size() && ok; ++i)
       {
         int iel = threadGroups[g][t][i];
@@ -602,8 +603,8 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
             fe.eta = xg[j];
 
             // Parameter values of current integration point
-            fe.u = gpar[0](i+1,i1-p1+1);
-            fe.v = gpar[1](j+1,i2-p2+1);
+            fe.u = param[0] = gpar[0](i+1,i1-p1+1);
+            fe.v = param[1] = gpar[1](j+1,i2-p2+1);
 
             // Fetch basis function derivatives at current integration point
             for (size_t b = 0; b < m_basis.size(); ++b)
@@ -638,7 +639,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
               utl::getGmat(Jac,dXidu,fe.G);
 
             // Cartesian coordinates of current integration point
-            X = Xnod * fe.basis(geoBasis);
+            X.assign(Xnod * fe.basis(geoBasis));
             X.t = time.t;
 
             // Evaluate the integrand and accumulate element contributions
@@ -802,7 +803,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
 	if (edgeDir < 0) normal *= -1.0;
 
 	// Cartesian coordinates of current integration point
-	X = Xnod * fe.basis(geoBasis);
+        X .assign(Xnod * fe.basis(geoBasis));
 	X.t = time.t;
 
 	// Evaluate the integrand and accumulate element contributions

@@ -22,7 +22,7 @@
 
 LRSplineFields2D::LRSplineFields2D (const ASMu2D* patch,
                                     const RealArray& v, char nbasis,
-                                    const char* name)
+                                    int nnf, const char* name)
   : Fields(name), basis(patch->getBasis(nbasis)), surf(patch->getSurface())
 {
   nno = basis->nBasisFunctions();
@@ -33,17 +33,19 @@ LRSplineFields2D::LRSplineFields2D (const ASMu2D* patch,
     ofs += patch->getNoNodes(i)*patch->getNoFields(i);
   auto vit = v.begin()+ofs;
 
-  nf = 2;
+  if (nnf == 0)
+    nnf = 2;
+  nf = nnf;
   int nfc = patch->getNoFields(nbasis);
   values.resize(nno*nf);
   int ndof = nfc*nno;
   auto end = v.size() > ofs+ndof ? vit+ndof : v.end();
-  if (nfc == 2)
+  if (nfc == nf)
     std::copy(vit,end,values.begin());
   else
     for (size_t i = 0; i < nno && vit != end; ++i, vit += nfc)
-      for (size_t j = 0; j < 2; ++j)
-        values[2*i+j] = *(vit+j);
+      for (size_t j = 0; j < nf; ++j)
+        values[nf*i+j] = *(vit+j);
 }
 
 
@@ -69,11 +71,11 @@ bool LRSplineFields2D::valueFE (const FiniteElement& fe, Vector& vals) const
   basis->computeBasis(fe.u,fe.v,spline,iel);
 
   // Evaluate the solution field at the given point
-  Matrix Vnod(2, elm->nBasisFunctions());
+  Matrix Vnod(nf, elm->nBasisFunctions());
   size_t i = 1;
   for (auto it  = elm->constSupportBegin();
             it != elm->constSupportEnd(); ++it, ++i)
-    for (size_t j = 1; j <= 2; ++j)
+    for (size_t j = 1; j <= nf; ++j)
       Vnod(j,i) = values((*it)->getId()*2+j);
 
   Vnod.multiply(spline.basisValues,vals); // vals = Vnod * basisValues
@@ -84,6 +86,14 @@ bool LRSplineFields2D::valueFE (const FiniteElement& fe, Vector& vals) const
 
 bool LRSplineFields2D::valueCoor (const Vec4& x, Vector& vals) const
 {
+  if (x.u) {
+    FiniteElement fe;
+    fe.u = x.u[0];
+    fe.v = x.u[1];
+
+    return this->valueFE(fe, vals);
+  }
+
   assert(0);
   return false;
 }
@@ -137,20 +147,20 @@ bool LRSplineFields2D::gradFE (const FiniteElement& fe, Matrix& grad) const
     }
     dNdX.multiply(dNdu,Jac); // dNdX = dNdu * Jac
 
-    Vnod.resize(2, nbf);
+    Vnod.resize(nf, nbf);
     i = 1;
     for (auto it  = belm->constSupportBegin();
               it != belm->constSupportEnd(); ++it, ++i)
-      for (size_t j = 1; j <= 2; ++j)
-        Vnod(j,i) = values((*it)->getId()*2+j);
+      for (size_t j = 1; j <= nf; ++j)
+        Vnod(j,i) = values((*it)->getId()*nf+j);
   }
   else {
-    Vnod.resize(2, nen);
+    Vnod.resize(nf, nen);
     i = 1;
     for (auto it  = elm->constSupportBegin();
               it != elm->constSupportEnd(); ++it, ++i)
-      for (size_t j = 1; j <= 2; ++j)
-        Vnod(j,i) = values((*it)->getId()*2+j);
+      for (size_t j = 1; j <= nf; ++j)
+        Vnod(j,i) = values((*it)->getId()*nf+j);
   }
 
   grad.multiply(Vnod,dNdX); // grad = Vnod * dNdX
@@ -193,12 +203,12 @@ bool LRSplineFields2D::hessianFE (const FiniteElement& fe, Matrix3D& H) const
       d2Ndu2(n,2,2) = spline2.basisDerivs_vv[n-1];
     }
 
-    Vnod.resize(2, nen);
+    Vnod.resize(nf, nen);
     i = 1;
     for (auto it  = elm->constSupportBegin();
               it != elm->constSupportEnd(); ++it, ++i)
-      for (size_t j = 1; j <= 2; ++j)
-        Vnod(j,i) = values((*it)->getId()*2+j);
+      for (size_t j = 1; j <= nf; ++j)
+        Vnod(j,i) = values((*it)->getId()*nf+j);
   }
   else {
     surf->computeBasis(fe.u,fe.v,spline,iel);
@@ -231,12 +241,12 @@ bool LRSplineFields2D::hessianFE (const FiniteElement& fe, Matrix3D& H) const
       d2Ndu2(n,2,2) = spline2.basisDerivs_vv[n-1];
     }
 
-    Vnod.resize(2, nbf);
+    Vnod.resize(nf, nbf);
     i = 1;
     for (auto it  = belm->constSupportBegin();
               it != belm->constSupportEnd(); ++it, ++i)
-      for (size_t j = 1; j <= 2; ++j)
-        Vnod(j,i) = values((*it)->getId()*2+j);
+      for (size_t j = 1; j <= nf; ++j)
+        Vnod(j,i) = values((*it)->getId()*nf+j);
   }
 
   return H.multiply(Vnod,d2Ndu2);

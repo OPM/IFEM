@@ -1,0 +1,15 @@
+<info>
+    <entry name="u" description="primary" type="field" basis="Stokes-1" patches="2" components="3" />
+    <entry name="v" description="primary" type="field" basis="Stokes-2" patches="2" components="1" />
+    <entry name="u_x,x" description="secondary" type="field" basis="Stokes-1" patches="2" components="1" />
+    <entry name="u_y,x" description="secondary" type="field" basis="Stokes-1" patches="2" components="1" />
+    <entry name="u_z,x" description="secondary" type="field" basis="Stokes-1" patches="2" components="1" />
+    <entry name="u_x,y" description="secondary" type="field" basis="Stokes-1" patches="2" components="1" />
+    <entry name="u_y,y" description="secondary" type="field" basis="Stokes-1" patches="2" components="1" />
+    <entry name="u_z,y" description="secondary" type="field" basis="Stokes-1" patches="2" components="1" />
+    <entry name="u_x,z" description="secondary" type="field" basis="Stokes-1" patches="2" components="1" />
+    <entry name="u_y,z" description="secondary" type="field" basis="Stokes-1" patches="2" components="1" />
+    <entry name="u_z,z" description="secondary" type="field" basis="Stokes-1" patches="2" components="1" />
+    <levels>0</levels>
+    <timestep constant="1" interval="1">1.000000</timestep>
+</info>

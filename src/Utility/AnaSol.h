@@ -38,6 +38,12 @@ protected:
   TensorFunc*  vecSecSol; //!< Secondary solution field (vector gradient field)
   STensorFunc* stressSol; //!< Secondary solution field (stress field)
 
+  //! \brief Parse expression functions from XML definition.
+  void parseExpressionFunctions(const TiXmlElement* elem, bool scalarSol);
+
+  //! \brief Parse field functions from XML definition.
+  void parseFieldFunctions(const TiXmlElement* elem, bool scalarSol);
+
 public:
   //! \brief Default constructor initializing all solution fields.
   //! \param[in] s1 Primary scalar solution field
@@ -110,6 +116,7 @@ public:
   //! \brief Returns the scalar solution, if any.
   RealFunc* getScalarSol(size_t idx = 0) const
   { return scalSol.size() <= idx ? nullptr : scalSol[idx]; }
+
   //! \brief Returns the secondary scalar solution, if any.
   VecFunc* getScalarSecSol(size_t idx = 0) const
   { return scalSecSol.size() <= idx ? nullptr : scalSecSol[idx]; }
@@ -121,6 +128,9 @@ public:
 
   //! \brief Returns the stress solution, if any.
   STensorFunc* getStressSol() const { return stressSol; }
+
+  //! \brief Set patch to use.
+  void initPatch(size_t pIdx);
 };
 
 #endif
