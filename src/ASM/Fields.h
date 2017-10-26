@@ -59,9 +59,10 @@ public:
   //! \param[in] pch The spline patch on which the field is to be defined on
   //! \param[in] v Array of nodal/control point field values
   //! \param[in] basis Basis to use from patch
+  //! \param[in] nf Number of components in field
   //! \param[in] name Name of field
   static Fields* create(const ASMbase* pch, const RealArray& v,
-                        char basis = 1, const char* name = nullptr);
+                        char basis = 1, int nf = 0, const char* name = nullptr);
 
   // Methods to evaluate the field
   //==============================

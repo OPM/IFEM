@@ -965,7 +965,8 @@ bool ASMu2D::integrate (Integrand& integrand,
       fe.iel = MLGE[iel-1];
       Matrix   dNdu, Xnod, Jac;
       Matrix3D d2Ndu2, Hess;
-      Vec4     X;
+      double   param[3] = { 0.0, 0.0, 0.0 };
+      Vec4     X(param);
 
       // Get element area in the parameter space
       double dA = this->getParametricArea(iel);
@@ -1025,8 +1026,8 @@ bool ASMu2D::integrate (Integrand& integrand,
             fe.eta = xr[j];
 
             // Parameter values of current integration point
-            fe.u = redpar[0][i];
-            fe.v = redpar[1][j];
+            fe.u = param[0] = redpar[0][i];
+            fe.v = param[1] = redpar[1][j];
 
             // Compute basis function derivatives at current point
             Go::BasisDerivsSf spline;
@@ -1037,7 +1038,7 @@ bool ASMu2D::integrate (Integrand& integrand,
             fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
 
             // Cartesian coordinates of current integration point
-            X = Xnod * fe.N;
+            X.assign(Xnod * fe.N);
             X.t = time.t;
 
             // Compute the reduced integration terms of the integrand
@@ -1064,8 +1065,8 @@ bool ASMu2D::integrate (Integrand& integrand,
           fe.eta = xg[j];
 
           // Parameter values of current integration point
-          fe.u = gpar[0][i];
-          fe.v = gpar[1][j];
+          fe.u = param[0] = gpar[0][i];
+          fe.v = param[1] = gpar[1][j];
 
           // Compute basis function derivatives at current integration point
           if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES) {
@@ -1111,7 +1112,7 @@ bool ASMu2D::integrate (Integrand& integrand,
 #endif
 
           // Cartesian coordinates of current integration point
-          X = Xnod * fe.N;
+          X.assign(Xnod * fe.N);
           X.t = time.t;
 
           // Evaluate the integrand and accumulate element contributions
@@ -1271,6 +1272,7 @@ bool ASMu2D::integrate (Integrand& integrand,
 
         // Cartesian coordinates of current integration point
         X = Xnod * fe.N;
+        X.u = elmPts[ip].data();
         X.t = time.t;
 
         // Evaluate the integrand and accumulate element contributions
@@ -1345,7 +1347,8 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
   size_t firstp = iit == firstBp.end() ? 0 : iit->second;
 
   Matrix dNdu, Xnod, Jac;
-  Vec4   X;
+  double param[3] = { 0.0, 0.0, 0.0 };
+  Vec4   X(param);
   Vec3   normal;
 
 
@@ -1401,8 +1404,8 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
       // of current integration point
       fe.xi = xg[i];
       fe.eta = xg[i];
-      fe.u = gpar[0][i];
-      fe.v = gpar[1][i];
+      fe.u = param[0] = gpar[0][i];
+      fe.v = param[1] = gpar[1][i];
 
       // Evaluate basis function derivatives at current integration points
       Go::BasisDerivsSf spline;
@@ -1418,7 +1421,7 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
       if (edgeDir < 0) normal *= -1.0;
 
       // Cartesian coordinates of current integration point
-      X = Xnod * fe.N;
+      X.assign(Xnod * fe.N);
       X.t = time.t;
 
       // Evaluate the integrand and accumulate element contributions
@@ -1586,6 +1589,7 @@ bool ASMu2D::tesselate (ElementBlock& grid, const int* npe) const
         double v = vmin + (vmax-vmin)/(npe[1]-1)*iv;
         Go::Point pt;
         lrspline->point(pt, u,v, iel, iu!=npe[0]-1, iv!=npe[1]-1);
+        grid.setParams(inod, u, v);
         for(int dim=0; dim<nsd; dim++)
           grid.setCoor(inod, dim, pt[dim]);
         inod++;

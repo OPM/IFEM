@@ -142,6 +142,9 @@ public:
   //! \brief Returns the number of components of the return value.
   size_t dim() const { return ncmp; }
 
+  //! \brief Set currently active patch.
+  virtual void initPatch(size_t pIdx) {}
+
 protected:
   size_t ncmp; //!< Number of components in the return value
 };

@@ -17,6 +17,12 @@
 #include "Utilities.h"
 #include "IFEM.h"
 #include "tinyxml.h"
+#ifdef HAS_HDF5
+#include "ProcessAdm.h"
+#include "HDF5Writer.h"
+#include "XMLWriter.h"
+#include "FieldFunctions.h"
+#endif
 
 
 AnaSol::AnaSol (RealFunc* s1, VecFunc* s2,
@@ -107,8 +113,48 @@ template <class T> void parseDerivatives (T* func, const std::string& variables,
 AnaSol::AnaSol (const TiXmlElement* elem, bool scalarSol)
   : vecSol(nullptr), vecSecSol(nullptr), stressSol(nullptr)
 {
-  std::string variables;
+  const char* type = elem->Attribute("type");
+  if (type && !strcasecmp(type,"fields"))
+    parseFieldFunctions(elem, scalarSol);
+  else
+    parseExpressionFunctions(elem, scalarSol);
+}
 
+
+AnaSol::~AnaSol ()
+{
+  for (RealFunc* rf : scalSol)
+    delete rf;
+  for (VecFunc* vf : scalSecSol)
+    delete vf;
+  delete vecSol;
+  delete vecSecSol;
+  delete stressSol;
+}
+
+
+void AnaSol::initPatch(size_t pIdx)
+{
+  for (RealFunc* rf : scalSol)
+    rf->initPatch(pIdx);
+
+  for (VecFunc* rf : scalSecSol)
+    rf->initPatch(pIdx);
+
+  if (vecSol)
+    vecSol->initPatch(pIdx);
+
+  if (vecSecSol)
+    vecSol->initPatch(pIdx);
+
+  if (stressSol)
+    stressSol->initPatch(pIdx);
+}
+
+
+void AnaSol::parseExpressionFunctions(const TiXmlElement* elem, bool scalarSol)
+{
+  std::string variables;
   const TiXmlElement* var = elem->FirstChildElement("variables");
   if (var && var->FirstChild())
   {
@@ -185,13 +231,110 @@ AnaSol::AnaSol (const TiXmlElement* elem, bool scalarSol)
 }
 
 
-AnaSol::~AnaSol ()
+void AnaSol::parseFieldFunctions(const TiXmlElement* elem, bool scalarSol)
 {
-  for (RealFunc* rf : scalSol)
-    delete rf;
-  for (VecFunc* vf : scalSecSol)
-    delete vf;
-  delete vecSol;
-  delete vecSecSol;
-  delete stressSol;
+#ifdef HAS_HDF5
+  std::string file = elem->Attribute("file");
+  int level = 0;
+  utl::getAttribute(elem, "level", level);
+  ProcessAdm adm;
+  XMLWriter xml(file, adm);
+  xml.readInfo();
+  const TiXmlElement* prim = elem->FirstChildElement("primary");
+  if (prim && prim->FirstChild())
+  {
+    std::string primary = prim->FirstChild()->Value();
+    IFEM::cout <<"\tPrimary="<< primary << std::endl;
+    for (const XMLWriter::Entry& it : xml.getEntries()) {
+      if (it.name == primary) {
+        if (scalarSol)
+           scalSol.push_back(new FieldFunction(file, it.basis,
+                                               primary, it.patches, level));
+        else
+          vecSol = new VecFieldFunction(file, it.basis,
+                                        primary, it.patches,level);
+
+        break;
+      }
+    }
+  }
+  prim = elem->FirstChildElement("scalarprimary");
+  if (prim && prim->FirstChild())
+  {
+    std::string primary = prim->FirstChild()->Value();
+    IFEM::cout <<"\tScalar Primary="<< primary << std::endl;
+    for (const XMLWriter::Entry& it : xml.getEntries())
+      if (it.name == primary) {
+        scalSol.push_back(new FieldFunction(file, it.basis,
+                                                 primary, it.patches, level));
+        break;
+      }
+  }
+  const TiXmlElement* sec = elem->FirstChildElement("secondary");
+  if (sec && sec->FirstChild())
+  {
+    std::string secondary = sec->FirstChild()->Value();
+    IFEM::cout <<"\tSecondary="<< secondary << std::endl;
+    // first component runs the show
+    size_t pos = secondary.find_first_of('|');
+    std::string sec;
+    if (pos == std::string::npos)
+      sec = secondary;
+    else
+      sec = secondary.substr(0,pos);
+    for (const XMLWriter::Entry& it : xml.getEntries())
+      if (it.name == sec) {
+        if (scalarSol)
+          scalSecSol.push_back(new VecFieldFunction(file, it.basis, secondary,
+                                                    it.patches, level));
+        else
+          vecSecSol = new TensorFieldFunction(file, it.basis, secondary,
+                                              it.patches, level);
+
+        break;
+      }
+  }
+  sec = elem->FirstChildElement("scalarsecondary");
+  if (sec && sec->FirstChild())
+  {
+    std::string secondary = sec->FirstChild()->Value();
+    IFEM::cout <<"\tScalar Secondary="<< secondary << std::endl;
+    // first component runs the show
+    size_t pos = secondary.find_first_of('|');
+    std::string sec;
+    if (pos == std::string::npos)
+      sec = secondary;
+    else
+      sec = secondary.substr(0,pos);
+    for (const XMLWriter::Entry& it : xml.getEntries())
+      if (it.name == sec) {
+        scalSecSol.push_back(new VecFieldFunction(file, it.basis, secondary,
+                                                  it.patches, level));
+        break;
+      }
+  }
+  sec = elem->FirstChildElement("stress");
+  if (sec && sec->FirstChild())
+  {
+    std::string secondary = sec->FirstChild()->Value();
+    IFEM::cout <<"\tStress="<< secondary << std::endl;
+    // first component runs the show
+    size_t pos = secondary.find_first_of('|');
+    std::string sec;
+    if (pos == std::string::npos)
+      sec = secondary;
+    else
+      sec = secondary.substr(0,pos);
+    for (const XMLWriter::Entry& it : xml.getEntries())
+      if (it.name == sec) {
+        stressSol = new STensorFieldFunction(file, it.basis, secondary,
+                                             it.patches, level);
+
+        break;
+      }
+  }
+#else
+  std::cerr << "AnaSol::parseFieldFunctions(..): Compiled without HDF5 support"
+            <<", no fields read" << std::endl;
+#endif
 }

@@ -192,22 +192,28 @@ class Vec4 : public Vec3
 public:
   Real t;   //!< The time coordinate
   int  idx; //!< Nodal point index
+  const Real* u; //!< Spline parameters of point
 
   //! \brief Default constructor creating a point at origin.
-  Vec4() { t = 0.0; idx = -1; }
+  Vec4(const Real* par = nullptr) { t = 0.0; idx = -1; u = par; }
   //! \brief Constructor creating a point at the specified location.
-  Vec4(Real X, Real Y, Real Z, Real T = 0.0) : Vec3(X,Y,Z) { t = T; idx = -1; }
+  Vec4(Real X, Real Y, Real Z, Real T = 0.0) : Vec3(X,Y,Z)
+  { t = T; idx = -1; u = nullptr; }
   //! \brief Constructor creating a point at the specified location.
-  Vec4(const Vec3& X, Real T = 0.0, int id = -1) : Vec3(X) { t = T; idx = id; }
+  Vec4(const Vec3& X, Real T = 0.0, int id = -1) : Vec3(X)
+  { t = T; idx = id; u = nullptr; }
+  //! \brief Constructor creating a point at the specified location.
+  Vec4(const Vec3& X, Real T, const Real* par) : Vec3(X)
+  { t = T; idx = -1; u = par; }
   //! \brief Constructor creating a point from the given \a std::vector.
   Vec4(const std::vector<Real>& X) : Vec3(X)
-  { t = X.size() > 3 ? X[3] : 0.0; idx = -1; }
+  { t = X.size() > 3 ? X[3] : 0.0; idx = -1; u = nullptr; }
   //! \brief Copy constructor.
-  Vec4(const Vec4& X) : Vec3(X) { t = X.t; idx = X.idx; }
+  Vec4(const Vec4& X) : Vec3(X) { t = X.t; idx = X.idx; u = X.u; }
 
   //! \brief Assignment operator.
   Vec4& operator=(const Vec4& X)
-  { x = X.x; y = X.y; z = X.z; t = X.t; idx = X.idx; return *this; }
+  { x = X.x; y = X.y; z = X.z; t = X.t; idx = X.idx; u = X.u; return *this; }
   //! \brief Overloaded assignment operator.
   Vec4& operator=(Real val) { x = y = z = val; return *this; }
 
@@ -216,7 +222,7 @@ public:
   {
     x = X.x; y = X.y; z = X.z;
     const Vec4* x4 = dynamic_cast<const Vec4*>(&X);
-    if (x4) { t = x4->t; idx = x4->idx; }
+    if (x4) { t = x4->t; idx = x4->idx; u = x4->u; }
     return *this;
   }
 
@@ -225,6 +231,7 @@ public:
   {
     if (idx >= 0) os <<"(idx="<< idx <<") ";
     this->Vec3::print(os,tol);
+    if (u) os <<" ("<< u[0] <<" "<< u[1] <<" "<< u[2] <<")";
     if (t > 0.0) os <<" "<< t;
     return os;
   }

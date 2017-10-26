@@ -37,9 +37,20 @@ public:
   //! \param[in] patch The spline patch on which the field is to be defined
   //! \param[in] v Array of control point field values
   //! \param[in] basis Basis to use from patch
+  //! \param[in] nf Number of components in field
   //! \param[in] name Name of spline field
   SplineFields2D(const ASMs2D* patch, const RealArray& v,
-                 char basis = 1, const char* name = nullptr);
+                 char basis = 1, int nf = 0, const char* name = nullptr);
+
+  //! \brief Construct directly from surface.
+  //! \param[in] srf The spline surface to use
+  //! \param[in] v Array of control point field values
+  //! \param[in] ncmp Number of field components
+  //! \param[in] name Name of spline field
+  SplineFields2D(const Go::SplineSurface* srf, const RealArray& v, int ncmp,
+                 const char* name = nullptr);
+
+
   //! \brief Empty destructor.
   virtual ~SplineFields2D() {}
 

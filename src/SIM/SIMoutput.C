@@ -547,6 +547,8 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
       return -1;
 
     myModel[i]->filterResults(field,myVtf->getBlock(++geomID));
+    if (mySol)
+      mySol->initPatch(myModel[i]->idx);
 
     if (!scalarOnly && (nVcomp > 1 || !pvecName))
     {
@@ -576,7 +578,7 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
       {
         const RealFunc& pSol = *mySol->getScalarSol();
         for (j = 1; cit != grid->end_XYZ() && haveXsol; j++, ++cit)
-          field(1,j) = pSol(Vec4(*cit,time));
+          field(1,j) = pSol(Vec4(*cit,time,grid->getParam(j-1)));
       }
       else
       {
@@ -588,7 +590,7 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
           cit = grid->begin_XYZ();
           const RealFunc& sSol = *mySol->getScalarSol();
           for (j = 1; cit != grid->end_XYZ() && haveXsol; j++, ++cit)
-            field(field.rows(),j) = sSol(Vec4(*cit,time));
+            field(field.rows(),j) = sSol(Vec4(*cit,time,grid->getParam(j-1)));
         }
       }
 
@@ -686,6 +688,9 @@ bool SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
   {
     if (myModel[i]->empty()) continue; // skip empty patches
 
+    if (mySol)
+      mySol->initPatch(myModel[i]->idx);
+
     if (msgLevel > 1)
       IFEM::cout <<"Writing secondary solution for patch "<< i+1 << std::endl;
 
@@ -747,7 +752,7 @@ bool SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
       Vec3Vec::const_iterator cit = grid->begin_XYZ();
       for (j = 1; cit != grid->end_XYZ() && haveAsol; j++, ++cit)
       {
-        Vec4 Xt(*cit,time);
+        Vec4 Xt(*cit,time,grid->getParam(j-1));
         if (mySol->hasScalarSol() == 3 || mySol->hasVectorSol() == 3)
           haveAsol = myProblem->evalSol(lovec,*mySol->getStressSol(),Xt);
         else if (this->getNoFields() == 1)

@@ -61,9 +61,16 @@ macro(IFEM_add_unittests IFEM_PATH)
     list(REMOVE_ITEM TEST_SOURCES ${IFEM_PATH}/src/LinAlg/Test/TestISTLPETScMatrix.C)
   endif()
 
+  if(NOT HDF5_FOUND)
+    list(REMOVE_ITEM TEST_SOURCES ${IFEM_PATH}/src/Utility/Test/TestFieldFunctions.C)
+    list(REMOVE_ITEM TEST_SOURCES ${IFEM_PATH}/src/Utility/Test/TestFieldFunctionsLR.C)
+  endif()
+
   if(LRSPLINE_FOUND OR LRSpline_FOUND)
     file(GLOB LR_TEST_SRCS ${PROJECT_SOURCE_DIR}/src/ASM/LR/Test/*.C)
     list(APPEND TEST_SOURCES ${LR_TEST_SRCS})
+  else()
+    list(REMOVE_ITEM TEST_SOURCES ${IFEM_PATH}/src/Utility/Test/TestFieldFunctionsLR.C)
   endif()
 
   IFEM_add_test_app("${TEST_SOURCES}"

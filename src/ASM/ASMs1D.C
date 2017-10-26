@@ -783,7 +783,8 @@ bool ASMs1D::integrate (Integrand& integrand,
   FiniteElement fe(p1);
   Matrix   dNdu, Jac;
   Matrix3D d2Ndu2, Hess;
-  Vec4     X;
+  double   param[3] = { 0.0, 0.0, 0.0 };
+  Vec4     X(param);
 
   if (nsd > 1 && (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES))
     fe.G.resize(nsd,2); // For storing d{X}/du and d2{X}/du2
@@ -825,8 +826,8 @@ bool ASMs1D::integrate (Integrand& integrand,
 	// Local element coordinates of current integration point
 	fe.xi = xr[i];
 
-	// Parameter values of current integration point
-	fe.u = redpar(1+i,1+iel);
+        // Parameter values of current integration point
+        fe.u = param[0] = redpar(1+i,1+iel);
 
         if (integrand.getIntegrandType() & Integrand::NO_DERIVATIVES)
           this->extractBasis(fe.u,fe.N);
@@ -840,7 +841,7 @@ bool ASMs1D::integrate (Integrand& integrand,
         }
 
 	// Cartesian coordinates of current integration point
-	X = fe.Xn * fe.N;
+        X.assign(fe.Xn * fe.N);
 	X.t = time.t;
 
 	// Compute the reduced integration terms of the integrand
@@ -860,7 +861,7 @@ bool ASMs1D::integrate (Integrand& integrand,
       fe.xi = xg[i];
 
       // Parameter value of current integration point
-      fe.u = gpar(1+i,1+iel);
+      fe.u = param[0] = gpar(1+i,1+iel);
 
       // Compute basis functions and derivatives
       if (integrand.getIntegrandType() & Integrand::NO_DERIVATIVES)
@@ -894,7 +895,7 @@ bool ASMs1D::integrate (Integrand& integrand,
       }
 
       // Cartesian coordinates of current integration point
-      X = fe.Xn * fe.N;
+      X.assign(fe.Xn * fe.N);
       X.t = time.t;
 
       // Evaluate the integrand and accumulate element contributions

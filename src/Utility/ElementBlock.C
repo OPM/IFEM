@@ -33,6 +33,7 @@ ElementBlock::ElementBlock (size_t nenod)
 void ElementBlock::resize (size_t nI, size_t nJ, size_t nK)
 {
   coord.resize(nI*nJ*nK);
+  params.resize(nI*nJ*nK);
   if (nen == 2 && nJ < 2 && nK < 2)
     MMNPC.resize(2*(nI-1));
   else if (nen == 3 && nK < 2)
@@ -56,6 +57,7 @@ void ElementBlock::resize (size_t nI, size_t nJ, size_t nK)
 void ElementBlock::unStructResize (size_t nEl, size_t nPts)
 {
   coord.resize(nPts);
+  params.resize(nPts);
   MMNPC.resize(nen*nEl);
   MINEX.resize(MMNPC.size()/nen,0);
   std::iota(MINEX.begin(),MINEX.end(),1);
@@ -76,6 +78,15 @@ bool ElementBlock::setCoor (size_t i, const Vec3& X)
   if (i >= coord.size()) return false;
 
   coord[i] = X;
+  return true;
+}
+
+
+bool ElementBlock::setParams (size_t i, Real u, Real v, Real w)
+{
+  if (i >= params.size()) return false;
+
+  params[i] = {u,v,w};
   return true;
 }
 

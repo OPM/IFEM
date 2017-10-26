@@ -1547,7 +1547,8 @@ bool ASMs2D::integrate (Integrand& integrand,
       Matrix   dNdu, Xnod, Jac;
       Matrix3D d2Ndu2, Hess;
       double   dXidu[2];
-      Vec4     X;
+      double   param[3] = { 0.0, 0.0, 0.0 };
+      Vec4     X(param);
       for (size_t i = 0; i < threadGroups[g][t].size() && ok; i++)
       {
         int iel = threadGroups[g][t][i];
@@ -1652,8 +1653,8 @@ bool ASMs2D::integrate (Integrand& integrand,
               fe.eta = xr[j];
 
               // Parameter values of current integration point
-              fe.u = redpar[0](i+1,i1-p1+1);
-              fe.v = redpar[1](j+1,i2-p2+1);
+              fe.u = param[0] = redpar[0](i+1,i1-p1+1);
+              fe.v = param[1] = redpar[1](j+1,i2-p2+1);
 
               // Fetch basis function derivatives at current point
               SplineUtils::extractBasis(splineRed[ip],fe.N,dNdu);
@@ -1663,7 +1664,7 @@ bool ASMs2D::integrate (Integrand& integrand,
               if (fe.detJxW == 0.0) continue; // skip singular points
 
               // Cartesian coordinates of current integration point
-              X = Xnod * fe.N;
+              X.assign(Xnod * fe.N);
               X.t = time.t;
 
               // Compute the reduced integration terms of the integrand
@@ -1688,8 +1689,8 @@ bool ASMs2D::integrate (Integrand& integrand,
             fe.eta = xg[j];
 
             // Parameter values of current integration point
-            fe.u = gpar[0](i+1,i1-p1+1);
-            fe.v = gpar[1](j+1,i2-p2+1);
+            fe.u = param[0] = gpar[0](i+1,i1-p1+1);
+            fe.v = param[1] = gpar[1](j+1,i2-p2+1);
 
             // Fetch basis function derivatives at current integration point
             if (use2ndDer)
@@ -1721,7 +1722,7 @@ bool ASMs2D::integrate (Integrand& integrand,
 #endif
 
             // Cartesian coordinates of current integration point
-            X = Xnod * fe.N;
+            X.assign(Xnod * fe.N);
             X.t = time.t;
 
             // Evaluate the integrand and accumulate element contributions
@@ -1847,7 +1848,7 @@ bool ASMs2D::integrate (Integrand& integrand,
         {
           // Compute the element center
           fe.h = this->getElementCorners(i1-1,i2-1,fe.XC);
-          X = 0.25*(fe.XC[0]+fe.XC[1]+fe.XC[2]+fe.XC[3]);
+          X.assign(0.25*(fe.XC[0]+fe.XC[1]+fe.XC[2]+fe.XC[3]));
         }
         else if (useElmVtx)
           fe.h = this->getElementCorners(i1-1,i2-1,fe.XC);
@@ -1908,6 +1909,7 @@ bool ASMs2D::integrate (Integrand& integrand,
 
           // Cartesian coordinates of current integration point
           X = Xnod * fe.N;
+          X.u = elmPts[ip].data();
           X.t = time.t;
 
           // Evaluate the integrand and accumulate element contributions
@@ -1963,7 +1965,8 @@ bool ASMs2D::integrate (Integrand& integrand,
   FiniteElement fe(p1*p2);
   Matrix        dNdu, Xnod, Jac;
   Vector        dN;
-  Vec4          X;
+  double        param[3] = { 0.0, 0.0, 0.0 };
+  Vec4          X(param);
   Vec3          normal;
   double        u[2], v[2];
   bool          hasInterfaceElms = MLGE.size() > nel && MLGE.size() != 2*nel;
@@ -2031,16 +2034,16 @@ bool ASMs2D::integrate (Integrand& integrand,
             {
               fe.xi = edgeDir;
               fe.eta = xg[i];
-              fe.u = edgeDir > 0 ? u[1] : u[0];
-              fe.v = 0.5*((v[1]-v[0])*xg[i] + v[1]+v[0]);
+              fe.u = param[0] = edgeDir > 0 ? u[1] : u[0];
+              fe.v = param[1] = 0.5*((v[1]-v[0])*xg[i] + v[1]+v[0]);
               fe.p = p1 - 1;
             }
             else
             {
               fe.xi = xg[i];
               fe.eta = edgeDir/2;
-              fe.u = 0.5*((u[1]-u[0])*xg[i] + u[1]+u[0]);
-              fe.v = edgeDir > 0 ? v[1] : v[0];
+              fe.u = param[0] = 0.5*((u[1]-u[0])*xg[i] + u[1]+u[0]);
+              fe.v = param[1] = edgeDir > 0 ? v[1] : v[0];
               fe.p = p2 - 1;
             }
 
@@ -2054,7 +2057,7 @@ bool ASMs2D::integrate (Integrand& integrand,
             if (edgeDir < 0) normal *= -1.0;
 
             // Cartesian coordinates of current integration point
-            X = Xnod * fe.N;
+            X.assign(Xnod * fe.N);
             X.t = time.t;
 
             if (integrand.getIntegrandType() & Integrand::NORMAL_DERIVS)
@@ -2163,9 +2166,10 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
   fe.xi = fe.eta = edgeDir < 0 ? -1.0 : 1.0;
   fe.u = gpar[0](1,1);
   fe.v = gpar[1](1,1);
+  double param[3] = { fe.u, fe.v, 0.0 };
 
   Matrix dNdu, Xnod, Jac;
-  Vec4   X;
+  Vec4   X(param);
   Vec3   normal;
   double dXidu[2];
 
@@ -2229,12 +2233,12 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
 	if (gpar[0].size() > 1)
 	{
 	  fe.xi = xg[i];
-	  fe.u = gpar[0](i+1,i1-p1+1);
+	  fe.u = param[0] = gpar[0](i+1,i1-p1+1);
 	}
 	if (gpar[1].size() > 1)
 	{
 	  fe.eta = xg[i];
-	  fe.v = gpar[1](i+1,i2-p2+1);
+	  fe.v = param[1] = gpar[1](i+1,i2-p2+1);
 	}
 
 	// Fetch basis function derivatives at current integration point
@@ -2251,7 +2255,7 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
 	  utl::getGmat(Jac,dXidu,fe.G);
 
 	// Cartesian coordinates of current integration point
-	X = Xnod * fe.N;
+        X.assign(Xnod * fe.N);
 	X.t = time.t;
 
 	// Evaluate the integrand and accumulate element contributions
@@ -2348,9 +2352,11 @@ bool ASMs2D::tesselate (ElementBlock& grid, const int* npe) const
   // Establish the block grid coordinates
   size_t i, j, l;
   grid.resize(nx,ny);
-  for (i = l = 0; i < grid.getNoNodes(); i++, l += surf->dimension())
+  for (i = l = 0; i < grid.getNoNodes(); i++, l += surf->dimension()) {
+    grid.setParams(i, gpar[0][i % nx], gpar[1][i / nx]);
     for (j = 0; j < nsd; j++)
       grid.setCoor(i,j,XYZ[l+j]);
+  }
 
   // Establish the block grid topology
   int ie, nse1 = npe[0] - 1;

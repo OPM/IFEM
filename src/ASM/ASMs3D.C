@@ -1737,7 +1737,8 @@ bool ASMs3D::integrate (Integrand& integrand,
       Matrix   dNdu, Xnod, Jac;
       Matrix3D d2Ndu2, Hess;
       double   dXidu[3];
-      Vec4     X;
+      double   param[3];
+      Vec4     X(param);
       for (size_t l = 0; l < threadGroupsVol[g][t].size() && ok; l++)
       {
         int iel = threadGroupsVol[g][t][l];
@@ -1848,9 +1849,9 @@ bool ASMs3D::integrate (Integrand& integrand,
                 fe.zeta = xr[k];
 
                 // Parameter values of current integration point
-                fe.u = redpar[0](i+1,i1-p1+1);
-                fe.v = redpar[1](j+1,i2-p2+1);
-                fe.w = redpar[2](k+1,i3-p3+1);
+                fe.u = param[0] = redpar[0](i+1,i1-p1+1);
+                fe.v = param[1] = redpar[1](j+1,i2-p2+1);
+                fe.w = param[2] = redpar[2](k+1,i3-p3+1);
 
                 // Fetch basis function derivatives at current point
                 SplineUtils::extractBasis(splineRed[ip],fe.N,dNdu);
@@ -1886,9 +1887,9 @@ bool ASMs3D::integrate (Integrand& integrand,
               fe.zeta = xg[k];
 
               // Parameter values of current integration point
-              fe.u = gpar[0](i+1,i1-p1+1);
-              fe.v = gpar[1](j+1,i2-p2+1);
-              fe.w = gpar[2](k+1,i3-p3+1);
+              fe.u = param[0] = gpar[0](i+1,i1-p1+1);
+              fe.v = param[1] = gpar[1](j+1,i2-p2+1);
+              fe.w = param[1] = gpar[2](k+1,i3-p3+1);
 
               // Fetch basis function derivatives at current integration point
               if (use2ndDer)
@@ -1920,7 +1921,7 @@ bool ASMs3D::integrate (Integrand& integrand,
 #endif
 
               // Cartesian coordinates of current integration point
-              X = Xnod * fe.N;
+              X.assign(Xnod * fe.N);
               X.t = time.t;
 
               // Evaluate the integrand and accumulate element contributions
@@ -2114,6 +2115,7 @@ bool ASMs3D::integrate (Integrand& integrand,
 
           // Cartesian coordinates of current integration point
           X = Xnod * fe.N;
+          X.u = itgPts[iel][ip].data();
           X.t = time.t;
 
           // Evaluate the integrand and accumulate element contributions
@@ -2254,7 +2256,8 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
       fe.w = gpar[2](1,1);
 
       Matrix dNdu, Xnod, Jac;
-      Vec4   X;
+      double   param[3] = { fe.u, fe.v, fe.w };
+      Vec4   X(param);
       Vec3   normal;
       double dXidu[3];
 
@@ -2341,17 +2344,17 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
             if (gpar[0].size() > 1)
             {
               fe.xi = xg[k1];
-              fe.u = gpar[0](k1+1,i1-p1+1);
+              fe.u = param[0] = gpar[0](k1+1,i1-p1+1);
             }
             if (gpar[1].size() > 1)
             {
               fe.eta = xg[k2];
-              fe.v = gpar[1](k2+1,i2-p2+1);
+              fe.v = param[1] = gpar[1](k2+1,i2-p2+1);
             }
             if (gpar[2].size() > 1)
             {
               fe.zeta = xg[k3];
-              fe.w = gpar[2](k3+1,i3-p3+1);
+              fe.w = param[2] = gpar[2](k3+1,i3-p3+1);
             }
 
             // Fetch basis function derivatives at current integration point
@@ -2368,7 +2371,7 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
               utl::getGmat(Jac,dXidu,fe.G);
 
             // Cartesian coordinates of current integration point
-            X = Xnod * fe.N;
+            X.assign(Xnod * fe.N);
             X.t = time.t;
 
             // Evaluate the integrand and accumulate element contributions
@@ -2472,7 +2475,8 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
   if (gpar[2].size() == 1) fe.zeta = fe.w == svol->startparam(2) ? -1.0 : 1.0;
 
   Matrix dNdu, Xnod, Jac;
-  Vec4   X;
+  double   param[3] = { 0.0, 0.0, 0.0 };
+  Vec4   X(param);
   Vec3   tang;
 
 
@@ -2542,9 +2546,9 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
 	for (int i = 0; i < nGauss && ok; i++, ip++, fe.iGP++)
 	{
 	  // Parameter values of current integration point
-	  if (gpar[0].size() > 1) fe.u = gpar[0](i+1,i1-p1+1);
-	  if (gpar[1].size() > 1) fe.v = gpar[1](i+1,i2-p2+1);
-	  if (gpar[2].size() > 1) fe.w = gpar[2](i+1,i3-p3+1);
+	  if (gpar[0].size() > 1) fe.u = param[0] = gpar[0](i+1,i1-p1+1);
+	  if (gpar[1].size() > 1) fe.v = param[1] = gpar[1](i+1,i2-p2+1);
+	  if (gpar[2].size() > 1) fe.w = param[2] = gpar[2](i+1,i3-p3+1);
 
 	  // Fetch basis function derivatives at current integration point
 	  SplineUtils::extractBasis(spline[ip],fe.N,dNdu);
@@ -2554,7 +2558,7 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
 	  if (fe.detJxW == 0.0) continue; // skip singular points
 
 	  // Cartesian coordinates of current integration point
-	  X = Xnod * fe.N;
+	  X.assign(Xnod * fe.N);
 	  X.t = time.t;
 
 	  // Evaluate the integrand and accumulate element contributions
@@ -2648,8 +2652,10 @@ bool ASMs3D::tesselate (ElementBlock& grid, const int* npe) const
   // Establish the block grid coordinates
   size_t i, j, k, l;
   grid.resize(nx,ny,nz);
-  for (i = j = 0; i < grid.getNoNodes(); i++, j += svol->dimension())
+  for (i = j = 0; i < grid.getNoNodes(); i++, j += svol->dimension()) {
+    grid.setParams(i,gpar[0][i % nx], gpar[1][i/nx % ny], gpar[2][i / (nx*ny)]);
     grid.setCoor(i,XYZ[j],XYZ[j+1],XYZ[j+2]);
+  }
 
   // Establish the block grid topology
   int ie, nse1 = npe[0] - 1;
