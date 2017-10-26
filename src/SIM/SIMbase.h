@@ -285,11 +285,11 @@ public:
   }
 
   //! \brief Solves a linear system of equations with multiple right-hand-sides.
-  //! \param[out] solution Global primary solution vector
+  //! \param[out] solution Global primary solution vectors
   //! \param[in] printSol Print solution if its size is less than \a printSol
-  //! \param[in] compName Solution name to be used in norm output
-  bool solveMatrixSystem(Vectors& solution, int printSol = 0,
-                         const char* compName = "displacement");
+  //! \param[in] cmpName Solution name to be used in norm output
+  bool solveSystem(Vectors& solution, int printSol = 0,
+                   const char* cmpName = "displacement");
 
   //! \brief Finds the DOFs showing the worst convergence behavior.
   //! \param[in] x Global primary solution vector

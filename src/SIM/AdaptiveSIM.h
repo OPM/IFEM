@@ -79,12 +79,15 @@ protected:
 
 private:
   Vectors gNorm; //!< Global norms
+  Vectors dNorm; //!< Dual global norms
   Matrix  eNorm; //!< Element norms
+  Matrix  fNorm; //!< Dual element norms
 
   int geoBlk; //!< Running VTF geometry block counter
   int nBlock; //!< Running VTF result block counter
 
   std::vector<Vector>      projs;  //!< Projected secondary solutions
+  std::vector<Vector>      projd;  //!< Projected dual solutions
   std::vector<std::string> prefix; //!< Norm prefices for VTF-output
 
 protected:

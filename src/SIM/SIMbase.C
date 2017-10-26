@@ -661,7 +661,7 @@ size_t SIMbase::getNoEquations () const
 
 size_t SIMbase::getNoRHS () const
 {
-  return myEqSys ? myEqSys->getNoRHS() : 1;
+  return myEqSys ? myEqSys->getNoRHS() : (this->haveDualSol() ? 2 : 1);
 }
 
 
@@ -809,6 +809,37 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
 {
   PROFILE1("Element assembly");
 
+  // Lambda function for assembling the interior terms for a given patch
+  auto&& assembleInterior = [this,time,prevSol](IntegrandBase* integrand,
+                                                GlobalIntegral& integral,
+                                                ASMbase* pch, int pidx)
+  {
+    if (msgLevel > 1)
+      IFEM::cout <<"\nAssembling interior matrix terms for P"<< pidx
+                 << std::endl;
+
+    if (!this->initBodyLoad(pidx))
+      return false;
+
+    if (!this->extractPatchSolution(integrand,prevSol,pidx-1))
+      return false;
+
+    if (dualField && myProblem->getExtractionField())
+    {
+      Matrix extrField(*myProblem->getExtractionField());
+      if (!pch->L2projection(extrField,dualField))
+        return false;
+    }
+
+    if (mySol)
+      mySol->initPatch(pch->idx);
+
+#if SP_DEBUG > 2
+    integrand->printSolution(std::cout,pch->idx+1);
+#endif
+    return pch->integrate(*integrand,integral,time);
+  };
+
   bool ok = true;
   bool isAssembling = (myProblem->getMode() > SIM::INIT &&
                        myProblem->getMode() < SIM::RECOVERY);
@@ -840,6 +871,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
       for (p = myProps.begin(); p != myProps.end() && ok; ++p)
         if (p->pcode == Property::MATERIAL &&
             (it->first == 0 || it->first == p->pindx))
+        {
           if (!(pch = this->getPatch(p->patch)))
           {
             std::cerr <<" *** SIMbase::assembleSystem: Patch index "<< p->patch
@@ -849,39 +881,17 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
           else if (this->initMaterial(p->pindx))
           {
             lp = p->patch;
-            if (msgLevel > 1)
-              IFEM::cout <<"\nAssembling interior matrix terms for P"<< lp
-                         << std::endl;
-            ok &= this->initBodyLoad(lp);
-            ok &= this->extractPatchSolution(it->second,prevSol,lp-1);
-            if (mySol)
-              mySol->initPatch(pch->idx);
-#if SP_DEBUG > 2
-            it->second->printSolution(std::cout,pch->idx+1);
-#endif
-            ok &= pch->integrate(*it->second,sysQ,time);
+            ok = assembleInterior(it->second,sysQ,pch,lp);
           }
           else
             ok = false;
+        }
 
       if (lp == 0 && it->first == 0)
         // All patches refer to the same material, and we assume it has been
         // initialized during input processing (thus no initMaterial call here)
-        for (size_t k = 0; k < myModel.size() && ok; k++)
-        {
-          lp = k+1;
-          if (msgLevel > 1)
-            IFEM::cout <<"\nAssembling interior matrix terms for P"<< lp
-                       << std::endl;
-          ok &= this->initBodyLoad(lp);
-          ok &= this->extractPatchSolution(it->second,prevSol,k);
-          if (mySol)
-            mySol->initPatch(myModel[k]->idx);
-#if SP_DEBUG > 2
-          it->second->printSolution(std::cout,myModel[k]->idx+1);
-#endif
-          ok &= myModel[k]->integrate(*it->second,sysQ,time);
-        }
+        for (lp = 0; lp < myModel.size() && ok; lp++)
+          ok = assembleInterior(it->second,sysQ,myModel[lp],1+lp);
     }
 
     // Assemble contributions from the Neumann boundary conditions
@@ -1087,17 +1097,17 @@ bool SIMbase::solveSystem (Vector& solution, int printSol, double* rCond,
 }
 
 
-bool SIMbase::solveMatrixSystem (Vectors& solution, int printSol,
-                                 const char* compName)
+bool SIMbase::solveSystem (Vectors& solution, int printSol, const char* cmpName)
 {
-  solution.resize(this->getNoRHS());
-  for (size_t i = 0; i < solution.size(); i++)
-    if (!this->solveSystem(solution[i],printSol,nullptr,compName,i==0,i))
-      return false;
-    else if (solution.size() > 2)
-      printSol = 0; // Print summary only for the first two solutions
+  size_t nSol = myEqSys ? myEqSys->getNoRHS() : 0;
+  if (solution.size() < nSol)
+    solution.resize(nSol);
 
-  return true;
+  bool status = nSol > 0;
+  for (size_t i = 0; i < nSol && status; i++)
+    status = this->solveSystem(solution[i],printSol,nullptr,cmpName,i==0,i);
+
+  return status;
 }
 
 

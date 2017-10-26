@@ -69,9 +69,10 @@ public:
 
   //! \brief Prints out global norms to the log stream.
   //! \param[in] gNorm Global norms
+  //! \param[in] dNorm Global dual norms
   //! \param[in] eNorm Element norms
   //! \param[in] w Field width for global norm labels
-  void printNorms(const Vectors& gNorm,
+  void printNorms(const Vectors& gNorm, const Vectors& dNorm,
                   const Matrix& eNorm, size_t w = 36) const;
 
   //! \brief Dumps current mesh to external file(s) for inspection.

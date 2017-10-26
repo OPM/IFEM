@@ -438,7 +438,7 @@ int AdaptiveSetup::calcRefinement (LR::RefineData& prm, int iStep,
 }
 
 
-void AdaptiveSetup::printNorms (const Vectors& gNorm,
+void AdaptiveSetup::printNorms (const Vectors& gNorm, const Vectors& dNorm,
                                 const Matrix& eNorm, size_t w) const
 {
   model.printNorms(gNorm,w);
@@ -457,6 +457,14 @@ void AdaptiveSetup::printNorms (const Vectors& gNorm,
     if (model.haveAnaSol() && adaptor != 0)
       IFEM::cout <<"\nEffectivity index  : "
                  << model.getEffectivityIndex(gNorm,adaptor,adNorm);
+    if (adaptor < dNorm.size())
+    {
+      const Vector& bNorm = dNorm[adaptor];
+      IFEM::cout <<"\nError estimate, dual solution"
+                 << utl::adjustRight(w-29,"(z)") << bNorm(adNorm)
+                 <<"\nRelative error (%) : "
+                 << 100.0*bNorm(adNorm)/hypot(dNorm.front()(1),bNorm(2));
+    }
     IFEM::cout <<"\n"<< std::endl;
 
     delete norm;

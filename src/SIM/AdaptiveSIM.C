@@ -44,6 +44,9 @@ bool AdaptiveSIM::initAdaptor (size_t normGroup)
     return false;
 
   projs.resize(opt.project.size());
+  if (model.haveDualSol())
+    projd.resize(opt.project.size());
+
   if (opt.format >= 0)
   {
     prefix.reserve(opt.project.size());
@@ -101,7 +104,9 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep, bool withRF,
   };
 
   gNorm.clear();
+  dNorm.clear();
   eNorm.clear();
+  fNorm.clear();
 
   model.getProcessAdm().cout <<"\nAdaptive step "<< iStep << std::endl;
   if (iStep > 1)
@@ -127,17 +132,17 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep, bool withRF,
   if (!this->assembleAndSolveSystem())
     return failure();
 
-  eNorm.clear();
-  gNorm.clear();
-
   // Project the secondary solution onto the splines basis
   size_t idx = 0;
   model.setMode(SIM::RECOVERY);
   for (const SIMoptions::ProjectionMap::value_type& prj : opt.project)
     if (prj.first <= SIMoptions::NONE)
-      projs[idx++].clear(); // No projection for this norm group
+      idx++; // No projection for this norm group
     else if (!model.project(projs[idx++],solution.front(),prj.first))
       return failure();
+    else if (idx == adaptor && idx <= projd.size() && solution.size() > 1)
+      if (!model.project(projd[idx-1],solution[1],prj.first))
+        return failure();
 
   if (msgLevel > 1 && !projs.empty())
     model.getProcessAdm().cout << std::endl;
@@ -147,6 +152,9 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep, bool withRF,
   model.setQuadratureRule(opt.nGauss[1]);
   if (!model.solutionNorms(solution.front(),projs,eNorm,gNorm))
     return failure();
+  if (!projd.empty() && solution.size() > 1)
+    if (!model.solutionNorms(solution[1],projd,fNorm,dNorm))
+      return failure();
 
   model.setMode(SIM::RECOVERY);
   if (!model.dumpResults(solution.front(),0.0,
@@ -172,15 +180,21 @@ bool AdaptiveSIM::adaptMesh (int iStep, std::streamsize outPrec)
   if (outPrec > 0)
   {
     std::streamsize oldPrec = IFEM::cout.precision(outPrec);
-    this->printNorms(gNorm,eNorm);
+    this->printNorms(gNorm,dNorm,eNorm);
     IFEM::cout.precision(oldPrec);
   }
   else
-    this->printNorms(gNorm,eNorm);
+    this->printNorms(gNorm,dNorm,eNorm);
+
+  // Calculate refinement indicators including the dual error estimates
+  Vector refIn = eNorm.getRow(eRow);
+  if (eRow <= fNorm.rows())
+    for (size_t i = 1; i <= refIn.size(); i++)
+      refIn(i) = sqrt(refIn(i)*fNorm(eRow,i));
 
   // Set up refinement parameters
   LR::RefineData prm;
-  if (this->calcRefinement(prm,iStep,gNorm,eNorm.getRow(eRow)) <= 0)
+  if (this->calcRefinement(prm,iStep,gNorm,refIn) <= 0)
     return false;
 
   // Now refine the mesh and write out resulting grid
