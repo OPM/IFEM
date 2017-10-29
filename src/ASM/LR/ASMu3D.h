@@ -105,8 +105,17 @@ public:
                                 int, int orient, bool local = false) const;
 
   //! \brief Returns the node index for a given corner.
+  //! \param I     -1 or +1 for either umin or umax corner
+  //! \param J     -1 or +1 for either vmin or vmax corner
+  //! \param K     -1 or +1 for either wmin or wmax corner
+  //! \param basis which basis to consider (only applicable for mixed methods)
   virtual int getCorner(int I, int J, int K, int basis) const;
-  //! \brief Returns the node indices for a given edge.
+
+  //! \brief Returns the (1-indexed) node indices for a given edge.
+  //! \param lEdge  index to local edge (1,2,...12)
+  //! \param open   include end points or not
+  //! \param basis  which basis to consider (only applicable for mixed methods)
+  //! \param orient local orientation of indices, see ASMunstruct::Sort
   virtual std::vector<int> getEdge(int lEdge, bool open, int basis, int orient) const;
 
   //! \brief Returns the polynomial order in each parameter direction.

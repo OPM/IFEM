@@ -217,7 +217,7 @@ public:
 
   //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
   //! \param[in] lIndex Local index of the boundary face/edge
-  //! \param nodes Array of node numbers
+  //! \param nodes Array of node numbers (1-based)
   //! \param[in] basis Which basis to grab nodes for (0 for all)
   //! \param[in] thick Thickness of connection
   //! \param[in] orient Local orientation of the boundary face/edge

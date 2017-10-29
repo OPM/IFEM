@@ -17,6 +17,10 @@
 #include "ASMstruct.h"
 #include "ASMunstruct.h"
 #include "GlbL2projector.h"
+#ifdef HAS_LRSPLINE
+  #include "ASMu2D.h"
+  #include "ASMu3D.h"
+#endif
 #include "LinSolParams.h"
 #include "Functions.h"
 #include "Utilities.h"
@@ -27,7 +31,6 @@
 #include <fstream>
 #include <sstream>
 #include <numeric>
-
 
 bool SIMinput::parseGeometryTag (const TiXmlElement* elem)
 {
@@ -1070,80 +1073,240 @@ bool SIMinput::refine (const LR::RefineData& prm,
 }
 
 
-/*!
-  \note Solution transfer is available for single-patch models only.
-  Therefore, we assume there is a one-to-one correspondance between the
-  patch-level and global-level node numbering, and we don't need to use
-  ASMbase::[extract|inject]NodeVec(), which in any case would not work
-  as we would have needed to regenerate the global node numbering data first.
-
-  TODO: If/when going adaptive multi-patch, the solution transfer has to be
-  done after preprocess().
-*/
-
 bool SIMinput::refine (const LR::RefineData& prm,
                        Vectors& sol, const char* fName)
 {
-  isRefined = false;
-  ASMunstruct* pch = nullptr;
+  ASMunstruct* pch  = nullptr;
+  ASMunstruct* pch2 = nullptr;
+  // error test input
   for (size_t i = 0; i < myModel.size(); i++)
-    if ((pch = dynamic_cast<ASMunstruct*>(myModel[i])))
-    {
-      if (isRefined && !sol.empty())
-      {
-        std::cerr <<" *** SIMinput::refine: Solution transfer is not"
-                  <<" implemented for multi-patch models."<< std::endl;
-        return false;
-      }
-
-      if (myModel.size() > 1) {
-        LR::RefineData prmloc(prm);
-        if (prm.errors.size() > 0 ) { // refinement by true_beta
-          size_t n = myModel[i]->getNoElms();
-          prmloc.errors.resize(n);
-          for (size_t j = 0; j < n; j++) {
-            int el = myModel[i]->getElmID(j+1)-1;
-            prmloc.errors[j] = prm.errors[el];
-          }
-        } else {
-          prmloc.elements.clear();
-          for (int it : prm.elements) {
-            int node = myModel[i]->getNodeIndex(it+1)-1;
-            if(node > 0)
-              prmloc.elements.push_back(node);
-          }
-        }
-        if (!pch->refine(prmloc,sol,fName))
-          return false;
-      } else if (!pch->refine(prm,sol,fName))
-        return false;
-
-      isRefined = true;
-    }
-
-  // fix up refinement for boundaries
-  if (isRefined && myModel.size() > 1)
   {
-    bool extraRefine = true;
-    do
+    if (!(pch = dynamic_cast<ASMunstruct*>(myModel[i])))
     {
-      extraRefine = false;
-      for (const ASM::Interface& it : myInterfaces)
-      {
-        int sidx = this->getLocalPatchIndex(it.slave);
-        int midx = this->getLocalPatchIndex(it.master);
-        ASMunstruct* pch = dynamic_cast<ASMunstruct*>(this->getPatch(midx));
-        ASMunstruct* spch = dynamic_cast<ASMunstruct*>(this->getPatch(sidx));
-        if (pch && spch)
-          extraRefine |= pch->matchNeighbour(spch, it.midx, it.sidx, it.orient);
-      }
-#ifdef HAVE_MPI
-      //for (const ASM::Interface& it : adm.dd.ghostConnections) // TODO
-#endif
-    } while (extraRefine);
+      std::cerr <<" *** SIMinput::refine: Model is not constructed from"
+                <<" unstructured (ASMunstruct) patches."<< std::endl;
+      return false;
+    }
   }
 
-  return isRefined;
+  // single patch models only pass refinement call to the ASM level
+  if (myModel.size() == 1)
+  {
+    if ( !pch->refine(prm, sol, fName))
+    {
+      return false;
+    }
+    else
+    {
+      isRefined = true;
+      return true;
+    }
+  }
+  if (prm.errors.size() > 0 ) // refinement by true_beta
+  {
+    std::cerr <<" *** SIMinput::refine: True beta refinement not"
+              <<" implemented for multi-patch models."<< std::endl;
+    return false;
+  }
+
+  // multipatch models need to pass refinement indices over patch boundaries
+  std::vector<LR::RefineData> prmloc(myModel.size(), LR::RefineData(prm));
+  std::vector<std::set<int> > refineIndices(myModel.size());
+  std::vector<std::set<int> > conformingIndicies(myModel.size());
+  for (size_t i = 0; i < myModel.size(); i++)
+  {
+    // extract local indices from the vector of global indices
+    pch = dynamic_cast<ASMunstruct*>(myModel[i]);
+    for (int it : prm.elements) {
+      int node = myModel[i]->getNodeIndex(it+1);
+      if (node > 0)
+        refineIndices[i].insert(node-1);
+    }
+    // fetch all boundary nodes covered (may need to pass this to other patches)
+    IntVec bndry_nodes = pch->getBoundaryNodesCovered(IntVec(refineIndices[i].begin(), refineIndices[i].end()));
+
+    // DESIGN NOTE: it is tempting at this point to use patch connectivity information.
+    // However this does not account (in the general case) for cross-connections in
+    // L-shape geometries, i.e.
+    //
+    // +-----+
+    // | #1  |
+    // |     |         patch #1 (edge 3) connected to patch #2 (edge 4)
+    // +-----+-----+   patch #2 (edge 2) connected to patch #3 (edge 1)
+    // | #2  | #3  |
+    // |     |     |   we need to pass the corner idx patch #3 (vertex 3) to patch #1 (vertex 2),
+    // +-----+-----+   but this connection is not guaranteed to appear in the input file
+
+    // for all boundary nodes, check if these appear on other patches
+    for (const int k : bndry_nodes)
+    {
+      bool appears_elsewhere = false;
+      int globId = pch->getNodeID(k+1);
+      for (size_t j = 0; j < myModel.size(); j++)
+      {
+        if ( i == j) continue;
+        pch2 = dynamic_cast<ASMunstruct*>(myModel[j]);
+        int locId = pch2->getNodeIndex(globId);
+        if (locId > 0)
+        {
+          conformingIndicies[j].insert(locId-1);
+          appears_elsewhere = true;
+        }
+      }
+      if (appears_elsewhere)
+        conformingIndicies[i].insert(k);
+    }
+  }
+
+#ifdef HAS_LRSPLINE
+  for (size_t i = 0; i < myModel.size(); i++)
+  {
+    pch = dynamic_cast<ASMunstruct*>(myModel[i]);
+    // OPTIMIZATION NOTE: if we by some clever datastructures already knew which edge
+    // each node in conformingIndices[i] was on, then we don't have to brute-force search
+    // for it like we do here. pch->getBoundaryNodes() above seem to compute this,
+    // but it is only for the sending patch boundary index, not the recieving patch boundary
+    // index.
+    if (pch->getNoParamDim() == 2) {
+      ASMu2D* lr = dynamic_cast<ASMu2D*>(myModel[i]);
+      int nedg0d = 4;
+      int nedg1d = 4;
+      IntVec              bndry0;
+      std::vector<IntVec> bndry1(nedg1d);
+      for (int j =0 ; j<nedg0d; j++)
+        bndry0.push_back(lr->getCorner((j%2)*2-1, (j/2)*2-1, 1));
+      for (int j =1 ; j<=nedg1d; j++)
+        lr->getBoundaryNodes(j, bndry1[j-1], 1, 1, 0, true);
+      for (int j : conformingIndicies[i]) // add refinement from neighbours
+      {
+        bool done_with_this_node = false;
+        // check if node is a corner node, compute large extended domain (all directions)
+        for (int edgeNode : bndry0)
+        {
+          if (edgeNode-1 == j)
+          {
+            IntVec secondary = lr->getOverlappingNodes(j);
+            for (int k : secondary)
+              refineIndices[i].insert(k);
+            done_with_this_node = true;
+            break;
+          }
+        }
+        // check if node is an edge node, compute small extended domain (one direction)
+        for (int edge1d=0;  edge1d<nedg1d && !done_with_this_node; edge1d++)
+        {
+          for (int edgeNode : bndry1[edge1d])
+          {
+            if (edgeNode-1 == j)
+            {
+              IntVec secondary = lr->getOverlappingNodes(j, edge1d/2+1);
+              for (int k : secondary)
+                refineIndices[i].insert(k);
+              done_with_this_node = true;
+              break;
+            }
+          }
+        }
+      }
+    }
+    else //volumetric models
+    {
+      ASMu3D* lr = dynamic_cast<ASMu3D*>(myModel[i]);
+      int nedg1d = 12;
+      int nedg2d =  6;
+      IntVec              bndry0;
+      std::vector<IntVec> bndry1;
+      std::vector<IntVec> bndry2(nedg2d);
+      for (int K=-1; K<2; K+=2)
+        for (int J=-1; J<2; J+=2)
+          for (int I=-1; I<2; I+=2)
+            bndry0.push_back(lr->getCorner(I,J,K, 1));
+      for (int j =1 ; j<=nedg1d; j++)
+        bndry1.push_back(lr->getEdge(j, true, 1, 0));
+      for (int j =1 ; j<=nedg2d; j++)
+        lr->getBoundaryNodes(j, bndry2[j-1], 1, 1, 0, true);
+      for (int j : conformingIndicies[i]) // add refinement from neighbours
+      {
+        bool done_with_this_node = false;
+        // check if node is a corner node, compute large extended domain (all directions)
+        for (int edgeNode : bndry0)
+        {
+          if (edgeNode-1 == j)
+          {
+            IntVec secondary = lr->getOverlappingNodes(j);
+            for (int k : secondary)
+              refineIndices[i].insert(k);
+            done_with_this_node = true;
+            break;
+          }
+        }
+        // check if node is an edge node, compute moderate extended domain (2 directions)
+        for (int edge1d=0;  edge1d<nedg1d && !done_with_this_node; edge1d++)
+        {
+          for (int edgeNode : bndry1[edge1d])
+          {
+            if (edgeNode-1 == j)
+            {
+              int allowed_direction;
+              if (edge1d < 4)
+                allowed_direction = 6; // bin(110), allowed to grow in v- and w-direction
+              else if (edge1d < 8)
+                allowed_direction = 5; // bin(101), allowed to grow in u- and w-direction
+              else
+                allowed_direction = 3; // bin(011), allowed to grow in u- and v-direction
+              IntVec secondary = lr->getOverlappingNodes(j, allowed_direction);
+              for (int k : secondary)
+                refineIndices[i].insert(k);
+              done_with_this_node = true;
+              break;
+            }
+          }
+        }
+        // check if node is a face node, compute small extended domain (1 direction)
+        for (int edge2d=0;  edge2d<nedg2d && !done_with_this_node; edge2d++)
+        {
+          for (int edgeNode : bndry2[edge2d])
+          {
+            if (edgeNode-1 == j)
+            {
+              IntVec secondary = lr->getOverlappingNodes(j, (1<<edge2d/2));
+              for (int k : secondary)
+                refineIndices[i].insert(k);
+              done_with_this_node = true;
+              break;
+            }
+          }
+        }
+      }
+    } // end volumetric
+  }
+#else
+  return false;
+#endif
+
+  Vectors lsols(sol.size()*myModel.size());
+  size_t k = 0;
+  for (size_t i = 0; i < myModel.size(); i++)
+  {
+    pch = dynamic_cast<ASMunstruct*>(myModel[i]);
+    LR::RefineData prmloc(prm);
+    prmloc.elements = IntVec(refineIndices[i].begin(), refineIndices[i].end());
+    char patchName[256];
+    if (fName != nullptr)
+      sprintf(patchName, "%d_%s", (int) i, fName);
+
+    Vectors lsol(sol.size());
+    for (size_t j = 0; j < sol.size(); ++j)
+      pch->extractNodeVec(sol[j], lsol[j], sol[j].size()/this->getNoNodes(1));
+    if (!pch->refine(prmloc,lsol,(fName) ? patchName : fName))
+      return false;
+    for (size_t j = 0; j < sol.size(); ++j)
+      lsols[k++] = lsol[j];
+  }
+  sol = lsols;
+
+  isRefined = true;
+  return true;
 }
 
 

@@ -241,6 +241,9 @@ public:
                                const std::map<int,int>* g2l = nullptr);
 
   //! \brief Returns the node index for a given corner.
+  //! \param I     -1 or +1 for either umin or umax corner
+  //! \param J     -1 or +1 for either vmin or vmax corner
+  //! \param basis which basis to consider (only applicable for mixed methods)
   virtual int getCorner(int I, int J, int basis) const;
 
   //! \brief Returns the node indices for a given edge.
