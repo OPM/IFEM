@@ -1971,9 +1971,9 @@ bool ASMs2D::integrate (Integrand& integrand,
 
   // === Assembly loop over all elements in the patch ==========================
 
-  int iel = 0, jel = nel;
-  for (int i2 = p2; i2 <= n2; i2++)
-    for (int i1 = p1; i1 <= n1; i1++, iel++)
+  int iel = 0, jel = nel, nels = MLGE.size();
+  for (int i2 = p2; i2 <= n2 && jel < nels; i2++)
+    for (int i1 = p1; i1 <= n1 && jel < nels; i1++, iel++)
     {
       if (!hasInterfaceElms) jel = iel;
 
