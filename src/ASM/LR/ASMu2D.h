@@ -16,6 +16,7 @@
 
 #include "ASMunstruct.h"
 #include "ASM2D.h"
+#include "Interface.h"
 #include "LRSpline/LRSpline.h"
 #include "ThreadGroups.h"
 #include <memory>
@@ -40,6 +41,34 @@ namespace LR {
 class ASMu2D : public ASMunstruct, public ASM2D
 {
 public:
+  //! \brief Base class that checks if an element has interface contributions.
+  class InterfaceChecker : public ASM::InterfaceChecker
+  {
+  public:
+    //! \brief The constructor initialises the reference to current patch.
+    explicit InterfaceChecker(const ASMu2D& pch);
+    //! \brief Empty destructor.
+    virtual ~InterfaceChecker() {}
+    //! \brief Returns non-zero if the specified element have contributions.
+    //! \param[in] iel Element number
+    virtual short int hasContribution(int iel, int = -1,
+                                      int = -1, int = -1) const;
+    //! \brief Get intersections for a given element edge.
+    //! \param iel Element index (1-based)
+    //! \param edge Edge to get intersections for (1..4)
+    //! \param cont If not nullpt, intersection continuity is given here
+    std::vector<double> getIntersections(int iel, int edge, int* cont=nullptr) const;
+  protected:
+    const ASMu2D& myPatch; //!< Reference to the patch being integrated
+
+    struct Intersection {
+      int continuity;
+      std::vector<double> pts;
+    };
+
+    //! \brief Intersections for elements. Key: element << 4 + edge (1..4)
+    std::map<int,Intersection> intersections;
+  };
   //! \brief Default constructor.
   ASMu2D(unsigned char n_s = 2, unsigned char n_f = 2);
   //! \brief Copy constructor.

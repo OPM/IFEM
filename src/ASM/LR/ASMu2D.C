@@ -2205,3 +2205,101 @@ bool ASMu2D::evaluate (const FunctionBase* func, RealArray& vec,
   vec = ctrlPvals;
   return ok;
 }
+
+
+ASMu2D::InterfaceChecker::InterfaceChecker(const ASMu2D& pch) : myPatch(pch)
+{
+  const LR::LRSplineSurface* lr = myPatch.getBasis(1);
+
+  for (auto m : lr->getAllMeshlines()) {
+    std::vector<double> isectpts(1);
+
+    for (auto m2 : lr->getAllMeshlines())
+      if (m->intersects(m2, &isectpts.back()))
+        isectpts.push_back(0);
+
+    isectpts.pop_back();
+    std::sort(isectpts.begin(), isectpts.end());
+    auto end = std::unique(isectpts.begin(), isectpts.end());
+    isectpts.erase(end,isectpts.end());
+
+    // find elements where this intersection lives
+    std::vector<double> parval_left(2);
+    std::vector<double> parval_right(2);
+    double epsilon = 1e-6;
+    for(size_t i=0; i < isectpts.size()-1; i++) {
+      if (m->is_spanning_u()) {
+#if SP_DEBUG > 2
+        std::cout << "Line piece from ("<< isectpts[i] << ", " << m->const_par_ << ") to ("
+             << isectpts[i+1] << ", " << m->const_par_ << ")" << std::endl;
+#endif
+        parval_left[0]  = (isectpts[i]+isectpts[i+1])/2.0;
+        parval_right[0] = (isectpts[i]+isectpts[i+1])/2.0;
+        parval_left[1]  = m->const_par_ - epsilon;
+        parval_right[1] = m->const_par_ + epsilon;
+      } else {
+#if SP_DEBUG > 2
+        std::cout << "Line piece from ("<< m->const_par_ << ", " << isectpts[i] << ") to ("
+                  << m->const_par_ << ", " << isectpts[i+1] << ")" << std::endl;
+#endif
+        parval_left[0]  = m->const_par_ - epsilon;
+        parval_right[0] = m->const_par_ + epsilon;
+        parval_left[1]  = (isectpts[i]+isectpts[i+1])/2.0;
+        parval_right[1] = (isectpts[i]+isectpts[i+1])/2.0;
+      }
+      int el1 = lr->getElementContaining(parval_left);
+      int el2 = lr->getElementContaining(parval_right);
+#if SP_DEBUG > 2
+      std::cout << "\t elem1 " << el1 << " elem2 " << el2 << std::endl;
+#endif
+      if (m->is_spanning_u()) {
+        if (el1 > -1 && el2 > -1) {
+          intersections[el2*16 + 3].pts.push_back(isectpts[i+1]);
+          intersections[el1*16 + 4].pts.push_back(isectpts[i+1]);
+        }
+      } else {
+        if (el1 > -1 && el2 > -1) {
+          intersections[el2*16 + 1].pts.push_back(isectpts[i+1]);
+          intersections[el1*16 + 2].pts.push_back(isectpts[i+1]);
+        }
+      }
+    }
+  }
+  for (auto& it : intersections) {
+    std::sort(it.second.pts.begin(), it.second.pts.end());
+    auto end = std::unique(it.second.pts.begin(), it.second.pts.end());
+    it.second.pts.erase(end,it.second.pts.end());
+  }
+}
+
+
+short int ASMu2D::InterfaceChecker::hasContribution (int iel, int, int, int) const
+{
+  const LR::Element* el = myPatch.geo->getElement(iel-1);
+  bool neighbor[4];
+  neighbor[0] = el->getParmin(0) != myPatch.geo->startparam(0); // West neighbor
+  neighbor[1] = el->getParmax(0) != myPatch.geo->endparam(0); // East neighbor
+  neighbor[2] = el->getParmin(1) != myPatch.geo->startparam(1); // South neighbor
+  neighbor[3] = el->getParmax(1) != myPatch.geo->endparam(1); // North neighbor
+
+  // Check for existing neighbors
+  short int status = 0, s = 1;
+  for (short int i = 0; i < 4; i++, s *= 2)
+    if (neighbor[i]) status += s;
+
+  return status;
+}
+
+
+std::vector<double> ASMu2D::InterfaceChecker::getIntersections(int iel, int edge,
+                                                               int* cont) const
+{
+  auto it = intersections.find((iel-1)*16 + edge);
+  if (it != intersections.end()) {
+    if (cont)
+      *cont = it->second.continuity;
+    return it->second.pts;
+  }
+
+  return std::vector<double>();
+}
