@@ -1650,3 +1650,9 @@ double SIMoutput::getReferenceNorm (const Vectors& gNorm, size_t adaptor) const
   // |u|_ref = sqrt( |u^h|^2 + |e^*|^2 )
   return hypot(fNorm(1),gNorm[adaptor](2));
 }
+
+
+double SIMoutput::getEfficiencyNorm (const Vectors& gNorm, size_t adaptor) const
+{
+  return gNorm[0](4);
+}

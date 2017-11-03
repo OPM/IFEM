@@ -289,6 +289,9 @@ public:
   //! \brief Returns the reference norm to base mesh adaptation upon.
   virtual double getReferenceNorm(const Vectors& gNorm, size_t adaptor) const;
 
+  //! \brief Returns the reference norm for effectivity index.
+  virtual double getEfficiencyNorm(const Vectors& gNorm, size_t adaptor) const;
+
   //! \brief Serialization support.
   virtual bool serialize(std::map<std::string,std::string>&) { return false; }
 
