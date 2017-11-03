@@ -1651,3 +1651,10 @@ double SIMoutput::getReferenceNorm (const Vectors& gNorm, size_t adaptor) const
   // |u|_ref = sqrt( |u^h|^2 + |e^*|^2 )
   return hypot(fNorm(1),gNorm[adaptor](2));
 }
+
+
+double SIMoutput::getEffectivityIndex (const Vectors& gNorm,
+                                       size_t idx, size_t inorm) const
+{
+  return gNorm[idx](inorm) / gNorm.front()(4);
+}
