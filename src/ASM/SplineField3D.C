@@ -80,7 +80,7 @@ double SplineField3D::valueFE (const FiniteElement& fe) const
 }
 
 
-double SplineField3D::valueCoor (const Vec3& x) const
+double SplineField3D::valueCoor (const Vec4& x) const
 {
   // Not implemented yet
   return 0.0;
@@ -205,7 +205,7 @@ bool SplineField3D::gradFE (const FiniteElement& fe, Vector& grad) const
 }
 
 
-bool SplineField3D::hessianFE(const FiniteElement& fe, Matrix& H) const
+bool SplineField3D::hessianFE (const FiniteElement& fe, Matrix& H) const
 {
   if (!basis) return false;
   if (!vol)  return false;
@@ -287,11 +287,4 @@ bool SplineField3D::hessianFE(const FiniteElement& fe, Matrix& H) const
   Vector Vnod;
   utl::gather(ip,1,values,Vnod);
   return H.multiply(d2Ndu2,Vnod);
-}
-
-
-bool SplineField3D::gradCoor (const Vec3& x, Vector& grad) const
-{
-  // Not implemented yet
-  return false;
 }

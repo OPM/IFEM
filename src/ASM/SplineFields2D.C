@@ -87,7 +87,7 @@ bool SplineFields2D::valueFE (const FiniteElement& fe, Vector& vals) const
 }
 
 
-bool SplineFields2D::valueCoor (const Vec3& x, Vector& vals) const
+bool SplineFields2D::valueCoor (const Vec4& x, Vector& vals) const
 {
   // Not implemented yet
   return false;
@@ -154,7 +154,7 @@ bool SplineFields2D::gradFE (const FiniteElement& fe, Matrix& grad) const
 }
 
 
-bool SplineFields2D::hessianFE(const FiniteElement& fe, Matrix3D& H) const
+bool SplineFields2D::hessianFE (const FiniteElement& fe, Matrix3D& H) const
 {
   if (!basis) return false;
   if (!surf)  return false;
@@ -168,13 +168,11 @@ bool SplineFields2D::hessianFE(const FiniteElement& fe, Matrix3D& H) const
   Go::BasisDerivsSf  spline;
   Go::BasisDerivsSf2 spline2;
   Matrix3D d2Ndu2;
-  Matrix dNdu, dNdX;
+  Matrix dNdu(nen,2), dNdX;
   IntVec ip;
   if (surf == basis) {
 #pragma omp critical
     surf->computeBasis(fe.u,fe.v,spline2);
-
-    dNdu.resize(nen,2);
     d2Ndu2.resize(nen,2,2);
     for (size_t n = 1; n <= nen; n++) {
       dNdu(n,1) = spline2.basisDerivs_u[n-1];
@@ -190,8 +188,6 @@ bool SplineFields2D::hessianFE(const FiniteElement& fe, Matrix3D& H) const
   else {
 #pragma omp critical
     surf->computeBasis(fe.u,fe.v,spline);
-
-    dNdu.resize(nen,2);
     for (size_t n = 1; n <= nen; n++) {
       dNdu(n,1) = spline.basisDerivs_u[n-1];
       dNdu(n,2) = spline.basisDerivs_v[n-1];
@@ -234,11 +230,4 @@ bool SplineFields2D::hessianFE(const FiniteElement& fe, Matrix3D& H) const
   Matrix Vnod;
   utl::gather(ip,nf,values,Vnod);
   return H.multiply(Vnod,d2Ndu2);
-}
-
-
-bool SplineFields2D::gradCoor (const Vec3& x, Matrix& grad) const
-{
-  // Not implemented yet
-  return false;
 }

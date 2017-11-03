@@ -19,7 +19,7 @@
 
 class ASMbase;
 class FiniteElement;
-class Vec3;
+class Vec4;
 
 
 /*!
@@ -79,7 +79,7 @@ public:
   //! \brief Computes the value at a given global coordinate.
   //! \param[in] x Global/physical coordinate for point
   //! \param[out] vals Values in given physical coordinate
-  virtual bool valueCoor(const Vec3& x, Vector& vals) const = 0;
+  virtual bool valueCoor(const Vec4& x, Vector& vals) const { return false; }
 
   //! \brief Computes the gradient for a given local coordinate.
   //! \param[in] fe Finite element
@@ -95,7 +95,7 @@ public:
   //! \brief Computes the gradient for a given global/physical coordinate.
   //! \param[in] x Global coordinate
   //! \param[out] grad Gradient of solution in a given global coordinate
-  virtual bool gradCoor(const Vec3& x, Matrix& grad) const = 0;
+  virtual bool gradCoor(const Vec4& x, Matrix& grad) const { return false; }
 
 protected:
   unsigned char nf;  //!< Number of field components

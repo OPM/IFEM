@@ -79,7 +79,7 @@ double SplineField2D::valueFE (const FiniteElement& fe) const
 }
 
 
-double SplineField2D::valueCoor (const Vec3& x) const
+double SplineField2D::valueCoor (const Vec4& x) const
 {
   // use with caution
   Go::Point pt(3), clopt(3);
@@ -212,7 +212,7 @@ bool SplineField2D::gradFE (const FiniteElement& fe, Vector& grad) const
 }
 
 
-bool SplineField2D::hessianFE(const FiniteElement& fe, Matrix& H) const
+bool SplineField2D::hessianFE (const FiniteElement& fe, Matrix& H) const
 {
   if (!basis) return false;
   if (!surf)  return false;
@@ -292,11 +292,4 @@ bool SplineField2D::hessianFE(const FiniteElement& fe, Matrix& H) const
   Vector Vnod;
   utl::gather(ip,1,values,Vnod);
   return H.multiply(d2Ndu2,Vnod);
-}
-
-
-bool SplineField2D::gradCoor (const Vec3& x, Vector& grad) const
-{
-  // Not implemented yet
-  return false;
 }

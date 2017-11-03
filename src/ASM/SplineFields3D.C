@@ -11,14 +11,14 @@
 //!
 //==============================================================================
 
+#include "GoTools/trivariate/SplineVolume.h"
+
 #include "SplineFields3D.h"
 #include "ASMs3D.h"
 #include "FiniteElement.h"
 #include "CoordinateMapping.h"
 #include "Utilities.h"
 #include "Vec3.h"
-
-#include "GoTools/trivariate/SplineVolume.h"
 
 
 SplineFields3D::SplineFields3D (const ASMs3D* patch,
@@ -88,14 +88,14 @@ bool SplineFields3D::valueFE (const FiniteElement& fe, Vector& vals) const
 }
 
 
-bool SplineFields3D::valueCoor (const Vec3& x, Vector& vals) const
+bool SplineFields3D::valueCoor (const Vec4& x, Vector& vals) const
 {
   // Not implemented yet
   return false;
 }
 
 
-bool SplineFields3D::gradFE(const FiniteElement& fe, Matrix& grad) const
+bool SplineFields3D::gradFE (const FiniteElement& fe, Matrix& grad) const
 {
   if (!basis) return false;
   if (!vol)   return false;
@@ -158,7 +158,7 @@ bool SplineFields3D::gradFE(const FiniteElement& fe, Matrix& grad) const
 }
 
 
-bool SplineFields3D::hessianFE(const FiniteElement& fe, Matrix3D& H) const
+bool SplineFields3D::hessianFE (const FiniteElement& fe, Matrix3D& H) const
 {
   if (!basis) return false;
   if (!vol)  return false;
@@ -246,11 +246,4 @@ bool SplineFields3D::hessianFE(const FiniteElement& fe, Matrix3D& H) const
   Matrix Vnod;
   utl::gather(ip,nf,values,Vnod);
   return H.multiply(Vnod,d2Ndu2);
-}
-
-
-bool SplineFields3D::gradCoor (const Vec3& x, Matrix& grad) const
-{
-  // Not implemented yet
-  return false;
 }

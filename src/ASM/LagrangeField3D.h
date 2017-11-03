@@ -51,19 +51,10 @@ public:
   //! \param[in] fe Finite element definition
   double valueFE(const FiniteElement& fe) const;
 
-  //! \brief Computes the value at a given global coordinate.
-  //! \param[in] x Global/physical coordinate for point
-  double valueCoor(const Vec3& x) const;
-
   //! \brief Computes the gradient for a given local coordinate.
   //! \param[in] fe Finite element
   //! \param[out] grad Gradient of solution in a given local coordinate
   bool gradFE(const FiniteElement& fe, Vector& grad) const;
-
-  //! \brief Computes the gradient for a given global/physical coordinate.
-  //! \param[in] x Global coordinate
-  //! \param[out] grad Gradient of solution in a given global coordinate
-  bool gradCoor(const Vec3& x, Vector& grad) const;
 
 protected:
   Matrix coord; //!< Matrix of nodel coordinates

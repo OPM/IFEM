@@ -11,15 +11,13 @@
 //!
 //==============================================================================
 
-#include "LRSpline/LRSplineVolume.h"
-
 #include "LRSplineField3D.h"
 #include "ASMu3D.h"
 #include "FiniteElement.h"
 #include "CoordinateMapping.h"
-#include "Utilities.h"
 #include "Vec3.h"
-#include <array>
+
+#include "LRSpline/LRSplineVolume.h"
 
 
 LRSplineField3D::LRSplineField3D (const ASMu3D* patch,
@@ -55,7 +53,7 @@ double LRSplineField3D::valueNode (size_t node) const
 
 double LRSplineField3D::valueFE (const FiniteElement& fe) const
 {
-  if (!basis) return false;
+  if (!basis) return 0.0;
 
   // Evaluate the basis functions at the given point
   int iel = basis->getElementContaining(fe.u,fe.v,fe.w);
@@ -73,16 +71,10 @@ double LRSplineField3D::valueFE (const FiniteElement& fe) const
 }
 
 
-double LRSplineField3D::valueCoor (const Vec3& x) const
+double LRSplineField3D::valueCoor (const Vec4& x) const
 {
-  // Not implemented yet
+  assert(0);
   return 0.0;
-}
-
-
-bool LRSplineField3D::valueGrid (RealArray& val, const int* npe) const
-{
-  return false;
 }
 
 
@@ -107,7 +99,7 @@ bool LRSplineField3D::gradFE (const FiniteElement& fe, Vector& grad) const
     dNdu(n,3) = spline.basisDerivs_w[n-1];
   }
 
-  Matrix Xnod(3, nen), Jac;
+  Matrix Xnod(3,nen), Jac;
   Vector Vnod;
   size_t i = 1;
   Vnod.reserve(nen);
@@ -151,7 +143,7 @@ bool LRSplineField3D::gradFE (const FiniteElement& fe, Vector& grad) const
 }
 
 
-bool LRSplineField3D::hessianFE(const FiniteElement& fe, Matrix& H) const
+bool LRSplineField3D::hessianFE (const FiniteElement& fe, Matrix& H) const
 {
   if (!basis) return false;
   if (!vol)  return false;
@@ -165,7 +157,7 @@ bool LRSplineField3D::hessianFE(const FiniteElement& fe, Matrix& H) const
   Go::BasisDerivs2 spline2;
   Matrix3D d2Ndu2;
   Matrix dNdu(nen,3), dNdX;
-  Matrix Xnod(nen, 3), Jac;
+  Matrix Xnod(nen,3), Jac;
   Vector Vnod;
   size_t i = 1;
   for (auto it  = elm->constSupportBegin();
@@ -234,11 +226,4 @@ bool LRSplineField3D::hessianFE(const FiniteElement& fe, Matrix& H) const
   }
 
   return H.multiply(d2Ndu2,Vnod);
-}
-
-
-bool LRSplineField3D::gradCoor (const Vec3& x, Vector& grad) const
-{
-  // Not implemented yet
-  return false;
 }
