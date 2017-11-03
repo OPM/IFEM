@@ -11,15 +11,13 @@
 //!
 //==============================================================================
 
-#include "LRSpline/LRSplineSurface.h"
-
 #include "LRSplineField2D.h"
 #include "ASMu2D.h"
 #include "FiniteElement.h"
 #include "CoordinateMapping.h"
-#include "Utilities.h"
 #include "Vec3.h"
-#include <array>
+
+#include "LRSpline/LRSplineSurface.h"
 
 
 LRSplineField2D::LRSplineField2D (const ASMu2D* patch,
@@ -30,7 +28,6 @@ LRSplineField2D::LRSplineField2D (const ASMu2D* patch,
   nno = basis->nBasisFunctions();
   nelm = basis->nElements();
 
-  // Ensure the values array has compatible length, pad with zeros if necessary
   size_t ofs = 0;
   for (char i = 1; i < nbasis; ++i)
     ofs += patch->getNoNodes(i)*patch->getNoFields(i);
@@ -64,7 +61,6 @@ double LRSplineField2D::valueFE (const FiniteElement& fe) const
   Go::BasisPtsSf spline;
   basis->computeBasis(fe.u,fe.v,spline,iel);
 
-  // Evaluate the solution field at the given point
   Vector Vnod;
   Vnod.reserve(elm->nBasisFunctions());
   for (auto it  = elm->constSupportBegin();
@@ -75,16 +71,10 @@ double LRSplineField2D::valueFE (const FiniteElement& fe) const
 }
 
 
-double LRSplineField2D::valueCoor (const Vec3& x) const
+double LRSplineField2D::valueCoor (const Vec4& x) const
 {
   assert(0);
   return 0.0;
-}
-
-
-bool LRSplineField2D::valueGrid (RealArray& val, const int* npe) const
-{
-  return false;
 }
 
 
@@ -108,7 +98,7 @@ bool LRSplineField2D::gradFE (const FiniteElement& fe, Vector& grad) const
     dNdu(n,2) = spline.basisDerivs_v[n-1];
   }
 
-  Matrix Xnod(2, nen), Jac;
+  Matrix Xnod(2,nen), Jac;
   Vector Vnod;
   size_t i = 1;
   Vnod.reserve(nen);
@@ -151,7 +141,7 @@ bool LRSplineField2D::gradFE (const FiniteElement& fe, Vector& grad) const
 }
 
 
-bool LRSplineField2D::hessianFE(const FiniteElement& fe, Matrix& H) const
+bool LRSplineField2D::hessianFE (const FiniteElement& fe, Matrix& H) const
 {
   if (!basis) return false;
   if (!surf)  return false;
@@ -164,9 +154,8 @@ bool LRSplineField2D::hessianFE(const FiniteElement& fe, Matrix& H) const
   Go::BasisDerivsSf  spline;
   Go::BasisDerivsSf2 spline2;
   Matrix3D d2Ndu2;
-  Matrix dNdu, dNdX;
-
-  Matrix Xnod(nen, 2), Jac;
+  Matrix dNdu(nen,2), dNdX;
+  Matrix Xnod(nen,2), Jac;
   Vector Vnod;
   size_t i = 1;
   for (auto it  = elm->constSupportBegin();
@@ -176,8 +165,6 @@ bool LRSplineField2D::hessianFE(const FiniteElement& fe, Matrix& H) const
 
   if (surf == basis) {
     surf->computeBasis(fe.u,fe.v,spline2,iel);
-
-    dNdu.resize(nen,2);
     d2Ndu2.resize(nen,2,2);
     for (size_t n = 1; n <= nen; n++) {
       dNdu(n,1) = spline2.basisDerivs_u[n-1];
@@ -191,10 +178,9 @@ bool LRSplineField2D::hessianFE(const FiniteElement& fe, Matrix& H) const
     for (auto it  = elm->constSupportBegin();
               it != elm->constSupportEnd(); ++it)
       Vnod.push_back(values((*it)->getId()+1));
-  } else {
+  }
+  else {
     surf->computeBasis(fe.u,fe.v,spline,iel);
-
-    dNdu.resize(nen,2);
     for (size_t n = 1; n <= nen; n++) {
       dNdu(n,1) = spline.basisDerivs_u[n-1];
       dNdu(n,2) = spline.basisDerivs_v[n-1];
@@ -205,8 +191,7 @@ bool LRSplineField2D::hessianFE(const FiniteElement& fe, Matrix& H) const
   utl::Jacobian(Jac,dNdX,Xnod,dNdu);
 
   // Evaluate the gradient of the solution field at the given point
-  if (basis != surf)
-  {
+  if (basis != surf) {
     // Mixed formulation, the solution uses a different basis than the geometry
     int iel = basis->getElementContaining(fe.u,fe.v);
     auto belm = basis->getElement(iel);
@@ -230,11 +215,4 @@ bool LRSplineField2D::hessianFE(const FiniteElement& fe, Matrix& H) const
   }
 
   return H.multiply(d2Ndu2,Vnod);
-}
-
-
-bool LRSplineField2D::gradCoor (const Vec3& x, Vector& grad) const
-{
-  // Not implemented yet
-  return false;
 }

@@ -15,7 +15,6 @@
 #include "ASMu2D.h"
 #include "FiniteElement.h"
 #include "CoordinateMapping.h"
-#include "Utilities.h"
 #include "Vec3.h"
 
 #include "LRSpline/LRSplineSurface.h"
@@ -64,13 +63,12 @@ bool LRSplineFields2D::valueFE (const FiniteElement& fe, Vector& vals) const
 
   // Evaluate the basis functions at the given point
   int iel = basis->getElementContaining(fe.u,fe.v);
-  auto elm = basis->getElement(basis->getElementContaining(fe.u,fe.v));
+  auto elm = basis->getElement(iel);
 
   Go::BasisPtsSf spline;
   basis->computeBasis(fe.u,fe.v,spline,iel);
 
   // Evaluate the solution field at the given point
-
   Matrix Vnod(2, elm->nBasisFunctions());
   size_t i = 1;
   for (auto it  = elm->constSupportBegin();
@@ -84,9 +82,9 @@ bool LRSplineFields2D::valueFE (const FiniteElement& fe, Vector& vals) const
 }
 
 
-bool LRSplineFields2D::valueCoor (const Vec3& x, Vector& vals) const
+bool LRSplineFields2D::valueCoor (const Vec4& x, Vector& vals) const
 {
-  // Not implemented yet
+  assert(0);
   return false;
 }
 
@@ -116,7 +114,7 @@ bool LRSplineFields2D::gradFE (const FiniteElement& fe, Matrix& grad) const
   for (auto it  = elm->constSupportBegin();
             it != elm->constSupportEnd(); ++it, ++i)
     for (size_t j = 1; j <= 2; ++j)
-      Xnod(j, i) = (*it)->cp(j-1);
+      Xnod(j,i) = (*it)->cp(j-1);
 
   // Evaluate the Jacobian inverse
   utl::Jacobian(Jac,dNdX,Xnod,dNdu);
@@ -139,28 +137,29 @@ bool LRSplineFields2D::gradFE (const FiniteElement& fe, Matrix& grad) const
     }
     dNdX.multiply(dNdu,Jac); // dNdX = dNdu * Jac
 
-    size_t i = 1;
-    Vnod.resize(nbf,2);
+    Vnod.resize(2, nbf);
+    i = 1;
     for (auto it  = belm->constSupportBegin();
               it != belm->constSupportEnd(); ++it, ++i)
       for (size_t j = 1; j <= 2; ++j)
-        Vnod(i,j) = values((*it)->getId()*2+j);
-  } else {
-    size_t i = 1;
+        Vnod(j,i) = values((*it)->getId()*2+j);
+  }
+  else {
     Vnod.resize(2, nen);
+    i = 1;
     for (auto it  = elm->constSupportBegin();
               it != elm->constSupportEnd(); ++it, ++i)
       for (size_t j = 1; j <= 2; ++j)
         Vnod(j,i) = values((*it)->getId()*2+j);
   }
 
-  grad.multiply(Vnod,dNdX); // grad = Xnod * dNdX
+  grad.multiply(Vnod,dNdX); // grad = Vnod * dNdX
 
   return true;
 }
 
 
-bool LRSplineFields2D::hessianFE(const FiniteElement& fe, Matrix3D& H) const
+bool LRSplineFields2D::hessianFE (const FiniteElement& fe, Matrix3D& H) const
 {
   if (!basis) return false;
   if (!surf)  return false;
@@ -179,7 +178,7 @@ bool LRSplineFields2D::hessianFE(const FiniteElement& fe, Matrix3D& H) const
   for (auto it  = elm->constSupportBegin();
             it != elm->constSupportEnd(); ++it, ++i)
     for (size_t j = 1; j <= 2; ++j)
-      Xnod(j, i) = (*it)->cp(j-1);
+      Xnod(j,i) = (*it)->cp(j-1);
 
   if (surf == basis) {
     surf->computeBasis(fe.u,fe.v,spline2,iel);
@@ -194,12 +193,12 @@ bool LRSplineFields2D::hessianFE(const FiniteElement& fe, Matrix3D& H) const
       d2Ndu2(n,2,2) = spline2.basisDerivs_vv[n-1];
     }
 
-    size_t i = 1;
     Vnod.resize(2, nen);
+    i = 1;
     for (auto it  = elm->constSupportBegin();
-        it != elm->constSupportEnd(); ++it, ++i)
+              it != elm->constSupportEnd(); ++it, ++i)
       for (size_t j = 1; j <= 2; ++j)
-        Vnod(i,j) = values((*it)->getId()*2+j);
+        Vnod(j,i) = values((*it)->getId()*2+j);
   }
   else {
     surf->computeBasis(fe.u,fe.v,spline,iel);
@@ -215,8 +214,7 @@ bool LRSplineFields2D::hessianFE(const FiniteElement& fe, Matrix3D& H) const
   utl::Jacobian(Jac,dNdX,Xnod,dNdu);
 
   // Evaluate the gradient of the solution field at the given point
-  if (basis != surf)
-  {
+  if (basis != surf) {
     // Mixed formulation, the solution uses a different basis than the geometry
     int iel = basis->getElementContaining(fe.u,fe.v);
     auto belm = basis->getElement(iel);
@@ -233,8 +231,8 @@ bool LRSplineFields2D::hessianFE(const FiniteElement& fe, Matrix3D& H) const
       d2Ndu2(n,2,2) = spline2.basisDerivs_vv[n-1];
     }
 
-    size_t i = 1;
     Vnod.resize(2, nbf);
+    i = 1;
     for (auto it  = belm->constSupportBegin();
               it != belm->constSupportEnd(); ++it, ++i)
       for (size_t j = 1; j <= 2; ++j)
@@ -242,11 +240,4 @@ bool LRSplineFields2D::hessianFE(const FiniteElement& fe, Matrix3D& H) const
   }
 
   return H.multiply(Vnod,d2Ndu2);
-}
-
-
-bool LRSplineFields2D::gradCoor (const Vec3& x, Matrix& grad) const
-{
-  // Not implemented yet
-  return false;
 }

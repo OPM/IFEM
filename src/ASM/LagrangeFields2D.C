@@ -16,7 +16,6 @@
 #include "FiniteElement.h"
 #include "Lagrange.h"
 #include "CoordinateMapping.h"
-#include "Vec3.h"
 
 
 LagrangeFields2D::LagrangeFields2D (const ASMs2DLag* patch,
@@ -79,13 +78,6 @@ bool LagrangeFields2D::valueFE (const FiniteElement& fe, Vector& vals) const
 }
 
 
-bool LagrangeFields2D::valueCoor (const Vec3& x, Vector& vals) const
-{
-  // Not implemented yet
-  return false;
-}
-
-
 bool LagrangeFields2D::gradFE (const FiniteElement& fe, Matrix& grad) const
 {
   grad.resize(nf,2,true);
@@ -120,11 +112,4 @@ bool LagrangeFields2D::gradFE (const FiniteElement& fe, Matrix& grad) const
   grad.multiply(Vnod,dNdX);
 
   return true;
-}
-
-
-bool LagrangeFields2D::gradCoor (const Vec3& x, Matrix& grad) const
-{
-  // Not implemented yet
-  return false;
 }

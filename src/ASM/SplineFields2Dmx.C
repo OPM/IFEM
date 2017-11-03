@@ -16,7 +16,6 @@
 #include "FiniteElement.h"
 #include "CoordinateMapping.h"
 #include "Utilities.h"
-#include "Vec3.h"
 
 #include "GoTools/geometry/SplineSurface.h"
 
@@ -83,13 +82,6 @@ bool SplineFields2Dmx::valueFE (const FiniteElement& fe, Vector& vals) const
 }
 
 
-bool SplineFields2Dmx::valueCoor (const Vec3& x, Vector& vals) const
-{
-  // Not implemented yet
-  return false;
-}
-
-
 bool SplineFields2Dmx::gradFE (const FiniteElement& fe, Matrix& grad) const
 {
   if (!surf)  return false;
@@ -153,17 +145,4 @@ bool SplineFields2Dmx::gradFE (const FiniteElement& fe, Matrix& grad) const
   }
 
   return true;
-}
-
-
-bool SplineFields2Dmx::hessianFE(const FiniteElement& fe, Matrix3D& H) const
-{
-  return false;
-}
-
-
-bool SplineFields2Dmx::gradCoor (const Vec3& x, Matrix& grad) const
-{
-  // Not implemented yet
-  return false;
 }

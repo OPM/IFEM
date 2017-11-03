@@ -59,7 +59,7 @@ public:
   //! \brief Computes the value at a given global coordinate.
   //! \param[in] x Global/physical coordinate for point
   //! \param[out] vals Values in given physical coordinate
-  bool valueCoor(const Vec3& x, Vector& vals) const;
+  bool valueCoor(const Vec4& x, Vector& vals) const;
 
   //! \brief Computes the gradient for a given local coordinate.
   //! \param[in] fe Finite element
@@ -70,11 +70,6 @@ public:
   //! \param[in] fe Finite element quantities
   //! \param[out] H Hessian of solution in a given local coordinate
   virtual bool hessianFE(const FiniteElement& fe, Matrix3D& H) const;
-
-  //! \brief Computes the gradient for a given global/physical coordinate.
-  //! \param[in] x Global coordinate
-  //! \param[out] grad Gradient of solution in a given global coordinate
-  bool gradCoor(const Vec3& x, Matrix& grad) const;
 
 protected:
   const Go::SplineSurface* basis; //!< Spline basis description

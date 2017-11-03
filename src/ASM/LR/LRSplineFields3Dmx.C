@@ -16,7 +16,6 @@
 #include "FiniteElement.h"
 #include "CoordinateMapping.h"
 #include "Utilities.h"
-#include "Vec3.h"
 
 #include "LRSpline/LRSplineVolume.h"
 
@@ -83,14 +82,7 @@ bool LRSplineFields3Dmx::valueFE (const FiniteElement& fe, Vector& vals) const
 }
 
 
-bool LRSplineFields3Dmx::valueCoor (const Vec3& x, Vector& vals) const
-{
-  // Not implemented yet
-  return false;
-}
-
-
-bool LRSplineFields3Dmx::gradFE(const FiniteElement& fe, Matrix& grad) const
+bool LRSplineFields3Dmx::gradFE (const FiniteElement& fe, Matrix& grad) const
 {
   if (!vol)  return false;
 
@@ -154,17 +146,4 @@ bool LRSplineFields3Dmx::gradFE(const FiniteElement& fe, Matrix& grad) const
   }
 
   return true;
-}
-
-
-bool LRSplineFields3Dmx::hessianFE(const FiniteElement& fe, Matrix3D& H) const
-{
-  return false;
-}
-
-
-bool LRSplineFields3Dmx::gradCoor (const Vec3& x, Matrix& grad) const
-{
-  // Not implemented yet
-  return false;
 }

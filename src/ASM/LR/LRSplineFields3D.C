@@ -15,7 +15,6 @@
 #include "ASMu3D.h"
 #include "FiniteElement.h"
 #include "CoordinateMapping.h"
-#include "Utilities.h"
 #include "Vec3.h"
 
 #include "LRSpline/LRSplineVolume.h"
@@ -65,6 +64,7 @@ bool LRSplineFields3D::valueFE (const FiniteElement& fe, Vector& vals) const
   // Evaluate the basis functions at the given point
   int iel = basis->getElementContaining(fe.u,fe.v,fe.w);
   auto elm = basis->getElement(iel);
+
   Go::BasisPts spline;
   basis->computeBasis(fe.u,fe.v,fe.w,spline,iel);
 
@@ -74,7 +74,7 @@ bool LRSplineFields3D::valueFE (const FiniteElement& fe, Vector& vals) const
   for (auto it  = elm->constSupportBegin();
             it != elm->constSupportEnd(); ++it, ++i)
     for (size_t j = 1; j <= 3; ++j)
-      Vnod(j, i) = values((*it)->getId()*3+j);
+      Vnod(j,i) = values((*it)->getId()*3+j);
 
   Vnod.multiply(spline.basisValues,vals); // vals = Vnod * basisValues
 
@@ -82,14 +82,14 @@ bool LRSplineFields3D::valueFE (const FiniteElement& fe, Vector& vals) const
 }
 
 
-bool LRSplineFields3D::valueCoor (const Vec3& x, Vector& vals) const
+bool LRSplineFields3D::valueCoor (const Vec4& x, Vector& vals) const
 {
-  // Not implemented yet
+  assert(0);
   return false;
 }
 
 
-bool LRSplineFields3D::gradFE(const FiniteElement& fe, Matrix& grad) const
+bool LRSplineFields3D::gradFE (const FiniteElement& fe, Matrix& grad) const
 {
   if (!basis) return false;
   if (!vol)   return false;
@@ -111,18 +111,17 @@ bool LRSplineFields3D::gradFE(const FiniteElement& fe, Matrix& grad) const
   }
 
   Matrix Xnod(3, nen), Jac;
-  Matrix Vnod;
   size_t i = 1;
   for (auto it  = elm->constSupportBegin();
-      it != elm->constSupportEnd(); ++it, ++i) {
+            it != elm->constSupportEnd(); ++it, ++i)
     for (size_t j = 1; j <= 3; ++j)
-      Xnod(j, i) = (*it)->cp(j-1);
-  }
+      Xnod(j,i) = (*it)->cp(j-1);
 
   // Evaluate the Jacobian inverse
   utl::Jacobian(Jac,dNdX,Xnod,dNdu);
 
   // Evaluate the gradient of the solution field at the given point
+  Matrix Vnod;
   if (basis != vol)
   {
     // Mixed formulation, the solution uses a different basis than the geometry
@@ -144,11 +143,12 @@ bool LRSplineFields3D::gradFE(const FiniteElement& fe, Matrix& grad) const
     i = 1;
     for (auto it  = belm->constSupportBegin();
               it != belm->constSupportEnd(); ++it, ++i)
-    for (size_t j = 1; j <= 3; ++j)
-      Vnod(j, i) = values((*it)->getId()*3+j);
-  } else {
-    size_t i = 1;
+      for (size_t j = 1; j <= 3; ++j)
+        Vnod(j,i) = values((*it)->getId()*3+j);
+  }
+  else {
     Vnod.resize(3, nen);
+    i = 1;
     for (auto it  = elm->constSupportBegin();
               it != elm->constSupportEnd(); ++it, ++i)
       for (size_t j = 1; j <= 3; ++j)
@@ -161,7 +161,7 @@ bool LRSplineFields3D::gradFE(const FiniteElement& fe, Matrix& grad) const
 }
 
 
-bool LRSplineFields3D::hessianFE(const FiniteElement& fe, Matrix3D& H) const
+bool LRSplineFields3D::hessianFE (const FiniteElement& fe, Matrix3D& H) const
 {
   if (!basis) return false;
   if (!vol)  return false;
@@ -175,12 +175,12 @@ bool LRSplineFields3D::hessianFE(const FiniteElement& fe, Matrix3D& H) const
   Go::BasisDerivs2 spline2;
   Matrix3D d2Ndu2;
   Matrix dNdu, dNdX;
-  Matrix Xnod(nen, 3), Jac, Vnod;
+  Matrix Xnod(3, nen), Jac, Vnod;
   size_t i = 1;
   for (auto it  = elm->constSupportBegin();
             it != elm->constSupportEnd(); ++it, ++i)
     for (size_t j = 1; j <= 3; ++j)
-      Xnod(i, j) = (*it)->cp(j-1);
+      Xnod(j,i) = (*it)->cp(j-1);
 
   if (vol == basis) {
     vol->computeBasis(fe.u,fe.v,fe.w,spline2,iel);
@@ -199,12 +199,12 @@ bool LRSplineFields3D::hessianFE(const FiniteElement& fe, Matrix3D& H) const
       d2Ndu2(n,3,3) = spline2.basisDerivs_ww[n-1];
     }
 
-    size_t i = 1;
-    Vnod.resize(nen,3);
+    Vnod.resize(3, nen);
+    i = 1;
     for (auto it  = elm->constSupportBegin();
               it != elm->constSupportEnd(); ++it, ++i)
       for (size_t j = 1; j <= 3; ++j)
-        Vnod(i,j) = values((*it)->getId()*3+j);
+        Vnod(j,i) = values((*it)->getId()*3+j);
   }
   else {
     vol->computeBasis(fe.u,fe.v,fe.w,spline,iel);
@@ -242,20 +242,13 @@ bool LRSplineFields3D::hessianFE(const FiniteElement& fe, Matrix3D& H) const
       d2Ndu2(n,3,3) = spline2.basisDerivs_ww[n-1];
     }
 
-    Vnod.resize(nbf, 3);
+    Vnod.resize(3, nbf);
     i = 1;
     for (auto it  = belm->constSupportBegin();
               it != belm->constSupportEnd(); ++it, ++i)
-    for (size_t j = 1; j <= 3; ++j)
-      Vnod(i, j) = values((*it)->getId()*3+j);
+      for (size_t j = 1; j <= 3; ++j)
+        Vnod(j,i) = values((*it)->getId()*3+j);
   }
 
   return H.multiply(Vnod,d2Ndu2);
-}
-
-
-bool LRSplineFields3D::gradCoor (const Vec3& x, Matrix& grad) const
-{
-  // Not implemented yet
-  return false;
 }

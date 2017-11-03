@@ -16,7 +16,6 @@
 #include "FiniteElement.h"
 #include "CoordinateMapping.h"
 #include "Utilities.h"
-#include "Vec3.h"
 
 #include "GoTools/trivariate/SplineVolume.h"
 
@@ -81,13 +80,6 @@ bool SplineFields3Dmx::valueFE (const FiniteElement& fe, Vector& vals) const
   }
 
   return true;
-}
-
-
-bool SplineFields3Dmx::valueCoor (const Vec3& x, Vector& vals) const
-{
-  // Not implemented yet
-  return false;
 }
 
 
@@ -158,17 +150,4 @@ bool SplineFields3Dmx::gradFE (const FiniteElement& fe, Matrix& grad) const
   }
 
   return true;
-}
-
-
-bool SplineFields3Dmx::hessianFE(const FiniteElement& fe, Matrix3D& H) const
-{
-  return false;
-}
-
-
-bool SplineFields3Dmx::gradCoor (const Vec3& x, Matrix& grad) const
-{
-  // Not implemented yet
-  return false;
 }
