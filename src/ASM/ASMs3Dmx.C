@@ -1375,3 +1375,46 @@ size_t ASMs3Dmx::getNoProjectionNodes() const
          projBasis->numCoefs(1) *
          projBasis->numCoefs(2);
 }
+
+
+bool ASMs3Dmx::evalProjSolution (Matrix& sField, const Vector& locSol,
+                                 const int* npe, int nf) const
+{
+#ifdef SP_DEBUG
+  std::cout <<"ASMu3Dmx::evalProjSolution(Matrix&,const Vector&,const int*,int)\n";
+#endif
+  if (projBasis == m_basis[0])
+    return this->evalSolution(sField, locSol, npe, nf);
+
+  // Compute parameter values of the nodal points
+  std::array<RealArray,3> gpar;
+  for (int dir = 0; dir < 3; dir++)
+    if (!this->getGridParameters(gpar[dir],dir,npe[dir]-1))
+      return false;
+
+  size_t nComp = locSol.size() / this->getNoProjectionNodes();
+  if (nComp*this->getNoProjectionNodes() != locSol.size())
+    return false;
+
+  Fields* f = this->getProjectedFields(locSol, nComp);
+
+  // Evaluate the primary solution field at each point
+  sField.resize(nComp,gpar[0].size()*gpar[1].size()*gpar[2].size());
+  size_t l = 1;
+  for (size_t k = 0; k < gpar[2].size(); k++)
+    for (size_t j = 0; j < gpar[1].size(); j++)
+      for (size_t i = 0; i < gpar[0].size(); i++)
+      {
+        Vector vals;
+        FiniteElement fe;
+        fe.u = gpar[0][i];
+        fe.v = gpar[1][j];
+        fe.w = gpar[2][k];
+        f->valueFE(fe, vals);
+        sField.fillColumn(l++, vals);
+      }
+
+  delete f;
+
+  return true;
+}
