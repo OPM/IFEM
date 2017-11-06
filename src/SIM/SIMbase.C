@@ -1332,6 +1332,7 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
   size_t k, lp = 0;
   ASMbase* pch = nullptr;
   PropertyVec::const_iterator p;
+  size_t projOfs = 0;
   for (p = myProps.begin(); p != myProps.end() && ok; ++p)
     if (p->pcode == Property::MATERIAL)
       if (!(pch = this->getPatch(p->patch)))
@@ -1343,10 +1344,20 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
 	for (k = 0; k < ssol.size(); k++)
           if (ssol[k].empty())
             norm->getProjection(k).clear();
-          else
+          else if (this->fieldProjections()) {
+            size_t ndof = pch->getNoProjectionNodes()*myProblem->getNoFields(2);
+            Vector c(ndof);
+            std::copy(ssol[k].begin()+projOfs,
+                ssol[k].begin()+projOfs+ndof, c.begin());
+            Fields* f = pch->getProjectedFields(c, myProblem->getNoFields(2));
+            norm->setProjectedFields(f, k);
+            projOfs += ndof;
+          } else
             this->extractPatchSolution(ssol[k],norm->getProjection(k),lp-1,nCmp,1);
+
         if (mySol)
           mySol->initPatch(pch->idx);
+
 	ok &= pch->integrate(*norm,globalNorm,time);
         if (norm->getIntegrandType() & IntegrandBase::INTERFACE_TERMS) {
           ASM::InterfaceChecker* iChk = this->getInterfaceChecker(pch->idx);
@@ -1368,10 +1379,20 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
       for (k = 0; k < ssol.size(); k++)
         if (ssol[k].empty())
           norm->getProjection(k).clear();
-        else
+        else if (this->fieldProjections()) {
+          size_t ndof = myModel[i]->getNoProjectionNodes()*myProblem->getNoFields(2);
+          Vector c(ndof);
+          std::copy(ssol[k].begin()+projOfs,
+                    ssol[k].begin()+projOfs+ndof, c.begin());
+          Fields* f = myModel[i]->getProjectedFields(c, myProblem->getNoFields(2));
+          norm->setProjectedFields(f, k);
+          projOfs += ndof;
+        } else
           this->extractPatchSolution(ssol[k],norm->getProjection(k),i,nCmp,1);
+
       if (mySol)
         mySol->initPatch(myModel[i]->idx);
+
       ok &= myModel[i]->integrate(*norm,globalNorm,time);
       if (norm->getIntegrandType() & IntegrandBase::INTERFACE_TERMS) {
         ASM::InterfaceChecker* iChk = this->getInterfaceChecker(myModel[i]->idx);
@@ -1583,6 +1604,17 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
     myProblem->initIntegration(time,psol);
   }
 
+  // no nodal averaging - full (potentially discontinuous) representation
+  if (this->fieldProjections()) {
+    ngNodes = 0;
+    for (i = 0; i < myModel.size(); i++)
+    {
+      if (myModel[i]->empty()) continue; // skip empty patches
+      ngNodes += myModel[i]->getNoProjectionNodes();
+    }
+  }
+
+  size_t ofs = 0;
   for (i = 0; i < myModel.size(); i++)
   {
     if (myModel[i]->empty()) continue; // skip empty patches
@@ -1658,30 +1690,41 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
       return false;
     }
 
-    size_t nComps = values.rows();
-    size_t nNodes = values.cols();
-    if (ssol.empty())
-      ssol.resize(nComps,ngNodes);
+    // If true, we cannot assume we have a multi-patch numbering for
+    // patch projections, so simply append each vector successively.
+    if (this->fieldProjections()) {
+      if (ssol.empty())
+        ssol.resize(myProblem->getNoFields(2),ngNodes);
 
-    // Nodal averaging for nodes referred to by two or more patches
-    // (these are typically the interface nodes)
-    for (n = 1; n <= nNodes; n++)
-      if (count.empty())
-	ssol.fillColumn(myModel[i]->getNodeID(n),values.getColumn(n));
-      else
-      {
-	int inod = myModel[i]->getNodeID(n);
-	for (j = 1; j <= nComps; j++)
-	  ssol(j,inod) += values(j,n);
-	count(inod) ++;
-      }
+      ssol.fillBlock(values, 1, ofs+1);
+      ofs += myModel[i]->getNoProjectionNodes()*myProblem->getNoFields(2);
+    } else {
+      size_t nComps = values.rows();
+      size_t nNodes = values.cols();
+      if (ssol.empty())
+        ssol.resize(nComps,ngNodes);
+
+      // Nodal averaging for nodes referred to by two or more patches
+      // (these are typically the interface nodes)
+      for (n = 1; n <= nNodes; n++)
+        if (count.empty())
+          ssol.fillColumn(myModel[i]->getNodeID(n),values.getColumn(n));
+        else
+        {
+          int inod = myModel[i]->getNodeID(n);
+          for (j = 1; j <= nComps; j++)
+            ssol(j,inod) += values(j,n);
+          count(inod) ++;
+        }
+    }
   }
 
   // Divide through by count(n) to get the nodal average at the interface nodes
-  for (n = 1; n <= count.size(); n++)
-    if (count(n) > 1.0)
-      for (j = 1; j <= ssol.rows(); j++)
-	ssol(j,n) /= count(n);
+  if (!this->fieldProjections())
+    for (n = 1; n <= count.size(); n++)
+      if (count(n) > 1.0)
+        for (j = 1; j <= ssol.rows(); j++)
+          ssol(j,n) /= count(n);
 
   return true;
 }

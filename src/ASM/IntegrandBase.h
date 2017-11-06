@@ -372,6 +372,11 @@ public:
   //! \brief Returns whether projections are fed through external means.
   virtual bool hasExternalProjections() const { return false; }
 
+  //! \brief Set projected quantities as fields.
+  //! \param[in] f The field with the info
+  //! \param[in] idx Projection index
+  virtual void setProjectedFields(Fields* f, size_t idx) {}
+
 protected:
   //! \brief Initializes the projected fields for current element.
   bool initProjection(const std::vector<int>& MNPC, LocalIntegral& elmInt);

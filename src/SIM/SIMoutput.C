@@ -850,6 +850,7 @@ bool SIMoutput::writeGlvP (const Vector& ssol, int iStep, int& nBlock,
 
   size_t i, j;
   int geomID = myGeomID;
+  size_t projOfs = 0;
   for (i = 0; i < myModel.size(); i++)
   {
     if (myModel[i]->empty()) continue; // skip empty patches
@@ -857,9 +858,16 @@ bool SIMoutput::writeGlvP (const Vector& ssol, int iStep, int& nBlock,
     if (msgLevel > 1)
       IFEM::cout <<"Writing projected solution for patch "<< i+1 << std::endl;
 
+    if (this->fieldProjections()) {
+      size_t ndof = myModel[i]->getNoProjectionNodes() * myProblem->getNoFields(2);
+      lovec.resize(ndof);
+      std::copy(ssol.begin()+projOfs, ssol.begin()+projOfs+ndof, lovec.begin());
+      projOfs += ndof;
+    } else
+      this->extractPatchSolution(ssol,lovec,i,sID.size(),1);
+
     // Evaluate the solution variables at the visualization points
-    this->extractPatchSolution(ssol,lovec,i,sID.size(),1);
-    if (!myModel[i]->evalSolution(field,lovec,opt.nViz))
+    if (!myModel[i]->evalProjSolution(field,lovec,opt.nViz,myProblem->getNoFields(2)))
       return false;
 
     // Write out to VTF-file as scalar fields
