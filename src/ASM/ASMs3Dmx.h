@@ -201,6 +201,11 @@ public:
   //! \brief Returns the number of projection nodes for this patch.
   virtual size_t getNoProjectionNodes() const;
 
+  //! \brief Returns a field using the projection basis.
+  //! \param[in] coefs The coefficients for the field
+  //! \param[in] nf Number of components
+  virtual Fields* getProjectedFields(const Vector& coefs, size_t nf) const;
+
   //! \brief Generates element groups for multi-threading of interior integrals.
   //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] silence If \e true, suppress threading group outprint

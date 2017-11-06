@@ -22,6 +22,7 @@
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
+#include "SplineFields3D.h"
 #include "SplineUtils.h"
 #include "Utilities.h"
 #include "Profiler.h"
@@ -1356,6 +1357,15 @@ void ASMs3Dmx::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
   else
     for (size_t b = 1; b <= this->getNoBasis(); ++b)
       this->ASMs3D::getBoundaryNodes(lIndex, nodes, b, thick, 0, local);
+}
+
+
+Fields* ASMs3Dmx::getProjectedFields(const Vector& coefs, size_t nf) const
+{
+  if (projBasis != m_basis[0])
+    return new SplineFields3D(projBasis.get(), coefs, nf);
+
+  return nullptr;
 }
 
 
