@@ -49,6 +49,15 @@ LRSplineFields2D::LRSplineFields2D (const ASMu2D* patch,
 }
 
 
+LRSplineFields2D::LRSplineFields2D (const LR::LRSplineSurface* srf,
+                                    const RealArray& v, int cmp, const char* name)
+  : Fields(name), basis(srf), surf(srf)
+{
+  values = v;
+  nf = cmp;
+}
+
+
 bool LRSplineFields2D::valueNode (size_t node, Vector& vals) const
 {
   if (node < 1 || node > nno) return false;
