@@ -178,8 +178,19 @@ bool ASMu3Dmx::generateFEMTopology ()
     m_basis.resize(vec.size());
     for (size_t i=0;i<vec.size();++i)
       m_basis[i].reset(new LR::LRSplineVolume(vec[i].get()));
+
+    // we need to project on something that is not one of our bases
+    if (ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS1 ||
+        ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE ||
+        ASMmxBase::Type == ASMmxBase::SUBGRID) {
+      std::shared_ptr<Go::SplineVolume> otherBasis =
+          ASMmxBase::establishBases(tensorspline, ASMmxBase::FULL_CONT_RAISE_BASIS1).front();
+      projBasis.reset(new LR::LRSplineVolume(otherBasis.get()));
+    } else
+     projBasis = m_basis[0];
   }
   lrspline = m_basis[geoBasis-1];
+  projBasis->generateIDs();
 
   nb.resize(m_basis.size());
   for (size_t i=0; i < m_basis.size(); ++i)
@@ -915,4 +926,10 @@ void ASMu3Dmx::remapErrors (RealArray& errors,
       for (LR::Basisfunction* b : elm->support())
         errors[b->getId()] += origErr[gEl-1];
   }
+}
+
+
+size_t ASMu3Dmx::getNoProjectionNodes() const
+{
+  return projBasis->nBasisFunctions();
 }

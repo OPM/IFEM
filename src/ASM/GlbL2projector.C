@@ -266,7 +266,7 @@ bool ASMbase::globalL2projection (Matrix& sField,
   PROFILE2("ASMbase::globalL2");
 
   // Assemble the projection matrices
-  size_t i, nnod = this->getNoNodes(1);
+  size_t i, nnod = this->getNoProjectionNodes();
   size_t j, ncomp = integrand.getNoFields(2);
   SparseMatrix* A;
   StdVector* B;

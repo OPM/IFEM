@@ -175,8 +175,17 @@ bool ASMs2Dmx::generateFEMTopology ()
 {
   if (!surf) return false;
 
-  if (m_basis.empty())
+  if (m_basis.empty()) {
     m_basis = ASMmxBase::establishBases(surf, ASMmxBase::Type);
+
+    // we need to project on something that is not one of our bases
+    if (ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS1 ||
+        ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
+      projBasis = ASMmxBase::establishBases(surf,
+                                            ASMmxBase::FULL_CONT_RAISE_BASIS1).front();
+    else
+      projBasis = m_basis.front();
+  }
   delete surf;
   geo = surf = m_basis[geoBasis-1]->clone();
 
@@ -1205,4 +1214,10 @@ void ASMs2Dmx::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
   else
     for (size_t b = 1; b <= this->getNoBasis(); ++b)
       this->ASMs2D::getBoundaryNodes(lIndex, nodes, b, thick, 0, local);
+}
+
+
+size_t ASMs2Dmx::getNoProjectionNodes() const
+{
+  return projBasis->numCoefs_u() * projBasis->numCoefs_v();
 }

@@ -175,8 +175,17 @@ bool ASMs3Dmx::generateFEMTopology ()
 {
   if (!svol) return false;
 
-  if (m_basis.empty())
+  if (m_basis.empty()) {
     m_basis = ASMmxBase::establishBases(svol, ASMmxBase::Type);
+
+    // we need to project on something that is not one of our bases
+    if (ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS1 ||
+        ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
+      projBasis = ASMmxBase::establishBases(svol,
+                                            ASMmxBase::FULL_CONT_RAISE_BASIS1).front();
+    else
+      projBasis = m_basis.front();
+  }
 
   delete svol;
   geo = svol = m_basis[geoBasis-1]->clone();
@@ -1347,4 +1356,12 @@ void ASMs3Dmx::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
   else
     for (size_t b = 1; b <= this->getNoBasis(); ++b)
       this->ASMs3D::getBoundaryNodes(lIndex, nodes, b, thick, 0, local);
+}
+
+
+size_t ASMs3Dmx::getNoProjectionNodes() const
+{
+  return projBasis->numCoefs(0) *
+         projBasis->numCoefs(1) *
+         projBasis->numCoefs(2);
 }
