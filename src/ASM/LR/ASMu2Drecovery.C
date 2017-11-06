@@ -179,7 +179,7 @@ bool ASMu2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
         // Integrate the mass matrix
         eA.outer_product(phi, phi, true, dJw);
 
-	// Integrate the rhs vector B
+        // Integrate the rhs vector B
         for (size_t r = 1; r <= sField.rows(); r++)
           eB[r-1].add(phi,sField(r,ip+1)*dJw);
       }

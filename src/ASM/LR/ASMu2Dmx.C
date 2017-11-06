@@ -182,6 +182,17 @@ bool ASMu2Dmx::generateFEMTopology ()
     m_basis.resize(vec.size());
     for (size_t i=0;i<vec.size();++i)
       m_basis[i].reset(new LR::LRSplineSurface(vec[i].get()));
+
+    // we need to project on something that is not one of our bases
+    if (ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS1 ||
+        ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE ||
+        ASMmxBase::Type == ASMmxBase::SUBGRID) {
+      auto vec2 = ASMmxBase::establishBases(tensorspline,
+                                            ASMmxBase::FULL_CONT_RAISE_BASIS1);
+      projBasis.reset(new LR::LRSplineSurface(vec2.front().get()));
+      projBasis->generateIDs();
+    } else
+     projBasis = m_basis[0];
   }
   lrspline = m_basis[geoBasis-1];
 
@@ -839,7 +850,7 @@ bool ASMu2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
                              const RealArray* gpar, bool) const
 {
 #ifdef SP_DEBUG
-  std::cout <<"ASMu2D::evalSolution(Matrix&,const IntegrandBase&,const RealArray*,bool)\n";
+  std::cout <<"ASMu2Dmx::evalSolution(Matrix&,const IntegrandBase&,const RealArray*,bool)\n";
 #endif
 
   sField.resize(0,0);
@@ -1138,4 +1149,10 @@ void ASMu2Dmx::remapErrors(RealArray& errors,
       for (const LR::Basisfunction* b : elm->support())
         errors[b->getId()] += origErr[gEl-1];
   }
+}
+
+
+size_t ASMu2Dmx::getNoProjectionNodes() const
+{
+  return projBasis->nBasisFunctions();
 }

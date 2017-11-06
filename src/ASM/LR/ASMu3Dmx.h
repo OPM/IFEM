@@ -155,6 +155,9 @@ public:
   virtual bool injectNodeVec(const Vector& nodeVec, Vector& globVec,
                              unsigned char = 0, int basis = 0) const;
 
+  //! \brief Returns the number of projection nodes for this patch.
+  virtual size_t getNoProjectionNodes() const;
+
   using ASMu3D::refine;
   //! \brief Refines the mesh adaptively.
   //! \param[in] prm Input data used to control the refinement
@@ -170,8 +173,19 @@ public:
   virtual void remapErrors(RealArray& errors,
                            const RealArray& origErr, bool elemErrors) const;
 
+protected:
+  //! \brief Assembles L2-projection matrices for the secondary solution.
+  //! \param[out] A Left-hand-side matrix
+  //! \param[out] B Right-hand-side vectors
+  //! \param[in] integrand Object with problem-specific data and methods
+  //! \param[in] continuous If \e false, a discrete L2-projection is used
+  virtual bool assembleL2matrices(SparseMatrix& A, StdVector& B,
+                                  const IntegrandBase& integrand,
+                                  bool continuous) const;
+
 private:
   std::vector<std::shared_ptr<LR::LRSplineVolume>> m_basis; //!< Spline bases
+  std::shared_ptr<LR::LRSplineVolume> projBasis; //!< Basis to project onto
   const std::vector<Matrices>& bezierExtract;   //!< Bezier extraction matrices
   std::vector<Matrices>        myBezierExtract; //!< Bezier extraction matrices
 };

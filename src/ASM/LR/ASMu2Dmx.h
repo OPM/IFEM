@@ -163,13 +163,8 @@ public:
   virtual bool injectNodeVec(const Vector& nodeVec, Vector& globVec,
                              unsigned char = 0, int basis = 0) const;
 
-  //! \brief Projects the secondary solution using a discrete global L2-norm.
-  //! \param[out] sField Secondary solution field control point values
-  //! \param[in] integrand Object with problem-specific data and methods
-  //! \param[in] continuous If \e true, a continuous L2-projection is used
-  virtual bool globalL2projection(Matrix& sField,
-                                  const IntegrandBase& integrand,
-                                  bool continuous = false) const;
+  //! \brief Returns the number of projection nodes for this patch.
+  virtual size_t getNoProjectionNodes() const;
 
   using ASMu2D::refine;
   //! \brief Refines the mesh adaptively.
@@ -229,6 +224,7 @@ protected:
 private:
   std::vector<std::shared_ptr<LR::LRSplineSurface>> m_basis; //!< All bases
   LR::LRSplineSurface* threadBasis; //!< Basis for thread groups
+  std::shared_ptr<LR::LRSplineSurface> projBasis; //!< Basis to project onto
 };
 
 #endif
