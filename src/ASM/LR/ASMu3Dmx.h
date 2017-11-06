@@ -158,6 +158,11 @@ public:
   //! \brief Returns the number of projection nodes for this patch.
   virtual size_t getNoProjectionNodes() const;
 
+  //! \brief Returns a field using the projection basis.
+  //! \param[in] coefs The coefficients for the field
+  //! \param[in] nf Number of components
+  virtual Fields* getProjectedFields(const Vector& coefs, size_t nf) const;
+
   using ASMu3D::refine;
   //! \brief Refines the mesh adaptively.
   //! \param[in] prm Input data used to control the refinement

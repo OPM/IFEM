@@ -23,6 +23,7 @@
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
 #include "SplineUtils.h"
+#include "SplineFields2D.h"
 #include "Utilities.h"
 #include "Profiler.h"
 #include "Vec3Oper.h"
@@ -1214,6 +1215,15 @@ void ASMs2Dmx::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
   else
     for (size_t b = 1; b <= this->getNoBasis(); ++b)
       this->ASMs2D::getBoundaryNodes(lIndex, nodes, b, thick, 0, local);
+}
+
+
+Fields* ASMs2Dmx::getProjectedFields(const Vector& coefs, size_t nf) const
+{
+  if (projBasis != m_basis[0])
+    return new SplineFields2D(projBasis.get(), coefs, nf);
+
+  return nullptr;
 }
 
 

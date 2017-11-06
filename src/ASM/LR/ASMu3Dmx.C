@@ -32,6 +32,7 @@
 #include "Profiler.h"
 #include "Vec3Oper.h"
 #include "Vec3.h"
+#include "LRSplineFields3D.h"
 
 #include <array>
 #include <numeric>
@@ -932,4 +933,13 @@ void ASMu3Dmx::remapErrors (RealArray& errors,
 size_t ASMu3Dmx::getNoProjectionNodes() const
 {
   return projBasis->nBasisFunctions();
+}
+
+
+Fields* ASMu3Dmx::getProjectedFields(const Vector& coefs, size_t nf) const
+{
+  if (projBasis != m_basis[0])
+    return new LRSplineFields3D(projBasis.get(), coefs, nf);
+
+  return nullptr;
 }

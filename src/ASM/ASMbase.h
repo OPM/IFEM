@@ -29,6 +29,7 @@ typedef MPCSet::const_iterator MPCIter; //!< Iterator over an MPC equation set
 struct TimeDomain;
 class ElementBlock;
 class Field;
+class Fields;
 class GlobalIntegral;
 class IntegrandBase;
 class Integrand;
@@ -575,6 +576,10 @@ public:
 
   //! \brief Returns the number of projection nodes for this patch.
   virtual size_t getNoProjectionNodes() const { return this->getNoNodes(1); }
+
+  //! \brief Returns a field using the projection basis.
+  virtual Fields* getProjectedFields(const Vector&, size_t) const
+  { return nullptr; }
 
   // Methods for result extraction
   // =============================
