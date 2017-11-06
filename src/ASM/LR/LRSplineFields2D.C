@@ -85,7 +85,7 @@ bool LRSplineFields2D::valueFE (const FiniteElement& fe, Vector& vals) const
   for (auto it  = elm->constSupportBegin();
             it != elm->constSupportEnd(); ++it, ++i)
     for (size_t j = 1; j <= nf; ++j)
-      Vnod(j,i) = values((*it)->getId()*2+j);
+      Vnod(j,i) = values((*it)->getId()*nf+j);
 
   Vnod.multiply(spline.basisValues,vals); // vals = Vnod * basisValues
 

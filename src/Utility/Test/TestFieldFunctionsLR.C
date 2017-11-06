@@ -39,7 +39,7 @@ TEST(TestFieldFunctions, 2D1PLR)
   EXPECT_NEAR(vec[1], -y, 1e-14);
   Tensor ten = f2D_ten(X); // see above
   EXPECT_NEAR(ten(1,1), 1.0, 1e-14);
-  EXPECT_NEAR(ten(1,2), 0.0, 1e-14);
+  EXPECT_NEAR(ten(1,2), 0.0, 1e-13);
   EXPECT_NEAR(ten(2,1), 0.0, 1e-14);
   EXPECT_NEAR(ten(2,2), -1.0, 1e-14);
   SymmTensor sten = f2D_sten(X);
@@ -53,7 +53,7 @@ TEST(TestFieldFunctions, 2D1PLR)
   scal = f2D_scalar(X);
   x = 2.0, y = 0.5;
   vec = f2D_vec(X);
-  EXPECT_NEAR(scal, x, 1e-14);
+  EXPECT_NEAR(scal, x, 1e-13);
   EXPECT_NEAR(vec[0], x, 1e-14);
   EXPECT_NEAR(vec[1], -y, 1e-14);
 }
