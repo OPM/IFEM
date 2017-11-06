@@ -59,11 +59,11 @@ bool ASMu2Dmx::assembleL2matrices (SparseMatrix& A, StdVector& B,
   if (continuous && !wg) return false;
 
   double dA = 0.0;
-  Vectors phi(m_basis.size());
-  Matrices dNdu(m_basis.size());
+  std::array<Vector, 2> phi;
+  std::array<Matrix, 2> dNdu;
   Matrix sField, Xnod, Jac;
-  std::vector<Go::BasisDerivsSf> spl1(m_basis.size());
-  std::vector<Go::BasisPtsSf> spl0(m_basis.size());
+  std::array<Go::BasisDerivsSf, 2> spl1;
+  std::array<Go::BasisPtsSf, 2> spl0;
 
 
   // === Assembly loop over all elements in the patch ==========================
@@ -73,14 +73,11 @@ bool ASMu2Dmx::assembleL2matrices (SparseMatrix& A, StdVector& B,
   {
     double uh = ((*el1)->umin()+(*el1)->umax())/2.0;
     double vh = ((*el1)->vmin()+(*el1)->vmax())/2.0;
-    std::vector<size_t> els;
-    std::vector<size_t> elem_sizes;
-    for (size_t i=0; i < m_basis.size(); ++i) {
-      els.push_back(m_basis[i]->getElementContaining(uh, vh)+1);
-      elem_sizes.push_back((*(m_basis[i]->elementBegin()+els.back()-1))->nBasisFunctions());
-    }
+    std::array<size_t, 2> els;
+    els[0] = m_basis[0]->getElementContaining(uh,vh)+1;
+    els[1] = m_basis[geoBasis-1]->getElementContaining(uh,vh)+1;
 
-    int geoEl = els[geoBasis-1];
+    int geoEl = els[1];
 
     if (continuous)
     {
@@ -104,8 +101,8 @@ bool ASMu2Dmx::assembleL2matrices (SparseMatrix& A, StdVector& B,
       return false;
 
     // set up basis function size (for extractBasis subroutine)
-    for (size_t b = 0; b < m_basis.size(); ++b)
-      phi[b].resize((*(m_basis[b]->elementBegin()+els[b]-1))->nBasisFunctions());
+    phi[0].resize(m_basis[0]->getElement(els[0]-1)->nBasisFunctions());
+    phi[1].resize(m_basis[geoBasis-1]->getElement(els[1]-1)->nBasisFunctions());
 
     // --- Integration loop over all Gauss points in each direction ----------
     int ip = 0;
@@ -114,24 +111,23 @@ bool ASMu2Dmx::assembleL2matrices (SparseMatrix& A, StdVector& B,
       {
         if (continuous)
         {
-          for (size_t b = 0; b < m_basis.size(); ++b) {
-            m_basis[b]->computeBasis(gpar[0][i],gpar[1][j],spl1[b],els[b]-1);
-            SplineUtils::extractBasis(spl1[b],phi[b],dNdu[b]);
-          }
+          m_basis[0]->computeBasis(gpar[0][i], gpar[1][j], spl1[0], els[0]-1);
+          SplineUtils::extractBasis(spl1[0],phi[0],dNdu[0]);
+          m_basis[geoBasis-1]->computeBasis(gpar[0][i], gpar[1][j],
+                                            spl1[1], els[1]-1);
+          SplineUtils::extractBasis(spl1[1], phi[1], dNdu[1]);
         }
         else
         {
-          for (size_t b = 0; b < m_basis.size(); ++b) {
-            m_basis[b]->computeBasis(gpar[0][i],gpar[1][j],spl0[b],els[b]-1);
-            phi[b] = spl0[b].basisValues;
-          }
+          m_basis[0]->computeBasis(gpar[0][i], gpar[1][j], spl0[0], els[0]-1);
+          phi[0] = spl0[0].basisValues;
         }
 
         // Compute the Jacobian inverse and derivatives
         double dJw = 1.0;
         if (continuous)
         {
-          dJw = dA*wg[i]*wg[j]*utl::Jacobian(Jac,dNdu[geoBasis-1],Xnod,dNdu[geoBasis-1],false);
+          dJw = dA*wg[i]*wg[j]*utl::Jacobian(Jac,dNdu[1],Xnod,dNdu[1],false);
           if (dJw == 0.0) continue; // skip singular points
         }
 
@@ -139,10 +135,10 @@ bool ASMu2Dmx::assembleL2matrices (SparseMatrix& A, StdVector& B,
         size_t ncmp = sField.rows();
         for (size_t ii = 0; ii < phi[0].size(); ii++)
         {
-          int inod = MNPC[els[geoBasis-1]-1][ii];
+          int inod = MNPC[els[1]-1][ii];
           for (size_t jj = 0; jj < phi[0].size(); jj++)
           {
-            int jnod = MNPC[els[geoBasis-1]-1][jj];
+            int jnod = MNPC[els[1]-1][jj];
             for (size_t k = 1; k <= ncmp; ++k)
               A(inod*ncmp+k, jnod*ncmp+k) += phi[0][ii]*phi[0][jj]*dJw;
           }
