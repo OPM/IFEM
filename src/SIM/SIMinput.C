@@ -18,6 +18,8 @@
 #ifdef HAS_LRSPLINE
 #include "ASMu2D.h"
 #include "ASMu3D.h"
+#else
+#include "ASMunstruct.h"
 #endif
 #include "GlbL2projector.h"
 #include "LinSolParams.h"
@@ -1076,6 +1078,7 @@ bool SIMinput::refine (const LR::RefineData& prm,
 bool SIMinput::refine (const LR::RefineData& prm,
                        Vectors& sol, const char* fName)
 {
+#ifdef HAS_LRSPLINE
   ASMunstruct* pch = nullptr;
   for (size_t i = 0; i < myModel.size(); i++)
     if (!(pch = dynamic_cast<ASMunstruct*>(myModel[i])))
@@ -1109,6 +1112,7 @@ bool SIMinput::refine (const LR::RefineData& prm,
       if (node > 0)
         refineIndices[i].insert(node-1);
     }
+
     // fetch all boundary nodes covered (may need to pass this to other patches)
     IntVec bndry_nodes = pch->getBoundaryNodesCovered(refineIndices[i]);
 
@@ -1145,7 +1149,6 @@ bool SIMinput::refine (const LR::RefineData& prm,
     }
   }
 
-#ifdef HAS_LRSPLINE
   for (size_t i = 0; i < myModel.size(); i++)
   {
     // OPTIMIZATION NOTE: if we by some clever datastructures already knew which edge
@@ -1249,10 +1252,6 @@ bool SIMinput::refine (const LR::RefineData& prm,
       }
     } // end volumetric
   }
-#else
-  return false;
-#endif
-
   Vectors lsols;
   lsols.reserve(sol.size()*myModel.size());
   for (size_t i = 0; i < myModel.size(); i++)
@@ -1275,6 +1274,9 @@ bool SIMinput::refine (const LR::RefineData& prm,
   sol = lsols;
 
   return (isRefined = true);
+#else
+  return false;
+#endif
 }
 
 
