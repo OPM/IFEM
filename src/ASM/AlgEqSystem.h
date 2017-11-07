@@ -18,11 +18,6 @@
 #include "SystemMatrix.h"
 #include "LinAlgenums.h"
 
-class SAM;
-class ProcessAdm;
-class LinSolParams;
-class LocalIntegral;
-
 
 /*!
   \brief Class for storage of general algebraic system of equations.

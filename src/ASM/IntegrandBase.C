@@ -12,6 +12,7 @@
 //==============================================================================
 
 #include "IntegrandBase.h"
+#include "GlobalIntegral.h"
 #include "FiniteElement.h"
 #include "ElmMats.h"
 #include "ElmNorm.h"
@@ -21,6 +22,18 @@
 #include "Fields.h"
 #include <cstring>
 #include <cstdio>
+
+
+GlobalIntegral& IntegrandBase::getGlobalInt (GlobalIntegral* gq) const
+{
+  if (gq) return *gq;
+
+  std::cerr <<"  ** IntegrandBase::getGlobalInt: No global integral"
+            <<" - using dummy."<< std::endl;
+
+  static GlobalIntegral dummy;
+  return dummy;
+}
 
 
 /*!
@@ -175,8 +188,31 @@ bool IntegrandBase::evalSol (Vector& s, const VecFunc& asol,
 
 void IntegrandBase::resetSolution ()
 {
-  for (Vectors::iterator it = primsol.begin(); it != primsol.end(); ++it)
-    it->clear();
+  for (Vector& sol : primsol) sol.clear();
+}
+
+
+void IntegrandBase::printSolution (std::ostream& os, int pindx)
+{
+  if (primsol.empty()) return;
+
+  int isol = 0;
+  os <<"\nCurrent solution for Patch "<< pindx;
+  for (Vector& sol : primsol)
+  {
+    isol++;
+    if (primsol.size() > 1 && !sol.empty())
+      os <<"\nSolution vector "<< isol;
+
+    int idof = 0, node = 0;
+    for (double sval : sol)
+      if ((++idof)%npv == 1)
+        os <<"\nNode "<< ++node <<": "<< sval;
+      else
+        os <<" "<< sval;
+
+    os << std::endl;
+  }
 }
 
 
@@ -385,8 +421,8 @@ bool NormBase::reducedInt (LocalIntegral& elmInt,
 
 ForceBase::~ForceBase ()
 {
-  for (size_t i = 0; i < eForce.size(); i++)
-    delete eForce[i];
+  for (LocalIntegral* lint : eForce)
+    delete lint;
   delete[] eBuffer;
 }
 
@@ -442,9 +478,9 @@ void ForceBase::assemble (RealArray& gForce) const
 {
   gForce.resize(this->getNoComps());
   std::fill(gForce.begin(),gForce.end(),0.0);
-  for (size_t i = 0; i < eForce.size(); i++)
+  for (LocalIntegral* lint : eForce)
   {
-    ElmNorm& elmf = *static_cast<ElmNorm*>(eForce[i]);
+    ElmNorm& elmf = *static_cast<ElmNorm*>(lint);
     for (size_t j = 0; j < gForce.size() && j < elmf.size(); j++)
       gForce[j] += elmf[j];
   }

@@ -81,7 +81,7 @@ public:
   //! \brief Initializes the global node number mapping for current patch.
   virtual void initNodeMap(const std::vector<int>&) {}
   //! \brief Returns the system quantity to be integrated by \a *this.
-  virtual GlobalIntegral& getGlobalInt(GlobalIntegral* gq) const { return *gq; }
+  virtual GlobalIntegral& getGlobalInt(GlobalIntegral* gq) const;
 
 
   // Element-level initialization interface
@@ -240,6 +240,9 @@ public:
 
   //! \brief Resets the primary solution vectors.
   void resetSolution();
+
+  //! \brief Prints out the patch-wise solution vectors.
+  void printSolution(std::ostream& os, int pindx);
 
   //! \brief Registers where we can inject a mixed-basis scalar field.
   virtual void setNamedField(const std::string&, Field*);

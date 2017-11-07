@@ -161,6 +161,11 @@ bool AlgEqSystem::assemble (const LocalIntegral* elmObj, int elmId)
     // general time-dependent and/or nonlinear problems.
     Vector* reac = R.empty() ? nullptr : &R;
     status = sam.assembleSystem(*b.front(), elMat->getRHSVector(), elmId, reac);
+#if SP_DEBUG > 2
+    for (i = 1; i < b.size() && i < elMat->b.size(); i++)
+      std::cout <<"\nElement right-hand-side vector "<< i+1 << elMat->b[i];
+#endif
+
     if (status && elMat->withLHS) // we have LHS element matrices
     {
       if (elMat->rhsOnly) // we only want the RHS system vector

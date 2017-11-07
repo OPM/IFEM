@@ -449,7 +449,7 @@ bool SIMbase::initSystem (int mType, size_t nMats, size_t nVec, size_t nScl,
   // Workaround SuperLU bug for tiny systems
   if (mType == SystemMatrix::SPARSE && this->getNoElms(true) < 3)
   {
-    std::cerr <<" ** System too small for SuperLU, falling back to Dense."
+    std::cerr <<"  ** System too small for SuperLU, falling back to Dense."
               << std::endl;
     mType = SystemMatrix::DENSE;
   }
@@ -462,9 +462,7 @@ bool SIMbase::initSystem (int mType, size_t nMats, size_t nVec, size_t nScl,
 
 bool SIMbase::setAssociatedRHS (size_t iMat, size_t iVec)
 {
-  if (!myEqSys) return false;
-
-  return myEqSys->setAssociatedVector(iMat,iVec);
+  return myEqSys ? myEqSys->setAssociatedVector(iMat,iVec) : false;
 }
 
 
@@ -768,7 +766,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
   bool ok = true;
   bool isAssembling = (myProblem->getMode() != SIM::INIT &&
                        myProblem->getMode() != SIM::RECOVERY);
-  if (isAssembling)
+  if (isAssembling && myEqSys)
     myEqSys->initialize(newLHSmatrix);
 
   // Loop over the integrands
@@ -812,6 +810,9 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
             ok &= this->extractPatchSolution(it->second,prevSol,lp-1);
             if (mySol)
               mySol->initPatch(pch->idx);
+#if SP_DEBUG > 2
+            it->second->printSolution(std::cout,pch->idx+1);
+#endif
             ok &= pch->integrate(*it->second,sysQ,time);
           }
           else
@@ -830,13 +831,16 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
           ok &= this->extractPatchSolution(it->second,prevSol,k);
           if (mySol)
             mySol->initPatch(myModel[k]->idx);
+#if SP_DEBUG > 2
+          it->second->printSolution(std::cout,myModel[k]->idx+1);
+#endif
           ok &= myModel[k]->integrate(*it->second,sysQ,time);
         }
     }
 
     // Assemble contributions from the Neumann boundary conditions
     // and other boundary integrals (Robin properties, contact, etc.)
-    if (it->second->hasBoundaryTerms() && myEqSys->getVector())
+    if (it->second->hasBoundaryTerms() && myEqSys && myEqSys->getVector())
       for (p = myProps.begin(); p != myProps.end() && ok; ++p)
         if ((p->pcode == Property::NEUMANN && it->first == 0) ||
             ((p->pcode == Property::NEUMANN_GENERIC ||
@@ -897,7 +901,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
     if (ok && &sysQ != myEqSys && isAssembling)
       ok = sysQ.finalize(newLHSmatrix);
   }
-  if (ok && isAssembling)
+  if (ok && isAssembling && myEqSys)
     ok = myEqSys->finalize(newLHSmatrix);
 
   if (!ok)
@@ -932,13 +936,15 @@ double SIMbase::extractScalar (size_t i) const
 
 bool SIMbase::applyDirichlet (Vector& glbVec) const
 {
-  return mySam->applyDirichlet(glbVec);
+  return mySam ? mySam->applyDirichlet(glbVec) : false;
 }
 
 
 bool SIMbase::solveSystem (Vector& solution, int printSol, double* rCond,
                            const char* compName, bool newLHS, size_t idxRHS)
 {
+  if (!myEqSys) return false;
+
   SystemMatrix* A = myEqSys->getMatrix();
   SystemVector* b = myEqSys->getVector(idxRHS);
   if (!A) std::cerr <<" *** SIMbase::solveSystem: No LHS matrix."<< std::endl;
@@ -1025,6 +1031,9 @@ bool SIMbase::solveSystem (Vector& solution, int printSol, double* rCond,
   if (status)
     status = mySam->expandSolution(*b,solution);
 
+#if SP_DEBUG > 2
+  if (printSol < 1000) printSol = 1000;
+#endif
   if (printSol > 0 && status)
     this->printSolutionSummary(solution,printSol,compName);
 
@@ -1035,12 +1044,12 @@ bool SIMbase::solveSystem (Vector& solution, int printSol, double* rCond,
 bool SIMbase::solveMatrixSystem (Vectors& solution, int printSol,
                                  const char* compName)
 {
-  solution.resize(myEqSys->getNoRHS());
+  solution.resize(this->getNoRHS());
   for (size_t i = 0; i < solution.size(); i++)
     if (!this->solveSystem(solution[i],printSol,nullptr,compName,i==0,i))
       return false;
-    else
-      printSol = 0; // Print summary only for the first solution
+    else if (solution.size() > 2)
+      printSol = 0; // Print summary only for the first two solutions
 
   return true;
 }
@@ -1093,7 +1102,7 @@ void SIMbase::printSolutionSummary (const Vector& solution, int printSol,
   adm.cout << std::setprecision(oldPrec);
 
   // Print entire solution vector if it is small enough
-  if (mySam->getNoEquations() < printSol)
+  if (mySam && mySam->getNoEquations() < printSol)
   {
     adm.cout <<"\nSolution vector:";
     for (int inod = 1; inod <= mySam->getNoNodes(); inod++)
@@ -1105,10 +1114,6 @@ void SIMbase::printSolutionSummary (const Vector& solution, int printSol,
     }
     adm.cout << std::endl;
   }
-#if SP_DEBUG > 2
-  else
-    std::cout <<"\nSolution vector:"<< *myEqSys->getVector();
-#endif
 }
 
 
@@ -1289,7 +1294,7 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
   // Initialize norm integral classes
   gNorm.resize(norm->getNoFields(0));
   size_t nNorms = 0;
-  auto prj_idx = opt.project.begin();
+  auto proj_idx = opt.project.begin();
   // count norms if they are:
   // 1) associated with the primary solution
   // 2) associated with a projected secondary solution
@@ -1297,15 +1302,14 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
   // 4) associated with a secondary solution provided through external means
   // 5) associated with an additional group defined in the integrand
   for (i = 0; i < gNorm.size(); i++)
-    if (i == 0 || i > ssol.size() || (!ssol[i-1].empty() ||
-                                      prj_idx->first == SIMoptions::NONE ||
-                                      norm->hasExternalProjections()))
+    if (i == 0 || i > ssol.size() || !ssol[i-1].empty() ||
+        proj_idx->first == SIMoptions::NONE || norm->hasExternalProjections())
     {
       size_t nNrm = norm->getNoFields(1+i);
       gNorm[i].resize(nNrm,true);
       nNorms += nNrm;
-      if (i != 0 && i <= ssol.size())
-        ++prj_idx;
+      if (i > 0 && proj_idx != opt.project.end())
+        ++proj_idx;
     }
 
   GlbNorm globalNorm(gNorm,norm->getFinalOperation());
@@ -1422,11 +1426,8 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
 
 double SIMbase::externalEnergy (const Vectors& psol) const
 {
-  if (!myEqSys || !mySam)
-    return 0.0;
-
-  const Vector* reactionForces = myEqSys->getReactions();
-  if (!reactionForces || psol.empty()) return 0.0;
+  const Vector* reactionForces = this->getReactionForces();
+  if (!reactionForces || !mySam || psol.empty()) return 0.0;
 
   // Add norm contributions due to inhomogeneous Dirichlet boundary conditions.
   // That is, the path integral of the total solution vector times the
@@ -1456,11 +1457,8 @@ double SIMbase::externalEnergy (const Vectors& psol) const
 
 bool SIMbase::getCurrentReactions (RealArray& RF, const Vector& psol) const
 {
-  if (!myEqSys || !mySam)
-    return false;
-
-  const Vector* reactionForces = myEqSys->getReactions();
-  if (!reactionForces) return false;
+  const Vector* reactionForces = this->getReactionForces();
+  if (!reactionForces || !mySam) return false;
 
   RF.resize(1+nsd);
   RF.front() = 2.0*mySam->normReact(psol,*reactionForces);
@@ -1473,11 +1471,8 @@ bool SIMbase::getCurrentReactions (RealArray& RF, const Vector& psol) const
 
 bool SIMbase::getCurrentReactions (RealArray& RF, int pcode) const
 {
-  if (!myEqSys || !mySam)
-    return false;
-
-  const Vector* reactionForces = myEqSys->getReactions();
-  if (!reactionForces) return false;
+  const Vector* reactionForces = this->getReactionForces();
+  if (!reactionForces || !mySam) return false;
 
   IntVec glbNodes;
   this->getBoundaryNodes(pcode,glbNodes);
@@ -1500,7 +1495,7 @@ bool SIMbase::systemModes (std::vector<Mode>& solution,
 			   int nev, int ncv, int iop, double shift,
 			   size_t iA, size_t iB)
 {
-  if (nev < 1 || ncv <= nev) return false;
+  if (nev < 1 || ncv <= nev || !myEqSys) return false;
 
   PROFILE1("Eigenvalue analysis");
 
