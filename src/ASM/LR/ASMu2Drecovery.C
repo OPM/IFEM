@@ -151,6 +151,8 @@ bool ASMu2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
     phi.resize((**el).nBasisFunctions());
 
     // --- Integration loop over all Gauss points in each direction ----------
+    Matrix eA(MNPC[iel-1].size(), MNPC[iel-1].size());
+    Vectors eB(sField.rows(), Vector(MNPC[iel-1].size()));
     int ip = 0;
     for (int j = 0; j < ng2; j++)
       for (int i = 0; i < ng1; i++, ip++)
@@ -174,19 +176,22 @@ bool ASMu2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
           if (dJw == 0.0) continue; // skip singular points
         }
 
-        // Integrate the linear system A*x=B
-        for (size_t ii = 0; ii < phi.size(); ii++)
-        {
-          int inod = MNPC[iel-1][ii]+1;
-          for (size_t jj = 0; jj < phi.size(); jj++)
-          {
-            int jnod = MNPC[iel-1][jj]+1;
-            A(inod,jnod) += phi[ii]*phi[jj]*dJw;
-          }
-          for (size_t r = 1; r <= sField.rows(); r++)
-            B(inod+(r-1)*nnod) += phi[ii]*sField(r,ip+1)*dJw;
-        }
+        // Integrate the mass matrix
+        eA.outer_product(phi, phi, true, dJw);
+
+	// Integrate the rhs vector B
+        for (size_t r = 1; r <= sField.rows(); r++)
+          eB[r-1].add(phi,sField(r,ip+1)*dJw);
       }
+
+    for (size_t i = 0; i < MNPC[iel-1].size(); ++i) {
+      for (size_t j = 0; j < MNPC[iel-1].size(); ++j)
+        A(MNPC[iel-1][i]+1, MNPC[iel-1][j]+1) += eA(i+1, j+1);
+
+      int jp = MNPC[iel-1][i]+1;
+      for (size_t r = 0; r < sField.rows(); r++, jp += nnod)
+        B(jp) += eB[r](1+i);
+    }
   }
 
   return true;
