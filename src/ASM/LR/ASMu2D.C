@@ -965,6 +965,7 @@ bool ASMu2D::integrate (Integrand& integrand,
       fe.iel = MLGE[iel-1];
       Matrix   dNdu, Xnod, Jac;
       Matrix3D d2Ndu2, Hess;
+      double   dXidu[2];
       double   param[3] = { 0.0, 0.0, 0.0 };
       Vec4     X(param);
 
@@ -1004,6 +1005,13 @@ bool ASMu2D::integrate (Integrand& integrand,
         lrspline->point(X0,u0,v0);
         for (unsigned char i = 0; i < nsd; i++)
           X[i] = X0[i];
+      }
+
+      if (integrand.getIntegrandType() & Integrand::G_MATRIX)
+      {
+        // Element size in parametric space
+        dXidu[0] = lrspline->getElement(iel-1)->umax()-lrspline->getElement(iel-1)->umin();
+        dXidu[1] = lrspline->getElement(iel-1)->vmax()-lrspline->getElement(iel-1)->vmin();
       }
 
       // Initialize element quantities
@@ -1105,6 +1113,10 @@ bool ASMu2D::integrate (Integrand& integrand,
               ok = false;
               continue;
             }
+
+          // Compute G-matrix
+          if (integrand.getIntegrandType() & Integrand::G_MATRIX)
+            utl::getGmat(Jac,dXidu,fe.G);
 
 #if SP_DEBUG > 4
           if (iel == dbgElm || iel == -dbgElm || dbgElm == 0)
