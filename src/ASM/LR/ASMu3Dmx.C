@@ -732,16 +732,141 @@ bool ASMu3Dmx::evalSolution (Matrix& sField, const Vector& locSol,
                              const RealArray* gpar, bool,
                              int deriv, int nf) const
 {
-  return false;
+  size_t nPoints = gpar[0].size();
+  if (nPoints != gpar[1].size() || nPoints != gpar[1].size())
+    return false;
+
+  Vector   ptSol;
+  std::vector<Matrix> dNxdu(m_basis.size()), dNxdX(m_basis.size());
+  Matrix   Jac, Xnod, eSol, ptDer;
+
+  std::vector<Go::BasisPts> splinex(m_basis.size());
+
+  std::vector<size_t> nc(nfx.size(), 0);
+  if (nf)
+    nc[0] = nf;
+  else
+    std::copy(nfx.begin(), nfx.end(), nc.begin());
+
+  // Evaluate the primary solution field at each point
+  sField.resize(std::accumulate(nc.begin(), nc.end(), 0), nPoints);
+  for (size_t i = 0; i < nPoints; i++)
+  {
+    size_t ofs=0;
+    Vector Ztmp;
+    for (size_t j=0; j <  m_basis.size(); ++j) {
+      if (nc[j] == 0)
+        continue;
+      // Fetch element containing evaluation point.
+      // Sadly, points are not always ordered in the same way as the elements.
+      int iel = m_basis[j]->getElementContaining(gpar[0][i],gpar[1][i],gpar[2][i]);
+
+      // Evaluate basis function values/derivatives at current parametric point
+      // and multiply with control point values to get the point-wise solution
+      m_basis[j]->computeBasis(gpar[0][i],gpar[1][i],gpar[2][i],splinex[j],iel);
+
+      std::vector<LR::Element*>::iterator el_it = m_basis[j]->elementBegin()+iel;
+      Matrix val1(nc[j], splinex[j].basisValues.size());
+      size_t col=1;
+      for (auto* b : (*el_it)->support()) {
+        for (size_t n = 1; n <= nc[j]; ++n)
+          val1(n, col) = locSol(b->getId()*nc[j]+n+ofs);
+        ++col;
+      }
+      Vector Ytmp;
+      val1.multiply(splinex[j].basisValues,Ytmp);
+      Ztmp.insert(Ztmp.end(),Ytmp.begin(),Ytmp.end());
+      ofs += nb[j]*nc[j];
+    }
+
+    sField.fillColumn(i+1, Ztmp);
+  }
+
+  return true;
 }
 
 
 bool ASMu3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
                              const RealArray* gpar, bool) const
 {
-  return evalSolution(sField,
-                     const_cast<IntegrandBase&>(integrand).getSolution(0),
-                     gpar, false, 0);
+#ifdef SP_DEBUG
+  std::cout <<"ASMu3Dmx::evalSolution(Matrix&,const IntegrandBase&,const RealArray*,bool)\n";
+#endif
+
+  sField.resize(0,0);
+
+  // TODO: investigate the possibility of doing "regular" refinement by
+  //       uniform tesselation grid and ignoring LR mesh lines
+
+  size_t nPoints = gpar[0].size();
+  bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
+  if (nPoints != gpar[1].size() || nPoints != gpar[2].size())
+    return false;
+
+  // Evaluate the secondary solution field at each point
+  for (size_t i = 0; i < nPoints; i++)
+  {
+    // Fetch element containing evaluation point
+    // sadly, points are not always ordered in the same way as the elements
+    std::vector<size_t> els;
+    std::vector<size_t> elem_sizes;
+    for (size_t b = 0; b < m_basis.size(); ++b) {
+      els.push_back(m_basis[b]->getElementContaining(gpar[0][i],gpar[1][i],gpar[2][i])+1);
+      elem_sizes.push_back(m_basis[b]->getElement(els.back()-1)->nBasisFunctions());
+    }
+
+    // Evaluate the basis functions at current parametric point
+    MxFiniteElement fe(elem_sizes);
+    std::vector<Matrix> dNxdu(m_basis.size());
+    Matrix Jac, Xnod;
+    std::vector<Matrix3D> d2Nxdu2(m_basis.size());
+    Matrix3D Hess;
+    if (use2ndDer)
+      for (size_t b = 0; b < m_basis.size(); ++b) {
+        Go::BasisDerivs2 spline;
+        m_basis[b]->computeBasis(gpar[0][i],gpar[1][i],gpar[2][i],spline,els[b]-1);
+        SplineUtils::extractBasis(spline,fe.basis(b+1),dNxdu[b],d2Nxdu2[b]);
+      }
+    else
+      for (size_t b = 0; b < m_basis.size(); ++b) {
+        Go::BasisDerivs spline;
+        m_basis[b]->computeBasis(gpar[0][i],gpar[1][i],gpar[2][i],spline,els[b]-1);
+        SplineUtils::extractBasis(spline,fe.basis(b+1),dNxdu[b]);
+      }
+
+    // Set up control point (nodal) coordinates for current element
+    if (!this->getElementCoordinates(Xnod,els[geoBasis-1])) return false;
+
+    // Compute the Jacobian inverse
+    fe.detJxW = utl::Jacobian(Jac,fe.grad(geoBasis),Xnod,dNxdu[geoBasis-1]);
+    for (size_t b = 0; b < m_basis.size(); ++b)
+      if (b != (size_t)geoBasis-1)
+        fe.grad(b+1).multiply(dNxdu[b],Jac);
+
+    // Compute Hessian of coordinate mapping and 2nd order derivatives
+    if (use2ndDer) {
+      if (!utl::Hessian(Hess,fe.hess(geoBasis),Jac,Xnod,
+                        d2Nxdu2[geoBasis-1],fe.grad(geoBasis),true))
+        return false;
+
+      for (size_t b = 0; b < m_basis.size(); ++b)
+        if (b != (size_t)geoBasis)
+          utl::Hessian(Hess,fe.hess(b+1),Jac,Xnod,
+                        d2Nxdu2[b],fe.grad(b+1),false);
+    }
+
+    // Now evaluate the solution field
+    Vector solPt;
+    if (!integrand.evalSol(solPt,fe,Xnod*fe.basis(geoBasis),
+                           MNPC[els[geoBasis-1]-1],elem_sizes,nb))
+      return false;
+    else if (sField.empty())
+      sField.resize(solPt.size(),nPoints,true);
+
+    sField.fillColumn(1+i,solPt);
+  }
+
+  return true;
 }
 
 
