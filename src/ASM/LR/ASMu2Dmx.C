@@ -293,6 +293,7 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
       Vec4     X(param);
       std::vector<Matrix3D> d2Nxdu2(m_basis.size());
       Matrix3D Hess;
+      double   dXidu[2];
 
       // Get element area in the parameter space
       double dA = this->getParametricArea(geoEl);
@@ -311,6 +312,13 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
 
       if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
         fe.h = this->getElementCorners(geoEl,fe.XC);
+
+      if (integrand.getIntegrandType() & Integrand::G_MATRIX)
+      {
+        // Element size in parametric space
+        dXidu[0] = geo->getElement(geoEl-1)->umax()-geo->getElement(geoEl-1)->umin();
+        dXidu[1] = geo->getElement(geoEl-1)->vmax()-geo->getElement(geoEl-1)->vmin();
+      }
 
       // Compute parameter values of the Gauss points over this element
       std::array<RealArray,2> gpar;
@@ -375,6 +383,10 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
                 utl::Hessian(Hess,fe.hess(b+1),Jac,Xnod,
                              d2Nxdu2[b],fe.grad(b+1),false);
           }
+
+          // Compute G-matrix
+          if (integrand.getIntegrandType() & Integrand::G_MATRIX)
+            utl::getGmat(Jac,dXidu,fe.G);
 
           // Cartesian coordinates of current integration point
           X.assign(Xnod * fe.basis(geoBasis));
