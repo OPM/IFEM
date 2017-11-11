@@ -55,7 +55,7 @@ public:
   //! \return \e false, if the \a istep is passed the end of the simulation
   bool reset(int istep = 0);
   //! \brief Advances the time increments one step further.
-  //! \return \e true, if we have reached the end of the simulation
+  //! \return \e false, if we have reached the end of the simulation
   bool increment();
   //! \brief Restarts current increment with a smaller step size on divergence.
   //! \return \e false Cannot do further cut-back, time step size too small
@@ -65,7 +65,7 @@ public:
 
   //! \brief Serialize internal state for restarting purposes.
   //! \param data Container for serialized data
-  bool serialize(std::map<std::string,std::string>& data);
+  bool serialize(std::map<std::string,std::string>& data) const;
   //! \brief Set internal state from a serialized state.
   //! \param[in] data Container for serialized data
   bool deSerialize(const std::map<std::string,std::string>& data);

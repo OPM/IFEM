@@ -1703,3 +1703,11 @@ double SIMoutput::getEffectivityIndex (const Vectors& gNorm,
 {
   return gNorm[idx](inorm) / gNorm.front()(4);
 }
+
+
+bool SIMoutput::serialize (std::map<std::string,std::string>&) const
+{
+  std::cerr <<" *** SIMoutput::serialize: Must be implemented in sub-class.\n"
+            <<"     Restart not supported for "<< this->getName() << std::endl;
+  return false;
+}

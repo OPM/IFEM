@@ -319,12 +319,8 @@ bool TimeStep::cutback ()
 
 
 #ifdef HAS_CEREAL
-/*!
-  \brief Serialize to/from archive.
-  \param ar Input or output archive
-*/
-
-template<class T> void doSerializeOps(T& ar, TimeStep& tp)
+//! \brief Serializes TimeStep data \a tp to/from the archive \a ar.
+template<class T> void doSerializeOps (T& ar, TimeStep& tp)
 {
   ar(tp.step);
   ar(tp.starTime);
@@ -338,13 +334,13 @@ template<class T> void doSerializeOps(T& ar, TimeStep& tp)
 #endif
 
 
-bool TimeStep::serialize(std::map<std::string,std::string>& data)
+bool TimeStep::serialize (std::map<std::string,std::string>& data) const
 {
 #ifdef HAS_CEREAL
   std::ostringstream str;
   cereal::BinaryOutputArchive ar(str);
-  doSerializeOps(ar,*this);
-  data.insert(std::make_pair("TimeStep", str.str()));
+  doSerializeOps(ar,*const_cast<TimeStep*>(this));
+  data.insert(std::make_pair("TimeStep",str.str()));
   return true;
 #else
   return false;
@@ -352,13 +348,12 @@ bool TimeStep::serialize(std::map<std::string,std::string>& data)
 }
 
 
-bool TimeStep::deSerialize(const std::map<std::string,std::string>& data)
+bool TimeStep::deSerialize (const std::map<std::string,std::string>& data)
 {
 #ifdef HAS_CEREAL
-  std::stringstream str;
-  auto it = data.find("TimeStep");
+  std::map<std::string,std::string>::const_iterator it = data.find("TimeStep");
   if (it != data.end()) {
-    str << it->second;
+    std::stringstream str(it->second);
     cereal::BinaryInputArchive ar(str);
     doSerializeOps(ar,*this);
     return true;

@@ -65,21 +65,21 @@ void EigenModeSIM::printProblem () const
   model.printProblem();
 
   bool multiModes = false;
-  IFEM::cout<<"EigenMode combination: u(x,t) =";
+  IFEM::cout <<"EigenMode combination: u(x,t) =";
   for (size_t i = 0; i < amplitude.size(); i++)
     if (amplitude[i] != 0.0)
     {
-      IFEM::cout<< (multiModes ? "\n                              + ":" ");
-      IFEM::cout<< amplitude[i] <<"*v"<< i+1 <<"(x)*sin(";
+      IFEM::cout << (multiModes ? "\n                              + ":" ")
+                 << amplitude[i] <<"*v"<< i+1 <<"(x)*sin(";
       if (i < omega.size() && omega[i] > 0.0)
-        IFEM::cout<< omega[i];
+        IFEM::cout << omega[i];
       else
-        IFEM::cout<<"omega"<< i+1;
-      IFEM::cout<<"*t)";
+        IFEM::cout <<"omega"<< i+1;
+      IFEM::cout <<"*t)";
       multiModes = true;
     }
 
-  IFEM::cout<< std::endl;
+  IFEM::cout << std::endl;
 }
 
 
@@ -120,10 +120,7 @@ bool EigenModeSIM::initSol (size_t nSol)
 
 bool EigenModeSIM::advanceStep (TimeStep& param, bool updateTime)
 {
-  // Update solution vectors between time steps
-  for (int n = solution.size()-1; n > 0; n--)
-    std::copy(solution[n-1].begin(),solution[n-1].end(),solution[n].begin());
-
+  this->pushSolution(); // Update solution vectors between time steps
   return this->MultiStepSIM::advanceStep(param,updateTime);
 }
 

@@ -85,8 +85,8 @@ bool GenAlphaSIM::initSol (size_t nSol)
 bool GenAlphaSIM::advanceStep (TimeStep& param, bool updateTime)
 {
   // Update displacement solutions between time steps
-  for (int n = solution.size()-3; n > 0; n--)
-    std::copy(solution[n-1].begin(),solution[n-1].end(),solution[n].begin());
+  if (solution.size() > 3)
+    this->pushSolution(solution.size()-2);
 
   // Update the previous solution
   std::copy(solution.front().begin(),solution.front().end(),prevSol[0].begin());

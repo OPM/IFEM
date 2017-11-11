@@ -296,7 +296,7 @@ public:
                                      size_t idx, size_t inorm) const;
 
   //! \brief Serialization support.
-  virtual bool serialize(std::map<std::string,std::string>&) { return false; }
+  virtual bool serialize(std::map<std::string,std::string>&) const;
 
 protected:
   //! \brief Preprocesses the result sampling points.

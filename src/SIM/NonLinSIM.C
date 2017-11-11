@@ -53,11 +53,11 @@ NonLinSIM::~NonLinSIM ()
   cout <<"\n *** Here are the nodal points flagged with slow convergence"
        <<"\n     ======================================================="
        <<"\n     Node  Count  Patch  Coordinates\n";
-  for (nit = slowNodes.begin(); nit != slowNodes.end(); ++nit)
+  for (const std::pair<int,int>& node : slowNodes)
   {
-    Vec4 X = model.getNodeCoord(nit->first);
-    cout << std::setw(9) << nit->first
-         << std::setw(5) << nit->second
+    Vec4 X = model.getNodeCoord(node.first);
+    cout << std::setw(9) << node.first
+         << std::setw(5) << node.second
          << std::setw(7) << X.idx <<"   ";
     for (int i = 0; i < 3; i++)
       cout <<" "<< utl::trunc(X[i]);
@@ -179,10 +179,7 @@ void NonLinSIM::init (size_t nSol, const RealArray& value)
 
 bool NonLinSIM::advanceStep (TimeStep& param, bool updateTime)
 {
-  // Update solution vectors between time steps
-  for (int n = solution.size()-1; n > 0; n--)
-    std::copy(solution[n-1].begin(),solution[n-1].end(),solution[n].begin());
-
+  this->pushSolution(); // Update solution vectors between time steps
   return this->MultiStepSIM::advanceStep(param,updateTime);
 }
 
@@ -475,19 +472,19 @@ ConvStatus NonLinSIM::checkConvergence (TimeStep& param)
         cout <<", here is the worst DOF:";
       else
         cout <<".";
-      for (const auto& it : worstDOFs)
+      for (const std::pair<std::pair<int,int>,RealArray>& worst : worstDOFs)
       {
-        cout <<"\n     Node "<< it.first.first
-             <<" local DOF "<< it.first.second;
-        char nodeType = model.getNodeType(it.first.first);
+        cout <<"\n     Node "<< worst.first.first
+             <<" local DOF "<< worst.first.second;
+        char nodeType = model.getNodeType(worst.first.first);
         if (nodeType != ' ')
           cout <<" ("<< nodeType <<")";
-        cout <<" :\tEnergy = "<< it.second[0]
-             <<"\tdu = "<< it.second[1]
-             <<"\tres = "<< it.second[2];
-        std::map<int,int>::iterator nit = slowNodes.find(it.first.first);
+        cout <<" :\tEnergy = "<< worst.second[0]
+             <<"\tdu = "<< worst.second[1]
+             <<"\tres = "<< worst.second[2];
+        std::map<int,int>::iterator nit = slowNodes.find(worst.first.first);
         if (nit == slowNodes.end())
-          slowNodes.insert(std::make_pair(it.first.first,1));
+          slowNodes.insert(std::make_pair(worst.first.first,1));
         else
           ++nit->second;
       }

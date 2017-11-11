@@ -14,12 +14,12 @@
 #ifndef _MULTI_STEP_SIM_H
 #define _MULTI_STEP_SIM_H
 
+#include "SIMsolution.h"
 #include "SIMadmin.h"
 #include "SIMenums.h"
-#include "MatVec.h"
 
-class SIMbase;
 class SIMoutput;
+class SIMbase;
 class TimeStep;
 struct TimeDomain;
 
@@ -28,7 +28,7 @@ struct TimeDomain;
   \brief Base class for multi-step solution drivers.
 */
 
-class MultiStepSIM : public SIMadmin
+class MultiStepSIM : public SIMsolution, public SIMadmin
 {
 protected:
   //! \brief Enum describing reference norm options.
@@ -104,7 +104,6 @@ public:
   //! \param[in] time Current time/load parameter
   //! \param[in] vecName Optional name of primary solution vector field
   bool saveStep(int iStep, double time, const char* vecName = nullptr);
-
   //! \brief Saves the converged results to VTF file of a given time/load step.
   //! \param[in] iStep Time/load step identifier
   //! \param rBlock Running result block counter
@@ -112,12 +111,18 @@ public:
   //! \param[in] vecName Optional name of primary solution vector field
   bool saveStep(int iStep, int& rBlock, double time,
                 const char* vecName = nullptr);
-
   //! \brief Saves the converged solution to VTF file of a given time/load step.
   //! \param[in] iStep Time/load step identifier
   //! \param rBlock Running result block counter
   //! \param[in] vecName Name of primary solution vector field
   bool saveStep(int iStep, int& rBlock, const char* vecName);
+
+  //! \brief Serialize solution vectors for restarting purposes.
+  //! \param data Container for serialized data
+  virtual bool serialize(SerializeMap& data) const;
+  //! \brief Set solution vectors from a serialized state.
+  //! \param[in] data Container for serialized data
+  virtual bool deSerialize(const SerializeMap& data);
 
   //! \brief Dumps the primary solution for inspection.
   //! \param[in] iStep Time/load step identifier
@@ -143,13 +148,6 @@ public:
   //! \param[in] step Time/load step counter
   bool savePoints(double time, int step) const;
 
-  //! \brief Returns a const reference to the solution vectors.
-  const Vectors& getSolutions() const { return solution; }
-  //! \brief Returns a const reference to current solution vector.
-  const Vector& getSolution(int idx = 0) const { return solution[idx]; }
-  //! \brief Modifies the current solution vector (used by sub-iterations only).
-  virtual void setSolution(const Vector& s, int idx = 0) { solution[idx] = s; }
-
   //! \brief Returns whether this solution driver is linear or not.
   virtual bool isLinear() const { return true; }
 
@@ -168,7 +166,6 @@ protected:
   SIMoutput& model;    //!< The isogeometric FE model
   Vector     residual; //!< Residual force vector
   Vector     linsol;   //!< Linear solution vector
-  Vectors    solution; //!< Primary solution vectors
 
   NormOp refNopt; //!< Reference norm option
   double refNorm; //!< Reference norm value used in convergence checks
