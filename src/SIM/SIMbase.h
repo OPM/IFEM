@@ -313,6 +313,7 @@ public:
   //! \param[in] ssol Secondary solution vectors
   //! \param[out] gNorm Global norm quantities
   //! \param[out] eNorm Element-wise norm quantities
+  //! \param[in] name Name of solution being the source of calculation
   //!
   //! \details If an analytical solution is provided, norms of the exact
   //! error in the solution are computed as well. If projected secondary
@@ -321,7 +322,8 @@ public:
   //! solution are computed as well.
   bool solutionNorms(const TimeDomain& time,
                      const Vectors& psol, const Vectors& ssol,
-                     Vectors& gNorm, Matrix* eNorm = nullptr);
+                     Vectors& gNorm, Matrix* eNorm = nullptr,
+                     const char* name = nullptr);
   //! \brief Integrates some solution norm quantities.
   //! \param[in] time Parameters for nonlinear/time-dependent simulations.
   //! \param[in] psol Primary solution vectors
@@ -337,11 +339,16 @@ public:
   //! \param[in] ssol Secondary solution vectors
   //! \param[out] eNorm Element-wise norm quantities
   //! \param[out] gNorm Global norm quantities
+  //! \param[in] name Name of solution being the source of calculation
   //!
   //! \details Use this version for linear/stationary problems only.
-  bool solutionNorms(const Vectors& psol, const Vectors& ssol,
-                     Matrix& eNorm, Vectors& gNorm)
-  { return this->solutionNorms(TimeDomain(),psol,ssol,gNorm,&eNorm); }
+  bool solutionNorms(const Vector& psol, const Vectors& ssol,
+                     Matrix& eNorm, Vectors& gNorm,
+                     const char* name = nullptr)
+  {
+    return this->solutionNorms(TimeDomain(),Vectors(1,psol),ssol,
+                               gNorm,&eNorm,name);
+  }
   //! \brief Integrates some solution norm quantities.
   //! \param[in] psol Primary solution vectors
   //! \param[out] eNorm Element-wise norm quantities
@@ -349,8 +356,25 @@ public:
   //!
   //! \details Use this version for linear/stationary problems,
   //! and when no projected solutions are needed/available.
-  bool solutionNorms(const Vectors& psol, Matrix& eNorm, Vectors& gNorm)
-  { return this->solutionNorms(TimeDomain(),psol,Vectors(),gNorm,&eNorm); }
+  bool solutionNorms(const Vector& psol, Matrix& eNorm, Vectors& gNorm)
+  {
+    return this->solutionNorms(TimeDomain(),Vectors(1,psol),Vectors(),
+                               gNorm,&eNorm);
+  }
+  //! \brief Integrates some solution norm quantities.
+  //! \param[in] psol Primary solution vectors
+  //! \param[in] ssol Secondary solution vectors
+  //! \param[out] gNorm Global norm quantities
+  //! \param[in] name Name of solution being the source of calculation
+  //!
+  //! \details Use this version for linear/stationary problems,
+  //! and when the element-wise norms are not needed.
+  bool solutionNorms(const Vector& psol, const Vectors& ssol, Vectors& gNorm,
+                     const char* name = nullptr)
+  {
+    return this->solutionNorms(TimeDomain(),Vectors(1,psol),ssol,gNorm,
+                               nullptr,name);
+  }
 
   //! \brief Apply app-specific post-processing to element norms.
   //! \param gNorm Vector with global norms

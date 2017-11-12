@@ -261,7 +261,7 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep, bool withRF)
 
   // Evaluate solution norms
   model.setQuadratureRule(opt.nGauss[1]);
-  if (!model.solutionNorms(solution,projs,eNorm,gNorm))
+  if (!model.solutionNorms(solution.front(),projs,eNorm,gNorm))
     return false;
 
   return model.dumpResults(solution.front(),0.0,

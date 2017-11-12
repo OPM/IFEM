@@ -1259,7 +1259,7 @@ ForceBase* SIMbase::getNodalForceIntegrand () const
 
 bool SIMbase::solutionNorms (const TimeDomain& time,
 			     const Vectors& psol, const Vectors& ssol,
-			     Vectors& gNorm, Matrix* eNorm)
+			     Vectors& gNorm, Matrix* eNorm, const char* name)
 {
   PROFILE1("Norm integration");
 
@@ -1273,6 +1273,9 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
 #endif
     return true; // Silently ignore when no norm integrand is provided
   }
+
+  if (msgLevel > 1 && name)
+    IFEM::cout <<"\nIntegrating solution norms ("<< name <<") ..."<< std::endl;
 
   myProblem->initIntegration(time,psol.front());
   norm->initProjection(ssol.size());

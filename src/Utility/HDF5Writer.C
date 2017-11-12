@@ -394,7 +394,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
   Matrix eNorm;
   Vectors gNorm;
   if (abs(entry.second.results) & DataExporter::NORMS)
-    sim->solutionNorms(Vectors(1,*sol),eNorm,gNorm);
+    sim->solutionNorms(*sol,eNorm,gNorm);
 
   NormBase* norm = sim->getNormIntegrand();
 
