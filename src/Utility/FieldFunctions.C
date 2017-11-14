@@ -29,9 +29,8 @@
 FieldFunction::FieldFunction (const std::string& fileName,
                               const std::string& basisName,
                               const std::string& fieldName,
-                              size_t npatches, int level)
+                              size_t npatches, int level) : pidx(0)
 {
-  pidx = 0;
 #ifdef HAS_HDF5
   ProcessAdm adm;
   HDF5Writer hdf5(fileName,adm,true,true);
@@ -91,20 +90,20 @@ Real FieldFunction::evaluate (const Vec3& X) const
     return Real(0);
 
   const Vec4* x4 = dynamic_cast<const Vec4*>(&X);
-  if (x4)
-    return x4->idx > 0 ? field[pidx]->valueNode(x4->idx)
-                       : field[pidx]->valueCoor(*x4);
-
-  return field[pidx]->valueCoor(X);
+  if (!x4)
+    return field[pidx]->valueCoor(X);
+  else if (x4->idx > 0)
+    return field[pidx]->valueNode(x4->idx);
+  else
+    return field[pidx]->valueCoor(*x4);
 }
 
 
-VecFieldFuncBase::VecFieldFuncBase (const std::string& fileName,
-                                    const std::string& basisName,
-                                    const std::string& fieldName,
-                                    size_t npatches, int level)
+FieldsFuncBase::FieldsFuncBase (const std::string& fileName,
+                                const std::string& basisName,
+                                const std::string& fieldName,
+                                size_t npatches, int level) : pidx(0)
 {
-  pidx = 0;
 #ifdef HAS_HDF5
   HDF5Writer hdf5(fileName,ProcessAdm(),true,true);
 
@@ -149,7 +148,7 @@ VecFieldFuncBase::VecFieldFuncBase (const std::string& fileName,
       patch.push_back(pch);
     }
     else {
-      std::cerr <<" *** VecFieldFunction: Unknown basis type, no function created."
+      std::cerr <<" *** FieldsFuncBase: Unknown basis type, no function created."
                 << std::endl;
       return;
     }
@@ -161,12 +160,23 @@ VecFieldFuncBase::VecFieldFuncBase (const std::string& fileName,
 }
 
 
-VecFieldFuncBase::~VecFieldFuncBase ()
+FieldsFuncBase::~FieldsFuncBase ()
 {
   for (Fields* f : field)
     delete f;
   for (ASMbase* pch : patch)
     delete pch;
+}
+
+
+VecFieldFunction::VecFieldFunction (const std::string& fileName,
+                                    const std::string& basisName,
+                                    const std::string& fieldName,
+                                    size_t nPatches, int level)
+  : FieldsFuncBase(fileName,basisName,fieldName,nPatches,level)
+{
+  if (!field.empty())
+    ncmp = field.front()->getNoFields();
 }
 
 
@@ -182,9 +192,20 @@ Vec3 VecFieldFunction::evaluate (const Vec3& X) const
   else if (x4->idx > 0)
     field[pidx]->valueNode(x4->idx, vals);
   else
-    field[pidx]->valueCoor(*x4, vals);
+    field[pidx]->valueCoor(*x4,vals);
 
-  return Vec3(vals.ptr(), patch[pidx]->getNoSpaceDim());
+  return Vec3(vals.ptr(), ncmp);
+}
+
+
+TensorFieldFunction::TensorFieldFunction (const std::string& fileName,
+                                          const std::string& basisName,
+                                          const std::string& fieldName,
+                                          size_t nPatches, int level)
+  : FieldsFuncBase(fileName,basisName,fieldName,nPatches,level)
+{
+  if (!field.empty())
+    ncmp = field.front()->getNoFields();
 }
 
 
@@ -203,6 +224,17 @@ Tensor TensorFieldFunction::evaluate (const Vec3& X) const
     field[pidx]->valueCoor(*x4, vals);
 
   return vals;
+}
+
+
+STensorFieldFunction::STensorFieldFunction (const std::string& fileName,
+                                            const std::string& basisName,
+                                            const std::string& fieldName,
+                                            size_t nPatches, int level)
+  : FieldsFuncBase(fileName,basisName,fieldName,nPatches,level)
+{
+  if (!field.empty())
+    ncmp = field.front()->getNoFields();
 }
 
 

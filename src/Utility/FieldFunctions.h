@@ -14,7 +14,6 @@
 #ifndef _FIELD_FUNCTIONS_H
 #define _FIELD_FUNCTIONS_H
 
-#include "Function.h"
 #include "TensorFunction.h"
 #include <string>
 
@@ -24,97 +23,88 @@ class ASMbase;
 
 
 /*!
-  \brief A scalar-valued spatial function, defined trough a scalar field.
+  \brief A scalar-valued spatial function, defined through scalar fields.
 */
 
 class FieldFunction : public RealFunc
 {
-  std::vector<Field*> field; //!< Pointer to the scalar field to be evaluated
-  std::vector<ASMbase*> patch; //!< Pointer to the patch on which the field is defined
-
 public:
-  //! \brief Default constructor.
-  explicit FieldFunction(Field* f = nullptr) : field{f}, pidx(0) {}
-  //! \brief Constructor creating a field from a provided HDF5 file.
+  //! \brief The constructor creates a field from the provided HDF5-file.
   //! \param[in] fileName Name of the HDF5-file
   //! \param[in] basisName Name of the basis which the field values refer to
   //! \param[in] fieldName Name of the field in the HDF5-file
-  //! \param[in] npatches Number of patches to read for
-  //! \param[in] level Level to read for
+  //! \param[in] nPatches Number of patches to read for
+  //! \param[in] level Time level to read for
   FieldFunction(const std::string& fileName,
                 const std::string& basisName,
                 const std::string& fieldName,
-                size_t npatches = 1, int level = 0);
-
+                size_t nPatches = 1, int level = 0);
   //! \brief The destructor deletes the scalar fields.
   virtual ~FieldFunction();
 
-  //! \brief Set currently active patch.
+  //! \brief Sets the active patch.
   virtual void initPatch(size_t pIdx) { if (pIdx < field.size()) pidx = pIdx; }
 
 protected:
   //! \brief Evaluates the scalar field function.
   virtual Real evaluate(const Vec3& X) const;
 
+private:
+  std::vector<Field*>   field; //!< The scalar field to be evaluated
+  std::vector<ASMbase*> patch; //!< The patches on which the field is defined
+
   size_t pidx; //!< Current patch index
 };
 
+
 /*!
-  \brief Base class for multi-value spatial function, defined trough a vector field.
+  \brief Base class for multi-valued spatial functions, defined through fields.
 */
 
-class VecFieldFuncBase
+class FieldsFuncBase
 {
 protected:
-  //! \brief Default constructor.
-  VecFieldFuncBase(Fields* f = nullptr) : field{f} {}
-
-  //! \brief Constructor creating a field from a provided HDF5 file.
-  //! \param[in] fileName Name of the HDF5-file
-  //! \param[in] basisName Name of the basis which the field values refer to
-  //! \param[in] fieldName Name of the field in the HDF5-file
-  //! \param[in] patch Number of patches to read for
-  //! \param[in] level Level to read for
-  VecFieldFuncBase(const std::string& fileName,
-                   const std::string& basisName,
-                   const std::string& fieldName,
-                   size_t npatches = 1, int level = 0);
-
-  //! \brief The destructor deletes the vector field.
-  virtual ~VecFieldFuncBase();
-
-  std::vector<Fields*> field; //!< Pointer to the vector field to be evaluated
-  std::vector<ASMbase*> patch; //!< Pointer to the patch on which the field is defined
-  size_t pidx; //!< Current patch index
-};
-
-
-/*!
-  \brief A vector-valued spatial function, defined trough a vector field.
-*/
-
-class VecFieldFunction : public VecFunc, public VecFieldFuncBase
-{
-public:
-  //! \brief Default constructor.
-  explicit VecFieldFunction(Fields* f = nullptr) : VecFieldFuncBase(f) {}
-
-  //! \brief Constructor creating a field from a provided HDF5 file.
+  //! \brief The constructor creates a field from the provided HDF5-file.
   //! \param[in] fileName Name of the HDF5-file
   //! \param[in] basisName Name of the basis which the field values refer to
   //! \param[in] fieldName Name of the field in the HDF5-file
   //! \param[in] nPatches Number of patches to read for
-  //! \param[in] level Level to read for
+  //! \param[in] level Time level to read for
+  FieldsFuncBase(const std::string& fileName,
+                 const std::string& basisName,
+                 const std::string& fieldName,
+                 size_t nPatches, int level);
+  //! \brief The destructor deletes the vector fields.
+  virtual ~FieldsFuncBase();
+
+  std::vector<Fields*>  field; //!< The vector field to be evaluated
+  std::vector<ASMbase*> patch; //!< The patches on which the field is defined
+
+  size_t pidx; //!< Current patch index
+};
+
+
+/*!
+  \brief A vector-valued spatial function, defined through a vector field.
+*/
+
+class VecFieldFunction : public VecFunc, private FieldsFuncBase
+{
+public:
+  //! \brief The constructor creates a field from the provided HDF5-file.
+  //! \param[in] fileName Name of the HDF5-file
+  //! \param[in] basisName Name of the basis which the field values refer to
+  //! \param[in] fieldName Name of the field in the HDF5-file
+  //! \param[in] nPatches Number of patches to read for
+  //! \param[in] level Time level to read for
   VecFieldFunction(const std::string& fileName,
                    const std::string& basisName,
                    const std::string& fieldName,
-                   size_t nPatches = 1, int level = 0) :
-    VecFieldFuncBase(fileName, basisName, fieldName, nPatches, level) {}
-
+                   size_t nPatches = 1, int level = 0);
   //! \brief Empty destructor.
   virtual ~VecFieldFunction() {}
 
-  //! \brief Set currently active patch.
+  //! \brief Sets the active patch.
   virtual void initPatch(size_t pIdx) { if (pIdx < field.size()) pidx = pIdx; }
 
 protected:
@@ -124,31 +114,26 @@ protected:
 
 
 /*!
-  \brief A tensor-valued spatial function, defined trough a vector field.
+  \brief A tensor-valued spatial function, defined through a vector field.
 */
 
-class TensorFieldFunction : public TensorFunc, public VecFieldFuncBase
+class TensorFieldFunction : public TensorFunc, private FieldsFuncBase
 {
 public:
-  //! \brief Default constructor.
-  explicit TensorFieldFunction(Fields* f = nullptr) : VecFieldFuncBase(f) {}
-
-  //! \brief Constructor creating a field from a provided HDF5 file.
+  //! \brief The constructor creates a field from the provided HDF5-file.
   //! \param[in] fileName Name of the HDF5-file
   //! \param[in] basisName Name of the basis which the field values refer to
   //! \param[in] fieldName Name of the field in the HDF5-file
   //! \param[in] nPatches Number of patches to read for
-  //! \param[in] level Level to read for
+  //! \param[in] level Time level to read for
   TensorFieldFunction(const std::string& fileName,
                       const std::string& basisName,
                       const std::string& fieldName,
-                      size_t nPatches = 1, int level = 0) :
-    VecFieldFuncBase(fileName, basisName, fieldName, nPatches, level) {}
-
+                      size_t nPatches = 1, int level = 0);
   //! \brief Empty destructor.
   virtual ~TensorFieldFunction() {}
 
-  //! \brief Set currently active patch.
+  //! \brief Sets the active patch.
   virtual void initPatch(size_t pIdx) { if (pIdx < field.size()) pidx = pIdx; }
 
 protected:
@@ -158,31 +143,26 @@ protected:
 
 
 /*!
-  \brief A symmtensor-valued spatial function, defined trough a vector field.
+  \brief A symmtensor-valued spatial function, defined through a vector field.
 */
 
-class STensorFieldFunction : public STensorFunc, public VecFieldFuncBase
+class STensorFieldFunction : public STensorFunc, private FieldsFuncBase
 {
 public:
-  //! \brief Default constructor.
-  explicit STensorFieldFunction(Fields* f = nullptr) : VecFieldFuncBase(f) {}
-
-  //! \brief Constructor creating a field from a provided HDF5 file.
+  //! \brief The constructor creates a field from the provided HDF5-file.
   //! \param[in] fileName Name of the HDF5-file
   //! \param[in] basisName Name of the basis which the field values refer to
   //! \param[in] fieldName Name of the field in the HDF5-file
   //! \param[in] nPatches Number of patches to read for
-  //! \param[in] level Level to read for
+  //! \param[in] level Time level to read for
   STensorFieldFunction(const std::string& fileName,
                        const std::string& basisName,
                        const std::string& fieldName,
-                       size_t nPatches = 1, int level = 0) :
-    VecFieldFuncBase(fileName, basisName, fieldName, nPatches, level) {}
-
+                       size_t nPatches = 1, int level = 0);
   //! \brief Empty destructor.
   virtual ~STensorFieldFunction() {}
 
-  //! \brief Set currently active patch.
+  //! \brief Sets the active patch.
   virtual void initPatch(size_t pIdx) { if (pIdx < field.size()) pidx = pIdx; }
 
 protected:
