@@ -2001,6 +2001,68 @@ bool ASMu2D::transferGaussPtVars (const LR::LRSplineSurface* oldBasis,
 }
 
 
+bool ASMu2D::transferGaussPtVarsN (const LR::LRSplineSurface* oldBasis,
+                                   const RealArray& oldVars, RealArray& newVars,
+                                   int nGauss) const
+{
+  const LR::LRSplineSurface* newBasis = this->getBasis();
+
+  size_t nGP = nGauss*nGauss;
+  newVars.clear();
+  newVars.reserve(nGP*newBasis->nElements());
+
+  struct Param{ double u,v; };
+  std::vector<Param> oGP(nGP);
+
+  const double* xi = GaussQuadrature::getCoord(nGauss);
+  for (int iEl = 0; iEl < newBasis->nElements(); iEl++)
+  {
+    const LR::Element* newEl = newBasis->getElement(iEl);
+    double u_center = 0.5*(newEl->umin() + newEl->umax());
+    double v_center = 0.5*(newEl->vmin() + newEl->vmax());
+    int iOld = oldBasis->getElementContaining(u_center,v_center);
+    if (iOld < 0)
+    {
+      std::cerr <<" *** ASMu2D: Failed to locate element "<< iEl
+                <<" of the old mesh in the new mesh."<< std::endl;
+      return false;
+    }
+    const LR::Element* oldEl = oldBasis->getElement(iOld);
+
+    // find parameters of old gauss points
+    double umin = oldEl->umin();
+    double vmin = oldEl->vmin();
+    double du = 0.5*(oldEl->umax() - umin);
+    double dv = 0.5*(oldEl->vmax() - vmin);
+    size_t k = 0;
+    for (int j = 0; j < nGauss; ++j)
+      for (int i = 0; i < nGauss; ++i, ++k) {
+        oGP[k].u = umin + du * (xi[i] + 1.0);
+        oGP[k].v = vmin + dv * (xi[j] + 1.0);
+      }
+
+    // parameters of new gauss points
+    umin = newEl->umin();
+    vmin = newEl->vmin();
+    du = 0.5*(newEl->umax() - umin);
+    dv = 0.5*(newEl->vmax() - vmin);
+    for (int j = 0; j < nGauss; ++j)
+      for (int i = 0; i < nGauss; ++i) {
+        double u = umin + du * (xi[i] + 1.0);
+        double v = vmin + dv * (xi[j] + 1.0);
+        double dist = 1.0e16;
+        size_t near = 0;
+        for (size_t k = 0; k < nGP; ++k)
+          if (hypot(oGP[k].u-u,oGP[k].v-v) < dist)
+            near = k;
+        newVars.push_back(oldVars[iOld*nGP+near]);
+      }
+  }
+
+  return true;
+}
+
+
 bool ASMu2D::transferCntrlPtVars (LR::LRSplineSurface* oldBasis,
                                   const RealArray& oldVars, RealArray& newVars,
                                   int nGauss) const
