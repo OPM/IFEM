@@ -587,10 +587,15 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
           field.fillColumn(j,pSol(Vec4(*cit,time)).ptr());
         if (mySol->getScalarSol())
         {
-          cit = grid->begin_XYZ();
-          const RealFunc& sSol = *mySol->getScalarSol();
-          for (j = 1; cit != grid->end_XYZ() && haveXsol; j++, ++cit)
-            field(field.rows(),j) = sSol(Vec4(*cit,time,grid->getParam(j-1)));
+          const RealFunc* psSol;
+          size_t r = pSol.dim() + 1;
+          for (size_t k = 0; (psSol = mySol->getScalarSol(k)); k++, r++)
+          {
+            cit = grid->begin_XYZ();
+            const RealFunc& sSol = *psSol;
+            for (j = 1; cit != grid->end_XYZ() && haveXsol; j++, ++cit)
+              field(r,j) = sSol(Vec4(*cit,time,grid->getParam(j-1)));
+          }
         }
       }
 
