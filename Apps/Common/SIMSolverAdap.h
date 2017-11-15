@@ -16,6 +16,39 @@
 
 #include "SIMSolver.h"
 #include "AdaptiveSIM.h"
+#include "TimeStep.h"
+
+
+/*!
+  \brief Adaptive simulator driver using the ISolver interface.
+*/
+
+template<class T1>
+class AdaptiveISolver : public AdaptiveSIM
+{
+public:
+  //! \brief The constructor initializes default adaptation parameters.
+  //! \param sim The FE model
+  //! \param sa If \e true, this is a stand-alone driver
+  AdaptiveISolver(T1& sim, bool sa = true) : AdaptiveSIM(sim, sa), model(sim) {}
+
+protected:
+  //! \brief Assemble and solve the equation system.
+  virtual bool assembleAndSolveSystem()
+  {
+    TimeStep dummy;
+    model.init(dummy);
+    bool result = model.solveStep(dummy);
+    if (result)
+      solution = model.getSolutions();
+
+    rCond = 1.0;
+
+    return result;
+  }
+
+  T1& model; //!< Reference to the actual sim
+};
 
 
 /*!
@@ -24,17 +57,18 @@
   ISolver interface. It provides an adaptive loop with data output.
 */
 
-template<class T1> class SIMSolverAdap : public SIMSolverStat<T1>
+template<class T1, class AdapSim>
+class SIMSolverAdapImpl : public SIMSolverStat<T1>
 {
 public:
   //! \brief The constructor forwards to the parent class constructor.
-  explicit SIMSolverAdap(T1& s1) : SIMSolverStat<T1>(s1), aSim(s1,false)
+  explicit SIMSolverAdapImpl(T1& s1) : SIMSolverStat<T1>(s1), aSim(s1,false)
   {
     this->S1.setSol(&aSim.getSolution());
   }
 
   //! \brief Empty destructor.
-  virtual ~SIMSolverAdap() {}
+  virtual ~SIMSolverAdapImpl() {}
 
   //! \brief Reads solver data from the specified input file.
   virtual bool read(const char* file) { return this->SIMadmin::read(file); }
@@ -68,7 +102,10 @@ protected:
     return aSim.parse(elem);
   }
 
-  AdaptiveSIM aSim; //!< Adaptive simulation driver
+  AdapSim aSim; //!< Adaptive simulation driver
 };
+
+template<class T1>
+using SIMSolverAdap = SIMSolverAdapImpl<T1, AdaptiveSIM>; //!< Convenience alias template
 
 #endif

@@ -76,6 +76,13 @@ public:
   //! \param[in] elem The XML element to parse
   virtual bool parse(const TiXmlElement* elem);
 
+protected:
+  Vectors solution; //!< All solutions (galerkin projections)
+  double rCond;     //!< Actual reciprocal condition number
+
+  //! \brief Assemble and solve the equation system.
+  virtual bool assembleAndSolveSystem();
+
 private:
   SIMoutput& model; //!< The isogeometric FE model
   bool       alone; //!< If \e false, this class is wrapped by SIMSolver
@@ -85,7 +92,6 @@ private:
   double beta;         //!< Refinement percentage in each step
   double errTol;       //!< Global error stop tolerance
   double condLimit;    //!< Upper limit on condition number
-  double rCond;        //!< Actual reciprocal condition number
   int    maxStep;      //!< Maximum number of adaptive refinements
   int    maxDOFs;      //!< Maximum number of degrees of freedom
   int    symmetry;     //!< Always refine a multiplum of this
@@ -103,7 +109,6 @@ private:
 
   size_t  adaptor;  //!< Norm group to base the mesh adaptation on
   size_t  adNorm;   //!< Which norm to base the mesh adaptation on
-  Vectors solution; //!< All solutions (galerkin projections)
   Vectors gNorm;    //!< Global norms
   Matrix  eNorm;    //!< Element norms
 
