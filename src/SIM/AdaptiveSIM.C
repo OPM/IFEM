@@ -222,6 +222,28 @@ bool AdaptiveSIM::initAdaptor (size_t normGroup)
 }
 
 
+bool AdaptiveSIM::assembleAndSolveSystem()
+{
+  // Assemble the linear FE equation system
+  if (!model.setMode(SIM::STATIC,true))
+    return false;
+  model.setQuadratureRule(opt.nGauss[0],true);
+  if (!model.assembleSystem())
+    return false;
+
+  // Solve the linear system of equations
+  int printSol = 1;
+  solution.resize(model.getNoRHS());
+  for (size_t i = 0; i < solution.size(); i++)
+    if (!model.solveSystem(solution[i],printSol,&rCond,"displacement",i==0,i))
+      return false;
+    else if (solution.size() > 2)
+      printSol = 0; // Print summary only for the first two solutions
+
+  return true;
+}
+
+
 bool AdaptiveSIM::solveStep (const char* inputfile, int iStep, bool withRF,
                              std::streamsize precision)
 {
@@ -242,21 +264,11 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep, bool withRF,
     // Output the initial grid to eps-file
     model.refine(LR::RefineData(),"mesh_001.eps");
 
-  // Assemble the linear FE equation system
-  model.setMode(SIM::STATIC,true);
+  // Assemble and solve the FE equation system
   model.initSystem(opt.solver,1,model.getNoRHS(),0,withRF);
-  model.setQuadratureRule(opt.nGauss[0],true);
-  if (!model.assembleSystem())
-    return false;
 
-  // Solve the linear system of equations
-  int printSol = 1;
-  solution.resize(model.getNoRHS());
-  for (size_t i = 0; i < solution.size(); i++)
-    if (!model.solveSystem(solution[i],printSol,&rCond,"displacement",i==0,i))
-      return false;
-    else if (solution.size() > 2)
-      printSol = 0; // Print summary only for the first two solutions
+  if (!this->assembleAndSolveSystem())
+    return false;
 
   eNorm.clear();
   gNorm.clear();
