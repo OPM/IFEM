@@ -52,6 +52,9 @@ public:
     return S1.advanceStep(tp) && S2.advanceStep(tp);
   }
 
+  //! \brief Enables/disables staggering iteration cycles.
+  virtual void enableStaggering(bool = true) {}
+
   //! \brief Computes the solution for the current time step.
   virtual bool solveStep(TimeStep& tp, bool firstS1 = true)
   {

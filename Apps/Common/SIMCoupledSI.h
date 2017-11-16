@@ -23,18 +23,24 @@
 */
 
 template<class T1, class T2>
-class SIMCoupledSI : public SIMCoupled<T1, T2>
+class SIMCoupledSI : public SIMCoupled<T1,T2>
 {
 public:
   //! \brief The constructor forwards to the parent class constructor.
-  SIMCoupledSI(T1& s1, T2& s2) : SIMCoupled<T1,T2>(s1,s2), maxIter(0) {}
+  SIMCoupledSI(T1& s1, T2& s2) : SIMCoupled<T1,T2>(s1,s2), maxIter(-1) {}
   //! \brief Empty destructor.
   virtual ~SIMCoupledSI() {}
+
+  //! \brief Enable/disable the staggering iteration cycles.
+  virtual void enableStaggering(bool enable = true)
+  {
+    maxIter = enable ? std::min(this->S1.getMaxit(),this->S2.getMaxit()) : 0;
+  }
 
   //! \brief Computes the solution for the current time step.
   virtual bool solveStep(TimeStep& tp, bool firstS1 = true)
   {
-    if (maxIter <= 0)
+    if (maxIter < 0)
       maxIter = std::min(this->S1.getMaxit(),this->S2.getMaxit());
 
     this->S1.getProcessAdm().cout <<"\n  step="<< tp.step
@@ -56,9 +62,9 @@ public:
         return false;
     }
 
-    tp.time.first = false;
     this->S1.postSolve(tp);
     this->S2.postSolve(tp);
+    tp.time.first = false;
 
     return true;
   }

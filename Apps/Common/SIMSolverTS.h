@@ -64,8 +64,9 @@ public:
       int tranStep = this->tp.step; // Time step of next solution transer
       int lastRef = 0, refElms = 0;
 
-      // Prediction cycle loop
-      for (int iPred = 0; iPred < maxPred; iPred++)
+      // Prediction cycle loop, disable staggering cycles
+      if (maxPred < 0) this->S1.enableStaggering(false);
+      for (int iPred = 0; iPred < abs(maxPred); iPred++)
       {
         if (iPred > 0)
         {
@@ -100,7 +101,7 @@ public:
       if (refElms == 0)
         IFEM::cout <<"  No refinement, resume from current state"<< std::endl;
 
-      if (lastRef == 0)
+      if (lastRef == 0 && maxPred > 0)
       {
         // The mesh is sufficiently refined at this state.
         // Save the current results to VTF and HDF5, and continue.
@@ -118,6 +119,7 @@ public:
 
         // Solve for each time step up to final time,
         // but only up to nForward steps on this mesh
+        this->S1.enableStaggering(true);
         for (size_t j = 0; j < nForward; j++)
           if (!this->advanceStep())
             return 0; // Final time reached, we're done
