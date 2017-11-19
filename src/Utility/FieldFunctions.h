@@ -20,13 +20,65 @@
 class Field;
 class Fields;
 class ASMbase;
+class HDF5Writer;
+class ProcessAdm;
+
+
+/*!
+  \brief Base class for spatial functions, defined through patch-wise fields.
+*/
+
+class FieldFuncBase
+{
+protected:
+  typedef std::vector<Real>      RealArray;  //!< Convenience type
+  typedef std::vector<RealArray> RealArrays; //!< Convenience type
+
+  //! \brief The constructor opens the provided HDF5-file.
+  //! \param[in] fileName Name of the HDF5-file
+  FieldFuncBase(const std::string& fileName);
+  //! \brief The destructor deletes the patches and close the HDF5-file.
+  virtual ~FieldFuncBase();
+
+  //! \brief Loads field values for the specified time level.
+  //! \param[in] fieldNames Name of the field components in the HDF5-file
+  //! \param[in] basisName Name of the basis which the field values refer to
+  //! \param[in] level Time level to read for
+  //! \param[in] nPatches Number of patches to read for
+  //! \param[in] isScalar If \e true, assume this is a scalar field
+  bool load(const std::vector<std::string>& fieldNames,
+            const std::string& basisName, int level,
+            size_t nPatches = 0, bool isScalar = false);
+
+  //! \brief Finds the level whose time is closest to the specified time.
+  int findClosestLevel(double time) const;
+
+  //! \brief Adds a patch-wise field with the given coefficient values.
+  //! \param[in] pch The patch to define the field over
+  //! \param[in] coefs Field values
+  virtual void addPatchField(ASMbase* pch, const RealArrays& coefs) = 0;
+  //! \brief Clears the field container.
+  virtual void clearField() = 0;
+
+private:
+  HDF5Writer* hdf5; //!< The HDF5-file containing the field data
+  ProcessAdm* pAdm; //!< Process administrator for the HDF5-file reader
+
+  mutable int    lastLevel; //!< The last time level read from
+  mutable double lastTime;  //!< The time of \a lastLevel
+
+  std::vector<ASMbase*> patch; //!< The patches on which the field is defined
+
+protected:
+  size_t pidx; //!< Current patch index
+};
 
 
 /*!
   \brief A scalar-valued spatial function, defined through scalar fields.
 */
 
-class FieldFunction : public RealFunc
+class FieldFunction : public RealFunc, private FieldFuncBase
 {
 public:
   //! \brief The constructor creates a field from the provided HDF5-file.
@@ -40,7 +92,7 @@ public:
                 const std::string& fieldName,
                 size_t nPatches = 1, int level = 0);
   //! \brief The destructor deletes the scalar fields.
-  virtual ~FieldFunction();
+  virtual ~FieldFunction() { this->clearField(); }
 
   //! \brief Sets the active patch.
   virtual void initPatch(size_t pIdx) { if (pIdx < field.size()) pidx = pIdx; }
@@ -49,11 +101,20 @@ protected:
   //! \brief Evaluates the scalar field function.
   virtual Real evaluate(const Vec3& X) const;
 
-private:
-  std::vector<Field*>   field; //!< The scalar field to be evaluated
-  std::vector<ASMbase*> patch; //!< The patches on which the field is defined
+  //! \brief Adds a patch-wise field with the given coefficient values.
+  //! \param[in] pch The patch to define the field over
+  //! \param[in] coefs Field values
+  virtual void addPatchField(ASMbase* pch, const RealArrays& coefs);
+  //! \brief Clears the field container.
+  virtual void clearField();
 
-  size_t pidx; //!< Current patch index
+private:
+  mutable int currentLevel; //!< Current time level to evaluate at
+
+  std::string fName; //!< Name of field
+  std::string bName; //!< Name of basis
+
+  std::vector<Field*> field; //!< The scalar field to be evaluated
 };
 
 
@@ -61,7 +122,7 @@ private:
   \brief Base class for multi-valued spatial functions, defined through fields.
 */
 
-class FieldsFuncBase
+class FieldsFuncBase : public FieldFuncBase
 {
 protected:
   //! \brief The constructor creates a field from the provided HDF5-file.
@@ -75,12 +136,26 @@ protected:
                  const std::string& fieldName,
                  size_t nPatches, int level);
   //! \brief The destructor deletes the vector fields.
-  virtual ~FieldsFuncBase();
+  virtual ~FieldsFuncBase() { this->clearField(); }
 
-  std::vector<Fields*>  field; //!< The vector field to be evaluated
-  std::vector<ASMbase*> patch; //!< The patches on which the field is defined
+  //! \brief Adds a patch-wise field with the given coefficient values.
+  //! \param[in] pch The patch to define the field over
+  //! \param[in] coefs Field values
+  virtual void addPatchField(ASMbase* pch, const RealArrays& coefs);
+  //! \brief Clears the field container.
+  virtual void clearField();
 
-  size_t pidx; //!< Current patch index
+  //! \brief Evaluates the field at the givent point \b X.
+  RealArray getValues(const Vec3& X);
+
+private:
+  mutable int currentLevel; //!< Current time level to evaluate at
+
+protected:
+  std::vector<std::string> fName; //!< Name of field components
+  std::string              bName; //!< Name of basis
+
+  std::vector<Fields*> field; //!< The vector field to be evaluated
 };
 
 

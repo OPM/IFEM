@@ -17,57 +17,23 @@
 #include "ASM3D.h"
 #include "Field.h"
 #include "Fields.h"
-#include "ProcessAdm.h"
 #include "Vec3.h"
 #include "StringUtils.h"
 #ifdef HAS_HDF5
 #include "HDF5Writer.h"
-#endif
+#include "ProcessAdm.h"
 #include <sstream>
+#endif
 
 
-FieldFunction::FieldFunction (const std::string& fileName,
-                              const std::string& basisName,
-                              const std::string& fieldName,
-                              size_t npatches, int level) : pidx(0)
+FieldFuncBase::FieldFuncBase (const std::string& fName) : hdf5(nullptr), pidx(0)
 {
+  lastLevel = 0;
+  lastTime = 0.0;
 #ifdef HAS_HDF5
-  ProcessAdm adm;
-  HDF5Writer hdf5(fileName,adm,true,true);
-
-  for (size_t p = 0; p < npatches; ++p) {
-    std::string g2;
-    std::stringstream str;
-    std::stringstream str2;
-    str2 << level << "/basis/" << basisName << "/" << p+1;
-    hdf5.readString(str2.str(),g2);
-    str << g2;
-    std::string head = g2.substr(0,9);
-    std::string head2 = g2.substr(0,12);
-    ASMbase* pch = nullptr;
-    if (head == "200 1 0 0")
-      pch = ASM2D::create(ASM::Spline);
-    else if (head == "700 1 0 0")
-      pch = ASM3D::create(ASM::Spline);
-    else if (head2 == "# LRSPLINE S")
-      pch = ASM2D::create(ASM::LRSpline);
-    else if (head2 == "# LRSPLINE V")
-      pch = ASM3D::create(ASM::LRSpline);
-
-    if (pch)
-    {
-      pch->read(str);
-      Vector coefs;
-      hdf5.readVector(level,fieldName,p+1,coefs);
-      field.push_back(Field::create(pch,coefs));
-      patch.push_back(pch);
-    }
-    else {
-      std::cerr <<" *** FieldFunction: Unknown basis type, no function created."
-                << std::endl;
-      return;
-    }
-  }
+  pAdm = new ProcessAdm();
+  hdf5 = new HDF5Writer(fName,*pAdm,true,true);
+  hdf5->readDouble(lastLevel,"timeinfo","SIMbase-1",lastTime);
 #else
   std::cerr <<"WARNING: Compiled without HDF5 support,"
             <<" field function is not instantiated."<< std::endl;
@@ -75,12 +41,143 @@ FieldFunction::FieldFunction (const std::string& fileName,
 }
 
 
-FieldFunction::~FieldFunction ()
+FieldFuncBase::~FieldFuncBase ()
 {
-  for (Field* f : field)
-    delete f;
-  for (ASMbase* pch : patch)
-    delete pch;
+  for (ASMbase* pch : patch) delete pch;
+#ifdef HAS_HDF5
+  delete hdf5;
+  delete pAdm;
+#endif
+}
+
+
+int FieldFuncBase::findClosestLevel (double time) const
+{
+  if (time == lastTime) return lastLevel;
+#ifdef HAS_HDF5
+  double t;
+  int incLev = time > lastTime ? 1 : -1;
+  while (hdf5->readDouble(lastLevel+incLev,"timeinfo","SIMbase-1",t))
+  {
+    if (fabs(time-t) >= fabs(time-lastTime))
+    {
+#ifdef SP_DEBUG
+      std::cout <<"FieldFuncBase: New time level "<< lastLevel
+                <<" at t="<< lastTime <<" (dt="<< time-lastTime
+                <<")"<< std::endl;
+#endif
+      return lastLevel; // lastLevel is the closest to time
+    }
+    lastTime = t;
+    lastLevel += incLev;
+  }
+#endif
+  return -1;
+}
+
+
+bool FieldFuncBase::load (const std::vector<std::string>& fieldNames,
+                          const std::string& basisName, int level,
+                          size_t nPatches, bool isScalar)
+{
+  size_t nOK = 0;
+  if (nPatches == 0)
+    nPatches = patch.size();
+  else if (patch.empty())
+    patch.resize(nPatches,nullptr);
+  this->clearField();
+
+#ifdef HAS_HDF5
+  size_t nFldCmp = fieldNames.size();
+  size_t nFldC2D = isScalar ? 1 : (nFldCmp < 2 ? 2 : nFldCmp);
+  size_t nFldC3D = isScalar ? 1 : (nFldCmp < 3 ? 3 : nFldCmp);
+  for (size_t ip = 0; ip < nPatches; ip++)
+  {
+    if (hdf5->hasGeometries(level,basisName))
+    {
+      if (patch[ip])
+      {
+        // We have an updated basis at this level, replace current one
+        if (patch[ip]->getNoParamDim() == 2) nFldC2D = patch[ip]->getNoFields();
+        if (patch[ip]->getNoParamDim() == 3) nFldC3D = patch[ip]->getNoFields();
+        delete patch[ip];
+      }
+      std::string g2;
+      std::stringstream sbasis;
+      sbasis << level <<"/basis/"<< basisName <<"/"<< ip+1;
+      hdf5->readString(sbasis.str(),g2);
+      if (g2.find("200 1 0 0") == 0)
+        patch[ip] = ASM2D::create(ASM::Spline,nFldC2D);
+      else if (g2.find("700 1 0 0") == 0)
+        patch[ip] = ASM3D::create(ASM::Spline,nFldC3D);
+      else if (g2.find("# LRSPLINE SURFACE") == 0)
+        patch[ip] = ASM2D::create(ASM::LRSpline,nFldC2D);
+      else if (g2.find("# LRSPLINE VOLUME") == 0)
+        patch[ip] = ASM3D::create(ASM::LRSpline,nFldC3D);
+      else
+        patch[ip] = nullptr;
+
+      if (patch[ip])
+      {
+        std::stringstream strg2(g2);
+        patch[ip]->read(strg2);
+      }
+      else
+        std::cerr <<" *** FieldFuncBase::load: Undefined basis "<< sbasis.str()
+                  <<" ("<< g2.substr(0,9) <<")"<< std::endl;
+    }
+
+    if (patch[ip])
+    {
+      RealArrays coefs(nFldCmp);
+      for (size_t i = 0; i < nFldCmp; i++)
+      {
+        hdf5->readVector(level,fieldNames[i],ip+1,coefs[i]);
+#if SP_DEBUG > 1
+        std::cout <<"FieldFuncBase::load: Reading \""<< fieldNames[i]
+                  <<"\" ("<< coefs[i].size() <<") for patch "<< ip+1;
+        for (size_t j = 0; j < coefs[i].size(); j++)
+          std::cout << (j%10 ? ' ' : '\n') << coefs[i][j];
+        std::cout << std::endl;
+#endif
+      }
+      this->addPatchField(patch[ip],coefs);
+      nOK++;
+    }
+    else
+      std::cerr <<" *** FieldFuncBase::load: No field function created"
+                <<" for patch "<< ip+1 << std::endl;
+  }
+#endif
+
+  return nOK == nPatches;
+}
+
+
+FieldFunction::FieldFunction (const std::string& fileName,
+                              const std::string& basisName,
+                              const std::string& fieldName,
+                              size_t nPatches, int level)
+  : FieldFuncBase(fileName), currentLevel(level)
+{
+  fName = fieldName;
+  bName = basisName;
+
+  if (level >= 0)
+    this->load({fieldName},basisName,level,nPatches,true);
+}
+
+
+void FieldFunction::clearField ()
+{
+  for (Field* f : field) delete f;
+  field.clear();
+}
+
+
+void FieldFunction::addPatchField (ASMbase* pch, const RealArrays& coefs)
+{
+  field.push_back(Field::create(pch,coefs.front()));
 }
 
 
@@ -92,7 +189,14 @@ Real FieldFunction::evaluate (const Vec3& X) const
   const Vec4* x4 = dynamic_cast<const Vec4*>(&X);
   if (!x4)
     return field[pidx]->valueCoor(X);
-  else if (x4->idx > 0)
+
+  int level = this->findClosestLevel(x4->t);
+  if (level < 0) return Real(0);
+  if (level != currentLevel)
+    if (const_cast<FieldFunction*>(this)->load({fName},bName,level))
+      currentLevel = level;
+
+  if (x4->idx > 0)
     return field[pidx]->valueNode(x4->idx);
   else
     return field[pidx]->valueCoor(*x4);
@@ -102,70 +206,61 @@ Real FieldFunction::evaluate (const Vec3& X) const
 FieldsFuncBase::FieldsFuncBase (const std::string& fileName,
                                 const std::string& basisName,
                                 const std::string& fieldName,
-                                size_t npatches, int level) : pidx(0)
+                                size_t nPatches, int level)
+  : FieldFuncBase(fileName), currentLevel(level)
 {
-#ifdef HAS_HDF5
-  HDF5Writer hdf5(fileName,ProcessAdm(),true,true);
+  fName = splitString(fieldName,[](int c){ return c == '|' ? 1 : 0; });
+  bName = basisName;
 
-  std::vector<std::string> fieldNames = splitString(fieldName,
-                                                 [](int c) { return c == '|' ? 1 : 0; });
-
-  for (size_t p = 0; p < npatches; ++p) {
-    std::string g2;
-    std::stringstream str;
-    std::stringstream str2;
-    str2 << level << "/basis/" << basisName << "/" << p+1;
-    hdf5.readString(str2.str(),g2);
-    str << g2;
-    std::string head = g2.substr(0,9);
-    std::string head2 = g2.substr(0,12);
-    ASMbase* pch = nullptr;
-    if (head == "200 1 0 0")
-      pch = ASM2D::create(ASM::Spline, std::max(fieldNames.size(), 2LU));
-    else if (head == "700 1 0 0")
-      pch = ASM3D::create(ASM::Spline, std::max(fieldNames.size(), 3LU));
-    else if (head2 == "# LRSPLINE S")
-      pch = ASM2D::create(ASM::LRSpline, std::max(fieldNames.size(), 2LU));
-    else if (head2 == "# LRSPLINE V")
-      pch = ASM3D::create(ASM::LRSpline, std::max(fieldNames.size(), 3LU));
-
-    if (pch)
-    {
-      pch->read(str);
-      Vector coefs;
-      if (fieldNames.size() == 1)
-        hdf5.readVector(level,fieldName,p+1,coefs);
-      else {
-        Vectors coef(fieldNames.size());
-        for (size_t i = 0; i < fieldNames.size(); ++i)
-          hdf5.readVector(level,fieldNames[i],p+1,coef[i]);
-        coefs.reserve(coef.size()*coef.front().size());
-        for (size_t i = 0; i < coef.front().size(); ++i)
-          for (size_t j = 0; j < coef.size(); ++j)
-            coefs.push_back(coef[j][i]);
-      }
-      field.push_back(Fields::create(pch,coefs,1,pch->getNoFields(1)));
-      patch.push_back(pch);
-    }
-    else {
-      std::cerr <<" *** FieldsFuncBase: Unknown basis type, no function created."
-                << std::endl;
-      return;
-    }
-  }
-#else
-  std::cerr <<"WARNING: Compiled without HDF5 support,"
-            <<" vector field function is not instantiated."<< std::endl;
-#endif
+  if (level >= 0)
+    this->load(fName,basisName,level,nPatches);
 }
 
 
-FieldsFuncBase::~FieldsFuncBase ()
+void FieldsFuncBase::clearField ()
 {
-  for (Fields* f : field)
-    delete f;
-  for (ASMbase* pch : patch)
-    delete pch;
+  for (Fields* f : field) delete f;
+  field.clear();
+}
+
+
+void FieldsFuncBase::addPatchField (ASMbase* pch, const RealArrays& coefs)
+{
+  if (coefs.size() == 1)
+    field.push_back(Fields::create(pch,coefs.front(),1,pch->getNoFields(1)));
+  else if (coefs.size() > 1)
+  {
+    RealArray coef;
+    coef.reserve(coefs.size()*coefs.front().size());
+    for (size_t i = 0; i < coefs.front().size(); i++)
+      for (size_t j = 0; j < coefs.size(); j++)
+        coef.push_back(coefs[j][i]);
+    field.push_back(Fields::create(pch,coef,1,pch->getNoFields(1)));
+  }
+}
+
+
+RealArray FieldsFuncBase::getValues (const Vec3& X)
+{
+  Vector vals;
+  const Vec4* x4 = dynamic_cast<const Vec4*>(&X);
+  if (!x4)
+    field[pidx]->valueCoor(X,vals);
+  else
+  {
+    int level = this->findClosestLevel(x4->t);
+    if (level < 0) return vals;
+    if (level != currentLevel)
+      if (this->load(fName,bName,level))
+        currentLevel = level;
+
+    if (x4->idx > 0)
+      field[pidx]->valueNode(x4->idx,vals);
+    else
+      field[pidx]->valueCoor(*x4,vals);
+  }
+
+  return vals;
 }
 
 
@@ -185,16 +280,7 @@ Vec3 VecFieldFunction::evaluate (const Vec3& X) const
   if (pidx >= field.size() || !field[pidx])
     return Vec3();
 
-  Vector vals;
-  const Vec4* x4 = dynamic_cast<const Vec4*>(&X);
-  if (!x4)
-    field[pidx]->valueCoor(X, vals);
-  else if (x4->idx > 0)
-    field[pidx]->valueNode(x4->idx, vals);
-  else
-    field[pidx]->valueCoor(*x4,vals);
-
-  return Vec3(vals.ptr(), ncmp);
+  return Vec3(const_cast<VecFieldFunction*>(this)->getValues(X).data(),ncmp);
 }
 
 
@@ -214,16 +300,7 @@ Tensor TensorFieldFunction::evaluate (const Vec3& X) const
   if (pidx >= field.size() || !field[pidx])
     return Tensor(3);
 
-  Vector vals;
-  const Vec4* x4 = dynamic_cast<const Vec4*>(&X);
-  if (!x4)
-    field[pidx]->valueCoor(X, vals);
-  else if (x4->idx > 0)
-    field[pidx]->valueNode(x4->idx, vals);
-  else
-    field[pidx]->valueCoor(*x4, vals);
-
-  return vals;
+  return const_cast<TensorFieldFunction*>(this)->getValues(X);
 }
 
 
@@ -243,14 +320,5 @@ SymmTensor STensorFieldFunction::evaluate (const Vec3& X) const
   if (pidx >= field.size() || !field[pidx])
     return SymmTensor(3);
 
-  Vector vals;
-  const Vec4* x4 = dynamic_cast<const Vec4*>(&X);
-  if (!x4)
-    field[pidx]->valueCoor(X, vals);
-  else if (x4->idx > 0)
-    field[pidx]->valueNode(x4->idx, vals);
-  else
-    field[pidx]->valueCoor(*x4, vals);
-
-  return vals;
+  return const_cast<STensorFieldFunction*>(this)->getValues(X);
 }
