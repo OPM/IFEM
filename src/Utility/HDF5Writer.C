@@ -723,7 +723,13 @@ bool HDF5Writer::hasGeometries(int level, const std::string& basisName)
   str << '/' << level << "/basis";
   if (!basisName.empty())
     str << '/' << basisName;
-  return checkGroupExistence(m_file,str.str().c_str());
+
+  bool notOpen = m_file == 0;
+  if (notOpen) this->openFile(level);
+  bool result = this->checkGroupExistence(m_file,str.str().c_str());
+  if (notOpen) this->closeFile(level);
+
+  return result;
 }
 
 
