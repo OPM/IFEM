@@ -719,11 +719,20 @@ void HDF5Writer::writeNodalForces(int level, const DataEntry& entry)
 
 bool HDF5Writer::hasGeometries(int level, const std::string& basisName)
 {
+  bool closeFile=false;
+  if (!m_file) {
+    openFile(level);
+    closeFile = true;
+  }
   std::stringstream str;
   str << '/' << level << "/basis";
   if (!basisName.empty())
     str << '/' << basisName;
-  return checkGroupExistence(m_file,str.str().c_str());
+  bool result = checkGroupExistence(m_file,str.str().c_str());
+  if (closeFile)
+    closeFile(level);
+
+  return result;
 }
 
 
