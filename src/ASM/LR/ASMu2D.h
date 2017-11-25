@@ -147,6 +147,14 @@ public:
   //! \param[in] rv Number of times to raise the order in v-direction
   virtual bool raiseOrder(int ru, int rv);
 
+  //! \brief Defines the minimum element area for adaptive refinement.
+  //! \param[in] nrefinements Maximum number of adaptive refinement levels
+  virtual double getMinimumSize(int nrefinements) const;
+  //! \brief Checks if the specified element is larger than the minimum size.
+  //! \param[in] elmId Global/patch-local element index
+  //! \param[in] globalNum If \e true, \a elmId is global otherwise patch-local
+  virtual bool checkElementSize(int elmId, bool globalNum = true) const;
+
 
   // Various methods for preprocessing of boundary conditions and patch topology
   // ===========================================================================
@@ -514,13 +522,16 @@ protected:
   //! Inhomogeneous Dirichlet boundary condition data
   std::vector<DirichletEdge> dirich;
 
+  ThreadGroups threadGroups; //!< Element groups for multi-threaded assembly
+
   const Matrices& bezierExtract; //!< Bezier extraction matrices
   Matrices      myBezierExtract; //!< Bezier extraction matrices
 
+private:
   Go::BsplineBasis bezier_u; //!< Bezier basis in the u-direction
   Go::BsplineBasis bezier_v; //!< Bezier basis in the v-direction
 
-  ThreadGroups threadGroups; //!< Element groups for multi-threaded assembly
+  mutable double aMin; //!< Minimum element area for adaptive refinement
 };
 
 #endif

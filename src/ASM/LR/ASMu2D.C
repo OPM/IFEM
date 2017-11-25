@@ -41,6 +41,7 @@ ASMu2D::ASMu2D (unsigned char n_s, unsigned char n_f)
   : ASMunstruct(2,n_s,n_f), lrspline(nullptr), tensorspline(nullptr),
     bezierExtract(myBezierExtract)
 {
+  aMin = 0.0;
 }
 
 
@@ -48,6 +49,8 @@ ASMu2D::ASMu2D (const ASMu2D& patch, unsigned char n_f)
   : ASMunstruct(patch,n_f), lrspline(patch.lrspline), tensorspline(nullptr),
     bezierExtract(patch.myBezierExtract)
 {
+  aMin = 0.0;
+
   // Need to set nnod here,
   // as hasXNodes might be invoked before the FE data is generated
   if (nnod == 0 && lrspline)
@@ -309,6 +312,34 @@ bool ASMu2D::refine (const RealFunc& refC, double refTol)
   prm.options = { 10, 1, 2 };
   prm.elements = this->getFunctionsForElements(elements);
   return this->refine(prm,dummySol);
+}
+
+
+double ASMu2D::getMinimumSize (int nrefinements) const
+{
+  if (aMin > 0.0 || lrspline->nElements() <= 0)
+    return aMin;
+
+  double redMax = pow(2.0,nrefinements);
+  aMin = lrspline->getElement(0)->area()/(redMax*redMax);
+  return aMin;
+}
+
+
+bool ASMu2D::checkElementSize (int elmId, bool globalNum) const
+{
+  if (globalNum)
+  {
+    IntVec::const_iterator it = std::find(MLGE.begin(),MLGE.end(),1+elmId);
+    if (it == MLGE.end()) return false;
+
+    elmId = it - MLGE.begin();
+  }
+
+  if (elmId < lrspline->nElements())
+    return lrspline->getElement(elmId)->area() > aMin+1.0e-12;
+  else
+    return false;
 }
 
 

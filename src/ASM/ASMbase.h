@@ -158,6 +158,11 @@ public:
   //! It must be invoked only before the SIMbase::preprocess is invoked.
   void setNoFields(unsigned char n) { nf = n; }
 
+  //! \brief Defines the minimum element size for adaptive refinement.
+  virtual double getMinimumSize(int) const { return 0.0; }
+  //! \brief Checks if the specified element is larger than the minimum size.
+  virtual bool checkElementSize(int, bool = true) const { return false; }
+
 
   // Service methods for query of various model data
   // ===============================================
