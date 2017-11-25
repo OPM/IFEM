@@ -104,8 +104,8 @@ protected:
   ASMunstruct(const ASMunstruct& patch, unsigned char n_f = 0);
 
 public:
-  //! \brief The destructor frees the dynamically allocated spline object.
-  virtual ~ASMunstruct();
+  //! \brief Empty destructor.
+  virtual ~ASMunstruct() {}
 
   //! \brief Checks if the patch is empty.
   virtual bool empty() const { return geo == nullptr; }
@@ -130,7 +130,11 @@ public:
                                          double start = -1.0, double end = 1.0);
 
   //! \brief Returns a list of basis functions having support on given elements.
-  IntVec getFunctionsForElements(const IntVec& elements);
+  IntVec getFunctionsForElements(const IntVec& elements,
+                                 bool globalId = false) const;
+  //! \brief Returns a list of basis functions having support on given elements.
+  void getFunctionsForElements(IntSet& functions, const IntVec& elements,
+                               bool globalId = true) const;
 
   //! \brief Sort basis functions based on local knot vectors.
   static void Sort(int u, int v, int orient,
@@ -145,7 +149,7 @@ public:
   //! \brief Returns all functions whose support overlap with the input nodes.
   //! \param[in] nodes List of (0-based) patch local node IDs
   //! (typically requested by adaptive refinement)
-  //! \param[in] dir 3-bit binary mask for which parameter directions are allowed
+  //! \param[in] dir 3-bit binary mask on which parameter directions are allowed
   //! to grow; i.e. bin(011)=dec(3) allows u-direction and v-direction to grow,
   //! default is bin(111)=dec(7) all directions
   //! \return 0-based node IDs for functions with overlapping support with
@@ -162,9 +166,9 @@ public:
   }
 
   //! \brief Remaps element-wise errors from geometry mesh to refinement mesh.
-  //! \param     errors The remapped errors
-  //! \param[in] origErr The element wise errors on the geometry mesh
-  virtual void remapErrors(RealArray& errors, const RealArray& origErr) const = 0;
+  //! \param[out] errors The remapped errors
+  //! \param[in] orig The element-wise errors on the geometry mesh
+  virtual void remapErrors(RealArray& errors, const RealArray& orig) const = 0;
 
   //! \brief Match neighbours after refinement in multipatch models.
   //! \param neigh Neigbouring patch

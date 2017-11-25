@@ -144,6 +144,11 @@ protected:
                   int ndir, int code);
 
 public:
+  //! \brief Finds the set of basis functions with support on a set of elements.
+  //! \param[in] elements 0-based element indices
+  //! \return 0-based node indices with support on the given elements
+  std::vector<int> getFunctionsForElements(const std::vector<int>& elements);
+
   //! \brief Refines the mesh adaptively.
   //! \param[in] prm Input data used to control the refinement
   //! \param[in] fName Optional mesh output file (Encapsulated PostScript)

@@ -18,7 +18,6 @@
 #include "ThreadGroups.h"
 #include <fstream>
 #include <numeric>
-#include <set>
 
 #ifdef USE_OPENMP
 #include <omp.h>
@@ -73,7 +72,7 @@ void LR::getGaussPointParameters (const LR::LRSpline* lrspline, RealArray& uGP,
   if (iel < 1 || iel > lrspline->nElements())
   {
     std::cerr <<" *** getLRGaussPointParameters: Element index "<< iel
-             <<" out of range [1,"<< lrspline->nElements() <<"]."<< std::endl;
+              <<" out of range [1,"<< lrspline->nElements() <<"]."<< std::endl;
     return;
   }
 #endif
@@ -132,11 +131,6 @@ void LR::generateThreadGroups (ThreadGroups& threadGroups, const LR::LRSpline* l
 
     threadGroups[0] = answer;
   }
-}
-
-
-ASMunstruct::~ASMunstruct ()
-{
 }
 
 
@@ -293,15 +287,32 @@ Go::BsplineBasis ASMunstruct::getBezierBasis (int p, double start, double end)
 }
 
 
-IntVec ASMunstruct::getFunctionsForElements (const IntVec& elements)
+IntVec ASMunstruct::getFunctionsForElements (const IntVec& elements,
+                                             bool globalId) const
+{
+  IntSet functions; // to get unique function IDs
+  this->getFunctionsForElements(functions,elements,globalId);
+  return IntVec(functions.begin(), functions.end());
+}
+
+
+void ASMunstruct::getFunctionsForElements (IntSet& functions,
+                                           const IntVec& elements,
+                                           bool globalId) const
 {
   geo->generateIDs();
-  IntSet functions; // to get unique function IDs
-  for (const int iel : elements)
-    for (LR::Basisfunction* b : geo->getElement(iel)->support())
-      functions.insert(b->getId());
-
-  return IntVec(functions.begin(), functions.end());
+  for (int elmId : elements)
+  {
+    int iel = elmId;
+    if (globalId)
+    {
+      IntVec::const_iterator it = std::find(MLGE.begin(),MLGE.end(),1+elmId);
+      iel = it != MLGE.end() ? it - MLGE.begin() : -1;
+    }
+    if (iel >= 0 && iel < geo->nElements())
+      for (LR::Basisfunction* b : geo->getElement(iel)->support())
+        functions.insert(globalId ? this->getNodeID(b->getId()+1)-1:b->getId());
+  }
 }
 
 

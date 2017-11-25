@@ -1056,6 +1056,27 @@ bool SIMinput::setNeumann (const std::string& prop, const std::string& type,
 }
 
 
+IntVec SIMinput::getFunctionsForElements (const IntVec& elements)
+{
+  IntSet functions;
+#ifdef HAS_LRSPLINE
+  ASMunstruct* pch = nullptr;
+  for (size_t i = 0; i < myModel.size(); i++)
+    if ((pch = dynamic_cast<ASMunstruct*>(myModel[i])))
+      pch->getFunctionsForElements(functions,elements);
+#ifdef SP_DEBUG
+  size_t j = 0, k = 0;
+  std::cout <<"SIMinput::getFunctionsForElements: nel="<< elements.size();
+  for (int e : elements)  std::cout << ((++j)%10 == 1 ? '\n' : ' ') << e;
+  std::cout <<"\nSIMinput::getFunctionsForElements: nfn="<< functions.size();
+  for (int f : functions) std::cout << ((++k)%10 == 1 ? '\n' : ' ') << f;
+  std::cout << std::endl;
+#endif
+#endif
+  return IntVec(functions.begin(),functions.end());
+}
+
+
 bool SIMinput::refine (const LR::RefineData& prm, const char* fName)
 {
   Vectors svec;

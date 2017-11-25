@@ -46,10 +46,6 @@ ASMunstruct::ASMunstruct (const ASMunstruct& patch, unsigned char n_f)
 // Dummy implementations, referred only when compiled without LR-Spline library.
 // The real methods are found in the file LR/ASMLRSpline.C
 
-ASMunstruct::~ASMunstruct ()
-{
-}
-
 bool ASMunstruct::refine (const LR::RefineData&, Vectors&, const char*)
 {
   std::cerr <<" *** ASMunstruct::refine: Not available without LR-Spline"
