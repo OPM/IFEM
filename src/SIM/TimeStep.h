@@ -60,6 +60,8 @@ public:
   //! \brief Restarts current increment with a smaller step size on divergence.
   //! \return \e false Cannot do further cut-back, time step size too small
   bool cutback();
+  //! \brief Returns \e true if the end of the simulation has been reached.
+  bool finished() const { return this->hasReached(stopTime); }
 
   //! \brief Serialize internal state for restarting purposes.
   //! \param data Container for serialized data

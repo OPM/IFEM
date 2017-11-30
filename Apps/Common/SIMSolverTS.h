@@ -36,7 +36,8 @@ public:
     nForward = nPredict = maxPred = 1;
     maxRef = 2;
     minFrac = 0.1;
-    beta = -1.0;
+    aStart = beta = -1.0;
+    dumpGrid = 0;
   }
 
   //! \brief Empty destructor.
@@ -56,12 +57,18 @@ public:
 
     this->printHeading(heading);
 
+    // Pre-adaptive loop, solve for a certain time period on the initial mesh
+    while (this->tp.time.t < aStart && this->advanceStep())
+      if (!this->S1.solveStep(this->tp))
+        return 3;
+      else if (!this->saveState(geoBlk,nBlock))
+        return 2;
+
     // Adaptive loop
-    for (int iStep = 1; true; iStep++)
+    while (!this->tp.finished())
     {
-      if (iStep > 1)
-        this->S1.saveState(); // Save current solution state internally
-      int tranStep = this->tp.step; // Time step of next solution transer
+      this->S1.saveState(); // Save current solution state internally
+      int tranStep = this->tp.step; // Time step of next solution transfer
       int lastRef = 0, refElms = 0;
 
       // Prediction cycle loop, disable staggering cycles
@@ -77,12 +84,8 @@ public:
         }
 
         // Solve for (up to) nPredict steps without saving results on disk
-        for (size_t i = 0; i < nPredict; i++)
-          if (!this->advanceStep()) // Final time reached
-            // Save updated FE model if mesh has been refined
-            // Save current results to VTF and HDF5 and then exit
-            return this->saveState(geoBlk,nBlock,refElms > 0) ? 0 : 2;
-          else if (!this->S1.solveStep(this->tp))
+        for (size_t i = 0; i < nPredict && this->advanceStep(); i++)
+          if (!this->S1.solveStep(this->tp))
             return 3;
 
         // Adapt the mesh based on current solution, and
@@ -90,12 +93,13 @@ public:
         IFEM::cout <<"\n  >>> Paused for mesh refinement at time="
                    << this->tp.time.t << std::endl;
         lastRef = this->S1.adaptMesh(beta,minFrac,maxRef);
-        if (lastRef < 0)
+        if (lastRef == 0)
+          break; // No new mesh refinement, exit the prediction cycles
+
+        if (!this->dumpMesh(infile,false) || lastRef < 0)
           return 4; // Something went wrong, bailing
-        else if (lastRef > 0)
-          refElms += lastRef; // Total number of refined elements
-        else // No new mesh refinement, exit the prediction cycles
-          break;
+
+        refElms += lastRef; // Total number of refined elements
       }
 
       if (refElms == 0)
@@ -120,15 +124,15 @@ public:
         // Solve for each time step up to final time,
         // but only up to nForward steps on this mesh
         this->S1.enableStaggering(true);
-        for (size_t j = 0; j < nForward; j++)
-          if (!this->advanceStep())
-            return 0; // Final time reached, we're done
-          else if (!this->S1.solveStep(this->tp))
+        for (size_t j = 0; j < nForward && this->advanceStep(); j++)
+          if (!this->S1.solveStep(this->tp))
             return 3;
           else if (!this->saveState(geoBlk,nBlock,j < 1))
             return 2;
       }
     }
+
+    return this->dumpMesh(infile) ? 0 : 2;
   }
 
 protected:
@@ -138,6 +142,9 @@ protected:
   {
     if (strcasecmp(elem->Value(),"adaptive"))
       return this->SIMSolver<T1>::parse(elem);
+
+    utl::getAttribute(elem,"start",aStart);
+    utl::getAttribute(elem,"dump",dumpGrid);
 
     const char* value = nullptr;
     const TiXmlElement* child = elem->FirstChildElement();
@@ -162,8 +169,28 @@ protected:
                <<"\n\tRelative refinement threshold: "<< minFrac;
     if (beta > 0.0)
       IFEM::cout <<"\n\tPercentage of elements to refine: "<< beta;
+    if (aStart > 0.0)
+      IFEM::cout <<"\n\tMesh adaptation starting at time: "<< aStart;
+
     IFEM::cout << std::endl;
     return true;
+  }
+
+  //! \brief Dumps the refined LR-mesh to file.
+  bool dumpMesh(char* infile, bool done = true) const
+  {
+    if (dumpGrid < 1)
+      return true;
+    else if (dumpGrid == 1) // Dump the final grid only
+      return done ? this->S1.dumpMesh(strcat(strtok(infile,"."),".lr")) : true;
+    else if (done)
+      return true;
+
+    // Dump grid after each refinement step
+    char fileName[128];
+    static int gridNo = 1;
+    sprintf(fileName,"%s_m%d.lr",strtok(infile,"."),++gridNo);
+    return this->S1.dumpMesh(fileName);
   }
 
 private:
@@ -173,6 +200,8 @@ private:
   int    maxRef;   //!< Number of refinements to allow for a single element
   double minFrac;  //!< Element-level refinement threshold
   double beta;     //!< Percentage of elements to refine
+  double aStart;   //!< Time from where to check for mesh adaptation
+  char   dumpGrid; //!< Option for mesh output: 0=none, 1=last, 2=all
 };
 
 #endif
