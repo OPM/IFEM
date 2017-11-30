@@ -1207,7 +1207,7 @@ bool SIMinput::refine (const LR::RefineData& prm,
           for (int edgeNode : bndry1[edge1d])
             if (edgeNode-1 == j)
             {
-              IntVec secondary = lr->getOverlappingNodes(j, edge1d/2+1);
+              IntVec secondary = lr->getOverlappingNodes(j);
               refineIndices[i].insert(secondary.begin(),secondary.end());
               done_with_this_node = true;
               break;
