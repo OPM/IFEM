@@ -424,35 +424,29 @@ public:
                          double time) const;
 
   //! \brief Transfers Gauss point variables from old basis to this patch.
-  //! \param[in] oldBasis The LR-spline basis to transfer from
+  //! \param[in] old_basis The LR-spline basis to transfer from
   //! \param[in] oldVars Gauss point variables associated with \a oldBasis
   //! \param[out] newVars Gauss point variables associated with this patch.
   //! \param[in] nGauss Number of Gauss points along a knot-span
-  bool transferGaussPtVars(const LR::LRSplineSurface* oldBasis,
-                           const RealArray& oldVars, RealArray& newVars,
-                           int nGauss) const;
+  virtual bool transferGaussPtVars(const LR::LRSpline* old_basis,
+                                   const RealArray& oldVars, RealArray& newVars,
+                                   int nGauss) const;
   //! \brief Transfers Gauss point variables from old basis to this patch.
-  //! \param[in] oldBasis The LR-spline basis to transfer from
+  //! \param[in] old_basis The LR-spline basis to transfer from
   //! \param[in] oldVars Gauss point variables associated with \a oldBasis
   //! \param[out] newVars Gauss point variables associated with this patch.
   //! \param[in] nGauss Number of Gauss points along a knot-span
-  bool transferGaussPtVarsN(const LR::LRSplineSurface* oldBasis,
-                            const RealArray& oldVars, RealArray& newVars,
-                            int nGauss) const;
+  virtual bool transferGaussPtVarsN(const LR::LRSpline* old_basis,
+                                    const RealArray& oldVars, RealArray& newVars,
+                                    int nGauss) const;
+
+  using ASMunstruct::transferCntrlPtVars;
   //! \brief Transfers control point variables from old basis to this patch.
-  //! \param[in] oldBasis The LR-spline basis to transfer from
-  //! \param[in] oldVars Control point variables associated with \a oldBasis
+  //! \param[in] old_basis The LR-spline basis to transfer from
   //! \param[out] newVars Gauss point variables associated with this patch.
   //! \param[in] nGauss Number of Gauss points along a knot-span
-  bool transferCntrlPtVars(LR::LRSplineSurface* oldBasis,
-                           const RealArray& oldVars, RealArray& newVars,
-                           int nGauss) const;
-  //! \brief Transfers control point variables from old basis to this patch.
-  //! \param[in] oldBasis The LR-spline basis to transfer from
-  //! \param[out] newVars Gauss point variables associated with this patch.
-  //! \param[in] nGauss Number of Gauss points along a knot-span
-  bool transferCntrlPtVars(const LR::LRSplineSurface* oldBasis,
-                           RealArray& newVars, int nGauss) const;
+  virtual bool transferCntrlPtVars(const LR::LRSpline* old_basis,
+                                   RealArray& newVars, int nGauss) const;
 
 protected:
 

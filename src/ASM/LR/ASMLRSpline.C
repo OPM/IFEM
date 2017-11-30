@@ -384,3 +384,13 @@ void ASMunstruct::Sort(int u, int v, int orient,
               return false;
             });
 }
+
+
+bool ASMunstruct::transferCntrlPtVars (LR::LRSpline* oldBasis,
+                                       const RealArray& oldVars, RealArray& newVars,
+                                       int nGauss, int nf) const
+{
+  oldBasis->rebuildDimension(nf);
+  oldBasis->setControlPoints(const_cast<RealArray&>(oldVars));
+  return this->transferCntrlPtVars(oldBasis,newVars,nGauss);
+}
