@@ -172,6 +172,37 @@ public:
   virtual void remapErrors(RealArray& errors, const RealArray& orig,
                            bool elemErrors = false) const = 0;
 
+  //! \brief Transfers Gauss point variables from old basis to this patch.
+  //! \param[in] oldBasis The LR-spline basis to transfer from
+  //! \param[in] oldVars Gauss point variables associated with \a oldBasis
+  //! \param[out] newVars Gauss point variables associated with this patch.
+  //! \param[in] nGauss Number of Gauss points along a knot-span
+  virtual bool transferGaussPtVars(const LR::LRSpline* oldBasis,
+                                   const RealArray& oldVars, RealArray& newVars,
+                                   int nGauss) const = 0;
+  //! \brief Transfers Gauss point variables from old basis to this patch.
+  //! \param[in] oldBasis The LR-spline basis to transfer from
+  //! \param[in] oldVars Gauss point variables associated with \a oldBasis
+  //! \param[out] newVars Gauss point variables associated with this patch.
+  //! \param[in] nGauss Number of Gauss points along a knot-span
+  virtual bool transferGaussPtVarsN(const LR::LRSpline* oldBasis,
+                                    const RealArray& oldVars, RealArray& newVars,
+                                    int nGauss) const = 0;
+  //! \brief Transfers control point variables from old basis to this patch.
+  //! \param[in] oldBasis The LR-spline basis to transfer from
+  //! \param[out] newVars Gauss point variables associated with this patch.
+  //! \param[in] nGauss Number of Gauss points along a knot-span
+  virtual bool transferCntrlPtVars(const LR::LRSpline* oldBasis,
+                                   RealArray& newVars, int nGauss) const = 0;
+  //! \brief Transfers control point variables from old basis to this patch.
+  //! \param[in] oldBasis The LR-spline basis to transfer from
+  //! \param[in] oldVars Control point variables associated with \a oldBasis
+  //! \param[out] newVars Gauss point variables associated with this patch.
+  //! \param[in] nGauss Number of Gauss points along a knot-span
+  bool transferCntrlPtVars(LR::LRSpline* oldBasis,
+                           const RealArray& oldVars, RealArray& newVars,
+                           int nGauss, int nf = 1) const;
+
 protected:
   LR::LRSpline* geo; //!< Pointer to the actual spline geometry object
 

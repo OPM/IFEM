@@ -339,6 +339,30 @@ public:
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
                             const int* npe, char project = '\0') const;
 
+  //! \brief Transfers Gauss point variables from old basis to this patch.
+  //! \param[in] old_basis The LR-spline basis to transfer from
+  //! \param[in] oldVars Gauss point variables associated with \a oldBasis
+  //! \param[out] newVars Gauss point variables associated with this patch.
+  //! \param[in] nGauss Number of Gauss points along a knot-span
+  virtual bool transferGaussPtVars(const LR::LRSpline* old_basis,
+                                   const RealArray& oldVars, RealArray& newVars,
+                                   int nGauss) const;
+  //! \brief Transfers Gauss point variables from old basis to this patch.
+  //! \param[in] old_basis The LR-spline basis to transfer from
+  //! \param[in] oldVars Gauss point variables associated with \a oldBasis
+  //! \param[out] newVars Gauss point variables associated with this patch.
+  //! \param[in] nGauss Number of Gauss points along a knot-span
+  virtual bool transferGaussPtVarsN(const LR::LRSpline* old_basis,
+                                    const RealArray& oldVars, RealArray& newVars,
+                                    int nGauss) const;
+  using ASMunstruct::transferCntrlPtVars;
+  //! \brief Transfers control point variables from old basis to this patch.
+  //! \param[in] old_basis The LR-spline basis to transfer from
+  //! \param[out] newVars Gauss point variables associated with this patch.
+  //! \param[in] nGauss Number of Gauss points along a knot-span
+  virtual bool transferCntrlPtVars(const LR::LRSpline* old_basis,
+                                   RealArray& newVars, int nGauss) const;
+
 private:
   //! \brief Struct representing an inhomogeneous Dirichlet boundary condition.
   struct DirichletFace

@@ -22,6 +22,7 @@
 #include "TimeDomain.h"
 #include "FiniteElement.h"
 #include "GlobalIntegral.h"
+#include "LagrangeInterpolator.h"
 #include "LocalIntegral.h"
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
@@ -2233,4 +2234,178 @@ bool ASMu3D::evaluate (const FunctionBase* func, RealArray& vec,
   bool ok = pch->L2projection(ctrlPvals,const_cast<FunctionBase*>(func),time);
   vec = ctrlPvals;
   return ok;
+}
+
+
+bool ASMu3D::transferGaussPtVars (const LR::LRSpline* old_basis,
+                                  const RealArray& oldVars, RealArray& newVars,
+                                  int nGauss) const
+{
+  const LR::LRSplineVolume* newBasis = this->getBasis();
+  const LR::LRSplineVolume* oldBasis = static_cast<const LR::LRSplineVolume*>(old_basis);
+
+  size_t nGp = nGauss*nGauss*nGauss;
+  newVars.resize(newBasis->nElements()*nGp);
+
+  const double* xi = GaussQuadrature::getCoord(nGauss);
+  LagrangeInterpolator interp(Vector(xi,nGauss));
+
+  for (int iEl = 0; iEl < newBasis->nElements(); iEl++)
+  {
+    const LR::Element* newEl = newBasis->getElement(iEl);
+    double u_center = 0.5*(newEl->umin() + newEl->umax());
+    double v_center = 0.5*(newEl->vmin() + newEl->vmax());
+    double w_center = 0.5*(newEl->wmin() + newEl->wmax());
+    int iOld = oldBasis->getElementContaining(u_center,v_center,w_center);
+    if (iOld < 0)
+    {
+      std::cerr <<" *** ASMu3D: Failed to locate element "<< iEl
+                <<" of the old mesh in the new mesh."<< std::endl;
+      return false;
+    }
+    const LR::Element* oldEl = oldBasis->getElement(iOld);
+
+    std::array<Matrix,3> I;
+    for (int i = 0; i < 3; i++)
+    {
+      RealArray UGP;
+      LR::getGaussPointParameters(newBasis, UGP, i, nGauss, iEl+1, xi);
+      double pmin = oldEl->getParmin(i);
+      double pmax = oldEl->getParmax(i);
+      for (size_t j = 0; j < UGP.size(); j++)
+        UGP[j] = -1.0 + 2.0*(UGP[j]-pmin)/(pmax-pmin);
+
+      // lagrangian interpolation
+      I[i] = interp.get(UGP);
+    }
+
+    Matrix data(nGauss,nGauss*nGauss);
+    data.fill(&oldVars[nGp*iOld],nGp);
+
+    Matrix I1 = I[0]*data;
+    for (int i = 0; i < nGauss; ++i)
+      for (int j = 0; j < nGauss; ++j)
+        for (int k = 0; k < nGauss; ++k)
+          data(j + 1, i + k*(nGauss) + 1) = I1(i+1, 1 + j + k*(nGauss));
+    I1 = I[1]*data;
+    for (int i = 0; i < nGauss; ++i)
+      for (int j = 0; j < nGauss; ++j)
+        for (int k = 0; k < nGauss; ++k)
+          data(k + 1, i + j*(nGauss) + 1) = I1(j+1, 1 + i + k*(nGauss));
+
+    I1 = I[2]*data;
+    for (int i = 0; i < nGauss; ++i)
+      for (int j = 0; j < nGauss; ++j)
+        for (int k = 0; k < nGauss; ++k)
+          newVars[iEl*nGp+i+(j + k*nGauss)*nGauss] = I1(k+1, 1+i + j*nGauss);
+  }
+
+  return true;
+}
+
+
+bool ASMu3D::transferGaussPtVarsN (const LR::LRSpline* old_basis,
+                                   const RealArray& oldVars, RealArray& newVars,
+                                   int nGauss) const
+{
+  const LR::LRSplineVolume* newBasis = this->getBasis();
+  const LR::LRSplineVolume* oldBasis = static_cast<const LR::LRSplineVolume*>(old_basis);
+
+  size_t nGP = nGauss*nGauss*nGauss;
+  newVars.clear();
+  newVars.reserve(nGP*newBasis->nElements());
+
+  struct Param{ double u,v,w; };
+  std::vector<Param> oGP(nGP);
+
+  const double* xi = GaussQuadrature::getCoord(nGauss);
+  for (int iEl = 0; iEl < newBasis->nElements(); iEl++)
+  {
+    const LR::Element* newEl = newBasis->getElement(iEl);
+    double u_center = 0.5*(newEl->umin() + newEl->umax());
+    double v_center = 0.5*(newEl->vmin() + newEl->vmax());
+    double w_center = 0.5*(newEl->wmin() + newEl->wmax());
+    int iOld = oldBasis->getElementContaining(u_center,v_center,w_center);
+    if (iOld < 0)
+    {
+      std::cerr <<" *** ASMu3D: Failed to locate element "<< iEl
+                <<" of the old mesh in the new mesh."<< std::endl;
+      return false;
+    }
+    const LR::Element* oldEl = oldBasis->getElement(iOld);
+
+    // find parameters of old gauss points
+    double umin = oldEl->umin();
+    double vmin = oldEl->vmin();
+    double wmin = oldEl->wmin();
+    double du = 0.5*(oldEl->umax() - umin);
+    double dv = 0.5*(oldEl->vmax() - vmin);
+    double dw = 0.5*(oldEl->wmax() - wmin);
+    size_t l = 0;
+    for (int k = 0; k < nGauss; ++k)
+      for (int j = 0; j < nGauss; ++j)
+        for (int i = 0; i < nGauss; ++i, ++l) {
+          oGP[l].u = umin + du * (xi[i] + 1.0);
+          oGP[l].v = vmin + dv * (xi[j] + 1.0);
+          oGP[l].w = wmin + dw * (xi[k] + 1.0);
+        }
+
+    // parameters of new gauss points
+    umin = newEl->umin();
+    vmin = newEl->vmin();
+    wmin = newEl->wmin();
+    du = 0.5*(newEl->umax() - umin);
+    dv = 0.5*(newEl->vmax() - vmin);
+    dw = 0.5*(newEl->wmax() - wmin);
+    for (int k = 0; k < nGauss; ++k)
+      for (int j = 0; j < nGauss; ++j)
+        for (int i = 0; i < nGauss; ++i) {
+          double u = umin + du * (xi[i] + 1.0);
+          double v = vmin + dv * (xi[j] + 1.0);
+          double w = wmin + dw * (xi[k] + 1.0);
+          double dist = 1.0e16;
+          size_t near = 0;
+          for (size_t l = 0; l < nGP; ++l) {
+            Vec3 d(oGP[l].u-u, oGP[l].v-v, oGP[l].w-w);
+            double nd = d.length();
+            if (nd < dist) {
+              near = l;
+              dist = nd;
+            }
+          }
+          newVars.push_back(oldVars[iOld*nGP+near]);
+      }
+  }
+
+  return true;
+}
+
+
+bool ASMu3D::transferCntrlPtVars (const LR::LRSpline* old_basis,
+                                  RealArray& newVars, int nGauss) const
+{
+  const LR::LRSplineVolume* newBasis = this->getBasis();
+  const LR::LRSplineVolume* oldBasis = static_cast<const LR::LRSplineVolume*>(old_basis);
+
+  newVars.clear();
+  newVars.reserve(newBasis->nElements()*nGauss*nGauss*nGauss*oldBasis->dimension());
+  const double* xi = GaussQuadrature::getCoord(nGauss);
+
+  for (int iEl = 0; iEl < newBasis->nElements(); iEl++)
+  {
+    RealArray U, V, W, ptVar;
+    LR::getGaussPointParameters(newBasis, U, 0, nGauss, iEl+1, xi);
+    LR::getGaussPointParameters(newBasis, V, 1, nGauss, iEl+1, xi);
+    LR::getGaussPointParameters(newBasis, W, 2, nGauss, iEl+1, xi);
+    for (int k = 0; k < nGauss; k++)
+      for (int j = 0; j < nGauss; j++)
+        for (int i = 0; i < nGauss; i++)
+        {
+          oldBasis->point(ptVar,U[i],V[j],W[k]);
+          for (size_t l = 0; l < ptVar.size(); l++)
+            newVars.push_back(ptVar[l]);
+        }
+  }
+
+  return true;
 }

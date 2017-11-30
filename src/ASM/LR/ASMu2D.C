@@ -1992,11 +1992,12 @@ size_t ASMu2D::getNoNodes (int) const
 }
 
 
-bool ASMu2D::transferGaussPtVars (const LR::LRSplineSurface* oldBasis,
+bool ASMu2D::transferGaussPtVars (const LR::LRSpline* old_basis,
                                   const RealArray& oldVars, RealArray& newVars,
                                   int nGauss) const
 {
   const LR::LRSplineSurface* newBasis = this->getBasis();
+  const LR::LRSplineSurface* oldBasis = static_cast<const LR::LRSplineSurface*>(old_basis);
 
   size_t nGp = nGauss*nGauss;
   newVars.resize(newBasis->nElements()*nGp);
@@ -2044,11 +2045,12 @@ bool ASMu2D::transferGaussPtVars (const LR::LRSplineSurface* oldBasis,
 }
 
 
-bool ASMu2D::transferGaussPtVarsN (const LR::LRSplineSurface* oldBasis,
+bool ASMu2D::transferGaussPtVarsN (const LR::LRSpline* old_basis,
                                    const RealArray& oldVars, RealArray& newVars,
                                    int nGauss) const
 {
   const LR::LRSplineSurface* newBasis = this->getBasis();
+  const LR::LRSplineSurface* oldBasis = static_cast<const LR::LRSplineSurface*>(old_basis);
 
   size_t nGP = nGauss*nGauss;
   newVars.clear();
@@ -2110,20 +2112,11 @@ bool ASMu2D::transferGaussPtVarsN (const LR::LRSplineSurface* oldBasis,
 }
 
 
-bool ASMu2D::transferCntrlPtVars (LR::LRSplineSurface* oldBasis,
-                                  const RealArray& oldVars, RealArray& newVars,
-                                  int nGauss) const
-{
-  oldBasis->rebuildDimension(1);
-  oldBasis->setControlPoints(const_cast<RealArray&>(oldVars));
-  return this->transferCntrlPtVars(oldBasis,newVars,nGauss);
-}
-
-
-bool ASMu2D::transferCntrlPtVars (const LR::LRSplineSurface* oldBasis,
+bool ASMu2D::transferCntrlPtVars (const LR::LRSpline* old_basis,
                                   RealArray& newVars, int nGauss) const
 {
   const LR::LRSplineSurface* newBasis = this->getBasis();
+  const LR::LRSplineSurface* oldBasis = static_cast<const LR::LRSplineSurface*>(old_basis);
 
   newVars.clear();
   newVars.reserve(newBasis->nElements()*nGauss*nGauss*oldBasis->dimension());
