@@ -80,28 +80,20 @@ bool readBasis (std::vector<ASMbase*>& result, const std::string& name,
     std::string out;
     hdf.readString(geom.str(),out);
     ptype = out.substr(0,10) == "# LRSPLINE" ? ASM::LRSpline : ASM::Spline;
-    isLR = ptype == ASM::LRSpline;
-    basis << out;
-    if (!isLR && out.substr(0,3) != (dim==3?"700":dim==2?"200":"100")) {
+    int gdim = 0;
+    if (ptype == ASM::LRSpline)
+      gdim = out.substr(11,7) == "SURFACE" ? 2 : 3;
+    else {
+      int sdim = atoi(out.substr(0,3).c_str());
+      if (sdim == 700) sdim = 300;
+      gdim = sdim / 100;
+    }
+    if (gdim != dim) {
       std::cerr << "Basis dimensionality for " << name
                 << " does not match dimension, ignoring" << std::endl;
       continue;
     }
-    if (isLR) {
-      std::stringstream str;
-      str << out;
-      std::string line;
-      int gdim = 0;
-      line = out.substr(11);
-      line = line.substr(0,line.find('\n'));
-      if (line == "SURFACE")
-        gdim = 2;
-      if (gdim != dim) {
-        std::cerr << "Basis dimensionality for " << name
-                  << " does not match dimension, ignoring" << std::endl;
-        continue;
-      }
-    }
+    basis << out;
     if (dim == 1)
       result.push_back(ASM1D::create(ptype));
     else if (dim == 2)
