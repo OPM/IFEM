@@ -115,11 +115,18 @@ public:
       }
       else
       {
-        // The mesh was refined, and we continue (at most) nForward steps
-        // without checking for further refinement at this step
+        // Either the mesh was refined or we were doing prediction steps
+        // without staggering cycles. Now continue (at most) nForward steps
+        // without checking for further refinement at those steps.
         this->tp.reset(tranStep);
-        IFEM::cout <<"\n  >>> Resuming simulation from time="<< this->tp.time.t
-                   <<" on the new mesh."<< std::endl;
+        IFEM::cout <<"\n  >>> Resuming simulation from time="<< this->tp.time.t;
+        if (lastRef > 0)
+          IFEM::cout <<" on the new mesh."<< std::endl;
+        else
+        {
+          IFEM::cout <<" on current mesh."<< std::endl;
+          this->S1.restoreState(); // Solution transfer was not performed
+        }
 
         // Solve for each time step up to final time,
         // but only up to nForward steps on this mesh
