@@ -1368,6 +1368,7 @@ bool SIMoutput::dumpResults (const Vector& psol, double time,
       LocalSystem::patch = i;
       if (myProblem->getNoFields(2) > 0)
       {
+        this->extractPatchDependencies(myProblem,myModel,i);
         const_cast<SIMoutput*>(this)->setPatchMaterial(i+1);
         if (!myModel[i]->evalSolution(sol2,*myProblem,params.data(),false))
           return false;
