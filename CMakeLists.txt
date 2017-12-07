@@ -157,7 +157,7 @@ else()
   file(GLOB IFEM_HEADERS src/ASM/AlgEqSystem.h src/ASM/ASMbase.h
                          src/ASM/ASMenums.h src/ASM/ASMmxBase.h
                          src/ASM/ASMs?Dmx.h
-                         src/ASM/ASMstruct.h src/ASM/*Mats.h src/ASM/ElmNorm.h
+                         src/ASM/ASM*truct.h src/ASM/*Mats.h src/ASM/ElmNorm.h
                          src/ASM/Field.h src/ASM/Fields.h src/ASM/GlbForceVec.h
                          src/ASM/FiniteElement.h src/ASM/GlbNorm.h
                          src/ASM/GlobalIntegral.h src/ASM/IntegrandBase.h
@@ -179,7 +179,6 @@ else()
   if(LRSpline_FOUND)
     file(GLOB IFEM_LR_HEADERS src/ASM/LR/*.h)
     install(FILES ${IFEM_LR_HEADERS} DESTINATION include/IFEM/LR)
-    install(FILES src/ASM/ASMunstruct.h DESTINATION include/IFEM)
     list(APPEND IFEM_INCLUDE_DIRS ${CMAKE_INSTALL_PREFIX}/include/IFEM/LR)
   endif()
 
