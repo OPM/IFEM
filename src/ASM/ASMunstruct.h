@@ -172,14 +172,6 @@ public:
   virtual void remapErrors(RealArray& errors, const RealArray& orig,
                            bool elemErrors = false) const = 0;
 
-  //! \brief Match neighbours after refinement in multipatch models.
-  //! \param neigh Neigbouring patch
-  //! \param[in] midx Index of face/edge on this patch
-  //! \param[in] sidx Index of face/edge on neighbour
-  //! \param[in] orient Orientation flag for connection
-  virtual bool matchNeighbour(ASMunstruct* neigh,
-                              int midx, int sidx, int orient) = 0;
-
 protected:
   LR::LRSpline* geo; //!< Pointer to the actual spline geometry object
 

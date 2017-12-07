@@ -2209,47 +2209,6 @@ bool ASMu3D::updateDirichlet (const std::map<int,RealFunc*>& func,
 }
 
 
-bool ASMu3D::matchNeighbour(ASMunstruct* neigh, int midx, int sidx, int orient)
-{
-  ASMu3D* slave = dynamic_cast<ASMu3D*>(neigh);
-  if (!slave)
-    return false;
-
-  LR::parameterEdge sedge;
-  switch (sidx)
-  {
-    case 1: sedge = LR::WEST;   break;
-    default:
-    case 2: sedge = LR::EAST;   break;
-    case 3: sedge = LR::SOUTH;  break;
-    case 4: sedge = LR::NORTH;  break;
-    case 5: sedge = LR::BOTTOM; break;
-    case 6: sedge = LR::TOP;    break;
-  }
-  LR::parameterEdge medge;
-  switch (midx)
-  {
-    case 1: medge = LR::WEST;   break;
-    default:
-    case 2: medge = LR::EAST;   break;
-    case 3: medge = LR::SOUTH;  break;
-    case 4: medge = LR::NORTH;  break;
-    case 5: medge = LR::BOTTOM; break;
-    case 6: medge = LR::TOP;    break;
-  }
-
-  bool result = this->getBasis(1)->matchParametricEdge(medge, slave->getBasis(1),
-                                                       sedge, orient & 2,
-                                                       orient & 1, orient & 4);
-  this->getBasis(1)->enforceIsotropic();
-  slave->getBasis(1)->enforceIsotropic();
-  this->getBasis(1)->generateIDs();
-  slave->getBasis(1)->generateIDs();
-
-  return result;
-}
-
-
 void ASMu3D::remapErrors (RealArray& errors,
                           const RealArray& origErr, bool elemErrors) const
 {

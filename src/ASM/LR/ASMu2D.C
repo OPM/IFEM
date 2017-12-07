@@ -2145,41 +2145,6 @@ void ASMu2D::generateThreadGroups (const Integrand& integrand, bool silence,
 }
 
 
-bool ASMu2D::matchNeighbour (ASMunstruct* neigh, int midx, int sidx, int orient)
-{
-  ASMu2D* slave = dynamic_cast<ASMu2D*>(neigh);
-  if (!slave)
-    return false;
-
-  LR::parameterEdge sedge;
-  switch (sidx) {
-    case 1: sedge = LR::WEST; break;
-    case 2: sedge = LR::EAST; break;
-    default:
-    case 3: sedge = LR::SOUTH; break;
-    case 4: sedge = LR::NORTH; break;
-  }
-  LR::parameterEdge medge;
-  switch (midx) {
-    case 1: medge = LR::WEST; break;
-    case 2: medge = LR::EAST; break;
-    default:
-    case 3: medge = LR::SOUTH; break;
-    case 4: medge = LR::NORTH; break;
-  }
-
-  bool result = false;
-  for (size_t i = 1; i <= this->getNoBasis(); ++i) {
-    result |= this->getBasis(i)->matchParametricEdge(medge, slave->getBasis(i),
-                                                     sedge, orient);
-    this->getBasis(i)->enforceIsotropic();
-    slave->getBasis(i)->enforceIsotropic();
-  }
-
-  return result;
-}
-
-
 void ASMu2D::remapErrors (RealArray& errors,
                           const RealArray& origErr, bool elemErrors) const
 {
