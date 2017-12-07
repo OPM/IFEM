@@ -454,14 +454,6 @@ public:
   bool transferCntrlPtVars(const LR::LRSplineSurface* oldBasis,
                            RealArray& newVars, int nGauss) const;
 
-  //! \brief Match neighbours after refinement in multipatch models.
-  //! \param neigh Neigbouring patch
-  //! \param[in] midx Index of face/edge on this patch
-  //! \param[in] sidx  Index of face/edge on neighbour
-  //! \param[in] orient Orientation flag for connection
-  virtual bool matchNeighbour(ASMunstruct* neigh,
-                              int midx, int sidx, int orient);
-
 protected:
 
   // Internal utility methods
