@@ -168,7 +168,9 @@ public:
   //! \brief Remaps element-wise errors from geometry mesh to refinement mesh.
   //! \param[out] errors The remapped errors
   //! \param[in] orig The element-wise errors on the geometry mesh
-  virtual void remapErrors(RealArray& errors, const RealArray& orig) const = 0;
+  //! \param[in] elemErrors If true, map to elements instead of basis functions
+  virtual void remapErrors(RealArray& errors, const RealArray& orig,
+                           bool elemErrors = false) const = 0;
 
   //! \brief Match neighbours after refinement in multipatch models.
   //! \param neigh Neigbouring patch

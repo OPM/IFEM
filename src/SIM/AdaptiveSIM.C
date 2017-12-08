@@ -333,7 +333,8 @@ bool AdaptiveSIM::adaptMesh (int iStep)
                <<" percent."<< std::endl;
     prm.errors.resize(model.getPatch(1)->getNoNodes(1));
     static_cast<ASMunstruct*>(model.getPatch(1))->remapErrors(prm.errors,
-                                                              eNorm.getRow(eRow));
+                                                              eNorm.getRow(eRow),
+                                                              true);
     if (!storeMesh)
       return model.refine(prm);
 

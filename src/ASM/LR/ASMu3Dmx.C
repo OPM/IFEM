@@ -899,7 +899,8 @@ Vec3 ASMu3Dmx::getCoord (size_t inod) const
 }
 
 
-void ASMu3Dmx::remapErrors(RealArray& errors, const RealArray& origErr) const
+void ASMu3Dmx::remapErrors (RealArray& errors,
+                            const RealArray& origErr, bool elemErrors) const
 {
   const LR::LRSplineVolume* basis = this->getBasis(1);
   const LR::LRSplineVolume* geo = this->getBasis(ASMmxBase::geoBasis);
@@ -908,7 +909,10 @@ void ASMu3Dmx::remapErrors(RealArray& errors, const RealArray& origErr) const
     int gEl = geo->getElementContaining((elm->umin()+elm->umax())/2.0,
                                         (elm->vmin()+elm->vmax())/2.0,
                                         (elm->wmin()+elm->wmax())/2.0) + 1;
-    for (LR::Basisfunction* b : elm->support())
-      errors[b->getId()] += origErr[gEl-1];
+    if (elemErrors)
+      errors[elm->getId()] = origErr[gEl-1];
+    else
+      for (LR::Basisfunction* b : elm->support())
+        errors[b->getId()] += origErr[gEl-1];
   }
 }
