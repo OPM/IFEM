@@ -1889,7 +1889,7 @@ bool ASMs3D::integrate (Integrand& integrand,
               // Parameter values of current integration point
               fe.u = param[0] = gpar[0](i+1,i1-p1+1);
               fe.v = param[1] = gpar[1](j+1,i2-p2+1);
-              fe.w = param[1] = gpar[2](k+1,i3-p3+1);
+              fe.w = param[2] = gpar[2](k+1,i3-p3+1);
 
               // Fetch basis function derivatives at current integration point
               if (use2ndDer)

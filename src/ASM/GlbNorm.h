@@ -15,7 +15,6 @@
 #define _GLB_NORM_H
 
 #include "GlobalIntegral.h"
-#include <vector>
 #include "MatVec.h"
 #include "ASMenums.h"
 
@@ -32,7 +31,7 @@ public:
   //! \brief The constructor initializes a reference to the global norm vector.
   //! \param[in] vec Vector of global norm quantities
   //! \param[in] op Operation to be performed after accumulating element norms
-  GlbNorm(Vectors& vec, ASM::FinalNormOp op = ASM::NONE);
+  GlbNorm(Vectors& v, ASM::FinalNormOp op = ASM::NONE) : myVals(v), myOp(op) {}
   //! \brief The destructor applies the operation \a myOp on \a myVals
   virtual ~GlbNorm();
 
@@ -45,8 +44,8 @@ private:
   //! \brief Applies the operation \a myOp on the given \a value.
   void applyFinalOp(double& value) const;
 
-  Vectors& myVals;        //!< Reference to a vector of global norm values
-  ASM::FinalNormOp  myOp; //!< Operation to be perfomed on summed values
+  Vectors&         myVals; //!< Reference to a vector of global norm values
+  ASM::FinalNormOp myOp;   //!< Operation to be performed on summed values
 };
 
 #endif
