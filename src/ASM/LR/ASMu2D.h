@@ -504,7 +504,9 @@ protected:
   //! \brief Remap element wise errors to basis functions.
   //! \param     errors The remapped errors
   //! \param[in] origErr The element wise errors on the geometry mesh
-  virtual void remapErrors(RealArray& errors, const RealArray& origErr) const;
+  //! \param[in] elemErrors If true, map to elements instead of basis functions
+  virtual void remapErrors(RealArray& errors,
+                           const RealArray& origErr, bool elemErrors) const;
 
 public:
   //! \brief Returns the number of elements on a boundary.

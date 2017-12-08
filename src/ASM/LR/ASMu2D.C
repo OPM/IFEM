@@ -2180,9 +2180,15 @@ bool ASMu2D::matchNeighbour (ASMunstruct* neigh, int midx, int sidx, int orient)
 }
 
 
-void ASMu2D::remapErrors (RealArray& errors, const RealArray& origErr) const
+void ASMu2D::remapErrors (RealArray& errors,
+                          const RealArray& origErr, bool elemErrors) const
 {
   const LR::LRSplineSurface* basis = this->getBasis(1);
+
+  if (elemErrors) {
+    errors = origErr;
+    return;
+  }
 
   for (const LR::Element* elm : basis->getAllElements())
     for (const LR::Basisfunction* b : elm->support())

@@ -911,7 +911,8 @@ void ASMu2Dmx::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
 }
 
 
-void ASMu2Dmx::remapErrors(RealArray& errors, const RealArray& origErr) const
+void ASMu2Dmx::remapErrors(RealArray& errors,
+                           const RealArray& origErr, bool elemErrors) const
 {
   const LR::LRSplineSurface* basis = this->getBasis(1);
   const LR::LRSplineSurface* geo = this->getBasis(ASMmxBase::geoBasis);
@@ -919,7 +920,10 @@ void ASMu2Dmx::remapErrors(RealArray& errors, const RealArray& origErr) const
   for (const LR::Element* elm : basis->getAllElements()) {
     int gEl = geo->getElementContaining((elm->umin()+elm->umax())/2.0,
                                         (elm->vmin()+elm->vmax())/2.0) + 1;
-    for (const LR::Basisfunction* b : elm->support())
-      errors[b->getId()] += origErr[gEl-1];
+    if (elemErrors)
+      errors[elm->getId()] = origErr[gEl-1];
+    else
+      for (const LR::Basisfunction* b : elm->support())
+        errors[b->getId()] += origErr[gEl-1];
   }
 }

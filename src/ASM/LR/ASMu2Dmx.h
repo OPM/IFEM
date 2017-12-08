@@ -196,7 +196,9 @@ public:
   //! \brief Remap (geometry) element wise errors to refinement basis functions.
   //! \param     errors The remapped errors
   //! \param[in] origErr The element wise errors on the geometry mesh
-  virtual void remapErrors(RealArray& errors, const RealArray& origErr) const;
+  //! \param[in] elemErrors If true, map to elements instead of basis functions
+  virtual void remapErrors(RealArray& errors,
+                           const RealArray& origErr, bool elemErrors) const;
 
 protected:
   //! \brief Assembles L2-projection matrices for the secondary solution.
