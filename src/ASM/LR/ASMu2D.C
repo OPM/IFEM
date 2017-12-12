@@ -2095,9 +2095,13 @@ bool ASMu2D::transferGaussPtVarsN (const LR::LRSplineSurface* oldBasis,
         double v = vmin + dv * (xi[j] + 1.0);
         double dist = 1.0e16;
         size_t near = 0;
-        for (size_t k = 0; k < nGP; ++k)
-          if (hypot(oGP[k].u-u,oGP[k].v-v) < dist)
+        for (size_t k = 0; k < nGP; ++k) {
+          double nd = hypot(oGP[k].u-u,oGP[k].v-v);
+          if (nd < dist) {
             near = k;
+            dist = nd;
+          }
+        }
         newVars.push_back(oldVars[iOld*nGP+near]);
       }
   }
