@@ -363,6 +363,11 @@ public:
   virtual bool transferCntrlPtVars(const LR::LRSpline* old_basis,
                                    RealArray& newVars, int nGauss) const;
 
+  //! \brief Refines the parametrization based on a mesh density function.
+  //! \param[in] refC Mesh refinement criteria function
+  //! \param[in] refTol Mesh refinement threshold
+  virtual bool refine(const RealFunc& refC, double refTol);
+
 private:
   //! \brief Struct representing an inhomogeneous Dirichlet boundary condition.
   struct DirichletFace
