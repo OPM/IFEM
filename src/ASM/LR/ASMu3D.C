@@ -2409,3 +2409,31 @@ bool ASMu3D::transferCntrlPtVars (const LR::LRSpline* old_basis,
 
   return true;
 }
+
+
+/*!
+  Refines all elements for which refC(X0) < refTol,
+  where X0 is the element center.
+*/
+
+bool ASMu3D::refine (const RealFunc& refC, double refTol)
+{
+  Go::Point X0;
+  std::vector<int> elements;
+  std::vector<LR::Element*>::const_iterator eit = lrspline->elementBegin();
+  for (int iel = 0; eit != lrspline->elementEnd(); iel++, ++eit)
+  {
+    double u0 = 0.5*((*eit)->umin() + (*eit)->umax());
+    double v0 = 0.5*((*eit)->vmin() + (*eit)->vmax());
+    double w0 = 0.5*((*eit)->wmin() + (*eit)->wmax());
+    lrspline->point(X0,u0,v0,w0);
+    if (refC(SplineUtils::toVec3(X0,nsd)) < refTol)
+      elements.push_back(iel);
+  }
+
+  Vectors dummySol;
+  LR::RefineData prm(true);
+  prm.options = { 10, 1, 2 };
+  prm.elements = this->getFunctionsForElements(elements);
+  return this->refine(prm,dummySol);
+}
