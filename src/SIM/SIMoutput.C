@@ -216,25 +216,32 @@ void SIMoutput::preprocessResPtGroup (std::string& ptFile, ResPointVec& points)
     else if ((p->inod = pch->evalPoint(p->u,p->u,p->X)) < 0)
       p = points.erase(p);
     else
+      (p++)->npar = pch->getNoParamDim();
+  }
+
+  if (points.size() < 5 || msgLevel > 1)
+  {
+    int iPoint = 0;
+    for (const ResultPoint& pt : points)
     {
-      p->npar = pch->getNoParamDim();
-      int ipt = 1 + (int)(p-points.begin());
-      if (ipt == 1) IFEM::cout <<'\n';
-      IFEM::cout <<"Result point #"<< ipt <<": patch #"<< p->patch;
-      switch (p->npar) {
+      if (++iPoint == 1) IFEM::cout <<'\n';
+      IFEM::cout <<"Result point #"<< iPoint <<": patch #"<< pt.patch;
+      switch (pt.npar) {
       case 1: IFEM::cout <<" u="; break;
       case 2: IFEM::cout <<" (u,v)=("; break;
       case 3: IFEM::cout <<" (u,v,w)=("; break;
       }
-      IFEM::cout << p->u[0];
-      for (unsigned char c = 1; c < p->npar; c++)
-        IFEM::cout <<','<< p->u[c];
-      if (p->npar > 1) IFEM::cout <<')';
-      if (p->inod > 0) IFEM::cout <<", node #"<< p->inod;
-      if (p->inod > 0 && myModel.size() > 1)
-        IFEM::cout <<", global #"<< pch->getNodeID(p->inod);
-      IFEM::cout <<", X = "<< p->X << std::endl;
-      ++p;
+      IFEM::cout << pt.u[0];
+      for (unsigned char c = 1; c < pt.npar; c++)
+        IFEM::cout <<','<< pt.u[c];
+      if (pt.npar > 1) IFEM::cout <<')';
+      if (pt.inod > 0) IFEM::cout <<", node #"<< pt.inod;
+      if (pt.inod > 0 && myModel.size() > 1)
+      {
+        ASMbase* pch = this->getPatch(pt.patch,true);
+        IFEM::cout <<", global #"<< pch->getNodeID(pt.inod);
+      }
+      IFEM::cout <<", X = "<< pt.X << std::endl;
     }
   }
 
@@ -249,11 +256,11 @@ void SIMoutput::preprocessResPtGroup (std::string& ptFile, ResPointVec& points)
   os.flags(std::ios::scientific | std::ios::right);
   os.precision(precision);
 
-  for (size_t i = 0; i < points.size(); i++)
+  for (const ResultPoint& pt : points)
   {
     os << 0.0 <<" "; // dummy time
-    for (unsigned char k = 0; k < points[i].npar; k++)
-      os << std::setw(flWidth) << points[i].X[k];
+    for (unsigned char k = 0; k < pt.npar; k++)
+      os << std::setw(flWidth) << pt.X[k];
     os << std::endl;
   }
 
@@ -1337,27 +1344,31 @@ bool SIMoutput::dumpResults (const Vector& psol, double time,
   {
     if (myModel[i]->empty()) continue; // skip empty patches
 
-    ResPointVec::const_iterator p;
     std::array<RealArray,3> params;
     IntVec  points;
     Vec3Vec Xp;
 
     // Find all evaluation points within this patch, if any
-    for (j = 0, p = gPoints.begin(); p != gPoints.end(); j++, ++p)
-      if (this->getLocalPatchIndex(p->patch) == (int)(i+1))
+    int jPoint = 1;
+    for (const ResultPoint& pt : gPoints)
+    {
+      if (this->getLocalPatchIndex(pt.patch) == (int)(i+1))
+      {
         if (opt.discretization >= ASM::Spline)
         {
-          points.push_back(p->inod > 0 ? p->inod : -(j+1));
+          points.push_back(pt.inod > 0 ? pt.inod : -jPoint);
           for (k = 0; k < myModel[i]->getNoParamDim(); k++)
-            params[k].push_back(p->u[k]);
-          if (mySol) Xp.push_back(p->X);
+            params[k].push_back(pt.u[k]);
+          if (mySol) Xp.push_back(pt.X);
         }
-        else if (p->inod > 0)
+        else if (pt.inod > 0)
         {
-          points.push_back(p->inod);
-          if (mySol) Xp.push_back(p->X);
+          points.push_back(pt.inod);
+          if (mySol) Xp.push_back(pt.X);
         }
-
+      }
+      ++jPoint;
+    }
     if (points.empty()) continue; // no points in this patch
 
     myModel[i]->extractNodeVec(psol,myProblem->getSolution());
@@ -1461,7 +1472,7 @@ bool SIMoutput::dumpVector (const Vector& vsol, const char* fname,
   if (nComp*ngNodes != vsol.size() || nComp == this->getNoFields())
     nComp = 0; // Using the number of primary field components
 
-  size_t i, j, k, iPoint;
+  size_t i, j, k;
   Matrix sol1;
   Vector lsol;
 
@@ -1470,7 +1481,6 @@ bool SIMoutput::dumpVector (const Vector& vsol, const char* fname,
   std::streamsize flWidth = 8 + precision;
   std::streamsize oldPrec;
   std::ios::fmtflags oldFlgs;
-  ResPointVec::const_iterator p;
 
   for (const ResPtPair& rptp : myPoints)
   {
@@ -1490,7 +1500,7 @@ bool SIMoutput::dumpVector (const Vector& vsol, const char* fname,
     else
       continue; // Skip output for this point group
 
-    iPoint = 1;
+    int iPoint = 1;
     for (i = 0; i < myModel.size() && ok; i++)
     {
       if (myModel[i]->empty()) continue; // skip empty patches
@@ -1498,16 +1508,22 @@ bool SIMoutput::dumpVector (const Vector& vsol, const char* fname,
       // Find all evaluation points within this patch, if any
       std::array<RealArray,3> params;
       IntVec points;
-      for (j = 0, p = rptp.second.begin(); p != rptp.second.end(); j++, ++p)
-        if (this->getLocalPatchIndex(p->patch) == (int)(i+1))
+      int jPoint = iPoint;
+      for (const ResultPoint& pt : rptp.second)
+      {
+        if (this->getLocalPatchIndex(pt.patch) == (int)(i+1))
+        {
           if (opt.discretization >= ASM::Spline)
           {
-            points.push_back(p->inod > 0 ? p->inod : -(iPoint+j));
+            points.push_back(pt.inod > 0 ? pt.inod : -jPoint);
             for (k = 0; k < myModel[i]->getNoParamDim(); k++)
-              params[k].push_back(p->u[k]);
+              params[k].push_back(pt.u[k]);
           }
-          else if (p->inod > 0)
-            points.push_back(p->inod);
+          else if (pt.inod > 0)
+            points.push_back(pt.inod);
+        }
+        ++jPoint;
+      }
 
       if (points.empty()) continue; // no points in this patch
 
