@@ -26,10 +26,10 @@ double LagrangeInterpolator::evaluate(double x,
 
 Matrix LagrangeInterpolator::get(const std::vector<double>& new_grid)
 {
-  Matrix result(grid.size(), new_grid.size());
+  Matrix result(new_grid.size(), grid.size());
   for (size_t i = 0; i < grid.size(); ++i)
     for (size_t j = 0; j < new_grid.size(); ++j)
-      result(i+1, j+1) =  Lagrange(new_grid[j], i, grid);
+      result(j+1, i+1) =  Lagrange(new_grid[j], i, grid);
 
   return result;
 }
