@@ -50,7 +50,6 @@ public:
   SplineFields2D(const Go::SplineSurface* srf, const RealArray& v, int ncmp,
                  const char* name = nullptr);
 
-
   //! \brief Empty destructor.
   virtual ~SplineFields2D() {}
 
