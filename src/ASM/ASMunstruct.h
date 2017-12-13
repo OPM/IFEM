@@ -209,6 +209,11 @@ public:
   virtual bool refine(const RealFunc& refC, double refTol) = 0;
 
 protected:
+  //! \brief Refines the mesh adaptively.
+  //! \param[in] prm Input data used to control the mesh refinement
+  //! \param lrspline The spline to perform adaptation for
+  bool doRefine(const LR::RefineData& prm, LR::LRSpline* lrspline);
+
   LR::LRSpline* geo; //!< Pointer to the actual spline geometry object
 
   static int gEl;  //!< Global element counter

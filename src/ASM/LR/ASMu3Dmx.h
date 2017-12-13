@@ -166,6 +166,12 @@ public:
   //! \brief Returns the number of projection nodes for this patch.
   virtual size_t getNoProjectionNodes() const;
 
+  //! \brief Returns the number of refinement nodes for this patch.
+  virtual size_t getNoRefineNodes() const;
+
+  //! \brief Returns the number of refinement elements for this patch.
+  virtual size_t getNoRefineElms() const;
+
   //! \brief Returns a field using the projection basis.
   //! \param[in] coefs The coefficients for the field
   //! \param[in] nf Number of components
@@ -199,6 +205,7 @@ protected:
 private:
   std::vector<std::shared_ptr<LR::LRSplineVolume>> m_basis; //!< Spline bases
   std::shared_ptr<LR::LRSplineVolume> projBasis; //!< Basis to project onto
+  std::shared_ptr<LR::LRSplineVolume> refBasis; //!< Basis to refine based on
   const std::vector<Matrices>& bezierExtract;   //!< Bezier extraction matrices
   std::vector<Matrices>        myBezierExtract; //!< Bezier extraction matrices
 };

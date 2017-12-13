@@ -186,12 +186,20 @@ bool ASMu3Dmx::generateFEMTopology ()
         ASMmxBase::Type == ASMmxBase::SUBGRID) {
       std::shared_ptr<Go::SplineVolume> otherBasis =
           ASMmxBase::establishBases(tensorspline, ASMmxBase::FULL_CONT_RAISE_BASIS1).front();
-      projBasis.reset(new LR::LRSplineVolume(otherBasis.get()));
+      if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
+        projBasis = m_basis[0];
+        refBasis.reset(new LR::LRSplineVolume(otherBasis.get()));
+        refBasis->generateIDs();
+      } else {
+        projBasis.reset(new LR::LRSplineVolume(otherBasis.get()));
+        refBasis = projBasis;
+      }
     } else
-     projBasis = m_basis[0];
+     projBasis = refBasis = m_basis[0];
   }
   lrspline = m_basis[geoBasis-1];
   projBasis->generateIDs();
+  myGeoBasis = ASMmxBase::geoBasis;
 
   nb.resize(m_basis.size());
   for (size_t i=0; i < m_basis.size(); ++i)
@@ -494,11 +502,13 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
             B.fillColumn(4, BdNdw[b].getColumn(ig)*2.0/dw);
 
             // Fetch basis function derivatives at current integration point
+            fe.iel = els[b]; // evaluateBasis use elem number from fe
             if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
               evaluateBasis(fe, dNxdu[b], d2Nxdu2[b], b+1);
             else
               evaluateBasis(fe, dNxdu[b], bezierExtract[b][els[b]-1], B, b+1) ;
           }
+          fe.iel = iEl+1;
 
           // Compute Jacobian inverse of coordinate mapping and derivatives
           fe.detJxW = utl::Jacobian(Jac,fe.grad(geoBasis),Xnod,dNxdu[geoBasis-1]);
@@ -888,6 +898,85 @@ bool ASMu3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 bool ASMu3Dmx::refine (const LR::RefineData& prm,
                        Vectors& sol, const char* fName)
 {
+  if (shareFE) return true;
+
+  if (!prm.errors.empty() || !prm.elements.empty()) {
+    for (size_t j = 0; j < sol.size(); ++j) {
+      size_t ofs = 0;
+      for (size_t i = 0; i< m_basis.size(); ++i) {
+        LR::extendControlPoints(m_basis[i].get(), sol[j], nfx[i], ofs);
+        ofs += nfx[i]*nb[i];
+      }
+    }
+  } else
+    return true; // No refinement
+
+  if (doRefine(prm, refBasis.get())) {
+    for (const LR::MeshRectangle* rect : refBasis->getAllMeshRectangles())
+      for (size_t j = 0; j < m_basis.size(); ++j)
+        if (refBasis == m_basis[j])
+          continue;
+        else {
+          int p = m_basis[j]->order(rect->constDirection());
+          int mult = 1;
+          if (ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS1 ||
+              ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS2) {
+            if (rect->multiplicity_ > 1)
+              mult = p;
+            else
+              mult = (j == 0 && ASMmxBase::Type == REDUCED_CONT_RAISE_BASIS1) ||
+                     (j == 1 && ASMmxBase::Type == REDUCED_CONT_RAISE_BASIS2) ? 2 : 1;
+          }
+          LR::MeshRectangle* newRect = rect->copy();
+          newRect->multiplicity_ = mult;
+
+          m_basis[j]->insert_line(newRect);
+        }
+
+    // Uniformly refine to find basis 1
+    if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
+      m_basis[0].reset(refBasis->copy());
+      projBasis = m_basis[0];
+      size_t nFunc = refBasis->nBasisFunctions();
+      IntVec elems(nFunc);
+      std::iota(elems.begin(),elems.end(),0);
+      m_basis[0]->refineBasisFunction(elems);
+    }
+
+    size_t len = 0;
+    for (size_t j = 0; j< m_basis.size(); ++j) {
+      m_basis[j]->generateIDs();
+      nb[j] = m_basis[j]->nBasisFunctions();
+      len += nfx[j]*nb[j];
+    }
+
+    size_t ofs = 0;
+    for (int i = sol.size()-1; i > 0; i--)
+      for (size_t j = 0; j < m_basis.size(); ++j) {
+        sol[i].resize(len);
+        LR::contractControlPoints(m_basis[j].get(), sol[i], nfx[j], ofs);
+        ofs += nfx[j]*nb[j];
+      }
+
+  #ifdef SP_DEBUG
+    std::cout <<"Refined mesh: ";
+    for (const auto& it : m_basis)
+      std::cout << it->nElements() <<" ";
+    std::cout <<"elements ";
+    for (const auto& it : m_basis)
+      std::cout << it->nBasisFunctions() <<" ";
+    std::cout <<"nodes."<< std::endl;
+    std::cout << "Projection basis: "
+              << projBasis->nElements() << " elements "
+              << projBasis->nBasisFunctions() << " nodes" << std::endl;
+    std::cout << "Refinement basis: "
+              << refBasis->nElements() << " elements "
+              << refBasis->nBasisFunctions() << " nodes" << std::endl;
+  #endif
+
+    return true;
+  }
+
   return false;
 }
 
@@ -914,18 +1003,16 @@ Vec3 ASMu3Dmx::getCoord (size_t inod) const
 void ASMu3Dmx::remapErrors (RealArray& errors,
                             const RealArray& origErr, bool elemErrors) const
 {
-  const LR::LRSplineVolume* basis = this->getBasis(1);
   const LR::LRSplineVolume* geo = this->getBasis(ASMmxBase::geoBasis);
-
-  for (LR::Element* elm : basis->getAllElements()) {
-    int gEl = geo->getElementContaining((elm->umin()+elm->umax())/2.0,
-                                        (elm->vmin()+elm->vmax())/2.0,
-                                        (elm->wmin()+elm->wmax())/2.0) + 1;
+  for (const LR::Element* elm : geo->getAllElements()) {
+    int rEl = refBasis->getElementContaining((elm->umin()+elm->umax())/2.0,
+                                             (elm->vmin()+elm->vmax())/2.0,
+                                             (elm->wmin()+elm->wmax())/2.0);
     if (elemErrors)
-      errors[elm->getId()] = origErr[gEl-1];
+      errors[rEl] += origErr[elm->getId()];
     else
-      for (LR::Basisfunction* b : elm->support())
-        errors[b->getId()] += origErr[gEl-1];
+      for (LR::Basisfunction* b : refBasis->getElement(rEl)->support())
+        errors[b->getId()] += origErr[elm->getId()];
   }
 }
 
@@ -933,6 +1020,18 @@ void ASMu3Dmx::remapErrors (RealArray& errors,
 size_t ASMu3Dmx::getNoProjectionNodes() const
 {
   return projBasis->nBasisFunctions();
+}
+
+
+size_t ASMu3Dmx::getNoRefineNodes() const
+{
+  return refBasis->nBasisFunctions();
+}
+
+
+size_t ASMu3Dmx::getNoRefineElms() const
+{
+  return refBasis->nElements();
 }
 
 
