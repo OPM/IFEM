@@ -12,6 +12,7 @@
 //==============================================================================
 
 #include "ASMunstruct.h"
+#include "IFEM.h"
 #include "LRSpline/LRSplineSurface.h"
 #include "LRSpline/Basisfunction.h"
 #include "Profiler.h"
@@ -147,14 +148,106 @@ bool ASMunstruct::refine (const LR::RefineData& prm,
     return true;
   }
 
+  std::vector<int> nf(sol.size());
+  if (!prm.errors.empty() || !prm.elements.empty()) {
+    for (size_t j = 0; j < sol.size(); j++)
+      if (!(nf[j] = LR::extendControlPoints(geo,sol[j],this->getNoFields(1))))
+        return false;
+  }
+  else
+    return true;
+
+  if (doRefine(prm, geo))
+  {
+    nnod = geo->nBasisFunctions();
+
+    for (int i = sol.size()-1; i >= 0; i--) {
+      sol[i].resize(nf[i]*geo->nBasisFunctions());
+      LR::contractControlPoints(geo,sol[i],nf[i]);
+    }
+
+    if (fName)
+    {
+      char fullFileName[256];
+
+      strcpy(fullFileName, "lrspline_");
+      strcat(fullFileName, fName);
+      std::ofstream lrOut(fullFileName);
+      lrOut << *geo;
+      lrOut.close();
+
+      LR::LRSplineSurface* lr = dynamic_cast<LR::LRSplineSurface*>(geo);
+      if (lr) {
+        // open files for writing
+        strcpy(fullFileName, "param_");
+        strcat(fullFileName, fName);
+        std::ofstream paramMeshFile(fullFileName);
+
+        strcpy(fullFileName, "physical_");
+        strcat(fullFileName, fName);
+        std::ofstream physicalMeshFile(fullFileName);
+
+        strcpy(fullFileName, "param_dot_");
+        strcat(fullFileName, fName);
+        std::ofstream paramDotMeshFile(fullFileName);
+
+        strcpy(fullFileName, "physical_dot_");
+        strcat(fullFileName, fName);
+        std::ofstream physicalDotMeshFile(fullFileName);
+
+        lr->writePostscriptMesh(paramMeshFile);
+        lr->writePostscriptElements(physicalMeshFile);
+        lr->writePostscriptFunctionSpace(paramDotMeshFile);
+        lr->writePostscriptMeshWithControlPoints(physicalDotMeshFile);
+
+        // close all files
+        paramMeshFile.close();
+        physicalMeshFile.close();
+        paramDotMeshFile.close();
+        physicalDotMeshFile.close();
+      }
+    }
+
+    IFEM::cout <<"Refined mesh: "<< geo->nElements() <<" elements "
+               << geo->nBasisFunctions() <<" nodes."<< std::endl;
+
+    bool linIndepTest   = prm.options.size() > 3 ? prm.options[3] != 0 : false;
+    if (linIndepTest)
+    {
+      std::cout <<"Testing for linear independence by overloading "<< std::endl;
+      bool isLinIndep = geo->isLinearIndepByOverloading(false);
+      if (!isLinIndep) {
+        std::cout <<"Inconclusive..."<< std::endl;
+  #ifdef HAS_BOOST
+        std::cout <<"Testing for linear independence by full tensor expansion "<< std::endl;
+        isLinIndep = geo->isLinearIndepByMappingMatrix(false);
+  #endif
+      }
+      if (isLinIndep)
+        std::cout <<"...Passed."<< std::endl;
+      else {
+        std::cout <<"FAILED!!!"<< std::endl;
+        exit(228);
+      }
+    }
+
+    return true;
+  }
+
+  return false;
+}
+
+bool ASMunstruct::doRefine(const LR::RefineData& prm,
+                           LR::LRSpline* lrspline)
+{
   // to pick up if LR splines get stuck while doing refinement,
   // print entry and exit point of this function
 
   double beta         = prm.options.size() > 0 ? prm.options[0]/100.0 : 0.10;
   int    multiplicity = prm.options.size() > 1 ? prm.options[1]       : 1;
   if (multiplicity > 1)
-    for (int d = 0; d < geo->nVariate(); d++) {
-      int p = geo->order(d) - 1;
+    for (int d = 0; d < lrspline->nVariate(); d++) {
+      int p = lrspline->order(d) - 1;
       if (multiplicity > p) multiplicity = p;
     }
 
@@ -165,7 +258,6 @@ bool ASMunstruct::refine (const LR::RefineData& prm,
     case 2: strat = LR_STRUCTURED_MESH; break;
     }
 
-  bool linIndepTest   = prm.options.size() > 3 ? prm.options[3] != 0 : false;
   int  maxTjoints     = prm.options.size() > 4 ? prm.options[4]      : -1;
   int  maxAspectRatio = prm.options.size() > 5 ? prm.options[5]      : -1;
   bool closeGaps      = prm.options.size() > 6 ? prm.options[6] != 0 : false;
@@ -177,104 +269,27 @@ bool ASMunstruct::refine (const LR::RefineData& prm,
     doRefine = 'I'; // Refine the specified elements
 
   if (doRefine) {
-
-    std::vector<int> nf(sol.size());
-    for (size_t j = 0; j < sol.size(); j++)
-      if (!(nf[j] = LR::extendControlPoints(geo,sol[j],this->getNoFields(1))))
-        return false;
-
     // set refinement parameters
     if (maxTjoints > 0)
-      geo->setMaxTjoints(maxTjoints);
+      lrspline->setMaxTjoints(maxTjoints);
     if (maxAspectRatio > 0)
-      geo->setMaxAspectRatio((double)maxAspectRatio);
-    geo->setCloseGaps(closeGaps);
-    geo->setRefMultiplicity(multiplicity);
-    geo->setRefStrat(strat);
+      lrspline->setMaxAspectRatio((double)maxAspectRatio);
+    lrspline->setCloseGaps(closeGaps);
+    lrspline->setRefMultiplicity(multiplicity);
+    lrspline->setRefStrat(strat);
 
     // do actual refinement
     if (doRefine == 'E')
-      geo->refineByDimensionIncrease(prm.errors,beta);
+      lrspline->refineByDimensionIncrease(prm.errors,beta);
     else if (strat == LR_STRUCTURED_MESH)
-      geo->refineBasisFunction(prm.elements);
+      lrspline->refineBasisFunction(prm.elements);
     else
-      geo->refineElement(prm.elements);
+      lrspline->refineElement(prm.elements);
 
-    geo->generateIDs();
-    nnod = geo->nBasisFunctions();
-
-    for (int i = sol.size()-1; i >= 0; i--) {
-      sol[i].resize(nf[i]*geo->nBasisFunctions());
-      LR::contractControlPoints(geo,sol[i],nf[i]);
-    }
+    lrspline->generateIDs();
   }
 
-  if (fName)
-  {
-    char fullFileName[256];
-
-    strcpy(fullFileName, "lrspline_");
-    strcat(fullFileName, fName);
-    std::ofstream lrOut(fullFileName);
-    lrOut << *geo;
-    lrOut.close();
-
-    LR::LRSplineSurface* lr = dynamic_cast<LR::LRSplineSurface*>(geo);
-    if (lr) {
-      // open files for writing
-      strcpy(fullFileName, "param_");
-      strcat(fullFileName, fName);
-      std::ofstream paramMeshFile(fullFileName);
-
-      strcpy(fullFileName, "physical_");
-      strcat(fullFileName, fName);
-      std::ofstream physicalMeshFile(fullFileName);
-
-      strcpy(fullFileName, "param_dot_");
-      strcat(fullFileName, fName);
-      std::ofstream paramDotMeshFile(fullFileName);
-
-      strcpy(fullFileName, "physical_dot_");
-      strcat(fullFileName, fName);
-      std::ofstream physicalDotMeshFile(fullFileName);
-
-      lr->writePostscriptMesh(paramMeshFile);
-      lr->writePostscriptElements(physicalMeshFile);
-      lr->writePostscriptFunctionSpace(paramDotMeshFile);
-      lr->writePostscriptMeshWithControlPoints(physicalDotMeshFile);
-
-      // close all files
-      paramMeshFile.close();
-      physicalMeshFile.close();
-      paramDotMeshFile.close();
-      physicalDotMeshFile.close();
-    }
-  }
-
-  if (doRefine)
-    std::cout <<"Refined mesh: "<< geo->nElements() <<" elements "
-              << geo->nBasisFunctions() <<" nodes."<< std::endl;
-
-  if (linIndepTest)
-  {
-    std::cout <<"Testing for linear independence by overloading "<< std::endl;
-    bool isLinIndep = geo->isLinearIndepByOverloading(false);
-    if (!isLinIndep) {
-      std::cout <<"Inconclusive..."<< std::endl;
-#ifdef HAS_BOOST
-      std::cout <<"Testing for linear independence by full tensor expansion "<< std::endl;
-      isLinIndep = geo->isLinearIndepByMappingMatrix(false);
-#endif
-    }
-    if (isLinIndep)
-      std::cout <<"...Passed."<< std::endl;
-    else {
-      std::cout <<"FAILED!!!"<< std::endl;
-      exit(228);
-    }
-  }
-
-  return true;
+  return doRefine;
 }
 
 

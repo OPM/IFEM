@@ -586,6 +586,12 @@ public:
   //! \brief Returns the number of projection nodes for this patch.
   virtual size_t getNoProjectionNodes() const { return this->getNoNodes(1); }
 
+  //! \brief Returns the number of nodes on refinement basis for this patch.
+  virtual size_t getNoRefineNodes() const { return this->getNoNodes(1); }
+
+  //! \brief Returns the number of elements on refinement basis for this patch.
+  virtual size_t getNoRefineElms() const { return this->getNoElms(); }
+
   //! \brief Returns a field using the projection basis.
   virtual Fields* getProjectedFields(const Vector&, size_t) const
   { return nullptr; }
