@@ -58,6 +58,15 @@ SplineFields3D::SplineFields3D (const ASMs3D* patch,
 }
 
 
+SplineFields3D::SplineFields3D (const Go::SplineVolume* svol,
+                                const RealArray& v, int cmp, const char* name)
+  : Fields(name), basis(svol), vol(svol)
+{
+  values = v;
+  nf = cmp;
+}
+
+
 bool SplineFields3D::valueNode (size_t node, Vector& vals) const
 {
   if (node < 1 || node > nno) return false;
