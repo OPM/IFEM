@@ -37,7 +37,7 @@
 
 ASMs2Dmx::ASMs2Dmx (unsigned char n_s,
 		    const std::vector<unsigned char>& n_f)
-  : ASMs2D(n_s), ASMmxBase(n_f)
+  : ASMs2D(n_s, *std::max_element(n_f.begin(),n_f.end())), ASMmxBase(n_f)
 {
 }
 
