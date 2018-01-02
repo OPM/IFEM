@@ -23,6 +23,7 @@
 #include "Utilities.h"
 #include "Vec3.h"
 #include "IFEM.h"
+#include <functional>
 #include <numeric>
 
 

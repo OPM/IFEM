@@ -16,6 +16,7 @@
 #include "LRSpline/LRSplineSurface.h"
 
 #include "gtest/gtest.h"
+#include <numeric>
 
 
 struct EdgeTest
