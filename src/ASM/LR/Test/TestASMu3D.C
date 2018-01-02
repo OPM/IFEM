@@ -16,6 +16,7 @@
 #include "LRSpline/LRSplineVolume.h"
 
 #include "gtest/gtest.h"
+#include <numeric>
 
 class TestASMu3D :
   public testing::Test,

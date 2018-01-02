@@ -19,6 +19,8 @@
 
 #include "LRSpline/LRSplineVolume.h"
 
+#include <cassert>
+
 
 LRSplineField3D::LRSplineField3D (const ASMu3D* patch,
                                   const RealArray& v, char nbasis,

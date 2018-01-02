@@ -19,6 +19,8 @@
 
 #include "LRSpline/LRSplineSurface.h"
 
+#include <cassert>
+
 
 LRSplineFields2D::LRSplineFields2D (const ASMu2D* patch,
                                     const RealArray& v, char nbasis,
