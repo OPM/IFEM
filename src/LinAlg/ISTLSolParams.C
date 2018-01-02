@@ -316,7 +316,11 @@ static ISTL::Preconditioner* setupAMG2_full(const LinSolParams& params, size_t b
 
   CoarsePolicy coarsePolicy(args, crit);
   TransferPolicy policy(crit);
+#if DUNE_VERSION_NEWER(DUNE_ISTL, 2, 5)
+  std::shared_ptr<FineSmoother> fsp(fsmooth);
+#else
   Dune::shared_ptr<FineSmoother> fsp(fsmooth);
+#endif
   auto result = new AMG2(op, fsp, policy, coarsePolicy);
   if (solver)
     solver->reset(setupWithPreType(params, op, *result));
