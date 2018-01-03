@@ -445,10 +445,12 @@ public:
   //! \param[out] ssol Vector of control point values of the secondary solution
   //! \param[in] psol Vector of control point values of the primary solution
   //! \param[in] pMethod Projection method to use
+  //! \param[in] iComp One-based index of the component to return (0 = all)
   //!
   //! \details Convenience overload, for stationary problems only.
   bool project(Vector& ssol, const Vector& psol,
-               SIMoptions::ProjectionMethod pMethod = SIMoptions::GLOBAL) const;
+               SIMoptions::ProjectionMethod pMethod = SIMoptions::GLOBAL,
+               size_t iComp = 0) const;
 
   //! \brief Projects the analytical secondary solution, if any.
   //! \param[out] ssol Vector of control point values of the secondary solution

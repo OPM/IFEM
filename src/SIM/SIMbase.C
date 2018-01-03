@@ -1763,13 +1763,17 @@ bool SIMbase::extractPatchSolution (IntegrandBase* problem,
 
 
 bool SIMbase::project (Vector& ssol, const Vector& psol,
-		       SIMoptions::ProjectionMethod pMethod) const
+		       SIMoptions::ProjectionMethod pMethod, size_t iComp) const
 {
   Matrix stmp;
   if (!this->project(stmp,psol,pMethod))
     return false;
 
-  ssol = stmp;
+  if (iComp > 0)
+    ssol = stmp.getRow(iComp);
+  else
+    ssol = stmp;
+
   return true;
 }
 

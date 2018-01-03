@@ -65,7 +65,6 @@ public:
   //! \brief Prints out the simulation options to the given stream.
   utl::LogStream& print(utl::LogStream& os, bool addBlankLine = false) const;
 
-private:
   //! \brief Parses a projection method XML-tag.
   bool parseProjectionMethod(const char* ptype, int version = 1);
 
