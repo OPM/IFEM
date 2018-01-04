@@ -555,6 +555,9 @@ namespace utl //! General utility classes and functions.
       return *this;
     }
 
+    //! \brief Return the trace of the matrix (sum of its diagonal elements).
+    T trace() const { return this->elem.sum(0,nrow+1); }
+
 #define THIS(i,j) this->operator()(i,j)
 
     //! \brief Compute the determinant of a square matrix.
@@ -914,6 +917,13 @@ namespace utl //! General utility classes and functions.
       vector<T> col(this->n[0]);
       memcpy(col.ptr(),this->ptr(i2-1+this->n[1]*(i3-1)),col.size()*sizeof(T));
       return col;
+    }
+
+    //! \brief Return the trace of the \a i1'th sub-matrix.
+    T trace(size_t i1) const
+    {
+      CHECK_INDEX("matrix3d::trace(): Index ",i1,this->n[0]);
+      return this->elem.sum(i1-1,this->n[0]*(this->n[1]+1));
     }
 
     //! \brief Add the given matrix \b X to \a *this.

@@ -72,7 +72,19 @@ TEST(TestMatrix, Norm)
   EXPECT_FLOAT_EQ(a.sum(),210.0);
   EXPECT_FLOAT_EQ(a.sum(5),34.0);
   EXPECT_FLOAT_EQ(a.asum(5),34.0);
+  EXPECT_FLOAT_EQ(a.trace(),34.0);
   EXPECT_NEAR(a.norm2(5),sqrt(414.0),1.0e-15);
+}
+
+
+TEST(TestMatrix3D, Trace)
+{
+  utl::matrix3d<double> a(4,3,3);
+  std::iota(a.begin(),a.end(),1.0);
+  std::cout <<"A:"<< a;
+
+  for (size_t i = 1; i <= 4; i++)
+    EXPECT_FLOAT_EQ(a.trace(i),3.0*i+48.0);
 }
 
 
@@ -98,10 +110,9 @@ TEST(TestMatrix3D, GetColumn)
 
 TEST(TestMatrix3D, DumpRead)
 {
+  int i = 0;
   utl::matrix3d<double> A(2,3,4);
-  double i = 0.0;
-  for (auto p = A.begin(); p != A.end(); ++p, ++i)
-    *p = 3.14159*i*i;
+  for (double& v : A) v = 3.14159*(++i);
 
   const char* fname = "/tmp/testMatrix3D.dat";
   std::ofstream os(fname);
