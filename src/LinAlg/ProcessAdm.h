@@ -108,7 +108,7 @@ public:
   //! \brief Blocking receive of a double
   //! \param[out] value  Received value
   //! \param[in]  source Process id for source
-  virtual void receive(double& value, int source) const;
+  void receive(double& value, int source) const;
   //! \brief Blocking receive of a double vector
   //! \param[out] rvec   Double vector to receive
   //! \param[in]  source Process id for source
