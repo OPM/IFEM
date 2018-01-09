@@ -111,6 +111,15 @@ bool SIMoptions::parseDiscretizationTag (const TiXmlElement* elem)
     }
   }
 
+  else if (!strcasecmp(elem->Value(),"geometry")) {
+    std::string type;
+    const TiXmlElement* child = elem->FirstChildElement();
+    for (; child; child = child->NextSiblingElement())
+      if (!strcasecmp(child->Value(),"patchfile"))
+        if (utl::getAttribute(child,"type",type) && type == "lrspline")
+          discretization = ASM::LRSpline;
+  }
+
   else if (!strcasecmp(elem->Value(),"nGauss") && elem->FirstChild()) {
     std::string value(elem->FirstChild()->Value());
     char* cval = strtok(const_cast<char*>(value.c_str())," ");
