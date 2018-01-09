@@ -37,18 +37,18 @@ public:
       RK.order = 1;
       RK.b.push_back(1.0);
       RK.c.push_back(0.0);
-      RK.A.redim(1,1);
+      RK.A.resize(1,1);
     }
-    if (type == HEUN) {
+    else if (type == HEUN) {
       RK.order = 2;
       RK.b.push_back(0.5);
       RK.b.push_back(0.5);
       RK.c.push_back(0.0);
       RK.c.push_back(1.0);
-      RK.A.redim(2,2);
+      RK.A.resize(2,2);
       RK.A(2,1) = 1.0;
     }
-    if (type == RK3) {
+    else if (type == RK3) {
       RK.order = 3;
       RK.b.push_back(1.0/6.0);
       RK.b.push_back(2.0/3.0);
@@ -56,12 +56,12 @@ public:
       RK.c.push_back(0.0);
       RK.c.push_back(0.5);
       RK.c.push_back(1.0);
-      RK.A.redim(3,3);
+      RK.A.resize(3,3);
       RK.A(2,1) =  0.5;
       RK.A(3,1) = -1.0;
       RK.A(3,2) =  2.0;
     }
-    if (type == RK4) {
+    else if (type == RK4) {
       RK.order = 4;
       RK.b.push_back(1.0/6.0);
       RK.b.push_back(1.0/3.0);
@@ -71,17 +71,19 @@ public:
       RK.c.push_back(0.5);
       RK.c.push_back(0.5);
       RK.c.push_back(1.0);
-      RK.A.redim(4,4);
+      RK.A.resize(4,4);
       RK.A(2,1) = 0.5;
       RK.A(3,2) = 0.5;
       RK.A(4,3) = 1.0;
     }
+    else
+      RK.order = 0;
   }
 
   //! \copydoc ISolver::solveStep(TimeStep&)
   virtual bool solveStep(TimeStep& tp)
   {
-    std::cout <<"\n  step = "<< tp.step <<"  time = "<< tp.time.t << std::endl;
+    solver.getProcessAdm().cout <<"\n  step = "<< tp.step <<"  time = "<< tp.time.t << std::endl;
 
     Vectors stages;
     return this->solveRK(stages, tp);

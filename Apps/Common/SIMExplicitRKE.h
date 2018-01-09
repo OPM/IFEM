@@ -13,7 +13,8 @@
 #ifndef SIM_EXPLICIT_RKE_H_
 #define SIM_EXPLICIT_RKE_H_
 
-#include "TimeIntUtils.h"
+#include "SIMExplicitRK.h"
+
 
 namespace TimeIntegration {
 
@@ -39,10 +40,10 @@ public:
       bs.push_back(0.5);
       this->RK.c.push_back(0.0);
       this->RK.c.push_back(1.0);
-      this->RK.A.redim(2,2);
+      this->RK.A.resize(2,2);
       this->RK.A(2,1) = 1.0;
     }
-    if (type == BOGACKISHAMPINE) {
+    else if (type == BOGACKISHAMPINE) {
       this->RK.order = 2;
       this->RK.b.push_back(7.0/24.0);
       this->RK.b.push_back(1.0/4.0);
@@ -56,14 +57,14 @@ public:
       this->RK.c.push_back(0.5);
       this->RK.c.push_back(0.75);
       this->RK.c.push_back(1.0);
-      this->RK.A.redim(4,4);
+      this->RK.A.resize(4,4);
       this->RK.A(2,1) = 0.5;
       this->RK.A(3,2) = 0.75;
       this->RK.A(4,1) = 2.0/9.0;
       this->RK.A(4,2) = 1.0/3.0;
       this->RK.A(4,3) = 4.0/9.0;
     }
-    if (type == FEHLBERG) {
+    else if (type == FEHLBERG) {
       this->RK.order = 4;
       this->RK.b.push_back(25.0/216.0);
       this->RK.b.push_back(0.0);
@@ -83,7 +84,7 @@ public:
       this->RK.c.push_back(12.0/13.0);
       this->RK.c.push_back(1.0);
       this->RK.c.push_back(1.0/2.0);
-      this->RK.A.redim(6,6);
+      this->RK.A.resize(6,6);
       this->RK.A(2,1) = 0.25;
       this->RK.A(3,1) = 3.0/32.0;
       this->RK.A(3,2) = 9.0/32.0;
@@ -103,11 +104,11 @@ public:
   }
 
   //! \copydoc ISolver::solveStep(TimeStep&)
-  bool solveStep(TimeStep& tp)
+  virtual bool solveStep(TimeStep& tp)
   {
     this->solver.getProcessAdm().cout <<"\n  step = "<< tp.step <<"  time = "<< tp.time.t << std::endl;
 
-    std::vector<Vector> stages;
+    Vectors stages;
     Vector prevSol = this->solver.getSolution();
     bool ok = this->solveRK(stages, tp);
     double prevEst = 1.0;
@@ -139,8 +140,9 @@ public:
 
     return ok;
   }
+
 private:
-  std::vector<double> bs; //!< Runge-Kutta coefficients for embedded method
+  RealArray  bs; //!< Runge-Kutta coefficients for embedded method
   double errTol; //!< Truncation error tolerance
 };
 

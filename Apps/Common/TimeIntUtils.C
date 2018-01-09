@@ -12,32 +12,60 @@
 
 #include "TimeIntUtils.h"
 
-namespace TimeIntegration {
 
-int Order(Method method)
+TimeIntegration::Method TimeIntegration::get (const std::string& type)
 {
-  if (method == EULER || method == BE)
+  if (type == "be")
+    return BE;
+  else if (type == "bdf2")
+    return BDF2;
+  else if (type == "cn")
+    return THETA;
+  else if (type == "euler")
+    return EULER;
+  else if (type == "heun")
+    return HEUN;
+  else if (type == "heuneuler")
+    return HEUNEULER;
+  else if (type == "bs")
+    return BOGACKISHAMPINE;
+  else if (type == "fehlberg")
+    return FEHLBERG;
+  else if (type == "rk3")
+    return RK3;
+  else if (type == "rk4")
+    return RK4;
+  else
+    return NONE;
+}
+
+
+int TimeIntegration::Order (Method method)
+{
+  switch (method) {
+  case EULER:
+  case BE:
     return 1;
-
-  if (method == HEUN || method == BDF2 || method == THETA)
+  case HEUN:
+  case BDF2:
+  case THETA:
     return 2;
-
-  if (method == RK3)
+  case RK3:
     return 3;
-
-  if (method == RK4)
+  case RK4:
     return 4;
-
-  return 0;
+  default:
+    return 0;
+  }
 }
 
 
-int Steps(Method method)
+int TimeIntegration::Steps (Method method)
 {
-  if (method == BDF2)
+  switch (method) {
+  case BDF2:
     return 2;
-
-  return 1;
-}
-
+  default:
+    return 1;
+  }
 }
