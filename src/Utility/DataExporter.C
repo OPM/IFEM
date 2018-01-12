@@ -13,11 +13,10 @@
 
 #include "DataExporter.h"
 #include "Utilities.h"
+#include "Profiler.h"
 #include "ProcessAdm.h"
 #include "TimeStep.h"
 #include "tinyxml.h"
-#include <iostream>
-#include <algorithm>
 
 
 DataWriter::DataWriter (const std::string& name,
@@ -39,8 +38,8 @@ DataWriter::DataWriter (const std::string& name,
 DataExporter::~DataExporter ()
 {
   if (m_delete)
-    for (size_t i = 0; i < m_writers.size(); i++)
-      delete m_writers[i];
+    for (DataWriter* writer : m_writers)
+      delete writer;
 }
 
 
@@ -115,6 +114,8 @@ bool DataExporter::dumpTimeLevel (const TimeStep* tp, bool geometryUpdated,
   if (!writeRestart && !writeData)
     return true;
 
+  PROFILE1("DataExporter::dumpTimeLevel");
+
   if (tp)
     m_last_step = tp->step;
 
@@ -122,29 +123,28 @@ bool DataExporter::dumpTimeLevel (const TimeStep* tp, bool geometryUpdated,
     m_level = this->getWritersTimeLevel()+1;
 
   std::map<std::string,FileEntry>::iterator it;
-  std::vector<DataWriter*>::iterator it2;
-  for (it2 = m_writers.begin(); it2 != m_writers.end(); ++it2) {
-    (*it2)->openFile(m_level);
+  for (DataWriter* writer : m_writers) {
+    writer->openFile(m_level);
     for (it = m_entry.begin(); it != m_entry.end(); ++it) {
       if (!it->second.data)
         return false;
       switch (it->second.field) {
         case INTVECTOR:
         case VECTOR:
-          (*it2)->writeVector(m_level,*it);
+          writer->writeVector(m_level,*it);
           break;
         case SIM:
           if (writeData)
-            (*it2)->writeSIM(m_level,*it,geometryUpdated,it->second.prefix);
+            writer->writeSIM(m_level,*it,geometryUpdated,it->second.prefix);
           break;
         case NODALFORCES:
-          (*it2)->writeNodalForces(m_level,*it);
+          writer->writeNodalForces(m_level,*it);
           break;
         case KNOTSPAN:
-          (*it2)->writeKnotspan(m_level,*it,it->second.prefix);
+          writer->writeKnotspan(m_level,*it,it->second.prefix);
           break;
         case BASIS:
-          (*it2)->writeBasis(m_level,*it,it->second.prefix);
+          writer->writeBasis(m_level,*it,it->second.prefix);
           break;
         default:
           std::cerr <<"  ** DataExporter: Invalid field type registered "
@@ -153,11 +153,11 @@ bool DataExporter::dumpTimeLevel (const TimeStep* tp, bool geometryUpdated,
       }
     }
     if (tp)
-      (*it2)->writeTimeInfo(m_level,m_ndump,*tp);
+      writer->writeTimeInfo(m_level,m_ndump,*tp);
     if (writeRestart)
-      (*it2)->writeRestartData(restartLevel, *serializeData);
+      writer->writeRestartData(restartLevel, *serializeData);
 
-    (*it2)->closeFile(m_level);
+    writer->closeFile(m_level);
   }
   m_level++;
 
@@ -182,18 +182,16 @@ int DataExporter::getTimeLevel ()
 int DataExporter::getWritersTimeLevel () const
 {
   std::vector<int> levels;
-  std::vector<DataWriter*>::const_iterator it2;
-  for (it2 = m_writers.begin(); it2 != m_writers.end(); ++it2)
-    levels.push_back((*it2)->getLastTimeLevel());
+  for (DataWriter* writer : m_writers)
+    levels.push_back(writer->getLastTimeLevel());
   return *min_element(levels.begin(),levels.end());
 }
 
 
 void DataExporter::setNormPrefixes(const char** prefix)
 {
-  for (std::vector<DataWriter*>::iterator it  = m_writers.begin();
-                                          it != m_writers.end(); ++it)
-    (*it)->setNormPrefixes(prefix);
+  for (DataWriter* writer : m_writers)
+    writer->setNormPrefixes(prefix);
 }
 
 
