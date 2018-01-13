@@ -1804,8 +1804,8 @@ bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   {
     // Extract control point values from the spline object
     sField.resize(s->dimension(),s->nBasisFunctions());
-    for (auto it = s->basisBegin(); it != s->basisEnd(); ++it)
-      sField.fillColumn((*it)->getId()+1,&(*(*it)->cp()));
+    for (LR::Basisfunction* bf : s->getAllBasisfunctions())
+      sField.fillColumn(bf->getId()+1,&(*bf->cp()));
     delete s;
     return true;
   }

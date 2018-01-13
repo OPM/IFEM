@@ -1934,8 +1934,8 @@ bool ASMu3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   {
     // Extract control point values from the spline object
     sField.resize(v->dimension(),v->nBasisFunctions());
-    for (int i = 0; i < v->nBasisFunctions(); i++)
-      sField.fillColumn(i+1,&(*v->getBasisfunction(i)->cp()));
+    for (LR::Basisfunction* bf : v->getAllBasisfunctions())
+      sField.fillColumn(bf->getId()+1,&(*bf->cp()));
     delete v;
     return true;
   }
