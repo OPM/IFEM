@@ -35,7 +35,7 @@ bool Legendre::GL (RealArray& weights, RealArray& points, int n)
     A(n,n-1) = Real(n-1)/Real(2*n-1);
   }
 
-  Vector eig_complex, evalpoints;
+  RealArray eig_complex, evalpoints;
   if (!A.solveEigNon(evalpoints,eig_complex)) return false;
   std::sort(evalpoints.begin(),evalpoints.end());
 
@@ -43,7 +43,7 @@ bool Legendre::GL (RealArray& weights, RealArray& points, int n)
 
   Real L;
   for (i = 0; i < n; i++)
-    if (!LegendreDerEval(n,evalpoints[i],L))
+    if (!Legendre::derEval(n,evalpoints[i],L))
       return false;
     else
       weights[i] = Real(2)/((Real(1)-evalpoints[i]*evalpoints[i])*L*L);
@@ -53,24 +53,24 @@ bool Legendre::GL (RealArray& weights, RealArray& points, int n)
 
 
 
-bool Legendre::GLL (Vector& weights, Vector& points, int n)
+bool Legendre::GLL (RealArray& weights, RealArray& points, int n)
 {
   weights.resize(n);
   points.resize(n);
 
-  points(1) = -Real(1);
-  points(n) =  Real(1);
+  points.front() = -Real(1);
+  points.back()  =  Real(1);
 
   int i;
   Real L, Ld;
 
   if (n < 3)
   {
-    for (i = 1; i <= n; i++)
-      if (!LegendreEval(n-1,points(i),L))
+    for (i = 0; i < n; i++)
+      if (!Legendre::eval(n-1,points[i],L))
         return false;
       else
-        weights(i) = Real(2)/((n-1)*n*L*L);
+        weights[i] = Real(2)/((n-1)*n*L*L);
 
     return true;
   }
@@ -80,86 +80,86 @@ bool Legendre::GLL (Vector& weights, Vector& points, int n)
 
   const Real tol = 1.0e-8;
 
-  for (i = 2; i < n; i++)
+  for (i = 1; i+1 < n; i++)
   {
-    points(i) = (xg[i-2] + xg[i-1])/Real(2);
+    points[i] = (xg[i-1] + xg[i])/Real(2);
     Real ptemp, res = 1;
     while (res > tol)
     {
-      ptemp = points(i);
-      if (!LegendreEval(n-1,ptemp,L)) return false;
-      if (!LegendreDerEval(n-1,ptemp,Ld)) return false;
-      points(i) = ptemp + ((Real(1)-ptemp*ptemp)*Ld)/((n-1)*n*L);
-      res = fabs(points(i) - ptemp);
+      ptemp = points[i];
+      if (!Legendre::eval(n-1,ptemp,L)) return false;
+      if (!Legendre::derEval(n-1,ptemp,Ld)) return false;
+      points[i] = ptemp + ((Real(1)-ptemp*ptemp)*Ld)/((n-1)*n*L);
+      res = fabs(points[i] - ptemp);
     }
   }
 
-  for (i = 1; i <= n; i++)
-    if (!LegendreEval(n-1,points(i),L))
+  for (i = 0; i < n; i++)
+    if (!Legendre::eval(n-1,points[i],L))
       return false;
     else
-      weights(i) = Real(2)/((n-1)*n*L*L);
+      weights[i] = Real(2)/((n-1)*n*L*L);
 
   return true;
 }
 
 
-bool Legendre::LegendreEval (int n, Real x, Real& retval)
+bool Legendre::eval (int n, Real x, Real& retval)
 {
   if (n < 1)
   {
-    std::cerr <<" *** Legendre::LegendreEval: Polynomial index "<< n
+    std::cerr <<" *** Legendre::eval: Polynomial index "<< n
               <<" out of range: n < 1"<< std::endl;
     return false;
   }
 
   if (x < -Real(1) || x > Real(1))
   {
-    std::cerr <<" *** Legendre::LegendreEval: Evaluation point "<< x
+    std::cerr <<" *** Legendre::eval: Evaluation point "<< x
               <<" out of range: [-1,1]"<< std::endl;
     return false;
   }
 
-  Vector val(n+1);
-  val(1) = Real(1);
-  val(2) = x;
+  RealArray val(n+1);
+  val[0] = Real(1);
+  val[1] = x;
   for (int i = 2; i <= n; i++)
-    val(i+1) = Real(2*i-1)/Real(i)*x*val(i) - Real(i-1)/Real(i)*val(i-1);
+    val[i] = Real(2*i-1)/Real(i)*x*val[i-1] - Real(i-1)/Real(i)*val[i-2];
 
-  retval = val(n+1);
+  retval = val.back();
   return true;
 }
 
 
-bool Legendre::LegendreDerEval (int n, Real x, Real& retval)
+bool Legendre::derEval (int n, Real x, Real& retval)
 {
   if (n < 1)
   {
-    std::cerr <<" *** Legendre::LegendreDerEval: Polynomial index "<< n
+    std::cerr <<" *** Legendre::derEval: Polynomial index "<< n
               <<" out of range: n < 1"<< std::endl;
     return false;
   }
 
   if (x < -Real(1) || x > Real(1))
   {
-    std::cerr <<" *** Legendre::LegendreDerEval: Evaluation point "<< x
+    std::cerr <<" *** Legendre::derEval: Evaluation point "<< x
               <<" out of range: [-1,1]"<< std::endl;
     return false;
   }
 
   if (x == Real(1) || x == -Real(1))
   {
-    retval = pow(x,n-1)*Real(n)*Real(n+1)/Real(2);
+    retval = pow(x,Real(n-1))*Real(n)*Real(n+1)/Real(2);
     return true;
   }
 
-  Vector val(n+1);
-  val(1) = Real(1);
-  val(2) = x;
+  RealArray val(n+1);
+  val[0] = Real(1);
+  val[1] = x;
   for (int i = 2; i <= n; i++)
-    val(i+1) = Real(2*i-1)/Real(i)*x*val(i) - Real(i-1)/Real(i)*val(i-1);
+    val[i] = Real(2*i-1)/Real(i)*x*val[i-1] - Real(i-1)/Real(i)*val[i-2];
 
-  retval = Real(n)/(Real(1)-x*x)*val(n) - Real(n)*x/(Real(1)-x*x)*val(n+1);
+  retval = Real(n)/(Real(1)-x*x)*val[n-1] - Real(n)*x/(Real(1)-x*x)*val[n];
   return true;
 }
 
@@ -178,8 +178,8 @@ bool Legendre::basisDerivatives (int n, Matrix& D)
         D(i,j) = Real(0);
       else
       {
-        if (!LegendreEval(n-1,p(i),l1)) return false;
-        if (!LegendreEval(n-1,p(j),l2)) return false;
+        if (!Legendre::eval(n-1,p(i),l1)) return false;
+        if (!Legendre::eval(n-1,p(j),l2)) return false;
         D(i,j) = l1/(l2*(p(i)-p(j)));
       }
 
