@@ -32,6 +32,7 @@
 #include "SplineUtils.h"
 #include "Utilities.h"
 #include "Profiler.h"
+#include "Function.h"
 #include "Vec3Oper.h"
 #include <array>
 #include <fstream>
@@ -343,6 +344,54 @@ bool ASMu2D::checkElementSize (int elmId, bool globalNum) const
 }
 
 
+void ASMu2D::extendRefinementDomain (IntSet& refineIndices,
+                                     const IntSet& neighborIndices) const
+{
+  // OPTIMIZATION NOTE: If we by some clever data structures already knew
+  // which edge each node in conformingIndices was on, then we don't have
+  // to brute-force search for it like we do here.
+  // getBoundaryNodes() seems to compute this, but it is only for
+  // the sending patch boundary index, not the recieving patch boundary index.
+
+  IntVec              bndry0;
+  std::vector<IntVec> bndry1(4);
+  for (int i = 0; i < 4; i++)
+  {
+    bndry0.push_back(this->getCorner((i%2)*2-1, (i/2)*2-1, 1));
+    this->getBoundaryNodes(1+i, bndry1[i], 1, 1, 0, true);
+  }
+
+  // Add refinement from neighbors
+  for (int j : neighborIndices)
+  {
+    bool done_with_this_node = false;
+
+    // Check if node is a corner node,
+    // compute large extended domain (all directions)
+    for (int edgeNode : bndry0)
+      if (edgeNode-1 == j)
+      {
+        IntVec secondary = this->getOverlappingNodes(j);
+        refineIndices.insert(secondary.begin(),secondary.end());
+        done_with_this_node = true;
+        break;
+      }
+
+    // Check if node is an edge node,
+    // compute small extended domain (one direction)
+    for (int edge = 0; edge < 4 && !done_with_this_node; edge++)
+      for (int edgeNode : bndry1[edge])
+        if (edgeNode-1 == j)
+        {
+          IntVec secondary = this->getOverlappingNodes(j);
+          refineIndices.insert(secondary.begin(),secondary.end());
+          done_with_this_node = true;
+          break;
+        }
+  }
+}
+
+
 bool ASMu2D::raiseOrder (int ru, int rv)
 {
   if (!tensorspline) return false;
@@ -594,7 +643,7 @@ void ASMu2D::closeEdges (int dir, int basis, int master)
 */
 
 
-std::vector<int> ASMu2D::getEdgeNodes (int edge, int basis, int orient) const
+IntVec ASMu2D::getEdgeNodes (int edge, int basis, int orient) const
 {
   size_t ofs = 1;
   for (int i = 1; i < basis; i++)
@@ -607,7 +656,7 @@ std::vector<int> ASMu2D::getEdgeNodes (int edge, int basis, int orient) const
   int v = (edge == 1 || edge == 2) ? 0 : 1;
   int u = 1-v;
   ASMunstruct::Sort(u, v, orient, edgeFunctions);
-  std::vector<int> result(edgeFunctions.size());
+  IntVec result(edgeFunctions.size());
   std::transform(edgeFunctions.begin(), edgeFunctions.end(), result.begin(),
                  [ofs](LR::Basisfunction* a) { return a->getId()+ofs; });
 
@@ -2185,11 +2234,10 @@ ASMu2D::InterfaceChecker::InterfaceChecker(const ASMu2D& pch) : myPatch(pch)
 {
   const LR::LRSplineSurface* lr = myPatch.getBasis(1);
 
-  for (auto m : lr->getAllMeshlines()) {
-    std::vector<double> isectpts(1);
-
-    for (auto m2 : lr->getAllMeshlines())
-      if (m->intersects(m2, &isectpts.back()))
+  for (LR::Meshline* m : lr->getAllMeshlines()) {
+    RealArray isectpts(1,0.0);
+    for (LR::Meshline* m2 : lr->getAllMeshlines())
+      if (m->intersects(m2,&isectpts.back()))
         isectpts.push_back(0);
 
     isectpts.pop_back();
@@ -2198,8 +2246,7 @@ ASMu2D::InterfaceChecker::InterfaceChecker(const ASMu2D& pch) : myPatch(pch)
     isectpts.erase(end,isectpts.end());
 
     // find elements where this intersection lives
-    std::vector<double> parval_left(2);
-    std::vector<double> parval_right(2);
+    RealArray parval_left(2), parval_right(2);
     double epsilon = 1e-6;
     for(size_t i=0; i < isectpts.size()-1; i++) {
       if (m->is_spanning_u()) {
@@ -2239,10 +2286,12 @@ ASMu2D::InterfaceChecker::InterfaceChecker(const ASMu2D& pch) : myPatch(pch)
       }
     }
   }
+
   for (auto& it : intersections) {
-    std::sort(it.second.pts.begin(), it.second.pts.end());
-    auto end = std::unique(it.second.pts.begin(), it.second.pts.end());
-    it.second.pts.erase(end,it.second.pts.end());
+    RealArray& points = it.second.pts;
+    std::sort(points.begin(),points.end());
+    auto end = std::unique(points.begin(),points.end());
+    points.erase(end,points.end());
   }
 }
 
@@ -2265,15 +2314,15 @@ short int ASMu2D::InterfaceChecker::hasContribution (int iel, int, int, int) con
 }
 
 
-std::vector<double> ASMu2D::InterfaceChecker::getIntersections(int iel, int edge,
-                                                               int* cont) const
+RealArray ASMu2D::InterfaceChecker::getIntersections (int iel, int edge,
+                                                      int* cont) const
 {
   auto it = intersections.find((iel-1)*16 + edge);
-  if (it != intersections.end()) {
-    if (cont)
-      *cont = it->second.continuity;
-    return it->second.pts;
-  }
+  if (it == intersections.end())
+    return RealArray();
 
-  return std::vector<double>();
+  if (cont)
+    *cont = it->second.continuity;
+
+  return it->second.pts;
 }

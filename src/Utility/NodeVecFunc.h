@@ -15,7 +15,6 @@
 #define _NODE_VEC_FUNC_H
 
 #include "Function.h"
-#include "Vec3Oper.h"
 #include <map>
 
 class SIMbase;

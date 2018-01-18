@@ -33,13 +33,12 @@ namespace LR //! Utilities for LR-splines.
     options[0] is the beta percentage of elements to refine,
     options[1] is the knotline multiplicity (default 1),
     options[2] is the refinement scheme (default 0),
-    (FULLSPAN=0, MINSPAN=1, ISOTROPIC ELEMENTS=2, ISOTROPIC FUNCTIONS=3),
-    options[3] is the symmetry, i.e., always refine a multiple of this value,
-    options[4] is nonzero if testing for linear independence at all iterations,
-    options[5] is the maximum number of T-joints allowed in the model,
-    options[6] is the maximum allowed parametric aspect ratio of an element,
-    options[7] is one if all "gaps" are to be closed,
-    options[8] is one if using true beta.
+    (FULLSPAN=0, MINSPAN=1, ISOTROPIC_ELEMENTS=2, ISOTROPIC_FUNCTIONS=3),
+    options[3] is nonzero if testing for linear independence at all iterations,
+    options[4] is the maximum number of T-joints allowed in the model,
+    options[5] is the maximum allowed parametric aspect ratio of an element,
+    options[6] is one if all "gaps" are to be closed,
+    options[7] is one if using "true beta".
   */
   struct RefineData
   {
@@ -172,36 +171,42 @@ public:
   virtual void remapErrors(RealArray& errors, const RealArray& orig,
                            bool elemErrors = false) const = 0;
 
+  //! \brief Extends the refinement domain with information for neighbors.
+  //! \param refineIndices List of basis functions to refine
+  //! \param neighborIndices Basis functions to refine from neighbor patches
+  virtual void extendRefinementDomain(IntSet& refineIndices,
+                                      const IntSet& neighborIndices) const = 0;
+
   //! \brief Transfers Gauss point variables from old basis to this patch.
   //! \param[in] oldBasis The LR-spline basis to transfer from
-  //! \param[in] oldVars Gauss point variables associated with \a oldBasis
-  //! \param[out] newVars Gauss point variables associated with this patch.
+  //! \param[in] oldVar Gauss point variables associated with \a oldBasis
+  //! \param[out] newVar Gauss point variables associated with this patch
   //! \param[in] nGauss Number of Gauss points along a knot-span
   virtual bool transferGaussPtVars(const LR::LRSpline* oldBasis,
-                                   const RealArray& oldVars, RealArray& newVars,
+                                   const RealArray& oldVar, RealArray& newVar,
                                    int nGauss) const = 0;
   //! \brief Transfers Gauss point variables from old basis to this patch.
   //! \param[in] oldBasis The LR-spline basis to transfer from
-  //! \param[in] oldVars Gauss point variables associated with \a oldBasis
-  //! \param[out] newVars Gauss point variables associated with this patch.
+  //! \param[in] oldVar Gauss point variables associated with \a oldBasis
+  //! \param[out] newVar Gauss point variables associated with this patch
   //! \param[in] nGauss Number of Gauss points along a knot-span
   virtual bool transferGaussPtVarsN(const LR::LRSpline* oldBasis,
-                                    const RealArray& oldVars, RealArray& newVars,
+                                    const RealArray& oldVar, RealArray& newVar,
                                     int nGauss) const = 0;
   //! \brief Transfers control point variables from old basis to this patch.
   //! \param[in] oldBasis The LR-spline basis to transfer from
-  //! \param[out] newVars Gauss point variables associated with this patch.
+  //! \param[out] newVar Gauss point variables associated with this patch
   //! \param[in] nGauss Number of Gauss points along a knot-span
   virtual bool transferCntrlPtVars(const LR::LRSpline* oldBasis,
-                                   RealArray& newVars, int nGauss) const = 0;
+                                   RealArray& newVar, int nGauss) const = 0;
   //! \brief Transfers control point variables from old basis to this patch.
   //! \param[in] oldBasis The LR-spline basis to transfer from
-  //! \param[in] oldVars Control point variables associated with \a oldBasis
-  //! \param[out] newVars Gauss point variables associated with this patch.
+  //! \param[in] oldVar Control point variables associated with \a oldBasis
+  //! \param[out] newVar Gauss point variables associated with this patch
   //! \param[in] nGauss Number of Gauss points along a knot-span
-  //! \param[in] nf Number of fields to transfer
+  //! \param[in] nf Number of field components
   bool transferCntrlPtVars(LR::LRSpline* oldBasis,
-                           const RealArray& oldVars, RealArray& newVars,
+                           const RealArray& oldVar, RealArray& newVar,
                            int nGauss, int nf = 1) const;
 
   //! \brief Refines the parametrization based on a mesh density function.

@@ -15,12 +15,7 @@
 #include "SIMoptions.h"
 #include "ModelGenerator.h"
 #include "ASMstruct.h"
-#ifdef HAS_LRSPLINE
-#include "ASMu2D.h"
-#include "ASMu3D.h"
-#else
 #include "ASMunstruct.h"
-#endif
 #include "GlbL2projector.h"
 #include "LinSolParams.h"
 #include "Functions.h"
@@ -156,7 +151,7 @@ bool SIMinput::parseGeometryTag (const TiXmlElement* elem)
         else
           utl::getAttribute(set,"dimension",idim);
         if (idim > 0 && idim < 4 && utl::getAttribute(set,"closure",type,true))
-          if (type == "open") idim = -idim; // i.e. excluding its boundary
+          if (type == "open") idim = -idim; // i.e., excluding its boundary
 
         TopEntity& top = myEntitys[name];
         const TiXmlElement* item = set->FirstChildElement("item");
@@ -515,7 +510,8 @@ bool SIMinput::parse (const TiXmlElement* elem)
   if (!strcasecmp(elem->Value(),"geometry"))
     if (this->getNoParamDim() > 0 && !elem->FirstChildElement("patchfile"))
     {
-      if (myModel.empty()) {
+      if (myModel.empty())
+      {
         const TiXmlElement* part = elem->FirstChildElement("partitioning");
         for (; part; part = part->NextSiblingElement("partitioning"))
           result &= this->parseGeometryTag(part);
@@ -599,7 +595,7 @@ bool SIMinput::parseTopologySet (const TiXmlElement* elem, IntVec& patches)
     }
 
     patches.clear();
-    for (const auto& top : tit->second)
+    for (const TopItem& top : tit->second)
       if (top.idim == (short int)this->getNoParamDim())
         patches.push_back(top.patch);
     if (!patches.empty())
@@ -943,7 +939,7 @@ bool SIMinput::createPropertySet (const std::string& setName, int pc)
   }
 
   // Create the actual property objects that are used during simulation
-  for (const auto& top : tit->second)
+  for (const TopItem& top : tit->second)
     myProps.push_back(Property(Property::UNDEFINED,pc,
                                top.patch,top.idim,top.item));
 
@@ -1121,26 +1117,25 @@ bool SIMinput::refine (const LR::RefineData& prm,
     return false;
   }
 
-  // multipatch models need to pass refinement indices over patch boundaries
-  std::vector<LR::RefineData> prmloc(myModel.size(), LR::RefineData(prm));
+  // Multi-patch models need to pass refinement indices over patch boundaries
+  std::vector<LR::RefineData> prmloc(myModel.size(),LR::RefineData(prm));
   std::vector<IntSet> refineIndices(myModel.size());
   std::vector<IntSet> conformingIndices(myModel.size());
   for (size_t i = 0; i < myModel.size(); i++)
   {
-    // extract local indices from the vector of global indices
-    pch = dynamic_cast<ASMunstruct*>(myModel[i]);
-    for (int it : prm.elements) {
-      int node = myModel[i]->getNodeIndex(it+1);
-      if (node > 0)
-        refineIndices[i].insert(node-1);
-    }
+    // Extract local indices from the vector of global indices
+    int locId;
+    for (int k : prm.elements)
+      if ((locId = myModel[i]->getNodeIndex(k+1)) > 0)
+        refineIndices[i].insert(locId-1);
 
     // fetch all boundary nodes covered (may need to pass this to other patches)
+    pch = dynamic_cast<ASMunstruct*>(myModel[i]);
     IntVec bndry_nodes = pch->getBoundaryNodesCovered(refineIndices[i]);
 
     // DESIGN NOTE: It is tempting here to use patch connectivity information.
-    // However this does not account (in the general case) for cross-connections
-    // in L-shape geometries, i.e.
+    // However, this does not account (in the general case)
+    // for cross-connections in L-shape geometries, i.e.,
     //
     // +-----+
     // | #1  |
@@ -1154,131 +1149,22 @@ bool SIMinput::refine (const LR::RefineData& prm,
     // for all boundary nodes, check if these appear on other patches
     for (int k : bndry_nodes)
     {
-      bool appears_elsewhere = false;
       int globId = pch->getNodeID(k+1);
       for (size_t j = 0; j < myModel.size(); j++)
-        if (j != i)
+        if (j != i && (locId = myModel[j]->getNodeIndex(globId)) > 0)
         {
-          int locId = myModel[j]->getNodeIndex(globId);
-          if (locId > 0)
-          {
-            conformingIndices[j].insert(locId-1);
-            appears_elsewhere = true;
-          }
+          conformingIndices[j].insert(locId-1);
+          conformingIndices[i].insert(k);
         }
-      if (appears_elsewhere)
-        conformingIndices[i].insert(k);
     }
   }
 
-  for (size_t i = 0; i < myModel.size(); i++)
-  {
-    // OPTIMIZATION NOTE: if we by some clever datastructures already knew which edge
-    // each node in conformingIndices[i] was on, then we don't have to brute-force search
-    // for it like we do here. pch->getBoundaryNodes() above seem to compute this,
-    // but it is only for the sending patch boundary index, not the recieving patch boundary
-    // index.
-    if (myModel[i]->getNoParamDim() == 2) {
-      ASMu2D* lr = dynamic_cast<ASMu2D*>(myModel[i]);
-      int nedg0d = 4;
-      int nedg1d = 4;
-      IntVec              bndry0;
-      std::vector<IntVec> bndry1(nedg1d);
-      for (int j = 0; j < nedg0d; j++)
-        bndry0.push_back(lr->getCorner((j%2)*2-1, (j/2)*2-1, 1));
-      for (int j = 1; j <= nedg1d; j++)
-        lr->getBoundaryNodes(j, bndry1[j-1], 1, 1, 0, true);
-      for (int j : conformingIndices[i]) // add refinement from neighbours
-      {
-        bool done_with_this_node = false;
-
-        // check if node is a corner node, compute large extended domain (all directions)
-        for (int edgeNode : bndry0)
-          if (edgeNode-1 == j)
-          {
-            IntVec secondary = lr->getOverlappingNodes(j);
-            refineIndices[i].insert(secondary.begin(),secondary.end());
-            done_with_this_node = true;
-            break;
-          }
-
-        // check if node is an edge node, compute small extended domain (one direction)
-        for (int edge1d = 0; edge1d < nedg1d && !done_with_this_node; edge1d++)
-          for (int edgeNode : bndry1[edge1d])
-            if (edgeNode-1 == j)
-            {
-              IntVec secondary = lr->getOverlappingNodes(j);
-              refineIndices[i].insert(secondary.begin(),secondary.end());
-              done_with_this_node = true;
-              break;
-            }
-      }
-    }
-    else //volumetric models
-    {
-      ASMu3D* lr = dynamic_cast<ASMu3D*>(myModel[i]);
-      int nedg1d = 12;
-      int nedg2d =  6;
-      IntVec              bndry0;
-      std::vector<IntVec> bndry1;
-      std::vector<IntVec> bndry2(nedg2d);
-      for (int K = -1; K < 2; K += 2)
-        for (int J = -1; J < 2; J += 2)
-          for (int I = -1; I < 2; I += 2)
-            bndry0.push_back(lr->getCorner(I,J,K,1));
-      for (int j = 1; j <= nedg1d; j++)
-        bndry1.push_back(lr->getEdge(j, true, 1, 0));
-      for (int j = 1; j <= nedg2d; j++)
-        lr->getBoundaryNodes(j, bndry2[j-1], 1, 1, 0, true);
-      for (int j : conformingIndices[i]) // add refinement from neighbours
-      {
-        bool done_with_this_node = false;
-        // check if node is a corner node, compute large extended domain (all directions)
-        for (int edgeNode : bndry0)
-          if (edgeNode-1 == j)
-          {
-            IntVec secondary = lr->getOverlappingNodes(j);
-            refineIndices[i].insert(secondary.begin(),secondary.end());
-            done_with_this_node = true;
-            break;
-          }
-
-        // check if node is an edge node, compute moderate extended domain (2 directions)
-        for (int edge1d = 0; edge1d < nedg1d && !done_with_this_node; edge1d++)
-          for (int edgeNode : bndry1[edge1d])
-            if (edgeNode-1 == j)
-            {
-              int allowed_direction;
-              if (edge1d < 4)
-                allowed_direction = 6; // bin(110), allowed to grow in v- and w-direction
-              else if (edge1d < 8)
-                allowed_direction = 5; // bin(101), allowed to grow in u- and w-direction
-              else
-                allowed_direction = 3; // bin(011), allowed to grow in u- and v-direction
-              IntVec secondary = lr->getOverlappingNodes(j, allowed_direction);
-              refineIndices[i].insert(secondary.begin(),secondary.end());
-              done_with_this_node = true;
-              break;
-            }
-
-        // check if node is a face node, compute small extended domain (1 direction)
-        for (int edge2d = 0; edge2d < nedg2d && !done_with_this_node; edge2d++)
-          for (int edgeNode : bndry2[edge2d])
-            if (edgeNode-1 == j)
-            {
-              IntVec secondary = lr->getOverlappingNodes(j, (1<<edge2d/2));
-              refineIndices[i].insert(secondary.begin(), secondary.end());
-              done_with_this_node = true;
-              break;
-            }
-      }
-    } // end volumetric
-  }
   Vectors lsols;
   lsols.reserve(sol.size()*myModel.size());
   for (size_t i = 0; i < myModel.size(); i++)
   {
     pch = dynamic_cast<ASMunstruct*>(myModel[i]);
+    pch->extendRefinementDomain(refineIndices[i],conformingIndices[i]);
     LR::RefineData prmloc(prm);
     prmloc.elements = IntVec(refineIndices[i].begin(),refineIndices[i].end());
     char patchName[256];
@@ -1314,7 +1200,7 @@ bool SIMinput::setInitialCondition (SIMdependency* fieldHolder,
   std::map<std::string,PatchVec> basisMap;
 
   // Loop over the initial conditions
-  for (const auto& it : info)
+  for (const ICInfo& it : info)
   {
     // Do we have this field?
     Vector* field = fieldHolder->getField(it.sim_field);
@@ -1382,7 +1268,7 @@ bool SIMinput::setInitialConditions (SIMdependency* fieldHolder)
   for (const auto& it : myICs)
     if (it.first != "nofile")
       result &= this->setInitialCondition(fieldHolder,it.first,it.second);
-    else for (const auto& ic : it.second)
+    else for (const ICInfo& ic : it.second)
     {
       // Do we have this field?
       Vector* field = fieldHolder->getField(ic.sim_field);
@@ -1405,7 +1291,7 @@ bool SIMinput::setInitialConditions (SIMdependency* fieldHolder)
 bool SIMinput::hasIC (const std::string& name) const
 {
   for (const auto& it : myICs)
-    for (const auto& ic : it.second)
+    for (const ICInfo& ic : it.second)
       if (ic.sim_field.find(name) == 0)
         return true;
 

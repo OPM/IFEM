@@ -14,7 +14,7 @@
 #include "NodeVecFunc.h"
 #include "SIMbase.h"
 #include "ASMbase.h"
-#include "Vec3.h"
+#include "Vec3Oper.h"
 
 
 bool NodeVecFunc::isZero () const

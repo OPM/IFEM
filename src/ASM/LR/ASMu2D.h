@@ -56,20 +56,21 @@ public:
     //! \brief Get intersections for a given element edge.
     //! \param iel Element index (1-based)
     //! \param edge Edge to get intersections for (1..4)
-    //! \param cont If not nullpt, intersection continuity is given here
-    std::vector<double> getIntersections(int iel, int edge, int* cont=nullptr) const;
+    //! \param cont If not null, the intersection continuity is given here
+    RealArray getIntersections(int iel, int edge, int* cont=nullptr) const;
   protected:
     const ASMu2D& myPatch; //!< Reference to the patch being integrated
 
     //! \brief Struct describing an intersection of mesh lines.
     struct Intersection {
-      int continuity; //!< Continuity across intersection
+      int continuity = 0; //!< Continuity across intersection
       std::vector<double> pts; //!< Intersection points
     };
 
-    //! \brief Intersections for elements. Key: element << 4 + edge (1..4)
+    //! Intersections for elements. Key: element << 4 + edge (1..4).
     std::map<int,Intersection> intersections;
   };
+
   //! \brief Default constructor.
   ASMu2D(unsigned char n_s = 2, unsigned char n_f = 2);
   //! \brief Copy constructor.
@@ -427,28 +428,28 @@ public:
 
   //! \brief Transfers Gauss point variables from old basis to this patch.
   //! \param[in] old_basis The LR-spline basis to transfer from
-  //! \param[in] oldVars Gauss point variables associated with \a oldBasis
-  //! \param[out] newVars Gauss point variables associated with this patch.
+  //! \param[in] oldVar Gauss point variables associated with \a oldBasis
+  //! \param[out] newVar Gauss point variables associated with this patch
   //! \param[in] nGauss Number of Gauss points along a knot-span
   virtual bool transferGaussPtVars(const LR::LRSpline* old_basis,
-                                   const RealArray& oldVars, RealArray& newVars,
+                                   const RealArray& oldVar, RealArray& newVar,
                                    int nGauss) const;
   //! \brief Transfers Gauss point variables from old basis to this patch.
   //! \param[in] old_basis The LR-spline basis to transfer from
-  //! \param[in] oldVars Gauss point variables associated with \a oldBasis
-  //! \param[out] newVars Gauss point variables associated with this patch.
+  //! \param[in] oldVar Gauss point variables associated with \a oldBasis
+  //! \param[out] newVar Gauss point variables associated with this patch
   //! \param[in] nGauss Number of Gauss points along a knot-span
   virtual bool transferGaussPtVarsN(const LR::LRSpline* old_basis,
-                                    const RealArray& oldVars, RealArray& newVars,
+                                    const RealArray& oldVar, RealArray& newVar,
                                     int nGauss) const;
 
   using ASMunstruct::transferCntrlPtVars;
   //! \brief Transfers control point variables from old basis to this patch.
   //! \param[in] old_basis The LR-spline basis to transfer from
-  //! \param[out] newVars Gauss point variables associated with this patch.
+  //! \param[out] newVar Gauss point variables associated with this patch
   //! \param[in] nGauss Number of Gauss points along a knot-span
   virtual bool transferCntrlPtVars(const LR::LRSpline* old_basis,
-                                   RealArray& newVars, int nGauss) const;
+                                   RealArray& newVar, int nGauss) const;
 
 protected:
 
@@ -524,6 +525,12 @@ protected:
   //! \param[in] elemErrors If true, map to elements instead of basis functions
   virtual void remapErrors(RealArray& errors,
                            const RealArray& origErr, bool elemErrors) const;
+
+  //! \brief Extends the refinement domain with information for neighbors.
+  //! \param refineIndices List of basis functions to refine
+  //! \param neighborIndices Basis functions to refine from neighbor patches
+  virtual void extendRefinementDomain(IntSet& refineIndices,
+                                      const IntSet& neighborIndices) const;
 
 public:
   //! \brief Returns the number of elements on a boundary.
