@@ -1,35 +1,47 @@
-#include "LagrangeInterpolator.h"
-#include <cstddef>
+// $Id$
+//==============================================================================
+//!
+//! \file LagrangeInterpolator.C
+//!
+//! \date Feb 12 2016
+//!
+//! \author Arne Morten Kvarving / SINTEF
+//!
+//! \brief Utilities for Lagrange interpolation.
+//!
+//==============================================================================
 
-static double Lagrange(double x, size_t nr,
-                       const std::vector<double>& grid)
+#include "LagrangeInterpolator.h"
+
+
+Real LagrangeInterpolator::evaluate (Real x, size_t nr) const
 {
-  double result = 1.0;
-  for (size_t j = 0; j< grid.size(); ++j) {
+  Real result = Real(1);
+  for (size_t j = 0; j < grid.size(); j++)
     if (j != nr)
       result *= (x-grid[j])/(grid[nr]-grid[j]);
-  }
 
   return result;
 }
 
 
-double LagrangeInterpolator::evaluate(double x,
-                                      const std::vector<double>& data)
+Real LagrangeInterpolator::interpolate (Real x,
+                                        const std::vector<Real>& data) const
 {
-  double result = 0.0;
-  for (size_t i = 0; i < data.size(); ++i)
-    result += data[i]*Lagrange(x, i, grid);
+  Real result = Real(0);
+  for (size_t i = 0; i < data.size(); i++)
+    result += data[i]*this->evaluate(x,i);
 
   return result;
 }
 
-Matrix LagrangeInterpolator::get(const std::vector<double>& new_grid)
+
+utl::matrix<Real> LagrangeInterpolator::get (const std::vector<Real>& xg) const
 {
-  Matrix result(new_grid.size(), grid.size());
-  for (size_t i = 0; i < grid.size(); ++i)
-    for (size_t j = 0; j < new_grid.size(); ++j)
-      result(j+1, i+1) =  Lagrange(new_grid[j], i, grid);
+  utl::matrix<Real> result(xg.size(),grid.size());
+  for (size_t i = 0; i < grid.size(); i++)
+    for (size_t j = 0; j < xg.size(); j++)
+      result(j+1,i+1) = this->evaluate(xg[j],i);
 
   return result;
 }
