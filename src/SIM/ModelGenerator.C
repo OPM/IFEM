@@ -21,6 +21,30 @@
 #include <array>
 
 
+/*!
+  \brief Static helper adding knot vectors to a g2 definition.
+  \param g2 The string to add knot vectors to
+  \param[in] num The number of knot vectors to add
+  \param[in] geo XML element describing geometry
+*/
+
+static void AddKnots(std::string& g2, size_t num, const TiXmlElement* geo)
+{
+  std::string min = "umin", max = "umax";
+  std::stringstream str;
+  for (size_t i = 0; i < num; ++i, ++min[0], ++max[0]) {
+    double pmin = 0.0, pmax = 1.0;
+    if (utl::getAttribute(geo,min.c_str(),pmin) |
+        utl::getAttribute(geo,max.c_str(),pmax))
+      IFEM::cout <<"\n\t" << min[0] << " = ["<< pmin << ","<< pmax <<"]";
+
+    str << "\n2 2\n" << pmin << " " << pmin << " " << pmax << " " << pmax;
+  }
+  g2.append(str.str());
+  g2.append("\n");
+}
+
+
 bool ModelGenerator::topologySets () const
 {
   bool sets = false;
@@ -49,7 +73,8 @@ std::string DefaultGeometry1D::createG2 (int nsd) const
   if (rational)
     IFEM::cout <<"\n\tRational basis.";
   g2.append(rational ? " 1" : " 0");
-  g2.append("\n2 2\n0 0 1 1\n");
+
+  AddKnots(g2, 1, geo);
 
   unsigned char d;
   std::string X0("0"), X1("1");
@@ -118,7 +143,8 @@ std::string DefaultGeometry2D::createG2 (int nsd) const
   if (rational)
     IFEM::cout <<"\n\tRational basis.";
   g2.append(rational ? " 1" : " 0");
-  g2.append("\n2 2\n0 0 1 1\n2 2\n0 0 1 1");
+
+  AddKnots(g2, 2, geo);
 
   Vec3 X0;
   std::string corner;
@@ -141,7 +167,7 @@ std::string DefaultGeometry2D::createG2 (int nsd) const
   Ly *= scale;
 
   std::stringstream str;
-  str <<"\n"<< X0.x <<" "<< X0.y;
+  str << X0.x <<" "<< X0.y;
   if (nsd > 2) str <<" 0.0";
   if (rational) str <<" 1.0";
   g2.append(str.str());
@@ -197,10 +223,9 @@ std::string DefaultGeometry3D::createG2 (int) const
   utl::getAttribute(geo,"rational",rational);
   if (rational)
     IFEM::cout <<"\n\tRational basis.";
-  g2.append(rational ? "1\n" : "0\n");
-  g2.append("2 2\n0 0 1 1\n"
-            "2 2\n0 0 1 1\n"
-            "2 2\n0 0 1 1\n");
+  g2.append(rational ? "1" : "0");
+
+  AddKnots(g2, 3, geo);
 
   std::array<double,24> nodes =
     {{ 0.0, 0.0, 0.0,
@@ -281,7 +306,7 @@ TopologySet DefaultGeometry3D::createTopologySets (const SIMinput&) const
       result[edge].insert(TopItem(1,i,1));
       result["Frame"].insert(TopItem(1,i,1));
       if (i == 9)
-	edge = "Edge1/"; // '/' + 1 == '0'
+        edge = "Edge1/"; // '/' + 1 == '0'
     }
 
     std::string vert = "Vertex1";
