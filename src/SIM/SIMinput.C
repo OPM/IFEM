@@ -1402,6 +1402,41 @@ IntVec SIMinput::getFunctionsForElements (const IntVec& elements)
 }
 
 
+/*!
+  Refines all elements for which refC(X0) < refTol,
+  where X0 is the element center.
+*/
+
+int SIMinput::refine (const RealFunc& refC, double refTol)
+{
+  IntVec elements;
+  ASMunstruct* uspch = nullptr;
+  for (ASMbase* pch : myModel)
+    if ((uspch = dynamic_cast<ASMunstruct*>(pch)))
+      for (size_t iel = 1; iel <= pch->getNoElms(true); iel++)
+        if (refC(uspch->getElementCenter(iel)) < refTol)
+          elements.push_back(pch->getElmID(iel)-1);
+
+  if (elements.empty())
+    return 0; // no refinement
+
+  LR::RefineData prm(true);
+  prm.options = { 10, 1, 2, 0, nGlPatches > 1 ? -1 : 1 };
+  prm.elements = this->getFunctionsForElements(elements);
+  if (!this->refine(prm))
+    return -1;
+
+  // Must regenerate the MLGE arrays here, in case of multi-level refinement,
+  // since needed by the getFunctionsForElements() method above
+  ASMbase::resetNumbering();
+  for (ASMbase* pch : myModel)
+    if (!pch->generateFEMTopology())
+      return -2;
+
+  return isRefined;
+}
+
+
 bool SIMinput::refine (const LR::RefineData& prm)
 {
   Vectors svec;

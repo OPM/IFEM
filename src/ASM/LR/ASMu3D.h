@@ -154,10 +154,6 @@ public:
   //! \param[in] dir Parameter direction to refine
   //! \param[in] xi Relative positions of added knots in each existing knot span
   virtual bool refine(int dir, const RealArray& xi);
-  //! \brief Refines the parametrization based on a mesh density function.
-  //! \param[in] refC Mesh refinement criteria function
-  //! \param[in] refTol Mesh refinement threshold
-  virtual bool refine(const RealFunc& refC, double refTol);
   //! \brief Refines the mesh adaptively.
   //! \param[in] prm Input data used to control the mesh refinement
   //! \param sol Control point results values that are transferred to new mesh

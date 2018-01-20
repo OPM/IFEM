@@ -175,6 +175,13 @@ public:
   //! \param[in] sol Vectors to interpolate onto refined mesh
   bool refine(const LR::RefineData& prm, Vectors& sol);
 
+  //! \brief Refines the mesh based on a mesh density function.
+  //! \param[in] refC Mesh refinement criteria function
+  //! \param[in] refTol Mesh refinement threshold
+  //! \return Positive value on refinement, negative value on error,
+  //! zero if no elements are refined
+  int refine(const RealFunc& refC, double refTol);
+
   //! \brief Reads patches from given input stream.
   //! \param[in] isp The input stream to read from
   //! \param[in] whiteSpace For message formatting

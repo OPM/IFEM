@@ -296,34 +296,6 @@ bool ASMu2D::refine (int dir, const RealArray& xi, double scale)
 }
 
 
-/*!
-  Refines all elements for which refC(X0) < refTol,
-  where X0 is the element center.
-*/
-
-bool ASMu2D::refine (const RealFunc& refC, double refTol)
-{
-  Go::Point X0;
-  int iel = 0;
-  IntVec elements;
-  for (const LR::Element* elm : lrspline->getAllElements())
-  {
-    double u0 = 0.5*(elm->umin() + elm->umax());
-    double v0 = 0.5*(elm->vmin() + elm->vmax());
-    lrspline->point(X0,u0,v0);
-    if (refC(SplineUtils::toVec3(X0,nsd)) < refTol)
-      elements.push_back(iel);
-    ++iel;
-  }
-
-  Vectors dummySol;
-  LR::RefineData prm(true);
-  prm.options = { 10, 1, 2 };
-  prm.elements = this->getFunctionsForElements(elements);
-  return this->refine(prm,dummySol);
-}
-
-
 double ASMu2D::getMinimumSize (int nrefinements) const
 {
   if (aMin > 0.0 || lrspline->nElements() <= 0)

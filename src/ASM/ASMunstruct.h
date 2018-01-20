@@ -79,11 +79,6 @@ public:
   virtual void remapErrors(RealArray& errors, const RealArray& orig,
                            bool = false) const { errors = orig; }
 
-  //! \brief Refines the parametrization based on a mesh density function.
-  //! \param[in] refC Mesh refinement criteria function
-  //! \param[in] refTol Mesh refinement threshold
-  virtual bool refine(const RealFunc& refC, double refTol) = 0;
-
   //! \brief Returns all boundary functions that are covered by the given nodes.
   virtual IntVec getBoundaryCovered(const IntSet&) const { return IntVec(); }
   //! \brief Extends the refinement domain with information for neighbors.
