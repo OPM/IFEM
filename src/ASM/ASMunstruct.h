@@ -89,6 +89,9 @@ public:
   //! \brief Extends the refinement domain with information for neighbors.
   virtual void extendRefinementDomain(IntSet&, const IntSet&) const {}
 
+  //! \brief Returns the coordinates of the element center.
+  virtual Vec3 getElementCenter(int iel) const = 0;
+
   //! \brief Stores the mesh basis to encapsulated postscript files.
   //! \param[in] fName Prefix for file names
   //! \param[in] fType Flag telling which file type(s) to write (15 means all)

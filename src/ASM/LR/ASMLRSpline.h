@@ -175,6 +175,9 @@ public:
   //! \brief Finds the node that is closest to the given point \b X.
   virtual std::pair<size_t,double> findClosestNode(const Vec3& X) const;
 
+  //! \brief Returns the coordinates of the element center.
+  virtual Vec3 getElementCenter(int iel) const;
+
 protected:
   //! \brief Refines the mesh adaptively.
   //! \param[in] prm Input data used to control the mesh refinement

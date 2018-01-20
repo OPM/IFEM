@@ -114,6 +114,9 @@ public:
   //! \brief Updates the previous nodal rotations for this patch at convergence.
   void updateRotations() { prevT = myT; }
 
+  //! \brief Returns the coordinate of the element center.
+  virtual Vec3 getElementCenter(int iel) const;
+
   //! \brief Finds the global (or patch-local) node number on a patch end.
   //! \param[in] lIndex Local index of the end point
   //! \param nodes Array of global boundary node numbers

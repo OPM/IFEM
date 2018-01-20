@@ -447,6 +447,30 @@ std::pair<size_t,double> ASMLRSpline::findClosestNode (const Vec3& X) const
 }
 
 
+Vec3 ASMLRSpline::getElementCenter (int iel) const
+{
+#ifdef INDEX_CHECK
+  if (iel < 1 || iel > geo->nElements())
+  {
+    std::cerr <<" *** ASMLRSpline::getElementCenter: Element index "<< iel
+              <<" out of range [1,"<< geo->nElements() <<"]."<< std::endl;
+    return Vec3();
+  }
+#endif
+
+  double u0[3] = { 0.0, 0.0, 0.0 };
+  LR::Element* elm = geo->getElement(iel-1);
+  for (unsigned char d = 0; d < ndim; d++)
+    u0[d] = 0.5*(elm->getParmin(d) + elm->getParmax(d));
+
+  Vec3 XC;
+  if (this->evalPoint(iel-1,u0,XC) < 0)
+    std::cerr <<" *** ASMLRSpline::getElementCenter: Failed for element "
+              << iel << std::endl;
+  return XC;
+}
+
+
 bool ASMLRSpline::checkThreadGroups (const IntMat& groups,
                                      const std::vector<const LR::LRSpline*> bases,
                                      const LR::LRSpline* threadBasis)

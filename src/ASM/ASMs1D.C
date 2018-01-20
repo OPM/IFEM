@@ -807,6 +807,19 @@ bool ASMs1D::updateRotations (const Vector& displ, bool reInit)
 }
 
 
+Vec3 ASMs1D::getElementCenter (int iel) const
+{
+  Vec3 X0;
+  if (curv)
+  {
+    double u[2];
+    this->getElementBorders(iel,u);
+    SplineUtils::point(X0,0.5*(u[0]+u[1]),curv);
+  }
+  return X0;
+}
+
+
 void ASMs1D::getBoundaryNodes (int lIndex, IntVec& nodes,
                                int, int thick, int, bool local) const
 {
