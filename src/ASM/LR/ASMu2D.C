@@ -1038,7 +1038,7 @@ double ASMu2D::getElementCorners (int iel, Vec3Vec& XC,
   for (int i = 0; i < 4; i++)
   {
     double xi[2] = { u[i], v[i] };
-    if (this->evalPoint(xi,nullptr,XC[i]) < 0)
+    if (this->evalPoint(iel-1,xi,XC[i]) < 0)
       return 0.0;
     else if (uC)
     {
@@ -1203,7 +1203,7 @@ bool ASMu2D::integrate (Integrand& integrand,
         // Compute the element center
         param[0] = 0.5*(gpar[0].front() + gpar[0].back());
         param[1] = 0.5*(gpar[1].front() + gpar[1].back());
-        if (this->evalPoint(param,nullptr,X) < 0)
+        if (this->evalPoint(iel-1,param,X) < 0)
           ok = false;
       }
 
@@ -1901,24 +1901,32 @@ int ASMu2D::evalPoint (const double* xi, double* param, Vec3& X) const
 {
   if (!lrspline) return -2;
 
-  FiniteElement fe;
+  double u[2];
   if (param)
-  {
-    fe.u = (1.0-xi[0])*lrspline->startparam(0) + xi[0]*lrspline->endparam(0);
-    fe.v = (1.0-xi[1])*lrspline->startparam(1) + xi[1]*lrspline->endparam(1);
-    param[0] = fe.u;
-    param[1] = fe.v;
-  }
+    for (int i = 0; i < 2; i++)
+    {
+      u[i] = (1.0-xi[i])*lrspline->startparam(i) + xi[i]*lrspline->endparam(i);
+      param[i] = u[i];
+    }
   else
   {
-    fe.u = xi[0];
-    fe.v = xi[1];
+    u[0] = xi[0];
+    u[1] = xi[1];
   }
 
   int iel;
 #pragma omp critical
-  iel = lrspline->getElementContaining(fe.u,fe.v);
+  iel = lrspline->getElementContaining(u[0],u[1]);
 
+  return this->evalPoint(iel,u,X);
+}
+
+
+int ASMu2D::evalPoint (int iel, const double* param, Vec3& X) const
+{
+  FiniteElement fe;
+  fe.u = param[0];
+  fe.v = param[1];
   if (!this->evaluateBasis(iel,fe))
     return -1;
 
@@ -1991,10 +1999,11 @@ bool ASMu2D::tesselate (ElementBlock& grid, const int* npe) const
       for (int iu = 0; iu < npe[0]; iu++, inod++) {
         Vec3 Xpt;
         double U[2] = { umin + du*iu, vmin + dv*iv };
-        if (this->evalPoint(U,nullptr,Xpt) >= 0)
+        if (this->evalPoint(iel, U, Xpt) >= 0)
           grid.setCoor(inod, Xpt);
         grid.setParams(inod, U[0], U[1]);
       }
+    ++iel;
   }
 
   int iStart = iel = inod = 0;
@@ -2593,7 +2602,7 @@ bool ASMu2D::transferCntrlPtVars (const LR::LRSpline* old_basis,
     for (int j = 0; j < nGauss; j++)
       for (int i = 0; i < nGauss; i++)
       {
-        oldBasis->point(ptVar,U[i],V[j]);
+        oldBasis->point(ptVar,U[i],V[j],iel-1);
         newVars.insert(newVars.end(),ptVar.begin(),ptVar.end());
       }
   }

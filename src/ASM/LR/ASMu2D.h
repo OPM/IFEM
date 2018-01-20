@@ -605,6 +605,14 @@ protected:
   virtual void computeBasis(double u, double v,
                             Go::BasisDerivsSf3& bas, int iel) const;
 
+  //! \brief Evaluates the geometry at a specified point.
+  //! \param[in] iel 0-based local element index
+  //! \param[in] param The (u,v) parameters of the point in knot-span domain
+  //! \param[out] X The Cartesian coordinates of the point
+  //! \return Local node number within the patch that matches the point, if any
+  //! \return 0 if no node (control point) matches this point
+  virtual int evalPoint(int iel, const double* param, Vec3& X) const;
+
   using ASMLRSpline::generateThreadGroups;
   //! \brief Generates element groups for multi-threading of interior integrals.
   //! \param[in] integrand Object with problem-specific data and methods

@@ -1061,7 +1061,7 @@ bool ASMu3D::integrate (Integrand& integrand,
         double v0 = 0.5*(el->getParmin(1) + el->getParmax(1));
         double w0 = 0.5*(el->getParmin(2) + el->getParmax(2));
 #pragma omp critical
-        lrspline->point(X0,u0,v0,w0);
+        lrspline->point(X0,u0,v0,w0,iel-1);
         X = SplineUtils::toVec3(X0);
       }
 
@@ -1476,13 +1476,19 @@ int ASMu3D::evalPoint (const double* xi, double* param, Vec3& X) const
 {
   if (!lrspline) return -3;
 
-  int i;
-  for (i = 0; i < 3; i++)
+  for (int i = 0; i < 3; i++)
     param[i] = (1.0-xi[i])*lrspline->startparam(i) + xi[i]*lrspline->endparam(i);
 
+  int iel = 0;
+  return this->evalPoint(iel,param,X);
+}
+
+
+int ASMu3D::evalPoint (int, const double* param, Vec3& X) const
+{
   Go::Point X0;
   lrspline->point(X0,param[0],param[1],param[2]);
-  for (i = 0; i < 3 && i < lrspline->dimension(); i++)
+  for (int i = 0; i < 3 && i < lrspline->dimension(); i++)
     X[i] = X0[i];
 
   return 0;
@@ -2290,9 +2296,8 @@ bool ASMu3D::transferCntrlPtVars (const LR::LRSpline* old_basis,
       for (int j = 0; j < nGauss; j++)
         for (int i = 0; i < nGauss; i++)
         {
-          oldBasis->point(ptVar,U[i],V[j],W[k]);
-          for (size_t l = 0; l < ptVar.size(); l++)
-            newVars.push_back(ptVar[l]);
+          oldBasis->point(ptVar,U[i],V[j],W[k],iel-1);
+          newVars.insert(newVars.end(),ptVar.begin(),ptVar.end());
         }
   }
 

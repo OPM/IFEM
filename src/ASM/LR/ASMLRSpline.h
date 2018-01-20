@@ -181,6 +181,9 @@ protected:
   //! \param lrspline The spline to perform adaptation for
   bool doRefine(const LR::RefineData& prm, LR::LRSpline* lrspline);
 
+  //! \brief Evaluates the geometry at a specified point.
+  virtual int evalPoint(int iel, const double* param, Vec3& X) const = 0;
+
   //! \brief Santity check thread groups.
   //! \param groups The generated thread groups
   //! \param bases The bases to check for
