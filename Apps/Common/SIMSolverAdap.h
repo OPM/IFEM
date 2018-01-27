@@ -80,7 +80,7 @@ public:
   virtual bool read(const char* file) { return this->SIMadmin::read(file); }
 
   //! \brief Solves the problem on a sequence of adaptively refined meshes.
-  virtual int solveProblem(char* infile, const char* = nullptr, bool = false)
+  virtual int solveProblem(char* infile, const char* = nullptr)
   {
     if (!aSim.initAdaptor())
       return 1;
@@ -138,9 +138,7 @@ class SIMSolverAdapInternal : public SIMSolverStat<T1>
 {
 public:
   //! \brief The constructor forwards to the parent class constructor.
-  explicit SIMSolverAdapInternal(T1& s1) : SIMSolverStat<T1>(s1)
-  {
-  }
+  explicit SIMSolverAdapInternal(T1& s1) : SIMSolverStat<T1>(s1) {}
 
   //! \brief Empty destructor.
   virtual ~SIMSolverAdapInternal() {}
@@ -149,11 +147,8 @@ public:
   bool read(const char* file) override { return this->SIMadmin::read(file); }
 
   //! \brief Solves the problem on a sequence of adaptively refined meshes.
-  int solveProblem(char* infile, const char* = nullptr, bool = false) override
+  int solveProblem(char* infile, const char* = nullptr) override
   {
-    // Save FE model to VTF and HDF5 for visualization
-    // Optionally save the initial configuration also
-
     if (!this->S1.initAdapPrm())
       return 1;
 

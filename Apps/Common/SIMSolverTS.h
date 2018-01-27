@@ -35,6 +35,8 @@ public:
   {
     nForward = nPredict = maxPred = 1;
     maxRef = 2;
+    preRef = 0;
+    refTol = 0.0;
     minFrac = 0.1;
     aStart = beta = -1.0;
     dumpGrid = 0;
@@ -43,16 +45,35 @@ public:
   //! \brief Empty destructor.
   virtual ~SIMSolverTS() {}
 
-  //! \brief Solves the problem up to the final time.
-  virtual int solveProblem(char* infile, const char* heading, bool saveInit)
+  //! \brief Reads solver data from the specified input file.
+  virtual bool read(const char* file)
   {
-    // Perform some initial refinement to resolve geometric features, etc.
-    if (!this->S1.initialRefine(beta,minFrac,maxRef))
-      return 4;
+    if (!this->SIMadmin::read(file))
+      return false;
+    else if (preRef < 1)
+      return true;
+
+    // Perform some pre-refinement to resolve geometric features, etc.
+    return this->S1.preRefine(maxRef,preRef,refTol);
+  }
+
+  //! \brief Solves the problem up to the final time.
+  virtual int solveProblem(char* infile, const char* heading)
+  {
+    if (this->tp.step == 0)
+    {
+      // Perform some initial refinement to resolve geometric features, etc.
+      if (maxRef > preRef && !this->S1.initialRefine(beta,minFrac,maxRef))
+        return 4;
+
+      // Dump the initial (refined) mesh
+      if (maxRef > preRef || preRef > 0)
+        this->dumpMesh(infile,false);
+    }
 
     // Save the initial FE model (and state) to VTF and HDF5 for visualization
     int geoBlk = 0, nBlock = 0;
-    if (!this->saveState(geoBlk,nBlock,true,infile,saveInit))
+    if (!this->saveState(geoBlk,nBlock,true,infile,preRef<1))
       return 2;
 
     this->printHeading(heading);
@@ -94,6 +115,8 @@ public:
 
         if (maxPred > 0 && this->S1.stopped())
           break; // Terminated due to other user-criterion
+        else if (this->tp.finished())
+          break; // Stop time reached
 
         // Adapt the mesh based on current solution, and
         // transfer the old solution variables onto the new mesh
@@ -107,7 +130,7 @@ public:
 
       if (lastRef < 0)
         return 4; // Something went wrong, bailing
-      else if (refElms == 0 && !this->tp.finished())
+      else if (refElms == 0 && !this->tp.finished() && !this->S1.stopped())
         IFEM::cout <<"  No refinement, resume from current state"<< std::endl;
 
       if (lastRef == 0 && maxPred > 0)
@@ -173,7 +196,23 @@ protected:
         maxPred = atoi(value);
       else if ((value = utl::getValue(child,"min_frac")))
         minFrac = atof(value);
+      else if ((value = utl::getValue(child,"prerefine")))
+      {
+        if (utl::getAttribute(child,"levels",preRef))
+          this->S1.parsePreref(child);
+        else
+          preRef = atoi(value);
+        utl::getAttribute(child,"tol",refTol);
+      }
+      else if (!strcasecmp(child->Value(),"prerefine"))
+      {
+        utl::getAttribute(child,"levels",preRef);
+        utl::getAttribute(child,"tol",refTol);
+      }
 
+    if (preRef > 0)
+      IFEM::cout <<"\tNumber of pre-refinement cycles: "<< preRef
+                 <<"\n\tPre-refinement tolerance: "<< refTol <<"\n";
     IFEM::cout <<"\tNumber of trial steps before refinement: "<< nPredict
                <<"\n\tNumber of steps between each refinement: "<< nForward
                <<"\n\tMax. number of trial cycles at refinement: "<< maxPred
@@ -210,6 +249,8 @@ private:
   size_t nPredict; //!< Number of steps to use for prediction
   int    maxPred;  //!< Maximum number of prediction cycles
   int    maxRef;   //!< Number of refinements to allow for a single element
+  int    preRef;   //!< Number of pre-refinement cycles
+  double refTol;   //!< Pre-refinement threshold
   double minFrac;  //!< Element-level refinement threshold
   double beta;     //!< Percentage of elements to refine
   double aStart;   //!< Time from where to check for mesh adaptation

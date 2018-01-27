@@ -81,8 +81,7 @@ protected:
 
 public:
   //! \brief Solves the stationary problem.
-  virtual int solveProblem(char* infile, const char* heading = nullptr,
-                           bool = false)
+  virtual int solveProblem(char* infile, const char* heading = nullptr)
   {
     // Save FE model to VTF for visualization
     int geoBlk = 0, nBlock = 0;
@@ -143,13 +142,12 @@ public:
   bool advanceStep() { return tp.increment() && this->S1.advanceStep(tp); }
 
   //! \brief Solves the problem up to the final time.
-  virtual int solveProblem(char* infile, const char* heading = nullptr,
-                           bool saveInit = true)
+  virtual int solveProblem(char* infile, const char* heading = nullptr)
   {
-    // Save FE model to VTF and HDF5 for visualization
-    // Optionally save the initial configuration also
+    // Save FE model to VTF and HDF5 for visualization.
+    // Save the initial configuration also if multi-step simulation.
     int geoBlk = 0, nBlock = 0;
-    if (!this->saveState(geoBlk,nBlock,true,infile,saveInit))
+    if (!this->saveState(geoBlk,nBlock,true,infile,tp.multiSteps()))
       return 2;
 
     this->printHeading(heading);
