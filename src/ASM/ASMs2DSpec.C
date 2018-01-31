@@ -187,7 +187,7 @@ bool ASMs2DSpec::integrate (Integrand& integrand, int lIndex,
 
   std::array<Vector,2> wg, xg;
   std::array<Matrix,2> D;
-  std::array<int,2> p({p1,p2});
+  std::array<int,2> p({{p1,p2}});
   for (int d = 0; d < 2; d++)
   {
     if (!Legendre::GLL(wg[d],xg[d],p[d])) return false;
