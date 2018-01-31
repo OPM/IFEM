@@ -86,7 +86,7 @@ bool ElementBlock::setParams (size_t i, Real u, Real v, Real w)
 {
   if (i >= params.size()) return false;
 
-  params[i] = {u,v,w};
+  params[i] = {{u,v,w}};
   return true;
 }
 

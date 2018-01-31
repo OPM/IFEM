@@ -253,6 +253,7 @@ public:
   // These are the main computational methods of the ASM class hierarchy.
   // ====================================================================
 
+  using ASMbase::integrate;
   //! \brief Evaluates an integral over the interior patch domain.
   //! \param integrand Object with problem-specific data and methods
   //! \param glbInt The integrated quantity

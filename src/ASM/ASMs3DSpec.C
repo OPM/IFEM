@@ -197,7 +197,7 @@ bool ASMs3DSpec::integrate (Integrand& integrand, int lIndex,
 
   std::array<Vector,3> xg, wg;
   std::array<Matrix,3> D;
-  std::array<int,3> p({p1,p2,p3});
+  std::array<int,3> p({{p1,p2,p3}});
   for (int d = 0; d < 3; d++)
   {
     if (!Legendre::GLL(wg[d],xg[d],p[d])) return false;

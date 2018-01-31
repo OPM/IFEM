@@ -836,7 +836,7 @@ int ASMs3DLag::evalPoint (const double* xi, double* param, Vec3& X) const
 {
   // Evaluate the parametric values of the point and nodes
   std::array<RealArray,3> u;
-  std::array<int,3> p({p1,p2,p3});
+  std::array<int,3> p({{p1,p2,p3}});
   for (int d = 0; d < 3; d++)
   {
     if (svol)
