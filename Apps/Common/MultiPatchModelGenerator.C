@@ -174,9 +174,9 @@ bool MultiPatchModelGenerator1D::createTopology (SIMinput& sim) const
   if (!sim.createFEMmodel())
     return false;
 
-  int p1,p2,p3;
+  int p1=2;
   if (subdivision)
-    sim.getPatch(1)->getOrder(p1,p2,p3);
+    sim.getPatch(1)->getOrder(p1,p1,p1);
 
   int thick = subdivision ? p1-1 : 1;
 
@@ -421,9 +421,9 @@ bool MultiPatchModelGenerator2D::createTopology (SIMinput& sim) const
 
   auto&& IJ = [this](int i, int j) { return 1 + j*nx + i; };
 
-  int p1,p2,p3;
+  int p1=2, p2=2;
   if (subdivision)
-    sim.getPatch(1)->getOrder(p1,p2,p3);
+    sim.getPatch(1)->getOrder(p1,p2,p2);
 
   auto&& thick = [p1,p2,this](int dir) { return subdivision ? dir == 1 ? p1-1 : p2-1 : 1; };
 
@@ -764,7 +764,7 @@ bool MultiPatchModelGenerator3D::createTopology (SIMinput& sim) const
 
   auto&& IJK = [this](int i, int j, int k) { return 1 + (k*ny+j)*nx + i; };
 
-  int p1,p2,p3;
+  int p1=2, p2=2, p3=2;
   if (subdivision)
     sim.getPatch(1)->getOrder(p1,p2,p3);
 
