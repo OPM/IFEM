@@ -89,7 +89,7 @@ protected:
 class NodalConstraintASMs1DHelper : public NodalConstraintASMHelper {
 public:
   //! \brief Constructor
-  //! \param pch The associated ASM class
+  //! \param spch The associated ASM class
   NodalConstraintASMs1DHelper(ASMs1D* spch) :
     NodalConstraintASMHelper(spch), pch(spch) {}
 
@@ -117,11 +117,11 @@ protected:
 class NodalConstraintASMs2DHelper : public NodalConstraintASMHelper {
 public:
   //! \brief Constructor
-  //! \param pch The associated ASM class
+  //! \param spch The associated ASM class
   NodalConstraintASMs2DHelper(ASMs2D* spch) :
     NodalConstraintASMHelper(spch), pch(spch) {}
 
-  //! \copydoc NodalConstrainASM2DHelper::getCorner
+  //! \copydoc NodalConstraintASMHelper::getCorner
   int getCorner(int vertex, int basis)
   {
     int n1, n2;
@@ -131,7 +131,7 @@ public:
     return pch->getNodeID(idxs[vertex-1]+ofs);
   }
 
-  //! \copydoc NodalConstrainASM2DHelper::constrainEdge
+  //! \copydoc NodalConstraintASMHelper::constrainEdge
   void constrainEdge(int item, int comp, int basis, int idx)
   {
     size_t ofs = getStartNode(basis);
@@ -190,7 +190,7 @@ public:
     return pch->getNodeID(idxs[vertex-1]+ofs);
   }
 
-  //! \copydoc NodalConstrainASMHelper::constrainEdge
+  //! \copydoc NodalConstraintASMHelper::constrainEdge
   void constrainEdge(int item, int comp, int basis, int idx)
   {
     size_t node = getStartNode(basis)+1;
@@ -346,6 +346,7 @@ static NodalConstraintASMHelper* get2DHelper(ASMbase* pch)
 }
 
 
+//! \brief Template specialization for 1D.
 template<> bool SIMNodalConstraint<SIM1D>::applyConstraint()
 {
   for (const auto& it3 : vertConstraints) {
@@ -372,6 +373,7 @@ template<> bool SIMNodalConstraint<SIM1D>::applyConstraint()
 }
 
 
+//! \brief Template specialization for 2D.
 template<> bool SIMNodalConstraint<SIM2D>::applyConstraint()
 {
   for (const auto& it3 : vertConstraints) {
@@ -394,6 +396,7 @@ template<> bool SIMNodalConstraint<SIM2D>::applyConstraint()
 }
 
 
+//! \brief Template specialization for 3D.
 template<> bool SIMNodalConstraint<SIM3D>::applyConstraint()
 {
   for (const auto& it3 : vertConstraints) {

@@ -20,6 +20,8 @@
 #include "IFEM.h"
 
 
+//! \brief Template specialization for 1D.
+//! \param[in] geo XML element containing geometry definition
 template<>
 ModelGenerator* SIMMultiPatchModelGen<SIM1D>::getModelGenerator(const TiXmlElement* geo) const
 {
@@ -28,6 +30,8 @@ ModelGenerator* SIMMultiPatchModelGen<SIM1D>::getModelGenerator(const TiXmlEleme
 }
 
 
+//! \brief Template specialization for 2D.
+//! \param[in] geo XML element containing geometry definition
 template<>
 ModelGenerator* SIMMultiPatchModelGen<SIM2D>::getModelGenerator(const TiXmlElement* geo) const
 {
@@ -36,6 +40,8 @@ ModelGenerator* SIMMultiPatchModelGen<SIM2D>::getModelGenerator(const TiXmlEleme
 }
 
 
+//! \brief Template specialization for 3D.
+//! \param[in] geo XML element containing geometry definition
 template<>
 ModelGenerator* SIMMultiPatchModelGen<SIM3D>::getModelGenerator(const TiXmlElement* geo) const
 {

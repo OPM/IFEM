@@ -31,6 +31,8 @@ class LinSolParams;
 class ProcessAdm;
 
 
+namespace ISTL {
+
 /*! This implements a Schur-decomposition based preconditioner for the
  *  block system
  *  [A   B]
@@ -43,8 +45,6 @@ class ProcessAdm;
  *  S = D - C*diag(A)^-1*B. The B block may be dropped.
 !*/
 
-namespace ISTL {
-
 class BlockPreconditioner : public Preconditioner {
 public:
   // define the category
@@ -55,7 +55,8 @@ public:
 
   //! \brief Constructor
   //! \param[in] A The system matrix
-  //! \param[in] dd Domain decomposition
+  //! \param[in] dd_ Domain decomposition
+  //! \param[in] schurType Type of schur decomposition to use
   BlockPreconditioner(const ISTL::Mat& A, const DomainDecomposition& dd_,
                       const std::string& schurType);
 

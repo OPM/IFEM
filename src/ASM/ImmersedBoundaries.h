@@ -15,7 +15,7 @@
 #define _IMMERSED_BOUNDARIES_H
 
 #ifndef Real
-#define Real double
+#define Real double //!< The floating point type to use
 #endif
 
 #include <vector>

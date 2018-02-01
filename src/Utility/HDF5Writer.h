@@ -32,6 +32,7 @@ class HDF5Writer : public DataWriter
 public:
   //! \brief The constructor opens a named HDF5-file.
   //! \param[in] name The name (filename without extension) of data file
+  //! \param[in] adm The process administrator
   //! \param[in] append Whether to append to or overwrite an existing file
   //! \param[in] keepopen Whether to always keep the HDF5 open
   HDF5Writer(const std::string& name, const ProcessAdm& adm, bool append = false,

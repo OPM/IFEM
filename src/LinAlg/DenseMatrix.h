@@ -199,7 +199,14 @@ private:
   bool   symm;  //!< Flags whether the matrix is symmetric or not
 };
 
+//! \brief Multiply a matrix with a scalar.
+//! \param[in] alpha Scalar value
+//! \param[in] A The matrix to scale
 DenseMatrix operator*(Real alpha, const DenseMatrix& A);
+
+//! \brief Multiply a matrix with a scalar.
+//! \param[in] A The matrix to scale
+//! \param[in] alpha Scalar value
 DenseMatrix operator*(const DenseMatrix& A, Real alpha);
 
 #endif

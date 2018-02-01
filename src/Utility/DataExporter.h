@@ -252,7 +252,7 @@ public:
   const std::string& getName() const { return m_name; }
 
   //! \brief Write restart data.
-  //! \param[in] step Level to write restart data at
+  //! \param[in] level Level to write restart data at
   //! \param[in] data Data to write
   virtual bool writeRestartData(int level, const DataExporter::SerializeData& data) = 0;
 

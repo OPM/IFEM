@@ -19,5 +19,8 @@
 std::string& replaceAll(std::string& context,
                         const std::string& from, const std::string& to);
 
+//! \brief Split a string on a given delimiter
+//! \param[in] str The string to split
+//! \param[in] delimiter Function callback for the delimiter to use
 std::vector<std::string> splitString(const std::string& str,
                                      int delimiter(int) = ::isspace);

@@ -178,10 +178,10 @@ PETScMatrix::~PETScMatrix ()
 }
 
 
-void PETScMatrix::initAssembly (const SAM& sam, bool b)
+void PETScMatrix::initAssembly (const SAM& sam, bool delayLocking)
 {
-  SparseMatrix::initAssembly(sam, b);
-  SparseMatrix::preAssemble(sam, b);
+  SparseMatrix::initAssembly(sam, delayLocking);
+  SparseMatrix::preAssemble(sam, delayLocking);
 
   const SAMpatchPETSc* samp = dynamic_cast<const SAMpatchPETSc*>(&sam);
   if (!samp)

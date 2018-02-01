@@ -823,9 +823,10 @@ bool HDF5Writer::writeRestartData(int level, const DataExporter::SerializeData& 
 }
 
 
+//! \brief A struct holding the context for a restart.
 struct read_restart_ctx {
-  HDF5Writer* w;
-  DataExporter::SerializeData* data;
+  HDF5Writer* w; //!< HDF5 reader/writer to use
+  DataExporter::SerializeData* data; //!< The serialized data
 };
 
 

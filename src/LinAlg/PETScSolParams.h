@@ -49,10 +49,14 @@ enum SchurPrec { SIMPLE, MSIMPLER, PCD };
 class PETScSolParams
 {
 public:
+  //! \brief Default constructor.
+  //! \param[in] spar The base linear solver parameters
+  //! \param[in] padm The process administrator
   PETScSolParams(const LinSolParams& spar, const ProcessAdm& padm) :
     params(spar), adm(padm)
   {}
 
+  //! \brief Destructor.
   ~PETScSolParams()
   {
     if (SPsetup)
@@ -92,9 +96,8 @@ public:
 
 protected:
   //! \brief Set directional smoother
-  //! \param[in] PC The preconditioner to add smoother for
+  //! \param[in] pc The preconditioner to add smoother for
   //! \param[in] P The preconditioner matrix
-  //! \param[in] params The block parameters
   //! \param[in] iBlock The index of the block to add smoother to
   //! \param[in] dirIndexSet The index set for the smoother
   bool addDirSmoother(PC pc, const Mat& P,
@@ -107,7 +110,7 @@ protected:
 
   //! \brief Set GAMG options
   //! \param[in] prefix The prefix of the block to set parameters for
-  //! \param[in] block The index of the block to set parameters for
+  //! \param[in] map The map of settings to use
   void setGAMGOptions(const std::string& prefix, const SettingMap& map);
 
   //! \brief Set Hypre options
@@ -116,14 +119,13 @@ protected:
   void setHypreOptions(const std::string& prefix, const SettingMap& map);
 
   //! \brief Setup the coarse solver in a multigrid
-  //! \param[in] PC The preconditioner to set coarse solver for
+  //! \param[in] pc The preconditioner to set coarse solver for
   //! \param[in] prefix The prefix of the block to set parameters for
   //! \param[in] map The settings to apply
   void setupCoarseSolver(PC& pc, const std::string& prefix, const SettingMap& map);
 
   //! \brief Setup the smoothers in a multigrid
-  //! \param[in] PC The preconditioner to set coarse solver for
-  //! \param[in] params The linear solver parameters
+  //! \param[in] pc The preconditioner to set coarse solver for
   //! \param[in] iBlock The index of the  block to set parameters for
   //! \param[in] dirIndexSet The index set for direction smoothers
   //! \param blockEqs The local equations belonging to block
@@ -133,7 +135,7 @@ protected:
 
   //! \brief Setup an additive Schwarz preconditioner
   //! \param pc The preconditioner to set coarse solver for
-  //! param[in] block The block the preconditioner belongs to
+  //! \param[in] block The block the preconditioner belongs to
   //! \param[in] asmlu True to use LU subdomain solvers
   //! \param[in] smoother True if this is a smoother in multigrid
   //! \param blockEqs The local equations belonging to block

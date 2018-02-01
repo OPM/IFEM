@@ -137,10 +137,10 @@ ISTLMatrix::~ISTLMatrix ()
 }
 
 
-void ISTLMatrix::initAssembly (const SAM& sam, bool b)
+void ISTLMatrix::initAssembly (const SAM& sam, bool delayLocking)
 {
-  SparseMatrix::initAssembly(sam, b);
-  SparseMatrix::preAssemble(sam, b);
+  SparseMatrix::initAssembly(sam, delayLocking);
+  SparseMatrix::preAssemble(sam, delayLocking);
 
   std::vector<std::set<int>> dofc;
   sam.getDofCouplings(dofc);

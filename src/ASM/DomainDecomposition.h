@@ -67,7 +67,7 @@ public:
         return A.midx < B.midx;
       }
     protected:
-      const DomainDecomposition& dd;
+      const DomainDecomposition& dd; //!< Domain decomposition holding patch owner data
   };
 
   std::set<ASM::Interface, SlaveOrder> ghostConnections; //!< Connections to other processes.
@@ -164,7 +164,7 @@ private:
   //! \brief Calculates 3D subdomains with a given overlap.
   //! \param[in] nel1 Number of knot-spans in first parameter direction.
   //! \param[in] nel2 Number of knot-spans in second parameter direction.
-  //! \param[in] nel2 Number of knot-spans in third parameter direction.
+  //! \param[in] nel3 Number of knot-spans in third parameter direction.
   //! \param[in] g1 Number of subdomains in first parameter direction.
   //! \param[in] g2 Number of subdomains in second parameter direction.
   //! \param[in] g3 Number of subdomains in third parameter direction.
@@ -178,6 +178,7 @@ private:
   //! \param pidx Patch index
   //! \param lidx Boundary index on patch
   //! \param cbasis If non-empty, bases to connect
+  //! \param dim Dimension of boundary
   //! \param thick Thickness of connection (subdivisions)
   //! \param orient Orientation of boundary (needed for unstructured)
   std::vector<int> setupEquationNumbers(const SIMbase& sim,
