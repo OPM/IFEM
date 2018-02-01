@@ -182,11 +182,6 @@ function build_upstreams {
 function build_downstreams {
   for BTYPE in "${!BTYPES_ARRAY[@]}"
   do
-    pushd .
-    cd $WORKSPACE/${BTYPES_ARRAY[$BTYPE]}/build-$1
-    cmake --build . --target install
-    popd
-
     egrep_cmd="xml_grep --wrap testsuites --cond testsuite $WORKSPACE/${BTYPES_ARRAY[$BTYPE]}/build-$1/testoutput.xml"
     for downstream in ${downstreams[*]}
     do
@@ -252,6 +247,7 @@ function build_module_and_upstreams {
     cd ${BTYPES_ARRAY[$BTYPE]}/build-$1
     build_module "-DCMAKE_INSTALL_PREFIX=$WORKSPACE/${BTYPES_ARRAY[$BTYPE]}/install -DCMAKE_PREFIX_PATH=$WORKSPACE/${BTYPES_ARRAY[$BTYPE]}/install -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}" 1 $WORKSPACE/deps/${MODULE_EXTRA_DIR[$1]}$1/${MODULE_APP_DIR[$1]}
     test $? -eq 0 || exit 1
+    cmake --build . --target install
     popd
 
     # Add testsuite names
