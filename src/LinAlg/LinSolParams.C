@@ -111,7 +111,7 @@ bool LinSolParams::BlockParams::read(const TiXmlElement* elem, const std::string
       if (utl::getAttribute(child, "max_coarse_size", v))
         addValue("multigrid_max_coarse_size", v);
     } else if (!strcasecmp(child->Value(),"dirsmoother")) {
-      size_t order;
+      int order;
       std::string type;
 
       if (!utl::getAttribute(child,"type",type))
@@ -119,7 +119,7 @@ bool LinSolParams::BlockParams::read(const TiXmlElement* elem, const std::string
       if (!utl::getAttribute(child,"order",order))
         return false;
 
-      dirSmoother.push_back(DirSmoother(order, type));
+      dirSmoother.push_back(DirSmoother{order, type});
     } else if (!strcasecmp(child->Value(), "asm")) {
       std::string v;
       if (utl::getAttribute(child, "nx", v))

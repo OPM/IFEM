@@ -57,7 +57,7 @@ void XMLWriter::openFile(int level)
 }
 
 
-void XMLWriter::closeFile(int level, bool force)
+void XMLWriter::closeFile(int level, bool)
 {
   if (!m_doc || m_rank != 0)
     return;

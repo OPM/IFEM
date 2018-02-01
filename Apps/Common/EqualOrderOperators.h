@@ -52,7 +52,9 @@ public:
     //! \brief Compute a (nonlinear) convection term.
     //! \param[out] EM The element matrix to add contribution to
     //! \param[in] fe The finite element to evaluate for
-    //! \param[in] U  Advecting field
+    //! \param[in] U Advecting field
+    //! \param[in] dUdX Gradient of advected field
+    //! \param[in] scale Scaling factor for contribution
     //! \param[in] form Which form of the convective term to use
     //! \param[in] basis Basis to use
     static void Convection(Matrix& EM, const FiniteElement& fe,
@@ -91,7 +93,7 @@ public:
     //! \param[out] EV The element vector to add contribution to
     //! \param[in] fe The finite element to evaluate for
     //! \param[in] scale Scaling factor for contribution
-    //! \param[in] tbasis Test function basis
+    //! \param[in] basis Basis to use
     static void Gradient(Vector& EV, const FiniteElement& fe,
                          double scale=1.0, int basis=1);
 
@@ -109,6 +111,7 @@ public:
     //! \param[out] K The coefficient matrix
     //! \param[in] fe The finite element to evaluate for
     //! \param[in] scale Scaling factor for contribution
+    //! \param[in] basis Basis to use
     static void LaplacianCoeff(Matrix& EM, const Matrix& K, const FiniteElement& fe,
                                double scale=1.0, int basis=1);
 
@@ -132,7 +135,7 @@ public:
     //! \brief Compute a vector-source term.
     //! \param[out] EV The element vector to add contribution to
     //! \param[in] fe The finite element to evaluate for
-    //! \param[in] scale Vector with contributions
+    //! \param[in] f Vector with contributions
     //! \param[in] scale Scaling factor for contribution
     //! \param[in] basis Basis to use
     static void Source(Vector& EV, const FiniteElement& fe,
@@ -143,9 +146,10 @@ public:
   class Residual {
   public:
     //! \brief Compute an advection term.
-    //! \param[out] EM The element vector to add contribution to
+    //! \param[out] EV The element vector to add contribution to
     //! \param[in] fe The finite element to evaluate for
     //! \param[in] AC Advecting field
+    //! \param[in] g Advected field gradient
     //! \param[in] scale Scaling factor for contribution
     //! \param[in] basis Basis to use
     static void Advection(Vector& EV, const FiniteElement& fe,
@@ -182,7 +186,6 @@ public:
     //! \param[in] fe The finite element to evaluate for
     //! \param[in] dUdX Current solution gradient
     //! \param[in] scale Scaling factor for contribution
-    //! \param[in] stress Whether to add extra stress formulation terms
     //! \param[in] basis Basis to use
     static void Laplacian(Vector& EV, const FiniteElement& fe,
                           const Vec3& dUdX, double scale=1.0,

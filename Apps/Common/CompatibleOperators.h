@@ -42,8 +42,9 @@ public:
     //! \param[out] EM The element matrix to add contribution to
     //! \param[in] fe The finite element to evaluate for
     //! \param[in] U  Advecting field
+    //! \param[in] dUdX Field gradient
+    //! \param[in] scale Scaling factor for contribution
     //! \param[in] form Which form of the convective form to use
-    //! \param[in] basis Basis to use
     static void Convection(std::vector<Matrix>& EM, const FiniteElement& fe,
                            const Vec3& U, const Tensor& dUdX, double scale,
                            WeakOperators::ConvectionForm form=WeakOperators::CONVECTIVE);
@@ -81,7 +82,6 @@ public:
     //! \brief Compute a vector-source term.
     //! \param[out] EV The element vectors to add contribution to
     //! \param[in] fe The finite element to evaluate for
-    //! \param[in] f Vector with contributions
     //! \param[in] scale Scaling factor for contribution
     static void Source(Vectors& EV, const FiniteElement& fe, double scale=1.0);
 
@@ -106,7 +106,6 @@ public:
     //! \param[in] UC Advecting field
     //! \param[in] scale Scaling factor for contribution
     //! \param[in] form Which form of the convective form to use
-    //! \param[in] basis Basis to use
     static void Convection(Vectors& EV, const FiniteElement& fe,
                            const Vec3& U, const Tensor& dUdX, const Vec3& UC, double scale,
                            WeakOperators::ConvectionForm form=WeakOperators::CONVECTIVE);

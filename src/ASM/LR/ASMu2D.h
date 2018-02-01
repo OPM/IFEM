@@ -61,9 +61,10 @@ public:
   protected:
     const ASMu2D& myPatch; //!< Reference to the patch being integrated
 
+    //! \brief Struct describing an intersection of mesh lines.
     struct Intersection {
-      int continuity;
-      std::vector<double> pts;
+      int continuity; //!< Continuity across intersection
+      std::vector<double> pts; //!< Intersection points
     };
 
     //! \brief Intersections for elements. Key: element << 4 + edge (1..4)

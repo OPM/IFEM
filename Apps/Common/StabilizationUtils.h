@@ -20,6 +20,7 @@
 namespace StabilizationUtils {
   //! \brief Returns characteristic element size
   //! \param XC The element corner coordinates
+  //! \param nsd Number of spatial dimensions
   //! \details The size is taken as the shortest edge length
   double getElementSize(const std::vector<Vec3>& XC, int nsd);
 
@@ -54,6 +55,8 @@ namespace StabilizationUtils {
   //! \param[in] G  The G matrix
   //! \param[out] tauM Stabilization parameter for momentum
   //! \param[out] tauC Stabilization parameter for continuity
+  //! \param[in] Ct VMS parameter
+  //! \param[in] Cl VMS parameter
   //! \details Stabilization parameters in integration point
   bool getTauNSALEPt(double dt, double mu, const Vector& U, const Matrix& G,
 		     double& tauM, double& tauC, const double Ct=2.0, const double Cl=36.0);

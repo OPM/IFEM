@@ -199,6 +199,7 @@ public:
   //! \param[in] oldVars Control point variables associated with \a oldBasis
   //! \param[out] newVars Gauss point variables associated with this patch.
   //! \param[in] nGauss Number of Gauss points along a knot-span
+  //! \param[in] nf Number of fields to transfer
   bool transferCntrlPtVars(LR::LRSpline* oldBasis,
                            const RealArray& oldVars, RealArray& newVars,
                            int nGauss, int nf = 1) const;

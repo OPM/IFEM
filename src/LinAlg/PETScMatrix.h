@@ -116,7 +116,8 @@ public:
   //! The PETSc data structures are initialized and the all symbolic operations
   //! that are needed before the actual assembly can start are performed.
   //! \param[in] sam Auxiliary data describing the FE model topology, etc.
-  virtual void initAssembly(const SAM& sam, bool);
+  //! \param[in] delayLocking If \e true, do not lock the sparsity pattern yet
+  virtual void initAssembly(const SAM& sam, bool delayLocking);
 
   //! \brief Initializes the matrix to zero assuming it is properly dimensioned.
   virtual void init();
@@ -208,10 +209,10 @@ protected:
 };
 
 
-//! \brief Matrix-vector product
+//! \brief Matrix-vector product.
 PETScVector operator*(const SystemMatrix& A, const PETScVector& b);
 
-//! \brief Solve linear system
-PETScVector operator/(const SystemMatrix& A, const PETScVector& b);
+//! \brief Solve linear system.
+PETScVector operator/(SystemMatrix& A, const PETScVector& b);
 
 #endif

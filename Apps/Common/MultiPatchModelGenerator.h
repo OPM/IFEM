@@ -117,7 +117,7 @@ class MultiPatchModelGenerator3D : public ModelGenerator
 {
 public:
   //! \brief The constructor initializes common members.
-  //! \param[in] elem XML element to parse
+  //! \param[in] geo XML element to parse
   MultiPatchModelGenerator3D(const TiXmlElement* geo);
   //! \brief Empty destructor.
   virtual ~MultiPatchModelGenerator3D() {}

@@ -119,6 +119,11 @@ static std::string AddPrefix(const std::string& prefix, const std::string& data)
 }
 
 
+//! \brief Conditionally add a setting from map to PETsc.
+//! \param[in] prefix Prefix for petsc setting
+//! \param[in] petsc_option Name of option in PETsc
+//! \param[in] map_option Name of option in setting map
+//! \param[in] map The setting map
 static void condSetup(const std::string& prefix, const std::string& petsc_option,
                       const std::string& map_option, const SettingMap& map)
 {

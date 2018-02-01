@@ -22,17 +22,34 @@
 #include <string>
 #include <vector>
 
+/*!
+ \brief A key-value store for settings.
+*/
 
 class SettingMap {
 public:
+  //! \brief Add a value to the store.
+  //! \param[in] key The key
+  //! \param[in] value The value
   void addValue(const std::string& key, const std::string& value);
+
+  //! \brief Obtain a value as a string.
+  //! \param[in] key The key
   std::string getStringValue(const std::string& key) const;
+
+  //! \brief Obtain a value as an integer.
+  //! \param[in] key The key
   int getIntValue(const std::string& key) const;
+
+  //! \brief Obtain a value as an double.
+  //! \param[in] key The key
   double getDoubleValue(const std::string& key) const;
 
+  //! \brief Checks if the store holds a value for a key.
+  //! \param[in] key The key
   bool hasValue(const std::string& key) const;
 private:
-  std::map<std::string, std::string> values;
+  std::map<std::string, std::string> values; //!< Map of key-value pairs
 };
 
 class TiXmlElement;
@@ -64,17 +81,16 @@ public:
       public:
         int order; //!< Ordering of DOFs
         std::string type; //!< Directional smoother types
-
-        DirSmoother(int o, const std::string& t) : order(o), type(t) {}
     };
 
     //! \brief Read settings from XML block
     //! \param[in] child XML block
+    //! \param[in] prefix Prefix to add to read data
     bool read(const TiXmlElement* child, const std::string& prefix="");
 
     size_t basis; //!< Basis for block
     size_t comps; //!< Components from basis (1, 2, 3, 12, 13, 23, 123, ..., 0 = all)
-    std::vector<DirSmoother> dirSmoother;
+    std::vector<DirSmoother> dirSmoother; //!< Directional smoother data
   };
 
   //! \brief Number of blocks in matrix system

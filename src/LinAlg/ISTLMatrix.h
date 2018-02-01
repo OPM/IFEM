@@ -77,9 +77,12 @@ public:
 
   //! \brief Return associated process administrator
   const ProcessAdm& getAdm() const { return adm; }
-  typedef Dune::BlockVector<Dune::FieldVector<double,1>> Vec;
 
+  typedef Dune::BlockVector<Dune::FieldVector<double,1>> Vec; //!< Convenice typedef
+
+  //! \brief Obtain a reference to the dune vector.
   Vec& getVector() { return x; }
+  //! \brief Obtain a const reference to the dune vector.
   const Vec& getVector() const { return x; }
 
 protected:
@@ -117,7 +120,8 @@ public:
   //! The PETSc data structures are initialized and the all symbolic operations
   //! that are needed before the actual assembly can start are performed.
   //! \param[in] sam Auxiliary data describing the FE model topology, etc.
-  virtual void initAssembly(const SAM& sam, bool);
+  //! \param[in] delayLocking If \e true, do not lock the sparsity pattern yet
+  virtual void initAssembly(const SAM& sam, bool delayLocking);
 
   //! \brief Initializes the matrix to zero assuming it is properly dimensioned.
   virtual void init();
