@@ -822,6 +822,21 @@ bool SIM3D::readNodes (std::istream& isn, int pchInd, int basis, bool oneBased)
 }
 
 
+void SIM3D::clonePatches (const PatchVec& patches,
+                          const std::map<int,int>& glb2locN)
+{
+  ASM3D* pch = nullptr;
+  for (size_t i = 0; i < patches.size(); i++)
+    if ((pch = dynamic_cast<ASM3D*>(patches[i])))
+      myModel.push_back(pch->clone(nf));
+
+  g2l = &glb2locN;
+
+  if (nGlPatches == 0)
+    nGlPatches = myModel.size();
+}
+
+
 ModelGenerator* SIM3D::getModelGenerator (const TiXmlElement* geo) const
 {
   return new DefaultGeometry3D(geo);
