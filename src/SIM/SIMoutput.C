@@ -596,7 +596,7 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
         {
           const RealFunc* psSol;
           size_t r = pSol.dim() + 1;
-          for (size_t k = 0; (psSol = mySol->getScalarSol(k)); k++, r++)
+          for (size_t k = 0; (psSol = mySol->getScalarSol(k)) && r <= field.rows(); k++, r++)
           {
             cit = grid->begin_XYZ();
             const RealFunc& sSol = *psSol;
