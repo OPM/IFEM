@@ -51,6 +51,12 @@ public:
   //! \brief Returns the number of parameter dimensions in the model.
   virtual unsigned short int getNoParamDim() const { return 3; }
 
+  //! \brief Creates the FE model by copying the given patches.
+  //! \param[in] patches List of patches to borrow the grid from
+  //! \param[in] g2ln Global-to-local node number mapping for the borrowed grid
+  virtual void clonePatches(const PatchVec& patches,
+                            const std::map<int,int>& g2ln);
+
   //! \brief Reads a patch from given input stream.
   //! \param[in] isp The input stream to read from
   //! \param[in] pchInd 0-based index of the patch to read
