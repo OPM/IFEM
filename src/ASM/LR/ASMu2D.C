@@ -2228,11 +2228,15 @@ ASMu2D::InterfaceChecker::InterfaceChecker(const ASMu2D& pch) : myPatch(pch)
 #endif
       if (m->is_spanning_u()) {
         if (el1 > -1 && el2 > -1) {
+          intersections[el2*16 + 3].continuity =
+          intersections[el1*16 + 4].continuity = lr->order(1)-m->multiplicity_-1;
           intersections[el2*16 + 3].pts.push_back(isectpts[i+1]);
           intersections[el1*16 + 4].pts.push_back(isectpts[i+1]);
         }
       } else {
         if (el1 > -1 && el2 > -1) {
+          intersections[el2*16 + 1].continuity =
+          intersections[el1*16 + 2].continuity = lr->order(0)-m->multiplicity_-1;
           intersections[el2*16 + 1].pts.push_back(isectpts[i+1]);
           intersections[el1*16 + 2].pts.push_back(isectpts[i+1]);
         }
