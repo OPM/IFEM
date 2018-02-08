@@ -109,6 +109,28 @@ TEST(TestASMu2D, InterfaceChecker)
                                          15, 13,
                                           7,  5}};
 
+  static std::vector<std::array<int,4>> line_cont = {{{-1,  1, -1,  1},
+                                                      { 1,  0, -1,  1},
+                                                      { 0,  1, -1,  0},
+                                                      { 1, -1, -1,  0},
+                                                      {-1,  1,  1,  1},
+                                                      { 1,  0,  1,  1},
+                                                      { 0,  1,  0,  1},
+                                                      { 1, -1,  0,  1},
+                                                      {-1,  1,  1,  1},
+                                                      { 1,  0,  1,  1},
+                                                      { 0,  1,  1,  1},
+                                                      { 1, -1,  1,  1},
+                                                      {-1,  1,  1, -1},
+                                                      { 1,  0,  1, -1},
+                                                      { 0,  1,  1,  1},
+                                                      { 1, -1,  1,  1},
+                                                      { 0,  1,  0,  0},
+                                                      { 1, -1,  0,  0},
+                                                      { 0,  1,  1, -1},
+                                                      { 1, -1,  1, -1}}};
+
+
   static std::vector<std::array<std::vector<double>,4>> elem_pts =
   {{{{    {},        {0.25},     {}, {0.25}}},
    {{ {0.25}, {0.125, 0.25},     {},  {0.5}}},
@@ -138,7 +160,9 @@ TEST(TestASMu2D, InterfaceChecker)
     EXPECT_EQ(iChk.hasContribution(i+1), elem_flags[i]);
     for (size_t edge = 1; edge <= 4; ++edge) {
       if (elem_flags[i] & (1 << (edge-1))) {
-        auto val = iChk.getIntersections(i+1, edge);
+        int continuity;
+        auto val = iChk.getIntersections(i+1, edge, &continuity);
+        EXPECT_EQ(line_cont[i][edge-1], continuity);
         EXPECT_EQ(val.size(), elem_pts[i][edge-1].size());
         for (size_t j = 0; j < val.size(); ++j)
           EXPECT_FLOAT_EQ(val[j], elem_pts[i][edge-1][j]);
