@@ -208,6 +208,51 @@ TEST(TestCoordinateMapping, Hessian2D)
 }
 
 
+class SIMShell : public SIM2D
+{
+public:
+  SIMShell() { nsd = 3; }
+  virtual ~SIMShell() {}
+};
+
+
+TEST(TestCoordinateMapping, JacobianShell)
+{
+  SIMShell sim;
+  ASSERT_TRUE(sim.createDefaultModel());
+  ASMs2D& p = static_cast<ASMs2D&>(*sim.getPatch(1));
+  ASSERT_TRUE(p.uniformRefine(0,3));
+  ASSERT_TRUE(p.uniformRefine(1,3));
+  ASSERT_TRUE(sim.createFEMmodel());
+
+  Vector N;
+  Matrix X, dNdU;
+  p.extractBasis(0.25, 0.25, N, dNdU);
+  p.getElementCoordinates(X, 2);
+
+  Matrix J, dNdX;
+  Real det = utl::Jacobian(J, dNdX, X, dNdU, true);
+
+  const double dndx[] = {
+    -4.0, 4.0, 0.0, 0.0,
+    -4.0, 0.0, 4.0, 0.0
+  };
+
+  EXPECT_FLOAT_EQ(det, 1.0);
+  EXPECT_EQ(J.rows(), 3U);
+  EXPECT_EQ(J.cols(), 2U);
+  for (size_t i = 1; i <= J.rows(); i++)
+    for (size_t j = 1; j <= J.cols(); j++)
+      EXPECT_FLOAT_EQ(J(i,j), i == j ? 1.0 : 0.0);
+
+  size_t i = 0;
+  EXPECT_EQ(dNdX.rows(), 4U);
+  EXPECT_EQ(dNdX.cols(), 2U);
+  for (double v : dNdX)
+    EXPECT_FLOAT_EQ(dndx[i++], v);
+}
+
+
 TEST(TestCoordinateMapping, Hessian2D_mixed)
 {
   SIM2D sim({1,1});

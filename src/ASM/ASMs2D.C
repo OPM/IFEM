@@ -1663,6 +1663,9 @@ bool ASMs2D::integrate (Integrand& integrand,
               fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
               if (fe.detJxW == 0.0) continue; // skip singular points
 
+              // Store tangent vectors in fe.G for shells
+              if (nsd > 2) fe.G = Jac;
+
               // Cartesian coordinates of current integration point
               X.assign(Xnod * fe.N);
               X.t = time.t;
@@ -1710,6 +1713,8 @@ bool ASMs2D::integrate (Integrand& integrand,
             // Compute G-matrix
             if (integrand.getIntegrandType() & Integrand::G_MATRIX)
               utl::getGmat(Jac,dXidu,fe.G);
+            else if (nsd > 2)
+              fe.G = Jac; // Store tangent vectors in fe.G for shells
 
 #if SP_DEBUG > 4
             if (iel == dbgElm || iel == -dbgElm || dbgElm == 0)
@@ -1718,6 +1723,8 @@ bool ASMs2D::integrate (Integrand& integrand,
                         <<"\nN ="<< fe.N <<"dNdX ="<< fe.dNdX;
               if (!fe.d2NdX2.empty())
                 std::cout <<"d2NdX2 ="<< fe.d2NdX2;
+              if (!fe.G.empty())
+                std::cout <<"G ="<< fe.G;
             }
 #endif
 
@@ -1745,7 +1752,7 @@ bool ASMs2D::integrate (Integrand& integrand,
         A->destruct();
 
 #ifdef SP_DEBUG
-	if (iel == -dbgElm) break; // Skipping all elements, except for -dbgElm
+        if (iel == -dbgElm) break; // Skipping all elements, except for -dbgElm
 #endif
       }
     }
@@ -1900,6 +1907,8 @@ bool ASMs2D::integrate (Integrand& integrand,
           // Compute G-matrix
           if (integrand.getIntegrandType() & Integrand::G_MATRIX)
             utl::getGmat(Jac,dXidu,fe.G);
+          else if (nsd > 2)
+            fe.G = Jac; // Store tangent vectors in fe.G for shells
 
 #if SP_DEBUG > 4
           if (iel == dbgElm || iel == -dbgElm || dbgElm == 0)
@@ -1932,7 +1941,7 @@ bool ASMs2D::integrate (Integrand& integrand,
         A->destruct();
 
 #ifdef SP_DEBUG
-	if (iel == -dbgElm) break; // Skipping all elements, except for -dbgElm
+        if (iel == -dbgElm) break; // Skipping all elements, except for -dbgElm
 #endif
       }
     }
@@ -2055,6 +2064,9 @@ bool ASMs2D::integrate (Integrand& integrand,
             if (fe.detJxW == 0.0) continue; // skip singular points
 
             if (edgeDir < 0) normal *= -1.0;
+
+            // Store tangent vectors in fe.G for shells
+            if (nsd > 2) fe.G = Jac;
 
             // Cartesian coordinates of current integration point
             X.assign(Xnod * fe.N);
@@ -2253,6 +2265,8 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
 	// Compute G-matrix
 	if (integrand.getIntegrandType() & Integrand::G_MATRIX)
 	  utl::getGmat(Jac,dXidu,fe.G);
+        else if (nsd > 2)
+          fe.G = Jac; // Store tangent vectors in fe.G for shells
 
 	// Cartesian coordinates of current integration point
         X.assign(Xnod * fe.N);
@@ -2642,6 +2656,9 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     if (use2ndDer)
       if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xtmp,d2Ndu2,fe.dNdX))
         continue;
+
+    // Store tangent vectors in fe.G for shells
+    if (nsd > 2) fe.G = Jac;
 
     // Now evaluate the solution field
     if (!integrand.evalSol(solPt,fe,Xtmp*fe.N,ip))

@@ -337,7 +337,7 @@ bool ASMu2D::checkElementSize (int elmId, bool globalNum) const
     elmId = it - MLGE.begin();
   }
 
-  if (elmId < lrspline->nElements())
+  if (elmId >= 0 && elmId < lrspline->nElements())
     return lrspline->getElement(elmId)->area() > aMin+1.0e-12;
   else
     return false;
@@ -406,7 +406,7 @@ bool ASMu2D::raiseOrder (int ru, int rv)
 
 bool ASMu2D::evaluateBasis (FiniteElement& fe, int derivs) const
 {
-  LR::Element* el = lrspline->getElement(fe.iel-1);
+  const LR::Element* el = lrspline->getElement(fe.iel-1);
   if (!el) return false;
 
   fe.xi  = 2.0*(fe.u - el->umin()) / (el->umax() - el->umin()) - 1.0;
@@ -870,7 +870,7 @@ double ASMu2D::getParametricLength (int iel, int dir) const
   }
 #endif
 
-  LR::Element* el = lrspline->getElement(iel-1);
+  const LR::Element* el = lrspline->getElement(iel-1);
   switch (dir)
   {
   case 1: return el->vmax() - el->vmin();
@@ -894,7 +894,7 @@ bool ASMu2D::getElementCoordinates (Matrix& X, int iel) const
   }
 #endif
 
-  LR::Element* el = lrspline->getElement(iel-1);
+  const LR::Element* el = lrspline->getElement(iel-1);
   X.resize(nsd,el->nBasisFunctions());
 
   int n = 1;
@@ -979,7 +979,7 @@ double ASMu2D::getElementCorners (int iel, Vec3Vec& XC) const
   }
 #endif
 
-  LR::Element* el = lrspline->getElement(iel-1);
+  const LR::Element* el = lrspline->getElement(iel-1);
   double u[4] = { el->umin(), el->umax(), el->umin(), el->umax() };
   double v[4] = { el->vmin(), el->vmin(), el->vmax(), el->vmax() };
 
@@ -1036,12 +1036,12 @@ bool ASMu2D::integrate (Integrand& integrand,
         continue;
 
       int iel = threadGroups[0][t][e] + 1;
-
 #ifdef SP_DEBUG
       if (dbgElm < 0 && iel != -dbgElm)
         continue; // Skipping all elements, except for -dbgElm
 #endif
-      FiniteElement fe(MNPC[iel-1].size());
+
+      FiniteElement fe;
       fe.iel = MLGE[iel-1];
       Matrix   dNdu, Xnod, Jac;
       Matrix3D d2Ndu2, Hess;
@@ -1083,21 +1083,22 @@ bool ASMu2D::integrate (Integrand& integrand,
         double u0 = 0.5*(gpar[0].front() + gpar[0].back());
         double v0 = 0.5*(gpar[1].front() + gpar[1].back());
         lrspline->point(X0,u0,v0);
-        for (unsigned char i = 0; i < nsd; i++)
-          X[i] = X0[i];
+        X = SplineUtils::toVec3(X0,nsd);
       }
 
       if (integrand.getIntegrandType() & Integrand::G_MATRIX)
       {
         // Element size in parametric space
-        dXidu[0] = lrspline->getElement(iel-1)->umax()-lrspline->getElement(iel-1)->umin();
-        dXidu[1] = lrspline->getElement(iel-1)->vmax()-lrspline->getElement(iel-1)->vmin();
+        const LR::Element* el = lrspline->getElement(iel-1);
+        dXidu[0] = el->umax() - el->umin();
+        dXidu[1] = el->vmax() - el->vmin();
       }
 
       // Initialize element quantities
-      LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
+      LocalIntegral* A = integrand.getLocalIntegral(MNPC[iel-1].size(),fe.iel);
       if (!integrand.initElement(MNPC[iel-1],fe,X,nRed*nRed,*A))
       {
+        A->destruct();
         ok = false;
         continue;
       }
@@ -1124,6 +1125,10 @@ bool ASMu2D::integrate (Integrand& integrand,
 
             // Compute Jacobian inverse and derivatives
             fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+            if (fe.detJxW == 0.0) continue; // skip singular points
+
+            // Store tangent vectors in fe.G for shells
+            if (nsd > 2) fe.G = Jac;
 
             // Cartesian coordinates of current integration point
             X.assign(Xnod * fe.N);
@@ -1132,10 +1137,7 @@ bool ASMu2D::integrate (Integrand& integrand,
             // Compute the reduced integration terms of the integrand
             fe.detJxW *= 0.25*dA*wr[i]*wr[j];
             if (!integrand.reducedInt(*A,fe,X))
-            {
               ok = false;
-              continue;
-            }
           }
       }
 
@@ -1197,10 +1199,12 @@ bool ASMu2D::integrate (Integrand& integrand,
           // Compute G-matrix
           if (integrand.getIntegrandType() & Integrand::G_MATRIX)
             utl::getGmat(Jac,dXidu,fe.G);
+          else if (nsd > 2)
+            fe.G = Jac; // Store tangent vectors in fe.G for shells
 
 #if SP_DEBUG > 4
           if (iel == dbgElm || iel == -dbgElm || dbgElm == 0)
-            std::cout <<"\nN ="<< fe.N <<"dNdX ="<< fe.dNdX;
+            std::cout <<"\n"<< fe;
 #endif
 
           // Cartesian coordinates of current integration point
@@ -1209,33 +1213,26 @@ bool ASMu2D::integrate (Integrand& integrand,
 
           // Evaluate the integrand and accumulate element contributions
           fe.detJxW *= 0.25*dA*wg[i]*wg[j];
+#ifndef USE_OPENMP
           PROFILE3("Integrand::evalInt");
+#endif
           if (!integrand.evalInt(*A,fe,time,X))
-          {
             ok = false;
-            continue;
-          }
         }
 
       // Finalize the element quantities
-      if (!integrand.finalizeElement(*A,time,firstIp+jp))
-      {
+      if (ok && !integrand.finalizeElement(*A,time,firstIp+jp))
         ok = false;
-        continue;
-      }
 
       // Assembly of global system integral
-      if (!glInt.assemble(A->ref(),fe.iel))
-      {
+      if (ok && !glInt.assemble(A->ref(),fe.iel))
         ok = false;
-        continue;
-      }
 
       A->destruct();
 
 #ifdef SP_DEBUG
       if (iel == -dbgElm)
-        continue; // Skipping all elements, except for -dbgElm
+        break; // Skipping all elements, except for -dbgElm
 #endif
     }
   }
@@ -1281,7 +1278,8 @@ bool ASMu2D::integrate (Integrand& integrand,
       if (dbgElm < 0 && iel != -dbgElm)
         continue; // Skipping all elements, except for -dbgElm
 #endif
-      FiniteElement fe(MNPC[iel-1].size());
+
+      FiniteElement fe;
       fe.iel = MLGE[iel-1];
       Matrix   dNdu, Xnod, Jac;
       Matrix3D d2Ndu2, Hess;
@@ -1313,7 +1311,7 @@ bool ASMu2D::integrate (Integrand& integrand,
       }
 
       // Initialize element quantities
-      LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
+      LocalIntegral* A = integrand.getLocalIntegral(MNPC[iel-1].size(),fe.iel);
       if (!integrand.initElement(MNPC[iel-1],fe,X,0,*A))
       {
         ok = false;
@@ -1332,7 +1330,7 @@ bool ASMu2D::integrate (Integrand& integrand,
         fe.u = elmPts[ip][0];
         fe.v = elmPts[ip][1];
 
-          // Compute basis function derivatives at current integration point
+        // Compute basis function derivatives at current integration point
         if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES) {
           Go::BasisDerivsSf2 spline;
           lrspline->computeBasis(fe.u,fe.v,spline,iel-1);
@@ -1356,10 +1354,12 @@ bool ASMu2D::integrate (Integrand& integrand,
             continue;
           }
 
+        // Store tangent vectors in fe.G for shells
+        if (nsd > 2) fe.G = Jac;
+
 #if SP_DEBUG > 4
         if (iel == dbgElm || iel == -dbgElm || dbgElm == 0)
-          std::cout <<"\niel, ip = "<< iel <<" "<< ip
-                    <<"\nN ="<< fe.N <<"dNdX ="<< fe.dNdX;
+          std::cout <<"\n"<< fe;
 #endif
 
         // Cartesian coordinates of current integration point
@@ -1369,29 +1369,27 @@ bool ASMu2D::integrate (Integrand& integrand,
 
         // Evaluate the integrand and accumulate element contributions
         fe.detJxW *= 0.25*dA*elmPts[ip][2];
+#ifndef USE_OPENMP
         PROFILE3("Integrand::evalInt");
+#endif
         if (!integrand.evalInt(*A,fe,time,X))
-        {
           ok = false;
-          continue;
-        }
       }
 
       // Finalize the element quantities
-      if (!integrand.finalizeElement(*A,time,firstIp+MPitg[iel]))
-      {
+      if (ok && !integrand.finalizeElement(*A,time,firstIp+MPitg[iel]))
         ok = false;
-        continue;
-      }
 
       // Assembly of global system integral
-      if (!glInt.assemble(A->ref(),fe.iel))
-      {
+      if (ok && !glInt.assemble(A->ref(),fe.iel))
         ok = false;
-        continue;
-      }
 
       A->destruct();
+
+#ifdef SP_DEBUG
+      if (iel == -dbgElm)
+        break; // Skipping all elements, except for -dbgElm
+#endif
     }
   }
 
@@ -1438,6 +1436,7 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
   std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex%10);
   size_t firstp = iit == firstBp.end() ? 0 : iit->second;
 
+  FiniteElement fe;
   Matrix dNdu, Xnod, Jac;
   double param[3] = { 0.0, 0.0, 0.0 };
   Vec4   X(param);
@@ -1473,10 +1472,10 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
     if (!this->getElementCoordinates(Xnod,iel)) return false;
 
     // Initialize element quantities
-    FiniteElement fe((**el).nBasisFunctions());
     fe.iel = MLGE[iel-1];
-    fe.xi = fe.eta = edgeDir < 0 ? -1.0 : 1.0;
-    LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
+    fe.xi  = fe.eta = edgeDir < 0 ? -1.0 : 1.0;
+    LocalIntegral* A = integrand.getLocalIntegral(MNPC[iel-1].size(),
+                                                  fe.iel,true);
     if (!integrand.initElementBou(MNPC[iel-1],*A)) return false;
 
     // Get integration gauss points over this element
@@ -1511,6 +1510,9 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
       if (fe.detJxW == 0.0) continue; // skip singular points
 
       if (edgeDir < 0) normal *= -1.0;
+
+      // Store tangent vectors in fe.G for shells
+      if (nsd > 2) fe.G = Jac;
 
       // Cartesian coordinates of current integration point
       X.assign(Xnod * fe.N);
@@ -1666,6 +1668,7 @@ bool ASMu2D::tesselate (ElementBlock& grid, const int* npe) const
   grid.unStructResize(nElements * nSubElPerElement,
                       nElements * nNodesPerElement);
 
+  Go::Point pt;
   std::vector<LR::Element*>::iterator el;
   int inod = 0;
   int iel = 0;
@@ -1676,15 +1679,12 @@ bool ASMu2D::tesselate (ElementBlock& grid, const int* npe) const
     double vmin = (**el).vmin();
     double vmax = (**el).vmax();
     for(int iv=0; iv<npe[1]; iv++) {
-      for(int iu=0; iu<npe[0]; iu++) {
+      for(int iu=0; iu<npe[0]; iu++, inod++) {
         double u = umin + (umax-umin)/(npe[0]-1)*iu;
         double v = vmin + (vmax-vmin)/(npe[1]-1)*iv;
-        Go::Point pt;
         lrspline->point(pt, u,v, iel, iu!=npe[0]-1, iv!=npe[1]-1);
+        grid.setCoor(inod, SplineUtils::toVec3(pt,nsd));
         grid.setParams(inod, u, v);
-        for(int dim=0; dim<nsd; dim++)
-          grid.setCoor(inod, dim, pt[dim]);
-        inod++;
       }
     }
   }
@@ -1741,6 +1741,7 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
   if (nPoints != gpar[1].size())
     return false;
 
+  FiniteElement fe;
   Vector   ptSol;
   Matrix   dNdu, dNdX, Jac, Xnod, eSol, ptDer;
   Matrix3D d2Ndu2, d2NdX2, Hess, ptDer2;
@@ -1756,7 +1757,6 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
     // Fetch element containing evaluation point.
     // Sadly, points are not always ordered in the same way as the elements.
     int iel = lrspline->getElementContaining(gpar[0][i],gpar[1][i]);
-    FiniteElement fe(lrspline->getElement(iel)->nBasisFunctions());
     fe.iel = iel + 1;
     fe.u   = gpar[0][i];
     fe.v   = gpar[1][i];
@@ -1881,19 +1881,19 @@ bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   if (nPoints != gpar[1].size())
     return false;
 
+  FiniteElement fe(0,firstIp);
   Vector   solPt;
   Matrix   dNdu, Jac, Xnod;
   Matrix3D d2Ndu2, Hess;
 
   // Evaluate the secondary solution field at each point
-  for (size_t i = 0; i < nPoints; i++)
+  for (size_t i = 0; i < nPoints; i++, fe.iGP++)
   {
     // Fetch element containing evaluation point
     // sadly, points are not always ordered in the same way as the elements
     int iel = lrspline->getElementContaining(gpar[0][i],gpar[1][i]);
 
     // Evaluate the basis functions at current parametric point
-    FiniteElement fe(lrspline->getElement(iel)->nBasisFunctions(),firstIp+i);
     if (use2ndDer)
     {
       Go::BasisDerivsSf2 spline;
@@ -1917,6 +1917,9 @@ bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     if (use2ndDer)
       if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
         continue;
+
+    // Store tangent vectors in fe.G for shells
+    if (nsd > 2) fe.G = Jac;
 
     // Now evaluate the solution field
     if (!integrand.evalSol(solPt,fe,Xnod*fe.N,MNPC[iel]))

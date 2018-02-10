@@ -36,6 +36,20 @@ Real utl::Jacobian (matrix<Real>& J, matrix<Real>& dNdX,
     // Compute the length of the tangent vector {X},u
     detJ = J.getColumn(1).norm2(); // |J| = sqrt(X,u*X,u + Y,u*Y,u + Z,u*Z,u)
   }
+  else if (J.cols() == 2 && J.rows() > 2)
+  {
+    // Special for two-parametric elements in 3-dimensional space (shell)
+    dNdX = dNdu;
+    // Compute the length of the normal vector {X},u x {X},v
+    Vec3 a1 = J.getColumn(1);
+    Vec3 a2 = J.getColumn(2);
+    detJ = Vec3(a1,a2).length();
+    // Store the two tangent vectors in J
+    a1.normalize();
+    a2.normalize();
+    J.fillColumn(1,a1.ptr());
+    J.fillColumn(2,a2.ptr());
+  }
   else
   {
     // Compute the Jacobian determinant and inverse
@@ -97,6 +111,15 @@ Real utl::Jacobian (matrix<Real>& J, Vec3& n, matrix<Real>& dNdX,
     dS = v2.normalize(); // dA = |v2|
     v3.normalize();
     n.cross(v2,v3); // n = v2 x v3 / (|v2|*|v3|)
+    if (J.rows() > 2)
+    {
+      // Special treatment for two-parametric elements in 3D space (shells)
+      dNdX = dNdu;
+      v1.normalize();
+      J.fillColumn(t1,v1.ptr());
+      J.fillColumn(t2,v2.ptr());
+      return dS;
+    }
   }
   else
   {
@@ -135,7 +158,7 @@ bool utl::Hessian (matrix3d<Real>& H, matrix3d<Real>& d2NdX2,
     d2NdX2.resize(0,0,0,true);
     return true;
   }
-  else if (Ji.cols() == 1 && Ji.rows() > 1)
+  else if (Ji.cols() <= 2 && Ji.rows() > Ji.cols())
   {
     // Special treatment for one-parametric elements in multi-dimension space
     d2NdX2 = d2Ndu2;
@@ -181,13 +204,12 @@ void utl::getGmat (const matrix<Real>& Ji, const Real* du, matrix<Real>& G)
   size_t nsd = Ji.cols();
   G.resize(nsd,nsd,true);
 
+  Real domain = pow(2.0,nsd);
   for (size_t k = 1; k <= nsd; k++)
     for (size_t l = 1; l <= nsd; l++)
     {
-      Real scale = Real(1)/(du[k-1]*du[l-1]);
+      Real scale = domain/(du[k-1]*du[l-1]);
       for (size_t m = 1; m <= nsd; m++)
         G(k,l) += Ji(m,k)*Ji(m,l)*scale;
     }
-
-  G *= pow(2, nsd);
 }
