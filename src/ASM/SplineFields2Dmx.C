@@ -32,8 +32,8 @@ SplineFields2Dmx::SplineFields2Dmx (const ASMs2Dmx* patch,
   for (int i = 1; i < *bases.begin(); ++i)
     ofs += patch->getNoNodes(i)*patch->getNoFields(i);
   vit += ofs;
-  for (const auto& it : bases) {
-    size_t nno = patch->getNoNodes(it)*patch->getNoFields(it);
+  for (int b : bases) {
+    size_t nno = patch->getNoNodes(b)*patch->getNoFields(b);
     RealArray::const_iterator end = v.size() > nno+ofs ? vit+nno : v.end();
     std::copy(vit,end,std::back_inserter(values));
     vit += nno;
@@ -58,8 +58,8 @@ bool SplineFields2Dmx::valueFE (const FiniteElement& fe, Vector& vals) const
   // Evaluate the basis functions at the given point
   auto vit = values.begin();
   auto rit = vals.begin();
-  for (const auto& it : bases) {
-    Go::SplineSurface* basis = surf->getBasis(it);
+  for (int b : bases) {
+    Go::SplineSurface* basis = surf->getBasis(b);
     Go::BasisPtsSf spline;
 #pragma omp critical
     basis->computeBasis(fe.u,fe.v,spline);
@@ -71,11 +71,11 @@ bool SplineFields2Dmx::valueFE (const FiniteElement& fe, Vector& vals) const
                        spline.left_idx,ip);
 
     Matrix Vnod;
-    utl::gather(ip,1,Vector(&*vit,surf->getNoNodes(it)),Vnod);
+    utl::gather(ip,1,Vector(&*vit,surf->getNoNodes(b)),Vnod);
     Vector val2;
     Vnod.multiply(spline.basisValues,val2); // vals = Vnod * basisValues
     *rit++ = val2.front();
-    vit += surf->getNoNodes(it);
+    vit += surf->getNoNodes(b);
   }
 
   return true;
@@ -108,16 +108,16 @@ bool SplineFields2Dmx::gradFE (const FiniteElement& fe, Matrix& grad) const
 		     uorder,vorder,spline.left_idx,ip);
 
   // Evaluate the Jacobian inverse
-  Matrix Xnod, Jac;
-  Vector Xctrl(&(*gsurf->coefs_begin()),gsurf->coefs_end()-gsurf->coefs_begin());
-  utl::gather(ip,gsurf->dimension(),Xctrl,Xnod);
+  Matrix Xnod(surf->getNoSpaceDim(),ip.size()), Jac;
+  for (size_t i = 0; i < ip.size(); i++)
+    Xnod.fillColumn(1+i,&(*gsurf->coefs_begin())+gsurf->dimension()*ip[i]);
   utl::Jacobian(Jac,dNdX,Xnod,dNdu);
 
   // Evaluate the gradient of the solution field at the given point
   auto vit = values.begin();
   size_t row = 1;
-  for (const auto& it : bases) {
-    const Go::SplineSurface* basis = surf->getBasis(it);
+  for (int b : bases) {
+    const Go::SplineSurface* basis = surf->getBasis(b);
 #pragma omp critical
     basis->computeBasis(fe.u,fe.v,spline);
 
@@ -135,13 +135,13 @@ bool SplineFields2Dmx::gradFE (const FiniteElement& fe, Matrix& grad) const
 		       basis->order_u(),basis->order_v(),
 		       spline.left_idx,ip);
 
-    utl::gather(ip,1,Vector(&*vit, surf->getNoNodes(it)*
-                                   surf->getNoFields(it)),Xnod);
+    const size_t nval = surf->getNoNodes(b)*surf->getNoFields(b);
+    utl::gather(ip,1,Vector(&*vit,nval),Xnod);
     Matrix grad2;
     grad2.multiply(Xnod,dNdX); // grad = Xnod * dNdX
     grad(row,1) = grad2(1,1);
     grad(row++,2) = grad2(1,2);
-    vit += surf->getNoNodes(it)*surf->getNoFields(it);
+    vit += nval;
   }
 
   return true;

@@ -1456,7 +1456,7 @@ double ASMs2D::getElementCorners (int i1, int i2, Vec3Vec& XC) const
   XC.reserve(4);
   const double* pt = &XYZ.front();
   for (int i = 0; i < 4; i++, pt += dim)
-    XC.push_back(Vec3(pt,dim));
+    XC.push_back(Vec3(pt,nsd));
 
   return getElementSize(XC);
 }

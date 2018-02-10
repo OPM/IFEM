@@ -32,8 +32,8 @@ SplineFields3Dmx::SplineFields3Dmx (const ASMs3Dmx* patch,
   for (int i = 1; i < *bases.begin(); ++i)
     ofs += patch->getNoNodes(i)*patch->getNoFields(i);
   vit += ofs;
-  for (const auto& it : bases) {
-    size_t nno = patch->getNoFields(it)*patch->getNoNodes(it);
+  for (int b : bases) {
+    size_t nno = patch->getNoFields(b)*patch->getNoNodes(b);
     RealArray::const_iterator end = v.size() > nno+ofs ? vit+nno : v.end();
     std::copy(vit,end,std::back_inserter(values));
     vit += nno;
@@ -58,8 +58,8 @@ bool SplineFields3Dmx::valueFE (const FiniteElement& fe, Vector& vals) const
   // Evaluate the basis functions at the given point
   auto vit = values.begin();
   auto rit = vals.begin();
-  for (const auto& it : bases) {
-    Go::SplineVolume* basis = svol->getBasis(it);
+  for (int b : bases) {
+    Go::SplineVolume* basis = svol->getBasis(b);
     Go::BasisPts spline;
 #pragma omp critical
     basis->computeBasis(fe.u,fe.v,fe.w,spline);
@@ -72,11 +72,11 @@ bool SplineFields3Dmx::valueFE (const FiniteElement& fe, Vector& vals) const
                        spline.left_idx,ip);
 
     Matrix Vnod;
-    utl::gather(ip,1,Vector(&*vit,svol->getNoNodes(it)),Vnod);
+    utl::gather(ip,1,Vector(&*vit,svol->getNoNodes(b)),Vnod);
     Vector val2;
     Vnod.multiply(spline.basisValues,val2); // vals = Vnod * basisValues
     *rit++ = val2.front();
-    vit += svol->getNoNodes(it);
+    vit += svol->getNoNodes(b);
   }
 
   return true;
@@ -111,16 +111,16 @@ bool SplineFields3Dmx::gradFE (const FiniteElement& fe, Matrix& grad) const
 		     uorder,vorder,worder,spline.left_idx,ip);
 
   // Evaluate the Jacobian inverse
-  Matrix Xnod, Jac;
-  Vector Xctrl(&(*gvol->coefs_begin()),gvol->coefs_end()-gvol->coefs_begin());
-  utl::gather(ip,gvol->dimension(),Xctrl,Xnod);
-  utl::Jacobian(Jac,dNdX,Xnod,dNdu);
+  Matrix Xnod(svol->getNoSpaceDim(),ip.size()), Jac;
+  for (size_t i = 0; i < ip.size(); i++)
+    Xnod.fillColumn(1+i,&(*gvol->coefs_begin())+gvol->dimension()*ip[i]);
+   utl::Jacobian(Jac,dNdX,Xnod,dNdu);
 
   // Evaluate the gradient of the solution field at the given point
   auto vit = values.begin();
   size_t row = 1;
-  for (const auto& it : bases) {
-    const Go::SplineVolume* basis = svol->getBasis(it);
+  for (int b : bases) {
+    const Go::SplineVolume* basis = svol->getBasis(b);
 #pragma omp critical
     basis->computeBasis(fe.u,fe.v,fe.w,spline);
 
@@ -139,14 +139,14 @@ bool SplineFields3Dmx::gradFE (const FiniteElement& fe, Matrix& grad) const
 		       basis->order(0),basis->order(1),basis->order(2),
 		       spline.left_idx,ip);
 
-    utl::gather(ip,1,Vector(&*vit, svol->getNoNodes(it)*
-                                   svol->getNoFields(it)),Xnod);
+    const size_t nval = svol->getNoNodes(b)*svol->getNoFields(b);
+    utl::gather(ip,1,Vector(&*vit,nval),Xnod);
     Matrix grad2;
     grad2.multiply(Xnod,dNdX); // grad = Xnod * dNdX
     grad(row,1) = grad2(1,1);
     grad(row,2) = grad(1,2);
     grad(row++,3) = grad(1,3);
-    vit += svol->getNoNodes(it)*svol->getNoFields(it);
+    vit += nval;
   }
 
   return true;

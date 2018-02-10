@@ -77,6 +77,9 @@ public:
 protected:
   const Go::SplineVolume* basis; //!< Spline basis description
   const Go::SplineVolume* vol;   //!< Spline geometry description
+
+private:
+  unsigned char nsd; //!< Number of space dimensions
 };
 
 #endif

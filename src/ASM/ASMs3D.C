@@ -1659,7 +1659,7 @@ double ASMs3D::getElementCorners (int i1, int i2, int i3, Vec3Vec& XC) const
   XC.reserve(8);
   const double* pt = &XYZ.front();
   for (int i = 0; i < 8; i++, pt += dim)
-    XC.push_back(Vec3(pt,dim));
+    XC.push_back(Vec3(pt,nsd));
 
   return getElementSize(XC);
 }

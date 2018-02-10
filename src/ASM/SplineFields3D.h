@@ -59,22 +59,22 @@ public:
   //! \brief Computes the value in a given node/control point.
   //! \param[in] node Node number
   //! \param[out] vals Node values
-  bool valueNode(size_t node, Vector& vals) const;
+  virtual bool valueNode(size_t node, Vector& vals) const;
 
   //! \brief Computes the value at a given local coordinate.
   //! \param[in] fe Finite element definition
   //! \param[out] vals Values in local point in given element
-  bool valueFE(const FiniteElement& fe, Vector& vals) const;
+  virtual bool valueFE(const FiniteElement& fe, Vector& vals) const;
 
   //! \brief Computes the value at a given global coordinate.
   //! \param[in] x Global/physical coordinate for point
   //! \param[out] vals Values in given physical coordinate
-  bool valueCoor(const Vec4& x, Vector& vals) const;
+  virtual bool valueCoor(const Vec4& x, Vector& vals) const;
 
   //! \brief Computes the gradient for a given local coordinate.
   //! \param[in] fe Finite element
   //! \param[out] grad Gradient of solution in a given local coordinate
-  bool gradFE(const FiniteElement& fe, Matrix& grad) const;
+  virtual bool gradFE(const FiniteElement& fe, Matrix& grad) const;
 
   //! \brief Computes the hessian for a given local coordinate.
   //! \param[in] fe Finite element quantities
@@ -84,6 +84,9 @@ public:
 protected:
   const Go::SplineVolume* basis; //!< Spline basis description
   const Go::SplineVolume* vol;   //!< Spline geometry description
+
+private:
+  unsigned char nsd; //!< Number of space dimensions
 };
 
 #endif

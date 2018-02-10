@@ -686,7 +686,7 @@ double ASMs1D::getElementEnds (int i, Vec3Vec& XC) const
   XC.reserve(elmCS.empty() ? 2 : 3);
   const double* pt = &XYZ.front();
   for (int j = 0; j < 2; j++, pt += dim)
-    XC.push_back(Vec3(pt,dim));
+    XC.push_back(Vec3(pt,nsd));
 
   // Calculate the characteristic element size
   double h = getElementSize(XC);

@@ -77,6 +77,9 @@ public:
 protected:
   const Go::SplineSurface* basis; //!< Spline basis description
   const Go::SplineSurface* surf;  //!< Spline geometry description
+
+private:
+  unsigned char nsd; //!< Number of space dimensions
 };
 
 #endif
