@@ -12,11 +12,11 @@
 
 #include "CoordinateMapping.h"
 #include "ASMs1D.h"
-#include "SIM1D.h"
 #include "ASMs2D.h"
 #include "ASMs2Dmx.h"
-#include "SIM2D.h"
 #include "ASMs3D.h"
+#include "SIM1D.h"
+#include "SIM2D.h"
 #include "SIM3D.h"
 #include "SplineUtils.h"
 
@@ -26,162 +26,196 @@
 #include <fstream>
 #include <array>
 
-static Matrix readMatrix(size_t r, size_t c, const std::string& file)
-{
-  Matrix result(r,c);
-  std::ifstream f(file);
-  for (size_t i=1;i<=r;++i)
-    for (size_t j=1;j<=c;++j)
-      f >> result(i,j);
-
-  return result;
-}
-
-static Matrix3D readMatrices(size_t r, size_t c, size_t k, const std::string& file)
-{
-  Matrix3D result(r,c,k);
-  std::ifstream f(file);
-  for (size_t n=1;n<=k;++n)
-    for (size_t i=1;i<=r;++i)
-      for (size_t j=1;j<=c;++j)
-        f >> result(i,j,n);
-
-  return result;
-}
-
-auto&& CHECK_MATRICES_EQUAL = [](const Matrix& A, const std::string& path)
-{
-  Matrix B = readMatrix(A.rows(), A.cols(), path);
-  for (size_t i=1;i<=A.rows();++i)
-    for (size_t j=1;j<=A.cols();++j)
-      ASSERT_NEAR(A(i,j), B(i,j), 1e-13);
-};
-
-
-auto&& CHECK_MATRICES3D_EQUAL = [](const Matrix3D& A, const std::string& path)
-{
-  Matrix3D B = readMatrices(A.dim(1), A.dim(2), A.dim(3), path);
-  for (size_t i=1;i<=A.dim(1);++i)
-    for (size_t j=1;j<=A.dim(2);++j)
-      for (size_t k=1;k<=A.dim(3);++k)
-        ASSERT_NEAR(A(i,j,k), B(i,j,k), 1e-13);
-};
-
 
 TEST(TestCoordinateMapping, Jacobian1D)
 {
   SIM1D sim(1);
-  sim.createDefaultModel();
+  ASSERT_TRUE(sim.createDefaultModel());
   ASMs1D& p = static_cast<ASMs1D&>(*sim.getPatch(1));
-  p.uniformRefine(3);
-  sim.preprocess();
+  ASSERT_TRUE(p.uniformRefine(3));
+  ASSERT_TRUE(sim.createFEMmodel());
 
   Vector N;
-  utl::matrix<Real> dNdU;
+  Matrix X, dNdU;
   p.extractBasis(0.25, N, dNdU);
-  utl::matrix<Real> X;
   p.getElementCoordinates(X, 2);
 
-  utl::matrix<Real> J;
-  utl::matrix<Real> dNdX;
+  Matrix J, dNdX;
   Real det = utl::Jacobian(J, dNdX, X, dNdU, true);
-  ASSERT_FLOAT_EQ(det, 1.0);
-  ASSERT_FLOAT_EQ(J(1,1), 1.0);
-  CHECK_MATRICES_EQUAL(dNdX, "src/Utility/Test/refdata/Jacobian1D_dNdX.asc");
+
+  EXPECT_FLOAT_EQ(det, 1.0);
+  EXPECT_FLOAT_EQ(J(1,1), 1.0);
+  EXPECT_EQ(dNdX.rows(), 2U);
+  EXPECT_EQ(dNdX.cols(), 1U);
+  EXPECT_FLOAT_EQ(dNdX(1,1),-4.0);
+  EXPECT_FLOAT_EQ(dNdX(2,1), 4.0);
 }
 
 
 TEST(TestCoordinateMapping, Hessian1D)
 {
   SIM1D sim(1);
-  sim.createDefaultModel();
+  ASSERT_TRUE(sim.createDefaultModel());
   ASMs1D& p = static_cast<ASMs1D&>(*sim.getPatch(1));
-  p.raiseOrder(2);
-  p.uniformRefine(3);
-  sim.preprocess();
+  ASSERT_TRUE(p.raiseOrder(2));
+  ASSERT_TRUE(p.uniformRefine(3));
+  ASSERT_TRUE(sim.createFEMmodel());
 
   Vector N;
-  utl::matrix<Real> dNdU;
+  Matrix X, dNdU;
   Matrix3D d2Ndu2;
   p.extractBasis(0.25, N, dNdU, d2Ndu2);
-  utl::matrix<Real> X;
   p.getElementCoordinates(X, 2);
 
-  utl::matrix<Real> J;
-  utl::matrix<Real> dNdX;
-  Matrix3D d2NdX2;
-  Matrix3D H;
+  Matrix J, dNdX;
+  Matrix3D H, d2NdX2;
   Real det = utl::Jacobian(J, dNdX, X, dNdU, true);
   utl::Hessian(H, d2NdX2, J, X, d2Ndu2, dNdX);
 
-  ASSERT_FLOAT_EQ(det, 1.0);
-  ASSERT_FLOAT_EQ(J(1,1), 1.0);
-  CHECK_MATRICES_EQUAL(dNdX, "src/Utility/Test/refdata/Hessian1D_dNdX.asc");
-  CHECK_MATRICES3D_EQUAL(d2NdX2, "src/Utility/Test/refdata/Hessian1D_d2NdX2.asc");
-  ASSERT_NEAR(H(1,1,1), 0.0, 1e-12);
+  const double dndx[] = {
+    -3.0, 1.0, 2.0, 0.0
+  };
+
+  const double d2ndx2[] = {
+    24.0,-40.0, 16.0, 0.0
+  };
+
+  EXPECT_FLOAT_EQ(det, 1.0);
+  EXPECT_FLOAT_EQ(J(1,1), 1.0);
+  EXPECT_NEAR(H(1,1,1), 0.0, 1.0e-13);
+
+  size_t i = 0;
+  EXPECT_EQ(dNdX.rows(), 4U);
+  EXPECT_EQ(dNdX.cols(), 1U);
+  for (double v : dNdX)
+    EXPECT_FLOAT_EQ(dndx[i++], v);
+
+  i = 0;
+  EXPECT_EQ(d2NdX2.dim(1), 4U);
+  EXPECT_EQ(d2NdX2.dim(2), 1U);
+  EXPECT_EQ(d2NdX2.dim(3), 1U);
+  for (double v : d2NdX2)
+    EXPECT_FLOAT_EQ(d2ndx2[i++], v);
 }
 
 
 TEST(TestCoordinateMapping, Jacobian2D)
 {
   SIM2D sim(1);
-  sim.createDefaultModel();
+  ASSERT_TRUE(sim.createDefaultModel());
   ASMs2D& p = static_cast<ASMs2D&>(*sim.getPatch(1));
-  p.uniformRefine(1,3);
-  p.uniformRefine(2,3);
-  sim.preprocess();
+  ASSERT_TRUE(p.uniformRefine(0,3));
+  ASSERT_TRUE(p.uniformRefine(1,3));
+  ASSERT_TRUE(sim.createFEMmodel());
 
   Vector N;
-  utl::matrix<Real> dNdU;
+  Matrix X, dNdU;
   p.extractBasis(0.25, 0.25, N, dNdU);
-  utl::matrix<Real> X;
   p.getElementCoordinates(X, 2);
 
-  utl::matrix<Real> J;
-  utl::matrix<Real> dNdX;
+  Matrix J, dNdX;
   Real det = utl::Jacobian(J, dNdX, X, dNdU, true);
-  ASSERT_FLOAT_EQ(det, 1.0);
-  CHECK_MATRICES_EQUAL(J, "src/Utility/Test/refdata/Jacobian2D_J.asc");
-  CHECK_MATRICES_EQUAL(dNdX, "src/Utility/Test/refdata/Jacobian2D_dNdX.asc");
+
+  const double dndx[] = {
+    -4.0, 4.0, 0.0, 0.0,
+    -4.0, 0.0, 4.0, 0.0
+  };
+
+  EXPECT_FLOAT_EQ(det, 1.0);
+  for (size_t i = 1; i <= J.rows(); i++)
+    for (size_t j = 1; j <= J.rows(); j++)
+      EXPECT_FLOAT_EQ(J(i,j), i == j ? 1.0 : 0.0);
+
+  size_t i = 0;
+  EXPECT_EQ(dNdX.rows(), 4U);
+  EXPECT_EQ(dNdX.cols(), 2U);
+  for (double v : dNdX)
+    EXPECT_FLOAT_EQ(dndx[i++], v);
 }
 
 
 TEST(TestCoordinateMapping, Hessian2D)
 {
   SIM2D sim(1);
-  sim.createDefaultModel();
+  ASSERT_TRUE(sim.createDefaultModel());
   ASMs2D& p = static_cast<ASMs2D&>(*sim.getPatch(1));
-  p.raiseOrder(2,2);
-  p.uniformRefine(1,3);
-  p.uniformRefine(2,3);
-  sim.preprocess();
+  ASSERT_TRUE(p.raiseOrder(2,2));
+  ASSERT_TRUE(p.uniformRefine(0,3));
+  ASSERT_TRUE(p.uniformRefine(1,3));
+  ASSERT_TRUE(sim.createFEMmodel());
 
   Vector N;
-  utl::matrix<Real> dNdU;
+  Matrix X, dNdU;
   Matrix3D d2Ndu2;
   p.extractBasis(0.25, 0.25, N, dNdU, d2Ndu2);
-  utl::matrix<Real> X;
   p.getElementCoordinates(X, 2);
 
-  utl::matrix<Real> J;
-  utl::matrix<Real> dNdX;
-  Matrix3D d2NdX2;
-  Matrix3D H;
+  Matrix J, dNdX;
+  Matrix3D H, d2NdX2;
   Real det = utl::Jacobian(J, dNdX, X, dNdU, true);
   utl::Hessian(H, d2NdX2, J, X, d2Ndu2, dNdX);
-  ASSERT_FLOAT_EQ(det, 1.0);
-  CHECK_MATRICES_EQUAL(J, "src/Utility/Test/refdata/Hessian2D_J.asc");
-  CHECK_MATRICES3D_EQUAL(H, "src/Utility/Test/refdata/Hessian2D_H.asc");
+
+  const double dndx[] = {
+    -0.75, 0.25, 0.5, 0.0,-1.75, 0.5833333333333, 1.1666666666667, 0.0,
+    -0.5, 0.1666666666667, 0.3333333333333, 0.0, 0.0, 0.0, 0.0, 0.0,
+
+    -1.2857142857143, -3.0, -0.8571428571428, 0.0,
+    0.4285714285714, 1.0, 0.2857142857143, 0.0,
+    0.8571428571428, 2.0, 0.5714285714285, 0.0,
+    0.0, 0.0, 0.0, 0.0
+  };
+
+  const double d2ndx2[] = {
+    6.0, -10.0, 4.0, 0.0, 14.0, -23.333333333333, 9.333333333333, 0.0,
+    4.0, -6.666666666667, 2.666666666667, 0.0, 0.0, 0.0, 0.0, 0.0,
+
+    15.428571428571, -5.142857142857, -10.285714285714, 0.0,
+    -5.142857142857, 1.714285714286, 3.428571428571, 0.0,
+    -10.285714285714, 3.428571428571, 6.857142857143, 0.0,  0.0, 0.0, 0.0, 0.0,
+
+    15.428571428571, -5.142857142857, -10.285714285714, 0.0,
+    -5.142857142857, 1.714285714286, 3.428571428571, 0.0,
+    -10.285714285714, 3.428571428571, 6.857142857143, 0.0,  0.0, 0.0, 0.0, 0.0,
+
+    20.151603498542, 47.020408163265, 13.434402332362, 0.0,
+    -30.227405247813, -70.530612244897, -20.151603498542, 0.0,
+    10.075801749271, 23.510204081632, 6.717201166181, 0.0,  0.0, 0.0, 0.0, 0.0
+  };
+
+  EXPECT_FLOAT_EQ(det, 7.0/12.0);
+  EXPECT_NEAR(J(1,1), 1.0, 1.0e-13);
+  EXPECT_NEAR(J(2,2), 1.7142857142857, 1.0e-13);
+  EXPECT_NEAR(J(1,2), 0.0, 1.0e-13);
+  EXPECT_NEAR(J(2,1), 0.0, 1.0e-13);
+
+  for (size_t i = 1; i <= H.dim(1); i++)
+    for (size_t j = 1; j <= H.dim(2); j++)
+      for (size_t k = 1; k <= H.dim(3); k++)
+        EXPECT_NEAR(H(i,j,k), i==j && j==k && k==2 ? 2.0/3.0 : 0.0, 1.0e-13);
+
+  size_t i = 0;
+  EXPECT_EQ(dNdX.rows(), 16U);
+  EXPECT_EQ(dNdX.cols(), 2U);
+  for (double v : dNdX)
+    EXPECT_NEAR(dndx[i++], v, 1.0e-13);
+
+  i = 0;
+  EXPECT_EQ(d2NdX2.dim(1), 16U);
+  EXPECT_EQ(d2NdX2.dim(2), 2U);
+  EXPECT_EQ(d2NdX2.dim(3), 2U);
+  for (double v : d2NdX2)
+    EXPECT_NEAR(d2ndx2[i++], v, 1.0e-12);
 }
+
 
 TEST(TestCoordinateMapping, Hessian2D_mixed)
 {
   SIM2D sim({1,1});
-  sim.createDefaultModel();
+  ASSERT_TRUE(sim.createDefaultModel());
   ASMs2Dmx& p = static_cast<ASMs2Dmx&>(*sim.getPatch(1));
-  sim.preprocess();
+  ASSERT_TRUE(sim.createFEMmodel());
 
-  std::vector<std::vector<Go::BasisDerivsSf2>> splinex2(2);
+  std::array<std::vector<Go::BasisDerivsSf2>, 2> splinex2;
   p.getBasis(1)->computeBasisGrid({0.5}, {0.5}, splinex2[0]);
   p.getBasis(2)->computeBasisGrid({0.5}, {0.5}, splinex2[1]);
 
@@ -194,82 +228,286 @@ TEST(TestCoordinateMapping, Hessian2D_mixed)
   Matrix Jac;
   std::array<Matrix, 2> grad;
 
-  int geoBasis = ASMmxBase::geoBasis;
+  int geoBasis = ASMmxBase::geoBasis - 1;
 
   Matrix Xnod;
   p.getElementCoordinates(Xnod,1);
 
-  utl::Jacobian(Jac, grad[geoBasis-1], Xnod, dNxdu[geoBasis-1]);
+  utl::Jacobian(Jac, grad[geoBasis], Xnod, dNxdu[geoBasis]);
 
-  grad[1-(geoBasis-1)].multiply(dNxdu[1-(geoBasis-1)],Jac);
+  grad[1-geoBasis].multiply(dNxdu[1-geoBasis],Jac);
 
+  const double Hess_basis1[] = {
+    0.5,-1.0, 0.5, 1.0,-2.0, 1.0, 0.5,-1.0, 0.5,
+    1.0, 0.0,-1.0, 0.0, 0.0, 0.0,-1.0, 0.0, 1.0,
+    1.0, 0.0,-1.0, 0.0, 0.0, 0.0,-1.0, 0.0, 1.0,
+    0.5, 1.0, 0.5,-1.0,-2.0,-1.0, 0.5, 1.0, 0.5
+  };
+
+  const double Hess_basis2[] = {
+    0.0, 0.0, 0.0, 0.0,
+    1.0,-1.0,-1.0, 1.0,
+    1.0,-1.0,-1.0, 1.0,
+    0.0, 0.0, 0.0, 0.0,
+  };
+
+  size_t i;
   Matrix3D Hess;
   std::array<Matrix3D, 2> hess;
-  utl::Hessian(Hess, hess[1],Jac,Xnod,d2Nxdu2[1],grad[1],true);
-  utl::Hessian(Hess, hess[0],Jac,Xnod,d2Nxdu2[0],grad[0],false);
+  for (int b = 1; b >= 0; b--)
+  {
+    utl::Hessian(Hess,hess[b],Jac,Xnod,d2Nxdu2[b],grad[b],b==1);
+    // geometry mapping should be the identify mapping
+    const Real* h = hess[b].ptr();
+    i = 0;
+    for (double v : d2Nxdu2[b])
+      EXPECT_FLOAT_EQ(h[i++], v);
+  }
 
-  // geometry mapping should be the identify mapping
-  for (size_t d = 0; d < 2; ++ d)
-    for (size_t i=0; i < d2Nxdu2[d].size(); ++i)
-      ASSERT_FLOAT_EQ(d2Nxdu2[d].ptr()[i], hess[d].ptr()[i]);
+  i = 0;
+  for (double v : hess[0])
+    EXPECT_FLOAT_EQ(Hess_basis1[i++],v);
 
-  CHECK_MATRICES3D_EQUAL(hess[0], "src/Utility/Test/refdata/Hessian2D_mixed_b1.asc");
-  CHECK_MATRICES3D_EQUAL(hess[1], "src/Utility/Test/refdata/Hessian2D_mixed_b2.asc");
+  i = 0;
+  for (double v : hess[1])
+    EXPECT_FLOAT_EQ(Hess_basis2[i++],v);
 }
 
 
 TEST(TestCoordinateMapping, Jacobian3D)
 {
   SIM3D sim(1);
-  sim.createDefaultModel();
+  ASSERT_TRUE(sim.createDefaultModel());
   ASMs3D& p = static_cast<ASMs3D&>(*sim.getPatch(1));
-  p.uniformRefine(0, 3);
-  p.uniformRefine(1, 3);
-  p.uniformRefine(2, 3);
-  sim.preprocess();
+  ASSERT_TRUE(p.uniformRefine(0,3));
+  ASSERT_TRUE(p.uniformRefine(1,3));
+  ASSERT_TRUE(p.uniformRefine(2,3));
+  ASSERT_TRUE(sim.createFEMmodel());
 
   Vector N;
-  utl::matrix<Real> dNdU;
+  Matrix X, dNdU;
   p.extractBasis(0.25, 0.25, 0.25, N, dNdU);
-  utl::matrix<Real> X;
   p.getElementCoordinates(X, 2);
 
-  utl::matrix<Real> J;
-  utl::matrix<Real> dNdX;
+  Matrix J, dNdX;
   Real det = utl::Jacobian(J, dNdX, X, dNdU, true);
-  ASSERT_FLOAT_EQ(det, 1.0);
-  CHECK_MATRICES_EQUAL(J, "src/Utility/Test/refdata/Jacobian3D_J.asc");
-  CHECK_MATRICES_EQUAL(dNdX, "src/Utility/Test/refdata/Jacobian3D_dNdX.asc");
+
+  const double dndx[] = {
+    -4.0, 4.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+    -4.0, 0.0, 4.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+    -4.0, 0.0, 0.0, 0.0, 4.0, 0.0, 0.0, 0.0
+  };
+
+  EXPECT_FLOAT_EQ(det, 1.0);
+  for (size_t i = 1; i <= J.rows(); i++)
+    for (size_t j = 1; j <= J.rows(); j++)
+      EXPECT_FLOAT_EQ(J(i,j), i == j ? 1.0 : 0.0);
+
+  size_t i = 0;
+  EXPECT_EQ(dNdX.rows(), 8U);
+  EXPECT_EQ(dNdX.cols(), 3U);
+  for (double v : dNdX)
+    EXPECT_FLOAT_EQ(dndx[i++], v);
 }
 
 
 TEST(TestCoordinateMapping, Hessian3D)
 {
   SIM3D sim(1);
-  sim.createDefaultModel();
+  ASSERT_TRUE(sim.createDefaultModel());
   ASMs3D& p = static_cast<ASMs3D&>(*sim.getPatch(1));
-  p.raiseOrder(2,2,2);
-  p.uniformRefine(0,3);
-  p.uniformRefine(1,3);
-  p.uniformRefine(2,3);
-  sim.preprocess();
+  ASSERT_TRUE(p.raiseOrder(2,2,2));
+  ASSERT_TRUE(p.uniformRefine(0,3));
+  ASSERT_TRUE(p.uniformRefine(1,3));
+  ASSERT_TRUE(p.uniformRefine(2,3));
+  ASSERT_TRUE(sim.createFEMmodel());
 
   Vector N;
-  utl::matrix<Real> dNdU;
+  Matrix X, dNdU;
   Matrix3D d2Ndu2;
   p.extractBasis(0.25, 0.25, 0.25, N, dNdU, d2Ndu2);
-  utl::matrix<Real> X;
   p.getElementCoordinates(X, 2);
 
-  utl::matrix<Real> J;
-  utl::matrix<Real> dNdX;
-  Matrix3D d2NdX2;
-  Matrix3D H;
+  Matrix J, dNdX;
+  Matrix3D H, d2NdX2;
   Real det = utl::Jacobian(J, dNdX, X, dNdU, true);
   utl::Hessian(H, d2NdX2, J, X, d2Ndu2, dNdX);
-  ASSERT_FLOAT_EQ(det, 0.34027779);
-  CHECK_MATRICES_EQUAL(J, "src/Utility/Test/refdata/Hessian3D_J.asc");
-  CHECK_MATRICES_EQUAL(dNdX, "src/Utility/Test/refdata/Hessian3D_dNdX.asc");
-  CHECK_MATRICES3D_EQUAL(d2NdX2, "src/Utility/Test/refdata/Hessian3D_d2NdX2.asc");
-  CHECK_MATRICES3D_EQUAL(H, "src/Utility/Test/refdata/Hessian3D_H.asc");
+
+  size_t i, j, k;
+  EXPECT_FLOAT_EQ(det, 0.34027779);
+  for (i = 1; i <= J.rows(); i++)
+    for (j = 1; j <= J.rows(); j++)
+      if (i == 1 && j == 1)
+        EXPECT_FLOAT_EQ(J(i,j), 1.0);
+      else
+        EXPECT_NEAR(J(i,j), i == j ? 1.7142857142857 : 0.0, 1.0e-13);
+
+  const double dndx[] = {
+    -0.1875, 0.0625, 0.125, 0, -0.4375, 0.1458333333333,
+    0.2916666666667, 0, -0.125, 0.04166666666667, 0.08333333333333, 0,
+    0, 0, 0, 0, -0.4375, 0.1458333333333,
+    0.2916666666667, 0, -1.0208333333333, 0.3402777777778, 0.6805555555556, 0,
+    -0.2916666666667, 0.09722222222222, 0.1944444444444, 0, 0, 0,
+    0, 0, -0.125, 0.04166666666667, 0.08333333333333, 0,
+    -0.2916666666667, 0.09722222222222, 0.1944444444444, 0, -0.08333333333333, 0.02777777777778,
+    0.05555555555556, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0,
+
+    -0.3214285714286, -0.75, -0.2142857142857, 0, 0.1071428571429, 0.25,
+    0.07142857142857, 0, 0.2142857142857, 0.5, 0.1428571428571, 0,
+    0, 0, 0, 0, -0.75, -1.75,
+    -0.5, 0, 0.25, 0.5833333333333, 0.1666666666667, 0,
+    0.5, 1.1666666666667, 0.3333333333333, 0, 0, 0,
+    0, 0, -0.2142857142857, -0.5, -0.1428571428571, 0,
+    0.07142857142857, 0.1666666666667, 0.04761904761905, 0, 0.1428571428571, 0.3333333333333,
+    0.0952380952381, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0,
+
+    -0.3214285714286, -0.75, -0.2142857142857, 0, -0.75, -1.75,
+    -0.5, 0, -0.2142857142857, -0.5, -0.1428571428571, 0,
+    0, 0, 0, 0, 0.1071428571429, 0.25,
+    0.07142857142857, 0, 0.25, 0.5833333333333, 0.1666666666667, 0,
+    0.07142857142857, 0.1666666666667, 0.04761904761905, 0, 0, 0,
+    0, 0, 0.2142857142857, 0.5, 0.1428571428571, 0,
+    0.5, 1.1666666666667, 0.3333333333333, 0, 0.1428571428571, 0.3333333333333,
+    0.0952380952381, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0.0
+  };
+
+  const double d2ndx2[] = {
+    1.5, -2.5, 1, 0, 3.5, -5.833333333333,
+    2.333333333333, 0, 1, -1.666666666667, 0.6666666666667, 0,
+    0, 0, 0, 0, 3.5, -5.833333333333,
+    2.333333333333, 0, 8.166666666667, -13.611111111111, 5.444444444444, 0,
+    2.333333333333, -3.888888888889, 1.555555555556, 0, 0, 0,
+    0, 0, 1, -1.666666666667, 0.6666666666667, 0,
+    2.333333333333, -3.888888888889, 1.555555555556, 0, 0.6666666666667, -1.111111111111,
+    0.4444444444444, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0,
+
+    3.857142857143, -1.285714285714, -2.571428571429, 0, -1.285714285714, 0.4285714285714,
+    0.8571428571429, 0, -2.571428571429, 0.8571428571429, 1.714285714286, 0,
+    0, 0, 0, 0, 9, -3,
+    -6, 0, -3, 1, 2, 0,
+    -6, 2, 4, 0, 0, 0,
+    0, 0, 2.571428571429, -0.8571428571429, -1.714285714286, 0,
+    -0.8571428571429, 0.2857142857143, 0.5714285714286, 0, -1.714285714286, 0.5714285714286,
+    1.142857142857, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0,
+
+    3.857142857143, -1.285714285714, -2.571428571429, 0, 9, -3,
+    -6, 0, 2.571428571429, -0.8571428571429, -1.714285714286, 0,
+    0, 0, 0, 0, -1.285714285714, 0.4285714285714,
+    0.8571428571429, 0, -3, 1, 2, 0,
+    -0.8571428571429, 0.2857142857143, 0.5714285714286, 0, 0, 0,
+    0, 0, -2.571428571429, 0.8571428571429, 1.714285714286, 0,
+    -6, 2, 4, 0, -1.714285714286, 0.5714285714286,
+    1.142857142857, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0,
+
+    3.857142857143, -1.285714285714, -2.571428571429, 0, -1.285714285714, 0.4285714285714,
+    0.8571428571429, 0, -2.571428571429, 0.8571428571429, 1.714285714286, 0,
+    0, 0, 0, 0, 9, -3,
+    -6, 0, -3, 1, 2, 0,
+    -6, 2, 4, 0, 0, 0,
+    0, 0, 2.571428571429, -0.8571428571429, -1.714285714286, 0,
+    -0.8571428571429, 0.2857142857143, 0.5714285714286, 0, -1.714285714286, 0.5714285714286,
+    1.142857142857, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0,
+
+    5.037900874636, 11.755102040816, 3.35860058309, 0, -7.556851311953, -17.632653061224,
+    -5.037900874636, 0, 2.518950437318, 5.877551020408, 1.679300291545, 0,
+    0, 0, 0, 0, 11.755102040816, 27.428571428571,
+    7.836734693878, 0, -17.632653061224, -41.142857142857, -11.755102040816, 0,
+    5.877551020408, 13.714285714286, 3.918367346939, 0, 0, 0,
+    0, 0, 3.35860058309, 7.836734693878, 2.239067055394, 0,
+    -5.037900874636, -11.755102040816, -3.35860058309, 0, 1.679300291545, 3.918367346939,
+    1.119533527697, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0,
+
+    6.612244897959, 15.428571428571, 4.408163265306, 0, -2.204081632653, -5.142857142857,
+    -1.469387755102, 0, -4.408163265306, -10.285714285714, -2.938775510204, 0,
+    0, 0, 0, 0, -2.204081632653, -5.142857142857,
+    -1.469387755102, 0, 0.734693877551, 1.714285714286, 0.4897959183673, 0,
+    1.469387755102, 3.428571428571, 0.9795918367347, 0, 0, 0,
+    0, 0, -4.408163265306, -10.285714285714, -2.938775510204, 0,
+    1.469387755102, 3.428571428571, 0.9795918367347, 0, 2.938775510204, 6.857142857143,
+    1.959183673469, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0,
+
+    3.857142857143, -1.285714285714, -2.571428571429, 0, 9, -3,
+    -6, 0, 2.571428571429, -0.8571428571429, -1.714285714286, 0,
+    0, 0, 0, 0, -1.285714285714, 0.4285714285714,
+    0.8571428571429, 0, -3, 1, 2, 0,
+    -0.8571428571429, 0.2857142857143, 0.5714285714286, 0, 0, 0,
+    0, 0, -2.571428571429, 0.8571428571429, 1.714285714286, 0,
+    -6, 2, 4, 0, -1.714285714286, 0.5714285714286,
+    1.142857142857, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0,
+
+    6.612244897959, 15.428571428571, 4.408163265306, 0, -2.204081632653, -5.142857142857,
+    -1.469387755102, 0, -4.408163265306, -10.285714285714, -2.938775510204, 0,
+    0, 0, 0, 0, -2.204081632653, -5.142857142857,
+    -1.469387755102, 0, 0.734693877551, 1.714285714286, 0.4897959183673, 0,
+    1.469387755102, 3.428571428571, 0.9795918367347, 0, 0, 0,
+    0, 0, -4.408163265306, -10.285714285714, -2.938775510204, 0,
+    1.469387755102, 3.428571428571, 0.9795918367347, 0, 2.938775510204, 6.857142857143,
+    1.959183673469, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0,
+
+    5.037900874636, 11.755102040816, 3.35860058309, 0, 11.755102040816, 27.428571428571,
+    7.836734693878, 0, 3.35860058309, 7.836734693878, 2.239067055394, 0,
+    0, 0, 0, 0, -7.556851311953, -17.632653061224,
+    -5.037900874636, 0, -17.632653061224, -41.142857142857, -11.755102040816, 0,
+    -5.037900874636, -11.755102040816, -3.35860058309, 0, 0, 0,
+    0, 0, 2.518950437318, 5.877551020408, 1.679300291545, 0,
+    5.877551020408, 13.714285714286, 3.918367346939, 0, 1.679300291545, 3.918367346939,
+    1.119533527697, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0
+  };
+
+  i = 0;
+  EXPECT_EQ(dNdX.rows(), 64U);
+  EXPECT_EQ(dNdX.cols(), 3U);
+  for (double v : dNdX)
+    EXPECT_NEAR(dndx[i++], v, 1.0e-13);
+
+  i = 0;
+  EXPECT_EQ(d2NdX2.dim(1), 64U);
+  EXPECT_EQ(d2NdX2.dim(2), 3U);
+  EXPECT_EQ(d2NdX2.dim(3), 3U);
+  for (double v : d2NdX2)
+    EXPECT_NEAR(d2ndx2[i++], v, 1.0e-12);
+
+  for (i = 1; i <= H.dim(1); i++)
+    for (j = 1; j <= H.dim(2); j++)
+      for (k = 1; k <= H.dim(3); k++)
+        if (k > 1 && j > 1 && i == j && i == k)
+          EXPECT_NEAR(H(i,j,k), 2.0/3.0, 1.0e-13);
+        else
+          EXPECT_NEAR(H(i,j,k), 0.0, 1.0e-13);
 }
