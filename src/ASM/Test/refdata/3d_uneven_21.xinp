@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<simulation>
+  <geometry>
+    <patchfile>src/ASM/Test/refdata/3d_uneven_21.g2</patchfile>
+  <topology>
+    <connection master="1" mface="1" slave="2" sface="2" orient="3"/>
+  </topology>
+  </geometry>
+</simulation>

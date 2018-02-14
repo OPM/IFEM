@@ -224,3 +224,17 @@ TEST(TestASMu2D, TransferGaussPtVarsN)
   for (size_t i = 0; i < refAr.size(); ++i)
     EXPECT_FLOAT_EQ(refAr[i], newAr[i]);
 }
+
+
+TEST(TestASMu2D, Connect)
+{
+  SIM2D sim(1);
+  sim.opt.discretization = ASM::LRSpline;
+  ASSERT_TRUE(sim.read("src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_orient0.xinp"));
+  ASSERT_TRUE(sim.createFEMmodel());
+
+  SIM2D sim2(1);
+  sim2.opt.discretization = ASM::LRSpline;
+  ASSERT_TRUE(sim2.read("src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_orient1.xinp"));
+  ASSERT_TRUE(sim2.createFEMmodel());
+}

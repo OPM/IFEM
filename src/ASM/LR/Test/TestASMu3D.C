@@ -27,6 +27,9 @@ class TestASMu3D :
 
 TEST_P(TestASMu3D, BoundaryNodes)
 {
+  if (GetParam() == 0 || GetParam() > 6)
+    return;
+
   SIM3D sim(1);
   sim.opt.discretization = ASM::LRSpline;
   ASSERT_TRUE(sim.read("src/ASM/LR/Test/refdata/boundary_nodes_3d.xinp"));
@@ -58,7 +61,36 @@ TEST_P(TestASMu3D, BoundaryNodes)
 }
 
 
-const std::vector<int> tests = {1,2,3,4,5,6};
+TEST_P(TestASMu3D, Connect)
+{
+  if (GetParam() > 7)
+    return;
+
+  SIM3D sim(3);
+  sim.opt.discretization = ASM::LRSpline;
+  std::stringstream str;
+  str << "src/ASM/Test/refdata/DomainDecomposition_MPI_3D_4_orient";
+  str << GetParam() << ".xinp";
+  ASSERT_TRUE(sim.read(str.str().c_str()));
+  ASSERT_TRUE(sim.createFEMmodel());
+}
+
+
+TEST_P(TestASMu3D, ConnectUneven)
+{
+  SIM3D sim(1);
+  sim.opt.discretization = ASM::LRSpline;
+  std::stringstream str;
+  str << "src/ASM/Test/refdata/3d_uneven";
+  if (GetParam() > 0)
+    str << "_" << (GetParam()-1)/3 << (GetParam()-1) % 3;
+  str << ".xinp";
+  ASSERT_TRUE(sim.read(str.str().c_str()));
+  ASSERT_TRUE(sim.createFEMmodel());
+}
+
+
+const std::vector<int> tests = {0,1,2,3,4,5,6,7,8,9,10,11,12};
 INSTANTIATE_TEST_CASE_P(TestASMu3D,
                         TestASMu3D,
                         testing::ValuesIn(tests));
