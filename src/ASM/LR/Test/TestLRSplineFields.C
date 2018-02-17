@@ -27,7 +27,7 @@ TEST(TestLRSplineFields, Value2D)
 {
   IFEM::getOptions().discretization = ASM::LRSpline;
   SIM2D sim(2);
-  sim.createDefaultModel();
+  ASSERT_TRUE(sim.createDefaultModel());
 
   // {x+y+x*y, x-y+x*y}
   std::vector<double> vc = {0.0,  0.0,
@@ -47,9 +47,9 @@ TEST(TestLRSplineFields, Value2D)
     fe.v = it[1];
     Vector v(2);
     fvector->valueFE(fe, v);
-    ASSERT_FLOAT_EQ(v(1), it[2]);
-    ASSERT_FLOAT_EQ(v(2), it[3]);
-    ASSERT_FLOAT_EQ(fscalar->valueFE(fe), it[3]);
+    EXPECT_FLOAT_EQ(v(1), it[2]);
+    EXPECT_FLOAT_EQ(v(2), it[3]);
+    EXPECT_FLOAT_EQ(fscalar->valueFE(fe), it[3]);
   }
 }
 
@@ -59,8 +59,8 @@ TEST(TestLRSplineFields, Value2Dmx)
   ASMmxBase::Type = ASMmxBase::DIV_COMPATIBLE;
   IFEM::getOptions().discretization = ASM::LRSpline;
   SIM2D sim({1,1,1});
-  sim.createDefaultModel();
-  sim.preprocess();
+  ASSERT_TRUE(sim.createDefaultModel());
+  ASSERT_TRUE(sim.createFEMmodel());
 
   // {x+y+x*y, x-y+x*y}
   std::vector<double> vc = {0.0,
@@ -91,9 +91,9 @@ TEST(TestLRSplineFields, Value2Dmx)
     fe.v = it[1];
     Vector v(2);
     fvector->valueFE(fe, v);
-    ASSERT_FLOAT_EQ(v(1), it[2]);
-    ASSERT_FLOAT_EQ(v(2), it[3]);
-    ASSERT_FLOAT_EQ(fscalar->valueFE(fe), it[4]);
+    EXPECT_FLOAT_EQ(v(1), it[2]);
+    EXPECT_FLOAT_EQ(v(2), it[3]);
+    EXPECT_FLOAT_EQ(fscalar->valueFE(fe), it[4]);
   }
 }
 
@@ -102,7 +102,7 @@ TEST(TestLRSplineFields, Grad2D)
 {
   IFEM::getOptions().discretization = ASM::LRSpline;
   SIM2D sim(2);
-  sim.createDefaultModel();
+  ASSERT_TRUE(sim.createDefaultModel());
 
   // {x+y+x*y, x-y+x*y}
   std::vector<double> vc = {0.0, 0.0, 1.0, 1.0, 1.0, -1.0, 3.0, 1.0};
@@ -118,10 +118,10 @@ TEST(TestLRSplineFields, Grad2D)
     fe.v = it[1];
     Matrix gradu(2,2);
     fvector->gradFE(fe, gradu);
-    ASSERT_FLOAT_EQ(gradu(1,1), it[2]);
-    ASSERT_FLOAT_EQ(gradu(1,2), it[3]);
-    ASSERT_FLOAT_EQ(gradu(2,1), it[4]);
-    ASSERT_FLOAT_EQ(gradu(2,2), it[5]);
+    EXPECT_FLOAT_EQ(gradu(1,1), it[2]);
+    EXPECT_FLOAT_EQ(gradu(1,2), it[3]);
+    EXPECT_FLOAT_EQ(gradu(2,1), it[4]);
+    EXPECT_FLOAT_EQ(gradu(2,2), it[5]);
   }
 }
 
@@ -130,7 +130,7 @@ TEST(TestLRSplineFields, Value3D)
 {
   IFEM::getOptions().discretization = ASM::LRSpline;
   SIM3D sim(3);
-  sim.createDefaultModel();
+  ASSERT_TRUE(sim.createDefaultModel());
 
   // {x+y+z, x+y-z, x-y+z}
   std::vector<double> vc = {0.0,  0.0,  0.0,
@@ -160,10 +160,10 @@ TEST(TestLRSplineFields, Value3D)
     fe.w = it[2];
     Vector v(3);
     fvector->valueFE(fe, v);
-    ASSERT_FLOAT_EQ(v(1), it[3]);
-    ASSERT_FLOAT_EQ(v(2), it[4]);
-    ASSERT_FLOAT_EQ(v(3), it[5]);
-    ASSERT_FLOAT_EQ(fscalar->valueFE(fe), it[4]);
+    EXPECT_FLOAT_EQ(v(1), it[3]);
+    EXPECT_FLOAT_EQ(v(2), it[4]);
+    EXPECT_FLOAT_EQ(v(3), it[5]);
+    EXPECT_FLOAT_EQ(fscalar->valueFE(fe), it[4]);
   }
 }
 
@@ -172,7 +172,7 @@ TEST(TestLRSplineFields, Grad3D)
 {
   IFEM::getOptions().discretization = ASM::LRSpline;
   SIM3D sim(3);
-  sim.createDefaultModel();
+  ASSERT_TRUE(sim.createDefaultModel());
 
   // {x+y+z+x*y*z, x+y-z+x*y*z, x-y+z+x*y*z}
   std::vector<double> vc = {0.0,  0.0,  0.0,
@@ -222,7 +222,7 @@ TEST(TestLRSplineFields, Grad3D)
     fvector->gradFE(fe, gradu);
     for (size_t i = 0; i < 3; ++i)
       for (size_t j = 0; j <3; ++j)
-        ASSERT_FLOAT_EQ(gradu(i+1,j+1), it.second[i*3+j]);
+        EXPECT_FLOAT_EQ(gradu(i+1,j+1), it.second[i*3+j]);
   }
 }
 
@@ -231,8 +231,8 @@ TEST(TestLRSplineFields, Value3Dmx)
 {
   ASMmxBase::Type = ASMmxBase::DIV_COMPATIBLE;
   SIM3D sim({1,1,1,1});
-  sim.createDefaultModel();
-  sim.preprocess();
+  ASSERT_TRUE(sim.createDefaultModel());
+  ASSERT_TRUE(sim.createFEMmodel());
 
   // {x+y+z+x*y*z, x+y-z+x*y*z, x-y+z+x*y*z}
   std::vector<double> vc = {0.0, 0.5, 1.0,
@@ -274,9 +274,9 @@ TEST(TestLRSplineFields, Value3Dmx)
     fe.w = it[2];
     Vector v(3);
     fvector->valueFE(fe, v);
-    ASSERT_FLOAT_EQ(v(1), it[3]);
-    ASSERT_FLOAT_EQ(v(2), it[4]);
-    ASSERT_FLOAT_EQ(v(3), it[5]);
-    ASSERT_FLOAT_EQ(fscalar->valueFE(fe), it[6]);
+    EXPECT_FLOAT_EQ(v(1), it[3]);
+    EXPECT_FLOAT_EQ(v(2), it[4]);
+    EXPECT_FLOAT_EQ(v(3), it[5]);
+    EXPECT_FLOAT_EQ(fscalar->valueFE(fe), it[6]);
   }
 }

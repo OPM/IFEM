@@ -11,16 +11,15 @@
 //==============================================================================
 
 #include "ASMu3D.h"
-#include "GaussQuadrature.h"
 #include "SIM3D.h"
+#include "GaussQuadrature.h"
 #include "LRSpline/LRSplineVolume.h"
 
 #include "gtest/gtest.h"
 #include <numeric>
 
-class TestASMu3D :
-  public testing::Test,
-  public testing::WithParamInterface<int>
+class TestASMu3D : public testing::Test,
+                   public testing::WithParamInterface<int>
 {
 };
 
@@ -33,7 +32,7 @@ TEST_P(TestASMu3D, BoundaryNodes)
   SIM3D sim(1);
   sim.opt.discretization = ASM::LRSpline;
   ASSERT_TRUE(sim.read("src/ASM/LR/Test/refdata/boundary_nodes_3d.xinp"));
-  sim.preprocess();
+  ASSERT_TRUE(sim.createFEMmodel());
 
   std::stringstream str;
   str << "Face" << GetParam();
@@ -42,22 +41,20 @@ TEST_P(TestASMu3D, BoundaryNodes)
   sim.getBoundaryNodes(bcode,vec);
   ASSERT_EQ(vec.size(), 16U);
   auto it = vec.begin();
-  for (int i = 0; i < 4; ++i) {
-    for (int j = 0; j < 4; ++j) {
+  for (int i = 0; i < 4; ++i)
+    for (int j = 0; j < 4; ++j)
       if (GetParam() == 1)
-        ASSERT_EQ(*it++, 1+4*(4*i+j));
+        EXPECT_EQ(*it++, 1+4*(4*i+j));
       else if (GetParam() == 2)
-        ASSERT_EQ(*it++, 2+4*(4*i+j));
+        EXPECT_EQ(*it++, 2+4*(4*i+j));
       else if (GetParam() == 3)
-        ASSERT_EQ(*it++, 16*i+j+1);
+        EXPECT_EQ(*it++, 16*i+j+1);
       else if (GetParam() == 4)
-        ASSERT_EQ(*it++, 5+16*i+j);
+        EXPECT_EQ(*it++, 5+16*i+j);
       else if (GetParam() == 5)
-        ASSERT_EQ(*it++, 4*i+j+1);
+        EXPECT_EQ(*it++, 4*i+j+1);
       else if (GetParam() == 6)
-        ASSERT_EQ(*it++, 17+4*i+j);
-    }
-  }
+        EXPECT_EQ(*it++, 17+4*i+j);
 }
 
 
@@ -120,9 +117,9 @@ TEST(TestASMu3D, TransferGaussPtVars)
     pchNew->transferGaussPtVars(pch->getVolume(), oldAr, newAr, 3);
     size_t k = 0;
     for (size_t iEl = 0; iEl < 2; ++iEl)
-    for (id[2] = 0; id[2] < 3; ++id[2])
-      for (id[1] = 0; id[1] < 3; ++id[1])
-        for (id[0] = 0; id[0] < 3; ++id[0], ++k)
+      for (id[2] = 0; id[2] < 3; ++id[2])
+        for (id[1] = 0; id[1] < 3; ++id[1])
+          for (id[0] = 0; id[0] < 3; ++id[0], ++k)
             EXPECT_FLOAT_EQ(newAr[k], 0.5*iEl + 0.5*(xi[id[idx]] + 1.0) / 2.0);
   }
 }

@@ -25,7 +25,7 @@
 TEST(TestSplineFields, Value2D)
 {
   SIM2D sim(2);
-  sim.createDefaultModel();
+  ASSERT_TRUE(sim.createDefaultModel());
 
   // {x+y+x*y, x-y+x*y}
   std::vector<double> vc = {0.0,  0.0,
@@ -45,9 +45,9 @@ TEST(TestSplineFields, Value2D)
     fe.v = it[1];
     Vector v(2);
     fvector->valueFE(fe, v);
-    ASSERT_FLOAT_EQ(v(1), it[2]);
-    ASSERT_FLOAT_EQ(v(2), it[3]);
-    ASSERT_FLOAT_EQ(fscalar->valueFE(fe), it[3]);
+    EXPECT_FLOAT_EQ(v(1), it[2]);
+    EXPECT_FLOAT_EQ(v(2), it[3]);
+    EXPECT_FLOAT_EQ(fscalar->valueFE(fe), it[3]);
   }
 }
 
@@ -56,8 +56,8 @@ TEST(TestSplineFields, Value2Dmx)
 {
   ASMmxBase::Type = ASMmxBase::DIV_COMPATIBLE;
   SIM2D sim({1,1,1});
-  sim.createDefaultModel();
-  sim.preprocess();
+  ASSERT_TRUE(sim.createDefaultModel());
+  ASSERT_TRUE(sim.createFEMmodel());
 
   // {x+y+x*y, x-y+x*y}
   std::vector<double> vc = {0.0,
@@ -88,9 +88,9 @@ TEST(TestSplineFields, Value2Dmx)
     fe.v = it[1];
     Vector v(2);
     fvector->valueFE(fe, v);
-    ASSERT_FLOAT_EQ(v(1), it[2]);
-    ASSERT_FLOAT_EQ(v(2), it[3]);
-    ASSERT_FLOAT_EQ(fscalar->valueFE(fe), it[4]);
+    EXPECT_FLOAT_EQ(v(1), it[2]);
+    EXPECT_FLOAT_EQ(v(2), it[3]);
+    EXPECT_FLOAT_EQ(fscalar->valueFE(fe), it[4]);
   }
 }
 
@@ -98,7 +98,7 @@ TEST(TestSplineFields, Value2Dmx)
 TEST(TestSplineFields, Grad2D)
 {
   SIM2D sim(2);
-  sim.createDefaultModel();
+  ASSERT_TRUE(sim.createDefaultModel());
 
   // {x+y+x*y, x-y+x*y}
   std::vector<double> vc = {0.0, 0.0, 1.0, 1.0, 1.0, -1.0, 3.0, 1.0};
@@ -114,10 +114,10 @@ TEST(TestSplineFields, Grad2D)
     fe.v = it[1];
     Matrix gradu(2,2);
     fvector->gradFE(fe, gradu);
-    ASSERT_FLOAT_EQ(gradu(1,1), it[2]);
-    ASSERT_FLOAT_EQ(gradu(1,2), it[3]);
-    ASSERT_FLOAT_EQ(gradu(2,1), it[4]);
-    ASSERT_FLOAT_EQ(gradu(2,2), it[5]);
+    EXPECT_FLOAT_EQ(gradu(1,1), it[2]);
+    EXPECT_FLOAT_EQ(gradu(1,2), it[3]);
+    EXPECT_FLOAT_EQ(gradu(2,1), it[4]);
+    EXPECT_FLOAT_EQ(gradu(2,2), it[5]);
   }
 }
 
@@ -125,7 +125,7 @@ TEST(TestSplineFields, Grad2D)
 TEST(TestSplineFields, Value3D)
 {
   SIM3D sim(3);
-  sim.createDefaultModel();
+  ASSERT_TRUE(sim.createDefaultModel());
 
   // {x+y+z, x+y-z, x-y+z}
   std::vector<double> vc = {0.0,  0.0,  0.0,
@@ -155,10 +155,10 @@ TEST(TestSplineFields, Value3D)
     fe.w = it[2];
     Vector v(3);
     fvector->valueFE(fe, v);
-    ASSERT_FLOAT_EQ(v(1), it[3]);
-    ASSERT_FLOAT_EQ(v(2), it[4]);
-    ASSERT_FLOAT_EQ(v(3), it[5]);
-    ASSERT_FLOAT_EQ(fscalar->valueFE(fe), it[4]);
+    EXPECT_FLOAT_EQ(v(1), it[3]);
+    EXPECT_FLOAT_EQ(v(2), it[4]);
+    EXPECT_FLOAT_EQ(v(3), it[5]);
+    EXPECT_FLOAT_EQ(fscalar->valueFE(fe), it[4]);
   }
 }
 
@@ -166,7 +166,7 @@ TEST(TestSplineFields, Value3D)
 TEST(TestSplineFields, Grad3D)
 {
   SIM3D sim(3);
-  sim.createDefaultModel();
+  ASSERT_TRUE(sim.createDefaultModel());
 
   // {x+y+z+x*y*z, x+y-z+x*y*z, x-y+z+x*y*z}
   std::vector<double> vc = {0.0,  0.0,  0.0,
@@ -216,7 +216,7 @@ TEST(TestSplineFields, Grad3D)
     fvector->gradFE(fe, gradu);
     for (size_t i = 0; i < 3; ++i)
       for (size_t j = 0; j <3; ++j)
-        ASSERT_FLOAT_EQ(gradu(i+1,j+1), it.second[i*3+j]);
+        EXPECT_FLOAT_EQ(gradu(i+1,j+1), it.second[i*3+j]);
   }
 }
 
@@ -225,8 +225,8 @@ TEST(TestSplineFields, Value3Dmx)
 {
   ASMmxBase::Type = ASMmxBase::DIV_COMPATIBLE;
   SIM3D sim({1,1,1,1});
-  sim.createDefaultModel();
-  sim.preprocess();
+  ASSERT_TRUE(sim.createDefaultModel());
+  ASSERT_TRUE(sim.createFEMmodel());
 
   // {x+y+z+x*y*z, x+y-z+x*y*z, x-y+z+x*y*z}
   std::vector<double> vc = {0.0, 0.5, 1.0,
@@ -268,9 +268,9 @@ TEST(TestSplineFields, Value3Dmx)
     fe.w = it[2];
     Vector v(3);
     fvector->valueFE(fe, v);
-    ASSERT_FLOAT_EQ(v(1), it[3]);
-    ASSERT_FLOAT_EQ(v(2), it[4]);
-    ASSERT_FLOAT_EQ(v(3), it[5]);
-    ASSERT_FLOAT_EQ(fscalar->valueFE(fe), it[6]);
+    EXPECT_FLOAT_EQ(v(1), it[3]);
+    EXPECT_FLOAT_EQ(v(2), it[4]);
+    EXPECT_FLOAT_EQ(v(3), it[5]);
+    EXPECT_FLOAT_EQ(fscalar->valueFE(fe), it[6]);
   }
 }
