@@ -46,6 +46,7 @@ namespace LR //! Utilities for LR-splines.
     IntVec    options;  //!< Parameters used to control the refinement
     IntVec    elements; //!< 0-based indices of the elements to refine
     RealArray errors;   //!< List of error indicators for the elements
+    std::vector<IntVec> MLGN; //!< MLGN mapping to use for multipatch
 
     //! \brief Default constructor.
     explicit RefineData(bool rs = false) : refShare(rs) {}

@@ -1606,9 +1606,16 @@ bool SIMinput::refine (const LR::RefineData& prm, Vectors& sol)
       // Extract local indices from the vector of global indices
       int locId;
       for (int k : prm.elements)
-        if ((locId = myModel[i]->getNodeIndex(k+1)) > 0)
-          if (refineIndices[i].insert(locId-1).second)
-            changed = true;
+        if (!prm.MLGN.empty()) {
+          const auto it = std::find(prm.MLGN[i].begin(), prm.MLGN[i].end(), k);
+          if (it != prm.MLGN[i].end())
+            if (refineIndices[i].insert(std::distance(prm.MLGN[i].begin(), it)).second)
+              changed = true;
+        } else {
+          if ((locId = myModel[i]->getNodeIndex(k+1)) > 0)
+            if (refineIndices[i].insert(locId-1).second)
+              changed = true;
+        }
 
       // Fetch boundary nodes covered (may need to pass this to other patches)
       IntVec bndry_nodes = pch[i]->getBoundaryCovered(refineIndices[i]);
@@ -1629,13 +1636,27 @@ bool SIMinput::refine (const LR::RefineData& prm, Vectors& sol)
       for (int k : bndry_nodes)
       {
         // Check if this boundary node appears on other patches
-        int globId = myModel[i]->getNodeID(k+1);
+        int globId;
+        if (prm.MLGN.empty())
+          globId = myModel[i]->getNodeID(k+1);
+        else
+          globId = prm.MLGN[i][k];
         for (size_t j = 0; j < myModel.size(); j++)
-          if (j != i && (locId = myModel[j]->getNodeIndex(globId)) > 0)
-            if (conformingIndices[j].insert(locId-1).second) {
-              changed = true;
-              conformingIndices[i].insert(k);
+          if (j != i) {
+            if (prm.MLGN.empty()) {
+              if ((locId = myModel[j]->getNodeIndex(globId)) > 0) {
+                conformingIndices[j].insert(locId-1);
+                conformingIndices[i].insert(k);
+              }
+            } else {
+              const auto it = std::find(prm.MLGN[j].begin(),
+                                        prm.MLGN[j].end(), globId);
+              if (it != prm.MLGN[j].end()) {
+                conformingIndices[j].insert(std::distance(prm.MLGN[j].begin(), it));
+                conformingIndices[i].insert(k);
+              }
             }
+          }
       }
     }
 

@@ -16,6 +16,7 @@
 #include "LRSpline/LRSplineVolume.h"
 
 #include "ASMLRSpline.h"
+#include "GlobalNodes.h"
 #include "Vec3.h"
 #include "Vec3Oper.h"
 #include "ThreadGroups.h"
@@ -387,12 +388,12 @@ IntVec ASMLRSpline::getBoundaryCovered (const IntSet& nodes) const
   int numbEdges = (this->getNoParamDim() == 2) ? 4 : 6;
   for (int edge = 1; edge <= numbEdges; edge++)
   {
-    IntVec oneBoundary; // 1-based list of boundary nodes
-    this->getBoundaryNodes(edge,oneBoundary,1,1,0,true);
-    for (int i : nodes)
-      for (int j : oneBoundary)
-        if (geomB->getBasisfunction(i)->contains(*geomB->getBasisfunction(j-1)))
-          result.insert(j-1);
+    IntVec bnd = GlobalNodes::getBoundaryNodes(*refB,
+                                               this->getNoParamDim()-1, edge, 0);
+    for (const int i : nodes)
+      for (const int j : bnd)
+        if (refB->getBasisfunction(i)->contains(*refB->getBasisfunction(j)))
+          result.insert(j);
   }
 
   return IntVec(result.begin(), result.end());
@@ -404,7 +405,7 @@ IntVec ASMLRSpline::getOverlappingNodes (const IntSet& nodes, int dir) const
   IntSet result;
   for (int i : nodes)
   {
-    LR::Basisfunction* b = geomB->getBasisfunction(i);
+    const LR::Basisfunction* b = refB->getBasisfunction(i);
     for (LR::Element* el : b->support())
       for (LR::Basisfunction* basis : el->support())
       {

@@ -21,6 +21,7 @@
 #include "TimeDomain.h"
 #include "FiniteElement.h"
 #include "GlobalIntegral.h"
+#include "GlobalNodes.h"
 #include "LocalIntegral.h"
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
@@ -2251,18 +2252,18 @@ void ASMu3D::extendRefinementDomain (IntSet& refineIndices,
   const int nface =  6;
 
   IntVec bndry0;
-  for (int K = -1; K < 2; K += 2)
-    for (int J = -1; J < 2; J += 2)
-      for (int I = -1; I < 2; I += 2)
-        bndry0.push_back(this->getCorner(I,J,K,1));
+  const LR::LRSplineVolume* ref = this->getBasis(ASM::REFINEMENT_BASIS);
+  for (size_t c = 1; c <= 8; ++c)
+      bndry0.push_back(GlobalNodes::getBoundaryNodes(*ref,
+                                                     0, c, 0).front());
 
   std::vector<IntVec> bndry1(nedge);
   for (int j = 1; j <= nedge; j++)
-    this->getBoundary1Nodes(j , bndry1[j-1], 1, 0, true);
+    bndry1[j-1] = GlobalNodes::getBoundaryNodes(*ref, 1, j, 0);
 
   std::vector<IntVec> bndry2(nface);
   for (int j = 1; j <= nface; j++)
-    this->getBoundaryNodes(j, bndry2[j-1], 1, 1, 0, true);
+    bndry2[j-1] = GlobalNodes::getBoundaryNodes(*ref, 2, j, 0);
 
   // Add refinement from neighbors
   for (int j : neighborIndices)
@@ -2272,7 +2273,7 @@ void ASMu3D::extendRefinementDomain (IntSet& refineIndices,
     // Check if node is a corner node,
     // compute large extended domain (all directions)
     for (int edgeNode : bndry0)
-      if (edgeNode-1 == j)
+      if (edgeNode == j)
       {
         IntVec secondary = this->getOverlappingNodes(j);
         refineIndices.insert(secondary.begin(),secondary.end());
@@ -2285,7 +2286,7 @@ void ASMu3D::extendRefinementDomain (IntSet& refineIndices,
     int allowedDir;
     for (int edge = 0; edge < nedge && !done_with_this_node; edge++)
       for (int edgeNode : bndry1[edge])
-        if (edgeNode-1 == j)
+        if (edgeNode == j)
         {
           if (edge < 4)
             allowedDir = 6; // bin(110), allowed to grow in v- and w-direction
@@ -2303,7 +2304,7 @@ void ASMu3D::extendRefinementDomain (IntSet& refineIndices,
     // compute small extended domain (1 direction)
     for (int face = 0; face < nface && !done_with_this_node; face++)
       for (int edgeNode : bndry2[face])
-        if (edgeNode-1 == j)
+        if (edgeNode == j)
         {
           allowedDir = 1 << face/2;
           IntVec secondary = this->getOverlappingNodes(j,allowedDir);

@@ -208,6 +208,10 @@ public:
                                 coordCheck);
   }
 
+  //! \brief Obtain a const reference to model topology.
+  const std::vector<ASM::Interface>& getInterfaces() const
+  { return myInterfaces; }
+
 protected:
   //! \brief Helper method returning a stream for patch geometry input.
   //! \param[in] tag The XML-tag containing the patch geometry definition
