@@ -1142,9 +1142,15 @@ bool SIMinput::refine (const LR::RefineData& prm,
   {
     // Extract local indices from the vector of global indices
     int locId;
-    for (int k : prm.elements)
-      if ((locId = myModel[i]->getNodeIndex(k+1)) > 0)
-        refineIndices[i].insert(locId-1);
+    for (int k : prm.elements) {
+      if (!prm.MLGN.empty()) {
+        auto it = std::find(prm.MLGN[i].begin(), prm.MLGN[i].end(), k);
+        if (it != prm.MLGN[i].end())
+          refineIndices[i].insert(it-prm.MLGN[i].begin());
+      } else
+        if ((locId = myModel[i]->getNodeIndex(k+1)) > 0)
+          refineIndices[i].insert(locId-1);
+    }
 
     // fetch all boundary nodes covered (may need to pass this to other patches)
     pch = dynamic_cast<ASMunstruct*>(myModel[i]);
@@ -1166,13 +1172,27 @@ bool SIMinput::refine (const LR::RefineData& prm,
     // for all boundary nodes, check if these appear on other patches
     for (int k : bndry_nodes)
     {
-      int globId = pch->getNodeID(k+1);
+      int globId;
+      if (!prm.MLGN.empty())
+        globId = prm.MLGN[i][k];
+      else
+        globId = pch->getNodeID(k+1);
+
       for (size_t j = 0; j < myModel.size(); j++)
-        if (j != i && (locId = myModel[j]->getNodeIndex(globId)) > 0)
-        {
-          conformingIndices[j].insert(locId-1);
-          conformingIndices[i].insert(k);
-        }
+        if (j != i)
+          if (prm.MLGN.empty()) {
+            if ((locId = myModel[j]->getNodeIndex(globId)) > 0)
+            {
+              conformingIndices[j].insert(locId-1);
+              conformingIndices[i].insert(k);
+            }
+          } else {
+            auto it = std::find(prm.MLGN[j].begin(), prm.MLGN[j].end(), globId);
+            if (it != prm.MLGN[j].end()) {
+              conformingIndices[j].insert(it-prm.MLGN[j].begin());
+              conformingIndices[i].insert(k);
+            }
+          }
     }
   }
 

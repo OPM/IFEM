@@ -1705,7 +1705,7 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
         ssol.resize(myProblem->getNoFields(2),ngNodes);
 
       ssol.fillBlock(values, 1, ofs+1);
-      ofs += myModel[i]->getNoProjectionNodes()*myProblem->getNoFields(2);
+      ofs += myModel[i]->getNoProjectionNodes();
     } else {
       size_t nComps = values.rows();
       size_t nNodes = values.cols();

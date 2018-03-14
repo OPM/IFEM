@@ -22,6 +22,7 @@
 #include "TimeDomain.h"
 #include "FiniteElement.h"
 #include "GlobalIntegral.h"
+#include "GlobalNodes.h"
 #include "LagrangeInterpolator.h"
 #include "LocalIntegral.h"
 #include "IntegrandBase.h"
@@ -276,7 +277,7 @@ bool ASMu3D::connectPatch (int face, ASM3D& neighbor, int nface,
 
 bool ASMu3D::connectBasis (int face, ASMu3D& neighbor, int nface, int norient,
                            int basis, int slave, int master,
-                           bool coordCheck, int thick)
+                           bool coordCheck, int)
 {
   if (this->isShared() && neighbor.isShared())
     return true;
@@ -305,28 +306,23 @@ bool ASMu3D::connectBasis (int face, ASMu3D& neighbor, int nface, int norient,
   }
 
   const double xtol = 1.0e-4;
-  for (size_t node = 0; node < masterNodes.size(); ++node)
-    for (int t = 0; t < thick; ++t)
-    {
-      // TODO: Hey, this looks suspicious. If thick > 1, this will clearly read
-      // outside the master/slaveNodes arrays. If thick > 1 is not supported
-      // for LR, please remove it alltogether in this class to avoid confusion.
-      int node2 = masterNodes[node*thick+t];
-      int slave = slaveNodes[node*thick+t];
+  for (size_t node = 0; node < masterNodes.size(); ++node) {
+    int node2 = masterNodes[node];
+    int slave = slaveNodes[node];
 
-      if (!coordCheck)
-        ASMbase::collapseNodes(neighbor,node2,*this,slave);
-      else if (neighbor.getCoord(node2).equal(this->getCoord(slave),xtol))
-        ASMbase::collapseNodes(neighbor,node2,*this,slave);
-      else
-      {
-        std::cerr <<" *** ASMu3D::connectPatch: Non-matching nodes "
-                  << node2 <<": "<< neighbor.getCoord(node2)
-                  <<"\n                                          and "
-                  << slave <<": "<< this->getCoord(slave) << std::endl;
-        return false;
-      }
+    if (!coordCheck)
+      ASMbase::collapseNodes(neighbor,node2,*this,slave);
+    else if (neighbor.getCoord(node2).equal(this->getCoord(slave),xtol))
+      ASMbase::collapseNodes(neighbor,node2,*this,slave);
+    else
+    {
+      std::cerr <<" *** ASMu3D::connectPatch: Non-matching nodes "
+                << node2 <<": "<< neighbor.getCoord(node2)
+                <<"\n                                          and "
+                << slave <<": "<< this->getCoord(slave) << std::endl;
+      return false;
     }
+  }
 
   return true;
 }
@@ -2478,18 +2474,19 @@ void ASMu3D::extendRefinementDomain (IntSet& refineIndices,
   const int nface =  6;
 
   IntVec bndry0;
-  for (int K = -1; K < 2; K += 2)
-    for (int J = -1; J < 2; J += 2)
-      for (int I = -1; I < 2; I += 2)
-        bndry0.push_back(this->getCorner(I,J,K,1));
+  for (size_t c = 1; c <= 8; ++c)
+    bndry0.push_back(GlobalNodes::getBoundaryNodes(*this->getRefinementBasis(),
+                                                   0, c, 0).front());
 
   std::vector<IntVec> bndry1;
   for (int j = 1; j <= nedge; j++)
-    bndry1.push_back(this->getEdge(j, true, 1, 0));
+    bndry1.push_back(GlobalNodes::getBoundaryNodes(*this->getRefinementBasis(),
+                                                   1, j, 0));
 
-  std::vector<IntVec> bndry2(nface);
+  std::vector<IntVec> bndry2;
   for (int j = 1; j <= nface; j++)
-    this->getBoundaryNodes(j, bndry2[j-1], 1, 1, 0, true);
+    bndry2.push_back(GlobalNodes::getBoundaryNodes(*this->getRefinementBasis(),
+                                                   2, j, 0));
 
   // Add refinement from neighbors
   for (int j : neighborIndices)
@@ -2499,7 +2496,7 @@ void ASMu3D::extendRefinementDomain (IntSet& refineIndices,
     // Check if node is a corner node,
     // compute large extended domain (all directions)
     for (int edgeNode : bndry0)
-      if (edgeNode-1 == j)
+      if (edgeNode == j)
       {
         IntVec secondary = this->getOverlappingNodes(j);
         refineIndices.insert(secondary.begin(),secondary.end());
@@ -2512,7 +2509,7 @@ void ASMu3D::extendRefinementDomain (IntSet& refineIndices,
     int allowedDir;
     for (int edge = 0; edge < nedge && !done_with_this_node; edge++)
       for (int edgeNode : bndry1[edge])
-        if (edgeNode-1 == j)
+        if (edgeNode == j)
         {
           if (edge < 4)
             allowedDir = 6; // bin(110), allowed to grow in v- and w-direction
@@ -2530,7 +2527,7 @@ void ASMu3D::extendRefinementDomain (IntSet& refineIndices,
     // compute small extended domain (1 direction)
     for (int face = 0; face < nface && !done_with_this_node; face++)
       for (int edgeNode : bndry2[face])
-        if (edgeNode-1 == j)
+        if (edgeNode == j)
         {
           allowedDir = 1 << face/2;
           IntVec secondary = this->getOverlappingNodes(j,allowedDir);

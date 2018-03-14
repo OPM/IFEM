@@ -22,6 +22,7 @@
 #include "TimeDomain.h"
 #include "FiniteElement.h"
 #include "GlobalIntegral.h"
+#include "GlobalNodes.h"
 #include "LocalIntegral.h"
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
@@ -355,10 +356,12 @@ void ASMu2D::extendRefinementDomain (IntSet& refineIndices,
 
   IntVec              bndry0;
   std::vector<IntVec> bndry1(4);
-  for (int i = 0; i < 4; i++)
+  for (int i = 1; i <= 4; i++)
   {
-    bndry0.push_back(this->getCorner((i%2)*2-1, (i/2)*2-1, 1));
-    this->getBoundaryNodes(1+i, bndry1[i], 1, 1, 0, true);
+    bndry0.push_back(GlobalNodes::getBoundaryNodes(*this->getRefinementBasis(),
+                                                   0, i, 0).front());
+    bndry1[i-1] = GlobalNodes::getBoundaryNodes(*this->getRefinementBasis(),
+                                                1, i, 0);
   }
 
   // Add refinement from neighbors
@@ -369,7 +372,7 @@ void ASMu2D::extendRefinementDomain (IntSet& refineIndices,
     // Check if node is a corner node,
     // compute large extended domain (all directions)
     for (int edgeNode : bndry0)
-      if (edgeNode-1 == j)
+      if (edgeNode == j)
       {
         IntVec secondary = this->getOverlappingNodes(j);
         refineIndices.insert(secondary.begin(),secondary.end());
@@ -381,7 +384,7 @@ void ASMu2D::extendRefinementDomain (IntSet& refineIndices,
     // compute small extended domain (one direction)
     for (int edge = 0; edge < 4 && !done_with_this_node; edge++)
       for (int edgeNode : bndry1[edge])
-        if (edgeNode-1 == j)
+        if (edgeNode == j)
         {
           IntVec secondary = this->getOverlappingNodes(j);
           refineIndices.insert(secondary.begin(),secondary.end());

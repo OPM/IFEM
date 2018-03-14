@@ -174,6 +174,9 @@ bool ASMu3Dmx::getSolution (Matrix& sField, const Vector& locSol,
 
 bool ASMu3Dmx::generateFEMTopology ()
 {
+  if (!myMLGN.empty())
+    return true;
+
   if (m_basis.empty()) {
     auto vec = ASMmxBase::establishBases(tensorspline, ASMmxBase::Type);
     m_basis.resize(vec.size());
@@ -371,7 +374,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
     }
     int iEl = el->getId();
     MxFiniteElement fe(elem_sizes);
-    fe.iel = iEl+1;
+    fe.iel = MLGE[iEl];
 
     std::vector<Matrix> dNxdu(m_basis.size());
     Matrix   Xnod, Jac;
@@ -508,7 +511,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
             else
               evaluateBasis(fe, dNxdu[b], bezierExtract[b][els[b]-1], B, b+1) ;
           }
-          fe.iel = iEl+1;
+          fe.iel = MLGE[iEl];
 
           // Compute Jacobian inverse of coordinate mapping and derivatives
           fe.detJxW = utl::Jacobian(Jac,fe.grad(geoBasis),Xnod,dNxdu[geoBasis-1]);
@@ -1037,10 +1040,7 @@ size_t ASMu3Dmx::getNoRefineElms() const
 
 Fields* ASMu3Dmx::getProjectedFields(const Vector& coefs, size_t nf) const
 {
-  if (projBasis != m_basis[0])
-    return new LRSplineFields3D(projBasis.get(), coefs, nf);
-
-  return nullptr;
+  return new LRSplineFields3D(projBasis.get(), coefs, nf);
 }
 
 
@@ -1085,4 +1085,26 @@ bool ASMu3Dmx::evalProjSolution (Matrix& sField, const Vector& locSol,
   delete f;
 
   return true;
+}
+
+
+bool ASMu3Dmx::connectPatch (int face, ASM3D& neighbor, int nface, int norient,
+                             int basis, bool coordCheck, int)
+{
+  ASMu3Dmx* neighMx = dynamic_cast<ASMu3Dmx*>(&neighbor);
+  if (!neighMx) return false;
+
+  for (size_t i = 1; i <= m_basis.size(); ++i)
+    if (basis == 0 || i == (size_t)basis)
+      if (!this->connectBasis(face,*neighMx,nface,norient,i,0,0,coordCheck))
+        return false;
+
+  this->addNeighbor(neighMx);
+  return true;
+}
+
+
+const LR::LRSpline* ASMu3Dmx::getRefinementBasis() const
+{
+  return refBasis.get();
 }

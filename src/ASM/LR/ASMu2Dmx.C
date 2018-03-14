@@ -1140,10 +1140,7 @@ size_t ASMu2Dmx::getNoProjectionNodes() const
 
 Fields* ASMu2Dmx::getProjectedFields(const Vector& coefs, size_t nf) const
 {
-  if (projBasis != m_basis[0])
-    return new LRSplineFields2D(projBasis.get(), coefs, nf);
-
-  return nullptr;
+  return new LRSplineFields2D(projBasis.get(), coefs, nf);
 }
 
 
@@ -1199,4 +1196,10 @@ bool ASMu2Dmx::evalProjSolution (Matrix& sField, const Vector& locSol,
   delete f;
 
   return true;
+}
+
+
+const LR::LRSpline* ASMu2Dmx::getRefinementBasis() const
+{
+  return refBasis.get();
 }

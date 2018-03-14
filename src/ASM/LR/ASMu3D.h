@@ -228,7 +228,6 @@ public:
   //! \param[in] nface Local face index of neighbor patch, in range [1,6]
   //! \param[in] norient Relative face orientation flag (see below)
   //! \param[in] coordCheck False to disable coordinate checks (periodic connections)
-  //! \param[in] thick Thickness of connection
   //!
   //! \details The face orientation flag \a norient must be in range [0,7].
   //! When interpreted as a binary number, its 3 digits are decoded as follows:
@@ -236,7 +235,7 @@ public:
   //! - middle digit = 1: Parameter \a u in neighbor patch face is reversed
   //! - right digit = 1: Parameter \a v in neighbor patch face is reversed
   virtual bool connectPatch(int face, ASM3D& neighbor, int nface, int norient,
-                            int = 0, bool coordCheck = true, int thick = 1);
+                            int = 0, bool coordCheck = true, int = 1);
 
   /* More multipatch stuff, maybe later...
   //! \brief Makes two opposite boundary faces periodic.
@@ -463,10 +462,9 @@ protected:
   //! \param[in] slave 0-based index of the first slave node in this basis
   //! \param[in] master 0-based index of the first master node in this basis
   //! \param[in] coordCheck False to disable coordinate checks
-  //! \param[in] thick Thickness of connection
   bool connectBasis(int face, ASMu3D& neighbor, int nface, int norient,
                     int basis = 1, int slave = 0, int master = 0,
-                    bool coordCheck = true, int thick = 1);
+                    bool coordCheck = true, int = 1);
 
   //! \brief Extracts parameter values of the Gauss points in one direction.
   //! \param[out] uGP Parameter values in given direction for all points

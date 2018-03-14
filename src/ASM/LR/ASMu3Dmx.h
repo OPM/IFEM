@@ -192,6 +192,24 @@ public:
   virtual void remapErrors(RealArray& errors,
                            const RealArray& origErr, bool elemErrors) const;
 
+  //! \brief Connects all matching nodes on two adjacent boundary faces.
+  //! \param[in] face Local face index of this patch, in range [1,6]
+  //! \param neighbor The neighbor patch
+  //! \param[in] nface Local face index of neighbor patch, in range [1,6]
+  //! \param[in] norient Relative face orientation flag (see below)
+  //! \param[in] coordCheck False to disable coordinate checks (periodic connections)
+  //!
+  //! \details The face orientation flag \a norient must be in range [0,7].
+  //! When interpreted as a binary number, its 3 digits are decoded as follows:
+  //! - left digit = 1: The u and v parameters of the neighbor face are swapped
+  //! - middle digit = 1: Parameter \a u in neighbor patch face is reversed
+  //! - right digit = 1: Parameter \a v in neighbor patch face is reversed
+  virtual bool connectPatch(int face, ASM3D& neighbor, int nface, int norient,
+                            int = 0, bool coordCheck = true, int = 1);
+
+  //! \brief Obtain the refinement basis.
+  virtual const LR::LRSpline* getRefinementBasis() const;
+
 protected:
   //! \brief Assembles L2-projection matrices for the secondary solution.
   //! \param[out] A Left-hand-side matrix
