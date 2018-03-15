@@ -16,6 +16,7 @@
 #include "ASMs2DC1.h"
 #include "Lagrange.h"
 #include "Function.h"
+#include "Utilities.h"
 #include "Vec3Oper.h"
 #include "Vec3.h"
 #include "MPC.h"
@@ -30,7 +31,8 @@ std::map<int,ASMs2DC1*> ASMs2DC1::neighbors;
 
 bool ASMs2DC1::generateFEMTopology ()
 {
-  if (surf->order_u() > 2 && surf->order_v() > 2)
+  if ((surf->order_u() > 2 || surf->numCoefs_u() < 3) &&
+      (surf->order_v() > 2 || surf->numCoefs_v() < 3))
     return this->ASMs2D::generateFEMTopology();
 
   std::cerr <<" *** ASMs2DC1::generateFEMTopology: The polynomial order ("
@@ -185,19 +187,19 @@ void ASMs2DC1::constrainEdge (int dir, bool open, int dof, int code, char)
     case -1: // Left edge (negative I-direction)
       for (int i2 = 1; i2 <= n2; i2++, node += n1)
       {
-	if (open && (i2 == 1 || i2 == n2))
-	  continue; // Skip the end points
-	else if (dof%100)
-	  this->prescribe(node,dof%100,code);
-	if (dof >= 100)
-	{
-	  if (dof%100 && code == 0)
-	    // The edge is clamped, fix the neighboring node line
-	    this->prescribe(node-dir,dof/100,0);
-	  else
-	    // The edge has a prescribed rotation, add an MPC for that
-	    this->add2PC(MLGN[node-dir-1],dof/100,MLGN[node-1],code);
-	}
+        if (open && (i2 == 1 || i2 == n2))
+          continue; // Skip the end points
+        else if (dof%1000)
+          this->prescribe(node,dof%1000,code);
+        if (dof >= 1000)
+        {
+          if (dof%1000 && code == 0)
+            // The edge is clamped, fix the neighboring node line
+            this->prescribe(node-dir,dof/1000,0);
+          else for (int ldof : utl::getDigits(dof/1000))
+            // The edge has a prescribed rotation, add an MPC for that
+            this->add2PC(MLGN[node-dir-1],ldof,MLGN[node-1],code);
+        }
       }
       break;
 
@@ -206,19 +208,19 @@ void ASMs2DC1::constrainEdge (int dir, bool open, int dof, int code, char)
     case -2: // Front edge (negative J-direction)
       for (int i1 = 1; i1 <= n1; i1++, node++)
       {
-	if (open && (i1 == 1 || i1 == n1))
-	  continue; // Skip the end points
-	else if (dof%100)
-	  this->prescribe(node,dof%100,code);
-	if (dof >= 100)
-	{
-	  if (dof%100 && code == 0)
-	    // Edge is clamped, fix the neighboring node line
-	    this->prescribe(node-n1*dir/2,dof/100,0);
-	  else
-	    // The edge has a prescribed rotation, add an MPC for that
-	    this->add2PC(MLGN[node-n1*dir/2-1],dof/100,MLGN[node-1],code);
-	}
+        if (open && (i1 == 1 || i1 == n1))
+          continue; // Skip the end points
+        else if (dof%1000)
+          this->prescribe(node,dof%1000,code);
+        if (dof >= 1000)
+        {
+          if (dof%1000 && code == 0)
+            // Edge is clamped, fix the neighboring node line
+            this->prescribe(node-n1*dir/2,dof/1000,0);
+          else for (int ldof : utl::getDigits(dof/1000))
+            // The edge has a prescribed rotation, add an MPC for that
+            this->add2PC(MLGN[node-n1*dir/2-1],ldof,MLGN[node-1],code);
+        }
       }
       break;
     }
@@ -234,19 +236,19 @@ void ASMs2DC1::constrainCorner (int I, int J, int dof, int code)
   if (I > 0) node += n1-1;
   if (J > 0) node += n1*(n2-1);
 
-  this->prescribe(node,dof%100,code);
-  if (dof < 100 || code > 0) return;
+  this->prescribe(node,dof%1000,code);
+  if (dof < 1000 || code > 0) return;
 
   // Also fix the two neighboring nodes
   if (I > 0)
-    this->prescribe(node-1,dof%100,0);
+    this->prescribe(node-1,dof%1000,0);
   else
-    this->prescribe(node+1,dof%100,0);
+    this->prescribe(node+1,dof%1000,0);
 
   if (J > 0)
-    this->prescribe(node-n1,dof%100,0);
+    this->prescribe(node-n1,dof%1000,0);
   else
-    this->prescribe(node+n1,dof%100,0);
+    this->prescribe(node+n1,dof%1000,0);
 }
 
 
@@ -260,14 +262,14 @@ void ASMs2DC1::constrainNode (double xi, double eta, int dof, int code)
 
   int I = int(0.5+(n1-1)*xi);
   int J = int(0.5+(n2-1)*eta);
-  this->prescribe(n1*J+I+1,dof%100,code);
-  if (dof < 100 || code > 0) return;
+  this->prescribe(n1*J+I+1,dof%1000,code);
+  if (dof < 1000 || code > 0) return;
 
   // Also fix the (up to four) neighboring nodes
-  if (I > 0)    this->prescribe(n1*J+I      ,dof%100,0);
-  if (I < n1-1) this->prescribe(n1*J+I+2    ,dof%100,0);
-  if (J > 0)    this->prescribe(n1*(J-1)+I+1,dof%100,0);
-  if (J < n2-1) this->prescribe(n1*(J+1)+I+1,dof%100,0);
+  if (I > 0)    this->prescribe(n1*J+I      ,dof%1000,0);
+  if (I < n1-1) this->prescribe(n1*J+I+2    ,dof%1000,0);
+  if (J > 0)    this->prescribe(n1*(J-1)+I+1,dof%1000,0);
+  if (J < n2-1) this->prescribe(n1*(J+1)+I+1,dof%1000,0);
 }
 
 
@@ -275,7 +277,7 @@ void ASMs2DC1::renumberNodes (const std::map<int,int>& old2new)
 {
   std::map<int,int>::const_iterator it;
   std::map<int,ASMs2DC1*>::iterator nit;
-  for (it = old2new.begin(); it != old2new.end(); it++)
+  for (it = old2new.begin(); it != old2new.end(); ++it)
     if (it->first != it->second)
       if ((nit = neighbors.find(it->first)) != neighbors.end())
       {
@@ -356,7 +358,7 @@ static bool initMPC4flat (MPC* mpc, std::vector<Vec3>& X)
 
   double x[4], y[4], A[2][4];
   std::map<double,int>::const_iterator it;
-  for (i = 0, it = points.begin(); it != points.end(); it++, i++)
+  for (i = 0, it = points.begin(); it != points.end(); ++it, i++)
   {
     x[i] = X[it->second].x - X.front().x;
     y[i] = X[it->second].y - X.front().y;
@@ -388,7 +390,7 @@ static bool initMPC4flat (MPC* mpc, std::vector<Vec3>& X)
   Lagrange::computeBasis(N,2,x[0],2,y[0]);
   std::swap(N[2],N[3]);
 
-  for (i = 0, it = points.begin(); it != points.end(); it++, i++)
+  for (i = 0, it = points.begin(); it != points.end(); ++it, i++)
     mpc->updateMaster(it->second-1,N[i]);
 
   return true;
@@ -400,19 +402,19 @@ bool ASMs2DC1::initConstraints ()
   // Compute coupling coefficients for the constraint equations
   // enforcing C1-continuity in the solution
   std::map<int,ASMs2DC1*>::const_iterator npit;
-  for (MPCIter sit = mpcs.begin(); sit != mpcs.end(); sit++)
-    if (dCode.find(*sit) == dCode.end())
+  for (MPC* mpce : mpcs)
+    if (dCode.find(mpce) == dCode.end())
     {
       // Extract coordinates of the control points involved, first the slave.
       // Note that some of the points are in a neighboring patch.
       ASMs2DC1* mpch = this;
-      size_t nMaster = (*sit)->getNoMaster();
+      size_t nMaster = mpce->getNoMaster();
       std::vector<Vec3> X(1+nMaster);
-      size_t inod = this->getNodeIndex((*sit)->getSlave().node);
+      size_t inod = this->getNodeIndex(mpce->getSlave().node);
       for (size_t m = 0; m < nMaster && inod > 0; m++)
       {
 	X[m] = mpch->getCoord(inod);
-	inod = (*sit)->getMaster(m).node;
+	inod = mpce->getMaster(m).node;
 	npit = neighbors.find(inod);
 	mpch = npit == neighbors.end() ? this : npit->second;
 	inod = mpch->getNodeIndex(inod);
@@ -422,8 +424,8 @@ bool ASMs2DC1::initConstraints ()
       else
       {
 	std::cerr <<" *** ASMs2DC1::initConstraints: Failed to initialize "
-		  << **sit <<"     MPC masters:";
-	for (npit = neighbors.begin(); npit != neighbors.end(); npit++)
+		  << *mpce <<"     MPC masters:";
+	for (npit = neighbors.begin(); npit != neighbors.end(); ++npit)
 	  std::cerr <<" "<< npit->first;
 	std::cerr << std::endl;
 	return false;
@@ -434,13 +436,13 @@ bool ASMs2DC1::initConstraints ()
 	case 1:
 	  break;
 	case 2:
-	  initMPC2(*sit,X);
+	  initMPC2(mpce,X);
 	  break;
 	case 3:
-	  initMPC3(*sit,X);
+	  initMPC3(mpce,X);
 	  break;
 	case 4:
-	  if (initMPC4flat(*sit,X))
+	  if (initMPC4flat(mpce,X))
 	    break;
 	default:
 	  std::cerr <<" *** ASMs2DC1::initConstraints: Corner point with "
@@ -465,7 +467,7 @@ bool ASMs2DC1::updateDirichlet (const std::map<int,RealFunc*>& func,
   // prescribed 1st derivatives.
   std::map<int,RealFunc*>::const_iterator fit;
   std::map<int,VecFunc*>::const_iterator vfit;
-  for (MPCMap::iterator cit = dCode.begin(); cit != dCode.end(); cit++)
+  for (MPCMap::iterator cit = dCode.begin(); cit != dCode.end(); ++cit)
     if (cit->first->getNoMaster() == 1)
     {
       size_t inod = this->getNodeIndex(cit->first->getSlave().node);
