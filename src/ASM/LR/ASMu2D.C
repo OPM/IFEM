@@ -1043,6 +1043,8 @@ bool ASMu2D::integrate (Integrand& integrand,
 
       FiniteElement fe;
       fe.iel = MLGE[iel-1];
+      fe.p   = lrspline->order(0) - 1;
+      fe.q   = lrspline->order(1) - 1;
       Matrix   dNdu, Xnod, Jac;
       Matrix3D d2Ndu2, Hess;
       double   dXidu[2];
@@ -1190,11 +1192,15 @@ bool ASMu2D::integrate (Integrand& integrand,
 
           // Compute Hessian of coordinate mapping and 2nd order derivatives
           if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
+          {
             if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
             {
               ok = false;
               continue;
             }
+            else if (nsd > 2)
+              utl::Hessian(Hess,fe.H);
+          }
 
           // Compute G-matrix
           if (integrand.getIntegrandType() & Integrand::G_MATRIX)
@@ -1281,6 +1287,8 @@ bool ASMu2D::integrate (Integrand& integrand,
 
       FiniteElement fe;
       fe.iel = MLGE[iel-1];
+      fe.p   = lrspline->order(0) - 1;
+      fe.q   = lrspline->order(1) - 1;
       Matrix   dNdu, Xnod, Jac;
       Matrix3D d2Ndu2, Hess;
       Vec4     X;
@@ -1348,11 +1356,15 @@ bool ASMu2D::integrate (Integrand& integrand,
 
         // Compute Hessian of coordinate mapping and 2nd order derivatives
         if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
+        {
           if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
           {
             ok = false;
             continue;
           }
+          else if (nsd > 2)
+            utl::Hessian(Hess,fe.H);
+        }
 
         // Store tangent vectors in fe.G for shells
         if (nsd > 2) fe.G = Jac;
@@ -1473,6 +1485,8 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
 
     // Initialize element quantities
     fe.iel = MLGE[iel-1];
+    fe.p   = lrspline->order(0) - 1;
+    fe.q   = lrspline->order(1) - 1;
     fe.xi  = fe.eta = edgeDir < 0 ? -1.0 : 1.0;
     LocalIntegral* A = integrand.getLocalIntegral(MNPC[iel-1].size(),
                                                   fe.iel,true);
@@ -1742,6 +1756,8 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
     return false;
 
   FiniteElement fe;
+  fe.p = lrspline->order(0) - 1;
+  fe.q = lrspline->order(1) - 1;
   Vector   ptSol;
   Matrix   dNdu, dNdX, Jac, Xnod, eSol, ptDer;
   Matrix3D d2Ndu2, d2NdX2, Hess, ptDer2;
@@ -1882,6 +1898,8 @@ bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     return false;
 
   FiniteElement fe(0,firstIp);
+  fe.p = lrspline->order(0) - 1;
+  fe.q = lrspline->order(1) - 1;
   Vector   solPt;
   Matrix   dNdu, Jac, Xnod;
   Matrix3D d2Ndu2, Hess;
@@ -1915,8 +1933,12 @@ bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
     // Compute Hessian of coordinate mapping and 2nd order derivatives
     if (use2ndDer)
+    {
       if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
         continue;
+      else if (nsd > 2)
+        utl::Hessian(Hess,fe.H);
+    }
 
     // Store tangent vectors in fe.G for shells
     if (nsd > 2) fe.G = Jac;

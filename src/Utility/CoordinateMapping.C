@@ -41,14 +41,7 @@ Real utl::Jacobian (matrix<Real>& J, matrix<Real>& dNdX,
     // Special for two-parametric elements in 3-dimensional space (shell)
     dNdX = dNdu;
     // Compute the length of the normal vector {X},u x {X},v
-    Vec3 a1 = J.getColumn(1);
-    Vec3 a2 = J.getColumn(2);
-    detJ = Vec3(a1,a2).length();
-    // Store the two tangent vectors in J
-    a1.normalize();
-    a2.normalize();
-    J.fillColumn(1,a1.ptr());
-    J.fillColumn(2,a2.ptr());
+    detJ = Vec3(J.getColumn(1),J.getColumn(2)).length();
   }
   else
   {
@@ -115,9 +108,6 @@ Real utl::Jacobian (matrix<Real>& J, Vec3& n, matrix<Real>& dNdX,
     {
       // Special treatment for two-parametric elements in 3D space (shells)
       dNdX = dNdu;
-      v1.normalize();
-      J.fillColumn(t1,v1.ptr());
-      J.fillColumn(t2,v2.ptr());
       return dS;
     }
   }
@@ -161,6 +151,7 @@ bool utl::Hessian (matrix3d<Real>& H, matrix3d<Real>& d2NdX2,
   else if (Ji.cols() <= 2 && Ji.rows() > Ji.cols())
   {
     // Special treatment for one-parametric elements in multi-dimension space
+    // as well as two-parametric elements in 3D space (shells)
     d2NdX2 = d2Ndu2;
     return true;
   }
@@ -196,6 +187,24 @@ bool utl::Hessian (matrix3d<Real>& H, matrix3d<Real>& d2NdX2,
       }
 
   return true;
+}
+
+
+void utl::Hessian (const matrix3d<Real>& Hess, matrix<Real>& H)
+{
+  size_t i, n = Hess.dim(2);
+  if (n == Hess.dim(3))
+  {
+    H.resize(Hess.dim(1),n*(n+1)/2);
+    for (i = 1; i <= n; i++)
+      H.fillColumn(i,Hess.getColumn(i,i));
+    for (i = 2; i <= n; i++)
+      H.fillColumn(n+i-1,Hess.getColumn(1,i));
+    if (n > 2)
+      H.fillColumn(n+n,Hess.getColumn(2,3));
+  }
+  else
+    H.clear();
 }
 
 

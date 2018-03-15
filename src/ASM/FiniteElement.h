@@ -28,18 +28,18 @@ class FiniteElement
 public:
   //! \brief Default constructor.
   explicit FiniteElement(size_t n = 0, size_t i = 0) : iGP(i), N(n), Te(3)
-  { iel = p = 0; u = v = w = xi = eta = zeta = h = 0.0; detJxW = 1.0; }
+  { iel = p = q = r = 0; u = v = w = xi = eta = zeta = h = 0.0; detJxW = 1.0; }
 
   //! \brief Empty destructor.
   virtual ~FiniteElement() {}
+
+  //! \brief Returns the number of bases.
+  virtual size_t getNoBasis() const { return 1; }
 
   //! \brief Returns a const reference to the basis function values.
   virtual const Vector& basis(char) const { return N; }
   //! \brief Returns a reference to the basis function values.
   virtual Vector& basis(char) { return N; }
-
-  //! \brief Returns number of bases
-  virtual size_t getNoBasis() const { return 1; }
 
   //! \brief Returns a const reference to the basis function derivatives.
   virtual const Matrix& grad(char) const { return dNdX; }
@@ -74,11 +74,14 @@ public:
   Vector     N;    //!< Basis function values
   Matrix    dNdX;  //!< First derivatives (gradient) of the basis functions
   Matrix3D d2NdX2; //!< Second derivatives of the basis functions
-  Matrix     G;    //!< Matrix used for stabilized methods
+  Matrix     G;    //!< Covariant basis / Matrix used for stabilized methods
+  Matrix     H;    //!< Hessian
 
   // Element quantities
   int                 iel;  //!< Element identifier
-  short int           p;    //!< Polynomial order of the basis functions
+  short int           p;    //!< Polynomial order of the basis in u-direction
+  short int           q;    //!< Polynomial order of the basis in v-direction
+  short int           r;    //!< Polynomial order of the basis in r-direction
   double              h;    //!< Characteristic element size/diameter
   Vec3Vec             XC;   //!< Array with element corner coordinate vectors
   Vector              Navg; //!< Volume-averaged basis function values
@@ -101,13 +104,13 @@ public:
   //! \brief Empty destructor.
   virtual ~MxFiniteElement() {}
 
+  //! \brief Returns the number of bases.
+  virtual size_t getNoBasis() const { return 1+Nx.size(); }
+
   //! \brief Returns a const reference to the basis function values.
   virtual const Vector& basis(char b) const { return b == 1 ? N : Nx[b-2]; }
   //! \brief Returns a reference to the basis function values.
   virtual Vector& basis(char b) { return b == 1 ? N : Nx[b-2]; }
-
-  //! \brief Returns number of bases
-  virtual size_t getNoBasis() const { return 1+Nx.size(); }
 
   //! \brief Returns a const reference to the basis function derivatives.
   virtual const Matrix& grad(char b) const { return b == 1 ? dNdX : dNxdX[b-2]; }

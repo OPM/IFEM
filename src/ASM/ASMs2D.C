@@ -1544,6 +1544,8 @@ bool ASMs2D::integrate (Integrand& integrand,
     for (size_t t = 0; t < threadGroups[g].size(); t++)
     {
       FiniteElement fe(p1*p2);
+      fe.p = p1 - 1;
+      fe.q = p2 - 1;
       Matrix   dNdu, Xnod, Jac;
       Matrix3D d2Ndu2, Hess;
       double   dXidu[2];
@@ -1707,8 +1709,12 @@ bool ASMs2D::integrate (Integrand& integrand,
 
             // Compute Hessian of coordinate mapping and 2nd order derivatives
             if (use2ndDer)
+            {
               if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,fe.dNdX))
                 ok = false;
+              else if (nsd > 2)
+                utl::Hessian(Hess,fe.H);
+            }
 
             // Compute G-matrix
             if (integrand.getIntegrandType() & Integrand::G_MATRIX)
@@ -1725,6 +1731,8 @@ bool ASMs2D::integrate (Integrand& integrand,
                 std::cout <<"d2NdX2 ="<< fe.d2NdX2;
               if (!fe.G.empty())
                 std::cout <<"G ="<< fe.G;
+              if (!fe.H.empty())
+                std::cout <<"H ="<< fe.H;
             }
 #endif
 
@@ -1816,6 +1824,8 @@ bool ASMs2D::integrate (Integrand& integrand,
     for (size_t t = 0; t < threadGroups[g].size(); t++)
     {
       FiniteElement fe(p1*p2);
+      fe.p = p1 - 1;
+      fe.q = p2 - 1;
       Matrix   dNdu, Xnod, Jac;
       Matrix3D d2Ndu2, Hess;
       double   dXidu[2];
@@ -1901,8 +1911,12 @@ bool ASMs2D::integrate (Integrand& integrand,
 
           // Compute Hessian of coordinate mapping and 2nd order derivatives
           if (use2ndDer)
+          {
             if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,fe.dNdX))
               ok = false;
+            else if (nsd > 2)
+              utl::Hessian(Hess,fe.H);
+          }
 
           // Compute G-matrix
           if (integrand.getIntegrandType() & Integrand::G_MATRIX)
@@ -2175,6 +2189,8 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
   size_t firstp = iit == firstBp.end() ? 0 : iit->second;
 
   FiniteElement fe(p1*p2);
+  fe.p = p1 - 1;
+  fe.q = p2 - 1;
   fe.xi = fe.eta = edgeDir < 0 ? -1.0 : 1.0;
   fe.u = gpar[0](1,1);
   fe.v = gpar[1](1,1);
@@ -2617,9 +2633,11 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   this->getNodalCoordinates(Xnod);
 
   FiniteElement fe(p1*p2,firstIp);
-  Vector        solPt;
-  Matrix        dNdu, Jac;
-  Matrix3D      d2Ndu2, Hess;
+  fe.p = p1 - 1;
+  fe.q = p2 - 1;
+  Vector   solPt;
+  Matrix   dNdu, Jac;
+  Matrix3D d2Ndu2, Hess;
 
   // Evaluate the secondary solution field at each point
   for (size_t i = 0; i < nPoints; i++, fe.iGP++)
@@ -2654,8 +2672,12 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
     // Compute Hessian of coordinate mapping and 2nd order derivatives
     if (use2ndDer)
+    {
       if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xtmp,d2Ndu2,fe.dNdX))
         continue;
+      else if (nsd > 2)
+        utl::Hessian(Hess,fe.H);
+    }
 
     // Store tangent vectors in fe.G for shells
     if (nsd > 2) fe.G = Jac;

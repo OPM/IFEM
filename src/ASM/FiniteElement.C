@@ -16,7 +16,8 @@
 
 std::ostream& FiniteElement::write (std::ostream& os) const
 {
-  os <<"FiniteElement: iel="<< iel <<" iGP="<< iGP <<" p="<< p
+  os <<"FiniteElement: iel="<< iel <<" iGP="<< iGP
+     <<"\n               p, q, r: "<< p <<" "<< q <<" "<< r
      <<"\n               u, v, w: "<< u <<" "<< v <<" "<< w
      <<"\n               xi, eta, zeta: "<< xi <<" "<< eta <<" "<< zeta
      <<"\n               h, detJxW: "<< h <<" "<< detJxW << std::endl;
@@ -24,6 +25,7 @@ std::ostream& FiniteElement::write (std::ostream& os) const
   if (!dNdX.empty())   os <<"dNdX:"<< dNdX;
   if (!d2NdX2.empty()) os <<"d2NdX2:"<< d2NdX2;
   if (!G.empty())      os <<"G:"<< G;
+  if (!H.empty())      os <<"H:"<< H;
   if (!Navg.empty())   os <<"Navg:"<< Navg;
   if (!Xn.empty())     os <<"Xn:"<< Xn;
   if (!Te.isZero(0.0)) os <<"Te:\n"<< Te;
