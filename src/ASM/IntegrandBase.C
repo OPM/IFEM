@@ -201,15 +201,22 @@ void IntegrandBase::printSolution (std::ostream& os, int pindx)
   for (Vector& sol : primsol)
   {
     isol++;
-    if (primsol.size() > 1 && !sol.empty())
+    if (sol.empty()) continue;
+
+    if (primsol.size() > 1)
       os <<"\nSolution vector "<< isol;
 
-    int idof = 0, node = 0;
-    for (double sval : sol)
-      if ((++idof)%npv == 1)
-        os <<"\nNode "<< ++node <<": "<< sval;
-      else
-        os <<" "<< sval;
+    if (npv > 0)
+    {
+      int idof = 0, node = 0;
+      for (double sval : sol)
+        if ((++idof)%npv == 1)
+          os <<"\nNode "<< ++node <<": "<< sval;
+        else
+          os <<" "<< sval;
+    }
+    else // For mixed problems there is a variable number of DOFs per node
+      os << sol; // so just print the raw solution vector instead
 
     os << std::endl;
   }
