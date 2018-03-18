@@ -121,95 +121,95 @@ Subroutine dgeev (char jobvl, char jobvr,
 #else
 
 #if defined(_WIN32) && !defined(__MINGW32__) && !defined(__MINGW64__)
-#define dgecon DGECON
-#define dgesv  DGESV
-#define dgetrf DGETRF
-#define dgetri DGETRI
-#define dgetrs DGETRS
-#define dlange DLANGE
-#define dposv  DPOSV
-#define dpotrs DPOTRS
-#define dsyev  DSYEV
-#define dsyevx DSYEVX
-#define dsygvx DSYGVX
-#define dgeev  DGEEV
-#elif !defined(_AIX)
-#define dgecon dgecon_
-#define dgesv  dgesv_
-#define dgetrf dgetrf_
-#define dgetri dgetri_
-#define dgetrs dgetrs_
-#define dlange dlange_
-#define dposv  dposv_
-#define dpotrs dpotrs_
-#define dsyev  dsyev_
-#define dsyevx dsyevx_
-#define dsygvx dsygvx_
-#define dgeev  dgeev_
+#define dgecon_ DGECON
+#define dgesv_  DGESV
+#define dgetrf_ DGETRF
+#define dgetri_ DGETRI
+#define dgetrs_ DGETRS
+#define dlange_ DLANGE
+#define dposv_  DPOSV
+#define dpotrs_ DPOTRS
+#define dsyev_  DSYEV
+#define dsyevx_ DSYEVX
+#define dsygvx_ DSYGVX
+#define dgeev_  DGEEV
+#elif defined(_AIX)
+#define dgecon_ dgecon
+#define dgesv_  dgesv
+#define dgetrf_ dgetrf
+#define dgetri_ dgetri
+#define dgetrs_ dgetrs
+#define dlange_ dlange
+#define dposv_  dposv
+#define dpotrs_ dpotrs
+#define dsyev_  dsyev
+#define dsyevx_ dsyevx
+#define dsygvx_ dsygvx
+#define dgeev_  dgeev
 #endif
 
 extern "C" {
 //! \brief Estimates the reciprocal of the condition number of the matrix \b A.
 //! \details This is a FORTRAN-77 subroutine in the LAPack library.
 //! \sa LAPack library documentation.
-void dgecon (const char& norm, const int& n, const Real* A, const int& lda,
+void dgecon_(const char& norm, const int& n, const Real* A, const int& lda,
              const Real& anorm, Real* rcond, Real* work, int* iwork, int& info);
 
 //! \brief Solves the linear equation system \a A*x=b.
 //! \details This is a FORTRAN-77 subroutine in the LAPack library.
 //! \sa LAPack library documentation.
-void dgesv (const int& n, const int& nrhs,
+void dgesv_(const int& n, const int& nrhs,
             Real* A, const int& lda, int* ipiv,
             Real* B, const int& ldb, int& info);
 
 //! \brief Computes an LU factorization of a general M-by-N matrix A.
 //! \details This is a FORTRAN-77 subroutine in the LAPack library.
 //! \sa LAPack library documentation.
-void dgetrf (const int& m, const int& n, Real* A, const int& lda,
+void dgetrf_(const int& m, const int& n, Real* A, const int& lda,
              int* ipiv, int& info);
 
 //! \brief Computes the inverse of a matrix based on its LU factorization.
 //! \details This is a FORTRAN-77 subroutine in the LAPack library.
 //! \sa LAPack library documentation.
-void dgetri (const int& n, Real* A, const int& lda,
+void dgetri_(const int& n, Real* A, const int& lda,
              int* ipiv, Real* work, const int& lwork, int& info);
 
 //! \brief Solves the equation system \a A*x=b when \a A is already factorized.
 //! \details This is a FORTRAN-77 subroutine in the LAPack library.
 //! \sa LAPack library documentation.
-void dgetrs (const char& trans, const int& n, const int& nrhs,
+void dgetrs_(const char& trans, const int& n, const int& nrhs,
              Real* A, const int& lda, int* ipiv,
              Real* B, const int& ldb, int& info);
 
 //! \brief Returns a norm of the matrix \b A.
 //! \details This is a FORTRAN-77 function in the LAPack library.
 //! \sa LAPack library documentation.
-double dlange (const char& norm, const int& m, const int& n, const Real* A,
+double dlange_(const char& norm, const int& m, const int& n, const Real* A,
                const int& lda, Real* work);
 
 //! \brief Solves the symmetric linear equation system \a A*x=b.
 //! \details This is a FORTRAN-77 subroutine in the LAPack library.
 //! \sa LAPack library documentation.
-void dposv (const char& uplo, const int& n, const int& nrhs,
+void dposv_(const char& uplo, const int& n, const int& nrhs,
             Real* A, const int& lda, Real* B, const int& ldb, int& info);
 
 //! \brief Solves the symmetric equation system \a A*x=b for prefactored \b A.
 //! \details This is a FORTRAN-77 subroutine in the LAPack library.
 //! \sa LAPack library documentation.
-void dpotrs (const char& uplo, const int& n, const int& nrhs,
+void dpotrs_(const char& uplo, const int& n, const int& nrhs,
              Real* A, const int& lda, Real* B, const int& ldb, int& info);
 
 //! \brief Solves the standard eigenproblem \a A*x=(lambda)*x.
 //! \details This is a FORTRAN-77 subroutine in the LAPack library.
 //! \sa LAPack library documentation.
-void dsyev (const char& jobz, const char& uplo,
+void dsyev_(const char& jobz, const char& uplo,
             const int& n, double* A, const int& lda, double* w,
             double* work, const int& lwork, int& info);
 
 //! \brief Solves the standard eigenproblem \a A*x=(lambda)*x.
 //! \details This is a FORTRAN-77 subroutine in the LAPack library.
 //! \sa LAPack library documentation.
-void dsyevx (const char& jobz, const char& range, const char& uplo,
+void dsyevx_(const char& jobz, const char& range, const char& uplo,
              const int& n, Real* a, const int& lda,
              const Real& vl, const Real& vu, const int& il, const int& iu,
              const Real& abstol, int& m, Real* w, Real* z, const int& ldz,
@@ -218,7 +218,7 @@ void dsyevx (const char& jobz, const char& range, const char& uplo,
 //! \brief Solves the generalized eigenproblem \a A*x=(lambda)*B*x.
 //! \details This is a FORTRAN-77 subroutine in the LAPack library.
 //! \sa LAPack library documentation.
-void dsygvx (const int& itype, const char& jobz, const char& range,
+void dsygvx_(const int& itype, const char& jobz, const char& range,
              const char& uplo, const int& n, Real* a, const int& lda,
              Real* b, const int& ldb, const Real& vl, const Real& vu,
              const int& il, const int& iu, const Real& abstol,
@@ -228,7 +228,7 @@ void dsygvx (const int& itype, const char& jobz, const char& range,
 //! \brief Solves the non-symmetric eigenproblem \a A*x=(lambda)*x.
 //! \details This is a FORTRAN-77 subroutine in the LAPack library.
 //! \sa LAPack library documentation.
-void dgeev (const char& jobvl, const char& jobvr,
+void dgeev_(const char& jobvl, const char& jobvr,
             const int& n, Real* a, const int& lda,
             Real* wr, Real* wi, Real* vl, const int& ldvl,
             Real* vr, const int& ldvr,

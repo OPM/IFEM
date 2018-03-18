@@ -188,7 +188,7 @@ bool utl::invert (Matrix& A)
   // Use LAPack/BLAS for larger matrices
   int INFO, N = A.rows() > A.cols() ? A.rows() : A.cols();
   int* IPIV = new int[N];
-  dgetrf (N,N,A.ptr(),A.rows(),IPIV,INFO);
+  dgetrf_(N,N,A.ptr(),A.rows(),IPIV,INFO);
   if (INFO != 0)
   {
     delete[] IPIV;
@@ -196,9 +196,9 @@ bool utl::invert (Matrix& A)
     return false;
   }
   double NWORK;
-  dgetri (N,A.ptr(),A.rows(),IPIV,&NWORK,-1,INFO);
+  dgetri_(N,A.ptr(),A.rows(),IPIV,&NWORK,-1,INFO);
   double* WORK = new double[int(NWORK)];
-  dgetri (N,A.ptr(),A.rows(),IPIV,WORK,int(NWORK),INFO);
+  dgetri_(N,A.ptr(),A.rows(),IPIV,WORK,int(NWORK),INFO);
   delete[] IPIV;
   delete[] WORK;
   if (INFO == 0) return true;

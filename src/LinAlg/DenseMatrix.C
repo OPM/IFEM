@@ -405,28 +405,28 @@ bool DenseMatrix::solve (Real* B, size_t nrhs, Real* rcond)
   {
     // Matrix is marked as symmetric - use Cholesky instead of full LU
     if (ipiv)
-      dpotrs ('U',n,nrhs,myMat.ptr(),n,B,n,info);
+      dpotrs_('U',n,nrhs,myMat.ptr(),n,B,n,info);
     else
     {
       ipiv = new int[1]; // dummy allocation to flag factorization reuse
-      dposv ('U',n,nrhs,myMat.ptr(),n,B,n,info);
+      dposv_('U',n,nrhs,myMat.ptr(),n,B,n,info);
     }
   }
   else if (ipiv)
-    dgetrs ('N',n,nrhs,myMat.ptr(),n,ipiv,B,n,info);
+    dgetrs_('N',n,nrhs,myMat.ptr(),n,ipiv,B,n,info);
   else
   {
     Real anorm;
     if (rcond) // Evaluate the 1-norm of the original LHS-matrix
-      anorm = dlange('1',n,n,myMat.ptr(),n,rcond);
+      anorm = dlange_('1',n,n,myMat.ptr(),n,rcond);
     ipiv = new int[n];
-    dgesv (n,nrhs,myMat.ptr(),n,ipiv,B,n,info);
+    dgesv_(n,nrhs,myMat.ptr(),n,ipiv,B,n,info);
     if (rcond && info == 0)
     {
       // Estimate the condition number
       Real* work = new Real[4*n];
       int* iwork = new int[n];
-      dgecon ('1',n,myMat.ptr(),n,anorm,rcond,work,iwork,info);
+      dgecon_('1',n,myMat.ptr(),n,anorm,rcond,work,iwork,info);
       delete[] work;
       delete[] iwork;
     }
@@ -458,7 +458,7 @@ bool DenseMatrix::solveEig (RealArray& val, Matrix& vec, int nv)
   Real dummy = Real(0);
   Real abstol = Real(0);
   // Invoke with Lwork = -1 to estimate work space size
-  dsyevx ('V','I','U',n,myMat.ptr(),n,dummy,dummy,1,nv,
+  dsyevx_('V','I','U',n,myMat.ptr(),n,dummy,dummy,1,nv,
           abstol,m,&val.front(),vec.ptr(),n,&dummy,-1,nullptr,nullptr,info);
 
   if (info == 0)
@@ -470,7 +470,7 @@ bool DenseMatrix::solveEig (RealArray& val, Matrix& vec, int nv)
     val.resize(n);
     vec.resize(n,nv);
     // Solve the eigenproblem
-    dsyevx ('V','I','U',n,myMat.ptr(),n,dummy,dummy,1,nv,
+    dsyevx_('V','I','U',n,myMat.ptr(),n,dummy,dummy,1,nv,
 	    abstol,m,&val.front(),vec.ptr(),n,work,Lwork,Iwork+n,Iwork,info);
     delete[] work;
     delete[] Iwork;
@@ -503,7 +503,7 @@ bool DenseMatrix::solveEig (DenseMatrix& B, RealArray& val, Matrix& vec, int nv,
   Real dummy = Real(0);
   Real abstol = Real(0);
   // Invoke with Lwork = -1 to estimate work space size
-  dsygvx (1,'V','I','U',n,myMat.ptr(),n,B.myMat.ptr(),n,
+  dsygvx_(1,'V','I','U',n,myMat.ptr(),n,B.myMat.ptr(),n,
           dummy,dummy,1,nv,abstol,m,&val.front(),vec.ptr(),n,
           &dummy,-1,nullptr,nullptr,info);
 
@@ -516,7 +516,7 @@ bool DenseMatrix::solveEig (DenseMatrix& B, RealArray& val, Matrix& vec, int nv,
     val.resize(n);
     vec.resize(n,nv);
     // Solve the eigenproblem
-    dsygvx (1,'V','I','U',n,myMat.ptr(),n,B.myMat.ptr(),n,
+    dsygvx_(1,'V','I','U',n,myMat.ptr(),n,B.myMat.ptr(),n,
 	    dummy,dummy,1,nv,abstol,m,&val.front(),vec.ptr(),n,
 	    work,Lwork,Iwork+n,Iwork,info);
     delete[] work;
@@ -549,7 +549,7 @@ bool DenseMatrix::solveEigNon (RealArray& r_val, RealArray& c_val)
   int  info  = 0;
   Real dummy = Real(0);
   // Invoke with Lwork = -1 to estimate work space size
-  dgeev ('N','N',n,myMat.ptr(),n,&r_val.front(),&c_val.front(),
+  dgeev_('N','N',n,myMat.ptr(),n,&r_val.front(),&c_val.front(),
 	 &dummy,1,&dummy,1,&dummy,-1,info);
 
   if (info == 0)
@@ -560,7 +560,7 @@ bool DenseMatrix::solveEigNon (RealArray& r_val, RealArray& c_val)
     r_val.resize(n);
     c_val.resize(n);
     // Solve the eigenproblem
-    dgeev ('N','N',n,myMat.ptr(),n,&r_val.front(),&c_val.front(),
+    dgeev_('N','N',n,myMat.ptr(),n,&r_val.front(),&c_val.front(),
 	   &dummy,1,&dummy,1,work,Lwork,info);
     delete[] work;
     if (info == 0) return true;

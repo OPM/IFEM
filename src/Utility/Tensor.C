@@ -1189,7 +1189,7 @@ bool SymmTensor::principal (Vec3& p, Vec3* pdir, int ndir) const
   int       info = 0;
   const int Lwork = 12;
   double    Work[Lwork];
-  dsyev ('V','U',n,A,n,W,Work,Lwork,info);
+  dsyev_('V','U',n,A,n,W,Work,Lwork,info);
   if (info)
   {
     std::cerr <<" *** LAPack::dsyev: info ="<< info;
