@@ -2082,18 +2082,27 @@ void ASMu3D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
 
   if (!this->getBasis(basis)) return; // silently ignore empty patches
 
-  nodes = this->getFaceNodes(lIndex, basis, orient);
+  if (nodes.empty()) {
+    std::cout << "herrrr " << basis << std::endl;
+    nodes = this->getFaceNodes(lIndex, basis, orient);
+    if (!local)
+      for (int& node : nodes)
+        node = this->getNodeID(node);
+  } else {
+    IntVec nodes2 = this->getFaceNodes(lIndex, basis, orient);
+    if (!local)
+      for (int& node : nodes2)
+        node = this->getNodeID(node);
+    nodes.insert(nodes.end(), nodes2.begin(), nodes2.end());
+  }
 
-#if SP_DEBUG > 1
+//#if SP_DEBUG > 1
   std::cout <<"Boundary nodes in patch "<< idx+1 <<" edge "<< lIndex <<":";
   for (size_t i = 0; i < nodes.size(); i++)
     std::cout <<" "<< nodes[i];
   std::cout << std::endl;
-#endif
+//#endif
 
-  if (!local)
-    for (int& node : nodes)
-      node = this->getNodeID(node);
 }
 
 

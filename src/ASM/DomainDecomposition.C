@@ -322,8 +322,10 @@ void DomainDecomposition::setupNodeNumbers(int basis, IntVec& lNodes,
     // need to expand to all bases for corners and edges
     for (size_t b = 1; b <= pch->getNoBasis(); ++b)
       cbasis.insert(b);
-  else // directly add nodes, cbasis remains empty
+  else { // directly add nodes, cbasis remains empty
+    std::cout << "we go here yo" << std::endl;
     pch->getBoundaryNodes(lidx, lNodes, 0, thick, orient, false);
+  }
 
   const ASM2D* pch2D = dynamic_cast<const ASM2D*>(pch);
   const ASM3D* pch3D = dynamic_cast<const ASM3D*>(pch);
