@@ -1994,10 +1994,17 @@ void ASMu2D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
   default: return;
   }
 
-  if (nodes.empty())
+  if (nodes.empty()) {
     nodes = this->getEdgeNodes(edge, basis, 0);
-  else {
+    if (!local)
+      for (int& node : nodes)
+        node = MLGN[node-1];
+  } else {
     IntVec nodes2 = this->getEdgeNodes(edge, basis, 0);
+    if (!local)
+      for (int& node : nodes2)
+        node = MLGN[node-1];
+
     nodes.insert(nodes.end(), nodes2.begin(), nodes2.end());
   }
 

@@ -19,6 +19,10 @@
 
 #include <vector>
 
+class DomainDecomposition;
+class ProcessAdm;
+class SIMbase;
+
 
 /*!
   \brief Class establishing global node numbers for unstructed FE models.
@@ -39,12 +43,22 @@ public:
   static IntVec getBoundaryNodes(const LR::LRSpline& lr,
                                  int dim, int lidx, int orient);
 
-
   //! \brief Calculate global node numbers for a FE model.
-  //! \param pchs The spline patches in the model
+   //! \param pchs The spline patches in the model
   //! \param interfaces The topological connections for the spline patches
   static std::vector<IntVec> calcGlobalNodes(const LRSplineVec& pchs,
                                              const InterfaceVec& interfaces);
+
+  //! \brief Calculate parallel global node numbers for a FE model.
+  //! \param pchs The spline patches in the model
+  //! \param MLGN Process-global node numbers
+  //! \param sim The simulator holding patch owner information
+  //! \param adm The parallel process administrator
+  //! \param dd The domain decomposition holding ghost connections
+  //! \param[out] nNodes Total number of nodes in the model
+  static IntVec calcDDMapping(const LRSplineVec& pchs,
+                              const std::vector<GlobalNodes::IntVec>& MLGN,
+                              const SIMbase& sim, int& nNodes);
 };
 
 #endif

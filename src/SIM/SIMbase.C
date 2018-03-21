@@ -99,7 +99,6 @@ void SIMbase::clearProperties ()
   for (auto& i4 : myTracs)
     delete i4.second;
 
-  myPatches.clear();
   myGlb2Loc.clear();
   myScalars.clear();
   myVectors.clear();

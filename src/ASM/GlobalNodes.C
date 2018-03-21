@@ -13,6 +13,8 @@
 
 #include "GlobalNodes.h"
 #include "ASMunstruct.h"
+#include "SIMbase.h"
+#include "DomainDecomposition.h"
 #include "Utilities.h"
 
 
@@ -175,6 +177,83 @@ GlobalNodes::calcGlobalNodes(const GlobalNodes::LRSplineVec& pchs,
         if (n > maxNode)
           n = ++maxNode;
   }
+
+  return result;
+}
+
+
+GlobalNodes::IntVec
+GlobalNodes::calcDDMapping(const GlobalNodes::LRSplineVec& pchs,
+                           const std::vector<GlobalNodes::IntVec>& MLGN,
+                           const SIMbase& sim, int& nNodes)
+{
+  const ProcessAdm& adm = sim.getProcessAdm();
+
+  int minNode = 0;
+  if (adm.getProcId() > 0)
+    adm.receive(minNode, adm.getProcId()-1);
+
+  IntVec result(*std::max_element(MLGN.back().begin(), MLGN.back().end()) + 1);
+  std::iota(result.begin(), result.end(), minNode);
+  int maxNode = adm.getProcId() == 0 ? 0 : minNode;
+
+  std::map<int,int> old2new;
+  for (const auto& it : adm.dd.ghostConnections) {
+    int sidx = sim.getLocalPatchIndex(it.slave);
+    if (sidx < 1)
+      continue;
+
+    IntVec lNodes = GlobalNodes::getBoundaryNodes(*pchs[sidx-1], it.dim, it.sidx, 0);
+    for (int& i : lNodes)
+      i = result[MLGN[sidx-1][i]];
+
+    int nRecv;
+    adm.receive(nRecv, adm.dd.getPatchOwner(it.master));
+    if (nRecv =! lNodes.size()) {
+      std::cerr <<"\n *** GlobalNodes::calcDDMapping(): "
+                <<" Topology error, boundary size "
+                << nRecv << ", expected " << lNodes.size() << std::endl;
+      return IntVec();
+    }
+    IntVec glbNodes(lNodes.size());
+    adm.receive(glbNodes, adm.dd.getPatchOwner(it.master));
+    for (size_t i = 0; i < lNodes.size(); ++i)
+      old2new[lNodes[i]] = glbNodes[i];
+  }
+
+  // remap ghost nodes
+  for (auto& it : result)
+    utl::renumber(it, old2new, false);
+
+  // remap rest of our nodes
+  for (int i = 0; i < (int)result.size(); ++i)
+    if (old2new.find(i + minNode) == old2new.end()) {
+      std::map<int,int> old2new2;
+      old2new2[i + minNode] = maxNode++;
+      for (auto& it : result)
+        utl::renumber(it, old2new2, false);
+    }
+
+  if (adm.getProcId() < adm.getNoProcs()-1)
+    adm.send(maxNode, adm.getProcId()+1);
+
+  for (const auto& it : adm.dd.ghostConnections) {
+    int midx = sim.getLocalPatchIndex(it.master);
+    if (midx < 1)
+      continue;
+
+    IntVec glbNodes = GlobalNodes::getBoundaryNodes(*pchs[midx-1], it.dim,
+                                                    it.midx, it.orient);
+    for (size_t i = 0; i < glbNodes.size(); ++i)
+      glbNodes[i] = result[MLGN[midx-1][glbNodes[i]]];
+
+    adm.send(int(glbNodes.size()), adm.dd.getPatchOwner(it.slave));
+    adm.send(glbNodes, adm.dd.getPatchOwner(it.slave));
+  }
+
+#ifdef HAVE_MPI
+  nNodes = adm.allReduce(adm.getProcId() == adm.getNoProcs()-1 ? maxNode : 0, MPI_SUM);
+#endif
 
   return result;
 }
