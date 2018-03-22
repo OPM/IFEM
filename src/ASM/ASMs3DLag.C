@@ -337,14 +337,20 @@ bool ASMs3DLag::integrate (Integrand& integrand,
   if (this->empty()) return true; // silently ignore empty patches
 
   // Get Gaussian quadrature points and weights
-  const double* xg = GaussQuadrature::getCoord(nGauss);
-  const double* wg = GaussQuadrature::getWeight(nGauss);
-  if (!xg || !wg) return false;
+  std::array<int,3> ng;
+  std::array<const double*,3> xg, wg;
+  for (int d = 0; d < 3; d++)
+  {
+    ng[d] = this->getNoGaussPt(d == 0 ? p1 : (d == 1 ? p2 : p3));
+    xg[d] = GaussQuadrature::getCoord(ng[d]);
+    wg[d] = GaussQuadrature::getWeight(ng[d]);
+    if (!xg[d] || !wg[d]) return false;
+  }
 
   // Get the reduced integration quadrature points, if needed
   const double* xr = nullptr;
   const double* wr = nullptr;
-  int nRed = integrand.getReducedIntegration(nGauss);
+  int nRed = integrand.getReducedIntegration(ng[0]);
   if (nRed > 0)
   {
     xr = GaussQuadrature::getCoord(nRed);
@@ -352,7 +358,7 @@ bool ASMs3DLag::integrate (Integrand& integrand,
     if (!xr || !wr) return false;
   }
   else if (nRed < 0)
-    nRed = nGauss; // The integrand needs to know nGauss
+    nRed = ng[0]; // The integrand needs to know nGauss
 
   // Get parametric coordinates of the elements
   RealArray upar, vpar, wpar;
@@ -458,29 +464,30 @@ bool ASMs3DLag::integrate (Integrand& integrand,
 
         // --- Integration loop over all Gauss points in each direction --------
 
-        int jp = iel*nGauss*nGauss*nGauss;
+        int jp = iel*ng[0]*ng[1]*ng[2];
         fe.iGP = firstIp + jp; // Global integration point counter
 
-        for (int k = 0; k < nGauss; k++)
-          for (int j = 0; j < nGauss; j++)
-            for (int i = 0; i < nGauss; i++, fe.iGP++)
+        for (int k = 0; k < ng[2]; k++)
+          for (int j = 0; j < ng[1]; j++)
+            for (int i = 0; i < ng[0]; i++, fe.iGP++)
             {
               // Local element coordinates of current integration point
-              fe.xi   = xg[i];
-              fe.eta  = xg[j];
-              fe.zeta = xg[k];
+              fe.xi   = xg[0][i];
+              fe.eta  = xg[1][j];
+              fe.zeta = xg[2][k];
 
               // Parameter value of current integration point
               if (!upar.empty())
-                fe.u = 0.5*(upar[i1]*(1.0-xg[i]) + upar[i1+1]*(1.0+xg[i]));
+                fe.u = 0.5*(upar[i1]*(1.0-fe.xi) + upar[i1+1]*(1.0+fe.xi));
               if (!vpar.empty())
-                fe.v = 0.5*(vpar[i2]*(1.0-xg[j]) + vpar[i2+1]*(1.0+xg[j]));
+                fe.v = 0.5*(vpar[i2]*(1.0-fe.eta) + vpar[i2+1]*(1.0+fe.eta));
               if (!wpar.empty())
-                fe.w = 0.5*(wpar[i3]*(1.0-xg[k]) + wpar[i3+1]*(1.0+xg[k]));
+                fe.w = 0.5*(wpar[i3]*(1.0-fe.zeta) + wpar[i3+1]*(1.0+fe.zeta));
 
               // Compute basis function derivatives at current integration point
               // using tensor product of one-dimensional Lagrange polynomials
-              if (!Lagrange::computeBasis(fe.N,dNdu,p1,xg[i],p2,xg[j],p3,xg[k]))
+              if (!Lagrange::computeBasis(fe.N,dNdu,
+                                          p1,fe.xi,p2,fe.eta,p3,fe.zeta))
                 ok = false;
 
               // Compute Jacobian inverse of coordinate mapping and derivatives
@@ -492,7 +499,7 @@ bool ASMs3DLag::integrate (Integrand& integrand,
               X.t = time.t;
 
               // Evaluate the integrand and accumulate element contributions
-              fe.detJxW *= wg[i]*wg[j]*wg[k];
+              fe.detJxW *= wg[0][i]*wg[1][j]*wg[2][k];
               if (!integrand.evalInt(*A,fe,time,X))
                 ok = false;
             }
@@ -529,18 +536,20 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
   }
   const ThreadGroups& threadGrp = tit->second;
 
-  // Get Gaussian quadrature points and weights
-  int nGP = integrand.getBouIntegrationPoints(nGauss);
-  const double* xg = GaussQuadrature::getCoord(nGP);
-  const double* wg = GaussQuadrature::getWeight(nGP);
-  if (!xg || !wg) return false;
-
   // Find the parametric direction of the face normal {-3,-2,-1, 1, 2, 3}
   const int faceDir = (lIndex%10+1)/(lIndex%2 ? -2 : 2);
 
   const int t0 = abs(faceDir); // unsigned normal direction of the face
   const int t1 = 1 + t0%3; // first tangent direction of the face
   const int t2 = 1 + t1%3; // second tangent direction of the face
+
+  // Get Gaussian quadrature points and weights
+  // For now, use the largest polynomial order of the two tangent directions
+  int nG1 = this->getNoGaussPt(std::max(svol->order(t1),svol->order(t2)),true);
+  int nGP = integrand.getBouIntegrationPoints(nG1);
+  const double* xg = GaussQuadrature::getCoord(nGP);
+  const double* wg = GaussQuadrature::getWeight(nGP);
+  if (!xg || !wg) return false;
 
   // Number of elements in each direction
   const int nel1 = (nx-1)/(p1-1);
@@ -711,8 +720,9 @@ bool ASMs3DLag::integrateEdge (Integrand& integrand, int lEdge,
   const int lDir = (lEdge-1)/4;
 
   // Get Gaussian quadrature points and weights
-  const double* xg = GaussQuadrature::getCoord(nGauss);
-  const double* wg = GaussQuadrature::getWeight(nGauss);
+  int ng = this->getNoGaussPt(svol->order((lEdge-1)/4),true);
+  const double* xg = GaussQuadrature::getCoord(ng);
+  const double* wg = GaussQuadrature::getWeight(ng);
   if (!xg || !wg) return false;
 
   // Number of elements in each direction
@@ -773,11 +783,11 @@ bool ASMs3DLag::integrateEdge (Integrand& integrand, int lEdge,
 	if (skipMe) continue;
 
 	if (lEdge < 5)
-	  ip = i1*nGauss;
+	  ip = i1*ng;
 	else if (lEdge < 9)
-	  ip = i2*nGauss;
+	  ip = i2*ng;
 	else
-	  ip = i3*nGauss;
+	  ip = i3*ng;
 
 	// Set up nodal point coordinates for current element
 	if (!this->getElementCoordinates(Xnod,iel)) return false;
@@ -792,7 +802,7 @@ bool ASMs3DLag::integrateEdge (Integrand& integrand, int lEdge,
 
 	fe.iGP = firstp + ip; // Global integration point counter
 
-	for (int i = 0; i < nGauss && ok; i++, fe.iGP++)
+	for (int i = 0; i < ng && ok; i++, fe.iGP++)
 	{
 	  // Gauss point coordinates on the edge
 	  xi[lDir] = xg[i];
@@ -836,14 +846,13 @@ int ASMs3DLag::evalPoint (const double* xi, double* param, Vec3& X) const
 {
   // Evaluate the parametric values of the point and nodes
   std::array<RealArray,3> u;
-  std::array<int,3> p({{p1,p2,p3}});
   for (int d = 0; d < 3; d++)
   {
     if (svol)
       param[d] = (1.0-xi[d])*svol->startparam(d) + xi[d]*svol->endparam(d);
     else
       param[d] = xi[d];
-    if (!this->getGridParameters(u[d],d,p[d]-1)) return -3;
+    if (!this->getGridParameters(u[d],d,svol->order(d)-1)) return -3;
   }
 
   // Search for the closest node

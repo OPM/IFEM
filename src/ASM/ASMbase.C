@@ -313,15 +313,24 @@ size_t ASMbase::getNoElms (bool includeZeroVolElms, bool includeXElms) const
 void ASMbase::getNoIntPoints (size_t& nPt, size_t& nIPt)
 {
   size_t nGp = 1;
-  for (unsigned char d = 0; d < ndim; d++)
-    nGp *= nGauss;
+  if (nGauss > 0 && nGauss <= 10)
+    for (unsigned char d = 0; d < ndim; d++)
+      nGp *= nGauss;
+  else
+  {
+    // Use polynomial order to define number of quadrature points
+    int ng[3] = { 0, 0, 0 };
+    this->getOrder(ng[0],ng[1],ng[2]);
+    for (unsigned char d = 0; d < ndim; d++)
+      nGp *= ng[d] + nGauss%10;
+  }
 
   firstIp = nPt;
   nPt += nel*nGp; // Note: Includes also the 0-span elements
 
   // Count additional interface quadrature points
   size_t nInterface = MLGE.size() - nel;
-  if (nInterface > 0 && nInterface != nel && nGauss > 0)
+  if (nInterface > 0 && nInterface != nel && nGauss > 0 && nGauss <= 10)
     nIPt += nInterface*nGp/nGauss;
 }
 
@@ -329,8 +338,18 @@ void ASMbase::getNoIntPoints (size_t& nPt, size_t& nIPt)
 void ASMbase::getNoBouPoints (size_t& nPt, char ldim, char lindx)
 {
   size_t nGp = 1;
-  for (char d = 0; d < ldim; d++)
-    nGp *= nGauss;
+  if (nGauss > 0 && nGauss <= 10)
+    for (char d = 0; d < ldim; d++)
+      nGp *= nGauss;
+  else
+  {
+    // Use polynomial order to define number of quadrature points
+    int ng[3] = { 0, 0, 0 };
+    this->getOrder(ng[0],ng[1],ng[2]);
+    ng[(lindx-1)/2] = 1;
+    for (unsigned char d = 0; d < ndim; d++)
+      nGp *= ng[d];
+  }
 
   firstBp[lindx] = nPt;
 
@@ -1183,6 +1202,17 @@ int ASMbase::searchCtrlPt (RealArray::const_iterator cit,
   }
 
   return iclose;
+}
+
+
+int ASMbase::getNoGaussPt (int p, bool neumann) const
+{
+  if (nGauss > 0 && nGauss < 11)
+    return nGauss;
+  else if (neumann)
+    return p;
+
+  return p + nGauss%10;
 }
 
 

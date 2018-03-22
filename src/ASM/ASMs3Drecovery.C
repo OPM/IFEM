@@ -175,14 +175,17 @@ bool ASMs3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
   const int nel2 = n2 - p2 + 1;
   const int nel3 = n3 - p3 + 1;
 
+  int pmax = p1 > p2 ? p1 : p2;
+  if (pmax < p3) pmax = p3;
+
   // Get Gaussian quadrature point coordinates (and weights if continuous)
-  const int ng1 = continuous ? nGauss : p1 - 1;
-  const int ng2 = continuous ? nGauss : p2 - 1;
-  const int ng3 = continuous ? nGauss : p3 - 1;
+  const int ng1 = continuous ? this->getNoGaussPt(pmax,true) : p1 - 1;
+  const int ng2 = continuous ? ng1 : p2 - 1;
+  const int ng3 = continuous ? ng2 : p3 - 1;
   const double* xg = GaussQuadrature::getCoord(ng1);
   const double* yg = GaussQuadrature::getCoord(ng2);
   const double* zg = GaussQuadrature::getCoord(ng3);
-  const double* wg = continuous ? GaussQuadrature::getWeight(nGauss) : 0;
+  const double* wg = continuous ? GaussQuadrature::getWeight(ng1) : 0;
   if (!xg || !yg || !zg) return false;
   if (continuous && !wg) return false;
 
@@ -346,26 +349,30 @@ Go::SplineVolume* ASMs3D::projectSolutionLeastSquare (const IntegrandBase& integ
   PROFILE1("test L2- projection");
   // Compute parameter values of the result sampling points (Gauss-Interpl. points)
   // Get Gaussian quadrature points and weights
-  const double* xg = GaussQuadrature::getCoord(nGauss);
-  const double* wg = GaussQuadrature::getWeight(nGauss);
+  int p = svol->order(0);
+  for (int d = 1; d < 3; d++)
+    if (p < svol->order(d)) p = svol->order(d);
+  const int ng = this->getNoGaussPt(p,true);
+  const double* xg = GaussQuadrature::getCoord(ng);
+  const double* wg = GaussQuadrature::getWeight(ng);
   if (!xg || !wg) return nullptr;
 
   std::array<Matrix,3> ggpar;
   std::array<RealArray,3> gpar, wgpar;
   for (int dir = 0; dir < 3; dir++)
   {
-    this->getGaussPointParameters(ggpar[dir],dir,nGauss,xg);
+    this->getGaussPointParameters(ggpar[dir],dir,ng,xg);
     gpar[dir] = ggpar[dir];
 
     // Gauss weights at parameter values
     const Go::BsplineBasis& basis = svol->basis(dir);
     RealArray::const_iterator knotit = basis.begin();
     RealArray& tmp = wgpar[dir];
-    tmp.reserve(nGauss*(basis.numCoefs()-basis.order()));
+    tmp.reserve(ng*(basis.numCoefs()-basis.order()));
     for (int i = basis.order(); i <= basis.numCoefs(); i++)
     {
       double d = knotit[i]-knotit[i-1];
-      for (int j = 0; j < nGauss; j++)
+      for (int j = 0; j < ng; j++)
         tmp.push_back(d > 0.0 ? wg[j]*d*0.5 : 0.0);
     }
   }

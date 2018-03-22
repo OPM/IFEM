@@ -25,6 +25,7 @@
 #include "ElementBlock.h"
 #include "Utilities.h"
 #include "Vec3Oper.h"
+#include <array>
 
 
 ASMs2DLag::ASMs2DLag (unsigned char n_s, unsigned char n_f)
@@ -306,14 +307,20 @@ bool ASMs2DLag::integrate (Integrand& integrand,
   if (this->empty()) return true; // silently ignore empty patches
 
   // Get Gaussian quadrature points and weights
-  const double* xg = GaussQuadrature::getCoord(nGauss);
-  const double* wg = GaussQuadrature::getWeight(nGauss);
-  if (!xg || !wg) return false;
+  std::array<int,2> ng;
+  std::array<const double*,2> xg, wg;
+  for (int d = 0; d < 2; d++)
+  {
+    ng[d] = this->getNoGaussPt(d == 0 ? p1 : p2);
+    xg[d] = GaussQuadrature::getCoord(ng[d]);
+    wg[d] = GaussQuadrature::getWeight(ng[d]);
+    if (!xg[d] || !wg[d]) return false;
+  }
 
   // Get the reduced integration quadrature points, if needed
   const double* xr = nullptr;
   const double* wr = nullptr;
-  int nRed = integrand.getReducedIntegration(nGauss);
+  int nRed = integrand.getReducedIntegration(ng[0]);
   if (nRed > 0)
   {
     xr = GaussQuadrature::getCoord(nRed);
@@ -321,7 +328,7 @@ bool ASMs2DLag::integrate (Integrand& integrand,
     if (!xr || !wr) return false;
   }
   else if (nRed < 0)
-    nRed = nGauss; // The integrand needs to know nGauss
+    nRed = ng[0]; // The integrand needs to know nGauss
 
   // Get parametric coordinates of the elements
   RealArray upar, vpar;
@@ -416,25 +423,25 @@ bool ASMs2DLag::integrate (Integrand& integrand,
 
         // --- Integration loop over all Gauss points in each direction --------
 
-        int jp = iel*nGauss*nGauss;
+        int jp = iel*ng[0]*ng[1];
         fe.iGP = firstIp + jp; // Global integration point counter
 
-        for (int j = 0; j < nGauss; j++)
-          for (int i = 0; i < nGauss; i++, fe.iGP++)
+        for (int j = 0; j < ng[1]; j++)
+          for (int i = 0; i < ng[0]; i++, fe.iGP++)
           {
             // Local element coordinates of current integration point
-            fe.xi  = xg[i];
-            fe.eta = xg[j];
+            fe.xi  = xg[0][i];
+            fe.eta = xg[1][j];
 
             // Parameter value of current integration point
             if (!upar.empty())
-              fe.u = 0.5*(upar[i1]*(1.0-xg[i]) + upar[i1+1]*(1.0+xg[i]));
+              fe.u = 0.5*(upar[i1]*(1.0-xg[0][i]) + upar[i1+1]*(1.0+xg[0][i]));
             if (!vpar.empty())
-              fe.v = 0.5*(vpar[i2]*(1.0-xg[j]) + vpar[i2+1]*(1.0+xg[j]));
+              fe.v = 0.5*(vpar[i2]*(1.0-xg[1][j]) + vpar[i2+1]*(1.0+xg[1][j]));
 
             // Compute basis function derivatives at current integration point
             // using tensor product of one-dimensional Lagrange polynomials
-            if (!Lagrange::computeBasis(fe.N,dNdu,p1,xg[i],p2,xg[j]))
+            if (!Lagrange::computeBasis(fe.N,dNdu,p1,xg[0][i],p2,xg[1][j]))
               ok = false;
 
             // Compute Jacobian inverse of coordinate mapping and derivatives
@@ -446,7 +453,7 @@ bool ASMs2DLag::integrate (Integrand& integrand,
             X.t = time.t;
 
             // Evaluate the integrand and accumulate element contributions
-            fe.detJxW *= wg[i]*wg[j];
+            fe.detJxW *= wg[0][i]*wg[1][j];
             if (!integrand.evalInt(*A,fe,time,X))
               ok = false;
           }
@@ -475,7 +482,8 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
   if (this->empty()) return true; // silently ignore empty patches
 
   // Get Gaussian quadrature points and weights
-  int nGP = integrand.getBouIntegrationPoints(nGauss);
+  int nG1 = this->getNoGaussPt(lIndex%10 < 3 ? p1 : p2, true);
+  int nGP = integrand.getBouIntegrationPoints(nG1);
   const double* xg = GaussQuadrature::getCoord(nGP);
   const double* wg = GaussQuadrature::getWeight(nGP);
   if (!xg || !wg) return false;

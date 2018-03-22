@@ -12,6 +12,7 @@
 //==============================================================================
 
 #include "FiniteElement.h"
+#include "Vec3Oper.h"
 
 
 std::ostream& FiniteElement::write (std::ostream& os) const
@@ -21,6 +22,8 @@ std::ostream& FiniteElement::write (std::ostream& os) const
      <<"\n               u, v, w: "<< u <<" "<< v <<" "<< w
      <<"\n               xi, eta, zeta: "<< xi <<" "<< eta <<" "<< zeta
      <<"\n               h, detJxW: "<< h <<" "<< detJxW << std::endl;
+  for (size_t n = 0; n < XC.size(); n++)
+    os <<"\n               XC_"<< n+1 <<": "<< XC[n];
   if (!N.empty())      os <<"N:"<< N;
   if (!dNdX.empty())   os <<"dNdX:"<< dNdX;
   if (!d2NdX2.empty()) os <<"d2NdX2:"<< d2NdX2;

@@ -202,14 +202,15 @@ bool ASMs1DLag::integrate (Integrand& integrand,
   if (this->empty()) return true; // silently ignore empty patches
 
   // Get Gaussian quadrature points and weights
-  const double* xg = GaussQuadrature::getCoord(nGauss);
-  const double* wg = GaussQuadrature::getWeight(nGauss);
+  const int     ng = this->getNoGaussPt(p1);
+  const double* xg = GaussQuadrature::getCoord(ng);
+  const double* wg = GaussQuadrature::getWeight(ng);
   if (!xg || !wg) return false;
 
   // Get the reduced integration quadrature points, if needed
   const double* xr = nullptr;
   const double* wr = nullptr;
-  int nRed = integrand.getReducedIntegration(nGauss);
+  int nRed = integrand.getReducedIntegration(ng);
   if (nRed > 0)
   {
     xr = GaussQuadrature::getCoord(nRed);
@@ -217,7 +218,7 @@ bool ASMs1DLag::integrate (Integrand& integrand,
     if (!xr || !wr) return false;
   }
   else if (nRed < 0)
-    nRed = nGauss; // The integrand needs to know nGauss
+    nRed = ng; // The integrand needs to know nGauss
 
   // Get parametric coordinates of the elements
   RealArray gpar;
@@ -285,10 +286,10 @@ bool ASMs1DLag::integrate (Integrand& integrand,
 
     // --- Integration loop over all Gauss points in each direction ------------
 
-    int jp = iel*nGauss;
+    int jp = iel*ng;
     fe.iGP = firstIp + jp; // Global integration point counter
 
-    for (int i = 0; i < nGauss && ok; i++, fe.iGP++)
+    for (int i = 0; i < ng && ok; i++, fe.iGP++)
     {
       // Local element coordinate of current integration point
       fe.xi = xg[i];

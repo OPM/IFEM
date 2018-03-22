@@ -1486,15 +1486,24 @@ bool ASMs2D::integrate (Integrand& integrand,
   bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
   bool useElmVtx = integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS;
 
+  const int p1 = surf->order_u();
+  const int p2 = surf->order_v();
+
   // Get Gaussian quadrature points and weights
-  const double* xg = GaussQuadrature::getCoord(nGauss);
-  const double* wg = GaussQuadrature::getWeight(nGauss);
-  if (!xg || !wg) return false;
+  std::array<int,2> ng;
+  std::array<const double*,2> xg, wg;
+  for (int d = 0; d < 2; d++)
+  {
+    ng[d] = this->getNoGaussPt(d == 0 ? p1 : p2);
+    xg[d] = GaussQuadrature::getCoord(ng[d]);
+    wg[d] = GaussQuadrature::getWeight(ng[d]);
+    if (!xg[d] || !wg[d]) return false;
+  }
 
   // Get the reduced integration quadrature points, if needed
   const double* xr = nullptr;
   const double* wr = nullptr;
-  int nRed = integrand.getReducedIntegration(nGauss);
+  int nRed = integrand.getReducedIntegration(ng[0]);
   if (nRed > 0)
   {
     xr = GaussQuadrature::getCoord(nRed);
@@ -1502,13 +1511,13 @@ bool ASMs2D::integrate (Integrand& integrand,
     if (!xr && !wr) return false;
   }
   else if (nRed < 0)
-    nRed = nGauss; // The integrand needs to know nGauss
+    nRed = ng[0]; // The integrand needs to know nGauss
 
   // Compute parameter values of the Gauss points over the whole patch
   std::array<Matrix,2> gpar, redpar;
   for (int d = 0; d < 2; d++)
   {
-    this->getGaussPointParameters(gpar[d],d,nGauss,xg);
+    this->getGaussPointParameters(gpar[d],d,ng[d],xg[d]);
     if (xr)
       this->getGaussPointParameters(redpar[d],d,nRed,xr);
   }
@@ -1529,8 +1538,6 @@ bool ASMs2D::integrate (Integrand& integrand,
     std::cout <<"\nBasis functions at integration point "<< 1+i << spline[i];
 #endif
 
-  const int p1 = surf->order_u();
-  const int p2 = surf->order_v();
   const int n1 = surf->numCoefs_u();
   const int nel1 = n1 - p1 + 1;
 
@@ -1596,9 +1603,9 @@ bool ASMs2D::integrate (Integrand& integrand,
 
           fe.Navg.resize(p1*p2,true);
           double area = 0.0;
-          int ip = ((i2-p2)*nGauss*nel1 + i1-p1)*nGauss;
-          for (int j = 0; j < nGauss; j++, ip += nGauss*(nel1-1))
-            for (int i = 0; i < nGauss; i++, ip++)
+          int ip = ((i2-p2)*ng[1]*nel1 + i1-p1)*ng[0];
+          for (int j = 0; j < ng[1]; j++, ip += ng[0]*(nel1-1))
+            for (int i = 0; i < ng[0]; i++, ip++)
             {
               // Fetch basis function derivatives at current integration point
               SplineUtils::extractBasis(spline[ip],fe.N,dNdu);
@@ -1606,7 +1613,7 @@ bool ASMs2D::integrate (Integrand& integrand,
               // Compute Jacobian determinant of coordinate mapping
               // and multiply by weight of current integration point
               double detJac = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu,false);
-              double weight = dA*wg[i]*wg[j];
+              double weight = dA*wg[0][i]*wg[1][j];
 
               // Numerical quadrature
               fe.Navg.add(fe.N,detJac*weight);
@@ -1620,8 +1627,8 @@ bool ASMs2D::integrate (Integrand& integrand,
         if (integrand.getIntegrandType() & Integrand::ELEMENT_CENTER)
         {
           // Compute the element center
-          double u0 = 0.5*(gpar[0](1,i1-p1+1) + gpar[0](nGauss,i1-p1+1));
-          double v0 = 0.5*(gpar[1](1,i2-p2+1) + gpar[1](nGauss,i2-p2+1));
+          double u0 = 0.5*(gpar[0](1,i1-p1+1) + gpar[0](ng[0],i1-p1+1));
+          double v0 = 0.5*(gpar[1](1,i2-p2+1) + gpar[1](ng[1],i2-p2+1));
           SplineUtils::point(X,u0,v0,surf);
           if (!useElmVtx)
           {
@@ -1682,16 +1689,16 @@ bool ASMs2D::integrate (Integrand& integrand,
 
         // --- Integration loop over all Gauss points in each direction --------
 
-        int ip = ((i2-p2)*nGauss*nel1 + i1-p1)*nGauss;
-        int jp = ((i2-p2)*nel1 + i1-p1)*nGauss*nGauss;
+        int ip = ((i2-p2)*ng[1]*nel1 + i1-p1)*ng[0];
+        int jp = ((i2-p2)*nel1 + i1-p1)*ng[0]*ng[1];
         fe.iGP = firstIp + jp; // Global integration point counter
 
-        for (int j = 0; j < nGauss; j++, ip += nGauss*(nel1-1))
-          for (int i = 0; i < nGauss; i++, ip++, fe.iGP++)
+        for (int j = 0; j < ng[1]; j++, ip += ng[0]*(nel1-1))
+          for (int i = 0; i < ng[0]; i++, ip++, fe.iGP++)
           {
             // Local element coordinates of current integration point
-            fe.xi  = xg[i];
-            fe.eta = xg[j];
+            fe.xi  = xg[0][i];
+            fe.eta = xg[1][j];
 
             // Parameter values of current integration point
             fe.u = param[0] = gpar[0](i+1,i1-p1+1);
@@ -1724,16 +1731,7 @@ bool ASMs2D::integrate (Integrand& integrand,
 
 #if SP_DEBUG > 4
             if (iel == dbgElm || iel == -dbgElm || dbgElm == 0)
-            {
-              std::cout <<"\niel, ip = "<< iel <<" "<< ip
-                        <<"\nN ="<< fe.N <<"dNdX ="<< fe.dNdX;
-              if (!fe.d2NdX2.empty())
-                std::cout <<"d2NdX2 ="<< fe.d2NdX2;
-              if (!fe.G.empty())
-                std::cout <<"G ="<< fe.G;
-              if (!fe.H.empty())
-                std::cout <<"H ="<< fe.H;
-            }
+              std::cout <<"\n"<< fe;
 #endif
 
             // Cartesian coordinates of current integration point
@@ -1741,7 +1739,7 @@ bool ASMs2D::integrate (Integrand& integrand,
             X.t = time.t;
 
             // Evaluate the integrand and accumulate element contributions
-            fe.detJxW *= dA*wg[i]*wg[j];
+            fe.detJxW *= dA*wg[0][i]*wg[1][j];
 #ifndef USE_OPENMP
             PROFILE3("Integrand::evalInt");
 #endif
@@ -1777,7 +1775,7 @@ bool ASMs2D::integrate (Integrand& integrand,
 {
   if (!surf) return true; // silently ignore empty patches
 
-  if (integrand.getReducedIntegration(nGauss) != 0)
+  if (integrand.getReducedIntegration(2) != 0)
   {
     std::cerr <<" *** ASMs2D::integrate(Integrand&,GlobalIntegral&,"
               <<"const TimeDomain&,const Real3DMat&): Available for standard"
@@ -1926,8 +1924,7 @@ bool ASMs2D::integrate (Integrand& integrand,
 
 #if SP_DEBUG > 4
           if (iel == dbgElm || iel == -dbgElm || dbgElm == 0)
-            std::cout <<"\niel, jp = "<< iel <<" "<< jp
-                      <<"\nN ="<< fe.N <<"dNdX ="<< fe.dNdX;
+            std::cout <<"\n"<< fe;
 #endif
 
           // Cartesian coordinates of current integration point
@@ -1975,13 +1972,15 @@ bool ASMs2D::integrate (Integrand& integrand,
 
   PROFILE2("ASMs2D::integrate(J)");
 
-  // Get Gaussian quadrature points and weights
-  const double* xg = GaussQuadrature::getCoord(nGauss);
-  const double* wg = GaussQuadrature::getWeight(nGauss);
-  if (!xg || !wg) return false;
-
   const int p1 = surf->order_u();
   const int p2 = surf->order_v();
+  const int ng = this->getNoGaussPt(p1 > p2 ? p1 : p2);
+
+  // Get Gaussian quadrature points and weights
+  const double* xg = GaussQuadrature::getCoord(ng);
+  const double* wg = GaussQuadrature::getWeight(ng);
+  if (!xg || !wg) return false;
+
   const int n1 = surf->numCoefs_u();
   const int n2 = surf->numCoefs_v();
 
@@ -2049,7 +2048,7 @@ bool ASMs2D::integrate (Integrand& integrand,
 
           // --- Integration loop over all Gauss points along the edge ---------
 
-          for (int i = 0; i < nGauss && ok; i++)
+          for (int i = 0; i < ng && ok; i++)
           {
             // Local element coordinates and parameter values
             // of current integration point
@@ -2100,13 +2099,11 @@ bool ASMs2D::integrate (Integrand& integrand,
                 this->extractBasis(fe.u,fe.v,t1,fe.p, dN, edgeDir > 0);
                 utl::merge(fe.N,dN,MNPC[iel],MNPC[kel]);
               }
+            }
 
 #if SP_DEBUG > 4
-              std::cout <<"\niel, xi,eta = "<< fe.iel
-                        <<" "<< fe.xi <<" "<< fe.eta
-                        <<"\ndN ="<< fe.N <<"dNdX ="<< fe.dNdX;
+            std::cout <<"\n"<< fe;
 #endif
-            }
 
             // Evaluate the integrand and accumulate element contributions
             fe.detJxW *= dS*wg[i];
@@ -2135,8 +2132,12 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
 
   PROFILE2("ASMs2D::integrate(B)");
 
+  const int p1 = surf->order_u();
+  const int p2 = surf->order_v();
+
   // Get Gaussian quadrature points and weights
-  int nGP = integrand.getBouIntegrationPoints(nGauss);
+  int nG1 = this->getNoGaussPt(lIndex%10 < 3 ? p1 : p2, true);
+  int nGP = integrand.getBouIntegrationPoints(nG1);
   const double* xg = GaussQuadrature::getCoord(nGP);
   const double* wg = GaussQuadrature::getWeight(nGP);
   if (!xg || !wg) return false;
@@ -2170,8 +2171,6 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
   std::vector<Go::BasisDerivsSf> spline;
   surf->computeBasisGrid(gpar[0],gpar[1],spline);
 
-  const int p1 = surf->order_u();
-  const int p2 = surf->order_v();
   const int n1 = surf->numCoefs_u();
   const int n2 = surf->numCoefs_v();
 

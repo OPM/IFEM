@@ -172,13 +172,14 @@ bool ASMs2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
   const int n2 = surf->numCoefs_v();
   const int nel1 = n1 - p1 + 1;
   const int nel2 = n2 - p2 + 1;
+  const int pmax = p1 > p2 ? p1 : p2;
 
   // Get Gaussian quadrature point coordinates (and weights if continuous)
-  const int ng1 = continuous ? nGauss : p1 - 1;
-  const int ng2 = continuous ? nGauss : p2 - 1;
+  const int ng1 = continuous ? this->getNoGaussPt(pmax,true) : p1 - 1;
+  const int ng2 = continuous ? ng1 : p2 - 1;
   const double* xg = GaussQuadrature::getCoord(ng1);
   const double* yg = GaussQuadrature::getCoord(ng2);
-  const double* wg = continuous ? GaussQuadrature::getWeight(nGauss) : nullptr;
+  const double* wg = continuous ? GaussQuadrature::getWeight(ng1) : nullptr;
   if (!xg || !yg) return false;
   if (continuous && !wg) return false;
 
@@ -505,8 +506,12 @@ Go::SplineSurface* ASMs2D::projectSolutionLeastSquare (const IntegrandBase& inte
   if (!surf) return nullptr;
 
   // Get Gaussian quadrature points and weights
-  const double* xg = GaussQuadrature::getCoord(nGauss);
-  const double* wg = GaussQuadrature::getWeight(nGauss);
+  const int p1 = surf->order_u();
+  const int p2 = surf->order_v();
+  const int ng = this->getNoGaussPt(p1 > p2 ? p1 : p2, true);
+
+  const double* xg = GaussQuadrature::getCoord(ng);
+  const double* wg = GaussQuadrature::getWeight(ng);
   if (!xg || !wg) return nullptr;
 
   // Compute parameter values of the result sampling points (Gauss points)
@@ -514,18 +519,18 @@ Go::SplineSurface* ASMs2D::projectSolutionLeastSquare (const IntegrandBase& inte
   std::array<RealArray,2> gpar, wgpar;
   for (int dir = 0; dir < 2; dir++)
   {
-    this->getGaussPointParameters(ggpar[dir],dir,nGauss,xg);
+    this->getGaussPointParameters(ggpar[dir],dir,ng,xg);
     gpar[dir] = ggpar[dir];
 
     // Gauss weights at parameter values
     const Go::BsplineBasis& basis = surf->basis(dir);
     RealArray::const_iterator knotit = basis.begin();
     RealArray& tmp = wgpar[dir];
-    tmp.reserve(nGauss*(basis.numCoefs()-basis.order()));
+    tmp.reserve(ng*(basis.numCoefs()-basis.order()));
     for (int i = basis.order(); i <= basis.numCoefs(); i++)
     {
       double d = knotit[i] - knotit[i-1];
-      for (int j = 0; j < nGauss; j++)
+      for (int j = 0; j < ng; j++)
         tmp.push_back(d > 0.0 ? wg[j]*d*0.5 : 0.0);
     }
   }

@@ -1677,14 +1677,20 @@ bool ASMs3D::integrate (Integrand& integrand,
   bool useElmVtx = integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS;
 
   // Get Gaussian quadrature points and weights
-  const double* xg = GaussQuadrature::getCoord(nGauss);
-  const double* wg = GaussQuadrature::getWeight(nGauss);
-  if (!xg || !wg) return false;
+  std::array<int,3> ng;
+  std::array<const double*,3> xg, wg;
+  for (int d = 0; d < 3; d++)
+  {
+    ng[d] = this->getNoGaussPt(svol->order(d));
+    xg[d] = GaussQuadrature::getCoord(ng[d]);
+    wg[d] = GaussQuadrature::getWeight(ng[d]);
+    if (!xg[d] || !wg[d]) return false;
+  }
 
   // Get the reduced integration quadrature points, if needed
   const double* xr = nullptr;
   const double* wr = nullptr;
-  int nRed = integrand.getReducedIntegration(nGauss);
+  int nRed = integrand.getReducedIntegration(ng[0]);
   if (nRed > 0)
   {
     xr = GaussQuadrature::getCoord(nRed);
@@ -1692,13 +1698,13 @@ bool ASMs3D::integrate (Integrand& integrand,
     if (!xr || !wr) return false;
   }
   else if (nRed < 0)
-    nRed = nGauss; // The integrand needs to know nGauss
+    nRed = ng[0]; // The integrand needs to know nGauss
 
   // Compute parameter values of the Gauss points over the whole patch
   std::array<Matrix,3> gpar, redpar;
   for (int d = 0; d < 3; d++)
   {
-    this->getGaussPointParameters(gpar[d],d,nGauss,xg);
+    this->getGaussPointParameters(gpar[d],d,ng[d],xg[d]);
     if (xr)
       this->getGaussPointParameters(redpar[d],d,nRed,xr);
   }
@@ -1789,10 +1795,10 @@ bool ASMs3D::integrate (Integrand& integrand,
 
           fe.Navg.resize(p1*p2*p3,true);
           double vol = 0.0;
-          int ip = (((i3-p3)*nGauss*nel2 + i2-p2)*nGauss*nel1 + i1-p1)*nGauss;
-          for (int k = 0; k < nGauss; k++, ip += nGauss*(nel2-1)*nGauss*nel1)
-            for (int j = 0; j < nGauss; j++, ip += nGauss*(nel1-1))
-              for (int i = 0; i < nGauss; i++, ip++)
+          int ip = (((i3-p3)*ng[2]*nel2 + i2-p2)*ng[1]*nel1 + i1-p1)*ng[0];
+          for (int k = 0; k < ng[2]; k++, ip += ng[1]*(nel2-1)*ng[0]*nel1)
+            for (int j = 0; j < ng[1]; j++, ip += ng[0]*(nel1-1))
+              for (int i = 0; i < ng[0]; i++, ip++)
               {
                 // Fetch basis function derivatives at current integration point
                 SplineUtils::extractBasis(spline[ip],fe.N,dNdu);
@@ -1800,7 +1806,7 @@ bool ASMs3D::integrate (Integrand& integrand,
                 // Compute Jacobian determinant of coordinate mapping
                 // and multiply by weight of current integration point
                 double detJac = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu,false);
-                double weight = 0.125*dV*wg[i]*wg[j]*wg[k];
+                double weight = 0.125*dV*wg[0][i]*wg[1][j]*wg[2][k];
 
                 // Numerical quadrature
                 fe.Navg.add(fe.N,detJac*weight);
@@ -1814,9 +1820,9 @@ bool ASMs3D::integrate (Integrand& integrand,
         if (integrand.getIntegrandType() & Integrand::ELEMENT_CENTER)
         {
           // Compute the element center
-          double u0 = 0.5*(gpar[0](1,i1-p1+1) + gpar[0](nGauss,i1-p1+1));
-          double v0 = 0.5*(gpar[1](1,i2-p2+1) + gpar[1](nGauss,i2-p2+1));
-          double w0 = 0.5*(gpar[2](1,i3-p3+1) + gpar[2](nGauss,i3-p3+1));
+          double u0 = 0.5*(gpar[0](1,i1-p1+1) + gpar[0](ng[0],i1-p1+1));
+          double v0 = 0.5*(gpar[1](1,i2-p2+1) + gpar[1](ng[1],i2-p2+1));
+          double w0 = 0.5*(gpar[2](1,i3-p3+1) + gpar[2](ng[2],i3-p3+1));
           SplineUtils::point(X,u0,v0,w0,svol);
           if (!useElmVtx)
           {
@@ -1876,18 +1882,18 @@ bool ASMs3D::integrate (Integrand& integrand,
 
         // --- Integration loop over all Gauss points in each direction --------
 
-        int ip = (((i3-p3)*nGauss*nel2 + i2-p2)*nGauss*nel1 + i1-p1)*nGauss;
-        int jp = (((i3-p3)*nel2 + i2-p2)*nel1 + i1-p1)*nGauss*nGauss*nGauss;
+        int ip = (((i3-p3)*ng[2]*nel2 + i2-p2)*ng[1]*nel1 + i1-p1)*ng[0];
+        int jp = (((i3-p3)*nel2 + i2-p2)*nel1 + i1-p1)*ng[0]*ng[1]*ng[2];
         fe.iGP = firstIp + jp; // Global integration point counter
 
-        for (int k = 0; k < nGauss; k++, ip += nGauss*(nel2-1)*nGauss*nel1)
-          for (int j = 0; j < nGauss; j++, ip += nGauss*(nel1-1))
-            for (int i = 0; i < nGauss; i++, ip++, fe.iGP++)
+        for (int k = 0; k < ng[2]; k++, ip += ng[1]*(nel2-1)*ng[0]*nel1)
+          for (int j = 0; j < ng[1]; j++, ip += ng[0]*(nel1-1))
+            for (int i = 0; i < ng[0]; i++, ip++, fe.iGP++)
             {
               // Local element coordinates of current integration point
-              fe.xi   = xg[i];
-              fe.eta  = xg[j];
-              fe.zeta = xg[k];
+              fe.xi   = xg[0][i];
+              fe.eta  = xg[1][j];
+              fe.zeta = xg[2][k];
 
               // Parameter values of current integration point
               fe.u = param[0] = gpar[0](i+1,i1-p1+1);
@@ -1915,12 +1921,7 @@ bool ASMs3D::integrate (Integrand& integrand,
 
 #if SP_DEBUG > 4
               if (iel == dbgElm || iel == -dbgElm || dbgElm == 0)
-              {
-                std::cout <<"\niel, ip = "<< iel <<" "<< ip
-                          <<"\nN ="<< fe.N <<"dNdX ="<< fe.dNdX;
-                if (!fe.d2NdX2.empty())
-                  std::cout <<"d2NdX2 ="<< fe.d2NdX2;
-              }
+                std::cout <<"\n"<< fe;
 #endif
 
               // Cartesian coordinates of current integration point
@@ -1928,7 +1929,7 @@ bool ASMs3D::integrate (Integrand& integrand,
               X.t = time.t;
 
               // Evaluate the integrand and accumulate element contributions
-              fe.detJxW *= 0.125*dV*wg[i]*wg[j]*wg[k];
+              fe.detJxW *= 0.125*dV*wg[0][i]*wg[1][j]*wg[2][k];
 #ifndef USE_OPENMP
               PROFILE3("Integrand::evalInt");
 #endif
@@ -1964,7 +1965,7 @@ bool ASMs3D::integrate (Integrand& integrand,
 {
   if (!svol) return true; // silently ignore empty patches
 
-  if (integrand.getReducedIntegration(nGauss) != 0)
+  if (integrand.getReducedIntegration(2) != 0)
   {
     std::cerr <<" *** ASMs3D::integrate(Integrand&,GlobalIntegral&,"
               <<"const TimeDomain&,const Real3DMat&): Available for standard"
@@ -2112,8 +2113,7 @@ bool ASMs3D::integrate (Integrand& integrand,
 
 #if SP_DEBUG > 4
           if (iel == dbgElm || iel == -dbgElm || dbgElm == 0)
-            std::cout <<"\niel, jp = "<< iel <<" "<< jp
-                      <<"\nN ="<< fe.N <<"dNdX ="<< fe.dNdX;
+            std::cout <<"\n"<< fe;
 #endif
 
           // Cartesian coordinates of current integration point
@@ -2181,17 +2181,19 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
   }
   const ThreadGroups& threadGrp = tit->second;
 
-  // Get Gaussian quadrature points and weights
-  int nGP = integrand.getBouIntegrationPoints(nGauss);
-  const double* xg = GaussQuadrature::getCoord(nGP);
-  const double* wg = GaussQuadrature::getWeight(nGP);
-  if (!xg || !wg) return false;
-
   // Find the parametric direction of the face normal {-3,-2,-1, 1, 2, 3}
   const int faceDir = (lIndex%10+1)/(lIndex%2 ? -2 : 2);
 
   const int t1 = 1 + abs(faceDir)%3; // first tangent direction
   const int t2 = 1 + t1%3;           // second tangent direction
+
+  // Get Gaussian quadrature points and weights
+  // For now, use the largest polynomial order of the two tangent directions
+  int nG1 = this->getNoGaussPt(std::max(svol->order(t1),svol->order(t2)),true);
+  int nGP = integrand.getBouIntegrationPoints(nG1);
+  const double* xg = GaussQuadrature::getCoord(nGP);
+  const double* wg = GaussQuadrature::getWeight(nGP);
+  if (!xg || !wg) return false;
 
   // Compute parameter values of the Gauss points over the whole patch face
   std::array<Matrix,3> gpar;
@@ -2414,8 +2416,9 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
   PROFILE2("ASMs3D::integrate(E)");
 
   // Get Gaussian quadrature points and weights
-  const double* xg = GaussQuadrature::getCoord(nGauss);
-  const double* wg = GaussQuadrature::getWeight(nGauss);
+  int ng = this->getNoGaussPt(svol->order((lEdge-1)/4),true);
+  const double* xg = GaussQuadrature::getCoord(ng);
+  const double* wg = GaussQuadrature::getWeight(ng);
   if (!xg || !wg) return false;
 
   // Compute parameter values of the Gauss points along the whole patch edge
@@ -2441,11 +2444,11 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
       RealArray::const_iterator uit = svol->basis(d).begin() + pm1;
       double ucurr, uprev = *(uit++);
       int nCol = svol->numCoefs(d) - pm1;
-      gpar[d].resize(nGauss,nCol);
+      gpar[d].resize(ng,nCol);
       for (int j = 1; j <= nCol; ++uit, j++)
       {
 	ucurr = *uit;
-	for (int i = 1; i <= nGauss; i++)
+	for (int i = 1; i <= ng; i++)
 	  gpar[d](i,j) = 0.5*((ucurr-uprev)*xg[i-1] + ucurr+uprev);
 	uprev = ucurr;
       }
@@ -2521,17 +2524,17 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
 	if (lEdge < 5)
 	{
 	  dS = svol->knotSpan(0,nodeInd[ip].I);
-	  ip = (i1-p1)*nGauss;
+	  ip = (i1-p1)*ng;
 	}
 	else if (lEdge < 9)
 	{
 	  dS = svol->knotSpan(1,nodeInd[ip].J);
-	  ip = (i2-p2)*nGauss;
+	  ip = (i2-p2)*ng;
 	}
 	else if (lEdge < 13)
 	{
 	  dS = svol->knotSpan(2,nodeInd[ip].K);
-	  ip = (i3-p3)*nGauss;
+	  ip = (i3-p3)*ng;
 	}
 
 	// Set up control point coordinates for current element
@@ -2546,7 +2549,7 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
 
 	fe.iGP = firstp + ip; // Global integration point counter
 
-	for (int i = 0; i < nGauss && ok; i++, ip++, fe.iGP++)
+	for (int i = 0; i < ng && ok; i++, ip++, fe.iGP++)
 	{
 	  // Parameter values of current integration point
 	  if (gpar[0].size() > 1) fe.u = param[0] = gpar[0](i+1,i1-p1+1);
@@ -2556,7 +2559,7 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
 	  // Fetch basis function derivatives at current integration point
 	  SplineUtils::extractBasis(spline[ip],fe.N,dNdu);
 
-	  // Compute basis function derivatives and the edge tang
+	  // Compute basis function derivatives and the edge tangent
 	  fe.detJxW = utl::Jacobian(Jac,tang,fe.dNdX,Xnod,dNdu,1+(lEdge-1)/4);
 	  if (fe.detJxW == 0.0) continue; // skip singular points
 

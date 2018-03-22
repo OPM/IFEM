@@ -150,8 +150,7 @@ public:
   bool addGlobalLagrangeMultipliers(const IntVec& mGLag,
                                     unsigned char nnLag = 1);
 
-  //! \brief Defines the numerical integration scheme to use.
-  //! \param[in] ng Number of Gauss points in each parameter direction
+  //! \brief Defines the numerical integration scheme \a nGauss in the patch.
   void setGauss(int ng) { nGauss = ng; }
 
   //! \brief Defines the number of solution fields \a nf in the patch.
@@ -675,6 +674,11 @@ protected:
   //! \param[in] pch Pointer to the neighboring patch
   void addNeighbor(ASMbase* pch);
 
+  //! \brief Returns the number of Gauss points to use in one direction.
+  //! \param[in] p Polynomial order of the basis functions
+  //! \param[in] neumann Whether or not we are assembling Neumann BCs
+  int getNoGaussPt(int p, bool neumann = false) const;
+
   //! \brief Helper method used by evalPoint to search for a control point.
   //! \param[in] cit iterator of array of control point coordinates
   //! \param[in] end iterator of array of control point coordinates
@@ -747,7 +751,6 @@ protected:
   unsigned char nsd;    //!< Number of space dimensions (ndim <= nsd <= 3)
   unsigned char nf;     //!< Number of primary solution fields (1 or larger)
   unsigned char nLag;   //!< Number of Lagrange multipliers per node
-  int           nGauss; //!< Numerical integration scheme
   size_t        nel;    //!< Number of regular elements in this patch
   size_t        nnod;   //!< Number of regular nodes in this patch
 
@@ -767,6 +770,16 @@ protected:
   IntVec myMLGE; //!< The actual Matrix of Local to Global Element numbers
   IntVec myMLGN; //!< The actual Matrix of Local to Global Node numbers
   IntMat myMNPC; //!< The actual Matrix of Nodal Point Correspondance
+
+  //! \brief Numerical integration scheme for this patch.
+  //! \details A value in the range [1,10] means use that number of Gauss
+  //! quadrature points in each parameter direction, regardless of polynomial
+  //! order of the basis functions. If zero or negative, the number of Gauss
+  //! quadrature points is set independently in each parameter direction to
+  //! \a p+nGauss, where \a p is the polynomial order in that direction.
+  //! If the value is set larger than 10, the number of quadrature points
+  //! in each parameter direction is set to \a p+nGauss%10.
+  int nGauss; //!< \sa getNoGaussPt
 
   size_t firstIp; //!< Global index to first interior integration point
 

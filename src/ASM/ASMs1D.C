@@ -746,15 +746,18 @@ bool ASMs1D::integrate (Integrand& integrand,
 {
   if (!curv) return true; // silently ignore empty patches
 
+  const int p1 = curv->order();
+
   // Get Gaussian quadrature points and weights
-  const double* xg = GaussQuadrature::getCoord(nGauss);
-  const double* wg = GaussQuadrature::getWeight(nGauss);
+  const int     ng = this->getNoGaussPt(p1);
+  const double* xg = GaussQuadrature::getCoord(ng);
+  const double* wg = GaussQuadrature::getWeight(ng);
   if (!xg || !wg) return false;
 
   // Get the reduced integration quadrature points, if needed
   const double* xr = nullptr;
   const double* wr = nullptr;
-  int nRed = integrand.getReducedIntegration(nGauss);
+  int nRed = integrand.getReducedIntegration(ng);
   if (nRed > 0)
   {
     xr = GaussQuadrature::getCoord(nRed);
@@ -762,7 +765,7 @@ bool ASMs1D::integrate (Integrand& integrand,
     if (!xr || !wr) return false;
   }
   else if (nRed < 0)
-    nRed = nGauss; // The integrand needs to know nGauss
+    nRed = ng; // The integrand needs to know nGauss
 
   if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
     if (curv->rational())
@@ -774,11 +777,9 @@ bool ASMs1D::integrate (Integrand& integrand,
 
   // Compute parameter values of the Gauss points over the whole patch
   Matrix gpar, redpar;
-  this->getGaussPointParameters(gpar,nGauss,xg);
+  this->getGaussPointParameters(gpar,ng,xg);
   if (xr)
     this->getGaussPointParameters(redpar,nRed,xr);
-
-  const int p1 = curv->order();
 
   FiniteElement fe(p1);
   Matrix   dNdu, Jac;
@@ -852,10 +853,10 @@ bool ASMs1D::integrate (Integrand& integrand,
 
     // --- Integration loop over all Gauss points in current element -----------
 
-    int jp = iel*nGauss;
+    int jp = iel*ng;
     fe.iGP = firstIp + jp; // Global integration point counter
 
-    for (int i = 0; i < nGauss && ok; i++, fe.iGP++)
+    for (int i = 0; i < ng && ok; i++, fe.iGP++)
     {
       // Local element coordinate of current integration point
       fe.xi = xg[i];
@@ -1368,16 +1369,16 @@ bool ASMs1D::assembleL2matrices (SparseMatrix& A, StdVector& B,
   const int p1 = curv->order();
 
   // Get Gaussian quadrature point coordinates (and weights if continuous)
-  const int ng1 = continuous ? nGauss : p1 - 1;
-  const double* xg = GaussQuadrature::getCoord(ng1);
-  const double* wg = continuous ? GaussQuadrature::getWeight(nGauss) : nullptr;
+  const int     ng = continuous ? this->getNoGaussPt(p1,true) : p1 - 1;
+  const double* xg = GaussQuadrature::getCoord(ng);
+  const double* wg = continuous ? GaussQuadrature::getWeight(ng) : nullptr;
   if (!xg) return false;
   if (continuous && !wg) return false;
 
   // Compute parameter values of the Gauss points over the whole patch
   // and evaluate the secondary solution at all integration points
   Matrix gp, sField;
-  RealArray gpar = this->getGaussPointParameters(gp,ng1,xg);
+  RealArray gpar = this->getGaussPointParameters(gp,ng,xg);
   if (!this->evalSolution(sField,integrand,&gpar))
   {
     std::cerr <<" *** ASMs1D::assembleL2matrices: Failed for patch "<< idx+1
@@ -1408,7 +1409,7 @@ bool ASMs1D::assembleL2matrices (SparseMatrix& A, StdVector& B,
 
     // --- Integration loop over all Gauss points in current element -----------
 
-    for (int i = 0; i < ng1; i++, ip++)
+    for (int i = 0; i < ng; i++, ip++)
     {
       // Fetch basis function values at current integration point
       if (continuous)
