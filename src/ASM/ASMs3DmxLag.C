@@ -114,7 +114,7 @@ bool ASMs3DmxLag::generateFEMTopology ()
   // Generate/check FE data for the geometry/basis1
   bool haveFEdata = !MLGN.empty();
   bool basis1IsOK = this->ASMs3DLag::generateFEMTopology();
-  geoBasis = 1;
+  elmBasis = 1;
   if ((haveFEdata && !shareFE) || !basis1IsOK) return basis1IsOK;
 
   // Order of 2nd basis in the three parametric directions (order = degree + 1)
@@ -349,14 +349,14 @@ bool ASMs3DmxLag::integrate (Integrand& integrand,
                   ok = false;
 
               // Compute Jacobian inverse of coordinate mapping and derivatives
-              fe.detJxW = utl::Jacobian(Jac,fe.grad(geoBasis),Xnod,dNxdu[geoBasis-1]);
+              fe.detJxW = utl::Jacobian(Jac,fe.grad(elmBasis),Xnod,dNxdu[elmBasis-1]);
               if (fe.detJxW == 0.0) continue; // skip singular points
               for (size_t b = 0; b < nxx.size(); ++b)
-                if (b != (size_t)geoBasis-1)
+                if (b != (size_t)elmBasis-1)
                   fe.grad(b+1).multiply(dNxdu[b],Jac);
 
               // Cartesian coordinates of current integration point
-              X = Xnod * fe.basis(geoBasis);
+              X = Xnod * fe.basis(elmBasis);
               X.t = time.t;
 
               // Evaluate the integrand and accumulate element contributions
@@ -413,8 +413,8 @@ bool ASMs3DmxLag::integrate (Integrand& integrand, int lIndex,
   integrand.setNeumannOrder(1 + lIndex/10);
 
   // Number of elements in each direction
-  const int nel1 = (nxx[geoBasis-1]-1)/(elem_sizes[geoBasis-1][0]-1);
-  const int nel2 = (nyx[geoBasis-1]-1)/(elem_sizes[geoBasis-1][1]-1);
+  const int nel1 = (nxx[elmBasis-1]-1)/(elem_sizes[elmBasis-1][0]-1);
+  const int nel2 = (nyx[elmBasis-1]-1)/(elem_sizes[elmBasis-1][1]-1);
 
   std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex%10);
   size_t firstp = iit == firstBp.end() ? 0 : iit->second;
@@ -490,16 +490,16 @@ bool ASMs3DmxLag::integrate (Integrand& integrand, int lIndex,
                 ok = false;
 
 	    // Compute basis function derivatives and the edge normal
-	    fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(geoBasis),Xnod,dNxdu[geoBasis-1],t1,t2);
+	    fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(elmBasis),Xnod,dNxdu[elmBasis-1],t1,t2);
 	    if (fe.detJxW == 0.0) continue; // skip singular points
             for (size_t b = 0; b < nxx.size(); ++b)
-              if (b != (size_t)geoBasis-1)
+              if (b != (size_t)elmBasis-1)
                 fe.grad(b+1).multiply(dNxdu[b],Jac);
 
 	    if (faceDir < 0) normal *= -1.0;
 
 	    // Cartesian coordinates of current integration point
-	    X = Xnod * fe.basis(geoBasis);
+	    X = Xnod * fe.basis(elmBasis);
 	    X.t = time.t;
 
 	    // Evaluate the integrand and accumulate element contributions
@@ -572,11 +572,11 @@ bool ASMs3DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   // Evaluate the secondary solution field at each point
   for (size_t iel = 1; iel <= nel; iel++)
   {
-    IntVec::const_iterator f2start = geoBasis == 1? MNPC[iel-1].begin() :
+    IntVec::const_iterator f2start = elmBasis == 1? MNPC[iel-1].begin() :
                                      MNPC[iel-1].begin() +
-                                     std::accumulate(elem_size.begin()+geoBasis-2,
-                                                     elem_size.begin()+geoBasis-1, 0);
-    IntVec::const_iterator f2end = f2start + elem_size[geoBasis-1];
+                                     std::accumulate(elem_size.begin()+elmBasis-2,
+                                                     elem_size.begin()+elmBasis-1, 0);
+    IntVec::const_iterator f2end = f2start + elem_size[elmBasis-1];
     IntVec mnpc1(f2start,f2end);
 
     this->getElementCoordinates(Xnod,iel);
@@ -595,10 +595,10 @@ bool ASMs3DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
               return false;
 
 	  // Compute the Jacobian inverse
-          fe.detJxW = utl::Jacobian(Jac,fe.grad(geoBasis),Xnod,dNxdu[geoBasis-1]);
+          fe.detJxW = utl::Jacobian(Jac,fe.grad(elmBasis),Xnod,dNxdu[elmBasis-1]);
 
           for (size_t b = 1; b <= nxx.size(); b++)
-            if (b != (size_t)geoBasis)
+            if (b != (size_t)elmBasis)
             {
               if (fe.detJxW == 0.0)
                 fe.grad(b).clear();
@@ -607,7 +607,7 @@ bool ASMs3DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
             }
 
 	  // Now evaluate the solution field
-	  if (!integrand.evalSol(solPt,fe,Xnod*fe.basis(geoBasis),MNPC[iel-1],elem_size,nb))
+	  if (!integrand.evalSol(solPt,fe,Xnod*fe.basis(elmBasis),MNPC[iel-1],elem_size,nb))
 	    return false;
 	  else if (sField.empty())
 	    sField.resize(solPt.size(),nPoints,true);

@@ -94,7 +94,7 @@ TEST(TestSAM, SingleBasisDirichlet1P)
 TEST(TestSAM, MixedBasis1P)
 {
   ASMmxBase::Type = ASMmxBase::FULL_CONT_RAISE_BASIS1;
-  ASMmxBase::geoBasis = 2;
+  ASMmxBase::elmBasis = 2;
 
   SIM2D sim({1,1});
   sim.read("src/LinAlg/Test/refdata/sam_2D_1P.xinp");

@@ -87,7 +87,7 @@ bool LRSplineFields2Dmx::gradFE (const FiniteElement& fe, Matrix& grad) const
 
   // Evaluate the basis functions at the given point
   Go::BasisDerivsSf spline;
-  const LR::LRSplineSurface* gsurf = surf->getBasis(ASMmxBase::geoBasis);
+  const LR::LRSplineSurface* gsurf = surf->getBasis(ASMmxBase::elmBasis);
   int iel = gsurf->getElementContaining(fe.u,fe.v);
   auto elm = gsurf->getElement(iel);
   gsurf->computeBasis(fe.u,fe.v,spline,iel);

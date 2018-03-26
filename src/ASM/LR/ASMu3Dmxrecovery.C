@@ -76,8 +76,8 @@ bool ASMu3Dmx::assembleL2matrices (SparseMatrix& A, StdVector& B,
 
   // === Assembly loop over all elements in the patch ==========================
   LR::LRSplineVolume* geoVol;
-  if (m_basis[geoBasis-1]->nBasisFunctions() == projBasis->nBasisFunctions())
-    geoVol = m_basis[geoBasis-1].get();
+  if (m_basis[elmBasis-1]->nBasisFunctions() == projBasis->nBasisFunctions())
+    geoVol = m_basis[elmBasis-1].get();
   else
     geoVol = projBasis.get();
 
@@ -88,7 +88,7 @@ bool ASMu3Dmx::assembleL2matrices (SparseMatrix& A, StdVector& B,
     double wh = (el1->wmin()+el1->wmax())/2.0;
     std::vector<size_t> els;
     els.push_back(projBasis->getElementContaining(uh, vh, wh) + 1);
-    els.push_back(m_basis[geoBasis-1]->getElementContaining(uh, vh, wh) + 1);
+    els.push_back(m_basis[elmBasis-1]->getElementContaining(uh, vh, wh) + 1);
 
     if (continuous)
     {
@@ -137,7 +137,7 @@ bool ASMu3Dmx::assembleL2matrices (SparseMatrix& A, StdVector& B,
             projBasis->computeBasis(gpar[0][i], gpar[1][j], gpar[2][k],
                                     spl1[0], els[0]-1);
             SplineUtils::extractBasis(spl1[0],phi[0],dNdu[0]);
-            m_basis[geoBasis-1]->computeBasis(gpar[0][i], gpar[1][j], gpar[2][k],
+            m_basis[elmBasis-1]->computeBasis(gpar[0][i], gpar[1][j], gpar[2][k],
                                               spl1[1], els[1]-1);
             SplineUtils::extractBasis(spl1[1], phi[1], dNdu[1]);
           }

@@ -87,7 +87,7 @@ bool LRSplineFields3Dmx::gradFE (const FiniteElement& fe, Matrix& grad) const
 
   // Evaluate the basis functions at the given point
   Go::BasisDerivs spline;
-  const LR::LRSplineVolume* gvol = vol->getBasis(ASMmxBase::geoBasis);
+  const LR::LRSplineVolume* gvol = vol->getBasis(ASMmxBase::elmBasis);
   int iel = gvol->getElementContaining(fe.u,fe.v,fe.w);
   auto elm = gvol->getElement(iel);
   gvol->computeBasis(fe.u,fe.v,fe.w,spline,iel);

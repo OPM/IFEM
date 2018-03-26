@@ -296,7 +296,7 @@ TEST(TestCoordinateMapping, Hessian2D_mixed)
   Matrix Jac;
   std::array<Matrix, 2> grad;
 
-  int geoBasis = ASMmxBase::geoBasis - 1;
+  int geoBasis = ASMmxBase::elmBasis - 1;
 
   Matrix Xnod;
   p.getElementCoordinates(Xnod,1);

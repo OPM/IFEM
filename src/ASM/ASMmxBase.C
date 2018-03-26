@@ -18,7 +18,7 @@
 #include "GoTools/trivariate/VolumeInterpolator.h"
 #include <numeric>
 
-char ASMmxBase::geoBasis             = 2;
+char ASMmxBase::elmBasis             = 2;
 ASMmxBase::MixedType ASMmxBase::Type = ASMmxBase::FULL_CONT_RAISE_BASIS1;
 
 
@@ -177,7 +177,7 @@ ASMmxBase::SurfaceVec ASMmxBase::establishBases(Go::SplineSurface* surf,
     result[1].reset(Go::SurfaceInterpolator::regularInterpolation(a1,b2,
                                                                   u0,vg,XYZ1,ndim,
                                                                   false,XYZ1));
-    geoBasis = 3;
+    elmBasis = 3;
   } else if (type == SUBGRID) {
     // basis1 should be one degree higher than basis2 and C^p-1 continuous
     int ndim = surf->dimension();
@@ -237,7 +237,7 @@ ASMmxBase::SurfaceVec ASMmxBase::establishBases(Go::SplineSurface* surf,
                                                                     ug,vg,XYZ,ndim,
                                                                     false,XYZ));
     }
-    geoBasis = 1;
+    elmBasis = 1;
   }
 
   if (type == FULL_CONT_RAISE_BASIS2 || type == REDUCED_CONT_RAISE_BASIS2)
@@ -312,7 +312,7 @@ ASMmxBase::VolumeVec ASMmxBase::establishBases(Go::SplineVolume* svol,
                                                                  u0,v0,wg,XYZ2,ndim,
                                                                  false,XYZ2));
     result[3].reset(new Go::SplineVolume(*svol));
-    geoBasis = 4;
+    elmBasis = 4;
   } else if (type == SUBGRID) {
     // basis1 should be one degree higher than basis2 and C^p-1 continuous
     int ndim = svol->dimension();
@@ -373,7 +373,7 @@ ASMmxBase::VolumeVec ASMmxBase::establishBases(Go::SplineVolume* svol,
                                                                    XYZ,ndim,
                                                                    false,XYZ));
     }
-    geoBasis = 1;
+    elmBasis = 1;
   }
 
   if (type == FULL_CONT_RAISE_BASIS2 || type == REDUCED_CONT_RAISE_BASIS2)
