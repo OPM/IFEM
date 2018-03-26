@@ -81,6 +81,9 @@ public:
   //! \brief Checks if a separate projection basis is used for this patch.
   virtual bool separateProjectionBasis() const;
 
+  //! \brief Returns the spline object that returns the geometry.
+  const Go::GeomObject* getGeometry() const { return geomB; }
+
 protected:
   //! \brief Adds extraordinary nodes associated with a patch boundary.
   //! \param[in] dim Dimension of the boundary

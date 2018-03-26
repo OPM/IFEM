@@ -88,7 +88,8 @@ bool SplineFields3Dmx::gradFE (const FiniteElement& fe, Matrix& grad) const
 
   // Evaluate the basis functions at the given point
   Go::BasisDerivs spline;
-  const Go::SplineVolume* gvol = svol->getBasis(ASMmxBase::elmBasis);
+  const Go::SplineVolume* gvol =
+             static_cast<const Go::SplineVolume*>(svol->getGeometry());
 #pragma omp critical
   gvol->computeBasis(fe.u,fe.v,fe.w,spline);
 

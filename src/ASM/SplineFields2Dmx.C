@@ -87,7 +87,8 @@ bool SplineFields2Dmx::gradFE (const FiniteElement& fe, Matrix& grad) const
 
   // Evaluate the basis functions at the given point
   Go::BasisDerivsSf spline;
-  const Go::SplineSurface* gsurf = surf->getBasis(ASMmxBase::elmBasis);
+  const Go::SplineSurface* gsurf =
+            static_cast<const Go::SplineSurface*>(surf->getGeometry());
 #pragma omp critical
   gsurf->computeBasis(fe.u,fe.v,spline);
 
