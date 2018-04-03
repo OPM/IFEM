@@ -15,6 +15,7 @@
 #include "gtest/gtest.h"
 #include <cmath>
 
+
 class TestGaussQuadrature : public testing::Test,
                             public testing::WithParamInterface<int>
 {
@@ -27,10 +28,9 @@ TEST_P(TestGaussQuadrature, Integrate)
   const double* wi = GaussQuadrature::getWeight(GetParam());
 
   double res = 0.0;
-  for (int i = 0; i < GetParam(); ++i) {
+  for (int i = 0; i < GetParam(); ++i)
     for (int p = 0; p < GetParam(); ++p)
       res += wi[i]*pow(xi[i], p); // 1+x+x^2+x^3+..
-  }
 
   double exa = 0.0;
   for (int p = 0; p < GetParam(); ++p)
@@ -42,4 +42,4 @@ TEST_P(TestGaussQuadrature, Integrate)
 
 INSTANTIATE_TEST_CASE_P(TestGaussQuadrature,
                         TestGaussQuadrature,
-                        testing::ValuesIn({1, 2, 3, 4, 5, 6, 7, 8, 9, 10}));
+                        testing::Values(1, 2, 3, 4, 5, 6, 7, 8, 9, 10));
