@@ -99,15 +99,15 @@ bool SIMoptions::parseDiscretizationTag (const TiXmlElement* elem)
     std::string discr;
     if (utl::getAttribute(elem,"type",discr,true)) {
       if (discr == "lagrange")
-	discretization = ASM::Lagrange;
+        discretization = ASM::Lagrange;
       else if (discr == "spectral")
-	discretization = ASM::Spectral;
+        discretization = ASM::Spectral;
       else if (discr == "splines")
-	discretization = ASM::Spline;
+        discretization = ASM::Spline;
       else if (discr == "lrsplines")
-	discretization = ASM::LRSpline;
+        discretization = ASM::LRSpline;
       else if (discr == "triangular")
-	discretization = ASM::Triangle;
+        discretization = ASM::Triangle;
     }
   }
 
@@ -120,12 +120,17 @@ bool SIMoptions::parseDiscretizationTag (const TiXmlElement* elem)
           discretization = ASM::LRSpline;
   }
 
-  else if (!strcasecmp(elem->Value(),"nGauss") && elem->FirstChild()) {
-    std::string value(elem->FirstChild()->Value());
-    char* cval = strtok(const_cast<char*>(value.c_str())," ");
-    for (int i = 0; i < 2 && cval; i++, cval = strtok(nullptr," "))
-      for (int j = i; j < 2; j++)
-        nGauss[j] = atoi(cval);
+  else if (!strcasecmp(elem->Value(),"nGauss")) {
+    int defaultG = 0;
+    if (utl::getAttribute(elem,"default",defaultG))
+      nGauss[0] = nGauss[1] = defaultG > 0 ? 10+defaultG : defaultG;
+    else if (elem->FirstChild()) {
+      std::string value(elem->FirstChild()->Value());
+      char* cval = strtok(const_cast<char*>(value.c_str())," ");
+      for (int i = 0; i < 2 && cval; i++, cval = strtok(nullptr," "))
+        for (int j = i; j < 2; j++)
+          nGauss[j] = atoi(cval);
+    }
   }
 
   return true;
@@ -138,9 +143,9 @@ bool SIMoptions::parseOutputTag (const TiXmlElement* elem)
   if (!strcasecmp(elem->Value(),"vtfformat")) {
     if (elem->FirstChild()) {
       if (!strcasecmp(elem->FirstChild()->Value(),"ascii"))
-	format = 0;
+        format = 0;
       else if (!strcasecmp(elem->FirstChild()->Value(),"binary"))
-	format = 1;
+        format = 1;
     }
     if (utl::getAttribute(elem,"nviz",nViz[0]))
       nViz[2] = nViz[1] = nViz[0];
@@ -163,7 +168,7 @@ bool SIMoptions::parseOutputTag (const TiXmlElement* elem)
       hdf5 = elem->FirstChild()->Value();
       size_t pos = hdf5.find_last_of('.');
       if (pos < hdf5.size())
-	hdf5.erase(pos);
+        hdf5.erase(pos);
     }
     else // use the default output file name
       hdf5 = "(default)";
@@ -409,7 +414,8 @@ utl::LogStream& SIMoptions::print (utl::LogStream& os, bool addBlankLine) const
   if (format >= 0) {
     os <<"\nVTF file format: "<< (format ? "BINARY":"ASCII")
        <<"\nNumber of visualization points: "<< nViz[0];
-    for (int j = 1; j < 3 && nViz[j] > 1; j++) os <<" "<< nViz[j];
+    for (int j = 1; j < 3 && nViz[j] > 1; j++)
+      os <<" "<< nViz[j];
   }
 
   if (!hdf5.empty())
