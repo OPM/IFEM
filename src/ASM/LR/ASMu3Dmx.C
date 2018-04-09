@@ -376,7 +376,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
     }
     int iEl = el->getId();
     MxFiniteElement fe(elem_sizes);
-    fe.iel = iEl+1;
+    fe.iel = MLGE[iEl];
 
     std::vector<Matrix> dNxdu(m_basis.size());
     Matrix   Xnod, Jac;
@@ -435,7 +435,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
           {
             // Fetch basis function derivatives at current integration point
             for (size_t b = 1; b <= m_basis.size(); ++b)
-              evaluateBasis(fe, dNxdu[b-1], b);
+              this->evaluateBasis(iEl, fe, dNxdu[b-1], b);
 
             // Compute Jacobian determinant of coordinate mapping
             // and multiply by weight of current integration point
@@ -507,13 +507,11 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
             B.fillColumn(4, BdNdw[b].getColumn(ig)*2.0/dw);
 
             // Fetch basis function derivatives at current integration point
-            fe.iel = els[b]; // evaluateBasis use elem number from fe
             if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
-              evaluateBasis(fe, dNxdu[b], d2Nxdu2[b], b+1);
+              this->evaluateBasis(els[b]-1, fe, dNxdu[b], d2Nxdu2[b], b+1);
             else
-              evaluateBasis(fe, dNxdu[b], bezierExtractmx[b][els[b]-1], B, b+1) ;
+              this->evaluateBasis(fe, dNxdu[b], bezierExtractmx[b][els[b]-1], B, b+1);
           }
-          fe.iel = iEl+1;
 
           // Compute Jacobian inverse of coordinate mapping and derivatives
           fe.detJxW = utl::Jacobian(Jac,fe.grad(geoBasis),Xnod,dNxdu[geoBasis-1]);
@@ -616,7 +614,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
     }
     int iEl = el->getId();
     MxFiniteElement fe(elem_sizes);
-    fe.iel = iEl+1;
+    fe.iel = MLGE[iEl];
 
     // Compute parameter values of the Gauss points over the whole element
     std::array<Vector,3> gpar;
@@ -716,7 +714,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
 
         // Fetch basis function derivatives at current integration point
         for (size_t b = 1; b <= m_basis.size(); ++b)
-          evaluateBasis(fe, dNxdu[b-1], b);
+          this->evaluateBasis(iEl, fe, dNxdu[b-1], b);
 
         // Compute basis function derivatives and the face normal
         fe.detJxW = utl::Jacobian(Jac, normal, fe.grad(geoBasis), Xnod,

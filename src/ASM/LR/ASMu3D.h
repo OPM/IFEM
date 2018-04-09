@@ -277,10 +277,10 @@ public:
   //! \brief Integrates a spatial dirac-delta function over a patch.
   //! \param integrand Object with problem-specific data and methods
   //! \param glbInt The integrated quantity
-  //! \param[in] u Parameters of the non-zero point of the dirac-delta function
+  //! \param[in] param Parameters of the non-zero point of dirac-delta function
   //! \param[in] pval Function value at the specified point
   virtual bool diracPoint(Integrand& integrand, GlobalIntegral& glbInt,
-                          const double* u, const Vec3& pval);
+                          const double* param, const Vec3& pval);
 
   //! \brief Updates the time-dependent in-homogeneous Dirichlet coefficients.
   //! \param[in] func Scalar property fields
@@ -522,21 +522,24 @@ protected:
   double getElementCorners(int iel, std::vector<Vec3>& XC) const;
 
   //! \brief Evaluate all basis functions and first derivatives on one element
-  void evaluateBasis(int iel, double u, double v, double w,
-                     Vector& N, Matrix& dNdu, int basis) const;
+  void evaluateBasis(int iel, int basis, double u, double v, double w,
+                     Vector& N, Matrix& dNdu) const;
 
   //! \brief Evaluate all basis functions and \a derivs number of derivatives on one element
-  void evaluateBasis(FiniteElement &el, int derivs, int basis = 1) const;
+  void evaluateBasis(int iel, FiniteElement& fe,
+                     int derivs = 0, int basis = 1) const;
 
   //! \brief Evaluate all basis functions and first derivatives on one element
-  void evaluateBasis(FiniteElement &el, Matrix &dNdu,
-                     const Matrix &C, const Matrix &B, int basis = 1) const;
+  void evaluateBasis(FiniteElement& fe, Matrix& dNdu,
+                     const Matrix& C, const Matrix& B, int basis = 1) const;
 
   //! \brief Evaluate all basis functions and first derivatives on one element
-  void evaluateBasis(FiniteElement &el, Matrix &dNdu, int basis = 1) const;
+  void evaluateBasis(int iel, FiniteElement& fe, Matrix& dNdu,
+                     int basis = 1) const;
 
   //! \brief Evaluate all basis functions and second order derivatives on one element
-  void evaluateBasis(FiniteElement &el, Matrix &dNdu, Matrix3D& d2Ndu2, int basis = 1) const;
+  void evaluateBasis(int iel, FiniteElement& fe, Matrix& dNdu, Matrix3D& d2Ndu2,
+                     int basis = 1) const;
 
   using ASMunstruct::generateThreadGroups;
   //! \brief Generates element groups for multi-threading of interior integrals.

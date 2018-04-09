@@ -297,15 +297,16 @@ bool ASMu2D::refine (int dir, const RealArray& xi, double scale)
 bool ASMu2D::refine (const RealFunc& refC, double refTol)
 {
   Go::Point X0;
+  int iel = 0;
   std::vector<int> elements;
-  std::vector<LR::Element*>::const_iterator eit = lrspline->elementBegin();
-  for (int iel = 0; eit != lrspline->elementEnd(); iel++, ++eit)
+  for (const LR::Element* elm : lrspline->getAllElements())
   {
-    double u0 = 0.5*((*eit)->umin() + (*eit)->umax());
-    double v0 = 0.5*((*eit)->vmin() + (*eit)->vmax());
+    double u0 = 0.5*(elm->umin() + elm->umax());
+    double v0 = 0.5*(elm->vmin() + elm->vmax());
     lrspline->point(X0,u0,v0);
     if (refC(SplineUtils::toVec3(X0,nsd)) < refTol)
       elements.push_back(iel);
+    ++iel;
   }
 
   Vectors dummySol;
@@ -404,81 +405,83 @@ bool ASMu2D::raiseOrder (int ru, int rv)
 }
 
 
-bool ASMu2D::evaluateBasis (FiniteElement& fe, int derivs) const
+bool ASMu2D::evaluateBasis (int iel, FiniteElement& fe, int derivs) const
 {
-  const LR::Element* el = lrspline->getElement(fe.iel-1);
-  if (!el) return false;
+#ifdef INDEX_CHECK
+  if (iel < 0 || iel >= lrspline->nElements())
+  {
+    std::cerr <<" *** ASMu2D::evaluateBasis: Element index "<< 1+iel
+              <<" out of range [1,"<< lrspline->nElements() <<"]."<< std::endl;
+    return false;
+  }
+#endif
 
+  const LR::Element* el = lrspline->getElement(iel);
   fe.xi  = 2.0*(fe.u - el->umin()) / (el->umax() - el->umin()) - 1.0;
   fe.eta = 2.0*(fe.v - el->vmin()) / (el->vmax() - el->vmin()) - 1.0;
   RealArray Nu = bezier_u.computeBasisValues(fe.xi, derivs);
   RealArray Nv = bezier_v.computeBasisValues(fe.eta,derivs);
-  const Matrix& C = bezierExtract[fe.iel-1];
 
-  if (derivs < 1) {
-    Matrix B;
-    B.outer_product(Nu,Nv);
-    fe.N = C*static_cast<const Vector&>(B);
+  Vector B(lrspline->order(0)*lrspline->order(1)); // Bezier basis functions
+  const Matrix& C = bezierExtract[iel];
 
-#if SP_DEBUG > 2
-    if (fabs(fe.N.sum()-1.0) > 1.0e-10)
-      std::cerr <<"fe.N do not sum to one at integration point #"
-                << fe.iGP << std::endl;
-    else if (fabs(static_cast<const Vector&>(B).sum()-1.0) > 1.0e-10)
-      std::cerr <<"Bezier basis do not sum to one at integration point #"
-                << fe.iGP << std::endl;
-    else
-      return true; // The basis is OK
+  ++derivs;
+  size_t i, j, k;
+  for (j = k = 0; j < Nv.size(); j += derivs)
+    for (i = 0; i < Nu.size(); i += derivs, k++)
+      B[k] = Nu[i]*Nv[j];
 
+  fe.N = C*B;
+
+#ifdef SP_DEBUG
+  if (fabs(fe.N.sum()-1.0) > 1.0e-10) {
+    std::cerr <<"fe.N do not sum to one at integration point #"
+              << fe.iGP << std::endl;
     return false;
-#endif
   }
-  else {
-    int p = lrspline->order(0)*lrspline->order(1);
-
-    Vector B(p);
-    Vector Bu(p); // Bezier basis functions differentiated wrt u
-    Vector Bv(p); // Bezier basis functions differentiated wrt v
-
-    size_t i, j, k = 0;
-    for (j = 0; j < Nv.size(); j+=(derivs+1))
-      for (i = 0; i < Nu.size(); i+=(derivs+1), k++) {
-        B[k]  = Nu[i  ]*Nv[j  ];
-        Bu[k] = Nu[i+1]*Nv[j  ];
-        Bv[k] = Nu[i  ]*Nv[j+1];
-      }
-
-    fe.N = C*B;
-
-    Matrix dNdu(el->nBasisFunctions(),2);
-    dNdu.fillColumn(1,C*Bu);
-    dNdu.fillColumn(2,C*Bv);
-    Matrix Xnod, Jac;
-    this->getElementCoordinates(Xnod,fe.iel);
-    fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
-
-#if SP_DEBUG > 2
-    if (fabs(fe.N.sum()-1.0) > 1.0e-10)
-      std::cerr <<"fe.N do not sum to one at integration point #"
-                << fe.iGP << std::endl;
-    else if (fabs(B.sum()-1.0) > 1.0e-10)
-      std::cerr <<"Bezier basis do not sum to one at integration point #"
-                << fe.iGP << std::endl;
-    else if (fabs(dNdu.getColumn(1).sum()) > 1.0e-10)
-      std::cerr <<"dNdu not sums to zero at integration point #"
-                << fe.iGP << std::endl;
-    else if (fabs(dNdu.getColumn(1).sum()) > 1.0e-10)
-      std::cerr <<"dNdv not sums to zero at integration point #"
-                << fe.iGP << std::endl;
-    else if (fabs(Bu.sum()) > 1.0e-10 || fabs(Bv.sum()) > 1.0e-10)
-      std::cerr <<"Bezier derivatives do not sum to zero at integration point #"
-                << fe.iGP << std::endl;
-    else
-      return true; // The basis is OK
-
+  else if (fabs(B.sum()-1.0) > 1.0e-10) {
+    std::cerr <<"Bezier basis do not sum to one at integration point #"
+              << fe.iGP << std::endl;
     return false;
-#endif
   }
+#endif
+
+  if (derivs <= 1)
+    return true;
+
+  Vector Bu(B.size()), Bv(B.size()); // Bezier basis function derivatives
+  for (j = k = 0; j < Nv.size(); j += derivs)
+    for (i = 0; i < Nu.size(); i += derivs, k++) {
+      Bu[k] = Nu[i+1]*Nv[j  ];
+      Bv[k] = Nu[i  ]*Nv[j+1];
+    }
+
+  Matrix dNdu(fe.N.size(),2);
+  dNdu.fillColumn(1,C*Bu);
+  dNdu.fillColumn(2,C*Bv);
+
+#ifdef SP_DEBUG
+  if (fabs(dNdu.getColumn(1).sum()) > 1.0e-10) {
+    std::cerr <<"dNdu do not sum to zero at integration point #"
+              << fe.iGP << std::endl;
+    return false;
+  }
+  else if (fabs(dNdu.getColumn(2).sum()) > 1.0e-10) {
+    std::cerr <<"dNdv do not sums to zero at integration point #"
+              << fe.iGP << std::endl;
+    return false;
+  }
+  else if (fabs(Bu.sum()) > 1.0e-10 || fabs(Bv.sum()) > 1.0e-10) {
+    std::cerr <<"Bezier derivatives do not sum to zero at integration point #"
+              << fe.iGP << std::endl;
+    return false;
+  }
+#endif
+
+  Matrix Xnod, Jac;
+  this->getElementCoordinates(Xnod,1+iel);
+  fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+
   return true;
 }
 
@@ -522,25 +525,22 @@ bool ASMu2D::generateFEMTopology ()
   myBezierExtract.resize(nel);
   lrspline->generateIDs();
 
+  size_t iel = 0;
   RealArray extrMat;
-  std::vector<LR::Element*>::const_iterator eit = lrspline->elementBegin();
-  for (size_t iel = 0; iel < nel; iel++, ++eit)
+  for (const LR::Element* elm : lrspline->getAllElements())
   {
     myMLGE[iel] = ++gEl; // global element number over all patches
-    myMNPC[iel].resize((*eit)->nBasisFunctions());
+    myMNPC[iel].resize(elm->nBasisFunctions());
 
     int lnod = 0;
-    for (LR::Basisfunction *b : (*eit)->support())
+    for (LR::Basisfunction* b : elm->support())
       myMNPC[iel][lnod++] = b->getId();
 
-    {
-      PROFILE("Bezier extraction");
-
-      // Get bezier extraction matrix
-      lrspline->getBezierExtraction(iel,extrMat);
-      myBezierExtract[iel].resize((*eit)->nBasisFunctions(),p1*p2);
-      myBezierExtract[iel].fill(extrMat.data(),extrMat.size());
-    }
+    // Get bezier extraction matrix
+    PROFILE1("Bezier extraction");
+    lrspline->getBezierExtraction(iel,extrMat);
+    myBezierExtract[iel].resize(elm->nBasisFunctions(),p1*p2);
+    myBezierExtract[iel++].fill(extrMat.data(),extrMat.size());
   }
 
   for (size_t inod = 0; inod < nnod; inod++)
@@ -702,7 +702,7 @@ void ASMu2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
   de.lr   = lr;
   int bcode = abs(code);
 
-  for (auto b : edgeFunctions)
+  for (LR::Basisfunction* b : edgeFunctions)
   {
     de.MLGN.push_back(b->getId());
     // skip corners for open boundaries
@@ -738,7 +738,7 @@ void ASMu2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
     {
       de.MLGE[i] = el->getId();
     }
-    for (auto b : el->support())
+    for (LR::Basisfunction* b : el->support())
     {
       de.MNPC[i].push_back(-1);
       for (size_t j = 0; j < de.MLGN.size(); j++)
@@ -1590,19 +1590,20 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
 
 
 bool ASMu2D::diracPoint (Integrand& integrand, GlobalIntegral& glInt,
-                         const double* u, const Vec3& pval)
+                         const double* param, const Vec3& pval)
 {
   if (!lrspline) return false;
 
+  int iel = lrspline->getElementContaining(param[0],param[1]);
+
   FiniteElement fe;
-  fe.iel = 1 + lrspline->getElementContaining(u[0],u[1]);
-  fe.u   = u[0];
-  fe.v   = u[1];
-  if (!this->evaluateBasis(fe)) return false;
+  fe.iel = MLGE[iel];
+  fe.u   = param[0];
+  fe.v   = param[1];
+  if (!this->evaluateBasis(iel,fe))
+    return false;
 
-  LocalIntegral* A = integrand.getLocalIntegral(MNPC[fe.iel-1].size(),
-                                                fe.iel,true);
-
+  LocalIntegral* A = integrand.getLocalIntegral(MNPC[iel].size(),fe.iel,true);
   bool ok = integrand.evalPoint(*A,fe,pval) && glInt.assemble(A,fe.iel);
 
   A->destruct();
@@ -1617,17 +1618,16 @@ int ASMu2D::evalPoint (const double* xi, double* param, Vec3& X) const
 
   param[0] = (1.0-xi[0])*lrspline->startparam(0) + xi[0]*lrspline->endparam(0);
   param[1] = (1.0-xi[1])*lrspline->startparam(1) + xi[1]*lrspline->endparam(1);
+  int iel  = lrspline->getElementContaining(param[0],param[1]);
 
   FiniteElement fe;
-  fe.iel = 1 + lrspline->getElementContaining(param[0],param[1]);
-  fe.u   = param[0];
-  fe.v   = param[1];
-
-  Matrix Xnod;
-  if (!this->getElementCoordinates(Xnod,fe.iel))
+  fe.u = param[0];
+  fe.v = param[1];
+  if (!this->evaluateBasis(iel,fe))
     return -1;
 
-  if (!this->evaluateBasis(fe))
+  Matrix Xnod;
+  if (!this->getElementCoordinates(Xnod,1+iel))
     return -1;
 
   X = Xnod * fe.N;
@@ -1766,11 +1766,9 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
   {
     // Fetch element containing evaluation point.
     // Sadly, points are not always ordered in the same way as the elements.
-    int iel = lrspline->getElementContaining(gpar[0][i],gpar[1][i]);
-    fe.iel = iel + 1;
-    fe.u   = gpar[0][i];
-    fe.v   = gpar[1][i];
-    utl::gather(MNPC[iel],nComp,locSol,eSol);
+    fe.u = gpar[0][i];
+    fe.v = gpar[1][i];
+    int iel = lrspline->getElementContaining(fe.u,fe.v);
 
     // Set up control point (nodal) coordinates for current element
     if (deriv > 0 && !this->getElementCoordinates(Xnod,iel+1))
@@ -1778,23 +1776,24 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
 
     // Evaluate basis function values/derivatives at current parametric point
     // and multiply with control point values to get the point-wise solution
+    utl::gather(MNPC[iel],nComp,locSol,eSol);
     switch (deriv)
     {
     case 0: // Evaluate the solution
-      if (!this->evaluateBasis(fe,deriv))
+      if (!this->evaluateBasis(iel,fe,deriv))
         return false;
       sField.fillColumn(1+i, eSol * fe.N);
       break;
 
     case 1: // Evaluate first derivatives of the solution
-      if (!this->evaluateBasis(fe,deriv))
+      if (!this->evaluateBasis(iel,fe,deriv))
         return false;
       ptDer.multiply(eSol,fe.dNdX);
       sField.fillColumn(1+i,ptDer);
       break;
 
     case 2: // Evaluate second derivatives of the solution
-      lrspline->computeBasis(gpar[0][i],gpar[1][i],spline2,iel);
+      lrspline->computeBasis(fe.u,fe.v,spline2,iel);
       SplineUtils::extractBasis(spline2,ptSol,dNdu,d2Ndu2);
       utl::Jacobian(Jac,dNdX,Xnod,dNdu);
       utl::Hessian(Hess,d2NdX2,Jac,Xnod,d2Ndu2,dNdu);
@@ -1903,19 +1902,21 @@ bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   {
     // Fetch element containing evaluation point
     // sadly, points are not always ordered in the same way as the elements
-    int iel = lrspline->getElementContaining(gpar[0][i],gpar[1][i]);
+    fe.u = gpar[0][i];
+    fe.v = gpar[1][i];
+    int iel = lrspline->getElementContaining(fe.u,fe.v);
 
     // Evaluate the basis functions at current parametric point
     if (use2ndDer)
     {
       Go::BasisDerivsSf2 spline;
-      lrspline->computeBasis(gpar[0][i],gpar[1][i],spline,iel);
+      lrspline->computeBasis(fe.u,fe.v,spline,iel);
       SplineUtils::extractBasis(spline,fe.N,dNdu,d2Ndu2);
     }
     else
     {
       Go::BasisDerivsSf spline;
-      lrspline->computeBasis(gpar[0][i],gpar[1][i],spline,iel);
+      lrspline->computeBasis(fe.u,fe.v,spline,iel);
       SplineUtils::extractBasis(spline,fe.N,dNdu);
     }
 
@@ -1976,8 +1977,7 @@ void ASMu2D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
 
 #if SP_DEBUG > 1
   std::cout <<"Boundary nodes in patch "<< idx+1 <<" edge "<< lIndex <<":";
-  for (size_t i = 0; i < nodes.size(); i++)
-    std::cout <<" "<< nodes[i];
+  for (int n : nodes) std::cout <<" "<< n;
   std::cout << std::endl;
 #endif
 }
@@ -2073,16 +2073,16 @@ bool ASMu2D::transferGaussPtVars (const LR::LRSpline* old_basis,
   const double* xi = GaussQuadrature::getCoord(nGauss);
   LagrangeInterpolator interp(Vector(xi,nGauss));
 
-  for (int iEl = 0; iEl < newBasis->nElements(); iEl++)
+  int iEl = 0;
+  for (const LR::Element* newEl : newBasis->getAllElements())
   {
-    const LR::Element* newEl = newBasis->getElement(iEl);
     double u_center = 0.5*(newEl->umin() + newEl->umax());
     double v_center = 0.5*(newEl->vmin() + newEl->vmax());
     int iOld = oldBasis->getElementContaining(u_center,v_center);
     if (iOld < 0)
     {
-      std::cerr <<" *** ASMu2D: Failed to locate element "<< iEl
-                <<" of the old mesh in the new mesh."<< std::endl;
+      std::cerr <<" *** ASMu2D: Failed to locate element "<< newEl->getId()
+                <<" of the new mesh in the old mesh."<< std::endl;
       return false;
     }
     const LR::Element* oldEl = oldBasis->getElement(iOld);
@@ -2107,6 +2107,8 @@ bool ASMu2D::transferGaussPtVars (const LR::LRSpline* old_basis,
     Matrix newdata;
     newdata.multiply(I[0]*data,I[1],false,true);
     std::copy(newdata.ptr(), newdata.ptr()+nGp, newVars.begin()+iEl*nGp);
+
+    ++iEl;
   }
 
   return true;
@@ -2128,16 +2130,15 @@ bool ASMu2D::transferGaussPtVarsN (const LR::LRSpline* old_basis,
   std::vector<Param> oGP(nGP);
 
   const double* xi = GaussQuadrature::getCoord(nGauss);
-  for (int iEl = 0; iEl < newBasis->nElements(); iEl++)
+  for (const LR::Element* newEl : newBasis->getAllElements())
   {
-    const LR::Element* newEl = newBasis->getElement(iEl);
     double u_center = 0.5*(newEl->umin() + newEl->umax());
     double v_center = 0.5*(newEl->vmin() + newEl->vmax());
     int iOld = oldBasis->getElementContaining(u_center,v_center);
     if (iOld < 0)
     {
-      std::cerr <<" *** ASMu2D: Failed to locate element "<< iEl
-                <<" of the old mesh in the new mesh."<< std::endl;
+      std::cerr <<" *** ASMu2D: Failed to locate element "<< newEl->getId()
+                <<" of the new mesh in the old mesh."<< std::endl;
       return false;
     }
     const LR::Element* oldEl = oldBasis->getElement(iOld);
@@ -2199,8 +2200,7 @@ bool ASMu2D::transferCntrlPtVars (const LR::LRSpline* old_basis,
       for (int i = 0; i < nGauss; i++)
       {
         oldBasis->point(ptVar,U[i],V[j]);
-        for (size_t k = 0; k < ptVar.size(); k++)
-          newVars.push_back(ptVar[k]);
+        newVars.insert(newVars.end(),ptVar.begin(),ptVar.end());
       }
   }
 
@@ -2310,7 +2310,7 @@ ASMu2D::InterfaceChecker::InterfaceChecker(const ASMu2D& pch) : myPatch(pch)
     }
   }
 
-  for (auto& it : intersections) {
+  for (std::pair<const int,Intersection>& it : intersections) {
     RealArray& points = it.second.pts;
     std::sort(points.begin(),points.end());
     auto end = std::unique(points.begin(),points.end());

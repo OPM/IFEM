@@ -235,25 +235,22 @@ bool ASMu3D::generateFEMTopology ()
   myBezierExtract.resize(nel);
   lrspline->generateIDs();
 
+  size_t iel = 0;
   RealArray extrMat;
-  std::vector<LR::Element*>::const_iterator eit = lrspline->elementBegin();
-  for (size_t iel = 0; iel < nel; iel++, ++eit)
+  for (const LR::Element* elm : lrspline->getAllElements())
   {
     myMLGE[iel] = ++gEl; // global element number over all patches
-    myMNPC[iel].resize((*eit)->nBasisFunctions());
+    myMNPC[iel].resize(elm->nBasisFunctions());
 
     int lnod = 0;
-    for (LR::Basisfunction *b : (*eit)->support())
+    for (LR::Basisfunction* b : elm->support())
       myMNPC[iel][lnod++] = b->getId();
 
-    {
-      PROFILE("Bezier extraction");
-
-      // Get bezier extraction matrix
-      lrspline->getBezierExtraction(iel,extrMat);
-      myBezierExtract[iel].resize((*eit)->nBasisFunctions(),p1*p2*p3);
-      myBezierExtract[iel].fill(extrMat.data(),extrMat.size());
-    }
+    // Get bezier extraction matrix
+    PROFILE("Bezier extraction");
+    lrspline->getBezierExtraction(iel,extrMat);
+    myBezierExtract[iel].resize(elm->nBasisFunctions(),p1*p2*p3);
+    myBezierExtract[iel++].fill(extrMat.data(),extrMat.size());
   }
 
   for (size_t inod = 0; inod < nnod; inod++)
@@ -402,11 +399,11 @@ void ASMu3D::constrainFace (int dir, bool open, int dof, int code, char basis)
   }};
 
   int* c = de.corners;
-  for (const auto& it : corners.find(face)->second)
-    *c++ = this->getCorner(it[0], it[1], it[2], basis);
+  for (const std::array<int,3>& vx : corners.find(face)->second)
+    *c++ = this->getCorner(vx[0], vx[1], vx[2], basis);
 
   int bcode = abs(code);
-  for (auto b : faceFunctions)
+  for (LR::Basisfunction* b : faceFunctions)
   {
     de.MLGN.push_back(b->getId());
     int* cid = std::find(de.corners, de.corners+4, b->getId()+ofs);
@@ -444,7 +441,7 @@ void ASMu3D::constrainFace (int dir, bool open, int dof, int code, char basis)
     {
       de.MLGE[i] = el->getId();
     }
-    for (auto b : el->support())
+    for (LR::Basisfunction* b : el->support())
     {
       de.MNPC[i].push_back(-1);
       for (size_t j = 0; j < de.MLGN.size(); j++)
@@ -724,8 +721,8 @@ double ASMu3D::getElementCorners (int iEl, Vec3Vec& XC) const
 }
 
 
-void ASMu3D::evaluateBasis (int iel, double u, double v, double w,
-                            Vector& N, Matrix& dNdu, int basis) const
+void ASMu3D::evaluateBasis (int iel, int basis, double u, double v, double w,
+                            Vector& N, Matrix& dNdu) const
 {
   PROFILE2("Spline evaluation");
 
@@ -743,32 +740,35 @@ void ASMu3D::evaluateBasis (int iel, double u, double v, double w,
   }
 }
 
-void ASMu3D::evaluateBasis (FiniteElement& el, Matrix& dNdu, int basis) const
+void ASMu3D::evaluateBasis (int iel, FiniteElement& fe, Matrix& dNdu,
+                            int basis) const
 {
-  this->evaluateBasis(el.iel-1, el.u, el.v, el.w, el.basis(basis), dNdu, basis);
+  this->evaluateBasis(iel, basis, fe.u, fe.v, fe.w, fe.basis(basis), dNdu);
 }
 
-void ASMu3D::evaluateBasis (FiniteElement& el, Matrix& dNdu,
+void ASMu3D::evaluateBasis (FiniteElement& fe, Matrix& dNdu,
                             const Matrix& C, const Matrix& B, int basis) const
 {
   PROFILE2("BeSpline evaluation");
 
   Matrix N = C*B;
   dNdu.resize(N.rows(),3);
-  el.basis(basis) = N.getColumn(1);
+  fe.basis(basis) = N.getColumn(1);
   dNdu.fillColumn(1,N.getColumn(2));
   dNdu.fillColumn(2,N.getColumn(3));
   dNdu.fillColumn(3,N.getColumn(4));
 }
 
-void ASMu3D::evaluateBasis (FiniteElement& el, Matrix& dNdu, Matrix3D& d2Ndu2, int basis) const
+void ASMu3D::evaluateBasis (int iel, FiniteElement& fe,
+                            Matrix& dNdu, Matrix3D& d2Ndu2,
+                            int basis) const
 {
   PROFILE2("Spline evaluation");
 
   std::vector<RealArray> result;
-  this->getBasis(basis)->computeBasis(el.u, el.v, el.w, result, 2, el.iel-1);
+  this->getBasis(basis)->computeBasis(fe.u, fe.v, fe.w, result, 2, iel);
   size_t n = 0, nBasis = result.size();
-  Vector& N = el.basis(basis);
+  Vector& N = fe.basis(basis);
 
   N.resize(nBasis);
   dNdu.resize(nBasis,3);
@@ -787,16 +787,17 @@ void ASMu3D::evaluateBasis (FiniteElement& el, Matrix& dNdu, Matrix3D& d2Ndu2, i
   }
 }
 
-void ASMu3D::evaluateBasis (FiniteElement& el, int derivs, int basis) const
+void ASMu3D::evaluateBasis (int iel, FiniteElement& fe, int derivs,
+                            int basis) const
 {
   PROFILE2("Spline evaluation");
 
   std::vector<RealArray> result;
-  this->getBasis(basis)->computeBasis(el.u, el.v, el.w, result, derivs, el.iel-1);
+  this->getBasis(basis)->computeBasis(fe.u, fe.v, fe.w, result, derivs, iel);
   size_t n = 0, nBasis = result.size();
-  Vector& N = el.basis(basis);
-  Matrix& dNdu = el.grad(basis);
-  Matrix3D& d2Ndu2 = el.hess(basis);
+  Vector& N = fe.basis(basis);
+  Matrix& dNdu = fe.grad(basis);
+  Matrix3D& d2Ndu2 = fe.hess(basis);
 
   N.resize(nBasis);
   if (derivs > 0)
@@ -1058,12 +1059,8 @@ bool ASMu3D::integrate (Integrand& integrand,
 
             // Fetch basis function derivatives at current integration point
             if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
-            {
-              fe.iel = iel;
 #pragma omp critical
-              this->evaluateBasis(fe, dNdu, d2Ndu2);
-              fe.iel = MLGE[iel-1];
-            }
+              this->evaluateBasis(iel, fe, dNdu, d2Ndu2);
             else
             {
               // Extract bezier basis functions
@@ -1302,9 +1299,7 @@ bool ASMu3D::integrate (Integrand& integrand, int lIndex,
         }
 
         // Fetch basis function derivatives at current integration point
-        fe.iel = iEl+1;
-        evaluateBasis(fe, dNdu);
-        fe.iel = MLGE[iEl];
+        this->evaluateBasis(iEl, fe, dNdu);
 
         // Compute basis function derivatives and the face normal
         fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,Xnod,dNdu,t1,t2);
@@ -1497,9 +1492,7 @@ bool ASMu3D::integrateEdge (Integrand& integrand, int lEdge,
     if (gpar[2].size() > 1) fe.w = gpar[2](i+1,i3-p3+1);
 
     // Fetch basis function derivatives at current integration point
-    fe.iel = iel;
-    evaluateBasis(fe, dNdu);
-    fe.iel = MLGE[iel-1];
+    this->evaluateBasis(iel, fe, dNdu);
 
     // Compute basis function derivatives and the edge tang
     fe.detJxW = utl::Jacobian(Jac,tang,fe.dNdX,Xnod,dNdu,1+(lEdge-1)/4);
@@ -1511,7 +1504,7 @@ bool ASMu3D::integrateEdge (Integrand& integrand, int lEdge,
 
     // Evaluate the integrand and accumulate element contributions
     fe.detJxW *= 0.5*dS*wg[i];
-          ok = integrand.evalBou(*A,fe,time,X,tang);
+    ok = integrand.evalBou(*A,fe,time,X,tang);
   }
 
   // Assembly of global system integral
@@ -1530,20 +1523,20 @@ bool ASMu3D::integrateEdge (Integrand& integrand, int lEdge,
 
 
 bool ASMu3D::diracPoint (Integrand& integrand, GlobalIntegral& glInt,
-                         const double* u, const Vec3& pval)
+                         const double* param, const Vec3& pval)
 {
   if (!lrspline) return false;
 
+  int iel = lrspline->getElementContaining(param[0],param[1],param[2]);
+
   FiniteElement fe;
-  fe.iel = 1 + lrspline->getElementContaining(u[0],u[1],u[2]);
-  fe.u   = u[0];
-  fe.v   = u[1];
-  fe.w   = u[2];
-  this->evaluateBasis(fe,0,1);
+  fe.iel = MLGE[iel];
+  fe.u   = param[0];
+  fe.v   = param[1];
+  fe.w   = param[2];
+  this->evaluateBasis(iel,fe);
 
-  LocalIntegral* A = integrand.getLocalIntegral(MNPC[fe.iel-1].size(),
-                                                fe.iel,true);
-
+  LocalIntegral* A = integrand.getLocalIntegral(MNPC[iel].size(),fe.iel,true);
   bool ok = integrand.evalPoint(*A,fe,pval) && glInt.assemble(A,fe.iel);
 
   A->destruct();
@@ -1866,7 +1859,6 @@ bool ASMu3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     fe.u   = gpar[0][i];
     fe.v   = gpar[1][i];
     fe.w   = gpar[2][i];
-    fe.iel = iel+1;
 
     double u[2*p1];
     double v[2*p2];
@@ -1888,9 +1880,9 @@ bool ASMu3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     }
 
     if (use2ndDer)
-      evaluateBasis(fe, dNdu, d2Ndu2);
+      this->evaluateBasis(iel, fe, dNdu, d2Ndu2);
     else
-      evaluateBasis(fe, dNdu, bezierExtract[iel], B);
+      this->evaluateBasis(fe, dNdu, bezierExtract[iel], B);
 
     // Set up control point (nodal) coordinates for current element
     if (!this->getElementCoordinates(Xnod,iel+1)) return false;
@@ -1963,8 +1955,7 @@ void ASMu3D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
 
 #if SP_DEBUG > 1
   std::cout <<"Boundary nodes in patch "<< idx+1 <<" edge "<< lIndex <<":";
-  for (size_t i = 0; i < nodes.size(); i++)
-    std::cout <<" "<< nodes[i];
+  for (int n : nodes) std::cout <<" "<< n;
   std::cout << std::endl;
 #endif
 
@@ -2127,17 +2118,17 @@ bool ASMu3D::transferGaussPtVars (const LR::LRSpline* old_basis,
   const double* xi = GaussQuadrature::getCoord(nGauss);
   LagrangeInterpolator interp(Vector(xi,nGauss));
 
-  for (int iEl = 0; iEl < newBasis->nElements(); iEl++)
+  int iEl = 0;
+  for (const LR::Element* newEl : newBasis->getAllElements())
   {
-    const LR::Element* newEl = newBasis->getElement(iEl);
     double u_center = 0.5*(newEl->umin() + newEl->umax());
     double v_center = 0.5*(newEl->vmin() + newEl->vmax());
     double w_center = 0.5*(newEl->wmin() + newEl->wmax());
     int iOld = oldBasis->getElementContaining(u_center,v_center,w_center);
     if (iOld < 0)
     {
-      std::cerr <<" *** ASMu3D: Failed to locate element "<< iEl
-                <<" of the old mesh in the new mesh."<< std::endl;
+      std::cerr <<" *** ASMu3D: Failed to locate element "<< newEl->getId()
+                <<" of the new mesh in the old mesh."<< std::endl;
       return false;
     }
     const LR::Element* oldEl = oldBasis->getElement(iOld);
@@ -2175,6 +2166,8 @@ bool ASMu3D::transferGaussPtVars (const LR::LRSpline* old_basis,
       for (int j = 0; j < nGauss; ++j)
         for (int k = 0; k < nGauss; ++k)
           newVars[iEl*nGp+i+(j + k*nGauss)*nGauss] = I1(k+1, 1+i + j*nGauss);
+
+    ++iEl;
   }
 
   return true;
@@ -2196,17 +2189,16 @@ bool ASMu3D::transferGaussPtVarsN (const LR::LRSpline* old_basis,
   std::vector<Param> oGP(nGP);
 
   const double* xi = GaussQuadrature::getCoord(nGauss);
-  for (int iEl = 0; iEl < newBasis->nElements(); iEl++)
+  for (const LR::Element* newEl : newBasis->getAllElements())
   {
-    const LR::Element* newEl = newBasis->getElement(iEl);
     double u_center = 0.5*(newEl->umin() + newEl->umax());
     double v_center = 0.5*(newEl->vmin() + newEl->vmax());
     double w_center = 0.5*(newEl->wmin() + newEl->wmax());
     int iOld = oldBasis->getElementContaining(u_center,v_center,w_center);
     if (iOld < 0)
     {
-      std::cerr <<" *** ASMu3D: Failed to locate element "<< iEl
-                <<" of the old mesh in the new mesh."<< std::endl;
+      std::cerr <<" *** ASMu3D: Failed to locate element "<< newEl->getId()
+                <<" of the new mesh in the old mesh."<< std::endl;
       return false;
     }
     const LR::Element* oldEl = oldBasis->getElement(iOld);
@@ -2296,16 +2288,17 @@ bool ASMu3D::transferCntrlPtVars (const LR::LRSpline* old_basis,
 bool ASMu3D::refine (const RealFunc& refC, double refTol)
 {
   Go::Point X0;
+  int iel = 0;
   std::vector<int> elements;
-  std::vector<LR::Element*>::const_iterator eit = lrspline->elementBegin();
-  for (int iel = 0; eit != lrspline->elementEnd(); iel++, ++eit)
+  for (const LR::Element* elm : lrspline->getAllElements())
   {
-    double u0 = 0.5*((*eit)->umin() + (*eit)->umax());
-    double v0 = 0.5*((*eit)->vmin() + (*eit)->vmax());
-    double w0 = 0.5*((*eit)->wmin() + (*eit)->wmax());
+    double u0 = 0.5*(elm->umin() + elm->umax());
+    double v0 = 0.5*(elm->vmin() + elm->vmax());
+    double w0 = 0.5*(elm->wmin() + elm->wmax());
     lrspline->point(X0,u0,v0,w0);
     if (refC(SplineUtils::toVec3(X0,nsd)) < refTol)
       elements.push_back(iel);
+    ++iel;
   }
 
   Vectors dummySol;
