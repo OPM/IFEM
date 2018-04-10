@@ -595,8 +595,8 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
         if (mySol->getScalarSol())
         {
           const RealFunc* psSol;
-          size_t r = pSol.dim() + 1;
-          for (size_t k = 0; (psSol = mySol->getScalarSol(k)) && r <= field.rows(); k++, r++)
+          size_t k = 0, r = pSol.dim();
+          while ((psSol = mySol->getScalarSol(k++)) && r++ < field.rows())
           {
             cit = grid->begin_XYZ();
             const RealFunc& sSol = *psSol;
@@ -855,9 +855,9 @@ bool SIMoutput::writeGlvP (const Vector& ssol, int iStep, int& nBlock,
   Vector lovec;
   std::vector<IntVec> sID(myProblem->getNoFields(2));
 
-  size_t i, j;
+  Vector::const_iterator ssolIt = ssol.begin();
+  size_t i, j, nComp = myProblem->getNoFields(2);
   int geomID = myGeomID;
-  size_t projOfs = 0;
   for (i = 0; i < myModel.size(); i++)
   {
     if (myModel[i]->empty()) continue; // skip empty patches
@@ -865,16 +865,18 @@ bool SIMoutput::writeGlvP (const Vector& ssol, int iStep, int& nBlock,
     if (msgLevel > 1)
       IFEM::cout <<"Writing projected solution for patch "<< i+1 << std::endl;
 
-    if (this->fieldProjections()) {
-      size_t ndof = myModel[i]->getNoProjectionNodes() * myProblem->getNoFields(2);
-      lovec.resize(ndof);
-      std::copy(ssol.begin()+projOfs, ssol.begin()+projOfs+ndof, lovec.begin());
-      projOfs += ndof;
-    } else
+    if (this->fieldProjections())
+    {
+      size_t nval = nComp*myModel[i]->getNoProjectionNodes();
+      lovec.resize(nval);
+      std::copy(ssolIt,ssolIt+nval,lovec.begin());
+      ssolIt += nval;
+    }
+    else
       this->extractPatchSolution(ssol,lovec,i,sID.size(),1);
 
     // Evaluate the solution variables at the visualization points
-    if (!myModel[i]->evalProjSolution(field,lovec,opt.nViz,myProblem->getNoFields(2)))
+    if (!myModel[i]->evalProjSolution(field,lovec,opt.nViz,nComp))
       return false;
 
     // Write out to VTF-file as scalar fields
@@ -1432,10 +1434,13 @@ bool SIMoutput::dumpResults (const Vector& psol, double time,
 
       if (opt.discretization >= ASM::Spline)
       {
-        if (formatted && sol2.rows() > 0)
-          os <<"\n\t\tsol2 =";
+        int isol = 1;
         for (k = 1; k <= sol2.rows(); k++)
+        {
+          if (formatted && k%myProblem->getNo2ndSolPerLine() == 1)
+            os <<"\n\t\tsol"<< ++isol <<" =";
           os << std::setw(flWidth) << utl::trunc(sol2(k,j+1));
+        }
 
         if (ssolScl || ssolVec || ssolStr)
           os <<"\n\t\texact2";

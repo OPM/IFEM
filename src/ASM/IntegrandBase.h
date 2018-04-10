@@ -191,6 +191,9 @@ public:
   //! \brief Returns an evaluated principal direction vector field for plotting.
   virtual bool getPrincipalDir(Matrix&, size_t, size_t) const { return false; }
 
+  //! \brief Returns max number of 2ndary solution components to print per line.
+  virtual size_t getNo2ndSolPerLine() const { return 999; }
+
 
   // Various service methods
   // =======================
