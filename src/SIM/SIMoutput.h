@@ -277,6 +277,8 @@ public:
   void setPointResultFile(const std::string& filename, bool dumpCoord = false);
   //! \brief Checks whether point result files have been defined or not.
   bool hasPointResultFile() const;
+  //! \brief Checks whether result points have been defined or not.
+  bool hasResultPoints() const { return !myPoints.empty(); }
 
   //! \brief Prints integrated solution norms to the log stream.
   //! \param[in] norms The norm values
