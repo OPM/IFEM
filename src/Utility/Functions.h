@@ -53,6 +53,9 @@ public:
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return scale == Real(0); }
 
+  //! \brief Returns the first-derivative of the function.
+  virtual Real deriv(Real x) const { return scale; }
+
 protected:
   //! \brief Evaluates the function at \a x.
   virtual Real evaluate(const Real& x) const { return scale*x; }
@@ -74,6 +77,9 @@ public:
 
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return fval == Real(0); }
+
+  //! \brief Returns the first-derivative of the function.
+  virtual Real deriv(Real x) const;
 
 protected:
   //! \brief Evaluates the function at \a x.
@@ -142,6 +148,9 @@ public:
 
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return scale == Real(0); }
+
+  //! \brief Returns the first-derivative of the function.
+  virtual Real deriv(Real x) const;
 
 protected:
   //! \brief Evaluates the function at \a x.
@@ -540,8 +549,10 @@ namespace utl
   //! \brief Creates a time function by parsing a character string.
   //! \param[in] func Character string to parse function definition from
   //! \param[in] type Function definition type flag
+  //! \param[in] eps Domain increment for calculation of numerical derivative
   ScalarFunc* parseTimeFunc(const char* func,
-                            const std::string& type = "expression");
+                            const std::string& type = "expression",
+                            Real eps = Real(1.0e-8));
 
   //! \brief Creates a scalar-valued function by parsing a character string.
   //! \param[in] func Character string to parse function definition from

@@ -117,8 +117,23 @@ namespace utl
 }
 
 
-//! \brief Scalar-valued unary function of a scalar value.
-typedef utl::Function<Real,Real> ScalarFunc;
+/*!
+  \brief Scalar-valued unary function of a scalar value.
+*/
+
+class ScalarFunc : public utl::Function<Real,Real>
+{
+protected:
+  //! \brief The constructor is protected to allow sub-class instances only.
+  ScalarFunc() {}
+
+public:
+  //! \brief Empty destructor.
+  virtual ~ScalarFunc() {}
+
+  //! \brief Returns the first-derivative of the function.
+  virtual Real deriv(Real x) const { return Real(0); }
+};
 
 
 /*!

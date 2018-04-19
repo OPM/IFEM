@@ -34,6 +34,12 @@ Real RampFunc::evaluate (const Real& x) const
 }
 
 
+Real RampFunc::deriv (Real x) const
+{
+  return x < xmax ? fval/xmax : Real(0);
+}
+
+
 Real DiracFunc::evaluate (const Real& x) const
 {
   return fabs(x-xmax) < 1.0e-4 ? amp : Real(0);
@@ -49,6 +55,12 @@ Real StepFunc::evaluate (const Real& x) const
 Real SineFunc::evaluate (const Real& x) const
 {
   return scale*sin(freq*x+phase);
+}
+
+
+Real SineFunc::deriv (Real x) const
+{
+  return freq*scale*cos(freq*x+phase);
 }
 
 
@@ -467,13 +479,20 @@ const ScalarFunc* utl::parseTimeFunction (const char* type, char* cline, Real C)
 {
   if (strncasecmp(type,"expr",4) == 0 && cline != nullptr)
   {
+    cline = strtok(cline,":");
     IFEM::cout << cline;
     EvalFunc::numError = 0;
-    ScalarFunc* sf = new EvalFunc(cline,"t");
+    ScalarFunc* sf = new EvalFunc(cline,"t",C);
     if (EvalFunc::numError > 0)
     {
       delete sf;
       sf = nullptr;
+    }
+    // The derivative can be specified as a second expression after the colon
+    if ((cline = strtok(nullptr,":")))
+    {
+      IFEM::cout <<" (derivative: "<< cline <<")";
+      static_cast<EvalFunc*>(sf)->derivative(cline,"t");
     }
     return sf;
   }
@@ -519,7 +538,8 @@ const ScalarFunc* utl::parseTimeFunction (const char* type, char* cline, Real C)
 }
 
 
-ScalarFunc* utl::parseTimeFunc (const char* func, const std::string& type)
+ScalarFunc* utl::parseTimeFunc (const char* func, const std::string& type,
+                                Real eps)
 {
   char* cstr = nullptr;
   const ScalarFunc* sf = nullptr;
@@ -527,7 +547,7 @@ ScalarFunc* utl::parseTimeFunc (const char* func, const std::string& type)
   {
     IFEM::cout <<"(expression) ";
     if (func) cstr = strdup(func);
-    sf = parseTimeFunction("expression",cstr);
+    sf = parseTimeFunction("expression",cstr,eps);
   }
   else if (type == "linear")
     sf = parseTimeFunction(func,cstr);

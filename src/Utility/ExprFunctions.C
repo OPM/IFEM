@@ -83,10 +83,12 @@ static void ExprException (const ExprEval::Exception& exc, const char* task,
   EvalFunc::numError++;
 }
 
+
 int EvalFunc::numError = 0;
 
 
-EvalFunc::EvalFunc (const char* function, const char* x)
+EvalFunc::EvalFunc (const char* function, const char* x, Real eps)
+  : gradient(nullptr), dx(eps)
 {
   try {
     size_t nalloc = 1;
@@ -104,7 +106,7 @@ EvalFunc::EvalFunc (const char* function, const char* x)
       v[i] = new ExprEval::ValueList;
       f[i]->AddDefaultFunctions();
       v[i]->AddDefaultValues();
-      v[i]->Add(x,0,false);
+      v[i]->Add(x,0.0,false);
       expr[i]->SetFunctionList(f[i]);
       expr[i]->SetValueList(v[i]);
       expr[i]->Parse(function);
@@ -112,7 +114,7 @@ EvalFunc::EvalFunc (const char* function, const char* x)
     }
   }
   catch (ExprEval::Exception e) {
-    cleanup();
+    this->cleanup();
     ExprException(e,"parsing",function);
   }
 }
@@ -120,34 +122,42 @@ EvalFunc::EvalFunc (const char* function, const char* x)
 
 EvalFunc::~EvalFunc ()
 {
-  cleanup();
+  this->cleanup();
 }
 
 
-void EvalFunc::cleanup()
+void EvalFunc::cleanup ()
 {
-  for (auto& it : expr)
+  for (ExprEval::Expression* it : expr)
     delete it;
-  for (auto& it : f)
+  for (ExprEval::FunctionList* it : f)
     delete it;
-  for (auto& it : v)
+  for (ExprEval::ValueList* it : v)
     delete it;
-  arg.clear();
+  delete gradient;
   expr.clear();
   f.clear();
   v.clear();
+  arg.clear();
+}
+
+
+void EvalFunc::derivative (const std::string& function, const char* x)
+{
+  if (!gradient)
+    gradient = new EvalFunc(function.c_str(),x);
 }
 
 
 Real EvalFunc::evaluate (const Real& x) const
 {
+  Real result = Real(0);
   size_t i = 0;
 #ifdef USE_OPENMP
   i = omp_get_thread_num();
 #endif
   if (i >= arg.size())
-    return 0;
-  Real result = Real(0);
+    return result;
   try {
     *arg[i] = x;
     result = expr[i]->Evaluate();
@@ -157,6 +167,16 @@ Real EvalFunc::evaluate (const Real& x) const
   }
 
   return result;
+}
+
+
+Real EvalFunc::deriv (Real x) const
+{
+  if (gradient)
+    return gradient->evaluate(x);
+
+  // Evaluate derivative using central difference
+  return (this->evaluate(x+0.5*dx) - this->evaluate(x-0.5*dx)) / dx;
 }
 
 
@@ -178,10 +198,10 @@ EvalFunction::EvalFunction (const char* function) : gradient{}, dgradient{}
       v[i] = new ExprEval::ValueList;
       f[i]->AddDefaultFunctions();
       v[i]->AddDefaultValues();
-      v[i]->Add("x",0,false);
-      v[i]->Add("y",0,false);
-      v[i]->Add("z",0,false);
-      v[i]->Add("t",0,false);
+      v[i]->Add("x",0.0,false);
+      v[i]->Add("y",0.0,false);
+      v[i]->Add("z",0.0,false);
+      v[i]->Add("t",0.0,false);
       expr[i]->SetFunctionList(f[i]);
       expr[i]->SetValueList(v[i]);
       expr[i]->Parse(function);
@@ -192,7 +212,7 @@ EvalFunction::EvalFunction (const char* function) : gradient{}, dgradient{}
     }
   }
   catch (ExprEval::Exception e) {
-    cleanup();
+    this->cleanup();
     ExprException(e,"parsing",function);
   }
 
@@ -205,26 +225,28 @@ EvalFunction::EvalFunction (const char* function) : gradient{}, dgradient{}
 
 EvalFunction::~EvalFunction ()
 {
-  cleanup();
+  this->cleanup();
 }
 
 
-void EvalFunction::cleanup()
+void EvalFunction::cleanup ()
 {
-  for (auto& it : expr)
+  for (ExprEval::Expression* it : expr)
     delete it;
-  for (auto& it : f)
+  for (ExprEval::FunctionList* it : f)
     delete it;
-  for (auto& it : v)
+  for (ExprEval::ValueList* it : v)
     delete it;
-  for (auto& it : gradient)
+  for (EvalFunction* it : gradient)
     delete it;
-  for (auto& it : dgradient)
+  for (EvalFunction* it : dgradient)
     delete it;
-  arg.clear();
   expr.clear();
   f.clear();
   v.clear();
+  arg.clear();
+  gradient.fill(nullptr);
+  dgradient.fill(nullptr);
 }
 
 
@@ -276,7 +298,7 @@ Real EvalFunction::evaluate (const Vec3& X) const
     i = omp_get_thread_num();
 #endif
     if (i >= arg.size())
-      return 0;
+      return result;
 
     *arg[i].x = X.x;
     *arg[i].y = X.y;
@@ -353,14 +375,14 @@ EvalFunctions::EvalFunctions (const std::string& functions,
                               const std::string& variables)
 {
   std::vector<std::string> components = splitComps(functions,variables);
-  for (const auto& comp : components)
+  for (const std::string& comp : components)
     p.push_back(new EvalFunction(comp.c_str()));
 }
 
 
 EvalFunctions::~EvalFunctions ()
 {
-  for (auto& it : p)
+  for (EvalFunction* it : p)
     delete it;
 }
 
