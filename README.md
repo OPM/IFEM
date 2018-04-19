@@ -2,14 +2,7 @@
 
 
 ## Introduction
-
-IFEM is an object-oriented toolbox for implementing isogeometric finite element
-solvers for linear and nonlinear partial differential equations.
-The toolbox was developed through the ICADA project at SINTEF Digital.
-The purpose of this code is to serve as a common base for isogeometric
-PDE-simulators, using splines and NURBS as basis functions in the finite element
-formulations. The toolbox contains methods for doing linear and non-linear,
-stationary and dynamic time-domain analyses, as well as eigenvalue analyses.
+IFEM is an object-oriented toolbox for implementing isogeometric finite element solvers for linear and nonlinear partial differential equations. The main toolbox together with structural mechanics applications was developed through the ICADA project at SINTEF Digital in collaboration with NTNU. The important extension to fluid mechanics and coupled problems was done during the NOWITECH and FSI-WT project. The purpose of this code is to serve as a common base for isogeometric PDE-simulators, using splines and NURBS as basis functions in the finite element formulations. The toolbox contains methods for doing linear and non-linear, stationary and dynamic time-domain analyses, as well as eigenvalue analyses. IFEM is parallelized using the Petsc library and enables adaptive refinement using LR B-splines based on residual or recovery methods for a posteriori error estimation.
 
 ## Module overview
 
