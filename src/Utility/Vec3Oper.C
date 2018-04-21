@@ -35,6 +35,35 @@ Vec3 operator* (const utl::matrix<Real>& A, const std::vector<Real>& x)
 }
 
 
+Vec3 operator* (const utl::matrix<Real>& A, const Vec3& x)
+{
+  return A * x.vec();
+}
+
+
+/*!
+  \brief Multiplication of a vector and a matrix,
+  \return \f$ {\bf y} = {\bf A}^T {\bf x} \f$
+
+  Special version for computation of 3D point vectors.
+  The number of columns in \b A must be (at least) 3.
+  Extra columns (if any) in \b A are ignored.
+*/
+
+Vec3 operator* (const std::vector<Real>& x, const utl::matrix<Real>& A)
+{
+  std::vector<Real> y(A.cols(),0.0);
+  A.multiply(x,y,true);
+  return Vec3(y);
+}
+
+
+Vec3 operator* (const Vec3& x, const utl::matrix<Real>& A)
+{
+  return x.vec() * A;
+}
+
+
 Vec3 operator* (const Vec3& a, Real value)
 {
   return Vec3(a.x*value, a.y*value, a.z*value);

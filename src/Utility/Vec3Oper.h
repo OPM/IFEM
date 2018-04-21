@@ -21,6 +21,13 @@ class Vec3;
 
 //! \brief Multiplication of a matrix and a vector.
 Vec3 operator*(const utl::matrix<Real>& A, const std::vector<Real>& x);
+//! \brief Multiplication of a matrix and a vector.
+Vec3 operator*(const utl::matrix<Real>& A, const Vec3& x);
+
+//! \brief Multiplication of a vector and a matrix.
+Vec3 operator*(const std::vector<Real>& x, const utl::matrix<Real>& A);
+//! \brief Multiplication of a vector and a matrix.
+Vec3 operator*(const Vec3& x, const utl::matrix<Real>& A);
 
 //! \brief Multiplication of a vector and a scalar.
 Vec3 operator*(const Vec3& a, Real value);

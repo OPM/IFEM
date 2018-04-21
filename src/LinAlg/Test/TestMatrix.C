@@ -6,7 +6,7 @@
 //!
 //! \author Eivind Fonn / SINTEF
 //!
-//! \brief Unit tests for matrix
+//! \brief Unit tests for matrix and matrix3d.
 //!
 //==============================================================================
 
@@ -121,4 +121,23 @@ TEST(TestMatrix3D, DumpRead)
   utl::matrix3d<double> B(is);
   B -= A;
   ASSERT_NEAR(B.norm2(), 0.0, 1.0e-13);
+}
+
+
+TEST(TestMatrix3D, Multiply)
+{
+  std::vector<double> a(10);
+  utl::matrix<double> A(2,5);
+  utl::matrix3d<double> B(5,4,3), C, D;
+
+  std::iota(a.begin(),a.end(),1.0);
+  std::iota(A.begin(),A.end(),1.0);
+  std::iota(B.begin(),B.end(),1.0);
+
+  C.multiply(A,B);
+  ASSERT_TRUE(D.multiplyMat(a,B));
+
+  std::vector<double>::const_iterator c = C.begin();
+  for (double d : D)
+    EXPECT_EQ(d,*(c++));
 }

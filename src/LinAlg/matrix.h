@@ -370,6 +370,8 @@ namespace utl //! General utility classes and functions.
       else
         this->elem.fill(mat.elem.ptr());
     }
+    //! \brief Empty destructor.
+    virtual ~matrix() {}
 
     //! \brief Resize the matrix to dimension \f$r \times c\f$.
     //! \details Will erase the previous content, but only if both
@@ -480,7 +482,7 @@ namespace utl //! General utility classes and functions.
     //! \brief Fill a column of the matrix.
     void fillColumn(size_t c, const std::vector<T>& data)
     {
-      CHECK_INDEX("matrix::getColumn: Column-index ",c,ncol);
+      CHECK_INDEX("matrix::fillColumn: Column-index ",c,ncol);
       size_t ndata = nrow > data.size() ? data.size() : nrow;
       memcpy(this->ptr(c-1),&data.front(),ndata*sizeof(T));
     }
@@ -912,11 +914,20 @@ namespace utl //! General utility classes and functions.
     vector<T> getColumn(size_t i2, size_t i3) const
     {
       CHECK_INDEX("matrix3d::getColumn: Second index ",i2,this->n[1]);
-      CHECK_INDEX("matrix3d::getColumn: Third index  ",i3,this->n[2]);
+      CHECK_INDEX("matrix3d::getColumn: Third index " ,i3,this->n[2]);
       if (this->n[1] < 2 && this->n[2] < 2) return this->elem;
       vector<T> col(this->n[0]);
       memcpy(col.ptr(),this->ptr(i2-1+this->n[1]*(i3-1)),col.size()*sizeof(T));
       return col;
+    }
+
+    //! \brief Fill a column of the matrix.
+    void fillColumn(size_t i2, size_t i3, const std::vector<T>& data)
+    {
+      CHECK_INDEX("matrix3d::fillColumn: Second index ",i2,this->n[1]);
+      CHECK_INDEX("matrix3d::fillColumn: Third index " ,i3,this->n[2]);
+      size_t ndata = this->n[0] > data.size() ? data.size() : this->n[0];
+      memcpy(this->ptr(i2-1+this->n[1]*(i3-1)),&data.front(),ndata*sizeof(T));
     }
 
     //! \brief Return the trace of the \a i1'th sub-matrix.
@@ -952,6 +963,19 @@ namespace utl //! General utility classes and functions.
     bool multiply(const matrix<T>& A, const matrix3d<T>& B,
                   bool transA = false, bool addTo = false);
 
+    /*! \brief Matrix-matrix multiplication.
+      \details Performs one of the following operations (\b C = \a *this):
+      -# \f$ {\bf C} = {\bf A} {\bf B} \f$
+      -# \f$ {\bf C} = {\bf C} + {\bf A} {\bf B} \f$
+
+      The matrix \b A is here represented by a one-dimensional vector, and its
+      number of columns is assumed to match the first dimension of \b B and its
+      number of rows is then the total vector length divided by
+      the number of columns.
+    */
+    bool multiplyMat(const std::vector<T>& A, const matrix3d<T>& B,
+                     bool addTo = false);
+
   private:
     //! \brief Check dimension compatibility for matrix-matrix multiplication.
     bool compatible(const matrix<T>& A, const matrix3d<T>& B,
@@ -967,6 +991,23 @@ namespace utl //! General utility classes and functions.
                 << B.n[0] <<','<< B.n[1] <<','<< B.n[2] <<")\n"
                 <<"                  when computing C = "
                 << (transA ? "A^t":"A") <<" * B"<< std::endl;
+      ABORT_ON_INDEX_CHECK;
+      return false;
+    }
+
+    //! \brief Check dimension compatibility for matrix-matrix multiplication,
+    //! when the matrix A is represented by a one-dimensional vector.
+    bool compatible(const std::vector<T>& A, const matrix3d<T>& B,
+                    size_t& M, size_t& N, size_t& K)
+    {
+      N = B.n[1]*B.n[2];
+      K = B.n[0];
+      M = K > 0 ? A.size() / K : 0;
+      if (M*K == A.size() && !A.empty()) return true;
+
+      std::cerr <<"matrix3d::multiply: Incompatible matrices: A(r*c="<< A.size()
+                <<"), B("<< B.n[0] <<","<< B.n[1] <<","<< B.n[2] <<")\n"
+                <<"                  when computing C = A * B"<< std::endl;
       ABORT_ON_INDEX_CHECK;
       return false;
     }
@@ -1336,6 +1377,62 @@ namespace utl //! General utility classes and functions.
   }
 
   template<> inline
+  bool matrix3d<double>::multiply(const matrix<double>& A,
+                                  const matrix3d<double>& B,
+                                  bool transA, bool addTo)
+  {
+    size_t M, N, K;
+    if (!this->compatible(A,B,transA,M,N,K)) return false;
+    if (!addTo) this->resize(M,B.n[1],B.n[2]);
+
+    cblas_dgemm(CblasColMajor,
+                transA ? CblasTrans : CblasNoTrans, CblasNoTrans,
+                M, N, K, 1.0,
+                A.ptr(), A.rows(),
+                B.ptr(), B.n[0],
+                addTo ? 1.0 : 0.0,
+                this->ptr(), n[0]);
+
+    return true;
+  }
+
+  template<> inline
+  bool matrix3d<float>::multiplyMat(const std::vector<float>& A,
+                                    const matrix3d<float>& B, bool addTo)
+  {
+    size_t M, N, K;
+    if (!this->compatible(A,B,M,N,K)) return false;
+    if (!addTo) this->resize(M,B.n[1],B.n[2]);
+
+    cblas_sgemm(CblasColMajor, CblasNoTrans, CblasNoTrans,
+                M, N, K, 1.0f,
+                A.data(), M,
+                B.ptr(), B.n[0],
+                addTo ? 1.0f : 0.0f,
+                this->ptr(), n[0]);
+
+    return true;
+  }
+
+  template<> inline
+  bool matrix3d<double>::multiplyMat(const std::vector<double>& A,
+                                    const matrix3d<double>& B, bool addTo)
+  {
+    size_t M, N, K;
+    if (!this->compatible(A,B,M,N,K)) return false;
+    if (!addTo) this->resize(M,B.n[1],B.n[2]);
+
+    cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans,
+                M, N, K, 1.0,
+                A.data(), M,
+                B.ptr(), B.n[0],
+                addTo ? 1.0 : 0.0,
+                this->ptr(), n[0]);
+
+    return true;
+  }
+
+  template<> inline
   bool matrix<float>::outer_product(const std::vector<float>& X,
                                     const std::vector<float>& Y,
                                     bool addTo, float alpha)
@@ -1373,26 +1470,6 @@ namespace utl //! General utility classes and functions.
                 Y.data(), ncol,
                 addTo ? 1.0 : 0.0,
                 this->ptr(), nrow);
-
-    return true;
-  }
-
-  template<> inline
-  bool matrix3d<double>::multiply(const matrix<double>& A,
-                                  const matrix3d<double>& B,
-                                  bool transA, bool addTo)
-  {
-    size_t M, N, K;
-    if (!this->compatible(A,B,transA,M,N,K)) return false;
-    if (!addTo) this->resize(M,B.n[1],B.n[2]);
-
-    cblas_dgemm(CblasColMajor,
-                transA ? CblasTrans : CblasNoTrans, CblasNoTrans,
-                M, N, K, 1.0,
-                A.ptr(), A.rows(),
-                B.ptr(), B.n[0],
-                addTo ? 1.0 : 0.0,
-                this->ptr(), n[0]);
 
     return true;
   }
@@ -1638,6 +1715,23 @@ namespace utl //! General utility classes and functions.
               this->operator()(i,j,l) += A(k,i)*B(k,j,l);
             else
               this->operator()(i,j,l) += A(i,k)*B(k,j,l);
+
+    return true;
+  }
+
+  template<class T> inline
+  bool matrix3d<T>::multiplyMat(const std::vector<T>& A, const matrix3d<T>& B,
+                                bool addTo)
+  {
+    size_t M, N, K;
+    if (!this->compatible(A,B,M,N,K)) return false;
+    if (!addTo) this->resize(M,B.n[1],B.n[2],true);
+
+    for (size_t i = 1; i <= this->n[0]; i++)
+      for (size_t j = 1; j <= this->n[1]; j++)
+        for (size_t k = 1; k <= K; k++)
+          for (size_t l = 1; l <= this->n[2]; l++)
+            this->operator()(i,j,l) += A[i-1+M*(k-1)]*B(k,j,l);
 
     return true;
   }
