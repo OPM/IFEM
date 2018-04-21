@@ -146,14 +146,15 @@ public:
     STANDARD           = 0, //!< Default integrand type (first derivatives only)
     NO_DERIVATIVES     = 1, //!< Integrand don't want any derivatives
     SECOND_DERIVATIVES = 2, //!< Integrand wants second derivatives
-    AVERAGE            = 4, //!< Integrand wants basis function averages
-    ELEMENT_CORNERS    = 8, //!< Integrand wants element corner coordinates
-    ELEMENT_CENTER    = 16, //!< Integrand wants element center coordinates
-    G_MATRIX          = 32, //!< Integrand wants the G matrix
-    NODAL_ROTATIONS   = 64, //!< Integrand wants nodal rotation tensors
-    XO_ELEMENTS      = 128, //!< Integrand is defined on extraordinary elements
-    INTERFACE_TERMS  = 256, //!< Integrand has element interface terms
-    NORMAL_DERIVS    = 512  //!< Integrand p'th order normal derivatives
+    AVERAGE         = 1<<2, //!< Integrand wants basis function averages
+    ELEMENT_CORNERS = 1<<3, //!< Integrand wants element corner coordinates
+    ELEMENT_CENTER  = 1<<4, //!< Integrand wants element center coordinates
+    G_MATRIX        = 1<<5, //!< Integrand wants the G matrix
+    NODAL_ROTATIONS = 1<<6, //!< Integrand wants nodal rotation tensors
+    XO_ELEMENTS     = 1<<7, //!< Integrand is defined on extraordinary elements
+    INTERFACE_TERMS = 1<<8, //!< Integrand has element interface terms
+    NORMAL_DERIVS   = 1<<9, //!< Integrand p'th order normal derivatives
+    UPDATED_NODES   = 1<<10 //!< Integrand wants updated nodal coordinates
   };
 
   //! \brief Defines which FE quantities are needed by the integrand.

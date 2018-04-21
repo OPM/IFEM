@@ -1649,6 +1649,15 @@ bool ASMs2D::integrate (Integrand& integrand,
           break;
         }
 
+        if (integrand.getIntegrandType() & Integrand::UPDATED_NODES)
+          if (!time.first || time.it > 0)
+            if (!this->deformedConfig(Xnod,A->vec))
+            {
+              A->destruct();
+              ok = false;
+              break;
+            }
+
         if (xr)
         {
           // --- Selective reduced integration loop ----------------------------
@@ -1883,6 +1892,15 @@ bool ASMs2D::integrate (Integrand& integrand,
           ok = false;
           break;
         }
+
+        if (integrand.getIntegrandType() & Integrand::UPDATED_NODES)
+          if (!time.first || time.it > 0)
+            if (!this->deformedConfig(Xnod,A->vec))
+            {
+              A->destruct();
+              ok = false;
+              break;
+            }
 
 
         // --- Integration loop over all quadrature points in this element -----
@@ -2630,6 +2648,12 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   // Fetch nodal (control point) coordinates
   Matrix Xnod, Xtmp;
   this->getNodalCoordinates(Xnod);
+  if (integrand.getIntegrandType() & Integrand::UPDATED_NODES)
+  {
+    Vectors& eV = const_cast<IntegrandBase&>(integrand).getSolutions();
+    if (!this->deformedConfig(Xnod,eV,true))
+      return false;
+  }
 
   FiniteElement fe(p1*p2,firstIp);
   fe.p = p1 - 1;

@@ -724,17 +724,24 @@ public:
   //! \param[in] all Returns \e true only if all DOFs are fixed
   bool isFixed(int node, int dof, bool all = false) const;
 
+protected:
+  //! \brief Calculated the deformed configuration for current element.
+  //! \param[in] Xnod Array of nodal point coordinates for current element
+  //! \param eVec Current element solution vectors
+  //! \param[in] force2nd If \e true, put updated coordinates as the 2nd vector
+  bool deformedConfig(const RealArray& Xnod, Vectors& eVec,
+                      bool force2nd = false) const;
+
+  //! \brief Collapses the given two nodes into one.
+  //! \details The global node number of the node with the highest number
+  //! is changed into the number of the other node.
+  static bool collapseNodes(ASMbase& pch1, int node1, ASMbase& pch2, int node2);
+
 private:
   //! \brief Recursive method used by \a resolveMPCchains.
   //! \param[in] allMPCs All multi-point constraint equations in the model
   //! \param mpc Pointer to the multi-point constraint equation to resolve
   static bool resolveMPCchain(const MPCSet& allMPCs, MPC* mpc);
-
-protected:
-  //! \brief Collapses the given two nodes into one.
-  //! \details The global node number of the node with the highest number
-  //! is changed into the number of the other node.
-  static bool collapseNodes(ASMbase& pch1, int node1, ASMbase& pch2, int node2);
 
 public:
   static bool fixHomogeneousDirichlet; //!< If \e true, pre-eliminate fixed DOFs

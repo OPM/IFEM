@@ -41,7 +41,8 @@ class IntegrandBase : public Integrand
 {
 protected:
   //! \brief The default constructor is protected to allow sub-classes only.
-  explicit IntegrandBase(unsigned short int n = 0) : nsd(n), npv(1), m_mode(SIM::INIT) {}
+  explicit IntegrandBase(unsigned short int n = 0) : nsd(n), npv(1),
+                                                     m_mode(SIM::INIT) {}
 
 public:
   //! \brief Empty destructor.

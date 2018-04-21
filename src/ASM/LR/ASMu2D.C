@@ -1105,6 +1105,15 @@ bool ASMu2D::integrate (Integrand& integrand,
         continue;
       }
 
+      if (integrand.getIntegrandType() & Integrand::UPDATED_NODES)
+        if (!time.first || time.it > 0)
+          if (!this->deformedConfig(Xnod,A->vec))
+          {
+            A->destruct();
+            ok = false;
+            continue;
+          }
+
       if (xr)
       {
         // --- Selective reduced integration loop ------------------------------
@@ -1325,6 +1334,15 @@ bool ASMu2D::integrate (Integrand& integrand,
         ok = false;
         continue;
       }
+
+      if (integrand.getIntegrandType() & Integrand::UPDATED_NODES)
+        if (!time.first || time.it > 0)
+          if (!this->deformedConfig(Xnod,A->vec))
+          {
+            A->destruct();
+            ok = false;
+            break;
+          }
 
       // --- Integration loop over all quadrature points in this element -------
 
