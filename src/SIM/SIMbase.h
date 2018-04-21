@@ -33,6 +33,7 @@ class FunctionBase;
 class RealFunc;
 class VecFunc;
 class TractionFunc;
+class ScalarFunc;
 class Vec4;
 class Vec3;
 
@@ -143,7 +144,7 @@ public:
   //! \brief Returns whether a mixed formulation is used (used by HDF5 output).
   virtual bool mixedProblem() const { return false; }
 
-  //! \brief Obtain the linear solver parameters.
+  //! \brief Returns the linear equation solver parameters (for PETSc).
   const LinSolParams* getSolParams() const { return mySolParams; }
 
   //! \brief Returns the number of parameter dimensions in the model.
@@ -380,10 +381,8 @@ public:
                                nullptr,name);
   }
 
-  //! \brief Apply app-specific post-processing to element norms.
-  //! \param gNorm Vector with global norms
-  //! \param eNorm Matrix with element norms
-  virtual bool postProcessNorms(Vectors& gNorm, Matrix* eNorm) { return true; }
+  //! \brief Applies app-specific post-processing to element norms.
+  virtual bool postProcessNorms(Vectors&, Matrix*) { return true; }
 
   //! \brief Prints out load/time step identification.
   //! \param[in] istep Load- or time step counter
@@ -639,7 +638,7 @@ protected:
                                      const TimeDomain&) { return true; }
 
   //! \brief Computes (possibly problem-dependent) external energy contribution.
-  virtual double externalEnergy(const Vectors& psol) const;
+  virtual double externalEnergy(const Vectors& psol, const TimeDomain&) const;
 
   //! \brief Generates element groups for multi-threading of boundary integrals.
   //! \param[in] p Property object identifying a patch boundary
