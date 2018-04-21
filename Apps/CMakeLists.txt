@@ -51,6 +51,7 @@ if(EXISTS ${PROJECT_SOURCE_DIR}/${ELASTICITY_SRC})
 
   add_subdirectory(${ELASTICITY_SRC})
   add_subdirectory(${ELASTICITY_SRC}/Beam)
+  add_subdirectory(${ELASTICITY_SRC}/Shell)
   add_subdirectory(${ELASTICITY_SRC}/Linear)
 
   if(EXISTS ${PROJECT_SOURCE_DIR}/${ELASTICITY_SRC}/IFEM-BeamEx)
