@@ -1055,6 +1055,12 @@ bool SIMbase::solveMatrixSystem (Vectors& solution, int printSol,
 }
 
 
+void SIMbase::printStep (int istep, const TimeDomain& time) const
+{
+  adm.cout <<"\n  step="<< istep <<"  time="<< time.t << std::endl;
+}
+
+
 void SIMbase::printSolutionSummary (const Vector& solution, int printSol,
                                     const char* compName,
                                     std::streamsize outPrec)

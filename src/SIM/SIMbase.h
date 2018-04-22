@@ -385,6 +385,15 @@ public:
   //! \param eNorm Matrix with element norms
   virtual bool postProcessNorms(Vectors& gNorm, Matrix* eNorm) { return true; }
 
+  //! \brief Prints out load/time step identification.
+  //! \param[in] istep Load- or time step counter
+  //! \param[in] time Parameters for nonlinear/time-dependent simulations
+  //!
+  //! \details This method is used by multi-step simulators to print out
+  //! a heading when starting a new load/time increment. Override this method
+  //! if your simulator have some additional data to be printed.
+  virtual void printStep(int istep, const TimeDomain& time) const;
+
   //! \brief Prints a summary of the calculated solution to std::cout.
   //! \param[in] solution The solution vector
   //! \param[in] printSol Print solution only if size is less than this value

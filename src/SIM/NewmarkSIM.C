@@ -314,11 +314,16 @@ SIM::ConvStatus NewmarkSIM::solveStep (TimeStep& param, SIM::SolutionMode,
 
   if (msgLevel >= 0)
   {
-    utl::LogStream& cout = model.getProcessAdm().cout;
-    double digits = log10(param.time.t)-log10(param.time.dt);
-    size_t stdPrec = digits > 6.0 ? cout.precision(ceil(digits)) : 0;
-    cout <<"\n  step="<< param.step <<"  time="<< param.time.t << std::endl;
-    if (digits > 6.0) cout.precision(stdPrec);
+    double digits = log10(param.time.t) - log10(param.time.dt);
+    if (digits > 6.0)
+    {
+      utl::LogStream& cout = model.getProcessAdm().cout;
+      std::streamsize oldPrec = cout.precision(ceil(digits));
+      model.printStep(param.step,param.time);
+      cout.precision(oldPrec);
+    }
+    else
+      model.printStep(param.step,param.time);
   }
 
   if (subiter&FIRST && !model.updateDirichlet(param.time.t,&solution.front()))
