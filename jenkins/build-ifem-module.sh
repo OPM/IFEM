@@ -10,6 +10,8 @@ MODULE_APP_DIR[IFEM-BeamEx]=BeamSim
 MODULE_APP_DIR[IFEM-Elasticity]=Linear
 MODULE_APP_DIR[IFEM-FiniteDeformation]=Nonlinear
 
+declare -A MODULE_EXTRA_APP_DIR
+MODULE_EXTRA_APP_DIR[IFEM-Elasticity]=Shell
 
 # Parse revisions from trigger comment and setup arrays
 function parseRevisions {
@@ -151,6 +153,14 @@ function clone_and_build_module {
 
   build_module "$2" $test_build $WORKSPACE/deps/${MODULE_EXTRA_DIR[$1]}$1/${MODULE_APP_DIR[$1]}
   test $? -eq 0 || exit 1
+  if test -n "${MODULE_EXTRA_APP_DIR[$1]}"
+  then
+    mkdir -p build-${MODULE_EXTRA_APP_DIR[$1]}
+    pushd build-${MODULE_EXTRA_APP_DIR[$1]}
+    build_module "$2" $test_build $WORKSPACE/deps/${MODULE_EXTRA_DIR[$1]}$1/${MODULE_EXTRA_APP_DIR[$1]}
+    test $? -eq 0 || exit 1
+    popd
+  fi
   popd
 }
 
