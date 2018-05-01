@@ -381,8 +381,28 @@ utl::LogStream& SIMoptions::print (utl::LogStream& os, bool addBlankLine) const
        <<"\nNumber of Arnoldi vectors: "<< ncv
        <<"\nShift value: "<< shift;
 
-  os <<"\nNumber of Gauss points: "<< nGauss[0];
-  if (nGauss[1] != nGauss[0]) os <<" "<< nGauss[1];
+  // Lambda function to print proper interpretation of nGauss
+  auto printG = [&os](int n)
+  {
+    if (n > 0 && n <= 10)
+    {
+      os <<" "<< n;
+      return false;
+    }
+    else if (n > 10)
+      os <<" p+"<< 1+n%10;
+    else if (n == 0)
+      os <<" p+1";
+    else if (n == -1)
+      os <<" p";
+    else
+      os <<" p"<< 1+n;
+    return true;
+  };
+
+  os <<"\nNumber of Gauss points:";
+  if (printG(nGauss[0]) | (nGauss[1] != nGauss[0] && printG(nGauss[1])))
+    os <<" (p = polynomial degree of basis)";
 
   switch (discretization) {
   case ASM::Lagrange:
