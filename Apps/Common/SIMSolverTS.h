@@ -69,12 +69,13 @@ public:
     {
       this->S1.saveState(); // Save current solution state internally
       int tranStep = this->tp.step; // Time step of next solution transfer
-      int lastRef = 0, refElms = 0;
+      int lastRef = 1, refElms = 0;
 
       // Prediction cycle loop, disable staggering cycles
       if (maxPred < 0) this->S1.enableStaggering(false);
-      for (int iPred = 0; iPred < abs(maxPred); iPred++)
+      for (int iPred = 0; iPred < abs(maxPred) && lastRef > 0; iPred++)
       {
+        lastRef = 0;
         if (iPred > 0)
         {
           // Reset time step counter to the last saved state
@@ -88,21 +89,22 @@ public:
           if (!this->S1.solveStep(this->tp))
             return 3;
 
+        if (maxPred > 0 && this->S1.stopped())
+          break; // Terminated due to other user-criterion
+
         // Adapt the mesh based on current solution, and
         // transfer the old solution variables onto the new mesh
         IFEM::cout <<"\n  >>> Paused for mesh refinement at time="
                    << this->tp.time.t << std::endl;
-        lastRef = this->S1.adaptMesh(beta,minFrac,maxRef);
-        if (lastRef == 0)
-          break; // No new mesh refinement, exit the prediction cycles
-
-        if (!this->dumpMesh(infile,false) || lastRef < 0)
-          return 4; // Something went wrong, bailing
+        if ((lastRef = this->S1.adaptMesh(beta,minFrac,maxRef)))
+          this->dumpMesh(infile,false);
 
         refElms += lastRef; // Total number of refined elements
       }
 
-      if (refElms == 0)
+      if (lastRef < 0)
+        return 4; // Something went wrong, bailing
+      else if (refElms == 0 && !this->tp.finished())
         IFEM::cout <<"  No refinement, resume from current state"<< std::endl;
 
       if (lastRef == 0 && maxPred > 0)
