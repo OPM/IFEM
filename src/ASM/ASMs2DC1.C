@@ -189,17 +189,16 @@ void ASMs2DC1::constrainEdge (int dir, bool open, int dof, int code, char)
       {
         if (open && (i2 == 1 || i2 == n2))
           continue; // Skip the end points
-        else if (dof%1000)
-          this->prescribe(node,dof%1000,code);
-        if (dof >= 1000)
-        {
-          if (dof%1000 && code == 0)
-            // The edge is clamped, fix the neighboring node line
-            this->prescribe(node-dir,dof/1000,0);
-          else for (int ldof : utl::getDigits(dof/1000))
-            // The edge has a prescribed rotation, add an MPC for that
-            this->add2PC(MLGN[node-dir-1],ldof,MLGN[node-1],code);
-        }
+
+        this->prescribe(node,dof%1000,code);
+        if (dof < 1000) continue;
+
+        if (dof%1000 && code == 0)
+          // The edge is clamped, fix the neighboring node line
+          this->prescribe(node-dir,dof/1000,0);
+        else for (int ldof : utl::getDigits(dof/1000))
+          // The edge has a prescribed rotation, add an MPC for that
+          this->add2PC(MLGN[node-dir-1],ldof,MLGN[node-1],code);
       }
       break;
 
@@ -210,17 +209,16 @@ void ASMs2DC1::constrainEdge (int dir, bool open, int dof, int code, char)
       {
         if (open && (i1 == 1 || i1 == n1))
           continue; // Skip the end points
-        else if (dof%1000)
-          this->prescribe(node,dof%1000,code);
-        if (dof >= 1000)
-        {
-          if (dof%1000 && code == 0)
-            // Edge is clamped, fix the neighboring node line
-            this->prescribe(node-n1*dir/2,dof/1000,0);
-          else for (int ldof : utl::getDigits(dof/1000))
-            // The edge has a prescribed rotation, add an MPC for that
-            this->add2PC(MLGN[node-n1*dir/2-1],ldof,MLGN[node-1],code);
-        }
+
+        this->prescribe(node,dof%1000,code);
+        if (dof < 1000) continue;
+
+        if (dof%1000 && code == 0)
+          // Edge is clamped, fix the neighboring node line
+          this->prescribe(node-n1*dir/2,dof/1000,0);
+        else for (int ldof : utl::getDigits(dof/1000))
+          // The edge has a prescribed rotation, add an MPC for that
+          this->add2PC(MLGN[node-n1*dir/2-1],ldof,MLGN[node-1],code);
       }
       break;
     }
@@ -240,15 +238,8 @@ void ASMs2DC1::constrainCorner (int I, int J, int dof, int code)
   if (dof < 1000 || code > 0) return;
 
   // Also fix the two neighboring nodes
-  if (I > 0)
-    this->prescribe(node-1,dof%1000,0);
-  else
-    this->prescribe(node+1,dof%1000,0);
-
-  if (J > 0)
-    this->prescribe(node-n1,dof%1000,0);
-  else
-    this->prescribe(node+n1,dof%1000,0);
+  this->prescribe(I > 0 ? node-1  : node+1 , dof/1000,0);
+  this->prescribe(J > 1 ? node-n1 : node+n1, dof/1000,0);
 }
 
 
@@ -266,10 +257,10 @@ void ASMs2DC1::constrainNode (double xi, double eta, int dof, int code)
   if (dof < 1000 || code > 0) return;
 
   // Also fix the (up to four) neighboring nodes
-  if (I > 0)    this->prescribe(n1*J+I      ,dof%1000,0);
-  if (I < n1-1) this->prescribe(n1*J+I+2    ,dof%1000,0);
-  if (J > 0)    this->prescribe(n1*(J-1)+I+1,dof%1000,0);
-  if (J < n2-1) this->prescribe(n1*(J+1)+I+1,dof%1000,0);
+  if (I > 0)    this->prescribe(n1*J+I      ,dof/1000,0);
+  if (I < n1-1) this->prescribe(n1*J+I+2    ,dof/1000,0);
+  if (J > 0)    this->prescribe(n1*(J-1)+I+1,dof/1000,0);
+  if (J < n2-1) this->prescribe(n1*(J+1)+I+1,dof/1000,0);
 }
 
 
