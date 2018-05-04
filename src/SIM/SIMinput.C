@@ -326,17 +326,28 @@ bool SIMinput::parseBCTag (const TiXmlElement* elem)
 
   else if (!strcasecmp(elem->Value(),"dirichlet") && !ignoreDirichlet)
   {
-    const TiXmlNode* dval = elem->FirstChild();
-
-    int comp = 0, basis = 1;
+    const TiXmlNode* dval = nullptr;
+    int comp = 0, symm = 0, basis = 1;
     std::string set, type, axes;
-    // long and short form supported, short prioritized
-    utl::getAttribute(elem,"component",comp);
-    utl::getAttribute(elem,"comp",comp);
     utl::getAttribute(elem,"set",set);
     utl::getAttribute(elem,"type",type,true);
-    utl::getAttribute(elem,"axes",axes,true);
     utl::getAttribute(elem,"basis",basis);
+    // Handle some predefined property codes for symmtry-conditions (C1-patches)
+    if (type == "symmxy" || type == "symmyx")
+      comp = symm = 12000;
+    else if (type == "symmyz" || type == "symmzy")
+      comp = symm = 23000;
+    else if (type == "symmzx" || type == "symmxz")
+      comp = symm = 31000;
+    else if (type == "clamped")
+      comp = 123123;
+    else
+    {
+      dval = elem->FirstChild();
+      utl::getAttribute(elem,"axes",axes,true);
+      utl::getAttribute(elem,"component",comp);
+      utl::getAttribute(elem,"comp",comp);
+    }
     int code = this->getUniquePropertyCode(set,comp);
     if (code == 0) utl::getAttribute(elem,"code",code);
     if (axes == "local projected")
@@ -374,6 +385,12 @@ bool SIMinput::parseBCTag (const TiXmlElement* elem)
     else
     {
       IFEM::cout <<": (fixed)";
+      this->setPropertyType(code,Property::DIRICHLET,comp,basis);
+    }
+    if (symm)
+    {
+      code = this->getUniquePropertyCode(set,1+(1+symm/10000)%3);
+      IFEM::cout <<"\n\tDirichlet code "<< code <<": (fixed)";
       this->setPropertyType(code,Property::DIRICHLET,comp,basis);
     }
     IFEM::cout << std::endl;
