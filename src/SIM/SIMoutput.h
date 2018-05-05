@@ -303,6 +303,10 @@ protected:
   virtual void preprocessResultPoints();
 
 private:
+  //! \brief Private helper to write out scalar fields to VTF-file.
+  bool writeScalarFields(const Matrix& field, int geomID, size_t& k,
+                         int& nBlock, std::vector< std::vector<int> >& sID);
+
   //! \brief Struct defining a result sampling point.
   struct ResultPoint
   {

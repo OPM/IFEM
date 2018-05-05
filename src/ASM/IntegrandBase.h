@@ -195,6 +195,9 @@ public:
   //! \brief Returns max number of 2ndary solution components to print per line.
   virtual size_t getNo2ndSolPerLine() const { return 999; }
 
+  //! \brief Computes some derived primary solution quantities.
+  virtual void primaryScalarFields(Matrix&) {}
+
 
   // Various service methods
   // =======================
