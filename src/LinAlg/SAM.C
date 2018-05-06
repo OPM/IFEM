@@ -235,14 +235,24 @@ bool SAM::initSystemEquations ()
       {
 	int jdof = mmceq[ip-1];
 	if (jdof < 1 || jdof > ndof)
+	{
 	  ierr--;
+	  std::cerr <<"SAM::initSystemEquations: jdof = "<< jdof
+		    <<" is out of range [1,"<< ndof <<"]"<< std::endl;
+	}
 	else if (msc[jdof-1] < 1)
+	{
 	  ierr--;
+	  std::cerr <<"SAM::initSystemEquations: Invalid status code "
+		    << msc[jdof-1] <<" for master dof "<< jdof << std::endl;
+	}
       }
     }
     else
     {
       ierr--;
+      std::cerr <<"SAM::initSystemEquations: Logic error "<< jp <<" < "<< ip
+                <<" for constrains equation "<< i << std::endl;
       break;
     }
     meqn[idof-1] = -i;
@@ -267,6 +277,16 @@ bool SAM::initSystemEquations ()
   if (ierr == 0) return true;
 
   std::cerr <<"SAM::initSystemEquations: Failure "<< ierr << std::endl;
+#ifdef SP_DEBUG
+  std::cerr <<"\nNode\tDOFs\t MSC";
+  for (i = 0; i < nnod; i++)
+  {
+    std::cerr <<"\n"<< 1+i <<"\t"<< madof[i] <<" - "<< madof[i+1]-1 <<"\t";
+    for (j = madof[i]; j < madof[i+1]; j++)
+      std::cerr <<" "<< msc[j-1];
+  }
+  std::cerr << std::endl;
+#endif
   return false;
 }
 

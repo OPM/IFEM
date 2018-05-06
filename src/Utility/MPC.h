@@ -59,13 +59,13 @@ public:
   struct DOF
   {
     //! \brief Default constructor.
-    DOF() : node(0), dof(0), coeff(Real(0)), nextc(0) {}
+    DOF() : node(0), dof(0), coeff(Real(0)), nextc(nullptr) {}
 
     //! \brief Convenience constructor creating a valid DOF object.
     //! \param[in] n Node number (1...NNOD)
     //! \param[in] d The local DOF number (1...3)
     //! \param[in] c Associated coefficient or constrained value
-    DOF(int n, int d, Real c = Real(0)) : node(n), dof(d), coeff(c), nextc(0) {}
+    DOF(int n, int d, Real c) : node(n), dof(d), coeff(c), nextc(nullptr) {}
 
     //! \brief Global stream operator printing a DOF instance.
     friend std::ostream& operator<<(std::ostream& s, const DOF& dof)
@@ -85,13 +85,14 @@ public:
     MPC* nextc; //!< Points to another MPC in case of chained constraints
   };
 
-  //! \brief Constructor creating a constraint for a specified slave DOF
-  //! with no master DOFs.
+  //! \brief Constructor creating a constraint for a specified slave DOF.
   //! \param[in] n The node number of the slave DOF (1...NNOD)
   //! \param[in] d The local DOF number of the slave DOF (1...3)
-  //! \param[in] c The actual value that this slave DOF is constrained to
-  //! when there are no master DOFs, or all master DOFs are zero
-  MPC(int n, int d, Real c = Real(0)) : slave(n,d,c) { iceq = -1; }
+  //!
+  //! \details The created constraint equation will by default constrain the
+  //! specified slave DOF to zero. To constrain to a non-zero value, the method
+  //! setSlaveCoeff has to be invoked with the desired value.
+  MPC(int n, int d) : slave(n,d,Real(0)) { iceq = -1; }
 
   //! \brief Adds a master DOF to the constraint equation.
   //! \param[in] dof The the master DOF and associated coefficient to be added

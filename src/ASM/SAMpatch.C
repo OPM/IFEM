@@ -22,11 +22,12 @@ bool SAMpatch::init (const ASMVec& model, int numNod)
 
   // Initialize some model size parameters
   nnod = numNod;
-  for (size_t i = 0; i < model.size(); i++)
+  for (const ASMbase* pch : model)
   {
-    nel  += model[i]->getNoElms(false,true);
-    nceq += model[i]->getNoMPCs();
-    if (numNod == 0) nnod += model[i]->getNoNodes();
+    nel += pch->getNoElms(false,true);
+    nceq += pch->getNoMPCs();
+    if (numNod == 0)
+      nnod += pch->getNoNodes();
   }
 
   // Initialize the node/dof arrays (madof,msc) and compute ndof
@@ -41,15 +42,14 @@ bool SAMpatch::init (const ASMVec& model, int numNod)
   if (!nodeType.empty())
   {
     // Count the number of DOFs in each basis
-    std::map<char,size_t>::const_iterator it;
     std::map<char,size_t> ndofs;
     ndofs['D'] = ndofs['L'] = ndofs['P'] = ndofs['X'] = 0;
     for (size_t n = 0; n < nodeType.size(); n++)
       ndofs[nodeType[n]] += madof[n+1] - madof[n];
-    for (it = ndofs.begin(); it != ndofs.end(); it++)
-      if (it->second > 0)
-        IFEM::cout <<"Number of "<< it->first <<"-dofs      "
-                   << it->second << std::endl;
+    for (const std::pair<char,size_t>& dof : ndofs)
+      if (dof.second > 0)
+        IFEM::cout <<"Number of "<< dof.first <<"-dofs      "
+                   << dof.second << std::endl;
   }
 
   // Initialize the element connectivity arrays (mpmnpc,mmnpc)
@@ -73,39 +73,35 @@ bool SAMpatch::initNodeDofs (const ASMVec& model)
 {
   if (nnod < 1) return true;
 
-  int n;
-  char t;
-  size_t i, j;
-
   // Initialize the array of accumulated DOFs for the nodes
   madof = new int[nnod+1];
   memset(madof,0,(nnod+1)*sizeof(int));
 
-  int ierr = 0;
-  for (i = 0; i < model.size(); i++)
-    for (j = 0; j < model[i]->getNoNodes(); j++)
-      if ((n = model[i]->getNodeID(j+1)) > 0 && n <= nnod)
+  int n, ierr = 0;
+  for (const ASMbase* pch : model)
+    for (size_t j = 1; j <= pch->getNoNodes(); j++)
+      if ((n = pch->getNodeID(j)) > 0 && n <= nnod)
       {
-	if (madof[n] == 0)
-	  madof[n] = model[i]->getNodalDOFs(j+1);
-	else if (madof[n] != model[i]->getNodalDOFs(j+1))
-	  ierr++;
+        if (madof[n] == 0)
+          madof[n] = pch->getNodalDOFs(j);
+        else if (madof[n] != pch->getNodalDOFs(j))
+          ierr++;
 
-	// Define the node type for mixed methods (used by norm evaluations)
-	t = model[i]->getNodeType(j+1);
-	if (t != 'D')
-	{
-	  if (nodeType.empty()) nodeType.resize(nnod,'D');
-	  nodeType[n-1] = t;
-	}
+        // Define the node type for mixed methods (used by norm evaluations)
+        char nt = pch->getNodeType(j);
+        if (nt != 'D')
+        {
+          if (nodeType.empty()) nodeType.resize(nnod,'D');
+          nodeType[n-1] = nt;
+        }
       }
 
   madof[0] = 1;
   for (n = 0; n < nnod; n++)
     madof[n+1] += madof[n];
 
-  for (i = 0; i < model.size(); i++)
-    model[i]->initMADOF(madof);
+  for (ASMbase* pch : model)
+    pch->initMADOF(madof);
 
   // Initialize the array of DOF status codes
   ndof = madof[nnod]-1;
@@ -114,8 +110,8 @@ bool SAMpatch::initNodeDofs (const ASMVec& model)
     msc[n] = 1;
 
   ASMbase::BCVec::const_iterator bit;
-  for (j = 0; j < model.size(); j++)
-    for (bit = model[j]->begin_BC(); bit != model[j]->end_BC(); bit++)
+  for (const ASMbase* pch : model)
+    for (bit = pch->begin_BC(); bit != pch->end_BC(); ++bit)
     {
       int idof1 = madof[bit->node-1];
       int nndof = madof[bit->node] - idof1;
@@ -140,12 +136,11 @@ bool SAMpatch::initElementConn (const ASMVec& model)
   if (nel < 1) return true;
 
   // Find the size of the element connectivity array
-  size_t i, j;
+  size_t i;
   IntMat::const_iterator eit;
-  IntVec::const_iterator nit;
-  for (j = 0; j < model.size(); j++)
-    for (i = 1, eit = model[j]->begin_elm(); eit != model[j]->end_elm(); eit++)
-      if (model[j]->getElmID(i++) > 0)
+  for (const ASMbase* pch : model)
+    for (i = 1, eit = pch->begin_elm(); eit != pch->end_elm(); ++eit)
+      if (pch->getElmID(i++) > 0)
 	nmmnpc += eit->size();
 
   IntVec elmId;
@@ -156,18 +151,18 @@ bool SAMpatch::initElementConn (const ASMVec& model)
   mpmnpc = new int[nel+1];
   mmnpc  = new int[nmmnpc];
   int ip = mpmnpc[0] = 1;
-  for (j = 0; j < model.size(); j++)
-    for (i = 1, eit = model[j]->begin_elm(); eit != model[j]->end_elm(); eit++)
-      if ((id = model[j]->getElmID(i++)) > 0)
+  for (const ASMbase* pch : model)
+    for (i = 1, eit = pch->begin_elm(); eit != pch->end_elm(); ++eit)
+      if ((id = pch->getElmID(i++)) > 0)
       {
 	mpmnpc[ip] = mpmnpc[ip-1];
-	for (nit = eit->begin(); nit != eit->end(); nit++)
-	  if (*nit == -2147483648) // Hack for node 0: Using -maxint as flag
-	    mmnpc[(mpmnpc[ip]++)-1] = -model[j]->getNodeID(1);
-	  else if (*nit < 0)
-	    mmnpc[(mpmnpc[ip]++)-1] = -model[j]->getNodeID(1-(*nit));
+	for (int inod : *eit)
+	  if (inod == -2147483648) // Hack for node 0: Using -maxint as flag
+	    mmnpc[(mpmnpc[ip]++)-1] = -pch->getNodeID(1);
+	  else if (inod < 0)
+	    mmnpc[(mpmnpc[ip]++)-1] = -pch->getNodeID(1-inod);
 	  else
-	    mmnpc[(mpmnpc[ip]++)-1] =  model[j]->getNodeID(1+(*nit));
+	    mmnpc[(mpmnpc[ip]++)-1] =  pch->getNodeID(1+inod);
 
 	// Check that the elements are in consequtive order
 	if ((ip++) > 1 && id <= elmId.back())
@@ -179,10 +174,11 @@ bool SAMpatch::initElementConn (const ASMVec& model)
   if (outOfOrder == 0) return true;
 
   // We need to sort the elements in increasing external element numbers
-  IFEM::cout <<"Detected "<< outOfOrder <<" elements out of order, reordering..."
-             << std::endl;
+  IFEM::cout <<"Detected "<< outOfOrder
+             <<" elements out of order, reordering..."<< std::endl;
 
-  std::map<int, std::pair<int,int> > sortedElms;
+  typedef std::pair<int,int> Ipair;
+  std::map<int,Ipair> sortedElms;
   for (i = 0; i < elmId.size(); i++)
     if (sortedElms.find(elmId[i]) == sortedElms.end())
       sortedElms[elmId[i]] = std::make_pair(mpmnpc[i]-1,mpmnpc[i+1]-mpmnpc[i]);
@@ -197,12 +193,12 @@ bool SAMpatch::initElementConn (const ASMVec& model)
   int* new_mpmnpc = new int[nel+1];
   int* new_mmnpc  = new int[nmmnpc];
   ip = new_mpmnpc[0] = 1;
-  std::map<int, std::pair<int,int> >::const_iterator it;
-  for (it = sortedElms.begin(); it != sortedElms.end(); it++, ip++)
+  for (const std::pair<int,Ipair>& elm : sortedElms)
   {
-    int nen = it->second.second;
+    int nen = elm.second.second;
     new_mpmnpc[ip] = new_mpmnpc[ip-1] + nen;
-    memcpy(new_mmnpc+new_mpmnpc[ip-1]-1,mmnpc+it->second.first,nen*sizeof(int));
+    memcpy(new_mmnpc+new_mpmnpc[ip-1]-1,mmnpc+elm.second.first,nen*sizeof(int));
+    ip++;
   }
 
   // Replace the old ones...
@@ -217,10 +213,9 @@ bool SAMpatch::initElementConn (const ASMVec& model)
 bool SAMpatch::initConstraintEqs (const ASMVec& model)
 {
   // Estimate the size of the constraint equation array
-  size_t j;
   MPCIter cit;
-  for (j = 0; j < model.size(); j++)
-    for (cit = model[j]->begin_MPC(); cit != model[j]->end_MPC(); cit++)
+  for (const ASMbase* pch : model)
+    for (cit = pch->begin_MPC(); cit != pch->end_MPC(); ++cit)
       nmmceq += 1 + (*cit)->getNoMaster(true);
 
   // Initialize the constraint equation arrays
@@ -230,8 +225,8 @@ bool SAMpatch::initConstraintEqs (const ASMVec& model)
 
   mmceq  = new int[nmmceq];
   ttcc   = new Real[nmmceq];
-  for (j = 0; j < model.size(); j++)
-    for (cit = model[j]->begin_MPC(); cit != model[j]->end_MPC(); cit++, ip++)
+  for (const ASMbase* pch : model)
+    for (cit = pch->begin_MPC(); cit != pch->end_MPC(); ++cit, ip++)
     {
       mpmceq[ip] = mpmceq[ip-1];
 
@@ -325,8 +320,8 @@ bool SAMpatch::updateConstraintEqs (const ASMVec& model, const Vector* prevSol)
   if (nceq < 1) return true; // No constraints in this model
 
   MPCIter cit;
-  for (size_t j = 0; j < model.size(); j++)
-    for (cit = model[j]->begin_MPC(); cit != model[j]->end_MPC(); cit++)
+  for (const ASMbase* pch : model)
+    for (cit = pch->begin_MPC(); cit != pch->end_MPC(); ++cit)
     {
       if ((*cit)->iceq < 0) continue; // Skip the ignored constraint equations
 
@@ -348,8 +343,8 @@ bool SAMpatch::updateConstraintEqs (const ASMVec& model, const Vector* prevSol)
 	this->updateConstraintEqMaster((*cit)->getMaster(i),c0,ipeq);
 
       // Update the constant term of the constraint equation
-      if (!prevSol)
-	ttcc[jpeq] = 0.0;
+      if (!prevSol || c0 == Real(0)) // Note: c0=0 means no constant offset
+        ttcc[jpeq] = Real(0);
       else if (idof <= (int)prevSol->size())
 	ttcc[jpeq] = c0 - (*prevSol)(idof);
       else
