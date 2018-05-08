@@ -19,7 +19,7 @@
 
 /*!
   \brief Class representing the element matrices for a dynamic FEM problem
-  based on generalized alpha time integration.
+  based on Hilber-Hughes-Taylor time integration.
 */
 
 class HHTMats : public NewmarkMats
@@ -36,7 +36,7 @@ public:
   virtual const Vector& getRHSVector() const;
 
 private:
-  bool oldHHT; //!< If \e true, used toghether with NewmarkNLSIM
+  bool oldHHT; //!< If \e true, used together with NewmarkNLSIM
 };
 
 #endif

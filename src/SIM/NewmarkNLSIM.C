@@ -12,8 +12,8 @@
 //==============================================================================
 
 #include "NewmarkNLSIM.h"
-#include "SystemMatrix.h"
 #include "SIMoutput.h"
+#include "SystemMatrix.h"
 #include "TimeStep.h"
 #include "IFEM.h"
 #include "tinyxml.h"
@@ -26,6 +26,8 @@ NewmarkNLSIM::NewmarkNLSIM (SIMbase& sim) : NewmarkSIM(sim), Finert(nullptr)
   gamma = 0.6;
 
   predictor = 'd'; // default predictor (constant displacement)
+
+  iD = iV = iA = 0;
 }
 
 
@@ -52,7 +54,7 @@ bool NewmarkNLSIM::parse (const TiXmlElement* elem)
     const TiXmlElement* child = elem->FirstChildElement();
     for (; child; child = child->NextSiblingElement())
       if (!strcasecmp(child->Value(),"trueinertia"))
-        nRHSvec = 2;
+        nRHSvec = 2; // using true inertia forces from previous time step
   }
 
   return ok;
@@ -69,7 +71,8 @@ void NewmarkNLSIM::printProblem () const
     IFEM::cout <<"- based on the material stiffness matrix only\n";
 
   if (nRHSvec > 1)
-    IFEM::cout <<"- including true inertia forces from previous step in residual\n";
+    IFEM::cout <<"- including true inertia forces from previous step"
+               <<" in the force residual\n";
   else if (alpha2 == 0.0)
     return;
 
@@ -93,16 +96,26 @@ bool NewmarkNLSIM::initSol (size_t nSol)
   incDis.resize(nDOFs,true);
   predVel.resize(nDOFs,true);
   predAcc.resize(nDOFs,true);
+  this->MultiStepSIM::initSol(nSol);
+  if (solution.size() < 3)
+  {
+    std::cerr <<" *** NewmarkNLSIM::initSol: Too few solution vectors "
+              << solution.size() << std::endl;
+    return false;
+  }
 
-  return this->MultiStepSIM::initSol(nSol);
+  iA = solution.size() - 1;
+  iV = solution.size() - 2;
+
+  return true;
 }
 
 
 bool NewmarkNLSIM::advanceStep (TimeStep& param, bool updateTime)
 {
   // Update displacement solutions between time steps
-  for (int n = solution.size()-3; n > 0; n--)
-    std::copy(solution[n-1].begin(),solution[n-1].end(),solution[n].begin());
+  if (solution.size() > 3)
+    this->pushSolution(solution.size()-2);
 
   return this->NewmarkSIM::advanceStep(param,updateTime);
 }
@@ -110,20 +123,14 @@ bool NewmarkNLSIM::advanceStep (TimeStep& param, bool updateTime)
 
 void NewmarkNLSIM::finalizeRHSvector (bool)
 {
-  if (Finert)
+  // Add in the actual inertia force, computed from the equilibrium equation
+  if (Finert) // RHS -= alphaH*Finert
     model.addToRHSvector(0,*Finert,gamma-0.5);
 }
 
 
 bool NewmarkNLSIM::predictStep (TimeStep& param)
 {
-  if (solution.size() < 3)
-  {
-    std::cerr <<" *** NewmarkNLSIM::predictStep: Too few solution vectors "
-              << solution.size() << std::endl;
-    return false;
-  }
-
   if (rotUpd && model.getNoFields(1) == 6)
   {
     // Initalize the total angular rotations for this time step
@@ -143,15 +150,12 @@ bool NewmarkNLSIM::predictStep (TimeStep& param)
   std::cout <<"\nNewmarkNLSIM::predictStep";
 #endif
 
-  size_t iA = solution.size() - 1;
-  size_t iV = solution.size() - 2;
-
-  // Predicted new velocity
+  // Predicted velocity, V_n = v_n-1*(gamma/beta-1) + a_n-1*dt*(gamma/beta-2)/2
   predVel = solution[iV];
   predVel *= gamma/beta - 1.0;
-  predVel.add(solution[iA],(0.5*gamma/beta-1.0)*param.time.dt);
+  predVel.add(solution[iA],param.time.dt*(gamma/beta-2.0)*0.5);
 
-  // Predicted new acceleration
+  // Predicted acceleration, A_n = a_n-1*(1/(2*beta)-1) + v_n-1*1/(dt*beta)
   predAcc = solution[iA];
   predAcc *= 0.5/beta - 1.0;
   predAcc.add(solution[iV],1.0/(beta*param.time.dt));
@@ -185,13 +189,9 @@ bool NewmarkNLSIM::predictStep (TimeStep& param)
 bool NewmarkNLSIM::correctStep (TimeStep& param, bool converged)
 {
 #ifdef SP_DEBUG
-  std::cout <<"\nNewmarkNLSIM::correctStep(converged="
-            << std::boolalpha << converged <<")";
+  std::cout <<"\nNewmarkNLSIM::correctStep(iter="<< param.iter
+            <<",converged="<< std::boolalpha << converged <<")";
 #endif
-
-  size_t iD = 0;
-  size_t iA = solution.size() - 1;
-  size_t iV = solution.size() - 2;
 
   // Update current displacement, velocity and acceleration solutions
   incDis.add(linsol,1.0);
@@ -209,7 +209,8 @@ bool NewmarkNLSIM::correctStep (TimeStep& param, bool converged)
   }
 
 #if SP_DEBUG > 1
-  std::cout <<"\nCorrected displacement:"<< solution[iD]
+  std::cout <<"\nDisplacement increment:"<< incDis
+            <<"Corrected displacement:"<< solution[iD]
             <<"Corrected velocity:"<< solution[iV]
             <<"Corrected acceleration:"<< solution[iA];
   if (converged && Finert)

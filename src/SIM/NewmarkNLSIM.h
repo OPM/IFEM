@@ -146,7 +146,7 @@ class SystemVector;
           {\bf N}_n^i &=& a_n{\bf M}_n^i + b_n{\bf C}_n^i + c_n{\bf K}_n^i \\
           {\bf R}_n^i &=& (1+\alpha_H)\left[{\bf F}_n^{E,i} - {\bf F}_n^{S,i} -
                                     (\alpha_1{\bf M}_n^i + \alpha_2{\bf K}_n^i +
-                                     {\bf C}_n^i)\dot{\bf u}_n^i \right] +
+                                     {\bf C}_n^i)\dot{\bf u}_n^i \right] -
                           {\bf F}_n^{I,i} - \alpha_H\tilde{\bf R}_{n-1}
         \f}
       </LI>
@@ -209,7 +209,11 @@ protected:
   virtual void finalizeRHSvector(bool);
 
 private:
-  Vector incDis;  //!< Incremental displacements
+  unsigned short int iA; //!< Index to corrected acceleration vector
+  unsigned short int iV; //!< Index to corrected velocity vector
+  unsigned short int iD; //!< Index to corrected displacement vector
+
+  Vector incDis;  //!< Incremental displacement vector
   Vector predVel; //!< Predicted velocity vector
   Vector predAcc; //!< Predicted acceleration vector
 

@@ -94,13 +94,17 @@ const Vector& HHTMats::getRHSVector () const
 
   // Calculate the right-hand-side force vector of the dynamic problem
   // Pred.: RHS = (1+alphaH)*{S_ext + [alpha1*M + alpha2*K]*V} + M*(A-a)
+  // oldP.: RHS = (1+alphaH)*{S_ext - S_int + [alpha1*M + alpha2*K]*V} + M*a
   // Corr.: RHS = (1+alphaH)*{S_ext - S_int - [alpha1*M + alpha2*K]*V} - M*a
   // Note: The external load from the previous step is subtracted from
   // the predictor step force vector after the element assembly.
   Vector& RHS = const_cast<Vector&>(b.front());
   double alphaPlus1 = 1.5 - gamma;
   if (oldHHT)
+  {
     RHS *= alphaPlus1; // RHS = -(1+alphaH)*S_int
+    RHS.add(A[1]*vec[ia], isPredictor ? 1.0 : -1.0); // RHS (+/-)= M*a
+  }
   else if (isPredictor)
   {
     int pa = iv - 1; // index to predicted element acceleration vector (A)
@@ -125,8 +129,7 @@ const Vector& HHTMats::getRHSVector () const
     RHS.add(A[1]*vec[iv],alphaPlus1*alpha1); // RHS -= (1+alphaH)*alpha1*M*v
   if (alpha2 > 0.0)
     RHS.add(A[2]*vec[iv],alphaPlus1*alpha2); // RHS -= (1+alphaH)*alpha2*K*v
-  if (oldHHT)
-    RHS.add(A[1]*vec[ia], isPredictor ? 1.0 : -1.0); // RHS (+/-)= M*a
+
 #if SP_DEBUG > 2
   std::cout <<"\nElement right-hand-side vector"<< b.front();
 #endif

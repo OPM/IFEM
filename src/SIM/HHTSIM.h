@@ -60,9 +60,9 @@ class SystemVector;
 
     <LI>Predict new velocity and acceleration:
       \f{eqnarray*}{
-        {\bf v}_n &=& (\frac{\gamma}{\beta}-1)\dot{\bf u}_{n-1} +
+        {\bf v}_n &=& \frac{\gamma}{\beta}\dot{\bf u}_{n-1} +
                       \Delta t_n(\frac{\gamma}{2\beta}-1)\ddot{\bf u}_{n-1} \\
-        {\bf a}_n &=& (\frac{1}{2\beta}-1)\ddot{\bf u}_{n-1} +
+        {\bf a}_n &=& \frac{1}{2\beta}\ddot{\bf u}_{n-1} +
                       \frac{1}{\Delta t_n\beta}\dot{\bf u}_{n-1}
       \f}\f[ \begin{array}{lcll}
         \dot{\bf u}_n^0 &=& {\bf v}_n & \mbox{(predicted velocity)} \\
@@ -93,10 +93,12 @@ class SystemVector;
     <LI>Compute Newton matrix and associated incremental load vector:
       \f{eqnarray*}{
         {\bf N}_n^0 &=& a_n{\bf M}_n^0 + b_n{\bf C}_n^0 + c_n{\bf K}_n^0 \\
-        {\bf R}_n^0 &=& (1+\alpha_H)\left[{\bf F}_n^{E,0} - {\bf F}_n^{S,0} +
+        {\bf R}_n^0 &=& (1+\alpha_H)\left[{\bf F}_n^{E,0} -
+                                          {\bf F}_{n-1}^{E,0} +
                                     (\alpha_1{\bf M}_n^0 + \alpha_2{\bf K}_n^0 +
                                      {\bf C}_n^0){\bf v}_n \right] +
-                        {\bf F}_n^{I,0} - \alpha_H\tilde{\bf R}_{n-1}
+                        {\bf M}_n^0{\bf a}_n - {\bf F}_n^{I,0} +
+                        \tilde{\bf R}_{n-1}
       \f} where \f{eqnarray*}{
       a_n &=& \frac{1}{\Delta t_n^2\beta} +
               (1+\alpha_H)\frac{\alpha_1\gamma}{\Delta t_n\beta} \\
@@ -113,6 +115,13 @@ class SystemVector;
       \f[ {\bf N}_n^0 \Delta{\bf u}_n^0 \;=\; {\bf R}_n^0
         \quad\Longrightarrow\; \Delta{\bf u}_n^0
       \f]
+    </LI>
+
+    <LI>Adjust the predicted velocity and acceleration:
+      \f{eqnarray*}{
+        {\bf v}_n &=& {\bf v}_n - \dot{\bf u}_{n-1} \\
+        {\bf a}_n &=& {\bf a}_n - \ddot{\bf u}_{n-1}
+      \f}
     </LI>
 
     <LI><H4>WHILE <I>i</I> < <I>MaxIt</I> AND
@@ -213,8 +222,9 @@ private:
   unsigned short int pV; //!< Index to predicted velocity vector
   unsigned short int iA; //!< Index to corrected acceleration vector
   unsigned short int iV; //!< Index to corrected velocity vector
+  unsigned short int iD; //!< Index to corrected displacement vector
 
-  Vector incDis; //!< Incremental displacement vector
+  Vector incDis;  //!< Incremental displacement vector
 
   SystemVector* Finert; //!< Actual inertia forces in last converged time step
   SystemVector* Fext;   //!< External force vector of previous time step

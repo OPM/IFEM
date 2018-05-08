@@ -21,13 +21,15 @@
 
 HHTSIM::HHTSIM (SIMbase& sim) : NewmarkSIM(sim), Finert(nullptr), Fext(nullptr)
 {
+  nRHSvec = 3; // 0: residual force, 1: inertia force, 2: external forces
+
   // Default Newmark parameters (alpha = -0.1)
   beta = 0.3025;
   gamma = 0.6;
-  nRHSvec = 3;
-  predictor = 'd';
 
-  pV = pA = iV = iA = 0;
+  predictor = 'd'; // default predictor (constant displacement)
+
+  pV = pA = iD = iV = iA = 0;
 }
 
 
@@ -106,8 +108,8 @@ bool HHTSIM::initSol (size_t nSol)
 bool HHTSIM::advanceStep (TimeStep& param, bool updateTime)
 {
   // Update displacement solutions between time steps
-  for (int n = solution.size()-5; n > 0; n--)
-    std::copy(solution[n-1].begin(),solution[n-1].end(),solution[n].begin());
+  if (solution.size() > 5)
+    this->pushSolution(solution.size()-4);
 
   return this->NewmarkSIM::advanceStep(param,updateTime);
 }
@@ -119,7 +121,7 @@ bool HHTSIM::advanceStep (TimeStep& param, bool updateTime)
   This method merges the nodal point loads into the right-hand-side vector of
   the linearized dynamic equilibrium equation, according to the HHT scheme.
   It also adds the actual inertia force \e *Finert which has been computed
-  from the dynamic equilibium equation.
+  from the dynamic equilibrium equation.
 */
 
 void HHTSIM::finalizeRHSvector (bool predicting)
@@ -178,12 +180,12 @@ bool HHTSIM::predictStep (TimeStep& param)
   std::cout <<"\nHHTSIM::predictStep";
 #endif
 
-  // Predicted velocity, V_n = v_n-1 * gamma/beta + a_n-1 * dt*(gamma/beta-2)/2
+  // Predicted velocity, V_n = v_n-1*gamma/beta + a_n-1*dt*(gamma/beta-2)/2
   solution[pV] = solution[iV];
   solution[pV] *= gamma/beta;
   solution[pV].add(solution[iA],param.time.dt*(gamma/beta-2.0)*0.5);
 
-  // Predicted acceleration, A_n = a_n-1 * 1/(2*beta) + v_n-1 * 1/(dt*beta)
+  // Predicted acceleration, A_n = a_n-1*1/(2*beta) + v_n-1*1/(dt*beta)
   solution[pA] = solution[iA];
   solution[pA] *= 0.5/beta;
   solution[pA].add(solution[iV],1.0/(beta*param.time.dt));
@@ -229,8 +231,6 @@ bool HHTSIM::correctStep (TimeStep& param, bool converged)
     solution[iV] = solution[pV];
     solution[iA] = solution[pA];
   }
-
-  const unsigned short int iD = 0;
 
   // Update current displacement, velocity and acceleration solutions
   incDis.add(linsol,1.0);
