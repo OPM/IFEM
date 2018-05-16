@@ -280,6 +280,11 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
       IFEM::cout <<"\tCollapsed edge P"<< patch <<" E"<< edge << std::endl;
       pch->collapseEdge(edge);
     }
+
+#ifdef USE_OPENMP
+    // Cannot do multi-threaded assembly with collapsed edges
+    omp_set_num_threads(1);
+#endif
   }
 
   else if (!strcasecmp(elem->Value(),"immersedboundary"))
