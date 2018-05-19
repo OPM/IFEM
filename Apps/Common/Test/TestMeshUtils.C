@@ -10,36 +10,23 @@
 //!
 //==============================================================================
 
-#include "IntegrandBase.h"
 #include "MeshUtils.h"
 #include "SIM2D.h"
 
 #include "gtest/gtest.h"
 
 
-class TestSIM : public SIM2D
-{
-  class DummyIntegrand : public IntegrandBase {};
-
-public:
-  TestSIM() : SIM2D(new DummyIntegrand())
-  {
-    this->createDefaultModel();
-    this->preprocess();
-  }
-  virtual ~TestSIM() {}
-};
-
-
 TEST(TestMeshUtils, Aspect2D)
 {
-  TestSIM model;
+  SIM2D model;
+  ASSERT_TRUE(model.createDefaultModel());
+  ASSERT_TRUE(model.createFEMmodel());
 
   Vector aspect;
   MeshUtils::computeAspectRatios(aspect, model);
   ASSERT_FLOAT_EQ(aspect.front(), 1.0);
 
-  Vector tmp(model.getNoDOFs());
+  Vector tmp(2*model.getNoNodes());
   tmp(2) = -1.0;
   MeshUtils::computeAspectRatios(aspect, model, tmp);
   ASSERT_FLOAT_EQ(aspect.front(), 2.0);
@@ -48,13 +35,15 @@ TEST(TestMeshUtils, Aspect2D)
 
 TEST(TestMeshUtils, Skewness2D)
 {
-  TestSIM model;
+  SIM2D model;
+  ASSERT_TRUE(model.createDefaultModel());
+  ASSERT_TRUE(model.createFEMmodel());
 
   Vector skewness;
   MeshUtils::computeMeshSkewness(skewness, model);
   ASSERT_FLOAT_EQ(skewness.front(), 0.0);
 
-  Vector tmp(model.getNoDOFs());
+  Vector tmp(2*model.getNoNodes());
   tmp(1) = -1.0;
   MeshUtils::computeMeshSkewness(skewness, model, tmp);
   ASSERT_FLOAT_EQ(skewness.front(), 0.5);
