@@ -1361,7 +1361,7 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
             norm->setProjectedFields(f, k);
             projOfs += ndof;
           } else
-            this->extractPatchSolution(ssol[k],norm->getProjection(k),lp-1,nCmp,1);
+            this->extractPatchSolution(ssol[k],norm->getProjection(k),pch,nCmp,1);
 
         if (mySol)
           mySol->initPatch(pch->idx);
@@ -1396,7 +1396,7 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
           norm->setProjectedFields(f, k);
           projOfs += ndof;
         } else
-          this->extractPatchSolution(ssol[k],norm->getProjection(k),i,nCmp,1);
+          this->extractPatchSolution(ssol[k],norm->getProjection(k),myModel[i],nCmp,1);
 
       if (mySol)
         mySol->initPatch(myModel[i]->idx);
@@ -1860,10 +1860,9 @@ bool SIMbase::projectAnaSol (Vector& ssol,
 
 
 size_t SIMbase::extractPatchSolution (const Vector& sol, Vector& vec,
-                                      int pindx, unsigned char nndof,
+                                      const ASMbase* pch, unsigned char nndof,
                                       unsigned char basis) const
 {
-  ASMbase* pch = pindx >= 0 ? this->getPatch(pindx+1) : nullptr;
   if (!pch || sol.empty()) return 0;
 
   if (basis != 0 && nndof != 0 &&
@@ -1881,10 +1880,9 @@ size_t SIMbase::extractPatchSolution (const Vector& sol, Vector& vec,
 
 
 bool SIMbase::injectPatchSolution (Vector& sol, const Vector& vec,
-                                   int pindx, unsigned char nndof,
+                                   const ASMbase* pch, unsigned char nndof,
                                    unsigned char basis) const
 {
-  ASMbase* pch = pindx >= 0 ? this->getPatch(pindx+1) : nullptr;
   if (!pch) return false;
 
   if (basis > 0 && nndof > 0 &&

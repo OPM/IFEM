@@ -544,7 +544,7 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
 
     if (msgLevel > 1)
       IFEM::cout <<"Writing primary solution for patch "
-                 << pch->idx << std::endl;
+                 << pch->idx+1 << std::endl;
 
     // Evaluate primary solution variables
 
@@ -851,25 +851,25 @@ bool SIMoutput::writeGlvP (const Vector& ssol, int iStep, int& nBlock,
 
   Vector::const_iterator ssolIt = ssol.begin();
   int geomID = myGeomID;
-  for (size_t i = 0; i < myModel.size(); i++)
+  for (ASMbase* pch : myModel)
   {
-    if (myModel[i]->empty()) continue; // skip empty patches
+    if (pch->empty()) continue; // skip empty patches
 
     if (msgLevel > 1)
-      IFEM::cout <<"Writing projected solution for patch "<< i+1 << std::endl;
+      IFEM::cout <<"Writing projected solution for patch "
+                 << pch->idx+1 << std::endl;
 
     if (this->fieldProjections())
     {
-      size_t nval = nComp*myModel[i]->getNoProjectionNodes();
-      lovec.resize(nval);
-      std::copy(ssolIt,ssolIt+nval,lovec.begin());
+      size_t nval = nComp*pch->getNoProjectionNodes();
+      lovec = RealArray(ssolIt,ssolIt+nval);
       ssolIt += nval;
     }
     else
-      this->extractPatchSolution(ssol,lovec,i,nComp,1);
+      this->extractPatchSolution(ssol,lovec,pch,nComp,1);
 
     // Evaluate the solution variables at the visualization points
-    if (!myModel[i]->evalProjSolution(field,lovec,opt.nViz,nComp))
+    if (!pch->evalProjSolution(field,lovec,opt.nViz,nComp))
       return false;
 
     size_t j = 1; // Write out to VTF-file as scalar fields

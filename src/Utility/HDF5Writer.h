@@ -31,12 +31,12 @@ class HDF5Writer : public DataWriter
 {
 public:
   //! \brief The constructor opens a named HDF5-file.
-  //! \param[in] name The name (filename without extension) of data file
+  //! \param[in] name The name (without extension) of the data file
   //! \param[in] adm The process administrator
   //! \param[in] append Whether to append to or overwrite an existing file
   //! \param[in] keepopen Whether to always keep the HDF5 open
-  HDF5Writer(const std::string& name, const ProcessAdm& adm, bool append = false,
-             bool keepopen = false);
+  HDF5Writer(const std::string& name, const ProcessAdm& adm,
+             bool append = false, bool keepopen = false);
 
   //! \brief Empty destructor.
   virtual ~HDF5Writer() {}
@@ -46,7 +46,7 @@ public:
 
   //! \brief Opens the file at a given time level.
   //! \param[in] level The requested time level
-  virtual void openFile(int level) { openFile(level, false); }
+  virtual void openFile(int level) { this->openFile(level,false); }
 
   //! \brief Opens the file at a given time level.
   //! \param[in] level The requested time level
@@ -70,7 +70,7 @@ public:
 
   //! \brief Writes data from a SIM to file.
   //! \param[in] level The time level to write the data at
-  //! \param[in] entry The DataEntry describing the vector
+  //! \param[in] entry The DataEntry describing the data to write
   //! \param[in] geometryUpdated Whether or not geometries should be written
   //! \param[in] prefix Field name prefix
   //!
@@ -82,7 +82,7 @@ public:
 
   //! \brief Writes nodal forces to file.
   //! \param[in] level The time level to write the data at
-  //! \param[in] entry The DataEntry describing the vector
+  //! \param[in] entry The DataEntry describing the data to write
   virtual void writeNodalForces(int level, const DataEntry& entry);
 
   //! \brief Writes knot span field to file.
@@ -92,7 +92,7 @@ public:
   virtual void writeKnotspan(int level, const DataEntry& entry,
                              const std::string& prefix);
 
-  //! \brief Write a basis to file
+  //! \brief Writes a basis to file.
   //! \param[in] level The time level to write the basis at
   //! \param[in] entry The DataEntry describing the basis
   //! \param[in] prefix Prefix for basis
@@ -140,26 +140,26 @@ public:
   //! \param[in] basisName Check for a particular basis
   bool hasGeometries(int level, const std::string& basisName = "");
 
-  //! \brief Write restart data.
-  //! \param level Level to write data at
-  //! \param data Data to write
+  //! \brief Writes restart data to file.
+  //! \param[in] level Level to write data at
+  //! \param[in] data Data to write
   bool writeRestartData(int level, const DataExporter::SerializeData& data);
 
-  //! \brief Read restart data from file.
-  //! \param data The map to store data in
-  //! \param level Level to read (-1 to read last level in file)
+  //! \brief Reads restart data from file.
+  //! \param[out] data The map to store data in
+  //! \param[in] level Level to read (-1 to read last level in file)
   //! \returns Negative value on error, else restart level loaded
   int readRestartData(DataExporter::SerializeData& data, int level = -1);
 
-  //! \brief Internal helper function. Reads an array into an array of chars.
+  //! \brief Internal helper function reading into an array of chars.
   //! \param[in] group The HDF5 group to read data from
   //! \param[in] name The name of the array
-  //! \param[in] len The length of the data to read
+  //! \param[out] len The length of the data read
   //! \param[out] data The array to read data into
   void readArray(int group, const std::string& name, int& len, char*& data);
 
 protected:
-  //! \brief Internal helper function. Writes a data array to HDF5 file.
+  //! \brief Internal helper function writing a data array to file.
   //! \param[in] group The HDF5 group to write data into
   //! \param[in] name The name of the array
   //! \param[in] len The length of the array
@@ -168,30 +168,30 @@ protected:
   void writeArray(int group, const std::string& name,
                   int len, const void* data, int type);
 
-  //! \brief Internal helper function. Writes a SIM's basis (geometry) to file.
+  //! \brief Internal helper function writing a SIM's basis (geometry) to file.
   //! \param[in] SIM The SIM we want to write basis for
   //! \param[in] name The name of the basis
   //! \param[in] basis 1/2 Write primary or secondary basis from SIM
   //! \param[in] level The time level to write the basis at
   //! \param[in] redundant Whether or not basis is redundant across processes
-  void writeBasis(SIMbase* SIM, const std::string& name, int basis,
-                  int level, bool redundant=false);
+  void writeBasis(const SIMbase* SIM, const std::string& name,
+                  int basis, int level, bool redundant = false);
 
-  //! \brief Internal helper function. Reads an array into a array of doubles.
+  //! \brief Internal helper function reading into an array of doubles.
   //! \param[in] group The HDF5 group to read data from
   //! \param[in] name The name of the array
-  //! \param[in] len The length of the data to read
+  //! \param[out] len The length of the data read
   //! \param[out] data The array to read data into
   void readArray(int group, const std::string& name, int& len, double*& data);
 
-  //! \brief Internal helper function. Reads an array into a array of integers.
+  //! \brief Internal helper function reading into an array of integers.
   //! \param[in] group The HDF5 group to read data from
   //! \param[in] name The name of the array
-  //! \param[in] len The length of the data to read
+  //! \param[out] len The length of the data read
   //! \param[out] data The array to read data into
   void readArray(int group, const std::string& name, int& len, int*& data);
 
-  //! \brief Internal helper function. Checks if a group exists in the file.
+  //! \brief Internal helper function checking if a group exists in the file.
   //! \param[in] parent The HDF5 group of the parent
   //! \param[in] group The name of the group to check for
   //! \return \e true if group exists, otherwise \e false

@@ -131,6 +131,7 @@ TEST(TestSIM3D, ProjectSolutionMixed)
 TEST(TestSIM, InjectPatchSolution)
 {
   TestProjectSIM<SIM2D> sim({1,1});
+  ASMbase* pch = sim.getPatch(1);
 
   Vector sol(2*sim.getNoNodes(1) + sim.getNoNodes(2));
   Vector lsol(2*sim.getNoNodes(1));
@@ -139,7 +140,7 @@ TEST(TestSIM, InjectPatchSolution)
     lsol[2*i] = lsol[2*i+1] = i+1;
 
   ASSERT_TRUE(sim.addMixedMADOF(1, 2));
-  sim.injectPatchSolution(sol, lsol, 0, 2, 1);
+  sim.injectPatchSolution(sol, lsol, pch, 2, 1);
   for (i = ofs = 0; i < sim.getNoNodes(1); i++, ofs += 2) {
     EXPECT_FLOAT_EQ(sol[ofs], i+1);
     EXPECT_FLOAT_EQ(sol[ofs+1], i+1);
@@ -153,7 +154,7 @@ TEST(TestSIM, InjectPatchSolution)
   for (i = 0; i < sim.getNoNodes(2); i++)
     lsol2[2*i] = lsol2[2*i+1] = i+1;
 
-  sim.injectPatchSolution(sol2, lsol2, 0, 2, 2);
+  sim.injectPatchSolution(sol2, lsol2, pch, 2, 2);
   for (i = ofs = 0; i < sim.getNoNodes(1); i++, ofs++)
     EXPECT_FLOAT_EQ(sol2[ofs], 0);
 

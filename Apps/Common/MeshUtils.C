@@ -27,28 +27,25 @@ static bool compute(Vector& result, const SIMbase& model,
 {
   result.resize(model.getNoElms());
 
-  for (int l = 0; l < model.getNoPatches(); l++) {
-    Vector locvec;
-    int loc = model.getLocalPatchIndex(l+1);
-    if (loc == 0)
-      continue;
+  for (int idx = 1; idx <= model.getNoPatches(); idx++) {
+    ASMbase* pch = model.getPatch(idx,true);
+    if (!pch) continue;
 
-    model.extractPatchSolution(displacement,locvec,loc-1);
-    const ASMbase* pch = model.getPatch(loc);
+    Vector locvec;
     if (!displacement.empty()) {
-      model.extractPatchSolution(displacement,locvec,loc-1);
-      const_cast<ASMbase*>(pch)->updateCoords(locvec);
+      model.extractPatchSolution(displacement,locvec,pch);
+      pch->updateCoords(locvec);
     }
 
-   int iel = 0;
-   IntMat::const_iterator elm_it = pch->begin_elm();
-   for (size_t e = 1; elm_it != pch->end_elm(); ++elm_it, ++e)
-     if ((iel = pch->getElmID(e)) > 0)
-       result(iel) = func(*pch,e);
+    int iel = 0;
+    size_t nel = pch->getNoElms(true);
+    for (size_t e = 1; e <= nel; e++)
+      if ((iel = pch->getElmID(e)) > 0)
+        result(iel) = func(*pch,e);
 
     if (!displacement.empty()) {
-      locvec *= -1;
-      const_cast<ASMbase*>(pch)->updateCoords(locvec);
+      locvec *= -1.0;
+      pch->updateCoords(locvec);
     }
   }
 

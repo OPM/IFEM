@@ -566,21 +566,23 @@ public:
   //! \brief Extracts a local solution vector for a specified patch.
   //! \param[in] sol Global primary solution vector in DOF-order
   //! \param[out] vec Local solution vector associated with specified patch
-  //! \param[in] pindx Local patch index to extract solution vector for
+  //! \param[in] pch The patch to extract solution vector for
   //! \param[in] nndof Number of DOFs per node (optional)
   //! \param[in] basis Basis to extract for (optional)
   //! \return Total number of DOFs in the patch (first basis only if mixed)
-  size_t extractPatchSolution(const Vector& sol, Vector& vec, int pindx,
+  size_t extractPatchSolution(const Vector& sol, Vector& vec,
+                              const ASMbase* pch,
                               unsigned char nndof = 0,
                               unsigned char basis = 0) const;
 
   //! \brief Injects a patch-wise solution vector into the global vector.
   //! \param sol Global primary solution vector in DOF-order
   //! \param[in] vec Local solution vector associated with specified patch
-  //! \param[in] pindx Local patch index to inject solution vector for
+  //! \param[in] pch The patch to inject solution vector for
   //! \param[in] nndof Number of DOFs per node (optional)
   //! \param[in] basis Basis to inject for (optional)
-  bool injectPatchSolution(Vector& sol, const Vector& vec, int pindx,
+  bool injectPatchSolution(Vector& sol, const Vector& vec,
+                           const ASMbase* pch,
                            unsigned char nndof = 0,
                            unsigned char basis = 0) const;
 
