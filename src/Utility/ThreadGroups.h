@@ -29,6 +29,12 @@ class ThreadGroups
   typedef std::vector<IntVec> IntMat;  //!< Element lists for all threads
 
 public:
+  //! Directions to consider for element stripes.
+  enum StripDirection { U, V, W, ANY };
+
+  //! \brief Default constructor.
+  ThreadGroups(StripDirection dir = ANY) : stripDir(dir) {}
+
   //! \brief Calculates a 2D thread group partitioning based on strips.
   //! \param[in] el1 Flags non-zero knot spans in first parameter direction
   //! \param[in] el2 Flags non-zero knot spans in second parameter direction
@@ -74,9 +80,17 @@ public:
 
 protected:
   //! \brief Calculates the parameter direction of the treading strips in 2D.
-  static int getStripDirection(int nel1, int nel2, int parts);
+  static StripDirection getStripDirection(int nel1, int nel2,
+                                          int parts);
   //! \brief Calculates the parameter direction of the treading strips in 3D.
-  static int getStripDirection(int nel1, int nel2, int nel3, int parts);
+  static StripDirection getStripDirection(int nel1, int nel2, int nel3,
+                                          int parts);
+
+  //! \brief Prints out a threading group definition.
+  static void printGroup(const IntMat& group, int g);
+
+public:
+  StripDirection stripDir; //!< Actual direction to split elements
 
 private:
   IntMat tg[2]; //!< Threading groups (always two, but the second may be empty)

@@ -62,6 +62,41 @@ TEST(TestThreadGroups, Groups2D)
   CHECK_INTMATRICES_EQUAL(groups[0], "src/Utility/Test/refdata/ThreadGroups_2D_1.ref");
 #endif
 
+  std::vector<bool> b14(4, true);
+  std::vector<bool> b24(4, true);
+
+  for (int i = 0; i < 2; ++i) {
+    ThreadGroups group((ThreadGroups::StripDirection)i);
+    group.calcGroups(b14, b24, 1, 1);
+#ifdef USE_OPENMP
+    const int ref1[4][4] = {{0,4,8,12}, {2,6,10,14},
+                            {0,1,2, 3}, {8,9,10,11}};
+
+    const int ref2[4][4] = {{1,5,9,13}, { 3, 7,11,15},
+                            {4,5,6, 7}, {12,13,14,15}};
+
+    ASSERT_EQ(group.size(), 2U);
+    ASSERT_EQ(group[0].size(), 2U);
+    ASSERT_EQ(group[1].size(), 2U);
+    ASSERT_EQ(group[0][0].size(), 4U);
+    ASSERT_EQ(group[0][1].size(), 4U);
+    ASSERT_EQ(group[1][0].size(), 4U);
+    ASSERT_EQ(group[1][1].size(), 4U);
+    for (size_t j = 0; j < 4; ++j) {
+      ASSERT_EQ(group[0][0][j], ref1[i*2][j]);
+      ASSERT_EQ(group[0][1][j], ref1[i*2+1][j]);
+      ASSERT_EQ(group[1][0][j], ref2[i*2][j]);
+      ASSERT_EQ(group[1][1][j], ref2[i*2+1][j]);
+    }
+#else
+    ASSERT_EQ(group.size(), 1U);
+    ASSERT_EQ(group[0].size(), 1U);
+    ASSERT_EQ(group[0][0].size(), 16U);
+    for (int j = 0; j < 16; ++j)
+      ASSERT_EQ(group[0][0][j], j);
+#endif
+  }
+
 #ifdef USE_OPENMP
   omp_set_num_threads(3);
 #endif
