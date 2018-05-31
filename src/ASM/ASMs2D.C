@@ -736,6 +736,8 @@ bool ASMs2D::collapseEdge (int edge, int basis)
       return false;
     }
 
+  threadGroups.stripDir = edge <= 2 ? ThreadGroups::U : ThreadGroups::V;
+
   return true;
 }
 
