@@ -13,6 +13,7 @@
 #include "SIM2D.h"
 #include "SIM3D.h"
 #include "IntegrandBase.h"
+#include "ASMmxBase.h"
 
 #include "gtest/gtest.h"
 #include "tinyxml.h"
@@ -130,6 +131,8 @@ TEST(TestSIM3D, ProjectSolutionMixed)
 
 TEST(TestSIM, InjectPatchSolution)
 {
+  ASMmxBase::Type = ASMmxBase::REDUCED_CONT_RAISE_BASIS1;
+  ASMmxBase::geoBasis = 2;
   TestProjectSIM<SIM2D> sim({1,1});
   ASMbase* pch = sim.getPatch(1);
 

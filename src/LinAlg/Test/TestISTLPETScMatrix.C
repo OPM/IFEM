@@ -11,6 +11,7 @@
 //==============================================================================
 
 #include "AlgEqSystem.h"
+#include "ASMmxBase.h"
 #include "ISTLMatrix.h"
 #include "PETScMatrix.h"
 #include "SIM2D.h"
@@ -42,6 +43,9 @@ public:
 
 TEST(TestISTLPETScMatrix, SchurComplement)
 {
+  ASMmxBase::Type = ASMmxBase::FULL_CONT_RAISE_BASIS1;
+  ASMmxBase::geoBasis = 2;
+
   Matrix stencil(13,13);
   for (size_t i = 1; i<= 13; ++i)
     for (size_t j = 1; j <= 13; ++j)
