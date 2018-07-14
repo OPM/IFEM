@@ -214,6 +214,9 @@ public:
   //! \param[in] refTol Mesh refinement threshold
   virtual bool refine(const RealFunc& refC, double refTol) = 0;
 
+  //! \brief Finds the node that is closest to the given point \b X.
+  virtual std::pair<size_t,double> findClosestNode(const Vec3& X) const;
+
 protected:
   //! \brief Refines the mesh adaptively.
   //! \param[in] prm Input data used to control the mesh refinement

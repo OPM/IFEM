@@ -53,4 +53,10 @@ bool ASMunstruct::refine (const LR::RefineData&, Vectors&, const char*)
   return false;
 }
 
+
+std::pair<size_t,double> ASMunstruct::findClosestNode (const Vec3&) const
+{
+  return std::make_pair(0,-1.0);
+}
+
 #endif
