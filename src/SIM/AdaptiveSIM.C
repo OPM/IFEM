@@ -214,7 +214,8 @@ bool AdaptiveSIM::initAdaptor (size_t normGroup)
 }
 
 
-bool AdaptiveSIM::solveStep (const char* inputfile, int iStep, bool withRF)
+bool AdaptiveSIM::solveStep (const char* inputfile, int iStep, bool withRF,
+                             std::streamsize precision)
 {
   model.getProcessAdm().cout <<"\nAdaptive step "<< iStep << std::endl;
   if (iStep > 1)
@@ -265,7 +266,7 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep, bool withRF)
     return false;
 
   return model.dumpResults(solution.front(),0.0,
-                           model.getProcessAdm().cout,true,6);
+                           model.getProcessAdm().cout,true,precision);
 }
 
 
@@ -276,12 +277,14 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep, bool withRF)
 typedef std::pair<double,int> DblIdx;
 
 
-bool AdaptiveSIM::adaptMesh (int iStep)
+bool AdaptiveSIM::adaptMesh (int iStep, std::streamsize outPrec)
 {
   if (iStep < 2)
     return true;
 
+  std::streamsize oldPrec = outPrec > 0 ? IFEM::cout.precision(outPrec) : 0;
   this->printNorms();
+  if (outPrec > 0) IFEM::cout.precision(oldPrec);
 
   if (adaptor >= gNorm.size() || adaptor >= eNorm.rows())
     return false;
@@ -346,21 +349,22 @@ bool AdaptiveSIM::adaptMesh (int iStep)
   std::vector<DblIdx> errors;
   if (scheme == 2) // use errors per function
   {
-    if (model.getFEModel()[0]->getNoRefineNodes() !=
-        model.getFEModel()[0]->getNoNodes(1)) {
-      if (model.getNoPatches() > 1) {
-        std::cerr <<" *** AdaptiveSIM::adaptMesh: Multi-patch refinement"
-                  <<" is not available for mixed models."<< std::endl;
-        return false;
-      }
-      errors.reserve(model.getFEModel()[0]->getNoRefineNodes());
-      for (i = 0; i < model.getFEModel()[0]->getNoRefineNodes(); i++)
-        errors.push_back(DblIdx(0.0,i));
-    } else {
-      errors.reserve(model.getNoNodes());
-      for (i = 0; i < model.getNoNodes(); i++)
-        errors.push_back(DblIdx(0.0,i));
+    ASMbase* patch = model.getPatch(1);
+    if (!patch) return false;
+
+    if (patch->getNoRefineNodes() == patch->getNoNodes(1))
+      errors.resize(model.getNoNodes(),DblIdx(0.0,0));
+    else if (model.getNoPatches() == 1)
+      errors.resize(patch->getNoRefineNodes(),DblIdx(0.0,0));
+    else
+    {
+      std::cerr <<" *** AdaptiveSIM::adaptMesh: Multi-patch refinement"
+                <<" is not available for mixed models."<< std::endl;
+      return false;
     }
+
+    for (i = 0; i < errors.size(); i++)
+      errors[i].second = i;
 
     for (ASMbase* patch : model.getFEModel()) {
       if (!patch) return false;
@@ -407,8 +411,8 @@ bool AdaptiveSIM::adaptMesh (int iStep)
     limit = errors.front().first * beta/100.0;
     break;
   case AVERAGE: // beta percent of avg error (typical 100%)
-    for (size_t i = 0; i < errors.size(); i++)
-      sumErr += errors[i].first;
+    for (const DblIdx& error : errors)
+      sumErr += error.first;
     limit = sumErr/errors.size() * beta/100.0;
     break;
   case MINIMUM: // beta percent of min error (more than 100%)
