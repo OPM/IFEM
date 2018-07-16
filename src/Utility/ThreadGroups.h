@@ -33,7 +33,7 @@ public:
   enum StripDirection { U, V, W, ANY };
 
   //! \brief Default constructor.
-  ThreadGroups(StripDirection dir = ANY) : stripDir(dir) {}
+  explicit ThreadGroups(StripDirection dir = ANY) : stripDir(dir) {}
 
   //! \brief Calculates a 2D thread group partitioning based on strips.
   //! \param[in] el1 Flags non-zero knot spans in first parameter direction
