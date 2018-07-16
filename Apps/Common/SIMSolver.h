@@ -122,7 +122,7 @@ template<class T1> class SIMSolver : public SIMSolverStat<T1>
 {
 public:
   //! \brief The constructor initializes the reference to the actual solver.
-  SIMSolver(T1& s1) : SIMSolverStat<T1>(s1,"Time integration driver")
+  explicit SIMSolver(T1& s1) : SIMSolverStat<T1>(s1,"Time integration driver")
   {
     saveDivergedSol = false;
   }

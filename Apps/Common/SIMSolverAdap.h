@@ -28,7 +28,7 @@ template<class T1> class SIMSolverAdap : public SIMSolverStat<T1>
 {
 public:
   //! \brief The constructor forwards to the parent class constructor.
-  SIMSolverAdap(T1& s1) : SIMSolverStat<T1>(s1), aSim(s1,false)
+  explicit SIMSolverAdap(T1& s1) : SIMSolverStat<T1>(s1), aSim(s1,false)
   {
     this->S1.setSol(&aSim.getSolution());
   }

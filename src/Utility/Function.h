@@ -195,7 +195,7 @@ class VecFunc : public utl::SpatialFunction<Vec3>, public FunctionBase
 {
 protected:
   //! \brief The constructor is protected to allow sub-class instances only.
-  VecFunc(size_t n = 3) : utl::SpatialFunction<Vec3>(Vec3()) { ncmp = n; }
+  explicit VecFunc(size_t n = 3) : utl::SpatialFunction<Vec3>(Vec3()) { ncmp = n; }
 
 public:
   //! \brief Empty destructor.
