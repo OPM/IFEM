@@ -21,7 +21,15 @@ let "nval=$nmatch-$nsys-$nnone"
 if test $nval -gt 0
 then
   cat $tmpfil
-  rm $tmpfil
+  $cppcheck_cmd $@ -q --xml --xml-version=2 --force --enable=all --suppress=unusedFunction $source_file &> $tmpfil
+  if test -f cppcheck-result.xml
+  then
+    mv cppcheck-result.xml cppcheck-result-old.xml
+    xml_grep --wrap results --cond error cppcheck-result-old.xml $tmpfil > cppcheck-result.xml
+  else
+    mv $tmpfil cppcheck-result.xml
+  fi
+  rm -f cppcheck-result-old.xml $tmpfil
   exit 1
 fi
 
