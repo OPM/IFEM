@@ -99,7 +99,7 @@ TEST(TestISTLMatrix, AssembleMPI)
 
     b = 1.0;
     op.apply(b, b2);
-  } catch (Dune::ISTLError e) {
+  } catch (Dune::ISTLError& e) {
     std::cerr << e << std::endl;
     ASSERT_TRUE(false);
   }
