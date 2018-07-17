@@ -1186,7 +1186,7 @@ bool SIMinput::refine (const LR::RefineData& prm,
     prmloc.elements = IntVec(refineIndices[i].begin(),refineIndices[i].end());
     char patchName[256];
     if (fName)
-      sprintf(patchName, "%lu_%s", i, fName);
+      sprintf(patchName, "%zu_%s", i, fName);
 
     Vectors lsol(sol.size());
     for (size_t j = 0; j < sol.size(); ++j)
