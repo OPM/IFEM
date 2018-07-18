@@ -527,8 +527,6 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
     else
       haveXsol = mySol->getVectorSol() != nullptr;
   }
-  if (myProblem && nf > 1)
-    nf = myProblem->getNoFields(1);
 
   std::array<IntVec,2> vID;
   std::vector<IntVec> sID;
