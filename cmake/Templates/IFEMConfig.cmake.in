@@ -13,10 +13,12 @@ if(NOT IFEM_FOUND)
   set(MPI_FOUND @MPI_FOUND@)
   set(HDF5_FOUND @HDF5_FOUND@)
   set(CEREAL_FOUND @CEREAL_FOUND@)
+  set(VTFWRITER_FOUND @VTFWRITER_FOUND@)
 
   set(IFEM_REGTEST_SCRIPT ${IFEM_PATH}/scripts/regtest.sh.in)
   set(IFEM_CLANG_CHECK_TEST_SCRIPT ${IFEM_PATH}/scripts/clang-check-test.sh.in)
   set(IFEM_CPPCHECK_TEST_SCRIPT ${IFEM_PATH}/scripts/cppcheck-test.sh.in)
+  set(IFEM_IOTEST_SCRIPT ${IFEM_PATH}/scripts/iotest.sh.in)
   set(IFEM_CHECKCOMMITS_SCRIPT ${IFEM_PATH}/CheckCommits.cmake)
   set(CMAKE_INSTALL_DOCDIR @CMAKE_INSTALL_DOCDIR@)
 
