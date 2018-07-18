@@ -20,6 +20,7 @@ install(FILES ${AppCommon_HEADERS} DESTINATION include/IFEM)
 install(FILES scripts/regtest.sh.in
               scripts/clang-check-test.sh.in
               scripts/cppcheck-test.sh.in
+              scripts/iotest.sh.in
         DESTINATION lib/IFEM/scripts
         PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
                     GROUP_READ GROUP_EXECUTE

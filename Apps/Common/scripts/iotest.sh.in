@@ -1,0 +1,41 @@
+#!/bin/bash
+
+# This script performs a single IO regression test.
+# It is used by the 'make test' target in the buildsystems
+# Usually you should use 'make test' rather than calling this script directly
+#
+# Parameters: $1 = Application binary
+#             $2 = Regression test file
+#             $3 = File type to generate/test
+# A IO regression test file is of the format:
+# parameters to application
+# blank line
+# output from listing application
+
+mysim=$1
+
+cd `dirname $2`
+MAPFILE=`head -n1 $2`
+tmpnew=`mktemp -t ifemlogXXXXXX`
+tmpold=`mktemp -t ifemlogXXXXXX`
+output=`mktemp -t ifemXXXXXX.$3`
+if [ "$3" == "hdf5" ]
+then
+  $mysim $MAPFILE -hdf5 $output 2>&1 > /dev/null
+else
+  $mysim $MAPFILE -vtf 0 -vtffile $output 2>&1 > /dev/null
+fi
+test $? -eq 0 || exit 1
+tail -n +3 $2 > $tmpold
+if [ "$3" == "hdf5" ]
+then
+  @H5LS_COMMAND@ -r $output > $tmpnew
+else
+  @VTFLS_COMMAND@ $output > $tmpnew
+fi
+
+diff -u $tmpold $tmpnew
+res=$?
+rm $tmpnew $tmpold $tmplog $output
+
+exit $res
