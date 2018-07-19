@@ -274,6 +274,9 @@ bool SIMoutput::writeGlvG (int& nBlock, const char* inpFile, bool doClear)
   {
     if (myVtf) return false;
 
+    if (!opt.vtf.empty())
+      inpFile = opt.vtf.c_str();
+
 #if HAS_VTFAPI == 2
     const char* ext = ".vtfx";
 #else

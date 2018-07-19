@@ -147,6 +147,11 @@ bool SIMoptions::parseOutputTag (const TiXmlElement* elem)
       else if (!strcasecmp(elem->FirstChild()->Value(),"binary"))
         format = 1;
     }
+    if (utl::getAttribute(elem,"file",vtf)) {
+      size_t pos = vtf.find_last_of('.');
+      if (pos < vtf.size())
+        vtf.erase(pos);
+    }
     if (utl::getAttribute(elem,"nviz",nViz[0]))
       nViz[2] = nViz[1] = nViz[0];
     utl::getAttribute(elem,"nu",nViz[0]);
@@ -307,6 +312,11 @@ bool SIMoptions::parseOldOptions (int argc, char** argv, int& i)
       hdf5 = strtok(argv[++i],".");
     else // use the default output file name
       hdf5 = "(default)";
+  }
+  else if (!strcmp(argv[i],"-vtffile"))
+  {
+    if (i < argc-1 && argv[i+1][0] != '-')
+      vtf = strtok(argv[++i],".");
   }
   else if (!strcmp(argv[i],"-saveInc") && i < argc-1)
     dtSave = atof(argv[++i]);
