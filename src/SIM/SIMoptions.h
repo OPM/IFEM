@@ -91,6 +91,7 @@ public:
   bool saveNorms;//!< If \e true, save element norms
 
   std::string hdf5; //!< Prefix for HDF5-file
+  std::string vtf; //!< Prefix for VTF file
 
   // Restart options
   int         restartInc;  //!< Number of increments between each restart output
