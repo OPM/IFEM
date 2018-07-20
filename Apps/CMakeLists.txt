@@ -138,7 +138,5 @@ if(EXISTS ${PROJECT_SOURCE_DIR}/${STOKES_SRC})
   endif()
 endif()
 
-add_subdirectory(HDF5toVTx)
-
 # Add 'check' target which builds all test applications, then executes the tests
 add_check_target()
