@@ -529,8 +529,9 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
   }
 
   std::array<IntVec,2> vID;
-  std::vector<IntVec> sID;
-  sID.reserve(haveXsol ? nf+nf : nf);
+  std::vector<IntVec> sID, xID;
+  sID.reserve(nf);
+  if (haveXsol) xID.reserve(nf);
 
   Matrix field;
   Vector lovec;
@@ -564,8 +565,7 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
     if (myProblem) // Compute application-specific primary solution quantities
       myProblem->primaryScalarFields(field);
 
-    size_t k = 0;
-    if (!this->writeScalarFields(field,geomID,k,nBlock,sID))
+    if (!this->writeScalarFields(field,geomID,nBlock,sID))
       return -3;
 
     if (haveXsol)
@@ -607,7 +607,7 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
       }
 
       if (haveXsol)
-        if (!this->writeScalarFields(field,geomID,k,nBlock,sID))
+        if (!this->writeScalarFields(field,geomID,nBlock,xID))
           return false;
 
       if (!myVtf->writeVres(field,++nBlock,geomID,nVcomp))
@@ -619,7 +619,7 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
 
   // Write result block identifications
 
-  size_t i, j;
+  size_t i;
   bool ok = true;
   std::string pname(pvecName ? pvecName : "Solution");
   for (i = 0; i < 2 && ok; i++)
@@ -638,18 +638,18 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
   std::vector<std::string> xname;
   if (haveXsol) xname.reserve(nf);
   if (nf > 1) pname += "_w";
-  for (i = j = 0; i < nf && j < sID.size() && !sID[j].empty() && ok; i++)
+  for (i = 0; i < sID.size() && !sID[i].empty() && ok; i++)
   {
     if (myProblem && (!pvecName || nf > nVcomp))
       pname = myProblem->getField1Name(i);
     else if (nf > 1)
       (*pname.rbegin()) ++;
-    ok = myVtf->writeSblk(sID[j++],pname.c_str(),idBlock++,iStep);
+    ok = myVtf->writeSblk(sID[i],pname.c_str(),idBlock++,iStep);
     if (haveXsol) xname.push_back("Exact " + pname);
   }
 
-  for (i = 0; i < xname.size() && j < sID.size() && !sID[j].empty() && ok; i++)
-    ok = myVtf->writeSblk(sID[j++],xname[i].c_str(),idBlock++,iStep);
+  for (i = 0; i < xname.size() && i < xID.size() && !xID[i].empty() && ok; i++)
+    ok = myVtf->writeSblk(xID[i],xname[i].c_str(),idBlock++,iStep);
 
   return ok ? idBlock : -4;
 }
@@ -714,7 +714,7 @@ bool SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
 
     size_t k = 0;
     myModel[i]->filterResults(field,myVtf->getBlock(++geomID));
-    if (!this->writeScalarFields(field,geomID,k,nBlock,sID))
+    if (!this->writeScalarFields(field,geomID,nBlock,sID,&k))
       return false;
 
     // Write principal directions, if any, as vector fields
@@ -738,7 +738,7 @@ bool SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
         return false;
 
       myModel[i]->filterResults(field,myVtf->getBlock(geomID));
-      if (!this->writeScalarFields(field,geomID,k,nBlock,sID))
+      if (!this->writeScalarFields(field,geomID,nBlock,sID,&k))
         return false;
     }
 
@@ -769,7 +769,7 @@ bool SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
       }
 
       if (haveAsol)
-        if (!this->writeScalarFields(field,geomID,k,nBlock,sID))
+        if (!this->writeScalarFields(field,geomID,nBlock,sID,&k))
           return false;
     }
   }
@@ -872,7 +872,7 @@ bool SIMoutput::writeGlvP (const Vector& ssol, int iStep, int& nBlock,
 
     size_t j = 1; // Write out to VTF-file as scalar fields
     const ElementBlock* grid = myVtf->getBlock(++geomID);
-    if (!this->writeScalarFields(field,geomID,j,nBlock,sID))
+    if (!this->writeScalarFields(field,geomID,nBlock,sID,&j))
       return false;
 
     if (maxVal) // Update extremal values
@@ -897,9 +897,12 @@ bool SIMoutput::writeGlvP (const Vector& ssol, int iStep, int& nBlock,
 }
 
 
-bool SIMoutput::writeScalarFields (const Matrix& field, int geomID, size_t& k,
-                                   int& nBlock, std::vector<IntVec>& sID)
+bool SIMoutput::writeScalarFields (const Matrix& field, int geomID,
+                                   int& nBlock, std::vector<IntVec>& sID,
+                                   size_t* i)
 {
+  size_t nS = 0;
+  size_t& k = i ? *i : nS;
   for (size_t j = 1; j <= field.rows(); j++, k++)
     if (!myVtf->writeNres(field.getRow(j),++nBlock,geomID))
       return false;
