@@ -49,13 +49,10 @@ void ASMs2DmxLag::clear (bool retainGeometry)
 
 size_t ASMs2DmxLag::getNoNodes (int basis) const
 {
-  if (basis > (int)nb.size())
-    basis = 0;
-
-  if (basis == 0)
+  if (basis > 0 && basis <= (int)nb.size())
+    return nb[basis-1];
+  else
     return MLGN.size();
-
-  return nb[basis-1];
 }
 
 
@@ -143,12 +140,17 @@ bool ASMs2DmxLag::generateFEMTopology ()
   nxx[1] = gpar1.size();
   nyx[1] = gpar2.size();
 
-  // Number of elements in each direction for each basis
+  // Number of nodes per element in each direction for each basis
   elem_sizes.resize(2);
   elem_sizes[0][0] = p1;
   elem_sizes[0][1] = p2;
   elem_sizes[1][0] = q1;
   elem_sizes[1][1] = q2;
+
+  // Number of nodes per element for each basis
+  elem_size.resize(2);
+  elem_size[0] = p1*p2;
+  elem_size[1] = q1*q2;
 
   // Total number of nodes for each basis
   nb.resize(2);
@@ -198,9 +200,8 @@ bool ASMs2DmxLag::connectPatch (int edge, ASM2D& neighbor, int nedge, bool rever
   ASMs2DmxLag* neighMx = dynamic_cast<ASMs2DmxLag*>(&neighbor);
   if (!neighMx) return false;
 
-  size_t nb1=0;
-  size_t nb2=0;
-  for (size_t i = 1;i <= nxx.size(); ++i) {
+  size_t nb1 = 0, nb2 = 0;
+  for (size_t i = 1; i <= nxx.size(); i++) {
     if (basis == 0 || i == (size_t)basis)
       if (!this->connectBasis(edge,*neighMx,nedge,revers,i,nb1,nb2,coordCheck,thick))
         return false;
@@ -216,7 +217,7 @@ bool ASMs2DmxLag::connectPatch (int edge, ASM2D& neighbor, int nedge, bool rever
 void ASMs2DmxLag::closeEdges (int dir, int, int)
 {
   size_t nbi = 0;
-  for (size_t i = 1;i <= nxx.size(); ++i) {
+  for (size_t i = 1; i <= nxx.size(); i++) {
     this->ASMs2D::closeEdges(dir,i,nbi+1);
     nbi += nb[i-1];
   }
@@ -253,9 +254,6 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
 
   const int nelx = upar.size() - 1;
 
-  std::vector<size_t> elem_size;
-  for (size_t b = 0; b < nxx.size(); ++b)
-    elem_size.push_back(elem_sizes[b][0]*elem_sizes[b][1]);
 
   // === Assembly loop over all elements in the patch ==========================
 
@@ -266,7 +264,7 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
     for (size_t t = 0; t < threadGroups[g].size(); t++)
     {
       MxFiniteElement fe(elem_size);
-      std::vector<Matrix> dNxdu(nxx.size());
+      Matrices dNxdu(nxx.size());
       Matrix Xnod, Jac;
       Vec4   X;
       for (size_t i = 0; i < threadGroups[g][t].size() && ok; ++i)
@@ -369,9 +367,6 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
   // Extract the Neumann order flag (1 or higher) for the integrand
   integrand.setNeumannOrder(1 + lIndex/10);
 
-  std::vector<size_t> elem_size;
-  for (size_t b = 0; b < nxx.size(); ++b)
-    elem_size.push_back(elem_sizes[b][0]*elem_sizes[b][1]);
 
   // Number of elements in each direction
   const int nelx = (nxx[geoBasis-1]-1)/(elem_sizes[geoBasis-1][0]-1);
@@ -381,7 +376,7 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
   size_t firstp = iit == firstBp.end() ? 0 : iit->second;
 
   MxFiniteElement fe(elem_size);
-  std::vector<Matrix> dNxdu(nxx.size());
+  Matrices dNxdu(nxx.size());
   Matrix Xnod, Jac;
   Vec4   X;
   Vec3   normal;
@@ -497,10 +492,6 @@ bool ASMs2DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 {
   sField.resize(0,0);
 
-  std::vector<size_t> elem_size;
-  for (size_t b = 0; b < nxx.size(); ++b)
-    elem_size.push_back(elem_sizes[b][0]*elem_sizes[b][1]);
-
   double incx = 2.0/double(p1-1);
   double incy = 2.0/double(p2-1);
 
@@ -510,7 +501,7 @@ bool ASMs2DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   MxFiniteElement fe(elem_size);
   Vector          solPt;
   Vectors         globSolPt(nPoints);
-  std::vector<Matrix> dNxdu(nxx.size());
+  Matrices        dNxdu(nxx.size());
   Matrix          Xnod, Jac;
 
   // Evaluate the secondary solution field at each point

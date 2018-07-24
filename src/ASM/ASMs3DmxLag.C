@@ -51,13 +51,10 @@ void ASMs3DmxLag::clear (bool retainGeometry)
 
 size_t ASMs3DmxLag::getNoNodes (int basis) const
 {
-  if (basis > (int)nb.size())
-    basis = 1;
-
-  if (basis == 0)
+  if (basis > 0 && basis <= (int)nb.size())
+    return nb[basis-1];
+  else
     return MLGN.size();
-
-  return nb[basis-1];
 }
 
 
@@ -150,7 +147,7 @@ bool ASMs3DmxLag::generateFEMTopology ()
   nyx[1] = gpar2.size();
   nzx[1] = gpar3.size();
 
-  // Number of elements in each direction for each basis
+  // Number of nodes per element in each direction for each basis
   elem_sizes.resize(2);
   elem_sizes[0][0] = p1;
   elem_sizes[0][1] = p2;
@@ -158,6 +155,11 @@ bool ASMs3DmxLag::generateFEMTopology ()
   elem_sizes[1][0] = q1;
   elem_sizes[1][1] = q2;
   elem_sizes[1][2] = q3;
+
+  // Number of nodes per element for each basis
+  elem_size.resize(2);
+  elem_size[0] = p1*p2*p3;
+  elem_size[1] = q1*q2*q3;
 
   // Total number of nodes for each basis
   nb.resize(2);
@@ -225,9 +227,8 @@ bool ASMs3DmxLag::connectPatch (int face, ASM3D& neighbor, int nface,
   if (neighMx->swapW && face > 4) // Account for swapped parameter direction
     nface = 11-nface;
 
-  size_t nb1=0;
-  size_t nb2=0;
-  for (size_t i = 1;i <= nxx.size(); ++i) {
+  size_t nb1 = 0, nb2 = 0;
+  for (size_t i = 1; i <= nxx.size(); i++) {
     if (basis == 0 || i == (size_t)basis)
       if (!this->connectBasis(face,*neighMx,nface,norient,i,nb1,nb2,coordCheck,thick))
         return false;
@@ -244,7 +245,7 @@ bool ASMs3DmxLag::connectPatch (int face, ASM3D& neighbor, int nface,
 void ASMs3DmxLag::closeFaces (int dir, int, int)
 {
   size_t nbi = 0;
-  for (size_t i = 1;i <= nxx.size(); ++i) {
+  for (size_t i = 1; i <= nxx.size(); i++) {
     this->ASMs3D::closeFaces(dir,i,nbi+1);
     nbi += nb[i-1];
   }
@@ -285,9 +286,6 @@ bool ASMs3DmxLag::integrate (Integrand& integrand,
   const int nelx = upar.size() - 1;
   const int nely = vpar.size() - 1;
 
-  std::vector<size_t> elem_size;
-  for (size_t b = 0; b < nxx.size(); ++b)
-    elem_size.push_back(elem_sizes[b][0]*elem_sizes[b][1]*elem_sizes[b][2]);
 
   // === Assembly loop over all elements in the patch ==========================
 
@@ -298,7 +296,7 @@ bool ASMs3DmxLag::integrate (Integrand& integrand,
     for (size_t t = 0; t < threadGroupsVol[g].size(); t++)
     {
       MxFiniteElement fe(elem_size);
-      std::vector<Matrix> dNxdu;
+      Matrices dNxdu;
       Matrix Xnod, Jac;
       Vec4   X;
       for (size_t l = 0; l < threadGroupsVol[g][t].size() && ok; l++)
@@ -416,10 +414,6 @@ bool ASMs3DmxLag::integrate (Integrand& integrand, int lIndex,
   // Extract the Neumann order flag (1 or higher) for the integrand
   integrand.setNeumannOrder(1 + lIndex/10);
 
-  std::vector<size_t> elem_size;
-  for (size_t b = 0; b < nxx.size(); ++b)
-    elem_size.push_back(elem_sizes[b][0]*elem_sizes[b][1]*elem_sizes[b][2]);
-
   // Number of elements in each direction
   const int nel1 = (nxx[geoBasis-1]-1)/(elem_sizes[geoBasis-1][0]-1);
   const int nel2 = (nyx[geoBasis-1]-1)/(elem_sizes[geoBasis-1][1]-1);
@@ -436,7 +430,7 @@ bool ASMs3DmxLag::integrate (Integrand& integrand, int lIndex,
     for (size_t t = 0; t < threadGrp[g].size(); t++)
     {
       MxFiniteElement fe(elem_size);
-      std::vector<Matrix> dNxdu;
+      Matrices dNxdu;
       Matrix Xnod, Jac;
       Vec4   X;
       Vec3   normal;
@@ -564,10 +558,6 @@ bool ASMs3DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 {
   sField.resize(0,0);
 
-  std::vector<size_t> elem_size;
-  for (size_t b = 0; b < nxx.size(); ++b)
-    elem_size.push_back(elem_sizes[b][0]*elem_sizes[b][1]*elem_sizes[b][2]);
-
   double incx = 2.0/double(p1-1);
   double incy = 2.0/double(p2-1);
   double incz = 2.0/double(p3-1);
@@ -578,7 +568,7 @@ bool ASMs3DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   MxFiniteElement fe(elem_size);
   Vector          solPt;
   Vectors         globSolPt(nPoints);
-  std::vector<Matrix> dNxdu(nxx.size());
+  Matrices        dNxdu(nxx.size());
   Matrix          Xnod, Jac;
 
   // Evaluate the secondary solution field at each point
