@@ -32,7 +32,7 @@ class ASMmxBase
 protected:
   //! \brief The constructor sets the number of field variables.
   //! \param[in] n_f Number of nodal variables in each field
-  explicit ASMmxBase(const std::vector<unsigned char>& n_f);
+  explicit ASMmxBase(const std::vector<unsigned char>& n_f) : nfx(n_f) {}
 
   //! \brief Initializes the patch level MADOF array.
   //! \param[in] MLGN Matrix of local-to-global node numbers
@@ -40,25 +40,23 @@ protected:
   void initMx(const std::vector<int>& MLGN, const int* sysMadof);
 
   //! \brief Extracts nodal results for this patch from the global vector.
-  //! \param[in] globVec Global solution vector in DOF-order
-  //! \param[out] nodeVec Nodal result vector for this patch
+  //! \param[in] glbVec Global solution vector in DOF-order
+  //! \param[out] nodVec Nodal result vector for this patch
   //! \param[in] basis Which basis to extract the nodal values for
-  void extractNodeVecMx(const Vector& globVec, Vector& nodeVec,
-			int basis = 0) const;
+  void extractNodeVecMx(const Vector& glbVec, Vector& nodVec, int basis) const;
 
   //! \brief Injects nodal results for this patch into a global vector.
-  //! \param[out] globVec Global solution vector in DOF-order
-  //! \param[in] nodeVec Nodal result vector for this patch
+  //! \param[out] glbVec Global solution vector in DOF-order
+  //! \param[in] nodVec Nodal result vector for this patch
   //! \param[in] basis Which basis to inject the nodal values for
-  void injectNodeVecMx(Vector& globVec, const Vector& nodeVec,
-                       int basis = 0) const;
+  void injectNodeVecMx(Vector& glbVec, const Vector& nodVec, int basis) const;
 
   //! \brief Extracts the primary solution field at the specified nodes.
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector local to current patch
   //! \param[in] nodes 1-based local node numbers to extract solution for
   bool getSolutionMx(Matrix& sField, const Vector& locSol,
-		     const std::vector<int>& nodes) const;
+                     const std::vector<int>& nodes) const;
 
 public:
   //! \brief Enum defining available mixed formulation types.
@@ -95,7 +93,11 @@ private:
   std::vector<int> MADOF; //!< Matrix of accumulated DOFs for this patch
 
 protected:
-  std::vector<size_t>        nb;  //!< Number of basis functions in each basis
+  //! Number of basis functions per element in each basis
+  std::vector<size_t> elem_size;
+  //! Total number of basis functions in each basis
+  std::vector<size_t> nb;
+
   std::vector<unsigned char> nfx; //!< Number of fields on each basis
 };
 

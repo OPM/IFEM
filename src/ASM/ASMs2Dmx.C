@@ -35,15 +35,13 @@
 #endif
 
 
-ASMs2Dmx::ASMs2Dmx (unsigned char n_s,
-		    const std::vector<unsigned char>& n_f)
+ASMs2Dmx::ASMs2Dmx (unsigned char n_s, const CharVec& n_f)
   : ASMs2D(n_s, *std::max_element(n_f.begin(),n_f.end())), ASMmxBase(n_f)
 {
 }
 
 
-ASMs2Dmx::ASMs2Dmx (const ASMs2Dmx& patch,
-                    const std::vector<unsigned char>& n_f)
+ASMs2Dmx::ASMs2Dmx (const ASMs2Dmx& patch, const CharVec& n_f)
   : ASMs2D(patch), ASMmxBase(n_f)
 {
   nb = patch.nb;
@@ -191,8 +189,13 @@ bool ASMs2Dmx::generateFEMTopology ()
   geo = surf = m_basis[geoBasis-1]->clone();
 
   nb.clear();
-  for (auto it : m_basis)
+  nb.reserve(m_basis.size());
+  elem_size.clear();
+  elem_size.reserve(m_basis.size());
+  for (auto& it : m_basis) {
     nb.push_back(it->numCoefs_u()*it->numCoefs_v());
+    elem_size.push_back(it->order_u()*it->order_v());
+  }
 
   if (!nodeInd.empty() && !shareFE)
   {
@@ -440,12 +443,8 @@ double ASMs2Dmx::getParametricArea (int iel) const
   if (MNPC[iel-1].empty())
     return 0.0;
 
-  std::vector<size_t> elem_sizes;
-  for (auto& it : m_basis)
-    elem_sizes.push_back(it->order_u()*it->order_v());
-
-  int inod1 = MNPC[iel-1][std::accumulate(elem_sizes.begin(),
-                                          elem_sizes.begin()+geoBasis, -1)];
+  int inod1 = MNPC[iel-1][std::accumulate(elem_size.begin(),
+                                          elem_size.begin()+geoBasis, -1)];
 #ifdef INDEX_CHECK
   if (inod1 < 0 || (size_t)inod1 >= nnod)
   {
@@ -475,12 +474,8 @@ double ASMs2Dmx::getParametricLength (int iel, int dir) const
   if (MNPC[iel-1].empty())
     return 0.0;
 
-  std::vector<size_t> elem_sizes;
-  for (auto& it : m_basis)
-    elem_sizes.push_back(it->order_u()*it->order_v());
-
-  int inod1 = MNPC[iel-1][std::accumulate(elem_sizes.begin(),
-                                          elem_sizes.begin()+geoBasis, -1)];
+  int inod1 = MNPC[iel-1][std::accumulate(elem_size.begin(),
+                                          elem_size.begin()+geoBasis, -1)];
 #ifdef INDEX_CHECK
   if (inod1 < 0 || (size_t)inod1 >= nnod)
   {
@@ -537,9 +532,6 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
   const int n1 = surf->numCoefs_u();
   const int nel1 = n1 - p1 + 1;
 
-  std::vector<size_t> elem_sizes;
-  for (auto& it : m_basis)
-    elem_sizes.push_back(it->order_u()*it->order_v());
 
   // === Assembly loop over all elements in the patch ==========================
 
@@ -547,7 +539,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
   for (size_t g=0;g<threadGroups.size() && ok;++g) {
 #pragma omp parallel for schedule(static)
     for (size_t t=0;t<threadGroups[g].size();++t) {
-      MxFiniteElement fe(elem_sizes);
+      MxFiniteElement fe(elem_size);
       std::vector<Matrix> dNxdu(m_basis.size());
       std::vector<Matrix3D> d2Nxdu2(m_basis.size());
       Matrix3D Hess;
@@ -590,8 +582,8 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
         }
 
         // Initialize element quantities
-        LocalIntegral* A = integrand.getLocalIntegral(elem_sizes,fe.iel,false);
-        if (!integrand.initElement(MNPC[iel-1],elem_sizes,nb,*A))
+        LocalIntegral* A = integrand.getLocalIntegral(elem_size,fe.iel,false);
+        if (!integrand.initElement(MNPC[iel-1],elem_size,nb,*A))
         {
           A->destruct();
           ok = false;
@@ -726,19 +718,15 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
   const int n1 = surf->numCoefs_u();
   const int n2 = surf->numCoefs_v();
 
-  std::vector<size_t> elem_sizes;
-  for (auto& it : m_basis)
-    elem_sizes.push_back(it->order_u()*it->order_v());
-
   std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex%10);
   size_t firstp = iit == firstBp.end() ? 0 : iit->second;
 
-  MxFiniteElement fe(elem_sizes);
+  MxFiniteElement fe(elem_size);
   fe.xi = fe.eta = edgeDir < 0 ? -1.0 : 1.0;
   fe.u = gpar[0](1,1);
   fe.v = gpar[1](1,1);
 
-  std::vector<Matrix> dNxdu(m_basis.size());
+  Matrices dNxdu(m_basis.size());
   Matrix Xnod, Jac;
   Vec4   X;
   Vec3   normal;
@@ -775,8 +763,8 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
         fe.h = this->getElementCorners(i1-1,i2-1,fe.XC);
 
       // Initialize element quantities
-      LocalIntegral* A = integrand.getLocalIntegral(elem_sizes,fe.iel,true);
-      bool ok = integrand.initElementBou(MNPC[iel-1],elem_sizes,nb,*A);
+      LocalIntegral* A = integrand.getLocalIntegral(elem_size,fe.iel,true);
+      bool ok = integrand.initElementBou(MNPC[iel-1],elem_size,nb,*A);
 
 
       // --- Integration loop over all Gauss points along the edge -------------
@@ -859,11 +847,8 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
   const int n1 = surf->numCoefs_u();
   const int n2 = surf->numCoefs_v();
 
-  std::vector<size_t> elem_sizes;
-  for (auto& it : m_basis)
-    elem_sizes.push_back(it->order_u()*it->order_v());
-  std::vector<size_t> elem_sizes2(elem_sizes);
-  std::copy(elem_sizes.begin(), elem_sizes.end(), std::back_inserter(elem_sizes2));
+  std::vector<size_t> elem_sizes2(elem_size);
+  std::copy(elem_size.begin(), elem_size.end(), std::back_inserter(elem_sizes2));
 
   MxFiniteElement fe(elem_sizes2);
   Matrix        dNdu, Xnod, Jac;
@@ -903,8 +888,8 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
         fe.h = this->getElementCorners(i1-1,i2-1,fe.XC);
 
       // Initialize element quantities
-      LocalIntegral* A = integrand.getLocalIntegral(elem_sizes,fe.iel);
-      bool ok = integrand.initElement(MNPC[iel],elem_sizes,nb,*A);
+      LocalIntegral* A = integrand.getLocalIntegral(elem_size,fe.iel);
+      bool ok = integrand.initElement(MNPC[iel],elem_size,nb,*A);
       size_t origSize = A->vec.size();
 
       // Loop over the element edges with contributions
@@ -924,8 +909,8 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
             kel += iedge > 3 ? n1-p1+1 : -(n1-p1+1);
 
           // initialize neighbor element
-          LocalIntegral* A_neigh = integrand.getLocalIntegral(elem_sizes,kel+1);
-          ok &= integrand.initElement(MNPC[kel],elem_sizes,nb,*A_neigh);
+          LocalIntegral* A_neigh = integrand.getLocalIntegral(elem_size,kel+1);
+          ok &= integrand.initElement(MNPC[kel],elem_size,nb,*A_neigh);
           if (!A_neigh->vec.empty()) {
             A->vec.resize(origSize+A_neigh->vec.size());
             std::copy(A_neigh->vec.begin(), A_neigh->vec.end(), A->vec.begin()+origSize);
@@ -961,7 +946,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
             }
 
             // Fetch basis function derivatives at current integration point
-            std::vector<Matrix> dNxdu(m_basis.size()*2);
+            Matrices dNxdu(m_basis.size()*2);
             for (size_t b = 0; b < m_basis.size(); ++b) {
               Go::BasisDerivsSf spline;
               this->getBasis(b+1)->computeBasis(fe.u, fe.v, spline, edgeDir < 0);
@@ -1120,17 +1105,13 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     }
   }
 
-  std::vector<size_t> elem_sizes;
-  for (auto& it : m_basis)
-    elem_sizes.push_back(it->order_u()*it->order_v());
-
   // Fetch nodal (control point) coordinates
   Matrix Xnod, Xtmp;
   this->getNodalCoordinates(Xnod);
 
-  MxFiniteElement fe(elem_sizes,firstIp);
+  MxFiniteElement fe(elem_size,firstIp);
   Vector          solPt;
-  std::vector<Matrix> dNxdu(m_basis.size());
+  Matrices        dNxdu(m_basis.size());
   Matrix          Jac;
   Vec3            X;
 
@@ -1139,7 +1120,7 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   for (size_t i = 0; i < nPoints; i++, fe.iGP++)
   {
     // Fetch indices of the non-zero basis functions at this point
-    std::vector<IntVec> ip(m_basis.size());
+    IntMat ip(m_basis.size());
     IntVec ipa;
     size_t ofs = 0;
     for (size_t b = 0; b < m_basis.size(); ++b) {
@@ -1180,7 +1161,7 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     X = Xtmp * fe.basis(geoBasis);
 
     // Now evaluate the solution field
-    if (!integrand.evalSol(solPt,fe,X,ipa,elem_sizes,nb))
+    if (!integrand.evalSol(solPt,fe,X,ipa,elem_size,nb))
       return false;
     else if (sField.empty())
       sField.resize(solPt.size(),nPoints,true);

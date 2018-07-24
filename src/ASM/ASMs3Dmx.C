@@ -35,14 +35,13 @@
 #endif
 
 
-ASMs3Dmx::ASMs3Dmx (const std::vector<unsigned char>& n_f)
+ASMs3Dmx::ASMs3Dmx (const CharVec& n_f)
   : ASMs3D(std::accumulate(n_f.begin(), n_f.end(), 0)), ASMmxBase(n_f)
 {
 }
 
 
-ASMs3Dmx::ASMs3Dmx (const ASMs3Dmx& patch,
-                    const std::vector<unsigned char>& n_f)
+ASMs3Dmx::ASMs3Dmx (const ASMs3Dmx& patch, const CharVec& n_f)
   : ASMs3D(patch), ASMmxBase(n_f)
 {
   m_basis = patch.m_basis;
@@ -192,8 +191,13 @@ bool ASMs3Dmx::generateFEMTopology ()
   geo = svol = m_basis[geoBasis-1]->clone();
 
   nb.clear();
-  for (auto it : m_basis)
+  elem_size.clear();
+  nb.reserve(m_basis.size());
+  elem_size.reserve(m_basis.size());
+  for (auto& it : m_basis) {
     nb.push_back(it->numCoefs(0)*it->numCoefs(1)*it->numCoefs(2));
+    elem_size.push_back(it->order(0)*it->order(1)*it->order(2));
+  }
 
   if (!nodeInd.empty() && !shareFE)
   {
@@ -474,10 +478,6 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
     for (size_t i=0;i<m_basis.size();++i)
       m_basis[i]->computeBasisGrid(gpar[0],gpar[1],gpar[2],splinex[i]);
 
-  std::vector<size_t> elem_sizes;
-  for (auto& it : m_basis)
-    elem_sizes.push_back(it->order(0)*it->order(1)*it->order(2));
-
   const int p1 = svol->order(0);
   const int p2 = svol->order(1);
   const int p3 = svol->order(2);
@@ -493,7 +493,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
   for (size_t g=0;g<threadGroupsVol.size() && ok;++g) {
 #pragma omp parallel for schedule(static)
     for (size_t t=0;t<threadGroupsVol[g].size();++t) {
-      MxFiniteElement fe(elem_sizes);
+      MxFiniteElement fe(elem_size);
       std::vector<Matrix> dNxdu(m_basis.size());
       std::vector<Matrix3D> d2Nxdu2(m_basis.size());
       Matrix3D Hess;
@@ -538,8 +538,8 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
         }
 
         // Initialize element quantities
-        LocalIntegral* A = integrand.getLocalIntegral(elem_sizes,fe.iel,false);
-        if (!integrand.initElement(MNPC[iel-1],elem_sizes,nb,*A))
+        LocalIntegral* A = integrand.getLocalIntegral(elem_size,fe.iel,false);
+        if (!integrand.initElement(MNPC[iel-1],elem_size,nb,*A))
         {
           A->destruct();
           ok = false;
@@ -690,10 +690,6 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
   const int p2 = svol->order(1);
   const int p3 = svol->order(2);
 
-  std::vector<size_t> elem_sizes;
-  for (auto& it : m_basis)
-    elem_sizes.push_back(it->order(0)*it->order(1)*it->order(2));
-
   const int nel1 = n1 - p1 + 1;
   const int nel2 = n2 - p2 + 1;
 
@@ -707,15 +703,15 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
   for (size_t g = 0; g < threadGrp.size() && ok; ++g) {
 #pragma omp parallel for schedule(static)
     for (size_t t = 0; t < threadGrp[g].size(); ++t) {
-      MxFiniteElement fe(elem_sizes);
+      MxFiniteElement fe(elem_size);
       fe.xi = fe.eta = fe.zeta = faceDir < 0 ? -1.0 : 1.0;
       fe.u = gpar[0](1,1);
       fe.v = gpar[1](1,1);
       fe.w = gpar[2](1,1);
 
-      std::vector<Matrix> dNxdu(m_basis.size());
+      Matrices dNxdu(m_basis.size());
       Matrix Xnod, Jac;
-      double   param[3] = { fe.u, fe.v, fe.w };
+      double param[3] = { fe.u, fe.v, fe.w };
       Vec4   X;
       Vec3   normal;
       for (size_t l = 0; l < threadGrp[g][t].size() && ok; ++l)
@@ -747,8 +743,8 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
           fe.h = this->getElementCorners(i1-1,i2-1,i3-1,fe.XC);
 
 	// Initialize element quantities
-        LocalIntegral* A = integrand.getLocalIntegral(elem_sizes,fe.iel,true);
-	if (!integrand.initElementBou(MNPC[iel-1],elem_sizes,nb,*A))
+        LocalIntegral* A = integrand.getLocalIntegral(elem_size,fe.iel,true);
+	if (!integrand.initElementBou(MNPC[iel-1],elem_size,nb,*A))
         {
           A->destruct();
           ok = false;
@@ -867,11 +863,8 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
   const int nel1 = n1 - p1 + 1;
   const int nel2 = n2 - p2 + 1;
 
-  std::vector<size_t> elem_sizes;
-  for (auto& it : m_basis)
-    elem_sizes.push_back(it->order(0)*it->order(1)*it->order(2));
-  std::vector<size_t> elem_sizes2(elem_sizes);
-  std::copy(elem_sizes.begin(), elem_sizes.end(), std::back_inserter(elem_sizes2));
+  std::vector<size_t> elem_sizes2(elem_size);
+  std::copy(elem_size.begin(), elem_size.end(), std::back_inserter(elem_sizes2));
 
   MxFiniteElement fe(elem_sizes2);
   Matrix        dNdu, Xnod, Jac;
@@ -912,8 +905,8 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
           fe.h = this->getElementCorners(i1-1,i2-1,i3-1,fe.XC);
 
         // Initialize element quantities
-        LocalIntegral* A = integrand.getLocalIntegral(elem_sizes,fe.iel);
-        bool ok = integrand.initElement(MNPC[iel],elem_sizes,nb,*A);
+        LocalIntegral* A = integrand.getLocalIntegral(elem_size,fe.iel);
+        bool ok = integrand.initElement(MNPC[iel],elem_size,nb,*A);
         size_t origSize = A->vec.size();
 
         // Loop over the element edges with contributions
@@ -943,8 +936,8 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
               kel += iface == 6 ? (n2-p2+1)*(n1-p1+1) : -(n2-p2+1)*(n1-p1+1);
 
             // initialize neighbor element
-            LocalIntegral* A_neigh = integrand.getLocalIntegral(elem_sizes,kel+1);
-            ok &= integrand.initElement(MNPC[kel],elem_sizes,nb,*A_neigh);
+            LocalIntegral* A_neigh = integrand.getLocalIntegral(elem_size,kel+1);
+            ok &= integrand.initElement(MNPC[kel],elem_size,nb,*A_neigh);
             if (!A_neigh->vec.empty()) {
               A->vec.resize(origSize+A_neigh->vec.size());
               std::copy(A_neigh->vec.begin(), A_neigh->vec.end(), A->vec.begin()+origSize);
@@ -1007,7 +1000,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
                 }
 
                 // Fetch basis function derivatives at current integration point
-                std::vector<Matrix> dNxdu(m_basis.size()*2);
+                Matrices dNxdu(m_basis.size()*2);
                 for (size_t b = 0; b < m_basis.size(); ++b) {
                   Go::BasisDerivs spline;
                   this->getBasis(b+1)->computeBasis(fe.u, fe.v, fe.w, spline, faceDir < 0);
@@ -1172,17 +1165,13 @@ bool ASMs3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     }
   }
 
-  std::vector<size_t> elem_sizes;
-  for (auto& it : m_basis)
-    elem_sizes.push_back(it->order(0)*it->order(1)*it->order(2));
-
   // Fetch nodal (control point) coordinates
   Matrix Xnod, Xtmp;
   this->getNodalCoordinates(Xnod);
 
-  MxFiniteElement fe(elem_sizes,firstIp);
+  MxFiniteElement fe(elem_size,firstIp);
   Vector          solPt;
-  std::vector<Matrix> dNxdu(m_basis.size());
+  Matrices        dNxdu(m_basis.size());
   Matrix          Jac;
   Vec3            X;
 
@@ -1191,7 +1180,7 @@ bool ASMs3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   for (size_t i = 0; i < nPoints; i++, fe.iGP++)
   {
     // Fetch indices of the non-zero basis functions at this point
-    std::vector<IntVec> ip(m_basis.size());
+    IntMat ip(m_basis.size());
     IntVec ipa;
     size_t ofs = 0;
     for (size_t b = 0; b < m_basis.size(); ++b) {
@@ -1234,7 +1223,7 @@ bool ASMs3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     X = Xtmp * fe.basis(geoBasis);
 
     // Now evaluate the solution field
-    if (!integrand.evalSol(solPt,fe,X,ipa,elem_sizes,nb))
+    if (!integrand.evalSol(solPt,fe,X,ipa,elem_size,nb))
       return false;
     else if (sField.empty())
       sField.resize(solPt.size(),nPoints,true);
@@ -1283,12 +1272,8 @@ double ASMs3Dmx::getParametricVolume (int iel) const
   if (MNPC[iel-1].empty())
     return 0.0;
 
-  std::vector<size_t> elem_sizes;
-  for (auto& it : m_basis)
-    elem_sizes.push_back(it->order(0)*it->order(1)*it->order(2));
-
-  int inod1 = MNPC[iel-1][std::accumulate(elem_sizes.begin(),
-                                          elem_sizes.begin()+geoBasis, -1)];
+  int inod1 = MNPC[iel-1][std::accumulate(elem_size.begin(),
+                                          elem_size.begin()+geoBasis, -1)];
 #ifdef INDEX_CHECK
   if (inod1 < 0 || (size_t)inod1 >= nnod)
   {
@@ -1318,12 +1303,8 @@ double ASMs3Dmx::getParametricArea (int iel, int dir) const
   if (MNPC[iel-1].empty())
     return 0.0;
 
-  std::vector<size_t> elem_sizes;
-  for (auto& it : m_basis)
-    elem_sizes.push_back(it->order(0)*it->order(1)*it->order(2));
-
-  int inod1 = MNPC[iel-1][std::accumulate(elem_sizes.begin(),
-                                          elem_sizes.begin()+geoBasis, -1)];
+  int inod1 = MNPC[iel-1][std::accumulate(elem_size.begin(),
+                                          elem_size.begin()+geoBasis, -1)];
 #ifdef INDEX_CHECK
   if (inod1 < 0 || (size_t)inod1 >= nnod)
   {
