@@ -68,7 +68,8 @@ private:
     bool    running;   //!< Flag indicating if this task is currently running
 
     //! \brief The constructor initializes the total times to zero.
-    Profile() : nCalls(0), running(false) { totalCPU = totalWall = 0.0; }
+    Profile() : nCalls(0), running(false)
+    { startWall = totalCPU = totalWall = 0.0; startCPU = 0; }
     //! \brief Checks if this profile item have any timing to report.
     bool haveTime() const { return totalCPU >= 0.005 || totalWall >= 0.005; }
   };

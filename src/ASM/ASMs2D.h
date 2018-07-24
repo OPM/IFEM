@@ -65,7 +65,12 @@ public:
     int  indxI;    //!< Running node index in the local I-direction
 
     //! \brief Default constructor.
-    BlockNodes() { iinod = inc[0] = inc[1] = 0; indxI = 1; }
+    BlockNodes()
+    {
+      memset(ibnod,0,4*sizeof(int));
+      iinod = inc[0] = inc[1] = nnodI = 0;
+      indxI = 1;
+    }
     //! \brief Returns \a iinod which then is incremented.
     int next();
   };
