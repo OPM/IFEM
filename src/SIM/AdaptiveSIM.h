@@ -67,6 +67,10 @@ public:
   const Vector& getSolution(size_t idx = 0) const { return solution[idx]; }
   //! \brief Accesses the projections.
   const Vector& getProjection(size_t idx = 0) const { return projs[idx]; }
+  //! \brief Access all the projections.
+  const Vectors& getProjections() const { return projs; }
+  //! \brief Access the calculated element-wise norms.
+  const Matrix& getEnorm() const { return eNorm; }
 
   //! \brief Parses a data section from an input stream.
   //! \param[in] keyWord Keyword of current data section to read
