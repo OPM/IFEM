@@ -150,7 +150,7 @@ function(IFEM_add_hdf5_test name binary)
   else()
     set(test-name "hdf5+${binary}+${name}")
   endif()
-  add_test("${test-name}" iotest.sh ${EXECUTABLE_OUTPUT_PATH}/${binary} ${PROJECT_SOURCE_DIR}/${TEST_SUBDIR}/Test/${name} hdf5)
+  add_test("${test-name}" iotest.sh ${EXECUTABLE_OUTPUT_PATH}/${binary} ${PROJECT_SOURCE_DIR}/${TEST_SUBDIR}/Test/${name} hdf5 ${ARGN})
 endfunction()
 
 macro(add_check_target)

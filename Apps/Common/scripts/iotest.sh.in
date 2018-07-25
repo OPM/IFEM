@@ -22,6 +22,7 @@ tmpold=`mktemp -t ifemlogXXXXXX`
 output=`mktemp -t ifemXXXXXX.$3`
 if [ "$3" == "hdf5" ]
 then
+  test -n "$4" && mysim="mpirun -n $4 $mysim"
   $mysim $MAPFILE -hdf5 $output 2>&1 | tee $tmplog
 else
   $mysim $MAPFILE -vtf 0 -vtffile $output 2>&1 | tee $tmplog
