@@ -77,7 +77,11 @@ LR::LRSplineSurface* ASMu2Dmx::getBasis (int basis)
 
 bool ASMu2Dmx::write (std::ostream& os, int basis) const
 {
-  os << *m_basis[basis-1];
+  if (basis == -1)
+    os << *projBasis;
+  else
+    os << *m_basis[basis-1];
+
   return os.good();
 }
 

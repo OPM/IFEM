@@ -77,7 +77,12 @@ LR::LRSplineVolume* ASMu3Dmx::getBasis (int basis)
 
 bool ASMu3Dmx::write (std::ostream& os, int basis) const
 {
-  return false;
+  if (basis == -1)
+    os << *projBasis;
+  else
+    os << *m_basis[basis-1];
+
+  return os.good();
 }
 
 

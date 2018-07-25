@@ -70,7 +70,9 @@ Go::SplineCurve* ASMs2Dmx::getBoundary (int dir, int basis)
 
 bool ASMs2Dmx::write (std::ostream& os, int basis) const
 {
-  if (basis < 1 || basis > (int)m_basis.size())
+  if (basis == -1)
+    os <<"200 1 0 0\n" << *projBasis;
+  else if (basis < 1 || basis > (int)m_basis.size())
     os <<"200 1 0 0\n" << *surf;
   else if (m_basis[basis-1])
     os <<"200 1 0 0\n" << *m_basis[basis-1];

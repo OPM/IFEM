@@ -69,12 +69,12 @@ Go::SplineSurface* ASMs3Dmx::getBoundary (int dir, int basis)
 
 bool ASMs3Dmx::write (std::ostream& os, int basis) const
 {
-  if (m_basis[0] && basis == 1)
-    os <<"700 1 0 0\n" << *m_basis[0];
-  else if (m_basis[1] && basis == 2)
-    os <<"700 1 0 0\n" << *m_basis[1];
-  else if (svol)
+  if (basis == -1)
+    os <<"700 1 0 0\n" << *projBasis;
+  else if (basis < 1 || basis > (int)m_basis.size())
     os <<"700 1 0 0\n" << *svol;
+  else if (m_basis[basis-1])
+    os <<"700 1 0 0\n" << *m_basis[basis-1];
   else
     return false;
 
