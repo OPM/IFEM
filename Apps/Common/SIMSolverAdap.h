@@ -62,6 +62,7 @@ public:
   explicit SIMSolverAdapImpl(T1& s1) : SIMSolverStat<T1>(s1), aSim(s1,false)
   {
     this->S1.setSol(&aSim.getSolution());
+    this->S1.opt.saveNorms = true;
   }
 
   //! \brief Empty destructor.
@@ -76,6 +77,12 @@ public:
     if (!aSim.initAdaptor())
       return 1;
 
+    if (SIMSolverStat<T1>::exporter)
+      SIMSolverStat<T1>::exporter->setFieldValue(exporterName, &this->S1,
+                                                 &aSim.getSolution(),
+                                                 &aSim.getProjections(),
+                                                 &aSim.getEnorm());
+
     for (int iStep = 1; aSim.adaptMesh(iStep); iStep++)
       if (!aSim.solveStep(infile,iStep))
         return 1;
@@ -87,6 +94,9 @@ public:
     return 0;
   }
 
+  //! \brief Set name of data exporter registration to use.
+  void setExporterName(const std::string& name) { exporterName = name; }
+
 protected:
   //! \brief Parses a data section from an input stream.
   virtual bool parse(char* kyw, std::istream& is) { return aSim.parse(kyw,is); }
@@ -94,6 +104,7 @@ protected:
   virtual bool parse(const TiXmlElement* elem) { return aSim.parse(elem); }
 
   AdapSim aSim; //!< Adaptive simulation driver
+  std::string exporterName = "u"; //!< Name for data exporter registration to use
 };
 
 
