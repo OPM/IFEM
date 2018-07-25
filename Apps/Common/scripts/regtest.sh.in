@@ -31,7 +31,7 @@ then
   rm -f @CMAKE_BINARY_DIR@/Testing/$3.hdf5
   rm -f @CMAKE_BINARY_DIR@/Testing/$3_restart.hdf5
 fi
-$mysim $hdf5 $MAPFILE 2>&1 > $tmplog
+$mysim $hdf5 $MAPFILE 2>&1 | tee $tmplog 
 retcode=$?
 if test $retcode -ne 0
 then
@@ -41,7 +41,7 @@ then
 fi
 if test -n "$4"
 then
-  $mysim $MAPFILE -restart @CMAKE_BINARY_DIR@/Testing/$3_restart.hdf5 $4 2>&1 > $tmplog
+  $mysim $MAPFILE -restart @CMAKE_BINARY_DIR@/Testing/$3_restart.hdf5 $4 2>&1 | tee $tmplog
 fi
 appres=$?
 globres=1

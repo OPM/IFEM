@@ -16,16 +16,21 @@ mysim=$1
 
 cd `dirname $2`
 MAPFILE=`head -n1 $2`
+tmplog=`mktemp -t ifemlogXXXXXX`
 tmpnew=`mktemp -t ifemlogXXXXXX`
 tmpold=`mktemp -t ifemlogXXXXXX`
 output=`mktemp -t ifemXXXXXX.$3`
 if [ "$3" == "hdf5" ]
 then
-  $mysim $MAPFILE -hdf5 $output 2>&1 > /dev/null
+  $mysim $MAPFILE -hdf5 $output 2>&1 | tee $tmplog
 else
-  $mysim $MAPFILE -vtf 0 -vtffile $output 2>&1 > /dev/null
+  $mysim $MAPFILE -vtf 0 -vtffile $output 2>&1 | tee $tmplog
 fi
-test $? -eq 0 || exit 1
+if test $? -ne 0
+then
+  cat $tmplog >> @CMAKE_BINARY_DIR@/failed.log
+  exit 1
+fi
 tail -n +3 $2 > $tmpold
 if [ "$3" == "hdf5" ]
 then
@@ -34,8 +39,15 @@ else
   @VTFLS_COMMAND@ $output > $tmpnew
 fi
 
-diff -u $tmpold $tmpnew
+diff -u $tmpold $tmpnew > $tmplog
 res=$?
+if test $res -ne 0
+then
+  echo "Failure for $2" >> @CMAKE_BINARY_DIR@/failed.log
+  echo "======================" >> @CMAKE_BINARY_DIR@/failed.log
+  cat $tmplog >> @CMAKE_BINARY_DIR@/failed.log
+  cat $tmplog
+fi
 rm $tmpnew $tmpold $tmplog $output
 
 exit $res
