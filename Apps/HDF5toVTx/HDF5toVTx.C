@@ -80,6 +80,7 @@ bool readBasis (std::vector<ASMbase*>& result, const std::string& name,
     std::string out;
     hdf.readString(geom.str(),out);
     ptype = out.substr(0,10) == "# LRSPLINE" ? ASM::LRSpline : ASM::Spline;
+    isLR = ptype == ASM::LRSpline;
     int gdim = 0;
     if (ptype == ASM::LRSpline)
       gdim = out.substr(11,7) == "SURFACE" ? 2 : 3;

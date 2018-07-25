@@ -1124,7 +1124,7 @@ bool SIMinput::refine (const LR::RefineData& prm,
     }
 
   // Single patch models only pass refinement call to the ASM level
-  if (myModel.size() == 1)
+  if (this->getNoPatches() == 1)
     return (isRefined = pch->refine(prm,sol,fName));
 
   if (!prm.errors.empty()) // refinement by true_beta
@@ -1142,9 +1142,15 @@ bool SIMinput::refine (const LR::RefineData& prm,
   {
     // Extract local indices from the vector of global indices
     int locId;
-    for (int k : prm.elements)
-      if ((locId = myModel[i]->getNodeIndex(k+1)) > 0)
-        refineIndices[i].insert(locId-1);
+    for (int k : prm.elements) {
+      if (!prm.MLGN.empty()) {
+        auto it = std::find(prm.MLGN[i].begin(), prm.MLGN[i].end(), k);
+        if (it != prm.MLGN[i].end())
+          refineIndices[i].insert(it-prm.MLGN[i].begin());
+      } else
+        if ((locId = myModel[i]->getNodeIndex(k+1)) > 0)
+          refineIndices[i].insert(locId-1);
+    }
 
     // fetch all boundary nodes covered (may need to pass this to other patches)
     pch = dynamic_cast<ASMunstruct*>(myModel[i]);
@@ -1166,15 +1172,72 @@ bool SIMinput::refine (const LR::RefineData& prm,
     // for all boundary nodes, check if these appear on other patches
     for (int k : bndry_nodes)
     {
-      int globId = pch->getNodeID(k+1);
+      int globId;
+      if (!prm.MLGN.empty())
+        globId = prm.MLGN[i][k];
+      else
+        globId = pch->getNodeID(k+1);
+
       for (size_t j = 0; j < myModel.size(); j++)
-        if (j != i && (locId = myModel[j]->getNodeIndex(globId)) > 0)
-        {
-          conformingIndices[j].insert(locId-1);
-          conformingIndices[i].insert(k);
-        }
+        if (j != i)
+          if (prm.MLGN.empty()) {
+            if ((locId = myModel[j]->getNodeIndex(globId)) > 0)
+            {
+              conformingIndices[j].insert(locId-1);
+              conformingIndices[i].insert(k);
+            }
+          } else {
+            auto it = std::find(prm.MLGN[j].begin(), prm.MLGN[j].end(), globId);
+            if (it != prm.MLGN[j].end()) {
+              conformingIndices[j].insert(it-prm.MLGN[j].begin());
+              conformingIndices[i].insert(k);
+            }
+          }
     }
   }
+
+#ifdef HAVE_MPI
+  if (this->adm.getNoProcs() > 1) {
+    for (int i = 0; i < this->adm.getNoProcs(); ++i) {
+      int send = 0;
+      if (i == this->adm.getProcId())
+        for (auto& it : conformingIndices)
+          send += it.size();
+
+      int nRecv = adm.allReduce(send, MPI_SUM);
+      std::vector<int> vRecv;
+      if (i == this->adm.getProcId()) {
+        std::vector<int> vSend;
+        vRecv.reserve(nRecv);
+        for (auto& it : conformingIndices)
+          for (const int& node : it)
+            vRecv.push_back(prm.pMLGN[node]);
+      } else
+        vRecv.resize(nRecv);
+
+      MPI_Bcast(vRecv.data(), vRecv.size(), MPI_INT, i, *this->adm.getCommunicator());
+
+      if (i != this->adm.getProcId()) {
+        for (int& node : vRecv) {
+          auto it = std::find(prm.pMLGN.begin(), prm.pMLGN.end(), node);
+          if (it != prm.pMLGN.end()) {
+            int globId = it - prm.pMLGN.begin();
+            int locId;
+            for (size_t j = 0; j < myModel.size(); j++)
+              if (prm.MLGN.empty()) {
+                if ((locId = myModel[j]->getNodeIndex(globId)) > 0)
+                  conformingIndices[j].insert(locId-1);
+              } else {
+                auto it = std::find(prm.MLGN[j].begin(), prm.MLGN[j].end(), globId);
+                if (it != prm.MLGN[j].end())
+                  conformingIndices[j].insert(it-prm.MLGN[j].begin());
+              }
+          }
+        }
+      }
+    }
+  }
+#endif
 
   Vectors lsols;
   lsols.reserve(sol.size()*myModel.size());

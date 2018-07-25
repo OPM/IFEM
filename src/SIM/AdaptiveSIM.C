@@ -16,6 +16,9 @@
 #include "SIMenums.h"
 #include "ASMunstruct.h"
 #include "ASMmxBase.h"
+#ifdef HAS_LRSPLINE
+#include "GlobalNodes.h"
+#endif
 #include "IntegrandBase.h"
 #include "Utilities.h"
 #include "IFEM.h"
@@ -308,9 +311,9 @@ bool AdaptiveSIM::adaptMesh (int iStep, std::streamsize outPrec)
   if (eNorm.cols() < 1 || gNorm[adaptor](adNorm) < errTol*refNorm) return false;
 
   // Calculate row index in eNorm of the error norm to adapt based on
-  size_t i, eRow = adNorm;
+  size_t eRow = adNorm;
   NormBase* norm = model.getNormIntegrand();
-  for (i = 0; i < adaptor; i++)
+  for (size_t i = 0; i < adaptor; i++)
     eRow += norm->getNoFields(i+1);
   delete norm;
 
@@ -351,38 +354,47 @@ bool AdaptiveSIM::adaptMesh (int iStep, std::streamsize outPrec)
   {
     ASMbase* patch = model.getPatch(1);
     if (!patch) return false;
+    size_t nNodes = patch->getNoRefineNodes();
+    if (model.getNoPatches() > 1) {
+      std::vector<const LR::LRSpline*> refBasis;
+      for (ASMbase* pch : model.getFEModel())
+        refBasis.push_back(dynamic_cast<ASMunstruct*>(pch)->getRefinementBasis());
 
-    if (patch->getNoRefineNodes() == patch->getNoNodes(1))
-      errors.resize(model.getNoNodes(),DblIdx(0.0,0));
-    else if (model.getNoPatches() == 1)
-      errors.resize(patch->getNoRefineNodes(),DblIdx(0.0,0));
-    else
-    {
-      std::cerr <<" *** AdaptiveSIM::adaptMesh: Multi-patch refinement"
-                <<" is not available for mixed models."<< std::endl;
-      return false;
+#ifdef HAS_LRSPLINE
+      prm.MLGN = GlobalNodes::calcGlobalNodes(refBasis, model.getInterfaces());
+      nNodes = *std::max_element(prm.MLGN.back().begin(), prm.MLGN.back().end()) + 1;
+      if (model.getProcessAdm().getNoProcs() > 1)
+        prm.pMLGN = GlobalNodes::calcDDMapping(refBasis, prm.MLGN, model, nNodes);
+#endif
     }
+    errors.reserve(nNodes);
+    for (int i = 0; i < nNodes; i++)
+      errors.push_back(DblIdx(0.0,i));
 
     for (i = 0; i < errors.size(); i++)
       errors[i].second = i;
 
     for (ASMbase* patch : model.getFEModel()) {
-      if (!patch) return false;
+      if (!patch)
+        return false;
 
       // extract element norms for this patch
       Vector locNorm(patch->getNoElms());
-      for (i = 1; i <= patch->getNoElms(); ++i)
+      for (size_t i = 1; i <= patch->getNoElms(); ++i)
         locNorm(i) = eNorm(eRow, patch->getElmID(i));
 
       // remap from geometry basis to refinement basis
-      Vector locErr(patch->getNoProjectionNodes());
+      Vector locErr(patch->getNoRefineNodes());
       static_cast<ASMunstruct*>(patch)->remapErrors(locErr, locNorm);
 
       // insert into global error array
-      for (i = 0; i < locErr.size(); ++i)
-        if (model.getNoPatches() > 1)
-          errors[patch->getNodeID(i+1)-1].first += locErr[i];
-        else
+      for (size_t i = 0; i < locErr.size(); ++i)
+        if (model.getNoPatches() > 1) {
+          if (prm.pMLGN.empty())
+            errors[prm.MLGN[patch->idx][i]].first += locErr[i];
+          else
+            errors[prm.pMLGN[prm.MLGN[patch->idx][i]]].first += locErr[i];
+        } else
           errors[i].first += locErr[i];
     }
   }
@@ -393,9 +405,20 @@ bool AdaptiveSIM::adaptMesh (int iStep, std::streamsize outPrec)
                 <<" is available for isotropic_function only."<< std::endl;
       return false;
     }
-    for (i = 0; i < eNorm.cols(); i++)
+    for (size_t i = 0; i < eNorm.cols(); i++)
       errors.push_back(DblIdx(eNorm(eRow,1+i),i));
   }
+
+#ifdef HAVE_MPI
+  std::vector<double> perr(errors.size(), 0.0);
+  if (model.getProcessAdm().getNoProcs() > 1) {
+    for (size_t i = 0; i < errors.size(); ++i)
+      perr[i] = errors[i].first;
+    model.getProcessAdm().allReduce(perr, MPI_SUM);
+    for (size_t i = 0; i < errors.size(); ++i)
+      errors[i].first = perr[i];
+  }
+#endif
 
   // Sort the elements in the sequence of decreasing errors
   std::sort(errors.begin(),errors.end(),std::greater<DblIdx>());
@@ -461,8 +484,15 @@ bool AdaptiveSIM::adaptMesh (int iStep, std::streamsize outPrec)
     return false;
 
   prm.elements.reserve(refineSize);
-  for (i = 0; i < refineSize; i++)
-    prm.elements.push_back(errors[i].second);
+  for (size_t i = 0; i < refineSize; i++)
+    if (prm.pMLGN.empty())
+      prm.elements.push_back(errors[i].second);
+    else {
+      auto it = std::find(prm.pMLGN.begin(),
+                          prm.pMLGN.end(), errors[i].second);
+      if (it != prm.pMLGN.end())
+        prm.elements.push_back(it-prm.pMLGN.begin());
+    }
 
   // Now refine the mesh
   if (!storeMesh)

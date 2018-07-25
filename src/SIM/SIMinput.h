@@ -232,6 +232,9 @@ public:
   //! \brief Deserialization support (for simulation restart).
   virtual bool deSerialize(const std::map<std::string,std::string>&);
 
+  //! \brief Obtain a const reference to model topology.
+  const std::vector<ASM::Interface>& getInterfaces() const { return myInterfaces; }
+
 private:
   //! \brief Sets initial conditions from a file.
   //! \param fieldHolder The SIM-object to inject the initial conditions into
