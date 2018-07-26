@@ -410,10 +410,11 @@ private:
   //! \param[in] upar Parametric interpolation points in the u-direction
   //! \param[in] vpar Parametric interpolation points in the v-direction
   //! \param[in] points Interpolation values stored as one point per matrix row
+  //! \param[in] basis Which basis to interpolate onto
   //! \return A LRSplineSurface representation of the interpolated points
   LR::LRSplineSurface* regularInterpolation(const RealArray& upar,
                                             const RealArray& vpar,
-                                            const Matrix& points) const;
+                                            const Matrix& points, int basis) const;
 
 public:
   //! \brief Projects the secondary solution field onto the primary basis.
@@ -507,7 +508,8 @@ protected:
   //! \brief Calculates parameter values for the Greville points.
   //! \param[out] prm Parameter values in given direction for all points
   //! \param[in] dir Parameter direction (0,1)
-  bool getGrevilleParameters(RealArray& prm, int dir) const;
+  //! \param[in] basisNum Basis to grab parameters for
+  bool getGrevilleParameters(RealArray& prm, int dir, int basisNum) const;
 
   //! \brief Returns the area in the parameter space for an element.
   //! \param[in] iel 1-based element index

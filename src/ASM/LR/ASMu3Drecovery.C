@@ -25,13 +25,14 @@
 #include <array>
 
 
-bool ASMu3D::getGrevilleParameters (RealArray& prm, int dir) const
+bool ASMu3D::getGrevilleParameters (RealArray& prm, int dir, int basisNum) const
 {
-  if (!lrspline || dir < 0 || dir > 2) return false;
+  if (!this->getBasis(basisNum) || dir < 0 || dir > 2) return false;
 
+  const LR::LRSpline* lrspline = this->getBasis(basisNum);
   prm.clear();
   prm.reserve(lrspline->nBasisFunctions());
-  for(LR::Basisfunction *b : lrspline->getAllBasisfunctions())
+  for (const LR::Basisfunction *b : lrspline->getAllBasisfunctions())
     prm.push_back(b->getGrevilleParameter()[dir]);
 
   return true;
@@ -74,7 +75,7 @@ LR::LRSplineVolume* ASMu3D::projectSolution (const IntegrandBase& integr) const
   // Compute parameter values of the result sampling points (Greville points)
   std::array<RealArray,3> gpar;
   for (int dir = 0; dir < 3; dir++)
-    if (!this->getGrevilleParameters(gpar[dir],dir))
+    if (!this->getGrevilleParameters(gpar[dir],dir,1))
       return nullptr;
 
   // Evaluate the secondary solution at all sampling points
@@ -89,7 +90,7 @@ LR::LRSplineVolume* ASMu3D::projectSolution (const IntegrandBase& integr) const
   // the result array. Think that is always the case, but beware if trying
   // other projection schemes later.
 
-  return this->regularInterpolation(gpar[0],gpar[1],gpar[2],sValues);
+  return this->regularInterpolation(gpar[0],gpar[1],gpar[2],sValues,1);
 }
 
 
@@ -249,9 +250,9 @@ LR::LRSplineVolume* ASMu3D::scRecovery (const IntegrandBase& integrand) const
 
   // Compute parameter values of the Greville points
   std::array<RealArray,3> gpar;
-  if (!this->getGrevilleParameters(gpar[0],0)) return nullptr;
-  if (!this->getGrevilleParameters(gpar[1],1)) return nullptr;
-  if (!this->getGrevilleParameters(gpar[2],2)) return nullptr;
+  if (!this->getGrevilleParameters(gpar[0],0,1)) return nullptr;
+  if (!this->getGrevilleParameters(gpar[1],1,1)) return nullptr;
+  if (!this->getGrevilleParameters(gpar[2],2,1)) return nullptr;
 
   const int n1 = p1 - m + 1; // Patch size in first parameter direction
   const int n2 = p2 - m + 1; // Patch size in second parameter direction
@@ -390,15 +391,17 @@ LR::LRSplineVolume* ASMu3D::scRecovery (const IntegrandBase& integrand) const
   // Project the Greville point results onto the spline basis
   // to find the control point values
 
-  return this->regularInterpolation(gpar[0],gpar[1],gpar[2],sValues);
+  return this->regularInterpolation(gpar[0],gpar[1],gpar[2],sValues,1);
 }
 
 
 LR::LRSplineVolume* ASMu3D::regularInterpolation (const RealArray& upar,
                                                   const RealArray& vpar,
                                                   const RealArray& wpar,
-                                                  const Matrix& points) const
+                                                  const Matrix& points,
+                                                  int basis) const
 {
+  const LR::LRSplineVolume* lrspline = this->getBasis(basis);
   if (lrspline->rational())
   {
     std::cerr <<" *** ASMu3D::regularInterpolation:"

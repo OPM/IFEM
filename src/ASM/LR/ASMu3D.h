@@ -423,11 +423,13 @@ private:
   //! \param[in] vpar Parametric interpolation points in the v-direction
   //! \param[in] wpar Parametric interpolation points in the v-direction
   //! \param[in] points Interpolation values stored as one point per matrix row
+  //! \param[in] basis Basis to interpolate onto
   //! \return A LRSplineVolume representation of the interpolated points
   LR::LRSplineVolume* regularInterpolation(const RealArray& upar,
                                            const RealArray& vpar,
                                            const RealArray& wpar,
-                                           const Matrix& points) const;
+                                           const Matrix& points,
+                                           int basis) const;
 
 public:
   //! \brief Projects the secondary solution field onto the primary basis.
@@ -496,7 +498,8 @@ protected:
   //! \brief Calculates parameter values for the Greville points.
   //! \param[out] prm Parameter values in given direction for all points
   //! \param[in] dir Parameter direction (0,1,2)
-  bool getGrevilleParameters(RealArray& prm, int dir) const;
+  //! \param[in] basisNum Which basis to get parameters for
+  bool getGrevilleParameters(RealArray& prm, int dir, int basisNum) const;
 
   //! \brief Calculates parameter values for the Quasi-Interpolation points.
   //! \param[out] prm Parameter values in given direction for all points
