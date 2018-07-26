@@ -181,6 +181,8 @@ public:
   int getGlobalNode(int node) const;
   //! \brief Returns the process-local node number from a global node number.
   int getLocalNode(int node) const;
+  //! \brief Finds the Matrix of Nodal Point Correspondance for element \a iel.
+  bool getElmNodes(std::vector<int>& mnpc, int iel) const;
 
   //! \brief Finds the list of global nodes associated with a boundary.
   //! \param[in] pcode Property code identifying the boundary

@@ -272,6 +272,15 @@ int ASMbase::getElmID (size_t iel) const
   return abs(MLGE[iel-1]);
 }
 
+const IntVec& ASMbase::getElementNodes (int iel) const
+{
+  if (iel > 0 && (size_t)iel <= MNPC.size())
+    return MNPC[iel-1];
+
+  static IntVec empty;
+  return empty;
+}
+
 
 unsigned char ASMbase::getNodalDOFs (size_t inod) const
 {

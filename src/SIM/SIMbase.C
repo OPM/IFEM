@@ -609,6 +609,22 @@ size_t SIMbase::getNoElms (bool includeXelms) const
 }
 
 
+bool SIMbase::getElmNodes (IntVec& mnpc, int iel) const
+{
+  if (mySam)
+    return mySam->getElmNodes(mnpc,iel);
+  else if (myModel.size() != 1)
+  {
+    std::cerr <<" *** SIMbase::getElmNodes: The nodal point correspondance is"
+              <<" unknown at this point in a multi-patch model."<< std::endl;
+    return false;
+  }
+
+  mnpc = myModel.front()->getElementNodes(iel);
+  return !mnpc.empty();
+}
+
+
 size_t SIMbase::getNoSolutions () const
 {
   return myProblem ? myProblem->getNoSolutions() : 0;

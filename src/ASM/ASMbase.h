@@ -254,6 +254,9 @@ public:
   const IntVec& getMyNodeNums() const { return myMLGN; }
   //! \brief Returns the actual global element numbers of this patch.
   const IntVec& getMyElementNums() const { return myMLGE; }
+  //! \brief Returns the nodal point correspondance array for an element.
+  //! \param[in] iel 1-based element index local to current patch
+  const IntVec& getElementNodes(int iel) const;
   //! \brief Returns number of bases of this patch.
   virtual size_t getNoBasis() const { return 1; }
   //! \brief Returns the total number of nodes in this patch.
