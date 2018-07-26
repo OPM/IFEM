@@ -1154,7 +1154,7 @@ bool SIMoutput::dumpMatlabGrid (std::ostream& os, const std::string& name,
                                 const std::vector<std::string>& sets,
                                 double scale) const
 {
-  if (!mySam || this->getNoParamDim() != 2)
+  if (this->getNoParamDim() != 2)
   {
     std::cerr <<" *** SIMoutput::dumpMatlabGrid: For 2D only."<< std::endl;
     return false;
@@ -1195,7 +1195,7 @@ bool SIMoutput::dumpMatlabGrid (std::ostream& os, const std::string& name,
 
   // Write out all nodes
   os <<"\n  Node=[1";
-  size_t nnod = mySam->getNoNodes();
+  size_t nnod = this->getNoNodes();
   for (size_t inod = 1; inod <= nnod; inod++)
   {
     Vec3 X = this->getNodeCoord(inod);
@@ -1207,11 +1207,11 @@ bool SIMoutput::dumpMatlabGrid (std::ostream& os, const std::string& name,
 
   // Write out all elements
   os <<"\n  Element=[1";
-  size_t nen = 0, nel = mySam->getNoElms();
+  size_t nen = 0, nel = this->getNoElms(true);
   for (size_t iel = 1; iel <= nel; iel++)
   {
     IntVec nodes;
-    if (!mySam->getElmNodes(nodes,iel))
+    if (!this->getElmNodes(nodes,iel))
       return false;
     else if (nodes.size() == 4)
       std::swap(nodes[2],nodes[3]);
@@ -1246,32 +1246,34 @@ bool SIMoutput::dumpGeometry (std::ostream& os) const
 void SIMoutput::dumpPrimSol (const Vector& psol, utl::LogStream& os,
                              bool withID) const
 {
-  if (psol.empty()) return;
+  if (psol.empty() || !mySam)
+    return;
 
-  size_t i, j, ip;
-  unsigned char k, n;
-  for (i = 0; i < myModel.size(); i++)
+  for (const ASMbase* pch : myModel)
   {
-    if (myModel[i]->empty()) continue; // skip empty patches
+    if (pch->empty()) continue; // skip empty patches
 
     Vector patchSol;
-    myModel[i]->extractNodalVec(psol,patchSol,mySam->getMADOF());
+    pch->extractNodalVec(psol,patchSol,mySam->getMADOF());
 
     if (withID)
     {
       if (myModel.size() > 1)
-        os <<"\n# Patch: "<< i+1;
+        os <<"\n# Patch: "<< pch->idx+1;
       os <<"\n# inod/gnod\tNodal Coordinates\tSolution\n";
     }
-    for (ip = 0, j = 1; j <= myModel[i]->getNoNodes(); j++)
+
+    size_t ip = 0, nnod = pch->getNoNodes();
+    for (size_t j = 1; j <= nnod; j++)
     {
-      if ((n = myModel[i]->getNodalDOFs(j)) == 0)
+      unsigned char nndof = pch->getNodalDOFs(j);
+      if (nndof == 0)
         continue;
       else if (withID)
-        os << j <<' '<< myModel[i]->getNodeID(j)
-           <<"\t\t"<< myModel[i]->getCoord(j) <<"\t\t";
+        os << j <<" "<< pch->getNodeID(j) <<"\t\t"<< pch->getCoord(j) <<"\t\t";
+
       os << utl::trunc(patchSol[ip++]);
-      for (k = 1; k < n; k++)
+      for (unsigned char k = 1; k < nndof; k++)
         os <<' '<< utl::trunc(patchSol[ip++]);
       os <<'\n';
     }
@@ -1285,6 +1287,8 @@ bool SIMoutput::dumpSolution (const Vector& psol, utl::LogStream& os) const
 {
   if (psol.empty())
     return true;
+  else if (!mySam)
+    return false;
 
   Matrix field;
   size_t i, j, k;
@@ -1488,7 +1492,7 @@ bool SIMoutput::dumpVector (const Vector& vsol, const char* fname,
   if (vsol.empty() || myPoints.empty())
     return true;
 
-  size_t ngNodes = mySam->getNoNodes();
+  size_t ngNodes = this->getNoNodes();
   size_t nComp = vsol.size() / ngNodes;
   if (nComp*ngNodes != vsol.size() || nComp == this->getNoFields())
     nComp = 0; // Using the number of primary field components
@@ -1669,7 +1673,7 @@ void SIMoutput::printNorms (const Vectors& norms, size_t w) const
                <<"\nExact relative error (%) : "<< 100.0*n(4)/n(3);
 
   size_t j = 0;
-  for (const auto& prj : opt.project)
+  for (const SIMoptions::ProjectionMap::value_type& prj : opt.project)
     if (++j < norms.size())
       this->printNormGroup(norms[j],n,prj.second);
 

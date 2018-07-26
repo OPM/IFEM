@@ -1047,7 +1047,7 @@ bool SIMbase::solveSystem (Vector& solution, int printSol, double* rCond,
 
   // Expand solution vector from equation ordering to DOF-ordering
   if (status)
-    status = mySam->expandSolution(*b,solution);
+    status = mySam ? mySam->expandSolution(*b,solution) : false;
 
 #if SP_DEBUG > 2
   if (printSol < 1000) printSol = 1000;
@@ -1557,7 +1557,7 @@ bool SIMbase::systemModes (std::vector<Mode>& solution,
 			   int nev, int ncv, int iop, double shift,
 			   size_t iA, size_t iB)
 {
-  if (nev < 1 || ncv <= nev || !myEqSys) return false;
+  if (nev < 1 || ncv <= nev || !myEqSys || !mySam) return false;
 
   PROFILE1("Eigenvalue analysis");
 
@@ -1818,7 +1818,7 @@ bool SIMbase::extractPatchSolution (IntegrandBase* problem,
                                     const Vectors& sol, size_t pindx) const
 {
   ASMbase* pch = this->getPatch(pindx+1);
-  if (!pch) return false;
+  if (!pch || !mySam) return false;
 
   problem->initNodeMap(pch->getGlobalNodeNums());
   for (size_t i = 0; i < sol.size() && i < problem->getNoSolutions(); i++)
@@ -1853,21 +1853,21 @@ bool SIMbase::projectAnaSol (Vector& ssol,
   FunctionBase* f = mySol->getScalarSecSol();
   if (f)
   {
-    ssol.resize(f->dim()*mySam->getNoNodes());
+    ssol.resize(f->dim()*this->getNoNodes());
     return this->project(ssol,f,0,0,0,pMethod);
   }
 
   f = mySol->getVectorSecSol();
   if (f)
   {
-    ssol.resize(f->dim()*mySam->getNoNodes());
+    ssol.resize(f->dim()*this->getNoNodes());
     return this->project(ssol,f,0,0,0,pMethod);
   }
 
   f = mySol->getStressSol();
   if (f)
   {
-    ssol.resize(f->dim()*mySam->getNoNodes());
+    ssol.resize(f->dim()*this->getNoNodes());
     return this->project(ssol,f,0,0,0,pMethod);
   }
 
@@ -1943,14 +1943,13 @@ bool SIMbase::setPatchMaterial (size_t patch)
 
 bool SIMbase::addMADOF (unsigned char basis, unsigned char nndof, bool other)
 {
-  if (!mySam) return false;
-
   int key = basis << 16 + nndof;
   if (mixedMADOFs.find(key) != mixedMADOFs.end())
     return false; // This MADOF already calculated
 
   IntVec& madof = mixedMADOFs[key];
-  madof.resize(mySam->getNoNodes()+1,0);
+  madof.resize(this->getNoNodes()+1,0);
+  if (madof.size() < 2) return false;
 
   char nType = basis <= 1 ? 'D' : 'P' + basis-2;
   for (size_t i = 0; i < myModel.size(); i++)

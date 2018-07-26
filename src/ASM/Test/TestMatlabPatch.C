@@ -12,7 +12,6 @@
 
 #include "SIM2D.h"
 #include "ASMs2D.h"
-#include "IntegrandBase.h"
 #include "ModelGenerator.h"
 #include "tinyxml.h"
 #include <fstream>
@@ -20,20 +19,17 @@
 #include "gtest/gtest.h"
 
 
-class Dummy : public IntegrandBase {};
-
-
 class SIM2D_default : public SIM2D
 {
 public:
-  SIM2D_default(int nu, int nv) : SIM2D(new Dummy())
+  SIM2D_default(int nu, int nv)
   {
     // Create a bi-unit square grid with (nu+1)x(nv+1) linear elements
     this->createDefaultModel();
     ASMs2D* pch1 = static_cast<ASMs2D*>(myModel.front());
     pch1->uniformRefine(0,nu);
     pch1->uniformRefine(1,nv);
-    EXPECT_TRUE(this->preprocess());
+    EXPECT_TRUE(this->createFEMmodel());
 
     // Create topological boundary entities (vertices and edges)
     TiXmlDocument doc;
@@ -48,7 +44,7 @@ public:
 class SIM2D_matlab : public SIM2D
 {
 public:
-  SIM2D_matlab(const char* inputFile) : SIM2D(new Dummy())
+  SIM2D_matlab(const char* inputFile)
   {
     std::string xml("<geometry><patchfile type=\"matlab\">");
     xml.append(inputFile);
@@ -60,7 +56,7 @@ public:
     const TiXmlElement* tag = doc.RootElement();
     EXPECT_TRUE(tag != nullptr);
     EXPECT_TRUE(this->parse(tag));
-    EXPECT_TRUE(this->preprocess());
+    EXPECT_TRUE(this->createFEMmodel());
   }
   virtual ~SIM2D_matlab() {}
 };
