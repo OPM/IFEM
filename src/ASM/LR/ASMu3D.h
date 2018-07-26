@@ -274,6 +274,14 @@ public:
   virtual bool integrateEdge(Integrand& integrand, int lEdge,
                              GlobalIntegral& glbInt, const TimeDomain& time);
 
+  //! \brief Integrates a spatial dirac-delta function over a patch.
+  //! \param integrand Object with problem-specific data and methods
+  //! \param glbInt The integrated quantity
+  //! \param[in] u Parameters of the non-zero point of the dirac-delta function
+  //! \param[in] pval Function value at the specified point
+  virtual bool diracPoint(Integrand& integrand, GlobalIntegral& glbInt,
+                          const double* u, const Vec3& pval);
+
   //! \brief Updates the time-dependent in-homogeneous Dirichlet coefficients.
   //! \param[in] func Scalar property fields
   //! \param[in] vfunc Vector property fields
@@ -293,6 +301,10 @@ public:
   //! \return Local node number within the patch that matches the point, if any
   //! \return 0 if no node (control point) matches this point
   virtual int evalPoint(const double* xi, double* param, Vec3& X) const;
+  //! \brief Returns the element that contains a specified spatial point.
+  //! \param[in] param The parameters of the point in the knot-span domain
+  //! \return Local element number within the patch that contains the point
+  virtual int findElementContaining(const double* param) const;
 
   //! \brief Calculates parameter values for visualization nodal points.
   //! \param[out] prm Parameter values in given direction for all points

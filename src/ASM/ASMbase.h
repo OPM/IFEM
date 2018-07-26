@@ -440,6 +440,15 @@ public:
                          const TimeDomain& time,
                          const ASM::InterfaceChecker& iChk) { return true; }
 
+  //! \brief Integrates a spatial dirac-delta function over a patch.
+  //! \param integrand Object with problem-specific data and methods
+  //! \param glbInt The integrated quantity
+  //! \param[in] u Parameters of the non-zero point of the dirac-delta function
+  //! \param[in] p Function value at the specified point
+  virtual bool diracPoint(Integrand& integrand, GlobalIntegral& glbInt,
+                          const double* u, const Vec3& p) = 0;
+
+
   // Post-processing methods
   // =======================
 
@@ -449,6 +458,10 @@ public:
   //! \param[out] X The Cartesian coordinates of the point
   //! \return Local node number within the patch that matches the point
   virtual int evalPoint(const double* xi, double* param, Vec3& X) const = 0;
+  //! \brief Returns the element that contains a specified spatial point.
+  //! \param[in] param The parameters of the point in the knot-span domain
+  //! \return Local element number within the patch that contains the point
+  virtual int findElementContaining(const double* param) const = 0;
 
   //! \brief Creates a standard FE model of this patch for visualization.
   //! \param[out] grid The generated finite element grid

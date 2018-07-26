@@ -1648,6 +1648,29 @@ bool ASMu3D::integrateEdge (Integrand& integrand, int lEdge,
 }
 
 
+bool ASMu3D::diracPoint (Integrand& integrand, GlobalIntegral& glInt,
+                         const double* u, const Vec3& pval)
+{
+  if (!lrspline) return false;
+
+  FiniteElement fe;
+  fe.iel = 1 + lrspline->getElementContaining(u[0],u[1],u[2]);
+  fe.u   = u[0];
+  fe.v   = u[1];
+  fe.w   = u[2];
+  this->evaluateBasis(fe,0,1);
+
+  LocalIntegral* A = integrand.getLocalIntegral(MNPC[fe.iel-1].size(),
+                                                fe.iel,true);
+
+  bool ok = integrand.evalPoint(*A,fe,pval) && glInt.assemble(A,fe.iel);
+
+  A->destruct();
+
+  return ok;
+}
+
+
 int ASMu3D::evalPoint (const double* xi, double* param, Vec3& X) const
 {
   std::cerr << "ASMu3D::evalPoint(...) is not properly implemented yet :(" << std::endl;
@@ -1684,6 +1707,12 @@ int ASMu3D::evalPoint (const double* xi, double* param, Vec3& X) const
   return 0;
 #endif
   return -1;
+}
+
+
+int ASMu3D::findElementContaining (const double* param) const
+{
+  return lrspline ? 1 + lrspline->getElementContaining(param[0],param[1],param[2]) : -2;
 }
 
 

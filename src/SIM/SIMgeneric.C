@@ -65,3 +65,14 @@ int SIMgeneric::evalPoint (const double* xi, Vec3& X, double* param,
   int inod = pch->evalPoint(xi, param ? param : dummy, X);
   return inod > 0 && global ? pch->getNodeID(inod) : inod;
 }
+
+
+int SIMgeneric::findElementContaining (const double* param,
+                                       int patch, bool global) const
+{
+  ASMbase* pch = this->getPatch(patch,true);
+  if (!pch) return -1;
+
+  int iel = pch->findElementContaining(param);
+  return iel > 0 && global ? pch->getElmID(iel) : iel;
+}

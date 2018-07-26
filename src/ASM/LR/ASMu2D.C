@@ -1576,6 +1576,28 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
 }
 
 
+bool ASMu2D::diracPoint (Integrand& integrand, GlobalIntegral& glInt,
+                         const double* u, const Vec3& pval)
+{
+  if (!lrspline) return false;
+
+  FiniteElement fe;
+  fe.iel = 1 + lrspline->getElementContaining(u[0],u[1]);
+  fe.u   = u[0];
+  fe.v   = u[1];
+  if (!this->evaluateBasis(fe)) return false;
+
+  LocalIntegral* A = integrand.getLocalIntegral(MNPC[fe.iel-1].size(),
+                                                fe.iel,true);
+
+  bool ok = integrand.evalPoint(*A,fe,pval) && glInt.assemble(A,fe.iel);
+
+  A->destruct();
+
+  return ok;
+}
+
+
 int ASMu2D::evalPoint (const double* xi, double* param, Vec3& X) const
 {
   if (!lrspline) return -2;
@@ -1598,6 +1620,12 @@ int ASMu2D::evalPoint (const double* xi, double* param, Vec3& X) const
   X = Xnod * fe.N;
 
   return 0;
+}
+
+
+int ASMu2D::findElementContaining (const double* param) const
+{
+  return lrspline ? 1 + lrspline->getElementContaining(param[0],param[1]) : -2;
 }
 
 

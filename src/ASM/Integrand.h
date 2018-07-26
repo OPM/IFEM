@@ -239,6 +239,16 @@ public:
     return this->evalIntMx(elmInt,fe,X,normal);
   }
 
+  //! \brief Evaluates the dirac-delta integrand at a specified point.
+  //! \param elmInt The local integral object to receive the contributions
+  //! \param[in] fe Finite element data of current integration point
+  //! \param[in] pval Function value at the specified point
+  //!
+  //! \details This interface can be used for implementation calculation
+  //! of consistent load vectors due to a point load on the element.
+  virtual bool evalPoint(LocalIntegral& elmInt, const FiniteElement& fe,
+                         const Vec3& pval) { return false; }
+
   //! \brief Finalizes the element quantities after the numerical integration.
   //! \param elmInt The local integral object to receive the contributions
   //! \param[in] fe Nodal and integration point data for current element
