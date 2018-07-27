@@ -14,6 +14,8 @@
 
 mysim=$1
 
+test -f $2 || exit 1
+
 cd `dirname $2`
 MAPFILE=`head -n1 $2`
 tmplog=`mktemp -t ifemlogXXXXXX`
