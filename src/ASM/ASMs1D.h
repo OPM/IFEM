@@ -191,6 +191,11 @@ public:
   //! \return 0 if no node (control point) matches this point
   virtual int evalPoint(const double* xi, double* param, Vec3& X) const;
 
+  //! \brief Returns the element that contains a specified spatial point.
+  //! \param[in] param The parameter of the point in the knot-span domain
+  //! \return Local element number within the patch that contains the point
+  virtual int findElementContaining(const double* param) const;
+
   //! \brief Creates a line element model of this patch for visualization.
   //! \param[out] grid The generated line grid
   //! \param[in] npe Number of visualization nodes over each knot span
@@ -267,6 +272,10 @@ public:
   //! \param[in] nSegSpan Number of visualization segments over each knot-span
   virtual bool getGridParameters(RealArray& prm, int nSegSpan) const;
 
+  //! \brief Evaluates the basis functions at the specified point.
+  //! \param[in] u Parameter value of evaluation point
+  //! \param[out] N Basis function values
+  virtual void evaluateBasis(double u, double, double, Vector& N) const;
   //! \brief Establishes the vector with basis function values.
   //! \param[in] u Parameter value of current integration point
   //! \param[out] N Basis function values
@@ -331,6 +340,11 @@ protected:
 
   //! \brief Returns the parametric length on the \a i'th knot-span.
   double getKnotSpan(int i) const;
+
+  //! \brief Computes the element border parameters.
+  //! \param[in] iel 1-based element index
+  //! \param[out] u Parameter values of the element borders
+  virtual void getElementBorders(int iel, double* u) const;
 
   //! \brief Computes the element end coordinates.
   //! \param[in] i Parameter index for the knot-span element

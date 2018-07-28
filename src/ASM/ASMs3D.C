@@ -1627,6 +1627,20 @@ const Vector& ASMs3D::getGaussPointParameters (Matrix& uGP, int dir, int nGauss,
 }
 
 
+void ASMs3D::getElementBorders (int iel, double* ub) const
+{
+  int p1 = svol->order(0);
+  int p2 = svol->order(1);
+  int p3 = svol->order(2);
+  int n1 = svol->numCoefs(0) - p1 + 1;
+  int n2 = svol->numCoefs(1) - p2 + 1;
+  int i1 = p1 +  (iel-1) % n1;
+  int i2 = p2 + ((iel-1) / n1) % n2;
+  int i3 = p3 +  (iel-1) / (n1*n2);
+  this->getElementBorders(i1-1,i2-1,i3-1,ub,ub+2,ub+4);
+}
+
+
 void ASMs3D::getElementBorders (int i1, int i2, int i3,
                                 double* u, double* v, double* w) const
 {
@@ -2261,7 +2275,7 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
       fe.w = gpar[2](1,1);
 
       Matrix dNdu, Xnod, Jac;
-      double   param[3] = { fe.u, fe.v, fe.w };
+      double param[3] = { fe.u, fe.v, fe.w };
       Vec4   X(param);
       Vec3   normal;
       double dXidu[3];
@@ -2481,7 +2495,7 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
   if (gpar[2].size() == 1) fe.zeta = fe.w == svol->startparam(2) ? -1.0 : 1.0;
 
   Matrix dNdu, Xnod, Jac;
-  double   param[3] = { 0.0, 0.0, 0.0 };
+  double param[3] = { 0.0, 0.0, 0.0 };
   Vec4   X(param);
   Vec3   tang;
 
@@ -2602,6 +2616,23 @@ int ASMs3D::evalPoint (const double* xi, double* param, Vec3& X) const
   // Check if this point matches any of the control points (nodes)
   return this->searchCtrlPt(svol->coefs_begin(),svol->coefs_end(),
                             X,svol->dimension());
+}
+
+
+int ASMs3D::findElementContaining (const double* param) const
+{
+  if (!svol)
+    return -2;
+
+  int p1   = svol->order(0) - 1;
+  int p2   = svol->order(1) - 1;
+  int p3   = svol->order(2) - 1;
+  int nel1 = svol->numCoefs(0) - p1;
+  int nel2 = svol->numCoefs(1) - p2;
+  int uEl  = svol->basis(0).knotInterval(param[0]) - p1;
+  int vEl  = svol->basis(1).knotInterval(param[1]) - p2;
+  int wEl  = svol->basis(2).knotInterval(param[2]) - p3;
+  return 1 + uEl + (vEl + wEl*nel2)*nel1;
 }
 
 
@@ -3128,6 +3159,14 @@ bool ASMs3D::getNoStructElms (int& n1, int& n2, int& n3) const
   n3 = svol->numCoefs(2) - svol->order(2) + 1;
 
   return true;
+}
+
+
+void ASMs3D::evaluateBasis (double u, double v, double w, Vector& N) const
+{
+  Go::BasisPts spline;
+  svol->computeBasis(u,v,w,spline);
+  N = spline.basisValues;
 }
 
 

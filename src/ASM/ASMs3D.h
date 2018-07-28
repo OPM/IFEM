@@ -423,6 +423,11 @@ public:
   //! \return 0 if no node (control point) matches this point
   virtual int evalPoint(const double* xi, double* param, Vec3& X) const;
 
+  //! \brief Returns the element that contains a specified spatial point.
+  //! \param[in] param The parameters of the point in the knot-span domain
+  //! \return Local element number within the patch that contains the point
+  virtual int findElementContaining(const double* param) const;
+
   //! \brief Calculates parameter values for visualization nodal points.
   //! \param[out] prm Parameter values in given direction for all points
   //! \param[in] dir Parameter direction (0,1,2)
@@ -591,6 +596,11 @@ protected:
   double getParametricArea(int iel, int dir) const;
 
   //! \brief Computes the element border parameters.
+  //! \param[in] iel 1-based element index
+  //! \param[out] u Parameter values of the element borders
+  virtual void getElementBorders(int iel, double* u) const;
+
+  //! \brief Computes the element border parameters.
   //! \param[in] i1 Parameter index in u-direction
   //! \param[in] i2 Parameter index in v-direction
   //! \param[in] i3 Parameter index in w-direction
@@ -611,7 +621,7 @@ protected:
   //! \brief Generates element groups for multi-threading of interior integrals.
   //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] silence If \e true, suppress threading group outprint
-  //! \param[in] ignoreGlobalLM If \e true, ignore global multipliers in sanity check
+  //! \param[in] ignoreGlobalLM Sanity check option
   virtual void generateThreadGroups(const Integrand& integrand, bool silence,
                                     bool ignoreGlobalLM);
   //! \brief Generates element groups for multi-threading of interior integrals.
@@ -619,7 +629,7 @@ protected:
   //! \param[in] strip2 Strip width in second direction
   //! \param[in] strip3 Strip width in third direction
   //! \param[in] silence If \e true, suppress threading group outprint
-  //! \param[in] ignoreGlobalLM If \e true, ignore global multipliers in sanity check
+  //! \param[in] ignoreGlobalLM Sanity check option
   void generateThreadGroups(size_t strip1, size_t strip2, size_t strip3,
                             bool silence, bool ignoreGlobalLM);
   //! \brief Generates element groups for multi-threading of boundary integrals.
@@ -653,6 +663,13 @@ public:
 
   //! \brief Returns the number of elements on a boundary.
   virtual size_t getNoBoundaryElms(char lIndex, char ldim) const;
+
+  //! \brief Evaluates the basis functions at the specified point.
+  //! \param[in] u First parameter value of evaluation point
+  //! \param[in] v Second parameter value of evaluation point
+  //! \param[in] w Third parameter value of evaluation point
+  //! \param[out] N Basis function values
+  virtual void evaluateBasis(double u, double v, double w, Vector& N) const;
 
   //! \brief Establishes matrices with basis functions and 1st derivatives.
   //! \param[in] u First parameter value of current integration point

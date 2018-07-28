@@ -668,6 +668,17 @@ const Vector& ASMs1D::getGaussPointParameters (Matrix& uGP, int nGauss,
 }
 
 
+void ASMs1D::getElementBorders (int iel, double* ub) const
+{
+  RealArray::const_iterator uit = curv->basis().begin();
+
+  // Fetch parameter values of the element ends (knots)
+  int i = iel-1 + curv->order();
+  ub[0] = uit[i-1];
+  ub[1] = uit[i];
+}
+
+
 double ASMs1D::getElementEnds (int i, Vec3Vec& XC) const
 {
   RealArray::const_iterator uit = curv->basis().begin();
@@ -696,6 +707,12 @@ double ASMs1D::getElementEnds (int i, Vec3Vec& XC) const
   int iel = i - curv->order();
   XC.push_back(elmCS[iel][2]);
   return h;
+}
+
+
+void ASMs1D::evaluateBasis (double u, double, double, Vector& N) const
+{
+  this->extractBasis(u,N);
 }
 
 
@@ -1017,6 +1034,12 @@ int ASMs1D::evalPoint (const double* xi, double* param, Vec3& X) const
   // Check if this point matches any of the control points (nodes)
   return this->searchCtrlPt(curv->coefs_begin(),curv->coefs_end(),
                             X,curv->dimension());
+}
+
+
+int ASMs1D::findElementContaining (const double* param) const
+{
+  return curv ? 2 + curv->basis().knotInterval(param[0]) - curv->order() : -1;
 }
 
 

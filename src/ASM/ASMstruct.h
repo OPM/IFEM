@@ -61,10 +61,25 @@ public:
   //! \param[out] n3 Number of elements in third (w) direction
   virtual bool getNoStructElms(int& n1, int& n2, int& n3) const = 0;
 
+  //! \brief Evaluates the basis functions at the specified point.
+  //! \param[in] u First parameter value of evaluation point
+  //! \param[in] v Second parameter value of evaluation point
+  //! \param[in] w Third parameter value of evaluation point
+  //! \param[out] N Basis function values
+  virtual void evaluateBasis(double u, double v, double w, Vector& N) const = 0;
+
   using ASMbase::evalSolution;
   //! \brief Projects the secondary solution field onto the primary basis.
   //! \param[in] integr Object with problem-specific data and methods
   virtual Go::GeomObject* evalSolution(const IntegrandBase& integr) const = 0;
+
+  //! \brief Integrates a spatial dirac-delta function over a patch.
+  //! \param integr Object with problem-specific data and methods
+  //! \param glInt The integrated quantity
+  //! \param[in] u Parameters of the non-zero point of the dirac-delta function
+  //! \param[in] pval Function value at the specified point
+  virtual bool diracPoint(Integrand& integr, GlobalIntegral& glInt,
+                          const double* u, const Vec3& pval);
 
 protected:
   //! \brief Adds extraordinary nodes associated with a patch boundary.
@@ -76,14 +91,20 @@ protected:
   //! of the dimension-specific sub-classes.
   bool addXNodes(unsigned short int dim, size_t nXn, IntVec& nodes);
 
-  //! \brief Perform a sanity check on the thread groups.
+  //! \brief Performs a sanity check on the thread groups.
   //! \param[in] nodes The nodes to santiy check
   //! \param[in] group The group to check for
   //! \param[in] ignoreGlobalLM If \e true, ignore global lagrange multipliers
-  //! \return If \e true groups pass checks.
-  //! \details This checks that no nodes exist on several threads
+  //! \return \e true if the groups pass checks, otherwise \e false
+  //!
+  //! \details This checks that no nodes exist on several threads.
   bool checkThreadGroups(const std::vector<std::set<int>>& nodes,
                          int group, bool ignoreGlobalLM);
+
+  //! \brief Computes the element border parameters.
+  //! \param[in] iel 1-based element index
+  //! \param[out] u Parameter values of the element borders
+  virtual void getElementBorders(int iel, double* u) const = 0;
 
 protected:
   Go::GeomObject* geo; //!< Pointer to the actual spline geometry object

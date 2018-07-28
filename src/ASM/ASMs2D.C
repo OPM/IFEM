@@ -1430,6 +1430,17 @@ const Vector& ASMs2D::getGaussPointParameters (Matrix& uGP, int dir, int nGauss,
 }
 
 
+void ASMs2D::getElementBorders (int iel, double* ub) const
+{
+  int p1 = surf->order_u();
+  int p2 = surf->order_v();
+  int n1 = surf->numCoefs_u() - p1 + 1;
+  int i1 = p1 + (iel-1) % n1;
+  int i2 = p2 + (iel-1) / n1;
+  this->getElementBorders(i1-1,i2-1,ub,ub+2);
+}
+
+
 void ASMs2D::getElementBorders (int i1, int i2, double* u, double* v) const
 {
   RealArray::const_iterator uit = surf->basis(0).begin();
@@ -2348,6 +2359,19 @@ int ASMs2D::evalPoint (const double* xi, double* param, Vec3& X) const
 }
 
 
+int ASMs2D::findElementContaining (const double* param) const
+{
+  if (!surf) return -2;
+
+  int p1   = surf->order_u() - 1;
+  int p2   = surf->order_u() - 1;
+  int nel1 = surf->numCoefs_u() - p1;
+  int uEl  = surf->basis_u().knotInterval(param[0]) - p1;
+  int vEl  = surf->basis_v().knotInterval(param[1]) - p2;
+  return 1 + uEl + vEl*nel1;
+}
+
+
 bool ASMs2D::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) const
 {
   if (!surf) return false;
@@ -2789,6 +2813,14 @@ bool ASMs2D::getNoStructElms (int& n1, int& n2, int& n3) const
   n3 = 0;
 
   return true;
+}
+
+
+void ASMs2D::evaluateBasis (double u, double v, double, Vector& N) const
+{
+  Go::BasisPtsSf spline;
+  surf->computeBasis(u,v,spline);
+  N = spline.basisValues;
 }
 
 
