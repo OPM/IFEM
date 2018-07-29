@@ -631,6 +631,12 @@ size_t SIMbase::getNoSolutions () const
 }
 
 
+size_t SIMbase::getNoEquations () const
+{
+  return mySam ? mySam->getNoEquations() : 0;
+}
+
+
 size_t SIMbase::getNoRHS () const
 {
   return myEqSys ? myEqSys->getNoRHS() : 1;

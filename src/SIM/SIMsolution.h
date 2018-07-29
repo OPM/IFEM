@@ -53,6 +53,17 @@ protected:
   //! \param[in] name Name of simulator the solution belongs to
   bool restoreSolution(const SerializeMap& data, const std::string& name);
 
+  //! \brief Helper method for serializing a double array into a text string.
+  //! \param[in] v Pointer to double array
+  //! \param[in] n Length of array
+  //! \return The serialized string
+  static std::string serialize(const double* v, size_t n);
+  //! \brief Helper method for deserializing a double array from a text string.
+  //! \param[in] data The serialized string
+  //! \param[out] v Pointer to double array (assumed allocated outside)
+  //! \param[in] n Length of array
+  static void deSerialize(const std::string& data, double* v, size_t n);
+
 public:
   //! \brief Returns a const reference to the solution vectors.
   virtual const Vectors& getSolutions() const { return solution; }

@@ -200,6 +200,13 @@ public:
   //! \brief Returns whether this solution driver is linear or not.
   virtual bool isLinear() const { return false; }
 
+  //! \brief Serialize solution vectors for restarting purposes.
+  //! \param data Container for serialized data
+  virtual bool serialize(SerializeMap& data) const;
+  //! \brief Set solution vectors from a serialized state.
+  //! \param[in] data Container for serialized data
+  virtual bool deSerialize(const SerializeMap& data);
+
 protected:
   //! \brief Calculates predicted velocities and accelerations.
   virtual bool predictStep(TimeStep& param);

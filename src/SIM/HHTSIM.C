@@ -286,3 +286,41 @@ void HHTSIM::setSolution (const Vector& newSol, int idx)
 
   solution[idx] = newSol;
 }
+
+
+bool HHTSIM::serialize (SerializeMap& data) const
+{
+  if (!this->saveSolution(data,model.getName()))
+    return false;
+
+  if (Finert)
+    data["HHT::Finert"] = SIMsolution::serialize(Finert->getPtr(),
+                                                 Finert->dim());
+
+  if (Fext)
+    data["HHT::Fext"]   = SIMsolution::serialize(Fext->getPtr(),
+                                                 Fext->dim());
+
+  return true;
+}
+
+
+bool HHTSIM::deSerialize (const SerializeMap& data)
+{
+  if (!this->restoreSolution(data,model.getName()))
+    return false;
+
+  SerializeMap::const_iterator sit = data.find("HHT::Finert");
+  if (sit == data.end()) return false;
+
+  Finert = new StdVector(model.getNoEquations());
+  SIMsolution::deSerialize(sit->second,Finert->getPtr(),Finert->dim());
+
+  sit = data.find("HHT::Fext");
+  if (sit == data.end()) return false;
+
+  Fext = new StdVector(model.getNoEquations());
+  SIMsolution::deSerialize(sit->second,Fext->getPtr(),Fext->dim());
+
+  return true;
+}

@@ -72,3 +72,26 @@ bool SIMsolution::restoreSolution (const SerializeMap& data,
 #endif
   return false;
 }
+
+
+std::string SIMsolution::serialize (const double* v, size_t n)
+{
+#ifdef HAS_CEREAL
+  std::ostringstream str;
+  cereal::BinaryOutputArchive archive(str);
+  archive.saveBinary(v,n*sizeof(double));
+  return str.str();
+#else
+  return "";
+#endif
+}
+
+
+void SIMsolution::deSerialize (const std::string& data, double* v, size_t n)
+{
+#ifdef HAS_CEREAL
+  std::stringstream str(data);
+  cereal::BinaryInputArchive archive(str);
+  archive.loadBinary(v,n*sizeof(double));
+#endif
+}

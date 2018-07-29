@@ -243,3 +243,31 @@ void NewmarkNLSIM::setSolution (const Vector& newSol, int idx)
 
   solution[idx] = newSol;
 }
+
+
+bool NewmarkNLSIM::serialize (SerializeMap& data) const
+{
+  if (!this->saveSolution(data,model.getName()))
+    return false;
+
+  if (Finert)
+    data["HHT::Finert"] = SIMsolution::serialize(Finert->getPtr(),
+                                                 Finert->dim());
+
+  return true;
+}
+
+
+bool NewmarkNLSIM::deSerialize (const SerializeMap& data)
+{
+  if (!this->restoreSolution(data,model.getName()))
+    return false;
+
+  SerializeMap::const_iterator sit = data.find("HHT::Finert");
+  if (sit == data.end()) return false;
+
+  Finert = new StdVector(model.getNoEquations());
+  SIMsolution::deSerialize(sit->second,Finert->getPtr(),Finert->dim());
+
+  return true;
+}
