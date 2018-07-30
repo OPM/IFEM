@@ -2,10 +2,6 @@
 
 <simulation>
 
-  <console>
-    <logging output_prefix="foo"/>
-  </console>
-
   <!-- General - geometry definitions !-->
   <geometry>
     <partitioning procs="4" nperproc="1"/>
