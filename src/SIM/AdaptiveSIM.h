@@ -93,7 +93,7 @@ private:
   bool   closeGaps;    //!< Split elements with a hanging node on each side
 
   //! Threshold flag for how to interpret the refinement percentage, \a beta
-  enum { NONE, MAXIMUM, AVERAGE, MINIMUM, TRUE_BETA } threshold;
+  enum { NONE, MAXIMUM, AVERAGE, MINIMUM, TRUE_BETA, DORFEL } threshold;
 
   //! Refinement scheme: 0=fullspan, 1=minspan, 2=isotropic_elements,
   //! 3=isotropic_functions

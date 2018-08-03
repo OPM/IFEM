@@ -116,6 +116,8 @@ bool AdaptiveSIM::parse (const TiXmlElement* elem)
         threshold = MINIMUM;
       else if (type.compare("truebeta") == 0)
         threshold = TRUE_BETA;
+      else if (type.compare("dorfel") == 0)
+        threshold = DORFEL;
       IFEM::cout <<"\tRefinement percentage: "<< beta <<" type="<< threshold
                  << std::endl;
     }
@@ -405,7 +407,7 @@ bool AdaptiveSIM::adaptMesh (int iStep, std::streamsize outPrec)
   //   - list of elements to be refined (if fullspan or minspan)
   //   - list of basisfunctions to be refined (if structured mesh)
   size_t refineSize;
-  double limit, sumErr = 0.0;
+  double limit, sumErr = 0.0, curErr = 0.0;
   switch (threshold) {
   case MAXIMUM: // beta percent of max error (less than 100%)
     limit = errors.front().first * beta/100.0;
@@ -417,6 +419,20 @@ bool AdaptiveSIM::adaptMesh (int iStep, std::streamsize outPrec)
     break;
   case MINIMUM: // beta percent of min error (more than 100%)
     limit = errors.back().first  * beta/100.0;
+    break;
+  case DORFEL:
+    limit = errors.back().first;
+    for (const DblIdx& error : errors)
+      sumErr += error.first;
+    sumErr *= beta/100.0;
+    for (const DblIdx& error : errors)
+      if (curErr < sumErr)
+        curErr += error.first;
+      else
+      {
+        limit = error.first;
+        break;
+      }
     break;
   default:
     limit = 0.0;
@@ -447,6 +463,9 @@ bool AdaptiveSIM::adaptMesh (int iStep, std::streamsize outPrec)
     break;
   case MINIMUM:
     IFEM::cout << beta <<"% of min error ("<< limit <<")";
+    break;
+  case DORFEL:
+    IFEM::cout << beta <<"% of total error";
     break;
   default:
     break;
