@@ -53,7 +53,7 @@ void ASMmxBase::extractNodeVecMx (const Vector& glbVec, Vector& nodVec,
   nodVec.resize(len);
 
   int ldof = 0;
-  for (int b = b0; b < b1; b++, ofs += nb[b])
+  for (int b = b0; b < b1; ofs += nb[b++])
     for (size_t i = ofs; i < nb[b]+ofs; i++)
     {
       int idof = MADOF[i];
