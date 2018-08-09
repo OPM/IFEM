@@ -84,6 +84,8 @@ private:
   bool   linIndepTest; //!< Test mesh for linear independence after refinement
   double beta;         //!< Refinement percentage in each step
   double errTol;       //!< Global error stop tolerance
+  double condLimit;    //!< Upper limit on condition number
+  double rCond;        //!< Actual reciprocal condition number
   int    maxStep;      //!< Maximum number of adaptive refinements
   int    maxDOFs;      //!< Maximum number of degrees of freedom
   int    symmetry;     //!< Always refine a multiplum of this

@@ -34,6 +34,8 @@ AdaptiveSIM::AdaptiveSIM (SIMoutput& sim, bool sa) : SIMadmin(sim), model(sim)
   linIndepTest = false;
   beta         = 10.0;
   errTol       = 1.0;
+  rCond        = 0.0;
+  condLimit    = 1.0e12;
   maxStep      = 10;
   maxDOFs      = 1000000;
   scheme       = 0;     // fullspan
@@ -72,6 +74,8 @@ bool AdaptiveSIM::parse (const TiXmlElement* elem)
       maxDOFs = atoi(value);
     else if ((value = utl::getValue(child,"errtol")))
       errTol = atof(value);
+    else if ((value = utl::getValue(child,"maxcondition")))
+      condLimit = atof(value);
     else if ((value = utl::getValue(child,"symmetry")))
       symmetry = atoi(value);
     else if ((value = utl::getValue(child,"knot_mult")))
@@ -175,7 +179,9 @@ void AdaptiveSIM::setAdaptationNorm (size_t normGroup, size_t normIdx)
 bool AdaptiveSIM::initAdaptor (size_t normGroup)
 {
   if (normGroup > 0)
-    adaptor = normGroup; // override value from XML input
+    adaptor = normGroup; // Override value from input file
+  else if (adaptor == 0 && !model.haveAnaSol() && !opt.project.empty())
+    adaptor = 1; // Set default to first projection if no analytical solution
 
   SIMoptions::ProjectionMap::const_iterator pit = opt.project.begin();
   for (size_t j = 1; pit != opt.project.end(); ++pit, j++)
@@ -244,8 +250,13 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep, bool withRF,
     return false;
 
   // Solve the linear system of equations
-  if (!model.solveMatrixSystem(solution,1))
-    return false;
+  int printSol = 1;
+  solution.resize(model.getNoRHS());
+  for (size_t i = 0; i < solution.size(); i++)
+    if (!model.solveSystem(solution[i],printSol,&rCond,"displacement",i==0,i))
+      return false;
+    else if (solution.size() > 2)
+      printSol = 0; // Print summary only for the first two solutions
 
   eNorm.clear();
   gNorm.clear();
@@ -281,33 +292,46 @@ typedef std::pair<double,int> DblIdx;
 
 bool AdaptiveSIM::adaptMesh (int iStep, std::streamsize outPrec)
 {
+  ASMbase* thePatch = model.getPatch(1);
+  if (!thePatch)
+    return false; // No patches in the model, nothing to do here
+
   if (iStep < 2)
-    return true;
+    return true; // No refinement in the first adaptive cycle
 
   std::streamsize oldPrec = outPrec > 0 ? IFEM::cout.precision(outPrec) : 0;
   this->printNorms();
   if (outPrec > 0) IFEM::cout.precision(oldPrec);
 
-  if (adaptor >= gNorm.size() || adaptor >= eNorm.rows())
-    return false;
+  if (adaptor >= gNorm.size() || adaptor >= eNorm.rows() || eNorm.cols() == 0)
+    return false; // Refinement norm index out of range, or no element errors
 
   // Cannot adapt on exact errors without an exact solution
   if (adaptor == 0 && !model.haveAnaSol())
-    return false;
+    return false; // Cannot adapt on exact errors without an exact solution
 
   // Define the reference norm
   double refNorm = 0.01*model.getReferenceNorm(gNorm,adaptor);
   if (refNorm < -epsZ) {
     std::cerr <<" *** AdaptiveSIM::adaptMesh: Negative reference norm."
               <<" Check orientation of your model."<< std::endl;
-    return false;
+    return false; // Negative reference norm, modelling error?
   }
   else if (refNorm < epsZ)
     return false; // Zero reference norm, probably no load on the model
 
   // Check if further refinement is required
-  if (iStep > maxStep || model.getNoDOFs() > (size_t)maxDOFs) return false;
-  if (eNorm.cols() < 1 || gNorm[adaptor](adNorm) < errTol*refNorm) return false;
+  if (iStep > maxStep || model.getNoDOFs() > (size_t)maxDOFs)
+    return false; // Refinement cycle or model size limit reached
+  else if (gNorm[adaptor](adNorm) < errTol*refNorm)
+    return false; // Discretization error tolerance reached
+  else if (1.0/rCond > condLimit)
+  {
+    IFEM::cout <<"\n  ** Terminating the adaptive cycles due to instability."
+               <<"\n     The last condition number "<< 1.0/rCond
+               <<" is higher than the limit "<< condLimit << std::endl;
+    return false; // Condition number limit reached
+  }
 
   // Calculate row index in eNorm of the error norm to adapt based on
   size_t i, eRow = adNorm;
@@ -336,10 +360,9 @@ bool AdaptiveSIM::adaptMesh (int iStep, std::streamsize outPrec)
     }
     IFEM::cout <<"\nRefining by increasing solution space by "<< beta
                <<" percent."<< std::endl;
-    prm.errors.resize(model.getPatch(1)->getNoRefineElms());
-    static_cast<ASMunstruct*>(model.getPatch(1))->remapErrors(prm.errors,
-                                                              eNorm.getRow(eRow),
-                                                              true);
+    prm.errors.resize(thePatch->getNoRefineElms());
+    static_cast<ASMunstruct*>(thePatch)->remapErrors(prm.errors,
+                                                     eNorm.getRow(eRow), true);
     if (!storeMesh)
       return model.refine(prm);
 
@@ -351,13 +374,10 @@ bool AdaptiveSIM::adaptMesh (int iStep, std::streamsize outPrec)
   std::vector<DblIdx> errors;
   if (scheme == 2) // use errors per function
   {
-    ASMbase* patch = model.getPatch(1);
-    if (!patch) return false;
-
-    if (patch->getNoRefineNodes() == patch->getNoNodes(1))
+    if (thePatch->getNoRefineNodes() == thePatch->getNoNodes(1))
       errors.resize(model.getNoNodes(),DblIdx(0.0,0));
     else if (model.getNoPatches() == 1)
-      errors.resize(patch->getNoRefineNodes(),DblIdx(0.0,0));
+      errors.resize(thePatch->getNoRefineNodes(),DblIdx(0.0,0));
     else
     {
       std::cerr <<" *** AdaptiveSIM::adaptMesh: Multi-patch refinement"
@@ -368,9 +388,8 @@ bool AdaptiveSIM::adaptMesh (int iStep, std::streamsize outPrec)
     for (i = 0; i < errors.size(); i++)
       errors[i].second = i;
 
-    for (ASMbase* patch : model.getFEModel()) {
-      if (!patch) return false;
-
+    for (ASMbase* patch : model.getFEModel())
+    {
       // extract element norms for this patch
       Vector locNorm(patch->getNoElms());
       for (i = 1; i <= patch->getNoElms(); ++i)
@@ -406,7 +425,6 @@ bool AdaptiveSIM::adaptMesh (int iStep, std::streamsize outPrec)
   // the variable 'toBeRefined' contains one of the following:
   //   - list of elements to be refined (if fullspan or minspan)
   //   - list of basisfunctions to be refined (if structured mesh)
-  size_t refineSize;
   double limit, sumErr = 0.0, curErr = 0.0;
   switch (threshold) {
   case MAXIMUM: // beta percent of max error (less than 100%)
@@ -437,11 +455,12 @@ bool AdaptiveSIM::adaptMesh (int iStep, std::streamsize outPrec)
   default:
     limit = 0.0;
   }
+
+  size_t refineSize;
   if (threshold == NONE)
     refineSize = ceil(errors.size()*beta/100.0);
   else
-    refineSize = std::upper_bound(errors.begin(), errors.end(),
-                                  DblIdx(limit,0),
+    refineSize = std::upper_bound(errors.begin(), errors.end(), DblIdx(limit,0),
                                   std::greater_equal<DblIdx>())
                - errors.begin();
 
@@ -465,7 +484,7 @@ bool AdaptiveSIM::adaptMesh (int iStep, std::streamsize outPrec)
     IFEM::cout << beta <<"% of min error ("<< limit <<")";
     break;
   case DORFEL:
-    IFEM::cout << beta <<"% of total error";
+    IFEM::cout << beta <<"% of total error ("<< limit <<")";
     break;
   default:
     break;

@@ -16,11 +16,12 @@
 #include "IFEM.h"
 #include "tinyxml.h"
 #include <cstring>
+#include <cctype>
 
 
 bool SIMargsBase::parseArg (const char* argv)
 {
-  if (!strncmp(argv,"-adap",5))
+  if (!strncmp(argv,"-adap",5) && !isdigit(argv[5]))
     adap = true;
   else if (!strcmp(argv,"-1D"))
     dim = 1;
