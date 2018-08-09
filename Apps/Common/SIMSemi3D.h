@@ -228,12 +228,14 @@ public:
 
     for (size_t i=0;i<loc_planes;++i) {
       m_planes.push_back(new PlaneSolver(props));
-      int pid = 0;
 #ifdef HAVE_MPI
       m_planes.back()->setCommunicator(&comm);
-      MPI_Comm_rank(comm, &pid);
 #endif
       if (!log_files.empty()) {
+        int pid = 0;
+#ifdef HAVE_MPI
+        MPI_Comm_rank(comm, &pid);
+#endif
         if (plane_log_files.size() < loc_planes) {
           std::stringstream str;
           str << log_files <<"_plane"<< startCtx+i+1 <<".log";

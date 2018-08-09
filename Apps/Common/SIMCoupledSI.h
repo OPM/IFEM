@@ -46,9 +46,10 @@ public:
     this->S1.getProcessAdm().cout <<"\n  step="<< tp.step
                                   <<"  time="<< tp.time.t << std::endl;
 
-    SIM::ConvStatus status1 = SIM::OK, status2 = SIM::OK, conv = SIM::OK;
+    SIM::ConvStatus conv = SIM::OK;
     for (tp.iter = 0; tp.iter <= maxIter && conv != SIM::CONVERGED; tp.iter++)
     {
+      SIM::ConvStatus status1 = SIM::OK, status2 = SIM::OK;
       if (firstS1 && (status1 = this->S1.solveIteration(tp)) <= SIM::DIVERGED)
         return false;
 
