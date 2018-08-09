@@ -167,12 +167,12 @@ class EvalMultiFunction : public ParentFunc, public EvalFunctions
 
 public:
   //! \brief The constructor parses the expression string for each component.
-  EvalMultiFunction<ParentFunc,Ret>(const std::string& functions,
-                                    const std::string& variables = "")
+  EvalMultiFunction(const std::string& functions,
+                    const std::string& variables = "")
     : EvalFunctions(functions,variables), nsd(0) { this->setNoDims(); }
 
   //! \brief Empty destructor.
-  virtual ~EvalMultiFunction<ParentFunc,Ret>() {}
+  virtual ~EvalMultiFunction() {}
 
   //! \brief Returns whether the function is time-independent or not.
   virtual bool isConstant() const
