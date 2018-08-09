@@ -14,11 +14,19 @@ shift 2
 
 tmpfil=`mktemp`
 $cppcheck_cmd $@ --force --enable=all --suppress=unusedFunction $source_file &> $tmpfil
+declare -a ignorere
+ignorere=(\\[/usr.*\\]
+          \\[.*petsc.*.h:.*\\]:.*
+          \\[\\*\\]
+          \\[.*Vec3.h:.*\\]:.*Vec[34]..has.a.constructor.with.1.argument.that.is.not.explicit.
+          \\[.*Tensor.h:.*\\]:.*SymmTensor..has.a.constructor.with.1.argument.that.is.not.explicit.)
 nmatch=`cat $tmpfil | grep "\[.*\]" | wc -l`
-nsys=`cat $tmpfil | grep "\[/usr.*\]" | wc -l`
-nnone=`cat $tmpfil | grep "\[\\*]" | wc -l`
-let "nval=$nmatch-$nsys-$nnone"
-if test $nval -gt 0
+for RE in ${ignorere[*]}
+do
+  nign=`cat $tmpfil | grep "$RE" | wc -l`
+  let "nmatch=$nmatch-$nign"
+done
+if test $nmatch -gt 0
 then
   cat $tmpfil
   $cppcheck_cmd $@ -q --xml --xml-version=2 --force --enable=all --suppress=unusedFunction $source_file &> $tmpfil

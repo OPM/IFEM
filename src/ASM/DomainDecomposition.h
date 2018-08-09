@@ -232,7 +232,7 @@ private:
   int minNode = 0; //!< First node we own
   int maxNode = 0; //!< Last node we own
 
-  const SAMpatch* sam; //!< The assembly handler the DD is constructed for.
+  const SAMpatch* sam = nullptr; //!< The assembly handler the DD is constructed for.
 };
 
 #endif

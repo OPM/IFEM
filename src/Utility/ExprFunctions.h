@@ -104,7 +104,7 @@ class EvalFunction : public RealFunc
 
 public:
   //! \brief The constructor parses the expression string.
-  EvalFunction(const char* function);
+  explicit EvalFunction(const char* function);
   //! \brief The destructor frees the dynamically allocated objects.
   virtual ~EvalFunction();
 
