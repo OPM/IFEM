@@ -51,7 +51,7 @@ public:
   enum { dimension = 2 };
 
   //! \brief The constructor initializes the setup properties.
-  SIMSemi3D(const SetupProps& props_) :
+  explicit SIMSemi3D(const SetupProps& props_) :
     startCtx(0), planes(1), procs_per_plane(1), output_plane(-1),
     direction('Z'), props(props_)
   {
