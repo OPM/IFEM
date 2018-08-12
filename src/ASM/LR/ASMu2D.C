@@ -620,29 +620,6 @@ bool ASMu2D::connectBasis (int edge, ASMu2D& neighbor, int nedge, bool revers,
 }
 
 
-/*
-void ASMu2D::closeEdges (int dir, int basis, int master)
-{
-  int n1, n2;
-  if (basis < 1) basis = 1;
-  if (!this->getSize(n1,n2,basis)) return;
-
-  switch (dir)
-    {
-    case 1: // Edges are closed in I-direction
-      for (int i2 = 1; i2 <= n2; i2++, master += n1)
-        this->makePeriodic(master,master+n1-1);
-      break;
-
-    case 2: // Edges are closed in J-direction
-      for (int i1 = 1; i1 <= n1; i1++, master++)
-        this->makePeriodic(master,master+n1*(n2-1));
-      break;
-    }
-}
-*/
-
-
 IntVec ASMu2D::getEdgeNodes (int edge, int basis, int orient) const
 {
   size_t ofs = 1;
@@ -1023,20 +1000,57 @@ bool ASMu2D::integrate (Integrand& integrand,
   else if (nRed < 0)
     nRed = nGauss; // The integrand needs to know nGauss
 
+  // Evaluate basis function values and derivatives at all integration points.
+  // We do this before the integration point loop to exploit multi-threading
+  // in the integrand evaluations, which may be the computational bottleneck.
+
+  std::vector<Go::BasisDerivsSf>  spline1, splineRed;
+  std::vector<Go::BasisDerivsSf2> spline2;
+
+  if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
+    spline2.resize(nel*nGauss*nGauss);
+  else
+    spline1.resize(nel*nGauss*nGauss);
+  if (xr)
+    splineRed.resize(nel*nRed*nRed);
+
+  size_t iel, jp, rp;
+  for (iel = jp = rp = 0; iel < nel; iel++)
+  {
+    RealArray u, v;
+    this->getGaussPointParameters(u,0,nGauss,1+iel,xg);
+    this->getGaussPointParameters(v,1,nGauss,1+iel,xg);
+    for (int j = 0; j < nGauss; j++)
+      for (int i = 0; i < nGauss; i++, jp++)
+        if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
+          lrspline->computeBasis(u[i],v[j],spline2[jp],iel);
+        else
+          lrspline->computeBasis(u[i],v[j],spline1[jp],iel);
+
+    if (xr)
+    {
+      this->getGaussPointParameters(u,0,nRed,1+iel,xg);
+      this->getGaussPointParameters(v,1,nRed,1+iel,xg);
+      for (int j = 0; j < nRed; j++)
+        for (int i = 0; i < nRed; i++, rp++)
+          lrspline->computeBasis(u[i],v[j],splineRed[rp],iel);
+    }
+  }
+
 
   // === Assembly loop over all elements in the patch ==========================
 
   bool ok = true;
   for (size_t t = 0; t < threadGroups[0].size() && ok; ++t)
   {
-//#pragma omp parallel for schedule(static)
+#pragma omp parallel for schedule(static)
     for (size_t e = 0; e < threadGroups[0][t].size(); ++e)
     {
       if (!ok)
         continue;
 
       int iel = threadGroups[0][t][e] + 1;
-#ifdef SP_DEBUG
+#if defined(SP_DEBUG) && !defined(USE_OPENMP)
       if (dbgElm < 0 && iel != -dbgElm)
         continue; // Skipping all elements, except for -dbgElm
 #endif
@@ -1084,6 +1098,7 @@ bool ASMu2D::integrate (Integrand& integrand,
         Go::Point X0;
         double u0 = 0.5*(gpar[0].front() + gpar[0].back());
         double v0 = 0.5*(gpar[1].front() + gpar[1].back());
+#pragma omp critical
         lrspline->point(X0,u0,v0);
         X = SplineUtils::toVec3(X0,nsd);
       }
@@ -1118,8 +1133,9 @@ bool ASMu2D::integrate (Integrand& integrand,
       {
         // --- Selective reduced integration loop ------------------------------
 
+        int jp = (iel-1)*nRed*nRed;
         for (int j = 0; j < nRed; j++)
-          for (int i = 0; i < nRed; i++)
+          for (int i = 0; i < nRed; i++, jp++)
           {
             // Local element coordinates of current integration point
             fe.xi  = xr[i];
@@ -1129,10 +1145,8 @@ bool ASMu2D::integrate (Integrand& integrand,
             fe.u = param[0] = redpar[0][i];
             fe.v = param[1] = redpar[1][j];
 
-            // Compute basis function derivatives at current point
-            Go::BasisDerivsSf spline;
-            lrspline->computeBasis(fe.u,fe.v,spline,iel-1);
-            SplineUtils::extractBasis(spline,fe.N,dNdu);
+            // Extract basis function derivatives at current point
+            SplineUtils::extractBasis(splineRed[jp],fe.N,dNdu);
 
             // Compute Jacobian inverse and derivatives
             fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
@@ -1169,19 +1183,15 @@ bool ASMu2D::integrate (Integrand& integrand,
           fe.u = param[0] = gpar[0][i];
           fe.v = param[1] = gpar[1][j];
 
-          // Compute basis function derivatives at current integration point
-          if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES) {
-            Go::BasisDerivsSf2 spline;
-            lrspline->computeBasis(fe.u,fe.v,spline,iel-1);
-            SplineUtils::extractBasis(spline,fe.N,dNdu,d2Ndu2);
-          }
+          // Extract basis function derivatives at current integration point
+          if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
+            SplineUtils::extractBasis(spline2[fe.iGP-firstIp],fe.N,dNdu,d2Ndu2);
           else {
-            Go::BasisDerivsSf spline;
-            lrspline->computeBasis(fe.u,fe.v,spline, iel-1);
-            SplineUtils::extractBasis(spline,fe.N,dNdu);
+            SplineUtils::extractBasis(spline1[fe.iGP-firstIp],fe.N,dNdu);
 #if SP_DEBUG > 4
             if (iel == dbgElm || iel == -dbgElm || dbgElm == 0)
             {
+              const Go::BasisDerivsSf& spline = spline1[fe.iGP-firstIp];
               std::cout <<"\nBasis functions at a integration point "
                         <<" : (u,v) = "<< spline.param[0] <<" "<< spline.param[1]
                         <<"  left_idx = "<< spline.left_idx[0]
@@ -1203,10 +1213,7 @@ bool ASMu2D::integrate (Integrand& integrand,
           if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
           {
             if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
-            {
               ok = false;
-              continue;
-            }
             else if (nsd > 2)
               utl::Hessian(Hess,fe.H);
           }
@@ -1245,7 +1252,7 @@ bool ASMu2D::integrate (Integrand& integrand,
 
       A->destruct();
 
-#ifdef SP_DEBUG
+#if defined(SP_DEBUG) && !defined(USE_OPENMP)
       if (iel == -dbgElm)
         break; // Skipping all elements, except for -dbgElm
 #endif
@@ -1277,19 +1284,43 @@ bool ASMu2D::integrate (Integrand& integrand,
   for (size_t i = MPitg.front() = 0; i < itgPts.size(); i++)
     MPitg[i+1] = MPitg[i] + itgPts[i].size();
 
+  // Evaluate basis function values and derivatives at all integration points.
+  // We do this before the integration point loop to exploit multi-threading
+  // in the integrand evaluations, which may be the computational bottleneck.
+
+  std::vector<Go::BasisDerivsSf>  spline1;
+  std::vector<Go::BasisDerivsSf2> spline2;
+  if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
+    spline2.resize(MPitg.back());
+  else
+    spline1.resize(MPitg.back());
+
+  size_t iel, ip, jp = 0;
+  for (iel = 0; iel < itgPts.size(); iel++)
+    for (ip = 0; ip < itgPts[iel].size(); ip++, jp++)
+    {
+      double u = itgPts[iel][ip][0];
+      double v = itgPts[iel][ip][1];
+      if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
+        lrspline->computeBasis(u,v,spline2[jp],iel);
+      else
+        lrspline->computeBasis(u,v,spline1[jp],iel);
+    }
+
+
   // === Assembly loop over all elements in the patch ==========================
 
   bool ok = true;
   for (size_t t = 0; t < threadGroups[0].size() && ok; ++t)
   {
-//#pragma omp parallel for schedule(static)
+#pragma omp parallel for schedule(static)
     for (size_t e = 0; e < threadGroups[0][t].size(); ++e)
     {
       if (!ok)
         continue;
 
       int iel = threadGroups[0][t][e] + 1;
-#ifdef SP_DEBUG
+#if defined(SP_DEBUG) && !defined(USE_OPENMP)
       if (dbgElm < 0 && iel != -dbgElm)
         continue; // Skipping all elements, except for -dbgElm
 #endif
@@ -1341,7 +1372,7 @@ bool ASMu2D::integrate (Integrand& integrand,
           {
             A->destruct();
             ok = false;
-            break;
+            continue;
           }
 
       // --- Integration loop over all quadrature points in this element -------
@@ -1357,16 +1388,10 @@ bool ASMu2D::integrate (Integrand& integrand,
         fe.v = elmPts[ip][1];
 
         // Compute basis function derivatives at current integration point
-        if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES) {
-          Go::BasisDerivsSf2 spline;
-          lrspline->computeBasis(fe.u,fe.v,spline,iel-1);
-          SplineUtils::extractBasis(spline,fe.N,dNdu,d2Ndu2);
-        }
-        else {
-          Go::BasisDerivsSf spline;
-          lrspline->computeBasis(fe.u,fe.v,spline,iel-1);
-          SplineUtils::extractBasis(spline,fe.N,dNdu);
-        }
+        if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
+          SplineUtils::extractBasis(spline2[jp],fe.N,dNdu,d2Ndu2);
+        else
+          SplineUtils::extractBasis(spline1[jp],fe.N,dNdu);
 
         // Compute Jacobian inverse of coordinate mapping and derivatives
         fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
@@ -1376,10 +1401,7 @@ bool ASMu2D::integrate (Integrand& integrand,
         if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
         {
           if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
-          {
             ok = false;
-            continue;
-          }
           else if (nsd > 2)
             utl::Hessian(Hess,fe.H);
         }
@@ -1416,7 +1438,7 @@ bool ASMu2D::integrate (Integrand& integrand,
 
       A->destruct();
 
-#ifdef SP_DEBUG
+#if defined(SP_DEBUG) && !defined(USE_OPENMP)
       if (iel == -dbgElm)
         break; // Skipping all elements, except for -dbgElm
 #endif
