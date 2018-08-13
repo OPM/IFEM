@@ -40,7 +40,7 @@
 
 ASMu3Dmx::ASMu3Dmx (const CharVec& n_f)
   : ASMu3D(std::accumulate(n_f.begin(), n_f.end(), 0)), ASMmxBase(n_f),
-    bezierExtract(myBezierExtract)
+    bezierExtractmx(myBezierExtractmx)
 {
   myGeoBasis = ASMmxBase::geoBasis;
 }
@@ -48,7 +48,7 @@ ASMu3Dmx::ASMu3Dmx (const CharVec& n_f)
 
 ASMu3Dmx::ASMu3Dmx (const ASMu3Dmx& patch, const CharVec& n_f)
   : ASMu3D(patch), ASMmxBase(n_f[0]==0?patch.nfx:n_f),
-    bezierExtract(patch.myBezierExtract),
+    bezierExtractmx(patch.myBezierExtractmx),
     m_basis(patch.m_basis)
 {
   nfx = patch.nfx;
@@ -253,9 +253,9 @@ bool ASMu3Dmx::generateFEMTopology ()
     }
   }
 
-  myBezierExtract.resize(m_basis.size());
+  myBezierExtractmx.resize(m_basis.size());
   for (size_t b = 1; b <= m_basis.size(); ++b) {
-    myBezierExtract[b-1].resize(this->getBasis(b)->nElements());
+    myBezierExtractmx[b-1].resize(this->getBasis(b)->nElements());
     std::vector<LR::Element*>::const_iterator eit = this->getBasis(b)->elementBegin();
     for (int iel = 0; iel < this->getBasis(b)->nElements(); iel++, ++eit)
     {
@@ -267,8 +267,8 @@ bool ASMu3Dmx::generateFEMTopology ()
       // Get bezier extraction matrix
       RealArray extrMat;
       this->getBasis(b)->getBezierExtraction(iel,extrMat);
-      myBezierExtract[b-1][iel].resize((*eit)->nBasisFunctions(),p1*p2*p3);
-      myBezierExtract[b-1][iel].fill(extrMat.data(),extrMat.size());
+      myBezierExtractmx[b-1][iel].resize((*eit)->nBasisFunctions(),p1*p2*p3);
+      myBezierExtractmx[b-1][iel].fill(extrMat.data(),extrMat.size());
     }
   }
 
@@ -506,7 +506,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
             if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
               evaluateBasis(fe, dNxdu[b], d2Nxdu2[b], b+1);
             else
-              evaluateBasis(fe, dNxdu[b], bezierExtract[b][els[b]-1], B, b+1) ;
+              evaluateBasis(fe, dNxdu[b], bezierExtractmx[b][els[b]-1], B, b+1) ;
           }
           fe.iel = iEl+1;
 

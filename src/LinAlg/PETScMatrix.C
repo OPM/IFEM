@@ -139,7 +139,7 @@ PETScMatrix::PETScMatrix (const ProcessAdm& padm, const LinSolParams& spar,
  linsysType(ltype)
 {
   // Create matrix object, by default the matrix type is AIJ
-  MatCreate(*adm.getCommunicator(),&A);
+  MatCreate(*adm.getCommunicator(),&pA);
 
   // Create linear solver object
   KSPCreate(*adm.getCommunicator(),&ksp);
@@ -166,7 +166,7 @@ PETScMatrix::~PETScMatrix ()
   KSPDestroy(&ksp);
 
   // Deallocation of matrix object.
-  MatDestroy(&A);
+  MatDestroy(&pA);
   LinAlgInit::decrefs();
   for (auto& it : matvec)
     MatDestroy(&it);
@@ -191,7 +191,7 @@ void PETScMatrix::initAssembly (const SAM& sam, bool delayLocking)
   const PetscInt neq  = adm.dd.getMaxEq()- adm.dd.getMinEq() + 1;
 
   // Set correct number of rows and columns for matrix.
-  MatSetSizes(A,neq,neq,PETSC_DECIDE,PETSC_DECIDE);
+  MatSetSizes(pA,neq,neq,PETSC_DECIDE,PETSC_DECIDE);
 
   // Allocate sparsity pattern
   std::vector<std::set<int>> dofc;
@@ -199,9 +199,9 @@ void PETScMatrix::initAssembly (const SAM& sam, bool delayLocking)
 
   if (matvec.empty()) {
     // Set correct number of rows and columns for matrix.
-    MatSetSizes(A,neq,neq,PETSC_DECIDE,PETSC_DECIDE);
+    MatSetSizes(pA,neq,neq,PETSC_DECIDE,PETSC_DECIDE);
 
-    MatSetFromOptions(A);
+    MatSetFromOptions(pA);
 
     // Allocate sparsity pattern
     if (adm.isParallel()) {
@@ -233,42 +233,42 @@ void PETScMatrix::initAssembly (const SAM& sam, bool delayLocking)
       for (auto& it : o_nnz)
         it = std::min(it, adm.dd.getNoGlbEqs());
 
-      MatMPIAIJSetPreallocation(A,PETSC_DEFAULT,d_nnz.data(),
-                                  PETSC_DEFAULT,o_nnz.data());
+      MatMPIAIJSetPreallocation(pA,PETSC_DEFAULT,d_nnz.data(),
+                                   PETSC_DEFAULT,o_nnz.data());
     } else {
       PetscIntVec Nnz;
       for (const auto& it : dofc)
         Nnz.push_back(it.size());
 
-      MatSeqAIJSetPreallocation(A,PETSC_DEFAULT,Nnz.data());
+      MatSeqAIJSetPreallocation(pA,PETSC_DEFAULT,Nnz.data());
 
       PetscIntVec col;
       for (const auto& it2 : dofc)
         for (const auto& it : it2)
           col.push_back(it-1);
 
-      MatSeqAIJSetColumnIndices(A,&col[0]);
-      MatSetOption(A, MAT_NEW_NONZERO_LOCATION_ERR, PETSC_TRUE);
-      MatSetOption(A, MAT_KEEP_NONZERO_PATTERN, PETSC_TRUE);
+      MatSeqAIJSetColumnIndices(pA,&col[0]);
+      MatSetOption(pA, MAT_NEW_NONZERO_LOCATION_ERR, PETSC_TRUE);
+      MatSetOption(pA, MAT_KEEP_NONZERO_PATTERN, PETSC_TRUE);
     }
 
-    MatSetUp(A);
+    MatSetUp(pA);
 
     if (linsysType == LinAlg::SPD)
-      MatSetOption(A, MAT_SPD, PETSC_TRUE);
+      MatSetOption(pA, MAT_SPD, PETSC_TRUE);
     if (linsysType == LinAlg::SYMMETRIC)
-      MatSetOption(A, MAT_SYMMETRIC, PETSC_TRUE);
+      MatSetOption(pA, MAT_SYMMETRIC, PETSC_TRUE);
 
 #ifndef SP_DEBUG
     // Do not abort program for allocation error in release mode
-    MatSetOption(A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_FALSE);
+    MatSetOption(pA,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_FALSE);
 #endif
   } else {
     const DomainDecomposition& dd = adm.dd;
     size_t blocks = solParams.getNoBlocks();
 
     // map from sparse matrix indices to block matrix indices
-    glb2Blk.resize(SparseMatrix::A.size());
+    glb2Blk.resize(A.size());
     std::vector<std::array<int,2>> eq2b(sam.getNoEquations(), {{-1, 0}}); // cache
     for (size_t j = 0; j < cols(); ++j) {
       for (int i = IA[j]; i < IA[j+1]; ++i) {
@@ -394,7 +394,7 @@ void PETScMatrix::initAssembly (const SAM& sam, bool delayLocking)
     }
 
     MatCreateNest(*adm.getCommunicator(),solParams.getNoBlocks(),isvec.data(),
-                  solParams.getNoBlocks(),isvec.data(),matvec.data(),&A);
+                  solParams.getNoBlocks(),isvec.data(),matvec.data(),&pA);
 
  #ifndef SP_DEBUG
     // Do not abort program for allocation error in release mode
@@ -410,8 +410,8 @@ bool PETScMatrix::beginAssembly()
   if (matvec.empty()) {
     for (size_t j = 0; j < cols(); ++j)
       for (int i = IA[j]; i < IA[j+1]; ++i)
-        MatSetValue(A, adm.dd.getGlobalEq(JA[i]+1)-1,
-                    adm.dd.getGlobalEq(j+1)-1, SparseMatrix::A[i], ADD_VALUES);
+        MatSetValue(pA, adm.dd.getGlobalEq(JA[i]+1)-1,
+                    adm.dd.getGlobalEq(j+1)-1, A[i], ADD_VALUES);
   } else {
     for (size_t j = 0; j < cols(); ++j) {
       for (int i = IA[j]; i < IA[j+1]; ++i) {
@@ -420,11 +420,11 @@ bool PETScMatrix::beginAssembly()
         MatSetValue(matvec[glb2Blk[i][0]],
                     adm.dd.getGlobalEq(glb2Blk[i][1]+1, rblock)-1,
                     adm.dd.getGlobalEq(glb2Blk[i][2]+1, cblock)-1,
-                    SparseMatrix::A[i], ADD_VALUES);
+                    A[i], ADD_VALUES);
       }
     }
   }
-  MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);
+  MatAssemblyBegin(pA,MAT_FINAL_ASSEMBLY);
 
   return true;
 }
@@ -433,7 +433,7 @@ bool PETScMatrix::beginAssembly()
 bool PETScMatrix::endAssembly()
 {
   // Finalizes parallel assembly process
-  MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);
+  MatAssemblyEnd(pA,MAT_FINAL_ASSEMBLY);
   return true;
 }
 
@@ -444,7 +444,7 @@ void PETScMatrix::init ()
 
   // Set all matrix elements to zero
   if (matvec.empty())
-    MatZeroEntries(A);
+    MatZeroEntries(pA);
   else {
     for (auto& it : matvec)
       MatZeroEntries(it);
@@ -460,7 +460,7 @@ bool PETScMatrix::multiply (const SystemVector& B, SystemVector& C) const
   if ((!Bptr) || (!Cptr))
     return false;
 
-  MatMult(A,Bptr->getVector(),Cptr->getVector());
+  MatMult(pA,Bptr->getVector(),Cptr->getVector());
   return true;
 }
 
@@ -471,7 +471,7 @@ bool PETScMatrix::solve (SystemVector& B, bool newLHS, Real*)
   if (!Bptr)
     return false;
 
-  if (this->SparseMatrix::A.empty())
+  if (A.empty())
     return this->solveDirect(*Bptr);
 
   Vec x;
@@ -512,9 +512,9 @@ bool PETScMatrix::solve (const Vec& b, Vec& x, bool newLHS, bool knoll)
 
   if (setParams) {
 #if PETSC_VERSION_MINOR < 5
-    KSPSetOperators(ksp,A,A, newLHS ? SAME_NONZERO_PATTERN : SAME_PRECONDITIONER);
+    KSPSetOperators(ksp,pA,pA, newLHS ? SAME_NONZERO_PATTERN : SAME_PRECONDITIONER);
 #else
-    KSPSetOperators(ksp,A,A);
+    KSPSetOperators(ksp,pA,pA);
     KSPSetReusePreconditioner(ksp, newLHS ? PETSC_FALSE : PETSC_TRUE);
 #endif
     if (!setParameters())
@@ -554,22 +554,22 @@ bool PETScMatrix::solveDirect(PETScVector& B)
 
   // Set correct number of rows and columns for matrix.
   size_t nrow = IA.size()-1;
-  MatSetSizes(A, nrow, nrow, PETSC_DECIDE, PETSC_DECIDE);
-  MatSetFromOptions(A);
+  MatSetSizes(pA, nrow, nrow, PETSC_DECIDE, PETSC_DECIDE);
+  MatSetFromOptions(pA);
   PetscInt max = 0;
   for (size_t i = 0; i < nrow; ++i) // symmetric so row/column sizes should be the same
     if (IA[i+1]-IA[i] > max)
       max = IA[i+1]-IA[i];
-  MatSeqAIJSetPreallocation(A, max, nullptr);
-  MatSetOption(A, MAT_NEW_NONZERO_LOCATION_ERR, PETSC_FALSE);
-  MatSetUp(A);
+  MatSeqAIJSetPreallocation(pA, max, nullptr);
+  MatSetOption(pA, MAT_NEW_NONZERO_LOCATION_ERR, PETSC_FALSE);
+  MatSetUp(pA);
 
   for (size_t j = 0; j < nrow; ++j)
     for (int i = IA[j]; i < IA[j+1]; ++i)
-      MatSetValue(A, JA[i], j, SparseMatrix::A[i], INSERT_VALUES);
+      MatSetValue(pA, JA[i], j, A[i], INSERT_VALUES);
 
-  MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);
-  MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);
+  MatAssemblyBegin(pA,MAT_FINAL_ASSEMBLY);
+  MatAssemblyEnd(pA,MAT_FINAL_ASSEMBLY);
 
   Vec B1, x;
   VecCreate(PETSC_COMM_SELF, &B1);
@@ -604,7 +604,7 @@ bool PETScMatrix::solveDirect(PETScVector& B)
 
 
 bool PETScMatrix::solveEig (PETScMatrix& B, RealArray& val,
-			    Matrix& vec, int nv, Real shift, int iop)
+                            Matrix& vec, int nv, Real shift, int iop)
 {
 #ifdef HAS_SLEPC
   ST          st;
@@ -616,12 +616,12 @@ bool PETScMatrix::solveEig (PETScMatrix& B, RealArray& val,
   EPS eps;
   EPSCreate(*adm.getCommunicator(),&eps);
 
-  MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);
-  MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);
-  MatAssemblyBegin(B.A,MAT_FINAL_ASSEMBLY);
-  MatAssemblyEnd(B.A,MAT_FINAL_ASSEMBLY);
+  MatAssemblyBegin(pA,MAT_FINAL_ASSEMBLY);
+  MatAssemblyEnd(pA,MAT_FINAL_ASSEMBLY);
+  MatAssemblyBegin(B.pA,MAT_FINAL_ASSEMBLY);
+  MatAssemblyEnd(B.pA,MAT_FINAL_ASSEMBLY);
 
-  EPSSetOperators(eps,A,B.A);
+  EPSSetOperators(eps,pA,B.pA);
   EPSSetProblemType(eps,EPS_GHEP);
   EPSSetType(eps,EPSKRYLOVSCHUR);
   EPSSetWhichEigenpairs(eps,EPS_SMALLEST_MAGNITUDE);
@@ -632,7 +632,7 @@ bool PETScMatrix::solveEig (PETScMatrix& B, RealArray& val,
   EPSSolve(eps);
   EPSGetConverged(eps,&nconv);
 
-  MatGetSize(A,&m,&n);
+  MatGetSize(pA,&m,&n);
   if (m != n) return false;
 
   VecCreate(*adm.getCommunicator(),&xr);
@@ -664,7 +664,7 @@ bool PETScMatrix::solveEig (PETScMatrix& B, RealArray& val,
 Real PETScMatrix::Linfnorm () const
 {
   PetscReal norm;
-  MatNorm(A,NORM_INFINITY,&norm);
+  MatNorm(pA,NORM_INFINITY,&norm);
   return norm;
 }
 

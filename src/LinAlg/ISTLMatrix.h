@@ -150,12 +150,12 @@ public:
   virtual Real Linfnorm() const;
 
   //! \brief Returns the ISTL matrix (for assignment).
-  virtual ISTL::Mat& getMatrix() { return A; }
+  virtual ISTL::Mat& getMatrix() { return iA; }
   //! \brief Returns the ISTL matrix (for read access).
-  virtual const ISTL::Mat& getMatrix() const { return A; }
+  virtual const ISTL::Mat& getMatrix() const { return iA; }
 
 protected:
-  ISTL::Mat A; //!< The actual ISTL matrix
+  ISTL::Mat iA; //!< The actual ISTL matrix
   std::unique_ptr<ISTL::Operator> op; //!< The matrix adapter
   std::unique_ptr<ISTL::InverseOperator> solver; //!< Solver to use
   std::unique_ptr<ISTL::Preconditioner> pre; //!< Preconditioner to use

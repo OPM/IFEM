@@ -123,7 +123,7 @@ ISTLMatrix::ISTLMatrix (const ProcessAdm& padm, const LinSolParams& spar,
 ISTLMatrix::ISTLMatrix (const ISTLMatrix& B) :
   adm(B.adm), solParams(B.solParams.get(), B.adm), linsysType(B.linsysType)
 {
-  A = B.A;
+  iA = B.iA;
 
   LinAlgInit::increfs();
 
@@ -151,27 +151,27 @@ void ISTLMatrix::initAssembly (const SAM& sam, bool delayLocking)
   for (const auto& it : dofc)
     sum += it.size();
 
-  A.setSize(rows(), cols(), sum);
-  A.setBuildMode(ISTL::Mat::random);
+  iA.setSize(rows(), cols(), sum);
+  iA.setBuildMode(ISTL::Mat::random);
 
   for (size_t i = 0; i < dofc.size(); ++i)
-    A.setrowsize(i,dofc[i].size());
-  A.endrowsizes();
+    iA.setrowsize(i,dofc[i].size());
+  iA.endrowsizes();
 
   for (size_t i = 0; i < dofc.size(); ++i)
     for (const auto& it : dofc[i])
-      A.addindex(i, it-1);
+      iA.addindex(i, it-1);
 
-  A.endindices();
+  iA.endindices();
 
-  A = 0;
+  iA = 0;
 }
 
 bool ISTLMatrix::beginAssembly()
 {
   for (size_t j = 0; j < cols(); ++j)
     for (int i = IA[j]; i < IA[j+1]; ++i)
-      A[JA[i]][j] = SparseMatrix::A[i];
+      iA[JA[i]][j] = A[i];
 
   return true;
 }
@@ -188,7 +188,7 @@ void ISTLMatrix::init ()
   SparseMatrix::init();
 
   // Set all matrix elements to zero
-  A = 0;
+  iA = 0;
 }
 
 
@@ -196,7 +196,7 @@ void ISTLMatrix::init ()
 bool ISTLMatrix::solve (SystemVector& B, bool newLHS, Real*)
 {
   if (!pre)
-    std::tie(solver, pre, op) = solParams.setupPC(A);
+    std::tie(solver, pre, op) = solParams.setupPC(iA);
 
   ISTLVector* Bptr = dynamic_cast<ISTLVector*>(&B);
   if (!Bptr || !solver || !pre)
@@ -222,7 +222,7 @@ bool ISTLMatrix::solve (SystemVector& B, bool newLHS, Real*)
 bool ISTLMatrix::solve (const SystemVector& b, SystemVector& x, bool newLHS)
 {
   if (!pre)
-    std::tie(solver, pre, op) = solParams.setupPC(A);
+    std::tie(solver, pre, op) = solParams.setupPC(iA);
 
   const ISTLVector* Bptr = dynamic_cast<const ISTLVector*>(&b);
   if (!Bptr || ! solver || !pre)
@@ -250,5 +250,5 @@ bool ISTLMatrix::solve (const SystemVector& b, SystemVector& x, bool newLHS)
 
 Real ISTLMatrix::Linfnorm () const
 {
-  return A.infinity_norm();
+  return iA.infinity_norm();
 }

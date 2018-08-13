@@ -206,8 +206,8 @@ private:
   std::vector<std::shared_ptr<LR::LRSplineVolume>> m_basis; //!< Spline bases
   std::shared_ptr<LR::LRSplineVolume> projBasis; //!< Basis to project onto
   std::shared_ptr<LR::LRSplineVolume> refBasis; //!< Basis to refine based on
-  const std::vector<Matrices>& bezierExtract;   //!< Bezier extraction matrices
-  std::vector<Matrices>        myBezierExtract; //!< Bezier extraction matrices
+  const std::vector<Matrices>& bezierExtractmx;  //!< Bezier extraction matrices
+  std::vector<Matrices>        myBezierExtractmx; //!< Bezier extraction matrices
 };
 
 #endif
