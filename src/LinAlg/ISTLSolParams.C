@@ -345,6 +345,7 @@ static ISTL::Preconditioner* setupAMG2_smoother(const LinSolParams& params, size
   else if (smoother == "jacobi")
     return setupAMG2_full<ISTL::GJ>(params, block, op, solver, fsmooth);
   else {
+    delete fsmooth;
     std::cerr << "** ISTLSolParams ** Invalid smoother " << smoother << "." << std::endl;
     return nullptr;
   }
