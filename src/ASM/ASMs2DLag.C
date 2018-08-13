@@ -47,13 +47,12 @@ ASMs2DLag::ASMs2DLag (const ASMs2DLag& patch, unsigned char n_f)
 
 
 ASMs2DLag::ASMs2DLag (const ASMs2DLag& patch)
-  : ASMs2D(patch), coord(myCoord)
+  : ASMs2D(patch), coord(myCoord), myCoord(patch.coord)
 {
   nx = patch.nx;
   ny = patch.ny;
   p1 = patch.p1;
   p2 = patch.p2;
-  myCoord = patch.coord;
 }
 
 

@@ -26,17 +26,17 @@ ASMu2DLag::ASMu2DLag (unsigned char n_s,
 }
 
 
-ASMu2DLag::ASMu2DLag (const ASMu2DLag& p, unsigned char n_f) : ASMs2DLag(p,n_f)
+ASMu2DLag::ASMu2DLag (const ASMu2DLag& p, unsigned char n_f) :
+  ASMs2DLag(p,n_f), nodeSets(p.nodeSets)
 {
   fileType = 0;
-  nodeSets = p.nodeSets;
 }
 
 
-ASMu2DLag::ASMu2DLag (const ASMu2DLag& p) : ASMs2DLag(p)
+ASMu2DLag::ASMu2DLag (const ASMu2DLag& p) :
+  ASMs2DLag(p), nodeSets(p.nodeSets)
 {
   fileType = 0;
-  nodeSets = p.nodeSets;
 }
 
 

@@ -43,9 +43,9 @@ SIMadmin::SIMadmin (const char* heading) : opt(myOpts)
 }
 
 
-SIMadmin::SIMadmin (SIMadmin& anotherSIM) : opt(anotherSIM.myOpts)
+SIMadmin::SIMadmin (SIMadmin& anotherSIM) :
+  opt(anotherSIM.myOpts), adm(anotherSIM.adm)
 {
-  adm = anotherSIM.adm;
   myPid = anotherSIM.myPid;
   nProc = anotherSIM.nProc;
 }

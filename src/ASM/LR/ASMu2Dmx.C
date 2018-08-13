@@ -48,9 +48,9 @@ ASMu2Dmx::ASMu2Dmx (unsigned char n_s, const CharVec& n_f)
 
 
 ASMu2Dmx::ASMu2Dmx (const ASMu2Dmx& patch, const CharVec& n_f)
-  : ASMu2D(patch), ASMmxBase(n_f[0]==0?patch.nfx:n_f)
+  : ASMu2D(patch), ASMmxBase(n_f[0]==0?patch.nfx:n_f),
+    m_basis(patch.m_basis)
 {
-  m_basis = patch.m_basis;
   threadBasis = patch.threadBasis;
   nfx = patch.nfx;
   nb =  patch.nb;

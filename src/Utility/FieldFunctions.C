@@ -158,11 +158,9 @@ FieldFunction::FieldFunction (const std::string& fileName,
                               const std::string& basisName,
                               const std::string& fieldName,
                               size_t nPatches, int level)
-  : FieldFuncBase(fileName), currentLevel(level)
+  : FieldFuncBase(fileName), currentLevel(level),
+    fName(fieldName), bName(basisName)
 {
-  fName = fieldName;
-  bName = basisName;
-
   if (level >= 0)
     this->load({fieldName},basisName,level,nPatches,true);
 }
@@ -207,11 +205,10 @@ FieldsFuncBase::FieldsFuncBase (const std::string& fileName,
                                 const std::string& basisName,
                                 const std::string& fieldName,
                                 size_t nPatches, int level)
-  : FieldFuncBase(fileName), currentLevel(level)
+  : FieldFuncBase(fileName), currentLevel(level),
+    fName(splitString(fieldName,[](int c){ return c == '|' ? 1 : 0; })),
+    bName(basisName)
 {
-  fName = splitString(fieldName,[](int c){ return c == '|' ? 1 : 0; });
-  bName = basisName;
-
   if (level >= 0)
     this->load(fName,basisName,level,nPatches);
 }

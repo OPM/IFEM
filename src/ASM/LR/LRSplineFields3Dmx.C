@@ -23,9 +23,8 @@
 LRSplineFields3Dmx::LRSplineFields3Dmx (const ASMu3Dmx* patch,
                                         const RealArray& v, char basis,
                                         const char* name)
-  : Fields(name), vol(patch)
+  : Fields(name), vol(patch), bases(utl::getDigits(basis))
 {
-  bases = utl::getDigits(basis);
   nf = 3;
   auto vit = v.begin();
   size_t ofs = 0;
