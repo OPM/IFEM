@@ -106,9 +106,9 @@ bool NonLinSIM::parse (const TiXmlElement* elem)
   if (utl::getAttribute(elem,"rotation",rotUpdate,true) && !rotUpdate.empty())
     rotUpd = rotUpdate[0];
 
-  const char* value = 0;
   const TiXmlElement* child = elem->FirstChildElement();
-  for (; child; child = child->NextSiblingElement())
+  for (; child; child = child->NextSiblingElement()) {
+    const char* value;
     if ((value = utl::getValue(child,"maxits")))
       maxit = atoi(value);
     else if ((value = utl::getValue(child,"maxIncr")))
@@ -150,6 +150,7 @@ bool NonLinSIM::parse (const TiXmlElement* elem)
       fromIni = true;
     else if (!strcasecmp(child->Value(),"printCond"))
       rCond = 0.0; // Compute and report condition number in the iteration log
+  }
 
   return true;
 }

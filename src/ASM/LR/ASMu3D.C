@@ -137,10 +137,10 @@ bool ASMu3D::refine (int dir, const RealArray& xi)
 
   RealArray extraKnots;
   RealArray::const_iterator uit = tensorspline->basis(dir).begin();
-  double ucurr, uprev = *(uit++);
+  double uprev = *(uit++);
   while (uit != tensorspline->basis(dir).end())
   {
-    ucurr = *(uit++);
+    double ucurr = *(uit++);
     if (ucurr > uprev)
       for (size_t i = 0; i < xi.size(); i++)
         if (i > 0 && xi[i] < xi[i-1])
@@ -164,10 +164,10 @@ bool ASMu3D::uniformRefine (int dir, int nInsert)
 
   RealArray extraKnots;
   RealArray::const_iterator uit = tensorspline->basis(dir).begin();
-  double ucurr, uprev = *(uit++);
+  double uprev = *(uit++);
   while (uit != tensorspline->basis(dir).end())
   {
-    ucurr = *(uit++);
+    double ucurr = *(uit++);
     if (ucurr > uprev)
       for (int i = 0; i < nInsert; i++)
       {

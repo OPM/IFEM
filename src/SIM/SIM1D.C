@@ -131,15 +131,16 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
     if (!this->parseTopologySet(elem,patches))
       return false;
 
-    ASM1D* pch = nullptr;
     int addu = 0;
     utl::getAttribute(elem,"u",addu);
-    for (int j : patches)
+    for (int j : patches) {
+      ASM1D* pch;
       if ((pch = dynamic_cast<ASM1D*>(this->getPatch(j,true))))
       {
         IFEM::cout <<"\tRaising order of P"<< j <<" "<< addu << std::endl;
         static_cast<ASM1D*>(pch)->raiseOrder(addu);
       }
+    }
   }
 
   else if (!strcasecmp(elem->Value(),"topology"))
@@ -528,8 +529,8 @@ ASMbase* SIM1D::readPatch (std::istream& isp, int pchInd,
 bool SIM1D::readPatches (std::istream& isp, PatchVec& patches,
                          const char* whiteSpace) const
 {
-  ASMbase* pch = nullptr;
-  for (int pchInd = 1; isp.good(); pchInd++)
+  for (int pchInd = 1; isp.good(); pchInd++) {
+    ASMbase* pch;
     if ((pch = ASM1D::create(opt.discretization,nsd,nf)))
     {
       if (whiteSpace)
@@ -547,6 +548,7 @@ bool SIM1D::readPatches (std::istream& isp, PatchVec& patches,
         patches.push_back(pch);
       }
     }
+  }
 
   return true;
 }

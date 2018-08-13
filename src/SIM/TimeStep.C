@@ -119,7 +119,7 @@ bool TimeStep::parse (const TiXmlElement* elem)
   const TiXmlElement* child = elem->FirstChildElement("step");
   for (; child; child = child->NextSiblingElement())
   {
-    double start = 0.0, end = 0.0, dt = 0.0;
+    double start = 0.0, end = 0.0;
     utl::getAttribute(child,"start",start);
     utl::getAttribute(child,"end",end);
     if (mySteps.empty())
@@ -131,6 +131,7 @@ bool TimeStep::parse (const TiXmlElement* elem)
     {
       std::vector<double> timeStep;
       std::istringstream cline(child->FirstChild()->Value());
+      double dt = 0.0;
       cline >> dt;
       if (dt > 1.0 && ceil(dt) == dt)
         // The number of steps are specified

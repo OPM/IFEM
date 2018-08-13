@@ -232,10 +232,10 @@ ASMmxBase::SurfaceVec ASMmxBase::establishBases(Go::SplineSurface* surf,
     for (size_t i = 0; i < 2; ++i) {
       RealArray extraKnots;
       RealArray::const_iterator uit = tmp.basis(i).begin();
-      double ucurr, uprev = *(uit++);
+      double uprev = *(uit++);
       while (uit != tmp.basis(i).end())
       {
-        ucurr = *(uit++);
+        double ucurr = *(uit++);
         if (ucurr > uprev)
           extraKnots.push_back(ucurr*0.5 + uprev*0.5);
         uprev = ucurr;
@@ -415,10 +415,10 @@ ASMmxBase::VolumeVec ASMmxBase::establishBases(Go::SplineVolume* svol,
     for (size_t dir = 0; dir < 3; ++dir) {
       RealArray extraKnots;
       RealArray::const_iterator uit = tmp.basis(dir).begin();
-      double ucurr, uprev = *(uit++);
+      double uprev = *(uit++);
       while (uit != tmp.basis(dir).end())
       {
-        ucurr = *(uit++);
+        double ucurr = *(uit++);
         if (ucurr > uprev)
           extraKnots.push_back(ucurr*0.5 + uprev*0.5);
         uprev = ucurr;

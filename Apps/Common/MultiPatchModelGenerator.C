@@ -526,10 +526,11 @@ MultiPatchModelGenerator2D::createTopologySets (const SIMinput& sim) const
   }
 
   TopEntity& innerp = result["InnerPatches"];
-  size_t j;
-  for (size_t i = 1; i <= nx*ny; ++i)
+  for (size_t i = 1; i <= nx*ny; ++i) {
+    size_t j;
     if ((j = sim.getLocalPatchIndex(i)) > 0 && used.find(j) == used.end())
       innerp.insert(TopItem(j, 0, 2));
+  }
 
   return result;
 }
@@ -929,10 +930,11 @@ MultiPatchModelGenerator3D::createTopologySets (const SIMinput& sim) const
   }
 
   TopEntity& innerp = result["InnerPatches"];
-  size_t j;
-  for (size_t i = 1; i <= nx*ny*nz; ++i)
+  for (size_t i = 1; i <= nx*ny*nz; ++i) {
+    size_t j;
     if ((j = sim.getLocalPatchIndex(i)) > 0 && used.find(j) == used.end())
       innerp.insert(TopItem(j, 0, 3));
+  }
 
   return result;
 }

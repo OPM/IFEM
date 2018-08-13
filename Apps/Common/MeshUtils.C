@@ -37,11 +37,12 @@ static bool compute(Vector& result, const SIMbase& model,
       pch->updateCoords(locvec);
     }
 
-    int iel = 0;
     size_t nel = pch->getNoElms(true);
-    for (size_t e = 1; e <= nel; e++)
-      if ((iel = pch->getElmID(e)) > 0)
+    for (size_t e = 1; e <= nel; e++) {
+      int iel = pch->getElmID(e);
+      if (iel  > 0)
         result(iel) = func(*pch,e);
+    }
 
     if (!displacement.empty()) {
       locvec *= -1.0;

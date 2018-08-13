@@ -375,8 +375,9 @@ bool SAM::getDofCouplings (std::vector<IntSet>& dofc) const
       return false;
 
     size_t i, j;
-    int ieq, ip, ipmceq1, ipmceq2, jeq, jp, jpmceq1, jpmceq2;
-    for (j = 0; j < meen.size(); j++)
+    int ieq, ip, ipmceq1, ipmceq2, jp, jpmceq1, jpmceq2;
+    for (j = 0; j < meen.size(); j++) {
+      int jeq;
       if ((jeq = meen[j]) > 0)
       {
         dofc[jeq-1].insert(jeq);
@@ -414,6 +415,7 @@ bool SAM::getDofCouplings (std::vector<IntSet>& dofc) const
               }
           }
       }
+    }
   }
 
   return true;
@@ -571,8 +573,8 @@ bool SAM::assembleSystem (SystemVector& sysRHS, const Real* nS, int inod,
 
   if (reactionForces)
   {
-    int ipR, j, k = 0;
-    for (j = madof[inod-1]; j < madof[inod]; j++, k++)
+    int k = 0;
+    for (int ipR = 0, j = madof[inod-1]; j < madof[inod]; j++, k++)
       if ((ipR = -msc[j-1]) > 0 && (size_t)ipR <= reactionForces->size())
         (*reactionForces)(ipR) += nS[k];
   }
@@ -638,10 +640,10 @@ void SAM::assembleRHS (Real* RHS, Real value, int ieq) const
 
 void SAM::assembleReactions (Vector& reac, const RealArray& eS, int iel) const
 {
-  int i, j, k, ipR, node;
+  int j, ipR;
   int ip = mpmnpc[iel-1];
   int nenod = mpmnpc[iel] - ip;
-  for (i = k = 0; i < nenod; i++, ip++)
+  for (int i = 0, k = 0, node; i < nenod; i++, ip++)
     if ((node = mmnpc[ip-1]) < 0)
       k += madof[-node] - madof[-node-1];
     else if (node > 0)

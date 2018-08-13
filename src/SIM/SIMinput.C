@@ -1073,10 +1073,11 @@ IntVec SIMinput::getFunctionsForElements (const IntVec& elements)
 {
   IntSet functions;
 #ifdef HAS_LRSPLINE
-  ASMunstruct* pch = nullptr;
-  for (size_t i = 0; i < myModel.size(); i++)
+  for (size_t i = 0; i < myModel.size(); i++) {
+    ASMunstruct* pch;
     if ((pch = dynamic_cast<ASMunstruct*>(myModel[i])))
       pch->getFunctionsForElements(functions,elements);
+  }
 #ifdef SP_DEBUG
   size_t j = 0, k = 0;
   std::cout <<"SIMinput::getFunctionsForElements: nel="<< elements.size();

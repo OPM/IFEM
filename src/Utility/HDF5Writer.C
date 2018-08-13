@@ -380,7 +380,6 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
   const IntegrandBase* prob = sim->getProblem();
   bool usedescription = entry.second.results < 0;
 
-  size_t j, k, l;
   for (int i = 0; i < sim->getNoPatches(); ++i) {
     std::stringstream str;
     str << level;
@@ -436,7 +435,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
           field.resize(prob->getNoFields(2),locvec.size()/prob->getNoFields(2));
           field.fill(locvec.ptr());
         }
-        for (j = 0; j < field.rows(); j++)
+        for (size_t j = 0; j < field.rows(); j++)
           writeArray(group2,prefix+prob->getField2Name(j),field.cols(),
                      field.getRow(j+1).ptr(),H5T_NATIVE_DOUBLE);
       }
@@ -444,8 +443,8 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
       if (results & DataExporter::NORMS && norm) {
         Matrix patchEnorm;
         sim->extractPatchElmRes(eNorm,patchEnorm,loc-1);
-        for (j = l = 1; j <= norm->getNoFields(0); j++)
-          for (k = 1; k <= norm->getNoFields(j); k++)
+        for (size_t j = 1, l = 1; j <= norm->getNoFields(0); j++)
+          for (size_t k = 1; k <= norm->getNoFields(j); k++)
             if (norm->hasElementContributions(j,k))
               writeArray(group2,
                          prefix+norm->getName(j,k,(j>1&&m_prefix?m_prefix[j-2]:0)),
@@ -456,7 +455,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
         const std::vector<Mode>* vec2 = static_cast<const std::vector<Mode>*>(entry.second.data2);
         const std::vector<Mode>& vec = static_cast<const std::vector<Mode>&>(*vec2);
         H5Gclose(group2);
-        for (k = 0; k < vec.size(); ++k) {
+        for (size_t k = 0; k < vec.size(); ++k) {
           Vector psol;
           size_t ndof1 = sim->extractPatchSolution(vec[k].eigVec,psol,pch);
           std::stringstream name;
@@ -505,12 +504,12 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
       }
 
       if (results & DataExporter::SECONDARY)
-        for (j = 0; j < prob->getNoFields(2); j++)
+        for (size_t j = 0; j < prob->getNoFields(2); j++)
           writeArray(group2,prefix+prob->getField2Name(j),0,&dummy,H5T_NATIVE_DOUBLE);
 
       if (results & DataExporter::NORMS && norm)
-        for (j = l = 1; j <= norm->getNoFields(0); j++)
-          for (k = 1; k <= norm->getNoFields(j); k++)
+        for (size_t j = 1; j <= norm->getNoFields(0); j++)
+          for (size_t k = 1; k <= norm->getNoFields(j); k++)
             if (norm->hasElementContributions(j,k))
               writeArray(group2,
                          prefix+norm->getName(j,k,(j>1&&m_prefix?m_prefix[j-2]:0)),

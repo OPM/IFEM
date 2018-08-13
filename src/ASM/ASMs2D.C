@@ -349,10 +349,10 @@ bool ASMs2D::refine (int dir, const RealArray& xi, double scale)
 
   RealArray extraKnots;
   RealArray::const_iterator uit = surf->basis(dir).begin();
-  double ucurr, uprev = *(uit++);
+  double uprev = *(uit++);
   while (uit != surf->basis(dir).end())
   {
-    ucurr = *(uit++);
+    double ucurr = *(uit++);
     if (ucurr > uprev)
       for (size_t i = 0; i < xi.size(); i++)
 	if (i > 0 && xi[i] < xi[i-1])
@@ -379,10 +379,10 @@ bool ASMs2D::uniformRefine (int dir, int nInsert)
 
   RealArray extraKnots;
   RealArray::const_iterator uit = surf->basis(dir).begin();
-  double ucurr, uprev = *(uit++);
+  double uprev = *(uit++);
   while (uit != surf->basis(dir).end())
   {
-    ucurr = *(uit++);
+    double ucurr = *(uit++);
     if (ucurr > uprev)
       for (int i = 0; i < nInsert; i++)
       {
@@ -1417,10 +1417,10 @@ const Vector& ASMs2D::getGaussPointParameters (Matrix& uGP, int dir, int nGauss,
   int nCol = (dir == 0 ? surf->numCoefs_u() : surf->numCoefs_v()) - pm1;
   uGP.resize(nGauss,nCol);
 
-  double ucurr, uprev = *(uit++);
+  double uprev = *(uit++);
   for (int j = 1; j <= nCol; ++uit, j++)
   {
-    ucurr = *uit;
+    double ucurr = *uit;
     for (int i = 1; i <= nGauss; i++)
       uGP(i,j) = 0.5*((ucurr-uprev)*xi[i-1] + ucurr+uprev);
     uprev = ucurr;

@@ -192,13 +192,13 @@ bool utl::Hessian (matrix3d<Real>& H, matrix3d<Real>& d2NdX2,
 
 void utl::Hessian (const matrix3d<Real>& Hess, matrix<Real>& H)
 {
-  size_t i, n = Hess.dim(2);
+  size_t n = Hess.dim(2);
   if (n == Hess.dim(3))
   {
     H.resize(Hess.dim(1),n*(n+1)/2);
-    for (i = 1; i <= n; i++)
+    for (size_t i = 1; i <= n; i++)
       H.fillColumn(i,Hess.getColumn(i,i));
-    for (i = 2; i <= n; i++)
+    for (size_t i = 2; i <= n; i++)
       H.fillColumn(n+i-1,Hess.getColumn(1,i));
     if (n > 2)
       H.fillColumn(n+n,Hess.getColumn(2,3));

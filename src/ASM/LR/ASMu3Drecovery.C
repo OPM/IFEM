@@ -561,19 +561,21 @@ bool ASMu3D::faceL2projection (const DirichletFace& face,
         }
 
         // Assemble into matrix A and vector B
-        size_t il, jl;
-        int    ig, jg;
-        for (il = 0; il < face.MNPC[ie].size(); il++) // local i-index
+        for (size_t il = 0; il < face.MNPC[ie].size(); il++) { // local i-index
+          int ig;
           if ((ig = 1+face.MNPC[ie][il]) > 0)         // global i-index
           {
-            for (jl = 0; jl < face.MNPC[ie].size(); jl++) // local j-index
+            for (size_t jl = 0; jl < face.MNPC[ie].size(); jl++) { // local j-index
+              int jg;
               if ((jg = 1+face.MNPC[ie][jl]) > 0)         // global j-index
                 A(ig,jg) += N[il]*N[jl]*dJxW;
+            }
 
             RealArray val = values.getValue(X);
             for (size_t k = 0; k < m; k++)
               B(ig+k*n) += N[il]*val[k]*dJxW;
           } // end basis-function loop
+        }
       } // end gauss-point loop
   } // end element loop
 
