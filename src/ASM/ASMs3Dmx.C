@@ -983,7 +983,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
                   fe.eta = faceDir > 0 ? 1.0 : 0.0;
                   fe.zeta = xg[j];
                   fe.u = 0.5*((u[1]-u[0])*xg[i] + u[1]+u[0]);
-                  fe.u = faceDir > 0 ? u[1] : u[0];
+                  fe.v = faceDir > 0 ? v[1] : v[0];
                   fe.w = 0.5*((w[1]-w[0])*xg[j] + w[1]+w[0]);
                   fe.p = p2 - 1;
                 }
