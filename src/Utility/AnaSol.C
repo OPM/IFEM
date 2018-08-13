@@ -145,7 +145,7 @@ void AnaSol::initPatch(size_t pIdx)
     vecSol->initPatch(pIdx);
 
   if (vecSecSol)
-    vecSol->initPatch(pIdx);
+    vecSecSol->initPatch(pIdx);
 
   if (stressSol)
     stressSol->initPatch(pIdx);
