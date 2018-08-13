@@ -46,6 +46,12 @@ ProcessAdm::ProcessAdm(MPI_Comm& mpi_comm) : cout(std::cout)
 }
 #endif
 
+ProcessAdm::ProcessAdm(const ProcessAdm& adm) : cout(adm.cout)
+{
+  LinAlgInit::increfs();
+  *this = adm;
+}
+
 
 #ifdef HAVE_MPI
 ProcessAdm::ProcessAdm(bool) : cout(std::cout)

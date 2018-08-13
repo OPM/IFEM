@@ -50,6 +50,8 @@ public:
   //! \brief Construct a parallel process administrator.
   explicit ProcessAdm(MPI_Comm& mpi_comm);
 #endif
+  //! \brief Copy constructor.
+  ProcessAdm(const ProcessAdm& adm);
 
 #ifdef HAVE_MPI
   //! \brief Construct a parallel process administrator.
