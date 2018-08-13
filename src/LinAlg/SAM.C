@@ -118,7 +118,7 @@ void SAM::print (std::ostream& os) const
 {
   os <<"\n\nSAM::mpar: "<< mpar[0];
   for (int i = 1; i < 30; i++)
-    os << (i%10 ? " " : "\n           ") << mpar[i];
+    os << ((i%10) ? " " : "\n           ") << mpar[i];
   os << std::endl;
 
   if (mmnpc && mpmnpc)

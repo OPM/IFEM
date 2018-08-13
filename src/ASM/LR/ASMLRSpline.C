@@ -380,18 +380,18 @@ void ASMunstruct::Sort (int u, int v, int orient,
             [u,v,orient](const LR::Basisfunction* a, const LR::Basisfunction* b)
             {
               int i,p = a->getOrder(orient < 4 ? v : u);
-              int idx = orient & 4 ? v : u;
+              int idx = (orient & 4) ? v : u;
               for (i = 0; i <= p; i++)
                 if ((*a)[idx][i] != (*b)[idx][i])
-                  return orient & 2 ? (*a)[idx][i] > (*b)[idx][i]
-                                    : (*a)[idx][i] < (*b)[idx][i];
+                  return (orient & 2) ? (*a)[idx][i] > (*b)[idx][i]
+                                      : (*a)[idx][i] < (*b)[idx][i];
 
               p   = a->getOrder(orient < 4 ? u : v);
-              idx = orient & 4 ? u : v;
+              idx = (orient & 4) ? u : v;
               for (i = 0; i <= p; i++)
                 if ((*a)[idx][i] != (*b)[idx][i])
-                  return orient & 1 ? (*a)[idx][i] > (*b)[idx][i]
-                                    : (*a)[idx][i] < (*b)[idx][i];
+                  return (orient & 1) ? (*a)[idx][i] > (*b)[idx][i]
+                                      : (*a)[idx][i] < (*b)[idx][i];
 
               return false;
             });

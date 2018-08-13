@@ -161,7 +161,7 @@ bool TimeStep::parse (const TiXmlElement* elem)
         IFEM::cout <<"\tGeometric graded time increments in ["
                    << start <<","<< end <<"]:\n\t"<< timeStep.front();
         for (size_t i = 1; i < timeStep.size(); i++)
-          IFEM::cout << (i%10 ? " " : "\n\t") << timeStep[i];
+          IFEM::cout << ((i%10) ? " " : "\n\t") << timeStep[i];
         IFEM::cout << std::endl;
       }
 
