@@ -23,9 +23,8 @@
 SplineFields3Dmx::SplineFields3Dmx (const ASMs3Dmx* patch,
                                     const RealArray& v, char basis,
                                     const char* name)
-  : Fields(name), svol(patch)
+  : Fields(name), svol(patch), bases(utl::getDigits(basis))
 {
-  bases = utl::getDigits(basis);
   nf = 3;
   auto vit = v.begin();
   size_t ofs = 0;

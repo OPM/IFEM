@@ -42,9 +42,8 @@ ASMs3Dmx::ASMs3Dmx (const CharVec& n_f)
 
 
 ASMs3Dmx::ASMs3Dmx (const ASMs3Dmx& patch, const CharVec& n_f)
-  : ASMs3D(patch), ASMmxBase(n_f)
+  : ASMs3D(patch), ASMmxBase(n_f), m_basis(patch.m_basis)
 {
-  m_basis = patch.m_basis;
 }
 
 

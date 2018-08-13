@@ -44,9 +44,8 @@ DenseMatrix::DenseMatrix (size_t m, size_t n, bool s) : myMat(m,n)
 }
 
 
-DenseMatrix::DenseMatrix (const DenseMatrix& A)
+DenseMatrix::DenseMatrix (const DenseMatrix& A) : myMat(A.myMat)
 {
-  myMat = A.myMat;
   ipiv = nullptr;
   symm = A.symm;
   if (A.ipiv)
@@ -67,9 +66,8 @@ DenseMatrix::DenseMatrix (const RealArray& data, size_t nrows)
 }
 
 
-DenseMatrix::DenseMatrix (const Matrix& A, bool s)
+DenseMatrix::DenseMatrix (const Matrix& A, bool s) : myMat(A)
 {
-  myMat = A;
   ipiv = nullptr;
   symm = s;
 }

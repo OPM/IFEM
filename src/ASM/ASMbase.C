@@ -61,7 +61,8 @@ ASMbase::ASMbase (unsigned char n_p, unsigned char n_s, unsigned char n_f)
 
 
 ASMbase::ASMbase (const ASMbase& patch, unsigned char n_f)
-  : MLGE(patch.MLGE), MLGN(patch.MLGN), MNPC(patch.MNPC), shareFE('F')
+  : MLGE(patch.MLGE), MLGN(patch.MLGN), MNPC(patch.MNPC), shareFE('F'),
+    firstBp(patch.firstBp), myLMs(patch.myLMs), myLMTypes(patch.myLMTypes)
 {
   nf = n_f > 0 ? n_f : patch.nf;
   nsd = patch.nsd;
@@ -72,15 +73,13 @@ ASMbase::ASMbase (const ASMbase& patch, unsigned char n_f)
   nnod = patch.nnod;
   idx = patch.idx;
   firstIp = patch.firstIp;
-  firstBp = patch.firstBp;
-  myLMs = patch.myLMs;
-  myLMTypes = patch.myLMTypes;
   // Note: Properties are _not_ copied
 }
 
 
 ASMbase::ASMbase (const ASMbase& patch)
-  : MLGE(myMLGE), MLGN(myMLGN), MNPC(myMNPC), shareFE('S')
+  : MLGE(myMLGE), MLGN(myMLGN), MNPC(myMNPC), shareFE('S'),
+    BCode(patch.BCode), firstBp(patch.firstBp)
 {
   nf = patch.nf;
   nsd = patch.nsd;
@@ -90,8 +89,6 @@ ASMbase::ASMbase (const ASMbase& patch)
   nnod = patch.nnod;
   idx = patch.idx;
   firstIp = patch.firstIp;
-  firstBp = patch.firstBp;
-  BCode = patch.BCode;
 
   // Only copy the regular part of the FE data, leave out any extraordinaries
 

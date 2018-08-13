@@ -43,11 +43,10 @@ ASMs1DLag::ASMs1DLag (const ASMs1DLag& patch, unsigned char n_f)
 
 
 ASMs1DLag::ASMs1DLag (const ASMs1DLag& patch)
-  : ASMs1D(patch), coord(myCoord)
+  : ASMs1D(patch), coord(myCoord), myCoord(patch.coord)
 {
   nx = patch.nx;
   p1 = patch.p1;
-  myCoord = patch.coord;
 }
 
 

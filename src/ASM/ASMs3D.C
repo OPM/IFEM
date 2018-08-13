@@ -57,11 +57,10 @@ ASMs3D::ASMs3D (const ASMs3D& patch, unsigned char n_f)
 
 
 ASMs3D::ASMs3D (const ASMs3D& patch)
-  : ASMstruct(patch), svol(patch.svol), nodeInd(myNodeInd)
+  : ASMstruct(patch), svol(patch.svol),
+    nodeInd(myNodeInd), myNodeInd(patch.nodeInd), dirich(patch.dirich)
 {
   swapW = patch.swapW;
-  myNodeInd = patch.nodeInd;
-  dirich = patch.dirich;
 }
 
 

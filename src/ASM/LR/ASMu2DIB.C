@@ -29,9 +29,9 @@ ASMu2DIB::ASMu2DIB (unsigned char n_s, unsigned char n_f, int max_depth)
 
 
 ASMu2DIB::ASMu2DIB (const ASMu2DIB& patch, unsigned char n_f)
-  : ASMu2D(patch,n_f)
+  : ASMu2D(patch,n_f), quadPoints(patch.quadPoints)
 {
-  quadPoints = patch.quadPoints;
+  maxDepth = patch.maxDepth;
   myGeometry = nullptr; // because we don't allow multiple patches (yet)
 }
 
