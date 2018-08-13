@@ -91,9 +91,10 @@ EvalFunc::EvalFunc (const char* function, const char* x, Real eps)
   : gradient(nullptr), dx(eps)
 {
   try {
-    size_t nalloc = 1;
 #ifdef USE_OPENMP
-    nalloc = omp_get_max_threads();
+    size_t nalloc = omp_get_max_threads();
+#else
+    size_t nalloc = 1;
 #endif
     expr.resize(nalloc);
     f.resize(nalloc);
@@ -183,9 +184,10 @@ Real EvalFunc::deriv (Real x) const
 EvalFunction::EvalFunction (const char* function) : gradient{}, dgradient{}
 {
   try {
-    size_t nalloc = 1;
 #ifdef USE_OPENMP
-    nalloc = omp_get_max_threads();
+    size_t nalloc = omp_get_max_threads();
+#else
+    size_t nalloc = 1;
 #endif
     expr.resize(nalloc);
     f.resize(nalloc);

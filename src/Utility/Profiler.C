@@ -85,7 +85,9 @@ void Profiler::start (const std::string& funcName)
   Profile& p = tID < 0 ? myTimers[funcName] : myMTimers[tID][funcName];
   if (p.running) return;
 
+#ifdef USE_OPENMP
   if (tID < 0)
+#endif
     nRunners++;
 
   p.running = true;

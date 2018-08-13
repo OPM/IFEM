@@ -664,11 +664,11 @@ void ASMu3D::constrainNode (double xi, double eta, double zeta,
 {
   std::cerr << "ASMu3D::constrainNode not implemented properly yet" << std::endl;
   exit(776654);
+#if 0
   if (xi   < 0.0 || xi   > 1.0) return;
   if (eta  < 0.0 || eta  > 1.0) return;
   if (zeta < 0.0 || zeta > 1.0) return;
 
-#if 0
   int n1, n2, n3;
   if (!this->getSize(n1,n2,n3,1)) return;
 

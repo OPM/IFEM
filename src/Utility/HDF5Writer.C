@@ -69,11 +69,12 @@ int HDF5Writer::getLastTimeLevel ()
   if (m_flag == H5F_ACC_TRUNC)
     return -1;
 
-  hid_t acc_tpl = H5P_DEFAULT;
 #ifdef HAVE_MPI
   MPI_Info info = MPI_INFO_NULL;
-  acc_tpl = H5Pcreate(H5P_FILE_ACCESS);
+  hid_t acc_tpl = H5Pcreate(H5P_FILE_ACCESS);
   H5Pset_fapl_mpio(acc_tpl, MPI_COMM_SELF, info);
+#else
+  hid_t acc_tpl = H5P_DEFAULT;
 #endif
 
   m_file = H5Fopen(m_name.c_str(),m_flag,acc_tpl);
@@ -101,11 +102,12 @@ void HDF5Writer::openFile(int level, bool restart)
     return;
   int file = 0;
 #ifdef HAS_HDF5
-  hid_t acc_tpl = H5P_DEFAULT;
 #ifdef HAVE_MPI
   MPI_Info info = MPI_INFO_NULL;
-  acc_tpl = H5Pcreate(H5P_FILE_ACCESS);
+  hid_t acc_tpl = H5Pcreate(H5P_FILE_ACCESS);
   H5Pset_fapl_mpio(acc_tpl, *m_adm.getCommunicator(), info);
+#else
+  hid_t acc_tpl = H5P_DEFAULT;
 #endif
   unsigned int flag = restart ? m_restart_flag : m_flag;
   std::string fname = restart ? m_restart_name : m_name;
@@ -754,10 +756,11 @@ bool HDF5Writer::writeRestartData(int level, const DataExporter::SerializeData& 
     m_restart_flag = H5F_ACC_RDWR;
   openFile(level, true);
   int pid = 0;
-  int ptot = 1;
 #ifdef HAVE_MPI
   pid = m_adm.getProcId();
-  ptot = m_adm.getNoProcs();
+  int ptot = m_adm.getNoProcs();
+#else
+  int ptot = 1;
 #endif
   for (int p = 0; p < ptot; p++)
     for (const std::pair<std::string,std::string>& it : data) {
