@@ -407,7 +407,7 @@ Vec3 ASMs2Dmx::getCoord (size_t inod) const
       + (J*m_basis[b]->numCoefs_u()+I) * m_basis[b]->dimension();
 
   Vec3 X;
-  for (size_t i = 0; i < nsd; i++, cit++)
+  for (size_t i = 0; i < nsd; i++, ++cit)
     X[i] = *cit;
 
   return X;

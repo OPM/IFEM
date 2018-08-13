@@ -197,7 +197,7 @@ void SparseMatrix::resize (size_t r, size_t c, bool forceEditable)
   if (r == nrow && c == ncol && !forceEditable)
   {
     // Clear the matrix content but retain its sparsity pattern
-    for (ValueMap::iterator it = elem.begin(); it != elem.end(); it++)
+    for (ValueMap::iterator it = elem.begin(); it != elem.end(); ++it)
       it->second = Real(0);
     std::fill(A.begin(),A.end(),Real(0));
     return;
@@ -237,7 +237,7 @@ bool SparseMatrix::redim (size_t r, size_t c)
       elem.erase(jt->first);
     }
     else
-      it++;
+      ++it;
 
   return true;
 }
@@ -339,8 +339,8 @@ void SparseMatrix::dump (std::ostream& os, char format, const char* label)
     case 'M':
     case 'm':
       if (editable)
-        for (ValueIter it = elem.begin(); it != elem.end(); it++)
-          os << it->first.first <<' '<< it->first.second <<" "<< it->second
+        for (const auto& it : elem)
+          os << it.first.first <<' '<< it.first.second <<" "<< it.second
              <<";\n";
       else if (solver == SUPERLU || solver == UMFPACK) {
         // Column-oriented format with 0-based indices
@@ -372,8 +372,8 @@ std::ostream& SparseMatrix::write (std::ostream& os) const
 {
   os << nrow <<' '<< ncol <<' '<< this->size();
   if (editable)
-    for (ValueIter it = elem.begin(); it != elem.end(); it++)
-      os <<'\n'<< it->first.first <<' '<< it->first.second <<" : "<< it->second;
+    for (const auto& it : elem)
+      os <<'\n'<< it.first.first <<' '<< it.first.second <<" : "<< it.second;
   else {
     size_t i;
     os <<'\n';
@@ -445,10 +445,10 @@ bool SparseMatrix::augment (const SystemMatrix& B, size_t r0, size_t c0)
   if (c0+Bptr->ncol > ncol) ncol = c0 + Bptr->ncol;
   if (c0+Bptr->ncol > nrow) nrow = c0 + Bptr->ncol;
 
-  for (ValueIter it = Bptr->elem.begin(); it != Bptr->elem.end(); it++)
+  for (const auto& it : Bptr->elem)
   {
-    elem[std::make_pair(r0+it->first.first,c0+it->first.second)] += it->second;
-    elem[std::make_pair(c0+it->first.second,r0+it->first.first)] += it->second;
+    elem[std::make_pair(r0+it.first.first,c0+it.first.second)] += it.second;
+    elem[std::make_pair(c0+it.first.second,r0+it.first.first)] += it.second;
   }
 
   return true;
@@ -459,18 +459,17 @@ bool SparseMatrix::truncate (Real threshold)
 {
   if (!editable) return false; // Not implemented for non-editable matrices yet
 
-  ValueMap::iterator it;
   Real tol = Real(0);
-  for (it = elem.begin(); it != elem.end(); it++)
-    if (it->first.first == it->first.second)
-      if (it->second > tol)
-        tol = it->second;
-      else if (it->second < -tol)
-        tol = -it->second;
+  for (const auto& it : elem)
+    if (it.first.first == it.first.second)
+      if (it.second > tol)
+        tol = it.second;
+      else if (it.second < -tol)
+        tol = -it.second;
 
   tol *= threshold;
   size_t nnz = elem.size();
-  for (it = elem.begin(); it != elem.end();)
+  for (ValueMap::iterator it = elem.begin(); it != elem.end();)
     if (it->second <= -tol || it->second >= tol)
       ++it;
     else if (editable == 'P')
@@ -496,8 +495,8 @@ bool SparseMatrix::add (const SystemMatrix& B, Real alpha)
   if (Bptr->nrow > nrow || Bptr->ncol > ncol) return false;
 
   if (editable == 'P' && Bptr->editable)
-    for (ValueIter it = Bptr->elem.begin(); it != Bptr->elem.end(); it++)
-      elem[it->first] += alpha*it->second;
+    for (const auto& it : Bptr->elem)
+      elem[it.first] += alpha*it.second;
 
   else if (!editable && !Bptr->editable)
   {
@@ -547,8 +546,8 @@ bool SparseMatrix::multiply (const SystemVector& B, SystemVector& C) const
   if (!Cptr) return false;
 
   if (editable)
-    for (ValueIter it = elem.begin(); it != elem.end(); it++)
-      (*Cptr)(it->first.first) += it->second*(*Bptr)(it->first.second);
+    for (const auto& it : elem)
+      (*Cptr)(it.first.first) += it.second*(*Bptr)(it.first.second);
   else if (solver == SUPERLU) {
 #ifdef notyet_USE_OPENMP // TODO: akva needs to fix this, gives wrong result!
     if (omp_get_max_threads() > 1) {
@@ -829,11 +828,11 @@ bool SparseMatrix::optimiseSAMG (bool transposed)
   if (!editable) return false;
 
   ValueMap trans; // only computed if needed
-  ValueIter it, begin, end;
+  ValueIter begin, end;
 
   if (transposed) {
-    for (it = elem.begin(); it != elem.end(); it++)
-      trans[IJPair(it->first.second,it->first.first)] = it->second;
+    for (const auto& it : elem)
+      trans[IJPair(it.first.second,it.first.first)] = it.second;
     begin = trans.begin();
     end = trans.end();
     std::swap(nrow,ncol);
@@ -850,7 +849,7 @@ bool SparseMatrix::optimiseSAMG (bool transposed)
 
   IA[0] = 1; // first row start at index 1
   size_t cur_row = 1, ix = 0;
-  for (it = begin; it != end; it++, ix++) {
+  for (ValueIter it = begin; it != end; ++it, ix++) {
     A[ix] = it->second; // storing element value
     JA[ix] = it->first.second;
     while (it->first.first > cur_row)
@@ -895,9 +894,9 @@ bool SparseMatrix::optimiseSLU ()
 
   // Initialize the array of column pointers
   ValueIter it;
-  for (it = elem.begin(); it != elem.end(); it++)
-    if (it->first.first <= nrow && it->first.second <= ncol)
-      IA[it->first.second-1]++;
+  for (const auto& it : elem)
+    if (it.first.first <= nrow && it.first.second <= ncol)
+      IA[it.first.second-1]++;
     else
       return false;
 
@@ -910,7 +909,7 @@ bool SparseMatrix::optimiseSLU ()
   }
 
   // Copy the triplets into the column-oriented storage
-  for (nz = 0, it = elem.begin(); nz < nnz; nz++, it++) {
+  for (nz = 0, it = elem.begin(); nz < nnz; nz++, ++it) {
     k = IA[it->first.second-1]++;
     JA[k] = it->first.first-1;
     A[k]  = it->second;

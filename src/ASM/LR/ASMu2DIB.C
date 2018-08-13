@@ -135,13 +135,13 @@ bool ASMu2DIB::generateFEMTopology ()
                                           maxDepth,nGauss,quadPoints);
 
   // Map Gauss point coordinates from bi-unit square to parameter domain (u,v)
-  std::vector<LR::Element*>::iterator eit = lrspline->elementBegin();
-  for (e = 0; eit != lrspline->elementEnd(); eit++, e++)
+  e = 0;
+  for (const LR::Element* el : lrspline->getAllElements())
   {
-    double u0 = (*eit)->umin();
-    double v0 = (*eit)->vmin();
-    double u1 = (*eit)->umax();
-    double v1 = (*eit)->vmax();
+    double u0 = el->umin();
+    double v0 = el->vmin();
+    double u1 = el->umax();
+    double v1 = el->vmax();
 #if SP_DEBUG > 1
     std::cout <<"\n Element "<< MLGE[e] <<":\n";
 #endif
@@ -158,6 +158,7 @@ bool ASMu2DIB::generateFEMTopology ()
       std::cout <<" --> u,v = "<< xi <<" "<< eta << std::endl;
 #endif
     }
+    ++e;
   }
 
   // Find all nodes with contributions

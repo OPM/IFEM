@@ -311,10 +311,10 @@ bool DenseMatrix::augment (const SparseMatrix& B, size_t r0, size_t c0)
   size_t newDim = newRow > newCol ? newRow : newCol;
 
   this->redim(newDim,newDim);
-  for (ValueIter it = elem.begin(); it != elem.end(); it++)
+  for (const auto& it : elem)
   {
-    myMat(r0+it->first.first,c0+it->first.second) += it->second;
-    myMat(c0+it->first.second,r0+it->first.first) += it->second;
+    myMat(r0+it.first.first,c0+it.first.second) += it.second;
+    myMat(c0+it.first.second,r0+it.first.first) += it.second;
   }
 
   return true;

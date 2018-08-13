@@ -475,20 +475,19 @@ ConvStatus NonLinSIM::checkConvergence (TimeStep& param)
         cout <<", here is the worst DOF:";
       else
         cout <<".";
-      std::map<std::pair<int,int>,RealArray>::const_iterator it;
-      for (it = worstDOFs.begin(); it != worstDOFs.end(); it++)
+      for (const auto& it : worstDOFs)
       {
-        cout <<"\n     Node "<< it->first.first
-             <<" local DOF "<< it->first.second;
-        char nodeType = model.getNodeType(it->first.first);
+        cout <<"\n     Node "<< it.first.first
+             <<" local DOF "<< it.first.second;
+        char nodeType = model.getNodeType(it.first.first);
         if (nodeType != ' ')
           cout <<" ("<< nodeType <<")";
-        cout <<" :\tEnergy = "<< it->second[0]
-             <<"\tdu = "<< it->second[1]
-             <<"\tres = "<< it->second[2];
-        std::map<int,int>::iterator nit = slowNodes.find(it->first.first);
+        cout <<" :\tEnergy = "<< it.second[0]
+             <<"\tdu = "<< it.second[1]
+             <<"\tres = "<< it.second[2];
+        std::map<int,int>::iterator nit = slowNodes.find(it.first.first);
         if (nit == slowNodes.end())
-          slowNodes.insert(std::make_pair(it->first.first,1));
+          slowNodes.insert(std::make_pair(it.first.first,1));
         else
           ++nit->second;
       }
