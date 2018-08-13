@@ -35,9 +35,10 @@ public:
   virtual bool finalize(bool) { return true; }
 
   //! \brief Adds a LocalIntegral object into a corresponding global object.
-  //! \param[in] elmObj The local integral object to add into \a *this.
-  //! \param[in] elmId Global number of the element associated with elmObj
-  virtual bool assemble(const LocalIntegral* elmObj, int elmId) { return true; }
+  virtual bool assemble(const LocalIntegral*, int) { return true; }
+
+  //! \brief Returns \e true if all elements can be assembled in parallel.
+  virtual bool threadSafe() const { return false; }
 };
 
 #endif

@@ -16,11 +16,17 @@
 #include <cmath>
 
 
+GlbNorm::GlbNorm (Vectors& v, ASM::FinalNormOp op) : myVals(v), myOp(op)
+{
+  delAss = false;
+}
+
+
 GlbNorm::~GlbNorm ()
 {
-  for (size_t i = 0; i < myVals.size(); i++)
-    for (size_t j = 0; j < myVals[i].size(); j++)
-      this->applyFinalOp(myVals[i][j]);
+  for (Vector& valus : myVals)
+    for (double& val : valus)
+      this->applyFinalOp(val);
 }
 
 
@@ -29,12 +35,13 @@ bool GlbNorm::assemble (const LocalIntegral* elmObj, int elmId)
   const ElmNorm* ptr = dynamic_cast<const ElmNorm*>(elmObj);
   if (!ptr) return false;
 
-  // If the element norms are requested (i.e. the internal buffer
-  // is not used) the actuall summation of element norms into the
+  // If the element norms are requested (i.e., the internal buffer
+  // is not used) the actual summation of element norms into the
   // global norm is postponed to the very end (when invoked with
   // elmId=0). This must be done like this to allow more than one
   // loop over the elements during the norm integration.
-  if (elmId > 0 && ptr->externalStorage()) return true;
+  if (elmId > 0 && ptr->externalStorage())
+    return delAss;
 
   ElmNorm& elVals = *const_cast<ElmNorm*>(ptr);
   size_t i, j, k;

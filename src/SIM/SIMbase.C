@@ -1180,9 +1180,10 @@ char SIMbase::getNodeType (int inod) const
 Vec4 SIMbase::getNodeCoord (int inod) const
 {
   Vec4 Xnod;
-  for (ASMbase* pch : myModel) {
-    size_t node;
-    if ((node = pch->getNodeIndex(inod,true)))
+  for (ASMbase* pch : myModel)
+  {
+    size_t node = pch->getNodeIndex(inod,true);
+    if (node > 0)
     {
       Xnod = pch->getCoord(node);
       if (nGlPatches > 1)
@@ -1197,9 +1198,10 @@ Vec4 SIMbase::getNodeCoord (int inod) const
 
 bool SIMbase::isFixed (int inod, int dof) const
 {
-  for (ASMbase* pch : myModel) {
-    size_t node;
-    if ((node = pch->getNodeIndex(inod,true)))
+  for (ASMbase* pch : myModel)
+  {
+    size_t node = pch->getNodeIndex(inod,true);
+    if (node > 0)
       return pch->isFixed(node,dof,true);
   }
 
@@ -1345,6 +1347,7 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
   LintegralVec elementNorms;
   if (eNorm)
   {
+    globalNorm.delayAssembly();
     eNorm->resize(nNorms,mySam->getNoElms(),true);
     elementNorms.reserve(eNorm->cols());
     for (i = 0; i < eNorm->cols(); i++)
@@ -1367,17 +1370,17 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
       {
 	lp = p->patch;
 	ok = this->extractPatchSolution(psol,lp-1);
+	size_t nval = pch->getNoProjectionNodes()*myProblem->getNoFields(2);
 	for (k = 0; k < ssol.size(); k++)
           if (ssol[k].empty())
             norm->getProjection(k).clear();
           else if (this->fieldProjections()) {
-            size_t ndof = pch->getNoProjectionNodes()*myProblem->getNoFields(2);
-            Vector c(ndof);
+            Vector c(nval);
             std::copy(ssol[k].begin()+projOfs,
-                ssol[k].begin()+projOfs+ndof, c.begin());
+                      ssol[k].begin()+projOfs+nval, c.begin());
             Fields* f = pch->getProjectedFields(c, myProblem->getNoFields(2));
             norm->setProjectedFields(f, k);
-            projOfs += ndof;
+            projOfs += nval;
           } else
             this->extractPatchSolution(ssol[k],norm->getProjection(k),pch,nCmp,1);
 
@@ -1402,17 +1405,17 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
     for (i = 0; i < myModel.size() && ok; i++)
     {
       ok = this->extractPatchSolution(psol,i);
+      size_t nval = myModel[i]->getNoProjectionNodes()*myProblem->getNoFields(2);
       for (k = 0; k < ssol.size(); k++)
         if (ssol[k].empty())
           norm->getProjection(k).clear();
         else if (this->fieldProjections()) {
-          size_t ndof = myModel[i]->getNoProjectionNodes()*myProblem->getNoFields(2);
-          Vector c(ndof);
+          Vector c(nval);
           std::copy(ssol[k].begin()+projOfs,
-                    ssol[k].begin()+projOfs+ndof, c.begin());
+                    ssol[k].begin()+projOfs+nval, c.begin());
           Fields* f = myModel[i]->getProjectedFields(c, myProblem->getNoFields(2));
           norm->setProjectedFields(f, k);
-          projOfs += ndof;
+          projOfs += nval;
         } else
           this->extractPatchSolution(ssol[k],norm->getProjection(k),myModel[i],nCmp,1);
 
