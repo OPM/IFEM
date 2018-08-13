@@ -176,7 +176,6 @@ quasiInterpolation(const Go::BsplineBasis& basis_u,
   // curves in the first parameter direction
   size_t ki, kj;
   int ui;
-  std::vector<double> sf_coefs;
   std::vector<double> volinput_coefs;
   std::vector<double> tg_pnt;
   int p,q;
