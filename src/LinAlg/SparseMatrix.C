@@ -394,7 +394,7 @@ void SparseMatrix::printSparsity (std::ostream& os) const
   size_t r, c;
   os <<'\t';
   for (c = 1; c <= ncol; c++)
-    c%10 ? os << c%10 : os << ' ';
+    (c%10) ? os << c%10 : os << ' ';
   os <<'\n';
 
   for (r = 1; r <= nrow; r++) {
