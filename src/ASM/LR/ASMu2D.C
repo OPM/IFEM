@@ -1808,8 +1808,6 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
   Matrix   dNdu, dNdX, Jac, Xnod, eSol, ptDer;
   Matrix3D d2Ndu2, d2NdX2, Hess, ptDer2;
 
-  Go::BasisPtsSf     spline0;
-  Go::BasisDerivsSf  spline1;
   Go::BasisDerivsSf2 spline2;
 
   // Evaluate the primary solution field at each point

@@ -412,7 +412,6 @@ void ASMu3D::constrainFace (int dir, bool open, int dof, int code, char basis)
   // of the inhomogenuous dirichlet boundaries; corners are interpolatory.
   // Optimization note: loop over the "edge"-container to manually pick up
   // the end nodes. LRspline::getEdgeFunctions() does a global search.
-  std::vector<LR::Basisfunction*> c1, c2;
   static const std::map<LR::parameterEdge,std::array<std::array<int,3>,4>> corners = {{
         { LR::WEST,{{{{-1, -1, -1}},
                      {{-1,  1, -1}},

@@ -69,10 +69,9 @@ void ControlFIFO::poll ()
     return;
   }
 
-  std::map<std::string,ControlCallback*>::iterator it;
   TiXmlElement* elem = doc.RootElement()->FirstChildElement();
   for (; elem; elem = elem->NextSiblingElement())
-    if ((it = callbacks.find(elem->Value())) != callbacks.end())
+    if (callbacks.find(elem->Value()) != callbacks.end())
       callbacks[elem->Value()]->OnControl(elem);
 }
 
