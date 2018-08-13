@@ -173,6 +173,7 @@ private:
                                                         size_t g1, size_t g2, size_t g3, size_t overlap);
 
 
+#ifdef HAVE_MPI
   //! \brief Setup equation numbers for all blocks on a boundary.
   //! \param sim Simulator with patches and linear solver block information
   //! \param pidx Patch index
@@ -199,6 +200,7 @@ private:
                         std::set<int>& cbasis,
                         const ASMbase* pch,
                         int dim, int lidx, int thick, int orient = 0);
+#endif
 
   //! \brief Calculate the global node numbers for given finite element model.
   bool calcGlobalNodeNumbers(const ProcessAdm& adm, const SIMbase& sim);
