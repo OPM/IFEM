@@ -36,7 +36,7 @@ protected:
 
   //! \brief The constructor opens the provided HDF5-file.
   //! \param[in] fileName Name of the HDF5-file
-  FieldFuncBase(const std::string& fileName);
+  explicit FieldFuncBase(const std::string& fileName);
   //! \brief The destructor deletes the patches and close the HDF5-file.
   virtual ~FieldFuncBase();
 

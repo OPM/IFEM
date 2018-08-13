@@ -32,7 +32,7 @@ class ASMu3Dmx : public ASMu3D, private ASMmxBase
 {
 public:
   //! \brief The constructor initializes the dimension of each basis.
-  ASMu3Dmx(const CharVec& n_f);
+  explicit ASMu3Dmx(const CharVec& n_f);
   //! \brief Copy constructor.
   ASMu3Dmx(const ASMu3Dmx& patch, const CharVec& n_f = CharVec(3,0));
   //! \brief Empty destructor.

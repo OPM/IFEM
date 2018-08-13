@@ -44,7 +44,7 @@ template<class Dim> class SIMNodalConstraint : public Dim
 
 public:
   //! \brief The constructor forwards to the parent class constructor.
-  SIMNodalConstraint(const std::vector<unsigned char>& unf) : Dim(unf) {}
+  explicit SIMNodalConstraint(const std::vector<unsigned char>& unf) : Dim(unf) {}
   //! \brief Empty destructor.
   virtual ~SIMNodalConstraint() {}
 
