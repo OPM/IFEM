@@ -44,6 +44,9 @@ protected:
   //! \brief Parse field functions from XML definition.
   void parseFieldFunctions(const TiXmlElement* elem, bool scalarSol);
 
+  //! \brief No copying of this class
+  AnaSol(const AnaSol&) = delete;
+
 public:
   //! \brief Default constructor initializing all solution fields.
   //! \param[in] s1 Primary scalar solution field

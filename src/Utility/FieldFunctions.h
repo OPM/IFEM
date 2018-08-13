@@ -39,6 +39,8 @@ protected:
   explicit FieldFuncBase(const std::string& fileName);
   //! \brief The destructor deletes the patches and close the HDF5-file.
   virtual ~FieldFuncBase();
+  //! \brief No copying of this class.
+  FieldFuncBase(const FieldFuncBase&) = delete;
 
   //! \brief Loads field values for the specified time level.
   //! \param[in] fieldNames Name of the field components in the HDF5-file

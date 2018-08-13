@@ -62,6 +62,8 @@ public:
   //! \param[in] filename Name of the VTF-file
   //! \param[in] type     File type (0 = ASCII, 1 = BINARY)
   VTF(const char* filename, int type = 0);
+  //! \brief No copying of this class.
+  VTF(const VTF&) = delete;
   //! \brief The destructor finalizes and closes the VTF-file.
   virtual ~VTF();
 
