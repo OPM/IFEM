@@ -1769,17 +1769,16 @@ bool ASMu3D::tesselate (ElementBlock& grid, const int* npe) const
   grid.unStructResize(nElements * nSubElPerElement,
                       nElements * nNodesPerElement);
 
-  std::vector<LR::Element*>::iterator el;
   int inod = 0;
-  int iel = 0;
-  for(el=lrspline->elementBegin(); el<lrspline->elementEnd(); el++, iel++) {
+  size_t iel = 0;
+  for(const LR::Element* el : lrspline->getAllElements()) {
     // evaluate element at element corner points
-    double umin = (**el).umin();
-    double umax = (**el).umax();
-    double vmin = (**el).vmin();
-    double vmax = (**el).vmax();
-    double wmin = (**el).wmin();
-    double wmax = (**el).wmax();
+    double umin = el->umin();
+    double umax = el->umax();
+    double vmin = el->vmin();
+    double vmax = el->vmax();
+    double wmin = el->wmin();
+    double wmax = el->wmax();
     for(int iw=0; iw<npe[2]; iw++) {
       for(int iv=0; iv<npe[1]; iv++) {
         for(int iu=0; iu<npe[0]; iu++) {
@@ -1795,6 +1794,7 @@ bool ASMu3D::tesselate (ElementBlock& grid, const int* npe) const
         }
       }
     }
+    ++iel;
   }
 
   int ip = 0;

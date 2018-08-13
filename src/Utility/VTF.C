@@ -434,7 +434,7 @@ bool VTF::writeNfunc (const RealFunc& f, Real time, int idBlock, int geomID)
   // Evaluate the function at the grid points
   std::vector<float> resVec(nres);
   std::vector<Vec3>::const_iterator cit = grid->begin_XYZ();
-  for (size_t i = 0; i < nres; i++, cit++)
+  for (size_t i = 0; i < nres; i++, ++cit)
     resVec[i] = f(Vec4(*cit,time));
 
 #if HAS_VTFAPI == 1
@@ -486,7 +486,7 @@ bool VTF::writeVectors (const std::vector<Vec3Pair>& pntResult, int& gID,
 
   std::vector<int> mnpc(writePoints ? np : 0, 0);
   std::vector<Vec3Pair>::const_iterator cit;
-  for (cit = pntResult.begin(); cit != pntResult.end(); cit++, i++)
+  for (cit = pntResult.begin(); cit != pntResult.end(); ++cit, i++)
     if (writePoints && VTFA_FAILURE(nBlock.AddNode(vecOffset[0]+cit->first.x,
                                                    vecOffset[1]+cit->first.y,
                                                    vecOffset[2]+cit->first.z)))
@@ -537,7 +537,7 @@ bool VTF::writePoints (const Vec3Vec& points, int& gID)
 
   std::vector<int> mnpc(np,0);
   Vec3Vec::const_iterator cit;
-  for (cit = points.begin(), i = 0; cit != points.end(); cit++, i++)
+  for (cit = points.begin(), i = 0; cit != points.end(); ++cit, i++)
     if (VTFA_FAILURE(nBlock.AddNode(vecOffset[0]+cit->x,
                                     vecOffset[1]+cit->y,
                                     vecOffset[2]+cit->z)))
@@ -803,7 +803,7 @@ bool VTF::writeNodes (int iBlockID)
     ok = false;
 
   std::vector<Vec3>::const_iterator cit;
-  for (cit = grid->begin_XYZ(); cit != grid->end_XYZ() && ok; cit++)
+  for (cit = grid->begin_XYZ(); cit != grid->end_XYZ() && ok; ++cit)
     if (VTFA_FAILURE(nBlock.AddNode(cit->x, cit->y, cit->z))) ok = false;
 #endif
 

@@ -1475,24 +1475,30 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
 
   // === Assembly loop over all elements on the patch edge =====================
 
-  std::vector<LR::Element*>::iterator el = lrspline->elementBegin();
-  for (int iel = 1; el != lrspline->elementEnd(); el++, iel++)
+  int iel = 1;
+  for (const LR::Element* el : lrspline->getAllElements())
   {
 #ifdef SP_DEBUG
     if (dbgElm < 0 && iel != -dbgElm)
+    {
+      ++iel;
       continue; // Skipping all elements, except for -dbgElm
+    }
 #endif
 
     // Skip elements that are not on current boundary edge
     bool skipMe = false;
     switch (edgeDir)
     {
-    case -1: if ((*el)->umin() != lrspline->startparam(0)) skipMe = true; break;
-    case  1: if ((*el)->umax() != lrspline->endparam(0)  ) skipMe = true; break;
-    case -2: if ((*el)->vmin() != lrspline->startparam(1)) skipMe = true; break;
-    case  2: if ((*el)->vmax() != lrspline->endparam(1)  ) skipMe = true; break;
+    case -1: if (el->umin() != lrspline->startparam(0)) skipMe = true; break;
+    case  1: if (el->umax() != lrspline->endparam(0)  ) skipMe = true; break;
+    case -2: if (el->vmin() != lrspline->startparam(1)) skipMe = true; break;
+    case  2: if (el->vmax() != lrspline->endparam(1)  ) skipMe = true; break;
     }
-    if (skipMe) continue;
+    if (skipMe) {
+      ++iel;
+      continue;
+    }
 
     // Get element edge length in the parameter space
     double dS = this->getParametricLength(iel,t1);
@@ -1539,7 +1545,10 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
 
       // Compute basis function derivatives and the edge normal
       fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,Xnod,dNdu,t1,t2);
-      if (fe.detJxW == 0.0) continue; // skip singular points
+      if (fe.detJxW == 0.0) {
+        ++iel;
+        continue; // skip singular points
+      }
 
       if (edgeDir < 0) normal *= -1.0;
 
@@ -1567,9 +1576,12 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
     A->destruct();
 
 #ifdef SP_DEBUG
-    if (dbgElm < 0 && iel == -dbgElm)
+    if (dbgElm < 0 && iel == -dbgElm) {
+      ++iel;
       break; // Skipping all elements, except for -dbgElm
+    }
 #endif
+    ++iel;
   }
 
   return true;
@@ -1638,13 +1650,12 @@ bool ASMu2D::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) const
   // output is written once for each element resulting in a lot of unnecessary storage
   // this is preferable to figuring out all element topology information
 
-  std::vector<LR::Element*>::iterator el;
-  for(el=lrspline->elementBegin(); el<lrspline->elementEnd(); el++) {
+  for(const LR::Element* el : lrspline->getAllElements()) {
     // evaluate element at element corner points
-    double umin = (**el).umin();
-    double umax = (**el).umax();
-    double vmin = (**el).vmin();
-    double vmax = (**el).vmax();
+    double umin = el->umin();
+    double umax = el->umax();
+    double vmin = el->vmin();
+    double vmax = el->vmax();
     for(int iv=0; iv<=nSegPerSpan; iv++) {
       for(int iu=0; iu<=nSegPerSpan; iu++) {
         double u = umin + (umax-umin)/nSegPerSpan*iu;
@@ -1729,15 +1740,14 @@ bool ASMu2D::tesselate (ElementBlock& grid, const int* npe) const
                       nElements * nNodesPerElement);
 
   Go::Point pt;
-  std::vector<LR::Element*>::iterator el;
   int inod = 0;
   int iel = 0;
-  for(el=lrspline->elementBegin(); el<lrspline->elementEnd(); el++, iel++) {
+  for(const LR::Element* el : lrspline->getAllElements()) {
     // evaluate element at element corner points
-    double umin = (**el).umin();
-    double umax = (**el).umax();
-    double vmin = (**el).vmin();
-    double vmax = (**el).vmax();
+    double umin = el->umin();
+    double umax = el->umax();
+    double vmin = el->vmin();
+    double vmax = el->vmax();
     for(int iv=0; iv<npe[1]; iv++) {
       for(int iu=0; iu<npe[0]; iu++, inod++) {
         double u = umin + (umax-umin)/(npe[0]-1)*iu;
@@ -1747,6 +1757,7 @@ bool ASMu2D::tesselate (ElementBlock& grid, const int* npe) const
         grid.setParams(inod, u, v);
       }
     }
+    ++iel;
   }
 
   int ip = 0;

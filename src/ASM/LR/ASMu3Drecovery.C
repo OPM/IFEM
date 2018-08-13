@@ -129,8 +129,8 @@ bool ASMu3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
 
   // === Assembly loop over all elements in the patch ==========================
 
-  std::vector<LR::Element*>::iterator el = lrspline->elementBegin();
-  for (int iel = 1; el != lrspline->elementEnd(); el++, iel++)
+  size_t iel = 1;
+  for (const LR::Element* el : lrspline->getAllElements())
   {
     if (continuous)
     {
@@ -156,7 +156,7 @@ bool ASMu3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
       return false;
 
     // set up basis function size (for extractBasis subroutine)
-    phi.resize((**el).nBasisFunctions());
+    phi.resize(el->nBasisFunctions());
 
     // --- Integration loop over all Gauss points in each direction ----------
     Matrix eA(MNPC[iel-1].size(), MNPC[iel-1].size());
@@ -201,6 +201,7 @@ bool ASMu3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
       for (size_t r = 0; r < sField.rows(); r++, jp += nnod)
         B(jp) += eB[r](1+i);
     }
+    ++iel;
   }
 
   return true;
@@ -311,7 +312,7 @@ LR::LRSplineVolume* ASMu3D::scRecovery (const IntegrandBase& integrand) const
 
     // Loop over all non-zero knot-spans in the support of
     // the basis function associated with current Greville point
-    for (el = elStart; el != elEnd; el++)
+    for (el = elStart; el != elEnd; ++el)
     {
       int iel = (**el).getId()+1;
 
