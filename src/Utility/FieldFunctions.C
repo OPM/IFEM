@@ -107,13 +107,13 @@ bool FieldFuncBase::load (const std::vector<std::string>& fieldNames,
       std::stringstream sbasis;
       sbasis << level <<"/basis/"<< basisName <<"/"<< ip+1;
       hdf5->readString(sbasis.str(),g2);
-      if (g2.find("200 1 0 0") == 0)
+      if (g2.compare(0,9,"200 1 0 0") == 0)
         patch[ip] = ASM2D::create(ASM::Spline,nFldC2D);
-      else if (g2.find("700 1 0 0") == 0)
+      else if (g2.compare(0,9,"700 1 0 0") == 0)
         patch[ip] = ASM3D::create(ASM::Spline,nFldC3D);
-      else if (g2.find("# LRSPLINE SURFACE") == 0)
+      else if (g2.compare(0,18,"# LRSPLINE SURFACE") == 0)
         patch[ip] = ASM2D::create(ASM::LRSpline,nFldC2D);
-      else if (g2.find("# LRSPLINE VOLUME") == 0)
+      else if (g2.compare(0,17,"# LRSPLINE VOLUME") == 0)
         patch[ip] = ASM3D::create(ASM::LRSpline,nFldC3D);
       else
         patch[ip] = nullptr;
