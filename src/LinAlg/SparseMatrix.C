@@ -103,6 +103,9 @@ struct SuperLUdata
       opts = 0;
   }
 
+  //! \brief No copying of this class.
+  SuperLUdata(const SuperLUdata&) = delete;
+
   //! \brief The destructor frees the dynamically allocated data members.
   ~SuperLUdata()
   {
