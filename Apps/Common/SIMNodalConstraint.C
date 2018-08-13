@@ -26,7 +26,7 @@ class NodalConstraintASMHelper {
 public:
   //! \brief Constructor
   //! \param pch The associated ASM class
-  NodalConstraintASMHelper(ASMbase* pch) : bpch(pch) {}
+  explicit NodalConstraintASMHelper(ASMbase* pch) : bpch(pch) {}
 
   //! \brief Empty destructor
   virtual ~NodalConstraintASMHelper() {}
@@ -90,7 +90,7 @@ class NodalConstraintASMs1DHelper : public NodalConstraintASMHelper {
 public:
   //! \brief Constructor
   //! \param spch The associated ASM class
-  NodalConstraintASMs1DHelper(ASMs1D* spch) :
+  explicit NodalConstraintASMs1DHelper(ASMs1D* spch) :
     NodalConstraintASMHelper(spch), pch(spch) {}
 
   //! \brief Obtain the global node number of a given corner node on patch.
@@ -118,7 +118,7 @@ class NodalConstraintASMs2DHelper : public NodalConstraintASMHelper {
 public:
   //! \brief Constructor
   //! \param spch The associated ASM class
-  NodalConstraintASMs2DHelper(ASMs2D* spch) :
+  explicit NodalConstraintASMs2DHelper(ASMs2D* spch) :
     NodalConstraintASMHelper(spch), pch(spch) {}
 
   //! \copydoc NodalConstraintASMHelper::getCorner
@@ -172,7 +172,7 @@ class NodalConstraintASMs3DHelper : public NodalConstraintASMHelper {
 public:
   //! \brief Constructor
   //! \param spch The associated patch
-  NodalConstraintASMs3DHelper(ASMs3D* spch) :
+  explicit NodalConstraintASMs3DHelper(ASMs3D* spch) :
     NodalConstraintASMHelper(spch), pch(spch) {}
 
   //! \copydoc NodalConstraintASMHelper::getCorner
@@ -299,7 +299,7 @@ class NodalConstraintASMu2DHelper : public NodalConstraintASMHelper {
 public:
   //! \brief Constructor
   //! \param upch Associated patch
-  NodalConstraintASMu2DHelper(ASMu2D* upch) :
+  explicit NodalConstraintASMu2DHelper(ASMu2D* upch) :
     NodalConstraintASMHelper(upch), pch(upch) {}
 
   //! \copydoc NodalConstraintASM2DHelper::getCorner
