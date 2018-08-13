@@ -34,9 +34,9 @@ bool EigenModeSIM::parse (const TiXmlElement* elem)
 
   size_t imode = 0;
   double freq = 0.0;
-  const char* value = nullptr;
   const TiXmlElement* child = elem->FirstChildElement();
-  for (; child; child = child->NextSiblingElement())
+  for (; child; child = child->NextSiblingElement()) {
+    const char* value = nullptr;
     if ((value = utl::getValue(child,"mode")))
       if (utl::getAttribute(child,"number",imode) && imode > 0)
       {
@@ -50,6 +50,7 @@ bool EigenModeSIM::parse (const TiXmlElement* elem)
           omega[imode-1] = 2.0*M_PI*freq;
         }
       }
+  }
 
   opt.nev = amplitude.size();
   if (opt.ncv < opt.nev*2)

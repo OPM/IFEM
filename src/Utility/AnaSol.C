@@ -44,12 +44,12 @@ AnaSol::AnaSol (RealFunc* s, STensorFunc* sigma)
 AnaSol::AnaSol (std::istream& is, const int nlines, bool scalarSol)
   : vecSol(nullptr), vecSecSol(nullptr), stressSol(nullptr)
 {
-  size_t pos = 0;
   std::string variables;
   for (int i = 0; i < nlines; i++)
   {
     std::string function = utl::readLine(is);
 
+    size_t pos;
     if ((pos = function.find("Variables=")) != std::string::npos)
     {
       variables += function.substr(pos+10);

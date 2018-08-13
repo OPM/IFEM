@@ -1180,8 +1180,8 @@ char SIMbase::getNodeType (int inod) const
 Vec4 SIMbase::getNodeCoord (int inod) const
 {
   Vec4 Xnod;
-  size_t node = 0;
-  for (ASMbase* pch : myModel)
+  for (ASMbase* pch : myModel) {
+    size_t node;
     if ((node = pch->getNodeIndex(inod,true)))
     {
       Xnod = pch->getCoord(node);
@@ -1189,6 +1189,7 @@ Vec4 SIMbase::getNodeCoord (int inod) const
         Xnod.idx = pch->idx; // Store patch index, if multi-patch model
       break;
     }
+  }
 
   return Xnod;
 }
@@ -1196,10 +1197,11 @@ Vec4 SIMbase::getNodeCoord (int inod) const
 
 bool SIMbase::isFixed (int inod, int dof) const
 {
-  size_t node = 0;
-  for (ASMbase* pch : myModel)
+  for (ASMbase* pch : myModel) {
+    size_t node;
     if ((node = pch->getNodeIndex(inod,true)))
       return pch->isFixed(node,dof,true);
+  }
 
   return true;
 }

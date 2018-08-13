@@ -144,18 +144,19 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
     if (!this->parseTopologySet(elem,patches))
       return false;
 
-    ASM3D* pch = nullptr;
     int addu = 0, addv = 0, addw = 0;
     utl::getAttribute(elem,"u",addu);
     utl::getAttribute(elem,"v",addv);
     utl::getAttribute(elem,"w",addw);
-    for (int j : patches)
+    for (int j : patches) {
+      ASM3D* pch;
       if ((pch = dynamic_cast<ASM3D*>(this->getPatch(j,true))))
       {
         IFEM::cout <<"\tRaising order of P"<< j
                    <<" "<< addu <<" "<< addv  <<" " << addw << std::endl;
         pch->raiseOrder(addu,addv,addw);
       }
+    }
   }
 
   else if (!strcasecmp(elem->Value(),"topology"))
@@ -532,7 +533,6 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
     if (ignoreDirichlet) return true; // Ignore all boundary conditions
     if (!this->createFEMmodel()) return false;
 
-    ASM3D* pch = nullptr;
     int nfix = atoi(keyWord+9);
     IFEM::cout <<"\nNumber of fixed points: "<< nfix << std::endl;
     for (int i = 0; i < nfix && (cline = utl::readLine(is)); i++)
@@ -544,6 +544,7 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
       int bcode = (cline = strtok(nullptr," ")) ? atoi(cline) : 123;
 
       int pid = this->getLocalPatchIndex(patch);
+      ASM3D* pch;
       if (pid > 0 && (pch = dynamic_cast<ASM3D*>(myModel[pid-1])))
       {
         IFEM::cout <<"\tConstraining P"<< patch
@@ -747,9 +748,9 @@ ASMbase* SIM3D::readPatch (std::istream& isp, int pchInd,
 bool SIM3D::readPatches (std::istream& isp, PatchVec& patches,
                          const char* whiteSpace) const
 {
-  ASMbase* pch = nullptr;
   bool isMixed = nf.size() > 1 && nf[1] > 0;
-  for (int pchInd = 1; isp.good(); pchInd++)
+  for (int pchInd = 1; isp.good(); pchInd++) {
+    ASMbase* pch;
     if ((pch = ASM3D::create(opt.discretization,nf,isMixed)))
     {
       if (!pch->read(isp))
@@ -770,6 +771,7 @@ bool SIM3D::readPatches (std::istream& isp, PatchVec& patches,
             IFEM::cout <<"\tSwapped."<< std::endl;
       }
     }
+  }
 
   return true;
 }
@@ -825,10 +827,11 @@ bool SIM3D::readNodes (std::istream& isn, int pchInd, int basis, bool oneBased)
 void SIM3D::clonePatches (const PatchVec& patches,
                           const std::map<int,int>& glb2locN)
 {
-  ASM3D* pch = nullptr;
-  for (size_t i = 0; i < patches.size(); i++)
+  for (size_t i = 0; i < patches.size(); i++) {
+    ASM3D* pch;
     if ((pch = dynamic_cast<ASM3D*>(patches[i])))
       myModel.push_back(pch->clone(nf));
+  }
 
   g2l = &glb2locN;
 

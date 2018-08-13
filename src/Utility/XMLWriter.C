@@ -251,9 +251,8 @@ void XMLWriter::writeSIM (int level, const DataEntry& entry, bool,
   }
 
   // secondary solution fields
-  size_t i, j;
   if (results & DataExporter::SECONDARY)
-    for (j = 0; j < prob->getNoFields(2); j++)
+    for (size_t j = 0; j < prob->getNoFields(2); j++)
       addField(prefix+prob->getField2Name(j),"secondary", basisname,
                1,sim->getNoPatches());
 
@@ -262,8 +261,8 @@ void XMLWriter::writeSIM (int level, const DataEntry& entry, bool,
     // since the norm data isn't available, we have to instance the object
     NormBase* norm = sim->getNormIntegrand();
     if (norm) {
-      for (i = 1; i <= norm->getNoFields(0); ++i) {
-        for (j = 1; j <= norm->getNoFields(i); ++j) {
+      for (size_t i = 1; i <= norm->getNoFields(0); ++i) {
+        for (size_t j = 1; j <= norm->getNoFields(i); ++j) {
           if (norm->hasElementContributions(i,j))
             addField(prefix+norm->getName(i,j,(i>1&&m_prefix)?m_prefix[i-2]:0),"knotspan wise norm",
                      basisname,1,sim->getNoPatches(),"knotspan");

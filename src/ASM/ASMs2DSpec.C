@@ -44,10 +44,10 @@ bool ASMs2DSpec::getGridParameters (RealArray& prm, int dir,
   }
 
   RealArray::const_iterator uit = surf->basis(dir).begin();
-  double ucurr, uprev = *(uit++);
+  double uprev = *(uit++);
   while (uit != surf->basis(dir).end())
   {
-    ucurr = *(uit++);
+    double ucurr = *(uit++);
     if (ucurr > uprev)
       for (int i = 1; i <= nSegPerSpan; i++)
 	prm.push_back(0.5*(ucurr-uprev)*(1.0+xGLL(i)) + uprev);
