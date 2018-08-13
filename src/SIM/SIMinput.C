@@ -1125,7 +1125,7 @@ bool SIMinput::refine (const LR::RefineData& prm,
     }
 
   // Single patch models only pass refinement call to the ASM level
-  if (myModel.size() == 1)
+  if (myModel.size() == 1 && pch)
     return (isRefined = pch->refine(prm,sol,fName));
 
   if (!prm.errors.empty()) // refinement by true_beta

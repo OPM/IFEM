@@ -851,7 +851,7 @@ int ASMs3DLag::evalPoint (const double* xi, double* param, Vec3& X) const
       param[d] = (1.0-xi[d])*svol->startparam(d) + xi[d]*svol->endparam(d);
     else
       param[d] = xi[d];
-    if (!this->getGridParameters(u[d],d,svol->order(d)-1)) return -3;
+    if (svol && !this->getGridParameters(u[d],d,svol->order(d)-1)) return -3;
   }
 
   // Search for the closest node

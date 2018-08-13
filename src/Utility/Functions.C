@@ -67,7 +67,10 @@ Real SineFunc::deriv (Real x) const
 Real ConstTimeFunc::evaluate (const Vec3& X) const
 {
   const Vec4* Xt = dynamic_cast<const Vec4*>(&X);
-  return (*tfunc)(Xt ? Xt->t : Real(0));
+  if (Xt)
+    return (*tfunc)(Xt->t);
+  else
+    return (*tfunc)(Real(0));
 }
 
 
