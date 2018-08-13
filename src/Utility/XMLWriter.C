@@ -160,7 +160,7 @@ void XMLWriter::writeNodalForces(int level, const DataEntry& entry)
   element.SetAttribute("name",entry.first.c_str());
   element.SetAttribute("description",entry.second.description.c_str());
   element.SetAttribute("type","nodalforces");
-  GlbForceVec* vec = (GlbForceVec*)entry.second.data;
+  const GlbForceVec* vec = static_cast<const GlbForceVec*>(entry.second.data);
   element.SetAttribute("size",vec->size());
   m_node->InsertEndChild(element);
 }
