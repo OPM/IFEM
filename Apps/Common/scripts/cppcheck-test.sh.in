@@ -19,7 +19,13 @@ ignorere=(\\[/usr.*\\]
           \\[.*petsc.*.h:.*\\]:.*
           \\[\\*\\]
           \\[.*Vec3.h:.*\\]:.*Vec[34]..has.a.constructor.with.1.argument.that.is.not.explicit.
-          \\[.*Tensor.h:.*\\]:.*SymmTensor..has.a.constructor.with.1.argument.that.is.not.explicit.)
+          \\[.*Tensor.h:.*\\]:.*SymmTensor..has.a.constructor.with.1.argument.that.is.not.explicit.
+          \\[.*Vec3.h:.*\\]:.*Member.variable..Vec3::v..is.not.initialized.in.the.constructor.
+          \\[.*Vec3.h:.*\\]:.*Member.variable..Vec3::v..is.not.assigned.a.value.in..Vec3::operator=..
+          \\[.*:1\\]:.*Skipping.configuration
+          \\[.*PETScPCPerm.C:.*\\]:.*Variable..shell..is.assigned.a.value.that.is.never.used.
+          \\[.*ASMu3D.*.C:.*\\]:.*The.scope.of.the.variable..wr..can.be.reduced.)
+
 nmatch=`cat $tmpfil | grep "\[.*\]" | wc -l`
 for RE in ${ignorere[*]}
 do
