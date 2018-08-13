@@ -758,7 +758,7 @@ bool ASMu3Dmx::evalSolution (Matrix& sField, const Vector& locSol,
                              int deriv, int nf) const
 {
   size_t nPoints = gpar[0].size();
-  if (nPoints != gpar[1].size() || nPoints != gpar[1].size())
+  if (nPoints != gpar[1].size() || nPoints != gpar[2].size())
     return false;
 
   Vector   ptSol;
@@ -985,7 +985,7 @@ Vec3 ASMu3Dmx::getCoord (size_t inod) const
 {
   size_t b = 0;
   size_t nbb = 0;
-  while (nbb + nb[b] < inod && b < nb.size())
+  while (b < nb.size() && nbb + nb[b] < inod)
     nbb += nb[b++];
   ++b;
 
