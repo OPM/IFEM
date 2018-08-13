@@ -1310,7 +1310,7 @@ bool SIMinput::hasIC (const std::string& name) const
 {
   for (const auto& it : myICs)
     for (const ICInfo& ic : it.second)
-      if (ic.sim_field.find(name) == 0)
+      if (ic.sim_field.compare(0,name.size(),name) == 0)
         return true;
 
   return false;
