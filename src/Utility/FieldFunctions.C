@@ -26,7 +26,8 @@
 #endif
 
 
-FieldFuncBase::FieldFuncBase (const std::string& fName) : hdf5(nullptr), pidx(0)
+FieldFuncBase::FieldFuncBase (const std::string& fName) :
+  hdf5(nullptr), pAdm(nullptr), pidx(0)
 {
   lastLevel = 0;
   lastTime = 0.0;

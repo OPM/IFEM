@@ -131,6 +131,8 @@ SPRMatrix::SPRMatrix (const SPRMatrix& A)
   memcpy(mtrees,A.mtrees,A.mpar[35]*sizeof(int));
   memcpy(mvarnc,A.mvarnc,2*A.mpar[7]*sizeof(int));
   memcpy(values,A.values,(A.mpar[7]+A.mpar[15])*sizeof(Real));
+  iWork.clear();
+  rWork.clear();
 }
 
 

@@ -751,7 +751,7 @@ bool ASMs2D::collapseEdge (int edge, int basis)
 
 void ASMs2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
 {
-  int n1, n2, node = 1;
+  int n1 = 0, n2 = 0, node = 1;
   for (char i = 1; i <= basis; i++)
     if (!this->getSize(n1,n2,i))
       return;
@@ -2892,7 +2892,7 @@ bool ASMs2D::evaluate (const FunctionBase* func, RealArray& vec,
 
 int ASMs2D::getCorner (int I, int J, int basis) const
 {
-  int n1, n2, node = 1;
+  int n1 = 0, n2 = 0, node = 1;
   for (char i = 1; i <= basis; i++)
     if (!this->getSize(n1,n2,i))
       return -1;

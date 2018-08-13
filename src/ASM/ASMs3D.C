@@ -1221,7 +1221,7 @@ void ASMs3D::constrainNode (double xi, double eta, double zeta,
   if (eta  < 0.0 || eta  > 1.0) return;
   if (zeta < 0.0 || zeta > 1.0) return;
 
-  int n1, n2, n3;
+  int n1 = 0, n2 = 0, n3 = 0;
   int node = this->findStartNode(n1,n2,n3,basis);
   if (node < 1) return;
 

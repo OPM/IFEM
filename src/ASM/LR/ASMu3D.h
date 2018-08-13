@@ -404,7 +404,11 @@ private:
 
     //! \brief Default constructor.
     DirichletFace(int numbBasis, int numbElements, int d = 0, int c = 0, int b = 1)
-    : MLGE(numbElements), MNPC(numbElements), dof(d), code(c), basis(b) {}
+    : lr(nullptr), edg(LR::WEST), MLGE(numbElements),
+      MNPC(numbElements), dof(d), code(c), basis(b)
+    {
+      memset(corners, 0, 4*sizeof(int));
+    }
   };
 
   //! \brief Projects the secondary solution field onto the primary basis.

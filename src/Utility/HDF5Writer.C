@@ -486,7 +486,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
     }
     else // must write empty dummy records for the other patches
     {
-      double dummy;
+      double dummy=0.0;
       if (results & DataExporter::PRIMARY) {
         if (entry.second.results < 0) {
           writeArray(group2, entry.second.description,
@@ -555,7 +555,7 @@ void HDF5Writer::writeKnotspan (int level, const DataEntry& entry,
                  patchEnorm.getRow(1).ptr(),H5T_NATIVE_DOUBLE);
     }
     else { // must write empty dummy records for the other patches
-      double dummy;
+      double dummy=0.0;
       writeArray(group2,prefix+entry.second.description,0,&dummy,H5T_NATIVE_DOUBLE);
     }
 
@@ -600,7 +600,7 @@ void HDF5Writer::writeBasis (const SIMbase* sim, const std::string& name,
       writeArray(group2, str2.str(), str.str().size(), str.str().c_str(),
                  H5T_NATIVE_CHAR);
     if (redundant && rank != 0) {
-      char dummy;
+      char dummy=0;
       writeArray(group2, str2.str(), 0, &dummy, H5T_NATIVE_CHAR);
     }
   }
@@ -674,7 +674,7 @@ void HDF5Writer::writeNodalForces(int level, const DataEntry& entry)
     }
     writeArray(group2,entry.first,results.size(),results.data(),H5T_NATIVE_DOUBLE);
   } else {
-    double dummy;
+    double dummy=0.0;
     writeArray(group2,entry.first,0,&dummy,H5T_NATIVE_DOUBLE);
   }
   H5Gclose(group2);
