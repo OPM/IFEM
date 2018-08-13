@@ -97,10 +97,10 @@ private:
   IntVec ghostNodes; //!< Indices for the ghost nodes
   IntVec l2gn;       //!< Local-to-global node numbers for this processor
 #ifdef HAVE_MPI
-  int    nleq;       //!< Number of equations for this processor
-  int    nnodGlob;   //!< Number of global nodes;
-  int    ieqmin;     //!< Minium equation number
-  int    ieqmax;     //!< Maximum equation number
+  int    nleq = 0;       //!< Number of equations for this processor
+  int    nnodGlob = 0;   //!< Number of global nodes;
+  int    ieqmin = 0;     //!< Minium equation number
+  int    ieqmax = 0;     //!< Maximum equation number
 #endif
 
   const ProcessAdm& adm; //!< Parallel process administrator

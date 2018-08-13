@@ -50,6 +50,7 @@ TimeStep& TimeStep::operator= (const TimeStep& ts)
   f2 = ts.f2;
   maxStep = ts.maxStep;
   niter = ts.niter;
+  iter = ts.iter;
 
   time = ts.time;
   mySteps = ts.mySteps;

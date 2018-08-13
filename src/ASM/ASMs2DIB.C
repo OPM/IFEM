@@ -31,6 +31,7 @@ ASMs2DIB::ASMs2DIB (unsigned char n_s, unsigned char n_f, int max_depth)
 ASMs2DIB::ASMs2DIB (const ASMs2DIB& patch, unsigned char n_f)
   : ASMs2D(patch,n_f), quadPoints(patch.quadPoints)
 {
+  maxDepth = patch.maxDepth;
   myGeometry = nullptr;
   myLines = nullptr;
 }

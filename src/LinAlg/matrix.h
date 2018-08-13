@@ -859,7 +859,7 @@ namespace utl //! General utility classes and functions.
     matrix3d(std::istream& is, std::streamsize max = 10)
     {
       // Read size
-      size_t n0, n1, n2;
+      size_t n0 = 0, n1 = 0, n2 = 0;
       is.ignore(10, ':');
       is.ignore(1);
       is >> n0 >> n1 >> n2;

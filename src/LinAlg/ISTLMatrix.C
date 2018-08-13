@@ -121,13 +121,14 @@ ISTLMatrix::ISTLMatrix (const ProcessAdm& padm, const LinSolParams& spar,
 
 
 ISTLMatrix::ISTLMatrix (const ISTLMatrix& B) :
-  adm(B.adm), solParams(B.solParams.get(), B.adm)
+  adm(B.adm), solParams(B.solParams.get(), B.adm), linsysType(B.linsysType)
 {
   A = B.A;
 
   LinAlgInit::increfs();
 
   setParams = true;
+  nLinSolves = 0;
 }
 
 

@@ -114,6 +114,8 @@ ASMbase::ASMbase (const ASMbase& patch)
 
   nLag = 0; // Lagrange multipliers are not copied
   myLMs.first = myLMs.second = 0;
+  neighbors.clear();
+  myLMTypes.clear();
 }
 
 
