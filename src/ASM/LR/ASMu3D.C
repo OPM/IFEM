@@ -22,11 +22,11 @@
 #include "TimeDomain.h"
 #include "FiniteElement.h"
 #include "GlobalIntegral.h"
-#include "LagrangeInterpolator.h"
 #include "LocalIntegral.h"
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
+#include "LagrangeInterpolator.h"
 #include "ElementBlock.h"
 #include "MPC.h"
 #include "SplineUtils.h"
@@ -35,6 +35,7 @@
 #include "Function.h"
 #include "Vec3Oper.h"
 #include <array>
+
 
 ASMu3D::ASMu3D (unsigned char n_f)
   : ASMunstruct(3,3,n_f), lrspline(nullptr), tensorspline(nullptr),
@@ -129,6 +130,33 @@ void ASMu3D::clear (bool retainGeometry)
 }
 
 
+bool ASMu3D::uniformRefine (int dir, int nInsert)
+{
+  if (!tensorspline || dir < 0 || dir > 2 || nInsert < 1) return false;
+  if (shareFE) return true;
+
+  RealArray extraKnots;
+  RealArray::const_iterator uit = tensorspline->basis(dir).begin();
+  double uprev = *(uit++);
+  while (uit != tensorspline->basis(dir).end())
+  {
+    double ucurr = *(uit++);
+    if (ucurr > uprev)
+      for (int i = 0; i < nInsert; i++)
+      {
+        double xi = (double)(i+1)/(double)(nInsert+1);
+        extraKnots.push_back(ucurr*xi + uprev*(1.0-xi));
+      }
+    uprev = ucurr;
+  }
+
+  tensorspline->insertKnot(dir,extraKnots);
+  lrspline.reset(new LR::LRSplineVolume(tensorspline));
+  geo = lrspline.get();
+  return true;
+}
+
+
 bool ASMu3D::refine (int dir, const RealArray& xi)
 {
   if (!tensorspline || dir < 0 || dir > 2 || xi.empty()) return false;
@@ -157,31 +185,6 @@ bool ASMu3D::refine (int dir, const RealArray& xi)
   return true;
 }
 
-bool ASMu3D::uniformRefine (int dir, int nInsert)
-{
-  if (!tensorspline || dir < 0 || dir > 2 || nInsert < 1) return false;
-  if (shareFE) return true;
-
-  RealArray extraKnots;
-  RealArray::const_iterator uit = tensorspline->basis(dir).begin();
-  double uprev = *(uit++);
-  while (uit != tensorspline->basis(dir).end())
-  {
-    double ucurr = *(uit++);
-    if (ucurr > uprev)
-      for (int i = 0; i < nInsert; i++)
-      {
-        double xi = (double)(i+1)/(double)(nInsert+1);
-        extraKnots.push_back(ucurr*xi + uprev*(1.0-xi));
-      }
-    uprev = ucurr;
-  }
-
-  tensorspline->insertKnot(dir,extraKnots);
-  lrspline.reset(new LR::LRSplineVolume(tensorspline));
-  geo = lrspline.get();
-  return true;
-}
 
 bool ASMu3D::raiseOrder (int ru, int rv, int rw)
 {
@@ -193,6 +196,7 @@ bool ASMu3D::raiseOrder (int ru, int rv, int rw)
   geo = lrspline.get();
   return true;
 }
+
 
 bool ASMu3D::generateFEMTopology ()
 {
@@ -276,13 +280,13 @@ bool ASMu3D::connectPatch (int face, ASM3D& neighbor, int nface,
 
 bool ASMu3D::connectBasis (int face, ASMu3D& neighbor, int nface, int norient,
                            int basis, int slave, int master,
-                           bool coordCheck, int thick)
+                           bool coordCheck, int /*thick*/)
 {
   if (this->isShared() && neighbor.isShared())
     return true;
   else if (this->isShared() || neighbor.isShared())
   {
-    std::cerr <<" *** ASMu3D::connectPatch: Logic error, cannot"
+    std::cerr <<" *** ASMu3D::connectBasis: Logic error, cannot"
               <<" connect a shared patch with an unshared one"<< std::endl;
     return false;
   }
@@ -299,33 +303,25 @@ bool ASMu3D::connectBasis (int face, ASMu3D& neighbor, int nface, int norient,
 
   if (masterNodes.empty() || masterNodes.size() != slaveNodes.size())
   {
-    std::cerr <<" *** ASMu3D::connectPatch: Non-matching faces, sizes "
+    std::cerr <<" *** ASMu3D::connectBasis: Non-matching faces, sizes "
               << masterNodes.size() <<" and "<< slaveNodes.size() << std::endl;
     return false;
   }
 
   const double xtol = 1.0e-4;
-  for (size_t node = 0; node < masterNodes.size(); ++node)
-    for (int t = 0; t < thick; ++t)
+  IntVec::const_iterator slvIt = slaveNodes.begin();
+  for (int master : masterNodes)
+    if (!coordCheck)
+      ASMbase::collapseNodes(neighbor,master,*this,*(slvIt++));
+    else if (neighbor.getCoord(master).equal(this->getCoord(*slvIt),xtol))
+      ASMbase::collapseNodes(neighbor,master,*this,*(slvIt++));
+    else
     {
-      // TODO: Hey, this looks suspicious. If thick > 1, this will clearly read
-      // outside the master/slaveNodes arrays. If thick > 1 is not supported
-      // for LR, please remove it alltogether in this class to avoid confusion.
-      int node2 = masterNodes[node*thick+t];
-      int slave = slaveNodes[node*thick+t];
-
-      if (!coordCheck)
-        ASMbase::collapseNodes(neighbor,node2,*this,slave);
-      else if (neighbor.getCoord(node2).equal(this->getCoord(slave),xtol))
-        ASMbase::collapseNodes(neighbor,node2,*this,slave);
-      else
-      {
-        std::cerr <<" *** ASMu3D::connectPatch: Non-matching nodes "
-                  << node2 <<": "<< neighbor.getCoord(node2)
-                  <<"\n                                          and "
-                  << slave <<": "<< this->getCoord(slave) << std::endl;
-        return false;
-      }
+      std::cerr <<" *** ASMu3D::connectBasis: Non-matching nodes "
+                << master <<": "<< neighbor.getCoord(master)
+                <<"\n                                          and "
+                << *slvIt <<": "<< this->getCoord(*slvIt) << std::endl;
+      return false;
     }
 
   return true;
@@ -525,7 +521,8 @@ IntVec ASMu3D::getEdge (int lEdge, bool open, int basis, int orient) const
 void ASMu3D::constrainEdge (int lEdge, bool open, int dof, int code, char)
 {
   if (open)
-    std::cerr << "\nWARNING: ASMu3D::constrainEdge, open boundary conditions not supported yet. Treating it as closed" << std::endl;
+    std::cout <<"  ** ASMu3D::constrainEdge: Open boundary conditions are not"
+              <<" supported for LR B-splines. Treated as closed."<< std::endl;
 
   // enforce the boundary conditions
   for (int node : this->getEdge(lEdge, open, 1, -1))
@@ -533,118 +530,34 @@ void ASMu3D::constrainEdge (int lEdge, bool open, int dof, int code, char)
 }
 
 
-void ASMu3D::constrainLine (int fdir, int ldir, double xi, int dof,
-                            int code, char)
+void ASMu3D::constrainLine (int, int, double, int, int, char)
 {
-  std::cerr << "ASMu3D::constrainLine not implemented properly yet" << std::endl;
-  exit(776654);
-#if 0
-  if (xi < 0.0 || xi > 1.0) return;
-
-  int n1, n2, n3, node = 1;
-  if (!this->getSize(n1,n2,n3,1)) return;
-
-  switch (fdir)
-    {
-    case  1: // Right face (positive I-direction)
-      node += n1-1;
-    case -1: // Left face (negative I-direction)
-      if (ldir == 2)
-      {
-  // Line goes in J-direction
-  node += n1*n2*int(0.5+(n3-1)*xi);
-  for (int i2 = 1; i2 <= n2; i2++, node += n1)
-    this->prescribe(node,dof,code);
-      }
-      else if (ldir == 3)
-      {
-  // Line goes in K-direction
-  node += n1*int(0.5+(n2-1)*xi);
-  for (int i3 = 1; i3 <= n3; i3++, node += n1*n2)
-    this->prescribe(node,dof,code);
-      }
-      break;
-
-    case  2: // Back face (positive J-direction)
-      node += n1*(n2-1);
-    case -2: // Front face (negative J-direction)
-      if (ldir == 1)
-      {
-  // Line goes in I-direction
-  node += n1*n2*int(0.5+(n3-1)*xi);
-  for (int i1 = 1; i1 <= n1; i1++, node++)
-    this->prescribe(node,dof,code);
-      }
-      else if (ldir == 3)
-      {
-  // Line goes in K-direction
-  node += int(0.5+(n1-1)*xi);
-  for (int i3 = 1; i3 <= n3; i3++, node += n1*n2)
-    this->prescribe(node,dof,code);
-      }
-      break;
-
-    case  3: // Top face (positive K-direction)
-      node += n1*n2*(n3-1);
-    case -3: // Bottom face (negative K-direction)
-      if (ldir == 1)
-      {
-  // Line goes in I-direction
-  node += n1*int(0.5+(n2-1)*xi);
-  for (int i1 = 1; i1 <= n1; i1++, node++)
-    this->prescribe(node,dof,code);
-      }
-      else if (ldir == 2)
-      {
-  // Line goes in J-direction
-  node += int(0.5+(n1-1)*xi);
-  for (int i2 = 1; i2 <= n2; i2++, node += n1)
-    this->prescribe(node,dof,code);
-      }
-      break;
-    }
-#endif
+  // We can't do this, since the LR meshes are unstructured by nature
+  std::cout <<"  ** Constraining an interior line is not available"
+            <<" for LR B-splines (ignored)."<< std::endl;
 }
 
 
 void ASMu3D::constrainCorner (int I, int J, int K, int dof, int code, char)
 {
   int corner = LR::NONE;
-  if (  I < 0) corner |= LR::WEST;
-  else        corner |= LR::EAST;
-  if (  J < 0) corner |= LR::SOUTH;
-  else        corner |= LR::NORTH;
-  if (  K < 0) corner |= LR::BOTTOM;
-  else        corner |= LR::TOP;
+  corner |= (I < 0 ? LR::WEST   : LR::EAST );
+  corner |= (J < 0 ? LR::SOUTH  : LR::NORTH);
+  corner |= (K < 0 ? LR::BOTTOM : LR::TOP  );
 
   std::vector<LR::Basisfunction*> one_function;
   lrspline->getEdgeFunctions(one_function, LR::parameterEdge(corner));
-  int node = one_function[0]->getId() + 1;
 
-  this->prescribe(node, dof, code);
+  this->prescribe(one_function.front()->getId()+1, dof, code);
 }
 
 
 void ASMu3D::constrainNode (double xi, double eta, double zeta,
                             int dof, int code, char)
 {
-  std::cerr << "ASMu3D::constrainNode not implemented properly yet" << std::endl;
-  exit(776654);
-#if 0
-  if (xi   < 0.0 || xi   > 1.0) return;
-  if (eta  < 0.0 || eta  > 1.0) return;
-  if (zeta < 0.0 || zeta > 1.0) return;
-
-  int n1, n2, n3;
-  if (!this->getSize(n1,n2,n3,1)) return;
-
-  int node = 1;
-  if (xi   > 0.0) node += int(0.5+(n1-1)*xi);
-  if (eta  > 0.0) node += n1*int(0.5+(n2-1)*eta);
-  if (zeta > 0.0) node += n1*n2*int(0.5+(n3-1)*zeta);
-
-  this->prescribe(node,dof,code);
-#endif
+  // We can't do this, since the control point locations are unpredictable
+  std::cout <<"  ** Constraining a nodal point is not available"
+            <<" for LR B-splines (ignored)."<< std::endl;
 }
 
 
@@ -663,7 +576,7 @@ double ASMu3D::getParametricArea (int iel, int dir) const
   if (MNPC[iel-1].empty())
     return 0.0;
 
-  LR::Element *el = lrspline->getElement(iel-1);
+  const LR::Element* el = lrspline->getElement(iel-1);
   double du = el->getParmax(0) - el->getParmin(0);
   double dv = el->getParmax(1) - el->getParmin(1);
   double dw = el->getParmax(2) - el->getParmin(2);
@@ -679,6 +592,7 @@ double ASMu3D::getParametricArea (int iel, int dir) const
   return DERR;
 }
 
+
 double ASMu3D::getParametricVolume (int iel) const
 {
 #ifdef INDEX_CHECK
@@ -692,12 +606,13 @@ double ASMu3D::getParametricVolume (int iel) const
   if (MNPC[iel-1].empty())
     return 0.0;
 
-  LR::Element *el = lrspline->getElement(iel-1);
+  const LR::Element* el = lrspline->getElement(iel-1);
   double du = el->getParmax(0) - el->getParmin(0);
   double dv = el->getParmax(1) - el->getParmin(1);
   double dw = el->getParmax(2) - el->getParmin(2);
   return du*dv*dw;
 }
+
 
 bool ASMu3D::getElementCoordinates (Matrix& X, int iel) const
 {
@@ -710,7 +625,7 @@ bool ASMu3D::getElementCoordinates (Matrix& X, int iel) const
   }
 #endif
 
-  LR::Element* el = lrspline->getElement(iel-1);
+  const LR::Element* el = lrspline->getElement(iel-1);
   X.resize(3,el->nBasisFunctions());
 
   int n = 1;
@@ -745,7 +660,7 @@ Vec3 ASMu3D::getCoord (size_t inod) const
 
 bool ASMu3D::updateCoords (const Vector& displ)
 {
-  std::cerr <<" *** ASMu3D::updateCoords not implemented!"<< std::endl;
+  std::cerr <<" *** ASMu3D::updateCoords: Not implemented!"<< std::endl;
   return false;
 }
 
@@ -776,7 +691,7 @@ size_t ASMu3D::getNoBoundaryElms (char lIndex, char ldim) const
 void ASMu3D::getGaussPointParameters (RealArray& uGP, int dir, int nGauss,
                                       int iEl, const double* xi) const
 {
-  LR::Element* el = lrspline->getElement(iEl-1);
+  const LR::Element* el = lrspline->getElement(iEl-1);
   double start = el->getParmin(dir);
   double stop  = el->getParmax(dir);
 
@@ -788,7 +703,7 @@ void ASMu3D::getGaussPointParameters (RealArray& uGP, int dir, int nGauss,
 
 double ASMu3D::getElementCorners (int iEl, Vec3Vec& XC) const
 {
-  LR::Element* el = lrspline->getElement(iEl-1);
+  const LR::Element* el = lrspline->getElement(iEl-1);
   double u[2] = { el->getParmin(0), el->getParmax(0) };
   double v[2] = { el->getParmin(1), el->getParmax(1) };
   double w[2] = { el->getParmin(2), el->getParmax(2) };
@@ -816,27 +731,28 @@ void ASMu3D::evaluateBasis (int iel, double u, double v, double w,
 
   std::vector<RealArray> result;
   this->getBasis(basis)->computeBasis(u, v, w, result, 1, iel);
-  size_t nBasis = result.size();
+  size_t n = 0, nBasis = result.size();
 
   N.resize(nBasis);
   dNdu.resize(nBasis,3);
-  for (size_t n = 1; n <= nBasis; n++) {
-    N(n)      = result[n-1][0];
-    dNdu(n,1) = result[n-1][1];
-    dNdu(n,2) = result[n-1][2];
-    dNdu(n,3) = result[n-1][3];
+  for (const RealArray& phi : result) {
+    N   (++n) = phi[0];
+    dNdu(n,1) = phi[1];
+    dNdu(n,2) = phi[2];
+    dNdu(n,3) = phi[3];
   }
 }
 
-void ASMu3D::evaluateBasis (FiniteElement &el, Matrix &dNdu, int basis) const
+void ASMu3D::evaluateBasis (FiniteElement& el, Matrix& dNdu, int basis) const
 {
   this->evaluateBasis(el.iel-1, el.u, el.v, el.w, el.basis(basis), dNdu, basis);
 }
 
-void ASMu3D::evaluateBasis (FiniteElement &el, Matrix &dNdu,
-                            const Matrix &C, const Matrix &B, int basis) const
+void ASMu3D::evaluateBasis (FiniteElement& el, Matrix& dNdu,
+                            const Matrix& C, const Matrix& B, int basis) const
 {
   PROFILE2("BeSpline evaluation");
+
   Matrix N = C*B;
   dNdu.resize(N.rows(),3);
   el.basis(basis) = N.getColumn(1);
@@ -845,58 +761,62 @@ void ASMu3D::evaluateBasis (FiniteElement &el, Matrix &dNdu,
   dNdu.fillColumn(3,N.getColumn(4));
 }
 
-void ASMu3D::evaluateBasis (FiniteElement &el, Matrix &dNdu, Matrix3D &d2Ndu2, int basis) const
+void ASMu3D::evaluateBasis (FiniteElement& el, Matrix& dNdu, Matrix3D& d2Ndu2, int basis) const
 {
   PROFILE2("Spline evaluation");
-  size_t nBasis = this->getBasis(basis)->getElement(el.iel-1)->nBasisFunctions();
 
   std::vector<RealArray> result;
-  this->getBasis(basis)->computeBasis(el.u, el.v, el.w, result, 2, el.iel-1 );
+  this->getBasis(basis)->computeBasis(el.u, el.v, el.w, result, 2, el.iel-1);
+  size_t n = 0, nBasis = result.size();
+  Vector& N = el.basis(basis);
 
-  el.basis(basis).resize(nBasis);
+  N.resize(nBasis);
   dNdu.resize(nBasis,3);
   d2Ndu2.resize(nBasis,3,3);
-  size_t jp, n = 1;
-  for (jp = 0; jp < nBasis; jp++, n++) {
-    el.basis(basis)(n) = result[jp][0];
-    dNdu (n,1)         = result[jp][1];
-    dNdu (n,2)         = result[jp][2];
-    dNdu (n,3)         = result[jp][3];
-    d2Ndu2(n,1,1)      = result[jp][4];
-    d2Ndu2(n,1,2)      = d2Ndu2(n,2,1) = result[jp][5];
-    d2Ndu2(n,1,3)      = d2Ndu2(n,3,1) = result[jp][6];
-    d2Ndu2(n,2,2)      = result[jp][7];
-    d2Ndu2(n,2,3)      = d2Ndu2(n,3,2) = result[jp][8];
-    d2Ndu2(n,3,3)      = result[jp][9];
+  for (const RealArray& phi : result) {
+    N     (++n)   = phi[0];
+    dNdu  (n,1)   = phi[1];
+    dNdu  (n,2)   = phi[2];
+    dNdu  (n,3)   = phi[3];
+    d2Ndu2(n,1,1) = phi[4];
+    d2Ndu2(n,1,2) = d2Ndu2(n,2,1) = phi[5];
+    d2Ndu2(n,1,3) = d2Ndu2(n,3,1) = phi[6];
+    d2Ndu2(n,2,2) = phi[7];
+    d2Ndu2(n,2,3) = d2Ndu2(n,3,2) = phi[8];
+    d2Ndu2(n,3,3) = phi[9];
   }
 }
 
-void ASMu3D::evaluateBasis (FiniteElement &el, int derivs, int basis) const
+void ASMu3D::evaluateBasis (FiniteElement& el, int derivs, int basis) const
 {
   PROFILE2("Spline evaluation");
-  size_t nBasis = this->getBasis(basis)->getElement(el.iel-1)->nBasisFunctions();
 
   std::vector<RealArray> result;
-  this->getBasis(basis)->computeBasis(el.u, el.v, el.w, result, derivs, el.iel-1 );
+  this->getBasis(basis)->computeBasis(el.u, el.v, el.w, result, derivs, el.iel-1);
+  size_t n = 0, nBasis = result.size();
+  Vector& N = el.basis(basis);
+  Matrix& dNdu = el.grad(basis);
+  Matrix3D& d2Ndu2 = el.hess(basis);
 
-  el.basis(basis).resize(nBasis);
-  el.grad(basis).resize(nBasis,3);
-  el.hess(basis).resize(nBasis,3,3);
-  size_t jp, n = 1;
-  for (jp = 0; jp < nBasis; jp++, n++) {
-    el.basis(basis)(n)      = result[jp][0];
+  N.resize(nBasis);
+  if (derivs > 0)
+    dNdu.resize(nBasis,3);
+  if (derivs > 1)
+    d2Ndu2.resize(nBasis,3,3);
+  for (const RealArray& phi : result) {
+    N(++n) = phi[0];
     if (derivs > 0) {
-      el.grad(basis)(n,1)    = result[jp][1];
-      el.grad(basis)(n,2)    = result[jp][2];
-      el.grad(basis)(n,3)    = result[jp][3];
+      dNdu(n,1) = phi[1];
+      dNdu(n,2) = phi[2];
+      dNdu(n,3) = phi[3];
     }
     if (derivs > 1) {
-      el.hess(basis)(n,1,1) = result[jp][4];
-      el.hess(basis)(n,1,2) = el.hess(basis)(n,2,1) = result[jp][5];
-      el.hess(basis)(n,1,3) = el.hess(basis)(n,3,1) = result[jp][6];
-      el.hess(basis)(n,2,2) = result[jp][7];
-      el.hess(basis)(n,2,3) = el.hess(basis)(n,3,2) = result[jp][8];
-      el.hess(basis)(n,3,3) = result[jp][9];
+      d2Ndu2(n,1,1) = phi[4];
+      d2Ndu2(n,1,2) = d2Ndu2(n,2,1) = phi[5];
+      d2Ndu2(n,1,3) = d2Ndu2(n,3,1) = phi[6];
+      d2Ndu2(n,2,2) = phi[7];
+      d2Ndu2(n,2,3) = d2Ndu2(n,3,2) = phi[8];
+      d2Ndu2(n,3,3) = phi[9];
     }
   }
 }
@@ -980,19 +900,22 @@ bool ASMu3D::integrate (Integrand& integrand,
   else if (nRed < 0)
     nRed = nGauss; // The integrand needs to know nGauss
 
+  ThreadGroups oneGroup;
+  if (glInt.threadSafe()) oneGroup.oneGroup(nel);
+  const IntMat& group = glInt.threadSafe() ? oneGroup[0] : threadGroups[0];
+
 
   // === Assembly loop over all elements in the patch ==========================
 
   bool ok = true;
-  for (size_t t = 0; t < threadGroups[0].size() && ok; ++t)
-  {
+  for (size_t t = 0; t < group.size() && ok; t++)
 #pragma omp parallel for schedule(static)
-    for (size_t e = 0; e < threadGroups[0][t].size(); ++e)
+    for (size_t e = 0; e < group[t].size(); e++)
     {
       if (!ok)
         continue;
 
-      int iel = threadGroups[0][t][e] + 1;
+      int iel = group[t][e] + 1;
 #if defined(SP_DEBUG) && !defined(USE_OPENMP)
       if (dbgElm < 0 && iel != -dbgElm)
         continue; // Skipping all elements, except for -dbgElm
@@ -1118,6 +1041,7 @@ bool ASMu3D::integrate (Integrand& integrand,
       int ig = 1;
       int jp = (iel-1)*nGauss*nGauss*nGauss;
       fe.iGP = firstIp + jp; // Global integration point counter
+
       for (int k = 0; k < nGauss; k++)
         for (int j = 0; j < nGauss; j++)
           for (int i = 0; i < nGauss; i++, fe.iGP++, ig++)
@@ -1152,8 +1076,7 @@ bool ASMu3D::integrate (Integrand& integrand,
 #ifdef SP_DEBUG
               // Check for errors in the bezier extraction
               if (fabs(fe.N.sum()-1.0) > 1.0e-10) {
-                std::cerr <<" *** N does not sum to one at integration point #"
-<< ig << std::endl;
+                std::cerr <<" *** N does not sum to one at integration point #"<< ig << std::endl;
                 exit(123);
               }
               char u = 'u';
@@ -1188,7 +1111,7 @@ bool ASMu3D::integrate (Integrand& integrand,
 
 #if SP_DEBUG > 4
             if (iel == dbgElm || iel == -dbgElm || dbgElm == 0)
-              std::cout << fe;
+              std::cout <<"\n"<< fe;
 #endif
 
             // Cartesian coordinates of current integration point
@@ -1217,7 +1140,6 @@ bool ASMu3D::integrate (Integrand& integrand,
         break; // Skipping all elements, except for -dbgElm
 #endif
     }
-  }
 
   return ok;
 }
@@ -1418,7 +1340,6 @@ bool ASMu3D::integrate (Integrand& integrand, int lIndex,
     if (dbgElm < 0 && iEl+1 == -dbgElm)
       break; // Skipping all elements, except for -dbgElm
 #endif
-
   }
 
   return ok;
@@ -1633,9 +1554,6 @@ bool ASMu3D::diracPoint (Integrand& integrand, GlobalIntegral& glInt,
 
 int ASMu3D::evalPoint (const double* xi, double* param, Vec3& X) const
 {
-  std::cerr << "ASMu3D::evalPoint(...) is not properly implemented yet :(" << std::endl;
-  exit(776654);
-#if 0
   if (!lrspline) return -3;
 
   int i;
@@ -1647,26 +1565,7 @@ int ASMu3D::evalPoint (const double* xi, double* param, Vec3& X) const
   for (i = 0; i < 3 && i < lrspline->dimension(); i++)
     X[i] = X0[i];
 
-  // Check if this point matches any of the control points (nodes)
-  Vec3 Xnod;
-  size_t inod = 1;
-  RealArray::const_iterator cit = lrspline->coefs_begin();
-  for (i = 0; cit != lrspline->coefs_end(); cit++, i++)
-  {
-    if (i < 3) Xnod[i] = *cit;
-    if (i+1 == lrspline->dimension())
-      if (X.equal(Xnod,0.001))
-  return inod;
-      else
-      {
-  inod++;
-  i = -1;
-      }
-  }
-
   return 0;
-#endif
-  return -1;
 }
 
 
@@ -1680,10 +1579,8 @@ bool ASMu3D::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) const
 {
   if (!lrspline) return false;
 
-  // output is written once for each element resulting in a lot of unnecessary storage
-  // this is preferable to figuring out all element topology information
-
-  for(LR::Element *el : lrspline->getAllElements() ) {
+  for (LR::Element* el : lrspline->getAllElements())
+  {
     // evaluate element at element corner points
     double umin = el->umin();
     double umax = el->umax();
@@ -1691,33 +1588,29 @@ bool ASMu3D::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) const
     double vmax = el->vmax();
     double wmin = el->wmin();
     double wmax = el->wmax();
-    for(int iw=0; iw<=nSegPerSpan; iw++) {
-      for(int iv=0; iv<=nSegPerSpan; iv++) {
-        for(int iu=0; iu<=nSegPerSpan; iu++) {
-          double u = umin + (umax-umin)/nSegPerSpan*iu;
-          double v = vmin + (vmax-vmin)/nSegPerSpan*iv;
-          double w = wmin + (wmax-wmin)/nSegPerSpan*iw;
-          if (dir==0)
-            prm.push_back(u);
-          else if (dir==1)
-            prm.push_back(v);
+    for (int iw = 0; iw <= nSegPerSpan; iw++)
+      for (int iv = 0; iv <= nSegPerSpan; iv++)
+        for (int iu = 0; iu <= nSegPerSpan; iu++)
+          if (dir == 0)
+            prm.push_back(umin + (umax-umin)/nSegPerSpan*iu);
+          else if (dir == 1)
+            prm.push_back(vmin + (vmax-vmin)/nSegPerSpan*iv);
           else
-            prm.push_back(w);
-        }
-      }
-    }
+            prm.push_back(wmin + (wmax-wmin)/nSegPerSpan*iw);
   }
+
   return true;
 }
+
 
 bool ASMu3D::tesselate (ElementBlock& grid, const int* npe) const
 {
   if (!lrspline) return false;
 
   if (npe[0] != npe[1] || npe[0] != npe[2]) {
-    std::cerr << "ASMu3D::tesselate does not support different tesselation resolution in "
-              << "u- and v-direction. nviz u = " << npe[0] << ", nviz v = " << npe[1]
-              << ", nviz w = " << npe[2] << std::endl;
+    std::cerr <<" *** ASMu3D::tesselate does not support different resolution in"
+              <<" in u-, v- and w-direction.\n     nviz u = "<< npe[0]
+              <<", nviz v = "<< npe[1] <<", nviz w = "<< npe[2] << std::endl;
     return false;
   }
 
@@ -1730,9 +1623,9 @@ bool ASMu3D::tesselate (ElementBlock& grid, const int* npe) const
   grid.unStructResize(nElements * nSubElPerElement,
                       nElements * nNodesPerElement);
 
-  int inod = 0;
-  size_t iel = 0;
-  for(const LR::Element* el : lrspline->getAllElements()) {
+  int iel = 0, inod = 0;
+  for (const LR::Element* el : lrspline->getAllElements())
+  {
     // evaluate element at element corner points
     double umin = el->umin();
     double umax = el->umax();
@@ -1740,45 +1633,36 @@ bool ASMu3D::tesselate (ElementBlock& grid, const int* npe) const
     double vmax = el->vmax();
     double wmin = el->wmin();
     double wmax = el->wmax();
-    for(int iw=0; iw<npe[2]; iw++) {
-      for(int iv=0; iv<npe[1]; iv++) {
-        for(int iu=0; iu<npe[0]; iu++) {
+    for (int iw = 0; iw < npe[2]; iw++)
+      for (int iv = 0; iv < npe[1]; iv++)
+        for (int iu = 0; iu < npe[0]; iu++, inod++) {
           double u = umin + (umax-umin)/(npe[0]-1)*iu;
           double v = vmin + (vmax-vmin)/(npe[1]-1)*iv;
           double w = wmin + (wmax-wmin)/(npe[2]-1)*iw;
           Go::Point pt;
           lrspline->point(pt, u,v,w, iel, iu!=npe[0]-1, iv!=npe[1]-1, iw!=npe[2]-1);
           grid.setParams(inod, u, v, w);
-          for(int dim=0; dim<nsd; dim++)
-            grid.setCoor(inod, dim, pt[dim]);
-          inod++;
+          grid.setCoor(inod, SplineUtils::toVec3(pt,nsd));
         }
-      }
-    }
     ++iel;
   }
 
-  int ip = 0;
-  iel = 0;
-  for(int i=0; i<lrspline->nElements(); i++) {
-    int iStart = i*nNodesPerElement;
-    for(int iw=0; iw<npe[2]-1; iw++) {
-      for(int iv=0; iv<npe[1]-1; iv++) {
-        for(int iu=0; iu<npe[0]-1; iu++, iel++) {
+  int iStart = iel = inod = 0;
+  for (int i = 0; i < nElements; i++, iStart += nNodesPerElement)
+    for (int iw = 0; iw < npe[2]-1; iw++)
+      for (int iv = 0; iv < npe[1]-1; iv++)
+        for (int iu = 0; iu < npe[0]-1; iu++) {
           // enumerate nodes counterclockwise around the hex
-          grid.setNode(ip++, iStart + (iw  )*npe[0]*npe[1] + (iv  )*npe[0] + (iu  ) );
-          grid.setNode(ip++, iStart + (iw  )*npe[0]*npe[1] + (iv  )*npe[0] + (iu+1) );
-          grid.setNode(ip++, iStart + (iw  )*npe[0]*npe[1] + (iv+1)*npe[0] + (iu+1) );
-          grid.setNode(ip++, iStart + (iw  )*npe[0]*npe[1] + (iv+1)*npe[0] + (iu  ) );
-          grid.setNode(ip++, iStart + (iw+1)*npe[0]*npe[1] + (iv  )*npe[0] + (iu  ) );
-          grid.setNode(ip++, iStart + (iw+1)*npe[0]*npe[1] + (iv  )*npe[0] + (iu+1) );
-          grid.setNode(ip++, iStart + (iw+1)*npe[0]*npe[1] + (iv+1)*npe[0] + (iu+1) );
-          grid.setNode(ip++, iStart + (iw+1)*npe[0]*npe[1] + (iv+1)*npe[0] + (iu  ) );
-          grid.setElmId(iel+1, i+1);
+          grid.setNode(inod++, iStart + (iw  )*npe[0]*npe[1] + (iv  )*npe[0] + (iu  ) );
+          grid.setNode(inod++, iStart + (iw  )*npe[0]*npe[1] + (iv  )*npe[0] + (iu+1) );
+          grid.setNode(inod++, iStart + (iw  )*npe[0]*npe[1] + (iv+1)*npe[0] + (iu+1) );
+          grid.setNode(inod++, iStart + (iw  )*npe[0]*npe[1] + (iv+1)*npe[0] + (iu  ) );
+          grid.setNode(inod++, iStart + (iw+1)*npe[0]*npe[1] + (iv  )*npe[0] + (iu  ) );
+          grid.setNode(inod++, iStart + (iw+1)*npe[0]*npe[1] + (iv  )*npe[0] + (iu+1) );
+          grid.setNode(inod++, iStart + (iw+1)*npe[0]*npe[1] + (iv+1)*npe[0] + (iu+1) );
+          grid.setNode(inod++, iStart + (iw+1)*npe[0]*npe[1] + (iv+1)*npe[0] + (iu  ) );
+          grid.setElmId(++iel, i+1);
         }
-      }
-    }
-  }
 
   return true;
 }
@@ -2384,12 +2268,12 @@ bool ASMu3D::transferCntrlPtVars (const LR::LRSpline* old_basis,
   newVars.reserve(newBasis->nElements()*nGauss*nGauss*nGauss*oldBasis->dimension());
   const double* xi = GaussQuadrature::getCoord(nGauss);
 
-  for (int iEl = 0; iEl < newBasis->nElements(); iEl++)
+  for (int iel = 0; iel < newBasis->nElements(); iel++)
   {
     RealArray U, V, W, ptVar;
-    LR::getGaussPointParameters(newBasis, U, 0, nGauss, iEl+1, xi);
-    LR::getGaussPointParameters(newBasis, V, 1, nGauss, iEl+1, xi);
-    LR::getGaussPointParameters(newBasis, W, 2, nGauss, iEl+1, xi);
+    LR::getGaussPointParameters(newBasis, U, 0, nGauss, iel, xi);
+    LR::getGaussPointParameters(newBasis, V, 1, nGauss, iel, xi);
+    LR::getGaussPointParameters(newBasis, W, 2, nGauss, iel, xi);
     for (int k = 0; k < nGauss; k++)
       for (int j = 0; j < nGauss; j++)
         for (int i = 0; i < nGauss; i++)

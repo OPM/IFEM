@@ -601,17 +601,17 @@ bool ASMu2D::connectBasis (int edge, ASMu2D& neighbor, int nedge, bool revers,
   for (size_t i = 0; i < masterNodes.size(); ++i)
   {
     int node = masterNodes[i];
-    int slave = slaveNodes[revers ? slaveNodes.size()-i-1 : i];
+    int slvn = slaveNodes[revers ? slaveNodes.size()-i-1 : i];
     if (!coordCheck)
-      ASMbase::collapseNodes(neighbor,node,*this,slave);
-    else if (neighbor.getCoord(node).equal(this->getCoord(slave),xtol))
-      ASMbase::collapseNodes(neighbor,node,*this,slave);
+      ASMbase::collapseNodes(neighbor,node,*this,slvn);
+    else if (neighbor.getCoord(node).equal(this->getCoord(slvn),xtol))
+      ASMbase::collapseNodes(neighbor,node,*this,slvn);
     else
     {
       std::cerr <<" *** ASMu2D::connectBasis: Non-matching nodes "
                 << node <<": "<< neighbor.getCoord(node)
                 <<"\n                                          and "
-                << slave <<": "<< this->getCoord(slave) << std::endl;
+                << slvn <<": "<< this->getCoord(slvn) << std::endl;
       return false;
     }
   }
@@ -797,25 +797,11 @@ void ASMu2D::constrainCorner (int I, int J, int dof, int code, char basis)
 }
 
 
-// Hopefully we don't have to constrain non-corner single nodes inside patches.
-// KMO: Actually, we would like to have this, to prescribe mid-edge points, etc.
-// Can it be done, Kjetil?
-void ASMu2D::constrainNode (double xi, double eta, int dof, int code)
+void ASMu2D::constrainNode (double, double, int, int)
 {
-  std::cerr <<" *** ASMu2D::constrainNode: Not implemented yet!"<< std::endl;
-  /*
-  if (xi  < 0.0 || xi  > 1.0) return;
-  if (eta < 0.0 || eta > 1.0) return;
-
-  int n1, n2;
-  if (!this->getSize(n1,n2,1)) return;
-
-  int node = 1;
-  if (xi  > 0.0) node += int(0.5+(n1-1)*xi);
-  if (eta > 0.0) node += n1*int(0.5+(n2-1)*eta);
-
-  this->prescribe(node,dof,code);
-  */
+  // We can't do this, since the control point locations are unpredictable
+  std::cout <<"  ** Constraining nodal points not available"
+            <<" for LR B-splines (ignored)."<< std::endl;
 }
 
 
@@ -1037,19 +1023,22 @@ bool ASMu2D::integrate (Integrand& integrand,
     }
   }
 
+  ThreadGroups oneGroup;
+  if (glInt.threadSafe()) oneGroup.oneGroup(nel);
+  const IntMat& group = glInt.threadSafe() ? oneGroup[0] : threadGroups[0];
+
 
   // === Assembly loop over all elements in the patch ==========================
 
   bool ok = true;
-  for (size_t t = 0; t < threadGroups[0].size() && ok; ++t)
-  {
+  for (size_t t = 0; t < group.size() && ok; t++)
 #pragma omp parallel for schedule(static)
-    for (size_t e = 0; e < threadGroups[0][t].size(); ++e)
+    for (size_t e = 0; e < group[t].size(); e++)
     {
       if (!ok)
         continue;
 
-      int iel = threadGroups[0][t][e] + 1;
+      int iel = group[t][e] + 1;
 #if defined(SP_DEBUG) && !defined(USE_OPENMP)
       if (dbgElm < 0 && iel != -dbgElm)
         continue; // Skipping all elements, except for -dbgElm
@@ -1257,7 +1246,6 @@ bool ASMu2D::integrate (Integrand& integrand,
         break; // Skipping all elements, except for -dbgElm
 #endif
     }
-  }
 
   return ok;
 }
@@ -1307,19 +1295,22 @@ bool ASMu2D::integrate (Integrand& integrand,
         lrspline->computeBasis(u,v,spline1[jp],iel);
     }
 
+  ThreadGroups oneGroup;
+  if (glInt.threadSafe()) oneGroup.oneGroup(nel);
+  const IntMat& group = glInt.threadSafe() ? oneGroup[0] : threadGroups[0];
+
 
   // === Assembly loop over all elements in the patch ==========================
 
   bool ok = true;
-  for (size_t t = 0; t < threadGroups[0].size() && ok; ++t)
-  {
+  for (size_t t = 0; t < group.size() && ok; t++)
 #pragma omp parallel for schedule(static)
-    for (size_t e = 0; e < threadGroups[0][t].size(); ++e)
+    for (size_t e = 0; e < group[t].size(); e++)
     {
       if (!ok)
         continue;
 
-      int iel = threadGroups[0][t][e] + 1;
+      int iel = group[t][e] + 1;
 #if defined(SP_DEBUG) && !defined(USE_OPENMP)
       if (dbgElm < 0 && iel != -dbgElm)
         continue; // Skipping all elements, except for -dbgElm
@@ -1443,7 +1434,6 @@ bool ASMu2D::integrate (Integrand& integrand,
         break; // Skipping all elements, except for -dbgElm
 #endif
     }
-  }
 
   return ok;
 }
@@ -1497,15 +1487,13 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
 
   // === Assembly loop over all elements on the patch edge =====================
 
-  int iel = 1;
+  int iel = 0;
   for (const LR::Element* el : lrspline->getAllElements())
   {
+    ++iel;
 #ifdef SP_DEBUG
     if (dbgElm < 0 && iel != -dbgElm)
-    {
-      ++iel;
       continue; // Skipping all elements, except for -dbgElm
-    }
 #endif
 
     // Skip elements that are not on current boundary edge
@@ -1517,10 +1505,7 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
     case -2: if (el->vmin() != lrspline->startparam(1)) skipMe = true; break;
     case  2: if (el->vmax() != lrspline->endparam(1)  ) skipMe = true; break;
     }
-    if (skipMe) {
-      ++iel;
-      continue;
-    }
+    if (skipMe) continue;
 
     // Get element edge length in the parameter space
     double dS = this->getParametricLength(iel,t1);
@@ -1567,10 +1552,7 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
 
       // Compute basis function derivatives and the edge normal
       fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,Xnod,dNdu,t1,t2);
-      if (fe.detJxW == 0.0) {
-        ++iel;
-        continue; // skip singular points
-      }
+      if (fe.detJxW == 0.0) continue; // skip singular points
 
       if (edgeDir < 0) normal *= -1.0;
 
@@ -1598,12 +1580,9 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
     A->destruct();
 
 #ifdef SP_DEBUG
-    if (dbgElm < 0 && iel == -dbgElm) {
-      ++iel;
+    if (dbgElm < 0 && iel == -dbgElm)
       break; // Skipping all elements, except for -dbgElm
-    }
 #endif
-    ++iel;
   }
 
   return true;
@@ -1665,90 +1644,33 @@ int ASMu2D::findElementContaining (const double* param) const
 
 bool ASMu2D::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) const
 {
-#ifdef SP_DEBUG
-  std::cout << "ASMu2D::getGridParameters(  )\n";
-#endif
-
-  // output is written once for each element resulting in a lot of unnecessary storage
-  // this is preferable to figuring out all element topology information
-
-  for(const LR::Element* el : lrspline->getAllElements()) {
+  for (const LR::Element* el : lrspline->getAllElements())
+  {
     // evaluate element at element corner points
     double umin = el->umin();
     double umax = el->umax();
     double vmin = el->vmin();
     double vmax = el->vmax();
-    for(int iv=0; iv<=nSegPerSpan; iv++) {
-      for(int iu=0; iu<=nSegPerSpan; iu++) {
-        double u = umin + (umax-umin)/nSegPerSpan*iu;
-        double v = vmin + (vmax-vmin)/nSegPerSpan*iv;
-        if (dir==0)
-          prm.push_back(u);
+    for (int iv = 0; iv <= nSegPerSpan; iv++)
+      for (int iu = 0; iu <= nSegPerSpan; iu++)
+        if (dir == 0)
+          prm.push_back(umin + (umax-umin)/nSegPerSpan*iu);
         else
-          prm.push_back(v);
-      }
-    }
+          prm.push_back(vmin + (vmax-vmin)/nSegPerSpan*iv);
   }
-  return true;
-}
-
-#if 0
-  if (!lrspline) return false;
-
-  if (nSegPerSpan < 1)
-  {
-    std::cerr <<" *** ASMu2D::getGridParameters: Too few knot-span points "
-              << nSegPerSpan+1 <<" in direction "<< dir << std::endl;
-    return false;
-  }
-
-  RealArray::const_iterator uit = lrspline->basis(dir).begin();
-  double ucurr = 0.0, uprev = *(uit++);
-  while (uit != lrspline->basis(dir).end())
-  {
-    ucurr = *(uit++);
-    if (ucurr > uprev)
-      if (nSegPerSpan == 1)
-        prm.push_back(uprev);
-      else for (int i = 0; i < nSegPerSpan; i++)
-      {
-        double xg = (double)(2*i-nSegPerSpan)/(double)nSegPerSpan;
-        prm.push_back(0.5*(ucurr*(1.0+xg) + uprev*(1.0-xg)));
-      }
-    uprev = ucurr;
-  }
-
-  if (ucurr > prm.back())
-    prm.push_back(ucurr);
-  return true;
-}
-
-
-bool ASMu2D::getGrevilleParameters (RealArray& prm, int dir) const
-{
-  if (!lrspline) return false;
-
-  const Go::BsplineBasis& basis = lrspline->basis(dir);
-
-  prm.resize(basis.numCoefs());
-  for (size_t i = 0; i < prm.size(); i++)
-    prm[i] = basis.grevilleParameter(i);
 
   return true;
 }
-#endif
 
 
 bool ASMu2D::tesselate (ElementBlock& grid, const int* npe) const
 {
-#ifdef SP_DEBUG
-  std::cout << "ASMu2D::tesselate(  )\n";
-#endif
   if (!lrspline) return false;
 
   if (npe[0] != npe[1]) {
-    std::cerr << "ASMu2D::tesselate does not support different tesselation resolution in "
-              << "u- and v-direction. nviz u = " << npe[0] << ", nviz v = " << npe[1] << "\n";
+    std::cerr <<" *** ASMu2D::tesselate does not support different resolution"
+              <<" in u- and v-direction.\n"
+              <<"     nviz u = "<< npe[0] <<", nviz v = "<< npe[1] << std::endl;
     return false;
   }
 
@@ -1761,42 +1683,37 @@ bool ASMu2D::tesselate (ElementBlock& grid, const int* npe) const
   grid.unStructResize(nElements * nSubElPerElement,
                       nElements * nNodesPerElement);
 
-  Go::Point pt;
-  int inod = 0;
-  int iel = 0;
-  for(const LR::Element* el : lrspline->getAllElements()) {
+  int iel = 0, inod = 0;
+  for (const LR::Element* el : lrspline->getAllElements())
+  {
     // evaluate element at element corner points
     double umin = el->umin();
     double umax = el->umax();
     double vmin = el->vmin();
     double vmax = el->vmax();
-    for(int iv=0; iv<npe[1]; iv++) {
-      for(int iu=0; iu<npe[0]; iu++, inod++) {
+    for (int iv = 0; iv < npe[1]; iv++)
+      for (int iu = 0; iu < npe[0]; iu++, inod++) {
         double u = umin + (umax-umin)/(npe[0]-1)*iu;
         double v = vmin + (vmax-vmin)/(npe[1]-1)*iv;
+        Go::Point pt;
         lrspline->point(pt, u,v, iel, iu!=npe[0]-1, iv!=npe[1]-1);
         grid.setCoor(inod, SplineUtils::toVec3(pt,nsd));
         grid.setParams(inod, u, v);
       }
-    }
     ++iel;
   }
 
-  int ip = 0;
-  iel = 0;
-  for(int i=0; i<lrspline->nElements(); i++) {
-    int iStart = i*nNodesPerElement;
-    for(int iv=0; iv<npe[1]-1; iv++) {
-      for(int iu=0; iu<npe[0]-1; iu++, iel++) {
+  int iStart = iel = inod = 0;
+  for (int i = 0; i < nElements; i++, iStart += nNodesPerElement)
+    for (int iv = 0; iv < npe[1]-1; iv++)
+      for (int iu = 0; iu < npe[0]-1; iu++) {
         // enumerate nodes counterclockwise around the quad
-        grid.setNode(ip++, iStart + (iv  )*npe[0] + (iu  ) );
-        grid.setNode(ip++, iStart + (iv  )*npe[0] + (iu+1) );
-        grid.setNode(ip++, iStart + (iv+1)*npe[0] + (iu+1) );
-        grid.setNode(ip++, iStart + (iv+1)*npe[0] + (iu  ) );
-        grid.setElmId(iel+1, i+1);
+        grid.setNode(inod++, iStart + (iv  )*npe[0] + (iu  ) );
+        grid.setNode(inod++, iStart + (iv  )*npe[0] + (iu+1) );
+        grid.setNode(inod++, iStart + (iv+1)*npe[0] + (iu+1) );
+        grid.setNode(inod++, iStart + (iv+1)*npe[0] + (iu  ) );
+        grid.setElmId(++iel, i+1);
       }
-    }
-  }
 
   return true;
 }
@@ -2273,11 +2190,11 @@ bool ASMu2D::transferCntrlPtVars (const LR::LRSpline* old_basis,
   newVars.reserve(newBasis->nElements()*nGauss*nGauss*oldBasis->dimension());
   const double* xi = GaussQuadrature::getCoord(nGauss);
 
-  for (int iEl = 0; iEl < newBasis->nElements(); iEl++)
+  for (int iel = 1; iel <= newBasis->nElements(); iel++)
   {
     RealArray U, V, ptVar;
-    LR::getGaussPointParameters(newBasis, U, 0, nGauss, iEl+1, xi);
-    LR::getGaussPointParameters(newBasis, V, 1, nGauss, iEl+1, xi);
+    LR::getGaussPointParameters(newBasis, U, 0, nGauss, iel, xi);
+    LR::getGaussPointParameters(newBasis, V, 1, nGauss, iel, xi);
     for (int j = 0; j < nGauss; j++)
       for (int i = 0; i < nGauss; i++)
       {

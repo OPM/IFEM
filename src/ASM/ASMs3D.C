@@ -1746,14 +1746,17 @@ bool ASMs3D::integrate (Integrand& integrand,
   const int nel1 = n1 - p1 + 1;
   const int nel2 = n2 - p2 + 1;
 
+  ThreadGroups oneGroup;
+  if (glInt.threadSafe()) oneGroup.oneStripe(nel);
+  const ThreadGroups& groups = glInt.threadSafe() ? oneGroup : threadGroupsVol;
+
 
   // === Assembly loop over all elements in the patch ==========================
 
   bool ok = true;
-  for (size_t g = 0; g < threadGroupsVol.size() && ok; g++)
-  {
+  for (size_t g = 0; g < groups.size() && ok; g++)
 #pragma omp parallel for schedule(static)
-    for (size_t t = 0; t < threadGroupsVol[g].size(); t++)
+    for (size_t t = 0; t < groups[g].size(); t++)
     {
       FiniteElement fe(p1*p2*p3);
       Matrix   dNdu, Xnod, Jac;
@@ -1761,9 +1764,9 @@ bool ASMs3D::integrate (Integrand& integrand,
       double   dXidu[3];
       double   param[3];
       Vec4     X(param);
-      for (size_t l = 0; l < threadGroupsVol[g][t].size() && ok; l++)
+      for (size_t l = 0; l < groups[g][t].size() && ok; l++)
       {
-        int iel = threadGroupsVol[g][t][l];
+        int iel = groups[g][t][l];
         fe.iel = MLGE[iel];
         if (fe.iel < 1) continue; // zero-volume element
 
@@ -1965,7 +1968,6 @@ bool ASMs3D::integrate (Integrand& integrand,
 #endif
       }
     }
-  }
 
   return ok;
 }
@@ -2019,23 +2021,26 @@ bool ASMs3D::integrate (Integrand& integrand,
   const int nel1 = n1 - p1 + 1;
   const int nel2 = n2 - p2 + 1;
 
+  ThreadGroups oneGroup;
+  if (glInt.threadSafe()) oneGroup.oneStripe(nel);
+  const ThreadGroups& groups = glInt.threadSafe() ? oneGroup : threadGroupsVol;
+
 
   // === Assembly loop over all elements in the patch ==========================
 
   bool ok = true;
-  for (size_t g = 0; g < threadGroupsVol.size() && ok; g++)
-  {
+  for (size_t g = 0; g < groups.size() && ok; g++)
 #pragma omp parallel for schedule(static)
-    for (size_t t = 0; t < threadGroupsVol[g].size(); t++)
+    for (size_t t = 0; t < groups[g].size(); t++)
     {
       FiniteElement fe(p1*p2*p3);
       Matrix   dNdu, Xnod, Jac;
       Matrix3D d2Ndu2, Hess;
       double   dXidu[3];
       Vec4     X;
-      for (size_t e = 0; e < threadGroupsVol[g][t].size() && ok; e++)
+      for (size_t e = 0; e < groups[g][t].size() && ok; e++)
       {
-        int iel = threadGroupsVol[g][t][e];
+        int iel = groups[g][t][e];
         if (itgPts[iel].empty()) continue; // no points in this element
 
         fe.iel = MLGE[iel];
@@ -2158,7 +2163,6 @@ bool ASMs3D::integrate (Integrand& integrand,
 #endif
       }
     }
-  }
 
   return ok;
 }

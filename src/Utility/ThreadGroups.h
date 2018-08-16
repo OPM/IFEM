@@ -35,20 +35,20 @@ public:
   //! \brief Default constructor.
   explicit ThreadGroups(StripDirection dir = ANY) : stripDir(dir) {}
 
-  //! \brief Calculates a 2D thread group partitioning based on strips.
+  //! \brief Calculates a 2D thread group partitioning based on stripes.
   //! \param[in] el1 Flags non-zero knot spans in first parameter direction
   //! \param[in] el2 Flags non-zero knot spans in second parameter direction
   //! \param[in] p1 Polynomial degree in first parameter direction
   //! \param[in] p2 Polynomial degree in second parameter direction
   void calcGroups(const BoolVec& el1, const BoolVec& el2,
                   int p1, int p2);
-  //! \brief Calculates a 2D thread group partitioning based on strips.
+  //! \brief Calculates a 2D thread group partitioning based on stripes.
   //! \param[in] nel1 Number of elements in the first direction
   //! \param[in] nel2 Number of elements in the second direction
   //! \param[in] minsize Minimum element strip size
   void calcGroups(int nel1, int nel2, int minsize);
 
-  //! \brief Calculates a 3D thread group partitioning based on strips.
+  //! \brief Calculates a 3D thread group partitioning based on stripes.
   //! \param[in] el1 Flags non-zero knot spans in first parameter direction
   //! \param[in] el2 Flags non-zero knot spans in second parameter direction
   //! \param[in] el3 Flags non-zero knot spans in third parameter direction
@@ -57,7 +57,7 @@ public:
   //! \param[in] p3 Polynomial degree in third parameter direction
   void calcGroups(const BoolVec& el1, const BoolVec& el2, const BoolVec& el3,
                   int p1, int p2, int p3);
-  //! \brief Calculates a 3D thread group partitioning based on strips.
+  //! \brief Calculates a 3D thread group partitioning based on stripes.
   //! \param[in] nel1 Number of elements in the first direction
   //! \param[in] nel2 Number of elements in the second direction
   //! \param[in] nel3 Number of elements in the third direction
@@ -66,6 +66,9 @@ public:
   //! \brief Initializes the threading groups in case of no multi-threading.
   //! \param[in] nel Total number of elements
   void oneGroup(size_t nel);
+  //! \brief Initializes the threading groups in case of a single stripe.
+  //! \param[in] nel Total number of elements
+  void oneStripe(size_t nel);
 
   //! \brief Maps a partitioning through a map.
   //! \details The original entry \a n in the group is mapped onto \a map[n].
@@ -79,10 +82,10 @@ public:
   IntMat& operator[](int i) { return tg[i]; }
 
 protected:
-  //! \brief Calculates the parameter direction of the treading strips in 2D.
+  //! \brief Calculates the parameter direction of the treading stripes in 2D.
   static StripDirection getStripDirection(int nel1, int nel2,
                                           int parts);
-  //! \brief Calculates the parameter direction of the treading strips in 3D.
+  //! \brief Calculates the parameter direction of the treading stripes in 3D.
   static StripDirection getStripDirection(int nel1, int nel2, int nel3,
                                           int parts);
 

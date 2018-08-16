@@ -28,6 +28,15 @@ void ThreadGroups::oneGroup (size_t nel)
 }
 
 
+void ThreadGroups::oneStripe (size_t nel)
+{
+  tg[0].resize(nel);
+  tg[1].resize(0);
+  for (size_t iel = 0; iel < nel; iel++)
+    tg[0][iel].resize(1,iel);
+}
+
+
 void ThreadGroups::calcGroups (const BoolVec& el1, const BoolVec& el2,
                                int p1, int p2)
 {
@@ -47,7 +56,7 @@ void ThreadGroups::calcGroups (const BoolVec& el1, const BoolVec& el2,
   int mul = stripDir == U ? 1 : el1.size();
   int els = stripDir == U ? nel1 : nel2;
 
-  // The minimum strip size (width) depends on the polynomial degree
+  // The minimum stripe size (width) depends on the polynomial degree
   // due to the overlapping support of the splines basis functions
   int stripsize = 0;
   int minsize = stripDir == U ? p1 : p2;
@@ -213,7 +222,7 @@ void ThreadGroups::calcGroups (const BoolVec& el1, const BoolVec& el2,
   int mul = stripDir == U ? 1 : el1.size()*(stripDir == V ? 1 : el2.size());
   int els = stripDir == U ? nel1 : (stripDir == V ? nel2 : nel3);
 
-  // The minimum strip size (width) depends on the polynomial degree
+  // The minimum stripe size (width) depends on the polynomial degree
   // due to the overlapping support of the splines basis functions
   int stripsize = 0;
   int minsize = stripDir == U ? p1 : (stripDir == V ? p2 : p3);

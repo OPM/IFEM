@@ -1554,14 +1554,17 @@ bool ASMs2D::integrate (Integrand& integrand,
   const int n1 = surf->numCoefs_u();
   const int nel1 = n1 - p1 + 1;
 
+  ThreadGroups oneGroup;
+  if (glInt.threadSafe()) oneGroup.oneStripe(nel);
+  const ThreadGroups& groups = glInt.threadSafe() ? oneGroup : threadGroups;
+
 
   // === Assembly loop over all elements in the patch ==========================
 
   bool ok = true;
-  for (size_t g = 0; g < threadGroups.size() && ok; g++)
-  {
+  for (size_t g = 0; g < groups.size() && ok; g++)
 #pragma omp parallel for schedule(static)
-    for (size_t t = 0; t < threadGroups[g].size(); t++)
+    for (size_t t = 0; t < groups[g].size(); t++)
     {
       FiniteElement fe(p1*p2);
       fe.p = p1 - 1;
@@ -1571,9 +1574,9 @@ bool ASMs2D::integrate (Integrand& integrand,
       double   dXidu[2];
       double   param[3] = { 0.0, 0.0, 0.0 };
       Vec4     X(param);
-      for (size_t i = 0; i < threadGroups[g][t].size() && ok; i++)
+      for (size_t i = 0; i < groups[g][t].size() && ok; i++)
       {
-        int iel = threadGroups[g][t][i];
+        int iel = groups[g][t][i];
         fe.iel = MLGE[iel];
         if (fe.iel < 1) continue; // zero-area element
 
@@ -1784,7 +1787,6 @@ bool ASMs2D::integrate (Integrand& integrand,
 #endif
       }
     }
-  }
 
   return ok;
 }
@@ -1834,14 +1836,17 @@ bool ASMs2D::integrate (Integrand& integrand,
   const int p2 = surf->order_v();
   const int nel1 = surf->numCoefs_u() - p1 + 1;
 
+  ThreadGroups oneGroup;
+  if (glInt.threadSafe()) oneGroup.oneStripe(nel);
+  const ThreadGroups& groups = glInt.threadSafe() ? oneGroup : threadGroups;
+
 
   // === Assembly loop over all elements in the patch ==========================
 
   bool ok = true;
-  for (size_t g = 0; g < threadGroups.size() && ok; g++)
-  {
+  for (size_t g = 0; g < groups.size() && ok; g++)
 #pragma omp parallel for schedule(static)
-    for (size_t t = 0; t < threadGroups[g].size(); t++)
+    for (size_t t = 0; t < groups[g].size(); t++)
     {
       FiniteElement fe(p1*p2);
       fe.p = p1 - 1;
@@ -1850,9 +1855,9 @@ bool ASMs2D::integrate (Integrand& integrand,
       Matrix3D d2Ndu2, Hess;
       double   dXidu[2];
       Vec4     X;
-      for (size_t e = 0; e < threadGroups[g][t].size() && ok; e++)
+      for (size_t e = 0; e < groups[g][t].size() && ok; e++)
       {
-        int iel = threadGroups[g][t][e];
+        int iel = groups[g][t][e];
         if (itgPts[iel].empty()) continue; // no points in this element
 
         fe.iel = MLGE[iel];
@@ -1987,7 +1992,6 @@ bool ASMs2D::integrate (Integrand& integrand,
 #endif
       }
     }
-  }
 
   return ok;
 }
