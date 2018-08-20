@@ -492,7 +492,7 @@ const ScalarFunc* utl::parseTimeFunction (const char* type, char* cline, Real C)
       sf = nullptr;
     }
     // The derivative can be specified as a second expression after the colon
-    if ((cline = strtok(nullptr,":")))
+    if (sf && (cline = strtok(nullptr,":")))
     {
       IFEM::cout <<" (derivative: "<< cline <<")";
       static_cast<EvalFunc*>(sf)->derivative(cline,"t");
