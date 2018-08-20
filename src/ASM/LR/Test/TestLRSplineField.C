@@ -27,10 +27,10 @@ TEST(TestLRSplineField, Value2D)
 
   std::vector<double> sc = {0.0, 1.0, 1.0, 2.0}; // x + y
   Field* fscalar = Field::create(sim.getPatch(1), sc);
-  static std::vector<std::array<double,3>> tests_scalar = {{0.5, 0.5, 1.0},
-                                                           {1.0, 0.0, 1.0},
-                                                           {0.0, 1.0, 1.0},
-                                                           {1.0, 1.0, 2.0}};
+  static std::vector<std::array<double,3>> tests_scalar = {{{0.5, 0.5, 1.0}},
+                                                           {{1.0, 0.0, 1.0}},
+                                                           {{0.0, 1.0, 1.0}},
+                                                           {{1.0, 1.0, 2.0}}};
   for (const auto& it : tests_scalar) {
     FiniteElement fe;
     fe.u = it[0];
@@ -48,10 +48,10 @@ TEST(TestLRSplineField, Grad2D)
 
   std::vector<double> sc = {0.0, 1.0, 1.0, 2.0}; // x + y
   Field* fscalar = Field::create(sim.getPatch(1), sc);
-  static std::vector<std::array<double,2>> tests_scalar = {{0.5, 0.5},
-                                                           {1.0, 0.0},
-                                                           {0.0, 1.0},
-                                                           {1.0, 1.0}};
+  static std::vector<std::array<double,2>> tests_scalar = {{{0.5, 0.5}},
+                                                           {{1.0, 0.0}},
+                                                           {{0.0, 1.0}},
+                                                           {{1.0, 1.0}}};
   for (const auto& it : tests_scalar) {
     FiniteElement fe;
     fe.u = it[0];
@@ -72,15 +72,15 @@ TEST(TestLRSplineField, Value3D)
 
   std::vector<double> sc = {0.0, 1.0, 1.0, 2.0, 1.0, 2.0, 2.0, 3.0}; // x + y + z
   Field* fscalar = Field::create(sim.getPatch(1), sc);
-  static std::vector<std::array<double,4>> tests_scalar = {{0.5, 0.5, 0.5, 1.5},
-                                                           {0.0, 0.0, 0.0, 0.0},
-                                                           {1.0, 0.0, 0.0, 1.0},
-                                                           {0.0, 1.0, 0.0, 1.0},
-                                                           {1.0, 1.0, 0.0, 2.0},
-                                                           {0.0, 0.0, 1.0, 1.0},
-                                                           {1.0, 0.0, 1.0, 2.0},
-                                                           {0.0, 1.0, 1.0, 2.0},
-                                                           {1.0, 1.0, 1.0, 3.0}};
+  static std::vector<std::array<double,4>> tests_scalar = {{{0.5, 0.5, 0.5, 1.5}},
+                                                           {{0.0, 0.0, 0.0, 0.0}},
+                                                           {{1.0, 0.0, 0.0, 1.0}},
+                                                           {{0.0, 1.0, 0.0, 1.0}},
+                                                           {{1.0, 1.0, 0.0, 2.0}},
+                                                           {{0.0, 0.0, 1.0, 1.0}},
+                                                           {{1.0, 0.0, 1.0, 2.0}},
+                                                           {{0.0, 1.0, 1.0, 2.0}},
+                                                           {{1.0, 1.0, 1.0, 3.0}}};
   for (const auto& it : tests_scalar) {
     FiniteElement fe;
     fe.u = it[0];
@@ -99,15 +99,15 @@ TEST(TestLRSplineField, Grad3D)
 
   std::vector<double> sc = {0.0, 1.0, 1.0, 2.0, 1.0, 2.0, 2.0, 3.0}; // x + y + z
   Field* fscalar = Field::create(sim.getPatch(1), sc);
-  static std::vector<std::array<double,3>> tests_scalar = {{0.5, 0.5, 0.5},
-                                                           {0.0, 0.0, 0.0},
-                                                           {1.0, 0.0, 0.0},
-                                                           {0.0, 1.0, 0.0},
-                                                           {1.0, 1.0, 0.0},
-                                                           {0.0, 0.0, 1.0},
-                                                           {1.0, 0.0, 1.0},
-                                                           {0.0, 1.0, 1.0},
-                                                           {1.0, 1.0, 1.0}};
+  static std::vector<std::array<double,3>> tests_scalar = {{{0.5, 0.5, 0.5}},
+                                                           {{0.0, 0.0, 0.0}},
+                                                           {{1.0, 0.0, 0.0}},
+                                                           {{0.0, 1.0, 0.0}},
+                                                           {{1.0, 1.0, 0.0}},
+                                                           {{0.0, 0.0, 1.0}},
+                                                           {{1.0, 0.0, 1.0}},
+                                                           {{0.0, 1.0, 1.0}},
+                                                           {{1.0, 1.0, 1.0}}};
   for (const auto& it : tests_scalar) {
     FiniteElement fe;
     fe.u = it[0];
