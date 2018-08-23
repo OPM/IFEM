@@ -1019,7 +1019,7 @@ bool SIMbase::solveSystem (Vector& solution, int printSol, double* rCond,
   if (msgLevel > 1)
     IFEM::cout <<"\nSolving the equation system ..."<< std::endl;
 
-  double rcn = 0.0;
+  double rcn = 1.0;
   double* rp = msgLevel > 1 ? &rcn : rCond;
 
   utl::profiler->start("Equation solving");
@@ -1028,7 +1028,7 @@ bool SIMbase::solveSystem (Vector& solution, int printSol, double* rCond,
 
   if (msgLevel > 1)
   {
-    if (rcn > 0.0)
+    if (rcn < 1.0)
       IFEM::cout <<"\tCondition number: "<< 1.0/rcn << std::endl;
     if (rCond) *rCond = rcn;
   }

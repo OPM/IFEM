@@ -31,7 +31,7 @@ class AdaptiveSIM : public SIMadmin
 public:
   //! \brief The constructor initializes default adaptation parameters.
   //! \param sim The FE model
-  //! \param sa If \e true, this is a stand-alone driver
+  //! \param[in] sa If \e true, this is a stand-alone driver
   AdaptiveSIM(SIMoutput& sim, bool sa = true);
   //! \brief The destructor frees the norm prefices.
   virtual ~AdaptiveSIM();
@@ -77,10 +77,7 @@ public:
   virtual bool parse(const TiXmlElement* elem);
 
 protected:
-  Vectors solution; //!< All solutions (galerkin projections)
-  double rCond;     //!< Actual reciprocal condition number
-
-  //! \brief Assemble and solve the equation system.
+  //! \brief Assembles and solves the linear FE equation system.
   virtual bool assembleAndSolveSystem();
 
 private:
@@ -117,6 +114,10 @@ private:
 
   std::vector<Vector>      projs;  //!< Projected secondary solutions
   std::vector<const char*> prefix; //!< Norm prefices for VTF-output
+
+protected:
+  Vectors solution; //!< All solutions (galerkin projections)
+  double  rCond;    //!< Actual reciprocal condition number of the last mesh
 };
 
 #endif

@@ -27,24 +27,21 @@ template<class T1>
 class AdaptiveISolver : public AdaptiveSIM
 {
 public:
-  //! \brief The constructor initializes default adaptation parameters.
-  //! \param sim The FE model
-  //! \param sa If \e true, this is a stand-alone driver
-  AdaptiveISolver(T1& sim, bool sa = true) : AdaptiveSIM(sim, sa), model(sim) {}
+  //! \brief The constructor forwards to the parent class constructor.
+  AdaptiveISolver(T1& sim, bool sa) : AdaptiveSIM(sim,sa), model(sim) {}
 
 protected:
-  //! \brief Assemble and solve the equation system.
+  //! \brief Assembles and solves the linearized FE equation system.
   virtual bool assembleAndSolveSystem()
   {
     TimeStep dummy;
     model.init(dummy);
-    bool result = model.solveStep(dummy);
-    if (result)
+    if (model.solveStep(dummy))
       solution = model.getSolutions();
+    else
+      return false;
 
-    rCond = 1.0;
-
-    return result;
+    return true;
   }
 
   T1& model; //!< Reference to the actual sim
@@ -92,20 +89,16 @@ public:
 
 protected:
   //! \brief Parses a data section from an input stream.
-  virtual bool parse(char* keyw, std::istream& is)
-  {
-    return aSim.parse(keyw,is);
-  }
+  virtual bool parse(char* kyw, std::istream& is) { return aSim.parse(kyw,is); }
   //! \brief Parses a data section from an XML element.
-  virtual bool parse(const TiXmlElement* elem)
-  {
-    return aSim.parse(elem);
-  }
+  virtual bool parse(const TiXmlElement* elem) { return aSim.parse(elem); }
 
   AdapSim aSim; //!< Adaptive simulation driver
 };
 
+
+//! Convenience alias template
 template<class T1>
-using SIMSolverAdap = SIMSolverAdapImpl<T1, AdaptiveSIM>; //!< Convenience alias template
+using SIMSolverAdap = SIMSolverAdapImpl<T1,AdaptiveSIM>;
 
 #endif

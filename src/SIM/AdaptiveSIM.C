@@ -34,7 +34,7 @@ AdaptiveSIM::AdaptiveSIM (SIMoutput& sim, bool sa) : SIMadmin(sim), model(sim)
   linIndepTest = false;
   beta         = 10.0;
   errTol       = 1.0;
-  rCond        = 0.0;
+  rCond        = 1.0;
   condLimit    = 1.0e12;
   maxStep      = 10;
   maxDOFs      = 1000000;
@@ -227,6 +227,7 @@ bool AdaptiveSIM::assembleAndSolveSystem()
   // Assemble the linear FE equation system
   if (!model.setMode(SIM::STATIC,true))
     return false;
+
   model.setQuadratureRule(opt.nGauss[0],true);
   if (!model.assembleSystem())
     return false;
@@ -264,9 +265,11 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep, bool withRF,
     // Output the initial grid to eps-file
     model.refine(LR::RefineData(),"mesh_001.eps");
 
-  // Assemble and solve the FE equation system
-  model.initSystem(opt.solver,1,model.getNoRHS(),0,withRF);
+  // Initialize the linear equation system for the current grid
+  if (!model.initSystem(opt.solver,1,model.getNoRHS(),0,withRF))
+    return false;
 
+  // Assemble and solve the FE equation system
   if (!this->assembleAndSolveSystem())
     return false;
 
@@ -276,7 +279,7 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep, bool withRF,
   // Project the secondary solution onto the splines basis
   size_t idx = 0;
   model.setMode(SIM::RECOVERY);
-  for (const auto& prj : opt.project)
+  for (const SIMoptions::ProjectionMap::value_type& prj : opt.project)
     if (prj.first <= SIMoptions::NONE)
       projs[idx++].clear(); // No projection for this norm group
     else if (!model.project(projs[idx++],solution.front(),prj.first))
