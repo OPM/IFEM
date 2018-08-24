@@ -426,15 +426,15 @@ bool SIMoutput::writeGlvV (const Vector& vec, const char* fieldName,
   IntVec vID;
 
   int geomID = myGeomID;
-  for (size_t i = 0; i < myModel.size(); i++)
+  for (const ASMbase* pch : myModel)
   {
-    if (myModel[i]->empty()) continue; // skip empty patches
+    if (pch->empty()) continue; // skip empty patches
 
     if (msgLevel > 1)
-      IFEM::cout <<"Writing vector field for patch "<< i+1 << std::endl;
+      IFEM::cout <<"Writing vector field for patch "<< pch->idx+1 << std::endl;
 
-    myModel[i]->extractNodeVec(vec,lovec,ncmp);
-    if (!myModel[i]->evalSolution(field,lovec,opt.nViz))
+    pch->extractNodeVec(vec,lovec,ncmp);
+    if (!pch->evalSolution(field,lovec,opt.nViz))
       return false;
 
     if (!myVtf->writeVres(field,++nBlock,++geomID,this->getNoSpaceDim()))
@@ -446,6 +446,11 @@ bool SIMoutput::writeGlvV (const Vector& vec, const char* fieldName,
   return myVtf->writeVblk(vID,fieldName,idBlock,iStep);
 }
 
+
+/*!
+  This method assumes the scalar field is attached to the first basis
+  if we are using a mixed basis.
+*/
 
 bool SIMoutput::writeGlvS (const Vector& scl, const char* fieldName,
                            int iStep, int& nBlock, int idBlock) const
@@ -459,16 +464,18 @@ bool SIMoutput::writeGlvS (const Vector& scl, const char* fieldName,
   Vector lovec;
   IntVec sID;
 
+  int basis  = 1;
   int geomID = myGeomID;
-  for (size_t i = 0; i < myModel.size(); i++)
+  for (const ASMbase* pch : myModel)
   {
-    if (myModel[i]->empty()) continue; // skip empty patches
+    if (pch->empty()) continue; // skip empty patches
 
     if (msgLevel > 1)
-      IFEM::cout <<"Writing scalar field for patch "<< i+1 << std::endl;
+      IFEM::cout <<"Writing scalar field for patch "<< pch->idx+1 << std::endl;
 
-    myModel[i]->extractNodeVec(scl,lovec,1);
-    if (!myModel[i]->evalSolution(field,lovec,opt.nViz))
+    int ncmp = scl.size() / this->getNoNodes(basis);
+    this->extractPatchSolution(scl,lovec,pch,ncmp,basis);
+    if (!pch->evalSolution(field,lovec,opt.nViz,ncmp))
       return false;
 
     if (!myVtf->writeNres(field,++nBlock,++geomID))
