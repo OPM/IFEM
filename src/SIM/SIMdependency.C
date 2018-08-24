@@ -23,10 +23,21 @@ void SIMdependency::registerDependency (SIMdependency* sim,
                                         const PatchVec& patches,
                                         char diffBasis, int component)
 {
-  this->SIMdependency::registerDependency(sim,name,nvc);
+  this->registerDependency(sim,name,nvc);
   depFields.back().patches = patches;
   depFields.back().differentBasis = diffBasis;
   depFields.back().comp_use = component;
+}
+
+
+void SIMdependency::registerDependency (SIMdependency* sim,
+                                        const std::string& name, short int nvc,
+                                        const PatchVec& patches,
+                                        const int* MADOF)
+{
+  this->registerDependency(sim,name,nvc);
+  depFields.back().patches = patches;
+  depFields.back().MADOF = MADOF;
 }
 
 
@@ -118,46 +129,50 @@ bool SIMdependency::extractPatchDependencies (IntegrandBase* problem,
                                               const PatchVec& model,
                                               size_t pindx) const
 {
-  ASMbase* patch;
-  DepVector::const_iterator it;
-  for (it = depFields.begin(); it != depFields.end(); ++it)
+  for (const Dependency& dp : depFields)
   {
-    Vector* lvec = problem->getNamedVector(it->name);
+    Vector* lvec = problem->getNamedVector(dp.name);
     if (!lvec) continue; // Ignore fields without corresponding integrand vector
 
-    const Vector* gvec = it->sim->getField(it->name);
+    const Vector* gvec = dp.sim->getField(dp.name);
     if (!gvec)
     {
       std::cerr <<" *** SIMdependency::extractPatchDependencies: \""
-                << it->name <<"\" is not a registered field in the simulator \""
-                << it->sim->getName() <<"\""<< std::endl;
+                << dp.name <<"\" is not a registered field in the simulator \""
+                << dp.sim->getName() <<"\""<< std::endl;
       return false;
     }
-    else if (gvec->empty()) {
+    else if (gvec->empty())
+    {
       lvec->clear();
       continue; // No error, silently ignore empty fields (treated as zero)
     }
 
-    patch = pindx < it->patches.size() ? it->patches[pindx] : model[pindx];
     // See ASMbase::extractNodeVec for interpretation of negative value on basis
-    int basis = it->components < 0 ? it->components : it->differentBasis;
-    if (it->differentBasis && it->components != patch->getNoFields(basis))
-      patch->extractNodeVec(*gvec,*lvec);
+    int basis = dp.components < 0 ? dp.components : dp.differentBasis;
+    ASMbase* pch = pindx < dp.patches.size() ? dp.patches[pindx] : model[pindx];
+    if (dp.MADOF)
+      pch->extractNodalVec(*gvec,*lvec,dp.MADOF);
+    else if (dp.differentBasis && dp.components != pch->getNoFields(basis))
+      pch->extractNodeVec(*gvec,*lvec);
     else
-      patch->extractNodeVec(*gvec,*lvec,abs(it->components),basis);
-    if (it->differentBasis > 0) {
-      if (it->components == 1)
-        problem->setNamedField(it->name,Field::create(patch,*lvec,
-                                                      it->differentBasis,
-                                                      it->comp_use));
-      else
-        problem->setNamedFields(it->name,Fields::create(patch,*lvec,
-                                                        it->differentBasis));
-    }
+      pch->extractNodeVec(*gvec,*lvec,abs(dp.components),basis);
+
 #if SP_DEBUG > 2
-    std::cout <<"SIMdependency: Dependent field \""<< it->name
+    std::cout <<"SIMdependency: Dependent field \""<< dp.name
               <<"\" for patch "<< pindx+1 << *lvec;
 #endif
+    if (dp.differentBasis > 0)
+    {
+      // Create a field object to handle different interpolation basis
+      if (dp.components == 1)
+        problem->setNamedField(dp.name,Field::create(pch,*lvec,
+                                                     dp.differentBasis,
+                                                     dp.comp_use));
+      else
+        problem->setNamedFields(dp.name,Fields::create(pch,*lvec,
+                                                       dp.differentBasis));
+    }
   }
 
   return true;

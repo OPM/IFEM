@@ -1998,3 +1998,11 @@ const IntVec& SIMbase::getMADOF (unsigned char basis,
   static IntVec empty;
   return empty;
 }
+
+
+void SIMbase::registerDependency (const std::string& name, SIMdependency* sim,
+                                  short int nvc, unsigned char basis)
+{
+  this->registerDependency(sim,name,nvc,myModel,
+                           this->getMADOF(basis,nvc).data());
+}

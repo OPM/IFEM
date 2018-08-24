@@ -42,10 +42,11 @@ private:
     short int      components;     //!< Number of field components per node
     short int      comp_use;       //!< Component to use from field
     char           differentBasis; //!< Toggle usage of an independent basis
+    const int*     MADOF;          //!< The MADOF array to associate with field
     //! \brief Default constructor.
     Dependency(SIMdependency* s = nullptr, const std::string& f = "",
-               short int n = 1) : sim(s), name(f), components(n),
-                                  comp_use(1), differentBasis(0) {}
+               short int n = 1) : sim(s), name(f), components(n), comp_use(1),
+                                  differentBasis(0), MADOF(nullptr) {}
   };
 
   //! \brief SIM dependency container
@@ -76,6 +77,15 @@ public:
   virtual void registerDependency(SIMdependency* sim, const std::string& name,
                                   short int nvc, const PatchVec& patches,
                                   char diffBasis = 0, int component = 1);
+  //! \brief Registers a dependency on a field from another SIM object.
+  //! \param[in] sim The SIM object holding the field we depend on
+  //! \param[in] name Name of field we depend on
+  //! \param[in] nvc Number of components in field
+  //! \param[in] patches The geometry the field is defined over
+  //! \param[in] MADOF The MADOF array to associate with this field
+  virtual void registerDependency(SIMdependency* sim, const std::string& name,
+                                  short int nvc, const PatchVec& patches,
+                                  const int* MADOF);
   //! \brief Registers a dependency on a field from another SIM object.
   //! \param[in] sim The SIM object holding the field we depend on
   //! \param[in] name Name of field we depend on

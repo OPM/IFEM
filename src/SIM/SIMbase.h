@@ -561,6 +561,15 @@ protected:
                                     const Vectors& sol, size_t pindx) const;
 
 public:
+  using SIMdependency::registerDependency;
+  //! \brief Registers a dependency on a field from another SIM object.
+  //! \param[in] name Name of field we depend on
+  //! \param[in] sim The SIM object holding the field we depend on
+  //! \param[in] nvc Number of components in field
+  //! \param[in] basis The basis the dependent field should be defined on
+  void registerDependency(const std::string& name, SIMdependency* sim,
+                          short int nvc = 1, unsigned char basis = 1);
+
   //! \brief Extracts all local solution vector(s) for a specified patch.
   //! \param[in] sol Global primary solution vectors in DOF-order
   //! \param[in] pindx Local patch index to extract solution vectors for
