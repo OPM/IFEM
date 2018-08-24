@@ -1623,11 +1623,15 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
 
   ssol.clear();
 
-  size_t i, j, n;
-  size_t ngNodes = this->getNoNodes(1);
-
-  Matrix values;
+  size_t ngNodes = this->fieldProjections() ? 0 : this->getNoNodes(1);
   Vector count(myModel.size() > 1 ? ngNodes : 0);
+  Matrix values;
+
+  if (this->fieldProjections())
+    // No nodal averaging - full (potentially discontinuous) representation
+    for (ASMbase* pch : myModel)
+      if (!pch->empty())
+        ngNodes += pch->getNoProjectionNodes();
 
   if (pMethod == SIMoptions::DGL2 || pMethod == SIMoptions::CGL2)
     const_cast<SIMbase*>(this)->setQuadratureRule(opt.nGauss[1]);
@@ -1639,17 +1643,7 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
     myProblem->initIntegration(time,psol);
   }
 
-  // no nodal averaging - full (potentially discontinuous) representation
-  if (this->fieldProjections()) {
-    ngNodes = 0;
-    for (i = 0; i < myModel.size(); i++)
-    {
-      if (myModel[i]->empty()) continue; // skip empty patches
-      ngNodes += myModel[i]->getNoProjectionNodes();
-    }
-  }
-
-  size_t ofs = 0;
+  size_t i, ofs = 0;
   for (i = 0; i < myModel.size(); i++)
   {
     if (myModel[i]->empty()) continue; // skip empty patches
@@ -1709,7 +1703,7 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
 
     case SIMoptions::LEASTSQ:
       if (msgLevel > 1 && i == 0)
-	IFEM::cout <<"\tLeast squares projection"<< std::endl;
+        IFEM::cout <<"\tLeast squares projection"<< std::endl;
       ok = myModel[i]->evalSolution(values,*myProblem,nullptr,'W');
       break;
 
@@ -1741,13 +1735,13 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
 
       // Nodal averaging for nodes referred to by two or more patches
       // (these are typically the interface nodes)
-      for (n = 1; n <= nNodes; n++)
+      for (size_t n = 1; n <= nNodes; n++)
         if (count.empty())
           ssol.fillColumn(myModel[i]->getNodeID(n),values.getColumn(n));
         else
         {
           int inod = myModel[i]->getNodeID(n);
-          for (j = 1; j <= nComps; j++)
+          for (size_t j = 1; j <= nComps; j++)
             ssol(j,inod) += values(j,n);
           count(inod) ++;
         }
@@ -1755,11 +1749,10 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
   }
 
   // Divide through by count(n) to get the nodal average at the interface nodes
-  if (!this->fieldProjections())
-    for (n = 1; n <= count.size(); n++)
-      if (count(n) > 1.0)
-        for (j = 1; j <= ssol.rows(); j++)
-          ssol(j,n) /= count(n);
+  for (size_t n = 1; n <= count.size(); n++)
+    if (count(n) > 1.0)
+      for (size_t j = 1; j <= ssol.rows(); j++)
+        ssol(j,n) /= count(n);
 
   return true;
 }
@@ -1796,7 +1789,8 @@ bool SIMbase::project (Vector& values, const FunctionBase* f,
     }
 
     if (nFields <= (int)f->dim())
-      ok &= myModel[j]->injectNodeVec(loc_values,values,f->dim(),basis);
+      ok &= this->injectPatchSolution(values,loc_values,
+                                      myModel[j],f->dim(),basis);
     else if (f->dim() > 1)
     {
       std::cerr <<" *** SIMbase::project: Cannot interleave non-scalar function"
@@ -1892,8 +1886,7 @@ size_t SIMbase::extractPatchSolution (const Vector& sol, Vector& vec,
 {
   if (!pch || sol.empty()) return 0;
 
-  if (basis != 0 && nndof != 0 &&
-      nndof != this->getNoFields(basis) && this->getNoFields(2) > 0)
+  if (basis && nndof != pch->getNoFields(basis) && pch->getNoFields(2) > 0)
   {
     // Need an additional MADOF
     const IntVec& madof = this->getMADOF(basis,nndof);
@@ -1912,12 +1905,11 @@ bool SIMbase::injectPatchSolution (Vector& sol, const Vector& vec,
 {
   if (!pch) return false;
 
-  if (basis > 0 && nndof > 0 &&
-      nndof != this->getNoFields(basis) && this->getNoFields(2) > 0)
+  if (basis && nndof != pch->getNoFields(basis) && pch->getNoFields(2) > 0)
     // Need an additional MADOF
     return pch->injectNodalVec(vec,sol,this->getMADOF(basis,nndof),basis);
   else
-    return pch->injectNodeVec(vec,sol,nndof);
+    return pch->injectNodeVec(vec,sol,nndof,basis);
 }
 
 
@@ -1944,9 +1936,9 @@ bool SIMbase::extractPatchElmRes (const Matrix& glbRes, Matrix& elRes,
 
 bool SIMbase::setPatchMaterial (size_t patch)
 {
-  for (PropertyVec::const_iterator p = myProps.begin(); p != myProps.end(); ++p)
-    if (p->pcode == Property::MATERIAL && p->patch == patch)
-      return this->initMaterial(p->pindx);
+  for (const Property& p : myProps)
+    if (p.pcode == Property::MATERIAL && p.patch == patch)
+      return this->initMaterial(p.pindx);
 
   return false;
 }
@@ -1962,22 +1954,36 @@ bool SIMbase::addMADOF (unsigned char basis, unsigned char nndof, bool other)
   madof.resize(this->getNoNodes()+1,0);
   if (madof.size() < 2) return false;
 
+  int ierr = 0;
   char nType = basis <= 1 ? 'D' : 'P' + basis-2;
-  for (size_t i = 0; i < myModel.size(); i++)
-    for (size_t j = 0; j < myModel[i]->getNoNodes(); j++)
+  for (const ASMbase* pch : myModel)
+    for (size_t inod = 1; inod <= pch->getNoNodes(); inod++)
     {
-      int n = myModel[i]->getNodeID(j+1);
-      if (n > 0 && myModel[i]->getNodeType(j+1) == nType)
-        madof[n] = nndof;
-      else if (n > 0 && other)
-        madof[n] = myModel[i]->getNodalDOFs(j+1);
+      int node = pch->getNodeID(inod);
+      if (node > 0)
+      {
+        int nndofs = 0;
+        if (pch->getNodeType(inod) == nType)
+          nndofs = nndof;
+        else if (other)
+          nndofs = pch->getNodalDOFs(inod);
+        if (nndofs > 0 && madof[node] == 0)
+          madof[node] = nndofs;
+        else if (madof[node] != nndofs)
+          ierr++;
+      }
     }
 
   madof[0] = 1;
   for (size_t n = 1; n < madof.size(); n++)
     madof[n] += madof[n-1];
 
-  return true;
+  if (ierr == 0)
+    return true;
+
+  std::cerr <<" *** SIMbase::addMADOF: Detected "<< ierr <<" nodes with"
+            <<" conflicting number of DOFs in adjacent patches."<< std::endl;
+  return false;
 }
 
 
