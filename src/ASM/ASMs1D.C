@@ -1159,7 +1159,7 @@ bool ASMs1D::getSolution (Matrix& sField, const Vector& locSol,
 
 
 bool ASMs1D::evalSolution (Matrix& sField, const Vector& locSol,
-                           const int* npe, int, int) const
+                           const int* npe, int) const
 {
   // Compute parameter values of the result sampling points
   RealArray gpar;
