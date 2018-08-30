@@ -37,15 +37,16 @@ implement the weak form of the underlying finite element problem.
 
 The actual splines evaluation is performed through the GoTools library, which is
 not part of the current package. In addition, this code depends on the ARPACK,
-LAPACK and BLAS libraries. Optionally, the SAMG algebraic multi-grid solver and
-the SuperLU direct solver (public domain http://crd.lbl.gov/~xiaoye/SuperLU)
-may be included. The Ceetron VTFAPI library may also be included for direct
+LAPACK and BLAS libraries. SuperLU (http://crd.lbl.gov/~xiaoye/SuperLU)
+is used for direct solution of the linear equation systems.
+The Ceetron VTFAPI library may also be included for direct
 export of simulations results to GLview VTF-files.
+Several other optional packages may also be included, as indicated below.
 
 ### Getting all dependencies
 
 A number of things need to be set up properly to compile the IFEM library.
-First, we will add inhouse dependencies by a secondary repository.
+First, we will add in-house dependencies by a secondary repository.
 
 1. Add the IFEM repository at https://launchpad.net/~ifem/
    (follow the instructions on that site)
@@ -56,16 +57,16 @@ First, we will add inhouse dependencies by a secondary repository.
 
 3. Install required official libraries
 
-    `sudo apt-get install libboost-dev libarpack2-dev libsuperlu3-dev`
+    `sudo apt-get install libboost-dev libarpack2-dev libsuperlu-dev`
 
-4. Install required inhouse GoTools libraries by typing
+4. Install required in-house GoTools libraries by typing
 
     `sudo apt-get install libgotools-core-dev libgotools-trivariate-dev`
 
    There are a number of other GoTools libraries available also, but
    the two above are the only ones required to build IFEM simulators.
 
-5. **[optional]** Install PETSc from the official webpage
+5. **[optional]** Install PETSc from the official web page
    http://www.mcs.anl.gov/petsc/download/
 
 6. **[optional]** Install UMFPACK direct solver
