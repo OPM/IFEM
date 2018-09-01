@@ -114,6 +114,8 @@ ASMbase::ASMbase (const ASMbase& patch)
 
   nLag = 0; // Lagrange multipliers are not copied
   myLMs.first = myLMs.second = 0;
+
+  // why are these two added? Thought that by construction all vectors are empty
   neighbors.clear();
   myLMTypes.clear();
 }
@@ -1039,19 +1041,29 @@ bool ASMbase::extractNodalVec (const Vector& globRes, Vector& nodeVec,
   nodeVec.reserve(nf*MLGN.size());
   for (int inod : MLGN)
   {
+#ifdef INDEX_CHECK
+    if (inod < 1 || (inod > ngnod && ngnod > 0))
+    {
+      std::cerr <<" *** ASMbase::extractNodalVec: Global node "<< inod;
+      if (ngnod > 0)
+        std::cerr <<" is out of range [1,"<< ngnod <<"]."<< std::endl;
+      else
+        std::cerr <<" is out of range."<< std::endl;
+      return false;
+    }
+#endif
     int idof = madof[inod-1] - 1;
     int jdof = madof[inod] - 1;
+    if (idof == jdof)
+      continue; // DOF-less node
 #ifdef INDEX_CHECK
-    bool ok = false;
-    if (inod < 1 || (inod > ngnod && ngnod > 0))
-      std::cerr <<" *** ASMbase::extractNodalVec: Global node "<< inod
-                <<" is out of range [1,"<< std::abs(ngnod) <<"]."<< std::endl;
-    else if (jdof > (int)globRes.size())
-      std::cerr <<" *** ASMbase::extractNodalVec: Global DOF "<< jdof
-                <<" is out of range [1,"<< globRes.size() <<"]."<< std::endl;
-    else
-      ok = true;
-    if (!ok) continue;
+    else if (idof < 0 || idof > jdof || jdof > (int)globRes.size())
+    {
+      std::cerr <<" *** ASMbase::extractNodalVec: Global DOFs "
+                << idof+1 <<" "<< jdof
+                <<" out of range [1,"<< globRes.size() <<"]."<< std::endl;
+      return false;
+    }
 #endif
     nodeVec.insert(nodeVec.end(),globRes.ptr()+idof,globRes.ptr()+jdof);
   }
@@ -1074,22 +1086,31 @@ bool ASMbase::injectNodalVec (const Vector& nodeVec, Vector& globVec,
   for (int inod : MLGN)
     if (basis == 0 || this->getNodeType(++i) == bType)
     {
-      int idof = madof[inod-1] - 1;
-      int ndof = madof[inod] - 1 - idof;
 #ifdef INDEX_CHECK
-      bool ok = false;
       if (inod < 1 || inod > (int)madof.size())
+      {
         std::cerr <<" *** ASMbase::injectNodalVec: Node "<< inod
                   <<" is out of range [1,"<< madof.size() <<"]."<< std::endl;
-      else if (ldof+ndof > nodeVec.size())
+        return false;
+      }
+#endif
+      int idof = madof[inod-1] - 1;
+      int ndof = madof[inod] - 1 - idof;
+      if (ndof == 0)
+        continue; // DOF-less node
+#ifdef INDEX_CHECK
+      else if (ndof < 0 || ldof+ndof > nodeVec.size())
+      {
         std::cerr <<" *** ASMbase::injectNodalVec: Local DOF "<< ldof+ndof
                   <<" is out of range [1,"<< nodeVec.size() <<"]"<< std::endl;
+        return false;
+      }
       else if (idof+ndof > (int)globVec.size())
+      {
         std::cerr <<" *** ASMbase::injectNodalVec: Global DOF "<< idof+ndof
                   <<" is out of range [1,"<< globVec.size() <<"]"<< std::endl;
-      else
-        ok = true;
-      if (!ok) continue;
+        return false;
+      }
 #endif
       std::copy(nodeVec.begin()+ldof, nodeVec.begin()+ldof+ndof,
                 globVec.begin()+idof);
