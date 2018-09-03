@@ -63,6 +63,35 @@ TEST(TestMatrix, AddRows)
 }
 
 
+TEST(TestMatrix, Multiply)
+{
+  utl::vector<double> u(14), v(9), x, y;
+  utl::matrix<double> A(3,5);
+
+  std::iota(u.begin(),u.end(),1.0);
+  std::iota(v.begin(),v.end(),1.0);
+  std::iota(A.begin(),A.end(),1.0);
+
+  ASSERT_TRUE(A.multiply(u,x,1.0,0.0,false,3,4,1,2));
+  ASSERT_TRUE(A.multiply(v,y,1.0,0.0,true,4,2));
+
+  EXPECT_FLOAT_EQ(x(3),370.0);
+  EXPECT_FLOAT_EQ(x(7),410.0);
+  EXPECT_FLOAT_EQ(x(11),450.0);
+  EXPECT_FLOAT_EQ(y(1),38.0);
+  EXPECT_FLOAT_EQ(y(3),83.0);
+  EXPECT_FLOAT_EQ(y(5),128.0);
+  EXPECT_FLOAT_EQ(y(7),173.0);
+  EXPECT_FLOAT_EQ(y(9),218.0);
+
+  ASSERT_TRUE(A.multiply(u,x,1.0,-1.0,false,3,4,1,2));
+  ASSERT_TRUE(A.multiply(v,y,1.0,-1.0,true,4,2));
+
+  EXPECT_FLOAT_EQ(x.sum(),0.0);
+  EXPECT_FLOAT_EQ(y.sum(),0.0);
+}
+
+
 TEST(TestMatrix, Norm)
 {
   utl::matrix<double> a(4,5);
