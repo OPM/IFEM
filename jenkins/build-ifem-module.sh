@@ -47,25 +47,35 @@ function parseRevisions {
 
 # Print revisions and configurations
 function printHeader {
-  echo -e "Repository revisions:\n\tIFEM=$IFEM_REVISION"
+  echo "Repository revisions:"
+  printf "\t [main library] %25s = %s\n" IFEM $IFEM_REVISION
   for upstream in ${upstreams[*]}
   do
-    echo -e "\t$upstream=${upstreamRev[$upstream]}"
+    printf "\t     [upstream] %25s = %s\n" $upstream ${upstreamRev[$upstream]}
   done
   if [ "$1" != "IFEM" ]
   then
-    echo -e "\t$1=$sha1"
+    printf "\t  [main module] %25s = %s\n" $1 $sha1
   fi
   if grep -q "with downstreams" <<< $ghprbCommentBody
   then
     for downstream in ${downstreams[*]}
     do
-      echo -e "\t$downstream=${downstreamRev[$downstream]}"
+      printf "\t   [downstream] %25s = %s\n" $downstream ${downstreamRev[$downstream]}
     done
   fi
 
-  echo "Configurations to process: $BTYPES"
-  echo "Associated toolchain files: $CMAKE_TOOLCHAIN_FILES"
+  echo "Configurations to process:"
+  if test -n "$BTYPES"
+  then
+    for conf in ${BTYPES_ARRAY[*]}
+    do
+      if test -n "${TOOLCHAINS[$conf]}"
+      then
+        echo -e "\t$conf = ${TOOLCHAINS[$conf]}"
+      fi
+    done
+  fi
 }
 
 
