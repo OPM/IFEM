@@ -35,7 +35,7 @@ public:
   //! \brief The constructor initializes the dimension of each basis.
   explicit ASMs3Dmx(const CharVec& n_f);
   //! \brief Copy constructor.
-  ASMs3Dmx(const ASMs3Dmx& patch, const CharVec& n_f = CharVec(2,0));
+  ASMs3Dmx(const ASMs3Dmx& patch, const CharVec& n_f);
   //! \brief Empty destructor.
   virtual ~ASMs3Dmx() {}
 
@@ -98,7 +98,7 @@ public:
   //! \param[in] coordCheck False to disable coordinate checks (periodic connections)
   //! \param[in] thick Thickness of connection
   virtual bool connectPatch(int face, ASM3D& neighbor, int nface, int norient,
-                            int basis = 0, bool coordCheck = true, int thick = 1);
+                            int basis, bool coordCheck, int thick);
 
   //! \brief Makes two opposite boundary faces periodic.
   //! \param[in] dir Parameter direction defining the periodic faces
@@ -130,7 +130,9 @@ public:
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
   //! \param[in] iChk Object checking if an element interface has contributions
   virtual bool integrate(Integrand& integrand, GlobalIntegral& glbInt,
-                         const TimeDomain& time, const ASM::InterfaceChecker& iChk);
+                         const TimeDomain& time,
+                         const ASM::InterfaceChecker& iChk);
+
 
   // Post-processing methods
   // =======================
@@ -157,7 +159,7 @@ public:
   //! \param[in] gpar Parameter values of the result sampling points
   //! \param[in] regular Flag indicating how the sampling points are defined
   //! \param[in] deriv Derivative order to return
-  //! \param[in] nf If non-zero evaluates nf fields on first basis
+  //! \param[in] nf If nonzero, evaluate nf fields on first basis
   //!
   //! \details When \a regular is \e true, it is assumed that the parameter
   //! value array \a gpar forms a regular tensor-product point grid of dimension
@@ -217,7 +219,7 @@ public:
   //! \brief Generates element groups for multi-threading of interior integrals.
   //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] silence If \e true, suppress threading group outprint
-  //! \param[in] ignoreGlobalLM If \e true ignore global multipliers in sanity check
+  //! \param[in] ignoreGlobalLM Sanity check option
   virtual void generateThreadGroups(const Integrand& integrand, bool silence,
                                     bool ignoreGlobalLM);
   //! \brief Generates element groups for multi-threading of boundary integrals.
@@ -231,13 +233,14 @@ public:
   //! \param[out] n3 Number of nodes in third (w) direction
   //! \param[in] basis Which basis to return size parameters for
   virtual bool getSize(int& n1, int& n2, int& n3, int basis = 0) const;
+
 protected:
   //! \brief Returns the volume in the parameter space for an element.
   //! \param[in] iel Element index
   double getParametricVolume(int iel) const;
   //! \brief Returns boundary face area in the parameter space for an element.
   //! \param[in] iel Element index
-  //! \param[in] dir Local face index of the boundary face
+  //! \param[in] dir Local index of the boundary face
   double getParametricArea(int iel, int dir) const;
 
   //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
@@ -246,8 +249,8 @@ protected:
   //! \param[in] basis Which basis to grab nodes for (0 for all)
   //! \param[in] thick Thickness of connection
   //! \param[in] local If \e true return patch-local node numbers
-  virtual void getBoundaryNodes(int lIndex, IntVec& nodes, int basis = 0,
-                                int thick = 1, int = 0, bool local = false) const;
+  virtual void getBoundaryNodes(int lIndex, IntVec& nodes, int basis,
+                                int thick, int, bool local) const;
 
   //! \brief Assembles L2-projection matrices for the secondary solution.
   //! \param[out] A Left-hand-side matrix
@@ -258,6 +261,7 @@ protected:
                                   const IntegrandBase& integrand,
                                   bool continuous) const;
 
+private:
   std::vector<std::shared_ptr<Go::SplineVolume>> m_basis; //!< Vector of bases
   std::shared_ptr<Go::SplineVolume> projBasis; //!< Basis to project onto
 };

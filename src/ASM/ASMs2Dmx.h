@@ -35,7 +35,7 @@ public:
   //! \brief The constructor initializes the dimension of each basis.
   ASMs2Dmx(unsigned char n_s, const CharVec& n_f);
   //! \brief Copy constructor.
-  ASMs2Dmx(const ASMs2Dmx& patch, const CharVec& n_f = CharVec(2,0));
+  ASMs2Dmx(const ASMs2Dmx& patch, const CharVec& n_f);
   //! \brief Empty destructor.
   virtual ~ASMs2Dmx() {}
 
@@ -49,9 +49,6 @@ public:
 
   // Methods for model generation
   // ============================
-
-  //! \brief Writes the geometry/basis of the patch to given stream.
-  virtual bool write(std::ostream& os, int basis = 0) const;
 
   //! \brief Generates the finite element topology data for the patch.
   //! \details The data generated are the element-to-node connectivity array,
@@ -73,6 +70,9 @@ public:
   //! \param[in] inod 1-based node index local to current patch
   virtual Vec3 getCoord(size_t inod) const;
 
+  //! \brief Writes the geometry/basis of the patch to given stream.
+  virtual bool write(std::ostream& os, int basis = 0) const;
+
   //! \brief Returns the number of bases.
   virtual size_t getNoBasis() const { return m_basis.size(); }
   //! \brief Returns the total number of nodes in this patch.
@@ -85,13 +85,6 @@ public:
   //! \brief Returns the classification of a node.
   //! \param[in] inod 1-based node index local to current patch
   virtual char getNodeType(size_t inod) const;
-  //! \brief Returns the area in the parameter space for an element.
-  //! \param[in] iel Element index
-  virtual double getParametricArea(int iel) const;
-  //! \brief Returns boundary edge length in the parameter space for an element.
-  //! \param[in] iel Element index
-  //! \param[in] dir Local index of the boundary edge
-  double getParametricLength(int iel, int dir) const;
 
   //! \brief Initializes the patch level MADOF array for mixed problems.
   virtual void initMADOF(const int* sysMadof);
@@ -105,7 +98,7 @@ public:
   //! \param[in] coordCheck False to disable coordinate checks (periodic connections)
   //! \param[in] thick Thickness of connection
   virtual bool connectPatch(int edge, ASM2D& neighbor, int nedge, bool revers,
-                            int basis = 0, bool coordCheck = true, int thick = 1);
+                            int basis, bool coordCheck, int thick);
 
   //! \brief Makes two opposite boundary edges periodic.
   //! \param[in] dir Parameter direction defining the periodic edges
@@ -137,7 +130,8 @@ public:
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
   //! \param[in] iChk Object checking if an element interface has contributions
   virtual bool integrate(Integrand& integrand, GlobalIntegral& glbInt,
-                         const TimeDomain& time, const ASM::InterfaceChecker& iChk);
+                         const TimeDomain& time,
+                         const ASM::InterfaceChecker& iChk);
 
 
   // Post-processing methods
@@ -199,18 +193,18 @@ public:
   virtual void extractNodeVec(const Vector& globVec, Vector& nodeVec,
 			      unsigned char = 0, int basis = 0) const;
 
-  //! \brief Inject nodal results for this patch into a global vector.
+  //! \brief Injects nodal results for this patch into a global vector.
   //! \param[in] nodeVec Nodal result vector for this patch
   //! \param[out] globVec Global solution vector in DOF-order
   //! \param[in] basis Which basis (or 0 for both) to extract nodal values for
   virtual bool injectNodeVec(const Vector& nodeVec, Vector& globVec,
-			     unsigned char = 0, int basis = 0) const;
+                             unsigned char = 0, int basis = 0) const;
 
   using ASMs2D::generateThreadGroups;
   //! \brief Generates element groups for multi-threading of interior integrals.
   //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] silence If \e true, suppress threading group outprint
-  //! \param[in] ignoreGlobalLM If \e true, ignore global multipliers in sanity check
+  //! \param[in] ignoreGlobalLM Sanity check option
   virtual void generateThreadGroups(const Integrand& integrand, bool silence,
                                     bool ignoreGlobalLM);
 
@@ -221,6 +215,15 @@ public:
   //! \param[in] basis Which basis to return size parameters for
   virtual bool getSize(int& n1, int& n2, int basis = 0) const;
 
+protected:
+  //! \brief Returns the area in the parameter space for an element.
+  //! \param[in] iel Element index
+  double getParametricArea(int iel) const;
+  //! \brief Returns boundary edge length in the parameter space for an element.
+  //! \param[in] iel Element index
+  //! \param[in] dir Local index of the boundary edge
+  double getParametricLength(int iel, int dir) const;
+
   //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
   //! \param[in] lIndex Local index of the boundary edge
   //! \param nodes Array of node numbers
@@ -228,9 +231,9 @@ public:
   //! \param[in] thick Thickness of connection
   //! \param[in] local If \e true return patch-local node numbers
   virtual void getBoundaryNodes(int lIndex, IntVec& nodes, int basis,
-                                int thick = 1, int = 0, bool local = false) const;
+                                int thick, int, bool local) const;
 
-protected:
+private:
   std::vector<std::shared_ptr<Go::SplineSurface>> m_basis; //!< Vector of bases
 };
 
