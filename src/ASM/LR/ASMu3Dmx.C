@@ -290,6 +290,47 @@ bool ASMu3Dmx::generateFEMTopology ()
 }
 
 
+void ASMu3Dmx::constrainFace (int dir, bool open, int dof, int code, char basis)
+{
+  if (basis > 0)
+    this->ASMu3D::constrainFace(dir,open,dof,code,basis);
+  else for (basis = 1; basis <= (char)nfx.size(); basis++)
+  {
+    int basisDofs = this->maskDOFs(dof,basis);
+    if (basisDofs > 0)
+      this->ASMu3D::constrainFace(dir,open,basisDofs,code,basis);
+  }
+}
+
+
+void ASMu3Dmx::constrainEdge (int lEdge, bool open, int dof,
+                              int code, char basis)
+{
+  if (basis > 0)
+    this->ASMu3D::constrainEdge(lEdge,open,dof,code,basis);
+  else for (basis = 1; basis <= (char)nfx.size(); basis++)
+  {
+    int basisDofs = this->maskDOFs(dof,basis);
+    if (basisDofs > 0)
+      this->ASMu3D::constrainEdge(lEdge,open,basisDofs,code,basis);
+  }
+}
+
+
+void ASMu3Dmx::constrainCorner (int I, int J, int K, int dof,
+                                int code, char basis)
+{
+  if (basis > 0)
+    this->ASMu3D::constrainCorner(I,J,K,dof,code,basis);
+  else for (basis = 1; basis <= (char)nfx.size(); basis++)
+  {
+    int basisDofs = this->maskDOFs(dof,basis);
+    if (basisDofs > 0)
+      this->ASMu3D::constrainCorner(I,J,K,basisDofs,code,basis);
+  }
+}
+
+
 bool ASMu3Dmx::integrate (Integrand& integrand,
                           GlobalIntegral& glInt,
                           const TimeDomain& time)
@@ -311,54 +352,32 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
     int p1 = lrspline->order(0);
     int p2 = lrspline->order(1);
     int p3 = lrspline->order(2);
+    double u[2*p1], v[2*p2], w[2*p3];
     Go::BsplineBasis basis1 = getBezierBasis(p1);
     Go::BsplineBasis basis2 = getBezierBasis(p2);
     Go::BsplineBasis basis3 = getBezierBasis(p3);
-
-    BN[b-1].resize(p1*p2*p3, nGauss*nGauss*nGauss);
+    BN   [b-1].resize(p1*p2*p3, nGauss*nGauss*nGauss);
     BdNdu[b-1].resize(p1*p2*p3, nGauss*nGauss*nGauss);
     BdNdv[b-1].resize(p1*p2*p3, nGauss*nGauss*nGauss);
     BdNdw[b-1].resize(p1*p2*p3, nGauss*nGauss*nGauss);
-    int ig=1; // gauss point iterator
-    for(int zeta=0; zeta<nGauss; zeta++) {
-      for(int eta=0; eta<nGauss; eta++) {
-        for(int xi=0; xi<nGauss; xi++, ig++) {
-          double u[2*p1];
-          double v[2*p2];
-          double w[2*p3];
+    int ig = 1; // gauss point iterator
+    for (int zeta = 0; zeta < nGauss; zeta++)
+      for (int eta = 0; eta < nGauss; eta++)
+        for (int xi = 0; xi < nGauss; xi++, ig++) {
           basis1.computeBasisValues(xg[xi],   u, 1);
           basis2.computeBasisValues(xg[eta],  v, 1);
           basis3.computeBasisValues(xg[zeta], w, 1);
-          int ib=1; // basis function iterator
-          double sum = 0;
-          for(int k=0; k<p3; k++) {
-            for(int j=0; j<p2; j++) {
-              for(int i=0; i<p1; i++, ib++) {
+          int ib = 1; // basis function iterator
+          for (int k = 0; k < p3; k++)
+            for (int j = 0; j < p2; j++)
+              for (int i = 0; i < p1; i++, ib++) {
                 BN[b-1](ib,ig)    = u[2*i  ]*v[2*j  ]*w[2*k  ];
                 BdNdu[b-1](ib,ig) = u[2*i+1]*v[2*j  ]*w[2*k  ];
                 BdNdv[b-1](ib,ig) = u[2*i  ]*v[2*j+1]*w[2*k  ];
                 BdNdw[b-1](ib,ig) = u[2*i  ]*v[2*j  ]*w[2*k+1];
-                sum += BN[b-1](ib,ig);
               }
-            }
-          }
         }
-      }
-    }
   }
-
-  // Get the reduced integration quadrature points, if needed
-  const double* xr = nullptr;
-  const double* wr = nullptr;
-  int nRed = integrand.getReducedIntegration(nGauss);
-  if (nRed > 0)
-  {
-    xr = GaussQuadrature::getCoord(nRed);
-    wr = GaussQuadrature::getWeight(nRed);
-    if (!xr || !wr) return false;
-  }
-  else if (nRed < 0)
-    nRed = nGauss; // The integrand needs to know nGauss
 
   ThreadGroups oneGroup;
   if (glInt.threadSafe()) oneGroup.oneGroup(nel);
@@ -413,14 +432,9 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
       }
 
       // Compute parameter values of the Gauss points over the whole element
-      std::array<RealArray,3> gpar, redpar;
+      std::array<RealArray,3> gpar;
       for (int d = 0; d < 3; d++)
-      {
         this->getGaussPointParameters(gpar[d],d,nGauss,iEl+1,xg);
-        if (xr)
-          this->getGaussPointParameters(redpar[d],d,nRed,iEl+1,xr);
-      }
-
 
       if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
         fe.h = this->getElementCorners(iEl+1, fe.XC);
@@ -481,11 +495,6 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
         break;
       }
 
-      if (xr)
-      {
-        std::cerr << "Haven't really figured out what this part does yet\n";
-        exit(42142);
-      }
 
       // --- Integration loop over all Gauss points in each direction --------
 
@@ -554,8 +563,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
             fe.detJxW *= 0.125*vol*wg[i]*wg[j]*wg[k];
             if (!integrand.evalIntMx(*A,fe,time,X))
               ok = false;
-
-      } // end gauss integrand
+          }
 
       // Finalize the element quantities
       if (ok && !integrand.finalizeElement(*A,time,0))
@@ -655,7 +663,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
     double dXidu[3];
 
     // Get element face area in the parameter space
-    double dA = this->getParametricArea(iEl+1,abs(faceDir));
+    double dA = 0.25*this->getParametricArea(iEl+1,abs(faceDir));
     if (dA < 0.0) // topology error (probably logic error)
     {
       ok = false;
@@ -744,7 +752,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
         X.t = time.t;
 
         // Evaluate the integrand and accumulate element contributions
-        fe.detJxW *= 0.25*dA*wg[i]*wg[j];
+        fe.detJxW *= dA*wg[i]*wg[j];
         if (!integrand.evalBouMx(*A,fe,time,X,normal))
           ok = false;
     }
@@ -756,6 +764,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
     // Assembly of global system integral
     if (ok && !glInt.assemble(A->ref(),fe.iel))
       ok = false;
+
     A->destruct();
 
     firstp += nGP*nGP*nGP;
