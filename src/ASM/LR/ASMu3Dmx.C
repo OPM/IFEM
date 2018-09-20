@@ -540,29 +540,14 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
                 this->evaluateBasis(fe, dNxdu[b], bezierExtractmx[b][els[b]-1], B, b+1);
             }
 
-            // Compute Jacobian inverse of coordinate mapping and derivatives
-            fe.detJxW = utl::Jacobian(Jac,fe.grad(geoBasis),Xnod,dNxdu[geoBasis-1]);
-            if (fe.detJxW == 0.0) continue; // skip singular points
-            for (size_t b = 0; b < m_basis.size(); ++b)
-              if (b != (size_t)geoBasis-1)
-                fe.grad(b+1).multiply(dNxdu[b],Jac);
+            // Compute Jacobian inverse of the coordinate mapping and
+            // basis function derivatives w.r.t. Cartesian coordinates
+            if (!fe.Jacobian(Jac,Xnod,dNxdu,geoBasis))
+              continue; // skip singular points
 
             // Compute Hessian of coordinate mapping and 2nd order derivatives
-            if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES) {
-              if (!utl::Hessian(Hess,fe.hess(geoBasis),Jac,Xnod,
-                                d2Nxdu2[geoBasis-1],dNxdu[geoBasis-1])) {
-                ok = false;
-                continue;
-              }
-
-              for (size_t b = 0; b < m_basis.size() && ok; ++b)
-                if ((int)b != geoBasis)
-                  if (!utl::Hessian(Hess,fe.hess(b+1),Jac,Xnod,
-                                    d2Nxdu2[b],fe.grad(b+1),false)) {
-                    ok = false;
-                    break;
-                  }
-            }
+            if (use2ndDer && !fe.Hessian(Hess,Jac,Xnod,d2Nxdu2,geoBasis))
+              ok = false;
 
             // Compute G-matrix
             if (integrand.getIntegrandType() & Integrand::G_MATRIX)
@@ -881,24 +866,14 @@ bool ASMu3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     // Set up control point (nodal) coordinates for current element
     if (!this->getElementCoordinates(Xnod,els[geoBasis-1])) return false;
 
-    // Compute the Jacobian inverse
-    fe.detJxW = utl::Jacobian(Jac,fe.grad(geoBasis),Xnod,dNxdu[geoBasis-1]);
-    if (fe.detJxW == 0.0) continue; // skip singular points
-    for (size_t b = 0; b < m_basis.size(); ++b)
-      if (b != (size_t)geoBasis-1)
-        fe.grad(b+1).multiply(dNxdu[b],Jac);
+    // Compute Jacobian inverse of the coordinate mapping and
+    // basis function derivatives w.r.t. Cartesian coordinates
+    if (!fe.Jacobian(Jac,Xnod,dNxdu,geoBasis))
+      continue; // skip singular points
 
     // Compute Hessian of coordinate mapping and 2nd order derivatives
-    if (use2ndDer) {
-      if (!utl::Hessian(Hess,fe.hess(geoBasis),Jac,Xnod,
-                        d2Nxdu2[geoBasis-1],fe.grad(geoBasis),true))
-        return false;
-
-      for (size_t b = 0; b < m_basis.size(); ++b)
-        if (b != (size_t)geoBasis)
-          utl::Hessian(Hess,fe.hess(b+1),Jac,Xnod,
-                        d2Nxdu2[b],fe.grad(b+1),false);
-    }
+    if (use2ndDer && !fe.Hessian(Hess,Jac,Xnod,d2Nxdu2,geoBasis))
+      return false;
 
     // Cartesian coordinates of current integration point
     fe.u = gpar[0][i];

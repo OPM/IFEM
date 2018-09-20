@@ -12,6 +12,7 @@
 //==============================================================================
 
 #include "FiniteElement.h"
+#include "CoordinateMapping.h"
 #include "Vec3Oper.h"
 
 
@@ -64,4 +65,59 @@ std::ostream& MxFiniteElement::write (std::ostream& os) const
     if (!d3MdX3[b].empty()) os <<"d3NdX3: "<< d3MdX3[b];
   }
   return os;
+}
+
+
+/*!
+  This method also calculates the first-derivatives of the basis functions
+  with respect to the Cartesian coordinates, using the same geometry mapping
+  for all bases.
+*/
+
+bool MxFiniteElement::Jacobian (Matrix& Jac, const Matrix& Xnod,
+                                const std::vector<Matrix>& dNxdu,
+                                unsigned short int gBasis)
+{
+  detJxW = utl::Jacobian(Jac,
+                         gBasis > 1 ? dMdX[gBasis-2] : dNdX,
+                         Xnod, dNxdu[gBasis-1]);
+  if (detJxW == 0.0) return false; // singular point
+
+  if (gBasis > 1)
+    dNdX.multiply(dNxdu.front(),Jac);
+
+  for (size_t basis = 2; basis <= dNxdu.size(); basis++)
+    if (basis != gBasis)
+      dMdX[basis-2].multiply(dNxdu[basis-1],Jac);
+
+  return true;
+}
+
+
+/*!
+  This method also calculates the second-derivatives of the basis functions
+  with respect to the Cartesian coordinates, using the same geometry mapping
+  for all bases.
+*/
+
+bool MxFiniteElement::Hessian (Matrix3D& Hess, const Matrix& Jac,
+                               const Matrix& Xnod,
+                               const std::vector<Matrix3D>& d2Nxdu2,
+                               unsigned short int gBasis)
+{
+  bool ok = utl::Hessian(Hess,
+                         gBasis > 1 ? d2MdX2[gBasis-2] : d2NdX2,
+                         Jac, Xnod, d2Nxdu2[gBasis-1],
+                         gBasis > 1 ? dMdX[gBasis-2] : dNdX);
+
+  if (ok && gBasis > 1)
+    ok = utl::Hessian(Hess, d2NdX2, Jac, Xnod,
+                      d2Nxdu2.front(), dNdX, false);
+
+  for (size_t basis = 2; basis <= d2Nxdu2.size() && ok; basis++)
+    if (basis != gBasis)
+      ok = utl::Hessian(Hess, d2MdX2[basis-2], Jac, Xnod,
+                        d2Nxdu2[basis-1], dMdX[basis-2], false);
+
+  return ok;
 }

@@ -348,12 +348,8 @@ bool ASMs3DmxLag::integrate (Integrand& integrand,
                   ok = false;
 
               // Compute Jacobian inverse of coordinate mapping and derivatives
-              fe.detJxW = utl::Jacobian(Jac,fe.grad(geoBasis),Xnod,
-                                        dNxdu[geoBasis-1]);
-              if (fe.detJxW == 0.0) continue; // skip singular points
-              for (size_t b = 0; b < nxx.size(); ++b)
-                if (b != (size_t)geoBasis-1)
-                  fe.grad(b+1).multiply(dNxdu[b],Jac);
+              if (!fe.Jacobian(Jac,Xnod,dNxdu,geoBasis))
+                continue; // skip singular points
 
               // Cartesian coordinates of current integration point
               X.assign(Xnod * fe.basis(geoBasis));
@@ -494,6 +490,7 @@ bool ASMs3DmxLag::integrate (Integrand& integrand, int lIndex,
 	    fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(geoBasis),Xnod,
                                       dNxdu[geoBasis-1],t1,t2);
 	    if (fe.detJxW == 0.0) continue; // skip singular points
+
             for (size_t b = 0; b < nxx.size(); ++b)
               if (b != (size_t)geoBasis-1)
                 fe.grad(b+1).multiply(dNxdu[b],Jac);
@@ -597,14 +594,10 @@ bool ASMs3DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
                                         elem_sizes[b][2],fe.zeta))
               return false;
 
-	  // Compute the Jacobian inverse
-          fe.detJxW = utl::Jacobian(Jac,fe.grad(geoBasis),Xnod,
-                                    dNxdu[geoBasis-1]);
-          if (fe.detJxW == 0.0) continue; // skip singular points
-
-          for (size_t b = 1; b <= nxx.size(); b++)
-            if (b != (size_t)geoBasis)
-              fe.grad(b).multiply(dNxdu[b-1],Jac);
+          // Compute Jacobian inverse of the coordinate mapping and
+          // basis function derivatives w.r.t. Cartesian coordinates
+          if (!fe.Jacobian(Jac,Xnod,dNxdu,geoBasis))
+            continue; // skip singular points
 
 	  // Now evaluate the solution field
 	  if (!integrand.evalSol(solPt,fe,Xnod*fe.basis(geoBasis),

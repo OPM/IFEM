@@ -311,12 +311,8 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
                 ok = false;
 
             // Compute Jacobian inverse of coordinate mapping and derivatives
-            fe.detJxW = utl::Jacobian(Jac,fe.grad(geoBasis),Xnod,
-                                      dNxdu[geoBasis-1]);
-            if (fe.detJxW == 0.0) continue; // skip singular points
-            for (size_t b = 0; b < nxx.size(); ++b)
-              if (b != (size_t)geoBasis-1)
-                fe.grad(b+1).multiply(dNxdu[b],Jac);
+            if (!fe.Jacobian(Jac,Xnod,dNxdu,geoBasis))
+              continue; // skip singular points
 
             // Cartesian coordinates of current integration point
             X.assign(Xnod * fe.basis(geoBasis));
@@ -423,10 +419,11 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
                                       elem_sizes[b][1],xi[1]))
             ok = false;
 
-	// Compute basis function derivatives and the edge normal
-	fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(geoBasis),Xnod,
+        // Compute basis function derivatives and the edge normal
+        fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(geoBasis),Xnod,
                                   dNxdu[geoBasis-1],t1,t2);
-	if (fe.detJxW == 0.0) continue; // skip singular points
+        if (fe.detJxW == 0.0) continue; // skip singular points
+
         for (size_t b = 0; b < nxx.size(); ++b)
           if (b != (size_t)geoBasis-1)
             fe.grad(b+1).multiply(dNxdu[b],Jac);
@@ -526,13 +523,10 @@ bool ASMs2DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
                                       elem_sizes[b][1],eta))
 	  return false;
 
-	// Compute the Jacobian inverse
-        fe.detJxW = utl::Jacobian(Jac,fe.grad(geoBasis),Xnod,dNxdu[geoBasis-1]);
-        if (fe.detJxW == 0.0) continue; // skip singular points
-
-        for (size_t b = 1; b <= nxx.size(); b++)
-          if (b != (size_t)geoBasis)
-            fe.grad(b).multiply(dNxdu[b-1],Jac);
+        // Compute Jacobian inverse of the coordinate mapping and
+        // basis function derivatives w.r.t. Cartesian coordinates
+        if (!fe.Jacobian(Jac,Xnod,dNxdu,geoBasis))
+          continue; // skip singular points
 
 	// Now evaluate the solution field
 	if (!integrand.evalSol(solPt,fe,Xnod*fe.basis(geoBasis),

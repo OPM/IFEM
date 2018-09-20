@@ -215,8 +215,11 @@ bool ASMs2Dmx::generateFEMTopology ()
     else if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
       projB = proj = m_basis.front()->clone();
       altProjBasis = ASMmxBase::raiseBasis(surf);
-    } else
-      projB = proj = m_basis[2-ASMmxBase::geoBasis]->clone();
+    }
+    else if (geoBasis < 3)
+      projB = proj = m_basis[2-geoBasis]->clone();
+    else
+      return false; // Logic error
   }
   delete surf;
   geomB = surf = m_basis[geoBasis-1]->clone();
@@ -657,25 +660,12 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
 
             // Compute Jacobian inverse of the coordinate mapping and
             // basis function derivatives w.r.t. Cartesian coordinates
-            fe.detJxW = utl::Jacobian(Jac,fe.grad(geoBasis),Xnod,
-                                      dNxdu[geoBasis-1]);
-            if (fe.detJxW == 0.0) continue; // skip singular points
-
-            for (size_t b = 0; b < m_basis.size(); ++b)
-              if (b != (size_t)geoBasis-1)
-                fe.grad(b+1).multiply(dNxdu[b],Jac);
+            if (!fe.Jacobian(Jac,Xnod,dNxdu,geoBasis))
+              continue; // skip singular points
 
             // Compute Hessian of coordinate mapping and 2nd order derivatives
-            if (use2ndDer) {
-              if (!utl::Hessian(Hess,fe.hess(geoBasis),Jac,Xnod,
-                                d2Nxdu2[geoBasis-1],fe.grad(geoBasis),true))
-                ok = false;
-              for (size_t b = 0; b < m_basis.size() && ok; ++b)
-                if ((int)b != geoBasis)
-                  if (!utl::Hessian(Hess,fe.hess(b+1),Jac,Xnod,
-                                    d2Nxdu2[b],fe.grad(b+1),false))
-                    ok = false;
-            }
+            if (use2ndDer && !fe.Hessian(Hess,Jac,Xnod,d2Nxdu2,geoBasis))
+              ok = false;
 
             // Compute G-matrix
             if (integrand.getIntegrandType() & Integrand::G_MATRIX)
@@ -1197,12 +1187,8 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
     // Compute Jacobian inverse of the coordinate mapping and
     // basis function derivatives w.r.t. Cartesian coordinates
-    fe.detJxW = utl::Jacobian(Jac,fe.grad(geoBasis),Xtmp,dNxdu[geoBasis-1]);
-    if (fe.detJxW == 0.0) continue; // skip singular points
-
-    for (size_t b = 1; b <= m_basis.size(); b++)
-      if (b != (size_t)geoBasis)
-        fe.grad(b).multiply(dNxdu[b-1],Jac);
+    if (!fe.Jacobian(Jac,Xtmp,dNxdu,geoBasis))
+      continue; // skip singular points
 
     // Cartesian coordinates of current integration point
     utl::Point X4(Xtmp*fe.basis(geoBasis),{fe.u,fe.v});
