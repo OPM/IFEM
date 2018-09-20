@@ -110,7 +110,7 @@ void ASMu3Dmx::clear (bool retainGeometry)
 {
   if (!retainGeometry) {
     // Erase the spline data
-    for (auto& patch : m_basis)
+    for (SplinePtr& patch : m_basis)
       patch.reset();
 
     m_basis.clear();
@@ -200,10 +200,10 @@ bool ASMu3Dmx::getSolution (Matrix& sField, const Vector& locSol,
 bool ASMu3Dmx::generateFEMTopology ()
 {
   if (m_basis.empty()) {
-    auto vec = ASMmxBase::establishBases(tensorspline, ASMmxBase::Type);
-    m_basis.resize(vec.size());
-    for (size_t i=0;i<vec.size();++i)
-      m_basis[i].reset(new LR::LRSplineVolume(vec[i].get()));
+    VolumeVec vvec = ASMmxBase::establishBases(tensorspline, ASMmxBase::Type);
+    m_basis.resize(vvec.size());
+    for (size_t b = 0; b < vvec.size(); b++)
+      m_basis[b].reset(new LR::LRSplineVolume(vvec[b].get()));
 
     // we need to project on something that is not one of our bases
     if (ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS1 ||
@@ -238,72 +238,63 @@ bool ASMu3Dmx::generateFEMTopology ()
   }
   myGeoBasis = ASMmxBase::geoBasis;
 
-  nb.resize(m_basis.size());
-  for (size_t i=0; i < m_basis.size(); ++i)
-    nb[i] = m_basis[i]->nBasisFunctions();
+  nb.clear();
+  nb.reserve(m_basis.size());
+  for (const SplinePtr& it : m_basis) {
+    nb.push_back(it->nBasisFunctions());
+#ifdef SP_DEBUG
+    std::cout <<"Basis "<< nb.size()
+              <<":\nnumCoefs: "<< nb.back()
+              <<"\norder: "<< it->order(0) <<" "<<
+                              it->order(1) <<" "<< it->order(2) << std::endl;
+#endif
+  }
 
   if (shareFE == 'F') return true;
 
-#ifdef SP_DEBUG
-  size_t nbasis=0;
-  for (auto& it : m_basis) {
-    std::cout << "Basis " << ++nbasis << ":\n";
-    std::cout <<"numCoefs: "<< it->nBasisFunctions();
-    std::cout <<"\norder: "<< it->order(0) <<" "<<
-                              it->order(1) <<" "<< it->order(2) << std::endl;
-  }
-#endif
-
   nel = m_basis[geoBasis-1]->nElements();
-
   nnod = std::accumulate(nb.begin(), nb.end(), 0);
 
   myMLGE.resize(nel,0);
   myMLGN.resize(nnod);
   myMNPC.resize(nel);
-  for (auto& it : m_basis)
+  for (SplinePtr& it : m_basis)
     it->generateIDs();
 
-  std::vector<LR::Element*>::iterator el_it1 = m_basis[geoBasis-1]->elementBegin();
-  for (size_t iel=0; iel<nel; iel++, ++el_it1)
+  size_t iel = 0;
+  for (const LR::Element* el1 : m_basis[geoBasis-1]->getAllElements())
   {
     size_t nfunc = 0;
-    for (size_t i=0; i<m_basis.size();++i) {
-      auto el_it2 = m_basis[i]->elementBegin() +
-                    m_basis[i]->getElementContaining((*el_it1)->midpoint());
-      nfunc += (*el_it2)->nBasisFunctions();
-    }
-    myMLGE[iel] = ++gEl; // global element number over all patches
+    for (const SplinePtr& it : m_basis)
+      nfunc += it->getElement(it->getElementContaining(el1->midpoint()))->nBasisFunctions();
     myMNPC[iel].resize(nfunc);
 
-    int lnod = 0;
-    size_t ofs=0;
-    for (size_t i=0; i<m_basis.size();++i) {
-      auto el_it2 = m_basis[i]->elementBegin() +
-                    m_basis[i]->getElementContaining((*el_it1)->midpoint());
-      for (LR::Basisfunction *b : (*el_it2)->support())
-        myMNPC[iel][lnod++] = b->getId()+ofs;
-      ofs += nb[i];
+    size_t lnod = 0, ofs = 0;
+    for (const SplinePtr& it : m_basis) {
+      const LR::Element* el2 = it->getElement(it->getElementContaining(el1->midpoint()));
+      for (LR::Basisfunction* b : el2->support())
+        myMNPC[iel][lnod++] = b->getId() + ofs;
+      ofs += it->nBasisFunctions();
     }
+
+    myMLGE[iel++] = ++gEl; // global element number over all patches
   }
 
+  size_t b = 0;
   myBezierExtractmx.resize(m_basis.size());
-  for (size_t b = 1; b <= m_basis.size(); ++b) {
-    myBezierExtractmx[b-1].resize(this->getBasis(b)->nElements());
-    std::vector<LR::Element*>::const_iterator eit = this->getBasis(b)->elementBegin();
-    for (int iel = 0; iel < this->getBasis(b)->nElements(); iel++, ++eit)
+  for (const SplinePtr& it : m_basis) {
+    myBezierExtractmx[b].resize(it->nElements());
+    for (int iel = 0; iel < it->nElements(); iel++)
     {
       PROFILE("Bezier extraction");
-      int p1 = this->getBasis(b)->order(0);
-      int p2 = this->getBasis(b)->order(1);
-      int p3 = this->getBasis(b)->order(2);
-
       // Get bezier extraction matrix
       RealArray extrMat;
-      this->getBasis(b)->getBezierExtraction(iel,extrMat);
-      myBezierExtractmx[b-1][iel].resize((*eit)->nBasisFunctions(),p1*p2*p3);
-      myBezierExtractmx[b-1][iel].fill(extrMat.data(),extrMat.size());
+      it->getBezierExtraction(iel,extrMat);
+      myBezierExtractmx[b][iel].resize(it->getElement(iel)->nBasisFunctions(),
+                                       it->order(0)*it->order(1)*it->order(2));
+      myBezierExtractmx[b][iel].fill(extrMat.data(),extrMat.size());
     }
+    ++b;
   }
 
   for (size_t inod = 0; inod < nnod; ++inod)
@@ -811,31 +802,28 @@ bool ASMu3Dmx::evalSolution (Matrix& sField, const Vector& locSol,
   sField.resize(std::accumulate(nc.begin(), nc.end(), 0), nPoints);
   for (size_t i = 0; i < nPoints; i++)
   {
-    size_t ofs=0;
-    Vector Ztmp;
+    RealArray Ztmp;
+    const double* locPtr = locSol.data();
     for (size_t j=0; j <  m_basis.size(); ++j) {
       if (nc[j] == 0)
         continue;
       // Fetch element containing evaluation point.
       // Sadly, points are not always ordered in the same way as the elements.
       int iel = m_basis[j]->getElementContaining(gpar[0][i],gpar[1][i],gpar[2][i]);
+      const LR::Element* el = m_basis[j]->getElement(iel);
 
       // Evaluate basis function values/derivatives at current parametric point
       // and multiply with control point values to get the point-wise solution
       m_basis[j]->computeBasis(gpar[0][i],gpar[1][i],gpar[2][i],splinex[j],iel);
 
-      std::vector<LR::Element*>::iterator el_it = m_basis[j]->elementBegin()+iel;
       Matrix val1(nc[j], splinex[j].basisValues.size());
-      size_t col=1;
-      for (auto* b : (*el_it)->support()) {
-        for (size_t n = 1; n <= nc[j]; ++n)
-          val1(n, col) = locSol(b->getId()*nc[j]+n+ofs);
-        ++col;
-      }
+      size_t col = 0;
+      for (LR::Basisfunction* b : el->support())
+        val1.fillColumn(++col, locPtr+b->getId()*nc[j]);
       Vector Ytmp;
       val1.multiply(splinex[j].basisValues,Ytmp);
       Ztmp.insert(Ztmp.end(),Ytmp.begin(),Ytmp.end());
-      ofs += nb[j]*nc[j];
+      locPtr += nb[j]*nc[j];
     }
 
     sField.fillColumn(i+1, Ztmp);
@@ -989,10 +977,10 @@ bool ASMu3Dmx::refine (const LR::RefineData& prm, Vectors& sol)
 
   #ifdef SP_DEBUG
     std::cout <<"Refined mesh: ";
-    for (const auto& it : m_basis)
+    for (const SplinePtr& it : m_basis)
       std::cout << it->nElements() <<" ";
     std::cout <<"elements ";
-    for (const auto& it : m_basis)
+    for (const SplinePtr& it : m_basis)
       std::cout << it->nBasisFunctions() <<" ";
     std::cout <<"nodes."<< std::endl;
     std::cout << "Projection basis: "
@@ -1099,7 +1087,7 @@ void ASMu3Dmx::generateThreadGroups (const Integrand& integrand, bool silence,
     LR::generateThreadGroups(altProjThreadGroups,altProjBasis.get());
 
   std::vector<const LR::LRSpline*> bases;
-  for (const std::shared_ptr<LR::LRSplineVolume>& basis : m_basis)
+  for (const SplinePtr& basis : m_basis)
     bases.push_back(basis.get());
 
   if (silence || threadGroups[0].size() < 2) return;
@@ -1136,7 +1124,7 @@ void ASMu3Dmx::getElementsAt (const RealArray& param,
   sizes.clear();
   elms.reserve(m_basis.size());
   sizes.reserve(m_basis.size());
-  for (const std::shared_ptr<LR::LRSplineVolume>& basis : m_basis)
+  for (const SplinePtr& basis : m_basis)
   {
     int iel = basis->getElementContaining(param);
     elms.push_back(1+iel);

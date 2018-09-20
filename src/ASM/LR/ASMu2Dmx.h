@@ -238,10 +238,13 @@ protected:
                             bool ignoreGlobalLM);
 
 private:
-  std::vector<std::shared_ptr<LR::LRSplineSurface>> m_basis; //!< All bases
-  LR::LRSplineSurface* threadBasis; //!< Basis for thread groups
-  std::shared_ptr<LR::LRSplineSurface> refBasis; //!< Basis to refine based on
-  std::shared_ptr<LR::LRSplineSurface> altProjBasis; //!< Alternative projection basis
+  typedef std::shared_ptr<LR::LRSplineSurface> SplinePtr; //!< Pointer to spline
+
+  std::vector<SplinePtr> m_basis;      //!< All bases
+  LR::LRSplineSurface*   threadBasis;  //!< Basis for thread groups
+  SplinePtr              refBasis;     //!< Basis to refine based on
+  SplinePtr              altProjBasis; //!< Alternative projection basis
+
   ThreadGroups altProjThreadGroups; //!< Element groups for multi-threaded assembly - alternative projection basis
 };
 

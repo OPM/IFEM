@@ -109,7 +109,7 @@ void ASMu2Dmx::clear (bool retainGeometry)
 {
   if (!retainGeometry) {
     // Erase the spline data
-    for (auto& patch : m_basis)
+    for (SplinePtr& patch : m_basis)
       patch.reset();
 
     m_basis.clear();
@@ -258,7 +258,7 @@ bool ASMu2Dmx::generateFEMTopology ()
 
   nb.clear();
   nb.reserve(m_basis.size());
-  for (const auto& it : m_basis) {
+  for (const SplinePtr& it : m_basis) {
     nb.push_back(it->nBasisFunctions());
 #ifdef SP_DEBUG
     std::cout <<"Basis "<< nb.size()
@@ -275,23 +275,21 @@ bool ASMu2Dmx::generateFEMTopology ()
   myMLGE.resize(nel,0);
   myMLGN.resize(nnod);
   myMNPC.resize(nel);
-  for (auto&& it : m_basis)
+  for (SplinePtr& it : m_basis)
     it->generateIDs();
 
   size_t iel = 0;
   for (const LR::Element* el1 : m_basis[geoBasis-1]->getAllElements())
   {
     size_t nfunc = 0;
-    for (const auto& it : m_basis) {
-      auto el_it2 = it->elementBegin() + it->getElementContaining(el1->midpoint());
-      nfunc += (*el_it2)->nBasisFunctions();
-    }
+    for (const SplinePtr& it : m_basis)
+      nfunc += it->getElement(it->getElementContaining(el1->midpoint()))->nBasisFunctions();
     myMNPC[iel].resize(nfunc);
 
     size_t lnod = 0, ofs = 0;
-    for (const auto& it : m_basis) {
-      auto el_it2 = it->elementBegin() + it->getElementContaining(el1->midpoint());
-      for (LR::Basisfunction* b : (*el_it2)->support())
+    for (const SplinePtr& it : m_basis) {
+      const LR::Element* el2 = it->getElement(it->getElementContaining(el1->midpoint()));
+      for (LR::Basisfunction* b : el2->support())
         myMNPC[iel][lnod++] = b->getId() + ofs;
       ofs += it->nBasisFunctions();
     }
@@ -527,17 +525,19 @@ bool ASMu2Dmx::integrate (Integrand& integrand, int lIndex,
 
   // === Assembly loop over all elements on the patch edge =====================
 
-  std::vector<LR::Element*>::iterator el1 = m_basis[geoBasis-1]->elementBegin();
-  for (int iel = 1; el1 != m_basis[geoBasis-1]->elementEnd(); ++el1, ++iel)
+  int iel = 0;
+  for (const LR::Element* el1 : m_basis[geoBasis-1]->getAllElements())
   {
+    ++iel;
+
     // Skip elements that are not on current boundary edge
     bool skipMe = false;
     switch (edgeDir)
     {
-      case -1: if ((*el1)->umin() != m_basis[geoBasis-1]->startparam(0)) skipMe = true; break;
-      case  1: if ((*el1)->umax() != m_basis[geoBasis-1]->endparam(0)  ) skipMe = true; break;
-      case -2: if ((*el1)->vmin() != m_basis[geoBasis-1]->startparam(1)) skipMe = true; break;
-      case  2: if ((*el1)->vmax() != m_basis[geoBasis-1]->endparam(1)  ) skipMe = true; break;
+      case -1: if (el1->umin() != m_basis[geoBasis-1]->startparam(0)) skipMe = true; break;
+      case  1: if (el1->umax() != m_basis[geoBasis-1]->endparam(0)  ) skipMe = true; break;
+      case -2: if (el1->vmin() != m_basis[geoBasis-1]->startparam(1)) skipMe = true; break;
+      case  2: if (el1->vmax() != m_basis[geoBasis-1]->endparam(1)  ) skipMe = true; break;
     }
     if (skipMe) continue;
 
@@ -547,7 +547,7 @@ bool ASMu2Dmx::integrate (Integrand& integrand, int lIndex,
 
     std::vector<int>    els;
     std::vector<size_t> elem_sizes;
-    this->getElementsAt((*el1)->midpoint(),els,elem_sizes);
+    this->getElementsAt(el1->midpoint(),els,elem_sizes);
 
     int geoEl = els[geoBasis-1];
     MxFiniteElement fe(elem_sizes,firstp);
@@ -655,23 +655,22 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
   Vec4     X(nullptr,time.t);
   Vec3     normal;
 
-  std::vector<LR::Element*>::iterator el1 = m_basis[0]->elementBegin();
-  for (int iel = 1; el1 != m_basis[0]->elementEnd(); ++el1, ++iel) {
-    short int status = iChk.hasContribution(iel);
+  int iel = 0;
+  for (const LR::Element* el1 : m_basis.front()->getAllElements())
+  {
+    short int status = iChk.hasContribution(++iel);
     if (!status) continue; // no interface contributions for this element
 
     if (!myElms.empty() && !glInt.threadSafe() &&
-        std::find(myElms.begin(), myElms.end(), iel-1) == myElms.end()) {
-        ++iel, ++el1;
+        std::find(myElms.begin(), myElms.end(), iel-1) == myElms.end())
       continue;
-    }
 
     std::vector<int>    els;
     std::vector<size_t> elem_sizes;
-    this->getElementsAt((*el1)->midpoint(),els,elem_sizes);
+    this->getElementsAt(el1->midpoint(),els,elem_sizes);
     // Replace first entry by hosting element
     els.front()        = iel;
-    elem_sizes.front() = (*el1)->nBasisFunctions();
+    elem_sizes.front() = el1->nBasisFunctions();
 
     // Set up control point coordinates for current element
     if (!this->getElementCoordinates(Xnod,els[geoBasis-1]))
@@ -689,8 +688,8 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
         const int t2 = 3-abs(edgeDir); // Tangent direction along the edge
 
         // Set up parameters
-        double u1 = iedge != 2 ? (*el1)->umin() : (*el1)->umax();
-        double v1 = iedge < 4 ? (*el1)->vmin() : (*el1)->vmax();
+        double u1 = iedge != 2 ? el1->umin() : el1->umax();
+        double v1 = iedge <  4 ? el1->vmin() : el1->vmax();
         double u2(u1);
         double v2(v1);
         const double epsilon = 1e-8;
@@ -851,31 +850,28 @@ bool ASMu2Dmx::evalSolution (Matrix& sField, const Vector& locSol,
   sField.resize(std::accumulate(nc.begin(), nc.end(), 0), nPoints);
   for (size_t i = 0; i < nPoints; i++)
   {
-    size_t ofs=0;
-    Vector Ztmp;
+    RealArray Ztmp;
+    const double* locPtr = locSol.data();
     for (size_t j=0; j <  m_basis.size(); ++j) {
       if (nc[j] == 0)
         continue;
       // Fetch element containing evaluation point.
       // Sadly, points are not always ordered in the same way as the elements.
       int iel = m_basis[j]->getElementContaining(gpar[0][i],gpar[1][i]);
+      const LR::Element* el = m_basis[j]->getElement(iel);
 
       // Evaluate basis function values/derivatives at current parametric point
       // and multiply with control point values to get the point-wise solution
       this->computeBasis(gpar[0][i],gpar[1][i],splinex[j],iel,m_basis[j].get());
 
-      std::vector<LR::Element*>::iterator el_it = m_basis[j]->elementBegin()+iel;
       Matrix val1(nc[j], splinex[j].basisValues.size());
-      size_t col=1;
-      for (auto* b : (*el_it)->support()) {
-        for (size_t n = 1; n <= nc[j]; ++n)
-          val1(n, col) = locSol(b->getId()*nc[j]+n+ofs);
-        ++col;
-      }
+      size_t col = 0;
+      for (LR::Basisfunction* b : el->support())
+        val1.fillColumn(++col, locPtr+b->getId()*nc[j]);
       Vector Ytmp;
       val1.multiply(splinex[j].basisValues,Ytmp);
       Ztmp.insert(Ztmp.end(),Ytmp.begin(),Ytmp.end());
-      ofs += nb[j]*nc[j];
+      locPtr += nb[j]*nc[j];
     }
 
     sField.fillColumn(i+1, Ztmp);
@@ -1029,10 +1025,10 @@ bool ASMu2Dmx::refine (const LR::RefineData& prm, Vectors& sol)
 
   #ifdef SP_DEBUG
     std::cout <<"Refined mesh: ";
-    for (const auto& it : m_basis)
+    for (const SplinePtr& it : m_basis)
       std::cout << it->nElements() <<" ";
     std::cout <<"elements ";
-    for (const auto& it : m_basis)
+    for (const SplinePtr& it : m_basis)
       std::cout << it->nBasisFunctions() <<" ";
     std::cout <<"nodes."<< std::endl;
     std::cout << "Projection basis: "
@@ -1097,7 +1093,7 @@ void ASMu2Dmx::generateThreadGroups (const Integrand& integrand, bool silence,
     LR::generateThreadGroups(altProjThreadGroups,altProjBasis.get());
 
   std::vector<const LR::LRSpline*> bases;
-  for (const std::shared_ptr<LR::LRSplineSurface>& basis : m_basis)
+  for (const SplinePtr& basis : m_basis)
     bases.push_back(basis.get());
 
   if (silence || threadGroups[0].size() < 2) return;
@@ -1202,7 +1198,7 @@ void ASMu2Dmx::storeMesh (const std::string& fName, int fType) const
   };
 
   std::string btag("basis1");
-  for (const auto& patch : m_basis)
+  for (const SplinePtr& patch : m_basis)
   {
     writeBasis(patch, btag);
     ++btag.back();
@@ -1249,7 +1245,7 @@ void ASMu2Dmx::getElementsAt (const RealArray& param,
   sizes.clear();
   elms.reserve(m_basis.size());
   sizes.reserve(m_basis.size());
-  for (const std::shared_ptr<LR::LRSplineSurface>& basis : m_basis)
+  for (const SplinePtr& basis : m_basis)
   {
     int iel = basis->getElementContaining(param);
     elms.push_back(1+iel);
