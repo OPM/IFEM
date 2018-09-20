@@ -40,6 +40,7 @@ ASMu3Dmx::ASMu3Dmx (const CharVec& n_f)
   : ASMu3D(std::accumulate(n_f.begin(), n_f.end(), 0)), ASMmxBase(n_f),
     bezierExtractmx(myBezierExtractmx)
 {
+  threadBasis = nullptr;
   myGeoBasis = ASMmxBase::geoBasis;
 }
 
@@ -49,6 +50,7 @@ ASMu3Dmx::ASMu3Dmx (const ASMu3Dmx& patch, const CharVec& n_f)
     m_basis(patch.m_basis),
     bezierExtractmx(patch.myBezierExtractmx)
 {
+  threadBasis = patch.threadBasis;
   nfx = patch.nfx;
   nb =  patch.nb;
   myGeoBasis = ASMmxBase::geoBasis;
@@ -199,6 +201,9 @@ bool ASMu3Dmx::getSolution (Matrix& sField, const Vector& locSol,
 
 bool ASMu3Dmx::generateFEMTopology ()
 {
+  if (!myMLGN.empty())
+    return true;
+
   if (m_basis.empty()) {
     VolumeVec vvec = ASMmxBase::establishBases(tensorspline, ASMmxBase::Type);
     m_basis.resize(vvec.size());
@@ -314,12 +319,24 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
                           GlobalIntegral& glInt,
                           const TimeDomain& time)
 {
+  if (m_basis.empty())
+    return true; // silently ignore empty patches
+
   PROFILE2("ASMu3Dmx::integrate(I)");
 
   // Get Gaussian quadrature points and weights
   const double* xg = GaussQuadrature::getCoord(nGauss);
   const double* wg = GaussQuadrature::getWeight(nGauss);
   if (!xg || !wg) return false;
+
+  if (integrand.getReducedIntegration(nGauss))
+  {
+    std::cerr <<" *** Reduced integration not available for mixed LR splines"
+              << std::endl;
+    return false;
+  }
+
+  bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
 
   // evaluate all gauss points on the bezier patch (-1, 1)
   std::vector<Matrix> BN(m_basis.size());
@@ -331,54 +348,32 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
     int p1 = lrspline->order(0);
     int p2 = lrspline->order(1);
     int p3 = lrspline->order(2);
+    double u[2*p1], v[2*p2], w[2*p3];
     Go::BsplineBasis basis1 = getBezierBasis(p1);
     Go::BsplineBasis basis2 = getBezierBasis(p2);
     Go::BsplineBasis basis3 = getBezierBasis(p3);
-
-    BN[b-1].resize(p1*p2*p3, nGauss*nGauss*nGauss);
+    BN   [b-1].resize(p1*p2*p3, nGauss*nGauss*nGauss);
     BdNdu[b-1].resize(p1*p2*p3, nGauss*nGauss*nGauss);
     BdNdv[b-1].resize(p1*p2*p3, nGauss*nGauss*nGauss);
     BdNdw[b-1].resize(p1*p2*p3, nGauss*nGauss*nGauss);
-    int ig=1; // gauss point iterator
-    for(int zeta=0; zeta<nGauss; zeta++) {
-      for(int eta=0; eta<nGauss; eta++) {
-        for(int xi=0; xi<nGauss; xi++, ig++) {
-          double u[2*p1];
-          double v[2*p2];
-          double w[2*p3];
+    int ig = 1; // gauss point iterator
+    for (int zeta = 0; zeta < nGauss; zeta++)
+      for (int eta = 0; eta < nGauss; eta++)
+        for (int xi = 0; xi < nGauss; xi++, ig++) {
           basis1.computeBasisValues(xg[xi],   u, 1);
           basis2.computeBasisValues(xg[eta],  v, 1);
           basis3.computeBasisValues(xg[zeta], w, 1);
-          int ib=1; // basis function iterator
-          double sum = 0;
-          for(int k=0; k<p3; k++) {
-            for(int j=0; j<p2; j++) {
-              for(int i=0; i<p1; i++, ib++) {
+          int ib = 1; // basis function iterator
+          for (int k = 0; k < p3; k++)
+            for (int j = 0; j < p2; j++)
+              for (int i = 0; i < p1; i++, ib++) {
                 BN[b-1](ib,ig)    = u[2*i  ]*v[2*j  ]*w[2*k  ];
                 BdNdu[b-1](ib,ig) = u[2*i+1]*v[2*j  ]*w[2*k  ];
                 BdNdv[b-1](ib,ig) = u[2*i  ]*v[2*j+1]*w[2*k  ];
                 BdNdw[b-1](ib,ig) = u[2*i  ]*v[2*j  ]*w[2*k+1];
-                sum += BN[b-1](ib,ig);
               }
-            }
-          }
         }
-      }
-    }
   }
-
-  // Get the reduced integration quadrature points, if needed
-  const double* xr = nullptr;
-  const double* wr = nullptr;
-  int nRed = integrand.getReducedIntegration(nGauss);
-  if (nRed > 0)
-  {
-    xr = GaussQuadrature::getCoord(nRed);
-    wr = GaussQuadrature::getWeight(nRed);
-    if (!xr || !wr) return false;
-  }
-  else if (nRed < 0)
-    nRed = nGauss; // The integrand needs to know nGauss
 
   ThreadGroups oneGroup;
   if (glInt.threadSafe()) oneGroup.oneGroup(nel);
@@ -400,17 +395,18 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
       std::vector<int>    els;
       std::vector<size_t> elem_sizes;
       this->getElementsAt(el->midpoint(),els,elem_sizes);
-      int iEl = el->getId();
-      MxFiniteElement fe(elem_sizes);
-      fe.iel = MLGE[iEl];
-
-      std::vector<Matrix> dNxdu(m_basis.size());
+      MxFiniteElement       fe(elem_sizes);
+      std::vector<Matrix>   dNxdu(m_basis.size());
+      std::vector<Matrix3D> d2Nxdu2(use2ndDer ? m_basis.size() : 0);
       Matrix   Xnod, Jac;
-      std::vector<Matrix3D> d2Nxdu2(m_basis.size());
       Matrix3D Hess;
       double   dXidu[3];
       double   param[3] = { 0.0, 0.0, 0.0 };
       Vec4     X(param,time.t);
+
+      int iEl = el->getId();
+      fe.iel = MLGE[iEl];
+
       // Get element volume in the parameter space
       double du = el->umax() - el->umin();
       double dv = el->vmax() - el->vmin();
@@ -430,14 +426,9 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
       }
 
       // Compute parameter values of the Gauss points over the whole element
-      std::array<RealArray,3> gpar, redpar;
+      std::array<RealArray,3> gpar;
       for (int d = 0; d < 3; d++)
-      {
         this->getGaussPointParameters(gpar[d],d,nGauss,iEl+1,xg);
-        if (xr)
-          this->getGaussPointParameters(redpar[d],d,nRed,iEl+1,xr);
-      }
-
 
       if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
         fe.h = this->getElementCorners(iEl+1, fe.XC);
@@ -498,12 +489,6 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
         continue;
       }
 
-      if (xr)
-      {
-        std::cerr << "Haven't really figured out what this part does yet\n";
-        exit(42142);
-      }
-
       // --- Integration loop over all Gauss points in each direction ----------
 
       int jp = iEl*nGauss*nGauss*nGauss;
@@ -534,7 +519,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
               B.fillColumn(4, BdNdw[b].getColumn(ig)*2.0/dw);
 
               // Fetch basis function derivatives at current integration point
-              if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
+              if (use2ndDer)
                 this->evaluateBasis(els[b]-1, fe, dNxdu[b], d2Nxdu2[b], b+1);
               else
                 this->evaluateBasis(fe, dNxdu[b], bezierExtractmx[b][els[b]-1], B, b+1);
@@ -560,8 +545,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
             fe.detJxW *= 0.125*vol*wg[i]*wg[j]*wg[k];
             if (!integrand.evalIntMx(*A,fe,time,X))
               ok = false;
-
-      } // end gauss integrand
+          }
 
       // Finalize the element quantities
       if (ok && !integrand.finalizeElement(*A,fe,time,firstIp+jp))
@@ -582,6 +566,9 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
                           GlobalIntegral& glInt,
                           const TimeDomain& time)
 {
+  if (m_basis.empty())
+    return true; // silently ignore empty patches
+
   PROFILE2("ASMu3Dmx::integrate(B)");
 
   // Get Gaussian quadrature points and weights
@@ -663,7 +650,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
     double dXidu[3];
 
     // Get element face area in the parameter space
-    double dA = this->getParametricArea(iEl+1,abs(faceDir));
+    double dA = 0.25*this->getParametricArea(iEl+1,abs(faceDir));
     if (dA < 0.0) return false; // topology error (probably logic error)
 
     // Set up control point coordinates for current element
@@ -728,9 +715,10 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
         fe.detJxW = utl::Jacobian(Jac, normal, fe.grad(geoBasis), Xnod,
                                   dNxdu[geoBasis-1], t1, t2);
         if (fe.detJxW == 0.0) continue; // skip singular points
-        for (size_t b = 0; b < m_basis.size(); ++b)
-          if (b != (size_t)geoBasis-1)
-            fe.grad(b+1).multiply(dNxdu[b],Jac);
+
+        for (size_t b = 1; b <= m_basis.size(); ++b)
+          if ((int)b != geoBasis)
+            fe.grad(b).multiply(dNxdu[b-1],Jac);
 
         if (faceDir < 0) normal *= -1.0;
 
@@ -742,7 +730,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
         X.assign(Xnod * fe.basis(geoBasis));
 
         // Evaluate the integrand and accumulate element contributions
-        fe.detJxW *= 0.25*dA*wg[i]*wg[j];
+        fe.detJxW *= dA*wg[i]*wg[j];
         ok = integrand.evalBouMx(*A,fe,time,X,normal);
       }
 
@@ -792,6 +780,7 @@ bool ASMu3Dmx::evalSolution (Matrix& sField, const Vector& locSol,
     for (size_t j=0; j <  m_basis.size(); ++j) {
       if (nc[j] == 0)
         continue;
+
       // Fetch element containing evaluation point.
       // Sadly, points are not always ordered in the same way as the elements.
       int iel = m_basis[j]->getElementContaining(gpar[0][i],gpar[1][i],gpar[2][i]);
@@ -845,10 +834,10 @@ bool ASMu3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     this->getElementsAt({gpar[0][i],gpar[1][i],gpar[2][i]},els,elem_sizes);
 
     // Evaluate the basis functions at current parametric point
-    MxFiniteElement fe(elem_sizes,firstIp+i);
-    std::vector<Matrix> dNxdu(m_basis.size());
+    MxFiniteElement       fe(elem_sizes,firstIp+i);
+    std::vector<Matrix>   dNxdu(m_basis.size());
+    std::vector<Matrix3D> d2Nxdu2(use2ndDer ? m_basis.size() : 0);
     Matrix Jac, Xnod;
-    std::vector<Matrix3D> d2Nxdu2(m_basis.size());
     Matrix3D Hess;
     if (use2ndDer)
       for (size_t b = 0; b < m_basis.size(); ++b) {
@@ -904,13 +893,12 @@ bool ASMu3Dmx::refine (const LR::RefineData& prm, Vectors& sol)
   if (prm.errors.empty() && prm.elements.empty())
     return true;
 
-  for (Vector& solvec : sol) {
-    size_t ofs = 0;
+  for (Vector& solvec : sol)
     for (size_t j = 0; j < m_basis.size(); j++) {
-      LR::extendControlPoints(m_basis[j].get(), solvec, nfx[j], ofs);
-      ofs += nfx[j]*nb[j];
+      Vector bVec;
+      this->extractNodeVec(solvec, bVec, 0, j+1);
+      LR::extendControlPoints(m_basis[j].get(), bVec, nfx[j]);
     }
-  }
 
   if (doRefine(prm, refBasis.get())) {
     for (size_t j = 0; j < m_basis.size(); ++j)
@@ -943,7 +931,7 @@ bool ASMu3Dmx::refine (const LR::RefineData& prm, Vectors& sol)
     }
 
     size_t ofs = 0;
-    for (int i = sol.size()-1; i > 0; i--)
+    for (int i = sol.size()-1; i >= 0; i--)
       for (size_t j = 0; j < m_basis.size(); ++j) {
         sol[i].resize(len);
         LR::contractControlPoints(m_basis[j].get(), sol[i], nfx[j], ofs);
@@ -992,48 +980,6 @@ Vec3 ASMu3Dmx::getCoord (size_t inod) const
 }
 
 
-void ASMu3Dmx::remapErrors (RealArray& errors,
-                            const RealArray& origErr, bool elemErrors) const
-{
-  const LR::LRSplineVolume* geo = this->getBasis(ASMmxBase::geoBasis);
-  for (const LR::Element* elm : geo->getAllElements()) {
-    int rEl = refBasis->getElementContaining((elm->umin()+elm->umax())/2.0,
-                                             (elm->vmin()+elm->vmax())/2.0,
-                                             (elm->wmin()+elm->wmax())/2.0);
-    if (elemErrors)
-      errors[rEl] += origErr[elm->getId()];
-    else
-      for (LR::Basisfunction* b : refBasis->getElement(rEl)->support())
-        errors[b->getId()] += origErr[elm->getId()];
-  }
-}
-
-
-size_t ASMu3Dmx::getNoRefineNodes() const
-{
-  return refBasis->nBasisFunctions();
-}
-
-
-size_t ASMu3Dmx::getNoRefineElms() const
-{
-  return refBasis->nElements();
-}
-
-
-void ASMu3Dmx::copyRefinement(LR::LRSplineVolume* basis, int multiplicity) const
-{
-  for (const LR::MeshRectangle* rect : refBasis->getAllMeshRectangles()) {
-    int mult = rect->multiplicity_ > 1 ? basis->order(rect->constDirection())
-                                       : multiplicity;
-    LR::MeshRectangle* newRect = rect->copy();
-    newRect->multiplicity_ = mult;
-
-    basis->insert_line(newRect);
-  }
-}
-
-
 void ASMu3Dmx::generateThreadGroups (const Integrand& integrand, bool silence,
                                      bool ignoreGlobalLM)
 {
@@ -1078,6 +1024,49 @@ void ASMu3Dmx::generateThreadGroups (const Integrand& integrand, bool silence,
 #else
   this->analyzeThreadGroups(threadGroups[0]);
 #endif
+}
+
+
+void ASMu3Dmx::remapErrors (RealArray& errors,
+                            const RealArray& origErr, bool elemErrors) const
+{
+  const LR::LRSplineVolume* geo = this->getBasis(ASMmxBase::geoBasis);
+  for (const LR::Element* elm : geo->getAllElements()) {
+    int rEl = refBasis->getElementContaining((elm->umin()+elm->umax())/2.0,
+                                             (elm->vmin()+elm->vmax())/2.0,
+                                             (elm->wmin()+elm->wmax())/2.0);
+    if (elemErrors)
+      errors[rEl] += origErr[elm->getId()];
+    else
+      for (LR::Basisfunction* b : refBasis->getElement(rEl)->support())
+        errors[b->getId()] += origErr[elm->getId()];
+  }
+}
+
+
+size_t ASMu3Dmx::getNoRefineNodes() const
+{
+  return refBasis->nBasisFunctions();
+}
+
+
+size_t ASMu3Dmx::getNoRefineElms() const
+{
+  return refBasis->nElements();
+}
+
+
+void ASMu3Dmx::copyRefinement (LR::LRSplineVolume* basis,
+                               int multiplicity) const
+{
+  for (const LR::MeshRectangle* rect : refBasis->getAllMeshRectangles()) {
+    int mult = rect->multiplicity_ > 1 ? basis->order(rect->constDirection())
+                                       : multiplicity;
+    LR::MeshRectangle* newRect = rect->copy();
+    newRect->multiplicity_ = mult;
+
+    basis->insert_line(newRect);
+  }
 }
 
 
