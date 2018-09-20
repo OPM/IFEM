@@ -887,41 +887,6 @@ void ASMu3D::evaluateBasis (int iel, FiniteElement& fe,
   }
 }
 
-void ASMu3D::evaluateBasis (int iel, FiniteElement& fe, int derivs,
-                            int basis) const
-{
-  PROFILE3("ASMu3D::evalBasis");
-
-  std::vector<RealArray> result;
-  this->getBasis(basis)->computeBasis(fe.u, fe.v, fe.w, result, derivs, iel);
-  size_t n = 0, nBasis = result.size();
-  Vector& N = fe.basis(basis);
-  Matrix& dNdu = fe.grad(basis);
-  Matrix3D& d2Ndu2 = fe.hess(basis);
-
-  N.resize(nBasis);
-  if (derivs > 0)
-    dNdu.resize(nBasis,3);
-  if (derivs > 1)
-    d2Ndu2.resize(nBasis,3,3);
-  for (const RealArray& phi : result) {
-    N(++n) = phi[0];
-    if (derivs > 0) {
-      dNdu(n,1) = phi[1];
-      dNdu(n,2) = phi[2];
-      dNdu(n,3) = phi[3];
-    }
-    if (derivs > 1) {
-      d2Ndu2(n,1,1) = phi[4];
-      d2Ndu2(n,1,2) = d2Ndu2(n,2,1) = phi[5];
-      d2Ndu2(n,1,3) = d2Ndu2(n,3,1) = phi[6];
-      d2Ndu2(n,2,2) = phi[7];
-      d2Ndu2(n,2,3) = d2Ndu2(n,3,2) = phi[8];
-      d2Ndu2(n,3,3) = phi[9];
-    }
-  }
-}
-
 
 bool ASMu3D::integrate (Integrand& integrand,
                         GlobalIntegral& glInt,
@@ -1495,7 +1460,9 @@ bool ASMu3D::diracPoint (Integrand& integrand, GlobalIntegral& glInt,
   fe.u   = param[0];
   fe.v   = param[1];
   fe.w   = param[2];
-  this->evaluateBasis(iel,fe);
+  Go::BasisPts pt;
+  this->getBasis()->computeBasis(fe.u, fe.v, fe.w, pt, iel);
+  fe.N = pt.basisValues;
 
   LocalIntegral* A = integrand.getLocalIntegral(MNPC[iel].size(),fe.iel,true);
   bool ok = integrand.evalPoint(*A,fe,pval) && glInt.assemble(A,fe.iel);

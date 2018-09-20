@@ -574,10 +574,6 @@ protected:
   void evaluateBasis(int iel, int basis, double u, double v, double w,
                      Vector& N, Matrix& dNdu) const;
 
-  //! \brief Evaluate all basis functions and \a derivs number of derivatives on one element
-  void evaluateBasis(int iel, FiniteElement& fe,
-                     int derivs = 0, int basis = 1) const;
-
   //! \brief Evaluate all basis functions and first derivatives on one element
   void evaluateBasis(FiniteElement& fe, Matrix& dNdu,
                      const Matrix& C, const Matrix& B, int basis = 1) const;
