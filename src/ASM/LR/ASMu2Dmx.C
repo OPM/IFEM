@@ -403,9 +403,9 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
         continue;
       }
 
-      // --- Integration loop over all Gauss points in each direction ------------
+      // --- Integration loop over all Gauss points in each direction ----------
 
-      int jp = (iel-1)*nGauss*nGauss;
+      int jp = (geoEl-1)*nGauss*nGauss;
       fe.iGP = firstIp + jp; // Global integration point counter
 
       for (int j = 0; j < nGauss; j++)
@@ -929,7 +929,7 @@ bool ASMu2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     }
 
     // Evaluate the basis functions at current parametric point
-    MxFiniteElement fe(elem_sizes);
+    MxFiniteElement fe(elem_sizes,firstIp+i);
     std::vector<Matrix> dNxdu(m_basis.size());
     Matrix Jac, Xnod;
     std::vector<Matrix3D> d2Nxdu2(m_basis.size());

@@ -515,9 +515,10 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
         exit(42142);
       }
 
-      // --- Integration loop over all Gauss points in each direction --------
+      // --- Integration loop over all Gauss points in each direction ----------
 
-      fe.iGP = iEl*nGauss*nGauss*nGauss; // Global integration point counter
+      int jp = iEl*nGauss*nGauss*nGauss;
+      fe.iGP = firstIp + jp; // Global integration point counter
 
       std::vector<Matrix> B(m_basis.size());
       size_t ig = 1;
@@ -589,7 +590,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
       } // end gauss integrand
 
       // Finalize the element quantities
-      if (ok && !integrand.finalizeElement(*A,fe,time))
+      if (ok && !integrand.finalizeElement(*A,fe,time,firstIp+jp))
         ok = false;
 
       // Assembly of global system integral
@@ -624,25 +625,29 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
   std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex);
   size_t firstp = iit == firstBp.end() ? 0 : iit->second;
 
-  LR::parameterEdge edge;
-  switch(lIndex)
+  // Lambda function mapping face index to LR enum value
+  auto&& getFaceEnum = [](int faceIndex) -> LR::parameterEdge
   {
-  case 1: edge = LR::WEST;   break;
-  case 2: edge = LR::EAST;   break;
-  case 3: edge = LR::SOUTH;  break;
-  case 4: edge = LR::NORTH;  break;
-  case 5: edge = LR::BOTTOM; break;
-  case 6: edge = LR::TOP;    break;
-  default:edge = LR::NONE;
-  }
+    switch (faceIndex) {
+    case 1: return LR::WEST;
+    case 2: return LR::EAST;
+    case 3: return LR::SOUTH;
+    case 4: return LR::NORTH;
+    case 5: return LR::BOTTOM;
+    case 6: return LR::TOP;
+    }
+    return LR::NONE;
+  };
 
-  // fetch all elements along the chosen edge
+  // Fetch all elements on the chosen face
   std::vector<LR::Element*> edgeElms;
-  this->getBasis(geoBasis)->getEdgeElements(edgeElms, (LR::parameterEdge) edge);
+  this->getBasis(geoBasis)->getEdgeElements(edgeElms,getFaceEnum(lIndex));
 
-  // iterate over all edge elements
-  bool ok = true;
-  for(LR::Element *el : edgeElms) {
+
+  // === Assembly loop over all elements on the patch face =====================
+
+  for (LR::Element* el : edgeElms)
+  {
     int iEl = el->getId();
     if (!myElms.empty() && !glInt.threadSafe() &&
         std::find(myElms.begin(), myElms.end(), iEl) == myElms.end())
@@ -688,18 +693,11 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
 
     // Get element face area in the parameter space
     double dA = this->getParametricArea(iEl+1,abs(faceDir));
-    if (dA < 0.0) // topology error (probably logic error)
-    {
-      ok = false;
-      break;
-    }
+    if (dA < 0.0) return false; // topology error (probably logic error)
 
     // Set up control point coordinates for current element
     if (!this->getElementCoordinates(Xnod,iEl+1))
-    {
-      ok = false;
-      break;
-    }
+      return false;
 
     if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
       fe.h = this->getElementCorners(iEl+1,fe.XC);
@@ -714,22 +712,20 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
 
     // Initialize element quantities
     LocalIntegral* A = integrand.getLocalIntegral(elem_sizes,fe.iel,true);
-    if (!integrand.initElementBou(MNPC[iEl],elem_sizes,nb,*A))
-    {
-      A->destruct();
-      ok = false;
-      break;
-    }
+    bool ok = integrand.initElementBou(MNPC[iEl],elem_sizes,nb,*A);
 
-    // --- Integration loop over all Gauss points in each direction --------
+
+    // --- Integration loop over all Gauss points in each direction ------------
 
     fe.iGP = firstp; // Global integration point counter
-    int k1,k2,k3;
+    firstp += nGP*nGP;
+
     for (int j = 0; j < nGP; j++)
-      for (int i = 0; i < nGP; i++, fe.iGP++)
+      for (int i = 0; i < nGP && ok; i++, fe.iGP++)
       {
         // Local element coordinates and parameter values
         // of current integration point
+        int k1, k2, k3;
         switch (abs(faceDir))
         {
           case 1: k2 = i; k3 = j; k1 = 0; break;
@@ -776,9 +772,8 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
 
         // Evaluate the integrand and accumulate element contributions
         fe.detJxW *= 0.25*dA*wg[i]*wg[j];
-        if (!integrand.evalBouMx(*A,fe,time,X,normal))
-          ok = false;
-    }
+        ok = integrand.evalBouMx(*A,fe,time,X,normal);
+      }
 
     // Finalize the element quantities
     if (ok && !integrand.finalizeElementBou(*A,fe,time))
@@ -790,10 +785,10 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
 
     A->destruct();
 
-    firstp += nGP*nGP*nGP;
+    if (!ok) return false;
   }
 
-  return ok;
+  return true;
 }
 
 
@@ -885,7 +880,7 @@ bool ASMu3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     }
 
     // Evaluate the basis functions at current parametric point
-    MxFiniteElement fe(elem_sizes);
+    MxFiniteElement fe(elem_sizes,firstIp+i);
     std::vector<Matrix> dNxdu(m_basis.size());
     Matrix Jac, Xnod;
     std::vector<Matrix3D> d2Nxdu2(m_basis.size());
