@@ -79,6 +79,21 @@ public:
   //! \brief Initializes the patch level MADOF array for mixed problems.
   virtual void initMADOF(const int* sysMadof);
 
+  //! \brief Constrains all DOFs on a given boundary edge.
+  //! \param[in] dir Parameter direction defining the edge to constrain
+  //! \param[in] open If \e true, exclude the end points of the edge
+  //! \param[in] dof Which DOFs to constrain at each node along the edge
+  //! \param[in] code Inhomogeneous dirichlet condition code
+  //! \param[in] basis Which basis to constrain edge for (0 means check all)
+  virtual void constrainEdge(int dir, bool open, int dof, int code, char basis);
+  //! \brief Constrains a corner node identified by the two parameter indices.
+  //! \param[in] I Parameter index in u-direction
+  //! \param[in] J Parameter index in v-direction
+  //! \param[in] dof Which DOFs to constrain at the node
+  //! \param[in] code Inhomogeneous dirichlet condition code
+  //! \param[in] basis Which basis to constrain node for (0 means check all)
+  virtual void constrainCorner(int I, int J, int dof, int code, char basis);
+
   // Methods for integration of finite element quantities.
   // These are the main computational methods of the ASM class hierarchy.
   // ====================================================================
@@ -104,7 +119,8 @@ public:
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
   //! \param[in] iChk Object checking if an element interface has contributions
   virtual bool integrate(Integrand& integrand, GlobalIntegral& glbInt,
-                         const TimeDomain& time, const ASM::InterfaceChecker& iChk);
+                         const TimeDomain& time,
+                         const ASM::InterfaceChecker& iChk);
 
 
   // Post-processing methods
@@ -156,7 +172,7 @@ public:
   virtual void extractNodeVec(const Vector& globVec, Vector& nodeVec,
                               unsigned char = 0, int basis = 0) const;
 
-  //! \brief Inject nodal results for this patch into a global vector.
+  //! \brief Injects nodal results for this patch into a global vector.
   //! \param[in] nodeVec Nodal result vector for this patch
   //! \param[out] globVec Global solution vector in DOF-order
   //! \param[in] basis Which basis (or 0 for both) to extract nodal values for

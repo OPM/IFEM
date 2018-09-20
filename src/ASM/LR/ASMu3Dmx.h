@@ -79,6 +79,33 @@ public:
   //! \brief Initializes the patch level MADOF array for mixed problems.
   virtual void initMADOF(const int* sysMadof);
 
+  //! \brief Constrains all DOFs on a given boundary face.
+  //! \param[in] dir Parameter direction defining the face to constrain
+  //! \param[in] open If \e true, exclude all points along the face boundary
+  //! \param[in] dof Which DOFs to constrain at each node on the face
+  //! \param[in] code Inhomogeneous dirichlet condition code
+  //! \param[in] basis Which basis to constrain face for (0 means check all)
+  virtual void constrainFace(int dir, bool open, int dof,
+                             int code, char basis);
+  //! \brief Constrains all DOFs on a given boundary edge.
+  //! \param[in] lEdge Local index [1,12] of the edge to constrain
+  //! \param[in] open If \e true, exclude the end points of the edge
+  //! \param[in] dof Which DOFs to constrain at each node along the edge
+  //! \param[in] code Inhomogeneous dirichlet condition code
+  //! \param[in] basis Which basis to constrain edge for (0 means check all)
+  virtual void constrainEdge(int lEdge, bool open, int dof,
+                             int code, char basis);
+  //! \brief Constrains a corner node identified by the three parameter indices.
+  //! \param[in] I Parameter index in u-direction
+  //! \param[in] J Parameter index in v-direction
+  //! \param[in] K Parameter index in w-direction
+  //! \param[in] dof Which DOFs to constrain at the node
+  //! \param[in] code Inhomogeneous dirichlet condition code
+  //! \param[in] basis Which basis to constrain node for (0 means check all)
+  virtual void constrainCorner(int I, int J, int K, int dof,
+                               int code, char basis);
+
+
   // Methods for integration of finite element quantities.
   // These are the main computational methods of the ASM class hierarchy.
   // ====================================================================
@@ -156,7 +183,7 @@ public:
   virtual void extractNodeVec(const Vector& globVec, Vector& nodeVec,
                               unsigned char = 0, int basis = 0) const;
 
-  //! \brief Inject nodal results for this patch into a global vector.
+  //! \brief Injects nodal results for this patch into a global vector.
   //! \param[in] nodeVec Nodal result vector for this patch
   //! \param[out] globVec Global solution vector in DOF-order
   //! \param[in] basis Which basis (or 0 for both) to extract nodal values for
@@ -165,10 +192,8 @@ public:
 
   //! \brief Returns the number of projection nodes for this patch.
   virtual size_t getNoProjectionNodes() const;
-
   //! \brief Returns the number of refinement nodes for this patch.
   virtual size_t getNoRefineNodes() const;
-
   //! \brief Returns the number of refinement elements for this patch.
   virtual size_t getNoRefineElms() const;
 
@@ -201,9 +226,12 @@ protected:
                                   bool continuous) const;
 
 private:
-  std::vector<std::shared_ptr<LR::LRSplineVolume>> m_basis; //!< Spline bases
-  std::shared_ptr<LR::LRSplineVolume> projBasis; //!< Basis to project onto
-  std::shared_ptr<LR::LRSplineVolume> refBasis; //!< Basis to refine based on
+  typedef std::shared_ptr<LR::LRSplineVolume> SplinePtr; //!< Pointer to spline
+
+  std::vector<SplinePtr> m_basis;   //!< All bases
+  SplinePtr              projBasis; //!< Basis to project onto
+  SplinePtr              refBasis;  //!< Basis to refine based on
+
   const std::vector<Matrices>& bezierExtractmx;  //!< Bezier extraction matrices
   std::vector<Matrices>        myBezierExtractmx; //!< Bezier extraction matrices
 };

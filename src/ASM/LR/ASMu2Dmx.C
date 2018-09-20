@@ -286,6 +286,32 @@ bool ASMu2Dmx::generateFEMTopology ()
 }
 
 
+void ASMu2Dmx::constrainEdge (int dir, bool open, int dof, int code, char basis)
+{
+  if (basis > 0)
+    this->ASMu2D::constrainEdge(dir,open,dof,code,basis);
+  else for (basis = 1; basis <= (char)nfx.size(); basis++)
+  {
+    int basisDofs = this->maskDOFs(dof,basis);
+    if (basisDofs > 0)
+      this->ASMu2D::constrainEdge(dir,open,basisDofs,code,basis);
+  }
+}
+
+
+void ASMu2Dmx::constrainCorner (int I, int J, int dof, int code, char basis)
+{
+  if (basis > 0)
+    this->ASMu2D::constrainCorner(I,J,dof,code,basis);
+  else for (basis = 1; basis <= (char)nfx.size(); basis++)
+  {
+    int basisDofs = this->maskDOFs(dof,basis);
+    if (basisDofs > 0)
+      this->ASMu2D::constrainCorner(I,J,basisDofs,code,basis);
+  }
+}
+
+
 bool ASMu2Dmx::integrate (Integrand& integrand,
                           GlobalIntegral& glInt,
                           const TimeDomain& time)
@@ -315,6 +341,7 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
     {
       if (!ok)
         continue;
+
       int iel = groups[t][e] + 1;
       auto el1 = threadBasis->elementBegin()+iel-1;
       double uh = ((*el1)->umin()+(*el1)->umax())/2.0;
@@ -339,7 +366,7 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
       double   dXidu[2];
 
       // Get element area in the parameter space
-      double dA = this->getParametricArea(geoEl);
+      double dA = 0.25*this->getParametricArea(geoEl);
       if (dA < 0.0)  // topology error (probably logic error)
       {
         ok = false;
@@ -377,7 +404,8 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
         continue;
       }
 
-      // --- Integration loop over all Gauss points in each direction ------------
+
+      // --- Integration loop over all Gauss points in each direction ----------
 
       int jp = (iel-1)*nGauss*nGauss;
       fe.iGP = firstIp + jp; // Global integration point counter
@@ -409,8 +437,10 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
 
           // Compute Jacobian inverse of coordinate mapping and derivatives
           // basis function derivatives w.r.t. Cartesian coordinates
-          fe.detJxW = utl::Jacobian(Jac,fe.grad(geoBasis),Xnod,dNxdu[geoBasis-1]);
+          fe.detJxW = utl::Jacobian(Jac,fe.grad(geoBasis),Xnod,
+                                    dNxdu[geoBasis-1]);
           if (fe.detJxW == 0.0) continue; // skip singular points
+
           for (size_t b = 0; b < m_basis.size(); ++b)
             if (b != (size_t)geoBasis-1)
               fe.grad(b+1).multiply(dNxdu[b],Jac);
@@ -436,27 +466,18 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
           X.t = time.t;
 
           // Evaluate the integrand and accumulate element contributions
-          fe.detJxW *= 0.25*dA*wg[i]*wg[j];
+          fe.detJxW *= dA*wg[i]*wg[j];
           if (!integrand.evalIntMx(*A,fe,time,X))
-          {
             ok = false;
-            continue;
-          }
         }
 
       // Finalize the element quantities
-      if (!integrand.finalizeElement(*A,time,firstIp+jp))
-      {
+      if (ok && !integrand.finalizeElement(*A,time,firstIp+jp))
         ok = false;
-        continue;
-      }
 
       // Assembly of global system integral
-      if (!glInt.assemble(A->ref(),fe.iel))
-      {
+      if (ok && !glInt.assemble(A->ref(),fe.iel))
         ok = false;
-        continue;
-      }
 
       A->destruct();
     }
@@ -787,12 +808,13 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
 
             // Compute Jacobian inverse of the coordinate mapping and
             // basis function derivatives w.r.t. Cartesian coordinates
-            fe.detJxW = utl::Jacobian(Jac2, normal,
-                                      fe.grad(geoBasis+m_basis.size()),
-                                      Xnod2,dNxdu[geoBasis-1+m_basis.size()],t1,t2);
-            fe.detJxW = utl::Jacobian(Jac, normal,
-                                      fe.grad(geoBasis),Xnod,dNxdu[geoBasis-1],t1,t2);
+            fe.detJxW = utl::Jacobian(Jac2,normal,
+                                      fe.grad(geoBasis+m_basis.size()),Xnod2,
+                                      dNxdu[geoBasis-1+m_basis.size()],t1,t2);
+            fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(geoBasis),Xnod,
+                                      dNxdu[geoBasis-1],t1,t2);
             if (fe.detJxW == 0.0) continue; // skip singular points
+
             for (size_t b = 0; b < m_basis.size(); ++b)
               if (b != (size_t)geoBasis-1) {
                 fe.grad(b+1).multiply(dNxdu[b],Jac);
