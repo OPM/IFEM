@@ -16,7 +16,6 @@
 
 #include "ASMs3D.h"
 #include "ASMmxBase.h"
-#include <memory>
 
 
 /*!
@@ -35,7 +34,7 @@ public:
   //! \brief The constructor initializes the dimension of each basis.
   explicit ASMs3Dmx(const CharVec& n_f);
   //! \brief Copy constructor.
-  ASMs3Dmx(const ASMs3Dmx& patch, const CharVec& n_f = CharVec(2,0));
+  ASMs3Dmx(const ASMs3Dmx& patch, const CharVec& n_f);
   //! \brief Destructor.
   virtual ~ASMs3Dmx();
 
@@ -52,7 +51,7 @@ public:
 
   //! \brief Generates the finite element topology data for the patch.
   //! \details The data generated are the element-to-node connectivity array,
-  //! the node-to-IJ-index array, as well as global node and element numbers.
+  //! the node-to-IJK-index array, as well as global node and element numbers.
   virtual bool generateFEMTopology();
 
   //! \brief Clears the contents of the patch, making it empty.
@@ -90,6 +89,32 @@ public:
 
   //! \brief Initializes the patch level MADOF array for mixed problems.
   virtual void initMADOF(const int* sysMadof);
+
+  //! \brief Constrains all DOFs on a given boundary face.
+  //! \param[in] dir Parameter direction defining the face to constrain
+  //! \param[in] open If \e true, exclude all points along the face boundary
+  //! \param[in] dof Which DOFs to constrain at each node on the face
+  //! \param[in] code Inhomogeneous dirichlet condition code
+  //! \param[in] basis Which basis to constrain face for (0 means check all)
+  virtual void constrainFace(int dir, bool open, int dof,
+                             int code, char basis);
+  //! \brief Constrains all DOFs on a given boundary edge.
+  //! \param[in] lEdge Local index [1,12] of the edge to constrain
+  //! \param[in] open If \e true, exclude the end points of the edge
+  //! \param[in] dof Which DOFs to constrain at each node along the edge
+  //! \param[in] code Inhomogeneous dirichlet condition code
+  //! \param[in] basis Which basis to constrain edge for (0 means check all)
+  virtual void constrainEdge(int lEdge, bool open, int dof,
+                             int code, char basis);
+  //! \brief Constrains a corner node identified by the three parameter indices.
+  //! \param[in] I Parameter index in u-direction
+  //! \param[in] J Parameter index in v-direction
+  //! \param[in] K Parameter index in w-direction
+  //! \param[in] dof Which DOFs to constrain at the node
+  //! \param[in] code Inhomogeneous dirichlet condition code
+  //! \param[in] basis Which basis to constrain node for (0 means check all)
+  virtual void constrainCorner(int I, int J, int K, int dof,
+                               int code, char basis);
 
   //! \brief Connects all matching nodes on two adjacent boundary faces.
   //! \param[in] face Local face index of this patch, in range [1,6]
@@ -132,7 +157,9 @@ public:
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
   //! \param[in] iChk Object checking if an element interface has contributions
   virtual bool integrate(Integrand& integrand, GlobalIntegral& glbInt,
-                         const TimeDomain& time, const ASM::InterfaceChecker& iChk);
+                         const TimeDomain& time,
+                         const ASM::InterfaceChecker& iChk);
+
 
   // Post-processing methods
   // =======================
@@ -159,7 +186,7 @@ public:
   //! \param[in] gpar Parameter values of the result sampling points
   //! \param[in] regular Flag indicating how the sampling points are defined
   //! \param[in] deriv Derivative order to return
-  //! \param[in] nf If non-zero evaluates nf fields on first basis
+  //! \param[in] nf If nonzero, evaluate nf fields on first basis
   //!
   //! \details When \a regular is \e true, it is assumed that the parameter
   //! value array \a gpar forms a regular tensor-product point grid of dimension
@@ -206,7 +233,7 @@ public:
   //! \brief Generates element groups for multi-threading of interior integrals.
   //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] silence If \e true, suppress threading group outprint
-  //! \param[in] ignoreGlobalLM If \e true ignore global multipliers in sanity check
+  //! \param[in] ignoreGlobalLM Sanity check option
   virtual void generateThreadGroups(const Integrand& integrand, bool silence,
                                     bool ignoreGlobalLM);
 
@@ -223,7 +250,7 @@ protected:
   virtual double getParametricVolume(int iel) const;
   //! \brief Returns boundary face area in the parameter space for an element.
   //! \param[in] iel Element index
-  //! \param[in] dir Local face index of the boundary face
+  //! \param[in] dir Local index of the boundary face
   double getParametricArea(int iel, int dir) const;
 
   //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
