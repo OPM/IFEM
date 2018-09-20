@@ -343,14 +343,10 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
     {
       if (!ok)
         continue;
-      int iel = groups[t][e] + 1;
-      auto el1 = threadBasis->elementBegin()+iel-1;
-      std::vector<size_t> els;
+
+      std::vector<int>    els;
       std::vector<size_t> elem_sizes;
-      for (size_t i=0; i < m_basis.size(); ++i) {
-        els.push_back(m_basis[i]->getElementContaining((*el1)->midpoint())+1);
-        elem_sizes.push_back(m_basis[i]->getElement(els.back()-1)->nBasisFunctions());
-      }
+      this->getElementsAt(threadBasis->getElement(groups[t][e])->midpoint(),els,elem_sizes);
 
       int geoEl = els[geoBasis-1];
 
@@ -549,12 +545,9 @@ bool ASMu2Dmx::integrate (Integrand& integrand, int lIndex,
         std::find(myElms.begin(), myElms.end(), iel-1) == myElms.end())
       continue;
 
-    std::vector<size_t> els;
+    std::vector<int>    els;
     std::vector<size_t> elem_sizes;
-    for (size_t i=0; i < m_basis.size(); ++i) {
-      els.push_back(m_basis[i]->getElementContaining((*el1)->midpoint())+1);
-      elem_sizes.push_back((*(m_basis[i]->elementBegin()+(els.back()-1)))->nBasisFunctions());
-    }
+    this->getElementsAt((*el1)->midpoint(),els,elem_sizes);
 
     int geoEl = els[geoBasis-1];
     MxFiniteElement fe(elem_sizes,firstp);
@@ -672,14 +665,13 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
         ++iel, ++el1;
       continue;
     }
-    // first push the hosting elements
-    std::vector<size_t> els(1,iel);
-    std::vector<size_t> elem_sizes(1,(*el1)->nBasisFunctions());
 
-    for (size_t i=1; i < m_basis.size(); ++i) {
-      els.push_back(m_basis[i]->getElementContaining((*el1)->midpoint())+1);
-      elem_sizes.push_back(m_basis[i]->getElement(els.back()-1)->nBasisFunctions());
-    }
+    std::vector<int>    els;
+    std::vector<size_t> elem_sizes;
+    this->getElementsAt((*el1)->midpoint(),els,elem_sizes);
+    // Replace first entry by hosting element
+    els.front()        = iel;
+    elem_sizes.front() = (*el1)->nBasisFunctions();
 
     // Set up control point coordinates for current element
     if (!this->getElementCoordinates(Xnod,els[geoBasis-1]))
@@ -714,24 +706,18 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
 
         std::vector<double> intersections = iChk.getIntersections(iel, iedge);
         for (size_t i = 0; i < intersections.size() && ok; ++i) {
-          std::vector<double> parval(2);
-          parval[0] = u1-epsu;
-          parval[1] = v1-epsv;
-
           if (iedge == 1 || iedge == 2)
             v2 = intersections[i];
           else
             u2 = intersections[i];
 
-          int el_neigh = this->getBasis(1)->getElementContaining(parval)+1;
-          const LR::Element* el2 = m_basis[0]->getElement(el_neigh-1);
-
-          std::vector<size_t> els2(1,el_neigh);
-          std::vector<size_t> elem_sizes2(1,el2->nBasisFunctions());
-          for (size_t i=1; i < m_basis.size(); ++i) {
-            els2.push_back(m_basis[i]->getElementContaining(el2->midpoint())+1);
-            elem_sizes2.push_back(m_basis[i]->getElement(els2.back()-1)->nBasisFunctions());
-          }
+          int el_neigh = this->getBasis(1)->getElementContaining({u1-epsu,v1-epsv})+1;
+          const LR::Element* el2 = m_basis.front()->getElement(el_neigh-1);
+          std::vector<int>    els2;
+          std::vector<size_t> elem_sizes2;
+          this->getElementsAt(el2->midpoint(),els2,elem_sizes2);
+          els2.front()        = el_neigh;
+          elem_sizes2.front() = el2->nBasisFunctions();
 
           LocalIntegral* A_neigh = integrand.getLocalIntegral(elem_sizes2, el_neigh);
           ok = integrand.initElement(MNPC[els2[geoBasis-1]-1],
@@ -921,12 +907,9 @@ bool ASMu2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   {
     // Fetch element containing evaluation point
     // sadly, points are not always ordered in the same way as the elements
-    std::vector<size_t> els;
+    std::vector<int>    els;
     std::vector<size_t> elem_sizes;
-    for (size_t b = 0; b < m_basis.size(); ++b) {
-      els.push_back(m_basis[b]->getElementContaining(gpar[0][i],gpar[1][i])+1);
-      elem_sizes.push_back((*(m_basis[b]->elementBegin()+els.back()-1))->nBasisFunctions());
-    }
+    this->getElementsAt({gpar[0][i],gpar[1][i]},els,elem_sizes);
 
     // Evaluate the basis functions at current parametric point
     MxFiniteElement fe(elem_sizes,firstIp+i);
@@ -1254,5 +1237,22 @@ void ASMu2Dmx::swapProjectionBasis ()
     geo = lrspline.get();
     this->generateBezierBasis();
     this->generateBezierExtraction();
+  }
+}
+
+
+void ASMu2Dmx::getElementsAt (const RealArray& param,
+                              std::vector<int>& elms,
+                              std::vector<size_t>& sizes) const
+{
+  elms.clear();
+  sizes.clear();
+  elms.reserve(m_basis.size());
+  sizes.reserve(m_basis.size());
+  for (const std::shared_ptr<LR::LRSplineSurface>& basis : m_basis)
+  {
+    int iel = basis->getElementContaining(param);
+    elms.push_back(1+iel);
+    sizes.push_back(basis->getElement(iel)->nBasisFunctions());
   }
 }

@@ -219,6 +219,15 @@ public:
   //! \brief Swaps between the main and alternative projection basis.
   virtual void swapProjectionBasis();
 
+private:
+  //! \brief Finds the elements and associted sizes at given parametric point.
+  //! \param[in] param Parametric point to find elements at
+  //! \param[out] elms List of elements on each basis containign given point
+  //! \param[out] sizes List of element sizes (numer of element nodes)
+  void getElementsAt(const RealArray& param,
+                     std::vector<int>& elms,
+                     std::vector<size_t>& sizes) const;
+
 protected:
   using ASMu2D::generateThreadGroups;
   //! \brief Generates element groups for multi-threading of interior integrals.

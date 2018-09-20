@@ -391,26 +391,24 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
 
   ThreadGroups oneGroup;
   if (glInt.threadSafe()) oneGroup.oneGroup(nel);
-  const IntMat& group = glInt.threadSafe() ? oneGroup[0] : threadGroups[0];
+  const IntMat& groups = glInt.threadSafe() ? oneGroup[0] : threadGroups[0];
 
 
   // === Assembly loop over all elements in the patch ==========================
 
   bool ok = true;
-  for (size_t t = 0; t < group.size() && ok; t++)
+  for (size_t t = 0; t < groups.size() && ok; t++)
 #pragma omp parallel for schedule(static)
-    for (size_t e = 0; e < group[t].size(); e++)
+    for (size_t e = 0; e < groups[t].size(); e++)
     {
       if (!ok)
         continue;
-      int iel = group[t][e] + 1;
-      const LR::Element* el = threadBasis->getElement(iel-1);
-      std::vector<size_t> els;
+
+      const LR::Element* el = threadBasis->getElement(groups[t][e]);
+
+      std::vector<int>    els;
       std::vector<size_t> elem_sizes;
-      for (size_t i = 0; i < m_basis.size(); ++i) {
-        els.push_back(m_basis[i]->getElementContaining(el->midpoint())+1);
-        elem_sizes.push_back((*(m_basis[i]->elementBegin()+els.back()-1))->nBasisFunctions());
-      }
+      this->getElementsAt(el->midpoint(),els,elem_sizes);
       int iEl = el->getId();
       MxFiniteElement fe(elem_sizes);
       fe.iel = MLGE[iEl];
@@ -653,12 +651,9 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
         std::find(myElms.begin(), myElms.end(), iEl) == myElms.end())
       continue;
 
-    std::vector<size_t> els;
+    std::vector<int>    els;
     std::vector<size_t> elem_sizes;
-    for (size_t i=0; i < m_basis.size(); ++i) {
-      els.push_back(m_basis[i]->getElementContaining(el->midpoint())+1);
-      elem_sizes.push_back((*(m_basis[i]->elementBegin()+els.back()-1))->nBasisFunctions());
-    }
+    this->getElementsAt(el->midpoint(),els,elem_sizes);
     MxFiniteElement fe(elem_sizes);
     fe.iel = MLGE[iEl];
 
@@ -872,12 +867,9 @@ bool ASMu3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   {
     // Fetch element containing evaluation point
     // sadly, points are not always ordered in the same way as the elements
-    std::vector<size_t> els;
+    std::vector<int>    els;
     std::vector<size_t> elem_sizes;
-    for (size_t b = 0; b < m_basis.size(); ++b) {
-      els.push_back(m_basis[b]->getElementContaining(gpar[0][i],gpar[1][i],gpar[2][i])+1);
-      elem_sizes.push_back(m_basis[b]->getElement(els.back()-1)->nBasisFunctions());
-    }
+    this->getElementsAt({gpar[0][i],gpar[1][i],gpar[2][i]},els,elem_sizes);
 
     // Evaluate the basis functions at current parametric point
     MxFiniteElement fe(elem_sizes,firstIp+i);
@@ -1132,5 +1124,22 @@ void ASMu3Dmx::swapProjectionBasis ()
     ASMmxBase::geoBasis = ASMmxBase::geoBasis == 1 ? 2 : 1;
     std::swap(projBasis, altProjBasis);
     std::swap(projThreadGroups, altProjThreadGroups);
+  }
+}
+
+
+void ASMu3Dmx::getElementsAt (const RealArray& param,
+                              std::vector<int>& elms,
+                              std::vector<size_t>& sizes) const
+{
+  elms.clear();
+  sizes.clear();
+  elms.reserve(m_basis.size());
+  sizes.reserve(m_basis.size());
+  for (const std::shared_ptr<LR::LRSplineVolume>& basis : m_basis)
+  {
+    int iel = basis->getElementContaining(param);
+    elms.push_back(1+iel);
+    sizes.push_back(basis->getElement(iel)->nBasisFunctions());
   }
 }
