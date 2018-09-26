@@ -924,7 +924,7 @@ Real SymmTensor::det () const
       - v[3]*(v[3]*v[2] - v[5]*v[4])
       + v[5]*(v[3]*v[4] - v[5]*v[1]);
   else if (n == 2)
-    d = (v.front()-v.back())*v[1];
+    d = v.front() * v[1] - v.back() * v.back();
   else if (n == 1)
     d = v.front();
 
