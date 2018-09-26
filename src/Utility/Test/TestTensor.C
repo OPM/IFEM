@@ -257,3 +257,23 @@ TEST(TestTensor, RotationAngles)
   EXPECT_FLOAT_EQ(angles.y, 1.6);
   EXPECT_FLOAT_EQ(angles.z, 1.1);
 }
+
+
+TEST(TestTensor, Determinant)
+{
+  const double data[9] = { 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0 };
+
+  SymmTensor S1(std::vector<double>(data, data+1));
+  SymmTensor S2(std::vector<double>(data, data+3));
+  SymmTensor S3(std::vector<double>(data, data+6));
+  Tensor T1(std::vector<double>(data, data+1));
+  Tensor T2(std::vector<double>(data, data+4));
+  Tensor T3(std::vector<double>(data, data+9));
+
+  EXPECT_FLOAT_EQ(S1.det(), 1.0);
+  EXPECT_FLOAT_EQ(S2.det(), -7.0);
+  EXPECT_FLOAT_EQ(S3.det(), 101.0);
+  EXPECT_FLOAT_EQ(T1.det(), 1.0);
+  EXPECT_FLOAT_EQ(T2.det(), -2.0);
+  EXPECT_FLOAT_EQ(T3.det(), 0.0);
+}
