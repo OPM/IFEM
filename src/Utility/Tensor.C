@@ -308,8 +308,14 @@ Tensor& Tensor::operator= (const Tensor& T)
       for (t_ind j = (this->symmetric() ? i : 1); j <= ndim; j++)
         v[this->index(i,j)] = T(i,j);
 
-    if (this->symmetric() && v.size() == 4 && T.v.size() >= 4)
-      v[2] = T(3,3);
+    if (this->symmetric() && T.v.size() >= 4)
+    {
+      if (v.size() == 4) v[2] = T(3,3);
+    }
+    else
+    {
+      if (v.size() == 9) v[8] = T(3,3);
+    }
   }
 
   return *this;
@@ -924,7 +930,7 @@ Real SymmTensor::det () const
       - v[3]*(v[3]*v[2] - v[5]*v[4])
       + v[5]*(v[3]*v[4] - v[5]*v[1]);
   else if (n == 2)
-    d = (v.front()-v.back())*v[1];
+    d = v.front()*v[1] - v.back()*v.back();
   else if (n == 1)
     d = v.front();
 
