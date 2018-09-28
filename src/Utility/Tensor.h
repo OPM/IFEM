@@ -62,6 +62,9 @@ public:
   //! \brief Constructor copying its content from a one-dimensional array.
   Tensor(const std::vector<Real>& a, bool transpose = false);
 
+  //! \brief Empty destructor.
+  virtual ~Tensor() {}
+
   //! \brief Sets \a *this to the 0-tensor.
   void zero() { std::fill(v.begin(),v.end(),Real(0)); }
 

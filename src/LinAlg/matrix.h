@@ -878,6 +878,9 @@ namespace utl //! General utility classes and functions.
       }
     }
 
+    //! \brief Empty destructor.
+    virtual ~matrix3d() {}
+
     //! \brief Resize the matrix to dimension \f$n_1 \times n_2 \times n_3\f$.
     //! \details Will erase the previous content, but only if both
     //! the total matrix size, and n_1 or n_2 in the matrix are changed.
