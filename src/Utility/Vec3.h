@@ -50,6 +50,9 @@ public:
   Vec3(const Vec3& X, const Vec3& Y) : x(v[0]), y(v[1]), z(v[2])
   { this->cross(X,Y); }
 
+  //! \brief Empty destructor.
+  virtual ~Vec3() {}
+
   //! \brief Assignment operator.
   Vec3& operator=(const Vec3& X) { x = X.x; y = X.y; z = X.z; return *this; }
   //! \brief Overloaded assignment operator.
