@@ -103,6 +103,8 @@ bool NewmarkSIM::parse (const TiXmlElement* elem)
       rotUpd = tolower(value[0]);
     else if (!strncasecmp(child->Value(),"solve_dis",9))
       solveDisp = true; // no need for value here
+    else if (!strcasecmp(child->Value(),"printCond"))
+      rCond = 0.0;
   }
 
   return true;
@@ -346,7 +348,8 @@ SIM::ConvStatus NewmarkSIM::solveStep (TimeStep& param, SIM::SolutionMode,
   if (!model.extractLoadVec(residual))
     return SIM::FAILURE;
 
-  if (!model.solveSystem(linsol,msgLevel-1))
+  double* rCondPtr = rCond < 0.0 ? nullptr : &rCond;
+  if (!model.solveSystem(linsol,msgLevel-1,rCondPtr))
     return SIM::FAILURE;
 
   while (param.iter <= maxit)
@@ -392,7 +395,7 @@ SIM::ConvStatus NewmarkSIM::solveStep (TimeStep& param, SIM::SolutionMode,
         if (!model.extractLoadVec(residual))
           return SIM::FAILURE;
 
-        if (!model.solveSystem(linsol,msgLevel-1))
+        if (!model.solveSystem(linsol,msgLevel-1,rCondPtr))
           return SIM::FAILURE;
       }
 
@@ -428,7 +431,8 @@ SIM::ConvStatus NewmarkSIM::solveIteration (TimeStep& param)
   if (!model.extractLoadVec(residual))
     return SIM::FAILURE;
 
-  if (!model.solveSystem(linsol,msgLevel-1))
+  double* rCondPtr = rCond < 0.0 ? nullptr : &rCond;
+  if (!model.solveSystem(linsol,msgLevel-1,rCondPtr))
     return SIM::FAILURE;
 
   SIM::ConvStatus result = this->checkConvergence(param);
@@ -483,7 +487,10 @@ SIM::ConvStatus NewmarkSIM::checkConvergence (TimeStep& param)
          <<"  conv="<< fabs(norm)
          <<"  enen="<< norms[0]
          <<"  resn="<< norms[1]
-         <<"  incn="<< norms[2] << std::endl;
+         <<"  incn="<< norms[2];
+    if (rCond > 0.0)
+      cout <<"  cond="<< 1.0/rCond;
+    cout << std::endl;
     cout.flags(stdFlags);
     cout.precision(stdPrec);
   }
