@@ -15,6 +15,9 @@
 #define _HDF5_WRITER_H
 
 #include "DataExporter.h"
+#ifdef HAS_HDF5
+#include <hdf5.h>
+#endif
 
 class SIMbase;
 
@@ -30,6 +33,9 @@ class SIMbase;
 class HDF5Writer : public DataWriter
 {
 public:
+#ifndef HAS_HDF5
+  using hid_t = int; //!< Type alias providing hid_t without the hdf5 library
+#endif
   //! \brief The constructor opens a named HDF5-file.
   //! \param[in] name The name (without extension) of the data file
   //! \param[in] adm The process administrator
@@ -156,7 +162,7 @@ public:
   //! \param[in] name The name of the array
   //! \param[out] len The length of the data read
   //! \param[out] data The array to read data into
-  void readArray(int group, const std::string& name, int& len, char*& data);
+  void readArray(hid_t group, const std::string& name, int& len, char*& data);
 
 protected:
   //! \brief Internal helper function writing a data array to file.
@@ -165,7 +171,7 @@ protected:
   //! \param[in] len The length of the array
   //! \param[in] data The array to write
   //! \param[in] type The HDF5 type for the data (see H5T)
-  void writeArray(int group, const std::string& name,
+  void writeArray(hid_t group, const std::string& name,
                   int len, const void* data, int type);
 
   //! \brief Internal helper function writing a SIM's basis (geometry) to file.
@@ -182,24 +188,24 @@ protected:
   //! \param[in] name The name of the array
   //! \param[out] len The length of the data read
   //! \param[out] data The array to read data into
-  void readArray(int group, const std::string& name, int& len, double*& data);
+  void readArray(hid_t group, const std::string& name, int& len, double*& data);
 
   //! \brief Internal helper function reading into an array of integers.
   //! \param[in] group The HDF5 group to read data from
   //! \param[in] name The name of the array
   //! \param[out] len The length of the data read
   //! \param[out] data The array to read data into
-  void readArray(int group, const std::string& name, int& len, int*& data);
+  void readArray(hid_t group, const std::string& name, int& len, int*& data);
 
   //! \brief Internal helper function checking if a group exists in the file.
   //! \param[in] parent The HDF5 group of the parent
   //! \param[in] group The name of the group to check for
   //! \return \e true if group exists, otherwise \e false
-  bool checkGroupExistence(int parent, const char* group);
+  bool checkGroupExistence(hid_t parent, const char* group);
 
 private:
-  int          m_file; //!< The HDF5 handle for our file
-  int  m_restart_file; //!< The HDF5 handle for our restart file
+  hid_t        m_file; //!< The HDF5 handle for our file
+  hid_t        m_restart_file; //!< The HDF5 handle for our restart file
   unsigned int m_flag; //!< The file flags to open HDF5 file with
   unsigned int m_restart_flag; //!< The file flags to open the restart file with
   bool     m_keepOpen; //!< If \e true, we always keep the file open
