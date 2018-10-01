@@ -150,8 +150,11 @@ bool ASMunstruct::refine (const LR::RefineData& prm,
     nnod = geo->nBasisFunctions();
     return true;
   }
-  else if (prm.errors.empty() && prm.elements.empty())
+  else if (prm.errors.empty() && prm.elements.empty()) {
+    if (fName)
+      storeMesh(fName);
     return true;
+  }
 
   IntVec nf(sol.size());
   for (size_t j = 0; j < sol.size(); j++)
@@ -168,46 +171,7 @@ bool ASMunstruct::refine (const LR::RefineData& prm,
   }
 
   if (fName)
-  {
-    char fullFileName[256];
-
-    strcpy(fullFileName, "lrspline_");
-    strcat(fullFileName, fName);
-    std::ofstream lrOut(fullFileName);
-    lrOut << *geo;
-    lrOut.close();
-
-    LR::LRSplineSurface* lr = dynamic_cast<LR::LRSplineSurface*>(geo);
-    if (lr) {
-      // open files for writing
-      strcpy(fullFileName, "param_");
-      strcat(fullFileName, fName);
-      std::ofstream paramMeshFile(fullFileName);
-
-      strcpy(fullFileName, "physical_");
-      strcat(fullFileName, fName);
-      std::ofstream physicalMeshFile(fullFileName);
-
-      strcpy(fullFileName, "param_dot_");
-      strcat(fullFileName, fName);
-      std::ofstream paramDotMeshFile(fullFileName);
-
-      strcpy(fullFileName, "physical_dot_");
-      strcat(fullFileName, fName);
-      std::ofstream physicalDotMeshFile(fullFileName);
-
-      lr->writePostscriptMesh(paramMeshFile);
-      lr->writePostscriptElements(physicalMeshFile);
-      lr->writePostscriptFunctionSpace(paramDotMeshFile);
-      lr->writePostscriptMeshWithControlPoints(physicalDotMeshFile);
-
-      // close all files
-      paramMeshFile.close();
-      physicalMeshFile.close();
-      paramDotMeshFile.close();
-      physicalDotMeshFile.close();
-    }
-  }
+    storeMesh(fName);
 
   IFEM::cout <<"Refined mesh: "<< geo->nElements() <<" elements "
              << geo->nBasisFunctions() <<" nodes."<< std::endl;
@@ -424,4 +388,27 @@ std::pair<size_t,double> ASMunstruct::findClosestNode (const Vec3& X) const
   }
 
   return std::make_pair(iclose,distance);
+}
+
+
+void ASMunstruct::storeMesh(const char* fName)
+{
+  std::string fname(fName);
+  std::ofstream lrOut("lrspline_"+fname);
+  lrOut << *geo;
+  lrOut.close();
+
+  // open files for writing
+  std::ofstream paramMeshFile("param_"+fname);
+  std::ofstream physicalMeshFile("physical_"+fname);
+  std::ofstream paramDotMeshFile("param_dot_"+fname);
+  std::ofstream physicalDotMeshFile("physical_dot_"+fname);
+
+  LR::LRSplineSurface* lr = dynamic_cast<LR::LRSplineSurface*>(geo);
+  if (lr) {
+    lr->writePostscriptMesh(paramMeshFile);
+    lr->writePostscriptElements(physicalMeshFile);
+    lr->writePostscriptFunctionSpace(paramDotMeshFile);
+    lr->writePostscriptMeshWithControlPoints(physicalDotMeshFile);
+  }
 }

@@ -230,6 +230,11 @@ protected:
 
   static int gEl;  //!< Global element counter
   static int gNod; //!< Global node counter
+
+private:
+  //! \brief Store basis to eps files.
+  //! \param[in] fName Prefix for file names
+  void storeMesh(const char* fName);
 };
 
 #endif
