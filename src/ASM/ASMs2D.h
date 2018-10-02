@@ -482,6 +482,12 @@ public:
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
 			    const RealArray* gpar, bool regular = true) const;
 
+  //! \brief Calculates parameter values for the Greville points.
+  //! \param[out] prm Parameter values in given direction for all points
+  //! \param[in] dir Parameter direction (0,1)
+  //! \param[in] basis Basis number (mixed)
+  bool getGrevilleParameters(RealArray& prm, int dir, int basis=1) const;
+
 protected:
 
   // Internal utility methods
@@ -518,12 +524,6 @@ protected:
   //! \return The parameter value matrix casted into a one-dimensional vector
   const Vector& getGaussPointParameters(Matrix& uGP, int dir, int nGauss,
 					const double* xi) const;
-
-  //! \brief Calculates parameter values for the Greville points.
-  //! \param[out] prm Parameter values in given direction for all points
-  //! \param[in] dir Parameter direction (0,1)
-  //! \param[in] basis Basis number (mixed)
-  bool getGrevilleParameters(RealArray& prm, int dir, int basis=1) const;
 
   //! \brief Calculates parameter values for the Quasi-Interpolation points.
   //! \param[out] prm Parameter values in given direction for all points

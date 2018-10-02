@@ -148,6 +148,7 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
     utl::getAttribute(elem,"u",addu);
     utl::getAttribute(elem,"v",addv);
     utl::getAttribute(elem,"w",addw);
+    addu += addRef, addv += addRef, addw += addRef;
     for (int j : patches) {
       ASM3D* pch;
       if ((pch = dynamic_cast<ASM3D*>(this->getPatch(j,true))))

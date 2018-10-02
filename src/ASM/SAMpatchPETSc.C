@@ -178,7 +178,7 @@ bool SAMpatchPETSc::expandSolution(const SystemVector& solVec,
 {
   PETScVector* Bptr = const_cast<PETScVector*>(dynamic_cast<const PETScVector*>(&solVec));
   if (!Bptr)
-    return false;
+    return this->SAMpatch::expandSolution(solVec, dofVec, scaleSD);
 
 #ifdef HAVE_MPI
   if (adm.isParallel()) {

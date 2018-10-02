@@ -384,6 +384,7 @@ void PETScSolParams::setupAdditiveSchwarz(PC& pc, size_t block,
   }
 }
 
+
 void PETScSolParams::setupSchurComplement(const std::vector<Mat>& matvec)
 {
   PetscInt m1, n1;
@@ -396,6 +397,7 @@ void PETScSolParams::setupSchurComplement(const std::vector<Mat>& matvec)
 
   // TODO: non-SIMPLE schur preconditioners
   MatGetDiagonal(matvec[0],diagA00);
+  // TODO: Lumping
   VecReciprocal(diagA00);
   SPsetup = true;
 
@@ -409,4 +411,26 @@ void PETScSolParams::setupSchurComplement(const std::vector<Mat>& matvec)
   MatAXPY(Sp,-1.0,tmp2,DIFFERENT_NONZERO_PATTERN);
   MatDestroy(&tmp);
   MatDestroy(&tmp2);
+}
+
+
+extern "C" {
+
+PetscErrorCode PETScSIMMxV(Mat A, Vec x, Vec y)
+{
+  void* p;
+  MatShellGetContext(A, &p);
+  PETScMxV* sim = static_cast<PETScMxV*>(p);
+  return sim->evalMxV(x,y) ? 0 : 1;
+}
+
+
+PetscErrorCode PETScSIMPC(PC pc, Vec x, Vec y)
+{
+  void* p;
+  PCShellGetContext(pc, &p);
+  PETScPC* sim = static_cast<PETScPC*>(p);
+  return sim->eval(x,y) ? 0 : 1;
+}
+
 }
