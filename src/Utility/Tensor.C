@@ -308,13 +308,12 @@ Tensor& Tensor::operator= (const Tensor& T)
       for (t_ind j = (this->symmetric() ? i : 1); j <= ndim; j++)
         v[this->index(i,j)] = T(i,j);
 
-    if (this->symmetric() && T.v.size() >= 4)
+    if (T.v.size() >= 4 && T.symmetric())
     {
-      if (v.size() == 4) v[2] = T(3,3);
-    }
-    else
-    {
-      if (v.size() == 9) v[8] = T(3,3);
+      if (v.size() == 4 && this->symmetric())
+        v[2] = T(3,3);
+      else if (v.size() == 9)
+        v[8] = T(3,3);
     }
   }
 

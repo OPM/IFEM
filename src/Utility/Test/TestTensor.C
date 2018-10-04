@@ -297,4 +297,15 @@ TEST(TestTensor, Determinant)
   EXPECT_FLOAT_EQ(S1.det(),T1.det());
   EXPECT_FLOAT_EQ(S2.det(),T2.det());
   EXPECT_FLOAT_EQ(S3.det(),T3.det());
+
+  T3 = R2;
+  EXPECT_FLOAT_EQ(T3(1,1),1.0);
+  EXPECT_FLOAT_EQ(T3(2,1),2.0);
+  EXPECT_FLOAT_EQ(T3(1,2),3.0);
+  EXPECT_FLOAT_EQ(T3(2,2),4.0);
+  for (int i = 1; i <= 3; i++)
+  {
+    EXPECT_FLOAT_EQ(T3(i,3),0.0);
+    EXPECT_FLOAT_EQ(T3(3,i),0.0);
+  }
 }
