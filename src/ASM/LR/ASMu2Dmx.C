@@ -943,22 +943,6 @@ bool ASMu2Dmx::refine (const LR::RefineData& prm,
 {
   if (shareFE) return true;
 
-  auto&& storeMesh = [this, fName]()
-                     {
-                       for (size_t b = 1; b <= m_basis.size(); ++b) {
-                         std::stringstream str;
-                         str << "_patch" << idx << "_basis" << b << "_" << fName;
-                         std::ofstream paramMeshFile("param"+str.str());
-                         this->getBasis(b)->writePostscriptMesh(paramMeshFile);
-                         std::ofstream physMeshFile("physical"+str.str());
-                         this->getBasis(b)->writePostscriptElements(physMeshFile);
-                         std::ofstream pdotFile("param_dot"+str.str());
-                         this->getBasis(b)->writePostscriptElements(pdotFile);
-                         std::ofstream physdotFile("physical_dot"+str.str());
-                         this->getBasis(b)->writePostscriptMeshWithControlPoints(physdotFile);
-                       }
-                     };
-
   if (!prm.errors.empty() || !prm.elements.empty()) {
     for (size_t j = 0; j < sol.size(); ++j) {
       size_t ofs = 0;
@@ -969,7 +953,7 @@ bool ASMu2Dmx::refine (const LR::RefineData& prm,
     }
   } else {
     if (fName)
-      storeMesh();
+      storeMesh(fName);
     return true; // No refinement
   }
 
@@ -1024,7 +1008,7 @@ bool ASMu2Dmx::refine (const LR::RefineData& prm,
       }
 
     if (fName)
-      storeMesh();
+      storeMesh(fName);
 
   #ifdef SP_DEBUG
     std::cout <<"Refined mesh: ";
@@ -1199,4 +1183,20 @@ bool ASMu2Dmx::evalProjSolution (Matrix& sField, const Vector& locSol,
   delete f;
 
   return true;
+}
+
+void ASMu2Dmx::storeMesh(const char* fName)
+{
+  for (size_t b = 1; b <= m_basis.size(); ++b) {
+    std::stringstream str;
+    str << "_patch" << idx << "_basis" << b << "_" << fName;
+    std::ofstream paramMeshFile("param"+str.str());
+    this->getBasis(b)->writePostscriptMesh(paramMeshFile);
+    std::ofstream physMeshFile("physical"+str.str());
+    this->getBasis(b)->writePostscriptElements(physMeshFile);
+    std::ofstream pdotFile("param_dot"+str.str());
+    this->getBasis(b)->writePostscriptElements(pdotFile);
+    std::ofstream physdotFile("physical_dot"+str.str());
+    this->getBasis(b)->writePostscriptMeshWithControlPoints(physdotFile);
+  }
 }
