@@ -27,8 +27,6 @@ class ProcessAdm;
 
 class SAMpatchPETSc : public SAMpatch
 {
-  typedef std::vector<IntVec> IntMat; //!< General integer matrix
-
 public:
   //! \brief The constructor initializes the \a l2gn array.
   //! \param[in] g2ln Global-to-local node numbers for this processor
@@ -40,12 +38,14 @@ public:
   //! \brief Allocates the dynamic arrays and populates them with data.
   //! \param[in] model All spline patches in the model
   //! \param[in] numNod Total number of unique nodes in the model
-  virtual bool init(const std::vector<ASMbase*>& model, int numNod = 0);
+  //! \param[in] dTypes Nodal DOF type flags
+  virtual bool init(const std::vector<ASMbase*>& model, int numNod,
+                    const std::vector<char>& dTypes);
 
   //! \brief Computes the dot-product of two vectors.
   //! \param[in] x First vector in dot-product
   //! \param[in] y Second vector in dot-product
-  //! \param[in] dofType Only consider nodes of this type (for mixed methods)
+  //! \param[in] dofType Only consider DOFs of this type
   //! \return Value of dot-product
   //!
   //! \details Both vectors are defined over all nodes in the patch, i.e.
@@ -54,7 +54,7 @@ public:
 
   //! \brief Computes the L2-norm of a vector.
   //! \param[in] x Vector for norm computation
-  //! \param[in] dofType Only consider nodes of this type (for mixed methods)
+  //! \param[in] dofType Only consider DOFs of this type
   //! \return Value of L2-norm
   //!
   //! \details The vector is defined over all nodes in the patch, i.e.
@@ -64,7 +64,7 @@ public:
   //! \brief Computes the inf-norm of a vector.
   //! \param[in] x Vector for norm computation
   //! \param comp Local nodal DOF on input, index of the largest value on output
-  //! \param[in] dofType Only consider nodes of this type (for mixed methods)
+  //! \param[in] dofType Only consider DOFs of this type
   //! \return Value of inf-norm
   //!
   //! \details The vector is defined over all nodes in the patch, i.e.
@@ -89,37 +89,32 @@ public:
                               Real scaleSD = 1.0) const;
 
 private:
-#ifdef HAVE_MPI
-  //! \brief Setup a parallel index set for a given dofType
-  void setupIS(char dofType) const;
-#endif
-
   // Parameters for parallel computing
   int    nProc;      //!< Number of processes
   IntVec ghostNodes; //!< Indices for the ghost nodes
   IntVec l2gn;       //!< Local-to-global node numbers for this processor
-#ifdef HAVE_MPI
-  int    nleq = 0;       //!< Number of equations for this processor
-  int    nnodGlob = 0;   //!< Number of global nodes;
-  int    ieqmin = 0;     //!< Minium equation number
-  int    ieqmax = 0;     //!< Maximum equation number
-#endif
 
   const ProcessAdm& adm; //!< Parallel process administrator
 
   // For domain decomposition preconditioner
   std::vector<ASMbase*> patch; //!< The spline patches
 
+#ifdef HAVE_MPI
+  mutable IS glob2LocEq = nullptr; //!< Index set for global-to-local equations
+
   //! \brief Struct holding dof vector info
   struct DofIS {
     IS local;        //!< Local index set for dof type
     IS global;       //!< Global index set for dof type
     int nDofs;       //!< Number of DOFs on this process
-    bool scatterCreated = false; //!< True if scatter is created.
     VecScatter ctx;  //!< Scatterer
+    bool scatterCreated = false; //!< True if the scatterer is created
   };
-  mutable std::map<char, DofIS> dofIS; //!< Map of dof type scatter info
-  mutable IS glob2LocEq = nullptr; //!< Index set for global-to-local equations.
+  mutable std::map<char,DofIS> dofIS; //!< Map of dof type scatter info
+
+  //! \brief Returns a parallel index set for a given dofType.
+  DofIS& getIS(char dofType) const;
+#endif
 };
 
 #endif

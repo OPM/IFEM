@@ -155,7 +155,7 @@ void SAM::print (std::ostream& os) const
 
   if (meqn && madof)
   {
-    char code[7];
+    char code[7], dofType[7];
     os <<"\n\nNode --> Equations";
     for (int n = 0; n < nnod; n++)
     {
@@ -165,11 +165,14 @@ void SAM::print (std::ostream& os) const
       {
 	os <<' '<< meqn[dof-1];
 	code[i] = msc[dof-1] > 0 ? '0' + msc[dof-1] : '0';
+	dofType[i] = !dof_type.empty() ? dof_type[dof-1] : '\0';
       }
-      code[i] = '\0';
+      code[i] = dofType[i] = '\0';
       os <<'\t'<< code;
       if ((size_t)n < nodeType.size())
-	os <<'\t'<< nodeType[n];
+        os <<'\t'<< nodeType[n];
+      if (strlen(dofType) > 0)
+        os <<'\t' << dofType;
     }
     os << std::endl;
   }
@@ -374,45 +377,50 @@ bool SAM::getDofCouplings (std::vector<IntSet>& dofc) const
     if (!this->getElmEqns(meen,iel))
       return false;
 
-    size_t i, j;
-    int ieq, ip, ipmceq1, ipmceq2, jp, jpmceq1, jpmceq2;
-    for (j = 0; j < meen.size(); j++) {
-      int jeq;
-      if ((jeq = meen[j]) > 0)
+    for (size_t j = 0; j < meen.size(); j++)
+    {
+      int jeq = meen[j];
+      if (jeq > 0)
       {
         dofc[jeq-1].insert(jeq);
-        for (i = 0; i < j; i++)
-          if ((ieq = meen[i]) > 0)
+        for (size_t i = 0; i < j; i++)
+        {
+          int ieq = meen[i];
+          if (ieq > 0)
           {
             dofc[ieq-1].insert(jeq);
             dofc[jeq-1].insert(ieq);
           }
+        }
       }
       else if (jeq < 0)
       {
-        jpmceq1 = mpmceq[-jeq-1];
-        jpmceq2 = mpmceq[-jeq]-1;
-        for (jp = jpmceq1; jp < jpmceq2; jp++)
+        int jpmceq1 = mpmceq[-jeq-1];
+        int jpmceq2 = mpmceq[-jeq]-1;
+        for (int jp = jpmceq1; jp < jpmceq2; jp++)
           if (mmceq[jp] > 0)
           {
             jeq = meqn[mmceq[jp]-1];
-            for (i = 0; i < meen.size(); i++)
-              if ((ieq = meen[i]) > 0)
+            for (size_t i = 0; i < meen.size(); i++)
+            {
+              int ieq = meen[i];
+              if (ieq > 0)
               {
                 dofc[ieq-1].insert(jeq);
                 dofc[jeq-1].insert(ieq);
               }
               else if (ieq < 0)
               {
-                ipmceq1 = mpmceq[-ieq-1];
-                ipmceq2 = mpmceq[-ieq]-1;
-                for (ip = ipmceq1; ip < ipmceq2; ip++)
+                int ipmceq1 = mpmceq[-ieq-1];
+                int ipmceq2 = mpmceq[-ieq]-1;
+                for (int ip = ipmceq1; ip < ipmceq2; ip++)
                   if (mmceq[ip] > 0)
                   {
                     ieq = meqn[mmceq[ip]-1];
                     dofc[ieq-1].insert(jeq);
                   }
               }
+            }
           }
       }
     }
@@ -574,9 +582,12 @@ bool SAM::assembleSystem (SystemVector& sysRHS, const Real* nS, int inod,
   if (reactionForces)
   {
     int k = 0;
-    for (int ipR = 0, j = madof[inod-1]; j < madof[inod]; j++, k++)
-      if ((ipR = -msc[j-1]) > 0 && (size_t)ipR <= reactionForces->size())
+    for (int j = madof[inod-1]; j < madof[inod]; j++, k++)
+    {
+      int ipR = -msc[j-1];
+      if (ipR > 0 && (size_t)ipR <= reactionForces->size())
         (*reactionForces)(ipR) += nS[k];
+    }
   }
 
   return true;
@@ -640,16 +651,22 @@ void SAM::assembleRHS (Real* RHS, Real value, int ieq) const
 
 void SAM::assembleReactions (Vector& reac, const RealArray& eS, int iel) const
 {
-  int j, ipR;
+  int k = 0;
   int ip = mpmnpc[iel-1];
   int nenod = mpmnpc[iel] - ip;
-  for (int i = 0, k = 0, node; i < nenod; i++, ip++)
-    if ((node = mmnpc[ip-1]) < 0)
+  for (int i = 0; i < nenod; i++, ip++)
+  {
+    int node = mmnpc[ip-1];
+    if (node < 0)
       k += madof[-node] - madof[-node-1];
     else if (node > 0)
-      for (j = madof[node-1]; j < madof[node]; j++, k++)
-        if ((ipR = -msc[j-1]) > 0 && (size_t)ipR <= reac.size())
+      for (int j = madof[node-1]; j < madof[node]; j++, k++)
+      {
+        int ipR = -msc[j-1];
+        if (ipR > 0 && (size_t)ipR <= reac.size())
           reac(ipR) += eS[k];
+      }
+  }
 }
 
 
@@ -845,16 +862,17 @@ bool SAM::applyDirichlet (Vector& dofVec) const
 
 Real SAM::dot (const Vector& x, const Vector& y, char dofType) const
 {
-  if (nodeType.empty() || dofType == 'A')
-    return x.dot(y); // All nodes are of the same type, or consider all of them
+  if ((nodeType.empty() && dof_type.empty()) || dofType == 'A')
+    return x.dot(y); // All DOFs are of the same type, or consider all of them
 
-  // Consider only the dofType nodes
+  // Consider only the dofType DOFs
   int i, j, n = x.size() < y.size() ? x.size() : y.size();
   Real retVal = Real(0);
   for (i = 0; i < nnod; i++)
-    if (nodeType[i] == dofType)
+    if (nodeType.empty() || nodeType[i] == dofType)
       for (j = madof[i]-1; j < madof[i+1]-1 && j < n; j++)
-	retVal += x[j]*y[j];
+        if (dof_type.empty() || dof_type[j] == dofType)
+          retVal += x[j]*y[j];
 
   return retVal;
 }
@@ -864,19 +882,20 @@ Real SAM::normL2 (const Vector& x, char dofType) const
 {
   if (x.empty())
     return Real(0);
-  else if (nodeType.empty()) // All nodes are of the same type
-    return x.norm2()/sqrt(x.size());
+  else if (nodeType.empty() && dof_type.empty())
+    return x.norm2()/sqrt(x.size()); // All DOFs are of the same type
 
-  // Consider only the dofType nodes
+  // Consider only the dofType DOFs
   int count, i, j, n = x.size();
   Real retVal = Real(0);
   for (count = i = 0; i < nnod; i++)
-    if (nodeType[i] == dofType)
+    if (nodeType.empty() || nodeType[i] == dofType)
       for (j = madof[i]-1; j < madof[i+1]-1 && j < n; j++)
-      {
-	retVal += x[j]*x[j];
-	count ++;
-      }
+        if (dof_type.empty() || dof_type[j] == dofType)
+        {
+          retVal += x[j]*x[j];
+          count ++;
+        }
 
   return count > 0 ? sqrt(retVal/count) : retVal;
 }
@@ -886,9 +905,9 @@ Real SAM::normInf (const Vector& x, size_t& comp, char dofType) const
 {
   if (x.empty() || comp < 1)
     return Real(0);
-  else if (nodeType.empty())
+  else if (nodeType.empty() && dof_type.empty())
   {
-    // All nodes are of the same type with the same number of nodal DOFs
+    // All DOFs are of the same type and the number of nodal DOFs is constant
     int nndof = madof[1] - madof[0];
     if ((int)comp <= nndof)
       return x.normInf(--comp,nndof);
@@ -896,19 +915,30 @@ Real SAM::normInf (const Vector& x, size_t& comp, char dofType) const
       return Real(0);
   }
 
-  // Consider only the dofType nodes
-  int i, k = comp-2;
+  // Consider only the dofType DOFs
+  size_t icmp = comp;
   Real retVal = Real(0);
-  for (i = 0; i < nnod; i++)
-    if (nodeType[i] == dofType)
+  for (int i = 0; i < nnod; i++)
+    if (!dof_type.empty())
     {
-      int idof = madof[i] + k;
+      size_t k = 0;
+      for (int idof = madof[i]-1; idof+1 < madof[i+1]; idof++)
+        if (dof_type[idof] == dofType && ++k == icmp)
+          if (fabs(x[idof]) > retVal)
+          {
+            comp = i+1;
+            retVal = fabs(x[idof]);
+          }
+    }
+    else if (nodeType[i] == dofType)
+    {
+      int idof = madof[i] + icmp - 2;
       if (idof >= 0 && idof < madof[i+1]-1)
-	if (fabs(x[idof]) > retVal)
-	{
-	  comp = i+1;
-	  retVal = fabs(x[idof]);
-	}
+        if (fabs(x[idof]) > retVal)
+        {
+          comp = i+1;
+          retVal = fabs(x[idof]);
+        }
     }
 
   return retVal;
@@ -958,7 +988,7 @@ bool SAM::getNodalReactions (int inod, const Vector& rf, Vector& nrf) const
   if (inod < 1 || inod > nnod)
   {
     std::cerr <<"SAM::getNodalReactions: Node "<< inod <<" is out of range [1,"
-	      << nnod <<"]"<< std::endl;
+              << nnod <<"]"<< std::endl;
     return false;
   }
 
@@ -976,23 +1006,24 @@ bool SAM::getNodalReactions (int inod, const Vector& rf, Vector& nrf) const
 }
 
 
-IntSet SAM::getEquations(char dofType, int dof) const
+IntSet SAM::getEquations (char dType, int dof) const
 {
   IntSet result;
-  for (int inod = 0; inod < nnod; inod++) {
-    char type = this->getNodeType(inod+1);
-    if (type == dofType || (dofType == 'D' && type == ' ')) {
-      if (dof > 0) {
-	int idof = madof[inod] + dof-1;
-	int ieq = idof < madof[inod+1] ? meqn[idof-1] : 0;
-	if (ieq > 0) result.insert(ieq);
-      }
-      else for (int idof = madof[inod]; idof < madof[inod+1]; idof++) {
-	int ieq = meqn[idof-1];
-	if (ieq > 0) result.insert(ieq);
-      }
+  auto&& getEquation = [this,dType,&result](int idof)
+  {
+    if (dof_type.empty() || dof_type[idof] == dType)
+      if (meqn[idof] > 0)
+        result.insert(meqn[idof]);
+  };
+
+  for (int inod = 0; inod < nnod; inod++)
+    if ((nodeType.empty() ? 'D' : nodeType[inod]) == dType || !dof_type.empty())
+    {
+      if (dof > 0 && dof <= madof[inod+1]-madof[inod])
+        getEquation(madof[inod]+dof-2);
+      else for (int idof = madof[inod]; idof < madof[inod+1]; idof++)
+        getEquation(idof-1);
     }
-  }
 
   return result;
 }

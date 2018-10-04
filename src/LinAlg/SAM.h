@@ -54,10 +54,10 @@ public:
   int getNoDOFs() const { return ndof; }
   //! \brief Returns the number of equations (free DOFs) in the model.
   virtual int getNoEquations() const { return neq; }
-  //! \brief Returns the equations numbers for a given dofType.
-  //! \param nodeType Type of node
-  //! \param dof DOFs in nodes (0 = all)
-  IntSet getEquations(char nodeType, int dof=0) const;
+  //! \brief Returns the equations numbers for a given DOF type.
+  //! \param[in] dType The DOF type to consider
+  //! \param[in] dof The local DOF in each node to consider (0 = all)
+  IntSet getEquations(char dType, int dof = 0) const;
   //! \brief Returns the Matrix of Accumulated DOFs.
   const int* getMADOF() const { return madof; }
   //! \brief Returns the Matrix of EQuation Numbers.
@@ -247,21 +247,21 @@ public:
   //! \brief Computes the dot-product of two vectors of length NDOF.
   //! \param[in] x The first vector of the dot-product
   //! \param[in] y The second vector of the dot-product
-  //! \param[in] dofType Only consider nodes of this type (for mixed methods)
+  //! \param[in] dofType Only consider DOFs of this type
   virtual Real dot(const Vector& x, const Vector& y, char dofType = 'D') const;
   //! \brief Computes the l2-norm of a vector of length NDOF.
   //! \param[in] x The vector to compute the norm of
-  //! \param[in] dofType Only consider nodes of this type (for mixed methods)
+  //! \param[in] dofType Only consider DOFs of this type
   Real norm2(const Vector& x, char dofType = 'D') const
   { return sqrt(this->dot(x,x,dofType)); }
   //! \brief Computes the L2-norm of a vector of length NDOF.
   //! \param[in] x The vector to compute the norm of
-  //! \param[in] dofType Only consider nodes of this type (for mixed methods)
+  //! \param[in] dofType Only consider DOFs of this type
   virtual Real normL2(const Vector& x, char dofType = 'D') const;
   //! \brief Computes the L_infinity-norm of a vector of length NDOF.
   //! \param[in] x The vector to compute the norm of
   //! \param comp Local nodal DOF on input, index of the largest value on output
-  //! \param[in] dofType Only consider nodes of this type (for mixed methods)
+  //! \param[in] dofType Only consider DOFs of this type
   virtual Real normInf(const Vector& x, size_t& comp, char dofType = 'D') const;
 
   //! \brief Computes the energy norm contributions from nodal reaction forces.
@@ -335,6 +335,7 @@ protected:
   int*  meqn;   //!< Matrix of equation numbers
 
   std::vector<char> nodeType; //!< Nodal DOF classification
+  std::vector<char> dof_type; //!< Individual DOF classification
 
   friend class DenseMatrix;
   friend class SPRMatrix;

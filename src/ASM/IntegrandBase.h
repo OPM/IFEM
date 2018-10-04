@@ -273,6 +273,9 @@ public:
   //! \param[in] vec Vector to inject field into
   void registerVector(const std::string& name, Vector* vec);
 
+  //! \brief Returns nodal DOF flags for monolithic coupled integrands.
+  virtual void getNodalDofTypes(std::vector<char>&) const {}
+
 private:
   std::map<std::string,Vector*> myFields; //!< Named fields of this integrand
 

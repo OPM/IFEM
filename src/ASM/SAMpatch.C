@@ -16,7 +16,8 @@
 #include "IFEM.h"
 
 
-bool SAMpatch::init (const ASMVec& model, int numNod)
+bool SAMpatch::init (const ASMVec& model, int numNod,
+                     const std::vector<char>& dTypes)
 {
   patches = model;
 
@@ -31,7 +32,7 @@ bool SAMpatch::init (const ASMVec& model, int numNod)
   }
 
   // Initialize the node/dof arrays (madof,msc) and compute ndof
-  if (!this->initNodeDofs(model))
+  if (!this->initNodeDofs(model,dTypes))
     return false;
 
   IFEM::cout <<"\n\n >>> SAM model summary <<<"
@@ -39,18 +40,17 @@ bool SAMpatch::init (const ASMVec& model, int numNod)
              <<"\nNumber of nodes       "<< nnod
              <<"\nNumber of dofs        "<< ndof << std::endl;
 
-  if (!nodeType.empty())
-  {
-    // Count the number of DOFs in each basis
-    std::map<char,size_t> ndofs;
-    ndofs['D'] = ndofs['L'] = ndofs['P'] = ndofs['X'] = 0;
-    for (size_t n = 0; n < nodeType.size(); n++)
-      ndofs[nodeType[n]] += madof[n+1] - madof[n];
-    for (const std::pair<char,size_t>& dof : ndofs)
-      if (dof.second > 0)
-        IFEM::cout <<"Number of "<< dof.first <<"-dofs      "
-                   << dof.second << std::endl;
-  }
+  // Count the number of DOFs of each type
+  std::map<char,size_t> ndofs;
+  ndofs['D'] = ndofs['L'] = ndofs['P'] = ndofs['Q'] = ndofs['X'] = 0;
+  for (size_t n = 0; n < nodeType.size(); n++)
+    ndofs[nodeType[n]] += madof[n+1] - madof[n];
+  for (size_t d = 0; d < dof_type.size(); d++)
+    ndofs[dof_type[d]] ++;
+  for (const std::pair<char,size_t>& dof : ndofs)
+    if (dof.second > 0)
+      IFEM::cout <<"Number of "<< dof.first <<"-dofs      "
+                 << dof.second << std::endl;
 
   // Initialize the element connectivity arrays (mpmnpc,mmnpc)
   if (!this->initElementConn(model))
@@ -69,7 +69,8 @@ bool SAMpatch::init (const ASMVec& model, int numNod)
 }
 
 
-bool SAMpatch::initNodeDofs (const ASMVec& model)
+bool SAMpatch::initNodeDofs (const ASMVec& model,
+                             const std::vector<char>& dTypes)
 {
   if (nnod < 1) return true;
 
@@ -95,6 +96,16 @@ bool SAMpatch::initNodeDofs (const ASMVec& model)
           nodeType[n-1] = nt;
         }
       }
+
+  if (!dTypes.empty())
+  {
+    dof_type.reserve(nnod*dTypes.size());
+    for (n = 1; n <= nnod; n++)
+      if (nodeType.empty() || nodeType[n-1] == 'D')
+        dof_type.insert(dof_type.end(),dTypes.begin(),dTypes.begin()+madof[n]);
+      else
+        dof_type.insert(dof_type.end(),madof[n],' ');
+  }
 
   madof[0] = 1;
   for (n = 0; n < nnod; n++)

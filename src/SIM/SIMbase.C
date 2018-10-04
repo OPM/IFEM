@@ -136,6 +136,30 @@ ASMbase* SIMbase::getPatch (int idx, bool glbIndex) const
 }
 
 
+#if SP_DEBUG > 2
+static void printNodalConnectivity (const ASMVec& model, std::ostream& os)
+{
+  typedef std::pair<int,int> Ipair;
+  typedef std::vector<Ipair> Ipairs;
+  std::map<int,Ipairs> nodeInfo;
+  for (ASMbase* pch : model)
+    if (!pch->empty())
+      for (size_t n = 1; n <= pch->getNoNodes(); n++)
+        nodeInfo[pch->getNodeID(n)].push_back(std::make_pair(pch->idx,n));
+
+  for (const std::pair<int,Ipairs>& node : nodeInfo)
+    if (node.second.size() > 1)
+    {
+      os <<"\nConnectivity for node "<< node.first <<":";
+      for (const Ipair& n : node.second)
+        os <<" P"<< n.first <<","<< n.second;
+    }
+
+  std::cout << std::endl;
+}
+#endif
+
+
 bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
 {
   if (myModel.empty())
@@ -179,8 +203,8 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
   // If material properties are specified for at least one patch, assign the
   // property code 999999 to all patches with no material property code yet
   PatchVec pchWthMat;
-  for (PropertyVec::const_iterator p = myProps.begin(); p != myProps.end(); ++p)
-    if (p->pcode == Property::MATERIAL && (pch = this->getPatch(p->patch)))
+  for (const Property& p : myProps)
+    if (p.pcode == Property::MATERIAL && (pch = this->getPatch(p.patch)))
       if (!pch->empty()) pchWthMat.push_back(pch);
 
   if (!pchWthMat.empty())
@@ -213,23 +237,7 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
   }
 
 #if SP_DEBUG > 2
-  typedef std::pair<int,int> Ipair;
-  typedef std::vector<Ipair> Ipairs;
-  std::map<int,Ipairs> nodeInfo;
-  for (mit = myModel.begin(), patch = 1; mit != myModel.end(); ++mit, patch++)
-    if (!(*mit)->empty())
-      for (size_t n = 1; n <= (*mit)->getNoNodes(); n++)
-        nodeInfo[(*mit)->getNodeID(n)].push_back(std::make_pair(patch,n));
-
-  std::map<int,Ipairs>::const_iterator nit;
-  for (nit = nodeInfo.begin(); nit != nodeInfo.end(); ++nit)
-    if (nit->second.size() > 1)
-    {
-      std::cout <<"\nConnectivity for node "<< nit->first <<":";
-      for (size_t n = 0; n < nit->second.size(); n++)
-        std::cout <<" P"<< nit->second[n].first <<","<< nit->second[n].second;
-    }
-  std::cout << std::endl;
+  printNodalConnectivity(myModel,std::cout);
 #endif
 
   // Renumber the nodes to account for overlapping nodes and erased patches.
@@ -268,15 +276,14 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
   // and edge definitions override definitions on faces
   size_t nprop = 0;
   int code, dofs, ierr = 0, iwar = 0;
-  PropertyVec::const_iterator q;
   for (unsigned char dim = 0; nprop < myProps.size(); dim++)
-    for (q = myProps.begin(); q != myProps.end(); ++q)
-      if (abs(q->ldim) == dim || (dim == 2 && abs(q->ldim) > 3))
+    for (const Property& p : myProps)
+      if (abs(p.ldim) == dim || (dim == 2 && abs(p.ldim) > 3))
       {
         nprop++;
-        code = q->pindx;
+        code = p.pindx;
         dofs = abs(code%1000000);
-        switch (q->pcode) {
+        switch (p.pcode) {
         case Property::DIRICHLET:
           code = 0;
         case Property::DIRICHLET_INHOM:
@@ -286,8 +293,8 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
           ++iwar;
 #ifdef SP_DEBUG
           std::cout <<"  ** SIMbase::preprocess: Undefined property set, code="
-                    << q->pindx <<" Patch="<< q->patch <<" Item="
-                    << (int)q->lindx <<" "<< (int)q->ldim <<"D"<< std::endl;
+                    << p.pindx <<" Patch="<< p.patch <<" Item="
+                    << (int)p.lindx <<" "<< (int)p.ldim <<"D"<< std::endl;
 #endif
         default:
           dofs = 0;
@@ -295,8 +302,8 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
         }
 
         if (dofs > 0)
-          if (this->addConstraint(q->patch,q->lindx,q->ldim,dofs,code,ngnod,
-                                  q->basis))
+          if (this->addConstraint(p.patch,p.lindx,p.ldim,dofs,code,ngnod,
+                                  p.basis))
             IFEM::cout << std::endl;
           else
             ++ierr;
@@ -333,14 +340,19 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
     if (!(*mit)->empty())
       (*mit)->generateThreadGroups(*myProblem,silence,lagMTOK);
 
-  for (q = myProps.begin(); q != myProps.end(); ++q)
-    if (q->pcode == Property::NEUMANN ||
-        q->pcode == Property::NEUMANN_GENERIC ||
-        q->pcode == Property::ROBIN)
-      this->generateThreadGroups(*q,silence);
+  for (const Property& p : myProps)
+    if (p.pcode == Property::NEUMANN ||
+        p.pcode == Property::NEUMANN_GENERIC ||
+        p.pcode == Property::ROBIN)
+      this->generateThreadGroups(p,silence);
 
   // Preprocess the result points
   this->preprocessResultPoints();
+
+  // Check if the integrand is monolithic with different nodal DOF types
+  std::vector<char> dofTypes;
+  if (myProblem)
+    myProblem->getNodalDofTypes(dofTypes);
 
   // Initialize data structures for the algebraic system
   if (mySam) delete mySam;
@@ -352,7 +364,7 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
 #else
   mySam = new SAMpatch();
 #endif
-  if (!static_cast<SAMpatch*>(mySam)->init(myModel,ngnod))
+  if (!static_cast<SAMpatch*>(mySam)->init(myModel,ngnod,dofTypes))
     return false;
 
   if (!adm.dd.setup(adm,*this))
@@ -422,27 +434,14 @@ bool SIMbase::initSystem (int mType, size_t nMats, size_t nVec, size_t nScl,
 #if SP_DEBUG > 2
   mySam->print(std::cout);
   std::string heading("\n\nNodal coordinates for Patch 1");
-  size_t n, i, j = heading.size()-1;
-  typedef std::pair<int,int> Ipair;
-  typedef std::vector<Ipair> Ipairs;
-  std::map<int,Ipairs> nodeInfo;
-  std::map<int,Ipairs>::const_iterator it;
-  for (i = 0; i < myModel.size() && i < 9; i++, heading[j]++)
-    if (!myModel[i]->empty())
-    {
-      myModel[i]->printNodes(std::cout,heading.c_str());
-      for (n = 1; n <= myModel[i]->getNoNodes(); n++)
-        nodeInfo[myModel[i]->getNodeID(n)].push_back(std::make_pair(i+1,n));
-    }
-
-  for (it = nodeInfo.begin(); it != nodeInfo.end(); ++it)
-    if (it->second.size() > 1)
-    {
-      std::cout <<"\nConnectivity for node "<< it->first <<":";
-      for (n = 0; n < it->second.size(); n++)
-        std::cout <<" P"<< it->second[n].first <<","<< it->second[n].second;
-    }
-  std::cout << std::endl;
+  char& patchNo = heading[heading.size()-1];
+  for (ASMbase* pch : myModel)
+  {
+    if (!pch->empty())
+      pch->printNodes(std::cout,heading.c_str());
+    ++patchNo;
+  }
+  printNodalConnectivity(myModel,std::cout);
 #endif
 
   if (myEqSys) delete myEqSys;

@@ -13,8 +13,6 @@
 
 #include "SAMpatchPETSc.h"
 #include "LinAlgInit.h"
-#include "ASMstruct.h"
-#include "Vec3.h"
 #include "PETScMatrix.h"
 #include "ProcessAdm.h"
 
@@ -29,6 +27,7 @@ SAMpatchPETSc::SAMpatchPETSc(const std::map<int,int>& g2ln,
 
 SAMpatchPETSc::~SAMpatchPETSc()
 {
+#ifdef HAVE_MPI
   for (auto& it : dofIS) {
     if (it.second.scatterCreated)
       VecScatterDestroy(&it.second.ctx);
@@ -38,16 +37,16 @@ SAMpatchPETSc::~SAMpatchPETSc()
   dofIS.clear();
   if (glob2LocEq)
     ISDestroy(&glob2LocEq);
+#endif
   LinAlgInit::decrefs();
 }
 
 
-bool SAMpatchPETSc::init(const ASMVec& model, int numNod)
+bool SAMpatchPETSc::init (const std::vector<ASMbase*>& model, int numNod,
+                          const std::vector<char>& dTypes)
 {
-  // Get local 2 global node mapping for each patch
   patch = model;
-
-  return SAMpatch::init(model,numNod);
+  return this->SAMpatch::init(model,numNod,dTypes);
 }
 
 
@@ -55,8 +54,7 @@ Real SAMpatchPETSc::dot (const Vector& x, const Vector& y, char dofType) const
 {
 #ifdef HAVE_MPI
   if (adm.isParallel()) {
-    if (dofIS.find(dofType) == dofIS.end())
-      setupIS(dofType);
+    DofIS& dis = this->getIS(dofType);
 
     Vec lx, ly;
     VecCreateSeqWithArray(PETSC_COMM_SELF, 1, x.size(), x.data(), &lx);
@@ -64,19 +62,19 @@ Real SAMpatchPETSc::dot (const Vector& x, const Vector& y, char dofType) const
     Vec gx, gy;
     VecCreate(*adm.getCommunicator(), &gx);
     VecCreate(*adm.getCommunicator(), &gy);
-    VecSetSizes(gx, dofIS[dofType].nDofs, PETSC_DETERMINE);
-    VecSetSizes(gy, dofIS[dofType].nDofs, PETSC_DETERMINE);
+    VecSetSizes(gx, dis.nDofs, PETSC_DETERMINE);
+    VecSetSizes(gy, dis.nDofs, PETSC_DETERMINE);
     VecSetFromOptions(gx);
     VecSetFromOptions(gy);
-    if (!dofIS[dofType].scatterCreated) {
-      VecScatterCreate(lx, dofIS[dofType].local, gx, dofIS[dofType].global, &dofIS[dofType].ctx);
-      dofIS[dofType].scatterCreated = true;
+    if (!dis.scatterCreated) {
+      VecScatterCreate(lx, dis.local, gx, dis.global, &dis.ctx);
+      dis.scatterCreated = true;
     }
 
-    VecScatterBegin(dofIS[dofType].ctx, lx, gx, INSERT_VALUES, SCATTER_FORWARD);
-    VecScatterEnd(dofIS[dofType].ctx, lx, gx, INSERT_VALUES, SCATTER_FORWARD);
-    VecScatterBegin(dofIS[dofType].ctx, ly, gy, INSERT_VALUES, SCATTER_FORWARD);
-    VecScatterEnd(dofIS[dofType].ctx, ly, gy, INSERT_VALUES, SCATTER_FORWARD);
+    VecScatterBegin(dis.ctx, lx, gx, INSERT_VALUES, SCATTER_FORWARD);
+    VecScatterEnd(dis.ctx, lx, gx, INSERT_VALUES, SCATTER_FORWARD);
+    VecScatterBegin(dis.ctx, ly, gy, INSERT_VALUES, SCATTER_FORWARD);
+    VecScatterEnd(dis.ctx, ly, gy, INSERT_VALUES, SCATTER_FORWARD);
 
     PetscReal d;
     VecDot(gx, gy, &d);
@@ -93,29 +91,28 @@ Real SAMpatchPETSc::dot (const Vector& x, const Vector& y, char dofType) const
 }
 
 
-Real SAMpatchPETSc::normL2(const Vector& x, char dofType) const
+Real SAMpatchPETSc::normL2 (const Vector& x, char dofType) const
 {
 #ifdef HAVE_MPI
   if (adm.isParallel()) {
-    if (dofIS.find(dofType) == dofIS.end())
-      setupIS(dofType);
+    DofIS& dis = this->getIS(dofType);
 
     Vec lx;
     VecCreateSeqWithArray(PETSC_COMM_SELF, 1, x.size(), x.data(), &lx);
     Vec gx;
     VecCreate(*adm.getCommunicator(), &gx);
-    VecSetSizes(gx, dofIS[dofType].nDofs, PETSC_DETERMINE);
+    VecSetSizes(gx, dis.nDofs, PETSC_DETERMINE);
     VecSetFromOptions(gx);
     PetscInt n;
     VecGetSize(gx, &n);
 
-    if (!dofIS[dofType].scatterCreated) {
-      VecScatterCreate(lx, dofIS[dofType].local, gx, dofIS[dofType].global, &dofIS[dofType].ctx);
-      dofIS[dofType].scatterCreated = true;
+    if (!dis.scatterCreated) {
+      VecScatterCreate(lx, dis.local, gx, dis.global, &dis.ctx);
+      dis.scatterCreated = true;
     }
 
-    VecScatterBegin(dofIS[dofType].ctx, lx, gx, INSERT_VALUES, SCATTER_FORWARD);
-    VecScatterEnd(dofIS[dofType].ctx, lx, gx, INSERT_VALUES, SCATTER_FORWARD);
+    VecScatterBegin(dis.ctx, lx, gx, INSERT_VALUES, SCATTER_FORWARD);
+    VecScatterEnd(dis.ctx, lx, gx, INSERT_VALUES, SCATTER_FORWARD);
     PetscReal d;
     VecNorm(gx, NORM_2, &d);
     VecDestroy(&lx);
@@ -125,16 +122,17 @@ Real SAMpatchPETSc::normL2(const Vector& x, char dofType) const
   }
 #endif
 
-  return this->SAM::normL2(x, dofType);
+  return this->SAM::normL2(x,dofType);
 }
 
 
-Real SAMpatchPETSc::normInf(const Vector& x, size_t& comp, char dofType) const
+Real SAMpatchPETSc::normInf (const Vector& x, size_t& comp, char dofType) const
 {
-  Real max = this->SAM::normInf(x, comp, dofType);
+  Real max = this->SAM::normInf(x,comp,dofType);
 #ifdef HAVE_MPI
   if (adm.isParallel())
     max = adm.allReduce(max, MPI_MAX);
+  // TODO: comp (node index of the max value) is not necessarily correct here
 #endif
 
   return max;
@@ -142,33 +140,40 @@ Real SAMpatchPETSc::normInf(const Vector& x, size_t& comp, char dofType) const
 
 
 #ifdef HAVE_MPI
-void SAMpatchPETSc::setupIS(char dofType) const
+SAMpatchPETSc::DofIS& SAMpatchPETSc::getIS (char dofType) const
 {
+  std::map<char,DofIS>::iterator it = dofIS.find(dofType);
+  if (it != dofIS.end())
+    return it->second;
+
   PetscIntVec ldofs;
   PetscIntVec gdofs;
   int gdof = 0;
   if (adm.getProcId() > 0)
     adm.receive(gdof, adm.getProcId()-1);
 
-  for (size_t i = 0; i < adm.dd.getMLGN().size(); ++i) {
-    if ((dofType == 'A' || nodeType.empty() || this->SAM::getNodeType(i+1) == dofType) &&
-        adm.dd.getMLGN()[i] >= adm.dd.getMinNode() &&
-        adm.dd.getMLGN()[i] <= adm.dd.getMaxNode()) {
-      std::pair<int, int> dofs = this->SAM::getNodeDOFs(i+1);
-      for (int dof = dofs.first; dof <= dofs.second; ++dof) {
-        ldofs.push_back(dof-1);
-        gdofs.push_back(gdof++);
-      }
-    }
+  size_t inod = 0;
+  for (int n : adm.dd.getMLGN())
+  {
+    if (dofType == 'A' || inod >= nodeType.size() || nodeType[inod] == dofType)
+      if (n >= adm.dd.getMinNode() && n <= adm.dd.getMaxNode())
+        for (int dof = madof[inod]; dof < madof[inod+1]; dof++)
+          if (dofType == 'A' || dof_type.empty() || dof_type[dof-1] == dofType)
+          {
+            ldofs.push_back(dof-1);
+            gdofs.push_back(gdof++);
+          }
+    ++inod;
   }
 
   if (adm.getProcId() < adm.getNoProcs()-1)
     adm.send(gdof, adm.getProcId()+1);
 
-  ISCreateGeneral(*adm.getCommunicator(), ldofs.size(), ldofs.data(), PETSC_COPY_VALUES, &dofIS[dofType].local);
-  ISCreateGeneral(*adm.getCommunicator(), gdofs.size(), gdofs.data(), PETSC_COPY_VALUES, &dofIS[dofType].global);
-
-  dofIS[dofType].nDofs = gdof - gdofs.front();
+  DofIS& newIS = dofIS[dofType];
+  ISCreateGeneral(*adm.getCommunicator(), ldofs.size(), ldofs.data(), PETSC_COPY_VALUES, &newIS.local);
+  ISCreateGeneral(*adm.getCommunicator(), gdofs.size(), gdofs.data(), PETSC_COPY_VALUES, &newIS.global);
+  newIS.nDofs = gdof - gdofs.front();
+  return newIS;
 }
 #endif
 
@@ -183,10 +188,8 @@ bool SAMpatchPETSc::expandSolution(const SystemVector& solVec,
 #ifdef HAVE_MPI
   if (adm.isParallel()) {
     if (!glob2LocEq) {
-      std::vector<int> mlgeq(adm.dd.getMLGEQ());
-      for (auto& it : mlgeq)
-        --it;
-
+      IntVec mlgeq(adm.dd.getMLGEQ());
+      for (int& ieq : mlgeq) --ieq;
       ISCreateGeneral(*adm.getCommunicator(),adm.dd.getMLGEQ().size(),
                       mlgeq.data(), PETSC_COPY_VALUES, &glob2LocEq);
     }

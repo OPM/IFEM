@@ -37,7 +37,9 @@ public:
   //! \brief Allocates the dynamic arrays and populates them with data.
   //! \param[in] model All spline patches in the model
   //! \param[in] numNod Total number of unique nodes in the model
-  virtual bool init(const std::vector<ASMbase*>& model, int numNod = 0);
+  //! \param[in] dTypes Nodal DOF type flags
+  virtual bool init(const std::vector<ASMbase*>& model, int numNod,
+                    const std::vector<char>& dTypes);
 
   //! \brief Updates the multi-point constraint array \a TTCC.
   //! \param[in] model All spline patches in the model
@@ -54,7 +56,8 @@ public:
 
 protected:
   //! \brief Initializes the nodal arrays \a MINEX, \a MADOF and \a MSC.
-  bool initNodeDofs(const std::vector<ASMbase*>& model);
+  bool initNodeDofs(const std::vector<ASMbase*>& model,
+                    const std::vector<char>& dTypes);
   //! \brief Initializes the element topology arrays \a MPMNPC and \a MMNPC.
   bool initElementConn(const std::vector<ASMbase*>& model);
   //! \brief Initializes the multi-point constraint arrays.
