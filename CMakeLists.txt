@@ -47,18 +47,18 @@ endif()
 if(LRSpline_LIBRARIES AND LRSpline_INCLUDE_DIRS)
   set(IFEM_INCLUDES ${IFEM_INCLUDES}
                     ${PROJECT_SOURCE_DIR}/src/ASM/LR)
-ENDIF()
+endif()
 
 # Required include directories
 set(IFEM_INCLUDES
     ${IFEM_INCLUDES}
     ${IFEM_DEPINCLUDES}
-    ${PROJECT_SOURCE_DIR}/src
     ${PROJECT_SOURCE_DIR}/src/ASM
     ${PROJECT_SOURCE_DIR}/src/Eig
     ${PROJECT_SOURCE_DIR}/src/LinAlg
     ${PROJECT_SOURCE_DIR}/src/SIM
     ${PROJECT_SOURCE_DIR}/src/Utility
+    ${PROJECT_SOURCE_DIR}/3rdparty
     ${PROJECT_SOURCE_DIR}/3rdparty/expreval
     ${PROJECT_SOURCE_DIR}/3rdparty/gtest/include
     ${PROJECT_BINARY_DIR}
@@ -166,8 +166,8 @@ else()
                          src/ASM/LocalIntegral.h src/ASM/SAMpatch.h
                          src/ASM/TimeDomain.h src/ASM/ASMs?D.h src/ASM/ASM?D.h
                          src/ASM/DomainDecomposition.h
-                         src/LinAlg/*.h src/SIM/*.h
-                         src/Utility/*.h
+                         src/LinAlg/*.h src/SIM/*.h src/Utility/*.h
+                         3rdparty/*.h
                          ${CMAKE_BINARY_DIR}/IFEM.h)
   if(NOT IFEM_USE_SYSTEM_TINYXML)
     list(APPEND IFEM_HEADERS 3rdparty/tinyxml/tinyxml.h)

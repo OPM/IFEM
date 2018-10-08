@@ -40,7 +40,7 @@ if(NOT IFEM_AS_SUBMODULE)
             ${PROJECT_SOURCE_DIR}/../../../..
             NO_DEFAULT_PATHS)
     set(IFEM_H_PATH ${IFEM_PATH})
-  endif(NOT IFEM_PATH)
+  endif()
 endif()
 
 if(IFEM_AS_SUBMODULE)
@@ -74,6 +74,7 @@ else()
                     ${IFEM_PATH}/src/LinAlg
                     ${IFEM_PATH}/src/SIM
                     ${IFEM_PATH}/src/Utility
+                    ${IFEM_PATH}/3rdparty
                     ${IFEM_PATH}/3rdparty/gtest/include)
 
   find_library(IFEM_LIBRARIES
