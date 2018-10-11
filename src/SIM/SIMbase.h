@@ -302,8 +302,8 @@ public:
   //! \param[out] eNorm Energy norm of solution increment
   //! \param[out] rNorm Residual norm of solution increment
   //! \param[out] dNorm Displacement norm of solution increment
-  void iterationNorms(const Vector& x, const Vector& r,
-                      double& eNorm, double& rNorm, double& dNorm) const;
+  virtual void iterationNorms(const Vector& x, const Vector& r, double& eNorm,
+                              double& rNorm, double& dNorm) const;
 
   //! \brief Evaluates some norms of the primary solution vector
   //! \param[in] x Global primary solution vector
