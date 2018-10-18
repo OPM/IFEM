@@ -827,7 +827,18 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
 #if SP_DEBUG > 2
     integrand->printSolution(std::cout,pch->idx+1);
 #endif
-    return pch->integrate(*integrand,integral,time);
+    if (!pch->integrate(*integrand,integral,time))
+      return false;
+
+    if (!(integrand->getIntegrandType() & IntegrandBase::INTERFACE_TERMS))
+      return true;
+
+    ASM::InterfaceChecker* iChk = this->getInterfaceChecker(pch->idx);
+    if (!iChk) return true;
+
+    bool ok = pch->integrate(*integrand,integral,time,*iChk);
+    delete iChk;
+    return ok;
   };
 
   bool ok = true;
@@ -997,8 +1008,8 @@ bool SIMbase::solveSystem (Vector& solution, int printSol, double* rCond,
   if (!b) std::cerr <<" *** SIMbase::solveSystem: No RHS vector."<< std::endl;
   if (!A || !b) return false;
 
-  // Dump equation system to file(s) if requested.
-  dumpEqSys();
+  // Dump equation system to file(s) if requested
+  this->dumpEqSys();
 
   // Solve the linear system of equations
   if (msgLevel > 1)
@@ -1584,8 +1595,8 @@ bool SIMbase::systemModes (std::vector<Mode>& solution,
   if (nev > mySam->getNoEquations()) nev = mySam->getNoEquations();
   if (ncv > mySam->getNoEquations()) ncv = mySam->getNoEquations();
 
-  // Dump equation system to file(s) if requested.
-  dumpEqSys();
+  // Dump equation system to file(s) if requested
+  this->dumpEqSys();
 
   // Solve the eigenvalue problem
   IFEM::cout <<"\nSolving the eigenvalue problem ..."<< std::endl;
@@ -2039,7 +2050,7 @@ void SIMbase::registerDependency (const std::string& name, SIMdependency* sim,
 }
 
 
-void SIMbase::dumpEqSys()
+void SIMbase::dumpEqSys ()
 {
   // Dump system matrix to file, if requested
   for (DumpData& dmp : lhsDump)

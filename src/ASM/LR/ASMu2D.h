@@ -26,10 +26,10 @@ class FiniteElement;
 namespace Go {
   class SplineCurve;
   class SplineSurface;
-  class BasisPtsSf;
-  class BasisDerivsSf;
-  class BasisDerivsSf2;
-  class BasisDerivsSf3;
+  struct BasisPtsSf;
+  struct BasisDerivsSf;
+  struct BasisDerivsSf2;
+  struct BasisDerivsSf3;
 }
 
 namespace LR {
@@ -58,17 +58,19 @@ public:
     virtual short int hasContribution(int iel, int = -1,
                                       int = -1, int = -1) const;
     //! \brief Get intersections for a given element edge.
-    //! \param iel Element index (1-based)
-    //! \param edge Edge to get intersections for (1..4)
-    //! \param cont If not null, the intersection continuity is given here
-    RealArray getIntersections(int iel, int edge, int* cont=nullptr) const;
+    //! \param[in] iel Element index (1-based)
+    //! \param[in] edge Edge to get intersections for (1..4)
+    //! \param[out] cont If not null, the intersection continuity is given here
+    const RealArray& getIntersections(int iel, int edge,
+                                      int* cont = nullptr) const;
+
   protected:
     const ASMu2D& myPatch; //!< Reference to the patch being integrated
 
     //! \brief Struct describing an intersection of mesh lines.
     struct Intersection {
       int continuity = 0; //!< Continuity across intersection
-      std::vector<double> pts; //!< Intersection points
+      RealArray pts;      //!< Intersection points
     };
 
     //! Intersections for elements. Key: element << 4 + edge (1..4).
@@ -285,6 +287,15 @@ public:
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
   virtual bool integrate(Integrand& integrand, int lIndex,
                          GlobalIntegral& glbInt, const TimeDomain& time);
+
+  //! \brief Evaluates an integral over element interfaces in the patch.
+  //! \param integrand Object with problem-specific data and methods
+  //! \param glbInt The integrated quantity
+  //! \param[in] time Parameters for nonlinear/time-dependent simulations
+  //! \param[in] iChk Object checking if an element interface has contributions
+  virtual bool integrate(Integrand& integrand, GlobalIntegral& glbInt,
+                         const TimeDomain& time,
+                         const ASM::InterfaceChecker& iChk);
 
   //! \brief Integrates a spatial dirac-delta function over a patch.
   //! \param integrand Object with problem-specific data and methods

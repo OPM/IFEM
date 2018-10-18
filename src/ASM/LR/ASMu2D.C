@@ -1690,6 +1690,141 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
 }
 
 
+bool ASMu2D::integrate (Integrand& integrand,
+                        GlobalIntegral& glInt,
+                        const TimeDomain& time,
+                        const ASM::InterfaceChecker& iChkgen)
+{
+  if (!geo) return true; // silently ignore empty patches
+  if (!(integrand.getIntegrandType() & Integrand::INTERFACE_TERMS)) return true;
+
+  PROFILE2("ASMu2D::integrate(J)");
+
+  const InterfaceChecker& iChk = static_cast<const InterfaceChecker&>(iChkgen);
+
+  // Get Gaussian quadrature points and weights
+  int nGP = integrand.getBouIntegrationPoints(nGauss);
+  const double* xg = GaussQuadrature::getCoord(nGP);
+  const double* wg = GaussQuadrature::getWeight(nGP);
+  if (!xg || !wg) return false;
+
+  FiniteElement fe;
+  Matrix Xnod, Xnod2, dNdu, dN2du, Jac;
+  double param[3] = { 0.0, 0.0, 0.0 };
+  Vec4   X(param);
+  Vec3   normal;
+
+  int iel = 0;
+  for (const LR::Element* elm : lrspline->getAllElements())
+  {
+    fe.iel = abs(MLGE[iel]);
+    short int status = iChk.hasContribution(++iel);
+    if (!status) continue; // no interface contributions for this element
+
+#if SP_DEBUG > 3
+    std::cout <<"\n\nIntegrating interface terms for element "<< fe.iel
+              << std::endl;
+#endif
+
+    // Set up control point (nodal) coordinates for current element
+    if (!this->getElementCoordinates(Xnod,iel))
+      return false;
+
+    // Initialize element quantities
+    LocalIntegral* A = integrand.getLocalIntegral(MNPC[iel-1].size(),iel);
+    bool ok = integrand.initElement(MNPC[iel-1],*A);
+
+    // Loop over the element edges with contributions
+    int bit = 8;
+    for (int iedge = 4; iedge > 0 && ok; iedge--, bit /= 2)
+      if (status & bit)
+      {
+        // Find the parametric direction of the edge normal {-2,-1, 1, 2}
+        const int edgeDir = (iedge+1)/((iedge%2) ? -2 : 2);
+        const int t1 = abs(edgeDir);   // Tangent direction normal to the edge
+        const int t2 = 3-abs(edgeDir); // Tangent direction along the edge
+
+        // Set up parameters
+        double u1 = iedge != 2 ? elm->umin() : elm->umax();
+        double v1 = iedge < 4  ? elm->vmin() : elm->vmax();
+        double u2 = u1;
+        double v2 = v1;
+
+        for (double uv : iChk.getIntersections(iel,iedge))
+        {
+          if (iedge <= 2)
+          {
+            v1 = v2;
+            v2 = uv;
+          }
+          else
+          {
+            u1 = u2;
+            u2 = uv;
+          }
+
+          // Get element edge length in the parameter space
+          double dS = 0.5*(iedge <= 2 ? v2 - v1 : u2 - u1);
+
+
+          // --- Integration loop over all Gauss points along the edge ---------
+
+          for (int g = 0; g < nGP && ok; g++)
+          {
+            // Local element coordinates and parameter values
+            // of current integration point
+            fe.xi  = t1 == 1 ? edgeDir : xg[g];
+            fe.eta = t1 == 1 ? xg[g] : edgeDir/2;
+            fe.u = param[0] = iedge <= 2 ? u1 : 0.5*((u2-u1)*xg[g] + u2 + u1);
+            fe.v = param[1] = iedge >= 3 ? v1 : 0.5*((v2-v1)*xg[g] + v2 + v1);
+
+            // Evaluate basis function derivatives at current integration points
+            Go::BasisDerivsSf spline;
+            lrspline->computeBasis(fe.u, fe.v, spline, iel-1);
+            SplineUtils::extractBasis(spline, fe.N, dNdu);
+
+            // Compute Jacobian inverse of the coordinate mapping and
+            // basis function derivatives w.r.t. Cartesian coordinates
+            fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,Xnod,dNdu,t1,t2);
+            if (fe.detJxW == 0.0) continue; // skip singular points
+
+            if (edgeDir < 0) normal *= -1.0;
+
+            // Store tangent vectors in fe.G for shells
+            if (nsd > 2) fe.G = Jac;
+
+            // Cartesian coordinates of current integration point
+            X.assign(Xnod * fe.N);
+            X.t = time.t;
+
+#if SP_DEBUG > 4
+            std::cout <<"\n"<< fe;
+#endif
+
+            // Evaluate the integrand and accumulate element contributions
+            fe.detJxW *= dS*wg[g];
+            ok = integrand.evalInt(*A,fe,time,X,normal);
+          }
+        }
+      }
+
+    // Finalize the element quantities
+    if (ok && !integrand.finalizeElement(*A,time,0))
+      ok = false;
+
+    // Assembly of global system integral
+    if (ok && !glInt.assemble(A,iel))
+      ok = false;
+
+    A->destruct();
+
+    if (!ok) return false;
+  }
+
+  return true;
+}
+
+
 bool ASMu2D::diracPoint (Integrand& integrand, GlobalIntegral& glInt,
                          const double* param, const Vec3& pval)
 {
@@ -2534,14 +2669,15 @@ ASMu2D::InterfaceChecker::InterfaceChecker (const ASMu2D& pch) : myPatch(pch)
 }
 
 
-short int ASMu2D::InterfaceChecker::hasContribution (int iel, int, int, int) const
+short int ASMu2D::InterfaceChecker::hasContribution (int e, int, int, int) const
 {
-  const LR::Element* el = myPatch.geo->getElement(iel-1);
+  const LR::Element* elm = myPatch.geo->getElement(e-1);
+
   bool neighbor[4];
-  neighbor[0] = el->getParmin(0) != myPatch.geo->startparam(0); // West neighbor
-  neighbor[1] = el->getParmax(0) != myPatch.geo->endparam(0); // East neighbor
-  neighbor[2] = el->getParmin(1) != myPatch.geo->startparam(1); // South neighbor
-  neighbor[3] = el->getParmax(1) != myPatch.geo->endparam(1); // North neighbor
+  neighbor[0] = elm->getParmin(0) != myPatch.geo->startparam(0); // West
+  neighbor[1] = elm->getParmax(0) != myPatch.geo->endparam(0);   // East
+  neighbor[2] = elm->getParmin(1) != myPatch.geo->startparam(1); // South
+  neighbor[3] = elm->getParmax(1) != myPatch.geo->endparam(1);   // North
 
   // Check for existing neighbors
   short int status = 0, s = 1;
@@ -2552,12 +2688,15 @@ short int ASMu2D::InterfaceChecker::hasContribution (int iel, int, int, int) con
 }
 
 
-RealArray ASMu2D::InterfaceChecker::getIntersections (int iel, int edge,
-                                                      int* cont) const
+const RealArray& ASMu2D::InterfaceChecker::getIntersections (int iel, int edge,
+                                                             int* cont) const
 {
   auto it = intersections.find((iel-1)*16 + edge);
   if (it == intersections.end())
-    return RealArray();
+  {
+    static RealArray empty;
+    return empty;
+  }
 
   if (cont)
     *cont = it->second.continuity;
