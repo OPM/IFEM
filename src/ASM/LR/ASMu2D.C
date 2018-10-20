@@ -1721,6 +1721,10 @@ bool ASMu2D::integrate (Integrand& integrand,
     short int status = iChk.hasContribution(++iel);
     if (!status) continue; // no interface contributions for this element
 
+    status &= iChk.elmBorderMask(elm->umin(),elm->umax(),
+                                 elm->vmin(),elm->vmax());
+    if (!status) continue; // no interface contributions for this element
+
 #if SP_DEBUG > 3
     std::cout <<"\n\nIntegrating interface terms for element "<< fe.iel
               << std::endl;

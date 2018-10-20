@@ -2094,17 +2094,16 @@ bool ASMs2D::integrate (Integrand& integrand,
 
   FiniteElement fe(p1*p2);
   Matrix        dNdu, Xnod, Jac;
-  Vector        dN;
-  double        param[3] = { 0.0, 0.0, 0.0 };
+  double        u[2], v[2], param[3] = { 0.0, 0.0, 0.0 };
   Vec4          X(param);
   Vec3          normal;
-  double        u[2], v[2];
   bool          hasInterfaceElms = MLGE.size() > nel && MLGE.size() != 2*nel;
 
 
   // === Assembly loop over all elements in the patch ==========================
 
-  int iel = 0, jel = nel, nels = MLGE.size();
+  int iel = 0, jel = hasInterfaceElms ? nel : 0;
+  int nels = MLGE.size();
   for (int i2 = p2; i2 <= n2 && jel < nels; i2++)
     for (int i1 = p1; i1 <= n1 && jel < nels; i1++, iel++)
     {
@@ -2116,6 +2115,13 @@ bool ASMs2D::integrate (Integrand& integrand,
       short int status = iChk.hasContribution(iel,i1,i2);
       if (!status) continue; // no interface contributions for this element
 
+      // Compute parameter values of the element edges
+      this->getElementBorders(i1-1,i2-1,u,v);
+
+      // Check the element edge parameters
+      status &= iChk.elmBorderMask(u[0],u[1],v[0],v[1]);
+      if (!status) continue; // no interface contributions for this element
+
 #if SP_DEBUG > 3
       std::cout <<"\n\nIntegrating interface terms for element "<< fe.iel
                 << std::endl;
@@ -2123,9 +2129,6 @@ bool ASMs2D::integrate (Integrand& integrand,
 
       // Set up control point (nodal) coordinates for current element
       if (!this->getElementCoordinates(Xnod,1+iel)) return false;
-
-      // Compute parameter values of the element edges
-      this->getElementBorders(i1-1,i2-1,u,v);
 
       if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
         fe.h = this->getElementCorners(i1-1,i2-1,fe.XC);
@@ -2204,6 +2207,7 @@ bool ASMs2D::integrate (Integrand& integrand,
               if (hasInterfaceElms)
               {
                 // Compute derivative for the neighboring element
+                Vector dN;
                 this->extractBasis(fe.u,fe.v,t1,fe.p, dN, edgeDir > 0);
                 utl::merge(fe.N,dN,MNPC[iel],MNPC[kel]);
               }
@@ -3004,7 +3008,8 @@ void ASMs2D::extractBasis (double u, double v, int dir, int p,
 }
 
 
-short int ASMs2D::InterfaceChecker::hasContribution (int, int I, int J, int) const
+short int ASMs2D::InterfaceChecker::hasContribution (int,
+                                                     int I, int J, int) const
 {
   bool neighbor[4];
   neighbor[0] = I > myPatch.surf->order_u();    // West neighbor
