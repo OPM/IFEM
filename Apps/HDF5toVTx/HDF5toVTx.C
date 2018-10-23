@@ -23,8 +23,6 @@
 #include <sstream>
 #include <cstdlib>
 
-bool isLR = false;
-
 //! \brief Maps from basis name -> fields
 typedef std::map< std::string,std::vector<XMLWriter::Entry> > ProcessList;
 
@@ -476,7 +474,7 @@ int main (int argc, char** argv)
     VTFList vlist, slist;
     bool geomWritten=false;
 
-    if ((isLR && hdf.hasGeometries(i)) || patches.empty()) {
+    if (hdf.hasGeometries(i) || patches.empty()) {
       patches = setupPatchMap(processlist, hdf.hasGeometries(i)?i:0, hdf, dims, n, *myVtf, block, k);
       geomWritten = true;
     }
