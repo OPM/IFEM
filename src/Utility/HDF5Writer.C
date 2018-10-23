@@ -248,7 +248,7 @@ void HDF5Writer::readString(const std::string& name, std::string& out, bool clos
 
 
 void HDF5Writer::writeArray(hid_t group, const std::string& name,
-                            int len, const void* data, int type)
+                            int len, const void* data, hid_t type)
 {
 #ifdef HAS_HDF5
 #ifdef HAVE_MPI

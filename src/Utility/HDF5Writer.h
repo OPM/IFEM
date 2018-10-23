@@ -172,7 +172,7 @@ protected:
   //! \param[in] data The array to write
   //! \param[in] type The HDF5 type for the data (see H5T)
   void writeArray(hid_t group, const std::string& name,
-                  int len, const void* data, int type);
+                  int len, const void* data, hid_t type);
 
   //! \brief Internal helper function writing a SIM's basis (geometry) to file.
   //! \param[in] SIM The SIM we want to write basis for
