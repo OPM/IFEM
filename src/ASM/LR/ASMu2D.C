@@ -1934,6 +1934,9 @@ bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
         utl::Hessian(Hess,fe.H);
     }
 
+    fe.u = gpar[0][i];
+    fe.v = gpar[1][i];
+
     // Store tangent vectors in fe.G for shells
     if (nsd > 2) fe.G = Jac;
 
