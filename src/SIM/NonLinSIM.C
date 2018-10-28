@@ -49,7 +49,6 @@ NonLinSIM::~NonLinSIM ()
 
   utl::LogStream& cout = model.getProcessAdm().cout;
 
-  std::map<int,int>::const_iterator nit;
   cout <<"\n *** Here are the nodal points flagged with slow convergence"
        <<"\n     ======================================================="
        <<"\n     Node  Count  Patch  Coordinates\n";
@@ -459,37 +458,10 @@ ConvStatus NonLinSIM::checkConvergence (TimeStep& param)
       cout <<"  alpha="<< alphaO;
     cout << std::endl;
 
+    // Find and print out the worst DOF(s) when detecting slow convergence
     if (status == SLOW && prnSlow > 0)
-    {
-      // Find and print out the worst DOF(s) when detecting slow convergence
-      double eps = convTol*refNorm;
-      std::map<std::pair<int,int>,RealArray> worstDOFs;
-      model.getWorstDofs(linsol,residual,prnSlow,eps,iteNorm,worstDOFs);
-      cout <<"  ** Slow convergence detected";
-      if (worstDOFs.size() > 1)
-        cout <<", here are the "<< worstDOFs.size() <<" worst DOFs:";
-      else if (worstDOFs.size() == 1)
-        cout <<", here is the worst DOF:";
-      else
-        cout <<".";
-      for (const std::pair<std::pair<int,int>,RealArray>& worst : worstDOFs)
-      {
-        cout <<"\n     Node "<< worst.first.first
-             <<" local DOF "<< worst.first.second;
-        char nodeType = model.getNodeType(worst.first.first);
-        if (nodeType != ' ')
-          cout <<" ("<< nodeType <<")";
-        cout <<" :\tEnergy = "<< worst.second[0]
-             <<"\tdu = "<< worst.second[1]
-             <<"\tres = "<< worst.second[2];
-        std::map<int,int>::iterator nit = slowNodes.find(worst.first.first);
-        if (nit == slowNodes.end())
-          slowNodes.insert(std::make_pair(worst.first.first,1));
-        else
-          ++nit->second;
-      }
-      cout << std::endl;
-    }
+      this->printWorst(cout,convTol*refNorm);
+
     cout.flags(oldFlags);
     cout.precision(oldPrec);
   }
@@ -506,6 +478,37 @@ ConvStatus NonLinSIM::checkConvergence (TimeStep& param)
 
   prevNorm = norm;
   return status;
+}
+
+
+void NonLinSIM::printWorst (utl::LogStream& os, double eps)
+{
+  // Find and print out the worst DOF(s) when detecting slow convergence
+  std::map<std::pair<int,int>,RealArray> worstDOFs;
+  model.getWorstDofs(linsol,residual,prnSlow,eps,iteNorm,worstDOFs);
+
+  os <<"  ** Slow convergence detected";
+  if (worstDOFs.size() > 1)
+    os <<", here are the "<< worstDOFs.size() <<" worst DOFs:";
+  else if (worstDOFs.size() == 1)
+    os <<", here is the worst DOF:";
+  else
+    os <<".";
+
+  for (const std::pair<std::pair<int,int>,RealArray>& wd : worstDOFs)
+  {
+    os <<"\n     Node "<< wd.first.first <<" local DOF "<< wd.first.second;
+    char nodeType = model.getNodeType(wd.first.first);
+    if (nodeType != ' ') os <<" ("<< nodeType <<")";
+    os <<" :\tEnergy = "<< wd.second[0]
+       <<"\tdu = "<< wd.second[1] <<"\tres = "<< wd.second[2];
+    std::map<int,int>::iterator nit = slowNodes.find(wd.first.first);
+    if (nit == slowNodes.end())
+      slowNodes.insert(std::make_pair(wd.first.first,1));
+    else
+      ++nit->second;
+  }
+  os << std::endl;
 }
 
 

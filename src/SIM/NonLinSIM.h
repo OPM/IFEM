@@ -80,6 +80,11 @@ public:
   virtual bool isLinear() const { return iteNorm == NONE; }
 
 protected:
+  //! \brief Prints out the worst DOFs when slow convergence is detected.
+  //! \param os The output stream to print to
+  //! \param[in] eps Only print DOF values larger than this tolerance
+  void printWorst(utl::LogStream& os, double eps);
+
   //! \brief Checks whether the nonlinear iterations have converged or diverged.
   virtual SIM::ConvStatus checkConvergence(TimeStep& param);
   //! \brief Updates configuration variables (solution vector) in an iteration.
