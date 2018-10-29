@@ -249,9 +249,10 @@ public:
 
   //! \brief Extracts the assembled load vector for inspection/visualization.
   //! \param[out] loadVec Global load vector in DOF-order
-  bool extractLoadVec(Vector& loadVec) const;
+  //! \param[in] idx Index to the system vector to extract
+  bool extractLoadVec(Vector& loadVec, size_t idx = 0) const;
   //! \brief Extracts an assembled global scalar quantity.
-  double extractScalar(size_t i = 0) const;
+  double extractScalar(size_t idx = 0) const;
 
   //! \brief Applies the Dirichlet conditions to given vector.
   //! \param[out] glbVec Global vector in DOF-order
@@ -416,6 +417,8 @@ public:
   bool getCurrentReactions(RealArray& RF, int pcode) const;
   //! \brief Returns current reaction force vector.
   virtual const Vector* getReactionForces() const;
+  //! \brief Computes the total external load of current time/load step.
+  virtual bool getExtLoad(RealArray&, const TimeDomain&) const { return false; }
 
   //! \brief Performs a generalized eigenvalue analysis of the assembled system.
   //! \param[in] iop Which eigensolver method to use

@@ -934,13 +934,13 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
 }
 
 
-bool SIMbase::extractLoadVec (Vector& loadVec) const
+bool SIMbase::extractLoadVec (Vector& loadVec, size_t idx) const
 {
   if (!myEqSys || !mySam)
     return false;
 
   // Expand load vector from equation ordering to DOF-ordering
-  SystemVector* b = myEqSys->getVector();
+  SystemVector* b = myEqSys->getVector(idx);
   if (!b || !mySam->expandSolution(*b,loadVec,0.0))
     return false;
 
@@ -951,9 +951,9 @@ bool SIMbase::extractLoadVec (Vector& loadVec) const
 }
 
 
-double SIMbase::extractScalar (size_t i) const
+double SIMbase::extractScalar (size_t idx) const
 {
-  return myEqSys ? myEqSys->getScalar(i) : 0.0;
+  return myEqSys ? myEqSys->getScalar(idx) : 0.0;
 }
 
 
