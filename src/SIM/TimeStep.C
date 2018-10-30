@@ -191,7 +191,12 @@ bool TimeStep::multiSteps () const
 bool TimeStep::hasReached (double t) const
 {
   const double epsT = 1.0e-6;
-  return time.t + epsT*std::max(epsT,time.dt) > t;
+  if (t > 0.0)
+    return time.t + epsT*std::max(epsT,time.dt) > t;
+  else if (t < 0.0)
+    return time.t < 0.0 && time.t - epsT*epsT < t;
+  else
+    return true;
 }
 
 
@@ -318,12 +323,20 @@ bool TimeStep::cutback ()
 }
 
 
+bool TimeStep::finished () const
+{
+  if (step >= maxStep && maxStep > 0)
+    return true;
+
+  // Also check negative stopTime in case of path-following algorithms
+  return this->hasReached(stopTime) || this->hasReached(-stopTime);
+}
+
 #ifdef HAS_CEREAL
 //! \brief Serializes TimeStep data \a tp to/from the archive \a ar.
 template<class T> void doSerializeOps (T& ar, TimeStep& tp)
 {
   ar(tp.step);
-  ar(tp.starTime);
   ar(tp.maxCFL);
   ar(tp.time.t);
   ar(tp.time.dt);

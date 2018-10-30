@@ -15,9 +15,8 @@
 #define TIME_STEP_H_
 
 #include "TimeDomain.h"
-#include <vector>
-#include <cstddef>
 #include <iostream>
+#include <vector>
 #include <map>
 #include <string>
 
@@ -61,7 +60,7 @@ public:
   //! \return \e false Cannot do further cut-back, time step size too small
   bool cutback();
   //! \brief Returns \e true if the end of the simulation has been reached.
-  bool finished() const { return this->hasReached(stopTime); }
+  bool finished() const;
 
   //! \brief Serialize internal state for restarting purposes.
   //! \param data Container for serialized data
@@ -79,13 +78,14 @@ public:
   double maxCFL;   //!< CFL restriction on time step size (0.0: no restriction)
 
 private:
-  int    niter;      //!< Number of iterations in previous time step
-  int    nInitStep;  //!< Number of fixed timesteps in the beginning
-  int    maxStep;    //!< Maximum number of time steps
-  double dtMin;      //!< Minimum time increment size
-  double dtMax;      //!< Maximun time increment size
-  double f1;         //!< Scale factor for increased time step size
-  double f2;         //!< Scale factor for reduced time step size
+  int niter;     //!< Number of iterations in previous time step
+  int nInitStep; //!< Number of fixed timesteps in the beginning
+  int maxStep;   //!< Maximum number of time steps
+
+  double dtMin;  //!< Minimum time increment size
+  double dtMax;  //!< Maximun time increment size
+  double f1;     //!< Scale factor for increased time step size
+  double f2;     //!< Scale factor for reduced time step size
 
   typedef std::pair<std::vector<double>,double> Step; //!< Time step definition
   typedef std::vector<Step> TimeSteps;                //!< Time step container
