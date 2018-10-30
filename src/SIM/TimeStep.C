@@ -338,8 +338,10 @@ bool TimeStep::serialize (std::map<std::string,std::string>& data) const
 {
 #ifdef HAS_CEREAL
   std::ostringstream str;
-  cereal::BinaryOutputArchive ar(str);
-  doSerializeOps(ar,*const_cast<TimeStep*>(this));
+  {
+    cereal::BinaryOutputArchive ar(str);
+    doSerializeOps(ar,*const_cast<TimeStep*>(this));
+  }
   data.insert(std::make_pair("TimeStep",str.str()));
   return true;
 #else
