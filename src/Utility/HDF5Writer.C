@@ -110,9 +110,14 @@ void HDF5Writer::openFile(int level, bool restart)
 #endif
   unsigned int flag = restart ? m_restart_flag : m_flag;
   std::string fname = restart ? m_restart_name : m_name;
+  if (flag == H5F_ACC_RDWR) {
+    struct stat buffer;
+    if (stat(fname.c_str(),&buffer) != 0)
+      flag = H5F_ACC_TRUNC;
+  }
 
   if (flag == H5F_ACC_TRUNC)
-    file = H5Fcreate(fname.c_str(),m_flag,H5P_DEFAULT,acc_tpl);
+    file = H5Fcreate(fname.c_str(),flag,H5P_DEFAULT,acc_tpl);
   else {
     // check free disk space - to protect against corrupting files
     // due to out of space condition
