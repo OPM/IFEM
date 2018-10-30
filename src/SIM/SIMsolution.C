@@ -46,9 +46,11 @@ bool SIMsolution::saveSolution (SerializeMap& data,
 {
 #ifdef HAS_CEREAL
   std::ostringstream str;
-  cereal::BinaryOutputArchive archive(str);
-  for (const Vector& sol : this->getSolutions())
-    archive(sol);
+  {
+    cereal::BinaryOutputArchive archive(str);
+    for (const Vector& sol : this->getSolutions())
+      archive(sol);
+  }
   data.insert(std::make_pair(name,str.str()));
   return true;
 #else
