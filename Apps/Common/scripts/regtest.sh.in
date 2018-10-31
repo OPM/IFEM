@@ -25,7 +25,12 @@ else
 fi
 hdf5=""
 tmplog=`mktemp -t ifemlogXXXXXX`
-test -n "$4" && hdf5="-hdf5 @CMAKE_BINARY_DIR@/Testing/$3"
+if test -n "$4"
+then
+  hdf5="-hdf5 @CMAKE_BINARY_DIR@/Testing/$3"
+  rm -f @CMAKE_BINARY_DIR@/Testing/$3.hdf5
+  rm -f @CMAKE_BINARY_DIR@/Testing/$3_restart.hdf5
+fi
 $mysim $hdf5 $MAPFILE 2>&1 > $tmplog
 if test -n "$4"
 then
