@@ -29,8 +29,9 @@ namespace SIM //! Simulation scope
   //! \brief Enum defining the various solution modes that may occur.
   enum SolutionMode
   {
-    INIT,
-    STATIC,
+    INIT = 0,
+    STATIC = 1,
+    ARCLEN = 2,
     DYNAMIC,
     VIBRATION,
     BUCKLING,
