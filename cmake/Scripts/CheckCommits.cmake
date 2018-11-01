@@ -63,6 +63,8 @@ foreach(rev ${rev_list})
 
   # Build
   foreach(tgt ${check_target})
+      execute_process(COMMAND ${CMAKE_COMMAND} "--build" "${CMAKE_BINARY_DIR}" "--target" "rebuild_cache" "--use-stderr"
+                      RESULT_VARIABLE status_code)
     if(build_threads GREATER 2)
       execute_process(COMMAND ${CMAKE_COMMAND} "--build" "${CMAKE_BINARY_DIR}" "--target" "${tgt}" "--use-stderr" "--" "-j${build_threads}"
                       RESULT_VARIABLE status_code)
