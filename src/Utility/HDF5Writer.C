@@ -36,27 +36,16 @@
 
 
 HDF5Writer::HDF5Writer (const std::string& name, const ProcessAdm& adm,
-                        bool append, bool keepOpen)
-  : DataWriter(name,adm,".hdf5"), m_file(-1), m_restart_file(-1),
-    m_keepOpen(keepOpen)
-#ifdef HAVE_MPI
-  , m_adm(adm)
-#endif
+                        bool append)
+  : DataWriter(name,adm,".hdf5"), HDF5Base(name+".hdf5", adm)
 {
 #ifdef HAS_HDF5
   struct stat temp;
   // file already exists - open and find the next group
-  if (append && keepOpen)
-    m_flag = H5F_ACC_RDONLY;
-  else if (append && stat(m_name.c_str(),&temp) == 0)
+  if (append && stat(m_name.c_str(),&temp) == 0)
     m_flag = H5F_ACC_RDWR;
   else
     m_flag = H5F_ACC_TRUNC;
-  m_restart_name = name + "_restart.hdf5";
-  if (stat(m_restart_name.c_str(),&temp) == 0)
-    m_restart_flag = H5F_ACC_RDWR;
-  else
-    m_restart_flag = H5F_ACC_TRUNC;
 #endif
 }
 
@@ -95,33 +84,19 @@ int HDF5Writer::getLastTimeLevel ()
 }
 
 
-void HDF5Writer::openFile(int level, bool restart)
+void HDF5Writer::openFile(int level)
 {
-  if ((m_file != -1 && !restart) || (m_restart_file != -1 && restart))
+  if (m_file != -1)
     return;
+
 #ifdef HAS_HDF5
-  hid_t file;
-#ifdef HAVE_MPI
-  MPI_Info info = MPI_INFO_NULL;
-  hid_t acc_tpl = H5Pcreate(H5P_FILE_ACCESS);
-  H5Pset_fapl_mpio(acc_tpl, *m_adm.getCommunicator(), info);
-#else
-  hid_t acc_tpl = H5P_DEFAULT;
-#endif
-  unsigned int flag = restart ? m_restart_flag : m_flag;
-  std::string fname = restart ? m_restart_name : m_name;
-  if (flag == H5F_ACC_RDWR) {
+  if (m_flag == H5F_ACC_RDWR) {
     struct stat buffer;
-    if (stat(fname.c_str(),&buffer) != 0)
-      flag = H5F_ACC_TRUNC;
+    if (stat(m_name.c_str(),&buffer) != 0)
+      m_flag = H5F_ACC_TRUNC;
   }
 
-  if (flag == H5F_ACC_TRUNC)
-    file = H5Fcreate(fname.c_str(),flag,H5P_DEFAULT,acc_tpl);
-  else {
-    // check free disk space - to protect against corrupting files
-    // due to out of space condition
-    if (flag == H5F_ACC_RDWR) {
+  if (m_flag == H5F_ACC_RDWR) {
 #ifdef HAVE_GET_CURRENT_DIR_NAME
       char* cwd = get_current_dir_name();
       struct statvfs vfs;
@@ -132,34 +107,21 @@ void HDF5Writer::openFile(int level, bool restart)
       }
       free(cwd);
 #endif
-    }
-    file = H5Fopen(fname.c_str(),flag,acc_tpl);
   }
-  if (file < 0)
-  {
-    std::cerr <<" *** HDF5Writer: Failed to open "<< m_name << std::endl;
+
+  if (!HDF5Base::openFile(m_flag))
     return;
-  }
 
   std::stringstream str;
   str << '/' << level;
-  if (!checkGroupExistence(file,str.str().c_str()))
-    H5Gclose(H5Gcreate2(file,str.str().c_str(),0,H5P_DEFAULT,H5P_DEFAULT));
-#ifdef HAVE_MPI
-  H5Pclose(acc_tpl);
-#endif
-  if (restart)
-    m_restart_file = file;
-  else
-   m_file = file;
+  if (!checkGroupExistence(m_file,str.str().c_str()))
+    H5Gclose(H5Gcreate2(m_file,str.str().c_str(),0,H5P_DEFAULT,H5P_DEFAULT));
 #endif
 }
 
 
-void HDF5Writer::closeFile(int level, bool force)
+void HDF5Writer::closeFile(int level)
 {
-  if (m_keepOpen && !force)
-    return;
 #ifdef HAS_HDF5
   if (m_file) {
     H5Fflush(m_file,H5F_SCOPE_GLOBAL);
@@ -167,82 +129,6 @@ void HDF5Writer::closeFile(int level, bool force)
   }
   m_flag = H5F_ACC_RDWR;
   m_file = -1;
-#endif
-}
-
-
-void HDF5Writer::readArray(hid_t group, const std::string& name,
-                           int& len, double*& data)
-{
-#ifdef HAS_HDF5
-  if (!checkGroupExistence(group, name.c_str())) {
-    len = 0;
-    return;
-  }
-  hid_t set = H5Dopen2(group,name.c_str(),H5P_DEFAULT);
-  hsize_t siz = H5Dget_storage_size(set) / 8;
-  len = siz;
-  data = new double[siz];
-  H5Dread(set,H5T_NATIVE_DOUBLE,H5S_ALL,H5S_ALL,H5P_DEFAULT,data);
-  H5Dclose(set);
-#else
-  len = 0;
-  std::cout << "HDF5Writer: compiled without HDF5 support, no data read" << std::endl;
-#endif
-}
-
-
-void HDF5Writer::readArray(hid_t group, const std::string& name,
-                           int& len,  int*& data)
-{
-#ifdef HAS_HDF5
-  hid_t set = H5Dopen2(group,name.c_str(),H5P_DEFAULT);
-  hsize_t siz = H5Dget_storage_size(set) / sizeof(int);
-  len = siz;
-  data = new int[siz];
-  H5Dread(set,H5T_NATIVE_INT,H5S_ALL,H5S_ALL,H5P_DEFAULT,data);
-  H5Dclose(set);
-#else
-  len = 0;
-  std::cout << "HDF5Writer: compiled without HDF5 support, no data read" << std::endl;
-#endif
-}
-
-
-void HDF5Writer::readArray(hid_t group, const std::string& name,
-                           int& len,  char*& data)
-{
-#ifdef HAS_HDF5
-  hid_t set = H5Dopen2(group,name.c_str(),H5P_DEFAULT);
-  hsize_t siz = H5Dget_storage_size(set);
-  len = siz;
-  data = new char[siz];
-  H5Dread(set,H5T_NATIVE_CHAR,H5S_ALL,H5S_ALL,H5P_DEFAULT,data);
-  H5Dclose(set);
-#else
-  len = 0;
-  std::cout << "HDF5Writer: compiled without HDF5 support, no data read" << std::endl;
-#endif
-}
-
-
-void HDF5Writer::readString(const std::string& name, std::string& out, bool close)
-{
-#ifdef HAS_HDF5
-  openFile(0);
-  hid_t set = H5Dopen2(m_file,name.c_str(),H5P_DEFAULT);
-  hid_t space = H5Dget_space(set);
-  hsize_t siz = H5Sget_simple_extent_npoints(space);
-  char* temp = new char[siz];
-  out.resize(siz);
-  H5Dread(set,H5T_NATIVE_CHAR,H5S_ALL,H5S_ALL,H5P_DEFAULT,temp);
-  out.assign(temp, siz);
-  delete[] temp;
-  H5Dclose(set);
-  if (close)
-    closeFile(0);
-#else
-  std::cout << "HDF5Writer: compiled without HDF5 support, no data read" << std::endl;
 #endif
 }
 
@@ -298,13 +184,6 @@ void HDF5Writer::writeArray(hid_t group, const std::string& name, int patch,
 }
 
 
-bool HDF5Writer::readVector(int level, const DataEntry& entry)
-{
-//  readArray(level,entry.first,entry.second.size,entry.second.data);
-  return true;
-}
-
-
 void HDF5Writer::writeVector(int level, const DataEntry& entry)
 {
   if (!entry.second.enabled)
@@ -331,29 +210,6 @@ void HDF5Writer::writeVector(int level, const DataEntry& entry)
   }
   H5Gclose(group);
 #endif
-}
-
-
-bool HDF5Writer::readVector(int level, const std::string& name,
-                            int patch, std::vector<double>& vec)
-{
-  bool ok=true;
-  openFile(level);
-  vec.clear();
-#ifdef HAS_HDF5
-  std::stringstream str;
-  str << level << "/" << name;
-  hid_t group2 = H5Gopen2(m_file,str.str().c_str(),H5P_DEFAULT);
-  double* tmp = nullptr; int siz = 0;
-  std::stringstream str2;
-  str2 << patch;
-  readArray(group2,str2.str().c_str(),siz,tmp);
-  vec.insert(vec.begin(),tmp,tmp+siz);
-  delete[] tmp;
-  H5Gclose(group2);
-#endif
-  closeFile(level);
-  return ok;
 }
 
 
@@ -702,23 +558,6 @@ void HDF5Writer::writeBasis (const SIMbase* sim, const std::string& name,
 }
 
 
-bool HDF5Writer::checkGroupExistence(hid_t parent, const char* path)
-{
-  bool result = false;
-#ifdef HAS_HDF5
-  // turn off errors to avoid cout spew
-  H5E_BEGIN_TRY {
-#if H5_VERS_MINOR > 8
-  result = H5Lexists(parent, path, H5P_DEFAULT) == 1;
-#else
-    result = H5Gget_objinfo((hid_t)parent,path,0,nullptr) == 0;
-#endif
-  } H5E_END_TRY;
-#endif
-  return result;
-}
-
-
 // TODO: implement for variable time steps.
 // (named time series to allow different timelevels for different fields)
 bool HDF5Writer::writeTimeInfo (int level, int interval, const TimeStep& tp)
@@ -787,175 +626,4 @@ void HDF5Writer::writeNodalForces(int level, const DataEntry& entry)
 #else
   std::cout << "HDF5Writer: compiled without HDF5 support, no data written" << std::endl;
 #endif
-}
-
-
-bool HDF5Writer::hasGeometries(int level, const std::string& basisName)
-{
-  std::stringstream str;
-  str << level << "/" << basisName << "/basis";
-
-  bool notOpen = m_file == -1;
-  if (notOpen) this->openFile(level);
-  bool result = this->checkGroupExistence(m_file,str.str().c_str());
-  if (notOpen) this->closeFile(level);
-
-  return result;
-}
-
-
-bool HDF5Writer::readDouble(int level, const std::string& group,
-                            const std::string& name, double& data)
-{
-#ifdef HAS_HDF5
-  std::stringstream str;
-  str << "/" << level << "/" << group;
-  if (!checkGroupExistence(m_file,str.str().c_str()))
-    return false;
-
-  hid_t group2 = H5Gopen2(m_file,str.str().c_str(),H5P_DEFAULT);
-  double* data2; int len=1;
-  readArray(group2,name,len,data2);
-  H5Gclose(group2);
-  if (len > 0) {
-    data = data2[0];
-    delete[] data2;
-    return true;
-  }
-#endif
-  return false;
-}
-
-
-bool HDF5Writer::readVector(int level, const std::string& name,
-                            int patch, std::vector<int>& vec)
-{
-  bool ok=true;
-  openFile(level);
-#ifdef HAS_HDF5
-  std::stringstream str;
-  str << level << "/" << name;
-  hid_t group2 = H5Gopen2(m_file,str.str().c_str(),H5P_DEFAULT);
-  int* tmp = nullptr; int siz = 0;
-  std::stringstream str2;
-  str2 << patch;
-  readArray(group2,str2.str().c_str(),siz,tmp);
-  vec.assign(tmp, tmp + siz);
-  delete[] tmp;
-  H5Gclose(group2);
-#endif
-  closeFile(level);
-  return ok;
-}
-
-
-bool HDF5Writer::writeRestartData(int level, const DataExporter::SerializeData& data)
-{
-#ifdef HAS_HDF5
-  if (level > 0)
-    m_restart_flag = H5F_ACC_RDWR;
-  openFile(level, true);
-  int pid = 0;
-#ifdef HAVE_MPI
-  pid = m_adm.getProcId();
-  int ptot = m_adm.getNoProcs();
-#else
-  int ptot = 1;
-#endif
-  for (int p = 0; p < ptot; p++)
-    for (const std::pair<std::string,std::string>& it : data) {
-      std::stringstream str;
-      str << level << '/' << p;
-      hid_t group;
-      if (checkGroupExistence(m_restart_file,str.str().c_str()))
-        group = H5Gopen2(m_restart_file,str.str().c_str(),H5P_DEFAULT);
-      else
-        group = H5Gcreate2(m_restart_file,str.str().c_str(),0,H5P_DEFAULT,H5P_DEFAULT);
-      if (!H5Lexists(group, it.first.c_str(), 0)) {
-        int len = pid == p ? it.second.size() : 0;
-        writeArray(group, it.first, -1, len, it.second.data(), H5T_NATIVE_CHAR);
-      }
-      H5Gclose(group);
-    }
-
-  H5Fclose(m_restart_file);
-  m_restart_file = -1;
-#else
-  std::cout << "HDF5Writer: compiled without HDF5 support, no data written" << std::endl;
-#endif
-
-  return true;
-}
-
-
-//! \brief Convenience type for restart IO.
-typedef std::pair<HDF5Writer*,DataExporter::SerializeData*> read_restart_ctx;
-
-
-#ifdef HAS_HDF5
-static herr_t read_restart_data(hid_t group_id, const char* member_name, void* data)
-{
-  read_restart_ctx* ctx = static_cast<read_restart_ctx*>(data);
-
-  char* c;
-  int len;
-  ctx->first->readArray(group_id,member_name,len,c);
-  ctx->second->insert(std::make_pair(std::string(member_name),std::string(c,len)));
-  return 0;
-}
-#endif
-
-
-int HDF5Writer::readRestartData(DataExporter::SerializeData& data, int level)
-{
-#ifdef HAS_HDF5
-  openFile(0);
-
-  if (level == -1) {
-    while (true) {
-      std::stringstream str;
-      str << '/' << level+1;
-      if (!checkGroupExistence(m_file, str.str().c_str()))
-        break;
-      ++level;
-    }
-  }
-
-  std::stringstream str;
-  str << '/' << level << '/';
-#ifdef HAVE_MPI
-  str << m_adm.getProcId();
-#else
-  str << 0;
-#endif
-  int idx = 0;
-  read_restart_ctx ctx(this,&data);
-  int it = H5Giterate(m_file, str.str().c_str(), &idx, read_restart_data, &ctx);
-  closeFile(0);
-  return it < 0 ? it : level;
-#else
-  std::cout << "HDF5Writer: compiled without HDF5 support, no data read" << std::endl;
-  return -1;
-#endif
-}
-
-
-int HDF5Writer::getFieldSize(int level, const std::string& basisName,
-                             const std::string& fieldName)
-{
-  openFile(level);
-  std::stringstream str;
-  str << level << "/" << basisName;
-  if (!fieldName.empty())
-    str << "/fields/" << fieldName;
-  int patches = 0;
-  while (true) {
-    ++patches;
-    std::stringstream str2;
-    str2 << str.str() << "/" << patches;
-    if (!checkGroupExistence(m_file, str2.str().c_str()))
-      break;
-  }
-
-  return patches-1;
 }

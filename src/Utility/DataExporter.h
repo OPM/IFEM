@@ -34,8 +34,6 @@ class TimeStep;
 class DataExporter : public ControlCallback
 {
 public:
-  typedef std::map<std::string, std::string> SerializeData; //!< Convenience typedef
-
    //! \brief Supported field types
   enum FieldType {
     VECTOR,
@@ -76,10 +74,9 @@ public:
   //! \brief Default constructor.
   //! \param[in] dynWriters If \e true, delete the writers on destruction
   //! \param[in] ndump Interval between dumps
-  //! \param[in] nrestart Restart stride. 0 to disable
-  DataExporter(bool dynWriters = false, int ndump=1, int nrestart=0) :
+  DataExporter(bool dynWriters = false, int ndump=1) :
     m_delete(dynWriters), m_level(-1), m_ndump(ndump),
-    m_last_step(-1), m_nrestart(nrestart), m_infoReader(0), m_dataReader(0) {}
+    m_last_step(-1), m_infoReader(0), m_dataReader(0) {}
 
   //! \brief The destructor deletes the writers if \a dynWriters was \e true.
   virtual ~DataExporter();
@@ -117,16 +114,7 @@ public:
   //! \brief Dumps all registered fields using the registered writers.
   //! \param[in] tp Current time stepping info
   //! \param[in] geometryUpdated Whether or not geometries are updated
-  //! \param[in] serializeData Serialized data from simulators for restart files
-  bool dumpTimeLevel(const TimeStep* tp=nullptr, bool geometryUpdated=false,
-                     SerializeData* serializeData = nullptr);
-
-  //! \brief Loads last time level with first registered writer by default.
-  //! \param[in] level Time level to load, defaults to last time level
-  //! \param[in] info DataWriter to read the info from (e.g. the XML writer)
-  //! \param[in] input DataWriter to read the data from (e.g. the HDF5 writer)
-  bool loadTimeLevel(int level=-1,
-                     DataWriter* info=nullptr, DataWriter* input=nullptr);
+  bool dumpTimeLevel(const TimeStep* tp=nullptr, bool geometryUpdated=false);
 
   //! \brief Returns the current time level of the exporter.
   int getTimeLevel();
@@ -148,9 +136,6 @@ public:
   //! \brief Returns visualization data stride
   int getStride() const { return m_ndump; }
 
-  //! \brief Returns whether current step should be saved for restart or not.
-  bool dumpForRestart(const TimeStep* tp) const;
-
 protected:
   //! \brief Internal helper function.
   int getWritersTimeLevel() const;
@@ -164,7 +149,6 @@ protected:
   int  m_level;     //!< Current time level
   int  m_ndump;     //!< Time level stride for dumping
   int  m_last_step; //!< Last time step we dumped for
-  int  m_nrestart;  //!< Stride for restart data dumping
 
   DataWriter* m_infoReader; //!< DataWriter to read data information from
   DataWriter* m_dataReader; //!< DataWriter to read numerical data from
@@ -201,19 +185,12 @@ public:
 
   //! \brief Closes the file.
   //! \param[in] level Level we just wrote to the file
-  //! \param[in] force If true, we always close the actual file,
-  //! otherwise it's up to the individual writers
-  virtual void closeFile(int level, bool force = false) = 0;
+  virtual void closeFile(int level) = 0;
 
   //! \brief Writes a vector to file.
   //! \param[in] level The time level to write the vector at
   //! \param[in] entry The DataEntry describing the vector
   virtual void writeVector(int level, const DataEntry& entry) = 0;
-
-  //! \brief Reads a vector from file.
-  //! \param[in] level The time level to read the vector at
-  //! \param[in] entry The DataEntry describing the vector
-  virtual bool readVector(int level, const DataEntry& entry) = 0;
 
   //! \brief Writes data from a SIM object to file.
   //! \param[in] level The time level to write the data at
@@ -254,11 +231,6 @@ public:
 
   //! \brief Returns the name of the file
   const std::string& getName() const { return m_name; }
-
-  //! \brief Write restart data.
-  //! \param[in] level Level to write restart data at
-  //! \param[in] data Data to write
-  virtual bool writeRestartData(int level, const DataExporter::SerializeData& data) = 0;
 
 protected:
   std::string  m_name;   //!< File name

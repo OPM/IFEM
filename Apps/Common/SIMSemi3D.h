@@ -22,6 +22,7 @@
 #include "MatVec.h"
 #include "Vec3.h"
 #include "DataExporter.h"
+#include "HDF5Restart.h"
 #include "HDF5Writer.h"
 #include "tinyxml.h"
 #include <fstream>
@@ -170,9 +171,9 @@ public:
   }
 
   //! \brief Dummy method, no serialization support.
-  bool serialize(DataExporter::SerializeData&) { return false; }
+  bool serialize(HDF5Restart::SerializeData&) { return false; }
   //! \brief Dummy method, no deserialization support.
-  bool deSerialize(const DataExporter::SerializeData&) { return false; }
+  bool deSerialize(const HDF5Restart::SerializeData&) { return false; }
 
   //! \brief Solves the nonlinear equations by Newton-Raphson iterations.
   bool solveStep(TimeStep& tp)

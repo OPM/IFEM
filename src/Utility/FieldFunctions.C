@@ -20,7 +20,7 @@
 #include "Vec3.h"
 #include "StringUtils.h"
 #ifdef HAS_HDF5
-#include "HDF5Writer.h"
+#include "HDF5Reader.h"
 #include "ProcessAdm.h"
 #include <sstream>
 #endif
@@ -36,8 +36,7 @@ FieldFuncBase::FieldFuncBase (const std::string& fName) :
   lastTime = 0.0;
 #ifdef HAS_HDF5
   pAdm = new ProcessAdm();
-  hdf5 = new HDF5Writer(fName,*pAdm,true,true);
-  hdf5->readDouble(lastLevel,"timeinfo","SIMbase-1",lastTime);
+  hdf5 = new HDF5Reader(fName,*pAdm);
 #else
   std::cerr <<"WARNING: Compiled without HDF5 support,"
             <<" field function is not instantiated."<< std::endl;
@@ -61,9 +60,13 @@ int FieldFuncBase::findClosestLevel (double time) const
 #ifdef HAS_HDF5
   double t;
   int incLev = time > lastTime ? 1 : -1;
-  while (hdf5->readDouble(lastLevel+incLev,"timeinfo","SIMbase-1",t))
+  bool ok = true;
+  while (ok)
   {
-    if (fabs(time-t) >= fabs(time-lastTime))
+    std::stringstream str;
+    str << lastLevel+incLev << "/timeinfo/SIMbase-1";
+    ok = hdf5->readDouble(str.str(),t);
+    if (ok && fabs(time-t) >= fabs(time-lastTime))
     {
 #ifdef SP_DEBUG
       std::cout <<"FieldFuncBase: New time level "<< lastLevel
@@ -87,7 +90,9 @@ bool FieldFuncBase::load (const std::vector<std::string>& fieldNames,
   size_t nOK = 0;
   size_t nPatches = 0;
 #ifdef HAS_HDF5
-  nPatches = hdf5->getFieldSize(level, basisName, fieldNames.front());
+  std::stringstream str;
+  str << level << "/" << basisName << "/fields/" << fieldNames.front();
+  nPatches = hdf5->getFieldSize(str.str());
 #endif
   if (nPatches == 0)
     nPatches = patch.size();
@@ -101,7 +106,9 @@ bool FieldFuncBase::load (const std::vector<std::string>& fieldNames,
   size_t nFldC3D = isScalar ? 1 : (nFldCmp < 3 ? 3 : nFldCmp);
   for (size_t ip = 0; ip < nPatches; ip++)
   {
-    if (hdf5->hasGeometries(level,basisName))
+    std::stringstream str;
+    str << level << "/" << basisName << "/basis";
+    if (hdf5->getFieldSize(str.str()))
     {
       if (patch[ip])
       {
@@ -140,7 +147,9 @@ bool FieldFuncBase::load (const std::vector<std::string>& fieldNames,
       RealArrays coefs(nFldCmp);
       for (size_t i = 0; i < nFldCmp; i++)
       {
-        hdf5->readVector(level,basisName+"/fields/"+fieldNames[i],ip+1,coefs[i]);
+        std::stringstream str;
+        str << level << "/" << basisName << "/fields/" << fieldNames[i] << "/" << ip+1;
+        hdf5->readVector(str.str(),coefs[i]);
 #if SP_DEBUG > 1
         std::cout <<"FieldFuncBase::load: Reading \""<< fieldNames[i]
                   <<"\" ("<< coefs[i].size() <<") for patch "<< ip+1;

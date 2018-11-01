@@ -20,7 +20,7 @@
 #include "LinSolParams.h"
 #include "Functions.h"
 #include "Utilities.h"
-#include "HDF5Writer.h"
+#include "HDF5Reader.h"
 #include "IFEM.h"
 #include "tinyxml.h"
 #include <fstream>
@@ -73,16 +73,17 @@ bool SIMinput::parseGeometryTag (const TiXmlElement* elem)
     else if (strstr(file,".hdf5"))
     {
       IFEM::cout <<"\tReading global node numbers from "<< file << std::endl;
-      HDF5Writer hdf5(file,ProcessAdm(),true,true);
+      HDF5Reader hdf5(file,ProcessAdm());
       const char* field = elem->Attribute("field");
       for (int i = 1; i <= nGlPatches; i++)
       {
         IntVec nodes;
         ASMbase* pch = this->getPatch(i,true);
-        if (pch && hdf5.readVector(0, field ? field : "node numbers", i, nodes))
+        std::stringstream str;
+        str << "/0/" << (field ? field : "node numbers") << "/" << i;
+        if (pch && hdf5.readVector(str.str(),nodes))
           pch->setNodeNumbers(nodes);
       }
-      hdf5.closeFile(0, true);
     }
   }
 
@@ -1210,8 +1211,7 @@ bool SIMinput::setInitialCondition (SIMdependency* fieldHolder,
                                     const std::string& fileName,
                                     const InitialCondVec& info)
 {
-  HDF5Writer hdf5reader(fileName,adm,true,true);
-  hdf5reader.openFile(0);
+  HDF5Reader hdf5reader(fileName,adm);
 
   std::map<std::string,PatchVec> basisMap;
 
@@ -1225,7 +1225,9 @@ bool SIMinput::setInitialCondition (SIMdependency* fieldHolder,
     // Load basis
     CharVec nf(1,this->getNoFields(it.basis));
     PatchVec& basisVec = basisMap[it.file_basis];
-    int nPatches = hdf5reader.getFieldSize(it.geo_level, it.file_basis+"/basis","");
+    std::stringstream str;
+    str << it.geo_level << "/" << it.file_basis << "/basis";
+    int nPatches = hdf5reader.getFieldSize(str.str());
     if (basisVec.empty()) {
       for (int i = 0; i < nPatches; i++)
         if (this->getLocalPatchIndex(i+1) > 0)
@@ -1247,7 +1249,9 @@ bool SIMinput::setInitialCondition (SIMdependency* fieldHolder,
       if (!pch) continue;
 
       Vector loc, newloc;
-      hdf5reader.readVector(it.file_level, it.file_basis+"/fields/"+it.file_field, i+1, loc);
+      std::stringstream str;
+      str << it.file_level << "/" << it.file_basis << "/fields/" << it.file_field << "/" << i+1;
+      hdf5reader.readVector(str.str(), loc);
       basisVec[p-1]->copyParameterDomain(pch);
       if (pch->evaluate(basisVec[p-1], loc, newloc, it.basis))
         pch->injectNodeVec(newloc, *field, newloc.size()/pch->getNoNodes(it.basis), it.basis);
@@ -1259,7 +1263,6 @@ bool SIMinput::setInitialCondition (SIMdependency* fieldHolder,
     for (ASMbase* pch : itb.second)
       delete pch;
 
-  hdf5reader.closeFile(0,true);
   return true;
 }
 
