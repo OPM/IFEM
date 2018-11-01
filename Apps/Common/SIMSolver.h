@@ -17,6 +17,7 @@
 #include "IFEM.h"
 #include "SIMadmin.h"
 #include "TimeStep.h"
+#include "HDF5Restart.h"
 #include "HDF5Writer.h"
 #include "tinyxml.h"
 
@@ -45,16 +46,14 @@ public:
   //! \brief Handles application data output.
   //! \param[in] hdf5file The file to save to
   //! \param[in] saveInterval The stride in the output file
-  //! \param[in] restartInterval The stride in the restart file
-  void handleDataOutput(const std::string& hdf5file,
-                        int saveInterval = 1, int restartInterval = 0)
+  void handleDataOutput(const std::string& hdf5file, int saveInterval = 1)
   {
     if (IFEM::getOptions().discretization < ASM::Spline && !hdf5file.empty())
       IFEM::cout <<"\n  ** HDF5 output is available for spline discretization"
                  <<" only. Deactivating...\n"<< std::endl;
     else
     {
-      exporter = new DataExporter(true,saveInterval,restartInterval);
+      exporter = new DataExporter(true,saveInterval);
       exporter->registerWriter(new HDF5Writer(hdf5file,adm));
       S1.registerFields(*exporter);
       IFEM::registerCallback(*exporter);
@@ -123,10 +122,11 @@ public:
   explicit SIMSolver(T1& s1) : SIMSolverStat<T1>(s1,"Time integration driver")
   {
     saveDivergedSol = false;
+    restartAdm = nullptr;
   }
 
-  //! \brief Empty destructor.
-  virtual ~SIMSolver() {}
+  //! \brief The destructor deletes the restart data handler.
+  virtual ~SIMSolver() { delete restartAdm; }
 
   //! \brief Reads solver data from the specified input file.
   virtual bool read(const char* file) { return this->SIMadmin::read(file); }
@@ -161,16 +161,29 @@ public:
     return 0;
   }
 
+  //! \brief Handles application data output.
+  //! \param[in] hdf5file The file to save to
+  //! \param[in] saveInterval The stride in the output file
+  //! \param[in] restartInterval The stride in the restart file
+  void handleDataOutput(const std::string& hdf5file,
+                        int saveInterval = 1, int restartInterval = 0)
+  {
+    if (restartInterval > 0)
+      restartAdm = new HDF5Restart(hdf5file+"_restart",this->adm,restartInterval);
+
+    this->SIMSolverStat<T1>::handleDataOutput(hdf5file, saveInterval);
+  }
+
   //! \brief Serialize internal state for restarting purposes.
   //! \param data Container for serialized data
-  bool serialize(DataExporter::SerializeData& data)
+  bool serialize(HDF5Restart::SerializeData& data)
   {
     return tp.serialize(data) && this->S1.serialize(data);
   }
 
   //! \brief Set internal state from a serialized state.
   //! \param[in] data Container for serialized data
-  bool deSerialize(const DataExporter::SerializeData& data)
+  bool deSerialize(const HDF5Restart::SerializeData& data)
   {
     return tp.deSerialize(data) && this->S1.deSerialize(data);
   }
@@ -204,12 +217,12 @@ protected:
       return false;
 
     if (saveRes && SIMSolverStat<T1>::exporter) {
-      DataExporter::SerializeData data;
-      if (SIMSolverStat<T1>::exporter->dumpForRestart(&tp) &&
-          this->serialize(data))
-        return SIMSolverStat<T1>::exporter->dumpTimeLevel(&tp,newMesh,&data);
-      else // no restart dump, or serialization failure
-        return SIMSolverStat<T1>::exporter->dumpTimeLevel(&tp,newMesh);
+      HDF5Restart::SerializeData data;
+      if (restartAdm && restartAdm->dumpStep(tp) && this->serialize(data))
+        if (!restartAdm->writeData(tp,data))
+          return false;
+
+      return SIMSolverStat<T1>::exporter->dumpTimeLevel(&tp,newMesh);
     }
 
     return true;
@@ -225,9 +238,9 @@ public:
   {
     if (restartFile.empty()) return 0;
 
-    DataExporter::SerializeData data;
-    HDF5Writer hdf(restartFile,SIMadmin::adm,true);
-    if ((restartStep = hdf.readRestartData(data,restartStep)) >= 0)
+    HDF5Restart::SerializeData data;
+    HDF5Restart hdf(restartFile,SIMadmin::adm,1);
+    if ((restartStep = hdf.readData(data,restartStep)) >= 0)
     {
       IFEM::cout <<"\n === Restarting from a serialized state ==="
                  <<"\n     file = "<< restartFile
@@ -247,6 +260,7 @@ private:
 
 protected:
   TimeStep tp; //!< Time stepping information
+  HDF5Restart* restartAdm; //!< Administrator for restart output
 };
 
 #endif

@@ -15,9 +15,7 @@
 #define _HDF5_WRITER_H
 
 #include "DataExporter.h"
-#ifdef HAS_HDF5
-#include <hdf5.h>
-#endif
+#include "HDF5Base.h"
 
 class SIMbase;
 
@@ -25,24 +23,18 @@ class SIMbase;
 /*!
   \brief Write data to a HDF5 file.
 
-  \details The HDF5 writer writes data to a HDF5 file.
-  It supports parallel I/O, and can be used to add restart capability
-  to applications.
+  \details The HDF5 writer writes data to a HDF5 file. It supports parallel I/O.
 */
 
-class HDF5Writer : public DataWriter
+class HDF5Writer : public DataWriter, public HDF5Base
 {
 public:
-#ifndef HAS_HDF5
-  using hid_t = int; //!< Type alias providing hid_t without the hdf5 library
-#endif
   //! \brief The constructor opens a named HDF5-file.
   //! \param[in] name The name (without extension) of the data file
   //! \param[in] adm The process administrator
   //! \param[in] append Whether to append to or overwrite an existing file
-  //! \param[in] keepopen Whether to always keep the HDF5 open
   HDF5Writer(const std::string& name, const ProcessAdm& adm,
-             bool append = false, bool keepopen = false);
+             bool append = false);
 
   //! \brief Empty destructor.
   virtual ~HDF5Writer() {}
@@ -52,27 +44,16 @@ public:
 
   //! \brief Opens the file at a given time level.
   //! \param[in] level The requested time level
-  virtual void openFile(int level) { this->openFile(level,false); }
-
-  //! \brief Opens the file at a given time level.
-  //! \param[in] level The requested time level
-  //! \param[in] restart If true, open restart file
-  void openFile(int level, bool restart);
+  virtual void openFile(int level);
 
   //! \brief Closes the file.
   //! \param[in] level Level we just wrote to the file
-  //! \param[in] force If \e true, close even if \a keepopen was \e true
-  virtual void closeFile(int level, bool force = false);
+  virtual void closeFile(int level);
 
   //! \brief Writes a vector to file.
   //! \param[in] level The time level to write the vector at
   //! \param[in] entry The DataEntry describing the vector
   virtual void writeVector(int level, const DataEntry& entry);
-
-  //! \brief Reads a vector from file.
-  //! \param[in] level The time level to read the vector at
-  //! \param[in] entry The DataEntry describing the vector
-  virtual bool readVector(int level, const DataEntry& entry);
 
   //! \brief Writes data from a SIM to file.
   //! \param[in] level The time level to write the data at
@@ -111,63 +92,6 @@ public:
   //! \param[in] tp The current time stepping info
   virtual bool writeTimeInfo(int level, int interval, const TimeStep& tp);
 
-  //! \brief Reads a text string.
-  //! \param[in] name The name (path in HDF5 file) to the string
-  //! \param[out] out The string to read data into
-  //! \param[in] close If \e false, keep the HDF5-file open after reading
-  void readString(const std::string& name, std::string& out, bool close = true);
-
-  //! \brief Reads a double vector.
-  //! \param[in] level The time level to read at
-  //! \param[in] name The name (path in HDF5 file) to the string
-  //! \param[in] patch The patch to read
-  //! \param[out] vec The vector to read data into
-  bool readVector(int level, const std::string& name,
-                  int patch, std::vector<double>& vec);
-
-  //! \brief Reads an integer vector.
-  //! \param[in] level The time level to read at
-  //! \param[in] name The name (path in HDF5 file) to the string
-  //! \param[in] patch The patch to read
-  //! \param[out] vec The vector to read data into
-  bool readVector(int level, const std::string& name,
-                  int patch, std::vector<int>& vec);
-
-  //! \brief Reads a double value.
-  //! \param[in] level The time level to read at
-  //! \param[in] name The name (path in HDF5 file) to the array
-  //! \param[in] group The HDF5 group to read from
-  //! \param[out] data The variable to read data into
-  bool readDouble(int level, const std::string& group,
-                  const std::string& name, double& data);
-
-  //! \brief Checks if updated geometries exist in file at given time level.
-  //! \param[in] level The time level to check
-  //! \param[in] basisName Check for a particular basis
-  bool hasGeometries(int level, const std::string& basisName = "");
-
-  //! \brief Writes restart data to file.
-  //! \param[in] level Level to write data at
-  //! \param[in] data Data to write
-  bool writeRestartData(int level, const DataExporter::SerializeData& data);
-
-  //! \brief Reads restart data from file.
-  //! \param[out] data The map to store data in
-  //! \param[in] level Level to read (-1 to read last level in file)
-  //! \returns Negative value on error, else restart level loaded
-  int readRestartData(DataExporter::SerializeData& data, int level = -1);
-
-  //! \brief Internal helper function reading into an array of chars.
-  //! \param[in] group The HDF5 group to read data from
-  //! \param[in] name The name of the array
-  //! \param[out] len The length of the data read
-  //! \param[out] data The array to read data into
-  void readArray(hid_t group, const std::string& name, int& len, char*& data);
-
-  //! \brief Returns number of patches for a field.
-  int getFieldSize(int level, const std::string& basisName,
-                   const std::string& fieldName);
-
 protected:
   //! \brief Internal helper function writing a data array to file.
   //! \param[in] group The HDF5 group to write data into
@@ -188,37 +112,9 @@ protected:
   void writeBasis(const SIMbase* SIM, const std::string& name,
                   int basis, int level, bool redundant = false);
 
-  //! \brief Internal helper function reading into an array of doubles.
-  //! \param[in] group The HDF5 group to read data from
-  //! \param[in] name The name of the array
-  //! \param[out] len The length of the data read
-  //! \param[out] data The array to read data into
-  void readArray(hid_t group, const std::string& name, int& len, double*& data);
-
-  //! \brief Internal helper function reading into an array of integers.
-  //! \param[in] group The HDF5 group to read data from
-  //! \param[in] name The name of the array
-  //! \param[out] len The length of the data read
-  //! \param[out] data The array to read data into
-  void readArray(hid_t group, const std::string& name, int& len, int*& data);
-
-  //! \brief Internal helper function checking if a group exists in the file.
-  //! \param[in] parent The HDF5 group of the parent
-  //! \param[in] group The name of the group to check for
-  //! \return \e true if group exists, otherwise \e false
-  bool checkGroupExistence(hid_t parent, const char* group);
-
 private:
-  hid_t        m_file; //!< The HDF5 handle for our file
-  hid_t        m_restart_file; //!< The HDF5 handle for our restart file
 #ifdef HAS_HDF5
   unsigned int m_flag; //!< The file flags to open HDF5 file with
-  unsigned int m_restart_flag; //!< The file flags to open the restart file with
-#endif
-  bool     m_keepOpen; //!< If \e true, we always keep the file open
-  std::string m_restart_name; //!< The restart file to use
-#ifdef HAVE_MPI
-  const ProcessAdm& m_adm;   //!< Pointer to process adm in use
 #endif
 };
 

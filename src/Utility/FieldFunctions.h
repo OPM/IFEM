@@ -20,7 +20,7 @@
 class Field;
 class Fields;
 class ASMbase;
-class HDF5Writer;
+class HDF5Reader;
 class ProcessAdm;
 
 
@@ -63,7 +63,7 @@ protected:
 
 private:
 #ifdef HAS_HDF5
-  HDF5Writer* hdf5; //!< The HDF5-file containing the field data
+  HDF5Reader* hdf5; //!< The HDF5-file containing the field data
   ProcessAdm* pAdm; //!< Process administrator for the HDF5-file reader
 #endif
 

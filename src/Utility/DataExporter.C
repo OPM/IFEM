@@ -97,24 +97,15 @@ bool DataExporter::setFieldValue (const std::string& name,
 }
 
 
-bool DataExporter::dumpForRestart (const TimeStep* tp) const
-{
-  return m_nrestart > 0 && tp && tp->step % m_nrestart == 0;
-}
-
-
-bool DataExporter::dumpTimeLevel (const TimeStep* tp, bool geometryUpdated,
-                                  SerializeData* serializeData)
+bool DataExporter::dumpTimeLevel (const TimeStep* tp, bool geometryUpdated)
 {
   // ignore multiple calls for the same time step
   if (tp && tp->step == m_last_step)
     return true;
 
   bool writeData = !tp || tp->step % m_ndump == 0;
-  bool writeRestart = serializeData && this->dumpForRestart(tp);
-  int restartLevel = writeRestart ? tp->step / m_nrestart : 0;
 
-  if (!writeRestart && !writeData)
+  if (!writeData)
     return true;
 
   PROFILE1("DataExporter::dumpTimeLevel");
@@ -157,8 +148,6 @@ bool DataExporter::dumpTimeLevel (const TimeStep* tp, bool geometryUpdated,
     }
     if (tp && tp->multiSteps())
       writer->writeTimeInfo(m_level,m_ndump,*tp);
-    if (writeRestart)
-      writer->writeRestartData(restartLevel, *serializeData);
 
     writer->closeFile(m_level);
   }
