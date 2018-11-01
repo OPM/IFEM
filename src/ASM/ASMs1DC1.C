@@ -14,6 +14,7 @@
 #include "GoTools/geometry/SplineCurve.h"
 
 #include "ASMs1DC1.h"
+#include "Utilities.h"
 
 
 bool ASMs1DC1::generateFEMTopology ()
@@ -31,14 +32,19 @@ bool ASMs1DC1::generateFEMTopology ()
 int ASMs1DC1::constrainNode (double xi, int dof, int code, char basis)
 {
   int node = this->ASMs1D::constrainNode(xi,dof%1000,code,basis);
-  if (node > 0 && dof >= 1000 && code == 0)
-  {
-    // Also fix the (up to two) neighboring nodes
-    if (node > 1)
-      this->prescribe(node-1,dof/1000,code);
-    if (node < this->getSize(basis))
-      this->prescribe(node+1,dof/1000,code);
-  }
+  if (node < 1 || dof < 1000) return node;
+
+  // Also fix the (up to two) neighboring nodes
+  for (int neighbour = node-1; neighbour <= node+1; neighbour += 2)
+    if (neighbour > 0 && neighbour <= this->getSize(basis))
+    {
+      if (dof%1000 && code == 0)
+        // The node is clamped, fix the neighboring node
+        this->prescribe(neighbour,dof/1000,code);
+      else for (int ldof : utl::getDigits(dof/1000))
+        // The node has a prescribed rotation, add an MPC for that
+        this->add2PC(MLGN[neighbour-1],ldof,MLGN[node-1],code);
+    }
 
   return node;
 }
