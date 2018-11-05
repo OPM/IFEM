@@ -27,7 +27,10 @@
 
 
 FieldFuncBase::FieldFuncBase (const std::string& fName) :
-  hdf5(nullptr), pAdm(nullptr), pidx(0)
+#ifdef HAS_HDF5
+  hdf5(nullptr), pAdm(nullptr),
+#endif
+  pidx(0)
 {
   lastLevel = 0;
   lastTime = 0.0;

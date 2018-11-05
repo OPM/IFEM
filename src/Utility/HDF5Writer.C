@@ -148,11 +148,11 @@ void HDF5Writer::openFile(int level, bool restart)
 #ifdef HAVE_MPI
   H5Pclose(acc_tpl);
 #endif
-#endif
   if (restart)
     m_restart_file = file;
   else
    m_file = file;
+#endif
 }
 
 
@@ -376,6 +376,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
   if (!entry.second.enabled || !entry.second.data || entry.second.data2.empty())
     return;
 
+#ifdef HAS_HDF5
   const SIMbase* sim = static_cast<const SIMbase*>(entry.second.data);
   const Vector* sol = static_cast<const Vector*>(entry.second.data2.front());
   const Vectors* proj = nullptr;
@@ -405,7 +406,6 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
     }
   }
 
-#ifdef HAS_HDF5
   NormBase* norm = sim->getNormIntegrand();
   const IntegrandBase* prob = sim->getProblem();
   bool usedescription = entry.second.results < 0;
