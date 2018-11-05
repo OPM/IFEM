@@ -62,8 +62,10 @@ protected:
   virtual void clearField() = 0;
 
 private:
+#ifdef HAS_HDF5
   HDF5Writer* hdf5; //!< The HDF5-file containing the field data
   ProcessAdm* pAdm; //!< Process administrator for the HDF5-file reader
+#endif
 
   mutable int    lastLevel; //!< The last time level read from
   mutable double lastTime;  //!< The time of \a lastLevel

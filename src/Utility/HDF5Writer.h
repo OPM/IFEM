@@ -211,8 +211,10 @@ protected:
 private:
   hid_t        m_file; //!< The HDF5 handle for our file
   hid_t        m_restart_file; //!< The HDF5 handle for our restart file
+#ifdef HAS_HDF5
   unsigned int m_flag; //!< The file flags to open HDF5 file with
   unsigned int m_restart_flag; //!< The file flags to open the restart file with
+#endif
   bool     m_keepOpen; //!< If \e true, we always keep the file open
   std::string m_restart_name; //!< The restart file to use
 #ifdef HAVE_MPI
