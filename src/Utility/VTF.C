@@ -374,7 +374,7 @@ bool VTF::writeEres (const std::vector<Real>& elementResult,
   dBlock.SetMapToBlockID(myBlocks[geomID-1].first);
   if (VTFA_FAILURE(myFile->WriteBlock(&dBlock)))
     return showError("Error writing result block",idBlock);
-#else
+#elif HAS_VTF_API == 2
   VTFXAResultValuesBlock dBlock(idBlock,VTFXA_DIM_SCALAR,VTFXA_FALSE);
   dBlock.SetMapToBlockID(myBlocks[geomID-1].first,VTFXA_ELEMENTS);
   dBlock.SetResultValues1D(resVec.data(),nres);
