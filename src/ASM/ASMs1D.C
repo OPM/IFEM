@@ -759,18 +759,14 @@ void ASMs1D::extractBasis (double u, Vector& N, Matrix& dNdu,
 {
   int p1 = curv->order();
 
-  RealArray bas(p1*3);
-  curv->basis().computeBasisValues(u,&bas.front(),2);
-
   N.resize(p1);
   dNdu.resize(p1,1);
   d2Ndu2.resize(p1,1,1);
-  for (int i = 1; i <= p1; i++)
-  {
-      N(i)        = bas[3*i-3];
-     dNdu(i,1)    = bas[3*i-2];
-    d2Ndu2(i,1,1) = bas[3*i-1];
-  }
+
+  RealArray basisDerivs, basisDerivs2;
+  curv->computeBasis(u,N,basisDerivs,basisDerivs2);
+  dNdu.fillColumn(1,basisDerivs);
+  d2Ndu2.fillColumn(1,1,basisDerivs2);
 }
 
 
@@ -800,14 +796,6 @@ bool ASMs1D::integrate (Integrand& integrand,
   }
   else if (nRed < 0)
     nRed = ng; // The integrand needs to know nGauss
-
-  if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
-    if (curv->rational())
-    {
-      std::cerr <<" *** ASMs1D::integrate: Second-derivatives of NURBS "
-                <<" is not implemented yet, sorry..."<< std::endl;
-      return false;
-    }
 
   // Compute parameter values of the Gauss points over the whole patch
   Matrix gpar, redpar;
