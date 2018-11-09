@@ -14,7 +14,7 @@
 #ifndef UTL_MATVEC_H
 #define UTL_MATVEC_H
 
-#include "matrix.h"
+#include "matrixnd.h"
 
 // Some convenience type definitions:
 

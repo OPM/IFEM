@@ -14,7 +14,7 @@
 #ifndef _COORDINATE_MAPPING_H
 #define _COORDINATE_MAPPING_H
 
-#include "matrix.h"
+#include "matrixnd.h"
 
 class Vec3;
 
