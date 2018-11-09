@@ -10,7 +10,7 @@
 //!
 //==============================================================================
 
-#include "matrix.h"
+#include "matrixnd.h"
 
 #include "gtest/gtest.h"
 #include <numeric>
