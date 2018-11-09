@@ -38,7 +38,7 @@ namespace utl //! General utility classes and functions.
     matrix3d() {}
     //! \brief Constructor creating a matrix of dimension
     //! \f$n_1 \times n_2 \times n_3\f$.
-    matrix3d(size_t n_1, size_t n_2, size_t n_3) : matrixBase<T>(n_1,n_2,n_3) {}
+    matrix3d(size_t n_1, size_t n_2, size_t n_3) : matrixBase<T>(n_1,n_2,n_3,1) {}
     //! \brief Constructor to read a matrix from a stream.
     matrix3d(std::istream& is, std::streamsize max = 10)
     {
@@ -50,7 +50,7 @@ namespace utl //! General utility classes and functions.
       is.ignore(1, '\n');
 
       // Read contents
-      this->resize(n0,n1,n2);
+      this->resize(n0,n1,n2,1);
       for (size_t k = 0; k < n2; k++) {
         is.ignore(max, '\n');
         for (size_t i = 0; i < n0; i++) {
@@ -74,7 +74,7 @@ namespace utl //! General utility classes and functions.
     //! If \a forceClear is \e true, the old matrix content is always erased.
     void resize(size_t n_1, size_t n_2, size_t n_3, bool forceClear = false)
     {
-      this->redim(n_1,n_2,n_3,forceClear);
+      this->redim(n_1,n_2,n_3,1,forceClear);
     }
 
     //! \brief Index-1 based element access.
@@ -201,7 +201,7 @@ namespace utl //! General utility classes and functions.
 
   protected:
     //! \brief Clears the content if any of the first two dimensions changed.
-    virtual void clearIfNrowChanged(size_t n1, size_t n2)
+    virtual void clearIfNrowChanged(size_t n1, size_t n2, size_t)
     {
       if (n1 != this->n[0] || n2 != this->n[1]) this->elem.clear();
     }

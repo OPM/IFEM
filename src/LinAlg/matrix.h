@@ -239,14 +239,15 @@ namespace utl //! General utility classes and functions.
   {
   protected:
     //! \brief The constructor is protected to allow sub-class instances only.
-    matrixBase() { n[0] = n[1] = n[2] = 0; }
+    matrixBase() { n[0] = n[1] = n[2] = n[3] = 0; }
     //! \brief Constructor creating a matrix of dimension
     //! \f$n_1 \times n_2 \times n_3\f$.
-    matrixBase(size_t n_1, size_t n_2, size_t n_3) : elem(n_1*n_2*n_3)
+    matrixBase(size_t n_1, size_t n_2, size_t n_3, size_t n_4) : elem(n_1*n_2*n_3*n_4)
     {
       n[0] = n_1;
       n[1] = n_2;
       n[2] = n_3;
+      n[3] = n_4;
     }
     //! \brief Copy constructor, only copy the dimension of \a mat.
     matrixBase(const matrixBase<T>& mat) : elem(mat.size())
@@ -254,49 +255,51 @@ namespace utl //! General utility classes and functions.
       memcpy(n,mat.n,sizeof(n));
     }
 
-    //! \brief Resize the matrix to dimension \f$n_1 \times n_2 \times n_3\f$.
+    //! \brief Resize the matrix to dimension \f$n_1 \times n_2 \times n_3 \times n_4\f$.
     //! \details Will erase the previous content, but only if both the total
     //! matrix size, and any of its dimensions except the last are changed.
     //! It is therefore possible to add or remove a given number of elements in
     //! the last dimension of the matrix without loosing the contents of the
     //! other dimensions.
     //! If \a forceClear is \e true, the old matrix content is always erased.
-    void redim(size_t n_1, size_t n_2, size_t n_3, bool forceClear)
+    void redim(size_t n_1, size_t n_2, size_t n_3, size_t n_4, bool forceClear)
     {
       if (forceClear)
       {
         // Erase previous content
-        if (this->size() == n_1*n_2*n_3)
+        if (this->size() == n_1*n_2*n_3*n_4)
           this->fill(T(0));
         else
           this->clear();
       }
 
-      if (n[0] == n_1 && n[1] == n_2 && n[2] == n_3) return; // nothing to do
+      if (n[0] == n_1 && n[1] == n_2 && n[2] == n_3 && n[3] == n_4) return; // nothing to do
 
       size_t oldn1 = n[0];
       size_t oldn2 = n[1];
+      size_t oldn3 = n[2];
       size_t oldSize = this->size();
       n[0] = n_1;
       n[1] = n_2;
       n[2] = n_3;
+      n[3] = n_4;
       if (this->size() == oldSize) return; // no more to do, size is unchanged
 
       // If the size in any of the matrix dimensions, except for the last one,
       // are changed the previous matrix content must be cleared
-      if (!forceClear) this->clearIfNrowChanged(oldn1,oldn2);
+      if (!forceClear) this->clearIfNrowChanged(oldn1,oldn2,oldn3);
 
-      elem.std::template vector<T>::resize(n[0]*n[1]*n[2],T(0));
+      elem.std::template vector<T>::resize(n[0]*n[1]*n[2]*n[3],T(0));
     }
 
     //! \brief Clears the matrix content if the first dimension(s) changed.
-    virtual void clearIfNrowChanged(size_t n1, size_t n2) = 0;
+    virtual void clearIfNrowChanged(size_t n1, size_t n2, size_t n3) = 0;
 
   public:
     //! \brief Query dimensions.
-    size_t dim(short int d = 1) const { return d > 0 && d <= 3 ? n[d-1] : 0; }
+    size_t dim(short int d = 1) const { return d > 0 && d <= 4 ? n[d-1] : 0; }
     //! \brief Query total matrix size.
-    size_t size() const { return n[0]*n[1]*n[2]; }
+    size_t size() const { return n[0]*n[1]*n[2]*n[3]; }
     //! \brief Check if the matrix is empty.
     bool empty() const { return elem.empty(); }
 
@@ -314,7 +317,7 @@ namespace utl //! General utility classes and functions.
     typename std::vector<T>::iterator end() { return elem.end(); }
 
     //! \brief Clears the matrix and sets its dimension to zero.
-    void clear() { n[0] = n[1] = n[2] = 0; elem.clear(); }
+    void clear() { n[0] = n[1] = n[2] = n[3] = 0; elem.clear(); }
 
     //! \brief Fill the matrix with a scalar value.
     void fill(T s) { std::fill(elem.begin(),elem.end(),s); }
@@ -337,7 +340,7 @@ namespace utl //! General utility classes and functions.
     T sum(int inc = 1) const { return elem.sum(0,inc); }
 
   protected:
-    size_t    n[3]; //!< Dimension of the matrix
+    size_t    n[4]; //!< Dimension of the matrix
     vector<T> elem; //!< Actual matrix elements, stored column by column
   };
 
@@ -356,7 +359,7 @@ namespace utl //! General utility classes and functions.
     matrix() : nrow(this->n[0]), ncol(this->n[1]) {}
     //! \brief Constructor creating a matrix of dimension \f$r \times c\f$.
     matrix(size_t r, size_t c)
-      : matrixBase<T>(r,c,1), nrow(this->n[0]), ncol(this->n[1]) {}
+      : matrixBase<T>(r,c,1,1), nrow(this->n[0]), ncol(this->n[1]) {}
     //! \brief Copy constructor, optionally creates the transpose of \a mat.
     matrix(const matrix<T>& mat, bool transposed = false)
       : matrixBase<T>(mat), nrow(this->n[0]), ncol(this->n[1])
@@ -381,7 +384,7 @@ namespace utl //! General utility classes and functions.
     //! If \a forceClear is \e true, the old matrix content is always erased.
     void resize(size_t r, size_t c, bool forceClear = false)
     {
-      this->redim(r,c,1,forceClear);
+      this->redim(r,c,1,1,forceClear);
     }
 
     //! \brief Increase or decrease the number of rows in the matrix.
@@ -829,7 +832,7 @@ namespace utl //! General utility classes and functions.
 
   protected:
     //! \brief Clears the content if the number of rows changed.
-    virtual void clearIfNrowChanged(size_t n1, size_t)
+    virtual void clearIfNrowChanged(size_t n1, size_t, size_t)
     {
       if (n1 != nrow) this->elem.clear();
     }
