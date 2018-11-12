@@ -81,6 +81,23 @@ namespace utl
   //! \param[in] du Element lengths in each parametric direction
   //! \param[out] G The stabilization matrix (used in CFD simulators)
   void getGmat(const matrix<Real>& Ji, const Real* du, matrix<Real>& G);
+
+  //! \brief Set up the Hessian2 matrix of the coordinate mapping.
+  //! \param[out] H The Hessian2 matrix
+  //! \param[out] d3Ndu3 Third order derivatives of basis functions, w.r.t. X
+  //! \param[in] Ji The inverse of the Jacobian matrix
+  //! \param[in] X Matrix of element nodal coordinates
+  //! \param[in] d3Ndu3 Second order derivatives of basis functions
+  //! \param[in] dNdX First order derivatives of basis functions
+  //! \param[in] geoMapping If \e true, calculate geometry mapping
+  //! \return \e false if matrix dimensions are incompatible, otherwise \e true
+  //!
+  //! \details If geoMapping is \e true, H is output,
+  //! else H is input and assumed to be already calculated in a previous call.
+  bool Hessian2(matrix4d<Real>& d3NdX3,
+               const matrix<Real>& Ji, const matrix<Real>& X,
+               const matrix4d<Real>& d3Ndu3,
+               const matrix<Real>& dNdX);
 }
 
 #endif

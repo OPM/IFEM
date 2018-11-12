@@ -104,6 +104,36 @@ void SplineUtils::extractBasis (const Go::BasisDerivsSf2& spline,
 }
 
 
+void SplineUtils::extractBasis (const Go::BasisDerivsSf3& spline,
+                                Vector& N, Matrix& dNdu,
+                                Matrix3D& d2Ndu2, Matrix4D& d3Ndu3)
+{
+    N   .resize(spline.basisValues.size());
+   dNdu .resize(N.size(),2);
+  d2Ndu2.resize(N.size(),2,2);
+  d3Ndu3.resize(N.size(),2,2,2);
+
+  size_t jp, n = 1;
+  for (jp = 0; jp < N.size(); jp++, n++)
+  {
+      N   (n)     = spline.basisValues[jp];
+     dNdu (n,1)   = spline.basisDerivs_u[jp];
+     dNdu (n,2)   = spline.basisDerivs_v[jp];
+    d2Ndu2(n,1,1) = spline.basisDerivs_uu[jp];
+    d2Ndu2(n,1,2) = d2Ndu2(n,2,1) = spline.basisDerivs_uv[jp];
+    d2Ndu2(n,2,2) = spline.basisDerivs_vv[jp];
+    d3Ndu3(n,1,1,1) = spline.basisDerivs_uuu[jp];
+    d3Ndu3(n,2,1,1) = spline.basisDerivs_uuv[jp];
+    d3Ndu3(n,1,2,1) = spline.basisDerivs_uuv[jp];
+    d3Ndu3(n,1,1,2) = spline.basisDerivs_uuv[jp];
+    d3Ndu3(n,2,1,1) = spline.basisDerivs_uuv[jp];
+    d3Ndu3(n,2,2,1) = spline.basisDerivs_uvv[jp];
+    d3Ndu3(n,2,1,2) = spline.basisDerivs_uvv[jp];
+    d3Ndu3(n,2,2,2) = spline.basisDerivs_vvv[jp];
+  }
+}
+
+
 void SplineUtils::extractBasis (const Go::BasisDerivs& spline,
                                 Vector& N, Matrix& dNdu)
 {

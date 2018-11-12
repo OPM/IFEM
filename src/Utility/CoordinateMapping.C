@@ -222,3 +222,72 @@ void utl::getGmat (const matrix<Real>& Ji, const Real* du, matrix<Real>& G)
         G(k,l) += Ji(m,k)*Ji(m,l)*scale;
     }
 }
+
+
+bool utl::Hessian2 (matrix4d<Real>& d3NdX3,
+                    const matrix<Real>& Ji, const matrix<Real>& X,
+                    const matrix4d<Real>& d3Ndu3, const matrix<Real>& dNdX)
+{
+  PROFILE4("utl::Hessian2");
+
+  if (dNdX.empty())
+  {
+    // Probably a singular point, silently ignore
+    d3NdX3.resize(0,0,0,true);
+    return true;
+  }
+  else if (Ji.cols() <= 2)
+  {
+    // Special treatment for one-parametric elements in multi-dimension space
+    // as well as two-parametric elements in 3D space (shells)
+    d3NdX3 = d3Ndu3;
+    return true;
+  }
+
+  // Check that the matrix dimensions are compatible
+  size_t nsd = X.rows();
+  if (Ji.rows() != nsd || Ji.cols() != nsd)
+  {
+    std::cerr <<"Hessian: Invalid dimension on Jacobian inverse, Ji("
+              << Ji.rows() <<","<< Ji.cols() <<"), nsd="<< nsd << std::endl;
+    return false;
+  }
+
+  // Compute the third order derivatives of the basis functions, w.r.t. X
+  d3NdX3.resize(dNdX.rows(),nsd,nsd,nsd,true);
+  for (size_t i = 1; i <= dNdX.rows(); ++i) {
+    d3NdX3(i,1,1,1) =    d3Ndu3(i,1,1,1)*Ji(1,1)*Ji(1,1)*Ji(1,1) +
+                         d3Ndu3(i,1,2,2)*Ji(2,1)*Ji(2,1)*Ji(1,1) +
+                       2*d3Ndu3(i,1,1,2)*Ji(1,1)*Ji(1,1)*Ji(2,1) +
+                         d3Ndu3(i,2,2,2)*Ji(2,1)*Ji(2,1)*Ji(2,1) +
+                         d3Ndu3(i,1,1,2)*Ji(1,1)*Ji(1,1)*Ji(2,1) +
+                       2*d3Ndu3(i,1,2,2)*Ji(1,1)*Ji(2,1)*Ji(2,1);
+
+    d3NdX3(i,2,2,2) =    d3Ndu3(i,1,1,1)*Ji(1,2)*Ji(1,2)*Ji(1,2) +
+                         d3Ndu3(i,1,2,2)*Ji(2,2)*Ji(2,2)*Ji(1,2) +
+                       2*d3Ndu3(i,1,1,2)*Ji(1,2)*Ji(1,2)*Ji(2,2) +
+                         d3Ndu3(i,1,1,2)*Ji(1,2)*Ji(1,2)*Ji(2,2) +
+                         d3Ndu3(i,2,2,2)*Ji(1,2)*Ji(1,2)*Ji(1,2) +
+                       2*d3Ndu3(i,1,2,2)*Ji(1,2)*Ji(2,2)*Ji(2,2);
+
+    d3NdX3(i,1,1,2) =
+    d3NdX3(i,2,1,1) =
+    d3NdX3(i,1,2,1) =    d3Ndu3(i,1,1,1)*Ji(1,1)*Ji(1,1)*Ji(1,2) +
+                         d3Ndu3(i,1,2,2)*Ji(2,1)*Ji(2,1)*Ji(1,2) +
+                       2*d3Ndu3(i,1,1,2)*Ji(1,1)*Ji(1,2)*Ji(2,1) +
+                         d3Ndu3(i,1,1,2)*Ji(1,1)*Ji(1,1)*Ji(2,2) +
+                         d3Ndu3(i,2,2,2)*Ji(2,1)*Ji(2,1)*Ji(2,2) +
+                       2*d3Ndu3(i,1,2,2)*Ji(1,1)*Ji(2,1)*Ji(2,2);
+
+    d3NdX3(i,1,2,2) =
+    d3NdX3(i,2,2,1) =
+    d3NdX3(i,2,1,2) =   d3Ndu3(i,1,1,1)*Ji(1,1)*Ji(1,2)*Ji(1,2) +
+                        d3Ndu3(i,1,2,2)*Ji(1,1)*Ji(2,2)*Ji(2,2) +
+                      2*d3Ndu3(i,1,1,2)*Ji(1,1)*Ji(1,2)*Ji(2,2) +
+                        d3Ndu3(i,1,1,2)*Ji(1,2)*Ji(1,2)*Ji(2,1) +
+                        d3Ndu3(i,2,2,2)*Ji(2,1)*Ji(2,2)*Ji(2,2) +
+                      2*d3Ndu3(i,1,2,2)*Ji(1,2)*Ji(2,1)*Ji(2,2);
+  }
+
+  return true;
+}

@@ -24,6 +24,7 @@ namespace Go {
   class Point;
   struct BasisDerivsSf;
   struct BasisDerivsSf2;
+  struct BasisDerivsSf3;
   struct BasisDerivs;
   struct BasisDerivs2;
   class SplineCurve;
@@ -52,6 +53,10 @@ namespace SplineUtils //! Various utility functions on spline objects.
   //! \brief Establishes matrices with basis functions, 1st and 2nd derivatives.
   void extractBasis(const Go::BasisDerivsSf2& spline,
                     Vector& N, Matrix& dNdu, Matrix3D& d2Ndu2);
+  //! \brief Establishes matrices with basis functions, 1st, 2nd and 3rd derivatives.
+  void extractBasis(const Go::BasisDerivsSf3& spline,
+                    Vector& N, Matrix& dNdu,
+                    Matrix3D& d2Ndu2, Matrix4D& d3Ndu3);
 
   //! \brief Establishes matrices with basis functions and 1st derivatives.
   void extractBasis(const Go::BasisDerivs& spline,

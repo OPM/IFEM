@@ -291,6 +291,14 @@ public:
   //! \param[out] dNdu First derivatives of basis functions
   //! \param[out] d2Ndu2 Second derivatives of basis functions
   void extractBasis(double u, Vector& N, Matrix& dNdu, Matrix3D& d2Ndu2) const;
+  //! \brief Establishes matrices with basis functions, 1st, 2nd and 3rd derivatives.
+  //! \param[in] u Parameter value of current integration point
+  //! \param[out] N Basis function values
+  //! \param[out] dNdu First derivatives of basis functions
+  //! \param[out] d2Ndu2 Second derivatives of basis functions
+  //! \param[out] d3Ndu3 Third derivatives of basis functions
+  void extractBasis(double u, Vector& N, Matrix& dNdu,
+                    Matrix3D& d2Ndu2, Matrix4D& d3Ndu3) const;
 
 protected:
 
