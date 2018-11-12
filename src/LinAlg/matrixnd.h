@@ -208,6 +208,110 @@ namespace utl //! General utility classes and functions.
   };
 
 
+  /*!
+    \brief Four-dimensional rectangular matrix with some algebraic operations.
+    \details This is a 4D equivalent to the \a matrix class. The matrix elements
+    are stored column-wise in a one-dimensional array, such that its pointer
+    might be passed to Fortran subroutines requiring 4D arrays as arguments.
+  */
+
+  template<class T> class matrix4d : public matrixBase<T>
+  {
+  public:
+    //! \brief Constructor creating an empty matrix.
+    matrix4d() {}
+    //! \brief Constructor creating a matrix of dimension
+    //! \f$n_1 \times n_2 \times n_3 \times n_4\f$.
+    matrix4d(size_t n_1, size_t n_2, size_t n_3, size_t n_4) :
+      matrixBase<T>(n_1,n_2,n_3,n_4) {}
+
+    //! \brief Empty destructor.
+    virtual ~matrix4d() {}
+
+    //! \brief Resize the matrix to dimension \f$n_1 \times n_2 \times n_3 \times n_4\f$.
+    //! \details Will erase the previous content, but only if both
+    //! the total matrix size, and n_1 or n_2 in the matrix are changed.
+    //! It is therefore possible to add or remove a given number of elements in
+    //! the third dimension of the matrix without loosing the contents of the
+    //! first and second dimensions.
+    //! If \a forceClear is \e true, the old matrix content is always erased.
+    void resize(size_t n_1, size_t n_2, size_t n_3,
+                size_t n_4, bool forceClear = false)
+    {
+      this->redim(n_1,n_2,n_3,n_4,forceClear);
+    }
+
+    //! \brief Index-1 based element access.
+    //! \details Assuming column-wise storage as in Fortran.
+    T& operator()(size_t i1, size_t i2, size_t i3, size_t i4)
+    {
+      CHECK_INDEX("matrix4d::operator(): First index " ,i1,this->n[0]);
+      CHECK_INDEX("matrix4d::operator(): Second index ",i2,this->n[1]);
+      CHECK_INDEX("matrix4d::operator(): Third index " ,i3,this->n[2]);
+      CHECK_INDEX("matrix4d::operator(): Third index " ,i4,this->n[3]);
+      return this->elem[i1-1 + this->n[0]*((i2-1) + this->n[1]*((i3-1) + this->n[2]*(i4-1)))];
+    }
+
+    //! \brief Index-1 based element access.
+    //! \details Assuming column-wise storage as in Fortran.
+    const T& operator()(size_t i1, size_t i2, size_t i3, size_t i4) const
+    {
+      CHECK_INDEX("matrix3d::operator(): First index " ,i1,this->n[0]);
+      CHECK_INDEX("matrix3d::operator(): Second index ",i2,this->n[1]);
+      CHECK_INDEX("matrix3d::operator(): Third index " ,i3,this->n[2]);
+      CHECK_INDEX("matrix3d::operator(): Third index " ,i3,this->n[3]);
+      return this->elem[i1-1 + this->n[0]*((i2-1) + this->n[1]*((i3-1) + this->n[2]*(i4-1)))];
+    }
+
+    //! \brief Add the given matrix \b X to \a *this.
+    matrix4d<T>& operator+=(const matrix4d<T>& X) { return this->add(X); }
+    //! \brief Subtract the given matrix \b X from \a *this.
+    matrix4d<T>& operator-=(const matrix4d<T>& X) { return this->add(X,T(-1)); }
+    //! \brief Add the given matrix \b X scaled by \a alfa to \a *this.
+    matrix4d<T>& add(const matrix4d<T>& X, T alfa = T(1))
+    {
+      return static_cast<matrix4d<T>&>(this->matrixBase<T>::add(X,alfa));
+    }
+
+    //! \brief Multiplication of this matrix by a scalar \a c.
+    matrix4d<T>& multiply(T c)
+    {
+      return static_cast<matrix4d<T>&>(this->matrixBase<T>::multiply(c));
+    }
+
+    //! \brief Extract a column from the matrix.
+    vector<T> getColumn(size_t i2, size_t i3, size_t i4) const
+    {
+      CHECK_INDEX("matrix3d::getColumn: Second index ",i2,this->n[1]);
+      CHECK_INDEX("matrix3d::getColumn: Third index " ,i3,this->n[2]);
+      CHECK_INDEX("matrix3d::getColumn: Fourth index ",i4,this->n[3]);
+      if (this->n[1] < 2 && this->n[2] < 2 && this->n[3] < 2) return this->elem;
+      vector<T> col(this->n[0]);
+      memcpy(col.ptr(),this->ptr(i2-1+this->n[1]*((i3-1) + (i4-1)*this->n[2])),col.size()*sizeof(T));
+      return col;
+    }
+
+
+    //! \brief Fill a column of the matrix.
+    void fillColumn(size_t i2, size_t i3, size_t i4, const std::vector<T>& data)
+    {
+      CHECK_INDEX("matrix3d::fillColumn: Second index ",i2,this->n[1]);
+      CHECK_INDEX("matrix3d::fillColumn: Third index " ,i3,this->n[2]);
+      CHECK_INDEX("matrix3d::fillColumn: Third index " ,i4,this->n[3]);
+      size_t ndata = this->n[0] > data.size() ? data.size() : this->n[0];
+      memcpy(this->ptr(i2-1+this->n[1]*((i3-1))+(i4-1)*this->n[2]),&data.front(),ndata*sizeof(T));
+    }
+
+  protected:
+    //! \brief Clears the content if any of the first two dimensions changed.
+    virtual void clearIfNrowChanged(size_t n1, size_t n2, size_t n3)
+    {
+      if (n1 != this->n[0] || n2 != this->n[1] || n3 != this->n[2])
+        this->elem.clear();
+    }
+  };
+
+
 #ifdef HAS_BLAS
   template<> inline
   bool matrix3d<float>::multiply(const matrix<float>& A,

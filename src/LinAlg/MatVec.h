@@ -24,6 +24,8 @@ typedef utl::vector<Real>   Vector;
 typedef utl::matrix<Real>   Matrix;
 //! A real-valued three-dimensional matrix with algebraic operations
 typedef utl::matrix3d<Real> Matrix3D;
+//! A real-valued three-dimensional matrix with algebraic operations
+typedef utl::matrix4d<Real> Matrix4D;
 
 //! A real-valued array without algebraic operations
 typedef std::vector<Real>      RealArray;
