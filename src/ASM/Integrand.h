@@ -143,18 +143,19 @@ public:
 
   //! \brief Enum defining the additional terms that an Integrand may require.
   enum Traits {
-    STANDARD           = 0, //!< Default integrand type (first derivatives only)
-    NO_DERIVATIVES     = 1, //!< Integrand don't want any derivatives
-    SECOND_DERIVATIVES = 2, //!< Integrand wants second derivatives
-    AVERAGE         = 1<<2, //!< Integrand wants basis function averages
-    ELEMENT_CORNERS = 1<<3, //!< Integrand wants element corner coordinates
-    ELEMENT_CENTER  = 1<<4, //!< Integrand wants element center coordinates
-    G_MATRIX        = 1<<5, //!< Integrand wants the G matrix
-    NODAL_ROTATIONS = 1<<6, //!< Integrand wants nodal rotation tensors
-    XO_ELEMENTS     = 1<<7, //!< Integrand is defined on extraordinary elements
-    INTERFACE_TERMS = 1<<8, //!< Integrand has element interface terms
-    NORMAL_DERIVS   = 1<<9, //!< Integrand p'th order normal derivatives
-    UPDATED_NODES   = 1<<10 //!< Integrand wants updated nodal coordinates
+    STANDARD           = 0,     //!< Default integrand type (first derivatives only)
+    NO_DERIVATIVES     = 1,     //!< Integrand don't want any derivatives
+    SECOND_DERIVATIVES = 2,     //!< Integrand wants second derivatives
+    THIRD_DERIVATIVES  = 1<<2,  //!< Integrand wants third derivatives
+    AVERAGE            = 1<<3,  //!< Integrand wants basis function averages
+    ELEMENT_CORNERS    = 1<<4,  //!< Integrand wants element corner coordinates
+    ELEMENT_CENTER     = 1<<5,  //!< Integrand wants element center coordinates
+    G_MATRIX           = 1<<6,  //!< Integrand wants the G matrix
+    NODAL_ROTATIONS    = 1<<7,  //!< Integrand wants nodal rotation tensors
+    XO_ELEMENTS        = 1<<8,  //!< Integrand is defined on extraordinary elements
+    INTERFACE_TERMS    = 1<<9,  //!< Integrand has element interface terms
+    NORMAL_DERIVS      = 1<<10, //!< Integrand p'th order normal derivatives
+    UPDATED_NODES      = 1<<11, //!< Integrand wants updated nodal coordinates
   };
 
   //! \brief Defines which FE quantities are needed by the integrand.
