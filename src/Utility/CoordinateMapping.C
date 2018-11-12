@@ -145,10 +145,12 @@ bool utl::Hessian (matrix3d<Real>& H, matrix3d<Real>& d2NdX2,
   else if (dNdX.empty())
   {
     // Probably a singular point, silently ignore
-    d2NdX2.resize(0,0,0,true);
+    d2NdX2.clear();
     return true;
   }
-  else if (Ji.cols() <= 2 && Ji.rows() > Ji.cols())
+
+  size_t nsd = X.rows();
+  if (Ji.cols() < nsd)
   {
     // Special treatment for one-parametric elements in multi-dimension space
     // as well as two-parametric elements in 3D space (shells)
@@ -157,8 +159,7 @@ bool utl::Hessian (matrix3d<Real>& H, matrix3d<Real>& d2NdX2,
   }
 
   // Check that the matrix dimensions are compatible
-  size_t nsd = X.rows();
-  if (Ji.rows() != nsd || Ji.cols() != nsd)
+  if (Ji.cols() != nsd || Ji.rows() != nsd)
   {
     std::cerr <<"Hessian: Invalid dimension on Jacobian inverse, Ji("
               << Ji.rows() <<","<< Ji.cols() <<"), nsd="<< nsd << std::endl;
@@ -221,4 +222,77 @@ void utl::getGmat (const matrix<Real>& Ji, const Real* du, matrix<Real>& G)
       for (size_t m = 1; m <= nsd; m++)
         G(k,l) += Ji(m,k)*Ji(m,l)*scale;
     }
+}
+
+
+bool utl::Hessian2 (matrix4d<Real>& d3NdX3,
+                    const matrix<Real>& Ji, const matrix4d<Real>& d3Ndu3)
+{
+  PROFILE4("utl::Hessian2");
+
+  size_t nsd = Ji.rows();
+  if (Ji.cols() < nsd)
+  {
+    // Special treatment for one-parametric elements in multi-dimension space
+    // as well as two-parametric elements in 3D space (shells)
+    d3NdX3 = d3Ndu3;
+    return true;
+  }
+
+  // Check that the matrix dimensions are compatible
+  if (Ji.cols() != nsd)
+  {
+    std::cerr <<"Hessian2: Invalid dimension on Jacobian inverse, Ji("
+              << Ji.rows() <<","<< Ji.cols() <<")"<< std::endl;
+    return false;
+  }
+
+  // Compute the third order derivatives of the basis functions, w.r.t. X
+  d3NdX3.resize(d3Ndu3.dim(1),nsd,nsd,nsd,true);
+  if (nsd == 1)
+  {
+    for (size_t i = 1; i <= d3Ndu3.dim(1); i++)
+      d3NdX3(i,1,1,1) = d3Ndu3(i,1,1,1)*Ji(1,1)*Ji(1,1)*Ji(1,1);
+    return true;
+  }
+  else if (nsd != 2)
+  {
+    std::cerr <<"Hessian2: Not implemented for nsd="<< nsd << std::endl;
+    return false;
+  }
+
+  for (size_t i = 1; i <= d3Ndu3.dim(1); i++)
+  {
+    d3NdX3(i,1,1,1) =    d3Ndu3(i,1,1,1)*Ji(1,1)*Ji(1,1)*Ji(1,1) +
+                         d3Ndu3(i,1,2,2)*Ji(2,1)*Ji(2,1)*Ji(1,1) +
+                       2*d3Ndu3(i,1,1,2)*Ji(1,1)*Ji(1,1)*Ji(2,1) +
+                         d3Ndu3(i,2,2,2)*Ji(2,1)*Ji(2,1)*Ji(2,1) +
+                         d3Ndu3(i,1,1,2)*Ji(1,1)*Ji(1,1)*Ji(2,1) +
+                       2*d3Ndu3(i,1,2,2)*Ji(1,1)*Ji(2,1)*Ji(2,1);
+
+    d3NdX3(i,2,2,2) =    d3Ndu3(i,1,1,1)*Ji(1,2)*Ji(1,2)*Ji(1,2) +
+                         d3Ndu3(i,1,2,2)*Ji(2,2)*Ji(2,2)*Ji(1,2) +
+                       2*d3Ndu3(i,1,1,2)*Ji(1,2)*Ji(1,2)*Ji(2,2) +
+                         d3Ndu3(i,1,1,2)*Ji(1,2)*Ji(1,2)*Ji(2,2) +
+                         d3Ndu3(i,2,2,2)*Ji(2,2)*Ji(2,2)*Ji(2,2) +
+                       2*d3Ndu3(i,1,2,2)*Ji(1,2)*Ji(2,2)*Ji(2,2);
+
+    d3NdX3(i,1,1,2) =    d3Ndu3(i,1,1,1)*Ji(1,1)*Ji(1,1)*Ji(1,2) +
+                         d3Ndu3(i,1,2,2)*Ji(2,1)*Ji(2,1)*Ji(1,2) +
+                       2*d3Ndu3(i,1,1,2)*Ji(1,1)*Ji(1,2)*Ji(2,1) +
+                         d3Ndu3(i,1,1,2)*Ji(1,1)*Ji(1,1)*Ji(2,2) +
+                         d3Ndu3(i,2,2,2)*Ji(2,1)*Ji(2,1)*Ji(2,2) +
+                       2*d3Ndu3(i,1,2,2)*Ji(1,1)*Ji(2,1)*Ji(2,2);
+    d3NdX3(i,2,1,1) = d3NdX3(i,1,2,1) = d3NdX3(i,1,1,2);
+
+    d3NdX3(i,1,2,2) =   d3Ndu3(i,1,1,1)*Ji(1,1)*Ji(1,2)*Ji(1,2) +
+                        d3Ndu3(i,1,2,2)*Ji(1,1)*Ji(2,2)*Ji(2,2) +
+                      2*d3Ndu3(i,1,1,2)*Ji(1,1)*Ji(1,2)*Ji(2,2) +
+                        d3Ndu3(i,1,1,2)*Ji(1,2)*Ji(1,2)*Ji(2,1) +
+                        d3Ndu3(i,2,2,2)*Ji(2,1)*Ji(2,2)*Ji(2,2) +
+                      2*d3Ndu3(i,1,2,2)*Ji(1,2)*Ji(2,1)*Ji(2,2);
+    d3NdX3(i,2,2,1) = d3NdX3(i,2,1,2) = d3NdX3(i,1,2,2);
+  }
+
+  return true;
 }

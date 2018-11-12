@@ -81,6 +81,14 @@ namespace utl
   //! \param[in] du Element lengths in each parametric direction
   //! \param[out] G The stabilization matrix (used in CFD simulators)
   void getGmat(const matrix<Real>& Ji, const Real* du, matrix<Real>& G);
+
+  //! \brief Set up third-order derivatives of the coordinate mapping.
+  //! \param[out] d3NdX3 Third order derivatives of basis functions, w.r.t. X
+  //! \param[in] Ji The inverse of the Jacobian matrix
+  //! \param[in] d3Ndu3 Third order derivatives of basis functions
+  //! \return \e false if matrix dimensions are incompatible, otherwise \e true
+  bool Hessian2(matrix4d<Real>& d3NdX3,
+                const matrix<Real>& Ji, const matrix4d<Real>& d3Ndu3);
 }
 
 #endif

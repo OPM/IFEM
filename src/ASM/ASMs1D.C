@@ -772,6 +772,24 @@ void ASMs1D::extractBasis (double u, Vector& N, Matrix& dNdu,
 }
 
 
+void ASMs1D::extractBasis (double u, Vector& N, Matrix& dNdu,
+                           Matrix3D& d2Ndu2, Matrix4D& d3Ndu3) const
+{
+  int p1 = curv->order();
+
+  N.resize(p1);
+  dNdu.resize(p1,1);
+  d2Ndu2.resize(p1,1,1);
+  d3Ndu3.resize(p1,1,1,1);
+
+  RealArray basisDerivs, basisDerivs2, basisDerivs3;
+  curv->computeBasis(u,N,basisDerivs,basisDerivs2,basisDerivs3);
+  dNdu.fillColumn(1,basisDerivs);
+  d2Ndu2.fillColumn(1,1,basisDerivs2);
+  d3Ndu3.fillColumn(1,1,1,basisDerivs3);
+}
+
+
 bool ASMs1D::integrate (Integrand& integrand,
 			GlobalIntegral& glInt,
 			const TimeDomain& time)
@@ -808,6 +826,7 @@ bool ASMs1D::integrate (Integrand& integrand,
   FiniteElement fe(p1);
   Matrix   dNdu, Jac;
   Matrix3D d2Ndu2, Hess;
+  Matrix4D d3Ndu3;
   double   param[3] = { 0.0, 0.0, 0.0 };
   Vec4     X(param);
 
@@ -891,6 +910,8 @@ bool ASMs1D::integrate (Integrand& integrand,
       // Compute basis functions and derivatives
       if (integrand.getIntegrandType() & Integrand::NO_DERIVATIVES)
         this->extractBasis(fe.u,fe.N);
+      else if (integrand.getIntegrandType() & Integrand::THIRD_DERIVATIVES)
+        this->extractBasis(fe.u,fe.N,dNdu,d2Ndu2,d3Ndu3);
       else if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
         this->extractBasis(fe.u,fe.N,dNdu,d2Ndu2);
       else
@@ -916,6 +937,12 @@ bool ASMs1D::integrate (Integrand& integrand,
             fe.G.fillColumn(1,Jac.ptr());
             fe.G.fillColumn(2,Hess.ptr());
           }
+        }
+
+        if (integrand.getIntegrandType() & Integrand::THIRD_DERIVATIVES)
+        {
+          d3Ndu3.multiply(0.125*dL*dL*dL); // 3rd derivatives w.r.t. xi=[-1,1]
+          ok &= utl::Hessian2(fe.d3NdX3,Jac,d3Ndu3);
         }
       }
 
@@ -1332,6 +1359,7 @@ bool ASMs1D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   Vector   solPt;
   Matrix   dNdu, Jac, Xtmp;
   Matrix3D d2Ndu2, Hess;
+  Matrix4D d3Ndu3;
 
   if (nsd > 1 && (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES))
     fe.G.resize(nsd,2); // For storing d{X}/du and d2{X}/du2
@@ -1346,6 +1374,8 @@ bool ASMs1D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     // Fetch basis function derivatives at current integration point
     if (integrand.getIntegrandType() & Integrand::NO_DERIVATIVES)
       this->extractBasis(fe.u,fe.N);
+    else if (integrand.getIntegrandType() & Integrand::THIRD_DERIVATIVES)
+      this->extractBasis(fe.u,fe.N,dNdu,d2Ndu2,d3Ndu3);
     else if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
       this->extractBasis(fe.u,fe.N,dNdu,d2Ndu2);
     else
@@ -1376,6 +1406,9 @@ bool ASMs1D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
           fe.G.fillColumn(2,Hess.ptr());
         }
       }
+
+      if (integrand.getIntegrandType() & Integrand::THIRD_DERIVATIVES)
+        utl::Hessian2(fe.d3NdX3,Jac,d3Ndu3);
     }
 
     // Now evaluate the solution field
