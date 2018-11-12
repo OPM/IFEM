@@ -51,6 +51,11 @@ public:
   //! \brief Returns a reference to the basis function 2nd-derivatives.
   virtual Matrix3D& hess(char) { return d2NdX2; }
 
+  //! \brief Returns a const reference to the basis function 3nd-derivatives.
+  virtual const Matrix4D& hess2(char) const { return d3NdX3; }
+  //! \brief Returns a reference to the basis function 3nd-derivatives.
+  virtual Matrix4D& hess2(char) { return d3NdX3; }
+
 protected:
   //! \brief Writes the finite element object to the given output stream.
   virtual std::ostream& write(std::ostream& os) const;
@@ -74,6 +79,7 @@ public:
   Vector     N;    //!< Basis function values
   Matrix    dNdX;  //!< First derivatives (gradient) of the basis functions
   Matrix3D d2NdX2; //!< Second derivatives of the basis functions
+  Matrix4D d3NdX3; //!< Third derivatives of the basis functions
   Matrix     G;    //!< Covariant basis / Matrix used for stabilized methods
   Matrix     H;    //!< Hessian
 
@@ -105,31 +111,37 @@ public:
   virtual ~MxFiniteElement() {}
 
   //! \brief Returns the number of bases.
-  virtual size_t getNoBasis() const { return 1+Nx.size(); }
+  virtual size_t getNoBasis() const { return 1+M.size(); }
 
   //! \brief Returns a const reference to the basis function values.
-  virtual const Vector& basis(char b) const { return b == 1 ? N : Nx[b-2]; }
+  virtual const Vector& basis(char b) const { return b < 2 ? N : M[b-2]; }
   //! \brief Returns a reference to the basis function values.
-  virtual Vector& basis(char b) { return b == 1 ? N : Nx[b-2]; }
+  virtual Vector& basis(char b) { return b < 2 ? N : M[b-2]; }
 
   //! \brief Returns a const reference to the basis function derivatives.
-  virtual const Matrix& grad(char b) const { return b == 1 ? dNdX : dNxdX[b-2]; }
+  virtual const Matrix& grad(char b) const { return b < 2 ? dNdX : dMdX[b-2]; }
   //! \brief Returns a reference to the basis function derivatives.
-  virtual Matrix& grad(char b) { return b == 1 ? dNdX : dNxdX[b-2]; }
+  virtual Matrix& grad(char b) { return b < 2 ? dNdX : dMdX[b-2]; }
 
   //! \brief Returns a const reference to the basis function 2nd-derivatives.
-  virtual const Matrix3D& hess(char b) const { return b == 1 ? d2NdX2 : d2NxdX2[b-2]; }
+  virtual const Matrix3D& hess(char b) const { return b < 2 ? d2NdX2 : d2MdX2[b-2]; }
   //! \brief Returns a reference to the basis function 2nd-derivatives.
-  virtual Matrix3D& hess(char b) { return b == 1 ? d2NdX2 : d2NxdX2[b-2]; }
+  virtual Matrix3D& hess(char b) { return b < 2 ? d2NdX2 : d2MdX2[b-2]; }
+
+  //! \brief Returns a const reference to the basis function 3rd-derivatives.
+  virtual const Matrix4D& hess2(char b) const { return b < 2 ? d3NdX3 : d3MdX3[b-2]; }
+  //! \brief Returns a reference to the basis function 3rd-derivatives.
+  virtual Matrix4D& hess2(char b) { return b < 2 ? d3NdX3 : d3MdX3[b-2]; }
 
 protected:
   //! \brief Writes the finite element object to the given output stream.
   virtual std::ostream& write(std::ostream& os) const;
 
 private:
-  std::vector<Vector>     Nx;    //!< Basis function values
-  std::vector<Matrix>    dNxdX;  //!< First derivatives of the basis functions
-  std::vector<Matrix3D> d2NxdX2; //!< Second derivatives of the basis functions
+  std::vector<Vector>     M;    //!< Basis function values
+  std::vector<Matrix>    dMdX;  //!< First derivatives of the basis functions
+  std::vector<Matrix3D> d2MdX2; //!< Second derivatives of the basis functions
+  std::vector<Matrix4D> d3MdX3; //!< Third derivatives of the basis functions
 };
 
 #endif
