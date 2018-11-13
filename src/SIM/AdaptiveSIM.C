@@ -47,6 +47,7 @@ AdaptiveSIM::AdaptiveSIM (SIMoutput& sim, bool sa) : SIMadmin(sim), model(sim)
   maxTjoints   = -1;
   maxAspRatio  = -1.0;
   closeGaps    = false;
+  symmEps      = 1.0e-6;
 
   solution.resize(1);
 }
@@ -119,8 +120,14 @@ bool AdaptiveSIM::parse (const TiXmlElement* elem)
         threshold = TRUE_BETA;
       else if (type.compare("dorfel") == 0)
         threshold = DORFEL;
-      IFEM::cout <<"\tRefinement percentage: "<< beta <<" type="<< threshold
-                 << std::endl;
+      else if (type.compare("symmetrized") == 0) {
+        threshold = SYMMETRIZED;
+        utl::getAttribute(child,"eps",symmEps);
+      }
+      IFEM::cout <<"\tRefinement percentage: "<< beta <<" type="<< threshold;
+      if (threshold == SYMMETRIZED)
+        IFEM::cout << " (eps = " << symmEps << ")";
+      IFEM::cout << std::endl;
     }
   }
 
@@ -472,12 +479,20 @@ bool AdaptiveSIM::adaptMesh (int iStep, std::streamsize outPrec)
   }
 
   size_t refineSize;
-  if (threshold == NONE)
+  if (threshold == NONE || threshold == SYMMETRIZED)
     refineSize = ceil(errors.size()*beta/100.0);
   else
     refineSize = std::upper_bound(errors.begin(), errors.end(), DblIdx(limit,0),
                                   std::greater_equal<DblIdx>())
                - errors.begin();
+
+  if (threshold == SYMMETRIZED) {
+    double fErr = errors[refineSize-1].first;
+    double fEps = fabs(fErr)*symmEps;
+    while (refineSize < errors.size() &&
+           fabs(errors[refineSize].first-fErr) < fEps)
+      ++refineSize;
+  }
 
   IFEM::cout <<"\nRefining "<< refineSize
              << (scheme < 2 ? " elements" : " basis functions")

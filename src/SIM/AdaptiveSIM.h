@@ -100,9 +100,10 @@ private:
   int    maxTjoints;   //!< Maximum number of hanging nodes on one element
   double maxAspRatio;  //!< Maximum element aspect ratio
   bool   closeGaps;    //!< Split elements with a hanging node on each side
+  double symmEps;      //!< Epsilon used for symmetrized selection method
 
   //! Threshold flag for how to interpret the refinement percentage, \a beta
-  enum { NONE, MAXIMUM, AVERAGE, MINIMUM, TRUE_BETA, DORFEL } threshold;
+  enum { NONE, MAXIMUM, AVERAGE, MINIMUM, TRUE_BETA, DORFEL, SYMMETRIZED } threshold;
 
   //! Refinement scheme: 0=fullspan, 1=minspan, 2=isotropic_elements,
   //! 3=isotropic_functions
