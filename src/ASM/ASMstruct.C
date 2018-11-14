@@ -20,11 +20,6 @@
 #include "GoTools/geometry/GeomObject.h"
 
 
-int ASMstruct::gEl = 0;
-int ASMstruct::gNod = 0;
-std::map<int,int> ASMstruct::xNode;
-
-
 ASMstruct::ASMstruct (unsigned char n_p, unsigned char n_s, unsigned char n_f)
   : ASMbase(n_p,n_s,n_f)
 {
@@ -42,14 +37,6 @@ ASMstruct::ASMstruct (const ASMstruct& patch, unsigned char n_f)
 ASMstruct::~ASMstruct ()
 {
   if (geo && !shareFE) delete geo;
-}
-
-
-void ASMstruct::resetNumbering (int n)
-{
-  gEl = 0;
-  gNod = n;
-  xNode.clear();
 }
 
 

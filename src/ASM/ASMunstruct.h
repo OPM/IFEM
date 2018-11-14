@@ -49,7 +49,7 @@ namespace LR //! Utilities for LR-splines.
 
 /*!
   \brief Base class for unstructured spline-based FE assembly drivers.
-  \details This class contains methods common for unstructured spline patches.
+  \details This class is an abstract interface for unstructured spline patches.
 */
 
 class ASMunstruct : public ASMbase
@@ -59,11 +59,13 @@ protected:
   //! \param[in] n_p Number of parameter dimensions
   //! \param[in] n_s Number of spatial dimensions
   //! \param[in] n_f Number of primary solution fields
-  ASMunstruct(unsigned char n_p, unsigned char n_s, unsigned char n_f);
-  //! \brief Copy constructor.
+  ASMunstruct(unsigned char n_p, unsigned char n_s, unsigned char n_f)
+    : ASMbase(n_p,n_s,n_f) {}
+
+  //! \brief Special copy constructor for sharing of FE data.
   //! \param[in] patch The patch to use FE data from
-  //! \param[in] n_f Number of primary solution fields
-  ASMunstruct(const ASMunstruct& patch, unsigned char n_f = 0);
+  //! \param[in] n Number of primary solution fields
+  ASMunstruct(const ASMunstruct& patch, unsigned char n) : ASMbase(patch,n) {}
 
 public:
   //! \brief Empty destructor.
@@ -75,9 +77,6 @@ public:
   //! \param[in] fName Optional file name for an image of the resulting mesh
   virtual bool refine(const LR::RefineData& prm, Vectors& sol,
                       const char* fName = nullptr) = 0;
-
-  //! \brief Resets global element and node counters.
-  static void resetNumbering() { gEl = gNod = 0; }
 
   //! \brief Remaps element-wise errors from geometry mesh to refinement mesh.
   //! \param[out] errors The remapped errors
@@ -95,10 +94,6 @@ public:
   virtual IntVec getBoundaryCovered(const IntSet&) const { return IntVec(); }
   //! \brief Extends the refinement domain with information for neighbors.
   virtual void extendRefinementDomain(IntSet&, const IntSet&) const {}
-
-protected:
-  static int gEl;  //!< Global element counter
-  static int gNod; //!< Global node counter
 };
 
 #endif

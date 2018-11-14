@@ -269,7 +269,7 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
     return false;
 
   IFEM::cout <<"\nResolving Dirichlet boundary conditions"<< std::endl;
-  ASMstruct::resetNumbering(ngnod); // to account for possibly added nodes
+  ASMbase::resetNumbering(ngnod); // to account for possibly added nodes
 
   // Process the Dirichlet boundary conditions in the order of increasing
   // dimension, such that vertex definitions override definitions on edges,
