@@ -45,9 +45,6 @@ public:
   //! \brief Checks if the patch is empty.
   virtual bool empty() const { return geo == nullptr; }
 
-  //! \brief Resets the global element and node counters.
-  static void resetNumbering(int n = 0);
-
   //! \brief Returns the number of nodal points in each parameter direction.
   //! \param[out] n1 Number of nodes in first (u) direction
   //! \param[out] n2 Number of nodes in second (v) direction
@@ -108,12 +105,6 @@ protected:
 
 protected:
   Go::GeomObject* geo; //!< Pointer to the actual spline geometry object
-
-  //! Auxilliary node number map used when establishing Dirichlet constraints
-  static std::map<int,int> xNode;
-
-  static int gEl;  //!< Global element counter
-  static int gNod; //!< Global node counter
 };
 
 #endif

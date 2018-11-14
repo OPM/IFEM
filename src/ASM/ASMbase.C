@@ -32,6 +32,10 @@ int  ASMbase::dbgElm = 0;
 //! when needed.
 double ASMbase::modelSize = 1.0;
 
+int ASMbase::gEl = 0;
+int ASMbase::gNod = 0;
+std::map<int,int> ASMbase::xNode;
+
 
 /*!
   \brief Convenience function writing error message for non-implemented methods.
@@ -231,6 +235,14 @@ bool ASMbase::addGlobalLagrangeMultipliers (const IntVec& mGLag,
                                             unsigned char nnLag)
 {
   return this->addLagrangeMultipliers(0,mGLag,nnLag);
+}
+
+
+void ASMbase::resetNumbering (int n)
+{
+  gEl = 0;
+  gNod = n;
+  xNode.clear();
 }
 
 

@@ -164,6 +164,9 @@ public:
   //! \brief Checks if the specified element is larger than the minimum size.
   virtual bool checkElementSize(int, bool = true) const { return false; }
 
+  //! \brief Resets the global element and node counters.
+  static void resetNumbering(int n = 0);
+
 
   // Service methods for query of various model data
   // ===============================================
@@ -825,6 +828,12 @@ protected:
   std::map<char,size_t> firstBp;
 
   ASMVec neighbors; //!< Patches having nodes in common with this one
+
+  //! Auxilliary node number map used when establishing Dirichlet constraints
+  static std::map<int,int> xNode;
+
+  static int gEl;  //!< Global element counter
+  static int gNod; //!< Global node counter
 
 private:
   std::pair<size_t,size_t> myLMs; //!< Nodal range of the Lagrange multipliers

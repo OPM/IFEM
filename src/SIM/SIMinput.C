@@ -884,11 +884,7 @@ bool SIMinput::parse (char* keyWord, std::istream& is)
 
 bool SIMinput::createFEMmodel (char resetNumb)
 {
-  if (resetNumb)
-  {
-    ASMstruct::resetNumbering();
-    ASMunstruct::resetNumbering();
-  }
+  if (resetNumb) ASMbase::resetNumbering();
 
   for (size_t i = 0; i < myModel.size(); i++)
   {
