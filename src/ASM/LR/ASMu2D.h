@@ -14,7 +14,7 @@
 #ifndef _ASM_U2D_H
 #define _ASM_U2D_H
 
-#include "ASMunstruct.h"
+#include "ASMLRSpline.h"
 #include "ASM2D.h"
 #include "Interface.h"
 #include "LRSpline/LRSpline.h"
@@ -38,7 +38,7 @@ namespace LR {
   \details This class contains methods common for 2D LR-spline patches.
 */
 
-class ASMu2D : public ASMunstruct, public ASM2D
+class ASMu2D : public ASMLRSpline, public ASM2D
 {
 public:
   //! \brief Base class that checks if an element has interface contributions.
@@ -163,7 +163,7 @@ public:
   //! \param[in] dir Parameter direction to refine
   //! \param[in] nInsert Number of extra knots to insert in each knot-span
   virtual bool uniformRefine(int dir, int nInsert);
-  using ASMunstruct::refine;
+  using ASMLRSpline::refine;
   //! \brief Refines the parametrization by inserting extra tensor knots.
   //! \param[in] dir Parameter direction to refine
   //! \param[in] xi Relative positions of added knots in each existing knot span
@@ -460,7 +460,7 @@ public:
                                     const RealArray& oldVar, RealArray& newVar,
                                     int nGauss) const;
 
-  using ASMunstruct::transferCntrlPtVars;
+  using ASMLRSpline::transferCntrlPtVars;
   //! \brief Transfers control point variables from old basis to this patch.
   //! \param[in] old_basis The LR-spline basis to transfer from
   //! \param[out] newVar Gauss point variables associated with this patch
@@ -531,7 +531,7 @@ protected:
   //! \param[in] derivs Derivative order of the basis functions
   bool evaluateBasis(int iel, FiniteElement& fe, int derivs = 0) const;
 
-  using ASMunstruct::generateThreadGroups;
+  using ASMLRSpline::generateThreadGroups;
   //! \brief Generates element groups for multi-threading of interior integrals.
   //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] silence If \e true, suppress threading group outprint

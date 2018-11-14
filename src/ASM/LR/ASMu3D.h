@@ -14,7 +14,7 @@
 #ifndef _ASM_U3D_H
 #define _ASM_U3D_H
 
-#include "ASMunstruct.h"
+#include "ASMLRSpline.h"
 #include "ASM3D.h"
 #include "LRSpline/LRSpline.h"
 #include "ThreadGroups.h"
@@ -36,7 +36,7 @@ namespace LR {
   \details This class contains methods common for 3D LR-spline patches.
 */
 
-class ASMu3D : public ASMunstruct, public ASM3D
+class ASMu3D : public ASMLRSpline, public ASM3D
 {
 public:
   //! \brief Default constructor.
@@ -115,7 +115,7 @@ public:
   //! \param[in] lEdge index to local edge (1,2,...12)
   //! \param[in] open include end points or not
   //! \param[in] basis which basis to consider (for mixed methods)
-  //! \param[in] orient local orientation of indices, see ASMunstruct::Sort
+  //! \param[in] orient local orientation of indices, see ASMLRSpline::Sort
   virtual IntVec getEdge(int lEdge, bool open, int basis, int orient) const;
 
   //! \brief Returns the polynomial order in each parameter direction.
@@ -128,7 +128,7 @@ public:
   //! \param[in] dir Parameter direction to refine
   //! \param[in] nInsert Number of extra knots to insert in each knot-span
   virtual bool uniformRefine(int dir, int nInsert);
-  using ASMunstruct::refine;
+  using ASMLRSpline::refine;
   //! \brief Refines the parametrization by inserting extra tensor knots.
   //! \param[in] dir Parameter direction to refine
   //! \param[in] xi Relative positions of added knots in each existing knot span
@@ -375,7 +375,7 @@ public:
   virtual bool transferGaussPtVarsN(const LR::LRSpline* old_basis,
                                     const RealArray& oldVar, RealArray& newVar,
                                     int nGauss) const;
-  using ASMunstruct::transferCntrlPtVars;
+  using ASMLRSpline::transferCntrlPtVars;
   //! \brief Transfers control point variables from old basis to this patch.
   //! \param[in] old_basis The LR-spline basis to transfer from
   //! \param[out] newVar Gauss point variables associated with this patch
@@ -541,7 +541,7 @@ protected:
   void evaluateBasis(int iel, FiniteElement& fe, Matrix& dNdu, Matrix3D& d2Ndu2,
                      int basis = 1) const;
 
-  using ASMunstruct::generateThreadGroups;
+  using ASMLRSpline::generateThreadGroups;
   //! \brief Generates element groups for multi-threading of interior integrals.
   //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] silence If \e true, suppress threading group outprint

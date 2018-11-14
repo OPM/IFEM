@@ -11,14 +11,15 @@
 //!
 //==============================================================================
 
-#include "ASMunstruct.h"
-#include "IFEM.h"
 #include "LRSpline/LRSplineSurface.h"
 #include "LRSpline/Basisfunction.h"
+
+#include "ASMLRSpline.h"
 #include "Vec3.h"
 #include "Vec3Oper.h"
 #include "ThreadGroups.h"
 #include "Profiler.h"
+#include "IFEM.h"
 #include <fstream>
 
 #ifdef USE_OPENMP
@@ -138,10 +139,25 @@ void LR::generateThreadGroups (ThreadGroups& threadGroups,
 }
 
 
-bool ASMunstruct::refine (const LR::RefineData& prm,
+ASMLRSpline::ASMLRSpline (unsigned char n_p, unsigned char n_s,
+                          unsigned char n_f)
+  : ASMunstruct(n_p,n_s,n_f)
+{
+  geo = nullptr;
+}
+
+
+ASMLRSpline::ASMLRSpline (const ASMLRSpline& patch, unsigned char n_f)
+  : ASMunstruct(patch,n_f)
+{
+  geo = patch.geo;
+}
+
+
+bool ASMLRSpline::refine (const LR::RefineData& prm,
                           Vectors& sol, const char* fName)
 {
-  PROFILE2("ASMunstruct::refine()");
+  PROFILE2("ASMLRSpline::refine()");
 
   if (!geo)
     return false;
@@ -200,7 +216,7 @@ bool ASMunstruct::refine (const LR::RefineData& prm,
 }
 
 
-bool ASMunstruct::doRefine (const LR::RefineData& prm, LR::LRSpline* lrspline)
+bool ASMLRSpline::doRefine (const LR::RefineData& prm, LR::LRSpline* lrspline)
 {
   // to pick up if LR splines get stuck while doing refinement,
   // print entry and exit point of this function
@@ -255,7 +271,7 @@ bool ASMunstruct::doRefine (const LR::RefineData& prm, LR::LRSpline* lrspline)
 }
 
 
-Go::BsplineBasis ASMunstruct::getBezierBasis (int p, double start, double end)
+Go::BsplineBasis ASMLRSpline::getBezierBasis (int p, double start, double end)
 {
   double knot[2*p];
   std::fill(knot,   knot+p,   start);
@@ -264,7 +280,7 @@ Go::BsplineBasis ASMunstruct::getBezierBasis (int p, double start, double end)
 }
 
 
-IntVec ASMunstruct::getFunctionsForElements (const IntVec& elements,
+IntVec ASMLRSpline::getFunctionsForElements (const IntVec& elements,
                                              bool globalId) const
 {
   IntSet functions; // to get unique function IDs
@@ -273,7 +289,7 @@ IntVec ASMunstruct::getFunctionsForElements (const IntVec& elements,
 }
 
 
-void ASMunstruct::getFunctionsForElements (IntSet& functions,
+void ASMLRSpline::getFunctionsForElements (IntSet& functions,
                                            const IntVec& elements,
                                            bool globalId) const
 {
@@ -293,14 +309,14 @@ void ASMunstruct::getFunctionsForElements (IntSet& functions,
 }
 
 
-IntVec ASMunstruct::getBoundaryNodesCovered (const IntSet& nodes) const
+IntVec ASMLRSpline::getBoundaryCovered (const IntSet& nodes) const
 {
   IntSet result;
   int numbEdges = (this->getNoParamDim() == 2) ? 4 : 6;
   for (int edge = 1; edge <= numbEdges; edge++)
   {
-    IntVec oneBoundary;
-    this->getBoundaryNodes(edge, oneBoundary, 1, 1, 0, true); // this returns a 1-indexed list
+    IntVec oneBoundary; // 1-based list of boundary nodes
+    this->getBoundaryNodes(edge,oneBoundary,1,1,0,true);
     for (const int i : nodes)
       for (const int j : oneBoundary)
         if (geo->getBasisfunction(i)->contains(*geo->getBasisfunction(j-1)))
@@ -311,7 +327,7 @@ IntVec ASMunstruct::getBoundaryNodesCovered (const IntSet& nodes) const
 }
 
 
-IntVec ASMunstruct::getOverlappingNodes (const IntSet& nodes, int dir) const
+IntVec ASMLRSpline::getOverlappingNodes (const IntSet& nodes, int dir) const
 {
   IntSet result;
   for (const int i : nodes)
@@ -337,7 +353,7 @@ IntVec ASMunstruct::getOverlappingNodes (const IntSet& nodes, int dir) const
 }
 
 
-void ASMunstruct::Sort (int u, int v, int orient,
+void ASMLRSpline::Sort (int u, int v, int orient,
                         std::vector<LR::Basisfunction*>& functions)
 {
   std::sort(functions.begin(), functions.end(),
@@ -362,7 +378,7 @@ void ASMunstruct::Sort (int u, int v, int orient,
 }
 
 
-bool ASMunstruct::transferCntrlPtVars (LR::LRSpline* oldBasis,
+bool ASMLRSpline::transferCntrlPtVars (LR::LRSpline* oldBasis,
                                        const RealArray& oldVars,
                                        RealArray& newVars,
                                        int nGauss, int nf) const
@@ -373,7 +389,7 @@ bool ASMunstruct::transferCntrlPtVars (LR::LRSpline* oldBasis,
 }
 
 
-std::pair<size_t,double> ASMunstruct::findClosestNode (const Vec3& X) const
+std::pair<size_t,double> ASMLRSpline::findClosestNode (const Vec3& X) const
 {
   double distance = 0.0;
   size_t inod = 0, iclose = 0;
@@ -391,7 +407,7 @@ std::pair<size_t,double> ASMunstruct::findClosestNode (const Vec3& X) const
 }
 
 
-void ASMunstruct::storeMesh(const char* fName)
+void ASMLRSpline::storeMesh(const char* fName)
 {
   std::string fname(fName);
   std::ofstream lrOut("lrspline_"+fname);

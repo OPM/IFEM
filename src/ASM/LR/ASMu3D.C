@@ -38,7 +38,7 @@
 
 
 ASMu3D::ASMu3D (unsigned char n_f)
-  : ASMunstruct(3,3,n_f), lrspline(nullptr), tensorspline(nullptr),
+  : ASMLRSpline(3,3,n_f), lrspline(nullptr), tensorspline(nullptr),
     myGeoBasis(1), bezierExtract(myBezierExtract)
 {
   vMin = 0.0;
@@ -46,7 +46,7 @@ ASMu3D::ASMu3D (unsigned char n_f)
 
 
 ASMu3D::ASMu3D (const ASMu3D& patch, unsigned char n_f)
-  : ASMunstruct(patch,n_f), lrspline(patch.lrspline), tensorspline(nullptr),
+  : ASMLRSpline(patch,n_f), lrspline(patch.lrspline), tensorspline(nullptr),
     myGeoBasis(1), bezierExtract(patch.myBezierExtract)
 {
   vMin = 0.0;
@@ -505,7 +505,7 @@ IntVec ASMu3D::getEdge (int lEdge, bool open, int basis, int orient) const
     int dir = (edge-1)/4;
     int u = dir == 0;
     int v = 1 + (dir != 2);
-    ASMunstruct::Sort(u, v, orient, thisEdge);
+    ASMLRSpline::Sort(u, v, orient, thisEdge);
   }
 
   IntVec result;
@@ -1931,7 +1931,7 @@ IntVec ASMu3D::getFaceNodes (int face, int basis, int orient) const
     int dir = (face-1)/2;
     int u = dir == 0;
     int v = 1 + (dir != 2);
-    ASMunstruct::Sort(u, v, orient, edgeFunctions);
+    ASMLRSpline::Sort(u, v, orient, edgeFunctions);
   }
 
   IntVec result(edgeFunctions.size());

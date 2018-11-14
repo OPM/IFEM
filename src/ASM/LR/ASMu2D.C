@@ -39,7 +39,7 @@
 
 
 ASMu2D::ASMu2D (unsigned char n_s, unsigned char n_f)
-  : ASMunstruct(2,n_s,n_f), lrspline(nullptr), tensorspline(nullptr),
+  : ASMLRSpline(2,n_s,n_f), lrspline(nullptr), tensorspline(nullptr),
     bezierExtract(myBezierExtract)
 {
   aMin = 0.0;
@@ -47,7 +47,7 @@ ASMu2D::ASMu2D (unsigned char n_s, unsigned char n_f)
 
 
 ASMu2D::ASMu2D (const ASMu2D& patch, unsigned char n_f)
-  : ASMunstruct(patch,n_f), lrspline(patch.lrspline), tensorspline(nullptr),
+  : ASMLRSpline(patch,n_f), lrspline(patch.lrspline), tensorspline(nullptr),
     bezierExtract(patch.myBezierExtract)
 {
   aMin = 0.0;
@@ -632,7 +632,7 @@ IntVec ASMu2D::getEdgeNodes (int edge, int basis, int orient) const
 
   int v = (edge == 1 || edge == 2) ? 0 : 1;
   int u = 1-v;
-  ASMunstruct::Sort(u, v, orient, edgeFunctions);
+  ASMLRSpline::Sort(u, v, orient, edgeFunctions);
   IntVec result(edgeFunctions.size());
   std::transform(edgeFunctions.begin(), edgeFunctions.end(), result.begin(),
                  [ofs](LR::Basisfunction* a) { return a->getId()+ofs; });
