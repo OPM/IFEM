@@ -85,10 +85,23 @@ protected:
   virtual bool assembleAndSolveSystem();
 
 private:
+  //! \brief Element error and associated index.
+  //! \note The error value must be first and the index second, such that the
+  //! internally defined greater-than operator can be used when sorting the
+  //! error+index pairs in decreasing error order.
+  typedef std::pair<double,int> DblIdx;
+
+  //! \brief Save errors to text file for inspection.
+  //! \param errors The calculate errors
+  //! \param refineSize Number of functions marked for refinement
+  //! \param step Refinement step
+  void saveErrors(const std::vector<DblIdx>& errors, size_t refineSize, int step);
+
   SIMoutput& model; //!< The isogeometric FE model
   bool       alone; //!< If \e false, this class is wrapped by SIMSolver
 
   bool   storeMesh;    //!< Creates a series of eps-files for intermediate steps
+  bool   storeErrors;  //!< Store errors used for adaptation to text files
   bool   linIndepTest; //!< Test mesh for linear independence after refinement
   double beta;         //!< Refinement percentage in each step
   double errTol;       //!< Global error stop tolerance

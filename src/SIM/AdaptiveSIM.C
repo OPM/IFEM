@@ -21,6 +21,7 @@
 #include "Utilities.h"
 #include "IFEM.h"
 #include "tinyxml.h"
+#include <fstream>
 #include <sstream>
 #include <cstdio>
 
@@ -32,6 +33,7 @@ AdaptiveSIM::AdaptiveSIM (SIMoutput& sim, bool sa) : SIMadmin(sim), model(sim)
 
   // Default grid adaptation parameters
   storeMesh    = false;
+  storeErrors  = false;
   linIndepTest = false;
   beta         = 10.0;
   errTol       = 1.0;
@@ -76,6 +78,8 @@ bool AdaptiveSIM::parse (const TiXmlElement* elem)
       knot_mult = atoi(value);
     else if (!strcasecmp(child->Value(), "store_eps_mesh"))
       storeMesh = true; // no need for value here
+    else if (!strcasecmp(child->Value(), "store_errors"))
+      storeErrors = true;
     else if (!strcasecmp(child->Value(), "test_linear_independence"))
       linIndepTest = true; // no need for value here
     else if ((value = utl::getValue(child,"scheme"))) {
@@ -301,13 +305,6 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep, bool withRF,
 }
 
 
-//! \brief Element error and associated index.
-//! \note The error value must be first and the index second, such that the
-//! internally defined greater-than operator can be used when sorting the
-//! error+index pairs in decreasing error order.
-typedef std::pair<double,int> DblIdx;
-
-
 bool AdaptiveSIM::adaptMesh (int iStep, std::streamsize outPrec)
 {
   ASMbase* thePatch = model.getPatch(1);
@@ -490,6 +487,9 @@ bool AdaptiveSIM::adaptMesh (int iStep, std::streamsize outPrec)
       ++refineSize;
   }
 
+  if (storeErrors)
+    saveErrors(errors, refineSize, iStep);
+
   IFEM::cout <<"\nRefining "<< refineSize
              << (scheme < 2 ? " elements" : " basis functions")
              <<" with errors in range ["<< errors[refineSize-1].first
@@ -629,4 +629,20 @@ bool AdaptiveSIM::writeGlv (const char* infile, int iStep)
 
   // Write state information
   return model.writeGlvStep(iStep,iStep,1);
+}
+
+
+void AdaptiveSIM::saveErrors(const std::vector<DblIdx>& errors, size_t refineSize, int step)
+{
+  std::stringstream str;
+  str << "errors_" << step-1 << ".txt";
+  std::ofstream of(str.str());
+  of.precision(16);
+  of << "# Index   Error" << std::endl;
+  size_t i = 0;
+  for (const DblIdx& error : errors) {
+    of << error.second << " " << error.first << std::endl;
+    if (++i == refineSize)
+      of << "\n# ------------- Below here not refined ---------#\n\n";
+  }
 }
