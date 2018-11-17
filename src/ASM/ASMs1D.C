@@ -597,26 +597,28 @@ std::pair<size_t,double> ASMs1D::findClosestNode (const Vec3& X) const
     return std::make_pair(this->getNoNodes(),dist);
 
   // We are inside, now find which knot-span we are in and find closest node
-  RealArray::iterator u0 = curv->basis().begin();
-  RealArray::iterator u2 = std::lower_bound(u0,curv->basis().end(),param);
-  RealArray::iterator u1 = u2-1;
+  RealArray::iterator it = std::lower_bound(curv->basis().begin(),
+                                            curv->basis().end(),param);
+  size_t mnod = it - curv->basis().begin();
+  size_t jnod = 0;
+  double dmin = 0.0;
+  for (size_t inod = mnod-curv->order(); inod < mnod; inod++)
+  {
+    RealArray::const_iterator p = curv->coefs_begin() + inod*curv->dimension();
+    double d2 = Go::Point(p,p+curv->dimension()).dist2(Xfound);
+    if (d2 < dmin || jnod == 0)
+    {
+      jnod = inod+1;
+      dmin = d2;
+    }
+  }
 
-  Go::Point X1, X2;
-  curv->point(X1,*u1);
-  curv->point(X2,*u2);
-  double d1 = X1.dist2(Xfound);
-  double d2 = X2.dist2(Xfound);
 #ifdef SP_DEBUG
   std::cout <<"ASMs1D::findClosestNode("<< X
             <<"): Found "<< Xfound <<" at u="<< param
-            <<" in ["<< *u1 <<","<< *u2
-            <<"] d"<< u1-u0 <<"="<< d1 <<" d"<< u2-u0 <<"="<< d2 << std::endl;
+            <<" inod="<< jnod <<" distance="<< sqrt(dmin) << std::endl;
 #endif
-
-  if (d1 < d2)
-    return std::make_pair((u1-u0) - (curv->order()-2), sqrt(d1));
-  else
-    return std::make_pair((u2-u0) - (curv->order()-2), sqrt(d2));
+  return std::make_pair(jnod,sqrt(dmin));
 }
 
 
