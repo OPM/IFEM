@@ -43,20 +43,6 @@ public:
   //! \brief Returns the number of parameter dimensions in the model.
   virtual unsigned short int getNoParamDim() const { return 1; }
 
-  //! \brief Reads a patch from given input stream.
-  //! \param[in] isp The input stream to read from
-  //! \param[in] pchInd 0-based index of the patch to read
-  //! \param[in] unf Number of unknowns per basis function for each field
-  virtual ASMbase* readPatch(std::istream& isp, int pchInd,
-                             const CharVec& unf) const;
-
-  //! \brief Reads patches from given input stream.
-  //! \param[in] isp The input stream to read from
-  //! \param[out] patches Array of patches that were read
-  //! \param[in] whiteSpace For message formatting
-  virtual bool readPatches(std::istream& isp, PatchVec& patches,
-                           const char* whiteSpace) const;
-
   //! \brief Connects two patches.
   //! \param[in] master Master patch
   //! \param[in] slave Slave patch
@@ -110,6 +96,14 @@ protected:
   //! \brief Returns a FEM model generator for a default single-patch model.
   //! \param[in] geo XML element containing geometry definition
   virtual ModelGenerator* getModelGenerator(const TiXmlElement* geo) const;
+
+  //! \brief Reads a patch from given input stream.
+  //! \param[in] isp The input stream to read from
+  //! \param[in] pchInd 0-based index of the patch to read
+  //! \param[in] unf Number of unknowns per basis function for each field
+  //! \param[in] whiteSpace For message formatting
+  virtual ASMbase* readPatch(std::istream& isp, int pchInd, const CharVec& unf,
+                             const char* whiteSpace) const;
 
 protected:
   unsigned char nf; //!< Number of scalar fields

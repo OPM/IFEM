@@ -176,29 +176,31 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
   {
     bool ok = true;
     const TiXmlElement* child = elem->FirstChildElement();
-    if (child && !strcasecmp(child->Value(),"patchfile") && child->FirstChild())
+    if (child && !strncasecmp(child->Value(),"patch",5) && child->FirstChild())
     {
+      // Read projection basis from file
+      const char* patch = child->FirstChild()->Value();
+      std::istream* isp = getPatchStream(child->Value(),patch);
+      if (!isp) return false;
+
       for (ASMbase* pch : myModel)
         pch->createProjectionBasis(false);
 
-      // Read projection basis from file
-      const char* file = child->FirstChild()->Value();
-      IFEM::cout <<"\tReading data file "<< file << std::endl;
-      std::ifstream isp(file);
-      for (int pid = 1; isp.good() && ok; pid++)
+      for (int pid = 1; isp->good() && ok; pid++)
       {
         IFEM::cout <<"\tReading projection basis for patch "<< pid << std::endl;
         ASMbase* pch = this->getPatch(pid,true);
         if (pch)
-          ok = pch->read(isp);
+          ok = pch->read(*isp);
         else if ((pch = ASM1D::create(ASM::Spline,nsd,nf)))
         {
           // Skip this patch
-          ok = pch->read(isp);
+          ok = pch->read(*isp);
           delete pch;
         }
       }
 
+      delete isp;
       if (!ok) return false;
     }
     else // Generate separate projection basis from current geometry basis
@@ -513,62 +515,27 @@ bool SIM1D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
 }
 
 
-ASMbase* SIM1D::readPatch (std::istream& isp, int pchInd,
-                           const CharVec& unf) const
+ASMbase* SIM1D::readPatch (std::istream& isp, int pchInd, const CharVec& unf,
+                           const char* whiteSpace) const
 {
   ASMbase* pch = ASM1D::create(opt.discretization,nsd,
                                unf.empty() ? nf : unf.front());
   if (pch)
   {
-    if (!pch->read(isp))
-      delete pch, pch = nullptr;
-    else if (pch->empty() || this->getLocalPatchIndex(pchInd+1) < 1)
-      delete pch, pch = nullptr;
+    if (!pch->read(isp) || this->getLocalPatchIndex(pchInd+1) < 1)
+    {
+      delete pch;
+      pch = nullptr;
+    }
     else
-      pch->idx = myModel.size();
-  }
-
-  return pch;
-}
-
-
-bool SIM1D::readPatches (std::istream& isp, PatchVec& patches,
-                         const char* whiteSpace) const
-{
-  unsigned char maxSpaceDim = 0;
-  for (int pchInd = 1; isp.good(); pchInd++)
-  {
-    ASMbase* pch = ASM1D::create(opt.discretization,nsd,nf);
-    if (pch)
     {
       if (whiteSpace)
-        IFEM::cout << whiteSpace <<"Reading patch "<< pchInd << std::endl;
-      if (!pch->read(isp))
-      {
-        delete pch;
-        return false;
-      }
-      else if (pch->empty() || this->getLocalPatchIndex(pchInd) < 1)
-        delete pch;
-      else
-      {
-        pch->idx = patches.size();
-        patches.push_back(pch);
-        if (pch->getNoSpaceDim() > maxSpaceDim)
-          maxSpaceDim = pch->getNoSpaceDim();
-      }
+        IFEM::cout << whiteSpace <<"Reading patch "<< pchInd+1 << std::endl;
+      pch->idx = myModel.size();
     }
   }
 
-  // Reset number of space dimensions if all patches have less than nsd
-  if (maxSpaceDim > 0 && maxSpaceDim < nsd)
-  {
-    IFEM::cout <<"  Resetting number of space dimensions to "<< (int)maxSpaceDim
-               <<" to match patch file dimensionality."<< std::endl;
-    const_cast<SIM1D*>(this)->nsd = maxSpaceDim;
-  }
-
-  return true;
+  return pch;
 }
 
 

@@ -34,7 +34,7 @@ public:
     // Create topological boundary entities (vertices and edges)
     TiXmlDocument doc;
     doc.Parse("<geometry sets=\"true\"/>",nullptr,TIXML_ENCODING_UTF8);
-    myEntitys = DefaultGeometry2D(doc.RootElement()).createTopologySets(*this);
+    DefaultGeometry2D(doc.RootElement()).createTopologySets(*this);
     EXPECT_EQ(myEntitys.size(),10U);
   }
   virtual ~SIM2D_default() {}

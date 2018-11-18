@@ -79,61 +79,58 @@ std::string MultiPatchModelGenerator1D::createG2 (int nsd, bool rational) const
 }
 
 
-std::vector<ASMbase*>
-MultiPatchModelGenerator1D::createGeometry (const SIMinput& sim) const
+bool MultiPatchModelGenerator1D::createGeometry (SIMinput& sim) const
 {
   bool rational = sim.opt.discretization == ASM::LRNurbs;
   utl::getAttribute(geo,"rational",rational);
   std::istringstream line(this->createG2(sim.getNoSpaceDim(),rational));
-  std::vector<ASMbase*> result;
+
+  if (!subdivision)
+    return sim.readPatches(line,"\t");
 
   // for now this consists of a single patch. do refine / raiseorder
   // to obtain knot vector, then split in pieces. written this way
   // so code can be used with .g2 files.
-  if (subdivision) {
-    IFEM::cout << "  Subdivision in X: " << nx << std::endl;
-    ASMs1D pch;
-    pch.read(line);
 
-    // Parse XML input
-    const TiXmlElement* sub = geo->FirstChildElement("subdivision")->FirstChildElement();
-    for (; sub; sub = sub->NextSiblingElement())
-      if (strcasecmp(sub->Value(),"raiseorder") == 0) {
-        int nu;
-        utl::getAttribute(sub,"u",nu);
-        pch.raiseOrder(nu);
-      } else if (strcasecmp(sub->Value(),"refine") == 0) {
-        int nu;
-        utl::getAttribute(sub,"u",nu);
-        pch.uniformRefine(nu);
-      }
+  IFEM::cout << "  Subdivision in X: " << nx << std::endl;
+  ASMs1D pch;
+  pch.read(line);
 
-    // Compute parameters
-    const Go::SplineCurve* cur = pch.getCurve();
-    size_t p = cur->order() - 1;
-    size_t nelems = cur->numCoefs() - p;
-    size_t nelems_sub = nelems / nx;
-    size_t nelems_rem = nelems % nx;
-    std::string header = "100 1 0 0\n";
-
-    // Extract subpatches
-    std::stringstream str;
-    for (size_t i = 0; i < nx; ++i) {
-      size_t ni = nelems_sub + (i < nelems_rem ? 1 : 0);
-      size_t i0 = ni*i + (i < nelems_rem ? 0 : nelems_rem);
-      size_t di = ni + p;
-
-      Go::SplineCurve subcur = getSubPatch(cur, i0, di, p+1);
-      IFEM::cout << "  Number of knot spans in patch " << i << ": "
-                 << subcur.numCoefs()-subcur.order()+1 << std::endl;
-      str << header << subcur;
+  // Parse XML input
+  const TiXmlElement* sub = geo->FirstChildElement("subdivision")->FirstChildElement();
+  for (; sub; sub = sub->NextSiblingElement())
+    if (strcasecmp(sub->Value(),"raiseorder") == 0) {
+      int nu;
+      utl::getAttribute(sub,"u",nu);
+      pch.raiseOrder(nu);
+    } else if (strcasecmp(sub->Value(),"refine") == 0) {
+      int nu;
+      utl::getAttribute(sub,"u",nu);
+      pch.uniformRefine(nu);
     }
-    sim.readPatches(str,result,"\t");
 
-  } else
-    sim.readPatches(line,result,"\t");
+  // Compute parameters
+  const Go::SplineCurve* cur = pch.getCurve();
+  size_t p = cur->order() - 1;
+  size_t nelems = cur->numCoefs() - p;
+  size_t nelems_sub = nelems / nx;
+  size_t nelems_rem = nelems % nx;
+  std::string header = "100 1 0 0\n";
 
-  return result;
+  // Extract subpatches
+  std::stringstream str;
+  for (size_t i = 0; i < nx; ++i) {
+    size_t ni = nelems_sub + (i < nelems_rem ? 1 : 0);
+    size_t i0 = ni*i + (i < nelems_rem ? 0 : nelems_rem);
+    size_t di = ni + p;
+
+    Go::SplineCurve subcur = getSubPatch(cur, i0, di, p+1);
+    IFEM::cout << "  Number of knot spans in patch " << i << ": "
+               << subcur.numCoefs()-subcur.order()+1 << std::endl;
+    str << header << subcur;
+  }
+
+  return sim.readPatches(str,"\t");
 }
 
 
@@ -196,16 +193,14 @@ bool MultiPatchModelGenerator1D::createTopology (SIMinput& sim) const
 }
 
 
-TopologySet
-MultiPatchModelGenerator1D::createTopologySets (const SIMinput& sim) const
+bool MultiPatchModelGenerator1D::createTopologySets (SIMinput& sim) const
 {
-  TopologySet result;
   if (!this->topologySets())
-    return result;
+    return false;
 
-  TopEntity& v1 = result["Vertex1"];
-  TopEntity& v2 = result["Vertex2"];
-  TopEntity& v3 = result["Boundary"];
+  TopEntity& v1 = sim.topology("Vertex1");
+  TopEntity& v2 = sim.topology("Vertex2");
+  TopEntity& v3 = sim.topology("Boundary");
 
   auto&& insertion = [&sim, &v3](TopEntity& v, TopItem top)
   {
@@ -218,7 +213,7 @@ MultiPatchModelGenerator1D::createTopologySets (const SIMinput& sim) const
   insertion(v1, TopItem(1,1,0));
   insertion(v2, TopItem(nx,2,0));
 
-  return result;
+  return true;
 }
 
 
@@ -315,76 +310,71 @@ std::string MultiPatchModelGenerator2D::createG2 (int nsd, bool rational) const
 }
 
 
-std::vector<ASMbase*>
-MultiPatchModelGenerator2D::createGeometry (const SIMinput& sim) const
+bool MultiPatchModelGenerator2D::createGeometry (SIMinput& sim) const
 {
   bool rational = sim.opt.discretization == ASM::LRNurbs;
   utl::getAttribute(geo,"rational",rational);
   std::istringstream rect(this->createG2(sim.getNoSpaceDim(),rational));
-  std::vector<ASMbase*> result;
+  if (!subdivision)
+    return sim.readPatches(rect,"\t");
 
   // for now this consists of a single patch. do refine / raiseorder
   // to obtain knot vector, then split in pieces. written this way
   // so code can be used with .g2 files.
-  if (subdivision) {
-    IFEM::cout << "  Subdivision in X: " << nx << std::endl;
-    IFEM::cout << "  Subdivision in Y: " << ny << std::endl;
-    ASMs2D pch;
-    pch.read(rect);
+  IFEM::cout << "  Subdivision in X: " << nx << std::endl;
+  IFEM::cout << "  Subdivision in Y: " << ny << std::endl;
+  ASMs2D pch;
+  pch.read(rect);
 
-    // Parse XML input
-    const TiXmlElement* sub = geo->FirstChildElement("subdivision")->FirstChildElement();
-    for (; sub; sub = sub->NextSiblingElement())
-      if (strcasecmp(sub->Value(),"raiseorder") == 0) {
-        int nu, nv;
-        utl::getAttribute(sub,"u",nu);
-        utl::getAttribute(sub,"v",nv);
-        pch.raiseOrder(nu,nv);
-      } else if (strcasecmp(sub->Value(),"refine") == 0) {
-        int nu, nv;
-        utl::getAttribute(sub,"u",nu);
-        utl::getAttribute(sub,"v",nv);
-        pch.uniformRefine(0,nu);
-        pch.uniformRefine(1,nv);
-      }
-
-    // Compute parameters
-    const Go::SplineSurface* srf = pch.getSurface();
-    size_t px = srf->order_u()-1;
-    size_t py = srf->order_v()-1;
-    size_t nelemsx = srf->numCoefs_u() - px;
-    size_t nelemsy = srf->numCoefs_v() - py;
-    size_t nelemsx_sub = nelemsx / nx;
-    size_t nelemsy_sub = nelemsy / ny;
-    size_t nelemsx_rem = nelemsx % nx;
-    size_t nelemsy_rem = nelemsy % ny;
-    std::string header = "200 1 0 0\n";
-
-    // Extract subpatches
-    std::stringstream str;
-    for (size_t j = 0; j < ny; ++j) {
-      size_t nj = nelemsy_sub + (j < nelemsy_rem ? 1 : 0);
-      size_t j0 = nj*j + (j < nelemsy_rem ? 0 : nelemsy_rem);
-      size_t dj = nj + py;
-      for (size_t i = 0; i < nx; ++i) {
-        size_t ni = nelemsx_sub + (i < nelemsx_rem ? 1 : 0);
-        size_t i0 = ni*i + (i < nelemsx_rem ? 0 : nelemsx_rem);
-        size_t di = ni + px;
-
-        Go::SplineSurface subsrf = getSubPatch(srf, i0, di, px+1,
-                                                    j0, dj, py+1);
-        IFEM::cout << "  Number of knot spans in patch (" << i << ", " << j << "): "
-                   << subsrf.numCoefs_u()-subsrf.order_u()+1 << "x"
-                   << subsrf.numCoefs_v()-subsrf.order_v()+1 << std::endl;
-        str << header << subsrf;
-      }
+  // Parse XML input
+  const TiXmlElement* sub = geo->FirstChildElement("subdivision")->FirstChildElement();
+  for (; sub; sub = sub->NextSiblingElement())
+    if (strcasecmp(sub->Value(),"raiseorder") == 0) {
+      int nu, nv;
+      utl::getAttribute(sub,"u",nu);
+      utl::getAttribute(sub,"v",nv);
+      pch.raiseOrder(nu,nv);
+    } else if (strcasecmp(sub->Value(),"refine") == 0) {
+      int nu, nv;
+      utl::getAttribute(sub,"u",nu);
+      utl::getAttribute(sub,"v",nv);
+      pch.uniformRefine(0,nu);
+      pch.uniformRefine(1,nv);
     }
-    sim.readPatches(str,result,"\t");
 
-  } else
-    sim.readPatches(rect,result,"\t");
+  // Compute parameters
+  const Go::SplineSurface* srf = pch.getSurface();
+  size_t px = srf->order_u()-1;
+  size_t py = srf->order_v()-1;
+  size_t nelemsx = srf->numCoefs_u() - px;
+  size_t nelemsy = srf->numCoefs_v() - py;
+  size_t nelemsx_sub = nelemsx / nx;
+  size_t nelemsy_sub = nelemsy / ny;
+  size_t nelemsx_rem = nelemsx % nx;
+  size_t nelemsy_rem = nelemsy % ny;
+  std::string header = "200 1 0 0\n";
 
-  return result;
+  // Extract subpatches
+  std::stringstream str;
+  for (size_t j = 0; j < ny; ++j) {
+    size_t nj = nelemsy_sub + (j < nelemsy_rem ? 1 : 0);
+    size_t j0 = nj*j + (j < nelemsy_rem ? 0 : nelemsy_rem);
+    size_t dj = nj + py;
+    for (size_t i = 0; i < nx; ++i) {
+      size_t ni = nelemsx_sub + (i < nelemsx_rem ? 1 : 0);
+      size_t i0 = ni*i + (i < nelemsx_rem ? 0 : nelemsx_rem);
+      size_t di = ni + px;
+
+      Go::SplineSurface subsrf = getSubPatch(srf, i0, di, px+1,
+                                                  j0, dj, py+1);
+      IFEM::cout << "  Number of knot spans in patch (" << i << ", " << j << "): "
+                 << subsrf.numCoefs_u()-subsrf.order_u()+1 << "x"
+                 << subsrf.numCoefs_v()-subsrf.order_v()+1 << std::endl;
+      str << header << subsrf;
+    }
+  }
+
+  return sim.readPatches(str,"\t");
 }
 
 
@@ -460,22 +450,20 @@ bool MultiPatchModelGenerator2D::createTopology (SIMinput& sim) const
 }
 
 
-TopologySet
-MultiPatchModelGenerator2D::createTopologySets (const SIMinput& sim) const
+bool MultiPatchModelGenerator2D::createTopologySets (SIMinput& sim) const
 {
-  TopologySet result;
   if (!this->topologySets())
-    return result;
+    return false;
 
-  TopEntity& e1 = result["Edge1"];
-  TopEntity& e2 = result["Edge2"];
-  TopEntity& e3 = result["Edge3"];
-  TopEntity& e4 = result["Edge4"];
-  TopEntity& e5 = result["Boundary"];
-  TopEntity& e1f = result["Edge1Patches"];
-  TopEntity& e2f = result["Edge2Patches"];
-  TopEntity& e3f = result["Edge3Patches"];
-  TopEntity& e4f = result["Edge4Patches"];
+  TopEntity& e1  = sim.topology("Edge1");
+  TopEntity& e2  = sim.topology("Edge2");
+  TopEntity& e3  = sim.topology("Edge3");
+  TopEntity& e4  = sim.topology("Edge4");
+  TopEntity& e5  = sim.topology("Boundary");
+  TopEntity& e1f = sim.topology("Edge1Patches");
+  TopEntity& e2f = sim.topology("Edge2Patches");
+  TopEntity& e3f = sim.topology("Edge3Patches");
+  TopEntity& e4f = sim.topology("Edge4Patches");
 
   auto&& insertion = [&sim, &e5](TopEntity& e, TopEntity& ef, TopItem top)
   {
@@ -495,7 +483,7 @@ MultiPatchModelGenerator2D::createTopologySets (const SIMinput& sim) const
     insertion(e4, e4f, TopItem(nx*(ny-1)+1+i,4,1));
   }
 
-  TopEntity& c = result["Corners"];
+  TopEntity& c = sim.topology("Corners");
   auto&& insertionv = [&sim, &c](TopEntity& e, TopItem top)
   {
     if ((top.patch = sim.getLocalPatchIndex(top.patch)) > 0) {
@@ -504,27 +492,27 @@ MultiPatchModelGenerator2D::createTopologySets (const SIMinput& sim) const
     }
   };
 
-  insertionv(result["Vertex1"], TopItem(1,1,0));
-  insertionv(result["Vertex2"], TopItem(nx,2,0));
-  insertionv(result["Vertex3"], TopItem(nx*(ny-1)+1,3,0));
-  insertionv(result["Vertex4"], TopItem(nx*ny,4,0));
+  insertionv(sim.topology("Vertex1"), TopItem(1,1,0));
+  insertionv(sim.topology("Vertex2"), TopItem(nx,2,0));
+  insertionv(sim.topology("Vertex3"), TopItem(nx*(ny-1)+1,3,0));
+  insertionv(sim.topology("Vertex4"), TopItem(nx*ny,4,0));
 
   std::set<int> used;
   for (size_t i = 1; i <= 4; ++i) {
     std::stringstream str;
     str << "Edge" << i << "Patches";
-    for (const TopItem& it : result[str.str()])
-      used.insert(it.patch);
+    for (const TopItem& top : sim.topology(str.str()))
+      used.insert(top.patch);
   }
 
-  TopEntity& innerp = result["InnerPatches"];
+  TopEntity& innerp = sim.topology("InnerPatches");
   for (size_t i = 1; i <= nx*ny; ++i) {
-    size_t j;
-    if ((j = sim.getLocalPatchIndex(i)) > 0 && used.find(j) == used.end())
+    size_t j = sim.getLocalPatchIndex(i);
+    if (j > 0 && used.find(j) == used.end())
       innerp.insert(TopItem(j, 0, 2));
   }
 
-  return result;
+  return true;
 }
 
 
@@ -634,91 +622,86 @@ std::string MultiPatchModelGenerator3D::createG2 (int, bool rational) const
 }
 
 
-std::vector<ASMbase*>
-MultiPatchModelGenerator3D::createGeometry (const SIMinput& sim) const
+bool MultiPatchModelGenerator3D::createGeometry (SIMinput& sim) const
 {
   bool rational = sim.opt.discretization == ASM::LRNurbs;
   utl::getAttribute(geo,"rational",rational);
   std::istringstream cube(this->createG2(sim.getNoSpaceDim(),rational));
-  std::vector<ASMbase*> result;
+  if (!subdivision)
+    return sim.readPatches(cube,"\t");
 
   // for now this consists of a single patch. do refine / raiseorder
   // to obtain knot vector, then split in pieces. written this way
   // so code can be used with .g2 files.
-  if (subdivision) {
-    IFEM::cout << "  Subdivision in X: " << nx << std::endl;
-    IFEM::cout << "  Subdivision in Y: " << ny << std::endl;
-    IFEM::cout << "  Subdivision in Z: " << nz << std::endl;
-    ASMs3D pch;
-    pch.read(cube);
+  IFEM::cout << "  Subdivision in X: " << nx << std::endl;
+  IFEM::cout << "  Subdivision in Y: " << ny << std::endl;
+  IFEM::cout << "  Subdivision in Z: " << nz << std::endl;
+  ASMs3D pch;
+  pch.read(cube);
 
-    // Parse XML input
-    const TiXmlElement* sub = geo->FirstChildElement("subdivision")->FirstChildElement();
-    for (; sub; sub = sub->NextSiblingElement())
-      if (strcasecmp(sub->Value(),"raiseorder") == 0) {
-        int nu, nv, nw;
-        utl::getAttribute(sub,"u",nu);
-        utl::getAttribute(sub,"v",nv);
-        utl::getAttribute(sub,"w",nw);
-        pch.raiseOrder(nu,nv,nw);
-      } else if (strcasecmp(sub->Value(),"refine") == 0) {
-        int nu, nv, nw;
-        utl::getAttribute(sub,"u",nu);
-        utl::getAttribute(sub,"v",nv);
-        utl::getAttribute(sub,"w",nw);
-        pch.uniformRefine(0,nu);
-        pch.uniformRefine(1,nv);
-        pch.uniformRefine(2,nw);
-      }
+  // Parse XML input
+  const TiXmlElement* sub = geo->FirstChildElement("subdivision")->FirstChildElement();
+  for (; sub; sub = sub->NextSiblingElement())
+    if (strcasecmp(sub->Value(),"raiseorder") == 0) {
+      int nu, nv, nw;
+      utl::getAttribute(sub,"u",nu);
+      utl::getAttribute(sub,"v",nv);
+      utl::getAttribute(sub,"w",nw);
+      pch.raiseOrder(nu,nv,nw);
+    } else if (strcasecmp(sub->Value(),"refine") == 0) {
+      int nu, nv, nw;
+      utl::getAttribute(sub,"u",nu);
+      utl::getAttribute(sub,"v",nv);
+      utl::getAttribute(sub,"w",nw);
+      pch.uniformRefine(0,nu);
+      pch.uniformRefine(1,nv);
+      pch.uniformRefine(2,nw);
+    }
 
-    // Compute parameters
-    const Go::SplineVolume* vol = pch.getVolume();
-    size_t px = vol->order(0)-1;
-    size_t py = vol->order(1)-1;
-    size_t pz = vol->order(2)-1;
-    size_t nelemsx = vol->numCoefs(0) - px;
-    size_t nelemsy = vol->numCoefs(1) - py;
-    size_t nelemsz = vol->numCoefs(2) - pz;
-    size_t nelemsx_sub = nelemsx / nx;
-    size_t nelemsy_sub = nelemsy / ny;
-    size_t nelemsz_sub = nelemsz / nz;
-    size_t nelemsx_rem = nelemsx % nx;
-    size_t nelemsy_rem = nelemsy % ny;
-    size_t nelemsz_rem = nelemsz % nz;
-    std::string header = "700 1 0 0\n";
+  // Compute parameters
+  const Go::SplineVolume* vol = pch.getVolume();
+  size_t px = vol->order(0)-1;
+  size_t py = vol->order(1)-1;
+  size_t pz = vol->order(2)-1;
+  size_t nelemsx = vol->numCoefs(0) - px;
+  size_t nelemsy = vol->numCoefs(1) - py;
+  size_t nelemsz = vol->numCoefs(2) - pz;
+  size_t nelemsx_sub = nelemsx / nx;
+  size_t nelemsy_sub = nelemsy / ny;
+  size_t nelemsz_sub = nelemsz / nz;
+  size_t nelemsx_rem = nelemsx % nx;
+  size_t nelemsy_rem = nelemsy % ny;
+  size_t nelemsz_rem = nelemsz % nz;
+  std::string header = "700 1 0 0\n";
 
-    // Extract subpatches
-    std::stringstream str;
-    for (size_t k = 0; k < nz; ++k) {
-      size_t nk = nelemsz_sub + (k < nelemsz_rem ? 1 : 0);
-      size_t k0 = nk*k + (k < nelemsz_rem ? 0 : nelemsz_rem);
-      size_t dk = nk + pz;
-      for (size_t j = 0; j < ny; ++j) {
-        size_t nj = nelemsy_sub + (j < nelemsy_rem ? 1 : 0);
-        size_t j0 = nj*j + (j < nelemsy_rem ? 0 : nelemsy_rem);
-        size_t dj = nj + py;
-        for (size_t i = 0; i < nx; ++i) {
-          size_t ni = nelemsx_sub + (i < nelemsx_rem ? 1 : 0);
-          size_t i0 = ni*i + (i < nelemsx_rem ? 0 : nelemsx_rem);
-          size_t di = ni + px;
+  // Extract subpatches
+  std::stringstream str;
+  for (size_t k = 0; k < nz; ++k) {
+    size_t nk = nelemsz_sub + (k < nelemsz_rem ? 1 : 0);
+    size_t k0 = nk*k + (k < nelemsz_rem ? 0 : nelemsz_rem);
+    size_t dk = nk + pz;
+    for (size_t j = 0; j < ny; ++j) {
+      size_t nj = nelemsy_sub + (j < nelemsy_rem ? 1 : 0);
+      size_t j0 = nj*j + (j < nelemsy_rem ? 0 : nelemsy_rem);
+      size_t dj = nj + py;
+      for (size_t i = 0; i < nx; ++i) {
+        size_t ni = nelemsx_sub + (i < nelemsx_rem ? 1 : 0);
+        size_t i0 = ni*i + (i < nelemsx_rem ? 0 : nelemsx_rem);
+        size_t di = ni + px;
 
-          Go::SplineVolume subvol = getSubPatch(vol, i0, di, px+1,
-                                                     j0, dj, py+1,
-                                                     k0, dk, pz+1);
-          IFEM::cout << "  Number of knot spans in patch (" << i << ", " << j << ", " << k << "): "
-                     << subvol.numCoefs(0)-subvol.order(0)+1 << "x"
-                     << subvol.numCoefs(1)-subvol.order(1)+1 << "x"
-                     << subvol.numCoefs(2)-subvol.order(2)+1 << std::endl;
-          str << header << subvol;
-        }
+        Go::SplineVolume subvol = getSubPatch(vol, i0, di, px+1,
+                                                   j0, dj, py+1,
+                                                   k0, dk, pz+1);
+        IFEM::cout << "  Number of knot spans in patch (" << i << ", " << j << ", " << k << "): "
+                   << subvol.numCoefs(0)-subvol.order(0)+1 << "x"
+                   << subvol.numCoefs(1)-subvol.order(1)+1 << "x"
+                   << subvol.numCoefs(2)-subvol.order(2)+1 << std::endl;
+        str << header << subvol;
       }
     }
-    sim.readPatches(str,result,"\t");
+  }
 
-  } else
-    sim.readPatches(cube,result,"\t");
-
-  return result;
+  return sim.readPatches(str,"\t");
 }
 
 
@@ -822,12 +805,11 @@ bool MultiPatchModelGenerator3D::createTopology (SIMinput& sim) const
   return true;
 }
 
-TopologySet
-MultiPatchModelGenerator3D::createTopologySets (const SIMinput& sim) const
+
+bool MultiPatchModelGenerator3D::createTopologySets (SIMinput& sim) const
 {
-  TopologySet result;
   if (!this->topologySets())
-    return result;
+    return false;
 
   // 0-based -> 1-based IJK
   auto&& IJK = [this](int i, int j, int k) { return 1 + (k*ny+j)*nx + i; };
@@ -850,24 +832,24 @@ MultiPatchModelGenerator3D::createTopologySets (const SIMinput& sim) const
   auto&& IJK2K = [this,IJK](int i, int j, int k) { return IJK(i, j, k*(nz-1)); };
 
   // insertion lambda
-  auto&& insertion = [&sim,&result](TopItem top,
-                                    const std::string& glob,
-                                    const std::string& type)
-                     {
-                       std::stringstream str;
-                       str << type << top.item;
-                       TopEntity& topI = result[str.str()];
-                       TopEntity* topIf=nullptr;
-                       if (type == "Face")
-                         topIf = &result[str.str()+"Patches"];
-                       TopEntity& globI = result[glob];
-                       if ((top.patch = sim.getLocalPatchIndex(top.patch)) > 0) {
-                         topI.insert(top);
-                         globI.insert(top);
-                         if (topIf)
-                           topIf->insert(TopItem(top.patch, 0, 3));
-                       }
-                     };
+  auto&& insertion = [&sim](TopItem top,
+                            const std::string& glob,
+                            const std::string& type)
+    {
+      std::stringstream str;
+      str << type << top.item;
+      TopEntity& topI = sim.topology(str.str());
+      TopEntity* topIf=nullptr;
+      if (type == "Face")
+        topIf = &sim.topology(str.str()+"Patches");
+      TopEntity& globI = sim.topology(glob);
+      if ((top.patch = sim.getLocalPatchIndex(top.patch)) > 0) {
+        topI.insert(top);
+        globI.insert(top);
+        if (topIf)
+          topIf->insert(TopItem(top.patch, 0, 3));
+      }
+    };
 
   size_t r = 1;
   for (size_t i = 0; i < 2; ++i, ++r)
@@ -911,16 +893,16 @@ MultiPatchModelGenerator3D::createTopologySets (const SIMinput& sim) const
   for (size_t i = 1; i <= 6; ++i) {
     std::stringstream str;
     str << "Face" << i << "Patches";
-    for (const TopItem& it : result[str.str()])
-      used.insert(it.patch);
+    for (const TopItem& top : sim.topology(str.str()))
+      used.insert(top.patch);
   }
 
-  TopEntity& innerp = result["InnerPatches"];
+  TopEntity& innerp = sim.topology("InnerPatches");
   for (size_t i = 1; i <= nx*ny*nz; ++i) {
-    size_t j;
-    if ((j = sim.getLocalPatchIndex(i)) > 0 && used.find(j) == used.end())
+    size_t j = sim.getLocalPatchIndex(i);
+    if (j > 0 && used.find(j) == used.end())
       innerp.insert(TopItem(j, 0, 3));
   }
 
-  return result;
+  return true;
 }

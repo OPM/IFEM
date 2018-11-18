@@ -34,19 +34,73 @@
 #include <numeric>
 
 
+std::istream* SIMinput::getPatchStream (const char* tag, const char* patch)
+{
+  if (!strcasecmp(tag+5,"file"))
+  {
+    IFEM::cout <<"\tReading data file "<< patch << std::endl;
+    return new std::ifstream(patch);
+  }
+  else if (!strcasecmp(tag+5,"es") || strlen(tag) == 5)
+  {
+    IFEM::cout <<"\tReading inlined patch geometry definition"<< std::endl;
+    // Replace all '\' and '|' characters in the string by newline '\n'
+    for (size_t i = 0; i < strlen(patch); i++)
+      if (patch[i] == '\\' || patch[i] == '|')
+	const_cast<char&>(patch[i]) = '\n';
+    return new std::stringstream(patch);
+  }
+  else
+    return nullptr;
+}
+
+
+bool SIMinput::readPatches (std::istream& isp, const char* whiteSpace)
+{
+  unsigned char maxSpaceDim = 0;
+  for (int pchInd = 0; isp.good(); pchInd++)
+  {
+    ASMbase* pch = this->readPatch(isp,pchInd,CharVec(),whiteSpace);
+    if (pch)
+    {
+      myModel.push_back(pch);
+      if (pch->getNoSpaceDim() > maxSpaceDim)
+        maxSpaceDim = pch->getNoSpaceDim();
+    }
+    else if (this->getLocalPatchIndex(pchInd+1) > 0)
+      return false;
+  }
+
+  // Reset number of space dimensions if all patches have less than nsd
+  if (maxSpaceDim > 0 && maxSpaceDim < nsd)
+  {
+    IFEM::cout <<"  Resetting number of space dimensions to "<< (int)maxSpaceDim
+               <<" to match patch file dimensionality."<< std::endl;
+    nsd = maxSpaceDim;
+  }
+
+  return true;
+}
+
+
 bool SIMinput::parseGeometryTag (const TiXmlElement* elem)
 {
   IFEM::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
 
-  if (!strcasecmp(elem->Value(),"patchfile") && elem->FirstChild())
+  if (!strncasecmp(elem->Value(),"patch",5) && elem->FirstChild())
   {
     if (!myModel.empty())
       return true; // We already have a model, skip geometry definition
 
-    const char* file = elem->FirstChild()->Value();
-    IFEM::cout <<"\tReading data file "<< file << std::endl;
-    std::ifstream isp(file);
-    this->readPatches(isp,myModel,"\t");
+    const char* patch = elem->FirstChild()->Value();
+    std::istream* isp = getPatchStream(elem->Value(),patch);
+    if (isp)
+    {
+      this->readPatches(*isp,"\t");
+      delete isp;
+    }
+    else
+      return true;
 
     if (myModel.empty())
     {
@@ -562,8 +616,10 @@ bool SIMinput::parse (const TiXmlElement* elem)
     result = this->SIMbase::parse(elem);
 
   // Create the default geometry if no patchfile is specified
-  if (!strcasecmp(elem->Value(),"geometry"))
-    if (this->getNoParamDim() > 0 && !elem->FirstChildElement("patchfile"))
+  if (!strcasecmp(elem->Value(),"geometry") && this->getNoParamDim() > 0)
+    if (!elem->FirstChildElement("patchfile") &&
+        !elem->FirstChildElement("patches") &&
+        !elem->FirstChildElement("patch"))
     {
       if (myModel.empty())
       {
@@ -577,11 +633,11 @@ bool SIMinput::parse (const TiXmlElement* elem)
         return false;
 
       if (myModel.empty())
-        myModel = myGen->createGeometry(*this);
+        myGen->createGeometry(*this);
       if (myPatches.empty())
         nGlPatches = myModel.size();
 
-      myEntitys = myGen->createTopologySets(*this);
+      myGen->createTopologySets(*this);
     }
 
   // Check if a characteristic model size is specified
@@ -733,7 +789,7 @@ bool SIMinput::parse (char* keyWord, std::istream& is)
     size_t i = 9; while (i < strlen(keyWord) && isspace(keyWord[i])) i++;
     IFEM::cout <<"\nReading data file "<< keyWord+i << std::endl;
     std::ifstream isp(keyWord+i);
-    this->readPatches(isp,myModel);
+    this->readPatches(isp);
 
     if (myModel.empty())
     {

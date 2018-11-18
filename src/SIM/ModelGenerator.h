@@ -14,8 +14,6 @@
 #ifndef _MODEL_GENERATOR_H
 #define _MODEL_GENERATOR_H
 
-#include "TopologySet.h"
-#include <vector>
 #include <string>
 
 class SIMinput;
@@ -36,16 +34,14 @@ public:
   //! \brief Empty destructor.
   virtual ~ModelGenerator() {}
 
-  //! \brief Creates a geometry.
-  //! \param[in] m Simulator object with patch read function to use
-  virtual std::vector<ASMbase*> createGeometry(const SIMinput& m) const;
+  //! \brief Creates geometry for the specified \a sim object..
+  virtual bool createGeometry(SIMinput& sim) const;
+
+  //! \brief Creates topology sets for the specified \a sim object.
+  virtual bool createTopologySets(SIMinput& sim) const = 0;
 
   //! \brief Creates topology for multi-patch geometries.
   virtual bool createTopology(SIMinput&) const { return true; }
-
-  //! \brief Creates topology sets for geometry.
-  //! \param[in] sim Simulator object with patch ownerships
-  virtual TopologySet createTopologySets(const SIMinput& sim) const = 0;
 
 protected:
   //! \brief Generates the G2 description of the geometry.
@@ -74,8 +70,8 @@ public:
   //! \brief Empty destructor.
   virtual ~DefaultGeometry1D() {}
 
-  //! \brief Creates topology sets for geometry.
-  virtual TopologySet createTopologySets(const SIMinput&) const;
+  //! \brief Creates topology sets for the specified \a sim object.
+  virtual bool createTopologySets(SIMinput& sim) const;
 
 protected:
   //! \brief Generates the G2 description of the geometry.
@@ -96,8 +92,8 @@ public:
   //! \brief Empty destructor.
   virtual ~DefaultGeometry2D() {}
 
-  //! \brief Creates topology sets for geometry.
-  virtual TopologySet createTopologySets(const SIMinput&) const;
+  //! \brief Creates topology sets for the specified \a sim object.
+  virtual bool createTopologySets(SIMinput& sim) const;
 
 protected:
   //! \brief Generates the G2 description of the geometry.
@@ -118,8 +114,8 @@ public:
   //! \brief Empty destructor.
   virtual ~DefaultGeometry3D() {}
 
-  //! \brief Creates topology sets for geometry.
-  virtual TopologySet createTopologySets(const SIMinput&) const;
+  //! \brief Creates topology sets for the specified \a sim object.
+  virtual bool createTopologySets(SIMinput& sim) const;
 
 protected:
   //! \brief Generates the G2 description of the geometry.

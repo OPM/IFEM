@@ -50,15 +50,13 @@ bool ModelGenerator::topologySets () const
 }
 
 
-std::vector<ASMbase*> ModelGenerator::createGeometry (const SIMinput& m) const
+bool ModelGenerator::createGeometry (SIMinput& sim) const
 {
-  bool rational = m.opt.discretization == ASM::LRNurbs;
+  bool rational = sim.opt.discretization == ASM::LRNurbs;
   utl::getAttribute(geo,"rational",rational);
 
-  std::istringstream g2(this->createG2(m.getNoSpaceDim(),rational));
-  std::vector<ASMbase*> result;
-  m.readPatches(g2,result,nullptr);
-  return result;
+  std::istringstream g2(this->createG2(sim.getNoSpaceDim(),rational));
+  return sim.readPatches(g2);
 }
 
 
@@ -110,20 +108,19 @@ std::string DefaultGeometry1D::createG2 (int nsd, bool rational) const
 }
 
 
-TopologySet DefaultGeometry1D::createTopologySets (const SIMinput&) const
+bool DefaultGeometry1D::createTopologySets (SIMinput& sim) const
 {
-  TopologySet result;
-  if (this->topologySets())
-  {
-    result["Vertex1"].insert(TopItem(1,1,0));
-    result["Vertex2"].insert(TopItem(1,2,0));
-    result["Boundary"].insert(TopItem(1,1,0));
-    result["Boundary"].insert(TopItem(1,2,0));
-    result["Corners"].insert(TopItem(1,1,0));
-    result["Corners"].insert(TopItem(1,2,0));
-  }
+  if (!this->topologySets())
+    return false;
 
-  return result;
+  sim.topology("Vertex1").insert(TopItem(1,1,0));
+  sim.topology("Vertex2").insert(TopItem(1,2,0));
+  sim.topology("Boundary").insert(TopItem(1,1,0));
+  sim.topology("Boundary").insert(TopItem(1,2,0));
+  sim.topology("Corners").insert(TopItem(1,1,0));
+  sim.topology("Corners").insert(TopItem(1,2,0));
+
+  return true;
 }
 
 
@@ -184,23 +181,22 @@ std::string DefaultGeometry2D::createG2 (int nsd, bool rational) const
 }
 
 
-TopologySet DefaultGeometry2D::createTopologySets (const SIMinput&) const
+bool DefaultGeometry2D::createTopologySets (SIMinput& sim) const
 {
-  TopologySet result;
-  if (this->topologySets())
+  if (!this->topologySets())
+    return false;
+
+  std::string vert = "Vertex1";
+  std::string edge = "Edge1";
+  for (size_t i = 1; i <= 4; ++i, ++vert.back(), ++edge.back())
   {
-    std::string vert = "Vertex1";
-    std::string edge = "Edge1";
-    for (size_t i = 1; i <= 4; ++i, ++vert.back(), ++edge.back())
-    {
-      result[vert].insert(TopItem(1,i,0));
-      result[edge].insert(TopItem(1,i,1));
-      result["Corners"].insert(TopItem(1,i,0));
-      result["Boundary"].insert(TopItem(1,i,1));
-    }
+    sim.topology(vert).insert(TopItem(1,i,0));
+    sim.topology(edge).insert(TopItem(1,i,1));
+    sim.topology("Corners").insert(TopItem(1,i,0));
+    sim.topology("Boundary").insert(TopItem(1,i,1));
   }
 
-  return result;
+  return true;
 }
 
 
@@ -274,34 +270,33 @@ std::string DefaultGeometry3D::createG2 (int, bool rational) const
 }
 
 
-TopologySet DefaultGeometry3D::createTopologySets (const SIMinput&) const
+bool DefaultGeometry3D::createTopologySets (SIMinput& sim) const
 {
-  TopologySet result;
-  if (this->topologySets())
+  if (!this->topologySets())
+    return false;
+
+  std::string face = "Face1";
+  for (size_t i = 1; i <= 6; ++i, ++face.back())
   {
-    std::string face = "Face1";
-    for (size_t i = 1; i <= 6; ++i, ++face.back())
-    {
-      result[face].insert(TopItem(1,i,2));
-      result["Boundary"].insert(TopItem(1,i,2));
-    }
-
-    std::string edge = "Edge1";
-    for (size_t i = 1; i <= 12; ++i, ++edge.back())
-    {
-      result[edge].insert(TopItem(1,i,1));
-      result["Frame"].insert(TopItem(1,i,1));
-      if (i == 9)
-        edge = "Edge1/"; // '/' + 1 == '0'
-    }
-
-    std::string vert = "Vertex1";
-    for (size_t i = 1; i <= 8; ++i, ++vert.back())
-    {
-      result[vert].insert(TopItem(1,i,0));
-      result["Corners"].insert(TopItem(1,i,0));
-    }
+    sim.topology(face).insert(TopItem(1,i,2));
+    sim.topology("Boundary").insert(TopItem(1,i,2));
   }
 
-  return result;
+  std::string edge = "Edge1";
+  for (size_t i = 1; i <= 12; ++i, ++edge.back())
+  {
+    sim.topology(edge).insert(TopItem(1,i,1));
+    sim.topology("Frame").insert(TopItem(1,i,1));
+    if (i == 9)
+      edge = "Edge1/"; // '/' + 1 == '0'
+  }
+
+  std::string vert = "Vertex1";
+  for (size_t i = 1; i <= 8; ++i, ++vert.back())
+  {
+    sim.topology(vert).insert(TopItem(1,i,0));
+    sim.topology("Corners").insert(TopItem(1,i,0));
+  }
+
+  return true;
 }

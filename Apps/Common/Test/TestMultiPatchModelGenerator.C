@@ -148,8 +148,8 @@ TEST_P(TestMultiPatchModelGenerator2D, Generate)
   TestModelGeneratorWrapper<MultiPatchModelGenerator2D> gen(doc.RootElement());
   std::string g2 = gen.createG2(GetParam().dim);
   SIM2D sim;
-  TopologySet sets = gen.createTopologySets(sim);
-  DoTest(GetParam(), g2, sets);
+  gen.createTopologySets(sim);
+  DoTest(GetParam(), g2, sim.getTopology());
 }
 
 
@@ -212,11 +212,10 @@ TEST(TestMultiPatchModelGenerator2D, InnerPatches)
   TiXmlDocument doc;
   doc.Parse("<geometry nx=\"3\" ny=\"3\" sets=\"true\"/>");
   TestModelGeneratorWrapper<MultiPatchModelGenerator2D> gen(doc.RootElement());
-  std::string g2 = gen.createG2(2);
   SIM2D sim;
-  TopologySet sets = gen.createTopologySets(sim);
-  ASSERT_EQ(sets["InnerPatches"].size(), 1u);
-  ASSERT_EQ(sets["InnerPatches"].begin()->patch, 5u);
+  gen.createTopologySets(sim);
+  ASSERT_EQ(sim.topology("InnerPatches").size(), 1u);
+  ASSERT_EQ(sim.topology("InnerPatches").begin()->patch, 5u);
 }
 
 
@@ -227,8 +226,8 @@ TEST_P(TestMultiPatchModelGenerator3D, Generate)
   TestModelGeneratorWrapper<MultiPatchModelGenerator3D> gen(doc.RootElement());
   std::string g2 = gen.createG2(GetParam().dim);
   SIM3D sim;
-  TopologySet sets = gen.createTopologySets(sim);
-  DoTest(GetParam(), g2, sets);
+  gen.createTopologySets(sim);
+  DoTest(GetParam(), g2, sim.getTopology());
 }
 
 
@@ -832,17 +831,15 @@ INSTANTIATE_TEST_CASE_P(TestGetSubPatch3D,
                         TestGetSubPatch3D,
                         testing::ValuesIn(SubPatch3D));
 
-
 TEST(TestMultiPatchModelGenerator3D, InnerPatches)
 {
   TiXmlDocument doc;
   doc.Parse("<geometry nx=\"3\" ny=\"3\" nz=\"3\"  sets=\"true\"/>");
   TestModelGeneratorWrapper<MultiPatchModelGenerator3D> gen(doc.RootElement());
-  std::string g2 = gen.createG2(2);
   SIM3D sim;
-  TopologySet sets = gen.createTopologySets(sim);
-  ASSERT_EQ(sets["InnerPatches"].size(), 1u);
-  ASSERT_EQ(sets["InnerPatches"].begin()->patch, 14u);
+  gen.createTopologySets(sim);
+  ASSERT_EQ(sim.topology("InnerPatches").size(), 1u);
+  ASSERT_EQ(sim.topology("InnerPatches").begin()->patch, 14u);
 }
 
 

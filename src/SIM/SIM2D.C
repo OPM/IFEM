@@ -295,29 +295,31 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
   {
     bool ok = true;
     const TiXmlElement* child = elem->FirstChildElement();
-    if (child && !strcasecmp(child->Value(),"patchfile") && child->FirstChild())
+    if (child && !strncasecmp(child->Value(),"patch",5) && child->FirstChild())
     {
+      // Read projection basis from file
+      const char* patch = child->FirstChild()->Value();
+      std::istream* isp = getPatchStream(child->Value(),patch);
+      if (!isp) return false;
+
       for (ASMbase* pch : myModel)
         pch->createProjectionBasis(false);
 
-      // Read projection basis from file
-      const char* file = child->FirstChild()->Value();
-      IFEM::cout <<"\tReading data file "<< file << std::endl;
-      std::ifstream isp(file);
-      for (int pid = 1; isp.good() && ok; pid++)
+      for (int pid = 1; isp->good() && ok; pid++)
       {
         IFEM::cout <<"\tReading projection basis for patch "<< pid << std::endl;
         ASMbase* pch = this->getPatch(pid,true);
         if (pch)
-          ok = pch->read(isp);
+          ok = pch->read(*isp);
         else if ((pch = ASM2D::create(opt.discretization,nsd,nf)))
         {
           // Skip this patch
-          ok = pch->read(isp);
+          ok = pch->read(*isp);
           delete pch;
         }
       }
 
+      delete isp;
       if (!ok) return false;
     }
     else // Generate separate projection basis from current geometry basis
@@ -733,60 +735,30 @@ bool SIM2D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
 }
 
 
-ASMbase* SIM2D::readPatch (std::istream& isp, int pchInd,
-                           const CharVec& unf) const
+ASMbase* SIM2D::readPatch (std::istream& isp, int pchInd, const CharVec& unf,
+                           const char* whiteSpace) const
 {
   const CharVec& uunf = unf.empty() ? nf : unf;
   bool isMixed = uunf.size() > 1 && uunf[1] > 0;
   ASMbase* pch = ASM2D::create(opt.discretization,nsd,uunf,isMixed);
   if (pch)
   {
-    if (!pch->read(isp))
-      delete pch, pch = nullptr;
-    else if (pch->empty() || this->getLocalPatchIndex(pchInd+1) < 1)
-      delete pch, pch = nullptr;
+    if (!pch->read(isp) || this->getLocalPatchIndex(pchInd+1) < 1)
+    {
+      delete pch;
+      pch = nullptr;
+    }
     else
-      pch->idx = myModel.size();
-  }
-
-  if (checkRHSys && pch)
-    if (dynamic_cast<ASM2D*>(pch)->checkRightHandSystem())
-      IFEM::cout <<"\tSwapped."<< std::endl;
-
-  return pch;
-}
-
-
-bool SIM2D::readPatches (std::istream& isp, PatchVec& patches,
-                         const char* whiteSpace) const
-{
-  bool isMixed = nf.size() > 1 && nf[1] > 0;
-  for (int pchInd = 1; isp.good(); pchInd++)
-  {
-    ASMbase* pch = ASM2D::create(opt.discretization,nsd,nf,isMixed);
-    if (pch)
     {
       if (whiteSpace)
-        IFEM::cout << whiteSpace <<"Reading patch "<< pchInd << std::endl;
-      if (!pch->read(isp))
-      {
-        delete pch;
-        return false;
-      }
-      else if (pch->empty() || this->getLocalPatchIndex(pchInd) < 1)
-        delete pch;
-      else
-      {
-        pch->idx = patches.size();
-        patches.push_back(pch);
-        if (checkRHSys)
-          if (dynamic_cast<ASM2D*>(pch)->checkRightHandSystem())
-            IFEM::cout <<"\tSwapped."<< std::endl;
-      }
+        IFEM::cout << whiteSpace <<"Reading patch "<< pchInd+1 << std::endl;
+      if (checkRHSys && dynamic_cast<ASM2D*>(pch)->checkRightHandSystem())
+        IFEM::cout <<"\tSwapped."<< std::endl;
+      pch->idx = myModel.size();
     }
   }
 
-  return true;
+  return pch;
 }
 
 

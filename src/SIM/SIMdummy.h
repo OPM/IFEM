@@ -39,14 +39,6 @@ public:
   virtual ~SIMdummy() {}
   //! \brief Returns the number of parameter dimensions in the model.
   virtual unsigned short int getNoParamDim() const { return 0; }
-  //! \brief Reads a patch from given input stream.
-  virtual ASMbase* readPatch(std::istream&,int,
-                             const std::vector<unsigned char>&) const
-  { return nullptr; }
-  //! \brief Reads patches from given input stream.
-  virtual bool readPatches(std::istream&,
-                           std::vector<ASMbase*>&,const char*) const
-  { return false; }
   //! \brief Creates the computational FEM model from the spline patches.
   virtual bool createFEMmodel(char) { return false; }
 
@@ -59,6 +51,10 @@ protected:
   //! \brief Creates a model generator.
   virtual ModelGenerator* getModelGenerator(const TiXmlElement*) const
   { return nullptr; }
+  //! \brief Reads a patch from given input stream.
+  virtual ASMbase* readPatch(std::istream&,int,
+                             const std::vector<unsigned char>&,
+                             const char*) const { return nullptr; }
 };
 
 #endif

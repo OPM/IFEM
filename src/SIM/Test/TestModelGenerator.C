@@ -91,8 +91,8 @@ TEST_P(TestModelGenerator1D, Generate)
   TestModelGeneratorWrapper<DefaultGeometry1D> gen(doc.RootElement());
   std::string g2 = gen.createG2(GetParam().dim);
   SIM1D sim;
-  TopologySet sets = gen.createTopologySets(sim);
-  DoTest(GetParam(), g2, sets);
+  gen.createTopologySets(sim);
+  DoTest(GetParam(), g2, sim.getTopology());
 }
 
 
@@ -103,8 +103,8 @@ TEST_P(TestModelGenerator2D, Generate)
   TestModelGeneratorWrapper<DefaultGeometry2D> gen(doc.RootElement());
   std::string g2 = gen.createG2(GetParam().dim);
   SIM2D sim;
-  TopologySet sets = gen.createTopologySets(sim);
-  DoTest(GetParam(), g2, sets);
+  gen.createTopologySets(sim);
+  DoTest(GetParam(), g2, sim.getTopology());
 }
 
 
@@ -115,8 +115,8 @@ TEST_P(TestModelGenerator3D, Generate)
   TestModelGeneratorWrapper<DefaultGeometry3D> gen(doc.RootElement());
   std::string g2 = gen.createG2(GetParam().dim);
   SIM3D sim;
-  TopologySet sets = gen.createTopologySets(sim);
-  DoTest(GetParam(), g2, sets);
+  gen.createTopologySets(sim);
+  DoTest(GetParam(), g2, sim.getTopology());
 }
 
 

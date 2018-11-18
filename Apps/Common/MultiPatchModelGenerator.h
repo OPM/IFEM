@@ -35,12 +35,11 @@ public:
   virtual ~MultiPatchModelGenerator1D() {}
 
   //! \brief Creates a geometry.
-  //! \param[in] m Simulator object with patch read function to use
-  std::vector<ASMbase*> createGeometry(const SIMinput& m) const;
+  virtual bool createGeometry(SIMinput& sim) const;
   //! \brief Creates topology for geometry.
   virtual bool createTopology(SIMinput& sim) const;
   //! \brief Creates topology sets for geometry.
-  virtual TopologySet createTopologySets(const SIMinput& sim) const;
+  virtual bool createTopologySets(SIMinput& sim) const;
 
   //! \brief Generates knot vectors for subdivision.
   //! \param[in] cur Univariate patch to extract subpatch from
@@ -76,12 +75,11 @@ public:
   virtual ~MultiPatchModelGenerator2D() {}
 
   //! \brief Creates a geometry.
-  //! \param[in] m Simulator object with patch read function to use
-  std::vector<ASMbase*> createGeometry(const SIMinput& m) const;
+  virtual bool createGeometry(SIMinput& sim) const;
   //! \brief Creates topology for geometry.
   virtual bool createTopology(SIMinput& sim) const;
   //! \brief Creates topology sets for geometry.
-  virtual TopologySet createTopologySets(const SIMinput& sim) const;
+  virtual bool createTopologySets(SIMinput& sim) const;
 
   //! \brief Generates knot vectors for subdivision.
   //! \param[in] srf Bivariate patch to extract subpatch from
@@ -123,12 +121,11 @@ public:
   virtual ~MultiPatchModelGenerator3D() {}
 
   //! \brief Creates a geometry.
-  //! \param[in] m Simulator object with patch read function to use
-  std::vector<ASMbase*> createGeometry(const SIMinput& m) const;
+  virtual bool createGeometry(SIMinput& sim) const;
   //! \brief Creates topology for geometry.
   virtual bool createTopology(SIMinput& sim) const;
   //! \brief Creates topology sets for geometry.
-  virtual TopologySet createTopologySets(const SIMinput& sim) const;
+  virtual bool createTopologySets(SIMinput& sim) const;
 
   //! \brief Generates knot vectors for subdivision.
   //! \param[in] vol Trivariate patch to extract subpatch from

@@ -670,60 +670,30 @@ bool SIM3D::addConstraint (int patch, int lndx, int line, double xi,
 }
 
 
-ASMbase* SIM3D::readPatch (std::istream& isp, int pchInd,
-                           const CharVec& unf) const
+ASMbase* SIM3D::readPatch (std::istream& isp, int pchInd, const CharVec& unf,
+                           const char* whiteSpace) const
 {
   const CharVec& uunf = unf.empty() ? nf : unf;
   bool isMixed = uunf.size() > 1 && uunf[1] > 0;
   ASMbase* pch = ASM3D::create(opt.discretization,uunf,isMixed);
   if (pch)
   {
-    if (!pch->read(isp))
-      delete pch, pch = nullptr;
-    else if (pch->empty() || this->getLocalPatchIndex(pchInd+1) < 1)
-      delete pch, pch = nullptr;
+    if (!pch->read(isp) || this->getLocalPatchIndex(pchInd+1) < 1)
+    {
+      delete pch;
+      pch = nullptr;
+    }
     else
-      pch->idx = myModel.size();
-  }
-
-  if (checkRHSys && pch)
-    if (dynamic_cast<ASM3D*>(pch)->checkRightHandSystem())
-      IFEM::cout <<"\tSwapped."<< std::endl;
-
-  return pch;
-}
-
-
-bool SIM3D::readPatches (std::istream& isp, PatchVec& patches,
-                         const char* whiteSpace) const
-{
-  bool isMixed = nf.size() > 1 && nf[1] > 0;
-  for (int pchInd = 1; isp.good(); pchInd++)
-  {
-    ASMbase* pch = ASM3D::create(opt.discretization,nf,isMixed);
-    if (pch)
     {
       if (whiteSpace)
-        IFEM::cout << whiteSpace <<"Reading patch "<< pchInd << std::endl;
-      if (!pch->read(isp))
-      {
-        delete pch;
-        return false;
-      }
-      else if (pch->empty() || this->getLocalPatchIndex(pchInd) < 1)
-        delete pch;
-      else
-      {
-        pch->idx = patches.size();
-        patches.push_back(pch);
-        if (checkRHSys)
-          if (dynamic_cast<ASM3D*>(pch)->checkRightHandSystem())
-            IFEM::cout <<"\tSwapped."<< std::endl;
-      }
+        IFEM::cout << whiteSpace <<"Reading patch "<< pchInd+1 << std::endl;
+      if (checkRHSys && dynamic_cast<ASM3D*>(pch)->checkRightHandSystem())
+        IFEM::cout <<"\tSwapped."<< std::endl;
+      pch->idx = myModel.size();
     }
   }
 
-  return true;
+  return pch;
 }
 
 

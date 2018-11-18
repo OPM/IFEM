@@ -169,19 +169,10 @@ public:
   bool refine(const LR::RefineData& prm,
               Vectors& sol, const char* fName = nullptr);
 
-  //! \brief Reads a patch from given input stream.
-  //! \param[in] isp The input stream to read from
-  //! \param[in] pchInd 0-based index of the patch to read
-  //! \param[in] unf Number of unknowns per basis function for each field
-  virtual ASMbase* readPatch(std::istream& isp, int pchInd,
-                             const CharVec& unf = CharVec()) const = 0;
-
   //! \brief Reads patches from given input stream.
   //! \param[in] isp The input stream to read from
-  //! \param[out] patches Array of patches that were read
   //! \param[in] whiteSpace For message formatting
-  virtual bool readPatches(std::istream& isp, PatchVec& patches,
-                           const char* whiteSpace = "") const = 0;
+  bool readPatches(std::istream& isp, const char* whiteSpace = "");
 
   //! \brief Connects two patches.
   //! \param[in] master Master patch
@@ -198,6 +189,20 @@ public:
                              int dim = 1, int thick = 1) { return false; }
 
 protected:
+  //! \brief Helper method returning a stream for patch geometry input.
+  //! \param[in] tag The XML-tag containing the patch geometry definition
+  //! \param[in] patch The value of the \a tag, either a file name or g2 string
+  static std::istream* getPatchStream (const char* tag, const char* patch);
+
+  //! \brief Reads a patch from given input stream.
+  //! \param[in] isp The input stream to read from
+  //! \param[in] pchInd 0-based index of the patch to read
+  //! \param[in] unf Number of unknowns per basis function for each field
+  //! \param[in] whiteSpace For message formatting
+  virtual ASMbase* readPatch(std::istream& isp, int pchInd,
+                             const CharVec& unf = CharVec(),
+                             const char* whiteSpace = "") const = 0;
+
   //! \brief Reads global node data for a patch from given input stream.
   //! \param[in] isn The input stream to read from
   //! \param[in] pchInd 0-based index of the patch to read node data for
@@ -232,6 +237,11 @@ public:
 
   //! \brief Deserialization support (for simulation restart).
   virtual bool deSerialize(const std::map<std::string,std::string>&);
+
+  //! \brief Returns access to a named topology entity (for model generators).
+  TopEntity& topology(const std::string& name) { return myEntitys[name]; }
+  //! \brief Returns the whole topology set container (for testing only).
+  const TopologySet& getTopology() const { return myEntitys; }
 
 private:
   //! \brief Sets initial conditions from a file.
