@@ -383,30 +383,3 @@ void PETScSolParams::setupAdditiveSchwarz(PC& pc, size_t block,
       PCFactorSetLevels(subpc,fill_level);
   }
 }
-
-void PETScSolParams::setupSchurComplement(const std::vector<Mat>& matvec)
-{
-  PetscInt m1, n1;
-  Vec diagA00;
-  MatGetLocalSize(matvec[0],&m1,&n1);
-  if (adm.isParallel())
-    VecCreateMPI(*adm.getCommunicator(),m1,PETSC_DETERMINE,&diagA00);
-  else
-    VecCreateSeq(PETSC_COMM_SELF,m1,&diagA00);
-
-  // TODO: non-SIMPLE schur preconditioners
-  MatGetDiagonal(matvec[0],diagA00);
-  VecReciprocal(diagA00);
-  SPsetup = true;
-
-  Mat tmp;
-  MatConvert(matvec[1], MATSAME, MAT_INITIAL_MATRIX, &tmp);
-  MatDiagonalScale(tmp, diagA00, PETSC_NULL);
-  Mat tmp2;
-  MatMatMult(matvec[2], tmp, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &tmp2);
-  MatConvert(matvec[3], MATSAME, MAT_INITIAL_MATRIX, &Sp);
-  VecDestroy(&diagA00);
-  MatAXPY(Sp,-1.0,tmp2,DIFFERENT_NONZERO_PATTERN);
-  MatDestroy(&tmp);
-  MatDestroy(&tmp2);
-}

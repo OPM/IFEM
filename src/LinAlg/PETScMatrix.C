@@ -689,7 +689,7 @@ bool PETScMatrix::setParameters(PETScMatrix* P, PETScVector* Pb)
       std::cerr << "** PETSCMatrix ** Only two blocks supported for now." << std::endl;
       return false;
     }
-    solParams.setupSchurComplement(matvec);
+
     PCSetType(pc,PCFIELDSPLIT);
     PetscInt nsplit;
     KSP  *subksp;
@@ -707,16 +707,11 @@ bool PETScMatrix::setParameters(PETScMatrix* P, PETScVector* Pb)
     else
       PCFieldSplitSetSchurFactType(pc,PC_FIELDSPLIT_SCHUR_FACT_UPPER);
 
-//    MatCreateSchurComplement(matvec[0],matvec[0],matvec[1],matvec[2],matvec[3],&Sp);
+    PCFieldSplitSetSchurPre(pc,PC_FIELDSPLIT_SCHUR_PRE_SELFP,nullptr);
+
     PCSetFromOptions(pc);
     PCSetUp(pc);
     PCFieldSplitGetSubKSP(pc,&nsplit,&subksp);
-#if PETSC_VERSION_MINOR < 5
-    KSPSetOperators(subksp[1],solParams.getSchurComplement(),solParams.getSchurComplement(),SAME_PRECONDITIONER);
-#else
-    KSPSetOperators(subksp[1],solParams.getSchurComplement(),solParams.getSchurComplement());
-    KSPSetReusePreconditioner(subksp[1], PETSC_TRUE);
-#endif
 
     // Preconditioner for blocks
     char pchar='1';
