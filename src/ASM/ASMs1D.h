@@ -151,7 +151,7 @@ public:
   //! \param neighbor The neighbor patch
   //! \param[in] nvertex Local vertex index of neighbor patch, in range [1,2]
   //! \param[in] thick Thickness of connection
-  virtual bool connectPatch(int vertex, ASMs1D& neighbor, int nvertex,
+  virtual bool connectPatch(int vertex, ASM1D& neighbor, int nvertex,
                             int thick = 1);
 
   //! \brief Makes the two end vertices of the curve periodic.

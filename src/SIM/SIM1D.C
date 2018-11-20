@@ -63,7 +63,6 @@ bool SIM1D::addConnection (int master, int slave, int mIdx, int sIdx,
 
   int lmaster = this->getLocalPatchIndex(master);
   int lslave = this->getLocalPatchIndex(slave);
-
   if (lmaster > 0 && lslave > 0)
   {
     if (dim != 0) return false;
@@ -71,10 +70,9 @@ bool SIM1D::addConnection (int master, int slave, int mIdx, int sIdx,
     IFEM::cout <<"\tConnecting P"<< slave <<" V"<< sIdx
                <<" to P"<< master <<" V"<< mIdx << std::endl;
 
-    ASMs1D* spch = static_cast<ASMs1D*>(myModel[lslave-1]);
-    ASMs1D* mpch = static_cast<ASMs1D*>(myModel[lmaster-1]);
-
-    if (!spch->connectPatch(sIdx,*mpch,mIdx,thick))
+    ASM1D* spch = dynamic_cast<ASM1D*>(myModel[lslave-1]);
+    ASM1D* mpch = dynamic_cast<ASM1D*>(myModel[lmaster-1]);
+    if (spch && mpch && !spch->connectPatch(sIdx,*mpch,mIdx,thick))
       return false;
 
     myInterfaces.push_back(ASM::Interface{master, slave, mIdx, sIdx, 0,
@@ -93,39 +91,48 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
 {
   IFEM::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
 
-  if (!strcasecmp(elem->Value(),"refine"))
+  if (!strcasecmp(elem->Value(),"refine") && !isRefined)
   {
     IntVec patches;
     if (!this->parseTopologySet(elem,patches))
       return false;
 
-    ASM1D* pch = nullptr;
     RealArray xi;
-    if (!utl::parseKnots(elem,xi))
+    if (!this->parseXi(elem,xi) && !utl::parseKnots(elem,xi))
     {
       int addu = 0;
       utl::getAttribute(elem,"u",addu);
-      for (int j : patches)
-        if ((pch = dynamic_cast<ASM1D*>(this->getPatch(j,true))))
+      if (addu > 0)
+        for (int j : patches)
         {
           IFEM::cout <<"\tRefining P"<< j <<" "<< addu << std::endl;
-          pch->uniformRefine(addu);
+          ASM1D* pch = dynamic_cast<ASM1D*>(this->getPatch(j,true));
+          if (pch) pch->uniformRefine(addu);
         }
     }
-    else
+    else if (!xi.empty())
+    {
+      const char* refdata = nullptr;
+      if (elem->FirstChild())
+        refdata = elem->FirstChild()->Value();
+
       for (int j : patches)
-        if ((pch = dynamic_cast<ASM1D*>(this->getPatch(j,true))))
-        {
-          IFEM::cout <<"\tRefining P"<< j
-                     <<" with grading "<< elem->FirstChild()->Value() <<":";
-          for (size_t i = 0; i < xi.size(); i++)
-            IFEM::cout << (i%10 || xi.size() < 11 ? " " : "\n\t") << xi[i];
-          IFEM::cout << std::endl;
-          pch->refine(xi);
-        }
+      {
+        IFEM::cout <<"\tRefining P"<< j <<" with ";
+        if (refdata && isalpha(refdata[0]))
+          IFEM::cout <<"grading "<< refdata <<":";
+        else
+          IFEM::cout <<"explicit knots:";
+        for (size_t i = 0; i < xi.size(); i++)
+          IFEM::cout << (i%10 || xi.size() < 11 ? " " : "\n\t") << xi[i];
+        IFEM::cout << std::endl;
+        ASM1D* pch = dynamic_cast<ASM1D*>(this->getPatch(j,true));
+        if (pch) pch->refine(xi);
+      }
+    }
   }
 
-  else if (!strcasecmp(elem->Value(),"raiseorder"))
+  else if (!strcasecmp(elem->Value(),"raiseorder") && !isRefined)
   {
     IntVec patches;
     if (!this->parseTopologySet(elem,patches))
@@ -133,13 +140,11 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
 
     int addu = 0;
     utl::getAttribute(elem,"u",addu);
-    for (int j : patches) {
-      ASM1D* pch;
-      if ((pch = dynamic_cast<ASM1D*>(this->getPatch(j,true))))
-      {
-        IFEM::cout <<"\tRaising order of P"<< j <<" "<< addu << std::endl;
-        static_cast<ASM1D*>(pch)->raiseOrder(addu);
-      }
+    for (int j : patches)
+    {
+      IFEM::cout <<"\tRaising order of P"<< j <<" "<< addu << std::endl;
+      ASM1D* pch = dynamic_cast<ASM1D*>(this->getPatch(j,true));
+      if (pch) pch->raiseOrder(addu);
     }
   }
 
@@ -164,11 +169,13 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
                   << master <<" "<< slave << std::endl;
         return false;
       }
+
       IFEM::cout <<"\tConnecting P"<< slave <<" V"<< sVert
                  <<" to P"<< master <<" E"<< mVert << std::endl;
-      ASMs1D* spch = static_cast<ASMs1D*>(myModel[slave-1]);
-      ASMs1D* mpch = static_cast<ASMs1D*>(myModel[master-1]);
-      if (!spch->connectPatch(sVert,*mpch,mVert))
+
+      ASM1D* spch = dynamic_cast<ASM1D*>(myModel[slave-1]);
+      ASM1D* mpch = dynamic_cast<ASM1D*>(myModel[master-1]);
+      if (spch && mpch && !spch->connectPatch(sVert,*mpch,mVert))
         return false;
     }
   }
@@ -186,6 +193,7 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
                 << patch << std::endl;
       return false;
     }
+
     IFEM::cout <<"\tPeriodic P"<< patch << std::endl;
     static_cast<ASMs1D*>(myModel[patch-1])->closeEnds();
   }
@@ -216,12 +224,11 @@ bool SIM1D::parseBCTag (const TiXmlElement* elem)
     int pid = this->getLocalPatchIndex(patch);
     if (pid < 1) return pid == 0;
 
-    ASM1D* pch = dynamic_cast<ASM1D*>(myModel[pid-1]);
-    if (!pch) return false;
-
     IFEM::cout <<"\tConstraining P"<< patch
                <<" point at "<< rx <<" with code "<< code << std::endl;
-    pch->constrainNode(rx,code);
+
+    ASM1D* pch = dynamic_cast<ASM1D*>(myModel[pid-1]);
+    if (pch) pch->constrainNode(rx,code);
   }
 
   return true;
@@ -277,6 +284,13 @@ bool SIM1D::parse (char* keyWord, std::istream& is)
   if (!strncasecmp(keyWord,"REFINE",6))
   {
     int nref = atoi(keyWord+6);
+    if (isRefined)
+    {
+      // Just read through the next lines without doing anything
+      for (int i = 0; i < nref && utl::readLine(is); i++);
+      return true;
+    }
+
     IFEM::cout <<"\nNumber of patch refinements: "<< nref << std::endl;
     for (int i = 0; i < nref && (cline = utl::readLine(is)); i++)
     {
@@ -298,10 +312,10 @@ bool SIM1D::parse (char* keyWord, std::istream& is)
       {
 	int addu = atoi(strtok(nullptr," "));
 	for (int j = ipatch; j < patch; j++)
-	{
-	  IFEM::cout <<"\tRefining P"<< j+1 <<" "<< addu << std::endl;
-	  static_cast<ASMs1D*>(myModel[j])->uniformRefine(addu);
-	}
+        {
+          IFEM::cout <<"\tRefining P"<< j+1 <<" "<< addu << std::endl;
+          dynamic_cast<ASM1D*>(myModel[j])->uniformRefine(addu);
+        }
       }
       else
       {
@@ -313,7 +327,7 @@ bool SIM1D::parse (char* keyWord, std::istream& is)
 	    for (size_t i = 0; i < xi.size(); i++)
 	      IFEM::cout <<" "<< xi[i];
 	    IFEM::cout << std::endl;
-	    static_cast<ASMs1D*>(myModel[j])->refine(xi);
+	    dynamic_cast<ASM1D*>(myModel[j])->refine(xi);
 	  }
       }
     }
@@ -322,6 +336,13 @@ bool SIM1D::parse (char* keyWord, std::istream& is)
   else if (!strncasecmp(keyWord,"RAISEORDER",10))
   {
     int nref = atoi(keyWord+10);
+    if (isRefined)
+    {
+      // Just read through the next lines without doing anything
+      for (int i = 0; i < nref && utl::readLine(is); i++);
+      return true;
+    }
+
     IFEM::cout <<"\nNumber of order raise: "<< nref << std::endl;
     for (int i = 0; i < nref && (cline = utl::readLine(is)); i++)
     {
@@ -341,9 +362,9 @@ bool SIM1D::parse (char* keyWord, std::istream& is)
       }
       for (int j = ipatch; j < patch; j++)
       {
-	IFEM::cout <<"\tRaising order of P"<< j+1
-		   <<" "<< addu << std::endl;
-	static_cast<ASMs1D*>(myModel[j])->raiseOrder(addu);
+        IFEM::cout <<"\tRaising order of P"<< j+1
+                   <<" "<< addu << std::endl;
+        dynamic_cast<ASM1D*>(myModel[j])->raiseOrder(addu);
       }
     }
   }
@@ -370,8 +391,8 @@ bool SIM1D::parse (char* keyWord, std::istream& is)
       }
       IFEM::cout <<"\tConnecting P"<< slave <<" V"<< sVert
                  <<" to P"<< master <<" E"<< mVert << std::endl;
-      ASMs1D* spch = static_cast<ASMs1D*>(myModel[slave-1]);
-      ASMs1D* mpch = static_cast<ASMs1D*>(myModel[master-1]);
+      ASM1D* spch = dynamic_cast<ASM1D*>(myModel[slave-1]);
+      ASM1D* mpch = dynamic_cast<ASM1D*>(myModel[master-1]);
       if (!spch->connectPatch(sVert,*mpch,mVert))
 	return false;
     }
@@ -453,7 +474,7 @@ bool SIM1D::parse (char* keyWord, std::istream& is)
       }
       IFEM::cout <<"\tConstraining P"<< patch
                  <<" point at "<< rx <<" with code "<< bcode << std::endl;
-      static_cast<ASMs1D*>(myModel[patch-1])->constrainNode(rx,bcode);
+      dynamic_cast<ASM1D*>(myModel[patch-1])->constrainNode(rx,bcode);
     }
   }
 
@@ -491,9 +512,9 @@ bool SIM1D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
   std::cout << std::endl;
 #endif
 
-  ASMs1D* pch = static_cast<ASMs1D*>(myModel[patch-1]);
+  ASM1D* pch = dynamic_cast<ASM1D*>(myModel[patch-1]);
   if (abs(ldim) > 0)
-    pch->constrainPatch(dirs,code);
+    myModel[patch-1]->constrainPatch(dirs,code);
   else switch (lndx) // Vertex constraints
     {
     case 1: pch->constrainNode(0.0,dirs,code,basis); break;
@@ -529,9 +550,10 @@ ASMbase* SIM1D::readPatch (std::istream& isp, int pchInd,
 bool SIM1D::readPatches (std::istream& isp, PatchVec& patches,
                          const char* whiteSpace) const
 {
-  for (int pchInd = 1; isp.good(); pchInd++) {
-    ASMbase* pch;
-    if ((pch = ASM1D::create(opt.discretization,nsd,nf)))
+  for (int pchInd = 1; isp.good(); pchInd++)
+  {
+    ASMbase* pch = ASM1D::create(opt.discretization,nsd,nf);
+    if (pch)
     {
       if (whiteSpace)
         IFEM::cout << whiteSpace <<"Reading patch "<< pchInd << std::endl;
@@ -557,7 +579,7 @@ bool SIM1D::readPatches (std::istream& isp, PatchVec& patches,
 bool SIM1D::createFEMmodel (char)
 {
   bool ok = true;
-  ASMstruct::resetNumbering();
+  ASMbase::resetNumbering();
   for (size_t i = 0; i < myModel.size() && ok; i++)
     if (twist)
       ok = static_cast<ASMs1D*>(myModel[i])->generateTwistedFEModel(*twist,XZp);

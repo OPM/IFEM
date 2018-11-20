@@ -89,6 +89,14 @@ public:
   virtual bool getGridParameters(std::vector<double>& prm,
                                  int nSegSpan) const = 0;
 
+  //! \brief Connects matching nodes on two adjacent vertices.
+  //! \param[in] vertex Local vertex index of this patch, in range [1,2]
+  //! \param neighbor The neighbor patch
+  //! \param[in] nvertex Local vertex index of neighbor patch, in range [1,2]
+  //! \param[in] thick Thickness of connection
+  virtual bool connectPatch(int vertex, ASM1D& neighbor, int nvertex,
+                            int thick = 1) = 0;
+
   //! \brief Returns characteristic element size based on end point coordinates.
   static double getElementSize(const std::vector<Vec3>& XC);
 };

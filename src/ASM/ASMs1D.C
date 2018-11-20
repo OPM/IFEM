@@ -29,6 +29,7 @@
 #include "Utilities.h"
 #include "Function.h"
 #include "Vec3Oper.h"
+#include <numeric>
 
 
 ASMs1D::ASMs1D (unsigned char n_s, unsigned char n_f)
@@ -310,14 +311,18 @@ bool ASMs1D::generateTwistedFEModel (const RealFunc& twist, const Vec3& Zaxis)
 }
 
 
-bool ASMs1D::connectPatch (int vertex, ASMs1D& neighbor, int nvertex, int thick)
+bool ASMs1D::connectPatch (int vertex, ASM1D& neighbor, int nvertex, int thick)
 {
-  int slave = vertex == 1 ? 0 : this->getSize(1)-thick;
-  int master = nvertex == 1 ? 0 : neighbor.getSize(1)-thick;
-  if (!this->connectBasis(vertex,neighbor,nvertex,1,slave,master,thick))
+  ASMs1D* neighS = dynamic_cast<ASMs1D*>(&neighbor);
+  if (!neighS)
     return false;
 
-  this->addNeighbor(&neighbor);
+  int slave = vertex == 1 ? 0 : this->getSize(1)-thick;
+  int master = nvertex == 1 ? 0 : neighS->getSize(1)-thick;
+  if (!this->connectBasis(vertex,*neighS,nvertex,1,slave,master,thick))
+    return false;
+
+  this->addNeighbor(neighS);
   return true;
 }
 
@@ -1165,8 +1170,7 @@ bool ASMs1D::tesselate (ElementBlock& grid, const int* npe) const
 void ASMs1D::scatterInd (int p1, int start, IntVec& index)
 {
   index.resize(p1);
-  for (int i1 = 1; i1 <= p1; i1++)
-    index[i1-1] = start-p1+i1;
+  std::iota(index.begin(),index.end(),start-p1+1);
 }
 
 
