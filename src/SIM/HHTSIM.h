@@ -37,7 +37,8 @@ class SystemVector;
   the HHT time integration algorithm goes like this:
 
   <H3>Initialisation of time step loop:</H3>
-  \f[ \beta=\frac{1}{4}(1.0-\alpha_H)^2,\; \gamma=\frac{1}{2}-\alpha_H \f]
+  \f[ \beta \;=\; \frac{1}{4}(1.0-\alpha_H)^2,\;
+     \gamma \;=\; \frac{1}{2}-\alpha_H \f]
   \f[ \begin{array}{lcll}
     t &=& 0 & \mbox{(initial time)} \\
     {\bf u}_0 &=& {\bf 0} & \mbox{(initial displacements)} \\
@@ -54,7 +55,8 @@ class SystemVector;
         t &=& t + \Delta t_n \\
         {\bf u}_n^0 &=& {\bf u}_{n-1} \\
         \dot{\bf u}_n^0 &=& \dot{\bf u}_{n-1} \\
-        \ddot{\bf u}_n^0 &=& \ddot{\bf u}_{n-1}
+        \ddot{\bf u}_n^0 &=& \ddot{\bf u}_{n-1} \\
+        \Delta{\bf u}_n &=& {\bf 0} \quad\mbox{(displacement increment)}
       \f}
     </LI>
 
@@ -64,12 +66,7 @@ class SystemVector;
                       \Delta t_n(\frac{\gamma}{2\beta}-1)\ddot{\bf u}_{n-1} \\
         {\bf a}_n &=& \frac{1}{2\beta}\ddot{\bf u}_{n-1} +
                       \frac{1}{\Delta t_n\beta}\dot{\bf u}_{n-1}
-      \f}\f[ \begin{array}{lcll}
-        \dot{\bf u}_n^0 &=& {\bf v}_n & \mbox{(predicted velocity)} \\
-        \ddot{\bf u}_n^0 &=& {\bf a}_n & \mbox{(predicted acceleration)} \\
-        \Delta{\bf u}_n &=& {\bf 0} & \mbox{(displacement increment)}
-        \end{array}
-      \f]
+      \f}
     </LI>
 
     <LI>Assemble FE matrices and right-hand-side force vectors:
@@ -93,10 +90,9 @@ class SystemVector;
     <LI>Compute Newton matrix and associated incremental load vector:
       \f{eqnarray*}{
         {\bf N}_n^0 &=& a_n{\bf M}_n^0 + b_n{\bf C}_n^0 + c_n{\bf K}_n^0 \\
-        {\bf R}_n^0 &=& (1+\alpha_H)\left[{\bf F}_n^{E,0} -
-                                          {\bf F}_{n-1}^{E,0} +
+        {\bf R}_n^0 &=& (1+\alpha_H)\left[{\bf F}_n^{E,0} - {\bf F}_{n-1}^E +
                                     (\alpha_1{\bf M}_n^0 + \alpha_2{\bf K}_n^0 +
-                                     {\bf C}_n^0){\bf v}_n \right] +
+                                          {\bf C}_n^0){\bf v}_n\right] +
                         {\bf M}_n^0{\bf a}_n - {\bf F}_n^{I,0} +
                         \tilde{\bf R}_{n-1}
       \f} where \f{eqnarray*}{
@@ -155,7 +151,7 @@ class SystemVector;
           {\bf N}_n^i &=& a_n{\bf M}_n^i + b_n{\bf C}_n^i + c_n{\bf K}_n^i \\
           {\bf R}_n^i &=& (1+\alpha_H)\left[{\bf F}_n^{E,i} - {\bf F}_n^{S,i} -
                                     (\alpha_1{\bf M}_n^i + \alpha_2{\bf K}_n^i +
-                                     {\bf C}_n^i)\dot{\bf u}_n^i \right] +
+                                            {\bf C}_n^i)\dot{\bf u}_n^i\right] +
                           {\bf F}_n^{I,i} - \alpha_H\tilde{\bf R}_{n-1}
         \f}
       </LI>
