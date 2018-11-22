@@ -7,16 +7,20 @@
 //!
 //! \author Kjetil Andre Johannessen / SINTEF
 //!
-//! \brief Base class for unstructured spline-based FE assembly drivers.
+//! \brief Abstract interface for unstructured FE assembly drivers.
 //!
 //==============================================================================
 
 #ifndef _ASM_UNSTRUCT_H
 #define _ASM_UNSTRUCT_H
 
-#include "ASMbase.h"
+#include "MatVec.h"
+#include <set>
 
-typedef std::set<int> IntSet; //!< General integer set
+typedef std::vector<int> IntVec; //!< General integer vector
+typedef std::set<int>    IntSet; //!< General integer set
+
+class RealFunc;
 
 
 namespace LR //! Utilities for LR-splines.
@@ -48,24 +52,14 @@ namespace LR //! Utilities for LR-splines.
 
 
 /*!
-  \brief Base class for unstructured spline-based FE assembly drivers.
-  \details This class is an abstract interface for unstructured spline patches.
+  \brief Abstract interface for unstructured spline patches.
 */
 
-class ASMunstruct : public ASMbase
+class ASMunstruct
 {
 protected:
-  //! \brief The constructor sets the space dimensions.
-  //! \param[in] n_p Number of parameter dimensions
-  //! \param[in] n_s Number of spatial dimensions
-  //! \param[in] n_f Number of primary solution fields
-  ASMunstruct(unsigned char n_p, unsigned char n_s, unsigned char n_f)
-    : ASMbase(n_p,n_s,n_f) {}
-
-  //! \brief Special copy constructor for sharing of FE data.
-  //! \param[in] patch The patch to use FE data from
-  //! \param[in] n Number of primary solution fields
-  ASMunstruct(const ASMunstruct& patch, unsigned char n) : ASMbase(patch,n) {}
+  //! \brief The constructor is protected to allow objects of sub-classes only.
+  ASMunstruct() {}
 
 public:
   //! \brief Empty destructor.
@@ -81,9 +75,8 @@ public:
   //! \brief Remaps element-wise errors from geometry mesh to refinement mesh.
   //! \param[out] errors The remapped errors
   //! \param[in] orig The element-wise errors on the geometry mesh
-  //! \param[in] elemErrors If true, map to elements instead of basis functions
   virtual void remapErrors(RealArray& errors, const RealArray& orig,
-                           bool elemErrors = false) const = 0;
+                           bool = false) const { errors = orig; }
 
   //! \brief Refines the parametrization based on a mesh density function.
   //! \param[in] refC Mesh refinement criteria function

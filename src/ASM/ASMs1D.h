@@ -15,6 +15,7 @@
 #define _ASM_S1D_H
 
 #include "ASMstruct.h"
+#include "ASMunstruct.h"
 #include "ASM1D.h"
 #include "Tensor.h"
 
@@ -30,7 +31,7 @@ namespace Go {
   \details This class contains methods common for structured 1D spline patches.
 */
 
-class ASMs1D : public ASMstruct, public ASM1D
+class ASMs1D : public ASMstruct, public ASMunstruct, public ASM1D
 {
 public:
   //! \brief Default constructor.
@@ -117,6 +118,15 @@ public:
   //! \param[in] X Global coordinates of point to search for
   //! \return 1-based nodal index and distance to to the found node
   virtual std::pair<size_t,double> findClosestNode(const Vec3& X) const;
+
+  //! \brief Refines the mesh adaptively.
+  //! \param[in] prm Input data used to control the mesh refinement
+  virtual bool refine(const LR::RefineData& prm, Vectors&, const char*);
+
+  //! \brief Refines the parametrization based on a mesh density function.
+  //! \param[in] refC Mesh refinement criteria function
+  //! \param[in] refTol Mesh refinement threshold
+  virtual bool refine(const RealFunc& refC, double refTol);
 
   //! \brief Refines the parametrization by inserting extra knots.
   //! \param[in] xi Relative positions of added knots in each existing knot span

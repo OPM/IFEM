@@ -14,8 +14,9 @@
 #include "AdaptiveSIM.h"
 #include "SIMoutput.h"
 #include "SIMenums.h"
-#include "ASMunstruct.h"
+#include "ASMbase.h"
 #include "ASMmxBase.h"
+#include "ASMunstruct.h"
 #include "IntegrandBase.h"
 #include "Utilities.h"
 #include "IFEM.h"
@@ -49,11 +50,6 @@ AdaptiveSIM::AdaptiveSIM (SIMoutput& sim, bool sa) : SIMadmin(sim), model(sim)
   closeGaps    = false;
 
   solution.resize(1);
-}
-
-
-AdaptiveSIM::~AdaptiveSIM ()
-{
 }
 
 
@@ -376,8 +372,8 @@ bool AdaptiveSIM::adaptMesh (int iStep, std::streamsize outPrec)
     IFEM::cout <<"\nRefining by increasing solution space by "<< beta
                <<" percent."<< std::endl;
     prm.errors.resize(thePatch->getNoRefineElms());
-    static_cast<ASMunstruct*>(thePatch)->remapErrors(prm.errors,
-                                                     eNorm.getRow(eRow), true);
+    dynamic_cast<ASMunstruct*>(thePatch)->remapErrors(prm.errors,
+                                                      eNorm.getRow(eRow), true);
     if (!storeMesh)
       return model.refine(prm);
 
@@ -412,7 +408,7 @@ bool AdaptiveSIM::adaptMesh (int iStep, std::streamsize outPrec)
 
       // remap from geometry basis to refinement basis
       Vector locErr(patch->getNoProjectionNodes());
-      static_cast<ASMunstruct*>(patch)->remapErrors(locErr, locNorm);
+      dynamic_cast<ASMunstruct*>(patch)->remapErrors(locErr, locNorm);
 
       // insert into global error array
       for (i = 0; i < locErr.size(); ++i)

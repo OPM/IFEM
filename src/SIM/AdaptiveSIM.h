@@ -33,8 +33,8 @@ public:
   //! \param sim The FE model
   //! \param[in] sa If \e true, this is a stand-alone driver
   AdaptiveSIM(SIMoutput& sim, bool sa = true);
-  //! \brief The destructor frees the norm prefices.
-  virtual ~AdaptiveSIM();
+  //! \brief Empty destructor.
+  virtual ~AdaptiveSIM() {}
 
   //! \brief Sets the norm group/index of the norm to base mesh adaptation on.
   void setAdaptationNorm(size_t normGroup, size_t normIdx = 0);
