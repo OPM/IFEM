@@ -14,6 +14,7 @@
 #ifndef _ASM_LR_SPLINE_H
 #define _ASM_LR_SPLINE_H
 
+#include "ASMbase.h"
 #include "ASMunstruct.h"
 #include "GoTools/geometry/BsplineBasis.h"
 
@@ -63,7 +64,7 @@ namespace LR //! Utilities for LR-splines.
   \details This class contains methods common for unstructured spline patches.
 */
 
-class ASMLRSpline : public ASMunstruct
+class ASMLRSpline : public ASMbase, public ASMunstruct
 {
 protected:
   //! \brief The constructor sets the space dimensions.

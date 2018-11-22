@@ -120,6 +120,57 @@ void ASMs1D::clear (bool retainGeometry)
 }
 
 
+bool ASMs1D::refine (const LR::RefineData& prm, Vectors&, const char*)
+{
+  if (!curv) return false;
+
+  if (shareFE && !prm.refShare)
+  {
+    nnod = curv->numCoefs();
+    return true;
+  }
+  else if (prm.elements.empty())
+    return true;
+
+  RealArray extraKnots;
+  RealArray::const_iterator uit = curv->basis().begin();
+  for (size_t i = curv->order(); i <= nnod; i++)
+    if (uit[i-1] < uit[i])
+      if (std::find(prm.elements.begin(),prm.elements.end(),
+                    MLGE[i-curv->order()]-1) != prm.elements.end())
+        extraKnots.push_back(0.5*(uit[i-1] + uit[i]));
+
+  curv->insertKnot(extraKnots);
+  return true;
+}
+
+
+/*!
+  Refines all elements for which refC(X0) < refTol,
+  where X0 is the element center.
+*/
+
+bool ASMs1D::refine (const RealFunc& refC, double refTol)
+{
+  if (!curv) return false;
+
+  Go::Point X0;
+  RealArray extraKnots;
+  RealArray::const_iterator uit = curv->basis().begin();
+  for (size_t i = curv->order(); i <= nnod; i++)
+    if (uit[i-1] < uit[i])
+    {
+      double u = 0.5*(uit[i-1] + uit[i]);
+      curv->point(X0,u);
+      if (refC(SplineUtils::toVec3(X0,nsd)) < refTol)
+        extraKnots.push_back(u);
+    }
+
+  curv->insertKnot(extraKnots);
+  return true;
+}
+
+
 bool ASMs1D::refine (const RealArray& xi)
 {
   if (!curv || xi.empty()) return false;

@@ -141,14 +141,14 @@ void LR::generateThreadGroups (ThreadGroups& threadGroups,
 
 ASMLRSpline::ASMLRSpline (unsigned char n_p, unsigned char n_s,
                           unsigned char n_f)
-  : ASMunstruct(n_p,n_s,n_f)
+  : ASMbase(n_p,n_s,n_f)
 {
   geo = nullptr;
 }
 
 
 ASMLRSpline::ASMLRSpline (const ASMLRSpline& patch, unsigned char n_f)
-  : ASMunstruct(patch,n_f)
+  : ASMbase(patch,n_f)
 {
   geo = patch.geo;
 }
