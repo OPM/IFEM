@@ -36,7 +36,7 @@ class Fields
 protected:
   //! \brief The constructor sets the field name.
   //! \param[in] name Name of field
-  explicit Fields(const char* name = 0) : nf(0), nelm(0), nno(0)
+  explicit Fields(const char* name = nullptr) : nf(0), nelm(0), nno(0)
   { if (name) fname = name; }
 
 public:
@@ -67,36 +67,36 @@ public:
   // Methods to evaluate the field
   //==============================
 
-  //! \brief Computes the value in a given node/control point.
-  //! \param[in] node Node number
-  //! \param[out] vals Node values
-  virtual bool valueNode(size_t node, Vector& vals) const = 0;
+  //! \brief Computes the value at a given node/control point.
+  //! \param[in] node 1-based node/control point index
+  //! \param[out] vals Values at given node/control point
+  virtual bool valueNode(size_t node, Vector& vals) const;
 
-  //! \brief Computes the value at a given local coordinate.
+  //! \brief Computes the value for a given local coordinate.
   //! \param[in] fe Finite element definition
-  //! \param[out] vals Values in local point in given element
+  //! \param[out] vals Values at local point in given element
   virtual bool valueFE(const FiniteElement& fe, Vector& vals) const = 0;
 
-  //! \brief Computes the value at a given global coordinate.
-  //! \param[in] x Global/physical coordinate for point
-  //! \param[out] vals Values in given physical coordinate
+  //! \brief Computes the value for a given global coordinate.
+  //! \param[in] x Global coordinate of evaluation point
+  //! \param[out] vals Values at given global coordinate
   virtual bool valueCoor(const Vec4& x, Vector& vals) const { return false; }
 
   //! \brief Computes the gradient for a given local coordinate.
-  //! \param[in] fe Finite element
-  //! \param[out] grad Gradient of solution in a given local coordinate
+  //! \param[in] fe Finite element definition
+  //! \param[out] grad Gradient at local point in given element
   virtual bool gradFE(const FiniteElement& fe, Matrix& grad) const = 0;
 
-  //! \brief Computes the hessian for a given local coordinate.
-  //! \param[in] fe Finite element
-  //! \param[out] d2UdX2 Hessian of solution in a given local coordinate
-  virtual bool hessianFE(const FiniteElement& fe, Matrix3D& d2UdX2) const
-  { return false; }
-
-  //! \brief Computes the gradient for a given global/physical coordinate.
-  //! \param[in] x Global coordinate
-  //! \param[out] grad Gradient of solution in a given global coordinate
+  //! \brief Computes the gradient for a given global coordinate.
+  //! \param[in] x Global coordinate of evaluation point
+  //! \param[out] grad Gradient at given global coordinate
   virtual bool gradCoor(const Vec4& x, Matrix& grad) const { return false; }
+
+  //! \brief Computes the hessian for a given local coordinate.
+  //! \param[in] fe Finite element definition
+  //! \param[out] H Hessian at local point in given element
+  virtual bool hessianFE(const FiniteElement& fe, Matrix3D& H) const
+  { return false; }
 
 protected:
   unsigned char nf;  //!< Number of field components

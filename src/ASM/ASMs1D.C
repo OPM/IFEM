@@ -24,6 +24,7 @@
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
 #include "SparseMatrix.h"
+#include "SplineFields1D.h"
 #include "ElementBlock.h"
 #include "SplineUtils.h"
 #include "Utilities.h"
@@ -1701,4 +1702,13 @@ bool ASMs1D::evaluate (const FunctionBase* func, RealArray& values,
   delete scrv;
 
   return true;
+}
+
+
+Fields* ASMs1D::getProjectedFields (const Vector& coefs, size_t nf) const
+{
+  if (proj == curv)
+    return nullptr;
+
+  return new SplineFields1D(proj,coefs,nf);
 }

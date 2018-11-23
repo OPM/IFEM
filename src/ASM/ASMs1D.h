@@ -280,6 +280,11 @@ public:
   //! \param[in] integrand Object with problem-specific data and methods
   virtual Go::GeomObject* evalSolution(const IntegrandBase& integrand) const;
 
+  //! \brief Returns a field using the projection basis.
+  //! \param[in] coefs The coefficients for the field
+  //! \param[in] nf Number of components
+  virtual Fields* getProjectedFields(const Vector& coefs, size_t nf) const;
+
   //! \brief Evaluates the secondary solution field at the given points.
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods

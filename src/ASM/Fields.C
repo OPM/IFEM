@@ -69,3 +69,14 @@ Fields* Fields::create (const ASMbase* pch, const RealArray& v,
 
   return nullptr;
 }
+
+
+bool Fields::valueNode (size_t node, Vector& vals) const
+{
+  if (node < 1 || node > nno)
+    return false;
+
+  vals.resize(nf);
+  vals.fill(values.ptr()+(node-1)*nf);
+  return true;
+}
