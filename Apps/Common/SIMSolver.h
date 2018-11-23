@@ -126,10 +126,11 @@ public:
   {
     saveDivergedSol = false;
     restartAdm = nullptr;
+    restartProcAdm = nullptr;
   }
 
   //! \brief The destructor deletes the restart data handler.
-  virtual ~SIMSolver() { delete restartAdm; }
+  virtual ~SIMSolver() { delete restartAdm; delete restartProcAdm; }
 
   //! \brief Reads solver data from the specified input file.
   virtual bool read(const char* file) { return this->SIMadmin::read(file); }
@@ -174,8 +175,16 @@ public:
                         int saveInterval = 1,
                         int restartInterval = 0)
   {
-    if (restartInterval > 0)
-      restartAdm = new HDF5Restart(hdf5file+"_restart",modelAdm,restartInterval);
+    if (restartInterval > 0) {
+      if (modelAdm.dd.isPartitioned()) {
+        if (modelAdm.getProcId() == 0) {
+          restartProcAdm = new ProcessAdm;
+          restartAdm = new HDF5Restart(hdf5file+"_restart", *restartProcAdm, restartInterval);
+        }
+      }
+      else
+        restartAdm = new HDF5Restart(hdf5file+"_restart", modelAdm, restartInterval);
+    }
 
     this->SIMSolverStat<T1>::handleDataOutput(hdf5file, modelAdm, saveInterval);
   }
@@ -240,12 +249,13 @@ public:
   //! \param[in] restartStep Index of the time step to read restart state for
   //! \return One-based time step index of the restart state read.
   //! If zero, no restart specified. If negative, read failure.
-  int restart(const std::string& restartFile, int restartStep)
+  int restart(const std::string& restartFile, const ProcessAdm& adm, int restartStep)
   {
     if (restartFile.empty()) return 0;
 
     HDF5Restart::SerializeData data;
-    HDF5Restart hdf(restartFile,SIMadmin::adm,1);
+    ProcessAdm oneAdm;
+    HDF5Restart hdf(restartFile,adm.dd.isPartitioned() ? oneAdm : adm,1);
     if ((restartStep = hdf.readData(data,restartStep)) >= 0)
     {
       IFEM::cout <<"\n === Restarting from a serialized state ==="
@@ -261,12 +271,22 @@ public:
     return restartStep;
   }
 
+  //! \brief Handles application restarts by reading serialized bases.
+  //! \param[in] restartFile File to read restart state from
+  //! \param[in] restartStep Index of the time step to read restart state for
+  //! \return One-based time step index of the restart state read.
+  //! If zero, no restart specified. If negative, read failure.
+  virtual int restartBasis(const std::string& restartFile,
+                           const ProcessAdm& adm, int restartStep)
+  { return 0; };
+
 private:
   bool saveDivergedSol; //!< If \e true, save also the diverged solution to VTF
 
 protected:
   TimeStep tp; //!< Time stepping information
   HDF5Restart* restartAdm; //!< Administrator for restart output
+  ProcessAdm* restartProcAdm; //!< Process admin used for restart output
 };
 
 #endif
