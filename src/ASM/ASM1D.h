@@ -60,13 +60,16 @@ public:
 
   //! \brief Refines the parametrization by inserting extra knots uniformly.
   //! \param[in] nInsert Number of extra knots to insert in each knot-span
-  virtual bool uniformRefine(int nInsert) = 0;
+  //! \param[in] proj If true, refine projection basis
+  virtual bool uniformRefine(int nInsert, bool proj = false) = 0;
   //! \brief Raises the order of the spline object for this patch.
   //! \param[in] ru Number of times to raise the order in u-direction
-  virtual bool raiseOrder(int ru) = 0;
+  //! \param[in] proj If true, refine projection basis
+  virtual bool raiseOrder(int ru, bool proj = false) = 0;
   //! \brief Refines the parametrization by inserting extra knots.
   //! \param[in] xi Relative positions of added knots in each existing knot span
-  virtual bool refine(const std::vector<double>& xi) = 0;
+  //! \param[in] proj If true, refine projection basis
+  virtual bool refine(const std::vector<double>& xi, bool proj = false) = 0;
 
   //! \brief Constrains a node identified by two relative parameter values.
   //! \param[in] xi Parameter value along the curve

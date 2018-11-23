@@ -169,16 +169,21 @@ bool ASMs1D::refine (const RealFunc& refC, double refTol)
 }
 
 
-bool ASMs1D::refine (const RealArray& xi)
+bool ASMs1D::refine (const RealArray& xi, bool proj)
 {
   if (!curv || xi.empty()) return false;
   if (xi.front() < 0.0 || xi.back() > 1.0) return false;
   if (shareFE) return true;
+  if (proj && (!projBasis || projBasis == curv))
+    projBasis.reset(curv->clone());
 
   RealArray extraKnots;
-  RealArray::const_iterator uit = curv->basis().begin();
+  RealArray::const_iterator uit = proj ? projBasis->basis().begin() :
+                                         curv->basis().begin();
+  RealArray::const_iterator end = proj ? projBasis->basis().end() :
+                                         curv->basis().end();
   double uprev = *(uit++);
-  while (uit != curv->basis().end())
+  while (uit != end)
   {
     double ucurr = *(uit++);
     if (ucurr > uprev)
@@ -191,20 +196,25 @@ bool ASMs1D::refine (const RealArray& xi)
     uprev = ucurr;
   }
 
-  curv->insertKnot(extraKnots);
+  proj ? projBasis->insertKnot(extraKnots) : curv->insertKnot(extraKnots);
   return true;
 }
 
 
-bool ASMs1D::uniformRefine (int nInsert)
+bool ASMs1D::uniformRefine (int nInsert, bool proj)
 {
   if (!curv || nInsert < 1) return false;
   if (shareFE) return true;
+  if (proj && (!projBasis || projBasis == curv))
+    projBasis.reset(curv->clone());
 
   RealArray extraKnots;
-  RealArray::const_iterator uit = curv->basis().begin();
+  RealArray::const_iterator uit = proj ? projBasis->basis().begin() :
+                                         curv->basis().begin();
+  RealArray::const_iterator end = proj ? projBasis->basis().end() :
+                                         curv->basis().end();
   double uprev = *(uit++);
-  while (uit != curv->basis().end())
+  while (uit != end)
   {
     double ucurr = *(uit++);
     if (ucurr > uprev)
@@ -216,17 +226,19 @@ bool ASMs1D::uniformRefine (int nInsert)
     uprev = ucurr;
   }
 
-  curv->insertKnot(extraKnots);
+  proj ? projBasis->insertKnot(extraKnots) : curv->insertKnot(extraKnots);
   return true;
 }
 
 
-bool ASMs1D::raiseOrder (int ru)
+bool ASMs1D::raiseOrder (int ru, bool proj)
 {
   if (!curv) return false;
   if (shareFE) return true;
+  if (proj && (!projBasis || projBasis == curv))
+    projBasis.reset(curv->clone());
 
-  curv->raiseOrder(ru);
+  proj ? projBasis->raiseOrder(ru) : curv->raiseOrder(ru);
   return true;
 }
 
@@ -240,6 +252,18 @@ bool ASMs1D::generateFEMTopology ()
 bool ASMs1D::generateOrientedFEModel (const Vec3& Zaxis)
 {
   if (!curv) return false;
+
+  if (!projBasis)
+    projBasis = curv;
+
+  std::vector<double> simple1, simple2;
+  curv->basis().knotsSimple(simple1);
+  projBasis->basis().knotsSimple(simple2);
+  if (simple1 != simple2)
+  {
+    std::cerr << "FE basis and projection basis must have the same knots." << std::endl;
+    return false;
+  }
 
   const int n1 = curv->numCoefs();
   const int p1 = curv->order();
@@ -293,17 +317,45 @@ bool ASMs1D::generateOrientedFEModel (const Vec3& Zaxis)
     {
       if (this->getKnotSpan(i1-1) > 0.0)
       {
-	myMLGE[nel] = ++gEl; // global element number over all patches
-	myMNPC[nel].resize(p1,0);
+        myMLGE[nel] = ++gEl; // global element number over all patches
+        myMNPC[nel].resize(p1,0);
 
-	int lnod = 0;
-	for (int j1 = p1-1; j1 >= 0; j1--)
-	  myMNPC[nel][lnod++] = nnod - j1;
+        int lnod = 0;
+        for (int j1 = p1-1; j1 >= 0; j1--)
+          myMNPC[nel][lnod++] = nnod - j1;
       }
 
       nel++;
     }
     myMLGN[nnod++] = ++gNod; // global node number over all patches
+  }
+
+  if (projBasis != curv) {
+    int nnod_p=0, nel_p=0;
+    const int n1_p = projBasis->numCoefs();
+    const int p1_p = projBasis->order();
+    projMLGE.resize(n1_p-p1_p+1,0);
+    int el_p = 0;
+    for (int i1 = 1; i1 <= n1_p; i1++)
+    {
+      if (i1 >= p1_p)
+      {
+        double kp = *(projBasis->basis().begin()+i1) -
+                    *(projBasis->basis().begin()+i1-1);
+        if (kp > 0.0)
+        {
+          projMNPC[nel_p].resize(p1_p,0);
+          projMLGE[nel_p] = ++el_p;
+
+          int lnod = 0;
+          for (int j1 = p1-1; j1 >= 0; j1--)
+            projMNPC[nel_p][lnod++] = nnod_p - j1;
+        }
+
+        ++nel_p;
+      }
+      ++nnod_p;
+    }
   }
 
 #ifdef SP_DEBUG
@@ -498,21 +550,28 @@ Tensor ASMs1D::getRotation (size_t inod) const
 
 bool ASMs1D::getElementCoordinates (Matrix& X, int iel) const
 {
+  return this->getElementCoordinates(X, iel, MNPC, curv.get());
+}
+
+
+bool ASMs1D::getElementCoordinates(Matrix& X, int iel, const IntMat& mnpc,
+                                   const Go::SplineCurve* crv) const
+{
 #ifdef INDEX_CHECK
-  if (iel < 1 || (size_t)iel > MNPC.size())
+  if (iel < 1 || (size_t)iel > mnpc.size())
   {
     std::cerr <<" *** ASMs1D::getElementCoordinates: Element index "<< iel
-	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
+	      <<" out of range [1,"<< mnpc.size() <<"]."<< std::endl;
     return false;
   }
 #endif
 
-  X.resize(nsd,curv->order());
+  X.resize(nsd,crv->order());
 
-  RealArray::const_iterator cit = curv->coefs_begin();
+  RealArray::const_iterator cit = crv->coefs_begin();
   for (size_t n = 0; n < X.cols(); n++)
   {
-    int ip = MNPC[iel-1][n]*curv->dimension();
+    int ip = mnpc[iel-1][n]*crv->dimension();
     if (ip < 0) return false;
 
     for (size_t i = 0; i < nsd; i++)
@@ -699,6 +758,12 @@ int ASMs1D::getSize (int) const
   if (!curv) return 0;
 
   return curv->numCoefs();
+}
+
+
+size_t ASMs1D::getNoProjectionNodes() const
+{
+  return projBasis->numCoefs();
 }
 
 
@@ -1448,8 +1513,8 @@ bool ASMs1D::assembleL2matrices (SparseMatrix& A, StdVector& B,
                                  const IntegrandBase& integrand,
                                  bool continuous) const
 {
-  const size_t nnod = this->getNoNodes();
-  const int p1 = curv->order();
+  const size_t nnod = this->getNoProjectionNodes();
+  const int p1 = projBasis->order();
 
   // Get Gaussian quadrature point coordinates (and weights if continuous)
   const int     ng = continuous ? this->getNoGaussPt(p1,true) : p1 - 1;
@@ -1475,18 +1540,24 @@ bool ASMs1D::assembleL2matrices (SparseMatrix& A, StdVector& B,
 
 
   // === Assembly loop over all elements in the patch ==========================
+  const IntVec& mlge = projMLGE.empty() ? MLGE : projMLGE;
+  const IntMat& mnpc = projMNPC.empty() ? MNPC : projMNPC;
 
   int ip = 0;
-  for (size_t iel = 0; iel < nel; iel++)
+  for (size_t iel = 0; iel < mlge.size(); iel++)
   {
-    if (MLGE[iel] < 1) continue; // zero-area element
+    if (mlge[iel] < 1) continue; // zero-area element
 
     if (continuous)
     {
       // Set up control point (nodal) coordinates for current element
-      if (!this->getElementCoordinates(Xnod,1+iel))
+      if (!this->getElementCoordinates(Xnod,1+iel,mnpc,projBasis.get()))
         return false;
-      else if ((dL = this->getParametricLength(1+iel)) < 0.0)
+
+      int inod1 = mnpc[iel-1][projBasis->order()-1];
+      dL = *(projBasis->basis().begin()+inod1) -
+           *(projBasis->basis().begin()+inod1-1);
+      if (dL < 0.0)
         return false; // topology error (probably logic error)
     }
 
@@ -1495,10 +1566,12 @@ bool ASMs1D::assembleL2matrices (SparseMatrix& A, StdVector& B,
     for (int i = 0; i < ng; i++, ip++)
     {
       // Fetch basis function values at current integration point
-      if (continuous)
-        this->extractBasis(gp(1+i,1+iel),phi,dNdu);
-      else
-        this->extractBasis(gp(1+i,1+iel),phi);
+      RealArray basisDerivs;
+      projBasis->computeBasis(gp(1+i,1+iel),phi,basisDerivs);
+      if (continuous) {
+        dNdu.resize(phi.size(),1);
+        dNdu.fillColumn(1,basisDerivs);
+      }
 
       // Compute the Jacobian inverse and derivatives
       double dJw = 1.0;
@@ -1511,14 +1584,14 @@ bool ASMs1D::assembleL2matrices (SparseMatrix& A, StdVector& B,
       // Integrate the linear system A*x=B
       for (size_t ii = 0; ii < phi.size(); ii++)
       {
-	int inod = MNPC[iel][ii]+1;
-	for (size_t jj = 0; jj < phi.size(); jj++)
-	{
-	  int jnod = MNPC[iel][jj]+1;
-	  A(inod,jnod) += phi[ii]*phi[jj]*dJw;
-	}
-	for (size_t r = 1; r <= sField.rows(); r++)
-	  B(inod+(r-1)*nnod) += phi[ii]*sField(r,ip+1)*dJw;
+        int inod = mnpc[iel][ii]+1;
+        for (size_t jj = 0; jj < phi.size(); jj++)
+        {
+          int jnod = mnpc[iel][jj]+1;
+          A(inod,jnod) += phi[ii]*phi[jj]*dJw;
+        }
+        for (size_t r = 1; r <= sField.rows(); r++)
+          B(inod+(r-1)*nnod) += phi[ii]*sField(r,ip+1)*dJw;
       }
     }
   }

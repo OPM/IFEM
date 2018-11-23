@@ -77,6 +77,9 @@ public:
   //! \param[in] basis Which basis to return size parameters for (mixed methods)
   virtual int getSize(int basis = 0) const;
 
+  //! \brief Returns the number of projection nodes for this patch.
+  virtual size_t getNoProjectionNodes() const;
+
   //! \brief Returns the global coordinates for the given node.
   //! \param[in] inod 1-based node index local to current patch
   virtual Vec3 getCoord(size_t inod) const;
@@ -90,6 +93,15 @@ public:
   //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
   //! in one element
   virtual bool getElementCoordinates(Matrix& X, int iel) const;
+
+  //! \brief Returns a matrix with nodal coordinates for an element.
+  //! \param[in] iel Element index
+  //! \param[in] mnpc Matrix of nodal point correspondence
+  //! \param[in] crv Underlying spline curve
+  //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
+  //! in one element
+  bool getElementCoordinates(Matrix& X, int iel, const IntMat& mnpc,
+                             const Go::SplineCurve* crv) const;
 
   //! \brief Returns a matrix with all nodal coordinates within the patch.
   //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
@@ -131,13 +143,16 @@ public:
 
   //! \brief Refines the parametrization by inserting extra knots.
   //! \param[in] xi Relative positions of added knots in each existing knot span
-  bool refine(const RealArray& xi);
+  //! \param[in] proj If true, refine projection basis
+  bool refine(const RealArray& xi, bool proj = false);
   //! \brief Refines the parametrization by inserting extra knots uniformly.
   //! \param[in] nInsert Number of extra knots to insert in each knot-span
-  bool uniformRefine(int nInsert);
+  //! \param[in] proj If true, refine projection basis
+  bool uniformRefine(int nInsert, bool proj = false);
   //! \brief Raises the order of the SplineCurve object for this patch.
   //! \param[in] ru Number of times to raise the order
-  bool raiseOrder(int ru);
+  //! \param[in] proj If true, refine projection basis
+  bool raiseOrder(int ru, bool proj = false);
 
 
   // Various methods for preprocessing of boundary conditions and patch topology
@@ -398,6 +413,9 @@ public:
 
 protected:
   std::shared_ptr<Go::SplineCurve> curv; //!< Pointer to the actual spline curve object
+  std::shared_ptr<Go::SplineCurve> projBasis; //!< Spline curve for projection basis
+  IntMat projMNPC; //!< The Matrix of Nodal Point Correspondance for projection basis
+  IntVec projMLGE; //!< The Matrix of Local to Global Element numbers for projection basis
 
   const TensorVec& elmCS;  //!< Element coordinate systems (for 3D beams)
   const TensorVec& nodalT; //!< Nodal rotation tensors (for 3D beams)

@@ -94,6 +94,11 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
 
   if (!strcasecmp(elem->Value(),"refine") && !isRefined)
   {
+    bool proj = false;
+    std::string type;
+    if (utl::getAttribute(elem,"basis",type) && type == "projection")
+      proj = true;
+
     IntVec patches;
     if (!this->parseTopologySet(elem,patches))
       return false;
@@ -107,8 +112,9 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
       for (int j : patches)
         if ((pch = dynamic_cast<ASM1D*>(this->getPatch(j,true))))
         {
-          IFEM::cout <<"\tRefining P"<< j <<" "<< addu << std::endl;
-          pch->uniformRefine(addu);
+          IFEM::cout <<"\tRefining P"<< j <<" "<< addu
+                     << (proj ? " (projection basis)" : "") << std::endl;
+          pch->uniformRefine(addu,proj);
         }
     }
     else
@@ -119,13 +125,18 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
                      <<" with grading "<< elem->FirstChild()->Value() <<":";
           for (size_t i = 0; i < xi.size(); i++)
             IFEM::cout << (i%10 || xi.size() < 11 ? " " : "\n\t") << xi[i];
-          IFEM::cout << std::endl;
-          pch->refine(xi);
+          IFEM::cout << (proj ? " (projection basis)" : "") << std::endl;
+          pch->refine(xi,proj);
         }
   }
 
   else if (!strcasecmp(elem->Value(),"raiseorder") && !isRefined)
   {
+    bool proj = false;
+    std::string type;
+    if (utl::getAttribute(elem,"basis",type) && type == "projection")
+      proj = true;
+
     IntVec patches;
     if (!this->parseTopologySet(elem,patches))
       return false;
@@ -136,8 +147,9 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
       ASM1D* pch;
       if ((pch = dynamic_cast<ASM1D*>(this->getPatch(j,true))))
       {
-        IFEM::cout <<"\tRaising order of P"<< j <<" "<< addu << std::endl;
-        pch->raiseOrder(addu);
+        IFEM::cout <<"\tRaising order of P"<< j <<" "<< addu
+                   << (proj ? " (projection basis)" : "") << std::endl;
+        pch->raiseOrder(addu,proj);
       }
     }
   }
