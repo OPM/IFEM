@@ -127,10 +127,11 @@ public:
   {
     saveDivergedSol = dumpLog = false;
     restartAdm = nullptr;
+    restartProcAdm = nullptr;
   }
 
   //! \brief The destructor deletes the restart data handler.
-  virtual ~SIMSolver() { delete restartAdm; }
+  virtual ~SIMSolver() { delete restartAdm; delete restartProcAdm; }
 
   //! \brief Reads solver data from the specified input file.
   virtual bool read(const char* file) { return this->SIMadmin::read(file); }
@@ -174,10 +175,18 @@ public:
                         int saveInterval = 1,
                         int restartInterval = 0)
   {
-    if (restartInterval > 0)
-      restartAdm = new HDF5Restart(hdf5file+"_restart",modelAdm,restartInterval);
-
     this->SIMSolverStat<T1>::handleDataOutput(hdf5file, modelAdm, saveInterval);
+    if (restartInterval < 1) return; // No restart output
+
+    const ProcessAdm* adm = nullptr;
+    if (!modelAdm.dd.isPartitioned())
+      adm = &modelAdm;
+    else if (modelAdm.getProcId() == 0)
+      adm = restartProcAdm = new ProcessAdm();
+    else
+      return; // Restart output on processor 0 only
+
+    restartAdm = new HDF5Restart(hdf5file+"_restart", *adm, restartInterval);
   }
 
   //! \brief Serialize internal state for restarting purposes.
@@ -243,8 +252,11 @@ public:
   {
     if (restartFile.empty()) return 0;
 
+    ProcessAdm oneAdm;
+    const ProcessAdm& adm = this->S1.getProcessAdm();
+    HDF5Restart hdf(restartFile, adm.dd.isPartitioned() ? oneAdm : adm);
+
     HDF5Restart::SerializeData data;
-    HDF5Restart hdf(restartFile,SIMadmin::adm,1);
     if ((restartStep = hdf.readData(data,restartStep)) >= 0)
     {
       IFEM::cout <<"\n === Restarting from a serialized state ==="
@@ -271,6 +283,7 @@ protected:
   bool dumpLog; //!< Set to \e true, to print out dump time levels
   TimeStep tp;  //!< Time stepping information
   HDF5Restart* restartAdm; //!< Administrator for restart output
+  ProcessAdm* restartProcAdm; //!< Process admin used for restart output
 };
 
 #endif
