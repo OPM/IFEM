@@ -36,7 +36,6 @@ ASMstruct::ASMstruct (const ASMstruct& patch, unsigned char n_f)
 
 ASMstruct::~ASMstruct ()
 {
-  if (geo && !shareFE) delete geo;
 }
 
 

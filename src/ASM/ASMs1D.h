@@ -283,6 +283,11 @@ public:
   //! \param[in] integrand Object with problem-specific data and methods
   virtual Go::GeomObject* evalSolution(const IntegrandBase& integrand) const;
 
+  //! \brief Returns a field using the projection basis.
+  //! \param[in] coefs The coefficients for the field
+  //! \param[in] nf Number of components
+  virtual Fields* getProjectedFields(const Vector& coefs, size_t nf) const;
+
   //! \brief Evaluates the secondary solution field at the given points.
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
@@ -352,9 +357,11 @@ protected:
   //! \param[out] uGP Parameter values for all points
   //! \param[in] nGauss Number of Gauss points along a knot-span
   //! \param[in] xi Dimensionless Gauss point coordinates [-1,1]
+  //! \param[in] crv Spline curve with element structure
   //! \return The parameter value matrix casted into a one-dimensional vector
   const Vector& getGaussPointParameters(Matrix& uGP, int nGauss,
-					const double* xi) const;
+                                        const double* xi,
+                                        const Go::SplineCurve* crv) const;
 
   //! \brief Calculates parameter values for the Greville points.
   //! \param[out] prm Parameter values for all points

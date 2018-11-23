@@ -24,6 +24,7 @@
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
 #include "SparseMatrix.h"
+#include "SplineFields1D.h"
 #include "ElementBlock.h"
 #include "SplineUtils.h"
 #include "Utilities.h"
@@ -139,6 +140,9 @@ bool ASMs1D::refine (const LR::RefineData& prm, Vectors&, const char*)
         extraKnots.push_back(0.5*(uit[i-1] + uit[i]));
 
   curv->insertKnot(extraKnots);
+  if (projBasis != curv)
+    projBasis->insertKnot(extraKnots);
+
   return true;
 }
 
@@ -335,6 +339,7 @@ bool ASMs1D::generateOrientedFEModel (const Vec3& Zaxis)
     const int n1_p = projBasis->numCoefs();
     const int p1_p = projBasis->order();
     projMLGE.resize(n1_p-p1_p+1,0);
+    projMNPC.resize(projMLGE.size());
     int el_p = 0;
     for (int i1 = 1; i1 <= n1_p; i1++)
     {
@@ -348,7 +353,7 @@ bool ASMs1D::generateOrientedFEModel (const Vec3& Zaxis)
           projMLGE[nel_p] = ++el_p;
 
           int lnod = 0;
-          for (int j1 = p1-1; j1 >= 0; j1--)
+          for (int j1 = p1_p-1; j1 >= 0; j1--)
             projMNPC[nel_p][lnod++] = nnod_p - j1;
         }
 
@@ -785,12 +790,13 @@ bool ASMs1D::getParameterDomain (Real2DMat& u, IntVec* corners) const
 
 
 const Vector& ASMs1D::getGaussPointParameters (Matrix& uGP, int nGauss,
-					       const double* xi) const
+                                               const double* xi,
+                                               const Go::SplineCurve* crv) const
 {
-  int pm1 = curv->order() - 1;
-  RealArray::const_iterator uit = curv->basis().begin() + pm1;
+  int pm1 = crv->order() - 1;
+  RealArray::const_iterator uit = crv->basis().begin() + pm1;
 
-  int nCol = curv->numCoefs() - pm1;
+  int nCol = crv->numCoefs() - pm1;
   uGP.resize(nGauss,nCol);
 
   double uprev = *(uit++);
@@ -920,9 +926,9 @@ bool ASMs1D::integrate (Integrand& integrand,
 
   // Compute parameter values of the Gauss points over the whole patch
   Matrix gpar, redpar;
-  this->getGaussPointParameters(gpar,ng,xg);
+  this->getGaussPointParameters(gpar,ng,xg,curv.get());
   if (xr)
-    this->getGaussPointParameters(redpar,nRed,xr);
+    this->getGaussPointParameters(redpar,nRed,xr,curv.get());
 
   FiniteElement fe(p1);
   Matrix   dNdu, Jac;
@@ -1526,7 +1532,7 @@ bool ASMs1D::assembleL2matrices (SparseMatrix& A, StdVector& B,
   // Compute parameter values of the Gauss points over the whole patch
   // and evaluate the secondary solution at all integration points
   Matrix gp, sField;
-  RealArray gpar = this->getGaussPointParameters(gp,ng,xg);
+  RealArray gpar = this->getGaussPointParameters(gp,ng,xg,projBasis.get());
   if (!this->evalSolution(sField,integrand,&gpar))
   {
     std::cerr <<" *** ASMs1D::assembleL2matrices: Failed for patch "<< idx+1
@@ -1554,9 +1560,9 @@ bool ASMs1D::assembleL2matrices (SparseMatrix& A, StdVector& B,
       if (!this->getElementCoordinates(Xnod,1+iel,mnpc,projBasis.get()))
         return false;
 
-      int inod1 = mnpc[iel-1][projBasis->order()-1];
-      dL = *(projBasis->basis().begin()+inod1) -
-           *(projBasis->basis().begin()+inod1-1);
+      int inod1 = mnpc[iel][projBasis->order()-1];
+      dL = *(projBasis->basis().begin()+inod1+1) -
+           *(projBasis->basis().begin()+inod1);
       if (dL < 0.0)
         return false; // topology error (probably logic error)
     }
@@ -1623,4 +1629,13 @@ bool ASMs1D::evaluate (const FunctionBase* func, RealArray& values,
   delete scrv;
 
   return true;
+}
+
+
+Fields* ASMs1D::getProjectedFields(const Vector& coefs, size_t nf) const
+{
+  if (projBasis != curv)
+    return new SplineFields1D(projBasis.get(), coefs, nf);
+
+  return nullptr;
 }
