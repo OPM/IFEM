@@ -51,10 +51,10 @@ ASMs1D::ASMs1D (const ASMs1D& patch, unsigned char n_f)
 bool ASMs1D::read (std::istream& is)
 {
   if (shareFE) return true;
-  if (curv) delete curv;
+  curv.reset();
 
   Go::ObjectHeader head;
-  curv = new Go::SplineCurve;
+  curv.reset(new Go::SplineCurve);
   is >> head >> *curv;
 
   // Eat white-space characters to see if there is more data to read
@@ -69,16 +69,14 @@ bool ASMs1D::read (std::istream& is)
   if (!is.good() && !is.eof())
   {
     std::cerr <<" *** ASMs1D::read: Failure reading spline data"<< std::endl;
-    delete curv;
-    curv = nullptr;
+    curv.reset();
     return false;
   }
   else if (curv->dimension() < 1)
   {
     std::cerr <<" *** ASMs1D::read: Invalid spline curve patch, dim="
 	      << curv->dimension() << std::endl;
-    delete curv;
-    curv = nullptr;
+    curv.reset();
     return false;
   }
   else if (curv->dimension() < nsd)
@@ -90,7 +88,7 @@ bool ASMs1D::read (std::istream& is)
     nsd = curv->dimension();
   }
 
-  geo = curv;
+  geo = curv.get();
   return true;
 }
 
@@ -111,8 +109,8 @@ void ASMs1D::clear (bool retainGeometry)
   if (!retainGeometry)
   {
     // Erase spline data
-    if (curv && !shareFE) delete curv;
-    geo = curv = nullptr;
+    if (curv && !shareFE) curv.reset();
+    geo = nullptr;
   }
 
   // Erase the FE data
@@ -1092,7 +1090,7 @@ int ASMs1D::evalPoint (const double* xi, double* param, Vec3& X) const
   if (!curv) return -1;
 
   param[0] = (1.0-xi[0])*curv->startparam() + xi[0]*curv->endparam();
-  SplineUtils::point(X,param[0],curv);
+  SplineUtils::point(X,param[0],curv.get());
 
   // Check if this point matches any of the control points (nodes)
   return this->searchCtrlPt(curv->coefs_begin(),curv->coefs_end(),
@@ -1541,7 +1539,7 @@ bool ASMs1D::getNoStructElms (int& n1, int& n2, int& n3) const
 bool ASMs1D::evaluate (const FunctionBase* func, RealArray& values,
                        int, double time) const
 {
-  Go::SplineCurve* scrv = SplineUtils::project(curv,*func,func->dim(),time);
+  Go::SplineCurve* scrv = SplineUtils::project(curv.get(),*func,func->dim(),time);
   if (!scrv)
   {
     std::cerr <<" *** ASMs1D::evaluate: Projection failure."<< std::endl;

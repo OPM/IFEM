@@ -18,6 +18,7 @@
 #include "ASMunstruct.h"
 #include "ASM1D.h"
 #include "Tensor.h"
+#include <memory>
 
 typedef std::vector<Tensor> TensorVec; //!< An array of non-symmetric tensors
 
@@ -42,7 +43,7 @@ public:
   virtual ~ASMs1D() {}
 
   //! \brief Returns the spline curve representing the geometry of this patch.
-  Go::SplineCurve* getCurve() const { return curv; }
+  Go::SplineCurve* getCurve() const { return curv.get(); }
 
 
   // Methods for model generation
@@ -396,7 +397,7 @@ public:
   virtual bool getParameterDomain(Real2DMat& u, IntVec* corners) const;
 
 protected:
-  Go::SplineCurve* curv; //!< Pointer to the actual spline curve object
+  std::shared_ptr<Go::SplineCurve> curv; //!< Pointer to the actual spline curve object
 
   const TensorVec& elmCS;  //!< Element coordinate systems (for 3D beams)
   const TensorVec& nodalT; //!< Nodal rotation tensors (for 3D beams)
