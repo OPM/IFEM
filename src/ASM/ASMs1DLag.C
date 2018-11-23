@@ -63,6 +63,7 @@ void ASMs1DLag::clear (bool retainGeometry)
 bool ASMs1DLag::generateOrientedFEModel (const Vec3& Zaxis)
 {
   if (!curv) return false;
+  if (!proj) proj = curv;
 
   // Order of the basis
   p1 = curv->order();

@@ -206,6 +206,24 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
     IFEM::cout <<"\tZ-direction vector: "<< XZp << std::endl;
   }
 
+  else if (!strcasecmp(elem->Value(),"projection") && !isRefined)
+  {
+    // Generate separate projection basis from current geometry basis
+    for (ASMbase* pch : myModel)
+      pch->createProjectionBasis(true);
+
+    // Apply refine and/raise-order commands to define the projection basis
+    const TiXmlElement* child = elem->FirstChildElement();
+    for (; child; child = child->NextSiblingElement())
+      if (!strcasecmp(child->Value(),"refine") ||
+          !strcasecmp(child->Value(),"raiseorder"))
+        if (!this->parseGeometryTag(child))
+          return false;
+
+    for (ASMbase* pch : myModel)
+      pch->createProjectionBasis(false);
+  }
+
   return true;
 }
 

@@ -73,8 +73,9 @@ public:
   virtual void clear(bool retainGeometry = false);
 
   //! \brief Returns the number of nodal points in the patch.
-  //! \param[in] basis Which basis to return size parameters for (mixed methods)
-  virtual int getSize(int basis = 0) const;
+  virtual int getSize(int = 0) const;
+  //! \brief Returns the number of projection nodes for this patch.
+  virtual size_t getNoProjectionNodes() const;
 
   //! \brief Returns the global coordinates for the given node.
   //! \param[in] inod 1-based node index local to current patch
@@ -85,10 +86,19 @@ public:
   Tensor getRotation(size_t inod) const;
 
   //! \brief Returns a matrix with nodal coordinates for an element.
-  //! \param[in] iel Element index
   //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
   //! in one element
+  //! \param[in] iel Element index
   virtual bool getElementCoordinates(Matrix& X, int iel) const;
+
+  //! \brief Returns a matrix with nodal coordinates for an element.
+  //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
+  //! in one element
+  //! \param[in] iel Element index
+  //! \param[in] mnpc Matrix of nodal point correspondence
+  //! \param[in] crv Underlying spline curve
+  bool getElementCoordinates(Matrix& X, int iel, const IntMat& mnpc,
+                             const Go::SplineCurve* crv) const;
 
   //! \brief Returns a matrix with all nodal coordinates within the patch.
   //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
@@ -130,13 +140,16 @@ public:
 
   //! \brief Refines the parametrization by inserting extra knots.
   //! \param[in] xi Relative positions of added knots in each existing knot span
-  bool refine(const RealArray& xi);
+  virtual bool refine(const RealArray& xi);
   //! \brief Refines the parametrization by inserting extra knots uniformly.
   //! \param[in] nInsert Number of extra knots to insert in each knot-span
-  bool uniformRefine(int nInsert);
+  virtual bool uniformRefine(int nInsert);
   //! \brief Raises the order of the SplineCurve object for this patch.
   //! \param[in] ru Number of times to raise the order
-  bool raiseOrder(int ru);
+  virtual bool raiseOrder(int ru);
+
+  //! \brief Creates a separate projection basis for this patch.
+  virtual bool createProjectionBasis(bool init);
 
 
   // Various methods for preprocessing of boundary conditions and patch topology
@@ -345,9 +358,13 @@ protected:
   //! \param[out] uGP Parameter values for all points
   //! \param[in] nGauss Number of Gauss points along a knot-span
   //! \param[in] xi Dimensionless Gauss point coordinates [-1,1]
+  //! \param[in] crv Spline curve with element structure
+  //! \param[in] skipNullSpans If \e true, consider non-zero knot spans only
   //! \return The parameter value matrix casted into a one-dimensional vector
   const Vector& getGaussPointParameters(Matrix& uGP, int nGauss,
-					const double* xi) const;
+                                        const double* xi,
+                                        const Go::SplineCurve* crv = nullptr,
+                                        bool skipNullSpans = false) const;
 
   //! \brief Calculates parameter values for the Greville points.
   //! \param[out] prm Parameter values for all points
@@ -406,6 +423,10 @@ public:
 
 protected:
   Go::SplineCurve* curv; //!< Pointer to the actual spline curve object
+  Go::SplineCurve* proj; //!< Pointer to spline curve for projection basis
+
+  IntMat projMNPC; //!< Matrix of Nodal Point Correspondance for projection
+  IntVec projMLGE; //!< Matrix of Local to Global Element numbers for projection
 
   const TensorVec& elmCS;  //!< Element coordinate systems (for 3D beams)
   const TensorVec& nodalT; //!< Nodal rotation tensors (for 3D beams)
