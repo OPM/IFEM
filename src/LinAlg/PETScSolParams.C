@@ -245,7 +245,11 @@ void PETScSolParams::setupCoarseSolver(PC& pc, const std::string& prefix, const 
     PCMGGetCoarseSolve(pc,&cksp);
     KSPGetPC(cksp,&cpc);
     PCSetType(cpc,PCLU);
+#if PETSC_VERSION_MINOR >= 9
+    PCFactorSetMatSolverType(cpc,coarsePackage.c_str());
+#else
     PCFactorSetMatSolverPackage(cpc,coarsePackage.c_str());
+#endif
     PCSetUp(cpc);
   }
 }
