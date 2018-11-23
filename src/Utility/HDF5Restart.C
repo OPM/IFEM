@@ -20,6 +20,7 @@
 #include <numeric>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <string.h>
 #ifdef HAVE_MPI
 #include <mpi.h>
 #include "ProcessAdm.h"
@@ -31,6 +32,8 @@ HDF5Restart::HDF5Restart (const std::string& name, const ProcessAdm& adm,
                           int stride)
   : HDF5Base(name, adm), m_stride(stride)
 {
+  if (m_hdf5_name.find('.') == std::string::npos)
+    m_hdf5_name += ".hdf5";
 }
 
 
@@ -45,11 +48,8 @@ bool HDF5Restart::writeData (const TimeStep& tp, const SerializeData& data)
 #ifdef HAS_HDF5
   int level = tp.step / m_stride;
 
-  int flag = H5F_ACC_RDWR;
-  struct stat buffer;
-  if (stat(m_hdf5_name.c_str(),&buffer) != 0)
-    flag = H5F_ACC_TRUNC;
-
+  struct stat sb;
+  int flag = stat(m_hdf5_name.c_str(),&sb) == 0 ? H5F_ACC_RDWR : H5F_ACC_TRUNC;
   if (!this->openFile(flag))
     return false;
 
@@ -58,11 +58,11 @@ bool HDF5Restart::writeData (const TimeStep& tp, const SerializeData& data)
   if (!checkGroupExistence(m_file,str.str().c_str()))
     H5Gclose(H5Gcreate2(m_file,str.str().c_str(),0,H5P_DEFAULT,H5P_DEFAULT));
 
-  int pid = 0;
 #ifdef HAVE_MPI
-  pid = m_adm.getProcId();
+  int pid  = m_adm.getProcId();
   int ptot = m_adm.getNoProcs();
 #else
+  int pid  = 0;
   int ptot = 1;
 #endif
 
@@ -124,27 +124,33 @@ bool HDF5Restart::writeData (const TimeStep& tp, const SerializeData& data)
 
 
 //! \brief Convenience type for restart IO.
-typedef std::pair<HDF5Restart*,HDF5Restart::SerializeData*> read_restart_ctx;
+typedef std::pair<HDF5Restart::SerializeData&,bool> read_restart_ctx;
 
 
 #ifdef HAS_HDF5
 //! \brief Static helper used for reading data.
 static herr_t read_restart_data (hid_t group_id, const char* name, void* data)
 {
-  hid_t   set = H5Dopen2(group_id,name,H5P_DEFAULT);
-  hsize_t siz = H5Dget_storage_size(set);
-  char* cdata = new char[siz];
-  H5Dread(set,H5T_NATIVE_CHAR,H5S_ALL,H5S_ALL,H5P_DEFAULT,cdata);
-  H5Dclose(set);
-
+  bool readBasis = strstr(name,"::basis") != nullptr;
   read_restart_ctx* ctx = static_cast<read_restart_ctx*>(data);
-  ctx->second->insert(std::make_pair(std::string(name),std::string(cdata,siz)));
+  if (ctx->second != readBasis)
+    return 0; // Not reading the right data type (basis or solution)
+
+  hid_t setId = H5Dopen2(group_id,name,H5P_DEFAULT);
+  if (setId < 0) return setId; // Result set not found
+  hsize_t siz = H5Dget_storage_size(setId);
+  if (siz < 1) return 0; // Empty result set
+  char* cdata = new char[siz];
+  H5Dread(setId,H5T_NATIVE_CHAR,H5S_ALL,H5S_ALL,H5P_DEFAULT,cdata);
+  H5Dclose(setId);
+  ctx->first[name] = std::string(cdata,siz);
+
   return 0;
 }
 #endif
 
 
-int HDF5Restart::readData (SerializeData& data, int level)
+int HDF5Restart::readData (SerializeData& data, int level, bool basis)
 {
 #ifdef HAS_HDF5
   if (!openFile(H5F_ACC_RDONLY))
@@ -168,7 +174,7 @@ int HDF5Restart::readData (SerializeData& data, int level)
   str << 0;
 #endif
   int idx = 0;
-  read_restart_ctx ctx(this,&data);
+  read_restart_ctx ctx(data,basis);
   int it = H5Giterate(m_file, str.str().c_str(), &idx, read_restart_data, &ctx);
   return it < 0 ? it : level;
 #else

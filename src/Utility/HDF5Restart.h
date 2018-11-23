@@ -23,7 +23,7 @@ class TimeStep;
 /*!
   \brief Write and read restart data using a HDF5 file.
 
-  \details The HDF5 restart hanlder writes and reads data using a HDF5 file.
+  \details The HDF5 restart handler writes and reads data using a HDF5 file.
   It supports parallel I/O, and can be used to add restart capability
   to applications.
 */
@@ -37,7 +37,7 @@ public:
   //! \param[in] name The name (without extension) of the data file
   //! \param[in] adm The process administrator
   //! \param[in] stride Restart data output stride
-  HDF5Restart(const std::string& name, const ProcessAdm& adm, int stride);
+  HDF5Restart(const std::string& name, const ProcessAdm& adm, int stride = 1);
 
   //! \brief Returns whether or not restart data should be output.
   //! \param[in] tp Time stepping information
@@ -51,8 +51,9 @@ public:
   //! \brief Reads restart data from file.
   //! \param[out] data The map to store data in
   //! \param[in] level Level to read (-1 to read last level in file)
+  //! \param[in] basis If \e true, read basis instead of data
   //! \returns Negative value on error, else restart level loaded
-  int readData(SerializeData& data, int level = -1);
+  int readData(SerializeData& data, int level = -1, bool basis = false);
 
 private:
   int m_stride; //!< Stride between outputs
