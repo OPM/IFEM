@@ -255,6 +255,14 @@ public:
     return restartStep;
   }
 
+  //! \brief Handles application restarts by reading serialized bases.
+  //! \param[in] restartFile File to read restart state from
+  //! \param[in] restartStep Index of the time step to read restart state for
+  //! \return One-based time step index of the restart state read.
+  //! If zero, no restart specified. If negative, read failure.
+  virtual int restartBasis(const std::string& restartFile, int restartStep)
+  { return 0; };
+
 private:
   bool saveDivergedSol; //!< If \e true, save also the diverged solution to VTF
 

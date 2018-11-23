@@ -47,7 +47,7 @@ public:
   virtual int solveProblem(char* infile, const char* heading, bool saveInit)
   {
     // Perform some initial refinement to resolve geometric features, etc.
-    if (!this->S1.initialRefine(beta,minFrac,maxRef))
+    if (this->tp.step == 0 && !this->S1.initialRefine(beta,minFrac,maxRef))
       return 4;
 
     // Save the initial FE model (and state) to VTF and HDF5 for visualization
@@ -142,6 +142,37 @@ public:
     }
 
     return this->dumpMesh(infile) ? 0 : 2;
+  }
+
+  //! \brief Handles application restarts by reading serialized bases.
+  //! \param[in] restartFile File to read restart state from
+  //! \param[in] restartStep Index of the time step to read restart state for
+  //! \return One-based time step index of the restart state read.
+  //! If zero, no restart specified. If negative, read failure.
+  virtual int restartBasis(const std::string& restartFile, int restartStep)
+  {
+    if (restartFile.empty()) return 0;
+
+    HDF5Restart::SerializeData data;
+    HDF5Restart hdf(restartFile,SIMadmin::adm,1);
+
+    int result = hdf.readData(data,restartStep,true);
+    if (result >= 0 && !data.empty())
+    {
+      IFEM::cout <<"\n === Reading serialized bases ==="
+        <<"\n     file = "<< restartFile
+        <<"\n     step = "<< restartStep << std::endl;
+      if (this->S1.deSerializeBasis(data))
+        return restartStep+1;
+      else
+        restartStep = -2;
+    }
+    else if (result == -1)
+      return 0;
+
+    std::cerr <<" *** SIMSolverTS: Failed to read serialized bases."<< std::endl;
+    return restartStep;
+
   }
 
 protected:

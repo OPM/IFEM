@@ -55,8 +55,9 @@ public:
   //! \brief Reads restart data from file.
   //! \param[out] data The map to store data in
   //! \param[in] level Level to read (-1 to read last level in file)
+  //! \param[in] basis If \e true, read basis instead of data
   //! \returns Negative value on error, else restart level loaded
-  int readData(SerializeData& data, int level = -1);
+  int readData(SerializeData& data, int level = -1, bool basis = false);
 
 protected:
   //! \brief Internal helper function reading into an array of chars.

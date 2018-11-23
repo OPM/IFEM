@@ -25,6 +25,7 @@
 #include <mpi.h>
 #include "ProcessAdm.h"
 #endif
+#include <string.h>
 #endif
 
 
@@ -32,6 +33,8 @@ HDF5Restart::HDF5Restart (const std::string& name, const ProcessAdm& adm,
                           int stride)
   : HDF5Base(name, adm), m_stride(stride)
 {
+  if (m_hdf5_name.find('.') == std::string::npos)
+    m_hdf5_name += ".hdf5";
 }
 
 
@@ -96,9 +99,8 @@ void HDF5Restart::writeArray(hid_t group, const std::string& name,
 bool HDF5Restart::writeData(const TimeStep& tp,
                             const SerializeData& data)
 {
-  int level = tp.step / m_stride;
-
 #ifdef HAS_HDF5
+  int level = tp.step / m_stride;
   int flag = H5F_ACC_RDWR;
   struct stat buffer;
   if (stat(m_hdf5_name.c_str(),&buffer) != 0)
@@ -144,7 +146,7 @@ bool HDF5Restart::writeData(const TimeStep& tp,
 
 
 //! \brief Convenience type for restart IO.
-typedef std::pair<HDF5Restart*,HDF5Restart::SerializeData*> read_restart_ctx;
+typedef std::tuple<HDF5Restart*,HDF5Restart::SerializeData*,bool> read_restart_ctx;
 
 
 #ifdef HAS_HDF5
@@ -152,16 +154,23 @@ herr_t HDF5Restart::read_restart_data(hid_t group_id, const char* member_name, v
 {
   read_restart_ctx* ctx = static_cast<read_restart_ctx*>(data);
 
+  HDF5Restart* reader = std::get<0>(*ctx);
+  HDF5Restart::SerializeData* map = std::get<1>(*ctx);
+  bool basis = std::get<2>(*ctx);
+
+  if (basis && !strstr(member_name,"-basis"))
+    return 0;
+
   char* c;
   int len;
-  ctx->first->readArray(group_id,member_name,len,c);
-  ctx->second->insert(std::make_pair(std::string(member_name),std::string(c,len)));
+  reader->readArray(group_id,member_name,len,c);
+  map->insert({std::string(member_name),std::string(c,len)});
   return 0;
 }
 #endif
 
 
-int HDF5Restart::readData(SerializeData& data, int level)
+int HDF5Restart::readData(SerializeData& data, int level, bool basis)
 {
 #ifdef HAS_HDF5
   if (!openFile(H5F_ACC_RDONLY))
@@ -185,7 +194,7 @@ int HDF5Restart::readData(SerializeData& data, int level)
   str << 0;
 #endif
   int idx = 0;
-  read_restart_ctx ctx(this,&data);
+  read_restart_ctx ctx{this,&data,basis};
   int it = H5Giterate(m_file, str.str().c_str(), &idx, read_restart_data, &ctx);
   return it < 0 ? it : level;
 #else
