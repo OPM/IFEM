@@ -578,9 +578,11 @@ public:
   //! \param[out] sField Secondary solution field control point values
   //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] continuous If \e true, a continuous L2-projection is used
+  //! \param[in] enforceEnds If \e true, enforce corner point value equality
   virtual bool globalL2projection(Matrix& sField,
-				  const IntegrandBase& integrand,
-				  bool continuous = false) const;
+                                  const IntegrandBase& integrand,
+                                  bool continuous = false,
+                                  bool enforceEnds = false) const;
 
   //! \brief Projects the secondary solution using a continuous global L2-fit.
   //! \param[out] sField Secondary solution field control point values

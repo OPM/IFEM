@@ -123,7 +123,7 @@ public:
   //! \param[in] locSol Solution vector local to current patch
   //! \param[in] gpar Parameter values of the result sampling points
   //! \param[in] deriv Derivative order to return
-  //! \param[in] nf If nonzero, evaluate nf fields on first basis
+  //! \param[in] nf If nonzero, evaluates nf fields on first basis
   //!
   //! \details When \a regular is \e true, it is assumed that the parameter
   //! value array \a gpar forms a regular tensor-product point grid of dimension
@@ -133,14 +133,6 @@ public:
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
                             const RealArray* gpar, bool = false,
                             int deriv = 0, int nf = 0) const;
-
-  //! \brief Evaluates the projected solution field at all visualization points.
-  //! \param[out] sField Solution field
-  //! \param[in] locSol Solution vector local to current patch
-  //! \param[in] npe Number of visualization nodes over each knot span
-  //! \param[in] nf If nonzero, mixed evaluates nf fields on first basis
-  virtual bool evalProjSolution(Matrix& sField, const Vector& locSol,
-                                const int* npe, int nf = 0) const;
 
   //! \brief Evaluates the secondary solution field at the given points.
   //! \param[out] sField Solution field
@@ -155,7 +147,15 @@ public:
   //! Otherwise, we assume that it contains the \a u and \a v parameters
   //! directly for each sampling point.
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
-                            const RealArray* gpar, bool = true) const;
+                            const RealArray* gpar, bool = false) const;
+
+  //! \brief Evaluates the projected solution field at all visualization points.
+  //! \param[out] sField Solution field
+  //! \param[in] locSol Solution vector local to current patch
+  //! \param[in] npe Number of visualization nodes over each knot span
+  //! \param[in] nf If nonzero, mixed evaluates nf fields on first basis
+  virtual bool evalProjSolution(Matrix& sField, const Vector& locSol,
+                                const int* npe, int nf = 0) const;
 
   //! \brief Extracts nodal results for this patch from the global vector.
   //! \param[in] globVec Global solution vector in DOF-order
@@ -173,17 +173,24 @@ public:
 
   //! \brief Returns the number of projection nodes for this patch.
   virtual size_t getNoProjectionNodes() const;
-
   //! \brief Returns the number of refinement nodes for this patch.
   virtual size_t getNoRefineNodes() const;
-
-  //! \brief Returns the number of projection elements for this patch.
+  //! \brief Returns the number of refinement elements for this patch.
   virtual size_t getNoRefineElms() const;
 
   //! \brief Returns a field using the projection basis.
   //! \param[in] coefs The coefficients for the field
   //! \param[in] nf Number of components
   virtual Fields* getProjectedFields(const Vector& coefs, size_t nf) const;
+
+  //! \brief Projects the secondary solution using a discrete global L2-norm.
+  //! \param[out] sField Secondary solution field control point values
+  //! \param[in] integrand Object with problem-specific data and methods
+  //! \param[in] continuous If \e true, a continuous L2-projection is used
+  //! \param[in] enforceEnds If \e true, enforce corner point value equality
+  virtual bool globalL2projection(Matrix& sField,
+                                  const IntegrandBase& integrand,
+                                  bool continuous, bool enforceEnds) const;
 
   using ASMu2D::refine;
   //! \brief Refines the mesh adaptively.

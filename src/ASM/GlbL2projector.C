@@ -190,7 +190,7 @@ bool GlbL2::formL2Mats (const IntVec& mnpc, const Vector& solPt,
 }
 
 
-void GlbL2::preAssemble (const std::vector<IntVec>& MMNPC, size_t nel)
+void GlbL2::preAssemble (const IntMat& MMNPC, size_t nel)
 {
   A.preAssemble(MMNPC,nel);
 }
@@ -259,7 +259,7 @@ bool ASMbase::L2projection (Matrix& sField, FunctionBase* function, double t)
 
 bool ASMbase::globalL2projection (Matrix& sField,
                                   const IntegrandBase& integrand,
-                                  bool continuous) const
+                                  bool continuous, bool enforceEnds) const
 {
   if (this->empty()) return true; // silently ignore empty patches
 
@@ -294,12 +294,17 @@ bool ASMbase::globalL2projection (Matrix& sField,
 #if SP_DEBUG > 1
   std::cout <<"---- Matrix A -----\n"<< *A
             <<"-------------------"<< std::endl;
-  std::cout <<"---- Vector B -----"<< *B
+  std::cout <<"---- Vector B -----\n"<< *B
             <<"-------------------"<< std::endl;
 #endif
 
   // Solve the patch-global equation system
-  if (!A->solve(*B)) return false;
+  if (!A->solve(*B))
+  {
+    delete A;
+    delete B;
+    return false;
+  }
 
   // Store the control-point values of the projected field
   sField.resize(ncomp,nnod);
@@ -313,5 +318,30 @@ bool ASMbase::globalL2projection (Matrix& sField,
 #endif
   delete A;
   delete B;
+  if (!enforceEnds) return true;
+
+  // Get parameter and node numbers for the domain corners
+  Real2DMat u;
+  IntVec corners;
+  if (!this->getParameterDomain(u,&corners))
+    return true; // Silently ignore if corner points are not provided
+
+  // Evaluate the solution at the corners
+  Matrix sCorner;
+  if (!this->evalSolution(sCorner,integrand,u.data()))
+    return false;
+
+  // Enforce the corner values in the projected field
+  for (i = 0; i < corners.size(); i++)
+  {
+#if SP_DEBUG > 1
+    std::cout <<"Replacing end point values of projected field at node "
+              << corners[i] <<"\nfrom"<< sField.getColumn(corners[i])
+              <<"to"<< sCorner.getColumn(1+i);
+#endif
+    for (j = 1; j <= ncomp; j++)
+      sField(j,corners[i]) = sCorner(j,1+i);
+  }
+
   return true;
 }
