@@ -1,0 +1,99 @@
+\documentclass[twoside, 11pt, a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amsfonts,amssymb,graphicx,parskip}
+\usepackage{mathpazo}
+\usepackage{color}
+\usepackage[margin=1in]{geometry}
+%\usepackage{fourierx} % eller lmodern
+
+% for debug utskrift
+\newcommand{\debug}[1]{\texttt{#1}}
+% for ingen utskrift av kommentarer/debug
+%\newcommand{\debug}[1]{}
+
+\DeclareMathOperator{\erf}{erf}
+\DeclareMathOperator{\erfc}{erfc}
+\DeclareMathOperator{\eps}{\epsilon}
+\newcommand{\dee}{\mathrm{d}}
+
+\begin{document}
+Jacobian:
+\[
+  \begin{split}
+    \frac{\partial u}{\partial x} &= \frac{\partial u}{\partial\xi}\frac{\partial \xi}{\partial x} + \frac{\partial u}{\partial\eta}\frac{\partial \eta}{\partial x} \\
+    \frac{\partial u}{\partial y} &= \frac{\partial u}{\partial\xi}\frac{\partial \xi}{\partial y} + \frac{\partial u}{\partial\eta}\frac{\partial \eta}{\partial y}
+  \end{split}
+\]
+Hessian:
+\[
+  \begin{split}
+    \frac{\partial^2 u}{\partial x^2} &= \frac{\partial}{\partial\xi}\left(\frac{\partial u}{\partial\xi}\frac{\partial \xi}{\partial x} + \frac{\partial u}{\partial\eta}\frac{\partial \eta}{\partial x}\right)\frac{\partial\xi}{\partial x} \\
+    &+ \frac{\partial}{\partial\eta}\left(\frac{\partial u}{\partial\xi}\frac{\partial \xi}{\partial x} + \frac{\partial u}{\partial\eta}\frac{\partial \eta}{\partial x}\right)\frac{\partial\eta}{\partial x} \\
+    &= \left(\frac{\partial^2u}{\partial\xi^2}\frac{\partial\xi}{\partial x}+\frac{\partial u}{\partial\xi}\frac{\partial^2\xi}{\partial x\partial\xi} + \frac{\partial^2u}{\partial\xi\partial\eta}\frac{\partial\eta}{\partial x}+\frac{\partial u}{\partial\eta}\frac{\partial^2\eta}{\partial x\partial\xi}\right)\frac{\partial\xi}{\partial x} \\
+    &+\left(\frac{\partial^2 u}{\partial\xi\partial\eta}\frac{\partial\xi}{\partial x} + \frac{\partial u}{\partial \xi}\frac{\partial^2\xi}{\partial\xi\partial\eta} + \frac{\partial^2 u}{\partial\eta^2}\frac{\partial\eta}{\partial x} + \frac{\partial u}{\partial\eta}\frac{\partial^2\eta}{\partial x\partial\eta}\right)\frac{\partial\eta}{\partial x} \\
+    &= \left(\frac{\partial^2u}{\partial\xi^2}\frac{\partial\xi}{\partial x}+\frac{\partial u}{\partial\xi}\frac{\partial\xi}{\partial x} + \frac{\partial^2u}{\partial\xi\partial\eta}\frac{\partial\eta}{\partial x}\right)\frac{\partial\xi}{\partial x} \\
+    &+\left(\frac{\partial^2 u}{\partial\xi\partial\eta}\frac{\partial\xi}{\partial x} + \frac{\partial^2 u}{\partial\eta^2}\frac{\partial\eta}{\partial x} + \frac{\partial u}{\partial\eta}\frac{\partial\eta}{\partial x}\right)\frac{\partial\eta}{\partial x} \\
+    &= \frac{\partial^2u}{\partial \xi^2}\left(\frac{\partial\xi}{\partial x}\right)^2 + \frac{\partial^2u}{\partial \eta^2}\left(\frac{\partial\eta}{\partial x}\right)^2 + 2 \frac{\partial^2u}{\partial\xi\partial\eta}\frac{\partial\xi}{\partial x}\frac{\partial\eta}{\partial x}
+  \end{split}
+\]
+
+\[
+  \begin{split}
+    \frac{\partial^2 u}{\partial y^2} &= \frac{\partial}{\partial\xi}\left(\frac{\partial u}{\partial\xi}\frac{\partial \xi}{\partial y} + \frac{\partial u}{\partial\eta}\frac{\partial \eta}{\partial y}\right)\frac{\partial\xi}{\partial y} \\
+    &+ \frac{\partial}{\partial\eta}\left(\frac{\partial u}{\partial\xi}\frac{\partial \xi}{\partial y} + \frac{\partial u}{\partial\eta}\frac{\partial \eta}{\partial y}\right)\frac{\partial\eta}{\partial y} \\
+    &= \left(\frac{\partial^2u}{\partial\xi^2}\frac{\partial\xi}{\partial y} + \frac{\partial u}{\partial\xi}\frac{\partial^2\xi}{\partial\xi\partial y} + \frac{\partial^2u}{\partial\xi\partial\eta}\frac{\partial\eta}{\partial y}+\frac{\partial u}{\partial\eta}\frac{\partial^2\eta}{\partial\xi\partial y}\right)\frac{\partial\xi}{\partial y} \\
+    &+\left(\frac{\partial^2u}{\partial\xi\partial\eta}\frac{\partial\xi}{\partial y} + \frac{\partial u}{\partial\xi}\frac{\partial^2\xi}{\partial \eta\partial y} + \frac{\partial^2 u}{\partial\eta^2}\frac{\partial\eta}{\partial y} + \frac{\partial u}{\partial\eta}\frac{\partial^2\eta}{\partial\eta\partial y}\right)\frac{\partial\eta}{\partial y} \\
+    &= \frac{\partial^2 u}{\partial\xi^2}\left(\frac{\partial\xi}{\partial y}\right)^2 + \frac{\partial^2u}{\partial\eta^2}\left(\frac{\partial\eta}{\partial y}\right)^2 + 2\frac{\partial^2u}{\partial\xi\partial\eta}\frac{\partial\xi}{\partial y}\frac{\partial\eta}{\partial y}
+  \end{split}
+\]
+
+\newpage
+\[
+  \begin{split}
+    \frac{\partial^2 u}{\partial x\partial y} &= \frac{\partial}{\partial\xi}\left(\frac{\partial u}{\partial\xi}\frac{\partial \xi}{\partial x} + \frac{\partial u}{\partial\eta}\frac{\partial \eta}{\partial x}\right)\frac{\partial\xi}{\partial y} \\
+    &+ \frac{\partial}{\partial\eta}\left(\frac{\partial u}{\partial\xi}\frac{\partial \xi}{\partial x} + \frac{\partial u}{\partial\eta}\frac{\partial \eta}{\partial x}\right)\frac{\partial\eta}{\partial y} \\
+    &= \left(\frac{\partial^2u}{\partial\xi^2}\frac{\partial\xi}{\partial x} + \frac{\partial u}{\partial \xi}\frac{\partial^2\xi}{\partial\xi\partial x} + \frac{\partial^2u}{\partial\xi\partial\eta}\frac{\partial\eta}{\partial x} + \frac{\partial u}{\partial\eta}\frac{\partial^2\eta}{\partial\xi\partial x}\right)\frac{\partial\xi}{\partial y} \\
+    &+ \left(\frac{\partial^2u}{\partial\xi\partial\eta}\frac{\partial\xi}{\partial x}+\frac{\partial u}{\partial\xi}\frac{\partial^2\xi}{\partial\eta\partial x} + \frac{\partial^2u}{\partial\eta^2}\frac{\partial\eta}{\partial x} + \frac{\partial u}{\partial\eta}\frac{\partial^2\eta}{\partial\eta\partial x}\right)\frac{\partial\eta}{\partial y} \\
+    &= \frac{\partial^2u}{\partial\xi^2}\frac{\partial\xi}{\partial x}\frac{\partial\xi}{\partial y} + \frac{\partial^2u}{\partial\xi\partial\eta}\frac{\partial\eta}{\partial x}\frac{\partial\xi}{\partial y}
+    + \frac{\partial^2u}{\partial\eta^2}\frac{\partial\xi}{\partial x}\frac{\partial \eta}{\partial y} + \frac{\partial^2 u}{\partial \xi\partial\eta}\frac{\partial\xi}{\partial x}\frac{\partial\eta}{\partial y}
+  \end{split}
+\]
+
+Jerk matrix:
+\[
+  \begin{split}
+    \frac{\partial^3u}{\partial x^3} &= \frac{\partial}{\partial\xi}\left(\frac{\partial^2u}{\partial \xi^2}\left(\frac{\partial\xi}{\partial x}\right)^2 + \frac{\partial^2u}{\partial \eta^2}\left(\frac{\partial\eta}{\partial x}\right)^2 + 2 \frac{\partial^2u}{\partial\xi\partial\eta}\frac{\partial\xi}{\partial x}\frac{\partial\eta}{\partial x}\right)\frac{\partial\xi}{\partial x}  \\
+    &+\frac{\partial}{\partial\eta}\left(\frac{\partial^2u}{\partial \xi^2}\left(\frac{\partial\xi}{\partial x}\right)^2 + \frac{\partial^2u}{\partial \eta^2}\left(\frac{\partial\eta}{\partial x}\right)^2 + 2 \frac{\partial^2u}{\partial\xi\partial\eta}\frac{\partial\xi}{\partial x}\frac{\partial\eta}{\partial x}\right)\frac{\partial\eta}{\partial x} \\
+    &= \frac{\partial^3u}{\partial\xi^3}\left(\frac{\partial\xi}{\partial x}\right)^3 + \frac{\partial^3u}{\partial \xi\partial\eta^2}\left(\frac{\partial\eta}{\partial x}\right)^2\frac{\partial\xi}{\partial x} + 2\frac{\partial^3u}{\partial\xi^2\partial\eta}\left(\frac{\partial\xi}{\partial x}\right)^2\frac{\partial\eta}{\partial x} \\
+    &+\frac{\partial^3u}{\partial\eta^3}\left(\frac{\partial\eta}{\partial x}\right)^3 + \frac{\partial^3u}{\partial \xi^2\partial\eta}\left(\frac{\partial\xi}{\partial x}\right)^2\frac{\partial\eta}{\partial x} + 2\frac{\partial^3u}{\partial\xi\partial\eta^2}\frac{\partial\xi}{\partial x}\left(\frac{\partial\eta}{\partial x}\right)^2
+  \end{split}
+\]
+
+\[
+  \begin{split}
+    \frac{\partial^3u}{\partial y^3} &= \frac{\partial}{\partial\xi}\left(\frac{\partial^2 u}{\partial\xi^2}\left(\frac{\partial\xi}{\partial y}\right)^2 + \frac{\partial^2u}{\partial\eta^2}\left(\frac{\partial\eta}{\partial y}\right)^2 + 2\frac{\partial^2u}{\partial\xi\partial\eta}\frac{\partial\xi}{\partial y}\frac{\partial\eta}{\partial y}\right)\frac{\partial\xi}{\partial y} \\
+    &+\frac{\partial}{\partial\eta}\left(\frac{\partial^2 u}{\partial\xi^2}\left(\frac{\partial\xi}{\partial y}\right)^2 + \frac{\partial^2u}{\partial\eta^2}\left(\frac{\partial\eta}{\partial y}\right)^2 + 2\frac{\partial^2u}{\partial\xi\partial\eta}\frac{\partial\xi}{\partial y}\frac{\partial\eta}{\partial y}\right)\frac{\partial\eta}{\partial y} \\
+    &= \frac{\partial^3u}{\partial\xi^3}\left(\frac{\partial\xi}{\partial y}\right)^3 + \frac{\partial u^3}{\partial\xi\partial\eta^2}\left(\frac{\partial\eta}{\partial y}\right)^2\frac{\partial\xi}{\partial y} + 2 \frac{\partial^3u}{\partial\xi^2\partial\eta}\left(\frac{\partial\xi}{\partial y}\right)^2\frac{\partial\eta}{\partial y} \\
+    &+ \frac{\partial^3 u}{\partial\xi^2\partial\eta}\left(\frac{\partial\xi}{\partial y}\right)^2\frac{\partial\eta}{\partial y} + \frac{\partial^3 u}{\partial\eta^3}\left(\frac{\partial \xi}{\partial y}\right)^3 + 2\frac{\partial^3u}{\partial\xi\partial\eta^2}\frac{\partial\xi}{\partial y}\left(\frac{\partial\eta}{\partial y}\right)^2
+  \end{split}
+\]
+
+\newpage
+\[
+  \begin{split}
+    \frac{\partial^3u}{\partial x^2\partial y} &= \frac{\partial}{\partial\xi}\left(\frac{\partial^2u}{\partial \xi^2}\left(\frac{\partial\xi}{\partial x}\right)^2 + \frac{\partial^2u}{\partial \eta^2}\left(\frac{\partial\eta}{\partial x}\right)^2 + 2 \frac{\partial^2u}{\partial\xi\partial\eta}\frac{\partial\xi}{\partial x}\frac{\partial\eta}{\partial x}\right)\frac{\partial\xi}{\partial y} \\
+    &+\frac{\partial}{\partial\eta}\left(\frac{\partial^2u}{\partial \xi^2}\left(\frac{\partial\xi}{\partial x}\right)^2 + \frac{\partial^2u}{\partial \eta^2}\left(\frac{\partial\eta}{\partial x}\right)^2 + 2 \frac{\partial^2u}{\partial\xi\partial\eta}\frac{\partial\xi}{\partial x}\frac{\partial\eta}{\partial x}\right)\frac{\partial\eta}{\partial y} \\
+    &= \frac{\partial^3u}{\partial\xi^3}\left(\frac{\partial\xi}{\partial x}\right)^2\frac{\partial\xi}{\partial y} + \frac{\partial^3u}{\partial\xi\partial\eta^2}\left(\frac{\partial\eta}{\partial x}\right)^2\frac{\partial\xi}{\partial y} + 2\frac{\partial^3u}{\partial\xi^2\partial\eta}\frac{\partial\xi}{\partial x}\frac{\partial\xi}{\partial y}\frac{\partial\eta}{\partial x} \\
+    &+ \frac{\partial^3u}{\partial\xi^2\partial\eta}\left(\frac{\partial\xi}{\partial x}\right)^2\frac{\partial\eta}{\partial y}+\frac{\partial^3u}{\partial\eta^3}\left(\frac{\partial\eta}{\partial x}\right)^2\frac{\partial\eta}{\partial y} + 2\frac{\partial^3u}{\partial\xi\partial\eta^2}\frac{\partial\xi}{\partial x}\frac{\partial\eta}{\partial x}\frac{\partial\eta}{\partial y}
+  \end{split}
+\]
+
+\[
+  \begin{split}
+    \frac{\partial^3u}{\partial x\partial y^2} &= \frac{\partial}{\partial\xi}\left(\frac{\partial^2 u}{\partial\xi^2}\left(\frac{\partial\xi}{\partial y}\right)^2 + \frac{\partial^2u}{\partial\eta^2}\left(\frac{\partial\eta}{\partial y}\right)^2 + 2\frac{\partial^2u}{\partial\xi\partial\eta}\frac{\partial\xi}{\partial y}\frac{\partial\eta}{\partial y}\right)\frac{\partial\xi}{\partial x} \\
+       &+\frac{\partial}{\partial\eta}\left(\frac{\partial^2 u}{\partial\xi^2}\left(\frac{\partial\xi}{\partial y}\right)^2 + \frac{\partial^2u}{\partial\eta^2}\left(\frac{\partial\eta}{\partial y}\right)^2 + 2\frac{\partial^2u}{\partial\xi\partial\eta}\frac{\partial\xi}{\partial y}\frac{\partial\eta}{\partial y}\right)\frac{\partial\eta}{\partial x} \\
+       &= \frac{\partial^3u}{\partial\xi^3}\frac{\partial\xi}{\partial x}\left(\frac{\partial\xi}{\partial y}\right)^2 + \frac{\partial^3u}{\partial\xi\partial\eta^2}\frac{\partial \xi}{\partial x}\left(\frac{\partial\eta}{\partial y}\right)^2 + 2\frac{\partial^3u}{\partial\xi^2\partial\eta}\frac{\partial\xi}{\partial x}\frac{\partial\xi}{\partial y}\frac{\partial\eta}{\partial y} \\
+       &+ \frac{\partial^3u}{\partial\xi^2\partial\eta}\left(\frac{\partial\xi}{\partial y}\right)^2\frac{\partial\eta}{\partial x} + \frac{\partial^3u}{\partial\eta^3}\frac{\partial\eta}{\partial x}\left(\frac{\partial\eta}{\partial y}\right)^2 + 2\frac{\partial^3u}{\partial\xi\partial\eta^2}\frac{\partial\xi}{\partial y}\frac{\partial\eta}{\partial x}\frac{\partial\eta}{\partial y}
+  \end{split}
+\]
+\end{document}

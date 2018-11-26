@@ -1,0 +1,109 @@
+\documentclass[twoside, 11pt, a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amsfonts,amssymb,graphicx,parskip}
+\usepackage{mathpazo}
+\usepackage{color}
+\usepackage[margin=1in]{geometry}
+%\usepackage{fourierx} % eller lmodern
+
+% for debug utskrift
+\newcommand{\debug}[1]{\texttt{#1}}
+% for ingen utskrift av kommentarer/debug
+%\newcommand{\debug}[1]{}
+
+\DeclareMathOperator{\erf}{erf}
+\DeclareMathOperator{\erfc}{erfc}
+\DeclareMathOperator{\eps}{\epsilon}
+\newcommand{\dee}{\mathrm{d}}
+
+\begin{document}
+Nurbs function:
+\[
+  R_i(x) = \frac{N_i(x)}{\sum_{j=1}^N w_jN_j(x)}w_i
+\]
+Let
+\[
+  W = \sum_{j=1}^Nw_jN_j(x)
+\]
+Nurbs derivative:
+\[
+  R_i'(x) = \frac{N_i'W - N_iW'}{W^2}w_i = \frac{H}{W^2}w_i
+\]
+Nurbs second derivative:
+\[
+  R_i''(x) = \frac{H'W - 2HW'}{W^3} = \frac{G}{W^3}w_i
+\]
+where
+\[
+  H' = N_i''W - NW''
+\]
+Third derivative:
+\[
+  R_i'''(x) = \frac{G'W - 3GW'}{W^4}w_i
+\]
+where
+\[
+  G' = H''W - 2HW'' - H'W'
+\]
+and
+\[
+  H'' = N_i'''W + N_i''W' - N'W'' -NW'''.
+\]
+
+\newpage
+Nurbs 2D function:
+\[
+  R_{ij}(x,y) = \frac{N_i(x)N_j(y)}{\sum_k\sum_l N_k(x)N_l(y)w_{kl}}w_{ij} = R_{ij}(x,y) = \frac{N_i(x)N_j(y)}{W}w_{ij}
+\]
+First derivative:
+\[
+  \begin{split}
+    \frac{\partial R_{ij}}{\partial x} &= \frac{N_i'(x)N_j(y)W - N_i(x)N_j(y)\frac{\partial W}{\partial x}}{W^2}w_{ij}  = \frac{H_1}{W^2}w_{ij}\\
+    \frac{\partial R_{ij}}{\partial y} &= \frac{N_i(x)N_j'(y)W - N_i(x)N_j(y)\frac{\partial W}{\partial y}}{W^2}w_{ij} = \frac{H_2}{W^2}w_{ij}
+  \end{split}
+\]
+Second derivative:
+\[
+  \begin{split}
+    \frac{\partial^2 R_{ij}}{\partial x^2} &= \frac{\frac{\partial H_1}{\partial x}W - 2H_1\frac{\partial W}{\partial x}}{W^3}w_{ij} = \frac{G_1}{W^3}w_{ij} \\
+    \frac{\partial^2 R_{ij}}{\partial y^2} &= \frac{\frac{\partial H_2}{\partial y}W - 2H_2\frac{\partial W}{\partial y}}{W^3}w_{ij} = \frac{G_2}{W^3}w_{ij} \\
+    \frac{\partial^2 R_{ij}}{\partial x\partial y} &= \frac{\frac{\partial H_1}{\partial y}W - 2H_1\frac{\partial W}{\partial y}}{W^3}w_{ij}
+  \end{split}
+\]
+where
+\[
+  \begin{split}
+    \frac{\partial H_1}{\partial x} &= N_i''(x)N_j(y)W - N_i(x)N_j(y)\frac{\partial^2W}{\partial x^2} \\
+    \frac{\partial H_1}{\partial y} &= N_i'(x)N_j'(y)W + N_i'(x)N_j(y)\frac{\partial W}{\partial y} - N_i(x)N_j'(y)\frac{\partial W}{\partial x} - N_i(x)N_j(y)\frac{\partial^2W}{\partial x\partial y} \\
+    \frac{\partial H_2}{\partial y} &= N_i(x)N_j''(y)W - N_i(x)N_j(y)\frac{\partial^2W}{\partial y^2}
+  \end{split}
+\]
+\newpage
+Third derivative:
+\[
+  \begin{split}
+    \frac{\partial^3 R_{ij}}{\partial x^3} &= \frac{\frac{\partial G_1}{\partial x}W - 3G_1\frac{\partial W}{\partial x}}{W^4}w_{ij} \\
+    \frac{\partial^3 R_{ij}}{\partial y^3} &= \frac{\frac{G_2}{\partial y}W - 3G_2\frac{\partial W}{\partial y}}{W^4}w_{ij} \\
+    \frac{\partial^3 R_{ij}}{\partial x^2\partial y} &= \frac{\frac{\partial G_1}{\partial y}W - 3G_1\frac{\partial W}{\partial y}}{W^4}w_{ij} \\
+    \frac{\partial^3 R_{ij}}{\partial x\partial y^2} &= \frac{\frac{\partial G_2}{\partial x}W - 3G_2\frac{\partial W}{\partial x}}{W^4}w_{ij}
+  \end{split}
+\]
+where
+\[
+  \begin{split}
+    \frac{\partial G_1}{\partial x} &= \frac{\partial^2H_1}{\partial x^2}W + \frac{\partial H_1}{\partial x}\frac{\partial W}{\partial x} - 2\frac{\partial H_1}{\partial x}\frac{\partial W}{\partial x} - 2 H_1\frac{\partial^2W}{\partial x^2} \\
+    \frac{\partial G_1}{\partial y} &= \frac{\partial^2H_1}{\partial x\partial y}W + \frac{\partial H_1}{\partial x}\frac{\partial W}{\partial y} - 2\frac{\partial H_1}{\partial y}\frac{\partial W}{\partial x} - 2 H_1\frac{\partial^2W}{\partial x\partial y} \\
+    \frac{\partial G_2}{\partial x} &= \frac{\partial^2H_2}{\partial x\partial y}W + \frac{\partial H_2}{\partial y}\frac{\partial W}{\partial x} - 2\frac{\partial H_2}{\partial x}\frac{\partial W}{\partial y} - 2 H_2\frac{\partial^2W}{\partial x\partial y} \\
+    \frac{\partial G_2}{\partial y} &= \frac{\partial^2H_2}{\partial y^2}W + \frac{\partial H_2}{\partial y}\frac{\partial W}{\partial y} - 2\frac{\partial H_2}{\partial y}\frac{\partial W}{\partial y} - 2 H_2\frac{\partial^2W}{\partial y^2}
+  \end{split}
+\]
+and
+\[
+  \begin{split}
+    \frac{\partial^2H_1}{\partial x^2} &= N_i'''N_jW + N_i''N_j\frac{\partial W}{\partial x} - N_i'N_j\frac{\partial^2W}{\partial x^2} - N_iN_j\frac{\partial^3W}{\partial x^3} \\
+    \frac{\partial^2H_1}{\partial x\partial y} &= N_i''N_j'W + N_i''N_j\frac{\partial W}{\partial y} - N_iN_j'\frac{\partial^2W}{\partial x^2} - N_iN_j\frac{\partial^3W}{\partial x^2\partial y} \\
+    \frac{\partial^2H_2}{\partial y^2} &= N_iN_j'''W + N_iN_j''\frac{\partial W}{\partial y} - N_iN_j'\frac{\partial^2W}{\partial y^2} - N_iN_j\frac{\partial^3W}{\partial y^3} \\
+    \frac{\partial^2H_2}{\partial x\partial y} &= N_i'N_j''W + N_iN_j''\frac{\partial W}{\partial x} - N_i'N_j\frac{\partial^2W}{\partial y^2} - N_iN_j\frac{\partial^3W}{\partial x\partial y^2}
+  \end{split}
+\]
+\end{document}
