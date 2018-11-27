@@ -603,7 +603,7 @@ protected:
 
   //! \brief Returns the volume in the parameter space for an element.
   //! \param[in] iel Element index
-  double getParametricVolume(int iel) const;
+  virtual double getParametricVolume(int iel) const;
   //! \brief Returns boundary face area in the parameter space for an element.
   //! \param[in] iel Element index
   //! \param[in] dir Local face index of the boundary face
