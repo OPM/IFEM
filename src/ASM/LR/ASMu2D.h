@@ -144,6 +144,9 @@ public:
   //! \brief Returns the total number of nodes in this patch.
   virtual size_t getNoNodes(int basis = 0) const;
 
+  //! \brief Returns the number of projection nodes for this patch.
+  virtual size_t getNoProjectionNodes() const;
+
   //! \brief Refines along the diagonal of the LR-spline patch.
   //! \details Progressively refine until the LR-spline object contains at least
   //! \a minBasisfunctions basis functions.
@@ -376,6 +379,11 @@ public:
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
                             const int* npe, char project = '\0') const;
 
+  //! \brief Returns a field using the projection basis.
+  //! \param[in] coefs The coefficients for the field
+  //! \param[in] nf Number of components
+  virtual Fields* getProjectedFields(const Vector& coefs, size_t nf) const;
+
 private:
   //! \brief Struct representing an inhomogeneous Dirichlet boundary condition.
   struct DirichletEdge
@@ -558,6 +566,7 @@ public:
 
 protected:
   std::shared_ptr<LR::LRSplineSurface> lrspline; //!< Pointer to the LR-spline surface object
+  std::shared_ptr<LR::LRSplineSurface> projBasis; //!< Basis to project onto
 
   Go::SplineSurface* tensorspline; //!< Pointer to original tensor spline object
   // The tensor spline object is kept for backward compatability with the REFINE
