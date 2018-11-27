@@ -87,7 +87,7 @@ public:
   virtual char getNodeType(size_t inod) const;
   //! \brief Returns the area in the parameter space for an element.
   //! \param[in] iel Element index
-  double getParametricArea(int iel) const;
+  virtual double getParametricArea(int iel) const;
   //! \brief Returns boundary edge length in the parameter space for an element.
   //! \param[in] iel Element index
   //! \param[in] dir Local index of the boundary edge
@@ -239,15 +239,6 @@ public:
                                 int thick = 1, int = 0, bool local = false) const;
 
 protected:
-  //! \brief Assembles L2-projection matrices for the secondary solution.
-  //! \param[out] A Left-hand-side matrix
-  //! \param[out] B Right-hand-side vectors
-  //! \param[in] integrand Object with problem-specific data and methods
-  //! \param[in] continuous If \e false, a discrete L2-projection is used
-  virtual bool assembleL2matrices(SparseMatrix& A, StdVector& B,
-                                  const IntegrandBase& integrand,
-                                  bool continuous) const;
-
   std::vector<std::shared_ptr<Go::SplineSurface>> m_basis; //!< Vector of bases
 };
 
