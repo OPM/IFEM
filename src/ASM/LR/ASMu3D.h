@@ -124,6 +124,9 @@ public:
   //! \param[out] p3 Order in third (w) direction
   virtual bool getOrder(int& p1, int& p2, int& p3) const;
 
+  //! \brief Returns the number of projection nodes for this patch.
+  virtual size_t getNoProjectionNodes() const;
+
   //! \brief Refines the parametrization by inserting tensor knots uniformly.
   //! \param[in] dir Parameter direction to refine
   //! \param[in] nInsert Number of extra knots to insert in each knot-span
@@ -359,6 +362,11 @@ public:
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
                             const int* npe, char project = '\0') const;
 
+  //! \brief Returns a field using the projection basis.
+  //! \param[in] coefs The coefficients for the field
+  //! \param[in] nf Number of components
+  virtual Fields* getProjectedFields(const Vector& coefs, size_t nf) const;
+
   //! \brief Transfers Gauss point variables from old basis to this patch.
   //! \param[in] old_basis The LR-spline basis to transfer from
   //! \param[in] oldVar Gauss point variables associated with \a oldBasis
@@ -568,6 +576,7 @@ public:
 
 protected:
   std::shared_ptr<LR::LRSplineVolume> lrspline; //!< Pointer to the LR-spline volume object
+  std::shared_ptr<LR::LRSplineVolume> projBasis; //!< Basis to project onto
 
   Go::SplineVolume* tensorspline; //!< Pointer to original tensor spline object
   // The tensor spline object is kept for backward compatability with the REFINE

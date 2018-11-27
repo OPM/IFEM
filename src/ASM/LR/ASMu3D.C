@@ -27,6 +27,7 @@
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
 #include "LagrangeInterpolator.h"
+#include "LRSplineFields3D.h"
 #include "ElementBlock.h"
 #include "MPC.h"
 #include "SplineUtils.h"
@@ -206,6 +207,8 @@ bool ASMu3D::generateFEMTopology ()
   tensorspline = nullptr;
 
   if (!lrspline) return false;
+  if (!projBasis)
+    projBasis = lrspline;
 
   nnod = lrspline->nBasisFunctions();
   nel  = lrspline->nElements();
@@ -2404,4 +2407,19 @@ void ASMu3D::extendRefinementDomain (IntSet& refineIndices,
           break;
         }
   }
+}
+
+
+size_t ASMu3D::getNoProjectionNodes() const
+{
+  return projBasis->nBasisFunctions();
+}
+
+
+Fields* ASMu3D::getProjectedFields(const Vector& coefs, size_t nf) const
+{
+  if (projBasis.get() != this->getBasis(1))
+    return new LRSplineFields3D(projBasis.get(), coefs, nf);
+
+  return nullptr;
 }
