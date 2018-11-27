@@ -182,16 +182,6 @@ public:
   virtual void remapErrors(RealArray& errors,
                            const RealArray& origErr, bool elemErrors) const;
 
-protected:
-  //! \brief Assembles L2-projection matrices for the secondary solution.
-  //! \param[out] A Left-hand-side matrix
-  //! \param[out] B Right-hand-side vectors
-  //! \param[in] integrand Object with problem-specific data and methods
-  //! \param[in] continuous If \e false, a discrete L2-projection is used
-  virtual bool assembleL2matrices(SparseMatrix& A, StdVector& B,
-                                  const IntegrandBase& integrand,
-                                  bool continuous) const;
-
 private:
   std::vector<std::shared_ptr<LR::LRSplineVolume>> m_basis; //!< Spline bases
   std::shared_ptr<LR::LRSplineVolume> refBasis; //!< Basis to refine based on

@@ -123,12 +123,12 @@ Go::SplineVolume* ASMs3D::projectSolution (const IntegrandBase& integrand) const
     if (!this->getGrevilleParameters(gpar[dir],dir,basis))
       return nullptr;
 
-  const Go::SplineVolume* pvol = this->getBasis(basis);
-
   // Evaluate the secondary solution at all sampling points
   Matrix sValues;
   if (!this->evalSolution(sValues,integrand,gpar.data()) || sValues.rows() == 0)
     return nullptr;
+
+  const Go::SplineVolume* pvol = this->getBasis(basis);
 
   // Project the results onto the spline basis to find control point
   // values based on the result values evaluated at the Greville points.
@@ -163,17 +163,19 @@ bool ASMs3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
                                  const IntegrandBase& integrand,
                                  bool continuous) const
 {
-  const size_t nnod = this->getNoNodes(1);
+  const size_t nnod = this->getNoProjectionNodes();
 
-  const int p1 = svol->order(0);
-  const int p2 = svol->order(1);
-  const int p3 = svol->order(2);
-  const int n1 = svol->numCoefs(0);
-  const int n2 = svol->numCoefs(1);
-  const int n3 = svol->numCoefs(2);
-  const int nel1 = n1 - p1 + 1;
-  const int nel2 = n2 - p2 + 1;
-  const int nel3 = n3 - p3 + 1;
+  const int g1 = svol->order(0);
+  const int g2 = svol->order(1);
+  const int g3 = svol->order(2);
+  const int p1 = proj->order(0);
+  const int p2 = proj->order(1);
+  const int p3 = proj->order(2);
+  const int n1 = proj->numCoefs(0);
+  const int n2 = proj->numCoefs(1);
+  const int nel1 = svol->numCoefs(0) - g1 + 1;
+  const int nel2 = svol->numCoefs(1) - g2 + 1;
+  const int nel3 = svol->numCoefs(2) - g3 + 1;
 
   int pmax = p1 > p2 ? p1 : p2;
   if (pmax < p3) pmax = p3;
@@ -198,24 +200,27 @@ bool ASMs3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
 
   // Evaluate basis functions at all integration points
   std::vector<Go::BasisPts>    spl0;
-  std::vector<Go::BasisDerivs> spl1;
+  std::vector<Go::BasisDerivs> spl1, spl2;
   if (continuous)
-    svol->computeBasisGrid(gpar[0],gpar[1],gpar[2],spl1);
+  {
+    proj->computeBasisGrid(gpar[0],gpar[1],gpar[2],spl1);
+    svol->computeBasisGrid(gpar[0],gpar[1],gpar[2],spl2);
+  }
   else
-    svol->computeBasisGrid(gpar[0],gpar[1],gpar[2],spl0);
+    proj->computeBasisGrid(gpar[0],gpar[1],gpar[2],spl0);
 
   // Evaluate the secondary solution at all integration points
   Matrix sField;
   if (!this->evalSolution(sField,integrand,gpar.data()))
   {
     std::cerr <<" *** ASMs3D::assembleL2matrices: Failed for patch "<< idx+1
-	      <<" nPoints="<< gpar[0].size()*gpar[1].size()*gpar[2].size()
-	      << std::endl;
+              <<" nPoints="<< gpar[0].size()*gpar[1].size()*gpar[2].size()
+              << std::endl;
     return false;
   }
 
   double dV = 1.0;
-  Vector phi(p1*p2*p3);
+  Vector phi(p1*p2*p3), phi2(g1*g2*g3);
   Matrix dNdu, Xnod, J;
 
 
@@ -237,17 +242,41 @@ bool ASMs3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
 	    return false; // topology error (probably logic error)
 	}
 
+        int ip = ((i3*ng2*nel2 + i2)*ng1*nel1 + i1)*ng3;
+        IntVec lmnpc;
+        if (proj != svol)
+        {
+          // Establish nodal point correspondance for the projection element
+          int i, j, k, vidx, widx;
+          lmnpc.reserve(phi.size());
+          if (continuous)
+            widx = ((spl1[ip].left_idx[2]-p3+1)*n1*n2 +
+                    (spl1[ip].left_idx[1]-p2+1)*n1    +
+                    (spl1[ip].left_idx[0]-p1+1));
+          else
+            widx = ((spl0[ip].left_idx[2]-p3+1)*n1*n2 +
+                    (spl0[ip].left_idx[1]-p2+1)*n1    +
+                    (spl0[ip].left_idx[0]-p1+1));
+          for (k = 0; k < p3; k++, widx += n1*n2)
+            for (j = vidx = 0; j < p2; j++, vidx += n1)
+              for (i = 0; i < p1; i++)
+                lmnpc.push_back(widx+vidx+i);
+        }
+        const IntVec& mnpc = proj == svol ? MNPC[iel] : lmnpc;
+
 	// --- Integration loop over all Gauss points in each direction --------
 
         Matrix eA(p1*p2*p3, p1*p2*p3);
         Vectors eB(sField.rows(), Vector(p1*p2*p3));
-        int ip = ((i3*ng2*nel2 + i2)*ng1*nel1 + i1)*ng3;
         for (int k = 0; k < ng3; k++, ip += ng2*(nel2-1)*ng1*nel1)
           for (int j = 0; j < ng2; j++, ip += ng1*(nel1-1))
             for (int i = 0; i < ng1; i++, ip++)
 	    {
 	      if (continuous)
+	      {
 		SplineUtils::extractBasis(spl1[ip],phi,dNdu);
+		SplineUtils::extractBasis(spl2[ip],phi2,dNdu);
+	      }
 	      else
 		phi = spl0[ip].basisValues;
 
@@ -269,9 +298,9 @@ bool ASMs3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
 
         for (int i = 0; i < p1*p2*p3; ++i) {
           for (int j = 0; j < p1*p2*p3; ++j)
-            A(MNPC[iel][i]+1, MNPC[iel][j]+1) += eA(i+1, j+1);
+            A(mnpc[i]+1, mnpc[j]+1) += eA(i+1, j+1);
 
-          int jp = MNPC[iel][i]+1;
+          int jp = mnpc[i]+1;
           for (size_t r = 0; r < sField.rows(); r++, jp += nnod)
             B(jp) += eB[r](1+i);
         }
@@ -339,8 +368,6 @@ Go::SplineVolume* ASMs3D::projectSolutionLeastSquare (const IntegrandBase& integ
 {
   if (!svol) return nullptr;
 
-  PROFILE1("test L2- projection");
-  // Compute parameter values of the result sampling points (Gauss-Interpl. points)
   // Get Gaussian quadrature points and weights
   int p = svol->order(0);
   for (int d = 1; d < 3; d++)
@@ -364,13 +391,13 @@ Go::SplineVolume* ASMs3D::projectSolutionLeastSquare (const IntegrandBase& integ
     tmp.reserve(ng*(basis.numCoefs()-basis.order()));
     for (int i = basis.order(); i <= basis.numCoefs(); i++)
     {
-      double d = knotit[i]-knotit[i-1];
+      double d = knotit[i] - knotit[i-1];
       for (int j = 0; j < ng; j++)
         tmp.push_back(d > 0.0 ? wg[j]*d*0.5 : 0.0);
     }
   }
 
-  // Evaluate the secondary solution at all sampling points
+  // Evaluate the secondary solution at all sampling points (Gauss points)
   Matrix sValues;
   if (!this->evalSolution(sValues,integrand,gpar.data()))
     return nullptr;
@@ -393,7 +420,6 @@ Go::SplineVolume* ASMs3D::projectSolutionLeastSquare (const IntegrandBase& integ
 
 Go::SplineVolume* ASMs3D::projectSolutionLocal (const IntegrandBase& integrand) const
 {
-  PROFILE1("test Quasi projection");
   // Compute parameter values of the result sampling points (Greville points)
   std::array<RealArray,3> gpar;
   for (int dir = 0; dir < 2; dir++)
@@ -426,7 +452,6 @@ Go::SplineVolume* ASMs3D::projectSolutionLocal (const IntegrandBase& integrand) 
 
 Go::SplineVolume* ASMs3D::projectSolutionLocalApprox(const IntegrandBase& integrand) const
 {
-  PROFILE1("test VDSA projection");
   // Compute parameter values of the result sampling points (Greville points)
   std::array<RealArray,3> gpar;
   for (int dir = 0; dir < 3; dir++)

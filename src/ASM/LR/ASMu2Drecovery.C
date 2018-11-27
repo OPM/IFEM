@@ -166,7 +166,7 @@ bool ASMu2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
     }
     const IntVec& mnpc = projBasis == lrspline ? MNPC[iel-1] : lmnpc;
 
-    // --- Integration loop over all Gauss points in each direction ----------
+    // --- Integration loop over all Gauss points in each direction ------------
 
     Matrix eA(nbf, nbf);
     Vectors eB(sField.rows(), Vector(nbf));

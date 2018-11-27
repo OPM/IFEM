@@ -241,15 +241,6 @@ protected:
   virtual void getBoundaryNodes(int lIndex, IntVec& nodes, int basis = 0,
                                 int thick = 1, int = 0, bool local = false) const;
 
-  //! \brief Assembles L2-projection matrices for the secondary solution.
-  //! \param[out] A Left-hand-side matrix
-  //! \param[out] B Right-hand-side vectors
-  //! \param[in] integrand Object with problem-specific data and methods
-  //! \param[in] continuous If \e false, a discrete L2-projection is used
-  virtual bool assembleL2matrices(SparseMatrix& A, StdVector& B,
-                                  const IntegrandBase& integrand,
-                                  bool continuous) const;
-
   std::vector<std::shared_ptr<Go::SplineVolume>> m_basis; //!< Vector of bases
 };
 
