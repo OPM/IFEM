@@ -175,19 +175,19 @@ bool ASMs3Dmx::generateFEMTopology ()
   if (!svol) return false;
 
   if (m_basis.empty()) {
-    m_basis = ASMmxBase::establishBases(svol, ASMmxBase::Type);
+    m_basis = ASMmxBase::establishBases(svol.get(), ASMmxBase::Type);
 
     // we need to project on something that is not one of our bases
     if (ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS1 ||
         ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
-      projBasis = ASMmxBase::establishBases(svol,
+      projBasis = ASMmxBase::establishBases(svol.get(),
                                             ASMmxBase::FULL_CONT_RAISE_BASIS1).front();
     else
       projBasis = m_basis.front();
   }
 
-  delete svol;
-  geo = svol = m_basis[geoBasis-1]->clone();
+  svol.reset(m_basis[geoBasis-1]->clone());
+  geo = svol.get();
 
   nb.clear();
   elem_size.clear();

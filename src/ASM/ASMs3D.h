@@ -18,6 +18,7 @@
 #include "ASM3D.h"
 #include "Interface.h"
 #include "ThreadGroups.h"
+#include <memory>
 
 namespace Go {
   class SplineSurface;
@@ -137,12 +138,12 @@ public:
   virtual ~ASMs3D() {}
 
   //! \brief Returns the spline volume representing the geometry of this patch.
-  Go::SplineVolume* getVolume() const { return svol; }
+  Go::SplineVolume* getVolume() const { return svol.get(); }
   //! \brief Returns the spline surface representing a boundary of this patch.
   //! \param[in] dir Parameter direction defining which boundary to return
   virtual Go::SplineSurface* getBoundary(int dir, int = 1);
   //! \brief Returns the spline volume representing the basis of this patch.
-  virtual Go::SplineVolume* getBasis(int = 1) const { return svol; }
+  virtual Go::SplineVolume* getBasis(int = 1) const { return svol.get(); }
   //! \brief Copies the parameter domain from the \a other patch.
   virtual void copyParameterDomain(const ASMbase* other);
 
@@ -733,7 +734,7 @@ private:
   bool getFaceSize(int& n1, int& n2, int basis, int face) const;
 
 protected:
-  Go::SplineVolume* svol;  //!< Pointer to the actual spline volume object
+  std::shared_ptr<Go::SplineVolume> svol;  //!< Pointer to the actual spline volume object
   bool              swapW; //!< Has the w-parameter direction been swapped?
 
   const IndexVec& nodeInd; //!< IJK-triplets for the control points (nodes)

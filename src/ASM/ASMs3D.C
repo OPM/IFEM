@@ -88,10 +88,10 @@ void ASMs3D::copyParameterDomain (const ASMbase* other)
 bool ASMs3D::read (std::istream& is)
 {
   if (shareFE) return true;
-  if (svol) delete svol;
+  svol.reset();
 
   Go::ObjectHeader head;
-  svol = new Go::SplineVolume;
+  svol.reset(new Go::SplineVolume);
   is >> head >> *svol;
 
   // Eat white-space characters to see if there is more data to read
@@ -106,20 +106,18 @@ bool ASMs3D::read (std::istream& is)
   if (!is.good() && !is.eof())
   {
     std::cerr <<" *** ASMs3D::read: Failure reading spline data"<< std::endl;
-    delete svol;
-    svol = 0;
+    svol.reset();
     return false;
   }
   else if (svol->dimension() < 3)
   {
     std::cerr <<" *** ASMs3D::read: Invalid spline volume patch, dim="
               << svol->dimension() << std::endl;
-    delete svol;
-    svol = 0;
+    svol.reset();
     return false;
   }
 
-  geo = svol;
+  geo = svol.get();
   return true;
 }
 
@@ -140,9 +138,8 @@ void ASMs3D::clear (bool retainGeometry)
   if (!retainGeometry)
   {
     // Erase spline data
-    if (svol && !shareFE) delete svol;
-    svol = 0;
-    geo = 0;
+    if (svol && !shareFE) svol.reset();
+    geo = nullptr;
   }
 
   // Erase the FE data
@@ -1864,7 +1861,7 @@ bool ASMs3D::integrate (Integrand& integrand,
           double u0 = 0.5*(gpar[0](1,i1-p1+1) + gpar[0](ng[0],i1-p1+1));
           double v0 = 0.5*(gpar[1](1,i2-p2+1) + gpar[1](ng[1],i2-p2+1));
           double w0 = 0.5*(gpar[2](1,i3-p3+1) + gpar[2](ng[2],i3-p3+1));
-          SplineUtils::point(X,u0,v0,w0,svol);
+          SplineUtils::point(X,u0,v0,w0,svol.get());
           if (!useElmVtx)
           {
             // When element corner coordinates are not needed, store coordinates
@@ -2639,7 +2636,7 @@ int ASMs3D::evalPoint (const double* xi, double* param, Vec3& X) const
   for (i = 0; i < 3; i++)
     param[i] = (1.0-xi[i])*svol->startparam(i) + xi[i]*svol->endparam(i);
 
-  SplineUtils::point(X,param[0],param[1],param[2],svol);
+  SplineUtils::point(X,param[0],param[1],param[2],svol.get());
 
   // Check if this point matches any of the control points (nodes)
   return this->searchCtrlPt(svol->coefs_begin(),svol->coefs_end(),
