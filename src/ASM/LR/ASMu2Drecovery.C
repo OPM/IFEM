@@ -31,10 +31,11 @@ bool ASMu2D::getGrevilleParameters (RealArray& prm, int dir, int basisNum) const
   if (!this->getBasis(basisNum) || dir < 0 || dir > 1) return false;
 
   const LR::LRSpline* lrspline = this->getBasis(basisNum);
+
   prm.clear();
   prm.reserve(lrspline->nBasisFunctions());
 
-  for (const LR::Basisfunction *b : lrspline->getAllBasisfunctions())
+  for (const LR::Basisfunction* b : lrspline->getAllBasisfunctions())
     prm.push_back(b->getGrevilleParameter()[dir]);
 
   return true;
@@ -101,10 +102,10 @@ bool ASMu2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
                                  const IntegrandBase& integrand,
                                  bool continuous) const
 {
-  const size_t nnod = this->getNoNodes();
+  size_t nnod = this->getNoProjectionNodes();
 
-  const int p1 = lrspline->order(0);
-  const int p2 = lrspline->order(1);
+  const int p1 = projBasis->order(0);
+  const int p2 = projBasis->order(1);
 
   // Get Gaussian quadrature points
   const int ng1 = continuous ? nGauss : p1 - 1;
@@ -116,17 +117,21 @@ bool ASMu2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
   if (continuous && !wg) return false;
 
   double dA = 0.0;
-  Vector phi;
+  Vector phi, phi2;
   Matrix dNdu, Xnod, Jac;
-  Go::BasisDerivsSf spl1;
   Go::BasisPtsSf    spl0;
+  Go::BasisDerivsSf spl1, spl2;
 
 
   // === Assembly loop over all elements in the patch ==========================
 
-  size_t iel = 1;
-  for (const LR::Element* el : lrspline->getAllElements())
+  for (const LR::Element* el1 : lrspline->getAllElements())
   {
+    double uh = (el1->umin()+el1->umax())/2.0;
+    double vh = (el1->vmin()+el1->vmax())/2.0;
+    int ielp = projBasis->getElementContaining(uh,vh);
+    int iel = lrspline->getElementContaining(uh,vh)+1;
+
     if (continuous)
     {
       // Set up control point (nodal) coordinates for current element
@@ -140,8 +145,6 @@ bool ASMu2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
     std::array<RealArray,2> gpar, unstrGpar;
     this->getGaussPointParameters(gpar[0],0,ng1,iel,xg);
     this->getGaussPointParameters(gpar[1],1,ng2,iel,yg);
-
-    // convert to unstructured mesh representation
     expandTensorGrid(gpar.data(),unstrGpar.data());
 
     // Evaluate the secondary solution at all integration points
@@ -149,24 +152,37 @@ bool ASMu2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
     if (!this->evalSolution(sField,integrand,unstrGpar.data()))
       return false;
 
-    // set up basis function size (for extractBasis subroutine)
-    phi.resize(el->nBasisFunctions());
+    // Set up basis function size (for extractBasis subroutine)
+    const LR::Element* elm = projBasis->getElement(ielp);
+    size_t nbf = elm->nBasisFunctions();
+
+    IntVec lmnpc;
+    if (projBasis != lrspline)
+    {
+      lmnpc.reserve(nbf);
+      for (const LR::Basisfunction* f : elm->support())
+        lmnpc.push_back(f->getId());
+    }
+    const IntVec& mnpc = projBasis == lrspline ? MNPC[iel-1] : lmnpc;
 
     // --- Integration loop over all Gauss points in each direction ----------
-    Matrix eA(MNPC[iel-1].size(), MNPC[iel-1].size());
-    Vectors eB(sField.rows(), Vector(MNPC[iel-1].size()));
+
+    Matrix eA(nbf, nbf);
+    Vectors eB(sField.rows(), Vector(nbf));
     int ip = 0;
     for (int j = 0; j < ng2; j++)
       for (int i = 0; i < ng1; i++, ip++)
       {
         if (continuous)
         {
-          lrspline->computeBasis(gpar[0][i],gpar[1][j],spl1,iel-1);
+          projBasis->computeBasis(gpar[0][i],gpar[1][j],spl1,ielp);
           SplineUtils::extractBasis(spl1,phi,dNdu);
+          lrspline->computeBasis(gpar[0][i],gpar[1][j],spl2,iel-1);
+          SplineUtils::extractBasis(spl2,phi2,dNdu);
         }
         else
         {
-          lrspline->computeBasis(gpar[0][i],gpar[1][j],spl0,iel-1);
+          projBasis->computeBasis(gpar[0][i],gpar[1][j],spl0,ielp);
           phi = spl0.basisValues;
         }
 
@@ -186,15 +202,14 @@ bool ASMu2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
           eB[r-1].add(phi,sField(r,ip+1)*dJw);
       }
 
-    for (size_t i = 0; i < MNPC[iel-1].size(); ++i) {
-      for (size_t j = 0; j < MNPC[iel-1].size(); ++j)
-        A(MNPC[iel-1][i]+1, MNPC[iel-1][j]+1) += eA(i+1, j+1);
+    for (size_t i = 0; i < eA.rows(); ++i) {
+      for (size_t j = 0; j < eA.cols(); ++j)
+        A(mnpc[i]+1, mnpc[j]+1) += eA(i+1,j+1);
 
-      int jp = MNPC[iel-1][i]+1;
+      int jp = mnpc[i]+1;
       for (size_t r = 0; r < sField.rows(); r++, jp += nnod)
         B(jp) += eB[r](1+i);
     }
-    ++iel;
   }
 
   return true;
@@ -254,7 +269,7 @@ LR::LRSplineSurface* ASMu2D::scRecovery (const IntegrandBase& integrand) const
   size_t k, l, ip = 0;
   std::vector<LR::Element*>::const_iterator elStart, elEnd, el;
   std::vector<LR::Element*> supportElements;
-  for (LR::Basisfunction *b : lrspline->getAllBasisfunctions())
+  for (LR::Basisfunction* b : lrspline->getAllBasisfunctions())
   {
 #if SP_DEBUG > 2
     std::cout <<"Basis: "<< *b <<"\n  ng1 ="<< ng1 <<"\n  ng2 ="<< ng2
@@ -301,17 +316,14 @@ LR::LRSplineSurface* ASMu2D::scRecovery (const IntegrandBase& integrand) const
     for (el = elStart; el != elEnd; ++el)
     {
       int iel = (**el).getId()+1;
+#if SP_DEBUG > 2
+      std::cout <<"Element "<< **el << std::endl;
+#endif
 
-      // evaluate all gauss points for this element
+      // Compute parameter values of the Gauss points over this element
       std::array<RealArray,2> gaussPt, unstrGauss;
       this->getGaussPointParameters(gaussPt[0],0,ng1,iel,xg);
       this->getGaussPointParameters(gaussPt[1],1,ng2,iel,yg);
-
-#if SP_DEBUG > 2
-      std::cout << "Element " << **el << std::endl;
-#endif
-
-      // convert to unstructured mesh representation
       expandTensorGrid(gaussPt.data(),unstrGauss.data());
 
       // Evaluate the secondary solution at all Gauss points

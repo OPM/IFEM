@@ -215,15 +215,6 @@ public:
                            const RealArray& origErr, bool elemErrors) const;
 
 protected:
-  //! \brief Assembles L2-projection matrices for the secondary solution.
-  //! \param[out] A Left-hand-side matrix
-  //! \param[out] B Right-hand-side vectors
-  //! \param[in] integrand Object with problem-specific data and methods
-  //! \param[in] continuous If \e false, a discrete L2-projection is used
-  virtual bool assembleL2matrices(SparseMatrix& A, StdVector& B,
-                                  const IntegrandBase& integrand,
-                                  bool continuous) const;
-
   using ASMu2D::generateThreadGroups;
   //! \brief Generates element groups for multi-threading of interior integrals.
   //! \param[in] integrand Object with problem-specific data and methods

@@ -164,14 +164,15 @@ bool ASMs2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
                                  const IntegrandBase& integrand,
                                  bool continuous) const
 {
-  const size_t nnod = this->getNoNodes(1);
+  const size_t nnod = this->getNoProjectionNodes();
 
-  const int p1 = surf->order_u();
-  const int p2 = surf->order_v();
-  const int n1 = surf->numCoefs_u();
-  const int n2 = surf->numCoefs_v();
-  const int nel1 = n1 - p1 + 1;
-  const int nel2 = n2 - p2 + 1;
+  const int g1 = surf->order_u();
+  const int g2 = surf->order_v();
+  const int p1 = proj->order_u();
+  const int p2 = proj->order_v();
+  const int n1 = proj->numCoefs_u();
+  const int nel1 = surf->numCoefs_u() - g1 + 1;
+  const int nel2 = surf->numCoefs_v() - g2 + 1;
   const int pmax = p1 > p2 ? p1 : p2;
 
   // Get Gaussian quadrature point coordinates (and weights if continuous)
@@ -191,23 +192,26 @@ bool ASMs2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
 
   // Evaluate basis functions at all integration points
   std::vector<Go::BasisPtsSf>    spl0;
-  std::vector<Go::BasisDerivsSf> spl1;
+  std::vector<Go::BasisDerivsSf> spl1, spl2;
   if (continuous)
-    surf->computeBasisGrid(gpar[0],gpar[1],spl1);
+  {
+    proj->computeBasisGrid(gpar[0],gpar[1],spl1);
+    surf->computeBasisGrid(gpar[0],gpar[1],spl2);
+  }
   else
-    surf->computeBasisGrid(gpar[0],gpar[1],spl0);
+    proj->computeBasisGrid(gpar[0],gpar[1],spl0);
 
   // Evaluate the secondary solution at all integration points
   Matrix sField;
   if (!this->evalSolution(sField,integrand,gpar.data()))
   {
     std::cerr <<" *** ASMs2D::assembleL2matrices: Failed for patch "<< idx+1
-	      <<" nPoints="<< gpar[0].size()*gpar[1].size() << std::endl;
+              <<" nPoints="<< gpar[0].size()*gpar[1].size() << std::endl;
     return false;
   }
 
   double dA = 1.0;
-  Vector phi(p1*p2);
+  Vector phi(p1*p2), phi2(g1*g2);
   Matrix dNdu, Xnod, J;
 
 
@@ -221,47 +225,66 @@ bool ASMs2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
 
       if (continuous)
       {
-	// Set up control point (nodal) coordinates for current element
-	if (!this->getElementCoordinates(Xnod,1+iel))
-	  return false;
-	else if ((dA = 0.25*this->getParametricArea(1+iel)) < 0.0)
-	  return false; // topology error (probably logic error)
+        // Set up control point (nodal) coordinates for current element
+        if (!this->getElementCoordinates(Xnod,1+iel))
+          return false;
+        else if ((dA = 0.25*this->getParametricArea(1+iel)) < 0.0)
+          return false; // topology error (probably logic error)
       }
+
+      int ip = (i2*ng1*nel1 + i1)*ng2;
+      IntVec lmnpc;
+      if (proj != surf)
+      {
+        // Establish nodal point correspondance for the projection element
+        int i, j, vidx;
+        lmnpc.reserve(phi.size());
+        if (continuous)
+          vidx = (spl1[ip].left_idx[1]-p1+1)*n1 + (spl1[ip].left_idx[0]-p1+1);
+        else
+          vidx = (spl0[ip].left_idx[1]-p1+1)*n1 + (spl0[ip].left_idx[0]-p1+1);
+        for (j = 0; j < p2; j++, vidx += n1)
+          for (i = 0; i < p1; i++)
+            lmnpc.push_back(vidx+i);
+      }
+      const IntVec& mnpc = proj == surf ? MNPC[iel] : lmnpc;
 
       // --- Integration loop over all Gauss points in each direction ----------
 
       Matrix eA(p1*p2, p1*p2);
-      Vectors eB(sField.rows(), Vector(p1*p1));
-      int ip = (i2*ng1*nel1 + i1)*ng2;
+      Vectors eB(sField.rows(), Vector(p1*p2));
       for (int j = 0; j < ng2; j++, ip += ng1*(nel1-1))
-	for (int i = 0; i < ng1; i++, ip++)
-	{
-	  if (continuous)
-	    SplineUtils::extractBasis(spl1[ip],phi,dNdu);
-	  else
-	    phi = spl0[ip].basisValues;
+        for (int i = 0; i < ng1; i++, ip++)
+        {
+          if (continuous)
+          {
+            SplineUtils::extractBasis(spl1[ip],phi,dNdu);
+            SplineUtils::extractBasis(spl2[ip],phi2,dNdu);
+          }
+          else
+            phi = spl0[ip].basisValues;
 
-	  // Compute the Jacobian inverse and derivatives
-	  double dJw = 1.0;
-	  if (continuous)
-	  {
-	    dJw = dA*wg[i]*wg[j]*utl::Jacobian(J,dNdu,Xnod,dNdu,false);
-	    if (dJw == 0.0) continue; // skip singular points
-	  }
+          // Compute the Jacobian inverse and derivatives
+          double dJw = 1.0;
+          if (continuous)
+          {
+            dJw = dA*wg[i]*wg[j]*utl::Jacobian(J,dNdu,Xnod,dNdu,false);
+            if (dJw == 0.0) continue; // skip singular points
+          }
 
           // Integrate the mass matrix
           eA.outer_product(phi, phi, true, dJw);
 
-	  // Integrate the rhs vector B
+          // Integrate the rhs vector B
           for (size_t r = 1; r <= sField.rows(); r++)
             eB[r-1].add(phi,sField(r,ip+1)*dJw);
-	}
+        }
 
       for (int i = 0; i < p1*p2; ++i) {
         for (int j = 0; j < p1*p2; ++j)
-          A(MNPC[iel][i]+1, MNPC[iel][j]+1) += eA(i+1, j+1);
+          A(mnpc[i]+1, mnpc[j]+1) += eA(i+1, j+1);
 
-        int jp = MNPC[iel][i]+1;
+        int jp = mnpc[i]+1;
         for (size_t r = 0; r < sField.rows(); r++, jp += nnod)
           B(jp) += eB[r](1+i);
       }

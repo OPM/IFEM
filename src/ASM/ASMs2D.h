@@ -532,7 +532,7 @@ protected:
 
   //! \brief Returns the area in the parameter space for an element.
   //! \param[in] iel Element index
-  double getParametricArea(int iel) const;
+  virtual double getParametricArea(int iel) const;
   //! \brief Returns boundary edge length in the parameter space for an element.
   //! \param[in] iel Element index
   //! \param[in] dir Local index of the boundary edge
