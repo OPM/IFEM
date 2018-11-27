@@ -277,16 +277,21 @@ bool ASMs3D::checkRightHandSystem ()
 }
 
 
-bool ASMs3D::refine (int dir, const RealArray& xi)
+bool ASMs3D::refine (int dir, const RealArray& xi, bool proj)
 {
   if (!svol || dir < 0 || dir > 2 || xi.empty()) return false;
   if (xi.front() < 0.0 || xi.back() > 1.0) return false;
   if (shareFE) return true;
+  if (proj && (!projBasis || projBasis == svol))
+    projBasis.reset(svol->clone());
 
   RealArray extraKnots;
-  RealArray::const_iterator uit = svol->basis(dir).begin();
+  RealArray::const_iterator uit = proj ? projBasis->basis(dir).begin()
+                                       : svol->basis(dir).begin();
+  RealArray::const_iterator end = proj ? projBasis->basis(dir).end()
+                                       : svol->basis(dir).end();
   double uprev = *(uit++);
-  while (uit != svol->basis(dir).end())
+  while (uit != end)
   {
     double ucurr = *(uit++);
     if (ucurr > uprev)
@@ -299,20 +304,26 @@ bool ASMs3D::refine (int dir, const RealArray& xi)
     uprev = ucurr;
   }
 
-  svol->insertKnot(dir,extraKnots);
+  proj ? projBasis->insertKnot(dir,extraKnots) : svol->insertKnot(dir,extraKnots);
   return true;
 }
 
 
-bool ASMs3D::uniformRefine (int dir, int nInsert)
+bool ASMs3D::uniformRefine (int dir, int nInsert, bool proj)
 {
   if (!svol || dir < 0 || dir > 2 || nInsert < 1) return false;
   if (shareFE) return true;
+  if (proj && (!projBasis || projBasis == svol))
+    projBasis.reset(svol->clone());
 
   RealArray extraKnots;
-  RealArray::const_iterator uit = svol->basis(dir).begin();
+  RealArray::const_iterator uit = proj ? projBasis->basis(dir).begin()
+                                       : svol->basis(dir).begin();
+  RealArray::const_iterator end = proj ? projBasis->basis(dir).end()
+                                       : svol->basis(dir).end();
+
   double uprev = *(uit++);
-  while (uit != svol->basis(dir).end())
+  while (uit != end)
   {
     double ucurr = *(uit++);
     if (ucurr > uprev)
@@ -324,17 +335,19 @@ bool ASMs3D::uniformRefine (int dir, int nInsert)
     uprev = ucurr;
   }
 
-  svol->insertKnot(dir,extraKnots);
+  proj ? projBasis->insertKnot(dir,extraKnots) : svol->insertKnot(dir,extraKnots);
   return true;
 }
 
 
-bool ASMs3D::raiseOrder (int ru, int rv, int rw)
+bool ASMs3D::raiseOrder (int ru, int rv, int rw, bool proj)
 {
   if (!svol) return false;
   if (shareFE) return true;
+  if (proj && (!projBasis || projBasis == svol))
+    projBasis.reset(svol->clone());
 
-  svol->raiseOrder(ru,rv,rw);
+  proj ? projBasis->raiseOrder(ru,rv,rw) : svol->raiseOrder(ru,rv,rw);
   return true;
 }
 

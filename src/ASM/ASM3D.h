@@ -69,16 +69,16 @@ public:
   //! \brief Refines the parametrization by inserting extra knots uniformly.
   //! \param[in] dir Parameter direction to refine
   //! \param[in] nInsert Number of extra knots to insert in each knot-span
-  virtual bool uniformRefine(int dir, int nInsert) = 0;
+  virtual bool uniformRefine(int dir, int nInsert, bool proj = false) = 0;
   //! \brief Raises the order of the spline object for this patch.
   //! \param[in] ru Number of times to raise the order in u-direction
   //! \param[in] rv Number of times to raise the order in v-direction
   //! \param[in] rw Number of times to raise the order in w-direction
-  virtual bool raiseOrder(int ru, int rv, int rw) = 0;
+  virtual bool raiseOrder(int ru, int rv, int rw, bool proj = false) = 0;
   //! \brief Refines the parametrization by inserting extra knots.
   //! \param[in] dir Parameter direction to refine
   //! \param[in] xi Relative positions of added knots in each existing knot span
-  virtual bool refine(int dir, const std::vector<double>& xi) = 0;
+  virtual bool refine(int dir, const std::vector<double>& xi, bool proj = false) = 0;
 
   //! \brief Constrains all DOFs on a given boundary face.
   //! \param[in] dir Parameter direction defining the face to constrain

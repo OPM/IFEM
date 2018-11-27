@@ -231,7 +231,7 @@ bool ASMu2D::uniformRefine (int dir, int nInsert, bool proj)
 {
   if (!tensorspline || dir < 0 || dir > 1 || nInsert < 1) return false;
   if (shareFE) return true;
-  if (proj && tensorsplineProj != tensorspline)
+  if (proj && tensorsplineProj)
     tensorsplineProj = tensorspline->clone();
 
   RealArray extraKnots;
@@ -274,7 +274,7 @@ bool ASMu2D::refine (int dir, const RealArray& xi, double scale, bool proj)
   if (!tensorspline || dir < 0 || dir > 1 || xi.empty()) return false;
   if (xi.front() < 0.0 || xi.back() > scale || scale < 1.0) return false;
   if (shareFE) return true;
-  if (proj && tensorsplineProj != tensorspline)
+  if (proj && !tensorsplineProj)
     tensorsplineProj = tensorspline->clone();
 
   RealArray extraKnots;
@@ -421,7 +421,7 @@ bool ASMu2D::raiseOrder (int ru, int rv, bool proj)
 {
   if (!tensorspline) return false;
   if (shareFE) return true;
-  if (proj && tensorsplineProj != tensorspline)
+  if (proj && !tensorsplineProj)
     tensorsplineProj = tensorspline->clone();
 
   proj? tensorsplineProj->raiseOrder(ru,rv) : tensorspline->raiseOrder(ru,rv);

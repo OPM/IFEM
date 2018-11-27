@@ -246,16 +246,16 @@ public:
   //! \brief Refines the parametrization by inserting extra knots.
   //! \param[in] dir Parameter direction to refine
   //! \param[in] xi Relative positions of added knots in each existing knot span
-  bool refine(int dir, const RealArray& xi);
+  bool refine(int dir, const RealArray& xi, bool proj = false);
   //! \brief Refines the parametrization by inserting extra knots uniformly.
   //! \param[in] dir Parameter direction to refine
   //! \param[in] nInsert Number of extra knots to insert in each knot-span
-  bool uniformRefine(int dir, int nInsert);
+  bool uniformRefine(int dir, int nInsert, bool proj = false);
   //! \brief Raises the order of the SplineVolume object for this patch.
   //! \param[in] ru Number of times to raise the order in u-direction
   //! \param[in] rv Number of times to raise the order in v-direction
   //! \param[in] rw Number of times to raise the order in w-direction
-  bool raiseOrder(int ru, int rv, int rw);
+  bool raiseOrder(int ru, int rv, int rw, bool proj = false);
 
 
   // Various methods for preprocessing of boundary conditions and patch topology
