@@ -214,14 +214,6 @@ public:
   virtual bool injectNodeVec(const Vector& nodeVec, Vector& globVec,
 			     unsigned char = 0, int basis = 0) const;
 
-  //! \brief Returns the number of projection nodes for this patch.
-  virtual size_t getNoProjectionNodes() const;
-
-  //! \brief Returns a field using the projection basis.
-  //! \param[in] coefs The coefficients for the field
-  //! \param[in] nf Number of components
-  virtual Fields* getProjectedFields(const Vector& coefs, size_t nf) const;
-
   using ASMs2D::generateThreadGroups;
   //! \brief Generates element groups for multi-threading of interior integrals.
   //! \param[in] integrand Object with problem-specific data and methods
@@ -257,7 +249,6 @@ protected:
                                   bool continuous) const;
 
   std::vector<std::shared_ptr<Go::SplineSurface>> m_basis; //!< Vector of bases
-  std::shared_ptr<Go::SplineSurface> projBasis; //!< Basis to project onto
 };
 
 #endif

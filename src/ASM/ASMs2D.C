@@ -26,6 +26,7 @@
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
 #include "ElementBlock.h"
+#include "SplineFields2D.h"
 #include "SplineUtils.h"
 #include "Utilities.h"
 #include "Profiler.h"
@@ -411,6 +412,8 @@ bool ASMs2D::raiseOrder (int ru, int rv)
 bool ASMs2D::generateFEMTopology ()
 {
   if (!surf) return false;
+  if (!projBasis)
+    projBasis = surf;
 
   const int n1 = surf->numCoefs_u();
   const int n2 = surf->numCoefs_v();
@@ -2929,4 +2932,19 @@ int ASMs2D::getCorner (int I, int J, int basis) const
   if (J > 0) node += n1*(n2-1);
 
   return node;
+}
+
+
+Fields* ASMs2D::getProjectedFields(const Vector& coefs, size_t nf) const
+{
+  if (projBasis.get() != this->getBasis(1))
+    return new SplineFields2D(projBasis.get(), coefs, nf);
+
+  return nullptr;
+}
+
+
+size_t ASMs2D::getNoProjectionNodes() const
+{
+  return projBasis->numCoefs_u() * projBasis->numCoefs_v();
 }

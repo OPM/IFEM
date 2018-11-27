@@ -610,6 +610,9 @@ public:
   //! \brief Returns the number of elements on a boundary.
   virtual size_t getNoBoundaryElms(char lIndex, char ldim) const;
 
+  //! \brief Returns the number of projection nodes for this patch.
+  virtual size_t getNoProjectionNodes() const;
+
   //! \brief Returns parameter values and node numbers of the domain corners.
   //! \param[out] u Parameter values of the domain corners
   //! \param[out] corners 1-based indices of the corner nodes (optional)
@@ -649,6 +652,11 @@ public:
   void extractBasis(double u, double v, int dir, int p, Vector& dN,
                     bool fromRight = true) const;
 
+  //! \brief Returns a field using the projection basis.
+  //! \param[in] coefs The coefficients for the field
+  //! \param[in] nf Number of components
+  virtual Fields* getProjectedFields(const Vector& coefs, size_t nf) const;
+
 private:
   //! \brief Returns an index into the internal coefficient array for a node.
   //! \param[in] inod 0-based node index local to current patch
@@ -656,6 +664,7 @@ private:
 
 protected:
   std::shared_ptr<Go::SplineSurface> surf; //!< Pointer to the actual spline surface object
+  std::shared_ptr<Go::SplineSurface> projBasis; //!< Basis to project onto
   Go::SplineCurve* bou[4]; //!< Pointers to the four boundary curves
   bool              swapV; //!< Has the v-parameter direction been swapped?
 

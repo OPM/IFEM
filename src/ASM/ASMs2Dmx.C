@@ -1201,21 +1201,6 @@ void ASMs2Dmx::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
 }
 
 
-Fields* ASMs2Dmx::getProjectedFields(const Vector& coefs, size_t nf) const
-{
-  if (projBasis != m_basis[0])
-    return new SplineFields2D(projBasis.get(), coefs, nf);
-
-  return nullptr;
-}
-
-
-size_t ASMs2Dmx::getNoProjectionNodes() const
-{
-  return projBasis->numCoefs_u() * projBasis->numCoefs_v();
-}
-
-
 bool ASMs2Dmx::evalProjSolution (Matrix& sField, const Vector& locSol,
                                  const int* npe, int nf) const
 {
