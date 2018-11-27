@@ -119,6 +119,11 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
 
   if (!strcasecmp(elem->Value(),"refine") && !isRefined)
   {
+    bool proj = false;
+    std::string type;
+    if (utl::getAttribute(elem,"basis",type) && type == "projection")
+      proj = true;
+
     IntVec patches;
     if (!this->parseTopologySet(elem,patches))
       return false;
@@ -134,9 +139,10 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
         if ((pch = dynamic_cast<ASM2D*>(this->getPatch(j,true))))
         {
           IFEM::cout <<"\tRefining P"<< j
-                     <<" "<< addu <<" "<< addv << std::endl;
-          pch->uniformRefine(0,addu);
-          pch->uniformRefine(1,addv);
+                     <<" "<< addu <<" "<< addv
+                     << (proj ? " (projection basis)" : "") << std::endl;
+          pch->uniformRefine(0,addu,proj);
+          pch->uniformRefine(1,addv,proj);
         }
     }
     else
@@ -153,14 +159,19 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
                      <<" with grading "<< elem->FirstChild()->Value() <<":";
           for (size_t i = 0; i < xi.size(); i++)
             IFEM::cout << (i%10 || xi.size() < 11 ? " " : "\n\t") << xi[i];
-          IFEM::cout << std::endl;
-          pch->refine(dir-1,xi,scale);
+          IFEM::cout << (proj ? " (projection basis)" : "") << std::endl;
+          pch->refine(dir-1,xi,scale,proj);
         }
     }
   }
 
   else if (!strcasecmp(elem->Value(),"raiseorder") && !isRefined)
   {
+    bool proj = false;
+    std::string type;
+    if (utl::getAttribute(elem,"basis",type) && type == "projection")
+      proj = true;
+
     IntVec patches;
     if (!this->parseTopologySet(elem,patches))
       return false;
@@ -173,8 +184,9 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
       if ((pch = dynamic_cast<ASM2D*>(this->getPatch(j,true))))
       {
         IFEM::cout <<"\tRaising order of P"<< j
-                   <<" "<< addu <<" "<< addv << std::endl;
-        pch->raiseOrder(addu,addv);
+                   <<" "<< addu <<" "<< addv
+                   << (proj ? " (projection basis)" : "") << std::endl;
+        pch->raiseOrder(addu,addv,proj);
       }
     }
   }

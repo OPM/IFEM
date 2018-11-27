@@ -165,13 +165,13 @@ public:
   //! \brief Refines the parametrization by inserting tensor knots uniformly.
   //! \param[in] dir Parameter direction to refine
   //! \param[in] nInsert Number of extra knots to insert in each knot-span
-  virtual bool uniformRefine(int dir, int nInsert);
+  virtual bool uniformRefine(int dir, int nInsert, bool proj = false);
   using ASMLRSpline::refine;
   //! \brief Refines the parametrization by inserting extra tensor knots.
   //! \param[in] dir Parameter direction to refine
   //! \param[in] xi Relative positions of added knots in each existing knot span
   //! \param[in] scale Scaling factor for the added knot values
-  virtual bool refine(int dir, const RealArray& xi, double scale);
+  virtual bool refine(int dir, const RealArray& xi, double scale, bool proj = false);
   //! \brief Refines the parametrization based on a mesh density function.
   //! \param[in] refC Mesh refinement criteria function
   //! \param[in] refTol Mesh refinement threshold
@@ -179,7 +179,7 @@ public:
   //! \brief Raises the order of the tensor spline object for this patch.
   //! \param[in] ru Number of times to raise the order in u-direction
   //! \param[in] rv Number of times to raise the order in v-direction
-  virtual bool raiseOrder(int ru, int rv);
+  virtual bool raiseOrder(int ru, int rv, bool proj = false);
 
   //! \brief Defines the minimum element area for adaptive refinement.
   //! \param[in] nrefinements Maximum number of adaptive refinement levels
@@ -569,6 +569,7 @@ protected:
   std::shared_ptr<LR::LRSplineSurface> projBasis; //!< Basis to project onto
 
   Go::SplineSurface* tensorspline; //!< Pointer to original tensor spline object
+  Go::SplineSurface* tensorsplineProj; //!< Pointer to tensor spline projection object
   // The tensor spline object is kept for backward compatability with the REFINE
   // and RAISEORDER key-words, although we take note that there is a possibility
   // of optimization since all mapping values and Jacobians may be performed on

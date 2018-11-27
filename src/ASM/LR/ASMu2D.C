@@ -41,7 +41,7 @@
 
 ASMu2D::ASMu2D (unsigned char n_s, unsigned char n_f)
   : ASMLRSpline(2,n_s,n_f), lrspline(nullptr), tensorspline(nullptr),
-    bezierExtract(myBezierExtract)
+    tensorsplineProj(nullptr), bezierExtract(myBezierExtract)
 {
   aMin = 0.0;
 }
@@ -49,7 +49,7 @@ ASMu2D::ASMu2D (unsigned char n_s, unsigned char n_f)
 
 ASMu2D::ASMu2D (const ASMu2D& patch, unsigned char n_f)
   : ASMLRSpline(patch,n_f), lrspline(patch.lrspline), tensorspline(nullptr),
-    bezierExtract(patch.myBezierExtract)
+    tensorsplineProj(nullptr), bezierExtract(patch.myBezierExtract)
 {
   aMin = 0.0;
 
@@ -129,9 +129,10 @@ void ASMu2D::clear (bool retainGeometry)
     if (!shareFE) {
       lrspline.reset();
       delete tensorspline;
+      delete tensorsplineProj;
     }
     geo = nullptr;
-    tensorspline = nullptr;
+    tensorspline = tensorsplineProj = nullptr;
   }
 
   // Erase the FE data
@@ -226,15 +227,20 @@ bool ASMu2D::uniformRefine (int minBasisfunctions)
   return true;
 }
 
-bool ASMu2D::uniformRefine (int dir, int nInsert)
+bool ASMu2D::uniformRefine (int dir, int nInsert, bool proj)
 {
   if (!tensorspline || dir < 0 || dir > 1 || nInsert < 1) return false;
   if (shareFE) return true;
+  if (proj && tensorsplineProj != tensorspline)
+    tensorsplineProj = tensorspline->clone();
 
   RealArray extraKnots;
-  RealArray::const_iterator uit = tensorspline->basis(dir).begin();
+  RealArray::const_iterator uit = proj ? tensorsplineProj->basis(dir).begin()
+                                       : tensorspline->basis(dir).begin();
+  RealArray::const_iterator end = proj ? tensorsplineProj->basis(dir).end()
+                                       : tensorspline->basis(dir).end();
   double uprev = *(uit++);
-  while (uit != tensorspline->basis(dir).end())
+  while (uit != end)
   {
     double ucurr = *(uit++);
     if (ucurr > uprev)
@@ -247,26 +253,37 @@ bool ASMu2D::uniformRefine (int dir, int nInsert)
   }
 
   if (dir == 0)
-    tensorspline->insertKnot_u(extraKnots);
+    proj ? tensorsplineProj->insertKnot_u(extraKnots)
+         : tensorspline->insertKnot_u(extraKnots);
   else
-    tensorspline->insertKnot_v(extraKnots);
+    proj ? tensorsplineProj->insertKnot_v(extraKnots)
+         : tensorspline->insertKnot_v(extraKnots);
 
-  lrspline.reset(new LR::LRSplineSurface(tensorspline));
-  geo = lrspline.get();
+  if (proj)
+    projBasis.reset(new LR::LRSplineSurface(tensorsplineProj));
+  else {
+    lrspline.reset(new LR::LRSplineSurface(tensorspline));
+    geo = lrspline.get();
+  }
   return true;
 }
 
 
-bool ASMu2D::refine (int dir, const RealArray& xi, double scale)
+bool ASMu2D::refine (int dir, const RealArray& xi, double scale, bool proj)
 {
   if (!tensorspline || dir < 0 || dir > 1 || xi.empty()) return false;
   if (xi.front() < 0.0 || xi.back() > scale || scale < 1.0) return false;
   if (shareFE) return true;
+  if (proj && tensorsplineProj != tensorspline)
+    tensorsplineProj = tensorspline->clone();
 
   RealArray extraKnots;
-  RealArray::const_iterator uit = tensorspline->basis(dir).begin();
+  RealArray::const_iterator uit = proj ? tensorsplineProj->basis(dir).begin()
+                                       : tensorspline->basis(dir).begin();
+  RealArray::const_iterator end = proj ? tensorsplineProj->basis(dir).end()
+                                       : tensorspline->basis(dir).end();
   double uprev = *(uit++);
-  while (uit != tensorspline->basis(dir).end())
+  while (uit != end)
   {
     double ucurr = *(uit++);
     if (ucurr > uprev)
@@ -280,12 +297,18 @@ bool ASMu2D::refine (int dir, const RealArray& xi, double scale)
   }
 
   if (dir == 0)
-    tensorspline->insertKnot_u(extraKnots);
+    proj ? tensorsplineProj->insertKnot_u(extraKnots)
+         : tensorspline->insertKnot_u(extraKnots);
   else
-    tensorspline->insertKnot_v(extraKnots);
+    proj ? tensorsplineProj->insertKnot_v(extraKnots)
+         : tensorspline->insertKnot_v(extraKnots);
 
-  lrspline.reset(new LR::LRSplineSurface(tensorspline));
-  geo = lrspline.get();
+  if (proj)
+    projBasis.reset(new LR::LRSplineSurface(tensorsplineProj));
+  else {
+    lrspline.reset(new LR::LRSplineSurface(tensorspline));
+    geo = lrspline.get();
+  }
   return true;
 }
 
@@ -394,14 +417,20 @@ void ASMu2D::extendRefinementDomain (IntSet& refineIndices,
 }
 
 
-bool ASMu2D::raiseOrder (int ru, int rv)
+bool ASMu2D::raiseOrder (int ru, int rv, bool proj)
 {
   if (!tensorspline) return false;
   if (shareFE) return true;
+  if (proj && tensorsplineProj != tensorspline)
+    tensorsplineProj = tensorspline->clone();
 
-  tensorspline->raiseOrder(ru,rv);
-  lrspline.reset(new LR::LRSplineSurface(tensorspline));
-  geo = lrspline.get();
+  proj? tensorsplineProj->raiseOrder(ru,rv) : tensorspline->raiseOrder(ru,rv);
+  if (proj)
+    projBasis.reset(new LR::LRSplineSurface(tensorsplineProj));
+  else {
+    lrspline.reset(new LR::LRSplineSurface(tensorspline));
+    geo = lrspline.get();
+  }
   return true;
 }
 
@@ -492,7 +521,8 @@ bool ASMu2D::generateFEMTopology ()
   // At this point we are through with the tensor spline object,
   // so release it to avoid memory leakage
   delete tensorspline;
-  tensorspline = nullptr;
+  delete tensorsplineProj;
+  tensorspline = tensorsplineProj = nullptr;
 
   if (!lrspline) return false;
   if (!projBasis)

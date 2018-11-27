@@ -339,16 +339,21 @@ bool ASMs2D::checkRightHandSystem ()
 }
 
 
-bool ASMs2D::refine (int dir, const RealArray& xi, double scale)
+bool ASMs2D::refine (int dir, const RealArray& xi, double scale, bool proj)
 {
   if (!surf || dir < 0 || dir > 1 || xi.empty()) return false;
   if (xi.front() < 0.0 || xi.back() > scale || scale < 1.0) return false;
   if (shareFE) return true;
+  if (proj && (!projBasis || projBasis == surf))
+    projBasis.reset(surf->clone());
 
   RealArray extraKnots;
-  RealArray::const_iterator uit = surf->basis(dir).begin();
+  RealArray::const_iterator uit = proj ? projBasis->basis(dir).begin()
+                                       : surf->basis(dir).begin();
+  RealArray::const_iterator end = proj ? projBasis->basis(dir).end()
+                                       : surf->basis(dir).end();
   double uprev = *(uit++);
-  while (uit != surf->basis(dir).end())
+  while (uit != end)
   {
     double ucurr = *(uit++);
     if (ucurr > uprev)
@@ -362,23 +367,28 @@ bool ASMs2D::refine (int dir, const RealArray& xi, double scale)
   }
 
   if (dir == 0)
-    surf->insertKnot_u(extraKnots);
+    proj ? projBasis->insertKnot_u(extraKnots) : surf->insertKnot_u(extraKnots);
   else
-    surf->insertKnot_v(extraKnots);
+    proj ? projBasis->insertKnot_v(extraKnots) : surf->insertKnot_v(extraKnots);
 
   return true;
 }
 
 
-bool ASMs2D::uniformRefine (int dir, int nInsert)
+bool ASMs2D::uniformRefine (int dir, int nInsert, bool proj)
 {
   if (!surf || dir < 0 || dir > 1 || nInsert < 1) return false;
   if (shareFE) return true;
+  if (proj && (!projBasis || projBasis == surf))
+    projBasis.reset(surf->clone());
 
   RealArray extraKnots;
-  RealArray::const_iterator uit = surf->basis(dir).begin();
+  RealArray::const_iterator uit = proj ? projBasis->basis(dir).begin()
+                                       : surf->basis(dir).begin();
+  RealArray::const_iterator end = proj ? projBasis->basis(dir).end()
+                                       : surf->basis(dir).end();
   double uprev = *(uit++);
-  while (uit != surf->basis(dir).end())
+  while (uit != end)
   {
     double ucurr = *(uit++);
     if (ucurr > uprev)
@@ -391,20 +401,22 @@ bool ASMs2D::uniformRefine (int dir, int nInsert)
   }
 
   if (dir == 0)
-    surf->insertKnot_u(extraKnots);
+    proj ? projBasis->insertKnot_u(extraKnots) : surf->insertKnot_u(extraKnots);
   else
-    surf->insertKnot_v(extraKnots);
+    proj ? projBasis->insertKnot_v(extraKnots) : surf->insertKnot_v(extraKnots);
 
   return true;
 }
 
 
-bool ASMs2D::raiseOrder (int ru, int rv)
+bool ASMs2D::raiseOrder (int ru, int rv, bool proj)
 {
   if (!surf) return false;
   if (shareFE) return true;
+  if (proj && (!projBasis || projBasis == surf))
+    projBasis.reset(surf->clone());
 
-  surf->raiseOrder(ru,rv);
+  proj ? projBasis->raiseOrder(ru,rv) : surf->raiseOrder(ru,rv);
   return true;
 }
 
