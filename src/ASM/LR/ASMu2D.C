@@ -2124,13 +2124,10 @@ bool ASMu2D::evalProjSolution (Matrix& sField, const Vector& locSol,
 
   // Evaluate the projected solution field at each point
   Vector vals;
-  FiniteElement fe;
   sField.resize(f->getNoFields(),nPoints);
   for (size_t i = 0; i < nPoints; i++)
   {
-    fe.u = gpar[0][i];
-    fe.v = gpar[1][i];
-    f->valueFE(fe,vals);
+    f->valueFE(ItgPoint(gpar[0][i],gpar[1][i]),vals);
     sField.fillColumn(1+i,vals);
   }
 
@@ -2445,7 +2442,7 @@ Fields* ASMu2D::getProjectedFields (const Vector& coefs, size_t) const
   if (ncmp*this->getNoProjectionNodes() == coefs.size())
     return new LRSplineFields2D(projBasis.get(),coefs,ncmp);
 
-  std::cerr <<" *** ASMsuD::getProjectedFields: Non-matching coefficent array,"
+  std::cerr <<" *** ASMu2D::getProjectedFields: Non-matching coefficent array,"
             <<" size="<< coefs.size() <<" nnod="<< this->getNoProjectionNodes()
             << std::endl;
   return nullptr;

@@ -206,14 +206,6 @@ public:
   virtual bool injectNodeVec(const Vector& nodeVec, Vector& globVec,
                              unsigned char = 0, int basis = 0) const;
 
-  //! \brief Returns the number of projection nodes for this patch.
-  virtual size_t getNoProjectionNodes() const;
-
-  //! \brief Returns a field using the projection basis.
-  //! \param[in] coefs The coefficients for the field
-  //! \param[in] nf Number of components
-  virtual Fields* getProjectedFields(const Vector& coefs, size_t nf) const;
-
   //! \brief Generates element groups for multi-threading of interior integrals.
   //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] silence If \e true, suppress threading group outprint
@@ -234,7 +226,7 @@ public:
 protected:
   //! \brief Returns the volume in the parameter space for an element.
   //! \param[in] iel Element index
-  double getParametricVolume(int iel) const;
+  virtual double getParametricVolume(int iel) const;
   //! \brief Returns boundary face area in the parameter space for an element.
   //! \param[in] iel Element index
   //! \param[in] dir Local face index of the boundary face
@@ -259,7 +251,6 @@ protected:
                                   bool continuous) const;
 
   std::vector<std::shared_ptr<Go::SplineVolume>> m_basis; //!< Vector of bases
-  std::shared_ptr<Go::SplineVolume> projBasis; //!< Basis to project onto
 };
 
 #endif

@@ -28,12 +28,12 @@
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
+#include "Fields.h"
 #include "SplineUtils.h"
 #include "Utilities.h"
 #include "Profiler.h"
 #include "Vec3Oper.h"
 #include "Vec3.h"
-#include "LRSplineFields2D.h"
 
 #include <array>
 #include <fstream>

@@ -137,6 +137,12 @@ public:
   //! \param[out] p3 Order in third (w) direction
   virtual bool getOrder(int& p1, int& p2, int& p3) const;
 
+  //! \brief Returns the total number of nodes in this patch.
+  virtual size_t getNoNodes(int basis = 0) const;
+
+  //! \brief Returns the number of projection nodes for this patch.
+  virtual size_t getNoProjectionNodes() const;
+
   //! \brief Refines the parametrization by inserting tensor knots uniformly.
   //! \param[in] dir Parameter direction to refine
   //! \param[in] nInsert Number of extra knots to insert in each knot-span
@@ -146,6 +152,10 @@ public:
   //! \param[in] dir Parameter direction to refine
   //! \param[in] xi Relative positions of added knots in each existing knot span
   virtual bool refine(int dir, const RealArray& xi);
+  //! \brief Refines the parametrization based on a mesh density function.
+  //! \param[in] refC Mesh refinement criteria function
+  //! \param[in] refTol Mesh refinement threshold
+  virtual bool refine(const RealFunc& refC, double refTol);
   //! \brief Raises the order of the tensor spline object for this patch.
   //! \param[in] ru Number of times to raise the order in u-direction
   //! \param[in] rv Number of times to raise the order in v-direction
@@ -368,36 +378,11 @@ public:
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
                             const int* npe, char project = '\0') const;
 
-  //! \brief Transfers Gauss point variables from old basis to this patch.
-  //! \param[in] old_basis The LR-spline basis to transfer from
-  //! \param[in] oldVar Gauss point variables associated with \a oldBasis
-  //! \param[out] newVar Gauss point variables associated with this patch
-  //! \param[in] nGauss Number of Gauss points along a knot-span
-  virtual bool transferGaussPtVars(const LR::LRSpline* old_basis,
-                                   const RealArray& oldVar, RealArray& newVar,
-                                   int nGauss) const;
-  //! \brief Transfers Gauss point variables from old basis to this patch.
-  //! \param[in] old_basis The LR-spline basis to transfer from
-  //! \param[in] oldVar Gauss point variables associated with \a oldBasis
-  //! \param[out] newVar Gauss point variables associated with this patch
-  //! \param[in] nGauss Number of Gauss points along a knot-span
-  virtual bool transferGaussPtVarsN(const LR::LRSpline* old_basis,
-                                    const RealArray& oldVar, RealArray& newVar,
-                                    int nGauss) const;
-  using ASMLRSpline::transferCntrlPtVars;
-  //! \brief Transfers control point variables from old basis to this patch.
-  //! \param[in] old_basis The LR-spline basis to transfer from
-  //! \param[out] newVar Gauss point variables associated with this patch
-  //! \param[in] nGauss Number of Gauss points along a knot-span
-  virtual bool transferCntrlPtVars(const LR::LRSpline* old_basis,
-                                   RealArray& newVar, int nGauss) const;
+  //! \brief Returns a field using the projection basis.
+  //! \param[in] coefs The coefficients for the field
+  virtual Fields* getProjectedFields(const Vector& coefs, size_t = 0) const;
 
-  //! \brief Refines the parametrization based on a mesh density function.
-  //! \param[in] refC Mesh refinement criteria function
-  //! \param[in] refTol Mesh refinement threshold
-  virtual bool refine(const RealFunc& refC, double refTol);
-
-private:
+protected:
   //! \brief Struct representing an inhomogeneous Dirichlet boundary condition.
   struct DirichletFace
   {
@@ -464,6 +449,31 @@ public:
   //! \param[in] time time used in dynamic problems
   bool faceL2projection(const DirichletFace& face, const FunctionBase& values,
                         Real2DMat& result, double time) const;
+
+  //! \brief Transfers Gauss point variables from old basis to this patch.
+  //! \param[in] old_basis The LR-spline basis to transfer from
+  //! \param[in] oldVar Gauss point variables associated with \a oldBasis
+  //! \param[out] newVar Gauss point variables associated with this patch
+  //! \param[in] nGauss Number of Gauss points along a knot-span
+  virtual bool transferGaussPtVars(const LR::LRSpline* old_basis,
+                                   const RealArray& oldVar, RealArray& newVar,
+                                   int nGauss) const;
+  //! \brief Transfers Gauss point variables from old basis to this patch.
+  //! \param[in] old_basis The LR-spline basis to transfer from
+  //! \param[in] oldVar Gauss point variables associated with \a oldBasis
+  //! \param[out] newVar Gauss point variables associated with this patch
+  //! \param[in] nGauss Number of Gauss points along a knot-span
+  virtual bool transferGaussPtVarsN(const LR::LRSpline* old_basis,
+                                    const RealArray& oldVar, RealArray& newVar,
+                                    int nGauss) const;
+
+  using ASMLRSpline::transferCntrlPtVars;
+  //! \brief Transfers control point variables from old basis to this patch.
+  //! \param[in] old_basis The LR-spline basis to transfer from
+  //! \param[out] newVar Gauss point variables associated with this patch
+  //! \param[in] nGauss Number of Gauss points along a knot-span
+  virtual bool transferCntrlPtVars(const LR::LRSpline* old_basis,
+                                   RealArray& newVar, int nGauss) const;
 
 protected:
 
@@ -583,6 +593,7 @@ public:
 
 protected:
   std::shared_ptr<LR::LRSplineVolume> lrspline; //!< Pointer to the LR-spline volume object
+  std::shared_ptr<LR::LRSplineVolume> projBasis; //!< Basis to project onto
 
   Go::SplineVolume* tensorspline; //!< Pointer to original tensor spline object
   // The tensor spline object is kept for backward compatability with the REFINE
@@ -594,11 +605,13 @@ protected:
   std::vector<DirichletFace> dirich;
   int myGeoBasis; //!< Used with mixed
 
+  ThreadGroups threadGroups; //!< Element groups for multi-threaded assembly
+  IntVec       myElms;       //!< Elements on patch - used with partitioning
+
   const Matrices& bezierExtract; //!< Bezier extraction matrices
   Matrices      myBezierExtract; //!< Bezier extraction matrices
 
-  ThreadGroups threadGroups; //!< Element groups for multi-threaded assembly
-  IntVec myElms; //!< Elements on patch - used with partitioning
+private:
   mutable double vMin; //!< Minimum element volume for adaptive refinement
 };
 

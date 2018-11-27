@@ -70,7 +70,7 @@ Go::SplineSurface* ASMs3Dmx::getBoundary (int dir, int basis)
 bool ASMs3Dmx::write (std::ostream& os, int basis) const
 {
   if (basis == -1)
-    os <<"700 1 0 0\n" << *projBasis;
+    os <<"700 1 0 0\n" << *proj;
   else if (basis < 1 || basis > (int)m_basis.size())
     os <<"700 1 0 0\n" << *svol;
   else if (m_basis[basis-1])
@@ -179,10 +179,9 @@ bool ASMs3Dmx::generateFEMTopology ()
     // we need to project on something that is not one of our bases
     if (ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS1 ||
         ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
-      projBasis = ASMmxBase::establishBases(svol,
-                                            ASMmxBase::FULL_CONT_RAISE_BASIS1).front();
+      projB = proj = ASMmxBase::raiseBasis(svol);
     else
-      projBasis = m_basis.front();
+      projB = proj = m_basis.front()->clone();
   }
 
   delete svol;
@@ -1342,30 +1341,13 @@ void ASMs3Dmx::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
 }
 
 
-Fields* ASMs3Dmx::getProjectedFields(const Vector& coefs, size_t nf) const
-{
-  if (projBasis != m_basis[0])
-    return new SplineFields3D(projBasis.get(), coefs, nf);
-
-  return nullptr;
-}
-
-
-size_t ASMs3Dmx::getNoProjectionNodes() const
-{
-  return projBasis->numCoefs(0) *
-         projBasis->numCoefs(1) *
-         projBasis->numCoefs(2);
-}
-
-
 bool ASMs3Dmx::evalProjSolution (Matrix& sField, const Vector& locSol,
                                  const int* npe, int nf) const
 {
 #ifdef SP_DEBUG
   std::cout <<"ASMu3Dmx::evalProjSolution(Matrix&,const Vector&,const int*,int)\n";
 #endif
-  if (projBasis == m_basis[0])
+  if (proj == m_basis[0].get())
     return this->evalSolution(sField, locSol, npe, nf);
 
   // Compute parameter values of the nodal points

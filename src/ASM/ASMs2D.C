@@ -2697,7 +2697,6 @@ bool ASMs2D::evalSolution (Matrix& sField, const Vector& locSol,
 
   // Evaluate the primary solution field at each point
   sField.resize(nComp*int(pow(nsd,deriv)),nPoints);
-  sField.resize(nComp,nPoints);
   for (size_t i = 0; i < nPoints; i++)
   {
     IntVec ip;

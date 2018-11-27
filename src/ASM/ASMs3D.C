@@ -25,6 +25,7 @@
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
 #include "ElementBlock.h"
+#include "SplineFields3D.h"
 #include "SplineUtils.h"
 #include "Utilities.h"
 #include "Profiler.h"
@@ -38,16 +39,19 @@
 #endif
 
 
-ASMs3D::ASMs3D (unsigned char n_f)
-  : ASMstruct(3,3,n_f), svol(nullptr), nodeInd(myNodeInd)
+ASMs3D::ASMs3D (unsigned char n_f) : ASMstruct(3,3,n_f), nodeInd(myNodeInd)
 {
+  svol = proj = nullptr;
   swapW = false;
 }
 
 
 ASMs3D::ASMs3D (const ASMs3D& patch, unsigned char n_f)
-  : ASMstruct(patch,n_f), svol(patch.svol), nodeInd(patch.myNodeInd)
+  : ASMstruct(patch,n_f), nodeInd(patch.myNodeInd)
 {
+  svol = patch.svol;
+  proj = patch.proj;
+
   swapW = patch.swapW;
 
   // Need to set nnod here,
@@ -141,8 +145,9 @@ void ASMs3D::clear (bool retainGeometry)
   if (!retainGeometry)
   {
     // Erase spline data
+    if (proj && proj != svol) delete proj;
     if (svol && !shareFE) delete svol;
-    geomB = svol = nullptr;
+    geomB = projB = svol = proj = nullptr;
   }
 
   // Erase the FE data
@@ -351,6 +356,7 @@ bool ASMs3D::raiseOrder (int ru, int rv, int rw)
 bool ASMs3D::generateFEMTopology ()
 {
   if (!svol) return false;
+  if (!proj) proj = svol;
 
   const int n1 = svol->numCoefs(0);
   const int n2 = svol->numCoefs(1);
@@ -2850,8 +2856,7 @@ int ASMs3D::evalPoint (const double* xi, double* param, Vec3& X) const
 {
   if (!svol) return -3;
 
-  int i;
-  for (i = 0; i < 3; i++)
+  for (int i = 0; i < 3; i++)
     param[i] = (1.0-xi[i])*svol->startparam(i) + xi[i]*svol->endparam(i);
 
   SplineUtils::point(X,param[0],param[1],param[2],svol);
@@ -2864,8 +2869,7 @@ int ASMs3D::evalPoint (const double* xi, double* param, Vec3& X) const
 
 int ASMs3D::findElementContaining (const double* param) const
 {
-  if (!svol)
-    return -2;
+  if (!svol) return -2;
 
   int p1   = svol->order(0) - 1;
   int p2   = svol->order(1) - 1;
@@ -2892,6 +2896,7 @@ bool ASMs3D::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) const
 
   RealArray::const_iterator uit = svol->basis(dir).begin() + svol->basis(dir).order()-1;
   RealArray::const_iterator uend = svol->basis(dir).begin() + svol->basis(dir).numCoefs()+1;
+
   double ucurr = 0.0, uprev = *(uit++);
   while (uit != uend)
   {
@@ -3004,7 +3009,7 @@ bool ASMs3D::evalSolution (Matrix& sField, const Vector& locSol,
 {
   PROFILE2("ASMs3D::evalSol(P)");
 
-  // Evaluate the basis functions and/or their derivatives at all points
+  // Evaluate the basis functions at all points
   size_t nPoints = gpar[0].size();
   std::vector<Go::BasisPts>     spline0(regular || deriv != 0 ? 0 : nPoints);
   std::vector<Go::BasisDerivs>  spline1(regular || deriv != 1 ? 0 : nPoints);
@@ -3520,6 +3525,30 @@ bool ASMs3D::getFaceSize (int& n1, int& n2, int basis, int face) const
     n1 = n2 = 0;
 
   return true;
+}
+
+
+Fields* ASMs3D::getProjectedFields (const Vector& coefs, size_t) const
+{
+  if (proj == this->getBasis(1) || this->getNoProjectionNodes() == 0)
+    return nullptr;
+
+  size_t ncmp = coefs.size() / this->getNoProjectionNodes();
+  if (ncmp*this->getNoProjectionNodes() == coefs.size())
+    return new SplineFields3D(proj,coefs,ncmp);
+
+  std::cerr <<" *** ASMs3D::getProjectedFields: Non-matching coefficent array,"
+            <<" size="<< coefs.size() <<" nnod="<< this->getNoProjectionNodes()
+            << std::endl;
+  return nullptr;
+}
+
+
+size_t ASMs3D::getNoProjectionNodes () const
+{
+  if (!proj) return 0;
+
+  return proj->numCoefs(0) * proj->numCoefs(1) * proj->numCoefs(2);
 }
 
 

@@ -11,7 +11,6 @@
 //!
 //==============================================================================
 
-#include "GoTools/geometry/ObjectHeader.h"
 #include "GoTools/trivariate/SplineVolume.h"
 
 #include "LRSpline/LRSplineVolume.h"
@@ -27,6 +26,7 @@
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
 #include "LagrangeInterpolator.h"
+#include "LRSplineFields3D.h"
 #include "ElementBlock.h"
 #include "MPC.h"
 #include "SplineUtils.h"
@@ -63,14 +63,16 @@ bool ASMu3D::read (std::istream& is)
 {
   if (shareFE) return true;
 
-  // read inputfile as either an LRSpline file directly
+  // Read the input file as either an LRSpline file directly,
   // or a tensor product B-spline and convert
   char firstline[256];
   is.getline(firstline, 256);
   if (strncmp(firstline, "# LRSPLINE", 10) == 0) {
     lrspline.reset(new LR::LRSplineVolume());
     is >> *lrspline;
-  } else { // probably a SplineVolume, so we'll read that and convert
+  }
+  else {
+    // Probably a SplineVolume, so we'll read that and convert
     tensorspline = new Go::SplineVolume();
     is >> *tensorspline;
     lrspline.reset(new LR::LRSplineVolume(tensorspline));
@@ -207,6 +209,8 @@ bool ASMu3D::generateFEMTopology ()
   tensorspline = nullptr;
 
   if (!lrspline) return false;
+  if (!projBasis)
+    projBasis = lrspline;
 
   nnod = lrspline->nBasisFunctions();
   nel  = lrspline->nElements();
@@ -1961,6 +1965,34 @@ bool ASMu3D::updateDirichlet (const std::map<int,RealFunc*>& func,
   // The parent class method takes care of the corner nodes with direct
   // evaluation of the Dirichlet functions; since they are interpolatory
   return this->ASMbase::updateDirichlet(func,vfunc,time,g2l);
+}
+
+
+size_t ASMu3D::getNoNodes (int) const
+{
+  return lrspline->nBasisFunctions();
+}
+
+
+size_t ASMu3D::getNoProjectionNodes () const
+{
+  return projBasis->nBasisFunctions();
+}
+
+
+Fields* ASMu3D::getProjectedFields (const Vector& coefs, size_t) const
+{
+  if (projBasis.get() == this->getBasis(1))
+    return nullptr;
+
+  size_t ncmp = coefs.size() / this->getNoProjectionNodes();
+  if (ncmp*this->getNoProjectionNodes() == coefs.size())
+    return new LRSplineFields3D(projBasis.get(),coefs,ncmp);
+
+  std::cerr <<" *** ASMu3D::getProjectedFields: Non-matching coefficent array,"
+            <<" size="<< coefs.size() <<" nnod="<< this->getNoProjectionNodes()
+            << std::endl;
+  return nullptr;
 }
 
 

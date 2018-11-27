@@ -98,23 +98,6 @@ public:
     int next();
   };
 
-  //! \brief Base class that checks if an element has interface contributions.
-  class InterfaceChecker : public ASM::InterfaceChecker
-  {
-  protected:
-    const ASMs3D& myPatch; //!< Reference to the patch being integrated
-  public:
-    //! \brief The constructor initialises the reference to current patch.
-    explicit InterfaceChecker(const ASMs3D& pch) : myPatch(pch) {}
-    //! \brief Empty destructor.
-    virtual ~InterfaceChecker() {}
-    //! \brief Returns non-zero if the specified element have contributions.
-    //! \param[in] I Index in first parameter direction of the element
-    //! \param[in] J Index in second parameter direction of the element
-    //! \param[in] K Index in third parameter direction of the element
-    virtual short int hasContribution(int, int I, int J, int K) const;
-  };
-
 private:
   typedef std::pair<int,int> Ipair; //!< Convenience type
 
@@ -132,6 +115,23 @@ private:
   };
 
 public:
+  //! \brief Base class that checks if an element has interface contributions.
+  class InterfaceChecker : public ASM::InterfaceChecker
+  {
+  protected:
+    const ASMs3D& myPatch; //!< Reference to the patch being integrated
+  public:
+    //! \brief The constructor initialises the reference to current patch.
+    explicit InterfaceChecker(const ASMs3D& pch) : myPatch(pch) {}
+    //! \brief Empty destructor.
+    virtual ~InterfaceChecker() {}
+    //! \brief Returns non-zero if the specified element have contributions.
+    //! \param[in] I Index in first parameter direction of the element
+    //! \param[in] J Index in second parameter direction of the element
+    //! \param[in] K Index in third parameter direction of the element
+    virtual short int hasContribution(int, int I, int J, int K) const;
+  };
+
   //! \brief Default constructor.
   explicit ASMs3D(unsigned char n_f = 3);
   //! \brief Special copy constructor for sharing of FE data.
@@ -255,16 +255,16 @@ public:
   //! \brief Refines the parametrization by inserting extra knots.
   //! \param[in] dir Parameter direction to refine
   //! \param[in] xi Relative positions of added knots in each existing knot span
-  bool refine(int dir, const RealArray& xi);
+  virtual bool refine(int dir, const RealArray& xi);
   //! \brief Refines the parametrization by inserting extra knots uniformly.
   //! \param[in] dir Parameter direction to refine
   //! \param[in] nInsert Number of extra knots to insert in each knot-span
-  bool uniformRefine(int dir, int nInsert);
+  virtual bool uniformRefine(int dir, int nInsert);
   //! \brief Raises the order of the SplineVolume object for this patch.
   //! \param[in] ru Number of times to raise the order in u-direction
   //! \param[in] rv Number of times to raise the order in v-direction
   //! \param[in] rw Number of times to raise the order in w-direction
-  bool raiseOrder(int ru, int rv, int rw);
+  virtual bool raiseOrder(int ru, int rv, int rw);
 
 
   // Various methods for preprocessing of boundary conditions and patch topology
@@ -610,7 +610,7 @@ protected:
 
   //! \brief Returns the volume in the parameter space for an element.
   //! \param[in] iel Element index
-  double getParametricVolume(int iel) const;
+  virtual double getParametricVolume(int iel) const;
   //! \brief Returns boundary face area in the parameter space for an element.
   //! \param[in] iel Element index
   //! \param[in] dir Local face index of the boundary face
@@ -654,6 +654,7 @@ protected:
   //! \param[in] ignoreGlobalLM Sanity check option
   virtual void generateThreadGroups(const Integrand& integrand, bool silence,
                                     bool ignoreGlobalLM);
+
   //! \brief Generates element groups for multi-threading of interior integrals.
   //! \param[in] strip1 Strip width in first direction
   //! \param[in] strip2 Strip width in second direction
@@ -662,6 +663,7 @@ protected:
   //! \param[in] ignoreGlobalLM Sanity check option
   void generateThreadGroups(size_t strip1, size_t strip2, size_t strip3,
                             bool silence, bool ignoreGlobalLM);
+
   //! \brief Generates element groups for multi-threading of boundary integrals.
   //! \param[in] lIndex Local index [1,6] of the boundary face
   //! \param[in] silence If \e true, suppress threading group outprint
@@ -702,6 +704,8 @@ public:
 
   //! \brief Returns the total number of nodes in this patch.
   virtual size_t getNoNodes(int basis = 0) const;
+  //! \brief Returns the number of projection nodes for this patch.
+  virtual size_t getNoProjectionNodes() const;
 
   //! \brief Returns parameter values and node numbers of the domain corners.
   //! \param[out] u Parameter values of the domain corners
@@ -746,6 +750,10 @@ public:
   void extractBasis(double u, double v, double w, int dir, int p, Vector& dN,
                     bool fromRight = true) const;
 
+  //! \brief Returns a field using the projection basis.
+  //! \param[in] coefs The coefficients for the field
+  virtual Fields* getProjectedFields(const Vector& coefs, size_t = 0) const;
+
 private:
   //! \brief Returns an index into the internal coefficient array for a node.
   //! \param[in] inod 0-based node index local to current patch
@@ -768,6 +776,7 @@ private:
 
 protected:
   Go::SplineVolume* svol;  //!< Pointer to the actual spline volume object
+  Go::SplineVolume* proj;  //!< Pointer to spline volume for projection basis
   bool              swapW; //!< Has the w-parameter direction been swapped?
 
   const IndexVec& nodeInd; //!< IJK-triplets for the control points (nodes)
