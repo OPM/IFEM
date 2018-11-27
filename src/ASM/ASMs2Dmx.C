@@ -51,7 +51,7 @@ ASMs2Dmx::ASMs2Dmx (const ASMs2Dmx& patch, const CharVec& n_f)
 Go::SplineSurface* ASMs2Dmx::getBasis (int basis) const
 {
   if (basis < 1 || basis > (int)m_basis.size())
-    return surf;
+    return surf.get();
 
   return m_basis[basis-1].get();
 }
@@ -87,7 +87,7 @@ void ASMs2Dmx::clear (bool retainGeometry)
 {
   // Erase the spline data
   if (!retainGeometry)
-    delete surf, surf = 0;
+    surf.reset();
 
   for (auto& it : m_basis)
     it.reset();
@@ -177,18 +177,18 @@ bool ASMs2Dmx::generateFEMTopology ()
   if (!surf) return false;
 
   if (m_basis.empty()) {
-    m_basis = ASMmxBase::establishBases(surf, ASMmxBase::Type);
+    m_basis = ASMmxBase::establishBases(surf.get(), ASMmxBase::Type);
 
     // we need to project on something that is not one of our bases
     if (ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS1 ||
         ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
-      projBasis = ASMmxBase::establishBases(surf,
+      projBasis = ASMmxBase::establishBases(surf.get(),
                                             ASMmxBase::FULL_CONT_RAISE_BASIS1).front();
     else
       projBasis = m_basis.front();
   }
-  delete surf;
-  geo = surf = m_basis[geoBasis-1]->clone();
+  surf.reset(m_basis[geoBasis-1]->clone());
+  geo = surf.get();
 
   nb.clear();
   nb.reserve(m_basis.size());

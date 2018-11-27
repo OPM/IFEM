@@ -18,6 +18,7 @@
 #include "ASM2D.h"
 #include "Interface.h"
 #include "ThreadGroups.h"
+#include <memory>
 
 namespace Go {
   class SplineCurve;
@@ -117,12 +118,12 @@ public:
   virtual ~ASMs2D();
 
   //! \brief Returns the spline surface representing the geometry of this patch.
-  Go::SplineSurface* getSurface() const { return surf; }
+  Go::SplineSurface* getSurface() const { return surf.get(); }
   //! \brief Returns the spline curve representing a boundary of this patch.
   //! \param[in] dir Parameter direction defining which boundary to return
   virtual Go::SplineCurve* getBoundary(int dir, int = 1);
   //! \brief Returns the spline surface representing the basis of this patch.
-  virtual Go::SplineSurface* getBasis(int = 1) const { return surf; }
+  virtual Go::SplineSurface* getBasis(int = 1) const { return surf.get(); }
   //! \brief Copies the parameter domain from the \a other patch.
   virtual void copyParameterDomain(const ASMbase* other);
 
@@ -654,7 +655,7 @@ private:
   int coeffInd(size_t inod) const;
 
 protected:
-  Go::SplineSurface* surf; //!< Pointer to the actual spline surface object
+  std::shared_ptr<Go::SplineSurface> surf; //!< Pointer to the actual spline surface object
   Go::SplineCurve* bou[4]; //!< Pointers to the four boundary curves
   bool              swapV; //!< Has the v-parameter direction been swapped?
 

@@ -106,10 +106,10 @@ void ASMs2D::copyParameterDomain (const ASMbase* other)
 bool ASMs2D::read (std::istream& is)
 {
   if (shareFE) return true;
-  if (surf) delete surf;
+  surf.reset();
 
   Go::ObjectHeader head;
-  surf = new Go::SplineSurface;
+  surf.reset(new Go::SplineSurface);
   is >> head >> *surf;
 
   // Eat white-space characters to see if there is more data to read
@@ -124,16 +124,14 @@ bool ASMs2D::read (std::istream& is)
   if (!is.good() && !is.eof())
   {
     std::cerr <<" *** ASMs2D::read: Failure reading spline data"<< std::endl;
-    delete surf;
-    surf = 0;
+    surf.reset();
     return false;
   }
   else if (surf->dimension() < 2)
   {
     std::cerr <<" *** ASMs2D::read: Invalid spline surface patch, dim="
 	      << surf->dimension() << std::endl;
-    delete surf;
-    surf = 0;
+    surf.reset();
     return false;
   }
   else if (surf->dimension() < nsd)
@@ -145,7 +143,7 @@ bool ASMs2D::read (std::istream& is)
     nsd = surf->dimension();
   }
 
-  geo = surf;
+  geo = surf.get();
   return true;
 }
 
@@ -166,9 +164,8 @@ void ASMs2D::clear (bool retainGeometry)
   if (!retainGeometry)
   {
     // Erase spline data
-    if (surf && !shareFE) delete surf;
-    surf = 0;
-    geo = 0;
+    if (surf && !shareFE) surf.reset();
+    geo = nullptr;
   }
 
   // Erase the FE data
@@ -1667,7 +1664,7 @@ bool ASMs2D::integrate (Integrand& integrand,
           // Compute the element center
           double u0 = 0.5*(gpar[0](1,i1-p1+1) + gpar[0](ng[0],i1-p1+1));
           double v0 = 0.5*(gpar[1](1,i2-p2+1) + gpar[1](ng[1],i2-p2+1));
-          SplineUtils::point(X,u0,v0,surf);
+          SplineUtils::point(X,u0,v0,surf.get());
           if (!useElmVtx)
           {
             // When element corner coordinates are not needed, store coordinates
@@ -2377,7 +2374,7 @@ int ASMs2D::evalPoint (const double* xi, double* param, Vec3& X) const
 
   param[0] = (1.0-xi[0])*surf->startparam_u() + xi[0]*surf->endparam_u();
   param[1] = (1.0-xi[1])*surf->startparam_v() + xi[1]*surf->endparam_v();
-  SplineUtils::point(X,param[0],param[1],surf);
+  SplineUtils::point(X,param[0],param[1],surf.get());
 
   // Check if this point matches any of the control points (nodes)
   return this->searchCtrlPt(surf->coefs_begin(),surf->coefs_end(),
