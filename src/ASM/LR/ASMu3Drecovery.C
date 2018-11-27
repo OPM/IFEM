@@ -104,11 +104,9 @@ bool ASMu3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
                                  const IntegrandBase& integrand,
                                  bool continuous) const
 {
-  const size_t nnod = this->getNoNodes();
-
-  const int p1 = lrspline->order(0);
-  const int p2 = lrspline->order(1);
-  const int p3 = lrspline->order(2);
+  const int p1 = projBasis->order(0);
+  const int p2 = projBasis->order(1);
+  const int p3 = projBasis->order(2);
 
   // Get Gaussian quadrature points
   const int ng1 = continuous ? nGauss : p1 - 1;
@@ -121,47 +119,62 @@ bool ASMu3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
   if (!xg || !yg || !zg) return false;
   if (continuous && !wg) return false;
 
-  double dA = 0.0;
-  Vector phi;
-  Matrix dNdu, Xnod, Jac;
-  Go::BasisDerivs spl1;
-  Go::BasisPts    spl0;
+  size_t nnod = this->getNoProjectionNodes();
+  double dV = 0.0;
+  Vectors phi(2);
+  Matrices dNdu(2);
+  Matrix sField, Xnod, Jac;
+  std::vector<Go::BasisDerivs> spl1(2);
+  std::vector<Go::BasisPts> spl0(2);
 
 
   // === Assembly loop over all elements in the patch ==========================
-
-  size_t iel = 1;
-  for (const LR::Element* el : lrspline->getAllElements())
+  for (const LR::Element* el1 : lrspline->getAllElements())
   {
+    double uh = (el1->umin()+el1->umax())/2.0;
+    double vh = (el1->vmin()+el1->vmax())/2.0;
+    double wh = (el1->wmin()+el1->wmax())/2.0;
+    std::vector<size_t> els;
+    els.push_back(projBasis->getElementContaining(uh, vh, wh) + 1);
+    els.push_back(lrspline->getElementContaining(uh, vh, wh) + 1);
+
     if (continuous)
     {
       // Set up control point (nodal) coordinates for current element
-      if (!this->getElementCoordinates(Xnod,iel))
+      if (!this->getElementCoordinates(Xnod,els[1]))
         return false;
-      else if ((dA = 0.125*this->getParametricVolume(iel)) < 0.0)
+      else if ((dV = 0.25*this->getParametricVolume(els[1])) < 0.0)
         return false; // topology error (probably logic error)
     }
 
     // Compute parameter values of the Gauss points over this element
-    std::array<RealArray,3> gpar, unstrGpar;
-    this->getGaussPointParameters(gpar[0],0,ng1,iel,xg);
-    this->getGaussPointParameters(gpar[1],1,ng2,iel,yg);
-    this->getGaussPointParameters(gpar[2],2,ng3,iel,zg);
+    RealArray gpar[3], unstrGpar[3];
+    this->getGaussPointParameters(gpar[0],0,ng1,els[1],xg);
+    this->getGaussPointParameters(gpar[1],1,ng2,els[1],yg);
+    this->getGaussPointParameters(gpar[2],2,ng3,els[1],zg);
 
-    // convert to unstructured mesh representation
-    expandTensorGrid(gpar.data(),unstrGpar.data());
+    // convert to unstructred mesh representation
+    expandTensorGrid(gpar, unstrGpar);
 
     // Evaluate the secondary solution at all integration points
-    Matrix sField;
-    if (!this->evalSolution(sField,integrand,unstrGpar.data()))
+    if (!this->evalSolution(sField,integrand,unstrGpar))
       return false;
 
     // set up basis function size (for extractBasis subroutine)
-    phi.resize(el->nBasisFunctions());
+    const LR::Element* elm = projBasis->getElement(els[0]-1);
+    phi[0].resize(elm->nBasisFunctions());
+    phi[1].resize(el1->nBasisFunctions());
+    IntVec lmnpc;
+    if (projBasis != lrspline) {
+      lmnpc.reserve(phi[0].size());
+      for (const LR::Basisfunction* f : elm->support())
+        lmnpc.push_back(f->getId());
+    }
+    const IntVec& mnpc = projBasis == lrspline ? MNPC[els[1]-1] : lmnpc;
 
     // --- Integration loop over all Gauss points in each direction ----------
-    Matrix eA(MNPC[iel-1].size(), MNPC[iel-1].size());
-    Vectors eB(sField.rows(), Vector(MNPC[iel-1].size()));
+    Matrix eA(phi[0].size(), phi[0].size());
+    Vectors eB(sField.rows(), Vector(phi[0].size()));
     int ip = 0;
     for (int k = 0; k < ng3; k++)
       for (int j = 0; j < ng2; j++)
@@ -169,40 +182,44 @@ bool ASMu3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
         {
           if (continuous)
           {
-            lrspline->computeBasis(gpar[0][i],gpar[1][j],gpar[2][k],spl1,iel-1);
-            SplineUtils::extractBasis(spl1,phi,dNdu);
+            projBasis->computeBasis(gpar[0][i], gpar[1][j], gpar[2][k],
+                                    spl1[0], els[0]-1);
+            SplineUtils::extractBasis(spl1[0],phi[0],dNdu[0]);
+            lrspline->computeBasis(gpar[0][i], gpar[1][j], gpar[2][k],
+                                   spl1[1], els[1]-1);
+            SplineUtils::extractBasis(spl1[1], phi[1], dNdu[1]);
           }
           else
           {
-            lrspline->computeBasis(gpar[0][i],gpar[1][j],gpar[2][k],spl0,iel-1);
-            phi = spl0.basisValues;
+            projBasis->computeBasis(gpar[0][i], gpar[1][j], gpar[2][k],
+                                    spl0[0], els[0]-1);
+            phi[0] = spl0[0].basisValues;
           }
 
           // Compute the Jacobian inverse and derivatives
           double dJw = 1.0;
           if (continuous)
           {
-            dJw = dA*wg[i]*wg[j]*wg[k]*utl::Jacobian(Jac,dNdu,Xnod,dNdu,false);
+            dJw = dV*wg[i]*wg[j]*wg[k]*utl::Jacobian(Jac,dNdu[1],Xnod,dNdu[1],false);
             if (dJw == 0.0) continue; // skip singular points
           }
 
           // Integrate the mass matrix
-          eA.outer_product(phi, phi, true, dJw);
+          eA.outer_product(phi[0], phi[0], true, dJw);
 
           // Integrate the rhs vector B
           for (size_t r = 1; r <= sField.rows(); r++)
-            eB[r-1].add(phi,sField(r,ip+1)*dJw);
+            eB[r-1].add(phi[0],sField(r,ip+1)*dJw);
         }
 
-    for (size_t i = 0; i < MNPC[iel-1].size(); ++i) {
-      for (size_t j = 0; j < MNPC[iel-1].size(); ++j)
-        A(MNPC[iel-1][i]+1, MNPC[iel-1][j]+1) += eA(i+1, j+1);
+    for (size_t i = 0; i < eA.rows(); ++i) {
+      for (size_t j = 0; j < eA.cols(); ++j)
+        A(mnpc[i]+1, mnpc[j]+1) += eA(i+1,j+1);
 
-      int jp = MNPC[iel-1][i]+1;
+      int jp = mnpc[i]+1;
       for (size_t r = 0; r < sField.rows(); r++, jp += nnod)
         B(jp) += eB[r](1+i);
     }
-    ++iel;
   }
 
   return true;
