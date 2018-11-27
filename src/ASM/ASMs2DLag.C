@@ -135,6 +135,7 @@ bool ASMs2DLag::addXElms (short int dim, short int item, size_t nXn,
 bool ASMs2DLag::generateFEMTopology ()
 {
   if (!surf) return false;
+  if (!proj) proj = surf;
 
   // Order of basis in the two parametric directions (order = degree + 1)
   p1 = surf->order_u();

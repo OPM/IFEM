@@ -171,19 +171,11 @@ public:
   virtual bool injectNodeVec(const Vector& nodeVec, Vector& globVec,
                              unsigned char = 0, int basis = 0) const;
 
-  //! \brief Returns the number of projection nodes for this patch.
-  virtual size_t getNoProjectionNodes() const;
-
   //! \brief Returns the number of refinement nodes for this patch.
   virtual size_t getNoRefineNodes() const;
 
   //! \brief Returns the number of projection elements for this patch.
   virtual size_t getNoRefineElms() const;
-
-  //! \brief Returns a field using the projection basis.
-  //! \param[in] coefs The coefficients for the field
-  //! \param[in] nf Number of components
-  virtual Fields* getProjectedFields(const Vector& coefs, size_t nf) const;
 
   using ASMu2D::refine;
   //! \brief Refines the mesh adaptively.
@@ -247,7 +239,6 @@ private:
 
   std::vector<std::shared_ptr<LR::LRSplineSurface>> m_basis; //!< All bases
   LR::LRSplineSurface* threadBasis; //!< Basis for thread groups
-  std::shared_ptr<LR::LRSplineSurface> projBasis; //!< Basis to project onto
   std::shared_ptr<LR::LRSplineSurface> refBasis; //!< Basis to refine based on
 };
 

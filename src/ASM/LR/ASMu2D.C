@@ -27,6 +27,7 @@
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
 #include "LagrangeInterpolator.h"
+#include "LRSplineFields2D.h"
 #include "ElementBlock.h"
 #include "MPC.h"
 #include "SplineUtils.h"
@@ -494,6 +495,8 @@ bool ASMu2D::generateFEMTopology ()
   tensorspline = nullptr;
 
   if (!lrspline) return false;
+  if (!projBasis)
+    projBasis = lrspline;
 
   nnod = lrspline->nBasisFunctions();
   nel  = lrspline->nElements();
@@ -2084,6 +2087,27 @@ bool ASMu2D::updateDirichlet (const std::map<int,RealFunc*>& func,
 size_t ASMu2D::getNoNodes (int) const
 {
   return lrspline->nBasisFunctions();
+}
+
+
+size_t ASMu2D::getNoProjectionNodes () const
+{
+  return projBasis->nBasisFunctions();
+}
+
+
+bool ASMu2D::separateProjectionBasis () const
+{
+  return projBasis.get() != this->getBasis(1);
+}
+
+
+Fields* ASMu2D::getProjectedFields (const Vector& coefs, size_t nf) const
+{
+  if (projBasis.get() == this->getBasis(1))
+    return nullptr;
+
+  return new LRSplineFields2D(projBasis.get(),coefs,nf);
 }
 
 

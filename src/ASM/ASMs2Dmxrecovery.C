@@ -27,12 +27,12 @@ bool ASMs2Dmx::assembleL2matrices (SparseMatrix& A, StdVector& B,
                                    const IntegrandBase& integrand,
                                    bool continuous) const
 {
-  const size_t nnod = projBasis->numCoefs_u()*projBasis->numCoefs_v();
+  const size_t nnod = this->getNoProjectionNodes();
 
   const int p1 = surf->order_u();
   const int p2 = surf->order_v();
-  const int p11 = projBasis->order_u();
-  const int p21 = projBasis->order_v();
+  const int p11 = proj->order_u();
+  const int p21 = proj->order_v();
   const int n1 = surf->numCoefs_u();
   const int n2 = surf->numCoefs_v();
   const int nel1 = n1 - p1 + 1;
@@ -57,10 +57,10 @@ bool ASMs2Dmx::assembleL2matrices (SparseMatrix& A, StdVector& B,
   std::vector<Go::BasisPtsSf> spl0;
   std::array<std::vector<Go::BasisDerivsSf>,2> spl1;
   if (continuous) {
-    projBasis->computeBasisGrid(gpar[0],gpar[1],spl1[0]);
+    proj->computeBasisGrid(gpar[0],gpar[1],spl1[0]);
     surf->computeBasisGrid(gpar[0],gpar[1],spl1[1]);
   } else
-    projBasis->computeBasisGrid(gpar[0],gpar[1],spl0);
+    proj->computeBasisGrid(gpar[0],gpar[1],spl0);
 
   // Evaluate the secondary solution at all integration points
   Matrix sField;
@@ -98,17 +98,17 @@ bool ASMs2Dmx::assembleL2matrices (SparseMatrix& A, StdVector& B,
 
       int ip = (i2*ng1*nel1 + i1)*ng2;
       IntVec lmnpc;
-      if (projBasis != m_basis[0]) {
+      if (proj != m_basis.front().get()) {
         lmnpc.reserve(phi[0].size());
-        int vidx = (spl1[0][ip].left_idx[1]-p21+1)*projBasis->numCoefs_u();
-        for (int j = 0; j < p21; ++j, vidx += projBasis->numCoefs_u())
+        int vidx = (spl1[0][ip].left_idx[1]-p21+1)*proj->numCoefs_u();
+        for (int j = 0; j < p21; ++j, vidx += proj->numCoefs_u())
           for (int i = 0; i < p11; ++i)
             if (continuous)
               lmnpc.push_back(spl1[0][ip].left_idx[0]-p11+1+i+vidx);
             else
               lmnpc.push_back(spl0[ip].left_idx[0]-p11+1+i+vidx);
       }
-      const IntVec& mnpc = projBasis == m_basis[0] ? MNPC[iel] : lmnpc;
+      const IntVec& mnpc = proj == m_basis.front().get() ? MNPC[iel] : lmnpc;
 
       // --- Integration loop over all Gauss points in each direction ----------
 

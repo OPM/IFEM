@@ -26,6 +26,7 @@
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
 #include "ElementBlock.h"
+#include "SplineFields2D.h"
 #include "SplineUtils.h"
 #include "Utilities.h"
 #include "Profiler.h"
@@ -39,18 +40,23 @@
 
 
 ASMs2D::ASMs2D (unsigned char n_s, unsigned char n_f)
-  : ASMstruct(2,n_s,n_f), surf(nullptr), nodeInd(myNodeInd)
+  : ASMstruct(2,n_s,n_f), nodeInd(myNodeInd)
 {
+  surf = proj = nullptr;
   bou[0] = bou[1] = bou[2] = bou[3] = nullptr;
   swapV = false;
 }
 
 
 ASMs2D::ASMs2D (const ASMs2D& patch, unsigned char n_f)
-  : ASMstruct(patch,n_f), surf(patch.surf), nodeInd(patch.myNodeInd)
+  : ASMstruct(patch,n_f), nodeInd(patch.myNodeInd)
 {
+  surf = patch.surf;
+  proj = patch.proj;
+
   for (int i = 0; i < 4; i++)
     bou[i] = patch.bou[i];
+
   swapV = patch.swapV;
 
   // Need to set nnod here,
@@ -60,9 +66,11 @@ ASMs2D::ASMs2D (const ASMs2D& patch, unsigned char n_f)
 }
 
 
-ASMs2D::ASMs2D (const ASMs2D& patch)
-  : ASMstruct(patch), surf(patch.surf), nodeInd(myNodeInd)
+ASMs2D::ASMs2D (const ASMs2D& patch) : ASMstruct(patch), nodeInd(myNodeInd)
 {
+  surf = patch.surf;
+  proj = patch.proj;
+
   for (int i = 0; i < 4; i++)
     bou[i] = patch.bou[i];
 
@@ -166,8 +174,9 @@ void ASMs2D::clear (bool retainGeometry)
   if (!retainGeometry)
   {
     // Erase spline data
+    if (proj && proj != surf) delete proj;
     if (surf && !shareFE) delete surf;
-    geomB = surf = nullptr;
+    geomB = projB = surf = proj = nullptr;
   }
 
   // Erase the FE data
@@ -413,6 +422,7 @@ bool ASMs2D::raiseOrder (int ru, int rv)
 bool ASMs2D::generateFEMTopology ()
 {
   if (!surf) return false;
+  if (!proj) proj = surf;
 
   const int n1 = surf->numCoefs_u();
   const int n2 = surf->numCoefs_v();
@@ -2961,4 +2971,19 @@ int ASMs2D::getCorner (int I, int J, int basis) const
   if (J > 0) node += n1*(n2-1);
 
   return node;
+}
+
+
+Fields* ASMs2D::getProjectedFields (const Vector& coefs, size_t nf) const
+{
+  if (proj == this->getBasis(1))
+    return nullptr;
+
+  return new SplineFields2D(proj,coefs,nf);
+}
+
+
+size_t ASMs2D::getNoProjectionNodes () const
+{
+  return proj->numCoefs_u() * proj->numCoefs_v();
 }

@@ -71,7 +71,7 @@ Go::SplineCurve* ASMs2Dmx::getBoundary (int dir, int basis)
 bool ASMs2Dmx::write (std::ostream& os, int basis) const
 {
   if (basis == -1)
-    os <<"200 1 0 0\n" << *projBasis;
+    os <<"200 1 0 0\n" << *proj;
   else if (basis < 1 || basis > (int)m_basis.size())
     os <<"200 1 0 0\n" << *surf;
   else if (m_basis[basis-1])
@@ -180,10 +180,9 @@ bool ASMs2Dmx::generateFEMTopology ()
     // we need to project on something that is not one of our bases
     if (ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS1 ||
         ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
-      projBasis = ASMmxBase::establishBases(surf,
-                                            ASMmxBase::FULL_CONT_RAISE_BASIS1).front();
+      projB = proj = ASMmxBase::raiseBasis(surf);
     else
-      projBasis = m_basis.front();
+      projB = proj = m_basis.front()->clone();
   }
   delete surf;
   geomB = surf = m_basis[geoBasis-1]->clone();
@@ -1198,28 +1197,13 @@ void ASMs2Dmx::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
 }
 
 
-Fields* ASMs2Dmx::getProjectedFields(const Vector& coefs, size_t nf) const
-{
-  if (projBasis != m_basis[0])
-    return new SplineFields2D(projBasis.get(), coefs, nf);
-
-  return nullptr;
-}
-
-
-size_t ASMs2Dmx::getNoProjectionNodes() const
-{
-  return projBasis->numCoefs_u() * projBasis->numCoefs_v();
-}
-
-
 bool ASMs2Dmx::evalProjSolution (Matrix& sField, const Vector& locSol,
                                  const int* npe, int nf) const
 {
 #ifdef SP_DEBUG
   std::cout <<"ASMu2Dmx::evalProjSolution(Matrix&,const Vector&,const int*,int)\n";
 #endif
-  if (projBasis == m_basis[0])
+  if (proj == m_basis.front().get())
     return this->evalSolution(sField, locSol, npe, nf);
 
   // Compute parameter values of the nodal points
