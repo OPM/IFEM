@@ -1340,23 +1340,6 @@ void ASMs3Dmx::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
 }
 
 
-Fields* ASMs3Dmx::getProjectedFields(const Vector& coefs, size_t nf) const
-{
-  if (projBasis != m_basis[0])
-    return new SplineFields3D(projBasis.get(), coefs, nf);
-
-  return nullptr;
-}
-
-
-size_t ASMs3Dmx::getNoProjectionNodes() const
-{
-  return projBasis->numCoefs(0) *
-         projBasis->numCoefs(1) *
-         projBasis->numCoefs(2);
-}
-
-
 bool ASMs3Dmx::evalProjSolution (Matrix& sField, const Vector& locSol,
                                  const int* npe, int nf) const
 {

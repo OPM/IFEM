@@ -25,6 +25,7 @@
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
 #include "ElementBlock.h"
+#include "SplineFields3D.h"
 #include "SplineUtils.h"
 #include "Utilities.h"
 #include "Profiler.h"
@@ -341,6 +342,8 @@ bool ASMs3D::raiseOrder (int ru, int rv, int rw)
 bool ASMs3D::generateFEMTopology ()
 {
   if (!svol) return false;
+  if (!projBasis)
+    projBasis = svol;
 
   const int n1 = svol->numCoefs(0);
   const int n2 = svol->numCoefs(1);
@@ -3296,4 +3299,21 @@ bool ASMs3D::getFaceSize (int& n1, int& n2, int basis, int face) const
     n1 = n2 = 0;
 
   return true;
+}
+
+
+Fields* ASMs3D::getProjectedFields(const Vector& coefs, size_t nf) const
+{
+  if (projBasis.get() != this->getBasis(1))
+    return new SplineFields3D(projBasis.get(), coefs, nf);
+
+  return nullptr;
+}
+
+
+size_t ASMs3D::getNoProjectionNodes() const
+{
+  return projBasis->numCoefs(0) *
+         projBasis->numCoefs(1) *
+         projBasis->numCoefs(2);
 }

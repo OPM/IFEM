@@ -399,6 +399,14 @@ public:
   virtual bool integrateEdge(Integrand& integrand, int lEdge,
                              GlobalIntegral& glbInt, const TimeDomain& time);
 
+  //! \brief Returns the number of projection nodes for this patch.
+  virtual size_t getNoProjectionNodes() const;
+
+  //! \brief Returns a field using the projection basis.
+  //! \param[in] coefs The coefficients for the field
+  //! \param[in] nf Number of components
+  virtual Fields* getProjectedFields(const Vector& coefs, size_t nf) const;
+
 protected:
   //! \brief Evaluates an integral over the interior patch domain.
   //! \param integrand Object with problem-specific data and methods
@@ -735,6 +743,7 @@ private:
 
 protected:
   std::shared_ptr<Go::SplineVolume> svol;  //!< Pointer to the actual spline volume object
+  std::shared_ptr<Go::SplineVolume> projBasis; //!< Basis to project onto
   bool              swapW; //!< Has the w-parameter direction been swapped?
 
   const IndexVec& nodeInd; //!< IJK-triplets for the control points (nodes)
