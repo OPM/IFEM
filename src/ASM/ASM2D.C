@@ -22,6 +22,7 @@
 #ifdef HAS_LRSPLINE
 #include "LR/ASMu2DIB.h"
 #include "LR/ASMu2Dmx.h"
+#include "ASMu2Dnurbs.h"
 #endif
 #include "Vec3Oper.h"
 
@@ -61,6 +62,8 @@ ASMbase* ASM2D::create (ASM::Discretization discretization,
       return new ASMu2Dmx(nd,nf);
     else
       return new ASMu2D(nd,nf.front());
+  case ASM::LRNurbs:
+    return new ASMu2Dnurbs(nd,nf.front());
 #endif
 
   default:

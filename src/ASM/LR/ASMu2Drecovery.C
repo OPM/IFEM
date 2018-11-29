@@ -175,14 +175,14 @@ bool ASMu2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
       {
         if (continuous)
         {
-          projBasis->computeBasis(gpar[0][i],gpar[1][j],spl1,ielp);
+          this->computeBasis(gpar[0][i],gpar[1][j],spl1,ielp,projBasis.get());
           SplineUtils::extractBasis(spl1,phi,dNdu);
-          lrspline->computeBasis(gpar[0][i],gpar[1][j],spl2,iel-1);
+          this->computeBasis(gpar[0][i],gpar[1][j],spl2,iel-1);
           SplineUtils::extractBasis(spl2,phi2,dNdu);
         }
         else
         {
-          projBasis->computeBasis(gpar[0][i],gpar[1][j],spl0,ielp);
+          this->computeBasis(gpar[0][i],gpar[1][j],spl0,ielp,projBasis.get());
           phi = spl0.basisValues;
         }
 
@@ -427,7 +427,7 @@ LR::LRSplineSurface* ASMu2D::regularInterpolation (const RealArray& upar,
   {
     size_t k = 0;
     int iel = lrspline->getElementContaining(upar[i], vpar[i]);
-    lrspline->computeBasis(upar[i],vpar[i],splineValues, iel);
+    this->computeBasis(upar[i],vpar[i],splineValues,iel);
     for (LR::Basisfunction* function : lrspline->getElement(iel)->support())
       A(i+1,function->getId()+1) = splineValues.basisValues[k++];
   }
@@ -520,7 +520,7 @@ bool ASMu2D::edgeL2projection (const DirichletEdge& edge,
 
       // Evaluate basis function derivatives at current integration points
       Go::BasisDerivsSf spline;
-      lrspline->computeBasis(u,v,spline,iel-1);
+      this->computeBasis(u,v,spline,iel-1);
 
       // Fetch basis function derivatives at current integration point
       SplineUtils::extractBasis(spline,N,dNdu);

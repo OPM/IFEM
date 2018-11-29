@@ -26,6 +26,7 @@ class FiniteElement;
 namespace Go {
   class SplineCurve;
   class SplineSurface;
+  class BasisPtsSf;
   class BasisDerivsSf;
   class BasisDerivsSf2;
   class BasisDerivsSf3;
@@ -559,11 +560,17 @@ protected:
   //! \param[in] iel 0-based element index
   //! \param fe Integration point data for current element
   //! \param[in] derivs Derivative order of the basis functions
-  bool evaluateBasis(int iel, FiniteElement& fe, int derivs = 0) const;
+  virtual bool evaluateBasis(int iel, FiniteElement& fe, int derivs = 0) const;
+
+  //! \brief Evaluate basis functions in a point.
+  virtual void computeBasis(double u, double v,
+                            Go::BasisPtsSf& bas, int iel,
+                            const LR::LRSplineSurface* spline = nullptr) const;
 
   //! \brief Evaluate basis functions and first derivatives in a point.
   virtual void computeBasis(double u, double v,
-                            Go::BasisDerivsSf& bas, int iel) const;
+                            Go::BasisDerivsSf& bas, int iel,
+                            const LR::LRSplineSurface* spline = nullptr) const;
   //! \brief Evaluate basis functions and two derivatives in a point.
   virtual void computeBasis(double u, double v,
                             Go::BasisDerivsSf2& bas, int iel) const;
@@ -593,7 +600,7 @@ protected:
                                       const IntSet& neighborIndices) const;
 
   //! \brief Converts current tensor spline object to LR-spline.
-  LR::LRSplineSurface* createLRfromTensor();
+  virtual LR::LRSplineSurface* createLRfromTensor();
 
   //! \brief Generate bezier basis.
   void generateBezierBasis();
