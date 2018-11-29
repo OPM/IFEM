@@ -582,6 +582,12 @@ protected:
   //! \brief Converts current tensor spline object to LR-spline.
   LR::LRSplineSurface* createLRfromTensor();
 
+  //! \brief Generate bezier basis.
+  void generateBezierBasis();
+
+  //! \brief Generate bezier extraction operators.
+  void generateBezierExtraction();
+
 public:
   //! \brief Returns the number of elements on a boundary.
   virtual size_t getNoBoundaryElms(char lIndex, char ldim) const;
@@ -605,10 +611,10 @@ protected:
   const Matrices& bezierExtract; //!< Bezier extraction matrices
   Matrices      myBezierExtract; //!< Bezier extraction matrices
 
-private:
   Go::BsplineBasis bezier_u; //!< Bezier basis in the u-direction
   Go::BsplineBasis bezier_v; //!< Bezier basis in the v-direction
 
+private:
   mutable double aMin; //!< Minimum element area for adaptive refinement
 };
 

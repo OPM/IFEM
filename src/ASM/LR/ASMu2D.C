@@ -543,11 +543,7 @@ bool ASMu2D::generateFEMTopology ()
   nnod = lrspline->nBasisFunctions();
   nel  = lrspline->nElements();
 
-  const int p1 = lrspline->order(0);
-  const int p2 = lrspline->order(1);
-
-  bezier_u = getBezierBasis(p1);
-  bezier_v = getBezierBasis(p2);
+  this->generateBezierBasis();
 
   if (!MLGN.empty()) {
     if (MLGN.size() != nnod)
@@ -567,11 +563,9 @@ bool ASMu2D::generateFEMTopology ()
   myMLGE.resize(nel);
   myMNPC.resize(nel);
 
-  myBezierExtract.resize(nel);
   lrspline->generateIDs();
 
   size_t iel = 0;
-  RealArray extrMat;
   for (const LR::Element* elm : lrspline->getAllElements())
   {
     myMLGE[iel] = ++gEl; // global element number over all patches
@@ -580,16 +574,13 @@ bool ASMu2D::generateFEMTopology ()
     int lnod = 0;
     for (LR::Basisfunction* b : elm->support())
       myMNPC[iel][lnod++] = b->getId();
-
-    // Get bezier extraction matrix
-    PROFILE1("Bezier extraction");
-    lrspline->getBezierExtraction(iel,extrMat);
-    myBezierExtract[iel].resize(elm->nBasisFunctions(),p1*p2);
-    myBezierExtract[iel++].fill(extrMat.data(),extrMat.size());
+    ++iel;
   }
 
   for (size_t inod = 0; inod < nnod; inod++)
     myMLGN[inod] = ++gNod;
+
+  this->generateBezierExtraction();
 
   return true;
 }
@@ -2516,4 +2507,30 @@ bool ASMu2D::refine (const LR::RefineData& prm,
              <<" elements "<< projBasis->nBasisFunctions() <<" nodes."
              << std::endl;
   return true;
+}
+
+
+void ASMu2D::generateBezierBasis()
+{
+  bezier_u = this->getBezierBasis(geo->order(0));
+  bezier_v = this->getBezierBasis(geo->order(1));
+}
+
+
+void ASMu2D::generateBezierExtraction()
+{
+  const int p1 = geo->order(0);
+  const int p2 = geo->order(1);
+
+  myBezierExtract.resize(nel);
+  RealArray extrMat;
+  int iel = 0;
+  for (const LR::Element* elm : geo->getAllElements())
+  {
+    // Get bezier extraction matrix
+    PROFILE1("Bezier extraction");
+    geo->getBezierExtraction(iel,extrMat);
+    myBezierExtract[iel].resize(elm->nBasisFunctions(),p1*p2);
+    myBezierExtract[iel++].fill(extrMat.data(),extrMat.size());
+  }
 }

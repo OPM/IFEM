@@ -279,6 +279,8 @@ bool ASMu2Dmx::generateFEMTopology ()
 #endif
 
   geo = m_basis[geoBasis-1].get();
+  this->generateBezierBasis();
+  this->generateBezierExtraction();
 
   return true;
 }
