@@ -292,6 +292,8 @@ bool SIMoptions::parseOldOptions (int argc, char** argv, int& i)
     discretization = ASM::Triangle;
   else if (!strncmp(argv[i],"-spec",5))
     discretization = ASM::Spectral;
+  else if (!strncmp(argv[i],"-LRn",4))
+    discretization = ASM::LRNurbs;
   else if (!strncmp(argv[i],"-LR",3))
     discretization = ASM::LRSpline;
   else if (!strcmp(argv[i],"-nGauss") && i < argc-1)
@@ -423,6 +425,8 @@ utl::LogStream& SIMoptions::print (utl::LogStream& os, bool addBlankLine) const
     os <<"\nSpectral basis functions are used"; break;
   case ASM::LRSpline:
     os <<"\nLR-spline basis functions are used"; break;
+  case ASM::LRNurbs:
+    os <<"\nLR-NURBS basis functions are used"; break;
   case ASM::SplineC1:
     os <<"\nSpline basis with C1-continuous patch interfaces is used"; break;
   default: break;
