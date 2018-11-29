@@ -26,6 +26,9 @@ class FiniteElement;
 namespace Go {
   class SplineCurve;
   class SplineSurface;
+  class BasisDerivsSf;
+  class BasisDerivsSf2;
+  class BasisDerivsSf3;
 }
 
 namespace LR {
@@ -557,6 +560,16 @@ protected:
   //! \param fe Integration point data for current element
   //! \param[in] derivs Derivative order of the basis functions
   bool evaluateBasis(int iel, FiniteElement& fe, int derivs = 0) const;
+
+  //! \brief Evaluate basis functions and first derivatives in a point.
+  virtual void computeBasis(double u, double v,
+                            Go::BasisDerivsSf& bas, int iel) const;
+  //! \brief Evaluate basis functions and two derivatives in a point.
+  virtual void computeBasis(double u, double v,
+                            Go::BasisDerivsSf2& bas, int iel) const;
+  //! \brief Evaluate basis functions and three derivatives in a point.
+  virtual void computeBasis(double u, double v,
+                            Go::BasisDerivsSf3& bas, int iel) const;
 
   using ASMLRSpline::generateThreadGroups;
   //! \brief Generates element groups for multi-threading of interior integrals.
