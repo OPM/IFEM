@@ -2452,3 +2452,27 @@ Fields* ASMu3D::getProjectedFields(const Vector& coefs, size_t nf) const
 
   return nullptr;
 }
+
+
+bool ASMu3D::refine (const LR::RefineData& prm,
+                     Vectors& sol, const char* fName)
+{
+  if (!this->ASMLRSpline::refine(prm, sol, fName))
+    return false;
+
+  if (projBasis != lrspline)
+    for (const LR::MeshRectangle* rect : lrspline->getAllMeshRectangles()) {
+      auto it = std::find_if(projBasis->meshrectBegin(), projBasis->meshrectEnd(),
+                   [rect](const LR::MeshRectangle* newRect)
+                   {
+                     return newRect->contains(rect);
+                   }
+                  );
+      LR::MeshRectangle* newRect = rect->copy();
+      newRect->multiplicity_  = it == projBasis->meshrectEnd() ?
+                                      1 : (*it)->multiplicity();
+      projBasis->insert_line(newRect);
+    }
+
+  return true;
+}
