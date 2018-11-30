@@ -104,14 +104,15 @@ void ASMs2D::copyParameterDomain (const ASMbase* other)
 }
 
 
-bool ASMs2D::read (std::istream& is)
+bool ASMs2D::read (std::istream& is, bool proj)
 {
   if (shareFE) return true;
   surf.reset();
 
   Go::ObjectHeader head;
-  surf.reset(new Go::SplineSurface);
-  is >> head >> *surf;
+  std::shared_ptr<Go::SplineSurface>& toRead = proj ? projBasis : surf;
+  toRead.reset(new Go::SplineSurface);
+  is >> head >> *toRead;
 
   // Eat white-space characters to see if there is more data to read
   char c;
@@ -125,26 +126,28 @@ bool ASMs2D::read (std::istream& is)
   if (!is.good() && !is.eof())
   {
     std::cerr <<" *** ASMs2D::read: Failure reading spline data"<< std::endl;
-    surf.reset();
+    toRead.reset();
     return false;
   }
   else if (surf->dimension() < 2)
   {
     std::cerr <<" *** ASMs2D::read: Invalid spline surface patch, dim="
-	      << surf->dimension() << std::endl;
-    surf.reset();
+              << toRead->dimension() << std::endl;
+    toRead.reset();
     return false;
   }
-  else if (surf->dimension() < nsd)
+  else if (toRead->dimension() < nsd)
   {
     std::cerr <<"  ** ASMs2D::read: The dimension of this surface patch "
-	      << surf->dimension() <<" is less than nsd="<< (int)nsd
-	      <<".\n                   Resetting nsd to "<< surf->dimension()
+             << toRead->dimension() <<" is less than nsd="<< (int)nsd
+	      <<".\n                   Resetting nsd to "<< toRead->dimension()
 	      <<" for this patch."<< std::endl;
-    nsd = surf->dimension();
+    nsd = toRead->dimension();
   }
 
-  geo = surf.get();
+  if (!proj)
+    geo = surf.get();
+
   return true;
 }
 

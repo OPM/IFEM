@@ -60,21 +60,24 @@ ASMu2D::ASMu2D (const ASMu2D& patch, unsigned char n_f)
 }
 
 
-bool ASMu2D::read (std::istream& is)
+bool ASMu2D::read (std::istream& is, bool proj)
 {
   if (shareFE) return true;
+
+  std::shared_ptr<LR::LRSplineSurface>& toRead = proj ? projBasis : lrspline;
+  Go::SplineSurface*& toReadT = proj ? tensorsplineProj : tensorspline; 
 
   // read inputfile as either an LRSpline file directly
   // or a tensor product B-spline and convert
   char firstline[256];
   is.getline(firstline, 256);
   if (strncmp(firstline, "# LRSPLINE", 10) == 0) {
-    lrspline.reset(new LR::LRSplineSurface());
-    is >> *lrspline;
+    toRead.reset(new LR::LRSplineSurface());
+    is >> *toRead;
   } else { // probably a SplineSurface, so we'll read that and convert
-    tensorspline = new Go::SplineSurface();
-    is >> *tensorspline;
-    lrspline.reset(new LR::LRSplineSurface(tensorspline));
+    toReadT = new Go::SplineSurface();
+    is >> *toReadT;
+    toRead.reset(new LR::LRSplineSurface(toReadT));
   }
 
   // Eat white-space characters to see if there is more data to read
@@ -88,26 +91,28 @@ bool ASMu2D::read (std::istream& is)
   if (!is.good() && !is.eof())
   {
     std::cerr <<" *** ASMu2D::read: Failure reading spline data"<< std::endl;
-    lrspline.reset();
+    toRead.reset();
     return false;
   }
-  else if (lrspline->dimension() < 2)
+  else if (toRead->dimension() < 2)
   {
-    std::cerr <<" *** ASMu2D::read: Invalid spline lrsplineace patch, dim="
-              << lrspline->dimension() << std::endl;
-    lrspline.reset();
+    std::cerr <<" *** ASMu2D::read: Invalid spline lrspline patch, dim="
+              << toRead->dimension() << std::endl;
+    toRead.reset();
     return false;
   }
-  else if (lrspline->dimension() < nsd)
+  else if (toRead->dimension() < nsd)
   {
-    std::cout <<"  ** ASMu2D::read: The dimension of this lrsplineace patch "
-        << lrspline->dimension() <<" is less than nsd="<< nsd
-        <<".\n                   Resetting nsd to "<< lrspline->dimension()
-        <<" for this patch."<< std::endl;
-    nsd = lrspline->dimension();
+    std::cout <<"  ** ASMu2D::read: The dimension of this lrspline patch "
+              << toRead->dimension() <<" is less than nsd="<< nsd
+              <<".\n                   Resetting nsd to "<< toRead->dimension()
+              <<" for this patch."<< std::endl;
+    nsd = toRead->dimension();
   }
 
-  geo = lrspline.get();
+  if (!proj)
+    geo = lrspline.get();
+
   return true;
 }
 

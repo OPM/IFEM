@@ -780,29 +780,37 @@ ASMbase* SIM2D::readPatch (std::istream& isp, int pchInd,
 
 
 bool SIM2D::readPatches (std::istream& isp, PatchVec& patches,
-                         const char* whiteSpace) const
+                         const char* whiteSpace, bool proj) const
 {
   bool isMixed = nf.size() > 1 && nf[1] > 0;
   for (int pchInd = 1; isp.good(); pchInd++) {
     ASMbase* pch;
-    if ((pch = ASM2D::create(opt.discretization,nsd,nf,isMixed)))
+    if (proj && this->getLocalPatchIndex(pchInd) > 0)
+      pch = this->getPatch(this->getLocalPatchIndex(pchInd));
+    else if (!proj)
+      pch = ASM2D::create(opt.discretization,nsd,nf,isMixed);
+
+    if (pch)
     {
-      if (!pch->read(isp))
+      if (!pch->read(isp,proj))
       {
         delete pch;
         return false;
       }
-      else if (pch->empty() || this->getLocalPatchIndex(pchInd) < 1)
+      else if (!proj && (pch->empty() || this->getLocalPatchIndex(pchInd) < 1))
         delete pch;
       else
       {
         if (whiteSpace)
-          IFEM::cout << whiteSpace <<"Reading patch "<< pchInd << std::endl;
-        pch->idx = patches.size();
-        patches.push_back(pch);
-        if (checkRHSys)
-          if (dynamic_cast<ASM2D*>(pch)->checkRightHandSystem())
-            IFEM::cout <<"\tSwapped."<< std::endl;
+          IFEM::cout << whiteSpace <<"Reading patch "<< pchInd
+                     << (proj ? " (projection basis)" : "") << std::endl;
+        if (!proj) {
+          pch->idx = patches.size();
+          patches.push_back(pch);
+          if (checkRHSys)
+            if (dynamic_cast<ASM2D*>(pch)->checkRightHandSystem())
+              IFEM::cout <<"\tSwapped."<< std::endl;
+        }
       }
     }
   }

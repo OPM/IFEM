@@ -59,21 +59,23 @@ ASMu3D::ASMu3D (const ASMu3D& patch, unsigned char n_f)
 }
 
 
-bool ASMu3D::read (std::istream& is)
+bool ASMu3D::read (std::istream& is, bool proj)
 {
   if (shareFE) return true;
+  std::shared_ptr<LR::LRSplineVolume>& toRead = proj ? projBasis : lrspline;
+  Go::SplineVolume*& toReadT = proj ? tensorsplineProj : tensorspline;
 
   // read inputfile as either an LRSpline file directly
   // or a tensor product B-spline and convert
   char firstline[256];
   is.getline(firstline, 256);
   if (strncmp(firstline, "# LRSPLINE", 10) == 0) {
-    lrspline.reset(new LR::LRSplineVolume());
-    is >> *lrspline;
+    toRead.reset(new LR::LRSplineVolume());
+    is >> *toRead;
   } else { // probably a SplineVolume, so we'll read that and convert
-    tensorspline = new Go::SplineVolume();
-    is >> *tensorspline;
-    lrspline.reset(new LR::LRSplineVolume(tensorspline));
+    toReadT = new Go::SplineVolume();
+    is >> *toReadT;
+    toRead.reset(new LR::LRSplineVolume(toReadT));
   }
 
   // Eat white-space characters to see if there is more data to read
@@ -87,18 +89,20 @@ bool ASMu3D::read (std::istream& is)
   if (!is.good() && !is.eof())
   {
     std::cerr <<" *** ASMu3D::read: Failure reading spline data"<< std::endl;
-    lrspline.reset();
+    toRead.reset();
     return false;
   }
-  else if (lrspline->dimension() < 3)
+  else if (toRead->dimension() < 3)
   {
     std::cerr <<" *** ASMu3D::read: Invalid spline volume patch, dim="
-              << lrspline->dimension() << std::endl;
-    lrspline.reset();
+              << toRead->dimension() << std::endl;
+    toRead.reset();
     return false;
   }
 
-  geo = lrspline.get();
+  if (!proj)
+    geo = lrspline.get();
+
   return true;
 }
 

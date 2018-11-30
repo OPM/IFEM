@@ -180,8 +180,10 @@ public:
   //! \param[in] isp The input stream to read from
   //! \param[out] patches Array of patches that were read
   //! \param[in] whiteSpace For message formatting
+  //! \param[in] proj If true, read projection basis
   virtual bool readPatches(std::istream& isp, PatchVec& patches,
-                           const char* whiteSpace = "") const = 0;
+                           const char* whiteSpace = "",
+                           bool proj = false) const = 0;
 
   //! \brief Connects two patches.
   //! \param[in] master Master patch

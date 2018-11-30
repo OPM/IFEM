@@ -49,14 +49,14 @@ ASMs1D::ASMs1D (const ASMs1D& patch, unsigned char n_f)
 }
 
 
-bool ASMs1D::read (std::istream& is)
+bool ASMs1D::read (std::istream& is, bool proj)
 {
   if (shareFE) return true;
-  curv.reset();
 
   Go::ObjectHeader head;
-  curv.reset(new Go::SplineCurve);
-  is >> head >> *curv;
+  std::shared_ptr<Go::SplineCurve>& toRead = proj ? projBasis : curv;
+  toRead.reset(new Go::SplineCurve);
+  is >> head >> *toRead;
 
   // Eat white-space characters to see if there is more data to read
   char c;
@@ -70,26 +70,28 @@ bool ASMs1D::read (std::istream& is)
   if (!is.good() && !is.eof())
   {
     std::cerr <<" *** ASMs1D::read: Failure reading spline data"<< std::endl;
-    curv.reset();
+    toRead.reset();
     return false;
   }
-  else if (curv->dimension() < 1)
+  else if (toRead->dimension() < 1)
   {
     std::cerr <<" *** ASMs1D::read: Invalid spline curve patch, dim="
-	      << curv->dimension() << std::endl;
-    curv.reset();
+              << toRead->dimension() << std::endl;
+    toRead.reset();
     return false;
   }
-  else if (curv->dimension() < nsd)
+  else if (toRead->dimension() < nsd)
   {
     std::cout <<"  ** ASMs1D::read: The dimension of this curve patch "
-	      << curv->dimension() <<" is less than nsd="<< (int)nsd
-	      <<".\n                   Resetting nsd to "<< curv->dimension()
-	      <<" for this patch."<< std::endl;
-    nsd = curv->dimension();
+              << toRead->dimension() <<" is less than nsd="<< (int)nsd
+              <<".\n                   Resetting nsd to "<< toRead->dimension()
+              <<" for this patch."<< std::endl;
+    nsd = toRead->dimension();
   }
 
-  geo = curv.get();
+  if (!proj)
+    geo = curv.get();
+
   return true;
 }
 

@@ -86,14 +86,15 @@ void ASMs3D::copyParameterDomain (const ASMbase* other)
 }
 
 
-bool ASMs3D::read (std::istream& is)
+bool ASMs3D::read (std::istream& is, bool proj)
 {
   if (shareFE) return true;
-  svol.reset();
+
+  std::shared_ptr<Go::SplineVolume>& toRead = proj ? projBasis : svol;
 
   Go::ObjectHeader head;
-  svol.reset(new Go::SplineVolume);
-  is >> head >> *svol;
+  toRead.reset(new Go::SplineVolume);
+  is >> head >> *toRead;
 
   // Eat white-space characters to see if there is more data to read
   char c;
@@ -107,18 +108,20 @@ bool ASMs3D::read (std::istream& is)
   if (!is.good() && !is.eof())
   {
     std::cerr <<" *** ASMs3D::read: Failure reading spline data"<< std::endl;
-    svol.reset();
+    toRead.reset();
     return false;
   }
-  else if (svol->dimension() < 3)
+  else if (toRead->dimension() < 3)
   {
     std::cerr <<" *** ASMs3D::read: Invalid spline volume patch, dim="
-              << svol->dimension() << std::endl;
-    svol.reset();
+              << toRead->dimension() << std::endl;
+    toRead.reset();
     return false;
   }
 
-  geo = svol.get();
+  if (!proj)
+    geo = svol.get();
+
   return true;
 }
 

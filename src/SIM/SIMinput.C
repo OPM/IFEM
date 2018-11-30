@@ -40,18 +40,25 @@ bool SIMinput::parseGeometryTag (const TiXmlElement* elem)
     if (!myModel.empty())
       return true; // We already have a model, skip geometry definition
 
+    bool proj = false;
+    std::string type;
+    if (utl::getAttribute(elem,"basis",type) && type == "projection")
+      proj = true;
+
     const char* file = elem->FirstChild()->Value();
     IFEM::cout <<"\tReading data file "<< file << std::endl;
     std::ifstream isp(file);
-    this->readPatches(isp,myModel,"\t");
+    this->readPatches(isp,myModel,"\t",proj);
 
-    if (myModel.empty())
-    {
-      std::cerr <<" *** SIMinput::parse: No patches read."<< std::endl;
-      return false;
+    if (!proj) {
+      if (myModel.empty())
+      {
+        std::cerr <<" *** SIMinput::parse: No patches read."<< std::endl;
+        return false;
+      }
+      if (myPatches.empty())
+        nGlPatches = myModel.size();
     }
-    if (myPatches.empty())
-      nGlPatches = myModel.size();
   }
 
   else if (!strcasecmp(elem->Value(),"nodefile") && elem->FirstChild())

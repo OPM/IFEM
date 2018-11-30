@@ -131,7 +131,7 @@ public:
   // ============================
 
   //! \brief Creates an instance by reading the given input stream.
-  virtual bool read(std::istream&);
+  virtual bool read(std::istream&, bool proj = false);
   //! \brief Writes the geometry of the SplineSurface object to given stream.
   virtual bool write(std::ostream&, int = 0) const;
 

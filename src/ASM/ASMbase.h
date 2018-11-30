@@ -112,7 +112,7 @@ public:
   virtual bool empty() const = 0;
 
   //! \brief Creates an instance by reading the given input stream.
-  virtual bool read(std::istream& is) = 0;
+  virtual bool read(std::istream& is, bool proj = false) = 0;
   //! \brief Writes the geometry/basis of the patch to the given stream.
   virtual bool write(std::ostream& os, int basis = 0) const = 0;
 
