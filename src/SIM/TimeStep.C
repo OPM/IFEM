@@ -202,6 +202,10 @@ bool TimeStep::hasReached (double t) const
 
 bool TimeStep::reset (int istep)
 {
+  if (mySteps.empty()) {
+    step = istep;
+    return true;
+  }
   lstep = step = 0;
   stepIt = mySteps.begin();
   stopTime = mySteps.back().second;
