@@ -158,7 +158,7 @@ bool ASMunstruct::refine (const LR::RefineData& prm,
 
   IntVec nf(sol.size());
   for (size_t j = 0; j < sol.size(); j++)
-    if (!(nf[j] = LR::extendControlPoints(geo,sol[j],this->getNoFields(1))))
+    if (!sol[j].empty() && !(nf[j] = LR::extendControlPoints(geo,sol[j],this->getNoFields(1))))
       return false;
 
   if (!this->doRefine(prm,geo))
@@ -166,8 +166,10 @@ bool ASMunstruct::refine (const LR::RefineData& prm,
 
   nnod = geo->nBasisFunctions();
   for (int i = sol.size()-1; i >= 0; i--) {
-    sol[i].resize(nf[i]*geo->nBasisFunctions());
-    LR::contractControlPoints(geo,sol[i],nf[i]);
+    if (!sol[i].empty()) {
+      sol[i].resize(nf[i]*geo->nBasisFunctions());
+      LR::contractControlPoints(geo,sol[i],nf[i]);
+    }
   }
 
   if (fName)
