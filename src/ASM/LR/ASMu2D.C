@@ -2398,3 +2398,31 @@ RealArray ASMu2D::InterfaceChecker::getIntersections (int iel, int edge,
 
   return it->second.pts;
 }
+
+
+bool ASMu2D::refine (const LR::RefineData& prm,
+                     Vectors& sol, const char* fName)
+{
+  if (!this->ASMLRSpline::refine(prm, sol, fName))
+    return false;
+
+  if (projBasis != lrspline)
+    for (const LR::Meshline* line : lrspline->getAllMeshlines()) {
+      auto it = std::find_if(projBasis->meshlineBegin(), projBasis->meshlineEnd(),
+                   [line](const LR::Meshline* newLine)
+                   {
+                     return newLine->intersects(const_cast<LR::Meshline*>(line));
+                   }
+                  );
+      int mult = it == projBasis->meshlineEnd() ? 1 : (*it)->multiplicity();
+
+      if (line->span_u_line_)
+        projBasis->insert_const_v_edge(line->const_par_,
+                                       line->start_, line->stop_, mult);
+      else
+        projBasis->insert_const_u_edge(line->const_par_,
+                                       line->start_, line->stop_, mult);
+    }
+
+  return true;
+}

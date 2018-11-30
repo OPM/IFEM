@@ -176,6 +176,12 @@ public:
   //! \param[in] refC Mesh refinement criteria function
   //! \param[in] refTol Mesh refinement threshold
   virtual bool refine(const RealFunc& refC, double refTol);
+  //! \brief Refines the mesh adaptively.
+  //! \param[in] prm Input data used to control the mesh refinement
+  //! \param sol Control point results values that are transferred to new mesh
+  //! \param[in] fName Optional file name for an image of the resulting mesh
+  virtual bool refine(const LR::RefineData& prm, Vectors& sol,
+                      const char* fName = nullptr);
   //! \brief Raises the order of the tensor spline object for this patch.
   //! \param[in] ru Number of times to raise the order in u-direction
   //! \param[in] rv Number of times to raise the order in v-direction
