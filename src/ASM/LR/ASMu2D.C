@@ -35,6 +35,7 @@
 #include "Profiler.h"
 #include "Function.h"
 #include "Vec3Oper.h"
+#include "IFEM.h"
 #include <array>
 #include <fstream>
 
@@ -2487,4 +2488,29 @@ RealArray ASMu2D::InterfaceChecker::getIntersections (int iel, int edge,
     *cont = it->second.continuity;
 
   return it->second.pts;
+}
+
+
+bool ASMu2D::refine (const LR::RefineData& prm,
+                     Vectors& sol, const char* fName)
+{
+  bool ok = this->ASMLRSpline::refine(prm,sol,fName);
+  if (!ok || !this->separateProjectionBasis() ||
+      prm.elements.size() + prm.errors.size() == 0)
+    return ok;
+
+  for (const LR::Meshline* line : lrspline->getAllMeshlines())
+    if (line->span_u_line_)
+      projBasis->insert_const_v_edge(line->const_par_,
+                                     line->start_, line->stop_,
+                                     line->multiplicity());
+    else
+      projBasis->insert_const_u_edge(line->const_par_,
+                                     line->start_, line->stop_,
+                                     line->multiplicity());
+
+  IFEM::cout <<"Refined projection basis: "<< projBasis->nElements()
+             <<" elements "<< projBasis->nBasisFunctions() <<" nodes."
+             << std::endl;
+  return true;
 }
