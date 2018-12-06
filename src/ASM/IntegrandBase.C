@@ -264,6 +264,20 @@ std::string IntegrandBase::getField2Name (size_t idx, const char* prefix) const
 }
 
 
+NormBase::~NormBase ()
+{
+  for (Fields* f : prjFld)
+    delete f;
+}
+
+
+void NormBase::initProjection (size_t nproj)
+{
+  prjFld.resize(nproj,nullptr);
+  prjsol.resize(nproj);
+}
+
+
 Vector& NormBase::getProjection (size_t i)
 {
   if (i < prjsol.size())
@@ -271,6 +285,16 @@ Vector& NormBase::getProjection (size_t i)
 
   static Vector dummy;
   return dummy;
+}
+
+
+void NormBase::setProjectedFields (Fields* f, size_t idx)
+{
+  if (idx < prjFld.size())
+  {
+    std::swap(f,prjFld[idx]);
+    delete f;
+  }
 }
 
 

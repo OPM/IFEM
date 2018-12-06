@@ -302,13 +302,13 @@ protected:
                                         lints(nullptr), finalOp(ASM::SQRT) {}
 
 public:
-  //! \brief Empty destructor.
-  virtual ~NormBase() {}
+  //! \brief The destructor deletes the projected secondary solution fields.
+  virtual ~NormBase();
 
   //! \brief Initializes the integrand with the number of integration points.
   virtual void initIntegration(size_t, size_t) {}
   //! \brief Sets the number of projected solutions.
-  void initProjection(size_t nproj) { prjsol.resize(nproj); }
+  void initProjection(size_t nproj);
   //! \brief Sets a vector of LocalIntegrals to be used during norm integration.
   void setLocalIntegrals(LintegralVec* elementNorms) { lints = elementNorms; }
 
@@ -382,10 +382,10 @@ public:
   //! \brief Returns whether projections are fed through external means.
   virtual bool hasExternalProjections() const { return false; }
 
-  //! \brief Set projected quantities as fields.
-  //! \param[in] f The field with the info
+  //! \brief Sets a projected secondary solution as a field quantity.
+  //! \param[in] f The field defining the projected secondary solution
   //! \param[in] idx Projection index
-  virtual void setProjectedFields(Fields* f, size_t idx) {}
+  virtual void setProjectedFields(Fields* f, size_t idx);
 
 protected:
   //! \brief Initializes the projected fields for current element.
@@ -395,6 +395,8 @@ protected:
   double applyFinalOp(double value) const;
 
   IntegrandBase& myProblem; //!< The problem-specific data
+
+  std::vector<Fields*> prjFld; //!< Projected secondary solution fields
 
   Vectors prjsol; //!< Projected secondary solution vectors for current patch
   bool   projBou; //!< If \e true, the boundary integrand needs prjsol too
