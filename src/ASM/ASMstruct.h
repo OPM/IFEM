@@ -39,11 +39,11 @@ protected:
   ASMstruct(const ASMstruct& patch, unsigned char n_f);
 
 public:
-  //! \brief The destructor frees the dynamically allocated spline object.
+  //! \brief The destructor frees the dynamically allocated spline objects.
   virtual ~ASMstruct();
 
   //! \brief Checks if the patch is empty.
-  virtual bool empty() const { return geo == nullptr; }
+  virtual bool empty() const { return geomB == nullptr; }
 
   //! \brief Returns the number of nodal points in each parameter direction.
   //! \param[out] n1 Number of nodes in first (u) direction
@@ -78,6 +78,9 @@ public:
   virtual bool diracPoint(Integrand& integr, GlobalIntegral& glInt,
                           const double* u, const Vec3& pval);
 
+  //! \brief Checks if a separate projection basis is used for this patch.
+  virtual bool separateProjectionBasis() const;
+
 protected:
   //! \brief Adds extraordinary nodes associated with a patch boundary.
   //! \param[in] dim Dimension of the boundary
@@ -104,7 +107,8 @@ protected:
   virtual void getElementBorders(int iel, double* u) const = 0;
 
 protected:
-  Go::GeomObject* geo; //!< Pointer to the actual spline geometry object
+  Go::GeomObject* geomB; //!< Pointer to spline object of the geometry basis
+  Go::GeomObject* projB; //!< Pointer to spline object of the projection basis
 };
 
 #endif

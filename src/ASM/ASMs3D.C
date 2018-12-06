@@ -38,7 +38,7 @@
 
 
 ASMs3D::ASMs3D (unsigned char n_f)
-  : ASMstruct(3,3,n_f), svol(0), nodeInd(myNodeInd)
+  : ASMstruct(3,3,n_f), svol(nullptr), nodeInd(myNodeInd)
 {
   swapW = false;
 }
@@ -107,7 +107,7 @@ bool ASMs3D::read (std::istream& is)
   {
     std::cerr <<" *** ASMs3D::read: Failure reading spline data"<< std::endl;
     delete svol;
-    svol = 0;
+    svol = nullptr;
     return false;
   }
   else if (svol->dimension() < 3)
@@ -115,11 +115,11 @@ bool ASMs3D::read (std::istream& is)
     std::cerr <<" *** ASMs3D::read: Invalid spline volume patch, dim="
               << svol->dimension() << std::endl;
     delete svol;
-    svol = 0;
+    svol = nullptr;
     return false;
   }
 
-  geo = svol;
+  geomB = svol;
   return true;
 }
 
@@ -141,8 +141,7 @@ void ASMs3D::clear (bool retainGeometry)
   {
     // Erase spline data
     if (svol && !shareFE) delete svol;
-    svol = 0;
-    geo = 0;
+    geomB = svol = nullptr;
   }
 
   // Erase the FE data

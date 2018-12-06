@@ -22,8 +22,8 @@
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
-#include "SplineUtils.h"
 #include "SplineFields2D.h"
+#include "SplineUtils.h"
 #include "Utilities.h"
 #include "Profiler.h"
 #include "Vec3Oper.h"
@@ -85,14 +85,11 @@ bool ASMs2Dmx::write (std::ostream& os, int basis) const
 
 void ASMs2Dmx::clear (bool retainGeometry)
 {
-  // Erase the spline data
-  if (!retainGeometry)
-    delete surf, surf = 0;
-
+  // Erase the solution field bases
   for (auto& it : m_basis)
     it.reset();
 
-  // Erase the FE data
+  // Erase the FE data and the geometry basis
   this->ASMs2D::clear(retainGeometry);
 }
 
@@ -133,6 +130,7 @@ char ASMs2Dmx::getNodeType (size_t inod) const
 {
   if (this->isLMn(inod))
     return 'L';
+
   size_t nbc=nb.front();
   if (inod <= nbc)
     return 'D';
@@ -188,7 +186,7 @@ bool ASMs2Dmx::generateFEMTopology ()
       projBasis = m_basis.front();
   }
   delete surf;
-  geo = surf = m_basis[geoBasis-1]->clone();
+  geomB = surf = m_basis[geoBasis-1]->clone();
 
   nb.clear();
   nb.reserve(m_basis.size());
@@ -353,7 +351,6 @@ bool ASMs2Dmx::getElementCoordinates (Matrix& X, int iel) const
 
   size_t nenod = surf->order_u()*surf->order_v();
   size_t lnod0 = 0;
-
   for (int i = 1; i < geoBasis; ++i)
     lnod0 += m_basis[i-1]->order_u()*m_basis[i-1]->order_v();
 

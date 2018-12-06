@@ -50,7 +50,7 @@ ASMs3Dmx::ASMs3Dmx (const ASMs3Dmx& patch, const CharVec& n_f)
 Go::SplineVolume* ASMs3Dmx::getBasis (int basis) const
 {
   if (basis < 1 || basis > (int)m_basis.size())
-    basis = 1;
+    return svol;
 
   return m_basis[basis-1].get();
 }
@@ -84,16 +84,11 @@ bool ASMs3Dmx::write (std::ostream& os, int basis) const
 
 void ASMs3Dmx::clear (bool retainGeometry)
 {
-  // Erase the spline data
-  if (!retainGeometry)
-    svol = 0;
+  // Erase the solution field bases
+  for (auto& it : m_basis)
+    it.reset();
 
-  if (!shareFE)
-    m_basis[0].reset();
-  if (!shareFE)
-    m_basis[1].reset();
-
-  // Erase the FE data
+  // Erase the FE data and the geometry basis
   this->ASMs3D::clear(retainGeometry);
 }
 
@@ -118,7 +113,9 @@ unsigned char ASMs3Dmx::getNoFields (int basis) const
 
 unsigned char ASMs3Dmx::getNodalDOFs (size_t inod) const
 {
-  if (this->isLMn(inod)) return nLag;
+  if (this->isLMn(inod))
+    return nLag;
+
   size_t nbc=0;
   for (size_t i=0;i<nb.size();++i)
     if (inod <= (nbc+=nb[i]))
@@ -130,7 +127,9 @@ unsigned char ASMs3Dmx::getNodalDOFs (size_t inod) const
 
 char ASMs3Dmx::getNodeType (size_t inod) const
 {
-  if (this->isLMn(inod)) return 'L';
+  if (this->isLMn(inod))
+    return 'L';
+
   size_t nbc=nb.front();
   if (inod <= nbc)
     return 'D';
@@ -187,7 +186,7 @@ bool ASMs3Dmx::generateFEMTopology ()
   }
 
   delete svol;
-  geo = svol = m_basis[geoBasis-1]->clone();
+  geomB = svol = m_basis[geoBasis-1]->clone();
 
   nb.clear();
   elem_size.clear();
@@ -406,7 +405,7 @@ Vec3 ASMs3Dmx::getCoord (size_t inod) const
   if (inod < 1 || inod > nodeInd.size())
   {
     std::cerr <<" *** ASMs3Dmx::getCoord: Node index "<< inod
-	      <<" out of range [1,"<< nodeInd.size() <<"]."<< std::endl;
+              <<" out of range [1,"<< nodeInd.size() <<"]."<< std::endl;
     return Vec3();
   }
 #endif

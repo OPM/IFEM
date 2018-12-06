@@ -125,7 +125,7 @@ bool ASMs2D::read (std::istream& is)
   {
     std::cerr <<" *** ASMs2D::read: Failure reading spline data"<< std::endl;
     delete surf;
-    surf = 0;
+    surf = nullptr;
     return false;
   }
   else if (surf->dimension() < 2)
@@ -133,7 +133,7 @@ bool ASMs2D::read (std::istream& is)
     std::cerr <<" *** ASMs2D::read: Invalid spline surface patch, dim="
 	      << surf->dimension() << std::endl;
     delete surf;
-    surf = 0;
+    surf = nullptr;
     return false;
   }
   else if (surf->dimension() < nsd)
@@ -145,7 +145,7 @@ bool ASMs2D::read (std::istream& is)
     nsd = surf->dimension();
   }
 
-  geo = surf;
+  geomB = surf;
   return true;
 }
 
@@ -167,8 +167,7 @@ void ASMs2D::clear (bool retainGeometry)
   {
     // Erase spline data
     if (surf && !shareFE) delete surf;
-    surf = 0;
-    geo = 0;
+    geomB = surf = nullptr;
   }
 
   // Erase the FE data

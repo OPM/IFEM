@@ -91,7 +91,7 @@ bool ASMs1D::read (std::istream& is)
     nsd = curv->dimension();
   }
 
-  geo = curv;
+  geomB = curv;
   return true;
 }
 
@@ -113,7 +113,7 @@ void ASMs1D::clear (bool retainGeometry)
   {
     // Erase spline data
     if (curv && !shareFE) delete curv;
-    geo = curv = nullptr;
+    geomB = curv = nullptr;
   }
 
   // Erase the FE data

@@ -23,20 +23,31 @@
 ASMstruct::ASMstruct (unsigned char n_p, unsigned char n_s, unsigned char n_f)
   : ASMbase(n_p,n_s,n_f)
 {
-  geo = nullptr;
+  geomB = projB = nullptr;
 }
 
 
 ASMstruct::ASMstruct (const ASMstruct& patch, unsigned char n_f)
   : ASMbase(patch,n_f)
 {
-  geo = patch.geo;
+  geomB = patch.geomB;
+  projB = patch.projB;
 }
 
 
 ASMstruct::~ASMstruct ()
 {
-  if (geo && !shareFE) delete geo;
+  if (projB && projB != geomB)
+    delete projB;
+
+  if (geomB && !shareFE)
+    delete geomB;
+}
+
+
+bool ASMstruct::separateProjectionBasis () const
+{
+  return projB && projB != geomB;
 }
 
 
@@ -48,7 +59,7 @@ bool ASMstruct::addXNodes (unsigned short int dim, size_t nXn, IntVec& nodes)
               <<", only "<< (int)ndim-1 <<" is allowed."<< std::endl;
     return false;
   }
-  else if (!geo || shareFE == 'F')
+  else if (!geomB || shareFE == 'F')
     return false; // logic error
 
   else if (MNPC.size() == nel && MLGE.size() == nel)
