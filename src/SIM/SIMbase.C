@@ -1777,6 +1777,15 @@ bool SIMbase::project (Vector& values, const FunctionBase* f,
     case SIMoptions::CGL2:
     case SIMoptions::CGL2_INT:
       // Continuous global L2-projection
+      if (myModel[j]->separateProjectionBasis())
+      {
+        // Not implemented yet, silently ignore unless debug build
+#ifdef SP_DEBUG
+        std::cerr <<"  ** L2 projection of explicit functions onto a"
+                  <<" separate basis is not available."<< std::endl;
+#endif
+        return false;
+      }
       ok = myModel[j]->L2projection(f_values,const_cast<FunctionBase*>(f),time);
       loc_values = f_values;
       break;
@@ -1919,6 +1928,16 @@ bool SIMbase::evalSecondarySolution (Matrix& field, int pindx) const
 
   const_cast<SIMbase*>(this)->setPatchMaterial(pindx+1);
   return pch->evalSolution(field,*myProblem);
+}
+
+
+bool SIMbase::fieldProjections () const
+{
+  for (const ASMbase* pch : myModel)
+    if (pch->separateProjectionBasis())
+      return true;
+
+  return false;
 }
 
 

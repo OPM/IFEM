@@ -620,6 +620,11 @@ public:
   virtual Fields* getProjectedFields(const Vector&, size_t) const
   { return nullptr; }
 
+  //! \brief Creates a separate projection basis for this patch.
+  virtual bool createProjectionBasis(bool) { return false; }
+  //! \brief Checks if a separate projection basis is used for this patch.
+  virtual bool separateProjectionBasis() const { return false; }
+
 
   // Methods for result extraction
   // =============================
@@ -752,7 +757,7 @@ public:
   //! \param[in] dirs Which local DOFs to constrain (1, 2, 3, 12, 23, 123)
   //! \return Invalid local DOFs
   int fix(size_t inod, int dirs = 123);
-  //! \brief Checks whether given DOFs are fixed or not.
+  //! \brief Checks if the given DOFs are fixed.
   //! \param[in] node Global node number of the DOF to check
   //! \param[in] dof Local indices of the DOFs to check
   //! \param[in] all Returns \e true only if all DOFs are fixed

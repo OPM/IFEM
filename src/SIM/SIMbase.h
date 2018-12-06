@@ -496,8 +496,8 @@ public:
   //! the spline basis to obtain the control point values.
   bool evalSecondarySolution(Matrix& field, int pindx) const;
 
-  //! \brief Returns whether or not projections are handled through fields.
-  virtual bool fieldProjections() const { return false; }
+  //! \brief Returns whether projections must be handled through fields or not.
+  virtual bool fieldProjections() const;
 
   //! \brief Returns whether an analytical solution is available or not.
   virtual bool haveAnaSol() const { return mySol ? true : false; }
