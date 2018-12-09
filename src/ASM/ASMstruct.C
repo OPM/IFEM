@@ -122,9 +122,8 @@ bool ASMstruct::checkThreadGroups (const std::vector<std::set<int>>& nodes,
 bool ASMstruct::diracPoint (Integrand& integr, GlobalIntegral& glInt,
                             const double* u, const Vec3& pval)
 {
-  FiniteElement fe;
-  fe.iel = this->findElementContaining(u);
-  if (fe.iel < 1 || fe.iel > (int)nel)
+  int iel = this->findElementContaining(u);
+  if (iel < 1 || iel > (int)nel)
   {
     std::cerr <<" *** ASMstruct::diracPoint: The point";
     for (unsigned char i = 0; i < ndim; i++) std::cerr <<" "<< u[i];
@@ -134,14 +133,14 @@ bool ASMstruct::diracPoint (Integrand& integr, GlobalIntegral& glInt,
 
 #ifdef INDEX_CHECK
   double uElm[6];
-  this->getElementBorders(fe.iel,uElm);
+  this->getElementBorders(iel,uElm);
   for (unsigned char i = 0; i < ndim; i++)
     if (u[i] < uElm[2*i] || u[i] > uElm[2*i+1])
     {
       unsigned char d;
       std::cerr <<" *** ASMstruct::diracPoint: The point";
       for (d = 0; d < ndim; d++) std::cerr <<" "<< u[d];
-      std::cerr <<" is not within the domain of the found element "<< fe.iel
+      std::cerr <<" is not within the domain of the found element "<< iel
                 <<" which is";
       for (d = 0; d < ndim; d++)
         std::cerr <<(d ? "x[":" [") << uElm[2*d] <<","<< uElm[2*d+1] <<"]";
@@ -154,7 +153,7 @@ bool ASMstruct::diracPoint (Integrand& integr, GlobalIntegral& glInt,
       unsigned char d;
       std::cerr <<"   * The point";
       for (d = 0; d < ndim; d++) std::cerr <<" "<< u[d];
-      std::cerr <<" is within the domain of element "<< fe.iel <<" which is";
+      std::cerr <<" is within the domain of element "<< iel <<" which is";
       for (d = 0; d < ndim; d++)
         std::cerr << (d ? "x[":" [") << uElm[2*d] <<","<< uElm[2*d+1] <<"]";
       std::cerr << std::endl;
@@ -162,12 +161,14 @@ bool ASMstruct::diracPoint (Integrand& integr, GlobalIntegral& glInt,
 #endif
 #endif
 
+  FiniteElement fe;
+  fe.iel = MLGE[iel-1];
   if (ndim > 0) fe.u = u[0];
   if (ndim > 1) fe.v = u[1];
   if (ndim > 2) fe.w = u[2];
   this->evaluateBasis(fe.u,fe.v,fe.w,fe.N);
 
-  LocalIntegral* A = integr.getLocalIntegral(MNPC[fe.iel-1].size(),fe.iel,true);
+  LocalIntegral* A = integr.getLocalIntegral(MNPC[iel-1].size(),fe.iel,true);
   bool ok = integr.evalPoint(*A,fe,pval) && glInt.assemble(A,fe.iel);
   A->destruct();
 
