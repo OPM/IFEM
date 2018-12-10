@@ -84,10 +84,15 @@ protected:
   static SurfaceVec establishBases(Go::SplineSurface* surf, MixedType type);
 
   //! \brief Establish mixed bases in 3D.
-  //! \param[in] vol The base basis to use
+  //! \param[in] svol The base basis to use
   //! \param[in] type The type of bases to establish
   //! \return Vector with bases
-  static VolumeVec establishBases(Go::SplineVolume* vol, MixedType type);
+  static VolumeVec establishBases(Go::SplineVolume* svol, MixedType type);
+
+  //! \brief Returns a C^p-1 basis of one degree higher than \a *surf.
+  static Go::SplineSurface* raiseBasis(Go::SplineSurface* surf);
+  //! \brief Returns a C^p-1 basis of one degree higher than \a *svol.
+  static Go::SplineVolume*  raiseBasis(Go::SplineVolume* svol);
 
 private:
   std::vector<int> MADOF; //!< Matrix of accumulated DOFs for this patch
