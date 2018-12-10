@@ -1426,6 +1426,39 @@ bool ASMs1D::evalSolution (Matrix& sField, const Vector& locSol,
 }
 
 
+bool ASMs1D::evalProjSolution (Matrix& sField, const Vector& locSol,
+                               const int* npe, int) const
+{
+  // Compute parameter values of the result sampling points
+  RealArray gpar;
+  if (!this->getGridParameters(gpar,npe[0]-1))
+    return false;
+
+  // Evaluate the projected solution at all sampling points
+  if (!this->separateProjectionBasis())
+    return this->evalSolution(sField,locSol,&gpar,true);
+
+  Fields* f = this->getProjectedFields(locSol);
+  if (!f) return false;
+
+  // Evaluate the projected solution field at each point
+  Vector vals;
+  FiniteElement fe;
+  sField.resize(f->getNoFields(),gpar.size());
+
+  size_t ipt = 0;
+  for (size_t i = 0; i < gpar.size(); i++)
+  {
+    fe.u = gpar[i];
+    f->valueFE(fe,vals);
+    sField.fillColumn(++ipt,vals);
+  }
+
+  delete f;
+  return true;
+}
+
+
 bool ASMs1D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 			   const int* npe, char project) const
 {
@@ -1705,10 +1738,17 @@ bool ASMs1D::evaluate (const FunctionBase* func, RealArray& values,
 }
 
 
-Fields* ASMs1D::getProjectedFields (const Vector& coefs, size_t nf) const
+Fields* ASMs1D::getProjectedFields (const Vector& coefs, size_t) const
 {
   if (proj == curv)
     return nullptr;
 
-  return new SplineFields1D(proj,coefs,nf);
+  size_t ncmp = coefs.size() / this->getNoProjectionNodes();
+  if (ncmp*this->getNoProjectionNodes() == coefs.size())
+    return new SplineFields1D(proj,coefs,ncmp);
+
+  std::cerr <<" *** ASMs1D::getProjectedFields: Non-matching coefficent array,"
+            <<" size="<< coefs.size() <<" nnod="<< this->getNoProjectionNodes()
+            << std::endl;
+  return nullptr;
 }

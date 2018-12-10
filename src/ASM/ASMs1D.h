@@ -248,6 +248,13 @@ public:
                             const RealArray* gpar, bool = true,
                             int deriv = 0, int = 0) const;
 
+  //! \brief Evaluates the projected solution field at all visualization points.
+  //! \param[out] sField Solution field
+  //! \param[in] locSol Solution vector local to current patch
+  //! \param[in] npe Number of visualization nodes over each knot span
+  virtual bool evalProjSolution(Matrix& sField, const Vector& locSol,
+                                const int* npe, int) const;
+
   using ASMbase::evaluate;
   //! \brief Evaluates and interpolates a function over a given geometry.
   //! \param[in] func The function to evaluate
@@ -282,8 +289,7 @@ public:
 
   //! \brief Returns a field using the projection basis.
   //! \param[in] coefs The coefficients for the field
-  //! \param[in] nf Number of components
-  virtual Fields* getProjectedFields(const Vector& coefs, size_t nf) const;
+  virtual Fields* getProjectedFields(const Vector& coefs, size_t = 0) const;
 
   //! \brief Evaluates the secondary solution field at the given points.
   //! \param[out] sField Solution field
