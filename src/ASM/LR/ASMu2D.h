@@ -79,7 +79,7 @@ public:
   virtual ~ASMu2D() { geo = nullptr; }
 
   //! \brief Returns the spline surface representing the geometry of this patch.
-  LR::LRSplineSurface* getSurface() { return lrspline.get(); }
+  LR::LRSplineSurface* getSurface() { return this->createLRfromTensor(); }
   //! \brief Returns the spline surface representing the geometry of this patch.
   const LR::LRSplineSurface* getSurface() const { return lrspline.get(); }
 
@@ -180,6 +180,9 @@ public:
   //! \param[in] ru Number of times to raise the order in u-direction
   //! \param[in] rv Number of times to raise the order in v-direction
   virtual bool raiseOrder(int ru, int rv);
+
+  //! \brief Creates a separate projection basis for this patch.
+  virtual bool createProjectionBasis(bool init);
 
   //! \brief Defines the minimum element area for adaptive refinement.
   //! \param[in] nrefinements Maximum number of adaptive refinement levels
@@ -563,6 +566,9 @@ protected:
   virtual void extendRefinementDomain(IntSet& refineIndices,
                                       const IntSet& neighborIndices) const;
 
+  //! \brief Converts current tensor spline object to LR-spline.
+  LR::LRSplineSurface* createLRfromTensor();
+
 public:
   //! \brief Returns the number of elements on a boundary.
   virtual size_t getNoBoundaryElms(char lIndex, char ldim) const;
@@ -572,6 +578,7 @@ protected:
   std::shared_ptr<LR::LRSplineSurface> projBasis; //!< Basis to project onto
 
   Go::SplineSurface* tensorspline; //!< Pointer to original tensor spline object
+  Go::SplineSurface* tensorPrjBas; //!< Pointer to tensor spline projection base
   // The tensor spline object is kept for backward compatability with the REFINE
   // and RAISEORDER key-words, although we take note that there is a possibility
   // of optimization since all mapping values and Jacobians may be performed on

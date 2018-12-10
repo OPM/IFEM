@@ -40,18 +40,20 @@
 
 
 ASMu2D::ASMu2D (unsigned char n_s, unsigned char n_f)
-  : ASMLRSpline(2,n_s,n_f), lrspline(nullptr), tensorspline(nullptr),
+  : ASMLRSpline(2,n_s,n_f), lrspline(nullptr),
     bezierExtract(myBezierExtract)
 {
   aMin = 0.0;
+  tensorspline = tensorPrjBas = nullptr;
 }
 
 
 ASMu2D::ASMu2D (const ASMu2D& patch, unsigned char n_f)
-  : ASMLRSpline(patch,n_f), lrspline(patch.lrspline), tensorspline(nullptr),
+  : ASMLRSpline(patch,n_f), lrspline(patch.lrspline),
     bezierExtract(patch.myBezierExtract)
 {
   aMin = 0.0;
+  tensorspline = tensorPrjBas = nullptr;
 
   // Need to set nnod here,
   // as hasXNodes might be invoked before the FE data is generated
@@ -129,9 +131,10 @@ void ASMu2D::clear (bool retainGeometry)
     if (!shareFE) {
       lrspline.reset();
       delete tensorspline;
+      delete tensorPrjBas;
     }
     geo = nullptr;
-    tensorspline = nullptr;
+    tensorspline = tensorPrjBas = nullptr;
   }
 
   // Erase the FE data
@@ -226,6 +229,7 @@ bool ASMu2D::uniformRefine (int minBasisfunctions)
   return true;
 }
 
+
 bool ASMu2D::uniformRefine (int dir, int nInsert)
 {
   if (!tensorspline || dir < 0 || dir > 1 || nInsert < 1) return false;
@@ -251,8 +255,6 @@ bool ASMu2D::uniformRefine (int dir, int nInsert)
   else
     tensorspline->insertKnot_v(extraKnots);
 
-  lrspline.reset(new LR::LRSplineSurface(tensorspline));
-  geo = lrspline.get();
   return true;
 }
 
@@ -284,8 +286,6 @@ bool ASMu2D::refine (int dir, const RealArray& xi, double scale)
   else
     tensorspline->insertKnot_v(extraKnots);
 
-  lrspline.reset(new LR::LRSplineSurface(tensorspline));
-  geo = lrspline.get();
   return true;
 }
 
@@ -400,8 +400,29 @@ bool ASMu2D::raiseOrder (int ru, int rv)
   if (shareFE) return true;
 
   tensorspline->raiseOrder(ru,rv);
-  lrspline.reset(new LR::LRSplineSurface(tensorspline));
-  geo = lrspline.get();
+  return true;
+}
+
+
+/*!
+  This method is supposed to be invoked twice during the model generation.
+  In the first call, with \a init = \e true, the spline surface object
+  is cloned and the two pointers are then swapped, such that the subsequent
+  refine and raiseOrder operations will apply to the projection basis
+  and not on the geometry basis.
+  In the second call, the pointers are swapped back.
+*/
+
+bool ASMu2D::createProjectionBasis (bool init)
+{
+  if (!tensorspline)
+    return false;
+  else if (init && !tensorPrjBas)
+    tensorPrjBas = tensorspline->clone();
+  else if (init || !tensorPrjBas)
+    return false;
+
+  std::swap(tensorspline,tensorPrjBas);
   return true;
 }
 
@@ -487,16 +508,33 @@ bool ASMu2D::evaluateBasis (int iel, FiniteElement& fe, int derivs) const
 }
 
 
+LR::LRSplineSurface* ASMu2D::createLRfromTensor ()
+{
+  if (tensorspline)
+  {
+    lrspline.reset(new LR::LRSplineSurface(tensorspline));
+    delete tensorspline;
+    tensorspline = nullptr;
+  }
+
+  return lrspline.get();
+}
+
+
 bool ASMu2D::generateFEMTopology ()
 {
-  // At this point we are through with the tensor spline object,
-  // so release it to avoid memory leakage
-  delete tensorspline;
-  tensorspline = nullptr;
+  geo = this->createLRfromTensor();
+
+  if (tensorPrjBas)
+  {
+    projBasis.reset(new LR::LRSplineSurface(tensorPrjBas));
+    delete tensorPrjBas;
+    tensorPrjBas = nullptr;
+  }
+  else if (!projBasis)
+    projBasis = lrspline;
 
   if (!lrspline) return false;
-  if (!projBasis)
-    projBasis = lrspline;
 
   nnod = lrspline->nBasisFunctions();
   nel  = lrspline->nElements();

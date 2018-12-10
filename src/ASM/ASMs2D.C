@@ -419,6 +419,29 @@ bool ASMs2D::raiseOrder (int ru, int rv)
 }
 
 
+/*!
+  This method is supposed to be invoked twice during the model generation.
+  In the first call, with \a init = \e true, the spline surface object \a *surf
+  is cloned into \a *proj and the two pointers are then swapped, such that
+  the subsequent refine and raiseOrder operations will apply to the projection
+  basis and not on the geometry basis.
+  In the second call, the pointers are swapped back.
+*/
+
+bool ASMs2D::createProjectionBasis (bool init)
+{
+  if (!surf)
+    return false;
+  else if (init && !proj)
+    projB = proj = surf->clone();
+  else if (init || !proj)
+    return false;
+
+  std::swap(surf,proj);
+  return true;
+}
+
+
 bool ASMs2D::generateFEMTopology ()
 {
   if (!surf) return false;

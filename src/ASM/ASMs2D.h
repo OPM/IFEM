@@ -223,15 +223,18 @@ public:
   //! \param[in] dir Parameter direction to refine
   //! \param[in] xi Relative positions of added knots in each existing knot span
   //! \param[in] scale Scaling factor for the added knot values
-  bool refine(int dir, const RealArray& xi, double scale = 1.0);
+  virtual bool refine(int dir, const RealArray& xi, double scale = 1.0);
   //! \brief Refines the parametrization by inserting extra knots uniformly.
   //! \param[in] dir Parameter direction to refine
   //! \param[in] nInsert Number of extra knots to insert in each knot-span
-  bool uniformRefine(int dir, int nInsert);
+  virtual bool uniformRefine(int dir, int nInsert);
   //! \brief Raises the order of the SplineSurface object for this patch.
   //! \param[in] ru Number of times to raise the order in u-direction
   //! \param[in] rv Number of times to raise the order in v-direction
-  bool raiseOrder(int ru, int rv);
+  virtual bool raiseOrder(int ru, int rv);
+
+  //! \brief Creates a separate projection basis for this patch.
+  virtual bool createProjectionBasis(bool init);
 
 
   // Various methods for preprocessing of boundary conditions and patch topology

@@ -35,7 +35,8 @@ public:
   virtual ~SIMgeneric() {}
 
   //! \brief Creates a model with the default geometry (line, plane, cube).
-  bool createDefaultModel();
+  //! \return Pointer to the (first) spline patch of the model
+  ASMbase* createDefaultModel();
 
   //! \brief Evaluates the primary solution at the given point.
   //! \param[in] psol Primary solution vector

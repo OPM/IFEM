@@ -16,18 +16,18 @@
 #include "ASMbase.h"
 
 
-bool SIMgeneric::createDefaultModel ()
+ASMbase* SIMgeneric::createDefaultModel ()
 {
-  if (!myModel.empty()) return false;
+  if (!myModel.empty()) return nullptr;
 
   ModelGenerator* gen = this->getModelGenerator(nullptr);
-  if (!gen) return false;
+  if (!gen) return nullptr;
 
   myModel = gen->createGeometry(*this);
   nGlPatches = myModel.size();
   delete gen;
 
-  return nGlPatches > 0;
+  return nGlPatches > 0 ? myModel.front() : nullptr;
 }
 
 

@@ -90,8 +90,7 @@ TEST(TestASMu2D, InterfaceChecker)
 {
   SIM2D sim(1);
   sim.opt.discretization = ASM::LRSpline;
-  sim.createDefaultModel();
-  ASMu2D* pch = static_cast<ASMu2D*>(sim.getPatch(1));
+  ASMu2D* pch = static_cast<ASMu2D*>(sim.createDefaultModel());
   pch->raiseOrder(1,1);
   pch->uniformRefine(0, 3);
   pch->uniformRefine(1, 3);
@@ -176,21 +175,24 @@ TEST(TestASMu2D, TransferGaussPtVars)
 {
   SIM2D sim(1);
   sim.opt.discretization = ASM::LRSpline;
-  sim.createDefaultModel();
-  ASMu2D* pch = static_cast<ASMu2D*>(sim.getPatch(1));
+
+  ASMu2D* pch = static_cast<ASMu2D*>(sim.createDefaultModel());
+  LR::LRSplineSurface* lr = pch->getSurface();
+
   RealArray oldAr(9), newAr;
   const double* xi = GaussQuadrature::getCoord(3);
   size_t id[2];
   for (size_t idx = 0; idx < 2; ++idx) {
     SIM2D simNew(1);
     simNew.opt.discretization = ASM::LRSpline;
-    simNew.createDefaultModel();
-    ASMu2D* pchNew = static_cast<ASMu2D*>(simNew.getPatch(1));
+    ASMu2D* pchNew = static_cast<ASMu2D*>(simNew.createDefaultModel());
     pchNew->uniformRefine(idx, 1);
+    LR::LRSplineSurface* lrNew = pchNew->getSurface();
+    ASSERT_TRUE(lrNew != nullptr);
     for (id[1] = 0; id[1] < 3; ++id[1])
       for (id[0] = 0; id[0] < 3; ++id[0])
         oldAr[id[0]+id[1]*3] = (1.0 + xi[id[idx]]) / 2.0;
-    pchNew->transferGaussPtVars(pch->getSurface(), oldAr, newAr, 3);
+    pchNew->transferGaussPtVars(lr, oldAr, newAr, 3);
     size_t k = 0;
     for (size_t iEl = 0; iEl < 2; ++iEl) {
       for (id[1] = 0; id[1] < 3; ++id[1])
@@ -205,15 +207,19 @@ TEST(TestASMu2D, TransferGaussPtVarsN)
 {
   SIM2D sim(1), sim2(1);
   sim.opt.discretization = sim2.opt.discretization = ASM::LRSpline;
-  sim.createDefaultModel();
-  sim2.createDefaultModel();
-  ASMu2D* pch = static_cast<ASMu2D*>(sim.getPatch(1));
-  ASMu2D* pchNew = static_cast<ASMu2D*>(sim2.getPatch(1));
+
+  ASMu2D* pch = static_cast<ASMu2D*>(sim.createDefaultModel());
+  LR::LRSplineSurface* lr = pch->getSurface();
+
+  ASMu2D* pchNew = static_cast<ASMu2D*>(sim2.createDefaultModel());
   pchNew->uniformRefine(0, 1);
+  LR::LRSplineSurface* lrNew = pchNew->getSurface();
+  ASSERT_TRUE(lrNew != nullptr);
+
   RealArray oldAr(9), newAr;
   std::iota(oldAr.begin(), oldAr.end(), 1);
 
-  pchNew->transferGaussPtVarsN(pch->getSurface(), oldAr, newAr, 3);
+  pchNew->transferGaussPtVarsN(lr, oldAr, newAr, 3);
   static RealArray refAr = {{1.0, 1.0, 2.0,
                              4.0, 4.0, 5.0,
                              7.0, 7.0, 8.0,

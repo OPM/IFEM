@@ -123,7 +123,6 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
     if (!this->parseTopologySet(elem,patches))
       return false;
 
-    ASM2D* pch = nullptr;
     RealArray xi;
     if (!utl::parseKnots(elem,xi))
     {
@@ -131,13 +130,13 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
       utl::getAttribute(elem,"u",addu);
       utl::getAttribute(elem,"v",addv);
       for (int j : patches)
-        if ((pch = dynamic_cast<ASM2D*>(this->getPatch(j,true))))
-        {
-          IFEM::cout <<"\tRefining P"<< j
-                     <<" "<< addu <<" "<< addv << std::endl;
-          pch->uniformRefine(0,addu);
-          pch->uniformRefine(1,addv);
-        }
+      {
+        IFEM::cout <<"\tRefining P"<< j
+                   <<" "<< addu <<" "<< addv << std::endl;
+        ASM2D* pch = dynamic_cast<ASM2D*>(this->getPatch(j,true));
+        if (pch) pch->uniformRefine(0,addu);
+        if (pch) pch->uniformRefine(1,addv);
+      }
     }
     else
     {
@@ -147,15 +146,15 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
       utl::getAttribute(elem,"dir",dir);
       utl::getAttribute(elem,"scale",scale);
       for (int j : patches)
-        if ((pch = dynamic_cast<ASM2D*>(this->getPatch(j,true))))
-        {
-          IFEM::cout <<"\tRefining P"<< j <<" dir="<< dir
-                     <<" with grading "<< elem->FirstChild()->Value() <<":";
-          for (size_t i = 0; i < xi.size(); i++)
-            IFEM::cout << (i%10 || xi.size() < 11 ? " " : "\n\t") << xi[i];
-          IFEM::cout << std::endl;
-          pch->refine(dir-1,xi,scale);
-        }
+      {
+        IFEM::cout <<"\tRefining P"<< j <<" dir="<< dir
+                   <<" with grading "<< elem->FirstChild()->Value() <<":";
+        for (size_t i = 0; i < xi.size(); i++)
+          IFEM::cout << (i%10 || xi.size() < 11 ? " " : "\n\t") << xi[i];
+        IFEM::cout << std::endl;
+        ASM2D* pch = dynamic_cast<ASM2D*>(this->getPatch(j,true));
+        if (pch) pch->refine(dir-1,xi,scale);
+      }
     }
   }
 
@@ -168,14 +167,12 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
     int addu = 0, addv = 0;
     utl::getAttribute(elem,"u",addu);
     utl::getAttribute(elem,"v",addv);
-    for (int j : patches) {
-      ASM2D* pch;
-      if ((pch = dynamic_cast<ASM2D*>(this->getPatch(j,true))))
-      {
-        IFEM::cout <<"\tRaising order of P"<< j
-                   <<" "<< addu <<" "<< addv << std::endl;
-        pch->raiseOrder(addu,addv);
-      }
+    for (int j : patches)
+    {
+      IFEM::cout <<"\tRaising order of P"<< j
+                 <<" "<< addu <<" "<< addv << std::endl;
+      ASM2D* pch = dynamic_cast<ASM2D*>(this->getPatch(j,true));
+      if (pch) pch->raiseOrder(addu,addv);
     }
   }
 
@@ -187,19 +184,18 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
     const TiXmlElement* child = elem->FirstChildElement("connection");
     for (; child; child = child->NextSiblingElement())
     {
-      int master = 0, slave = 0, mEdge = 0, sEdge = 0, orient = 0, basis = 0, dim = 1;
-      bool periodic = false;
+      int master = 0, slave = 0, mEdge = 0, sEdge = 0;
+      int orient = 0, basis = 0, dim = 1;
+      bool rever = false, periodic = false;
+      utl::getAttribute(child,"reverse",rever);
       utl::getAttribute(child,"master",master);
       if (!utl::getAttribute(child,"midx",mEdge))
         utl::getAttribute(child,"medge",mEdge);
       utl::getAttribute(child,"slave",slave);
       if (!utl::getAttribute(child,"sidx",sEdge))
         utl::getAttribute(child,"sedge",sEdge);
-      if (!utl::getAttribute(child,"orient",orient)) {
-        bool rever = false;
-        if (utl::getAttribute(child,"reverse",rever) && rever)
-          orient = 1;
-      }
+      if (!utl::getAttribute(child,"orient",orient) && rever)
+        orient = 1;
       utl::getAttribute(child,"basis",basis);
       utl::getAttribute(child,"periodic",periodic);
       utl::getAttribute(child,"dim",dim);
@@ -320,6 +316,24 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
         else
           myModel.front()->addHole(R,X1,Y1,X2,Y2);
       }
+  }
+
+  else if (!strcasecmp(elem->Value(),"projection"))
+  {
+    // Generate separate projection basis from current geometry basis
+    for (ASMbase* pch : myModel)
+      pch->createProjectionBasis(true);
+
+    // Apply refine and/raise-order commands to define the projection basis
+    const TiXmlElement* child = elem->FirstChildElement();
+    for (; child; child = child->NextSiblingElement())
+      if (!strcasecmp(child->Value(),"refine") ||
+          !strcasecmp(child->Value(),"raiseorder"))
+        if (!this->parseGeometryTag(child))
+          return false;
+
+    for (ASMbase* pch : myModel)
+      pch->createProjectionBasis(false);
   }
 
   return true;
@@ -455,8 +469,7 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
 	      if ((pch = dynamic_cast<ASM2D*>(myModel[j])))
 	      {
 		IFEM::cout <<"\tRefining P"<< j+1 <<" dir="<< dir;
-		for (size_t i = 0; i < xi.size(); i++)
-		  IFEM::cout <<" "<< xi[i];
+		for (double u : xi) IFEM::cout <<" "<< u;
 		IFEM::cout << std::endl;
 		pch->refine(dir-1,xi);
 	      }
@@ -630,9 +643,8 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
       double ry = atof(strtok(nullptr," "));
       int bcode = (cline = strtok(nullptr," ")) ? atoi(cline) : 12;
 
-      int pid = this->getLocalPatchIndex(patch);
-      ASM2D* pch;
-      if (pid > 0 && (pch = dynamic_cast<ASM2D*>(myModel[pid-1])))
+      ASM2D* pch = dynamic_cast<ASM2D*>(this->getPatch(patch,true));
+      if (pch)
       {
         IFEM::cout <<"\tConstraining P"<< patch
                    <<" point at "<< rx <<" "<< ry
@@ -771,10 +783,13 @@ bool SIM2D::readPatches (std::istream& isp, PatchVec& patches,
                          const char* whiteSpace) const
 {
   bool isMixed = nf.size() > 1 && nf[1] > 0;
-  for (int pchInd = 1; isp.good(); pchInd++) {
-    ASMbase* pch;
-    if ((pch = ASM2D::create(opt.discretization,nsd,nf,isMixed)))
+  for (int pchInd = 1; isp.good(); pchInd++)
+  {
+    ASMbase* pch = ASM2D::create(opt.discretization,nsd,nf,isMixed);
+    if (pch)
     {
+      if (whiteSpace)
+        IFEM::cout << whiteSpace <<"Reading patch "<< pchInd << std::endl;
       if (!pch->read(isp))
       {
         delete pch;
@@ -784,8 +799,6 @@ bool SIM2D::readPatches (std::istream& isp, PatchVec& patches,
         delete pch;
       else
       {
-        if (whiteSpace)
-          IFEM::cout << whiteSpace <<"Reading patch "<< pchInd << std::endl;
         pch->idx = patches.size();
         patches.push_back(pch);
         if (checkRHSys)
@@ -846,10 +859,10 @@ bool SIM2D::readNodes (std::istream& isn, int pchInd, int basis, bool oneBased)
 void SIM2D::clonePatches (const PatchVec& patches,
 			  const std::map<int,int>& glb2locN)
 {
-  for (size_t i = 0; i < patches.size(); i++) {
-    ASM2D* pch;
-    if ((pch = dynamic_cast<ASM2D*>(patches[i])))
-      myModel.push_back(pch->clone(nf));
+  for (ASMbase* patch : patches)
+  {
+    ASM2D* pch2D = dynamic_cast<ASM2D*>(patch);
+    if (pch2D) myModel.push_back(pch2D->clone(nf));
   }
 
   g2l = &glb2locN;
