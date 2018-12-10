@@ -407,6 +407,14 @@ public:
                             const RealArray* gpar, bool regular = true,
                             int deriv = 0, int = 0) const;
 
+  //! \brief Evaluates the projected solution field at all visualization points.
+  //! \param[out] sField Solution field
+  //! \param[in] locSol Solution vector local to current patch
+  //! \param[in] npe Number of visualization nodes over each knot span
+  //! \param[in] nf If nonzero, mixed evaluates nf fields on first basis
+  virtual bool evalProjSolution(Matrix& sField, const Vector& locSol,
+                                const int* npe, int nf = 0) const;
+
   //! \brief Evaluates and interpolates a field over a given geometry.
   //! \param[in] basis The basis of the field to evaluate
   //! \param[in] locVec The coefficients of the field to evaluate
@@ -656,8 +664,7 @@ public:
 
   //! \brief Returns a field using the projection basis.
   //! \param[in] coefs The coefficients for the field
-  //! \param[in] nf Number of components
-  virtual Fields* getProjectedFields(const Vector& coefs, size_t nf) const;
+  virtual Fields* getProjectedFields(const Vector& coefs, size_t = 0) const;
 
 private:
   //! \brief Returns an index into the internal coefficient array for a node.

@@ -192,14 +192,6 @@ public:
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
 			    const RealArray* gpar, bool regular = true) const;
 
-  //! \brief Evaluates the projected solution field at all visualization points.
-  //! \param[out] sField Solution field
-  //! \param[in] locSol Solution vector local to current patch
-  //! \param[in] npe Number of visualization nodes over each knot span
-  //! \param[in] nf If nonzero, mixed evaluates nf fields on first basis
-  virtual bool evalProjSolution(Matrix& sField, const Vector& locSol,
-                                const int* npe, int nf = 0) const;
-
   //! \brief Extracts nodal results for this patch from the global vector.
   //! \param[in] globVec Global solution vector in DOF-order
   //! \param[out] nodeVec Nodal result vector for this patch

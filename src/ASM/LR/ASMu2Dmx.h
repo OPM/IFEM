@@ -134,14 +134,6 @@ public:
                             const RealArray* gpar, bool = false,
                             int deriv = 0, int nf = 0) const;
 
-  //! \brief Evaluates the projected solution field at all visualization points.
-  //! \param[out] sField Solution field
-  //! \param[in] locSol Solution vector local to current patch
-  //! \param[in] npe Number of visualization nodes over each knot span
-  //! \param[in] nf If nonzero, mixed evaluates nf fields on first basis
-  virtual bool evalProjSolution(Matrix& sField, const Vector& locSol,
-                                const int* npe, int nf = 0) const;
-
   //! \brief Evaluates the secondary solution field at the given points.
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods

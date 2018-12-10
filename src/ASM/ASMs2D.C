@@ -2651,6 +2651,43 @@ bool ASMs2D::evalSolution (Matrix& sField, const Vector& locSol,
 }
 
 
+bool ASMs2D::evalProjSolution (Matrix& sField, const Vector& locSol,
+                               const int* npe, int nf) const
+{
+  // Compute parameter values of the result sampling points
+  std::array<RealArray,2> gpar;
+  for (int dir = 0; dir < 2; dir++)
+    if (!this->getGridParameters(gpar[dir],dir,npe[dir]-1))
+      return false;
+
+  // Evaluate the projected solution at all sampling points
+  if (!this->separateProjectionBasis())
+    return this->evalSolution(sField,locSol,gpar.data(),true,0,nf);
+
+  // The projection uses a separate basis, need to interpolate
+  Fields* f = this->getProjectedFields(locSol);
+  if (!f) return false;
+
+  // Evaluate the projected solution field at each point
+  Vector vals;
+  FiniteElement fe;
+  sField.resize(f->getNoFields(),gpar[0].size()*gpar[1].size());
+
+  size_t ipt = 0;
+  for (size_t j = 0; j < gpar[1].size(); j++)
+    for (size_t i = 0; i < gpar[0].size(); i++)
+    {
+      fe.u = gpar[0][i];
+      fe.v = gpar[1][j];
+      f->valueFE(fe,vals);
+      sField.fillColumn(++ipt,vals);
+    }
+
+  delete f;
+  return true;
+}
+
+
 bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 			   const int* npe, char project) const
 {
@@ -2997,12 +3034,19 @@ int ASMs2D::getCorner (int I, int J, int basis) const
 }
 
 
-Fields* ASMs2D::getProjectedFields (const Vector& coefs, size_t nf) const
+Fields* ASMs2D::getProjectedFields (const Vector& coefs, size_t) const
 {
   if (proj == this->getBasis(1))
     return nullptr;
 
-  return new SplineFields2D(proj,coefs,nf);
+  size_t ncmp = coefs.size() / this->getNoProjectionNodes();
+  if (ncmp*this->getNoProjectionNodes() == coefs.size())
+    return new SplineFields2D(proj,coefs,ncmp);
+
+  std::cerr <<" *** ASMs2D::getProjectedFields: Non-matching coefficent array,"
+            <<" size="<< coefs.size() <<" nnod="<< this->getNoProjectionNodes()
+            << std::endl;
+  return nullptr;
 }
 
 

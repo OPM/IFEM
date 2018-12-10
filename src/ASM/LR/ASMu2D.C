@@ -1866,6 +1866,49 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
 }
 
 
+bool ASMu2D::evalProjSolution (Matrix& sField, const Vector& locSol,
+                               const int* npe, int nf) const
+{
+#ifdef SP_DEBUG
+  std::cout <<"ASMu2D::evalProjSolution(Matrix&,const Vector&,"
+            <<"const int*,int)"<< std::endl;
+#endif
+
+  // Compute parameter values of the result sampling points
+  std::array<RealArray,2> gpar;
+  for (int dir = 0; dir < 2; dir++)
+    if (!this->getGridParameters(gpar[dir],dir,npe[dir]-1))
+      return false;
+
+  // Evaluate the projected solution at all sampling points
+  if (!this->separateProjectionBasis())
+    return this->evalSolution(sField,locSol,gpar.data(),false,0,nf);
+
+  // The projection uses a separate basis, need to interpolate
+  size_t nPoints = gpar[0].size();
+  if (nPoints != gpar[1].size())
+    return false;
+
+  Fields* f = this->getProjectedFields(locSol);
+  if (!f) return false;
+
+  // Evaluate the projected solution field at each point
+  Vector vals;
+  FiniteElement fe;
+  sField.resize(f->getNoFields(),nPoints);
+  for (size_t i = 0; i < nPoints; i++)
+  {
+    fe.u = gpar[0][i];
+    fe.v = gpar[1][i];
+    f->valueFE(fe,vals);
+    sField.fillColumn(1+i,vals);
+  }
+
+  delete f;
+  return true;
+}
+
+
 bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
                            const int* npe, char project) const
 {
@@ -2140,12 +2183,19 @@ bool ASMu2D::separateProjectionBasis () const
 }
 
 
-Fields* ASMu2D::getProjectedFields (const Vector& coefs, size_t nf) const
+Fields* ASMu2D::getProjectedFields (const Vector& coefs, size_t) const
 {
   if (projBasis.get() == this->getBasis(1))
     return nullptr;
 
-  return new LRSplineFields2D(projBasis.get(),coefs,nf);
+  size_t ncmp = coefs.size() / this->getNoProjectionNodes();
+  if (ncmp*this->getNoProjectionNodes() == coefs.size())
+    return new LRSplineFields2D(projBasis.get(),coefs,ncmp);
+
+  std::cerr <<" *** ASMsuD::getProjectedFields: Non-matching coefficent array,"
+            <<" size="<< coefs.size() <<" nnod="<< this->getNoProjectionNodes()
+            << std::endl;
+  return nullptr;
 }
 
 

@@ -183,48 +183,47 @@ bool ASMu2Dmx::generateFEMTopology ()
     return true;
 
   if (m_basis.empty()) {
-    auto vec = ASMmxBase::establishBases(tensorspline, ASMmxBase::Type);
-    m_basis.resize(vec.size());
-    for (size_t i=0;i<vec.size();++i)
-      m_basis[i].reset(new LR::LRSplineSurface(vec[i].get()));
+    SurfaceVec svec = ASMmxBase::establishBases(tensorspline, ASMmxBase::Type);
+    m_basis.resize(svec.size());
+    for (size_t b = 0; b < svec.size(); b++)
+      m_basis[b].reset(new LR::LRSplineSurface(svec[b].get()));
 
     // we need to project on something that is not one of our bases
     if (ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS1 ||
         ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE ||
         ASMmxBase::Type == ASMmxBase::SUBGRID) {
-      std::shared_ptr<Go::SplineSurface> otherBasis =
-          ASMmxBase::establishBases(tensorspline, ASMmxBase::FULL_CONT_RAISE_BASIS1).front();
+      Go::SplineSurface* otherBasis = ASMmxBase::raiseBasis(tensorspline);
       if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
-        projBasis = m_basis[0];
-        refBasis.reset(new LR::LRSplineSurface(otherBasis.get()));
-      } else {
-        projBasis.reset(new LR::LRSplineSurface(otherBasis.get()));
+        projBasis = m_basis.front();
+        refBasis.reset(new LR::LRSplineSurface(otherBasis));
+      }
+      else {
+        projBasis.reset(new LR::LRSplineSurface(otherBasis));
         refBasis = projBasis;
       }
-    } else
-     projBasis = refBasis = m_basis[0];
+      delete otherBasis;
+    }
+    else
+      projBasis = refBasis = m_basis.front();
   }
   projBasis->generateIDs();
   refBasis->generateIDs();
   lrspline = m_basis[geoBasis-1];
 
-  nb.resize(m_basis.size());
-  for (size_t i=0; i < m_basis.size(); ++i)
-    nb[i] = m_basis[i]->nBasisFunctions();
+  nb.clear();
+  nb.reserve(m_basis.size());
+  for (const auto& it : m_basis) {
+    nb.push_back(it->nBasisFunctions());
+#ifdef SP_DEBUG
+    std::cout <<"Basis "<< nb.size()
+              <<":\nnumCoefs: "<< nb.back()
+              <<"\norder: "<< it->order(0) <<" "<< it->order(1) << std::endl;
+#endif
+  }
 
   if (shareFE == 'F') return true;
 
-#ifdef SP_DEBUG
-  size_t nbasis=0;
-  for (auto& it : m_basis) {
-    std::cout << "Basis " << ++nbasis << ":\n";
-    std::cout <<"numCoefs: "<< it->nBasisFunctions();
-    std::cout <<"\norder: "<< it->order(0) <<" "<< it->order(1) << std::endl;
-  }
-#endif
-
   nel = m_basis[geoBasis-1]->nElements();
-
   nnod = std::accumulate(nb.begin(), nb.end(), 0);
 
   myMLGE.resize(nel,0);
@@ -233,29 +232,27 @@ bool ASMu2Dmx::generateFEMTopology ()
   for (auto&& it : m_basis)
     it->generateIDs();
 
-  std::vector<LR::Element*>::iterator el_it1 = m_basis[geoBasis-1]->elementBegin();
-  for (size_t iel=0; iel<nel; iel++, ++el_it1)
+  size_t iel = 0;
+  for (const LR::Element* el1 : m_basis[geoBasis-1]->getAllElements())
   {
-    double uh = ((*el_it1)->umin()+(*el_it1)->umax())/2.0;
-    double vh = ((*el_it1)->vmin()+(*el_it1)->vmax())/2.0;
+    double uh = (el1->umin()+el1->umax())/2.0;
+    double vh = (el1->vmin()+el1->vmax())/2.0;
     size_t nfunc = 0;
-    for (size_t i=0; i<m_basis.size();++i) {
-      auto el_it2 = m_basis[i]->elementBegin() +
-                    m_basis[i]->getElementContaining(uh, vh);
+    for (const auto& it : m_basis) {
+      auto el_it2 = it->elementBegin() + it->getElementContaining(uh,vh);
       nfunc += (*el_it2)->nBasisFunctions();
     }
-    myMLGE[iel] = ++gEl; // global element number over all patches
     myMNPC[iel].resize(nfunc);
 
-    int lnod = 0;
-    size_t ofs=0;
-    for (size_t i=0; i<m_basis.size();++i) {
-      auto el_it2 = m_basis[i]->elementBegin() +
-                    m_basis[i]->getElementContaining(uh, vh);
-      for (LR::Basisfunction *b : (*el_it2)->support())
-        myMNPC[iel][lnod++] = b->getId()+ofs;
-      ofs += nb[i];
+    size_t lnod = 0, ofs = 0;
+    for (const auto& it : m_basis) {
+      auto el_it2 = it->elementBegin() + it->getElementContaining(uh,vh);
+      for (LR::Basisfunction* b : (*el_it2)->support())
+        myMNPC[iel][lnod++] = b->getId() + ofs;
+      ofs += it->nBasisFunctions();
     }
+
+    myMLGE[iel++] = ++gEl; // global element number over all patches
   }
 
   for (size_t inod = 0; inod < nnod; ++inod)
@@ -1132,60 +1129,20 @@ size_t ASMu2Dmx::getNoRefineElms() const
 }
 
 
-bool ASMu2Dmx::evalProjSolution (Matrix& sField, const Vector& locSol,
-                                 const int* npe, int nf) const
+void ASMu2Dmx::storeMesh (const char* fName)
 {
-#ifdef SP_DEBUG
-  std::cout <<"ASMu2D::evalProjSolution(Matrix&,const Vector&,const int*,int)\n";
-#endif
-  if (projBasis == m_basis[0])
-    return this->evalSolution(sField, locSol, npe, nf);
-
-  // Compute parameter values of the result sampling points
-  std::array<RealArray,2> gpar;
-  for (int dir = 0; dir < 2; dir++)
-    if (!this->getGridParameters(gpar[dir],dir,npe[dir]-1))
-      return false;
-
-  size_t nComp = locSol.size() / this->getNoProjectionNodes();
-  if (nComp*this->getNoProjectionNodes() != locSol.size())
-    return false;
-
-  size_t nPoints = gpar[0].size();
-  if (nPoints != gpar[1].size())
-    return false;
-
-  Fields* f = this->getProjectedFields(locSol, nComp);
-
-  // Evaluate the primary solution field at each point
-  sField.resize(nComp,nPoints);
-  for (size_t i = 0; i < nPoints; i++)
+  int basis = 0;
+  for (const auto& patch : m_basis)
   {
-    Vector vals;
-    FiniteElement fe;
-    fe.u = gpar[0][i];
-    fe.v = gpar[1][i];
-    f->valueFE(fe, vals);
-    sField.fillColumn(1+i, vals);
-  }
-
-  delete f;
-
-  return true;
-}
-
-void ASMu2Dmx::storeMesh(const char* fName)
-{
-  for (size_t b = 1; b <= m_basis.size(); ++b) {
     std::stringstream str;
-    str << "_patch" << idx << "_basis" << b << "_" << fName;
+    str <<"_patch"<< idx <<"_basis"<< ++basis <<"_"<< fName;
     std::ofstream paramMeshFile("param"+str.str());
-    this->getBasis(b)->writePostscriptMesh(paramMeshFile);
+    patch->writePostscriptMesh(paramMeshFile);
     std::ofstream physMeshFile("physical"+str.str());
-    this->getBasis(b)->writePostscriptElements(physMeshFile);
+    patch->writePostscriptElements(physMeshFile);
     std::ofstream pdotFile("param_dot"+str.str());
-    this->getBasis(b)->writePostscriptElements(pdotFile);
+    patch->writePostscriptElements(pdotFile);
     std::ofstream physdotFile("physical_dot"+str.str());
-    this->getBasis(b)->writePostscriptMeshWithControlPoints(physdotFile);
+    patch->writePostscriptMeshWithControlPoints(physdotFile);
   }
 }
