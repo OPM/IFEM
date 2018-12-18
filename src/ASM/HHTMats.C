@@ -58,8 +58,6 @@ const Vector& HHTMats::getRHSVector () const
   std::cout <<"\nHHTMats::getRHSVector "
             << (isPredictor ? "(predictor)" : "(corrector)") << std::endl;
 #endif
-  if (A.size() < 3 || vec.size() < 3)
-    return b.front();
 
   int ia = vec.size() - 1; // index to element acceleration vector (a)
   int iv = vec.size() - 2; // index to element velocity vector (v)
@@ -73,9 +71,9 @@ const Vector& HHTMats::getRHSVector () const
     Fia = b.front(); // Fia = -Fs
     if (b.size() > 2)
       Fia.add(b[2]); // Fia = Fext - Fs
-    if (alpha1 > 0.0 && iv > 0)
+    if (alpha1 > 0.0 && iv > 0 && A.size() > 1)
       Fia.add(A[1]*vec[iv],-alpha1); // Fia -= alpha1*M*v
-    if (alpha2 > 0.0 && iv > 0)
+    if (alpha2 > 0.0 && iv > 0 && A.size() > 2)
       Fia.add(A[2]*vec[iv],-alpha2); // Fia -= alpha2*K*v
 #if SP_DEBUG > 2
     std::cout <<"Element inertia vector"<< Fia;
@@ -83,13 +81,16 @@ const Vector& HHTMats::getRHSVector () const
   }
 
 #if SP_DEBUG > 2
-  std::cout <<"Element velocity vector"<< vec[iv];
-  std::cout <<"Element acceleration vector"<< vec[ia];
+  if (iv >= 0)
+    std::cout <<"Element velocity vector"<< vec[iv];
+  if (ia >= 0)
+    std::cout <<"Element acceleration vector"<< vec[ia];
   if (b.size() > 2)
     std::cout <<"S_ext"<< b[2] <<"-S_int"<< b.front();
   else
     std::cout <<"S_ext - S_int"<< b.front();
-  std::cout <<"S_inert=M*a"<< A[1]*vec[ia];
+  if (A.size() > 1 && ia >= 0)
+    std::cout <<"S_inert=M*a"<< A[1]*vec[ia];
 #endif
 
   // Calculate the right-hand-side force vector of the dynamic problem
@@ -100,12 +101,12 @@ const Vector& HHTMats::getRHSVector () const
   // the predictor step force vector after the element assembly.
   Vector& RHS = const_cast<Vector&>(b.front());
   double alphaPlus1 = 1.5 - gamma;
-  if (oldHHT)
+  if (oldHHT && A.size() > 1 && ia >= 0)
   {
     RHS *= alphaPlus1; // RHS = -(1+alphaH)*S_int
     RHS.add(A[1]*vec[ia], isPredictor ? 1.0 : -1.0); // RHS (+/-)= M*a
   }
-  else if (isPredictor)
+  else if (isPredictor && A.size() > 1 && iv >= 1 && ia >= 0)
   {
     int pa = iv - 1; // index to predicted element acceleration vector (A)
     A[1].multiply(vec[pa]-vec[ia],RHS); // RHS = M*(A-a)
@@ -114,7 +115,7 @@ const Vector& HHTMats::getRHSVector () const
     std::cout <<"S_inert=M*(A-a)"<< RHS;
 #endif
   }
-  else
+  else if (A.size() > 1 && ia >= 0)
   {
     RHS *= alphaPlus1; // RHS = -(1+alphaH)*S_int
     RHS.add(A[1]*vec[ia],-1.0); // RHS -= M*a
@@ -125,9 +126,9 @@ const Vector& HHTMats::getRHSVector () const
 
   if (!isPredictor) alphaPlus1 = -alphaPlus1;
 
-  if (alpha1 > 0.0)
+  if (alpha1 > 0.0 && A.size() > 1 && iv >= 0)
     RHS.add(A[1]*vec[iv],alphaPlus1*alpha1); // RHS -= (1+alphaH)*alpha1*M*v
-  if (alpha2 > 0.0)
+  if (alpha2 > 0.0 && A.size() > 2 && iv >= 0)
     RHS.add(A[2]*vec[iv],alphaPlus1*alpha2); // RHS -= (1+alphaH)*alpha2*K*v
 
 #if SP_DEBUG > 2

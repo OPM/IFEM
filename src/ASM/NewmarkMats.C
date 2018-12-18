@@ -60,29 +60,29 @@ const Matrix& NewmarkMats::getNewtonMatrix () const
 
 const Vector& NewmarkMats::getRHSVector () const
 {
-  if (!A.empty() && vec.size() > 2)
-  {
-    Vector& dF = const_cast<Vector&>(b.front());
+  Vector& dF = const_cast<Vector&>(b.front());
 
-    int ia = vec.size() - 1; // index to element acceleration vector (a)
-    int iv = vec.size() - 2; // index to element velocity vector (v)
+  int ia = vec.size() - 1; // index to element acceleration vector (a)
+  int iv = vec.size() - 2; // index to element velocity vector (v)
+
 #if SP_DEBUG > 2
-    std::cout <<"\nf_ext - f_s"<< dF;
+  std::cout <<"\nf_ext - f_s"<< dF;
+  if (A.size() > 1 && ia >= 0)
     std::cout <<"f_i = M*a"<< A[1]*vec[ia];
-    if (alpha1 > 0.0)
-      std::cout <<"f_d1/alpha1 = M*v (alpha1="<< alpha1 <<")"<< A[1]*vec[iv];
-    if (alpha2 > 0.0)
-      std::cout <<"f_d2/alpha2 = K*v (alpha2="<< alpha2 <<")"<< A[2]*vec[iv];
+  if (alpha1 > 0.0 && A.size() > 1 && iv >= 0)
+    std::cout <<"f_d1/alpha1 = M*v (alpha1="<< alpha1 <<")"<< A[1]*vec[iv];
+  if (alpha2 > 0.0 && A.size() > 2 && iv >= 0)
+    std::cout <<"f_d2/alpha2 = K*v (alpha2="<< alpha2 <<")"<< A[2]*vec[iv];
 #endif
 
-    dF.add(A[1]*vec[ia],-1.0);      // dF = Fext - M*a
+  if (A.size() > 1 && ia >= 0)
+    dF.add(A[1]*vec[ia],-1.0);    // dF = Fext - M*a
 
-    if (alpha1 > 0.0)
-      dF.add(A[1]*vec[iv],-alpha1); // dF -= alpha1*M*v
+  if (alpha1 > 0.0 && A.size() > 1 && iv >= 0)
+    dF.add(A[1]*vec[iv],-alpha1); // dF -= alpha1*M*v
 
-    if (alpha2 > 0.0)
-      dF.add(A[2]*vec[iv],-alpha2); // dF -= alpha2*K*v
-  }
+  if (alpha2 > 0.0 && A.size() > 2 && iv >= 0)
+    dF.add(A[2]*vec[iv],-alpha2); // dF -= alpha2*K*v
 
 #if SP_DEBUG > 2
   std::cout <<"\nElement right-hand-side vector"<< b.front();
