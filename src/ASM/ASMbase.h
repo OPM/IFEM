@@ -40,6 +40,7 @@ class FunctionBase;
 class RealFunc;
 class VecFunc;
 class Vec3;
+class Tensor;
 namespace ASM { class InterfaceChecker; }
 
 typedef std::vector<ASMbase*> ASMVec; //!< Spline patch container
@@ -684,6 +685,11 @@ protected:
   // Internal methods for preprocessing of boundary conditions
   // =========================================================
 
+  //! \brief Creates constraint equations coupling global DOFs to local DOFs.
+  //! \param[in] iSlave 0-based local index of node with global DOFs
+  //! \param[in] master Global node number of node with local DOFs
+  //! \param[in] Tlg Local-to-global transformation matrix
+  void addLocal2GlobalCpl(int iSlave, int master, const Tensor& Tlg);
   //! \brief Creates and adds a three-point constraint to this patch.
   //! \param[in] slave Global node number of the node to constrain
   //! \param[in] dir Which local DOF to constrain (1, 2, 3)
@@ -764,6 +770,9 @@ public:
   bool isFixed(int node, int dof, bool all = false) const;
 
 protected:
+  //! \brief Returns \e true if \a dirs constains all local DOFs in the patch.
+  bool allDofs(int dirs) const;
+
   //! \brief Calculated the deformed configuration for current element.
   //! \param[in] Xnod Array of nodal point coordinates for current element
   //! \param eVec Current element solution vectors

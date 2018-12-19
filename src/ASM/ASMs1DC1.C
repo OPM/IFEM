@@ -15,6 +15,7 @@
 
 #include "ASMs1DC1.h"
 #include "Utilities.h"
+#include "Tensor.h"
 
 
 bool ASMs1DC1::generateFEMTopology ()
@@ -29,14 +30,14 @@ bool ASMs1DC1::generateFEMTopology ()
 }
 
 
-int ASMs1DC1::constrainNode (double xi, int dof, int code, char basis)
+int ASMs1DC1::constrainNode (double xi, int dof, int code)
 {
-  int node = this->ASMs1D::constrainNode(xi,dof%1000,code,basis);
+  int node = this->ASMs1D::constrainNode(xi,dof%1000,code);
   if (node < 1 || dof < 1000) return node;
 
   // Also fix the (up to two) neighboring nodes
   for (int neighbour = node-1; neighbour <= node+1; neighbour += 2)
-    if (neighbour > 0 && neighbour <= this->getSize(basis))
+    if (neighbour > 0 && neighbour <= this->getSize())
     {
       if (dof%1000 && code == 0)
         // The node is clamped, fix the neighboring node
@@ -47,4 +48,68 @@ int ASMs1DC1::constrainNode (double xi, int dof, int code, char basis)
     }
 
   return node;
+}
+
+
+size_t ASMs1DC1::constrainEndLocal (int dir, int dof, int code)
+{
+  if (shareFE == 'F')
+  {
+    std::cerr <<"\n *** ASMs1DC1::constrainEndLocal: Logic error, can not have"
+              <<" constraints in local axes for shared patches."<< std::endl;
+    return 0;
+  }
+  else if (dof < 1000) // No rotation constraint
+    return this->ASMs1D::constrainEndLocal(dir,dof,code);
+  else if (code != 0)
+  {
+    std::cerr <<"\n *** ASMs1DC1::constrainEndLocal: Prescribed DOFs in local"
+              <<" axes not implemented."<< std::endl;
+    return 0;
+  }
+
+  // Find the local-to-global transformation matrix at this end point,
+  // where the X-axis corresponds to the tangent direction of the curve
+  double uEnd = dir > 0 ? curv->endparam() : curv->startparam();
+  Tensor Tlg(this->getLocal2Global(uEnd));
+
+  // We need extra nodes representing the local (master) DOFs at this point
+  int added = 0;
+  int iSnod = dir > 0 ? this->getSize()-1 : 0;
+  for (int i = 0; i < 2; i++, iSnod += (dir > 0 ? -1 : 1))
+  {
+    int dirs = i == 0 ? dof%1000 : dof/1000;
+    if (this->allDofs(dirs))   // all DOFs at this node are fixed,
+      this->fix(1+iSnod,dirs); // local axes not needed
+    else
+    {
+      // Create an extra node for the local DOFs. The new node, for which
+      // the Dirichlet boundary conditions will be defined, then inherits
+      // the global node number of the original node. The original node, which
+      // do not enter the equation system, receives a new global node number.
+      std::map<int,int>::const_iterator xit = xNode.find(MLGN[iSnod]);
+      if (xit != xNode.end()) // this node has been processed by another patch
+        myMLGN.push_back(xit->second);
+      else
+      {
+        // Store the original-to-extra node number mapping in ASMstruct::xNode
+        int iMnod = myMLGN.size();
+        myMLGN.push_back(++gNod);
+        xNode[MLGN[iSnod]] = gNod;
+        std::swap(myMLGN[iMnod],myMLGN[iSnod]);
+
+        xnMap[1+iMnod] = 1+iSnod; // Store nodal connection needed by getCoord
+        nxMap[1+iSnod] = 1+iMnod; // Store nodal connection needed by getNodeID
+
+        // Add Dirichlet condition on the local DOF(s) of the added node
+        this->fix(1+iMnod,dirs);
+
+        // Establish constraint equations relating the global and local DOFs
+        this->addLocal2GlobalCpl(iSnod,MLGN[iMnod],Tlg);
+        ++added;
+      }
+    }
+  }
+
+  return added;
 }

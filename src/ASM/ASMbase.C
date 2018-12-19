@@ -16,6 +16,7 @@
 #include "ASM3D.h"
 #include "IFEM.h"
 #include "MPC.h"
+#include "Tensor.h"
 #include "Vec3.h"
 #include "Vec3Oper.h"
 #include "Function.h"
@@ -508,6 +509,49 @@ bool ASMbase::add3PC (int slave, int dir, int master1, int master2, int code)
 }
 
 
+void ASMbase::addLocal2GlobalCpl (int iSlave, int master, const Tensor& Tlg)
+{
+  // Establish constraint equations relating the global DOFs
+  // of the slave node to the local DOFs of the master node.
+  // We here assume there are (at least) nsd unknowns per node,
+  // and that only the first nsd DOFs are subjected to transformation.
+  int fixDirs = 0;
+  for (unsigned char d = 1; d <= nf; d++)
+  {
+    MPC* cons = new MPC(MLGN[iSlave],d);
+    if (this->addMPC(cons,0,true) && cons)
+    {
+      if (d > nsd)
+      {
+        if (!this->isFixed(master,d))
+          cons->addMaster(master,d);
+      }
+      else for (unsigned char c = 1; c <= nsd; c++)
+      {
+        if (!this->isFixed(master,c))
+          cons->addMaster(master,c,Tlg(d,c));
+      }
+
+      if (cons->getNoMaster() == 0)
+      {
+        // All master DOFs are fixed.
+        // Then the MPC is not needed, fix the slave DOF instead.
+        mpcs.erase(cons);
+        delete cons;
+        fixDirs = d + 10*fixDirs;
+      }
+#if SP_DEBUG > 1
+      else
+        std::cout <<"Added constraint: "<< *cons;
+#endif
+    }
+  }
+
+  if (fixDirs > 0)
+    this->fix(1+iSlave,fixDirs);
+}
+
+
 MPC* ASMbase::findMPC (int node, int dof) const
 {
   MPC slave(node,dof);
@@ -664,6 +708,17 @@ int ASMbase::fix (size_t inod, int dirs)
     std::cout <<"\tFixed node: "<< node <<" "<< dirs << std::endl;
 #endif
   return invalidDOFs;
+}
+
+
+bool ASMbase::allDofs (int dirs) const
+{
+  int myDof = 0;
+  for (int dof : utl::getDigits(dirs))
+    if (++myDof != dof)
+      return false;
+
+  return myDof == nf;
 }
 
 

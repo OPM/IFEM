@@ -33,7 +33,8 @@ SIM1D::SIM1D (unsigned char n1, bool)
 SIM1D::SIM1D (const CharVec& fields, bool)
 {
   nsd = 1;
-  nf = fields.empty()?1:fields.front();
+  nf = fields.empty() ? 1 : fields.front();
+  std::cerr <<"  ** Mixed interpolation not implemented for 1D."<< std::endl;
   twist = nullptr;
 }
 
@@ -546,28 +547,35 @@ static bool constrError (const char* lab, int idx)
 
 
 bool SIM1D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
-                           int&, char basis)
+                           int& ngnod, char)
 {
   if (patch < 1 || patch > (int)myModel.size())
     return constrError("patch index ",patch);
 
+  if (lndx < -10) lndx += 10; // no projection in 1D
+
   IFEM::cout <<"\tConstraining P"<< patch;
   if (ldim == 0)
-    IFEM::cout << " V"<< lndx;
+    IFEM::cout << " V"<< abs(lndx);
   IFEM::cout <<" in direction(s) "<< dirs;
   if (code != 0) IFEM::cout <<" code = "<< code;
-  if (basis > 1) IFEM::cout <<" basis = "<< (int)basis;
 #if SP_DEBUG > 1
   std::cout << std::endl;
 #endif
 
   ASM1D* pch = dynamic_cast<ASM1D*>(myModel[patch-1]);
-  if (abs(ldim) > 0)
+  if (ldim != 0) // Curve constraint
     myModel[patch-1]->constrainPatch(dirs,code);
   else switch (lndx) // Vertex constraints
     {
-    case 1: pch->constrainNode(0.0,dirs,code,basis); break;
-    case 2: pch->constrainNode(1.0,dirs,code,basis); break;
+    case  1: pch->constrainNode(0.0,dirs,code); break;
+    case  2: pch->constrainNode(1.0,dirs,code); break;
+    case -1:
+      ngnod += pch->constrainEndLocal(0,dirs,code);
+      break;
+    case -2:
+      ngnod += pch->constrainEndLocal(1,dirs,code);
+      break;
     default:
       IFEM::cout << std::endl;
       return constrError("vertex index ",lndx);

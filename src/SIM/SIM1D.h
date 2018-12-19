@@ -112,9 +112,9 @@ protected:
   //! \param[in] ldim Dimension of the boundary item to receive the property
   //! \param[in] dirs Which local DOFs to constrain
   //! \param[in] code In-homogeneous Dirichlet condition property code
-  //! \param[in] basis Which basis to apply the constraint to (mixed methods)
+  //! \param ngnod Total number of global nodes in the model (might be updated)
   virtual bool addConstraint(int patch, int lndx, int ldim,
-                             int dirs, int code, int&, char basis = 1);
+                             int dirs, int code, int& ngnod, char = 1);
 
   //! \brief Returns a FEM model generator for a default single-patch model.
   //! \param[in] geo XML element containing geometry definition

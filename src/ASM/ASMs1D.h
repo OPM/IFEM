@@ -159,7 +159,6 @@ public:
   //! \param[in] xi Parameter value along the curve
   //! \param[in] dof Which DOFs to constrain at the node
   //! \param[in] code Inhomogeneous dirichlet condition code
-  //! \param[in] basis The basis to constrain node for
   //! \return 1-based index of the constrained node
   //!
   //! \details The parameter value has to be in the domain [0.0,1.0], where
@@ -167,7 +166,12 @@ public:
   //! in between, the actual index is taken as the integer value closest to
   //! \a r*n, where \a r denotes the given relative parameter value,
   //! and \a n is the number of nodes along that parameter direction.
-  virtual int constrainNode(double xi, int dof, int code = 0, char basis = 1);
+  virtual int constrainNode(double xi, int dof, int code);
+  //! \brief Constrains all DOFs in local directions at a given end point.
+  //! \param[in] dir Parameter direction defining the end to constrain
+  //! \param[in] dof Which local DOFs to constrain at the end point
+  //! \param[in] code Inhomogeneous dirichlet condition code
+  virtual size_t constrainEndLocal(int dir, int dof, int code);
 
   //! \brief Connects matching nodes on two adjacent vertices.
   //! \param[in] vertex Local vertex index of this patch, in range [1,2]
@@ -354,16 +358,11 @@ protected:
   bool initLocalElementAxes(const Vec3& Zaxis);
 
   //! \brief Connects matching nodes on two adjacent vertices.
-  //! \param[in] vertex Local vertex index of this patch, in range [1,2]
   //! \param neighbor The neighbor patch
-  //! \param[in] nvertex Local vertex index of neighbor patch, in range [1,2]
-  //! \param[in] basis Which basis to connect the nodes for (mixed methods)
-  //! \param[in] slave 0-based index of the first slave node in this basis
-  //! \param[in] master 0-based index of the first master node in this basis
+  //! \param[in] slave 1-based index of the first slave node in this basis
+  //! \param[in] master 1-based index of the first master node in this basis
   //! \param[in] thick Thickness of connection
-  bool connectBasis(int vertex, ASMs1D& neighbor, int nvertex,
-                    int basis = 1, int slave = 0, int master = 0,
-                    int thick = 1);
+  bool connectBasis(ASMs1D& neighbor, int slave, int master, int thick = 1);
 
   //! \brief Extracts parameter values of the Gauss points.
   //! \param[out] uGP Parameter values for all points
@@ -404,6 +403,9 @@ protected:
   //! \param[in] iel 0-based element index
   bool getElementNodalRotations(TensorVec& T, size_t iel) const;
 
+  //! \brief Returns the local-to-global transformation at a parametric point.
+  Tensor getLocal2Global(double u) const;
+
 public:
   //! \brief Auxilliary function for computation of basis function indices.
   static void scatterInd(int p1, int start, IntVec& index);
@@ -435,6 +437,9 @@ public:
 protected:
   Go::SplineCurve* curv; //!< Pointer to the actual spline curve object
   Go::SplineCurve* proj; //!< Pointer to spline curve for projection basis
+
+  std::map<size_t,size_t> xnMap; //!< Node index map used by \a getCoord
+  std::map<size_t,size_t> nxMap; //!< Node index map used by \a getNodeID
 
   IntMat projMNPC; //!< Matrix of Nodal Point Correspondance for projection
   IntVec projMLGE; //!< Matrix of Local to Global Element numbers for projection

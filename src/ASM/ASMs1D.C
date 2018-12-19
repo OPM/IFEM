@@ -30,6 +30,7 @@
 #include "Utilities.h"
 #include "Function.h"
 #include "Vec3Oper.h"
+#include "Tensor.h"
 #include "IFEM.h"
 #include <numeric>
 
@@ -89,7 +90,7 @@ bool ASMs1D::read (std::istream& is)
   }
   else if (curv->dimension() < nsd)
   {
-    std::cout <<"  ** ASMs1D::read: The dimension of this curve patch "
+    std::cerr <<"  ** ASMs1D::read: The dimension of this curve patch "
 	      << curv->dimension() <<" is less than nsd="<< (int)nsd
 	      <<".\n                   Resetting nsd to "<< curv->dimension()
 	      <<" for this patch."<< std::endl;
@@ -452,9 +453,9 @@ bool ASMs1D::connectPatch (int vertex, ASM1D& neighbor, int nvertex, int thick)
   if (!neighS)
     return false;
 
-  int slave = vertex == 1 ? 0 : this->getSize(1)-thick;
-  int master = nvertex == 1 ? 0 : neighS->getSize(1)-thick;
-  if (!this->connectBasis(vertex,*neighS,nvertex,1,slave,master,thick))
+  int slave  = vertex  == 1 ? 1 : 1+this->getSize()-thick;
+  int master = nvertex == 1 ? 1 : 1+neighS->getSize()-thick;
+  if (!this->connectBasis(*neighS,slave,master,thick))
     return false;
 
   this->addNeighbor(neighS);
@@ -462,8 +463,7 @@ bool ASMs1D::connectPatch (int vertex, ASM1D& neighbor, int nvertex, int thick)
 }
 
 
-bool ASMs1D::connectBasis (int vertex, ASMs1D& neighbor, int nvertex,
-                           int basis, int slave, int master, int thick)
+bool ASMs1D::connectBasis (ASMs1D& neighbor, int slave, int master, int thick)
 {
   if (shareFE && neighbor.shareFE)
     return true;
@@ -472,20 +472,10 @@ bool ASMs1D::connectBasis (int vertex, ASMs1D& neighbor, int nvertex,
     std::cerr <<" *** ASMs1D::connectBasis: Logic error, cannot"
 	      <<" connect a sharedFE patch with an unshared one"<< std::endl;
     return false;
-  } else if (vertex < 1 || vertex > 2) {
-    std::cerr <<" *** ASMs1D::connectBasis: Invalid slave vertex "
-              << vertex << std::endl;
-    return false;
-  } else if (nvertex < 1 || nvertex > 2) {
-    std::cerr <<" *** ASMs1D::connectBasis: Invalid master vertex "
-              << nvertex << std::endl;
-    return false;
   }
 
   const double xtol = 1.0e-4;
-  for (int i = 0; i < thick; ++i) {
-    slave += 1; // add first, getCoord is 1-based
-    master += 1;
+  for (int i = 0; i < thick; i++, slave++, master++)
     if (!neighbor.getCoord(master).equal(this->getCoord(slave),xtol))
     {
       std::cerr <<" *** ASMs1D::connectBasis: Non-matching nodes "
@@ -496,7 +486,6 @@ bool ASMs1D::connectBasis (int vertex, ASMs1D& neighbor, int nvertex,
     }
     else
       ASMbase::collapseNodes(neighbor,master,*this,slave);
-  }
 
   return true;
 }
@@ -510,21 +499,110 @@ void ASMs1D::closeEnds (int basis, int master)
 }
 
 
-int ASMs1D::constrainNode (double xi, int dof, int code, char basis)
+int ASMs1D::constrainNode (double xi, int dof, int code)
 {
-  if (xi < 0.0 || xi > 1.0) return 0;
+  if (xi < 0.0 || xi > 1.0)
+    return 0;
 
-  int n1 = this->getSize(basis);
-
-  int node = 1;
-  for (char i = 1; i < basis; i++)
-    node += this->getSize(i);
-
-  if (xi > 0.0) node += int(0.5+(n1-1)*xi);
+  int n1 = this->getSize();
+  int node = xi > 0.0 ? 1+int(0.5+(n1-1)*xi) : 1;
 
   this->prescribe(node,dof,code);
 
   return node;
+}
+
+
+size_t ASMs1D::constrainEndLocal (int dir, int dof, int code)
+{
+  if (nf < 2 || this->allDofs(dof))
+  {
+    // If all DOFs are constrained, local axis directions are irrelevant
+    this->constrainNode(dir > 0 ? 1.0 : 0.0, dof, code);
+    return 0;
+  }
+  else if (shareFE == 'F')
+  {
+    std::cerr <<"\n *** ASMs1D::constrainEndLocal: Logic error, can not have"
+              <<" constraints in local axes for shared patches."<< std::endl;
+    return 0;
+  }
+
+  // We need an extra node representing the local (master) DOFs at this point
+  int iMnod = myMLGN.size();
+  int iSnod = dir > 0 ? this->getSize()-1 : 0;
+
+  // Create an extra node for the local DOFs. The new node, for which
+  // the Dirichlet boundary conditions will be defined, then inherits
+  // the global node number of the original node. The original node, which
+  // do not enter the equation system, receives a new global node number.
+  std::map<int,int>::const_iterator xit = xNode.find(MLGN[iSnod]);
+  if (xit != xNode.end())
+  {
+    // This node has already been processed by another patch
+    myMLGN.push_back(xit->second);
+    return 0;
+  }
+
+  // Store the original-to-extra node number mapping in ASMstruct::xNode
+  myMLGN.push_back(++gNod);
+  xNode[MLGN[iSnod]] = gNod;
+  std::swap(myMLGN[iMnod],myMLGN[iSnod]);
+
+  xnMap[1+iMnod] = 1+iSnod; // Store nodal connection needed by getCoord
+  nxMap[1+iSnod] = 1+iMnod; // Store nodal connection needed by getNodeID
+
+  // Add Dirichlet condition on the local DOF(s) of the added node
+  this->prescribe(1+iMnod,dof,code);
+
+  // Find the local-to-global transformation matrix at this end point,
+  // where the X-axis corresponds to the tangent direction of the curve,
+  // and establish constraint equations relating the global and local DOFs
+  double uEnd = dir > 0 ? curv->endparam() : curv->startparam();
+  this->addLocal2GlobalCpl(iSnod,MLGN[iMnod],this->getLocal2Global(uEnd));
+
+  return 1;
+}
+
+
+Tensor ASMs1D::getLocal2Global (double u) const
+{
+  if (nsd < 2)
+    return Tensor(1,true);
+
+  // Find the local-to-global transformation matrix at this point,
+  // where the X-axis corresponds to the tangent direction of the curve
+  Tensor Tlg(nsd);
+  if (nsd == 2)
+  {
+    std::vector<Go::Point> pts(2);
+    curv->point(pts,u,1);
+    double dXlen = pts[1].length();
+    Tlg(1,1) = pts[1][0] / dXlen;
+    Tlg(2,1) = pts[1][1] / dXlen;
+    Tlg(1,2) = -Tlg(2,1);
+    Tlg(2,2) =  Tlg(1,1);
+  }
+  else
+  {
+    std::vector<Go::Point> pts(3);
+    curv->point(pts,u,2);
+    Vec3 dX(SplineUtils::toVec3(pts[1]));
+    if (pts[2].length2() < 1.0e-12) // zero curvature ==> straight line
+      Tlg = Tensor(dX,true);
+    else
+    {
+      // Let dX define the local X-axis
+      // and the bi-normal vector define a point in the local XZ-plane
+      Vec3 biNormal(dX,SplineUtils::toVec3(pts[2]));
+      Tlg = Tensor(dX,biNormal,false,true);
+    }
+  }
+
+#if SP_DEBUG > 2
+  std::cout <<"Local-to-global transformation at u="<< u <<":\n"<< Tlg;
+#endif
+  return Tlg;
 }
 
 

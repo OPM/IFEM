@@ -72,7 +72,6 @@ public:
   //! \param[in] xi Parameter value along the curve
   //! \param[in] dof Which DOFs to constrain at the node
   //! \param[in] code Inhomogeneous dirichlet condition code
-  //! \param[in] basis Basis to constrain node for
   //! \return 1-based index of the constrained node
   //!
   //! \details The parameter value has to be in the domain [0.0,1.0], where
@@ -80,8 +79,12 @@ public:
   //! in between, the actual index is taken as the integer value closest to
   //! \a r*n, where \a r denotes the given relative parameter value,
   //! and \a n is the number of nodes along that parameter direction.
-  virtual int constrainNode(double xi, int dof,
-                            int code = 0, char basis = 1) = 0;
+  virtual int constrainNode(double xi, int dof, int code = 0) = 0;
+  //! \brief Constrains all DOFs in local directions at a given end point.
+  //! \param[in] dir Parameter direction defining the end to constrain
+  //! \param[in] dof Which local DOFs to constrain at the end point
+  //! \param[in] code Inhomogeneous dirichlet condition code
+  virtual size_t constrainEndLocal(int dir, int dof, int code = 0) = 0;
 
   //! \brief Calculates parameter values for visualization nodal points.
   //! \param[out] prm Parameter values for all points
