@@ -19,7 +19,7 @@
 #include "Vec3Oper.h"
 #include "IFEM.h"
 #include "tinyxml.h"
-#include <sstream>
+#include <fstream>
 
 
 SIM1D::SIM1D (unsigned char n1, bool)
@@ -208,12 +208,38 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
 
   else if (!strcasecmp(elem->Value(),"projection") && !isRefined)
   {
-    // Generate separate projection basis from current geometry basis
-    for (ASMbase* pch : myModel)
-      pch->createProjectionBasis(true);
+    bool ok = true;
+    const TiXmlElement* child = elem->FirstChildElement();
+    if (child && !strcasecmp(child->Value(),"patchfile") && child->FirstChild())
+    {
+      for (ASMbase* pch : myModel)
+        pch->createProjectionBasis(false);
+
+      // Read projection basis from file
+      const char* file = child->FirstChild()->Value();
+      IFEM::cout <<"\tReading data file "<< file << std::endl;
+      std::ifstream isp(file);
+      for (int pid = 1; isp.good() && ok; pid++)
+      {
+        IFEM::cout <<"\tReading projection basis for patch "<< pid << std::endl;
+        ASMbase* pch = this->getPatch(pid,true);
+        if (pch)
+          ok = pch->read(isp);
+        else if ((pch = ASM1D::create(ASM::Spline,nsd,nf)))
+        {
+          // Skip this patch
+          ok = pch->read(isp);
+          delete pch;
+        }
+      }
+
+      if (!ok) return false;
+    }
+    else // Generate separate projection basis from current geometry basis
+      for (ASMbase* pch : myModel)
+        pch->createProjectionBasis(true);
 
     // Apply refine and/raise-order commands to define the projection basis
-    const TiXmlElement* child = elem->FirstChildElement();
     for (; child; child = child->NextSiblingElement())
       if (!strcasecmp(child->Value(),"refine") ||
           !strcasecmp(child->Value(),"raiseorder"))
@@ -221,7 +247,12 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
           return false;
 
     for (ASMbase* pch : myModel)
-      pch->createProjectionBasis(false);
+      if (!pch->createProjectionBasis(false))
+      {
+        std::cerr <<" *** SIM1D::parseGeometryTag: Failed to create projection"
+                  <<" basis, check patch file specification."<< std::endl;
+        return false;
+      }
   }
 
   return true;
