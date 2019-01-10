@@ -420,10 +420,10 @@ bool ASMu2D::createProjectionBasis (bool init)
     return false;
   else if (init && !tensorPrjBas)
     tensorPrjBas = tensorspline->clone();
-  else if (init || !tensorPrjBas)
-    return false;
 
   std::swap(tensorspline,tensorPrjBas);
+  std::swap(lrspline,projBasis);
+  geo = lrspline.get();
   return true;
 }
 

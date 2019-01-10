@@ -426,6 +426,9 @@ bool ASMs2D::raiseOrder (int ru, int rv)
   the subsequent refine and raiseOrder operations will apply to the projection
   basis and not on the geometry basis.
   In the second call, the pointers are swapped back.
+
+  The method can also be invoked twice with \a init = \e false in case the
+  projection basis is to be read from a file.
 */
 
 bool ASMs2D::createProjectionBasis (bool init)
@@ -434,9 +437,8 @@ bool ASMs2D::createProjectionBasis (bool init)
     return false;
   else if (init && !proj)
     projB = proj = surf->clone();
-  else if (init || !proj)
-    return false;
 
+  std::swap(geomB,projB);
   std::swap(surf,proj);
   return true;
 }
