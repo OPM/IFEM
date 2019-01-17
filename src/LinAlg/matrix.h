@@ -25,6 +25,7 @@
 #include <cstring>
 #include <cmath>
 #include "BLAS.h"
+#include "print_tol.h"
 
 #ifdef INDEX_CHECK
 #if INDEX_CHECK > 1
@@ -1488,9 +1489,6 @@ namespace utl //! General utility classes and functions.
   //============================================================================
   //===   Global operators   ===================================================
   //============================================================================
-
-  extern double zero_print_tol; //!< Zero tolerance for printing numbers
-  extern int    nval_per_line;  //!< Number of values to print per line
 
   //! \brief Truncate a value to zero when it is less than a given threshold.
   //! \details Used when printing matrices for easy comparison with other
