@@ -309,6 +309,12 @@ bool SIM1D::parseTwist (const TiXmlElement* elem)
 
 bool SIM1D::parse (const TiXmlElement* elem)
 {
+  // Check if the number of dimensions is specified
+  int idim = nsd;
+  if (!strcasecmp(elem->Value(),"geometry"))
+    if (utl::getAttribute(elem,"dim",idim))
+      nsd = idim;
+
   bool result = this->SIMgeneric::parse(elem);
 
   const TiXmlElement* child = elem->FirstChildElement();
@@ -607,6 +613,7 @@ ASMbase* SIM1D::readPatch (std::istream& isp, int pchInd,
 bool SIM1D::readPatches (std::istream& isp, PatchVec& patches,
                          const char* whiteSpace) const
 {
+  unsigned char maxSpaceDim = 0;
   for (int pchInd = 1; isp.good(); pchInd++)
   {
     ASMbase* pch = ASM1D::create(opt.discretization,nsd,nf);
@@ -625,8 +632,18 @@ bool SIM1D::readPatches (std::istream& isp, PatchVec& patches,
       {
         pch->idx = patches.size();
         patches.push_back(pch);
+        if (pch->getNoSpaceDim() > maxSpaceDim)
+          maxSpaceDim = pch->getNoSpaceDim();
       }
     }
+  }
+
+  // Reset number of space dimensions if all patches have less than nsd
+  if (maxSpaceDim > 0 && maxSpaceDim < nsd)
+  {
+    IFEM::cout <<"  Resetting number of space dimensions to "<< (int)maxSpaceDim
+               <<" to match patch file dimensionality."<< std::endl;
+    const_cast<SIM1D*>(this)->nsd = maxSpaceDim;
   }
 
   return true;
