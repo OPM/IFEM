@@ -12,6 +12,7 @@
 //==============================================================================
 
 #include "ASMstruct.h"
+#include "TimeDomain.h"
 #include "FiniteElement.h"
 #include "GlobalIntegral.h"
 #include "LocalIntegral.h"
@@ -167,7 +168,9 @@ bool ASMstruct::diracPoint (Integrand& integr, GlobalIntegral& glInt,
   this->evaluateBasis(fe.u,fe.v,fe.w,fe.N);
 
   LocalIntegral* A = integr.getLocalIntegral(MNPC[iel-1].size(),fe.iel,true);
-  bool ok = integr.evalPoint(*A,fe,pval) && glInt.assemble(A,fe.iel);
+  bool ok = (integr.evalPoint(*A,fe,pval) &&
+             integr.finalizeElement(*A,fe,TimeDomain(),0) &&
+             glInt.assemble(A,fe.iel));
   A->destruct();
 
   return ok;
