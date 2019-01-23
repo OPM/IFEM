@@ -27,8 +27,7 @@
 #endif
 
 
-int LR::extendControlPoints (LR::LRSpline* basis, const Vector& v,
-                             int nf, int ofs)
+int LR::extendControlPoints (LRSpline* basis, const Vector& v, int nf, int ofs)
 {
   if (v.size() == (size_t)basis->nBasisFunctions())
     nf = 1; // This is a scalar field
@@ -40,9 +39,9 @@ int LR::extendControlPoints (LR::LRSpline* basis, const Vector& v,
   }
 
   RealArray cpts, cpp;
-  for (auto it = basis->basisBegin(); it != basis->basisEnd(); ++it) {
-    int id = (*it)->getId();
-    (*it)->getControlPoint(cpp);
+  for (LR::Basisfunction* b : basis->getAllBasisfunctions()) {
+    int id = b->getId();
+    b->getControlPoint(cpp);
     cpts.insert(cpts.end(), cpp.begin(), cpp.end());
     cpts.insert(cpts.end(), v.begin()+id*nf+ofs, v.begin()+(id+1)*nf+ofs);
   }
@@ -52,13 +51,12 @@ int LR::extendControlPoints (LR::LRSpline* basis, const Vector& v,
 }
 
 
-void LR::contractControlPoints (LR::LRSpline* basis, Vector& v,
-                                int nf, int ofs)
+void LR::contractControlPoints (LRSpline* basis, Vector& v, int nf, int ofs)
 {
   RealArray cpts, cpp;
-  for (auto it = basis->basisBegin(); it != basis->basisEnd(); ++it) {
-    int id = (*it)->getId();
-    (*it)->getControlPoint(cpp);
+  for (LR::Basisfunction* b : basis->getAllBasisfunctions()) {
+    int id = b->getId();
+    b->getControlPoint(cpp);
     for (int i = 0; i < nf; i++)
       v[id*nf+ofs+i] = cpp[basis->dimension()-nf+i];
     cpts.insert(cpts.end(), cpp.begin(), cpp.end()-nf);
@@ -68,7 +66,7 @@ void LR::contractControlPoints (LR::LRSpline* basis, Vector& v,
 }
 
 
-void LR::getGaussPointParameters (const LR::LRSpline* lrspline, RealArray& uGP,
+void LR::getGaussPointParameters (const LRSpline* lrspline, RealArray& uGP,
                                   int d, int nGauss, int iel, const double* xi)
 {
 #ifdef INDEX_CHECK
@@ -90,8 +88,7 @@ void LR::getGaussPointParameters (const LR::LRSpline* lrspline, RealArray& uGP,
 }
 
 
-void LR::generateThreadGroups (ThreadGroups& threadGroups,
-                               const LR::LRSpline* lr)
+void LR::generateThreadGroups (ThreadGroups& threadGroups, const LRSpline* lr)
 {
   int nElement = lr->nElements();
 #ifdef USE_OPENMP
@@ -174,19 +171,19 @@ bool ASMLRSpline::refine (const LR::RefineData& prm,
 
   IntVec nf(sol.size());
   for (size_t j = 0; j < sol.size(); j++)
-    if (!sol[j].empty() && !(nf[j] = LR::extendControlPoints(geo,sol[j],this->getNoFields(1))))
-      return false;
+    if (!sol[j].empty())
+      if (!(nf[j] = LR::extendControlPoints(geo,sol[j],this->getNoFields(1))))
+        return false;
 
   if (!this->doRefine(prm,geo))
     return false;
 
   nnod = geo->nBasisFunctions();
-  for (int i = sol.size()-1; i >= 0; i--) {
+  for (int i = sol.size()-1; i >= 0; i--)
     if (!sol[i].empty()) {
       sol[i].resize(nf[i]*geo->nBasisFunctions());
       LR::contractControlPoints(geo,sol[i],nf[i]);
     }
-  }
 
   if (fName)
     storeMesh(fName);
