@@ -432,3 +432,21 @@ TEST(TestSplineUtils, ProjectSurface)
   EXPECT_FLOAT_EQ(result4.x, -0.02189938149140131);
   EXPECT_FLOAT_EQ(result4.y,  0.06514225417205573);
 }
+
+
+TEST(TestSplineUtils, BuildKnotVector)
+{
+  const std::vector<double>& ref = {0.0, 0.0, 0.0, 0.0,
+                                    1.0,
+                                    2.0,
+                                    3.0, 3.0,
+                                    4.0,
+                                    5.0, 5.0, 5.0, 5.0};
+  std::vector<double> res = SplineUtils::buildKnotVector(3,
+                                                        {0.0, 1.0, 2.0, 3.0, 4.0, 5.0},
+                                                        {-1, 2, 2, 1, 2, -1});
+
+  EXPECT_EQ(ref.size(), res.size());
+  for (size_t i = 0; i < ref.size(); ++i)
+    EXPECT_FLOAT_EQ(ref[i], res[i]);
+}

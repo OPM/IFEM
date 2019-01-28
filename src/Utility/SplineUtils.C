@@ -303,3 +303,17 @@ Go::SplineVolume* SplineUtils::project (const Go::SplineVolume* volume,
                                                       volume->rational(),
                                                       weights);
 }
+
+
+std::vector<double> SplineUtils::buildKnotVector(int p,
+                                                 const std::vector<double>& knots,
+                                                 const std::vector<int>& cont)
+{
+  std::vector<double> result;
+  result.reserve(p+knots.size()+1);
+  for (size_t i = 0; i < knots.size(); ++i)
+    for (int k = 0; k < p-cont[i]; ++k)
+      result.push_back(knots[i]);
+
+  return result;
+}
