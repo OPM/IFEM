@@ -528,7 +528,11 @@ bool SIMinput::parse (const TiXmlElement* elem)
     result = this->SIMbase::parse(elem);
 
   // Create the default geometry if no patchfile is specified
-  if (!strcasecmp(elem->Value(),"geometry"))
+  if (!strcasecmp(elem->Value(),"geometry")) {
+    // Check if a refinement of geometry is required
+    if (utl::getAttribute(elem,"refinegeometry",ASMbase::refineGeometry))
+      IFEM::cout << "\tApply refinements to geometry." << std::endl;
+
     if (this->getNoParamDim() > 0 && !elem->FirstChildElement("patchfile"))
     {
       if (myModel.empty())
@@ -549,6 +553,7 @@ bool SIMinput::parse (const TiXmlElement* elem)
 
       myEntitys = myGen->createTopologySets(*this);
     }
+  }
 
   // Check if a characteristic model size is specified
   if (!strcasecmp(elem->Value(),"geometry"))
@@ -1076,7 +1081,8 @@ IntVec SIMinput::getFunctionsForElements (const IntVec& elements)
   for (ASMbase* pch : myModel)
   {
     ASMLRSpline* lrPch = dynamic_cast<ASMLRSpline*>(pch);
-    if (lrPch) lrPch->getFunctionsForElements(functions,elements);
+    if (lrPch) lrPch->getFunctionsForElements(functions, elements,
+                                              lrPch->getRefinementBasis());
   }
 #ifdef SP_DEBUG
   size_t j = 0, k = 0;

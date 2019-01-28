@@ -64,6 +64,13 @@ ASMs3D::ASMs3D (const ASMs3D& patch)
 }
 
 
+ASMs3D::~ASMs3D ()
+{
+  if (geomB != svol)
+    delete svol;
+}
+
+
 Go::SplineSurface* ASMs3D::getBoundary (int dir, int)
 {
   if (dir < -3 || dir == 0 || dir > 3)
@@ -119,7 +126,11 @@ bool ASMs3D::read (std::istream& is)
     return false;
   }
 
-  geomB = svol;
+  if (ASMbase::refineGeometry)
+    geomB = svol;
+  else
+    geomB = svol->clone();
+
   return true;
 }
 
@@ -141,6 +152,9 @@ void ASMs3D::clear (bool retainGeometry)
   {
     // Erase spline data
     if (svol && !shareFE) delete svol;
+    if (geomB != svol)
+      delete geomB;
+
     geomB = svol = nullptr;
   }
 
@@ -273,6 +287,7 @@ bool ASMs3D::checkRightHandSystem ()
 
   // This patch has a negative Jacobian determinant. Probably it is modelled
   // in a left-hand-system. Swap the w-parameter direction to correct for this.
+  static_cast<Go::SplineVolume*>(geomB)->reverseParameterDirection(2);
   svol->reverseParameterDirection(2);
   return swapW = true;
 }
@@ -1455,6 +1470,41 @@ bool ASMs3D::getElementCoordinates (Matrix& X, int iel) const
 }
 
 
+bool ASMs3D::getGeoElementCoordinates (Matrix& X, int node) const
+{
+  const Go::SplineVolume* mgeo = static_cast<const Go::SplineVolume*>(geomB);
+  X.resize(nsd,mgeo->order(0)*mgeo->order(1)*mgeo->order(2));
+
+  double u = *(svol->basis(0).begin() + nodeInd[node].I + svol->order(0) - 1);
+  double v = *(svol->basis(1).begin() + nodeInd[node].J + svol->order(1) - 1);
+  double w = *(svol->basis(2).begin() + nodeInd[node].K + svol->order(2) - 1);
+  int ni, nj, nk;
+#pragma omp critical
+  {
+    ni = mgeo->basis(0).knotInterval(u) - mgeo->order(0) + 1;
+    nj = mgeo->basis(1).knotInterval(v) - mgeo->order(1) + 1;
+    nk = mgeo->basis(2).knotInterval(w) - mgeo->order(2) + 1;
+  }
+
+  size_t n = 0;
+  for (int i3 = 0; i3 < mgeo->order(2); ++i3)
+    for (int i2 = 0; i2 < mgeo->order(1); ++i2)
+      for (int i1 = 0; i1 < mgeo->order(0); ++i1, n++)
+      {
+        auto it = mgeo->coefs_begin() + (ni + i1 +
+                                        (nj + i2)*mgeo->numCoefs(0) +
+                                        (nk + i3)*mgeo->numCoefs(0)*mgeo->numCoefs(1))*mgeo->dimension();
+        for (size_t i = 0; i < nsd; i++)
+          X(i+1,n+1) = *it++;
+      }
+
+#if SP_DEBUG > 2
+  std::cout <<"\nCoordinates for geometry element "<< iel << X << std::endl;
+#endif
+  return true;
+}
+
+
 void ASMs3D::getNodalCoordinates (Matrix& X) const
 {
   const int n1 = svol->numCoefs(0);
@@ -1747,7 +1797,7 @@ bool ASMs3D::integrate (Integrand& integrand,
   }
 
   // Evaluate basis function derivatives at all integration points
-  std::vector<Go::BasisDerivs>  spline;
+  std::vector<Go::BasisDerivs>  spline, splineg;
   std::vector<Go::BasisDerivs2> spline2;
   std::vector<Go::BasisDerivs>  splineRed;
   {
@@ -1756,6 +1806,7 @@ bool ASMs3D::integrate (Integrand& integrand,
       svol->computeBasisGrid(gpar[0],gpar[1],gpar[2],spline2);
     else
       svol->computeBasisGrid(gpar[0],gpar[1],gpar[2],spline);
+    static_cast<const Go::SplineVolume*>(geomB)->computeBasisGrid(gpar[0],gpar[1],gpar[2],splineg);
     if (xr)
       svol->computeBasisGrid(redpar[0],redpar[1],redpar[2],splineRed);
   }
@@ -1783,7 +1834,7 @@ bool ASMs3D::integrate (Integrand& integrand,
     for (size_t t = 0; t < groups[g].size(); t++)
     {
       FiniteElement fe(p1*p2*p3);
-      Matrix   dNdu, Xnod, Jac;
+      Matrix   dNdu, Xnod, Jac, Xnodg;
       Matrix3D d2Ndu2, Hess;
       double   dXidu[3];
       double   param[3];
@@ -1813,6 +1864,13 @@ bool ASMs3D::integrate (Integrand& integrand,
 
         // Set up control point (nodal) coordinates for current element
         if (!this->getElementCoordinates(Xnod,iel))
+        {
+          ok = false;
+          break;
+        }
+
+        // Set up control point (nodal) coordinates for current element
+        if (!this->getGeoElementCoordinates(Xnodg,MNPC[iel-1].front()))
         {
           ok = false;
           break;
@@ -1946,8 +2004,13 @@ bool ASMs3D::integrate (Integrand& integrand,
               else
                 SplineUtils::extractBasis(spline[ip],fe.N,dNdu);
 
+              Vector Ng;
+              Matrix dNgdu;
+              SplineUtils::extractBasis(splineg[ip],Ng,dNgdu);
+              fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnodg,dNgdu);
+
               // Compute Jacobian inverse of coordinate mapping and derivatives
-              fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+              utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
               if (fe.detJxW == 0.0) continue; // skip singular points
 
               // Compute Hessian of coordinate mapping and 2nd order derivatives
@@ -1965,7 +2028,7 @@ bool ASMs3D::integrate (Integrand& integrand,
 #endif
 
               // Cartesian coordinates of current integration point
-              X.assign(Xnod * fe.N);
+              X.assign(Xnodg * Ng);
               X.t = time.t;
 
               // Evaluate the integrand and accumulate element contributions

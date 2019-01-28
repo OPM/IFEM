@@ -68,11 +68,11 @@ function printHeader {
   echo "Configurations to process:"
   if test -n "$BTYPES"
   then
-    for conf in ${BTYPES_ARRAY[*]}
+    for conf in ${!BTYPES_ARRAY[@]}
     do
       if test -n "${TOOLCHAINS[$conf]}"
       then
-        echo -e "\t$conf = ${TOOLCHAINS[$conf]}"
+        echo -e "\t${BTYPES_ARRAY[$conf]} = ${TOOLCHAINS[$conf]}"
       fi
     done
   fi

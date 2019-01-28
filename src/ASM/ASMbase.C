@@ -24,6 +24,7 @@
 
 
 bool ASMbase::fixHomogeneousDirichlet = true;
+bool ASMbase::refineGeometry = false;
 int  ASMbase::dbgElm = 0;
 
 //! This quantitiy is used to scale the characteristic element sizes which

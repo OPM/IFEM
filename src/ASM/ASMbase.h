@@ -784,6 +784,7 @@ private:
 
 public:
   static bool fixHomogeneousDirichlet; //!< If \e true, pre-eliminate fixed DOFs
+  static bool refineGeometry; //!< If \e true, apply refinements to the geometry
 
   static int dbgElm; //!< One-based element index to print debugging info for
 

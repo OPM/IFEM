@@ -206,6 +206,11 @@ public:
   virtual void remapErrors(RealArray& errors,
                            const RealArray& origErr, bool elemErrors) const;
 
+  //! \brief Obtain the refinement basis.
+  virtual const LR::LRSpline* getRefinementBasis() const;
+  //! \brief Obtain the refinement basis.
+  virtual LR::LRSpline* getRefinementBasis();
+
 protected:
   using ASMu2D::generateThreadGroups;
   //! \brief Generates element groups for multi-threading of interior integrals.

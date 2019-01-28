@@ -108,7 +108,7 @@ public:
                                  bool globalId = false) const;
   //! \brief Returns a list of basis functions having support on given elements.
   void getFunctionsForElements(IntSet& functions, const IntVec& elements,
-                               bool globalId = true) const;
+                               const LR::LRSpline* lrspline, bool globalId = true) const;
 
   //! \brief Sort basis functions based on local knot vectors.
   static void Sort(int u, int v, int orient,
@@ -176,6 +176,11 @@ public:
 
   //! \brief Returns the spline describing the geometry.
   const LR::LRSpline* getGeometry() const { return geo; }
+
+  //! \brief Obtain the refinement basis.
+  virtual const LR::LRSpline* getRefinementBasis() const = 0;
+  //! \brief Obtain the refinement basis.
+  virtual LR::LRSpline* getRefinementBasis() = 0;
 
 protected:
   //! \brief Refines the mesh adaptively.

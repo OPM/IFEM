@@ -53,7 +53,10 @@ public:
   virtual const LR::LRSplineVolume* getBasis(int = 1) const { return lrspline.get(); }
   //! \brief Returns the spline volume representing the basis of this patch.
   virtual LR::LRSplineVolume* getBasis(int = 1) { return lrspline.get(); }
-
+  //! \brief Obtain the refinement basis.
+  virtual const LR::LRSpline* getRefinementBasis() const;
+  //! \brief Obtain the refinement basis.
+  virtual LR::LRSpline* getRefinementBasis();
 
   // Methods for model generation and refinement
   // ===========================================

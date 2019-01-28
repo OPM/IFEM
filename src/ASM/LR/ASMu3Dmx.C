@@ -59,6 +59,9 @@ ASMu3Dmx::ASMu3Dmx (const ASMu3Dmx& patch, const CharVec& n_f)
 
 const LR::LRSplineVolume* ASMu3Dmx::getBasis (int basis) const
 {
+  if (basis == -1)
+    return static_cast<const LR::LRSplineVolume*>(this->getRefinementBasis());
+
   if (basis < 1 || basis > (int)m_basis.size())
     return nullptr;
 
@@ -283,8 +286,6 @@ bool ASMu3Dmx::generateFEMTopology ()
 #ifdef SP_DEBUG
   std::cout <<"NEL = "<< nel <<" NNOD = "<< nnod << std::endl;
 #endif
-
-  geo = m_basis[elmBasis-1].get();
 
   return true;
 }

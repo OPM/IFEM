@@ -196,7 +196,7 @@ bool ASMs2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
   if (continuous)
   {
     proj->computeBasisGrid(gpar[0],gpar[1],spl1);
-    surf->computeBasisGrid(gpar[0],gpar[1],spl2);
+    static_cast<const Go::SplineSurface*>(geomB)->computeBasisGrid(gpar[0],gpar[1],spl2);
   }
   else
     proj->computeBasisGrid(gpar[0],gpar[1],spl0);
@@ -226,7 +226,7 @@ bool ASMs2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
       if (continuous)
       {
         // Set up control point (nodal) coordinates for current element
-        if (!this->getElementCoordinates(Xnod,1+iel))
+        if (!this->getGeoElementCoordinates(Xnod,MNPC[iel].front()))
           return false;
         else if ((dA = 0.25*this->getParametricArea(1+iel)) < 0.0)
           return false; // topology error (probably logic error)

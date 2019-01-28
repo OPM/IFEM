@@ -80,6 +80,11 @@ bool ASMu2D::read (std::istream& is)
     lrspline.reset(new LR::LRSplineSurface(tensorspline));
   }
 
+  if (ASMbase::refineGeometry)
+    geo = lrspline;
+  else
+    geo = lrspline->copy();
+
   // Eat white-space characters to see if there is more data to read
   char c;
   while (is.get(c))
@@ -110,7 +115,6 @@ bool ASMu2D::read (std::istream& is)
     nsd = lrspline->dimension();
   }
 
-  geo = lrspline.get();
   return true;
 }
 
@@ -165,6 +169,7 @@ bool ASMu2D::cornerRefine (int minBasisfunctions)
   return true;
 }
 
+
 bool ASMu2D::diagonalRefine (int minBasisfunctions)
 {
   if (!lrspline) return false;
@@ -194,6 +199,7 @@ bool ASMu2D::diagonalRefine (int minBasisfunctions)
   lrspline->writePostscriptMesh(meshFile);
   return true;
 }
+
 
 bool ASMu2D::uniformRefine (int minBasisfunctions)
 {
@@ -256,6 +262,7 @@ bool ASMu2D::uniformRefine (int dir, int nInsert)
   else
     tensorspline->insertKnot_v(extraKnots);
 
+  lrspline.reset(new LR::LRSplineSurface(tensorspline));
   return true;
 }
 
@@ -287,6 +294,7 @@ bool ASMu2D::refine (int dir, const RealArray& xi, double scale)
   else
     tensorspline->insertKnot_v(extraKnots);
 
+  lrspline.reset(new LR::LRSplineSurface(tensorspline));
   return true;
 }
 
@@ -314,7 +322,7 @@ bool ASMu2D::refine (const RealFunc& refC, double refTol)
   Vectors dummySol;
   LR::RefineData prm(true);
   prm.options = { 10, 1, 2 };
-  prm.elements = this->getFunctionsForElements(elements);
+  prm.elements = this->getFunctionsForElements(elements,lrspline.get());
   return this->refine(prm,dummySol);
 }
 
@@ -401,6 +409,7 @@ bool ASMu2D::raiseOrder (int ru, int rv)
   if (shareFE) return true;
 
   tensorspline->raiseOrder(ru,rv);
+  lrspline.reset(new LR::LRSplineSurface(tensorspline));
   return true;
 }
 
@@ -423,7 +432,6 @@ bool ASMu2D::createProjectionBasis (bool init)
 
   std::swap(tensorspline,tensorPrjBas);
   std::swap(lrspline,projBasis);
-  geo = lrspline.get();
   return true;
 }
 
@@ -913,6 +921,39 @@ bool ASMu2D::getElementCoordinates (Matrix& X, int iel) const
 }
 
 
+bool ASMu2D::getGeoElementCoordinates (Matrix& X, int& iel) const
+{
+#ifdef INDEX_CHECK
+  if (iel < 1 || iel > lrspline->nElements())
+  {
+    std::cerr <<" *** ASMu2D::getElementCoordinates: Element index "<< iel
+              <<" out of range [1,"<< lrspline->nElements() <<"]."<< std::endl;
+    return false;
+  }
+#endif
+
+  const LR::Element* el = lrspline->getElement(iel-1);
+  double u_center = 0.5*(el->umin() + el->umax());
+  double v_center = 0.5*(el->vmin() + el->vmax());
+  const LR::LRSplineSurface* lrg = static_cast<const LR::LRSplineSurface*>(geo);
+#pragma omp critical
+  iel = lrg->getElementContaining(u_center, v_center);
+  if (el < 0)
+    return false;
+  el = geo->getElement(iel);
+  X.resize(nsd,el->nBasisFunctions());
+
+  int n = 1;
+  for (LR::Basisfunction* b : el->support())
+    X.fillColumn(n++,&(*b->cp()));
+
+#if SP_DEBUG > 2
+  std::cout <<"\nCoordinates for element "<< iel << X << std::endl;
+#endif
+  return true;
+}
+
+
 void ASMu2D::getNodalCoordinates (Matrix& X) const
 {
   X.resize(nsd,lrspline->nBasisFunctions());
@@ -1098,12 +1139,13 @@ bool ASMu2D::integrate (Integrand& integrand,
       fe.iel = MLGE[iel-1];
       fe.p   = lrspline->order(0) - 1;
       fe.q   = lrspline->order(1) - 1;
-      Matrix   dNdu, Xnod, Jac;
+      Matrix   dNdu, Xnod, Jac, dNgdu, Xnodg;
       Matrix3D d2Ndu2, Hess;
       Matrix4D d3Ndu3;
       double   dXidu[2];
       double   param[3] = { 0.0, 0.0, 0.0 };
       Vec4     X(param);
+      Vector   Ng;
 
       // Get element area in the parameter space
       double dA = this->getParametricArea(iel);
@@ -1115,6 +1157,14 @@ bool ASMu2D::integrate (Integrand& integrand,
 
       // Set up control point (nodal) coordinates for current element
       if (!this->getElementCoordinates(Xnod,iel))
+      {
+        ok = false;
+        continue;
+      }
+
+      // Set up control point (nodal) coordinates for geometry
+      int gEl = iel;
+      if (!this->getGeoElementCoordinates(Xnodg,gEl))
       {
         ok = false;
         continue;
@@ -1185,18 +1235,22 @@ bool ASMu2D::integrate (Integrand& integrand,
             fe.u = param[0] = redpar[0][i];
             fe.v = param[1] = redpar[1][j];
 
+            // Compute basis function derivatives at current point
+            Go::BasisDerivsSf splineg;
+            static_cast<const LR::LRSplineSurface*>(geo)->computeBasis(fe.u,fe.v,splineg,gEl);
+            SplineUtils::extractBasis(splineg,Ng,dNgdu);
             // Extract basis function derivatives at current point
             SplineUtils::extractBasis(splineRed[jp],fe.N,dNdu);
 
             // Compute Jacobian inverse and derivatives
-            fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
-            if (fe.detJxW == 0.0) continue; // skip singular points
+            fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnodg,dNgdu,false);
+            utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
 
             // Store tangent vectors in fe.G for shells
             if (nsd > 2) fe.G = Jac;
 
             // Cartesian coordinates of current integration point
-            X.assign(Xnod * fe.N);
+            X.assign(Xnodg * Ng);
             X.t = time.t;
 
             // Compute the reduced integration terms of the integrand
@@ -1246,10 +1300,14 @@ bool ASMu2D::integrate (Integrand& integrand,
             }
 #endif
           }
+          Go::BasisDerivsSf splineg;
+          static_cast<const LR::LRSplineSurface*>(geo)->computeBasis(fe.u,fe.v,splineg,gEl);
+          SplineUtils::extractBasis(splineg,Ng,dNgdu);
 
           // Compute Jacobian inverse of coordinate mapping and derivatives
-          fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+          fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnodg,dNgdu,false);
           if (fe.detJxW == 0.0) continue; // skip singular points
+          fe.dNdX.multiply(dNdu, Jac);
 
           // Compute Hessian of coordinate mapping and 2nd order derivatives
           if (use2ndDer)
@@ -1276,7 +1334,7 @@ bool ASMu2D::integrate (Integrand& integrand,
 #endif
 
           // Cartesian coordinates of current integration point
-          X.assign(Xnod * fe.N);
+          X.assign(Xnodg * Ng);
           X.t = time.t;
 
           // Evaluate the integrand and accumulate element contributions
@@ -1753,7 +1811,7 @@ bool ASMu2D::tesselate (ElementBlock& grid, const int* npe) const
         double u = umin + (umax-umin)/(npe[0]-1)*iu;
         double v = vmin + (vmax-vmin)/(npe[1]-1)*iv;
         Go::Point pt;
-        lrspline->point(pt, u,v, iel, iu!=npe[0]-1, iv!=npe[1]-1);
+        static_cast<const LR::LRSplineSurface*>(geo)->point(pt, u,v, -1, iu!=npe[0]-1, iv!=npe[1]-1);
         grid.setCoor(inod, SplineUtils::toVec3(pt,nsd));
         grid.setParams(inod, u, v);
       }
@@ -2069,7 +2127,8 @@ void ASMu2D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
   if (basis == 0)
     basis = 1;
 
-  if (!this->getBasis(basis)) return; // silently ignore empty patches
+  if (basis != -1)
+    if (!this->getBasis(basis)) return; // silently ignore empty patches
 
   LR::parameterEdge edge;
   switch (lIndex) {
@@ -2097,8 +2156,8 @@ void ASMu2D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
 
 bool ASMu2D::getOrder (int& p1, int& p2, int& p3) const
 {
-  p1 = geo->order(0);
-  p2 = geo->order(1);
+  p1 = lrspline->order(0);
+  p2 = lrspline->order(1);
   p3 = 0;
 
   return true;
@@ -2389,6 +2448,18 @@ bool ASMu2D::evaluate (const FunctionBase* func, RealArray& vec,
 }
 
 
+const LR::LRSpline* ASMu2D::getRefinementBasis() const
+{
+  return lrspline.get();
+}
+
+
+LR::LRSpline* ASMu2D::getRefinementBasis()
+{
+  return lrspline.get();
+}
+
+
 ASMu2D::InterfaceChecker::InterfaceChecker(const ASMu2D& pch) : myPatch(pch)
 {
   const LR::LRSplineSurface* lr = myPatch.getBasis(1);
@@ -2461,12 +2532,12 @@ ASMu2D::InterfaceChecker::InterfaceChecker(const ASMu2D& pch) : myPatch(pch)
 
 short int ASMu2D::InterfaceChecker::hasContribution (int iel, int, int, int) const
 {
-  const LR::Element* el = myPatch.geo->getElement(iel-1);
+  const LR::Element* el = myPatch.getBasis(1)->getElement(iel-1);
   bool neighbor[4];
-  neighbor[0] = el->getParmin(0) != myPatch.geo->startparam(0); // West neighbor
-  neighbor[1] = el->getParmax(0) != myPatch.geo->endparam(0); // East neighbor
-  neighbor[2] = el->getParmin(1) != myPatch.geo->startparam(1); // South neighbor
-  neighbor[3] = el->getParmax(1) != myPatch.geo->endparam(1); // North neighbor
+  neighbor[0] = el->getParmin(0) != myPatch.getBasis(1)->startparam(0); // West neighbor
+  neighbor[1] = el->getParmax(0) != myPatch.getBasis(1)->endparam(0); // East neighbor
+  neighbor[2] = el->getParmin(1) != myPatch.getBasis(1)->startparam(1); // South neighbor
+  neighbor[3] = el->getParmax(1) != myPatch.getBasis(1)->endparam(1); // North neighbor
 
   // Check for existing neighbors
   short int status = 0, s = 1;

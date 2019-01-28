@@ -133,8 +133,8 @@ public:
   ASMs3D(const ASMs3D& patch, unsigned char n_f);
   //! \brief Default copy constructor copying everything.
   ASMs3D(const ASMs3D& patch);
-  //! \brief Empty destructor.
-  virtual ~ASMs3D() {}
+  //! \brief The destructor frees the dynamically spline volume.
+  virtual ~ASMs3D();
 
   //! \brief Returns the spline volume representing the geometry of this patch.
   Go::SplineVolume* getVolume() const { return svol; }
@@ -187,6 +187,12 @@ public:
   //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
   //! in one element
   virtual bool getElementCoordinates(Matrix& X, int iel) const;
+
+  //! \brief Returns a matrix with nodal coordinates for geometry element.
+  //! \param[in] node Node index on integration basis
+  //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
+  //! in geometry element
+  bool getGeoElementCoordinates(Matrix& X, int node) const;
 
   //! \brief Returns a matrix with all nodal coordinates within the patch.
   //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes

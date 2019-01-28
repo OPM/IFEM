@@ -156,11 +156,13 @@ bool ASMLRSpline::refine (const LR::RefineData& prm,
 {
   PROFILE2("ASMLRSpline::refine()");
 
-  if (!geo)
+  LR::LRSpline* refBasis = this->getRefinementBasis();
+
+  if (!refBasis)
     return false;
   else if (shareFE && !prm.refShare)
   {
-    nnod = geo->nBasisFunctions();
+    nnod = refBasis->nBasisFunctions();
     return true;
   }
   else if (prm.errors.empty() && prm.elements.empty()) {
@@ -172,24 +174,24 @@ bool ASMLRSpline::refine (const LR::RefineData& prm,
   IntVec nf(sol.size());
   for (size_t j = 0; j < sol.size(); j++)
     if (!sol[j].empty())
-      if (!(nf[j] = LR::extendControlPoints(geo,sol[j],this->getNoFields(1))))
+      if (!(nf[j] = LR::extendControlPoints(refBasis,sol[j],this->getNoFields(1))))
         return false;
 
-  if (!this->doRefine(prm,geo))
+  if (!this->doRefine(prm,refBasis))
     return false;
 
-  nnod = geo->nBasisFunctions();
+  nnod = refBasis->nBasisFunctions();
   for (int i = sol.size()-1; i >= 0; i--)
     if (!sol[i].empty()) {
-      sol[i].resize(nf[i]*geo->nBasisFunctions());
-      LR::contractControlPoints(geo,sol[i],nf[i]);
+      sol[i].resize(nf[i]*refBasis->nBasisFunctions());
+      LR::contractControlPoints(refBasis,sol[i],nf[i]);
     }
 
   if (fName)
     storeMesh(fName);
 
-  IFEM::cout <<"Refined mesh: "<< geo->nElements() <<" elements "
-             << geo->nBasisFunctions() <<" nodes."<< std::endl;
+  IFEM::cout <<"Refined mesh: "<< refBasis->nElements() <<" elements "
+             << refBasis->nBasisFunctions() <<" nodes."<< std::endl;
 
   bool linIndepTest = prm.options.size() > 3 ? prm.options[3] != 0 : false;
   if (linIndepTest)
@@ -283,16 +285,16 @@ IntVec ASMLRSpline::getFunctionsForElements (const IntVec& elements,
                                              bool globalId) const
 {
   IntSet functions; // to get unique function IDs
-  this->getFunctionsForElements(functions,elements,globalId);
+  this->getFunctionsForElements(functions,elements,this->getRefinementBasis(),globalId);
   return IntVec(functions.begin(), functions.end());
 }
 
 
 void ASMLRSpline::getFunctionsForElements (IntSet& functions,
                                            const IntVec& elements,
+                                           const LR::LRSpline* lrspline,
                                            bool globalId) const
 {
-  geo->generateIDs();
   for (int elmId : elements)
   {
     int iel = elmId;
@@ -301,8 +303,8 @@ void ASMLRSpline::getFunctionsForElements (IntSet& functions,
       IntVec::const_iterator it = std::find(MLGE.begin(),MLGE.end(),1+elmId);
       iel = it != MLGE.end() ? it - MLGE.begin() : -1;
     }
-    if (iel >= 0 && iel < geo->nElements())
-      for (LR::Basisfunction* b : geo->getElement(iel)->support())
+    if (iel >= 0 && iel < lrspline->nElements())
+      for (LR::Basisfunction* b : lrspline->getElement(iel)->support())
         functions.insert(globalId ? this->getNodeID(b->getId()+1)-1:b->getId());
   }
 }
@@ -312,13 +314,14 @@ IntVec ASMLRSpline::getBoundaryCovered (const IntSet& nodes) const
 {
   IntSet result;
   int numbEdges = (this->getNoParamDim() == 2) ? 4 : 6;
+  const LR::LRSpline* refBasis = this->getRefinementBasis();
   for (int edge = 1; edge <= numbEdges; edge++)
   {
     IntVec oneBoundary; // 1-based list of boundary nodes
-    this->getBoundaryNodes(edge,oneBoundary,1,1,0,true);
+    this->getBoundaryNodes(edge,oneBoundary,-1,1,0,true);
     for (const int i : nodes)
       for (const int j : oneBoundary)
-        if (geo->getBasisfunction(i)->contains(*geo->getBasisfunction(j-1)))
+        if (refBasis->getBasisfunction(i)->contains(*refBasis->getBasisfunction(j-1)))
           result.insert(j-1);
   }
 
@@ -329,9 +332,10 @@ IntVec ASMLRSpline::getBoundaryCovered (const IntSet& nodes) const
 IntVec ASMLRSpline::getOverlappingNodes (const IntSet& nodes, int dir) const
 {
   IntSet result;
+  const LR::LRSpline* refBasis = this->getRefinementBasis();
   for (const int i : nodes)
   {
-    LR::Basisfunction *b = geo->getBasisfunction(i);
+    const LR::Basisfunction *b = refBasis->getBasisfunction(i);
     for (auto el : b->support()) // for all elements where *b has support
       for (auto basis : el->support()) // for all functions on this element
       {

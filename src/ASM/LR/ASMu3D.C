@@ -75,6 +75,11 @@ bool ASMu3D::read (std::istream& is)
     lrspline.reset(new LR::LRSplineVolume(tensorspline));
   }
 
+  if (ASMbase::refineGeometry)
+    geo = lrspline;
+  else
+    geo = lrspline->copy();
+
   // Eat white-space characters to see if there is more data to read
   char c;
   while (is.get(c))
@@ -97,7 +102,6 @@ bool ASMu3D::read (std::istream& is)
     return false;
   }
 
-  geo = lrspline.get();
   return true;
 }
 
@@ -152,7 +156,6 @@ bool ASMu3D::uniformRefine (int dir, int nInsert)
 
   tensorspline->insertKnot(dir,extraKnots);
   lrspline.reset(new LR::LRSplineVolume(tensorspline));
-  geo = lrspline.get();
   return true;
 }
 
@@ -181,7 +184,6 @@ bool ASMu3D::refine (int dir, const RealArray& xi)
 
   tensorspline->insertKnot(dir,extraKnots);
   lrspline.reset(new LR::LRSplineVolume(tensorspline));
-  geo = lrspline.get();
   return true;
 }
 
@@ -193,7 +195,6 @@ bool ASMu3D::raiseOrder (int ru, int rv, int rw)
 
   tensorspline->raiseOrder(ru,rv,rw);
   lrspline.reset(new LR::LRSplineVolume(tensorspline));
-  geo = lrspline.get();
   return true;
 }
 
@@ -2304,7 +2305,7 @@ bool ASMu3D::refine (const RealFunc& refC, double refTol)
   Vectors dummySol;
   LR::RefineData prm(true);
   prm.options = { 10, 1, 2 };
-  prm.elements = this->getFunctionsForElements(elements);
+  prm.elements = this->getFunctionsForElements(elements,lrspline.get());
   return this->refine(prm,dummySol);
 }
 
@@ -2405,4 +2406,16 @@ void ASMu3D::extendRefinementDomain (IntSet& refineIndices,
           break;
         }
   }
+}
+
+
+const LR::LRSpline* ASMu3D::getRefinementBasis() const
+{
+  return lrspline.get();
+}
+
+
+LR::LRSpline* ASMu3D::getRefinementBasis()
+{
+  return lrspline.get();
 }
