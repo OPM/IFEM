@@ -96,9 +96,9 @@ void HDF5Restart::writeArray(hid_t group, const std::string& name,
 bool HDF5Restart::writeData(const TimeStep& tp,
                             const SerializeData& data)
 {
+#ifdef HAS_HDF5
   int level = tp.step / m_stride;
 
-#ifdef HAS_HDF5
   int flag = H5F_ACC_RDWR;
   struct stat buffer;
   if (stat(m_hdf5_name.c_str(),&buffer) != 0)

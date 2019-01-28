@@ -411,7 +411,7 @@ bool AdaptiveSIM::adaptMesh (int iStep, std::streamsize outPrec)
         locNorm(i) = eNorm(eRow, patch->getElmID(i));
 
       // remap from geometry basis to refinement basis
-      Vector locErr(patch->getNoProjectionNodes());
+      Vector locErr(patch->getNoRefineNodes());
       dynamic_cast<ASMunstruct*>(patch)->remapErrors(locErr, locNorm);
 
       // insert into global error array
