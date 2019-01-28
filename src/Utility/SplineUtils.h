@@ -80,6 +80,10 @@ namespace SplineUtils //! Various utility functions on spline objects.
   Go::SplineVolume* project(const Go::SplineVolume* volume,
                             const FunctionBase& f,
                             int nComp = 1, Real time = Real(0));
+
+  //! \brief Builds a knot vector from a given polynomial order, knots and continuities.
+  std::vector<double> buildKnotVector(int p, const std::vector<double>& simple_knots,
+                                      const std::vector<int>& continuities);
 }
 
 #endif
