@@ -42,11 +42,29 @@ public:
 };
 
 
-// SAM class representing a 2-DOF system where the 2nd DOF is prescribed.
+// SAM class representing a 2-DOF system.
 class SAM2DOF : public SAM
 {
 public:
   SAM2DOF()
+  {
+    ndof   = neq = 2;
+    nmmnpc = nel = nnod = 1;
+    mmnpc  = new int[1]; mmnpc[0] = 1;
+    mpmnpc = new int[2]; std::iota(mpmnpc,mpmnpc+2,1);
+    madof  = new int[2]; madof[0] = 1; madof[1] = 3;
+    msc    = new int[2]; msc[0] = msc[1] = 1;
+    EXPECT_TRUE(this->initSystemEquations());
+  }
+  virtual ~SAM2DOF() {}
+};
+
+
+// SAM class representing a 2-DOF system where the 2nd DOF is prescribed.
+class SAM2DOFprescr : public SAM
+{
+public:
+  SAM2DOFprescr()
   {
     nmmnpc = nnod = ndof = 2;
     nmmceq = nceq = nel = neq = 1;
@@ -59,7 +77,7 @@ public:
     ttcc   = new double[1]; ttcc[0] = 0.0;
     EXPECT_TRUE(this->initSystemEquations());
   }
-  virtual ~SAM2DOF() {}
+  virtual ~SAM2DOFprescr() {}
 
   bool updateContrainEqs(double time, const Vector* prevSol)
   {
@@ -80,47 +98,68 @@ class Problem : public IntegrandBase
 public:
   Problem() : IntegrandBase(1) {}
   virtual ~Problem() {}
+
   virtual void setIntegrationPrm(unsigned short int i, double p) { prm[i] = p; }
   virtual double getIntegrationPrm(unsigned short int i) const
   { return m_mode == SIM::DYNAMIC ? prm[i] : 0.0; }
   const double* getIntPrm() { return prm; }
+
 private:
   double prm[5];
 };
 
 
-// Simulator class for a single-DOF oscillator.
-class SIM1DOF : public SIMdummy<SIMoutput>
+// Common base class for the test simulators.
+class TestSIMbase : public SIMdummy<SIMoutput>
 {
 public:
-  SIM1DOF(IntegrandBase* p) : SIMdummy<SIMoutput>(p) { mySam = new SAM1DOF(); }
+  TestSIMbase() : SIMdummy<SIMoutput>(new Problem) {}
+  virtual ~TestSIMbase() {}
+  virtual double getInitAcc(size_t = 0) const { return 0.0; }
+
+protected:
+  bool assembleMass(double M, size_t ndof = 1)
+  {
+    ElmMats elm;
+    elm.resize(1,0);
+    elm.redim(ndof);
+    elm.A.front().diag(M);
+    return myEqSys->assemble(&elm,1);
+  }
+};
+
+
+// Simulator class for a single-DOF oscillator.
+class SIM1DOF : public TestSIMbase
+{
+  const double M = 10.0;   // Mass of the oscillator
+  const double K = 1000.0; // Stiffness of the oscillator
+  const double F = 1.0;    // External load (constant)
+
+public:
+  SIM1DOF() { mySam = new SAM1DOF(); }
   virtual ~SIM1DOF() {}
+
+  virtual double getInitAcc(size_t) const { return F/M; }
+
   virtual bool assembleSystem(const TimeDomain& time,
                               const Vectors& prevSol,
                               bool newLHSmatrix, bool)
   {
-    const double M = 10.0;   // Mass of the oscillator
-    const double K = 1000.0; // Stiffness of the oscillator
-    const double F = 1.0;    // External load (constant)
-
     myEqSys->initialize(newLHSmatrix);
 
     bool ok;
-    if (myProblem->getMode() == SIM::MASS_ONLY) {
-      ElmMats elm;
-      elm.resize(1,1); elm.redim(1);
-      elm.A[0].fill(M); // Mass matrix
-      ok = myEqSys->assemble(&elm,1);
-    }
+    if (myProblem->getMode() == SIM::MASS_ONLY)
+      ok = this->assembleMass(M);
     else {
       const double* intPrm = static_cast<Problem*>(myProblem)->getIntPrm();
       NewmarkMats elm(intPrm[0],intPrm[1],intPrm[2],intPrm[3]);
-      elm.resize(3,1); elm.redim(1); elm.vec.resize(3);
-      elm.setStepSize(time.dt,0);
-      elm.A[1].fill(M); // Mass matrix
-      elm.A[2].fill(K); // Stiffness matrix
+      elm.resize(3,1); elm.redim(1);
+      elm.setStepSize(time.dt,time.it);
+      elm.A[1].diag(M); // Mass matrix
+      elm.A[2].diag(K); // Stiffness matrix
       elm.b[0] = -K*prevSol.front(); // Elastic forces
-      for (int i = 0; i < 3; i++) elm.vec[i] = prevSol[i];
+      elm.vec = prevSol;
       ok = myEqSys->assemble(&elm,1);
     }
 
@@ -132,48 +171,92 @@ public:
 };
 
 
-// Simulator class for a two-DOF oscillator with prescribed motion.
-class SIM2DOF : public SIMdummy<SIMoutput>
+// Simulator class for a 2-DOF damped oscillator.
+class SIM2DOFdmp : public TestSIMbase
 {
+  const double M  = 10.0;  // Mass of the oscillator
+  const double Kx = 200.0; // Stiffness of the oscillator in x-direction
+  const double Ky = 100.0; // Stiffness of the oscillator in y-direction
+  const double Cx = 100.0; // Velocity-proportional damping coefficient
+  const double Fx = 100.0; // External load in X-direction (constant)
+  const double Fy = 1.0;   // External load in y-direction (constant)
+
 public:
-  SIM2DOF(IntegrandBase* p) : SIMdummy<SIMoutput>(p) { mySam = new SAM2DOF(); }
-  virtual ~SIM2DOF() {}
+  SIM2DOFdmp() { mySam = new SAM2DOF(); }
+  virtual ~SIM2DOFdmp() {}
+
+  virtual double getInitAcc(size_t i) const { return (i == 0 ? Fx : Fy)/M; }
+
   virtual bool assembleSystem(const TimeDomain& time,
                               const Vectors& prevSol,
                               bool newLHSmatrix, bool)
   {
-    const double M = 1.0;    // Mass of the oscillator
-    const double K = 1000.0; // Stiffness of the oscillator
-
     myEqSys->initialize(newLHSmatrix);
 
     bool ok;
-    if (myProblem->getMode() == SIM::MASS_ONLY) {
-      ElmMats elm;
-      elm.resize(1,1); elm.redim(2);
-      elm.A[0](1,1) = elm.A[0](2,2) = M; // Mass matrix
-      ok = myEqSys->assemble(&elm,1);
-    }
+    if (myProblem->getMode() == SIM::MASS_ONLY)
+      ok = this->assembleMass(M,2);
     else {
+      double v = prevSol[prevSol.size()-2].front();
       const double* intPrm = static_cast<Problem*>(myProblem)->getIntPrm();
-      NewmarkMats elm(intPrm[0],intPrm[1],intPrm[2],intPrm[3]);
-      elm.resize(3,1); elm.redim(2); elm.vec.resize(3);
-      elm.setStepSize(time.dt,0);
-      elm.A[1](1,1) = elm.A[1](2,2) = M; // Mass matrix
-      elm.A[2](1,1) = elm.A[2](2,2) = K; // Stiffness matrix
-      elm.A[2](2,1) = elm.A[2](1,2) = -K;
-      elm.b[0] = elm.A[2]*prevSol.front(); // Elastic forces
-      elm.b[0] *= -1.0;
-      for (int i = 0; i < 3; i++) elm.vec[i] = prevSol[i];
-      ok = myEqSys->assemble(&elm,1);
+      NewmarkMats* elm = new NewmarkMats(intPrm[0],intPrm[1],intPrm[2],intPrm[3]);
+      elm->resize(4,2);
+      elm->redim(2);
+      elm->setStepSize(time.dt,time.it);
+      elm->A[1].diag(M); // Mass matrix
+      elm->A[2](1,1) = Kx; // Stiffness matrix
+      elm->A[2](2,2) = Ky; // Stiffness matrix
+      elm->A[3](1,1) = Cx*v; // Damping matrix
+      elm->b[0](1) = -Kx*prevSol[0][0]; // Elastic force in X-direction
+      elm->b[0](2) = -Ky*prevSol[0][1]; // Elastic force in Y-direction
+      elm->b[1](1) = 0.5*Cx*v*v; // Damping force, integral of Cx*v
+      elm->vec = prevSol;
+      ok = myEqSys->assemble(elm,1);
+      delete elm;
     }
 
+    // Add in the external load
+    double F[2] = { Fx, Fy };
+    ok &= mySam->assembleSystem(*myEqSys->getVector(),F,1);
+
     return ok && myEqSys->finalize(newLHSmatrix);
+  }
+};
+
+
+// Simulator class for a two-DOF oscillator with prescribed motion.
+class SIM2DOFprescr : public TestSIMbase
+{
+  const double M = 1.0;    // Mass of the oscillator
+  const double K = 1000.0; // Stiffness of the oscillator
+
+public:
+  SIM2DOFprescr() { mySam = new SAM2DOFprescr(); }
+  virtual ~SIM2DOFprescr() {}
+
+  virtual bool assembleSystem(const TimeDomain& time,
+                              const Vectors& prevSol,
+                              bool newLHSmatrix, bool)
+  {
+    myEqSys->initialize(newLHSmatrix);
+
+    const double* intPrm = static_cast<Problem*>(myProblem)->getIntPrm();
+    NewmarkMats elm(intPrm[0],intPrm[1],intPrm[2],intPrm[3]);
+    elm.resize(3,1); elm.redim(2);
+    elm.setStepSize(time.dt,time.it);
+    elm.A[1].diag(M); // Mass matrix
+    elm.A[2].diag(K); // Stiffness matrix
+    elm.A[2](2,1) = elm.A[2](1,2) = -K;
+    elm.b[0] = elm.A[2]*prevSol.front(); // Elastic forces
+    elm.b[0] *= -1.0;
+    elm.vec = prevSol;
+
+    return myEqSys->assemble(&elm,1) && myEqSys->finalize(newLHSmatrix);
   }
 
   virtual bool updateDirichlet (double time, const Vector* prevSol)
   {
-    return static_cast<SAM2DOF*>(mySam)->updateContrainEqs(time,prevSol);
+    return static_cast<SAM2DOFprescr*>(mySam)->updateContrainEqs(time,prevSol);
   }
 };
 
@@ -251,6 +334,38 @@ void runSingleDof (SIMbase& model, NewmarkSIM& solver, double rtol = 0.5e-11)
 }
 
 
+static void printVec (const char* name, const Vector& vec)
+{
+  std::ios::fmtflags stdFlags = std::cout.flags(std::ios::scientific);
+  std::streamsize stdPrec = std::cout.precision(6);
+  std::cout <<"  "<< name <<" =";
+  for (double v : vec) std::cout <<" "<< v;
+  std::cout << std::endl;
+  std::cout.flags(stdFlags);
+  std::cout.precision(stdPrec);
+}
+
+
+void runTwoDof (TestSIMbase& model, NewmarkSIM& solver, double rtol = 0.5e-11)
+{
+  TimeStep tp;
+  tp.time.dt = 0.01;
+  tp.stopTime = 0.65;
+
+  ASSERT_TRUE(model.initSystem(LinAlg::DENSE));
+  ASSERT_TRUE(solver.initAcc());
+  EXPECT_FLOAT_EQ(solver.getAcceleration().front(),model.getInitAcc());
+
+  while (solver.advanceStep(tp))
+  {
+    ASSERT_TRUE(solver.solveStep(tp) == SIM::CONVERGED);
+    printVec("u",solver.getSolution());
+    printVec("v",solver.getVelocity());
+    printVec("a",solver.getAcceleration());
+  }
+}
+
+
 void runPrescribed (SIMbase& model, NewmarkSIM& solver, double rtol = 0.5e-11)
 {
   TimeStep tp;
@@ -293,28 +408,35 @@ void runPrescribed (SIMbase& model, NewmarkSIM& solver, double rtol = 0.5e-11)
 
 TEST(TestNewmark, SingleDOFa)
 {
-  SIM1DOF simulator(new Problem());
+  SIM1DOF simulator;
   Newmark integrator(simulator,false);
   runSingleDof(simulator,integrator);
 }
 
 TEST(TestGenAlpha, SingleDOFa)
 {
-  SIM1DOF simulator(new Problem());
+  SIM1DOF simulator;
   GenAlpha integrator(simulator,false);
   runSingleDof(simulator,integrator,0.02);
 }
 
 TEST(TestNewmark, SingleDOFu)
 {
-  SIM1DOF simulator(new Problem());
+  SIM1DOF simulator;
   Newmark integrator(simulator,true);
   runSingleDof(simulator,integrator);
 }
 
+TEST(TestNewmark, Damped)
+{
+  SIM2DOFdmp simulator;
+  Newmark integrator(simulator,true);
+  runTwoDof(simulator,integrator);
+}
+
 TEST(TestNewmark, Prescribed)
 {
-  SIM2DOF simulator(new Problem());
+  SIM2DOFprescr simulator;
   Newmark integrator(simulator,true);
   runPrescribed(simulator,integrator);
 }
@@ -322,14 +444,14 @@ TEST(TestNewmark, Prescribed)
 /* does not work, yet
 TEST(TestGenAlpha, SingleDOFu)
 {
-  SIM1DOF simulator(new Problem());
+  SIM1DOF simulator;
   GenAlpha integrator(simulator,true);
   runSingleDof(simulator,integrator,0.02);
 }
 
 TEST(TestGenAlpha, Prescribed)
 {
-  SIM2DOF simulator(new Problem());
+  SIM2DOFprescr simulator;
   GenAlpha integrator(simulator,true);
   runPrescribed(simulator,integrator,0.02);
 }
