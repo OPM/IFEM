@@ -522,7 +522,7 @@ bool SAM::assembleSystem (SystemVector& sysRHS,
   IntVec meen;
   if (!this->getElmEqns(meen,iel,eS.size()))
     ierr = 1;
-  else for (size_t i = 0; i < meen.size(); i++)
+  else for (size_t i = 0; i < meen.size() && i < eS.size(); i++)
     this->assembleRHS(sysrhsPtr,eS[i],meen[i]);
 #endif
 
@@ -618,7 +618,7 @@ void SAM::assembleRHS (Real* RHS, Real value, int ieq) const
 
 void SAM::assembleReactions (Vector& reac, const RealArray& eS, int iel) const
 {
-  int k = 0;
+  size_t k = 0;
   int ip = mpmnpc[iel-1];
   int nenod = mpmnpc[iel] - ip;
   for (int i = 0; i < nenod; i++, ip++)
@@ -627,7 +627,7 @@ void SAM::assembleReactions (Vector& reac, const RealArray& eS, int iel) const
     if (node < 0)
       k += madof[-node] - madof[-node-1];
     else if (node > 0)
-      for (int j = madof[node-1]; j < madof[node]; j++, k++)
+      for (int j = madof[node-1]; j < madof[node] && k < eS.size(); j++, k++)
       {
         int ipR = -msc[j-1];
         if (ipR > 0 && (size_t)ipR <= reac.size())

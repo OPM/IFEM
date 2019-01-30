@@ -24,11 +24,8 @@ void ElmMats::resize (size_t nA, size_t nB, size_t nC)
 
 void ElmMats::redim (size_t ndim)
 {
-  for (std::vector<Matrix>::iterator ait = A.begin(); ait != A.end(); ++ait)
-    ait->resize(ndim,ndim);
-
-  for (std::vector<Vector>::iterator bit = b.begin(); bit != b.end(); ++bit)
-    bit->resize(ndim);
+  for (Matrix& Amat : A) Amat.resize(ndim,ndim);
+  for (Vector& bvec : b) bvec.resize(ndim);
 }
 
 
@@ -36,10 +33,13 @@ const Matrix& ElmMats::getNewtonMatrix () const
 {
   if (A.empty())
   {
-    std::cerr <<" *** ElMats::getNewtonMatrix: No element matrices"<< std::endl;
+#ifdef SP_DEBUG
+    std::cout <<"  ** ElMats::getNewtonMatrix: No element matrices"<< std::endl;
+#endif
     static Matrix empty;
     return empty;
   }
+
 #if SP_DEBUG > 2
   std::cout <<"\nElement coefficient matrix"<< A.front();
 #endif
@@ -51,10 +51,13 @@ const Vector& ElmMats::getRHSVector () const
 {
   if (b.empty())
   {
-    std::cerr <<" *** ElMats::getRHSVector: No element vectors"<< std::endl;
+#ifdef SP_DEBUG
+    std::cout <<"  ** ElMats::getRHSVector: No element vectors"<< std::endl;
+#endif
     static Vector empty;
     return empty;
   }
+
 #if SP_DEBUG > 2
   std::cout <<"\nElement right-hand-side vector"<< b.front();
 #endif
