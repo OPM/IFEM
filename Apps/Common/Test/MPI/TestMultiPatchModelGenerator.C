@@ -10,84 +10,59 @@
 //!
 //==============================================================================
 
-#include "gtest/gtest.h"
-#include "IFEM.h"
-#include "IntegrandBase.h"
 #include "SIMMultiPatchModelGen.h"
 #include "SIM2D.h"
 #include "SIM3D.h"
 #include <fstream>
 
-typedef std::vector<int> IntVec;
-
-template<class Dim>
-class DummySIM : public SIMMultiPatchModelGen<Dim> {
-public:
-  class DummyIntegrand : public IntegrandBase {};
-  DummySIM() : SIMMultiPatchModelGen<Dim>(1)
-  { Dim::myProblem = new DummyIntegrand; }
-};
+#include "gtest/gtest.h"
 
 
-static IntVec readIntVector(const std::string& file)
+static void check_intvectors_equal (const std::vector<int>& A,
+                                    const std::string& Bfile)
 {
-  std::vector<int> result;
-  std::ifstream f(file);
-  size_t size;
-  f >> size;
-  result.resize(size);
-  for (size_t j=0;j<size;++j)
-    f >> result[j];
+  std::ifstream f(Bfile);
 
-  return result;
-}
+  size_t Bsize;
+  f >> Bsize;
+  if (!f) Bsize = 0;
 
-
-auto&& check_intvectors_equal = [](const IntVec& A,
-                                   const IntVec& B)
-{
-  ASSERT_EQ(A.size(), B.size());
-  auto it = B.begin();
-  for (auto& it2 : A) {
-    ASSERT_EQ(it2, *it);
-    ++it;
-   }
+  ASSERT_EQ(A.size(),Bsize);
+  std::vector<int> B(Bsize);
+  for (int& bi : B) f >> bi;
+  for (size_t i = 0; i < A.size(); i++)
+    EXPECT_EQ(A[i],B[i]);
 };
 
 
 TEST(TestMultiPatchModelGenerator2D, SubdivisionsMPI)
 {
-  DummySIM<SIM2D> sim;
+  SIMMultiPatchModelGen<SIM2D> sim(1);
   ASSERT_TRUE(sim.read("Test/refdata/modelgen2d_subdivision.xinp"));
   ASSERT_TRUE(sim.preprocess());
   const ProcessAdm& adm = sim.getProcessAdm();
   std::stringstream str;
   str << "Test/refdata/modelgen2d_subdivision_nodes" << adm.getProcId() << ".ref";
-  IntVec B = readIntVector(str.str());
-  check_intvectors_equal(adm.dd.getMLGN(), B);
+  check_intvectors_equal(adm.dd.getMLGN(), str.str());
   str.str("");
   str << "Test/refdata/modelgen2d_subdivision_eqs" << adm.getProcId() << ".ref";
-  B = readIntVector(str.str());
-  check_intvectors_equal(adm.dd.getMLGEQ(), B);
+  check_intvectors_equal(adm.dd.getMLGEQ(), str.str());
 }
 
 /*
 TES(TestMultiPatchModelGenerator3D, SubdivisionsMPI)
 {
-  DummySIM<SIM3D> sim;
+  SIMMultiPatchModelGen<SIM3D> sim;
   ASSERT_TRUE(sim.read("Test/refdata/modelgen3d_subdivision.xinp"));
   ASSERT_TRUE(sim.preprocess());
   const ProcessAdm& adm = sim.getProcessAdm();
-  for (auto& it : adm.dd.getMLGN())
-    IFEM::cout << it <<  " ";
-  IFEM::cout << std::endl;
+  for (int i : adm.dd.getMLGN()) std::cout <<" "<< i;
+  std::cout << std::endl;
 //  std::stringstream str;
 //  str << "Test/refdata/modelgen3d_subdivision_nodes" << adm.getProcId() << ".ref";
-//  IntVec B = readIntVector(str.str());
-//  check_intvectors_equal(adm.dd.getMLGN(), B);
+//  check_intvectors_equal(adm.dd.getMLGN(), str.str());
 //  str.str("");
 //  str << "Test/refdata/modelgen2d_subdivision_eqs" << adm.getProcId() << ".ref";
-//  B = readIntVector(str.str());
-//  check_intvectors_equal(adm.dd.getMLGEQ(), B);
+//  check_intvectors_equal(adm.dd.getMLGEQ(), str.str());
 }
 */

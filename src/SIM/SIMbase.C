@@ -395,13 +395,6 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
     return false;
   }
 
-  if (!myProblem)
-  {
-    std::cerr <<"\n *** SIMbase::preprocess(): No problem integrand for the "
-              << this->getName() <<"-simulator."<< std::endl;
-    return false;
-  }
-
   // Now perform the sub-class specific final preprocessing, if any
   return this->preprocessB() && ierr == 0;
 }
@@ -485,9 +478,9 @@ bool SIMbase::setAssociatedRHS (size_t iMat, size_t iVec)
 }
 
 
-bool SIMbase::setMode (int mode, bool resetSol)
+bool SIMbase::setMode (int mode, bool needIntegr, bool resetSol)
 {
-  if (myInts.empty())
+  if (myInts.empty() && (myProblem || needIntegr))
     myInts.insert(std::make_pair(0,myProblem));
 
   for (IntegrandMap::iterator it = myInts.begin(); it != myInts.end(); ++it)

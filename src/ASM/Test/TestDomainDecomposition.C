@@ -13,9 +13,8 @@
 #include "DomainDecomposition.h"
 #include "SAM.h"
 #include "SIM2D.h"
-#include "IntegrandBase.h"
+
 #include "gtest/gtest.h"
-#include <fstream>
 
 
 TEST(TestDomainDecomposition, LocalGroups1DO1)
@@ -176,8 +175,7 @@ TEST(TestDomainDecomposition, LocalGroups3DO2)
 
 TEST(TestDomainDecomposition, Setup)
 {
-  class Dummy : public IntegrandBase {};
-  SIM2D sim(new Dummy());
+  SIM2D sim;
   ASSERT_TRUE(sim.read("src/ASM/Test/refdata/DomainDecomposition_2D_1P.xinp"));
   ASSERT_TRUE(sim.preprocess());
 

@@ -118,8 +118,9 @@ public:
 
   //! \brief Defines the solution mode before the element assembly is started.
   //! \param[in] mode The solution mode to use
+  //! \param[in] needIntegr If \e false, silently ignore non-existing integrand
   //! \param[in] resetSol If \e true, the internal solution vectors are cleared
-  bool setMode(int mode, bool resetSol = false);
+  bool setMode(int mode, bool needIntegr = true, bool resetSol = false);
 
   //! \brief Initializes an integration parameter for the integrand.
   //! \param[in] i Index of the integration parameter to define

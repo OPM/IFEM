@@ -10,71 +10,37 @@
 //!
 //==============================================================================
 
-#include "AlgEqSystem.h"
 #include "PETScMatrix.h"
 #include "SIM2D.h"
 #include "ASMmxBase.h"
-#include "IntegrandBase.h"
 #include "SAM.h"
+#include "readIntVec.h"
 
 #include "gtest/gtest.h"
-
-#include <fstream>
-
-
-typedef std::vector<int> IntVec;
-
-static IntVec readIntVector(const std::string& file)
-{
-  std::vector<int> result;
-  std::ifstream f(file);
-  size_t size;
-  f >> size;
-  result.resize(size);
-  for (size_t j=0;j<size;++j)
-    f >> result[j];
-
-  return result;
-}
-
-
-class DummyIntegrandForDummies : public IntegrandBase {
-public:
-  DummyIntegrandForDummies(unsigned short int n = 0) : IntegrandBase(n) {}
-};
-
-
-class InspectMatrixSIM : public SIM2D {
-public:
-  InspectMatrixSIM(unsigned char n1 = 2, bool check = false) :
-    SIM2D(n1, check) { myProblem = new DummyIntegrandForDummies; }
-
-  InspectMatrixSIM(const std::vector<unsigned char>& n, bool check = false) :
-    SIM2D(n, check) { myProblem = new DummyIntegrandForDummies; }
-
-  SystemMatrix* getMatrix() { return myEqSys->getMatrix(0); }
-};
 
 
 TEST(TestPETScMatrix, Assemble)
 {
-  InspectMatrixSIM sim(1);
+  SIM2D sim(1);
   sim.read("src/LinAlg/Test/refdata/petsc_test.xinp");
   sim.opt.solver = LinAlg::PETSC;
   ASSERT_TRUE(sim.preprocess());
   ASSERT_TRUE(sim.initSystem(sim.opt.solver));
 
+  PETScMatrix* myMat = dynamic_cast<PETScMatrix*>(sim.getLHSmatrix());
+  ASSERT_TRUE(myMat != nullptr);
+
   Matrix stencil(4,4);
-  stencil(1,1) = stencil(2,2) = stencil(3,3) = stencil(4,4) = 1.0;
+  stencil.diag(1.0);
 
   for (int iel = 1; iel <= sim.getSAM()->getNoElms(); ++iel)
-    sim.getMatrix()->assemble(stencil, *sim.getSAM(), iel);
+    myMat->assemble(stencil, *sim.getSAM(), iel);
 
-  sim.getMatrix()->beginAssembly();
-  sim.getMatrix()->endAssembly();
+  myMat->beginAssembly();
+  myMat->endAssembly();
 
   // now inspect the matrix
-  Mat& mat = static_cast<PETScMatrix*>(sim.getMatrix())->getMatrix();
+  Mat& mat = myMat->getMatrix();
 
   PetscInt mr, mc;
   MatGetSize(mat, &mr, &mc);
@@ -87,12 +53,11 @@ TEST(TestPETScMatrix, Assemble)
   MatGetDiagonal(mat, vec);
   PetscScalar* a;
   VecGetArray(vec, &a);
-  std::vector<int> ref;
   // check that we have the correct diagonal values
   IntVec v = readIntVector("src/LinAlg/Test/refdata/petsc_matrix_diagonal.ref");
   ASSERT_EQ(mr, (int)v.size());
   for (int i = 0; i < mr; ++i)
-    ASSERT_FLOAT_EQ(double(v[i]), a[i]);
+    EXPECT_FLOAT_EQ(v[i], a[i]);
 
   VecRestoreArray(vec, &a);
   VecDestroy(&vec);
@@ -105,7 +70,7 @@ TEST(TestPETScMatrix, Assemble)
     MatGetRow(mat, r, &ncols, &cols, &vals);
     for (PetscInt i = 0; i < ncols; ++i)
       if (cols[i] != r)
-        ASSERT_FLOAT_EQ(vals[i], 0.0);
+        EXPECT_FLOAT_EQ(vals[i], 0.0);
     MatRestoreRow(mat, r, &ncols, &cols, &vals);
   }
 }
@@ -113,28 +78,30 @@ TEST(TestPETScMatrix, Assemble)
 
 TEST(TestPETScMatrix, AssembleBasisBlocks)
 {
-  InspectMatrixSIM sim({1,1});
   ASMmxBase::Type = ASMmxBase::FULL_CONT_RAISE_BASIS1;
   ASMmxBase::geoBasis = 2;
+  SIM2D sim({1,1});
   sim.read("src/LinAlg/Test/refdata/petsc_test_blocks_basis.xinp");
   sim.opt.solver = LinAlg::PETSC;
   ASSERT_TRUE(sim.preprocess());
   ASSERT_TRUE(sim.initSystem(sim.opt.solver));
 
+  PETScMatrix* myMat = dynamic_cast<PETScMatrix*>(sim.getLHSmatrix());
+  ASSERT_TRUE(myMat != nullptr);
+
   Matrix stencil(13,13);
-  for (size_t i = 1; i<= 9; ++i)
-    stencil(i,i) = 1.0;
-  for (size_t i = 10; i<= 13; ++i)
+  stencil.diag(1.0);
+  for (size_t i = 10; i <= 13; i++)
     stencil(i,i) = 2.0;
 
   for (int iel = 1; iel <= sim.getSAM()->getNoElms(); ++iel)
-    sim.getMatrix()->assemble(stencil, *sim.getSAM(), iel);
+    myMat->assemble(stencil, *sim.getSAM(), iel);
 
-  sim.getMatrix()->beginAssembly();
-  sim.getMatrix()->endAssembly();
+  myMat->beginAssembly();
+  myMat->endAssembly();
 
   // now inspect the matrix blocks
-  const std::vector<Mat>& mat = static_cast<PETScMatrix*>(sim.getMatrix())->getBlockMatrices();
+  const std::vector<Mat>& mat = myMat->getBlockMatrices();
 
   for (size_t b = 0; b < mat.size(); ++b) {
     PetscInt mr, mc;
@@ -155,7 +122,7 @@ TEST(TestPETScMatrix, AssembleBasisBlocks)
       IntVec v = readIntVector(str.str());
       ASSERT_EQ(mr, (int)v.size());
       for (int i = 0; i < mr; ++i)
-        ASSERT_FLOAT_EQ(double(v[i]), a[i]);
+        EXPECT_FLOAT_EQ(v[i], a[i]);
 
       VecRestoreArray(vec, &a);
       VecDestroy(&vec);
@@ -169,7 +136,7 @@ TEST(TestPETScMatrix, AssembleBasisBlocks)
       MatGetRow(mat[b], r, &ncols, &cols, &vals);
       for (PetscInt i = 0; i < ncols; ++i)
         if (cols[i] != r)
-          ASSERT_FLOAT_EQ(vals[i], 0.0);
+          EXPECT_FLOAT_EQ(vals[i], 0.0);
       MatRestoreRow(mat[b], r, &ncols, &cols, &vals);
     }
   }
@@ -178,11 +145,14 @@ TEST(TestPETScMatrix, AssembleBasisBlocks)
 
 TEST(TestPETScMatrix, AssembleComponentBlocks)
 {
-  InspectMatrixSIM sim(2);
+  SIM2D sim(2);
   sim.read("src/LinAlg/Test/refdata/petsc_test_blocks_components.xinp");
   sim.opt.solver = LinAlg::PETSC;
   ASSERT_TRUE(sim.preprocess());
   ASSERT_TRUE(sim.initSystem(sim.opt.solver));
+
+  PETScMatrix* myMat = dynamic_cast<PETScMatrix*>(sim.getLHSmatrix());
+  ASSERT_TRUE(myMat != nullptr);
 
   Matrix stencil(4*2,4*2);
   for (size_t i = 1; i<= 4; ++i) {
@@ -191,13 +161,13 @@ TEST(TestPETScMatrix, AssembleComponentBlocks)
   }
 
   for (int iel = 1; iel <= sim.getSAM()->getNoElms(); ++iel)
-    sim.getMatrix()->assemble(stencil, *sim.getSAM(), iel);
+    myMat->assemble(stencil, *sim.getSAM(), iel);
 
-  sim.getMatrix()->beginAssembly();
-  sim.getMatrix()->endAssembly();
+  myMat->beginAssembly();
+  myMat->endAssembly();
 
   // now inspect the matrix blocks
-  const std::vector<Mat>& mat = static_cast<PETScMatrix*>(sim.getMatrix())->getBlockMatrices();
+  const std::vector<Mat>& mat = myMat->getBlockMatrices();
 
   for (size_t b = 0; b < mat.size(); ++b) {
     PetscInt mr, mc;
@@ -212,14 +182,13 @@ TEST(TestPETScMatrix, AssembleComponentBlocks)
       MatGetDiagonal(mat[b], vec);
       PetscScalar* a;
       VecGetArray(vec, &a);
-      std::vector<int> ref;
       // check that we have the correct diagonal values
       std::stringstream str;
       str << "src/LinAlg/Test/refdata/petsc_matrix_diagonal_components_block" << b/2 + 1 << ".ref";
       IntVec v = readIntVector(str.str());
       ASSERT_EQ(mr, (int)v.size());
       for (int i = 0; i < mr; ++i)
-        ASSERT_FLOAT_EQ(double(v[i]), a[i]);
+        EXPECT_FLOAT_EQ(v[i], a[i]);
 
       VecRestoreArray(vec, &a);
       VecDestroy(&vec);
@@ -233,7 +202,7 @@ TEST(TestPETScMatrix, AssembleComponentBlocks)
       MatGetRow(mat[b], r, &ncols, &cols, &vals);
       for (PetscInt i = 0; i < ncols; ++i)
         if (cols[i] != r)
-          ASSERT_FLOAT_EQ(vals[i], 0.0);
+          EXPECT_FLOAT_EQ(vals[i], 0.0);
       MatRestoreRow(mat[b], r, &ncols, &cols, &vals);
     }
   }

@@ -12,7 +12,6 @@
 //==============================================================================
 
 #include "SAM.h"
-#include "IntegrandBase.h"
 #include "SIMoutput.h"
 #include "SIMdummy.h"
 
@@ -42,20 +41,11 @@ public:
 };
 
 
-// Dummy integrand class.
-class Dummy : public IntegrandBase
-{
-public:
-  Dummy() : IntegrandBase(1) {}
-  virtual ~Dummy() {}
-};
-
-
 // Simulator class for a single-DOF skew bar.
 class Bar1DOF : public SIMdummy<SIMoutput>
 {
 public:
-  Bar1DOF(IntegrandBase* p) : SIMdummy<SIMoutput>(p) { mySam = new SAM1DOF(); }
+  Bar1DOF() { mySam = new SAM1DOF(); }
   virtual ~Bar1DOF() {}
   virtual bool assembleSystem(const TimeDomain&, const Vectors& prevSol,
                               bool newLHSmatrix, bool)
@@ -122,7 +112,7 @@ static void runSingleDof (NonLinSIM& solver, int& n, double& s)
 
 TEST(TestNonLinSIM, SingleDOF)
 {
-  Bar1DOF simulator(new Dummy());
+  Bar1DOF simulator;
   ASSERT_TRUE(simulator.initSystem(LinAlg::DENSE));
 
   TestNonLinSIM integrator1(simulator);

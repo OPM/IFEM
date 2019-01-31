@@ -220,11 +220,9 @@ ConvStatus NonLinSIM::solveStep (TimeStep& param, SolutionMode mode,
   if (subiter&FIRST && !model.updateDirichlet(param.time.t,&solution.front()))
     return FAILURE;
 
-  if (!model.setMode(mode))
-    return FAILURE;
-
   bool poorConvg = false;
   bool newTangent = true;
+  model.setMode(mode,false);
   model.setQuadratureRule(opt.nGauss[0],true);
   if (!this->assembleSystem(param.time,solution,newTangent))
     return model.getProblem()->diverged() ? DIVERGED : FAILURE;
@@ -267,10 +265,10 @@ ConvStatus NonLinSIM::solveStep (TimeStep& param, SolutionMode mode,
 	if (param.iter > nupdat)
 	{
 	  newTangent = false;
-	  model.setMode(RHS_ONLY);
+	  model.setMode(RHS_ONLY,false);
 	}
 	else
-	  model.setMode(mode);
+	  model.setMode(mode,false);
 
 	if (!this->assembleSystem(param.time,solution,newTangent,poorConvg))
 	  return model.getProblem()->diverged() ? DIVERGED : FAILURE;
@@ -298,8 +296,7 @@ SIM::ConvStatus NonLinSIM::solveIteration (TimeStep& param)
   else if (param.iter == 1 && !model.updateDirichlet())
     return FAILURE;
 
-  if (!model.setMode(SIM::STATIC))
-    return SIM::FAILURE;
+  model.setMode(SIM::STATIC,false);
 
   if (!this->assembleSystem(param.time,solution))
     return SIM::FAILURE;
@@ -336,8 +333,7 @@ bool NonLinSIM::lineSearch (TimeStep& param)
 {
   if (eta <= 0.0) return true; // No line search
 
-  if (!model.setMode(SIM::RHS_ONLY))
-    return false;
+  model.setMode(SIM::RHS_ONLY,false);
 
   double s0 = residual.dot(linsol);
   double smin = fabs(s0);

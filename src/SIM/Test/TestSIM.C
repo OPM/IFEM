@@ -203,8 +203,7 @@ class TestSIM2D : public testing::Test,
 
 TEST_P(TestSIM2D, ElmConnectivites)
 {
-  class Dummy : public IntegrandBase {};
-  SIM2D sim(new Dummy());
+  SIM2D sim;
   std::stringstream str;
   sim.opt.discretization = GetParam().second;
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_orient";
@@ -285,8 +284,7 @@ class TestSIM3D : public testing::Test,
 
 TEST_P(TestSIM3D, ElmConnectivities)
 {
-  class Dummy : public IntegrandBase {};
-  SIM3D sim(new Dummy());
+  SIM3D sim;
   std::stringstream str;
   sim.opt.discretization = GetParam().second;
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_3D_4_orient";

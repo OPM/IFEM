@@ -10,51 +10,14 @@
 //!
 //==============================================================================
 
-#include "AlgEqSystem.h"
 #include "ISTLMatrix.h"
 #include "SIM2D.h"
 #include "ASMmxBase.h"
-#include "IntegrandBase.h"
 #include "SAM.h"
+#include "readIntVec.h"
 #include <dune/istl/io.hh>
 
 #include "gtest/gtest.h"
-
-#include <fstream>
-
-
-typedef std::vector<int> IntVec;
-
-static IntVec readIntVector(const std::string& file)
-{
-  std::vector<int> result;
-  std::ifstream f(file);
-  size_t size;
-  f >> size;
-  result.resize(size);
-  for (size_t j=0;j<size;++j)
-    f >> result[j];
-
-  return result;
-}
-
-
-class DummyIntegrandForDummies : public IntegrandBase {
-public:
-  DummyIntegrandForDummies(unsigned short int n = 0) : IntegrandBase(n) {}
-};
-
-
-class InspectMatrixSIM : public SIM2D {
-public:
-  InspectMatrixSIM(unsigned char n1 = 2, bool check = false) :
-    SIM2D(n1, check) { myProblem = new DummyIntegrandForDummies; }
-
-  InspectMatrixSIM(const std::vector<unsigned char>& n, bool check = false) :
-    SIM2D(n, check) { myProblem = new DummyIntegrandForDummies; }
-
-  SystemMatrix* getMatrix() { return myEqSys->getMatrix(0); }
-};
 
 
 class InspectBlockPreconditioner : public ISTL::BlockPreconditioner {
@@ -75,56 +38,60 @@ public:
 
 TEST(TestISTLMatrix, Assemble)
 {
-  InspectMatrixSIM sim(1);
+  SIM2D sim(1);
   sim.read("src/LinAlg/Test/refdata/petsc_test.xinp");
   sim.opt.solver = LinAlg::ISTL;
   ASSERT_TRUE(sim.preprocess());
   ASSERT_TRUE(sim.initSystem(sim.opt.solver));
 
+  ISTLMatrix* myMat = dynamic_cast<ISTLMatrix*>(sim.getLHSmatrix());
+  ASSERT_TRUE(myMat != nullptr);
+
   Matrix stencil(4,4);
-  stencil(1,1) = stencil(2,2) = stencil(3,3) = stencil(4,4) = 1.0;
+  stencil.diag(1.0);
 
   for (int iel = 1; iel <= sim.getSAM()->getNoElms(); ++iel)
-    sim.getMatrix()->assemble(stencil, *sim.getSAM(), iel);
+    myMat->assemble(stencil, *sim.getSAM(), iel);
 
-  sim.getMatrix()->beginAssembly();
-  sim.getMatrix()->endAssembly();
+  myMat->beginAssembly();
+  myMat->endAssembly();
 
   // now inspect the matrix
-  ISTL::Mat& mat = static_cast<ISTLMatrix*>(sim.getMatrix())->getMatrix();
+  ISTL::Mat& A = myMat->getMatrix();
   IntVec v = readIntVector("src/LinAlg/Test/refdata/petsc_matrix_diagonal.ref");
 
-  ASSERT_EQ(mat.N(), v.size());
-
+  ASSERT_EQ(A.N(), v.size());
   for (size_t i = 0; i < v.size(); ++i)
-    ASSERT_FLOAT_EQ(double(v[i]), mat[i][i]);
+    EXPECT_FLOAT_EQ(double(v[i]), A[i][i]);
 }
 
 
 TEST(TestISTLMatrix, AssembleBasisBlocks)
 {
-  InspectMatrixSIM sim({1,1});
   ASMmxBase::Type = ASMmxBase::FULL_CONT_RAISE_BASIS1;
   ASMmxBase::geoBasis = 2;
+  SIM2D sim({1,1});
   sim.read("src/LinAlg/Test/refdata/petsc_test_blocks_basis.xinp");
   sim.opt.solver = LinAlg::ISTL;
   ASSERT_TRUE(sim.preprocess());
   ASSERT_TRUE(sim.initSystem(sim.opt.solver));
 
+  ISTLMatrix* myMat = dynamic_cast<ISTLMatrix*>(sim.getLHSmatrix());
+  ASSERT_TRUE(myMat != nullptr);
+
   Matrix stencil(13,13);
-  for (size_t i = 1; i<= 9; ++i)
-    stencil(i,i) = 1.0;
-  for (size_t i = 10; i<= 13; ++i)
+  stencil.diag(1.0);
+  for (size_t i = 10; i <= 13; i++)
     stencil(i,i) = 2.0;
 
   for (int iel = 1; iel <= sim.getSAM()->getNoElms(); ++iel)
-    sim.getMatrix()->assemble(stencil, *sim.getSAM(), iel);
+    myMat->assemble(stencil, *sim.getSAM(), iel);
 
-  sim.getMatrix()->beginAssembly();
-  sim.getMatrix()->endAssembly();
+  myMat->beginAssembly();
+  myMat->endAssembly();
 
+  ISTL::Mat& A = myMat->getMatrix();
   const ProcessAdm& adm = sim.getProcessAdm();
-  ISTL::Mat& A = static_cast<ISTLMatrix*>(sim.getMatrix())->getMatrix();
   InspectBlockPreconditioner block(A, adm.dd);
 
   // now inspect the matrix blocks
@@ -142,26 +109,28 @@ TEST(TestISTLMatrix, AssembleBasisBlocks)
       IntVec v = readIntVector(str.str());
       ASSERT_EQ(v.size(), mat[b].N());
       for (size_t i = 0; i < v.size(); ++i)
-        ASSERT_FLOAT_EQ(double(v[i]), mat[b][i][i]);
+        EXPECT_FLOAT_EQ(double(v[i]), mat[b][i][i]);
     }
 
     // check that no values outside the diagonal are != 0
-    for (auto r = mat[b].begin(); r != mat[b].end(); ++r) {
+    for (auto r = mat[b].begin(); r != mat[b].end(); ++r)
       for (auto it = r->begin(); it != r->end(); ++it)
         if (r.index() != it.index())
-          ASSERT_FLOAT_EQ(*it, 0.0);
-    }
+          EXPECT_FLOAT_EQ(*it, 0.0);
   }
 }
 
 
 TEST(TestISTLMatrix, AssembleComponentBlocks)
 {
-  InspectMatrixSIM sim(2);
+  SIM2D sim(2);
   sim.read("src/LinAlg/Test/refdata/petsc_test_blocks_components.xinp");
   sim.opt.solver = LinAlg::ISTL;
   ASSERT_TRUE(sim.preprocess());
   ASSERT_TRUE(sim.initSystem(sim.opt.solver));
+
+  ISTLMatrix* myMat = dynamic_cast<ISTLMatrix*>(sim.getLHSmatrix());
+  ASSERT_TRUE(myMat != nullptr);
 
   Matrix stencil(4*2,4*2);
   for (size_t i = 1; i<= 4; ++i) {
@@ -170,13 +139,13 @@ TEST(TestISTLMatrix, AssembleComponentBlocks)
   }
 
   for (int iel = 1; iel <= sim.getSAM()->getNoElms(); ++iel)
-    sim.getMatrix()->assemble(stencil, *sim.getSAM(), iel);
+    myMat->assemble(stencil, *sim.getSAM(), iel);
 
-  sim.getMatrix()->beginAssembly();
-  sim.getMatrix()->endAssembly();
+  myMat->beginAssembly();
+  myMat->endAssembly();
 
+  ISTL::Mat& A = myMat->getMatrix();
   const ProcessAdm& adm = sim.getProcessAdm();
-  ISTL::Mat& A = static_cast<ISTLMatrix*>(sim.getMatrix())->getMatrix();
   InspectBlockPreconditioner block(A, adm.dd);
 
   // now inspect the matrix blocks
@@ -194,14 +163,13 @@ TEST(TestISTLMatrix, AssembleComponentBlocks)
       IntVec v = readIntVector(str.str());
       ASSERT_EQ(v.size(), mat[b].N());
       for (size_t i = 0; i < v.size(); ++i)
-        ASSERT_FLOAT_EQ(double(v[i]), mat[b][i][i]);
+        EXPECT_FLOAT_EQ(double(v[i]), mat[b][i][i]);
     }
 
     // check that no values outside the diagonal are != 0
-    for (auto r = mat[b].begin(); r != mat[b].end(); ++r) {
+    for (auto r = mat[b].begin(); r != mat[b].end(); ++r)
       for (auto it = r->begin(); it != r->end(); ++it)
         if (r.index() != it.index())
-          ASSERT_FLOAT_EQ(*it, 0.0);
-    }
+          EXPECT_FLOAT_EQ(*it, 0.0);
   }
 }

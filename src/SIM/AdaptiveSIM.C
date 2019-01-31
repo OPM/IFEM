@@ -61,7 +61,7 @@ bool AdaptiveSIM::initAdaptor (size_t normGroup)
 bool AdaptiveSIM::assembleAndSolveSystem ()
 {
   // Assemble the linear FE equation system
-  if (!model.setMode(SIM::STATIC,true))
+  if (!model.setMode(SIM::STATIC,true,true))
     return false;
 
   model.setQuadratureRule(opt.nGauss[0],true);

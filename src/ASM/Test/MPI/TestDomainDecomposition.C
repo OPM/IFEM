@@ -13,22 +13,18 @@
 #include "DomainDecomposition.h"
 #include "SAM.h"
 #include "ASMbase.h"
-#include "IntegrandBase.h"
 #include "SIM2D.h"
 #include "SIM3D.h"
-#include "IFEM.h"
+#include "../../LinAlg/readIntVec.h"
+
 #include "gtest/gtest.h"
-#include <fstream>
 
 
 template<class Dim>
 class TestGlobalLMSIM : public Dim {
 public:
-  TestGlobalLMSIM(unsigned char n1 = 2, bool check = false) :
-    Dim(n1, check) {}
-
-  TestGlobalLMSIM(const std::vector<unsigned char>& nf, bool check = false) :
-    Dim(nf, check) {}
+  TestGlobalLMSIM(unsigned char n1) : Dim(n1) {}
+  TestGlobalLMSIM(const std::vector<unsigned char>& nf) : Dim(nf) {}
 
 protected:
   bool preprocessBeforeAsmInit(int& nnod)
@@ -45,39 +41,11 @@ protected:
 };
 
 
-template<class Dim>
-class DummySIM : public Dim {
-public:
-  class DummyIntegrand : public IntegrandBase {};
-  DummySIM() : Dim(1) { Dim::myProblem = new DummyIntegrand; }
-};
-
-
-typedef std::vector<int> IntVec;
-
-static IntVec readIntVector(const std::string& file)
-{
-  std::vector<int> result;
-  std::ifstream f(file);
-  size_t size;
-  f >> size;
-  result.resize(size);
-  for (size_t j=0;j<size;++j)
-    f >> result[j];
-
-  return result;
-}
-
-
-auto&& check_intvectors_equal = [](const IntVec& A,
-                                   const IntVec& B)
+static void check_intvectors_equal (const IntVec& A, const IntVec& B)
 {
   ASSERT_EQ(A.size(), B.size());
-  auto it = B.begin();
-  for (auto& it2 : A) {
-    ASSERT_EQ(it2, *it);
-    ++it;
-   }
+  for (size_t i = 0; i < A.size(); i++)
+    ASSERT_EQ(A[i], B[i]);
 };
 
 
@@ -95,18 +63,19 @@ class TestDomainDecomposition3D : public testing::Test,
 
 TEST_P(TestDomainDecomposition2D, Corner)
 {
-  DummySIM<SIM2D> sim;
-  std::stringstream str;
-  str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_corner";
+  std::string file = "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_corner";
   if (GetParam() == 1)
-    str << "_fail";
-  str << ".xinp";
-  sim.read(str.str().c_str());
+    file += "_fail.xinp";
+  else
+    file += ".xinp";
+
+  SIM2D sim;
+  ASSERT_TRUE(sim.read(file.c_str()));
 
   if (GetParam() == 0) {
     ASSERT_TRUE(sim.preprocess());
     const ProcessAdm& adm = sim.getProcessAdm();
-    str.str("");
+    std::stringstream str;
     str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_corner_nodes";
     str << adm.getProcId() << ".ref";
     IntVec B = readIntVector(str.str());
@@ -118,19 +87,21 @@ TEST_P(TestDomainDecomposition2D, Corner)
 
 TEST_P(TestDomainDecomposition2D, CornerLR)
 {
-  DummySIM<SIM2D> sim;
-  sim.opt.discretization = ASM::LRSpline;
   std::stringstream str;
-  str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_corner";
+  std::string file = "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_corner";
   if (GetParam() == 1)
-    str << "_fail";
-  str << ".xinp";
-  sim.read(str.str().c_str());
+    file += "_fail.xinp";
+  else
+    file += ".xinp";
+
+  SIM2D sim;
+  sim.opt.discretization = ASM::LRSpline;
+  ASSERT_TRUE(sim.read(file.c_str()));
 
   if (GetParam() == 0) {
     ASSERT_TRUE(sim.preprocess());
     const ProcessAdm& adm = sim.getProcessAdm();
-    str.str("");
+    std::stringstream str;
     str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_cornerLR_nodes";
     str << adm.getProcId() << ".ref";
     IntVec B = readIntVector(str.str());
@@ -146,8 +117,8 @@ TEST_P(TestDomainDecomposition2D, SetupSingleBasis)
   std::stringstream str;
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_orient";
   str << GetParam() << ".xinp";
-  sim.read(str.str().c_str());
-  sim.preprocess();
+  ASSERT_TRUE(sim.read(str.str().c_str()));
+  ASSERT_TRUE(sim.preprocess());
 
   const ProcessAdm& adm = sim.getProcessAdm();
   const SAM* sam = sim.getSAM();
@@ -175,8 +146,8 @@ TEST_P(TestDomainDecomposition2D, SetupSingleBasisLR)
   std::stringstream str;
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_orient";
   str << GetParam() << ".xinp";
-  sim.read(str.str().c_str());
-  sim.preprocess();
+  ASSERT_TRUE(sim.read(str.str().c_str()));
+  ASSERT_TRUE(sim.preprocess());
 
   const ProcessAdm& adm = sim.getProcessAdm();
   const SAM* sam = sim.getSAM();
@@ -197,8 +168,8 @@ TEST_P(TestDomainDecomposition2D, SetupSingleBasisPeriodic)
   std::stringstream str;
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_periodic";
   str << GetParam() << ".xinp";
-  sim.read(str.str().c_str());
-  sim.preprocess();
+  ASSERT_TRUE(sim.read(str.str().c_str()));
+  ASSERT_TRUE(sim.preprocess());
 
   const ProcessAdm& adm = sim.getProcessAdm();
   const SAM* sam = sim.getSAM();
@@ -217,8 +188,8 @@ TEST_P(TestDomainDecomposition2D, SetupSingleBasisGlobalLM)
   std::stringstream str;
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_orient";
   str << GetParam() << ".xinp";
-  sim.read(str.str().c_str());
-  sim.preprocess();
+  ASSERT_TRUE(sim.read(str.str().c_str()));
+  ASSERT_TRUE(sim.preprocess());
 
   const ProcessAdm& adm = sim.getProcessAdm();
   str.str("");
@@ -243,8 +214,8 @@ TEST_P(TestDomainDecomposition2D, SetupSingleBasisBlockEqsComponent)
   std::stringstream str;
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_blocks_components_orient";
   str << GetParam() << ".xinp";
-  sim.read(str.str().c_str());
-  sim.preprocess();
+  ASSERT_TRUE(sim.read(str.str().c_str()));
+  ASSERT_TRUE(sim.preprocess());
 
   const ProcessAdm& adm = sim.getProcessAdm();
   str.str("");
@@ -266,8 +237,8 @@ TEST_P(TestDomainDecomposition2D, SetupMixedBasis)
   std::stringstream str;
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_orient";
   str << GetParam() << ".xinp";
-  sim.read(str.str().c_str());
-  sim.preprocess();
+  ASSERT_TRUE(sim.read(str.str().c_str()));
+  ASSERT_TRUE(sim.preprocess());
 
   const ProcessAdm& adm = sim.getProcessAdm();
   const SAM* sam = sim.getSAM();
@@ -297,8 +268,8 @@ TEST_P(TestDomainDecomposition2D, SetupMixedBasisLR)
   std::stringstream str;
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_orient";
   str << GetParam() << ".xinp";
-  sim.read(str.str().c_str());
-  sim.preprocess();
+  ASSERT_TRUE(sim.read(str.str().c_str()));
+  ASSERT_TRUE(sim.preprocess());
 
   const ProcessAdm& adm = sim.getProcessAdm();
   const SAM* sam = sim.getSAM();
@@ -320,8 +291,8 @@ TEST_P(TestDomainDecomposition2D, SetupMixedBasisPeriodic)
   std::stringstream str;
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_periodic";
   str << GetParam() << ".xinp";
-  sim.read(str.str().c_str());
-  sim.preprocess();
+  ASSERT_TRUE(sim.read(str.str().c_str()));
+  ASSERT_TRUE(sim.preprocess());
 
   const ProcessAdm& adm = sim.getProcessAdm();
   const SAM* sam = sim.getSAM();
@@ -346,8 +317,8 @@ TEST_P(TestDomainDecomposition2D, SetupMixedBasisBlockEqsBasis)
   std::stringstream str;
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_blocks_basis_orient";
   str << GetParam() << ".xinp";
-  sim.read(str.str().c_str());
-  sim.preprocess();
+  ASSERT_TRUE(sim.read(str.str().c_str()));
+  ASSERT_TRUE(sim.preprocess());
 
   const ProcessAdm& adm = sim.getProcessAdm();
   str.str("");
@@ -374,8 +345,8 @@ TEST_P(TestDomainDecomposition2D, SetupMixedBasisBlockEqsBasisGlobalLM)
   std::stringstream str;
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_blocks_basis_orient";
   str << GetParam() << ".xinp";
-  sim.read(str.str().c_str());
-  sim.preprocess();
+  ASSERT_TRUE(sim.read(str.str().c_str()));
+  ASSERT_TRUE(sim.preprocess());
 
   const ProcessAdm& adm = sim.getProcessAdm();
   str.str("");
@@ -418,8 +389,8 @@ TEST_P(TestDomainDecomposition3D, SetupSingleBasis)
   std::stringstream str;
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_3D_4_orient";
   str << GetParam() << ".xinp";
-  sim.read(str.str().c_str());
-  sim.preprocess();
+  ASSERT_TRUE(sim.read(str.str().c_str()));
+  ASSERT_TRUE(sim.preprocess());
 
   const ProcessAdm& adm = sim.getProcessAdm();
   const SAM* sam = sim.getSAM();
@@ -447,8 +418,8 @@ TEST_P(TestDomainDecomposition3D, SetupSingleBasisLR)
   std::stringstream str;
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_3D_4_orient";
   str << GetParam() << ".xinp";
-  sim.read(str.str().c_str());
-  sim.preprocess();
+  ASSERT_TRUE(sim.read(str.str().c_str()));
+  ASSERT_TRUE(sim.preprocess());
 
   const ProcessAdm& adm = sim.getProcessAdm();
   const SAM* sam = sim.getSAM();
@@ -472,8 +443,8 @@ TEST_P(TestDomainDecomposition3D, SetupSingleBasisPeriodic)
   std::stringstream str;
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_3D_4_periodic";
   str << GetParam() << ".xinp";
-  sim.read(str.str().c_str());
-  sim.preprocess();
+  ASSERT_TRUE(sim.read(str.str().c_str()));
+  ASSERT_TRUE(sim.preprocess());
 
   const ProcessAdm& adm = sim.getProcessAdm();
   str.str("");
@@ -493,8 +464,8 @@ TEST_P(TestDomainDecomposition3D, SetupSingleBasisBlockEqsComponent)
   std::stringstream str;
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_3D_4_blocks_components_orient";
   str << GetParam() << ".xinp";
-  sim.read(str.str().c_str());
-  sim.preprocess();
+  ASSERT_TRUE(sim.read(str.str().c_str()));
+  ASSERT_TRUE(sim.preprocess());
 
   const ProcessAdm& adm = sim.getProcessAdm();
   str.str("");
@@ -519,8 +490,8 @@ TEST_P(TestDomainDecomposition3D, SetupMixedBasis)
   std::stringstream str;
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_3D_4_orient";
   str << GetParam() << ".xinp";
-  sim.read(str.str().c_str());
-  sim.preprocess();
+  ASSERT_TRUE(sim.read(str.str().c_str()));
+  ASSERT_TRUE(sim.preprocess());
 
   const ProcessAdm& adm = sim.getProcessAdm();
   const SAM* sam = sim.getSAM();
@@ -549,8 +520,8 @@ TEST_P(TestDomainDecomposition3D, SetupMixedBasisPeriodic)
   std::stringstream str;
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_3D_4_periodic";
   str << GetParam() << ".xinp";
-  sim.read(str.str().c_str());
-  sim.preprocess();
+  ASSERT_TRUE(sim.read(str.str().c_str()));
+  ASSERT_TRUE(sim.preprocess());
 
   const ProcessAdm& adm = sim.getProcessAdm();
   str.str("");
@@ -576,8 +547,8 @@ TEST_P(TestDomainDecomposition3D, SetupMixedBasisPeriodicLM)
   std::stringstream str;
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_3D_4_periodiclm";
   str << GetParam() << ".xinp";
-  sim.read(str.str().c_str());
-  sim.preprocess();
+  ASSERT_TRUE(sim.read(str.str().c_str()));
+  ASSERT_TRUE(sim.preprocess());
 
   const ProcessAdm& adm = sim.getProcessAdm();
   str.str("");
@@ -599,13 +570,13 @@ TEST_P(TestDomainDecomposition3D, Corner)
   if (GetParam() > 1)
     return;
 
-  DummySIM<SIM3D> sim;
+  SIM3D sim;
   std::stringstream str;
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_3D_corner";
   if (GetParam() > 0)
     str << "_fail";
   str << ".xinp";
-  sim.read(str.str().c_str());
+  ASSERT_TRUE(sim.read(str.str().c_str()));
 
   if (GetParam() < 1) {
     ASSERT_TRUE(sim.preprocess());
@@ -625,7 +596,7 @@ TEST_P(TestDomainDecomposition3D, CornerLR)
   if (GetParam() > 1)
     return;
 
-  DummySIM<SIM3D> sim;
+  SIM3D sim;
   sim.opt.discretization = ASM::LRSpline;
 
   std::stringstream str;
@@ -633,7 +604,7 @@ TEST_P(TestDomainDecomposition3D, CornerLR)
   if (GetParam() > 0)
     str << "_fail";
   str << ".xinp";
-  sim.read(str.str().c_str());
+  ASSERT_TRUE(sim.read(str.str().c_str()));
 
   if (GetParam() < 1) {
     ASSERT_TRUE(sim.preprocess());
