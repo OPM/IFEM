@@ -24,6 +24,13 @@ function parseRevisions {
   done
   if grep -q "with downstreams" <<< $ghprbCommentBody
   then
+    for sidestream in ${sidestreams[*]}
+    do
+      if grep -qi "$sidestream=" <<< $ghprbCommentBody
+      then
+        sidestreamRev[$sidestream]=pull/`echo $ghprbCommentBody | sed -r "s/.*${sidestream,,}=([0-9]+).*/\1/g"`/merge
+      fi
+    done
     for downstream in ${downstreams[*]}
     do
       if grep -qi "$downstream=" <<< $ghprbCommentBody
@@ -59,6 +66,10 @@ function printHeader {
   fi
   if grep -q "with downstreams" <<< $ghprbCommentBody
   then
+    for sidestream in ${sidestreams[*]}
+    do
+      printf "\t   [sidestream] %25s = %s\n" $sidestream ${sidestreamRev[$sidestream]}
+    done
     for downstream in ${downstreams[*]}
     do
       printf "\t   [downstream] %25s = %s\n" $downstream ${downstreamRev[$downstream]}
@@ -68,11 +79,11 @@ function printHeader {
   echo "Configurations to process:"
   if test -n "$BTYPES"
   then
-    for conf in ${BTYPES_ARRAY[*]}
+    for conf in ${!BTYPES_ARRAY[@]}
     do
       if test -n "${TOOLCHAINS[$conf]}"
       then
-        echo -e "\t$conf = ${TOOLCHAINS[$conf]}"
+        echo -e "\t${BTYPES_ARRAY[$conf]} = ${TOOLCHAINS[$conf]}"
       fi
     done
   fi
@@ -193,6 +204,18 @@ function build_upstreams {
     test $? -eq 0 || exit 1
   done
   test $? -eq 0 || exit 1
+}
+
+
+# $1 - name of the module we are called from
+# Uses pre-filled arrays sidestreams, and associative array sidestreamRev
+# which holds the default revisions to use for sidestreams
+function clone_downstreams {
+  for sidestream in ${downstreams[*]}
+  do
+    echo "Cloning sidestream $sidestream=${sidestreamRev[$sidestream]}"
+    clone_module $sidestream ${sidestreamRev[$sidestream]}
+  done
 }
 
 
