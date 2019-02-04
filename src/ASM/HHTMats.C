@@ -24,11 +24,15 @@ HHTMats::HHTMats (double alpha, double a, double b, bool old) : NewmarkMats(a,b)
 
 const Matrix& HHTMats::getNewtonMatrix () const
 {
+  if (A.empty())
+    return this->ElmMats::getNewtonMatrix();
+
   Matrix& N = const_cast<Matrix&>(A.front());
   double alphaPlus1 = 1.5 - gamma; // = 1.0 + alpha
 
   // Calculate the Newton matrix of the dynamic problem
   // N = (1+alpha)(1+alpha2*gobh)*K + (1/(beta*h^2)+(1+alpha)*alpha1*gobh)*M
+  //   + (1+alpha)*gobh*C
   // where gobh = gamma/(beta*h)
 
   N = A[2];
@@ -36,6 +40,8 @@ const Matrix& HHTMats::getNewtonMatrix () const
   if (A.size() > 3)
     N.add(A[3],alphaPlus1);
   N.add(A[1],(alphaPlus1*alpha1*gamma + 1.0/h)/(beta*h));
+  if (A.size() > 4)
+    N.add(A[4],alphaPlus1*gamma/(beta*h));
 
 #if SP_DEBUG > 2
   std::cout <<"\nHHTMats::getNewtonMatrix";
@@ -45,6 +51,8 @@ const Matrix& HHTMats::getNewtonMatrix () const
               <<"Geometric stiffness matrix"<< A[3];
   else
     std::cout <<"Tangent stiffness matrix"<< A[2];
+  if (A.size() > 4)
+    std::cout <<"Element damping matrix"<< A[4];
   std::cout <<"Resulting Newton matrix"<< A[0];
 #endif
 
@@ -58,6 +66,9 @@ const Vector& HHTMats::getRHSVector () const
   std::cout <<"\nHHTMats::getRHSVector "
             << (isPredictor ? "(predictor)" : "(corrector)") << std::endl;
 #endif
+
+  if (b.empty())
+    return this->ElmMats::getRHSVector();
 
   int ia = vec.size() - 1; // index to element acceleration vector (a)
   int iv = vec.size() - 2; // index to element velocity vector (v)
@@ -75,6 +86,8 @@ const Vector& HHTMats::getRHSVector () const
       Fia.add(A[1]*vec[iv],-alpha1); // Fia -= alpha1*M*v
     if (alpha2 > 0.0 && iv > 0 && A.size() > 2)
       Fia.add(A[2]*vec[iv],-alpha2); // Fia -= alpha2*K*v
+    if (iv > 0 && A.size() > 4)
+      Fia.add(A[4]*vec[iv],-1.0); // Fia -= C*v
 #if SP_DEBUG > 2
     std::cout <<"Element inertia vector"<< Fia;
 #endif
@@ -89,14 +102,16 @@ const Vector& HHTMats::getRHSVector () const
     std::cout <<"S_ext"<< b[2] <<"-S_int"<< b.front();
   else
     std::cout <<"S_ext - S_int"<< b.front();
+  if (b.size() > 3)
+    std::cout <<"S_dmp"<< b[3];
   if (A.size() > 1 && ia >= 0)
-    std::cout <<"S_inert=M*a"<< A[1]*vec[ia];
+    std::cout <<"S_inert = M*a"<< A[1]*vec[ia];
 #endif
 
   // Calculate the right-hand-side force vector of the dynamic problem
-  // Pred.: RHS = (1+alphaH)*{S_ext + [alpha1*M + alpha2*K]*V} + M*(A-a)
-  // oldP.: RHS = (1+alphaH)*{S_ext - S_int + [alpha1*M + alpha2*K]*V} + M*a
-  // Corr.: RHS = (1+alphaH)*{S_ext - S_int - [alpha1*M + alpha2*K]*V} - M*a
+  // Pred.: RHS = (1+alphaH)*{S_ext + [alpha1*M + alpha2*K + C]*V} + M*(A-a)
+  // oldP.: RHS = (1+alphaH)*{S_ext - S_int + [alpha1*M + alpha2*K + C]*V} + M*a
+  // Corr.: RHS = (1+alphaH)*{S_ext - S_int - [alpha1*M + alpha2*K + C]*V} - M*a
   // Note: The external load from the previous step is subtracted from
   // the predictor step force vector after the element assembly.
   Vector& RHS = const_cast<Vector&>(b.front());
@@ -112,7 +127,7 @@ const Vector& HHTMats::getRHSVector () const
     A[1].multiply(vec[pa]-vec[ia],RHS); // RHS = M*(A-a)
     iv -= 2; // index to predicted element velocity vector (V)
 #if SP_DEBUG > 2
-    std::cout <<"S_inert=M*(A-a)"<< RHS;
+    std::cout <<"S_inert = M*(A-a)"<< RHS;
 #endif
   }
   else if (A.size() > 1 && ia >= 0)
@@ -130,6 +145,10 @@ const Vector& HHTMats::getRHSVector () const
     RHS.add(A[1]*vec[iv],alphaPlus1*alpha1); // RHS -= (1+alphaH)*alpha1*M*v
   if (alpha2 > 0.0 && A.size() > 2 && iv >= 0)
     RHS.add(A[2]*vec[iv],alphaPlus1*alpha2); // RHS -= (1+alphaH)*alpha2*K*v
+  if (b.size() > 3)
+    RHS.add(b[3]        ,alphaPlus1);        // RHS -= (1+alphaH)*Fd
+  else if (A.size() > 4 && iv >= 0)
+    RHS.add(A[4]*vec[iv],alphaPlus1);        // RHS -= (1+alphaH)*C*v
 
 #if SP_DEBUG > 2
   std::cout <<"\nElement right-hand-side vector"<< b.front();

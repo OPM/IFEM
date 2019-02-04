@@ -42,6 +42,9 @@ NewmarkMats::NewmarkMats (double a1, double a2, double b, double c,
 
 const Matrix& NewmarkMats::getNewtonMatrix () const
 {
+  if (A.empty())
+    return this->ElmMats::getNewtonMatrix();
+
   Matrix& N = const_cast<Matrix&>(A.front());
 
   N = A[1];
@@ -65,6 +68,9 @@ const Matrix& NewmarkMats::getNewtonMatrix () const
 
 const Vector& NewmarkMats::getRHSVector () const
 {
+  if (b.empty())
+    return this->ElmMats::getRHSVector();
+
   Vector& dF = const_cast<Vector&>(b.front());
 
   int ia = vec.size() - 1; // index to element acceleration vector (a)
@@ -79,7 +85,9 @@ const Vector& NewmarkMats::getRHSVector () const
   std::cout <<"\nf_ext - f_s"<< dF;
   if (A.size() > 1 && ia >= 0)
     std::cout <<"f_i = M*a"<< A[1]*vec[ia];
-  if (A.size() > 3 && iv >= 0)
+  if (b.size() > 1)
+    std::cout <<"f_d"<< b[1];
+  else if (A.size() > 3 && iv >= 0)
     std::cout <<"f_d = C*v"<< A[3]*vec[iv];
   if (alpha1 > 0.0 && A.size() > 1 && iv >= 0)
     std::cout <<"f_d1/alpha1 = M*v (alpha1="<< alpha1 <<")"<< A[1]*vec[iv];
@@ -90,7 +98,9 @@ const Vector& NewmarkMats::getRHSVector () const
   if (A.size() > 1 && ia >= 0)
     dF.add(A[1]*vec[ia],-1.0);    // dF = Fext - M*a
 
-  if (A.size() > 3 && iv >= 0)
+  if (b.size() > 1)
+    dF.add(b[1],-1.0);            // dF -= Fd
+  else if (A.size() > 3 && iv >= 0)
     dF.add(A[3]*vec[iv],-1.0);    // dF -= C*v
 
   if (alpha1 > 0.0 && A.size() > 1 && iv >= 0)
