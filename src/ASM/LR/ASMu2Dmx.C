@@ -1131,11 +1131,10 @@ size_t ASMu2Dmx::getNoRefineElms() const
 
 void ASMu2Dmx::storeMesh (const char* fName)
 {
-  int basis = 0;
-  for (const auto& patch : m_basis)
+  auto&& writeBasis = [this,fName](const LR::LRSplineSurface* patch, const char* tag)
   {
     std::stringstream str;
-    str <<"_patch"<< idx <<"_basis"<< ++basis <<"_"<< fName;
+    str << "_patch" << idx << "_" << tag <<"_" << fName;
     std::ofstream paramMeshFile("param"+str.str());
     patch->writePostscriptMesh(paramMeshFile);
     std::ofstream physMeshFile("physical"+str.str());
@@ -1144,5 +1143,14 @@ void ASMu2Dmx::storeMesh (const char* fName)
     patch->writePostscriptElements(pdotFile);
     std::ofstream physdotFile("physical_dot"+str.str());
     patch->writePostscriptMeshWithControlPoints(physdotFile);
+  };
+
+  std::string btag("basis1");
+  for (const auto& patch : m_basis)
+  {
+    writeBasis(patch.get(), btag.c_str());
+    ++btag.back();
   }
+  writeBasis(projBasis.get(), "proj");
+  writeBasis(refBasis.get(), "ref");
 }
