@@ -412,6 +412,9 @@ bool ASMu2D::raiseOrder (int ru, int rv)
   refine and raiseOrder operations will apply to the projection basis
   and not on the geometry basis.
   In the second call, the pointers are swapped back.
+
+  The method can also be invoked twice with \a init = \e false in case the
+  projection basis is to be read from a file.
 */
 
 bool ASMu2D::createProjectionBasis (bool init)
