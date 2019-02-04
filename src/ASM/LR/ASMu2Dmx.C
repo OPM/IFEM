@@ -182,6 +182,13 @@ bool ASMu2Dmx::generateFEMTopology ()
   if (!myMLGN.empty())
     return true;
 
+  if (tensorPrjBas)
+  {
+    projBasis.reset(new LR::LRSplineSurface(tensorPrjBas));
+    delete tensorPrjBas;
+    tensorPrjBas = nullptr;
+  }
+
   if (m_basis.empty()) {
     SurfaceVec svec = ASMmxBase::establishBases(tensorspline, ASMmxBase::Type);
     m_basis.resize(svec.size());
@@ -190,21 +197,30 @@ bool ASMu2Dmx::generateFEMTopology ()
 
     // we need to project on something that is not one of our bases
     if (ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS1 ||
+        ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS2 ||
         ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE ||
         ASMmxBase::Type == ASMmxBase::SUBGRID) {
-      Go::SplineSurface* otherBasis = ASMmxBase::raiseBasis(tensorspline);
+      Go::SplineSurface* otherBasis = nullptr;
+      if (!projBasis)
+        otherBasis = ASMmxBase::raiseBasis(tensorspline);
+
       if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
-        projBasis = m_basis.front();
+        if (!projBasis)
+          projBasis = m_basis.front();
         refBasis.reset(new LR::LRSplineSurface(otherBasis));
       }
       else {
-        projBasis.reset(new LR::LRSplineSurface(otherBasis));
+        if (!projBasis)
+          projBasis.reset(new LR::LRSplineSurface(otherBasis));
         refBasis = projBasis;
       }
       delete otherBasis;
     }
-    else
-      projBasis = refBasis = m_basis.front();
+    else {
+      if (!projBasis)
+        projBasis = m_basis.front();
+      refBasis = projBasis;
+    }
   }
   projBasis->generateIDs();
   refBasis->generateIDs();
