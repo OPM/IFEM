@@ -37,8 +37,8 @@ public:
   //! \param[in] itg Pointer to the integrand of the problem to solve
   //! \param[in] n Dimension of the primary solution field
   SIM1D(IntegrandBase* itg, unsigned char n = 1);
-  //! \brief The destructor deletes the twist angle function.
-  virtual ~SIM1D();
+  //! \brief Empty destructor.
+  virtual ~SIM1D() {}
 
   //! \brief Returns the number of parameter dimensions in the model.
   virtual unsigned short int getNoParamDim() const { return 1; }
@@ -78,12 +78,6 @@ public:
   Vector getSolution(const Vector& psol, double u,
                      int deriv = 0, int patch = 1) const;
 
-  //! \brief Updates the nodal rotations for problems with rotational DOFs.
-  //! \param[in] incSol Incremental solution to update the rotations with
-  //! \param[in] alpha Scaling factor for the incremental solution.
-  //! If 0.0, reinitialize the rotations from unity
-  virtual bool updateRotations(const Vector& incSol, double alpha);
-
 private:
   //! \brief Parses a subelement of the \a geometry XML-tag.
   bool parseGeometryTag(const TiXmlElement* elem);
@@ -91,9 +85,6 @@ private:
   bool parseBCTag(const TiXmlElement* elem);
 
 protected:
-  //! \brief Parses the twist angle description along the curve.
-  bool parseTwist(const TiXmlElement* elem);
-
   //! \brief Parses a data section from an XML document.
   //! \param[in] elem The XML element to parse
   virtual bool parse(const TiXmlElement* elem);
@@ -120,17 +111,8 @@ protected:
   //! \param[in] geo XML element containing geometry definition
   virtual ModelGenerator* getModelGenerator(const TiXmlElement* geo) const;
 
-public:
-  //! \brief Creates the computational FEM model from the spline patches.
-  //! \details Reimplemented to account for twist angle in beam problems.
-  virtual bool createFEMmodel(char = 'y');
-
 protected:
   unsigned char nf; //!< Number of scalar fields
-
-private:
-  RealFunc* twist; //!< Twist angle (for 3D beam problems only)
-  Vec3      XZp;   //!< Local Z-direction vector
 };
 
 #endif

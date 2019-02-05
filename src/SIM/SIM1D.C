@@ -26,7 +26,6 @@ SIM1D::SIM1D (unsigned char n1, bool)
 {
   nsd = 1;
   nf = n1;
-  twist = nullptr;
 }
 
 
@@ -35,7 +34,6 @@ SIM1D::SIM1D (const CharVec& fields, bool)
   nsd = 1;
   nf = fields.empty() ? 1 : fields.front();
   std::cerr <<"  ** Mixed interpolation not implemented for 1D."<< std::endl;
-  twist = nullptr;
 }
 
 
@@ -43,13 +41,6 @@ SIM1D::SIM1D (IntegrandBase* itg, unsigned char n) : SIMgeneric(itg)
 {
   nsd = 1;
   nf = n;
-  twist = nullptr;
-}
-
-
-SIM1D::~SIM1D ()
-{
-  delete twist;
 }
 
 
@@ -199,14 +190,6 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
     static_cast<ASMs1D*>(myModel[patch-1])->closeEnds();
   }
 
-  else if (!strcasecmp(elem->Value(),"Zdirection"))
-  {
-    utl::getAttribute(elem,"x",XZp.x);
-    utl::getAttribute(elem,"y",XZp.y);
-    utl::getAttribute(elem,"z",XZp.z);
-    IFEM::cout <<"\tZ-direction vector: "<< XZp << std::endl;
-  }
-
   else if (!strcasecmp(elem->Value(),"projection") && !isRefined)
   {
     bool ok = true;
@@ -280,28 +263,6 @@ bool SIM1D::parseBCTag (const TiXmlElement* elem)
     ASM1D* pch = dynamic_cast<ASM1D*>(myModel[pid-1]);
     if (pch) pch->constrainNode(rx,code);
   }
-
-  return true;
-}
-
-
-/*!
-  The twist angle is used to define the local element axes of beam elements
-  along the spline curves. The angle described the rotation of the local
-  Y-axis, relative to the globalized Y-axis of the beam.
-*/
-
-bool SIM1D::parseTwist (const TiXmlElement* elem)
-{
-  if (!elem->FirstChild())
-    return false;
-
-  std::string type;
-  utl::getAttribute(elem,"type",type);
-  IFEM::cout <<"    Continuous twist angle:";
-  if (!type.empty()) IFEM::cout <<" ("<< type <<")";
-  twist = utl::parseRealFunc(elem->FirstChild()->Value(),type);
-  IFEM::cout << std::endl;
 
   return true;
 }
@@ -650,22 +611,6 @@ bool SIM1D::readPatches (std::istream& isp, PatchVec& patches,
 }
 
 
-bool SIM1D::createFEMmodel (char)
-{
-  bool ok = true;
-  ASMbase::resetNumbering();
-  for (size_t i = 0; i < myModel.size() && ok; i++)
-    if (twist)
-      ok = static_cast<ASMs1D*>(myModel[i])->generateTwistedFEModel(*twist,XZp);
-    else if (!XZp.isZero())
-      ok = static_cast<ASMs1D*>(myModel[i])->generateOrientedFEModel(XZp);
-    else
-      ok = myModel[i]->generateFEMTopology();
-
-  return ok;
-}
-
-
 ModelGenerator* SIM1D::getModelGenerator (const TiXmlElement* geo) const
 {
   return new DefaultGeometry1D(geo);
@@ -676,25 +621,4 @@ Vector SIM1D::getSolution (const Vector& psol, double u,
                            int deriv, int patch) const
 {
   return this->SIMgeneric::getSolution(psol,&u,deriv,patch);
-}
-
-
-bool SIM1D::updateRotations (const Vector& incSol, double alpha)
-{
-  if (nf != 6) return true;
-
-  bool ok = true;
-  for (size_t i = 0; i < myModel.size() && ok; i++)
-    if (incSol.empty())
-      // Update the rotations of last converged load/time step
-      static_cast<ASMs1D*>(myModel[i])->updateRotations();
-    else
-    {
-      Vector locSol;
-      myModel[i]->extractNodeVec(incSol,locSol);
-      if (alpha != 0.0 && alpha != 1.0) locSol *= alpha;
-      ok = static_cast<ASMs1D*>(myModel[i])->updateRotations(locSol,alpha==0.0);
-    }
-
-  return ok;
 }
