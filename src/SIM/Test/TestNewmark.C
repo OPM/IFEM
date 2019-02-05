@@ -17,7 +17,8 @@
 #include "SIMdummy.h"
 
 #include "GenAlphaSIM.h"
-#include "NewmarkMats.h"
+#include "HHTSIM.h"
+#include "HHTMats.h"
 #include "AlgEqSystem.h"
 #include "TimeStep.h"
 
@@ -152,15 +153,21 @@ public:
     if (myProblem->getMode() == SIM::MASS_ONLY)
       ok = this->assembleMass(M);
     else {
+      NewmarkMats* elm;
       const double* intPrm = static_cast<Problem*>(myProblem)->getIntPrm();
-      NewmarkMats elm(intPrm[0],intPrm[1],intPrm[2],intPrm[3]);
-      elm.resize(3,1); elm.redim(1);
-      elm.setStepSize(time.dt,time.it);
-      elm.A[1].diag(M); // Mass matrix
-      elm.A[2].diag(K); // Stiffness matrix
-      elm.b[0] = -K*prevSol.front(); // Elastic forces
-      elm.vec = prevSol;
-      ok = myEqSys->assemble(&elm,1);
+      bool useHHT = intPrm[4] == 1.0;
+      if (useHHT)
+        elm = new HHTMats(intPrm[2],intPrm[0],intPrm[1]);
+      else
+        elm = new NewmarkMats(intPrm[0],intPrm[1],intPrm[2],intPrm[3]);
+      elm->resize(3, useHHT ? 2 : 1);
+      elm->redim(1);
+      elm->setStepSize(time.dt,time.it);
+      elm->A[1].diag(M); // Mass matrix
+      elm->A[2].diag(K); // Stiffness matrix
+      elm->b[0] = -K*prevSol.front(); // Elastic forces
+      elm->vec = prevSol;
+      ok = myEqSys->assemble(elm,1);
     }
 
     // Add in the external load
@@ -197,19 +204,25 @@ public:
     if (myProblem->getMode() == SIM::MASS_ONLY)
       ok = this->assembleMass(M,2);
     else {
+      NewmarkMats* elm;
       double v = prevSol[prevSol.size()-2].front();
       const double* intPrm = static_cast<Problem*>(myProblem)->getIntPrm();
-      NewmarkMats* elm = new NewmarkMats(intPrm[0],intPrm[1],intPrm[2],intPrm[3]);
-      elm->resize(4,2);
+      bool useHHT = intPrm[4] == 1.0;
+      if (useHHT)
+        elm = new HHTMats(intPrm[2],intPrm[0],intPrm[1]);
+      else
+        elm = new NewmarkMats(intPrm[0],intPrm[1],intPrm[2],intPrm[3]);
+      elm->resize(useHHT ? 5 : 4, useHHT ? 4 : 2);
       elm->redim(2);
       elm->setStepSize(time.dt,time.it);
       elm->A[1].diag(M); // Mass matrix
       elm->A[2](1,1) = Kx; // Stiffness matrix
       elm->A[2](2,2) = Ky; // Stiffness matrix
-      elm->A[3](1,1) = Cx*v; // Damping matrix
+      if (useHHT) elm->A[3].clear(); // No geometric stiffness
+      elm->A[useHHT ? 4 : 3](1,1) = Cx*v; // Damping matrix
       elm->b[0](1) = -Kx*prevSol[0][0]; // Elastic force in X-direction
       elm->b[0](2) = -Ky*prevSol[0][1]; // Elastic force in Y-direction
-      elm->b[1](1) = 0.5*Cx*v*v; // Damping force, integral of Cx*v
+      elm->b[useHHT ? 3 : 1](1) = 0.5*Cx*v*v; // Damping force, integral of Cx*v
       elm->vec = prevSol;
       ok = myEqSys->assemble(elm,1);
       delete elm;
@@ -427,10 +440,28 @@ TEST(TestNewmark, SingleDOFu)
   runSingleDof(simulator,integrator);
 }
 
+TEST(TestHHT, SingleDOFu)
+{
+  SIM1DOF simulator;
+  HHTSIM integrator(simulator);
+  integrator.initPrm();
+  integrator.initSol();
+  runSingleDof(simulator,integrator,0.9);
+}
+
 TEST(TestNewmark, Damped)
 {
   SIM2DOFdmp simulator;
   Newmark integrator(simulator,true);
+  runTwoDof(simulator,integrator);
+}
+
+TEST(TestHHT, Damped)
+{
+  SIM2DOFdmp simulator;
+  HHTSIM integrator(simulator);
+  integrator.initPrm();
+  integrator.initSol();
   runTwoDof(simulator,integrator);
 }
 
