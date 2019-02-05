@@ -22,8 +22,6 @@
 #include "Vec3Oper.h"
 #include "tinyxml.h"
 #include <array>
-#include <GoTools/geometry/ObjectHeader.h>
-#include <string>
 
 
 std::string MultiPatchModelGenerator1D::createG2 (int nsd) const
@@ -191,9 +189,7 @@ bool MultiPatchModelGenerator1D::createTopology (SIMinput& sim) const
     }
     else {
       IFEM::cout <<"\tPeriodic I-direction P0\n";
-      ASMs1D* pch = dynamic_cast<ASMs1D*>(sim.getPatch(0, true));
-      if (pch)
-        pch->closeEnds();
+      sim.getPatch(0,true)->closeBoundaries();
     }
 
   return true;
@@ -446,9 +442,7 @@ bool MultiPatchModelGenerator2D::createTopology (SIMinput& sim) const
       }
       else {
         IFEM::cout <<"\tPeriodic I-direction P"<< IJ(0,j) << std::endl;
-        ASMs2D* pch = dynamic_cast<ASMs2D*>(sim.getPatch(IJ(0,j), true));
-        if (pch)
-          pch->closeEdges(1);
+        sim.getPatch(IJ(0,j),true)->closeBoundaries(1);
       }
 
   if (periodic_y)
@@ -459,9 +453,7 @@ bool MultiPatchModelGenerator2D::createTopology (SIMinput& sim) const
       }
       else {
         IFEM::cout <<"\tPeriodic J-direction P"<< IJ(i,0)<< std::endl;
-        ASMs2D* pch = dynamic_cast<ASMs2D*>(sim.getPatch(IJ(i,0), true));
-        if (pch)
-          pch->closeEdges(2);
+        sim.getPatch(IJ(i,0),true)->closeBoundaries(2);
       }
 
   return true;
@@ -802,9 +794,7 @@ bool MultiPatchModelGenerator3D::createTopology (SIMinput& sim) const
             return false;
         } else {
           IFEM::cout <<"\tPeriodic I-direction P"<< IJK(0,j,k) << std::endl;
-          ASMs3D* pch = dynamic_cast<ASMs3D*>(sim.getPatch(IJK(0,j,k), true));
-          if (pch)
-            pch->closeFaces(1);
+          sim.getPatch(IJK(0,j,k),true)->closeBoundaries(1);
         }
 
   if (periodic_y)
@@ -813,12 +803,10 @@ bool MultiPatchModelGenerator3D::createTopology (SIMinput& sim) const
         if (ny > 1) {
           if (!sim.addConnection(IJK(i,0,k), IJK(i,ny-1,k), 3, 4, 0, 0, false, 2))
             return false;
-         } else {
+        } else {
           IFEM::cout <<"\tPeriodic J-direction P"<< IJK(i,0,k) << std::endl;
-          ASMs3D* pch = dynamic_cast<ASMs3D*>(sim.getPatch(IJK(i,0,k), true));
-          if (pch)
-            pch->closeFaces(2);
-         }
+          sim.getPatch(IJK(i,0,k),true)->closeBoundaries(2);
+        }
 
   if (periodic_z)
     for (size_t j = 0; j < ny; ++j)
@@ -828,9 +816,7 @@ bool MultiPatchModelGenerator3D::createTopology (SIMinput& sim) const
             return false;
         } else {
           IFEM::cout <<"\tPeriodic K-direction P"<< IJK(i,j,0) << std::endl;
-          ASMs3D* pch = dynamic_cast<ASMs3D*>(sim.getPatch(IJK(i,j,0), true));
-          if (pch)
-            pch->closeFaces(3);
+          sim.getPatch(IJK(i,j,0),true)->closeBoundaries(3);
         }
 
   return true;

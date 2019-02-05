@@ -294,9 +294,9 @@ public:
 
   //! \brief Makes two opposite boundary edges periodic.
   //! \param[in] dir Parameter direction defining the periodic edges
-  //! \param[in] basis Which basis to connect (mixed methods), 0 means both
+  //! \param[in] basis Which basis to connect (mixed methods), 0 means all
   //! \param[in] master 1-based index of the first master node in this basis
-  virtual void closeEdges(int dir, int basis = 0, int master = 1);
+  virtual void closeBoundaries(int dir, int basis, int master);
 
   //! \brief Collapses a degenereated edge into a single node.
   //! \param[in] dir Parameter direction defining the edge to collapse

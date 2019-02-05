@@ -88,9 +88,7 @@ public:
 
   //! \brief Makes two opposite boundary edges periodic.
   //! \param[in] dir Parameter direction defining the periodic edges
-  //! \param[in] basis Which basis to connect (mixed methods), 0 means both
-  //! \param[in] master 1-based index of the first master node in this basis
-  virtual void closeEdges(int dir, int basis = 0, int master = 1);
+  virtual void closeBoundaries(int dir, int, int);
 
   //! \brief Renumbers the global node numbers in the \a neighbors map.
   //! \param[in] old2new Old-to-new node number mapping

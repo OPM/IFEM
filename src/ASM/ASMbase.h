@@ -319,6 +319,12 @@ public:
   //! \brief Copies the parameter domain from another patch.
   virtual void copyParameterDomain(const ASMbase*) {}
 
+  //! \brief Makes two opposite boundaries periodic.
+  //! \param[in] dir Parameter direction defining the periodic boundaries
+  //! \param[in] basis Which basis to connect (mixed methods), 0 means all
+  //! \param[in] master 1-based index of the first master node in this basis
+  virtual void closeBoundaries(int dir = 1, int basis = 0, int master = 1) {}
+
   //! \brief Merges a given node in this patch with a given global node.
   //! \param[in] inod 1-based node index local to current patch
   //! \param[in] globalNum Global number of the node to merge \a node with

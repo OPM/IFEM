@@ -491,7 +491,7 @@ bool ASMs1D::connectBasis (ASMs1D& neighbor, int slave, int master, int thick)
 }
 
 
-void ASMs1D::closeEnds (int basis, int master)
+void ASMs1D::closeBoundaries (int, int basis, int master)
 {
   if (basis < 1) basis = 1;
   int n1 = this->getSize(basis);

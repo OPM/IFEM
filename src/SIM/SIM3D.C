@@ -19,9 +19,6 @@
 #include "Vec3Oper.h"
 #include "IFEM.h"
 #include "tinyxml.h"
-#ifdef USE_OPENMP
-#include <omp.h>
-#endif
 #include <fstream>
 
 
@@ -68,17 +65,19 @@ bool SIM3D::addConnection (int master, int slave, int mIdx,
 
     ASM3D* spch = dynamic_cast<ASM3D*>(myModel[lslave-1]);
     ASM3D* mpch = dynamic_cast<ASM3D*>(myModel[lmaster-1]);
+    if (spch && mpch)
+    {
+      std::set<int> bases;
+      if (basis == 0)
+        for (size_t b = 1; b <= myModel[lslave-1]->getNoBasis(); b++)
+          bases.insert(b);
+      else
+        bases = utl::getDigits(basis);
 
-    std::set<int> bases;
-    if (basis == 0)
-      for (size_t b = 1; b <= myModel[lslave-1]->getNoBasis(); ++b)
-        bases.insert(b);
-    else
-      bases = utl::getDigits(basis);
-
-    for (const int& b : bases)
-      if (!spch->connectPatch(sIdx,*mpch,mIdx,orient,b,coordCheck,thick))
-        return false;
+      for (int b : bases)
+        if (!spch->connectPatch(sIdx,*mpch,mIdx,orient,b,coordCheck,thick))
+          return false;
+    }
 
     myInterfaces.push_back(ASM::Interface{master, slave, mIdx, sIdx, orient,
                                           dim, basis, thick});
@@ -102,7 +101,6 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
     if (!this->parseTopologySet(elem,patches))
       return false;
 
-    ASM3D* pch = nullptr;
     RealArray xi;
     if (!utl::parseKnots(elem,xi))
     {
@@ -111,14 +109,17 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
       utl::getAttribute(elem,"v",addv);
       utl::getAttribute(elem,"w",addw);
       for (int j : patches)
-        if ((pch = dynamic_cast<ASM3D*>(this->getPatch(j,true))))
+      {
+        IFEM::cout <<"\tRefining P"<< j
+                   <<" "<< addu <<" "<< addv <<" "<< addw << std::endl;
+        ASM3D* pch = dynamic_cast<ASM3D*>(this->getPatch(j,true));
+        if (pch)
         {
-          IFEM::cout <<"\tRefining P"<< j
-                     <<" "<< addu <<" "<< addv <<" "<< addw << std::endl;
           pch->uniformRefine(0,addu);
           pch->uniformRefine(1,addv);
           pch->uniformRefine(2,addw);
         }
+      }
     }
     else
     {
@@ -126,15 +127,15 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
       int dir = 1;
       utl::getAttribute(elem,"dir",dir);
       for (int j : patches)
-        if ((pch = dynamic_cast<ASM3D*>(this->getPatch(j,true))))
-        {
-          IFEM::cout <<"\tRefining P"<< j <<" dir="<< dir
-                     <<" with grading "<< elem->FirstChild()->Value() <<":";
-          for (size_t i = 0; i < xi.size(); i++)
-            IFEM::cout << (i%10 || xi.size() < 11 ? " " : "\n\t") << xi[i];
-          IFEM::cout << std::endl;
-          pch->refine(dir-1,xi);
-        }
+      {
+        IFEM::cout <<"\tRefining P"<< j <<" dir="<< dir
+                   <<" with grading "<< elem->FirstChild()->Value() <<":";
+        for (size_t i = 0; i < xi.size(); i++)
+          IFEM::cout << (i%10 || xi.size() < 11 ? " " : "\n\t") << xi[i];
+        IFEM::cout << std::endl;
+        ASM3D* pch = dynamic_cast<ASM3D*>(this->getPatch(j,true));
+        if (pch) pch->refine(dir-1,xi);
+      }
     }
   }
 
@@ -148,14 +149,12 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
     utl::getAttribute(elem,"u",addu);
     utl::getAttribute(elem,"v",addv);
     utl::getAttribute(elem,"w",addw);
-    for (int j : patches) {
-      ASM3D* pch;
-      if ((pch = dynamic_cast<ASM3D*>(this->getPatch(j,true))))
-      {
-        IFEM::cout <<"\tRaising order of P"<< j
-                   <<" "<< addu <<" "<< addv  <<" " << addw << std::endl;
-        pch->raiseOrder(addu,addv,addw);
-      }
+    for (int j : patches)
+    {
+      IFEM::cout <<"\tRaising order of P"<< j
+                 <<" "<< addu <<" "<< addv <<" "<< addw << std::endl;
+      ASM3D* pch = dynamic_cast<ASM3D*>(this->getPatch(j,true));
+      if (pch) pch->raiseOrder(addu,addv,addw);
     }
   }
 
@@ -166,7 +165,8 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
     const TiXmlElement* child = elem->FirstChildElement("connection");
     for (; child; child = child->NextSiblingElement())
     {
-      int master = 0, slave = 0, mIdx = 0, sIdx = 0, orient = 0, basis = 0, dim = 2;
+      int master = 0, slave = 0, mIdx = 0, sIdx = 0;
+      int orient = 0, basis = 0, dim = 2;
       bool periodic = false;
       utl::getAttribute(child,"master",master);
       if (!utl::getAttribute(child,"midx",mIdx))
@@ -195,34 +195,6 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
                   << std::endl;
         return false;
       }
-    }
-  }
-
-  else if (!strcasecmp(elem->Value(),"periodic"))
-  {
-    if (!this->createFEMmodel()) return false;
-
-    int patch = 0, pfdir = 1;
-    utl::getAttribute(elem,"patch",patch);
-    utl::getAttribute(elem,"dir",pfdir);
-
-    if (patch < 1 || patch > nGlPatches)
-    {
-      std::cerr <<" *** SIM3D::parse: Invalid patch index "
-                << patch << std::endl;
-      return false;
-    }
-
-    ASMs3D* pch;
-    if ((pch = dynamic_cast<ASMs3D*>(this->getPatch(patch,true))))
-    {
-      IFEM::cout <<"\tPeriodic "<< char('H'+pfdir) <<"-direction P"<< patch
-                 << std::endl;
-      pch->closeFaces(pfdir);
-#ifdef USE_OPENMP
-      // Cannot do multi-threaded assembly with periodicities
-      omp_set_num_threads(1);
-#endif
     }
   }
 
@@ -332,8 +304,7 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
               if ((pch = dynamic_cast<ASM3D*>(myModel[j])))
               {
                 IFEM::cout <<"\tRefining P"<< j+1 <<" dir="<< dir;
-                for (size_t i = 0; i < xi.size(); i++)
-                  IFEM::cout <<" "<< xi[i];
+                for (double u : xi) IFEM::cout <<" "<< u;
                 IFEM::cout << std::endl;
                 pch->refine(dir-1,xi);
               }
@@ -454,32 +425,6 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
     }
   }
 
-  else if (!strncasecmp(keyWord,"PERIODIC",8))
-  {
-    if (!this->createFEMmodel()) return false;
-
-    int nper = atoi(keyWord+8);
-    IFEM::cout <<"\nNumber of periodicities: "<< nper << std::endl;
-    for (int i = 0; i < nper && (cline = utl::readLine(is)); i++)
-    {
-      int patch = atoi(strtok(cline," "));
-      int pfdir = atoi(strtok(nullptr," "));
-      if (patch < 1 || patch > (int)myModel.size())
-      {
-        std::cerr <<" *** SIM3D::parse: Invalid patch index "
-                  << patch << std::endl;
-        return false;
-      }
-      IFEM::cout <<"\tPeriodic "<< char('H'+pfdir) <<"-direction P"<< patch
-                 << std::endl;
-      static_cast<ASMs3D*>(myModel[patch-1])->closeFaces(pfdir);
-    }
-#ifdef USE_OPENMP
-    // Cannot do multi-threaded assembly with periodicities
-    omp_set_num_threads(1);
-#endif
-  }
-
   else if (!strncasecmp(keyWord,"CONSTRAINTS",11))
   {
     if (ignoreDirichlet) return true; // Ignore all boundary conditions
@@ -543,9 +488,8 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
       double rz = atof(strtok(nullptr," "));
       int bcode = (cline = strtok(nullptr," ")) ? atoi(cline) : 123;
 
-      int pid = this->getLocalPatchIndex(patch);
-      ASM3D* pch;
-      if (pid > 0 && (pch = dynamic_cast<ASM3D*>(myModel[pid-1])))
+      ASM3D* pch = dynamic_cast<ASM3D*>(this->getPatch(patch,true));
+      if (pch)
       {
         IFEM::cout <<"\tConstraining P"<< patch
                    <<" point at "<< rx <<" "<< ry <<" "<< rz
@@ -598,6 +542,8 @@ bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
 
   // Must dynamic cast here, since ASM3D is not derived from ASMbase
   ASM3D* pch = dynamic_cast<ASM3D*>(myModel[patch-1]);
+  if (!pch) return constrError("3D patch ",patch);
+
   switch (aldim)
     {
     case 0: // Vertex constraints
@@ -684,7 +630,10 @@ bool SIM3D::addConstraint (int patch, int lndx, int line, double xi,
              <<" in direction(s) "<< dirs
              <<" basis = " << (int)basis << std::endl;
 
+  // Must dynamic cast here, since ASM3D is not derived from ASMbase
   ASM3D* pch = dynamic_cast<ASM3D*>(myModel[patch-1]);
+  if (!pch) return constrError("3D patch ",patch);
+
   switch (line)
     {
     case 1: // Face line constraints in local I-direction
@@ -749,10 +698,13 @@ bool SIM3D::readPatches (std::istream& isp, PatchVec& patches,
                          const char* whiteSpace) const
 {
   bool isMixed = nf.size() > 1 && nf[1] > 0;
-  for (int pchInd = 1; isp.good(); pchInd++) {
-    ASMbase* pch;
-    if ((pch = ASM3D::create(opt.discretization,nf,isMixed)))
+  for (int pchInd = 1; isp.good(); pchInd++)
+  {
+    ASMbase* pch = ASM3D::create(opt.discretization,nf,isMixed);
+    if (pch)
     {
+      if (whiteSpace)
+        IFEM::cout << whiteSpace <<"Reading patch "<< pchInd << std::endl;
       if (!pch->read(isp))
       {
         delete pch;
@@ -762,8 +714,6 @@ bool SIM3D::readPatches (std::istream& isp, PatchVec& patches,
         delete pch;
       else
       {
-        if (whiteSpace)
-          IFEM::cout << whiteSpace <<"Reading patch "<< pchInd << std::endl;
         pch->idx = patches.size();
         patches.push_back(pch);
         if (checkRHSys)
@@ -827,10 +777,10 @@ bool SIM3D::readNodes (std::istream& isn, int pchInd, int basis, bool oneBased)
 void SIM3D::clonePatches (const PatchVec& patches,
                           const std::map<int,int>& glb2locN)
 {
-  for (size_t i = 0; i < patches.size(); i++) {
-    ASM3D* pch;
-    if ((pch = dynamic_cast<ASM3D*>(patches[i])))
-      myModel.push_back(pch->clone(nf));
+  for (ASMbase* patch : patches)
+  {
+    ASM3D* pch3D = dynamic_cast<ASM3D*>(patch);
+    if (pch3D) myModel.push_back(pch3D->clone(nf));
   }
 
   g2l = &glb2locN;

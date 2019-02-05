@@ -20,9 +20,6 @@
 #include "Vec3Oper.h"
 #include "IFEM.h"
 #include "tinyxml.h"
-#ifdef USE_OPENMP
-#include <omp.h>
-#endif
 #include <fstream>
 
 
@@ -90,17 +87,19 @@ bool SIM2D::addConnection (int master, int slave, int mIdx,
 
     ASM2D* spch = dynamic_cast<ASM2D*>(myModel[lslave-1]);
     ASM2D* mpch = dynamic_cast<ASM2D*>(myModel[lmaster-1]);
+    if (spch && mpch)
+    {
+      std::set<int> bases;
+      if (basis == 0)
+        for (size_t b = 1; b <= myModel[lslave-1]->getNoBasis(); b++)
+          bases.insert(b);
+      else
+        bases = utl::getDigits(basis);
 
-    std::set<int> bases;
-    if (basis == 0)
-      for (size_t b = 1; b <= myModel[lslave-1]->getNoBasis(); b++)
-        bases.insert(b);
-    else
-      bases = utl::getDigits(basis);
-
-    for (const int& b : bases)
-      if (!spch->connectPatch(sIdx,*mpch,mIdx,orient,b,coordCheck,thick))
-        return false;
+      for (int b : bases)
+        if (!spch->connectPatch(sIdx,*mpch,mIdx,orient,b,coordCheck,thick))
+          return false;
+    }
 
     myInterfaces.push_back(ASM::Interface{master, slave, mIdx, sIdx, orient,
                                           dim, basis, thick});
@@ -135,8 +134,11 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
         IFEM::cout <<"\tRefining P"<< j
                    <<" "<< addu <<" "<< addv << std::endl;
         ASM2D* pch = dynamic_cast<ASM2D*>(this->getPatch(j,true));
-        if (pch) pch->uniformRefine(0,addu);
-        if (pch) pch->uniformRefine(1,addv);
+        if (pch)
+        {
+          pch->uniformRefine(0,addu);
+          pch->uniformRefine(1,addv);
+        }
       }
     }
     else
@@ -210,7 +212,8 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
         return false;
       }
 
-      if (!this->addConnection(master,slave,mEdge,sEdge,orient,basis,!periodic,dim))
+      if (!this->addConnection(master, slave, mEdge, sEdge,
+                               orient, basis, !periodic, dim))
       {
         std::cerr <<" *** SIM2D::parse: Error establishing connection."
                   << std::endl;
@@ -230,34 +233,6 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
                                         iface.reversed)) return false;
   }
 
-  else if (!strcasecmp(elem->Value(),"periodic"))
-  {
-    if (!this->createFEMmodel()) return false;
-
-    int patch = 0, pedir = 1;
-    utl::getAttribute(elem,"patch",patch);
-    utl::getAttribute(elem,"dir",pedir);
-
-    if (patch < 1 || patch > nGlPatches)
-    {
-      std::cerr <<" *** SIM2D::parse: Invalid patch index "
-                << patch << std::endl;
-      return false;
-    }
-
-    ASMs2D* pch = dynamic_cast<ASMs2D*>(this->getPatch(patch,true));
-    if (pch)
-    {
-      IFEM::cout <<"\tPeriodic "<< char('H'+pedir) <<"-direction P"<< patch
-                 << std::endl;
-      pch->closeEdges(pedir);
-#ifdef USE_OPENMP
-      // Cannot do multi-threaded assembly with periodicities
-      omp_set_num_threads(1);
-#endif
-    }
-  }
-
   else if (!strcasecmp(elem->Value(),"collapse"))
   {
     if (!this->createFEMmodel()) return false;
@@ -273,12 +248,9 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
       return false;
     }
 
+    IFEM::cout <<"\tCollapsed edge P"<< patch <<" E"<< edge << std::endl;
     ASMs2D* pch = dynamic_cast<ASMs2D*>(this->getPatch(patch,true));
-    if (pch)
-    {
-      IFEM::cout <<"\tCollapsed edge P"<< patch <<" E"<< edge << std::endl;
-      pch->collapseEdge(edge);
-    }
+    if (pch) pch->collapseEdge(edge);
   }
 
   else if (!strcasecmp(elem->Value(),"immersedboundary"))
@@ -592,32 +564,6 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
                                         iface.reversed)) return false;
   }
 
-  else if (!strncasecmp(keyWord,"PERIODIC",8))
-  {
-    if (!this->createFEMmodel()) return false;
-
-    int nper = atoi(keyWord+8);
-    IFEM::cout <<"\nNumber of periodicities: "<< nper << std::endl;
-    for (int i = 0; i < nper && (cline = utl::readLine(is)); i++)
-    {
-      int patch = atoi(strtok(cline," "));
-      int pedir = atoi(strtok(nullptr," "));
-      if (patch < 1 || patch > (int)myModel.size())
-      {
-	std::cerr <<" *** SIM2D::parse: Invalid patch index "
-		  << patch << std::endl;
-	return false;
-      }
-      IFEM::cout <<"\tPeriodic "<< char('H'+pedir) <<"-direction P"<< patch
-                 << std::endl;
-      static_cast<ASMs2D*>(myModel[patch-1])->closeEdges(pedir);
-    }
-#ifdef USE_OPENMP
-    // Cannot do multi-threaded assembly with periodicities
-    omp_set_num_threads(1);
-#endif
-  }
-
   else if (!strncasecmp(keyWord,"CONSTRAINTS",11))
   {
     if (ignoreDirichlet) return true; // Ignore all boundary conditions
@@ -653,7 +599,7 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
 	if (!this->addConstraint(patch,pedge,ldim,bcode%1000000,-code,ngno))
 	  return false;
 
-	IFEM::cout << std::endl;
+	IFEM::cout <<" ";
 	cline = strtok(nullptr," ");
 	myScalars[code] = const_cast<RealFunc*>(utl::parseRealFunc(cline,pd));
       }
@@ -773,7 +719,7 @@ bool SIM2D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
       myModel[patch-1]->constrainPatch(dirs,code);
       break;
 
-    case 4: // Explicit nodal constrains
+    case 4: // Explicit nodal constraints
       myModel[patch-1]->constrainNodes(myModel[patch-1]->getNodeSet(lndx),
 				       dirs,code);
       break;

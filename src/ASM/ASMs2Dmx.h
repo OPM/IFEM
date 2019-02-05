@@ -109,7 +109,7 @@ public:
 
   //! \brief Makes two opposite boundary edges periodic.
   //! \param[in] dir Parameter direction defining the periodic edges
-  virtual void closeEdges(int dir, int = 0, int = 1);
+  virtual void closeBoundaries(int dir, int, int);
 
 
   // Methods for integration of finite element quantities.

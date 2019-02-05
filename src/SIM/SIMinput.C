@@ -26,6 +26,9 @@
 #include "HDF5Reader.h"
 #include "IFEM.h"
 #include "tinyxml.h"
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
 #include <fstream>
 #include <sstream>
 #include <numeric>
@@ -198,6 +201,37 @@ bool SIMinput::parseGeometryTag (const TiXmlElement* elem)
           IFEM::cout << it2;
         IFEM::cout << std::endl;
       }
+    }
+  }
+
+  else if (!strcasecmp(elem->Value(),"periodic"))
+  {
+    if (!this->createFEMmodel())
+      return false;
+
+    int patch = 0, pedir = 1;
+    utl::getAttribute(elem,"patch",patch);
+    utl::getAttribute(elem,"dir",pedir);
+
+    if (patch < 1 || patch > nGlPatches)
+    {
+      std::cerr <<" *** SIMinput::parse: Invalid patch index "
+                << patch << std::endl;
+      return false;
+    }
+
+    ASMbase* pch = this->getPatch(patch,true);
+    if (pch)
+    {
+      IFEM::cout <<"\tPeriodic "<< char('H'+pedir) <<"-direction P"<< patch
+                 << std::endl;
+      pch->closeBoundaries(pedir);
+#ifdef USE_OPENMP
+      // Cannot do multi-threaded assembly with periodicities
+      // TODO: Actually, we can. Just make sure the stripes are aligned with
+      // the periodic boundaries.
+      omp_set_num_threads(1);
+#endif
     }
   }
 
@@ -823,6 +857,35 @@ bool SIMinput::parse (char* keyWord, std::istream& is)
         IFEM::cout <<"(ignored)";
       IFEM::cout << std::endl;
     }
+  }
+
+  else if (!strncasecmp(keyWord,"PERIODIC",8))
+  {
+    if (!this->createFEMmodel())
+      return false;
+
+    int nper = atoi(keyWord+8);
+    IFEM::cout <<"\nNumber of periodicities: "<< nper << std::endl;
+    for (int i = 0; i < nper && (cline = utl::readLine(is)); i++)
+    {
+      int patch = atoi(strtok(cline," "));
+      int pedir = (cline = strtok(nullptr," ")) ? atof(cline) : 1;
+      if (patch < 1 || patch > (int)myModel.size())
+      {
+        std::cerr <<" *** SIMinput::parse: Invalid patch index "
+                  << patch << std::endl;
+        return false;
+      }
+      IFEM::cout <<"\tPeriodic "<< char('H'+pedir) <<"-direction P"<< patch
+                 << std::endl;
+      myModel[patch-1]->closeBoundaries(pedir);
+    }
+#ifdef USE_OPENMP
+    // Cannot do multi-threaded assembly with periodicities
+    // TODO: Actually, we can. Just make sure the stripes are aligned with
+    // the periodic boundaries.
+    omp_set_num_threads(1);
+#endif
   }
 
   else if (!strncasecmp(keyWord,"LINEARSOLVER",12))

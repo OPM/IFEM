@@ -213,13 +213,11 @@ bool ASMs2DmxLag::connectPatch (int edge, ASM2D& neighbor, int nedge, bool rever
 }
 
 
-void ASMs2DmxLag::closeEdges (int dir, int, int)
+void ASMs2DmxLag::closeBoundaries (int dir, int, int)
 {
-  size_t nbi = 0;
-  for (size_t i = 1; i <= nxx.size(); i++) {
-    this->ASMs2D::closeEdges(dir,i,nbi+1);
-    nbi += nb[i-1];
-  }
+  size_t nbi = 1;
+  for (size_t i = 0; i < nxx.size(); nbi += nb[i++])
+    this->ASMs2D::closeBoundaries(dir,1+i,nbi);
 }
 
 

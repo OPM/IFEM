@@ -727,7 +727,7 @@ bool ASMs3D::connectBasis (int face, ASMs3D& neighbor, int nface, int norient,
 }
 
 
-void ASMs3D::closeFaces (int dir, int basis, int master)
+void ASMs3D::closeBoundaries (int dir, int basis, int master)
 {
   int n1, n2, n3;
   if (basis < 1) basis = 1;

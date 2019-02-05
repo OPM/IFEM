@@ -353,9 +353,9 @@ public:
 
   //! \brief Makes two opposite boundary faces periodic.
   //! \param[in] dir Parameter direction defining the periodic faces
-  //! \param[in] basis Which basis to connect (mixed methods), 0 means both
+  //! \param[in] basis Which basis to connect (mixed methods), 0 means all
   //! \param[in] master 1-based index of the first master node in this basis
-  virtual void closeFaces(int dir, int basis = 0, int master = 1);
+  virtual void closeBoundaries(int dir, int basis, int master);
 
   //! \brief Sets the global node numbers for this patch.
   //! \param[in] nodes Vector of global node numbers (zero-based)

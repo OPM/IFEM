@@ -700,7 +700,7 @@ bool ASMs2D::connectBasis (int edge, ASMs2D& neighbor, int nedge, bool revers,
 }
 
 
-void ASMs2D::closeEdges (int dir, int basis, int master)
+void ASMs2D::closeBoundaries (int dir, int basis, int master)
 {
   int n1, n2;
   if (basis < 1) basis = 1;

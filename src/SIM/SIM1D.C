@@ -172,24 +172,6 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
     }
   }
 
-  else if (!strcasecmp(elem->Value(),"periodic"))
-  {
-    if (!this->createFEMmodel()) return false;
-
-    int patch = 0;
-    utl::getAttribute(elem,"patch",patch);
-
-    if (patch < 1 || patch > (int)myModel.size())
-    {
-      std::cerr <<" *** SIM1D::parse: Invalid patch index "
-                << patch << std::endl;
-      return false;
-    }
-
-    IFEM::cout <<"\tPeriodic P"<< patch << std::endl;
-    static_cast<ASMs1D*>(myModel[patch-1])->closeEnds();
-  }
-
   else if (!strcasecmp(elem->Value(),"projection") && !isRefined)
   {
     bool ok = true;
@@ -415,26 +397,6 @@ bool SIM1D::parse (char* keyWord, std::istream& is)
     }
   }
 
-  else if (!strncasecmp(keyWord,"PERIODIC",8))
-  {
-    if (!this->createFEMmodel()) return false;
-
-    int nper = atoi(keyWord+8);
-    IFEM::cout <<"\nNumber of periodicities: "<< nper << std::endl;
-    for (int i = 0; i < nper && (cline = utl::readLine(is)); i++)
-    {
-      int patch = atoi(strtok(cline," "));
-      if (patch < 1 || patch > (int)myModel.size())
-      {
-	std::cerr <<" *** SIM1D::parse: Invalid patch index "
-		  << patch << std::endl;
-	return false;
-      }
-      IFEM::cout <<"\tPeriodic P"<< patch << std::endl;
-      static_cast<ASMs1D*>(myModel[patch-1])->closeEnds();
-    }
-  }
-
   else if (!strncasecmp(keyWord,"CONSTRAINTS",11))
   {
     if (ignoreDirichlet) return true; // Ignore all boundary conditions
@@ -483,15 +445,14 @@ bool SIM1D::parse (char* keyWord, std::istream& is)
       int patch = atoi(strtok(cline," "));
       double rx = atof(strtok(nullptr," "));
       int bcode = (cline = strtok(nullptr," ")) ? atoi(cline) : 123;
-      if (patch < 1 || patch > (int)myModel.size())
+
+      ASM1D* pch = dynamic_cast<ASM1D*>(this->getPatch(patch,true));
+      if (pch)
       {
-	std::cerr <<" *** SIM1D::parse: Invalid patch index "
-		  << patch << std::endl;
-	return false;
+        IFEM::cout <<"\tConstraining P"<< patch
+                   <<" point at "<< rx <<" with code "<< bcode << std::endl;
+        pch->constrainNode(rx,bcode);
       }
-      IFEM::cout <<"\tConstraining P"<< patch
-                 <<" point at "<< rx <<" with code "<< bcode << std::endl;
-      dynamic_cast<ASM1D*>(myModel[patch-1])->constrainNode(rx,bcode);
     }
   }
 

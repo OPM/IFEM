@@ -102,7 +102,7 @@ public:
 
   //! \brief Makes two opposite boundary faces periodic.
   //! \param[in] dir Parameter direction defining the periodic faces
-  virtual void closeFaces(int dir, int = 0, int = 1);
+  virtual void closeBoundaries(int dir, int, int);
 
 
   // Methods for integration of finite element quantities.

@@ -240,13 +240,11 @@ bool ASMs3DmxLag::connectPatch (int face, ASM3D& neighbor, int nface,
 }
 
 
-void ASMs3DmxLag::closeFaces (int dir, int, int)
+void ASMs3DmxLag::closeBoundaries (int dir, int, int)
 {
-  size_t nbi = 0;
-  for (size_t i = 1; i <= nxx.size(); i++) {
-    this->ASMs3D::closeFaces(dir,i,nbi+1);
-    nbi += nb[i-1];
-  }
+  size_t nbi = 1;
+  for (size_t i = 0; i < nxx.size(); nbi += nb[i++])
+    this->ASMs3D::closeBoundaries(dir,1+i,nbi);
 }
 
 

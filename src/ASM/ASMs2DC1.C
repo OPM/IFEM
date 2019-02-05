@@ -145,7 +145,7 @@ bool ASMs2DC1::connectC1 (int edge, ASMs2DC1* neighbor, int nedge, bool revers)
 }
 
 
-void ASMs2DC1::closeEdges (int dir, int, int)
+void ASMs2DC1::closeBoundaries (int dir, int, int)
 {
   int n1, n2;
   if (!this->getSize(n1,n2)) return;
