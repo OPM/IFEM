@@ -1568,7 +1568,7 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
     if (skipMe) continue;
 
     // Get element edge length in the parameter space
-    double dS = this->getParametricLength(iel,t1);
+    double dS = 0.5*this->getParametricLength(iel,t2);
     if (dS < 0.0) return false; // topology error (probably logic error)
 
     // Set up control point coordinates for current element
@@ -1598,8 +1598,10 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
     {
       // Local element coordinates and parameter values
       // of current integration point
-      fe.xi = xg[i];
-      fe.eta = xg[i];
+      if (abs(edgeDir) == 2)
+        fe.xi = xg[i];
+      else
+        fe.eta = xg[i];
       fe.u = param[0] = gpar[0][i];
       fe.v = param[1] = gpar[1][i];
 
@@ -1624,7 +1626,7 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
       X.t = time.t;
 
       // Evaluate the integrand and accumulate element contributions
-      fe.detJxW *= 0.5*dS*wg[i];
+      fe.detJxW *= dS*wg[i];
       if (!integrand.evalBou(*A,fe,time,X,normal))
         return false;
     }
