@@ -1676,8 +1676,12 @@ int ASMu2D::evalPoint (const double* xi, double* param, Vec3& X) const
 {
   if (!lrspline) return -2;
 
-  param[0] = (1.0-xi[0])*lrspline->startparam(0) + xi[0]*lrspline->endparam(0);
-  param[1] = (1.0-xi[1])*lrspline->startparam(1) + xi[1]*lrspline->endparam(1);
+  double dxi = lrspline->endparam(0) - lrspline->startparam(0);
+  double xi_scaled = (xi[0]-lrspline->startparam(0))/dxi;
+  double deta = lrspline->endparam(1) - lrspline->startparam(1);
+  double eta_scaled = (xi[1]-lrspline->startparam(1))/deta;
+  param[0] = (1.0-xi_scaled)*lrspline->startparam(0) + xi_scaled*lrspline->endparam(0);
+  param[1] = (1.0-eta_scaled)*lrspline->startparam(1) + eta_scaled*lrspline->endparam(1);
   int iel  = lrspline->getElementContaining(param[0],param[1]);
 
   FiniteElement fe;
