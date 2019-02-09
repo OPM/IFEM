@@ -126,7 +126,7 @@ bool AdaptiveSIM::parse (const TiXmlElement* elem)
       }
       IFEM::cout <<"\tRefinement percentage: "<< beta <<" type="<< threshold;
       if (threshold == SYMMETRIZED)
-        IFEM::cout << " (eps = " << symmEps << ")";
+        IFEM::cout <<" (eps = "<< symmEps <<")";
       IFEM::cout << std::endl;
     }
   }
@@ -206,8 +206,8 @@ bool AdaptiveSIM::initAdaptor (size_t normGroup)
     if (!adNorm) adNorm = 4; // Use norm 4, unless specified
     IFEM::cout <<" exact errors ";
     if (adNorm != 4)
-      IFEM::cout <<"(norm index " << adNorm << ") ";
-    IFEM::cout <<"<<<" << std::endl;
+      IFEM::cout <<"(norm index "<< adNorm <<") ";
+    IFEM::cout <<"<<<"<< std::endl;
   }
   else
   {
@@ -227,7 +227,7 @@ bool AdaptiveSIM::initAdaptor (size_t normGroup)
 }
 
 
-bool AdaptiveSIM::assembleAndSolveSystem()
+bool AdaptiveSIM::assembleAndSolveSystem ()
 {
   // Assemble the linear FE equation system
   if (!model.setMode(SIM::STATIC,true))
@@ -243,6 +243,15 @@ bool AdaptiveSIM::assembleAndSolveSystem()
   for (size_t i = 0; i < solution.size(); i++)
     if (!model.solveSystem(solution[i],printSol,&rCond,"displacement",i==0,i))
       return false;
+    else if (i == 0)
+    {
+      for (double value : solution[i])
+        if (std::isnan(value))
+        {
+          std::cerr <<" *** Solution contains NaN, aborting..."<< std::endl;
+          return false;
+        }
+    }
     else if (solution.size() > 2)
       printSol = 0; // Print summary only for the first two solutions
 
@@ -303,6 +312,13 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep, bool withRF,
   return model.dumpResults(solution.front(),0.0,
                            model.getProcessAdm().cout,true,precision);
 }
+
+
+//! \brief Element error and associated index.
+//! \note The error value must be first and the index second, such that the
+//! internally defined greater-than operator can be used when sorting the
+//! error+index pairs in decreasing error order.
+typedef std::pair<double,int> DblIdx;
 
 
 bool AdaptiveSIM::adaptMesh (int iStep, std::streamsize outPrec)
@@ -488,7 +504,19 @@ bool AdaptiveSIM::adaptMesh (int iStep, std::streamsize outPrec)
   }
 
   if (storeErrors)
-    saveErrors(errors, refineSize, iStep);
+  {
+    std::stringstream str;
+    str <<"errors_"<< iStep-1 <<".txt";
+    std::ofstream of(str.str());
+    of.precision(16);
+    of <<"# Index   Error\n";
+    for (i = 0; i < errors.size(); i++)
+    {
+      of << errors[i].second <<" "<< errors[i].first << std::endl;
+      if (1+i == refineSize)
+        of <<"\n# ------------- Below here not refined ---------#\n\n";
+    }
+  }
 
   IFEM::cout <<"\nRefining "<< refineSize
              << (scheme < 2 ? " elements" : " basis functions")
@@ -501,7 +529,7 @@ bool AdaptiveSIM::adaptMesh (int iStep, std::streamsize outPrec)
                << (scheme < 2 ? "elements" : "basis functions");
     break;
   case MAXIMUM:
-    IFEM::cout << beta <<"% of max error ("<< limit << ")";
+    IFEM::cout << beta <<"% of max error ("<< limit <<")";
     break;
   case AVERAGE:
     IFEM::cout << beta <<"% of average error ("<< limit <<")";
@@ -629,20 +657,4 @@ bool AdaptiveSIM::writeGlv (const char* infile, int iStep)
 
   // Write state information
   return model.writeGlvStep(iStep,iStep,1);
-}
-
-
-void AdaptiveSIM::saveErrors(const std::vector<DblIdx>& errors, size_t refineSize, int step)
-{
-  std::stringstream str;
-  str << "errors_" << step-1 << ".txt";
-  std::ofstream of(str.str());
-  of.precision(16);
-  of << "# Index   Error" << std::endl;
-  size_t i = 0;
-  for (const DblIdx& error : errors) {
-    of << error.second << " " << error.first << std::endl;
-    if (++i == refineSize)
-      of << "\n# ------------- Below here not refined ---------#\n\n";
-  }
 }
