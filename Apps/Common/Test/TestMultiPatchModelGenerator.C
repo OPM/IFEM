@@ -19,6 +19,7 @@
 #include "ASMs3D.h"
 #include "Functions.h"
 #include "SplineUtils.h"
+#include "Utilities.h"
 
 #include "gtest/gtest.h"
 #include "tinyxml.h"
@@ -81,9 +82,11 @@ template<class Generator>
 class TestModelGeneratorWrapper : public Generator {
 public:
   TestModelGeneratorWrapper(const TiXmlElement* geo) : Generator(geo) {}
-  virtual std::string createG2(int nsd) const
+  virtual std::string createG2(int nsd, bool = false) const
   {
-    return Generator::createG2(nsd);
+    bool rational = false;
+    utl::getAttribute(Generator::geo,"rational",rational);
+    return this->Generator::createG2(nsd,rational);
   }
 };
 

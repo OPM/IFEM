@@ -36,7 +36,7 @@ public:
 
   //! \brief Creates a geometry.
   //! \param[in] m Simulator object with patch read function to use
-  SIMdependency::PatchVec createGeometry(const SIMinput& m) const;
+  std::vector<ASMbase*> createGeometry(const SIMinput& m) const;
   //! \brief Creates topology for geometry.
   virtual bool createTopology(SIMinput& sim) const;
   //! \brief Creates topology sets for geometry.
@@ -52,7 +52,7 @@ public:
 
 protected:
   //! \brief Generates the G2 description of the geometry.
-  virtual std::string createG2(int nsd) const;
+  virtual std::string createG2(int nsd, bool rational = false) const;
 
 private:
   size_t nx; //!< Number of blocks in x
@@ -77,7 +77,7 @@ public:
 
   //! \brief Creates a geometry.
   //! \param[in] m Simulator object with patch read function to use
-  SIMdependency::PatchVec createGeometry(const SIMinput& m) const;
+  std::vector<ASMbase*> createGeometry(const SIMinput& m) const;
   //! \brief Creates topology for geometry.
   virtual bool createTopology(SIMinput& sim) const;
   //! \brief Creates topology sets for geometry.
@@ -97,7 +97,7 @@ public:
 
 protected:
   //! \brief Generates the G2 description of the geometry.
-  virtual std::string createG2(int nsd) const;
+  virtual std::string createG2(int nsd, bool rational = false) const;
 
 private:
   size_t nx; //!< Number of blocks in x
@@ -124,7 +124,7 @@ public:
 
   //! \brief Creates a geometry.
   //! \param[in] m Simulator object with patch read function to use
-  SIMdependency::PatchVec createGeometry(const SIMinput& m) const;
+  std::vector<ASMbase*> createGeometry(const SIMinput& m) const;
   //! \brief Creates topology for geometry.
   virtual bool createTopology(SIMinput& sim) const;
   //! \brief Creates topology sets for geometry.
@@ -148,7 +148,7 @@ public:
 
 protected:
   //! \brief Generates the G2 description of the geometry.
-  virtual std::string createG2(int) const;
+  virtual std::string createG2(int, bool rational = false) const;
 
 private:
   size_t nx; //!< Number of blocks in x
