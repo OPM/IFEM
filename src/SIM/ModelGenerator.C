@@ -22,26 +22,24 @@
 
 
 /*!
-  \brief Static helper adding knot vectors to a g2 definition.
-  \param g2 The string to add knot vectors to
-  \param[in] num The number of knot vectors to add
+  \brief Static helper parsing knot vector domain from an XML element.
   \param[in] geo XML element describing geometry
+  \param[in] num Number of knot vectors to add
 */
 
-static void AddKnots(std::string& g2, size_t num, const TiXmlElement* geo)
+static std::string parseKnots (const TiXmlElement* geo, int num)
 {
   std::string min = "umin", max = "umax";
   std::stringstream str;
-  for (size_t i = 0; i < num; ++i, ++min[0], ++max[0]) {
+  for (int i = 0; i < num; ++i, ++min[0], ++max[0]) {
     double pmin = 0.0, pmax = 1.0;
     if (utl::getAttribute(geo,min.c_str(),pmin) |
         utl::getAttribute(geo,max.c_str(),pmax))
-      IFEM::cout <<"\n\t" << min[0] << " = ["<< pmin << ","<< pmax <<"]";
-
-    str << "\n2 2\n" << pmin << " " << pmin << " " << pmax << " " << pmax;
+      IFEM::cout <<"\n\t"<< min[0] <<" = ["<< pmin <<","<< pmax<<"]";
+    str <<"\n2 2\n"<< pmin <<" "<< pmin <<" "<< pmax <<" "<< pmax;
   }
-  g2.append(str.str());
-  g2.append("\n");
+
+  return str.str() + "\n";
 }
 
 
@@ -52,29 +50,27 @@ bool ModelGenerator::topologySets () const
 }
 
 
-SIMdependency::PatchVec ModelGenerator::createGeometry (const SIMinput& m) const
+std::vector<ASMbase*> ModelGenerator::createGeometry (const SIMinput& m) const
 {
-  std::istringstream g2(this->createG2(m.getNoSpaceDim()));
-  SIMdependency::PatchVec result;
+  bool rational = m.opt.discretization == ASM::LRNurbs;
+  utl::getAttribute(geo,"rational",rational);
+
+  std::istringstream g2(this->createG2(m.getNoSpaceDim(),rational));
+  std::vector<ASMbase*> result;
   m.readPatches(g2,result,nullptr);
   return result;
 }
 
 
-std::string DefaultGeometry1D::createG2 (int nsd) const
+std::string DefaultGeometry1D::createG2 (int nsd, bool rational) const
 {
   IFEM::cout <<"  Generating linear geometry on unit parameter domain [0,1]";
+  if (rational) IFEM::cout <<"\n\tRational basis.";
 
   std::string g2("100 1 0 0\n");
   g2.append(1,'0'+nsd);
-
-  bool rational = false;
-  utl::getAttribute(geo,"rational",rational);
-  if (rational)
-    IFEM::cout <<"\n\tRational basis.";
   g2.append(rational ? " 1" : " 0");
-
-  AddKnots(g2, 1, geo);
+  g2.append(parseKnots(geo,1));
 
   unsigned char d;
   std::string X0("0"), X1("1");
@@ -131,20 +127,15 @@ TopologySet DefaultGeometry1D::createTopologySets (const SIMinput&) const
 }
 
 
-std::string DefaultGeometry2D::createG2 (int nsd) const
+std::string DefaultGeometry2D::createG2 (int nsd, bool rational) const
 {
   IFEM::cout <<"  Generating linear geometry on unit parameter domain [0,1]^2";
+  if (rational) IFEM::cout <<"\n\tRational basis.";
 
   std::string g2("200 1 0 0\n");
   g2.append(nsd > 2 ? "3" : "2");
-
-  bool rational = false;
-  utl::getAttribute(geo,"rational",rational);
-  if (rational)
-    IFEM::cout <<"\n\tRational basis.";
   g2.append(rational ? " 1" : " 0");
-
-  AddKnots(g2, 2, geo);
+  g2.append(parseKnots(geo,2));
 
   Vec3 X0;
   std::string corner;
@@ -213,19 +204,14 @@ TopologySet DefaultGeometry2D::createTopologySets (const SIMinput&) const
 }
 
 
-std::string DefaultGeometry3D::createG2 (int) const
+std::string DefaultGeometry3D::createG2 (int, bool rational) const
 {
   IFEM::cout <<"  Generating linear geometry on unit parameter domain [0,1]^3";
+  if (rational) IFEM::cout <<"\n\tRational basis.";
 
   std::string g2("700 1 0 0\n3 ");
-
-  bool rational = false;
-  utl::getAttribute(geo,"rational",rational);
-  if (rational)
-    IFEM::cout <<"\n\tRational basis.";
   g2.append(rational ? "1" : "0");
-
-  AddKnots(g2, 3, geo);
+  g2.append(parseKnots(geo,3));
 
   std::array<double,24> nodes =
     {{ 0.0, 0.0, 0.0,

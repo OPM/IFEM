@@ -24,26 +24,24 @@
 #include <array>
 
 
-std::string MultiPatchModelGenerator1D::createG2 (int nsd) const
+std::string MultiPatchModelGenerator1D::createG2 (int nsd, bool rational) const
 {
-  bool rational=false;
-  utl::getAttribute(geo,"rational",rational);
   if (rational)
-    IFEM::cout << "\t Rational basis\n";
+    IFEM::cout <<"\tRational basis.";
   double scale = 1.0;
   if (utl::getAttribute(geo,"scale",scale))
-    IFEM::cout <<"  Scale: "<< scale << std::endl;
+    IFEM::cout <<"\n\tScale: "<< scale;
 
   double Lx = 1.0;
   if (utl::getAttribute(geo,"Lx",Lx))
-    IFEM::cout <<"  Length in X: "<< Lx << std::endl;
+    IFEM::cout <<"\n\tLength in X: "<< Lx << std::endl;
   Lx *= scale;
 
   Vec3 X0;
   std::string corner;
   if (utl::getAttribute(geo,"X0",corner)) {
     std::stringstream str(corner); str >> X0;
-    IFEM::cout <<"  Corner: "<< X0 << std::endl;
+    IFEM::cout <<"\n\tCorner: "<< X0;
   }
 
   int nx_mp = 1;
@@ -81,11 +79,13 @@ std::string MultiPatchModelGenerator1D::createG2 (int nsd) const
 }
 
 
-SIMdependency::PatchVec
+std::vector<ASMbase*>
 MultiPatchModelGenerator1D::createGeometry (const SIMinput& sim) const
 {
-  std::istringstream line(this->createG2(sim.getNoSpaceDim()));
-  SIMdependency::PatchVec result;
+  bool rational = sim.opt.discretization == ASM::LRNurbs;
+  utl::getAttribute(geo,"rational",rational);
+  std::istringstream line(this->createG2(sim.getNoSpaceDim(),rational));
+  std::vector<ASMbase*> result;
 
   // for now this consists of a single patch. do refine / raiseorder
   // to obtain knot vector, then split in pieces. written this way
@@ -159,7 +159,7 @@ MultiPatchModelGenerator1D::MultiPatchModelGenerator1D (const TiXmlElement* geo)
   utl::getAttribute(geo,"nx",nx);
   utl::getAttribute(geo,"subdivision",subdivision);
   utl::getAttribute(geo,"periodic_x", periodic_x);
-  auto subd = geo->FirstChildElement("subdivision");
+  const TiXmlElement* subd = geo->FirstChildElement("subdivision");
   if (subd) {
     subdivision = true;
     utl::getAttribute(subd,"nx",nx);
@@ -234,7 +234,7 @@ MultiPatchModelGenerator2D::MultiPatchModelGenerator2D (const TiXmlElement* geo)
   utl::getAttribute(geo,"subdivision",subdivision);
   utl::getAttribute(geo,"periodic_x", periodic_x);
   utl::getAttribute(geo,"periodic_y", periodic_y);
-  auto subd = geo->FirstChildElement("subdivision");
+  const TiXmlElement* subd = geo->FirstChildElement("subdivision");
   if (subd) {
     subdivision = true;
     utl::getAttribute(subd,"nx",nx);
@@ -243,10 +243,8 @@ MultiPatchModelGenerator2D::MultiPatchModelGenerator2D (const TiXmlElement* geo)
 }
 
 
-std::string MultiPatchModelGenerator2D::createG2 (int nsd) const
+std::string MultiPatchModelGenerator2D::createG2 (int nsd, bool rational) const
 {
-  bool rational=false;
-  utl::getAttribute(geo,"rational",rational);
   if (rational)
     IFEM::cout <<"\tRational basis.";
   double scale = 1.0;
@@ -317,11 +315,13 @@ std::string MultiPatchModelGenerator2D::createG2 (int nsd) const
 }
 
 
-SIMdependency::PatchVec
+std::vector<ASMbase*>
 MultiPatchModelGenerator2D::createGeometry (const SIMinput& sim) const
 {
-  std::istringstream rect(this->createG2(sim.getNoSpaceDim()));
-  SIMdependency::PatchVec result;
+  bool rational = sim.opt.discretization == ASM::LRNurbs;
+  utl::getAttribute(geo,"rational",rational);
+  std::istringstream rect(this->createG2(sim.getNoSpaceDim(),rational));
+  std::vector<ASMbase*> result;
 
   // for now this consists of a single patch. do refine / raiseorder
   // to obtain knot vector, then split in pieces. written this way
@@ -513,7 +513,7 @@ MultiPatchModelGenerator2D::createTopologySets (const SIMinput& sim) const
   for (size_t i = 1; i <= 4; ++i) {
     std::stringstream str;
     str << "Edge" << i << "Patches";
-    for (auto& it : result[str.str()])
+    for (const TopItem& it : result[str.str()])
       used.insert(it.patch);
   }
 
@@ -542,7 +542,7 @@ MultiPatchModelGenerator3D::MultiPatchModelGenerator3D (const TiXmlElement* geo)
   utl::getAttribute(geo,"periodic_y", periodic_y);
   utl::getAttribute(geo,"periodic_z", periodic_z);
   utl::getAttribute(geo,"subdivision", subdivision);
-  auto subd = geo->FirstChildElement("subdivision");
+  const TiXmlElement* subd = geo->FirstChildElement("subdivision");
   if (subd) {
     subdivision = true;
     utl::getAttribute(subd,"nx",nx);
@@ -552,10 +552,8 @@ MultiPatchModelGenerator3D::MultiPatchModelGenerator3D (const TiXmlElement* geo)
 }
 
 
-std::string MultiPatchModelGenerator3D::createG2 (int) const
+std::string MultiPatchModelGenerator3D::createG2 (int, bool rational) const
 {
-  bool rational = false;
-  utl::getAttribute(geo,"rational",rational);
   if (rational)
     IFEM::cout <<"\tRational basis.";
 
@@ -636,11 +634,13 @@ std::string MultiPatchModelGenerator3D::createG2 (int) const
 }
 
 
-SIMdependency::PatchVec
+std::vector<ASMbase*>
 MultiPatchModelGenerator3D::createGeometry (const SIMinput& sim) const
 {
-  std::istringstream cube(this->createG2(sim.getNoSpaceDim()));
-  SIMdependency::PatchVec result;
+  bool rational = sim.opt.discretization == ASM::LRNurbs;
+  utl::getAttribute(geo,"rational",rational);
+  std::istringstream cube(this->createG2(sim.getNoSpaceDim(),rational));
+  std::vector<ASMbase*> result;
 
   // for now this consists of a single patch. do refine / raiseorder
   // to obtain knot vector, then split in pieces. written this way
@@ -911,7 +911,7 @@ MultiPatchModelGenerator3D::createTopologySets (const SIMinput& sim) const
   for (size_t i = 1; i <= 6; ++i) {
     std::stringstream str;
     str << "Face" << i << "Patches";
-    for (auto& it : result[str.str()])
+    for (const TopItem& it : result[str.str()])
       used.insert(it.patch);
   }
 
