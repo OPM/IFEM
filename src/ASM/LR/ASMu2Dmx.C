@@ -417,7 +417,7 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
               ok = false;
 
             for (size_t b = 0; b < m_basis.size() && ok; ++b)
-              if ((int)b != geoBasis)
+              if ((int)b != geoBasis-1)
                 utl::Hessian(Hess,fe.hess(b+1),Jac,Xnod,
                              d2Nxdu2[b],fe.grad(b+1),false);
           }
