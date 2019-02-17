@@ -471,7 +471,7 @@ bool ASMu2D::edgeL2projection (const DirichletEdge& edge,
   // find the normal and tangent direction for the edge
   int edgeDir, t1, t2;
   switch (edge.edg)
-  { //              id          normal  tangent
+  { //              id            normal  tangent
     case LR::WEST:  edgeDir = -1; t1 = 1; t2 = 2; break;
     case LR::EAST:  edgeDir =  1; t1 = 1; t2 = 2; break;
     case LR::SOUTH: edgeDir = -2; t1 = 2; t2 = 1; break;
@@ -494,15 +494,17 @@ bool ASMu2D::edgeL2projection (const DirichletEdge& edge,
 
   Vector N;
   Matrix dNdu, dNdX, Xnod, Jac;
-  Vec4   X;
+  double param[3] = { 0.0, 0.0, 0.0 };
+  Vec4   X(param);
 
   // === Assembly loop over all elements on the patch edge =====================
+
   for (size_t i = 0; i < edge.MLGE.size(); i++) // for all edge elements
   {
     int iel = 1 + edge.MLGE[i];
 
     // Get element edge length in the parameter space
-    double dS = this->getParametricLength(iel,t1);
+    double dS = 0.5*this->getParametricLength(iel,t2);
     if (dS < 0.0) return false; // topology error (probably logic error)
 
     // Set up control point coordinates for current element
@@ -511,12 +513,13 @@ bool ASMu2D::edgeL2projection (const DirichletEdge& edge,
     // Get integration gauss points over this element
     this->getGaussPointParameters(gpar[t2-1],t2-1,nGauss,iel,xg);
 
-    // --- Integration loop over all Gauss points along the edge -------------
+    // --- Integration loop over all Gauss points along the edge ---------------
+
     for (int j = 0; j < nGauss; j++)
     {
       // Parameter values of current integration point
-      double u = gpar[0][j];
-      double v = gpar[1][j];
+      double u = param[0] = gpar[0][j];
+      double v = param[1] = gpar[1][j];
 
       // Evaluate basis function derivatives at current integration points
       Go::BasisDerivsSf spline;
@@ -526,11 +529,11 @@ bool ASMu2D::edgeL2projection (const DirichletEdge& edge,
       SplineUtils::extractBasis(spline,N,dNdu);
 
       // Compute basis function derivatives
-      double detJxW = 0.5*dS*utl::Jacobian(Jac,X,dNdX,Xnod,dNdu,t1,t2)*wg[j];
+      double detJxW = dS*utl::Jacobian(Jac,X,dNdX,Xnod,dNdu,t1,t2)*wg[j];
       if (detJxW == 0.0) continue; // skip singular points
 
       // Cartesian coordinates of current integration point
-      X = Xnod * N;
+      X.assign(Xnod * N);
       X.t = time;
 
       // For mixed basis, we need to compute functions separate from geometry

@@ -503,9 +503,10 @@ bool ASMu2Dmx::integrate (Integrand& integrand, int lIndex,
 
   std::vector<Matrix> dNxdu(m_basis.size());
   Matrix Xnod, Jac;
-  double   param[3] = { 0.0, 0.0, 0.0 };
+  double param[3] = { 0.0, 0.0, 0.0 };
   Vec4   X(param);
   Vec3   normal;
+
 
   // === Assembly loop over all elements on the patch edge =====================
 
@@ -531,44 +532,42 @@ bool ASMu2Dmx::integrate (Integrand& integrand, int lIndex,
       els.push_back(m_basis[i]->getElementContaining(uh, vh)+1);
       elem_sizes.push_back((*(m_basis[i]->elementBegin()+(els.back()-1)))->nBasisFunctions());
     }
+
     int geoEl = els[geoBasis-1];
+    MxFiniteElement fe(elem_sizes,firstp);
+    fe.iel = MLGE[geoEl-1];
+    fe.xi = fe.eta = edgeDir < 0 ? -1.0 : 1.0;
+    firstp += nGP; // Global integration point counter
 
     // Get element edge length in the parameter space
-    double dS = this->getParametricLength(geoEl,t1);
+    double dS = 0.5*this->getParametricLength(geoEl,t2);
     if (dS < 0.0) return false; // topology error (probably logic error)
 
     // Set up control point coordinates for current element
     if (!this->getElementCoordinates(Xnod,geoEl))
       return false;
 
-    // Initialize element quantities
-    MxFiniteElement fe(elem_sizes);
-    fe.iel = MLGE[geoEl-1];
-    fe.xi = fe.eta = edgeDir < 0 ? -1.0 : 1.0;
-    LocalIntegral* A = integrand.getLocalIntegral(elem_sizes,fe.iel,true);
-    if (!integrand.initElementBou(MNPC[geoEl-1], elem_sizes, nb, *A))
-    {
-      A->destruct();
-      return false;
-    }
-
     if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
       fe.h = this->getElementCorners(iel,fe.XC);
+
+    // Initialize element quantities
+    LocalIntegral* A = integrand.getLocalIntegral(elem_sizes,fe.iel,true);
+    bool ok = integrand.initElementBou(MNPC[geoEl-1],elem_sizes,nb,*A);
 
     // Get integration gauss points over this element
     this->getGaussPointParameters(gpar[t2-1],t2-1,nGP,geoEl,xg);
 
-    // --- Integration loop over all Gauss points along the edge -------------
 
-    fe.iGP = firstp; // Global integration point counter
-    firstp += nGP;
+    // --- Integration loop over all Gauss points along the edge ---------------
 
-    for (int i = 0; i < nGP; i++, ++fe.iGP)
+    for (int i = 0; i < nGP && ok; i++, fe.iGP++)
     {
       // Local element coordinates and parameter values
       // of current integration point
-      fe.xi = xg[i];
-      fe.eta = xg[i];
+      if (t1 == 2)
+        fe.xi = xg[i];
+      else
+        fe.eta = xg[i];
       fe.u = param[0] = gpar[0][i];
       fe.v = param[1] = gpar[1][i];
 
@@ -581,8 +580,10 @@ bool ASMu2Dmx::integrate (Integrand& integrand, int lIndex,
 
       // Compute Jacobian inverse of the coordinate mapping and
       // basis function derivatives w.r.t. Cartesian coordinates
-      fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(geoBasis),Xnod,dNxdu[geoBasis-1],t1,t2);
+      fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(geoBasis),Xnod,
+                                dNxdu[geoBasis-1],t1,t2);
       if (fe.detJxW == 0.0) continue; // skip singular points
+
       for (size_t b = 0; b < m_basis.size(); ++b)
         if (b != (size_t)geoBasis-1)
           fe.grad(b+1).multiply(dNxdu[b],Jac);
@@ -595,20 +596,21 @@ bool ASMu2Dmx::integrate (Integrand& integrand, int lIndex,
       X.t = time.t;
 
       // Evaluate the integrand and accumulate element contributions
-      fe.detJxW *= 0.5*dS*wg[i];
-      if (!integrand.evalBouMx(*A,fe,time,X,normal))
-        return false;
+      fe.detJxW *= dS*wg[i];
+      ok = integrand.evalBouMx(*A,fe,time,X,normal);
     }
 
     // Finalize the element quantities
-    if (!integrand.finalizeElementBou(*A,fe,time))
-      return false;
+    if (ok && !integrand.finalizeElementBou(*A,fe,time))
+      ok = false;
 
     // Assembly of global system integral
-    if (!glInt.assemble(A,fe.iel))
-      return false;
+    if (ok && !glInt.assemble(A->ref(),fe.iel))
+      ok = false;
 
     A->destruct();
+
+    if (!ok) return false;
   }
 
   return true;
