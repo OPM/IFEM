@@ -302,7 +302,7 @@ bool ASMu2D::refine (const RealFunc& refC, double refTol)
 {
   Go::Point X0;
   int iel = 0;
-  std::vector<int> elements;
+  IntVec elements;
   for (const LR::Element* elm : lrspline->getAllElements())
   {
     double u0 = 0.5*(elm->umin() + elm->umax());
@@ -904,8 +904,8 @@ double ASMu2D::getParametricLength (int iel, int dir) const
   const LR::Element* el = lrspline->getElement(iel-1);
   switch (dir)
   {
-  case 1: return el->vmax() - el->vmin();
-  case 2: return el->umax() - el->umin();
+  case 1: return el->umax() - el->umin();
+  case 2: return el->vmax() - el->vmin();
   }
 
   std::cerr <<" *** ASMu2D::getParametricLength: Invalid edge direction "
@@ -1577,8 +1577,12 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
   size_t firstp = iit == firstBp.end() ? 0 : iit->second;
 
   FiniteElement fe;
-  Matrix dNdu, Xnod, Jac;
+  fe.p  = lrspline->order(0) - 1;
+  fe.q  = lrspline->order(1) - 1;
+  fe.xi = fe.eta = edgeDir < 0 ? -1.0 : 1.0;
   double param[3] = { 0.0, 0.0, 0.0 };
+
+  Matrix dNdu, Xnod, Jac;
   Vec4   X(param);
   Vec3   normal;
 
@@ -1588,7 +1592,7 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
   int iel = 0;
   for (const LR::Element* el : lrspline->getAllElements())
   {
-    ++iel;
+    fe.iel = MLGE[iel++];
 #ifdef SP_DEBUG
     if (dbgElm < 0 && iel != -dbgElm)
       continue; // Skipping all elements, except for -dbgElm
@@ -1606,38 +1610,37 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
     if (skipMe) continue;
 
     // Get element edge length in the parameter space
-    double dS = this->getParametricLength(iel,t1);
+    double dS = 0.5*this->getParametricLength(iel,t2);
     if (dS < 0.0) return false; // topology error (probably logic error)
 
     // Set up control point coordinates for current element
     if (!this->getElementCoordinates(Xnod,iel)) return false;
 
+    if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
+      fe.h = this->getElementCorners(iel,fe.XC);
+
     // Initialize element quantities
-    fe.iel = MLGE[iel-1];
-    fe.p   = lrspline->order(0) - 1;
-    fe.q   = lrspline->order(1) - 1;
-    fe.xi  = fe.eta = edgeDir < 0 ? -1.0 : 1.0;
     LocalIntegral* A = integrand.getLocalIntegral(MNPC[iel-1].size(),
                                                   fe.iel,true);
-    if (!integrand.initElementBou(MNPC[iel-1],*A)) return false;
+    bool ok = integrand.initElementBou(MNPC[iel-1],*A);
 
     // Get integration gauss points over this element
     this->getGaussPointParameters(gpar[t2-1],t2-1,nGP,iel,xg);
 
-    if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-      fe.h = this->getElementCorners(iel,fe.XC);
 
     // --- Integration loop over all Gauss points along the edge ---------------
 
     fe.iGP = firstp; // Global integration point counter
     firstp += nGP;
 
-    for (int i = 0; i < nGP; i++, fe.iGP++)
+    for (int i = 0; i < nGP && ok; i++, fe.iGP++)
     {
       // Local element coordinates and parameter values
       // of current integration point
-      fe.xi = xg[i];
-      fe.eta = xg[i];
+      if (t1 == 2)
+        fe.xi = xg[i];
+      else
+        fe.eta = xg[i];
       fe.u = param[0] = gpar[0][i];
       fe.v = param[1] = gpar[1][i];
 
@@ -1662,20 +1665,21 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
       X.t = time.t;
 
       // Evaluate the integrand and accumulate element contributions
-      fe.detJxW *= 0.5*dS*wg[i];
-      if (!integrand.evalBou(*A,fe,time,X,normal))
-        return false;
+      fe.detJxW *= dS*wg[i];
+      ok = integrand.evalBou(*A,fe,time,X,normal);
     }
 
     // Finalize the element quantities
-    if (!integrand.finalizeElementBou(*A,fe,time))
-      return false;
+    if (ok && !integrand.finalizeElementBou(*A,fe,time))
+      ok = false;
 
     // Assembly of global system integral
-    if (!glInt.assemble(A,fe.iel))
-      return false;
+    if (ok && !glInt.assemble(A->ref(),fe.iel))
+      ok = false;
 
     A->destruct();
+
+    if (!ok) return false;
 
 #ifdef SP_DEBUG
     if (dbgElm < 0 && iel == -dbgElm)
