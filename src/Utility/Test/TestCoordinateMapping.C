@@ -15,25 +15,37 @@
 #include "ASMs2D.h"
 #include "ASMs2Dmx.h"
 #include "ASMs3D.h"
-#include "SIM1D.h"
-#include "SIM2D.h"
-#include "SIM3D.h"
 #include "SplineUtils.h"
 
 #include "GoTools/geometry/SplineSurface.h"
 
-#include "gtest/gtest.h"
-#include <fstream>
+#include <sstream>
 #include <array>
+
+#include "gtest/gtest.h"
+
+
+static const char* spline1D = "100 1 0 0\n1 0\n2 2 0 0 1 1\n0 1\n";
+static const char* spline2D = "200 1 0 0\n3 0\n"
+  "2 2 0 0 1 1\n"
+  "2 2 0 0 1 1\n"
+  "0 0 0 1 0 0 0 1 0 1 1 0\n";
+static const char* spline3D = "700 1 0 0\n3 0\n"
+  "2 2 0 0 1 1\n"
+  "2 2 0 0 1 1\n"
+  "2 2 0 0 1 1\n"
+  "0 0 0 1 0 0 0 1 0 1 1 0\n"
+  "0 0 1 1 0 1 0 1 1 1 1 1\n";
 
 
 TEST(TestCoordinateMapping, Jacobian1D)
 {
-  SIM1D sim(1);
-  ASSERT_TRUE(sim.createDefaultModel());
-  ASMs1D& p = static_cast<ASMs1D&>(*sim.getPatch(1));
+  ASMs1D p;
+  std::stringstream g2(spline1D);
+
+  ASSERT_TRUE(p.read(g2));
   ASSERT_TRUE(p.uniformRefine(3));
-  ASSERT_TRUE(sim.createFEMmodel());
+  ASSERT_TRUE(p.generateFEMTopology());
 
   Vector N;
   Matrix X, dNdU;
@@ -41,7 +53,7 @@ TEST(TestCoordinateMapping, Jacobian1D)
   p.getElementCoordinates(X, 2);
 
   Matrix J, dNdX;
-  Real det = utl::Jacobian(J, dNdX, X, dNdU, true);
+  double det = utl::Jacobian(J, dNdX, X, dNdU, true);
 
   EXPECT_FLOAT_EQ(det, 1.0);
   EXPECT_FLOAT_EQ(J(1,1), 1.0);
@@ -54,12 +66,13 @@ TEST(TestCoordinateMapping, Jacobian1D)
 
 TEST(TestCoordinateMapping, Hessian1D)
 {
-  SIM1D sim(1);
-  ASSERT_TRUE(sim.createDefaultModel());
-  ASMs1D& p = static_cast<ASMs1D&>(*sim.getPatch(1));
+  ASMs1D p;
+  std::stringstream g2(spline1D);
+
+  ASSERT_TRUE(p.read(g2));
   ASSERT_TRUE(p.raiseOrder(2));
   ASSERT_TRUE(p.uniformRefine(3));
-  ASSERT_TRUE(sim.createFEMmodel());
+  ASSERT_TRUE(p.generateFEMTopology());
 
   Vector N;
   Matrix X, dNdU;
@@ -69,7 +82,7 @@ TEST(TestCoordinateMapping, Hessian1D)
 
   Matrix J, dNdX;
   Matrix3D H, d2NdX2;
-  Real det = utl::Jacobian(J, dNdX, X, dNdU, true);
+  double det = utl::Jacobian(J, dNdX, X, dNdU, true);
   utl::Hessian(H, d2NdX2, J, X, d2Ndu2, dNdX);
 
   const double dndx[] = {
@@ -101,12 +114,13 @@ TEST(TestCoordinateMapping, Hessian1D)
 
 TEST(TestCoordinateMapping, Jacobian2D)
 {
-  SIM2D sim(1);
-  ASSERT_TRUE(sim.createDefaultModel());
-  ASMs2D& p = static_cast<ASMs2D&>(*sim.getPatch(1));
+  ASMs2D p;
+  std::stringstream g2(spline2D);
+
+  ASSERT_TRUE(p.read(g2));
   ASSERT_TRUE(p.uniformRefine(0,3));
   ASSERT_TRUE(p.uniformRefine(1,3));
-  ASSERT_TRUE(sim.createFEMmodel());
+  ASSERT_TRUE(p.generateFEMTopology());
 
   Vector N;
   Matrix X, dNdU;
@@ -114,7 +128,7 @@ TEST(TestCoordinateMapping, Jacobian2D)
   p.getElementCoordinates(X, 2);
 
   Matrix J, dNdX;
-  Real det = utl::Jacobian(J, dNdX, X, dNdU, true);
+  double det = utl::Jacobian(J, dNdX, X, dNdU, true);
 
   const double dndx[] = {
     -4.0, 4.0, 0.0, 0.0,
@@ -136,13 +150,14 @@ TEST(TestCoordinateMapping, Jacobian2D)
 
 TEST(TestCoordinateMapping, Hessian2D)
 {
-  SIM2D sim(1);
-  ASSERT_TRUE(sim.createDefaultModel());
-  ASMs2D& p = static_cast<ASMs2D&>(*sim.getPatch(1));
+  ASMs2D p;
+  std::stringstream g2(spline2D);
+
+  ASSERT_TRUE(p.read(g2));
   ASSERT_TRUE(p.raiseOrder(2,2));
   ASSERT_TRUE(p.uniformRefine(0,3));
   ASSERT_TRUE(p.uniformRefine(1,3));
-  ASSERT_TRUE(sim.createFEMmodel());
+  ASSERT_TRUE(p.generateFEMTopology());
 
   Vector N;
   Matrix X, dNdU;
@@ -152,7 +167,7 @@ TEST(TestCoordinateMapping, Hessian2D)
 
   Matrix J, dNdX;
   Matrix3D H, d2NdX2;
-  Real det = utl::Jacobian(J, dNdX, X, dNdU, true);
+  double det = utl::Jacobian(J, dNdX, X, dNdU, true);
   utl::Hessian(H, d2NdX2, J, X, d2Ndu2, dNdX);
 
   const double dndx[] = {
@@ -208,23 +223,16 @@ TEST(TestCoordinateMapping, Hessian2D)
 }
 
 
-class SIMShell : public SIM2D
-{
-public:
-  SIMShell() { nsd = 3; }
-  virtual ~SIMShell() {}
-};
-
-
 TEST(TestCoordinateMapping, JacobianShell)
 {
-  SIMShell sim;
-  ASSERT_TRUE(sim.createDefaultModel());
-  ASMs2D& p = static_cast<ASMs2D&>(*sim.getPatch(1));
+  ASMs2D p(3);
+  std::stringstream g2(spline2D);
+
+  ASSERT_TRUE(p.read(g2));
   ASSERT_TRUE(p.raiseOrder(1,1));
   ASSERT_TRUE(p.uniformRefine(0,3));
   ASSERT_TRUE(p.uniformRefine(1,3));
-  ASSERT_TRUE(sim.createFEMmodel());
+  ASSERT_TRUE(p.generateFEMTopology());
 
   Vector N;
   Matrix X, dNdU;
@@ -234,7 +242,7 @@ TEST(TestCoordinateMapping, JacobianShell)
 
   Matrix J, dNdX, Hs;
   Matrix3D H, d2NdX2;
-  Real det = utl::Jacobian(J, dNdX, X, dNdU, true);
+  double det = utl::Jacobian(J, dNdX, X, dNdU, true);
   utl::Hessian(H, d2NdX2, J, X, d2Ndu2, dNdX);
   utl::Hessian(H, Hs);
 
@@ -278,10 +286,11 @@ TEST(TestCoordinateMapping, JacobianShell)
 
 TEST(TestCoordinateMapping, Hessian2D_mixed)
 {
-  SIM2D sim({1,1});
-  ASSERT_TRUE(sim.createDefaultModel());
-  ASMs2Dmx& p = static_cast<ASMs2Dmx&>(*sim.getPatch(1));
-  ASSERT_TRUE(sim.createFEMmodel());
+  ASMs2Dmx p(2,{1,1});
+  std::stringstream g2(spline2D);
+
+  ASSERT_TRUE(p.read(g2));
+  ASSERT_TRUE(p.generateFEMTopology());
 
   std::array<std::vector<Go::BasisDerivsSf2>, 2> splinex2;
   p.getBasis(1)->computeBasisGrid({0.5}, {0.5}, splinex2[0]);
@@ -326,7 +335,7 @@ TEST(TestCoordinateMapping, Hessian2D_mixed)
   {
     utl::Hessian(Hess,hess[b],Jac,Xnod,d2Nxdu2[b],grad[b],b==1);
     // geometry mapping should be the identify mapping
-    const Real* h = hess[b].ptr();
+    const double* h = hess[b].ptr();
     i = 0;
     for (double v : d2Nxdu2[b])
       EXPECT_FLOAT_EQ(h[i++], v);
@@ -344,13 +353,14 @@ TEST(TestCoordinateMapping, Hessian2D_mixed)
 
 TEST(TestCoordinateMapping, Jacobian3D)
 {
-  SIM3D sim(1);
-  ASSERT_TRUE(sim.createDefaultModel());
-  ASMs3D& p = static_cast<ASMs3D&>(*sim.getPatch(1));
+  ASMs3D p;
+  std::stringstream g2(spline3D);
+
+  ASSERT_TRUE(p.read(g2));
   ASSERT_TRUE(p.uniformRefine(0,3));
   ASSERT_TRUE(p.uniformRefine(1,3));
   ASSERT_TRUE(p.uniformRefine(2,3));
-  ASSERT_TRUE(sim.createFEMmodel());
+  ASSERT_TRUE(p.generateFEMTopology());
 
   Vector N;
   Matrix X, dNdU;
@@ -358,7 +368,7 @@ TEST(TestCoordinateMapping, Jacobian3D)
   p.getElementCoordinates(X, 2);
 
   Matrix J, dNdX;
-  Real det = utl::Jacobian(J, dNdX, X, dNdU, true);
+  double det = utl::Jacobian(J, dNdX, X, dNdU, true);
 
   const double dndx[] = {
     -4.0, 4.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
@@ -381,14 +391,15 @@ TEST(TestCoordinateMapping, Jacobian3D)
 
 TEST(TestCoordinateMapping, Hessian3D)
 {
-  SIM3D sim(1);
-  ASSERT_TRUE(sim.createDefaultModel());
-  ASMs3D& p = static_cast<ASMs3D&>(*sim.getPatch(1));
+  ASMs3D p;
+  std::stringstream g2(spline3D);
+
+  ASSERT_TRUE(p.read(g2));
   ASSERT_TRUE(p.raiseOrder(2,2,2));
   ASSERT_TRUE(p.uniformRefine(0,3));
   ASSERT_TRUE(p.uniformRefine(1,3));
   ASSERT_TRUE(p.uniformRefine(2,3));
-  ASSERT_TRUE(sim.createFEMmodel());
+  ASSERT_TRUE(p.generateFEMTopology());
 
   Vector N;
   Matrix X, dNdU;
@@ -398,7 +409,7 @@ TEST(TestCoordinateMapping, Hessian3D)
 
   Matrix J, dNdX;
   Matrix3D H, d2NdX2;
-  Real det = utl::Jacobian(J, dNdX, X, dNdU, true);
+  double det = utl::Jacobian(J, dNdX, X, dNdU, true);
   utl::Hessian(H, d2NdX2, J, X, d2Ndu2, dNdX);
 
   size_t i, j, k;
