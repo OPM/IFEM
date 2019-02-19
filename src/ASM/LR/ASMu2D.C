@@ -1150,7 +1150,7 @@ bool ASMu2D::integrate (Integrand& integrand,
       Vec4     X(param);
 
       // Get element area in the parameter space
-      double dA = this->getParametricArea(iel);
+      double dA = 0.25*this->getParametricArea(iel);
       if (dA < 0.0)
       {
         ok = false;
@@ -1241,7 +1241,7 @@ bool ASMu2D::integrate (Integrand& integrand,
             X.t = time.t;
 
             // Compute the reduced integration terms of the integrand
-            fe.detJxW *= 0.25*dA*wr[i]*wr[j];
+            fe.detJxW *= dA*wr[i]*wr[j];
             if (!integrand.reducedInt(*A,fe,X))
               ok = false;
           }
@@ -1321,7 +1321,7 @@ bool ASMu2D::integrate (Integrand& integrand,
           X.t = time.t;
 
           // Evaluate the integrand and accumulate element contributions
-          fe.detJxW *= 0.25*dA*wg[i]*wg[j];
+          fe.detJxW *= dA*wg[i]*wg[j];
 #ifndef USE_OPENMP
           PROFILE3("Integrand::evalInt");
 #endif
@@ -1423,7 +1423,7 @@ bool ASMu2D::integrate (Integrand& integrand,
       Vec4     X;
 
       // Get element area in the parameter space
-      double dA = this->getParametricArea(iel);
+      double dA = 0.25*this->getParametricArea(iel);
       if (dA < 0.0)
       {
         ok = false;
@@ -1509,7 +1509,7 @@ bool ASMu2D::integrate (Integrand& integrand,
         X.t = time.t;
 
         // Evaluate the integrand and accumulate element contributions
-        fe.detJxW *= 0.25*dA*elmPts[ip][2];
+        fe.detJxW *= dA*elmPts[ip][2];
 #ifndef USE_OPENMP
         PROFILE3("Integrand::evalInt");
 #endif
@@ -1659,6 +1659,11 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
 
       // Store tangent vectors in fe.G for shells
       if (nsd > 2) fe.G = Jac;
+
+#if SP_DEBUG > 4
+      if (iel == dbgElm || iel == -dbgElm || dbgElm == 0)
+        std::cout <<"\n"<< fe;
+#endif
 
       // Cartesian coordinates of current integration point
       X.assign(Xnod * fe.N);
@@ -1876,6 +1881,7 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
   Matrix3D d2Ndu2, d2NdX2, Hess, ptDer2;
 
   Go::BasisDerivsSf2 spline2;
+  int lel = -1;
 
   // Evaluate the primary solution field at each point
   sField.resize(nComp,nPoints);
@@ -1887,9 +1893,12 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
     fe.v = gpar[1][i];
     int iel = lrspline->getElementContaining(fe.u,fe.v);
 
-    // Set up control point (nodal) coordinates for current element
-    if (deriv > 0 && !this->getElementCoordinates(Xnod,iel+1))
-      return false;
+    if (iel != lel && deriv == 2)
+    {
+      lel = iel; // Set up control point (nodal) coordinates for current element
+      if (!this->getElementCoordinates(Xnod,iel+1))
+        return false;
+    }
 
     // Evaluate basis function values/derivatives at current parametric point
     // and multiply with control point values to get the point-wise solution
@@ -2060,6 +2069,7 @@ bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   Matrix4D d3Ndu3;
 
   // Evaluate the secondary solution field at each point
+  int lel = -1;
   for (size_t i = 0; i < nPoints; i++, fe.iGP++)
   {
     // Fetch element containing evaluation point
@@ -2088,8 +2098,12 @@ bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
       SplineUtils::extractBasis(spline,fe.N,dNdu);
     }
 
-    // Set up control point (nodal) coordinates for current element
-    if (!this->getElementCoordinates(Xnod,iel+1)) return false;
+    if (iel != lel)
+    {
+      lel = iel; // Set up control point (nodal) coordinates for current element
+      if (!this->getElementCoordinates(Xnod,iel+1))
+        return false;
+    }
 
     // Compute the Jacobian inverse
     fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
@@ -2109,6 +2123,11 @@ bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
     // Store tangent vectors in fe.G for shells
     if (nsd > 2) fe.G = Jac;
+
+#if SP_DEBUG > 4
+    if (1+iel == dbgElm || dbgElm == 0)
+      std::cout <<"\n"<< fe;
+#endif
 
     // Now evaluate the solution field
     if (!integrand.evalSol(solPt,fe,Xnod*fe.N,MNPC[iel]))

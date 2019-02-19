@@ -1850,7 +1850,8 @@ bool ASMs2D::integrate (Integrand& integrand,
         A->destruct();
 
 #ifdef SP_DEBUG
-        if (iel == -dbgElm) break; // Skipping all elements, except for -dbgElm
+        if (iel == -dbgElm)
+          break; // Skipping all elements, except for -dbgElm
 #endif
       }
     }
@@ -1931,7 +1932,7 @@ bool ASMs2D::integrate (Integrand& integrand,
         if (fe.iel < 1) continue; // zero-area element
 
 #ifdef SP_DEBUG
-        if (dbgElm < 0 && iel != -dbgElm)
+        if (dbgElm < 0 && 1+iel != -dbgElm)
           continue; // Skipping all elements, except for -dbgElm
 #endif
 
@@ -2055,7 +2056,8 @@ bool ASMs2D::integrate (Integrand& integrand,
         A->destruct();
 
 #ifdef SP_DEBUG
-        if (iel == -dbgElm) break; // Skipping all elements, except for -dbgElm
+        if (iel == -dbgElm)
+          break; // Skipping all elements, except for -dbgElm
 #endif
       }
     }
@@ -2385,8 +2387,13 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
         else if (nsd > 2)
           fe.G = Jac; // Store tangent vectors in fe.G for shells
 
+#if SP_DEBUG > 4
+        if (iel == dbgElm || iel == -dbgElm || dbgElm == 0)
+          std::cout <<"\n"<< fe;
+#endif
+
 	// Cartesian coordinates of current integration point
-        X.assign(Xnod * fe.N);
+	X.assign(Xnod * fe.N);
 	X.t = time.t;
 
 	// Evaluate the integrand and accumulate element contributions
@@ -2400,7 +2407,7 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
 
       // Assembly of global system integral
       if (ok && !glInt.assemble(A->ref(),fe.iel))
-	ok = false;
+        ok = false;
 
       A->destruct();
 
@@ -2857,6 +2864,10 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
     // Store tangent vectors in fe.G for shells
     if (nsd > 2) fe.G = Jac;
+
+#if SP_DEBUG > 4
+    std::cout <<"\n"<< fe;
+#endif
 
     // Now evaluate the solution field
     if (!integrand.evalSol(solPt,fe,Xtmp*fe.N,ip))

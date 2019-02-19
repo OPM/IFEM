@@ -27,6 +27,7 @@ std::ostream& FiniteElement::write (std::ostream& os) const
   if (!N.empty())      os <<"N:"<< N;
   if (!dNdX.empty())   os <<"dNdX:"<< dNdX;
   if (!d2NdX2.empty()) os <<"d2NdX2: "<< d2NdX2;
+  if (!d3NdX3.empty()) os <<"d3NdX3: "<< d3NdX3;
   if (!G.empty())      os <<"G:"<< G;
   if (!H.empty())      os <<"H:"<< H;
   if (!Navg.empty())   os <<"Navg:"<< Navg;

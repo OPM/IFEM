@@ -1086,8 +1086,14 @@ bool ASMs1D::integrate (Integrand& integrand,
     fe.iel = MLGE[iel];
     if (fe.iel < 1) continue; // zero-length element
 
+#ifdef SP_DEBUG
+    int ielm = 1+iel;
+    if (dbgElm < 0 && ielm != -dbgElm)
+      continue; // Skipping all elements, except for -dbgElm
+#endif
+
     // Check that the current element has nonzero length
-    double dL = this->getParametricLength(1+iel);
+    double dL = 0.5*this->getParametricLength(1+iel);
     if (dL < 0.0) return false; // topology error (probably logic error)
 
     // Set up control point coordinates for current element
@@ -1125,7 +1131,7 @@ bool ASMs1D::integrate (Integrand& integrand,
           // Fetch basis function derivatives at current point
           this->extractBasis(fe.u,fe.N,dNdu);
           // Compute Jacobian inverse and derivatives
-          dNdu.multiply(0.5*dL); // Derivatives w.r.t. xi=[-1,1]
+          dNdu.multiply(dL); // Derivatives w.r.t. xi=[-1,1]
           fe.detJxW = utl::Jacobian(Jac,fe.dNdX,fe.Xn,dNdu)*wr[i];
         }
 
@@ -1165,14 +1171,14 @@ bool ASMs1D::integrate (Integrand& integrand,
       if (!dNdu.empty())
       {
         // Compute derivatives in terms of physical coordinates
-        dNdu.multiply(0.5*dL); // Derivatives w.r.t. xi=[-1,1]
+        dNdu.multiply(dL); // Derivatives w.r.t. xi=[-1,1]
         fe.detJxW = utl::Jacobian(Jac,fe.dNdX,fe.Xn,dNdu)*wg[i];
         if (fe.detJxW == 0.0) continue; // skip singular points
 
         // Compute Hessian of coordinate mapping and 2nd order derivatives
         if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
         {
-          d2Ndu2.multiply(0.25*dL*dL); // 2nd derivatives w.r.t. xi=[-1,1]
+          d2Ndu2.multiply(dL*dL); // 2nd derivatives w.r.t. xi=[-1,1]
           if (!utl::Hessian(Hess,fe.d2NdX2,Jac,fe.Xn,d2Ndu2,fe.dNdX))
             ok = false;
           else if (fe.G.cols() == 2)
@@ -1186,10 +1192,15 @@ bool ASMs1D::integrate (Integrand& integrand,
 
         if (integrand.getIntegrandType() & Integrand::THIRD_DERIVATIVES)
         {
-          d3Ndu3.multiply(0.125*dL*dL*dL); // 3rd derivatives w.r.t. xi=[-1,1]
+          d3Ndu3.multiply(dL*dL*dL); // 3rd derivatives w.r.t. xi=[-1,1]
           ok &= utl::Hessian2(fe.d3NdX3,Jac,d3Ndu3);
         }
       }
+
+#if SP_DEBUG > 4
+      if (ielm == dbgElm || ielm == -dbgElm || dbgElm == 0)
+        std::cout <<"\n"<< fe;
+#endif
 
       // Cartesian coordinates of current integration point
       X.assign(fe.Xn * fe.N);
@@ -1211,6 +1222,11 @@ bool ASMs1D::integrate (Integrand& integrand,
     A->destruct();
 
     if (!ok) return false;
+
+#ifdef SP_DEBUG
+    if (ielm == -dbgElm)
+      break; // Skipping all elements, except for -dbgElm
+#endif
   }
 
   return true;
@@ -1252,6 +1268,12 @@ bool ASMs1D::integrate (Integrand& integrand, int lIndex,
   fe.iel = MLGE[iel];
   if (fe.iel < 1) return true; // zero-length element
 
+#ifdef SP_DEBUG
+  int ielm = 1+iel;
+  if (dbgElm < 0 && ielm != -dbgElm)
+    return true; // Skipping all elements, except for -dbgElm
+#endif
+
   // Set up control point coordinates for current element
   if (!this->getElementCoordinates(fe.Xn,1+iel)) return false;
 
@@ -1286,6 +1308,11 @@ bool ASMs1D::integrate (Integrand& integrand, int lIndex,
     else
       normal.x = copysign(1.0,Jac(1,1));
   }
+
+#if SP_DEBUG > 4
+  if (ielm == dbgElm || ielm == -dbgElm || dbgElm == 0)
+    std::cout <<"\n"<< fe;
+#endif
 
   // Cartesian coordinates of current integration point
   Vec4 X(fe.Xn*fe.N,time.t);
@@ -1333,8 +1360,8 @@ bool ASMs1D::getGridParameters (RealArray& prm, int nSegPerSpan) const
     return false;
   }
 
-  RealArray::const_iterator uit = curv->basis().begin() + curv->basis().order()-1;
-  RealArray::const_iterator uend = curv->basis().begin() + curv->basis().numCoefs()+1;
+  RealArray::const_iterator uit  = curv->basis().begin() + curv->order()-1;
+  RealArray::const_iterator uend = curv->basis().begin() + curv->numCoefs()+1;
   double ucurr = 0.0, uprev = *(uit++);
   while (uit != uend)
   {
@@ -1688,6 +1715,10 @@ bool ASMs1D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
         utl::Hessian2(fe.d3NdX3,Jac,d3Ndu3);
     }
 
+#if SP_DEBUG > 4
+    std::cout <<"\n"<< fe;
+#endif
+
     // Now evaluate the solution field
     if (!integrand.evalSol(solPt,fe,Xtmp*fe.N,ip))
       return false;
@@ -1726,7 +1757,7 @@ bool ASMs1D::assembleL2matrices (SparseMatrix& A, StdVector& B,
     return false;
   }
 
-  double dL = 1.0;
+  double dL = 0.5;
   Vector phi(p1);
   Matrix dNdu, Xnod, J;
 
@@ -1748,8 +1779,8 @@ bool ASMs1D::assembleL2matrices (SparseMatrix& A, StdVector& B,
         return false;
 
       int inod1 = mnpc[iel][proj->order()-1];
-      dL = *(proj->basis().begin()+inod1+1) -
-           *(proj->basis().begin()+inod1);
+      dL = 0.5*(*(proj->basis().begin()+inod1+1) -
+                *(proj->basis().begin()+inod1));
       if (dL < 0.0)
         return false; // topology error (probably logic error)
     }
@@ -1769,7 +1800,7 @@ bool ASMs1D::assembleL2matrices (SparseMatrix& A, StdVector& B,
         dNdu.fillColumn(1,basisDerivs);
 
         // Compute the Jacobian inverse and derivatives
-        dJw = 0.5*dL*wg[i]*utl::Jacobian(J,dNdu,Xnod,dNdu,false);
+        dJw = dL*wg[i]*utl::Jacobian(J,dNdu,Xnod,dNdu,false);
         if (dJw == 0.0) continue; // skip singular points
       }
 

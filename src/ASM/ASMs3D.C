@@ -1804,7 +1804,7 @@ bool ASMs3D::integrate (Integrand& integrand,
         int i3 = p3 + iel / (nel1*nel2);
 
         // Get element volume in the parameter space
-        double dV = this->getParametricVolume(++iel);
+        double dV = 0.125*this->getParametricVolume(++iel);
         if (dV < 0.0)
         {
           ok = false; // topology error (probably logic error)
@@ -1846,7 +1846,7 @@ bool ASMs3D::integrate (Integrand& integrand,
                 // Compute Jacobian determinant of coordinate mapping
                 // and multiply by weight of current integration point
                 double detJac = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu,false);
-                double weight = 0.125*dV*wg[0][i]*wg[1][j]*wg[2][k];
+                double weight = dV*wg[0][i]*wg[1][j]*wg[2][k];
 
                 // Numerical quadrature
                 fe.Navg.add(fe.N,detJac*weight);
@@ -1913,7 +1913,7 @@ bool ASMs3D::integrate (Integrand& integrand,
                 X.t = time.t;
 
                 // Compute the reduced integration terms of the integrand
-                fe.detJxW *= 0.125*dV*wr[i]*wr[j]*wr[k];
+                fe.detJxW *= dV*wr[i]*wr[j]*wr[k];
                 if (!integrand.reducedInt(*A,fe,X))
                   ok = false;
               }
@@ -1969,7 +1969,7 @@ bool ASMs3D::integrate (Integrand& integrand,
               X.t = time.t;
 
               // Evaluate the integrand and accumulate element contributions
-              fe.detJxW *= 0.125*dV*wg[0][i]*wg[1][j]*wg[2][k];
+              fe.detJxW *= dV*wg[0][i]*wg[1][j]*wg[2][k];
 #ifndef USE_OPENMP
               PROFILE3("Integrand::evalInt");
 #endif
@@ -1988,7 +1988,8 @@ bool ASMs3D::integrate (Integrand& integrand,
         A->destruct();
 
 #ifdef SP_DEBUG
-        if (iel == -dbgElm) break; // Skipping all elements, except for -dbgElm
+        if (iel == -dbgElm)
+          break; // Skipping all elements, except for -dbgElm
 #endif
       }
     }
@@ -2071,7 +2072,7 @@ bool ASMs3D::integrate (Integrand& integrand,
         if (fe.iel < 1) continue; // zero-volume element
 
 #ifdef SP_DEBUG
-        if (dbgElm < 0 && iel != -dbgElm)
+        if (dbgElm < 0 && 1+iel != -dbgElm)
           continue; // Skipping all elements, except for -dbgElm
 #endif
 
@@ -2080,7 +2081,7 @@ bool ASMs3D::integrate (Integrand& integrand,
         int i3 = p3 + iel / (nel1*nel2);
 
         // Get element volume in the parameter space
-        double dV = this->getParametricVolume(++iel);
+        double dV = 0.125*this->getParametricVolume(++iel);
         if (dV < 0.0)
         {
           ok = false; // topology error (probably logic error)
@@ -2164,7 +2165,7 @@ bool ASMs3D::integrate (Integrand& integrand,
           X.t = time.t;
 
           // Evaluate the integrand and accumulate element contributions
-          fe.detJxW *= 0.125*dV*itgPts[iel][ip][3];
+          fe.detJxW *= dV*itgPts[iel][ip][3];
 #ifndef USE_OPENMP
           PROFILE3("Integrand::evalInt");
 #endif
@@ -2183,7 +2184,8 @@ bool ASMs3D::integrate (Integrand& integrand,
         A->destruct();
 
 #ifdef SP_DEBUG
-        if (iel == -dbgElm) break; // Skipping all elements, except for -dbgElm
+        if (iel == -dbgElm)
+          break; // Skipping all elements, except for -dbgElm
 #endif
       }
     }
@@ -2314,7 +2316,7 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
         if (fe.iel < 1) continue; // zero-volume element
 
 #ifdef SP_DEBUG
-        if (dbgElm < 0 && iel != -dbgElm)
+        if (dbgElm < 0 && 1+iel != -dbgElm)
           continue; // Skipping all elements, except for -dbgElm
 #endif
 
@@ -2323,7 +2325,7 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
         int i3 = p3 + iel / (nel1*nel2);
 
         // Get element face area in the parameter space
-        double dA = this->getParametricArea(++iel,abs(faceDir));
+        double dA = 0.25*this->getParametricArea(++iel,abs(faceDir));
         if (dA < 0.0) // topology error (probably logic error)
         {
           ok = false;
@@ -2416,12 +2418,17 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
             if (integrand.getIntegrandType() & Integrand::G_MATRIX)
               utl::getGmat(Jac,dXidu,fe.G);
 
+#if SP_DEBUG > 4
+            if (iel == dbgElm || iel == -dbgElm || dbgElm == 0)
+              std::cout <<"\n"<< fe;
+#endif
+
             // Cartesian coordinates of current integration point
             X.assign(Xnod * fe.N);
             X.t = time.t;
 
             // Evaluate the integrand and accumulate element contributions
-            fe.detJxW *= 0.25*dA*wg[i]*wg[j];
+            fe.detJxW *= dA*wg[i]*wg[j];
             if (!integrand.evalBou(*A,fe,time,X,normal))
               ok = false;
           }
@@ -3027,6 +3034,10 @@ bool ASMs3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     if (use2ndDer)
       if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xtmp,d2Ndu2,fe.dNdX))
         continue;
+
+#if SP_DEBUG > 4
+    std::cout <<"\n"<< fe;
+#endif
 
     // Now evaluate the solution field
     if (!integrand.evalSol(solPt,fe,Xtmp*fe.N,ip))
