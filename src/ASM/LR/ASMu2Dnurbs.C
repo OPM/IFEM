@@ -39,7 +39,7 @@ ASMu2Dnurbs::ASMu2Dnurbs (const ASMu2Dnurbs& patch, unsigned char n_f)
 bool ASMu2Dnurbs::read (std::istream& is)
 {
   bool ok = this->ASMu2D::read(is);
-  if (ok && noNurbs)
+  if (ok && !(tensorspline && tensorspline->rational()))
     std::cout <<"  ** LR-nurbs requested but input is a spline."<< std::endl;
 
   return ok;
