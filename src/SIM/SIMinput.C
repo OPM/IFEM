@@ -1278,7 +1278,7 @@ bool SIMinput::refine (const LR::RefineData& prm,
     // |     |         patch #1 (edge 3) connected to patch #2 (edge 4)
     // +-----+-----+   patch #2 (edge 2) connected to patch #3 (edge 1)
     // | #2  | #3  |
-    // |     |     |   we need to pass the corner idx patch #3 (vertex 3)
+    // |     |     |   we need to pass the corner index of patch #3 (vertex 3)
     // +-----+-----+   to patch #1 (vertex 2), but this connection is not
     //                 guaranteed to appear in the input file
 

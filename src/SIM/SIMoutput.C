@@ -314,7 +314,7 @@ bool SIMoutput::writeGlvG (int& nBlock, const char* inpFile, bool doClear)
     if (!myModel[i]->tesselate(*lvb,opt.nViz))
       return false;
 
-    sprintf(pname,"Patch %ld",myModel[i]->idx);
+    sprintf(pname,"Patch %ld",myModel[i]->idx+1);
     if (!myVtf->writeGrid(lvb,pname,++nBlock))
       return false;
   }
@@ -880,7 +880,7 @@ bool SIMoutput::writeGlvP (const Vector& ssol, int iStep, int& nBlock,
     if (!pch->evalProjSolution(field,lovec,opt.nViz,nComp))
       return false;
 
-    size_t j = 1; // Write out to VTF-file as scalar fields
+    size_t j = 0; // Write out to VTF-file as scalar fields
     const ElementBlock* grid = myVtf->getBlock(++geomID);
     if (!this->writeScalarFields(field,geomID,nBlock,sID,&j))
       return false;
