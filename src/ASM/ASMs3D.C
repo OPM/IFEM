@@ -2793,7 +2793,7 @@ bool ASMs3D::evalSolution (Matrix& sField, const Vector& locSol,
                            const RealArray* gpar,
                            bool regular, int deriv, int) const
 {
-  sField.resize(0,0);
+  PROFILE2("ASMs3D::evalSol(P)");
 
   // Evaluate the basis functions and/or their derivatives at all points
   size_t nPoints = gpar[0].size();
@@ -2954,6 +2954,8 @@ bool ASMs3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 bool ASMs3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 			   const RealArray* gpar, bool regular) const
 {
+  PROFILE2("ASMs3D::evalSol(S)");
+
   sField.resize(0,0);
 
   // Evaluate the basis functions and their derivatives at all points

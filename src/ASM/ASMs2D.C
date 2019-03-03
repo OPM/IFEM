@@ -2563,6 +2563,8 @@ bool ASMs2D::evalSolution (Matrix& sField, const Vector& locSol,
                            const RealArray* gpar,
                            bool regular, int deriv, int) const
 {
+  PROFILE2("ASMs2D::evalSol(P)");
+
   // Evaluate the basis functions at all points
   size_t nPoints = gpar[0].size();
   std::vector<Go::BasisPtsSf>     spline0(regular || deriv != 0 ? 0 : nPoints);
@@ -2755,6 +2757,8 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
                            const RealArray* gpar, bool regular) const
 {
+  PROFILE2("ASMs2D::evalSol(S)");
+
   sField.resize(0,0);
 
   // Evaluate the basis functions and their derivatives at all points

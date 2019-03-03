@@ -435,6 +435,7 @@ bool ASMu2D::createProjectionBasis (bool init)
 
 bool ASMu2D::evaluateBasis (int iel, FiniteElement& fe, int derivs) const
 {
+  PROFILE3("ASMu2D::evalBasis");
 #ifdef INDEX_CHECK
   if (iel < 0 || iel >= lrspline->nElements())
   {
@@ -1844,9 +1845,6 @@ bool ASMu2D::tesselate (ElementBlock& grid, const int* npe) const
 bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
                            const int* npe, int nf) const
 {
-#ifdef SP_DEBUG
-  std::cout <<"ASMu2D::evalSolution(Matrix&,const Vector&,const int*,int)\n";
-#endif
   // Compute parameter values of the result sampling points
   std::array<RealArray,2> gpar;
   for (int dir = 0; dir < 2; dir++)
@@ -1861,10 +1859,6 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
 bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
                            const RealArray* gpar, bool, int deriv, int) const
 {
-#ifdef SP_DEBUG
-  std::cout <<"ASMu2D::evalSolution(Matrix&,const Vector&,const RealArray*,"
-            <<"bool,int)"<< std::endl;
-#endif
   size_t nComp = locSol.size() / this->getNoNodes();
   if (nComp*this->getNoNodes() != locSol.size())
     return false;
@@ -1872,6 +1866,8 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
   size_t nPoints = gpar[0].size();
   if (nPoints != gpar[1].size())
     return false;
+
+  PROFILE2("ASMu2D::evalSol(P)");
 
   FiniteElement fe;
   fe.p = lrspline->order(0) - 1;
@@ -1939,11 +1935,6 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
 bool ASMu2D::evalProjSolution (Matrix& sField, const Vector& locSol,
                                const int* npe, int nf) const
 {
-#ifdef SP_DEBUG
-  std::cout <<"ASMu2D::evalProjSolution(Matrix&,const Vector&,"
-            <<"const int*,int)"<< std::endl;
-#endif
-
   // Compute parameter values of the result sampling points
   std::array<RealArray,2> gpar;
   for (int dir = 0; dir < 2; dir++)
@@ -2045,20 +2036,18 @@ bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
                            const RealArray* gpar, bool) const
 {
-#ifdef SP_DEBUG
-  std::cout <<"ASMu2D::evalSolution(Matrix&,const IntegrandBase&,const RealArray*,bool)\n";
-#endif
-
   sField.resize(0,0);
+  size_t nPoints = gpar[0].size();
+  if (nPoints != gpar[1].size())
+    return false;
+
+  PROFILE2("ASMu2D::evalSol(S)");
 
   // TODO: investigate the possibility of doing "regular" refinement by
   //       uniform tesselation grid and ignoring LR mesh lines
 
-  size_t nPoints = gpar[0].size();
   bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
   bool use3rdDer = integrand.getIntegrandType() & Integrand::THIRD_DERIVATIVES;
-  if (nPoints != gpar[1].size())
-    return false;
 
   FiniteElement fe(0,firstIp);
   fe.p = lrspline->order(0) - 1;
@@ -2604,6 +2593,8 @@ void ASMu2D::generateBezierBasis ()
 
 void ASMu2D::generateBezierExtraction ()
 {
+  PROFILE2("Bezier extraction");
+
   const int p1 = geo->order(0);
   const int p2 = geo->order(1);
 
@@ -2613,7 +2604,6 @@ void ASMu2D::generateBezierExtraction ()
   for (const LR::Element* elm : geo->getAllElements())
   {
     // Get bezier extraction matrix
-    PROFILE1("Bezier extraction");
     geo->getBezierExtraction(iel,extrMat);
     myBezierExtract[iel].resize(elm->nBasisFunctions(),p1*p2);
     myBezierExtract[iel++].fill(extrMat.data(),extrMat.size());
@@ -2624,6 +2614,8 @@ void ASMu2D::generateBezierExtraction ()
 void ASMu2D::computeBasis (double u, double v, Go::BasisPtsSf& bas,
                            int iel, const LR::LRSplineSurface* spline) const
 {
+  PROFILE3("ASMu2D::compBasis(0)");
+
   if (spline)
     spline->computeBasis(u,v,bas,iel);
   else
@@ -2634,6 +2626,8 @@ void ASMu2D::computeBasis (double u, double v, Go::BasisPtsSf& bas,
 void ASMu2D::computeBasis (double u, double v, Go::BasisDerivsSf& bas,
                            int iel, const LR::LRSplineSurface* spline) const
 {
+  PROFILE3("ASMu2D::compBasis(1)");
+
   if (spline)
     spline->computeBasis(u,v,bas,iel);
   else
@@ -2644,6 +2638,8 @@ void ASMu2D::computeBasis (double u, double v, Go::BasisDerivsSf& bas,
 void ASMu2D::computeBasis (double u, double v, Go::BasisDerivsSf2& bas,
                            int iel) const
 {
+  PROFILE3("ASMu2D::compBasis(2)");
+
   lrspline->computeBasis(u,v,bas,iel);
 }
 
@@ -2651,5 +2647,7 @@ void ASMu2D::computeBasis (double u, double v, Go::BasisDerivsSf2& bas,
 void ASMu2D::computeBasis (double u, double v, Go::BasisDerivsSf3& bas,
                            int iel) const
 {
+  PROFILE3("ASMu2D::compBasis(3)");
+
   lrspline->computeBasis(u,v,bas,iel);
 }
