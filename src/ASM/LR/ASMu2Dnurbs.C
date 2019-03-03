@@ -222,6 +222,7 @@ void ASMu2Dnurbs::computeBasis (double u, double v,
     return this->ASMu2D::computeBasis(u,v,bas,iel);
 
   PROFILE3("ASMu2Dn::compBasis(2)");
+
   const LR::Element* el = lrspline->getElement(iel);
 
   Go::BasisDerivsSf2 tmp;
@@ -265,6 +266,7 @@ void ASMu2Dnurbs::computeBasis (double u, double v,
     return this->ASMu2D::computeBasis(u,v,bas,iel);
 
   PROFILE3("ASMu2Dn::compBasis(3)");
+
   const LR::Element* el = lrspline->getElement(iel);
 
   Go::BasisDerivsSf3 tmp;

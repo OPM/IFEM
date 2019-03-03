@@ -21,6 +21,8 @@ bool SAMpatch::init (const ASMVec& model, int numNod,
 {
   patches = model;
 
+  bool hasEmptyPatches = false;
+
   // Initialize some model size parameters
   nnod = numNod;
   for (const ASMbase* pch : model)
@@ -29,7 +31,12 @@ bool SAMpatch::init (const ASMVec& model, int numNod,
     nceq += pch->getNoMPCs();
     if (numNod == 0)
       nnod += pch->getNoNodes();
+    if (pch->empty())
+      hasEmptyPatches = true;
   }
+
+  if (hasEmptyPatches) // Flag nodes connected to empty patches only
+    nodeType.resize(nnod,'0');
 
   // Initialize the node/dof arrays (madof,msc) and compute ndof
   if (!this->initNodeDofs(model,dTypes))
@@ -90,9 +97,11 @@ bool SAMpatch::initNodeDofs (const ASMVec& model,
 
         // Define the node type for mixed methods (used by norm evaluations)
         char nt = pch->getNodeType(j);
-        if (nt != 'D')
+        if (!nodeType.empty())
+          nodeType[n-1] = nt;
+        else if (nt != 'D')
         {
-          if (nodeType.empty()) nodeType.resize(nnod,'D');
+          nodeType.resize(nnod,'D');
           nodeType[n-1] = nt;
         }
       }
@@ -137,7 +146,7 @@ bool SAMpatch::initNodeDofs (const ASMVec& model,
   if (ierr == 0) return true;
 
   std::cerr <<" *** SAMpatch::initNodeDOFs: Detected "<< ierr <<" nodes with"
-	    <<" conflicting number of DOFs in adjacent patches."<< std::endl;
+            <<" conflicting number of DOFs in adjacent patches."<< std::endl;
   return false;
 }
 

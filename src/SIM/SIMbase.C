@@ -152,7 +152,7 @@ static void printNodalConnectivity (const ASMVec& model, std::ostream& os)
     {
       os <<"\nConnectivity for node "<< node.first <<":";
       for (const Ipair& n : node.second)
-        os <<" P"<< n.first <<","<< n.second;
+        os <<" P"<< n.first+1 <<","<< n.second;
     }
 
   std::cout << std::endl;
@@ -400,7 +400,7 @@ bool SIMbase::renumberNodes (const std::map<int,int>& nodeMap)
 void SIMbase::generateThreadGroups (const Property& p, bool silence)
 {
   ASMbase* pch = this->getPatch(p.patch);
-  if (pch && abs(p.ldim)+1 == pch->getNoParamDim())
+  if (pch && !pch->empty() && abs(p.ldim)+1 == pch->getNoParamDim())
     pch->generateThreadGroups(p.lindx%10,silence,lagMTOK);
 }
 
@@ -579,8 +579,10 @@ size_t SIMbase::getNoNodes (int basis) const
 {
   if (mySam)
   {
-    if (basis == 1) // Assume the X-nodes are associated with first basis only
-      return mySam->getNoNodes('D') + mySam->getNoNodes('X');
+    if (basis == 1)
+      return (mySam->getNoNodes('D') + // Default node type for 1st-basis nodes
+              mySam->getNoNodes('X') + // Associate X-nodes with 1st basis
+              mySam->getNoNodes('0')); // Associate 0-dof nodes with 1st basis
     else if (basis > 1)
       return mySam->getNoNodes('N'+basis);
     else
