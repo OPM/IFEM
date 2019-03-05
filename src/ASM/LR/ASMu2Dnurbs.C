@@ -65,10 +65,9 @@ bool ASMu2Dnurbs::evaluateBasis (int iel, FiniteElement& fe,
   }
   const Matrix& C = bezierExtract[iel];
 
-  int wi = lrspline->getBasisfunction(MNPC[iel][0])->dim()-1;
-  RealArray w(MNPC[iel].size());
-  for (size_t i = 0; i < w.size(); i++)
-    w[i] = lrspline->getBasisfunction(MNPC[iel][i])->cp(wi);
+  RealArray w; w.reserve(el->nBasisFunctions());
+  for (const LR::Basisfunction* func : el->support())
+    w.push_back(func->cp(func->dim()-1));
 
   if (derivs < 1) {
     Matrix B;
@@ -99,8 +98,8 @@ bool ASMu2Dnurbs::evaluateBasis (int iel, FiniteElement& fe,
     Vector Bv(p); // Bezier basis functions differentiated wrt v
 
     size_t i, j, k = 0;
-    for (j = 0; j < Nv.size(); j+=(derivs+1))
-      for (i = 0; i < Nu.size(); i+=(derivs+1), k++) {
+    for (j = 0; j < Nv.size(); j += derivs+1)
+      for (i = 0; i < Nu.size(); i += derivs+1, k++) {
         B[k]  = Nu[i  ]*Nv[j  ];
         Bu[k] = Nu[i+1]*Nv[j  ];
         Bv[k] = Nu[i  ]*Nv[j+1];
@@ -115,7 +114,7 @@ bool ASMu2Dnurbs::evaluateBasis (int iel, FiniteElement& fe,
     double Wdereta = dNeta.dot(w);
 
     Matrix dNdu(w.size(),2);
-    for (size_t i = 1; i <= fe.N.size(); i++) {
+    for (i = 1; i <= fe.N.size(); i++) {
       fe.N(i)  *= w[i-1]/W;
       dNdu(i,1) = (dNxi(i)*W  - fe.N(i)*Wderxi )*w[i-1]/(W*W);
       dNdu(i,2) = (dNeta(i)*W - fe.N(i)*Wdereta)*w[i-1]/(W*W);
@@ -161,12 +160,13 @@ void ASMu2Dnurbs::computeBasis (double u, double v,
   if (!spline)
     spline = lrspline.get();
 
+  const LR::Element* el = spline->getElement(iel);
+
   Go::BasisPtsSf tmp;
   spline->computeBasis(u,v,tmp,iel);
-  int wi = spline->getBasisfunction(MNPC[iel][0])->dim()-1;
-  Vector w(tmp.basisValues.size());
-  for (size_t i = 0; i < w.size(); i++)
-    w[i] = spline->getBasisfunction(MNPC[iel][i])->cp(wi);
+  Vector w; w.reserve(tmp.basisValues.size());
+  for (const LR::Basisfunction* func : el->support())
+    w.push_back(func->cp(func->dim()-1));
 
   double W = w.dot(tmp.basisValues);
 
@@ -186,12 +186,13 @@ void ASMu2Dnurbs::computeBasis (double u, double v,
   if (!spline)
     spline = lrspline.get();
 
+  const LR::Element* el = spline->getElement(iel);
+
   Go::BasisDerivsSf tmp;
   spline->computeBasis(u,v,tmp,iel);
-  int wi = spline->getBasisfunction(MNPC[iel][0])->dim()-1;
-  Vector w(tmp.basisValues.size());
-  for (size_t i = 0; i < w.size(); i++)
-    w[i] = spline->getBasisfunction(MNPC[iel][i])->cp(wi);
+  Vector w; w.reserve(tmp.basisValues.size());
+  for (const LR::Basisfunction* func : el->support())
+    w.push_back(func->cp(func->dim()-1));
 
   double W  = w.dot(tmp.basisValues);
   double Wx = w.dot(tmp.basisDerivs_u);
@@ -213,12 +214,13 @@ void ASMu2Dnurbs::computeBasis (double u, double v,
   if (noNurbs)
     return this->ASMu2D::computeBasis(u,v,bas,iel);
 
+  const LR::Element* el = lrspline->getElement(iel);
+
   Go::BasisDerivsSf2 tmp;
   lrspline->computeBasis(u,v,tmp,iel);
-  int wi = lrspline->getBasisfunction(MNPC[iel][0])->dim()-1;
-  Vector w(tmp.basisValues.size());
-  for (size_t i = 0; i < w.size(); i++)
-    w[i] = lrspline->getBasisfunction(MNPC[iel][i])->cp(wi);
+  Vector w; w.reserve(tmp.basisValues.size());
+  for (const LR::Basisfunction* func : el->support())
+    w.push_back(func->cp(func->dim()-1));
 
   double W   = w.dot(tmp.basisValues);
   double Wx  = w.dot(tmp.basisDerivs_u);
@@ -254,12 +256,13 @@ void ASMu2Dnurbs::computeBasis (double u, double v,
   if (noNurbs)
     return this->ASMu2D::computeBasis(u,v,bas,iel);
 
+  const LR::Element* el = lrspline->getElement(iel);
+
   Go::BasisDerivsSf3 tmp;
   lrspline->computeBasis(u,v,tmp,iel);
-  int wi = lrspline->getBasisfunction(MNPC[iel][0])->dim()-1;
-  Vector w(tmp.basisValues.size());
-  for (size_t i = 0; i < w.size(); i++)
-    w[i] = lrspline->getBasisfunction(MNPC[iel][i])->cp(wi);
+  Vector w; w.reserve(tmp.basisValues.size());
+  for (const LR::Basisfunction* func : el->support())
+    w.push_back(func->cp(func->dim()-1));
 
   double W    = w.dot(tmp.basisValues);
   double Wx   = w.dot(tmp.basisDerivs_u);
