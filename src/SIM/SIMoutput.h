@@ -189,7 +189,8 @@ public:
   //! \param[in] prefix Prefices for projected solutions
   //! \param[in] idBlock Starting value of result block numbering
   bool writeGlvN(const Matrix& norms, int iStep, int& nBlock,
-                 const std::vector<std::string>& prefix = {}, int idBlock = 200);
+                 const std::vector<std::string>& prefix = {},
+                 int idBlock = 200);
 
   //! \brief Writes a scalar function to the VTF-file.
   //! \param[in] f The function to output
@@ -303,6 +304,11 @@ protected:
   virtual void preprocessResultPoints();
 
 private:
+  //! \brief Private helper to extract patch-level solution vectors.
+  bool extractNodeVec(const Vector& glbVec, Vector& locVec,
+                      const ASMbase* patch, int nodalCmps,
+                      bool& emptyPatches) const;
+
   //! \brief Private helper to write out scalar fields to VTF-file.
   bool writeScalarFields(const Matrix& field, int geomID,
                          int& nBlock, std::vector< std::vector<int> >& sID,

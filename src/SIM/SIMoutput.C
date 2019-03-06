@@ -425,15 +425,18 @@ bool SIMoutput::writeGlvV (const Vector& vec, const char* fieldName,
   Vector lovec;
   IntVec vID;
 
+  bool empty = false;
   int geomID = myGeomID;
   for (const ASMbase* pch : myModel)
   {
-    if (pch->empty()) continue; // skip empty patches
+    if (!this->extractNodeVec(vec,lovec,pch,ncmp,empty))
+      return false;
+    else if (pch->empty())
+      continue; // skip empty patches
 
     if (msgLevel > 1)
       IFEM::cout <<"Writing vector field for patch "<< pch->idx+1 << std::endl;
 
-    pch->extractNodeVec(vec,lovec,ncmp);
     if (!pch->evalSolution(field,lovec,opt.nViz))
       return false;
 
@@ -546,10 +549,14 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
   Matrix field;
   Vector lovec;
 
+  bool empty = false;
   int geomID = myGeomID;
   for (const ASMbase* pch : myModel)
   {
-    if (pch->empty()) continue; // skip empty patches
+    if (!this->extractNodeVec(psol,lovec,pch,psolComps,empty))
+      return false;
+    else if (pch->empty())
+      continue; // skip empty patches
 
     if (msgLevel > 1)
       IFEM::cout <<"Writing primary solution for patch "
@@ -557,7 +564,6 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
 
     // Evaluate primary solution variables
 
-    pch->extractNodeVec(psol,lovec,psolComps,0);
     if (!pch->evalSolution(field,lovec,opt.nViz))
       return -1;
 
@@ -704,10 +710,15 @@ bool SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
   Vector lovec;
 
   size_t i, j;
+  bool empty = false;
   int geomID = myGeomID;
   for (i = 0; i < myModel.size(); i++)
   {
-    if (myModel[i]->empty()) continue; // skip empty patches
+    if (!this->extractNodeVec(psol,myProblem->getSolution(),
+                              myModel[i],psolComps,empty))
+      return false;
+    else if (myModel[i]->empty())
+      continue; // skip empty patches
 
     if (msgLevel > 1)
       IFEM::cout <<"Writing secondary solution for patch "<< i+1 << std::endl;
@@ -716,7 +727,6 @@ bool SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
 
     LocalSystem::patch = i;
     myProblem->initResultPoints(time,true);
-    myModel[i]->extractNodeVec(psol,myProblem->getSolution(),psolComps,0);
     this->extractPatchDependencies(myProblem,myModel,i);
     this->setPatchMaterial(i+1);
     if (!myModel[i]->evalSolution(field,*myProblem,opt.nViz))
@@ -825,12 +835,16 @@ bool SIMoutput::eval2ndSolution (const Vector& psol, double time, int psolComps)
   myProblem->initResultPoints(time);
 
   Matrix field;
+  bool empty = false;
   for (size_t i = 0; i < myModel.size(); i++)
   {
-    if (myModel[i]->empty()) continue; // skip empty patches
+    if (!this->extractNodeVec(psol,myProblem->getSolution(),
+                              myModel[i],psolComps,empty))
+      return false;
+    else if (myModel[i]->empty())
+      continue; // skip empty patches
 
     LocalSystem::patch = i;
-    myModel[i]->extractNodeVec(psol,myProblem->getSolution(),psolComps,0);
     this->extractPatchDependencies(myProblem,myModel,i);
     this->setPatchMaterial(i+1);
     if (!myModel[i]->evalSolution(field,*myProblem,opt.nViz))
@@ -937,13 +951,17 @@ bool SIMoutput::evalProjSolution (const Vector& ssol,
   Vector lovec;
 
   size_t i, j;
+  bool empty = false;
   int geomID = myGeomID;
   for (i = 0; i < myModel.size(); i++)
   {
-    if (myModel[i]->empty()) continue; // skip empty patches
+    if (!this->extractNodeVec(ssol,lovec,myModel[i],
+                              myProblem->getNoFields(2),empty))
+      return false;
+    else if (myModel[i]->empty())
+      continue; // skip empty patches
 
     // Evaluate the solution variables at the visualization points
-    myModel[i]->extractNodeVec(ssol,lovec,myProblem->getNoFields(2));
     if (!myModel[i]->evalSolution(field,lovec,opt.nViz))
       return false;
 
@@ -1013,22 +1031,25 @@ bool SIMoutput::writeGlvM (const Mode& mode, bool freq, int& nBlock)
   Matrix field;
   IntVec vID;
 
+  bool empty = false;
   int geomID = myGeomID;
   for (size_t i = 0; i < myModel.size(); i++)
   {
-    if (myModel[i]->empty()) continue; // skip empty patches
+    if (!this->extractNodeVec(mode.eigVec,displ,myModel[i],0,empty))
+      return false;
+    else if (myModel[i]->empty())
+      continue; // skip empty patches
+
     if (myModel.size() > 1 && msgLevel > 1)
       IFEM::cout <<"."<< std::flush;
 
-    geomID++;
-    myModel[i]->extractNodeVec(mode.eigVec,displ);
     if (!myModel[i]->evalSolution(field,displ,opt.nViz))
       return false;
 
-    if (!myVtf->writeVres(field,++nBlock,geomID))
+    if (!myVtf->writeVres(field,++nBlock,++geomID))
       return false;
-    else
-      vID.push_back(nBlock);
+
+    vID.push_back(nBlock);
   }
   if (myModel.size() > 1 && msgLevel > 1)
     IFEM::cout << std::endl;
@@ -1644,6 +1665,29 @@ bool SIMoutput::savePoints (const Vector& psol, double time, int step) const
             return false;
           break;
         }
+
+  return true;
+}
+
+
+bool SIMoutput::extractNodeVec (const Vector& glbVec, Vector& locVec,
+                                const ASMbase* patch, int nodalCmps,
+                                bool& emptyPatches) const
+{
+  if (patch->empty())
+  {
+    emptyPatches = true;
+    if (nodalCmps != 0 && nodalCmps != patch->getNoFields())
+    {
+      std::cerr <<" *** SIMoutput::extractNodeVec: Can't extract "<< nodalCmps
+                <<"-nodal component vectors with empty patches."<< std::endl;
+      return false; // Can't use MADOF since different number of nodal DOFs
+    }
+  }
+  else if (emptyPatches)
+    patch->extractNodalVec(glbVec,locVec,mySam->getMADOF());
+  else
+    patch->extractNodeVec(glbVec,locVec,nodalCmps);
 
   return true;
 }
