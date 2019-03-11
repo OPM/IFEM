@@ -56,7 +56,7 @@ bool ModelGenerator::createGeometry (SIMinput& sim) const
   utl::getAttribute(geo,"rational",rational);
 
   std::istringstream g2(this->createG2(sim.getNoSpaceDim(),rational));
-  return sim.readPatches(g2);
+  return sim.readPatches(g2,nullptr);
 }
 
 
