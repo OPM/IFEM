@@ -831,15 +831,19 @@ bool ASMu3D::integrate (Integrand& integrand,
 
   PROFILE2("ASMu3D::integrate(I)");
 
-  // Get Gaussian quadrature points and weights
-  const double* xg = GaussQuadrature::getCoord(nGauss);
-  const double* wg = GaussQuadrature::getWeight(nGauss);
-  if (!xg || !wg) return false;
-
-  // Evaluate all gauss points on the bezier patch (-1, 1)
   int p1 = lrspline->order(0);
   int p2 = lrspline->order(1);
   int p3 = lrspline->order(2);
+
+  // Get Gaussian quadrature points and weights
+  int nGP = nGauss;
+  if (nGP == 0)
+    nGP = this->getNoGaussPt(std::max(std::max(p1,p2),p3));
+  const double* xg = GaussQuadrature::getCoord(nGP);
+  const double* wg = GaussQuadrature::getWeight(nGP);
+  if (!xg || !wg) return false;
+
+  // Evaluate all gauss points on the bezier patch (-1, 1)
   double u[2*p1], v[2*p2], w[2*p3];
   Go::BsplineBasis basis1 = getBezierBasis(p1);
   Go::BsplineBasis basis2 = getBezierBasis(p2);
@@ -1150,17 +1154,20 @@ bool ASMu3D::integrate (Integrand& integrand, int lIndex,
 
   PROFILE2("ASMu3D::integrate(B)");
 
-  // Get Gaussian quadrature points and weights
-  int nGP = integrand.getBouIntegrationPoints(nGauss);
-  const double* xg = GaussQuadrature::getCoord(nGP);
-  const double* wg = GaussQuadrature::getWeight(nGP);
-  if (!xg || !wg) return false;
-
   // Find the parametric direction of the face normal {-3,-2,-1, 1, 2, 3}
   const int faceDir = (lIndex%10+1)/((lIndex%2) ? -2 : 2);
 
   const int t1 = 1 + abs(faceDir)%3; // first tangent direction
   const int t2 = 1 + t1%3;           // second tangent direction
+
+  // Get Gaussian quadrature points and weights
+  int nGP = integrand.getBouIntegrationPoints(nGauss);
+  if (nGP == 0)
+    nGP = this->getNoGaussPt(std::max(lrspline->order(t1),lrspline->order(t2)),true);
+
+  const double* xg = GaussQuadrature::getCoord(nGP);
+  const double* wg = GaussQuadrature::getWeight(nGP);
+  if (!xg || !wg) return false;
 
   // Extract the Neumann order flag (1 or higher) for the integrand
   integrand.setNeumannOrder(1 + lIndex/10);
