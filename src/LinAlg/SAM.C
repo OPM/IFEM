@@ -309,39 +309,6 @@ int SAM::getNoNodes (char dofType) const
 }
 
 
-int SAM::getMaxDofCouplings () const
-{
-  std::vector<IntSet> dofc;
-  if (!this->getDofCouplings(dofc))
-    return 0;
-
-  size_t maxdofc = 0;
-  for (int i = 0; i < neq; i++)
-    if (dofc[i].size() > maxdofc)
-      maxdofc = dofc[i].size();
-
-  return maxdofc;
-}
-
-
-bool SAM::getNoDofCouplings (IntVec& nnz) const
-{
-  nnz.clear();
-
-  // Find the set of DOF couplings for each free DOF
-  std::vector<IntSet> dofc;
-  if (!this->getDofCouplings(dofc))
-    return false;
-
-  // Find total number of DOF couplings or non-zeroes in the system matrix
-  nnz.reserve(neq);
-  for (int i = 0; i < neq; i++)
-    nnz.push_back(dofc[i].size());
-
-  return true;
-}
-
-
 bool SAM::getDofCouplings (IntVec& irow, IntVec& jcol) const
 {
   irow.clear();
@@ -957,11 +924,26 @@ Real SAM::normReact (const Vector& u, const Vector& rf) const
 #if SP_DEBUG > 1
         std::cout <<"SAM::normReact: idof="<< i+1 <<" SC="<< msc[i]
                   <<" u="<< u[i] <<" RF="<< rf(-msc[i]) <<" --> "
-                  << 0.5*retVal << std::endl;
+                  << retVal << std::endl;
 #endif
       }
 
-  return 0.5*retVal;
+  return retVal;
+}
+
+
+bool SAM::haveReaction (int dir, const IntVec* nodes) const
+{
+  if (dir > 0 && nspdof > 0)
+    for (int i = 0; i < nnod; i++)
+      if (!nodes || std::find(nodes->begin(),nodes->end(),i+1) != nodes->end())
+      {
+        int idof = madof[i]+dir-2;
+        if (idof < madof[i+1]-1 && msc[idof] < 0 && -msc[idof] <= nspdof)
+          return true;
+      }
+
+  return false;
 }
 
 
@@ -969,7 +951,7 @@ Real SAM::getReaction (int dir, const Vector& rf, const IntVec* nodes) const
 {
   Real retVal = Real(0);
 
-  if (dir > 0)
+  if (dir > 0 && nspdof > 0)
     for (int i = 0; i < nnod; i++)
       if (!nodes || std::find(nodes->begin(),nodes->end(),i+1) != nodes->end())
       {

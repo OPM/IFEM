@@ -48,7 +48,8 @@ struct Mode
   double eigVal; //!< Eigenvalue associated with this mode
   Vector eigVec; //!< Eigenvector associated with this mode
   Vector eqnVec; //!< Eigenvector associated with this mode in equation order
-  // \brief Default constructor.
+
+  //! \brief Default constructor.
   Mode() : eigNo(0), eigVal(0.0) {}
 };
 
@@ -173,6 +174,8 @@ public:
   int getNoPatches() const { return nGlPatches; }
   //! \brief Returns the number of unknowns in the linear equation system.
   size_t getNoEquations() const;
+  //! \brief Returns the number of constraint equations in the model.
+  size_t getNoConstraints() const;
   //! \brief Returns the number of right-hand-side vectors.
   virtual size_t getNoRHS() const;
   //! \brief Returns the number of bases in the model.
@@ -419,6 +422,9 @@ public:
   //! \param[out] RF Reaction force in each spatial direction
   //! \param[in] pcode Property code identifying the boundary
   bool getCurrentReactions(RealArray& RF, int pcode) const;
+  //! \brief Checks for total reaction forces associated with a boundary.
+  //! \param[in] pcode Property code identifying the boundary (0 = all)
+  bool haveReactions(int pcode = 0) const;
   //! \brief Returns current reaction force vector.
   virtual const Vector* getReactionForces() const;
   //! \brief Computes the total external load of current time/load step.
@@ -728,6 +734,7 @@ protected:
     std::set<int> step;   //!< Dump step identifiers
     int           count;  //!< Internal step counter, dump only when step==count
     double        eps;    //!< Zero tolerance for printing small values
+
     //! \brief Default constructor.
     DumpData() : format('P'), count(0), eps(1.0e-6) { step.insert(1); }
     //! \brief Checks if the matrix or vector should be dumped now.

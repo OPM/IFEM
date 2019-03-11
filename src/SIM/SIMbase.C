@@ -655,6 +655,12 @@ size_t SIMbase::getNoEquations () const
 }
 
 
+size_t SIMbase::getNoConstraints () const
+{
+  return mySam ? mySam->getNoConstraints() : 0;
+}
+
+
 size_t SIMbase::getNoRHS () const
 {
   return myEqSys ? myEqSys->getNoRHS() : (this->haveDualSol() ? 2 : 1);
@@ -1526,20 +1532,20 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
 
 double SIMbase::externalEnergy (const Vectors& psol, const TimeDomain&) const
 {
-  const Vector* reactionForces = this->getReactionForces();
-  if (!reactionForces || !mySam || psol.empty()) return 0.0;
+  const Vector* reactionFrcs = this->getReactionForces();
+  if (!reactionFrcs || !mySam || psol.empty()) return 0.0;
 
   // Add norm contributions due to inhomogeneous Dirichlet boundary conditions.
   // That is, the path integral of the total solution vector times the
   // reaction forces at the prescribed DOFs.
   if (psol.size() == 1)
-    return mySam->normReact(psol.front(),*reactionForces);
+    return mySam->normReact(psol.front(),*reactionFrcs);
 
   if (prevForces.empty())
-    extEnergy += mySam->normReact(psol[0]-psol[1],*reactionForces);
+    extEnergy += 0.5*mySam->normReact(psol[0]-psol[1],*reactionFrcs);
   else
-    extEnergy += mySam->normReact(psol[0]-psol[1],*reactionForces+prevForces);
-  prevForces = *reactionForces;
+    extEnergy += 0.5*mySam->normReact(psol[0]-psol[1],*reactionFrcs+prevForces);
+  prevForces = *reactionFrcs;
 
   return extEnergy;
 }
@@ -1561,7 +1567,7 @@ bool SIMbase::getCurrentReactions (RealArray& RF, const Vector& psol) const
   if (!reactionForces || !mySam) return false;
 
   RF.resize(1+nsd);
-  RF.front() = 2.0*mySam->normReact(psol,*reactionForces);
+  RF.front() = mySam->normReact(psol,*reactionForces);
   for (unsigned char dir = 1; dir <= nsd; dir++)
     RF[dir] = mySam->getReaction(dir,*reactionForces);
 
@@ -1582,6 +1588,20 @@ bool SIMbase::getCurrentReactions (RealArray& RF, int pcode) const
     RF[dir-1] = mySam->getReaction(dir,*reactionForces,&glbNodes);
 
   return true;
+}
+
+
+bool SIMbase::haveReactions (int pcode) const
+{
+  IntVec glbNodes;
+  if (pcode > 0)
+    this->getBoundaryNodes(pcode,glbNodes);
+
+  for (unsigned char dir = 1; dir <= nsd; dir++)
+    if (mySam->haveReaction(dir, pcode > 0 ? &glbNodes : nullptr))
+      return true;
+
+  return false;
 }
 
 

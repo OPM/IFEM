@@ -52,8 +52,10 @@ public:
   int getNoNodes(char dofType = 'A') const;
   //! \brief Returns the total number of DOFs in the model.
   int getNoDOFs() const { return ndof; }
+  //! \brief Returns the total number of constraint equations in the model.
+  int getNoConstraints() const { return nceq; }
   //! \brief Returns the number of equations (free DOFs) in the model.
-  virtual int getNoEquations() const { return neq; }
+  int getNoEquations() const { return neq; }
   //! \brief Returns the equations numbers for a given DOF type.
   //! \param[in] dType The DOF type to consider
   //! \param[in] dof The local DOF in each node to consider (0 = all)
@@ -62,16 +64,6 @@ public:
   const int* getMADOF() const { return madof; }
   //! \brief Returns the Matrix of EQuation Numbers.
   const int* getMEQN() const { return meqn; }
-
-  //! \brief Returns max number of DOF couplings in the model.
-  int getMaxDofCouplings() const;
-
-  //! \brief Computes number of couplings for each free DOF in the model.
-  //! \param[out] nnz Number of couplings (non-zeroes) for each DOF
-  virtual bool getNoDofCouplings(IntVec& nnz) const;
-  //! \brief Interface to computation of DOF couplings for distributed matrices.
-  virtual bool getNoDofCouplings(int, int, IntVec&, IntVec&) const
-  { return false; }
 
   //! \brief Computes the sparse structure (DOF couplings) in the system matrix.
   //! \param[out] irow start index for each row in jcol
@@ -105,8 +97,8 @@ public:
   //! \param sysRHS The system right-hand-side load vector to be initialized
   //! \param reactionForces Pointer to vector of nodal reaction forces
   //! \return \e false if no free DOFs in the system, otherwise \e true
-  virtual bool initForAssembly(SystemVector& sysRHS,
-			       Vector* reactionForces = nullptr) const;
+  bool initForAssembly(SystemVector& sysRHS,
+                       Vector* reactionForces = nullptr) const;
 
   //! \brief Adds an element stiffness matrix into the system stiffness matrix.
   //! \param sysK    The left-hand-side system stiffness matrix
@@ -139,9 +131,9 @@ public:
   //!
   //! \details When multi-point constraints are present, contributions from
   //! these are added into the right-hand-side system load vector.
-  virtual bool assembleSystem(SystemVector& sysRHS,
-			      const Matrix& eK, int iel = 0,
-			      Vector* reactionForces = nullptr) const;
+  bool assembleSystem(SystemVector& sysRHS,
+                      const Matrix& eK, int iel = 0,
+                      Vector* reactionForces = nullptr) const;
 
   //! \brief Adds an element load vector into the system load vector.
   //! \param sysRHS  The right-hand-side system load vector
@@ -149,9 +141,9 @@ public:
   //! \param[in] iel Identifier for the element that \a eS belongs to
   //! \param reactionForces Pointer to vector of nodal reaction forces
   //! \return \e true on successful assembly, otherwise \e false
-  virtual bool assembleSystem(SystemVector& sysRHS,
-			      const RealArray& eS, int iel = 0,
-			      Vector* reactionForces = nullptr) const;
+  bool assembleSystem(SystemVector& sysRHS,
+                      const RealArray& eS, int iel = 0,
+                      Vector* reactionForces = nullptr) const;
 
   //! \brief Adds a node load vector into the system load vector.
   //! \param sysRHS The right-hand-side system load vector
@@ -174,7 +166,7 @@ public:
   //! \brief Adds a global load vector into the system load vector.
   //! \param sysRHS The right-hand-side system load vector
   //! \param[in] S  The global load vector
-  virtual void addToRHS(SystemVector& sysRHS, const RealArray& S) const;
+  void addToRHS(SystemVector& sysRHS, const RealArray& S) const;
 
   //! \brief Finds the matrix of nodal point correspondance for an element.
   //! \param[out] mnpc Matrix of nodal point correspondance
@@ -185,7 +177,7 @@ public:
   //! \param[in] iel Identifier for the element to get the equation numbers for
   //! \param[in] nedof Number of degrees of freedom in the element
   //! (used for internal consistency checking, unless zero)
-  virtual bool getElmEqns(IntVec& meen, int iel, int nedof = 0) const;
+  bool getElmEqns(IntVec& meen, int iel, int nedof = 0) const;
   //! \brief Returns the number equations for an element.
   //! \param[in] iel Identifier for the element to get number of equations for
   size_t getNoElmEqns(int iel) const;
@@ -272,8 +264,12 @@ public:
   //! \param[in] dir 1-based coordinate direction index
   //! \param[in] rf Compressed reaction force vector for the entire model
   //! \param[in] nodes The set of nodes to consider (null means all nodes)
-  virtual Real getReaction(int dir, const Vector& rf,
-                           const IntVec* nodes = nullptr) const;
+  Real getReaction(int dir, const Vector& rf,
+                   const IntVec* nodes = nullptr) const;
+  //! \brief Checks for total reaction force in the given coordinate direction.
+  //! \param[in] dir 1-based coordinate direction index
+  //! \param[in] nodes The set of nodes to consider (null means all nodes)
+  bool haveReaction(int dir, const IntVec* nodes = nullptr) const;
   //! \brief Returns a vector of reaction forces for a given node.
   //! \param[in] inod Identifier for the node to get the reaction forces for
   //! \param[in] rf Compressed reaction force vector for the entire model
@@ -283,7 +279,7 @@ public:
 
 protected:
   //! \brief Initializes the DOF-to-equation connectivity array \a MEQN.
-  virtual bool initSystemEquations();
+  bool initSystemEquations();
 
   //! \brief Adds a scalar value into a system right hand-side vector.
   //! \param RHS The right-hand-side system load vector
