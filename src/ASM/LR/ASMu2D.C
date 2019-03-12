@@ -1058,15 +1058,19 @@ bool ASMu2D::integrate (Integrand& integrand,
   bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
   bool use3rdDer = integrand.getIntegrandType() & Integrand::THIRD_DERIVATIVES;
 
+  const int p1 = lrspline->order(0);
+  const int p2 = lrspline->order(1);
+
   // Get Gaussian quadrature points and weights
-  const double* xg = GaussQuadrature::getCoord(nGauss);
-  const double* wg = GaussQuadrature::getWeight(nGauss);
+  const int nGP = this->getNoGaussPt(p1 > p2 ? p1 : p2);
+  const double* xg = GaussQuadrature::getCoord(nGP);
+  const double* wg = GaussQuadrature::getWeight(nGP);
   if (!xg || !wg) return false;
 
   // Get the reduced integration quadrature points, if needed
   const double* xr = nullptr;
   const double* wr = nullptr;
-  int nRed = integrand.getReducedIntegration(nGauss);
+  int nRed = integrand.getReducedIntegration(nGP);
   if (nRed > 0)
   {
     xr = GaussQuadrature::getCoord(nRed);
@@ -1074,7 +1078,7 @@ bool ASMu2D::integrate (Integrand& integrand,
     if (!xr || !wr) return false;
   }
   else if (nRed < 0)
-    nRed = nGauss; // The integrand needs to know nGauss
+    nRed = nGP; // The integrand needs to know nGauss
 
   // Evaluate basis function values and derivatives at all integration points.
   // We do this before the integration point loop to exploit multi-threading
@@ -1085,11 +1089,11 @@ bool ASMu2D::integrate (Integrand& integrand,
   std::vector<Go::BasisDerivsSf3> spline3;
 
   if (use3rdDer)
-    spline3.resize(nel*nGauss*nGauss);
+    spline3.resize(nel*nGP*nGP);
   else if (use2ndDer)
-    spline2.resize(nel*nGauss*nGauss);
+    spline2.resize(nel*nGP*nGP);
   else
-    spline1.resize(nel*nGauss*nGauss);
+    spline1.resize(nel*nGP*nGP);
   if (xr)
     splineRed.resize(nel*nRed*nRed);
 
@@ -1097,10 +1101,10 @@ bool ASMu2D::integrate (Integrand& integrand,
   for (iel = jp = rp = 0; iel < nel; iel++)
   {
     RealArray u, v;
-    this->getGaussPointParameters(u,0,nGauss,1+iel,xg);
-    this->getGaussPointParameters(v,1,nGauss,1+iel,xg);
-    for (int j = 0; j < nGauss; j++)
-      for (int i = 0; i < nGauss; i++, jp++)
+    this->getGaussPointParameters(u,0,nGP,1+iel,xg);
+    this->getGaussPointParameters(v,1,nGP,1+iel,xg);
+    for (int j = 0; j < nGP; j++)
+      for (int i = 0; i < nGP; i++, jp++)
         if (use3rdDer)
           this->computeBasis(u[i],v[j],spline3[jp],iel);
         else if (use2ndDer)
@@ -1141,8 +1145,8 @@ bool ASMu2D::integrate (Integrand& integrand,
 
       FiniteElement fe;
       fe.iel = MLGE[iel-1];
-      fe.p   = lrspline->order(0) - 1;
-      fe.q   = lrspline->order(1) - 1;
+      fe.p   = p1 - 1;
+      fe.q   = p2 - 1;
       Matrix   dNdu, Xnod, Jac;
       Matrix3D d2Ndu2, Hess;
       Matrix4D d3Ndu3;
@@ -1169,7 +1173,7 @@ bool ASMu2D::integrate (Integrand& integrand,
       std::array<RealArray,2> gpar, redpar;
       for (int d = 0; d < 2; d++)
       {
-        this->getGaussPointParameters(gpar[d],d,nGauss,iel,xg);
+        this->getGaussPointParameters(gpar[d],d,nGP,iel,xg);
         if (xr)
           this->getGaussPointParameters(redpar[d],d,nRed,iel,xr);
       }
@@ -1251,11 +1255,11 @@ bool ASMu2D::integrate (Integrand& integrand,
 
       // --- Integration loop over all Gauss points in each direction ----------
 
-      int jp = (iel-1)*nGauss*nGauss;
+      int jp = (iel-1)*nGP*nGP;
       fe.iGP = firstIp + jp; // Global integration point counter
 
-      for (int j = 0; j < nGauss; j++)
-        for (int i = 0; i < nGauss; i++, fe.iGP++)
+      for (int j = 0; j < nGP; j++)
+        for (int i = 0; i < nGP; i++, fe.iGP++)
         {
           // Local element coordinates of current integration point
           fe.xi  = xg[i];
@@ -1357,7 +1361,7 @@ bool ASMu2D::integrate (Integrand& integrand,
 {
   if (!lrspline) return true; // silently ignore empty patches
 
-  if (integrand.getReducedIntegration(nGauss) != 0)
+  if (integrand.getReducedIntegration(2) != 0)
   {
     std::cerr <<" *** ASMu2D::integrate(Integrand&,GlobalIntegral&,"
               <<"const TimeDomain&,const Real3DMat&): Available for standard"
@@ -1546,8 +1550,12 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
 
   PROFILE2("ASMu2D::integrate(B)");
 
+  const int p1 = lrspline->order(0);
+  const int p2 = lrspline->order(1);
+
   // Get Gaussian quadrature points and weights
-  int nGP = integrand.getBouIntegrationPoints(nGauss);
+  int nG1 = this->getNoGaussPt(lIndex%10 < 3 ? p1 : p2, true);
+  int nGP = integrand.getBouIntegrationPoints(nG1);
   const double* xg = GaussQuadrature::getCoord(nGP);
   const double* wg = GaussQuadrature::getWeight(nGP);
   if (!xg || !wg) return false;
@@ -1578,8 +1586,8 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
   size_t firstp = iit == firstBp.end() ? 0 : iit->second;
 
   FiniteElement fe;
-  fe.p  = lrspline->order(0) - 1;
-  fe.q  = lrspline->order(1) - 1;
+  fe.p  = p1 - 1;
+  fe.q  = p2 - 1;
   fe.xi = fe.eta = edgeDir < 0 ? -1.0 : 1.0;
   double param[3] = { 0.0, 0.0, 0.0 };
 

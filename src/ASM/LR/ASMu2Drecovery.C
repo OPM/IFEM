@@ -106,13 +106,14 @@ bool ASMu2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
 
   const int p1 = projBasis->order(0);
   const int p2 = projBasis->order(1);
+  const int pm = p1 > p2 ? p1 : p2;
 
   // Get Gaussian quadrature points
-  const int ng1 = continuous ? nGauss : p1 - 1;
-  const int ng2 = continuous ? nGauss : p2 - 1;
+  const int ng1 = continuous ? this->getNoGaussPt(pm,true) : p1 - 1;
+  const int ng2 = continuous ? ng1 : p2 - 1;
   const double* xg = GaussQuadrature::getCoord(ng1);
   const double* yg = GaussQuadrature::getCoord(ng2);
-  const double* wg = continuous ? GaussQuadrature::getWeight(nGauss) : nullptr;
+  const double* wg = continuous ? GaussQuadrature::getWeight(ng1) : nullptr;
   if (!xg || !yg) return false;
   if (continuous && !wg) return false;
 
@@ -463,11 +464,6 @@ bool ASMu2D::edgeL2projection (const DirichletEdge& edge,
   StdVector B(n*m);
   A.resize(n,n);
 
-  // Get Gaussian quadrature points and weights
-  const double* xg = GaussQuadrature::getCoord(nGauss);
-  const double* wg = GaussQuadrature::getWeight(nGauss);
-  if (!xg || !wg) return false;
-
   // find the normal and tangent direction for the edge
   int edgeDir, t1, t2;
   switch (edge.edg)
@@ -479,16 +475,22 @@ bool ASMu2D::edgeL2projection (const DirichletEdge& edge,
     default:        return false;
   }
 
+  // Get Gaussian quadrature points and weights
+  const int nGP = this->getNoGaussPt(lrspline->order(t2),true);
+  const double* xg = GaussQuadrature::getCoord(nGP);
+  const double* wg = GaussQuadrature::getWeight(nGP);
+  if (!xg || !wg) return false;
+
   std::array<Vector,2> gpar;
   for (int d = 0; d < 2; d++)
     if (-1-d == edgeDir)
     {
-      gpar[d].resize(nGauss);
+      gpar[d].resize(nGP);
       gpar[d].fill(d == 0 ? lrspline->startparam(0) : lrspline->startparam(1));
     }
     else if (1+d == edgeDir)
     {
-      gpar[d].resize(nGauss);
+      gpar[d].resize(nGP);
       gpar[d].fill(d == 0 ? lrspline->endparam(0) : lrspline->endparam(1));
     }
 
@@ -511,11 +513,11 @@ bool ASMu2D::edgeL2projection (const DirichletEdge& edge,
     if (!this->getElementCoordinates(Xnod,iel)) return false;
 
     // Get integration gauss points over this element
-    this->getGaussPointParameters(gpar[t2-1],t2-1,nGauss,iel,xg);
+    this->getGaussPointParameters(gpar[t2-1],t2-1,nGP,iel,xg);
 
     // --- Integration loop over all Gauss points along the edge ---------------
 
-    for (int j = 0; j < nGauss; j++)
+    for (int j = 0; j < nGP; j++)
     {
       // Parameter values of current integration point
       double u = param[0] = gpar[0][j];

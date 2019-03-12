@@ -30,9 +30,11 @@ bool ASMu3D::getGrevilleParameters (RealArray& prm, int dir, int basisNum) const
   if (!this->getBasis(basisNum) || dir < 0 || dir > 2) return false;
 
   const LR::LRSpline* lrspline = this->getBasis(basisNum);
+
   prm.clear();
   prm.reserve(lrspline->nBasisFunctions());
-  for (const LR::Basisfunction *b : lrspline->getAllBasisfunctions())
+
+  for (const LR::Basisfunction* b : lrspline->getAllBasisfunctions())
     prm.push_back(b->getGrevilleParameter()[dir]);
 
   return true;
@@ -109,15 +111,16 @@ bool ASMu3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
   const int p1 = lrspline->order(0);
   const int p2 = lrspline->order(1);
   const int p3 = lrspline->order(2);
+  const int pm = std::max(std::max(p1,p2),p3);
 
   // Get Gaussian quadrature points
-  const int ng1 = continuous ? nGauss : p1 - 1;
-  const int ng2 = continuous ? nGauss : p2 - 1;
-  const int ng3 = continuous ? nGauss : p3 - 1;
+  const int ng1 = continuous ? this->getNoGaussPt(pm,true)  : p1 - 1;
+  const int ng2 = continuous ? ng1 : p2 - 1;
+  const int ng3 = continuous ? ng1 : p3 - 1;
   const double* xg = GaussQuadrature::getCoord(ng1);
   const double* yg = GaussQuadrature::getCoord(ng2);
   const double* zg = GaussQuadrature::getCoord(ng3);
-  const double* wg = continuous ? GaussQuadrature::getWeight(nGauss) : nullptr;
+  const double* wg = continuous ? GaussQuadrature::getWeight(ng1) : nullptr;
   if (!xg || !yg || !zg) return false;
   if (continuous && !wg) return false;
 
@@ -147,8 +150,6 @@ bool ASMu3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
     this->getGaussPointParameters(gpar[0],0,ng1,iel,xg);
     this->getGaussPointParameters(gpar[1],1,ng2,iel,yg);
     this->getGaussPointParameters(gpar[2],2,ng3,iel,zg);
-
-    // convert to unstructured mesh representation
     expandTensorGrid(gpar.data(),unstrGpar.data());
 
     // Evaluate the secondary solution at all integration points
@@ -194,8 +195,8 @@ bool ASMu3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
             eB[r-1].add(phi,sField(r,ip+1)*dJw);
         }
 
-    for (size_t i = 0; i < MNPC[iel-1].size(); ++i) {
-      for (size_t j = 0; j < MNPC[iel-1].size(); ++j)
+    for (size_t i = 0; i < eA.rows(); ++i) {
+      for (size_t j = 0; j < eA.cols(); ++j)
         A(MNPC[iel-1][i]+1, MNPC[iel-1][j]+1) += eA(i+1, j+1);
 
       int jp = MNPC[iel-1][i]+1;
@@ -269,7 +270,7 @@ LR::LRSplineVolume* ASMu3D::scRecovery (const IntegrandBase& integrand) const
   size_t ip = 0;
   std::vector<LR::Element*>::const_iterator elStart, elEnd, el;
   std::vector<LR::Element*> supportElements;
-  for (LR::Basisfunction *b : lrspline->getAllBasisfunctions())
+  for (LR::Basisfunction* b : lrspline->getAllBasisfunctions())
   {
 #if SP_DEBUG > 2
     std::cout <<"Basis: "<< *b <<"\n  ng1 ="<< ng1 <<"\n  ng2 ="<< ng2 <<"\n  ng3 ="<< ng3
@@ -316,18 +317,15 @@ LR::LRSplineVolume* ASMu3D::scRecovery (const IntegrandBase& integrand) const
     for (el = elStart; el != elEnd; ++el)
     {
       int iel = (**el).getId()+1;
+#if SP_DEBUG > 2
+      std::cout <<"Element "<< **el << std::endl;
+#endif
 
       // evaluate all gauss points for this element
       std::array<RealArray,3> gaussPt, unstrGauss;
       this->getGaussPointParameters(gaussPt[0],0,ng1,iel,xg);
       this->getGaussPointParameters(gaussPt[1],1,ng2,iel,yg);
       this->getGaussPointParameters(gaussPt[2],2,ng3,iel,zg);
-
-#if SP_DEBUG > 2
-      std::cout << "Element " << **el << std::endl;
-#endif
-
-      // convert to unstructured mesh representation
       expandTensorGrid(gaussPt.data(),unstrGauss.data());
 
       // Evaluate the secondary solution at all Gauss points
@@ -471,11 +469,6 @@ bool ASMu3D::faceL2projection (const DirichletFace& face,
   StdVector B(n*m);
   A.resize(n,n);
 
-  // Get Gaussian quadrature points and weights
-  const double* xg = GaussQuadrature::getCoord(nGauss);
-  const double* wg = GaussQuadrature::getWeight(nGauss);
-  if (!xg || !wg) return false;
-
   // find the normal direction for the face
   int faceDir;
   switch (face.edg)
@@ -491,11 +484,21 @@ bool ASMu3D::faceL2projection (const DirichletFace& face,
   const int t1 = 1 + abs(faceDir)%3; // first tangent direction
   const int t2 = 1 + t1%3;           // second tangent direction
 
+  // Get Gaussian quadrature points and weights
+  // Use the largest polynomial order of the two tangent directions
+  const int pmax = std::max(lrspline->order(t1),lrspline->order(t2));
+  const int nGP  = this->getNoGaussPt(pmax,true);
+  const double* xg = GaussQuadrature::getCoord(nGP);
+  const double* wg = GaussQuadrature::getWeight(nGP);
+  if (!xg || !wg) return false;
+
   Vector N;
   Matrix dNdu, dNdX, Xnod, Jac;
-  Vec4   X;
+  double param[3] = { 0.0, 0.0, 0.0 };
+  Vec4   X(param);
 
   // === Assembly loop over all elements on the patch face =====================
+
   for (size_t ie = 0; ie < face.MLGE.size(); ie++) // for all face elements
   {
     int iel = 1 + face.MLGE[ie];
@@ -513,7 +516,7 @@ bool ASMu3D::faceL2projection (const DirichletFace& face,
         gpar[d].fill(lrspline->endparam(d));
       }
       else
-        this->getGaussPointParameters(gpar[d],d,nGauss,iel,xg);
+        this->getGaussPointParameters(gpar[d],d,nGP,iel,xg);
 
     // Get element face area in the parameter space
     double dA = 0.25*this->getParametricArea(iel,abs(faceDir));
@@ -522,13 +525,14 @@ bool ASMu3D::faceL2projection (const DirichletFace& face,
     // Set up control point coordinates for current element
     if (!this->getElementCoordinates(Xnod,iel)) return false;
 
-    double u = gpar[0].front();
-    double v = gpar[1].front();
-    double w = gpar[2].front();
+    double u = param[0] = gpar[0].front();
+    double v = param[1] = gpar[1].front();
+    double w = param[2] = gpar[2].front();
 
-    // --- Integration loop over all Gauss points over the face -------------
-    for (int j = 0; j < nGauss; j++)
-      for (int i = 0; i < nGauss; i++)
+    // --- Integration loop over all Gauss points over the face ----------------
+
+    for (int j = 0; j < nGP; j++)
+      for (int i = 0; i < nGP; i++)
       {
         // Parameter values of current integration point
         int k1, k2, k3;
@@ -539,9 +543,9 @@ bool ASMu3D::faceL2projection (const DirichletFace& face,
           case 3: k1 = i; k2 = j; k3 = 0; break;
           default: k1 = k2 = k3 = 0;
         }
-        if (gpar[0].size() > 1) u = gpar[0](k1+1);
-        if (gpar[1].size() > 1) v = gpar[1](k2+1);
-        if (gpar[2].size() > 1) w = gpar[2](k3+1);
+        if (gpar[0].size() > 1) u = param[0] = gpar[0](k1+1);
+        if (gpar[1].size() > 1) v = param[1] = gpar[1](k2+1);
+        if (gpar[2].size() > 1) w = param[2] = gpar[2](k3+1);
 
         // Evaluate basis function derivatives at integration points
         this->evaluateBasis(iel-1, myGeoBasis, u, v, w, N, dNdu);
@@ -551,7 +555,7 @@ bool ASMu3D::faceL2projection (const DirichletFace& face,
         if (dJxW == 0.0) continue; // skip singular points
 
         // Cartesian coordinates of current integration point
-        X = Xnod * N;
+        X.assign(Xnod * N);
         X.t = time;
 
         // For mixed basis, we need to compute functions separate from geometry

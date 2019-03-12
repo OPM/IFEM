@@ -724,7 +724,7 @@ double ASMu3D::getElementCorners (int iEl, Vec3Vec& XC) const
 void ASMu3D::evaluateBasis (int iel, int basis, double u, double v, double w,
                             Vector& N, Matrix& dNdu) const
 {
-  PROFILE2("Spline evaluation");
+  PROFILE3("ASMu3D::evalBasis(1)");
 
   std::vector<RealArray> result;
   this->getBasis(basis)->computeBasis(u, v, w, result, 1, iel);
@@ -749,7 +749,7 @@ void ASMu3D::evaluateBasis (int iel, FiniteElement& fe, Matrix& dNdu,
 void ASMu3D::evaluateBasis (FiniteElement& fe, Matrix& dNdu,
                             const Matrix& C, const Matrix& B, int basis) const
 {
-  PROFILE2("BeSpline evaluation");
+  PROFILE3("ASMu3D::evalBasis(BE)");
 
   Matrix N = C*B;
   dNdu.resize(N.rows(),3);
@@ -763,7 +763,7 @@ void ASMu3D::evaluateBasis (int iel, FiniteElement& fe,
                             Matrix& dNdu, Matrix3D& d2Ndu2,
                             int basis) const
 {
-  PROFILE2("Spline evaluation");
+  PROFILE3("ASMu3D::evalBasis(2)");
 
   std::vector<RealArray> result;
   this->getBasis(basis)->computeBasis(fe.u, fe.v, fe.w, result, 2, iel);
@@ -790,7 +790,7 @@ void ASMu3D::evaluateBasis (int iel, FiniteElement& fe,
 void ASMu3D::evaluateBasis (int iel, FiniteElement& fe, int derivs,
                             int basis) const
 {
-  PROFILE2("Spline evaluation");
+  PROFILE3("ASMu2D::evalBasis");
 
   std::vector<RealArray> result;
   this->getBasis(basis)->computeBasis(fe.u, fe.v, fe.w, result, derivs, iel);
@@ -831,27 +831,30 @@ bool ASMu3D::integrate (Integrand& integrand,
 
   PROFILE2("ASMu3D::integrate(I)");
 
-  // Get Gaussian quadrature points and weights
-  const double* xg = GaussQuadrature::getCoord(nGauss);
-  const double* wg = GaussQuadrature::getWeight(nGauss);
-  if (!xg || !wg) return false;
-
-  // Evaluate all gauss points on the bezier patch (-1, 1)
   int p1 = lrspline->order(0);
   int p2 = lrspline->order(1);
   int p3 = lrspline->order(2);
+  int pm = std::max(std::max(p1,p2),p3);
+
+  // Get Gaussian quadrature points and weights
+  int nGP = this->getNoGaussPt(pm);
+  const double* xg = GaussQuadrature::getCoord(nGP);
+  const double* wg = GaussQuadrature::getWeight(nGP);
+  if (!xg || !wg) return false;
+
+  // Evaluate all gauss points on the bezier patch (-1, 1)
   double u[2*p1], v[2*p2], w[2*p3];
   Go::BsplineBasis basis1 = getBezierBasis(p1);
   Go::BsplineBasis basis2 = getBezierBasis(p2);
   Go::BsplineBasis basis3 = getBezierBasis(p3);
-  Matrix BN(   p1*p2*p3, nGauss*nGauss*nGauss), rBN;
-  Matrix BdNdu(p1*p2*p3, nGauss*nGauss*nGauss), rBdNdu;
-  Matrix BdNdv(p1*p2*p3, nGauss*nGauss*nGauss), rBdNdv;
-  Matrix BdNdw(p1*p2*p3, nGauss*nGauss*nGauss), rBdNdw;
+  Matrix BN(   p1*p2*p3, nGP*nGP*nGP), rBN;
+  Matrix BdNdu(p1*p2*p3, nGP*nGP*nGP), rBdNdu;
+  Matrix BdNdv(p1*p2*p3, nGP*nGP*nGP), rBdNdv;
+  Matrix BdNdw(p1*p2*p3, nGP*nGP*nGP), rBdNdw;
   int ig = 1; // gauss point iterator
-  for (int zeta = 0; zeta < nGauss; zeta++)
-    for (int eta = 0; eta < nGauss; eta++)
-      for (int xi = 0; xi < nGauss; xi++, ig++) {
+  for (int zeta = 0; zeta < nGP; zeta++)
+    for (int eta = 0; eta < nGP; eta++)
+      for (int xi = 0; xi < nGP; xi++, ig++) {
         basis1.computeBasisValues(xg[xi],   u, 1);
         basis2.computeBasisValues(xg[eta],  v, 1);
         basis3.computeBasisValues(xg[zeta], w, 1);
@@ -869,7 +872,7 @@ bool ASMu3D::integrate (Integrand& integrand,
   // Get the reduced integration quadrature points, if needed
   const double* xr = nullptr;
   const double* wr = nullptr;
-  int nRed = integrand.getReducedIntegration(nGauss);
+  int nRed = integrand.getReducedIntegration(nGP);
   if (nRed > 0)
   {
     xr = GaussQuadrature::getCoord(nRed);
@@ -899,7 +902,7 @@ bool ASMu3D::integrate (Integrand& integrand,
         }
   }
   else if (nRed < 0)
-    nRed = nGauss; // The integrand needs to know nGauss
+    nRed = nGP; // The integrand needs to know nGauss
 
   ThreadGroups oneGroup;
   if (glInt.threadSafe()) oneGroup.oneGroup(nel);
@@ -958,7 +961,7 @@ bool ASMu3D::integrate (Integrand& integrand,
       std::array<RealArray,3> gpar, redpar;
       for (int d = 0; d < 3; d++)
       {
-        this->getGaussPointParameters(gpar[d],d,nGauss,iel,xg);
+        this->getGaussPointParameters(gpar[d],d,nGP,iel,xg);
         if (xr)
           this->getGaussPointParameters(redpar[d],d,nRed,iel,xr);
       }
@@ -1040,12 +1043,12 @@ bool ASMu3D::integrate (Integrand& integrand,
       // --- Integration loop over all Gauss points in each direction ----------
 
       int ig = 1;
-      int jp = (iel-1)*nGauss*nGauss*nGauss;
+      int jp = (iel-1)*nGP*nGP*nGP;
       fe.iGP = firstIp + jp; // Global integration point counter
 
-      for (int k = 0; k < nGauss; k++)
-        for (int j = 0; j < nGauss; j++)
-          for (int i = 0; i < nGauss; i++, fe.iGP++, ig++)
+      for (int k = 0; k < nGP; k++)
+        for (int j = 0; j < nGP; j++)
+          for (int i = 0; i < nGP; i++, fe.iGP++, ig++)
           {
             // Local element coordinates of current integration point
             fe.xi   = xg[i];
@@ -1150,17 +1153,20 @@ bool ASMu3D::integrate (Integrand& integrand, int lIndex,
 
   PROFILE2("ASMu3D::integrate(B)");
 
-  // Get Gaussian quadrature points and weights
-  int nGP = integrand.getBouIntegrationPoints(nGauss);
-  const double* xg = GaussQuadrature::getCoord(nGP);
-  const double* wg = GaussQuadrature::getWeight(nGP);
-  if (!xg || !wg) return false;
-
   // Find the parametric direction of the face normal {-3,-2,-1, 1, 2, 3}
   const int faceDir = (lIndex%10+1)/((lIndex%2) ? -2 : 2);
 
   const int t1 = 1 + abs(faceDir)%3; // first tangent direction
   const int t2 = 1 + t1%3;           // second tangent direction
+
+  // Get Gaussian quadrature points and weights
+  // Use the largest polynomial order of the two tangent directions
+  const int pmax = std::max(lrspline->order(t1),lrspline->order(t2));
+  const int nG1 = this->getNoGaussPt(pmax,true);
+  const int nGP = integrand.getBouIntegrationPoints(nG1);
+  const double* xg = GaussQuadrature::getCoord(nGP);
+  const double* wg = GaussQuadrature::getWeight(nGP);
+  if (!xg || !wg) return false;
 
   // Extract the Neumann order flag (1 or higher) for the integrand
   integrand.setNeumannOrder(1 + lIndex/10);
@@ -1230,7 +1236,7 @@ bool ASMu3D::integrate (Integrand& integrand, int lIndex,
     double dXidu[3];
 
     // Get element face area in the parameter space
-    double dA = this->getParametricArea(iEl+1,abs(faceDir));
+    double dA = 0.25*this->getParametricArea(iEl+1,abs(faceDir));
     if (dA < 0.0) // topology error (probably logic error)
     {
       ok = false;
@@ -1311,12 +1317,17 @@ bool ASMu3D::integrate (Integrand& integrand, int lIndex,
         if (integrand.getIntegrandType() & Integrand::G_MATRIX)
           utl::getGmat(Jac,dXidu,fe.G);
 
+#if SP_DEBUG > 4
+        if (iEl+1 == dbgElm || iEl+1 == -dbgElm || dbgElm == 0)
+          std::cout <<"\n"<< fe;
+#endif
+
         // Cartesian coordinates of current integration point
         X.assign(Xnod * fe.N);
         X.t = time.t;
 
         // Evaluate the integrand and accumulate element contributions
-        fe.detJxW *= 0.25*dA*wg[i]*wg[j];
+        fe.detJxW *= dA*wg[i]*wg[j];
         if (!integrand.evalBou(*A,fe,time,X,normal))
           ok = false;
     }
@@ -1347,177 +1358,6 @@ bool ASMu3D::integrateEdge (Integrand& integrand, int lEdge,
 {
   std::cerr << "ASMu3D::integrateEdge(...) is not properly implemented yet :(" << std::endl;
   exit(776654);
-#if 0
-  if (!lrspline) return true; // silently ignore empty patches
-
-  PROFILE2("ASMu3D::integrate(E)");
-
-  // Get Gaussian quadrature points and weights
-  const double* xg = GaussQuadrature::getCoord(nGauss);
-  const double* wg = GaussQuadrature::getWeight(nGauss);
-  if (!xg || !wg) return false;
-
-  // Compute parameter values of the Gauss points along the whole patch edge
-  std::array<Matrix,3> gpar;
-  for (int d = 0; d < 3; d++)
-    if (lEdge < d*4+1 || lEdge >= d*4+5)
-    {
-      gpar[d].resize(1,1);
-      if (lEdge%4 == 1)
-  gpar[d].fill(lrspline->startparam(d));
-      else if (lEdge%4 == 0)
-  gpar[d].fill(lrspline->endparam(d));
-      else if (lEdge == 6 || lEdge == 10)
-  gpar[d].fill(d == 0 ? lrspline->endparam(d) : lrspline->startparam(d));
-      else if (lEdge == 2 || lEdge == 11)
-  gpar[d].fill(d == 1 ? lrspline->endparam(d) : lrspline->startparam(d));
-      else if (lEdge == 3 || lEdge == 7)
-  gpar[d].fill(d == 2 ? lrspline->endparam(d) : lrspline->startparam(d));
-    }
-    else
-    {
-      int pm1 = lrspline->order(d) - 1;
-      RealArray::const_iterator uit = lrspline->basis(d).begin() + pm1;
-      double ucurr, uprev = *(uit++);
-      int nCol = lrspline->numCoefs(d) - pm1;
-      gpar[d].resize(nGauss,nCol);
-      for (int j = 1; j <= nCol; uit++, j++)
-      {
-  ucurr = *uit;
-  for (int i = 1; i <= nGauss; i++)
-    gpar[d](i,j) = 0.5*((ucurr-uprev)*xg[i-1] + ucurr+uprev);
-  uprev = ucurr;
-      }
-    }
-
-  // Evaluate basis function derivatives at all integration points
-  std::vector<Go::BasisDerivs> spline;
-  {
-    PROFILE2("Spline evaluation");
-    lrspline->computeBasisGrid(gpar[0],gpar[1],gpar[2],spline);
-  }
-
-  const int n1 = lrspline->numCoefs(0);
-  const int n2 = lrspline->numCoefs(1);
-  const int n3 = lrspline->numCoefs(2);
-
-  const int p1 = lrspline->order(0);
-  const int p2 = lrspline->order(1);
-  const int p3 = lrspline->order(2);
-
-  std::map<char,size_t>::const_iterator iit = firstBp.find(lEdge);
-  size_t firstp = iit == firstBp.end() ? 0 : iit->second;
-
-  FiniteElement fe(p1*p2*p3);
-  fe.u = gpar[0](1,1);
-  fe.v = gpar[1](1,1);
-  fe.w = gpar[2](1,1);
-  if (gpar[0].size() == 1) fe.xi = fe.u == lrspline->startparam(0) ? -1.0 : 1.0;
-  if (gpar[1].size() == 1) fe.eta = fe.v == lrspline->startparam(1) ? -1.0 : 1.0;
-  if (gpar[2].size() == 1) fe.zeta = fe.w == lrspline->startparam(2) ? -1.0 : 1.0;
-
-  Matrix dNdu, Xnod, Jac;
-  Vec4   X;
-  Vec3   tang;
-
-
-  // === Assembly loop over all elements on the patch edge =====================
-
-  int iel = 1;
-  for (int i3 = p3; i3 <= n3; i3++)
-    for (int i2 = p2; i2 <= n2; i2++)
-      for (int i1 = p1; i1 <= n1; i1++, iel++)
-      {
-  fe.iel = MLGE[iel-1];
-  if (fe.iel < 1) continue; // zero-volume element
-
-  // Skip elements that are not on current boundary edge
-  bool skipMe = false;
-  switch (lEdge)
-    {
-    case  1: if (i2 > p2 || i3 > p3) skipMe = true; break;
-    case  2: if (i2 < n2 || i3 > p3) skipMe = true; break;
-    case  3: if (i2 > p2 || i3 < n3) skipMe = true; break;
-    case  4: if (i2 < n2 || i3 < n3) skipMe = true; break;
-    case  5: if (i1 > p1 || i3 > p3) skipMe = true; break;
-    case  6: if (i1 < n1 || i3 > p3) skipMe = true; break;
-    case  7: if (i1 > p1 || i3 < n3) skipMe = true; break;
-    case  8: if (i1 < n1 || i3 < n3) skipMe = true; break;
-    case  9: if (i1 > p1 || i2 > p2) skipMe = true; break;
-    case 10: if (i1 < n1 || i2 > p2) skipMe = true; break;
-    case 11: if (i1 > p1 || i2 < n2) skipMe = true; break;
-    case 12: if (i1 < n1 || i2 < n2) skipMe = true; break;
-    }
-  if (skipMe) continue;
-
-  // Get element edge length in the parameter space
-  double dS = 0.0;
-  int ip = MNPC[iel-1].back();
-#ifdef INDEX_CHECK
-  if (ip < 0 || (size_t)ip >= nodeInd.size()) return false;
-#endif
-  if (lEdge < 5)
-  {
-    dS = lrspline->knotSpan(0,nodeInd[ip].I);
-    ip = (i1-p1)*nGauss;
-  }
-  else if (lEdge < 9)
-  {
-    dS = lrspline->knotSpan(1,nodeInd[ip].J);
-    ip = (i2-p2)*nGauss;
-  }
-  else if (lEdge < 13)
-  {
-    dS = lrspline->knotSpan(2,nodeInd[ip].K);
-    ip = (i3-p3)*nGauss;
-  }
-
-  // Set up control point coordinates for current element
-  if (!this->getElementCoordinates(Xnod,iel)) return false;
-
-  // Initialize element quantities
-  LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
-  bool ok = integrand.initElementBou(MNPC[iel-1],*A);
-
-
-  // --- Integration loop over all Gauss points along the edge -----------------
-
-  fe.iGP = firstp + ip; // Global integration point counter
-
-  for (int i = 0; i < nGauss && ok; i++, ip++, fe.iGP++)
-  {
-    // Parameter values of current integration point
-    if (gpar[0].size() > 1) fe.u = gpar[0](i+1,i1-p1+1);
-    if (gpar[1].size() > 1) fe.v = gpar[1](i+1,i2-p2+1);
-    if (gpar[2].size() > 1) fe.w = gpar[2](i+1,i3-p3+1);
-
-    // Fetch basis function derivatives at current integration point
-    this->evaluateBasis(iel, fe, dNdu);
-
-    // Compute basis function derivatives and the edge tang
-    fe.detJxW = utl::Jacobian(Jac,tang,fe.dNdX,Xnod,dNdu,1+(lEdge-1)/4);
-    if (fe.detJxW == 0.0) continue; // skip singular points
-
-    // Cartesian coordinates of current integration point
-    X = Xnod * fe.N;
-    X.t = time.t;
-
-    // Evaluate the integrand and accumulate element contributions
-    fe.detJxW *= 0.5*dS*wg[i];
-    ok = integrand.evalBou(*A,fe,time,X,tang);
-  }
-
-  // Assembly of global system integral
-  if (ok && !glInt.assemble(A->ref(),fe.iel))
-    ok = false;
-
-  A->destruct();
-
-  if (!ok) return false;
-  }
-
-  return true;
-#endif
   return false;
 }
 
@@ -1678,6 +1518,8 @@ bool ASMu3D::evalSolution (Matrix& sField, const Vector& locSol,
 bool ASMu3D::evalSolution (Matrix& sField, const Vector& locSol,
                            const RealArray* gpar, bool, int deriv, int) const
 {
+  PROFILE2("ASMu3D::evalSol(P)");
+
   size_t nComp = locSol.size() / this->getNoNodes();
   if (nComp*this->getNoNodes() != locSol.size())
     return false;
@@ -1693,6 +1535,7 @@ bool ASMu3D::evalSolution (Matrix& sField, const Vector& locSol,
   Go::BasisPts     spline0;
   Go::BasisDerivs  spline1;
   Go::BasisDerivs2 spline2;
+  int lel = -1;
 
   // Evaluate the primary solution field at each point
   sField.resize(nComp,nPoints);
@@ -1708,9 +1551,12 @@ bool ASMu3D::evalSolution (Matrix& sField, const Vector& locSol,
     }
     utl::gather(MNPC[iel],nComp,locSol,eSol);
 
-    // Set up control point (nodal) coordinates for current element
-    if (deriv > 0 && !this->getElementCoordinates(Xnod,iel+1))
-      return false;
+    if (iel != lel && deriv > 0)
+    {
+      lel = iel; // Set up control point (nodal) coordinates for current element
+      if (!this->getElementCoordinates(Xnod,iel+1))
+        return false;
+    }
 
     // Evaluate basis function values/derivatives at current parametric point
     // and multiply with control point values to get the point-wise solution
@@ -1815,19 +1661,17 @@ bool ASMu3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 bool ASMu3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
                            const RealArray* gpar, bool) const
 {
-#ifdef SP_DEBUG
-  std::cout <<"ASMu3D::evalSolution(Matrix&,const IntegrandBase&,const RealArray*,bool)\n";
-#endif
-
   sField.resize(0,0);
+  size_t nPoints = gpar[0].size();
+  if (nPoints != gpar[1].size() || nPoints != gpar[2].size())
+    return false;
+
+  PROFILE2("ASMu3D::evalSol(S)");
 
   // TODO: investigate the possibility of doing "regular" refinement by
   //       uniform tesselation grid and ignoring LR mesh lines
 
-  size_t nPoints = gpar[0].size();
   bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
-  if (nPoints != gpar[1].size() || nPoints != gpar[2].size())
-    return false;
 
   Vector   solPt;
   Matrix   dNdu, Jac, Xnod;
@@ -1839,6 +1683,7 @@ bool ASMu3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   Matrix B(p1*p2*p3, 4); // Bezier evaluation points and derivatives
 
   // Evaluate the secondary solution field at each point
+  int lel = -1;
   for (size_t i = 0; i < nPoints; i++)
   {
     // Fetch element containing evaluation point
@@ -1884,8 +1729,12 @@ bool ASMu3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     else
       this->evaluateBasis(fe, dNdu, bezierExtract[iel], B);
 
-    // Set up control point (nodal) coordinates for current element
-    if (!this->getElementCoordinates(Xnod,iel+1)) return false;
+    if (iel != lel)
+    {
+      lel = iel; // Set up control point (nodal) coordinates for current element
+      if (!this->getElementCoordinates(Xnod,iel+1))
+        return false;
+    }
 
     // Compute the Jacobian inverse
     fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
@@ -1895,6 +1744,11 @@ bool ASMu3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     if (use2ndDer)
       if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
         continue;
+
+#if SP_DEBUG > 4
+    if (1+iel == dbgElm || dbgElm == 0)
+      std::cout <<"\n"<< fe;
+#endif
 
     // Now evaluate the solution field
     if (!integrand.evalSol(solPt,fe,Xnod*fe.N,MNPC[iel]))
@@ -2289,7 +2143,7 @@ bool ASMu3D::refine (const RealFunc& refC, double refTol)
 {
   Go::Point X0;
   int iel = 0;
-  std::vector<int> elements;
+  IntVec elements;
   for (const LR::Element* elm : lrspline->getAllElements())
   {
     double u0 = 0.5*(elm->umin() + elm->umax());
