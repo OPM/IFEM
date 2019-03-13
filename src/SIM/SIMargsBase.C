@@ -23,6 +23,8 @@ bool SIMargsBase::parseArg (const char* argv)
 {
   if (!strncmp(argv,"-adap",5) && !isdigit(argv[5]))
     adap = true;
+  else if (!strncmp(argv,"-noadap",7))
+    adap = false;
   else if (!strcmp(argv,"-1D"))
     dim = 1;
   else if (!strcmp(argv,"-2D"))
