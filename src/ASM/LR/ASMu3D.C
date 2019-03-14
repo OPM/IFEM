@@ -1161,7 +1161,7 @@ bool ASMu3D::integrate (Integrand& integrand, int lIndex,
 
   // Get Gaussian quadrature points and weights
   // Use the largest polynomial order of the two tangent directions
-  const int pmax = std::max(lrspline->order(t1),lrspline->order(t2));
+  const int pmax = std::max(lrspline->order(t1-1),lrspline->order(t2-1));
   const int nG1 = this->getNoGaussPt(pmax,true);
   const int nGP = integrand.getBouIntegrationPoints(nG1);
   const double* xg = GaussQuadrature::getCoord(nGP);
