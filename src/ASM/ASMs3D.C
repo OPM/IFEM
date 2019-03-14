@@ -2232,7 +2232,7 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
 
   // Get Gaussian quadrature points and weights
   // For now, use the largest polynomial order of the two tangent directions
-  int nG1 = this->getNoGaussPt(std::max(svol->order(t1),svol->order(t2)),true);
+  int nG1 = this->getNoGaussPt(std::max(svol->order(t1-1),svol->order(t2-1)),true);
   int nGP = integrand.getBouIntegrationPoints(nG1);
   const double* xg = GaussQuadrature::getCoord(nGP);
   const double* wg = GaussQuadrature::getWeight(nGP);

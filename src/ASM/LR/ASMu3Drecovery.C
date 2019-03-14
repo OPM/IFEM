@@ -486,7 +486,7 @@ bool ASMu3D::faceL2projection (const DirichletFace& face,
 
   // Get Gaussian quadrature points and weights
   // Use the largest polynomial order of the two tangent directions
-  const int pmax = std::max(lrspline->order(t1),lrspline->order(t2));
+  const int pmax = std::max(lrspline->order(t1-1),lrspline->order(t2-1));
   const int nGP  = this->getNoGaussPt(pmax,true);
   const double* xg = GaussQuadrature::getCoord(nGP);
   const double* wg = GaussQuadrature::getWeight(nGP);
