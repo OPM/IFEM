@@ -49,6 +49,12 @@ public:
   //! \param[in] elmId Global number of the element associated with elmObj
   virtual bool assemble(const LocalIntegral* elmObj, int elmId);
 
+  //! \brief Returns \e false if no contributions from the specified patch.
+  //! \param[in] pidx 1-based patch index
+  //! \param[in] pvec Physical property mapping
+  virtual bool haveContributions(size_t pidx,
+                                 const std::vector<Property>& pvec) const;
+
 private:
   const SAM* mySam; //!< Data for FE assembly management
 

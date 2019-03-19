@@ -816,6 +816,9 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
                                                 GlobalIntegral& integral,
                                                 ASMbase* pch, int pidx)
   {
+    if (!integral.haveContributions(pidx,myProps))
+      return true;
+
     if (msgLevel > 1)
       IFEM::cout <<"\nAssembling interior matrix terms for P"<< pidx
                  << std::endl;
@@ -1317,6 +1320,9 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
                                                      GlbNorm& integral,
                                                      ASMbase* pch, int pidx)
   {
+    if (!integral.haveContributions(pidx,myProps))
+      return true;
+
     if (!this->extractPatchSolution(psol,pidx-1))
       return false;
 

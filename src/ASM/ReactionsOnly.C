@@ -12,6 +12,7 @@
 //==============================================================================
 
 #include "ReactionsOnly.h"
+#include "Property.h"
 #include "ElmMats.h"
 #include "SAM.h"
 
@@ -48,4 +49,22 @@ bool ReactionsOnly::assemble (const LocalIntegral* elmObj, int elmId)
   std::cerr <<" *** ReactionsOnly::assemble: Failure for element "<< elmId
             << std::endl;
   return false;
+}
+
+
+/*!
+  Returns \e true if the patch \a pidx have any dirichlet boundary conditions.
+*/
+
+bool ReactionsOnly::haveContributions (size_t pidx,
+                                       const PropertyVec& pvec) const
+{
+  auto&& isConstrained = [pidx](const Property& p)
+  {
+    return (p.patch == pidx &&
+            p.pcode >= Property::DIRICHLET &&
+            p.pcode <= Property::DIRICHLET_ANASOL);
+  };
+
+  return std::find_if(pvec.begin(),pvec.end(),isConstrained) != pvec.end();
 }

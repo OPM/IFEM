@@ -14,7 +14,11 @@
 #ifndef _GLOBAL_INTEGRAL_H
 #define _GLOBAL_INTEGRAL_H
 
+#include <vector>
+#include <cstddef>
+
 class LocalIntegral;
+struct Property;
 
 
 /*!
@@ -39,6 +43,10 @@ public:
 
   //! \brief Returns \e true if all elements can be assembled in parallel.
   virtual bool threadSafe() const { return false; }
+
+  //! \brief Returns \e false if no contributions from a specified patch.
+  virtual bool haveContributions(size_t, const std::vector<Property>&) const
+  { return true; }
 };
 
 #endif
