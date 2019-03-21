@@ -25,7 +25,7 @@ class STensorFunc;
 namespace utl
 {
   /*!
-    \brief Base class for unary function of arbitrary result and argument type.
+    \brief Base class for unary functions of arbitrary result and argument type.
   */
 
   template<class Arg, class Result>
@@ -52,7 +52,7 @@ namespace utl
     //! \brief Operator returning the function value for the given argument.
     Result operator()(const Arg& x) const { return this->evaluate(x); }
 
-    typedef Arg Input;     //!< Input type
+    typedef Arg    Input;  //!< Input type
     typedef Result Output; //!< Output type
   };
 
@@ -85,7 +85,7 @@ namespace utl
     Result operator()(const Arg& x, const Arg& y) const
     { return this->evaluate(x,y); }
 
-    typedef Arg Input;     //!< Input type
+    typedef Arg    Input;  //!< Input type
     typedef Result Output; //!< Output type
   };
 
@@ -107,9 +107,9 @@ namespace utl
     virtual ~SpatialFunction() {}
 
     //! \brief Returns a first-derivative of the function.
-    virtual Result deriv(const Vec3& x, int dir) const { return zero; }
+    virtual Result deriv(const Vec3&, int) const { return zero; }
     //! \brief Returns a second-derivative of the function.
-    virtual Result dderiv(const Vec3& x, int d1, int d2) const { return zero; }
+    virtual Result dderiv(const Vec3&, int, int) const { return zero; }
 
   protected:
     Result zero; //!< Return value for default implementations of derivatives
@@ -132,12 +132,12 @@ public:
   virtual ~ScalarFunc() {}
 
   //! \brief Returns the first-derivative of the function.
-  virtual Real deriv(Real x) const { return Real(0); }
+  virtual Real deriv(Real) const { return Real(0); }
 };
 
 
 /*!
-  \brief Base class for unary spatial function of arbitrary result type.
+  \brief Base class for unary spatial functions of arbitrary result type.
   \details Includes an interface for returning the function value as an array.
 */
 
@@ -152,13 +152,16 @@ public:
   virtual ~FunctionBase() {}
 
   //! \brief Returns the function value as an array.
-  virtual std::vector<Real> getValue(const Vec3& X) const = 0;
+  virtual std::vector<Real> getValue(const Vec3&) const = 0;
 
   //! \brief Returns the number of components of the return value.
   size_t dim() const { return ncmp; }
 
-  //! \brief Set currently active patch.
-  virtual void initPatch(size_t pIdx) {}
+  //! \brief Sets the active patch.
+  virtual void initPatch(size_t) {}
+
+  //! \brief Checks if a specified point is within the function domain.
+  virtual bool inDomain(const Vec3&) const { return true; }
 
 protected:
   size_t ncmp; //!< Number of components in the return value
@@ -195,7 +198,10 @@ class VecFunc : public utl::SpatialFunction<Vec3>, public FunctionBase
 {
 protected:
   //! \brief The constructor is protected to allow sub-class instances only.
-  explicit VecFunc(size_t n = 3) : utl::SpatialFunction<Vec3>(Vec3()) { ncmp = n; }
+  explicit VecFunc(size_t n = 3) : utl::SpatialFunction<Vec3>(Vec3())
+  {
+    ncmp = n;
+  }
 
 public:
   //! \brief Empty destructor.
