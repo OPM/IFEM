@@ -10,7 +10,7 @@
 //!
 //==============================================================================
 
-#include "matrixnd.h"
+#include "MatVec.h"
 
 #include "gtest/gtest.h"
 #include <numeric>
@@ -89,6 +89,12 @@ TEST(TestMatrix, Multiply)
 
   EXPECT_FLOAT_EQ(x.sum(),0.0);
   EXPECT_FLOAT_EQ(y.sum(),0.0);
+
+  u.std::vector<double>::resize(5);
+  v = 0.5*A*u;
+  EXPECT_FLOAT_EQ(v(1),67.5);
+  EXPECT_FLOAT_EQ(v(2),75.0);
+  EXPECT_FLOAT_EQ(v(3),82.5);
 }
 
 

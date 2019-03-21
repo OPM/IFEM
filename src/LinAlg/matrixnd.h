@@ -17,7 +17,7 @@
 #include "matrix.h"
 
 
-namespace utl //! General utility classes and functions.
+namespace utl
 {
   /*!
     \brief Three-dimensional rectangular matrix with some algebraic operations.
@@ -31,9 +31,13 @@ namespace utl //! General utility classes and functions.
   public:
     //! \brief Constructor creating an empty matrix.
     matrix3d() {}
+    //! \brief Constructor using an external vector for matrix element storage.
+    explicit matrix3d(vector<T>& vec) : matrixBase<T>(vec) {}
     //! \brief Constructor creating a matrix of dimension
     //! \f$n_1 \times n_2 \times n_3\f$.
     matrix3d(size_t n_1, size_t n_2, size_t n_3) : matrixBase<T>(n_1,n_2,n_3) {}
+    //! \brief Copy constructor.
+    matrix3d(const matrix3d<T>& mat) : matrixBase<T>(mat) {}
     //! \brief Constructor to read a matrix from a stream.
     matrix3d(std::istream& is, std::streamsize max = 10)
     {
@@ -70,6 +74,17 @@ namespace utl //! General utility classes and functions.
     void resize(size_t n_1, size_t n_2, size_t n_3, bool forceClear = false)
     {
       this->redim(n_1,n_2,n_3,1,forceClear);
+    }
+
+    //! \brief Assignment operator.
+    matrix3d<T>& operator=(const matrix3d<T>& A)
+    {
+      if (&A == this)
+        return *this;
+
+      memcpy(this->n,A.n,sizeof(A.n));
+      this->elem = A.elem;
+      return *this;
     }
 
     //! \brief Index-1 based element access.
@@ -212,10 +227,14 @@ namespace utl //! General utility classes and functions.
   public:
     //! \brief Constructor creating an empty matrix.
     matrix4d() {}
+    //! \brief Constructor using an external vector for matrix element storage.
+    explicit matrix4d(vector<T>& vec) : matrixBase<T>(vec) {}
     //! \brief Constructor creating a matrix of dimension
     //! \f$n_1 \times n_2 \times n_3 \times n_4\f$.
     matrix4d(size_t n_1, size_t n_2, size_t n_3, size_t n_4)
       : matrixBase<T>(n_1,n_2,n_3,n_4) {}
+    //! \brief Copy constructor.
+    matrix4d(const matrix4d<T>& mat) : matrixBase<T>(mat) {}
 
     //! \brief Empty destructor.
     virtual ~matrix4d() {}
@@ -232,6 +251,17 @@ namespace utl //! General utility classes and functions.
                 bool forceClear = false)
     {
       this->redim(n_1,n_2,n_3,n_4,forceClear);
+    }
+
+    //! \brief Assignment operator.
+    matrix4d<T>& operator=(const matrix4d<T>& A)
+    {
+      if (&A == this)
+        return *this;
+
+      memcpy(this->n,A.n,sizeof(A.n));
+      this->elem = A.elem;
+      return *this;
     }
 
     //! \brief Index-1 based element access.
@@ -440,7 +470,7 @@ namespace utl //! General utility classes and functions.
     if (A.empty())
       return s <<" (empty)"<< std::endl;
 
-    s <<"Dimension: "<< A.dim(1) <<" "<< A.dim(2) <<" "<< A.dim(3);
+    s <<" Dimension: "<< A.dim(1) <<" "<< A.dim(2) <<" "<< A.dim(3);
     matrix<T> B(A.dim(1),A.dim(2));
     const T* Aptr = A.ptr();
     for (size_t k = 0; k < A.dim(3); k++, Aptr += B.size())
@@ -462,7 +492,7 @@ namespace utl //! General utility classes and functions.
     if (A.empty())
       return s <<" (empty)"<< std::endl;
 
-    s <<"Dimension: "<< A.dim(1) <<" "<< A.dim(2)
+    s <<" Dimension: "<< A.dim(1) <<" "<< A.dim(2)
       <<" "<< A.dim(3) <<" "<< A.dim(4);
     matrix<T> B(A.dim(1),A.dim(2));
     const T* Aptr = A.ptr();
