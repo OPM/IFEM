@@ -124,6 +124,11 @@ public:
                            const std::vector<size_t>& basis_sizes,
                            LocalIntegral& elmInt);
 
+  //! \brief Initializes the primary solution vector for current element.
+  //! \param[in] MNPC Matrix of nodal point correspondance for current element
+  //! \param[out] elmVec The primary element solution vectors
+  bool initElement1(const std::vector<int>& MNPC, Vectors& elmVec) const;
+
   //! \brief Initializes current element for boundary integration.
   //! \param[in] MNPC Matrix of nodal point correspondance for current element
   //! \param elmInt Local integral for element
@@ -240,6 +245,8 @@ public:
   //! \brief Returns the number of solution vectors.
   size_t getNoSolutions() const { return primsol.size(); }
 
+  //! \brief Returns the patch-wise extraction function field, if any.
+  virtual Vector* getExtractionField() { return nullptr; }
   //! \brief Accesses the primary solution vector of current patch.
   Vector& getSolution(size_t n = 0) { return primsol[n]; }
   //! \brief Accesses the primary solution vectors of current patch.
@@ -280,7 +287,7 @@ private:
   std::map<std::string,Vector*> myFields; //!< Named fields of this integrand
 
 protected:
-  unsigned short int nsd;     //!< Number of spatial dimensions (1,2 or, 3)
+  unsigned short int nsd;     //!< Number of spatial dimensions (1, 2 or 3)
   unsigned short int npv;     //!< Number of primary solution variables per node
   SIM::SolutionMode  m_mode;  //!< Current solution mode
   Vectors            primsol; //!< Primary solution vectors for current patch

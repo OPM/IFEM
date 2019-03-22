@@ -55,21 +55,47 @@ LocalIntegral* IntegrandBase::getLocalIntegral (size_t nen, size_t,
 }
 
 
+bool IntegrandBase::initElement1 (const std::vector<int>& MNPC,
+                                  Vectors& elmVec) const
+{
+  elmVec.resize(1);
+  if (primsol.empty() || primsol.front().empty())
+    return true; // No solution fields yet, return an empty vector
+
+  // Extract the first primary solution vector for this element
+  int ierr = utl::gather(MNPC,npv,primsol.front(),elmVec.front());
+  if (ierr > 0)
+  {
+    std::cerr <<" *** IntegrandBase::initElement: Detected "
+              << ierr <<" node numbers out of range."<< std::endl;
+    return false;
+  }
+
+#if SP_DEBUG > 2
+  std::cout <<"Element solution vector"<< elmVec.front();
+#endif
+  return true;
+}
+
+
 bool IntegrandBase::initElement (const std::vector<int>& MNPC,
                                  LocalIntegral& elmInt)
 {
   // Extract all primary solution vectors for this element
-  int ierr = 0;
-  size_t i, nsol = primsol.size();
+  size_t nsol = primsol.size();
   while (nsol > 1 && primsol[nsol-1].empty()) nsol--;
-  elmInt.vec.resize(nsol > 1 ? nsol : 1);
-  for (i = 0; i < primsol.size() && ierr == 0; i++)
+  if (nsol <= 1)
+    return this->initElement1(MNPC,elmInt.vec);
+
+  int ierr = 0;
+  elmInt.vec.resize(nsol);
+  for (size_t i = 0; i < nsol && ierr == 0; i++)
     if (!primsol[i].empty())
       ierr = utl::gather(MNPC,npv,primsol[i],elmInt.vec[i]);
 
 #if SP_DEBUG > 2
-  for (i = 0; i < elmInt.vec.size(); i++)
-    std::cout <<"Element solution vector "<< i+1 << elmInt.vec[i];
+  for (size_t j = 0; j < nsol; j++)
+    std::cout <<"Element solution vector "<< j+1 << elmInt.vec[j];
 #endif
 
   if (ierr == 0) return true;
@@ -210,7 +236,7 @@ void IntegrandBase::printSolution (std::ostream& os, int pindx)
     {
       int idof = 0, node = 0;
       for (double sval : sol)
-        if ((++idof)%npv == 1)
+        if (npv < 2 || (++idof)%npv == 1)
           os <<"\nNode "<< ++node <<": "<< sval;
         else
           os <<" "<< sval;
