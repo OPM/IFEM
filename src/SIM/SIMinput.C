@@ -21,8 +21,10 @@
 #endif
 #include "GlbL2projector.h"
 #include "LinSolParams.h"
+#include "DualField.h"
 #include "Functions.h"
 #include "Utilities.h"
+#include "Vec3Oper.h"
 #include "HDF5Reader.h"
 #include "IFEM.h"
 #include "tinyxml.h"
@@ -616,6 +618,44 @@ bool SIMinput::parseOutputTag (const TiXmlElement* elem)
   }
 
   return true;
+}
+
+
+FunctionBase* SIMinput::parseDualTag (const TiXmlElement* elem, int ftype)
+{
+  IFEM::cout <<"  Parsing <"<< elem->Value() <<">";
+
+  int comp = 1;
+  double depth = 1.0, width = 0.0;
+  Vec3 X0, normal(1.0,0.0,0.0);
+  utl::getAttribute(elem,"comp",comp);
+  utl::getAttribute(elem,"X0",X0);
+  utl::getAttribute(elem,"normal",normal);
+  utl::getAttribute(elem,"depth",depth);
+  utl::getAttribute(elem,"width",width);
+
+  IFEM::cout <<"\n\tX0     = "<< X0
+             <<"\n\tnormal = "<< normal
+             <<"\n\tdepth  = "<< depth <<", width = "<< width << std::endl;
+
+  if (nsd == 2)
+  {
+    if (ftype == 1)
+      dualField = new DualRealFunc(X0,normal,depth,width);
+    else
+      dualField = new DualVecFunc(comp,X0,normal,depth,width);
+  }
+  else if (nsd == 3)
+  {
+    Vec3 XZp(0.0,0.0,1.0);
+    utl::getAttribute(elem,"XZp",XZp);
+    if (ftype == 1)
+      dualField = new DualRealFunc(X0,normal,XZp,depth,width);
+    else
+      dualField = new DualVecFunc(comp,X0,normal,XZp,depth,width);
+  }
+
+  return dualField;
 }
 
 

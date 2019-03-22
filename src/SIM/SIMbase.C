@@ -43,16 +43,16 @@ bool SIMbase::ignoreDirichlet = false;
 
 SIMbase::SIMbase (IntegrandBase* itg) : g2l(&myGlb2Loc)
 {
-  isRefined = false;
   nsd = 3;
   myProblem = itg;
   mySol = nullptr;
   myEqSys = nullptr;
   mySam = nullptr;
   mySolParams = nullptr;
+  dualField = nullptr;
+  isRefined = lagMTOK = false;
   nGlPatches = 0;
   nIntGP = nBouGP = 0;
-  lagMTOK = false;
   extEnergy = 0.0;
 
   MPCLess::compareSlaveDofOnly = true; // to avoid multiple slave definitions
@@ -100,6 +100,9 @@ bool SIMbase::readModel (const char* fileName)
 
 void SIMbase::clearProperties ()
 {
+  delete dualField;
+  dualField = nullptr;
+
   for (ASMbase* patch : myModel)
     patch->clear(true); // retain the geometry only
 
@@ -1316,6 +1319,55 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
 
   PROFILE1("Norm integration");
 
+  size_t nCmp = 0;
+
+  // Lambda function for assembling the interior norm terms for a given patch
+  auto&& assembleNorms = [this,time,psol,ssol,&nCmp](NormBase* norm,
+                                                     GlbNorm& integral,
+                                                     ASMbase* pch, int pidx)
+  {
+    if (!this->extractPatchSolution(psol,pidx-1))
+      return false;
+
+    bool ok = true;
+    if (dualField && myProblem->getExtractionField())
+    {
+      Matrix extrField(*myProblem->getExtractionField());
+      ok = pch->L2projection(extrField,dualField);
+    }
+
+    size_t nfld = myProblem->getNoFields(2);
+    size_t nval = pch->getNoProjectionNodes()*nfld;
+    for (size_t k = 0; k < ssol.size(); k++)
+      if (ssol[k].empty())
+        norm->getProjection(k).clear();
+      else if (this->fieldProjections())
+      {
+        Vector c(nval);
+        std::copy(ssol[k].begin()+nCmp, ssol[k].begin()+nCmp+nval, c.begin());
+        norm->setProjectedFields(pch->getProjectedFields(c,nfld), k);
+        nCmp += nval;
+      }
+      else
+        this->extractPatchSolution(ssol[k],norm->getProjection(k),pch,nCmp,1);
+
+    if (mySol)
+      mySol->initPatch(pch->idx);
+
+    if (!pch->integrate(*norm,integral,time))
+      return false;
+
+    if (!(norm->getIntegrandType() & IntegrandBase::INTERFACE_TERMS))
+      return ok;
+
+    ASM::InterfaceChecker* iChk = this->getInterfaceChecker(pch->idx);
+    if (!iChk) return ok;
+
+    ok &= pch->integrate(*norm,integral,time,*iChk);
+    delete iChk;
+    return ok;
+  };
+
   NormBase* norm = myProblem->getNormIntegrand(mySol);
   if (!norm)
   {
@@ -1333,9 +1385,10 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
   norm->initIntegration(nIntGP,nBouGP);
 
   // Number of recovered solution components
-  size_t i, nCmp = 0;
-  for (i = 0; i < ssol.size() && nCmp == 0; i++)
-    nCmp = ssol[i].size() / this->getNoNodes(1);
+  if (!this->fieldProjections())
+    for (const Vector& s : ssol)
+      if ((nCmp = s.size() / this->getNoNodes(1)) > 0)
+        break;
 
 #ifdef USE_OPENMP
   // When assembling in parallel, we must always do the norm summation
@@ -1355,7 +1408,7 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
   // 3) associated with a residual secondary solution
   // 4) associated with a secondary solution provided through external means
   // 5) associated with an additional group defined in the integrand
-  for (i = 0; i < gNorm.size(); i++)
+  for (size_t i = 0; i < gNorm.size(); i++)
     if (i == 0 || i > ssol.size() || !ssol[i-1].empty() ||
         proj_idx->first == SIMoptions::NONE || norm->hasExternalProjections())
     {
@@ -1373,88 +1426,34 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
     globalNorm.delayAssembly();
     eNorm->resize(nNorms,mySam->getNoElms(),true);
     elementNorms.reserve(eNorm->cols());
-    for (i = 0; i < eNorm->cols(); i++)
-      elementNorms.push_back(new ElmNorm(eNorm->ptr(i),nNorms));
+    for (size_t c = 0; c < eNorm->cols(); c++)
+      elementNorms.push_back(new ElmNorm(eNorm->ptr(c),nNorms));
     norm->setLocalIntegrals(&elementNorms);
   }
 
   // Loop over the different material regions, integrating solution norm terms
   // for the patch domain associated with each material
   bool ok = true;
-  size_t k, lp = 0;
+  size_t lp = 0;
   ASMbase* pch = nullptr;
   PropertyVec::const_iterator p;
-  size_t projOfs = 0;
   for (p = myProps.begin(); p != myProps.end() && ok; ++p)
     if (p->pcode == Property::MATERIAL)
       if (!(pch = this->getPatch(p->patch)))
-	ok = false;
+        ok = false;
       else if (this->initMaterial(p->pindx))
       {
-	lp = p->patch;
-	ok = this->extractPatchSolution(psol,lp-1);
-	size_t nval = pch->getNoProjectionNodes()*myProblem->getNoFields(2);
-	for (k = 0; k < ssol.size(); k++)
-          if (ssol[k].empty())
-            norm->getProjection(k).clear();
-          else if (this->fieldProjections()) {
-            Vector c(nval);
-            std::copy(ssol[k].begin()+projOfs,
-                      ssol[k].begin()+projOfs+nval, c.begin());
-            Fields* f = pch->getProjectedFields(c, myProblem->getNoFields(2));
-            norm->setProjectedFields(f, k);
-            projOfs += nval;
-          } else
-            this->extractPatchSolution(ssol[k],norm->getProjection(k),pch,nCmp,1);
-
-        if (mySol)
-          mySol->initPatch(pch->idx);
-
-	ok &= pch->integrate(*norm,globalNorm,time);
-        if (norm->getIntegrandType() & IntegrandBase::INTERFACE_TERMS) {
-          ASM::InterfaceChecker* iChk = this->getInterfaceChecker(pch->idx);
-          if (iChk) {
-            ok &= !pch->integrate(*norm,globalNorm,time,*iChk);
-            delete iChk;
-          }
-        }
+        lp = p->patch;
+        ok = assembleNorms(norm,globalNorm,pch,lp);
       }
       else
-	ok = false;
+        ok = false;
 
   if (lp == 0)
     // All patches are referring to the same material, and we assume it has
     // been initialized during input processing (thus no initMaterial call here)
-    for (i = 0; i < myModel.size() && ok; i++)
-    {
-      ok = this->extractPatchSolution(psol,i);
-      size_t nval = myModel[i]->getNoProjectionNodes()*myProblem->getNoFields(2);
-      for (k = 0; k < ssol.size(); k++)
-        if (ssol[k].empty())
-          norm->getProjection(k).clear();
-        else if (this->fieldProjections()) {
-          Vector c(nval);
-          std::copy(ssol[k].begin()+projOfs,
-                    ssol[k].begin()+projOfs+nval, c.begin());
-          Fields* f = myModel[i]->getProjectedFields(c, myProblem->getNoFields(2));
-          norm->setProjectedFields(f, k);
-          projOfs += nval;
-        } else
-          this->extractPatchSolution(ssol[k],norm->getProjection(k),myModel[i],nCmp,1);
-
-      if (mySol)
-        mySol->initPatch(myModel[i]->idx);
-
-      ok &= myModel[i]->integrate(*norm,globalNorm,time);
-      if (norm->getIntegrandType() & IntegrandBase::INTERFACE_TERMS) {
-        ASM::InterfaceChecker* iChk = this->getInterfaceChecker(myModel[i]->idx);
-        if (iChk) {
-          ok &= myModel[i]->integrate(*norm,globalNorm,time,*iChk);
-          delete iChk;
-        }
-      }
-      lp = i+1;
-    }
+    for (lp = 0; lp < myModel.size() && ok; lp++)
+      ok = assembleNorms(norm,globalNorm,myModel[lp],1+lp);
 
   if (norm->hasBoundaryTerms())
     for (p = myProps.begin(); p != myProps.end() && ok; ++p)
@@ -1493,10 +1492,10 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
   // Clean up the dynamically allocated norm objects. This will also perform
   // the actual global norm assembly, in case the element norms are stored,
   // and always when multi-threading is used.
-  for (k = 0; k < elementNorms.size(); k++)
+  for (LocalIntegral* elmNorm : elementNorms)
   {
-    globalNorm.assemble(elementNorms[k]);
-    delete elementNorms[k];
+    globalNorm.assemble(elmNorm);
+    delete elmNorm;
   }
 
   // Add problem-dependent external norm contributions
@@ -1505,13 +1504,10 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
   delete norm;
 
   if (!adm.dd.isPartitioned())
-    for (k = 0; k < gNorm.size(); k++)
-      adm.allReduceAsSum(gNorm[k]);
+    for (Vector& glbNorm : gNorm)
+      adm.allReduceAsSum(glbNorm);
 
-  if (ok)
-    ok = this->postProcessNorms(gNorm, eNorm);
-
-  return ok;
+  return ok && this->postProcessNorms(gNorm,eNorm);
 }
 
 
@@ -1786,7 +1782,6 @@ bool SIMbase::project (Vector& values, const FunctionBase* f,
     if (myModel[j]->empty()) continue; // skip empty patches
 
     Vector loc_values;
-    Matrix f_values;
     switch (pMethod) {
     case SIMoptions::GLOBAL:
       // Greville point projection
@@ -1805,8 +1800,11 @@ bool SIMbase::project (Vector& values, const FunctionBase* f,
 #endif
         return false;
       }
-      ok = myModel[j]->L2projection(f_values,const_cast<FunctionBase*>(f),time);
-      loc_values = f_values;
+      else
+      {
+        Matrix ftmp(loc_values);
+        ok = myModel[j]->L2projection(ftmp,const_cast<FunctionBase*>(f),time);
+      }
       break;
 
     default:
@@ -1862,18 +1860,18 @@ bool SIMbase::extractPatchSolution (IntegrandBase* problem,
 
 
 bool SIMbase::project (Vector& ssol, const Vector& psol,
-		       SIMoptions::ProjectionMethod pMethod, size_t iComp) const
+                       SIMoptions::ProjectionMethod pMethod, size_t iComp) const
 {
-  Matrix stmp;
-  if (!this->project(stmp,psol,pMethod))
-    return false;
-
   if (iComp > 0)
+  {
+    Matrix stmp;
+    bool ok = this->project(stmp,psol,pMethod);
     ssol = stmp.getRow(iComp);
-  else
-    ssol = stmp;
+    return ok;
+  }
 
-  return true;
+  Matrix stmp(ssol);
+  return this->project(stmp,psol,pMethod);
 }
 
 

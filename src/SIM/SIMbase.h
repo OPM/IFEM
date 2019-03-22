@@ -391,9 +391,6 @@ public:
                                nullptr,name);
   }
 
-  //! \brief Applies app-specific post-processing to element norms.
-  virtual bool postProcessNorms(Vectors&, Matrix*) { return true; }
-
   //! \brief Prints out load/time step identification.
   //! \param[in] istep Load- or time step counter
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
@@ -506,6 +503,8 @@ public:
 
   //! \brief Returns whether an analytical solution is available or not.
   virtual bool haveAnaSol() const { return mySol ? true : false; }
+  //! \brief Returns whether a dual solution is available or not.
+  virtual bool haveDualSol() const { return dualField ? true : false; }
 
   //! \brief Returns a pointer to a norm integrand object for this simulator.
   //! \note The object is allocated dynamically and has therefore to be
@@ -663,6 +662,9 @@ protected:
   //! \brief Computes (possibly problem-dependent) external energy contribution.
   virtual double externalEnergy(const Vectors& psol, const TimeDomain&) const;
 
+  //! \brief Applies app-specific post-processing on norms.
+  virtual bool postProcessNorms(Vectors&, Matrix*) { return true; }
+
   //! \brief Generates element groups for multi-threading of boundary integrals.
   //! \param[in] p Property object identifying a patch boundary
   //! \param[in] silence If \e true, suppress threading group outprint
@@ -697,8 +699,6 @@ protected:
   typedef std::multimap<int,IntegrandBase*> IntegrandMap;
 
   // Model attributes
-  bool           isRefined; //!< Indicates if the model is adaptively refined
-  bool           lagMTOK;   //!< Indicates that global multipliers is okay with multithreading (app specific).
   unsigned char  nsd;       //!< Number of spatial dimensions
   PatchVec       myModel;   //!< The actual NURBS/spline model
   PropertyVec    myProps;   //!< Physical property mapping
@@ -708,6 +708,10 @@ protected:
   IntegrandBase* myProblem; //!< The main integrand of this simulator
   IntegrandMap   myInts;    //!< Set of all integrands involved
   AnaSol*        mySol;     //!< Analytical/Exact solution
+  FunctionBase*  dualField; //!< Dual solution field (extraction function)
+
+  bool isRefined; //!< Indicates if the model is adaptively refined
+  bool lagMTOK;   //!< Indicates if global multipliers is OK with multithreading
 
   //! \brief A struct with data for system matrix/vector dumps.
   struct DumpData

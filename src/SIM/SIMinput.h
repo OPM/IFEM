@@ -115,6 +115,8 @@ protected:
   bool parsePeriodic(const TiXmlElement* elem);
   //! \brief Parses a subelement of the \a resultoutput XML-tag.
   virtual bool parseOutputTag(const TiXmlElement* elem);
+  //! \brief Parses the \a dualfield tag.
+  FunctionBase* parseDualTag(const TiXmlElement* elem, int ftype = 1);
   //! \brief Parses the "set" attribute of a material XML-tag.
   //! \param[in] elem The XML element extract the set name from
   //! \param[in] mindex Index into problem-dependent material property container

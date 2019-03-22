@@ -280,6 +280,8 @@ public:
   bool hasPointResultFile() const;
   //! \brief Checks whether result points have been defined or not.
   bool hasResultPoints() const { return !myPoints.empty(); }
+  //! \brief Returns the norm index for the VCP recovered quantity.
+  size_t getVCPindex() const;
 
   //! \brief Prints integrated solution norms to the log stream.
   //! \param[in] norms The norm values

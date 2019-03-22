@@ -1761,6 +1761,12 @@ bool SIMoutput::hasPointResultFile () const
 }
 
 
+size_t SIMoutput::getVCPindex () const
+{
+  return dualField ? (this->haveAnaSol() ? 5 : 3) : 0;
+}
+
+
 void SIMoutput::printNorms (const Vectors& norms, size_t w) const
 {
   if (norms.empty()) return;
@@ -1780,6 +1786,11 @@ void SIMoutput::printNorms (const Vectors& norms, size_t w) const
                <<"\nExact error"
                << utl::adjustRight(w-11,norm->getName(1,4)) << n(4)
                <<"\nExact relative error (%) : "<< 100.0*n(4)/n(3);
+
+  size_t i = this->getVCPindex();
+  if (i > 0 && n.size() >= i)
+    IFEM::cout <<"\nVCP quantity"
+               << utl::adjustRight(w-12,norm->getName(1,5)) << n(i);
 
   size_t j = 0;
   for (const SIMoptions::ProjectionMap::value_type& prj : opt.project)
