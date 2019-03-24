@@ -270,44 +270,38 @@ void SIMoutput::preprocessResPtGroup (std::string& ptFile, ResPointVec& points)
 
 bool SIMoutput::writeGlvG (int& nBlock, const char* inpFile, bool doClear)
 {
+  if (adm.dd.isPartitioned() && adm.getProcId() != 0)
+    return true;
+
+  // Lambda function for creating a new VTF-file name
+  auto&& getVTFname = [this](const char* inpFile)
+  {
+    char* vtfName = new char[strlen(inpFile)+10];
+    strtok(strcpy(vtfName,inpFile),".");
+    if (!adm.dd.isPartitioned() && nProc > 1)
+      sprintf(vtfName+strlen(vtfName),"_p%04d",myPid);
+#if HAS_VTFAPI == 2
+    strcat(vtfName,".vtfx");
+#else
+    strcat(vtfName,".vtf");
+#endif
+    return vtfName;
+  };
+
   if (inpFile)
   {
     if (myVtf) return false;
 
-    if (!opt.vtf.empty())
-      inpFile = opt.vtf.c_str();
-
-#if HAS_VTFAPI == 2
-    const char* ext = ".vtfx";
-#else
-    const char* ext = ".vtf";
-#endif
-
     // Open a new VTF-file
-    char* vtfName = new char[strlen(inpFile)+10];
-    strtok(strcpy(vtfName,inpFile),".");
-    if (adm.dd.isPartitioned()) {
-      if (adm.getProcId() == 0) {
-        strcat(vtfName,ext);
-        IFEM::cout <<"\nWriting VTF-file "<< vtfName << std::endl;
-        myVtf = new VTF(vtfName,opt.format);
-      }
-    } else {
-      if (nProc > 1)
-        sprintf(vtfName+strlen(vtfName),"_p%04d%s",myPid,ext);
-      else
-        strcat(vtfName,ext);
-
-      IFEM::cout <<"\nWriting VTF-file "<< vtfName << std::endl;
-      myVtf = new VTF(vtfName,opt.format);
-    }
-    delete[] vtfName;
+    const char* fName = getVTFname(opt.vtf.empty() ? inpFile : opt.vtf.c_str());
+    IFEM::cout <<"\nWriting VTF-file "<< fName << std::endl;
+    myVtf = new VTF(fName,opt.format);
+    delete[] fName;
   }
-  else if (doClear)
+  else if (doClear && myVtf)
     myVtf->clearGeometryBlocks();
-
-  if (adm.dd.isPartitioned() && adm.getProcId() != 0)
-    return true;
+  else if (!myVtf)
+    return false;
 
   ElementBlock* lvb;
   char pname[32];
@@ -350,8 +344,8 @@ bool SIMoutput::writeGlvBC (int& nBlock, int iStep) const
 {
   if (adm.dd.isPartitioned() && adm.getProcId() != 0)
     return true;
-
-  if (!myVtf) return false;
+  else if (!myVtf)
+    return false;
 
   Matrix field;
   std::array<IntVec,3> dID;
@@ -420,7 +414,7 @@ bool SIMoutput::writeGlvT (int iStep, int& geoBlk, int& nBlock) const
   if (adm.dd.isPartitioned() && adm.getProcId() != 0)
     return true;
 
-  if (myProblem->hasTractionValues())
+  if (myVtf && myProblem->hasTractionValues())
   {
     if (msgLevel > 1)
       IFEM::cout <<"Writing boundary tractions"<< std::endl;
@@ -436,8 +430,7 @@ bool SIMoutput::writeGlvV (const Vector& vec, const char* fieldName,
 {
   if (adm.dd.isPartitioned() && adm.getProcId() != 0)
     return true;
-
-  if (vec.empty())
+  else if (vec.empty())
     return true;
   else if (!myVtf)
     return false;
@@ -463,8 +456,8 @@ bool SIMoutput::writeGlvV (const Vector& vec, const char* fieldName,
 
     if (!myVtf->writeVres(field,++nBlock,++geomID,this->getNoSpaceDim()))
       return false;
-    else
-      vID.push_back(nBlock);
+
+    vID.push_back(nBlock);
   }
 
   return myVtf->writeVblk(vID,fieldName,idBlock,iStep);
@@ -481,8 +474,7 @@ bool SIMoutput::writeGlvS (const Vector& scl, const char* fieldName,
 {
   if (adm.dd.isPartitioned() && adm.getProcId() != 0)
     return true;
-
-  if (scl.empty())
+  else if (scl.empty())
     return true;
   else if (!myVtf)
     return false;
@@ -519,9 +511,6 @@ bool SIMoutput::writeGlvS (const Vector& psol, int iStep, int& nBlock,
                            double time, const char* pvecName,
                            int idBlock, int psolComps)
 {
-  if (adm.dd.isPartitioned() && adm.getProcId() != 0)
-    return true;
-
   idBlock = this->writeGlvS1(psol,iStep,nBlock,time,
                              pvecName,idBlock,psolComps);
   if (idBlock < 0)
@@ -539,7 +528,8 @@ bool SIMoutput::writeGlvS (const Vector& psol, int iStep, int& nBlock,
   if \a pvecName is null. If the primary solution is a scalar field, the field
   value is in that case interpreted as a deformation along the global Z-axis.
   If the primary solution is a vector field and \a pvecName is not null,
-  it is written as a named vector field instead (no deformation plot).
+  it is written as a named vector field instead (no deformation plot),
+  unless \a psolComps is negative.
 
   If the primary solution is a vector field, each vector component is written
   as a scalar field in addition. If \a scalarOnly is \e true, it is only
@@ -553,9 +543,8 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
                            int idBlock, int psolComps, bool scalarOnly)
 {
   if (adm.dd.isPartitioned() && adm.getProcId() != 0)
-    return true;
-
-  if (psol.empty())
+    return 0;
+  else if (psol.empty())
     return 0;
   else if (!myVtf)
     return -99;
@@ -563,7 +552,7 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
   size_t nf     = scalarOnly ? 1 : this->getNoFields();
   size_t nVcomp = nf > this->getNoSpaceDim() ? this->getNoSpaceDim() : nf;
   bool haveXsol = false;
-  if (mySol)
+  if (mySol && psolComps >= 0)
   {
     if (nf == 1)
       haveXsol = mySol->getScalarSol() != nullptr;
@@ -604,8 +593,8 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
       // Output as vector field
       if (!myVtf->writeVres(field,++nBlock,geomID,nVcomp))
         return -2;
-      else
-        vID[0].push_back(nBlock);
+
+      vID[0].push_back(nBlock);
     }
 
     if (myProblem) // Compute application-specific primary solution quantities
@@ -630,13 +619,13 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
       if (nf == 1) // Scalar solution
       {
         const RealFunc& pSol = *mySol->getScalarSol();
-        for (size_t j = 1; cit != grid->end_XYZ() && haveXsol; j++, ++cit)
+        for (size_t j = 1; cit != grid->end_XYZ(); j++, ++cit)
           field(1,j) = pSol(Vec4(*cit,time,grid->getParam(j-1)));
       }
       else
       {
         const VecFunc& pSol = *mySol->getVectorSol();
-        for (size_t j = 1; cit != grid->end_XYZ() && haveXsol; j++, ++cit)
+        for (size_t j = 1; cit != grid->end_XYZ(); j++, ++cit)
           field.fillColumn(j,pSol(Vec4(*cit,time)).ptr());
         if (mySol->getScalarSol())
         {
@@ -646,20 +635,19 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
           {
             cit = grid->begin_XYZ();
             const RealFunc& sSol = *psSol;
-            for (size_t j = 1; cit != grid->end_XYZ() && haveXsol; j++, ++cit)
+            for (size_t j = 1; cit != grid->end_XYZ(); j++, ++cit)
               field(r,j) = sSol(Vec4(*cit,time,grid->getParam(j-1)));
           }
         }
       }
 
-      if (haveXsol)
-        if (!this->writeScalarFields(field,geomID,nBlock,xID))
-          return false;
+      if (!this->writeScalarFields(field,geomID,nBlock,xID))
+        return -3;
 
       if (!myVtf->writeVres(field,++nBlock,geomID,nVcomp))
         return -2;
-      else
-        vID[1].push_back(nBlock);
+
+      vID[1].push_back(nBlock);
     }
   }
 
@@ -672,7 +660,7 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
     if (!vID[i].empty())
     {
       std::string vname(i == 1 ? "Exact " + pname : pname);
-      if (pvecName)
+      if (pvecName && psolComps >= 0)
         ok = myVtf->writeVblk(vID[i],vname.c_str(),idBlock+i,iStep);
       else
         ok = myVtf->writeDblk(vID[i],vname.c_str(),idBlock+i,iStep);
@@ -711,8 +699,7 @@ bool SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
 {
   if (adm.dd.isPartitioned() && adm.getProcId() != 0)
     return true;
-
-  if (psol.empty())
+  else if (psol.empty())
     return true; // No primary solution
   else if (!myVtf || !myProblem)
     return false;
@@ -778,8 +765,8 @@ bool SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
       myModel[i]->filterResults(pdir,myVtf->getBlock(geomID));
       if (!myVtf->writeVres(pdir,++nBlock,geomID,this->getNoSpaceDim()))
         return -2;
-      else
-        vID[j].push_back(nBlock);
+
+      vID[j].push_back(nBlock);
     }
 
     if (nProj > 0)
@@ -894,8 +881,7 @@ bool SIMoutput::writeGlvP (const Vector& ssol, int iStep, int& nBlock,
 {
   if (adm.dd.isPartitioned() && adm.getProcId() != 0)
     return true;
-
-  if (ssol.empty())
+  else if (ssol.empty())
     return true;
   else if (!myVtf)
     return false;
@@ -1021,8 +1007,8 @@ bool SIMoutput::writeGlvF (const RealFunc& f, const char* fname,
 {
   if (adm.dd.isPartitioned() && adm.getProcId() != 0)
     return true;
-
-  if (!myVtf) return false;
+  else if (!myVtf)
+    return false;
 
   IntVec sID;
 
@@ -1037,8 +1023,8 @@ bool SIMoutput::writeGlvF (const RealFunc& f, const char* fname,
 
     if (!myVtf->writeNfunc(f,time,++nBlock,++geomID))
       return false;
-    else
-      sID.push_back(nBlock);
+
+    sID.push_back(nBlock);
   }
 
   return myVtf->writeSblk(sID,fname,idBlock,iStep);
@@ -1049,6 +1035,8 @@ bool SIMoutput::writeGlvStep (int iStep, double value, int itype)
 {
   if (adm.dd.isPartitioned() && adm.getProcId() != 0)
     return true;
+  else if (!myVtf)
+    return false;
 
   myVtf->writeGeometryBlocks(iStep);
 
@@ -1063,8 +1051,7 @@ bool SIMoutput::writeGlvM (const Mode& mode, bool freq, int& nBlock)
 {
   if (adm.dd.isPartitioned() && adm.getProcId() != 0)
     return true;
-
-  if (mode.eigVec.empty())
+  else if (mode.eigVec.empty())
     return true;
   else if (!myVtf)
     return false;
@@ -1113,8 +1100,7 @@ bool SIMoutput::writeGlvN (const Matrix& norms, int iStep, int& nBlock,
 {
   if (adm.dd.isPartitioned() && adm.getProcId() != 0)
     return true;
-
-  if (norms.empty())
+  else if (norms.empty())
     return true;
   else if (!myVtf)
     return false;
@@ -1188,8 +1174,7 @@ bool SIMoutput::writeGlvE (const Vector& vec, int iStep, int& nBlock,
 {
   if (adm.dd.isPartitioned() && adm.getProcId() != 0)
     return true;
-
-  if (!myVtf)
+  else if (!myVtf)
     return false;
 
   Matrix infield(1,vec.size());
@@ -1728,7 +1713,7 @@ bool SIMoutput::extractNodeVec (const Vector& glbVec, Vector& locVec,
   if (patch->empty())
   {
     emptyPatches = true;
-    if (nodalCmps != 0 && nodalCmps != patch->getNoFields())
+    if (nodalCmps > 0 && nodalCmps != patch->getNoFields())
     {
       std::cerr <<" *** SIMoutput::extractNodeVec: Can't extract "<< nodalCmps
                 <<"-nodal component vectors with empty patches."<< std::endl;
@@ -1738,7 +1723,10 @@ bool SIMoutput::extractNodeVec (const Vector& glbVec, Vector& locVec,
   else if (emptyPatches)
     patch->extractNodalVec(glbVec,locVec,mySam->getMADOF());
   else
+  {
+    if (nodalCmps < 0) nodalCmps = 0;
     patch->extractNodeVec(glbVec,locVec,nodalCmps);
+  }
 
   return true;
 }
