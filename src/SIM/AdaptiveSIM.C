@@ -262,6 +262,19 @@ bool AdaptiveSIM::assembleAndSolveSystem ()
 bool AdaptiveSIM::solveStep (const char* inputfile, int iStep, bool withRF,
                              std::streamsize precision)
 {
+  // Lambda function to write refined mesh to VTF on failure
+  auto&& failure = [this,iStep]()
+  {
+    if (opt.format >= 0)
+      if (model.writeGlvG(geoBlk,nullptr))
+        model.writeGlvStep(iStep,iStep,1);
+
+    return false;
+  };
+
+  gNorm.clear();
+  eNorm.clear();
+
   model.getProcessAdm().cout <<"\nAdaptive step "<< iStep << std::endl;
   if (iStep > 1)
   {
@@ -272,7 +285,7 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep, bool withRF,
     // options in order to override simulation options read from the input file,
     // those options will not be overridden here, so please don't do that..
     if (!model.read(inputfile) || !model.preprocess())
-      return false;
+      return failure();
     opt = oldOpt;
   }
   else if (storeMesh)
@@ -281,11 +294,11 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep, bool withRF,
 
   // Initialize the linear equation system for the current grid
   if (!model.initSystem(opt.solver,1,model.getNoRHS(),0,withRF))
-    return false;
+    return failure();
 
   // Assemble and solve the FE equation system
   if (!this->assembleAndSolveSystem())
-    return false;
+    return failure();
 
   eNorm.clear();
   gNorm.clear();
@@ -297,7 +310,7 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep, bool withRF,
     if (prj.first <= SIMoptions::NONE)
       projs[idx++].clear(); // No projection for this norm group
     else if (!model.project(projs[idx++],solution.front(),prj.first))
-      return false;
+      return failure();
 
   if (msgLevel > 1 && !projs.empty())
     model.getProcessAdm().cout << std::endl;
@@ -306,11 +319,14 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep, bool withRF,
   model.setMode(SIM::NORMS);
   model.setQuadratureRule(opt.nGauss[1]);
   if (!model.solutionNorms(solution.front(),projs,eNorm,gNorm))
-    return false;
+    return failure();
 
   model.setMode(SIM::RECOVERY);
-  return model.dumpResults(solution.front(),0.0,
-                           model.getProcessAdm().cout,true,precision);
+  if (!model.dumpResults(solution.front(),0.0,
+                         model.getProcessAdm().cout,true,precision))
+    return failure();
+
+  return true;
 }
 
 
@@ -330,9 +346,14 @@ bool AdaptiveSIM::adaptMesh (int iStep, std::streamsize outPrec)
   if (iStep < 2)
     return true; // No refinement in the first adaptive cycle
 
-  std::streamsize oldPrec = outPrec > 0 ? IFEM::cout.precision(outPrec) : 0;
-  this->printNorms();
-  if (outPrec > 0) IFEM::cout.precision(oldPrec);
+  if (outPrec > 0)
+  {
+    std::streamsize oldPrec = IFEM::cout.precision(outPrec);
+    this->printNorms();
+    IFEM::cout.precision(oldPrec);
+  }
+  else
+    this->printNorms();
 
   if (adaptor >= gNorm.size() || adaptor >= eNorm.rows() || eNorm.cols() == 0)
     return false; // Refinement norm index out of range, or no element errors
@@ -343,7 +364,8 @@ bool AdaptiveSIM::adaptMesh (int iStep, std::streamsize outPrec)
 
   // Define the reference norm
   double refNorm = 0.01*model.getReferenceNorm(gNorm,adaptor);
-  if (refNorm < -epsZ) {
+  if (refNorm < -epsZ)
+  {
     std::cerr <<" *** AdaptiveSIM::adaptMesh: Negative reference norm."
               <<" Check orientation of your model."<< std::endl;
     return false; // Negative reference norm, modelling error?
@@ -384,11 +406,13 @@ bool AdaptiveSIM::adaptMesh (int iStep, std::streamsize outPrec)
 
   if (threshold == TRUE_BETA)
   {
-    if (model.getNoPatches() > 1) {
+    if (model.getNoPatches() > 1)
+    {
       std::cerr <<" *** AdaptiveSIM::adaptMesh: True beta refinement"
                 <<" is not available for multi-patch models."<< std::endl;
       return false;
     }
+
     IFEM::cout <<"\nRefining by increasing solution space by "<< beta
                <<" percent."<< std::endl;
     prm.errors.resize(thePatch->getNoRefineElms());
@@ -438,7 +462,9 @@ bool AdaptiveSIM::adaptMesh (int iStep, std::streamsize outPrec)
           errors[i].first += locErr[i];
     }
   }
-  else { // use errors per element
+
+  else // use errors per element
+  {
     if (model.getNoPatches() > 1) // not supported for multi-patch models
     {
       std::cerr <<" *** AdaptiveSIM::adaptMesh: Multi-patch refinement"
@@ -495,7 +521,8 @@ bool AdaptiveSIM::adaptMesh (int iStep, std::streamsize outPrec)
                                   std::greater_equal<DblIdx>())
                - errors.begin();
 
-  if (threshold == SYMMETRIZED) {
+  if (threshold == SYMMETRIZED)
+  {
     double fErr = errors[refineSize-1].first;
     double fEps = fabs(fErr)*symmEps;
     while (refineSize < errors.size() &&
@@ -626,7 +653,8 @@ void AdaptiveSIM::printNorms (size_t w) const
 
 bool AdaptiveSIM::writeGlv (const char* infile, int iStep)
 {
-  if (opt.format < 0) return true;
+  if (opt.format < 0)
+    return true;
 
   // Write VTF-file with model geometry
   if (!model.writeGlvG(geoBlk, iStep == 1 ? infile : nullptr))
