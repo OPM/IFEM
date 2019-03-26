@@ -383,7 +383,7 @@ void ASMu2D::extendRefinementDomain (IntSet& refineIndices,
       for (int edgeNode : bndry1[edge])
         if (edgeNode-1 == j)
         {
-          IntVec secondary = this->getOverlappingNodes(j);
+          IntVec secondary = this->getOverlappingNodes(j, edge/2+1);
           refineIndices.insert(secondary.begin(),secondary.end());
           done_with_this_node = true;
           break;
