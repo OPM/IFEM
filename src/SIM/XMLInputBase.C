@@ -17,49 +17,59 @@
 #include <algorithm>
 
 
-void XMLInputBase::injectIncludeFiles (TiXmlElement* tag) const
+/*!
+  \brief Helper method to load an XML file and print error message if failure.
+*/
+
+static bool loadXMLfile (TiXmlDocument& doc, const char* fileName)
 {
-  static int nLevels = 0; ++nLevels;
-  bool foundIncludes = false;
+  if (doc.LoadFile(fileName))
+    return true;
+
+  std::cerr <<" *** SIMadmin::read: Failed to load \""<< fileName
+            <<"\".\n\tError at line "<< doc.ErrorRow() <<": "
+            << doc.ErrorDesc() << std::endl;
+  return false;
+}
+
+
+bool XMLInputBase::injectIncludeFiles (TiXmlElement* tag, bool verbose) const
+{
+  static int nLevels = 0;
+  std::string spaces(2*(nLevels++),' ');
+  bool foundIncludes = false, status = true;
   TiXmlElement* elem = tag->FirstChildElement();
-  for (; elem; elem = elem->NextSiblingElement())
+  for (; elem && status; elem = elem->NextSiblingElement())
     if (strcasecmp(elem->Value(),"include"))
-      this->injectIncludeFiles(elem);
+      status = this->injectIncludeFiles(elem,verbose);
     else if (elem->FirstChild() && elem->FirstChild()->Value()) {
       TiXmlDocument doc;
-      if (doc.LoadFile(elem->FirstChild()->Value())) {
-        for (int i = 1; i < nLevels; i++) IFEM::cout <<"  ";
-        IFEM::cout <<"Loaded included file "<< elem->FirstChild()->Value()
-                   << std::endl;
-        elem = tag->ReplaceChild(elem,*doc.RootElement())->ToElement();
-        TiXmlElement* elem2 = doc.RootElement()->NextSiblingElement();
-        for (; elem2; elem2 = elem2->NextSiblingElement())
-          tag->LinkEndChild(new TiXmlElement(*elem2));
+      if ((status = loadXMLfile(doc,elem->FirstChild()->Value()))) {
+        if (verbose)
+          IFEM::cout << spaces <<"Loaded included file "
+                     << elem->FirstChild()->Value() << std::endl;
+        TiXmlElement* e2 = doc.RootElement();
+        TiXmlNode* n2 = elem = tag->ReplaceChild(elem,*e2)->ToElement();
+        for (e2 = e2->NextSiblingElement(); e2; e2 = e2->NextSiblingElement())
+          n2 = tag->InsertAfterChild(n2,*e2);
         foundIncludes = true;
       }
-      else
-        std::cerr <<" *** SIMadmin::read: Failed to load \""
-                  << elem->FirstChild()->Value()
-                  <<"\".\n\tError at line "<< doc.ErrorRow() <<": "
-                  << doc.ErrorDesc() << std::endl;
     }
 
-  if (foundIncludes)
-    this->injectIncludeFiles(tag);
+  if (foundIncludes && status)
+    status = this->injectIncludeFiles(tag,verbose);
 
   --nLevels;
+
+  return status;
 }
 
 
 bool XMLInputBase::readXML (const char* fileName, bool verbose)
 {
   TiXmlDocument doc;
-  if (!doc.LoadFile(fileName)) {
-    std::cerr <<" *** SIMadmin::read: Failed to load \""<< fileName
-              <<"\".\n\tError at line "<< doc.ErrorRow() <<": "
-              << doc.ErrorDesc() << std::endl;
+  if (!loadXMLfile(doc,fileName))
     return false;
-  }
 
   const TiXmlElement* tag = doc.RootElement();
   if (!tag || strcmp(tag->Value(),"simulation")) {
@@ -71,10 +81,18 @@ bool XMLInputBase::readXML (const char* fileName, bool verbose)
   if (verbose)
     IFEM::cout <<"\nParsing input file "<< fileName << std::endl;
 
-  this->injectIncludeFiles(const_cast<TiXmlElement*>(tag));
+  if (!this->injectIncludeFiles(const_cast<TiXmlElement*>(tag),verbose))
+    return false;
+
+#ifdef SP_DEBUG
+  if (verbose) {
+    std::cout <<"\nHere is the input-file content:"<< std::endl;
+    doc.Print();
+  }
+#endif
 
   std::vector<const TiXmlElement*> parsed;
-  if (!handlePriorityTags(doc.RootElement(),parsed,verbose))
+  if (!this->handlePriorityTags(doc.RootElement(),parsed,verbose))
     return false;
 
   for (tag = tag->FirstChildElement(); tag; tag = tag->NextSiblingElement())
@@ -102,8 +120,9 @@ bool XMLInputBase::handlePriorityTags (const TiXmlElement* base,
   const char** q = this->getPrioritizedTags();
   if (!q) return true; // No prioritized tags defined
 
-  for (const TiXmlElement* elem = 0; *q; q++)
-    if ((elem = base->FirstChildElement(*q))) {
+  while (*q) {
+    const TiXmlElement* elem = base->FirstChildElement(*(q++));
+    if (elem) {
       if (verbose)
         IFEM::cout <<"\nParsing <"<< elem->Value() <<">"<< std::endl;
       if (!this->parse(elem)) {
@@ -113,6 +132,7 @@ bool XMLInputBase::handlePriorityTags (const TiXmlElement* base,
       }
       parsed.push_back(elem);
     }
+  }
 
   return true;
 }
