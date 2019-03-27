@@ -188,9 +188,10 @@ public:
   //! \param nBlock Running result block counter
   //! \param[in] prefix Prefices for projected solutions
   //! \param[in] idBlock Starting value of result block numbering
+  //! \param[in] dualPrefix Prefix for dual solution norms
   bool writeGlvN(const Matrix& norms, int iStep, int& nBlock,
                  const std::vector<std::string>& prefix = {},
-                 int idBlock = 200);
+                 int idBlock = 200, const char* dualPrefix = nullptr);
 
   //! \brief Writes a scalar function to the VTF-file.
   //! \param[in] f The function to output

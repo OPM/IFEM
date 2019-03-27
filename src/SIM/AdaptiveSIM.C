@@ -224,6 +224,10 @@ bool AdaptiveSIM::writeGlv (const char* infile, int iStep)
   if (!model.writeGlvS(solution.front(),iStep,nBlock))
     return false;
 
+  if (solution.size() > 1)
+    if (!model.writeGlvS1(solution[1],iStep,nBlock,0.0,"Dual solution",90,-1))
+      return false;
+
   // Write projected solution fields
   SIMoptions::ProjectionMap::const_iterator pit = opt.project.begin();
   for (size_t i = 0; i < projs.size(); i++, ++pit)
@@ -233,6 +237,13 @@ bool AdaptiveSIM::writeGlv (const char* infile, int iStep)
   // Write element norms
   if (!model.writeGlvN(eNorm,iStep,nBlock,prefix))
     return false;
+
+  if (!fNorm.empty())
+  {
+    std::vector<std::string> prefix = { "Dual projected" };
+    if (!model.writeGlvN(fNorm,iStep,nBlock,prefix,300,"Dual"))
+      return false;
+  }
 
   // Write state information
   return model.writeGlvStep(iStep,iStep,1);

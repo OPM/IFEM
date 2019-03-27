@@ -1116,7 +1116,8 @@ bool SIMoutput::writeGlvM (const Mode& mode, bool freq, int& nBlock)
 
 
 bool SIMoutput::writeGlvN (const Matrix& norms, int iStep, int& nBlock,
-                           const std::vector<std::string>& prefix, int idBlock)
+                           const std::vector<std::string>& prefix,
+                           int idBlock, const char* dualPrefix)
 {
   if (adm.dd.isPartitioned() && adm.getProcId() != 0)
     return true;
@@ -1126,6 +1127,15 @@ bool SIMoutput::writeGlvN (const Matrix& norms, int iStep, int& nBlock,
     return false;
 
   NormBase* norm = myProblem->getNormIntegrand(mySol);
+
+  // Lambda function telling whether a norm quantity should be saved or not
+  auto&& writeNorm = [norm,dualPrefix](size_t iGroup, size_t iNorm)
+  {
+    if (iNorm == 1 || iGroup > 1 || !dualPrefix)
+      return norm->hasElementContributions(iGroup,iNorm);
+    else
+      return false;
+  };
 
   Matrix field;
   std::vector<IntVec> sID(norms.rows());
@@ -1157,7 +1167,7 @@ bool SIMoutput::writeGlvN (const Matrix& norms, int iStep, int& nBlock,
       if (l > norm->getNoFields(j))
         l = 1, ++j;
 
-      if (norm->hasElementContributions(j,l++))
+      if (writeNorm(j,l++))
         if (!myVtf->writeEres(field.getRow(1+m),++nBlock,geomID))
           return false;
         else
@@ -1172,10 +1182,12 @@ bool SIMoutput::writeGlvN (const Matrix& norms, int iStep, int& nBlock,
     if (l > norm->getNoFields(j))
       l = 1, ++j;
 
-    if (!norm->hasElementContributions(j,l))
+    if (!writeNorm(j,l))
       continue;
 
-    if (!prefix.empty() && j > 1)
+    if (j == 1 && dualPrefix)
+      normName = norm->getName(j,l,dualPrefix);
+    else if (j > 1 && j-2 < prefix.size())
       normName = norm->getName(j,l,prefix[j-2].c_str());
     else
       normName = norm->getName(j,l);
