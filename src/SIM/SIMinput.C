@@ -634,6 +634,13 @@ FunctionBase* SIMinput::parseDualTag (const TiXmlElement* elem, int ftype)
   utl::getAttribute(elem,"depth",depth);
   utl::getAttribute(elem,"width",width);
 
+  // In adaptive analysis, reduce the depth by a factor of 0.5 until dmin
+  double dmin = depth; int skip = 1;
+  utl::getAttribute(elem,"dmin",dmin);
+  utl::getAttribute(elem,"skip",skip);
+  for (int ref = skip; ref <= isRefined && depth > dmin; ref += skip)
+    depth *= 0.5;
+
   IFEM::cout <<"\n\tX0     = "<< X0
              <<"\n\tnormal = "<< normal
              <<"\n\tdepth  = "<< depth <<", width = "<< width << std::endl;
@@ -1294,6 +1301,9 @@ bool SIMinput::refine (const LR::RefineData& prm, Vector& sol)
 
 bool SIMinput::refine (const LR::RefineData& prm, Vectors& sol)
 {
+  if (myModel.empty())
+    return false;
+
   ASMunstruct* pch = nullptr;
   for (size_t i = 0; i < myModel.size(); i++)
     if (!(pch = dynamic_cast<ASMunstruct*>(myModel[i])))
@@ -1302,10 +1312,15 @@ bool SIMinput::refine (const LR::RefineData& prm, Vectors& sol)
                 <<" unstructured (ASMunstruct) patches."<< std::endl;
       return false;
     }
+    else if (nGlPatches == 1)
+    {
+      // Single patch models only pass refinement call to the ASM level
+      if (!pch->refine(prm,sol))
+        return false;
 
-  // Single patch models only pass refinement call to the ASM level
-  if (myModel.size() == 1 && pch)
-    return (isRefined = pch->refine(prm,sol));
+      ++isRefined;
+      return true;
+    }
 
   if (!prm.errors.empty()) // refinement by true_beta
   {
@@ -1376,8 +1391,8 @@ bool SIMinput::refine (const LR::RefineData& prm, Vectors& sol)
       lsols.push_back(s);
   }
   sol = lsols;
-
-  return (isRefined = true);
+  ++isRefined;
+  return true;
 }
 
 
@@ -1402,7 +1417,7 @@ bool SIMinput::setInitialCondition (SIMdependency* fieldHolder,
     std::stringstream str;
     str << it.geo_level << "/" << it.file_basis << "/basis";
     int nPatches = hdf5reader.getFieldSize(str.str());
-    if (basisVec.empty()) {
+    if (basisVec.empty())
       for (int i = 0; i < nPatches; i++)
         if (this->getLocalPatchIndex(i+1) > 0)
         {
@@ -1413,7 +1428,6 @@ bool SIMinput::setInitialCondition (SIMdependency* fieldHolder,
           spg2 << pg2;
           basisVec.push_back(this->readPatch(spg2,i,nf));
         }
-    }
 
     // Load result field, patch by patch
     for (int i = 0; i < nPatches; i++)
@@ -1424,11 +1438,14 @@ bool SIMinput::setInitialCondition (SIMdependency* fieldHolder,
 
       Vector loc, newloc;
       std::stringstream str;
-      str << it.file_level << "/" << it.file_basis << "/fields/" << it.file_field << "/" << i+1;
+      str << it.file_level <<"/"
+          << it.file_basis <<"/fields/"
+          << it.file_field <<"/"<< i+1;
       hdf5reader.readVector(str.str(), loc);
       basisVec[p-1]->copyParameterDomain(pch);
       if (pch->evaluate(basisVec[p-1], loc, newloc, it.basis))
-        pch->injectNodeVec(newloc, *field, newloc.size()/pch->getNoNodes(it.basis), it.basis);
+        pch->injectNodeVec(newloc, *field,
+                           newloc.size()/pch->getNoNodes(it.basis), it.basis);
     }
   }
 
