@@ -25,7 +25,7 @@ class SIMargsBase : public XMLInputBase
 {
 public:
   //! \brief The constructor initializes the default parameter values.
-  explicit SIMargsBase(const char* ctx) : context(ctx), dim(3), adap(false) {}
+  explicit SIMargsBase(const char* ctx) : context(ctx), dim(3), adap(0) {}
 
   //! \brief Parses a command-line argument.
   virtual bool parseArg(const char* argv);
@@ -39,7 +39,7 @@ private:
 
 public:
   int  dim;  //!< Dimensionality of simulation
-  bool adap; //!< If \e true, run an adaptive simulator
+  char adap; //!< If &ne; 0, run an adaptive simulator
 };
 
 #endif
