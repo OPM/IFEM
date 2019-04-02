@@ -544,7 +544,7 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
 
   // Get Gaussian quadrature points and weights
   // For now, use the largest polynomial order of the two tangent directions
-  int nG1 = this->getNoGaussPt(std::max(svol->order(t1),svol->order(t2)),true);
+  int nG1 = this->getNoGaussPt(std::max(svol->order(t1-1),svol->order(t2-1)),true);
   int nGP = integrand.getBouIntegrationPoints(nG1);
   const double* xg = GaussQuadrature::getCoord(nGP);
   const double* wg = GaussQuadrature::getWeight(nGP);
@@ -719,7 +719,7 @@ bool ASMs3DLag::integrateEdge (Integrand& integrand, int lEdge,
   const int lDir = (lEdge-1)/4;
 
   // Get Gaussian quadrature points and weights
-  int ng = this->getNoGaussPt(svol->order((lEdge-1)/4),true);
+  int ng = this->getNoGaussPt(svol->order(lDir),true);
   const double* xg = GaussQuadrature::getCoord(ng);
   const double* wg = GaussQuadrature::getWeight(ng);
   if (!xg || !wg) return false;

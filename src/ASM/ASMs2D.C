@@ -300,10 +300,7 @@ bool ASMs2D::addInterfaceElms (const ASM::InterfaceChecker& iChk)
 
 size_t ASMs2D::getNodeIndex (int globalNum, bool noAddedNodes) const
 {
-  IntVec::const_iterator it = std::find(MLGN.begin(),MLGN.end(),globalNum);
-  if (it == MLGN.end()) return 0;
-
-  size_t inod = 1 + (it-MLGN.begin());
+  size_t inod = 1 + utl::findIndex(MLGN,globalNum);
   if (noAddedNodes && !xnMap.empty() && inod > nnod)
   {
     std::map<size_t,size_t>::const_iterator it = xnMap.find(inod);
@@ -2240,7 +2237,7 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
   const int p2 = surf->order_v();
 
   // Get Gaussian quadrature points and weights
-  int nG1 = this->getNoGaussPt(lIndex%10 < 3 ? p1 : p2, true);
+  int nG1 = this->getNoGaussPt(lIndex%10 < 3 ? p2 : p1, true);
   int nGP = integrand.getBouIntegrationPoints(nG1);
   const double* xg = GaussQuadrature::getCoord(nGP);
   const double* wg = GaussQuadrature::getWeight(nGP);

@@ -196,36 +196,37 @@ bool ASMbase::addLagrangeMultipliers (size_t iel, const IntVec& mGLag,
 
   for (size_t i = 0; i < mGLag.size(); i++)
   {
-    size_t node = MLGN.size();
-    IntVec::const_iterator it = std::find(MLGN.begin(),MLGN.end(),mGLag[i]);
-    if (it == MLGN.end())
-      myMLGN.push_back(mGLag[i]); // Add a new Lagrange multiplier node
-    else
-      node = it - MLGN.begin(); // Existing Lagrange multiplier node
+    size_t node = 1 + utl::findIndex(MLGN,mGLag[i]);
+    if (node == 0)
+    {
+      // Add a new Lagrange multiplier node
+      myMLGN.push_back(mGLag[i]);
+      node = myMLGN.size();
+    }
 
     // Update the nodal range (1-based indices) of the Lagrange multipliers
     if (myLMs.first == 0)
-      myLMs.first = myLMs.second = node+1;
-    else if (node+1 < myLMs.first)
+      myLMs.first = myLMs.second = node;
+    else if (node < myLMs.first)
     {
-      std::cerr <<" *** ASMbase::addLagrangeMultipliers: Node "<< node+1
+      std::cerr <<" *** ASMbase::addLagrangeMultipliers: Node "<< node
                 <<" is out of range ["<< myLMs.first <<","<< myLMs.second
                 <<"]."<< std::endl;
       return false;
     }
-    else if (node >= myLMs.second)
-      myLMs.second = node+1;
+    else if (node > myLMs.second)
+      myLMs.second = node;
 
-    if (myLMTypes.size() < node-myLMs.first+2)
-      myLMTypes.resize(node-myLMs.first+2);
+    if (myLMTypes.size() < node-myLMs.first+1)
+      myLMTypes.resize(node-myLMs.first+1);
 
-    myLMTypes[node+1-myLMs.first] = iel == 0 ? 'G' : 'L';
+    myLMTypes[node-myLMs.first] = iel == 0 ? 'G' : 'L';
 
     // Extend the element connectivity table
     if (iel > 0)
-      myMNPC[iel-1].push_back(node);
+      myMNPC[iel-1].push_back(node-1);
     else for (IntVec& mnpc : myMNPC)
-      mnpc.push_back(node);
+      mnpc.push_back(node-1);
   }
 
   return true;
@@ -249,19 +250,13 @@ void ASMbase::resetNumbering (int n)
 
 size_t ASMbase::getNodeIndex (int globalNum, bool) const
 {
-  IntVec::const_iterator it = std::find(MLGN.begin(),MLGN.end(),globalNum);
-  if (it == MLGN.end()) return 0;
-
-  return 1 + (it-MLGN.begin());
+  return 1 + utl::findIndex(MLGN,globalNum);
 }
 
 
 int ASMbase::getNodeID (size_t inod, bool) const
 {
-  if (inod < 1 || inod > MLGN.size())
-    return 0;
-
-  return MLGN[inod-1];
+  return inod < 1 || inod > MLGN.size() ? 0 : MLGN[inod-1];
 }
 
 
@@ -270,21 +265,18 @@ char ASMbase::getLMType (size_t inod) const
   return this->isLMn(inod) ? myLMTypes[inod-myLMs.first] : 0;
 }
 
+
 size_t ASMbase::getElmIndex (int globalNum) const
 {
-  IntVec::const_iterator it = std::find(MLGE.begin(),MLGE.end(),globalNum);
-  if (it == MLGE.end()) return 0;
-
-  return 1 + (it-MLGE.begin());
+  return 1 + utl::findIndex(MLGE,globalNum);
 }
+
 
 int ASMbase::getElmID (size_t iel) const
 {
-  if (iel < 1 || iel > MLGE.size())
-    return 0;
-
-  return abs(MLGE[iel-1]);
+  return iel < 1 || iel > MLGE.size() ? 0 : abs(MLGE[iel-1]);
 }
+
 
 const IntVec& ASMbase::getElementNodes (int iel) const
 {

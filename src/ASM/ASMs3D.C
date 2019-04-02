@@ -228,10 +228,7 @@ bool ASMs3D::addXElms (short int dim, short int item, size_t nXn, IntVec& nodes)
 
 size_t ASMs3D::getNodeIndex (int globalNum, bool noAddedNodes) const
 {
-  IntVec::const_iterator it = std::find(MLGN.begin(),MLGN.end(),globalNum);
-  if (it == MLGN.end()) return 0;
-
-  size_t inod = 1 + (it-MLGN.begin());
+  size_t inod = 1 + utl::findIndex(MLGN,globalNum);
   if (noAddedNodes && !xnMap.empty() && inod > nnod)
   {
     std::map<size_t,size_t>::const_iterator it = xnMap.find(inod);

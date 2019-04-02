@@ -482,7 +482,7 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
   if (this->empty()) return true; // silently ignore empty patches
 
   // Get Gaussian quadrature points and weights
-  int nG1 = this->getNoGaussPt(lIndex%10 < 3 ? p1 : p2, true);
+  int nG1 = this->getNoGaussPt(lIndex%10 < 3 ? p2 : p1, true);
   int nGP = integrand.getBouIntegrationPoints(nG1);
   const double* xg = GaussQuadrature::getCoord(nGP);
   const double* wg = GaussQuadrature::getWeight(nGP);
