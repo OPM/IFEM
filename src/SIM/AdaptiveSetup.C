@@ -463,7 +463,10 @@ void AdaptiveSetup::printNorms (const Vectors& gNorm, const Vectors& dNorm,
       IFEM::cout <<"\nError estimate, dual solution"
                  << utl::adjustRight(w-29,"(z)") << bNorm(adNorm)
                  <<"\nRelative error (%) : "
-                 << 100.0*bNorm(adNorm)/hypot(dNorm.front()(1),bNorm(2));
+                 << 100.0*bNorm(adNorm)/hypot(dNorm.front()(1),bNorm(2))
+                 <<"\nError estimate "
+                 << utl::adjustRight(w-15,"E(u)*E(z), E(v)=a(v^r-v^h,v^r-v^h)")
+                 << dNorm.front()(2);
     }
     IFEM::cout <<"\n"<< std::endl;
 

@@ -1131,10 +1131,10 @@ bool SIMoutput::writeGlvN (const Matrix& norms, int iStep, int& nBlock,
   // Lambda function telling whether a norm quantity should be saved or not
   auto&& writeNorm = [norm,dualPrefix](size_t iGroup, size_t iNorm)
   {
-    if (iNorm == 1 || iGroup > 1 || !dualPrefix)
-      return norm->hasElementContributions(iGroup,iNorm);
+    if (iGroup == 1 && dualPrefix)
+      return iNorm <= 2; // hack: dual refinement indicators as norm #2
     else
-      return false;
+      return norm->hasElementContributions(iGroup,iNorm);
   };
 
   Matrix field;

@@ -152,9 +152,26 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep, bool withRF,
   model.setQuadratureRule(opt.nGauss[1]);
   if (!model.solutionNorms(solution.front(),projs,eNorm,gNorm))
     return failure();
+
   if (!projd.empty() && solution.size() > 1)
+  {
     if (!model.solutionNorms(solution[1],projd,fNorm,dNorm))
       return failure();
+
+    if (eRow <= fNorm.rows() && eRow <= eNorm.rows())
+    {
+      // Calculate refinement indicators including the dual error estimates.
+      // Store in the 2nd row in fNorm (normally holding the external energy).
+      // Store the associated global norm in the dNorm array.
+      double dErr = 0.0;
+      for (size_t j = 1; j <= eNorm.cols() && j <= fNorm.cols(); j++)
+      {
+        fNorm(2,j) = eNorm(eRow,j)*fNorm(eRow,j);
+        dErr += fNorm(2,j)*fNorm(2,j);
+      }
+      dNorm.front()(2) = sqrt(dErr);
+    }
+  }
 
   model.setMode(SIM::RECOVERY);
   if (!model.dumpResults(solution.front(),0.0,
@@ -186,14 +203,9 @@ bool AdaptiveSIM::adaptMesh (int iStep, std::streamsize outPrec)
   else
     this->printNorms(gNorm,dNorm,eNorm);
 
-  // Calculate refinement indicators including the dual error estimates
-  Vector refIn = eNorm.getRow(eRow);
-  if (eRow <= fNorm.rows())
-    for (size_t i = 1; i <= refIn.size(); i++)
-      refIn(i) = sqrt(refIn(i)*fNorm(eRow,i));
-
   // Set up refinement parameters
   LR::RefineData prm;
+  Vector refIn = fNorm.empty() ? eNorm.getRow(eRow) : fNorm.getRow(2);
   if (this->calcRefinement(prm,iStep,gNorm,refIn) <= 0)
     return false;
 
