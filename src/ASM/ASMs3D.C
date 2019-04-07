@@ -726,8 +726,9 @@ bool ASMs3D::connectBasis (int face, ASMs3D& neighbor, int nface, int norient,
 
 void ASMs3D::closeBoundaries (int dir, int basis, int master)
 {
-  int n1, n2, n3;
   if (basis < 1) basis = 1;
+
+  int n1, n2, n3;
   if (!this->getSize(n1,n2,n3,basis)) return;
 
   switch (dir)
@@ -750,6 +751,161 @@ void ASMs3D::closeBoundaries (int dir, int basis, int master)
 	  this->makePeriodic(master,master+n1*n2*(n3-1));
       break;
     }
+}
+
+
+bool ASMs3D::collapseFace (int face, int edge, int basis)
+{
+  if (basis < 1) basis = 1;
+
+  int n1, n2, n3;
+  int node = this->findStartNode(n1,n2,n3,basis);
+  if (node < 1) return false;
+
+  if (swapW) // Account for swapped parameter direction
+    if (face == 5 || face == 6) face = 11-face;
+
+  // Lambda function to verify co-location of nodes and collapse them
+  auto&& collapse = [this](int master, int slave)
+  {
+    const double xtol = 1.0e-4;
+
+    if (master == slave)
+      return true;
+    else if (this->getCoord(slave).equal(this->getCoord(master),xtol))
+    {
+      ASMbase::collapseNodes(*this,master,*this,slave);
+      return true;
+    }
+
+    std::cerr <<" *** ASMs3D::collapseFace: Not all nodes on the face"
+              <<" are co-located\n"<< std::string(27,' ')
+              << master <<": " << this->getCoord(master) << std::endl
+              << std::string(23,' ') <<"and "
+              << slave <<": "<< this->getCoord(slave) << std::endl;
+    return false;
+  };
+
+  int iedge, master;
+  switch (face)
+    {
+    case 2: // Right face (positive I-direction)
+      node += n1-1;
+    case 1: // Left face (negative I-direction)
+      iedge = (edge-face-2)/2;
+      master = node;
+      if (iedge == 2)
+        master += n1*n2*(n3-1);
+      else if (iedge == 4)
+        master += n1*(n2-1);
+      for (int i3 = 1; i3 <= n3; i3++)
+        for (int i2 = 1; i2 <= n2; i2++, node += n1)
+        {
+          if (!collapse(master,node))
+            return false;
+          switch (iedge) {
+          case 1:
+          case 2:
+            master += n1;
+            if (i2 == n2)
+              master -= n1*n2;
+            break;
+          case 3:
+          case 4:
+            if (i2 == n2)
+              master += n1*n2;
+            break;
+          case -1:
+          case -2:
+            break; // edge=0, collapsing to a vertex
+          default:
+            std::cerr <<" *** ASMs3D::collapseFace: Invalid face/edge "
+                      << face <<"/"<< edge << std::endl;
+            return false;
+          }
+        }
+
+      threadGroupsVol.stripDir = ThreadGroups::U;
+      break;
+
+    case 4: // Back face (positive J-direction)
+      node += n1*(n2-1);
+    case 3: // Front face (negative J-direction)
+      iedge = edge < 9 ? (edge-face+4)/2 : edge-2*face;
+      master = node;
+      if (iedge == 2)
+        master += n1*n2*(n3-1);
+      else if (iedge == 4)
+        master += n1-1;
+      for (int i3 = 1; i3 <= n3; i3++, node += n1*(n2-1))
+        for (int i1 = 1; i1 <= n1; i1++, node++)
+        {
+          if (!collapse(master,node))
+            return false;
+          switch (iedge) {
+          case 1:
+          case 2:
+            master++;
+            if (i1 == n1)
+              master -= n1;
+            break;
+          case 3:
+          case 4:
+            if (i1 == n1)
+              master += n1*n2;
+            break;
+          case 0:
+            break; // edge=0, collapsing to a vertex
+          default:
+            std::cerr <<" *** ASMs3D::collapseFace: Invalid face/edge "
+                      << face <<"/"<< edge << std::endl;
+            return false;
+          }
+        }
+
+      threadGroupsVol.stripDir = ThreadGroups::V;
+      break;
+
+    case 6: // Top face (positive K-direction)
+      node += n1*n2*(n3-1);
+    case 5: // Bottom face (negative K-direction)
+      iedge = edge-2*face+10;
+      master = node;
+      for (int i2 = 1; i2 <= n2; i2++)
+        for (int i1 = 1; i1 <= n1; i1++, node++)
+        {
+          if (!collapse(master,node))
+            return false;
+          switch (iedge) {
+          case 1:
+          case 2:
+            master++;
+            if (i1 == n1)
+              master -= n1;
+            break;
+          case 5:
+          case 6:
+            if (i1 == n1)
+              master += n1;
+            break;
+          case 0:
+          case -2:
+            break; // edge=0, collapsing to a vertex
+          default:
+            std::cerr <<" *** ASMs3D::collapseFace: Invalid face/edge "
+                      << face <<"/"<< edge << std::endl;
+            return false;
+          }
+        }
+
+      threadGroupsVol.stripDir = ThreadGroups::W;
+      break;
+
+    default:
+      return false;
+    }
+
+  return true;
 }
 
 
@@ -776,6 +932,8 @@ int ASMs3D::findStartNode (int& n1, int& n2, int& n3, char basis) const
 void ASMs3D::constrainFace (int dir, bool open, int dof,
                             int code, char basis)
 {
+  if (basis < 1) basis = 1;
+
   int n1, n2, n3;
   int node = this->findStartNode(n1,n2,n3,basis);
   if (node < 1) return;
@@ -886,7 +1044,6 @@ size_t ASMs3D::constrainFaceLocal (int dir, bool open, int dof, int code,
   if (!this->getGrevilleParameters(upar,t1) ||
       !this->getGrevilleParameters(vpar,t2))
     return 0;
-
 
   // Find the surface representing the face geometry (for tangent evaluation)
   Go::SplineSurface* face = this->getBoundary(dir);
@@ -1122,6 +1279,8 @@ IntVec ASMs3D::getEdge (int lEdge, bool open, int basis, int) const
 void ASMs3D::constrainEdge (int lEdge, bool open, int dof,
                             int code, char basis)
 {
+  if (basis < 1) basis = 1;
+
   for (const int& node : this->getEdge(lEdge,open,basis))
     this->prescribe(node,dof,code);
 }
@@ -1131,6 +1290,7 @@ void ASMs3D::constrainLine (int fdir, int ldir, double xi, int dof,
                             int code, char basis)
 {
   if (xi < 0.0 || xi > 1.0) return;
+  if (basis < 1) basis = 1;
 
   int n1, n2, n3;
   int node = this->findStartNode(n1,n2,n3,basis);
@@ -1204,26 +1364,29 @@ void ASMs3D::constrainLine (int fdir, int ldir, double xi, int dof,
 void ASMs3D::constrainCorner (int I, int J, int K, int dof,
                               int code, char basis)
 {
-  int node = this->getCorner(I, J, K, basis);
+  if (basis < 1) basis = 1;
+
+  int node = this->getCorner(I,J,K,basis);
   if (node > 0)
     this->prescribe(node,dof,code);
 }
 
 
-void ASMs3D::constrainNode (double xi, double eta, double zeta,
-			    int dof, int code, char basis)
+void ASMs3D::constrainNode (double xi, double eta, double zeta, int dof,
+                            int code)
 {
   if (xi   < 0.0 || xi   > 1.0) return;
   if (eta  < 0.0 || eta  > 1.0) return;
   if (zeta < 0.0 || zeta > 1.0) return;
 
   int n1 = 0, n2 = 0, n3 = 0;
-  int node = this->findStartNode(n1,n2,n3,basis);
-  if (node < 1) return;
+  if (!this->getSize(n1,n2,n3,1))
+    return;
 
   if (swapW) // Account for swapped parameter direction
     zeta = 1.0-zeta;
 
+  int node = 1;
   if (xi   > 0.0) node += int(0.5+(n1-1)*xi);
   if (eta  > 0.0) node += n1*int(0.5+(n2-1)*eta);
   if (zeta > 0.0) node += n1*n2*int(0.5+(n3-1)*zeta);
@@ -1493,8 +1656,7 @@ bool ASMs3D::updateCoords (const Vector& displ)
 void ASMs3D::getBoundaryNodes (int lIndex, IntVec& nodes,
                                int basis, int thick, int, bool local) const
 {
-  if (basis == 0)
-    basis = 1;
+  if (basis < 1) basis = 1;
 
   if (!this->getBasis(basis)) return; // silently ignore empty patches
 

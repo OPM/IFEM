@@ -228,7 +228,7 @@ public:
   //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
   //! \param[in] lIndex Local index of the boundary face/edge
   //! \param nodes Array of node numbers
-  //! \param[in] basis Which basis to grab nodes for (0 for all)
+  //! \param[in] basis Which basis to grab nodes for (for mixed methods)
   //! \param[in] thick Thickness of connection
   //! \param[in] orient Local orientation of the boundary face/edge
   //! \param[in] local If \e true, return patch-local numbers
@@ -321,7 +321,7 @@ public:
 
   //! \brief Makes two opposite boundaries periodic.
   //! \param[in] dir Parameter direction defining the periodic boundaries
-  //! \param[in] basis Which basis to connect (mixed methods), 0 means all
+  //! \param[in] basis Which basis to connect (mixed methods)
   //! \param[in] master 1-based index of the first master node in this basis
   virtual void closeBoundaries(int dir = 1, int basis = 0, int master = 1) {}
 

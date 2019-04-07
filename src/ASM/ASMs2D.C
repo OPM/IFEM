@@ -699,8 +699,9 @@ bool ASMs2D::connectBasis (int edge, ASMs2D& neighbor, int nedge, bool revers,
 
 void ASMs2D::closeBoundaries (int dir, int basis, int master)
 {
-  int n1, n2;
   if (basis < 1) basis = 1;
+
+  int n1, n2;
   if (!this->getSize(n1,n2,basis)) return;
 
   switch (dir)
@@ -720,8 +721,9 @@ void ASMs2D::closeBoundaries (int dir, int basis, int master)
 
 bool ASMs2D::collapseEdge (int edge, int basis)
 {
-  int i, n1, n2, node, nnod, incn = 1, master = 1;
   if (basis < 1) basis = 1;
+
+  int i, n1, n2, node, nnod, incn = 1, master = 1;
   for (i = 1; i <= basis; i++)
     if (!this->getSize(n1,n2,i))
       return false;
@@ -782,6 +784,8 @@ bool ASMs2D::collapseEdge (int edge, int basis)
 
 void ASMs2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
 {
+  if (basis < 1) basis = 1;
+
   int n1 = 0, n2 = 0, node = 1;
   for (char i = 1; i <= basis; i++)
     if (!this->getSize(n1,n2,i))
@@ -1064,7 +1068,9 @@ size_t ASMs2D::constrainEdgeLocal (int dir, bool open, int dof, int code,
 
 void ASMs2D::constrainCorner (int I, int J, int dof, int code, char basis)
 {
-  int node = this->getCorner(I, J, basis);
+  if (basis < 1) basis = 1;
+
+  int node = this->getCorner(I,J,basis);
   if (node > 0)
     this->prescribe(node,dof,code);
 }
@@ -1340,8 +1346,7 @@ bool ASMs2D::updateCoords (const Vector& displ)
 void ASMs2D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
                                int thick, int, bool local) const
 {
-  if (basis == 0)
-    basis = 1;
+  if (basis < 1) basis = 1;
 
   if (!this->getBasis(basis)) return; // silently ignore empty patches
 

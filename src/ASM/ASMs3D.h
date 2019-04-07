@@ -204,9 +204,9 @@ public:
   //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
   //! \param[in] lIndex Local index of the boundary face
   //! \param nodes Array of node numbers
-  //! \param[in] basis Which basis to grab nodes for (0 for all)
+  //! \param[in] basis Which basis to grab nodes for (for mixed methods)
   //! \param[in] thick Thickness of connection
-  //! \param[in] local If true return patch-local node numbers
+  //! \param[in] local If \e true, return patch-local node numbers
   virtual void getBoundaryNodes(int lIndex, IntVec& nodes,
                                 int basis, int thick = 1,
                                 int = 0, bool local = false) const;
@@ -265,7 +265,7 @@ public:
   //! \param[in] open If \e true, exclude all points along the face boundary
   //! \param[in] dof Which DOFs to constrain at each node on the face
   //! \param[in] code Inhomogeneous dirichlet condition code
-  //! \param[in] basis Basis to constrain edge for
+  //! \param[in] basis Which basis to constrain face for
   virtual void constrainFace(int dir, bool open, int dof,
                              int code = 0, char basis = 1);
   //! \brief Constrains all DOFs in local directions on a given boundary face.
@@ -282,9 +282,9 @@ public:
   //! \brief Constrains all DOFs on a given boundary edge.
   //! \param[in] lEdge Local index [1,12] of the edge to constrain
   //! \param[in] open If \e true, exclude the end points of the edge
-  //! \param[in] dof Which DOFs to constrain at each node on the edge
+  //! \param[in] dof Which DOFs to constrain at each node along the edge
   //! \param[in] code Inhomogeneous dirichlet condition code
-  //! \param[in] basis Basis to constrain edge for
+  //! \param[in] basis Which basis to constrain edge for
   virtual void constrainEdge(int lEdge, bool open, int dof,
                              int code = 0, char basis = 1);
 
@@ -294,7 +294,7 @@ public:
   //! \param[in] xi Parameter value defining the line to constrain
   //! \param[in] dof Which DOFs to constrain at each node along the line
   //! \param[in] code Inhomogeneous dirichlet condition code
-  //! \param[in] basis Basis to constrain line for
+  //! \param[in] basis Which basis to constrain line for
   //!
   //! \details The parameter \a xi has to be in the domain [0.0,1.0], where
   //! 0.0 means the beginning of the domain and 1.0 means the end. The line to
@@ -312,7 +312,7 @@ public:
   //! \param[in] K Parameter index in w-direction
   //! \param[in] dof Which DOFs to constrain at the node
   //! \param[in] code Inhomogeneous dirichlet condition code
-  //! \param[in] basis Basis to constrain corner for
+  //! \param[in] basis Which basis to constrain node for
   //!
   //! \details The sign of the three indices is used to define whether we want
   //! the node at the beginning or the end of that parameter direction.
@@ -325,7 +325,6 @@ public:
   //! \param[in] zeta Parameter in w-direction
   //! \param[in] dof Which DOFs to constrain at the node
   //! \param[in] code Inhomogeneous dirichlet condition code
-  //! \param[in] basis Basis to constrain node for
   //!
   //! \details The parameter values have to be in the domain [0.0,1.0], where
   //! 0.0 means the beginning of the domain and 1.0 means the end. For values
@@ -333,7 +332,7 @@ public:
   //! \a r*n, where \a r denotes the given relative parameter value,
   //! and \a n is the number of nodes along that parameter direction.
   virtual void constrainNode(double xi, double eta, double zeta, int dof,
-                             int code = 0, char basis = 1);
+                             int code = 0);
 
   //! \brief Connects all matching nodes on two adjacent boundary faces.
   //! \param[in] face Local face index of this patch, in range [1,6]
@@ -353,9 +352,16 @@ public:
 
   //! \brief Makes two opposite boundary faces periodic.
   //! \param[in] dir Parameter direction defining the periodic faces
-  //! \param[in] basis Which basis to connect (mixed methods), 0 means all
+  //! \param[in] basis Which basis to connect (mixed methods)
   //! \param[in] master 1-based index of the first master node in this basis
   virtual void closeBoundaries(int dir, int basis, int master);
+
+  //! \brief Collapses a degenereated face into a single node or edge.
+  //! \param[in] face Which face to collapse, in rage [1,6]
+  //! \param[in] edge Which edge to callapse on to, in range [0,12],
+  //! 0 means collapse on to vertex
+  //! \param[in] basis Which basis to collapse face for
+  virtual bool collapseFace(int face, int edge = 0, int basis = 1);
 
   //! \brief Sets the global node numbers for this patch.
   //! \param[in] nodes Vector of global node numbers (zero-based)
@@ -566,7 +572,7 @@ protected:
   //! \param[in] basis Which basis to connect the nodes for (mixed methods)
   //! \param[in] slave 0-based index of the first slave node in this basis
   //! \param[in] master 0-based index of the first master node in this basis
-  //! \param[in] coordCheck False to turn off coordinate checks
+  //! \param[in] coordCheck False to disable coordinate checks (periodic connections)
   //! \param[in] thick Thickness of connection
   bool connectBasis(int face, ASMs3D& neighbor, int nface, int norient,
                     int basis = 1, int slave = 0, int master = 0,
@@ -584,8 +590,8 @@ protected:
   //! \brief Calculates parameter values for the Greville points.
   //! \param[out] prm Parameter values in given direction for all points
   //! \param[in] dir Parameter direction (0,1,2)
-  //! \param[in] basis Basis number (mixed)
-  bool getGrevilleParameters(RealArray& prm, int dir, int basis=1) const;
+  //! \param[in] basisNum Which basis to get Greville point parameters for
+  bool getGrevilleParameters(RealArray& prm, int dir, int basisNum = 1) const;
 
   //! \brief Calculates parameter values for the Quasi-Interpolation points.
   //! \param[out] prm Parameter values in given direction for all points

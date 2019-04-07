@@ -182,7 +182,7 @@ public:
                             int thick = 1);
 
   //! \brief Makes the two end vertices of the curve periodic.
-  //! \param[in] basis Which basis to connect (mixed methods), 0 means all
+  //! \param[in] basis Which basis to connect (mixed methods)
   //! \param[in] master 1-based index of the first master node in this basis
   virtual void closeBoundaries(int, int basis, int master);
 
@@ -263,10 +263,9 @@ public:
   //! \brief Evaluates and interpolates a function over a given geometry.
   //! \param[in] func The function to evaluate
   //! \param[out] vec The obtained coefficients after interpolation
-  //! \param[in] basis Basis number (mixed)
   //! \param[in] time Current time
   virtual bool evaluate(const FunctionBase* func, RealArray& vec,
-                        int basis, double time) const;
+                        int, double time) const;
 
   //! \brief Evaluates the secondary solution field at all visualization points.
   //! \param[out] sField Solution field

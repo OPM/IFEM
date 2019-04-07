@@ -334,6 +334,8 @@ bool ASMu3D::connectBasis (int face, ASMu3D& neighbor, int nface, int norient,
 
 void ASMu3D::constrainFace (int dir, bool open, int dof, int code, char basis)
 {
+  if (basis < 1) basis = 1;
+
   // figure out function index offset (when using multiple basis)
   size_t ofs = 1;
   for (int i = 1; i < basis; i++)
@@ -515,14 +517,16 @@ IntVec ASMu3D::getEdge (int lEdge, bool open, int basis, int orient) const
   return result;
 }
 
-void ASMu3D::constrainEdge (int lEdge, bool open, int dof, int code, char)
+void ASMu3D::constrainEdge (int lEdge, bool open, int dof, int code, char basis)
 {
   if (open)
     std::cout <<"  ** ASMu3D::constrainEdge: Open boundary conditions are not"
               <<" supported for LR B-splines. Treated as closed."<< std::endl;
 
+  if (basis < 1) basis = 1;
+
   // enforce the boundary conditions
-  for (int node : this->getEdge(lEdge, open, 1, -1))
+  for (int node : this->getEdge(lEdge, open, basis, -1))
     this->prescribe(node,dof,code);
 }
 
@@ -535,22 +539,26 @@ void ASMu3D::constrainLine (int, int, double, int, int, char)
 }
 
 
-void ASMu3D::constrainCorner (int I, int J, int K, int dof, int code, char)
+void ASMu3D::constrainCorner (int I, int J, int K, int dof,
+                              int code, char basis)
 {
+  if (basis < 1) basis = 1;
+
   int corner = LR::NONE;
   corner |= (I < 0 ? LR::WEST   : LR::EAST );
   corner |= (J < 0 ? LR::SOUTH  : LR::NORTH);
   corner |= (K < 0 ? LR::BOTTOM : LR::TOP  );
 
   std::vector<LR::Basisfunction*> one_function;
-  lrspline->getEdgeFunctions(one_function, LR::parameterEdge(corner));
+  this->getBasis(basis)->getEdgeFunctions(one_function,
+                                          LR::parameterEdge(corner));
 
   this->prescribe(one_function.front()->getId()+1, dof, code);
 }
 
 
 void ASMu3D::constrainNode (double xi, double eta, double zeta,
-                            int dof, int code, char)
+                            int dof, int code)
 {
   // We can't do this, since the control point locations are unpredictable
   std::cout <<"  ** Constraining a nodal point is not available"

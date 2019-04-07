@@ -12,9 +12,9 @@
 
 #include "ASMs3D.h"
 #include "SIM3D.h"
+#include <array>
 
 #include "gtest/gtest.h"
-#include <numeric>
 
 
 class TestASMs3D : public testing::Test,
@@ -50,5 +50,225 @@ TEST_P(TestASMs3D, ConnectUneven)
 }
 
 
-const std::vector<int> orientations3D = {0,1,2,3,5,6,7,8,9,10,11,12};
-INSTANTIATE_TEST_CASE_P(TestASMs3D, TestASMs3D, testing::ValuesIn(orientations3D));
+INSTANTIATE_TEST_CASE_P(TestASMs3D, TestASMs3D,
+                        testing::Values(0,1,2,3,5,6,7,8,9,10,11,12));
+
+
+class ASMdegenerate3D : public ASMs3D
+{
+public:
+  ASMdegenerate3D(int iface, int iedge)
+  {
+    std::stringstream geo; // --- Xi ---    --- Eta ----    --- Zeta ---
+    geo <<"700 1 0 0 3 0"<<" 2 2 0 0 1 1"<<" 2 2 0 0 1 1"<<" 2 2 0 0 1 1\n";
+    auto&& defaultGeo = [&geo]() {
+      geo <<"0 0 0  3 0 0  0 1 0  3 1 0\n"
+          <<"0 0 2  3 0 2  0 1 2  3 1 2\n";
+    };
+
+    // Create a degenerated patch where face "iface"
+    // is collapsed into the edge "iedge"
+    switch (iface) {
+    case 1:
+      switch (iedge) {
+      case 0:
+        geo <<"0 0 0  3 0 0  0 0 0  3 1 0\n"
+            <<"0 0 0  3 0 2  0 0 0  3 1 2\n";
+        break;
+      case 5:
+        geo <<"0 0 0  3 0 0  0 1 0  3 1 0\n"
+            <<"0 0 0  3 0 2  0 1 0  3 1 2\n";
+        break;
+      case 7:
+        geo <<"0 0 2  3 0 0  0 1 2  3 1 0\n"
+            <<"0 0 2  3 0 2  0 1 2  3 1 2\n";
+        break;
+      case 9:
+        geo <<"0 0 0  3 0 0  0 0 0  3 1 0\n"
+            <<"0 0 2  3 0 2  0 0 2  3 1 2\n";
+        break;
+      case 11:
+        geo <<"0 1 0  3 0 0  0 1 0  3 1 0\n"
+            <<"0 1 2  3 0 2  0 1 2  3 1 0\n";
+        break;
+      default:
+        defaultGeo();
+      }
+      break;
+
+    case 2:
+      switch (iedge) {
+      case 0:
+        geo <<"0 0 0  3 0 0  0 1 0  3 0 0\n"
+            <<"0 0 2  3 0 0  0 1 2  3 0 0\n";
+        break;
+      case 6:
+        geo <<"0 0 0  3 0 0  0 1 0  3 1 0\n"
+            <<"0 0 2  3 0 0  0 1 2  3 1 0\n";
+        break;
+      case 8:
+        geo <<"0 0 0  3 0 2  0 1 0  3 1 2\n"
+            <<"0 0 2  3 0 2  0 1 2  3 1 2\n";
+        break;
+      case 10:
+        geo <<"0 0 0  3 0 0  0 1 0  3 0 0\n"
+            <<"0 0 2  3 0 2  0 1 2  3 0 2\n";
+        break;
+      case 12:
+        geo <<"0 0 0  3 1 0  0 1 0  3 1 0\n"
+            <<"0 0 2  3 1 2  0 1 2  3 1 2\n";
+        break;
+      default:
+        defaultGeo();
+      }
+      break;
+
+    case 3:
+      switch (iedge) {
+      case 0:
+        geo <<"0 0 0  0 0 0  0 1 0  3 1 0\n"
+            <<"0 0 0  0 0 0  0 1 2  3 1 2\n";
+        break;
+      case 1:
+        geo <<"0 0 0  3 0 0  0 1 0  3 1 0\n"
+            <<"0 0 0  3 0 0  0 1 2  3 1 2\n";
+        break;
+      case 3:
+        geo <<"0 0 2  3 0 2  0 1 0  3 1 0\n"
+            <<"0 0 2  3 0 2  0 1 2  3 1 2\n";
+        break;
+      case 9:
+        geo <<"0 0 0  0 0 0  0 1 0  3 1 0\n"
+            <<"0 0 2  0 0 2  0 1 2  3 1 2\n";
+        break;
+      case 10:
+        geo <<"3 0 0  3 0 0  0 1 0  3 1 0\n"
+            <<"3 0 2  3 0 2  0 1 2  3 1 2\n";
+        break;
+      default:
+        defaultGeo();
+      }
+      break;
+
+    case 4:
+      switch (iedge) {
+      case 0:
+        geo <<"0 0 0  3 0 0  0 1 0  0 1 0\n"
+            <<"0 0 2  3 0 2  0 1 0  0 1 0\n";
+        break;
+      case 2:
+        geo <<"0 0 0  3 0 0  0 1 0  3 1 0\n"
+            <<"0 0 2  3 0 2  0 1 0  3 1 0\n";
+        break;
+      case 4:
+        geo <<"0 0 0  3 0 0  0 1 2  3 1 2\n"
+            <<"0 0 2  3 0 2  0 1 2  3 1 2\n";
+        break;
+      case 11:
+        geo <<"0 0 0  3 0 0  0 1 0  0 1 0\n"
+            <<"0 0 2  3 0 2  0 1 2  0 1 2\n";
+        break;
+      case 12:
+        geo <<"0 0 0  3 0 0  3 1 0  3 1 0\n"
+            <<"0 0 2  3 0 2  3 1 2  3 1 2\n";
+        break;
+      default:
+        defaultGeo();
+      }
+      break;
+
+    case 5:
+      switch (iedge) {
+      case 0:
+        geo <<"0 0 0  0 0 0  0 0 0  0 0 0\n"
+            <<"0 0 2  3 0 2  0 1 2  3 1 2\n";
+        break;
+      case 1:
+        geo <<"0 0 0  3 0 0  0 0 0  3 0 0\n"
+            <<"0 0 2  3 0 2  0 1 2  3 1 2\n";
+        break;
+      case 2:
+        geo <<"0 1 0  3 1 0  0 1 0  3 1 0\n"
+            <<"0 0 2  3 0 2  0 1 2  3 1 2\n";
+        break;
+      case 5:
+        geo <<"0 0 0  0 0 0  0 1 0  0 1 0\n"
+            <<"0 0 2  3 0 2  0 1 2  3 1 2\n";
+        break;
+      case 6:
+        geo <<"3 0 0  3 0 0  3 1 0  3 1 0\n"
+            <<"0 0 2  3 0 2  0 1 2  3 1 2\n";
+        break;
+      default:
+        defaultGeo();
+      }
+      break;
+
+    case 6:
+      switch (iedge) {
+      case 0:
+        geo <<"0 0 0  3 0 0  0 1 0  3 1 0\n"
+            <<"1 0 2  1 0 2  1 0 2  1 0 2\n";
+        break;
+      case 3:
+        geo <<"0 0 0  3 0 0  0 1 0  3 1 0\n"
+            <<"0 0 2  3 0 2  0 0 2  3 0 2\n";
+        break;
+      case 4:
+        geo <<"0 0 0  3 0 0  0 1 0  3 1 0\n"
+            <<"0 1 2  3 1 2  0 1 2  3 1 2\n";
+        break;
+      case 7:
+        geo <<"0 0 0  3 0 0  0 1 0  3 1 0\n"
+            <<"0 0 2  0 0 2  0 1 2  0 1 2\n";
+        break;
+      case 8:
+        geo <<"0 0 0  3 0 0  0 1 0  3 1 0\n"
+            <<"3 0 2  3 0 2  3 1 2  3 1 2\n";
+        break;
+      default:
+        defaultGeo();
+      }
+      break;
+
+    default:
+      defaultGeo();
+      break;
+    }
+    EXPECT_TRUE(this->read(geo));
+  }
+  virtual ~ASMdegenerate3D() {}
+};
+
+
+TEST(TestASMs3D, Collapse)
+{
+  // Face-to-edge topology, see
+  // https://github.com/OPM/IFEM/blob/master/doc/sim-input.pdf Figures 2 and 3.
+  std::array<std::array<int,4>,6> faceTop = {{
+      {{ 5, 7, 9,11 }},
+      {{ 6, 8,10,12 }},
+      {{ 1, 3, 9,10 }},
+      {{ 2, 4,11,12 }},
+      {{ 1, 2, 5, 6 }},
+      {{ 3, 4, 7, 8 }} }};
+
+  for (int iface = 1; iface <= 6; iface++)
+    for (int iedge = 0; iedge <= 12; iedge++)
+    {
+      ASMdegenerate3D pch(iface,iedge);
+      ASSERT_TRUE(pch.uniformRefine(0,4));
+      ASSERT_TRUE(pch.uniformRefine(1,1));
+      ASSERT_TRUE(pch.uniformRefine(2,3));
+      ASSERT_TRUE(pch.generateFEMTopology());
+      std::cout <<"Degenerating F"<< iface <<" onto E"<< iedge << std::endl;
+#ifdef SP_DEBUG
+      pch.write(std::cout);
+#endif
+      const std::array<int,4>& face = faceTop[iface-1];
+      if (iedge == 0 || std::find(face.begin(),face.end(),iedge) != face.end())
+        EXPECT_TRUE(pch.collapseFace(iface,iedge));
+      else
+        EXPECT_FALSE(pch.collapseFace(iface,iedge));
+    }
+}

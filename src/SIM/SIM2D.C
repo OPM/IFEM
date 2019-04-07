@@ -250,7 +250,7 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
 
     IFEM::cout <<"\tCollapsed edge P"<< patch <<" E"<< edge << std::endl;
     ASMs2D* pch = dynamic_cast<ASMs2D*>(this->getPatch(patch,true));
-    if (pch) pch->collapseEdge(edge);
+    if (pch) return pch->collapseEdge(edge);
   }
 
   else if (!strcasecmp(elem->Value(),"immersedboundary"))

@@ -198,6 +198,29 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
     }
   }
 
+  else if (!strcasecmp(elem->Value(),"collapse"))
+  {
+    if (!this->createFEMmodel()) return false;
+
+    int patch = 0, face = 1, edge = 0;
+    utl::getAttribute(elem,"patch",patch);
+    utl::getAttribute(elem,"face",face);
+    utl::getAttribute(elem,"edge",edge);
+
+    if (patch < 1 || patch > nGlPatches)
+    {
+      std::cerr <<" *** SIM3D::parse: Invalid patch index "
+                << patch << std::endl;
+      return false;
+    }
+
+    IFEM::cout <<"\tCollapsed face P"<< patch <<" F"<< face;
+    if (edge > 0) IFEM::cout <<" on to edge "<< edge;
+    IFEM::cout << std::endl;
+    ASMs3D* pch = dynamic_cast<ASMs3D*>(this->getPatch(patch,true));
+    if (pch) return pch->collapseFace(face,edge);
+  }
+
   return true;
 }
 

@@ -14,7 +14,6 @@
 #include "SIM2D.h"
 
 #include "gtest/gtest.h"
-#include <numeric>
 
 
 class TestASMs2D : public testing::Test,
@@ -33,5 +32,53 @@ TEST_P(TestASMs2D, Connect)
   ASSERT_TRUE(sim.createFEMmodel());
 }
 
-const std::vector<int> orientations2D = {0,1};
-INSTANTIATE_TEST_CASE_P(TestASMs2D, TestASMs2D, testing::ValuesIn(orientations2D));
+
+INSTANTIATE_TEST_CASE_P(TestASMs2D, TestASMs2D, testing::Values(0,1));
+
+
+class ASMdegenerate2D : public ASMs2D
+{
+public:
+  ASMdegenerate2D(int iedge)
+  {
+    // Create a degenerated patch where edge "iedge" is collapsed into a vertex
+    std::stringstream geo; // -- Xi ----    --- Eta ----
+    geo <<"200 1 0 0 2 0"<<" 2 2 0 0 1 1"<<" 2 2 0 0 1 1"<<" 0 0 ";
+    switch (iedge) {
+    case 1:
+      geo <<"3 0 0 0 3 1\n"; // P3=P1
+      break;
+    case 2:
+      geo <<"3 0 0 1 3 0\n"; // P4=P2
+      break;
+    case 3:
+      geo <<"0 0 0 1 3 1\n"; // P2=P1
+      break;
+    case 4:
+      geo <<"3 0 0 1 0 1\n"; // P4=P3
+      break;
+    default:
+      geo <<"3 0 0 1 3 1\n";
+      break;
+    }
+    EXPECT_TRUE(this->read(geo));
+  }
+  virtual ~ASMdegenerate2D() {}
+};
+
+
+TEST(TestASMs2D, Collapse)
+{
+  for (int iedge = 1; iedge <= 4; iedge++)
+  {
+    ASMdegenerate2D pch(iedge);
+    ASSERT_TRUE(pch.uniformRefine(0,2));
+    ASSERT_TRUE(pch.uniformRefine(1,1));
+    ASSERT_TRUE(pch.generateFEMTopology());
+    std::cout <<"Degenerating E"<< iedge << std::endl;
+#ifdef SP_DEBUG
+    pch.write(std::cout);
+#endif
+    EXPECT_TRUE(pch.collapseEdge(iedge));
+  }
+}

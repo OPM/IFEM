@@ -735,6 +735,8 @@ ASMu2D::DirichletEdge::DirichletEdge (LR::LRSplineSurface* sf,
 
 void ASMu2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
 {
+  if (basis < 1) basis = 1;
+
   // Figure out function index offset (when using multiple basis)
   int offset = 1;
   for (int i = 1; i < basis; i++)
@@ -828,6 +830,8 @@ int ASMu2D::getCorner(int I, int J, int basis) const
 
 void ASMu2D::constrainCorner (int I, int J, int dof, int code, char basis)
 {
+  if (basis < 1) basis = 1;
+
   int corner = this->getCorner(I,J,basis);
   if (corner > 0)
     this->prescribe(corner,dof,code);

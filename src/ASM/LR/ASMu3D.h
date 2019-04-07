@@ -98,7 +98,7 @@ public:
   //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
   //! \param[in] lIndex Local index of the boundary face
   //! \param nodes Array of node numbers
-  //! \param[in] basis Which basis to grab nodes for (0 for all)
+  //! \param[in] basis Which basis to grab nodes for (for mixed methods)
   //! \param[in] orient Orientation of boundary (used for sorting)
   //! \param[in] local If \e true, return patch-local node numbers
   virtual void getBoundaryNodes(int lIndex, IntVec& nodes, int basis,
@@ -173,10 +173,11 @@ public:
   //! \brief Constrains all DOFs on a given boundary edge.
   //! \param[in] lEdge Local index [1,12] of the edge to constrain
   //! \param[in] open If \e true, exclude the end points of the edge
-  //! \param[in] dof Which DOFs to constrain at each node on the edge
+  //! \param[in] dof Which DOFs to constrain at each node along the edge
   //! \param[in] code Inhomogeneous dirichlet condition code
+  //! \param[in] basis Which basis to constrain edge for
   virtual void constrainEdge(int lEdge, bool open, int dof,
-                             int code = 0, char = 1);
+                             int code = 0, char basis = 1);
 
   //! \brief Constrains all DOFs along a line on a given boundary face.
   //! \param[in] fdir Parameter direction defining the face to constrain
@@ -184,6 +185,7 @@ public:
   //! \param[in] xi Parameter value defining the line to constrain
   //! \param[in] dof Which DOFs to constrain at each node along the line
   //! \param[in] code Inhomogeneous dirichlet condition code
+  //! \param[in] basis Which basis to constrain line for
   //!
   //! \details The parameter \a xi has to be in the domain [0.0,1.0], where
   //! 0.0 means the beginning of the domain and 1.0 means the end. The line to
@@ -193,7 +195,7 @@ public:
   //! is converted to the integer value closest to \a xi*n, where \a n is the
   //! number of nodes (control points) in that parameter direction.
   virtual void constrainLine(int fdir, int ldir, double xi, int dof,
-                             int code = 0, char = 1);
+                             int code = 0, char basis = 1);
 
   //! \brief Constrains a corner node identified by the three parameter indices.
   //! \param[in] I Parameter index in u-direction
@@ -201,12 +203,13 @@ public:
   //! \param[in] K Parameter index in w-direction
   //! \param[in] dof Which DOFs to constrain at the node
   //! \param[in] code Inhomogeneous dirichlet condition code
+  //! \param[in] basis Which basis to constrain node for
   //!
   //! \details The sign of the three indices is used to define whether we want
   //! the node at the beginning or the end of that parameter direction.
   //! The magnitude of the indices are not used.
   virtual void constrainCorner(int I, int J, int K, int dof,
-                               int code = 0, char = 1);
+                               int code = 0, char basis = 1);
   //! \brief Constrains a node identified by three relative parameter values.
   //! \param[in] xi Parameter in u-direction
   //! \param[in] eta Parameter in v-direction
@@ -220,14 +223,14 @@ public:
   //! \a r*n, where \a r denotes the given relative parameter value,
   //! and \a n is the number of nodes along that parameter direction.
   virtual void constrainNode(double xi, double eta, double zeta, int dof,
-                             int code = 0, char = 1);
+                             int code = 0);
 
   //! \brief Connects all matching nodes on two adjacent boundary faces.
   //! \param[in] face Local face index of this patch, in range [1,6]
   //! \param neighbor The neighbor patch
   //! \param[in] nface Local face index of neighbor patch, in range [1,6]
   //! \param[in] norient Relative face orientation flag (see below)
-  //! \param[in] coordCheck False to disable coordinate checks (periodic connections)
+  //! \param[in] coordCheck False to disable coordinate checks
   //! \param[in] thick Thickness of connection
   //!
   //! \details The face orientation flag \a norient must be in range [0,7].
@@ -237,14 +240,6 @@ public:
   //! - right digit = 1: Parameter \a v in neighbor patch face is reversed
   virtual bool connectPatch(int face, ASM3D& neighbor, int nface, int norient,
                             int = 0, bool coordCheck = true, int thick = 1);
-
-  /* More multipatch stuff, maybe later...
-  //! \brief Makes two opposite boundary faces periodic.
-  //! \param[in] dir Parameter direction defining the periodic faces
-  //! \param[in] basis Which basis to connect (mixed methods), 0 means both
-  //! \param[in] master 1-based index of the first master node in this basis
-  virtual void closeFaces(int dir, int basis = 0, int master = 1);
-  */
 
 
   // Methods for integration of finite element quantities.
@@ -301,6 +296,7 @@ public:
   //! \return Local node number within the patch that matches the point, if any
   //! \return 0 if no node (control point) matches this point
   virtual int evalPoint(const double* xi, double* param, Vec3& X) const;
+
   //! \brief Returns the element that contains a specified spatial point.
   //! \param[in] param The parameters of the point in the knot-span domain
   //! \return Local element number within the patch that contains the point
@@ -498,8 +494,8 @@ protected:
   //! \brief Calculates parameter values for the Greville points.
   //! \param[out] prm Parameter values in given direction for all points
   //! \param[in] dir Parameter direction (0,1,2)
-  //! \param[in] basisNum Which basis to get parameters for
-  bool getGrevilleParameters(RealArray& prm, int dir, int basisNum) const;
+  //! \param[in] basisNum Which basis to get Greville point parameters for
+  bool getGrevilleParameters(RealArray& prm, int dir, int basisNum = 1) const;
 
   //! \brief Calculates parameter values for the Quasi-Interpolation points.
   //! \param[out] prm Parameter values in given direction for all points
@@ -509,7 +505,6 @@ protected:
   //! \brief Returns the volume in the parameter space for an element.
   //! \param[in] iel 1-based element index
   double getParametricVolume(int iel) const;
-
   //! \brief Returns boundary face area in the parameter space for an element.
   //! \param[in] iel 1-based element index
   //! \param[in] dir Local face index of the boundary face

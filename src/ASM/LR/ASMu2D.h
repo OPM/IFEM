@@ -133,7 +133,7 @@ public:
   //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
   //! \param[in] lIndex Local index of the boundary edge
   //! \param nodes Array of node numbers
-  //! \param[in] basis Which basis to grab nodes for (0 for all)
+  //! \param[in] basis Which basis to grab nodes for (for mixed methods)
   //! \param[in] orient Orientation of boundary (used for sorting)
   //! \param[in] local If \e true, return patch-local node numbers
   virtual void getBoundaryNodes(int lIndex, IntVec& nodes, int basis, int = 1,
@@ -209,7 +209,7 @@ public:
   //! \brief Constrains all DOFs on a given boundary edge.
   //! \param[in] dir Parameter direction defining the edge to constrain
   //! \param[in] open If \e true, exclude the end points of the edge
-  //! \param[in] dof Which DOFs to constrain at each node on the edge
+  //! \param[in] dof Which DOFs to constrain at each node along the edge
   //! \param[in] code Inhomogeneous dirichlet condition code
   //! \param[in] basis Which basis to constrain edge for
   virtual void constrainEdge(int dir, bool open, int dof, int code, char basis);
@@ -228,7 +228,7 @@ public:
   //! \param[in] J Parameter index in v-direction
   //! \param[in] dof Which DOFs to constrain at the node
   //! \param[in] code Inhomogeneous dirichlet condition code
-  //! \param[in] basis Basis to constrain node for
+  //! \param[in] basis Which basis to constrain node for
   //!
   //! \details The sign of the two indices is used to define whether we want
   //! the node at the beginning or the end of that parameter direction.
@@ -257,14 +257,6 @@ public:
   //! \param[in] thick Thickness of connection
   virtual bool connectPatch(int edge, ASM2D& neighbor, int nedge, bool revers,
                             int = 0, bool coordCheck = true, int thick = 1);
-
-  /*
-  //! \brief Makes two opposite boundary edges periodic.
-  //! \param[in] dir Parameter direction defining the periodic edges
-  //! \param[in] basis Which basis to connect (mixed methods), 0 means both
-  //! \param[in] master 1-based index of the first master node in this basis
-  virtual void closeEdges(int dir, int basis = 0, int master = 1);
-  */
 
 
   // Methods for integration of finite element quantities.
@@ -331,6 +323,7 @@ public:
   //! \return Local node number within the patch that matches the point, if any
   //! \return 0 if no node (control point) matches this point
   virtual int evalPoint(const double* xi, double* param, Vec3& X) const;
+
   //! \brief Returns the element that contains a specified spatial point.
   //! \param[in] param The parameters of the point in the knot-span domain
   //! \return Local element number within the patch that contains the point
@@ -354,7 +347,7 @@ public:
   //! \param[in] npe Number of visualization nodes over each knot span
   //! \param[in] nf If nonzero, mixed evaluates nf fields on first basis
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-                            const int* npe, int nf = 0) const;
+                            const int* npe, int nf) const;
 
   //! \brief Evaluates the primary solution field at the given points.
   //! \param[out] sField Solution field
@@ -371,7 +364,7 @@ public:
   //! \param[in] npe Number of visualization nodes over each knot span
   //! \param[in] nf If nonzero, mixed evaluates nf fields on first basis
   virtual bool evalProjSolution(Matrix& sField, const Vector& locSol,
-                                const int* npe, int nf = 0) const;
+                                const int* npe, int nf) const;
 
   //! \brief Evaluates and interpolates a function over a given geometry.
   //! \param[in] func The function to evaluate
@@ -533,8 +526,8 @@ protected:
   //! \brief Calculates parameter values for the Greville points.
   //! \param[out] prm Parameter values in given direction for all points
   //! \param[in] dir Parameter direction (0,1)
-  //! \param[in] basisNum Basis to grab parameters for
-  bool getGrevilleParameters(RealArray& prm, int dir, int basisNum) const;
+  //! \param[in] basisNum Which basis to get Greville point parameters for
+  bool getGrevilleParameters(RealArray& prm, int dir, int basisNum = 1) const;
 
   //! \brief Returns the area in the parameter space for an element.
   //! \param[in] iel 1-based element index
