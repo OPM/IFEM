@@ -483,12 +483,17 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
   const int nel1 = n1 - p1 + 1;
   const int nel2 = n2 - p2 + 1;
 
+  ThreadGroups oneGroup;
+  if (glInt.threadSafe()) oneGroup.oneStripe(nel);
+  const ThreadGroups& groups = glInt.threadSafe() ? oneGroup : threadGroupsVol;
+
+
   // === Assembly loop over all elements in the patch ==========================
 
-  bool ok=true;
-  for (size_t g=0;g<threadGroupsVol.size() && ok;++g) {
+  bool ok = true;
+  for (size_t g = 0; g < groups.size() && ok; ++g) {
 #pragma omp parallel for schedule(static)
-    for (size_t t=0;t<threadGroupsVol[g].size();++t) {
+    for (size_t t = 0; t < groups[g].size(); ++t) {
       MxFiniteElement fe(elem_size);
       std::vector<Matrix> dNxdu(m_basis.size());
       std::vector<Matrix3D> d2Nxdu2(m_basis.size());
@@ -497,9 +502,9 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
       Matrix Xnod, Jac;
       double   param[3];
       Vec4   X(param);
-      for (size_t l = 0; l < threadGroupsVol[g][t].size() && ok; ++l)
+      for (size_t l = 0; l < groups[g][t].size() && ok; ++l)
       {
-        int iel = threadGroupsVol[g][t][l];
+        int iel = groups[g][t][l];
         fe.iel = MLGE[iel];
         if (fe.iel < 1) continue; // zero-volume element
 

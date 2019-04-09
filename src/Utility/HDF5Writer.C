@@ -309,6 +309,8 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
   size_t projOfs = 0;
   for (int i = 0; i < sim->getNoPatches(); ++i) {
     int loc = sim->getLocalPatchIndex(i+1);
+    if (sim->getProcessAdm().dd.isPartitioned() && sim->getProcessAdm().getProcId() != 0)
+      loc = 0;
     if (loc > 0 && (!(results & DataExporter::REDUNDANT) ||
                     sim->getGlobalProcessID() == 0)) // we own the patch
     {

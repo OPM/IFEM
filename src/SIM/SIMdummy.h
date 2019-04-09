@@ -41,7 +41,9 @@ public:
   virtual unsigned short int getNoParamDim() const { return 0; }
   //! \brief Creates the computational FEM model from the spline patches.
   virtual bool createFEMmodel(char) { return false; }
-
+  //! \brief Element-element connectivities.
+  virtual std::vector<std::vector<int>> getElmConnectivities() const
+  { return std::vector<std::vector<int>>(); }
 protected:
   //! \brief Preprocesses a user-defined Dirichlet boundary property.
   virtual bool addConstraint(int,int,int,int,int,int&,char)

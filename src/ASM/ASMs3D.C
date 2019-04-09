@@ -2706,6 +2706,10 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
 	fe.iel = MLGE[iel-1];
 	if (fe.iel < 1) continue; // zero-volume element
 
+        if (!myElms.empty() &&
+            std::find(myElms.begin(), myElms.end(), fe.iel-1) == myElms.end())
+          continue;
+
 	// Skip elements that are not on current boundary edge
 	bool skipMe = false;
 	switch (lEdge)
@@ -3532,4 +3536,18 @@ void ASMs3D::getBoundaryElms (int lIndex, int, IntVec& elms) const
       for (int i = 0; i < N1m; ++i)
         elms.push_back(MLGE[i + j*N1m + (lIndex-5)*(N1m*N2m*(N3m-1))] - 1);
   }
+}
+
+
+void ASMs3D::generateThreadGroupsFromElms(const std::vector<int>& elms)
+{
+  myElms.clear();
+  for (int elm : elms)
+    if (this->getElmIndex(elm+1) > 0)
+      myElms.push_back(this->getElmIndex(elm+1)-1);
+
+  threadGroupsVol = threadGroupsVol.filter(myElms);
+
+  for (auto& group : threadGroupsFace)
+    group.second = group.second.filter(myElms);
 }

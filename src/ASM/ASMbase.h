@@ -425,6 +425,8 @@ public:
   virtual void generateThreadGroups(const Integrand&, bool, bool) {}
   //! \brief Generates element groups for multi-threading of boundary integrals.
   virtual void generateThreadGroups(char, bool, bool) {}
+  //! \brief Generate element-groups for multi-threading based on a partition.
+  virtual void generateThreadGroupsFromElms(const std::vector<int>&) {}
 
 
   // Methods for integration of finite element quantities.
@@ -839,6 +841,7 @@ protected:
   IntVec myMLGE; //!< The actual Matrix of Local to Global Element numbers
   IntVec myMLGN; //!< The actual Matrix of Local to Global Node numbers
   IntMat myMNPC; //!< The actual Matrix of Nodal Point Correspondance
+  IntVec myElms; //!< Elements on patch - used with partitioning
 
   //! \brief Numerical integration scheme for this patch.
   //! \details A value in the range [1,10] means use that number of Gauss

@@ -360,204 +360,213 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
   else if (nRed < 0)
     nRed = nGauss; // The integrand needs to know nGauss
 
+  ThreadGroups oneGroup;
+  if (glInt.threadSafe()) oneGroup.oneGroup(nel);
+  const IntMat& group = glInt.threadSafe() ? oneGroup[0] : threadGroups[0];
+
 
   // === Assembly loop over all elements in the patch ==========================
 
-  bool ok=true;
-  for(LR::Element *el : this->getBasis(geoBasis)->getAllElements()) {
-    double uh = (el->umin()+el->umax())/2.0;
-    double vh = (el->vmin()+el->vmax())/2.0;
-    double wh = (el->wmin()+el->wmax())/2.0;
-    std::vector<size_t> els;
-    std::vector<size_t> elem_sizes;
-    for (size_t i=0; i < m_basis.size(); ++i) {
-      els.push_back(m_basis[i]->getElementContaining(uh, vh, wh)+1);
-      elem_sizes.push_back((*(m_basis[i]->elementBegin()+els.back()-1))->nBasisFunctions());
-    }
-    int iEl = el->getId();
-    MxFiniteElement fe(elem_sizes);
-    fe.iel = MLGE[iEl];
-
-    std::vector<Matrix> dNxdu(m_basis.size());
-    Matrix   Xnod, Jac;
-    std::vector<Matrix3D> d2Nxdu2(m_basis.size());
-    Matrix3D Hess;
-    double   dXidu[3];
-    double   param[3] = { 0.0, 0.0, 0.0 };
-    Vec4     X(param);
-    // Get element volume in the parameter space
-    double du = el->umax() - el->umin();
-    double dv = el->vmax() - el->vmin();
-    double dw = el->wmax() - el->wmin();
-    double vol = el->volume();
-    if (vol < 0.0)
+  bool ok = true;
+  for (size_t t = 0; t < group.size() && ok; t++)
+//#pragma omp parallel for schedule(static)
+    for (size_t e = 0; e < group[t].size(); e++)
     {
-      ok = false; // topology error (probably logic error)
-      break;
-    }
+      int iel = group[t][e] + 1;
+      const LR::Element* el = lrspline->getElement(iel-1);
+      double uh = (el->umin()+el->umax())/2.0;
+      double vh = (el->vmin()+el->vmax())/2.0;
+      double wh = (el->wmin()+el->wmax())/2.0;
+      std::vector<size_t> els;
+      std::vector<size_t> elem_sizes;
+      for (size_t i=0; i < m_basis.size(); ++i) {
+        els.push_back(m_basis[i]->getElementContaining(uh, vh, wh)+1);
+        elem_sizes.push_back((*(m_basis[i]->elementBegin()+els.back()-1))->nBasisFunctions());
+      }
+      int iEl = el->getId();
+      MxFiniteElement fe(elem_sizes);
+      fe.iel = MLGE[iEl];
 
-    // Set up control point (nodal) coordinates for current element
-    if (!this->getElementCoordinates(Xnod,iEl+1))
-    {
-      ok = false;
-      break;
-    }
-
-    // Compute parameter values of the Gauss points over the whole element
-    std::array<RealArray,3> gpar, redpar;
-    for (int d = 0; d < 3; d++)
-    {
-      this->getGaussPointParameters(gpar[d],d,nGauss,iEl+1,xg);
-      if (xr)
-        this->getGaussPointParameters(redpar[d],d,nRed,iEl+1,xr);
-    }
-
-
-    if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-      fe.h = this->getElementCorners(iEl+1, fe.XC);
-
-    if (integrand.getIntegrandType() & Integrand::G_MATRIX)
-    {
-      // Element size in parametric space
-      dXidu[0] = el->getParmin(0);
-      dXidu[1] = el->getParmin(1);
-      dXidu[2] = el->getParmin(2);
-    }
-    else if (integrand.getIntegrandType() & Integrand::AVERAGE)
-    {
-      // --- Compute average value of basis functions over the element -----
-
-      fe.Navg.resize(elem_sizes[0],true);
-      double vol = 0.0;
-      for (int k = 0; k < nGauss; k++)
-        for (int j = 0; j < nGauss; j++)
-          for (int i = 0; i < nGauss; i++)
-          {
-            // Fetch basis function derivatives at current integration point
-            for (size_t b = 1; b <= m_basis.size(); ++b)
-              this->evaluateBasis(iEl, fe, dNxdu[b-1], b);
-
-            // Compute Jacobian determinant of coordinate mapping
-            // and multiply by weight of current integration point
-            double detJac = utl::Jacobian(Jac,fe.grad(geoBasis),
-                                          Xnod,dNxdu[geoBasis-1],false);
-            double weight = 0.125*vol*wg[i]*wg[j]*wg[k];
-
-            // Numerical quadrature
-            fe.Navg.add(fe.N,detJac*weight);
-            vol += detJac*weight;
+      std::vector<Matrix> dNxdu(m_basis.size());
+      Matrix   Xnod, Jac;
+      std::vector<Matrix3D> d2Nxdu2(m_basis.size());
+      Matrix3D Hess;
+      double   dXidu[3];
+      double   param[3] = { 0.0, 0.0, 0.0 };
+      Vec4     X(param);
+      // Get element volume in the parameter space
+      double du = el->umax() - el->umin();
+      double dv = el->vmax() - el->vmin();
+      double dw = el->wmax() - el->wmin();
+      double vol = el->volume();
+      if (vol < 0.0)
+      {
+        ok = false; // topology error (probably logic error)
+        break;
       }
 
-      // Divide by element volume
-      fe.Navg /= vol;
-    }
+      // Set up control point (nodal) coordinates for current element
+      if (!this->getElementCoordinates(Xnod,iEl+1))
+      {
+        ok = false;
+        break;
+      }
 
-    else if (integrand.getIntegrandType() & Integrand::ELEMENT_CENTER)
-    {
-      // Compute the element center
-      Go::Point X0;
-      double u0 = 0.5*(el->getParmin(0) + el->getParmax(0));
-      double v0 = 0.5*(el->getParmin(1) + el->getParmax(1));
-      double w0 = 0.5*(el->getParmin(2) + el->getParmax(2));
-      this->getBasis(geoBasis)->point(X0,u0,v0,w0);
-      X = SplineUtils::toVec3(X0);
-    }
+      // Compute parameter values of the Gauss points over the whole element
+      std::array<RealArray,3> gpar, redpar;
+      for (int d = 0; d < 3; d++)
+      {
+        this->getGaussPointParameters(gpar[d],d,nGauss,iEl+1,xg);
+        if (xr)
+          this->getGaussPointParameters(redpar[d],d,nRed,iEl+1,xr);
+      }
 
-    // Initialize element quantities
-    LocalIntegral* A = integrand.getLocalIntegral(elem_sizes,fe.iel);
-    if (!integrand.initElement(MNPC[iEl],elem_sizes,nb,*A))
-    {
+
+      if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
+        fe.h = this->getElementCorners(iEl+1, fe.XC);
+
+      if (integrand.getIntegrandType() & Integrand::G_MATRIX)
+      {
+        // Element size in parametric space
+        dXidu[0] = el->getParmin(0);
+        dXidu[1] = el->getParmin(1);
+        dXidu[2] = el->getParmin(2);
+      }
+      else if (integrand.getIntegrandType() & Integrand::AVERAGE)
+      {
+        // --- Compute average value of basis functions over the element -----
+
+        fe.Navg.resize(elem_sizes[0],true);
+        double vol = 0.0;
+        for (int k = 0; k < nGauss; k++)
+          for (int j = 0; j < nGauss; j++)
+            for (int i = 0; i < nGauss; i++)
+            {
+              // Fetch basis function derivatives at current integration point
+              for (size_t b = 1; b <= m_basis.size(); ++b)
+                this->evaluateBasis(iEl, fe, dNxdu[b-1], b);
+
+              // Compute Jacobian determinant of coordinate mapping
+              // and multiply by weight of current integration point
+              double detJac = utl::Jacobian(Jac,fe.grad(geoBasis),
+                                            Xnod,dNxdu[geoBasis-1],false);
+              double weight = 0.125*vol*wg[i]*wg[j]*wg[k];
+
+              // Numerical quadrature
+              fe.Navg.add(fe.N,detJac*weight);
+              vol += detJac*weight;
+        }
+
+        // Divide by element volume
+        fe.Navg /= vol;
+      }
+
+      else if (integrand.getIntegrandType() & Integrand::ELEMENT_CENTER)
+      {
+        // Compute the element center
+        Go::Point X0;
+        double u0 = 0.5*(el->getParmin(0) + el->getParmax(0));
+        double v0 = 0.5*(el->getParmin(1) + el->getParmax(1));
+        double w0 = 0.5*(el->getParmin(2) + el->getParmax(2));
+        this->getBasis(geoBasis)->point(X0,u0,v0,w0);
+        X = SplineUtils::toVec3(X0);
+      }
+
+      // Initialize element quantities
+      LocalIntegral* A = integrand.getLocalIntegral(elem_sizes,fe.iel);
+      if (!integrand.initElement(MNPC[iEl],elem_sizes,nb,*A))
+      {
+        A->destruct();
+        ok = false;
+        break;
+      }
+
+      if (xr)
+      {
+        std::cerr << "Haven't really figured out what this part does yet\n";
+        exit(42142);
+      }
+
+      // --- Integration loop over all Gauss points in each direction --------
+
+      fe.iGP = iEl*nGauss*nGauss*nGauss; // Global integration point counter
+
+      std::vector<Matrix> B(m_basis.size());
+      size_t ig = 1;
+      for (int k = 0; k < nGauss; k++)
+        for (int j = 0; j < nGauss; j++)
+          for (int i = 0; i < nGauss; i++, fe.iGP++, ig++)
+          {
+            // Local element coordinates of current integration point
+            fe.xi   = xg[i];
+            fe.eta  = xg[j];
+            fe.zeta = xg[k];
+
+            // Parameter values of current integration point
+            fe.u = param[0] = gpar[0][i];
+            fe.v = param[1] = gpar[1][j];
+            fe.w = param[2] = gpar[2][k];
+
+            // Extract bezier basis functions
+            for (size_t b = 0; b < m_basis.size(); ++b) {
+              Matrix B(BN[b].rows(), 4);
+              B.fillColumn(1, BN[b].getColumn(ig));
+              B.fillColumn(2, BdNdu[b].getColumn(ig)*2.0/du);
+              B.fillColumn(3, BdNdv[b].getColumn(ig)*2.0/dv);
+              B.fillColumn(4, BdNdw[b].getColumn(ig)*2.0/dw);
+
+              // Fetch basis function derivatives at current integration point
+              if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
+                this->evaluateBasis(els[b]-1, fe, dNxdu[b], d2Nxdu2[b], b+1);
+              else
+                this->evaluateBasis(fe, dNxdu[b], bezierExtractmx[b][els[b]-1], B, b+1);
+            }
+
+            // Compute Jacobian inverse of coordinate mapping and derivatives
+            fe.detJxW = utl::Jacobian(Jac,fe.grad(geoBasis),Xnod,dNxdu[geoBasis-1]);
+            if (fe.detJxW == 0.0) continue; // skip singular points
+            for (size_t b = 0; b < m_basis.size(); ++b)
+              if (b != (size_t)geoBasis-1)
+                fe.grad(b+1).multiply(dNxdu[b],Jac);
+
+            // Compute Hessian of coordinate mapping and 2nd order derivatives
+            if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES) {
+              if (!utl::Hessian(Hess,fe.hess(geoBasis),Jac,Xnod,
+                                d2Nxdu2[geoBasis-1],dNxdu[geoBasis-1]))
+                return false;
+
+              for (size_t b = 0; b < m_basis.size() && ok; ++b)
+                if ((int)b != geoBasis)
+                  if (!utl::Hessian(Hess,fe.hess(b+1),Jac,Xnod,
+                                    d2Nxdu2[b],fe.grad(b+1),false))
+                    return false;
+            }
+
+            // Compute G-matrix
+            if (integrand.getIntegrandType() & Integrand::G_MATRIX)
+              utl::getGmat(Jac,dXidu,fe.G);
+
+            // Cartesian coordinates of current integration point
+            X.assign(Xnod * fe.basis(geoBasis));
+            X.t = time.t;
+
+            // Evaluate the integrand and accumulate element contributions
+            fe.detJxW *= 0.125*vol*wg[i]*wg[j]*wg[k];
+            if (!integrand.evalIntMx(*A,fe,time,X))
+              ok = false;
+
+      } // end gauss integrand
+
+      // Finalize the element quantities
+      if (ok && !integrand.finalizeElement(*A,time,0))
+        ok = false;
+
+      // Assembly of global system integral
+      if (ok && !glInt.assemble(A->ref(),fe.iel))
+        ok = false;
+
       A->destruct();
-      ok = false;
-      break;
     }
-
-    if (xr)
-    {
-      std::cerr << "Haven't really figured out what this part does yet\n";
-      exit(42142);
-    }
-
-    // --- Integration loop over all Gauss points in each direction --------
-
-    fe.iGP = iEl*nGauss*nGauss*nGauss; // Global integration point counter
-
-    std::vector<Matrix> B(m_basis.size());
-    size_t ig = 1;
-    for (int k = 0; k < nGauss; k++)
-      for (int j = 0; j < nGauss; j++)
-        for (int i = 0; i < nGauss; i++, fe.iGP++, ig++)
-        {
-          // Local element coordinates of current integration point
-          fe.xi   = xg[i];
-          fe.eta  = xg[j];
-          fe.zeta = xg[k];
-
-          // Parameter values of current integration point
-          fe.u = param[0] = gpar[0][i];
-          fe.v = param[1] = gpar[1][j];
-          fe.w = param[2] = gpar[2][k];
-
-          // Extract bezier basis functions
-          for (size_t b = 0; b < m_basis.size(); ++b) {
-            Matrix B(BN[b].rows(), 4);
-            B.fillColumn(1, BN[b].getColumn(ig));
-            B.fillColumn(2, BdNdu[b].getColumn(ig)*2.0/du);
-            B.fillColumn(3, BdNdv[b].getColumn(ig)*2.0/dv);
-            B.fillColumn(4, BdNdw[b].getColumn(ig)*2.0/dw);
-
-            // Fetch basis function derivatives at current integration point
-            if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
-              this->evaluateBasis(els[b]-1, fe, dNxdu[b], d2Nxdu2[b], b+1);
-            else
-              this->evaluateBasis(fe, dNxdu[b], bezierExtractmx[b][els[b]-1], B, b+1);
-          }
-
-          // Compute Jacobian inverse of coordinate mapping and derivatives
-          fe.detJxW = utl::Jacobian(Jac,fe.grad(geoBasis),Xnod,dNxdu[geoBasis-1]);
-          if (fe.detJxW == 0.0) continue; // skip singular points
-          for (size_t b = 0; b < m_basis.size(); ++b)
-            if (b != (size_t)geoBasis-1)
-              fe.grad(b+1).multiply(dNxdu[b],Jac);
-
-          // Compute Hessian of coordinate mapping and 2nd order derivatives
-          if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES) {
-            if (!utl::Hessian(Hess,fe.hess(geoBasis),Jac,Xnod,
-                              d2Nxdu2[geoBasis-1],dNxdu[geoBasis-1]))
-              return false;
-
-            for (size_t b = 0; b < m_basis.size() && ok; ++b)
-              if ((int)b != geoBasis)
-                if (!utl::Hessian(Hess,fe.hess(b+1),Jac,Xnod,
-                                  d2Nxdu2[b],fe.grad(b+1),false))
-                  return false;
-          }
-
-          // Compute G-matrix
-          if (integrand.getIntegrandType() & Integrand::G_MATRIX)
-            utl::getGmat(Jac,dXidu,fe.G);
-
-          // Cartesian coordinates of current integration point
-          X.assign(Xnod * fe.basis(geoBasis));
-          X.t = time.t;
-
-          // Evaluate the integrand and accumulate element contributions
-          fe.detJxW *= 0.125*vol*wg[i]*wg[j]*wg[k];
-          if (!integrand.evalIntMx(*A,fe,time,X))
-            ok = false;
-
-    } // end gauss integrand
-
-    // Finalize the element quantities
-    if (ok && !integrand.finalizeElement(*A,time,0))
-      ok = false;
-
-    // Assembly of global system integral
-    if (ok && !glInt.assemble(A->ref(),fe.iel))
-      ok = false;
-
-    A->destruct();
-  }
 
   return ok;
 }
