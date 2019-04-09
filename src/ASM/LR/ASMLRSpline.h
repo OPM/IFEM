@@ -90,9 +90,7 @@ public:
   //! \brief Refines the mesh adaptively.
   //! \param[in] prm Input data used to control the mesh refinement
   //! \param sol Control point results values that are transferred to new mesh
-  //! \param[in] fName Optional file name for an image of the resulting mesh
-  virtual bool refine(const LR::RefineData& prm, Vectors& sol,
-                      const char* fName = nullptr);
+  virtual bool refine(const LR::RefineData& prm, Vectors& sol);
 
   using ASMbase::evalSolution;
   //! \brief Projects the secondary solution field onto the primary basis.
@@ -181,11 +179,6 @@ protected:
   bool doRefine(const LR::RefineData& prm, LR::LRSpline* lrspline);
 
   LR::LRSpline* geo; //!< Pointer to the actual spline geometry object
-
-private:
-  //! \brief Store basis to eps files.
-  //! \param[in] fName Prefix for file names
-  void storeMesh(const char* fName);
 };
 
 #endif

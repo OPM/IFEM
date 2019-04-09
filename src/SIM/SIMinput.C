@@ -1232,28 +1232,26 @@ IntVec SIMinput::getFunctionsForElements (const IntVec& elements)
 }
 
 
-bool SIMinput::refine (const LR::RefineData& prm, const char* fName)
+bool SIMinput::refine (const LR::RefineData& prm)
 {
   Vectors svec;
-  return this->refine(prm,svec,fName);
+  return this->refine(prm,svec);
 }
 
 
-bool SIMinput::refine (const LR::RefineData& prm,
-                       Vector& sol, const char* fName)
+bool SIMinput::refine (const LR::RefineData& prm, Vector& sol)
 {
   if (sol.empty())
-    return this->refine(prm,fName);
+    return this->refine(prm);
 
   Vectors svec(1,sol);
-  bool result = this->refine(prm,svec,fName);
+  bool result = this->refine(prm,svec);
   sol = svec.front();
   return result;
 }
 
 
-bool SIMinput::refine (const LR::RefineData& prm,
-                       Vectors& sol, const char* fName)
+bool SIMinput::refine (const LR::RefineData& prm, Vectors& sol)
 {
   ASMunstruct* pch = nullptr;
   for (size_t i = 0; i < myModel.size(); i++)
@@ -1266,7 +1264,7 @@ bool SIMinput::refine (const LR::RefineData& prm,
 
   // Single patch models only pass refinement call to the ASM level
   if (myModel.size() == 1 && pch)
-    return (isRefined = pch->refine(prm,sol,fName));
+    return (isRefined = pch->refine(prm,sol));
 
   if (!prm.errors.empty()) // refinement by true_beta
   {
@@ -1327,14 +1325,11 @@ bool SIMinput::refine (const LR::RefineData& prm,
     pch->extendRefinementDomain(refineIndices[i],conformingIndices[i]);
     LR::RefineData prmloc(prm);
     prmloc.elements = IntVec(refineIndices[i].begin(),refineIndices[i].end());
-    char patchName[256];
-    if (fName)
-      sprintf(patchName, "%zu_%s", i, fName);
 
     Vectors lsol(sol.size());
     for (size_t j = 0; j < sol.size(); j++)
       myModel[i]->extractNodeVec(sol[j], lsol[j], sol[j].size()/ngNodes);
-    if (!pch->refine(prmloc,lsol, fName ? patchName : fName))
+    if (!pch->refine(prmloc,lsol))
       return false;
     for (const Vector& s : lsol)
       lsols.push_back(s);

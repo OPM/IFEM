@@ -173,9 +173,12 @@ public:
   //! \brief Refines the mesh adaptively.
   //! \param[in] prm Input data used to control the refinement
   //! \param sol Control point results values that are transferred to new mesh
-  //! \param[in] fName Optional file name for an image of the resulting mesh
-  virtual bool refine(const LR::RefineData& prm, Vectors& sol,
-                      const char* fName = nullptr);
+  virtual bool refine(const LR::RefineData& prm, Vectors& sol);
+
+  //! \brief Stores the mesh basis to encapsulated postscript files.
+  //! \param[in] fName Prefix for file names
+  //! \param[in] fType Flag telling which file type(s) to write
+  virtual void storeMesh(const std::string& fName, int fType) const;
 
   //! \brief Connects all matching nodes on two adjacent boundary edges.
   //! \param[in] edge Local edge index of this patch, in range [1,4]
@@ -216,10 +219,6 @@ protected:
                             bool ignoreGlobalLM);
 
 private:
-  //! \brief Store bases to eps files.
-  //! \param[in] fName Prefix for file names
-  void storeMesh(const char* fName);
-
   std::vector<std::shared_ptr<LR::LRSplineSurface>> m_basis; //!< All bases
   LR::LRSplineSurface* threadBasis; //!< Basis for thread groups
   std::shared_ptr<LR::LRSplineSurface> refBasis; //!< Basis to refine based on

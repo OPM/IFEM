@@ -2550,10 +2550,9 @@ RealArray ASMu2D::InterfaceChecker::getIntersections (int iel, int edge,
 }
 
 
-bool ASMu2D::refine (const LR::RefineData& prm,
-                     Vectors& sol, const char* fName)
+bool ASMu2D::refine (const LR::RefineData& prm, Vectors& sol)
 {
-  bool ok = this->ASMLRSpline::refine(prm,sol,fName);
+  bool ok = this->ASMLRSpline::refine(prm,sol);
   if (!ok || !this->separateProjectionBasis() ||
       prm.elements.size() + prm.errors.size() == 0)
     return ok;
@@ -2701,19 +2700,21 @@ void ASMu2D::getBoundaryElms (int lIndex, int orient, IntVec& elms) const
 
   std::vector<LR::Element*> elements;
   this->getBasis(1)->getEdgeElements(elements, edge);
-  std::sort(elements.begin(), elements.end(), [orient,lIndex](const LR::Element* a, const LR::Element* b)
-                                              {
-                                                int idx = lIndex < 3 ? 1 : 0;
-                                                double am = a->midpoint()[idx];
-                                                double bm = b->midpoint()[idx];
-                                                return orient == 1 ? bm < am : am < bm;
-                                              });
+  std::sort(elements.begin(), elements.end(),
+            [orient,lIndex](const LR::Element* a, const LR::Element* b)
+            {
+              int idx = lIndex < 3 ? 1 : 0;
+              double am = a->midpoint()[idx];
+              double bm = b->midpoint()[idx];
+              return orient == 1 ? bm < am : am < bm;
+            });
+
   for (const LR::Element* elem : elements)
     elms.push_back(MLGE[elem->getId()]-1);
 }
 
 
-void ASMu2D::generateThreadGroupsFromElms(const std::vector<int>& elms)
+void ASMu2D::generateThreadGroupsFromElms (const IntVec& elms)
 {
   myElms.clear();
   for (int elm : elms)
@@ -2721,4 +2722,32 @@ void ASMu2D::generateThreadGroupsFromElms(const std::vector<int>& elms)
       myElms.push_back(this->getElmIndex(elm+1)-1);
 
   threadGroups = threadGroups.filter(myElms);
+}
+
+
+void ASMu2D::storeMesh (const std::string& fName, int fType) const
+{
+  if (fType%2)
+  {
+    std::ofstream meshFile("param_"+fName+".eps");
+    lrspline->writePostscriptMesh(meshFile);
+  }
+
+  if ((fType/=2)%2)
+  {
+    std::ofstream meshFile("physical_"+fName+".eps");
+    lrspline->writePostscriptElements(meshFile);
+  }
+
+  if ((fType/=2)%2)
+  {
+    std::ofstream meshFile("param_dot_"+fName+".eps");
+    lrspline->writePostscriptFunctionSpace(meshFile);
+  }
+
+  if ((fType/=2)%2)
+  {
+    std::ofstream meshFile("physical_dot_"+fName+".eps");
+    lrspline->writePostscriptMeshWithControlPoints(meshFile);
+  }
 }

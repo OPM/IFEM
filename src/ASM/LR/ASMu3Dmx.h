@@ -181,9 +181,7 @@ public:
   //! \brief Refines the mesh adaptively.
   //! \param[in] prm Input data used to control the refinement
   //! \param sol Control point results values that are transferred to new mesh
-  //! \param[in] fName Optional file name for an image of the resulting mesh
-  virtual bool refine(const LR::RefineData& prm, Vectors& sol,
-                      const char* fName = nullptr);
+  virtual bool refine(const LR::RefineData& prm, Vectors& sol);
 
   //! \brief Remap (geometry) element wise errors to refinement basis functions.
   //! \param     errors The remapped errors

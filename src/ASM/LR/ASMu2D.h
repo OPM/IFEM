@@ -192,9 +192,7 @@ public:
   //! \brief Refines the mesh adaptively.
   //! \param[in] prm Input data used to control the mesh refinement
   //! \param sol Control point results values that are transferred to new mesh
-  //! \param[in] fName Optional file name for an image of the resulting mesh
-  virtual bool refine(const LR::RefineData& prm, Vectors& sol,
-                      const char* fName = nullptr);
+  virtual bool refine(const LR::RefineData& prm, Vectors& sol);
   //! \brief Raises the order of the tensor spline object for this patch.
   //! \param[in] ru Number of times to raise the order in u-direction
   //! \param[in] rv Number of times to raise the order in v-direction
@@ -405,6 +403,11 @@ public:
   //! \brief Returns a field using the projection basis.
   //! \param[in] coefs The coefficients for the field
   virtual Fields* getProjectedFields(const Vector& coefs, size_t = 0) const;
+
+  //! \brief Stores the mesh basis to encapsulated postscript files.
+  //! \param[in] fName Prefix for file names
+  //! \param[in] fType Flag telling which file type(s) to write
+  virtual void storeMesh(const std::string& fName, int fType) const;
 
 protected:
   //! \brief Struct representing an inhomogeneous Dirichlet boundary condition.

@@ -136,7 +136,7 @@ public:
 
   //! \brief Refines the mesh adaptively.
   //! \param[in] prm Input data used to control the mesh refinement
-  virtual bool refine(const LR::RefineData& prm, Vectors&, const char*);
+  virtual bool refine(const LR::RefineData& prm, Vectors&);
 
   //! \brief Refines the parametrization based on a mesh density function.
   //! \param[in] refC Mesh refinement criteria function

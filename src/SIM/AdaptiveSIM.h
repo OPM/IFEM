@@ -84,19 +84,20 @@ protected:
   //! \brief Assembles and solves the linear FE equation system.
   virtual bool assembleAndSolveSystem();
 
+  //! \brief Dumps current mesh to external file(s) for inspection.
+  //! \param[in] iStep Current refinement step (1=initial grid)
+  bool writeMesh(int iStep) const;
+
 private:
   SIMoutput& model; //!< The isogeometric FE model
   bool       alone; //!< If \e false, this class is wrapped by SIMSolver
 
-  bool   storeMesh;    //!< Creates a series of eps-files for intermediate steps
-  bool   storeErrors;  //!< Store errors used for adaptation to text files
   bool   linIndepTest; //!< Test mesh for linear independence after refinement
   double beta;         //!< Refinement percentage in each step
   double errTol;       //!< Global error stop tolerance
   double condLimit;    //!< Upper limit on condition number
   int    maxStep;      //!< Maximum number of adaptive refinements
   int    maxDOFs;      //!< Maximum number of degrees of freedom
-  int    symmetry;     //!< Always refine a multiplum of this
   int    knot_mult;    //!< Knotline multiplicity
   int    maxTjoints;   //!< Maximum number of hanging nodes on one element
   double maxAspRatio;  //!< Maximum element aspect ratio
@@ -120,6 +121,10 @@ private:
 
   std::vector<Vector>      projs;  //!< Projected secondary solutions
   std::vector<std::string> prefix; //!< Norm prefices for VTF-output
+
+  std::string errPrefix;  //!< Prefix for text-files with refinement indicators
+  std::string meshPrefix; //!< Prefix for output files with refined meshes
+  int         storeMesh;  //!< Flag telling which mesh output we want
 
 protected:
   Vectors solution; //!< All solutions (galerkin projections)

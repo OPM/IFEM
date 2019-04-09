@@ -152,8 +152,7 @@ ASMLRSpline::ASMLRSpline (const ASMLRSpline& patch, unsigned char n_f)
 }
 
 
-bool ASMLRSpline::refine (const LR::RefineData& prm,
-                          Vectors& sol, const char* fName)
+bool ASMLRSpline::refine (const LR::RefineData& prm, Vectors& sol)
 {
   PROFILE2("ASMLRSpline::refine()");
 
@@ -164,11 +163,8 @@ bool ASMLRSpline::refine (const LR::RefineData& prm,
     nnod = geo->nBasisFunctions();
     return true;
   }
-  else if (prm.errors.empty() && prm.elements.empty()) {
-    if (fName)
-      storeMesh(fName);
+  else if (prm.errors.empty() && prm.elements.empty())
     return true;
-  }
 
   IntVec nf(sol.size());
   for (size_t j = 0; j < sol.size(); j++)
@@ -185,9 +181,6 @@ bool ASMLRSpline::refine (const LR::RefineData& prm,
       sol[i].resize(nf[i]*geo->nBasisFunctions());
       LR::contractControlPoints(geo,sol[i],nf[i]);
     }
-
-  if (fName)
-    storeMesh(fName);
 
   IFEM::cout <<"Refined mesh: "<< geo->nElements() <<" elements "
              << geo->nBasisFunctions() <<" nodes."<< std::endl;
@@ -399,27 +392,4 @@ std::pair<size_t,double> ASMLRSpline::findClosestNode (const Vec3& X) const
   }
 
   return std::make_pair(iclose,distance);
-}
-
-
-void ASMLRSpline::storeMesh(const char* fName)
-{
-  std::string fname(fName);
-  std::ofstream lrOut("lrspline_"+fname);
-  lrOut << *geo;
-  lrOut.close();
-
-  // open files for writing
-  std::ofstream paramMeshFile("param_"+fname);
-  std::ofstream physicalMeshFile("physical_"+fname);
-  std::ofstream paramDotMeshFile("param_dot_"+fname);
-  std::ofstream physicalDotMeshFile("physical_dot_"+fname);
-
-  LR::LRSplineSurface* lr = dynamic_cast<LR::LRSplineSurface*>(geo);
-  if (lr) {
-    lr->writePostscriptMesh(paramMeshFile);
-    lr->writePostscriptElements(physicalMeshFile);
-    lr->writePostscriptFunctionSpace(paramDotMeshFile);
-    lr->writePostscriptMeshWithControlPoints(physicalDotMeshFile);
-  }
 }

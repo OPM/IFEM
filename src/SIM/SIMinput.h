@@ -154,22 +154,15 @@ public:
 
   //! \brief Refines the mesh adaptively.
   //! \param[in] prm Input data used to control the refinement
-  //! \param[in] fName Optional mesh output file (Encapsulated PostScript)
-  bool refine(const LR::RefineData& prm, const char* fName = nullptr);
-
+  bool refine(const LR::RefineData& prm);
   //! \brief Refines the mesh adaptively.
   //! \param[in] prm Input data used to control the refinement
   //! \param[in] sol Vector to interpolate onto refined mesh
-  //! \param[in] fName Optional mesh output file (Encapsulated PostScript)
-  bool refine(const LR::RefineData& prm,
-              Vector& sol, const char* fName = nullptr);
-
+  bool refine(const LR::RefineData& prm, Vector& sol);
   //! \brief Refines the mesh adaptively.
   //! \param[in] prm Input data used to control the refinement
   //! \param[in] sol Vectors to interpolate onto refined mesh
-  //! \param[in] fName Optional mesh output file (Encapsulated PostScript)
-  bool refine(const LR::RefineData& prm,
-              Vectors& sol, const char* fName = nullptr);
+  bool refine(const LR::RefineData& prm, Vectors& sol);
 
   //! \brief Reads patches from given input stream.
   //! \param[in] isp The input stream to read from

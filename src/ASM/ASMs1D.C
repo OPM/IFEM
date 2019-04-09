@@ -128,7 +128,7 @@ void ASMs1D::clear (bool retainGeometry)
 }
 
 
-bool ASMs1D::refine (const LR::RefineData& prm, Vectors&, const char*)
+bool ASMs1D::refine (const LR::RefineData& prm, Vectors&)
 {
   if (!curv) return false;
 

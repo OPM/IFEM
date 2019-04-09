@@ -907,21 +907,21 @@ bool ASMu3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 }
 
 
-bool ASMu3Dmx::refine (const LR::RefineData& prm,
-                       Vectors& sol, const char* fName)
+bool ASMu3Dmx::refine (const LR::RefineData& prm, Vectors& sol)
 {
-  if (shareFE) return true;
+  if (shareFE)
+    return true;
 
-  if (!prm.errors.empty() || !prm.elements.empty()) {
-    for (size_t j = 0; j < sol.size(); ++j) {
-      size_t ofs = 0;
-      for (size_t i = 0; i< m_basis.size(); ++i) {
-        LR::extendControlPoints(m_basis[i].get(), sol[j], nfx[i], ofs);
-        ofs += nfx[i]*nb[i];
-      }
+  if (prm.errors.empty() && prm.elements.empty())
+    return true;
+
+  for (Vector& solvec : sol) {
+    size_t ofs = 0;
+    for (size_t j = 0; j < m_basis.size(); j++) {
+      LR::extendControlPoints(m_basis[j].get(), solvec, nfx[j], ofs);
+      ofs += nfx[j]*nb[j];
     }
-  } else
-    return true; // No refinement
+  }
 
   if (doRefine(prm, refBasis.get())) {
     for (const LR::MeshRectangle* rect : refBasis->getAllMeshRectangles())
@@ -997,7 +997,7 @@ Vec3 ASMu3Dmx::getCoord (size_t inod) const
 {
   size_t b = 0;
   size_t nbb = 0;
-  while (b < nb.size() && nbb + nb[b] < inod)
+  while (b < nb.size() && nbb+nb[b] < inod)
     nbb += nb[b++];
   ++b;
 

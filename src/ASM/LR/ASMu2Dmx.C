@@ -976,23 +976,20 @@ bool ASMu2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 }
 
 
-bool ASMu2Dmx::refine (const LR::RefineData& prm,
-                       Vectors& sol, const char* fName)
+bool ASMu2Dmx::refine (const LR::RefineData& prm, Vectors& sol)
 {
-  if (shareFE) return true;
+  if (shareFE)
+    return true;
 
-  if (!prm.errors.empty() || !prm.elements.empty()) {
-    for (size_t j = 0; j < sol.size(); ++j) {
-      size_t ofs = 0;
-      for (size_t i = 0; i< m_basis.size(); ++i) {
-        LR::extendControlPoints(m_basis[i].get(), sol[j], nfx[i], ofs);
-        ofs += nfx[i]*nb[i];
-      }
+  if (prm.errors.empty() && prm.elements.empty())
+    return true;
+
+  for (Vector& solvec : sol) {
+    size_t ofs = 0;
+    for (size_t j = 0; j < m_basis.size(); j++) {
+      LR::extendControlPoints(m_basis[j].get(), solvec, nfx[j], ofs);
+      ofs += nfx[j]*nb[j];
     }
-  } else {
-    if (fName)
-      storeMesh(fName);
-    return true; // No refinement
   }
 
   if (doRefine(prm, refBasis.get())) {
@@ -1043,9 +1040,6 @@ bool ASMu2Dmx::refine (const LR::RefineData& prm,
         LR::contractControlPoints(m_basis[j].get(), sol[i], nfx[j], ofs);
         ofs += nfx[j]*nb[j];
       }
-
-    if (fName)
-      storeMesh(fName);
 
   #ifdef SP_DEBUG
     std::cout <<"Refined mesh: ";
@@ -1165,26 +1159,34 @@ size_t ASMu2Dmx::getNoRefineElms() const
 }
 
 
-void ASMu2Dmx::storeMesh (const char* fName)
+void ASMu2Dmx::storeMesh (const std::string& fName, int fType) const
 {
-  auto&& writeBasis = [this,fName](const LR::LRSplineSurface* patch, const char* tag)
+  auto&& writeBasis = [fName,fType](const LR::LRSplineSurface* patch,
+                                    const std::string& tag)
   {
-    std::stringstream str;
-    str << "_patch" << idx << "_" << tag <<"_" << fName;
-    std::ofstream paramMeshFile("param"+str.str());
-    patch->writePostscriptMesh(paramMeshFile);
-    std::ofstream physMeshFile("physical"+str.str());
-    patch->writePostscriptElements(physMeshFile);
-    std::ofstream pdotFile("param_dot"+str.str());
-    patch->writePostscriptElements(pdotFile);
-    std::ofstream physdotFile("physical_dot"+str.str());
-    patch->writePostscriptMeshWithControlPoints(physdotFile);
+    std::string fileName = "_patch_" + tag + "_" + fName + ".eps";
+    if (fType%2) {
+      std::ofstream meshFile("param"+fileName);
+      patch->writePostscriptMesh(meshFile);
+    }
+    if ((fType/2)%2) {
+      std::ofstream meshFile("physical"+fileName);
+      patch->writePostscriptElements(meshFile);
+    }
+    if ((fType/4)%2) {
+      std::ofstream meshFile("param_dot"+fileName);
+      patch->writePostscriptElements(meshFile);
+    }
+    if ((fType/8)%2) {
+      std::ofstream meshFile("physical_dot"+fileName);
+      patch->writePostscriptMeshWithControlPoints(meshFile);
+    }
   };
 
   std::string btag("basis1");
   for (const auto& patch : m_basis)
   {
-    writeBasis(patch.get(), btag.c_str());
+    writeBasis(patch.get(), btag);
     ++btag.back();
   }
   writeBasis(projBasis.get(), "proj");

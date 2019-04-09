@@ -32,8 +32,6 @@ AdaptiveSIM::AdaptiveSIM (SIMoutput& sim, bool sa) : SIMadmin(sim), model(sim)
   geoBlk = nBlock = 0;
 
   // Default grid adaptation parameters
-  storeMesh    = false;
-  storeErrors  = false;
   linIndepTest = false;
   beta         = 10.0;
   errTol       = 1.0;
@@ -42,7 +40,6 @@ AdaptiveSIM::AdaptiveSIM (SIMoutput& sim, bool sa) : SIMadmin(sim), model(sim)
   maxStep      = 10;
   maxDOFs      = 1000000;
   scheme       = 0;     // fullspan
-  symmetry     = 1;     // no symmetry
   knot_mult    = 1;     // maximum regularity (continuity)
   threshold    = NONE;
   adaptor      = 0;
@@ -51,6 +48,7 @@ AdaptiveSIM::AdaptiveSIM (SIMoutput& sim, bool sa) : SIMadmin(sim), model(sim)
   maxAspRatio  = -1.0;
   closeGaps    = false;
   symmEps      = 1.0e-6;
+  storeMesh    = 1;
 
   solution.resize(1);
 }
@@ -63,8 +61,8 @@ bool AdaptiveSIM::parse (const TiXmlElement* elem)
 
   const TiXmlElement* child = elem->FirstChildElement();
   for (; child; child = child->NextSiblingElement()) {
-    const char* value;
-    if ((value = utl::getValue(child,"maxstep")))
+    const char* value = utl::getValue(child,"maxstep");
+    if (value)
       maxStep = atoi(value);
     else if ((value = utl::getValue(child,"maxdof")))
       maxDOFs = atoi(value);
@@ -72,16 +70,22 @@ bool AdaptiveSIM::parse (const TiXmlElement* elem)
       errTol = atof(value);
     else if ((value = utl::getValue(child,"maxcondition")))
       condLimit = atof(value);
-    else if ((value = utl::getValue(child,"symmetry")))
-      symmetry = atoi(value);
     else if ((value = utl::getValue(child,"knot_mult")))
       knot_mult = atoi(value);
-    else if (!strcasecmp(child->Value(), "store_eps_mesh"))
-      storeMesh = true; // no need for value here
+    else if ((value = utl::getValue(child,"store_mesh"))) {
+      meshPrefix = value;
+      utl::getAttribute(child, "type", storeMesh);
+    }
+    else if (!strcasecmp(child->Value(), "store_eps_mesh")) {
+      meshPrefix = "mesh";
+      storeMesh = 30; // all postscript mesh files
+    }
+    else if ((value = utl::getValue(child,"store_errors")))
+      errPrefix = value;
     else if (!strcasecmp(child->Value(), "store_errors"))
-      storeErrors = true;
+      errPrefix = "error";
     else if (!strcasecmp(child->Value(), "test_linear_independence"))
-      linIndepTest = true; // no need for value here
+      linIndepTest = true;
     else if ((value = utl::getValue(child,"scheme"))) {
       if (!strcasecmp(value,"fullspan"))
         scheme = 0;
@@ -97,8 +101,7 @@ bool AdaptiveSIM::parse (const TiXmlElement* elem)
       utl::getAttribute(child, "closeGaps", closeGaps);
       IFEM::cout <<"\tRefinement scheme: "<< scheme << std::endl;
     }
-    else if ((value = utl::getValue(child,"use_norm")))
-    {
+    else if ((value = utl::getValue(child,"use_norm"))) {
       adaptor = atoi(value);
       utl::getAttribute(child, "index", adNorm);
     }
@@ -161,11 +164,6 @@ bool AdaptiveSIM::parse (char* keyWord, std::istream& is)
     // (0=fullspan, 1=minspan, 2=structured mesh)
     if (!cline.fail() && !cline.bad())
       scheme = itmp;
-
-    cline >> itmp; // read symmetry
-    // (0=none, <n> always requests a multiplum of <n> elements for refinement)
-    if (!cline.fail() && !cline.bad())
-      symmetry = itmp;
   }
   else
     return model.parse(keyWord,is);
@@ -288,9 +286,8 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep, bool withRF,
       return failure();
     opt = oldOpt;
   }
-  else if (storeMesh)
-    // Output the initial grid to eps-file
-    model.refine(LR::RefineData(),"mesh_001.eps");
+  else
+    this->writeMesh(1); // Output initial grid to eps-file(s)
 
   // Initialize the linear equation system for the current grid
   if (!model.initSystem(opt.solver,1,model.getNoRHS(),0,withRF))
@@ -418,12 +415,8 @@ bool AdaptiveSIM::adaptMesh (int iStep, std::streamsize outPrec)
     prm.errors.resize(thePatch->getNoRefineElms());
     dynamic_cast<ASMunstruct*>(thePatch)->remapErrors(prm.errors,
                                                       eNorm.getRow(eRow), true);
-    if (!storeMesh)
-      return model.refine(prm);
 
-    char fname[13];
-    sprintf(fname,"mesh_%03d.eps",iStep);
-    return model.refine(prm,fname);
+    return model.refine(prm) & this->writeMesh(iStep);
   }
 
   std::vector<DblIdx> errors;
@@ -530,11 +523,11 @@ bool AdaptiveSIM::adaptMesh (int iStep, std::streamsize outPrec)
       ++refineSize;
   }
 
-  if (storeErrors)
+  if (!errPrefix.empty())
   {
-    std::stringstream str;
-    str <<"errors_"<< iStep-1 <<".txt";
-    std::ofstream of(str.str());
+    char suffix[9];
+    sprintf(suffix,"_%03d.txt",iStep-1);
+    std::ofstream of(errPrefix+suffix);
     of.precision(16);
     of <<"# Index   Error\n";
     for (i = 0; i < errors.size(); i++)
@@ -571,10 +564,6 @@ bool AdaptiveSIM::adaptMesh (int iStep, std::streamsize outPrec)
     break;
   }
   IFEM::cout << std::endl;
-/*
-  if (symmetry > 0) // Make refineSize a multiplum of 'symmetry'
-    refineSize += (symmetry-refineSize%symmetry);
-*/
 
   if (refineSize < 1 || refineSize > errors.size())
     return false;
@@ -583,13 +572,8 @@ bool AdaptiveSIM::adaptMesh (int iStep, std::streamsize outPrec)
   for (i = 0; i < refineSize; i++)
     prm.elements.push_back(errors[i].second);
 
-  // Now refine the mesh
-  if (!storeMesh)
-    return model.refine(prm);
-
-  char fname[13];
-  sprintf(fname,"mesh_%03d.eps",iStep);
-  return model.refine(prm,fname);
+  // Now refine the mesh and write out resulting grid
+  return model.refine(prm) & this->writeMesh(iStep);
 }
 
 
@@ -685,4 +669,33 @@ bool AdaptiveSIM::writeGlv (const char* infile, int iStep)
 
   // Write state information
   return model.writeGlvStep(iStep,iStep,1);
+}
+
+
+bool AdaptiveSIM::writeMesh (int iStep) const
+{
+  if (meshPrefix.empty() || storeMesh < 1)
+    return true;
+
+  if (storeMesh%2)
+  {
+    // Write all patches to the same file
+    char suffix[8];
+    sprintf(suffix,"_%03d.lr",iStep);
+    std::ofstream os(meshPrefix+suffix);
+    model.dumpGeometry(os);
+  }
+
+  if (storeMesh > 2)
+    for (ASMbase* pch : model.getFEModel())
+    {
+      char patchFile[256];
+      if (model.getNoPatches() > 1)
+        sprintf(patchFile,"%zu_%s_%03d",pch->idx+1,meshPrefix.c_str(),iStep);
+      else
+        sprintf(patchFile,"%s_%03d",meshPrefix.c_str(),iStep);
+      dynamic_cast<ASMunstruct*>(pch)->storeMesh(patchFile,storeMesh/2);
+    }
+
+  return true;
 }

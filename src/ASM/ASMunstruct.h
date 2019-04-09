@@ -16,6 +16,7 @@
 
 #include "MatVec.h"
 #include <set>
+#include <string>
 
 typedef std::vector<int> IntVec; //!< General integer vector
 typedef std::set<int>    IntSet; //!< General integer set
@@ -68,9 +69,7 @@ public:
   //! \brief Refines the mesh adaptively.
   //! \param[in] prm Input data used to control the mesh refinement
   //! \param sol Control point results values that are transferred to new mesh
-  //! \param[in] fName Optional file name for an image of the resulting mesh
-  virtual bool refine(const LR::RefineData& prm, Vectors& sol,
-                      const char* fName = nullptr) = 0;
+  virtual bool refine(const LR::RefineData& prm, Vectors& sol) = 0;
 
   //! \brief Remaps element-wise errors from geometry mesh to refinement mesh.
   //! \param[out] errors The remapped errors
@@ -87,6 +86,11 @@ public:
   virtual IntVec getBoundaryCovered(const IntSet&) const { return IntVec(); }
   //! \brief Extends the refinement domain with information for neighbors.
   virtual void extendRefinementDomain(IntSet&, const IntSet&) const {}
+
+  //! \brief Stores the mesh basis to encapsulated postscript files.
+  //! \param[in] fName Prefix for file names
+  //! \param[in] fType Flag telling which file type(s) to write (15 means all)
+  virtual void storeMesh(const std::string& fName, int fType = 15) const {}
 };
 
 #endif
