@@ -55,6 +55,31 @@ TEST(TestASMs3D, ElementConnectivities)
 }
 
 
+TEST(TestASMs3D, BoundaryElements)
+{
+  ASMCube pch1;
+  ASSERT_TRUE(pch1.uniformRefine(0,1));
+  ASSERT_TRUE(pch1.uniformRefine(1,1));
+  ASSERT_TRUE(pch1.uniformRefine(2,1));
+  ASSERT_TRUE(pch1.generateFEMTopology());
+
+  const std::array<std::array<int,4>,6> ref = {{{{0, 2, 4, 6}},
+                                                {{1, 3, 5, 7}},
+                                                {{0, 1, 4, 5}},
+                                                {{2, 3, 6, 7}},
+                                                {{0, 1, 2, 3}},
+                                                {{4, 5, 6, 7}}}};
+
+  std::array<IntVec,6> n;
+  for (size_t i = 1; i <= 6; ++i) {
+    pch1.getBoundaryElms(i, 0, n[i-1]);
+    ASSERT_EQ(n[i-1].size(), ref[i-1].size());
+    for (size_t j = 0; j < ref[i-1].size(); ++j)
+      EXPECT_EQ(n[i-1][j], ref[i-1][j]);
+  }
+}
+
+
 class TestASMs3D : public testing::Test,
                    public testing::WithParamInterface<int>
 {

@@ -211,6 +211,11 @@ public:
                                 int basis, int thick = 1,
                                 int = 0, bool local = false) const;
 
+  //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
+  //! \param[in] lIndex Local index of the boundary face/edge
+  //! \param[out] elms Array of element numbers
+  virtual void getBoundaryElms(int lIndex, int, IntVec& elms) const;
+
   //! \brief Returns the node index for a given corner.
   //! \param[in] I -1 or +1 for either umin or umax corner
   //! \param[in] J -1 or +1 for either vmin or vmax corner

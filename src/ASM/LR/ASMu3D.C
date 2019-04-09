@@ -2282,3 +2282,45 @@ void ASMu3D::getElmConnectivities (IntMat& neigh) const
     }
   }
 }
+
+
+void ASMu3D::getBoundaryElms (int lIndex, int orient, IntVec& elms) const
+{
+  LR::parameterEdge edge;
+  switch (lIndex)
+  {
+  case 1: edge = LR::WEST;   break;
+  case 2: edge = LR::EAST;   break;
+  case 3: edge = LR::SOUTH;  break;
+  case 4: edge = LR::NORTH;  break;
+  case 5: edge = LR::BOTTOM; break;
+  case 6: edge = LR::TOP;    break;
+  default:edge = LR::NONE;
+  }
+
+  std::vector<LR::Element*> elements;
+  this->getBasis(1)->getEdgeElements(elements, edge);
+
+  std::sort(elements.begin(), elements.end(),
+            [lIndex,orient](const LR::Element* a, const LR::Element* b)
+            {
+              int dir = (lIndex - 1) / 2;
+              int u = dir == 0 ? 1 : 0;
+              int v = 1 + (dir != 2 ? 1 : 0);
+              int idx = (orient & 4) ? v : u;
+              auto A = a->midpoint();
+              auto B = b->midpoint();
+              if (A[idx] != B[idx])
+                return (orient & 2) ? A[idx] > B[idx] : A[idx] < B[idx];
+
+              idx = (orient & 4) ? u : v;
+              if (A[idx] != B[idx])
+                return (orient & 1) ? A[idx] > B[idx] : A[idx] < B[idx];
+
+              return false;
+            });
+
+
+  for (const LR::Element* elem : elements)
+    elms.push_back(MLGE[elem->getId()]-1);
+}

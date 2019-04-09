@@ -236,6 +236,12 @@ public:
                                 int basis = 0, int thick = 1,
                                 int orient = -1, bool local = false) const = 0;
 
+  //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
+  //! \param[in] lIndex Local index of the boundary face/edge
+  //! \param[in] orient Local orientation of the boundary face/edge
+  //! \param[out] elms Array of element numbers
+  virtual void getBoundaryElms(int lIndex, int orient, IntVec& elms) const = 0;
+
   //! \brief Returns (1-based) index of a predefined node set in the patch.
   virtual int getNodeSetIdx(const std::string&) const { return 0; }
   //! \brief Returns an indexed predefined node set.

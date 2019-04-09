@@ -142,6 +142,12 @@ public:
   virtual void getBoundaryNodes(int lIndex, IntVec& nodes, int basis, int = 1,
                                 int orient = 0, bool local = false) const;
 
+  //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
+  //! \param[in] lIndex Local index of the boundary face/edge
+  //! \param[in] orient Orientation of boundary (used for sorting)
+  //! \param[out] elms Array of element numbers
+  virtual void getBoundaryElms(int lIndex, int orient, IntVec& elms) const;
+
   //! \brief Returns the polynomial order in each parameter direction.
   //! \param[out] p1 Order in first (u) direction
   //! \param[out] p2 Order in second (v) direction

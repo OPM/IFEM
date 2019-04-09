@@ -3506,3 +3506,27 @@ void ASMs3D::getElmConnectivities (IntMat& neigh) const
             neigh[idx][5] = MLGE[iel+N1*N2]-1;
         }
 }
+
+
+void ASMs3D::getBoundaryElms (int lIndex, int, IntVec& elms) const
+{
+  int N1m, N2m, N3m;
+  this->getNoStructElms(N1m,N2m,N3m);
+  elms.clear();
+  if (lIndex == 1 || lIndex == 2) {
+    elms.reserve(N2m*N3m);
+    for (int k = 0; k < N3m; ++k)
+      for (int j = 0; j < N2m; ++j)
+        elms.push_back(MLGE[j*N1m + k*N1m*N2m + (lIndex-1)*(N1m-1)] - 1);
+  } else if (lIndex == 3 || lIndex == 4) {
+    elms.reserve(N1m*N3m);
+    for (int k = 0; k < N3m; ++k)
+      for (int i = 0; i < N1m; ++i)
+        elms.push_back(MLGE[i + k*N1m*N2m + (lIndex-3)*(N1m*(N2m-1))] - 1);
+  } else {
+    elms.reserve(N1m*N2m);
+    for (int j = 0; j < N2m; ++j)
+      for (int i = 0; i < N1m; ++i)
+        elms.push_back(MLGE[i + j*N1m + (lIndex-5)*(N1m*N2m*(N3m-1))] - 1);
+  }
+}
