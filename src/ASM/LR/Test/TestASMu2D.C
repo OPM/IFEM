@@ -34,22 +34,22 @@ class TestASMu2D : public testing::Test,
 };
 
 
-class TestSIM2D : public SIM2D
+class TestuSIM2D : public SIM2D
 {
 public:
-  TestSIM2D() : SIM2D(1)
+  TestuSIM2D() : SIM2D(1)
   {
     opt.discretization = ASM::LRSpline;
     EXPECT_TRUE(this->read("src/ASM/LR/Test/refdata/boundary_nodes.xinp"));
     EXPECT_TRUE(this->createFEMmodel());
   }
-  virtual ~TestSIM2D() {}
+  virtual ~TestuSIM2D() {}
 };
 
 
 TEST_P(TestASMu2D, ConstrainEdge)
 {
-  TestSIM2D sim;
+  TestuSIM2D sim;
   ASMu2D* pch = static_cast<ASMu2D*>(sim.getPatch(1));
   ASSERT_TRUE(pch != nullptr);
 
@@ -65,7 +65,7 @@ TEST_P(TestASMu2D, ConstrainEdge)
 
 TEST_P(TestASMu2D, ConstrainEdgeOpen)
 {
-  TestSIM2D sim;
+  TestuSIM2D sim;
   ASMu2D* pch = static_cast<ASMu2D*>(sim.getPatch(1));
   ASSERT_TRUE(pch != nullptr);
 

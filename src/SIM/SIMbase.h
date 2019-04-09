@@ -185,6 +185,8 @@ public:
   int getLocalNode(int node) const;
   //! \brief Finds the Matrix of Nodal Point Correspondance for element \a iel.
   bool getElmNodes(std::vector<int>& mnpc, int iel) const;
+  //! \brief Obtain element-element connectivities
+  virtual std::vector<std::vector<int>> getElmConnectivities() const = 0;
 
   //! \brief Finds the list of global nodes associated with a boundary.
   //! \param[in] pcode Property code identifying the boundary
