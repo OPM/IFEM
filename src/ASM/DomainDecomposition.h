@@ -44,6 +44,12 @@ public:
     //! \param dim Dimension to iterate over
     OrientIterator(const ASMbase* pch, int orient, int lIdx, int basis, int dim = 2);
 
+    //! \brief Constructor for elements.
+    //! \param pch Slave patch
+    //! \param orient Orientation of boundary on slave
+    //! \param lIdx Index of boundary on slave
+    OrientIterator(const ASMbase* pch, int orient, int lIdx);
+
     //! \brief Obtain start of node numbers.
     std::vector<int>::const_iterator begin() { return nodes.begin(); }
     //! \brief Obtain end of node numbers.

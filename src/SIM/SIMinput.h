@@ -243,6 +243,9 @@ public:
   //! \brief Returns the whole topology set container (for testing only).
   const TopologySet& getTopology() const { return myEntitys; }
 
+  //! \brief Obtain element-element connectivities.
+  virtual std::vector<std::vector<int>> getElmConnectivities() const;
+
 private:
   //! \brief Sets initial conditions from a file.
   //! \param fieldHolder The SIM-object to inject the initial conditions into

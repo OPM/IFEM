@@ -1429,3 +1429,39 @@ bool SIMinput::deSerialize (const std::map<std::string,std::string>&)
             <<"     Restart not supported for "<< this->getName() << std::endl;
   return false;
 }
+
+
+IntMat SIMinput::getElmConnectivities () const
+{
+  IntMat neigh(this->getNoElms());
+  for (const ASMbase* pch : this->getFEModel())
+    pch->getElmConnectivities(neigh);
+
+  for (auto& iface : myInterfaces) {
+    if (iface.dim != static_cast<int>(this->getNoSpaceDim())-1)
+      continue;
+
+    const ASMbase* master = this->getPatch(iface.master);
+    const ASMbase* slave = this->getPatch(iface.slave);
+    const ASMstruct* pch = dynamic_cast<const ASMstruct*>(master);
+
+    std::vector<int> sElms, mElms;
+    slave->getBoundaryElms(iface.sidx,iface.orient,sElms);
+    master->getBoundaryElms(iface.midx,0,mElms);
+
+    DomainDecomposition::OrientIterator iter(slave, iface.orient, iface.sidx);
+    auto it_n = iter.begin();
+    auto it_m = mElms.begin();
+    for (size_t i = 0; i < iter.size(); ++i, ++it_m, ++it_n) {
+      if (pch) {
+        neigh[sElms[*it_n]][iface.sidx-1] = *it_m;
+        neigh[*it_m][iface.midx-1] = sElms[*it_n];
+      } else {
+        neigh[sElms[*it_n]].push_back(*it_m);
+        neigh[*it_m].push_back(sElms[*it_n]);
+      }
+    }
+  }
+
+  return neigh;
+}
