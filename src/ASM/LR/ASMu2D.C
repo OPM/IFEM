@@ -2639,3 +2639,43 @@ void ASMu2D::computeBasis (double u, double v, Go::BasisDerivsSf3& bas,
 
   lrspline->computeBasis(u,v,bas,iel);
 }
+
+
+void ASMu2D::getElmConnectivities (IntMat& neigh) const
+{
+  const LR::LRSplineSurface* lr = this->getBasis(1);
+  for (LR::Meshline* m : lr->getAllMeshlines()) {
+    RealArray isectpts(1,0.0);
+    for (LR::Meshline* m2 : lr->getAllMeshlines())
+      if (m->intersects(m2,&isectpts.back()))
+        isectpts.push_back(0);
+
+    isectpts.pop_back();
+    std::sort(isectpts.begin(), isectpts.end());
+    auto end = std::unique(isectpts.begin(), isectpts.end());
+    isectpts.erase(end,isectpts.end());
+
+    // find elements where this intersection lives
+    RealArray parval_left(2), parval_right(2);
+    double epsilon = 1e-6;
+    for(size_t i=0; i < isectpts.size()-1; i++) {
+      if (m->is_spanning_u()) {
+        parval_left[0]  = (isectpts[i]+isectpts[i+1])/2.0;
+        parval_right[0] = (isectpts[i]+isectpts[i+1])/2.0;
+        parval_left[1]  = m->const_par_ - epsilon;
+        parval_right[1] = m->const_par_ + epsilon;
+      } else {
+        parval_left[0]  = m->const_par_ - epsilon;
+        parval_right[0] = m->const_par_ + epsilon;
+        parval_left[1]  = (isectpts[i]+isectpts[i+1])/2.0;
+        parval_right[1] = (isectpts[i]+isectpts[i+1])/2.0;
+      }
+      int el1 = lr->getElementContaining(parval_left);
+      int el2 = lr->getElementContaining(parval_right);
+      if (el1 > -1 && el2 > -1) {
+        neigh[MLGE[el1]-1].push_back(MLGE[el2]-1);
+        neigh[MLGE[el2]-1].push_back(MLGE[el1]-1);
+      }
+    }
+  }
+}

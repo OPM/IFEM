@@ -104,6 +104,9 @@ public:
   virtual void getBoundaryNodes(int lIndex, IntVec& nodes, int basis,
                                 int, int orient, bool local = false) const;
 
+  //! \brief Obtain element neighbours.
+  virtual void getElmConnectivities (IntMat& neighs) const;
+
   //! \brief Returns the node index for a given corner.
   //! \param[in] I -1 or +1 for either umin or umax corner
   //! \param[in] J -1 or +1 for either vmin or vmax corner
