@@ -1364,3 +1364,20 @@ Real SparseMatrix::Linfnorm () const
 
   return *std::max_element(sums.begin(),sums.end());
 }
+
+
+void SparseMatrix::calcCSR(IntVec& IA, IntVec& JA,
+                           size_t nrow, const ValueMap& elem)
+{
+  size_t nnz = elem.size();
+  IA.resize(nrow+1,nnz);
+  JA.resize(nnz);
+
+  IA[0] = 0;
+  size_t cur_row = 1, ix = 0;
+  for (auto it = elem.begin(); it != elem.end(); ++it, ix++) {
+    JA[ix] = it->first.second-1;
+    while (it->first.first > cur_row)
+      IA[cur_row++] = ix;
+  }
+}
