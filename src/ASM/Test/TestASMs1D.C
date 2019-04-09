@@ -121,3 +121,18 @@ TEST(TestASMs1D, ElementConnectivities)
       EXPECT_EQ(neigh[n][i], ref[n][i]);
   }
 }
+
+
+TEST(TestASMs1D, BoundaryElements)
+{
+  ASMLine pch1;
+  ASSERT_TRUE(pch1.uniformRefine(2));
+  ASSERT_TRUE(pch1.generateFEMTopology());
+  IntMat neigh(3);
+  std::array<IntVec,2> n;
+  for (size_t i = 1; i <= 2; ++i) {
+    pch1.getBoundaryElms(i, 0, n[i-1]);
+    ASSERT_EQ(n[i-1].size(), 1U);
+    EXPECT_EQ(n[i-1][0], i == 1 ? 0 : 2);
+  }
+}

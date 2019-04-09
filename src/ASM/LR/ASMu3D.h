@@ -104,6 +104,12 @@ public:
   virtual void getBoundaryNodes(int lIndex, IntVec& nodes, int basis,
                                 int, int orient, bool local = false) const;
 
+  //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
+  //! \param[in] lIndex Local index of the boundary face/edge
+  //! \param[in] orient Orientation of boundary (used for sorting)
+  //! \param[out] elms Array of element numbers
+  virtual void getBoundaryElms(int lIndex, int orient, IntVec& elms) const;
+
   //! \brief Obtain element neighbours.
   virtual void getElmConnectivities (IntMat& neighs) const;
 

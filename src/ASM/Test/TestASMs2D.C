@@ -49,6 +49,25 @@ TEST(TestASMs2D, ElementConnectivities)
 }
 
 
+TEST(TestASMs2D, BoundaryElements)
+{
+  ASMSquare pch1;
+  ASSERT_TRUE(pch1.uniformRefine(0,1));
+  ASSERT_TRUE(pch1.uniformRefine(1,1));
+  ASSERT_TRUE(pch1.generateFEMTopology());
+
+  const std::array<std::array<int,2>,4> ref = {{{{0, 2}}, {{1, 3}}, {{0, 1}}, {{2, 3}}}};
+
+  std::array<IntVec,4> n;
+  for (size_t i = 1; i <= 4; ++i) {
+    pch1.getBoundaryElms(i, 0, n[i-1]);
+    ASSERT_EQ(n[i-1].size(), ref[i-1].size());
+    for (size_t j = 0; j < ref[i-1].size(); ++j)
+      EXPECT_EQ(n[i-1][j], ref[i-1][j]);
+  }
+}
+
+
 class TestASMs2D : public testing::Test,
                    public testing::WithParamInterface<int>
 {

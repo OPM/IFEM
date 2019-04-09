@@ -2679,3 +2679,29 @@ void ASMu2D::getElmConnectivities (IntMat& neigh) const
     }
   }
 }
+
+
+void ASMu2D::getBoundaryElms (int lIndex, int orient, IntVec& elms) const
+{
+  LR::parameterEdge edge;
+  switch(lIndex)
+  {
+  case 1: edge = LR::WEST;  break;
+  case 2: edge = LR::EAST;  break;
+  case 3: edge = LR::SOUTH; break;
+  case 4: edge = LR::NORTH; break;
+  default:edge = LR::NONE;
+  }
+
+  std::vector<LR::Element*> elements;
+  this->getBasis(1)->getEdgeElements(elements, edge);
+  std::sort(elements.begin(), elements.end(), [orient,lIndex](const LR::Element* a, const LR::Element* b)
+                                              {
+                                                int idx = lIndex < 3 ? 1 : 0;
+                                                double am = a->midpoint()[idx];
+                                                double bm = b->midpoint()[idx];
+                                                return orient == 1 ? bm < am : am < bm;
+                                              });
+  for (const LR::Element* elem : elements)
+    elms.push_back(MLGE[elem->getId()]-1);
+}
