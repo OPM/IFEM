@@ -117,6 +117,9 @@ public:
   //! in one element
   virtual bool getElementCoordinates(Matrix& X, int iel) const;
 
+  //! \brief Obtain element neighbours.
+  virtual void getElmConnectivities(IntMat& neighs) const;
+
   //! \brief Returns a matrix with all nodal coordinates within the patch.
   //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
   //! in the patch

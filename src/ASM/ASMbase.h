@@ -312,6 +312,8 @@ public:
   virtual bool getParameterDomain(Real2DMat& u,
                                   IntVec* corners = nullptr) const = 0;
 
+  //! \brief Obtain element neighbours.
+  virtual void getElmConnectivities(IntMat& neighs) const = 0;
 
   // Various preprocessing methods
   // =============================

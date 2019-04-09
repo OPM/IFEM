@@ -2268,3 +2268,17 @@ void ASMu3D::extendRefinementDomain (IntSet& refineIndices,
         }
   }
 }
+
+
+void ASMu3D::getElmConnectivities (IntMat& neigh) const
+{
+  const LR::LRSplineVolume* lr = this->getBasis(1);
+  for (const LR::Element* m : lr->getAllElements()) {
+    int gEl = MLGE[m->getId()]-1;
+    for (auto edge : {LR::WEST, LR::EAST, LR::SOUTH, LR::NORTH, LR::BOTTOM, LR::TOP}) {
+      std::set<int> elms = lr->getElementNeighbours(m->getId(), edge);
+      for (int elm : elms)
+        neigh[gEl].push_back(MLGE[elm]-1);
+    }
+  }
+}

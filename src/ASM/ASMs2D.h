@@ -617,6 +617,9 @@ public:
   //! \param[out] n3 Number of nodes in third (w) direction
   virtual bool getNoStructElms(int& n1, int& n2, int& n3) const;
 
+  //! \brief Obtain element neighbours.
+  virtual void getElmConnectivities(IntMat& neigh) const;
+
   //! \brief Returns the number of elements on a boundary.
   virtual size_t getNoBoundaryElms(char lIndex, char ldim) const;
 

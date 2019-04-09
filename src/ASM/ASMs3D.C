@@ -3471,3 +3471,38 @@ bool ASMs3D::getFaceSize (int& n1, int& n2, int basis, int face) const
 
   return true;
 }
+
+
+void ASMs3D::getElmConnectivities (IntMat& neigh) const
+{
+  const int n1 = svol->numCoefs(0);
+  const int n2 = svol->numCoefs(1);
+  const int n3 = svol->numCoefs(2);
+  const int p1 = svol->order(0);
+  const int p2 = svol->order(1);
+  const int p3 = svol->order(2);
+  const int N1 = n1 - p1 + 1;
+  const int N2 = n2 - p2 + 1;
+
+  size_t iel = 0;
+  for (int i3 = p3; i3 <= n3; i3++)
+    for (int i2 = p2; i2 <= n2; i2++)
+      for (int i1 = p1; i1 <= n1; i1++, iel++)
+        if (MLGE[iel] > 0)
+        {
+          int idx = MLGE[iel]-1;
+          neigh[idx].resize(6,-1);
+          if (i1 > p1)
+            neigh[idx][0] = MLGE[iel-1]-1;
+          if (i1 < n1)
+            neigh[idx][1] = MLGE[iel+1]-1;
+          if (i2 > p2)
+            neigh[idx][2] = MLGE[iel-N1]-1;
+          if (i2 < n2)
+            neigh[idx][3] = MLGE[iel+N1]-1;
+          if (i3 > p3)
+            neigh[idx][4] = MLGE[iel-N1*N2]-1;
+          if (i3 < n3)
+            neigh[idx][5] = MLGE[iel+N1*N2]-1;
+        }
+}
