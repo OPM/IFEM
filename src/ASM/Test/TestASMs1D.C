@@ -104,3 +104,20 @@ TEST(TestASMs1D, findClosestNode)
     EXPECT_EQ(pch.findClosestNode(X).first,9u);
   }
 }
+
+
+TEST(TestASMs1D, ElementNeighbours)
+{
+  ASMLine pch1;
+  ASSERT_TRUE(pch1.uniformRefine(2));
+  ASSERT_TRUE(pch1.generateFEMTopology());
+  ASMbase::NeighArray neigh(3);
+  pch1.getNeighbours(neigh);
+  const std::array<std::vector<int>,3> ref = {{{1}, {0, 2}, {1}}};
+  ASSERT_EQ(neigh.size(), 3U);
+  for (size_t n = 0; n < neigh.size(); ++n) {
+    ASSERT_EQ(neigh[n].size(), ref[n].size());
+    for (size_t i = 0; i < neigh[n].size(); ++i)
+      EXPECT_EQ(neigh[n][i], ref[n][i]);
+  }
+}

@@ -3309,3 +3309,29 @@ bool ASMs3D::getFaceSize (int& n1, int& n2, int basis, int face) const
 
   return true;
 }
+
+
+void ASMs3D::getNeighbours (NeighArray& neigh) const
+{
+  int N1, N2, N3;
+  this->getNoStructElms(N1, N2, N3);
+  for (int i = 0; i < static_cast<int>(this->getNoElms(false)); ++i) {
+    int idx = this->getElmID(i+1)-1;
+    if (idx == -1)
+      continue;
+
+    neigh[idx].resize(6,-1);
+    if (i % N1 > 0)
+      neigh[idx][0] = idx-1;
+    if (i % N1 != N1-1)
+      neigh[idx][1] = idx+1;
+    if (i % (N1*N2) >= N1)
+      neigh[idx][2] = idx-N1;
+    if (i % (N1*N2) < N1*(N2-1))
+      neigh[idx][3] = idx+N1;
+    if (i / (N1*N2) > 0)
+      neigh[idx][4] = idx - (N1*N2);
+    if (i / (N1*N2) < N3-1)
+      neigh[idx][5] = idx + (N1*N2);
+  }
+}

@@ -434,6 +434,9 @@ public:
   //! \param[out] corners 1-based indices of the corner nodes (optional)
   virtual bool getParameterDomain(Real2DMat& u, IntVec* corners) const;
 
+  //! \brief Obtain element neighbours.
+  virtual void getNeighbours(NeighArray& neighs) const;
+
 protected:
   Go::SplineCurve* curv; //!< Pointer to the actual spline curve object
   Go::SplineCurve* proj; //!< Pointer to spline curve for projection basis

@@ -3068,3 +3068,25 @@ size_t ASMs2D::getNoProjectionNodes () const
 {
   return proj->numCoefs_u() * proj->numCoefs_v();
 }
+
+
+void ASMs2D::getNeighbours (NeighArray& neigh) const
+{
+  int N1, N2, dummy;
+  this->getNoStructElms(N1, N2, dummy);
+  for (int i = 0; i < static_cast<int>(this->getNoElms(true)); ++i) {
+    int idx = this->getElmID(i+1)-1;
+    if (idx == -1)
+      continue;
+
+    neigh[idx].resize(4,-1);
+    if (i % N1 > 0)
+      neigh[idx][0] = idx-1;
+    if (i % N1 != N1-1)
+      neigh[idx][1] = idx+1;
+    if (i >= N1)
+      neigh[idx][2] = idx-N1;
+    if (i < N1*(N2-1))
+      neigh[idx][3] = idx+N1;
+  }
+}

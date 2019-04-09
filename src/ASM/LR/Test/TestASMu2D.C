@@ -255,3 +255,36 @@ TEST(TestASMu2D, Connect)
   ASSERT_TRUE(sim2.read("src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_orient1.xinp"));
   ASSERT_TRUE(sim2.createFEMmodel());
 }
+
+
+class ASMuSquare : public ASMu2D
+{
+public:
+  ASMuSquare()
+  {
+    std::stringstream geo("200 1 0 0\n2 0\n2 2\n0 0 1 1\n2 2\n0 0 1 1\n0 0\n1 0\n0 1\n1 1\n");
+    EXPECT_TRUE(this->read(geo));
+  }
+  virtual ~ASMuSquare() {}
+};
+
+
+TEST(TestASMu2D, ElementNeighbours)
+{
+  ASMuSquare pch1;
+  ASSERT_TRUE(pch1.uniformRefine(0,1));
+  ASSERT_TRUE(pch1.uniformRefine(1,1));
+  ASSERT_TRUE(pch1.generateFEMTopology());
+  ASMbase::NeighArray neigh(4);
+  pch1.getNeighbours(neigh);
+  const std::array<std::vector<int>,4> ref = {{{1, 2},
+                                               {0, 3},
+                                               {0, 3},
+                                               {1, 2}}};
+  ASSERT_EQ(neigh.size(), 4U);
+  for (size_t n = 0; n < neigh.size(); ++n) {
+    ASSERT_EQ(neigh[n].size(), ref[n].size());
+    for (size_t i = 0; i < neigh[n].size(); ++i)
+      EXPECT_EQ(neigh[n][i], ref[n][i]);
+  }
+}

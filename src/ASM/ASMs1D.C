@@ -1863,3 +1863,14 @@ Fields* ASMs1D::getProjectedFields (const Vector& coefs, size_t) const
             << std::endl;
   return nullptr;
 }
+
+
+void ASMs1D::getNeighbours (NeighArray& neigh) const
+{
+  for (int i = 0; i < static_cast<int>(nel); ++i) {
+    if (i-1 > -1)
+      neigh[i].push_back(i-1);
+    if (i+1 < static_cast<int>(nel))
+      neigh[i].push_back(i+1);
+  }
+}

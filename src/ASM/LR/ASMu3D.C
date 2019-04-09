@@ -2260,3 +2260,33 @@ void ASMu3D::extendRefinementDomain (IntSet& refineIndices,
         }
   }
 }
+
+
+void ASMu3D::getNeighbours (NeighArray& neighs) const
+{
+  std::vector<std::set<int>> neigh(this->getNoElms(true));
+  const LR::LRSplineVolume* lr = this->getBasis(1);
+  for (const LR::Element* m : lr->getAllElements()) {
+    double epsilon = 1e-6;
+    double umid = (m->umin() + m->umax()) / 2.0;
+    double vmid = (m->vmin() + m->vmax()) / 2.0;
+    double wmid = (m->wmin() + m->wmax()) / 2.0;
+    std::vector<RealArray> ua = {{m->umin() - epsilon, vmid, wmid},
+                                 {m->umax() + epsilon, vmid, wmid},
+                                 {umid, m->vmin() - epsilon, wmid},
+                                 {umid, m->vmax() + epsilon, wmid},
+                                 {umid, vmid, m->wmin() - epsilon},
+                                 {umid, vmid, m->wmax() + epsilon}};
+    for (const RealArray& u : ua) {
+      int el1 = lr->getElementContaining(u);
+      if (el1 > -1)
+        neigh[m->getId()].insert(el1);
+    }
+  }
+
+  for (size_t i = 0; i < neigh.size(); ++i) {
+    int idx = this->getElmID(i);
+    neighs[idx].resize(neigh[i].size());
+    std::copy(neigh[i].begin(), neigh[i].end(), neighs[idx].begin());
+  }
+}

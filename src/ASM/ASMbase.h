@@ -312,6 +312,9 @@ public:
   virtual bool getParameterDomain(Real2DMat& u,
                                   IntVec* corners = nullptr) const = 0;
 
+  using NeighArray = std::vector<std::vector<int>>; //!< Convenience alias
+  //! \brief Obtain element neighbours.
+  virtual void getNeighbours(NeighArray& neighs) const = 0;
 
   // Various preprocessing methods
   // =============================
