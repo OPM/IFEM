@@ -33,6 +33,29 @@ class SIMbase;
 class DomainDecomposition
 {
 public:
+  //! \brief Iterator for matching nodes on edges/faces with a given orientation and index.
+  class OrientIterator {
+  public:
+    //! \brief Constructor.
+    //! \param pch Slave patch
+    //! \param orient Orientation of boundary on slave
+    //! \param lIdx Index of boundary on slave
+    //! \param basis Basis to use for boundary on slave
+    //! \param dim Dimension to iterate over
+    OrientIterator(const ASMbase* pch, int orient, int lIdx, int basis, int dim = 2);
+
+    //! \brief Obtain start of node numbers.
+    std::vector<int>::const_iterator begin() { return nodes.begin(); }
+    //! \brief Obtain end of node numbers.
+    std::vector<int>::const_iterator end() { return nodes.end(); }
+    //! \brief Obtain number of nodes
+    size_t size() const { return nodes.size(); }
+
+  protected:
+    //! \brief Node number on boundary.
+    std::vector<int> nodes;
+  };
+
   //! \brief Functor to order ghost connections.
   class SlaveOrder {
     public:

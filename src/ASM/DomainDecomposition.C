@@ -27,109 +27,91 @@
 #include <numeric>
 
 
-//! \brief Iterator for matching nodes on edges/faces with a given orientation and index.
-class NodeIterator {
-public:
-  //! \brief Constructor.
-  //! \param pch Slave patch
-  //! \param orient Orientation of boundary on slave
-  //! \param lIdx Index of boundary on slave
-  //! \param basis Basis to use for boundary on slave
-  //! \param dim Dimension to iterate over
-  NodeIterator(const ASMbase* pch, int orient, int lIdx, int basis, int dim = 2)
-  {
-    if (dim == 0) {
-      nodes.resize(1);
-      return;
-    }
-    const ASMstruct* spch = dynamic_cast<const ASMstruct*>(pch);
-    const ASMunstruct* upch = dynamic_cast<const ASMunstruct*>(pch);
+DomainDecomposition::
+OrientIterator::OrientIterator(const ASMbase* pch,
+                               int orient, int lIdx, int basis, int dim)
+{
+  if (dim == 0) {
+    nodes.resize(1,0);
+    return;
+  }
+  const ASMstruct* spch = dynamic_cast<const ASMstruct*>(pch);
+  const ASMunstruct* upch = dynamic_cast<const ASMunstruct*>(pch);
 
-    int nsd = pch->getNoSpaceDim();
-    if (upch) {
-      if (nsd == 3 && dim == 1) {
-        const ASM3D* pch3D = dynamic_cast<const ASM3D*>(pch);
-        nodes = pch3D->getEdge(lIdx, true, basis, -1);
+  int nsd = pch->getNoSpaceDim();
+  if (upch) {
+    if (nsd == 3 && dim == 1) {
+      const ASM3D* pch3D = dynamic_cast<const ASM3D*>(pch);
+      nodes = pch3D->getEdge(lIdx, true, basis, -1);
+      std::iota(nodes.begin(), nodes.end(), 0);
+    } else if (nsd == 2 || dim == 2) {
+      pch->getBoundaryNodes(lIdx, nodes, basis);
+      if (orient == 0 || dim == 2)
         std::iota(nodes.begin(), nodes.end(), 0);
-      } else if (nsd == 2 || dim == 2) {
-        pch->getBoundaryNodes(lIdx, nodes, basis);
-        if (orient == 0 || dim == 2)
-          std::iota(nodes.begin(), nodes.end(), 0);
-        else
-          std::iota(nodes.rbegin(), nodes.rend(), 0);
-      }
-      return;
+      else
+        std::iota(nodes.rbegin(), nodes.rend(), 0);
     }
+    return;
+  }
 
-    int n1, n2, n3;
-    spch->getSize(n1,n2,n3,basis);
-    if (nsd == 3) {
-      if (dim == 1) {
-        if (lIdx <= 4)
-          nodes.resize(n1);
-        else if (lIdx >= 5 && lIdx <= 8)
-          nodes.resize(n2);
-        else
-          nodes.resize(n3);
-
-        if (orient == 0)
-          std::iota(nodes.begin(), nodes.end(), 0);
-        else
-          std::iota(nodes.rbegin(), nodes.rend(), 0);
-
-        return;
-      }
-
-      int dim1, dim2;
-      if (lIdx == 1 || lIdx == 2)
-        dim1 = n2, dim2 = n3;
-      else if (lIdx == 3 || lIdx == 4)
-        dim1 = n1, dim2 = n3;
-      else //if (lIdx == 5 || lIdx == 6)
-        dim1 = n1, dim2 = n2;
-
-      nodes.resize(dim1*dim2);
-      typedef std::function<std::pair<int,int>(int dim1, int dim2, int n)> NodeOrder;
-#define PAIR(x, y) [](int dim1, int dim2, int n) { return std::make_pair(x,y); }
-      const std::vector<NodeOrder> orders  = {PAIR(n*dim1,              1),  // 0 1 2 3 4 5 6 7 8
-                                              PAIR((dim2-n-1)*dim1,     1),  // 6 7 8 3 4 5 0 1 2
-                                              PAIR((n+1)*dim1-1,       -1),  // 2 1 0 5 4 3 8 7 6
-                                              PAIR(dim1*dim2-n*dim1-1, -1),  // 8 7 6 5 4 3 2 1 0
-                                              PAIR(n,                dim1),  // 0 3 6 1 4 7 2 5 8
-                                              PAIR(dim2-n-1,         dim1),  // 2 5 8 1 4 7 0 3 6
-                                              PAIR((dim2-1)*dim1+n, -dim1),  // 6 3 0 7 4 1 8 5 2
-                                              PAIR(dim2*dim1-n-1,   -dim1)}; // 8 5 2 7 4 1 6 3 0
-#undef PAIR
-
-      auto it = nodes.begin();
-      for (int n = 0; n < dim2; ++n) {
-        auto order = orders[orient](dim1, dim2, n);
-        for (int i = 0; i < dim1; ++i, ++it, order.first += order.second)
-          *it = order.first;
-      }
-    } else {
-      if (lIdx == 1 || lIdx == 2)
+  int n1, n2, n3;
+  spch->getSize(n1,n2,n3,basis);
+  if (nsd == 3) {
+    if (dim == 1) {
+      if (lIdx <= 4)
+        nodes.resize(n1);
+      else if (lIdx >= 5 && lIdx <= 8)
         nodes.resize(n2);
       else
-        nodes.resize(n1);
+        nodes.resize(n3);
 
       if (orient == 0)
         std::iota(nodes.begin(), nodes.end(), 0);
       else
         std::iota(nodes.rbegin(), nodes.rend(), 0);
-    }
-  }
 
-  //! \brief Obtain start of node numbers.
-  std::vector<int>::const_iterator begin() { return nodes.begin(); }
-  //! \brief Obtain end of node numbers.
-  std::vector<int>::const_iterator end() { return nodes.end(); }
-  //! \brief Obtain number of nodes
-  size_t size() const { return nodes.size(); }
-protected:
-  //! \brief Node number on boundary.
-  std::vector<int> nodes;
-};
+      return;
+    }
+
+    int dim1, dim2;
+    if (lIdx == 1 || lIdx == 2)
+      dim1 = n2, dim2 = n3;
+    else if (lIdx == 3 || lIdx == 4)
+      dim1 = n1, dim2 = n3;
+    else //if (lIdx == 5 || lIdx == 6)
+      dim1 = n1, dim2 = n2;
+
+    nodes.resize(dim1*dim2);
+    typedef std::function<std::pair<int,int>(int dim1, int dim2, int n)> NodeOrder;
+#define PAIR(x, y) [](int dim1, int dim2, int n) { return std::make_pair(x,y); }
+    const std::vector<NodeOrder> orders  = {PAIR(n*dim1,              1),  // 0 1 2 3 4 5 6 7 8
+                                            PAIR((dim2-n-1)*dim1,     1),  // 6 7 8 3 4 5 0 1 2
+                                            PAIR((n+1)*dim1-1,       -1),  // 2 1 0 5 4 3 8 7 6
+                                            PAIR(dim1*dim2-n*dim1-1, -1),  // 8 7 6 5 4 3 2 1 0
+                                            PAIR(n,                dim1),  // 0 3 6 1 4 7 2 5 8
+                                            PAIR(dim2-n-1,         dim1),  // 2 5 8 1 4 7 0 3 6
+                                            PAIR((dim2-1)*dim1+n, -dim1),  // 6 3 0 7 4 1 8 5 2
+                                            PAIR(dim2*dim1-n-1,   -dim1)}; // 8 5 2 7 4 1 6 3 0
+#undef PAIR
+
+    auto it = nodes.begin();
+    for (int n = 0; n < dim2; ++n) {
+      auto order = orders[orient](dim1, dim2, n);
+      for (int i = 0; i < dim1; ++i, ++it, order.first += order.second)
+        *it = order.first;
+    }
+  } else {
+    if (lIdx == 1 || lIdx == 2)
+      nodes.resize(n2);
+    else
+      nodes.resize(n1);
+
+    if (orient == 0)
+      std::iota(nodes.begin(), nodes.end(), 0);
+    else
+      std::iota(nodes.rbegin(), nodes.rend(), 0);
+  }
+}
 
 
 std::vector<std::set<int>> DomainDecomposition::getSubdomains(int nx, int ny, int nz,
@@ -430,8 +412,8 @@ bool DomainDecomposition::calcGlobalNodeNumbers(const ProcessAdm& adm,
     size_t ofs = 0;
     for (size_t b = 1; b <= sim.getPatch(sidx)->getNoBasis(); ++b) {
       if (cbasis.empty() || cbasis.find(b) != cbasis.end()) {
-        NodeIterator iter(sim.getPatch(sidx),
-                          it.orient, it.sidx, b, it.dim);
+        OrientIterator iter(sim.getPatch(sidx),
+                            it.orient, it.sidx, b, it.dim);
         auto it_n = iter.begin();
         for (size_t i = 0; i < iter.size(); ++i, ++it_n) {
           for (int t = 0; t < it.thick; ++t) {
@@ -679,7 +661,7 @@ bool DomainDecomposition::calcGlobalEqNumbers(const ProcessAdm& adm,
         } else
           components = utl::getDigits(sim.getSolParams()->getBlock(block-1).comps);
 
-        NodeIterator iter(sim.getPatch(sidx), it.orient, it.sidx, basis, it.dim);
+        OrientIterator iter(sim.getPatch(sidx), it.orient, it.sidx, basis, it.dim);
         auto it_n = iter.begin();
         int nodeDofs = components.size();
         for (size_t i = 0; i < iter.size(); ++i, ++it_n) {
