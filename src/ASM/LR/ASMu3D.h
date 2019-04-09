@@ -553,6 +553,9 @@ protected:
   void generateThreadGroups(const Integrand& integrand, bool silence,
                             bool ignoreGlobalLM);
 
+  //! \brief Generate element groups from a partition.
+  virtual void generateThreadGroupsFromElms(const std::vector<int>& elms);
+
   //! \brief Remap element wise errors to basis functions.
   //! \param     errors The remapped errors
   //! \param[in] origErr The element wise errors on the geometry mesh
@@ -587,6 +590,7 @@ protected:
   Matrices      myBezierExtract; //!< Bezier extraction matrices
 
   ThreadGroups threadGroups; //!< Element groups for multi-threaded assembly
+  IntVec myElms; //!< Elements on patch - used with partitioning
   mutable double vMin; //!< Minimum element volume for adaptive refinement
 };
 

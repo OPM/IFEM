@@ -1209,6 +1209,9 @@ bool ASMu3D::integrate (Integrand& integrand, int lIndex,
     if (dbgElm < 0 && iEl+1 != -dbgElm)
       continue; // Skipping all elements, except for -dbgElm
 #endif
+    if (!myElms.empty() && !glInt.threadSafe() &&
+        std::find(myElms.begin(), myElms.end(), iEl) == myElms.end())
+     continue;
 
     FiniteElement fe;
     fe.iel = MLGE[iEl];
@@ -2323,4 +2326,15 @@ void ASMu3D::getBoundaryElms (int lIndex, int orient, IntVec& elms) const
 
   for (const LR::Element* elem : elements)
     elms.push_back(MLGE[elem->getId()]-1);
+}
+
+
+void ASMu3D::generateThreadGroupsFromElms(const std::vector<int>& elms)
+{
+  myElms.clear();
+  for (int elm : elms)
+    if (this->getElmIndex(elm+1) > 0)
+      myElms.push_back(this->getElmIndex(elm+1)-1);
+
+  threadGroups = threadGroups.filter(myElms);
 }

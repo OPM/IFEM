@@ -2316,6 +2316,10 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
       fe.iel = abs(MLGE[doXelms+iel-1]);
       if (fe.iel < 1) continue; // zero-area element
 
+      if (!myElms.empty() && !glInt.threadSafe() &&
+          std::find(myElms.begin(), myElms.end(), iel-1) == myElms.end())
+        continue;
+
 #ifdef SP_DEBUG
       if (dbgElm < 0 && iel != -dbgElm)
         continue; // Skipping all elements, except for -dbgElm
@@ -3116,4 +3120,15 @@ void ASMs2D::getBoundaryElms (int lIndex, int, IntVec& elms) const
     for (int i = 0; i < N1m; ++i)
       elms.push_back(MLGE[i + (lIndex-3)*N1m*(N2m-1)] - 1);
   }
+}
+
+
+void ASMs2D::generateThreadGroupsFromElms(const std::vector<int>& elms)
+{
+  myElms.clear();
+  for (int elm : elms)
+    if (this->getElmIndex(elm+1) > 0)
+      myElms.push_back(this->getElmIndex(elm+1) - 1);
+
+  threadGroups = threadGroups.filter(myElms);
 }

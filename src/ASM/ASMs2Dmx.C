@@ -528,13 +528,17 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
   const int n1 = surf->numCoefs_u();
   const int nel1 = n1 - p1 + 1;
 
+  ThreadGroups oneGroup;
+  if (glInt.threadSafe()) oneGroup.oneStripe(nel);
+  const ThreadGroups& groups = glInt.threadSafe() ? oneGroup : threadGroups;
+
 
   // === Assembly loop over all elements in the patch ==========================
 
   bool ok=true;
-  for (size_t g=0;g<threadGroups.size() && ok;++g) {
+  for (size_t g = 0; g < groups.size() && ok; g++) {
 #pragma omp parallel for schedule(static)
-    for (size_t t=0;t<threadGroups[g].size();++t) {
+    for (size_t t = 0; t < groups[g].size(); t++) {
       MxFiniteElement fe(elem_size);
       std::vector<Matrix> dNxdu(m_basis.size());
       std::vector<Matrix3D> d2Nxdu2(m_basis.size());
@@ -543,9 +547,9 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
       Matrix Xnod, Jac;
       double   param[3] = { 0.0, 0.0, 0.0 };
       Vec4   X(param);
-      for (size_t i = 0; i < threadGroups[g][t].size() && ok; ++i)
+      for (size_t i = 0; i < groups[g][t].size() && ok; ++i)
       {
-        int iel = threadGroups[g][t][i];
+        int iel = groups[g][t][i];
         fe.iel = MLGE[iel];
         if (fe.iel < 1) continue; // zero-area element
 
@@ -737,6 +741,10 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
       fe.iel = MLGE[iel-1];
       if (fe.iel < 1) continue; // zero-area element
 
+      if (!myElms.empty() && !glInt.threadSafe() &&
+          std::find(myElms.begin(), myElms.end(), iel-1) == myElms.end())
+        continue;
+
       // Skip elements that are not on current boundary edge
       bool skipMe = false;
       switch (edgeDir)
@@ -865,6 +873,10 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
     {
       fe.iel = abs(MLGE[iel]);
       if (fe.iel < 1) continue; // zero-area element
+
+      if (!myElms.empty() && !glInt.threadSafe() &&
+          std::find(myElms.begin(), myElms.end(), iel-1) == myElms.end())
+        continue;
 
       short int status = iChk.hasContribution(iel,i1,i2);
       if (!status) continue; // no interface contributions for this element

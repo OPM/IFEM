@@ -93,7 +93,7 @@ int IFEM::Init (int arg_c, char** arg_v, const char* title)
 #endif
 
   std::cout <<"\n        MPI support: ";
-#if HAVE_MPI
+#ifdef HAVE_MPI
   std::cout <<"enabled";
 #else
   std::cout <<"disabled";

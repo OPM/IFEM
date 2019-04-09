@@ -301,16 +301,21 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
   if (!xg || !wg) return false;
   bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
 
+  ThreadGroups oneGroup;
+  if (glInt.threadSafe()) oneGroup.oneGroup(nel);
+  const IntMat& groups = glInt.threadSafe() ? oneGroup[0] : threadGroups[0];
+
+
   // === Assembly loop over all elements in the patch ==========================
   bool ok = true;
-  for (size_t t = 0; t < threadGroups[0].size() && ok; ++t)
+  for (size_t t = 0; t < groups.size() && ok; ++t)
   {
 //#pragma omp parallel for schedule(static)
-    for (size_t e = 0; e < threadGroups[0][t].size(); ++e)
+    for (size_t e = 0; e < groups[t].size(); ++e)
     {
       if (!ok)
         continue;
-      int iel = threadGroups[0][t][e] + 1;
+      int iel = groups[t][e] + 1;
       auto el1 = threadBasis->elementBegin()+iel-1;
       double uh = ((*el1)->umin()+(*el1)->umax())/2.0;
       double vh = ((*el1)->vmin()+(*el1)->vmax())/2.0;
@@ -524,6 +529,12 @@ bool ASMu2Dmx::integrate (Integrand& integrand, int lIndex,
     }
     if (skipMe) continue;
 
+    if (!myElms.empty() && !glInt.threadSafe() &&
+        std::find(myElms.begin(), myElms.end(), iel-1) == myElms.end()) {
+        ++iel;
+      continue;
+    }
+
     double uh = ((*el1)->umin()+(*el1)->umax())/2.0;
     double vh = ((*el1)->vmin()+(*el1)->vmax())/2.0;
     std::vector<size_t> els;
@@ -644,6 +655,12 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
   for (int iel = 1; el1 != m_basis[0]->elementEnd(); ++el1, ++iel) {
     short int status = iChk.hasContribution(iel);
     if (!status) continue; // no interface contributions for this element
+
+    if (!myElms.empty() && !glInt.threadSafe() &&
+        std::find(myElms.begin(), myElms.end(), iel-1) == myElms.end()) {
+        ++iel, ++el1;
+      continue;
+    }
     // first push the hosting elements
     std::vector<size_t> els(1,iel);
     std::vector<size_t> elem_sizes(1,(*el1)->nBasisFunctions());

@@ -653,6 +653,9 @@ protected:
   //! \param[in] silence If \e true, suppress threading group outprint
   virtual void generateThreadGroups(char lIndex, bool silence, bool);
 
+  //! \brief Generate element groups from a partition.
+  virtual void generateThreadGroupsFromElms(const std::vector<int>& elms);
+
 public:
   //! \brief Auxilliary function for computation of basis function indices.
   static void scatterInd(int n1, int n2, int n3, int p1, int p2, int p3,
