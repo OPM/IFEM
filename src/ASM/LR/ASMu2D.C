@@ -560,6 +560,7 @@ bool ASMu2D::generateFEMTopology ()
   if (tensorPrjBas)
   {
     projBasis.reset(new LR::LRSplineSurface(tensorPrjBas));
+    projBasis->generateIDs();
     delete tensorPrjBas;
     tensorPrjBas = nullptr;
   }
@@ -2560,6 +2561,9 @@ bool ASMu2D::refine (const LR::RefineData& prm,
       projBasis->insert_const_u_edge(line->const_par_,
                                      line->start_, line->stop_,
                                      line->multiplicity());
+
+  if (projBasis != lrspline)
+    projBasis->generateIDs();
 
   IFEM::cout <<"Refined projection basis: "<< projBasis->nElements()
              <<" elements "<< projBasis->nBasisFunctions() <<" nodes."

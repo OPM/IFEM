@@ -189,6 +189,7 @@ TEST(TestASMu2D, TransferGaussPtVars)
 
   ASMu2D* pch = static_cast<ASMu2D*>(sim.createDefaultModel());
   LR::LRSplineSurface* lr = pch->getSurface();
+  lr->generateIDs();
 
   RealArray oldAr(9), newAr;
   const double* xi = GaussQuadrature::getCoord(3);
@@ -200,16 +201,16 @@ TEST(TestASMu2D, TransferGaussPtVars)
     pchNew->uniformRefine(idx, 1);
     LR::LRSplineSurface* lrNew = pchNew->getSurface();
     ASSERT_TRUE(lrNew != nullptr);
+    lrNew->generateIDs();
     for (id[1] = 0; id[1] < 3; ++id[1])
       for (id[0] = 0; id[0] < 3; ++id[0])
         oldAr[id[0]+id[1]*3] = (1.0 + xi[id[idx]]) / 2.0;
     pchNew->transferGaussPtVars(lr, oldAr, newAr, 3);
     size_t k = 0;
-    for (size_t iEl = 0; iEl < 2; ++iEl) {
+    for (size_t iEl = 0; iEl < 2; ++iEl)
       for (id[1] = 0; id[1] < 3; ++id[1])
         for (id[0] = 0; id[0] < 3; ++id[0], ++k)
           EXPECT_FLOAT_EQ(newAr[k], 0.5*iEl + 0.5*(xi[id[idx]] + 1.0) / 2.0);
-    }
   }
 }
 
@@ -221,11 +222,13 @@ TEST(TestASMu2D, TransferGaussPtVarsN)
 
   ASMu2D* pch = static_cast<ASMu2D*>(sim.createDefaultModel());
   LR::LRSplineSurface* lr = pch->getSurface();
+  lr->generateIDs();
 
   ASMu2D* pchNew = static_cast<ASMu2D*>(sim2.createDefaultModel());
   pchNew->uniformRefine(0, 1);
   LR::LRSplineSurface* lrNew = pchNew->getSurface();
   ASSERT_TRUE(lrNew != nullptr);
+  lrNew->generateIDs();
 
   RealArray oldAr(9), newAr;
   std::iota(oldAr.begin(), oldAr.end(), 1);

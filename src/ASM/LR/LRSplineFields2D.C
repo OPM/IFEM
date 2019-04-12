@@ -48,6 +48,8 @@ LRSplineFields2D::LRSplineFields2D (const ASMu2D* patch,
     for (size_t i = 0; i < nno && vit != end; ++i, vit += nfc)
       for (size_t j = 0; j < nf; ++j)
         values[nf*i+j] = *(vit+j);
+
+  basis->generateIDs();
 }
 
 

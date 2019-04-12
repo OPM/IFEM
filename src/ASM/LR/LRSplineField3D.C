@@ -44,6 +44,8 @@ LRSplineField3D::LRSplineField3D (const ASMu3D* patch,
   else
     for (size_t i = 0; i < nno && vit != end; ++i, vit += nf)
       values[i] = *(vit+cmp-1);
+
+  basis->generateIDs();
 }
 
 
