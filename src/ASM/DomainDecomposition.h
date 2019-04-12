@@ -180,6 +180,10 @@ public:
   //! \brief Returns elements in partition.
   const std::vector<int>& getElms() const { return myElms; }
 
+  //! \brief Set elements in partition.
+  void setElms(const std::vector<int>& elms, const std::string& save)
+  { myElms = elms; partitioned = !elms.empty(); savePart = save;}
+
 private:
   //! \brief Calculates a 1D partitioning with a given overlap.
   //! \param[in] nel1 Number of knot-spans in first parameter direction.
@@ -278,6 +282,7 @@ private:
 
   const SAMpatch* sam = nullptr; //!< The assembly handler the DD is constructed for.
   bool partitioned = false; //!< \e true if graph based decomposition
+  std::string savePart; //!< \e true to save partitioning to file
 };
 
 #endif

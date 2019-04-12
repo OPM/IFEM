@@ -1295,6 +1295,18 @@ bool DomainDecomposition::graphPartition(const ProcessAdm& adm, const SIMbase& s
     myElms.resize(numImport);
     std::copy(importGlobalGids, importGlobalGids+numImport, myElms.begin());
   }
+
+  if (!savePart.empty()) {
+    MPI_File f;
+    MPI_File_open(*adm.getCommunicator(),savePart.c_str(),
+                  MPI_MODE_WRONLY|MPI_MODE_CREATE,MPI_INFO_NULL,&f);
+    MPI_File_seek_shared(f, adm.getNoProcs()*sizeof(int), MPI_SEEK_SET);
+    MPI_File_write_ordered(f, myElms.data(), myElms.size(), MPI_INT, MPI_STATUS_IGNORE);
+    MPI_File_seek_shared(f, 0, MPI_SEEK_SET);
+    int size = myElms.size();
+    MPI_File_write_ordered(f, &size, 1, MPI_INT, MPI_STATUS_IGNORE);
+    MPI_File_close(&f);
+  }
   Zoltan_LB_Free_Part(&importGlobalGids, &importLocalGids, &importProcs, &importToPart);
   Zoltan_LB_Free_Part(&exportGlobalGids, &exportLocalGids, &exportProcs, &exportToPart);
   Zoltan_Destroy(&zz);
