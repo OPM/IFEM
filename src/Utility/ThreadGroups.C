@@ -12,6 +12,7 @@
 //==============================================================================
 
 #include "ThreadGroups.h"
+#include <algorithm>
 #include <numeric>
 #include <iostream>
 #ifdef USE_OPENMP
@@ -448,4 +449,21 @@ void ThreadGroups::printGroup (const IntMat& group, int g)
     for (int e : group[t]) std::cout <<" "<< e;
   }
   std::cout << std::endl;
+}
+
+
+ThreadGroups ThreadGroups::filter (const IntVec& elmList) const
+{
+  ThreadGroups filtered;
+  const ThreadGroups& group = *this;
+  for (size_t i = 0; i < 2; ++i) {
+    filtered[i].resize(group[i].size());
+    for (size_t j = 0; j < group[i].size(); ++j)
+      for (size_t k = 0; k < group[i][j].size(); ++k)
+        if (std::find(elmList.begin(),
+                      elmList.end(), group[i][j][k]) != elmList.end())
+          filtered[i][j].push_back(group[i][j][k]);
+  }
+
+  return filtered;
 }
