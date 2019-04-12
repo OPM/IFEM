@@ -81,6 +81,10 @@ public:
   //! \brief Indexing operator.
   IntMat& operator[](int i) { return tg[i]; }
 
+  //! \brief Filter current threadgroups through a white list of elements.
+  //! \param[in] elmList The white list of elements
+  ThreadGroups filter(const IntVec& elmList) const;
+
 protected:
   //! \brief Calculates the parameter direction of the treading stripes in 2D.
   static StripDirection getStripDirection(int nel1, int nel2,
