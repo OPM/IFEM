@@ -65,7 +65,7 @@ bool SettingMap::hasValue(const std::string& key) const
 LinSolParams::BlockParams::BlockParams() :
   basis(1), comps(0)
 {
-  addValue("pc", "ilu");
+  addValue("pc", "default");
   addValue("multigrid_ksp", "defrichardson");
 }
 

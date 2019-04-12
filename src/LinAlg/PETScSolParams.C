@@ -32,6 +32,9 @@ void PETScSolParams::setupPC(PC& pc,
 {
   // Set preconditioner
   std::string prec = params.getBlock(block).getStringValue("pc");
+  if (prec == "default")
+    prec = adm.getNoProcs() > 1 ? "asm" : "ilu";
+
   if (prec == "compositedir") {
     Mat mat;
     Mat Pmat;
@@ -297,8 +300,12 @@ void PETScSolParams::setupSmoothers(PC& pc, size_t iBlock,
       noSmooth = params.getBlock(iBlock).getIntValue("multigrid_no_smooth");;
     }
 
-    if (smoother.empty())
-      smoother = "ilu";
+    if (smoother.empty()) {
+      if (adm.getNoProcs() > 1)
+        smoother = "asm";
+      else
+        smoother = "ilu";
+    }
 
     KSPSetTolerances(preksp,PETSC_DEFAULT,PETSC_DEFAULT,PETSC_DEFAULT,noSmooth);
     KSPGetPC(preksp,&prepc);
