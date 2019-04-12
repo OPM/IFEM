@@ -187,6 +187,34 @@ bool SIMinput::parseGeometryTag (const TiXmlElement* elem)
       for (int i = 1; i <= nGlPatches; i++)
         adm.dd.setPatchOwner(i,(i-1)/proc);
     }
+
+    std::string file;
+    if (myPatches.empty() && utl::getAttribute(elem,"file",file))
+    {
+      std::ifstream ifs(file, std::ios_base::in|std::ios_base::binary);
+       std::vector<int> elms;
+      if (ifs.good())
+      {
+        IFEM::cout << "\tReading partitioning from file " << file;
+        std::vector<int> elmOfs(adm.getNoProcs());
+
+        size_t ofs = 0;
+        for (int i = 0; i < adm.getNoProcs(); ++i) {
+          ifs.read(reinterpret_cast<char*>(&elmOfs[i]), sizeof(int));
+          if (i < adm.getProcId())
+            ofs += elmOfs[i];
+        }
+        ifs.seekg(ofs*sizeof(int), std::ios_base::cur);
+        elms.resize(elmOfs[adm.getProcId()]);
+        for (size_t i = 0; i < elms.size(); ++i)
+	  ifs.read(reinterpret_cast<char*>(&elms[i]), sizeof(int));
+
+        IFEM::cout << ", size = " << elms.size() << std::endl;
+      }
+      bool save = false;
+      utl::getAttribute(elem,"save",save);
+      adm.dd.setElms(elms, save ? file : "");
+    }
   }
 
   else if (!strcasecmp(elem->Value(),"topologysets"))

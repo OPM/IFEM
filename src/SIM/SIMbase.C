@@ -361,7 +361,7 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
   if (!static_cast<SAMpatch*>(mySam)->init(myModel,ngnod,dofTypes))
     return false;
 
-  if (nProc > 1 && myPatches.empty() && adm.isParallel())
+  if (nProc > 1 && myPatches.empty() && adm.isParallel() && adm.dd.getElms().empty())
   {
     IFEM::cout <<" *** SIMbase::preprocess: No partitioning information for "
                << nProc <<" processors found. Using graph partitioning\n";
