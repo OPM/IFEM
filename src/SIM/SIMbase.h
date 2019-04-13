@@ -710,6 +710,8 @@ protected:
   AnaSol*        mySol;     //!< Analytical/Exact solution
   FunctionBase*  dualField; //!< Dual solution field (extraction function)
 
+  std::vector<FunctionBase*> extrFunc; //!< Extraction functions for VCP
+
   bool isRefined; //!< Indicates if the model is adaptively refined
   bool lagMTOK;   //!< Indicates if global multipliers is OK with multithreading
 

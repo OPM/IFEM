@@ -655,6 +655,7 @@ FunctionBase* SIMinput::parseDualTag (const TiXmlElement* elem, int ftype)
       dualField = new DualVecFunc(comp,X0,normal,XZp,depth,width);
   }
 
+  extrFunc.push_back(dualField);
   return dualField;
 }
 

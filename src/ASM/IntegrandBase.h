@@ -246,7 +246,7 @@ public:
   size_t getNoSolutions() const { return primsol.size(); }
 
   //! \brief Returns the patch-wise extraction function field, if any.
-  virtual Vector* getExtractionField() { return nullptr; }
+  virtual Vector* getExtractionField(size_t = 1) { return nullptr; }
   //! \brief Accesses the primary solution vector of current patch.
   Vector& getSolution(size_t n = 0) { return primsol[n]; }
   //! \brief Accesses the primary solution vectors of current patch.

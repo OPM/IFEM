@@ -41,7 +41,8 @@ SIMoutput::SIMoutput (IntegrandBase* itg) : SIMinput(itg)
 SIMoutput::~SIMoutput ()
 {
   if (myVtf) delete myVtf;
-  for (auto& func : myAddScalars)
+
+  for (std::pair<const std::string,RealFunc*>& func : myAddScalars)
     delete func.second;
 }
 
@@ -1761,9 +1762,12 @@ bool SIMoutput::hasPointResultFile () const
 }
 
 
-size_t SIMoutput::getVCPindex () const
+size_t SIMoutput::getVCPindex (size_t idx) const
 {
-  return dualField ? (this->haveAnaSol() ? 5 : 3) : 0;
+  if (extrFunc.empty() || idx == 0 || idx > extrFunc.size())
+    return 0;
+
+  return (this->haveAnaSol() ? 4 : 2) + idx;
 }
 
 
@@ -1787,10 +1791,10 @@ void SIMoutput::printNorms (const Vectors& norms, size_t w) const
                << utl::adjustRight(w-11,norm->getName(1,4)) << n(4)
                <<"\nExact relative error (%) : "<< 100.0*n(4)/n(3);
 
-  size_t i = this->getVCPindex();
-  if (i > 0 && n.size() >= i)
+  size_t i, k = 0;
+  while ((i = this->getVCPindex(++k)) && i <= n.size())
     IFEM::cout <<"\nVCP quantity"
-               << utl::adjustRight(w-12,norm->getName(1,5)) << n(i);
+               << utl::adjustRight(w-12,norm->getName(1,i)) << n(i);
 
   size_t j = 0;
   for (const SIMoptions::ProjectionMap::value_type& prj : opt.project)
@@ -1833,9 +1837,9 @@ bool SIMoutput::serialize (std::map<std::string,std::string>&) const
 }
 
 
-bool SIMoutput::writeAddFuncs(int iStep, int& nBlock, int idBlock, double time)
+bool SIMoutput::writeAddFuncs (int iStep, int& nBlock, int idBlock, double time)
 {
-  for (const auto& func : myAddScalars)
+  for (const std::pair<std::string,RealFunc*>& func : myAddScalars)
     if (!this->writeGlvF(*func.second, func.first.c_str(), iStep,
                          nBlock, idBlock++, time))
       return false;

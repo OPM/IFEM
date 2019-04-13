@@ -280,8 +280,8 @@ public:
   bool hasPointResultFile() const;
   //! \brief Checks whether result points have been defined or not.
   bool hasResultPoints() const { return !myPoints.empty(); }
-  //! \brief Returns the norm index for the VCP recovered quantity.
-  size_t getVCPindex() const;
+  //! \brief Returns the norm index for a VCP-recovered quantity.
+  size_t getVCPindex(size_t idx = 1) const;
 
   //! \brief Prints integrated solution norms to the log stream.
   //! \param[in] norms The norm values
@@ -355,7 +355,7 @@ private:
   std::vector<ResPtPair> myPoints; //!< User-defined result sampling points
   int                    myPrec;   //!< Output precision for result sampling
 
-  std::map<std::string,RealFunc*> myAddScalars;  //!< Additional scalar functions to output
+  std::map<std::string,RealFunc*> myAddScalars; //!< Scalar functions to output
 
   int  myGeomID; //!< VTF geometry block ID for the first patch
   VTF* myVtf;    //!< VTF-file for result visualization

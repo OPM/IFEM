@@ -100,7 +100,6 @@ bool SIMbase::readModel (const char* fileName)
 
 void SIMbase::clearProperties ()
 {
-  delete dualField;
   dualField = nullptr;
 
   for (ASMbase* patch : myModel)
@@ -112,6 +111,8 @@ void SIMbase::clearProperties ()
     delete i3.second;
   for (auto& i4 : myTracs)
     delete i4.second;
+  for (FunctionBase* f : extrFunc)
+    delete f;
 
   myPatches.clear();
   myGlb2Loc.clear();
@@ -121,6 +122,7 @@ void SIMbase::clearProperties ()
   myProps.clear();
   myInts.clear();
   mixedMADOFs.clear();
+  extrFunc.clear();
   adm.dd.setElms({},"");
 }
 
@@ -1330,11 +1332,13 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
       return false;
 
     bool ok = true;
-    if (dualField && myProblem->getExtractionField())
-    {
-      Matrix extrField(*myProblem->getExtractionField());
-      ok = pch->L2projection(extrField,dualField);
-    }
+    Vector* extrVec;
+    for (size_t k = 1; k <= extrFunc.size() && ok; k++)
+      if ((extrVec = myProblem->getExtractionField(k)))
+      {
+        Matrix extrField(*extrVec);
+        ok = pch->L2projection(extrField,extrFunc[k-1]);
+      }
 
     size_t nfld = myProblem->getNoFields(2);
     size_t nval = pch->getNoProjectionNodes()*nfld;
