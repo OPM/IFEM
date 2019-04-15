@@ -127,10 +127,10 @@ TEST(TestISTLMatrix, AssembleBasisBlocks)
 
   // now inspect the matrix blocks
   std::vector<ISTL::Mat> mat(5);
-  block.extractBlock(mat[0], A, adm.dd.getBlockEqs(0), adm.dd.getBlockEqs(0), adm.dd.getG2LEQ(0));
-  block.extractBlock(mat[1], A, adm.dd.getBlockEqs(0), adm.dd.getBlockEqs(1), adm.dd.getG2LEQ(1));
-  block.extractBlock(mat[2], A, adm.dd.getBlockEqs(1), adm.dd.getBlockEqs(0), adm.dd.getG2LEQ(0));
-  block.extractBlock(mat[3], A, adm.dd.getBlockEqs(1), adm.dd.getBlockEqs(1), adm.dd.getG2LEQ(1));
+  block.extractBlock(mat[0], A, adm.dd.getBlockEqs(0), adm.dd.getBlockEqs(0), adm.dd.getG2LEQ(1));
+  block.extractBlock(mat[1], A, adm.dd.getBlockEqs(0), adm.dd.getBlockEqs(1), adm.dd.getG2LEQ(2));
+  block.extractBlock(mat[2], A, adm.dd.getBlockEqs(1), adm.dd.getBlockEqs(0), adm.dd.getG2LEQ(1));
+  block.extractBlock(mat[3], A, adm.dd.getBlockEqs(1), adm.dd.getBlockEqs(1), adm.dd.getG2LEQ(2));
   mat[4] = block.getBlock(1); // S = D
 
   for (size_t b = 0; b < mat.size(); ++b) {
@@ -179,10 +179,10 @@ TEST(TestISTLMatrix, AssembleComponentBlocks)
 
   // now inspect the matrix blocks
   std::vector<ISTL::Mat> mat(5);
-  block.extractBlock(mat[0], A, adm.dd.getBlockEqs(0), adm.dd.getBlockEqs(0), adm.dd.getG2LEQ(0));
-  block.extractBlock(mat[1], A, adm.dd.getBlockEqs(0), adm.dd.getBlockEqs(1), adm.dd.getG2LEQ(1));
-  block.extractBlock(mat[2], A, adm.dd.getBlockEqs(1), adm.dd.getBlockEqs(0), adm.dd.getG2LEQ(0));
-  block.extractBlock(mat[3], A, adm.dd.getBlockEqs(1), adm.dd.getBlockEqs(1), adm.dd.getG2LEQ(1));
+  block.extractBlock(mat[0], A, adm.dd.getBlockEqs(0), adm.dd.getBlockEqs(0), adm.dd.getG2LEQ(1));
+  block.extractBlock(mat[1], A, adm.dd.getBlockEqs(0), adm.dd.getBlockEqs(1), adm.dd.getG2LEQ(2));
+  block.extractBlock(mat[2], A, adm.dd.getBlockEqs(1), adm.dd.getBlockEqs(0), adm.dd.getG2LEQ(1));
+  block.extractBlock(mat[3], A, adm.dd.getBlockEqs(1), adm.dd.getBlockEqs(1), adm.dd.getG2LEQ(2));
   mat[4] = block.getBlock(1); // S = D
 
   for (size_t b = 0; b < mat.size(); ++b) {

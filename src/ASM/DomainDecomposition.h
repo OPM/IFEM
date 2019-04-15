@@ -162,8 +162,8 @@ public:
   const std::set<int>& getBlockEqs(size_t idx) const { return blocks[idx+1].localEqs; }
 
   //! \brief Obtain global-to-local equation mapping.
-  //! \param idx Block equation index (global block not included).
-  const std::map<int,int>& getG2LEQ(size_t idx) const { return blocks[idx+1].G2LEQ; }
+  //! \param idx Block equation index
+  const std::map<int,int>& getG2LEQ(size_t idx) const { return blocks[idx].G2LEQ; }
 
   //! \brief Obtain local-to-global node mapping.
   const std::vector<int>& getMLGN() const { return MLGN; }

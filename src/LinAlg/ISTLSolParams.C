@@ -37,7 +37,7 @@ BlockPreconditioner::BlockPreconditioner(const ISTL::Mat& A,
   size_t k = 0;
   for (size_t i = 0; i < dd.getNoBlocks(); ++i)
     for (size_t j = 0; j < dd.getNoBlocks(); ++j)
-      extractBlock(blocks[k++], A, dd.getBlockEqs(i), dd.getBlockEqs(j), dd.getG2LEQ(j));
+      extractBlock(blocks[k++], A, dd.getBlockEqs(i), dd.getBlockEqs(j), dd.getG2LEQ(j+1));
 
   // Scale blocks[1] with inverse diagonal of blocks[0]
   blocks.back() = blocks[1];

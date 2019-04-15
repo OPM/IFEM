@@ -284,13 +284,13 @@ void PETScMatrix::initAssembly (const SAM& sam, bool delayLocking)
 
         for (size_t b = 0; b < blocks && (iblk == -1 || jblk == -1); ++b) {
           std::map<int,int>::const_iterator it;
-          if (iblk == -1 && (it = dd.getG2LEQ(b).find(JA[i]+1)) != dd.getG2LEQ(b).end()) {
+          if (iblk == -1 && (it = dd.getG2LEQ(b+1).find(JA[i]+1)) != dd.getG2LEQ(b+1).end()) {
             iblk = b;
             eq2b[JA[i]][0] = b;
             eq2b[JA[i]][1] = glb2Blk[i][1] = it->second-1;
           }
 
-          if (jblk == -1 && (it = dd.getG2LEQ(b).find(j+1)) != dd.getG2LEQ(b).end()) {
+          if (jblk == -1 && (it = dd.getG2LEQ(b+1).find(j+1)) != dd.getG2LEQ(b+1).end()) {
             jblk = b;
             eq2b[j][0] = b;
             eq2b[j][1] = glb2Blk[i][2] = it->second-1;
