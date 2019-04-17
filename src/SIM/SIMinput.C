@@ -23,6 +23,7 @@
 #include "LinSolParams.h"
 #include "DualField.h"
 #include "Functions.h"
+#include "FunctionSum.h"
 #include "Utilities.h"
 #include "Vec3Oper.h"
 #include "HDF5Reader.h"
@@ -648,22 +649,31 @@ FunctionBase* SIMinput::parseDualTag (const TiXmlElement* elem, int ftype)
   if (nsd == 2)
   {
     if (ftype == 1)
-      dualField = new DualRealFunc(X0,normal,depth,width);
+      extrFunc.push_back(new DualRealFunc(X0,normal,depth,width));
     else
-      dualField = new DualVecFunc(comp,X0,normal,depth,width);
+      extrFunc.push_back(new DualVecFunc(comp,X0,normal,depth,width));
   }
   else if (nsd == 3)
   {
     Vec3 XZp(0.0,0.0,1.0);
     utl::getAttribute(elem,"XZp",XZp);
     if (ftype == 1)
-      dualField = new DualRealFunc(X0,normal,XZp,depth,width);
+      extrFunc.push_back(new DualRealFunc(X0,normal,XZp,depth,width));
     else
-      dualField = new DualVecFunc(comp,X0,normal,XZp,depth,width);
+      extrFunc.push_back(new DualVecFunc(comp,X0,normal,XZp,depth,width));
   }
 
-  extrFunc.push_back(dualField);
-  return dualField;
+  double weight = 0.0;
+  utl::getAttribute(elem,"weight",weight);
+  if (weight != 0.0)
+  {
+    if (dualField)
+      static_cast<FunctionSum*>(dualField)->add(extrFunc.back(),weight);
+    else
+      dualField = new FunctionSum(extrFunc.back(),weight);
+  }
+
+  return extrFunc.back();
 }
 
 

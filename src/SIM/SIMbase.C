@@ -100,6 +100,7 @@ bool SIMbase::readModel (const char* fileName)
 
 void SIMbase::clearProperties ()
 {
+  delete dualField;
   dualField = nullptr;
 
   for (ASMbase* patch : myModel)
