@@ -60,20 +60,34 @@ public:
 GlbL2::GlbL2 (IntegrandBase* p, size_t n) : A(SparseMatrix::SUPERLU)
 {
   problem = p;
-  function = nullptr;
+  nrhs = p->getNoFields(2);
 
   A.redim(n,n);
-  B.redim(n*p->getNoFields(2));
+  B.redim(n*nrhs);
 }
 
 
 GlbL2::GlbL2 (FunctionBase* f, size_t n) : A(SparseMatrix::SUPERLU)
 {
   problem = nullptr;
-  function = f;
+  functions = { f };
+  nrhs = f->dim();
 
   A.redim(n,n);
-  B.redim(n*f->dim());
+  B.redim(n*nrhs);
+}
+
+
+GlbL2::GlbL2 (const FunctionVec& f, size_t n) : A(SparseMatrix::SUPERLU)
+{
+  problem = nullptr;
+  functions = f;
+  nrhs = 0;
+  for (FunctionBase* func : f)
+    nrhs += func->dim();
+
+  A.redim(n,n);
+  B.redim(n*nrhs);
 }
 
 
@@ -136,14 +150,20 @@ bool GlbL2::evalInt (LocalIntegral& elmInt,
   L2Mats& gl2 = static_cast<L2Mats&>(elmInt);
 
   Vector solPt;
+  solPt.reserve(nrhs);
   if (problem)
   {
     if (!problem->evalSol(solPt,fe,X,gl2.mnpc))
       if (!problem->diverged(fe.iGP+1))
         return false;
   }
-  else if (function)
-    solPt = function->getValue(X);
+  else if (functions.size() == 1)
+    solPt = functions.front()->getValue(X);
+  else for (FunctionBase* func : functions)
+  {
+    RealArray funcPt = func->getValue(X);
+    solPt.insert(solPt.end(),funcPt.begin(),funcPt.end());
+  }
 
   return this->formL2Mats(gl2.mnpc,solPt,fe,X);
 }
@@ -154,17 +174,15 @@ bool GlbL2::evalIntMx (LocalIntegral& elmInt,
                        const Vec3& X) const
 
 {
+  if (!problem)
+    return this->evalInt(elmInt,fe,X);
+
   L2Mats& gl2 = static_cast<L2Mats&>(elmInt);
 
   Vector solPt;
-  if (problem)
-  {
-    if (!problem->evalSol(solPt,fe,X,gl2.mnpc,gl2.elem_sizes,gl2.basis_sizes))
-      if (!problem->diverged(fe.iGP+1))
-        return false;
-  }
-  else if (function)
-    solPt = function->getValue(X);
+  if (!problem->evalSol(solPt,fe,X,gl2.mnpc,gl2.elem_sizes,gl2.basis_sizes))
+    if (!problem->diverged(fe.iGP+1))
+      return false;
 
   return this->formL2Mats(gl2.mnpc,solPt,fe,X);
 }
@@ -200,7 +218,7 @@ bool GlbL2::solve (Matrix& sField)
 {
   // Insert a 1.0 value on the diagonal for equations with no contributions.
   // Needed in immersed boundary calculations with "totally outside" elements.
-  size_t i, nnod = A.dim();
+  size_t i, j, nnod = A.dim();
   for (i = 1; i <= nnod; i++)
     if (A(i,i) == 0.0) A(i,i) = 1.0;
 
@@ -213,19 +231,57 @@ bool GlbL2::solve (Matrix& sField)
   if (!A.solve(B)) return false;
 
   // Store the nodal values of the projected field
-  size_t j, ncomp = 0;
-  if (problem)
-    ncomp = problem->getNoFields(2);
-  else if (function)
-    ncomp = function->dim();
-  sField.resize(ncomp,nnod);
+  sField.resize(nrhs,nnod);
   for (i = 1; i <= nnod; i++)
-    for (j = 1; j <= ncomp; j++)
+    for (j = 1; j <= nrhs; j++)
       sField(j,i) = B(i+(j-1)*nnod);
 
 #if SP_DEBUG > 1
   std::cout <<"\nSolution:"<< sField;
 #endif
+  return true;
+}
+
+
+bool GlbL2::solve (const std::vector<Matrix*>& sField)
+{
+  if (sField.size() != functions.size())
+  {
+    std::cerr <<" *** GlbL2::solve: Logic error, size(sField)="<< sField.size()
+              <<" != size(functions)="<< functions.size() << std::endl;
+    return false;
+  }
+
+  // Insert a 1.0 value on the diagonal for equations with no contributions.
+  // Needed in immersed boundary calculations with "totally outside" elements.
+  size_t i, j, nnod = A.dim();
+  for (i = 1; i <= nnod; i++)
+    if (A(i,i) == 0.0) A(i,i) = 1.0;
+
+#if SP_DEBUG > 1
+  std::cout <<"\nGlobal L2-projection matrix:\n"<< A;
+  std::cout <<"\nGlobal L2-projection RHS:"<< B;
+#endif
+
+  // Solve the patch-global equation system
+  if (!A.solve(B)) return false;
+
+  // Store the nodal values of the projected fields
+  size_t offset = 0;
+  for (size_t k = 0; k < sField.size(); k++)
+  {
+    size_t ncomp = functions[k]->dim();
+    sField[k]->resize(ncomp,nnod);
+    for (i = 1; i <= nnod; i++)
+      for (j = 1; j <= ncomp; j++)
+        (*sField[k])(j,i) = B(i+(offset+j-1)*nnod);
+    offset += ncomp;
+
+#if SP_DEBUG > 1
+    std::cout <<"\nSolution "<< k <<":"<< *sField[k];
+#endif
+  }
+
   return true;
 }
 
@@ -245,6 +301,20 @@ bool ASMbase::L2projection (Matrix& sField,
 
 
 bool ASMbase::L2projection (Matrix& sField, FunctionBase* function, double t)
+{
+  PROFILE2("ASMbase::L2projection");
+
+  GlbL2 gl2(function,this->getNoNodes(1));
+  GlobalIntegral dummy;
+  TimeDomain time; time.t = t;
+
+  gl2.preAssemble(MNPC,this->getNoElms(true));
+  return this->integrate(gl2,dummy,time) && gl2.solve(sField);
+}
+
+
+bool ASMbase::L2projection (const std::vector<Matrix*>& sField,
+                            const FunctionVec& function, double t)
 {
   PROFILE2("ASMbase::L2projection");
 

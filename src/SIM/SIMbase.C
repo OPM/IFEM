@@ -455,14 +455,9 @@ bool SIMbase::initSystem (int mType, size_t nMats, size_t nVec, size_t nScl,
 
 #if SP_DEBUG > 2
   mySam->print(std::cout);
-  std::string heading("\n\nNodal coordinates for Patch 1");
-  char& patchNo = heading[heading.size()-1];
   for (ASMbase* pch : myModel)
-  {
     if (!pch->empty())
-      pch->printNodes(std::cout,heading.c_str());
-    ++patchNo;
-  }
+      pch->printNodes(std::cout);
   printNodalConnectivity(myModel,std::cout);
 #endif
 
@@ -1343,13 +1338,21 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
       return false;
 
     bool ok = true;
-    Vector* extrVec;
-    for (size_t k = 1; k <= extrFunc.size() && ok; k++)
-      if ((extrVec = myProblem->getExtractionField(k)))
-      {
-        Matrix extrField(*extrVec);
-        ok = pch->L2projection(extrField,extrFunc[k-1]);
-      }
+    Vector* extrVec = myProblem->getExtractionField();
+    if (extrVec && extrFunc.size() == 1)
+    {
+      Matrix extrField(*extrVec);
+      ok = pch->L2projection(extrField,extrFunc.front());
+    }
+    else if (extrFunc.size() > 1)
+    {
+      std::vector<Matrix*> extrFields;
+      extrFields.reserve(extrFunc.size());
+      for (size_t k = 1; (extrVec = myProblem->getExtractionField(k)); k++)
+        extrFields.push_back(new Matrix(*extrVec));
+      ok = pch->L2projection(extrFields,extrFunc);
+      for (Matrix* m : extrFields) delete m;
+    }
 
     size_t nfld = myProblem->getNoFields(2);
     size_t nval = pch->getNoProjectionNodes()*nfld;

@@ -21,7 +21,8 @@ class IntegrandBase;
 class FunctionBase;
 class LinSolParams;
 
-typedef std::vector<size_t> uIntVec; //!< General unsigned integer vector
+typedef std::vector<size_t>        uIntVec;     //!< Vector of unsigned integers
+typedef std::vector<FunctionBase*> FunctionVec; //!< Vector of functions
 
 
 /*!
@@ -38,10 +39,14 @@ public:
   //! \param[in] p The main problem integrand
   //! \param[in] n Dimension of the L2-projection matrices (number of nodes)
   GlbL2(IntegrandBase* p, size_t n);
-  //! \brief Alternative constructor for projection of explicit functions.
-  //! \param[in] f The function to to L2-projection on
+  //! \brief Alternative constructor for projection of an explicit function.
+  //! \param[in] f The function to do L2-projection on
   //! \param[in] n Dimension of the L2-projection matrices (number of nodes)
   GlbL2(FunctionBase* f, size_t n);
+  //! \brief Alternative constructor for projection of explicit functions.
+  //! \param[in] f The functions to do L2-projection on
+  //! \param[in] n Dimension of the L2-projection matrices (number of nodes)
+  GlbL2(const FunctionVec& f, size_t n);
   //! \brief Empty destructor.
   virtual ~GlbL2() {}
 
@@ -107,8 +112,11 @@ public:
   //! \brief Solves the projection equation system and evaluates nodal values.
   //! \param[out] sField Nodal/control-point values of the projected results.
   bool solve(Matrix& sField);
+  //! \brief Solves the projection equation system and evaluates nodal values.
+  //! \param[out] sField Nodal/control-point values of the projected results.
+  bool solve(const std::vector<Matrix*>& sField);
 
- protected:
+protected:
   //! \brief Integrates the L2-projection matrices.
   //! \param[in] mnpc Matrix of nodal point correspondance
   //! \param[in] solPt Integration point values of the field to project
@@ -119,9 +127,10 @@ public:
 
 private:
   IntegrandBase* problem; //!< The main problem integrand
-  FunctionBase* function; //!< Explicit function to L2-project
+  FunctionVec  functions; //!< Explicit functions to L2-project
   mutable SparseMatrix A; //!< Left-hand-side matrix of the L2-projection
   mutable StdVector    B; //!< Right-hand-side vectors of the L2-projection
+  size_t            nrhs; //!< Number of right-hand-size vectors
 };
 
 #endif

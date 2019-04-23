@@ -171,9 +171,9 @@ void ASMbase::clear (bool retainGeometry)
 }
 
 
-bool ASMbase::addXElms (short int, short int, size_t, std::vector<int>&)
+bool ASMbase::addXElms (short int, short int, size_t, IntVec&)
 {
-  return Aerror("addXElms(short int,short int,size_t,std::vector<int>&)");
+  return Aerror("addXElms(short int,short int,size_t,IntVec&)");
 }
 
 
@@ -372,11 +372,11 @@ void ASMbase::getNoBouPoints (size_t& nPt, char ldim, char lindx)
 }
 
 
-void ASMbase::printNodes (std::ostream& os, const char* heading) const
+void ASMbase::printNodes (std::ostream& os) const
 {
   Matrix X;
   this->getNodalCoordinates(X);
-  if (heading) os << heading;
+  os <<"\n\nNodal coordinates for Patch "<< idx+1;
   for (size_t inod = 1; inod <= X.cols(); inod++)
   {
     os <<'\n'<< inod <<' '<< MLGN[inod-1] <<':';
@@ -867,7 +867,7 @@ bool ASMbase::resolveMPCchain (const MPCSet& allMPCs, MPC* mpc)
 }
 
 
-void ASMbase::setNodeNumbers (const std::vector<int>& nodes)
+void ASMbase::setNodeNumbers (const IntVec& nodes)
 {
   for (size_t i = 0; i < nodes.size() && i < myMLGN.size(); i++)
     myMLGN[i] = 1 + nodes[i]; // Make node numbers 1-based
@@ -1132,7 +1132,7 @@ bool ASMbase::extractNodalVec (const Vector& globRes, Vector& nodeVec,
 
 
 bool ASMbase::injectNodalVec (const Vector& nodeVec, Vector& globVec,
-                              const std::vector<int>& madof, int basis) const
+                              const IntVec& madof, int basis) const
 {
   if (madof.empty())
   {
@@ -1241,7 +1241,7 @@ bool ASMbase::injectNodeVec (const Vector& nodeVec, Vector& globRes,
 
 
 bool ASMbase::getSolution (Matrix& sField, const Vector& locSol,
-			   const IntVec& nodes) const
+                           const IntVec& nodes) const
 {
   sField.resize(nf,nodes.size());
   for (size_t i = 0; i < nodes.size(); i++)

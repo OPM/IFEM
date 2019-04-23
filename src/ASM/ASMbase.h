@@ -254,7 +254,7 @@ public:
   { return std::make_pair(0,-1.0); }
 
   //! \brief Prints out the nodal coordinates of this patch to the given stream.
-  void printNodes(std::ostream& os, const char* heading = nullptr) const;
+  void printNodes(std::ostream& os) const;
 
   //! \brief Sets the global node numbers for this patch.
   void setGlobalNodeNums(const IntVec& nodes) { myMLGN = nodes; }
@@ -426,7 +426,7 @@ public:
   //! \brief Generates element groups for multi-threading of boundary integrals.
   virtual void generateThreadGroups(char, bool, bool) {}
   //! \brief Generate element-groups for multi-threading based on a partition.
-  virtual void generateThreadGroupsFromElms(const std::vector<int>&) {}
+  virtual void generateThreadGroupsFromElms(const IntVec&) {}
 
 
   // Methods for integration of finite element quantities.
@@ -454,7 +454,7 @@ public:
   //! \param glbInt The integrated quantity
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
   virtual bool integrateEdge(Integrand& integrand, int lEdge,
- 			     GlobalIntegral& glbInt,
+			     GlobalIntegral& glbInt,
 			     const TimeDomain& time) { return false; }
 
   //! \brief Evaluates an integral over element interfaces in the patch.
@@ -529,7 +529,7 @@ public:
   //! \param[in] gpar Parameter values of the result sampling points
   //! \param[in] regular Flag indicating how the sampling points are defined
   //! \param[in] deriv Derivative order to return
-  //! \param[in] nf If non-zero mixed evaluates nf fields on first basis
+  //! \param[in] nf If non-zero, mixed evaluates \a nf fields on first basis
   //!
   //! \details When \a regular is \e true, it is assumed that the parameter
   //! value array \a gpar forms a regular tensor-product point grid of dimension
@@ -623,6 +623,14 @@ public:
   //!
   //! \note The implementation of this method is placed in GlbL2projector.C
   bool L2projection(Matrix& fVals, FunctionBase* function, double t = 0.0);
+  //! \brief Projects explicit functions using a continuous global L2-fit.
+  //! \param[out] fVals Control point values of the functions
+  //! \param[in] function The functions to project
+  //! \param[in] t Current time
+  //!
+  //! \note The implementation of this method is placed in GlbL2projector.C
+  bool L2projection(const std::vector<Matrix*>& fVals,
+                    const std::vector<FunctionBase*>& function, double t = 0.0);
 
   //! \brief Returns the number of projection nodes for this patch.
   virtual size_t getNoProjectionNodes() const { return this->getNoNodes(1); }
