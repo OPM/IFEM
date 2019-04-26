@@ -23,14 +23,14 @@
 #include "HDF5Reader.h"
 #include "ProcessAdm.h"
 #include <sstream>
+#else
+class HDF5Reader {};
+class ProcessAdm {};
 #endif
 
 
-FieldFuncBase::FieldFuncBase (const std::string& fName) :
-#ifdef HAS_HDF5
-  hdf5(nullptr), pAdm(nullptr),
-#endif
-  pidx(0)
+FieldFuncBase::FieldFuncBase (const std::string& fName)
+  : hdf5(nullptr), pAdm(nullptr), pidx(0)
 {
   lastLevel = 0;
   lastTime = 0.0;
@@ -47,10 +47,8 @@ FieldFuncBase::FieldFuncBase (const std::string& fName) :
 FieldFuncBase::~FieldFuncBase ()
 {
   for (ASMbase* pch : patch) delete pch;
-#ifdef HAS_HDF5
   delete hdf5;
   delete pAdm;
-#endif
 }
 
 
@@ -183,6 +181,16 @@ FieldFunction::FieldFunction (const std::string& fileName,
 }
 
 
+bool FieldFunction::initPatch (size_t pIdx)
+{
+  if (pIdx >= field.size())
+    return false;
+
+  pidx = pIdx;
+  return true;
+}
+
+
 void FieldFunction::clearField ()
 {
   for (Field* f : field) delete f;
@@ -289,6 +297,16 @@ VecFieldFunction::VecFieldFunction (const std::string& fileName,
 }
 
 
+bool VecFieldFunction::initPatch (size_t pIdx)
+{
+  if (pIdx >= field.size())
+    return false;
+
+  pidx = pIdx;
+  return true;
+}
+
+
 Vec3 VecFieldFunction::evaluate (const Vec3& X) const
 {
   if (pidx >= field.size() || !field[pidx])
@@ -309,6 +327,16 @@ TensorFieldFunction::TensorFieldFunction (const std::string& fileName,
 }
 
 
+bool TensorFieldFunction::initPatch (size_t pIdx)
+{
+  if (pIdx >= field.size())
+    return false;
+
+  pidx = pIdx;
+  return true;
+}
+
+
 Tensor TensorFieldFunction::evaluate (const Vec3& X) const
 {
   if (pidx >= field.size() || !field[pidx])
@@ -326,6 +354,16 @@ STensorFieldFunction::STensorFieldFunction (const std::string& fileName,
 {
   if (!field.empty())
     ncmp = field.front()->getNoFields();
+}
+
+
+bool STensorFieldFunction::initPatch (size_t pIdx)
+{
+  if (pIdx >= field.size())
+    return false;
+
+  pidx = pIdx;
+  return true;
 }
 
 

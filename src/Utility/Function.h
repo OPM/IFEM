@@ -158,7 +158,7 @@ public:
   size_t dim() const { return ncmp; }
 
   //! \brief Sets the active patch.
-  virtual void initPatch(size_t) {}
+  virtual bool initPatch(size_t) { return true; }
 
   //! \brief Checks if a specified point is within the function domain.
   virtual bool inDomain(const Vec3&) const { return true; }

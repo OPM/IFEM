@@ -29,16 +29,20 @@ public:
   //! \param[in] n Cross section normal
   //! \param[in] d Depth of dual function domain
   //! \param[in] w Width of dual function domain (0=infinite)
+  //! \param[in] p 1-based index of the affected patch (0=all)
   DualRealFunc(const Vec3& o, const Vec3& n,
-               double d = 1.0, double w = 0.0);
+               double d = 1.0, double w = 0.0,
+               size_t p = 0);
   //! \brief Constructor for 3D problems.
   //! \param[in] o Origin of local cross section coordinate system
   //! \param[in] n Cross section normal
   //! \param[in] XZp Point in the local XZ-plane
   //! \param[in] d Depth of dual function domain
   //! \param[in] w Width of dual function domain (0=infinite)
+  //! \param[in] p 1-based index of the affected patch (0=all)
   DualRealFunc(const Vec3& o, const Vec3& n, const Vec3& XZp,
-               double d = 1.0, double w = 0.0);
+               double d = 1.0, double w = 0.0,
+               size_t p = 0);
   //! \brief Empty destructor.
   virtual ~DualRealFunc() {}
 
@@ -52,6 +56,8 @@ public:
   double value(const Vec3& X, bool ignoreDomain = false) const;
   //! \brief Checks if the point \b X is within the function domain.
   virtual bool inDomain(const Vec3& X) const;
+  //! \brief Returns \e true if current patch is affected by this function.
+  virtual bool initPatch(size_t idx) { return patch < 1 || idx+1 == patch; }
 
 protected:
   //! \brief Evaluates the dual field function.
@@ -63,6 +69,7 @@ private:
   Vec3 tangent; //!< Vector defining the local y-direction of the cross section
   double depth; //!< Depth of the the dual function domain
   double width; //!< Width of the the dual function domain (0=infinite)
+  size_t patch; //!< One-based index of the affected patch
 };
 
 
@@ -81,8 +88,10 @@ public:
   //! \param[in] n Cross section normal
   //! \param[in] d Depth of dual function domain
   //! \param[in] w Width of dual function domain (0=infinite)
+  //! \param[in] p 1-based index of the affected patch (0=all)
   DualVecFunc(int c, const Vec3& o, const Vec3& n,
-              double d = 1.0, double w = 0.0);
+              double d = 1.0, double w = 0.0,
+              size_t p = 0);
   //! \brief Constructor for 3D problems.
   //! \param[in] c Sectional force component index to do extraction for
   //! \param[in] o Origin of local cross section coordinate system
@@ -90,13 +99,17 @@ public:
   //! \param[in] XZp Point in the local XZ-plane
   //! \param[in] d Depth of dual function domain
   //! \param[in] w Width of dual function domain (0=infinite)
+  //! \param[in] p 1-based index of the affected patch (0=all)
   DualVecFunc(int c, const Vec3& o, const Vec3& n, const Vec3& XZp,
-              double d = 1.0, double w = 0.0);
+              double d = 1.0, double w = 0.0,
+              size_t p = 0);
   //! \brief Empty destructor.
   virtual ~DualVecFunc() {}
 
   //! \brief Checks if the point \b X is within the function domain.
   virtual bool inDomain(const Vec3& X) const { return W.inDomain(X); }
+  //! \brief Returns \e true if current patch is affected by this function.
+  virtual bool initPatch(size_t idx) { return W.initPatch(idx); }
 
 protected:
   //! \brief Evaluates the dual field function.

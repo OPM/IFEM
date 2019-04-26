@@ -820,11 +820,16 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
     if (!this->extractPatchSolution(integrand,prevSol,pidx-1))
       return false;
 
-    if (dualField && myProblem->getExtractionField())
+    if (myProblem->getExtractionField())
     {
-      Matrix extrField(*myProblem->getExtractionField());
-      if (!pch->L2projection(extrField,dualField))
-        return false;
+      if (dualField && dualField->initPatch(pch->idx))
+      {
+        Matrix extrField(*myProblem->getExtractionField());
+        if (!pch->L2projection(extrField,dualField))
+          return false;
+      }
+      else
+        myProblem->getExtractionField()->clear();
     }
 
     if (mySol)
@@ -1341,17 +1346,35 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
     Vector* extrVec = myProblem->getExtractionField();
     if (extrVec && extrFunc.size() == 1)
     {
-      Matrix extrField(*extrVec);
-      ok = pch->L2projection(extrField,extrFunc.front());
+      if (extrFunc.front()->initPatch(pch->idx))
+      {
+        Matrix extrField(*extrVec);
+        ok = pch->L2projection(extrField,extrFunc.front());
+      }
+      else
+        extrVec->clear();
     }
     else if (extrFunc.size() > 1)
     {
-      std::vector<Matrix*> extrFields;
+      std::vector<FunctionBase*> activeFunc;
+      std::vector<Matrix*>       extrFields;
+      activeFunc.reserve(extrFunc.size());
       extrFields.reserve(extrFunc.size());
+
       for (size_t k = 1; (extrVec = myProblem->getExtractionField(k)); k++)
-        extrFields.push_back(new Matrix(*extrVec));
-      ok = pch->L2projection(extrFields,extrFunc);
-      for (Matrix* m : extrFields) delete m;
+        if (extrFunc[k-1]->initPatch(pch->idx))
+        {
+          activeFunc.push_back(extrFunc[k-1]);
+          extrFields.push_back(new Matrix(*extrVec));
+        }
+        else
+          extrVec->clear();
+
+      if (!activeFunc.empty())
+      {
+        ok = pch->L2projection(extrFields,activeFunc);
+        for (Matrix* m : extrFields) delete m;
+      }
     }
 
     size_t nfld = myProblem->getNoFields(2);

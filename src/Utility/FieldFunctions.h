@@ -37,10 +37,10 @@ protected:
   //! \brief The constructor opens the provided HDF5-file.
   //! \param[in] fileName Name of the HDF5-file
   explicit FieldFuncBase(const std::string& fileName);
-  //! \brief The destructor deletes the patches and close the HDF5-file.
-  virtual ~FieldFuncBase();
   //! \brief No copying of this class.
   FieldFuncBase(const FieldFuncBase&) = delete;
+  //! \brief The destructor deletes the patches and closes the HDF5-file.
+  virtual ~FieldFuncBase();
 
   //! \brief Loads field values for the specified time level.
   //! \param[in] fieldNames Name of the field components in the HDF5-file
@@ -62,10 +62,8 @@ protected:
   virtual void clearField() = 0;
 
 private:
-#ifdef HAS_HDF5
   HDF5Reader* hdf5; //!< The HDF5-file containing the field data
   ProcessAdm* pAdm; //!< Process administrator for the HDF5-file reader
-#endif
 
   mutable int    lastLevel; //!< The last time level read from
   mutable double lastTime;  //!< The time of \a lastLevel
@@ -97,7 +95,7 @@ public:
   virtual ~FieldFunction() { this->clearField(); }
 
   //! \brief Sets the active patch.
-  virtual void initPatch(size_t pIdx) { if (pIdx < field.size()) pidx = pIdx; }
+  virtual bool initPatch(size_t pIdx);
 
 protected:
   //! \brief Evaluates the scalar field function.
@@ -180,7 +178,7 @@ public:
   virtual ~VecFieldFunction() {}
 
   //! \brief Sets the active patch.
-  virtual void initPatch(size_t pIdx) { if (pIdx < field.size()) pidx = pIdx; }
+  virtual bool initPatch(size_t pIdx);
 
 protected:
   //! \brief Evaluates the vectorial field function.
@@ -208,7 +206,7 @@ public:
   virtual ~TensorFieldFunction() {}
 
   //! \brief Sets the active patch.
-  virtual void initPatch(size_t pIdx) { if (pIdx < field.size()) pidx = pIdx; }
+  virtual bool initPatch(size_t pIdx);
 
 protected:
   //! \brief Evaluates the tensorial field function.
@@ -236,7 +234,7 @@ public:
   virtual ~STensorFieldFunction() {}
 
   //! \brief Sets the active patch.
-  virtual void initPatch(size_t pIdx) { if (pIdx < field.size()) pidx = pIdx; }
+  virtual bool initPatch(size_t pIdx);
 
 protected:
   //! \brief Evaluates the tensorial field function.

@@ -16,7 +16,7 @@
 
 
 DualRealFunc::DualRealFunc (const Vec3& o, const Vec3& n, const Vec3& XZp,
-                            double d, double w)
+                            double d, double w, size_t p)
 {
   X0 = o;
   normal = n;
@@ -25,10 +25,12 @@ DualRealFunc::DualRealFunc (const Vec3& o, const Vec3& n, const Vec3& XZp,
   tangent.normalize();
   depth = d;
   width = w;
+  patch = p;
 }
 
 
-DualRealFunc::DualRealFunc (const Vec3& o, const Vec3& n, double d, double w)
+DualRealFunc::DualRealFunc (const Vec3& o, const Vec3& n,
+                            double d, double w, size_t p)
 {
   X0 = o;
   normal = n;
@@ -39,6 +41,7 @@ DualRealFunc::DualRealFunc (const Vec3& o, const Vec3& n, double d, double w)
   tangent.z = 0.0;
   depth = d;
   width = w;
+  patch = p;
 }
 
 
@@ -68,14 +71,16 @@ double DualRealFunc::value (const Vec3& X, bool ignoreDomain) const
 
 
 DualVecFunc::DualVecFunc (int c, const Vec3& o, const Vec3& n, const Vec3& XZp,
-                          double d, double w) : VecFunc(3), W(o,n,XZp,d,w)
+                          double d, double w, size_t p)
+  : VecFunc(3), W(o,n,XZp,d,w,p)
 {
   comp = c;
 }
 
 
 DualVecFunc::DualVecFunc (int c, const Vec3& o, const Vec3& n,
-                          double d, double w) : VecFunc(2), W(o,n,d,w)
+                          double d, double w, size_t p)
+  : VecFunc(2), W(o,n,d,w,p)
 {
   comp = c > 2 ? 6 : c;
 }

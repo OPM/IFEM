@@ -46,6 +46,16 @@ bool FunctionSum::inDomain (const Vec3& X) const
 }
 
 
+bool FunctionSum::initPatch (size_t idx)
+{
+  bool affected = false;
+  for (WeightedFunc& cmp : comps)
+    affected |= cmp.first->initPatch(idx);
+
+  return affected;
+}
+
+
 std::vector<double> FunctionSum::getValue (const Vec3& X) const
 {
   utl::vector<double> sum(ncmp);

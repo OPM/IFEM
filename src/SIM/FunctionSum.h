@@ -36,6 +36,8 @@ public:
 
   //! \brief Checks if a specified point is within the function domain.
   virtual bool inDomain(const Vec3& X) const;
+  //! \brief Returns \e true if current patch is affected by this function.
+  virtual bool initPatch(size_t idx);
 
   //! \brief Returns the function value as an array.
   virtual std::vector<double> getValue(const Vec3& X) const;

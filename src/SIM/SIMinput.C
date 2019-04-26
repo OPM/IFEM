@@ -626,9 +626,10 @@ FunctionBase* SIMinput::parseDualTag (const TiXmlElement* elem, int ftype)
 {
   IFEM::cout <<"  Parsing <"<< elem->Value() <<">";
 
-  int comp = 1;
+  int patch = 0, comp = 1;
   double depth = 1.0, width = 0.0;
   Vec3 X0, normal(1.0,0.0,0.0);
+  utl::getAttribute(elem,"patch",patch);
   utl::getAttribute(elem,"comp",comp);
   utl::getAttribute(elem,"X0",X0);
   utl::getAttribute(elem,"normal",normal);
@@ -642,25 +643,30 @@ FunctionBase* SIMinput::parseDualTag (const TiXmlElement* elem, int ftype)
   for (int ref = skip; ref <= isRefined && depth > dmin; ref += skip)
     depth *= 0.5;
 
+  if (patch > 0)
+    IFEM::cout <<"\n\tpatch  = "<< patch;
   IFEM::cout <<"\n\tX0     = "<< X0
              <<"\n\tnormal = "<< normal
-             <<"\n\tdepth  = "<< depth <<", width = "<< width << std::endl;
+             <<"\n\tdepth  = "<< depth <<", width = "<< width;
+  if (ftype > 1)
+    IFEM::cout <<"\n\tcomp   = "<< comp;
+  IFEM::cout << std::endl;
 
   if (nsd == 2)
   {
     if (ftype == 1)
-      extrFunc.push_back(new DualRealFunc(X0,normal,depth,width));
+      extrFunc.push_back(new DualRealFunc(X0,normal,depth,width,patch));
     else
-      extrFunc.push_back(new DualVecFunc(comp,X0,normal,depth,width));
+      extrFunc.push_back(new DualVecFunc(comp,X0,normal,depth,width,patch));
   }
   else if (nsd == 3)
   {
     Vec3 XZp(0.0,0.0,1.0);
     utl::getAttribute(elem,"XZp",XZp);
     if (ftype == 1)
-      extrFunc.push_back(new DualRealFunc(X0,normal,XZp,depth,width));
+      extrFunc.push_back(new DualRealFunc(X0,normal,XZp,depth,width,patch));
     else
-      extrFunc.push_back(new DualVecFunc(comp,X0,normal,XZp,depth,width));
+      extrFunc.push_back(new DualVecFunc(comp,X0,normal,XZp,depth,width,patch));
   }
 
   double weight = 0.0;
