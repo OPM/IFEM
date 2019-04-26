@@ -59,8 +59,18 @@ bool FunctionSum::initPatch (size_t idx)
 std::vector<double> FunctionSum::getValue (const Vec3& X) const
 {
   utl::vector<double> sum(ncmp);
-  for (const WeightedFunc& cmp : comps)
-    sum.add(cmp.first->getValue(X),cmp.second);
+  for (size_t i = 0; i < comps.size(); i++)
+    if (comps[i].second > 0.0)
+      sum.add(comps[i].first->getValue(X),comps[i].second);
+    else if (i == 0)
+      sum = comps[i].first->getValue(X);
+    else
+    {
+      // Find the max value
+      std::vector<double> val = comps[i].first->getValue(X);
+      for (size_t j = 0; j < val.size(); j++)
+        if (val[j] > sum[j]) sum[j] = val[j];
+    }
 
   return sum;
 }

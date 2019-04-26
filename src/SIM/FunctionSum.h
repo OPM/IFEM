@@ -27,11 +27,15 @@ class FunctionSum : public FunctionBase
 
 public:
   //! \brief The constructor specifies the first function to sum.
+  //! \param[in] f Pointer to a function to sum
+  //! \param[in] w Weighting factor. If negative, take max value instead.
   FunctionSum(FunctionBase* f, double w = 1.0);
   //! \brief Empty destructor.
   virtual ~FunctionSum() {}
 
   //! \brief Adds a function to the list of functions to sum.
+  //! \param[in] f Pointer to a function to sum
+  //! \param[in] w Weighting factor. If negative, take max value instead.
   bool add(FunctionBase* f, double w = 1.0);
 
   //! \brief Checks if a specified point is within the function domain.
