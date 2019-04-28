@@ -33,12 +33,13 @@ DualRealFunc::DualRealFunc (const Vec3& o, const Vec3& n,
                             double d, double w, size_t p)
 {
   X0 = o;
-  normal = n;
+  normal.x = n.x;
+  normal.y = n.y;
   normal.z = 0.0;
   normal.normalize();
   tangent.x = -normal.y;
-  tangent.y = -normal.x;
-  tangent.z = 0.0;
+  tangent.y =  normal.x;
+  tangent.z =  0.0;
   depth = d;
   width = w;
   patch = p;
@@ -96,12 +97,12 @@ Vec3 DualVecFunc::evaluate (const Vec3& X) const
   double w = W.value(X,true);
   if (w != 0.0)
     switch (comp) {
-    case 1: return Vec3( w           , 0.0         , 0.0         );
-    case 2: return Vec3( 0.0         , w           , 0.0         );
-    case 3: return Vec3( 0.0         , 0.0         , w           );
-    case 4: return Vec3( 0.0         ,-w*W.ecc(X,3), w*W.ecc(X,2));
-    case 5: return Vec3( w*W.ecc(X,3), 0.0         ,-w*W.ecc(X,1));
-    case 6: return Vec3(-w*W.ecc(X,2), w*W.ecc(X,1), 0.0         );
+    case 1: return  w*W.x();
+    case 2: return  w*W.y();
+    case 3: return  w*W.z();
+    case 4: return -w*W.ecc(X,3)*W.y() + w*W.ecc(X,2)*W.z();
+    case 5: return  w*W.ecc(X,3)*W.x() - w*W.ecc(X,1)*W.z();
+    case 6: return -w*W.ecc(X,2)*W.x() + w*W.ecc(X,1)*W.y();
     }
 
   return Vec3();

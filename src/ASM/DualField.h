@@ -46,6 +46,13 @@ public:
   //! \brief Empty destructor.
   virtual ~DualRealFunc() {}
 
+  //! \brief Returns the local X (normal) direction of the cross section.
+  const Vec3& x() const { return normal; }
+  //! \brief Returns the local Y (tangent) direction of the cross section.
+  const Vec3& y() const { return tangent; }
+  //! \brief Returns the local Z (2nd tangent) direction of the cross section.
+  Vec3 z() const { return Vec3(normal,tangent); }
+
   //! \brief Returns the offset from the cross section origin \ b X0.
   double ecc(const Vec3& X, int i) const { return X(i) - X0(i); }
   //! \brief Returns the function value at the given point.
