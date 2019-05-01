@@ -300,31 +300,32 @@ bool SIMoutput::writeGlvG (int& nBlock, const char* inpFile, bool doClear)
 
   ElementBlock* lvb;
   char pname[32];
-  size_t i;
 
   // Convert and write model geometry
-  for (i = 0; i < myModel.size(); i++)
+  for (const ASMbase* pch : myModel)
   {
-    if (myModel[i]->empty()) continue; // skip empty patches
+    if (pch->empty())
+      continue; // skip empty patches
 
     if (msgLevel > 1)
-      IFEM::cout <<"Writing geometry for patch "<< i+1 << std::endl;
-    size_t nd = myModel[i]->getNoParamDim();
+      IFEM::cout <<"Writing geometry for patch "
+                 << pch->idx+1 << std::endl;
+    size_t nd = pch->getNoParamDim();
     lvb = new ElementBlock(nd == 3 ? 8 : (nd == 2 ? 4 : 2));
-    if (!myModel[i]->tesselate(*lvb,opt.nViz))
+    if (!pch->tesselate(*lvb,opt.nViz))
       return false;
 
-    sprintf(pname,"Patch %ld",myModel[i]->idx+1);
-    if (!myVtf->writeGrid(lvb,pname,++nBlock))
+    sprintf(pname,"Patch %zu",pch->idx+1);
+    if (!myVtf->writeGrid(lvb,pname,pch->idx+1,++nBlock))
       return false;
   }
 
   // Additional geometry for immersed boundaries
-  for (i = 0; i < myModel.size(); i++)
-    if ((lvb = myModel[i]->immersedGeometry()))
+  for (const ASMbase* pch : myModel)
+    if ((lvb = pch->immersedGeometry()))
     {
-      sprintf(pname,"Immersed boundary %zu",i+1);
-      if (!myVtf->writeGrid(lvb,pname,++nBlock))
+      sprintf(pname,"Immersed boundary %zu",pch->idx+1);
+      if (!myVtf->writeGrid(lvb,pname,nGlPatches+pch->idx+1,++nBlock))
         return false;
     }
 

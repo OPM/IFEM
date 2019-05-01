@@ -190,7 +190,7 @@ VTF::~VTF ()
   for (i = 0; i < myBlocks.size(); i++)
   {
     VTFXACasePropertiesBlock partAttr(VT_CT_PART_ATTRIBUTES);
-    partAttr.SetPartID(i+1);
+    partAttr.SetPartID(i+1); // FIXME: not right for adaptive grids
     partAttr.AddBool(VT_PB_PA_MESH, VTFXA_FALSE);
     partAttr.AddBool(VT_PB_PA_DISPLACEMENTS, VTFXA_FALSE);
     singleCase.WritePropertiesBlock(&partAttr);
@@ -245,18 +245,19 @@ const ElementBlock* VTF::getBlock (int geomID) const
 }
 
 
-bool VTF::writeGrid (const ElementBlock* block, const char* partname, int gID)
+bool VTF::writeGrid (const ElementBlock* block, const char* partname,
+                     int partID, int geomID)
 {
   if (!myFile) return true;
   if (!block) return false;
 
-  myBlocks.push_back(std::make_pair(gID,block));
+  myBlocks.push_back(std::make_pair(geomID,block));
 
-  if (!this->writeNodes(gID))
-    return showError("Error writing node block",gID);
+  if (!this->writeNodes(geomID))
+    return showError("Error writing node block",geomID);
 
-  if (!this->writeElements(partname,gID,gID))
-    return showError("Error writing element block",gID);
+  if (!this->writeElements(partname,partID,geomID,geomID))
+    return showError("Error writing element block",geomID);
 
   return true;
 }
@@ -389,7 +390,6 @@ bool VTF::writeEres (const std::vector<Real>& elementResult,
 bool VTF::writeNres (const std::vector<Real>& nodalResult,
                      int idBlock, int geomID)
 {
-#ifdef HAS_VTFAPI
   if (!myFile) return true;
 
   const ElementBlock* grid = this->getBlock(geomID);
@@ -413,13 +413,12 @@ bool VTF::writeNres (const std::vector<Real>& nodalResult,
   dBlock.SetMapToBlockID(myBlocks[geomID-1].first);
   if (VTFA_FAILURE(myFile->WriteBlock(&dBlock)))
     return showError("Error writing result block",idBlock);
-#else
+#elif HAS_VTF_API == 2
   VTFXAResultValuesBlock dBlock(idBlock,VTFXA_DIM_SCALAR,VTFXA_FALSE);
   dBlock.SetMapToBlockID(myBlocks[geomID-1].first,VTFXA_NODES);
   dBlock.SetResultValues1D(resVec.data(),nres);
   if (VTFA_FAILURE(myDatabase->WriteBlock(&dBlock)))
     return showError("Error writing result block",idBlock);
-#endif
 #endif
 
   return true;
@@ -428,7 +427,6 @@ bool VTF::writeNres (const std::vector<Real>& nodalResult,
 
 bool VTF::writeNfunc (const RealFunc& f, Real time, int idBlock, int geomID)
 {
-#ifdef HAS_VTFAPI
   if (!myFile) return true;
 
   const ElementBlock* grid = this->getBlock(geomID);
@@ -451,21 +449,20 @@ bool VTF::writeNfunc (const RealFunc& f, Real time, int idBlock, int geomID)
   dBlock.SetMapToBlockID(myBlocks[geomID-1].first);
   if (VTFA_FAILURE(myFile->WriteBlock(&dBlock)))
     return showError("Error writing result block",idBlock);
-#else
+#elif HAS_VTF_API == 2
   VTFXAResultValuesBlock dBlock(idBlock,VTFXA_DIM_SCALAR,VTFXA_FALSE);
   dBlock.SetMapToBlockID(myBlocks[geomID-1].first,VTFXA_NODES);
   dBlock.SetResultValues1D(resVec.data(),nres);
   if (VTFA_FAILURE(myDatabase->WriteBlock(&dBlock)))
     return showError("Error writing result block",idBlock);
 #endif
-#endif
 
   return true;
 }
 
 
-bool VTF::writeVectors (const std::vector<Vec3Pair>& pntResult, int& gID,
-                        int idBlock, const char* resultName,
+bool VTF::writeVectors (const std::vector<Vec3Pair>& pntResult, int partID,
+                        int& gID, int idBlock, const char* resultName,
                         int iStep, int iBlock)
 {
 #if HAS_VTFAPI == 1
@@ -490,26 +487,26 @@ bool VTF::writeVectors (const std::vector<Vec3Pair>& pntResult, int& gID,
   else
     rBlock.SetMapToBlockID(pointGeoID);
 
-  std::vector<int> mnpc(writePoints ? np : 0, 0);
-  std::vector<Vec3Pair>::const_iterator cit;
-  for (cit = pntResult.begin(); cit != pntResult.end(); ++cit, i++)
-    if (writePoints && VTFA_FAILURE(nBlock.AddNode(vecOffset[0]+cit->first.x,
-                                                   vecOffset[1]+cit->first.y,
-                                                   vecOffset[2]+cit->first.z)))
+  std::vector<int> mnpc;
+  if (writePoints) mnpc.reserve(np);
+  for (const Vec3Pair& pnt : pntResult)
+    if (writePoints && VTFA_FAILURE(nBlock.AddNode(vecOffset[0]+pnt.first.x,
+                                                   vecOffset[1]+pnt.first.y,
+                                                   vecOffset[2]+pnt.first.z)))
       return showError("Error adding node to block",pointGeoID);
-    else if (VTFA_FAILURE(rBlock.AddResult(cit->second.x,
-                                           cit->second.y,
-                                           cit->second.z)))
+    else if (VTFA_FAILURE(rBlock.AddResult(pnt.second.x,
+                                           pnt.second.y,
+                                           pnt.second.z)))
       return showError("Error adding result to block",idBlock);
     else if (writePoints)
-      mnpc[i] = i;
+      mnpc.push_back(i++);
 
   if (writePoints)
   {
     // We must define an element block (with point elements) also,
     // otherwise GLview does not visualize the vectors
     VTFAElementBlock eBlock(pointGeoID,0,0);
-    eBlock.SetPartID(pointGeoID);
+    eBlock.SetPartID(partID);
     eBlock.SetNodeBlockID(pointGeoID);
     if (VTFA_FAILURE(eBlock.AddElements(VTFA_POINTS,mnpc.data(),np)))
       return showError("Error defining element block",pointGeoID);
@@ -530,31 +527,30 @@ bool VTF::writeVectors (const std::vector<Vec3Pair>& pntResult, int& gID,
 }
 
 
-bool VTF::writePoints (const Vec3Vec& points, int& gID)
+bool VTF::writePoints (const Vec3Vec& points, int partID, int& gID)
 {
 #if HAS_VTFAPI == 1
   myBlocks.push_back(std::make_pair(++gID,new ElementBlock()));
 
   VTFANodeBlock nBlock(gID,0);
 
-  size_t i, np = points.size();
+  size_t i = 0, np = points.size();
   if (VTFA_FAILURE(nBlock.SetNumNodes(np)))
     return showError("Error defining node block",gID);
 
-  std::vector<int> mnpc(np,0);
-  Vec3Vec::const_iterator cit;
-  for (cit = points.begin(), i = 0; cit != points.end(); ++cit, i++)
-    if (VTFA_FAILURE(nBlock.AddNode(vecOffset[0]+cit->x,
-                                    vecOffset[1]+cit->y,
-                                    vecOffset[2]+cit->z)))
+  std::vector<int> mnpc; mnpc.reserve(np);
+  for (const Vec3& pnt : points)
+    if (VTFA_FAILURE(nBlock.AddNode(vecOffset[0]+pnt.x,
+                                    vecOffset[1]+pnt.y,
+                                    vecOffset[2]+pnt.z)))
       return showError("Error adding node to block",gID);
     else
-      mnpc[i] = i;
+      mnpc.push_back(i++);
 
   // We must define an element block (with point elements) also,
   // otherwise GLview does not visualize the points
   VTFAElementBlock eBlock(gID,0,0);
-  eBlock.SetPartID(gID);
+  eBlock.SetPartID(partID);
   eBlock.SetNodeBlockID(gID);
   if (VTFA_FAILURE(eBlock.AddElements(VTFA_POINTS,mnpc.data(),np)))
     return showError("Error defining element block",gID);
@@ -823,7 +819,8 @@ bool VTF::writeNodes (int iBlockID)
 }
 
 
-bool VTF::writeElements (const char* partName, int iBlockID, int iNodeBlockID)
+bool VTF::writeElements (const char* partName, int partID,
+                         int iBlockID, int iNodeBlockID)
 {
   bool ok = true;
 
@@ -850,7 +847,7 @@ bool VTF::writeElements (const char* partName, int iBlockID, int iNodeBlockID)
     ok = false;
   }
 
-  eBlock.SetPartID(iBlockID);
+  eBlock.SetPartID(partID);
   eBlock.SetPartName(partName);
   eBlock.SetNodeBlockID(iNodeBlockID);
 

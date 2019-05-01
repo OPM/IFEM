@@ -23,9 +23,7 @@ class Tensor;
 class Vec3;
 
 typedef std::pair<int,const ElementBlock*> GridBlock; //!< Convenience type
-#ifndef _VEC3_H
 typedef std::pair<Vec3,Vec3>               Vec3Pair;  //!< Convenience type
-#endif
 
 class VTFAFile;
 class VTFAStateInfoBlock;
@@ -61,7 +59,7 @@ public:
   //! \brief The constructor opens a new VTF-file.
   //! \param[in] filename Name of the VTF-file
   //! \param[in] type     File type (0 = ASCII, 1 = BINARY)
-  VTF(const char* filename, int type = 0);
+  VTF(const char* filename, int type);
   //! \brief No copying of this class.
   VTF(const VTF&) = delete;
   //! \brief The destructor finalizes and closes the VTF-file.
@@ -70,8 +68,10 @@ public:
   //! \brief Writes the FE geometry to the VTF-file.
   //! \param[in] g The FE grid that all results written are referred to
   //! \param[in] partname Name of the geometry being written
-  //! \param[in] gID Geometry block identifier
-  virtual bool writeGrid(const ElementBlock* g, const char* partname, int gID);
+  //! \param[in] partID Part identifier
+  //! \param[in] geomID Geometry block identifier
+  virtual bool writeGrid(const ElementBlock* g, const char* partname,
+                         int partID, int geomID);
 
   //! \brief Writes a transformation matrix to the VTF-file.
   //! \param[in] X Position part of the transformation
@@ -111,6 +111,7 @@ public:
                   int idBlock = 1, int gID = 1);
   //! \brief Writes a block of point vector results to the VTF-file.
   //! \param[in] pntResult A set of result vectors with associated attack points
+  //! \param[in] partID Part identifier
   //! \param gID Running geometry block identifier
   //! \param[in] idBlock Result block identifier
   //! \param[in] resultName Name of the result quantity
@@ -119,14 +120,16 @@ public:
   //!
   //! \details This method creates a separate geometry block consisting of the
   //! attack points of the result vectors, since they are independent of the
-  //! FE geometry created by the \a writeGrid method.
-  virtual bool writeVectors(const std::vector<Vec3Pair>& pntResult, int& gID,
-                            int idBlock = 1, const char* resultName = nullptr,
+  //! FE geometry created by the writeGrid() method.
+  virtual bool writeVectors(const std::vector<Vec3Pair>& pntResult,
+                            int partID, int& gID, int idBlock = 1,
+                            const char* resultName = nullptr,
                             int iStep = 0, int iBlock = 1);
   //! \brief Writes a block of points (no results) to the VTF-file.
   //! \param[in] points Vector of point coordinates
+  //! \param[in] partID Part identifier
   //! \param gID Running geometry block identifier
-  bool writePoints(const std::vector<Vec3>& points, int& gID);
+  bool writePoints(const std::vector<Vec3>& points, int partID, int& gID);
 
   //! \brief Writes a scalar block definition to the VTF-file.
   //! \param[in] sBlockID The result block that makes up this scalar block
@@ -196,14 +199,16 @@ public:
 private:
   //! \brief Writes a node block to the VTF-file.
   //! \details The coordinates of the last added element block are written.
-  //! \param[in] blockID Node block identifier
-  bool writeNodes(int blockID);
+  //! \param[in] iBlockID Node block identifier
+  bool writeNodes(int iBlockID);
   //! \brief Writes an element block to the VTF-file.
   //! \details The element topology of the last added element block is written.
   //! \param[in] partName Name used to identify the part in GLview
-  //! \param[in] blockID Element block identifier
-  //! \param[in] nodesID Node block which the written element block refers to
-  bool writeElements(const char* partName, int blockID, int nodesID);
+  //! \param[in] partID Part identifier
+  //! \param[in] iBlockID Element block identifier
+  //! \param[in] iNodeBlockID Node block which the element block refers to
+  bool writeElements(const char* partName, int partID,
+                     int iBlockID, int iNodeBlockID);
   //! \brief Prints an error message to \a std::cerr.
   //! \param[in] msg The message to print
   //! \param[in] ID If non-negative, the value is appended to the message
