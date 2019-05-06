@@ -14,7 +14,7 @@
 #ifndef _ASM_U2D_NURBS_H
 #define _ASM_U2D_NURBS_H
 
-#include "ASMu2D.h"
+#include "ASMu2DC1.h"
 
 
 /*!
@@ -22,7 +22,7 @@
   \details This class contains methods common for 2D LR-NURBS patches.
 */
 
-class ASMu2Dnurbs : public ASMu2D
+class ASMu2Dnurbs : public ASMu2DC1
 {
 public:
   //! \brief Default constructor.

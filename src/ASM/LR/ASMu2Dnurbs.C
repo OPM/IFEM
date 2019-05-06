@@ -24,14 +24,14 @@
 
 
 ASMu2Dnurbs::ASMu2Dnurbs (unsigned char n_s, unsigned char n_f)
-  : ASMu2D(n_s, n_f)
+  : ASMu2DC1(n_s, n_f)
 {
   noNurbs = false;
 }
 
 
 ASMu2Dnurbs::ASMu2Dnurbs (const ASMu2Dnurbs& patch, unsigned char n_f)
-  : ASMu2D(patch, n_f)
+  : ASMu2DC1(patch, n_f)
 {
   noNurbs = patch.noNurbs;
 }
@@ -39,7 +39,7 @@ ASMu2Dnurbs::ASMu2Dnurbs (const ASMu2Dnurbs& patch, unsigned char n_f)
 
 bool ASMu2Dnurbs::read (std::istream& is)
 {
-  bool ok = this->ASMu2D::read(is);
+  bool ok = this->ASMu2DC1::read(is);
   if (ok && !(tensorspline && tensorspline->rational()))
     std::cout <<"  ** LR-nurbs requested but input is a spline."<< std::endl;
 
@@ -51,7 +51,7 @@ bool ASMu2Dnurbs::evaluateBasis (int iel, FiniteElement& fe,
                                  int derivs) const
 {
   if (noNurbs)
-    return this->ASMu2D::evaluateBasis(iel,fe,derivs);
+    return this->ASMu2DC1::evaluateBasis(iel,fe,derivs);
 
   const LR::Element* el = lrspline->getElement(iel);
   if (!el) return false;
@@ -158,7 +158,7 @@ void ASMu2Dnurbs::computeBasis (double u, double v,
                                 const LR::LRSplineSurface* spline) const
 {
   if (noNurbs)
-    return this->ASMu2D::computeBasis(u,v,bas,iel,spline);
+    return this->ASMu2DC1::computeBasis(u,v,bas,iel,spline);
 
   PROFILE3("ASMu2Dn::compBasis(0)");
 
@@ -186,7 +186,7 @@ void ASMu2Dnurbs::computeBasis (double u, double v,
                                 const LR::LRSplineSurface* spline) const
 {
   if (noNurbs)
-    return this->ASMu2D::computeBasis(u,v,bas,iel,spline);
+    return this->ASMu2DC1::computeBasis(u,v,bas,iel,spline);
 
   PROFILE3("ASMu2Dn::compBasis(1)");
 
@@ -219,7 +219,7 @@ void ASMu2Dnurbs::computeBasis (double u, double v,
                                 Go::BasisDerivsSf2& bas, int iel) const
 {
   if (noNurbs)
-    return this->ASMu2D::computeBasis(u,v,bas,iel);
+    return this->ASMu2DC1::computeBasis(u,v,bas,iel);
 
   PROFILE3("ASMu2Dn::compBasis(2)");
 
@@ -263,7 +263,7 @@ void ASMu2Dnurbs::computeBasis (double u, double v,
                                 Go::BasisDerivsSf3& bas, int iel) const
 {
   if (noNurbs)
-    return this->ASMu2D::computeBasis(u,v,bas,iel);
+    return this->ASMu2DC1::computeBasis(u,v,bas,iel);
 
   PROFILE3("ASMu2Dn::compBasis(3)");
 
