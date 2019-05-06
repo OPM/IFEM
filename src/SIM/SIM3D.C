@@ -198,6 +198,9 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
     }
   }
 
+  else if (!strcasecmp(elem->Value(),"periodic"))
+    return this->parsePeriodic(elem);
+
   else if (!strcasecmp(elem->Value(),"collapse"))
   {
     if (!this->createFEMmodel()) return false;
@@ -384,7 +387,7 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
       IFEM::cout <<"\nReading data file "<< keyWord+i << std::endl;
     else
     {
-      std::cerr <<" *** SIM3D::read: Failure opening input file "
+      std::cerr <<" *** SIM3D::parse: Failure opening input file "
                 << std::string(keyWord+i) << std::endl;
       return false;
     }

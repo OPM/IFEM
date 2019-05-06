@@ -709,11 +709,13 @@ void ASMs2D::closeBoundaries (int dir, int basis, int master)
     case 1: // Edges are closed in I-direction
       for (int i2 = 1; i2 <= n2; i2++, master += n1)
 	this->makePeriodic(master,master+n1-1);
+      threadGroups.stripDir = ThreadGroups::U;
       break;
 
     case 2: // Edges are closed in J-direction
       for (int i1 = 1; i1 <= n1; i1++, master++)
 	this->makePeriodic(master,master+n1*(n2-1));
+      threadGroups.stripDir = ThreadGroups::V;
       break;
     }
 }

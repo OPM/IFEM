@@ -33,11 +33,9 @@ struct Interface
   std::pair<ASMs2DC1*,int> slave;  //!< Patch and edge index of the slave
   bool reversed;                   //!< Relative orientation toggle
   //! \brief Constructor initializing an Interface instance.
-  Interface(ASMs2DC1* m, int me, ASMs2DC1* s, int se, bool r = false)
-    : master(std::make_pair(m,me)), slave(std::make_pair(s,se))
-  {
-    reversed = r;
-  }
+  Interface(ASMbase* m, int me, ASMbase* s, int se, bool r)
+    : master(std::make_pair(static_cast<ASMs2DC1*>(m),me)),
+      slave(std::make_pair(static_cast<ASMs2DC1*>(s),se)), reversed(r) {}
 };
 
 
@@ -221,8 +219,8 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
       }
 
       if (opt.discretization == ASM::SplineC1)
-        top.push_back(Interface(static_cast<ASMs2DC1*>(this->getPatch(master,true)),mEdge,
-                                static_cast<ASMs2DC1*>(this->getPatch(slave,true)),sEdge,orient));
+        top.push_back(Interface(this->getPatch(master,true),mEdge,
+                                this->getPatch(slave,true),sEdge,orient));
     }
 
     // Second pass for C1-continuous patches, to set up additional constraints
@@ -232,6 +230,9 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
                                         iface.master.second,
                                         iface.reversed)) return false;
   }
+
+  else if (!strcasecmp(elem->Value(),"periodic"))
+    return this->parsePeriodic(elem);
 
   else if (!strcasecmp(elem->Value(),"collapse"))
   {
@@ -553,9 +554,9 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
       ASMs2D* mpch = static_cast<ASMs2D*>(myModel[master-1]);
       if (!spch->connectPatch(sEdge,*mpch,mEdge,rever))
 	return false;
-      else if (opt.discretization == ASM::SplineC1)
-	top.push_back(Interface(static_cast<ASMs2DC1*>(mpch),mEdge,
-				static_cast<ASMs2DC1*>(spch),sEdge,rever));
+
+      if (opt.discretization == ASM::SplineC1)
+        top.push_back(Interface(mpch,mEdge,spch,sEdge,rever));
     }
 
     // Second pass for C1-continuous patches, to set up additional constraints

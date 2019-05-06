@@ -26,9 +26,6 @@
 #include "HDF5Reader.h"
 #include "IFEM.h"
 #include "tinyxml.h"
-#ifdef USE_OPENMP
-#include <omp.h>
-#endif
 #include <fstream>
 #include <sstream>
 #include <numeric>
@@ -122,7 +119,7 @@ bool SIMinput::parseGeometryTag (const TiXmlElement* elem)
       std::ifstream isn(file);
       if (!isn.good())
       {
-        std::cerr <<" *** SIMinput::read: Failure opening input file \""
+        std::cerr <<" *** SIMinput::parse: Failure opening input file \""
                   << file <<"\"."<< std::endl;
         return false;
       }
@@ -258,35 +255,38 @@ bool SIMinput::parseGeometryTag (const TiXmlElement* elem)
     }
   }
 
-  else if (!strcasecmp(elem->Value(),"periodic"))
+  return true;
+}
+
+
+/*!
+  This method can not be part of the SIMinput::parseGeometryTag() method,
+  since the periodicities must be processed after the patches have been
+  order-elevated and/or refined. The method is instead invoked from the
+  dimension-specific sub-classes which handle the refinements.
+*/
+
+bool SIMinput::parsePeriodic (const TiXmlElement* elem)
+{
+  if (strcasecmp(elem->Value(),"periodic") || !this->createFEMmodel())
+    return false;
+
+  int patch = 0, pedir = 1;
+  utl::getAttribute(elem,"patch",patch);
+  utl::getAttribute(elem,"dir",pedir);
+  if (patch < 1 || patch > nGlPatches)
   {
-    if (!this->createFEMmodel())
-      return false;
+    std::cerr <<" *** SIMinput::parse: Invalid patch index "
+              << patch << std::endl;
+    return false;
+  }
 
-    int patch = 0, pedir = 1;
-    utl::getAttribute(elem,"patch",patch);
-    utl::getAttribute(elem,"dir",pedir);
-
-    if (patch < 1 || patch > nGlPatches)
-    {
-      std::cerr <<" *** SIMinput::parse: Invalid patch index "
-                << patch << std::endl;
-      return false;
-    }
-
-    ASMbase* pch = this->getPatch(patch,true);
-    if (pch)
-    {
-      IFEM::cout <<"\tPeriodic "<< char('H'+pedir) <<"-direction P"<< patch
-                 << std::endl;
-      pch->closeBoundaries(pedir);
-#ifdef USE_OPENMP
-      // Cannot do multi-threaded assembly with periodicities
-      // TODO: Actually, we can. Just make sure the stripes are aligned with
-      // the periodic boundaries.
-      omp_set_num_threads(1);
-#endif
-    }
+  ASMbase* pch = this->getPatch(patch,true);
+  if (pch)
+  {
+    IFEM::cout <<"\tPeriodic "<< char('H'+pedir) <<"-direction P"<< patch
+               << std::endl;
+    pch->closeBoundaries(pedir);
   }
 
   return true;
@@ -818,7 +818,7 @@ bool SIMinput::parse (char* keyWord, std::istream& is)
       std::ifstream isn(filename.c_str());
       if (!isn.good())
       {
-        std::cerr <<" *** SIMinput::read: Failure opening input file \""
+        std::cerr <<" *** SIMinput::parse: Failure opening input file \""
                   << filename <<"\"."<< std::endl;
         return false;
       }
@@ -857,7 +857,7 @@ bool SIMinput::parse (char* keyWord, std::istream& is)
     std::ifstream isp(keyWord+i);
     if (!isp)
     {
-      std::cerr <<" *** SIMinput::read: Failure opening input file \""
+      std::cerr <<" *** SIMinput::parse: Failure opening input file \""
                 << std::string(keyWord+i) <<"\"."<< std::endl;
       return false;
     }
@@ -936,12 +936,6 @@ bool SIMinput::parse (char* keyWord, std::istream& is)
                  << std::endl;
       myModel[patch-1]->closeBoundaries(pedir);
     }
-#ifdef USE_OPENMP
-    // Cannot do multi-threaded assembly with periodicities
-    // TODO: Actually, we can. Just make sure the stripes are aligned with
-    // the periodic boundaries.
-    omp_set_num_threads(1);
-#endif
   }
 
   else if (!strncasecmp(keyWord,"LINEARSOLVER",12))

@@ -172,6 +172,9 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
     }
   }
 
+  else if (!strcasecmp(elem->Value(),"periodic"))
+    return this->parsePeriodic(elem);
+
   else if (!strcasecmp(elem->Value(),"projection") && !isRefined)
   {
     bool ok = true;

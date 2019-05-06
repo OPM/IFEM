@@ -160,6 +160,7 @@ void ASMs2DC1::closeBoundaries (int dir, int, int)
 	for (unsigned char d = 1; d <= nf && n1 > 3; d++)
 	  this->add3PC(MLGN[master-1],d,MLGN[master],MLGN[master+n1-3]);
       }
+      threadGroups.stripDir = ThreadGroups::U;
       break;
 
     case 2: // Edges are closed in J-direction
@@ -170,6 +171,7 @@ void ASMs2DC1::closeBoundaries (int dir, int, int)
 	  this->add3PC(MLGN[master-1],d,MLGN[master+n1-1],
 		       MLGN[master+n1*(n2-2)-1]);
       }
+      threadGroups.stripDir = ThreadGroups::V;
       break;
     }
 }

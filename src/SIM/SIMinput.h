@@ -69,7 +69,7 @@ public:
   //! \param is The file stream to read from
   virtual bool parse(char* keyWord, std::istream& is);
 
-  //! \brief Parses a data section from an xml document.
+  //! \brief Parses a data section from an XML document.
   //! \param[in] elem The XML element to parse
   virtual bool parse(const TiXmlElement* elem);
 
@@ -111,6 +111,8 @@ private:
   bool parseLinSolTag(const TiXmlElement* elem);
 
 protected:
+  //! \brief Parses the \a periodic XML-tag.
+  bool parsePeriodic(const TiXmlElement* elem);
   //! \brief Parses a subelement of the \a resultoutput XML-tag.
   virtual bool parseOutputTag(const TiXmlElement* elem);
   //! \brief Parses the "set" attribute of a material XML-tag.
