@@ -43,11 +43,14 @@ public:
   //! \brief Reads model data from the specified input file \a *fileName.
   virtual bool read(const char* fileName);
 
-public:
   //! \brief Parses a data section from an input stream.
   virtual bool parse(char* keyWord, std::istream& is);
-  //! \brief Parses a data section from an xml document.
+  //! \brief Parses a data section from an XML document.
   virtual bool parse(const TiXmlElement* elem);
+
+  //! \brief Loads model data from an XML-formatted text string.
+  //! \details This method is a convenience offered for unit testing only.
+  bool loadXML(const char* xml);
 
   //! \brief Returns the parallel process administrator.
   const ProcessAdm& getProcessAdm() const { return adm; }

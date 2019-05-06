@@ -83,6 +83,15 @@ bool SIMadmin::read (const char* fileName)
 }
 
 
+bool SIMadmin::loadXML (const char* xml)
+{
+  TiXmlDocument doc;
+  doc.Parse(xml,nullptr,TIXML_ENCODING_UTF8);
+  const TiXmlElement* tag = doc.RootElement();
+  return tag ? this->parse(tag) : false;
+}
+
+
 bool SIMadmin::readFlat (const char* fileName)
 {
   std::ifstream is(fileName);

@@ -33,7 +33,7 @@ public:
 
     // Create topological boundary entities (vertices and edges)
     TiXmlDocument doc;
-    doc.Parse("<geometry sets=\"true\"/>",nullptr,TIXML_ENCODING_UTF8);
+    doc.Parse("<geometry sets='true'/>",nullptr,TIXML_ENCODING_UTF8);
     DefaultGeometry2D(doc.RootElement()).createTopologySets(*this);
     EXPECT_EQ(myEntitys.size(),10U);
   }
@@ -46,16 +46,12 @@ class SIM2D_matlab : public SIM2D
 public:
   SIM2D_matlab(const char* inputFile)
   {
-    std::string xml("<geometry><patchfile type=\"matlab\">");
+    std::string xml("<geometry><patchfile type='matlab'>");
     xml.append(inputFile);
     xml.append("</geometry>");
 
     // Read the FE model from the provided Matlab file
-    TiXmlDocument doc;
-    doc.Parse(xml.c_str(),nullptr,TIXML_ENCODING_UTF8);
-    const TiXmlElement* tag = doc.RootElement();
-    EXPECT_TRUE(tag != nullptr);
-    EXPECT_TRUE(this->parse(tag));
+    EXPECT_TRUE(this->loadXML(xml.c_str()));
     EXPECT_TRUE(this->createFEMmodel());
   }
   virtual ~SIM2D_matlab() {}

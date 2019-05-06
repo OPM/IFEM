@@ -12,11 +12,10 @@
 
 #include "SIM2D.h"
 #include "SIM3D.h"
-#include "IntegrandBase.h"
 #include "ASMmxBase.h"
+#include "IntegrandBase.h"
 
 #include "gtest/gtest.h"
-#include "tinyxml.h"
 
 
 template<class Dim> class TestProjectSIM : public Dim
@@ -28,6 +27,7 @@ public:
     EXPECT_TRUE(this->createDefaultModel());
     EXPECT_TRUE(this->preprocess());
   }
+  virtual ~TestProjectSIM() {}
 
   bool addMixedMADOF(unsigned char basis, unsigned char nndof)
   {
@@ -45,7 +45,7 @@ private:
                          const std::vector<int>&) const
     {
       s.resize(1);
-      s(1) = X[0] + X[1] + X[2];
+      s(1) = X.sum();
       return true;
     }
 
@@ -54,20 +54,47 @@ private:
 };
 
 
-class DummyIntegrand : public IntegrandBase {};
-
-
-TEST(TestSIM, UniqueBoundaryNodes)
+TEST(TestSIM2D, UniqueBoundaryNodes)
 {
-  SIM2D sim(new DummyIntegrand(),1);
-  ASSERT_TRUE(sim.read("src/SIM/Test/refdata/boundary_nodes.xinp"));
-  ASSERT_TRUE(sim.preprocess());
+  const char* boundary_nodes = "<geometry>"
+    "<patchfile>src/ASM/Test/refdata/square-4-orient0.g2</patchfile>"
+    "<topology>"
+    "  <connection master='1' medge='4' slave='2' sedge='3'/>"
+    "  <connection master='1' medge='2' slave='3' sedge='1'/>"
+    "  <connection master='2' medge='2' slave='4' sedge='1'/>"
+    "  <connection master='3' medge='4' slave='4' sedge='3'/>"
+    "</topology>"
+    "<topologysets>"
+    "  <set name='dir' type='edge'>"
+    "    <item patch='1'>3</item>"
+    "    <item patch='3'>3</item>"
+    "  </set>"
+    "</topologysets>"
+    "</geometry>";
+
+  SIM2D sim(1);
+  ASSERT_TRUE(sim.loadXML(boundary_nodes));
+  ASSERT_TRUE(sim.createFEMmodel());
 
   std::vector<int> vec;
   sim.getBoundaryNodes(sim.getUniquePropertyCode("dir",0),vec);
 
   std::sort(vec.begin(), vec.end());
   ASSERT_TRUE(std::unique(vec.begin(), vec.end()) == vec.end());
+}
+
+
+TEST(TestSIM2D, Periodic)
+{
+  const char* geometry = "<geometry>"
+    "<patchfile>src/SIM/Test/cylinder-shell.g2</patchfile>"
+    "<refine patch='1' u='3' v='3'/>"
+    "<periodic patch='1' dir='2'/>"
+    "</geometry>";
+
+  SIM2D sim(1);
+  ASSERT_TRUE(sim.loadXML(geometry));
+  ASSERT_TRUE(sim.createFEMmodel());
 }
 
 
@@ -129,7 +156,7 @@ TEST(TestSIM3D, ProjectSolutionMixed)
 }
 
 
-TEST(TestSIM, InjectPatchSolution)
+TEST(TestSIM2D, InjectPatchSolution)
 {
   ASMmxBase::Type = ASMmxBase::REDUCED_CONT_RAISE_BASIS1;
   ASMmxBase::geoBasis = 2;
