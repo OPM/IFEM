@@ -15,9 +15,7 @@
 #define _ADAPTIVE_SIM_H
 
 #include "SIMadmin.h"
-#include "MatVec.h"
-
-class SIMoutput;
+#include "AdaptiveSetup.h"
 
 
 /*!
@@ -26,18 +24,16 @@ class SIMoutput;
   problems adaptively, based on element error norms as refinement indicators.
 */
 
-class AdaptiveSIM : public SIMadmin
+class AdaptiveSIM : public SIMadmin, public AdaptiveSetup
 {
 public:
   //! \brief The constructor initializes default adaptation parameters.
   //! \param sim The FE model
   //! \param[in] sa If \e true, this is a stand-alone driver
-  AdaptiveSIM(SIMoutput& sim, bool sa = true);
+  explicit AdaptiveSIM(SIMoutput& sim, bool sa = true);
   //! \brief Empty destructor.
   virtual ~AdaptiveSIM() {}
 
-  //! \brief Sets the norm group/index of the norm to base mesh adaptation on.
-  void setAdaptationNorm(size_t normGroup, size_t normIdx = 0);
   //! \brief Initializes the \a projs and \a prefix arrays.
   //! \param[in] normGroup Index to the norm group to base mesh adaptation on
   bool initAdaptor(size_t normGroup = 0);
@@ -60,9 +56,6 @@ public:
   //! \param[in] iStep  Refinement step identifier
   bool writeGlv(const char* infile, int iStep);
 
-  //! \brief Prints out the global norms to the log stream.
-  void printNorms(size_t w = 36) const;
-
   //! \brief Accesses the solution of the linear system.
   const Vector& getSolution(size_t idx = 0) const { return solution[idx]; }
   //! \brief Accesses the projections.
@@ -84,37 +77,9 @@ protected:
   //! \brief Assembles and solves the linear FE equation system.
   virtual bool assembleAndSolveSystem();
 
-  //! \brief Dumps current mesh to external file(s) for inspection.
-  //! \param[in] iStep Current refinement step (1=initial grid)
-  bool writeMesh(int iStep) const;
-
 private:
-  SIMoutput& model; //!< The isogeometric FE model
-  bool       alone; //!< If \e false, this class is wrapped by SIMSolver
-
-  bool   linIndepTest; //!< Test mesh for linear independence after refinement
-  double beta;         //!< Refinement percentage in each step
-  double errTol;       //!< Global error stop tolerance
-  double condLimit;    //!< Upper limit on condition number
-  int    maxStep;      //!< Maximum number of adaptive refinements
-  int    maxDOFs;      //!< Maximum number of degrees of freedom
-  int    knot_mult;    //!< Knotline multiplicity
-  int    maxTjoints;   //!< Maximum number of hanging nodes on one element
-  double maxAspRatio;  //!< Maximum element aspect ratio
-  bool   closeGaps;    //!< Split elements with a hanging node on each side
-  double symmEps;      //!< Epsilon used for symmetrized selection method
-
-  //! Threshold flag for how to interpret the refinement percentage, \a beta
-  enum { NONE, MAXIMUM, AVERAGE, MINIMUM, TRUE_BETA, DORFEL, SYMMETRIZED } threshold;
-
-  //! Refinement scheme: 0=fullspan, 1=minspan, 2=isotropic_elements,
-  //! 3=isotropic_functions
-  int scheme;
-
-  size_t  adaptor;  //!< Norm group to base the mesh adaptation on
-  size_t  adNorm;   //!< Which norm to base the mesh adaptation on
-  Vectors gNorm;    //!< Global norms
-  Matrix  eNorm;    //!< Element norms
+  Vectors gNorm; //!< Global norms
+  Matrix  eNorm; //!< Element norms
 
   int geoBlk; //!< Running VTF geometry block counter
   int nBlock; //!< Running VTF result block counter
@@ -122,13 +87,8 @@ private:
   std::vector<Vector>      projs;  //!< Projected secondary solutions
   std::vector<std::string> prefix; //!< Norm prefices for VTF-output
 
-  std::string errPrefix;  //!< Prefix for text-files with refinement indicators
-  std::string meshPrefix; //!< Prefix for output files with refined meshes
-  int         storeMesh;  //!< Flag telling which mesh output we want
-
 protected:
-  Vectors solution; //!< All solutions (galerkin projections)
-  double  rCond;    //!< Actual reciprocal condition number of the last mesh
+  Vectors solution; //!< All solutions (including Galerkin projections)
 };
 
 #endif

@@ -29,15 +29,15 @@ namespace LR //! Utilities for LR-splines.
   /*!
     \brief A struct of data to control the mesh refinement.
     \details The \a options parameters have the following interpretation:
-    options[0] is the beta percentage of elements to refine,
-    options[1] is the knotline multiplicity (default 1),
-    options[2] is the refinement scheme (default 0),
-    (FULLSPAN=0, MINSPAN=1, ISOTROPIC_ELEMENTS=2, ISOTROPIC_FUNCTIONS=3),
-    options[3] is nonzero if testing for linear independence at all iterations,
-    options[4] is the maximum number of T-joints allowed in the model,
-    options[5] is the maximum allowed parametric aspect ratio of an element,
-    options[6] is one if all "gaps" are to be closed,
-    options[7] is one if using "true beta".
+    - options[0] : the beta percentage of elements to refine
+    - options[1] : the knotline multiplicity (default 1)
+    - options[2] : the refinement scheme (default 0),
+                   see AdaptiveSetup::RefScheme
+    - options[3] : nonzero if testing for linear independence at all iterations
+    - options[4] : the maximum number of T-joints allowed in the model
+    - options[5] : the maximum allowed parametric aspect ratio of an element
+    - options[6] : one if all "gaps" are to be closed
+    - options[7] : one if using "true beta"
   */
   struct RefineData
   {
@@ -48,6 +48,8 @@ namespace LR //! Utilities for LR-splines.
 
     //! \brief Default constructor.
     explicit RefineData(bool rs = false) : refShare(rs) {}
+    //! \brief Clears the refinement parameters.
+    void clear() { options.clear(); elements.clear(); errors.clear(); }
   };
 }
 
