@@ -74,6 +74,9 @@ public:
   // Model input and pre-processing methods
   // ======================================
 
+  //! \brief Reads model data from the specified input file \a *fileName.
+  bool readModel(const char* fileName);
+
   //! \brief Creates the computational FEM model from the spline patches.
   //! \param[in] resetNumb If \e 'y', start element and node numbers from zero
   virtual bool createFEMmodel(char resetNumb = 'y') = 0;

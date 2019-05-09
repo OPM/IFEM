@@ -87,6 +87,17 @@ SIMbase::~SIMbase ()
 }
 
 
+/*!
+  Adds profiling to the virtual read() method.
+*/
+
+bool SIMbase::readModel (const char* fileName)
+{
+  PROFILE1("Model input");
+  return this->read(fileName);
+}
+
+
 void SIMbase::clearProperties ()
 {
   for (ASMbase* patch : myModel)
