@@ -175,14 +175,14 @@ public:
   size_t getNoBlocks() const { return blocks.size()-1; }
 
   //! \brief Returns whether a graph based partition is used.
-  bool isPartitioned() const { return partitioned; }
+  bool isPartitioned() const { return !myElms.empty(); }
 
   //! \brief Returns elements in partition.
   const std::vector<int>& getElms() const { return myElms; }
 
   //! \brief Set elements in partition.
   void setElms(const std::vector<int>& elms, const std::string& save)
-  { myElms = elms; partitioned = !elms.empty(); savePart = save;}
+  { myElms = elms; savePart = save; }
 
 private:
   //! \brief Calculates a 1D partitioning with a given overlap.
@@ -281,7 +281,7 @@ private:
   int maxNode = 0; //!< Last node we own
 
   const SAMpatch* sam = nullptr; //!< The assembly handler the DD is constructed for.
-  bool partitioned = false; //!< \e true if graph based decomposition
+
   std::string savePart; //!< \e true to save partitioning to file
 };
 

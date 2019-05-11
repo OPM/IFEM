@@ -1072,7 +1072,7 @@ bool DomainDecomposition::setup(const ProcessAdm& adm, const SIMbase& sim)
 #endif
 #endif
 
-  if (ghostConnections.empty() && adm.getNoProcs() > 1 && myElms.empty())
+  if (ghostConnections.empty() && adm.getNoProcs() > 1)
     if (!this->graphPartition(adm, sim))
       return false;
 
@@ -1109,6 +1109,9 @@ bool DomainDecomposition::setup(const ProcessAdm& adm, const SIMbase& sim)
     ok = 1;
 #endif
   }
+  else // create thread groups from element list
+    for (ASMbase* pch : sim.getFEModel())
+      pch->generateThreadGroupsFromElms(myElms);
 
   // Establish local equation mappings for each block.
   if (sim.getSolParams() && sim.getSolParams()->getNoBlocks() > 1) {
@@ -1225,9 +1228,11 @@ int DomainDecomposition::getPatchOwner(size_t p) const
 
 bool DomainDecomposition::graphPartition(const ProcessAdm& adm, const SIMbase& sim)
 {
-  PROFILE("Mesh partition");
-  myElms.clear();
+  if (!myElms.empty())
+    return true; // Use existing partitioning
+
 #ifdef HAS_ZOLTAN
+  PROFILE1("Mesh partitioning");
   static bool inited = false;
   if (!inited)
   {
@@ -1312,12 +1317,12 @@ bool DomainDecomposition::graphPartition(const ProcessAdm& adm, const SIMbase& s
   Zoltan_Destroy(&zz);
 #else
   std::cerr << "*** DomainDecompositon::graphPartition: Compiled without Zoltan support. No partitioning available." << std::endl;
-  return false;
 #endif
 
-  if (!myElms.empty())
-    IFEM::cout << "Graph partitioning: " << myElms.size() << " elements in partition." << std::endl;
+  if (myElms.empty())
+    return false;
 
-  partitioned = !myElms.empty();
-  return partitioned;
+  IFEM::cout <<"\nGraph partitioning: "<< myElms.size()
+             <<" elements in partition."<< std::endl;
+  return true;
 }
