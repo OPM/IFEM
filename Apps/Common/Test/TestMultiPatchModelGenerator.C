@@ -299,11 +299,11 @@ TEST(TestMultiPatchModelGenerator3D, Subdivisions)
 
 
 struct SubPatchTest {
-  int n; // number of coefs in total model
-  int p; // polynomial order of basis
+  size_t n; // number of coefs in total model
+  size_t p; // polynomial order of basis
   std::vector<double> knots; // knot vector of total model
-  int lknots0; // length of first subknot
-  int lknots1; // length of second subknot
+  size_t lknots0; // length of first subknot
+  size_t lknots1; // length of second subknot
   std::vector<double> coefs; // control net of total model
   std::vector<double> coefs0; // control net of first subdivision
   std::vector<double> coefs1; // control net of second subdivision
@@ -461,14 +461,16 @@ TEST_P(TestGetSubPatch2D, SubPatch)
       GetParam().knots.begin(), GetParam().knots.begin(),
       GetParam().coefs.begin(), GetParam().dim, GetParam().rational);
   size_t numcoefs0 = srf.basis_u().numCoefs()/2 + GetParam().p;
-  Go::SplineSurface srf0 = MultiPatchModelGenerator2D::getSubPatch(&srf,
-      0, numcoefs0, GetParam().p+1,
-      0, numcoefs0, GetParam().p+1);
+  Go::SplineSurface srf0 =
+    MultiPatchModelGenerator2D::getSubPatch(&srf, {{0, 0}},
+                                            {{numcoefs0, numcoefs0}},
+                                            {{GetParam().p+1, GetParam().p+1}});
   size_t numcoefs1 = srf.basis_u().numCoefs() - numcoefs0 + GetParam().p;
   size_t start1 = numcoefs0 - GetParam().p;
-  Go::SplineSurface srf1 = MultiPatchModelGenerator2D::getSubPatch(&srf,
-      start1, numcoefs1, GetParam().p+1,
-      0, numcoefs0, GetParam().p+1);
+  Go::SplineSurface srf1 =
+    MultiPatchModelGenerator2D::getSubPatch(&srf, {{start1, 0}},
+                                            {{numcoefs1, numcoefs0}},
+                                            {{GetParam().p+1, GetParam().p+1}});
 
   // Check first sub-knot-vector
   std::vector<double> arr0(GetParam().knots.begin(), GetParam().knots.begin()+GetParam().lknots0);
@@ -500,12 +502,14 @@ TEST_P(TestGetSubPatch2D, SubPatch)
   double xiA(0.3333), xiB(2), xiC(4.2);
   RealFunc* f = utl::parseRealFunc("(1-y*y)*(3.14159-x)", "expression");
   Go::SplineSurface* fh = SplineUtils::project(&srf, *f);
-  Go::SplineSurface fh0 = MultiPatchModelGenerator2D::getSubPatch(fh,
-      0, numcoefs0, GetParam().p+1,
-      0, numcoefs0, GetParam().p+1);
-  Go::SplineSurface fh1 = MultiPatchModelGenerator2D::getSubPatch(fh,
-      start1, numcoefs1, GetParam().p+1,
-      0, numcoefs0, GetParam().p+1);
+  Go::SplineSurface fh0 =
+    MultiPatchModelGenerator2D::getSubPatch(fh, {{0, 0}},
+                                            {{numcoefs0, numcoefs0}},
+                                            {{GetParam().p+1, GetParam().p+1}});
+  Go::SplineSurface fh1 =
+    MultiPatchModelGenerator2D::getSubPatch(fh, {{start1, 0}},
+                                            {{numcoefs1, numcoefs0}},
+                                            {{GetParam().p+1, GetParam().p+1}});
   Go::Point fA, fB, fC, fA0, fB0, fB1, fC1;
   fh->point(fA, xiA, xiA);
   fh->point(fB, xiB, xiA);
@@ -630,20 +634,23 @@ class TestGetSubPatch3D :
 TEST_P(TestGetSubPatch3D, SubPatch)
 {
   Go::SplineVolume vol(GetParam().n, GetParam().n, GetParam().n,
-      GetParam().p+1, GetParam().p+1, GetParam().p+1,
-      GetParam().knots.begin(), GetParam().knots.begin(), GetParam().knots.begin(),
-      GetParam().coefs.begin(), GetParam().dim, GetParam().rational);
+                       GetParam().p+1, GetParam().p+1, GetParam().p+1,
+                       GetParam().knots.begin(), GetParam().knots.begin(),
+                       GetParam().knots.begin(),
+                       GetParam().coefs.begin(), GetParam().dim, GetParam().rational);
   size_t numcoefs0 = vol.basis(0).numCoefs()/2 + GetParam().p;
-  Go::SplineVolume vol0 = MultiPatchModelGenerator3D::getSubPatch(&vol,
-      0, numcoefs0, GetParam().p+1,
-      0, numcoefs0, GetParam().p+1,
-      0, numcoefs0, GetParam().p+1);
+  Go::SplineVolume vol0 =
+    MultiPatchModelGenerator3D::getSubPatch(&vol, {{0, 0, 0}},
+                                            {{numcoefs0, numcoefs0, numcoefs0}},
+                                            {{GetParam().p+1, GetParam().p+1,
+                                              GetParam().p+1}});
   size_t numcoefs1 = vol.basis(0).numCoefs() - numcoefs0 + GetParam().p;
   size_t start1 = numcoefs0 - GetParam().p;
-  Go::SplineVolume vol1 = MultiPatchModelGenerator3D::getSubPatch(&vol,
-      start1, numcoefs1, GetParam().p+1,
-      0, numcoefs0, GetParam().p+1,
-      0, numcoefs0, GetParam().p+1);
+  Go::SplineVolume vol1 =
+    MultiPatchModelGenerator3D::getSubPatch(&vol, {{start1, 0, 0}},
+                                            {{numcoefs1, numcoefs0, numcoefs0}},
+                                            {{GetParam().p+1, GetParam().p+1,
+                                              GetParam().p+1}});
 
   // Check first sub-knot-vector
   std::vector<double> arr0(GetParam().knots.begin(), GetParam().knots.begin()+GetParam().lknots0);
@@ -676,14 +683,16 @@ TEST_P(TestGetSubPatch3D, SubPatch)
   double xiA(0.3333), xiB(2), xiC(4.2);
   RealFunc* f = utl::parseRealFunc("(1-y*y)*(3.14159-x)*(1-z)", "expression");
   Go::SplineVolume* fh = SplineUtils::project(&vol, *f);
-  Go::SplineVolume fh0 = MultiPatchModelGenerator3D::getSubPatch(fh,
-      0, numcoefs0, GetParam().p+1,
-      0, numcoefs0, GetParam().p+1,
-      0, numcoefs0, GetParam().p+1);
-  Go::SplineVolume fh1 = MultiPatchModelGenerator3D::getSubPatch(fh,
-      start1, numcoefs1, GetParam().p+1,
-      0, numcoefs0, GetParam().p+1,
-      0, numcoefs0, GetParam().p+1);
+  Go::SplineVolume fh0 =
+    MultiPatchModelGenerator3D::getSubPatch(fh, {{0, 0, 0}},
+                                            {{numcoefs0, numcoefs0, numcoefs0}},
+                                            {{GetParam().p+1, GetParam().p+1,
+                                              GetParam().p+1}});
+  Go::SplineVolume fh1 =
+    MultiPatchModelGenerator3D::getSubPatch(fh, {{start1, 0, 0}},
+                                            {{numcoefs1, numcoefs0, numcoefs0}},
+                                            {{GetParam().p+1, GetParam().p+1,
+                                              GetParam().p+1}});
   Go::Point fA, fB, fC, fA0, fB0, fB1, fC1;
   fh->point(fA, xiA, xiA, xiA);
   fh->point(fB, xiB, xiA, xiA);

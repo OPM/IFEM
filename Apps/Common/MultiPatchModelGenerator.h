@@ -47,7 +47,8 @@ public:
   //! \param[in] numcoefsu Number of DOFs (include overlap DOFs)
   //! \param[in] orderu Polynomial order ("p+1")
   static Go::SplineCurve getSubPatch(const Go::SplineCurve* cur,
-      const size_t startu, const size_t numcoefsu, const int orderu);
+                                     const size_t startu,
+                                     const size_t numcoefsu, const int orderu);
 
 protected:
   //! \brief Generates the G2 description of the geometry.
@@ -83,15 +84,13 @@ public:
 
   //! \brief Generates knot vectors for subdivision.
   //! \param[in] srf Bivariate patch to extract subpatch from
-  //! \param[in] startu Index in source u-knot vector
-  //! \param[in] numcoefsu Number of DOFs in u-direction (include overlap DOFs)
-  //! \param[in] orderu Polynomial order in u-direction ("p+1")
-  //! \param[in] startv Index in source v-knot vector
-  //! \param[in] numcoefsv Number of DOFs in v-direction
-  //! \param[in] orderv Polynomial order in v-direction
+  //! \param[in] start Index in source knot vectors
+  //! \param[in] numcoefs Number of DOFs
+  //! \param[in] order Polynomial order
   static Go::SplineSurface getSubPatch(const Go::SplineSurface* srf,
-      const size_t startu, const size_t numcoefsu, const int orderu,
-      const size_t startv, const size_t numcoefsv, const int orderv);
+                                       const std::array<size_t,2>& start,
+                                       const std::array<size_t,2>& numcoefs,
+                                       const std::array<size_t,2>& order);
 
 protected:
   //! \brief Generates the G2 description of the geometry.
@@ -129,19 +128,13 @@ public:
 
   //! \brief Generates knot vectors for subdivision.
   //! \param[in] vol Trivariate patch to extract subpatch from
-  //! \param[in] startu Index in source u-knot vector
-  //! \param[in] numcoefsu Number of DOFs in u-direction (include overlap DOFs)
-  //! \param[in] orderu Polynomial order in u-direction ("p+1")
-  //! \param[in] startv Index in source v-knot vector
-  //! \param[in] numcoefsv Number of DOFs in v-direction
-  //! \param[in] orderv Polynomial order in v-direction
-  //! \param[in] startw Index in source w-knot vector
-  //! \param[in] numcoefsw Number of DOFs in w-direction
-  //! \param[in] orderw Polynomial order in w-direction
+  //! \param[in] start Index in source knot vector in each direction
+  //! \param[in] numcoefs Number of DOFs in each direction (include overlap DOFs)
+  //! \param[in] order Polynomial order in each direction ("p+1")
   static Go::SplineVolume getSubPatch(const Go::SplineVolume* vol,
-      const size_t startu, const size_t numcoefsu, const int orderu,
-      const size_t startv, const size_t numcoefsv, const int orderv,
-      const size_t startw, const size_t numcoefsw, const int orderw);
+                                      const std::array<size_t,3>& start,
+                                      const std::array<size_t,3>& numcoefs,
+                                      const std::array<size_t,3>& order);
 
 protected:
   //! \brief Generates the G2 description of the geometry.

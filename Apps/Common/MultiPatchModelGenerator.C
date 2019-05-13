@@ -134,9 +134,10 @@ bool MultiPatchModelGenerator1D::createGeometry (SIMinput& sim) const
 }
 
 
-Go::SplineCurve MultiPatchModelGenerator1D::getSubPatch(
-        const Go::SplineCurve* cur,
-        const size_t startu, const size_t numcoefsu, const int orderu)
+Go::SplineCurve
+MultiPatchModelGenerator1D::getSubPatch(const Go::SplineCurve* cur,
+                                        const size_t startu,
+                                        const size_t numcoefsu, const int orderu)
 {
   size_t d = cur->dimension() + (cur->rational()?1:0); // #coefs per control point
   bool rat = cur->rational();
@@ -365,8 +366,8 @@ bool MultiPatchModelGenerator2D::createGeometry (SIMinput& sim) const
       size_t i0 = ni*i + (i < nelemsx_rem ? 0 : nelemsx_rem);
       size_t di = ni + px;
 
-      Go::SplineSurface subsrf = getSubPatch(srf, i0, di, px+1,
-                                                  j0, dj, py+1);
+      Go::SplineSurface subsrf = this->getSubPatch(srf, {{i0, j0}}, {{di, dj}},
+                                                   {{px+1, py+1}});
       IFEM::cout << "  Number of knot spans in patch (" << i << ", " << j << "): "
                  << subsrf.numCoefs_u()-subsrf.order_u()+1 << "x"
                  << subsrf.numCoefs_v()-subsrf.order_v()+1 << std::endl;
@@ -378,24 +379,25 @@ bool MultiPatchModelGenerator2D::createGeometry (SIMinput& sim) const
 }
 
 
-Go::SplineSurface MultiPatchModelGenerator2D::getSubPatch(
-        const Go::SplineSurface* srf,
-        const size_t startu, const size_t numcoefsu, const int orderu,
-        const size_t startv, const size_t numcoefsv, const int orderv)
+Go::SplineSurface
+MultiPatchModelGenerator2D::getSubPatch(const Go::SplineSurface* srf,
+                                        const std::array<size_t,2>& start,
+                                        const std::array<size_t,2>& numcoefs,
+                                        const std::array<size_t,2>& order)
 {
   size_t d = srf->dimension() + (srf->rational()?1:0); // #coefs per control point
   bool rat = srf->rational();
   size_t I = srf->numCoefs_u();
-  std::vector<double>::const_iterator i0 = srf->basis_u().begin() + startu;
-  std::vector<double>::const_iterator j0 = srf->basis_v().begin() + startv;
+  std::vector<double>::const_iterator i0 = srf->basis_u().begin() + start[0];
+  std::vector<double>::const_iterator j0 = srf->basis_v().begin() + start[1];
   std::vector<double>::const_iterator k0 = rat ? srf->rcoefs_begin() : srf->coefs_begin();
 
   std::vector<double> subcoefs;
-  for (size_t j=startv; j != startv+numcoefsv; j++)
-    for (size_t i=startu; i != startu+numcoefsu; i++)
-      for (size_t k=0; k!=d; k++)
+  for (size_t j = start[1]; j != start[1] + numcoefs[1]; j++)
+    for (size_t i = start[0]; i != start[0] + numcoefs[0]; i++)
+      for (size_t k = 0;  k != d; k++)
         subcoefs.push_back(*(k0 + k + d*i + d*I*j));
-  return Go::SplineSurface(numcoefsu, numcoefsv, orderu, orderv, i0, j0,
+  return Go::SplineSurface(numcoefs[0], numcoefs[1], order[0], order[1], i0, j0,
                            subcoefs.begin(), srf->dimension(), rat);
 }
 
@@ -689,9 +691,9 @@ bool MultiPatchModelGenerator3D::createGeometry (SIMinput& sim) const
         size_t i0 = ni*i + (i < nelemsx_rem ? 0 : nelemsx_rem);
         size_t di = ni + px;
 
-        Go::SplineVolume subvol = getSubPatch(vol, i0, di, px+1,
-                                                   j0, dj, py+1,
-                                                   k0, dk, pz+1);
+        Go::SplineVolume subvol = getSubPatch(vol, {{i0, j0, k0}},
+                                              {{di, dj, dk}},
+                                              {{px+1, py+1, pz+1}});
         IFEM::cout << "  Number of knot spans in patch (" << i << ", " << j << ", " << k << "): "
                    << subvol.numCoefs(0)-subvol.order(0)+1 << "x"
                    << subvol.numCoefs(1)-subvol.order(1)+1 << "x"
@@ -705,30 +707,30 @@ bool MultiPatchModelGenerator3D::createGeometry (SIMinput& sim) const
 }
 
 
-Go::SplineVolume MultiPatchModelGenerator3D::getSubPatch(
-        const Go::SplineVolume* vol,
-        const size_t startu, const size_t numcoefsu, const int orderu,
-        const size_t startv, const size_t numcoefsv, const int orderv,
-        const size_t startw, const size_t numcoefsw, const int orderw)
+Go::SplineVolume
+MultiPatchModelGenerator3D::getSubPatch(const Go::SplineVolume* vol,
+                                        const std::array<size_t,3>& start,
+                                        const std::array<size_t,3>& numcoefs,
+                                        const std::array<size_t,3>& order)
 {
   bool rat = vol->rational();
   size_t I = vol->numCoefs(0);
   size_t J = vol->numCoefs(1);
   size_t N = vol->dimension() + (rat?1:0); // #coefs per control point
-  std::vector<double>::const_iterator i0 = vol->basis(0).begin() + startu;
-  std::vector<double>::const_iterator j0 = vol->basis(1).begin() + startv;
-  std::vector<double>::const_iterator k0 = vol->basis(2).begin() + startw;
+  std::vector<double>::const_iterator i0 = vol->basis(0).begin() + start[0];
+  std::vector<double>::const_iterator j0 = vol->basis(1).begin() + start[1];
+  std::vector<double>::const_iterator k0 = vol->basis(2).begin() + start[2];
   std::vector<double>::const_iterator n0 = rat ? vol->rcoefs_begin() : vol->coefs_begin();
 
   std::vector<double> subcoefs;
-  for (size_t k=startw; k != startw+numcoefsw; k++)
-    for (size_t j=startv; j != startv+numcoefsv; j++)
-      for (size_t i=startu; i != startu+numcoefsu; i++)
-        for (size_t n=0; n!=N; n++){
-          // std::cout << "idx=" << n + N*i + N*I*j + N*I*J*k << std::endl;
+  for (size_t k = start[2]; k != start[2] + numcoefs[2]; k++)
+    for (size_t j = start[1]; j != start[1] + numcoefs[1]; j++)
+      for (size_t i = start[0]; i != start[0] + numcoefs[0]; i++)
+        for (size_t n=0; n!=N; n++)
           subcoefs.push_back(*(n0 + n + N*i + N*I*j + N*I*J*k));
-        }
-  return Go::SplineVolume(numcoefsu, numcoefsv, numcoefsw, orderu, orderv, orderw,
+
+  return Go::SplineVolume(numcoefs[0], numcoefs[1], numcoefs[2],
+                          order[0], order[1], order[2],
                           i0, j0, k0, subcoefs.begin(), vol->dimension(), rat);
 }
 
