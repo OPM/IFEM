@@ -153,6 +153,8 @@ public:
 
   //! \brief Returns the function value as an array.
   virtual std::vector<Real> getValue(const Vec3&) const = 0;
+  //! \brief Returns a representative scalar equivalent of the function value.
+  virtual Real getScalarValue(const Vec3&) const = 0;
 
   //! \brief Returns the number of components of the return value.
   size_t dim() const { return ncmp; }
@@ -187,6 +189,9 @@ public:
   {
     return std::vector<Real>(1,this->evaluate(X));
   }
+
+  //! \brief Returns a representative scalar equivalent of the function value.
+  virtual Real getScalarValue(const Vec3& X) const { return this->evaluate(X); }
 };
 
 
@@ -211,6 +216,12 @@ public:
   virtual std::vector<Real> getValue(const Vec3& X) const
   {
     return this->evaluate(X).vec(ncmp);
+  }
+
+  //! \brief Returns a representative scalar equivalent of the function value.
+  virtual Real getScalarValue(const Vec3& X) const
+  {
+    return this->evaluate(X).length();
   }
 };
 

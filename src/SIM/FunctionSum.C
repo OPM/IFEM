@@ -74,3 +74,20 @@ std::vector<double> FunctionSum::getValue (const Vec3& X) const
 
   return sum;
 }
+
+
+double FunctionSum::getScalarValue (const Vec3& X) const
+{
+  double sum = 0.0;
+  for (size_t i = 0; i < comps.size(); i++)
+    if (comps[i].second > 0.0)
+      sum += comps[i].first->getScalarValue(X)*comps[i].second;
+    else
+    {
+      // Find the max value
+      double val = comps[i].first->getScalarValue(X);
+      if (i == 0 || val > sum) sum = val;
+    }
+
+  return sum;
+}

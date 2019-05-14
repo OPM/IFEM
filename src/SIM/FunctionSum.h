@@ -45,6 +45,8 @@ public:
 
   //! \brief Returns the function value as an array.
   virtual std::vector<double> getValue(const Vec3& X) const;
+  //! \brief Returns a representative scalar equivalent of the function value.
+  virtual double getScalarValue(const Vec3& X) const;
 
 private:
   std::vector<WeightedFunc> comps; //!< List of weighted functions to sum

@@ -40,6 +40,12 @@ public:
   {
     return this->evaluate(X);
   }
+
+  //! \brief Returns a representative scalar equivalent of the function value.
+  virtual Real getScalarValue(const Vec3& X) const
+  {
+    return this->evaluate(X).trace();
+  }
 };
 
 
@@ -66,6 +72,12 @@ public:
   virtual std::vector<Real> getValue(const Vec3& X) const
   {
     return this->evaluate(X);
+  }
+
+  //! \brief Returns a representative scalar equivalent of the function value.
+  virtual Real getScalarValue(const Vec3& X) const
+  {
+    return this->evaluate(X).trace();
   }
 };
 

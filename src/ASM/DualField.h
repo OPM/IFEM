@@ -118,6 +118,12 @@ public:
   //! \brief Returns \e true if current patch is affected by this function.
   virtual bool initPatch(size_t idx) { return W.initPatch(idx); }
 
+  //! \brief Returns a const reference to the scalar dual field.
+  const RealFunc& getW() const { return W; }
+
+  //! \brief Returns a representative scalar equivalent of the function value.
+  virtual double getScalarValue(const Vec3& X) const { return W.value(X); }
+
 protected:
   //! \brief Evaluates the dual field function.
   //! \param[in] X The spatial point to evaluate the function at
