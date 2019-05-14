@@ -800,7 +800,7 @@ size_t ASMu2D::constrainEdgeLocal (int dir, bool open, int dof, int code,
 }
 
 
-int ASMu2D::getCorner(int I, int J, int basis) const
+int ASMu2D::getCorner (int I, int J, int basis) const
 {
   std::vector<LR::Basisfunction*> edgeFunctions;
 
@@ -967,21 +967,17 @@ size_t ASMu2D::getNoBoundaryElms (char lIndex, char ldim) const
 {
   if (!lrspline)
     return 0;
-  else if (ldim < 1 && lIndex > 0)
-    return 1;
-
-  LR::parameterEdge edge;
-  switch(lIndex)
-  {
-  case 1: edge = LR::WEST;  break;
-  case 2: edge = LR::EAST;  break;
-  case 3: edge = LR::SOUTH; break;
-  case 4: edge = LR::NORTH; break;
-  default:edge = LR::NONE;
-  }
+  else if (ldim < 1)
+    return lIndex > 0 && lIndex < 5 ? 1 : 0;
 
   std::vector<LR::Element*> edgeElms;
-  lrspline->getEdgeElements(edgeElms, edge);
+  switch (lIndex) {
+  case 1: lrspline->getEdgeElements(edgeElms,LR::WEST);  break;
+  case 2: lrspline->getEdgeElements(edgeElms,LR::EAST);  break;
+  case 3: lrspline->getEdgeElements(edgeElms,LR::SOUTH); break;
+  case 4: lrspline->getEdgeElements(edgeElms,LR::NORTH); break;
+  default: return 0;
+  }
 
   return edgeElms.size();
 }
@@ -1429,6 +1425,7 @@ bool ASMu2D::integrate (Integrand& integrand,
       LocalIntegral* A = integrand.getLocalIntegral(MNPC[iel-1].size(),fe.iel);
       if (!integrand.initElement(MNPC[iel-1],fe,X,0,*A))
       {
+        A->destruct();
         ok = false;
         continue;
       }
@@ -1845,6 +1842,8 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
 bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
                            const RealArray* gpar, bool, int deriv, int) const
 {
+  PROFILE2("ASMu2D::evalSol(P)");
+
   size_t nComp = locSol.size() / this->getNoNodes();
   if (nComp*this->getNoNodes() != locSol.size())
     return false;
@@ -1852,8 +1851,6 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
   size_t nPoints = gpar[0].size();
   if (nPoints != gpar[1].size())
     return false;
-
-  PROFILE2("ASMu2D::evalSol(P)");
 
   FiniteElement fe;
   fe.p = lrspline->order(0) - 1;
@@ -1901,7 +1898,7 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
       break;
 
     case 2: // Evaluate second derivatives of the solution
-      this->computeBasis(gpar[0][i],gpar[1][i],spline2,iel);
+      this->computeBasis(fe.u,fe.v,spline2,iel);
       SplineUtils::extractBasis(spline2,ptSol,dNdu,d2Ndu2);
       utl::Jacobian(Jac,dNdX,Xnod,dNdu);
       utl::Hessian(Hess,d2NdX2,Jac,Xnod,d2Ndu2,dNdu);
@@ -2022,12 +2019,12 @@ bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
                            const RealArray* gpar, bool) const
 {
+  PROFILE2("ASMu2D::evalSol(S)");
+
   sField.resize(0,0);
   size_t nPoints = gpar[0].size();
   if (nPoints != gpar[1].size())
     return false;
-
-  PROFILE2("ASMu2D::evalSol(S)");
 
   // TODO: investigate the possibility of doing "regular" refinement by
   //       uniform tesselation grid and ignoring LR mesh lines
@@ -2043,6 +2040,17 @@ bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   Matrix3D d2Ndu2, Hess;
   Matrix4D d3Ndu3;
 
+  if (integrand.getIntegrandType() & Integrand::UPDATED_NODES)
+  {
+    // Calculate updated control point coordinates for the entire patch,
+    // stored as the second primary solution vector in the integrand object
+    // while the first vector being the current total displacement vector
+    this->getNodalCoordinates(Xnod);
+    Vectors& eV = const_cast<IntegrandBase&>(integrand).getSolutions();
+    if (!this->deformedConfig(Xnod,eV,true))
+      return false;
+  }
+
   // Evaluate the secondary solution field at each point
   int lel = -1;
   for (size_t i = 0; i < nPoints; i++, fe.iGP++)
@@ -2057,19 +2065,19 @@ bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     if (use3rdDer)
     {
       Go::BasisDerivsSf3 spline;
-      this->computeBasis(gpar[0][i],gpar[1][i],spline,iel);
+      this->computeBasis(fe.u,fe.v,spline,iel);
       SplineUtils::extractBasis(spline,fe.N,dNdu,d2Ndu2,d3Ndu3);
     }
     else if (use2ndDer)
     {
       Go::BasisDerivsSf2 spline;
-      this->computeBasis(gpar[0][i],gpar[1][i],spline,iel);
+      this->computeBasis(fe.u,fe.v,spline,iel);
       SplineUtils::extractBasis(spline,fe.N,dNdu,d2Ndu2);
     }
     else
     {
       Go::BasisDerivsSf spline;
-      this->computeBasis(gpar[0][i],gpar[1][i],spline,iel);
+      this->computeBasis(fe.u,fe.v,spline,iel);
       SplineUtils::extractBasis(spline,fe.N,dNdu);
     }
 
@@ -2100,8 +2108,7 @@ bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     if (nsd > 2) fe.G = Jac;
 
 #if SP_DEBUG > 4
-    if (1+iel == dbgElm || dbgElm == 0)
-      std::cout <<"\n"<< fe;
+    std::cout <<"\n"<< fe;
 #endif
 
     // Now evaluate the solution field
@@ -2128,7 +2135,7 @@ void ASMu2D::getEdgeNodes (IntVec& nodes, int edge, int basis,
     ofs += this->getNoNodes(i);
 
   std::vector<LR::Basisfunction*> edgeFunctions;
-  srf->getEdgeFunctions(edgeFunctions,static_cast<LR::parameterEdge>(edge));
+  srf->getEdgeFunctions(edgeFunctions, static_cast<LR::parameterEdge>(edge));
   if (orient >= 0) {
     int u = (edge == 1 || edge == 2) ? 1 : 0;
     ASMLRSpline::Sort(u, 1-u, orient, edgeFunctions);
@@ -2450,6 +2457,7 @@ bool ASMu2D::evaluate (const FunctionBase* func, RealArray& vec,
 
 ASMu2D::InterfaceChecker::InterfaceChecker (const ASMu2D& pch) : myPatch(pch)
 {
+  double epsilon = 1.0e-6;
   const LR::LRSplineSurface* lr = myPatch.getBasis(1);
 
   for (LR::Meshline* m : lr->getAllMeshlines()) {
@@ -2465,12 +2473,11 @@ ASMu2D::InterfaceChecker::InterfaceChecker (const ASMu2D& pch) : myPatch(pch)
 
     // find elements where this intersection lives
     RealArray parval_left(2), parval_right(2);
-    double epsilon = 1e-6;
-    for(size_t i=0; i < isectpts.size()-1; i++) {
+    for (size_t i = 0; i < isectpts.size()-1; i++) {
       if (m->is_spanning_u()) {
 #if SP_DEBUG > 2
         std::cout << "Line piece from ("<< isectpts[i] << ", " << m->const_par_ << ") to ("
-             << isectpts[i+1] << ", " << m->const_par_ << ")" << std::endl;
+                  << isectpts[i+1] << ", " << m->const_par_ << ")" << std::endl;
 #endif
         parval_left[0]  = (isectpts[i]+isectpts[i+1])/2.0;
         parval_right[0] = (isectpts[i]+isectpts[i+1])/2.0;
@@ -2648,7 +2655,9 @@ void ASMu2D::computeBasis (double u, double v, Go::BasisDerivsSf3& bas,
 
 void ASMu2D::getElmConnectivities (IntMat& neigh) const
 {
+  const double epsilon = 1.0e-6;
   const LR::LRSplineSurface* lr = this->getBasis(1);
+
   for (LR::Meshline* m : lr->getAllMeshlines()) {
     RealArray isectpts(1,0.0);
     for (LR::Meshline* m2 : lr->getAllMeshlines())
@@ -2662,8 +2671,7 @@ void ASMu2D::getElmConnectivities (IntMat& neigh) const
 
     // find elements where this intersection lives
     RealArray parval_left(2), parval_right(2);
-    double epsilon = 1e-6;
-    for(size_t i=0; i < isectpts.size()-1; i++) {
+    for (size_t i = 0; i < isectpts.size()-1; i++) {
       if (m->is_spanning_u()) {
         parval_left[0]  = (isectpts[i]+isectpts[i+1])/2.0;
         parval_right[0] = (isectpts[i]+isectpts[i+1])/2.0;
@@ -2688,27 +2696,25 @@ void ASMu2D::getElmConnectivities (IntMat& neigh) const
 
 void ASMu2D::getBoundaryElms (int lIndex, int orient, IntVec& elms) const
 {
-  LR::parameterEdge edge;
-  switch(lIndex)
-  {
-  case 1: edge = LR::WEST;  break;
-  case 2: edge = LR::EAST;  break;
-  case 3: edge = LR::SOUTH; break;
-  case 4: edge = LR::NORTH; break;
-  default:edge = LR::NONE;
+  std::vector<LR::Element*> elements;
+  switch (lIndex) {
+  case 1: this->getBasis(1)->getEdgeElements(elements,LR::WEST);  break;
+  case 2: this->getBasis(1)->getEdgeElements(elements,LR::EAST);  break;
+  case 3: this->getBasis(1)->getEdgeElements(elements,LR::SOUTH); break;
+  case 4: this->getBasis(1)->getEdgeElements(elements,LR::NORTH); break;
+  default: return;
   }
 
-  std::vector<LR::Element*> elements;
-  this->getBasis(1)->getEdgeElements(elements, edge);
-  std::sort(elements.begin(), elements.end(),
-            [orient,lIndex](const LR::Element* a, const LR::Element* b)
-            {
-              int idx = lIndex < 3 ? 1 : 0;
-              double am = a->midpoint()[idx];
-              double bm = b->midpoint()[idx];
-              return orient == 1 ? bm < am : am < bm;
-            });
+  // Lambda function for sorting wrt. element centre coordinate
+  auto&& onMidPoint = [orient,lIndex](LR::Element* a, LR::Element* b)
+  {
+    int index = lIndex < 3 ? 1 : 0;
+    double am = a->midpoint()[index];
+    double bm = b->midpoint()[index];
+    return orient == 1 ? bm < am : am < bm;
+  };
 
+  std::sort(elements.begin(),elements.end(),onMidPoint);
   for (const LR::Element* elem : elements)
     elms.push_back(MLGE[elem->getId()]-1);
 }
