@@ -77,21 +77,26 @@ public:
   std::vector<Vec3>::const_iterator begin_XYZ() const { return coord.begin(); }
   //! \brief Returns the end of the coord array.
   std::vector<Vec3>::const_iterator end_XYZ() const { return coord.end(); }
+
   //! \brief Returns the coordinate of a given node.
   const Vec3& getCoord(size_t i) const { return coord[i]; }
-
   //! \brief Returns a pointer to the parameter values of a given node.
-  const Real* getParam(size_t i) const { return params[i].data(); }
+  const Real* getParam(size_t i) const { return param[i].data(); }
 
   //! \brief Returns a pointer to the element connectivity array.
   const int* getElements() const { return MMNPC.data(); }
 
+  //! \brief Returns the coordinates of the center of the given elemment.
+  Vec3 getCenter(size_t i) const;
+
 private:
+  typedef std::array<Real,3> Prm3; //!< Convenience type
+
   std::vector<Vec3> coord; //!< Vector of nodal coordinates
+  std::vector<Prm3> param; //!< Vector of parameter values of the nodal points
   std::vector<int>  MMNPC; //!< Matrix of Matrices of Nodal Point Correspondance
   std::vector<int>  MINEX; //!< Matrix of Internal to External element numbers
   size_t            nen;   //!< Number of Element Nodes
-  std::vector<std::array<Real,3>> params; //!< Parameter values where relevant
 };
 
 #endif

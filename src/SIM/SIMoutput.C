@@ -1115,6 +1115,14 @@ bool SIMoutput::writeGlvM (const Mode& mode, bool freq, int& nBlock)
 }
 
 
+/*!
+  If \a dualPrefix is not null, it is assumed that the \a norms were
+  computed from the dual solution and therefore labelled as such.
+  In addition to the \a norms, also the \a dualField function value is written
+  as a scalar field to the VTF-file in that case, evaluated at the centre of
+  each visualization element since this function is typically discontinuous.
+*/
+
 bool SIMoutput::writeGlvN (const Matrix& norms, int iStep, int& nBlock,
                            const std::vector<std::string>& prefix,
                            int idBlock, const char* dualPrefix)
@@ -1137,63 +1145,73 @@ bool SIMoutput::writeGlvN (const Matrix& norms, int iStep, int& nBlock,
       return norm->hasElementContributions(iGroup,iNorm);
   };
 
+  size_t idxW = 0;
+  size_t nrow = norms.rows();
+  if (dualField && dualPrefix) idxW = ++nrow;
+  std::vector<IntVec> sID(nrow);
   Matrix field;
-  std::vector<IntVec> sID(norms.rows());
 
-  size_t i, j, k, l, m;
+  size_t i, j, k, l;
   int geomID = myGeomID;
-  for (i = 0; i < myModel.size(); i++)
+  for (const ASMbase* pch : myModel)
   {
-    if (myModel[i]->empty()) continue; // skip empty patches
+    if (pch->empty()) continue; // skip empty patches
 
     if (msgLevel > 1)
-      IFEM::cout <<"Writing element norms for patch "<< i+1 << std::endl;
+      IFEM::cout <<"Writing element norms for patch "
+                 << pch->idx+1 << std::endl;
 
     const ElementBlock* grid = myVtf->getBlock(++geomID);
-    myModel[i]->extractElmRes(norms,field);
+    pch->extractElmRes(norms,field);
 
-    if (grid->getNoElms() > field.cols())
+    size_t ncol = grid->getNoElms();
+    if (ncol > field.cols() || nrow > field.rows())
     {
       // Expand the element result array
       Matrix efield(field);
-      field.resize(field.rows(),grid->getNoElms());
-      for (j = 1; j <= field.cols(); j++)
+      field.resize(nrow,ncol);
+      for (j = 1; j <= ncol; j++)
         field.fillColumn(j,efield.getColumn(grid->getElmId(j)));
+      if (idxW && dualField->initPatch(pch->idx))
+        for (j = 1; j <= ncol; j++)
+          field(idxW,j) = dualField->getScalarValue(grid->getCenter(j));
     }
 
-    j = l = 1;
-    for (k = m = 0; m < field.rows(); m++)
+    for (k = 0, i = j = l = 1; i <= nrow; i++, l++)
     {
       if (l > norm->getNoFields(j))
         l = 1, ++j;
 
-      if (writeNorm(j,l++))
-        if (!myVtf->writeEres(field.getRow(1+m),++nBlock,geomID))
+      if (writeNorm(j,l) || i == idxW)
+      {
+        if (!myVtf->writeEres(field.getRow(i),++nBlock,geomID))
           return false;
-        else
-          sID[k++].push_back(nBlock);
+
+        sID[k++].push_back(nBlock);
+      }
     }
   }
 
   std::string normName;
-  j = l = 1;
-  for (k = 0; k < sID.size() && !sID[k].empty(); l++)
+  for (k = 0, i = j = l = 1; k < sID.size() && !sID[k].empty(); i++, l++)
   {
     if (l > norm->getNoFields(j))
       l = 1, ++j;
 
-    if (!writeNorm(j,l))
-      continue;
+    if (writeNorm(j,l) || i == idxW)
+    {
+      if (i == idxW && dualPrefix)
+        normName = std::string(dualPrefix) + " extraction function";
+      else if (j == 1 && dualPrefix)
+        normName = norm->getName(j,l,dualPrefix);
+      else if (j > 1 && j-2 < prefix.size())
+        normName = norm->getName(j,l,prefix[j-2].c_str());
+      else
+        normName = norm->getName(j,l);
 
-    if (j == 1 && dualPrefix)
-      normName = norm->getName(j,l,dualPrefix);
-    else if (j > 1 && j-2 < prefix.size())
-      normName = norm->getName(j,l,prefix[j-2].c_str());
-    else
-      normName = norm->getName(j,l);
-
-    if (!myVtf->writeSblk(sID[k++],normName.c_str(),++idBlock,iStep,true))
-      return false;
+      if (!myVtf->writeSblk(sID[k++],normName.c_str(),++idBlock,iStep,true))
+        return false;
+    }
   }
 
   delete norm;
@@ -1215,15 +1233,15 @@ bool SIMoutput::writeGlvE (const Vector& vec, int iStep, int& nBlock,
   IntVec sID;
 
   int geomID = myGeomID;
-  for (size_t i = 0; i < myModel.size(); i++)
+  for (const ASMbase* pch : myModel)
   {
-    if (myModel[i]->empty()) continue; // skip empty patches
+    if (pch->empty()) continue; // skip empty patches
 
     if (msgLevel > 1)
       IFEM::cout <<"Writing element field "<< name
-                 <<" for patch "<< i+1 << std::endl;
+                 <<" for patch "<< pch->idx+1 << std::endl;
 
-    myModel[i]->extractElmRes(infield,field);
+    pch->extractElmRes(infield,field);
 
     if (!myVtf->writeEres(field.getRow(1),++nBlock,++geomID))
       return false;

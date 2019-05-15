@@ -33,7 +33,7 @@ ElementBlock::ElementBlock (size_t nenod)
 void ElementBlock::resize (size_t nI, size_t nJ, size_t nK)
 {
   coord.resize(nI*nJ*nK);
-  params.resize(nI*nJ*nK);
+  param.resize(nI*nJ*nK);
   if (nen == 2 && nJ < 2 && nK < 2)
     MMNPC.resize(2*(nI-1));
   else if (nen == 3 && nK < 2)
@@ -57,7 +57,7 @@ void ElementBlock::resize (size_t nI, size_t nJ, size_t nK)
 void ElementBlock::unStructResize (size_t nEl, size_t nPts)
 {
   coord.resize(nPts);
-  params.resize(nPts);
+  param.resize(nPts);
   MMNPC.resize(nen*nEl);
   MINEX.resize(MMNPC.size()/nen,0);
   std::iota(MINEX.begin(),MINEX.end(),1);
@@ -84,9 +84,11 @@ bool ElementBlock::setCoor (size_t i, const Vec3& X)
 
 bool ElementBlock::setParams (size_t i, Real u, Real v, Real w)
 {
-  if (i >= params.size()) return false;
+  if (i >= param.size()) return false;
 
-  params[i] = {{u,v,w}};
+  param[i][0] = u;
+  param[i][1] = v;
+  param[i][2] = w;
   return true;
 }
 
@@ -116,21 +118,35 @@ bool ElementBlock::addLine (Real x1, Real y1, Real z1,
 
 void ElementBlock::merge (const ElementBlock* other, std::vector<int>& nodeNums)
 {
-  nodeNums.resize(other->coord.size());
+  nodeNums.clear();
+  nodeNums.reserve(other->coord.size());
 
-  size_t i;
   std::vector<Vec3>::const_iterator cit;
-  for (i = 0; i < nodeNums.size(); i++)
-    if ((cit = find(coord.begin(),coord.end(),other->coord[i])) == coord.end())
+  for (const Vec3& X : other->coord)
+    if ((cit = find(coord.begin(),coord.end(),X)) == coord.end())
     {
-      nodeNums[i] = coord.size();
-      coord.push_back(other->coord[i]);
+      nodeNums.push_back(coord.size());
+      coord.push_back(X);
     }
     else
-      nodeNums[i] = cit - coord.begin();
+      nodeNums.push_back(cit - coord.begin());
 
-  for (i = 0; i < other->MMNPC.size(); i++)
-    MMNPC.push_back(nodeNums[other->MMNPC[i]]);
+  for (int inod : other->MMNPC)
+    MMNPC.push_back(nodeNums[inod]);
 
   MINEX.insert(MINEX.end(),other->MINEX.begin(),other->MINEX.end());
+}
+
+
+Vec3 ElementBlock::getCenter (size_t i) const
+{
+  if (i < 1 || i > MINEX.size())
+    return Vec3();
+
+  Vec3 XC;
+  for (size_t j = 0; j < nen; j++)
+    XC += coord[MMNPC[nen*(i-1)+j]];
+  XC /= nen;
+
+  return XC;
 }
