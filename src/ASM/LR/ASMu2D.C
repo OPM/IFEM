@@ -894,8 +894,46 @@ double ASMu2D::getParametricLength (int iel, int dir) const
   But since these are used as coefficients, and not coordinates at caller sites,
   we do this for simplicity.
 
-  Consider introducing ASMbase::getElementCoefficients() to lessen confusion.
+  Consider introducing ASMbase::getCoefficients() to lessen confusion.
 */
+
+bool ASMu2D::getCoordinates (Matrix& X, int iel) const
+{
+  const LR::Element* elm = iel > 0 ? lrspline->getElement(iel-1) : nullptr;
+  X.resize(nsd, iel > 0 ? elm->nBasisFunctions() : lrspline->nBasisFunctions());
+
+  // Lambda-function inserting coordinates for a given basis function
+  // into the array X, accounting for the weights in case of NURBS
+  auto&& insertCoords = [&X,iel](int n, size_t inod, LR::Basisfunction* b)
+  {
+    X.fillColumn(inod,&(*b->cp()));
+    double weight = b->dim() == n+1 ? b->cp(n) : 1.0;
+    if (weight <= 0.0)
+    {
+      std::cerr <<" *** ASMu2D::getCoordinates: Zero weight for node "<< inod;
+      if (iel > 0) std::cerr <<" in element "<< iel;
+      std::cerr << std::endl;
+      return false;
+    }
+    else if (weight != 1.0)
+      for (int j = 1; j <= n; j++)
+        X(j,inod) /= weight;
+
+    return true;
+  };
+
+  bool status = true;
+  size_t inod = 0;
+  if (iel > 0)
+    for (LR::Basisfunction* b : elm->support())
+      status &= insertCoords(nsd,++inod,b);
+  else
+    for (LR::Basisfunction* b : lrspline->getAllBasisfunctions())
+      status &= insertCoords(nsd,++inod,b);
+
+  return status;
+}
+
 
 bool ASMu2D::getElementCoordinates (Matrix& X, int iel) const
 {
@@ -907,40 +945,11 @@ bool ASMu2D::getElementCoordinates (Matrix& X, int iel) const
     return false;
   }
 #endif
-
-  const LR::Element* el = lrspline->getElement(iel-1);
-  X.resize(nsd,el->nBasisFunctions());
-
-  int n = 0;
-  for (LR::Basisfunction* b : el->support())
-  {
-    X.fillColumn(++n,&(*b->cp()));
-    double weight = b->dim() == nsd+1 ? b->cp(nsd) : 1.0;
-    if (weight <= 0.0)
-    {
-      std::cerr <<" *** ASMu2D::getElementCoordinates: Zero weight for node "
-                << n <<" in element "<< iel << std::endl;
-      return false;
-    }
-    else if (weight != 1.0)
-      for (int j = 1; j <= nsd; j++)
-        X(j,n) /= weight;
-  }
-
+  bool status = this->getCoordinates(X,iel);
 #if SP_DEBUG > 2
   std::cout <<"\nCoordinates for element "<< iel << X << std::endl;
 #endif
-  return true;
-}
-
-
-void ASMu2D::getNodalCoordinates (Matrix& X) const
-{
-  X.resize(nsd,lrspline->nBasisFunctions());
-
-  size_t inod = 1;
-  for (LR::Basisfunction* b : lrspline->getAllBasisfunctions())
-    X.fillColumn(inod++,&(*b->cp()));
+  return status;
 }
 
 
@@ -2457,7 +2466,7 @@ bool ASMu2D::evaluate (const FunctionBase* func, RealArray& vec,
 
 ASMu2D::InterfaceChecker::InterfaceChecker (const ASMu2D& pch) : myPatch(pch)
 {
-  double epsilon = 1.0e-6;
+  const double epsilon = 1.0e-6;
   const LR::LRSplineSurface* lr = myPatch.getBasis(1);
 
   for (LR::Meshline* m : lr->getAllMeshlines()) {

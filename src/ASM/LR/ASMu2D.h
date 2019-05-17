@@ -123,7 +123,7 @@ public:
   //! \brief Returns a matrix with all nodal coordinates within the patch.
   //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
   //! in the patch
-  virtual void getNodalCoordinates(Matrix& X) const;
+  virtual void getNodalCoordinates(Matrix& X) const { this->getCoordinates(X); }
 
   //! \brief Returns the global coordinates for the given node.
   //! \param[in] inod 1-based node index local to current patch
@@ -618,6 +618,11 @@ protected:
 
   //! \brief Generate bezier extraction operators.
   void generateBezierExtraction();
+
+  //! \brief Returns a matrix with control point coordinates.
+  //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of points
+  //! \param[in] iel 1-based element index, if -1 return for all control points
+  bool getCoordinates(Matrix& X, int iel = -1) const;
 
 public:
   //! \brief Returns the number of elements on a boundary.
