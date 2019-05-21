@@ -402,47 +402,40 @@ bool SIMinput::parseBCTag (const TiXmlElement* elem)
     int ndir = 0, order = 1;
     utl::getAttribute(elem,"direction",ndir);
     utl::getAttribute(elem,"order",order);
-    size_t ip = myProps.size();
 
+    size_t i = myProps.size();
     int code = this->getUniquePropertyCode(set);
     if (code == 0) utl::getAttribute(elem,"code",code);
-
-    if (order > 1) // Flag Neumann order by increasing the topology index by 10
-      while (ip < myProps.size())
-        myProps[ip++].lindx += 10*(order-1);
-
     IFEM::cout <<"\tNeumann code "<< code;
+
     if (order > 1)
-      IFEM::cout <<" order "<< order;
-    if (type == "anasol")
-      IFEM::cout <<" (analytic)";
-    else
     {
-      if (type != "generic" || (nval && ndir > 0))
-        IFEM::cout <<" direction "<< ndir;
-      if (!type.empty())
-        IFEM::cout <<" ("<< type <<")";
+      IFEM::cout <<" order "<< order;
+      // Flag Neumann order by increasing the topology index by 10
+      for (; i < myProps.size(); i++)
+        myProps[i].lindx += 10*(order-1);
     }
 
     if (type == "anasol")
+    {
+      IFEM::cout <<" (analytic)";
       this->setPropertyType(code,Property::NEUMANN_ANASOL);
+    }
     else if (type == "generic")
     {
-      if (nval)
-      {
-        this->setPropertyType(code,Property::ROBIN);
-        this->setNeumann(nval->Value(),"expression",ndir,code);
-      }
-      else
-        this->setPropertyType(code,Property::NEUMANN_GENERIC);
+      IFEM::cout <<" (generic)";
+      this->setPropertyType(code,Property::NEUMANN_GENERIC);
+    }
+    else if (nval)
+    {
+      IFEM::cout <<" direction "<< ndir;
+      if (!type.empty())
+        IFEM::cout <<" ("<< type <<")";
+      this->setNeumann(nval->Value(),type,ndir,code);
     }
     else
-    {
-      if (nval)
-        this->setNeumann(nval->Value(),type,ndir,code);
-      else
-        this->setNeumann("0.0",type,ndir,code);
-    }
+      this->setNeumann(std::string(),type,ndir,code);
+
     IFEM::cout << std::endl;
   }
 
@@ -515,6 +508,25 @@ bool SIMinput::parseBCTag (const TiXmlElement* elem)
       IFEM::cout <<"\n\tDirichlet code "<< code <<": (fixed)";
       this->setPropertyType(code,Property::DIRICHLET,comp,basis);
     }
+    IFEM::cout << std::endl;
+  }
+
+  else if (!strcasecmp(elem->Value(),"robin"))
+  {
+    std::string set, type, prop;
+    utl::getAttribute(elem,"set",set);
+    utl::getAttribute(elem,"type",type,true);
+    const TiXmlNode* nval = elem->FirstChild();
+    if (nval) prop = nval->Value();
+
+    int code = this->getUniquePropertyCode(set);
+    if (code == 0) utl::getAttribute(elem,"code",code);
+
+    IFEM::cout <<"\tRobin code "<< code;
+    if (!type.empty())
+      IFEM::cout <<" ("<< type <<")";
+    this->setPropertyType(code,Property::ROBIN);
+    this->setNeumann(prop,type,1-this->getNoFields(),code);
     IFEM::cout << std::endl;
   }
 
