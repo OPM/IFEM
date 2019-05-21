@@ -348,7 +348,7 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A)
     quadratic = 3;
 
   Real C = A;
-  const RealFunc* f = 0;
+  const RealFunc* f = nullptr;
   if (linear > 0 && (cline = strtok(nullptr," ")))
   {
     C = Real(1);
@@ -568,10 +568,11 @@ ScalarFunc* utl::parseTimeFunc (const char* func, const std::string& type,
 
 RealFunc* utl::parseRealFunc (const std::string& func, const std::string& type)
 {
-  if (func.empty()) return nullptr;
+  Real p = Real(0);
+  if (func.empty())
+    return new ConstFunc(p);
 
   IFEM::cout <<": ";
-  Real p = Real(0);
   if (type == "expression")
   {
     IFEM::cout << func;
@@ -607,7 +608,8 @@ RealFunc* utl::parseRealFunc (const std::string& func, const std::string& type)
 VecFunc* utl::parseVecFunc (const std::string& func, const std::string& type,
                             const std::string& variables)
 {
-  if (func.empty()) return nullptr;
+  if (func.empty())
+    return new ConstVecFunc(Vec3());
 
   if (type == "expression")
   {
@@ -639,11 +641,12 @@ VecFunc* utl::parseVecFunc (const std::string& func, const std::string& type,
 TractionFunc* utl::parseTracFunc (const std::string& func,
                                   const std::string& type, int dir)
 {
-  if (func.empty()) return nullptr;
+  Real p = Real(0);
+  if (func.empty())
+    return new PressureField(p,dir);
 
   IFEM::cout <<": ";
-  Real p = Real(0);
-  const RealFunc* f = 0;
+  const RealFunc* f = nullptr;
   if (type == "expression")
   {
     IFEM::cout << func;
