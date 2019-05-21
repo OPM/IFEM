@@ -13,6 +13,7 @@
 
 #include "HDF5Reader.h"
 
+#include <array>
 #include <iostream>
 #include <sstream>
 
@@ -26,7 +27,8 @@
 
 
 HDF5Reader::HDF5Reader (const std::string& name, const ProcessAdm& adm)
-  : HDF5Base((name.find(".hdf5") == std::string::npos ? name+".hdf5": name), adm)
+  : HDF5Base(((name.find(".hdf5") == std::string::npos &&
+               name.find(".h5") == std::string::npos) ? name+".hdf5": name), adm)
 {
 }
 
@@ -112,6 +114,45 @@ bool HDF5Reader::readString (const std::string& name, std::string& out)
   out.resize(siz);
   H5Dread(set,H5T_NATIVE_CHAR,H5S_ALL,H5S_ALL,H5P_DEFAULT,&out[0]);
   H5Dclose(set);
+  return true;
+#else
+  std::cerr << "HDF5Reader: compiled without HDF5 support, no data read" << std::endl;
+  return false;
+#endif
+}
+
+
+bool HDF5Reader::read3DArray (const std::string& name, Matrix3D& out)
+{
+#ifdef HAS_HDF5
+  if (!this->openFile(H5F_ACC_RDONLY))
+    return false;
+
+  hid_t set = H5Dopen2(m_file,name.c_str(),H5P_DEFAULT);
+  hid_t space = H5Dget_space(set);
+  hsize_t dims = H5Sget_simple_extent_ndims(space);
+
+  if (dims != 3) {
+    std::cerr << "HDF5Reader: Wrong dimension for field " << name << std::endl;
+    return false;
+  }
+
+  std::array<hsize_t, 3> ndim;
+
+  H5Sget_simple_extent_dims(space, ndim.data(), nullptr);
+
+  out.resize(ndim[0],ndim[1],ndim[2]);
+
+  std::vector<double> test(ndim[0]*ndim[1]*ndim[2]);
+  H5Dread(set,H5T_NATIVE_DOUBLE,H5S_ALL,H5S_ALL,H5P_DEFAULT,test.data());
+  H5Dclose(set);
+
+  auto it = test.begin();
+  for (hsize_t i = 0; i < ndim[0]; ++i)
+    for (hsize_t j = 0; j < ndim[1]; ++j)
+      for (hsize_t k = 0; k < ndim[2]; ++k, ++it)
+        out(i+1, j+1, k+1) = *it;
+
   return true;
 #else
   std::cerr << "HDF5Reader: compiled without HDF5 support, no data read" << std::endl;
