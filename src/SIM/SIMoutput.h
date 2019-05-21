@@ -314,6 +314,9 @@ private:
                          int& nBlock, std::vector< std::vector<int> >& sID,
                          size_t* i = nullptr);
 
+  //! \brief Private helper to write additional functions to VTF-file.
+  bool writeAddFuncs(int iStep, int& nBlock, int idBlock, double time);
+
   //! \brief Struct defining a result sampling point.
   struct ResultPoint
   {
@@ -349,6 +352,8 @@ private:
 
   std::vector<ResPtPair> myPoints; //!< User-defined result sampling points
   int                    myPrec;   //!< Output precision for result sampling
+
+  std::map<std::string,RealFunc*> myAddScalars;  //!< Additional scalar functions to output
 
   int  myGeomID; //!< VTF geometry block ID for the first patch
   VTF* myVtf;    //!< VTF-file for result visualization

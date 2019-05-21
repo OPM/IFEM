@@ -21,6 +21,7 @@
 #include "Vec3Oper.h"
 #include "VTF.h"
 #include "ElementBlock.h"
+#include "Functions.h"
 #include "Utilities.h"
 #include "IFEM.h"
 #include "tinyxml.h"
@@ -40,6 +41,8 @@ SIMoutput::SIMoutput (IntegrandBase* itg) : SIMinput(itg)
 SIMoutput::~SIMoutput ()
 {
   if (myVtf) delete myVtf;
+  for (auto& func : myAddScalars)
+    delete func.second;
 }
 
 
@@ -83,7 +86,20 @@ bool SIMoutput::parseOutputTag (const TiXmlElement* elem)
 {
   IFEM::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
 
-  if (strcasecmp(elem->Value(),"resultpoints"))
+  if (!strcasecmp(elem->Value(),"function")) {
+    std::string name;
+    utl::getAttribute(elem,"name",name);
+    RealFunc* f = nullptr;
+    if (!name.empty()) {
+      IFEM::cout << "Writing additional function with name '" << name << "' to VTF";
+      f = utl::parseRealFunc(utl::getValue(elem,"function"),"expression");
+      if (f)
+        myAddScalars[name] = f;
+    }
+
+    return f != nullptr;
+  }
+  else if (strcasecmp(elem->Value(),"resultpoints"))
     return this->SIMinput::parseOutputTag(elem);
 
   bool newGroup = true;
@@ -513,7 +529,10 @@ bool SIMoutput::writeGlvS (const Vector& psol, int iStep, int& nBlock,
 {
   idBlock = this->writeGlvS1(psol,iStep,nBlock,time,
                              pvecName,idBlock,psolComps);
+
   if (idBlock < 0)
+    return false;
+  else if (!this->writeAddFuncs(iStep,nBlock,50,time))
     return false;
   else if (idBlock == 0 || opt.pSolOnly)
     return true;
@@ -1800,4 +1819,15 @@ bool SIMoutput::serialize (std::map<std::string,std::string>&) const
   std::cerr <<" *** SIMoutput::serialize: Must be implemented in sub-class.\n"
             <<"     Restart not supported for "<< this->getName() << std::endl;
   return false;
+}
+
+
+bool SIMoutput::writeAddFuncs(int iStep, int& nBlock, int idBlock, double time)
+{
+  for (const auto& func : myAddScalars)
+    if (!this->writeGlvF(*func.second, func.first.c_str(), iStep,
+                         nBlock, idBlock++, time))
+      return false;
+
+  return true;
 }
