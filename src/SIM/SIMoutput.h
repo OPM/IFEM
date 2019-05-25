@@ -284,6 +284,9 @@ public:
   //! \brief Returns the norm index for a VCP-recovered quantity.
   size_t getVCPindex(size_t idx = 1) const;
 
+  //! \brief Calculates surface traction resultants.
+  virtual bool calcBouForces(Vectors&, const Vectors&) { return false; }
+
   //! \brief Prints integrated solution norms to the log stream.
   //! \param[in] norms The norm values
   //! \param[in] w Total number of characters in the norm labels
