@@ -243,7 +243,7 @@ namespace utl //! General utility classes and functions.
     //! \brief The constructor is protected to allow sub-class instances only.
     matrixBase() : elem(myElem) { n[0] = n[1] = n[2] = n[3] = 0; }
     //! \brief Constructor using an external vector for matrix element storage.
-    matrixBase(vector<T>& vec) : elem(vec) { n[0] = n[1] = n[2] = n[3] = 0; }
+    explicit matrixBase(vector<T>& vec) : elem(vec) { n[0] = n[1] = n[2] = n[3] = 0; }
     //! \brief Constructor creating a matrix of dimension
     //! \f$n_1 \times n_2 \times n_3 \times n_4\f$.
     matrixBase(size_t n_1, size_t n_2, size_t n_3 = 1, size_t n_4 = 1)
