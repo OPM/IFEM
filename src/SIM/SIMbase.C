@@ -997,45 +997,8 @@ bool SIMbase::solveSystem (Vector& solution, int printSol, double* rCond,
   if (!b) std::cerr <<" *** SIMbase::solveSystem: No RHS vector."<< std::endl;
   if (!A || !b) return false;
 
-  // Dump system matrix to file, if requested
-  for (DumpData& dmp : lhsDump)
-    if (dmp.doDump()) {
-      IFEM::cout <<"\nDumping system matrix to file "<< dmp.fname << std::endl;
-      std::ofstream os(dmp.fname.c_str(),
-                       dmp.step.size() == 1 ? std::ios::out : std::ios::app);
-      os << std::setprecision(17);
-      double old_tol = utl::zero_print_tol;
-      utl::zero_print_tol = dmp.eps;
-      SystemMatrix* M = myEqSys->getMatrix(0);
-      char matName[16];
-      if (dmp.step.size() == 1)
-        strcpy(matName,"A");
-      else
-        sprintf(matName,"A%d",dmp.count);
-      for (int i = 0; M; M = myEqSys->getMatrix(++i), ++matName[0])
-        M->dump(os,dmp.format,matName); // label matrices as A,B,C,...
-      utl::zero_print_tol = old_tol;
-    }
-
-  // Dump right-hand-side vector to file, if requested
-  for (DumpData& dmp : rhsDump)
-    if (dmp.doDump()) {
-      IFEM::cout <<"\nDumping RHS vector to file "<< dmp.fname << std::endl;
-      std::ofstream os(dmp.fname.c_str(),
-                       dmp.step.size() == 1 ? std::ios::out : std::ios::app);
-      os << std::setprecision(17);
-      double old_tol = utl::zero_print_tol;
-      utl::zero_print_tol = dmp.eps;
-      SystemVector* c = myEqSys->getVector(0);
-      char vecName[16];
-      if (dmp.step.size() == 1)
-        strcpy(vecName,"b");
-      else
-        sprintf(vecName,"b%d",dmp.count);
-      for (int i = 0; c; c = myEqSys->getVector(++i), ++vecName[0])
-        c->dump(os,dmp.format,vecName); // label vectors as b,c,d,...
-      utl::zero_print_tol = old_tol;
-    }
+  // Dump equation system to file(s) if requested.
+  dumpEqSys();
 
   // Solve the linear system of equations
   if (msgLevel > 1)
@@ -1621,6 +1584,9 @@ bool SIMbase::systemModes (std::vector<Mode>& solution,
   if (nev > mySam->getNoEquations()) nev = mySam->getNoEquations();
   if (ncv > mySam->getNoEquations()) ncv = mySam->getNoEquations();
 
+  // Dump equation system to file(s) if requested.
+  dumpEqSys();
+
   // Solve the eigenvalue problem
   IFEM::cout <<"\nSolving the eigenvalue problem ..."<< std::endl;
   SystemMatrix* A = myEqSys->getMatrix(iA);
@@ -2070,4 +2036,51 @@ void SIMbase::registerDependency (const std::string& name, SIMdependency* sim,
 {
   this->registerDependency(sim,name,nvc,myModel,
                            this->getMADOF(basis,nvc).data());
+}
+
+
+void SIMbase::dumpEqSys()
+{
+  // Dump system matrix to file, if requested
+  for (DumpData& dmp : lhsDump)
+    if (dmp.doDump()) {
+      IFEM::cout <<"\nDumping system matrix to file "<< dmp.fname << std::endl;
+      std::ofstream os(dmp.fname.c_str(),
+                       dmp.step.size() == 1 ? std::ios::out : std::ios::app);
+      os << std::setprecision(17);
+      double old_tol = utl::zero_print_tol;
+      utl::zero_print_tol = dmp.eps;
+      SystemMatrix* M = myEqSys->getMatrix(0);
+      char matName[16];
+      if (dmp.step.size() == 1)
+        strcpy(matName,"A");
+      else
+        sprintf(matName,"A%d",dmp.count);
+      for (int i = 0; M; M = myEqSys->getMatrix(++i), ++matName[0])
+        M->dump(os,dmp.format,matName); // label matrices as A,B,C,...
+      utl::zero_print_tol = old_tol;
+    }
+
+  if (myEqSys->getNoRHS() == 0)
+    return;
+
+  // Dump right-hand-side vector to file, if requested
+  for (DumpData& dmp : rhsDump)
+    if (dmp.doDump()) {
+      IFEM::cout <<"\nDumping RHS vector to file "<< dmp.fname << std::endl;
+      std::ofstream os(dmp.fname.c_str(),
+                       dmp.step.size() == 1 ? std::ios::out : std::ios::app);
+      os << std::setprecision(17);
+      double old_tol = utl::zero_print_tol;
+      utl::zero_print_tol = dmp.eps;
+      SystemVector* c = myEqSys->getVector(0);
+      char vecName[16];
+      if (dmp.step.size() == 1)
+        strcpy(vecName,"b");
+      else
+        sprintf(vecName,"b%d",dmp.count);
+      for (int i = 0; c; c = myEqSys->getVector(++i), ++vecName[0])
+        c->dump(os,dmp.format,vecName); // label vectors as b,c,d,...
+      utl::zero_print_tol = old_tol;
+    }
 }
