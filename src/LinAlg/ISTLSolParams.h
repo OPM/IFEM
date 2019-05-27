@@ -17,6 +17,7 @@
 #define _ISTL_SOLPARAMS_H
 
 #include "ISTLSupport.h"
+#include <dune/common/version.hh>
 #include <dune/istl/operators.hh>
 #include <dune/istl/solvercategory.hh>
 
@@ -47,11 +48,16 @@ namespace ISTL {
 
 class BlockPreconditioner : public Preconditioner {
 public:
+#if DUNE_VERSION_NEWER(DUNE_ISTL, 2, 6)
+  Dune::SolverCategory::Category category() const
+  { return Dune::SolverCategory::sequential; }
+#else
   // define the category
   enum {
     //! \brief The category the preconditioner is part of.
     category=Dune::SolverCategory::sequential
   };
+#endif
 
   //! \brief Constructor
   //! \param[in] A The system matrix
