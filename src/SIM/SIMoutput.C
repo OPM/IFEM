@@ -87,18 +87,21 @@ bool SIMoutput::parseOutputTag (const TiXmlElement* elem)
 {
   IFEM::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
 
-  if (!strcasecmp(elem->Value(),"function")) {
+  const char* funcval = utl::getValue(elem,"function");
+  if (funcval)
+  {
     std::string name;
     utl::getAttribute(elem,"name",name);
-    RealFunc* f = nullptr;
-    if (!name.empty()) {
-      IFEM::cout << "Writing additional function with name '" << name << "' to VTF";
-      f = utl::parseRealFunc(utl::getValue(elem,"function"),"expression");
-      if (f)
-        myAddScalars[name] = f;
-    }
+    if (name.empty()) return false;
 
-    return f != nullptr;
+    std::string type("expression");
+    utl::getAttribute(elem,"type",type);
+    IFEM::cout <<"\tAdditional function '"<< name <<"' ("<< type <<")";
+    RealFunc* f = utl::parseRealFunc(funcval,type);
+    if (!f) return false;
+
+    myAddScalars[name] = f;
+    return true;
   }
   else if (strcasecmp(elem->Value(),"resultpoints"))
     return this->SIMinput::parseOutputTag(elem);
@@ -367,22 +370,22 @@ bool SIMoutput::writeGlvBC (int& nBlock, int iStep) const
   Matrix field;
   std::array<IntVec,3> dID;
 
-  size_t i, j, n;
+  size_t j, n;
   int geomID = myGeomID;
-  for (i = 0; i < myModel.size(); i++)
+  for (const ASMbase* pch : myModel)
   {
-    if (myModel[i]->empty()) continue; // skip empty patches
+    if (pch->empty()) continue; // skip empty patches
 
     geomID++;
-    size_t nbc = myModel[i]->getNoFields(1);
-    int nNodes = myModel[i]->getNoNodes(-1);
-    for (n = 2; n <= myModel[i]->getNoBasis(); n++)
-      nNodes -= myModel[i]->getNoNodes(n);
+    size_t nbc = pch->getNoFields(1);
+    int nNodes = pch->getNoNodes(-1);
+    for (n = 2; n <= pch->getNoBasis(); n++)
+      nNodes -= pch->getNoNodes(n);
     Matrix bc(nbc,nNodes);
     RealArray flag(3,0.0);
     ASMbase::BCVec::const_iterator bit;
-    for (bit = myModel[i]->begin_BC(); bit != myModel[i]->end_BC(); ++bit)
-      if ((n = myModel[i]->getNodeIndex(bit->node,true)) && n <= bc.cols())
+    for (bit = pch->begin_BC(); bit != pch->end_BC(); ++bit)
+      if ((n = pch->getNodeIndex(bit->node,true)) && n <= bc.cols())
       {
         if (!bit->CX && nbc > 0) bc(1,n) = flag[0] = 1.0;
         if (!bit->CY && nbc > 1) bc(2,n) = flag[1] = 1.0;
@@ -393,9 +396,10 @@ bool SIMoutput::writeGlvBC (int& nBlock, int iStep) const
       continue; // nothing on this patch
 
     if (msgLevel > 1)
-      IFEM::cout <<"Writing boundary conditions for patch "<< i+1 << std::endl;
+      IFEM::cout <<"Writing boundary conditions for patch "
+                 << pch->idx+1 << std::endl;
 
-    if (!myModel[i]->evalSolution(field,bc,opt.nViz,nbc))
+    if (!pch->evalSolution(field,bc,opt.nViz,nbc))
       return false;
 
     // The BC fields should either be 0.0 or 1.0
@@ -761,7 +765,8 @@ bool SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
       continue; // skip empty patches
 
     if (msgLevel > 1)
-      IFEM::cout <<"Writing secondary solution for patch "<< i+1 << std::endl;
+      IFEM::cout <<"Writing secondary solution for patch "
+                 << myModel[i]->idx+1 << std::endl;
 
     // Direct evaluation of secondary solution variables
 
@@ -805,7 +810,8 @@ bool SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
     if (haveAsol)
     {
       if (msgLevel > 1)
-        IFEM::cout <<"Writing exact solution for patch "<< i+1 << std::endl;
+        IFEM::cout <<"Writing exact solution for patch "
+                   << myModel[i]->idx+1 << std::endl;
 
       mySol->initPatch(myModel[i]->idx);
 
@@ -992,23 +998,21 @@ bool SIMoutput::evalProjSolution (const Vector& ssol,
   Matrix field;
   Vector lovec;
 
-  size_t i, j;
   bool empty = false;
   int geomID = myGeomID;
-  for (i = 0; i < myModel.size(); i++)
+  for (ASMbase* pch : myModel)
   {
-    if (!this->extractNodeVec(ssol,lovec,myModel[i],
-                              myProblem->getNoFields(2),empty))
+    if (!this->extractNodeVec(ssol,lovec,pch,myProblem->getNoFields(2),empty))
       return false;
-    else if (myModel[i]->empty())
+    else if (pch->empty())
       continue; // skip empty patches
 
     // Evaluate the solution variables at the visualization points
-    if (!myModel[i]->evalSolution(field,lovec,opt.nViz))
+    if (!pch->evalSolution(field,lovec,opt.nViz))
       return false;
 
     const ElementBlock* grid = myVtf->getBlock(++geomID);
-    for (j = 0; j < field.rows() && j < maxVal.size(); j++)
+    for (size_t j = 0; j < field.rows() && j < maxVal.size(); j++)
     {
       // Update extremal values
       size_t indx = 0;
@@ -1033,13 +1037,13 @@ bool SIMoutput::writeGlvF (const RealFunc& f, const char* fname,
   IntVec sID;
 
   int geomID = myGeomID;
-  for (size_t i = 0; i < myModel.size(); i++)
+  for (const ASMbase* pch : myModel)
   {
-    if (myModel[i]->empty()) continue; // skip empty patches
+    if (pch->empty()) continue; // skip empty patches
 
     if (msgLevel > 1)
-      IFEM::cout <<"Writing function "<< fname
-                 <<" for patch "<< i+1 << std::endl;
+      IFEM::cout <<"Writing function '"<< fname
+                 <<"' for patch "<< pch->idx+1 << std::endl;
 
     if (!myVtf->writeNfunc(f,time,++nBlock,++geomID))
       return false;
@@ -1085,17 +1089,17 @@ bool SIMoutput::writeGlvM (const Mode& mode, bool freq, int& nBlock)
 
   bool empty = false;
   int geomID = myGeomID;
-  for (size_t i = 0; i < myModel.size(); i++)
+  for (ASMbase* pch : myModel)
   {
-    if (!this->extractNodeVec(mode.eigVec,displ,myModel[i],0,empty))
+    if (!this->extractNodeVec(mode.eigVec,displ,pch,0,empty))
       return false;
-    else if (myModel[i]->empty())
+    else if (pch->empty())
       continue; // skip empty patches
 
     if (myModel.size() > 1 && msgLevel > 1)
       IFEM::cout <<"."<< std::flush;
 
-    if (!myModel[i]->evalSolution(field,displ,opt.nViz))
+    if (!pch->evalSolution(field,displ,opt.nViz))
       return false;
 
     if (!myVtf->writeVres(field,++nBlock,++geomID))
@@ -1238,8 +1242,8 @@ bool SIMoutput::writeGlvE (const Vector& vec, int iStep, int& nBlock,
     if (pch->empty()) continue; // skip empty patches
 
     if (msgLevel > 1)
-      IFEM::cout <<"Writing element field "<< name
-                 <<" for patch "<< pch->idx+1 << std::endl;
+      IFEM::cout <<"Writing element field '"<< name
+                 <<"' for patch "<< pch->idx+1 << std::endl;
 
     pch->extractElmRes(infield,field);
 
@@ -1348,10 +1352,9 @@ bool SIMoutput::dumpMatlabGrid (std::ostream& os, const std::string& name,
 
 bool SIMoutput::dumpGeometry (std::ostream& os) const
 {
-  for (size_t i = 0; i < myModel.size(); i++)
-    if (!myModel[i]->empty())
-      if (!myModel[i]->write(os))
-        return false;
+  for (const ASMbase* pch : myModel)
+    if (!pch->empty() && !pch->write(os))
+      return false;
 
   return true;
 }
@@ -1412,7 +1415,7 @@ bool SIMoutput::dumpSolution (const Vector& psol, utl::LogStream& os) const
     if (myModel[i]->empty()) continue; // skip empty patches
 
     if (myModel.size() > 1)
-      os <<"\n# Patch: "<< i+1;
+      os <<"\n# Patch: "<< myModel[i]->idx+1;
 
     // Extract and write primary solution
     size_t nf = myModel[i]->getNoFields(1);
