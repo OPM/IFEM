@@ -418,6 +418,11 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
             writeArray(group2, str4.str()+"/Frequency", -1, 1, &vec[k].eigVal, H5T_NATIVE_DOUBLE);
           else
             writeArray(group2, str4.str()+"/Value", -1, 1, &vec[k].eigVal, H5T_NATIVE_DOUBLE);
+          if (i == 0) {
+            str4 << "/eqn/";
+            writeArray(group2, str4.str(), i+1,
+                       vec[k].eqnVec.size(), vec[k].eqnVec.ptr(), H5T_NATIVE_DOUBLE);
+          }
           H5Gclose(group2);
         }
       }
