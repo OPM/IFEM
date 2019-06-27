@@ -1617,7 +1617,8 @@ bool SIMbase::systemModes (std::vector<Mode>& solution,
   for (int i = 1; i <= nev && ok; i++)
   {
     solution[i-1].eigNo = i;
-    if (!mySam->expandVector(eigVec.getColumn(i),solution[i-1].eigVec))
+    solution[i-1].eqnVec = eigVec.getColumn(i);
+    if (!mySam->expandVector(solution[i-1].eqnVec,solution[i-1].eigVec))
       ok = false;
     else if (!freq)
       solution[i-1].eigVal = eigVal(i);

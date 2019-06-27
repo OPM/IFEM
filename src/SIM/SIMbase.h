@@ -47,6 +47,7 @@ struct Mode
   int    eigNo;  //!< Eigenvalue identifier
   double eigVal; //!< Eigenvalue associated with this mode
   Vector eigVec; //!< Eigenvector associated with this mode
+  Vector eqnVec; //!< Eigenvector associated with this mode in equation order
   // \brief Default constructor.
   Mode() : eigNo(0), eigVal(0.0) {}
 };
