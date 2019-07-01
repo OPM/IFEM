@@ -1844,7 +1844,7 @@ double SIMoutput::getReferenceNorm (const Vectors& gNorm, size_t adaptor) const
   const Vector& fNorm = gNorm.front();
   if (adaptor < 1 && fNorm.size() > 2)
     return fNorm(3); // Using the analytical solution, |u|_ref = |u|
-  else if (adaptor >= gNorm.size() || gNorm[adaptor].size() < 3)
+  else if (adaptor >= gNorm.size() || gNorm[adaptor].size() < 2)
     return -(double)adaptor; // Norm group index is out of range
 
   // |u|_ref = sqrt( |u^h|^2 + |e^*|^2 )
