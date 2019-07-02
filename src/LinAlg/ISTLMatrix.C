@@ -43,7 +43,7 @@ ISTLVector::ISTLVector(const ProcessAdm& padm, const Real* values, size_t n) : a
 }
 
 
-ISTLVector::ISTLVector(const ISTLVector& vec) : adm(vec.adm)
+ISTLVector::ISTLVector(const ISTLVector& vec) : StdVector(vec), adm(vec.adm)
 {
   x = vec.x;
   LinAlgInit::increfs();
@@ -121,7 +121,8 @@ ISTLMatrix::ISTLMatrix (const ProcessAdm& padm, const LinSolParams& spar,
 
 
 ISTLMatrix::ISTLMatrix (const ISTLMatrix& B) :
-  adm(B.adm), solParams(B.solParams.get(), B.adm), linsysType(B.linsysType)
+  SparseMatrix(B), adm(B.adm),
+  solParams(B.solParams.get(), B.adm), linsysType(B.linsysType)
 {
   iA = B.iA;
 
