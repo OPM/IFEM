@@ -52,6 +52,7 @@ TEST(TestASMs1D, findClosestNode)
 {
   ASMLine pch1;
   std::cout <<"\nTesting a linear patch: ";
+  ASMbase::resetNumbering();
   ASSERT_TRUE(pch1.uniformRefine(7));
   EXPECT_TRUE(pch1.write(std::cout));
   ASSERT_TRUE(pch1.generateFEMTopology());
@@ -109,6 +110,7 @@ TEST(TestASMs1D, findClosestNode)
 TEST(TestASMs1D, ElementConnectivities)
 {
   ASMLine pch1;
+  ASMbase::resetNumbering();
   ASSERT_TRUE(pch1.uniformRefine(2));
   ASSERT_TRUE(pch1.generateFEMTopology());
   IntMat neigh(3);
@@ -126,6 +128,7 @@ TEST(TestASMs1D, ElementConnectivities)
 TEST(TestASMs1D, BoundaryElements)
 {
   ASMLine pch1;
+  ASMbase::resetNumbering();
   ASSERT_TRUE(pch1.uniformRefine(2));
   ASSERT_TRUE(pch1.generateFEMTopology());
   IntMat neigh(3);
