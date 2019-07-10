@@ -275,6 +275,7 @@ public:
 TEST(TestASMu2D, ElementConnectivities)
 {
   ASMuSquare pch1;
+  ASMbase::resetNumbering();
   ASSERT_TRUE(pch1.uniformRefine(0,1));
   ASSERT_TRUE(pch1.uniformRefine(1,1));
   ASSERT_TRUE(pch1.generateFEMTopology());

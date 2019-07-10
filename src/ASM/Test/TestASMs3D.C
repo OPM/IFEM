@@ -32,6 +32,7 @@ public:
 TEST(TestASMs3D, ElementConnectivities)
 {
   ASMCube pch1;
+  ASMbase::resetNumbering();
   ASSERT_TRUE(pch1.uniformRefine(0,1));
   ASSERT_TRUE(pch1.uniformRefine(1,1));
   ASSERT_TRUE(pch1.uniformRefine(2,1));
@@ -58,6 +59,7 @@ TEST(TestASMs3D, ElementConnectivities)
 TEST(TestASMs3D, BoundaryElements)
 {
   ASMCube pch1;
+  ASMbase::resetNumbering();
   ASSERT_TRUE(pch1.uniformRefine(0,1));
   ASSERT_TRUE(pch1.uniformRefine(1,1));
   ASSERT_TRUE(pch1.uniformRefine(2,1));
@@ -319,6 +321,7 @@ TEST(TestASMs3D, Collapse)
   for (int iface = 1; iface <= 6; iface++)
     for (int iedge = 0; iedge <= 12; iedge++)
     {
+      ASMbase::resetNumbering();
       ASMdegenerate3D pch(iface,iedge);
       ASSERT_TRUE(pch.uniformRefine(0,4));
       ASSERT_TRUE(pch.uniformRefine(1,1));

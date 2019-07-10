@@ -177,6 +177,7 @@ public:
 TEST(TestASMu3D, ElementConnectivities)
 {
   ASMuCube pch1;
+  ASMbase::resetNumbering();
   ASSERT_TRUE(pch1.uniformRefine(0,1));
   ASSERT_TRUE(pch1.uniformRefine(1,1));
   ASSERT_TRUE(pch1.uniformRefine(2,1));

@@ -14,6 +14,7 @@
 #include "ISTLMatrix.h"
 #include "SIM2D.h"
 #include "ASMs2D.h"
+#include "ASMmxBase.h"
 #include "IntegrandBase.h"
 #include "SAM.h"
 #include <dune/istl/io.hh>
@@ -78,7 +79,7 @@ TEST(TestISTLMatrix, Assemble)
   InspectMatrixSIM sim(1);
   sim.read("src/LinAlg/Test/refdata/petsc_test.xinp");
   sim.opt.solver = SystemMatrix::ISTL;
-  sim.preprocess();
+  ASSERT_TRUE(sim.preprocess());
   sim.initSystem(SystemMatrix::ISTL);
 
   Matrix stencil(4,4);
@@ -104,9 +105,11 @@ TEST(TestISTLMatrix, Assemble)
 TEST(TestISTLMatrix, AssembleBasisBlocks)
 {
   InspectMatrixSIM sim({1,1});
+  ASMmxBase::Type = ASMmxBase::FULL_CONT_RAISE_BASIS1;
+  ASMmxBase::geoBasis = 2;
   sim.read("src/LinAlg/Test/refdata/petsc_test_blocks_basis.xinp");
   sim.opt.solver = SystemMatrix::ISTL;
-  sim.preprocess();
+  ASSERT_TRUE(sim.preprocess());
   sim.initSystem(SystemMatrix::ISTL);
 
   Matrix stencil(13,13);
@@ -158,7 +161,7 @@ TEST(TestISTLMatrix, AssembleComponentBlocks)
   InspectMatrixSIM sim(2);
   sim.read("src/LinAlg/Test/refdata/petsc_test_blocks_components.xinp");
   sim.opt.solver = SystemMatrix::ISTL;
-  sim.preprocess();
+  ASSERT_TRUE(sim.preprocess());
   sim.initSystem(SystemMatrix::ISTL);
 
   Matrix stencil(4*2,4*2);

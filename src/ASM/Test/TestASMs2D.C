@@ -31,6 +31,7 @@ public:
 TEST(TestASMs2D, ElementConnectivities)
 {
   ASMSquare pch1;
+  ASMbase::resetNumbering();
   ASSERT_TRUE(pch1.uniformRefine(0,1));
   ASSERT_TRUE(pch1.uniformRefine(1,1));
   ASSERT_TRUE(pch1.generateFEMTopology());
@@ -52,6 +53,7 @@ TEST(TestASMs2D, ElementConnectivities)
 TEST(TestASMs2D, BoundaryElements)
 {
   ASMSquare pch1;
+  ASMbase::resetNumbering();
   ASSERT_TRUE(pch1.uniformRefine(0,1));
   ASSERT_TRUE(pch1.uniformRefine(1,1));
   ASSERT_TRUE(pch1.generateFEMTopology());
@@ -123,6 +125,7 @@ TEST(TestASMs2D, Collapse)
 {
   for (int iedge = 1; iedge <= 4; iedge++)
   {
+    ASMbase::resetNumbering();
     ASMdegenerate2D pch(iedge);
     ASSERT_TRUE(pch.uniformRefine(0,2));
     ASSERT_TRUE(pch.uniformRefine(1,1));
