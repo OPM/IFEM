@@ -177,10 +177,10 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
 
   else if (!strcasecmp(elem->Value(),"projection") && !isRefined)
   {
-    bool ok = true;
     const TiXmlElement* child = elem->FirstChildElement();
     if (child && !strncasecmp(child->Value(),"patch",5) && child->FirstChild())
     {
+      bool ok = true;
       // Read projection basis from file
       const char* patch = child->FirstChild()->Value();
       std::istream* isp = getPatchStream(child->Value(),patch);
