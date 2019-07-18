@@ -67,10 +67,9 @@ GlbL2::GlbL2 (IntegrandBase* p, size_t n) : A(SparseMatrix::SUPERLU)
 }
 
 
-GlbL2::GlbL2 (FunctionBase* f, size_t n) : A(SparseMatrix::SUPERLU)
+GlbL2::GlbL2 (FunctionBase* f, size_t n) : functions({f}), A(SparseMatrix::SUPERLU)
 {
   problem = nullptr;
-  functions = { f };
   nrhs = f->dim();
 
   A.redim(n,n);
@@ -78,10 +77,9 @@ GlbL2::GlbL2 (FunctionBase* f, size_t n) : A(SparseMatrix::SUPERLU)
 }
 
 
-GlbL2::GlbL2 (const FunctionVec& f, size_t n) : A(SparseMatrix::SUPERLU)
+GlbL2::GlbL2 (const FunctionVec& f, size_t n) : functions(f), A(SparseMatrix::SUPERLU)
 {
   problem = nullptr;
-  functions = f;
   nrhs = 0;
   for (FunctionBase* func : f)
     nrhs += func->dim();
