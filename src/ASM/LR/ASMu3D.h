@@ -394,6 +394,9 @@ public:
   virtual bool refine(const RealFunc& refC, double refTol);
 
 private:
+  //! \brief No assignment.
+  ASMu3D& operator=(const ASMu3D&) = delete;
+
   //! \brief Struct representing an inhomogeneous Dirichlet boundary condition.
   struct DirichletFace
   {

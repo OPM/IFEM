@@ -194,6 +194,9 @@ protected:
   virtual std::ostream& write(std::ostream& os) const { return os << myMat; }
 
 private:
+  //! \brief No assignment.
+  DenseMatrix& operator=(const DenseMatrix&) = delete;
+
   Matrix myMat; //!< The actual dense matrix
   int*   ipiv;  //!< Pivot indices used in \a solve
   bool   symm;  //!< Flags whether the matrix is symmetric or not

@@ -87,6 +87,10 @@ public:
 protected:
   Vec x;                  //!< The actual PETSc vector
   const ProcessAdm& adm;  //!< Process administrator
+
+private:
+  //! \brief No assignment.
+  PETScVector& operator=(const PETScVector&) = delete;
 };
 
 

@@ -171,6 +171,9 @@ protected:
   int    p2; //!< Polynomial order in second parameter direction
 
 private:
+  //! \brief No assignment.
+  ASMs2DLag& operator=(const ASMs2DLag&) = delete;
+
   const std::vector<Vec3>& coord; //!< Nodal coordinates
 
   std::vector<Vec3> myCoord; //!< The actual nodal coordinates

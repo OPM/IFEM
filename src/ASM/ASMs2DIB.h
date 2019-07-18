@@ -99,6 +99,9 @@ public:
   virtual void filterResults(Matrix& field, const ElementBlock* grid) const;
 
 private:
+  //! \brief No assignment.
+  ASMs2DIB& operator=(const ASMs2DIB&) = delete;
+
   Immersed::Geometry* myGeometry; //!< The physical geometry description
   ElementBlock*       myLines;    //!< Sub-cell grid lines (for plotting)
 

@@ -62,6 +62,9 @@ public:
   //! \brief The destructor releases the process administrator.
   ~ProcessAdm();
 
+  //! \brief Assignment operator.
+  ProcessAdm& operator=(const ProcessAdm&);
+
   //! \brief Return process id
   int getProcId() const  { return myPid; }
   //! \brief Return rank
@@ -78,9 +81,6 @@ public:
   //! \brief Set MPI communicator
   //! \param comm New communicator
   void setCommunicator(const MPI_Comm* comm2);
-
-  //! \brief Assignment operator
-  ProcessAdm& operator=(const ProcessAdm&);
 
   //! \brief Blocking send of an integer
   //! \param[in] value Integer to be sent
@@ -138,7 +138,7 @@ public:
   //! \brief AllReduce with MPI_SUM for a vector.
   template<class T> void allReduceAsSum(std::vector<T>& vec) const
   {
-#ifdef HAS_PETSC
+#if defined(HAS_PETSC) || defined(HAVE_MPI)
     if (parallel)
       this->allReduce(vec,MPI_SUM);
 #endif

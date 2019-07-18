@@ -815,6 +815,9 @@ private:
   //! \param mpc Pointer to the multi-point constraint equation to resolve
   static bool resolveMPCchain(const MPCSet& allMPCs, MPC* mpc);
 
+  //! \brief No assignment.
+  ASMbase& operator=(const ASMbase&) = delete;
+
 public:
   static bool fixHomogeneousDirichlet; //!< If \e true, pre-eliminate fixed DOFs
 

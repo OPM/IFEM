@@ -143,6 +143,9 @@ protected:
   int    p1; //!< Polynomial order of the basis
 
 private:
+  //! \brief No assignment.
+  ASMs1DLag& operator=(const ASMs1DLag&) = delete;
+
   const std::vector<Vec3>& coord; //!< Nodal coordinates
 
   std::vector<Vec3> myCoord; //!< The actual nodal coordinates

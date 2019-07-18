@@ -145,6 +145,9 @@ protected:
   virtual bool getSize(int& n1, int& n2, int& n3, int basis = 0) const;
 
 private:
+  //! \brief No assignment.
+  ASMs3DmxLag& operator=(const ASMs3DmxLag&) = delete;
+
   std::vector<size_t> nxx; //!< Basis dimensions in 1st parameter direction
   std::vector<size_t> nyx; //!< Basis dimensions in 2nd parameter direction
   std::vector<size_t> nzx; //!< Basis dimensions in 3rd parameter direction

@@ -358,6 +358,9 @@ namespace utl //! General utility classes and functions.
 
   private:
     vector<T> myElem; //!< Internal matrix storage
+
+    //! \brief No assignment.
+    matrixBase<T>& operator=(const matrixBase<T>&) = delete;
   };
 
 

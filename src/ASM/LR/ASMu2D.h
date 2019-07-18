@@ -662,6 +662,9 @@ protected:
   Go::BsplineBasis bezier_v; //!< Bezier basis in the v-direction
 
 private:
+  //! \brief No assignment.
+  ASMu2D& operator=(const ASMu2D&) = delete;
+
   mutable double aMin; //!< Minimum element area for adaptive refinement
 };
 

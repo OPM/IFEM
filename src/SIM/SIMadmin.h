@@ -65,6 +65,8 @@ public:
   void setHeading(const std::string& heading) { myHeading = heading; }
 
 protected:
+  //! \brief No assignment
+  SIMadmin& operator=(const SIMadmin&) = delete;
   //! \brief Prints the heading of this simulator, if any, to IFEM::cout.
   void printHeading(int& supStep) const;
 

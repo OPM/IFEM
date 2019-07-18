@@ -682,6 +682,9 @@ private:
   //! \param[in] inod 0-based node index local to current patch
   int coeffInd(size_t inod) const;
 
+  //! \brief No assignment.
+  ASMs2D& operator=(const ASMs2D&) = delete;
+
 protected:
   Go::SplineSurface* surf; //!< Pointer to the actual spline surface object
   Go::SplineSurface* proj; //!< Pointer to spline surface for projection basis

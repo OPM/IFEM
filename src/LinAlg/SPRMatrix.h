@@ -111,6 +111,9 @@ public:
   virtual Real Linfnorm() const;
 
 private:
+  //! \brief No assignment.
+  SPRMatrix& operator=(const SPRMatrix&) = delete;
+
   int mpar[NS] = {};      //!< Matrix of sparse PARameters
   int* msica = nullptr;   //!< Matrix of Storage Information for CA
   int* msifa = nullptr;   //!< Matrix of Storage Information for FA
