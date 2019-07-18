@@ -1339,6 +1339,7 @@ bool SparseMatrix::solveSAMG (Vector& B)
   }
 #else
   std::cerr <<"SparseMatrix::solve: SAMG solver not available"<< std::endl;
+  return false;
 #endif
   return ierr <= 0;
 }

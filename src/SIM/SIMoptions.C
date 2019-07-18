@@ -234,7 +234,9 @@ bool SIMoptions::parseConsoleTag (const TiXmlElement* elem)
     }
     utl::getAttribute(elem,"output_prefix",log_prefix);
     if (!log_prefix.empty() && log_prefix != IFEM::getOptions().log_prefix) {
+#ifdef HAVE_MPI
       if ((pid == 0 && printPid == -1) || pid == IFEM::getOptions().printPid)
+#endif
         IFEM::cout <<"IFEM: Logging output to files with prefix "
                    << log_prefix << std::endl;
       IFEM::getOptions().log_prefix = log_prefix;
