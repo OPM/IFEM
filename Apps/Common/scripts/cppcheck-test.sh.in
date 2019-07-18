@@ -22,8 +22,12 @@ ignorere=(\\[/usr.*\\]
           \\[.*Tensor.h:.*\\]:.*SymmTensor..has.a.constructor.with.1.argument.that.is.not.explicit.
           \\[.*Vec3.h:.*\\]:.*Member.variable..Vec3::v..is.not.initialized.in.the.constructor.
           \\[.*Vec3.h:.*\\]:.*Member.variable..Vec3::v..is.not.assigned.a.value.in..Vec3::operator=..
-          \\[.*:1\\]:.*Skipping.configuration
+          \\[.*.C:.*\\]:.*Skipping.configuration
+          \\[.*IFEM/.*.h:.*\\]:.*Skipping.configuration
           \\[.*PETScPCPerm.C:.*\\]:.*Variable..shell..is.assigned.a.value.that.is.never.used.
+          \\[.*PETScPCPerm.C:.*\\]:.*failed.to.expand
+          \\[.*SIMKLShell.C:.*\\]:.*Memory.leak:.load.p
+          \\[.*/3rdparty/stb_image.h:.*]:.*$
           \\[.*ASMu3D.*.C:.*\\]:.*The.scope.of.the.variable..wr..can.be.reduced.)
 
 nmatch=`cat $tmpfil | grep "\[.*\]" | wc -l`
