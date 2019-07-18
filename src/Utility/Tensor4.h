@@ -68,8 +68,6 @@ public:
   //! \brief Index-1 based component access.
   Real& operator()(t_ind i, t_ind j, t_ind k, t_ind l);
 
-  //! \brief Assignment operator.
-  Tensor4& operator=(const Tensor4& T);
   //! \brief Overloaded assignment operator.
   Tensor4& operator=(Real val);
 
