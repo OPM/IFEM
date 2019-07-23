@@ -545,7 +545,8 @@ bool SIMinput::parseICTag (const TiXmlElement* elem)
   utl::getAttribute(elem,"type",type);
   if (type == "file")
   {
-    utl::getAttribute(elem,"file",file);
+    if (!utl::getAttribute(elem,"file",file) && elem->FirstChild())
+      file = elem->FirstChild()->Value();
     utl::getAttribute(elem,"file_field",info.file_field);
     utl::getAttribute(elem,"file_level",info.file_level);
     utl::getAttribute(elem,"file_basis",info.file_basis);

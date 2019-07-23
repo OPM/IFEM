@@ -208,8 +208,9 @@ bool SIMoptions::parseOutputTag (const TiXmlElement* elem)
 bool SIMoptions::parseRestartTag (const TiXmlElement* elem)
 {
   if (!strcasecmp(elem->Value(),"restart")) {
-    utl::getAttribute(elem,"file",restartFile);
     utl::getAttribute(elem,"step",restartStep);
+    if (!utl::getAttribute(elem,"file",restartFile) && elem->FirstChild())
+      restartFile = elem->FirstChild()->Value();
   }
 
   return true;
