@@ -13,6 +13,7 @@
 
 #include "SIMbase.h"
 #include "SIMoptions.h"
+#include "ASMmxBase.h"
 #include "ASMs2DC1.h"
 #ifdef HAS_PETSC
 #include "SAMpatchPETSc.h"
@@ -704,7 +705,12 @@ bool SIMbase::updateGrid (const Vector& displ)
   Vector locdisp;
   for (size_t i = 0; i < myModel.size() && ok; i++)
   {
-    myModel[i]->extractNodeVec(displ,locdisp,myModel[i]->getNoSpaceDim(),-1);
+    if (this->mixedProblem())
+      this->extractPatchSolution(displ,locdisp,myModel[i],
+                                 myModel[i]->getNoSpaceDim(),ASMmxBase::geoBasis);
+    else
+      myModel[i]->extractNodeVec(displ,locdisp,myModel[i]->getNoSpaceDim(),-1);
+
     ok = myModel[i]->updateCoords(locdisp);
   }
 
