@@ -73,6 +73,10 @@ public:
   //! \param[in] inod 1-based node index local to current patch
   virtual Vec3 getCoord(size_t inod) const;
 
+  //! \brief Updates the nodal coordinates for this patch.
+  //! \param[in] displ Incremental displacements to update the coordinates with
+  virtual bool updateCoords(const Vector& displ);
+
   //! \brief Returns the number of bases.
   virtual size_t getNoBasis() const { return m_basis.size(); }
   //! \brief Returns the total number of nodes in this patch.

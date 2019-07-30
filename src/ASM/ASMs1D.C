@@ -744,7 +744,7 @@ bool ASMs1D::updateCoords (const Vector& displ)
   if (!curv) return true; // silently ignore empty patches
   if (shareFE) return true;
 
-  if (displ.size() != nsd*MLGN.size())
+  if (displ.size() < nsd*MLGN.size())
   {
     std::cerr <<" *** ASMs1D::updateCoords: Invalid dimension "
 	      << displ.size() <<" on displ, should be "

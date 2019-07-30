@@ -1332,7 +1332,7 @@ bool ASMs2D::updateCoords (const Vector& displ)
   if (!surf) return true; // silently ignore empty patches
   if (shareFE) return true;
 
-  if (displ.size() != nsd*MLGN.size())
+  if (displ.size() < nsd*MLGN.size())
   {
     std::cerr <<" *** ASMs2D::updateCoords: Invalid dimension "
 	      << displ.size() <<" on displacement vector, should be "

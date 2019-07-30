@@ -1205,3 +1205,13 @@ void ASMs2Dmx::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
     for (size_t b = 1; b <= this->getNoBasis(); ++b)
       this->ASMs2D::getBoundaryNodes(lIndex, nodes, b, thick, 0, local);
 }
+
+
+bool ASMs2Dmx::updateCoords (const Vector& displ)
+{
+  if (!surf) return true; // silently ignore empty patches
+  if (shareFE) return true;
+
+  surf->deform(displ,nsd);
+  return true;
+}

@@ -1643,7 +1643,7 @@ bool ASMs3D::updateCoords (const Vector& displ)
   if (!svol) return true; // silently ignore empty patches
   if (shareFE) return true;
 
-  if (displ.size() != 3*MLGN.size())
+  if (displ.size() < 3*MLGN.size())
   {
     std::cerr <<" *** ASMs3D::updateCoords: Invalid dimension "
 	      << displ.size() <<" on displacement vector, should be "
