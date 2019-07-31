@@ -171,6 +171,9 @@ public:
   //! \brief Get vector of block matrices. Used for tests only.
   const std::vector<Mat>& getBlockMatrices() const { return matvec; }
 
+  //! \brief Get vector of index sets.
+  const std::vector<IS>& getIS() const { return isvec; }
+
   //! \brief Set the linear solver parameters (solver type, preconditioner, tolerances).
   //! \param[in] P Preconditioner  matrix (ignored here)
   //! \param[in] Pb Preconditioner vector (ignored here)
