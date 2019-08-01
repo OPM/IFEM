@@ -42,7 +42,7 @@ static const double T4[8] = {
 };
 //! \brief 4-point rule weights.
 static const double W4[4] = {
- -0.5635,
+ -0.5625,
   0.5208333333333333,
   0.5208333333333333,
   0.5208333333333333,
