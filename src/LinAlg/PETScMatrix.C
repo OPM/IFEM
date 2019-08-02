@@ -13,6 +13,7 @@
 
 #include "PETScMatrix.h"
 #include "PETScSolParams.h"
+#include "PETScSchurPC.h"
 #include "LinSolParams.h"
 #include "LinAlgInit.h"
 #include "SAMpatchPETSc.h"
@@ -756,7 +757,10 @@ bool PETScMatrix::setParameters(PETScMatrix* P, PETScVector* Pb)
 
       KSPSetType(subksp[m],"preonly");
       KSPGetPC(subksp[m],&subpc[m]);
-      solParams.setupPC(subpc[m], m, prefix, adm.dd.getBlockEqs(m));
+      if (solParams.getBlock(m).getStringValue("pc") == "schur")
+        new PETScSchurPC(subpc[m], matvec, solParams.getBlock(m), adm);
+      else
+        solParams.setupPC(subpc[m], m, prefix, adm.dd.getBlockEqs(m));
     }
   }
 

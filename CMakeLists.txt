@@ -92,6 +92,7 @@ if(NOT PETSC_FOUND)
                    ${PROJECT_SOURCE_DIR}/src/LinAlg/PETScPCPerm.C
                    ${PROJECT_SOURCE_DIR}/src/LinAlg/PETScPCProd.C
                    ${PROJECT_SOURCE_DIR}/src/LinAlg/PETScPCScale.C
+                   ${PROJECT_SOURCE_DIR}/src/LinAlg/PETScSchurPC.C
                    ${PROJECT_SOURCE_DIR}/src/LinAlg/PETScSolParams.C)
 endif()
 
