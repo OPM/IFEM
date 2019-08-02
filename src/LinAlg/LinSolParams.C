@@ -65,20 +65,20 @@ bool SettingMap::hasValue(const std::string& key) const
 LinSolParams::BlockParams::BlockParams() :
   basis(1), comps(0)
 {
-  addValue("pc", "default");
-  addValue("multigrid_ksp", "defrichardson");
+  this->addValue("pc", "default");
+  this->addValue("multigrid_ksp", "defrichardson");
 }
 
 LinSolParams::LinSolParams()
   : blocks(1)
 {
-  addValue("type", "gmres");
-  addValue("rtol", "1e-6");
-  addValue("atol", "1e-20");
-  addValue("dtol", "1e6");
-  addValue("maxits", "1000");
-  addValue("gmres_restart_iterations", "100");
-  addValue("verbosity", "1");
+  this->addValue("type", "gmres");
+  this->addValue("rtol", "1e-6");
+  this->addValue("atol", "1e-20");
+  this->addValue("dtol", "1e6");
+  this->addValue("maxits", "1000");
+  this->addValue("gmres_restart_iterations", "100");
+  this->addValue("verbosity", "1");
 }
 
 
@@ -93,23 +93,23 @@ bool LinSolParams::BlockParams::read(const TiXmlElement* elem, const std::string
     if (!strcasecmp(child->Value(), "multigrid")) {
       std::string v;
       if (utl::getAttribute(child, "smoother", v))
-        addValue("multigrid_smoother", v);
+        this->addValue("multigrid_smoother", v);
       if (utl::getAttribute(child, "levels", v))
-        addValue("multigrid_levels", v);
+        this->addValue("multigrid_levels", v);
       if (utl::getAttribute(child, "no_smooth", v)) {
-        addValue("multigrid_no_smooth", v);
-        addValue("multigrid_no_fine_smooth", v);
+        this->addValue("multigrid_no_smooth", v);
+        this->addValue("multigrid_no_fine_smooth", v);
       }
       if (utl::getAttribute(child, "finesmoother", v))
-        addValue("multigrid_finesmoother", v);
+        this->addValue("multigrid_finesmoother", v);
       if (utl::getAttribute(child, "multigrid_no_fine_smooth", v))
-        addValue("multigrid_no_fine_smooth", v);
+        this->addValue("multigrid_no_fine_smooth", v);
       if (utl::getAttribute(child, "ksp", v))
-        addValue("multigrid_ksp", v);
+        this->addValue("multigrid_ksp", v);
       if (utl::getAttribute(child, "coarse_solver", v))
-        addValue("multigrid_coarse_solver", v);
+        this->addValue("multigrid_coarse_solver", v);
       if (utl::getAttribute(child, "max_coarse_size", v))
-        addValue("multigrid_max_coarse_size", v);
+        this->addValue("multigrid_max_coarse_size", v);
     } else if (!strcasecmp(child->Value(),"dirsmoother")) {
       int order;
       std::string type;
@@ -123,13 +123,13 @@ bool LinSolParams::BlockParams::read(const TiXmlElement* elem, const std::string
     } else if (!strcasecmp(child->Value(), "asm")) {
       std::string v;
       if (utl::getAttribute(child, "nx", v))
-        addValue("asm_nx", v);
+        this->addValue("asm_nx", v);
       else if (utl::getAttribute(child, "ny", v))
-        addValue("asm_ny", v);
+        this->addValue("asm_ny", v);
       else if (utl::getAttribute(child, "nz", v))
-        addValue("asm_nz", v);
+        this->addValue("asm_nz", v);
       else if (utl::getAttribute(child, "overlap", v))
-        addValue("asm_overlap", v);
+        this->addValue("asm_overlap", v);
     } else { // generic value or container tag - add with tag name as key
       std::string key = child->Value();
       if (child->FirstChildElement()) {
@@ -137,17 +137,17 @@ bool LinSolParams::BlockParams::read(const TiXmlElement* elem, const std::string
           return false;
       } else
         if (value = utl::getValue(child, key.c_str()))
-          addValue(prefix+key, value);
+          this->addValue(prefix+key, value);
     }
 
-  if (!hasValue("multigrid_finesmoother") && hasValue("multigrid_smoother"))
-    addValue("multigrid_finesmoother", getStringValue("multigrid_smoother"));
+  if (!this->hasValue("multigrid_finesmoother") && this->hasValue("multigrid_smoother"))
+    this->addValue("multigrid_finesmoother", this->getStringValue("multigrid_smoother"));
 
-  if (!hasValue("multigrid_finesmoother") && hasValue("multigrid_smoother"))
-    addValue("multigrid_finesmoother", getStringValue("multigrid_smoother"));
+  if (!this->hasValue("multigrid_finesmoother") && this->hasValue("multigrid_smoother"))
+    this->addValue("multigrid_finesmoother", this->getStringValue("multigrid_smoother"));
 
-  if (!hasValue("multigrid_no_smooth") || getIntValue("multgrid_no_smooth") < 1)
-    addValue("multigrid_no_smooth", "1");
+  if (!this->hasValue("multigrid_no_smooth") || this->getIntValue("multgrid_no_smooth") < 1)
+    this->addValue("multigrid_no_smooth", "1");
 
   return true;
 }
@@ -156,32 +156,32 @@ bool LinSolParams::BlockParams::read(const TiXmlElement* elem, const std::string
 bool LinSolParams::read (const TiXmlElement* elem)
 {
   if (elem->Attribute("verbosity"))
-    addValue("verbosity", elem->Attribute("verbosity"));
+    this->addValue("verbosity", elem->Attribute("verbosity"));
 
   const TiXmlElement* child = elem->FirstChildElement();
   int parseblock = 0;
   for (; child; child = child->NextSiblingElement()) {
     const char* value;
     if ((value = utl::getValue(child,"type")))
-      addValue("type", value);
+      this->addValue("type", value);
     else if ((value = utl::getValue(child,"gmres_restart_iterations")))
-      addValue("gmres_restart_iterations", value);
+      this->addValue("gmres_restart_iterations", value);
     else if ((value = utl::getValue(child,"pc")))
-      addValue("pc", value);
+      this->addValue("pc", value);
     else if ((value = utl::getValue(child,"schur")))
-      addValue("schur", value);
+      this->addValue("schur", value);
     else if (!strcasecmp(child->Value(),"block")) {
       blocks.resize(++parseblock);
       blocks.back().read(child);
     }
     else if ((value = utl::getValue(child,"atol")))
-      addValue("atol", value);
+      this->addValue("atol", value);
     else if ((value = utl::getValue(child,"rtol")))
-      addValue("rtol", value);
+      this->addValue("rtol", value);
     else if ((value = utl::getValue(child,"dtol")))
-      addValue("dtol", value);
+      this->addValue("dtol", value);
     else if ((value = utl::getValue(child,"maxits")))
-      addValue("maxits", value);
+      this->addValue("maxits", value);
   }
 
   if (parseblock == 0)
