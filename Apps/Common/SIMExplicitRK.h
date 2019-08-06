@@ -31,7 +31,9 @@ public:
   //! \brief Constructor
   //! \param solv The simulator to do time stepping for
   //! \param type The Runge-Kutta scheme to use
-  SIMExplicitRK(Solver& solv, Method type) : solver(solv)
+  //! \param standalone If true, this is a standalone solver
+  SIMExplicitRK(Solver& solv, Method type, bool standalone = true) :
+    solver(solv), alone(standalone)
   {
     if (type == EULER) {
       RK.order = 1;
@@ -83,7 +85,8 @@ public:
   //! \copydoc ISolver::solveStep(TimeStep&)
   virtual bool solveStep(TimeStep& tp)
   {
-    solver.getProcessAdm().cout <<"\n  step = "<< tp.step <<"  time = "<< tp.time.t << std::endl;
+    if (alone)
+      solver.getProcessAdm().cout <<"\n  step = "<< tp.step <<"  time = "<< tp.time.t << std::endl;
 
     Vectors stages;
     return this->solveRK(stages, tp);
@@ -120,8 +123,9 @@ public:
       solver.getSolution().add(stages[i], tp.time.dt*RK.b[i]);
     solver.applyDirichlet(solver.getSolution());
 
-    solver.printSolutionSummary(solver.getSolution(), 0,
-                                solver.getProblem()->getField1Name(1).c_str());
+    if (alone)
+      solver.printSolutionSummary(solver.getSolution(), 0,
+                                  solver.getProblem()->getField1Name(1).c_str());
 
     return true;
   }
@@ -167,6 +171,7 @@ public:
 protected:
   Solver& solver; //!< Reference to simulator
   RKTableaux RK;  //!< Tableaux of Runge-Kutta coefficients
+  bool alone; //!< If true, this is a standalone solver
 };
 
 }
