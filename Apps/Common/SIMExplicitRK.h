@@ -13,6 +13,7 @@
 #ifndef SIM_EXPLICIT_RK_H_
 #define SIM_EXPLICIT_RK_H_
 
+#include "SIMenums.h"
 #include "TimeIntUtils.h"
 #include "TimeStep.h"
 
@@ -109,12 +110,16 @@ public:
       time.t = tp.time.t+tp.time.dt*(RK.c[i]-1.0);
       solver.updateDirichlet(time.t, &dum);
       solver.applyDirichlet(tmp);
-      if (!solver.assembleSystem(time, Vectors(1, tmp)))
+      if (!solver.assembleSystem(time, Vectors(1, tmp),
+                                 !linear || (tp.step == 1 && i == 0)))
         return false;
 
       // solve Mu = Au + f
       if (!solver.solveSystem(stages[i]))
         return false;
+
+      if (linear)
+        solver.setMode(SIM::RHS_ONLY);
     }
 
     // finally construct solution as weighted stages
@@ -168,10 +173,14 @@ public:
     return solver.deSerialize(data);
   }
 
+  //! \brief Mark operator as linear to avoid repeated assembly and factorization.
+  void setLinear(bool enable) { linear = enable; }
+
 protected:
   Solver& solver; //!< Reference to simulator
   RKTableaux RK;  //!< Tableaux of Runge-Kutta coefficients
   bool alone; //!< If true, this is a standalone solver
+  bool linear = false; //!< If true, this is a linear equation
 };
 
 }
