@@ -901,9 +901,29 @@ bool SIMoutput::eval2ndSolution (const Vector& psol, double time, int psolComps)
 }
 
 
+/*!
+  \brief Static helper to update (patch-wise) maximum result values.
+  \param maxVal Array of maximum values
+  \param[in] res Result value at current point
+  \param[in] pidx Zero-based patch index of current point
+  \param[in] Xpt Coordinates of current point
+*/
+
+static bool updateMaxVal (PointValues& maxVal, double res,
+                          size_t pidx, const Vec3& Xpt)
+{
+  if (maxVal.size() != 1 && pidx >= maxVal.size())
+    return false; // Patch index out of range
+
+  PointValue& pv = maxVal.size() > 1 ? maxVal[pidx] : maxVal.front();
+  if (fabs(res) > fabs(pv.second)) pv = std::make_pair(Xpt,res);
+  return true;
+}
+
+
 bool SIMoutput::writeGlvP (const Vector& ssol, int iStep, int& nBlock,
                            int idBlock, const char* prefix,
-                           std::vector<PointValue>* maxVal)
+                           std::vector<PointValues>* maxVal)
 {
   if (adm.dd.isPartitioned() && adm.getProcId() != 0)
     return true;
@@ -951,10 +971,8 @@ bool SIMoutput::writeGlvP (const Vector& ssol, int iStep, int& nBlock,
       for (j = 0; j < maxVal->size() && j < field.rows(); j++)
       {
         size_t indx = 0;
-        double cmax = field.getRow(1+j).normInf(indx);
-        PointValue& pv = (*maxVal)[j];
-        if (fabs(cmax) > fabs(pv.second))
-          pv = std::make_pair(grid->getCoord(indx-1),cmax);
+        double cmax = field.getRow(1+j).normInf(indx,1,true);
+        updateMaxVal((*maxVal)[j],cmax,pch->idx,grid->getCoord(indx-1));
       }
   }
 
@@ -988,7 +1006,7 @@ bool SIMoutput::writeScalarFields (const Matrix& field, int geomID,
 
 
 bool SIMoutput::evalProjSolution (const Vector& ssol,
-                                  std::vector<PointValue>& maxVal)
+                                  std::vector<PointValues>& maxVal)
 {
   if (ssol.empty())
     return true;
@@ -1016,9 +1034,8 @@ bool SIMoutput::evalProjSolution (const Vector& ssol,
     {
       // Update extremal values
       size_t indx = 0;
-      double cmax = field.getRow(1+j).normInf(indx);
-      if (fabs(cmax) > fabs(maxVal[j].second))
-        maxVal[j] = std::make_pair(grid->getCoord(indx-1),cmax);
+      double cmax = field.getRow(1+j).normInf(indx,1,true);
+      updateMaxVal(maxVal[j],cmax,pch->idx,grid->getCoord(indx-1));
     }
   }
 

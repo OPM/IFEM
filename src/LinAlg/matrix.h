@@ -175,11 +175,12 @@ namespace utl //! General utility classes and functions.
     //! \param[in] off Index offset relative to the first vector component
     //! \param[in] inc Increment in the vector component indices
     T norm2(size_t off = 0, int inc = 1) const;
-    //! \brief Return the infinite norm of the vector.
+    //! \brief Return the infinite norm of the vector, or signed max value.
     //! \param off Index offset relative to the first vector component on input,
     //! 1-based index of the largest vector component on output
     //! \param[in] inc Increment in the vector component indices
-    T normInf(size_t& off, int inc = 1) const;
+    //! \param[in] sign If \e true, return the sign of the actual max value
+    T normInf(size_t& off, int inc = 1, bool sign = false) const;
     //! \brief Return the infinite norm of the vector (no index offset).
     //! \param[in] inc Increment in the vector component indices
     T normInf(int inc = 1) const { size_t o = 0; return this->normInf(o,inc); }
@@ -919,25 +920,25 @@ namespace utl //! General utility classes and functions.
   }
 
   template<> inline
-  float vector<float>::normInf(size_t& off, int inc) const
+  float vector<float>::normInf(size_t& off, int inc, bool sign) const
   {
     if (inc < 1 || this->empty())
       return 0.0f;
 
     const float* v = this->ptr() + off;
     off = 1 + cblas_isamax(this->size()/inc,v,inc);
-    return fabsf(v[(off-1)*inc]);
+    return sign ? v[(off-1)*inc] : fabsf(v[(off-1)*inc]);
   }
 
   template<> inline
-  double vector<double>::normInf(size_t& off, int inc) const
+  double vector<double>::normInf(size_t& off, int inc, bool sign) const
   {
     if (inc < 1 || this->empty())
       return 0.0;
 
     const double* v = this->ptr() + off;
     off = 1 + cblas_idamax(this->size()/inc,v,inc);
-    return fabs(v[(off-1)*inc]);
+    return sign ? v[(off-1)*inc] : fabs(v[(off-1)*inc]);
   }
 
   template<> inline
@@ -1302,25 +1303,27 @@ namespace utl //! General utility classes and functions.
   }
 
   template<class T> inline
-  T vector<T>::normInf(size_t& off, int inc) const
+  T vector<T>::normInf(size_t& off, int inc, bool sign) const
   {
     T xmax = T(0);
     if (inc < 1) return xmax;
 
+    T amax = T(0);
     const T* v = this->ptr();
     for (size_t i = off; i < this->size(); i += inc)
-      if (v[i] > xmax)
+      if (v[i] > amax)
+      {
+        off = 1+i/inc;
+        xmax = amax = v[i];
+      }
+      else if (v[i] < -amax)
       {
         off = 1+i/inc;
         xmax = v[i];
-      }
-      else if (v[i] < -xmax)
-      {
-        off = 1+i/inc;
-        xmax = -v[i];
+        amax = -xmax;
       }
 
-    return xmax;
+    return sign ? xmax : amax;
   }
 
   template<class T> inline

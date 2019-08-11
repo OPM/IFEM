@@ -1678,6 +1678,8 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
     // Initialize material properties for this patch in case of multiple regions
     const_cast<SIMbase*>(this)->setPatchMaterial(i+1);
 
+    LocalSystem::patch = i; // Hack: Used for patch-wise max-value calculation
+
     // Project the secondary solution and retrieve control point values
     bool ok = false;
     switch (pMethod) {

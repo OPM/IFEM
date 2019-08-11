@@ -19,7 +19,8 @@
 
 class VTF;
 
-typedef std::pair<Vec3,double> PointValue; //!< Convenience type
+typedef std::pair<Vec3,double>  PointValue;  //!< Convenience type
+typedef std::vector<PointValue> PointValues; //!< Convenience type
 
 
 /*!
@@ -157,7 +158,7 @@ public:
   //! \param[in] maxVal Optional array of maximum values
   bool writeGlvP(const Vector& ssol, int iStep, int& nBlock,
                  int idBlock = 100, const char* prefix = "Global projected",
-                 std::vector<PointValue>* maxVal = nullptr);
+                 std::vector<PointValues>* maxVal = nullptr);
 
   //! \brief Evaluates the projected solution for a given load/time step.
   //! \param[in] ssol Secondary solution vector (control point values)
@@ -165,7 +166,7 @@ public:
   //!
   //! \details This method only evaluates/updates the maximum values of the
   //! secondary solution fields (i.e. same as writeGlvP but without VTF output).
-  bool evalProjSolution(const Vector& ssol, std::vector<PointValue>& maxVal);
+  bool evalProjSolution(const Vector& ssol, std::vector<PointValues>& maxVal);
 
   //! \brief Writes a mode shape to the VTF-file.
   //! \param[in] mode The mode shape eigenvector and associated eigenvalue
