@@ -29,21 +29,25 @@ namespace TimeIntegration
     NONE            = 0, //!< No time integration
 
     // Explicit methods
-    EULER           = 1, //!< Forward Euler, explicit
-    HEUN            = 2, //!< Heun-Euler, explicit
-    RK3             = 3, //!< Kutta's third order method, explicit
-    RK4             = 4, //!< Kutta's fourth order method, explicit
+    EULER, //!< Forward Euler, explicit
+    HEUN,  //!< Heun-Euler, explicit
+    RK3,   //!< Kutta's third order method, explicit
+    RK4,   //!< Kutta's fourth order method, explicit
+    AB2,   //!< Second order Adams-Bashforth, explicit
+    AB3,   //!< Third order Adams-Bashforth, explicit
+    AB4,   //!< Fourth order Adams-Bashforth, explicit
+    AB5,   //!< Fifth order Adams-Bashforth, explicit
 
     // Implicit methods
-    BE              = 5, //!< Backward Euler, implicit
-    BDF2            = 6, //!< Second order backward differencing, implicit
+    BE,    //!< Backward Euler, implicit
+    BDF2,  //!< Second order backward differencing, implicit
 
     // Embedded, explicit methods
-    HEUNEULER       = 7, //!< Heun-Euler embedded order 1(2)
-    BOGACKISHAMPINE = 8, //!< Bogacki-Shampine order 2(3)
-    FEHLBERG        = 9, //!< Runge-Kutta-Fehlberg order 4(5)
+    HEUNEULER,       //!< Heun-Euler embedded order 1(2)
+    BOGACKISHAMPINE, //!< Bogacki-Shampine order 2(3)
+    FEHLBERG,        //!< Runge-Kutta-Fehlberg order 4(5)
 
-    THETA           = 10 //!< Theta rule (includes EULER, BE and Crank-Nicolson)
+    THETA //!< Theta rule (includes EULER, BE and Crank-Nicolson)
   };
 
   //! \brief Struct holding a Runge-Kutta tableaux.

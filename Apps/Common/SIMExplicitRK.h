@@ -180,7 +180,7 @@ protected:
   Solver& solver; //!< Reference to simulator
   RKTableaux RK;  //!< Tableaux of Runge-Kutta coefficients
   bool alone; //!< If true, this is a standalone solver
-  bool linear = false; //!< If true, this is a linear equation
+  bool linear = false; //!< If true mass matrix is constant
 };
 
 }
