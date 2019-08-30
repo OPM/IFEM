@@ -71,6 +71,7 @@ private:
     char   basis; //!< Basis associated with the block
     size_t ncmp;  //!< Number of nodal components for the block
     size_t idof;  //!< The first element DOF of the block
+
     //! \brief Default constructor.
     Block(size_t c = 0, char b = 0) : basis(b), ncmp(c), idof(0) {}
   };
@@ -80,6 +81,7 @@ private:
   {
     size_t nen;  //!< Number of element nodes for the basis
     size_t ncmp; //!< Number of nodal components for the basis
+
     //! \brief Default constructor.
     Basis() : nen(0), ncmp(0) {}
   };

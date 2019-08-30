@@ -343,7 +343,7 @@ bool ASMbase::globalL2projection (Matrix& sField,
 #ifdef HAS_PETSC
   if (GlbL2::MatrixType == SystemMatrix::PETSC && GlbL2::SolverParams)
   {
-    A = new PETScMatrix(ProcessAdm(), *GlbL2::SolverParams, LinAlg::SYMMETRIC);
+    A = new PETScMatrix(ProcessAdm(), *GlbL2::SolverParams);
     B = new PETScVector(ProcessAdm(), nnod*ncomp);
   }
   else

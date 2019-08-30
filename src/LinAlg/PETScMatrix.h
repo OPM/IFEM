@@ -15,11 +15,9 @@
 #ifndef _PETSC_MATRIX_H
 #define _PETSC_MATRIX_H
 
-#include "SystemMatrix.h"
 #include "SparseMatrix.h"
 #include "PETScSupport.h"
 #include "PETScSolParams.h"
-#include "LinAlgenums.h"
 #include <set>
 
 typedef std::vector<PetscInt>    PetscIntVec;  //!< PETSc integer vector
@@ -100,8 +98,7 @@ class PETScMatrix : public SparseMatrix
 {
 public:
   //! \brief Constructor.
-  PETScMatrix(const ProcessAdm& padm, const LinSolParams& spar,
-              LinAlg::LinearSystemType ltype);
+  PETScMatrix(const ProcessAdm& padm, const LinSolParams& spar);
   //! \brief The destructor frees the dynamically allocated arrays.
   virtual ~PETScMatrix();
 
@@ -203,7 +200,7 @@ protected:
   PetscRealVec        coords;          //!< Coordinates of local nodes (x0,y0,z0,x1,y1,...)
   ISMat               dirIndexSet;     //!< Direction ordering
   int                 nLinSolves;      //!< Number of linear solves
-  LinAlg::LinearSystemType linsysType; //!< Linear system type
+
   IS glob2LocEq = nullptr; //!< Index set for global-to-local equations.
   std::vector<Mat> matvec; //!< Blocks for block matrices.
 

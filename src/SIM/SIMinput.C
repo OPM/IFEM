@@ -19,6 +19,7 @@
 #ifdef HAS_LRSPLINE
 #include "ASMLRSpline.h"
 #endif
+#include "IntegrandBase.h"
 #include "GlbL2projector.h"
 #include "LinSolParams.h"
 #include "DualField.h"
@@ -752,11 +753,19 @@ bool SIMinput::parse (const TiXmlElement* elem)
   if (!strcasecmp(elem->Value(),"linearsolver"))
   {
     if (!mySolParams)
-      mySolParams = new LinSolParams();
+    {
+      if (myProblem)
+        mySolParams = new LinSolParams(myProblem->getLinearSystemType());
+      else
+        mySolParams = new LinSolParams();
+    }
     result &= mySolParams->read(elem);
-    // for now use same solver parameters for l2
     if (GlbL2::MatrixType == SystemMatrix::PETSC)
-      GlbL2::SolverParams = mySolParams;
+    {
+      // For now use same solver parameters in the L2-projection
+      myGl2Params = new LinSolParams(*mySolParams,LinAlg::SYMMETRIC);
+      GlbL2::SolverParams = myGl2Params;
+    }
   }
 
   const TiXmlElement* child = elem->FirstChildElement();

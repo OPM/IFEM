@@ -13,20 +13,23 @@
 //!
 //==============================================================================
 
-#ifndef _LINSOLPARAMS_H
-#define _LINSOLPARAMS_H
+#ifndef _LIN_SOL_PARAMS_H
+#define _LIN_SOL_PARAMS_H
 
-#include <array>
-#include <iostream>
+#include "LinAlgenums.h"
 #include <map>
 #include <string>
 #include <vector>
 
+class TiXmlElement;
+
+
 /*!
- \brief A key-value store for settings.
+  \brief A key-value store for settings.
 */
 
-class SettingMap {
+class SettingMap
+{
 public:
   //! \brief Add a value to the store.
   //! \param[in] key The key
@@ -48,11 +51,10 @@ public:
   //! \brief Checks if the store holds a value for a key.
   //! \param[in] key The key
   bool hasValue(const std::string& key) const;
-private:
-  std::map<std::string, std::string> values; //!< Map of key-value pairs
-};
 
-class TiXmlElement;
+protected:
+  std::map<std::string,std::string> values; //!< Map of key-value pairs
+};
 
 
 /*!
@@ -65,22 +67,26 @@ class LinSolParams : public SettingMap
 {
 public:
   //! \brief Default constructor.
-  LinSolParams();
+  LinSolParams(LinAlg::LinearSystemType ls = LinAlg::GENERAL_MATRIX);
+  //! \brief Copy constructor.
+  LinSolParams(const LinSolParams& par,
+               LinAlg::LinearSystemType ls = LinAlg::GENERAL_MATRIX);
 
   //! \brief Read linear solver parameters from XML document.
   bool read(const TiXmlElement* elem);
 
   //! \brief Linear solver settings for a block of the linear system
-  class BlockParams : public SettingMap {
+  class BlockParams : public SettingMap
+  {
   public:
     //! \brief Default constructor
     BlockParams();
 
     //! \brief Settings for a directional smoother
-    class DirSmoother {
-      public:
-        int order; //!< Ordering of DOFs
-        std::string type; //!< Directional smoother types
+    struct DirSmoother
+    {
+      int order;        //!< Ordering of DOFs
+      std::string type; //!< Directional smoother types
     };
 
     //! \brief Read settings from XML block
@@ -98,8 +104,13 @@ public:
 
   //! \brief Obtain settings for a given block
   const BlockParams& getBlock(size_t i) const { return blocks[i]; }
+
+  //! \brief Returns the linear system type.
+  LinAlg::LinearSystemType getLinSysType() const { return linSys; }
+
 private:
   std::vector<BlockParams> blocks; //!< Parameters for each block
+  LinAlg::LinearSystemType linSys; //!< Type of linear system matrix
 };
 
 #endif

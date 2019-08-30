@@ -19,7 +19,7 @@
 #endif
 
 
-AlgEqSystem::AlgEqSystem (const SAM& s, const ProcessAdm& a) : sam(s), adm(a)
+AlgEqSystem::AlgEqSystem (const SAM& s, const ProcessAdm* a) : sam(s), adm(a)
 {
   d = &c;
 }
@@ -27,8 +27,7 @@ AlgEqSystem::AlgEqSystem (const SAM& s, const ProcessAdm& a) : sam(s), adm(a)
 
 bool AlgEqSystem::init (SystemMatrix::Type mtype, const LinSolParams* spar,
                         size_t nmat, size_t nvec, size_t nscl,
-                        bool withReactions, LinAlg::LinearSystemType ltype,
-                        int num_threads_SLU)
+                        bool withReactions, int num_threads_SLU)
 {
   // Using the sign of the num_threads_SLU argument to flag this (convenience)
   bool dontLockSparsityPattern = num_threads_SLU < 0;
@@ -50,9 +49,9 @@ bool AlgEqSystem::init (SystemMatrix::Type mtype, const LinSolParams* spar,
     if (!A[i]._A)
     {
       if (spar)
-        A[i]._A = SystemMatrix::create(adm,mtype,*spar,ltype);
+        A[i]._A = SystemMatrix::create(adm,mtype,*spar);
       else
-        A[i]._A = SystemMatrix::create(adm,mtype,ltype,abs(num_threads_SLU));
+        A[i]._A = SystemMatrix::create(adm,mtype,abs(num_threads_SLU));
       if (!A[i]._A) return false;
     }
 

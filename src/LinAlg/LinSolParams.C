@@ -14,10 +14,7 @@
 #include "LinSolParams.h"
 #include "Utilities.h"
 #include "tinyxml.h"
-#include <fstream>
-#include <sstream>
-#include <utility>
-#include <iterator>
+#include <cstdlib>
 
 
 void SettingMap::addValue(const std::string& key, const std::string& value)
@@ -62,15 +59,13 @@ bool SettingMap::hasValue(const std::string& key) const
 }
 
 
-LinSolParams::BlockParams::BlockParams() :
-  basis(1), comps(0)
+LinSolParams::BlockParams::BlockParams () : basis(1), comps(0)
 {
   this->addValue("pc", "default");
   this->addValue("multigrid_ksp", "defrichardson");
 }
 
-LinSolParams::LinSolParams()
-  : blocks(1)
+LinSolParams::LinSolParams (LinAlg::LinearSystemType ls) : blocks(1), linSys(ls)
 {
   this->addValue("type", "gmres");
   this->addValue("rtol", "1e-6");
@@ -79,6 +74,12 @@ LinSolParams::LinSolParams()
   this->addValue("maxits", "1000");
   this->addValue("gmres_restart_iterations", "100");
   this->addValue("verbosity", "1");
+}
+
+LinSolParams::LinSolParams (const LinSolParams& p, LinAlg::LinearSystemType ls)
+  : blocks(p.blocks), linSys(ls)
+{
+  values = p.values;
 }
 
 

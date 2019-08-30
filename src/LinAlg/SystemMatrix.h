@@ -15,7 +15,6 @@
 #define _SYSTEM_MATRIX_H
 
 #include "MatVec.h"
-#include "LinAlgenums.h"
 
 class SAM;
 class LinSolParams;
@@ -33,7 +32,7 @@ public:
   enum Type { STD = 0, PETSC = 1, ISTL = 2 };
 
   //! \brief Static method creating a vector of the given type.
-  static SystemVector* create(const ProcessAdm& padm, Type vectorType = STD);
+  static SystemVector* create(const ProcessAdm* adm, Type vectorType = STD);
 
 protected:
   //! \brief The default constructor is protected to allow sub-classes only.
@@ -190,6 +189,7 @@ protected:
   { return os << static_cast<const utl::vector<Real>&>(*this); }
 };
 
+
 /*!
   \brief Base class for representing a system matrix on different formats.
   \details The purpose of this class is to define a clean interface for the
@@ -206,13 +206,11 @@ public:
               PETSC = 4, ISTL = 5, UMFPACK = 6 };
 
   //! \brief Static method creating a matrix of the given type.
-  static SystemMatrix* create(const ProcessAdm& padm, Type matrixType,
-                              LinAlg::LinearSystemType ltype,
+  static SystemMatrix* create(const ProcessAdm* adm, Type matrixType,
                               int num_thread_SLU = 1);
   //! \brief Static method creating a matrix of the given type.
-  static SystemMatrix* create(const ProcessAdm& padm, Type matrixType,
-                              const LinSolParams& spar,
-                              LinAlg::LinearSystemType ltype);
+  static SystemMatrix* create(const ProcessAdm* adm, Type matrixType,
+                              const LinSolParams& spar);
 
 protected:
   //! \brief Default constructor.

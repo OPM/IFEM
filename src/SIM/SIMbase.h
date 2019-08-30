@@ -748,6 +748,7 @@ protected:
   AlgEqSystem*  myEqSys;     //!< The actual linear equation system
   SAM*          mySam;       //!< Auxiliary data for FE assembly management
   LinSolParams* mySolParams; //!< Input parameters for PETSc
+  LinSolParams* myGl2Params; //!< Input parameters for PETSc, for L2 projection
 
 private:
   size_t nIntGP; //!< Number of interior integration points in the whole model

@@ -13,21 +13,18 @@
 //!
 //==============================================================================
 
-#ifndef _PETSCSOLPARAMS_H
-#define _PETSCSOLPARAMS_H
+#ifndef _PETSC_SOL_PARAMS_H
+#define _PETSC_SOL_PARAMS_H
 
 #include "LinSolParams.h"
 #include "PETScSupport.h"
 
-#include <iostream>
 #include <set>
 #include <string>
 #include <vector>
 
-
 class ProcessAdm;
 class SettingMap;
-
 
 typedef std::vector<int>         IntVec;       //!< Integer vector
 typedef std::vector<IntVec>      IntMat;       //!< Integer matrix
@@ -84,6 +81,9 @@ public:
 
   //! \brief Get string setting
   std::string getStringValue(const std::string& key) const { return params.getStringValue(key); }
+
+  //! \brief Returns the linear system type.
+  LinAlg::LinearSystemType getLinSysType() const { return params.getLinSysType(); }
 
 protected:
   //! \brief Set directional smoother

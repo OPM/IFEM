@@ -13,27 +13,27 @@
 
 #include "SystemMatrix.h"
 #include "DenseMatrix.h"
-#ifdef HAS_ISTL
-#include "ISTLMatrix.h"
-#endif
 #include "SPRMatrix.h"
 #include "SparseMatrix.h"
 #ifdef HAS_PETSC
 #include "PETScMatrix.h"
 #endif
+#ifdef HAS_ISTL
+#include "ISTLMatrix.h"
+#endif
 #include "LinSolParams.h"
 
 
-SystemVector* SystemVector::create (const ProcessAdm& adm, Type vectorType)
+SystemVector* SystemVector::create (const ProcessAdm* adm, Type vectorType)
 {
   switch (vectorType)
     {
     case STD   : return new StdVector();
 #ifdef HAS_ISTL
-    case ISTL  : return new ISTLVector(adm);
+    case ISTL  : if (adm) return new ISTLVector(*adm);
 #endif
 #ifdef HAS_PETSC
-    case PETSC : return new PETScVector(adm);
+    case PETSC : if (adm) return new PETScVector(*adm);
 #endif
     default:
       std::cerr <<"SystemVector::create: Unsupported vector type "
@@ -71,25 +71,23 @@ void StdVector::dump (std::ostream& os, char format, const char* label)
 }
 
 
-SystemMatrix* SystemMatrix::create (const ProcessAdm& padm, Type matrixType,
-                                    const LinSolParams& spar,
-                                    LinAlg::LinearSystemType ltype)
+SystemMatrix* SystemMatrix::create (const ProcessAdm* adm, Type matrixType,
+                                    const LinSolParams& spar)
 {
 #ifdef HAS_PETSC
-  if (matrixType == PETSC)
-    return new PETScMatrix(padm,spar,ltype);
+  if (matrixType == PETSC && adm)
+    return new PETScMatrix(*adm,spar);
 #endif
 #ifdef HAS_ISTL
-  if (matrixType == ISTL)
-    return new ISTLMatrix(padm,spar,ltype);
+  if (matrixType == ISTL && adm)
+    return new ISTLMatrix(*adm,spar);
 #endif
 
-  return SystemMatrix::create(padm,matrixType,ltype);
+  return SystemMatrix::create(adm,matrixType);
 }
 
 
-SystemMatrix* SystemMatrix::create (const ProcessAdm& padm, Type matrixType,
-                                    LinAlg::LinearSystemType ltype,
+SystemMatrix* SystemMatrix::create (const ProcessAdm* adm, Type matrixType,
                                     int num_thread_SLU)
 {
 #ifndef HAS_PETSC
@@ -119,18 +117,18 @@ SystemMatrix* SystemMatrix::create (const ProcessAdm& padm, Type matrixType,
     case SPARSE: return new SparseMatrix(SparseMatrix::SUPERLU,num_thread_SLU);
     case SAMG  : return new SparseMatrix(SparseMatrix::S_A_M_G);
     case UMFPACK: return new SparseMatrix(SparseMatrix::UMFPACK);
-#ifdef HAS_ISTL
-    case ISTL  : return new ISTLMatrix(padm,defaultPar,ltype);
-#endif
 #ifdef HAS_PETSC
-    case PETSC :      return new PETScMatrix(padm,defaultPar,ltype);
+    case PETSC : if (adm) return new PETScMatrix(*adm,defaultPar);
+#endif
+#ifdef HAS_ISTL
+    case ISTL  : if (adm) return new ISTLMatrix(*adm,defaultPar);
 #endif
     default:
       std::cerr <<"SystemMatrix::create: Unsupported matrix type "
                 << matrixType << std::endl;
     }
 
-  return 0;
+  return nullptr;
 }
 
 

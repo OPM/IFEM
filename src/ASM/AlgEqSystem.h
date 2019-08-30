@@ -16,7 +16,6 @@
 
 #include "GlobalIntegral.h"
 #include "SystemMatrix.h"
-#include "LinAlgenums.h"
 
 
 /*!
@@ -27,7 +26,7 @@ class AlgEqSystem : public GlobalIntegral
 {
 public:
   //! \brief The constructor sets its reference to SAM and ProcessAdm objects.
-  AlgEqSystem(const SAM& s, const ProcessAdm& a);
+  AlgEqSystem(const SAM& s, const ProcessAdm* a = nullptr);
 
   //! \brief The destructor frees the dynamically allocated objects.
   virtual ~AlgEqSystem() { this->clear(); }
@@ -39,11 +38,10 @@ public:
   //! \param[in] nvec Number of system vectors to allocate
   //! \param[in] nscl Number of scalar quantities to allocate
   //! \param[in] withReactions If \e false, no reaction forces will be computed
-  //! \param[in] ltype Linear system type
   //! \param[in] num_threads_SLU Number of threads for SuperLU_MT
-  bool init(SystemMatrix::Type mtype, const LinSolParams* spar,
-            size_t nmat, size_t nvec, size_t nscl, bool withReactions,
-            LinAlg::LinearSystemType ltype, int num_threads_SLU = 1);
+  bool init(SystemMatrix::Type mtype, const LinSolParams* spar = nullptr,
+            size_t nmat = 1, size_t nvec = 1, size_t nscl = 0,
+            bool withReactions = false, int num_threads_SLU = 1);
 
   //! \brief Erases the system matrices and frees dynamically allocated storage.
   void clear();
@@ -89,6 +87,7 @@ private:
   {
     SystemMatrix* _A; //!< The coefficient matrix
     SystemVector* _b; //!< Pointer to the associated right-hand-side vector
+
     //! \brief Constructor initializing the pointers to zero.
     SysMatrixPair() : _A(nullptr), _b(nullptr) {}
   };
@@ -100,7 +99,7 @@ private:
   Vector                     R; //!< Nodal reaction forces
 
   const SAM&        sam; //!< Data for FE assembly management
-  const ProcessAdm& adm; //!< Parallel process administrator
+  const ProcessAdm* adm; //!< Parallel process administrator
 };
 
 #endif

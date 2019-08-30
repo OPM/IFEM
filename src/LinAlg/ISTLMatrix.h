@@ -15,14 +15,11 @@
 #ifndef _ISTL_MATRIX_H
 #define _ISTL_MATRIX_H
 
-#include "SystemMatrix.h"
 #include "SparseMatrix.h"
 #include "ISTLSolParams.h"
-#include "LinAlgenums.h"
 #include <memory>
 
 class LinSolParams;
-class SAMpatch;
 
 
 /*!
@@ -99,8 +96,7 @@ class ISTLMatrix : public SparseMatrix
 {
 public:
   //! \brief Constructor.
-  ISTLMatrix(const ProcessAdm& padm, const LinSolParams& spar,
-             LinAlg::LinearSystemType ltype);
+  ISTLMatrix(const ProcessAdm& padm, const LinSolParams& spar);
   //! \brief Copy constructor.
   ISTLMatrix(const ISTLMatrix& A);
   //! \brief The destructor frees the dynamically allocated arrays.
@@ -163,5 +159,4 @@ protected:
   ISTLSolParams       solParams;       //!< Linear solver parameters
   bool                setParams;       //!< If linear solver parameters are set
   int                 nLinSolves;      //!< Number of linear solves
-  LinAlg::LinearSystemType linsysType; //!< Linear system type
 };

@@ -12,14 +12,8 @@
 //==============================================================================
 
 #include "ISTLMatrix.h"
-#include "LinSolParams.h"
+#include "SAM.h"
 #include "LinAlgInit.h"
-#include "ProcessAdm.h"
-#include "SIMenums.h"
-#include "ASMstruct.h"
-#include "Profiler.h"
-#include "SAMpatch.h"
-#include "DomainDecomposition.h"
 
 
 ISTLVector::ISTLVector(const ProcessAdm& padm) : adm(padm)
@@ -108,10 +102,8 @@ Real ISTLVector::Linfnorm() const
 }
 
 
-ISTLMatrix::ISTLMatrix (const ProcessAdm& padm, const LinSolParams& spar,
-                        LinAlg::LinearSystemType ltype) :
- SparseMatrix(SUPERLU, 1), adm(padm),
- solParams(spar, adm), linsysType(ltype)
+ISTLMatrix::ISTLMatrix (const ProcessAdm& padm, const LinSolParams& spar)
+  : SparseMatrix(SUPERLU,1), adm(padm), solParams(spar,adm)
 {
   LinAlgInit::increfs();
 
@@ -120,9 +112,8 @@ ISTLMatrix::ISTLMatrix (const ProcessAdm& padm, const LinSolParams& spar,
 }
 
 
-ISTLMatrix::ISTLMatrix (const ISTLMatrix& B) :
-  SparseMatrix(B), adm(B.adm),
-  solParams(B.solParams.get(), B.adm), linsysType(B.linsysType)
+ISTLMatrix::ISTLMatrix (const ISTLMatrix& B)
+  : SparseMatrix(B), adm(B.adm), solParams(B.solParams.get(),B.adm)
 {
   iA = B.iA;
 

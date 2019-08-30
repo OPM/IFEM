@@ -12,16 +12,10 @@
 //==============================================================================
 
 #include "PETScMatrix.h"
-#include "PETScSolParams.h"
 #include "PETScSchurPC.h"
-#include "LinSolParams.h"
+#include "ProcessAdm.h"
 #include "LinAlgInit.h"
 #include "SAMpatchPETSc.h"
-#include "ProcessAdm.h"
-#include "SIMenums.h"
-#include "ASMstruct.h"
-#include "DomainDecomposition.h"
-#include "Utilities.h"
 #include <cassert>
 
 
@@ -134,10 +128,8 @@ Real PETScVector::Linfnorm() const
 }
 
 
-PETScMatrix::PETScMatrix (const ProcessAdm& padm, const LinSolParams& spar,
-                          LinAlg::LinearSystemType ltype) :
- SparseMatrix(SUPERLU, 1), nsp(nullptr), adm(padm), solParams(spar, adm),
- linsysType(ltype)
+PETScMatrix::PETScMatrix (const ProcessAdm& padm, const LinSolParams& spar)
+  : SparseMatrix(SUPERLU, 1), nsp(nullptr), adm(padm), solParams(spar, adm)
 {
   // Create matrix object, by default the matrix type is AIJ
   MatCreate(*adm.getCommunicator(),&pA);
@@ -284,10 +276,16 @@ void PETScMatrix::initAssembly (const SAM& sam, bool delayLocking)
 
     MatSetUp(pA);
 
-    if (linsysType == LinAlg::SPD)
+    switch (solParams.getLinSysType()) {
+    case LinAlg::SPD:
       MatSetOption(pA, MAT_SPD, PETSC_TRUE);
-    if (linsysType == LinAlg::SYMMETRIC)
+      break;
+    case LinAlg::SYMMETRIC:
       MatSetOption(pA, MAT_SYMMETRIC, PETSC_TRUE);
+      break;
+    default:
+      break;
+    }
 
 #ifndef SP_DEBUG
     // Do not abort program for allocation error in release mode
