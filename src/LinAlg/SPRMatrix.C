@@ -282,7 +282,7 @@ bool SPRMatrix::assemble (const Matrix& eM, const SAM& sam, int e)
 bool SPRMatrix::assemble (const Matrix& eM, const SAM& sam,
 			  SystemVector& B, int e)
 {
-  if (B.getType() != SystemVector::STD) return false;
+  if (B.getType() != LinAlg::DENSE) return false;
 
 #ifdef HAS_SPR
   iWork.resize(mpar[38]);
@@ -331,8 +331,8 @@ bool SPRMatrix::multiply (const SystemVector& B, SystemVector& C) const
   const int n = mpar[7];
   if (n < 1) return true;
 
-  if (B.getType() != SystemVector::STD) return false;
-  if (C.getType() != SystemVector::STD) return false;
+  if (B.getType() != LinAlg::DENSE) return false;
+  if (C.getType() != LinAlg::DENSE) return false;
 
   C.redim(n);
 #ifdef HAS_SPR
@@ -355,7 +355,7 @@ bool SPRMatrix::solve (SystemVector& B, bool, Real*)
 {
   if (mpar[7] < 1) return true; // No equations to solve
 
-  if (B.getType() != SystemVector::STD) return false;
+  if (B.getType() != LinAlg::DENSE) return false;
 
 #ifdef HAS_SPR
   Real tol[3] = { Real(1.0e-12), Real(0), Real(0) };

@@ -51,7 +51,7 @@ public:
   virtual ~SparseMatrix();
 
   //! \brief Returns the matrix type.
-  virtual Type getType() const { return solver == S_A_M_G ? SAMG : SPARSE; }
+  virtual LinAlg::MatrixType getType() const;
 
   //! \brief Creates a copy of the system matrix and returns a pointer to it.
   virtual SystemMatrix* copy() const { return new SparseMatrix(*this); }

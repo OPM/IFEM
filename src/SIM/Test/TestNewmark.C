@@ -215,7 +215,7 @@ void runSingleDof (SIMbase& model, NewmarkSIM& solver, double rtol = 0.5e-11)
   tp.time.dt = 0.01;
   tp.stopTime = 0.65;
 
-  ASSERT_TRUE(model.initSystem(0));
+  ASSERT_TRUE(model.initSystem(LinAlg::DENSE));
   ASSERT_TRUE(solver.initAcc());
   EXPECT_FLOAT_EQ(solver.getAcceleration().front(),0.1);
 
@@ -257,7 +257,7 @@ void runPrescribed (SIMbase& model, NewmarkSIM& solver, double rtol = 0.5e-11)
   tp.time.dt = 0.01;
   tp.stopTime = 0.65;
 
-  ASSERT_TRUE(model.initSystem(0));
+  ASSERT_TRUE(model.initSystem(LinAlg::DENSE));
 
   //              at t=0.1         at t=0.25         at t=0.5
   double u[3] = {0.9312639435267, 0.3547915343361, -1.075289543029 };

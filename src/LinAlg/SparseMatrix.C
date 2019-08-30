@@ -186,6 +186,12 @@ SparseMatrix::~SparseMatrix ()
 }
 
 
+LinAlg::MatrixType SparseMatrix::getType () const
+{
+  return solver == S_A_M_G ? LinAlg::SAMG : LinAlg::SPARSE;
+}
+
+
 bool SparseMatrix::lockPattern (bool doLock)
 {
   bool wasLocked = editable != 'P';

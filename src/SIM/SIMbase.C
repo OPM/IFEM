@@ -370,7 +370,7 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
   // Initialize data structures for the algebraic system
   if (mySam) delete mySam;
 #ifdef HAS_PETSC
-  if (opt.solver == SystemMatrix::PETSC)
+  if (opt.solver == LinAlg::PETSC)
     mySam = new SAMpatchPETSc(*g2l,adm);
   else
     mySam = new SAMpatch();
@@ -446,8 +446,8 @@ RealFunc* SIMbase::getSclFunc (int code) const
 }
 
 
-bool SIMbase::initSystem (int mType, size_t nMats, size_t nVec, size_t nScl,
-                          bool withRF)
+bool SIMbase::initSystem (LinAlg::MatrixType mType,
+                          size_t nMats, size_t nVec, size_t nScl, bool withRF)
 {
   if (!mySam) return true; // Silently ignore when no algebraic system
 
@@ -466,15 +466,15 @@ bool SIMbase::initSystem (int mType, size_t nMats, size_t nVec, size_t nScl,
   myEqSys = new AlgEqSystem(*mySam,&adm);
 
   // Workaround SuperLU bug for tiny systems
-  if (mType == SystemMatrix::SPARSE && this->getNoElms(true) < 3)
+  if (mType == LinAlg::SPARSE && this->getNoElms(true) < 3)
   {
     std::cerr <<"  ** System too small for SuperLU, falling back to Dense."
               << std::endl;
-    mType = SystemMatrix::DENSE;
+    mType = LinAlg::DENSE;
   }
 
-  return myEqSys->init(static_cast<SystemMatrix::Type>(mType), mySolParams,
-                       nMats, nVec, nScl, withRF, opt.num_threads_SLU);
+  return myEqSys->init(mType, mySolParams, nMats, nVec, nScl,
+                       withRF, opt.num_threads_SLU);
 }
 
 

@@ -27,8 +27,8 @@
 #endif
 
 
-SystemMatrix::Type GlbL2::MatrixType = SystemMatrix::SPARSE;
-LinSolParams* GlbL2::SolverParams = nullptr;
+LinAlg::MatrixType GlbL2::MatrixType   = LinAlg::SPARSE;
+LinSolParams*      GlbL2::SolverParams = nullptr;
 
 
 /*!
@@ -340,15 +340,21 @@ bool ASMbase::globalL2projection (Matrix& sField,
   size_t j, ncomp = integrand.getNoFields(2);
   SparseMatrix* A;
   StdVector* B;
+  switch (GlbL2::MatrixType) {
+  case LinAlg::UMFPACK:
+    A = new SparseMatrix(SparseMatrix::UMFPACK);
+    B = new StdVector(nnod*ncomp);
+    break;
 #ifdef HAS_PETSC
-  if (GlbL2::MatrixType == SystemMatrix::PETSC && GlbL2::SolverParams)
-  {
-    A = new PETScMatrix(ProcessAdm(), *GlbL2::SolverParams);
-    B = new PETScVector(ProcessAdm(), nnod*ncomp);
-  }
-  else
+  case LinAlg::PETSC:
+    if (GlbL2::SolverParams)
+    {
+      A = new PETScMatrix(ProcessAdm(), *GlbL2::SolverParams);
+      B = new PETScVector(ProcessAdm(), nnod*ncomp);
+      break;
+    }
 #endif
-  {
+  default:
     A = new SparseMatrix(SparseMatrix::SUPERLU);
     B = new StdVector(nnod*ncomp);
   }

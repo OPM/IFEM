@@ -48,7 +48,7 @@ public:
   virtual ~PETScVector();
 
   //! \brief Returns the vector type.
-  virtual Type getType() const { return PETSC; }
+  virtual LinAlg::MatrixType getType() const { return LinAlg::PETSC; }
 
   //! \brief Initializes the vector to a given scalar value.
   virtual void init(Real value = Real(0));
@@ -103,7 +103,7 @@ public:
   virtual ~PETScMatrix();
 
   //! \brief Returns the matrix type.
-  virtual Type getType() const { return PETSC; }
+  virtual LinAlg::MatrixType getType() const { return LinAlg::PETSC; }
 
   //! \brief Returns the dimension of the system matrix.
   virtual size_t dim(int = 1) const { return 0; }

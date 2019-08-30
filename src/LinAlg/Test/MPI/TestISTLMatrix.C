@@ -12,12 +12,9 @@
 
 #include "AlgEqSystem.h"
 #include "ISTLMatrix.h"
-#include "ISTLSolParams.h"
 #include "SIM2D.h"
-#include "ASMs2D.h"
 #include "IntegrandBase.h"
 #include "SAM.h"
-#include "IFEM.h"
 
 #include "gtest/gtest.h"
 
@@ -63,9 +60,9 @@ TEST(TestISTLMatrix, AssembleMPI)
 {
   InspectMatrixSIM sim(1);
   sim.read("src/LinAlg/Test/refdata/petsc_test.xinp");
-  sim.opt.solver = SystemMatrix::ISTL;
-  sim.preprocess();
-  sim.initSystem(SystemMatrix::ISTL);
+  sim.opt.solver = LinAlg::ISTL;
+  ASSERT_TRUE(sim.preprocess());
+  ASSERT_TRUE(sim.initSystem(sim.opt.solver));
 
   Matrix stencil(4,4);
   stencil(1,1) = stencil(2,2) = stencil(3,3) = stencil(4,4) = 1.0;

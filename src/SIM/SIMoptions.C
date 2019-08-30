@@ -12,7 +12,6 @@
 //==============================================================================
 
 #include "SIMoptions.h"
-#include "SystemMatrix.h"
 #include "Utilities.h"
 #include "IFEM.h"
 #include "tinyxml.h"
@@ -30,7 +29,7 @@
 SIMoptions::SIMoptions ()
 {
   discretization = ASM::Spline;
-  solver = SystemMatrix::SPARSE;
+  solver = LinAlg::SPARSE;
 #ifdef USE_OPENMP
   num_threads_SLU = omp_get_max_threads();
 #else
@@ -61,19 +60,19 @@ SIMoptions::SIMoptions ()
 void SIMoptions::setLinearSolver (const std::string& eqsolver)
 {
   if (eqsolver == "dense")
-    solver = SystemMatrix::DENSE;
+    solver = LinAlg::DENSE;
   else if (eqsolver == "spr")
-    solver = SystemMatrix::SPR;
+    solver = LinAlg::SPR;
   else if (eqsolver == "superlu")
-    solver = SystemMatrix::SPARSE;
+    solver = LinAlg::SPARSE;
   else if (eqsolver == "umfpack")
-    solver = SystemMatrix::UMFPACK;
+    solver = LinAlg::UMFPACK;
   else if (eqsolver == "samg")
-    solver = SystemMatrix::SAMG;
+    solver = LinAlg::SAMG;
   else if (eqsolver == "petsc")
-    solver = SystemMatrix::PETSC;
+    solver = LinAlg::PETSC;
   else if (eqsolver == "istl")
-    solver = SystemMatrix::ISTL;
+    solver = LinAlg::ISTL;
 }
 
 
@@ -270,23 +269,23 @@ bool SIMoptions::dumpHDF5 (const char* defaultName)
 bool SIMoptions::parseOldOptions (int argc, char** argv, int& i)
 {
   if (!strcmp(argv[i],"-dense"))
-    solver = SystemMatrix::DENSE;
+    solver = LinAlg::DENSE;
   else if (!strcmp(argv[i],"-spr"))
-    solver = SystemMatrix::SPR;
+    solver = LinAlg::SPR;
   else if (!strncmp(argv[i],"-superlu",8))
   {
-    solver = SystemMatrix::SPARSE;
+    solver = LinAlg::SPARSE;
     if (isdigit(argv[i][8]))
       num_threads_SLU = atoi(argv[i]+8);
   }
   else if (!strcmp(argv[i],"-samg"))
-    solver = SystemMatrix::SAMG;
+    solver = LinAlg::SAMG;
   else if (!strcmp(argv[i],"-umfpack"))
-    solver = SystemMatrix::UMFPACK;
+    solver = LinAlg::UMFPACK;
   else if (!strcmp(argv[i],"-petsc"))
-    solver = SystemMatrix::PETSC;
+    solver = LinAlg::PETSC;
   else if (!strcmp(argv[i],"-istl"))
-    solver = SystemMatrix::ISTL;
+    solver = LinAlg::ISTL;
   else if (!strncmp(argv[i],"-lag",4))
     discretization = ASM::Lagrange;
   else if (!strncmp(argv[i],"-tri",4))

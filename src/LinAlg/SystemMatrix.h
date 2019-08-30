@@ -15,6 +15,7 @@
 #define _SYSTEM_MATRIX_H
 
 #include "MatVec.h"
+#include "LinAlgenums.h"
 
 class SAM;
 class LinSolParams;
@@ -28,11 +29,8 @@ class ProcessAdm;
 class SystemVector
 {
 public:
-  //! \brief The available system vector formats.
-  enum Type { STD = 0, PETSC = 1, ISTL = 2 };
-
   //! \brief Static method creating a vector of the given type.
-  static SystemVector* create(const ProcessAdm* adm, Type vectorType = STD);
+  static SystemVector* create(const ProcessAdm* adm, LinAlg::MatrixType vtype);
 
 protected:
   //! \brief The default constructor is protected to allow sub-classes only.
@@ -43,7 +41,7 @@ public:
   virtual ~SystemVector() {}
 
   //! \brief Returns the vector type.
-  virtual Type getType() const = 0;
+  virtual LinAlg::MatrixType getType() const = 0;
 
   //! \brief Creates a copy of the system vector and returns a pointer to it.
   virtual SystemVector* copy() const = 0;
@@ -133,7 +131,7 @@ public:
   { this->insert(this->end(),vec.begin(),vec.end()); }
 
   //! \brief Returns the vector type.
-  virtual Type getType() const { return STD; }
+  virtual LinAlg::MatrixType getType() const { return LinAlg::DENSE; }
 
   //! \brief Creates a copy of the system vector and returns a pointer to it.
   virtual SystemVector* copy() const { return new StdVector(*this); }
@@ -201,15 +199,11 @@ protected:
 class SystemMatrix
 {
 public:
-  //! \brief The available system matrix formats.
-  enum Type { DENSE = 0, SPR = 1, SPARSE = 2, SAMG = 3,
-              PETSC = 4, ISTL = 5, UMFPACK = 6 };
-
   //! \brief Static method creating a matrix of the given type.
-  static SystemMatrix* create(const ProcessAdm* adm, Type matrixType,
+  static SystemMatrix* create(const ProcessAdm* adm, LinAlg::MatrixType mType,
                               int num_thread_SLU = 1);
   //! \brief Static method creating a matrix of the given type.
-  static SystemMatrix* create(const ProcessAdm* adm, Type matrixType,
+  static SystemMatrix* create(const ProcessAdm* adm, LinAlg::MatrixType mType,
                               const LinSolParams& spar);
 
 protected:
@@ -221,7 +215,7 @@ public:
   virtual ~SystemMatrix() {}
 
   //! \brief Returns the matrix type.
-  virtual Type getType() const = 0;
+  virtual LinAlg::MatrixType getType() const = 0;
 
   //! \brief Creates a copy of the system matrix and returns a pointer to it.
   virtual SystemMatrix* copy() const = 0;
@@ -298,7 +292,8 @@ public:
   //! \param b Right-hand-side vector on input, solution vector on output
   //! \param[in] newLHS \e true if the left-hand-side matrix has been updated
   //! \param[out] rc Reciprocal condition number of the LHS-matrix (optional)
-  virtual bool solve(SystemVector& b, bool newLHS = true, Real* rc = nullptr) = 0;
+  virtual bool solve(SystemVector& b, bool newLHS = true,
+                     Real* rc = nullptr) = 0;
 
   //! \brief Solves the linear system of equations for a given right-hand-side.
   //! \param[in] b Right-hand-side vector
@@ -315,11 +310,11 @@ public:
   //! \brief Dumps the system matrix on a specified format.
   virtual void dump(std::ostream&, char, const char* = nullptr) {}
 
-  //! \brief Matrix-vector product
-  StdVector operator*(const StdVector& b) const ;
+  //! \brief Calculates a matrix-vector product
+  StdVector operator*(const SystemVector& b) const;
 
-  //! \brief Solve linear system
-  StdVector operator/(const StdVector& b) ;
+  //! \brief Solves a linear equation system.
+  StdVector operator/(const SystemVector& b);
 
 protected:
   //! \brief Writes the system matrix to the given output stream.
@@ -331,6 +326,5 @@ protected:
     return A.write(os);
   }
 };
-
 
 #endif

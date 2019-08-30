@@ -38,7 +38,7 @@ public:
   virtual ~SPRMatrix();
 
   //! \brief Returns the matrix type.
-  virtual Type getType() const { return SPR; }
+  virtual LinAlg::MatrixType getType() const { return LinAlg::SPR; }
 
   //! \brief Creates a copy of the system matrix and returns a pointer to it.
   virtual SystemMatrix* copy() const { return new SPRMatrix(*this); }

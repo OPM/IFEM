@@ -13,7 +13,6 @@
 #include "AlgEqSystem.h"
 #include "PETScMatrix.h"
 #include "SIM2D.h"
-#include "ASMs2D.h"
 #include "IntegrandBase.h"
 #include "SAM.h"
 
@@ -60,9 +59,9 @@ TEST(TestPETScMatrix, AssembleMPI)
 {
   InspectMatrixSIM sim(1);
   sim.read("src/LinAlg/Test/refdata/petsc_test.xinp");
-  sim.opt.solver = SystemMatrix::PETSC;
-  sim.preprocess();
-  sim.initSystem(SystemMatrix::PETSC);
+  sim.opt.solver = LinAlg::PETSC;
+  ASSERT_TRUE(sim.preprocess());
+  ASSERT_TRUE(sim.initSystem(sim.opt.solver));
 
   Matrix stencil(4,4);
   stencil(1,1) = stencil(2,2) = stencil(3,3) = stencil(4,4) = 1.0;
@@ -115,9 +114,9 @@ TEST(TestPETScMatrix, AssembleBasisBlocksMPI)
 {
   InspectMatrixSIM sim({1,1});
   sim.read("src/LinAlg/Test/refdata/petsc_test_blocks_basis.xinp");
-  sim.opt.solver = SystemMatrix::PETSC;
-  sim.preprocess();
-  sim.initSystem(SystemMatrix::PETSC);
+  sim.opt.solver = LinAlg::PETSC;
+  ASSERT_TRUE(sim.preprocess());
+  ASSERT_TRUE(sim.initSystem(sim.opt.solver));
 
   Matrix stencil(13,13);
   for (size_t i = 1; i<= 9; ++i)
@@ -179,9 +178,9 @@ TEST(TestPETScMatrix, AssembleComponentBlocksMPI)
 {
   InspectMatrixSIM sim(2);
   sim.read("src/LinAlg/Test/refdata/petsc_test_blocks_components.xinp");
-  sim.opt.solver = SystemMatrix::PETSC;
-  sim.preprocess();
-  sim.initSystem(SystemMatrix::PETSC);
+  sim.opt.solver = LinAlg::PETSC;
+  ASSERT_TRUE(sim.preprocess());
+  ASSERT_TRUE(sim.initSystem(sim.opt.solver));
 
   Matrix stencil(4*2,4*2);
   for (size_t i = 1; i<= 4; ++i) {

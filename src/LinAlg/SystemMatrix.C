@@ -24,22 +24,29 @@
 #include "LinSolParams.h"
 
 
-SystemVector* SystemVector::create (const ProcessAdm* adm, Type vectorType)
+SystemVector* SystemVector::create (const ProcessAdm* adm,
+                                    LinAlg::MatrixType vType)
 {
-  switch (vectorType)
+  switch (vType)
     {
-    case STD   : return new StdVector();
+    case LinAlg::ISTL:
 #ifdef HAS_ISTL
-    case ISTL  : if (adm) return new ISTLVector(*adm);
+      if (adm) return new ISTLVector(*adm);
 #endif
+      break;
+
+    case LinAlg::PETSC:
 #ifdef HAS_PETSC
-    case PETSC : if (adm) return new PETScVector(*adm);
+      if (adm) return new PETScVector(*adm);
 #endif
+      break;
+
     default:
-      std::cerr <<"SystemVector::create: Unsupported vector type "
-                << vectorType << std::endl;
+      return new StdVector();
     }
 
+  std::cerr <<"SystemVector::create: Unsupported vector type "
+            << vType << std::endl;
   return nullptr;
 }
 
@@ -71,63 +78,71 @@ void StdVector::dump (std::ostream& os, char format, const char* label)
 }
 
 
-SystemMatrix* SystemMatrix::create (const ProcessAdm* adm, Type matrixType,
+SystemMatrix* SystemMatrix::create (const ProcessAdm* adm,
+                                    LinAlg::MatrixType mType,
                                     const LinSolParams& spar)
 {
 #ifdef HAS_PETSC
-  if (matrixType == PETSC && adm)
+  if (mType == LinAlg::PETSC && adm)
     return new PETScMatrix(*adm,spar);
 #endif
 #ifdef HAS_ISTL
-  if (matrixType == ISTL && adm)
+  if (mType == LinAlg::ISTL && adm)
     return new ISTLMatrix(*adm,spar);
 #endif
 
-  return SystemMatrix::create(adm,matrixType);
+  return SystemMatrix::create(adm,mType);
 }
 
 
-SystemMatrix* SystemMatrix::create (const ProcessAdm* adm, Type matrixType,
+SystemMatrix* SystemMatrix::create (const ProcessAdm* adm,
+                                    LinAlg::MatrixType mType,
                                     int num_thread_SLU)
 {
-#ifndef HAS_PETSC
-  if (matrixType == PETSC) {
-    std::cerr <<"SystemMatrix::create: PETSc not compiled in, bailing out..."
-              << std::endl;
-    exit(1);
-  }
-#endif
-#ifndef HAS_ISTL
-  if (matrixType == ISTL) {
-    std::cerr <<"SystemMatrix::create: ISTL not compiled in, bailing out..."
-              << std::endl;
-    exit(1);
-  }
-#endif
-
 #if defined(HAS_PETSC) || defined(HAS_ISTL)
   // Use default settings when no parameters are provided by user
   static LinSolParams defaultPar;
 #endif
 
-  switch (matrixType)
+  switch (mType)
     {
-    case DENSE : return new DenseMatrix();
-    case SPR   : return new SPRMatrix();
-    case SPARSE: return new SparseMatrix(SparseMatrix::SUPERLU,num_thread_SLU);
-    case SAMG  : return new SparseMatrix(SparseMatrix::S_A_M_G);
-    case UMFPACK: return new SparseMatrix(SparseMatrix::UMFPACK);
+    case LinAlg::DENSE:
+      return new DenseMatrix();
+
+    case LinAlg::SPR:
+      return new SPRMatrix();
+
+    case LinAlg::SPARSE:
+      return new SparseMatrix(SparseMatrix::SUPERLU,num_thread_SLU);
+
+    case LinAlg::SAMG:
+      return new SparseMatrix(SparseMatrix::S_A_M_G);
+
+    case LinAlg::PETSC:
 #ifdef HAS_PETSC
-    case PETSC : if (adm) return new PETScMatrix(*adm,defaultPar);
+      if (adm) return new PETScMatrix(*adm,defaultPar);
+#else
+      std::cerr <<"SystemMatrix::create: PETSc not compiled in."<< std::endl;
 #endif
+      break;
+
+    case LinAlg::ISTL:
 #ifdef HAS_ISTL
-    case ISTL  : if (adm) return new ISTLMatrix(*adm,defaultPar);
+      if (adm) return new ISTLMatrix(*adm,defaultPar);
+#else
+      std::cerr <<"SystemMatrix::create: ISTL not compiled in."<< std::endl;
 #endif
+      break;
+
+    case LinAlg::UMFPACK:
+      return new SparseMatrix(SparseMatrix::UMFPACK);
+
     default:
-      std::cerr <<"SystemMatrix::create: Unsupported matrix type "
-                << matrixType << std::endl;
+      break;
     }
 
+  std::cerr <<"SystemMatrix::create: Unsupported matrix type "
+            << mType << std::endl;
   return nullptr;
 }
 
@@ -141,18 +156,18 @@ bool SystemMatrix::assemble (const Matrix&, const SAM&,
   return false;
 }
 
-//! \brief Matrix-vector product
-StdVector SystemMatrix::operator*(const StdVector& b) const
+
+StdVector SystemMatrix::operator* (const SystemVector& b) const
 {
   StdVector results;
-  multiply(b, results);
+  this->multiply(b,results);
   return results;
 }
 
-//! \brief Solve linear system
-StdVector SystemMatrix::operator/(const StdVector& b)
+
+StdVector SystemMatrix::operator/ (const SystemVector& b)
 {
   StdVector results;
-  solve(b, results);
+  this->solve(b,results);
   return results;
 }

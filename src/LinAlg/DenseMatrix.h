@@ -38,7 +38,7 @@ public:
   virtual ~DenseMatrix() { if (ipiv) delete[] ipiv; }
 
   //! \brief Returns the matrix type.
-  virtual Type getType() const { return DENSE; }
+  virtual LinAlg::MatrixType getType() const { return LinAlg::DENSE; }
 
   //! \brief Creates a copy of the system matrix and returns a pointer to it.
   virtual SystemMatrix* copy() const { return new DenseMatrix(*this); }

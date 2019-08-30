@@ -99,7 +99,8 @@ public:
   //! \param[in] nVec Number of system right-hand-side vectors
   //! \param[in] nScl Number of global scalar quantities
   //! \param[in] withRF Whether nodal reaction forces should be computed or not
-  bool initSystem(int mType, size_t nMats = 1, size_t nVec = 1, size_t nScl = 0,
+  bool initSystem(LinAlg::MatrixType mType,
+                  size_t nMats = 1, size_t nVec = 1, size_t nScl = 0,
                   bool withRF = false);
 
   //! \brief Associates a system vector to a system matrix.

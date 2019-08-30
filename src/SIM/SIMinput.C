@@ -711,8 +711,13 @@ bool SIMinput::parse (const TiXmlElement* elem)
     std::string solver;
     if (utl::getAttribute(elem,"class",solver,true))
       opt.setLinearSolver(solver);
-    if (utl::getAttribute(elem,"l2class",solver,true) && solver == "petsc")
-      GlbL2::MatrixType = SystemMatrix::PETSC;
+    if (utl::getAttribute(elem,"l2class",solver,true))
+    {
+      if (solver == "petsc")
+        GlbL2::MatrixType = LinAlg::PETSC;
+      else if (solver == "umfpack")
+        GlbL2::MatrixType = LinAlg::UMFPACK;
+    }
   }
   else if (!strcasecmp(elem->Value(),"eigensolver"))
     utl::getAttribute(elem,"mode",opt.eig);
@@ -760,7 +765,7 @@ bool SIMinput::parse (const TiXmlElement* elem)
         mySolParams = new LinSolParams();
     }
     result &= mySolParams->read(elem);
-    if (GlbL2::MatrixType == SystemMatrix::PETSC)
+    if (GlbL2::MatrixType == LinAlg::PETSC)
     {
       // For now use same solver parameters in the L2-projection
       myGl2Params = new LinSolParams(*mySolParams,LinAlg::SYMMETRIC);

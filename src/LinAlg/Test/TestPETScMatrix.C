@@ -11,10 +11,8 @@
 //==============================================================================
 
 #include "AlgEqSystem.h"
-#include "DenseMatrix.h"
 #include "PETScMatrix.h"
 #include "SIM2D.h"
-#include "ASMs2D.h"
 #include "ASMmxBase.h"
 #include "IntegrandBase.h"
 #include "SAM.h"
@@ -62,9 +60,9 @@ TEST(TestPETScMatrix, Assemble)
 {
   InspectMatrixSIM sim(1);
   sim.read("src/LinAlg/Test/refdata/petsc_test.xinp");
-  sim.opt.solver = SystemMatrix::PETSC;
+  sim.opt.solver = LinAlg::PETSC;
   ASSERT_TRUE(sim.preprocess());
-  sim.initSystem(SystemMatrix::PETSC);
+  ASSERT_TRUE(sim.initSystem(sim.opt.solver));
 
   Matrix stencil(4,4);
   stencil(1,1) = stencil(2,2) = stencil(3,3) = stencil(4,4) = 1.0;
@@ -119,9 +117,9 @@ TEST(TestPETScMatrix, AssembleBasisBlocks)
   ASMmxBase::Type = ASMmxBase::FULL_CONT_RAISE_BASIS1;
   ASMmxBase::geoBasis = 2;
   sim.read("src/LinAlg/Test/refdata/petsc_test_blocks_basis.xinp");
-  sim.opt.solver = SystemMatrix::PETSC;
+  sim.opt.solver = LinAlg::PETSC;
   ASSERT_TRUE(sim.preprocess());
-  sim.initSystem(SystemMatrix::PETSC);
+  ASSERT_TRUE(sim.initSystem(sim.opt.solver));
 
   Matrix stencil(13,13);
   for (size_t i = 1; i<= 9; ++i)
@@ -182,9 +180,9 @@ TEST(TestPETScMatrix, AssembleComponentBlocks)
 {
   InspectMatrixSIM sim(2);
   sim.read("src/LinAlg/Test/refdata/petsc_test_blocks_components.xinp");
-  sim.opt.solver = SystemMatrix::PETSC;
+  sim.opt.solver = LinAlg::PETSC;
   ASSERT_TRUE(sim.preprocess());
-  sim.initSystem(SystemMatrix::PETSC);
+  ASSERT_TRUE(sim.initSystem(sim.opt.solver));
 
   Matrix stencil(4*2,4*2);
   for (size_t i = 1; i<= 4; ++i) {

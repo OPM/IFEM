@@ -11,10 +11,11 @@
 //!
 //==============================================================================
 
-#ifndef SIM_OPTIONS_H_
-#define SIM_OPTIONS_H_
+#ifndef _SIM_OPTIONS_H_
+#define _SIM_OPTIONS_H_
 
 #include "ASMenums.h"
+#include "LinAlgenums.h"
 #include <string>
 #include <map>
 
@@ -69,11 +70,11 @@ public:
   bool parseProjectionMethod(const char* ptype, int version = 1);
 
 public:
-  ASM::Discretization discretization; //!< Spatial discretization option
-
   int nGauss[2]; //!< Gaussian quadrature rules
 
-  int solver;          //!< The linear equation solver to use
+  ASM::Discretization discretization; //!< Spatial discretization option
+  LinAlg::MatrixType  solver;         //!< The linear equation solver to use
+
   int num_threads_SLU; //!< Number of threads for SuperLU_MT
 
   // Eigenvalue solver options

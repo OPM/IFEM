@@ -123,7 +123,7 @@ static void runSingleDof (NonLinSIM& solver, int& n, double& s)
 TEST(TestNonLinSIM, SingleDOF)
 {
   Bar1DOF simulator(new Dummy());
-  ASSERT_TRUE(simulator.initSystem(0));
+  ASSERT_TRUE(simulator.initSystem(LinAlg::DENSE));
 
   TestNonLinSIM integrator1(simulator);
   TestNonLinSIM integrator2(simulator,0.0001);

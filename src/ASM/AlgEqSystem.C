@@ -25,7 +25,7 @@ AlgEqSystem::AlgEqSystem (const SAM& s, const ProcessAdm* a) : sam(s), adm(a)
 }
 
 
-bool AlgEqSystem::init (SystemMatrix::Type mtype, const LinSolParams* spar,
+bool AlgEqSystem::init (LinAlg::MatrixType mtype, const LinSolParams* spar,
                         size_t nmat, size_t nvec, size_t nscl,
                         bool withReactions, int num_threads_SLU)
 {
@@ -59,16 +59,10 @@ bool AlgEqSystem::init (SystemMatrix::Type mtype, const LinSolParams* spar,
     A[i]._b = nullptr;
   }
 
-  SystemVector::Type vtype = SystemVector::STD;
-  if (mtype == SystemMatrix::PETSC)
-    vtype = SystemVector::PETSC;
-  if (mtype == SystemMatrix::ISTL)
-    vtype = SystemVector::ISTL;
-
   for (i = 0; i < b.size(); i++)
     if (!b[i])
     {
-      b[i] = SystemVector::create(adm,vtype);
+      b[i] = SystemVector::create(adm,mtype);
       if (!b[i]) return false;
     }
 

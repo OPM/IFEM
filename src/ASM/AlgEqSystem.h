@@ -39,7 +39,7 @@ public:
   //! \param[in] nscl Number of scalar quantities to allocate
   //! \param[in] withReactions If \e false, no reaction forces will be computed
   //! \param[in] num_threads_SLU Number of threads for SuperLU_MT
-  bool init(SystemMatrix::Type mtype, const LinSolParams* spar = nullptr,
+  bool init(LinAlg::MatrixType mtype, const LinSolParams* spar = nullptr,
             size_t nmat = 1, size_t nvec = 1, size_t nscl = 0,
             bool withReactions = false, int num_threads_SLU = 1);
 
