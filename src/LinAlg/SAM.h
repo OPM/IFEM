@@ -336,8 +336,8 @@ protected:
   friend class DenseMatrix;
   friend class SPRMatrix;
   friend class SparseMatrix;
+  friend class DiagMatrix;
   friend class PETScMatrix;
-  friend class PETScBlockMatrix;
 };
 
 #endif

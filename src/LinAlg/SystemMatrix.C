@@ -15,6 +15,7 @@
 #include "DenseMatrix.h"
 #include "SPRMatrix.h"
 #include "SparseMatrix.h"
+#include "DiagMatrix.h"
 #ifdef HAS_PETSC
 #include "PETScMatrix.h"
 #endif
@@ -136,6 +137,9 @@ SystemMatrix* SystemMatrix::create (const ProcessAdm* adm,
 
     case LinAlg::UMFPACK:
       return new SparseMatrix(SparseMatrix::UMFPACK);
+
+    case LinAlg::DIAG:
+      return new DiagMatrix();
 
     default:
       break;
