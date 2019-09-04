@@ -28,6 +28,7 @@ class AnaSol;
 class SAM;
 class AlgEqSystem;
 class LinSolParams;
+class SystemMatrix;
 class SystemVector;
 class FunctionBase;
 class RealFunc;
@@ -51,6 +52,8 @@ struct Mode
 
   //! \brief Default constructor.
   Mode() : eigNo(0), eigVal(0.0) {}
+  //! \brief Orthonormalize the eigenvector w.r.t. the given matrix.
+  bool orthonormalize(const SystemMatrix& mat);
 };
 
 
@@ -647,7 +650,9 @@ public:
   //! \brief Returns the end of the property array.
   PropertyVec::const_iterator end_prop() const { return myProps.end(); }
 
-  //! \brief Returns current system light-hand-side vector.
+  //! \brief Returns current system left-hand-side matrix.
+  SystemMatrix* getLHSmatrix(size_t idx = 0, bool copy = false) const;
+  //! \brief Returns current system right-hand-side vector.
   SystemVector* getRHSvector(size_t idx = 0, bool copy = false) const;
   //! \brief Adds a system vector to the given right-hand-side vector.
   void addToRHSvector(size_t idx, const SystemVector& vec, double scale = 1.0);

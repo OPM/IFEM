@@ -1249,6 +1249,15 @@ int SIMbase::getLocalNode (int node) const
 }
 
 
+SystemMatrix* SIMbase::getLHSmatrix (size_t idx, bool copy) const
+{
+  if (!myEqSys) return nullptr;
+
+  SystemMatrix* lhs = myEqSys->getMatrix(idx);
+  return lhs && copy ? lhs->copy() : lhs;
+}
+
+
 SystemVector* SIMbase::getRHSvector (size_t idx, bool copy) const
 {
   if (!myEqSys) return nullptr;
@@ -1672,6 +1681,34 @@ bool SIMbase::systemModes (std::vector<Mode>& solution,
   }
   IFEM::cout << std::endl;
   return ok;
+}
+
+
+bool Mode::orthonormalize (const SystemMatrix& mat)
+{
+  StdVector tmp;
+  if (!mat.multiply(StdVector(eqnVec),tmp))
+    return false;
+
+  double scale = tmp.dot(eqnVec);
+  if (scale < 1.0e-16)
+  {
+    std::cerr <<" *** Mode::orthonormalize: Mode shape "<< eigNo
+              <<" is zero."<< std::endl;
+    return false;
+  }
+
+  IFEM::cout <<"  * Mode shape "<< eigNo;
+  if (fabs(scale-1.0) < 1.0e-16)
+    IFEM::cout <<" is already orthonormal."<< std::endl;
+  else
+  {
+    eqnVec /= scale;
+    eigVec /= scale;
+    IFEM::cout <<": scale = "<< 1.0/scale << std::endl;
+  }
+
+  return true;
 }
 
 
