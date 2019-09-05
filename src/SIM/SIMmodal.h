@@ -51,6 +51,15 @@ protected:
   //! \brief Swaps the modal equation system before/after load vector assembly.
   bool swapSystem(AlgEqSystem*& sys, SAM*& sam);
 
+public:
+  //! \brief Expands and returns the current dynamic solution.
+  virtual const Vectors& expandSolution(const Vectors&, bool = false) = 0;
+  //! \brief Returns the current expanded dynamic solution.
+  virtual const Vector& expandedSolution(int) const = 0;
+  //! \brief Returns the number of expanded dynamic solution vectors.
+  virtual size_t numExpSolution() const = 0;
+
+protected:
   std::vector<Mode>& myModes; //!< Array of eigenmodes
 
 private:

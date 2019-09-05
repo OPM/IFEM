@@ -162,6 +162,21 @@ public:
   //! \brief Returns the sub-iteration flag.
   SubIt getSubIteration() const { return subiter; }
 
+  //! \brief Returns the number of solution vectors.
+  virtual size_t numSolution() const { return solution.size(); }
+  //! \brief Returns a const reference to the current real solution vector.
+  //! \details This method is overridden by simulators that work on a different
+  //! solution space during the response integration than the actual FE space.
+  //! This method is then supposed to return the expanded solution vector.
+  //! The default implementation is the same as SIMsolution::getSolution().
+  virtual const Vector& realSolution(int i = 0) const { return solution[i]; }
+  //! \brief Returns a const reference to the current real solution vectors.
+  //! \details This method is overridden by simulators that work on a different
+  //! solution space during the response integration than the actual FE space.
+  //! This method is then supposed to return the expanded solution vectors.
+  //! The default implementation is the same as SIMsolution::theSolutions().
+  virtual const Vectors& realSolutions() { return solution; }
+
 protected:
   SIMoutput& model;    //!< The isogeometric FE model
   Vector     residual; //!< Residual force vector

@@ -514,18 +514,21 @@ SIM::ConvStatus NewmarkSIM::checkConvergence (TimeStep& param)
 bool NewmarkSIM::solutionNorms (const TimeDomain&,
                                 double zero_tolerance, std::streamsize outPrec)
 {
-  if (msgLevel < 0 || solution.size() < 3) return true;
+  // Establish the real FE solution from the time integration solution space
+  const Vectors& newSol = this->realSolutions();
+  if (msgLevel < 0 || newSol.size() < 3)
+    return true;
 
   // Cannot use the enums here because this method is inherited
-  size_t a = solution.size()-1;
-  size_t v = solution.size()-2;
+  size_t a = newSol.size()-1;
+  size_t v = newSol.size()-2;
 
   size_t d, nf = model.getNoFields(1);
   size_t iMax[nf], jMax[nf], kMax[nf];
   double dMax[nf], vMax[nf], aMax[nf];
-  double disL2 = model.solutionNorms(solution[0],dMax,iMax,nf);
-  double velL2 = model.solutionNorms(solution[v],vMax,jMax,nf);
-  double accL2 = model.solutionNorms(solution[a],aMax,kMax,nf);
+  double disL2 = model.solutionNorms(newSol[0],dMax,iMax,nf);
+  double velL2 = model.solutionNorms(newSol[v],vMax,jMax,nf);
+  double accL2 = model.solutionNorms(newSol[a],aMax,kMax,nf);
 
   utl::LogStream& cout = model.getProcessAdm().cout;
   std::streamsize stdPrec = outPrec > 0 ? cout.precision(outPrec) : 0;
@@ -562,7 +565,7 @@ bool NewmarkSIM::solutionNorms (const TimeDomain&,
 void NewmarkSIM::dumpResults (double time, utl::LogStream& os,
                               std::streamsize precision, bool formatted) const
 {
-  model.dumpResults(solution.front(),time,os,formatted,precision);
+  model.dumpResults(this->realSolution(),time,os,formatted,precision);
   model.dumpMoreResults(time,os,precision);
   if (formatted)
   {

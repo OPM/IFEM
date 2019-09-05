@@ -112,13 +112,14 @@ bool MultiStepSIM::saveStep (int iStep, double time, const char* vecName)
       return false;
 
   // Write residual force vector, but only when no extra visualization points
-  if (!opt.pSolOnly && opt.nViz[0] == 2 && opt.nViz[1] <= 2 && opt.nViz[2] <= 2)
-    if (!model.writeGlvV(residual,"Residual forces",iStep,nBlock))
-      return false;
+  if (!opt.pSolOnly && residual.size() == model.getNoDOFs())
+    if (opt.nViz[0] == 2 && opt.nViz[1] <= 2 && opt.nViz[2] <= 2)
+      if (!model.writeGlvV(residual,"Residual forces",iStep,nBlock))
+        return false;
 
   // Write solution fields
-  if (!solution.empty())
-    if (!model.writeGlvS(solution.front(),iStep,nBlock,time,vecName))
+  if (this->numSolution())
+    if (!model.writeGlvS(this->realSolution(),iStep,nBlock,time,vecName))
       return false;
 
   // Write any problem-specific data (rigid body transformations, etc.)
@@ -155,10 +156,10 @@ bool MultiStepSIM::saveStep (int iStep, int& rBlock, double time,
 
 bool MultiStepSIM::saveStep (int iStep, int& rBlock, const char* vecName)
 {
-  if (solution.empty())
+  if (!this->numSolution())
     return true;
 
-  return model.writeGlvV(solution.front(),vecName,iStep,rBlock);
+  return model.writeGlvV(this->realSolution(),vecName,iStep,rBlock);
 }
 
 
@@ -177,22 +178,22 @@ bool MultiStepSIM::deSerialize (const SerializeMap& data)
 void MultiStepSIM::dumpStep (int iStep, double time, utl::LogStream& os,
                              bool withID) const
 {
-  if (solution.empty())
+  if (!this->numSolution())
     return;
 
   if (withID)
     os <<"\n\n# Dump of primary solution at Step "<< iStep
        <<", Time="<< time <<"\n";
 
-  model.dumpPrimSol(solution.front(),os,withID);
+  model.dumpPrimSol(this->realSolution(),os,withID);
 }
 
 
 void MultiStepSIM::dumpResults (double time, utl::LogStream& os,
                                 std::streamsize precision, bool formatted) const
 {
-  if (!solution.empty())
-    model.dumpResults(solution.front(),time,os,formatted,precision);
+  if (this->numSolution())
+    model.dumpResults(this->realSolution(),time,os,formatted,precision);
 
   model.dumpMoreResults(time,os,precision);
 }
@@ -206,10 +207,10 @@ bool MultiStepSIM::hasPointResultFile () const
 
 bool MultiStepSIM::savePoints (double time, int step) const
 {
-  if (solution.empty())
+  if (!this->numSolution())
     return true;
 
-  return model.savePoints(solution.front(),time,step);
+  return model.savePoints(this->realSolution(),time,step);
 }
 
 
@@ -226,12 +227,12 @@ bool MultiStepSIM::advanceStep (TimeStep& param, bool updateTime)
 bool MultiStepSIM::solutionNorms (const TimeDomain&, double zero_tolerance,
                                   std::streamsize outPrec)
 {
-  if (msgLevel < 0 || solution.empty())
+  if (msgLevel < 0 || !this->numSolution())
     return true;
 
   double old_zero_tol = utl::zero_print_tol;
   utl::zero_print_tol = zero_tolerance;
-  model.printSolutionSummary(solution.front(),0,nullptr,outPrec);
+  model.printSolutionSummary(this->realSolution(),0,nullptr,outPrec);
   utl::zero_print_tol = old_zero_tol;
 
   return true;
