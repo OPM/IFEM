@@ -51,6 +51,11 @@ protected:
   //! \brief Swaps the modal equation system before/after load vector assembly.
   bool swapSystem(AlgEqSystem*& sys, SAM*& sam);
 
+  //! \brief Writes the eigenmodes to a serialization container.
+  bool saveModes(std::map<std::string,std::string>& data) const;
+  //! \brief Restores the eigenmodes from a serialization container.
+  bool restoreModes(const std::map<std::string,std::string>& data);
+
 public:
   //! \brief Expands and returns the current dynamic solution.
   virtual const Vectors& expandSolution(const Vectors&, bool = false) = 0;

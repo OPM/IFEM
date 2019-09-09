@@ -17,6 +17,11 @@
 #include "SAM.h"
 #include <numeric>
 #include <algorithm>
+#ifdef HAS_CEREAL
+#include <cereal/cereal.hpp>
+#include <cereal/archives/binary.hpp>
+#include <cereal/types/vector.hpp>
+#endif
 
 
 /*!
@@ -162,4 +167,53 @@ bool SIMmodal::assembleModalSystem (const TimeDomain& time,
   ok &= modalSys->finalize(true);
 
   return ok;
+}
+
+
+#ifdef HAS_CEREAL
+//! \brief Serializes Mode data to/from the \a archive.
+template<class T> void doSerialize (T& archive, Mode& mode)
+{
+  archive(mode.eigNo);
+  archive(mode.eigVal);
+  archive(mode.eigVec);
+}
+#endif
+
+
+bool SIMmodal::saveModes (std::map<std::string,std::string>& data) const
+{
+#ifdef HAS_CEREAL
+  std::ostringstream str;
+  {
+    cereal::BinaryOutputArchive archive(str);
+    archive(myModes.size());
+    for (const Mode& mode : myModes)
+      doSerialize(archive,const_cast<Mode&>(mode));
+  }
+  data["ModalSIM"] = str.str();
+  return true;
+#else
+  return false;
+#endif
+}
+
+
+bool SIMmodal::restoreModes (const std::map<std::string,std::string>& data)
+{
+#ifdef HAS_CEREAL
+  std::map<std::string,std::string>::const_iterator sit = data.find("ModalSIM");
+  if (sit != data.end())
+  {
+    std::stringstream str(sit->second);
+    cereal::BinaryInputArchive archive(str);
+    size_t size;
+    archive(size);
+    myModes.resize(size);
+    for (Mode& mode : myModes)
+      doSerialize(archive,mode);
+    return true;
+  }
+#endif
+  return false;
 }

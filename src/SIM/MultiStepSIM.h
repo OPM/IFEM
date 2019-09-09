@@ -123,6 +123,8 @@ public:
   //! \brief Set solution vectors from a serialized state.
   //! \param[in] data Container for serialized data
   virtual bool deSerialize(const SerializeMap& data);
+  //! \brief Restores solution state from serialized data in case of restart.
+  bool checkForRestart();
 
   //! \brief Dumps the primary solution for inspection.
   //! \param[in] iStep Time/load step identifier

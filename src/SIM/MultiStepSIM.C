@@ -12,9 +12,11 @@
 //==============================================================================
 
 #include "MultiStepSIM.h"
+#include "HDF5Restart.h"
 #include "SIMoutput.h"
 #include "TimeStep.h"
 #include "Profiler.h"
+#include "IFEM.h"
 
 
 MultiStepSIM::MultiStepSIM (SIMbase& sim)
@@ -235,5 +237,26 @@ bool MultiStepSIM::solutionNorms (const TimeDomain&, double zero_tolerance,
   model.printSolutionSummary(this->realSolution(),0,nullptr,outPrec);
   utl::zero_print_tol = old_zero_tol;
 
+  return true;
+}
+
+
+bool MultiStepSIM::checkForRestart ()
+{
+  if (opt.restartFile.empty())
+    return true; // No restart
+
+  HDF5Restart::SerializeData data;
+  HDF5Restart hdf(opt.restartFile,adm,1);
+  int restartStep = hdf.readData(data,opt.restartStep);
+  if (restartStep < 0 || !this->deSerialize(data))
+  {
+    std::cerr <<" *** Failed to read restart data."<< std::endl;
+    return false;
+  }
+
+  IFEM::cout <<"\n === Restarting from a serialized state ==="
+             <<"\n     file = "<< opt.restartFile
+             <<"\n     step = "<< restartStep << std::endl;
   return true;
 }
