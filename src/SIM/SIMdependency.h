@@ -43,6 +43,7 @@ private:
     short int      comp_use;       //!< Component to use from field
     char           differentBasis; //!< Toggle usage of an independent basis
     const int*     MADOF;          //!< The MADOF array to associate with field
+
     //! \brief Default constructor.
     Dependency(SIMdependency* s = nullptr, const std::string& f = "",
                short int n = 1) : sim(s), name(f), components(n), comp_use(1),

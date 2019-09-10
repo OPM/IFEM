@@ -89,6 +89,7 @@ private:
     int                dof;   //!< Local DOF to constrain along the boundary
     int                code;  //!< Inhomogeneous Dirichlet condition code
     std::vector<Ipair> nodes; //!< Nodes subjected to projection on the boundary
+
     //! \brief Default constructor.
     DirichletEdge(Go::SplineCurve* sc = nullptr, int d = 0, int c = 0)
     : curve(sc), dof(d), code(c) {}
