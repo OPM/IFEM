@@ -29,8 +29,24 @@ class ProcessAdm {};
 #endif
 
 
-FieldFuncBase::FieldFuncBase (const std::string& fName)
-  : hdf5(nullptr), pAdm(nullptr), pidx(0)
+FieldFuncBase::~FieldFuncBase ()
+{
+  for (ASMbase* pch : patch) delete pch;
+}
+
+
+bool FieldFuncBase::setPatch (size_t pIdx)
+{
+  if (pIdx >= npch)
+    return false;
+
+  pidx = pIdx;
+  return true;
+}
+
+
+FieldFuncHDF5::FieldFuncHDF5 (const std::string& fName)
+  : hdf5(nullptr), pAdm(nullptr)
 {
   lastLevel = 0;
   lastTime = 0.0;
@@ -44,15 +60,14 @@ FieldFuncBase::FieldFuncBase (const std::string& fName)
 }
 
 
-FieldFuncBase::~FieldFuncBase ()
+FieldFuncHDF5::~FieldFuncHDF5 ()
 {
-  for (ASMbase* pch : patch) delete pch;
   delete hdf5;
   delete pAdm;
 }
 
 
-int FieldFuncBase::findClosestLevel (double time) const
+int FieldFuncHDF5::findClosestLevel (double time) const
 {
   if (time == lastTime) return lastLevel;
 #ifdef HAS_HDF5
@@ -67,7 +82,7 @@ int FieldFuncBase::findClosestLevel (double time) const
     if (ok && fabs(time-t) >= fabs(time-lastTime))
     {
 #ifdef SP_DEBUG
-      std::cout <<"FieldFuncBase: New time level "<< lastLevel
+      std::cout <<"FieldFuncHDF5: New time level "<< lastLevel
                 <<" at t="<< lastTime <<" (dt="<< time-lastTime
                 <<")"<< std::endl;
 #endif
@@ -81,7 +96,7 @@ int FieldFuncBase::findClosestLevel (double time) const
 }
 
 
-bool FieldFuncBase::load (const std::vector<std::string>& fieldNames,
+bool FieldFuncHDF5::load (const std::vector<std::string>& fieldNames,
                           const std::string& basisName, int level,
                           bool isScalar)
 {
@@ -136,31 +151,42 @@ bool FieldFuncBase::load (const std::vector<std::string>& fieldNames,
         patch[ip]->read(strg2);
       }
       else
-        std::cerr <<" *** FieldFuncBase::load: Undefined basis "<< sbasis.str()
+        std::cerr <<" *** FieldFuncHDF5::load: Undefined basis "<< sbasis.str()
                   <<" ("<< g2.substr(0,9) <<")"<< std::endl;
     }
 
     if (patch[ip])
     {
-      RealArrays coefs(nFldCmp);
+      std::vector<RealArray> coefs(nFldCmp);
       for (size_t i = 0; i < nFldCmp; i++)
       {
         std::stringstream str;
         str << level << "/" << basisName << "/fields/" << fieldNames[i] << "/" << ip+1;
         hdf5->readVector(str.str(),coefs[i]);
 #if SP_DEBUG > 1
-        std::cout <<"FieldFuncBase::load: Reading \""<< fieldNames[i]
+        std::cout <<"FieldFuncHDF5::load: Reading \""<< fieldNames[i]
                   <<"\" ("<< coefs[i].size() <<") for patch "<< ip+1;
         for (size_t j = 0; j < coefs[i].size(); j++)
           std::cout << (j%10 ? ' ' : '\n') << coefs[i][j];
         std::cout << std::endl;
 #endif
       }
-      this->addPatchField(patch[ip],coefs);
+      if (nFldCmp > 1)
+      {
+        RealArray coef1;
+        coef1.reserve(nFldCmp*coefs.front().size());
+        for (size_t i = 0; i < coefs.front().size(); i++)
+          for (size_t j = 0; j < nFldCmp; j++)
+            coef1.push_back(coefs[j][i]);
+        this->addPatchField(patch[ip],coef1);
+      }
+      else
+        this->addPatchField(patch[ip],coefs.front());
+
       nOK++;
     }
     else
-      std::cerr <<" *** FieldFuncBase::load: No field function created"
+      std::cerr <<" *** FieldFuncHDF5::load: No field function created"
                 <<" for patch "<< ip+1 << std::endl;
   }
 #endif
@@ -173,7 +199,7 @@ FieldFunction::FieldFunction (const std::string& fileName,
                               const std::string& basisName,
                               const std::string& fieldName,
                               int level)
-  : FieldFuncBase(fileName), currentLevel(level),
+  : FieldFuncHDF5(fileName), currentLevel(level),
     fName(fieldName), bName(basisName)
 {
   if (level >= 0)
@@ -181,26 +207,18 @@ FieldFunction::FieldFunction (const std::string& fileName,
 }
 
 
-bool FieldFunction::initPatch (size_t pIdx)
-{
-  if (pIdx >= field.size())
-    return false;
-
-  pidx = pIdx;
-  return true;
-}
-
-
 void FieldFunction::clearField ()
 {
   for (Field* f : field) delete f;
   field.clear();
+  npch = 0;
 }
 
 
-void FieldFunction::addPatchField (ASMbase* pch, const RealArrays& coefs)
+void FieldFunction::addPatchField (ASMbase* pch, const RealArray& coefs)
 {
-  field.push_back(Field::create(pch,coefs.front()));
+  field.push_back(Field::create(pch,coefs));
+  npch = field.size();
 }
 
 
@@ -230,7 +248,7 @@ FieldsFuncBase::FieldsFuncBase (const std::string& fileName,
                                 const std::string& basisName,
                                 const std::string& fieldName,
                                 int level)
-  : FieldFuncBase(fileName), currentLevel(level),
+  : FieldFuncHDF5(fileName), currentLevel(level),
     fName(splitString(fieldName,[](int c){ return c == '|' ? 1 : 0; })),
     bName(basisName)
 {
@@ -243,22 +261,14 @@ void FieldsFuncBase::clearField ()
 {
   for (Fields* f : field) delete f;
   field.clear();
+  npch = 0;
 }
 
 
-void FieldsFuncBase::addPatchField (ASMbase* pch, const RealArrays& coefs)
+void FieldsFuncBase::addPatchField (ASMbase* pch, const RealArray& coefs)
 {
-  if (coefs.size() == 1)
-    field.push_back(Fields::create(pch,coefs.front(),1,pch->getNoFields(1)));
-  else if (coefs.size() > 1)
-  {
-    RealArray coef;
-    coef.reserve(coefs.size()*coefs.front().size());
-    for (size_t i = 0; i < coefs.front().size(); i++)
-      for (size_t j = 0; j < coefs.size(); j++)
-        coef.push_back(coefs[j][i]);
-    field.push_back(Fields::create(pch,coef,1,pch->getNoFields(1)));
-  }
+  field.push_back(Fields::create(pch,coefs,1,pch->getNoFields(1)));
+  npch = field.size();
 }
 
 
@@ -297,16 +307,6 @@ VecFieldFunction::VecFieldFunction (const std::string& fileName,
 }
 
 
-bool VecFieldFunction::initPatch (size_t pIdx)
-{
-  if (pIdx >= field.size())
-    return false;
-
-  pidx = pIdx;
-  return true;
-}
-
-
 Vec3 VecFieldFunction::evaluate (const Vec3& X) const
 {
   if (pidx >= field.size() || !field[pidx])
@@ -327,16 +327,6 @@ TensorFieldFunction::TensorFieldFunction (const std::string& fileName,
 }
 
 
-bool TensorFieldFunction::initPatch (size_t pIdx)
-{
-  if (pIdx >= field.size())
-    return false;
-
-  pidx = pIdx;
-  return true;
-}
-
-
 Tensor TensorFieldFunction::evaluate (const Vec3& X) const
 {
   if (pidx >= field.size() || !field[pidx])
@@ -354,16 +344,6 @@ STensorFieldFunction::STensorFieldFunction (const std::string& fileName,
 {
   if (!field.empty())
     ncmp = field.front()->getNoFields();
-}
-
-
-bool STensorFieldFunction::initPatch (size_t pIdx)
-{
-  if (pIdx >= field.size())
-    return false;
-
-  pidx = pIdx;
-  return true;
 }
 
 

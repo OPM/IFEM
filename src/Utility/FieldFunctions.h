@@ -31,16 +31,38 @@ class ProcessAdm;
 class FieldFuncBase
 {
 protected:
-  typedef std::vector<Real>      RealArray;  //!< Convenience type
-  typedef std::vector<RealArray> RealArrays; //!< Convenience type
-
-  //! \brief The constructor opens the provided HDF5-file.
-  //! \param[in] fileName Name of the HDF5-file
-  explicit FieldFuncBase(const std::string& fileName);
+  //! \brief Default constructor.
+  FieldFuncBase() : pidx(0), npch(0) {}
   //! \brief No copying of this class.
   FieldFuncBase(const FieldFuncBase&) = delete;
-  //! \brief The destructor deletes the patches and closes the HDF5-file.
+  //! \brief The destructor deletes the patches.
   virtual ~FieldFuncBase();
+
+  //! \brief Sets the active patch.
+  bool setPatch(size_t pIdx);
+
+protected:
+  std::vector<ASMbase*> patch; //!< The patches on which the field is defined
+
+  size_t pidx; //!< Current patch index
+  size_t npch; //!< Number of patches in the field
+};
+
+
+/*!
+  \brief Base class for spatial functions, defined from a HDF5-file.
+*/
+
+class FieldFuncHDF5 : public FieldFuncBase
+{
+protected:
+  //! \brief The constructor opens the provided HDF5-file.
+  //! \param[in] fileName Name of the HDF5-file
+  explicit FieldFuncHDF5(const std::string& fileName);
+  //! \brief No copying of this class.
+  FieldFuncHDF5(const FieldFuncHDF5&) = delete;
+  //! \brief The destructor closes the HDF5-file.
+  virtual ~FieldFuncHDF5();
 
   //! \brief Loads field values for the specified time level.
   //! \param[in] fieldNames Name of the field components in the HDF5-file
@@ -57,7 +79,7 @@ protected:
   //! \brief Adds a patch-wise field with the given coefficient values.
   //! \param[in] pch The patch to define the field over
   //! \param[in] coefs Field values
-  virtual void addPatchField(ASMbase* pch, const RealArrays& coefs) = 0;
+  virtual void addPatchField(ASMbase* pch, const std::vector<Real>& coefs) = 0;
   //! \brief Clears the field container.
   virtual void clearField() = 0;
 
@@ -67,11 +89,6 @@ private:
 
   mutable int    lastLevel; //!< The last time level read from
   mutable double lastTime;  //!< The time of \a lastLevel
-
-  std::vector<ASMbase*> patch; //!< The patches on which the field is defined
-
-protected:
-  size_t pidx; //!< Current patch index
 };
 
 
@@ -79,7 +96,7 @@ protected:
   \brief A scalar-valued spatial function, defined through scalar fields.
 */
 
-class FieldFunction : public RealFunc, private FieldFuncBase
+class FieldFunction : public RealFunc, private FieldFuncHDF5
 {
 public:
   //! \brief The constructor creates a field from the provided HDF5-file.
@@ -95,7 +112,7 @@ public:
   virtual ~FieldFunction() { this->clearField(); }
 
   //! \brief Sets the active patch.
-  virtual bool initPatch(size_t pIdx);
+  virtual bool initPatch(size_t pIdx) { return this->setPatch(pIdx); }
 
 protected:
   //! \brief Evaluates the scalar field function.
@@ -104,7 +121,7 @@ protected:
   //! \brief Adds a patch-wise field with the given coefficient values.
   //! \param[in] pch The patch to define the field over
   //! \param[in] coefs Field values
-  virtual void addPatchField(ASMbase* pch, const RealArrays& coefs);
+  virtual void addPatchField(ASMbase* pch, const std::vector<Real>& coefs);
   //! \brief Clears the field container.
   virtual void clearField();
 
@@ -122,7 +139,7 @@ private:
   \brief Base class for multi-valued spatial functions, defined through fields.
 */
 
-class FieldsFuncBase : public FieldFuncBase
+class FieldsFuncBase : public FieldFuncHDF5
 {
 protected:
   //! \brief The constructor creates a field from the provided HDF5-file.
@@ -140,12 +157,12 @@ protected:
   //! \brief Adds a patch-wise field with the given coefficient values.
   //! \param[in] pch The patch to define the field over
   //! \param[in] coefs Field values
-  virtual void addPatchField(ASMbase* pch, const RealArrays& coefs);
+  virtual void addPatchField(ASMbase* pch, const std::vector<Real>& coefs);
   //! \brief Clears the field container.
   virtual void clearField();
 
   //! \brief Evaluates the field at the givent point \b X.
-  RealArray getValues(const Vec3& X);
+  std::vector<Real> getValues(const Vec3& X);
 
 private:
   mutable int currentLevel; //!< Current time level to evaluate at
@@ -178,7 +195,7 @@ public:
   virtual ~VecFieldFunction() {}
 
   //! \brief Sets the active patch.
-  virtual bool initPatch(size_t pIdx);
+  virtual bool initPatch(size_t pIdx) { return this->setPatch(pIdx); }
 
 protected:
   //! \brief Evaluates the vectorial field function.
@@ -206,7 +223,7 @@ public:
   virtual ~TensorFieldFunction() {}
 
   //! \brief Sets the active patch.
-  virtual bool initPatch(size_t pIdx);
+  virtual bool initPatch(size_t pIdx) { return this->setPatch(pIdx); }
 
 protected:
   //! \brief Evaluates the tensorial field function.
@@ -234,7 +251,7 @@ public:
   virtual ~STensorFieldFunction() {}
 
   //! \brief Sets the active patch.
-  virtual bool initPatch(size_t pIdx);
+  virtual bool initPatch(size_t pIdx) { return this->setPatch(pIdx); }
 
 protected:
   //! \brief Evaluates the tensorial field function.
