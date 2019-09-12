@@ -16,6 +16,8 @@
 
 #include "ImmersedBoundaries.h"
 
+class RealFunc;
+
 
 /*!
   \brief Class representing the perforated plate benchmark.
@@ -70,7 +72,7 @@ public:
   virtual ~Oval2D() {}
 
   //! \brief Performs the inside-outside test for the perforated plate object.
-  virtual double Alpha(double X, double Y, double = 0.0) const;
+  virtual double Alpha(double X, double Y, double) const;
 
   //! \brief Creates a finite element model of the geometry for visualization.
   virtual ElementBlock* tesselate() const;
@@ -93,7 +95,7 @@ public:
   //! \brief Default constructor.
   PerforatedPlate2D() {}
   //! \brief Constructor creating a single hole.
-  explicit PerforatedPlate2D(Hole2D* hole) { holes.resize(1,hole); }
+  explicit PerforatedPlate2D(Hole2D* hole) : holes({hole}) { }
   //! \brief The destructor deletes the holes.
   virtual ~PerforatedPlate2D();
 
@@ -103,13 +105,35 @@ public:
   void addHole(double r, double x0, double y0, double x1, double y1);
 
   //! \brief Performs the inside-outside test for the perforated plate object.
-  virtual double Alpha(double X, double Y, double = 0.0) const;
+  virtual double Alpha(double X, double Y, double) const;
 
   //! \brief Creates a finite element model of the geometry for visualization.
   virtual ElementBlock* tesselate() const;
 
 private:
   std::vector<Hole2D*> holes; //!< The holes that perforate the plate
+};
+
+
+/*!
+  \brief Class describing the immersed boundary as a scalar function.
+*/
+
+class GeoFunc2D : public Immersed::Geometry
+{
+public:
+  //! \brief Default constructor.
+  explicit GeoFunc2D(RealFunc* f = nullptr, double p = 1.0, double eps = 0.5);
+  //! \brief The destructor deletes the function.
+  virtual ~GeoFunc2D();
+
+  //! \brief Performs the inside-outside test for the geometric object.
+  virtual double Alpha(double X, double Y, double Z) const;
+
+private:
+  RealFunc* myAlpha; //!< Function describing the inside-outside state
+  double myExponent; //!< The exponent to apply on the \a myAlpha function
+  double  threshold; //!< Inside/outside threshold
 };
 
 #endif

@@ -13,6 +13,7 @@
 
 #include "IBGeometries.h"
 #include "ElementBlock.h"
+#include "Function.h"
 
 
 Oval2D::Oval2D (double r, double x0, double y0, double x1, double y1)
@@ -143,8 +144,7 @@ ElementBlock* PerforatedPlate2D::tesselate () const
 
 PerforatedPlate2D::~PerforatedPlate2D ()
 {
-  for (size_t i = 0; i < holes.size(); i++)
-    delete holes[i];
+  for (Hole2D* h : holes) delete h;
 }
 
 
@@ -159,4 +159,25 @@ void PerforatedPlate2D::addHole (double r,
                                  double x1, double y1)
 {
   holes.push_back(new Oval2D(r,x0,y0,x1,y1));
+}
+
+
+GeoFunc2D::GeoFunc2D (RealFunc* f, double p, double eps)
+{
+  myAlpha = f;
+  myExponent = p;
+  threshold = eps;
+}
+
+
+GeoFunc2D::~GeoFunc2D ()
+{
+  delete myAlpha;
+}
+
+
+double GeoFunc2D::Alpha (double X, double Y, double Z) const
+{
+  double value = myAlpha ? pow((*myAlpha)(Vec3(X,Y,Z)),myExponent) : 0.0;
+  return value < threshold ? 0.0 : 1.0;
 }
