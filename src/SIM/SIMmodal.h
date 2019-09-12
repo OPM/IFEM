@@ -64,6 +64,10 @@ public:
   //! \brief Returns the number of expanded dynamic solution vectors.
   virtual size_t numExpSolution() const = 0;
 
+  //! \brief Projects the secondary solution associated with the eigenmodes.
+  virtual bool projectModes(Matrices&, std::vector<std::string>&,
+                            SIMoptions::ProjectionMethod) { return false; }
+
 protected:
   std::vector<Mode>& myModes; //!< Array of eigenmodes
 
