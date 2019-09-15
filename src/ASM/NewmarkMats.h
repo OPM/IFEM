@@ -30,7 +30,7 @@ public:
   //! \param[in] a2 Stiffness-proportional damping coefficient
   //! \param[in] b Time integration parameter
   //! \param[in] c Time integration parameter
-  //! \param[in] generalizedAlpha If \e true, iterpret \a b and \a c as the
+  //! \param[in] generalizedAlpha If \e true, interpret \a b and \a c as the
   //! generalized alpha parameters \a alpha_m and \a alpha_f, respectively,
   //! otherwise as \a beta and \a gamma
   NewmarkMats(double a1 = 0.0, double a2 = 0.0, double b = 0.0, double c = 0.0,

@@ -44,9 +44,12 @@ protected:
   //! \param[in] Rhs Current right-hand-side load vector
   //! \param[in] beta Newmark time integration parameter
   //! \param[in] gamma Newmark time integration parameter
+  //! \param[in] alpha1 Mass-proportional damping factor
+  //! \param[in] alpha2 Stiffness-proportional damping factor
   bool assembleModalSystem(const TimeDomain& time,
                            const Vectors& mSol, const Vector& Rhs,
-                           double beta, double gamma);
+                           double beta, double gamma,
+                           double alpha1 = 0.0, double alpha2 = 0.0);
 
   //! \brief Swaps the modal equation system before/after load vector assembly.
   bool swapSystem(AlgEqSystem*& sys, SAM*& sam);

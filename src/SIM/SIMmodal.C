@@ -80,7 +80,16 @@ bool SIMmodal::swapSystem (AlgEqSystem*& sys, SAM*& sam)
 
 bool SIMmodal::expandSolution (const Vectors& mSol, Vectors& pSol) const
 {
-  pSol.resize(mSol.size());
+  if (pSol.empty())
+    pSol.resize(mSol.size());
+  else if (pSol.size() != mSol.size())
+  {
+    std::cerr <<" *** SIMmodal::expandSolution: Invalid modal solution, "
+              <<" size(mSol) = "<< mSol.size() <<" ("<< pSol.size()
+              <<" expected)."<< std::endl;
+    return false;
+  }
+
   for (size_t i = 0; i < pSol.size(); i++)
     if (mSol[i].size() != myModes.size())
     {
@@ -91,7 +100,19 @@ bool SIMmodal::expandSolution (const Vectors& mSol, Vectors& pSol) const
     }
     else
     {
-      pSol[i].resize(myModes.front().eigVec.size(),true);
+      if (pSol[i].empty())
+        pSol[i].resize(myModes.front().eigVec.size());
+      else if (pSol[i].size() == myModes.front().eigVec.size())
+        pSol[i].fill(0.0);
+      else
+      {
+        std::cerr <<" *** SIMmodal::expandSolution: Logic error, "
+                  <<" size(pSol["<< i <<"]) = "<< pSol[i].size()
+                  <<" != size(eigVec) = "<< myModes.front().eigVec.size()
+                  << std::endl;
+        return false;
+      }
+
       for (size_t j = 0; j < myModes.size(); j++)
         pSol[i].add(myModes[j].eigVec,mSol[i][j]);
     }
@@ -102,7 +123,8 @@ bool SIMmodal::expandSolution (const Vectors& mSol, Vectors& pSol) const
 
 bool SIMmodal::assembleModalSystem (const TimeDomain& time,
                                     const Vectors& pSol, const Vector& Rhs,
-                                    double beta, double gamma)
+                                    double beta, double gamma,
+                                    double alpha1, double alpha2)
 {
   if (!modalSam)
     // Create a diagonal SAM object
@@ -121,7 +143,7 @@ bool SIMmodal::assembleModalSystem (const TimeDomain& time,
     // Create a single-dof element matrix object,
     // the "elements" now being the eigenmodes
     myElmMat = new NewmarkMats(0.0,0.0,beta,gamma);
-    myElmMat->resize(3,1);
+    myElmMat->resize(alpha1 > 0.0 || alpha2 > 0.0 ? 4 : 3, 1);
     myElmMat->redim(1);
   }
 
@@ -144,14 +166,20 @@ bool SIMmodal::assembleModalSystem (const TimeDomain& time,
 
   // Assemble the modal system
   bool ok = true;
+  double omega, damping;
   modalSys->initialize(true);
   for (size_t m = 0; m < myModes.size() && ok; m++)
   {
-    double omega = 2.0*M_PI*myModes[m].eigVal; // Angular eigenfrequency
+    omega = 2.0*M_PI*myModes[m].eigVal; // Angular eigenfrequency
+    if (myModes[m].damping > 0.0)
+      damping = myModes[m].damping;
+    else // Pure Rayleigh damping
+      damping = alpha1 + alpha2*omega*omega;
 
 #if SP_DEBUG > 2
     std::cout <<"\nProcessing mode shape "<< myModes[m].eigNo
-              <<": omega = "<< omega << std::endl;
+              <<": omega = "<< omega
+              <<", damping = "<< damping << std::endl;
 #endif
 
     // Extract current solution associated with the m'th mode shape
@@ -160,6 +188,8 @@ bool SIMmodal::assembleModalSystem (const TimeDomain& time,
 
     myElmMat->A[1].fill(1.0);                        // Modal mass
     myElmMat->A[2].fill(omega*omega);                // Modal stiffness
+    if (myElmMat->A.size() > 3)
+      myElmMat->A[3].fill(damping);                  // Modal damping
     myElmMat->b[0].fill(myModes[m].eigVec.dot(Rhs)); // Modal load
     myElmMat->b[0].add({-omega*omega*pSol[iu][m]});  // Modal residual
     ok = modalSys->assemble(myElmMat,myModes[m].eigNo);

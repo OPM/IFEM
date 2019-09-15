@@ -47,10 +47,15 @@ const Matrix& NewmarkMats::getNewtonMatrix () const
   N = A[1];
   N.multiply(alpha_m + alpha_f*alpha1*gamma*h);
   N.add(A[2],alpha_f*(alpha2*gamma + beta*h)*h);
-  if (slvDisp) N.multiply(1.0/(beta*h*h));
+  if (A.size() > 3)
+    N.add(A[3],alpha_f*gamma*h);
+  if (slvDisp)
+    N.multiply(1.0/(beta*h*h));
 #if SP_DEBUG > 2
   std::cout <<"\nElement mass matrix"<< A[1];
   std::cout <<"Element stiffness matrix"<< A[2];
+  if (A.size() > 3)
+    std::cout <<"Element damping matrix"<< A[3];
   std::cout <<"Resulting Newton matrix"<< A[0];
 #endif
 
@@ -66,9 +71,16 @@ const Vector& NewmarkMats::getRHSVector () const
   int iv = vec.size() - 2; // index to element velocity vector (v)
 
 #if SP_DEBUG > 2
+  if (!vec.empty()) std::cout <<"\n";
+  int iu = vec.size() - 3; // index to element displacement vector (u)
+  if (iu >= 0) std::cout <<"u:"<< vec[iu];
+  if (iv >= 0) std::cout <<"v:"<< vec[iv];
+  if (ia >= 0) std::cout <<"a:"<< vec[ia];
   std::cout <<"\nf_ext - f_s"<< dF;
   if (A.size() > 1 && ia >= 0)
     std::cout <<"f_i = M*a"<< A[1]*vec[ia];
+  if (A.size() > 3 && iv >= 0)
+    std::cout <<"f_d = C*v"<< A[3]*vec[iv];
   if (alpha1 > 0.0 && A.size() > 1 && iv >= 0)
     std::cout <<"f_d1/alpha1 = M*v (alpha1="<< alpha1 <<")"<< A[1]*vec[iv];
   if (alpha2 > 0.0 && A.size() > 2 && iv >= 0)
@@ -77,6 +89,9 @@ const Vector& NewmarkMats::getRHSVector () const
 
   if (A.size() > 1 && ia >= 0)
     dF.add(A[1]*vec[ia],-1.0);    // dF = Fext - M*a
+
+  if (A.size() > 3 && iv >= 0)
+    dF.add(A[3]*vec[iv],-1.0);    // dF -= C*v
 
   if (alpha1 > 0.0 && A.size() > 1 && iv >= 0)
     dF.add(A[1]*vec[iv],-alpha1); // dF -= alpha1*M*v
