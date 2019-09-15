@@ -244,6 +244,39 @@ Real FieldFunction::evaluate (const Vec3& X) const
 }
 
 
+FieldFuncStream::FieldFuncStream (const std::vector<ASMbase*>& patches,
+                                  std::istream& istr)
+{
+  for (ASMbase* pch : patches)
+  {
+    RealArray coefs(pch->getNoNodes(1));
+    for (size_t i = 0; i < coefs.size() && istr; i++) istr >> coefs[i];
+    field.push_back(Field::create(pch,coefs,1,0));
+  }
+}
+
+
+FieldFuncStream::~FieldFuncStream ()
+{
+  for (Field* f : field) delete f;
+}
+
+
+Real FieldFuncStream::evaluate (const Vec3& X) const
+{
+  if (pidx >= field.size() || !field[pidx])
+    return Real(0);
+
+  const Vec4* x4 = dynamic_cast<const Vec4*>(&X);
+  if (!x4)
+    return field[pidx]->valueCoor(X);
+  else if (x4->idx > 0)
+    return field[pidx]->valueNode(x4->idx);
+  else
+    return field[pidx]->valueCoor(*x4);
+}
+
+
 FieldsFuncBase::FieldsFuncBase (const std::string& fileName,
                                 const std::string& basisName,
                                 const std::string& fieldName,

@@ -136,6 +136,33 @@ private:
 
 
 /*!
+  \brief A scalar-valued spatial function, defined through scalar fields.
+  \details This class reads its control point values from a stream.
+*/
+
+class FieldFuncStream : public RealFunc, private FieldFuncBase
+{
+public:
+  //! \brief The constructor creates a field from the provided input stream.
+  //! \param[in] patches List of patches the field is defined over
+  //! \param[in] istr Input stream to read control point values from
+  FieldFuncStream(const std::vector<ASMbase*>& patches, std::istream& istr);
+  //! \brief The destructor deletes the scalar fields.
+  virtual ~FieldFuncStream();
+
+  //! \brief Sets the active patch.
+  virtual bool initPatch(size_t pIdx) { return this->setPatch(pIdx); }
+
+protected:
+  //! \brief Evaluates the scalar field function.
+  virtual Real evaluate(const Vec3& X) const;
+
+private:
+  std::vector<Field*> field; //!< The scalar field to be evaluated
+};
+
+
+/*!
   \brief Base class for multi-valued spatial functions, defined through fields.
 */
 
