@@ -109,12 +109,15 @@ public:
   //! \param[in] c0 Column offset for the augmented matrix
   virtual bool augment(const SystemMatrix& B, size_t r0, size_t c0);
 
+  //! \brief Multiplication with a scalar.
+  virtual void mult(Real alpha) { myMat.multiply(alpha); }
+
   //! \brief Adds a matrix with similar dimension to the current matrix.
   //! \param[in] B     The matrix to be added
   //! \param[in] alpha Scale factor for matrix \b B
   virtual bool add(const SystemMatrix& B, Real alpha = Real(1));
 
-  //! \brief Adds the diagonal matrix \f$\sigma\f$\b I to the current matrix.
+  //! \brief Adds the diagonal matrix &sigma;\b I to the current matrix.
   virtual bool add(Real sigma);
 
   //! \brief Performs the matrix-vector multiplication \b C = \a *this * \b B.
@@ -131,7 +134,7 @@ public:
 
   //! \brief Solves a standard symmetric-definite eigenproblem.
   //! \details The eigenproblem is assumed to be on the form
-  //! \b A \b x = \f$\lambda\f$ \b x where \b A ( = \a *this )
+  //! \b A \b x = &lambda; \b x where \b A ( = \a *this )
   //! is assumed to be symmetric and positive definite.
   //! The eigenproblem is solved by the LAPack library subroutine \a DSYEVX.
   //! \sa LAPack library documentation.
@@ -142,7 +145,7 @@ public:
 
   //! \brief Solves a non-symmetric eigenproblem.
   //! \details The eigenproblem is assumed to be on the form
-  //! \b A \b x = \f$\lambda\f$ \b x where \b A ( = \a *this )
+  //! \b A \b x = &lambda; \b x where \b A ( = \a *this )
   //! is a square non-symmetric matrix.
   //! The eigenproblem is solved by the LAPack library subroutine \a DGEEV.
   //! \sa LAPack library documentation.
@@ -152,7 +155,7 @@ public:
 
   //! \brief Solves a generalized symmetric-definite eigenproblem.
   //! \details The eigenproblem is assumed to be on the form
-  //! \b A \b x = \f$\lambda\f$ \b B \b x where \b A ( = \a *this ) and \b B
+  //! \b A \b x = &lambda; \b B \b x where \b A ( = \a *this ) and \b B
   //! both are assumed to be symmetric and \b B also to be positive definite.
   //! The eigenproblem is solved by the LAPack library subroutine \a DSYGVX.
   //! \sa LAPack library documentation.

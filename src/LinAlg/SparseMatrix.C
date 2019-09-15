@@ -206,8 +206,8 @@ void SparseMatrix::resize (size_t r, size_t c, bool forceEditable)
   if (r == nrow && c == ncol && !forceEditable)
   {
     // Clear the matrix content but retain its sparsity pattern
-    for (ValueMap::iterator it = elem.begin(); it != elem.end(); ++it)
-      it->second = Real(0);
+    for (ValueMap::value_type& val : elem)
+      val.second = Real(0);
     std::fill(A.begin(),A.end(),Real(0));
     return;
   }
@@ -348,27 +348,26 @@ void SparseMatrix::dump (std::ostream& os, char format, const char* label)
     case 'M':
     case 'm':
       if (editable)
-        for (const auto& it : elem)
-          os << it.first.first <<' '<< it.first.second <<" "<< it.second
+        for (const ValueMap::value_type& val : elem)
+          os << val.first.first <<' '<< val.first.second <<" "<< val.second
              <<";\n";
       else if (solver == SUPERLU || solver == UMFPACK) {
         // Column-oriented format with 0-based indices
-        os << JA[0]+1 <<" 1 "<< A[0];
+        os << JA.front()+1 <<" 1 "<< A.front();
         for (size_t j = 1; j <= ncol; j++)
-          for (int i = IA[j-1]; i < IA[j]; i++) {
-            if(j==1 && i==IA[0]) continue;
-            os << ";\n" << JA[i]+1 <<' '<< j <<' '<< A[i] ;
-        }
-      } else {
-        // Row-oriented format with 1-based indices
-        os << "1 " << JA[0] <<' '<< A[0] ;
-        for (size_t i = 1; i <= nrow; i++)
-          for (int j = IA[i-1]; j < IA[i]; j++) {
-            if(i==1 && j==IA[0]) continue;
-            os << ";\n" << i <<' '<< JA[j-1] <<' '<< A[i-1] ;
-        }
+          for (int i = IA[j-1]; i < IA[j]; i++)
+            if (j > 1 || i != IA.front())
+              os <<";\n"<< JA[i]+1 <<' '<< j <<' '<< A[i];
       }
-      os << "];\n";
+      else {
+        // Row-oriented format with 1-based indices
+        os <<"1 "<< JA.front() <<' '<< A.front();
+        for (size_t i = 1; i <= nrow; i++)
+          for (int j = IA[i-1]; j < IA[i]; j++)
+            if (i > 1 || j != IA.front())
+              os <<";\n"<< i <<' '<< JA[j-1] <<' '<< A[i-1];
+      }
+      os <<"];\n";
       break;
 
     default:
@@ -381,18 +380,16 @@ std::ostream& SparseMatrix::write (std::ostream& os) const
 {
   os << nrow <<' '<< ncol <<' '<< this->size();
   if (editable)
-    for (const auto& it : elem)
-      os <<'\n'<< it.first.first <<' '<< it.first.second <<" : "<< it.second;
-  else {
-    size_t i;
+    for (const ValueMap::value_type& val : elem)
+      os <<'\n'<< val.first.first <<' '<< val.first.second <<" : "<< val.second;
+  else
+  {
     os <<'\n';
-    for (i = 0; i < A.size(); i++) os << A[i] <<' ';
-
+    for (double v : A) os << v <<' ';
     os <<'\n'<< IA.size() <<'\n';
-    for (i = 0; i < IA.size(); i++) os << IA[i] <<' ';
-
+    for (int i : IA) os << i <<' ';
     os <<'\n'<< JA.size() <<'\n';
-    for (i = 0; i < JA.size(); i++) os << JA[i] <<' ';
+    for (int j : JA) os << j <<' ';
   }
   return os << std::endl;
 }
@@ -454,10 +451,10 @@ bool SparseMatrix::augment (const SystemMatrix& B, size_t r0, size_t c0)
   if (c0+Bptr->ncol > ncol) ncol = c0 + Bptr->ncol;
   if (c0+Bptr->ncol > nrow) nrow = c0 + Bptr->ncol;
 
-  for (const auto& it : Bptr->elem)
+  for (const ValueMap::value_type& val : Bptr->elem)
   {
-    elem[std::make_pair(r0+it.first.first,c0+it.first.second)] += it.second;
-    elem[std::make_pair(c0+it.first.second,r0+it.first.first)] += it.second;
+    elem[std::make_pair(r0+val.first.first,c0+val.first.second)] += val.second;
+    elem[std::make_pair(c0+val.first.second,r0+val.first.first)] += val.second;
   }
 
   return true;
@@ -469,12 +466,12 @@ bool SparseMatrix::truncate (Real threshold)
   if (!editable) return false; // Not implemented for non-editable matrices yet
 
   Real tol = Real(0);
-  for (const auto& it : elem)
-    if (it.first.first == it.first.second)
-      if (it.second > tol)
-        tol = it.second;
-      else if (it.second < -tol)
-        tol = -it.second;
+  for (const ValueMap::value_type& val : elem)
+    if (val.first.first == val.first.second)
+      if (val.second > tol)
+        tol = val.second;
+      else if (val.second < -tol)
+        tol = -val.second;
 
   tol *= threshold;
   size_t nnz = elem.size();
@@ -496,6 +493,16 @@ bool SparseMatrix::truncate (Real threshold)
 }
 
 
+void SparseMatrix::mult (Real alpha)
+{
+  if (editable)
+    for (ValueMap::value_type& val : elem)
+      val.second *= alpha;
+  else
+    A *= alpha;
+}
+
+
 bool SparseMatrix::add (const SystemMatrix& B, Real alpha)
 {
   const SparseMatrix* Bptr = dynamic_cast<const SparseMatrix*>(&B);
@@ -504,8 +511,8 @@ bool SparseMatrix::add (const SystemMatrix& B, Real alpha)
   if (Bptr->nrow > nrow || Bptr->ncol > ncol) return false;
 
   if (editable == 'P' && Bptr->editable)
-    for (const auto& it : Bptr->elem)
-      elem[it.first] += alpha*it.second;
+    for (const ValueMap::value_type& val : Bptr->elem)
+      elem[val.first] += alpha*val.second;
 
   else if (!editable && !Bptr->editable)
   {
@@ -555,8 +562,8 @@ bool SparseMatrix::multiply (const SystemVector& B, SystemVector& C) const
   if (!Cptr) return false;
 
   if (editable)
-    for (const auto& it : elem)
-      (*Cptr)(it.first.first) += it.second*(*Bptr)(it.first.second);
+    for (const ValueMap::value_type& val : elem)
+      (*Cptr)(val.first.first) += val.second*(*Bptr)(val.first.second);
   else if (solver == SUPERLU) {
 #ifdef notyet_USE_OPENMP // TODO: akva needs to fix this, gives wrong result!
     if (omp_get_max_threads() > 1) {
@@ -722,8 +729,8 @@ void SparseMatrix::preAssemble (const SAM& sam, bool delayLocking)
   // This is used when SAM::getDofCouplings does not return all connectivities
   if (delayLocking) // that will exist in the final matrix.
     for (size_t i = 0; i < dofc.size(); i++)
-      for (const int& it : dofc[i])
-        (*this)(i+1,it) = 0.0;
+      for (int j : dofc[i])
+        (*this)(i+1,j) = 0.0;
 
   editable = 'V'; // Temporarily lock the sparsity pattern
   if (delayLocking)
@@ -840,8 +847,8 @@ bool SparseMatrix::optimiseSAMG (bool transposed)
   ValueIter begin, end;
 
   if (transposed) {
-    for (const auto& it : elem)
-      trans[IJPair(it.first.second,it.first.first)] = it.second;
+    for (const ValueMap::value_type& val : elem)
+      trans[IJPair(val.first.second,val.first.first)] = val.second;
     begin = trans.begin();
     end = trans.end();
     std::swap(nrow,ncol);
@@ -856,7 +863,7 @@ bool SparseMatrix::optimiseSAMG (bool transposed)
   JA.resize(nnz);
   IA.resize(nrow+1,nnz+1);
 
-  IA[0] = 1; // first row start at index 1
+  IA.front() = 1; // first row start at index 1
   size_t cur_row = 1, ix = 0;
   for (ValueIter it = begin; it != end; ++it, ix++) {
     A[ix] = it->second; // storing element value
@@ -902,23 +909,23 @@ bool SparseMatrix::optimiseSLU ()
   IA.resize(ncol+1,0);
 
   // Initialize the array of column pointers
-  ValueIter it;
-  for (const auto& it : elem)
-    if (it.first.first <= nrow && it.first.second <= ncol)
-      IA[it.first.second-1]++;
+  for (const ValueMap::value_type& val : elem)
+    if (val.first.first <= nrow && val.first.second <= ncol)
+      IA[val.first.second-1]++;
     else
       return false;
 
   size_t j, nz;
-  int k, jsize = IA[0];
-  for (j = 1, k = IA[0] = 0; j < ncol; j++) {
+  int k, jsize = IA.front();
+  for (j = 1, k = IA.front() = 0; j < ncol; j++) {
     k += jsize;
     jsize = IA[j];
     IA[j] = k;
   }
 
   // Copy the triplets into the column-oriented storage
-  for (nz = 0, it = elem.begin(); nz < nnz; nz++, ++it) {
+  ValueIter it = elem.begin();
+  for (nz = 0; nz < nnz; nz++, ++it) {
     k = IA[it->first.second-1]++;
     JA[k] = it->first.first-1;
     A[k]  = it->second;
@@ -927,7 +934,7 @@ bool SparseMatrix::optimiseSLU ()
   // Reset the column pointers to the beginning of each column
   for (j = ncol; j > 0; j--)
     IA[j] = IA[j-1];
-  IA[0] = 0;
+  IA.front() = 0;
 
   editable = false;
   elem.clear(); // Erase the editable matrix elements
@@ -950,15 +957,15 @@ bool SparseMatrix::optimiseSLU (const std::vector<IntSet>& dofc)
   for (i = 0; i < dofc.size(); i++)
   {
     nnz += dofc[i].size();
-    for (const int& it : dofc[i])
-      if (i < nrow && it <= (int)ncol)
-        IA[it-1]++;
+    for (int k : dofc[i])
+      if (i < nrow && k <= (int)ncol)
+        IA[k-1]++;
       else
         return false;
   }
 
-  int k, jsize = IA[0];
-  for (j = 1, k = IA[0] = 0; j < ncol; j++) {
+  int k, jsize = IA.front();
+  for (j = 1, k = IA.front() = 0; j < ncol; j++) {
     k += jsize;
     jsize = IA[j];
     IA[j] = k;
@@ -967,13 +974,13 @@ bool SparseMatrix::optimiseSLU (const std::vector<IntSet>& dofc)
   // Initialize the array of row indices
   JA.resize(nnz);
   for (i = 0; i < dofc.size(); i++)
-    for (const int& it : dofc[i])
-      JA[IA[it-1]++] = i;
+    for (int k : dofc[i])
+      JA[IA[k-1]++] = i;
 
   // Reset the column pointers to the beginning of each column
   for (j = ncol; j > 0; j--)
     IA[j] = IA[j-1];
-  IA[0] = 0;
+  IA.front() = 0;
 
   editable = false;
   A.resize(nnz); // Allocate the non-zero matrix element storage
@@ -1257,7 +1264,6 @@ bool SparseMatrix::solveUMF (Vector& B, Real* rcond)
 
 #ifdef HAS_UMFPACK
   double info[UMFPACK_INFO];
-  Vector X(B.size());
   if (!umfSymbolic) {
     umfpack_di_symbolic(nrow, ncol, IA.data(), JA.data(),
                         A.data(), &umfSymbolic, nullptr, info);
@@ -1268,13 +1274,12 @@ bool SparseMatrix::solveUMF (Vector& B, Real* rcond)
   void* numeric;
   umfpack_di_numeric(IA.data(), JA.data(), A.data(), umfSymbolic,
                      &numeric, nullptr, info);
-  if (info[UMFPACK_STATUS] != UMFPACK_OK)
-    return false;
   if (rcond)
     *rcond = info[UMFPACK_RCOND];
-  const size_t nrhs = B.size() / nrow;
 
-  bool okAll = true;
+  Vector X(B.size());
+  size_t nrhs = B.size() / nrow;
+  bool okAll = info[UMFPACK_STATUS] == UMFPACK_OK;
   for (size_t i = 0; i < nrhs && okAll; ++i) {
     umfpack_di_solve(UMFPACK_A,
                      IA.data(), JA.data(), A.data(),
@@ -1378,18 +1383,19 @@ Real SparseMatrix::Linfnorm () const
 }
 
 
-void SparseMatrix::calcCSR(IntVec& IA, IntVec& JA,
-                           size_t nrow, const ValueMap& elem)
+void SparseMatrix::calcCSR (IntVec& IA, IntVec& JA,
+                            size_t nrow, const ValueMap& elem)
 {
   size_t nnz = elem.size();
   IA.resize(nrow+1,nnz);
   JA.resize(nnz);
 
-  IA[0] = 0;
+  IA.front() = 0;
   size_t cur_row = 1, ix = 0;
-  for (auto it = elem.begin(); it != elem.end(); ++it, ix++) {
-    JA[ix] = it->first.second-1;
-    while (it->first.first > cur_row)
+  for (const ValueMap::value_type& val : elem)
+  {
+    while (val.first.first > cur_row)
       IA[cur_row++] = ix;
+    JA[ix++] = val.first.second-1;
   }
 }

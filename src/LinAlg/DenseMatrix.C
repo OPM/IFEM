@@ -303,18 +303,18 @@ bool DenseMatrix::augment (const Matrix& B, size_t r0, size_t c0)
 
 bool DenseMatrix::augment (const SparseMatrix& B, size_t r0, size_t c0)
 {
-  const ValueMap& elem = B.getValues();
-  if (elem.empty()) return false;
+  if (B.getValues().empty())
+    return false;
 
   size_t newRow = r0 + B.rows();
   size_t newCol = c0 + B.cols();
   size_t newDim = newRow > newCol ? newRow : newCol;
 
   this->redim(newDim,newDim);
-  for (const auto& it : elem)
+  for (const ValueMap::value_type& val : B.getValues())
   {
-    myMat(r0+it.first.first,c0+it.first.second) += it.second;
-    myMat(c0+it.first.second,r0+it.first.first) += it.second;
+    myMat(r0+val.first.first,c0+val.first.second) += val.second;
+    myMat(c0+val.first.second,r0+val.first.first) += val.second;
   }
 
   return true;

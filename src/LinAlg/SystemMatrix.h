@@ -52,7 +52,7 @@ public:
   //! \brief Sets the dimension of the system vector.
   virtual void redim(size_t) = 0;
 
-  //! \brief Resize the vector to length \a n.
+  //! \brief Resizes the vector to length \a n.
   virtual void resize(size_t n, bool = false) { this->redim(n); }
 
   //! \brief Checks if the vector is empty.
@@ -68,8 +68,8 @@ public:
 
   //! \brief Restores the vector contents from an array.
   //! \details This method must only be implemented by sub-classes for which the
-  //! getPtr and getRef methods do not return a pointer to the actual internal
-  //! memory segment containing the actual vector data.
+  //! getPtr() and getRef() methods do not return a pointer to the actual
+  //! internal memory segment containing the actual vector data.
   virtual void restore(const Real*) {}
 
   //! \brief Initializes the vector assuming it is properly dimensioned.
@@ -148,7 +148,7 @@ public:
   //! \brief Sets the dimension of the system vector.
   virtual void redim(size_t n) { this->std::vector<Real>::resize(n,Real(0)); }
 
-  //! \brief Resize the vector to length \a n.
+  //! \brief Resizes the vector to length \a n.
   //! \details Will erase the previous content, but only if the size changed,
   //! unless \a forceClear is \e true.
   virtual void resize(size_t n, bool forceClear = false)
@@ -279,6 +279,9 @@ public:
   //! \brief Truncates all small matrix elements to zero.
   virtual bool truncate(Real = Real(1.0e-16)) { return false; }
 
+  //! \brief Multiplication with a scalar.
+  virtual void mult(Real) = 0;
+
   //! \brief Adds a matrix with similar structure to the current matrix.
   virtual bool add(const SystemMatrix&, Real = Real(1)) { return false; }
 
@@ -310,7 +313,7 @@ public:
   //! \brief Dumps the system matrix on a specified format.
   virtual void dump(std::ostream&, char, const char* = nullptr) {}
 
-  //! \brief Calculates a matrix-vector product
+  //! \brief Calculates a matrix-vector product.
   StdVector operator*(const SystemVector& b) const;
 
   //! \brief Solves a linear equation system.

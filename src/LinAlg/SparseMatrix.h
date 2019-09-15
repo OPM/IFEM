@@ -188,12 +188,15 @@ public:
   //! \param[in] threshold Zero tolerance relative to largest diagonal element
   virtual bool truncate(Real threshold = Real(1.0e-16));
 
+  //! \brief Multiplication with a scalar.
+  virtual void mult(Real alpha);
+
   //! \brief Adds a matrix with similar sparsity pattern to the current matrix.
   //! \param[in] B     The matrix to be added
   //! \param[in] alpha Scale factor for matrix \b B
   virtual bool add(const SystemMatrix& B, Real alpha = Real(1));
 
-  //! \brief Adds the diagonal matrix \f$\sigma\f$\b I to the current matrix.
+  //! \brief Adds the diagonal matrix &sigma;\b I to the current matrix.
   virtual bool add(Real sigma);
 
   //! \brief Performs the matrix-vector multiplication \b C = \a *this * \b B.

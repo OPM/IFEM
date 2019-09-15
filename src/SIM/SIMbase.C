@@ -1249,6 +1249,60 @@ int SIMbase::getLocalNode (int node) const
 }
 
 
+SystemMatrix* SIMbase::getRayleighDampingMatrix (size_t iM, size_t iK) const
+{
+  SystemMatrix* Cmat = nullptr;
+  if (!myEqSys || !myProblem)
+    return Cmat;
+
+  const double eps = 1.0e-8;
+
+  double alpha1 = myProblem->getIntegrationPrm(0);
+  double alpha2 = myProblem->getIntegrationPrm(1);
+
+  if (alpha2 > eps) // We have stiffness-proportional damping
+  {
+    Cmat = this->getLHSmatrix(iK,true);
+    if (!Cmat)
+      std::cerr <<" *** SIMbase::getRayleighDampingMatrix: No stiffness matrix "
+                << iK << std::endl;
+    else
+    {
+      Cmat->mult(alpha2);
+      if (alpha1 > eps) // We have mass-proportional damping also
+      {
+        SystemMatrix* Mmat = this->getLHSmatrix(iM,false);
+        if (!Mmat)
+        {
+          std::cerr <<" *** SIMbase::getRayleighDampingMatrix: No mass matrix "
+                    << iM << std::endl;
+          delete Cmat;
+          Cmat = nullptr;
+        }
+        else if (!Cmat->add(*Mmat,alpha1))
+        {
+          std::cerr <<" *** SIMbase::getRayleighDampingMatrix: Incompatible"
+                    <<" mass- and stiffness matrices"<< std::endl;
+          delete Cmat;
+          Cmat = nullptr;
+        }
+      }
+    }
+  }
+  else if (alpha1 > eps) // Only mass-proportional damping
+  {
+    Cmat = this->getLHSmatrix(iM,true);
+    if (!Cmat)
+      std::cerr <<" *** SIMbase::getRayleighDampingMatrix: No mass matrix "
+                << iM << std::endl;
+    else
+      Cmat->mult(alpha1);
+  }
+
+  return Cmat;
+}
+
+
 SystemMatrix* SIMbase::getLHSmatrix (size_t idx, bool copy) const
 {
   if (!myEqSys) return nullptr;
@@ -1707,6 +1761,19 @@ bool Mode::orthonormalize (const SystemMatrix& mat)
     eigVec /= scale;
     IFEM::cout <<": scale = "<< 1.0/scale << std::endl;
   }
+
+  return true;
+}
+
+
+bool Mode::computeDamping (const SystemMatrix& mat)
+{
+  StdVector tmp;
+  if (!mat.multiply(StdVector(eqnVec),tmp))
+    return false;
+
+  damping = tmp.dot(eqnVec);
+  IFEM::cout <<"  * Mode "<< eigNo <<": damping = "<< damping << std::endl;
 
   return true;
 }

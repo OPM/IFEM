@@ -83,12 +83,15 @@ public:
   virtual bool assemble(const Matrix& eM, const SAM& sam,
                         SystemVector& B, int e);
 
+  //! \brief Multiplication with a scalar.
+  virtual void mult(Real alpha) { myMat *= alpha; }
+
   //! \brief Adds a matrix with similar dimension to the current matrix.
   //! \param[in] B     The matrix to be added
   //! \param[in] alpha Scale factor for matrix \b B
   virtual bool add(const SystemMatrix& B, Real alpha);
 
-  //! \brief Adds the diagonal matrix \f$\sigma\f$\b I to the current matrix.
+  //! \brief Adds the diagonal matrix &sigma;\b I to the current matrix.
   virtual bool add(Real sigma);
 
   //! \brief Performs the matrix-vector multiplication \b C = \a *this * \b B.

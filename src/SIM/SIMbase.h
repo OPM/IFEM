@@ -45,15 +45,18 @@ class Vec3;
 
 struct Mode
 {
-  int    eigNo;  //!< Eigenvalue identifier
-  double eigVal; //!< Eigenvalue associated with this mode
-  Vector eigVec; //!< Eigenvector associated with this mode
-  Vector eqnVec; //!< Eigenvector associated with this mode in equation order
+  int    eigNo;   //!< Eigenvalue identifier
+  double eigVal;  //!< Eigenvalue associated with this mode
+  double damping; //!< Modal damping coefficient
+  Vector eigVec;  //!< Eigenvector associated with this mode
+  Vector eqnVec;  //!< Eigenvector associated with this mode in equation order
 
   //! \brief Default constructor.
-  Mode() : eigNo(0), eigVal(0.0) {}
+  Mode() : eigNo(0), eigVal(0.0), damping(0.0) {}
   //! \brief Orthonormalize the eigenvector w.r.t. the given matrix.
   bool orthonormalize(const SystemMatrix& mat);
+  //! \brief Compute modal damping based on the given damping matrix.
+  bool computeDamping(const SystemMatrix& mat);
 };
 
 
@@ -650,6 +653,10 @@ public:
   //! \brief Returns the end of the property array.
   PropertyVec::const_iterator end_prop() const { return myProps.end(); }
 
+  //! \brief Returns current Rayleigh system damping matrix.
+  //! \param[in] iM Index of the system mass matrix
+  //! \param[in] iK Index of the system stiffness matrix
+  SystemMatrix* getRayleighDampingMatrix(size_t iM = 1, size_t iK = 0) const;
   //! \brief Returns current system left-hand-side matrix.
   SystemMatrix* getLHSmatrix(size_t idx = 0, bool copy = false) const;
   //! \brief Returns current system right-hand-side vector.

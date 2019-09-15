@@ -105,7 +105,7 @@ void sprsol_(const int& iop, const int* mspar, const int* mtrees,
 	     const int* msifa, Real* value, Real* B,
 	     const int& ldB, const int& nrhs, Real* tol,
 	     int* iWork, Real* rWork, const int& lpu, int& ierr);
-//! \brief Solves the generalized eigenproblem \a A*x=(lambda)*B*x.
+//! \brief Solves the generalized eigenproblem \a Ax=&lambda;Bx.
 //! \details This is a FORTRAN-77 subroutine in the SAM library.
 //! \sa SAM library documentation.
 void sprlax_(Real* A, Real* B, const Real* tol,
@@ -114,6 +114,14 @@ void sprlax_(Real* A, Real* B, const Real* tol,
 	     const int& iop, Real* val, Real* vec, Real* rWork, int* iWork,
 	     const Real& shift, const int& n, const int& nv, const int& maxlan,
 	     const int& lpu, const int& ipsw, int& ierr);
+}
+
+
+SPRMatrix::SPRMatrix ()
+{
+  memset(mpar,0,NS*sizeof(int));
+  msica = msifa = mtrees = mvarnc = nullptr;
+  values = nullptr;
 }
 
 
@@ -131,8 +139,6 @@ SPRMatrix::SPRMatrix (const SPRMatrix& A)
   memcpy(mtrees,A.mtrees,A.mpar[35]*sizeof(int));
   memcpy(mvarnc,A.mvarnc,2*A.mpar[7]*sizeof(int));
   memcpy(values,A.values,(A.mpar[7]+A.mpar[15])*sizeof(Real));
-  iWork.clear();
-  rWork.clear();
 }
 
 
@@ -146,14 +152,17 @@ SPRMatrix::~SPRMatrix ()
 }
 
 
+/*!
+  Must be called once before the element assembly loop.
+  The SPR data structures are initialized and the all symbolic operations
+  that are need before the actual assembly can start are performed.
+*/
+
 void SPRMatrix::initAssembly (const SAM& sam, bool)
 {
   memset(mpar,0,NS*sizeof(int));
-  msica = 0;
-  msifa = 0;
-  mtrees = 0;
-  mvarnc = 0;
-  values = 0;
+  msica = msifa = mtrees = mvarnc = nullptr;
+  values = nullptr;
 
 #ifdef HAS_SPR
   if (!sam.madof || !sam.mpmnpc)
@@ -299,6 +308,13 @@ bool SPRMatrix::assemble (const Matrix& eM, const SAM& sam,
 }
 
 
+void SPRMatrix::mult (Real alpha)
+{
+  for (int i = 0; i < mpar[7]+mpar[15]; i++)
+    values[i] *= alpha;
+}
+
+
 bool SPRMatrix::add (const SystemMatrix& B, Real alpha)
 {
   const SPRMatrix* Bptr = dynamic_cast<const SPRMatrix*>(&B);
@@ -373,17 +389,25 @@ bool SPRMatrix::solve (SystemVector& B, bool, Real*)
 }
 
 
-bool SPRMatrix::solveEig (SPRMatrix& B, RealArray& val, Matrix& vec, int nv,
+/*!
+  The eigenproblem is assumed to be on the form
+  \b A \b x = &lambda; \b B \b x where \b A ( = \a *this ) and \b B
+  both are assumed to be symmetric and \b B also to be positive definite.
+  The eigenproblem is solved by the SAM library subroutine \a SPRLAN.
+  \sa SAM library documentation.
+*/
+
+bool SPRMatrix::solveEig (SPRMatrix& B, RealArray& val, Matrix& vec, int nev,
 			  Real shift, int iop)
 {
   const int n = mpar[7];
-  if (n < 1 || nv == 0) return true; // No equations to solve
+  if (n < 1 || nev == 0) return true; // No equations to solve
   if (n != B.mpar[7]) return false; // Incompatible matrices
 
 #if HAS_SPR > 1
   std::cout <<"  Solving sparse eigenproblem using SAM::SPRLAX"<< std::endl;
   Real tol[3] = { Real(1.0e-8), Real(1.0e-12), Real(1.0e-8) };
-  int maxlan = 3*nv+12;
+  int maxlan = 3*nev+12;
   if (maxlan > n) maxlan = n;
   int ierr = 0;
   val.resize(n);
@@ -392,9 +416,9 @@ bool SPRMatrix::solveEig (SPRMatrix& B, RealArray& val, Matrix& vec, int nv,
   rWork.resize(MAX(maxlan*(maxlan+7),MAX(mpar[13],mpar[16])) + maxlan + 2*n);
   sprlax_(values, B.values, tol, mpar, mtrees, msifa, B.mpar, B.mtrees, B.msifa,
 	  iop, &val.front(), vec.ptr(), &rWork.front(), &iWork.front(),
-  	  shift, n, nv, maxlan, 6, 0, ierr);
-  val.resize(nv);
-  vec.resize(n,nv);
+	  shift, n, nev, maxlan, 6, 0, ierr);
+  val.resize(nev);
+  vec.resize(n,nev);
   if (!ierr) return true;
 
   std::cerr <<"SAM::SPRLAX: Failure "<< ierr << std::endl;
