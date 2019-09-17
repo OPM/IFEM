@@ -254,6 +254,16 @@ int ASMs3D::getNodeID (size_t inod, bool noAddedNodes) const
 }
 
 
+size_t ASMs3D::getNoNodes (int basis) const
+{
+  size_t n = this->ASMbase::getNoNodes(basis);
+  if (n > 0 || basis < 1 || !svol) return n;
+
+  // We request the number of nodes before the FE topology has been generated
+  return svol->numCoefs(0) * svol->numCoefs(1) * svol->numCoefs(2);
+}
+
+
 bool ASMs3D::checkRightHandSystem ()
 {
   if (!svol || shareFE) return false;
@@ -3517,20 +3527,28 @@ void ASMs3D::getElmConnectivities (IntMat& neigh) const
 
 void ASMs3D::getBoundaryElms (int lIndex, int, IntVec& elms) const
 {
-  int N1m, N2m, N3m;
-  this->getNoStructElms(N1m,N2m,N3m);
+  int N1m = svol->numCoefs(0) - svol->order(0) + 1;
+  int N2m = svol->numCoefs(1) - svol->order(1) + 1;
+  int N3m = svol->numCoefs(2) - svol->order(2) + 1;
+
   elms.clear();
-  if (lIndex == 1 || lIndex == 2) {
+  switch (lIndex) {
+  case 1:
+  case 2:
     elms.reserve(N2m*N3m);
     for (int k = 0; k < N3m; ++k)
       for (int j = 0; j < N2m; ++j)
         elms.push_back(MLGE[j*N1m + k*N1m*N2m + (lIndex-1)*(N1m-1)] - 1);
-  } else if (lIndex == 3 || lIndex == 4) {
+    break;
+  case 3:
+  case 4:
     elms.reserve(N1m*N3m);
     for (int k = 0; k < N3m; ++k)
       for (int i = 0; i < N1m; ++i)
         elms.push_back(MLGE[i + k*N1m*N2m + (lIndex-3)*(N1m*(N2m-1))] - 1);
-  } else {
+    break;
+  case 5:
+  case 6:
     elms.reserve(N1m*N2m);
     for (int j = 0; j < N2m; ++j)
       for (int i = 0; i < N1m; ++i)
@@ -3539,7 +3557,7 @@ void ASMs3D::getBoundaryElms (int lIndex, int, IntVec& elms) const
 }
 
 
-void ASMs3D::generateThreadGroupsFromElms(const std::vector<int>& elms)
+void ASMs3D::generateThreadGroupsFromElms (const IntVec& elms)
 {
   myElms.clear();
   for (int elm : elms)
@@ -3548,6 +3566,6 @@ void ASMs3D::generateThreadGroupsFromElms(const std::vector<int>& elms)
 
   threadGroupsVol = threadGroupsVol.filter(myElms);
 
-  for (auto& group : threadGroupsFace)
+  for (std::pair<const char,ThreadGroups>& group : threadGroupsFace)
     group.second = group.second.filter(myElms);
 }

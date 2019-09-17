@@ -128,6 +128,16 @@ void ASMs1D::clear (bool retainGeometry)
 }
 
 
+size_t ASMs1D::getNoNodes (int basis) const
+{
+  size_t n = this->ASMbase::getNoNodes(basis);
+  if (n > 0 || basis < 1 || !curv) return n;
+
+  // We request the number of nodes before the FE topology has been generated
+  return curv->numCoefs();
+}
+
+
 bool ASMs1D::refine (const LR::RefineData& prm, Vectors&)
 {
   if (!curv) return false;
@@ -819,7 +829,7 @@ std::pair<size_t,double> ASMs1D::findClosestNode (const Vec3& X) const
   if (param <= curv->startparam())
     return std::make_pair(1,dist);
   else if (param >= curv->endparam())
-    return std::make_pair(this->getNoNodes(),dist);
+    return std::make_pair(curv->numCoefs(),dist);
 
   // We are inside, now find which knot-span we are in and find closest node
   RealArray::iterator it = std::lower_bound(curv->basis().begin(),

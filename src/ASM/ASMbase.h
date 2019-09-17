@@ -71,6 +71,7 @@ public:
     char RX;  //!< Boundary condition code for X-rotation
     char RY;  //!< Boundary condition code for Y-rotation
     char RZ;  //!< Boundary condition code for Z-rotation
+
     //! \brief Constructor initializing a BC instance.
     explicit BC(int n) : node(n), CX(1), CY(1), CZ(1), RX(1), RY(1), RZ(1) {}
   };
@@ -121,6 +122,8 @@ public:
   virtual void addHole(double, double, double) {}
   //! \brief Adds an oval immersed boundary in the physical geometry.
   virtual void addHole(double, double, double, double, double) {}
+  //! \brief Defines the immersed geometry from a scalar function.
+  virtual bool setGeometry(RealFunc*, double, double) { return false; }
 
   //! \brief Generates the finite element topology data for this patch.
   virtual bool generateFEMTopology() = 0;
@@ -157,7 +160,7 @@ public:
   //! \brief Defines the number of solution fields \a nf in the patch.
   //! \details This method is to be used by simulators where \a nf is not known
   //! when the patch is constructed, e.g., it depends on the input file content.
-  //! It must be invoked only before the SIMbase::preprocess is invoked.
+  //! It must be invoked only before SIMbase::preprocess() is invoked.
   void setNoFields(unsigned char n) { nf = n; }
 
   //! \brief Defines the minimum element size for adaptive refinement.
@@ -255,6 +258,8 @@ public:
 
   //! \brief Prints out the nodal coordinates of this patch to the given stream.
   void printNodes(std::ostream& os) const;
+  //! \brief Prints out element connections of this patch to the given stream.
+  void printElements(std::ostream& os) const;
 
   //! \brief Sets the global node numbers for this patch.
   void setGlobalNodeNums(const IntVec& nodes) { myMLGN = nodes; }
@@ -607,9 +612,9 @@ public:
   //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
   //!
-  //! \details This method uses the \a integrate interface to perform numerical
+  //! \details This method uses the integrate() interface to perform numerical
   //! integration of the projection matrices. It should use the same integration
-  //! scheme as \a SIMbase::assembleSystem and is therefore suitable for
+  //! scheme as SIMbase::assembleSystem() and is therefore suitable for
   //! problems using internal integration point buffers (with history-dependent
   //! data, etc.) and that must be traversed in the same sequence each time.
   //! \note The implementation of this method is placed in GlbL2projector.C
@@ -810,7 +815,7 @@ protected:
   static bool collapseNodes(ASMbase& pch1, int node1, ASMbase& pch2, int node2);
 
 private:
-  //! \brief Recursive method used by \a resolveMPCchains.
+  //! \brief Recursive method used by resolveMPCchains().
   //! \param[in] allMPCs All multi-point constraint equations in the model
   //! \param mpc Pointer to the multi-point constraint equation to resolve
   static bool resolveMPCchain(const MPCSet& allMPCs, MPC* mpc);

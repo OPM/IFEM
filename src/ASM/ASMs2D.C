@@ -326,6 +326,16 @@ int ASMs2D::getNodeID (size_t inod, bool noAddedNodes) const
 }
 
 
+size_t ASMs2D::getNoNodes (int basis) const
+{
+  size_t n = this->ASMbase::getNoNodes(basis);
+  if (n > 0 || basis < 1 || !surf) return n;
+
+  // We request the number of nodes before the FE topology has been generated
+  return surf->numCoefs_u() * surf->numCoefs_v();
+}
+
+
 bool ASMs2D::checkRightHandSystem ()
 {
   if (!surf || shareFE) return false;
@@ -3115,14 +3125,19 @@ void ASMs2D::getElmConnectivities (IntMat& neigh) const
 
 void ASMs2D::getBoundaryElms (int lIndex, int, IntVec& elms) const
 {
-  int N1m, N2m, dummy;
-  this->getNoStructElms(N1m,N2m,dummy);
+  int N1m = surf->numCoefs_u() - surf->order_u() + 1;
+  int N2m = surf->numCoefs_v() - surf->order_v() + 1;
+
   elms.clear();
-  if (lIndex == 1 || lIndex == 2) {
+  switch (lIndex) {
+  case 1:
+  case 2:
     elms.reserve(N2m);
     for (int i = 0; i < N2m; ++i)
       elms.push_back(MLGE[i*N1m + (lIndex-1)*(N1m-1)] - 1);
-  } else {
+    break;
+  case 3:
+  case 4:
     elms.reserve(N1m);
     for (int i = 0; i < N1m; ++i)
       elms.push_back(MLGE[i + (lIndex-3)*N1m*(N2m-1)] - 1);
@@ -3130,12 +3145,12 @@ void ASMs2D::getBoundaryElms (int lIndex, int, IntVec& elms) const
 }
 
 
-void ASMs2D::generateThreadGroupsFromElms(const std::vector<int>& elms)
+void ASMs2D::generateThreadGroupsFromElms (const IntVec& elms)
 {
   myElms.clear();
   for (int elm : elms)
     if (this->getElmIndex(elm+1) > 0)
-      myElms.push_back(this->getElmIndex(elm+1) - 1);
+      myElms.push_back(this->getElmIndex(elm+1)-1);
 
   threadGroups = threadGroups.filter(myElms);
 }

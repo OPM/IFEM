@@ -74,8 +74,6 @@ public:
 
   //! \brief Returns the number of nodal points in the patch.
   virtual int getSize(int = 0) const;
-  //! \brief Returns the number of projection nodes for this patch.
-  virtual size_t getNoProjectionNodes() const;
 
   //! \brief Returns the global coordinates for the given node.
   //! \param[in] inod 1-based node index local to current patch
@@ -433,6 +431,11 @@ public:
   //! \param[out] n3 Number of elements in third (w) direction (always zero)
   virtual bool getNoStructElms(int& n1, int& n2, int& n3) const;
 
+  //! \brief Returns the total number of nodes in this patch.
+  virtual size_t getNoNodes(int basis = 0) const;
+  //! \brief Returns the number of projection nodes for this patch.
+  virtual size_t getNoProjectionNodes() const;
+
   //! \brief Returns parameter values and node numbers of the domain corners.
   //! \param[out] u Parameter values of the domain corners
   //! \param[out] corners 1-based indices of the corner nodes (optional)
@@ -445,8 +448,8 @@ protected:
   Go::SplineCurve* curv; //!< Pointer to the actual spline curve object
   Go::SplineCurve* proj; //!< Pointer to spline curve for projection basis
 
-  std::map<size_t,size_t> xnMap; //!< Node index map used by \a getCoord
-  std::map<size_t,size_t> nxMap; //!< Node index map used by \a getNodeID
+  std::map<size_t,size_t> xnMap; //!< Node index map used by getCoord()
+  std::map<size_t,size_t> nxMap; //!< Node index map used by getNodeID()
 
   IntMat projMNPC; //!< Matrix of Nodal Point Correspondance for projection
   IntVec projMLGE; //!< Matrix of Local to Global Element numbers for projection

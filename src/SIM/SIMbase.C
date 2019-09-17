@@ -375,8 +375,15 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
 #else
   mySam = new SAMpatch();
 #endif
+
   if (!static_cast<SAMpatch*>(mySam)->init(myModel,ngnod,dofTypes))
+  {
+#ifdef SP_DEBUG
+    for (ASMbase* pch : myModel)
+      pch->printElements(std::cout);
+#endif
     return false;
+  }
 
   if (!adm.dd.setup(adm,*this))
   {
@@ -446,7 +453,10 @@ bool SIMbase::initSystem (int mType, size_t nMats, size_t nVec, size_t nScl,
   mySam->print(std::cout);
   for (ASMbase* pch : myModel)
     if (!pch->empty())
+    {
       pch->printNodes(std::cout);
+      pch->printElements(std::cout);
+    }
   printNodalConnectivity(myModel,std::cout);
 #endif
 

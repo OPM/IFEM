@@ -194,13 +194,13 @@ bool ASMbase::addLagrangeMultipliers (size_t iel, const IntVec& mGLag,
   else if (nnLag != nLag)
     return false;
 
-  for (size_t i = 0; i < mGLag.size(); i++)
+  for (int iLag : mGLag)
   {
-    size_t node = 1 + utl::findIndex(MLGN,mGLag[i]);
+    size_t node = 1 + utl::findIndex(MLGN,iLag);
     if (node == 0)
     {
       // Add a new Lagrange multiplier node
-      myMLGN.push_back(mGLag[i]);
+      myMLGN.push_back(iLag);
       node = myMLGN.size();
     }
 
@@ -317,8 +317,8 @@ size_t ASMbase::getNoElms (bool includeZeroVolElms, bool includeXElms) const
     return nel;
 
   size_t numels = 0;
-  for (size_t i = 0; i < MLGE.size(); i++)
-    if (MLGE[i] > 0 || (includeXElms && MLGE[i] < 0))
+  for (int iel : MLGE)
+    if (iel > 0 || (includeXElms && iel < 0))
       numels++;
 
   return numels;
@@ -382,6 +382,26 @@ void ASMbase::printNodes (std::ostream& os) const
     os <<'\n'<< inod <<' '<< MLGN[inod-1] <<':';
     for (size_t i = 1; i <= X.rows(); i++)
       os <<' '<< X(i,inod);
+  }
+  os << std::endl;
+}
+
+
+void ASMbase::printElements (std::ostream& os) const
+{
+  if (MNPC.empty()) return;
+
+  os <<"\n\nElement connectivities for Patch "<< idx+1;
+  for (size_t iel = 0; iel < MLGE.size(); iel++)
+  {
+    os <<'\n'<< iel+1 <<' '<< MLGE[iel] <<':';
+    if (iel < MNPC.size())
+      for (int node : MNPC[iel]) os <<" "<< node;
+  }
+  for (size_t ielx = MLGE.size(); ielx < MNPC.size(); ielx++)
+  {
+    os <<'\n'<< ielx+1 <<" ---:";
+    for (int node : MNPC[ielx]) os <<" "<< node;
   }
   os << std::endl;
 }
@@ -879,13 +899,13 @@ bool ASMbase::hasTimeDependentDirichlet (const std::map<int,RealFunc*>& func,
 {
   std::map<int,RealFunc*>::const_iterator fit;
   std::map<int,VecFunc*>::const_iterator vfit;
-  for (MPCMap::iterator cit = dCode.begin(); cit != dCode.end(); ++cit)
-    if ((fit = func.find(cit->second)) != func.end())
+  for (const MPCMap::value_type& cit : dCode)
+    if ((fit = func.find(cit.second)) != func.end())
     {
       if (!fit->second->isConstant())
         return true;
     }
-    else if ((vfit = vfunc.find(cit->second)) != vfunc.end())
+    else if ((vfit = vfunc.find(cit.second)) != vfunc.end())
     {
       if (!vfit->second->isConstant())
         return true;
@@ -901,39 +921,39 @@ bool ASMbase::updateDirichlet (const std::map<int,RealFunc*>& func,
 {
   std::map<int,RealFunc*>::const_iterator fit;
   std::map<int,VecFunc*>::const_iterator vfit;
-  for (MPCMap::iterator cit = dCode.begin(); cit != dCode.end(); ++cit)
+  for (const MPCMap::value_type& cit : dCode)
   {
-    size_t inod = this->getNodeIndex(cit->first->getSlave().node);
+    size_t inod = this->getNodeIndex(cit.first->getSlave().node);
     if (inod < 1)
     {
       std::cerr <<" *** ASMbase::updateDirichlet: Invalid slave node in MPC, "
-                << *cit->first;
+                << *cit.first;
       return false;
     }
 
-    int node = cit->first->getSlave().node;
+    int node = cit.first->getSlave().node;
     if (g2l) node = utl::findKey(*g2l,node);
     Vec4 X(this->getCoord(inod),time,node);
-    if ((fit = func.find(cit->second)) != func.end())
+    if ((fit = func.find(cit.second)) != func.end())
     {
       RealFunc& g = *fit->second;
       if (g.isZero())
-        cit->first->setSlaveCoeff(0.0);
+        cit.first->setSlaveCoeff(0.0);
       else
-        cit->first->setSlaveCoeff(g(X));
+        cit.first->setSlaveCoeff(g(X));
     }
-    else if ((vfit = vfunc.find(cit->second)) != vfunc.end())
+    else if ((vfit = vfunc.find(cit.second)) != vfunc.end())
     {
-      int idof = cit->first->getSlave().dof;
+      int idof = cit.first->getSlave().dof;
       VecFunc& g = *vfit->second;
       if (g.isZero())
-        cit->first->setSlaveCoeff(0.0);
+        cit.first->setSlaveCoeff(0.0);
       else
-        cit->first->setSlaveCoeff(g(X)[idof-1]);
+        cit.first->setSlaveCoeff(g(X)[idof-1]);
     }
     else
     {
-      std::cerr <<" *** ASMbase::updateDirichlet: Code "<< cit->second
+      std::cerr <<" *** ASMbase::updateDirichlet: Code "<< cit.second
                 <<" is not associated with any function."<< std::endl;
       return false;
     }
@@ -1005,12 +1025,11 @@ int ASMbase::renumberNodes (const ASMVec& model, std::map<int,int>& old2new)
       for (int n : pch->myMLGN)
         old2new[n] = n;
 
-  int n, renum = 0;
-  std::map<int,int>::iterator nit;
-  for (n = 1, nit = old2new.begin(); nit != old2new.end(); n++, ++nit)
-    if (nit->second > n)
+  int n = 0, renum = 0;
+  for (std::pair<const int,int>& node : old2new)
+    if (node.second > ++n)
     {
-      nit->second = n;
+      node.second = n;
       renum++;
     }
 
