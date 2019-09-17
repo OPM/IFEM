@@ -68,6 +68,12 @@ public:
   //! \param[in] Y2 Y-coordinate of the second circle centre
   virtual void addHole(double R, double X1, double Y1, double X2, double Y2);
 
+  //! \brief Defines the immersed geometry from a scalar function.
+  //! \param[in] f The function to use
+  //! \param[in] power Exponent to apply on the specified function
+  //! \param[in] threshold Inside/outside threshold
+  virtual bool setGeometry(RealFunc* f, double power, double threshold);
+
   //! \brief Returns an additional geometry to visualize (immersed boundaries).
   virtual ElementBlock* immersedGeometry() const;
 

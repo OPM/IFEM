@@ -15,6 +15,7 @@
 #include "ModelGenerator.h"
 #include "ASMs2DC1.h"
 #include "ImmersedBoundaries.h"
+#include "FieldFunctions.h"
 #include "Functions.h"
 #include "Utilities.h"
 #include "Vec3Oper.h"
@@ -32,6 +33,7 @@ struct Interface
   std::pair<ASMs2DC1*,int> master; //!< Patch and edge index of the master
   std::pair<ASMs2DC1*,int> slave;  //!< Patch and edge index of the slave
   bool reversed;                   //!< Relative orientation toggle
+
   //! \brief Constructor initializing an Interface instance.
   Interface(ASMbase* m, int me, ASMbase* s, int se, bool r)
     : master(std::make_pair(static_cast<ASMs2DC1*>(m),me)),
@@ -257,7 +259,19 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
   else if (!strcasecmp(elem->Value(),"immersedboundary"))
   {
     int patch = 0;
-    utl::getAttribute(elem,"patch",patch);
+    ASMbase* pch = nullptr;
+    if (utl::getAttribute(elem,"patch",patch))
+      pch = this->getPatch(patch,true);
+    else if (!myModel.empty())
+      pch = myModel.front();
+
+    if (!pch)
+    {
+      std::cerr <<" *** SIM2D::parse: Invalid patch index "
+                << patch << std::endl;
+      return false;
+    }
+
     utl::getAttribute(elem,"stabilization",Immersed::stabilization);
     if (Immersed::stabilization != 0)
       IFEM::cout <<"\tStabilization option: "<< Immersed::stabilization
@@ -272,10 +286,7 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
         utl::getAttribute(child,"R",R);
         utl::getAttribute(child,"Xc",Xc);
         utl::getAttribute(child,"Yc",Yc);
-        if (patch > 0 && patch <= (int)myModel.size())
-          myModel[patch-1]->addHole(R,Xc,Yc);
-        else
-          myModel.front()->addHole(R,Xc,Yc);
+        pch->addHole(R,Xc,Yc);
       }
       else if (!strcasecmp(child->Value(),"Oval"))
       {
@@ -285,16 +296,52 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
         utl::getAttribute(child,"Y1",Y1);
         utl::getAttribute(child,"X2",X2);
         utl::getAttribute(child,"Y2",Y2);
-        if (patch > 0 && patch <= (int)myModel.size())
-          myModel[patch-1]->addHole(R,X1,Y1,X2,Y2);
+        pch->addHole(R,X1,Y1,X2,Y2);
+      }
+      else if (!strcasecmp(child->Value(),"levelset") && child->FirstChild())
+      {
+        double power = 1.0, threshold = 0.5;
+        std::string type("file");
+        utl::getAttribute(child,"power",power);
+        utl::getAttribute(child,"threshold",threshold);
+        utl::getAttribute(child,"type",type,true);
+        const char* val = child->FirstChild()->Value();
+        RealFunc* lfunc = nullptr;
+
+        IFEM::cout <<"\tLevel set ("<< type <<")";
+
+        if (type == "file")
+        {
+          IFEM::cout <<" \""<< val <<"\""<< std::endl;
+          std::ifstream ibs(val);
+          if (ibs.good())
+            lfunc = new FieldFuncStream({pch},ibs);
+          else
+            std::cerr <<" *** SIM2D::parse: Failed to open file \""<< val
+                      <<"\""<< std::endl;
+        }
         else
-          myModel.front()->addHole(R,X1,Y1,X2,Y2);
+        {
+          lfunc = utl::parseRealFunc(val,type);
+          IFEM::cout << std::endl;
+        }
+
+        if (!pch->setGeometry(lfunc,power,threshold))
+          return false;
+
+        if (type == "file")
+          myAddScalars[val] = lfunc;
+        else
+        {
+          static std::string fname = "level_set0";
+          ++fname[9];
+          myAddScalars[fname] = lfunc;
+        }
       }
   }
 
   else if (!strcasecmp(elem->Value(),"projection") && !isRefined)
   {
-    bool ok = true;
     const TiXmlElement* child = elem->FirstChildElement();
     if (child && !strncasecmp(child->Value(),"patch",5) && child->FirstChild())
     {
@@ -306,6 +353,7 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
       for (ASMbase* pch : myModel)
         pch->createProjectionBasis(false);
 
+      bool ok = true;
       for (int pid = 1; isp->good() && ok; pid++)
       {
         IFEM::cout <<"\tReading projection basis for patch "<< pid << std::endl;
@@ -642,22 +690,19 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
 }
 
 
-/*!
-  \brief Local-scope convenience function for error message generation.
-*/
-
-static bool constrError (const char* lab, int idx)
-{
-  std::cerr <<" *** SIM2D::addConstraint: Invalid "<< lab << idx << std::endl;
-  return false;
-}
-
-
 bool SIM2D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
                            int& ngnod, char basis)
 {
+  // Lambda function for error message generation
+  auto&& error = [](const char* message, int idx)
+  {
+    std::cerr <<" *** SIM2D::addConstraint: Invalid "
+              << message <<" ("<< idx <<")."<< std::endl;
+    return false;
+  };
+
   if (patch < 1 || patch > (int)myModel.size())
-    return constrError("patch index ",patch);
+    return error("patch index",patch);
 
   bool open = ldim < 0; // open means without its end points
   bool project = lndx < -10;
@@ -676,7 +721,7 @@ bool SIM2D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
 
   // Must dynamic cast here, since ASM2D is not derived from ASMbase
   ASM2D* pch = dynamic_cast<ASM2D*>(myModel[patch-1]);
-  if (!pch) return constrError("2D patch ",patch);
+  if (!pch) return error("2D patch",patch);
 
   switch (abs(ldim))
     {
@@ -689,7 +734,7 @@ bool SIM2D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
 	case 4: pch->constrainCorner( 1, 1,dirs,abs(code),basis); break;
 	default:
 	  IFEM::cout << std::endl;
-	  return constrError("vertex index ",lndx);
+	  return error("vertex index",lndx);
 	}
       break;
 
@@ -714,7 +759,7 @@ bool SIM2D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
 	  break;
 	default:
 	  IFEM::cout << std::endl;
-	  return constrError("edge index ",lndx);
+	  return error("edge index",lndx);
 	}
       break;
 
@@ -729,7 +774,7 @@ bool SIM2D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
 
     default:
       IFEM::cout << std::endl;
-      return constrError("local dimension switch ",ldim);
+      return error("local dimension switch",ldim);
     }
 
   return true;
@@ -834,4 +879,15 @@ Vector SIM2D::getSolution (const Vector& psol, double u, double v,
 {
   double par[2] = { u, v };
   return this->SIMgeneric::getSolution(psol,par,deriv,patch);
+}
+
+
+bool SIM2D::writeAddFuncs (int iStep, int& nBlock, int idBlock, double time)
+{
+  for (const std::pair<std::string,RealFunc*>& func : myAddScalars)
+    if (!this->writeGlvF(*func.second, func.first.c_str(), iStep,
+                         nBlock, idBlock++, time))
+      return false;
+
+  return this->SIMgeneric::writeAddFuncs(iStep,nBlock,idBlock,time);
 }

@@ -163,7 +163,7 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
       }
 
       IFEM::cout <<"\tConnecting P"<< slave <<" V"<< sVert
-                 <<" to P"<< master <<" E"<< mVert << std::endl;
+                 <<" to P"<< master <<" V"<< mVert << std::endl;
 
       ASM1D* spch = dynamic_cast<ASM1D*>(myModel[slave-1]);
       ASM1D* mpch = dynamic_cast<ASM1D*>(myModel[master-1]);
@@ -177,7 +177,6 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
 
   else if (!strcasecmp(elem->Value(),"projection") && !isRefined)
   {
-    bool ok = true;
     const TiXmlElement* child = elem->FirstChildElement();
     if (child && !strncasecmp(child->Value(),"patch",5) && child->FirstChild())
     {
@@ -189,6 +188,7 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
       for (ASMbase* pch : myModel)
         pch->createProjectionBasis(false);
 
+      bool ok = true;
       for (int pid = 1; isp->good() && ok; pid++)
       {
         IFEM::cout <<"\tReading projection basis for patch "<< pid << std::endl;

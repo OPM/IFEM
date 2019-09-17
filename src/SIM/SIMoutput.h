@@ -310,6 +310,9 @@ protected:
   //! \brief Preprocesses the result sampling points.
   virtual void preprocessResultPoints();
 
+  //! \brief Writes out the additional functions to VTF-file.
+  virtual bool writeAddFuncs(int iStep, int& nBlock, int idBlock, double time);
+
 private:
   //! \brief Private helper to extract patch-level solution vectors.
   bool extractNodeVec(const Vector& glbVec, Vector& locVec,
@@ -321,9 +324,6 @@ private:
                          int& nBlock, std::vector< std::vector<int> >& sID,
                          size_t* i = nullptr);
 
-  //! \brief Private helper to write additional functions to VTF-file.
-  bool writeAddFuncs(int iStep, int& nBlock, int idBlock, double time);
-
   //! \brief Struct defining a result sampling point.
   struct ResultPoint
   {
@@ -332,7 +332,8 @@ private:
     int           inod;  //!< Local node number of the closest node
     double        u[3];  //!< Parameters of the point (u,v,w)
     Vec3          X;     //!< Spatial coordinates of the point
-    // \brief Default constructor.
+
+    //! \brief Default constructor.
     ResultPoint() : npar(0), patch(1), inod(0) { u[0] = u[1] = u[2] = 0.0; }
   };
 

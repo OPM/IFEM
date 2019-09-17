@@ -89,6 +89,16 @@ void ASMs2DIB::addHole (double R, double X1, double Y1, double X2, double Y2)
 }
 
 
+bool ASMs2DIB::setGeometry (RealFunc* f, double power, double threshold)
+{
+  if (myGeometry) return false;
+
+  myGeometry = new GeoFunc2D(f,power,threshold);
+
+  return true;
+}
+
+
 ElementBlock* ASMs2DIB::immersedGeometry () const
 {
   if (!myGeometry) return nullptr;
@@ -112,8 +122,8 @@ void ASMs2DIB::getNoIntPoints (size_t& nPt, size_t& nIPt)
   if (myGeometry)
   {
     nPt = firstIp;
-    for (size_t e = 0; e < quadPoints.size(); e++)
-      nPt += quadPoints[e].size();
+    for (const Real2DMat& qp : quadPoints)
+      nPt += qp.size();
   }
 
 #ifdef SP_DEBUG

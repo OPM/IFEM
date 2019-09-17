@@ -46,11 +46,17 @@ public:
   //! \param[in] Y2 Y-coordinate of the second circle centre
   virtual void addHole(double R, double X1, double Y1, double X2, double Y2);
 
+  //! \brief Defines the immersed geometry from a scalar function.
+  //! \param[in] f The function to use
+  //! \param[in] power Exponent to apply on the specified function
+  //! \param[in] threshold Inside/outside threshold
+  virtual bool setGeometry(RealFunc* f, double power, double threshold);
+
   //! \brief Returns an additional geometry to visualize (immersed boundaries).
   virtual ElementBlock* immersedGeometry() const;
 
   //! \brief Computes the total number of integration points in this patch.
-  virtual void getNoIntPoints(size_t& nPt, size_t&);
+  virtual void getNoIntPoints(size_t& nPt, size_t& nIPt);
 
   //! \brief Generates the finite element topology data for the patch.
   //! \details This method is overridden in this class, to include the

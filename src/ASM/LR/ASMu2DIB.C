@@ -32,7 +32,7 @@ ASMu2DIB::ASMu2DIB (const ASMu2DIB& patch, unsigned char n_f)
   : ASMu2D(patch,n_f), quadPoints(patch.quadPoints)
 {
   maxDepth = patch.maxDepth;
-  myGeometry = nullptr; // because we don't allow multiple patches (yet)
+  myGeometry = nullptr;
 }
 
 
@@ -87,31 +87,42 @@ void ASMu2DIB::addHole (double R, double X1, double Y1, double X2, double Y2)
 }
 
 
+bool ASMu2DIB::setGeometry (RealFunc* f, double power, double threshold)
+{
+  if (myGeometry) return false;
+
+  myGeometry = new GeoFunc2D(f,power,threshold);
+
+  return true;
+}
+
+
 ElementBlock* ASMu2DIB::immersedGeometry () const
 {
   return myGeometry ? myGeometry->tesselate() : nullptr;
 }
 
 
-void ASMu2DIB::getNoIntPoints (size_t& nPt, size_t&)
+void ASMu2DIB::getNoIntPoints (size_t& nPt, size_t& nIPt)
 {
-  nPt = 0;
-  for (size_t e = 0; e < quadPoints.size(); e++)
-    nPt += quadPoints[e].size();
+  firstIp = nPt;
+  this->ASMbase::getNoIntPoints(nPt,nIPt);
+
+  if (myGeometry)
+  {
+    nPt = firstIp;
+    for (const Real2DMat& qp : quadPoints)
+      nPt += qp.size();
+  }
 }
 
 
 bool ASMu2DIB::generateFEMTopology ()
 {
-  if (!myGeometry)
-  {
-    std::cerr <<" *** ASMu2DIB::generateFEMTopology: No geometry description."
-              << std::endl;
-    return false;
-  }
-
   if (!this->ASMu2D::generateFEMTopology())
     return false;
+  else if (!myGeometry)
+    return true;
 
   size_t i, e, n;
   const int nBasis = lrspline->nBasisFunctions();
@@ -182,7 +193,10 @@ bool ASMu2DIB::generateFEMTopology ()
 bool ASMu2DIB::integrate (Integrand& integrand,
                           GlobalIntegral& glbInt, const TimeDomain& time)
 {
-  return this->ASMu2D::integrate(integrand,glbInt,time,quadPoints);
+  if (!myGeometry)
+    return this->ASMu2D::integrate(integrand,glbInt,time);
+
+  return this->integrate(integrand,glbInt,time,quadPoints);
 }
 
 
