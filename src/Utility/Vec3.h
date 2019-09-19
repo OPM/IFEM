@@ -33,16 +33,16 @@ public:
   Real& z; //!< Reference to Z-component
 
   //! \brief Default constructor creating a point at origin.
-  Vec3() : x(v[0]), y(v[1]), z(v[2]) { x = y = z = 0.0; }
+  Vec3() : x(v[0]), y(v[1]), z(v[2]) { x = y = z = Real(0); }
   //! \brief Constructor creating a point at the specified location.
-  Vec3(Real X, Real Y, Real Z) : x(v[0]), y(v[1]), z(v[2])
+  Vec3(Real X, Real Y, Real Z = Real(0)) : x(v[0]), y(v[1]), z(v[2])
   { x = X; y = Y; z = Z; }
   //! \brief Constructor creating a point at the specified location.
   Vec3(const Real* pos, size_t n = 3) : x(v[0]), y(v[1]), z(v[2])
-  { for (size_t i = 0; i < 3; i++) v[i] = i < n ? pos[i] : 0.0; }
+  { for (size_t i = 0; i < 3; i++) v[i] = i < n ? pos[i] : Real(0); }
   //! \brief Constructor creating a point from the given \a std::vector.
   Vec3(const std::vector<Real>& X) : x(v[0]), y(v[1]), z(v[2])
-  { for (size_t i = 0; i < 3; i++) v[i] = i < X.size() ? X[i] : 0.0; }
+  { for (size_t i = 0; i < 3; i++) v[i] = i < X.size() ? X[i] : Real(0); }
   //! \brief Copy constructor.
   Vec3(const Vec3& X) : x(v[0]), y(v[1]), z(v[2])
   { x = X.x; y = X.y; z = X.z; }
@@ -62,9 +62,9 @@ public:
   const Real& operator()(int i) const { return v[i-1]; }
   //! \brief Indexing operator for component reference (0-based).
   const Real& operator[](int i) const { return v[i]; }
-  //! \brief Indexing operator for component assignment.
+  //! \brief Indexing operator for component assignment (1-based).
   Real& operator()(int i) { return v[i-1]; }
-  //! \brief Indexing operator for component assignment.
+  //! \brief Indexing operator for component assignment (0-based).
   Real& operator[](int i) { return v[i]; }
 
   //! \brief Reference through a pointer.
@@ -100,16 +100,16 @@ public:
   //! \brief Return the sum of the vector.
   Real sum() const { return x+y+z; }
 
-  //! \brief Return the length of the vector.
-  Real length() const { return sqrt(length2()); }
-
   //! \brief Return the square of the length of the vector.
   Real length2() const { return x*x+y*y+z*z; }
+
+  //! \brief Return the length of the vector.
+  double length() const { return sqrt(this->length2()); }
 
   //! \brief Normalize the vector and return its length.
   Real normalize(double tol = 1.0e-16)
   {
-    double len = sqrt(x*x+y*y+z*z);
+    double len = this->length();
     if (len <= tol) return len;
     x /= len; y /= len; z /= len;
     return len;
@@ -193,39 +193,88 @@ public:
 class Vec4 : public Vec3
 {
 public:
-  Real t;   //!< The time coordinate
-  int  idx; //!< Nodal point index
   const Real* u; //!< Spline parameters of point
 
+  Real t;   //!< The time coordinate
+  int  idx; //!< Nodal point index
+
   //! \brief Default constructor creating a point at origin.
-  Vec4(const Real* par = nullptr) { t = 0.0; idx = -1; u = par; }
+  Vec4(const Real* par = nullptr)
+  {
+    u = par;
+    t = Real(0);
+    idx = -1;
+  }
+
   //! \brief Constructor creating a point at the specified location.
-  Vec4(Real X, Real Y, Real Z, Real T = 0.0) : Vec3(X,Y,Z)
-  { t = T; idx = -1; u = nullptr; }
+  Vec4(Real X, Real Y, Real Z, Real T = Real(0)) : Vec3(X,Y,Z)
+  {
+    u = nullptr;
+    t = T;
+    idx = -1;
+  }
+
   //! \brief Constructor creating a point at the specified location.
-  Vec4(const Vec3& X, Real T = 0.0, int id = -1) : Vec3(X)
-  { t = T; idx = id; u = nullptr; }
+  Vec4(const Vec3& X, Real T = Real(0), int id = -1) : Vec3(X)
+  {
+    u = nullptr;
+    t = T;
+    idx = id;
+  }
+
   //! \brief Constructor creating a point at the specified location.
   Vec4(const Vec3& X, Real T, const Real* par) : Vec3(X)
-  { t = T; idx = -1; u = par; }
+  {
+    u = par;
+    t = T;
+    idx = -1;
+  }
+
   //! \brief Constructor creating a point from the given \a std::vector.
-  Vec4(const std::vector<Real>& X) : Vec3(X)
-  { t = X.size() > 3 ? X[3] : 0.0; idx = -1; u = nullptr; }
+  Vec4(const std::vector<Real>& X, const Real* par = nullptr) : Vec3(X)
+  {
+    u = par;
+    t = X.size() > 3 ? X[3] : Real(0);
+    idx = -1;
+  }
+
   //! \brief Copy constructor.
-  Vec4(const Vec4& X) : Vec3(X) { t = X.t; idx = X.idx; u = X.u; }
+  Vec4(const Vec4& X) : Vec3(X)
+  {
+    u = X.u;
+    t = X.t;
+    idx = X.idx;
+  }
 
   //! \brief Assignment operator.
   Vec4& operator=(const Vec4& X)
-  { x = X.x; y = X.y; z = X.z; t = X.t; idx = X.idx; u = X.u; return *this; }
+  {
+    x = X.x;
+    y = X.y;
+    z = X.z;
+    t = X.t;
+    idx = X.idx;
+    u = X.u;
+
+    return *this;
+  }
+
   //! \brief Overloaded assignment operator.
   Vec4& operator=(Real val) { x = y = z = val; return *this; }
 
   //! \brief Assignment method.
   Vec4& assign(const Vec3& X)
   {
-    x = X.x; y = X.y; z = X.z;
     const Vec4* x4 = dynamic_cast<const Vec4*>(&X);
-    if (x4) { t = x4->t; idx = x4->idx; u = x4->u; }
+    if (x4)
+      this->operator=(*x4);
+    else
+    {
+      x = X.x;
+      y = X.y;
+      z = X.z;
+    }
+
     return *this;
   }
 
@@ -235,7 +284,7 @@ public:
     if (idx >= 0) os <<"(idx="<< idx <<") ";
     this->Vec3::print(os,tol);
     if (u) os <<" ("<< u[0] <<" "<< u[1] <<" "<< u[2] <<")";
-    if (t > 0.0) os <<" "<< t;
+    if (t > Real(0)) os <<" "<< t;
     return os;
   }
 };
