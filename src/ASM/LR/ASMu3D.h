@@ -22,6 +22,10 @@
 
 class FiniteElement;
 
+namespace utl {
+  class Point;
+}
+
 namespace Go {
   class SplineVolume;
 }
@@ -79,6 +83,9 @@ public:
   //! in one element
   virtual bool getElementCoordinates(Matrix& X, int iel) const;
 
+  //! \brief Obtain element neighbours.
+  virtual void getElmConnectivities(IntMat& neighs) const;
+
   //! \brief Returns a matrix with all nodal coordinates within the patch.
   //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
   //! in the patch
@@ -109,9 +116,6 @@ public:
   //! \param[in] orient Orientation of boundary (used for sorting)
   //! \param[out] elms Array of element numbers
   virtual void getBoundaryElms(int lIndex, int orient, IntVec& elms) const;
-
-  //! \brief Obtain element neighbours.
-  virtual void getElmConnectivities (IntMat& neighs) const;
 
   //! \brief Returns the node index for a given corner.
   //! \param[in] I -1 or +1 for either umin or umax corner
@@ -428,7 +432,7 @@ private:
   //! \param[in] vpar Parametric interpolation points in the v-direction
   //! \param[in] wpar Parametric interpolation points in the v-direction
   //! \param[in] points Interpolation values stored as one point per matrix row
-  //! \param[in] basis Basis to interpolate onto
+  //! \param[in] basis Which basis to interpolate onto
   //! \return A LRSplineVolume representation of the interpolated points
   LR::LRSplineVolume* regularInterpolation(const RealArray& upar,
                                            const RealArray& vpar,
@@ -458,10 +462,8 @@ public:
   //! \param[in] values inhomogenuous function which is to be fitted
   //! \param[out] result fitted value in terms of control-point values
   //! \param[in] time time used in dynamic problems
-  bool faceL2projection (const DirichletFace& face,
-                         const FunctionBase& values,
-                         Real2DMat& result,
-                         double time) const;
+  bool faceL2projection(const DirichletFace& face, const FunctionBase& values,
+                        Real2DMat& result, double time) const;
 
 protected:
 
@@ -481,7 +483,7 @@ protected:
   //! \param[in] face Local face index of this patch, in range [1,6]
   //! \param neighbor The neighbor patch
   //! \param[in] nface Local face index of neighbor patch, in range [1,6]
-  //! \param[in] norient Relative face orientation flag (see \a connectPatch)
+  //! \param[in] norient Relative face orientation flag, see connectPatch()
   //! \param[in] basis Which basis to connect the nodes for (mixed methods)
   //! \param[in] slave 0-based index of the first slave node in this basis
   //! \param[in] master 0-based index of the first master node in this basis
@@ -522,8 +524,14 @@ protected:
   //! \brief Computes the element corner coordinates.
   //! \param[in] iel 1-based element index
   //! \param[out] XC Coordinates of the element corners
+  //! \param[out] uC Spline parameters of the element corners (optional)
   //! \return Characteristic element size
-  double getElementCorners(int iel, std::vector<Vec3>& XC) const;
+  double getElementCorners(int iel, std::vector<Vec3>& XC,
+                           RealArray* uC = nullptr) const;
+  //! \brief Computes the element corner coordinates and parameters.
+  //! \param[in] iel 1-based element index
+  //! \param[out] XC Coordinates and parameters of the element corners
+  void getCornerPoints(int iel, std::vector<utl::Point>& XC) const;
 
   //! \brief Evaluate all basis functions and first derivatives on one element
   void evaluateBasis(int iel, int basis, double u, double v, double w,

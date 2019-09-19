@@ -34,6 +34,7 @@
 #include "Profiler.h"
 #include "Function.h"
 #include "Vec3Oper.h"
+#include "Point.h"
 #include "IFEM.h"
 #include <array>
 #include <fstream>
@@ -999,7 +1000,8 @@ void ASMu2D::getGaussPointParameters (RealArray& uGP, int dir, int nGauss,
 }
 
 
-double ASMu2D::getElementCorners (int iel, Vec3Vec& XC) const
+double ASMu2D::getElementCorners (int iel, Vec3Vec& XC,
+                                  RealArray* uC) const
 {
 #ifdef INDEX_CHECK
   if (iel < 1 || iel > lrspline->nElements())
@@ -1015,13 +1017,33 @@ double ASMu2D::getElementCorners (int iel, Vec3Vec& XC) const
   double v[4] = { el->vmin(), el->vmin(), el->vmax(), el->vmax() };
 
   XC.resize(4);
+  if (uC) uC->resize(8);
+
   for (int i = 0; i < 4; i++)
   {
     double xi[2] = { u[i], v[i] };
     this->evalPoint(xi, nullptr, XC[i]);
+    if (uC)
+    {
+      uC->at(2*i)   = u[i];
+      uC->at(2*i+1) = v[i];
+    }
   }
 
   return getElementSize(XC);
+}
+
+
+void ASMu2D::getCornerPoints (int iel, PointVec& XC) const
+{
+  RealArray uC;
+  Vec3Vec  XYZ;
+  this->getElementCorners(iel,XYZ,&uC);
+
+  XC.clear();
+  XC.reserve(4);
+  for (int i = 0; i < 4; i++)
+    XC.push_back(utl::Point(XYZ[i], { uC[2*i], uC[2*i+1] }));
 }
 
 

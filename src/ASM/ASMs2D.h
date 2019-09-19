@@ -19,6 +19,10 @@
 #include "Interface.h"
 #include "ThreadGroups.h"
 
+namespace utl {
+  class Point;
+}
+
 namespace Go {
   class SplineCurve;
   class SplineSurface;
@@ -569,8 +573,15 @@ protected:
   //! \param[in] i1 Parameter index in u-direction
   //! \param[in] i2 Parameter index in v-direction
   //! \param[out] XC Coordinates of the element corners
+  //! \param[out] uC Spline parameters of the element corners (optional)
   //! \return Characteristic element size
-  double getElementCorners(int i1, int i2, std::vector<Vec3>& XC) const;
+  double getElementCorners(int i1, int i2, std::vector<Vec3>& XC,
+                           RealArray* uC = nullptr) const;
+  //! \brief Computes the element corner coordinates and parameters.
+  //! \param[in] i1 Parameter index in u-direction
+  //! \param[in] i2 Parameter index in v-direction
+  //! \param[out] XC Coordinates and parameters of the element corners
+  void getCornerPoints(int i1, int i2, std::vector<utl::Point>& XC) const;
 
   using ASMbase::generateThreadGroups;
   //! \brief Generates element groups for multi-threading of interior integrals.

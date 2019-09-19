@@ -34,6 +34,7 @@
 #include "Profiler.h"
 #include "Function.h"
 #include "Vec3Oper.h"
+#include "Point.h"
 #include <array>
 
 
@@ -706,7 +707,7 @@ void ASMu3D::getGaussPointParameters (RealArray& uGP, int dir, int nGauss,
 }
 
 
-double ASMu3D::getElementCorners (int iEl, Vec3Vec& XC) const
+double ASMu3D::getElementCorners (int iEl, Vec3Vec& XC, RealArray* uC) const
 {
   const LR::Element* el = lrspline->getElement(iEl-1);
   double u[2] = { el->getParmin(0), el->getParmax(0) };
@@ -715,6 +716,7 @@ double ASMu3D::getElementCorners (int iEl, Vec3Vec& XC) const
 
   XC.clear();
   XC.reserve(8);
+  if (uC) uC->reserve(24);
   Go::Point pt;
 
   for (int k = 0; k < 2; k++)
@@ -723,9 +725,28 @@ double ASMu3D::getElementCorners (int iEl, Vec3Vec& XC) const
       {
         lrspline->point(pt,u[i],v[j],w[k],iEl-1);
         XC.push_back(SplineUtils::toVec3(pt));
+        if (uC)
+        {
+          uC->push_back(u[i]);
+          uC->push_back(v[j]);
+          uC->push_back(w[k]);
+        }
       }
 
   return getElementSize(XC);
+}
+
+
+void ASMu3D::getCornerPoints (int iel, PointVec& XC) const
+{
+  RealArray uC;
+  Vec3Vec  XYZ;
+  this->getElementCorners(iel,XYZ,&uC);
+
+  XC.clear();
+  XC.reserve(8);
+  for (int i = 0; i < 8; i++)
+    XC.push_back(utl::Point(XYZ[i], { uC[3*i], uC[3*i+1], uC[3*i+2] }));
 }
 
 
@@ -2329,7 +2350,7 @@ void ASMu3D::getBoundaryElms (int lIndex, int orient, IntVec& elms) const
 }
 
 
-void ASMu3D::generateThreadGroupsFromElms(const std::vector<int>& elms)
+void ASMu3D::generateThreadGroupsFromElms (const IntVec& elms)
 {
   myElms.clear();
   for (int elm : elms)

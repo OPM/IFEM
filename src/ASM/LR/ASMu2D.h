@@ -23,6 +23,10 @@
 
 class FiniteElement;
 
+namespace utl {
+  class Point;
+}
+
 namespace Go {
   class SplineCurve;
   class SplineSurface;
@@ -479,10 +483,8 @@ public:
   //! \param[in] values inhomogenuous function which is to be fitted
   //! \param[out] result fitted value in terms of control-point values
   //! \param[in] time time used in dynamic problems
-  bool edgeL2projection (const DirichletEdge& edge,
-                         const FunctionBase& values,
-                         Real2DMat& result,
-                         double time) const;
+  bool edgeL2projection(const DirichletEdge& edge, const FunctionBase& values,
+                        Real2DMat& result, double time) const;
 
   //! \brief Transfers Gauss point variables from old basis to this patch.
   //! \param[in] old_basis The LR-spline basis to transfer from
@@ -563,8 +565,14 @@ protected:
   //! \brief Computes the element corner coordinates.
   //! \param[in] iel 1-based element index
   //! \param[out] XC Coordinates of the element corners
+  //! \param[out] uC Spline parameters of the element corners (optional)
   //! \return Characteristic element size
-  double getElementCorners(int iel, std::vector<Vec3>& XC) const;
+  double getElementCorners(int iel, std::vector<Vec3>& XC,
+                           RealArray* uC = nullptr) const;
+  //! \brief Computes the element corner coordinates and parameters.
+  //! \param[in] iel 1-based element index
+  //! \param[out] XC Coordinates and parameters of the element corners
+  void getCornerPoints(int iel, std::vector<utl::Point>& XC) const;
 
   //! \brief Returns the node indices for a given edge.
   //! \param nodes Array of node numbers

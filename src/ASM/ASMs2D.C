@@ -31,6 +31,7 @@
 #include "Utilities.h"
 #include "Profiler.h"
 #include "Vec3Oper.h"
+#include "Point.h"
 #include "Tensor.h"
 #include "MPC.h"
 #include <array>
@@ -860,10 +861,8 @@ void ASMs2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
     else
     {
       std::cout <<"Non-corner boundary nodes:";
-      for (size_t i = 0; i < dirich.back().nodes.size(); i++)
-	std::cout <<" ("<< dirich.back().nodes[i].first
-		  <<","<< dirich.back().nodes[i].second
-		  <<")";
+      for (const Ipair& node : dirich.back().nodes)
+        std::cout <<" ("<< node.first <<","<< node.second <<")";
       std::cout <<"\nThese nodes will be subjected to Dirichlet projection"
 		<< std::endl;
     }
@@ -1133,12 +1132,11 @@ bool ASMs2D::updateDirichlet (const std::map<int,RealFunc*>& func,
 {
   std::map<int,RealFunc*>::const_iterator fit;
   std::map<int,VecFunc*>::const_iterator vfit;
-  std::vector<Ipair>::const_iterator nit;
 
   for (size_t i = 0; i < dirich.size(); i++)
   {
     // Project the function onto the spline curve basis
-    Go::SplineCurve* dcrv = 0;
+    Go::SplineCurve* dcrv = nullptr;
     if ((fit = func.find(dirich[i].code)) != func.end())
       dcrv = SplineUtils::project(dirich[i].curve,*fit->second,1,time);
     else if ((vfit = vfunc.find(dirich[i].code)) != vfunc.end())
@@ -1157,21 +1155,21 @@ bool ASMs2D::updateDirichlet (const std::map<int,RealFunc*>& func,
     }
 
     // Loop over the (interior) nodes (control points) of this boundary curve
-    for (nit = dirich[i].nodes.begin(); nit != dirich[i].nodes.end(); ++nit)
+    for (const Ipair& node : dirich[i].nodes)
       for (int dofs = dirich[i].dof; dofs > 0; dofs /= 10)
       {
 	int dof = dofs%10;
 	// Find the constraint equation for current (node,dof)
-	MPC pDOF(MLGN[nit->second-1],dof);
+	MPC pDOF(MLGN[node.second-1],dof);
 	MPCIter mit = mpcs.find(&pDOF);
 	if (mit == mpcs.end()) continue; // probably a deleted constraint
 
 	// Find index to the control point value for this (node,dof) in dcrv
 	RealArray::const_iterator cit = dcrv->coefs_begin();
 	if (dcrv->dimension() > 1) // A vector field is specified
-	  cit += (nit->first-1)*dcrv->dimension() + (dof-1);
+	  cit += (node.first-1)*dcrv->dimension() + (dof-1);
 	else // A scalar field is specified at this dof
-	  cit += (nit->first-1);
+	  cit += (node.first-1);
 
 	// Now update the prescribed value in the constraint equation
 	(*mit)->setSlaveCoeff(*cit);
@@ -1523,7 +1521,8 @@ void ASMs2D::getElementBorders (int i1, int i2, double* u, double* v) const
 }
 
 
-double ASMs2D::getElementCorners (int i1, int i2, Vec3Vec& XC) const
+double ASMs2D::getElementCorners (int i1, int i2, Vec3Vec& XC,
+                                  RealArray* uC) const
 {
   // Fetch parameter values of the element (knot-span) corners
   RealArray u(2), v(2);
@@ -1537,11 +1536,38 @@ double ASMs2D::getElementCorners (int i1, int i2, Vec3Vec& XC) const
 
   XC.clear();
   XC.reserve(4);
+  if (uC)
+  {
+    uC->clear();
+    uC->reserve(8);
+  }
+
   const double* pt = &XYZ.front();
-  for (int i = 0; i < 4; i++, pt += dim)
-    XC.push_back(Vec3(pt,nsd));
+  for (int j = 0; j < 2; j++)
+    for (int i = 0; i < 2; i++, pt += dim)
+    {
+      XC.push_back(Vec3(pt,nsd));
+      if (uC)
+      {
+        uC->push_back(u[i]);
+        uC->push_back(v[j]);
+      }
+    }
 
   return getElementSize(XC);
+}
+
+
+void ASMs2D::getCornerPoints (int i1, int i2, PointVec& XC) const
+{
+  RealArray uC;
+  Vec3Vec  XYZ;
+  this->getElementCorners(i1,i2,XYZ,&uC);
+
+  XC.clear();
+  XC.reserve(4);
+  for (int i = 0; i < 4; i++)
+    XC.push_back(utl::Point(XYZ[i], { uC[2*i], uC[2*i+1] }));
 }
 
 
