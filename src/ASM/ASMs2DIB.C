@@ -16,7 +16,7 @@
 #include "ASMs2DIB.h"
 #include "IBGeometries.h"
 #include "ElementBlock.h"
-#include "Vec3.h"
+#include "Point.h"
 
 
 ASMs2DIB::ASMs2DIB (unsigned char n_s, unsigned char n_f, int max_depth)
@@ -104,11 +104,14 @@ ElementBlock* ASMs2DIB::immersedGeometry () const
   if (!myGeometry) return nullptr;
 
   ElementBlock* geo = myGeometry->tesselate();
-  if (myLines)
+
+  if (geo && myLines)
   {
-    std::vector<int> nodes;
+    IntVec nodes;
     geo->merge(myLines,nodes);
   }
+  else if (myLines)
+    geo = new ElementBlock(*myLines);
 
   return geo;
 }
@@ -160,22 +163,13 @@ bool ASMs2DIB::generateFEMTopology ()
   const int p1 = surf->order_u();
   const int p2 = surf->order_v();
 
-  // Find the corner point coordinates of each element
-  Real3DMat elmCorners;
-  for (i2 = p2-1; i2 < n2; i2++)
-    for (i1 = p1-1; i1 < n1; i1++)
-    {
-      Real2DMat XC;
+  // Find the corner points of each (non-zero) element
+  std::vector<PointVec> elmCorners(nel);
+  for (e = 0, i2 = p2-1; i2 < n2; i2++)
+    for (i1 = p1-1; i1 < n1; i1++, e++)
       if (surf->knotSpan(0,i1) > 0.0)
         if (surf->knotSpan(1,i2) > 0.0)
-        {
-          std::vector<Vec3> XCmat;
-          this->getElementCorners(i1,i2,XCmat);
-          for (i = 0; i < XCmat.size(); i++)
-            XC.push_back(RealArray(XCmat[i].ptr(),XCmat[i].ptr()+nsd));
-        }
-      elmCorners.push_back(XC);
-    }
+          this->getCornerPoints(i1,i2,elmCorners[e]);
 
   // Calculate coordinates and weights of the integration points
   if (Immersed::plotCells)
@@ -296,9 +290,8 @@ void ASMs2DIB::filterResults (Matrix& field, const ElementBlock* grid) const
 {
   if (!myGeometry) return;
 
-  Vec3Vec::const_iterator it = grid->begin_XYZ();
-  for (size_t c = 1; c <= field.cols() && it != grid->end_XYZ(); c++, ++it)
-    if (myGeometry->Alpha(it->x,it->y) < 1.0)
+  for (size_t n = 0; n < field.cols() && n < grid->getNoNodes(); n++)
+    if (myGeometry->Alpha(Vec4(grid->getCoord(n),0.0,grid->getParam(n))) < 1.0)
       for (size_t r = 1; r <= field.rows(); r++)
-        field(r,c) = 0.0;
+        field(r,n+1) = 0.0;
 }

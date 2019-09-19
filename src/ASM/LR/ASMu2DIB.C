@@ -17,7 +17,7 @@
 #include "ASMu2DIB.h"
 #include "IBGeometries.h"
 #include "ElementBlock.h"
-#include "Vec3.h"
+#include "Point.h"
 
 
 ASMu2DIB::ASMu2DIB (unsigned char n_s, unsigned char n_f, int max_depth)
@@ -128,18 +128,10 @@ bool ASMu2DIB::generateFEMTopology ()
   const int nBasis = lrspline->nBasisFunctions();
   const int nElements = lrspline->nElements();
 
-  // Find the corner point coordinates of each element
-  Real3DMat elmCorners;
+  // Find the corner points of each element
+  std::vector<PointVec> elmCorners(nElements);
   for (int iel = 1; iel <= nElements; iel++)
-  {
-    Real2DMat XC;
-    Vec3Vec XCmat;
-    this->getElementCorners(iel,XCmat);
-    for (i = 0; i < XCmat.size(); i++)
-      XC.push_back(RealArray(XCmat[i].ptr(),XCmat[i].ptr()+nsd));
-
-    elmCorners.push_back(XC);
-  }
+    this->getCornerPoints(iel,elmCorners[iel-1]);
 
   // Calculate coordinates and weights of the integration points
   bool ok = Immersed::getQuadraturePoints(*myGeometry,elmCorners,
@@ -204,9 +196,8 @@ void ASMu2DIB::filterResults (Matrix& field, const ElementBlock* grid) const
 {
   if (!myGeometry) return;
 
-  Vec3Vec::const_iterator it = grid->begin_XYZ();
-  for (size_t c = 1; c <= field.cols() && it != grid->end_XYZ(); c++, ++it)
-    if (myGeometry->Alpha(it->x,it->y) < 1.0)
+  for (size_t n = 0; n < field.cols() && n < grid->getNoNodes(); n++)
+    if (myGeometry->Alpha(Vec4(grid->getCoord(n),0.0,grid->getParam(n))) < 1.0)
       for (size_t r = 1; r <= field.rows(); r++)
-        field(r,c) = 0.0;
+        field(r,n+1) = 0.0;
 }

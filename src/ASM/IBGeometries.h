@@ -128,7 +128,7 @@ public:
   virtual ~GeoFunc2D();
 
   //! \brief Performs the inside-outside test for the geometric object.
-  virtual double Alpha(double X, double Y, double Z) const;
+  virtual double Alpha(const Vec3& X) const;
 
 private:
   RealFunc* myAlpha; //!< Function describing the inside-outside state

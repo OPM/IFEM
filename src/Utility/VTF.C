@@ -375,7 +375,7 @@ bool VTF::writeEres (const std::vector<Real>& elementResult,
   dBlock.SetMapToBlockID(myBlocks[geomID-1].first);
   if (VTFA_FAILURE(myFile->WriteBlock(&dBlock)))
     return showError("Error writing result block",idBlock);
-#elif HAS_VTF_API == 2
+#elif HAS_VTFAPI == 2
   VTFXAResultValuesBlock dBlock(idBlock,VTFXA_DIM_SCALAR,VTFXA_FALSE);
   dBlock.SetMapToBlockID(myBlocks[geomID-1].first,VTFXA_ELEMENTS);
   dBlock.SetResultValues1D(resVec.data(),nres);
@@ -413,7 +413,7 @@ bool VTF::writeNres (const std::vector<Real>& nodalResult,
   dBlock.SetMapToBlockID(myBlocks[geomID-1].first);
   if (VTFA_FAILURE(myFile->WriteBlock(&dBlock)))
     return showError("Error writing result block",idBlock);
-#elif HAS_VTF_API == 2
+#elif HAS_VTFAPI == 2
   VTFXAResultValuesBlock dBlock(idBlock,VTFXA_DIM_SCALAR,VTFXA_FALSE);
   dBlock.SetMapToBlockID(myBlocks[geomID-1].first,VTFXA_NODES);
   dBlock.SetResultValues1D(resVec.data(),nres);
@@ -436,9 +436,8 @@ bool VTF::writeNfunc (const RealFunc& f, Real time, int idBlock, int geomID)
 
   // Evaluate the function at the grid points
   std::vector<float> resVec(nres);
-  std::vector<Vec3>::const_iterator cit = grid->begin_XYZ();
-  for (size_t i = 0; i < nres; i++, ++cit)
-    resVec[i] = f(Vec4(*cit,time));
+  for (size_t i = 0; i < nres; i++)
+    resVec[i] = f(Vec4(grid->getCoord(i),time,grid->getParam(i)));
 
 #if HAS_VTFAPI == 1
   VTFAResultBlock dBlock(idBlock,VTFA_DIM_SCALAR,VTFA_RESMAP_NODE,0);
@@ -449,7 +448,7 @@ bool VTF::writeNfunc (const RealFunc& f, Real time, int idBlock, int geomID)
   dBlock.SetMapToBlockID(myBlocks[geomID-1].first);
   if (VTFA_FAILURE(myFile->WriteBlock(&dBlock)))
     return showError("Error writing result block",idBlock);
-#elif HAS_VTF_API == 2
+#elif HAS_VTFAPI == 2
   VTFXAResultValuesBlock dBlock(idBlock,VTFXA_DIM_SCALAR,VTFXA_FALSE);
   dBlock.SetMapToBlockID(myBlocks[geomID-1].first,VTFXA_NODES);
   dBlock.SetResultValues1D(resVec.data(),nres);

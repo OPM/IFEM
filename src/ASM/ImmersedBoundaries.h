@@ -20,6 +20,12 @@
 
 #include <vector>
 
+class Vec3;
+
+namespace utl {
+  class Point;
+}
+
 class ElementBlock;
 
 //! A real-valued array without algebraic operations
@@ -28,6 +34,8 @@ typedef std::vector<Real>      RealArray;
 typedef std::vector<RealArray> Real2DMat;
 //! A real-valued three-dimensional array without algebraic operations
 typedef std::vector<Real2DMat> Real3DMat;
+//! An array of point vectors
+typedef std::vector<utl::Point> PointVec;
 
 
 namespace Immersed //! Utilities for immersed boundary calculations
@@ -47,10 +55,12 @@ namespace Immersed //! Utilities for immersed boundary calculations
     //! Alpha = 0.0 if the point is lying outside the physical domain
     //! Alpha = 0.0 if the point is lying directly on the boundary
     //! Alpha = 1.0 if the point is lying inside the physical domain
-    virtual double Alpha(double X, double Y, double Z = 0.0) const = 0;
+    virtual double Alpha(double X, double Y, double Z) const { return 0.0; }
+    //! \brief Performs the inside-outside test for the geometric object.
+    virtual double Alpha(const Vec3& X) const;
 
     //! \brief Creates a finite element model of the geometry for visualization.
-    virtual ElementBlock* tesselate() const { return 0; }
+    virtual ElementBlock* tesselate() const { return nullptr; }
   };
 
   //! \brief Returns the coordinates and weights for the quadrature points.
@@ -79,31 +89,27 @@ namespace Immersed //! Utilities for immersed boundary calculations
   //! (tri-unit cube in 3D) of each element, and the weights are standard Gauss
   //! quadrature weights, which summs to 2 in the power of number of dimensions.
   bool getQuadraturePoints(const Geometry& geo,
-			   const Real3DMat& elmCorner,
-			   int max_depth, int p,
-			   Real3DMat& quadPoints, ElementBlock* grid = 0);
+                           const std::vector<PointVec>& elmCorner,
+                           int max_depth, int p,
+                           Real3DMat& quadPoints, ElementBlock* grid = nullptr);
 
   //! \brief Returns the quadrature points for a 2D element.
   bool getQuadraturePoints(const Geometry& geo,
-			   double x1, double y1, double x2, double y2,
-			   double x3, double y3, double x4, double y4,
-			   int max_depth, int nGauss,
-			   RealArray& GP1, RealArray& GP2,
-			   RealArray& GPw, ElementBlock* grid = 0);
+                           const utl::Point& X1, const utl::Point& X2,
+                           const utl::Point& X3, const utl::Point& X4,
+                           int max_depth, int nGauss,
+                           RealArray& GP1, RealArray& GP2,
+                           RealArray& GPw, ElementBlock* grid = nullptr);
 
   //! \brief Returns the quadrature points for a 3D element.
   bool getQuadraturePoints(const Geometry& geo,
-			   double x1, double y1, double z1,
-			   double x2, double y2, double z2,
-			   double x3, double y3, double z3,
-			   double x4, double y4, double z4,
-			   double x5, double y5, double z5,
-			   double x6, double y6, double z6,
-			   double x7, double y7, double z7,
-			   double x8, double y8, double z8,
-			   int max_depth, int nGauss,
-			   RealArray& GP1, RealArray& GP2, RealArray& GP3,
-			   RealArray& GPw);
+                           const utl::Point& X1, const utl::Point& X2,
+                           const utl::Point& X3, const utl::Point& X4,
+                           const utl::Point& X5, const utl::Point& X6,
+                           const utl::Point& X7, const utl::Point& X8,
+                           int max_depth, int nGauss,
+                           RealArray& GP1, RealArray& GP2, RealArray& GP3,
+                           RealArray& GPw);
 
   //! \brief Enum defining different stabilizations.
   enum Stab

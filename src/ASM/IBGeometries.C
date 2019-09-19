@@ -176,8 +176,8 @@ GeoFunc2D::~GeoFunc2D ()
 }
 
 
-double GeoFunc2D::Alpha (double X, double Y, double Z) const
+double GeoFunc2D::Alpha (const Vec3& X) const
 {
-  double value = myAlpha ? pow((*myAlpha)(Vec3(X,Y,Z)),myExponent) : 0.0;
+  double value = myAlpha ? pow((*myAlpha)(X),myExponent) : 0.0;
   return value < threshold ? 0.0 : 1.0;
 }
