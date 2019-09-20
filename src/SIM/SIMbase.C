@@ -1665,18 +1665,23 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
     myProblem->initIntegration(time,psol);
   }
 
+  // Initialize result point buffers within the integrand (if any).
+  // The large negative time argument is here used to flag that we are going to
+  // do numerical integration, possibly using integration point buffers instead
+  // of the result evaluation buffers.
+  myProblem->initResultPoints(-9999.0);
+
   size_t i, ofs = 0;
   for (i = 0; i < myModel.size(); i++)
   {
     if (myModel[i]->empty()) continue; // skip empty patches
 
     // Extract the primary solution control point values for this patch
-    myProblem->initResultPoints(time.t);
     if (!this->extractPatchSolution(myProblem,Vectors(1,psol),i))
       return false;
 
     // Initialize material properties for this patch in case of multiple regions
-    const_cast<SIMbase*>(this)->setPatchMaterial(i+1);
+    this->setPatchMaterial(i+1);
 
     LocalSystem::patch = i; // Hack: Used for patch-wise max-value calculation
 
@@ -1953,7 +1958,7 @@ bool SIMbase::evalSecondarySolution (Matrix& field, int pindx) const
   ASMbase* pch = pindx >= 0 ? this->getPatch(pindx+1) : nullptr;
   if (!pch) return false;
 
-  const_cast<SIMbase*>(this)->setPatchMaterial(pindx+1);
+  this->setPatchMaterial(pindx+1);
   return pch->evalSolution(field,*myProblem);
 }
 
@@ -1979,11 +1984,11 @@ bool SIMbase::extractPatchElmRes (const Matrix& glbRes, Matrix& elRes,
 }
 
 
-bool SIMbase::setPatchMaterial (size_t patch)
+bool SIMbase::setPatchMaterial (size_t patch) const
 {
   for (const Property& p : myProps)
     if (p.pcode == Property::MATERIAL && p.patch == patch)
-      return this->initMaterial(p.pindx);
+      return const_cast<SIMbase*>(this)->initMaterial(p.pindx);
 
   return false;
 }

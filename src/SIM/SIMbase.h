@@ -556,12 +556,12 @@ protected:
   virtual bool renumberNodes(const std::map<int,int>& nodeMap);
 
   //! \brief Extracts all local solution vector(s) for a specified patch.
-  //! \param[in] problem Integrand to receive the patch-level solution vectors
+  //! \param[in] problem The integrand to receive patch-level solution vectors
   //! \param[in] sol Global primary solution vectors in DOF-order
   //! \param[in] pindx Local patch index to extract solution vectors for
   //!
-  //! \details This method is typically invoked before the \a integrate method
-  //! on the the specified path, in order to extract all patch-level vector
+  //! \details This method is typically invoked before ASMbase::integrate()
+  //! on the specified path, in order to extract all patch-level vector
   //! quantities needed by the Integrand. This also includes any dependent
   //! vectors from other simulator classes that have been registered.
   //! All patch-level vectors are stored within the provided integrand.
@@ -630,7 +630,7 @@ public:
   ASMbase* getPatch(int idx, bool glbIndex = false) const;
 
   //! \brief Initializes material properties for the given patch.
-  bool setPatchMaterial(size_t patch);
+  bool setPatchMaterial(size_t patch) const;
 
   //! \brief Returns a const reference to our global-to-local node mapping.
   const std::map<int,int>& getGlob2LocMap() const { return myGlb2Loc; }
