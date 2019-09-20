@@ -307,13 +307,13 @@ public:
   virtual bool serialize(std::map<std::string,std::string>&) const;
 
 protected:
-  //! \brief Preprocesses the result sampling points.
-  virtual void preprocessResultPoints();
-
   //! \brief Writes out the additional functions to VTF-file.
   virtual bool writeAddFuncs(int iStep, int& nBlock, int idBlock, double time);
 
 private:
+  //! \brief Private helper to initialize patch for solution evaluation.
+  bool initPatchForEvaluation(int patchNo) const;
+
   //! \brief Private helper to extract patch-level solution vectors.
   bool extractNodeVec(const Vector& glbVec, Vector& locVec,
                       const ASMbase* patch, int nodalCmps,
@@ -324,6 +324,7 @@ private:
                          int& nBlock, std::vector< std::vector<int> >& sID,
                          size_t* i = nullptr);
 
+protected:
   //! \brief Struct defining a result sampling point.
   struct ResultPoint
   {
@@ -338,6 +339,10 @@ private:
   };
 
   typedef std::vector<ResultPoint> ResPointVec; //!< Result point container
+  typedef std::pair<std::string,ResPointVec> ResPtPair; //!< Result point group
+
+  //! \brief Preprocesses the result sampling points.
+  virtual void preprocessResultPoints();
 
   //! \brief Preprocesses a result sampling point group.
   //! \param ptFile Name of file that these result points are dumped to
@@ -356,13 +361,24 @@ private:
                    utl::LogStream& os, const ResPointVec& gPoints,
                    bool formatted, std::streamsize precision) const;
 
-  typedef std::pair<std::string,ResPointVec> ResPtPair; //!< Result point group
+  //! \brief Evaluate solution results at specified points for a given patch.
+  //! \param[in] psol Primary solution vector to derive other quantities from
+  //! \param[in] gPoints Result point definitions
+  //! \param[in] patch The patch to evaluate result points for
+  //! \param[out] points List of result points within this patch
+  //! \param[out] Xp Coordinates of result points within this patch
+  //! \param[out] sol1 Matrix of primary solution values at result points
+  //! \param[out] sol2 Matrix of secondary solution values at result points
+  bool evalResults(const Vector& psol, const ResPointVec& gPoints,
+                   const ASMbase* patch, std::vector<int>& points, Vec3Vec& Xp,
+                   Matrix& sol1, Matrix& sol2) const;
 
   std::vector<ResPtPair> myPoints; //!< User-defined result sampling points
-  int                    myPrec;   //!< Output precision for result sampling
 
+private:
   std::map<std::string,RealFunc*> myAddScalars; //!< Scalar functions to output
 
+  int  myPrec;   //!< Output precision for result sampling
   int  myGeomID; //!< VTF geometry block ID for the first patch
   VTF* myVtf;    //!< VTF-file for result visualization
 };

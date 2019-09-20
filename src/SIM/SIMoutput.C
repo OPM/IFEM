@@ -756,29 +756,29 @@ bool SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
   size_t i, j;
   bool empty = false;
   int geomID = myGeomID;
-  for (i = 0; i < myModel.size(); i++)
+  for (const ASMbase* pch : myModel)
   {
     if (!this->extractNodeVec(psol,myProblem->getSolution(),
-                              myModel[i],psolComps,empty))
+                              pch,psolComps,empty))
       return false;
-    else if (myModel[i]->empty())
+    else if (pch->empty())
       continue; // skip empty patches
 
     if (msgLevel > 1)
       IFEM::cout <<"Writing secondary solution for patch "
-                 << myModel[i]->idx+1 << std::endl;
+                 << pch->idx+1 << std::endl;
 
     // Direct evaluation of secondary solution variables
 
-    LocalSystem::patch = i;
     myProblem->initResultPoints(time,true); // include principal stresses
-    this->extractPatchDependencies(myProblem,myModel,i);
-    this->setPatchMaterial(i+1);
-    if (!myModel[i]->evalSolution(field,*myProblem,opt.nViz))
+    if (!this->initPatchForEvaluation(pch->idx+1))
+      return false;
+
+    if (!pch->evalSolution(field,*myProblem,opt.nViz))
       return false;
 
     size_t k = 0;
-    myModel[i]->filterResults(field,myVtf->getBlock(++geomID));
+    pch->filterResults(field,myVtf->getBlock(++geomID));
     if (!this->writeScalarFields(field,geomID,nBlock,sID,&k))
       return false;
 
@@ -787,7 +787,7 @@ bool SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
     size_t nPoints = field.cols();
     for (j = 0; j < 2 && myProblem->getPrincipalDir(pdir,nPoints,j+1); j++)
     {
-      myModel[i]->filterResults(pdir,myVtf->getBlock(geomID));
+      pch->filterResults(pdir,myVtf->getBlock(geomID));
       if (!myVtf->writeVres(pdir,++nBlock,geomID,this->getNoSpaceDim()))
         return -2;
 
@@ -799,10 +799,10 @@ bool SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
       // Projection of secondary solution variables (tensorial splines only)
 
       myProblem->initResultPoints(time);
-      if (!myModel[i]->evalSolution(field,*myProblem,opt.nViz,'D'))
+      if (!pch->evalSolution(field,*myProblem,opt.nViz,'D'))
         return false;
 
-      myModel[i]->filterResults(field,myVtf->getBlock(geomID));
+      pch->filterResults(field,myVtf->getBlock(geomID));
       if (!this->writeScalarFields(field,geomID,nBlock,sID,&k))
         return false;
     }
@@ -811,9 +811,9 @@ bool SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
     {
       if (msgLevel > 1)
         IFEM::cout <<"Writing exact solution for patch "
-                   << myModel[i]->idx+1 << std::endl;
+                   << pch->idx+1 << std::endl;
 
-      mySol->initPatch(myModel[i]->idx);
+      mySol->initPatch(pch->idx);
 
       // Evaluate analytical solution variables
 
@@ -882,20 +882,16 @@ bool SIMoutput::eval2ndSolution (const Vector& psol, double time, int psolComps)
 
   Matrix field;
   bool empty = false;
-  for (size_t i = 0; i < myModel.size(); i++)
-  {
+  for (const ASMbase* pch : myModel)
     if (!this->extractNodeVec(psol,myProblem->getSolution(),
-                              myModel[i],psolComps,empty))
+                              pch,psolComps,empty))
       return false;
-    else if (myModel[i]->empty())
+    else if (pch->empty())
       continue; // skip empty patches
-
-    LocalSystem::patch = i;
-    this->extractPatchDependencies(myProblem,myModel,i);
-    this->setPatchMaterial(i+1);
-    if (!myModel[i]->evalSolution(field,*myProblem,opt.nViz))
+    else if (!this->initPatchForEvaluation(pch->idx+1))
       return false;
-  }
+    else if (!pch->evalSolution(field,*myProblem,opt.nViz))
+      return false;
 
   return true;
 }
@@ -941,7 +937,7 @@ bool SIMoutput::writeGlvP (const Vector& ssol, int iStep, int& nBlock,
 
   Vector::const_iterator ssolIt = ssol.begin();
   int geomID = myGeomID;
-  for (ASMbase* pch : myModel)
+  for (const ASMbase* pch : myModel)
   {
     if (pch->empty()) continue; // skip empty patches
 
@@ -1019,7 +1015,7 @@ bool SIMoutput::evalProjSolution (const Vector& ssol,
 
   bool empty = false;
   int geomID = myGeomID;
-  for (ASMbase* pch : myModel)
+  for (const ASMbase* pch : myModel)
   {
     if (!this->extractNodeVec(ssol,lovec,pch,myProblem->getNoFields(2),empty))
       return false;
@@ -1107,7 +1103,7 @@ bool SIMoutput::writeGlvM (const Mode& mode, bool freq, int& nBlock)
 
   bool empty = false;
   int geomID = myGeomID;
-  for (ASMbase* pch : myModel)
+  for (const ASMbase* pch : myModel)
   {
     if (!this->extractNodeVec(mode.eigVec,displ,pch,0,empty))
       return false;
@@ -1426,23 +1422,22 @@ bool SIMoutput::dumpSolution (const Vector& psol, utl::LogStream& os) const
     return false;
 
   Matrix field;
-  size_t i, j, k;
 
-  for (i = 0; i < myModel.size(); i++)
+  for (const ASMbase* pch : myModel)
   {
-    if (myModel[i]->empty()) continue; // skip empty patches
+    if (pch->empty()) continue; // skip empty patches
 
     if (myModel.size() > 1)
-      os <<"\n# Patch: "<< myModel[i]->idx+1;
+      os <<"\n# Patch: "<< pch->idx+1;
 
     // Extract and write primary solution
-    size_t nf = myModel[i]->getNoFields(1);
+    size_t nf = pch->getNoFields(1);
     Vector& patchSol = myProblem->getSolution();
-    myModel[i]->extractNodalVec(psol,patchSol,mySam->getMADOF());
-    for (k = 0; k < nf; k++)
+    pch->extractNodalVec(psol,patchSol,mySam->getMADOF());
+    for (size_t k = 0; k < nf; k++)
     {
       os << myProblem->getField1Name(k,"# FE");
-      for (j = 1; j <= myModel[i]->getNoNodes(); j++)
+      for (size_t j = 1; j <= pch->getNoNodes(); j++)
       {
         std::pair<int,int> dofs = mySam->getNodeDOFs(j);
         int idof = dofs.first+k;
@@ -1453,16 +1448,16 @@ bool SIMoutput::dumpSolution (const Vector& psol, utl::LogStream& os) const
     }
 
     // Evaluate secondary solution variables
-    LocalSystem::patch = i;
-    const_cast<SIMoutput*>(this)->setPatchMaterial(i+1);
-    if (!myModel[i]->evalSolution(field,*myProblem))
+    if (!this->initPatchForEvaluation(pch->idx+1))
+      return false;
+    if (!pch->evalSolution(field,*myProblem))
       return false;
 
     // Write the secondary solution
-    for (j = 1; j <= field.rows(); j++)
+    for (size_t j = 1; j <= field.rows(); j++)
     {
       os << myProblem->getField2Name(j-1,"# FE");
-      for (k = 1; k <= field.cols(); k++)
+      for (size_t k = 1; k <= field.cols(); k++)
         os <<"\n"<< utl::trunc(field(j,k));
       os << std::endl;
     }
@@ -1479,10 +1474,11 @@ bool SIMoutput::dumpResults (const Vector& psol, double time,
   if (gPoints.empty())
     return true;
 
-  size_t i, j, k;
-  Matrix sol1, sol2;
-  Vector sol3, reactionFS;
-  Vec3   sol4;
+  Matrix  sol1, sol2;
+  Vector  sol3, reactionFS;
+  Vec3    sol4;
+  IntVec  points;
+  Vec3Vec Xp;
 
   const Vector* reactionForces = this->getReactionForces();
   RealFunc*     psolScl = mySol ? mySol->getScalarSol() : nullptr;
@@ -1497,65 +1493,18 @@ bool SIMoutput::dumpResults (const Vector& psol, double time,
   else if (psolVec)
     nxsol = this->getNoSpaceDim();
 
-  for (i = 0; i < myModel.size(); i++)
+  for (const ASMbase* pch : myModel)
   {
-    if (myModel[i]->empty()) continue; // skip empty patches
-
-    std::array<RealArray,3> params;
-    IntVec  points;
-    Vec3Vec Xp;
-
-    // Find all evaluation points within this patch, if any
-    int jPoint = 1;
-    for (const ResultPoint& pt : gPoints)
-    {
-      if (this->getLocalPatchIndex(pt.patch) == (int)(i+1))
-      {
-        if (opt.discretization >= ASM::Spline)
-        {
-          points.push_back(pt.inod > 0 ? pt.inod : -jPoint);
-          for (k = 0; k < myModel[i]->getNoParamDim(); k++)
-            params[k].push_back(pt.u[k]);
-          if (mySol) Xp.push_back(pt.X);
-        }
-        else if (pt.inod > 0)
-        {
-          points.push_back(pt.inod);
-          if (mySol) Xp.push_back(pt.X);
-        }
-      }
-      ++jPoint;
-    }
-    if (points.empty()) continue; // no points in this patch
-
-    myModel[i]->extractNodeVec(psol,myProblem->getSolution());
-    if (opt.discretization >= ASM::Spline)
-    {
-      // Evaluate the primary solution variables
-      if (!myModel[i]->evalSolution(sol1,myProblem->getSolution(),
-                                    params.data(),false))
-        return false;
-
-      // Evaluate the secondary solution variables
-      LocalSystem::patch = i;
-      if (myProblem->getNoFields(2) > 0)
-      {
-        this->extractPatchDependencies(myProblem,myModel,i);
-        const_cast<SIMoutput*>(this)->setPatchMaterial(i+1);
-        if (!myModel[i]->evalSolution(sol2,*myProblem,params.data(),false))
-          return false;
-      }
-    }
-    else
-      // Extract nodal primary solution variables
-      if (!myModel[i]->getSolution(sol1,myProblem->getSolution(),points))
-        return false;
+    if (!this->evalResults(psol,gPoints,pch,points,Xp,sol1,sol2))
+      return false;
+    else if (points.empty())
+      continue; // no result points for this patch
 
     // Formatted output, use scientific notation with fixed field width
     std::streamsize flWidth = 8 + precision;
     std::streamsize oldPrec = os.precision(precision);
     std::ios::fmtflags oldF = os.flags(std::ios::scientific | std::ios::right);
-    for (j = 0; j < points.size(); j++)
+    for (size_t j = 0; j < points.size(); j++)
     {
       if (!formatted)
         os << time <<" ";
@@ -1563,12 +1512,12 @@ bool SIMoutput::dumpResults (const Vector& psol, double time,
         os <<"  Point #"<< -points[j] <<":\tsol1 =";
       else
       {
-        points[j] = myModel[i]->getNodeID(points[j]);
+        points[j] = pch->getNodeID(points[j]);
         os <<"  Node #"<< points[j] <<":\tsol1 =";
       }
 
-      for (k = 1; k <= sol1.rows(); k++)
-        os << std::setw(flWidth) << utl::trunc(sol1(k,j+1));
+      for (size_t i = 1; i <= sol1.rows(); i++)
+        os << std::setw(flWidth) << utl::trunc(sol1(i,j+1));
 
       if (psolScl)
         sol4.x = (*psolScl)(Vec4(Xp[j],time));
@@ -1576,17 +1525,17 @@ bool SIMoutput::dumpResults (const Vector& psol, double time,
         sol4 = (*psolVec)(Vec4(Xp[j],time));
       if (nxsol > 0)
         os <<"\n\t\texact1";
-      for (k = 0; k < nxsol; k++)
+      for (size_t k = 0; k < nxsol; k++)
         os << std::setw(flWidth) << utl::trunc(sol4[k]);
 
       if (opt.discretization >= ASM::Spline)
       {
         int isol = 1;
-        for (k = 1; k <= sol2.rows(); k++)
+        for (size_t i = 1; i <= sol2.rows(); i++)
         {
-          if (formatted && k%myProblem->getNo2ndSolPerLine() == 1)
+          if (formatted && i%myProblem->getNo2ndSolPerLine() == 1)
             os <<"\n\t\tsol"<< ++isol <<" =";
-          os << std::setw(flWidth) << utl::trunc(sol2(k,j+1));
+          os << std::setw(flWidth) << utl::trunc(sol2(i,j+1));
         }
 
         if (ssolScl || ssolVec || ssolStr)
@@ -1597,8 +1546,8 @@ bool SIMoutput::dumpResults (const Vector& psol, double time,
           sol3 = (*ssolVec)(Vec4(Xp[j],time));
         else if (ssolStr)
           sol3 = (*ssolStr)(Vec4(Xp[j],time));
-        for (k = 0; k < sol3.size(); k++)
-          os << std::setw(flWidth) << utl::trunc(sol3[k]);
+        for (double s : sol3)
+          os << std::setw(flWidth) << utl::trunc(s);
       }
 
       if (reactionForces && points[j] > 0)
@@ -1607,8 +1556,8 @@ bool SIMoutput::dumpResults (const Vector& psol, double time,
         {
           if (formatted)
             os <<"\n\t\treac =";
-          for (k = 0; k < reactionFS.size(); k++)
-            os << std::setw(flWidth) << utl::trunc(reactionFS[k]);
+          for (double f : reactionFS)
+            os << std::setw(flWidth) << utl::trunc(f);
         }
 
       os << std::endl;
@@ -1618,6 +1567,75 @@ bool SIMoutput::dumpResults (const Vector& psol, double time,
   }
 
   return true;
+}
+
+
+bool SIMoutput::evalResults (const Vector& psol, const ResPointVec& gPoints,
+                             const ASMbase* patch, IntVec& points, Vec3Vec& Xp,
+                             Matrix& sol1, Matrix& sol2) const
+{
+  points.clear(); Xp.clear();
+  if (gPoints.empty() || patch->empty())
+    return true;
+
+  // Find all evaluation points within this patch, if any
+  std::array<RealArray,3> params;
+
+  int jPoint = 1;
+  for (const ResultPoint& pt : gPoints)
+  {
+    if (pt.patch == patch->idx+1)
+    {
+      if (opt.discretization >= ASM::Spline)
+      {
+        points.push_back(pt.inod > 0 ? pt.inod : -jPoint);
+        for (unsigned short int k = 0; k < patch->getNoParamDim(); k++)
+          params[k].push_back(pt.u[k]);
+        if (mySol) Xp.push_back(pt.X);
+      }
+      else if (pt.inod > 0)
+      {
+        points.push_back(pt.inod);
+        if (mySol) Xp.push_back(pt.X);
+      }
+    }
+    ++jPoint;
+  }
+
+  if (points.empty())
+    return true; // no points in this patch
+
+  // Extract patch-level control/nodal point values of the primary solution
+  patch->extractNodeVec(psol,myProblem->getSolution());
+
+  if (opt.discretization < ASM::Spline)
+    // Extract primary solution variables, for nodal points only
+    return patch->getSolution(sol1,myProblem->getSolution(),points);
+
+  // Evaluate the primary solution variables
+  if (!patch->evalSolution(sol1,myProblem->getSolution(),params.data(),false))
+    return false;
+
+  if (myProblem->getNoFields(2) < 1)
+    return true; // No secondary solution variables
+
+  // Initialize patch for secondary solution evaluation
+  if (!this->initPatchForEvaluation(patch->idx+1))
+    return false;
+
+  // Evaluate the secondary solution variables
+  return patch->evalSolution(sol2,*myProblem,params.data(),false);
+}
+
+
+bool SIMoutput::initPatchForEvaluation (int patchNo) const
+{
+  int pindx = this->getLocalPatchIndex(patchNo);
+  if (pindx < 1) return false;
+
+  LocalSystem::patch = pindx-1;
+  this->setPatchMaterial(pindx);
+  return this->extractPatchDependencies(myProblem,myModel,pindx-1);
 }
 
 
@@ -1632,7 +1650,6 @@ bool SIMoutput::dumpVector (const Vector& vsol, const char* fname,
   if (nComp*ngNodes != vsol.size() || nComp == this->getNoFields())
     nComp = 0; // Using the number of primary field components
 
-  size_t i, j, k;
   Matrix sol1;
   Vector lsol;
 
@@ -1661,9 +1678,9 @@ bool SIMoutput::dumpVector (const Vector& vsol, const char* fname,
       continue; // Skip output for this point group
 
     int iPoint = 1;
-    for (i = 0; i < myModel.size() && ok; i++)
+    for (const ASMbase* pch : myModel)
     {
-      if (myModel[i]->empty()) continue; // skip empty patches
+      if (pch->empty()) continue; // skip empty patches
 
       // Find all evaluation points within this patch, if any
       std::array<RealArray,3> params;
@@ -1671,12 +1688,12 @@ bool SIMoutput::dumpVector (const Vector& vsol, const char* fname,
       int jPoint = iPoint;
       for (const ResultPoint& pt : rptp.second)
       {
-        if (this->getLocalPatchIndex(pt.patch) == (int)(i+1))
+        if (pt.patch == pch->idx+1)
         {
           if (opt.discretization >= ASM::Spline)
           {
             points.push_back(pt.inod > 0 ? pt.inod : -jPoint);
-            for (k = 0; k < myModel[i]->getNoParamDim(); k++)
+            for (unsigned short int k = 0; k < pch->getNoParamDim(); k++)
               params[k].push_back(pt.u[k]);
           }
           else if (pt.inod > 0)
@@ -1688,35 +1705,35 @@ bool SIMoutput::dumpVector (const Vector& vsol, const char* fname,
       if (points.empty()) continue; // no points in this patch
 
       // Evaluate/extract nodal solution variables
-      myModel[i]->extractNodeVec(vsol,lsol,nComp);
+      pch->extractNodeVec(vsol,lsol,nComp);
       if (opt.discretization >= ASM::Spline)
-        ok = myModel[i]->evalSolution(sol1,lsol,params.data(),false);
+        ok &= pch->evalSolution(sol1,lsol,params.data(),false);
       else
-        ok = myModel[i]->ASMbase::getSolution(sol1,lsol,points);
+        ok &= pch->ASMbase::getSolution(sol1,lsol,points);
 
       if (fs) // Single-line output to separate file
-        for (j = 0; j < points.size() && ok; j++, iPoint++)
+        for (size_t j = 0; j < points.size() && ok; j++, iPoint++)
         {
           *fs << iPoint;
-          for (k = 1; k <= sol1.rows(); k++)
-            *fs << std::setw(flWidth) << utl::trunc(sol1(k,j+1));
+          for (size_t i = 1; i <= sol1.rows(); i++)
+            *fs << std::setw(flWidth) << utl::trunc(sol1(i,j+1));
           *fs << std::endl;
         }
 
       else // Formatted output to log stream
-        for (j = 0; j < points.size() && ok; j++, iPoint++)
+        for (size_t j = 0; j < points.size() && ok; j++, iPoint++)
         {
           if (points[j] < 0)
             os <<"  Point #"<< -points[j];
           else
           {
-            points[j] = myModel[i]->getNodeID(points[j]);
+            points[j] = pch->getNodeID(points[j]);
             os <<"  Node #"<< points[j];
           }
 
           os <<":\t"<< fname <<" =";
-          for (k = 1; k <= sol1.rows(); k++)
-            os << std::setw(flWidth) << utl::trunc(sol1(k,j+1));
+          for (size_t i = 1; i <= sol1.rows(); i++)
+            os << std::setw(flWidth) << utl::trunc(sol1(i,j+1));
 
           os << std::endl;
         }
