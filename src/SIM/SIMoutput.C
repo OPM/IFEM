@@ -771,7 +771,7 @@ bool SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
     // Direct evaluation of secondary solution variables
 
     LocalSystem::patch = i;
-    myProblem->initResultPoints(time,true);
+    myProblem->initResultPoints(time,true); // include principal stresses
     this->extractPatchDependencies(myProblem,myModel,i);
     this->setPatchMaterial(i+1);
     if (!myModel[i]->evalSolution(field,*myProblem,opt.nViz))
@@ -972,7 +972,8 @@ bool SIMoutput::writeGlvP (const Vector& ssol, int iStep, int& nBlock,
       {
         size_t indx = 0;
         double cmax = field.getRow(1+j).normInf(indx,1,true);
-        updateMaxVal((*maxVal)[j],cmax,pch->idx,grid->getCoord(indx-1));
+        if (indx > 0 && indx <= grid->getNoNodes())
+          updateMaxVal((*maxVal)[j],cmax,pch->idx,grid->getCoord(indx-1));
       }
   }
 
