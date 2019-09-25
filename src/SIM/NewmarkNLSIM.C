@@ -31,6 +31,12 @@ NewmarkNLSIM::NewmarkNLSIM (SIMbase& sim) : NewmarkSIM(sim), Finert(nullptr)
 }
 
 
+NewmarkNLSIM::~NewmarkNLSIM ()
+{
+  delete Finert;
+}
+
+
 bool NewmarkNLSIM::parse (const TiXmlElement* elem)
 {
   bool ok = this->NewmarkSIM::parse(elem);

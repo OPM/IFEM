@@ -175,8 +175,8 @@ class NewmarkNLSIM : public NewmarkSIM
 public:
   //! \brief The constructor initializes default solution parameters.
   explicit NewmarkNLSIM(SIMbase& sim);
-  //! \brief Empty destructor.
-  virtual ~NewmarkNLSIM() {}
+  //! \brief The destructor deletes the \a Finert system vector.
+  virtual ~NewmarkNLSIM();
 
   using NewmarkSIM::parse;
   //! \brief Parses a data section from an XML document.
