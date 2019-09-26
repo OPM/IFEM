@@ -86,16 +86,18 @@ bool FieldFuncBase::load (const std::vector<std::string>& fieldNames,
                           bool isScalar)
 {
   size_t nOK = 0;
-  size_t nPatches = 0;
+  size_t nPatches;
 #ifdef HAS_HDF5
   std::stringstream str;
   str << level << "/" << basisName << "/fields/" << fieldNames.front();
   nPatches = hdf5->getFieldSize(str.str());
-#endif
   if (nPatches == 0)
+#endif
     nPatches = patch.size();
-  else if (patch.empty())
+
+  if (patch.empty())
     patch.resize(nPatches,nullptr);
+
   this->clearField();
 
 #ifdef HAS_HDF5

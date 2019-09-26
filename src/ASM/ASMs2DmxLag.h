@@ -145,6 +145,9 @@ protected:
   virtual bool getSize(int& n1, int& n2, int basis = 0) const;
 
 private:
+  //! \brief No assignement.
+  ASMs2DmxLag& operator=(const ASMs2DmxLag&) = delete;
+
   std::vector<size_t> nxx; //!< Basis dimensions in 1st parameter direction
   std::vector<size_t> nyx; //!< Basis dimensions in 2nd parameter direction
 

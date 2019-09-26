@@ -259,6 +259,9 @@ public:
   static bool printSLUstat; //!< Print solution statistics for SuperLU?
 
 private:
+  //! \brief No assignment.
+  SparseMatrix& operator=(const SparseMatrix&) = delete;
+
   //! Flag for the editability of the matrix elements:
   //!  'V' : Values may be edited but the pattern is temporarily locked
   //!  'P' : Both values and pattern may be edited

@@ -4824,13 +4824,11 @@ static int stbi__parse_png_file(stbi__png *z, int scan, int req_comp)
             if (scan == STBI__SCAN_header) { s->img_n = pal_img_n; return 1; }
             if ((int)(ioff + c.length) < (int)ioff) return 0;
             if (ioff + c.length > idata_limit) {
-               stbi__uint32 idata_limit_old = idata_limit;
                stbi_uc *p;
                if (idata_limit == 0) idata_limit = c.length > 4096 ? c.length : 4096;
                while (ioff + c.length > idata_limit)
                   idata_limit *= 2;
-               STBI_NOTUSED(idata_limit_old);
-               p = (stbi_uc *) STBI_REALLOC_SIZED(z->idata, idata_limit_old, idata_limit); if (p == NULL) return stbi__err("outofmem", "Out of memory");
+               p = (stbi_uc *) STBI_REALLOC(z->idata, idata_limit); if (p == NULL) return stbi__err("outofmem", "Out of memory");
                z->idata = p;
             }
             if (!stbi__getn(s, z->idata+ioff,c.length)) return stbi__err("outofdata","Corrupt PNG");
@@ -5462,8 +5460,8 @@ static void *stbi__tga_load(stbi__context *s, int *x, int *y, int *comp, int req
    int tga_palette_start = stbi__get16le(s);
    int tga_palette_len = stbi__get16le(s);
    int tga_palette_bits = stbi__get8(s);
-   int tga_x_origin = stbi__get16le(s);
-   int tga_y_origin = stbi__get16le(s);
+   /*int tga_x_origin =*/stbi__get16le(s);
+   /*int tga_y_origin =*/ stbi__get16le(s);
    int tga_width = stbi__get16le(s);
    int tga_height = stbi__get16le(s);
    int tga_bits_per_pixel = stbi__get8(s);
@@ -5640,8 +5638,8 @@ static void *stbi__tga_load(stbi__context *s, int *x, int *y, int *comp, int req
 
    //   the things I do to get rid of an error message, and yet keep
    //   Microsoft's C compilers happy... [8^(
-   tga_palette_start = tga_palette_len = tga_palette_bits =
-         tga_x_origin = tga_y_origin = 0;
+//   tga_palette_start = tga_palette_len = tga_palette_bits = 0;
+//         tga_x_origin = tga_y_origin = 0;
    //   OK, done
    return tga_data;
 }

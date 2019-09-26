@@ -232,6 +232,10 @@ public:
 
 protected:
   std::vector<std::shared_ptr<Go::SplineSurface>> m_basis; //!< Vector of bases
+
+private:
+  //! \brief No assignment.
+  ASMs2Dmx& operator=(const ASMs2Dmx&) = delete;
 };
 
 #endif

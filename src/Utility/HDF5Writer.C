@@ -199,7 +199,7 @@ void HDF5Writer::writeVector(int level, const DataEntry& entry)
   str << level;
   hid_t group = H5Gopen2(m_file,str.str().c_str(),H5P_DEFAULT);
   if (entry.second.field == DataExporter::VECTOR) {
-    Vector* dvec = (Vector*)entry.second.data;
+    const Vector* dvec = static_cast<const Vector*>(entry.second.data);
     int len = !redundant || rank == 0 ? dvec->size() : 0;
     this->writeArray(level,entry.first,1,len,dvec->data(),H5T_NATIVE_DOUBLE);
   }

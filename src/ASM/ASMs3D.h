@@ -730,6 +730,9 @@ public:
                     bool fromRight = true) const;
 
 private:
+  //! \brief No assignment.
+  ASMs3D& operator=(const ASMs3D&) = delete;
+
   //! \brief Returns an index into the internal coefficient array for a node.
   //! \param[in] inod 0-based node index local to current patch
   int coeffInd(size_t inod) const;

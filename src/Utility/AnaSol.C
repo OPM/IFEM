@@ -263,13 +263,6 @@ void AnaSol::parseFieldFunctions(const TiXmlElement* elem, bool scalarSol)
   {
     std::string secondary = sec->FirstChild()->Value();
     IFEM::cout <<"\tSecondary="<< secondary << std::endl;
-    // first component runs the show
-    size_t pos = secondary.find_first_of('|');
-    std::string sec;
-    if (pos == std::string::npos)
-      sec = secondary;
-    else
-      sec = secondary.substr(0,pos);
     if (scalarSol)
       scalSecSol.push_back(new VecFieldFunction(file, basis, secondary, level));
     else
@@ -280,13 +273,6 @@ void AnaSol::parseFieldFunctions(const TiXmlElement* elem, bool scalarSol)
   {
     std::string secondary = sec->FirstChild()->Value();
     IFEM::cout <<"\tScalar Secondary="<< secondary << std::endl;
-    // first component runs the show
-    size_t pos = secondary.find_first_of('|');
-    std::string sec;
-    if (pos == std::string::npos)
-      sec = secondary;
-    else
-      sec = secondary.substr(0,pos);
     scalSecSol.push_back(new VecFieldFunction(file, basis, secondary, level));
   }
   sec = elem->FirstChildElement("stress");
@@ -294,13 +280,6 @@ void AnaSol::parseFieldFunctions(const TiXmlElement* elem, bool scalarSol)
   {
     std::string secondary = sec->FirstChild()->Value();
     IFEM::cout <<"\tStress="<< secondary << std::endl;
-    // first component runs the show
-    size_t pos = secondary.find_first_of('|');
-    std::string sec;
-    if (pos == std::string::npos)
-      sec = secondary;
-    else
-      sec = secondary.substr(0,pos);
     stressSol = new STensorFieldFunction(file, basis, secondary, level);
   }
 #else

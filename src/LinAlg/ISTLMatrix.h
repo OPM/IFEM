@@ -42,7 +42,6 @@ public:
   ISTLVector(const ISTLVector& vec);
   //! \brief Destructor.
   virtual ~ISTLVector();
-#endif
 
   //! \brief Returns the vector type.
   virtual Type getType() const { return ISTL; }
@@ -88,6 +87,10 @@ public:
 protected:
   ISTL::Vec x; //!< ISTL vector
   const ProcessAdm& adm;  //!< Process administrator
+
+private:
+  //! \brief No assignment.
+  ISTLVector& operator=(const ISTLVector&) = delete;
 };
 
 
@@ -164,4 +167,10 @@ protected:
   bool                setParams;       //!< If linear solver parameters are set
   int                 nLinSolves;      //!< Number of linear solves
   LinAlg::LinearSystemType linsysType; //!< Linear system type
+
+private:
+  //! \brief No assignment.
+  ISTLMatrix& operator=(const ISTLMatrix&) = delete;
 };
+
+#endif

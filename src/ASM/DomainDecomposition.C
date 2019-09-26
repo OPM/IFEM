@@ -1078,28 +1078,35 @@ bool DomainDecomposition::setup(const ProcessAdm& adm, const SIMbase& sim)
 
   sam = dynamic_cast<const SAMpatch*>(sim.getSAM());
 
-  int ok = 1;
 #ifdef HAVE_MPI
+  int ok = 1;
   int lok = ok;
 #endif
   if (myElms.empty()) {
     // Establish global node numbers
-    if (!calcGlobalNodeNumbers(adm, sim))
+    if (!calcGlobalNodeNumbers(adm, sim)) {
+#ifdef HAVE_MPI
       ok = 0;
+#endif
+    }
 
     // sanity check the established domain decomposition
     if (getMinNode() > getMaxNode()) {
       std::cerr << "**DomainDecomposition::setup ** Process "
                 << adm.getProcId() << " owns no nodes." << std::endl;
+#ifdef HAVE_MPI
       ok = 0;
+#else
+      return false;
+#endif
     }
 
 #ifdef HAVE_MPI
     MPI_Allreduce(&lok, &ok, 1, MPI_INT, MPI_SUM, *adm.getCommunicator());
-#endif
 
     if (ok < adm.getNoProcs())
       return false;
+#endif
 
     // sanity check all corners of the patches
     if (!sanityCheckCorners(sim))

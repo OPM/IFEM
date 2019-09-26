@@ -400,9 +400,11 @@ bool VTF::writeNres (const std::vector<Real>& nodalResult,
     return showError("Invalid size of result array",nres);
 
   // Cast to float
+#if HAS_VTFAPI == 1 || HAS_VTFAPI == 2
   std::vector<float> resVec(nres);
   for (size_t i = 0; i < nres; i++)
     resVec[i] = nodalResult[i];
+#endif
 
 #if HAS_VTFAPI == 1
   VTFAResultBlock dBlock(idBlock,VTFA_DIM_SCALAR,VTFA_RESMAP_NODE,0);
@@ -413,7 +415,7 @@ bool VTF::writeNres (const std::vector<Real>& nodalResult,
   dBlock.SetMapToBlockID(myBlocks[geomID-1].first);
   if (VTFA_FAILURE(myFile->WriteBlock(&dBlock)))
     return showError("Error writing result block",idBlock);
-#elif HAS_VTF_API == 2
+#elif HAS_VTFAPI == 2
   VTFXAResultValuesBlock dBlock(idBlock,VTFXA_DIM_SCALAR,VTFXA_FALSE);
   dBlock.SetMapToBlockID(myBlocks[geomID-1].first,VTFXA_NODES);
   dBlock.SetResultValues1D(resVec.data(),nres);
@@ -432,6 +434,7 @@ bool VTF::writeNfunc (const RealFunc& f, Real time, int idBlock, int geomID)
   const ElementBlock* grid = this->getBlock(geomID);
   if (!grid) return false;
 
+#if HAS_VTFAPI == 1 || HAS_VTFAPI == 2
   const size_t nres = grid->getNoNodes();
 
   // Evaluate the function at the grid points
@@ -439,6 +442,7 @@ bool VTF::writeNfunc (const RealFunc& f, Real time, int idBlock, int geomID)
   std::vector<Vec3>::const_iterator cit = grid->begin_XYZ();
   for (size_t i = 0; i < nres; i++, ++cit)
     resVec[i] = f(Vec4(*cit,time));
+#endif
 
 #if HAS_VTFAPI == 1
   VTFAResultBlock dBlock(idBlock,VTFA_DIM_SCALAR,VTFA_RESMAP_NODE,0);
@@ -449,7 +453,7 @@ bool VTF::writeNfunc (const RealFunc& f, Real time, int idBlock, int geomID)
   dBlock.SetMapToBlockID(myBlocks[geomID-1].first);
   if (VTFA_FAILURE(myFile->WriteBlock(&dBlock)))
     return showError("Error writing result block",idBlock);
-#elif HAS_VTF_API == 2
+#elif HAS_VTFAPI == 2
   VTFXAResultValuesBlock dBlock(idBlock,VTFXA_DIM_SCALAR,VTFXA_FALSE);
   dBlock.SetMapToBlockID(myBlocks[geomID-1].first,VTFXA_NODES);
   dBlock.SetResultValues1D(resVec.data(),nres);

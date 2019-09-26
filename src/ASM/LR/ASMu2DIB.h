@@ -72,6 +72,9 @@ public:
   virtual void filterResults(Matrix& field, const ElementBlock* grid) const;
 
 private:
+  //! \brief No assignment.
+  ASMu2DIB& operator=(const ASMu2DIB&) = delete;
+
   Immersed::Geometry* myGeometry; //!< The physical geometry description
 
   Real3DMat quadPoints; //!< The Gauss quadrature points for this patch

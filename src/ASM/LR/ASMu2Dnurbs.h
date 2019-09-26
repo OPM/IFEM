@@ -60,6 +60,9 @@ protected:
   virtual LR::LRSplineSurface* createLRfromTensor();
 
 private:
+  //! \brief No assignment.
+  ASMu2Dnurbs& operator=(const ASMu2Dnurbs&) = delete;
+
   bool noNurbs; //!< If \e true, we read a spline and thus forward to ASMu2D
 };
 

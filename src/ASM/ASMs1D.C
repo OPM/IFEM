@@ -1851,7 +1851,7 @@ bool ASMs1D::evaluate (const FunctionBase* func, RealArray& values,
 
 Fields* ASMs1D::getProjectedFields (const Vector& coefs, size_t) const
 {
-  if (proj == curv)
+  if (proj == curv || this->getNoProjectionNodes() == 0)
     return nullptr;
 
   size_t ncmp = coefs.size() / this->getNoProjectionNodes();

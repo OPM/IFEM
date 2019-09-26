@@ -71,6 +71,9 @@ public:
   virtual bool tesselate(ElementBlock& grid, const int*) const;
 
 private:
+  //! \brief No assignment.
+  ASMu2DLag& operator=(const ASMu2DLag&) = delete;
+
   char fileType; //!< Mesh file format
   typedef std::pair<std::string,IntVec> NodeSet; //!< Named node set container
   std::vector<NodeSet> nodeSets; //!< Pre-defined node sets for Dirichlet BCs

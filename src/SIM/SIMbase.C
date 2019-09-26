@@ -1024,7 +1024,7 @@ bool SIMbase::solveSystem (Vector& solution, int printSol, double* rCond,
 
   if (msgLevel > 1)
   {
-    if (rcn < 1.0)
+    if (rp && *rp < 1.0)
       IFEM::cout <<"\tCondition number: "<< 1.0/rcn << std::endl;
     if (rCond) *rCond = rcn;
   }

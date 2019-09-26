@@ -81,8 +81,12 @@ static int iThread ()
 
 void Profiler::start (const std::string& funcName)
 {
+#ifdef USE_OPENMP
   int tID = iThread();
   Profile& p = tID < 0 ? myTimers[funcName] : myMTimers[tID][funcName];
+#else
+  Profile& p = myTimers[funcName];
+#endif
   if (p.running) return;
 
 #ifdef USE_OPENMP
@@ -101,9 +105,13 @@ void Profiler::stop (const std::string& funcName)
 {
   clock_t stopCPU = clock();
   double stopWall = WallTime();
-  int         tID = iThread();
 
+#ifdef USE_OPENMP
+  int         tID = iThread();
   ProfileMap& timers = tID < 0 ? myTimers : myMTimers[tID];
+#else
+  ProfileMap& timers = myTimers;
+#endif
   ProfileMap::iterator it = timers.find(funcName);
   if (it == timers.end())
     std::cerr <<" *** No matching timer for "<< funcName << std::endl;
@@ -116,7 +124,11 @@ void Profiler::stop (const std::string& funcName)
     p.running = false;
     p.totalCPU  += deltaCPU;
     p.totalWall += deltaWall;
-    if (tID < 0 && --nRunners == 1)
+    if (
+#ifdef USE_OPENMP
+    tID < 0 &&
+#endif
+      --nRunners == 1)
     {
       // This is a "main" task, accumulate the total time for all main tasks
       allCPU  += deltaCPU;

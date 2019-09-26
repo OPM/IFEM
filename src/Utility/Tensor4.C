@@ -66,16 +66,6 @@ Real& Tensor4::operator() (t_ind i, t_ind j, t_ind k, t_ind l)
 }
 
 
-Tensor4& Tensor4::operator= (const Tensor4& T)
-{
-  this->redim(T.n);
-  v.resize(m*m,Real(0));
-  std::copy(T.v.begin(),T.v.end(),v.begin());
-
-  return *this;
-}
-
-
 Tensor4& Tensor4::operator= (Real val)
 {
   this->zero();

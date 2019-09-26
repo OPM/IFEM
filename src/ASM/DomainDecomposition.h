@@ -68,7 +68,7 @@ public:
       //! \brief The constructor initializes the DomainDecomposition reference.
       explicit SlaveOrder(const DomainDecomposition& dd_) : dd(dd_) {}
       //! \brief Hide ill-formed default assignment operator.
-      SlaveOrder& operator=(const SlaveOrder&) { return *this; }
+      SlaveOrder& operator=(const SlaveOrder&) = delete;
       //! \brief Compare interfaces.
       bool operator()(const ASM::Interface& A, const ASM::Interface& B) const
       {

@@ -118,11 +118,13 @@ struct SuperLUdata
     if (perm_c) delete[] perm_c;
     if (etree)  delete[] etree;
 #ifdef HAS_SUPERLU_MT
-    delete[] opts->etree;
-    delete[] opts->colcnt_h;
-    delete[] opts->part_super_h;
+    if (opts) {
+      delete[] opts->etree;
+      delete[] opts->colcnt_h;
+      delete[] opts->part_super_h;
+    }
 #endif
-    if (opts)   delete   opts;
+    delete   opts;
   }
 #endif
 };
@@ -1339,6 +1341,7 @@ bool SparseMatrix::solveSAMG (Vector& B)
   }
 #else
   std::cerr <<"SparseMatrix::solve: SAMG solver not available"<< std::endl;
+  return false;
 #endif
   return ierr <= 0;
 }

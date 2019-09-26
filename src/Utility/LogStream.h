@@ -78,9 +78,6 @@ public:
   //! \brief Set stream flags
   std::ios_base::fmtflags flags(std::ios_base::fmtflags fmtfl);
 
-  //! \brief Assignment operator
-  LogStream& operator=(const LogStream&);
-
   //! \brief This is the type of std::cout.
   typedef std::basic_ostream<char, std::char_traits<char> > CoutType;
   //! \brief Function pointer type.

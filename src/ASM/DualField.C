@@ -16,10 +16,9 @@
 
 
 DualRealFunc::DualRealFunc (const Vec3& o, const Vec3& n, const Vec3& XZp,
-                            double d, double w, size_t p)
+                            double d, double w, size_t p) :
+  X0(o), normal(n)
 {
-  X0 = o;
-  normal = n;
   tangent.cross(XZp-X0,normal);
   normal.normalize();
   tangent.normalize();
@@ -30,9 +29,9 @@ DualRealFunc::DualRealFunc (const Vec3& o, const Vec3& n, const Vec3& XZp,
 
 
 DualRealFunc::DualRealFunc (const Vec3& o, const Vec3& n,
-                            double d, double w, size_t p)
+                            double d, double w, size_t p) :
+  X0(o)
 {
-  X0 = o;
   normal.x = n.x;
   normal.y = n.y;
   normal.z = 0.0;

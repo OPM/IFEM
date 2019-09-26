@@ -231,6 +231,7 @@ public:
   //! \param[out] n3 Number of nodes in third (w) direction
   //! \param[in] basis Which basis to return size parameters for
   virtual bool getSize(int& n1, int& n2, int& n3, int basis = 0) const;
+
 protected:
   //! \brief Returns the volume in the parameter space for an element.
   //! \param[in] iel Element index
@@ -260,6 +261,10 @@ protected:
 
   std::vector<std::shared_ptr<Go::SplineVolume>> m_basis; //!< Vector of bases
   std::shared_ptr<Go::SplineVolume> projBasis; //!< Basis to project onto
+
+private:
+  //! \brief No assignment.
+  ASMs3Dmx& operator=(const ASMs3Dmx&) = delete;
 };
 
 #endif

@@ -176,6 +176,9 @@ protected:
   int    p3; //!< Polynomial order in third parameter direction
 
 private:
+  //! \brief No assignment.
+  ASMs3DLag& operator=(const ASMs3DLag&) = delete;
+
   const std::vector<Vec3>& coord; //!< Nodal coordinates
 
   std::vector<Vec3> myCoord; //!< The actual nodal coordinates

@@ -49,7 +49,7 @@ namespace ISTL {
 class BlockPreconditioner : public Preconditioner {
 public:
 #if DUNE_VERSION_NEWER(DUNE_ISTL, 2, 6)
-  Dune::SolverCategory::Category category() const
+  Dune::SolverCategory::Category category() const override
   { return Dune::SolverCategory::sequential; }
 #else
   // define the category
@@ -71,15 +71,15 @@ public:
   {}
 
   //! \brief Preprocess preconditioner
-  virtual void pre(ISTL::Vec& x, ISTL::Vec& b);
+  void pre(ISTL::Vec& x, ISTL::Vec& b) override;
 
   //! \brief Applies the preconditioner
   //! \param[out] v The resulting vector
   //! \param[in] d The vector to apply the preconditioner to
-  virtual void apply(ISTL::Vec& v, const ISTL::Vec& d);
+  void apply(ISTL::Vec& v, const ISTL::Vec& d) override;
 
   //! \brief Post-process function
-  virtual void post(ISTL::Vec& x);
+  void post(ISTL::Vec& x) override;
 
   //! \brief Obtain reference to a block preconditioner
   std::unique_ptr<ISTL::Preconditioner>& getBlockPre(size_t block)
@@ -169,10 +169,15 @@ public:
   //! implementing the same interface.
   typedef C communication_type;
 
+#if DUNE_VERSION_NEWER(DUNE_ISTL, 2, 6)
+  Dune::SolverCategory::Category category() const override
+  { return Dune::SolverCategory::overlapping; }
+#else
   enum {
     //! \brief The solver category.
     category=Dune::SolverCategory::overlapping
   };
+#endif
 
   /**
    * @brief constructor: just store a reference to a matrix.
@@ -186,7 +191,7 @@ public:
   {}
 
   //! apply operator to x:  \f$ y = A(x) \f$
-  virtual void apply (const X& x, Y& y) const
+  void apply (const X& x, Y& y) const override
   {
 //    Y y2(y.size());
     _A_.umv(x,y);
@@ -194,7 +199,7 @@ public:
   }
 
   //! apply operator to x, scale and add:  \f$ y = y + \alpha A(x) \f$
-  virtual void applyscaleadd (field_type alpha, const X& x, Y& y) const
+  void applyscaleadd (field_type alpha, const X& x, Y& y) const override
   {
     Y y2(y.size());
     _A_.usmv(alpha, x, y2);
@@ -203,7 +208,7 @@ public:
   }
 
   //! get the sequential assembled linear operator.
-  virtual const matrix_type& getmat () const
+  const matrix_type& getmat () const override
   {
     return _A_;
   }

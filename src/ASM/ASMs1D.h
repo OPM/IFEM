@@ -457,6 +457,10 @@ protected:
   TensorVec myCS;  //!< The actual element coordinate systems
   TensorVec myT;   //!< The actual nodal rotation tensors
   TensorVec prevT; //!< Nodal rotation tensors of last converged configuration
+
+private:
+  //! \brief No assignment.
+  ASMs1D& operator=(const ASMs1D&) = delete;
 };
 
 #endif

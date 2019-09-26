@@ -32,17 +32,6 @@ utl::LogStream& utl::LogStream::operator<<(LogStream::StandardEndLine manip)
 }
 
 
-utl::LogStream& utl::LogStream::operator=(const LogStream& log2)
-{
-  m_out = log2.m_out;
-  m_extra = log2.m_extra;
-  m_ppid = log2.m_ppid;
-  m_pid = log2.m_pid;
-
-  return *this;
-}
-
-
 void utl::LogStream::addExtraLog(std::ostream* extra, bool clear)
 {
   std::shared_ptr<std::ostream> file(extra);
