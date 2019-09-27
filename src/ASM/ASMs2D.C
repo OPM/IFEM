@@ -1082,8 +1082,32 @@ void ASMs2D::constrainCorner (int I, int J, int dof, int code, char basis)
   if (basis < 1) basis = 1;
 
   int node = this->getCorner(I,J,basis);
-  if (node > 0)
+  if (node < 1) return;
+
+  if (dof < 1000 || nf > 3)
+  {
     this->prescribe(node,dof,code);
+    return;
+  }
+
+  // Note: We use dof > 1000 to signal that we want the Dirchlet condition to
+  // apply not only at the corner, but also at the <n> closest control points
+  // along the boundary in the u-parameter direction, and/or the <m> closest
+  // control points along the boundary in the v-parameter direction, where
+  // n and m are the 4th and fifth digit in dof-value, i.e. dof = <m><n>321.
+  this->prescribe(node,dof%1000,code);
+
+  int nneigu = (dof/1000)%10;
+  for (int i = 1; i <= nneigu; i++)
+    this->prescribe(I > 0 ? node-i : node+i, dof%1000, code);
+
+  int nneigv = (dof/10000)%10;
+  if (nneigv < 1) return;
+
+  int n1 = 0, n2 = 0;
+  this->getSize(n1,n2,basis);
+  for (int j = 1; j <= nneigv; j++)
+    this->prescribe(J > 0 ? node-n1*j : node+n1*j, dof%1000, code);
 }
 
 
