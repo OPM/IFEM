@@ -239,7 +239,7 @@ Real LinearRotZFunc::deriv (const Vec3& X, int dir) const
 
 Real StepXFunc::evaluate (const Vec3& X) const
 {
-  return X.x < x0 || X.x > x1 ? Real(0) : fv;
+  return X[d-'X'] < x0 || X[d-'X'] > x1 ? Real(0) : fv;
 }
 
 
@@ -320,6 +320,7 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A)
   // Check for spatial variation
   int linear    = 0;
   int quadratic = 0;
+  char stepDir  = 'X';
   if (!cline)
     linear = -1;
   else if (strcasecmp(cline,"X") == 0)
@@ -332,8 +333,13 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A)
     linear = 4;
   else if (strcasecmp(cline,"YrotZ") == 0)
     linear = 5;
-  else if (strcasecmp(cline,"StepX") == 0)
+  else if (strcasecmp(cline,"StepX") == 0 ||
+           strcasecmp(cline,"StepY") == 0 ||
+           strcasecmp(cline,"StepZ") == 0)
+  {
     linear = 6;
+    stepDir = toupper(cline[4]);
+  }
   else if (strcasecmp(cline,"StepXY") == 0)
     linear = 7;
   else if (strcasecmp(cline,"Interpolate1D") == 0)
@@ -377,8 +383,8 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A)
       {
         double x0 = atof(cline);
         double x1 = atof(strtok(nullptr," "));
-        IFEM::cout <<"StepX("<< x0 <<","<< x1 <<"))";
-        f = new StepXFunc(A,x0,x1);
+        IFEM::cout <<"Step"<< stepDir <<"("<< x0 <<","<< x1 <<"))";
+        f = new StepXFunc(A,x0,x1,stepDir);
       }
       break;
     case 7:

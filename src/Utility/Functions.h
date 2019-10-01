@@ -443,11 +443,12 @@ class StepXFunc : public RealFunc
   Real fv; //!< The non-zero function value
   Real x0; //!< Function is zero for \a x < \a x0
   Real x1; //!< Function is zero for \a x > \a x1
+  char d;  //!< Coordinate to step in (default X).
 
 public:
   //! \brief Constructor initializing the function parameters.
-  StepXFunc(Real v, Real X0 = Real(0), Real X1 = Real(1))
-    : fv(v), x0(X0), x1(X1) {}
+  StepXFunc(Real v, Real X0 = Real(0), Real X1 = Real(1), char dir = 'X')
+    : fv(v), x0(X0), x1(X1), d(dir) {}
 
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return fv == Real(0); }
