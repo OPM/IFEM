@@ -15,7 +15,7 @@
 #include "GoTools/trivariate/VolumeInterpolator.h"
 
 #include "ASMs3D.h"
-#include "FiniteElement.h"
+#include "ItgPoint.h"
 #include "Field.h"
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
@@ -300,19 +300,12 @@ bool ASMs3D::evaluate (const Field* field, RealArray& vec, int basisNum) const
   // Evaluate the result field at all sampling points.
   // Note: it is here assumed that *basis and *this have spline bases
   // defined over the same parameter domain.
-  Vector sValues(gpar[0].size()*gpar[1].size()*gpar[2].size());
-  Vector::iterator it=sValues.begin();
-  for (size_t l=0;l<gpar[2].size();++l) {
-    FiniteElement fe;
-    fe.w = gpar[2][l];
-    for (size_t j=0;j<gpar[1].size();++j) {
-      fe.v = gpar[1][j];
-      for (size_t i=0;i<gpar[0].size();++i) {
-        fe.u = gpar[0][i];
-        *it++ = field->valueFE(fe);
-      }
-    }
-  }
+  Vector sValues;
+  sValues.reserve(gpar[0].size()*gpar[1].size()*gpar[2].size());
+  for (double w : gpar[2])
+    for (double v : gpar[1])
+      for (double u : gpar[0])
+        sValues.push_back(field->valueFE(ItgPoint(u,v,w)));
 
   Go::SplineVolume* svol = this->getBasis(basisNum);
 

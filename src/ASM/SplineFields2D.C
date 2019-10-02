@@ -15,7 +15,7 @@
 
 #include "SplineFields2D.h"
 #include "ASMs2D.h"
-#include "FiniteElement.h"
+#include "ItgPoint.h"
 #include "CoordinateMapping.h"
 #include "Utilities.h"
 #include "Vec3.h"
@@ -79,14 +79,14 @@ bool SplineFields2D::valueNode (size_t node, Vector& vals) const
 }
 
 
-bool SplineFields2D::valueFE (const FiniteElement& fe, Vector& vals) const
+bool SplineFields2D::valueFE (const ItgPoint& x, Vector& vals) const
 {
   if (!basis) return false;
 
   // Evaluate the basis functions at the given point
   Go::BasisPtsSf spline;
 #pragma omp critical
-  basis->computeBasis(fe.u,fe.v,spline);
+  basis->computeBasis(x.u,x.v,spline);
 
   // Evaluate the solution field at the given point
   std::vector<int> ip;
@@ -104,30 +104,20 @@ bool SplineFields2D::valueFE (const FiniteElement& fe, Vector& vals) const
 
 bool SplineFields2D::valueCoor (const Vec4& x, Vector& vals) const
 {
-  FiniteElement fe;
-  if (x.u) {
-    fe.u = x.u[0];
-    fe.v = x.u[1];
-  }
-  else {
-    // use with caution
-    Go::Point pt(3), clopt(3);
-    pt[0] = x[0];
-    pt[1] = x[1];
-    pt[2] = x[2];
-    double clo_u, clo_v, dist;
+  if (x.u)
+    return this->valueFE(ItgPoint(x.u[0],x.u[1]),vals);
+
+  // Use with caution, very slow!
+  Go::Point pt(x.x,x.y,x.z), clopt(3);
+  double clo_u, clo_v, dist;
 #pragma omp critical
-    surf->closestPoint(pt, clo_u, clo_v, clopt, dist, 1e-5);
+  surf->closestPoint(pt, clo_u, clo_v, clopt, dist, 1.0e-5);
 
-    fe.u = clo_u;
-    fe.v = clo_v;
-  }
-
-  return this->valueFE(fe, vals);
+  return this->valueFE(ItgPoint(clo_u,clo_v),vals);
 }
 
 
-bool SplineFields2D::gradFE (const FiniteElement& fe, Matrix& grad) const
+bool SplineFields2D::gradFE (const ItgPoint& x, Matrix& grad) const
 {
   if (!basis) return false;
   if (!surf)  return false;
@@ -135,7 +125,7 @@ bool SplineFields2D::gradFE (const FiniteElement& fe, Matrix& grad) const
   // Evaluate the basis functions at the given point
   Go::BasisDerivsSf spline;
 #pragma omp critical
-  surf->computeBasis(fe.u,fe.v,spline);
+  surf->computeBasis(x.u,x.v,spline);
 
   const int uorder = surf->order_u();
   const int vorder = surf->order_v();
@@ -156,14 +146,15 @@ bool SplineFields2D::gradFE (const FiniteElement& fe, Matrix& grad) const
   Matrix Xnod(nsd,ip.size()), Jac;
   for (size_t i = 0; i < ip.size(); i++)
     Xnod.fillColumn(1+i,&(*surf->coefs_begin())+surf->dimension()*ip[i]);
-  utl::Jacobian(Jac,dNdX,Xnod,dNdu);
+  if (!utl::Jacobian(Jac,dNdX,Xnod,dNdu))
+    return false; // Singular Jacobian
 
   // Evaluate the gradient of the solution field at the given point
   if (basis != surf)
   {
     // Mixed formulation, the solution uses a different basis than the geometry
 #pragma omp critical
-    basis->computeBasis(fe.u,fe.v,spline);
+    basis->computeBasis(x.u,x.v,spline);
 
     const size_t nbf = basis->order_u()*basis->order_v();
     dNdu.resize(nbf,2);
@@ -181,13 +172,11 @@ bool SplineFields2D::gradFE (const FiniteElement& fe, Matrix& grad) const
   }
 
   utl::gather(ip,nf,values,Xnod);
-  grad.multiply(Xnod,dNdX); // grad = Xnod * dNdX
-
-  return true;
+  return !grad.multiply(Xnod,dNdX).empty(); // grad = Xnod * dNdX
 }
 
 
-bool SplineFields2D::hessianFE (const FiniteElement& fe, Matrix3D& H) const
+bool SplineFields2D::hessianFE (const ItgPoint& x, Matrix3D& H) const
 {
   if (!basis) return false;
   if (!surf)  return false;
@@ -198,7 +187,7 @@ bool SplineFields2D::hessianFE (const FiniteElement& fe, Matrix3D& H) const
 
   if (surf == basis) {
 #pragma omp critical
-    surf->computeBasis(fe.u,fe.v,spline2);
+    surf->computeBasis(x.u,x.v,spline2);
 
     const size_t nen = surf->order_u()*surf->order_v();
     d2Ndu2.resize(nen,2,2);
@@ -215,7 +204,7 @@ bool SplineFields2D::hessianFE (const FiniteElement& fe, Matrix3D& H) const
   else {
     // Mixed formulation, the solution uses a different basis than the geometry
 #pragma omp critical
-    basis->computeBasis(fe.u,fe.v,spline2);
+    basis->computeBasis(x.u,x.v,spline2);
 
     const size_t nbf = basis->order_u()*basis->order_v();
     d2Ndu2.resize(nbf,2,2);

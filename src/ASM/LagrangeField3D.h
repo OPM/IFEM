@@ -48,13 +48,13 @@ public:
   double valueNode(size_t node) const;
 
   //! \brief Computes the value at a given local coordinate.
-  //! \param[in] fe Finite element definition
-  double valueFE(const FiniteElement& fe) const;
+  //! \param[in] x Local coordinate of evaluation point
+  double valueFE(const ItgPoint& x) const;
 
   //! \brief Computes the gradient for a given local coordinate.
-  //! \param[in] fe Finite element
+  //! \param[in] x Local coordinate of evaluation point
   //! \param[out] grad Gradient of solution in a given local coordinate
-  bool gradFE(const FiniteElement& fe, Vector& grad) const;
+  bool gradFE(const ItgPoint& x, Vector& grad) const;
 
 protected:
   Matrix coord; //!< Matrix of nodel coordinates

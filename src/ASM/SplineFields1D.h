@@ -46,19 +46,19 @@ public:
   //==============================
 
   //! \brief Computes the value for a given local coordinate.
-  //! \param[in] fe Finite element definition
+  //! \param[in] x Local coordinate of evaluation point
   //! \param[out] vals Values at local point in given element
-  virtual bool valueFE(const FiniteElement& fe, Vector& vals) const;
+  virtual bool valueFE(const ItgPoint& x, Vector& vals) const;
 
   //! \brief Computes the gradient for a given local coordinate.
-  //! \param[in] fe Finite element definition
+  //! \param[in] x Local coordinate of evaluation point
   //! \param[out] grad Gradient at local point in given element
-  virtual bool gradFE(const FiniteElement& fe, Matrix& grad) const;
+  virtual bool gradFE(const ItgPoint& x, Matrix& grad) const;
 
   //! \brief Computes the hessian for a given local coordinate.
-  //! \param[in] fe Finite element definition
+  //! \param[in] x Local coordinate of evaluation point
   //! \param[out] H Hessian at local point in given element
-  virtual bool hessianFE(const FiniteElement& fe, Matrix3D& H) const;
+  virtual bool hessianFE(const ItgPoint& x, Matrix3D& H) const;
 
 protected:
   const Go::SplineCurve* curv; //!< Spline geometry description

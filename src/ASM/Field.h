@@ -18,7 +18,7 @@
 #include <string>
 
 class ASMbase;
-class FiniteElement;
+class ItgPoint;
 class Vec4;
 
 
@@ -54,12 +54,12 @@ public:
   //==============================
 
   //! \brief Computes the value in a given node/control point.
-  //! \param[in] node Node number
+  //! \param[in] node 1-based node/control point index
   virtual double valueNode(size_t node) const = 0;
 
   //! \brief Computes the value at a given local coordinate.
-  //! \param[in] fe Finite element quantities
-  virtual double valueFE(const FiniteElement& fe) const = 0;
+  //! \param[in] x Local coordinate of evaluation point
+  virtual double valueFE(const ItgPoint& x) const = 0;
 
   //! \brief Computes the value at a given global coordinate.
   //! \param[in] x Global/physical coordinate for point
@@ -71,20 +71,19 @@ public:
   virtual bool valueGrid(RealArray& val, const int* npe) const { return false; }
 
   //! \brief Computes the gradient for a given local coordinate.
-  //! \param[in] fe Finite element quantities
+  //! \param[in] x Local coordinate of evaluation point
   //! \param[out] grad Gradient of solution in a given local coordinate
-  virtual bool gradFE(const FiniteElement& fe, Vector& grad) const = 0;
-
-  //! \brief Computes the hessian for a given local coordinate.
-  //! \param[in] fe Finite element quantities
-  //! \param[out] d2UdX2 Hessian of solution in a given local coordinate
-  virtual bool hessianFE(const FiniteElement& fe, Matrix& d2UdX2) const
-  { return false; }
+  virtual bool gradFE(const ItgPoint& x, Vector& grad) const = 0;
 
   //! \brief Computes the gradient for a given global/physical coordinate.
-  //! \param[in] x Global coordinate
+  //! \param[in] x Global/physical coordinate for point
   //! \param[out] grad Gradient of solution in a given global coordinate
   virtual bool gradCoor(const Vec4& x, Vector& grad) const { return false; }
+
+  //! \brief Computes the hessian for a given local coordinate.
+  //! \param[in] x Local coordinate of evaluation point
+  //! \param[out] H Hessian of solution in a given local coordinate
+  virtual bool hessianFE(const ItgPoint& x, Matrix& H) const { return false; }
 
 protected:
   std::string fname; //!< Name of the field

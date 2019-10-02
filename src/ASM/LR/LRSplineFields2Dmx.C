@@ -11,13 +11,13 @@
 //!
 //==============================================================================
 
+#include "LRSpline/LRSplineSurface.h"
+
 #include "LRSplineFields2Dmx.h"
 #include "ASMu2Dmx.h"
-#include "FiniteElement.h"
+#include "ItgPoint.h"
 #include "CoordinateMapping.h"
 #include "Utilities.h"
-
-#include "LRSpline/LRSplineSurface.h"
 
 
 LRSplineFields2Dmx::LRSplineFields2Dmx (const ASMu2Dmx* patch,
@@ -48,7 +48,7 @@ bool LRSplineFields2Dmx::valueNode (size_t node, Vector& vals) const
 }
 
 
-bool LRSplineFields2Dmx::valueFE (const FiniteElement& fe, Vector& vals) const
+bool LRSplineFields2Dmx::valueFE (const ItgPoint& x, Vector& vals) const
 {
   if (!surf) return false;
 
@@ -60,10 +60,10 @@ bool LRSplineFields2Dmx::valueFE (const FiniteElement& fe, Vector& vals) const
   for (const auto& it : bases) {
     const LR::LRSplineSurface* basis = surf->getBasis(it);
 
-    int iel = basis->getElementContaining(fe.u,fe.v);
+    int iel = basis->getElementContaining(x.u,x.v);
     auto elm = basis->getElement(iel);
     Go::BasisPtsSf spline;
-    basis->computeBasis(fe.u,fe.v,spline,iel);
+    basis->computeBasis(x.u,x.v,spline,iel);
 
     // Evaluate the solution field at the given point
 
@@ -81,16 +81,16 @@ bool LRSplineFields2Dmx::valueFE (const FiniteElement& fe, Vector& vals) const
 }
 
 
-bool LRSplineFields2Dmx::gradFE (const FiniteElement& fe, Matrix& grad) const
+bool LRSplineFields2Dmx::gradFE (const ItgPoint& x, Matrix& grad) const
 {
   if (!surf)  return false;
 
   // Evaluate the basis functions at the given point
   Go::BasisDerivsSf spline;
   const LR::LRSplineSurface* gsurf = surf->getBasis(ASMmxBase::geoBasis);
-  int iel = gsurf->getElementContaining(fe.u,fe.v);
+  int iel = gsurf->getElementContaining(x.u,x.v);
   auto elm = gsurf->getElement(iel);
-  gsurf->computeBasis(fe.u,fe.v,spline,iel);
+  gsurf->computeBasis(x.u,x.v,spline,iel);
 
   const size_t nen = elm->nBasisFunctions();
 
@@ -116,9 +116,9 @@ bool LRSplineFields2Dmx::gradFE (const FiniteElement& fe, Matrix& grad) const
   size_t row = 1;
   for (const auto& it : bases) {
     const LR::LRSplineSurface* basis = surf->getBasis(it);
-    int iel = basis->getElementContaining(fe.u,fe.v);
+    int iel = basis->getElementContaining(x.u,x.v);
     auto belm = basis->getElement(iel);
-    basis->computeBasis(fe.u,fe.v,spline,iel);
+    basis->computeBasis(x.u,x.v,spline,iel);
 
     const size_t nbf = belm->nBasisFunctions();
     dNdu.resize(nbf,2);

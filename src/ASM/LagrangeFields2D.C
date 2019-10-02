@@ -13,15 +13,14 @@
 
 #include "LagrangeFields2D.h"
 #include "ASMs2DLag.h"
-#include "FiniteElement.h"
+#include "ItgPoint.h"
 #include "Lagrange.h"
 #include "CoordinateMapping.h"
 
 
 LagrangeFields2D::LagrangeFields2D (const ASMs2DLag* patch,
-                                    const RealArray& v,
-                                    char basis,
-				    const char* name) : Fields(name)
+                                    const RealArray& v, char,
+                                    const char* name) : Fields(name)
 {
   patch->getNodalCoordinates(coord);
   patch->getSize(n1,n2);
@@ -48,17 +47,21 @@ bool LagrangeFields2D::valueNode (size_t node, Vector& vals) const
 }
 
 
-bool LagrangeFields2D::valueFE (const FiniteElement& fe, Vector& vals) const
+bool LagrangeFields2D::valueFE (const ItgPoint& x, Vector& vals) const
 {
   vals.resize(nf,true);
+  if (x.iel < 1 || (size_t)x.iel > nelm)
+  {
+    std::cerr <<" *** LagrangeFields2D::valueFE: Element index "<< x.iel
+              <<" out of range [1,"<< nelm <<"]."<< std::endl;
+    return false;
+  }
 
   Vector N;
-  if (!Lagrange::computeBasis(N,p1,fe.xi,p2,fe.eta))
+  if (!Lagrange::computeBasis(N,p1,x.xi,p2,x.eta))
     return false;
 
-  const int nel1 = (n1-1)/p1;
-
-  div_t divresult = div(fe.iel,nel1);
+  div_t divresult = div(x.iel,(n1-1)/p1);
   int iel1 = divresult.rem;
   int iel2 = divresult.quot;
   const int node1 = p1*iel1-1;
@@ -71,25 +74,29 @@ bool LagrangeFields2D::valueFE (const FiniteElement& fe, Vector& vals) const
       int dof = nf*(n1*(j-1) + i-1) + 1;
       double value = N(locNode);
       for (int k = 1; k <= nf; k++, dof++)
-	vals(k) += values(dof)*value;
+        vals(k) += values(dof)*value;
     }
 
   return true;
 }
 
 
-bool LagrangeFields2D::gradFE (const FiniteElement& fe, Matrix& grad) const
+bool LagrangeFields2D::gradFE (const ItgPoint& x, Matrix& grad) const
 {
   grad.resize(nf,2,true);
+  if (x.iel < 1 || (size_t)x.iel > nelm)
+  {
+    std::cerr <<" *** LagrangeFields2D::gradFE: Element index "<< x.iel
+              <<" out of range [1,"<< nelm <<"]."<< std::endl;
+    return false;
+  }
 
   Vector N;
   Matrix dNdu;
-  if (!Lagrange::computeBasis(N,dNdu,p1,fe.xi,p2,fe.eta))
+  if (!Lagrange::computeBasis(N,dNdu,p1,x.xi,p2,x.eta))
     return false;
 
-  const int nel1 = (n1-1)/p1;
-
-  div_t divresult = div(fe.iel,nel1);
+  div_t divresult = div(x.iel,(n1-1)/p1);
   int iel1 = divresult.rem;
   int iel2 = divresult.quot;
   const int node1 = p1*iel1-1;
@@ -108,8 +115,8 @@ bool LagrangeFields2D::gradFE (const FiniteElement& fe, Matrix& grad) const
     }
 
   Matrix Jac, dNdX;
-  utl::Jacobian(Jac,dNdX,Xnod,dNdu);
-  grad.multiply(Vnod,dNdX);
+  if (!utl::Jacobian(Jac,dNdX,Xnod,dNdu))
+    return false; // Singular Jacobian
 
-  return true;
+  return !grad.multiply(Vnod,dNdX).empty();
 }

@@ -11,15 +11,13 @@
 //!
 //==============================================================================
 
-#include "LRSplineField2D.h"
-#include "ASMu2D.h"
-#include "FiniteElement.h"
-#include "CoordinateMapping.h"
-#include "Vec3.h"
-
 #include "LRSpline/LRSplineSurface.h"
 
-#include <cassert>
+#include "LRSplineField2D.h"
+#include "ASMu2D.h"
+#include "ItgPoint.h"
+#include "CoordinateMapping.h"
+#include "Vec3.h"
 
 
 LRSplineField2D::LRSplineField2D (const ASMu2D* patch,
@@ -55,15 +53,15 @@ double LRSplineField2D::valueNode (size_t node) const
 }
 
 
-double LRSplineField2D::valueFE (const FiniteElement& fe) const
+double LRSplineField2D::valueFE (const ItgPoint& x) const
 {
   if (!basis) return 0.0;
 
   // Evaluate the basis functions at the given point
-  int iel = basis->getElementContaining(fe.u,fe.v);
+  int iel = basis->getElementContaining(x.u,x.v);
   auto elm = basis->getElement(iel);
   Go::BasisPtsSf spline;
-  basis->computeBasis(fe.u,fe.v,spline,iel);
+  basis->computeBasis(x.u,x.v,spline,iel);
 
   Vector Vnod;
   Vnod.reserve(elm->nBasisFunctions());
@@ -77,29 +75,21 @@ double LRSplineField2D::valueFE (const FiniteElement& fe) const
 
 double LRSplineField2D::valueCoor (const Vec4& x) const
 {
-  if (x.u) {
-    FiniteElement fe;
-    fe.u = x.u[0];
-    fe.v = x.u[1];
-
-    return this->valueFE(fe);
-  }
-
-  assert(0);
-  return 0.0;
+  // Just produce a segmentation fault, if invoked without the parameters
+  return this->valueFE(ItgPoint(x.u[0],x.u[1]));
 }
 
 
-bool LRSplineField2D::gradFE (const FiniteElement& fe, Vector& grad) const
+bool LRSplineField2D::gradFE (const ItgPoint& x, Vector& grad) const
 {
   if (!basis) return false;
   if (!surf)  return false;
 
   // Evaluate the basis functions at the given point
-  int iel = surf->getElementContaining(fe.u,fe.v);
+  int iel = surf->getElementContaining(x.u,x.v);
   auto elm = surf->getElement(iel);
   Go::BasisDerivsSf spline;
-  basis->computeBasis(fe.u,fe.v,spline,iel);
+  basis->computeBasis(x.u,x.v,spline,iel);
 
   const size_t nen = elm->nBasisFunctions();
 
@@ -130,9 +120,9 @@ bool LRSplineField2D::gradFE (const FiniteElement& fe, Vector& grad) const
   if (basis != surf)
   {
     // Mixed formulation, the solution uses a different basis than the geometry
-    int iel = basis->getElementContaining(fe.u,fe.v);
+    int iel = basis->getElementContaining(x.u,x.v);
     auto belm = basis->getElement(iel);
-    basis->computeBasis(fe.u,fe.v,spline,iel);
+    basis->computeBasis(x.u,x.v,spline,iel);
 
     const size_t nbf = belm->nBasisFunctions();
     dNdu.resize(nbf,2);
@@ -153,12 +143,12 @@ bool LRSplineField2D::gradFE (const FiniteElement& fe, Vector& grad) const
 }
 
 
-bool LRSplineField2D::hessianFE (const FiniteElement& fe, Matrix& H) const
+bool LRSplineField2D::hessianFE (const ItgPoint& x, Matrix& H) const
 {
   if (!basis) return false;
   if (!surf)  return false;
 
-  int iel = surf->getElementContaining(fe.u,fe.v);
+  int iel = surf->getElementContaining(x.u,x.v);
   auto elm = surf->getElement(iel);
   const size_t nen = elm->nBasisFunctions();
 
@@ -176,7 +166,7 @@ bool LRSplineField2D::hessianFE (const FiniteElement& fe, Matrix& H) const
       Xnod(i, j) = (*it)->cp(j-1);
 
   if (surf == basis) {
-    surf->computeBasis(fe.u,fe.v,spline2,iel);
+    surf->computeBasis(x.u,x.v,spline2,iel);
     d2Ndu2.resize(nen,2,2);
     for (size_t n = 1; n <= nen; n++) {
       dNdu(n,1) = spline2.basisDerivs_u[n-1];
@@ -192,7 +182,7 @@ bool LRSplineField2D::hessianFE (const FiniteElement& fe, Matrix& H) const
       Vnod.push_back(values((*it)->getId()+1));
   }
   else {
-    surf->computeBasis(fe.u,fe.v,spline,iel);
+    surf->computeBasis(x.u,x.v,spline,iel);
     for (size_t n = 1; n <= nen; n++) {
       dNdu(n,1) = spline.basisDerivs_u[n-1];
       dNdu(n,2) = spline.basisDerivs_v[n-1];
@@ -205,9 +195,9 @@ bool LRSplineField2D::hessianFE (const FiniteElement& fe, Matrix& H) const
   // Evaluate the gradient of the solution field at the given point
   if (basis != surf) {
     // Mixed formulation, the solution uses a different basis than the geometry
-    int iel = basis->getElementContaining(fe.u,fe.v);
+    int iel = basis->getElementContaining(x.u,x.v);
     auto belm = basis->getElement(iel);
-    basis->computeBasis(fe.u,fe.v,spline2,iel);
+    basis->computeBasis(x.u,x.v,spline2,iel);
 
     const size_t nbf = belm->nBasisFunctions();
     dNdu.resize(nbf,2);

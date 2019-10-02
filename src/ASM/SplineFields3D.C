@@ -15,7 +15,7 @@
 
 #include "SplineFields3D.h"
 #include "ASMs3D.h"
-#include "FiniteElement.h"
+#include "ItgPoint.h"
 #include "CoordinateMapping.h"
 #include "Utilities.h"
 #include "Vec3.h"
@@ -80,14 +80,14 @@ bool SplineFields3D::valueNode (size_t node, Vector& vals) const
 }
 
 
-bool SplineFields3D::valueFE (const FiniteElement& fe, Vector& vals) const
+bool SplineFields3D::valueFE (const ItgPoint& x, Vector& vals) const
 {
   if (!basis) return false;
 
   // Evaluate the basis functions at the given point
   Go::BasisPts spline;
 #pragma omp critical
-  basis->computeBasis(fe.u,fe.v,fe.w,spline);
+  basis->computeBasis(x.u,x.v,x.w,spline);
 
   // Evaluate the solution field at the given point
   std::vector<int> ip;
@@ -105,32 +105,20 @@ bool SplineFields3D::valueFE (const FiniteElement& fe, Vector& vals) const
 
 bool SplineFields3D::valueCoor (const Vec4& x, Vector& vals) const
 {
-  FiniteElement fe;
-  if (x.u) {
-    fe.u = x.u[0];
-    fe.v = x.u[1];
-    fe.w = x.u[2];
-  }
-  else {
-    // use with caution
-    Go::Point pt(3), clopt(3);
-    pt[0] = x[0];
-    pt[1] = x[1];
-    pt[2] = x[2];
-    double clo_u, clo_v, clo_w, dist;
+  if (x.u)
+    return this->valueFE(ItgPoint(x.u[0],x.u[1],x.u[2]),vals);
+
+  // Use with caution, very slow!
+  Go::Point pt(x.x,x.y,x.z), clopt(3);
+  double clo_u, clo_v, clo_w, dist;
 #pragma omp critical
-    vol->closestPoint(pt, clo_u, clo_v, clo_w, clopt, dist, 1e-5);
+  vol->closestPoint(pt, clo_u, clo_v, clo_w, clopt, dist, 1.0e-5);
 
-    fe.u = clo_u;
-    fe.v = clo_v;
-    fe.w = clo_w;
-  }
-
-  return this->valueFE(fe, vals);
+  return this->valueFE(ItgPoint(clo_u,clo_v,clo_w),vals);
 }
 
 
-bool SplineFields3D::gradFE (const FiniteElement& fe, Matrix& grad) const
+bool SplineFields3D::gradFE (const ItgPoint& x, Matrix& grad) const
 {
   if (!basis) return false;
   if (!vol)   return false;
@@ -138,7 +126,7 @@ bool SplineFields3D::gradFE (const FiniteElement& fe, Matrix& grad) const
   // Evaluate the basis functions at the given point
   Go::BasisDerivs spline;
 #pragma omp critical
-  vol->computeBasis(fe.u,fe.v,fe.w,spline);
+  vol->computeBasis(x.u,x.v,x.w,spline);
 
   const int uorder = vol->order(0);
   const int vorder = vol->order(1);
@@ -161,14 +149,15 @@ bool SplineFields3D::gradFE (const FiniteElement& fe, Matrix& grad) const
   Matrix Xnod(nsd,ip.size()), Jac;
   for (size_t i = 0; i < ip.size(); i++)
     Xnod.fillColumn(1+i,&(*vol->coefs_begin())+vol->dimension()*ip[i]);
-  utl::Jacobian(Jac,dNdX,Xnod,dNdu);
+  if (!utl::Jacobian(Jac,dNdX,Xnod,dNdu))
+    return false; // Singular Jacobian
 
   // Evaluate the gradient of the solution field at the given point
   if (basis != vol)
   {
     // Mixed formulation, the solution uses a different basis than the geometry
 #pragma omp critical
-    basis->computeBasis(fe.u,fe.v,fe.w,spline);
+    basis->computeBasis(x.u,x.v,x.w,spline);
 
     const size_t nbf = basis->order(0)*basis->order(1)*basis->order(2);
     dNdu.resize(nbf,3);
@@ -187,13 +176,11 @@ bool SplineFields3D::gradFE (const FiniteElement& fe, Matrix& grad) const
   }
 
   utl::gather(ip,nf,values,Xnod);
-  grad.multiply(Xnod,dNdX); // grad = Xnod * dNdX
-
-  return true;
+  return !grad.multiply(Xnod,dNdX).empty(); // grad = Xnod * dNdX
 }
 
 
-bool SplineFields3D::hessianFE (const FiniteElement& fe, Matrix3D& H) const
+bool SplineFields3D::hessianFE (const ItgPoint& x, Matrix3D& H) const
 {
   if (!basis) return false;
   if (!vol)  return false;
@@ -204,7 +191,7 @@ bool SplineFields3D::hessianFE (const FiniteElement& fe, Matrix3D& H) const
   IntVec ip;
   if (vol == basis) {
 #pragma omp critical
-    vol->computeBasis(fe.u,fe.v,fe.w,spline2);
+    vol->computeBasis(x.u,x.v,x.w,spline2);
 
     const size_t nen = vol->order(0)*vol->order(1)*vol->order(2);
     d2Ndu2.resize(nen,3,3);
@@ -224,7 +211,7 @@ bool SplineFields3D::hessianFE (const FiniteElement& fe, Matrix3D& H) const
   else {
     // Mixed formulation, the solution uses a different basis than the geometry
 #pragma omp critical
-    basis->computeBasis(fe.u,fe.v,fe.w,spline2);
+    basis->computeBasis(x.u,x.v,x.w,spline2);
 
     const size_t nbf = basis->order(0)*basis->order(1)*basis->order(2);
     d2Ndu2.resize(nbf,3,3);

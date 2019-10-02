@@ -15,7 +15,7 @@
 
 #include "SplineField2D.h"
 #include "ASMs2D.h"
-#include "FiniteElement.h"
+#include "ItgPoint.h"
 #include "CoordinateMapping.h"
 #include "Utilities.h"
 #include "Vec3.h"
@@ -60,14 +60,14 @@ double SplineField2D::valueNode (size_t node) const
 }
 
 
-double SplineField2D::valueFE (const FiniteElement& fe) const
+double SplineField2D::valueFE (const ItgPoint& x) const
 {
   if (!basis) return false;
 
   // Evaluate the basis functions at the given point
   Go::BasisPtsSf spline;
 #pragma omp critical
-  basis->computeBasis(fe.u,fe.v,spline);
+  basis->computeBasis(x.u,x.v,spline);
 
   // Evaluate the solution field at the given point
   IntVec ip;
@@ -83,25 +83,16 @@ double SplineField2D::valueFE (const FiniteElement& fe) const
 
 double SplineField2D::valueCoor (const Vec4& x) const
 {
-  FiniteElement fe;
-  if (x.u) {
-    fe.u = x.u[0];
-    fe.v = x.u[1];
-  }
-  else {
-    // use with caution
-    Go::Point pt(3), clopt(3);
-    pt[0] = x[0];
-    pt[1] = x[1];
-    pt[2] = x[2];
-    double clo_u, clo_v, dist;
-#pragma omp critical
-    surf->closestPoint(pt, clo_u, clo_v, clopt, dist, 1e-10);
-    fe.u = clo_u;
-    fe.v = clo_v;
-  }
+  if (x.u)
+    return this->valueFE(ItgPoint(x.u[0],x.u[1]));
 
-  return this->valueFE(fe);
+  // Use with caution, very slow!
+  Go::Point pt(x.x,x.y,x.z), clopt(3);
+  double clo_u, clo_v, dist;
+#pragma omp critical
+  surf->closestPoint(pt, clo_u, clo_v, clopt, dist, 1.0e-5);
+
+  return this->valueFE(ItgPoint(clo_u,clo_v));
 }
 
 
@@ -160,7 +151,7 @@ bool SplineField2D::valueGrid (RealArray& val, const int* npe) const
 }
 
 
-bool SplineField2D::gradFE (const FiniteElement& fe, Vector& grad) const
+bool SplineField2D::gradFE (const ItgPoint& x, Vector& grad) const
 {
   if (!basis) return false;
   if (!surf)  return false;
@@ -168,7 +159,7 @@ bool SplineField2D::gradFE (const FiniteElement& fe, Vector& grad) const
   // Evaluate the basis functions at the given point
   Go::BasisDerivsSf spline;
 #pragma omp critical
-  surf->computeBasis(fe.u,fe.v,spline);
+  surf->computeBasis(x.u,x.v,spline);
 
   const int uorder = surf->order_u();
   const int vorder = surf->order_v();
@@ -189,14 +180,15 @@ bool SplineField2D::gradFE (const FiniteElement& fe, Vector& grad) const
   Matrix Xnod(nsd,ip.size()), Jac;
   for (size_t i = 0; i < ip.size(); i++)
     Xnod.fillColumn(1+i,&(*surf->coefs_begin())+surf->dimension()*ip[i]);
-  utl::Jacobian(Jac,dNdX,Xnod,dNdu);
+  if (!utl::Jacobian(Jac,dNdX,Xnod,dNdu))
+    return false; // Singular Jacobian
 
   // Evaluate the gradient of the solution field at the given point
   if (basis != surf)
   {
     // Mixed formulation, the solution uses a different basis than the geometry
 #pragma omp critical
-    basis->computeBasis(fe.u,fe.v,spline);
+    basis->computeBasis(x.u,x.v,spline);
 
     const size_t nbf = basis->order_u()*basis->order_v();
     dNdu.resize(nbf,2);
@@ -219,7 +211,7 @@ bool SplineField2D::gradFE (const FiniteElement& fe, Vector& grad) const
 }
 
 
-bool SplineField2D::hessianFE (const FiniteElement& fe, Matrix& H) const
+bool SplineField2D::hessianFE (const ItgPoint& x, Matrix& H) const
 {
   if (!basis) return false;
   if (!surf)  return false;
@@ -229,7 +221,7 @@ bool SplineField2D::hessianFE (const FiniteElement& fe, Matrix& H) const
   IntVec ip;
   if (surf == basis) {
 #pragma omp critical
-    surf->computeBasis(fe.u,fe.v,spline2);
+    surf->computeBasis(x.u,x.v,spline2);
 
     const size_t nen = surf->order_u()*surf->order_v();
     d2Ndu2.resize(nen,2,2);
@@ -246,7 +238,7 @@ bool SplineField2D::hessianFE (const FiniteElement& fe, Matrix& H) const
   else {
     // Mixed formulation, the solution uses a different basis than the geometry
 #pragma omp critical
-    basis->computeBasis(fe.u,fe.v,spline2);
+    basis->computeBasis(x.u,x.v,spline2);
 
     const size_t nbf = basis->order_u()*basis->order_v();
     d2Ndu2.resize(nbf,2,2);

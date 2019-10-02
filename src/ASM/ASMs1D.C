@@ -1560,14 +1560,12 @@ bool ASMs1D::evalProjSolution (Matrix& sField, const Vector& locSol,
 
   // Evaluate the projected solution field at each point
   Vector vals;
-  FiniteElement fe;
   sField.resize(f->getNoFields(),gpar.size());
 
   size_t ipt = 0;
-  for (size_t i = 0; i < gpar.size(); i++)
+  for (double u : gpar)
   {
-    fe.u = gpar[i];
-    f->valueFE(fe,vals);
+    f->valueFE(ItgPoint(u),vals);
     sField.fillColumn(++ipt,vals);
   }
 
@@ -1861,7 +1859,7 @@ bool ASMs1D::evaluate (const FunctionBase* func, RealArray& values,
 
 Fields* ASMs1D::getProjectedFields (const Vector& coefs, size_t) const
 {
-  if (proj == curv)
+  if (proj == curv || this->getNoProjectionNodes() == 0)
     return nullptr;
 
   size_t ncmp = coefs.size() / this->getNoProjectionNodes();

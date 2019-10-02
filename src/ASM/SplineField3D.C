@@ -15,7 +15,7 @@
 
 #include "SplineField3D.h"
 #include "ASMs3D.h"
-#include "FiniteElement.h"
+#include "ItgPoint.h"
 #include "CoordinateMapping.h"
 #include "Utilities.h"
 #include "Vec3.h"
@@ -61,14 +61,14 @@ double SplineField3D::valueNode (size_t node) const
 }
 
 
-double SplineField3D::valueFE (const FiniteElement& fe) const
+double SplineField3D::valueFE (const ItgPoint& x) const
 {
   if (!basis) return false;
 
   // Evaluate the basis functions at the given point
   Go::BasisPts spline;
 #pragma omp critical
-  basis->computeBasis(fe.u,fe.v,fe.w,spline);
+  basis->computeBasis(x.u,x.v,x.w,spline);
 
   // Evaluate the solution field at the given point
   IntVec ip;
@@ -84,28 +84,16 @@ double SplineField3D::valueFE (const FiniteElement& fe) const
 
 double SplineField3D::valueCoor (const Vec4& x) const
 {
-  FiniteElement fe;
-  if (x.u) {
-    fe.u = x.u[0];
-    fe.v = x.u[1];
-    fe.w = x.u[2];
-  }
-  else {
-    // use with caution
-    Go::Point pt(3), clopt(3);
-    pt[0] = x[0];
-    pt[1] = x[1];
-    pt[2] = x[2];
-    double clo_u, clo_v, clo_w, dist;
+  if (x.u)
+    return this->valueFE(ItgPoint(x.u[0],x.u[1],x.u[2]));
+
+  // Use with caution, very slow!
+  Go::Point pt(x.x,x.y,x.z), clopt(3);
+  double clo_u, clo_v, clo_w, dist;
 #pragma omp critical
-    vol->closestPoint(pt, clo_u, clo_v, clo_w, clopt, dist, 1e-5);
+  vol->closestPoint(pt, clo_u, clo_v, clo_w, clopt, dist, 1.0e-5);
 
-    fe.u = clo_u;
-    fe.v = clo_v;
-    fe.w = clo_w;
-  }
-
-  return this->valueFE(fe);
+  return this->valueFE(ItgPoint(clo_u,clo_v,clo_w));
 }
 
 
@@ -143,13 +131,13 @@ bool SplineField3D::valueGrid (RealArray& val, const int* npe) const
 
   // Evaluate the field in the visualization points
   val.reserve(gpar[0].size()*gpar[1].size()*gpar[2].size());
-  for (size_t k = 0; k < gpar[2].size(); k++)
-    for (size_t j = 0; j < gpar[1].size(); j++)
-      for (size_t i = 0; i < gpar[0].size(); i++)
+  for (double w : gpar[2])
+    for (double v : gpar[1])
+      for (double u : gpar[0])
       {
         Go::BasisPts spline;
 #pragma omp critical
-        basis->computeBasis(gpar[0][i],gpar[1][j],gpar[2][k],spline);
+        basis->computeBasis(u,v,w,spline);
 
         IntVec ip;
         ASMs3D::scatterInd(basis->numCoefs(0),basis->numCoefs(1),
@@ -165,7 +153,7 @@ bool SplineField3D::valueGrid (RealArray& val, const int* npe) const
 }
 
 
-bool SplineField3D::gradFE (const FiniteElement& fe, Vector& grad) const
+bool SplineField3D::gradFE (const ItgPoint& x, Vector& grad) const
 {
   if (!basis) return false;
   if (!vol)   return false;
@@ -173,7 +161,7 @@ bool SplineField3D::gradFE (const FiniteElement& fe, Vector& grad) const
   // Evaluate the basis functions at the given point
   Go::BasisDerivs spline;
 #pragma omp critical
-  vol->computeBasis(fe.u,fe.v,fe.w,spline);
+  vol->computeBasis(x.u,x.v,x.w,spline);
 
   const int uorder = vol->order(0);
   const int vorder = vol->order(1);
@@ -196,14 +184,15 @@ bool SplineField3D::gradFE (const FiniteElement& fe, Vector& grad) const
   Matrix Xnod(nsd,ip.size()), Jac;
   for (size_t i = 0; i < ip.size(); i++)
     Xnod.fillColumn(1+i,&(*vol->coefs_begin())+vol->dimension()*ip[i]);
-  utl::Jacobian(Jac,dNdX,Xnod,dNdu);
+  if (!utl::Jacobian(Jac,dNdX,Xnod,dNdu))
+    return false; // Singular Jacobian
 
   // Evaluate the gradient of the solution field at the given point
   if (basis != vol)
   {
     // Mixed formulation, the solution uses a different basis than the geometry
 #pragma omp critical
-    basis->computeBasis(fe.u,fe.v,fe.w,spline);
+    basis->computeBasis(x.u,x.v,x.w,spline);
 
     const size_t nbf = basis->order(0)*basis->order(1)*basis->order(2);
     dNdu.resize(nbf,3);
@@ -227,7 +216,7 @@ bool SplineField3D::gradFE (const FiniteElement& fe, Vector& grad) const
 }
 
 
-bool SplineField3D::hessianFE (const FiniteElement& fe, Matrix& H) const
+bool SplineField3D::hessianFE (const ItgPoint& x, Matrix& H) const
 {
   if (!basis) return false;
   if (!vol)  return false;
@@ -237,7 +226,7 @@ bool SplineField3D::hessianFE (const FiniteElement& fe, Matrix& H) const
   IntVec ip;
   if (vol == basis) {
 #pragma omp critical
-    vol->computeBasis(fe.u,fe.v,fe.w,spline2);
+    vol->computeBasis(x.u,x.v,x.w,spline2);
 
     const size_t nen = vol->order(0)*vol->order(1)*vol->order(2);
     d2Ndu2.resize(nen,3,3);
@@ -257,7 +246,7 @@ bool SplineField3D::hessianFE (const FiniteElement& fe, Matrix& H) const
   else {
     // Mixed formulation, the solution uses a different basis than the geometry
 #pragma omp critical
-    basis->computeBasis(fe.u,fe.v,fe.w,spline2);
+    basis->computeBasis(x.u,x.v,x.w,spline2);
 
     const size_t nbf = basis->order(0)*basis->order(1)*basis->order(2);
     d2Ndu2.resize(nbf,3,3);

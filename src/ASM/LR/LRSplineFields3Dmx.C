@@ -11,13 +11,13 @@
 //!
 //==============================================================================
 
+#include "LRSpline/LRSplineVolume.h"
+
 #include "LRSplineFields3Dmx.h"
 #include "ASMu3Dmx.h"
-#include "FiniteElement.h"
+#include "ItgPoint.h"
 #include "CoordinateMapping.h"
 #include "Utilities.h"
-
-#include "LRSpline/LRSplineVolume.h"
 
 
 LRSplineFields3Dmx::LRSplineFields3Dmx (const ASMu3Dmx* patch,
@@ -48,7 +48,7 @@ bool LRSplineFields3Dmx::valueNode (size_t node, Vector& vals) const
 }
 
 
-bool LRSplineFields3Dmx::valueFE (const FiniteElement& fe, Vector& vals) const
+bool LRSplineFields3Dmx::valueFE (const ItgPoint& x, Vector& vals) const
 {
   if (!vol) return false;
 
@@ -60,10 +60,10 @@ bool LRSplineFields3Dmx::valueFE (const FiniteElement& fe, Vector& vals) const
   for (const auto& it : bases) {
     const LR::LRSplineVolume* basis = vol->getBasis(it);
 
-    int iel = basis->getElementContaining(fe.u,fe.v,fe.w);
+    int iel = basis->getElementContaining(x.u,x.v,x.w);
     auto elm = basis->getElement(iel);
     Go::BasisPts spline;
-    basis->computeBasis(fe.u,fe.v,fe.w,spline,iel);
+    basis->computeBasis(x.u,x.v,x.w,spline,iel);
 
     // Evaluate the solution field at the given point
 
@@ -81,16 +81,16 @@ bool LRSplineFields3Dmx::valueFE (const FiniteElement& fe, Vector& vals) const
 }
 
 
-bool LRSplineFields3Dmx::gradFE (const FiniteElement& fe, Matrix& grad) const
+bool LRSplineFields3Dmx::gradFE (const ItgPoint& x, Matrix& grad) const
 {
   if (!vol)  return false;
 
   // Evaluate the basis functions at the given point
   Go::BasisDerivs spline;
   const LR::LRSplineVolume* gvol = vol->getBasis(ASMmxBase::geoBasis);
-  int iel = gvol->getElementContaining(fe.u,fe.v,fe.w);
+  int iel = gvol->getElementContaining(x.u,x.v,x.w);
   auto elm = gvol->getElement(iel);
-  gvol->computeBasis(fe.u,fe.v,fe.w,spline,iel);
+  gvol->computeBasis(x.u,x.v,x.w,spline,iel);
 
   const size_t nen = elm->nBasisFunctions();
   Matrix dNdu(nen,3), dNdX;
@@ -116,9 +116,9 @@ bool LRSplineFields3Dmx::gradFE (const FiniteElement& fe, Matrix& grad) const
   size_t row = 1;
   for (const auto& it : bases) {
     const LR::LRSplineVolume* basis = vol->getBasis(it);
-    int iel = basis->getElementContaining(fe.u,fe.v,fe.w);
+    int iel = basis->getElementContaining(x.u,x.v,x.w);
     auto belm = basis->getElement(iel);
-    basis->computeBasis(fe.u,fe.v,fe.w,spline,iel);
+    basis->computeBasis(x.u,x.v,x.w,spline,iel);
 
     const size_t nbf = belm->nBasisFunctions();
     dNdu.resize(nbf,3);

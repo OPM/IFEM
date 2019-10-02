@@ -14,7 +14,7 @@
 #include "GoTools/geometry/SplineCurve.h"
 
 #include "SplineFields1D.h"
-#include "FiniteElement.h"
+#include "ItgPoint.h"
 #include "CoordinateMapping.h"
 #include "Utilities.h"
 #include <numeric>
@@ -30,13 +30,13 @@ SplineFields1D::SplineFields1D (const Go::SplineCurve* crv,
 }
 
 
-bool SplineFields1D::valueFE (const FiniteElement& fe, Vector& vals) const
+bool SplineFields1D::valueFE (const ItgPoint& x, Vector& vals) const
 {
   if (!curv) return false;
 
   // Find nodal indices of element containing given point
   int first, last;
-  curv->basis().coefsAffectingParam(fe.u,first,last);
+  curv->basis().coefsAffectingParam(x.u,first,last);
   if (first == last)
   {
     // We are at an interpolatory point (with C^0 continuity)
@@ -54,7 +54,7 @@ bool SplineFields1D::valueFE (const FiniteElement& fe, Vector& vals) const
   // Evaluate the basis functions at the given point
   RealArray basisVal, basisDerivs;
 #pragma omp critical
-  curv->computeBasis(fe.u,basisVal,basisDerivs);
+  curv->computeBasis(x.u,basisVal,basisDerivs);
 
   // Evaluate the field at the given point.
   // Notice we don't just do a matrix-vector multiplication here,
@@ -70,20 +70,20 @@ bool SplineFields1D::valueFE (const FiniteElement& fe, Vector& vals) const
 }
 
 
-bool SplineFields1D::gradFE (const FiniteElement& fe, Matrix& grad) const
+bool SplineFields1D::gradFE (const ItgPoint& x, Matrix& grad) const
 {
   if (!curv) return false;
 
   // Evaluate the basis functions at the given point
   RealArray basisVal, basisDerivs;
 #pragma omp critical
-  curv->computeBasis(fe.u,basisVal,basisDerivs);
+  curv->computeBasis(x.u,basisVal,basisDerivs);
   Matrix Jac, dNdX, dNdu(basisDerivs.size(),1);
   dNdu.fillColumn(1,basisDerivs);
 
   // Find nodal indices of element containing the given point
   int first, last;
-  curv->basis().coefsAffectingParam(fe.u,first,last);
+  curv->basis().coefsAffectingParam(x.u,first,last);
   std::vector<int> ip(last-first+1);
   std::iota(ip.begin(),ip.end(),first);
 
@@ -100,12 +100,13 @@ bool SplineFields1D::gradFE (const FiniteElement& fe, Matrix& grad) const
   // Evaluate the field gradient at the given point
   utl::gather(ip,nf,values,Velm);
   if (!utl::Jacobian(Jac,dNdX,Xelm,dNdu))
-    return false;
+    return false; // Singular Jacobian
+
   return !grad.multiply(Velm,dNdX).empty(); // grad = Xelm * dNdX
 }
 
 
-bool SplineFields1D::hessianFE (const FiniteElement& fe, Matrix3D& H) const
+bool SplineFields1D::hessianFE (const ItgPoint& x, Matrix3D& H) const
 {
   if (!curv)  return false;
 
@@ -116,7 +117,7 @@ bool SplineFields1D::hessianFE (const FiniteElement& fe, Matrix3D& H) const
   // Can this be fixed in GoTools?
   Go::SplineCurve* ccrv = const_cast<Go::SplineCurve*>(curv);
 #pragma omp critical
-  ccrv->computeBasis(fe.u,basisVal,basisDerivs1,basisDerivs2);
+  ccrv->computeBasis(x.u,basisVal,basisDerivs1,basisDerivs2);
   Matrix Jac, dNdX, dNdu(basisDerivs1.size(),1);
   dNdu.fillColumn(1,basisDerivs1);
   Matrix3D Hess, d2NdX2, d2Ndu2(basisDerivs2.size(),1,1);
@@ -124,8 +125,8 @@ bool SplineFields1D::hessianFE (const FiniteElement& fe, Matrix3D& H) const
 
   // Find nodal indices of element containing the given point
   int first, last;
-  curv->basis().coefsAffectingParam(fe.u,first,last);
-  std::vector<int> ip(last-first+1);;
+  curv->basis().coefsAffectingParam(x.u,first,last);
+  std::vector<int> ip(last-first+1);
   std::iota(ip.begin(),ip.end(),first);
 
   // Find nodal coordinates of element containing the given point

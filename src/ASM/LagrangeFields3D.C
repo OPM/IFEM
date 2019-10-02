@@ -13,15 +13,14 @@
 
 #include "LagrangeFields3D.h"
 #include "ASMs3DLag.h"
-#include "FiniteElement.h"
+#include "ItgPoint.h"
 #include "Lagrange.h"
 #include "CoordinateMapping.h"
 
 
 LagrangeFields3D::LagrangeFields3D (const ASMs3DLag* patch,
-                                    const RealArray& v,
-                                    char basis,
-				    const char* name) : Fields(name)
+                                    const RealArray& v, char,
+                                    const char* name) : Fields(name)
 {
   patch->getNodalCoordinates(coord);
   patch->getSize(n1,n2,n3);
@@ -48,18 +47,24 @@ bool LagrangeFields3D::valueNode (size_t node, Vector& vals) const
 }
 
 
-bool LagrangeFields3D::valueFE (const FiniteElement& fe, Vector& vals) const
+bool LagrangeFields3D::valueFE (const ItgPoint& x, Vector& vals) const
 {
   vals.resize(nf,true);
+  if (x.iel < 1 || (size_t)x.iel > nelm)
+  {
+    std::cerr <<" *** LagrangeFields3D::valueFE: Element index "<< x.iel
+              <<" out of range [1,"<< nelm <<"]."<< std::endl;
+    return false;
+  }
 
   Vector N;
-  if (!Lagrange::computeBasis(N,p1,fe.xi,p2,fe.eta,p3,fe.zeta))
+  if (!Lagrange::computeBasis(N,p1,x.xi,p2,x.eta,p3,x.zeta))
     return false;
 
   const int nel1 = (n1-1)/p1;
   const int nel2 = (n2-1)/p2;
 
-  div_t divresult = div(fe.iel,nel1*nel2);
+  div_t divresult = div(x.iel,nel1*nel2);
   int iel2 = divresult.rem;
   int iel3 = divresult.quot;
   divresult = div(iel2,nel1);
@@ -84,19 +89,25 @@ bool LagrangeFields3D::valueFE (const FiniteElement& fe, Vector& vals) const
 }
 
 
-bool LagrangeFields3D::gradFE (const FiniteElement& fe, Matrix& grad) const
+bool LagrangeFields3D::gradFE (const ItgPoint& x, Matrix& grad) const
 {
   grad.resize(nf,3,true);
+  if (x.iel < 1 || (size_t)x.iel > nelm)
+  {
+    std::cerr <<" *** LagrangeFields3D::gradFE: Element index "<< x.iel
+              <<" out of range [1,"<< nelm <<"]."<< std::endl;
+    return false;
+  }
 
   Vector N;
   Matrix dNdu;
-  if (!Lagrange::computeBasis(N,dNdu,p1,fe.xi,p2,fe.eta,p3,fe.zeta))
+  if (!Lagrange::computeBasis(N,dNdu,p1,x.xi,p2,x.eta,p3,x.zeta))
     return false;
 
   const int nel1 = (n1-1)/p1;
   const int nel2 = (n2-1)/p2;
 
-  div_t divresult = div(fe.iel,nel1*nel2);
+  div_t divresult = div(x.iel,nel1*nel2);
   int iel2 = divresult.rem;
   int iel3 = divresult.quot;
   divresult = div(iel2,nel1);
@@ -120,8 +131,8 @@ bool LagrangeFields3D::gradFE (const FiniteElement& fe, Matrix& grad) const
       }
 
   Matrix Jac, dNdX;
-  utl::Jacobian(Jac,dNdX,Xnod,dNdu);
-  grad.multiply(Vnod,dNdX);
+  if (!utl::Jacobian(Jac,dNdX,Xnod,dNdu))
+    return false; // Singular Jacobian
 
-  return true;
+  return !grad.multiply(Vnod,dNdX).empty();
 }

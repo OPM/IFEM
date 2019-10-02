@@ -27,8 +27,8 @@ namespace Go {
 /*!
   \brief Class for mixed spline-based finite element vector fields in 2D.
 
-  \details This class implements the methods required to evaluate a 2D
-  mixed spline vector field at a given point in parametrical or physical coordinates.
+  \details This class implements the methods required to evaluate a 2D mixed
+  spline vector field at a given point in parametrical or physical coordinates.
 */
 
 class SplineFields2Dmx : public Fields
@@ -40,7 +40,7 @@ public:
   //! \param[in] basis Bases to use from patch
   //! \param[in] name Name of spline field
   SplineFields2Dmx(const ASMs2Dmx* patch, const RealArray& v,
-                  char basis = 12, const char* name = nullptr);
+                   char basis = 12, const char* name = nullptr);
   //! \brief Empty destructor.
   virtual ~SplineFields2Dmx() {}
 
@@ -53,18 +53,18 @@ public:
   bool valueNode(size_t node, Vector& vals) const;
 
   //! \brief Computes the value at a given local coordinate.
-  //! \param[in] fe Finite element definition
+  //! \param[in] x Local coordinate of evaluation point
   //! \param[out] vals Values in local point in given element
-  bool valueFE(const FiniteElement& fe, Vector& vals) const;
+  bool valueFE(const ItgPoint& x, Vector& vals) const;
 
   //! \brief Computes the gradient for a given local coordinate.
-  //! \param[in] fe Finite element
+  //! \param[in] x Local coordinate of evaluation point
   //! \param[out] grad Gradient of solution in a given local coordinate
-  bool gradFE(const FiniteElement& fe, Matrix& grad) const;
+  bool gradFE(const ItgPoint& x, Matrix& grad) const;
 
 protected:
   const ASMs2Dmx* surf; //!< Patch description
-  std::set<int> bases; //!< Bases to use
+  std::set<int>  bases; //!< Bases to use
 };
 
 #endif

@@ -2753,16 +2753,13 @@ bool ASMs2D::evalProjSolution (Matrix& sField, const Vector& locSol,
 
   // Evaluate the projected solution field at each point
   Vector vals;
-  FiniteElement fe;
   sField.resize(f->getNoFields(),gpar[0].size()*gpar[1].size());
 
   size_t ipt = 0;
-  for (size_t j = 0; j < gpar[1].size(); j++)
-    for (size_t i = 0; i < gpar[0].size(); i++)
+  for (double v : gpar[1])
+    for (double u : gpar[0])
     {
-      fe.u = gpar[0][i];
-      fe.v = gpar[1][j];
-      f->valueFE(fe,vals);
+      f->valueFE(ItgPoint(u,v),vals);
       sField.fillColumn(++ipt,vals);
     }
 
@@ -3126,7 +3123,7 @@ int ASMs2D::getCorner (int I, int J, int basis) const
 
 Fields* ASMs2D::getProjectedFields (const Vector& coefs, size_t) const
 {
-  if (proj == this->getBasis(1))
+  if (proj == this->getBasis(1) || this->getNoProjectionNodes() == 0)
     return nullptr;
 
   size_t ncmp = coefs.size() / this->getNoProjectionNodes();
@@ -3142,6 +3139,8 @@ Fields* ASMs2D::getProjectedFields (const Vector& coefs, size_t) const
 
 size_t ASMs2D::getNoProjectionNodes () const
 {
+  if (!proj) return 0;
+
   return proj->numCoefs_u() * proj->numCoefs_v();
 }
 

@@ -14,6 +14,7 @@
 #ifndef _FINITE_ELEMENT_H
 #define _FINITE_ELEMENT_H
 
+#include "ItgPoint.h"
 #include "MatVec.h"
 #include "Vec3.h"
 #include "Tensor.h"
@@ -23,12 +24,12 @@
   \brief Class representing a finite element.
 */
 
-class FiniteElement
+class FiniteElement : public ItgPoint
 {
 public:
   //! \brief Default constructor.
-  explicit FiniteElement(size_t n = 0, size_t i = 0) : iGP(i), N(n), Te(3)
-  { iel = p = q = r = 0; u = v = w = xi = eta = zeta = h = 0.0; detJxW = 1.0; }
+  explicit FiniteElement(size_t n = 0, size_t i = 0) : ItgPoint(i), N(n), Te(3)
+  { p = q = r = 0; h = 0.0; detJxW = 1.0; }
 
   //! \brief Empty destructor.
   virtual ~FiniteElement() {}
@@ -68,13 +69,6 @@ protected:
 
 public:
   // Gauss point quantities
-  size_t   iGP;    //!< Global integration point counter
-  double   u;      //!< First parameter of current point
-  double   v;      //!< Second parameter of current point
-  double   w;      //!< Third parameter of current point
-  double   xi;     //!< First local coordinate of current integration point
-  double   eta;    //!< Second local coordinate of current integration point
-  double   zeta;   //!< Third local coordinate of current integration point
   double   detJxW; //!< Weighted determinant of the coordinate mapping
   Vector     N;    //!< Basis function values
   Matrix    dNdX;  //!< First derivatives (gradient) of the basis functions
@@ -84,7 +78,6 @@ public:
   Matrix     H;    //!< Hessian
 
   // Element quantities
-  int                 iel;  //!< Element identifier
   short int           p;    //!< Polynomial order of the basis in u-direction
   short int           q;    //!< Polynomial order of the basis in v-direction
   short int           r;    //!< Polynomial order of the basis in r-direction

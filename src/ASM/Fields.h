@@ -18,7 +18,7 @@
 #include <string>
 
 class ASMbase;
-class FiniteElement;
+class ItgPoint;
 class Vec4;
 
 
@@ -73,19 +73,19 @@ public:
   virtual bool valueNode(size_t node, Vector& vals) const;
 
   //! \brief Computes the value for a given local coordinate.
-  //! \param[in] fe Finite element definition
+  //! \param[in] x Local coordinate of evaluation point
   //! \param[out] vals Values at local point in given element
-  virtual bool valueFE(const FiniteElement& fe, Vector& vals) const = 0;
+  virtual bool valueFE(const ItgPoint& x, Vector& vals) const = 0;
 
   //! \brief Computes the value for a given global coordinate.
-  //! \param[in] x Global coordinate of evaluation point
+  //! \param[in] x Global/physical coordinate for point
   //! \param[out] vals Values at given global coordinate
   virtual bool valueCoor(const Vec4& x, Vector& vals) const { return false; }
 
   //! \brief Computes the gradient for a given local coordinate.
-  //! \param[in] fe Finite element definition
+  //! \param[in] x Local coordinate of evaluation point
   //! \param[out] grad Gradient at local point in given element
-  virtual bool gradFE(const FiniteElement& fe, Matrix& grad) const = 0;
+  virtual bool gradFE(const ItgPoint& x, Matrix& grad) const = 0;
 
   //! \brief Computes the gradient for a given global coordinate.
   //! \param[in] x Global coordinate of evaluation point
@@ -93,10 +93,9 @@ public:
   virtual bool gradCoor(const Vec4& x, Matrix& grad) const { return false; }
 
   //! \brief Computes the hessian for a given local coordinate.
-  //! \param[in] fe Finite element definition
+  //! \param[in] x Local coordinate of evaluation point
   //! \param[out] H Hessian at local point in given element
-  virtual bool hessianFE(const FiniteElement& fe, Matrix3D& H) const
-  { return false; }
+  virtual bool hessianFE(const ItgPoint& x, Matrix3D& H) const { return false; }
 
 protected:
   unsigned char nf;  //!< Number of field components

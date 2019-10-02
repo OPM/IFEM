@@ -11,13 +11,13 @@
 //!
 //==============================================================================
 
+#include "GoTools/geometry/SplineSurface.h"
+
 #include "SplineFields2Dmx.h"
 #include "ASMs2Dmx.h"
-#include "FiniteElement.h"
+#include "ItgPoint.h"
 #include "CoordinateMapping.h"
 #include "Utilities.h"
-
-#include "GoTools/geometry/SplineSurface.h"
 
 
 SplineFields2Dmx::SplineFields2Dmx (const ASMs2Dmx* patch,
@@ -48,7 +48,7 @@ bool SplineFields2Dmx::valueNode (size_t node, Vector& vals) const
 }
 
 
-bool SplineFields2Dmx::valueFE (const FiniteElement& fe, Vector& vals) const
+bool SplineFields2Dmx::valueFE (const ItgPoint& x, Vector& vals) const
 {
   if (!surf) return false;
 
@@ -61,7 +61,7 @@ bool SplineFields2Dmx::valueFE (const FiniteElement& fe, Vector& vals) const
     Go::SplineSurface* basis = surf->getBasis(b);
     Go::BasisPtsSf spline;
 #pragma omp critical
-    basis->computeBasis(fe.u,fe.v,spline);
+    basis->computeBasis(x.u,x.v,spline);
 
     // Evaluate the solution field at the given point
     std::vector<int> ip;
@@ -81,7 +81,7 @@ bool SplineFields2Dmx::valueFE (const FiniteElement& fe, Vector& vals) const
 }
 
 
-bool SplineFields2Dmx::gradFE (const FiniteElement& fe, Matrix& grad) const
+bool SplineFields2Dmx::gradFE (const ItgPoint& x, Matrix& grad) const
 {
   if (!surf)  return false;
 
@@ -89,7 +89,7 @@ bool SplineFields2Dmx::gradFE (const FiniteElement& fe, Matrix& grad) const
   Go::BasisDerivsSf spline;
   const Go::SplineSurface* gsurf = surf->getBasis(ASMmxBase::geoBasis);
 #pragma omp critical
-  gsurf->computeBasis(fe.u,fe.v,spline);
+  gsurf->computeBasis(x.u,x.v,spline);
 
   const int uorder = gsurf->order_u();
   const int vorder = gsurf->order_v();
@@ -110,7 +110,8 @@ bool SplineFields2Dmx::gradFE (const FiniteElement& fe, Matrix& grad) const
   Matrix Xnod(surf->getNoSpaceDim(),ip.size()), Jac;
   for (size_t i = 0; i < ip.size(); i++)
     Xnod.fillColumn(1+i,&(*gsurf->coefs_begin())+gsurf->dimension()*ip[i]);
-  utl::Jacobian(Jac,dNdX,Xnod,dNdu);
+  if (!utl::Jacobian(Jac,dNdX,Xnod,dNdu))
+    return false; // Singular Jacobian
 
   // Evaluate the gradient of the solution field at the given point
   auto vit = values.begin();
@@ -118,7 +119,7 @@ bool SplineFields2Dmx::gradFE (const FiniteElement& fe, Matrix& grad) const
   for (int b : bases) {
     const Go::SplineSurface* basis = surf->getBasis(b);
 #pragma omp critical
-    basis->computeBasis(fe.u,fe.v,spline);
+    basis->computeBasis(x.u,x.v,spline);
 
     const size_t nbf = basis->order_u()*basis->order_v();
     dNdu.resize(nbf,2);

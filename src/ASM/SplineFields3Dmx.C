@@ -11,13 +11,13 @@
 //!
 //==============================================================================
 
+#include "GoTools/trivariate/SplineVolume.h"
+
 #include "SplineFields3Dmx.h"
 #include "ASMs3Dmx.h"
-#include "FiniteElement.h"
+#include "ItgPoint.h"
 #include "CoordinateMapping.h"
 #include "Utilities.h"
-
-#include "GoTools/trivariate/SplineVolume.h"
 
 
 SplineFields3Dmx::SplineFields3Dmx (const ASMs3Dmx* patch,
@@ -48,7 +48,7 @@ bool SplineFields3Dmx::valueNode (size_t node, Vector& vals) const
 }
 
 
-bool SplineFields3Dmx::valueFE (const FiniteElement& fe, Vector& vals) const
+bool SplineFields3Dmx::valueFE (const ItgPoint& x, Vector& vals) const
 {
   if (!svol) return false;
 
@@ -61,10 +61,10 @@ bool SplineFields3Dmx::valueFE (const FiniteElement& fe, Vector& vals) const
     Go::SplineVolume* basis = svol->getBasis(b);
     Go::BasisPts spline;
 #pragma omp critical
-    basis->computeBasis(fe.u,fe.v,fe.w,spline);
+    basis->computeBasis(x.u,x.v,x.w,spline);
 
     // Evaluate the solution field at the given point
-    std::vector<int> ip;
+    IntVec ip;
     ASMs3D::scatterInd(basis->numCoefs(0),basis->numCoefs(1),
                        basis->numCoefs(2),
                        basis->order(0),basis->order(1),basis->order(2),
@@ -82,7 +82,7 @@ bool SplineFields3Dmx::valueFE (const FiniteElement& fe, Vector& vals) const
 }
 
 
-bool SplineFields3Dmx::gradFE (const FiniteElement& fe, Matrix& grad) const
+bool SplineFields3Dmx::gradFE (const ItgPoint& x, Matrix& grad) const
 {
   if (!svol)  return false;
 
@@ -90,7 +90,7 @@ bool SplineFields3Dmx::gradFE (const FiniteElement& fe, Matrix& grad) const
   Go::BasisDerivs spline;
   const Go::SplineVolume* gvol = svol->getBasis(ASMmxBase::geoBasis);
 #pragma omp critical
-  gvol->computeBasis(fe.u,fe.v,fe.w,spline);
+  gvol->computeBasis(x.u,x.v,x.w,spline);
 
   const int uorder = gvol->order(0);
   const int vorder = gvol->order(1);
@@ -105,7 +105,7 @@ bool SplineFields3Dmx::gradFE (const FiniteElement& fe, Matrix& grad) const
     dNdu(n,3) = spline.basisDerivs_w[n-1];
   }
 
-  std::vector<int> ip;
+  IntVec ip;
   ASMs3D::scatterInd(gvol->numCoefs(0),gvol->numCoefs(1),gvol->numCoefs(2),
 		     uorder,vorder,worder,spline.left_idx,ip);
 
@@ -113,7 +113,8 @@ bool SplineFields3Dmx::gradFE (const FiniteElement& fe, Matrix& grad) const
   Matrix Xnod(svol->getNoSpaceDim(),ip.size()), Jac;
   for (size_t i = 0; i < ip.size(); i++)
     Xnod.fillColumn(1+i,&(*gvol->coefs_begin())+gvol->dimension()*ip[i]);
-   utl::Jacobian(Jac,dNdX,Xnod,dNdu);
+  if (!utl::Jacobian(Jac,dNdX,Xnod,dNdu))
+    return false; // Singular Jacobian
 
   // Evaluate the gradient of the solution field at the given point
   auto vit = values.begin();
@@ -121,7 +122,7 @@ bool SplineFields3Dmx::gradFE (const FiniteElement& fe, Matrix& grad) const
   for (int b : bases) {
     const Go::SplineVolume* basis = svol->getBasis(b);
 #pragma omp critical
-    basis->computeBasis(fe.u,fe.v,fe.w,spline);
+    basis->computeBasis(x.u,x.v,x.w,spline);
 
     const size_t nbf = basis->order(0)*basis->order(1)*basis->order(2);
     dNdu.resize(nbf,3);

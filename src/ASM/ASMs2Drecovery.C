@@ -15,8 +15,7 @@
 #include "GoTools/geometry/SurfaceInterpolator.h"
 
 #include "ASMs2D.h"
-#include "ASMs2Dmx.h"
-#include "FiniteElement.h"
+#include "ItgPoint.h"
 #include "Field.h"
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
@@ -485,16 +484,11 @@ bool ASMs2D::evaluate (const Field* field, RealArray& vec, int basisNum) const
   // Evaluate the result field at all sampling points.
   // Note: it is here assumed that *basis and *this have spline bases
   // defined over the same parameter domain.
-  Vector sValues(gpar[0].size()*gpar[1].size());
-  Vector::iterator it=sValues.begin();
-  for (size_t j=0;j<gpar[1].size();++j) {
-    FiniteElement fe;
-    fe.v = gpar[1][j];
-    for (size_t i=0;i<gpar[0].size();++i) {
-      fe.u = gpar[0][i];
-      *it++ = field->valueFE(fe);
-    }
-  }
+  Vector sValues;
+  sValues.reserve(gpar[0].size()*gpar[1].size());
+  for (double v : gpar[1])
+    for (double u : gpar[0])
+      sValues.push_back(field->valueFE(ItgPoint(u,v)));
 
   Go::SplineSurface* surf = this->getBasis(basisNum);
 
