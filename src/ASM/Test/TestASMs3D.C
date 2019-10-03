@@ -10,23 +10,11 @@
 //!
 //==============================================================================
 
-#include "ASMs3D.h"
+#include "ASMCube.h"
 #include "SIM3D.h"
 #include <array>
 
 #include "gtest/gtest.h"
-
-
-class ASMCube : public ASMs3D
-{
-public:
-  ASMCube()
-  {
-    std::stringstream geo("700 1 0 0\n3 0\n2 2\n0 0 1 1\n2 2\n0 0 1 1\n2 2\n0 0 1 1\n0 0 0\n1 0 0\n0 1 0\n1 1 0\n0 0 1\n1 0 0\n0 1 1\n1 1 1\n");
-    EXPECT_TRUE(this->read(geo));
-  }
-  virtual ~ASMCube() {}
-};
 
 
 TEST(TestASMs3D, ElementConnectivities)

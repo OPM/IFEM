@@ -10,22 +10,10 @@
 //!
 //==============================================================================
 
-#include "ASMs2D.h"
+#include "ASMSquare.h"
 #include "SIM2D.h"
 
 #include "gtest/gtest.h"
-
-
-class ASMSquare : public ASMs2D
-{
-public:
-  ASMSquare()
-  {
-    std::stringstream geo("200 1 0 0\n2 0\n2 2\n0 0 1 1\n2 2\n0 0 1 1\n0 0\n1 0\n0 1\n1 1\n");
-    EXPECT_TRUE(this->read(geo));
-  }
-  virtual ~ASMSquare() {}
-};
 
 
 TEST(TestASMs2D, ElementConnectivities)
