@@ -24,6 +24,13 @@
 #include <cstdio>
 
 
+/*!
+  Override this method if the problem to be solved consists of multiple
+  IntegrandBase objects. This method is then supposed to return the
+  corresponding integrated quantity for this integrand.
+  The default implementation returns the object provided as argument.
+*/
+
 GlobalIntegral& IntegrandBase::getGlobalInt (GlobalIntegral* gq) const
 {
   if (gq) return *gq;
@@ -40,7 +47,7 @@ GlobalIntegral& IntegrandBase::getGlobalInt (GlobalIntegral* gq) const
   The default implementation returns an ElmMats object with one left-hand-side
   matrix (unless we are doing a boundary integral) and one right-hand-side
   vector. The dimension of the element matrices are assumed to be \a npv*nen.
-  Reimplement this method if your integrand needs more element matrices.
+  Override this method if your integrand needs more element matrices.
 */
 
 LocalIntegral* IntegrandBase::getLocalIntegral (size_t nen, size_t,
@@ -54,6 +61,12 @@ LocalIntegral* IntegrandBase::getLocalIntegral (size_t nen, size_t,
   return result;
 }
 
+
+/*!
+  This method can be used when only the first primary solution vector is needed.
+  Thus, the returned \a elmVec array of element solution vectors will always
+  have dimension 1.
+*/
 
 bool IntegrandBase::initElement1 (const std::vector<int>& MNPC,
                                   Vectors& elmVec) const
@@ -77,6 +90,14 @@ bool IntegrandBase::initElement1 (const std::vector<int>& MNPC,
   return true;
 }
 
+
+/*!
+  The default implementation extracts element-level solution vectors,
+  stored in the provided \a elmInt argument, corresponding to each of the
+  patch-wise solution vectors \a primsol.
+  Override this method if your integrand requires some additional or other
+  element initializations.
+*/
 
 bool IntegrandBase::initElement (const std::vector<int>& MNPC,
                                  LocalIntegral& elmInt)
@@ -107,9 +128,9 @@ bool IntegrandBase::initElement (const std::vector<int>& MNPC,
 
 
 /*!
-  Reimplement this method if your integrand need either the FiniteElement object
+  Override this method if your integrand needs either the FiniteElement object
   itself, the element center, or the total number of integration points within
-  the element. The default implementation forwards to an overloaded method
+  the element. The default implementation forwards to the overloaded method
   not taking any of \a fe, \a X0 or \a nPt as arguments.
 */
 
@@ -122,7 +143,10 @@ bool IntegrandBase::initElement (const std::vector<int>& MNPC,
 
 
 /*!
-  The default implementation forwards to the single-basis version.
+  This method is used when a mixed interpolation basis is used. The default
+  implementation forwards to the single-basis version, using first basis only.
+  Override this method for mixed problems requiring element-level solution
+  vectors also for the other bases.
 */
 
 bool IntegrandBase::initElement (const std::vector<int>& MNPC,
@@ -135,29 +159,24 @@ bool IntegrandBase::initElement (const std::vector<int>& MNPC,
 }
 
 
+/*!
+  The default implementation extracts the element-level vector only for the
+  first (current) primary solution vector.
+  Override this method if your boundary integrand requires more than that.
+*/
+
 bool IntegrandBase::initElementBou (const std::vector<int>& MNPC,
                                     LocalIntegral& elmInt)
 {
-  // Extract (only) the current primary solution vector for this element
-  int ierr = 0;
-  elmInt.vec.resize(1);
-  if (!primsol.empty() && !primsol.front().empty())
-    ierr = utl::gather(MNPC,npv,primsol.front(),elmInt.vec.front());
-
-#if SP_DEBUG > 2
-  std::cout <<"Element solution vector"<< elmInt.vec.front();
-#endif
-
-  if (ierr == 0) return true;
-
-  std::cerr <<" *** IntegrandBase::initElementBou: Detected "
-            << ierr <<" node numbers out of range."<< std::endl;
-  return false;
+  return this->initElement1(MNPC,elmInt.vec);
 }
 
 
 /*!
-  The default implementation forwards to the single-basis version.
+  This method is used when a mixed interpolation basis is used. The default
+  implementation forwards to the single-basis version, using first basis only.
+  Override this method for mixed problems requiring element-level solution
+  vectors also for the other bases.
 */
 
 bool IntegrandBase::initElementBou (const std::vector<int>& MNPC,
@@ -170,13 +189,67 @@ bool IntegrandBase::initElementBou (const std::vector<int>& MNPC,
 }
 
 
-bool IntegrandBase::evalSol (Vector& s, const FiniteElement& fe,
-                             const Vec3& X, const std::vector<int>& MNPC) const
+/*!
+  This method can be used when only the first primary solution vector is needed
+  in the secondary solution evaluation. Thus, only one element-level solution
+  vector is extracted and forwarded to the virtual method evalSol2().
+*/
+
+bool IntegrandBase::evalSol1 (Vector& s, const FiniteElement& fe, const Vec3& X,
+                              const std::vector<int>& MNPC) const
 {
-  std::cerr <<" *** IntegrandBase::evalSol: Not implemented."<< std::endl;
+  if (primsol.empty() || primsol.front().empty())
+  {
+    std::cerr <<" *** IntegrandBase::evalSol: No solution vector."<< std::endl;
+    return false;
+  }
+
+  // Extract the first primary solution vector for this element
+  Vectors elmVec(1);
+  int ierr = utl::gather(MNPC,npv,primsol.front(),elmVec.front());
+  if (ierr > 0)
+  {
+    std::cerr <<" *** IntegrandBase::evalSol: Detected "
+              << ierr <<" node numbers out of range."<< std::endl;
+    return false;
+  }
+
+  return this->evalSol2(s,elmVec,fe,X);
+}
+
+
+/*!
+  This method must be overridded in a sub-class.
+*/
+
+bool IntegrandBase::evalSol2 (Vector&, const Vectors&,
+                              const FiniteElement&, const Vec3&) const
+{
+  std::cerr <<" *** IntegrandBase::evalSol2: Not implemented."<< std::endl;
   return false;
 }
 
+
+/*!
+  The default implementation assumes that only the first primary solution
+  vector is needed in the secondary solution evaluation, and thus forwards
+  to the evalSol1() method.
+  Override this method if the secondary solution depends on more than that.
+*/
+
+bool IntegrandBase::evalSol (Vector& s, const FiniteElement& fe,
+                             const Vec3& X, const std::vector<int>& MNPC) const
+{
+  return this->evalSol1(s,fe,X,MNPC);
+}
+
+
+/*!
+  This method is used when a mixed interpolation basis is used. The default
+  implementation forwards to the single-basis version, using first basis only.
+  Override this method for mixed problems requiring element-level solution
+  vectors also for the other bases in the secondary solution evaluation.
+*/
 
 bool IntegrandBase::evalSol (Vector& s, const MxFiniteElement& fe,
                              const Vec3& X, const std::vector<int>& MNPC,
@@ -274,7 +347,7 @@ Vector* IntegrandBase::getNamedVector (const std::string& name) const
 }
 
 
-std::string IntegrandBase::getField1Name (size_t idx, const char* prefix) const 
+std::string IntegrandBase::getField1Name (size_t idx, const char* prefix) const
 {
   char name[32];
   sprintf(name,"primary solution %zu",1+idx);
@@ -282,7 +355,7 @@ std::string IntegrandBase::getField1Name (size_t idx, const char* prefix) const
 }
 
 
-std::string IntegrandBase::getField2Name (size_t idx, const char* prefix) const 
+std::string IntegrandBase::getField2Name (size_t idx, const char* prefix) const
 {
   char name[32];
   sprintf(name,"secondary solution %zu",1+idx);

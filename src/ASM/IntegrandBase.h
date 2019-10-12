@@ -96,6 +96,11 @@ public:
   virtual LocalIntegral* getLocalIntegral(size_t nen, size_t iEl,
                                           bool neumann) const;
 
+  //! \brief Initializes the primary solution vector for current element.
+  //! \param[in] MNPC Matrix of nodal point correspondance for current element
+  //! \param[out] elmVec Primary element solution vector
+  bool initElement1(const std::vector<int>& MNPC, Vectors& elmVec) const;
+
   //! \brief Initializes current element for numerical integration.
   //! \param[in] MNPC Matrix of nodal point correspondance for current element
   //! \param elmInt Local integral for element
@@ -124,11 +129,6 @@ public:
                            const std::vector<size_t>& basis_sizes,
                            LocalIntegral& elmInt);
 
-  //! \brief Initializes the primary solution vector for current element.
-  //! \param[in] MNPC Matrix of nodal point correspondance for current element
-  //! \param[out] elmVec The primary element solution vectors
-  bool initElement1(const std::vector<int>& MNPC, Vectors& elmVec) const;
-
   //! \brief Initializes current element for boundary integration.
   //! \param[in] MNPC Matrix of nodal point correspondance for current element
   //! \param elmInt Local integral for element
@@ -152,6 +152,22 @@ public:
 
   // Secondary solution field evaluation interface
   // =============================================
+
+  //! \brief Evaluates the secondary solution at a result point.
+  //! \param[out] s The solution field values at current point
+  //! \param[in] fe Finite element data at current point
+  //! \param[in] X Cartesian coordinates of current point
+  //! \param[in] MNPC Nodal point correspondance for the basis function values
+  bool evalSol1(Vector& s, const FiniteElement& fe, const Vec3& X,
+                const std::vector<int>& MNPC) const;
+
+  //! \brief Evaluates the secondary solution at a result point.
+  //! \param[out] s The solution field values at current point
+  //! \param[in] elmVec Element-level primary solution vectors
+  //! \param[in] fe Finite element data at current point
+  //! \param[in] X Cartesian coordinates of current point
+  virtual bool evalSol2(Vector& s, const Vectors& elmVec,
+                        const FiniteElement& fe, const Vec3& X) const;
 
   //! \brief Evaluates the secondary solution at a result point.
   //! \param[out] s The solution field values at current point
