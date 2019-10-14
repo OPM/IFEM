@@ -14,7 +14,7 @@
 #include "SIMinput.h"
 #include "SIMoptions.h"
 #include "ModelGenerator.h"
-#include "ASMstruct.h"
+#include "ASMbase.h"
 #include "ASMunstruct.h"
 #ifdef HAS_LRSPLINE
 #include "ASMLRSpline.h"
@@ -48,7 +48,7 @@ std::istream* SIMinput::getPatchStream (const char* tag, const char* patch)
     // Replace all '\' and '|' characters in the string by newline '\n'
     for (size_t i = 0; i < strlen(patch); i++)
       if (patch[i] == '\\' || patch[i] == '|')
-	const_cast<char&>(patch[i]) = '\n';
+        const_cast<char&>(patch[i]) = '\n';
     return new std::stringstream(patch);
   }
   else
@@ -192,25 +192,26 @@ bool SIMinput::parseGeometryTag (const TiXmlElement* elem)
     std::string file;
     if (myPatches.empty() && utl::getAttribute(elem,"file",file))
     {
-      std::ifstream ifs(file, std::ios_base::in|std::ios_base::binary);
-       std::vector<int> elms;
+      IntVec elms;
+      std::ifstream ifs(file, std::ios_base::in | std::ios_base::binary);
       if (ifs.good())
       {
-        IFEM::cout << "\tReading partitioning from file " << file;
-        std::vector<int> elmOfs(adm.getNoProcs());
+        IFEM::cout <<"\tReading partitioning from file "<< file;
 
+        IntVec elmOfs(adm.getNoProcs());
+        int procId = 0;
         size_t ofs = 0;
-        for (int i = 0; i < adm.getNoProcs(); ++i) {
-          ifs.read(reinterpret_cast<char*>(&elmOfs[i]), sizeof(int));
-          if (i < adm.getProcId())
-            ofs += elmOfs[i];
+        for (int& eofs : elmOfs)
+        {
+          ifs.read(reinterpret_cast<char*>(&eofs), sizeof(int));
+          if (procId++ < adm.getProcId()) ofs += eofs;
         }
         ifs.seekg(ofs*sizeof(int), std::ios_base::cur);
         elms.resize(elmOfs[adm.getProcId()]);
-        for (size_t i = 0; i < elms.size(); ++i)
-	  ifs.read(reinterpret_cast<char*>(&elms[i]), sizeof(int));
+        for (int& eofs : elmOfs)
+          ifs.read(reinterpret_cast<char*>(&eofs), sizeof(int));
 
-        IFEM::cout << ", size = " << elms.size() << std::endl;
+        IFEM::cout <<", size = "<< elms.size() << std::endl;
       }
       bool save = false;
       utl::getAttribute(elem,"save",save);
@@ -250,11 +251,11 @@ bool SIMinput::parseGeometryTag (const TiXmlElement* elem)
           utl::getAttribute(item,"patch",patch);
           if ((patch = this->getLocalPatchIndex(patch)) > 0)
           {
-            ASMbase* pch = nullptr;
             if (abs(idim) == (int)this->getNoParamDim())
               top.insert(TopItem(patch,0,idim));
-            else if (idim == 4 && (pch = this->getPatch(patch)))
+            else if (idim == 4)
             {
+              ASMbase* pch = myModel[patch-1];
               if (item->FirstChild())
                 utl::parseIntegers(pch->getNodeSet(name),
                                    item->FirstChild()->Value());
@@ -649,6 +650,13 @@ FunctionBase* SIMinput::parseDualTag (const TiXmlElement* elem, int ftype)
   utl::getAttribute(elem,"normal",normal);
   utl::getAttribute(elem,"depth",depth);
   utl::getAttribute(elem,"width",width);
+  Vec3Pair Xd;
+  if (utl::getAttribute(elem,"X1",Xd.first) &&
+      utl::getAttribute(elem,"X2",Xd.second))
+  {
+    ftype = 3;
+    depth = (Xd.second-Xd.first).length();
+  }
 
   // In adaptive analysis, reduce the depth by a factor of 0.5 until dmin
   double dmin = depth; int skip = 1;
@@ -657,16 +665,29 @@ FunctionBase* SIMinput::parseDualTag (const TiXmlElement* elem, int ftype)
   for (int ref = skip; ref <= isRefined && depth > dmin; ref += skip)
     depth *= 0.5;
 
+  if (ftype == 3 && skip <= isRefined)
+  {
+    Vec3 X1(Xd.first), X2(Xd.second);
+    double scale = 0.5*depth/(X2-X1).length();
+    Xd.first  = (0.5+scale)*X1 + (0.5-scale)*X2;
+    Xd.second = (0.5-scale)*X1 + (0.5+scale)*X2;
+  }
+
   if (patch > 0)
     IFEM::cout <<"\n\tpatch  = "<< patch;
-  IFEM::cout <<"\n\tX0     = "<< X0
-             <<"\n\tnormal = "<< normal
-             <<"\n\tdepth  = "<< depth <<", width = "<< width;
+  IFEM::cout <<"\n\tX0     = "<< X0;
+  if (ftype == 3)
+    IFEM::cout <<"\n\tX1     = "<< Xd.first <<"\n\tX2     = "<< Xd.second;
+  else
+    IFEM::cout <<"\n\tnormal = "<< normal
+               <<"\n\tdepth  = "<< depth <<", width = "<< width;
   if (ftype > 1)
     IFEM::cout <<"\n\tcomp   = "<< comp;
   IFEM::cout << std::endl;
 
-  if (nsd == 2)
+  if (ftype == 3)
+    extrFunc.push_back(new DualVecFunc(comp,X0,Xd,patch));
+  else if (nsd == 2)
   {
     if (ftype == 1)
       extrFunc.push_back(new DualRealFunc(X0,normal,depth,width,patch));
@@ -816,7 +837,7 @@ bool SIMinput::parseTopologySet (const TiXmlElement* elem, IntVec& patches)
   std::string setName;
   if (utl::getAttribute(elem,"set",setName))
   {
-    auto tit = myEntitys.find(setName);
+    TopologySet::const_iterator tit = myEntitys.find(setName);
     if (tit == myEntitys.end())
     {
       std::cerr <<" *** SIMinput::parseTopologySet: Undefined topology set \""
@@ -1170,7 +1191,7 @@ bool SIMinput::createPropertySet (const std::string& setName, int pc)
 {
   if (setName.empty()) return true;
 
-  auto tit = myEntitys.find(setName);
+  TopologySet::const_iterator tit = myEntitys.find(setName);
   if (tit == myEntitys.end())
   {
     std::cerr <<" *** SIMinput::createPropertySet: Undefined topology set \""
@@ -1476,9 +1497,9 @@ bool SIMinput::setInitialCondition (SIMdependency* fieldHolder,
     for (int i = 0; i < nPatches; i++)
     {
       int p = this->getLocalPatchIndex(i+1);
-      ASMbase* pch = this->getPatch(p);
-      if (!pch) continue;
+      if (p <= 0) continue;
 
+      ASMbase* pch = myModel[p-1];
       Vector loc, newloc;
       std::stringstream str;
       str << it.file_level <<"/"
@@ -1555,31 +1576,29 @@ IntMat SIMinput::getElmConnectivities () const
   for (const ASMbase* pch : this->getFEModel())
     pch->getElmConnectivities(neigh);
 
-  for (auto& iface : myInterfaces) {
-    if (iface.dim != static_cast<int>(this->getNoSpaceDim())-1)
-      continue;
+  for (const ASM::Interface& iface : myInterfaces)
+    if (iface.dim == static_cast<int>(nsd)-1)
+    {
+      IntVec sElms, mElms;
+      myModel[iface.slave-1]->getBoundaryElms(iface.sidx, iface.orient, sElms);
+      myModel[iface.master-1]->getBoundaryElms(iface.midx, 0, mElms);
+      DomainDecomposition::OrientIterator iter(myModel[iface.slave-1],
+                                               iface.orient, iface.sidx);
 
-    const ASMbase* master = this->getPatch(iface.master);
-    const ASMbase* slave = this->getPatch(iface.slave);
-    const ASMstruct* pch = dynamic_cast<const ASMstruct*>(master);
-
-    std::vector<int> sElms, mElms;
-    slave->getBoundaryElms(iface.sidx,iface.orient,sElms);
-    master->getBoundaryElms(iface.midx,0,mElms);
-
-    DomainDecomposition::OrientIterator iter(slave, iface.orient, iface.sidx);
-    auto it_n = iter.begin();
-    auto it_m = mElms.begin();
-    for (size_t i = 0; i < iter.size(); ++i, ++it_m, ++it_n) {
-      if (pch) {
-        neigh[sElms[*it_n]][iface.sidx-1] = *it_m;
-        neigh[*it_m][iface.midx-1] = sElms[*it_n];
-      } else {
-        neigh[sElms[*it_n]].push_back(*it_m);
-        neigh[*it_m].push_back(sElms[*it_n]);
+      IntVec::const_iterator m_node = mElms.begin();
+      for (int s_node : iter)
+      {
+        if (opt.discretization < ASM::LRSpline) {
+          neigh[sElms[s_node]][iface.sidx-1] = *m_node;
+          neigh[*m_node][iface.midx-1] = sElms[s_node];
+        }
+        else {
+          neigh[sElms[s_node]].push_back(*m_node);
+          neigh[*m_node].push_back(sElms[s_node]);
+        }
+        ++m_node;
       }
     }
-  }
 
   return neigh;
 }
