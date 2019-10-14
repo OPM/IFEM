@@ -840,11 +840,25 @@ void ASMu2D::constrainCorner (int I, int J, int dof, int code, char basis)
 }
 
 
-void ASMu2D::constrainNode (double, double, int, int)
+void ASMu2D::constrainNode (double xi, double eta, int dof, int code)
 {
-  // We can't do this, since the control point locations are unpredictable
-  std::cout <<"  ** Constraining nodal points not available"
-            <<" for LR B-splines (ignored)."<< std::endl;
+  double xip[2] = { xi, eta };
+  double param[2];
+  Vec3 X;
+
+  // Check if the point has a matching node
+  if (this->evalPoint(xip,param,X) >= 0)
+    for (size_t inod = 1; inod <= nnod; inod++)
+      if (this->getCoord(inod).equal(X))
+      {
+        IFEM::cout <<"\tPrescribing node "<< inod
+                   <<" at X = "<< this->getCoord(inod) << std::endl;
+        this->prescribe(inod,dof,code);
+        return;
+      }
+
+  std::cerr <<"  ** ASMu2D::constrainNode: No matching node at u,v = "
+            << param[0] <<","<< param[1] << std::endl;
 }
 
 
@@ -1017,13 +1031,14 @@ double ASMu2D::getElementCorners (int iel, Vec3Vec& XC,
   double v[4] = { el->vmin(), el->vmin(), el->vmax(), el->vmax() };
 
   XC.resize(4);
-  if (uC) uC->resize(8);
+  if (uC) uC->resize(8,0.0);
 
   for (int i = 0; i < 4; i++)
   {
     double xi[2] = { u[i], v[i] };
-    this->evalPoint(xi, nullptr, XC[i]);
-    if (uC)
+    if (this->evalPoint(xi,nullptr,XC[i]) < 0)
+      return 0.0;
+    else if (uC)
     {
       uC->at(2*i)   = u[i];
       uC->at(2*i+1) = v[i];
@@ -1184,9 +1199,10 @@ bool ASMu2D::integrate (Integrand& integrand,
       if (integrand.getIntegrandType() & Integrand::ELEMENT_CENTER)
       {
         // Compute the element center
-        double u[2] = {0.5*(gpar[0].front() + gpar[0].back()),
-                       0.5*(gpar[1].front() + gpar[1].back())};
-        this->evalPoint(u, param, X);
+        param[0] = 0.5*(gpar[0].front() + gpar[0].back());
+        param[1] = 0.5*(gpar[1].front() + gpar[1].back());
+        if (this->evalPoint(param,nullptr,X) < 0)
+          ok = false;
       }
 
       if (integrand.getIntegrandType() & Integrand::G_MATRIX)
@@ -1973,8 +1989,8 @@ bool ASMu2D::tesselate (ElementBlock& grid, const int* npe) const
       for (int iu = 0; iu < npe[0]; iu++, inod++) {
         Vec3 Xpt;
         double U[2] = { umin + du*iu, vmin + dv*iv };
-        this->evalPoint(U, nullptr, Xpt);
-        grid.setCoor(inod, Xpt);
+        if (this->evalPoint(U,nullptr,Xpt) >= 0)
+          grid.setCoor(inod, Xpt);
         grid.setParams(inod, U[0], U[1]);
       }
   }
