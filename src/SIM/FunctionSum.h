@@ -38,6 +38,9 @@ public:
   //! \param[in] w Weighting factor. If negative, take max value instead.
   bool add(FunctionBase* f, double w = 1.0);
 
+  //! \brief Returns the function type flag.
+  virtual unsigned char getType() const;
+
   //! \brief Checks if a specified point is within the function domain.
   virtual bool inDomain(const Vec3& X) const;
   //! \brief Returns \e true if current patch is affected by this function.

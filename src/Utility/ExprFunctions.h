@@ -183,6 +183,9 @@ public:
     return true;
   }
 
+  //! \brief Returns the function type flag.
+  virtual unsigned char getType() const { return 2; }
+
   //! \brief Returns first-derivative of the function.
   virtual Ret deriv(const Vec3& X, int dir) const;
   //! \brief Returns second-derivative of the function.

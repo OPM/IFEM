@@ -35,6 +35,9 @@ public:
   //! \brief Empty destructor.
   virtual ~TensorFunc() {}
 
+  //! \brief Returns the function type flag.
+  virtual unsigned char getType() const { return 3; }
+
   //! \brief Returns the function value as an array.
   virtual std::vector<Real> getValue(const Vec3& X) const
   {
@@ -67,6 +70,9 @@ protected:
 public:
   //! \brief Empty destructor.
   virtual ~STensorFunc() {}
+
+  //! \brief Returns the function type flag.
+  virtual unsigned char getType() const { return 3; }
 
   //! \brief Returns the function value as an array.
   virtual std::vector<Real> getValue(const Vec3& X) const

@@ -151,6 +151,9 @@ public:
   //! \brief Empty destructor.
   virtual ~FunctionBase() {}
 
+  //! \brief Returns the function type flag.
+  virtual unsigned char getType() const = 0;
+
   //! \brief Returns the function value as an array.
   virtual std::vector<Real> getValue(const Vec3&) const = 0;
   //! \brief Returns a representative scalar equivalent of the function value.
@@ -184,6 +187,9 @@ public:
   //! \brief Empty destructor.
   virtual ~RealFunc() {}
 
+  //! \brief Returns the function type flag.
+  virtual unsigned char getType() const { return 1; }
+
   //! \brief Returns the function value as an array.
   virtual std::vector<Real> getValue(const Vec3& X) const
   {
@@ -211,6 +217,9 @@ protected:
 public:
   //! \brief Empty destructor.
   virtual ~VecFunc() {}
+
+  //! \brief Returns the function type flag.
+  virtual unsigned char getType() const { return 2; }
 
   //! \brief Returns the function value as an array.
   virtual std::vector<Real> getValue(const Vec3& X) const

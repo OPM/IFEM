@@ -36,6 +36,19 @@ bool FunctionSum::add (FunctionBase* f, double w)
 }
 
 
+unsigned char FunctionSum::getType () const
+{
+  if (comps.empty()) return 0;
+
+  unsigned char myType = comps.front().first->getType();
+  for (const WeightedFunc& cmp : comps)
+    if (cmp.first->getType() != myType)
+      return 0;
+
+  return myType;
+}
+
+
 bool FunctionSum::inDomain (const Vec3& X) const
 {
   for (const WeightedFunc& cmp : comps)

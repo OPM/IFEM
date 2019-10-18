@@ -124,6 +124,9 @@ public:
   //! \brief Empty destructor.
   virtual ~DualVecFunc() {}
 
+  //! \brief Returns the function type flag.
+  virtual unsigned char getType() const { return W.isPointExtraction() ? 3:2; }
+
   //! \brief Checks if the point \b X is within the function domain.
   virtual bool inDomain(const Vec3& X) const { return W.inDomain(X); }
   //! \brief Returns \e true if current patch is affected by this function.
