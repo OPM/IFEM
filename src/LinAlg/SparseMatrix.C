@@ -1266,13 +1266,19 @@ bool SparseMatrix::solveUMF (Vector& B, Real* rcond)
     return false;
   if (rcond)
     *rcond = info[UMFPACK_RCOND];
-  umfpack_di_solve(UMFPACK_A,
-                   IA.data(), JA.data(), A.data(),
-                   &X[0], &B[0], numeric, nullptr, info);
-  if (info[UMFPACK_STATUS] == UMFPACK_OK)
+  const size_t nrhs = B.size() / nrow;
+
+  bool okAll = true;
+  for (size_t i = 0; i < nrhs && okAll; ++i) {
+    umfpack_di_solve(UMFPACK_A,
+                     IA.data(), JA.data(), A.data(),
+                     &X[i*nrow], &B[i*nrow], numeric, nullptr, info);
+    okAll = info[UMFPACK_STATUS] == UMFPACK_OK;
+  }
+  if (okAll)
     B = X;
   umfpack_di_free_numeric(&numeric);
-  return info[UMFPACK_STATUS] == UMFPACK_OK;
+  return okAll;
 #else
   std::cerr <<"SparseMatrix::solve: UMFPACK solver not available"<< std::endl;
   return false;
