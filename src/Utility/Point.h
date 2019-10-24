@@ -34,6 +34,12 @@ namespace utl
     Point() : Vec4(par) { par[0] = par[1] = par[2] = Real(0); }
 
     //! \brief Constructor creating a point at the specified location.
+    Point(const Vec3& X) : Vec4(X,Real(0),par)
+    {
+      par[0] = par[1] = par[2] = Real(0);
+    }
+
+    //! \brief Constructor creating a point at the specified location.
     Point(const Vec3& X, const std::vector<Real>& U) : Vec4(X,Real(0),par)
     {
       for (size_t i = 0; i < 3; i++)
@@ -68,6 +74,36 @@ namespace utl
 
       return *this;
     }
+
+    //! \brief Add the given vector \b X to \a *this.
+    Point& operator+=(const Vec4& X)
+    {
+      x += X.x;
+      y += X.y;
+      z += X.z;
+      t += X.t;
+      if (X.u)
+        for (size_t i = 0; i < 3; i++)
+          par[i] += X.u[i];
+
+      return *this;
+    }
+
+    //! \brief Multiplication with a scalar.
+    Point& operator*=(Real c)
+    {
+      x *= c;
+      y *= c;
+      z *= c;
+      t *= c;
+      for (size_t i = 0; i < 3; i++)
+        par[i] *= c;
+
+      return *this;
+    }
+
+    //! \brief Division by a scalar.
+    Point& operator/=(Real d) { return this->operator*=(Real(1)/d); }
   };
 }
 

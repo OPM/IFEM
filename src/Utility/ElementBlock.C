@@ -13,6 +13,7 @@
 
 #include "ElementBlock.h"
 #include "Vec3Oper.h"
+#include "Point.h"
 #include <algorithm>
 #include <numeric>
 
@@ -145,14 +146,17 @@ void ElementBlock::merge (const ElementBlock& other)
 }
 
 
-Vec3 ElementBlock::getCenter (size_t i) const
+utl::Point ElementBlock::getCenter (size_t i) const
 {
   if (i < 1 || i > MINEX.size())
-    return Vec3();
+    return utl::Point();
 
-  Vec3 XC;
+  utl::Point XC;
   for (size_t j = 0; j < nen; j++)
-    XC += coord[MMNPC[nen*(i-1)+j]];
+  {
+    const Prm3& uu = param[MMNPC[nen*(i-1)+j]];
+    XC += utl::Point(coord[MMNPC[nen*(i-1)+j]],{uu[0],uu[1],uu[2]});
+  }
   XC /= nen;
 
   return XC;

@@ -14,7 +14,7 @@
 #ifndef _ELEMENT_BLOCK_H
 #define _ELEMENT_BLOCK_H
 
-#include "Vec3.h"
+#include "Point.h"
 #include <array>
 #include <vector>
 
@@ -91,7 +91,7 @@ public:
   const int* getElements() const { return MMNPC.data(); }
 
   //! \brief Returns the coordinates of the center of the given elemment.
-  Vec3 getCenter(size_t i) const;
+  utl::Point getCenter(size_t i) const;
 
 private:
   typedef std::array<Real,3> Prm3; //!< Convenience type
