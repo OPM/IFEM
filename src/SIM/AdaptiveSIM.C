@@ -163,13 +163,9 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep, bool withRF,
       // Calculate refinement indicators including the dual error estimates.
       // Store in the 2nd row in fNorm (normally holding the external energy).
       // Store the associated global norm in the dNorm array.
-      double dErr = 0.0;
+      dNorm.front()(2) = 0.0;
       for (size_t j = 1; j <= eNorm.cols() && j <= fNorm.cols(); j++)
-      {
-        fNorm(2,j) = eNorm(eRow,j)*fNorm(eRow,j);
-        dErr += fNorm(2,j)*fNorm(2,j);
-      }
-      dNorm.front()(2) = sqrt(dErr);
+        dNorm.front()(2) += fNorm(2,j) = eNorm(eRow,j)*fNorm(eRow,j);
     }
   }
 
