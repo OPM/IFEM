@@ -15,6 +15,10 @@
 #define _DUAL_FIELD_H
 
 #include "Function.h"
+#include "Point.h"
+#include <set>
+
+class ASMbase;
 
 
 /*!
@@ -30,22 +34,24 @@ public:
   //! \param[in] XZp Point in the local XZ-plane
   //! \param[in] d Depth of dual function domain
   //! \param[in] w Width of dual function domain (0=infinite)
-  //! \param[in] p 1-based index of the affected patch (0=all)
+  //! \param[in] p The affected patch (null=all)
   DualRealFunc(const Vec3& o, const Vec3& n, const Vec3& XZp,
-               double d, double w = 0.0, size_t p = 0);
+               double d, double w = 0.0, ASMbase* p = nullptr);
   //! \brief Constructor for 2D problems (in XY-plane).
   //! \param[in] o Origin of local cross section coordinate system
   //! \param[in] n Cross section normal
   //! \param[in] d Depth of dual function domain
   //! \param[in] w Width of dual function domain (0=infinite)
-  //! \param[in] p 1-based index of the affected patch (0=all)
+  //! \param[in] p The affected patch (null=all)
   DualRealFunc(const Vec3& o, const Vec3& n,
-               double d, double w = 0.0, size_t p = 0);
+               double d, double w = 0.0, ASMbase* p = nullptr);
   //! \brief Constructor for point extraction.
   //! \param[in] o Point to extract the point quantity at
   //! \param[in] d Lower-left and upper-rigth corner of function domain
-  //! \param[in] p 1-based index of the affected patch (0=all)
-  DualRealFunc(const Vec3& o, const Vec3Pair& d, size_t p = 0);
+  //! \param[in] p The affected patch (null=all)
+  //! \param[in] eps Parameter tolerance for searching elements around a point
+  DualRealFunc(const utl::Point& o, const Vec3Pair& d,
+               ASMbase* p = nullptr, double eps = 0.0);
   //! \brief Empty destructor.
   virtual ~DualRealFunc() {}
 
@@ -69,21 +75,24 @@ public:
   //! \brief Checks if the point \b X is within the function domain.
   virtual bool inDomain(const Vec3& X) const;
   //! \brief Returns \e true if current patch is affected by this function.
-  virtual bool initPatch(size_t idx) { return patch < 1 || idx+1 == patch; }
+  virtual bool initPatch(size_t idx);
 
 protected:
   //! \brief Evaluates the dual field function.
   virtual double evaluate(const Vec3& X) const { return this->value(X); }
 
 private:
-  Vec3      X0; //!< Global coordinates of the cross section origin
+  utl::Point X0; //!< Coordinates of cross section origin or reference point
+
   Vec3  normal; //!< Outward-directed normal vector of the cross section
   Vec3 tangent; //!< Vector defining the local y-direction of the cross section
   double depth; //!< Depth of the the dual function domain (0=point extraction)
   double width; //!< Width of the the dual function domain (0=infinite)
   Vec3     Xll; //!< Lower-left corner of box domain for point extraction
   Vec3     Xur; //!< Upper-right corner of box domain for point extraction
-  size_t patch; //!< One-based index of the affected patch
+
+  ASMbase*      patch; //!< The patch that this field is defined on
+  std::set<int> Delem; //!< List of elements in domain
 };
 
 
@@ -103,24 +112,26 @@ public:
   //! \param[in] XZp Point in the local XZ-plane
   //! \param[in] d Depth of dual function domain
   //! \param[in] w Width of dual function domain (0=infinite)
-  //! \param[in] p 1-based index of the affected patch (0=all)
+  //! \param[in] p The affected patch (null=all)
   DualVecFunc(int c, const Vec3& o, const Vec3& n, const Vec3& XZp,
-              double d, double w = 0.0, size_t p = 0);
+              double d, double w = 0.0, ASMbase* p = nullptr);
   //! \brief Constructor for 2D problems (in XY-plane).
   //! \param[in] c Sectional force component index to do extraction for
   //! \param[in] o Origin of local cross section coordinate system
   //! \param[in] n Cross section normal
   //! \param[in] d Depth of dual function domain
   //! \param[in] w Width of dual function domain (0=infinite)
-  //! \param[in] p 1-based index of the affected patch (0=all)
+  //! \param[in] p The affected patch (null=all)
   DualVecFunc(int c, const Vec3& o, const Vec3& n,
-              double d, double w = 0.0, size_t p = 0);
+              double d, double w = 0.0, ASMbase* p = nullptr);
   //! \brief Constructor for stress extraction.
   //! \param[in] c Stress component index to do extraction for
   //! \param[in] o Point to extract the point quantity at
   //! \param[in] d Lower-left and upper-rigth corner of function domain
-  //! \param[in] p 1-based index of the affected patch (0=all)
-  DualVecFunc(int c, const Vec3& o, const Vec3Pair& d, size_t p = 0);
+  //! \param[in] p The affected patch (null=all)
+  //! \param[in] eps Parameter tolerance for searching elements around a point
+  DualVecFunc(int c, const utl::Point& o, const Vec3Pair& d,
+              ASMbase* p = nullptr, double eps = 0.0);
   //! \brief Empty destructor.
   virtual ~DualVecFunc() {}
 

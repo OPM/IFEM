@@ -12,11 +12,12 @@
 //==============================================================================
 
 #include "DualField.h"
+#include "ASMbase.h"
 #include "Vec3Oper.h"
 
 
 DualRealFunc::DualRealFunc (const Vec3& o, const Vec3& n, const Vec3& XZp,
-                            double d, double w, size_t p) : X0(o), normal(n)
+                            double d, double w, ASMbase* p) : X0(o), normal(n)
 {
   tangent.cross(XZp-X0,normal);
   normal.normalize();
@@ -28,7 +29,7 @@ DualRealFunc::DualRealFunc (const Vec3& o, const Vec3& n, const Vec3& XZp,
 
 
 DualRealFunc::DualRealFunc (const Vec3& o, const Vec3& n,
-                            double d, double w, size_t p) : X0(o)
+                            double d, double w, ASMbase* p) : X0(o)
 {
   normal.x = n.x;
   normal.y = n.y;
@@ -41,12 +42,55 @@ DualRealFunc::DualRealFunc (const Vec3& o, const Vec3& n,
 }
 
 
-DualRealFunc::DualRealFunc (const Vec3& o, const Vec3Pair& d,
-                            size_t p) : X0(o), Xll(d.first), Xur(d.second)
+DualRealFunc::DualRealFunc (const utl::Point& o, const Vec3Pair& d, ASMbase* p,
+                            double eps) : X0(o), Xll(d.first), Xur(d.second)
 {
   normal.x = tangent.y = 1.0;
-  depth = width = 0.0;
+  depth = -eps;
+  width = 0.0;
   patch = p;
+}
+
+
+bool DualRealFunc::initPatch (size_t idx)
+{
+  if (!patch)
+    return true;
+  else if (idx != patch->idx)
+    return false;
+  else if (depth > 0.0 || (Xur-Xll).length2() > 0.0 || !X0.u)
+    return true;
+
+  // Find the element(s) containing or close to the point X0
+  Delem.clear();
+  double uv[3] = { X0.u[0], X0.u[1], X0.u[2] };
+  Delem.insert(patch->findElementContaining(uv));
+
+  // If depth is negative, it is interpreted as a small epsilon in the
+  // parameter domain and used to make sure we find all elements in case
+  // the point is on the interface between two more more elements
+  if (patch->getNoParamDim() == 1 && depth < 0.0)
+  {
+    uv[0] = X0.u[0] - depth;
+    Delem.insert(patch->findElementContaining(uv));
+    uv[0] = X0.u[0] + depth;
+    Delem.insert(patch->findElementContaining(uv));
+  }
+  else if (patch->getNoParamDim() == 2 && depth < 0.0)
+    for (size_t i = 0; i < 8; i++)
+    {
+      double theta = 0.25*M_PI*i;
+      uv[0] = X0.u[0] - depth*cos(theta);
+      uv[1] = X0.u[1] - depth*sin(theta);
+      Delem.insert(patch->findElementContaining(uv));
+    }
+
+#ifdef SP_DEBUG
+  std::cout <<"DualRealFunc::initPatch: Element(s) in domain:";
+  for (int e : Delem) if (e > 0) std::cout <<" "<< e;
+  std::cout << std::endl;
+#endif
+  return true;
 }
 
 
@@ -62,6 +106,25 @@ bool DualRealFunc::inDomain (const Vec3& X) const
 
     double y = (X-X0)*tangent;
     return y <= 0.5*width && y >= -0.5*width;
+  }
+
+  if (patch && !Delem.empty())
+  {
+    const Vec4* Xp = dynamic_cast<const Vec4*>(&X);
+#ifdef SP_DEBUG
+    if (!Xp || !Xp->u)
+    {
+      std::cerr <<" *** DualRealFunc::inDomain: The point "<< X
+                <<" lacks parameters."<< std::endl;
+      return false;
+    }
+#endif
+    int iel = patch->findElementContaining(Xp->u);
+    if (iel < 1 || Delem.find(iel) == Delem.end()) return false;
+#ifdef SP_DEBUG
+    std::cout <<"DualRealFunc::inDomain("<< X <<") --> iel="<< iel << std::endl;
+#endif
+    return true;
   }
 
   // Rectangular point domain
@@ -81,7 +144,7 @@ double DualRealFunc::value (const Vec3& X, bool ignoreDomain) const
 
 
 DualVecFunc::DualVecFunc (int c, const Vec3& o, const Vec3& n, const Vec3& XZp,
-                          double d, double w, size_t p)
+                          double d, double w, ASMbase* p)
   : VecFunc(3), W(o,n,XZp,d,w,p)
 {
   comp = c;
@@ -89,15 +152,16 @@ DualVecFunc::DualVecFunc (int c, const Vec3& o, const Vec3& n, const Vec3& XZp,
 
 
 DualVecFunc::DualVecFunc (int c, const Vec3& o, const Vec3& n,
-                          double d, double w, size_t p)
+                          double d, double w, ASMbase* p)
   : VecFunc(2), W(o,n,d,w,p)
 {
   comp = c > 2 ? 6 : c;
 }
 
 
-DualVecFunc::DualVecFunc (int c, const Vec3& o, const Vec3Pair& d, size_t p)
-  : VecFunc(2), W(o,d,p)
+DualVecFunc::DualVecFunc (int c, const utl::Point& o, const Vec3Pair& d,
+                          ASMbase* p, double eps)
+  : VecFunc(2), W(o,d,p,eps)
 {
   comp = c;
 }
