@@ -15,9 +15,11 @@
 #include "Property.h"
 #include "ElmMats.h"
 #include "SAM.h"
+#include "ProcessAdm.h"
 
 
-ReactionsOnly::ReactionsOnly (Vector& rf, const SAM* sam) : mySam(sam), R(rf)
+ReactionsOnly::ReactionsOnly (Vector& rf, const SAM* sam, const ProcessAdm& adm)
+  : mySam(sam), myAdm(adm), R(rf)
 {
   mySam->initForAssembly(b,&R);
 }
@@ -32,6 +34,9 @@ void ReactionsOnly::initialize (bool)
 
 bool ReactionsOnly::finalize (bool)
 {
+ if (myAdm.dd.isPartitioned())
+   myAdm.allReduceAsSum(R);
+
   R *= -1.0;
 #if SP_DEBUG > 2
   std::cout <<"\nReaction forces:"<< R;

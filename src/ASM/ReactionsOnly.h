@@ -35,7 +35,8 @@ public:
   //! \brief The constructor initializes the data members.
   //! \param[in] rf The reaction force vector to be assembled
   //! \param[in] sam Data for FE assembly management
-  ReactionsOnly(Vector& rf, const SAM* sam);
+  //! \param[in] adm Parallell processing administrator
+  ReactionsOnly(Vector& rf, const SAM* sam, const ProcessAdm& adm);
   //! \brief Empty destructor.
   virtual ~ReactionsOnly() {}
 
@@ -56,7 +57,8 @@ public:
                                  const std::vector<Property>& pvec) const;
 
 private:
-  const SAM* mySam; //!< Data for FE assembly management
+  const SAM*        mySam; //!< Data for FE assembly management
+  const ProcessAdm& myAdm; //!< Parallel processing administrator
 
   Vector&   R; //!< Nodal reaction forces
   StdVector b; //!< Dummy right-hand-side vector
