@@ -14,6 +14,9 @@
 #include "SIMgeneric.h"
 #include "ModelGenerator.h"
 #include "ASMbase.h"
+#include "IntegrandBase.h"
+#include "Utilities.h"
+#include "IFEM.h"
 
 
 ASMbase* SIMgeneric::createDefaultModel ()
@@ -75,4 +78,72 @@ int SIMgeneric::findElementContaining (const double* param,
 
   int iel = pch->findElementContaining(param);
   return iel > 0 && global ? pch->getElmID(iel) : iel;
+}
+
+
+double SIMgeneric::getReferenceNorm (const Vectors& gNorm, size_t adaptor) const
+{
+  if (gNorm.empty() || gNorm.front().empty())
+    return 0.0;
+
+  const Vector& fNorm = gNorm.front();
+  if (adaptor < 1 && fNorm.size() > 2)
+    return fNorm(3); // Using the analytical solution, |u|_ref = |u|
+  else if (adaptor >= gNorm.size() || gNorm[adaptor].size() < 2)
+    return -(double)adaptor; // Norm group index is out of range
+
+  // |u|_ref = sqrt( |u^h|^2 + |e^*|^2 )
+  return hypot(fNorm(1),gNorm[adaptor](2));
+}
+
+
+double SIMgeneric::getEffectivityIndex (const Vectors& gNorm,
+                                        size_t idx, size_t inorm) const
+{
+  return gNorm[idx](inorm) / gNorm.front()(4);
+}
+
+
+size_t SIMgeneric::getVCPindex (size_t idx) const
+{
+  if (extrFunc.empty() || idx == 0)
+    return 0;
+  else if (idx > extrFunc.size())
+    return 0;
+
+  return (this->haveAnaSol() ? 4 : 2) + idx;
+}
+
+
+void SIMgeneric::printNorms (const Vectors& norms, size_t w) const
+{
+  if (norms.empty()) return;
+
+  NormBase* norm = this->getNormIntegrand();
+  const Vector& n = norms.front();
+
+  IFEM::cout <<"Energy norm"
+             << utl::adjustRight(w-11,norm->getName(1,1)) << n(1);
+  if (n(2) != 0.0)
+    IFEM::cout <<"\nExternal energy"
+               << utl::adjustRight(w-15,norm->getName(1,2)) << n(2);
+
+  if (this->haveAnaSol() && n.size() >= 4)
+    IFEM::cout <<"\nExact norm"
+               << utl::adjustRight(w-10,norm->getName(1,3)) << n(3)
+               <<"\nExact error"
+               << utl::adjustRight(w-11,norm->getName(1,4)) << n(4)
+               <<"\nExact relative error (%) : "<< 100.0*n(4)/n(3);
+
+  size_t i, j = 0, k = 0;
+  while ((i = this->getVCPindex(++k)) && i <= n.size())
+    IFEM::cout <<"\nVCP quantity"
+               << utl::adjustRight(w-12,norm->getName(1,i)) << n(i);
+
+  for (const SIMoptions::ProjectionMap::value_type& prj : opt.project)
+    if (++j < norms.size())
+      this->printNormGroup(norms[j],n,prj.second);
+
+  IFEM::cout << std::endl;
+  delete norm;
 }

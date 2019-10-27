@@ -13,7 +13,7 @@
 
 #include "SAM.h"
 #include "IntegrandBase.h"
-#include "SIMoutput.h"
+#include "SIMgeneric.h"
 #include "SIMdummy.h"
 
 #include "GenAlphaSIM.h"
@@ -111,10 +111,10 @@ private:
 
 
 // Common base class for the test simulators.
-class TestSIMbase : public SIMdummy<SIMoutput>
+class TestSIMbase : public SIMdummy<SIMgeneric>
 {
 public:
-  TestSIMbase() : SIMdummy<SIMoutput>(new Problem) {}
+  TestSIMbase() : SIMdummy<SIMgeneric>(new Problem) {}
   virtual ~TestSIMbase() {}
   virtual double getInitAcc(size_t = 0) const { return 0.0; }
 

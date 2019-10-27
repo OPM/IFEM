@@ -64,6 +64,33 @@ public:
   //! \return Patch-local or global number of the element containing the point
   int findElementContaining(const double* param,
                             int patch = 1, bool global = false) const;
+
+  //! \brief Calculates surface traction resultants.
+  virtual bool calcBouForces(Vectors&, const Vectors&) { return false; }
+
+  //! \brief Returns the norm index for the a VCP-recovered quantity.
+  size_t getVCPindex(size_t idx = 1) const;
+
+  //! \brief Prints integrated solution norms to the log stream.
+  //! \param[in] gNorm Global norm values
+  //! \param[in] w Total number of characters in the norm labels
+  virtual void printNorms(const Vectors& gNorm, size_t w = 36) const;
+
+  //! \brief Prints a norm group to the log stream (app-specific).
+  virtual void printNormGroup(const Vector&, const Vector&,
+                              const std::string&) const {}
+
+  //! \brief Returns the reference norm to base mesh adaptation upon.
+  //! \param[in] gNorm Global norm values
+  //! \param[in] adaptor 0-based norm group index to be used for mesh adaptation
+  virtual double getReferenceNorm(const Vectors& gNorm, size_t adaptor) const;
+
+  //! \brief Returns the global effectivity index.
+  //! \param[in] gNorm Global norm values
+  //! \param[in] idx 0-based norm group index
+  //! \param[in] inorm 1-based norm index within the specified norm group
+  virtual double getEffectivityIndex(const Vectors& gNorm,
+                                     size_t idx, size_t inorm) const;
 };
 
 #endif

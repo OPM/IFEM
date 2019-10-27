@@ -12,7 +12,7 @@
 //==============================================================================
 
 #include "SAM.h"
-#include "SIMoutput.h"
+#include "SIMgeneric.h"
 #include "SIMdummy.h"
 
 #include "NonLinSIM.h"
@@ -42,7 +42,7 @@ public:
 
 
 // Simulator class for a single-DOF skew bar.
-class Bar1DOF : public SIMdummy<SIMoutput>
+class Bar1DOF : public SIMdummy<SIMgeneric>
 {
 public:
   Bar1DOF() { mySam = new SAM1DOF(); }

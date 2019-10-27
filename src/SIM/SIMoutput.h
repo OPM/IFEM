@@ -282,29 +282,16 @@ public:
   bool hasPointResultFile() const;
   //! \brief Checks whether result points have been defined or not.
   bool hasResultPoints() const { return !myPoints.empty(); }
-  //! \brief Returns the norm index for a VCP-recovered quantity.
-  size_t getVCPindex(size_t idx = 1) const;
-
-  //! \brief Calculates surface traction resultants.
-  virtual bool calcBouForces(Vectors&, const Vectors&) { return false; }
-
-  //! \brief Prints integrated solution norms to the log stream.
-  //! \param[in] norms The norm values
-  //! \param[in] w Total number of characters in the norm labels
-  virtual void printNorms(const Vectors& norms, size_t w = 36) const;
-  //! \brief Prints a norm group to the log stream (app-specific).
-  virtual void printNormGroup(const Vector&, const Vector&,
-                              const std::string&) const {}
-
-  //! \brief Returns the reference norm to base mesh adaptation upon.
-  virtual double getReferenceNorm(const Vectors& gNorm, size_t adaptor) const;
-
-  //! \brief Returns the global effectivity index.
-  virtual double getEffectivityIndex(const Vectors& gNorm,
-                                     size_t idx, size_t inorm) const;
 
   //! \brief Serialization support.
   virtual bool serialize(std::map<std::string,std::string>&) const;
+
+  //! \brief Returns the reference norm to base mesh adaptation upon.
+  virtual double getReferenceNorm(const Vectors&, size_t) const = 0;
+  //! \brief Returns the global effectivity index.
+  virtual double getEffectivityIndex(const Vectors&, size_t, size_t) const = 0;
+  //! \brief Prints integrated solution norms to the log stream.
+  virtual void printNorms(const Vectors&, size_t = 36) const = 0;
 
 protected:
   //! \brief Writes out the additional functions to VTF-file.
