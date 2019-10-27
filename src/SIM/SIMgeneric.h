@@ -70,6 +70,8 @@ public:
 
   //! \brief Returns the norm index for the a VCP-recovered quantity.
   size_t getVCPindex(size_t idx = 1) const;
+  //! \brief Returns the norm index for the integrated volume (3D) or area (2D).
+  virtual size_t getVolumeIndex() const { return 0; }
 
   //! \brief Prints integrated solution norms to the log stream.
   //! \param[in] gNorm Global norm values
@@ -91,6 +93,12 @@ public:
   //! \param[in] inorm 1-based norm index within the specified norm group
   virtual double getEffectivityIndex(const Vectors& gNorm,
                                      size_t idx, size_t inorm) const;
+
+protected:
+  //! \brief Reverts the square-root operation on some norm quantities.
+  //! \param gNorm Global norm values
+  //! \param eNorm Element norm values
+  bool revertSqrt(Vectors& gNorm, Matrix* eNorm);
 };
 
 #endif

@@ -1486,6 +1486,8 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
 #endif
 
   // Initialize norm integral classes
+  if (!extrFunc.empty())
+    gNorm.reserve(norm->getNoFields(0)+1);
   gNorm.resize(norm->getNoFields(0));
   size_t nNorms = 0;
   auto proj_idx = opt.project.begin();
@@ -1587,6 +1589,9 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
 
   // Add problem-dependent external norm contributions
   norm->addBoundaryTerms(gNorm,this->externalEnergy(psol,time));
+
+  if (!extrFunc.empty()) // Make room for extraction function domain volumes
+    gNorm.resize(norm->getNoFields(0)+1,Vector(extrFunc.size()));
 
   delete norm;
 
