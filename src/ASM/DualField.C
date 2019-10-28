@@ -17,7 +17,8 @@
 
 
 DualRealFunc::DualRealFunc (const Vec3& o, const Vec3& n, const Vec3& XZp,
-                            double d, double w, ASMbase* p) : X0(o), normal(n)
+                            double d, double w, ASMbase* p, int c)
+  : X0(o), normal(n)
 {
   tangent.cross(XZp-X0,normal);
   normal.normalize();
@@ -25,11 +26,12 @@ DualRealFunc::DualRealFunc (const Vec3& o, const Vec3& n, const Vec3& XZp,
   depth = d;
   width = w;
   patch = p;
+  comp = c;
 }
 
 
 DualRealFunc::DualRealFunc (const Vec3& o, const Vec3& n,
-                            double d, double w, ASMbase* p) : X0(o)
+                            double d, double w, ASMbase* p, int c) : X0(o)
 {
   normal.x = n.x;
   normal.y = n.y;
@@ -39,16 +41,19 @@ DualRealFunc::DualRealFunc (const Vec3& o, const Vec3& n,
   depth = d;
   width = w;
   patch = p;
+  comp = c;
 }
 
 
 DualRealFunc::DualRealFunc (const utl::Point& o, const Vec3Pair& d, ASMbase* p,
-                            double eps) : X0(o), Xll(d.first), Xur(d.second)
+                            double eps, int c)
+  : X0(o), Xll(d.first), Xur(d.second)
 {
   normal.x = tangent.y = 1.0;
   depth = -eps;
   width = 0.0;
   patch = p;
+  comp = c;
 }
 
 
@@ -136,6 +141,11 @@ bool DualRealFunc::inDomain (const Vec3& X) const
 
 double DualRealFunc::value (const Vec3& X, bool ignoreDomain) const
 {
+  if (comp > 0 && comp <= 3)
+    return this->ecc(X,comp);
+  else if (comp < 0)
+    ignoreDomain = true;
+
   if (ignoreDomain || this->inDomain(X))
     return depth > 0.0 ? 1.0 + (X-X0)*normal/depth : 1.0;
 

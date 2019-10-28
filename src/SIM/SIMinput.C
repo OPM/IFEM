@@ -700,10 +700,12 @@ FunctionBase* SIMinput::parseDualTag (const TiXmlElement* elem, int ftype)
 
   if (ftype == 3 || ftype == -2)
     extrFunc.push_back(new DualVecFunc(comp,utl::Point(X0,u0),Xd,pch,eps));
+  else if (ftype == -1)
+    extrFunc.push_back(new DualRealFunc(utl::Point(X0,u0),Xd,pch,eps,comp));
   else if (nsd == 2)
   {
     if (ftype == 1)
-      extrFunc.push_back(new DualRealFunc(X0,normal,depth,width,pch));
+      extrFunc.push_back(new DualRealFunc(X0,normal,depth,width,pch,-1));
     else
       extrFunc.push_back(new DualVecFunc(comp,X0,normal,depth,width,pch));
   }
@@ -712,7 +714,7 @@ FunctionBase* SIMinput::parseDualTag (const TiXmlElement* elem, int ftype)
     Vec3 XZp(0.0,0.0,1.0);
     utl::getAttribute(elem,"XZp",XZp);
     if (ftype == 1)
-      extrFunc.push_back(new DualRealFunc(X0,normal,XZp,depth,width,pch));
+      extrFunc.push_back(new DualRealFunc(X0,normal,XZp,depth,width,pch,-1));
     else
       extrFunc.push_back(new DualVecFunc(comp,X0,normal,XZp,depth,width,pch));
   }

@@ -27,6 +27,8 @@ class ASMbase;
 
 class DualRealFunc : public RealFunc
 {
+  short int comp; //!< Result component to extract for (0 if used as weight)
+
 public:
   //! \brief Constructor for 3D problems.
   //! \param[in] o Origin of local cross section coordinate system
@@ -35,25 +37,34 @@ public:
   //! \param[in] d Depth of dual function domain
   //! \param[in] w Width of dual function domain (0=infinite)
   //! \param[in] p The affected patch (null=all)
+  //! \param[in] c Component index to do extraction for
   DualRealFunc(const Vec3& o, const Vec3& n, const Vec3& XZp,
-               double d, double w = 0.0, ASMbase* p = nullptr);
+               double d, double w = 0.0, ASMbase* p = nullptr, int c = 0);
   //! \brief Constructor for 2D problems (in XY-plane).
   //! \param[in] o Origin of local cross section coordinate system
   //! \param[in] n Cross section normal
   //! \param[in] d Depth of dual function domain
   //! \param[in] w Width of dual function domain (0=infinite)
   //! \param[in] p The affected patch (null=all)
+  //! \param[in] c Component index to do extraction for
   DualRealFunc(const Vec3& o, const Vec3& n,
-               double d, double w = 0.0, ASMbase* p = nullptr);
+               double d, double w = 0.0, ASMbase* p = nullptr, int c = 0);
   //! \brief Constructor for point extraction.
+  //! \param[in] c Component index to do extraction for
   //! \param[in] o Point to extract the point quantity at
   //! \param[in] d Lower-left and upper-rigth corner of function domain
   //! \param[in] p The affected patch (null=all)
   //! \param[in] eps Parameter tolerance for searching elements around a point
   DualRealFunc(const utl::Point& o, const Vec3Pair& d,
-               ASMbase* p = nullptr, double eps = 0.0);
+               ASMbase* p = nullptr, double eps = 0.0, int c = 0);
   //! \brief Empty destructor.
   virtual ~DualRealFunc() {}
+
+  //! \brief Returns the function type flag.
+  virtual unsigned char getType() const
+  {
+    return comp > 0 && depth <= 0.0 ? 3 : 1;
+  }
 
   //! \brief Returns the local X (normal) direction of the cross section.
   const Vec3& x() const { return normal; }
@@ -102,11 +113,11 @@ private:
 
 class DualVecFunc : public VecFunc
 {
-  int comp; //!< Which section force component to extract for [1,6]
+  int comp; //!< Which result component to extract for
 
 public:
   //! \brief Constructor for 3D problems.
-  //! \param[in] c Sectional force component index to do extraction for
+  //! \param[in] c Result component index to do extraction for
   //! \param[in] o Origin of local cross section coordinate system
   //! \param[in] n Cross section normal
   //! \param[in] XZp Point in the local XZ-plane
@@ -116,7 +127,7 @@ public:
   DualVecFunc(int c, const Vec3& o, const Vec3& n, const Vec3& XZp,
               double d, double w = 0.0, ASMbase* p = nullptr);
   //! \brief Constructor for 2D problems (in XY-plane).
-  //! \param[in] c Sectional force component index to do extraction for
+  //! \param[in] c Result component index to do extraction for
   //! \param[in] o Origin of local cross section coordinate system
   //! \param[in] n Cross section normal
   //! \param[in] d Depth of dual function domain
@@ -124,8 +135,8 @@ public:
   //! \param[in] p The affected patch (null=all)
   DualVecFunc(int c, const Vec3& o, const Vec3& n,
               double d, double w = 0.0, ASMbase* p = nullptr);
-  //! \brief Constructor for stress extraction.
-  //! \param[in] c Stress component index to do extraction for
+  //! \brief Constructor for point-value extraction.
+  //! \param[in] c Result component index to do extraction for
   //! \param[in] o Point to extract the point quantity at
   //! \param[in] d Lower-left and upper-rigth corner of function domain
   //! \param[in] p The affected patch (null=all)
