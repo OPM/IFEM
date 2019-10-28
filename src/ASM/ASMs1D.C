@@ -1121,6 +1121,13 @@ bool ASMs1D::integrate (Integrand& integrand,
       if (!elmCS.empty()) fe.Te = elmCS[iel];
     }
 
+    if (integrand.getIntegrandType() & Integrand::ELEMENT_CENTER)
+    {
+      // Compute the element center
+      param[0] = 0.5*(gpar(1,1+iel) + gpar(ng,1+iel));
+      SplineUtils::point(X,param[0],curv);
+    }
+
     // Initialize element matrices
     LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
     bool ok = integrand.initElement(MNPC[iel],fe,X,nRed,*A);

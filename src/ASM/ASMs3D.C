@@ -2096,17 +2096,17 @@ bool ASMs3D::integrate (Integrand& integrand,
         if (integrand.getIntegrandType() & Integrand::ELEMENT_CENTER)
         {
           // Compute the element center
-          double u0 = 0.5*(gpar[0](1,i1-p1+1) + gpar[0](ng[0],i1-p1+1));
-          double v0 = 0.5*(gpar[1](1,i2-p2+1) + gpar[1](ng[1],i2-p2+1));
-          double w0 = 0.5*(gpar[2](1,i3-p3+1) + gpar[2](ng[2],i3-p3+1));
-          SplineUtils::point(X,u0,v0,w0,svol);
+          param[0] = 0.5*(gpar[0](1,i1-p1+1) + gpar[0](ng[0],i1-p1+1));
+          param[1] = 0.5*(gpar[1](1,i2-p2+1) + gpar[1](ng[1],i2-p2+1));
+          param[2] = 0.5*(gpar[2](1,i3-p3+1) + gpar[2](ng[2],i3-p3+1));
+          SplineUtils::point(X,param[0],param[1],param[2],svol);
           if (!useElmVtx)
           {
             // When element corner coordinates are not needed, store coordinates
             // and parameters of the element center in XC, for material usage
             fe.XC.resize(2);
             fe.XC.front() = X;
-            fe.XC.back() = Vec3(u0,v0,w0);
+            fe.XC.back() = Vec3(param);
           }
         }
 
