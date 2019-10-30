@@ -40,6 +40,10 @@ namespace TimeIntegration
     AB5,   //!< Fifth order Adams-Bashforth, explicit
 
     // Implicit methods
+    AM1,   //!< First order Adams-Moulton, implicit
+    AM2,   //!< Second order Adams-Moulton, implicit
+    AM3,   //!< Third order Adams-Moulton, implicit
+    AM4,   //!< Fourth order Adams-Moulton, implicit
     BE,    //!< Backward Euler, implicit
     BDF2,  //!< Second order backward differencing, implicit
 
