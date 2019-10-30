@@ -754,11 +754,14 @@ bool ASMs1D::updateCoords (const Vector& displ)
   if (!curv) return true; // silently ignore empty patches
   if (shareFE) return true;
 
-  if (displ.size() < nsd*MLGN.size())
+  size_t nno = curv->numCoefs();
+  if (displ.size() != nsd*nno && displ.size() != nsd*MLGN.size())
   {
     std::cerr <<" *** ASMs1D::updateCoords: Invalid dimension "
-	      << displ.size() <<" on displ, should be "
-	      << nsd*MLGN.size() << std::endl;
+              << displ.size() <<" on displacement vector, should be ";
+    if (nno != MLGN.size())
+      std::cerr <<"either "<< nsd*MLGN.size() <<" or ";
+    std::cerr << nsd*nno << std::endl;
     return false;
   }
 
