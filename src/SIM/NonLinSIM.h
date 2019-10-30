@@ -92,6 +92,14 @@ protected:
   //! \brief Performs line search to accelerate convergence.
   virtual bool lineSearch(TimeStep& param);
 
+  //! \brief Administers assembly of the linear equation system.
+  //! \param[in] time Parameters for nonlinear/time-dependent simulations
+  //! \param[in] pSol Previous primary solution vectors in DOF-order
+  //! \param[in] newLHSmatrix If \e false, only integrate the RHS vector
+  //! \param[in] poorConvg If \e true, the nonlinear driver is converging poorly
+  virtual bool assembleSystem(const TimeDomain& time, const Vectors& pSol,
+                              bool newLHSmatrix = true, bool poorConvg = false);
+
 public:
   //! \brief Parses a data section from an input stream.
   //! \param[in] keyWord Keyword of current data section to read

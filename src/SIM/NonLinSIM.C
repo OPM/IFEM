@@ -226,7 +226,7 @@ ConvStatus NonLinSIM::solveStep (TimeStep& param, SolutionMode mode,
   bool poorConvg = false;
   bool newTangent = true;
   model.setQuadratureRule(opt.nGauss[0],true);
-  if (!model.assembleSystem(param.time,solution,newTangent))
+  if (!this->assembleSystem(param.time,solution,newTangent))
     return model.getProblem()->diverged() ? DIVERGED : FAILURE;
 
   if (iteNorm != NONE)
@@ -272,7 +272,7 @@ ConvStatus NonLinSIM::solveStep (TimeStep& param, SolutionMode mode,
 	else
 	  model.setMode(mode);
 
-	if (!model.assembleSystem(param.time,solution,newTangent,poorConvg))
+	if (!this->assembleSystem(param.time,solution,newTangent,poorConvg))
 	  return model.getProblem()->diverged() ? DIVERGED : FAILURE;
 
 	if (!model.extractLoadVec(residual))
@@ -301,7 +301,7 @@ SIM::ConvStatus NonLinSIM::solveIteration (TimeStep& param)
   if (!model.setMode(SIM::STATIC))
     return SIM::FAILURE;
 
-  if (!model.assembleSystem(param.time,solution))
+  if (!this->assembleSystem(param.time,solution))
     return SIM::FAILURE;
 
   if (!model.extractLoadVec(residual))
@@ -354,7 +354,7 @@ bool NonLinSIM::lineSearch (TimeStep& param)
     if (!this->updateConfiguration(param))
       return false;
 
-    if (!model.assembleSystem(param.time,solution,false))
+    if (!this->assembleSystem(param.time,solution,false))
       return false;
 
     if (!model.extractLoadVec(residual))
@@ -544,4 +544,11 @@ bool NonLinSIM::updateConfiguration (TimeStep& time)
   }
 
   return model.updateConfiguration(solution.front());
+}
+
+
+bool NonLinSIM::assembleSystem(const TimeDomain& time, const Vectors& pSol,
+                               bool newLHSmatrix, bool poorConvg)
+{
+  return model.assembleSystem(time, pSol, newLHSmatrix, poorConvg);
 }
