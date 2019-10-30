@@ -35,6 +35,8 @@ TimeIntegration::Method TimeIntegration::get (const std::string& type)
     return RK3;
   else if (type == "rk4")
     return RK4;
+  else if (type == "ab1")
+    return AB1;
   else if (type == "ab2")
     return AB2;
   else if (type == "ab3")
@@ -51,6 +53,7 @@ TimeIntegration::Method TimeIntegration::get (const std::string& type)
 int TimeIntegration::Order (Method method)
 {
   switch (method) {
+  case AB1:
   case EULER:
   case BE:
     return 1;

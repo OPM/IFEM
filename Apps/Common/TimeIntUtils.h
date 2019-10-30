@@ -33,6 +33,7 @@ namespace TimeIntegration
     HEUN,  //!< Heun-Euler, explicit
     RK3,   //!< Kutta's third order method, explicit
     RK4,   //!< Kutta's fourth order method, explicit
+    AB1,   //!< First order Adams-Bashforth, explicit
     AB2,   //!< Second order Adams-Bashforth, explicit
     AB3,   //!< Third order Adams-Bashforth, explicit
     AB4,   //!< Fourth order Adams-Bashforth, explicit
