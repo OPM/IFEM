@@ -1065,8 +1065,10 @@ bool SIMbase::solveSystem (Vector& solution, int printSol, double* rCond,
     }
 
   // Expand solution vector from equation ordering to DOF-ordering
-  if (status)
-    status = mySam ? mySam->expandSolution(*b,solution) : false;
+  if (status && mySam)
+    status = mySam->expandSolution(*b, solution, idxRHS == 0 ? 1.0 : 0.0);
+  else
+    status = false;
 
 #if SP_DEBUG > 2
   if (printSol < 1000) printSol = 1000;
