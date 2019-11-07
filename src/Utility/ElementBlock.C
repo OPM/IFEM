@@ -138,6 +138,13 @@ void ElementBlock::merge (const ElementBlock* other, std::vector<int>& nodeNums)
 }
 
 
+void ElementBlock::merge (const ElementBlock& other)
+{
+  std::vector<int> nodes;
+  this->merge(&other,nodes);
+}
+
+
 Vec3 ElementBlock::getCenter (size_t i) const
 {
   if (i < 1 || i > MINEX.size())
@@ -149,4 +156,22 @@ Vec3 ElementBlock::getCenter (size_t i) const
   XC /= nen;
 
   return XC;
+}
+
+
+CubeBlock::CubeBlock (const Vec3& X0, double dX) : ElementBlock(8)
+{
+  dX *= 0.5;
+  this->resize(2,2,2);
+  this->setCoor(0, X0.x-dX, X0.y-dX, X0.z-dX);
+  this->setCoor(1, X0.x+dX, X0.y-dX, X0.z-dX);
+  this->setCoor(2, X0.x+dX, X0.y+dX, X0.z-dX);
+  this->setCoor(3, X0.x-dX, X0.y+dX, X0.z-dX);
+  this->setCoor(4, X0.x-dX, X0.y-dX, X0.z+dX);
+  this->setCoor(5, X0.x+dX, X0.y-dX, X0.z+dX);
+  this->setCoor(6, X0.x+dX, X0.y+dX, X0.z+dX);
+  this->setCoor(7, X0.x-dX, X0.y+dX, X0.z+dX);
+  for (int i = 0; i < 8; i++)
+    this->setNode(i,i);
+  this->setElmId(1,1);
 }

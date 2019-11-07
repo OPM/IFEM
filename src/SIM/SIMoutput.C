@@ -33,6 +33,7 @@
 SIMoutput::SIMoutput (IntegrandBase* itg) : SIMinput(itg)
 {
   myPrec = 3;
+  myPtSize = 0.0;
   myGeomID = 0;
   myVtf = nullptr;
 }
@@ -177,6 +178,7 @@ bool SIMoutput::parseOutputTag (const TiXmlElement* elem)
   }
 
   utl::getAttribute(elem,"precision",myPrec);
+  utl::getAttribute(elem,"vtfsize",myPtSize);
 
   std::string fname;
   if (utl::getAttribute(elem,"file",fname))
@@ -353,6 +355,18 @@ bool SIMoutput::writeGlvG (int& nBlock, const char* inpFile, bool doClear)
       if (!myVtf->writeGrid(lvb,pname,nGlPatches+pch->idx+1,++nBlock))
         return false;
     }
+
+  // Additional geometry for result point visualization
+  if (myPtSize > 0.0 && !myPoints.empty())
+  {
+    lvb = new ElementBlock(8);
+    for (const ResPtPair& points : myPoints)
+      for (const ResultPoint& pt : points.second)
+        lvb->merge(CubeBlock(pt.X,myPtSize));
+
+    if (!myVtf->writeGrid(lvb,"Result points",2*nGlPatches+1,++nBlock))
+      return false;
+  }
 
   // Do not write the geometry blocks to file yet, writeVectors might create
   // an additional block for the point vectors, see method VTF::writeVectors
@@ -1056,8 +1070,8 @@ bool SIMoutput::writeGlvF (const RealFunc& f, const char* fname,
     if (pch->empty()) continue; // skip empty patches
 
     if (msgLevel > 1)
-      IFEM::cout <<"Writing function '"<< fname
-                 <<"' for patch "<< pch->idx+1 << std::endl;
+      IFEM::cout <<"Writing function '"<< fname <<"' for patch "
+                 << pch->idx+1 << std::endl;
 
     if (!myVtf->writeNfunc(f,time,++nBlock,++geomID))
       return false;
@@ -1256,8 +1270,8 @@ bool SIMoutput::writeGlvE (const Vector& vec, int iStep, int& nBlock,
     if (pch->empty()) continue; // skip empty patches
 
     if (msgLevel > 1)
-      IFEM::cout <<"Writing element field '"<< name
-                 <<"' for patch "<< pch->idx+1 << std::endl;
+      IFEM::cout <<"Writing element field '"<< name <<"' for patch "
+                 << pch->idx+1 << std::endl;
 
     pch->extractElmRes(infield,field);
 

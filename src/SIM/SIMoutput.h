@@ -378,9 +378,10 @@ protected:
 private:
   std::map<std::string,RealFunc*> myAddScalars; //!< Scalar functions to output
 
-  int  myPrec;   //!< Output precision for result sampling
-  int  myGeomID; //!< VTF geometry block ID for the first patch
-  VTF* myVtf;    //!< VTF-file for result visualization
+  int    myPrec;   //!< Output precision for result sampling
+  double myPtSize; //!< Size of result point visualization in VTF file
+  int    myGeomID; //!< VTF geometry block ID for the first patch
+  VTF*   myVtf;    //!< VTF-file for result visualization
 };
 
 #endif

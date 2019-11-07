@@ -11,8 +11,8 @@
 //!
 //==============================================================================
 
-#ifndef _ELEMENTBLOCK_H
-#define _ELEMENTBLOCK_H
+#ifndef _ELEMENT_BLOCK_H
+#define _ELEMENT_BLOCK_H
 
 #include "Vec3.h"
 #include <array>
@@ -26,13 +26,15 @@
 class ElementBlock
 {
 public:
-  //! The constructor defines the number of nodes per element \a nenod.
+  //! \brief The constructor defines the number of nodes per element \a nenod.
   explicit ElementBlock(size_t nenod = 8);
+  //! \brief Empty destructor.
+  virtual ~ElementBlock() {}
 
   //! \brief Reallocates the internal arrays to fit a structured grid.
-  //! \param[in] nI Number of element in I-direction
-  //! \param[in] nJ Number of element in J-direction
-  //! \param[in] nK Number of element in K-direction
+  //! \param[in] nI Number of nodes in I-direction
+  //! \param[in] nJ Number of nodes in J-direction
+  //! \param[in] nK Number of nodes in K-direction
   void resize(size_t nI, size_t nJ = 1, size_t nK = 1);
 
   //! \brief Reallocates the internal arrays to fit an unstructured grid.
@@ -72,10 +74,12 @@ public:
 
   //! \brief Merges another element block into this one.
   void merge(const ElementBlock* other, std::vector<int>& nodeNums);
+  //! \brief Merges another element block into this one.
+  void merge(const ElementBlock& other);
 
-  //! \brief Returns the beginning of the coord array.
+  //! \brief Returns the beginning of the coordinate array.
   std::vector<Vec3>::const_iterator begin_XYZ() const { return coord.begin(); }
-  //! \brief Returns the end of the coord array.
+  //! \brief Returns the end of the coordinate array.
   std::vector<Vec3>::const_iterator end_XYZ() const { return coord.end(); }
 
   //! \brief Returns the coordinate of a given node.
@@ -97,6 +101,24 @@ private:
   std::vector<int>  MMNPC; //!< Matrix of Matrices of Nodal Point Correspondance
   std::vector<int>  MINEX; //!< Matrix of Internal to External element numbers
   size_t            nen;   //!< Number of Element Nodes
+};
+
+
+/*!
+  \brief Class for single-element cube geometries.
+  \details This class is used to create small cube shapes in the model,
+  mainly for visualization of result points, etc.
+*/
+
+class CubeBlock : public ElementBlock
+{
+public:
+  //! \brief The constructor defines a cube centred at specified point.
+  //! \param[in] X0 Center of the cube
+  //! \param[in] dX Length of each cube edge
+  CubeBlock(const Vec3& X0, double dX);
+  //! \brief Empty destructor.
+  virtual ~CubeBlock() {}
 };
 
 #endif
