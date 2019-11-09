@@ -524,12 +524,12 @@ void SIMbase::setIntegrationPrm (unsigned short int i, double prm)
 void SIMbase::setQuadratureRule (size_t ng, bool redimBuffers, bool printQP)
 {
   size_t nInterfaceGP = nIntGP = nBouGP = 0;
-  for (size_t i = 0; i < myModel.size(); i++)
-    if (!myModel[i]->empty())
+  for (ASMbase* pch : myModel)
+    if (!pch->empty())
     {
-      myModel[i]->setGauss(ng);
+      pch->setGauss(ng);
       // Count the interior integration points
-      myModel[i]->getNoIntPoints(nIntGP,nInterfaceGP);
+      pch->getNoIntPoints(nIntGP,nInterfaceGP);
     }
 
   if (!myProblem) return;
@@ -621,8 +621,8 @@ size_t SIMbase::getNoElms (bool includeXelms) const
     return mySam->getNoElms();
 
   size_t noElms = 0;
-  for (size_t i = 0; i < myModel.size(); i++)
-    noElms += myModel[i]->getNoElms(false,includeXelms);
+  for (ASMbase* pch : myModel)
+    noElms += pch->getNoElms(false,includeXelms);
 
   return noElms;
 }
@@ -682,8 +682,8 @@ unsigned char SIMbase::getNoBasis () const
 
 bool SIMbase::hasTimeDependentDirichlet () const
 {
-  for (size_t i = 0; i < myModel.size(); i++)
-    if (myModel[i]->hasTimeDependentDirichlet(myScalars,myVectors))
+  for (ASMbase* pch : myModel)
+    if (pch->hasTimeDependentDirichlet(myScalars,myVectors))
       return true;
 
   return false;
@@ -693,9 +693,9 @@ bool SIMbase::hasTimeDependentDirichlet () const
 bool SIMbase::initDirichlet (double time)
 {
   if (time == 0.0)
-    for (size_t i = 0; i < myModel.size(); i++)
-      if (!myModel[i]->initConstraints())
-	return false;
+    for (ASMbase* pch : myModel)
+      if (!pch->initConstraints())
+        return false;
 
   Vector dummy;
   return this->updateDirichlet(time,&dummy);
@@ -705,9 +705,9 @@ bool SIMbase::initDirichlet (double time)
 bool SIMbase::updateDirichlet (double time, const Vector* prevSol)
 {
   if (prevSol)
-    for (size_t i = 0; i < myModel.size(); i++)
-      if (!myModel[i]->updateDirichlet(myScalars,myVectors,time))
-	return false;
+    for (ASMbase* pch : myModel)
+      if (!pch->updateDirichlet(myScalars,myVectors,time))
+        return false;
 
   SAMpatch* pSam = dynamic_cast<SAMpatch*>(mySam);
   return pSam ? pSam->updateConstraintEqs(myModel,prevSol) : true;
@@ -718,20 +718,20 @@ bool SIMbase::updateGrid (const Vector& displ)
 {
   if (displ.empty()) return true; // No displacements (yet), totally fine
 
-  bool ok = true;
-  Vector locdisp;
-  for (size_t i = 0; i < myModel.size() && ok; i++)
+  for (ASMbase* pch : myModel)
   {
+    Vector locdisp;
     if (this->mixedProblem())
-      this->extractPatchSolution(displ,locdisp,myModel[i],
-                                 myModel[i]->getNoSpaceDim(),ASMmxBase::geoBasis);
+      this->extractPatchSolution(displ,locdisp,pch,
+                                 pch->getNoSpaceDim(),ASMmxBase::geoBasis);
     else
-      myModel[i]->extractNodeVec(displ,locdisp,myModel[i]->getNoSpaceDim(),-1);
+      pch->extractNodeVec(displ,locdisp,pch->getNoSpaceDim(),-1);
 
-    ok = myModel[i]->updateCoords(locdisp);
+    if (!pch->updateCoords(locdisp))
+      return false;
   }
 
-  return ok;
+  return true;
 }
 
 
@@ -791,13 +791,13 @@ int SIMbase::findClosestNode (const Vec3& X) const
 
   ASMbase* closestPch = nullptr;
   std::pair<size_t,double> closest(0,1.0e99);
-  for (size_t i = 0; i < myModel.size(); i++)
+  for (ASMbase* pch : myModel)
   {
-    std::pair<size_t,double> node = myModel[i]->findClosestNode(X);
+    std::pair<size_t,double> node = pch->findClosestNode(X);
     if (node.first > 0 && node.second < closest.second)
     {
       closest = node;
-      closestPch = myModel[i];
+      closestPch = pch;
     }
   }
   if (!closestPch) return -2;
@@ -2011,9 +2011,11 @@ bool SIMbase::extractPatchSolution (IntegrandBase* problem,
   if (!pch || !mySam) return false;
 
   problem->initNodeMap(pch->getGlobalNodeNums());
-  for (size_t i = 0; i < sol.size() && i < problem->getNoSolutions(); i++)
-    if (!sol[i].empty())
+  for (size_t i = 0; i < problem->getNoSolutions(); i++)
+    if (i < sol.size() && !sol[i].empty())
       pch->extractNodalVec(sol[i],problem->getSolution(i),mySam->getMADOF());
+    else
+      problem->getSolution(i).clear();
 
   return this->extractPatchDependencies(problem,myModel,pindx);
 }
