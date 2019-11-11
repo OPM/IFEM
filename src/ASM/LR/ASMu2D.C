@@ -2155,7 +2155,9 @@ bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   if (project == 'S')
     s = this->scRecovery(integrand);
   else if (project == 'D' || !npe)
-    s = this->projectSolution(integrand);
+    // LR splines use L2-projection by default since Greville points
+    // are often not unique.
+    return this->globalL2projection(sField,integrand,true);
 
   if (npe)
   {
