@@ -12,7 +12,7 @@
 //==============================================================================
 
 #include "Profiler.h"
-#include "LinAlgInit.h"
+#include "IFEM.h"
 #ifdef HAVE_MPI
 #include <mpi.h>
 #endif
@@ -39,8 +39,6 @@ Profiler::Profiler (const std::string& name) : myName(name), nRunners(0)
   // Update pointer to current profiler (it should only be one at any time)
   if (utl::profiler) delete utl::profiler;
   utl::profiler = this;
-
-  LinAlgInit::increfs();
 }
 
 
@@ -49,7 +47,7 @@ Profiler::~Profiler ()
   this->stop("Total");
   this->report(std::cout);
 
-  LinAlgInit::decrefs();
+  IFEM::Close();
 }
 
 
@@ -131,7 +129,7 @@ static bool use_ms = false; //!< Print mean times in microseconds?
 
 //! \brief Global stream operator printing a Profile instance.
 
-std::ostream& operator<<(std::ostream& os, const Profiler::Profile& p)
+std::ostream& operator<< (std::ostream& os, const Profiler::Profile& p)
 {
   // First the CPU time
   os.width(10);
@@ -166,20 +164,20 @@ void Profiler::report (std::ostream& os) const
   if (myTimers.empty()) return;
 
   use_ms = true; // Print mean times in microseconds by default
-  ProfileMap::const_iterator it;
-  for (it = myTimers.begin(); it != myTimers.end(); ++it)
+  for (const ProfileMap::value_type& timer : myTimers)
   {
     // Make sure the task has stopped profiling (in case of exceptions)
-    if (it->second.running) const_cast<Profiler*>(this)->stop(it->first);
-    if (it->second.nCalls > 1)
-      if (it->second.totalWall/it->second.nCalls >= 100.0)
+    if (timer.second.running)
+      const_cast<Profiler*>(this)->stop(timer.first);
+    if (timer.second.nCalls > 1)
+      if (timer.second.totalWall/timer.second.nCalls >= 100.0)
         use_ms = false; // Print mean times in seconds
   }
 
   // Find the time for "other" tasks, i.e., the difference between
   // the measured total time and the sum of all the measured tasks
   Profile other;
-  ProfileMap::const_iterator tit = myTimers.find("Total");
+  ProfileMap::const_iterator it, tit = myTimers.find("Total");
   if (tit != myTimers.end())
   {
     if (!tit->second.haveTime()) return; // Nothing to report, run in zero time

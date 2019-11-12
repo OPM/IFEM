@@ -19,7 +19,6 @@
 #define IFEM_VERSION_PATCH @IFEM_VERSION_PATCH@ //!< Patch library version
 
 #include "SIMoptions.h"
-#include "ControlFIFO.h"
 #include "LogStream.h"
 
 #ifndef NDEBUG
@@ -30,6 +29,9 @@
 #define SCOPED_LOG
 #endif
 
+class ControlFIFO;
+class ControlCallback;
+
 
 /*!
   \brief Class holding global IFEM configuration.
@@ -39,11 +41,13 @@ class IFEM
 {
 public:
   //! \brief Initializes the IFEM library.
-  //! \param arg_c The number of command-line arguments
-  //! \param arg_v The command-line arguments
-  //! \param title The title of the IFEM simulator
+  //! \param[in] arg_c The number of command-line arguments
+  //! \param[in] arg_v The command-line arguments
+  //! \param[in] title The title of the IFEM simulator
   //! \return The MPI process ID
   static int Init(int arg_c, char** arg_v, const char* title = nullptr);
+  //! \brief Closes the IFEM library.
+  static void Close();
 
   //! \brief Applies command-line argument values to the general input options.
   static void applyCommandLineOptions(SIMoptions& opt);
@@ -51,13 +55,9 @@ public:
   static SIMoptions& getOptions() { return cmdOptions; }
 
   //! \brief Registers a fifo instruction callback.
-  static void registerCallback(ControlCallback& callback)
-  {
-    fifo.registerCallback(callback);
-  }
-
+  static void registerCallback(ControlCallback& cb);
   //! \brief Polls the control fifo for instructions.
-  static void pollControllerFifo() { fifo.poll(); }
+  static bool pollControllerFifo();
 
   static utl::LogStream cout; //!< Combined standard out for parallel processes
 
@@ -65,7 +65,7 @@ private:
   static SIMoptions cmdOptions; //!< General input options
   static int argc;              //!< The number of command-line arguments
   static char** argv;           //!< The command-line arguments
-  static ControlFIFO fifo;      //!< Control fifo helper class
+  static ControlFIFO* fifo;     //!< Control fifo helper
 };
 
 #endif

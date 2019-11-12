@@ -13,6 +13,7 @@
 
 #include "IFEM.h"
 #include "LinAlgInit.h"
+#include "ControlFIFO.h"
 #include <iostream>
 #include <cstring>
 
@@ -28,10 +29,11 @@
 #include <umfpack.h>
 #endif
 
-int IFEM::argc;
-char** IFEM::argv;
+
+int    IFEM::argc = 0;
+char** IFEM::argv = nullptr;
 SIMoptions IFEM::cmdOptions;
-ControlFIFO IFEM::fifo;
+ControlFIFO* IFEM::fifo = nullptr;
 utl::LogStream IFEM::cout(std::cout);
 
 
@@ -40,9 +42,16 @@ int IFEM::Init (int arg_c, char** arg_v, const char* title)
   argc = arg_c;
   argv = arg_v;
   LinAlgInit& linalg = LinAlgInit::Init(argc,argv);
-  applyCommandLineOptions(cmdOptions);
+  LinAlgInit::increfs();
 
-  cout.setPIDs(0, linalg.myPid);
+  bool enableController = false;
+  for (int i = 1; i < argc; i++)
+    if (!strcasecmp(argv[i],"-controller"))
+      enableController = true;
+    else
+      cmdOptions.parseOldOptions(argc,argv,i);
+
+  cout.setPIDs(0,linalg.myPid);
 
   if (linalg.myPid != 0 || argc < 2)
     return linalg.myPid;
@@ -141,12 +150,45 @@ int IFEM::Init (int arg_c, char** arg_v, const char* title)
   std::cout <<"disabled";
 #endif
 
-  if (cmdOptions.enableController && fifo.open())
-    std::cout <<"\n        External controller enabled";
+  if (enableController)
+  {
+    fifo = new ControlFIFO();
+    if (fifo->open())
+      std::cout <<"\n        External controller enabled";
+    else
+    {
+      delete fifo;
+      fifo = nullptr;
+    }
+  }
 
   std::cout << std::endl;
 
   return 0;
+}
+
+
+void IFEM::Close ()
+{
+  delete fifo;
+  fifo = nullptr;
+
+  LinAlgInit::decrefs();
+}
+
+
+void IFEM::registerCallback (ControlCallback& cb)
+{
+  if (fifo) fifo->registerCallback(cb);
+}
+
+
+bool IFEM::pollControllerFifo ()
+{
+  if (!fifo) return false;
+
+  fifo->poll();
+  return true;
 }
 
 

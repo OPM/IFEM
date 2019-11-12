@@ -44,9 +44,7 @@ SIMoptions::SIMoptions ()
   format  = -1;
   saveInc =  1;
   dtSave  =  0.0;
-  pSolOnly = false;
-  saveNorms = false;
-  enableController = false;
+  pSolOnly = saveNorms = false;
   restartInc = 0;
   restartStep = -1;
 
@@ -339,7 +337,7 @@ bool SIMoptions::parseOldOptions (int argc, char** argv, int& i)
   else if (!strcmp(argv[i],"-shift") && i < argc-1)
     shift = atof(argv[++i]);
   else if (!strcasecmp(argv[i],"-controller"))
-    enableController = true;
+    return true; // Silently ignore here, processed by IFEM::Init()
   else if (argv[i][0] == '-')
     return this->parseProjectionMethod(argv[i]+1);
   else

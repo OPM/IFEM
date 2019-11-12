@@ -92,14 +92,12 @@ public:
   bool saveNorms;//!< If \e true, save element norms
 
   std::string hdf5; //!< Prefix for HDF5-file
-  std::string vtf; //!< Prefix for VTF file
+  std::string vtf;  //!< Prefix for VTF-file
 
   // Restart options
   int         restartInc;  //!< Number of increments between each restart output
   int         restartStep; //!< Index to the actual state to restart from
   std::string restartFile; //!< File to read restart state data from
-
-  bool enableController; //!< Whether or not to enable external program control
 
   int         printPid;   //!< PID to print info to screen for
   std::string log_prefix; //!< Prefix for process log files
