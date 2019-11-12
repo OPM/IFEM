@@ -428,7 +428,7 @@ LR::LRSplineSurface* ASMu2D::regularInterpolation (const RealArray& upar,
   {
     size_t k = 0;
     int iel = lrspline->getElementContaining(upar[i], vpar[i]);
-    this->computeBasis(upar[i],vpar[i],splineValues,iel);
+    this->computeBasis(upar[i],vpar[i],splineValues,iel,lrspline);
     for (LR::Basisfunction* function : lrspline->getElement(iel)->support())
       A(i+1,function->getId()+1) = splineValues.basisValues[k++];
   }
