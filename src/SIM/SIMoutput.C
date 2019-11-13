@@ -1488,12 +1488,6 @@ bool SIMoutput::dumpResults (const Vector& psol, double time,
   if (gPoints.empty())
     return true;
 
-  Matrix  sol1, sol2;
-  Vector  sol3, reactionFS;
-  Vec3    sol4;
-  IntVec  points;
-  Vec3Vec Xp;
-
   const Vector* reactionForces = this->getReactionForces();
   RealFunc*     psolScl = mySol ? mySol->getScalarSol() : nullptr;
   VecFunc*      psolVec = mySol ? mySol->getVectorSol() : nullptr;
@@ -1509,6 +1503,9 @@ bool SIMoutput::dumpResults (const Vector& psol, double time,
 
   for (const ASMbase* pch : myModel)
   {
+    IntVec  points;
+    Vec3Vec Xp;
+    Matrix  sol1, sol2;
     if (!this->evalResults(psol,gPoints,pch,points,Xp,sol1,sol2))
       return false;
     else if (points.empty())
@@ -1533,6 +1530,7 @@ bool SIMoutput::dumpResults (const Vector& psol, double time,
       for (size_t i = 1; i <= sol1.rows(); i++)
         os << std::setw(flWidth) << utl::trunc(sol1(i,j+1));
 
+      Vec3 sol4;
       if (psolScl)
         sol4.x = (*psolScl)(Vec4(Xp[j],time));
       else if (psolVec)
@@ -1552,6 +1550,7 @@ bool SIMoutput::dumpResults (const Vector& psol, double time,
           os << std::setw(flWidth) << utl::trunc(sol2(i,j+1));
         }
 
+        Vector sol3;
         if (ssolScl || ssolVec || ssolStr)
           os <<"\n\t\texact2";
         if (ssolScl)
@@ -1560,20 +1559,19 @@ bool SIMoutput::dumpResults (const Vector& psol, double time,
           sol3 = (*ssolVec)(Vec4(Xp[j],time));
         else if (ssolStr)
           sol3 = (*ssolStr)(Vec4(Xp[j],time));
-        for (double s : sol3)
-          os << std::setw(flWidth) << utl::trunc(s);
+        for (double s : sol3) os << std::setw(flWidth) << utl::trunc(s);
       }
 
       if (reactionForces && points[j] > 0)
-        // Print nodal reaction forces for nodes with prescribed DOFs
-        if (mySam->getNodalReactions(points[j],*reactionForces,reactionFS))
+      {
+        Vector rf; // Print nodal reaction forces for nodes with prescribed DOFs
+        if (mySam->getNodalReactions(points[j],*reactionForces,rf))
         {
           if (formatted)
             os <<"\n\t\treac =";
-          for (double f : reactionFS)
-            os << std::setw(flWidth) << utl::trunc(f);
+          for (double f : rf) os << std::setw(flWidth) << utl::trunc(f);
         }
-
+      }
       os << std::endl;
     }
     os.precision(oldPrec);
@@ -1622,12 +1620,38 @@ bool SIMoutput::evalResults (const Vector& psol, const ResPointVec& gPoints,
   // Extract patch-level control/nodal point values of the primary solution
   patch->extractNodeVec(psol,myProblem->getSolution());
 
+  // Lambda function augmenting two matrices with the same number of rows.
+  auto&& augment = [](Matrix& A, const Matrix& B)
+  {
+    if (A.empty())
+      A = B;
+    else if (A.rows() == B.rows())
+    {
+      size_t col = A.cols();
+      A.resize(B.rows(),col+B.cols());
+      for (size_t c = 1; c <= B.cols(); c++)
+        A.fillColumn(col+c,B.getColumn(c));
+    }
+    else
+    {
+      std::cerr <<" *** SIMoutput::evalResults: Incompatible matrices, rows(A)="
+                << A.rows() <<" rows(B)="<< B.rows() << std::endl;
+      return false;
+    }
+
+    return true;
+  };
+
+  bool ok = true;
+  Matrix tmp;
   if (opt.discretization < ASM::Spline)
     // Extract primary solution variables, for nodal points only
-    return patch->getSolution(sol1,myProblem->getSolution(),points);
+    ok = patch->getSolution(tmp,myProblem->getSolution(),points);
+  else
+    // Evaluate the primary solution variables
+    ok = patch->evalSolution(tmp,myProblem->getSolution(),params.data(),false);
 
-  // Evaluate the primary solution variables
-  if (!patch->evalSolution(sol1,myProblem->getSolution(),params.data(),false))
+  if (!ok || !augment(sol1,tmp))
     return false;
 
   if (myProblem->getNoFields(2) < 1)
@@ -1638,7 +1662,10 @@ bool SIMoutput::evalResults (const Vector& psol, const ResPointVec& gPoints,
     return false;
 
   // Evaluate the secondary solution variables
-  return patch->evalSolution(sol2,*myProblem,params.data(),false);
+  if (!patch->evalSolution(tmp,*myProblem,params.data(),false))
+    return false;
+
+  return augment(sol2,tmp);
 }
 
 
