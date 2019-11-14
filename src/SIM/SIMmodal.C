@@ -121,8 +121,16 @@ bool SIMmodal::expandSolution (const Vectors& mSol, Vectors& pSol) const
 }
 
 
+/*!
+  This method assembles the diagonal modal equation system of the
+  dynamic problem, integrated by the Newmark HHT-method.
+  If \a beta is set to zero, a quasi-static solution is calculated instead,
+  in which the modal mass and damping is ignored and only the modal stiffness
+  (i.e., the angular eigenfrequencies squared) enter the equation system.
+*/
+
 bool SIMmodal::assembleModalSystem (const TimeDomain& time,
-                                    const Vectors& pSol, const Vector& Rhs,
+                                    const Vectors& mSol, const Vector& Rhs,
                                     double beta, double gamma,
                                     double alpha1, double alpha2)
 {
@@ -142,18 +150,27 @@ bool SIMmodal::assembleModalSystem (const TimeDomain& time,
   {
     // Create a single-dof element matrix object,
     // the "elements" now being the eigenmodes
-    myElmMat = new NewmarkMats(0.0,0.0,beta,gamma);
-    myElmMat->resize(alpha1 > 0.0 || alpha2 > 0.0 ? 4 : 3, 1);
+    if (beta > 0.0)
+    {
+      myElmMat = new NewmarkMats(0.0,0.0,beta,gamma);
+      myElmMat->resize(alpha1 > 0.0 || alpha2 > 0.0 ? 4 : 3, 1);
+    }
+    else // quasi-static simulation
+    {
+      myElmMat = new ElmMats();
+      myElmMat->resize(1,1);
+    }
     myElmMat->redim(1);
   }
 
-  myElmMat->setStepSize(time.dt,time.it);
-  myElmMat->vec.resize(pSol.size(),Vector(1));
+  myElmMat->vec.resize(mSol.size(),Vector(1));
+  if (beta > 0.0)
+    static_cast<NewmarkMats*>(myElmMat)->setStepSize(time.dt,time.it);
 
-  int iu = pSol.size() - 3; // index to modal displacement (u)
+  int iu = mSol.size() - (beta > 0.0 ? 3 : 1); // index to modal displacement
   if (iu < 0)
   {
-    std::cerr <<" SIMmodal::assembleModalSystem: No solutions."<< std::endl;
+    std::cerr <<" *** SIMmodal::assembleModalSystem: No solutions."<< std::endl;
     return false;
   }
 
@@ -183,15 +200,23 @@ bool SIMmodal::assembleModalSystem (const TimeDomain& time,
 #endif
 
     // Extract current solution associated with the m'th mode shape
-    for (size_t i = 0; i < pSol.size(); i++)
-      myElmMat->vec[i].fill(pSol[i][m]);
+    for (size_t i = 0; i < mSol.size(); i++)
+      myElmMat->vec[i].fill(mSol[i][m]);
 
-    myElmMat->A[1].fill(1.0);                        // Modal mass
-    myElmMat->A[2].fill(omega*omega);                // Modal stiffness
-    if (myElmMat->A.size() > 3)
-      myElmMat->A[3].fill(damping);                  // Modal damping
-    myElmMat->b[0].fill(myModes[m].eigVec.dot(Rhs)); // Modal load
-    myElmMat->b[0].add({-omega*omega*pSol[iu][m]});  // Modal residual
+    if (beta > 0.0)
+    {
+      myElmMat->A[1].fill(1.0);         // Modal mass
+      myElmMat->A[2].fill(omega*omega); // Modal stiffness
+      if (myElmMat->A.size() > 3)
+        myElmMat->A[3].fill(damping);   // Modal damping
+    }
+    else // quasi-static simulation
+      myElmMat->A[0].fill(omega*omega); // Modal stiffness
+
+    myElmMat->b[0].fill(myModes[m].eigVec.dot(Rhs));  // Modal load
+    if (beta > 0.0)
+      myElmMat->b[0].add({-omega*omega*mSol[iu][m]}); // Modal residual
+
     ok = modalSys->assemble(myElmMat,myModes[m].eigNo);
   }
   ok &= modalSys->finalize(true);

@@ -66,7 +66,7 @@ protected:
                              std::streamsize outPrec = 0);
 
   //! \brief Checks whether the corrector iterations have converged or diverged.
-  SIM::ConvStatus checkConvergence(TimeStep& param);
+  virtual SIM::ConvStatus checkConvergence(TimeStep& param);
   //! \brief Calculates predicted velocities and accelerations.
   virtual bool predictStep(TimeStep& param);
   //! \brief Updates configuration variables (solution vector) in an iteration.
@@ -105,6 +105,7 @@ protected:
   double rTol;      //!< Relative convergence tolerance
   double aTol;      //!< Absolute convergence tolerance
   double divgLim;   //!< Relative divergence limit
+
   unsigned short int cNorm; //!< Option for which convergence norm to use
 
 public:

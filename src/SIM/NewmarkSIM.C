@@ -115,6 +115,12 @@ void NewmarkSIM::printProblem () const
 {
   model.printProblem();
 
+  if (solution.size() == 1)
+  {
+    IFEM::cout <<"Quasi-static linear analysis."<< std::endl;
+    return;
+  }
+
   IFEM::cout <<"Newmark predictor/multicorrector: beta = "<< beta
              <<" gamma = "<< gamma;
   switch (predictor) {
@@ -516,19 +522,19 @@ bool NewmarkSIM::solutionNorms (const TimeDomain&,
 {
   // Establish the real FE solution from the time integration solution space
   const Vectors& newSol = this->realSolutions();
-  if (msgLevel < 0 || newSol.size() < 3)
+  if (msgLevel < 0 || newSol.empty())
     return true;
 
   // Cannot use the enums here because this method is inherited
-  size_t a = newSol.size()-1;
-  size_t v = newSol.size()-2;
+  size_t a = newSol.size() > 1 ? newSol.size()-1 : 0;
+  size_t v = newSol.size() > 2 ? newSol.size()-2 : 0;
 
   size_t d, nf = model.getNoFields(1);
   size_t iMax[nf], jMax[nf], kMax[nf];
   double dMax[nf], vMax[nf], aMax[nf];
-  double disL2 = model.solutionNorms(newSol[0],dMax,iMax,nf);
-  double velL2 = model.solutionNorms(newSol[v],vMax,jMax,nf);
-  double accL2 = model.solutionNorms(newSol[a],aMax,kMax,nf);
+  double disL2 = model.solutionNorms(newSol.front(),dMax,iMax,nf);
+  double velL2 = v > 0 ? model.solutionNorms(newSol[v],vMax,jMax,nf) : 0.0;
+  double accL2 = a > 0 ? model.solutionNorms(newSol[a],aMax,kMax,nf) : 0.0;
 
   utl::LogStream& cout = model.getProcessAdm().cout;
   std::streamsize stdPrec = outPrec > 0 ? cout.precision(outPrec) : 0;
@@ -542,17 +548,22 @@ bool NewmarkSIM::solutionNorms (const TimeDomain&,
       cout <<"\n               Max "<< D
            <<"-displacement : "<< dMax[d] <<" node "<< iMax[d];
 
-  cout <<"\n  Velocity L2-norm                : "<< utl::trunc(velL2);
-  for (d = 0, D = 'X'; d < nf; d++, D=='Z' ? D='x' : D++)
-    if (utl::trunc(vMax[d]) != 0.0)
-      cout <<"\n               Max "<< D
-           <<"-velocity     : "<< vMax[d] <<" node "<< jMax[d];
-
-  cout <<"\n  Acceleration L2-norm            : "<< utl::trunc(accL2);
-  for (d = 0, D = 'X'; d < nf; d++, D=='Z' ? D='x' : D++)
-    if (utl::trunc(aMax[d]) != 0.0)
-      cout <<"\n               Max "<< D
-           <<"-acceleration : "<< aMax[d] <<" node "<< kMax[d];
+  if (v)
+  {
+    cout <<"\n  Velocity L2-norm                : "<< utl::trunc(velL2);
+    for (d = 0, D = 'X'; d < nf; d++, D=='Z' ? D='x' : D++)
+      if (utl::trunc(vMax[d]) != 0.0)
+        cout <<"\n               Max "<< D
+             <<"-velocity     : "<< vMax[d] <<" node "<< jMax[d];
+  }
+  if (a)
+  {
+    cout <<"\n  Acceleration L2-norm            : "<< utl::trunc(accL2);
+    for (d = 0, D = 'X'; d < nf && a; d++, D=='Z' ? D='x' : D++)
+      if (utl::trunc(aMax[d]) != 0.0)
+        cout <<"\n               Max "<< D
+             <<"-acceleration : "<< aMax[d] <<" node "<< kMax[d];
+  }
 
   cout << std::endl;
   utl::zero_print_tol = old_tol;

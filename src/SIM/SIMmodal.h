@@ -16,7 +16,7 @@
 
 #include "SIMbase.h"
 
-class NewmarkMats;
+class ElmMats;
 
 
 /*!
@@ -77,7 +77,7 @@ protected:
 private:
   AlgEqSystem* modalSys; //!< The modal equation system
   SAM*         modalSam; //!< Auxiliary data for FE assembly management
-  NewmarkMats* myElmMat; //!< Nodal (single-DOF) element matrices
+  ElmMats*     myElmMat; //!< Nodal (single-DOF) element matrices
 };
 
 #endif
