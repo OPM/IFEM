@@ -39,18 +39,20 @@
 
 
 ASMu3D::ASMu3D (unsigned char n_f)
-  : ASMLRSpline(3,3,n_f), lrspline(nullptr), tensorspline(nullptr),
-    myGeoBasis(1), bezierExtract(myBezierExtract)
+  : ASMLRSpline(3,3,n_f), lrspline(nullptr), myGeoBasis(1),
+    bezierExtract(myBezierExtract)
 {
   vMin = 0.0;
+  tensorspline = tensorPrjBas = nullptr;
 }
 
 
 ASMu3D::ASMu3D (const ASMu3D& patch, unsigned char n_f)
-  : ASMLRSpline(patch,n_f), lrspline(patch.lrspline), tensorspline(nullptr),
-    myGeoBasis(1), bezierExtract(patch.myBezierExtract)
+  : ASMLRSpline(patch,n_f), lrspline(patch.lrspline), myGeoBasis(1),
+    bezierExtract(patch.myBezierExtract)
 {
   vMin = 0.0;
+  tensorspline = tensorPrjBas = nullptr;
 
   // Need to set nnod here,
   // as hasXNodes might be invoked before the FE data is generated
@@ -122,9 +124,10 @@ void ASMu3D::clear (bool retainGeometry)
     if (!shareFE) {
       lrspline.reset();
       delete tensorspline;
+      delete tensorPrjBas;
     }
     geo = nullptr;
-    tensorspline = nullptr;
+    tensorspline = tensorPrjBas = nullptr;
   }
 
   // Erase the FE data
@@ -154,8 +157,6 @@ bool ASMu3D::uniformRefine (int dir, int nInsert)
   }
 
   tensorspline->insertKnot(dir,extraKnots);
-  lrspline.reset(new LR::LRSplineVolume(tensorspline));
-  geo = lrspline.get();
   return true;
 }
 
@@ -183,8 +184,6 @@ bool ASMu3D::refine (int dir, const RealArray& xi)
   }
 
   tensorspline->insertKnot(dir,extraKnots);
-  lrspline.reset(new LR::LRSplineVolume(tensorspline));
-  geo = lrspline.get();
   return true;
 }
 
@@ -195,22 +194,63 @@ bool ASMu3D::raiseOrder (int ru, int rv, int rw)
   if (shareFE) return true;
 
   tensorspline->raiseOrder(ru,rv,rw);
-  lrspline.reset(new LR::LRSplineVolume(tensorspline));
+  return true;
+}
+
+
+/*!
+  This method is supposed to be invoked twice during the model generation.
+  In the first call, with \a init = \e true, the spline volume object
+  is cloned and the two pointers are then swapped, such that the subsequent
+  refine and raiseOrder operations will apply to the projection basis
+  and not on the geometry basis.
+  In the second call, the pointers are swapped back.
+
+  The method can also be invoked twice with \a init = \e false in case the
+  projection basis is to be read from a file.
+*/
+
+bool ASMu3D::createProjectionBasis (bool init)
+{
+  if (!tensorspline)
+    return false;
+  else if (init && !tensorPrjBas)
+    tensorPrjBas = tensorspline->clone();
+
+  std::swap(tensorspline,tensorPrjBas);
+  std::swap(lrspline,projBasis);
   geo = lrspline.get();
   return true;
 }
 
 
+LR::LRSplineVolume* ASMu3D::createLRfromTensor ()
+{
+  if (tensorspline)
+  {
+    lrspline.reset(new LR::LRSplineVolume(tensorspline));
+    delete tensorspline;
+    tensorspline = nullptr;
+  }
+
+  return lrspline.get();
+}
+
+
 bool ASMu3D::generateFEMTopology ()
 {
-  // At this point we are through with the tensor spline object,
-  // so release it to avoid memory leakage
-  delete tensorspline;
-  tensorspline = nullptr;
+  geo = this->createLRfromTensor();
+
+  if (tensorPrjBas)
+  {
+    projBasis.reset(new LR::LRSplineVolume(tensorPrjBas));
+    delete tensorPrjBas;
+    tensorPrjBas = nullptr;
+  }
+  else if (!projBasis)
+    projBasis = lrspline;
 
   if (!lrspline) return false;
-  if (!projBasis)
-    projBasis = lrspline;
 
   nnod = lrspline->nBasisFunctions();
   nel  = lrspline->nElements();
@@ -823,7 +863,7 @@ void ASMu3D::evaluateBasis (int iel, FiniteElement& fe,
 void ASMu3D::evaluateBasis (int iel, FiniteElement& fe, int derivs,
                             int basis) const
 {
-  PROFILE3("ASMu2D::evalBasis");
+  PROFILE3("ASMu3D::evalBasis");
 
   std::vector<RealArray> result;
   this->getBasis(basis)->computeBasis(fe.u, fe.v, fe.w, result, derivs, iel);
@@ -1630,6 +1670,41 @@ bool ASMu3D::evalSolution (Matrix& sField, const Vector& locSol,
 }
 
 
+bool ASMu3D::evalProjSolution (Matrix& sField, const Vector& locSol,
+                               const int* npe, int nf) const
+{
+  // Compute parameter values of the result sampling points
+  std::array<RealArray,3> gpar;
+  for (int dir = 0; dir < 3; dir++)
+    if (!this->getGridParameters(gpar[dir],dir,npe[dir]-1))
+      return false;
+
+  // Evaluate the projected solution at all sampling points
+  if (!this->separateProjectionBasis())
+    return this->evalSolution(sField,locSol,gpar.data(),false,0,nf);
+
+  // The projection uses a separate basis, need to interpolate
+  size_t nPoints = gpar[0].size();
+  if (nPoints != gpar[1].size() || nPoints != gpar[2].size())
+    return false;
+
+  Fields* f = this->getProjectedFields(locSol);
+  if (!f) return false;
+
+  // Evaluate the projected solution field at each point
+  Vector vals;
+  sField.resize(f->getNoFields(),nPoints);
+  for (size_t i = 0; i < nPoints; i++)
+  {
+    f->valueFE(ItgPoint(gpar[0][i],gpar[1][i],gpar[2][i]),vals);
+    sField.fillColumn(1+i,vals);
+  }
+
+  delete f;
+  return true;
+}
+
+
 bool ASMu3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
                            const int* npe, char project) const
 {
@@ -1980,6 +2055,12 @@ size_t ASMu3D::getNoProjectionNodes () const
 }
 
 
+bool ASMu3D::separateProjectionBasis () const
+{
+  return projBasis.get() != this->getBasis(1);
+}
+
+
 Fields* ASMu3D::getProjectedFields (const Vector& coefs, size_t) const
 {
   if (projBasis.get() == this->getBasis(1))
@@ -2323,6 +2404,21 @@ void ASMu3D::extendRefinementDomain (IntSet& refineIndices,
           break;
         }
   }
+}
+
+
+bool ASMu3D::refine (const LR::RefineData& prm, Vectors& sol)
+{
+  bool ok = this->ASMLRSpline::refine(prm,sol);
+  if (!ok || !this->separateProjectionBasis() ||
+      prm.elements.size() + prm.errors.size() == 0)
+    return ok;
+
+  // TODO: check this
+  for (const LR::MeshRectangle* rect : lrspline->getAllMeshRectangles())
+    projBasis->insert_line(rect->copy());
+
+  return true;
 }
 
 

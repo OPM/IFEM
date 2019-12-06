@@ -224,6 +224,57 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
     if (pch) return pch->collapseFace(face,edge);
   }
 
+  else if (!strcasecmp(elem->Value(),"projection") && !isRefined)
+  {
+    const TiXmlElement* child = elem->FirstChildElement();
+    if (child && !strncasecmp(child->Value(),"patch",5) && child->FirstChild())
+    {
+      // Read projection basis from file
+      const char* patch = child->FirstChild()->Value();
+      std::istream* isp = getPatchStream(child->Value(),patch);
+      if (!isp) return false;
+
+      for (ASMbase* pch : myModel)
+        pch->createProjectionBasis(false);
+
+      bool ok = true;
+      for (int pid = 1; isp->good() && ok; pid++)
+      {
+        IFEM::cout <<"\tReading projection basis for patch "<< pid << std::endl;
+        ASMbase* pch = this->getPatch(pid,true);
+        if (pch)
+          ok = pch->read(*isp);
+        else if ((pch = ASM3D::create(opt.discretization,nf)))
+        {
+          // Skip this patch
+          ok = pch->read(*isp);
+          delete pch;
+        }
+      }
+
+      delete isp;
+      if (!ok) return false;
+    }
+    else // Generate separate projection basis from current geometry basis
+      for (ASMbase* pch : myModel)
+        pch->createProjectionBasis(true);
+
+    // Apply refine and/raise-order commands to define the projection basis
+    for (; child; child = child->NextSiblingElement())
+      if (!strcasecmp(child->Value(),"refine") ||
+          !strcasecmp(child->Value(),"raiseorder"))
+        if (!this->parseGeometryTag(child))
+          return false;
+
+    for (ASMbase* pch : myModel)
+      if (!pch->createProjectionBasis(false))
+      {
+        std::cerr <<" *** SIM3D::parseGeometryTag: Failed to create projection"
+                  <<" basis, check patch file specification."<< std::endl;
+        return false;
+      }
+  }
+
   return true;
 }
 
@@ -532,22 +583,19 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
 }
 
 
-/*!
-  \brief Local-scope convenience function for error message generation.
-*/
-
-static bool constrError (const char* lab, int idx)
-{
-  std::cerr <<" *** SIM3D::addConstraint: Invalid "<< lab << idx << std::endl;
-  return false;
-}
-
-
 bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
                            int& ngnod, char basis)
 {
+  // Lambda function for error message generation
+  auto&& error = [](const char* message, int idx)
+  {
+    std::cerr <<" *** SIM3D::addConstraint: Invalid "
+              << message <<" ("<< idx <<")."<< std::endl;
+    return false;
+  };
+
   if (patch < 1 || patch > (int)myModel.size())
-    return constrError("patch index ",patch);
+    return error("patch index",patch);
 
   int aldim = abs(ldim);
   bool open = ldim < 0; // open means without face edges or edge ends
@@ -568,7 +616,7 @@ bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
 
   // Must dynamic cast here, since ASM3D is not derived from ASMbase
   ASM3D* pch = dynamic_cast<ASM3D*>(myModel[patch-1]);
-  if (!pch) return constrError("3D patch ",patch);
+  if (!pch) return error("3D patch",patch);
 
   switch (aldim)
     {
@@ -585,7 +633,7 @@ bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
         case 8: pch->constrainCorner( 1, 1, 1,dirs,abs(code),basis); break;
         default:
           IFEM::cout << std::endl;
-          return constrError("vertex index ",lndx);
+          return error("vertex index",lndx);
         }
       break;
 
@@ -595,7 +643,7 @@ bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
       else
       {
         IFEM::cout << std::endl;
-        return constrError("edge index ",lndx);
+        return error("edge index",lndx);
       }
       break;
 
@@ -628,7 +676,7 @@ bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
           break;
         default:
           IFEM::cout << std::endl;
-          return constrError("face index ",lndx);
+          return error("face index",lndx);
         }
       break;
 
@@ -636,9 +684,14 @@ bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
       myModel[patch-1]->constrainPatch(dirs,code);
       break;
 
+    case 4: // Explicit nodal constraints
+      myModel[patch-1]->constrainNodes(myModel[patch-1]->getNodeSet(lndx),
+                                       dirs,code);
+      break;
+
     default:
       IFEM::cout << std::endl;
-      return constrError("local dimension switch ",ldim);
+      return error("local dimension switch",ldim);
     }
 
   return true;
@@ -648,8 +701,16 @@ bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
 bool SIM3D::addConstraint (int patch, int lndx, int line, double xi,
                            int dirs, char basis)
 {
+  // Lambda function for error message generation
+  auto&& error = [](const char* message, int idx)
+  {
+    std::cerr <<" *** SIM3D::addConstraint: Invalid "
+              << message <<" ("<< idx <<")."<< std::endl;
+    return false;
+  };
+
   if (patch < 1 || patch > (int)myModel.size())
-    return constrError("patch index ",patch);
+    return error("patch index",patch);
 
   IFEM::cout <<"\tConstraining P"<< patch
              <<" F"<< lndx <<" L"<< line <<" at xi="<< xi
@@ -658,7 +719,7 @@ bool SIM3D::addConstraint (int patch, int lndx, int line, double xi,
 
   // Must dynamic cast here, since ASM3D is not derived from ASMbase
   ASM3D* pch = dynamic_cast<ASM3D*>(myModel[patch-1]);
-  if (!pch) return constrError("3D patch ",patch);
+  if (!pch) return error("3D patch",patch);
 
   switch (line)
     {
@@ -671,7 +732,7 @@ bool SIM3D::addConstraint (int patch, int lndx, int line, double xi,
         case 4: pch->constrainLine( 2,3,xi,dirs,0,basis); break;
         case 5: pch->constrainLine(-3,1,xi,dirs,0,basis); break;
         case 6: pch->constrainLine( 3,1,xi,dirs,0,basis); break;
-        default: return constrError("face index ",lndx);
+        default: error("face index",lndx);
         }
       break;
 
@@ -684,12 +745,12 @@ bool SIM3D::addConstraint (int patch, int lndx, int line, double xi,
         case 4: pch->constrainLine( 2,1,xi,dirs,0,basis); break;
         case 5: pch->constrainLine(-3,2,xi,dirs,0,basis); break;
         case 6: pch->constrainLine( 3,2,xi,dirs,0,basis); break;
-        default: return constrError("face index ",lndx);
+        default: return error("face index",lndx);
         }
       break;
 
     default:
-      return constrError("face line index ",line);
+      return error("face line index",line);
     }
 
   return true;

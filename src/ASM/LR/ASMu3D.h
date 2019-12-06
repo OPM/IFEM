@@ -51,7 +51,9 @@ public:
   virtual ~ASMu3D() {}
 
   //! \brief Returns the spline volume representing the geometry of this patch.
-  LR::LRSplineVolume* getVolume() const { return lrspline.get(); }
+  LR::LRSplineVolume* getVolume() { return this->createLRfromTensor(); }
+  //! \brief Returns the spline volume representing the geometry of this patch.
+  const LR::LRSplineVolume* getVolume() const { return lrspline.get(); }
 
   //! \brief Returns the spline volume representing the basis of this patch.
   virtual const LR::LRSplineVolume* getBasis(int = 1) const { return lrspline.get(); }
@@ -156,11 +158,18 @@ public:
   //! \param[in] refC Mesh refinement criteria function
   //! \param[in] refTol Mesh refinement threshold
   virtual bool refine(const RealFunc& refC, double refTol);
+  //! \brief Refines the mesh adaptively.
+  //! \param[in] prm Input data used to control the mesh refinement
+  //! \param sol Control point results values that are transferred to new mesh
+  virtual bool refine(const LR::RefineData& prm, Vectors& sol);
   //! \brief Raises the order of the tensor spline object for this patch.
   //! \param[in] ru Number of times to raise the order in u-direction
   //! \param[in] rv Number of times to raise the order in v-direction
   //! \param[in] rw Number of times to raise the order in w-direction
   virtual bool raiseOrder(int ru, int rv, int rw);
+
+  //! \brief Creates a separate projection basis for this patch.
+  virtual bool createProjectionBasis(bool init);
 
   //! \brief Defines the minimum element volume for adaptive refinement.
   //! \param[in] nrefinements Maximum number of adaptive refinement levels
@@ -354,6 +363,14 @@ public:
                             const RealArray* gpar, bool = false,
                             int deriv = 0, int = 0) const;
 
+  //! \brief Evaluates the projected solution field at all visualization points.
+  //! \param[out] sField Solution field
+  //! \param[in] locSol Solution vector local to current patch
+  //! \param[in] npe Number of visualization nodes over each knot span
+  //! \param[in] nf If nonzero, mixed evaluates nf fields on first basis
+  virtual bool evalProjSolution(Matrix& sField, const Vector& locSol,
+                                const int* npe, int nf = 0) const;
+
   //! \brief Evaluates and interpolates a function over a given geometry.
   //! \param[in] func The function to evaluate
   //! \param[out] vec The obtained coefficients after interpolation
@@ -377,6 +394,9 @@ public:
   //! projected onto the spline basis, and then evaluated at the \a npe points.
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
                             const int* npe, char project = '\0') const;
+
+  //! \brief Checks if a separate projection basis is used for this patch.
+  virtual bool separateProjectionBasis() const;
 
   //! \brief Returns a field using the projection basis.
   //! \param[in] coefs The coefficients for the field
@@ -587,6 +607,9 @@ protected:
   virtual void extendRefinementDomain(IntSet& refineIndices,
                                       const IntSet& neighborIndices) const;
 
+  //! \brief Converts current tensor spline object to LR-spline.
+  LR::LRSplineVolume* createLRfromTensor();
+
 public:
   //! \brief Returns the number of elements on a boundary.
   virtual size_t getNoBoundaryElms(char lIndex, char ldim) const;
@@ -596,6 +619,7 @@ protected:
   std::shared_ptr<LR::LRSplineVolume> projBasis; //!< Basis to project onto
 
   Go::SplineVolume* tensorspline; //!< Pointer to original tensor spline object
+  Go::SplineVolume* tensorPrjBas; //!< Pointer to tensor spline projection base
   // The tensor spline object is kept for backward compatability with the REFINE
   // and RAISEORDER key-words, although we take note that there is a possibility
   // of optimization since all mapping values and Jacobians may be performed on

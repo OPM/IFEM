@@ -353,6 +353,31 @@ bool ASMs3D::raiseOrder (int ru, int rv, int rw)
 }
 
 
+/*!
+  This method is supposed to be invoked twice during the model generation.
+  In the first call, with \a init = \e true, the spline volume object \a *svol
+  is cloned into \a *proj and the two pointers are then swapped, such that
+  the subsequent refine and raiseOrder operations will apply to the projection
+  basis and not on the geometry basis.
+  In the second call, the pointers are swapped back.
+
+  The method can also be invoked twice with \a init = \e false in case the
+  projection basis is to be read from a file.
+*/
+
+bool ASMs3D::createProjectionBasis (bool init)
+{
+  if (!svol)
+    return false;
+  else if (init && !proj)
+    projB = proj = svol->clone();
+
+  std::swap(geomB,projB);
+  std::swap(svol,proj);
+  return true;
+}
+
+
 bool ASMs3D::generateFEMTopology ()
 {
   if (!svol) return false;
@@ -3105,6 +3130,41 @@ bool ASMs3D::evalSolution (Matrix& sField, const Vector& locSol,
     }
   }
 
+  return true;
+}
+
+
+bool ASMs3D::evalProjSolution (Matrix& sField, const Vector& locSol,
+                               const int* npe, int nf) const
+{
+  // Compute parameter values of the result sampling points
+  std::array<RealArray,3> gpar;
+  for (int dir = 0; dir < 3; dir++)
+    if (!this->getGridParameters(gpar[dir],dir,npe[dir]-1))
+      return false;
+
+  // Evaluate the projected solution at all sampling points
+  if (!this->separateProjectionBasis())
+    return this->evalSolution(sField,locSol,gpar.data(),true,0,nf);
+
+  // The projection uses a separate basis, need to interpolate
+  Fields* f = this->getProjectedFields(locSol);
+  if (!f) return false;
+
+  // Evaluate the projected solution field at each point
+  Vector vals;
+  sField.resize(f->getNoFields(),gpar[0].size()*gpar[1].size()*gpar[2].size());
+
+  size_t ipt = 0;
+  for (double w : gpar[1])
+    for (double v : gpar[1])
+      for (double u : gpar[0])
+      {
+        f->valueFE(ItgPoint(u,v,w),vals);
+        sField.fillColumn(++ipt,vals);
+      }
+
+  delete f;
   return true;
 }
 
