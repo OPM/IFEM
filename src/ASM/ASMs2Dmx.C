@@ -25,6 +25,7 @@
 #include "SplineFields2D.h"
 #include "SplineUtils.h"
 #include "Utilities.h"
+#include "Point.h"
 #include "Profiler.h"
 #include "Vec3Oper.h"
 #include <array>
@@ -1137,7 +1138,6 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   Vector          solPt;
   Matrices        dNxdu(m_basis.size());
   Matrix          Jac;
-  Vec3            X;
 
   // Evaluate the secondary solution field at each point
   size_t nPoints = splinex[0].size();
@@ -1182,10 +1182,10 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
       }
 
     // Cartesian coordinates of current integration point
-    X = Xtmp * fe.basis(geoBasis);
+    utl::Point X4(Xtmp*fe.basis(geoBasis),{fe.u,fe.v});
 
     // Now evaluate the solution field
-    if (!integrand.evalSol(solPt,fe,X,ipa,elem_size,nb))
+    if (!integrand.evalSol(solPt,fe,X4,ipa,elem_size,nb))
       return false;
     else if (sField.empty())
       sField.resize(solPt.size(),nPoints,true);

@@ -2945,7 +2945,8 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 #endif
 
     // Now evaluate the solution field
-    if (!integrand.evalSol(solPt,fe,Xtmp*fe.N,ip))
+    utl::Point X4(Xtmp*fe.N,{fe.u,fe.v});
+    if (!integrand.evalSol(solPt,fe,X4,ip))
       return false;
     else if (sField.empty())
       sField.resize(solPt.size(),nPoints,true);
