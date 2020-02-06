@@ -214,10 +214,11 @@ void VTF::writeGeometryBlocks (int iStep)
   for (size_t i = 0; i < myBlocks.size(); i++)
     geomID[i] = myBlocks[i].first;
 
-  if (!myGBlock) myGBlock = new VTFAGeometryBlock();
 #if HAS_VTFAPI == 1
+  if (!myGBlock) myGBlock = new VTFAGeometryBlock();
   myGBlock->SetGeometryElementBlocks(&geomID.front(),geomID.size(),iStep);
-#else
+#elif HAS_VTFAPI == 2
+  if (!myGBlock) myGBlock = new VTFXAGeometryBlock();
   myGBlock->SetElementBlocksForState(&geomID.front(),geomID.size(),iStep);
 #endif
 #endif
@@ -287,7 +288,7 @@ bool VTF::writeTransformation (const Vec3& X, const Tensor& T,
   if (VTFA_FAILURE(myFile->WriteBlock(&tBlock)))
     return showError("Error writing result block",idBlock);
 #elif HAS_VTFAPI == 2
-  std::cerr <<"VTF: Transformation not yet implemented for VTFx"<< std::endl;
+  showError("Transformation not yet implemented for VTFx");
 #endif
 
   return true;
@@ -297,7 +298,6 @@ bool VTF::writeTransformation (const Vec3& X, const Tensor& T,
 bool VTF::writeVres (const std::vector<Real>& nodeResult,
                      int idBlock, int geomID, size_t nvc)
 {
-#ifdef HAS_VTFAPI
   if (!myFile) return true;
 
   const ElementBlock* grid = this->getBlock(geomID);
@@ -311,6 +311,7 @@ bool VTF::writeVres (const std::vector<Real>& nodeResult,
   else if (nvc < 1 || nvc > ncmp)
     nvc = ncmp;
 
+#ifdef HAS_VTFAPI
   // Cast to float
   std::vector<float> resVec(3*nnod,0.0f);
   if (nres == 3*nnod && nvc == 3)
@@ -334,7 +335,7 @@ bool VTF::writeVres (const std::vector<Real>& nodeResult,
   dBlock.SetMapToBlockID(myBlocks[geomID-1].first);
   if (VTFA_FAILURE(myFile->WriteBlock(&dBlock)))
     return showError("Error writing result block",idBlock);
-#else
+#elif HAS_VTFAPI == 2
   VTFXAResultValuesBlock dBlock(idBlock,VTFXA_DIM_VECTOR,VTFXA_FALSE);
   dBlock.SetMapToBlockID(myBlocks[geomID-1].first,VTFXA_NODES);
   dBlock.SetResultValues3D(resVec.data(),nnod);
@@ -361,6 +362,7 @@ bool VTF::writeEres (const std::vector<Real>& elementResult,
   else if (nres < grid->getNoElms())
     showError("Warning: Fewer element results that anticipated",nres);
 
+#ifdef HAS_VTFAPI
   // Cast to float
   std::vector<float> resVec(nres);
   for (size_t i = 0; i < nres; i++)
@@ -382,6 +384,7 @@ bool VTF::writeEres (const std::vector<Real>& elementResult,
   if (VTFA_FAILURE(myDatabase->WriteBlock(&dBlock)))
     return showError("Error writing result block",idBlock);
 #endif
+#endif
 
   return true;
 }
@@ -399,6 +402,7 @@ bool VTF::writeNres (const std::vector<Real>& nodalResult,
   if (nres != grid->getNoNodes())
     return showError("Invalid size of result array",nres);
 
+#ifdef HAS_VTFAPI
   // Cast to float
   std::vector<float> resVec(nres);
   for (size_t i = 0; i < nres; i++)
@@ -420,6 +424,7 @@ bool VTF::writeNres (const std::vector<Real>& nodalResult,
   if (VTFA_FAILURE(myDatabase->WriteBlock(&dBlock)))
     return showError("Error writing result block",idBlock);
 #endif
+#endif
 
   return true;
 }
@@ -432,6 +437,7 @@ bool VTF::writeNfunc (const RealFunc& f, Real time, int idBlock, int geomID)
   const ElementBlock* grid = this->getBlock(geomID);
   if (!grid) return false;
 
+#ifdef HAS_VTFAPI
   const size_t nres = grid->getNoNodes();
 
   // Evaluate the function at the grid points
@@ -454,6 +460,7 @@ bool VTF::writeNfunc (const RealFunc& f, Real time, int idBlock, int geomID)
   dBlock.SetResultValues1D(resVec.data(),nres);
   if (VTFA_FAILURE(myDatabase->WriteBlock(&dBlock)))
     return showError("Error writing result block",idBlock);
+#endif
 #endif
 
   return true;
@@ -518,8 +525,7 @@ bool VTF::writeVectors (const std::vector<Vec3Pair>& pntResult, int partID,
   if (VTFA_FAILURE(myFile->WriteBlock(&rBlock)))
     return showError("Error writing result block",idBlock);
 #elif HAS_VTFAPI == 2
-  std::cerr <<"VTF: Vector points are not yet implemented for VTFx"<< std::endl;
-  return true;
+  showError("Vector points are not yet implemented for VTFx");
 #endif
 
   return iStep > 0 ? this->writeVblk(idBlock,resultName,iBlock,iStep) : true;
@@ -559,8 +565,7 @@ bool VTF::writePoints (const Vec3Vec& points, int partID, int& gID)
   else if (VTFA_FAILURE(myFile->WriteBlock(&eBlock)))
     return showError("Error writing element block",gID);
 #elif HAS_VTFAPI == 2
-  std::cerr <<"VTF: Points are not yet implemented for VTFx"<< std::endl;
-  return true;
+  showError("Points are not yet implemented for VTFx");
 #endif
 
   return true;
@@ -584,7 +589,7 @@ bool VTF::writeTblk (const std::vector<int>& tBlockIDs, const char* resultName,
   else for (size_t i = 0; i < tBlockIDs.size() && VTFA_SUCCESS(status); i++)
     status = myTBlock[idBlock]->AddResultBlock(tBlockIDs[i],iStep);
 #elif HAS_VTFAPI == 2
-  std::cerr <<"VTF: Transformation not yet implemented for VTFx"<< std::endl;
+  showError("Transformation not yet implemented for VTFx");
 #endif
   if (VTFA_FAILURE(status))
     return showError("Error defining transformation block",idBlock);
@@ -767,6 +772,7 @@ bool VTF::writeSblk (const std::vector<int>& sBlockIDs, const char* resultName,
 
 bool VTF::writeState (int iStep, const char* fmt, Real refValue, int refType)
 {
+#ifdef HAS_VTFAPI
   if (iStep == lastStep)
     return true;
 
@@ -783,6 +789,7 @@ bool VTF::writeState (int iStep, const char* fmt, Real refValue, int refType)
                                          VTFXA_REFVALUETYPE_TIME)))
     return showError("Error defining state info block");
 #endif
+#endif
 
   return true;
 }
@@ -792,13 +799,13 @@ bool VTF::writeNodes (int iBlockID)
 {
   bool ok = true;
 
+#ifdef HAS_VTFAPI
 #if HAS_VTFAPI == 1
   VTFANodeBlock nBlock(iBlockID,0);
 #elif HAS_VTFAPI == 2
   VTFXANodeBlock nBlock(iBlockID,false);
 #endif
 
-#ifdef HAS_VTFAPI
   const ElementBlock* grid = myBlocks.back().second;
   if (VTFA_FAILURE(nBlock.SetNumNodes(grid->getNoNodes())))
     ok = false;
@@ -806,12 +813,12 @@ bool VTF::writeNodes (int iBlockID)
   std::vector<Vec3>::const_iterator cit;
   for (cit = grid->begin_XYZ(); cit != grid->end_XYZ() && ok; ++cit)
     if (VTFA_FAILURE(nBlock.AddNode(cit->x, cit->y, cit->z))) ok = false;
-#endif
 
 #if HAS_VTFAPI == 1
   if (VTFA_FAILURE(myFile->WriteBlock(&nBlock))) ok = false;
 #elif HAS_VTFAPI == 2
   if (VTFA_FAILURE(myDatabase->WriteBlock(&nBlock))) ok = false;
+#endif
 #endif
 
   return ok;
@@ -888,7 +895,7 @@ bool VTF::writeElements (const char* partName, int partID,
 bool VTF::showError (const char* msg, int ID)
 {
   std::cerr <<"VTF: "<< msg;
-  if (ID) std::cerr <<" "<< ID;
+  if (ID >= 0) std::cerr <<" "<< ID;
   std::cerr << std::endl;
   return false;
 }
