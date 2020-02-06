@@ -112,17 +112,19 @@ struct SuperLUdata
     Destroy_SuperMatrix_Store(&A);
     Destroy_SuperNode_Matrix(&L);
     Destroy_CompCol_Matrix(&U);
-    if (R)      delete[] R;
-    if (C)      delete[] C;
-    if (perm_r) delete[] perm_r;
-    if (perm_c) delete[] perm_c;
-    if (etree)  delete[] etree;
+    delete[] R;
+    delete[] C;
+    delete[] perm_r;
+    delete[] perm_c;
+    delete[] etree;
 #ifdef HAS_SUPERLU_MT
-    delete[] opts->etree;
-    delete[] opts->colcnt_h;
-    delete[] opts->part_super_h;
+    if (opts) {
+      delete[] opts->etree;
+      delete[] opts->colcnt_h;
+      delete[] opts->part_super_h;
+    }
 #endif
-    if (opts)   delete   opts;
+    delete opts;
   }
 #endif
 };
@@ -178,7 +180,7 @@ SparseMatrix::SparseMatrix (const SparseMatrix& B) :
 
 SparseMatrix::~SparseMatrix ()
 {
-  if (slu) delete slu;
+  delete slu;
 #ifdef HAS_UMFPACK
   if (umfSymbolic)
     umfpack_di_free_symbolic(&umfSymbolic);
@@ -222,7 +224,7 @@ void SparseMatrix::resize (size_t r, size_t c, bool forceEditable)
   nrow = r;
   ncol = c > 0 ? c : r;
 
-  if (slu) delete slu;
+  delete slu;
   slu = 0;
 #ifdef HAS_UMFPACK
   if (umfSymbolic) {
@@ -1010,7 +1012,6 @@ bool SparseMatrix::solve (SystemVector& B, bool, Real* rc)
 
 bool SparseMatrix::solveSLU (Vector& B)
 {
-  int ierr = ncol+1;
   if (!factored) this->optimiseSLU();
 
 #ifdef HAS_SUPERLU_MT
@@ -1047,13 +1048,14 @@ bool SparseMatrix::solveSLU (Vector& B)
                        SLU_DN, SLU_D, SLU_GE);
 
   // Invoke the simple driver
+  int ierr = ncol+1;
   pdgssv(numThreads, &slu->A, slu->perm_c, slu->perm_r,
          &slu->L, &slu->U, &Bmat, &ierr);
-
+  Destroy_SuperMatrix_Store(&Bmat);
   if (ierr > 0)
     std::cerr <<"SuperLU_MT Failure "<< ierr << std::endl;
-
-  Destroy_SuperMatrix_Store(&Bmat);
+  else if (ierr == 0)
+    return true;
 
 #elif defined(HAS_SUPERLU)
   if (!slu) {
@@ -1086,9 +1088,10 @@ bool SparseMatrix::solveSLU (Vector& B)
   StatInit(&stat);
 
   // Invoke the simple driver
+  int ierr = ncol+1;
   dgssv(slu->opts, &slu->A, slu->perm_c, slu->perm_r,
         &slu->L, &slu->U, &Bmat, &stat, &ierr);
-
+  Destroy_SuperMatrix_Store(&Bmat);
   if (ierr > 0)
     std::cerr <<"SuperLU Failure "<< ierr << std::endl;
   else
@@ -1098,17 +1101,16 @@ bool SparseMatrix::solveSLU (Vector& B)
     StatPrint(&stat);
   StatFree(&stat);
 
-  Destroy_SuperMatrix_Store(&Bmat);
+  if (ierr == 0) return true;
 #else
   std::cerr <<"SparseMatrix::solve: SuperLU solver not available"<< std::endl;
 #endif
-  return ierr == 0;
+  return false;
 }
 
 
 bool SparseMatrix::solveSLUx (Vector& B, Real* rcond)
 {
-  int ierr = ncol+1;
   if (!factored) this->optimiseSLU();
 
 #ifdef HAS_SUPERLU_MT
@@ -1156,6 +1158,7 @@ bool SparseMatrix::solveSLUx (Vector& B, Real* rcond)
   superlu_memusage_t mem_usage;
 
   // Invoke the expert driver
+  int ierr = ncol+1;
   pdgssvx(numThreads, slu->opts, &slu->A, slu->perm_c, slu->perm_r,
           &slu->equed, slu->R, slu->C, &slu->L, &slu->U, &Bmat, &Xmat,
           &slu->rpg, &slu->rcond, ferr, berr, &mem_usage, &ierr);
@@ -1173,6 +1176,7 @@ bool SparseMatrix::solveSLUx (Vector& B, Real* rcond)
 
   Destroy_SuperMatrix_Store(&Bmat);
   Destroy_SuperMatrix_Store(&Xmat);
+  if (ierr == 0) return true;
 
 #elif defined(HAS_SUPERLU)
   if (!slu) {
@@ -1219,6 +1223,7 @@ bool SparseMatrix::solveSLUx (Vector& B, Real* rcond)
   StatInit(&stat);
 
   // Invoke the expert driver
+  int ierr = ncol+1;
 #if SUPERLU_VERSION == 5
   GlobalLU_t Glu;
   dgssvx(slu->opts, &slu->A, slu->perm_c, slu->perm_r, slu->etree, slu->equed,
@@ -1251,10 +1256,11 @@ bool SparseMatrix::solveSLUx (Vector& B, Real* rcond)
 
   Destroy_SuperMatrix_Store(&Bmat);
   Destroy_SuperMatrix_Store(&Xmat);
+  if (ierr == 0) return true;
 #else
   std::cerr <<"SparseMatrix::solve: SuperLU solver not available"<< std::endl;
 #endif
-  return ierr == 0;
+  return false;
 }
 
 
@@ -1299,7 +1305,6 @@ bool SparseMatrix::solveUMF (Vector& B, Real* rcond)
 
 bool SparseMatrix::solveSAMG (Vector& B)
 {
-  int ierr = 1;
   if (!factored) this->optimiseSAMG();
 
 #ifdef HAS_SAMG
@@ -1330,6 +1335,7 @@ bool SparseMatrix::solveSAMG (Vector& B)
                      // @@ set this to negative value for production run
   int iout = -2; // minimal output on results and timings
   int idump = -2; // printout of coarsening history
+  int ierr = 1;
 
   int mode_mess = -2;
   SAMG_SET_MODE_MESS(&mode_mess);
@@ -1353,11 +1359,12 @@ bool SparseMatrix::solveSAMG (Vector& B)
     factored = true;
     if (ierr < 0)
       std::cerr <<"SAMG warning "<< -ierr << std::endl;
+    return true;
   }
 #else
   std::cerr <<"SparseMatrix::solve: SAMG solver not available"<< std::endl;
 #endif
-  return ierr <= 0;
+  return false;
 }
 
 
