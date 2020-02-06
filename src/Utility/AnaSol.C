@@ -47,8 +47,8 @@ AnaSol::AnaSol (std::istream& is, const int nlines, bool scalarSol)
   for (int i = 0; i < nlines; i++)
   {
     std::string function = utl::readLine(is);
-
     size_t pos;
+
     if ((pos = function.find("Variables=")) != std::string::npos)
     {
       variables += function.substr(pos+10);
@@ -86,37 +86,14 @@ AnaSol::AnaSol (std::istream& is, const int nlines, bool scalarSol)
 }
 
 
-/*!
-  \brief Static helper to parse the derivative of an expression function.
-*/
-
-template <class T> void parseDerivatives (T* func, const std::string& variables,
-                                          const TiXmlElement* elem)
-{
-  const TiXmlElement* child = elem->FirstChildElement("derivative");
-  for (; child; child = child->NextSiblingElement("derivative"))
-  {
-    int dir1 = 0, dir2 = 0;
-    if (!utl::getAttribute(child,"dir",dir1))
-      if (utl::getAttribute(child,"d1",dir1))
-        utl::getAttribute(child,"d2",dir2);
-    IFEM::cout <<"\tDerivative_"<< dir1;
-    if (dir2 > 0) IFEM::cout << dir2;
-    std::string derivative = child->FirstChild()->Value();
-    IFEM::cout <<"="<< derivative << std::endl;
-    func->addDerivative(derivative,variables,dir1,dir2);
-  }
-}
-
-
 AnaSol::AnaSol (const TiXmlElement* elem, bool scalarSol)
   : vecSol(nullptr), vecSecSol(nullptr), stressSol(nullptr)
 {
   const char* type = elem->Attribute("type");
   if (type && !strcasecmp(type,"fields"))
-    parseFieldFunctions(elem, scalarSol);
+    this->parseFieldFunctions(elem,scalarSol);
   else
-    parseExpressionFunctions(elem, scalarSol);
+    this->parseExpressionFunctions(elem,scalarSol);
 }
 
 
@@ -132,7 +109,7 @@ AnaSol::~AnaSol ()
 }
 
 
-void AnaSol::initPatch(size_t pIdx)
+void AnaSol::initPatch (size_t pIdx)
 {
   for (RealFunc* rf : scalSol)
     rf->initPatch(pIdx);
@@ -151,7 +128,7 @@ void AnaSol::initPatch(size_t pIdx)
 }
 
 
-void AnaSol::parseExpressionFunctions(const TiXmlElement* elem, bool scalarSol)
+void AnaSol::parseExpressionFunctions (const TiXmlElement* elem, bool scalarSol)
 {
   std::string variables;
   const TiXmlElement* var = elem->FirstChildElement("variables");
@@ -162,6 +139,24 @@ void AnaSol::parseExpressionFunctions(const TiXmlElement* elem, bool scalarSol)
     IFEM::cout <<"\tVariables="<< variables << std::endl;
   }
 
+  // Lambda function for parsing the derivative of an expression function
+  auto&& parseDerivatives = [variables](auto* func, const TiXmlElement* elem)
+  {
+    const TiXmlElement* child = elem->FirstChildElement("derivative");
+    for (; child; child = child->NextSiblingElement("derivative"))
+    {
+      int dir1 = 0, dir2 = 0;
+      if (!utl::getAttribute(child,"dir",dir1))
+        if (utl::getAttribute(child,"d1",dir1))
+          utl::getAttribute(child,"d2",dir2);
+      IFEM::cout <<"\tDerivative_"<< dir1;
+      if (dir2 > 0) IFEM::cout << dir2;
+      std::string derivative = child->FirstChild()->Value();
+      IFEM::cout <<"="<< derivative << std::endl;
+      func->addDerivative(derivative,variables,dir1,dir2);
+    }
+  };
+
   const TiXmlElement* prim = elem->FirstChildElement("primary");
   if (prim && prim->FirstChild())
   {
@@ -170,14 +165,12 @@ void AnaSol::parseExpressionFunctions(const TiXmlElement* elem, bool scalarSol)
     if (scalarSol)
     {
       scalSol.push_back(new EvalFunction((variables+primary).c_str()));
-      parseDerivatives(static_cast<EvalFunction*>(scalSol.back()),
-                       variables,prim);
+      parseDerivatives(static_cast<EvalFunction*>(scalSol.back()),prim);
     }
     else
     {
       vecSol = new VecFuncExpr(primary,variables);
-      parseDerivatives(static_cast<VecFuncExpr*>(vecSol),
-                       variables,prim);
+      parseDerivatives(static_cast<VecFuncExpr*>(vecSol),prim);
     }
   }
 
@@ -198,14 +191,12 @@ void AnaSol::parseExpressionFunctions(const TiXmlElement* elem, bool scalarSol)
     if (scalarSol)
     {
       scalSecSol.push_back(new VecFuncExpr(secondary,variables));
-      parseDerivatives(static_cast<VecFuncExpr*>(scalSecSol.back()),
-                       variables,sec);
+      parseDerivatives(static_cast<VecFuncExpr*>(scalSecSol.back()),sec);
     }
     else
     {
       vecSecSol = new TensorFuncExpr(secondary,variables);
-      parseDerivatives(static_cast<TensorFuncExpr*>(vecSecSol),
-                       variables,sec);
+      parseDerivatives(static_cast<TensorFuncExpr*>(vecSecSol),sec);
     }
   }
 
@@ -224,24 +215,26 @@ void AnaSol::parseExpressionFunctions(const TiXmlElement* elem, bool scalarSol)
     std::string sigma = stress->FirstChild()->Value();
     IFEM::cout <<"\tStress="<< sigma << std::endl;
     stressSol = new STensorFuncExpr(sigma,variables);
-    parseDerivatives(static_cast<STensorFuncExpr*>(stressSol),
-                     variables,stress);
+    parseDerivatives(static_cast<STensorFuncExpr*>(stressSol),stress);
   }
 }
 
 
-void AnaSol::parseFieldFunctions(const TiXmlElement* elem, bool scalarSol)
+void AnaSol::parseFieldFunctions (const TiXmlElement* elem, bool scalarSol)
 {
 #ifdef HAS_HDF5
-  std::string file = elem->Attribute("file");
-  int level = 0;
-  utl::getAttribute(elem, "level", level);
-  const TiXmlElement* prim = elem->FirstChildElement("primary");
+  const char* file = elem->Attribute("file");
   const char* basis = elem->Attribute("file_basis");
-  if (!basis) {
-    std::cerr << "No basis specified on file" << std::endl;
+  if (!file || !basis)
+  {
+    std::cerr <<" *** No file or basis specified."<< std::endl;
     return;
   }
+
+  int level = 0;
+  utl::getAttribute(elem, "level", level);
+
+  const TiXmlElement* prim = elem->FirstChildElement("primary");
   if (prim && prim->FirstChild())
   {
     std::string primary = prim->FirstChild()->Value();
@@ -258,18 +251,12 @@ void AnaSol::parseFieldFunctions(const TiXmlElement* elem, bool scalarSol)
     IFEM::cout <<"\tScalar Primary="<< primary << std::endl;
     scalSol.push_back(new FieldFunction(file, basis, primary, level));
   }
+
   const TiXmlElement* sec = elem->FirstChildElement("secondary");
   if (sec && sec->FirstChild())
   {
     std::string secondary = sec->FirstChild()->Value();
     IFEM::cout <<"\tSecondary="<< secondary << std::endl;
-    // first component runs the show
-    size_t pos = secondary.find_first_of('|');
-    std::string sec;
-    if (pos == std::string::npos)
-      sec = secondary;
-    else
-      sec = secondary.substr(0,pos);
     if (scalarSol)
       scalSecSol.push_back(new VecFieldFunction(file, basis, secondary, level));
     else
@@ -280,13 +267,6 @@ void AnaSol::parseFieldFunctions(const TiXmlElement* elem, bool scalarSol)
   {
     std::string secondary = sec->FirstChild()->Value();
     IFEM::cout <<"\tScalar Secondary="<< secondary << std::endl;
-    // first component runs the show
-    size_t pos = secondary.find_first_of('|');
-    std::string sec;
-    if (pos == std::string::npos)
-      sec = secondary;
-    else
-      sec = secondary.substr(0,pos);
     scalSecSol.push_back(new VecFieldFunction(file, basis, secondary, level));
   }
   sec = elem->FirstChildElement("stress");
@@ -294,17 +274,10 @@ void AnaSol::parseFieldFunctions(const TiXmlElement* elem, bool scalarSol)
   {
     std::string secondary = sec->FirstChild()->Value();
     IFEM::cout <<"\tStress="<< secondary << std::endl;
-    // first component runs the show
-    size_t pos = secondary.find_first_of('|');
-    std::string sec;
-    if (pos == std::string::npos)
-      sec = secondary;
-    else
-      sec = secondary.substr(0,pos);
     stressSol = new STensorFieldFunction(file, basis, secondary, level);
   }
 #else
-  std::cerr << "AnaSol::parseFieldFunctions(..): Compiled without HDF5 support"
-            <<", no fields read" << std::endl;
+  std::cerr <<" *** AnaSol::parseFieldFunctions: Compiled without HDF5 support"
+            <<", no fields read."<< std::endl;
 #endif
 }

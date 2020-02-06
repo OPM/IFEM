@@ -30,23 +30,6 @@ class TiXmlElement;
 
 class AnaSol
 {
-protected:
-  std::vector<RealFunc*>   scalSol; //!< Primary scalar solution fields
-  std::vector<VecFunc*> scalSecSol; //!< Secondary scalar solution fields
-
-  VecFunc*     vecSol;    //!< Primary vector solution field
-  TensorFunc*  vecSecSol; //!< Secondary solution field (vector gradient field)
-  STensorFunc* stressSol; //!< Secondary solution field (stress field)
-
-  //! \brief Parse expression functions from XML definition.
-  void parseExpressionFunctions(const TiXmlElement* elem, bool scalarSol);
-
-  //! \brief Parse field functions from XML definition.
-  void parseFieldFunctions(const TiXmlElement* elem, bool scalarSol);
-
-  //! \brief No copying of this class
-  AnaSol(const AnaSol&) = delete;
-
 public:
   //! \brief Default constructor initializing all solution fields.
   //! \param[in] s1 Primary scalar solution field
@@ -57,9 +40,9 @@ public:
   //!
   //! \details It is assumed that all the arguments are pointers to dynamically
   //! allocated objects, as the class destructor will attempt to delete them.
-  AnaSol(RealFunc* s1 = nullptr, VecFunc* s2 = nullptr,
-         VecFunc* v1 = nullptr, TensorFunc* v2 = nullptr,
-         STensorFunc* v3 = nullptr);
+  explicit AnaSol(RealFunc* s1 = nullptr, VecFunc* s2 = nullptr,
+                  VecFunc* v1 = nullptr, TensorFunc* v2 = nullptr,
+                  STensorFunc* v3 = nullptr);
 
   //! \brief Constructor initializing the primary and secondary solution fields.
   //! \param[in] s Primary scalar solution field
@@ -82,10 +65,14 @@ public:
   //! \param[in] nlines Number of lines to read
   //! \param[in] scalarSol If \e true, the primary solution is a scalar field
   AnaSol(std::istream& is, const int nlines, bool scalarSol = true);
+
   //! \brief Constructor initializing expression functions by parsing XML tags.
   //! \param[in] elem Pointer to XML-element to extract data from
   //! \param[in] scalarSol If \e true, the primary solution is a scalar field
-  AnaSol(const TiXmlElement* elem, bool scalarSol = true);
+  explicit AnaSol(const TiXmlElement* elem, bool scalarSol = true);
+
+  //! \brief No copying of this class.
+  AnaSol(const AnaSol&) = delete;
 
   //! \brief The destructor frees the analytical solution fields.
   virtual ~AnaSol();
@@ -126,14 +113,31 @@ public:
 
   //! \brief Returns the vector solution, if any.
   VecFunc* getVectorSol() const { return vecSol; }
+
   //! \brief Returns the secondary vector solution, if any.
   TensorFunc* getVectorSecSol() const { return vecSecSol; }
 
   //! \brief Returns the stress solution, if any.
   STensorFunc* getStressSol() const { return stressSol; }
 
-  //! \brief Set patch to use.
+  //! \brief Sets the patch to use.
   void initPatch(size_t pIdx);
+
+private:
+  //! \brief Parses expression functions from XML definition.
+  void parseExpressionFunctions(const TiXmlElement* elem, bool scalarSol);
+
+  //! \brief Parses field functions from XML definition.
+  void parseFieldFunctions(const TiXmlElement* elem, bool scalarSol);
+
+protected:
+  std::vector<RealFunc*>   scalSol; //!< Primary scalar solution fields
+  std::vector<VecFunc*> scalSecSol; //!< Secondary scalar solution fields
+
+  VecFunc*     vecSol;    //!< Primary vector solution field
+  TensorFunc*  vecSecSol; //!< Secondary solution field (vector gradient field)
+  STensorFunc* stressSol; //!< Secondary solution field (stress field)
+
 };
 
 #endif
