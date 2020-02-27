@@ -16,11 +16,14 @@
 #include "IFEM.h"
 
 
-bool SAMpatch::init (const ASMVec& model, int numNod,
+bool SAMpatch::init (const std::vector<ASMbase*>& patches, int numNod,
                      const std::vector<char>& dTypes)
 {
-  patches = model;
+#ifdef SP_DEBUG
+  std::cout <<"SAMpatch::init()"<< std::endl;
+#endif
 
+  model = patches;
   bool hasEmptyPatches = false;
 
   // Initialize some model size parameters
@@ -39,7 +42,7 @@ bool SAMpatch::init (const ASMVec& model, int numNod,
     nodeType.resize(nnod,'0');
 
   // Initialize the node/dof arrays (madof,msc) and compute ndof
-  if (!this->initNodeDofs(model,dTypes))
+  if (!this->initNodeDofs(dTypes))
     return false;
 
   IFEM::cout <<"\n\n >>> SAM model summary <<<"
@@ -60,11 +63,11 @@ bool SAMpatch::init (const ASMVec& model, int numNod,
                  << dof.second << std::endl;
 
   // Initialize the element connectivity arrays (mpmnpc,mmnpc)
-  if (!this->initElementConn(model))
+  if (!this->initElementConn())
     return false;
 
   // Initialize the constraint equation arrays (mpmceq,mmceq,ttcc)
-  if (!this->initConstraintEqs(model))
+  if (!this->initConstraintEqs())
     return false;
   else if (nceq > 0)
     IFEM::cout <<"Number of constraints "<< nceq << std::endl;
@@ -76,9 +79,11 @@ bool SAMpatch::init (const ASMVec& model, int numNod,
 }
 
 
-bool SAMpatch::initNodeDofs (const ASMVec& model,
-                             const std::vector<char>& dTypes)
+bool SAMpatch::initNodeDofs (const std::vector<char>& dTypes)
 {
+#ifdef SP_DEBUG
+  std::cout <<"SAMpatch::initNodeDofs()"<< std::endl;
+#endif
   if (nnod < 1) return true;
 
   // Initialize the array of accumulated DOFs for the nodes
@@ -143,6 +148,9 @@ bool SAMpatch::initNodeDofs (const ASMVec& model,
       if (nndof > 5) msc[idof1+4] *= bit->RZ;
     }
 
+#if SP_DEBUG > 2
+  this->printStatusCodes(std::cout);
+#endif
   if (ierr == 0) return true;
 
   std::cerr <<" *** SAMpatch::initNodeDOFs: Detected "<< ierr <<" nodes with"
@@ -151,8 +159,11 @@ bool SAMpatch::initNodeDofs (const ASMVec& model,
 }
 
 
-bool SAMpatch::initElementConn (const ASMVec& model)
+bool SAMpatch::initElementConn ()
 {
+#ifdef SP_DEBUG
+  std::cout <<"SAMpatch::initElementConn()"<< std::endl;
+#endif
   if (nel < 1) return true;
 
   // Find the size of the element connectivity array
@@ -230,8 +241,12 @@ bool SAMpatch::initElementConn (const ASMVec& model)
 }
 
 
-bool SAMpatch::initConstraintEqs (const ASMVec& model)
+bool SAMpatch::initConstraintEqs ()
 {
+#ifdef SP_DEBUG
+  std::cout <<"SAMpatch::initConstraintEqs()"<< std::endl;
+#endif
+
   // Estimate the size of the constraint equation array
   MPCIter cit;
   for (const ASMbase* pch : model)
@@ -293,10 +308,17 @@ bool SAMpatch::initConstraintEqs (const ASMVec& model)
 	}
     }
 
+#if SP_DEBUG > 1
+  this->printStatusCodes(std::cout);
+#endif
+
   // Reset the negative values in msc before calling SYSEQ
   for (ip = 0; ip < ndof; ip++)
     if (msc[ip] < 0) msc[ip] = 0;
 
+#if SP_DEBUG > 1
+  this->print(std::cout);
+#endif
   return true;
 }
 
@@ -335,7 +357,7 @@ bool SAMpatch::initConstraintEqMaster (const MPC::DOF& master,
 }
 
 
-bool SAMpatch::updateConstraintEqs (const ASMVec& model, const Vector* prevSol)
+bool SAMpatch::updateConstraintEqs (const Vector* prevSol)
 {
   if (nceq < 1) return true; // No constraints in this model
 

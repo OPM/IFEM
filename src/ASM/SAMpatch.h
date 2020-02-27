@@ -35,36 +35,31 @@ public:
   virtual ~SAMpatch() {}
 
   //! \brief Allocates the dynamic arrays and populates them with data.
-  //! \param[in] model All spline patches in the model
+  //! \param[in] patches All spline patches in the model
   //! \param[in] numNod Total number of unique nodes in the model
   //! \param[in] dTypes Nodal DOF type flags
-  virtual bool init(const std::vector<ASMbase*>& model, int numNod,
-                    const std::vector<char>& dTypes);
+  bool init(const std::vector<ASMbase*>& patches, int numNod,
+            const std::vector<char>& dTypes);
 
   //! \brief Updates the multi-point constraint array \a TTCC.
-  //! \param[in] model All spline patches in the model
   //! \param[in] prevSol Previous primary solution vector in DOF-order
-  bool updateConstraintEqs(const std::vector<ASMbase*>& model,
-                           const Vector* prevSol = 0);
+  bool updateConstraintEqs(const Vector* prevSol = nullptr);
 
-  //! \brief Start iterator for patches
-  std::vector<ASMbase*>::const_iterator begin() const { return patches.begin(); }
-  //! \brief End iterator for patches
-  std::vector<ASMbase*>::const_iterator end() const { return patches.end(); }
-  //! \brief Number of patches in model
-  size_t getNoPatches() const { return patches.size(); }
+  //! \brief Returns the start iterator of the patch container.
+  std::vector<ASMbase*>::const_iterator begin() const { return model.begin(); }
+  //! \brief Returns the end iterator of the patch container.
+  std::vector<ASMbase*>::const_iterator end() const { return model.end(); }
+  //! \brief Returns the number of patches in model.
+  size_t getNoPatches() const { return model.size(); }
 
 protected:
   //! \brief Initializes the nodal arrays \a MINEX, \a MADOF and \a MSC.
-  bool initNodeDofs(const std::vector<ASMbase*>& model,
-                    const std::vector<char>& dTypes);
+  bool initNodeDofs(const std::vector<char>& dTypes);
   //! \brief Initializes the element topology arrays \a MPMNPC and \a MMNPC.
-  bool initElementConn(const std::vector<ASMbase*>& model);
-  //! \brief Initializes the multi-point constraint arrays.
+  bool initElementConn();
+  //! \brief Initializes the multi-point constraint arrays
   //! \a MPMCEQ, \a MMCEQ and \a TTCC.
-  virtual bool initConstraintEqs(const std::vector<ASMbase*>& model);
-
-  std::vector<ASMbase*> patches; //!< The spline patches
+  bool initConstraintEqs();
 
 private:
   //! \brief Recursive helper method used by \a initConstraintEqs.
@@ -73,6 +68,8 @@ private:
   //! \brief Recursive helper method used by \a updateConstraintEqs.
   void updateConstraintEqMaster(const MPC::DOF& master,
                                 Real& offset, int& ipeq, Real scale = 1.0);
+
+  std::vector<ASMbase*> model; //!< The spline patches of the model
 };
 
 #endif
