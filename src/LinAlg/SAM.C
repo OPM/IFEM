@@ -13,6 +13,7 @@
 
 #include "SAM.h"
 #include "SystemMatrix.h"
+#include <iomanip>
 
 #ifdef USE_F77SAM
 #if defined(_WIN32)
@@ -69,30 +70,30 @@ SAM::SAM () : nnod(mpar[0]), nel(mpar[1]), ndof(mpar[2]),
   memset(mpar,0,sizeof(mpar));
 
   // Initialize the array pointers
-  mpmnpc = 0;
-  mmnpc  = 0;
-  madof  = 0;
-  msc    = 0;
-  mpmceq = 0;
-  mmceq  = 0;
-  ttcc   = 0;
-  minex  = 0;
-  meqn   = 0;
+  mpmnpc = nullptr;
+  mmnpc  = nullptr;
+  madof  = nullptr;
+  msc    = nullptr;
+  mpmceq = nullptr;
+  mmceq  = nullptr;
+  ttcc   = nullptr;
+  minex  = nullptr;
+  meqn   = nullptr;
 }
 
 
 SAM::~SAM ()
 {
   // Deallocate all dynamically allocated arrays
-  if (mpmnpc) delete[] mpmnpc;
-  if (mmnpc)  delete[] mmnpc;
-  if (madof)  delete[] madof;
-  if (msc)    delete[] msc;
-  if (mpmceq) delete[] mpmceq;
-  if (mmceq)  delete[] mmceq;
-  if (ttcc)   delete[] ttcc;
-  if (minex)  delete[] minex;
-  if (meqn)   delete[] meqn;
+  delete[] mpmnpc;
+  delete[] mmnpc;
+  delete[] madof;
+  delete[] msc;
+  delete[] mpmceq;
+  delete[] mmceq;
+  delete[] ttcc;
+  delete[] minex;
+  delete[] meqn;
 }
 
 
@@ -114,6 +115,20 @@ std::ostream& operator<< (std::ostream& os, const std::pair<int,int>& p)
 }
 
 
+void SAM::printCEQ (std::ostream& os, int iceq) const
+{
+  int ip = mpmceq[iceq++]-1;
+  os << this->getNodeAndLocalDof(mmceq[ip]) <<" =";
+  if (ttcc[ip] || ip+2 >= mpmceq[iceq])
+    os <<" "<< ttcc[ip];
+  for (int jp = ip+1; jp < mpmceq[iceq]-1; jp++)
+  {
+    if (ttcc[ip] || jp > ip+1) os <<" +";
+    os <<" "<< ttcc[jp] <<"*"<< this->getNodeAndLocalDof(mmceq[jp]);
+  }
+}
+
+
 void SAM::print (std::ostream& os) const
 {
   os <<"\n\nSAM::mpar: "<< mpar[0];
@@ -126,7 +141,7 @@ void SAM::print (std::ostream& os) const
     os <<"\n\nElement --> Nodes";
     for (int e = 0; e < nel; e++)
     {
-      os <<'\n'<< e+1 <<":";
+      os <<'\n'<< std::setw(4) << e+1 <<":";
       for (int i = mpmnpc[e]; i < mpmnpc[e+1]; i++)
         if (mmnpc[i-1] > 0)
           os <<' '<< (minex ? minex[mmnpc[i-1]-1] : mmnpc[i-1]);
@@ -141,14 +156,8 @@ void SAM::print (std::ostream& os) const
     os <<"\n\nConstraint Equations";
     for (int i = 0; i < nceq; i++)
     {
-      int ip = mpmceq[i]-1;
-      os <<'\n'<< i+1 <<": "<< this->getNodeAndLocalDof(mmceq[ip]) <<" =";
-      if (ttcc[ip] || ip+2 >= mpmceq[i+1]) os <<' '<< ttcc[ip];
-      for (int jp = ip+1; jp < mpmceq[i+1]-1; jp++)
-      {
-	if (ttcc[ip] || jp > ip+1) os <<" +";
-	os <<' '<< ttcc[jp] <<'*'<< this->getNodeAndLocalDof(mmceq[jp]);
-      }
+      os <<'\n'<< std::setw(4) << i+1 <<": ";
+      this->printCEQ(os,i);
     }
     os << std::endl;
   }
@@ -160,10 +169,10 @@ void SAM::print (std::ostream& os) const
     for (int n = 0; n < nnod; n++)
     {
       int dof, i = 0;
-      os <<'\n'<< (minex ? minex[n] : n+1) <<":";
+      os <<'\n'<< std::setw(4) << (minex ? minex[n] : n+1) <<":";
       for (dof = madof[n]; dof < madof[n+1]; dof++, i++)
       {
-	os <<' '<< meqn[dof-1];
+	os <<' '<< std::setw(4) << meqn[dof-1];
 	code[i] = msc[dof-1] > 0 ? '0' + msc[dof-1] : '0';
 	dofType[i] = !dof_type.empty() ? dof_type[dof-1] : '\0';
       }
@@ -179,8 +188,25 @@ void SAM::print (std::ostream& os) const
 }
 
 
+void SAM::printStatusCodes (std::ostream& os) const
+{
+  os <<"\nNode\tDOFs\t MSC";
+  for (int i = 0; i < nnod; i++)
+  {
+    os <<"\n"<< std::setw(4) << 1+i
+       <<"\t"<< madof[i] <<" - "<< madof[i+1]-1 <<"\t";
+    for (int j = madof[i]; j < madof[i+1]; j++)
+      os <<" "<< msc[j-1];
+  }
+  os << std::endl;
+}
+
+
 bool SAM::initSystemEquations ()
 {
+#ifdef SP_DEBUG
+  std::cout <<"SAM::initSystemEquations()"<< std::endl;
+#endif
   if (!msc && ndof > 0) return false;
   if (!mpmceq && nceq > 0) return false;
 
@@ -208,8 +234,8 @@ bool SAM::initSystemEquations ()
       ierr--;
 
   if (ierr < 0)
-    std::cerr <<"SAM::initSystemEquations: The MSC array has "<< -ierr
-	      <<" invalid values, it should only contain 0, 1 or 2"<< std::endl;
+    std::cerr <<" *** SAM::initSystemEquations: The MSC array has "<< -ierr
+              <<" invalid values, should only contain 0, 1 or 2."<< std::endl;
 
   for (i = 1; i <= nceq; i++)
   {
@@ -219,15 +245,15 @@ bool SAM::initSystemEquations ()
     if (idof < 1 || idof > ndof)
     {
       ierr--;
-      std::cerr <<"SAM::initSystemEquations: idof = "<< idof
-		<<" is out of range [1,"<< ndof <<"]"<< std::endl;
+      std::cerr <<" *** SAM::initSystemEquations: idof = "<< idof
+                <<" is out of range [1,"<< ndof <<"]."<< std::endl;
       continue;
     }
     else if (msc[idof-1] > 0)
     {
       ierr--;
-      std::cerr <<"SAM::initSystemEquations: Invalid status code "<< msc[idof-1]
-		<<" for slave dof "<< idof << std::endl;
+      std::cerr <<" *** SAM::initSystemEquations: Invalid status code "
+                << msc[idof-1] <<" for slave dof "<< idof << std::endl;
     }
     else if (jp == ip)
       npdof++; // prescribed DOF
@@ -239,23 +265,23 @@ bool SAM::initSystemEquations ()
 	int jdof = mmceq[ip-1];
 	if (jdof < 1 || jdof > ndof)
 	{
-	  ierr--;
-	  std::cerr <<"SAM::initSystemEquations: jdof = "<< jdof
-		    <<" is out of range [1,"<< ndof <<"]"<< std::endl;
+          ierr--;
+          std::cerr <<" *** SAM::initSystemEquations: jdof = "<< jdof
+                    <<" is out of range [1,"<< ndof <<"]."<< std::endl;
 	}
 	else if (msc[jdof-1] < 1)
 	{
-	  ierr--;
-	  std::cerr <<"SAM::initSystemEquations: Invalid status code "
-		    << msc[jdof-1] <<" for master dof "<< jdof << std::endl;
+          ierr--;
+          std::cerr <<" *** SAM::initSystemEquations: Invalid status code "
+                    << msc[jdof-1] <<" for master dof "<< jdof << std::endl;
 	}
       }
     }
     else
     {
       ierr--;
-      std::cerr <<"SAM::initSystemEquations: Logic error "<< jp <<" < "<< ip
-                <<" for constrains equation "<< i << std::endl;
+      std::cerr <<" *** SAM::initSystemEquations: Logic error "<< jp
+                <<" < "<< ip <<" for constraint equation "<< i << std::endl;
       break;
     }
     meqn[idof-1] = -i;
@@ -279,16 +305,9 @@ bool SAM::initSystemEquations ()
 
   if (ierr == 0) return true;
 
-  std::cerr <<"SAM::initSystemEquations: Failure "<< ierr << std::endl;
+  std::cerr <<" *** SAM::initSystemEquations: Failure "<< ierr << std::endl;
 #ifdef SP_DEBUG
-  std::cerr <<"\nNode\tDOFs\t MSC";
-  for (i = 0; i < nnod; i++)
-  {
-    std::cerr <<"\n"<< 1+i <<"\t"<< madof[i] <<" - "<< madof[i+1]-1 <<"\t";
-    for (j = madof[i]; j < madof[i+1]; j++)
-      std::cerr <<" "<< msc[j-1];
-  }
-  std::cerr << std::endl;
+  this->printStatusCodes(std::cerr);
 #endif
   return false;
 }
@@ -566,8 +585,8 @@ bool SAM::assembleSystem (SystemVector& sysRHS, Real S,
 {
   if (dof.first < 1 || dof.first > nnod)
   {
-    std::cerr <<"SAM::assembleSystem: Node "<< dof.first
-              <<" is out of range [1,"<< nnod <<"]"<< std::endl;
+    std::cerr <<" *** SAM::assembleSystem: Node "<< dof.first
+              <<" is out of range [1,"<< nnod <<"]."<< std::endl;
     return false;
   }
 
@@ -575,8 +594,8 @@ bool SAM::assembleSystem (SystemVector& sysRHS, Real S,
   if (dof.second < 1 || idof >= madof[dof.first])
   {
     int nndof = madof[dof.first] - madof[dof.first-1];
-    std::cerr <<"SAM::assembleSystem: Local dof "<< dof.second
-              <<" is out of range [1,"<< nndof <<"]"<< std::endl;
+    std::cerr <<" *** SAM::assembleSystem: Local dof "<< dof.second
+              <<" is out of range [1,"<< nndof <<"]."<< std::endl;
     return false;
   }
 
@@ -642,8 +661,8 @@ bool SAM::getElmNodes (IntVec& mnpc, int iel) const
   mnpc.clear();
   if (iel < 1 || iel > nel)
   {
-    std::cerr <<"SAM::getElmNodes: Element "<< iel <<" is out of range [1,"
-	      << nel <<"]"<< std::endl;
+    std::cerr <<" *** SAM::getElmNodes: Element "<< iel <<" is out of range [1,"
+              << nel <<"]."<< std::endl;
     return false;
   }
 
@@ -662,8 +681,8 @@ bool SAM::getElmEqns (IntVec& meen, int iel, int nedof) const
   meen.clear();
   if (iel < 1 || iel > nel)
   {
-    std::cerr <<"SAM::getElmEqns: Element "<< iel <<" is out of range [1,"
-	      << nel <<"]"<< std::endl;
+    std::cerr <<" *** SAM::getElmEqns: Element "<< iel <<" is out of range [1,"
+              << nel <<"]."<< std::endl;
     return false;
   }
 
@@ -694,8 +713,8 @@ bool SAM::getElmEqns (IntVec& meen, int iel, int nedof) const
   if (neldof == nedof || oldof < 1) return true;
 #endif
 
-  std::cerr <<"SAM::getElmEqns: Invalid element matrix dimension "
-	    << nedof <<" (should have been "<< neldof <<")"<< std::endl;
+  std::cerr <<" *** SAM::getElmEqns: Invalid element matrix dimension "
+            << nedof <<" (should have been "<< neldof <<")."<< std::endl;
   return false;
 }
 
@@ -704,8 +723,8 @@ size_t SAM::getNoElmEqns (int iel) const
 {
   size_t result = 0;
   if (iel < 1 || iel > nel)
-    std::cerr <<"SAM::getNoElmEqns: Element "<< iel <<" is out of range [1,"
-	      << nel <<"]"<< std::endl;
+    std::cerr <<" *** SAM::getNoElmEqns: Element "<< iel
+              <<" is out of range [1,"<< nel <<"]."<< std::endl;
 
   else for (int ip = mpmnpc[iel-1]; ip < mpmnpc[iel]; ip++)
   {
@@ -723,8 +742,8 @@ bool SAM::getNodeEqns (IntVec& mnen, int inod) const
   mnen.clear();
   if (inod < 1 || inod > nnod)
   {
-    std::cerr <<"SAM::getNodeEqns: Node "<< inod <<" is out of range [1,"
-	      << nnod <<"]"<< std::endl;
+    std::cerr <<" *** SAM::getNodeEqns: Node "<< inod
+              <<" is out of range [1,"<< nnod <<"]."<< std::endl;
     return false;
   }
 
@@ -768,7 +787,7 @@ bool SAM::expandVector (const Vector& solVec, Vector& dofVec) const
 {
   if (solVec.size() < (size_t)neq) return false;
 
-  return this->expandVector(solVec.ptr(),dofVec,0.0);
+  return this->expandVector(solVec.ptr(),dofVec,Real(0));
 }
 
 
@@ -819,7 +838,7 @@ bool SAM::applyDirichlet (Vector& dofVec) const
       dofVec[idof] = ttcc[ip-1];
     }
     else if (iceq == 0)
-      dofVec[idof] = 0.0;
+      dofVec[idof] = Real(0);
   }
 
   return true;
@@ -969,8 +988,8 @@ bool SAM::getNodalReactions (int inod, const Vector& rf, Vector& nrf) const
 {
   if (inod < 1 || inod > nnod)
   {
-    std::cerr <<"SAM::getNodalReactions: Node "<< inod <<" is out of range [1,"
-              << nnod <<"]"<< std::endl;
+    std::cerr <<" *** SAM::getNodalReactions: Node "<< inod
+              <<" is out of range [1,"<< nnod <<"]."<< std::endl;
     return false;
   }
 

@@ -62,9 +62,9 @@ size_t MPC::getNoMaster (bool recursive) const
   size_t nMaster = master.size();
 
   if (recursive)
-    for (size_t i = 0; i < master.size(); i++)
-      if (master[i].nextc)
-        nMaster += master[i].nextc->getNoMaster(true) - 1;
+    for (const DOF& mdof : master)
+      if (mdof.nextc)
+        nMaster += mdof.nextc->getNoMaster(true) - 1;
 
   return nMaster;
 }
@@ -87,8 +87,8 @@ bool MPC::merge (const MPC* mpc)
   if (!(this->slave == mpc->slave && this->slave.coeff == mpc->slave.coeff))
     return false; // the slave definitions did not match
 
-  for (size_t i = 0; i < mpc->master.size(); i++)
-    this->addMaster(mpc->master[i]);
+  for (const DOF& mdof : mpc->master)
+    this->addMaster(mdof);
 
   return true;
 }
@@ -97,11 +97,42 @@ bool MPC::merge (const MPC* mpc)
 int MPC::renumberNodes (const std::map<int,int>& old2new, bool msg)
 {
   int invalid = utl::renumber(slave.node,old2new,msg) ? 0 : 1;
-  for (size_t i = 0; i < master.size(); i++)
-    if (!utl::renumber(master[i].node,old2new,msg))
+  for (DOF& mdof : master)
+    if (!utl::renumber(mdof.node,old2new,msg))
       invalid++;
 
   return invalid;
+}
+
+
+void MPC::printMaster (std::ostream& os) const
+{
+  if (slave.coeff != Real(0))
+    os << slave.coeff;
+  else if (master.empty())
+    os << Real(0);
+
+  size_t count = 0;
+  for (const MPC::DOF& mdof : master)
+  {
+    if (++count == 1 && slave.coeff == Real(0))
+      os << mdof.coeff;
+    else if (mdof.coeff >= Real(0))
+      os <<" + "<< mdof.coeff;
+    else
+      os <<" - "<< -mdof.coeff;
+    os <<"*("<< mdof.node <<","<< mdof.dof;
+#if SP_DEBUG > 2
+    if (mdof.nextc)
+    {
+      // Recursively print out the chained constraint
+      os <<" (";
+      mdof.nextc->printMaster(os);
+      os <<")";
+    }
+#endif
+    os <<")";
+  }
 }
 
 
@@ -109,23 +140,7 @@ int MPC::renumberNodes (const std::map<int,int>& old2new, bool msg)
 
 std::ostream& operator<< (std::ostream& s, const MPC& mpc)
 {
-  s <<"Slave "<< mpc.slave.node <<","<< mpc.slave.dof;
-  if (mpc.slave.coeff != Real(0))
-    s <<" = "<< mpc.slave.coeff;
-  else if (mpc.master.empty())
-    return s <<" = 0"<< std::endl;
-  else
-    s <<" = ";
-
-  for (size_t i = 0; i < mpc.master.size(); i++)
-  {
-    if (i == 0 && mpc.slave.coeff == Real(0))
-      s << mpc.master[i].coeff;
-    else if (mpc.master[i].coeff >= Real(0))
-      s <<" + "<< mpc.master[i].coeff;
-    else
-      s <<" - "<< -mpc.master[i].coeff;
-    s <<"*("<< mpc.master[i].node <<","<< mpc.master[i].dof <<")";
-  }
+  s <<"Slave "<< mpc.slave.node <<","<< mpc.slave.dof <<" = ";
+  mpc.printMaster(s);
   return s << std::endl;
 }

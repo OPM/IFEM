@@ -82,8 +82,8 @@ public:
   //! \details This method must be called once before the first call to
   //! \a assembleSystem for a given load case or time step.
   bool initForAssembly(SystemMatrix& sysK, SystemVector& sysRHS,
-		       Vector* reactionForces = nullptr,
-		       bool dontLockSP = false) const;
+                       Vector* reactionForces = nullptr,
+                       bool dontLockSP = false) const;
 
   //! \brief Initializes a system matrix prior to the element assembly.
   //! \param sysM The system left-hand-side matrix to be initialized
@@ -111,16 +111,15 @@ public:
   //! \details When multi-point constraints are present, contributions from
   //! these are also added into the right-hand-side system load vector.
   bool assembleSystem(SystemMatrix& sysK, SystemVector& sysRHS,
-		      const Matrix& eK, int iel = 0,
-		      Vector* reactionForces = nullptr) const;
+                      const Matrix& eK, int iel = 0,
+                      Vector* reactionForces = nullptr) const;
 
   //! \brief Adds an element matrix into the corresponding system matrix.
   //! \param sysM    The left-hand-side system matrix
   //! \param[in] eM  The element matrix
   //! \param[in] iel Identifier for the element that \a eM belongs to
   //! \return \e true on successful assembly, otherwise \e false
-  bool assembleSystem(SystemMatrix& sysM,
-		      const Matrix& eM, int iel = 0) const;
+  bool assembleSystem(SystemMatrix& sysM, const Matrix& eM, int iel = 0) const;
 
   //! \brief Adds element stiffness contributions to the system load vector.
   //! \param sysRHS  The right-hand-side system load vector
@@ -219,8 +218,8 @@ public:
   //! That is, all fixed or constrained (slave) DOFs are not present.
   //! Before we can compute derived element quantities we therefore need to
   //! extract the resulting solution values also for the constrained DOFs.
-  virtual bool expandSolution(const SystemVector& solVec, Vector& dofVec,
-			      Real scaleSD = 1.0) const;
+  virtual bool expandSolution(const SystemVector& solVec,
+                              Vector& dofVec, Real scaleSD = Real(1)) const;
 
   //! \brief Expands a solution vector from equation-ordering to DOF-ordering.
   //! \param[in] solVec Solution vector, length = NEQ
@@ -302,6 +301,11 @@ protected:
   //! \param[out] dofVec Degrees of freedom vector, length = NDOF
   //! \param[in] scaleSD Scaling factor for specified (slave) DOFs
   bool expandVector(const Real* solVec, Vector& dofVec, Real scaleSD) const;
+
+  //! \brief Prints out the DOF status codes to the given stream.
+  void printStatusCodes(std::ostream& os) const;
+  //! \brief Prints out a constraint equation to the given stream.
+  void printCEQ(std::ostream& os, int iceq) const;
 
 private:
   int mpar[50]; //!< Matrix of parameters
