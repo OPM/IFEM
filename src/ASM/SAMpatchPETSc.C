@@ -17,15 +17,15 @@
 #include "ProcessAdm.h"
 
 
-SAMpatchPETSc::SAMpatchPETSc(const std::map<int,int>& g2ln,
-                             const ProcessAdm& padm) : adm(padm)
+SAMpatchPETSc::SAMpatchPETSc (const std::map<int,int>& g2ln,
+                              const ProcessAdm& padm) : adm(padm)
 {
   nProc = adm.getNoProcs();
   LinAlgInit::increfs();
 }
 
 
-SAMpatchPETSc::~SAMpatchPETSc()
+SAMpatchPETSc::~SAMpatchPETSc ()
 {
 #ifdef HAVE_MPI
   for (auto& it : dofIS) {
@@ -39,14 +39,6 @@ SAMpatchPETSc::~SAMpatchPETSc()
     ISDestroy(&glob2LocEq);
 #endif
   LinAlgInit::decrefs();
-}
-
-
-bool SAMpatchPETSc::init (const std::vector<ASMbase*>& model, int numNod,
-                          const std::vector<char>& dTypes)
-{
-  patch = model;
-  return this->SAMpatch::init(model,numNod,dTypes);
 }
 
 
@@ -181,8 +173,8 @@ SAMpatchPETSc::DofIS& SAMpatchPETSc::getIS (char dofType) const
 #endif
 
 
-bool SAMpatchPETSc::expandSolution(const SystemVector& solVec,
-                                   Vector& dofVec, Real scaleSD) const
+bool SAMpatchPETSc::expandSolution (const SystemVector& solVec,
+                                    Vector& dofVec, Real scaleSD) const
 {
   PETScVector* Bptr = const_cast<PETScVector*>(dynamic_cast<const PETScVector*>(&solVec));
   if (!Bptr)

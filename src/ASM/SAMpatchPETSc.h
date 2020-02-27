@@ -35,13 +35,6 @@ public:
   //! \brief The destructor destroys the index set arrays.
   virtual ~SAMpatchPETSc();
 
-  //! \brief Allocates the dynamic arrays and populates them with data.
-  //! \param[in] model All spline patches in the model
-  //! \param[in] numNod Total number of unique nodes in the model
-  //! \param[in] dTypes Nodal DOF type flags
-  virtual bool init(const std::vector<ASMbase*>& model, int numNod,
-                    const std::vector<char>& dTypes);
-
   //! \brief Computes the dot-product of two vectors.
   //! \param[in] x First vector in dot-product
   //! \param[in] y Second vector in dot-product
@@ -71,9 +64,6 @@ public:
   //! for parallel vectors the ghost entries are also included.
   virtual Real normInf(const Vector& x, size_t& comp, char dofType = 'D') const;
 
-  //! \brief Returns the patch vector.
-  const std::vector<ASMbase*> getPatches() const { return patch; }
-
   //! \brief Expands a solution vector from equation-ordering to DOF-ordering.
   //! \param[in] solVec Solution vector, length = NEQ
   //! \param[out] dofVec Degrees of freedom vector, length = NDOF
@@ -85,8 +75,8 @@ public:
   //! That is, all fixed or constrained (slave) DOFs are not present.
   //! Before we can compute derived element quantities we therefore need to
   //! extract the resulting solution values also for the constrained DOFs.
-  virtual bool expandSolution(const SystemVector& solVec, Vector& dofVec,
-                              Real scaleSD = 1.0) const;
+  virtual bool expandSolution(const SystemVector& solVec,
+                              Vector& dofVec, Real scaleSD) const;
 
 private:
   // Parameters for parallel computing
@@ -95,9 +85,6 @@ private:
   IntVec l2gn;       //!< Local-to-global node numbers for this processor
 
   const ProcessAdm& adm; //!< Parallel process administrator
-
-  // For domain decomposition preconditioner
-  std::vector<ASMbase*> patch; //!< The spline patches
 
 #ifdef HAVE_MPI
   mutable IS glob2LocEq = nullptr; //!< Index set for global-to-local equations
