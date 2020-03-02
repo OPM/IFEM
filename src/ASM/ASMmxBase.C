@@ -12,6 +12,7 @@
 //==============================================================================
 
 #include "ASMmxBase.h"
+#include "Utilities.h"
 #include "GoTools/geometry/SplineSurface.h"
 #include "GoTools/geometry/SurfaceInterpolator.h"
 #include "GoTools/trivariate/SplineVolume.h"
@@ -123,8 +124,8 @@ bool ASMmxBase::getSolutionMx (Matrix& sField, const Vector& locSol,
 }
 
 
-ASMmxBase::SurfaceVec ASMmxBase::establishBases(Go::SplineSurface* surf,
-                                                MixedType type)
+ASMmxBase::SurfaceVec ASMmxBase::establishBases (Go::SplineSurface* surf,
+                                                 MixedType type)
 {
   SurfaceVec result(2);
   // With mixed methods we need two separate spline spaces
@@ -248,8 +249,8 @@ ASMmxBase::SurfaceVec ASMmxBase::establishBases(Go::SplineSurface* surf,
 }
 
 
-ASMmxBase::VolumeVec ASMmxBase::establishBases(Go::SplineVolume* svol,
-                                               MixedType type)
+ASMmxBase::VolumeVec ASMmxBase::establishBases (Go::SplineVolume* svol,
+                                                MixedType type)
 {
   VolumeVec result(2);
   // With mixed methods we need two separate spline spaces
@@ -497,4 +498,22 @@ Go::SplineVolume* ASMmxBase::raiseBasis (Go::SplineVolume* svol)
   svol->gridEvaluator(ug[0],ug[1],ug[2],XYZ);
   // Project the coordinates onto the new basis (the 2nd XYZ is dummy here)
   return Go::VolumeInterpolator::regularInterpolation(basis[0],basis[1],basis[2],ug[0],ug[1],ug[2],XYZ,ndim,false,XYZ);
+}
+
+
+int ASMmxBase::maskDOFs (int dofs, char basis) const
+{
+  unsigned char ofs = std::accumulate(nfx.begin(),nfx.begin()+basis-1,0u);
+  std::set<int> allDofs = utl::getDigits(dofs);
+  dofs = 0;
+
+  // Convert the DOF digits to local values of this basis,
+  // and mask off those not residing on this basis
+  for (int dof : allDofs)
+  {
+    dofs *= 10;
+    if (dof > ofs && dof <= ofs+nfx[basis-1])
+      dofs += dof - ofs;
+  }
+  return dofs;
 }
