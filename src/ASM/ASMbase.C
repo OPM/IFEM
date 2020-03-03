@@ -22,6 +22,8 @@
 #include "Function.h"
 #include "Utilities.h"
 #include <algorithm>
+#include <functional>
+#include <iomanip>
 
 
 bool ASMbase::fixHomogeneousDirichlet = true;
@@ -379,7 +381,8 @@ void ASMbase::printNodes (std::ostream& os) const
   os <<"\n\nNodal coordinates for Patch "<< idx+1;
   for (size_t inod = 1; inod <= X.cols(); inod++)
   {
-    os <<'\n'<< inod <<' '<< MLGN[inod-1] <<':';
+    os <<'\n'<< std::setw(4) << inod
+       << ' '<< std::setw(4) << MLGN[inod-1] <<':';
     for (size_t i = 1; i <= X.rows(); i++)
       os <<' '<< X(i,inod);
   }
@@ -394,13 +397,14 @@ void ASMbase::printElements (std::ostream& os) const
   os <<"\n\nElement connectivities for Patch "<< idx+1;
   for (size_t iel = 0; iel < MLGE.size(); iel++)
   {
-    os <<'\n'<< iel+1 <<' '<< MLGE[iel] <<':';
+    os <<'\n'<< std::setw(4) << iel+1
+       << ' '<< std::setw(4) << MLGE[iel] <<':';
     if (iel < MNPC.size())
       for (int node : MNPC[iel]) os <<" "<< node;
   }
   for (size_t ielx = MLGE.size(); ielx < MNPC.size(); ielx++)
   {
-    os <<'\n'<< ielx+1 <<" ---:";
+    os <<'\n'<< std::setw(4) << ielx+1 <<" ----:";
     for (int node : MNPC[ielx]) os <<" "<< node;
   }
   os << std::endl;
@@ -644,7 +648,7 @@ int ASMbase::prescribe (size_t inod, int dirs, int code)
   for (int dof : utl::getDigits(dirs))
     if (dof <= nf)
     {
-      MPC* mpc = new MPC(node,dof);
+      MPC* mpc = new MPC(node,dof,1.0);
       if (!this->addMPC(mpc,code))
         ignoredDirs = 10*ignoredDirs + dof;
     }
@@ -805,6 +809,12 @@ void ASMbase::mergeAndGetAllMPCs (const ASMVec& model, MPCSet& allMPCs)
 
 
 /*!
+  Recursive resolving of (possibly multi-level) chaining in the multi-point
+  constraint equations (MPCs). If a master dof in one MPC is specified as a
+  slave by another MPC, it is replaced by the master(s) of that other equation.
+  Since an MPC-equation may couple nodes belonging to different patches,
+  this method must have access to all patches in the model.
+
   If \a setPtrOnly is \e true, the MPC equations are not modified. Instead
   the pointers to the next MPC in the chain is assigned for the master DOFs
   which are slaves in other MPCs.
@@ -815,75 +825,108 @@ void ASMbase::mergeAndGetAllMPCs (const ASMVec& model, MPCSet& allMPCs)
   \sa SAMpatch::updateConstraintEqs.
 */
 
-void ASMbase::resolveMPCchains (const MPCSet& allMPCs, bool setPtrOnly)
+void ASMbase::resolveMPCchains (const MPCSet& allMPCs,
+                                const ASMVec& model, bool setPtrOnly)
 {
 #if SP_DEBUG > 1
+  int count = 0;
   std::cout <<"\nResolving MPC chains"<< std::endl;
-  for (MPC* mpc : allMPCs) std::cout << *mpc;
+  for (MPC* mpc : allMPCs) std::cout << std::setw(4) << ++count <<": "<< *mpc;
+  if (setPtrOnly) std::cout <<"\nResolved MPCs"<< std::endl;
+  count = 0;
 #endif
+
+  // Recursive lambda function for resolving the chained MPC-equations.
+  std::function<bool(MPC*)> resolve = [&allMPCs,&resolve](MPC* mpc)
+  {
+    if (!mpc) return false;
+
+    bool resolved = false;
+    for (size_t i = 0; i < mpc->getNoMaster();)
+    {
+      MPC master(mpc->getMaster(i).node,mpc->getMaster(i).dof);
+      MPCIter cit = allMPCs.find(&master);
+      if (cit != allMPCs.end())
+      {
+        // We have a master dof which is a slave in another constraint equation.
+        // Invoke resolve() recursively to ensure that all master dofs of that
+        // equation are not slaves themselves.
+        resolve(*cit);
+
+        // Remove current master specification
+        double coeff = mpc->getMaster(i).coeff;
+        mpc->removeMaster(i);
+
+        // Add constant offset from the other equation
+        mpc->addOffset(coeff*(*cit)->getSlave().coeff);
+
+        // Add masters from the other equations
+        for (size_t j = 0; j < (*cit)->getNoMaster(); j++)
+          mpc->addMaster((*cit)->getMaster(j).node,
+                         (*cit)->getMaster(j).dof,
+                         (*cit)->getMaster(j).coeff*coeff);
+        resolved = true;
+      }
+      else
+	i++;
+    }
+
+#if SP_DEBUG > 1
+    if (resolved) std::cout <<"Resolved constraint: "<< *mpc;
+#endif
+    return resolved;
+  };
+
+  // Recursive lambda function for linking the chained MPC-equations.
+  std::function<bool(MPC*)> resolveLnk = [&allMPCs,&model,&resolveLnk](MPC* mpc)
+  {
+    if (!mpc) return false;
+
+    for (size_t i = 0; i < mpc->getNoMaster();)
+    {
+      int node = mpc->getMaster(i).node;
+      int ldof = mpc->getMaster(i).dof;
+      for (ASMbase* pch : model)
+        if (pch->isFixed(node,ldof))
+        {
+          ldof = -1;
+          break;
+        }
+
+      if (ldof > 0)
+      {
+        MPC master(node,ldof);
+        MPCIter chain = allMPCs.find(&master);
+        if (chain == allMPCs.end())
+          i++; // Free master DOF
+        else if (!resolveLnk(*chain))
+          mpc->removeMaster(i); // This master DOF is fixed, remove from link
+        else
+          mpc->updateMaster(i++,*chain); // Set pointer to next MPC in chain
+      }
+      else
+        mpc->removeMaster(i);
+    }
+
+    return mpc->getNoMaster() > 0 || mpc->getSlave().coeff != 0.0;
+  };
 
   int nresolved = 0;
   for (MPC* mpc : allMPCs)
     if (setPtrOnly)
-      for (size_t i = 0; i < mpc->getNoMaster(); i++)
-      {
-        MPC master(mpc->getMaster(i).node,mpc->getMaster(i).dof);
-        MPCIter chain = allMPCs.find(&master);
-        if (chain != allMPCs.end())
-          mpc->updateMaster(i,*chain); // Set pointer to next MPC in chain
-      }
-    else if (ASMbase::resolveMPCchain(allMPCs,mpc))
+    {
+      resolveLnk(mpc);
+#if SP_DEBUG > 1
+      count++;
+      if (mpc->isChained() || mpc->getNoMaster() == 0)
+        std::cout << std::setw(4) << count <<": "<< *mpc;
+#endif
+    }
+    else if (resolve(mpc))
       nresolved++;
 
   if (nresolved > 0)
     IFEM::cout <<"Resolved "<< nresolved <<" MPC chains."<< std::endl;
-}
-
-
-/*!
-  Recursive resolving of (possibly multi-level) chaining in multi-point
-  constraint equations (MPCs). If a master dof in one MPC is specified as a
-  slave by another MPC, it is replaced by the master(s) of that other equation.
-*/
-
-bool ASMbase::resolveMPCchain (const MPCSet& allMPCs, MPC* mpc)
-{
-  if (!mpc) return false;
-
-  bool resolved = false;
-  for (size_t i = 0; i < mpc->getNoMaster();)
-  {
-    MPC master(mpc->getMaster(i).node,mpc->getMaster(i).dof);
-    MPCIter cit = allMPCs.find(&master);
-    if (cit != allMPCs.end())
-    {
-      // We have a master dof which is a slave in another constraint equation.
-      // Invoke resolveMPCchain recursively to ensure that all master dofs
-      // of that equation are not slaves themselves.
-      ASMbase::resolveMPCchain(allMPCs,*cit);
-
-      // Remove current master specification
-      double coeff = mpc->getMaster(i).coeff;
-      mpc->removeMaster(i);
-
-      // Add constant offset from the other equation
-      mpc->addOffset(coeff*(*cit)->getSlave().coeff);
-
-      // Add masters from the other equations
-      for (size_t j = 0; j < (*cit)->getNoMaster(); j++)
-        mpc->addMaster((*cit)->getMaster(j).node,
-                       (*cit)->getMaster(j).dof,
-                       (*cit)->getMaster(j).coeff*coeff);
-      resolved = true;
-    }
-    else
-      i++;
-  }
-
-#if SP_DEBUG > 1
-  if (resolved) std::cout <<"Resolved constraint: "<< *mpc;
-#endif
-  return resolved;
 }
 
 

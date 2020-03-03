@@ -13,7 +13,9 @@
 
 #include "SAMpatch.h"
 #include "ASMbase.h"
+#include "MPC.h"
 #include "IFEM.h"
+#include <functional>
 
 
 bool SAMpatch::init (const std::vector<ASMbase*>& patches, int numNod,
@@ -258,6 +260,31 @@ bool SAMpatch::initConstraintEqs ()
   int ip = mpmceq[0] = 1;
   if (nceq < 1) return true;
 
+  // Recursive lambda function for resolving master DOF dependencies.
+  std::function<void(const MPC::DOF&,const MPC::DOF&,Real&,int&,Real)> resolve;
+  resolve = [this,&resolve](const MPC::DOF& master, const MPC::DOF& slave,
+                            Real& offset, int& ipeq, Real scale)
+  {
+    int idof = madof[master.node-1] + master.dof - 1;
+    if (master.nextc)
+    {
+      // This master DOF is constrained (unresolved chaining)
+      scale *= master.coeff;
+      offset += master.nextc->getSlave().coeff*scale;
+      for (size_t i = 0; i < master.nextc->getNoMaster(); i++)
+        resolve(master.nextc->getMaster(i),
+                master.nextc->getSlave(),
+                offset,ipeq,scale);
+    }
+    else if (msc[idof-1] > 0)
+    {
+      // This master DOF is free
+      int ipmst = (ipeq++) - 1;
+      mmceq[ipmst] = idof;
+      ttcc[ipmst] = master.coeff*scale;
+    }
+  };
+
   mmceq  = new int[nmmceq];
   ttcc   = new Real[nmmceq];
   for (const ASMbase* pch : model)
@@ -267,20 +294,12 @@ bool SAMpatch::initConstraintEqs ()
 
       // Slave dof ...
       int idof = madof[(*cit)->getSlave().node-1] + (*cit)->getSlave().dof - 1;
-      if (msc[idof-1] == 0)
+      if (msc[idof-1] <= 0)
       {
-	std::cerr <<"SAM: Ignoring constraint equation for dof "
-		  << idof <<" ("<< (*cit)->getSlave()
-		  <<").\n     This dof is already marked as FIXED."<< std::endl;
-	ip--;
-	nceq--;
-	continue;
-      }
-      else if (msc[idof-1] < 0)
-      {
-	std::cerr <<"SAM: Ignoring constraint equation for dof "<< idof
-		  <<" ("<< (*cit)->getSlave() <<").\n"
-		  <<"     This dof is already marked as SLAVE."<< std::endl;
+        std::cerr <<"  ** SAM: Ignoring constraint equation for dof "
+                  << idof <<" ("<< (*cit)->getSlave()
+                  <<").\n          This dof is already marked as "
+                  << (msc[idof-1] == 0 ? "FIXED." : "SLAVE.") << std::endl;
 	ip--;
 	nceq--;
 	continue;
@@ -293,19 +312,24 @@ bool SAMpatch::initConstraintEqs ()
       ttcc[ipslv] = (*cit)->getSlave().coeff;
       msc[idof-1] = -ip;
 
+#if SP_DEBUG > 1
+      if ((*cit)->getNoMaster() > 0)
+        std::cout <<"Resolving "<< **cit;
+#endif
+
       // Master dofs ...
       for (size_t i = 0; i < (*cit)->getNoMaster(); i++)
-	if (!this->initConstraintEqMaster((*cit)->getMaster(i),
-					  (*cit)->getSlave(),
-					  ttcc[ipslv],ip))
-	{
-	  // Something is wrong, ignore this constraint equation
-	  (*cit)->iceq = -1;
-	  mpmceq[ip] = mpmceq[ip-1];
-	  ip--;
-	  nceq--;
-	  break;
-	}
+        resolve((*cit)->getMaster(i),(*cit)->getSlave(),
+                ttcc[ipslv],mpmceq[ip],Real(1));
+
+#if SP_DEBUG > 1
+      if ((*cit)->getNoMaster() > 0)
+      {
+        std::cout <<"Resolved CEQ: ";
+        this->printCEQ(std::cout,ip-1);
+        std::cout << std::endl;
+      }
+#endif
     }
 
 #if SP_DEBUG > 1
@@ -323,43 +347,26 @@ bool SAMpatch::initConstraintEqs ()
 }
 
 
-bool SAMpatch::initConstraintEqMaster (const MPC::DOF& master,
-				       const MPC::DOF& slave,
-				       Real& offset, int ip, Real scale)
+bool SAMpatch::updateConstraintEqs (const Vector* prevSol)
 {
-  int idof = madof[master.node-1] + master.dof - 1;
-  if (msc[idof-1] > 0)
+  if (nceq < 1) return true; // No constraints in this model
+
+  // Recursive lambda function for updating master DOFs.
+  std::function<void(const MPC::DOF&,Real&,int&,Real)> update;
+  update = [this,&update](const MPC::DOF& master,
+                          Real& offset, int& ipeq, Real scale)
   {
-    int ipmst = (mpmceq[ip]++) - 1;
-    mmceq[ipmst] = idof;
-    ttcc[ipmst] = master.coeff*scale;
-  }
-  else if (msc[idof-1] < 0)
-    // This master dof is constrained (unresolved chaining)
-    if (!master.nextc)
-    {
-      std::cerr <<" SAM: Chained MPCs detected, slave "<< slave
-		<<", master "<< master <<" (ignored)."<< std::endl;
-      return false;
-    }
-    else
+    int idof = madof[master.node-1] + master.dof - 1;
+    if (msc[idof-1] > 0 && mmceq[++ipeq] == idof)
+      ttcc[ipeq] = master.coeff*scale;
+    else if (master.nextc)
     {
       scale *= master.coeff;
       offset += master.nextc->getSlave().coeff*scale;
       for (size_t i = 0; i < master.nextc->getNoMaster(); i++)
-	if (!this->initConstraintEqMaster(master.nextc->getMaster(i),
-					  master.nextc->getSlave(),
-					  offset,ip,scale))
-	  return false;
+        update(master.nextc->getMaster(i),offset,ipeq,scale);
     }
-
-  return true;
-}
-
-
-bool SAMpatch::updateConstraintEqs (const Vector* prevSol)
-{
-  if (nceq < 1) return true; // No constraints in this model
+  };
 
   MPCIter cit;
   for (const ASMbase* pch : model)
@@ -382,7 +389,7 @@ bool SAMpatch::updateConstraintEqs (const Vector* prevSol)
 
       // Master dofs ...
       for (size_t i = 0; prevSol && i < (*cit)->getNoMaster(); i++)
-	this->updateConstraintEqMaster((*cit)->getMaster(i),c0,ipeq);
+        update((*cit)->getMaster(i),c0,ipeq,Real(1));
 
       // Update the constant term of the constraint equation
       if (!prevSol || c0 == Real(0)) // Note: c0=0 means no constant offset
@@ -399,21 +406,4 @@ bool SAMpatch::updateConstraintEqs (const Vector* prevSol)
     }
 
   return true;
-}
-
-
-void SAMpatch::updateConstraintEqMaster (const MPC::DOF& master,
-					 Real& offset, int& ipeq, Real scale)
-{
-  int idof = madof[master.node-1] + master.dof - 1;
-  if (msc[idof-1] > 0 && mmceq[++ipeq] == idof)
-    ttcc[ipeq] = master.coeff*scale;
-  else if (master.nextc)
-  {
-    scale *= master.coeff;
-    offset += master.nextc->getSlave().coeff*scale;
-    for (size_t i = 0; i < master.nextc->getNoMaster(); i++)
-      this->updateConstraintEqMaster(master.nextc->getMaster(i),
-				     offset,ipeq,scale);
-  }
 }

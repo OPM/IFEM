@@ -203,46 +203,49 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
   this->preprocessA();
 
   // Create the classical FE data structures
-  if (!this->createFEMmodel('Y')) return false;
-
-  PatchVec::const_iterator mit;
-  ASMbase* pch;
-  size_t patch;
+  if (!this->createFEMmodel('Y'))
+    return false;
 
   // Erase all patches that should be ignored in the analysis
   for (int idx : ignored)
-    if ((pch = this->getPatch(idx)))
-      pch->clear();
+  {
+    ASMbase* pch = this->getPatch(idx);
+    if (pch) pch->clear();
+  }
 
   // If material properties are specified for at least one patch, assign the
   // property code 999999 to all patches with no material property code yet
-  PatchVec pchWthMat;
+  PatchVec patches;
   for (const Property& p : myProps)
-    if (p.pcode == Property::MATERIAL && (pch = this->getPatch(p.patch)))
-      if (!pch->empty()) pchWthMat.push_back(pch);
+    if (p.pcode == Property::MATERIAL)
+    {
+      ASMbase* pch = this->getPatch(p.patch);
+      if (pch && !pch->empty())
+        patches.push_back(pch);
+    }
 
-  if (!pchWthMat.empty())
-    for (mit = myModel.begin(), patch = 1; mit != myModel.end(); ++mit, patch++)
-      if (std::find(pchWthMat.begin(),pchWthMat.end(),*mit) == pchWthMat.end())
-	myProps.push_back(Property(Property::MATERIAL,999999,patch,
-				   (*mit)->getNoParamDim()));
+  if (!patches.empty())
+    for (size_t i = 0; i < myModel.size(); i++)
+      if (std::find(patches.begin(),patches.end(),myModel[i]) == patches.end())
+        myProps.push_back(Property(Property::MATERIAL,999999,i+1,
+                                   myModel[i]->getNoParamDim()));
 
   if (fixDup)
   {
     // Check for duplicated nodes (missing topology)
     int nDupl = 0;
     std::map<Vec3,int> globalNodes;
-    for (mit = myModel.begin(), patch = 1; mit != myModel.end(); ++mit, patch++)
-      if (!(*mit)->empty())
+    for (ASMbase* pch : myModel)
+      if (!pch->empty())
       {
-	IFEM::cout <<"   * Checking Patch "<< patch << std::endl;
-	for (size_t node = 1; node <= (*mit)->getNoNodes(); node++)
+	IFEM::cout <<"   * Checking Patch "<< pch->idx+1 << std::endl;
+	for (size_t node = 1; node <= pch->getNoNodes(); node++)
 	{
-	  Vec3 X((*mit)->getCoord(node));
+	  Vec3 X(pch->getCoord(node));
 	  std::map<Vec3,int>::const_iterator xit = globalNodes.find(X);
 	  if (xit == globalNodes.end())
-	    globalNodes.insert(std::make_pair(X,(*mit)->getNodeID(node)));
-	  else if ((*mit)->mergeNodes(node,xit->second))
+	    globalNodes.insert(std::make_pair(X,pch->getNodeID(node)));
+	  else if (pch->mergeNodes(node,xit->second))
 	    nDupl++;
 	}
       }
@@ -267,8 +270,8 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
     renum = ASMbase::renumberNodes(myModel,myGlb2Loc);
     ngnod = g2l->size();
   }
-  else for (mit = myModel.begin(); mit != myModel.end(); ++mit)
-    renum += (*mit)->renumberNodes(myGlb2Loc,ngnod);
+  else for (ASMbase* pch : myModel)
+    renum += pch->renumberNodes(myGlb2Loc,ngnod);
 
   if (renum > 0)
     IFEM::cout <<"\nRenumbered "<< renum <<" nodes."<< std::endl;
@@ -340,19 +343,29 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
   MPCSet allMPCs;
   ASMbase::mergeAndGetAllMPCs(myModel,allMPCs);
 
-  // Set initial values for the inhomogeneous dirichlet conditions, if any,
-  // and compute coupling coefficients for the C1-continuity constraints
-  if (!this->initDirichlet()) return false;
+  // Compute coupling coefficients for C1-continuity constraints, if any
+  for (ASMbase* pch : myModel)
+    if (!pch->initConstraints())
+      return false;
+
+  // Set the inhomogeneous dirichlet conditions, in stationary case
+  bool timeDependent = this->hasTimeDependentDirichlet();
+  if (!timeDependent && !this->initDirichlet())
+    return false;
 
   // Resolve possibly chaining of the MPC equations
   if (!allMPCs.empty())
-    ASMbase::resolveMPCchains(allMPCs,this->hasTimeDependentDirichlet());
+    ASMbase::resolveMPCchains(allMPCs,myModel,timeDependent);
+
+  // Set initial values for the inhomogeneous dirichlet conditions, if any
+  if (timeDependent && !this->initDirichlet())
+    return false;
 
   // Generate element groups for multi-threading
   bool silence = msgLevel < 1 || (msgLevel < 3 && nGlPatches > 1);
-  for (mit = myModel.begin(); mit != myModel.end() && myProblem; ++mit)
-    if (!(*mit)->empty())
-      (*mit)->generateThreadGroups(*myProblem,silence,lagMTOK);
+  for (ASMbase* pch : myModel)
+    if (!pch->empty())
+      pch->generateThreadGroups(*myProblem,silence,lagMTOK);
 
   for (const Property& p : myProps)
     if (p.pcode == Property::NEUMANN ||
@@ -685,11 +698,6 @@ bool SIMbase::hasTimeDependentDirichlet () const
 
 bool SIMbase::initDirichlet (double time)
 {
-  if (time == 0.0)
-    for (ASMbase* pch : myModel)
-      if (!pch->initConstraints())
-        return false;
-
   Vector dummy;
   return this->updateDirichlet(time,&dummy);
 }

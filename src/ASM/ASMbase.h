@@ -388,13 +388,10 @@ public:
 
   //! \brief Resolves (possibly multi-level) chaining in MPC equations.
   //! \param[in] allMPCs All multi-point constraint equations in the model
+  //! \param[in] model All spline patches in the model
   //! \param[in] setPtrOnly If \e true, only set pointer to next MPC in chain
-  //!
-  //! \details If a master DOF in one MPC (multi-point constraint) equation
-  //! is specified as slave by another MPC, it is replaced by the master(s) of
-  //! that other equation. Since an MPC-equation may couple nodes belonging to
-  //! different patches, this method must have access to all patches.
-  static void resolveMPCchains(const MPCSet& allMPCs, bool setPtrOnly = false);
+  static void resolveMPCchains(const MPCSet& allMPCs,
+                               const ASMVec& model, bool setPtrOnly = false);
 
   //! \brief Initializes the multi-point constraint coefficients.
   virtual bool initConstraints() { return true; }
@@ -813,12 +810,6 @@ protected:
   //! \details The global node number of the node with the highest number
   //! is changed into the number of the other node.
   static bool collapseNodes(ASMbase& pch1, int node1, ASMbase& pch2, int node2);
-
-private:
-  //! \brief Recursive method used by resolveMPCchains().
-  //! \param[in] allMPCs All multi-point constraint equations in the model
-  //! \param mpc Pointer to the multi-point constraint equation to resolve
-  static bool resolveMPCchain(const MPCSet& allMPCs, MPC* mpc);
 
 public:
   static bool fixHomogeneousDirichlet; //!< If \e true, pre-eliminate fixed DOFs

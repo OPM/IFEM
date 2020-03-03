@@ -15,7 +15,6 @@
 #define _SAM_PATCH_H
 
 #include "SAM.h"
-#include "MPC.h"
 
 class ASMbase;
 
@@ -62,13 +61,6 @@ protected:
   bool initConstraintEqs();
 
 private:
-  //! \brief Recursive helper method used by \a initConstraintEqs.
-  bool initConstraintEqMaster(const MPC::DOF& master, const MPC::DOF& slave,
-                              Real& offset, int ip, Real scale = Real(1));
-  //! \brief Recursive helper method used by \a updateConstraintEqs.
-  void updateConstraintEqMaster(const MPC::DOF& master,
-                                Real& offset, int& ipeq, Real scale = 1.0);
-
   std::vector<ASMbase*> model; //!< The spline patches of the model
 };
 
