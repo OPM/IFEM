@@ -125,7 +125,13 @@ protected:
   //! \brief Parses the "set" attribute of a refine/raiseorder XML-tag.
   //! \param[in] elem The XML element extract the set name from
   //! \param[in] patches List of patch indices of the specified set
-  bool parseTopologySet(const TiXmlElement* elem, std::vector<int>& patches);
+  bool parseTopologySet(const TiXmlElement* elem,
+                        std::vector<int>& patches) const;
+  //! \brief Parses a list of patch indices from an XML-tag.
+  //! \param[in] elem The XML element extract the patch indices from
+  //! \param[in] patches List of patch indices
+  bool parsePatchList(const TiXmlElement* elem,
+                      std::vector<int>& patches) const;
 
   //! \brief Creates a set of Property objects.
   //! \param[in] setName Name of the topology set the property is defined on

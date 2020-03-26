@@ -247,28 +247,30 @@ bool SIMinput::parseGeometryTag (const TiXmlElement* elem)
         const TiXmlElement* item = set->FirstChildElement("item");
         for (; item; item = item->NextSiblingElement("item"))
         {
-          int patch = 1;
-          utl::getAttribute(item,"patch",patch);
-          if ((patch = this->getLocalPatchIndex(patch)) > 0)
-          {
-            if (abs(idim) == (int)this->getNoParamDim())
-              top.insert(TopItem(patch,0,idim));
-            else if (idim == 4)
+          int pid = 0;
+          IntVec patches;
+          this->parsePatchList(item,patches);
+          for (int patch : patches)
+            if ((pid = this->getLocalPatchIndex(patch)) > 0)
             {
-              ASMbase* pch = myModel[patch-1];
-              if (item->FirstChild())
-                utl::parseIntegers(pch->getNodeSet(name),
-                                   item->FirstChild()->Value());
-              top.insert(TopItem(patch,pch->getNodeSetIdx(name),idim));
+              if (abs(idim) == (int)this->getNoParamDim())
+                top.insert(TopItem(pid,0,idim));
+              else if (idim == 4)
+              {
+                ASMbase* pch = myModel[pid-1];
+                if (item->FirstChild())
+                  utl::parseIntegers(pch->getNodeSet(name),
+                                     item->FirstChild()->Value());
+                top.insert(TopItem(pid,pch->getNodeSetIdx(name),idim));
+              }
+              else if (item->FirstChild())
+              {
+                IntVec items;
+                utl::parseIntegers(items,item->FirstChild()->Value());
+                for (int item : items)
+                  top.insert(TopItem(pid,item,idim));
+              }
             }
-            else if (item->FirstChild())
-            {
-              IntVec items;
-              utl::parseIntegers(items,item->FirstChild()->Value());
-              for (int item : items)
-                top.insert(TopItem(patch,item,idim));
-            }
-          }
         }
       }
 
@@ -847,7 +849,8 @@ int SIMinput::parseMaterialSet (const TiXmlElement* elem, int mindex)
 }
 
 
-bool SIMinput::parseTopologySet (const TiXmlElement* elem, IntVec& patches)
+bool SIMinput::parseTopologySet (const TiXmlElement* elem,
+                                 IntVec& patches) const
 {
   std::string setName;
   if (utl::getAttribute(elem,"set",setName))
@@ -872,6 +875,12 @@ bool SIMinput::parseTopologySet (const TiXmlElement* elem, IntVec& patches)
     return false;
   }
 
+  return this->parsePatchList(elem,patches);
+}
+
+
+bool SIMinput::parsePatchList (const TiXmlElement* elem, IntVec& patches) const
+{
   int lowpatch = 1, uppatch = 1;
   if (utl::getAttribute(elem,"patch",lowpatch))
     uppatch = lowpatch;
@@ -881,8 +890,9 @@ bool SIMinput::parseTopologySet (const TiXmlElement* elem, IntVec& patches)
 
   if (lowpatch < 1 || uppatch > nGlPatches)
   {
-    std::cerr <<" *** SIMinput::parseTopologySet: Invalid patch indices, lower="
+    std::cerr <<" *** SIMinput::parsePatchList: Invalid patch indices, lower="
               << lowpatch <<" upper="<< uppatch << std::endl;
+    patches.clear();
     return false;
   }
 
