@@ -32,7 +32,7 @@ public:
 
 protected:
   //! \brief Assembles and solves the linearized FE equation system.
-  virtual bool assembleAndSolveSystem()
+  bool assembleAndSolveSystem() override
   {
     TimeStep dummy;
     model.init(dummy);
@@ -42,6 +42,14 @@ protected:
       return false;
 
     return true;
+  }
+
+  //! \brief Saves point results to output file for a given time step.
+  //! \param[in] time Load/time step parameter
+  //! \param[in] step Load/time step counter
+  bool savePoints(double time, int iStep) const override
+  {
+    return model.savePoints(time, iStep);
   }
 
   T1& model; //!< Reference to the actual sim

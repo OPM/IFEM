@@ -73,6 +73,12 @@ public:
   //! \param[in] elem The XML element to parse
   virtual bool parse(const TiXmlElement* elem);
 
+  //! \brief Saves point results to output file for a given time step.
+  //! \param[in] time Load/time step parameter
+  //! \param[in] step Load/time step counter
+  //! \details By default it just forwards to the underlying model
+  virtual bool savePoints(double time, int iStep) const;
+
 protected:
   //! \brief Assembles and solves the linear FE equation system.
   virtual bool assembleAndSolveSystem();
