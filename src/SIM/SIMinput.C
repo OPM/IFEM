@@ -520,6 +520,8 @@ bool SIMinput::parseBCTag (const TiXmlElement* elem)
     std::string set, type, prop;
     utl::getAttribute(elem,"set",set);
     utl::getAttribute(elem,"type",type,true);
+    int direction = 0;
+    utl::getAttribute(elem,"direction",direction);
     const TiXmlNode* nval = elem->FirstChild();
     if (nval) prop = nval->Value();
 
@@ -530,7 +532,7 @@ bool SIMinput::parseBCTag (const TiXmlElement* elem)
     if (!type.empty())
       IFEM::cout <<" ("<< type <<")";
     this->setPropertyType(code,Property::ROBIN);
-    this->setNeumann(prop,type,1-this->getNoFields(),code);
+    this->setNeumann(prop,type,direction < 0 ? direction : 1-this->getNoFields(),code);
     IFEM::cout << std::endl;
   }
 
