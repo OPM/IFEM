@@ -45,9 +45,12 @@ public:
     //! \param[in] fe The finite element to evaluate for
     //! \param[in] AC Advecting field
     //! \param[in] scale Scaling factor for contribution
+    //! \param[in] form Formulation to use for advection
     //! \param[in] basis Basis to use
     static void Advection(Matrix& EM, const FiniteElement& fe,
-                          const Vec3& AC, double scale=1.0, int basis=1);
+                          const Vec3& AC, double scale=1.0,
+                          WeakOperators::ConvectionForm form = WeakOperators::CONVECTIVE,
+                          int basis=1);
 
     //! \brief Compute a (nonlinear) convection term.
     //! \param[out] EM The element matrix to add contribution to
