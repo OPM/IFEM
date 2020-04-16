@@ -169,10 +169,16 @@ public:
   //! implementing the same interface.
   typedef C communication_type;
 
+#if DUNE_VERSION_NEWER(DUNE_ISTL, 2, 6)
+  Dune::SolverCategory::Category category() const
+  { return Dune::SolverCategory::sequential; }
+#else
+  // define the category
   enum {
-    //! \brief The solver category.
-    category=Dune::SolverCategory::overlapping
+    //! \brief The category the preconditioner is part of.
+    category=Dune::SolverCategory::sequential
   };
+#endif
 
   /**
    * @brief constructor: just store a reference to a matrix.

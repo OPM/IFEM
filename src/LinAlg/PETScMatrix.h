@@ -176,6 +176,7 @@ public:
   //! \param[in] Pb Preconditioner vector (ignored here)
   //! \return True on success
   virtual bool setParameters(PETScMatrix* P = nullptr, PETScVector* Pb = nullptr);
+
 protected:
   //! \brief Solve a linear system
   bool solve(const Vec& b, Vec& x, bool newLHS, bool knoll);
