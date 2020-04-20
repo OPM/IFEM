@@ -1424,52 +1424,68 @@ bool SIMinput::refine (const LR::RefineData& prm, Vectors& sol)
   std::vector<LR::RefineData> prmloc(myModel.size(),LR::RefineData(prm));
   std::vector<IntSet> refineIndices(myModel.size());
   std::vector<IntSet> conformingIndices(myModel.size());
-  for (size_t i = 0; i < myModel.size(); i++)
-  {
-    // Extract local indices from the vector of global indices
-    int locId;
-    for (int k : prm.elements)
-      if ((locId = myModel[i]->getNodeIndex(k+1)) > 0)
-        refineIndices[i].insert(locId-1);
-
-    // fetch all boundary nodes covered (may need to pass this to other patches)
-    pch = dynamic_cast<ASMunstruct*>(myModel[i]);
-    IntVec bndry_nodes = pch->getBoundaryCovered(refineIndices[i]);
-
-    // DESIGN NOTE: It is tempting here to use patch connectivity information.
-    // However, this does not account (in the general case)
-    // for cross-connections in L-shape geometries, i.e.,
-    //
-    // +-----+
-    // | #1  |
-    // |     |         patch #1 (edge 3) connected to patch #2 (edge 4)
-    // +-----+-----+   patch #2 (edge 2) connected to patch #3 (edge 1)
-    // | #2  | #3  |
-    // |     |     |   we need to pass the corner index of patch #3 (vertex 3)
-    // +-----+-----+   to patch #1 (vertex 2), but this connection is not
-    //                 guaranteed to appear in the input file
-
-    // for all boundary nodes, check if these appear on other patches
-    for (int k : bndry_nodes)
+  bool changed = true;
+  while (changed) {
+    changed = false;
+    for (size_t i = 0; i < myModel.size(); i++)
     {
-      int globId = myModel[i]->getNodeID(k+1);
-      for (size_t j = 0; j < myModel.size(); j++)
-        if (j != i && (locId = myModel[j]->getNodeIndex(globId)) > 0)
-        {
-          conformingIndices[j].insert(locId-1);
-          conformingIndices[i].insert(k);
+      // Extract local indices from the vector of global indices
+      int locId;
+      for (int k : prm.elements)
+        if ((locId = myModel[i]->getNodeIndex(k+1)) > 0) {
+          if (refineIndices[i].count(locId-1) == 0) {
+            refineIndices[i].insert(locId-1);
+            changed = true;
+          }
         }
+
+      // fetch all boundary nodes covered (may need to pass this to other patches)
+      pch = dynamic_cast<ASMunstruct*>(myModel[i]);
+      IntVec bndry_nodes = pch->getBoundaryCovered(refineIndices[i]);
+
+      // DESIGN NOTE: It is tempting here to use patch connectivity information.
+      // However, this does not account (in the general case)
+      // for cross-connections in L-shape geometries, i.e.,
+      //
+      // +-----+
+      // | #1  |
+      // |     |         patch #1 (edge 3) connected to patch #2 (edge 4)
+      // +-----+-----+   patch #2 (edge 2) connected to patch #3 (edge 1)
+      // | #2  | #3  |
+      // |     |     |   we need to pass the corner index of patch #3 (vertex 3)
+      // +-----+-----+   to patch #1 (vertex 2), but this connection is not
+      //                 guaranteed to appear in the input file
+
+      // for all boundary nodes, check if these appear on other patches
+      for (int k : bndry_nodes)
+      {
+        int globId = myModel[i]->getNodeID(k+1);
+        for (size_t j = 0; j < myModel.size(); j++)
+          if (j != i && (locId = myModel[j]->getNodeIndex(globId)) > 0)
+          {
+            if (conformingIndices[j].count(locId-1) == 0) {
+              changed = true;
+              conformingIndices[j].insert(locId-1);
+              conformingIndices[i].insert(k);
+            }
+          }
+      }
+    }
+
+    for (size_t i = 0; i < myModel.size(); i++)
+    {
+      pch = dynamic_cast<ASMunstruct*>(myModel[i]);
+      pch->extendRefinementDomain(refineIndices[i],conformingIndices[i]);
     }
   }
 
   Vectors lsols;
   lsols.reserve(sol.size()*myModel.size());
   size_t ngNodes = this->getNoNodes(1);
-
   for (size_t i = 0; i < myModel.size(); i++)
   {
     pch = dynamic_cast<ASMunstruct*>(myModel[i]);
-    pch->extendRefinementDomain(refineIndices[i],conformingIndices[i]);
+
     LR::RefineData prmloc(prm);
     prmloc.elements = IntVec(refineIndices[i].begin(),refineIndices[i].end());
 

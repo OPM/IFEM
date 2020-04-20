@@ -27,7 +27,12 @@ install(FILES scripts/regtest.sh.in
                     WORLD_READ WORLD_EXECUTE)
 
 # Unit tests
-IFEM_add_test_app(${PROJECT_SOURCE_DIR}/Test/*.C
+file(GLOB APPCOMMON_TEST_SRCS ${PROJECT_SOURCE_DIR}/Test/*.C)
+if(LRSpline_FOUND)
+  list(APPEND APPCOMMON_TEST_SRCS ${PROJECT_SOURCE_DIR}/Test/LR/TestMultiPatchLRRefine.C)
+endif()
+
+IFEM_add_test_app("${APPCOMMON_TEST_SRCS}"
                   ${PROJECT_SOURCE_DIR}/Test
                   AppCommon
                   IFEMAppCommon ${IFEM_LIBRARIES})
