@@ -232,14 +232,16 @@ void PETScMatrix::initAssembly (const SAM& sam, bool delayLocking)
     } else if (adm.dd.isPartitioned()) {
       // Setup sparsity pattern for global matrix
       SparseMatrix* lA = new SparseMatrix(neq, sam.getNoEquations());
-      for (int elm : adm.dd.getElms()) {
+      int iMin = adm.dd.getMinEq(0);
+      int iMax = adm.dd.getMaxEq(0);
+      for (int elm = 1; elm <= sam.getNoElms(); ++elm) {
         IntVec meen;
-        sam.getElmEqns(meen,elm+1);
+        sam.getElmEqns(meen,elm);
         for (int i : meen)
-          if (i > 0 && i >= adm.dd.getMinEq(0) && i <= adm.dd.getMaxEq(0))
+          if (i > 0 && adm.dd.getGlobalEq(i) >= iMin && adm.dd.getGlobalEq(i) <= iMax)
             for (int j : meen)
               if (j > 0)
-                (*lA)(i-adm.dd.getMinEq(0)+1,adm.dd.getGlobalEq(j)) = 0.0;
+                (*lA)(adm.dd.getGlobalEq(i)-iMin+1,adm.dd.getGlobalEq(j)) = 0.0;
       }
       IntVec iA, jA;
       SparseMatrix::calcCSR(iA, jA, neq, lA->getValues());
