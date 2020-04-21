@@ -211,7 +211,7 @@ public:
 
   //! \brief Copy refinement to another surface.
   //! \param basis Surface to copy refinement to
-  //! \param mult Wanted multiplicity
+  //! \param multiplicity Wanted multiplicity
   void copyRefinement(LR::LRSplineSurface* basis, int multiplicity) const;
 
 protected:

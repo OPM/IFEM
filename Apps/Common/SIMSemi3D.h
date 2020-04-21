@@ -370,6 +370,9 @@ public:
   //! \brief Returns the number of bases in the model.
   int getNoBasis() const { return m_planes.front()->getNoBasis(); }
 
+  //! \brief Returns the number of solution vectors.
+  size_t getNoSolutions() const { return m_planes.front()->getNoSolutions(); }
+
 protected:
   std::vector<PlaneSolver*> m_planes; //!< Planar solvers
 
