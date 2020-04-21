@@ -43,8 +43,9 @@ public:
     if (maxIter < 0)
       maxIter = std::min(this->S1.getMaxit(),this->S2.getMaxit());
 
-    this->S1.getProcessAdm().cout <<"\n  step="<< tp.step
-                                  <<"  time="<< tp.time.t << std::endl;
+    if (tp.multiSteps())
+      this->S1.getProcessAdm().cout <<"\n  step="<< tp.step
+                                    <<"  time="<< tp.time.t << std::endl;
 
     SIM::ConvStatus conv = SIM::OK;
     for (tp.iter = 0; tp.iter <= maxIter && conv != SIM::CONVERGED; tp.iter++)

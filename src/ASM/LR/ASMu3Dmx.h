@@ -176,7 +176,7 @@ public:
 
   //! \brief Copy refinement to another volume.
   //! \param basis Volume to copy refinement to
-  //! \param mult Wanted multiplicity
+  //! \param multiplicity Wanted multiplicity
   void copyRefinement(LR::LRSplineVolume* basis, int multiplicity) const;
 
 private:
