@@ -209,6 +209,11 @@ public:
   virtual void remapErrors(RealArray& errors,
                            const RealArray& origErr, bool elemErrors) const;
 
+  //! \brief Copy refinement to another surface.
+  //! \param basis Surface to copy refinement to
+  //! \param mult Wanted multiplicity
+  void copyRefinement(LR::LRSplineSurface* basis, int multiplicity) const;
+
 protected:
   using ASMu2D::generateThreadGroups;
   //! \brief Generates element groups for multi-threading of interior integrals.

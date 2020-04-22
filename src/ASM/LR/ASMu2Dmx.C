@@ -993,28 +993,14 @@ bool ASMu2Dmx::refine (const LR::RefineData& prm, Vectors& sol)
   }
 
   if (doRefine(prm, refBasis.get())) {
-    for (const LR::Meshline* line : refBasis->getAllMeshlines())
-      for (size_t j = 0; j < m_basis.size(); ++j)
-        if (refBasis == m_basis[j])
-          continue;
-        else {
-          int mult = 1;
-          if (ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS1 ||
-              ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS2) {
-            if (line->multiplicity_ > 1)
-              mult = line->multiplicity_;
-            else
-              mult = (j == 0 && ASMmxBase::Type == REDUCED_CONT_RAISE_BASIS1) ||
-                     (j == 1 && ASMmxBase::Type == REDUCED_CONT_RAISE_BASIS2) ? 2 : 1;
-          }
-
-          if (line->span_u_line_)
-            m_basis[j]->insert_const_v_edge(line->const_par_,
-                                            line->start_, line->stop_, mult);
-          else
-            m_basis[j]->insert_const_u_edge(line->const_par_,
-                                            line->start_, line->stop_, mult);
-        }
+    for (size_t j = 0; j < m_basis.size(); ++j)
+      if (refBasis != m_basis[j]) {
+        if ((j == 0 && ASMmxBase::Type == REDUCED_CONT_RAISE_BASIS1) ||
+            (j == 1 && ASMmxBase::Type == REDUCED_CONT_RAISE_BASIS2))
+          this->copyRefinement(m_basis[j].get(), 2);
+        else
+          this->copyRefinement(m_basis[j].get(), 1);
+      }
 
     // Uniformly refine to find basis 1
     if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
@@ -1191,4 +1177,19 @@ void ASMu2Dmx::storeMesh (const std::string& fName, int fType) const
   }
   writeBasis(projBasis.get(), "proj");
   writeBasis(refBasis.get(), "ref");
+}
+
+
+void ASMu2Dmx::copyRefinement(LR::LRSplineSurface* basis,
+                              int multiplicity) const
+{
+  for (const LR::Meshline* line : refBasis->getAllMeshlines()) {
+    int mult = line->multiplicity_ > 1 ? line->multiplicity_ : multiplicity;
+    if (line->span_u_line_)
+      basis->insert_const_v_edge(line->const_par_,
+                                 line->start_, line->stop_, mult);
+    else
+      basis->insert_const_u_edge(line->const_par_,
+                                 line->start_, line->stop_, mult);
+  }
 }
