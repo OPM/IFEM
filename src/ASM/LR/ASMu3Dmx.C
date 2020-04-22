@@ -924,26 +924,14 @@ bool ASMu3Dmx::refine (const LR::RefineData& prm, Vectors& sol)
   }
 
   if (doRefine(prm, refBasis.get())) {
-    for (const LR::MeshRectangle* rect : refBasis->getAllMeshRectangles())
-      for (size_t j = 0; j < m_basis.size(); ++j)
-        if (refBasis == m_basis[j])
-          continue;
-        else {
-          int p = m_basis[j]->order(rect->constDirection());
-          int mult = 1;
-          if (ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS1 ||
-              ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS2) {
-            if (rect->multiplicity_ > 1)
-              mult = p;
-            else
-              mult = (j == 0 && ASMmxBase::Type == REDUCED_CONT_RAISE_BASIS1) ||
-                     (j == 1 && ASMmxBase::Type == REDUCED_CONT_RAISE_BASIS2) ? 2 : 1;
-          }
-          LR::MeshRectangle* newRect = rect->copy();
-          newRect->multiplicity_ = mult;
-
-          m_basis[j]->insert_line(newRect);
-        }
+    for (size_t j = 0; j < m_basis.size(); ++j)
+      if (refBasis != m_basis[j]) {
+        if ((j == 0 && ASMmxBase::Type == REDUCED_CONT_RAISE_BASIS1) ||
+            (j == 1 && ASMmxBase::Type == REDUCED_CONT_RAISE_BASIS2))
+          this->copyRefinement(m_basis[j].get(), 2);
+        else
+          this->copyRefinement(m_basis[j].get(), 1);
+      }
 
     // Uniformly refine to find basis 1
     if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
@@ -1038,4 +1026,17 @@ size_t ASMu3Dmx::getNoRefineNodes() const
 size_t ASMu3Dmx::getNoRefineElms() const
 {
   return refBasis->nElements();
+}
+
+
+void ASMu3Dmx::copyRefinement(LR::LRSplineVolume* basis, int multiplicity) const
+{
+  for (const LR::MeshRectangle* rect : refBasis->getAllMeshRectangles()) {
+    int mult = rect->multiplicity_ > 1 ? basis->order(rect->constDirection())
+                                       : multiplicity;
+    LR::MeshRectangle* newRect = rect->copy();
+    newRect->multiplicity_ = mult;
+
+    basis->insert_line(newRect);
+  }
 }

@@ -174,6 +174,11 @@ public:
   virtual void remapErrors(RealArray& errors,
                            const RealArray& origErr, bool elemErrors) const;
 
+  //! \brief Copy refinement to another volume.
+  //! \param basis Volume to copy refinement to
+  //! \param mult Wanted multiplicity
+  void copyRefinement(LR::LRSplineVolume* basis, int multiplicity) const;
+
 private:
   std::vector<std::shared_ptr<LR::LRSplineVolume>> m_basis; //!< Spline bases
   std::shared_ptr<LR::LRSplineVolume> refBasis; //!< Basis to refine based on
