@@ -558,8 +558,10 @@ namespace utl
   //! \brief Creates a scalar-valued function by parsing a character string.
   //! \param[in] func Character string to parse function definition from
   //! \param[in] type Function definition type flag
+  //! \param[in] print True to print function to terminal
   RealFunc* parseRealFunc(const std::string& func,
-                          const std::string& type = "expression");
+                          const std::string& type = "expression",
+                          bool print = true);
 
   //! \brief Creates a vector-valued function by parsing a character string.
   //! \param[in] func Character string to parse function definition from

@@ -75,7 +75,7 @@ public:
 
   //! \brief Saves point results to output file for a given time step.
   //! \param[in] time Load/time step parameter
-  //! \param[in] Step Load/time step counter
+  //! \param[in] iStep Load/time step counter
   //! \details By default it just forwards to the underlying model
   virtual bool savePoints(double time, int iStep) const;
 
