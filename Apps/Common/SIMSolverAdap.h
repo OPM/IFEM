@@ -127,4 +127,80 @@ protected:
 template<class T1>
 using SIMSolverAdap = SIMSolverAdapImpl<T1,AdaptiveSIM>;
 
+
+/*!
+  \brief Template class for adaptive simulator drivers
+         which handle adaptation internally.
+*/
+
+template<class T1>
+class SIMSolverAdapInternal : public SIMSolverStat<T1>
+{
+public:
+  //! \brief The constructor forwards to the parent class constructor.
+  explicit SIMSolverAdapInternal(T1& s1) : SIMSolverStat<T1>(s1)
+  {
+  }
+
+  //! \brief Empty destructor.
+  virtual ~SIMSolverAdapInternal() {}
+
+  //! \brief Reads solver data from the specified input file.
+  bool read(const char* file) override { return this->SIMadmin::read(file); }
+
+  //! \brief Solves the problem on a sequence of adaptively refined meshes.
+  int solveProblem(char* infile, const char* = nullptr, bool = false) override
+  {
+    // Save FE model to VTF and HDF5 for visualization
+    // Optionally save the initial configuration also
+
+    if (!this->S1.initAdapPrm())
+      return 1;
+
+    std::vector<std::string> prefix = this->S1.getNormPrefixes();
+
+    if (this->exporter)
+      this->exporter->setNormPrefixes(prefix);
+
+    int geoBlk = 0, nBlock = 0;
+    for (int iStep = 1; this->S1.adaptMesh(iStep); iStep++) {
+      IFEM::cout <<"\nAdaptive step "<< iStep << std::endl;
+      if (!this->S1.solveStep(infile,iStep))
+        return 1;
+      else if (!this->S1.projectNorms(iStep))
+        return 2;
+      else if (!this->saveState(geoBlk,nBlock,iStep,infile,prefix))
+        return 3;
+    }
+
+    return 0;
+  }
+
+  //! \brief Parse an element from an XML input file.
+  bool parse(const TiXmlElement* elem) override
+  {
+    return this->S1.parse(elem);
+  }
+
+protected:
+  //! \brief Saves geometry and results to VTF and HDF5 for current time step.
+  bool saveState(int& geoBlk, int& nBlock, int iStep, char* infile,
+                 const std::vector<std::string>& prefix)
+  {
+    if (!this->S1.saveModel(iStep == 1 ? infile : nullptr,geoBlk,nBlock))
+      return false;
+
+    TimeStep tp;
+    tp.step = iStep;
+
+    if (!this->S1.saveElmNorms(iStep,nBlock,prefix))
+      return false;
+
+    if (!this->S1.saveStep(tp,nBlock))
+      return false;
+
+    return this->exporter ? this->exporter->dumpTimeLevel(&tp,true) : true;
+  }
+};
+
 #endif
