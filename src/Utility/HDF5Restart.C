@@ -13,7 +13,6 @@
 
 #include "HDF5Restart.h"
 #include "TimeStep.h"
-
 #include <iostream>
 #include <sstream>
 
@@ -35,66 +34,13 @@ HDF5Restart::HDF5Restart (const std::string& name, const ProcessAdm& adm,
 }
 
 
-bool HDF5Restart::dumpStep(const TimeStep& tp)
+bool HDF5Restart::dumpStep (const TimeStep& tp)
 {
   return (tp.step % m_stride) == 0;
 }
 
 
-void HDF5Restart::readArray(hid_t group, const std::string& name,
-                            int& len,  char*& data)
-{
-#ifdef HAS_HDF5
-  hid_t set = H5Dopen2(group,name.c_str(),H5P_DEFAULT);
-  hsize_t siz = H5Dget_storage_size(set);
-  len = siz;
-  data = new char[siz];
-  H5Dread(set,H5T_NATIVE_CHAR,H5S_ALL,H5S_ALL,H5P_DEFAULT,data);
-  H5Dclose(set);
-#else
-  len = 0;
-  std::cout << "HDF5Restart: compiled without HDF5 support, no data read" << std::endl;
-#endif
-}
-
-
-void HDF5Restart::writeArray(hid_t group, const std::string& name,
-                             int len, const void* data, hid_t type)
-{
-#ifdef HAS_HDF5
-#ifdef HAVE_MPI
-  int lens[m_adm.getNoProcs()], lens2[m_adm.getNoProcs()];
-  std::fill(lens,lens+m_adm.getNoProcs(),len);
-  MPI_Alltoall(lens,1,MPI_INT,lens2,1,MPI_INT,*m_adm.getCommunicator());
-  hsize_t siz   = (hsize_t)std::accumulate(lens2,lens2+m_adm.getNoProcs(),0);
-  hsize_t start = (hsize_t)std::accumulate(lens2,lens2+m_adm.getProcId(),0);
-#else
-  hsize_t siz   = (hsize_t)len;
-  hsize_t start = 0;
-#endif
-  hid_t space = H5Screate_simple(1,&siz,nullptr);
-  hid_t set = H5Dcreate2(group,name.c_str(),
-                         type,space,H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
-  if (len > 0) {
-    hid_t file_space = H5Dget_space(set);
-    siz = len;
-    hsize_t stride = 1;
-    H5Sselect_hyperslab(file_space,H5S_SELECT_SET,&start,&stride,&siz,nullptr);
-    hid_t mem_space = H5Screate_simple(1,&siz,nullptr);
-    H5Dwrite(set,type,mem_space,file_space,H5P_DEFAULT,data);
-    H5Sclose(mem_space);
-    H5Sclose(file_space);
-  }
-  H5Dclose(set);
-  H5Sclose(space);
-#else
-  std::cout << "HDF5Restart: compiled without HDF5 support, no data written" << std::endl;
-#endif
-}
-
-
-bool HDF5Restart::writeData(const TimeStep& tp,
-                            const SerializeData& data)
+bool HDF5Restart::writeData (const TimeStep& tp, const SerializeData& data)
 {
 #ifdef HAS_HDF5
   int level = tp.step / m_stride;
@@ -119,6 +65,38 @@ bool HDF5Restart::writeData(const TimeStep& tp,
 #else
   int ptot = 1;
 #endif
+
+  // Lambda function for writing data to the HDF5 file.
+  auto&& writeGroup = [this,pid,ptot] (hid_t group, const std::string& name,
+                                       int len, const void* data, hid_t type)
+  {
+#ifdef HAVE_MPI
+    int lens[ptot], lens2[ptot];
+    std::fill(lens,lens+ptot,len);
+    MPI_Alltoall(lens,1,MPI_INT,lens2,1,MPI_INT,*m_adm.getCommunicator());
+    hsize_t siz   = (hsize_t)std::accumulate(lens2,lens2+ptot,0);
+    hsize_t start = (hsize_t)std::accumulate(lens2,lens2+pid,0);
+#else
+    hsize_t siz   = (hsize_t)len;
+    hsize_t start = 0;
+#endif
+    hid_t space = H5Screate_simple(1,&siz,nullptr);
+    hid_t set = H5Dcreate2(group,name.c_str(),
+                           type,space,H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
+    if (len > 0) {
+      hid_t filespace = H5Dget_space(set);
+      siz = len;
+      hsize_t stride = 1;
+      H5Sselect_hyperslab(filespace,H5S_SELECT_SET,&start,&stride,&siz,nullptr);
+      hid_t memspace = H5Screate_simple(1,&siz,nullptr);
+      H5Dwrite(set,type,memspace,filespace,H5P_DEFAULT,data);
+      H5Sclose(memspace);
+      H5Sclose(filespace);
+    }
+    H5Dclose(set);
+    H5Sclose(space);
+  };
+
   for (int p = 0; p < ptot; p++)
     for (const std::pair<std::string,std::string>& it : data) {
       std::stringstream str;
@@ -130,13 +108,15 @@ bool HDF5Restart::writeData(const TimeStep& tp,
         group = H5Gcreate2(m_file,str.str().c_str(),0,H5P_DEFAULT,H5P_DEFAULT);
       if (!H5Lexists(group, it.first.c_str(), 0)) {
         int len = pid == p ? it.second.size() : 0;
-        writeArray(group, it.first, len, it.second.data(), H5T_NATIVE_CHAR);
+        writeGroup(group, it.first, len, it.second.data(), H5T_NATIVE_CHAR);
       }
       H5Gclose(group);
     }
-  closeFile();
+
+  this->closeFile();
+
 #else
-  std::cout << "HDF5Restart: compiled without HDF5 support, no data written" << std::endl;
+  std::cout <<"HDF5Restart: Compiled without HDF5 support, no data written."<< std::endl;
 #endif
 
   return true;
@@ -148,20 +128,23 @@ typedef std::pair<HDF5Restart*,HDF5Restart::SerializeData*> read_restart_ctx;
 
 
 #ifdef HAS_HDF5
-herr_t HDF5Restart::read_restart_data(hid_t group_id, const char* member_name, void* data)
+//! \brief Static helper used for reading data.
+static herr_t read_restart_data (hid_t group_id, const char* name, void* data)
 {
-  read_restart_ctx* ctx = static_cast<read_restart_ctx*>(data);
+  hid_t   set = H5Dopen2(group_id,name,H5P_DEFAULT);
+  hsize_t siz = H5Dget_storage_size(set);
+  char* cdata = new char[siz];
+  H5Dread(set,H5T_NATIVE_CHAR,H5S_ALL,H5S_ALL,H5P_DEFAULT,cdata);
+  H5Dclose(set);
 
-  char* c;
-  int len;
-  ctx->first->readArray(group_id,member_name,len,c);
-  ctx->second->insert(std::make_pair(std::string(member_name),std::string(c,len)));
+  read_restart_ctx* ctx = static_cast<read_restart_ctx*>(data);
+  ctx->second->insert(std::make_pair(std::string(name),std::string(cdata,siz)));
   return 0;
 }
 #endif
 
 
-int HDF5Restart::readData(SerializeData& data, int level)
+int HDF5Restart::readData (SerializeData& data, int level)
 {
 #ifdef HAS_HDF5
   if (!openFile(H5F_ACC_RDONLY))
@@ -189,7 +172,7 @@ int HDF5Restart::readData(SerializeData& data, int level)
   int it = H5Giterate(m_file, str.str().c_str(), &idx, read_restart_data, &ctx);
   return it < 0 ? it : level;
 #else
-  std::cout << "HDF5Writer: compiled without HDF5 support, no data read" << std::endl;
+  std::cout <<"HDF5Writer: Compiled without HDF5 support, no data read."<< std::endl;
   return -1;
 #endif
 }
