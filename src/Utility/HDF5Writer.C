@@ -86,10 +86,10 @@ int HDF5Writer::getLastTimeLevel ()
 
 void HDF5Writer::openFile(int level)
 {
+#ifdef HAS_HDF5
   if (m_file != -1)
     return;
 
-#ifdef HAS_HDF5
   if (m_flag == H5F_ACC_RDWR) {
     struct stat buffer;
     if (stat(m_name.c_str(),&buffer) != 0)
@@ -133,10 +133,10 @@ void HDF5Writer::closeFile(int level)
 }
 
 
+#ifdef HAS_HDF5
 void HDF5Writer::writeArray(hid_t group, const std::string& name, int patch,
                             int len, const void* data, hid_t type)
 {
-#ifdef HAS_HDF5
 #ifdef HAVE_MPI
   int lens[m_size], lens2[m_size];
   std::fill(lens,lens+m_size,len);
@@ -178,10 +178,8 @@ void HDF5Writer::writeArray(hid_t group, const std::string& name, int patch,
   H5Sclose(space);
   if (group1 != -1)
     H5Gclose(group1);
-#else
-  std::cout << "HDF5Writer: compiled without HDF5 support, no data written" << std::endl;
-#endif
 }
+#endif
 
 
 void HDF5Writer::writeVector(int level, const DataEntry& entry)
@@ -219,10 +217,13 @@ void HDF5Writer::writeBasis (int level, const DataEntry& entry,
   if (!entry.second.enabled || !entry.second.data)
     return;
 
+#ifdef HAS_HDF5
   const SIMbase* sim = static_cast<const SIMbase*>(entry.second.data);
-
   this->writeBasis(sim, prefix+sim->getName()+"-1", 1, level,
                    entry.second.results & DataExporter::REDUNDANT);
+#else
+  std::cout <<"HDF5Writer: Compiled without HDF5 support, no data written."<< std::endl;
+#endif
 }
 
 
@@ -530,10 +531,10 @@ void HDF5Writer::writeKnotspan (int level, const DataEntry& entry,
 }
 
 
+#ifdef HAS_HDF5
 void HDF5Writer::writeBasis (const SIMbase* sim, const std::string& name,
                              int basis, int level, bool redundant)
 {
-#ifdef HAS_HDF5
   std::stringstream str;
   str << "/" << level << '/' << name;
   hid_t group;
@@ -561,8 +562,8 @@ void HDF5Writer::writeBasis (const SIMbase* sim, const std::string& name,
     }
   }
   H5Gclose(group);
-#endif
 }
+#endif
 
 
 // TODO: implement for variable time steps.

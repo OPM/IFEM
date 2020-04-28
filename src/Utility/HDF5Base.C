@@ -13,10 +13,8 @@
 
 #include "HDF5Base.h"
 
-#include <iostream>
-
 #ifdef HAS_HDF5
-#include <numeric>
+#include <iostream>
 #include <unistd.h>
 #ifdef HAVE_MPI
 #include "ProcessAdm.h"
@@ -26,26 +24,23 @@
 
 
 HDF5Base::HDF5Base (const std::string& name, const ProcessAdm& adm)
-  : m_file(-1), m_hdf5_name(name)
+  : m_hdf5_name(name)
 #ifdef HAVE_MPI
   , m_adm(adm)
 #endif
 {
+#ifdef HAS_HDF5
+  m_file = -1;
+#endif
 }
 
 
-HDF5Base::~HDF5Base ()
+bool HDF5Base::openFile (unsigned int flags)
 {
-  closeFile();
-}
-
-
-bool HDF5Base::openFile (unsigned flags)
-{
+#ifdef HAS_HDF5
   if (m_file != -1)
     return true;
 
-#ifdef HAS_HDF5
 #ifdef HAVE_MPI
   MPI_Info info = MPI_INFO_NULL;
   hid_t acc_tpl = H5Pcreate(H5P_FILE_ACCESS);
@@ -80,23 +75,22 @@ void HDF5Base::closeFile()
 #ifdef HAS_HDF5
   if (m_file != -1)
     H5Fclose(m_file);
-#endif
   m_file = -1;
+#endif
 }
 
 
+#ifdef HAS_HDF5
 bool HDF5Base::checkGroupExistence (hid_t parent, const char* path)
 {
-  bool result = false;
-#ifdef HAS_HDF5
   // turn off errors to avoid cout spew
   H5E_BEGIN_TRY {
 #if H5_VERS_MINOR > 8
-  result = H5Lexists(parent, path, H5P_DEFAULT) == 1;
+    return H5Lexists(parent,path,H5P_DEFAULT) == 1;
 #else
-    result = H5Gget_objinfo((hid_t)parent,path,0,nullptr) == 0;
+    return H5Gget_objinfo((hid_t)parent,path,0,nullptr) == 0;
 #endif
   } H5E_END_TRY;
-#endif
-  return result;
+  return false;
 }
+#endif

@@ -92,6 +92,7 @@ public:
   //! \param[in] tp The current time stepping info
   virtual bool writeTimeInfo(int level, int interval, const TimeStep& tp);
 
+#ifdef HAS_HDF5
 protected:
   //! \brief Internal helper function writing a data array to file.
   //! \param[in] group The HDF5 group to write data into
@@ -113,7 +114,6 @@ protected:
                   int basis, int level, bool redundant = false);
 
 private:
-#ifdef HAS_HDF5
   unsigned int m_flag; //!< The file flags to open HDF5 file with
 #endif
 };
