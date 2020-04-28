@@ -16,12 +16,16 @@
 
 #include "ControlFIFO.h"
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 
 class DataWriter;
 class ProcessAdm;
 class TimeStep;
+namespace utl {
+class LogStream;
+}
 
 
 /*!
@@ -226,6 +230,10 @@ public:
   //! \param[in] tp The current time stepping info
   virtual bool writeTimeInfo(int level, int interval,
                              const TimeStep& tp) = 0;
+
+  //! \brief Write a log to output file.
+  //! \param name Name of log
+  virtual bool writeLog(const std::string& data, const std::string& name) = 0;
 
   //! \brief Sets the prefices used for norm output.
   void setNormPrefixes(const std::vector<std::string>& prefix) { m_prefix = prefix; }

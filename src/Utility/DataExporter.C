@@ -12,6 +12,7 @@
 //==============================================================================
 
 #include "DataExporter.h"
+#include "IFEM.h"
 #include "Utilities.h"
 #include "Profiler.h"
 #include "ProcessAdm.h"
@@ -35,6 +36,13 @@ DataWriter::DataWriter (const std::string& name,
 
 DataExporter::~DataExporter ()
 {
+  if (IFEM::memoryLog)
+    for (DataWriter* writer : m_writers) {
+      writer->openFile(0);
+      writer->writeLog(IFEM::memoryLog->str(), "cout");
+      writer->closeFile(0);
+    }
+
   if (m_delete)
     for (DataWriter* writer : m_writers)
       delete writer;

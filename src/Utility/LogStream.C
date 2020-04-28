@@ -13,6 +13,8 @@
 
 #include "LogStream.h"
 
+#include <algorithm>
+
 
 utl::LogStream::LogStream(std::ostream& out, int ppid, int mypid) :
   m_out(&out), m_ppid(ppid), m_pid(mypid)
@@ -56,6 +58,14 @@ void utl::LogStream::addExtraLog(std::shared_ptr<std::ostream> extra, bool clear
     m_extra.clear();
 
   m_extra.push_back(extra);
+}
+
+
+void utl::LogStream::removeExtraLog(std::shared_ptr<std::ostream> extra)
+{
+  auto it = std::find(m_extra.begin(), m_extra.end(), extra);
+  if (it != m_extra.end())
+    m_extra.erase(it);
 }
 
 

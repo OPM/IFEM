@@ -92,6 +92,11 @@ public:
   //! \param[in] tp The current time stepping info
   virtual bool writeTimeInfo(int level, int interval, const TimeStep& tp);
 
+  //! \brief Write a log to output file.
+  //! \param data Text to write
+  //! \param name Name of log
+  virtual bool writeLog(const std::string& data, const std::string& name);
+
 #ifdef HAS_HDF5
 protected:
   //! \brief Internal helper function writing a data array to file.

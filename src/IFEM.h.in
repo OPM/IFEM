@@ -61,6 +61,8 @@ public:
 
   static utl::LogStream cout; //!< Combined standard out for parallel processes
 
+  static std::shared_ptr<std::ostringstream> memoryLog; //!< Logging data stored in memory
+
 private:
   static SIMoptions cmdOptions; //!< General input options
   static int argc;              //!< The number of command-line arguments

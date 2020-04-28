@@ -45,6 +45,8 @@ public:
   void addExtraLog(std::ostream* extra, bool clear = false);
   //! \brief Adds an extra logging stream.
   void addExtraLog(std::shared_ptr<std::ostream> extra, bool clear = false);
+  //! \brief Drop an extra logging stream.
+  void removeExtraLog(std::shared_ptr<std::ostream> extra);
 
   //! \brief Write data to stream
   template<typename T>
