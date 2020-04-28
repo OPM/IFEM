@@ -224,7 +224,8 @@ void HDF5Writer::writeBasis (int level, const DataEntry& entry,
 #ifdef HAS_HDF5
   const SIMbase* sim = static_cast<const SIMbase*>(entry.second.data);
   this->writeBasis(sim, prefix+sim->getName()+"-1", 1, level,
-                   entry.second.results & DataExporter::REDUNDANT);
+                   entry.second.results & DataExporter::REDUNDANT,
+                   entry.second.results & DataExporter::L2G_NODE);
 #else
   std::cout <<"HDF5Writer: Compiled without HDF5 support, no data written."<< std::endl;
 #endif
@@ -266,7 +267,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
   {
     std::string bName = sim->getName() + "-1";
     for (size_t b = 1; b <= sim->getNoBasis(); b++, ++bName.back())
-      this->writeBasis(sim,bName,b,level);
+      this->writeBasis(sim,bName,b,level,results & DataExporter::REDUNDANT,results & DataExporter::L2G_NODE);
 
     if (sim->fieldProjections() &&
         proj && !proj->empty() && !proj->front().empty()) {
@@ -526,7 +527,7 @@ void HDF5Writer::writeKnotspan (int level, const DataEntry& entry,
 
 #ifdef HAS_HDF5
 void HDF5Writer::writeBasis (const SIMbase* sim, const std::string& name,
-                             int basis, int level, bool redundant)
+                             int basis, int level, bool redundant, bool l2g)
 {
   std::stringstream str;
   str << "/" << level << '/' << name;
@@ -541,6 +542,72 @@ void HDF5Writer::writeBasis (const SIMbase* sim, const std::string& name,
   else
     group = H5Gcreate2(m_file,str.str().c_str(),0,H5P_DEFAULT,H5P_DEFAULT);
 
+  std::map<int, int> l2gNode;
+  std::map<int, int> prevNode;
+  if (l2g && sim->getNoBasis() > 1) {
+    int iNode = 1;
+    const ProcessAdm& adm = sim->getProcessAdm();
+    bool parallel = sim->getProcessAdm().isParallel() && !adm.dd.isPartitioned();
+    const std::vector<int>& MLGN = adm.dd.getMLGN();
+
+#if defined(HAS_PETSC) || defined(HAVE_MPI)
+    if (parallel && adm.getProcId() > 0) {
+      int nNodes;
+      adm.receive(nNodes, adm.getProcId()-1);
+      std::vector<int> flatMap(nNodes);
+      adm.receive(flatMap, adm.getProcId()-1);
+      for (size_t n = 0; n < flatMap.size(); n += 2)
+        prevNode.insert({flatMap[n], flatMap[n+1]});
+      adm.receive(iNode, adm.getProcId() - 1);
+    }
+#endif
+
+    for (int i = 1; i <= sim->getNoPatches(); i++) {
+      std::stringstream str;
+      int loc = sim->getLocalPatchIndex(i);
+      if (loc == 0)
+        continue;
+      const ASMbase* pch = sim->getPatch(loc);
+      size_t ofs = 0;
+      const std::vector<int>& allNodeNums = sim->getPatch(loc)->getMyNodeNums();
+      for (int b = 1; b < basis; ++b)
+        ofs += pch->getNoNodes(b);
+      for (size_t n = ofs; n < ofs + pch->getNoNodes(basis); ++n) {
+        int node = allNodeNums[n];
+        if (parallel) {
+          node = MLGN[node-1];
+          auto prevIt = prevNode.find(node);
+          if (prevIt != prevNode.end()) {
+            l2gNode.insert({allNodeNums[n], prevIt->second});
+            continue;
+          }
+        }
+        if (l2gNode.find(allNodeNums[n]) == l2gNode.end())
+          l2gNode.insert({allNodeNums[n],iNode++});
+      }
+    }
+
+#if defined(HAS_PETSC) || defined(HAVE_MPI)
+    if (parallel && adm.getProcId() < adm.getNoProcs() - 1) {
+      std::vector<int> flatMap(2*l2gNode.size() + 2*prevNode.size());
+      auto flatIt = flatMap.begin();
+      for (const auto& it : l2gNode) {
+        *flatIt++ = MLGN[it.first-1];
+        *flatIt++ = it.second;
+      }
+      for (const auto& it : prevNode) {
+        *flatIt++ = it.first;
+        *flatIt++ = it.second;
+      }
+      int size = flatMap.size();
+      adm.send(size, adm.getProcId() + 1);
+      adm.send(flatMap, adm.getProcId() + 1);
+      adm.send(iNode, adm.getProcId() + 1);
+    }
+#endif
+
+  }
+
   for (int i = 1; i <= sim->getNoPatches(); i++) {
     std::stringstream str;
     int loc = sim->getLocalPatchIndex(i);
@@ -552,6 +619,26 @@ void HDF5Writer::writeBasis (const SIMbase* sim, const std::string& name,
     if (redundant && rank != 0) {
       char dummy=0;
       writeArray(group, "basis", i, 0, &dummy, H5T_NATIVE_CHAR);
+    }
+
+    if (l2g) {
+      if (loc > 0) {
+        std::vector<int> nodeNumsLoc;
+        const std::vector<int>& allNodeNums = sim->getPatch(loc)->getMyNodeNums();
+        const std::vector<int>& nodeNums = l2gNode.empty() ? allNodeNums : nodeNumsLoc;
+        if (!l2gNode.empty()) {
+          size_t start_loc = 0;
+          for (int b = 1; b < basis; ++b)
+            start_loc += sim->getPatch(loc)->getNoNodes(b);
+
+          nodeNumsLoc.resize(sim->getPatch(loc)->getNoNodes(basis));
+          for (size_t n = start_loc; n < start_loc + sim->getPatch(loc)->getNoNodes(basis); ++n)
+            nodeNumsLoc[n-start_loc] = l2gNode[allNodeNums[n]];
+        }
+        writeArray(group, "l2g-node", i, nodeNums.size(),
+                   nodeNums.data(), H5T_NATIVE_INT);
+      } else
+        writeArray(group, "l2g-node", i, 0, &i, H5T_NATIVE_INT);
     }
   }
   H5Gclose(group);
