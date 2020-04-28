@@ -110,8 +110,10 @@ protected:
   //! \param[in] basis 1/2 Write primary or secondary basis from SIM
   //! \param[in] level The time level to write the basis at
   //! \param[in] redundant Whether or not basis is redundant across processes
+  //! \param[in] l2g True to write local-to-global node numbers
   void writeBasis(const SIMbase* SIM, const std::string& name,
-                  int basis, int level, bool redundant = false);
+                  int basis, int level, bool redundant = false,
+                  bool l2g = false);
 
 private:
   unsigned int m_flag; //!< The file flags to open HDF5 file with

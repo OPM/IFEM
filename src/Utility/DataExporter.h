@@ -46,14 +46,15 @@ public:
 
   //! \brief An enum used to describe the results to write from a SIM
   enum Results {
-    PRIMARY      = 1,   //!< Storage of primary solutions
-    DISPLACEMENT = 2,   //!< Storage of vector fields as displacements
-    SECONDARY    = 4,   //!< Storage of secondary field
-    NORMS        = 8,   //!< Storage of norms
-    EIGENMODES   = 16,  //!< Storage of eigenmodes
-    ONCE         = 32,  //!< Only write field once
+    PRIMARY      = 1, //!< Storage of primary solutions
+    DISPLACEMENT = 2, //!< Storage of vector fields as displacements
+    SECONDARY    = 4, //!< Storage of secondary field
+    NORMS        = 8, //!< Storage of norms
+    EIGENMODES   = 16, //!< Storage of eigenmodes
+    ONCE         = 32, //!< Only write field once
     GRID         = 128, //!< Always store an updated grid
-    REDUNDANT    = 256  //!< Field is redundantly calculated on all processes
+    REDUNDANT    = 256, //!< Field is redundantly calculated on all processes
+    L2G_NODE     = 512 //!< Store local-to-global node mapping
   };
 
   //! \brief A structure holding information about registered fields
