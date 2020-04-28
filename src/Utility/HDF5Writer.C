@@ -727,3 +727,34 @@ void HDF5Writer::writeNodalForces(int level, const DataEntry& entry)
   std::cout << "HDF5Writer: compiled without HDF5 support, no data written" << std::endl;
 #endif
 }
+
+
+bool HDF5Writer::writeLog (const std::string& data, const std::string& name)
+{
+#ifdef HAS_HDF5
+  hid_t group;
+  if (checkGroupExistence(m_file,"/log"))
+    group = H5Gopen2(m_file,"/log",H5P_DEFAULT);
+  else
+    group = H5Gcreate2(m_file,"/log",0,H5P_DEFAULT,H5P_DEFAULT);
+
+  int rank = 0;
+  int size = 1;
+#ifdef HAVE_MPI
+  MPI_Comm_rank(*m_adm.getCommunicator(), &rank);
+  MPI_Comm_size(*m_adm.getCommunicator(), &size);
+#endif
+
+  for (int i = 0; i < size; ++i) {
+    if (rank == i)
+      writeArray(group, name.c_str(), i, data.size(), data.data(), H5T_NATIVE_CHAR);
+    else {
+      char dummy;
+      writeArray(group, name.c_str(), i, 0, &dummy, H5T_NATIVE_CHAR);
+    }
+  }
+  H5Gclose(group);
+
+  return true;
+#endif
+}

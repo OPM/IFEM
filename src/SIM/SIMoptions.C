@@ -44,7 +44,7 @@ SIMoptions::SIMoptions ()
   format  = -1;
   saveInc =  1;
   dtSave  =  0.0;
-  pSolOnly = saveNorms = false;
+  pSolOnly = saveNorms = saveLog = false;
   restartInc = 0;
   restartStep = -1;
 
@@ -182,6 +182,9 @@ bool SIMoptions::parseOutputTag (const TiXmlElement* elem)
   else if (!strcasecmp(elem->Value(),"saveNorms"))
     saveNorms = true;
 
+  else if (!strcasecmp(elem->Value(),"saveLog"))
+    saveLog = true;
+
   else if (!strcasecmp(elem->Value(),"projection")) {
     std::string type;
     if (utl::getAttribute(elem,"type",type))
@@ -248,7 +251,13 @@ bool SIMoptions::parseConsoleTag (const TiXmlElement* elem)
 
 bool SIMoptions::dumpHDF5 (const char* defaultName)
 {
-  if (hdf5.empty()) return false;
+  if (!saveLog) {
+    IFEM::cout.removeExtraLog(IFEM::memoryLog);
+    IFEM::memoryLog.reset();
+  }
+
+  if (hdf5.empty())
+    return false;
 
   if (hdf5 == "(default)") {
     hdf5 = defaultName;

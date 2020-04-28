@@ -90,6 +90,7 @@ public:
   double dtSave; //!< Time interval between each result output
   bool pSolOnly; //!< If \e true, don't save secondary solution variables
   bool saveNorms;//!< If \e true, save element norms
+  bool saveLog;  //!< If \e true, export the log
 
   std::string hdf5; //!< Prefix for HDF5-file
   std::string vtf;  //!< Prefix for VTF-file
