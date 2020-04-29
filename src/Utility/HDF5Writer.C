@@ -370,7 +370,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
             if (p == proj->size()-1)
               projOfs += ndof;
           } else
-            sim->extractPatchSolution(proj->at(p),locvec,pch,prob->getNoFields(2));
+            sim->extractPatchSolution(proj->at(p),locvec,pch,prob->getNoFields(2),1);
 
           Matrix field;
           field.resize(prob->getNoFields(2),locvec.size()/prob->getNoFields(2));
