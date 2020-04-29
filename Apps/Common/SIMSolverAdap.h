@@ -196,6 +196,9 @@ protected:
     if (!this->S1.saveElmNorms(iStep,nBlock,prefix))
       return false;
 
+    if (!this->S1.saveProjections(iStep,nBlock,prefix))
+      return false;
+
     if (!this->S1.saveStep(tp,nBlock))
       return false;
 
