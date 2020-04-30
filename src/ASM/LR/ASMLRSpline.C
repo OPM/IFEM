@@ -468,3 +468,28 @@ bool ASMLRSpline::checkThreadGroups (const IntMat& groups,
 
   return ok;
 }
+
+
+void ASMLRSpline::analyzeThreadGroups(const IntMat& groups)
+{
+  size_t min = std::numeric_limits<size_t>::max() - 1;
+  size_t max = 0;
+  std::vector<size_t> groupSizes;
+  double avg = 0;
+  for (const auto& group : groups) {
+    min = std::min(group.size(), min);
+    max = std::max(group.size(), max);
+    groupSizes.push_back(group.size());
+    avg += group.size();
+  }
+  avg /= groups.size();
+  size_t half = groupSizes.size() / 2;
+  std::nth_element(groupSizes.begin(), groupSizes.begin() + half, groupSizes.end());
+  IFEM::cout << "\n Elements are divided in " << groups.size() << " colors "
+             << "(min = " << min
+             << ", max = " << max
+             << ", avg = " << avg
+             << ", med = " << groupSizes[half]
+             << ").\n";
+
+}

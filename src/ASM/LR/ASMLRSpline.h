@@ -189,6 +189,10 @@ protected:
                                 const std::vector<const LR::LRSpline*> bases,
                                 const LR::LRSpline* threadBasis);
 
+  //! \brief Analyze and print thread group statistics.
+  //! \param groups The generated thread groups
+  static void analyzeThreadGroups(const IntMat& groups);
+
   LR::LRSpline* geo; //!< Pointer to the actual spline geometry object
 };
 
