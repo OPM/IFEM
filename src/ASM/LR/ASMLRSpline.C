@@ -89,7 +89,9 @@ void LR::getGaussPointParameters (const LRSpline* lrspline, RealArray& uGP,
 }
 
 
-void LR::generateThreadGroups (ThreadGroups& threadGroups, const LRSpline* lr)
+void LR::generateThreadGroups (ThreadGroups& threadGroups,
+                               const LRSpline* lr,
+                               const std::vector<LRSpline*>& addConstraints)
 {
   int nElement = lr->nElements();
 #ifdef USE_OPENMP
@@ -100,6 +102,45 @@ void LR::generateThreadGroups (ThreadGroups& threadGroups, const LRSpline* lr)
     IntMat& answer = threadGroups[0];
 
     IntVec status(nElement,0); // status vector for elements:
+
+    std::vector<std::set<int>> additionals;
+    if (!addConstraints.empty()) {
+      additionals.resize(nElement);
+      for (auto e : lr->getAllElements()) {
+        for (const LRSpline* lr2 : addConstraints) {
+           int elB = lr2->getElementContaining(e->midpoint());
+           for (auto b2 : lr2->getElement(elB)->support())
+             for (auto el3 : b2->support()) {
+               std::vector<double> midpoint = el3->midpoint();
+               std::vector<std::vector<double>> points;
+               if (lr2->nElements() != lr->nElements()) {
+                 std::vector<double> diff(midpoint.size());
+                 for (size_t j = 0; j < midpoint.size(); ++j)
+                   diff[j] = (el3->getParmax(j) - el3->getParmin(j)) / 4.0;
+                 if (lr->dimension() == 2)
+                   points = {{midpoint[0] + diff[0], midpoint[1] + diff[1]},
+                             {midpoint[0] - diff[0], midpoint[1] - diff[1]},
+                             {midpoint[0] - diff[0], midpoint[1] + diff[1]},
+                             {midpoint[0] + diff[0], midpoint[1] - diff[1]}};
+                 else
+                   points = {{midpoint[0] + diff[0], midpoint[1] - diff[1], midpoint[2] - diff[2]},
+                             {midpoint[0] + diff[0], midpoint[1] + diff[1], midpoint[2] - diff[2]},
+                             {midpoint[0] + diff[0], midpoint[1] + diff[1], midpoint[2] + diff[2]},
+                             {midpoint[0] - diff[0], midpoint[1] - diff[1], midpoint[2] - diff[2]},
+                             {midpoint[0] - diff[0], midpoint[1] + diff[1], midpoint[2] - diff[2]},
+                             {midpoint[0] - diff[0], midpoint[1] + diff[1], midpoint[2] + diff[2]},
+                             {midpoint[0] + diff[0], midpoint[1] - diff[1], midpoint[2] + diff[2]},
+                             {midpoint[0] - diff[0], midpoint[1] - diff[1], midpoint[2] + diff[2]}};
+               } else
+                 points = {midpoint};
+
+               for (const std::vector<double>& vec : points)
+                 additionals[e->getId()].insert(lr->getElementContaining(vec));
+             }
+        }
+      }
+    }
+
     // -1 is unusable for current color, 0 is available,
     // any other value is the assigned color
 
@@ -113,7 +154,7 @@ void LR::generateThreadGroups (ThreadGroups& threadGroups, const LRSpline* lr)
 
       // look for available elements
       IntVec thisColor;
-      for (auto e : lr->getAllElements() ) {
+      for (auto e : lr->getAllElements()) {
         int i = e->getId();
         if (status[i] == 0) {
           status[i] = nColors+1;
@@ -124,6 +165,10 @@ void LR::generateThreadGroups (ThreadGroups& threadGroups, const LRSpline* lr)
               int j = el2->getId();
               if (status[j] == 0)  // if not assigned a color yet
                 status[j] = -1; // set as unavailable (with current color)
+              if (static_cast<size_t>(j) < additionals.size())
+                for (int extra : additionals[j])
+                  if (status[extra] == 0)
+                    status[extra] = -1;
             }
         }
       }

@@ -55,7 +55,10 @@ namespace LR //! Utilities for LR-splines.
   //! \brief Generates thread groups for a LR-spline mesh.
   //! \param[out] threadGroups The generated thread groups
   //! \param[in] lr The LR-spline to generate thread groups for
-  void generateThreadGroups(ThreadGroups& threadGroups, const LRSpline* lr);
+  //! \param[in] addConstraints If given, additional constraint bases
+  void generateThreadGroups(ThreadGroups& threadGroups,
+                            const LRSpline* lr,
+                            const std::vector<LRSpline*>& lr2 = {});
 }
 
 

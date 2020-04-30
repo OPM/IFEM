@@ -1072,15 +1072,27 @@ Vec3 ASMu2Dmx::getCoord (size_t inod) const
 void ASMu2Dmx::generateThreadGroups (const Integrand& integrand, bool silence,
                                      bool ignoreGlobalLM)
 {
-  // TODO: Support for div-compatible
   int p1 = 0;
-  for (size_t i = 1; i <= m_basis.size(); ++i)
-    if (this->getBasis(i)->order(0) > p1) {
-      threadBasis = this->getBasis(i);
-      p1 = threadBasis->order(0);
-    }
+  if (ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
+    threadBasis = this->getBasis(3);
+  else
+    for (size_t i = 1; i <= m_basis.size(); ++i)
+      if (this->getBasis(i)->order(0) > p1) {
+        threadBasis = this->getBasis(i);
+        p1 = threadBasis->order(0);
+      }
 
-  LR::generateThreadGroups(threadGroups,threadBasis);
+  std::vector<LR::LRSpline*> secConstraint;
+  if (ASMmxBase::Type == ASMmxBase::SUBGRID ||
+      ASMmxBase::Type == REDUCED_CONT_RAISE_BASIS1)
+    secConstraint = {this->getBasis(2)};
+  if (ASMmxBase::Type == REDUCED_CONT_RAISE_BASIS2)
+    secConstraint = {this->getBasis(1)};
+  if (ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
+    secConstraint = {this->getBasis(1), this->getBasis(2)};
+
+  LR::generateThreadGroups(threadGroups,threadBasis,secConstraint);
+
   if (silence || threadGroups[0].size() < 2) return;
 
   std::cout <<"\nMultiple threads are utilized during element assembly.";
