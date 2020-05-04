@@ -1093,7 +1093,13 @@ void ASMu2Dmx::generateThreadGroups (const Integrand& integrand, bool silence,
 
   LR::generateThreadGroups(threadGroups,threadBasis,secConstraint);
 
+  std::vector<const LR::LRSpline*> bases;
+  for (const std::shared_ptr<LR::LRSplineSurface>& basis : m_basis)
+    bases.push_back(basis.get());
+
   if (silence || threadGroups[0].size() < 2) return;
+
+  this->checkThreadGroups(threadGroups[0], bases, threadBasis);
 
   std::cout <<"\nMultiple threads are utilized during element assembly.";
   for (size_t i = 0; i < threadGroups[0].size(); i++)
