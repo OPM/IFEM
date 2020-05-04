@@ -181,6 +181,14 @@ protected:
   //! \param lrspline The spline to perform adaptation for
   bool doRefine(const LR::RefineData& prm, LR::LRSpline* lrspline);
 
+  //! \brief Santity check thread groups.
+  //! \param groups The generated thread groups
+  //! \param bases The bases to check for
+  //! \param threadBasis The LRSpline the element groups are derived from
+  static bool checkThreadGroups(const IntMat& groups,
+                                const std::vector<const LR::LRSpline*> bases,
+                                const LR::LRSpline* threadBasis);
+
   LR::LRSpline* geo; //!< Pointer to the actual spline geometry object
 };
 

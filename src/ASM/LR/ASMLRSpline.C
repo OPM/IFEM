@@ -438,3 +438,33 @@ std::pair<size_t,double> ASMLRSpline::findClosestNode (const Vec3& X) const
 
   return std::make_pair(iclose,distance);
 }
+
+
+bool ASMLRSpline::checkThreadGroups (const IntMat& groups,
+                                     const std::vector<const LR::LRSpline*> bases,
+                                     const LR::LRSpline* threadBasis)
+{
+  size_t groupId = 1;
+  bool ok = true;
+  for (const auto& elms : groups) {
+    size_t basisId = 1;
+    for (const LR::LRSpline* basis : bases) {
+      std::set<int> nodes;
+      for (int elm : elms) {
+        std::vector<double> midpoint = threadBasis->getElement(elm)->midpoint();
+        int bElm = basis->getElementContaining(midpoint);
+        for (const LR::Basisfunction* func : basis->getElement(bElm)->support()) {
+          if (nodes.find(func->getId()) != nodes.end()) {
+            std::cerr << " ** Warning: Function " << func->getId() << " on basis " << basisId << " present for multiple elements in group " << groupId << std::endl;
+            ok = false;
+          }
+          nodes.insert(func->getId());
+        }
+      }
+      ++basisId;
+    }
+    ++groupId;
+  }
+
+  return ok;
+}
