@@ -179,9 +179,18 @@ public:
   //! \param multiplicity Wanted multiplicity
   void copyRefinement(LR::LRSplineVolume* basis, int multiplicity) const;
 
+protected:
+  //! \brief Generates element groups for multi-threading of interior integrals.
+  //! \param[in] integrand Object with problem-specific data and methods
+  //! \param[in] silence If \e true, suppress threading group outprint
+  //! \param[in] ignoreGlobalLM If \e true, ignore global multipliers in sanity check
+  void generateThreadGroups(const Integrand& integrand, bool silence,
+                            bool ignoreGlobalLM);
+
 private:
   std::vector<std::shared_ptr<LR::LRSplineVolume>> m_basis; //!< Spline bases
   std::shared_ptr<LR::LRSplineVolume> refBasis; //!< Basis to refine based on
+  LR::LRSplineVolume* threadBasis; //!< Basis for thread groups
   const std::vector<Matrices>& bezierExtractmx;  //!< Bezier extraction matrices
   std::vector<Matrices>        myBezierExtractmx; //!< Bezier extraction matrices
 };

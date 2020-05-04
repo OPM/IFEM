@@ -369,9 +369,11 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
 
   bool ok = true;
   for (size_t t = 0; t < group.size() && ok; t++)
-//#pragma omp parallel for schedule(static)
+#pragma omp parallel for schedule(static)
     for (size_t e = 0; e < group[t].size(); e++)
     {
+      if (!ok)
+        continue;
       int iel = group[t][e] + 1;
       const LR::Element* el = lrspline->getElement(iel-1);
       double uh = (el->umin()+el->umax())/2.0;
@@ -402,14 +404,14 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
       if (vol < 0.0)
       {
         ok = false; // topology error (probably logic error)
-        break;
+        continue;
       }
 
       // Set up control point (nodal) coordinates for current element
       if (!this->getElementCoordinates(Xnod,iEl+1))
       {
         ok = false;
-        break;
+        continue;
       }
 
       // Compute parameter values of the Gauss points over the whole element
@@ -478,7 +480,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
       {
         A->destruct();
         ok = false;
-        break;
+        continue;
       }
 
       if (xr)
@@ -532,14 +534,18 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
             // Compute Hessian of coordinate mapping and 2nd order derivatives
             if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES) {
               if (!utl::Hessian(Hess,fe.hess(geoBasis),Jac,Xnod,
-                                d2Nxdu2[geoBasis-1],dNxdu[geoBasis-1]))
-                return false;
+                                d2Nxdu2[geoBasis-1],dNxdu[geoBasis-1])) {
+                ok = false;
+                continue;
+              }
 
               for (size_t b = 0; b < m_basis.size() && ok; ++b)
                 if ((int)b != geoBasis)
                   if (!utl::Hessian(Hess,fe.hess(b+1),Jac,Xnod,
-                                    d2Nxdu2[b],fe.grad(b+1),false))
-                    return false;
+                                    d2Nxdu2[b],fe.grad(b+1),false)) {
+                    ok = false;
+                    break;
+                  }
             }
 
             // Compute G-matrix
@@ -558,8 +564,10 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
       } // end gauss integrand
 
       // Finalize the element quantities
-      if (ok && !integrand.finalizeElement(*A,time,0))
+      if (ok && !integrand.finalizeElement(*A,time,0)) {
         ok = false;
+        continue;
+      }
 
       // Assembly of global system integral
       if (ok && !glInt.assemble(A->ref(),fe.iel))
@@ -1039,4 +1047,47 @@ void ASMu3Dmx::copyRefinement(LR::LRSplineVolume* basis, int multiplicity) const
 
     basis->insert_line(newRect);
   }
+}
+
+
+void ASMu3Dmx::generateThreadGroups (const Integrand& integrand, bool silence,
+                                     bool ignoreGlobalLM)
+{
+  int p1 = 0;
+  if (ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
+    threadBasis = this->getBasis(4);
+  else
+    for (size_t i = 1; i <= m_basis.size(); ++i)
+      if (this->getBasis(i)->order(0) > p1) {
+        threadBasis = this->getBasis(i);
+        p1 = threadBasis->order(0);
+      }
+
+  std::vector<LR::LRSpline*> secConstraint;
+  if (ASMmxBase::Type == ASMmxBase::SUBGRID ||
+      ASMmxBase::Type == REDUCED_CONT_RAISE_BASIS1)
+    secConstraint = {this->getBasis(2)};
+  if (ASMmxBase::Type == REDUCED_CONT_RAISE_BASIS2)
+    secConstraint = {this->getBasis(1)};
+  if (ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
+    secConstraint = {this->getBasis(1),this->getBasis(2),this->getBasis(3)};
+
+  LR::generateThreadGroups(threadGroups,threadBasis,secConstraint);
+
+  std::vector<const LR::LRSpline*> bases;
+  for (const std::shared_ptr<LR::LRSplineVolume>& basis : m_basis)
+    bases.push_back(basis.get());
+
+  if (silence || threadGroups[0].size() < 2) return;
+
+  this->checkThreadGroups(threadGroups[0], bases, threadBasis);
+
+  std::cout <<"\nMultiple threads are utilized during element assembly.";
+#ifdef SP_DEBUG
+  for (size_t i = 0; i < threadGroups[0].size(); i++)
+    std::cout <<"\n Color "<< i+1 <<": "
+              << threadGroups[0][i].size() <<" elements";
+#else
+  this->analyzeThreadGroups(threadGroups[0]);
+#endif
 }
