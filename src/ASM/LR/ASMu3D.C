@@ -133,6 +133,7 @@ void ASMu3D::clear (bool retainGeometry)
   // Erase the FE data
   this->ASMbase::clear(retainGeometry);
   this->dirich.clear();
+  projThreadGroups = ThreadGroups();
 }
 
 
@@ -279,6 +280,8 @@ bool ASMu3D::generateFEMTopology ()
 
   myBezierExtract.resize(nel);
   lrspline->generateIDs();
+  // force cache creation
+  lrspline->getElementContaining(lrspline->getElement(0)->midpoint());
 
   size_t iel = 0;
   RealArray extrMat;
@@ -1966,6 +1969,8 @@ void ASMu3D::generateThreadGroups (const Integrand& integrand, bool silence,
                                    bool ignoreGlobalLM)
 {
   LR::generateThreadGroups(threadGroups, this->getBasis(1));
+  if (projBasis != lrspline)
+    LR::generateThreadGroups(projThreadGroups, projBasis.get());
   if (silence || threadGroups[0].size() < 2) return;
 
   std::cout <<"\nMultiple threads are utilized during element assembly.";
@@ -2488,6 +2493,9 @@ void ASMu3D::generateThreadGroupsFromElms (const IntVec& elms)
   for (int elm : elms)
     if (this->getElmIndex(elm+1) > 0)
       myElms.push_back(this->getElmIndex(elm+1)-1);
+
+  if (projThreadGroups.size() == 0 || projThreadGroups[0].empty())
+    projThreadGroups = threadGroups;
 
   threadGroups = threadGroups.filter(myElms);
 }
