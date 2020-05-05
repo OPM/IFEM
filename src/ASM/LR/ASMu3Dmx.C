@@ -236,13 +236,10 @@ bool ASMu3Dmx::generateFEMTopology ()
   std::vector<LR::Element*>::iterator el_it1 = m_basis[geoBasis-1]->elementBegin();
   for (size_t iel=0; iel<nel; iel++, ++el_it1)
   {
-    double uh = ((*el_it1)->umin()+(*el_it1)->umax())/2.0;
-    double vh = ((*el_it1)->vmin()+(*el_it1)->vmax())/2.0;
-    double wh = ((*el_it1)->wmin()+(*el_it1)->wmax())/2.0;
     size_t nfunc = 0;
     for (size_t i=0; i<m_basis.size();++i) {
       auto el_it2 = m_basis[i]->elementBegin() +
-                    m_basis[i]->getElementContaining(uh, vh, wh);
+                    m_basis[i]->getElementContaining((*el_it1)->midpoint());
       nfunc += (*el_it2)->nBasisFunctions();
     }
     myMLGE[iel] = ++gEl; // global element number over all patches
@@ -252,7 +249,7 @@ bool ASMu3Dmx::generateFEMTopology ()
     size_t ofs=0;
     for (size_t i=0; i<m_basis.size();++i) {
       auto el_it2 = m_basis[i]->elementBegin() +
-                    m_basis[i]->getElementContaining(uh, vh, wh);
+                    m_basis[i]->getElementContaining((*el_it1)->midpoint());
       for (LR::Basisfunction *b : (*el_it2)->support())
         myMNPC[iel][lnod++] = b->getId()+ofs;
       ofs += nb[i];
@@ -376,14 +373,11 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
       if (!ok)
         continue;
       int iel = group[t][e] + 1;
-      const LR::Element* el = lrspline->getElement(iel-1);
-      double uh = (el->umin()+el->umax())/2.0;
-      double vh = (el->vmin()+el->vmax())/2.0;
-      double wh = (el->wmin()+el->wmax())/2.0;
+      const LR::Element* el = threadBasis->getElement(iel-1);
       std::vector<size_t> els;
       std::vector<size_t> elem_sizes;
-      for (size_t i=0; i < m_basis.size(); ++i) {
-        els.push_back(m_basis[i]->getElementContaining(uh, vh, wh)+1);
+      for (size_t i = 0; i < m_basis.size(); ++i) {
+        els.push_back(m_basis[i]->getElementContaining(el->midpoint())+1);
         elem_sizes.push_back((*(m_basis[i]->elementBegin()+els.back()-1))->nBasisFunctions());
       }
       int iEl = el->getId();
@@ -621,13 +615,10 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
   // iterate over all edge elements
   bool ok = true;
   for(LR::Element *el : edgeElms) {
-    double uh = (el->umin()+el->umax())/2.0;
-    double vh = (el->vmin()+el->vmax())/2.0;
-    double wh = (el->wmin()+el->wmax())/2.0;
     std::vector<size_t> els;
     std::vector<size_t> elem_sizes;
     for (size_t i=0; i < m_basis.size(); ++i) {
-      els.push_back(m_basis[i]->getElementContaining(uh, vh, wh)+1);
+      els.push_back(m_basis[i]->getElementContaining(el->midpoint())+1);
       elem_sizes.push_back((*(m_basis[i]->elementBegin()+els.back()-1))->nBasisFunctions());
     }
     int iEl = el->getId();
