@@ -251,18 +251,16 @@ bool ASMu2Dmx::generateFEMTopology ()
   size_t iel = 0;
   for (const LR::Element* el1 : m_basis[geoBasis-1]->getAllElements())
   {
-    double uh = (el1->umin()+el1->umax())/2.0;
-    double vh = (el1->vmin()+el1->vmax())/2.0;
     size_t nfunc = 0;
     for (const auto& it : m_basis) {
-      auto el_it2 = it->elementBegin() + it->getElementContaining(uh,vh);
+      auto el_it2 = it->elementBegin() + it->getElementContaining(el1->midpoint());
       nfunc += (*el_it2)->nBasisFunctions();
     }
     myMNPC[iel].resize(nfunc);
 
     size_t lnod = 0, ofs = 0;
     for (const auto& it : m_basis) {
-      auto el_it2 = it->elementBegin() + it->getElementContaining(uh,vh);
+      auto el_it2 = it->elementBegin() + it->getElementContaining(el1->midpoint());
       for (LR::Basisfunction* b : (*el_it2)->support())
         myMNPC[iel][lnod++] = b->getId() + ofs;
       ofs += it->nBasisFunctions();
@@ -317,12 +315,10 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
         continue;
       int iel = groups[t][e] + 1;
       auto el1 = threadBasis->elementBegin()+iel-1;
-      double uh = ((*el1)->umin()+(*el1)->umax())/2.0;
-      double vh = ((*el1)->vmin()+(*el1)->vmax())/2.0;
       std::vector<size_t> els;
       std::vector<size_t> elem_sizes;
       for (size_t i=0; i < m_basis.size(); ++i) {
-        els.push_back(m_basis[i]->getElementContaining(uh, vh)+1);
+        els.push_back(m_basis[i]->getElementContaining((*el1)->midpoint())+1);
         elem_sizes.push_back(m_basis[i]->getElement(els.back()-1)->nBasisFunctions());
       }
 
@@ -535,12 +531,10 @@ bool ASMu2Dmx::integrate (Integrand& integrand, int lIndex,
       continue;
     }
 
-    double uh = ((*el1)->umin()+(*el1)->umax())/2.0;
-    double vh = ((*el1)->vmin()+(*el1)->vmax())/2.0;
     std::vector<size_t> els;
     std::vector<size_t> elem_sizes;
     for (size_t i=0; i < m_basis.size(); ++i) {
-      els.push_back(m_basis[i]->getElementContaining(uh, vh)+1);
+      els.push_back(m_basis[i]->getElementContaining((*el1)->midpoint())+1);
       elem_sizes.push_back((*(m_basis[i]->elementBegin()+(els.back()-1)))->nBasisFunctions());
     }
 
@@ -665,11 +659,8 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
     std::vector<size_t> els(1,iel);
     std::vector<size_t> elem_sizes(1,(*el1)->nBasisFunctions());
 
-    double uh = ((*el1)->umin()+(*el1)->umax())/2.0;
-    double vh = ((*el1)->vmin()+(*el1)->vmax())/2.0;
-
     for (size_t i=1; i < m_basis.size(); ++i) {
-      els.push_back(m_basis[i]->getElementContaining(uh, vh)+1);
+      els.push_back(m_basis[i]->getElementContaining((*el1)->midpoint())+1);
       elem_sizes.push_back(m_basis[i]->getElement(els.back()-1)->nBasisFunctions());
     }
 
@@ -717,13 +708,11 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
 
           int el_neigh = this->getBasis(1)->getElementContaining(parval)+1;
           const LR::Element* el2 = m_basis[0]->getElement(el_neigh-1);
-          uh = (el2->umin()+el2->umax())/2.0;
-          vh = (el2->vmin()+el2->vmax())/2.0;
 
           std::vector<size_t> els2(1,el_neigh);
           std::vector<size_t> elem_sizes2(1,el2->nBasisFunctions());
           for (size_t i=1; i < m_basis.size(); ++i) {
-            els2.push_back(m_basis[i]->getElementContaining(uh, vh)+1);
+            els2.push_back(m_basis[i]->getElementContaining(el2->midpoint())+1);
             elem_sizes2.push_back(m_basis[i]->getElement(els2.back()-1)->nBasisFunctions());
           }
 
