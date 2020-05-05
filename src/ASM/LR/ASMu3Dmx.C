@@ -204,6 +204,7 @@ bool ASMu3Dmx::generateFEMTopology ()
   }
   lrspline = m_basis[geoBasis-1];
   projBasis->generateIDs();
+  projBasis->getElementContaining(projBasis->getElement(0)->midpoint()); // to force cache generation
   myGeoBasis = ASMmxBase::geoBasis;
 
   nb.resize(m_basis.size());
@@ -1073,6 +1074,7 @@ void ASMu3Dmx::generateThreadGroups (const Integrand& integrand, bool silence,
     secConstraint = {this->getBasis(1),this->getBasis(2),this->getBasis(3)};
 
   LR::generateThreadGroups(threadGroups,threadBasis,secConstraint);
+  LR::generateThreadGroups(projThreadGroups,projBasis.get());
 
   std::vector<const LR::LRSpline*> bases;
   for (const std::shared_ptr<LR::LRSplineVolume>& basis : m_basis)

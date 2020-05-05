@@ -58,7 +58,7 @@ namespace LR //! Utilities for LR-splines.
   //! \param[in] addConstraints If given, additional constraint bases
   void generateThreadGroups(ThreadGroups& threadGroups,
                             const LRSpline* lr,
-                            const std::vector<LRSpline*>& lr2 = {});
+                            const std::vector<LRSpline*>& addConstraints = {});
 }
 
 

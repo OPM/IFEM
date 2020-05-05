@@ -630,6 +630,7 @@ protected:
   int myGeoBasis; //!< Used with mixed
 
   ThreadGroups threadGroups; //!< Element groups for multi-threaded assembly
+  ThreadGroups projThreadGroups; //!< Element groups for multi-threaded assembly - projection basis
   IntVec       myElms;       //!< Elements on patch - used with partitioning
 
   const Matrices& bezierExtract; //!< Bezier extraction matrices
