@@ -42,9 +42,16 @@ bool HDF5Base::openFile (unsigned int flags)
     return true;
 
 #ifdef HAVE_MPI
-  MPI_Info info = MPI_INFO_NULL;
-  hid_t acc_tpl = H5Pcreate(H5P_FILE_ACCESS);
-  H5Pset_fapl_mpio(acc_tpl, *m_adm.getCommunicator(), info);
+  hid_t acc_tpl;
+  if (m_adm.dd.isPartitioned()) {
+    if (m_adm.getProcId() != 0)
+      return true;
+    acc_tpl = H5P_DEFAULT;
+  } else {
+    MPI_Info info = MPI_INFO_NULL;
+    acc_tpl = H5Pcreate(H5P_FILE_ACCESS);
+    H5Pset_fapl_mpio(acc_tpl, *m_adm.getCommunicator(), info);
+  }
 #else
   hid_t acc_tpl = H5P_DEFAULT;
 #endif
@@ -61,7 +68,8 @@ bool HDF5Base::openFile (unsigned int flags)
   }
 
 #ifdef HAVE_MPI
-  H5Pclose(acc_tpl);
+  if (!m_adm.dd.isPartitioned())
+    H5Pclose(acc_tpl);
 #endif
   return true;
 #else
