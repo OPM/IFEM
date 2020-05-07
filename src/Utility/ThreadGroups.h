@@ -76,6 +76,8 @@ public:
 
   //! \brief Returns the number of groups.
   size_t size() const { return tg[1].empty() ? 1 : 2; }
+  //! \brief Return true if both groups are empty.
+  bool empty() const { return tg[0].empty() && tg[1].empty(); }
   //! \brief Indexing operator.
   const IntMat& operator[](int i) const { return tg[i]; }
   //! \brief Indexing operator.
