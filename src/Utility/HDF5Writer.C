@@ -142,11 +142,18 @@ void HDF5Writer::writeArray(hid_t group, const std::string& name, int patch,
             <<" size="<< len << std::endl;
 #endif
 #ifdef HAVE_MPI
-  int lens[m_size], lens2[m_size];
-  std::fill(lens,lens+m_size,len);
-  MPI_Alltoall(lens,1,MPI_INT,lens2,1,MPI_INT,*m_adm.getCommunicator());
-  hsize_t siz   = (hsize_t)std::accumulate(lens2,lens2+m_size,0);
-  hsize_t start = (hsize_t)std::accumulate(lens2,lens2+m_rank,0);
+  hsize_t siz;
+  hsize_t start;
+  if (m_adm.dd.isPartitioned()) {
+    siz = static_cast<hsize_t>(len);
+    start = 0;
+  } else {
+    int lens[m_size], lens2[m_size];
+    std::fill(lens,lens+m_size,len);
+    MPI_Alltoall(lens,1,MPI_INT,lens2,1,MPI_INT,*m_adm.getCommunicator());
+    siz   = (hsize_t)std::accumulate(lens2,lens2+m_size,0);
+    start = (hsize_t)std::accumulate(lens2,lens2+m_rank,0);
+  }
 #else
   hsize_t siz   = (hsize_t)len;
   hsize_t start = 0;
@@ -237,6 +244,11 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
 {
   if (!entry.second.enabled || !entry.second.data || entry.second.data2.empty())
     return;
+
+#ifdef HAVE_MPI
+  if (m_adm.dd.isPartitioned() && m_rank != 0) // only rank 0 write
+    return;
+#endif
 
 #ifdef HAS_HDF5
   const SIMbase* sim = static_cast<const SIMbase*>(entry.second.data);
