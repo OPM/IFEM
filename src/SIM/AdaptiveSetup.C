@@ -413,6 +413,9 @@ int AdaptiveSetup::calcRefinement (LR::RefineData& prm, int iStep,
   case NONE:
     IFEM::cout << beta <<"% of all "<< str;
     break;
+  case SYMMETRIZED:
+    IFEM::cout << 100.0*refineSize/error.size() <<"% of all "<< str;
+    break;
   case MAXIMUM:
     IFEM::cout << beta <<"% of max error ("<< limit <<")";
     break;
