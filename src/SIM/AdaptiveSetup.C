@@ -439,9 +439,10 @@ int AdaptiveSetup::calcRefinement (LR::RefineData& prm, int iStep,
 
 
 void AdaptiveSetup::printNorms (const Vectors& gNorm, const Vectors& dNorm,
-                                const Matrix& eNorm, size_t w) const
+                                const Matrix& eNorm, size_t w, bool printModelNorms) const
 {
-  model.printNorms(gNorm,w);
+  if (printModelNorms)
+    model.printNorms(gNorm,w);
 
   // Print out the norm used for mesh adaptation
   if (adaptor > 0 && adaptor < gNorm.size())

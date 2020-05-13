@@ -72,8 +72,10 @@ public:
   //! \param[in] dNorm Global dual norms
   //! \param[in] eNorm Element norms
   //! \param[in] w Field width for global norm labels
+  //! \param[in] printModelNorms True to print norms for model
   void printNorms(const Vectors& gNorm, const Vectors& dNorm,
-                  const Matrix& eNorm, size_t w = 36) const;
+                  const Matrix& eNorm, size_t w = 36,
+                  bool printModelNorms = true) const;
 
   //! \brief Dumps current mesh to external file(s) for inspection.
   //! \param[in] iStep Current refinement step (1=initial grid)
