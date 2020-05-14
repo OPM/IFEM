@@ -266,7 +266,7 @@ bool ASMs3Dmx::generateFEMTopology ()
   for (i3 = 1; i3 <= b->numCoefs(2); i3++, ++knotw) {
     auto knotv = b->basis(1).begin();
     for (i2 = 1; i2 <= b->numCoefs(1); i2++, ++knotv) {
-      auto knotu = b->basis(1).begin();
+      auto knotu = b->basis(0).begin();
       for (i1 = 1; i1 <= b->numCoefs(0); i1++, inod++, ++knotu)
         if (i1 >= b->order(0) && i2 >= b->order(1) && i3 >= b->order(2))
         {
