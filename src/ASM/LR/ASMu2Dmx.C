@@ -526,10 +526,8 @@ bool ASMu2Dmx::integrate (Integrand& integrand, int lIndex,
     if (skipMe) continue;
 
     if (!myElms.empty() && !glInt.threadSafe() &&
-        std::find(myElms.begin(), myElms.end(), iel-1) == myElms.end()) {
-        ++iel;
+        std::find(myElms.begin(), myElms.end(), MLGE[iel-1]-1) == myElms.end())
       continue;
-    }
 
     std::vector<size_t> els;
     std::vector<size_t> elem_sizes;
