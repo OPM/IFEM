@@ -30,6 +30,8 @@ TEST(TestPETScMatrix, Assemble)
   PETScMatrix* myMat = dynamic_cast<PETScMatrix*>(sim.getLHSmatrix());
   ASSERT_TRUE(myMat != nullptr);
 
+  myMat->init();
+
   Matrix stencil(4,4);
   stencil.diag(1.0);
 
