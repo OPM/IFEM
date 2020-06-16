@@ -974,10 +974,10 @@ bool ASMu2Dmx::refine (const LR::RefineData& prm, Vectors& sol)
     return true;
 
   for (Vector& solvec : sol) {
-    size_t ofs = 0;
     for (size_t j = 0; j < m_basis.size(); j++) {
-      LR::extendControlPoints(m_basis[j].get(), solvec, nfx[j], ofs);
-      ofs += nfx[j]*nb[j];
+      Vector bVec;
+      this->extractNodeVec(solvec, bVec, 0, j+1);
+      LR::extendControlPoints(m_basis[j].get(), bVec, nfx[j]);
     }
   }
 
@@ -1009,7 +1009,7 @@ bool ASMu2Dmx::refine (const LR::RefineData& prm, Vectors& sol)
     }
 
     size_t ofs = 0;
-    for (int i = sol.size()-1; i > 0; i--)
+    for (int i = sol.size()-1; i >= 0; i--)
       for (size_t j = 0; j < m_basis.size(); ++j) {
         sol[i].resize(len);
         LR::contractControlPoints(m_basis[j].get(), sol[i], nfx[j], ofs);
