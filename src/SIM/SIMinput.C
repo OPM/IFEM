@@ -1481,7 +1481,6 @@ bool SIMinput::refine (const LR::RefineData& prm, Vectors& sol)
 
   Vectors lsols;
   lsols.reserve(sol.size()*myModel.size());
-  size_t ngNodes = this->getNoNodes(1);
   for (size_t i = 0; i < myModel.size(); i++)
   {
     pch = dynamic_cast<ASMunstruct*>(myModel[i]);
@@ -1491,7 +1490,7 @@ bool SIMinput::refine (const LR::RefineData& prm, Vectors& sol)
 
     Vectors lsol(sol.size());
     for (size_t j = 0; j < sol.size(); j++)
-      myModel[i]->extractNodeVec(sol[j], lsol[j], sol[j].size()/ngNodes);
+      this->extractPatchSolution(sol[j], lsol[j], myModel[i]);
     if (!pch->refine(prmloc,lsol))
       return false;
     for (const Vector& s : lsol)
