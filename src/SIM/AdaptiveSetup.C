@@ -248,10 +248,21 @@ int AdaptiveSetup::calcRefinement (LR::RefineData& prm, int iStep,
     return 0; // Zero reference norm, probably no load on the model
 
   // Check if further refinement is required
-  if (iStep > maxStep || model.getNoDOFs() > (size_t)maxDOFs)
+  if (iStep > maxStep)
+  {
+    IFEM::cout << "\n   * Stopping the adaptive cyles as max steps " << maxStep << " was reached." << std::endl;
+    return 0;
+  }
+  else if (model.getNoDOFs() > (size_t)maxDOFs)
+  {
+    IFEM::cout << "\n   * Stopping the adaptive cyles as max DOFs " << maxDOFs <<" was reached." << std::endl;
     return 0; // Refinement cycle or model size limit reached
+  }
   else if (gNorm[adaptor](adNorm) < errTol*refNorm)
+  {
+    IFEM::cout << "\n   * Stopping the adaptive cycles as error tolerance " << errTol << " was reached." << std::endl;
     return 0; // Discretization error tolerance reached
+  }
   else if (1.0/rCond > condLimit)
   {
     IFEM::cout <<"\n  ** Terminating the adaptive cycles due to instability."
