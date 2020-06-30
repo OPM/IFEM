@@ -20,6 +20,7 @@
 #include "TimeDomain.h"
 #include "FiniteElement.h"
 #include "GlobalIntegral.h"
+#include "IFEM.h"
 #include "LocalIntegral.h"
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
@@ -3366,16 +3367,16 @@ void ASMs3D::generateThreadGroups (size_t strip1, size_t strip2, size_t strip3,
   threadGroupsVol.calcGroups(el1,el2,el3,strip1,strip2,strip3);
   if (silence || threadGroupsVol.size() < 2) return;
 
-  std::cout <<"\nMultiple threads are utilized during element assembly.";
+  IFEM::cout <<"\nMultiple threads are utilized during element assembly.";
   for (size_t i = 0; i < threadGroupsVol.size(); i++)
   {
     std::vector< std::set<int> > nodes(threadGroupsVol[i].size());
 
-    std::cout <<"\n Thread group "<< i+1;
+    IFEM::cout <<"\n Thread group "<< i+1;
     for (size_t j = 0; j < threadGroupsVol[i].size(); j++)
     {
-      std::cout <<"\n\tthread "<< j+1
-                << ": "<< threadGroupsVol[i][j].size() <<" elements";
+      IFEM::cout <<"\n\tthread "<< j+1
+                 << ": "<< threadGroupsVol[i][j].size() <<" elements";
       size_t k, l, nzerovol = 0;
       for (k = 0; k < threadGroupsVol[i][j].size(); k++)
       {
@@ -3387,13 +3388,13 @@ void ASMs3D::generateThreadGroups (size_t strip1, size_t strip2, size_t strip3,
           nzerovol++;
       }
       if (nzerovol)
-        std::cout <<" ("<< threadGroupsVol[i][j].size() - nzerovol <<" real)";
+        IFEM::cout <<" ("<< threadGroupsVol[i][j].size() - nzerovol <<" real)";
 
       // Verify that the nodes on this thread are not present on the others
       this->checkThreadGroups(nodes, j, ignoreGlobalLM);
     }
   }
-  std::cout << std::endl;
+  IFEM::cout << std::endl;
 }
 
 

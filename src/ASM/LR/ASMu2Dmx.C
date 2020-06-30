@@ -24,6 +24,7 @@
 #include "TimeDomain.h"
 #include "FiniteElement.h"
 #include "GlobalIntegral.h"
+#include "IFEM.h"
 #include "LocalIntegral.h"
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
@@ -1091,11 +1092,12 @@ void ASMu2Dmx::generateThreadGroups (const Integrand& integrand, bool silence,
 
   this->checkThreadGroups(threadGroups[0], bases, threadBasis);
 
-  std::cout <<"\nMultiple threads are utilized during element assembly.";
+  IFEM::cout <<"\nMultiple threads are utilized during element assembly.";
 #ifdef SP_DEBUG
   for (size_t i = 0; i < threadGroups[0].size(); i++)
-    std::cout <<"\n Color "<< i+1 <<": "
-              << threadGroups[0][i].size() <<" elements";
+    IFEM::cout <<"\n Color "<< i+1 <<": "
+               << threadGroups[0][i].size() <<" elements";
+  IFEM::cout << std::endl;
 #else
   this->analyzeThreadGroups(threadGroups[0]);
 #endif
