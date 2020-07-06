@@ -238,6 +238,15 @@ Vec3 ASMs3DLag::getCoord (size_t inod) const
 }
 
 
+void ASMs3DLag::setCoord (size_t inod, const Vec3& Xnod)
+{
+  if (inod > nnod)
+    myCoord.resize(nnod = inod);
+
+  myCoord[inod-1] = Xnod;
+}
+
+
 bool ASMs3DLag::getElementCoordinates (Matrix& X, int iel) const
 {
   if (iel < 1 || (size_t)iel > MNPC.size())

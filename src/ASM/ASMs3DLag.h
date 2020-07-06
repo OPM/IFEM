@@ -72,6 +72,13 @@ public:
   //! \param[in] inod 1-based node index local to current patch
   virtual Vec3 getCoord(size_t inod) const;
 
+protected:
+  //! \brief Assigned global coordinates for the given node.
+  //! \param[in] inod 1-based node index local to current patch
+  //! \param[in] Xnod Coordinates of the node
+  void setCoord(size_t inod, const Vec3& Xnod);
+
+public:
   //! \brief Updates the nodal coordinates for this patch.
   //! \param[in] displ Incremental displacements to update the coordinates with
   virtual bool updateCoords(const Vector& displ);
