@@ -116,20 +116,13 @@ public:
   //! \param[out] sField Nodal/control-point values of the projected results.
   bool solve(const std::vector<Matrix*>& sField);
 
-protected:
-  //! \brief Integrates the L2-projection matrices.
-  //! \param[in] mnpc Matrix of nodal point correspondance
-  //! \param[in] solPt Integration point values of the field to project
-  //! \param[in] fe Finite element data of current integration point
-  //! \param[in] X Cartesian coordinates of current integration point
-  bool formL2Mats(const IntVec& mnpc, const Vector& solPt,
-                  const FiniteElement& fe, const Vec3& X) const;
+public:
+  mutable SparseMatrix A; //!< Left-hand-side matrix of the L2-projection
+  mutable StdVector    B; //!< Right-hand-side vectors of the L2-projection
 
 private:
   IntegrandBase* problem; //!< The main problem integrand
   FunctionVec  functions; //!< Explicit functions to L2-project
-  mutable SparseMatrix A; //!< Left-hand-side matrix of the L2-projection
-  mutable StdVector    B; //!< Right-hand-side vectors of the L2-projection
   size_t            nrhs; //!< Number of right-hand-size vectors
 };
 
