@@ -150,6 +150,7 @@ PETScMatrix::PETScMatrix (const ProcessAdm& padm, const LinSolParams& spar)
   setParams = true;
   ISsize = 0;
   nLinSolves = 0;
+  assembled = false;
 }
 
 
@@ -432,6 +433,8 @@ void PETScMatrix::initAssembly (const SAM& sam, bool delayLocking)
       MatSetOption(it,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_FALSE);
  #endif
   }
+
+  assembled = false;
 }
 
 
@@ -464,6 +467,8 @@ bool PETScMatrix::endAssembly()
 {
   // Finalizes parallel assembly process
   MatAssemblyEnd(pA,MAT_FINAL_ASSEMBLY);
+  assembled = true;
+
   return true;
 }
 
@@ -479,6 +484,8 @@ void PETScMatrix::init ()
     for (auto& it : matvec)
       MatZeroEntries(it);
   }
+
+  assembled = false;
 }
 
 
@@ -501,7 +508,7 @@ bool PETScMatrix::solve (SystemVector& B, bool newLHS, Real*)
   if (!Bptr)
     return false;
 
-  if (A.empty())
+  if (A.empty() || !assembled)
     return this->solveDirect(*Bptr);
 
   Vec x;
@@ -579,7 +586,7 @@ bool PETScMatrix::solveDirect(PETScVector& B)
 {
   // the sparsity pattern has been grown in-place, we need to init PETsc state.
   // this is currently only used for patch-global L2 systems.
-  if (!this->optimiseSLU())
+  if (A.empty() && !this->optimiseSLU())
     return false;
 
   // Set correct number of rows and columns for matrix.

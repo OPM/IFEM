@@ -198,6 +198,7 @@ protected:
   PetscRealVec        coords;          //!< Coordinates of local nodes (x0,y0,z0,x1,y1,...)
   ISMat               dirIndexSet;     //!< Direction ordering
   int                 nLinSolves;      //!< Number of linear solves
+  bool                assembled;       //!< True if PETSc matrix has been assembled
 
   IS glob2LocEq = nullptr; //!< Index set for global-to-local equations.
   std::vector<Mat> matvec; //!< Blocks for block matrices.
