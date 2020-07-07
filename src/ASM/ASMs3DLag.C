@@ -1054,3 +1054,39 @@ void ASMs3DLag::generateThreadGroups (char lIndex, bool, bool)
   threadGroupsFace[lIndex].calcGroups(d1,d2,1);
   threadGroupsFace[lIndex].applyMap(map);
 }
+
+
+bool ASMs3DLag::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) const
+{
+  if (svol)
+    return this->ASMs3D::getGridParameters(prm, dir, nSegPerSpan);
+
+  if (nSegPerSpan < 1)
+  {
+    std::cerr <<" *** ASMs3DLag::getGridParameters: Too few knot-span points "
+              << nSegPerSpan+1 <<" in direction "<< dir << std::endl;
+    return false;
+  }
+
+  int nel1 = dir == 0 ? (nx-1)/(p1-1) : (dir == 1 ? (ny-1)/(p2-1) : (nz-1)/(p3-1));
+
+  double ucurr = 0.0, uprev = 0.0, du = 1.0 / nel;
+  for (int i = 0; i < nel1; ++i)
+  {
+    ucurr += du;
+    if (ucurr > uprev)
+      if (nSegPerSpan == 1)
+        prm.push_back(uprev);
+      else for (int j = 0; j < nSegPerSpan; j++)
+      {
+        double xg = (double)(2*j-nSegPerSpan)/(double)nSegPerSpan;
+        prm.push_back(0.5*(ucurr*(1.0+xg) + uprev*(1.0-xg)));
+      }
+    uprev = ucurr;
+  }
+
+  if (ucurr > prm.back())
+    prm.push_back(ucurr);
+
+  return true;
+}
