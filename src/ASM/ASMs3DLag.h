@@ -72,6 +72,12 @@ public:
   //! \param[in] inod 1-based node index local to current patch
   virtual Vec3 getCoord(size_t inod) const;
 
+  //! \brief Calculates parameter values for visualization nodal points.
+  //! \param[out] prm Parameter values in given direction for all points
+  //! \param[in] dir Parameter direction (0,1,2)
+  //! \param[in] nSegSpan Number of visualization segments over each knot-span
+  virtual bool getGridParameters(RealArray& prm, int dir, int nSegSpan) const;
+
 protected:
   //! \brief Assigned global coordinates for the given node.
   //! \param[in] inod 1-based node index local to current patch
