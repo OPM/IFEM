@@ -51,8 +51,8 @@ public:
                         const ProcessAdm& modelAdm,
                         int saveInterval = 1)
   {
-    if (IFEM::getOptions().discretization < ASM::Spline && !hdf5file.empty())
-      IFEM::cout <<"\n  ** HDF5 output is available for spline discretization"
+    if (IFEM::getOptions().discretization == ASM::Spectral && !hdf5file.empty())
+      IFEM::cout <<"\n  ** HDF5 output is available for spline/lagrangian discretization"
                  <<" only. Deactivating...\n"<< std::endl;
     else
     {
