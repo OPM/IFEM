@@ -1090,3 +1090,9 @@ bool ASMs3DLag::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) con
 
   return true;
 }
+
+
+bool ASMs3DLag::write(std::ostream& os, int) const
+{
+  return this->writeLagBasis(os, "hexahedron");
+}

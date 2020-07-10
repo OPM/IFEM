@@ -1457,3 +1457,18 @@ bool ASMbase::evaluate (const FunctionBase*, RealArray&, int, double) const
 {
   return Aerror("evaluate(const FunctionBase*,RealArray&,int,double)");
 }
+
+
+bool ASMbase::writeLagBasis (std::ostream& os, const char* type) const
+{
+  os << "# LAGRANGIAN nodes=" << this->getNoNodes()
+      << " elements=" << this->getNoElms()
+      << " type=" << type << "\n";
+  for (size_t i = 1; i <= this->getNoNodes(); ++i)
+    os << this->getCoord(i) << "\n";
+  for (const IntVec& mnpc : MNPC)
+    for (size_t i = 0; i < mnpc.size(); ++i)
+      os << mnpc[i] << (i+1 == mnpc.size() ? '\n' : ' ');
+
+  return true;
+}

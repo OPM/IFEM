@@ -811,6 +811,9 @@ protected:
   //! is changed into the number of the other node.
   static bool collapseNodes(ASMbase& pch1, int node1, ASMbase& pch2, int node2);
 
+  //! \brief Write a lagrangian basis to given stream.
+  bool writeLagBasis(std::ostream& os, const char* type) const;
+
 public:
   static bool fixHomogeneousDirichlet; //!< If \e true, pre-eliminate fixed DOFs
 

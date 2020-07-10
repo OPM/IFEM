@@ -597,3 +597,9 @@ void ASMs2DTri::generateThreadGroups (const Integrand&, bool, bool)
 #endif
     }
 }
+
+
+bool ASMs2DTri::write(std::ostream& os, int) const
+{
+  return this->writeLagBasis(os, "triangle");
+}
