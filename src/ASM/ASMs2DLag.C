@@ -765,3 +765,9 @@ void ASMs2DLag::generateThreadGroups (const Integrand&, bool, bool)
 {
   threadGroups.calcGroups((nx-1)/(p1-1),(ny-1)/(p2-1),1);
 }
+
+
+bool ASMs2DLag::write(std::ostream& os, int) const
+{
+  return this->writeLagBasis(os, "quad");
+}

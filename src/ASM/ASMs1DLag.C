@@ -554,3 +554,9 @@ bool ASMs1DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
   return true;
 }
+
+
+bool ASMs1DLag::write(std::ostream& os, int) const
+{
+  return this->writeLagBasis(os, "line");
+}

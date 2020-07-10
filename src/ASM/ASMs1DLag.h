@@ -39,6 +39,9 @@ public:
   // Methods for model generation
   // ============================
 
+  //! \brief Writes the FEM basis to given stream.
+  virtual bool write(std::ostream& os, int = 0) const;
+
   //! \brief Generates a beam finite element model for the patch.
   //! \param[in] Zaxis Vector defining a point in the local XZ-plane
   virtual bool generateOrientedFEModel(const Vec3& Zaxis);

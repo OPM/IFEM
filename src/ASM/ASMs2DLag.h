@@ -39,6 +39,9 @@ public:
   // Methods for model generation
   // ============================
 
+  //! \brief Writes the FEM basis to given stream.
+  virtual bool write(std::ostream& os, int = 0) const;
+
   //! \brief Generates the finite element topology data for the patch.
   //! \details The data generated are the element-to-node connectivity array,
   //! the nodal coordinate array, as well as global node and element numbers.
