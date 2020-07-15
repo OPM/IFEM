@@ -17,6 +17,7 @@
 #include "Function.h"
 
 
+
 /*!
   \brief A scalar-valued constant function.
 */
@@ -545,7 +546,7 @@ namespace utl
                                       Real C = Real(1));
 
   //! \brief Creates a scalar-valued function by parsing a character string.
-  const RealFunc* parseRealFunc(char* cline, Real A = Real(1));
+  const RealFunc* parseRealFunc(char* cline, Real A = Real(1), bool print = true);
 
   //! \brief Creates a time function by parsing a character string.
   //! \param[in] func Character string to parse function definition from
@@ -570,6 +571,12 @@ namespace utl
   VecFunc* parseVecFunc(const std::string& func,
                         const std::string& type = "expression",
                         const std::string& variables = "");
+
+  //! \brief Creates a tensor-valued function by parsing a character string.
+  //! \param[in] func Character string to parse function definition from
+  //! \param[in] type Function definition type flag
+  TensorFunc* parseTensorFunc(const std::string& func,
+                              const std::string& type);
 
   //! \brief Creates a vector-valued function defining a surface traction.
   //! \param[in] func Character string to parse function definition from
