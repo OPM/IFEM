@@ -12,8 +12,10 @@
 //==============================================================================
 
 #include "Functions.h"
+#include "Chebyshev.h"
 #include "ExprFunctions.h"
 #include "FieldFunctions.h"
+#include "TensorFunction.h"
 #include "Vec3Oper.h"
 #include "IFEM.h"
 #include <cstring>
@@ -315,7 +317,7 @@ Real Interpolate1D::evaluate (const Vec3& X) const
   constant in time, or a time function constant in space.
 */
 
-const RealFunc* utl::parseRealFunc (char* cline, Real A)
+const RealFunc* utl::parseRealFunc (char* cline, Real A, bool print)
 {
   // Check for spatial variation
   int linear    = 0;
@@ -346,6 +348,8 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A)
     linear = 8;
   else if (strcasecmp(cline,"Field") == 0)
     linear = 9;
+  else if (strcasecmp(cline,"Chebyshev") == 0)
+    linear = 10;
   else if (strcasecmp(cline,"quadX") == 0)
     quadratic = 1;
   else if (strcasecmp(cline,"quadY") == 0)
@@ -358,11 +362,13 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A)
   if (linear > 0 && (cline = strtok(nullptr," ")))
   {
     C = Real(1);
-    IFEM::cout <<"("<< A <<"*";
-    if (linear < 4)
-      IFEM::cout << char('W' + linear) <<" + "<< cline <<")";
-    else if (linear < 6)
-      IFEM::cout << char('W' + linear-3) <<"RotZ("<< cline <<"))";
+    if (print) {
+      IFEM::cout <<"("<< A <<"*";
+      if (linear < 4)
+        IFEM::cout << char('W' + linear) <<" + "<< cline <<")";
+      else if (linear < 6)
+        IFEM::cout << char('W' + linear-3) <<"RotZ("<< cline <<"))";
+    }
     switch (linear) {
     case 1:
       f = new LinearXFunc(A,atof(cline));
@@ -383,7 +389,8 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A)
       {
         double x0 = atof(cline);
         double x1 = atof(strtok(nullptr," "));
-        IFEM::cout <<"Step"<< stepDir <<"("<< x0 <<","<< x1 <<"))";
+        if (print)
+          IFEM::cout <<"Step"<< stepDir <<"("<< x0 <<","<< x1 <<"))";
         f = new StepXFunc(A,x0,x1,stepDir);
       }
       break;
@@ -396,13 +403,15 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A)
         {
           double x1 = atof(strtok(nullptr," "));
           double y1 = atof(strtok(nullptr," "));
-          IFEM::cout <<"StepXY(["<< x0 <<","<< x1
-                     <<"]x["<< y0 <<","<< y1 <<"]))";
+          if (print)
+            IFEM::cout <<"StepXY(["<< x0 <<","<< x1
+                       <<"]x["<< y0 <<","<< y1 <<"]))";
           f = new StepXYFunc(A,x1,y1,x0,y0);
         }
         else
         {
-          IFEM::cout <<"StepXY([-inf,"<< x0 <<"]x[-inf,"<< y0 <<"]))";
+          if (print)
+            IFEM::cout <<"StepXY([-inf,"<< x0 <<"]x[-inf,"<< y0 <<"]))";
           f = new StepXYFunc(A,x0,y0);
         }
       }
@@ -410,24 +419,29 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A)
     case 8:
       {
         int dir = atoi(strtok(nullptr," ")), col = 2;
-        IFEM::cout <<"Interpolate1D("<< cline;
+        if (print)
+          IFEM::cout <<"Interpolate1D("<< cline;
         const char* t = strtok(nullptr," ");
         if (t && t[0] == 'c')
         {
           col = atoi(t+1);
           t = strtok(nullptr," ");
-          IFEM::cout <<",column #"<< col;
+          if (print)
+            IFEM::cout <<",column #"<< col;
         }
-        IFEM::cout <<","<< (char)('X'+dir);
+        if (print)
+          IFEM::cout <<","<< (char)('X'+dir);
         if (t)
         {
           double time = atof(t);
-          IFEM::cout <<")*Ramp("<< time;
+          if (print)
+            IFEM::cout <<")*Ramp("<< time;
           f = new Interpolate1D(cline,dir,col,time);
         }
         else
           f = new Interpolate1D(cline,dir,col);
-        IFEM::cout <<")";
+        if (print)
+          IFEM::cout <<")";
       }
       break;
     case 9:
@@ -435,8 +449,16 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A)
         std::string basis, field;
         basis = strtok(nullptr, " ");
         field = strtok(nullptr, " ");
-        IFEM::cout <<"Field("<< cline <<","<< basis <<","<< field <<")";
+        if (print)
+          IFEM::cout <<"Field("<< cline <<","<< basis <<","<< field <<")";
         f = new FieldFunction(cline,basis,field);
+      }
+      break;
+    case 10:
+      {
+        if (print)
+          IFEM::cout << "Chebyshev(" << cline <<")";
+        f = new ChebyshevFunc(cline);
       }
       break;
     }
@@ -450,7 +472,8 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A)
     Real b = atof(strtok(nullptr," "));
     Real val = (a-b)*(a-b)/Real(4);
     char var = 'W' + quadratic;
-    IFEM::cout << A/val <<" * ("<< a <<"-"<< var <<")*("<< b <<"-"<< var <<")";
+    if (print)
+      IFEM::cout << A/val <<" * ("<< a <<"-"<< var <<")*("<< b <<"-"<< var <<")";
     switch (quadratic) {
     case 1:
       f = new QuadraticXFunc(A,a,b);
@@ -466,7 +489,8 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A)
   }
   else // constant in space
   {
-    IFEM::cout << C;
+    if (print)
+      IFEM::cout << C;
     if (linear < 0)
       f = new ConstFunc(C);
   }
@@ -474,7 +498,8 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A)
   // Check for time variation
   if (!cline) return f; // constant in time
 
-  IFEM::cout <<" * ";
+  if (print)
+    IFEM::cout <<" * ";
   const ScalarFunc* s = parseTimeFunction(cline,nullptr,C);
 
   if (f)
@@ -612,7 +637,7 @@ RealFunc* utl::parseRealFunc (const std::string& func,
   std::string tmp(func);
   p = atof(strtok(const_cast<char*>(tmp.c_str())," "));
   char* funcType = const_cast<char*>(type.c_str());
-  return const_cast<RealFunc*>(parseRealFunc(funcType,p));
+  return const_cast<RealFunc*>(parseRealFunc(funcType,p,print));
 }
 
 
@@ -643,6 +668,16 @@ VecFunc* utl::parseVecFunc (const std::string& func, const std::string& type,
       v[i] = atof(s);
     IFEM::cout <<": "<< v;
     return new ConstVecFunc(v);
+  }
+  else if (type == "chebyshev" || type == "chebyshev2")
+  {
+    std::string tmp(func);
+    strtok(const_cast<char*>(tmp.c_str())," ");
+    std::vector<const char*> file;
+    const char* s;
+    while ((s = strtok(nullptr, " ")))
+      file.push_back(s);
+    return new ChebyshevVecFunc(file, type == "chebyshev2");
   }
 
   return nullptr;
@@ -688,4 +723,21 @@ TractionFunc* utl::parseTracFunc (const std::string& func,
   }
 
   return f ? new PressureField(f,dir) : new PressureField(p,dir);
+}
+
+
+TensorFunc* utl::parseTensorFunc (const std::string& func, const std::string& type)
+{
+  if (type == "chebyshev" || type == "chebyshev2")
+  {
+    std::string tmp(func);
+    strtok(const_cast<char*>(tmp.c_str())," ");
+    std::vector<const char*> file;
+    const char* s;
+    while ((s = strtok(nullptr, " ")))
+      file.push_back(s);
+    return new ChebyshevTensorFunc(file, type == "chebyshev2");
+  }
+
+  return nullptr;
 }
