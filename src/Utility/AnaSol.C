@@ -160,42 +160,66 @@ void AnaSol::parseExpressionFunctions (const TiXmlElement* elem, bool scalarSol)
   const TiXmlElement* prim = elem->FirstChildElement("primary");
   if (prim && prim->FirstChild())
   {
+    std::string type = "expression";
+    utl::getAttribute(prim, "type", type);
+    std::string prType = (type == "expression" ? "" : "("+type+") ");
     std::string primary = prim->FirstChild()->Value();
-    IFEM::cout <<"\tPrimary="<< primary << std::endl;
+    IFEM::cout <<"\tPrimary" << prType << "=" << primary << std::endl;
     if (scalarSol)
     {
-      scalSol.push_back(new EvalFunction((variables+primary).c_str()));
-      parseDerivatives(static_cast<EvalFunction*>(scalSol.back()),prim);
+      if (type == "expression") {
+        scalSol.push_back(new EvalFunction((variables+primary).c_str()));
+        parseDerivatives(static_cast<EvalFunction*>(scalSol.back()),prim);
+      } else
+        scalSol.push_back(utl::parseRealFunc(primary,type,false));
     }
     else
     {
-      vecSol = new VecFuncExpr(primary,variables);
-      parseDerivatives(static_cast<VecFuncExpr*>(vecSol),prim);
+      if (type == "expression") {
+        vecSol = new VecFuncExpr(primary,variables);
+        parseDerivatives(static_cast<VecFuncExpr*>(vecSol),prim);
+      } else
+        vecSol = utl::parseVecFunc(primary, type);
     }
   }
 
   prim = elem->FirstChildElement("scalarprimary");
   while (prim && prim->FirstChild())
   {
+    std::string type = "expression";
+    utl::getAttribute(prim, "type", type);
+    std::string prType = (type == "expression" ? "" : "("+type+") ");
     std::string primary = prim->FirstChild()->Value();
-    IFEM::cout <<"\tScalar Primary="<< primary << std::endl;
-    scalSol.push_back(new EvalFunction((variables+primary).c_str()));
+    IFEM::cout <<"\tScalar Primary " << prType << "=" << primary << std::endl;
+    if (type == "expression")
+      scalSol.push_back(new EvalFunction((variables+primary).c_str()));
+    else
+      scalSol.push_back(utl::parseRealFunc(primary, type, false));
     prim = prim->NextSiblingElement("scalarprimary");
   }
 
   const TiXmlElement* sec = elem->FirstChildElement("secondary");
   if (sec && sec->FirstChild())
   {
+    std::string type = "expression";
+    utl::getAttribute(sec, "type", type);
+    std::string prType = (type == "expression" ? "" : "("+type+") ");
     std::string secondary = sec->FirstChild()->Value();
-    IFEM::cout <<"\tSecondary="<< secondary << std::endl;
+    IFEM::cout <<"\tSecondary" << prType << "=" << secondary << std::endl;
     if (scalarSol)
     {
-      scalSecSol.push_back(new VecFuncExpr(secondary,variables));
-      parseDerivatives(static_cast<VecFuncExpr*>(scalSecSol.back()),sec);
+      if (type == "expression") {
+        scalSecSol.push_back(new VecFuncExpr(secondary,variables));
+        parseDerivatives(static_cast<VecFuncExpr*>(scalSecSol.back()),sec);
+      } else
+        scalSecSol.push_back(utl::parseVecFunc(secondary, type));
     }
     else
     {
-      vecSecSol = new TensorFuncExpr(secondary,variables);
+      if (type == "expression")
+        vecSecSol = new TensorFuncExpr(secondary,variables);
+      else
+        vecSecSol = utl::parseTensorFunc(secondary, type);
       parseDerivatives(static_cast<TensorFuncExpr*>(vecSecSol),sec);
     }
   }
@@ -203,9 +227,14 @@ void AnaSol::parseExpressionFunctions (const TiXmlElement* elem, bool scalarSol)
   sec = elem->FirstChildElement("scalarsecondary");
   while (sec && sec->FirstChild())
   {
+    std::string type = "expression";
+    utl::getAttribute(sec, "type", type);
     std::string secondary = sec->FirstChild()->Value();
     IFEM::cout <<"\tScalar Secondary="<< secondary << std::endl;
-    scalSecSol.push_back(new VecFuncExpr(secondary,variables));
+    if (type == "expression")
+      scalSecSol.push_back(new VecFuncExpr(secondary,variables));
+    else
+      scalSecSol.push_back(utl::parseVecFunc(secondary, type));
     sec = sec->NextSiblingElement("scalarsecondary");
   }
 
