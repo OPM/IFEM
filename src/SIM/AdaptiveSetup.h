@@ -16,6 +16,7 @@
 
 #include "MatVec.h"
 
+class ScalarFunc;
 class SIMoutput;
 class TiXmlElement;
 namespace LR { struct RefineData; }
@@ -39,7 +40,7 @@ public:
   //! \param[in] sa If \e true, this is a stand-alone driver
   explicit AdaptiveSetup(SIMoutput& sim, bool sa = true);
   //! \brief Empty destructor.
-  virtual ~AdaptiveSetup() {}
+  virtual ~AdaptiveSetup();
 
   //! \brief Sets the norm group/index of the norm to base mesh adaptation on.
   void setAdaptationNorm(size_t g, size_t i = 0) { adaptor = g; adNorm = i; }
@@ -96,6 +97,7 @@ private:
   bool   alone;      //!< If \e false, this class is wrapped by SIMSolver
   bool   linIndep;   //!< Test mesh for linear independence after refinement
   double beta;       //!< Refinement percentage in each step
+  ScalarFunc* betaFunc;//!< Beta as a function
   double errTol;     //!< Global error stop tolerance
   double condLimit;  //!< Upper limit on condition number
   int    maxStep;    //!< Maximum number of adaptive refinements
