@@ -100,6 +100,7 @@ bool SIMoutput::parseOutputTag (const TiXmlElement* elem)
     IFEM::cout <<"\tAdditional function '"<< name <<"' ("<< type <<")";
     RealFunc* f = utl::parseRealFunc(funcval,type);
     if (!f) return false;
+    IFEM::cout << std::endl;
 
     myAddScalars[name] = f;
     return true;
@@ -664,7 +665,7 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
       {
         const VecFunc& pSol = *mySol->getVectorSol();
         for (size_t j = 1; cit != grid->end_XYZ(); j++, ++cit)
-          field.fillColumn(j,pSol(Vec4(*cit,time)).ptr());
+          field.fillColumn(j,pSol(Vec4(*cit,time,grid->getParam(j-1))).ptr());
         if (mySol->getScalarSol())
         {
           const RealFunc* psSol;
