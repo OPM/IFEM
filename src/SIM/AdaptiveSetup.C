@@ -16,6 +16,7 @@
 #include "SIMenums.h"
 #include "ASMbase.h"
 #include "ASMunstruct.h"
+#include "Functions.h"
 #include "IntegrandBase.h"
 #include "Utilities.h"
 #include "IFEM.h"
@@ -33,6 +34,7 @@ AdaptiveSetup::AdaptiveSetup (SIMoutput& sim, bool sa) : model(sim), alone(sa)
   // Default grid adaptation parameters
   linIndep   = false;
   beta       = 10.0;
+  betaFunc   = nullptr;
   errTol     = 1.0;
   rCond      = 1.0;
   condLimit  = 1.0e12;
@@ -49,6 +51,12 @@ AdaptiveSetup::AdaptiveSetup (SIMoutput& sim, bool sa) : model(sim), alone(sa)
   closeGaps  = false;
   symmEps    = 1.0e-6;
   storeMesh  = 1;
+}
+
+
+AdaptiveSetup::~AdaptiveSetup()
+{
+  delete betaFunc;
 }
 
 
@@ -114,7 +122,13 @@ bool AdaptiveSetup::parse (const TiXmlElement* elem)
     } else if ((value = utl::getValue(child,"use_sub_norm")))
       adNorm = atoi(value);
     else if ((value = utl::getValue(child,"beta"))) {
-      beta = atof(value);
+      std::string functype;
+      utl::getAttribute(child,"functype",functype);
+      if (functype == "expression") {
+        IFEM::cout << "\tRefinement function: ";
+        betaFunc = utl::parseTimeFunc(value,functype,1.0);
+      } else
+        beta = atof(value);
       std::string type;
       utl::getAttribute(child,"type",type,true);
       if (type.compare("threshold") == 0 || type.compare("threashold") == 0)
@@ -133,7 +147,8 @@ bool AdaptiveSetup::parse (const TiXmlElement* elem)
         threshold = SYMMETRIZED;
         utl::getAttribute(child,"eps",symmEps);
       }
-      IFEM::cout <<"\tRefinement percentage: "<< beta <<" type="<< threshold;
+      IFEM::cout <<"\tRefinement percentage: "<< (betaFunc ? (*betaFunc)(1) : beta)
+                                              <<" type="<< threshold;
       if (threshold == SYMMETRIZED)
         IFEM::cout <<" (eps = "<< symmEps <<")";
       IFEM::cout << std::endl;
@@ -283,7 +298,7 @@ int AdaptiveSetup::calcRefinement (LR::RefineData& prm, int iStep,
   }
 
   prm.options.reserve(8);
-  prm.options.push_back(beta);
+  prm.options.push_back(betaFunc ? (*betaFunc)(iStep-1) : beta);
   prm.options.push_back(knot_mult);
   prm.options.push_back(scheme);
   prm.options.push_back(linIndep);
@@ -301,7 +316,7 @@ int AdaptiveSetup::calcRefinement (LR::RefineData& prm, int iStep,
       return -2;
     }
 
-    IFEM::cout <<"\nRefining by increasing solution space by "<< beta
+    IFEM::cout <<"\nRefining by increasing solution space by "<< prm.options[0]
                <<" percent."<< std::endl;
     prm.errors.resize(thePatch->getNoRefineElms());
     dynamic_cast<ASMunstruct*>(thePatch)->remapErrors(prm.errors,refIn,true);
@@ -370,19 +385,19 @@ int AdaptiveSetup::calcRefinement (LR::RefineData& prm, int iStep,
   double limit, sumErr = 0.0, curErr = 0.0;
   switch (threshold) {
   case MAXIMUM: // beta percent of max error (less than 100%)
-    limit = error.front().first * beta*0.01;
+    limit = error.front().first * prm.options[0]*0.01;
     break;
   case AVERAGE: // beta percent of avg error (typical 100%)
     for (const DblIdx& e : error) sumErr += e.first;
-    limit = (sumErr/error.size()) * beta*0.01;
+    limit = (sumErr/error.size()) * prm.options[0]*0.01;
     break;
   case MINIMUM: // beta percent of min error (more than 100%)
-    limit = error.back().first * beta*0.01;
+    limit = error.back().first * prm.options[0]*0.01;
     break;
   case DORFEL:
     limit = error.back().first;
     for (const DblIdx& e : error) sumErr += e.first;
-    sumErr *= beta*0.01;
+    sumErr *= prm.options[0]*0.01;
     for (const DblIdx& e : error)
       if (curErr < sumErr)
         curErr += e.first;
@@ -397,7 +412,7 @@ int AdaptiveSetup::calcRefinement (LR::RefineData& prm, int iStep,
   }
 
   if (threshold == NONE || threshold == SYMMETRIZED)
-    refineSize = ceil(error.size()*beta/100.0);
+    refineSize = ceil(error.size()*prm.options[0]/100.0);
   else
     refineSize = std::upper_bound(error.begin(), error.end(), DblIdx(limit,0),
                                   std::greater_equal<DblIdx>()) - error.begin();
@@ -433,22 +448,22 @@ int AdaptiveSetup::calcRefinement (LR::RefineData& prm, int iStep,
 
   switch (threshold) {
   case NONE:
-    IFEM::cout << beta <<"% of all "<< str;
+    IFEM::cout << prm.options[0] <<"% of all "<< str;
     break;
   case SYMMETRIZED:
     IFEM::cout << 100.0*refineSize/error.size() <<"% of all "<< str;
     break;
   case MAXIMUM:
-    IFEM::cout << beta <<"% of max error ("<< limit <<")";
+    IFEM::cout << prm.options[0] <<"% of max error ("<< limit <<")";
     break;
   case AVERAGE:
-    IFEM::cout << beta <<"% of average error ("<< limit <<")";
+    IFEM::cout << prm.options[0] <<"% of average error ("<< limit <<")";
     break;
   case MINIMUM:
-    IFEM::cout << beta <<"% of min error ("<< limit <<")";
+    IFEM::cout << prm.options[0] <<"% of min error ("<< limit <<")";
     break;
   case DORFEL:
-    IFEM::cout << beta <<"% of total error ("<< limit <<")";
+    IFEM::cout << prm.options[0] <<"% of total error ("<< limit <<")";
     break;
   default:
     break;
