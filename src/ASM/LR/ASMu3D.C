@@ -1865,8 +1865,11 @@ bool ASMu3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
       std::cout <<"\n"<< fe;
 #endif
 
+    // Cartesian coordinates of current integration point
+    utl::Point X4(Xnod*fe.N, {fe.u, fe.v, fe.w});
+
     // Now evaluate the solution field
-    if (!integrand.evalSol(solPt,fe,Xnod*fe.N,MNPC[iel]))
+    if (!integrand.evalSol(solPt,fe,X4,MNPC[iel]))
       return false;
     else if (sField.empty())
       sField.resize(solPt.size(),nPoints,true);
