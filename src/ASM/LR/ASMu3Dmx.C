@@ -31,6 +31,7 @@
 #include "Fields.h"
 #include "SplineUtils.h"
 #include "Utilities.h"
+#include "Point.h"
 #include "Profiler.h"
 #include "Vec3Oper.h"
 #include "Vec3.h"
@@ -893,9 +894,15 @@ bool ASMu3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
                         d2Nxdu2[b],fe.grad(b+1),false);
     }
 
+    // Cartesian coordinates of current integration point
+    fe.u = gpar[0][i];
+    fe.v = gpar[1][i];
+    fe.w = gpar[2][i];
+    utl::Point X4(Xnod*fe.basis(geoBasis), {fe.u, fe.v, fe.w});
+
     // Now evaluate the solution field
     Vector solPt;
-    if (!integrand.evalSol(solPt,fe,Xnod*fe.basis(geoBasis),
+    if (!integrand.evalSol(solPt,fe,X4,
                            MNPC[els[geoBasis-1]-1],elem_sizes,nb))
       return false;
     else if (sField.empty())
