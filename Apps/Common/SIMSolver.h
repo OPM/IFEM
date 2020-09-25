@@ -45,8 +45,11 @@ public:
 
   //! \brief Handles application data output.
   //! \param[in] hdf5file The file to save to
+  //! \param[in] modelAdm Process administrator to use
   //! \param[in] saveInterval The stride in the output file
-  void handleDataOutput(const std::string& hdf5file, int saveInterval = 1)
+  void handleDataOutput(const std::string& hdf5file,
+                        const ProcessAdm& modelAdm,
+                        int saveInterval = 1)
   {
     if (IFEM::getOptions().discretization < ASM::Spline && !hdf5file.empty())
       IFEM::cout <<"\n  ** HDF5 output is available for spline discretization"
@@ -54,7 +57,7 @@ public:
     else
     {
       exporter = new DataExporter(true,saveInterval);
-      exporter->registerWriter(new HDF5Writer(hdf5file,adm));
+      exporter->registerWriter(new HDF5Writer(hdf5file,modelAdm));
       S1.registerFields(*exporter);
       IFEM::registerCallback(*exporter);
     }
@@ -163,15 +166,18 @@ public:
 
   //! \brief Handles application data output.
   //! \param[in] hdf5file The file to save to
+  //! \param[in] modelAdm Process administrator to use
   //! \param[in] saveInterval The stride in the output file
   //! \param[in] restartInterval The stride in the restart file
   void handleDataOutput(const std::string& hdf5file,
-                        int saveInterval = 1, int restartInterval = 0)
+                        const ProcessAdm& modelAdm,
+                        int saveInterval = 1,
+                        int restartInterval = 0)
   {
     if (restartInterval > 0)
-      restartAdm = new HDF5Restart(hdf5file+"_restart",this->adm,restartInterval);
+      restartAdm = new HDF5Restart(hdf5file+"_restart",modelAdm,restartInterval);
 
-    this->SIMSolverStat<T1>::handleDataOutput(hdf5file, saveInterval);
+    this->SIMSolverStat<T1>::handleDataOutput(hdf5file, modelAdm, saveInterval);
   }
 
   //! \brief Serialize internal state for restarting purposes.
