@@ -20,6 +20,9 @@
 #include "Utilities.h"
 #include "IFEM.h"
 #include "tinyxml.h"
+#ifdef HAS_LRSPLINE
+#include <LRSpline/Basisfunction.h>
+#endif
 #include <fstream>
 #include <sstream>
 #include <cstdio>
@@ -100,7 +103,15 @@ bool AdaptiveSetup::parse (const TiXmlElement* elem)
       adaptor = atoi(value);
       utl::getAttribute(child,"index",adNorm);
     }
-    else if ((value = utl::getValue(child,"use_sub_norm")))
+    else if ((value = utl::getValue(child,"same_func_tolerance"))) {
+#ifdef LRSPLINE_HAS_FUNC_TOLERANCE
+      LR::Basisfunction::sameFuncTolerance = atof(value);
+      IFEM::cout << "\tLRSpline: setting coinciding function tolerance to "
+                 << LR::Basisfunction::sameFuncTolerance << std::endl;
+#else
+      IFEM::cout << "  ** LRSpline: setting coinciding function tolerance not supported" << std::endl;
+#endif
+    } else if ((value = utl::getValue(child,"use_sub_norm")))
       adNorm = atoi(value);
     else if ((value = utl::getValue(child,"beta"))) {
       beta = atof(value);
