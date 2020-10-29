@@ -17,6 +17,7 @@
 #include "SIMbase.h"
 #include "TopologySet.h"
 #include "Interface.h"
+#include "Vec3.h"
 
 class ModelGenerator;
 
@@ -55,6 +56,7 @@ public:
   };
   typedef std::vector<ICInfo> InitialCondVec; //!< Convenience declaration
   typedef std::vector<unsigned char> CharVec; //!< Convenience declaration
+  typedef std::pair<int,Vec3>        IdxVec3; //!< Convenience declaration
 
 protected:
   //! \brief The constructor just forwards to the base class constructor.
@@ -262,6 +264,8 @@ protected:
   ModelGenerator* myGen; //!< Model generator
 
   TopologySet myEntitys; //!< Set of named topological entities
+
+  std::vector<IdxVec3> myTopPts; //!< Discrete points not belonging to any patch
 
   std::vector<ASM::Interface> myInterfaces; //!< Topology interface descriptions
 

@@ -272,6 +272,17 @@ bool SIMinput::parseGeometryTag (const TiXmlElement* elem)
               }
             }
         }
+
+        item = set->FirstChildElement("point");
+        for (; idim == 0 && item; item = item->NextSiblingElement("point"))
+          if (item->FirstChild() && item->FirstChild()->Value())
+          {
+            std::stringstream value(item->FirstChild()->Value());
+            Vec3 Xpt;
+            value >> Xpt;
+            top.insert(TopItem(0,myTopPts.size()));
+            myTopPts.push_back(std::make_pair(0,Xpt));
+          }
       }
 
     if (!myEntitys.empty())
@@ -283,8 +294,12 @@ bool SIMinput::parseGeometryTag (const TiXmlElement* elem)
         if (it != myEntitys.begin())
           IFEM::cout <<"\t               ";
         IFEM::cout << it->first;
-        for (const TopItem& it2 : it->second)
-          IFEM::cout << it2;
+        for (const TopItem& ti : it->second)
+        {
+          IFEM::cout << ti;
+          if (ti.patch == 0 && ti.item >= 0 && ti.item < (int)myTopPts.size())
+            IFEM::cout <<" "<< myTopPts[ti.item].second;
+        }
         IFEM::cout << std::endl;
       }
     }
@@ -517,13 +532,14 @@ bool SIMinput::parseBCTag (const TiXmlElement* elem)
 
   else if (!strcasecmp(elem->Value(),"robin"))
   {
-    std::string set, type, prop;
+    const TiXmlNode* rval = elem->FirstChild();
+
+    std::string set, type;
     utl::getAttribute(elem,"set",set);
     utl::getAttribute(elem,"type",type,true);
     int direction = 0;
-    utl::getAttribute(elem,"direction",direction);
-    const TiXmlNode* nval = elem->FirstChild();
-    if (nval) prop = nval->Value();
+    if (!utl::getAttribute(elem,"direction",direction))
+      direction = 1 - this->getNoFields();
 
     int code = this->getUniquePropertyCode(set);
     if (code == 0) utl::getAttribute(elem,"code",code);
@@ -532,7 +548,10 @@ bool SIMinput::parseBCTag (const TiXmlElement* elem)
     if (!type.empty())
       IFEM::cout <<" ("<< type <<")";
     this->setPropertyType(code,Property::ROBIN);
-    this->setNeumann(prop,type,direction < 0 ? direction : 1-this->getNoFields(),code);
+    if (rval)
+      this->setNeumann(rval->Value(),type,direction,code);
+    else
+      this->setNeumann(std::string(),type,direction,code);
     IFEM::cout << std::endl;
   }
 
@@ -808,13 +827,13 @@ bool SIMinput::parse (const TiXmlElement* elem)
     if (GlbL2::MatrixType == LinAlg::PETSC)
     {
       const TiXmlElement* l2 = elem->FirstChildElement("l2params");
-      if (l2) {
+      if (l2)
+      {
         myGl2Params = new LinSolParams(LinAlg::SYMMETRIC);
         myGl2Params->read(l2);
-      } else {
-        // Use regular solver parameters in the L2-projection
-        myGl2Params = new LinSolParams(*mySolParams,LinAlg::SYMMETRIC);
       }
+      else // Use regular solver parameters in the L2-projection
+        myGl2Params = new LinSolParams(*mySolParams,LinAlg::SYMMETRIC);
       GlbL2::SolverParams = myGl2Params;
     }
   }
@@ -1264,8 +1283,11 @@ size_t SIMinput::setPropertyType (int code, Property::Type ptype,
   size_t nDefined = 0;
   for (PropertyVec::iterator p = myProps.begin(); p != myProps.end(); ++p)
     if (abs(p->pindx) == abs(code) && p->pcode == Property::UNDEFINED)
-      if (p->patch > 0 && p->patch <= myModel.size())
+      if (p->patch <= myModel.size())
       {
+        if (p->patch == 0 && ptype < Property::DIRICHLET)
+          continue; // Only Dirichlet conditions for patch-less properties
+
         ++nDefined;
         p->pcode = ptype;
         p->basis = basis;
@@ -1401,9 +1423,9 @@ bool SIMinput::refine (const LR::RefineData& prm, Vectors& sol)
   if (myModel.empty())
     return false;
 
-  ASMunstruct* pch = nullptr;
+  std::vector<ASMunstruct*> pch(myModel.size(),nullptr);
   for (size_t i = 0; i < myModel.size(); i++)
-    if (!(pch = dynamic_cast<ASMunstruct*>(myModel[i])))
+    if (!(pch[i] = dynamic_cast<ASMunstruct*>(myModel[i])))
     {
       std::cerr <<" *** SIMinput::refine: Model is not constructed from"
                 <<" unstructured (ASMunstruct) patches."<< std::endl;
@@ -1412,7 +1434,7 @@ bool SIMinput::refine (const LR::RefineData& prm, Vectors& sol)
     else if (nGlPatches == 1)
     {
       // Single patch models only pass refinement call to the ASM level
-      if (!pch->refine(prm,sol))
+      if (!pch[i]->refine(prm,sol))
         return false;
 
       ++isRefined;
@@ -1438,16 +1460,12 @@ bool SIMinput::refine (const LR::RefineData& prm, Vectors& sol)
       // Extract local indices from the vector of global indices
       int locId;
       for (int k : prm.elements)
-        if ((locId = myModel[i]->getNodeIndex(k+1)) > 0) {
-          if (refineIndices[i].count(locId-1) == 0) {
-            refineIndices[i].insert(locId-1);
+        if ((locId = myModel[i]->getNodeIndex(k+1)) > 0)
+          if (refineIndices[i].insert(locId-1).second)
             changed = true;
-          }
-        }
 
-      // fetch all boundary nodes covered (may need to pass this to other patches)
-      pch = dynamic_cast<ASMunstruct*>(myModel[i]);
-      IntVec bndry_nodes = pch->getBoundaryCovered(refineIndices[i]);
+      // Fetch boundary nodes covered (may need to pass this to other patches)
+      IntVec bndry_nodes = pch[i]->getBoundaryCovered(refineIndices[i]);
 
       // DESIGN NOTE: It is tempting here to use patch connectivity information.
       // However, this does not account (in the general case)
@@ -1462,42 +1480,34 @@ bool SIMinput::refine (const LR::RefineData& prm, Vectors& sol)
       // +-----+-----+   to patch #1 (vertex 2), but this connection is not
       //                 guaranteed to appear in the input file
 
-      // for all boundary nodes, check if these appear on other patches
       for (int k : bndry_nodes)
       {
+        // Check if this boundary node appears on other patches
         int globId = myModel[i]->getNodeID(k+1);
         for (size_t j = 0; j < myModel.size(); j++)
           if (j != i && (locId = myModel[j]->getNodeIndex(globId)) > 0)
-          {
-            if (conformingIndices[j].count(locId-1) == 0) {
+            if (conformingIndices[j].insert(locId-1).second) {
               changed = true;
-              conformingIndices[j].insert(locId-1);
               conformingIndices[i].insert(k);
             }
-          }
       }
     }
 
-    for (size_t i = 0; i < myModel.size(); i++)
-    {
-      pch = dynamic_cast<ASMunstruct*>(myModel[i]);
-      pch->extendRefinementDomain(refineIndices[i],conformingIndices[i]);
-    }
+    for (size_t i = 0; i < pch.size(); i++)
+      pch[i]->extendRefinementDomain(refineIndices[i],conformingIndices[i]);
   }
 
   Vectors lsols;
   lsols.reserve(sol.size()*myModel.size());
   for (size_t i = 0; i < myModel.size(); i++)
   {
-    pch = dynamic_cast<ASMunstruct*>(myModel[i]);
-
     LR::RefineData prmloc(prm);
     prmloc.elements = IntVec(refineIndices[i].begin(),refineIndices[i].end());
 
     Vectors lsol(sol.size());
     for (size_t j = 0; j < sol.size(); j++)
       this->extractPatchSolution(sol[j], lsol[j], myModel[i], sol[j].size() / this->getNoNodes());
-    if (!pch->refine(prmloc,lsol))
+    if (!pch[i]->refine(prmloc,lsol))
       return false;
     for (const Vector& s : lsol)
       lsols.push_back(s);

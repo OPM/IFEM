@@ -371,6 +371,17 @@ bool SIMoutput::writeGlvG (int& nBlock, const char* inpFile, bool doClear)
       return false;
   }
 
+  // Additional geometry for the extra points
+  if (myPtSize > 0.0 && !myTopPts.empty())
+  {
+    lvb = new ElementBlock(8);
+    for (const IdxVec3& pt : myTopPts)
+      lvb->merge(CubeBlock(pt.second,myPtSize));
+
+    if (!myVtf->writeGrid(lvb,"Extra points",2*nGlPatches+2,++nBlock))
+      return false;
+  }
+
   // Do not write the geometry blocks to file yet, writeVectors might create
   // an additional block for the point vectors, see method VTF::writeVectors
   return true;
@@ -1896,7 +1907,7 @@ bool SIMoutput::writeAddFuncs (int iStep, int& nBlock, int idBlock, double time)
 }
 
 
-void SIMoutput::addAddFunc(const std::string& name, RealFunc* f)
+void SIMoutput::addAddFunc (const std::string& name, RealFunc* f)
 {
   myAddScalars[name] = f;
 }
