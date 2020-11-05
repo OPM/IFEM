@@ -42,50 +42,59 @@ SIM3D::SIM3D (IntegrandBase* itg, unsigned char n, bool check) : SIMgeneric(itg)
 }
 
 
-bool SIM3D::addConnection (int master, int slave, int mIdx,
-                           int sIdx, int orient, int basis,
-                           bool coordCheck, int dim, int thick)
+bool SIM3D::connectPatches (const ASM::Interface& ifc, bool coordCheck)
 {
-  if (orient < 0 || orient > 7)
+  if (ifc.master == ifc.slave ||
+      ifc.master < 1 || ifc.master > nGlPatches ||
+      ifc.slave  < 1 || ifc.slave  > nGlPatches)
   {
-    std::cerr <<" *** SIM3D::addConnection: Invalid orientation "<< orient <<"."
-              << std::endl;
+    std::cerr <<" *** SIM3D::connectPatches: Invalid patch indices "
+              << ifc.master <<" "<< ifc.slave << std::endl;
     return false;
   }
 
-  int lmaster = this->getLocalPatchIndex(master);
-  int lslave = this->getLocalPatchIndex(slave);
+  if (ifc.orient < 0 || ifc.orient > 7)
+  {
+    std::cerr <<" *** SIM3D::connectPatches: Invalid orientation flag "
+              << ifc.orient <<"."<< std::endl;
+    return false;
+  }
+
+  int lmaster = this->getLocalPatchIndex(ifc.master);
+  int lslave  = this->getLocalPatchIndex(ifc.slave);
   if (lmaster > 0 && lslave > 0)
   {
-    if (dim < 2) return true; // ignored in serial
+    if (ifc.dim < 2) return true; // ignored in serial
 
-    IFEM::cout <<"\tConnecting P"<< slave <<" F"<< sIdx
-               <<" to P"<< master <<" F"<< mIdx
-               <<" orient "<< orient << std::endl;
+    IFEM::cout <<"\tConnecting P"<< ifc.slave <<" F"<< ifc.sidx
+               <<" to P"<< ifc.master <<" F"<< ifc.midx
+               <<" orient "<< ifc.orient << std::endl;
 
     ASM3D* spch = dynamic_cast<ASM3D*>(myModel[lslave-1]);
     ASM3D* mpch = dynamic_cast<ASM3D*>(myModel[lmaster-1]);
     if (spch && mpch)
     {
       std::set<int> bases;
-      if (basis == 0)
+      if (ifc.basis == 0)
         for (size_t b = 1; b <= myModel[lslave-1]->getNoBasis(); b++)
           bases.insert(b);
       else
-        bases = utl::getDigits(basis);
+        bases = utl::getDigits(ifc.basis);
 
       for (int b : bases)
-        if (!spch->connectPatch(sIdx,*mpch,mIdx,orient,b,coordCheck,thick))
+        if (!spch->connectPatch(ifc.sidx,*mpch,ifc.midx,ifc.orient,b,
+                                coordCheck,ifc.thick))
+        {
+          std::cerr <<" *** SIM3D::connectPatches: Failed to connect basis "
+                    << b <<"."<< std::endl;
           return false;
+        }
     }
 
-    myInterfaces.push_back(ASM::Interface{master, slave, mIdx, sIdx, orient,
-                                          dim, basis, thick});
+    myInterfaces.push_back(ifc);
   }
   else
-    adm.dd.ghostConnections.insert(ASM::Interface{master, slave,
-                                                  mIdx, sIdx, orient,
-                                                  dim, basis, thick});
+    adm.dd.ghostConnections.insert(ifc);
 
   return true;
 }
@@ -162,39 +171,30 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
   {
     if (!this->createFEMmodel()) return false;
 
+    int offset = 0;
+    utl::getAttribute(elem,"offset",offset);
+
     const TiXmlElement* child = elem->FirstChildElement("connection");
     for (; child; child = child->NextSiblingElement())
     {
-      int master = 0, slave = 0, mIdx = 0, sIdx = 0;
-      int orient = 0, basis = 0, dim = 2;
+      ASM::Interface ifc;
       bool periodic = false;
-      utl::getAttribute(child,"master",master);
-      if (!utl::getAttribute(child,"midx",mIdx))
-        utl::getAttribute(child,"mface",mIdx);
-      utl::getAttribute(child,"slave",slave);
-      if (!utl::getAttribute(child,"sidx",sIdx))
-        utl::getAttribute(child,"sface",sIdx);
-      utl::getAttribute(child,"orient",orient);
-      utl::getAttribute(child,"basis",basis);
+      if (utl::getAttribute(child,"master",ifc.master))
+        ifc.master += offset;
+      if (!utl::getAttribute(child,"midx",ifc.midx))
+        utl::getAttribute(child,"mface",ifc.midx);
+      if (utl::getAttribute(child,"slave",ifc.slave))
+        ifc.slave += offset;
+      if (!utl::getAttribute(child,"sidx",ifc.sidx))
+        utl::getAttribute(child,"sface",ifc.sidx);
+      utl::getAttribute(child,"orient",ifc.orient);
+      utl::getAttribute(child,"basis",ifc.basis);
       utl::getAttribute(child,"periodic",periodic);
-      utl::getAttribute(child,"dim",dim);
+      if (!utl::getAttribute(child,"dim",ifc.dim))
+        ifc.dim = 2;
 
-      if (master == slave ||
-          master < 1 || master > nGlPatches ||
-          slave  < 1 || slave  > nGlPatches)
-      {
-        std::cerr <<" *** SIM3D::parse: Invalid patch indices "
-                  << master <<" "<< slave << std::endl;
+      if (!this->connectPatches(ifc,!periodic))
         return false;
-      }
-
-      if (!this->addConnection(master, slave, mIdx, sIdx,
-                               orient, basis, !periodic, dim))
-      {
-        std::cerr <<" *** SIM3D::parse: Error establishing connection."
-                  << std::endl;
-        return false;
-      }
     }
   }
 
@@ -445,28 +445,17 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
 
     while ((cline = utl::readLine(ist)))
     {
-      int master = atoi(strtok(cline," "))+1;
-      int mFace  = atoi(strtok(nullptr," "))+1;
-      int slave  = atoi(strtok(nullptr," "))+1;
-      int sFace  = atoi(strtok(nullptr," "))+1;
+      ASM::Interface ifc;
+      ifc.master = atoi(strtok(cline," "));
+      ifc.midx   = atoi(strtok(nullptr," "));
+      ifc.slave  = atoi(strtok(nullptr," "));
+      ifc.sidx   = atoi(strtok(nullptr," "));
       int swapd  = atoi(strtok(nullptr," "));
       int rev_u  = atoi(strtok(nullptr," "));
       int rev_v  = atoi(strtok(nullptr," "));
-      int orient = 4*swapd+2*rev_u+rev_v;
-      if (master == slave ||
-          master < 1 || master > (int)myModel.size() ||
-          slave  < 1 || slave  > (int)myModel.size())
-      {
-        std::cerr <<" *** SIM3D::parse: Invalid patch indices "
-                  << master <<" "<< slave << std::endl;
-        return false;
-      }
-      IFEM::cout <<"\tConnecting P"<< slave <<" F"<< sFace
-                 <<" to P"<< master <<" F"<< mFace
-                 <<" orient "<< orient << std::endl;
-      ASMs3D* spch = static_cast<ASMs3D*>(myModel[slave-1]);
-      ASMs3D* mpch = static_cast<ASMs3D*>(myModel[master-1]);
-      if (!spch->connectPatch(sFace,*mpch,mFace,orient))
+      ifc.orient = 4*swapd+2*rev_u+rev_v;
+      ifc.dim    = 2;
+      if (!this->connectPatches(ifc))
         return false;
     }
   }
@@ -479,25 +468,14 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
     IFEM::cout <<"\nNumber of patch connections: "<< ntop << std::endl;
     for (int i = 0; i < ntop && (cline = utl::readLine(is)); i++)
     {
-      int master = atoi(strtok(cline," "));
-      int mFace  = atoi(strtok(nullptr," "));
-      int slave  = atoi(strtok(nullptr," "));
-      int sFace  = atoi(strtok(nullptr," "));
-      int orient = (cline = strtok(nullptr," ")) ? atoi(cline) : 0;
-      if (master == slave ||
-          master < 1 || master > (int)myModel.size() ||
-          slave  < 1 || slave  > (int)myModel.size())
-      {
-        std::cerr <<" *** SIM3D::parse: Invalid patch indices "
-                  << master <<" "<< slave << std::endl;
-        return false;
-      }
-      IFEM::cout <<"\tConnecting P"<< slave <<" F"<< sFace
-                 <<" to P"<< master <<" F"<< mFace
-                 <<" orient "<< orient << std::endl;
-      ASMs3D* spch = static_cast<ASMs3D*>(myModel[slave-1]);
-      ASMs3D* mpch = static_cast<ASMs3D*>(myModel[master-1]);
-      if (!spch->connectPatch(sFace,*mpch,mFace,orient))
+      ASM::Interface ifc;
+      ifc.master = atoi(strtok(cline," "));
+      ifc.midx   = atoi(strtok(nullptr," "));
+      ifc.slave  = atoi(strtok(nullptr," "));
+      ifc.sidx   = atoi(strtok(nullptr," "));
+      ifc.orient = (cline = strtok(nullptr," ")) ? atoi(cline) : 0;
+      ifc.dim    = 2;
+      if (!this->connectPatches(ifc))
         return false;
     }
   }
@@ -525,7 +503,7 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
 
       if (pface > 10)
       {
-        if (!this->addConstraint(patch,pface%10,pface/10,pd,bcode))
+        if (!this->addLineConstraint(patch,pface%10,pface/10,pd,bcode))
           return false;
       }
       else if (pd == 0.0)
@@ -698,13 +676,13 @@ bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
 }
 
 
-bool SIM3D::addConstraint (int patch, int lndx, int line, double xi,
-                           int dirs, char basis)
+bool SIM3D::addLineConstraint (int patch, int lndx, int line, double xi,
+                               int dirs, char basis)
 {
   // Lambda function for error message generation
   auto&& error = [](const char* message, int idx)
   {
-    std::cerr <<" *** SIM3D::addConstraint: Invalid "
+    std::cerr <<" *** SIM3D::addLineConstraint: Invalid "
               << message <<" ("<< idx <<")."<< std::endl;
     return false;
   };

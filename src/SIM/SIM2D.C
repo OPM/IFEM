@@ -64,50 +64,48 @@ SIM2D::SIM2D (IntegrandBase* itg, unsigned char n, bool check) : SIMgeneric(itg)
 }
 
 
-bool SIM2D::addConnection (int master, int slave, int mIdx,
-                           int sIdx, int orient, int basis,
-                           bool coordCheck, int dim, int thick)
+bool SIM2D::connectPatches (const ASM::Interface& ifc, bool coordCheck)
 {
-  if (orient < 0 || orient > 1)
+  if (ifc.master == ifc.slave ||
+      ifc.master < 1 || ifc.master > nGlPatches ||
+      ifc.slave  < 1 || ifc.slave  > nGlPatches)
   {
-    std::cerr <<" *** SIM2D::addConnection: Invalid orientation "<< orient <<"."
-              << std::endl;
+    std::cerr <<" *** SIM2D::connectPatches: Invalid patch indices "
+              << ifc.master <<" "<< ifc.slave << std::endl;
     return false;
   }
 
-  int lmaster = this->getLocalPatchIndex(master);
-  int lslave = this->getLocalPatchIndex(slave);
+  int lmaster = this->getLocalPatchIndex(ifc.master);
+  int lslave  = this->getLocalPatchIndex(ifc.slave);
   if (lmaster > 0 && lslave > 0)
   {
-    if (dim < 1) return true; // ignored in serial
+    if (ifc.dim < 1) return true; // ignored in serial
 
-    IFEM::cout <<"\tConnecting P"<< slave <<" E"<< sIdx
-               <<" to P"<< master <<" E"<< mIdx
-               <<" reversed? "<< orient << std::endl;
+    IFEM::cout <<"\tConnecting P"<< ifc.slave <<" E"<< ifc.sidx
+               <<" to P"<< ifc.master <<" E"<< ifc.midx
+               <<" reversed? "<< ifc.orient << std::endl;
 
     ASM2D* spch = dynamic_cast<ASM2D*>(myModel[lslave-1]);
     ASM2D* mpch = dynamic_cast<ASM2D*>(myModel[lmaster-1]);
     if (spch && mpch)
     {
       std::set<int> bases;
-      if (basis == 0)
+      if (ifc.basis == 0)
         for (size_t b = 1; b <= myModel[lslave-1]->getNoBasis(); b++)
           bases.insert(b);
       else
-        bases = utl::getDigits(basis);
+        bases = utl::getDigits(ifc.basis);
 
       for (int b : bases)
-        if (!spch->connectPatch(sIdx,*mpch,mIdx,orient,b,coordCheck,thick))
+        if (!spch->connectPatch(ifc.sidx,*mpch,ifc.midx,
+                                ifc.orient,b,coordCheck,ifc.thick))
           return false;
     }
 
-    myInterfaces.push_back(ASM::Interface{master, slave, mIdx, sIdx, orient,
-                                          dim, basis, thick});
+    myInterfaces.push_back(ifc);
   }
   else
-    adm.dd.ghostConnections.insert(ASM::Interface{master, slave,
-                                                  mIdx, sIdx, orient,
-                                                  dim, basis, thick});
+    adm.dd.ghostConnections.insert(ifc);
 
   return true;
 }
@@ -183,46 +181,38 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
   {
     if (!this->createFEMmodel()) return false;
 
+    int offset = 0;
+    utl::getAttribute(elem,"offset",offset);
+
     std::vector<Interface> top;
     const TiXmlElement* child = elem->FirstChildElement("connection");
     for (; child; child = child->NextSiblingElement())
     {
-      int master = 0, slave = 0, mEdge = 0, sEdge = 0;
-      int orient = 0, basis = 0, dim = 1;
+      ASM::Interface ifc;
       bool rever = false, periodic = false;
       utl::getAttribute(child,"reverse",rever);
-      utl::getAttribute(child,"master",master);
-      if (!utl::getAttribute(child,"midx",mEdge))
-        utl::getAttribute(child,"medge",mEdge);
-      utl::getAttribute(child,"slave",slave);
-      if (!utl::getAttribute(child,"sidx",sEdge))
-        utl::getAttribute(child,"sedge",sEdge);
-      if (!utl::getAttribute(child,"orient",orient) && rever)
-        orient = 1;
-      utl::getAttribute(child,"basis",basis);
+      if (utl::getAttribute(child,"master",ifc.master))
+        ifc.master += offset;
+      if (!utl::getAttribute(child,"midx",ifc.midx))
+        utl::getAttribute(child,"medge",ifc.midx);
+      if (utl::getAttribute(child,"slave",ifc.slave))
+        ifc.slave += offset;
+      if (!utl::getAttribute(child,"sidx",ifc.sidx))
+        utl::getAttribute(child,"sedge",ifc.sidx);
+      if (!utl::getAttribute(child,"orient",ifc.orient) && rever)
+        ifc.orient = 1;
+      utl::getAttribute(child,"basis",ifc.basis);
       utl::getAttribute(child,"periodic",periodic);
-      utl::getAttribute(child,"dim",dim);
+      if (!utl::getAttribute(child,"dim",ifc.dim))
+        ifc.dim = 1;
 
-      if (master == slave ||
-          master < 1 || master > nGlPatches ||
-          slave  < 1 || slave  > nGlPatches)
-      {
-        std::cerr <<" *** SIM2D::parse: Invalid patch indices "
-                  << master <<" "<< slave << std::endl;
+      if (!this->connectPatches(ifc,!periodic))
         return false;
-      }
-
-      if (!this->addConnection(master, slave, mEdge, sEdge,
-                               orient, basis, !periodic, dim))
-      {
-        std::cerr <<" *** SIM2D::parse: Error establishing connection."
-                  << std::endl;
-        return false;
-      }
 
       if (opt.discretization == ASM::SplineC1)
-        top.push_back(Interface(this->getPatch(master,true),mEdge,
-                                this->getPatch(slave,true),sEdge,orient));
+        top.push_back(Interface(this->getPatch(ifc.master,true),ifc.midx,
+                                this->getPatch(ifc.slave,true),ifc.sidx,
+                                ifc.orient));
     }
 
     // Second pass for C1-continuous patches, to set up additional constraints

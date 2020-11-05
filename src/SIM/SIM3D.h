@@ -57,20 +57,6 @@ public:
   virtual void clonePatches(const PatchVec& patches,
                             const std::map<int,int>& g2ln);
 
-  //! \brief Connects two patches.
-  //! \param[in] master Master patch
-  //! \param[in] slave Slave patch
-  //! \param[in] mIdx Face index on master patch
-  //! \param[in] sIdx Face index on slave patch
-  //! \param[in] orient Orientation flag for connection
-  //! \param[in] basis Which bases to connect (0 for all)
-  //! \param[in] coordCheck If \e false, do not check for matching coordinates
-  //! \param[in] dim Dimensionality of connection
-  //! \param[in] thick Thickness of connection
-  virtual bool addConnection(int master, int slave, int mIdx, int sIdx,
-                             int orient, int basis = 0, bool coordCheck = true,
-                             int dim = 2, int thick = 1);
-
   //! \brief Evaluates the primary solution at the given point.
   //! \param[in] psol Primary solution vector
   //! \param[in] u First parameter of the point to evaluate at
@@ -129,8 +115,8 @@ protected:
   //! \param[in] xi Relative coordinate [0,1] defining the line placement
   //! \param[in] dirs Which local DOFs to constrain
   //! \param[in] basis Which basis to apply the constraint to (mixed methods)
-  bool addConstraint(int patch, int lndx, int line, double xi,
-                     int dirs, char basis = 1);
+  bool addLineConstraint(int patch, int lndx, int line, double xi,
+                         int dirs, char basis = 1);
 
   //! \brief Returns a FEM model generator for a default single-patch model.
   //! \param[in] geo XML element containing geometry definition
@@ -143,6 +129,12 @@ protected:
   //! \param[in] whiteSpace For message formatting
   virtual ASMbase* readPatch(std::istream& isp, int pchInd, const CharVec& unf,
                              const char* whiteSpace) const;
+
+  //! \brief Connects two patches.
+  //! \param[in] interface Patch interface definition
+  //! \param[in] coordCheck If \e false, do not check for matching coordinates
+  virtual bool connectPatches(const ASM::Interface& interface,
+                              bool coordCheck = true);
 
 protected:
   CharVec nf;         //!< Number of scalar fields

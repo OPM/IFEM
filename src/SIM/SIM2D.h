@@ -57,20 +57,6 @@ public:
   virtual void clonePatches(const PatchVec& patches,
                             const std::map<int,int>& g2ln);
 
-  //! \brief Connects two patches.
-  //! \param[in] master Master patch
-  //! \param[in] slave Slave patch
-  //! \param[in] mIdx Edge index on master patch
-  //! \param[in] sIdx Edge index on slave patch
-  //! \param[in] orient Orientation flag for connection (1 for reversed)
-  //! \param[in] basis Which bases to connect (0 for all)
-  //! \param[in] coordCheck If \e false, do not check for matching coordinates
-  //! \param[in] dim Dimensionality of connection
-  //! \param[in] thick Thickness of connection
-  virtual bool addConnection(int master, int slave, int mIdx, int sIdx,
-                             int orient, int basis = 0, bool coordCheck = true,
-                             int dim = 1, int thick = 1);
-
   //! \brief Evaluates the primary solution at the given point.
   //! \param[in] psol Primary solution vector
   //! \param[in] u First parameter of the point to evaluate at
@@ -132,6 +118,12 @@ protected:
   //! \param[in] whiteSpace For message formatting
   virtual ASMbase* readPatch(std::istream& isp, int pchInd, const CharVec& unf,
                              const char* whiteSpace) const;
+
+  //! \brief Connects two patches.
+  //! \param[in] ifc Patch interface definition
+  //! \param[in] coordCheck If \e false, do not check for matching coordinates
+  virtual bool connectPatches(const ASM::Interface& ifc,
+                              bool coordCheck = true);
 
   //! \brief Writes out the additional functions to VTF-file.
   virtual bool writeAddFuncs(int iStep, int& nBlock, int idBlock, double time);

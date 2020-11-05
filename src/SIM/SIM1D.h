@@ -43,18 +43,6 @@ public:
   //! \brief Returns the number of parameter dimensions in the model.
   virtual unsigned short int getNoParamDim() const { return 1; }
 
-  //! \brief Connects two patches.
-  //! \param[in] master Master patch
-  //! \param[in] slave Slave patch
-  //! \param[in] mIdx Vertex index on master patch
-  //! \param[in] sIdx Vertex index on slave patch
-  //! \param[in] basis Which bases to connect (0 for all)
-  //! \param[in] dim Dimensionality of connection
-  //! \param[in] thick Thickness of connection
-  virtual bool addConnection(int master, int slave, int mIdx, int sIdx,
-                             int, int basis = 0, bool = true,
-                             int dim = 0, int thick = 1);
-
   //! \brief Evaluates the primary solution at the given point.
   //! \param[in] psol Primary solution vector
   //! \param[in] u Parameter of the point to evaluate at
@@ -104,6 +92,10 @@ protected:
   //! \param[in] whiteSpace For message formatting
   virtual ASMbase* readPatch(std::istream& isp, int pchInd, const CharVec& unf,
                              const char* whiteSpace) const;
+
+  //! \brief Connects two patches.
+  //! \param[in] interface Patch interface definition
+  virtual bool connectPatches(const ASM::Interface& interface, bool = true);
 
 protected:
   unsigned char nf; //!< Number of scalar fields

@@ -180,18 +180,19 @@ public:
   bool readPatches(std::istream& isp, const char* whiteSpace = "");
 
   //! \brief Connects two patches.
-  //! \param[in] master Master patch
-  //! \param[in] slave Slave patch
+  //! \param[in] mst Master patch
+  //! \param[in] slv Slave patch
   //! \param[in] mIdx Boundary index on master patch
   //! \param[in] sIdx Boundary index on slave patch
-  //! \param[in] orient Orientation flag
-  //! \param[in] basis Which bases to connect (0 for all)
-  //! \param[in] coordCheck If \e false, do not check for matching coordinates
+  //! \param[in] coordCheck If \e true, check for matching coordinates
   //! \param[in] dim Dimensionality of connection
   //! \param[in] thick Thickness of connection
-  virtual bool addConnection(int master, int slave, int mIdx, int sIdx,
-                             int orient, int basis = 0, bool coordCheck = true,
-                             int dim = 1, int thick = 1) { return false; }
+  bool addConnection(int mst, int slv, int mIdx, int sIdx,
+                     bool coordCheck = false, int dim = 1, int thick = 1)
+  {
+    return this->connectPatches(ASM::Interface{mst,slv,mIdx,sIdx,0,dim,0,thick},
+                                coordCheck);
+  }
 
 protected:
   //! \brief Helper method returning a stream for patch geometry input.
@@ -223,6 +224,11 @@ protected:
   //! \brief Instantiates a FEM model generator.
   //! \param[in] geo XML element containing geometry definition
   virtual ModelGenerator* getModelGenerator(const TiXmlElement* geo) const = 0;
+
+  //! \brief Connects two patches.
+  //! \param[in] ifc Patch interface definition
+  //! \param[in] coordCheck If \e false, do not check for matching coordinates
+  virtual bool connectPatches(const ASM::Interface& ifc, bool coordCheck) = 0;
 
 public:
   //! \brief Creates the computational FEM model from the spline patches.

@@ -44,36 +44,36 @@ SIM1D::SIM1D (IntegrandBase* itg, unsigned char n) : SIMgeneric(itg)
 }
 
 
-bool SIM1D::addConnection (int master, int slave, int mIdx, int sIdx,
-                           int, int basis, bool, int dim, int thick)
+bool SIM1D::connectPatches (const ASM::Interface& ifc, bool)
 {
-  if (basis > 0)
+  if (ifc.master == ifc.slave ||
+      ifc.master < 1 || ifc.master > nGlPatches ||
+      ifc.slave  < 1 || ifc.slave  > nGlPatches)
   {
-    std::cerr <<" *** SIM1D::addConnection: Mixed not implemented."<< std::endl;
+    std::cerr <<" *** SIM1D::connectPatches: Invalid patch indices "
+              << ifc.master <<" "<< ifc.slave << std::endl;
     return false;
   }
 
-  int lmaster = this->getLocalPatchIndex(master);
-  int lslave = this->getLocalPatchIndex(slave);
+  int lmaster = this->getLocalPatchIndex(ifc.master);
+  int lslave  = this->getLocalPatchIndex(ifc.slave);
   if (lmaster > 0 && lslave > 0)
   {
-    if (dim != 0) return false;
-
-    IFEM::cout <<"\tConnecting P"<< slave <<" V"<< sIdx
-               <<" to P"<< master <<" V"<< mIdx << std::endl;
+    IFEM::cout <<"\tConnecting P"<< ifc.slave <<" V"<< ifc.sidx
+               <<" to P"<< ifc.master <<" V"<< ifc.midx << std::endl;
 
     ASM1D* spch = dynamic_cast<ASM1D*>(myModel[lslave-1]);
     ASM1D* mpch = dynamic_cast<ASM1D*>(myModel[lmaster-1]);
-    if (spch && mpch && !spch->connectPatch(sIdx,*mpch,mIdx,thick))
+    if (spch && mpch && !spch->connectPatch(ifc.sidx,*mpch,ifc.midx,ifc.thick))
+    {
+      std::cerr <<" *** SIM1D::connectPatches: Failed to connect."<< std::endl;
       return false;
+    }
 
-    myInterfaces.push_back(ASM::Interface{master, slave, mIdx, sIdx, 0,
-                                          dim, basis, thick});
+    myInterfaces.push_back(ifc);
   }
   else
-    adm.dd.ghostConnections.insert(ASM::Interface{master, slave,
-                                                  mIdx, sIdx, 0,
-                                                  dim, basis, thick});
+    adm.dd.ghostConnections.insert(ifc);
 
   return true;
 }
@@ -144,30 +144,23 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
   {
     if (!this->createFEMmodel()) return false;
 
+    int offset = 0;
+    utl::getAttribute(elem,"offset",offset);
+
     const TiXmlElement* child = elem->FirstChildElement("connection");
     for (; child; child = child->NextSiblingElement())
     {
-      int master = 0, slave = 0, mVert = 0, sVert = 0;
-      utl::getAttribute(child,"master",master);
-      utl::getAttribute(child,"mvert",mVert);
-      utl::getAttribute(child,"slave",slave);
-      utl::getAttribute(child,"svert",sVert);
+      ASM::Interface ifc;
+      if (utl::getAttribute(child,"master",ifc.master))
+        ifc.master += offset;
+      if (!utl::getAttribute(child,"midx",ifc.midx))
+        utl::getAttribute(child,"mvert",ifc.midx);
+      if (utl::getAttribute(child,"slave",ifc.slave))
+        ifc.slave += offset;
+      if (!utl::getAttribute(child,"sidx",ifc.sidx))
+        utl::getAttribute(child,"svert",ifc.sidx);
 
-      if (master == slave ||
-          master < 1 || master > (int)myModel.size() ||
-          slave  < 1 || slave  > (int)myModel.size())
-      {
-        std::cerr <<" *** SIM1D::parse: Invalid patch indices "
-                  << master <<" "<< slave << std::endl;
-        return false;
-      }
-
-      IFEM::cout <<"\tConnecting P"<< slave <<" V"<< sVert
-                 <<" to P"<< master <<" V"<< mVert << std::endl;
-
-      ASM1D* spch = dynamic_cast<ASM1D*>(myModel[slave-1]);
-      ASM1D* mpch = dynamic_cast<ASM1D*>(myModel[master-1]);
-      if (spch && mpch && !spch->connectPatch(sVert,*mpch,mVert))
+      if (!this->connectPatches(ifc))
         return false;
     }
   }
@@ -381,24 +374,13 @@ bool SIM1D::parse (char* keyWord, std::istream& is)
     IFEM::cout <<"\nNumber of patch connections: "<< ntop << std::endl;
     for (int i = 0; i < ntop && (cline = utl::readLine(is)); i++)
     {
-      int master = atoi(strtok(cline," "));
-      int mVert  = atoi(strtok(nullptr," "));
-      int slave  = atoi(strtok(nullptr," "));
-      int sVert  = atoi(strtok(nullptr," "));
-      if (master == slave ||
-	  master < 1 || master > (int)myModel.size() ||
-	  slave  < 1 || slave  > (int)myModel.size())
-      {
-	std::cerr <<" *** SIM1D::parse: Invalid patch indices "
-		  << master <<" "<< slave << std::endl;
-	return false;
-      }
-      IFEM::cout <<"\tConnecting P"<< slave <<" V"<< sVert
-                 <<" to P"<< master <<" E"<< mVert << std::endl;
-      ASM1D* spch = dynamic_cast<ASM1D*>(myModel[slave-1]);
-      ASM1D* mpch = dynamic_cast<ASM1D*>(myModel[master-1]);
-      if (!spch->connectPatch(sVert,*mpch,mVert))
-	return false;
+      ASM::Interface ifc;
+      ifc.master = atoi(strtok(cline," "));
+      ifc.midx   = atoi(strtok(nullptr," "));
+      ifc.slave  = atoi(strtok(nullptr," "));
+      ifc.sidx   = atoi(strtok(nullptr," "));
+      if (!this->connectPatches(ifc))
+        return false;
     }
   }
 

@@ -46,8 +46,7 @@ public:
   { return std::vector<std::vector<int>>(); }
 protected:
   //! \brief Preprocesses a user-defined Dirichlet boundary property.
-  virtual bool addConstraint(int,int,int,int,int,int&,char)
-  { return false; }
+  virtual bool addConstraint(int,int,int,int,int,int&,char) { return false; }
   //! \brief Preprocesses the result sampling points.
   virtual void preprocessResultPoints() {}
   //! \brief Creates a model generator.
@@ -57,6 +56,8 @@ protected:
   virtual ASMbase* readPatch(std::istream&,int,
                              const std::vector<unsigned char>&,
                              const char*) const { return nullptr; }
+  //! \brief Connects two patches.
+  virtual bool connectPatches(const ASM::Interface&,bool) { return false; }
 };
 
 #endif

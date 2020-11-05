@@ -174,21 +174,17 @@ bool MultiPatchModelGenerator1D::createTopology (SIMinput& sim) const
   if (subdivision)
     sim.getPatch(1)->getOrder(p1,p1,p1);
 
-  int thick = subdivision ? p1-1 : 1;
-
   for (size_t i = 0; i < nx-1; ++i)
-    if (!sim.addConnection(i+1, i+2, 2, 1, 0, 0, true, 0, thick))
+    if (!sim.addConnection(i+1, i+2, 2, 1, true, 0, p1-1))
       return false;
 
   if (periodic_x)
-    if (nx > 1) {
-      if (!sim.addConnection(1, nx, 1, 2, 0, 0, false, 0, thick))
-        return false;
-    }
-    else {
+    if (nx <= 1) {
       IFEM::cout <<"\tPeriodic I-direction P0\n";
-      sim.getPatch(0,true)->closeBoundaries();
+      sim.getPatch(1,true)->closeBoundaries();
     }
+    else if (!sim.addConnection(1, nx, 1, 2, false, 0, p1-1))
+      return false;
 
   return true;
 }
@@ -413,40 +409,33 @@ bool MultiPatchModelGenerator2D::createTopology (SIMinput& sim) const
   if (subdivision)
     sim.getPatch(1)->getOrder(p1,p2,p2);
 
-  auto&& thick = [p1,p2,this](int dir) { return subdivision ? dir == 1 ? p1-1 : p2-1 : 1; };
-
   for (size_t j = 0; j < ny; ++j)
-    for (size_t i = 0; i < nx-1; ++i) {
-      if (!sim.addConnection(IJ(i,j), IJ(i+1,j), 2, 1, 0, 0, true, 1, thick(1)))
+    for (size_t i = 0; i < nx-1; ++i)
+      if (!sim.addConnection(IJ(i,j), IJ(i+1,j), 2, 1, true, 1, p1-1))
         return false;
-    }
 
   for (size_t j = 0; j < ny-1; ++j)
     for (size_t i = 0; i < nx; ++i)
-      if (!sim.addConnection(IJ(i,j), IJ(i,j+1), 4, 3, 0, 0, true, 1, thick(2)))
+      if (!sim.addConnection(IJ(i,j), IJ(i,j+1), 4, 3, true, 1, p2-1))
         return false;
 
   if (periodic_x)
     for (size_t j = 0; j < ny; ++j)
-      if (nx > 1) {
-        if (!sim.addConnection(IJ(0,j), IJ(nx-1,j), 1, 2, 0, 0, false))
-          return false;
-      }
-      else {
+      if (nx <= 1) {
         IFEM::cout <<"\tPeriodic I-direction P"<< IJ(0,j) << std::endl;
         sim.getPatch(IJ(0,j),true)->closeBoundaries(1);
       }
+      else if (!sim.addConnection(IJ(0,j), IJ(nx-1,j), 1, 2))
+        return false;
 
   if (periodic_y)
     for (size_t i = 0; i < nx; ++i)
-      if (ny > 1) {
-        if (!sim.addConnection(IJ(i,0), IJ(i,ny-1), 3, 4, 0, 0, false))
-          return false;
-      }
-      else {
+      if (ny <= 1) {
         IFEM::cout <<"\tPeriodic J-direction P"<< IJ(i,0)<< std::endl;
         sim.getPatch(IJ(i,0),true)->closeBoundaries(2);
       }
+      else if (!sim.addConnection(IJ(i,0), IJ(i,ny-1), 3, 4))
+        return false;
 
   return true;
 }
@@ -746,63 +735,53 @@ bool MultiPatchModelGenerator3D::createTopology (SIMinput& sim) const
   if (subdivision)
     sim.getPatch(1)->getOrder(p1,p2,p3);
 
-  auto&& thick = [p1,p2,p3,this](int dir)
-  {
-    if (!subdivision)
-      return 1;
-    return dir == 1 ? p1-1 : (dir == 2 ? p2-1 : p3-1);
-  };
-
   for (size_t k = 0; k < nz; ++k)
     for (size_t j = 0; j < ny; ++j)
       for (size_t i = 0; i < nx-1; ++i)
-        if (!sim.addConnection(IJK(i,j,k), IJK(i+1,j,k), 2, 1, 0, 0, true, 2, thick(1)))
+        if (!sim.addConnection(IJK(i,j,k), IJK(i+1,j,k), 2, 1, true, 2, p1-1))
           return false;
 
   for (size_t k = 0; k < nz; ++k)
     for (size_t j = 0; j < ny-1; ++j)
       for (size_t i = 0; i < nx; ++i)
-        if (!sim.addConnection(IJK(i,j,k), IJK(i,j+1,k), 4, 3, 0, 0, true, 2, thick(2)))
+        if (!sim.addConnection(IJK(i,j,k), IJK(i,j+1,k), 4, 3, true, 2, p2-1))
           return false;
 
   for (size_t k = 0; k < nz-1; ++k)
     for (size_t j = 0; j < ny; ++j)
       for (size_t i = 0; i < nx; ++i)
-        if (!sim.addConnection(IJK(i,j,k), IJK(i,j,k+1), 6, 5, 0, 0, true, 2, thick(3)))
+        if (!sim.addConnection(IJK(i,j,k), IJK(i,j,k+1), 6, 5, true, 2, p3-1))
           return false;
 
   if (periodic_x)
     for (size_t k = 0; k < nz; ++k)
       for (size_t j = 0; j < ny; ++j)
-        if (nx > 1) {
-          if (!sim.addConnection(IJK(0,j,k), IJK(nx-1,j,k), 1, 2, 0, 0, false, 2))
-            return false;
-        } else {
+        if (nx <= 1) {
           IFEM::cout <<"\tPeriodic I-direction P"<< IJK(0,j,k) << std::endl;
           sim.getPatch(IJK(0,j,k),true)->closeBoundaries(1);
         }
+        else if (!sim.addConnection(IJK(0,j,k), IJK(nx-1,j,k), 1, 2, false, 2))
+          return false;
 
   if (periodic_y)
     for (size_t k = 0; k < nz; ++k)
       for (size_t i = 0; i < nx; ++i)
-        if (ny > 1) {
-          if (!sim.addConnection(IJK(i,0,k), IJK(i,ny-1,k), 3, 4, 0, 0, false, 2))
-            return false;
-        } else {
+        if (ny <= 1) {
           IFEM::cout <<"\tPeriodic J-direction P"<< IJK(i,0,k) << std::endl;
           sim.getPatch(IJK(i,0,k),true)->closeBoundaries(2);
         }
+        else if (!sim.addConnection(IJK(i,0,k), IJK(i,ny-1,k), 3, 4, false, 2))
+          return false;
 
   if (periodic_z)
     for (size_t j = 0; j < ny; ++j)
       for (size_t i = 0; i < nx; ++i)
-        if (nz > 1) {
-          if (!sim.addConnection(IJK(i,j,0), IJK(i,j,nz-1), 5, 6, 0, 0, false, 2))
-            return false;
-        } else {
+        if (nz <= 1) {
           IFEM::cout <<"\tPeriodic K-direction P"<< IJK(i,j,0) << std::endl;
           sim.getPatch(IJK(i,j,0),true)->closeBoundaries(3);
         }
+        else if (!sim.addConnection(IJK(i,j,0), IJK(i,j,nz-1), 5, 6, false, 2))
+          return false;
 
   return true;
 }

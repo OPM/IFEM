@@ -20,23 +20,22 @@ namespace ASM
   /*!
     \brief Struct for representing a domain interface.
   */
-
-  struct Interface {
-    int master; //!< Master patch (global number).
-    int slave;  //!< Slave patch (global number).
-    int midx;   //!< Index of boundary on master.
-    int sidx;   //!< Index of boundary on slave.
-    int orient; //!< Orientation.
-    int dim;    //!< Dimension of boundary.
-    int basis;  //!< Basis of boundary.
-    int thick;  //!< Thickness of connection.
+  struct Interface
+  {
+    int master = 0; //!< Master patch (global number)
+    int slave  = 0; //!< Slave patch (global number)
+    int midx   = 0; //!< Index of boundary on master
+    int sidx   = 0; //!< Index of boundary on slave
+    int orient = 0; //!< Orientation flag (for 3D patches)
+    int dim    = 0; //!< Dimension of boundary
+    int basis  = 0; //!< Basis of boundary
+    int thick  = 1; //!< Thickness of connection
   };
 
 
   /*!
     \brief Base class to check for internal boundary integrand contributions.
   */
-
   class InterfaceChecker
   {
   public:
