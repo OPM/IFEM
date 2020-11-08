@@ -12,10 +12,8 @@
 //==============================================================================
 
 #include "ISTLSolParams.h"
-#include "ASMstruct.h"
 #include "LinSolParams.h"
 #include "ProcessAdm.h"
-#include "SAMpatch.h"
 #include <dune/istl/overlappingschwarz.hh>
 #include <dune/istl/paamg/amg.hh>
 #include <dune/istl/matrixmatrix.hh>

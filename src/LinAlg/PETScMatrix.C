@@ -15,7 +15,7 @@
 #include "PETScSchurPC.h"
 #include "ProcessAdm.h"
 #include "LinAlgInit.h"
-#include "SAMpatchPETSc.h"
+#include "SAM.h"
 #include <cassert>
 
 
@@ -174,24 +174,20 @@ PETScMatrix::~PETScMatrix ()
 
 void PETScMatrix::initAssembly (const SAM& sam, bool delayLocking)
 {
-  if (!adm.dd.isPartitioned()) {
+  if (adm.dd.isPartitioned())
+    this->resize(sam.neq,sam.neq);
+  else {
     SparseMatrix::initAssembly(sam, delayLocking);
     SparseMatrix::preAssemble(sam, delayLocking);
-  } else
-    this->resize(sam.neq,sam.neq);
-
-  const SAMpatchPETSc* samp = dynamic_cast<const SAMpatchPETSc*>(&sam);
-  if (!samp)
-    return;
+  }
 
   // Get number of local equations in linear system
-  PetscInt neq;
-  neq  = adm.dd.getMaxEq() - adm.dd.getMinEq() + 1;
+  PetscInt neq = adm.dd.getMaxEq() - adm.dd.getMinEq() + 1;
   // Set correct number of rows and columns for matrix.
   MatSetSizes(pA,neq,neq,PETSC_DETERMINE,PETSC_DETERMINE);
 
   // Allocate sparsity pattern
-  std::vector<std::set<int>> dofc;
+  std::vector<IntSet> dofc;
   if (!adm.dd.isPartitioned())
     sam.getDofCouplings(dofc);
 
@@ -204,7 +200,7 @@ void PETScMatrix::initAssembly (const SAM& sam, bool delayLocking)
       int ilast  = adm.dd.getMaxEq();
       PetscIntVec d_nnz(neq, 0);
       IntVec o_nnz_g(adm.dd.getNoGlbEqs(), 0);
-      for (int i = 0; i < samp->getNoEquations(); ++i) {
+      for (int i = 0; i < sam.neq; ++i) {
         int eq = adm.dd.getGlobalEq(i+1);
         if (eq >= adm.dd.getMinEq() && eq <= adm.dd.getMaxEq()) {
           for (const auto& it : dofc[i]) {
@@ -232,10 +228,10 @@ void PETScMatrix::initAssembly (const SAM& sam, bool delayLocking)
                                    PETSC_DEFAULT,o_nnz.data());
     } else if (adm.dd.isPartitioned()) {
       // Setup sparsity pattern for global matrix
-      SparseMatrix* lA = new SparseMatrix(neq, sam.getNoEquations());
+      SparseMatrix* lA = new SparseMatrix(neq, sam.neq);
       int iMin = adm.dd.getMinEq(0);
       int iMax = adm.dd.getMaxEq(0);
-      for (int elm = 1; elm <= sam.getNoElms(); ++elm) {
+      for (int elm = 1; elm <= sam.nel; ++elm) {
         IntVec meen;
         sam.getElmEqns(meen,elm);
         for (int i : meen)
@@ -300,7 +296,7 @@ void PETScMatrix::initAssembly (const SAM& sam, bool delayLocking)
 
     // map from sparse matrix indices to block matrix indices
     glb2Blk.resize(A.size());
-    std::vector<std::array<int,2>> eq2b(sam.getNoEquations(), {{-1, 0}}); // cache
+    std::vector<std::array<int,2>> eq2b(sam.neq, {{-1, 0}}); // cache
     for (size_t j = 0; j < cols(); ++j) {
       for (int i = IA[j]; i < IA[j+1]; ++i) {
         int iblk = -1;
@@ -346,7 +342,7 @@ void PETScMatrix::initAssembly (const SAM& sam, bool delayLocking)
           o_nnz_g[k].resize(dd.getNoGlbEqs(i+1));
         }
 
-      for (int i = 0; i < sam.getNoEquations(); ++i) {
+      for (int i = 0; i < sam.neq; ++i) {
         int blk = eq2b[i][0]+1;
         int row = eq2b[i][1]+1;
         int grow = dd.getGlobalEq(row, blk);
@@ -720,7 +716,7 @@ bool PETScMatrix::setParameters(PETScMatrix* P, PETScVector* Pb)
   KSPGetPC(ksp,&pc);
 
   if (matvec.empty()) {
-    solParams.setupPC(pc, 0, "", std::set<int>());
+    solParams.setupPC(pc, 0, "", IntSet());
   } else {
     if (matvec.size() > 4) {
       std::cerr << "** PETSCMatrix ** Only two blocks supported for now." << std::endl;

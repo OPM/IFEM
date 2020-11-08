@@ -13,16 +13,8 @@
 
 #include "PETScSolParams.h"
 #include "PETScPCPerm.h"
-#include "ASMstruct.h"
 #include "LinSolParams.h"
 #include "ProcessAdm.h"
-#include "SAMpatch.h"
-#include "Utilities.h"
-#include "tinyxml.h"
-#include <fstream>
-#include <sstream>
-#include <utility>
-#include <iterator>
 
 
 void PETScSolParams::setupPC(PC& pc,

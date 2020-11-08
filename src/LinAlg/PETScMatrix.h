@@ -18,7 +18,7 @@
 #include "SparseMatrix.h"
 #include "PETScSupport.h"
 #include "PETScSolParams.h"
-#include <set>
+#include <array>
 
 typedef std::vector<PetscInt>    PetscIntVec;  //!< PETSc integer vector
 typedef std::vector<PetscIntVec> PetscIntMat;  //!< PETSc integer matrix
