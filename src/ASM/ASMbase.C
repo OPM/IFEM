@@ -63,13 +63,13 @@ ASMbase::ASMbase (unsigned char n_p, unsigned char n_s, unsigned char n_f)
   nel = nnod = 0;
   idx = 0;
   firstIp = 0;
-  myLMs.first = myLMs.second = 0;
 }
 
 
 ASMbase::ASMbase (const ASMbase& patch, unsigned char n_f)
   : MLGE(patch.MLGE), MLGN(patch.MLGN), MNPC(patch.MNPC), shareFE('F'),
-    firstBp(patch.firstBp), myLMs(patch.myLMs), myLMTypes(patch.myLMTypes)
+    firstBp(patch.firstBp), myLMTypes(patch.myLMTypes), myLMs(patch.myLMs),
+    myRmaster(patch.myRmaster)
 {
   nf = n_f > 0 ? n_f : patch.nf;
   nsd = patch.nsd;
@@ -120,11 +120,6 @@ ASMbase::ASMbase (const ASMbase& patch)
               <<" multi-point constraints, these are not copied.\n";
 
   nLag = 0; // Lagrange multipliers are not copied
-  myLMs.first = myLMs.second = 0;
-
-  // why are these two added? Thought that by construction all vectors are empty
-  neighbors.clear();
-  myLMTypes.clear();
 }
 
 
@@ -163,8 +158,9 @@ void ASMbase::clear (bool retainGeometry)
   for (MPC* mpc : mpcs)
     delete mpc;
 
-  myLMs.first = myLMs.second = 0;
+  myLMs.clear();
   myLMTypes.clear();
+  myRmaster.clear();
 
   myMLGN.clear();
   BCode.clear();
@@ -206,23 +202,22 @@ bool ASMbase::addLagrangeMultipliers (size_t iel, const IntVec& mGLag,
       node = myMLGN.size();
     }
 
-    // Update the nodal range (1-based indices) of the Lagrange multipliers
-    if (myLMs.first == 0)
-      myLMs.first = myLMs.second = node;
-    else if (node < myLMs.first)
+    // Update the nodal (1-based) indices of the Lagrange multipliers
+    if (myLMs.empty() || node >= *myLMs.begin())
+      myLMs.insert(node);
+    else
     {
       std::cerr <<" *** ASMbase::addLagrangeMultipliers: Node "<< node
-                <<" is out of range ["<< myLMs.first <<","<< myLMs.second
+                <<" is out of range ["<< *myLMs.begin() <<","<< *myLMs.rbegin()
                 <<"]."<< std::endl;
       return false;
     }
-    else if (node > myLMs.second)
-      myLMs.second = node;
 
-    if (myLMTypes.size() < node-myLMs.first+1)
-      myLMTypes.resize(node-myLMs.first+1);
+    size_t idxLag = node - *myLMs.begin();
+    if (myLMTypes.size() < idxLag+1)
+      myLMTypes.resize(idxLag+1,0);
 
-    myLMTypes[node-myLMs.first] = iel == 0 ? 'G' : 'L';
+    myLMTypes[idxLag] = iel == 0 ? 'G' : 'L';
 
     // Extend the element connectivity table
     if (iel > 0)
@@ -264,7 +259,8 @@ int ASMbase::getNodeID (size_t inod, bool) const
 
 char ASMbase::getLMType (size_t inod) const
 {
-  return this->isLMn(inod) ? myLMTypes[inod-myLMs.first] : 0;
+  std::set<size_t>::const_iterator firstLM = myLMs.begin();
+  return this->isLMn(inod) ? myLMTypes[inod-(*firstLM)] : 0;
 }
 
 
@@ -292,7 +288,12 @@ const IntVec& ASMbase::getElementNodes (int iel) const
 
 unsigned char ASMbase::getNodalDOFs (size_t inod) const
 {
-  return this->isLMn(inod) ? nLag : nf;
+  if (this->isLMn(inod))
+    return nLag;
+  else if (this->isRMn(inod))
+    return nsd*(nsd+1)/2; // Including rotational DOFs
+  else
+    return nf;
 }
 
 
@@ -306,8 +307,8 @@ size_t ASMbase::getNoNodes (int basis) const
 {
   if (basis > 0)
     return nnod;
-  else if (basis < 0 && myLMs.first > 0)
-    return myLMs.first - 1;
+  else if (basis < 0 && !myLMs.empty())
+    return *myLMs.begin() - 1;
   else
     return MLGN.size();
 }
@@ -564,7 +565,97 @@ void ASMbase::addLocal2GlobalCpl (int iSlave, int master, const Tensor& Tlg)
   }
 
   if (fixDirs > 0)
-    this->fix(1+iSlave,fixDirs);
+    this->fix(iSlave+1,fixDirs);
+}
+
+
+bool ASMbase::addRigidCpl (int lindx, int ldim, int basis,
+                           int& gMaster, const Vec3& Xmaster, bool extraPt)
+{
+  if (ldim+1 != ndim)
+  {
+    IFEM::cout <<"  ** ASMbase::addRigidCpl: Not implemented for "
+               << ldim <<"-dimensional boundaries (ignored)."<< std::endl;
+    return false;
+  }
+
+  if (extraPt)
+  {
+    // The master point is not a patch node, create an extra node
+    bool addN = true;
+    if (gMaster)
+    {
+      addN = std::find(myMLGN.begin()+nnod,myMLGN.end(),gMaster) == myMLGN.end();
+      extraPt = false;
+    }
+    else
+      gMaster = ++gNod;
+    if (addN)
+    {
+#if SP_DEBUG > 1
+      std::cout <<"Adding extra-ordinary node for rigid coupling "<< gMaster
+                <<" in Patch "<< idx+1 << std::endl;
+#endif
+      myMLGN.push_back(gMaster);
+      myRmaster.insert(myMLGN.size());
+    }
+  }
+
+  IntVec nodes;
+  this->getBoundaryNodes(lindx,nodes,basis,1,0,true);
+  for (int node : nodes)
+  {
+    Vec3 dX = this->getCoord(node) - Xmaster;
+    MPC* cons = new MPC(MLGN[node-1],1);
+    if (this->addMPC(cons,0,true))
+    {
+      cons->addMaster(gMaster,1,1.0);
+      if (nsd == 2)
+        cons->addMaster(gMaster,3,-dX.y);
+      else if (nsd == 3)
+      {
+        cons->addMaster(gMaster,5, dX.z);
+        cons->addMaster(gMaster,6,-dX.y);
+      }
+#if SP_DEBUG > 1
+      std::cout <<"Added constraint: "<< *cons;
+#endif
+    }
+    if (nf < 2) continue;
+
+    cons = new MPC(MLGN[node-1],2);
+    if (this->addMPC(cons,0,true))
+    {
+      cons->addMaster(gMaster,2,1.0);
+      if (nsd == 2)
+        cons->addMaster(gMaster,3, dX.x);
+      else if (nsd == 3)
+      {
+        cons->addMaster(gMaster,4,-dX.z);
+        cons->addMaster(gMaster,6, dX.x);
+      }
+#if SP_DEBUG > 1
+      std::cout <<"Added constraint: "<< *cons;
+#endif
+    }
+    if (nf < 3) continue;
+
+    cons = new MPC(MLGN[node-1],3);
+    if (this->addMPC(cons,0,true))
+    {
+      cons->addMaster(gMaster,3,1.0);
+      if (nsd == 3)
+      {
+        cons->addMaster(gMaster,4, dX.y);
+        cons->addMaster(gMaster,5,-dX.x);
+      }
+#if SP_DEBUG > 1
+      std::cout <<"Added constraint: "<< *cons;
+#endif
+    }
+  }
+
+  return extraPt;
 }
 
 
@@ -633,6 +724,19 @@ void ASMbase::constrainNodes (const IntVec& nodes, int dof, int code)
       std::cerr <<"  ** ASMbase::constrainNodes: Node "<< node
                 <<" is out of range [1,"<< this->getNoNodes(1)
                 <<"]."<< std::endl;
+}
+
+
+bool ASMbase::constrainXnode (int node, int dof, int code)
+{
+  for (size_t inod = nnod+1; inod <= MLGN.size(); inod++)
+    if (this->isRMn(inod) && MLGN[inod-1] == node)
+    {
+      this->prescribe(inod,dof,code);
+      return true;
+    }
+
+  return false;
 }
 
 
@@ -1248,7 +1352,7 @@ void ASMbase::extractNodeVec (const Vector& globRes, Vector& nodeVec,
   if (nndof == 0) nndof = nf;
 
   // Don't extract the Lagrange multipliers, if any
-  size_t nNod = myLMs.first > 0 ? myLMs.first-1 : MLGN.size();
+  size_t nNod = myLMs.empty() ? MLGN.size() : *myLMs.begin()-1;
 
   nodeVec.resize(nndof*nNod);
   double* nodeP = nodeVec.ptr();
@@ -1276,7 +1380,7 @@ bool ASMbase::injectNodeVec (const Vector& nodeVec, Vector& globRes,
   if (nndof == 0) nndof = nf;
 
   // Don't inject the Lagrange multipliers, if any
-  size_t nNod = myLMs.first > 0 ? myLMs.first-1 : MLGN.size();
+  size_t nNod = myLMs.empty() ? MLGN.size() : *myLMs.begin()-1;
 
   if (nodeVec.size() != nNod*nndof)
   {
@@ -1462,8 +1566,8 @@ bool ASMbase::evaluate (const FunctionBase*, RealArray&, int, double) const
 bool ASMbase::writeLagBasis (std::ostream& os, const char* type) const
 {
   os << "# LAGRANGIAN nodes=" << this->getNoNodes()
-      << " elements=" << this->getNoElms()
-      << " type=" << type << "\n";
+     << " elements=" << this->getNoElms()
+     << " type=" << type << "\n";
   for (size_t i = 1; i <= this->getNoNodes(); ++i)
     os << this->getCoord(i) << "\n";
   for (const IntVec& mnpc : MNPC)

@@ -198,7 +198,7 @@ public:
   //! \brief Returns the global node number for the given node.
   //! \param[in] inod 1-based node index local to current patch
   virtual int getNodeID(size_t inod, bool = false) const;
-  //! \brief Returns local 1-based index of the element with given global number.
+  //! \brief Returns local 1-based index of element with given global number.
   //! \details If the given node number is not present, 0 is returned.
   //! \param[in] globalNum Global element number
   size_t getElmIndex(int globalNum) const;
@@ -212,7 +212,9 @@ public:
   //! \param[in] inod 1-based node index local to current patch
   virtual char getNodeType(size_t inod) const;
   //! \brief Returns \e true if node \a n is a Lagrange multiplier node.
-  bool isLMn(size_t n) const { return n >= myLMs.first && n <= myLMs.second; }
+  bool isLMn(size_t n) const { return myLMs.find(n) != myLMs.end(); }
+  //! \brief Returns \e true if node \a n is a master node of a rigid coupling.
+  bool isRMn(size_t n) const { return myRmaster.find(n) != myRmaster.end(); }
   //! \brief Returns the type of a Lagrange multiplier node.
   //! \param[in] inod 1-based node index for the Lagrange multiplier
   char getLMType(size_t inod) const;
@@ -383,8 +385,8 @@ public:
   //! \details The MPC equations are stored distributed over the patches,
   //! based on the slave DOF of the constraint. Therefore, constraints on the
   //! interface nodes between patches (to enforce higher order regularity) may
-  //! be defined on both neighboring patches. This method wil also merge such
-  //! multiply defined equations into a single equations.
+  //! be defined on both neighboring patches. This method will also merge such
+  //! multiply defined equations into a single equation.
   static void mergeAndGetAllMPCs(const ASMVec& model, MPCSet& allMPCs);
 
   //! \brief Resolves (possibly multi-level) chaining in MPC equations.
@@ -707,6 +709,17 @@ public:
   //! \param[in] silence If \e true, suppress debug print
   bool addMPC(MPC*& mpc, int code = 0, bool silence = false);
 
+  //! \brief Adds MPCs representing a rigid coupling to this patch.
+  //! \param[in] lindx Local index of the boundary item that should be rigid
+  //! \param[in] ldim Dimension of the boundary item that should be rigid
+  //! \param[in] basis Which basis to add rigid coupling for (mixed methods)
+  //! \param gMaster Global node number of the master node
+  //! \param[in] Xmaster Position of the master nodal point
+  //! \param[in] extraPt If \e true, the master point is not a patch node
+  //! \return \e true if a new global node was added, otherwise \e false
+  bool addRigidCpl(int lindx, int ldim, int basis,
+                   int& gMaster, const Vec3& Xmaster, bool extraPt = true);
+
 protected:
 
   // Internal methods for preprocessing of boundary conditions
@@ -779,6 +792,13 @@ public:
   //! \param[in] dof Which DOFs to constrain at each node
   //! \param[in] code Inhomogeneous dirichlet condition code
   void constrainNodes(const IntVec& nodes, int dof, int code = 0);
+  //! \brief Constrains an extraordinary node in the patch.
+  //! \param[in] node Global node number of the node to constrain
+  //! \param[in] dof Which DOFs to constrain at the node
+  //! \param[in] code Inhomogeneous dirichlet condition code
+  //! \return \e true if \a node is a rigid master point in the patch,
+  //! otherwise \e false
+  bool constrainXnode(int node, int dof, int code = 0);
   //! \brief Constrains DOFs in the given node to the given value.
   //! \param[in] inod 1-based node index local to current patch
   //! \param[in] dirs Which local DOFs to constrain (1, 2, 3, 12, 23, 123)
@@ -812,7 +832,7 @@ protected:
   //! is changed into the number of the other node.
   static bool collapseNodes(ASMbase& pch1, int node1, ASMbase& pch2, int node2);
 
-  //! \brief Write a lagrangian basis to given stream.
+  //! \brief Writes a Lagrangian basis to the given stream.
   bool writeLagBasis(std::ostream& os, const char* type) const;
 
 public:
@@ -875,8 +895,9 @@ protected:
   static int gNod; //!< Global node counter
 
 private:
-  std::pair<size_t,size_t> myLMs; //!< Nodal range of the Lagrange multipliers
-  std::vector<char>    myLMTypes; //!< Type of Lagrange multiplier ('L' or 'G')
+  std::vector<char> myLMTypes; //!< Type of Lagrange multiplier ('L' or 'G')
+  std::set<size_t>  myLMs;     //!< Nodal indices of the Lagrange multipliers
+  std::set<size_t>  myRmaster; //!< Nodal indices of rigid master nodes
 };
 
 #endif
