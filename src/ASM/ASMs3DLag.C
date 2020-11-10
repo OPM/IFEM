@@ -981,6 +981,8 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 	  if (!Lagrange::computeBasis(fe.N,dNdu,p1,fe.xi,p2,fe.eta,p3,fe.zeta))
 	    return false;
 
+	  fe.iel = MLGE[iel-1];
+
 	  // Compute the Jacobian inverse
 	  fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
 
