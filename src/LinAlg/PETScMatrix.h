@@ -82,6 +82,7 @@ public:
 
   //! \brief Return associated process administrator
   const ProcessAdm& getAdm() const { return adm; }
+
 protected:
   Vec x;                  //!< The actual PETSc vector
   const ProcessAdm& adm;  //!< Process administrator

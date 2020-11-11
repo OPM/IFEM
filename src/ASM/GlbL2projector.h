@@ -24,7 +24,6 @@ class FunctionBase;
 class LinSolParams;
 class SparseMatrix;
 class StdVector;
-class ProcessAdm;
 
 typedef std::vector<int>           IntVec;      //!< Vector of integers
 typedef std::vector<size_t>        uIntVec;     //!< Vector of unsigned integers
@@ -113,15 +112,18 @@ public:
   //! \brief The constructor initializes the projection matrices.
   //! \param[in] p The main problem integrand
   //! \param[in] n Dimension of the L2-projection matrices (number of nodes)
-  GlbL2(IntegrandBase* p, size_t n);
+  //! \param[in] A Sparse matrix to use
+  GlbL2(IntegrandBase* p, size_t n, SparseMatrix* A);
   //! \brief Alternative constructor for projection of an explicit function.
   //! \param[in] f The function to do L2-projection on
   //! \param[in] n Dimension of the L2-projection matrices (number of nodes)
-  GlbL2(FunctionBase* f, size_t n);
+  //! \param[in] A Sparse matrix to use
+  GlbL2(FunctionBase* f, size_t n, SparseMatrix* A);
   //! \brief Alternative constructor for projection of explicit functions.
   //! \param[in] f The functions to do L2-projection on
   //! \param[in] n Dimension of the L2-projection matrices (number of nodes)
-  GlbL2(const FunctionVec& f, size_t n);
+  //! \param[in] A Sparse matrix to use
+  GlbL2(const FunctionVec& f, size_t n, SparseMatrix* A);
   //! \brief The destructor frees the system matrix and system vector.
   virtual ~GlbL2();
 
@@ -203,9 +205,6 @@ private:
   IntegrandBase* problem; //!< The main problem integrand
   FunctionVec  functions; //!< Explicit functions to L2-project
   size_t            nrhs; //!< Number of right-hand-size vectors
-#ifdef HAS_PETSC
-  ProcessAdm* adm; //!< Process administrator for PETSc
-#endif
 };
 
 #endif

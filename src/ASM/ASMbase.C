@@ -16,6 +16,7 @@
 #include "ASM3D.h"
 #include "IFEM.h"
 #include "MPC.h"
+#include "SparseMatrix.h"
 #include "Tensor.h"
 #include "Vec3.h"
 #include "Vec3Oper.h"
@@ -63,6 +64,7 @@ ASMbase::ASMbase (unsigned char n_p, unsigned char n_s, unsigned char n_f)
   nel = nnod = 0;
   idx = 0;
   firstIp = 0;
+  glbL2_A = nullptr;
 }
 
 
@@ -80,6 +82,7 @@ ASMbase::ASMbase (const ASMbase& patch, unsigned char n_f)
   nnod = patch.nnod;
   idx = patch.idx;
   firstIp = patch.firstIp;
+  glbL2_A = nullptr;
   // Note: Properties are _not_ copied
 }
 
@@ -96,6 +99,7 @@ ASMbase::ASMbase (const ASMbase& patch)
   nnod = patch.nnod;
   idx = patch.idx;
   firstIp = patch.firstIp;
+  glbL2_A = nullptr;
 
   // Only copy the regular part of the FE data, leave out any extraordinaries
 
@@ -127,6 +131,8 @@ ASMbase::~ASMbase ()
 {
   for (MPC* mpc : mpcs)
     delete mpc;
+
+  delete glbL2_A;
 }
 
 
@@ -174,6 +180,9 @@ void ASMbase::clear (bool retainGeometry)
   BCode.clear();
   dCode.clear();
   mpcs.clear();
+
+  delete glbL2_A;
+  glbL2_A = nullptr;
 }
 
 
