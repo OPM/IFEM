@@ -143,6 +143,7 @@ function clone_module {
   GH_USER[IFEM-Stokes]=SintefMath
   GH_USER[IFEM-ThermoElasticity]=OPM
   GH_USER[IFEM-FSI]=SintefMath
+  GH_USER[IFEM-THM]=SintefMath
   GH_USER[IFEM-Poisson]=OPM
 
   if test -n "$GH_CREDENTIALS"
