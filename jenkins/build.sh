@@ -13,6 +13,7 @@ downstreams=(IFEM-AdvectionDiffusion
              IFEM-FiniteDeformation
              IFEM-ThermoElasticity
              IFEM-PoroElasticity
+             IFEM-THM
              IFEM-OpenFrac
              IFEM-FSI)
 
@@ -27,6 +28,7 @@ downstreamRev[IFEM-NavierStokes]=master
 downstreamRev[IFEM-Boussinesq]=master
 downstreamRev[IFEM-OpenFrac]=master
 downstreamRev[IFEM-PoroElasticity]=master
+downstreamRev[IFEM-THM]=master
 downstreamRev[IFEM-Stokes]=master
 downstreamRev[IFEM-ThermoElasticity]=master
 downstreamRev[IFEM-FSI]=master
