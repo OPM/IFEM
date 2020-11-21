@@ -283,11 +283,11 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
 
   // Perform specialized preprocessing before the assembly initialization.
   // This typically involves the system-level Lagrange multipliers, etc.
+  ASMbase::resetNumbering(ngnod); // to account for possibly added nodes
   if (!this->preprocessBeforeAsmInit(ngnod))
     return false;
 
   IFEM::cout <<"\nResolving Dirichlet boundary conditions"<< std::endl;
-  ASMbase::resetNumbering(ngnod); // to account for possibly added nodes
 
   // Process the Dirichlet boundary conditions in the order of increasing
   // dimension, such that vertex definitions override definitions on edges,
