@@ -14,6 +14,7 @@
 #include "MPC.h"
 #include "MPCLess.h"
 #include "Utilities.h"
+#include <cmath>
 
 
 bool MPCLess::compareSlaveDofOnly = false;
@@ -86,6 +87,14 @@ bool MPC::merge (const MPC* mpc)
 {
   if (!(this->slave == mpc->slave && this->slave.coeff == mpc->slave.coeff))
     return false; // the slave definitions did not match
+
+  // Do not merge if all masters are identical, which may happen if the same
+  // MPC has been added for an interface slave node from multiple patches
+  bool isIdentic = master.size() == mpc->master.size();
+  for (size_t i = 0; i < master.size() && isIdentic; i++)
+    isIdentic = (master[i] == mpc->master[i] &&
+                 fabs(master[i].coeff - mpc->master[i].coeff) < 1.0e-8);
+  if (isIdentic) return false;
 
   for (const DOF& mdof : mpc->master)
     this->addMaster(mdof);
