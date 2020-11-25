@@ -807,8 +807,14 @@ bool SIMinput::parse (const TiXmlElement* elem)
     result &= mySolParams->read(elem);
     if (GlbL2::MatrixType == LinAlg::PETSC)
     {
-      // For now use same solver parameters in the L2-projection
-      myGl2Params = new LinSolParams(*mySolParams,LinAlg::SYMMETRIC);
+      const TiXmlElement* l2 = elem->FirstChildElement("l2params");
+      if (l2) {
+        myGl2Params = new LinSolParams(LinAlg::SYMMETRIC);
+        myGl2Params->read(l2);
+      } else {
+        // Use regular solver parameters in the L2-projection
+        myGl2Params = new LinSolParams(*mySolParams,LinAlg::SYMMETRIC);
+      }
       GlbL2::SolverParams = myGl2Params;
     }
   }
