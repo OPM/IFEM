@@ -3688,6 +3688,10 @@ void ASMs3D::generateThreadGroupsFromElms (const IntVec& elms)
     if (this->getElmIndex(elm+1) > 0)
       myElms.push_back(this->getElmIndex(elm+1)-1);
 
+  // We need myElms to be non-empty to flag that partitioning is enabled
+  if (myElms.empty())
+    myElms.push_back(-1);
+
   threadGroupsVol = threadGroupsVol.filter(myElms);
 
   for (std::pair<const char,ThreadGroups>& group : threadGroupsFace)
