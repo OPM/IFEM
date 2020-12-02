@@ -293,9 +293,12 @@ public:
   //! \brief Prints integrated solution norms to the log stream.
   virtual void printNorms(const Vectors&, size_t = 36) const = 0;
 
-protected:
   //! \brief Writes out the additional functions to VTF-file.
   virtual bool writeAddFuncs(int iStep, int& nBlock, int idBlock, double time);
+
+protected:
+  //! \brief Add an additional function for VTF output.
+  void addAddFunc(const std::string& name, RealFunc* f);
 
 private:
   //! \brief Private helper to initialize patch for solution evaluation.

@@ -1889,3 +1889,9 @@ bool SIMoutput::writeAddFuncs (int iStep, int& nBlock, int idBlock, double time)
 
   return true;
 }
+
+
+void SIMoutput::addAddFunc(const std::string& name, RealFunc* f)
+{
+  myAddScalars[name] = f;
+}
