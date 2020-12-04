@@ -59,7 +59,7 @@ std::istream* SIMinput::getPatchStream (const char* tag, const char* patch)
 bool SIMinput::readPatches (std::istream& isp, const char* whiteSpace)
 {
   unsigned char maxSpaceDim = 0;
-  for (int pchInd = 0; isp.good(); pchInd++)
+  for (int pchInd = myModel.size(); isp.good(); pchInd++)
   {
     ASMbase* pch = this->readPatch(isp,pchInd,CharVec(),whiteSpace);
     if (pch)
@@ -90,9 +90,12 @@ bool SIMinput::parseGeometryTag (const TiXmlElement* elem)
 
   if (!strncasecmp(elem->Value(),"patch",5) && elem->FirstChild())
   {
-    if (!myModel.empty())
+    std::string fileNum;
+    utl::getAttribute(elem,"num",fileNum,true);
+    if (!myModel.empty() && (fileNum == "first" || fileNum.empty()))
       return true; // We already have a model, skip geometry definition
 
+    size_t oldPatches = myModel.size();
     const char* patch = elem->FirstChild()->Value();
     std::istream* isp = getPatchStream(elem->Value(),patch);
     if (isp)
@@ -103,12 +106,12 @@ bool SIMinput::parseGeometryTag (const TiXmlElement* elem)
     else
       return true;
 
-    if (myModel.empty())
+    if (myModel.size() == oldPatches)
     {
       std::cerr <<" *** SIMinput::parse: No patches read."<< std::endl;
       return false;
     }
-    if (myPatches.empty())
+    if (myPatches.empty() && (fileNum == "last" || fileNum.empty()))
       nGlPatches = myModel.size();
   }
 
