@@ -631,7 +631,6 @@ protected:
 
   ThreadGroups threadGroups; //!< Element groups for multi-threaded assembly
   ThreadGroups projThreadGroups; //!< Element groups for multi-threaded assembly - projection basis
-  IntVec       myElms;       //!< Elements on patch - used with partitioning
 
   const Matrices& bezierExtract; //!< Bezier extraction matrices
   Matrices      myBezierExtract; //!< Bezier extraction matrices
