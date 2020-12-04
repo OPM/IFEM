@@ -1857,12 +1857,14 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
     case SIMoptions::CGL2:
       if (msgLevel > 1 && i == 0)
         IFEM::cout <<"\tContinuous global L2-projection"<< std::endl;
+      GlbL2::SolverParams = myGl2Params;
       ok = myModel[i]->globalL2projection(values,L2ProbIntegrand(*myModel[i], *myProblem),true);
       break;
 
     case SIMoptions::CGL2_INT:
       if (msgLevel > 1 && i == 0)
         IFEM::cout <<"\tContinuous global L2-projection"<< std::endl;
+      GlbL2::SolverParams = myGl2Params;
       ok = myModel[i]->L2projection(values,myProblem,time);
       break;
 
