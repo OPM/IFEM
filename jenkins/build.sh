@@ -15,7 +15,8 @@ downstreams=(IFEM-AdvectionDiffusion
              IFEM-PoroElasticity
              IFEM-THM
              IFEM-OpenFrac
-             IFEM-FSI)
+             IFEM-FSI
+             SIMRA-PostProc)
 
 declare -A downstreamRev
 downstreamRev[IFEM-Poisson]=master
@@ -32,6 +33,7 @@ downstreamRev[IFEM-THM]=master
 downstreamRev[IFEM-Stokes]=master
 downstreamRev[IFEM-ThermoElasticity]=master
 downstreamRev[IFEM-FSI]=master
+downstreamRev[SIMRA-PostProc]=master
 
 IFEM_REVISION=$sha1
 

@@ -145,6 +145,7 @@ function clone_module {
   GH_USER[IFEM-FSI]=SintefMath
   GH_USER[IFEM-THM]=SintefMath
   GH_USER[IFEM-Poisson]=OPM
+  GH_USER[SIMRA-PostProc]=akva2
 
   if test -n "$GH_CREDENTIALS"
   then
