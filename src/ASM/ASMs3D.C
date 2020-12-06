@@ -20,7 +20,6 @@
 #include "TimeDomain.h"
 #include "FiniteElement.h"
 #include "GlobalIntegral.h"
-#include "IFEM.h"
 #include "LocalIntegral.h"
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
@@ -34,6 +33,7 @@
 #include "Point.h"
 #include "Tensor.h"
 #include "MPC.h"
+#include "IFEM.h"
 #include <array>
 #ifdef USE_OPENMP
 #include <omp.h>
@@ -727,7 +727,7 @@ bool ASMs3D::connectBasis (int face, ASMs3D& neighbor, int nface, int norient,
     std::swap(n1,n2);
 
   const double xtol = 1.0e-4;
-  int node = 1;
+  int node = 1, failures = 0;
   for (int j = 0; j < n2; j++)
     for (int i = 0; i < n1; i++, node++)
     {
@@ -739,7 +739,7 @@ bool ASMs3D::connectBasis (int face, ASMs3D& neighbor, int nface, int norient,
         case 2: k = n1-i-1; l =    j  ; break;
         case 3: k = n1-i-1; l = n2-j-1; break;
         case 4: k =    j  ; l =    i  ; break;
-        case 5: k =    j  ; l = n2-i-1; break;
+        case 5: k =    j  ; l = m2-i-1; break;
         case 6: k = m1-j-1; l =    i  ; break;
         case 7: k = m1-j-1; l = m2-i-1; break;
         }
@@ -756,14 +756,14 @@ bool ASMs3D::connectBasis (int face, ASMs3D& neighbor, int nface, int norient,
         {
           std::cerr <<" *** ASMs3D::connectPatch: Non-matching nodes "
                     << node2 <<": "<< neighbor.getCoord(node2)
-                    <<"\n                                          and "
+                    <<"\n"<< std::string(42,' ') <<"and "
                     << slave <<": "<< this->getCoord(slave) << std::endl;
-          return false;
+          failures++;
         }
       }
     }
 
-  return true;
+  return failures == 0;
 }
 
 
