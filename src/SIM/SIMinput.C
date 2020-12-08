@@ -1634,7 +1634,7 @@ bool SIMinput::deSerialize (const std::map<std::string,std::string>&)
 IntMat SIMinput::getElmConnectivities () const
 {
   IntMat neigh(this->getNoElms());
-  for (const ASMbase* pch : this->getFEModel())
+  for (const ASMbase* pch : myModel)
     pch->getElmConnectivities(neigh);
 
   for (const ASM::Interface& iface : myInterfaces)
@@ -1662,4 +1662,20 @@ IntMat SIMinput::getElmConnectivities () const
     }
 
   return neigh;
+}
+
+
+const TopEntity& SIMinput::getEntity (const std::string& name) const
+{
+  TopologySet::const_iterator tit = myEntitys.find(name);
+  if (tit != myEntitys.end()) return tit->second;
+
+  static TopEntity emptyEntity;
+  return emptyEntity;
+}
+
+
+SIMinput::IdxVec3* SIMinput::getDiscretePoint (int idx)
+{
+  return idx < 0 || idx >= (int)myTopPts.size() ? NULL : &myTopPts[idx];
 }

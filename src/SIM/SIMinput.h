@@ -140,6 +140,7 @@ protected:
   //! \param[in] pc The property code to be associated with this set
   bool createPropertySet(const std::string& setName, int pc);
 
+public:
   //! \brief Defines the type of a property set.
   //! \param[in] code The property code to be associated with the property type
   //! \param[in] ptype The property type to be associated with the given code
@@ -156,7 +157,6 @@ protected:
   bool setNeumann(const std::string& prop, const std::string& type,
                   int ndir, int code);
 
-public:
   //! \brief Finds the set of basis functions with support on a set of elements.
   //! \param[in] elements 0-based element indices
   //! \return 0-based node indices with support on the given elements
@@ -249,12 +249,17 @@ public:
   //! \brief Deserialization support (for simulation restart).
   virtual bool deSerialize(const std::map<std::string,std::string>&);
 
+  //! \brief Returns reference to a named topology entity.
+  const TopEntity& getEntity(const std::string& name) const;
   //! \brief Returns access to a named topology entity (for model generators).
   TopEntity& topology(const std::string& name) { return myEntitys[name]; }
   //! \brief Returns the whole topology set container (for testing only).
   const TopologySet& getTopology() const { return myEntitys; }
 
-  //! \brief Obtain element-element connectivities.
+  //! \brief Returns pointer to an indexed discrete point.
+  IdxVec3* getDiscretePoint(int idx);
+
+  //! \brief Returns the element-to-element connectivities.
   virtual std::vector<std::vector<int>> getElmConnectivities() const;
 
 private:
