@@ -1496,7 +1496,7 @@ bool SIMinput::refine (const LR::RefineData& prm, Vectors& sol)
 
     Vectors lsol(sol.size());
     for (size_t j = 0; j < sol.size(); j++)
-      this->extractPatchSolution(sol[j], lsol[j], myModel[i]);
+      this->extractPatchSolution(sol[j], lsol[j], myModel[i], sol[j].size() / this->getNoNodes());
     if (!pch->refine(prmloc,lsol))
       return false;
     for (const Vector& s : lsol)
