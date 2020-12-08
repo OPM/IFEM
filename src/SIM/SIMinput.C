@@ -1430,7 +1430,7 @@ bool SIMinput::refine (const LR::RefineData& prm, Vectors& sol)
   std::vector<LR::RefineData> prmloc(myModel.size(),LR::RefineData(prm));
   std::vector<IntSet> refineIndices(myModel.size());
   std::vector<IntSet> conformingIndices(myModel.size());
-  bool changed = true;
+  bool changed = !this->getPatch(1)->isShared();
   while (changed) {
     changed = false;
     for (size_t i = 0; i < myModel.size(); i++)
