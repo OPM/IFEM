@@ -166,7 +166,8 @@ public:
   //! \param[in] ru Number of times to raise the order in u-direction
   //! \param[in] rv Number of times to raise the order in v-direction
   //! \param[in] rw Number of times to raise the order in w-direction
-  virtual bool raiseOrder(int ru, int rv, int rw);
+  //! \param[in] setOrder If \e true, raise order to \a ru, \a rv and \a rw
+  virtual bool raiseOrder(int ru, int rv, int rw, bool setOrder);
 
   //! \brief Creates a separate projection basis for this patch.
   virtual bool createProjectionBasis(bool init);

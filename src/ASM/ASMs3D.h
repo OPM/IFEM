@@ -264,7 +264,8 @@ public:
   //! \param[in] ru Number of times to raise the order in u-direction
   //! \param[in] rv Number of times to raise the order in v-direction
   //! \param[in] rw Number of times to raise the order in w-direction
-  virtual bool raiseOrder(int ru, int rv, int rw);
+  //! \param[in] setOrder If \e true, raise order to \a ru, \a rv and \a rw
+  virtual bool raiseOrder(int ru, int rv, int rw, bool setOrder = false);
 
   //! \brief Creates a separate projection basis for this patch.
   virtual bool createProjectionBasis(bool init);
@@ -369,8 +370,8 @@ public:
   //! \param[in] master 1-based index of the first master node in this basis
   virtual void closeBoundaries(int dir, int basis, int master);
 
-  //! \brief Collapses a degenereated face into a single node or edge.
-  //! \param[in] face Which face to collapse, in rage [1,6]
+  //! \brief Collapses a degenerated face into a single node or edge.
+  //! \param[in] face Which face to collapse, in range [1,6]
   //! \param[in] edge Which edge to callapse on to, in range [0,12],
   //! 0 means collapse on to vertex
   //! \param[in] basis Which basis to collapse face for

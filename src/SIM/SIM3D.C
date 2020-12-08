@@ -154,16 +154,18 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
     if (!this->parseTopologySet(elem,patches))
       return false;
 
+    bool setOrder = false;
     int addu = 0, addv = 0, addw = 0;
     utl::getAttribute(elem,"u",addu);
     utl::getAttribute(elem,"v",addv);
     utl::getAttribute(elem,"w",addw);
+    utl::getAttribute(elem,"setTo",setOrder);
     for (int j : patches)
     {
-      IFEM::cout <<"\tRaising order of P"<< j
+      IFEM::cout << (setOrder ? "\tSetting":"\tRaising") <<" order of P"<< j
                  <<" "<< addu <<" "<< addv <<" "<< addw << std::endl;
       ASM3D* pch = dynamic_cast<ASM3D*>(this->getPatch(j,true));
-      if (pch) pch->raiseOrder(addu,addv,addw);
+      if (pch) pch->raiseOrder(addu,addv,addw,setOrder);
     }
   }
 

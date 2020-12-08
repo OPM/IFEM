@@ -74,7 +74,8 @@ public:
   //! \param[in] ru Number of times to raise the order in u-direction
   //! \param[in] rv Number of times to raise the order in v-direction
   //! \param[in] rw Number of times to raise the order in w-direction
-  virtual bool raiseOrder(int ru, int rv, int rw) = 0;
+  //! \param[in] setOrder If \e true, raise order to \a ru, \a rv and \a rw
+  virtual bool raiseOrder(int ru, int rv, int rw, bool setOrder = false) = 0;
   //! \brief Refines the parametrization by inserting extra knots.
   //! \param[in] dir Parameter direction to refine
   //! \param[in] xi Relative positions of added knots in each existing knot span

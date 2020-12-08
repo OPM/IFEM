@@ -344,11 +344,17 @@ bool ASMs3D::uniformRefine (int dir, int nInsert)
 }
 
 
-bool ASMs3D::raiseOrder (int ru, int rv, int rw)
+bool ASMs3D::raiseOrder (int ru, int rv, int rw, bool setOrder)
 {
   if (!svol) return false;
   if (shareFE) return true;
 
+  if (setOrder)
+  {
+    ru -= svol->order(0);
+    rv -= svol->order(1);
+    rw -= svol->order(2);
+  }
   svol->raiseOrder(ru,rv,rw);
   return true;
 }
@@ -755,8 +761,8 @@ bool ASMs3D::connectBasis (int face, ASMs3D& neighbor, int nface, int norient,
         else
         {
           std::cerr <<" *** ASMs3D::connectPatch: Non-matching nodes "
-                    << node2 <<": "<< neighbor.getCoord(node2)
-                    <<"\n"<< std::string(42,' ') <<"and "
+                    << node2 <<": "<< neighbor.getCoord(node2) <<"\n"
+                    << std::string(42,' ') <<"and "
                     << slave <<": "<< this->getCoord(slave) << std::endl;
           failures++;
         }

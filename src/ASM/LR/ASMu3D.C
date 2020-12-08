@@ -21,7 +21,6 @@
 #include "TimeDomain.h"
 #include "FiniteElement.h"
 #include "GlobalIntegral.h"
-#include "IFEM.h"
 #include "LocalIntegral.h"
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
@@ -36,6 +35,7 @@
 #include "Function.h"
 #include "Vec3Oper.h"
 #include "Point.h"
+#include "IFEM.h"
 #include <array>
 
 
@@ -190,11 +190,17 @@ bool ASMu3D::refine (int dir, const RealArray& xi)
 }
 
 
-bool ASMu3D::raiseOrder (int ru, int rv, int rw)
+bool ASMu3D::raiseOrder (int ru, int rv, int rw, bool setOrder)
 {
   if (!tensorspline) return false;
   if (shareFE) return true;
 
+  if (setOrder)
+  {
+    ru -= tensorspline->order(0);
+    rv -= tensorspline->order(1);
+    rw -= tensorspline->order(2);
+  }
   tensorspline->raiseOrder(ru,rv,rw);
   return true;
 }
