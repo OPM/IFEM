@@ -346,14 +346,28 @@ IntVec ASMLRSpline::getBoundaryCovered (const IntSet& nodes) const
 {
   IntSet result;
   int numbEdges = (this->getNoParamDim() == 2) ? 4 : 6;
+  IntSet bndNodes;
   for (int edge = 1; edge <= numbEdges; edge++)
   {
-    IntVec oneBoundary; // 1-based list of boundary nodes
+    IntVec oneBoundary;
     this->getBoundaryNodes(edge,oneBoundary,1,1,0,true);
-    for (const int i : nodes)
-      for (const int j : oneBoundary)
-        if (geo->getBasisfunction(i)->contains(*geo->getBasisfunction(j-1)))
-          result.insert(j-1);
+    for (int j : oneBoundary)
+      bndNodes.insert(j-1);
+  }
+
+  auto func = geo->basisBegin();
+  int curr = 0;
+  for (const int i : nodes) {
+    for (; curr < i; ++curr)
+      ++func;
+    auto func2 = geo->basisBegin();
+    int curr2 = 0;
+    for (const int j : bndNodes) {
+      for (; curr2 < j; ++curr2)
+        ++func2;
+      if ((*func)->contains(**func2))
+        result.insert(j);
+    }
   }
 
   return IntVec(result.begin(), result.end());
