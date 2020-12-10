@@ -2273,7 +2273,7 @@ bool ASMu3D::transferCntrlPtVars (const LR::LRSpline* old_basis,
   newVars.reserve(newBasis->nElements()*nGauss*nGauss*nGauss*oldBasis->dimension());
   const double* xi = GaussQuadrature::getCoord(nGauss);
 
-  for (int iel = 0; iel < newBasis->nElements(); iel++)
+  for (int iel = 1; iel <= newBasis->nElements(); iel++)
   {
     RealArray U, V, W, ptVar;
     LR::getGaussPointParameters(newBasis, U, 0, nGauss, iel, xi);
