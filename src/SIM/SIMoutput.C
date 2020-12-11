@@ -75,7 +75,9 @@ void SIMoutput::setPointResultFile (const std::string& filename, bool dumpCoord)
     myPtFile.insert(myPtFile.find_last_of('.'),"_coord");
 
   // Append _p<PID> to filename unless on processor 0
-  if (nProc > 1)
+  // we use empty myPatches to signal partitioning as
+  // adm.dd.isPartitioned() is not yet initialized
+  if (nProc > 1 && !myPatches.empty())
   {
     char cPid[8];
     sprintf(cPid,"_p%04d",myPid);
@@ -1487,6 +1489,9 @@ bool SIMoutput::dumpResults (const Vector& psol, double time,
                              bool formatted, std::streamsize precision) const
 {
   if (gPoints.empty())
+    return true;
+
+  if (adm.dd.isPartitioned() && adm.getProcId() != 0)
     return true;
 
   const Vector* reactionForces = this->getReactionForces();
