@@ -208,7 +208,8 @@ bool TimeStep::reset (int istep)
   }
   lstep = step = 0;
   stepIt = mySteps.begin();
-  stopTime = mySteps.back().second;
+  if (istep == 0)
+    stopTime = mySteps.back().second;
   time.dt = mySteps.front().first.front();
   time.dtn = time.t = time.CFL = 0.0;
   for (int i = 0; i < istep; i++)
@@ -375,7 +376,7 @@ bool TimeStep::deSerialize (const std::map<std::string,std::string>& data)
     std::stringstream str(it->second);
     cereal::BinaryInputArchive ar(str);
     doSerializeOps(ar,*this);
-    return true;
+    return this->reset(step);
   }
 #endif
   return false;
