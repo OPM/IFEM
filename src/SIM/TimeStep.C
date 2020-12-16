@@ -375,6 +375,7 @@ bool TimeStep::deSerialize (const std::map<std::string,std::string>& data)
     std::stringstream str(it->second);
     cereal::BinaryInputArchive ar(str);
     doSerializeOps(ar,*this);
+    this->reset(this->step);
     return true;
   }
 #endif
