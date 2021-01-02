@@ -74,9 +74,9 @@ void SIMoutput::setPointResultFile (const std::string& filename, bool dumpCoord)
   if (dumpCoord && myPtFile.find("_coord.") == std::string::npos)
     myPtFile.insert(myPtFile.find_last_of('.'),"_coord");
 
-  // Append _p<PID> to filename unless on processor 0
-  // we use empty myPatches to signal partitioning as
-  // adm.dd.isPartitioned() is not yet initialized
+  // Append _p<PID> to filename unless on processor 0.
+  // We use a non-empty myPatches to signal partitioning
+  // as adm.dd.isPartitioned() is not yet initialized.
   if (nProc > 1 && !myPatches.empty())
   {
     char cPid[8];
@@ -1106,7 +1106,9 @@ bool SIMoutput::writeGlvStep (int iStep, double value, int itype)
 
   myVtf->writeGeometryBlocks(iStep);
 
-  if (itype == 0)
+  if (itype < 0)
+    return true;
+  else if (itype == 0)
     return myVtf->writeState(iStep,"Time %g",value,itype);
   else
     return myVtf->writeState(iStep,"Step %g",value,itype);
