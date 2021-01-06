@@ -109,6 +109,7 @@ public:
   typedef std::map<ProjectionMethod,std::string> ProjectionMap;
 
   ProjectionMap project; //!< The projection methods to use
+  ProjectionMethod hdf5_secondary; //!< Projection method used in HDF5 output
 };
 
 #endif

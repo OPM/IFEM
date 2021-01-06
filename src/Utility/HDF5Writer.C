@@ -330,6 +330,13 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
   }
 
   size_t projOfs = 0;
+  Matrix field;
+  if (results & DataExporter::SECONDARY && !sol->empty()) {
+    SIM::SolutionMode mode = prob->getMode();
+    const_cast<SIMbase*>(sim)->setMode(SIM::RECOVERY);
+    sim->project(field, *sol, sim->opt.hdf5_secondary);
+    const_cast<SIMbase*>(sim)->setMode(mode);
+  }
   for (int i = 0; i < sim->getNoPatches(); ++i) {
     int loc = sim->getLocalPatchIndex(i+1);
     if ((!sim->getProcessAdm().dd.isPartitioned() || sim->getProcessAdm().getProcId() == 0) && loc > 0 &&
@@ -358,15 +365,14 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
       }
 
       if (results & DataExporter::SECONDARY && !sol->empty()) {
-        Matrix field;
-        SIM::SolutionMode mode = prob->getMode();
-        const_cast<SIMbase*>(sim)->setMode(SIM::RECOVERY);
-        sim->extractPatchSolution({*sol},loc-1);
-        sim->evalSecondarySolution(field,loc-1);
-        const_cast<SIMbase*>(sim)->setMode(mode);
-        for (size_t j = 0; j < field.rows(); j++)
+        Vector lvec;
+        pch->extractNodeVec(field, lvec, prob->getNoFields(2));
+        size_t cols = lvec.size() / prob->getNoFields(2);
+        Matrix pfield(prob->getNoFields(2), cols);
+        pfield = lvec;
+        for (size_t j = 0; j < pfield.rows(); j++)
           writeArray(group.front(), prefix+prob->getField2Name(j),
-                     i+1, field.cols(), field.getRow(j+1).ptr(), H5T_NATIVE_DOUBLE);
+                     i+1, pfield.cols(), pfield.getRow(j+1).ptr(), H5T_NATIVE_DOUBLE);
       }
 
       if (proj)

@@ -81,6 +81,7 @@ SIMoptions::SIMoptions ()
   nViz[0] = nViz[1] = nViz[2] = 2;
 
   printPid = 0;
+  hdf5_secondary = SIMoptions::GLOBAL;
 }
 
 
@@ -203,6 +204,16 @@ bool SIMoptions::parseOutputTag (const TiXmlElement* elem)
     }
     else // use the default output file name
       hdf5 = "(default)";
+
+    std::string type;
+    utl::getAttribute(elem,"projection",type);
+    if (!type.empty()) {
+      auto res = parseProj(type.c_str(), 1);
+      if (res.second) {
+        hdf5_secondary = res.first;
+        IFEM::cout << "\tHDF5 secondary solution projection: " << res.second;
+      }
+    }
   }
 
   else if (!strcasecmp(elem->Value(),"primarySolOnly"))
