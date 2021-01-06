@@ -26,6 +26,35 @@
 #include <fstream>
 
 
+namespace
+{
+
+std::pair<SIMoptions::ProjectionMethod, const char*>
+parseProj(const char* ptype, int version)
+{
+  if (!strcasecmp(ptype,"global") || !strcasecmp(ptype,"grvl"))
+    return {SIMoptions::GLOBAL, "Greville point projection"};
+  else if (!strcasecmp(ptype,"dgl2"))
+    return {SIMoptions::DGL2, "Discrete global L2-projection"};
+  else if (!strcasecmp(ptype,"cgl2"))
+    return {version == 1 ? SIMoptions::CGL2 : SIMoptions::CGL2_INT,"Continuous global L2-projection"};
+  else if (!strcasecmp(ptype,"scr"))
+    return {SIMoptions::SCR, "Superconvergent recovery"};
+  else if (!strcasecmp(ptype,"vdsa"))
+    return {SIMoptions::VDSA, "VDSA projected"};
+  else if (!strcasecmp(ptype,"quasi"))
+    return {SIMoptions::QUASI, "Quasi-interpolated"};
+  else if (!strcasecmp(ptype,"lsq"))
+    return {SIMoptions::LEASTSQ, "Least-square projected"};
+  else if (!strncasecmp(ptype,"residual",8))
+    return {SIMoptions::NONE, "Pure residuals"};
+
+  return {SIMoptions::NONE, nullptr};
+}
+
+}
+
+
 SIMoptions::SIMoptions ()
 {
   discretization = ASM::Spline;
@@ -349,25 +378,11 @@ bool SIMoptions::parseOldOptions (int argc, char** argv, int& i)
 
 bool SIMoptions::parseProjectionMethod (const char* ptype, int version)
 {
-  if (!strcasecmp(ptype,"global") || !strcasecmp(ptype,"grvl"))
-    project[GLOBAL] = "Greville point projection";
-  else if (!strcasecmp(ptype,"dgl2"))
-    project[DGL2] = "Discrete global L2-projection";
-  else if (!strcasecmp(ptype,"cgl2"))
-    project[version == 1 ? CGL2 : CGL2_INT] = "Continuous global L2-projection";
-  else if (!strcasecmp(ptype,"scr"))
-    project[SCR] = "Superconvergent recovery";
-  else if (!strcasecmp(ptype,"vdsa"))
-    project[VDSA] = "VDSA projected";
-  else if (!strcasecmp(ptype,"quasi"))
-    project[QUASI] = "Quasi-interpolated";
-  else if (!strcasecmp(ptype,"lsq"))
-    project[LEASTSQ] = "Least-square projected";
-  else if (!strncasecmp(ptype,"residual",8))
-    project[NONE] = "Pure residuals";
-  else
+  auto res = parseProj(ptype, version);
+  if (!res.second)
     return false;
 
+  project[res.first] = res.second;
   return true;
 }
 
