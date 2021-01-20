@@ -617,13 +617,17 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
   // iterate over all edge elements
   bool ok = true;
   for(LR::Element *el : edgeElms) {
+    int iEl = el->getId();
+    if (!myElms.empty() && !glInt.threadSafe() &&
+        std::find(myElms.begin(), myElms.end(), iEl) == myElms.end())
+      continue;
+
     std::vector<size_t> els;
     std::vector<size_t> elem_sizes;
     for (size_t i=0; i < m_basis.size(); ++i) {
       els.push_back(m_basis[i]->getElementContaining(el->midpoint())+1);
       elem_sizes.push_back((*(m_basis[i]->elementBegin()+els.back()-1))->nBasisFunctions());
     }
-    int iEl = el->getId();
     MxFiniteElement fe(elem_sizes);
     fe.iel = MLGE[iEl];
 
