@@ -232,6 +232,7 @@ public:
                              const TimeStep& tp) = 0;
 
   //! \brief Write a log to output file.
+  //! \param data Text to write
   //! \param name Name of log
   virtual bool writeLog(const std::string& data, const std::string& name) = 0;
 
