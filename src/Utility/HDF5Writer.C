@@ -757,4 +757,6 @@ bool HDF5Writer::writeLog (const std::string& data, const std::string& name)
 
   return true;
 #endif
+
+  return false;
 }
