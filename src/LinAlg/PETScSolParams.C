@@ -75,6 +75,16 @@ void PETScSolParams::setupPC(PC& pc,
   else if (prec == "ilu")
     PCFactorSetLevels(pc,params.getBlock(block).getIntValue("ilu_fill_level"));
 
+
+  std::string package = params.getBlock(block).getStringValue("package");
+  if (!package.empty()) {
+#if PETSC_VERSION_MINOR >= 9
+    PCFactorSetMatSolverType(pc, package.c_str());
+#else
+    PCFactorSetMatSolverPackage(pc, package.c_str());
+#endif
+  }
+
   PCSetFromOptions(pc);
   PCSetUp(pc);
 
