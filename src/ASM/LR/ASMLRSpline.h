@@ -88,7 +88,7 @@ public:
   virtual bool empty() const { return geo == nullptr; }
 
   //! \brief Returns parameter values and node numbers of the domain corners.
-  virtual bool getParameterDomain(Real2DMat&, IntVec*) const { return false; }
+  virtual bool getParameterDomain(Real2DMat&, IntVec*) const;
 
   //! \brief Refines the mesh adaptively.
   //! \param[in] prm Input data used to control the mesh refinement
