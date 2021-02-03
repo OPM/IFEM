@@ -493,3 +493,39 @@ void ASMLRSpline::analyzeThreadGroups(const IntMat& groups)
              << ").\n";
 
 }
+
+
+bool ASMLRSpline::getParameterDomain(Real2DMat& u, IntVec* corners) const
+{
+  u.resize(geo->nVariate(),RealArray(2));
+  for (int i = 0; i < geo->nVariate(); ++i) {
+    u[i][0] = geo->startparam(i);
+    u[i][1] = geo->endparam(i);
+  }
+
+  if (corners) {
+    if (geo->nVariate() == 2) {
+      for (int J = 0; J < 2; ++J)
+        for (int I = 0; I < 2; ++I) {
+          std::vector<LR::Basisfunction*> funcs;
+          int dir = (I > 0 ? LR::EAST : LR::WEST) |
+                    (J > 0 ? LR::NORTH : LR::SOUTH);
+          geo->getEdgeFunctions(funcs, static_cast<LR::parameterEdge>(dir));
+          corners->push_back(funcs.front()->getId()+1);
+        }
+    } else if (geo->nVariate() == 3) {
+      for (int K = 0; K < 2; ++K)
+        for (int J = 0; J < 2; ++J)
+          for (int I = 0; I < 2; ++I) {
+            std::vector<LR::Basisfunction*> funcs;
+            int dir = (I > 0 ? LR::EAST  : LR::WEST)  |
+                      (J > 0 ? LR::NORTH : LR::SOUTH) |
+                      (K > 0 ? LR::TOP   : LR::BOTTOM);
+            geo->getEdgeFunctions(funcs, static_cast<LR::parameterEdge>(dir));
+            corners->push_back(funcs.front()->getId()+1);
+          }
+    }
+  }
+
+  return true;
+}
