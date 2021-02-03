@@ -17,6 +17,7 @@
 #include "FiniteElement.h"
 #include "TimeDomain.h"
 #include "ASMbase.h"
+#include "ASMunstruct.h"
 #include "ElmMats.h"
 #include "IntegrandBase.h"
 #include "Function.h"
@@ -31,6 +32,123 @@
 
 LinAlg::MatrixType GlbL2::MatrixType   = LinAlg::SPARSE;
 LinSolParams*      GlbL2::SolverParams = nullptr;
+
+/*!
+  \brief Expands a 2D tensor parametrization point to an unstructured one.
+  \details Takes as input a tensor mesh, for instance
+     in[0] = {0,1,2}
+     in[1] = {2,3,5}
+   and expands this to an unstructured representation, i.e.,
+     out[0] = {0,1,2,0,1,2,0,1,2}
+     out[1] = {2,2,2,3,3,3,5,5,5}
+*/
+
+static void expandTensorGrid2 (const RealArray* in, RealArray* out)
+{
+  out[0].resize(in[0].size()*in[1].size());
+  out[1].resize(in[0].size()*in[1].size());
+
+  size_t i, j, ip = 0;
+  for (j = 0; j < in[1].size(); j++)
+    for (i = 0; i < in[0].size(); i++, ip++) {
+      out[0][ip] = in[0][i];
+      out[1][ip] = in[1][j];
+    }
+}
+
+
+/*!
+  \brief Expands a 3D tensor parametrization point to an unstructured one.
+  \details Takes as input a tensor mesh, for instance
+     in[0] = {0,1}
+     in[1] = {2,3}
+     in[2] = {7,9}
+   and expands this to an unstructured representation, i.e.,
+     out[0] = {0,1,0,1,0,1,0,1}
+     out[1] = {2,2,3,3,2,2,3,3}
+     out[2] = {7,7,7,7,9,9,9,9}
+*/
+
+static void expandTensorGrid3 (const RealArray* in, RealArray* out)
+{
+  out[0].resize(in[0].size()*in[1].size()*in[2].size());
+  out[1].resize(in[0].size()*in[1].size()*in[2].size());
+  out[2].resize(in[0].size()*in[1].size()*in[2].size());
+
+  size_t i, j, k, ip = 0;
+  for (k = 0; k < in[2].size(); k++)
+    for (j = 0; j < in[1].size(); j++)
+      for (i = 0; i < in[0].size(); i++, ip++) {
+        out[0][ip] = in[0][i];
+        out[1][ip] = in[1][j];
+        out[2][ip] = in[2][k];
+      }
+}
+
+
+L2ProbIntegrand::L2ProbIntegrand (const ASMbase& patch, const IntegrandBase& itg) :
+  L2Integrand(patch), m_itg(itg)
+{
+}
+
+
+bool L2ProbIntegrand::evaluate (Matrix& sField, const RealArray* gpar) const
+{
+  return m_patch.evalSolution(sField, m_itg, gpar);
+}
+
+
+size_t L2ProbIntegrand::dim () const
+{
+  return m_itg.getNoFields(2);
+}
+
+
+L2FuncIntegrand::L2FuncIntegrand (const ASMbase& patch, const FunctionBase& func) :
+  L2Integrand(patch), m_func(func)
+{
+}
+
+
+bool L2FuncIntegrand::evaluate (Matrix& sField, const RealArray* gpar) const
+{
+  std::array<RealArray,3> expanded;
+  if (dynamic_cast<const ASMunstruct*>(&m_patch) == nullptr) {
+    if (m_patch.getNoSpaceDim() == 2) {
+      expandTensorGrid2(gpar, expanded.data());
+      gpar = expanded.data();
+    } else if (m_patch.getNoSpaceDim() == 3) {
+      expandTensorGrid3(gpar, expanded.data());
+      gpar = expanded.data();
+    }
+  }
+
+  sField.resize(m_func.dim(), gpar[0].size());
+
+  Real2DMat u;
+  m_patch.getParameterDomain(u);
+  for (size_t i = 0; i < gpar[0].size(); ++i) {
+    Vec3 X;
+    std::vector<double> xi(3), param(3);
+    xi[0] = u[0][0] + gpar[0][i] / (u[0][1] - u[0][0]);
+    if (m_patch.getNoSpaceDim() > 1)
+      xi[1] = u[1][0] + gpar[1][i] / (u[1][1] - u[1][0]);
+    if (m_patch.getNoSpaceDim() > 2)
+      xi[2] = u[2][0] + gpar[2][i] / (u[2][1] - u[2][0]);
+    m_patch.evalPoint(xi.data(), param.data(), X);
+    std::vector<Real> vals = m_func.getValue(X);
+    for (size_t j = 1; j <= m_func.dim(); ++j)
+      sField(j,i+1) = vals[j-1];
+  }
+
+  return true;
+}
+
+
+size_t L2FuncIntegrand::dim () const
+{
+  return m_func.dim();
+}
 
 
 /*!
@@ -392,7 +510,7 @@ bool ASMbase::L2projection (const std::vector<Matrix*>& sField,
 
 
 bool ASMbase::globalL2projection (Matrix& sField,
-                                  const IntegrandBase& integrand,
+                                  const L2Integrand& integrand,
                                   bool continuous) const
 {
   if (this->empty()) return true; // silently ignore empty patches
@@ -401,7 +519,7 @@ bool ASMbase::globalL2projection (Matrix& sField,
 
   // Assemble the projection matrices
   size_t i, nnod = this->getNoProjectionNodes();
-  size_t j, ncomp = integrand.getNoFields(2);
+  size_t j, ncomp = integrand.dim();
   SparseMatrix* A;
   StdVector* B;
   switch (GlbL2::MatrixType) {

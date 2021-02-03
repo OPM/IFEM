@@ -33,6 +33,7 @@ class Fields;
 class GlobalIntegral;
 class IntegrandBase;
 class Integrand;
+class L2Integrand;
 class ASMbase;
 class SparseMatrix;
 class StdVector;
@@ -601,8 +602,8 @@ public:
   //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] continuous If \e true, a continuous L2-projection is used
   virtual bool globalL2projection(Matrix& sField,
-				  const IntegrandBase& integrand,
-				  bool continuous = false) const;
+                                  const L2Integrand& integrand,
+                                  bool continuous = false) const;
 
   //! \brief Projects the secondary solution using a continuous global L2-fit.
   //! \param[out] sField Secondary solution field control point values
@@ -758,10 +759,10 @@ protected:
   //! \brief Assembles L2-projection matrices for the secondary solution.
   //! \param[out] A Left-hand-side matrix
   //! \param[out] B Right-hand-side vectors
-  //! \param[in] integrand Object with problem-specific data and methods
+  //! \param[in] obj Wrapper object for integrand/function
   //! \param[in] continuous If \e false, a discrete L2-projection is used
   virtual bool assembleL2matrices(SparseMatrix& A, StdVector& B,
-                                  const IntegrandBase& integrand,
+                                  const L2Integrand& obj,
                                   bool continuous) const = 0;
 
 public:

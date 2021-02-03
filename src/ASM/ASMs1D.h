@@ -352,7 +352,7 @@ protected:
   //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] continuous If \e false, a discrete L2-projection is used
   virtual bool assembleL2matrices(SparseMatrix& A, StdVector& B,
-                                  const IntegrandBase& integrand,
+                                  const L2Integrand& integrand,
                                   bool continuous) const;
 
   //! \brief Initializes the local element axes for a patch of beam elements.

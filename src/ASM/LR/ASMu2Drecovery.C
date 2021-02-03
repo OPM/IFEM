@@ -18,6 +18,7 @@
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
+#include "GlbL2projector.h"
 #include "SparseMatrix.h"
 #include "DenseMatrix.h"
 #include "SplineUtils.h"
@@ -99,7 +100,7 @@ LR::LRSpline* ASMu2D::evalSolution (const IntegrandBase& integrand) const
 
 
 bool ASMu2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
-                                 const IntegrandBase& integrand,
+                                 const L2Integrand& integrand,
                                  bool continuous) const
 {
   size_t nnod = this->getNoProjectionNodes();
@@ -166,7 +167,7 @@ bool ASMu2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
 
       // Evaluate the secondary solution at all integration points
       Matrix sField;
-      if (!this->evalSolution(sField,integrand,unstrGpar.data())) {
+      if (!integrand.evaluate(sField,unstrGpar.data())) {
         ok = false;
         continue;
       }

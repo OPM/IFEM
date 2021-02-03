@@ -20,6 +20,7 @@
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
+#include "GlbL2projector.h"
 #include "SparseMatrix.h"
 #include "DenseMatrix.h"
 #include "SplineUtils.h"
@@ -160,7 +161,7 @@ Go::GeomObject* ASMs2D::evalSolution (const IntegrandBase& integrand) const
 
 
 bool ASMs2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
-                                 const IntegrandBase& integrand,
+                                 const L2Integrand& integrand,
                                  bool continuous) const
 {
   const size_t nnod = this->getNoProjectionNodes();
@@ -202,7 +203,7 @@ bool ASMs2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
 
   // Evaluate the secondary solution at all integration points
   Matrix sField;
-  if (!this->evalSolution(sField,integrand,gpar.data()))
+  if (!integrand.evaluate(sField,gpar.data()))
   {
     std::cerr <<" *** ASMs2D::assembleL2matrices: Failed for patch "<< idx+1
               <<" nPoints="<< gpar[0].size()*gpar[1].size() << std::endl;
