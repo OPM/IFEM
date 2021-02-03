@@ -23,6 +23,7 @@
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
+#include "GlbL2projector.h"
 #include "SparseMatrix.h"
 #include "SplineFields1D.h"
 #include "ElementBlock.h"
@@ -1751,7 +1752,7 @@ bool ASMs1D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
 
 bool ASMs1D::assembleL2matrices (SparseMatrix& A, StdVector& B,
-                                 const IntegrandBase& integrand,
+                                 const L2Integrand& integrand,
                                  bool continuous) const
 {
   const size_t nnod = this->getNoProjectionNodes();
@@ -1768,7 +1769,7 @@ bool ASMs1D::assembleL2matrices (SparseMatrix& A, StdVector& B,
   // and evaluate the secondary solution at all integration points
   Matrix gp, sField;
   RealArray gpar = this->getGaussPointParameters(gp,ng,xg,proj,true);
-  if (!this->evalSolution(sField,integrand,&gpar))
+  if (!integrand.evaluate(sField,&gpar))
   {
     std::cerr <<" *** ASMs1D::assembleL2matrices: Failed for patch "<< idx+1
               <<" nPoints="<< gpar.size() << std::endl;

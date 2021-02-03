@@ -25,6 +25,7 @@
 #include "LinSolParams.h"
 #include "EigSolver.h"
 #include "GlbNorm.h"
+#include "GlbL2projector.h"
 #include "ElmNorm.h"
 #include "AnaSol.h"
 #include "TensorFunction.h"
@@ -1850,13 +1851,13 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
     case SIMoptions::DGL2:
       if (msgLevel > 1 && i == 0)
         IFEM::cout <<"\tDiscrete global L2-projection"<< std::endl;
-      ok = myModel[i]->globalL2projection(values,*myProblem);
+      ok = myModel[i]->globalL2projection(values,L2ProbIntegrand(*myModel[i], *myProblem));
       break;
 
     case SIMoptions::CGL2:
       if (msgLevel > 1 && i == 0)
         IFEM::cout <<"\tContinuous global L2-projection"<< std::endl;
-      ok = myModel[i]->globalL2projection(values,*myProblem,true);
+      ok = myModel[i]->globalL2projection(values,L2ProbIntegrand(*myModel[i], *myProblem),true);
       break;
 
     case SIMoptions::CGL2_INT:
@@ -1961,12 +1962,15 @@ bool SIMbase::project (Vector& values, const FunctionBase* f,
       // Continuous global L2-projection
       if (myModel[j]->separateProjectionBasis())
       {
-        // Not implemented yet, silently ignore unless debug build
-#ifdef SP_DEBUG
-        std::cerr <<"  ** L2 projection of explicit functions onto a"
-                  <<" separate basis is not available."<< std::endl;
-#endif
-        return false;
+        if (myModel.size() > 1) {
+          std::cerr <<"  ** L2 projection of explicit functions onto a"
+                    <<" separate basis is not available for multi-patch models."<< std::endl;
+          return false;
+        }
+        Matrix ftmp(loc_values);
+        ok = myModel[j]->globalL2projection(ftmp,L2FuncIntegrand(*myModel[j], *f),true);
+        values = loc_values;
+        return ok;
       }
       else
       {

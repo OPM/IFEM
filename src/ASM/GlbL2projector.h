@@ -18,6 +18,7 @@
 #include "LinAlgenums.h"
 #include "MatVec.h"
 
+class ASMbase;
 class IntegrandBase;
 class FunctionBase;
 class LinSolParams;
@@ -28,6 +29,75 @@ class ProcessAdm;
 typedef std::vector<int>           IntVec;      //!< Vector of integers
 typedef std::vector<size_t>        uIntVec;     //!< Vector of unsigned integers
 typedef std::vector<FunctionBase*> FunctionVec; //!< Vector of functions
+
+/*!
+  \brief Abstract class for evaluating integrand or function.
+*/
+
+class L2Integrand {
+public:
+  //! \brief Constructor.
+  //! \param patch ASM holding geometry to evaluate on
+  L2Integrand(const ASMbase& patch) : m_patch(patch) {}
+
+  //! \brief Evaluates the entity in a set of points.
+  //! \param sField Matrix with results
+  //! \param gpar Points to evaluate in
+  virtual bool evaluate(Matrix& sField, const RealArray* gpar) const = 0;
+
+  //! \brief Returns dimension of entity to evaluate.
+  virtual size_t dim() const = 0;
+
+protected:
+  const ASMbase& m_patch; //!< Reference to ASM holding geometry
+};
+
+/*!
+  \brief Evaluation class for secondary solutions of an integrand.
+*/
+
+class L2ProbIntegrand : public L2Integrand {
+public:
+  //! \brief Constructor.
+  //! \param patch ASM holding geometry to evaluate on
+  //! \param itg Integrand to evaluate
+  L2ProbIntegrand(const ASMbase& patch, const IntegrandBase& itg);
+
+  //! \brief Evaluates the secondary solutions in a set of points.
+  //! \param sField Matrix with results
+  //! \param gpar Points to evaluate in
+  bool evaluate(Matrix& sField, const RealArray* gpar) const override;
+
+  //! \brief Returns number of secondary solutions.
+  size_t dim() const override;
+
+private:
+  const IntegrandBase& m_itg; //!< Reference to integrand
+};
+
+
+/*!
+  \brief Evaluation class for functions.
+*/
+
+class L2FuncIntegrand : public L2Integrand {
+public:
+  //! \brief Constructor.
+  //! \param patch ASM holding geometry to evaluate on
+  //! \param func Function to evaluate
+  L2FuncIntegrand(const ASMbase& patch, const FunctionBase& func);
+
+  //! \brief Evaluates the function in a set of points.
+  //! \param sField Matrix with results
+  //! \param gpar Points to evaluate in
+  bool evaluate(Matrix& sField, const RealArray* gpar) const override;
+
+  //! \brief Returns number of function components.
+  size_t dim() const override;
+
+private:
+  const FunctionBase& m_func; //!< Reference to function
+};
 
 
 /*!
