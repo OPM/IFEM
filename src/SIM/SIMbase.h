@@ -736,7 +736,7 @@ protected:
 
   std::vector<FunctionBase*> extrFunc; //!< Extraction functions for VCP
 
-  char isRefined; //!< Indicates if the model is adaptively refined
+  int isRefined; //!< Indicates if the model is adaptively refined
   bool lagMTOK;   //!< Indicates if global multipliers is OK with multithreading
 
   //! \brief A struct with data for system matrix/vector dumps.
