@@ -29,7 +29,7 @@
 #include <GoTools/utils/Point.h>
 
 
-auto&& check_vector_int_equals_range = [](const std::vector<int>& arr,
+static void check_vector_int_equals_range(const std::vector<int>& arr,
                                           const std::vector<int>& range)
 {
   int el = range[0] - 1;
@@ -37,45 +37,36 @@ auto&& check_vector_int_equals_range = [](const std::vector<int>& arr,
   ASSERT_EQ(arr.size(), len);
   for (int i : arr)
     EXPECT_EQ(i, ++el);
-};
+}
 
 
-auto&& check_vector_int_equals = [](const std::vector<int>& arr1,
+static void check_vector_int_equals(const std::vector<int>& arr1,
                                     const std::vector<int>& arr2)
 {
   ASSERT_EQ(arr1.size(), arr2.size());
-  auto it2 = arr2.begin();
-  for (int i : arr1) {
-    EXPECT_EQ(i, *it2);
-    it2++;
-  }
-};
+  for (size_t i = 0; i < arr1.size(); i++)
+    EXPECT_EQ(arr1[i], arr2[i]);
+}
 
 
-auto&& check_vector_double_near = [](const std::vector<double>& arr1,
+static void check_vector_double_near(const std::vector<double>& arr1,
                                      const std::vector<double>& arr2,
                                      const double tol=1e-12)
 {
   ASSERT_EQ(arr1.size(), arr2.size());
-  auto it2 = arr2.begin();
-  for (double d : arr1) {
-    EXPECT_NEAR(d, *it2, tol);
-    it2++;
-  }
-};
+  for (size_t i = 0; i < arr1.size(); i++)
+    EXPECT_NEAR(arr1[i], arr2[i], tol);
+}
 
 
-auto&& check_point_near = [](const Go::Point p1,
+static void check_point_near(const Go::Point p1,
                              const Go::Point p2,
                              const double tol=1e-12)
 {
   ASSERT_EQ(p1.dimension(), p2.dimension());
-  auto it2 = p2.begin();
-  for (double d : p1) {
-    EXPECT_NEAR(d, *it2, tol);
-    it2++;
-  }
-};
+  for (int i = 0; i < p1.dimension(); i++)
+    EXPECT_NEAR(p1[i], p2[i], tol);
+}
 
 
 template<class Generator>
@@ -119,24 +110,25 @@ class TestMultiPatchModelGenerator3D :
 };
 
 
-auto&& DoTest = [](const GeomTest& ref, const std::string& gen,
+static void DoTest(const GeomTest& ref, const std::string& gen,
                    const TopologySet& sets)
 {
   EXPECT_STREQ(gen.c_str(), ref.g2.c_str());
 
-  if (!ref.sets.empty()) {
-    std::string gsets;
-    for (auto& it : sets) {
-      gsets += it.first + ": ";
-      for (auto& it2 : it.second) {
-        std::stringstream str;
-        str << it2.patch << " " << it2.item << " " << it2.idim << " ";
-        gsets += str.str();
-      }
-      gsets += "\n";
+  if (ref.sets.empty())
+    return;
+
+  std::string gsets;
+  for (const TopologySet::value_type& tset : sets) {
+    gsets += tset.first + ":";
+    for (const TopItem& item : tset.second) {
+      std::stringstream str;
+      str <<" "<< item.patch <<" "<< item.item <<" "<< item.idim;
+      gsets += str.str();
     }
-    EXPECT_STREQ(gsets.c_str(), ref.sets.c_str());
+    gsets += " \n";
   }
+  EXPECT_STREQ(gsets.c_str(), ref.sets.c_str());
 };
 
 
@@ -146,10 +138,9 @@ TEST_P(TestMultiPatchModelGenerator2D, Generate)
   TiXmlDocument doc;
   doc.Parse(GetParam().xml.c_str());
   TestModelGeneratorWrapper<MultiPatchModelGenerator2D> gen(doc.RootElement());
-  std::string g2 = gen.createG2(GetParam().dim);
   SIM2D sim;
   gen.createTopologySets(sim);
-  DoTest(GetParam(), g2, sim.getTopology());
+  DoTest(GetParam(), gen.createG2(GetParam().dim), sim.getTopology());
 }
 
 
@@ -202,7 +193,7 @@ TEST(TestMultiPatchModelGenerator2D, Subdivisions)
   std::map<int,int> g2l;
   for (ASMbase* pch : sim.getFEModel()) {
     pch->renumberNodes(g2l,ngnod);
-    check_vector_int_equals(mlgn[i++],pch->getMyNodeNums());
+    check_vector_int_equals(mlgn[i++],pch->getGlobalNodeNums());
   }
 }
 
@@ -224,10 +215,9 @@ TEST_P(TestMultiPatchModelGenerator3D, Generate)
   TiXmlDocument doc;
   doc.Parse(GetParam().xml.c_str());
   TestModelGeneratorWrapper<MultiPatchModelGenerator3D> gen(doc.RootElement());
-  std::string g2 = gen.createG2(GetParam().dim);
   SIM3D sim;
   gen.createTopologySets(sim);
-  DoTest(GetParam(), g2, sim.getTopology());
+  DoTest(GetParam(), gen.createG2(GetParam().dim), sim.getTopology());
 }
 
 
@@ -293,7 +283,7 @@ TEST(TestMultiPatchModelGenerator3D, Subdivisions)
   std::map<int,int> g2l;
   for (ASMbase* pch : sim.getFEModel()) {
     pch->renumberNodes(g2l,ngnod);
-    check_vector_int_equals(mlgn[i++],pch->getMyNodeNums());
+    check_vector_int_equals(mlgn[i++],pch->getGlobalNodeNums());
   }
 }
 
@@ -392,10 +382,8 @@ TEST_P(TestGetSubPatch1D, SubPatch)
   std::cout << "element/node numbers" << std::endl;
   ASSERT_TRUE(pch0.generateFEMTopology());
   ASSERT_TRUE(pch1.generateFEMTopology());
-  std::vector<int> myMLGE = pch1.getMyElementNums();
-  check_vector_int_equals_range(myMLGE, GetParam().mlge1);
-  std::vector<int> myMLGN = pch1.getMyNodeNums();
-  check_vector_int_equals_range(myMLGN, GetParam().mlgn1);
+  check_vector_int_equals_range(pch1.getGlobalElementNums(), GetParam().mlge1);
+  check_vector_int_equals_range(pch1.getGlobalNodeNums(), GetParam().mlgn1);
 }
 
 
@@ -536,10 +524,8 @@ TEST_P(TestGetSubPatch2D, SubPatch)
   std::cout << "element/node numbers" << std::endl;
   ASSERT_TRUE(pch0.generateFEMTopology());
   ASSERT_TRUE(pch1.generateFEMTopology());
-  std::vector<int> myMLGE = pch1.getMyElementNums();
-  check_vector_int_equals_range(myMLGE, GetParam().mlge1);
-  std::vector<int> myMLGN = pch1.getMyNodeNums();
-  check_vector_int_equals_range(myMLGN, GetParam().mlgn1);
+  check_vector_int_equals_range(pch1.getGlobalElementNums(), GetParam().mlge1);
+  check_vector_int_equals_range(pch1.getGlobalNodeNums(), GetParam().mlgn1);
 }
 
 
@@ -719,10 +705,8 @@ TEST_P(TestGetSubPatch3D, SubPatch)
   std::cout << "element/node numbers" << std::endl;
   ASSERT_TRUE(pch0.generateFEMTopology());
   ASSERT_TRUE(pch1.generateFEMTopology());
-  std::vector<int> myMLGE = pch1.getMyElementNums();
-  check_vector_int_equals_range(myMLGE, GetParam().mlge1);
-  std::vector<int> myMLGN = pch1.getMyNodeNums();
-  check_vector_int_equals_range(myMLGN, GetParam().mlgn1);
+  check_vector_int_equals_range(pch1.getGlobalElementNums(), GetParam().mlge1);
+  check_vector_int_equals_range(pch1.getGlobalNodeNums(), GetParam().mlgn1);
 }
 
 

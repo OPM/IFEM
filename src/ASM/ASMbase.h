@@ -266,12 +266,13 @@ public:
 
   //! \brief Sets the global node numbers for this patch.
   void setGlobalNodeNums(const IntVec& nodes) { myMLGN = nodes; }
-  //! \brief Returns the global node numbers of this patch.
-  const IntVec& getGlobalNodeNums() const { return MLGN; }
   //! \brief Returns the actual global node numbers of this patch.
   const IntVec& getMyNodeNums() const { return myMLGN; }
-  //! \brief Returns the actual global element numbers of this patch.
-  const IntVec& getMyElementNums() const { return myMLGE; }
+  //! \brief Returns the global node numbers of this patch.
+  const IntVec& getGlobalNodeNums() const { return MLGN; }
+  //! \brief Returns the global element numbers of this patch.
+  const IntVec& getGlobalElementNums() const { return MLGE; }
+
   //! \brief Returns the nodal point correspondance array for an element.
   //! \param[in] iel 1-based element index local to current patch
   const IntVec& getElementNodes(int iel) const;
