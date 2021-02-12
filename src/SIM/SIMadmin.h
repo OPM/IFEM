@@ -48,10 +48,6 @@ public:
   //! \brief Parses a data section from an XML document.
   virtual bool parse(const TiXmlElement* elem);
 
-  //! \brief Loads model data from an XML-formatted text string.
-  //! \details This method is a convenience offered for unit testing only.
-  bool loadXML(const char* xml);
-
   //! \brief Returns the parallel process administrator.
   const ProcessAdm& getProcessAdm() const { return adm; }
 

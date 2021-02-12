@@ -113,6 +113,15 @@ bool XMLInputBase::readXML (const char* fileName, bool verbose)
 }
 
 
+bool XMLInputBase::loadXML (const char* xml)
+{
+  TiXmlDocument doc;
+  doc.Parse(xml,nullptr,TIXML_ENCODING_UTF8);
+  const TiXmlElement* tag = doc.RootElement();
+  return tag ? this->parse(tag) : false;
+}
+
+
 bool XMLInputBase::handlePriorityTags (const TiXmlElement* base,
                                        std::vector<const TiXmlElement*>& parsed,
                                        bool verbose)

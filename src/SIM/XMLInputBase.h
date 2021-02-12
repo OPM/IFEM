@@ -33,6 +33,10 @@ public:
   //! \param[in] verbose If \e true, print the tags being parsed
   bool readXML(const char* fileName, bool verbose = true);
 
+  //! \brief Loads data from the XML-formatted text string.
+  //! \details This method is a convenience offered for unit testing only.
+  bool loadXML(const char* xml);
+
 protected:
   //! \brief Parses a data section from an XML element.
   virtual bool parse(const TiXmlElement* elem) = 0;
@@ -47,10 +51,10 @@ private:
   //! \param[in] verbose If \e true, print the tags being parsed
   //!
   //! \details Certain tags need to be parsed before others. This method takes
-  //! care of this. It is called by the \a readXML method in order to read the
+  //! care of this. It is called by the readXML() method in order to read the
   //! top level tags in the required order. It can also be called by the
-  //! application-specific SIM class prior to parsing its data blocks.
-  //! In that case the \a getPrioritizedTags method should be reimplemented
+  //! application-specific %SIM class prior to parsing its data blocks.
+  //! In that case the getPrioritizedTags() method should be reimplemented
   //! by the sub-class to take care of the application-specific tags.
   bool handlePriorityTags(const TiXmlElement* base,
                           std::vector<const TiXmlElement*>& parsed,
