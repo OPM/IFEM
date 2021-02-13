@@ -48,6 +48,9 @@ public:
   //! \brief Parses a data section from an XML document.
   virtual bool parse(const TiXmlElement* elem);
 
+  //! \brief Performs some pre-processing tasks on the FE model.
+  virtual bool preprocess(const std::vector<int>&, bool) { return false; }
+
   //! \brief Returns the parallel process administrator.
   const ProcessAdm& getProcessAdm() const { return adm; }
 
@@ -59,8 +62,6 @@ public:
   const std::string& getHeading() const { return myHeading; }
   //! \brief Defines the simulator heading.
   void setHeading(const std::string& heading) { myHeading = heading; }
-
-protected:
   //! \brief Prints the heading of this simulator, if any, to IFEM::cout.
   void printHeading(int& supStep) const;
 

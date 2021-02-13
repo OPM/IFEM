@@ -51,6 +51,12 @@ const char** MultiStepSIM::getPrioritizedTags () const
 }
 
 
+bool MultiStepSIM::preprocess (const std::vector<int>& ignored, bool fixDup)
+{
+  return model.preprocess(ignored,fixDup);
+}
+
+
 bool MultiStepSIM::initSol (size_t nSol)
 {
   if (!solution.empty())

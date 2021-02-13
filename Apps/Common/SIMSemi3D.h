@@ -22,7 +22,6 @@
 #include "MatVec.h"
 #include "Vec3.h"
 #include "DataExporter.h"
-#include "HDF5Restart.h"
 #include "HDF5Writer.h"
 #include "tinyxml.h"
 #include <fstream>
@@ -99,10 +98,10 @@ public:
   void printFinalNorms(const TimeStep&) {}
 
   //! \brief Performs some pre-processing tasks on the FE model.
-  bool preprocess()
+  bool preprocess(const std::vector<int>& = {}, bool = false) override
   {
-    for (size_t i=0;i<m_planes.size();++i)
-      if (!m_planes[i]->preprocess())
+    for (PlaneSolver* plane : m_planes)
+      if (!plane->preprocess())
         return false;
 
     this->grabPlaneNodes();
@@ -113,7 +112,7 @@ public:
   void grabPlaneNodes()
   {
     planeNodes.resize(this->getNoPlanes());
-    for (size_t i=0;i<m_planes.size();++i)
+    for (size_t i = 0; i <m_planes.size(); i++)
       planeNodes[startCtx+i] = m_planes[i]->getNoNodes();
 
 #ifdef HAVE_MPI
@@ -124,7 +123,7 @@ public:
   }
 
   //! \brief Returns the name of this simulator (for use in the HDF5 export).
-  virtual std::string getName() const { return "Semi3D"; }
+  std::string getName() const override { return "Semi3D"; }
 
   //! \brief Adds fields to a data exporter.
   void registerFields(DataExporter& exporter)
@@ -171,9 +170,9 @@ public:
   }
 
   //! \brief Dummy method, no serialization support.
-  bool serialize(HDF5Restart::SerializeData&) { return false; }
+  bool serialize(std::map<std::string,std::string>&) { return false; }
   //! \brief Dummy method, no deserialization support.
-  bool deSerialize(const HDF5Restart::SerializeData&) { return false; }
+  bool deSerialize(const std::map<std::string,std::string>&) { return false; }
 
   //! \brief Solves the nonlinear equations by Newton-Raphson iterations.
   bool solveStep(TimeStep& tp)
@@ -206,7 +205,7 @@ public:
 
   //! \brief Reads model data from the specified input file.
   //! \param[in] fileName Name of input file to read data from
-  virtual bool read(const char* fileName)
+  bool read(const char* fileName) override
   {
     if (!this->SIMadmin::read(fileName))
       return false;
@@ -254,7 +253,7 @@ public:
   using SIMadmin::parse;
   //! \brief Parses a data section from an XML element.
   //! \param[in] elem The XML element to parse
-  virtual bool parse(const TiXmlElement* elem)
+  bool parse(const TiXmlElement* elem) override
   {
     if (!strcasecmp(elem->Value(),"postprocessing")) {
       const TiXmlElement* child = elem->FirstChildElement();
@@ -314,7 +313,7 @@ public:
   }
 
   //! \brief Returns the spatial dimension of plane solvers.
-  virtual size_t getNoSpaceDim() const { return 2; }
+  size_t getNoSpaceDim() const override { return 2; }
   //! \brief Returns the number of plane solvers.
   size_t getNoPlanes() const { return planes; }
 

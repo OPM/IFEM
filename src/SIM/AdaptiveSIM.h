@@ -73,6 +73,11 @@ public:
   //! \param[in] elem The XML element to parse
   virtual bool parse(const TiXmlElement* elem);
 
+  //! \brief Performs some pre-processing tasks on the FE model.
+  //! \param[in] ignored Indices of patches to ignore in the analysis
+  //! \param[in] fixDup Merge duplicated FE nodes on patch interfaces?
+  virtual bool preprocess(const std::vector<int>& ignored, bool fixDup);
+
   //! \brief Saves point results to output file for a given time step.
   //! \param[in] time Load/time step parameter
   //! \param[in] iStep Load/time step counter

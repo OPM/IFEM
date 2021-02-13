@@ -38,6 +38,12 @@ bool AdaptiveSIM::parse (char* keyWord, std::istream& is)
 }
 
 
+bool AdaptiveSIM::preprocess (const std::vector<int>& ignored, bool fixDup)
+{
+  return model.preprocess(ignored,fixDup);
+}
+
+
 bool AdaptiveSIM::initAdaptor (size_t normGroup)
 {
   if (!this->initPrm(normGroup))
