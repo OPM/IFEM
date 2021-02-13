@@ -119,9 +119,6 @@ public:
   bool dumpTimeLevel(const TimeStep* tp = nullptr,
                      bool geoUpd = false, bool doLog = false);
 
-  //! \brief Sets the prefices used for norm output.
-  void setNormPrefixes(const std::vector<std::string>& prefixes);
-
   //! \brief Callback on receiving a XML control block from external controller.
   virtual void OnControl(const TiXmlElement* context);
   //! \brief Returns context name for callback for external controller.
@@ -222,15 +219,11 @@ public:
   //! \param name Name of log
   virtual bool writeLog(const std::string& data, const std::string& name) = 0;
 
-  //! \brief Sets the prefices used for norm output.
-  void setNormPrefixes(const std::vector<std::string>& prefix) { m_prefix = prefix; }
-
   //! \brief Returns the name of the file
   const std::string& getName() const { return m_name; }
 
 protected:
-  std::string  m_name;   //!< File name
-  std::vector<std::string> m_prefix; //!< The norm prefixes
+  std::string m_name; //!< File name
 
   int m_size; //!< Number of MPI nodes (processors)
   int m_rank; //!< MPI rank (processor ID)

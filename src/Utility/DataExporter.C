@@ -159,13 +159,6 @@ bool DataExporter::dumpTimeLevel (const TimeStep* tp, bool geoUpd, bool doLog)
 }
 
 
-void DataExporter::setNormPrefixes(const std::vector<std::string>& prefix)
-{
-  for (DataWriter* writer : m_writers)
-    writer->setNormPrefixes(prefix);
-}
-
-
 void DataExporter::OnControl(const TiXmlElement* context)
 {
   const TiXmlElement* child = context->FirstChildElement();

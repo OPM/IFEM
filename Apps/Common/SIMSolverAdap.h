@@ -85,18 +85,11 @@ public:
     if (!aSim.initAdaptor())
       return 1;
 
-    if (SIMSolverStat<T1>::exporter) {
+    if (SIMSolverStat<T1>::exporter)
       SIMSolverStat<T1>::exporter->setFieldValue(exporterName, &this->S1,
                                                  &aSim.getSolution(),
                                                  &aSim.getProjections(),
                                                  &aSim.getEnorm());
-      if (!this->S1.opt.project.empty()) {
-        std::vector<std::string> pref;
-        for (const auto& it : this->S1.opt.project)
-          pref.push_back(it.second);
-        SIMSolverStat<T1>::exporter->setNormPrefixes(pref);
-      }
-    }
 
     for (int iStep = 1; aSim.adaptMesh(iStep); iStep++)
       if (!aSim.solveStep(infile,iStep))
@@ -152,11 +145,6 @@ public:
     if (!this->S1.initAdapPrm())
       return 1;
 
-    std::vector<std::string> prefix = this->S1.getNormPrefixes();
-
-    if (this->exporter)
-      this->exporter->setNormPrefixes(prefix);
-
     int geoBlk = 0, nBlock = 0;
     for (int iStep = 1; this->S1.adaptMesh(iStep); iStep++) {
       IFEM::cout <<"\nAdaptive step "<< iStep << std::endl;
@@ -164,7 +152,7 @@ public:
         return 1;
       else if (!this->S1.projectNorms(iStep))
         return 2;
-      else if (!this->saveState(geoBlk,nBlock,iStep,infile,prefix))
+      else if (!this->saveState(geoBlk,nBlock,iStep,infile))
         return 3;
     }
 
@@ -179,8 +167,7 @@ public:
 
 protected:
   //! \brief Saves geometry and results to VTF and HDF5 for current time step.
-  bool saveState(int& geoBlk, int& nBlock, int iStep, char* infile,
-                 const std::vector<std::string>& prefix)
+  bool saveState(int& geoBlk, int& nBlock, int iStep, char* infile)
   {
     if (!this->S1.saveModel(iStep == 1 ? infile : nullptr,geoBlk,nBlock))
       return false;
@@ -188,10 +175,10 @@ protected:
     TimeStep tp;
     tp.step = iStep;
 
-    if (!this->S1.saveElmNorms(iStep,nBlock,prefix))
+    if (!this->S1.saveElmNorms(iStep,nBlock))
       return false;
 
-    if (!this->S1.saveProjections(iStep,nBlock,prefix))
+    if (!this->S1.saveProjections(iStep,nBlock))
       return false;
 
     if (!this->S1.saveStep(tp,nBlock))

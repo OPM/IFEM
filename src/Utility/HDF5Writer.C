@@ -271,8 +271,10 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
     std::cout <<"\nError norms:"<< *eNorm;
 #endif
 
-  const int results = abs(entry.second.results);
   bool usedescription = entry.second.results < 0;
+  const int results = abs(entry.second.results);
+  if (!(results & DataExporter::NORMS))
+    eNorm = nullptr;
 
   if (prefix.empty() && !usedescription &&
       (level == 0 || geometryUpdated || (results & DataExporter::GRID)))
@@ -288,8 +290,22 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
     }
   }
 
-  NormBase* norm = sim->getNormIntegrand();
   const IntegrandBase* prob = sim->getProblem();
+  NormBase* norm = eNorm ? sim->getNormIntegrand() : nullptr;
+  size_t normGrp = norm ? norm->getNoFields(0) : 0;
+
+  // Extract names for the projection methods used
+  std::vector<const char*> projPfx;
+  if (proj || norm)
+  {
+    projPfx.reserve(sim->opt.project.size());
+    for (const auto& pfx : sim->opt.project)
+      projPfx.push_back(pfx.second.c_str());
+    if (normGrp > 1+projPfx.size())
+      projPfx.resize(normGrp-1,nullptr);
+    else
+      normGrp = 1+projPfx.size();
+  }
 
   std::vector<hid_t> egroup, group;
   egroup.reserve(sim->getNoBasis());
@@ -300,7 +316,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
     str << '/' << sim->getName() << "-" << b;
     if (!checkGroupExistence(m_file,str.str().c_str()))
       H5Gclose(H5Gcreate2(m_file,str.str().c_str(),0,H5P_DEFAULT,H5P_DEFAULT));
-    if (results & DataExporter::NORMS && norm) {
+    if (norm) {
       std::stringstream str2;
       str2 << str.str() << "/knotspan";
       if (checkGroupExistence(m_file,str2.str().c_str()))
@@ -390,19 +406,19 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
 
           hid_t gid = sim->fieldProjections() ? group.back() : group.front();
           for (size_t j = 0; j < field.rows(); j++)
-            this->writeArray(gid, m_prefix[p]+" "+prob->getField2Name(j),
+            this->writeArray(gid, prob->getField2Name(j,projPfx[p]),
                              idx, field.cols(), field.getRow(j+1).ptr(),
                              H5T_NATIVE_DOUBLE);
         }
 
-      if (results & DataExporter::NORMS && eNorm) {
+      if (norm) {
         Matrix patchEnorm;
         sim->extractPatchElmRes(*eNorm,patchEnorm,loc-1);
-        for (size_t j = 1, l = 1; l < eNorm->rows(); j++)
+        for (size_t j = 1, l = 1; j <= normGrp && l < eNorm->rows(); j++)
           for (size_t k = 1; k <= norm->getNoFields(j); k++)
             if (norm->hasElementContributions(j,k))
               this->writeArray(egroup.front(),
-                               prefix+norm->getName(j, k, j > 1 && j-2 < m_prefix.size() ? m_prefix[j-2].c_str() : nullptr),
+                               prefix+norm->getName(j, k, j > 1 ? projPfx[j-2] : nullptr),
                                idx, patchEnorm.cols(), patchEnorm.getRow(l++).ptr(),
                                H5T_NATIVE_DOUBLE);
       }
@@ -465,15 +481,15 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
       if (proj)
         for (size_t p = 0; p < proj->size(); p++)
           for (size_t j = 0; j < prob->getNoFields(2); j++)
-            writeArray(group.front(), m_prefix[p]+" "+prob->getField2Name(j),
+            writeArray(group.front(), prob->getField2Name(j,projPfx[p]),
                        idx, 0, &dummy,H5T_NATIVE_DOUBLE);
 
-      if (results & DataExporter::NORMS && eNorm)
-        for (size_t j = 1; j <= norm->getNoFields(0); j++)
+      if (norm)
+        for (size_t j = 1; j <= normGrp; j++)
           for (size_t k = 1; k <= norm->getNoFields(j); k++)
             if (norm->hasElementContributions(j,k))
               writeArray(egroup.front(),
-                         prefix+norm->getName(j, k, j > 1 && j-2 < m_prefix.size() ? m_prefix[j-2].c_str() : nullptr),
+                         prefix+norm->getName(j, k, j > 1 ? projPfx[j-2] : nullptr),
                          idx, 0, &dummy,H5T_NATIVE_DOUBLE);
 
       if (results & DataExporter::EIGENMODES) // TODO (akva?)
