@@ -129,15 +129,15 @@ bool ASMs2DC1::connectC1 (int edge, ASMs2DC1* neighbor, int nedge, bool revers)
 
   for (i = 0; i < n1; i++, node += i1)
   {
-    int slave   = slaveNodes.front()[revers ? n1-i-1 : i];
-    int master1 = node + i2;
-    int master2 = slaveNodes.back()[revers ? n1-i-1 : i];
+    int slave = slaveNodes.front()[revers ? n1-i-1 : i];
     if (neighbor->myMLGN[node-1] == myMLGN[slave-1])
     {
+      int master1 = neighbor->MLGN[node + i2 - 1];
+      int master2 = MLGN[slaveNodes.back()[revers ? n1-i-1 : i] - 1];
       for (unsigned char d = 1; d <= nf; d++)
-	this->add3PC(MLGN[slave-1],d,neighbor->MLGN[master1-1],MLGN[master2-1]);
-      neighbors[neighbor->MLGN[master1-1]] = neighbor;
-      neighbors[MLGN[master2-1]] = this;
+        this->addC1MPC(MLGN[slave-1],d,master1,master2);
+      neighbors[master1] = neighbor;
+      neighbors[master2] = this;
     }
   }
 
@@ -158,7 +158,7 @@ void ASMs2DC1::closeBoundaries (int dir, int, int)
       {
 	this->makePeriodic(master,master+n1-1);
 	for (unsigned char d = 1; d <= nf && n1 > 3; d++)
-	  this->add3PC(MLGN[master-1],d,MLGN[master],MLGN[master+n1-3]);
+	  this->addC1MPC(MLGN[master-1],d,MLGN[master],MLGN[master+n1-3]);
       }
       threadGroups.stripDir = ThreadGroups::U;
       break;
@@ -168,8 +168,8 @@ void ASMs2DC1::closeBoundaries (int dir, int, int)
       {
 	this->makePeriodic(master,master+n1*(n2-1));
 	for (unsigned char d = 1; d <= nf && n2 > 3; d++)
-	  this->add3PC(MLGN[master-1],d,MLGN[master+n1-1],
-		       MLGN[master+n1*(n2-2)-1]);
+	  this->addC1MPC(MLGN[master-1],d,MLGN[master+n1-1],
+		         MLGN[master+n1*(n2-2)-1]);
       }
       threadGroups.stripDir = ThreadGroups::V;
       break;
@@ -200,7 +200,7 @@ void ASMs2DC1::constrainEdge (int dir, bool open, int dof, int code, char)
           this->prescribe(node-dir,dof/1000,0);
         else for (int ldof : utl::getDigits(dof/1000))
           // The edge has a prescribed rotation, add an MPC for that
-          this->add2PC(MLGN[node-dir-1],ldof,MLGN[node-1],code);
+          this->addC1MPC(MLGN[node-dir-1],ldof,MLGN[node-1],0,code);
       }
       break;
 
@@ -220,7 +220,7 @@ void ASMs2DC1::constrainEdge (int dir, bool open, int dof, int code, char)
           this->prescribe(node-n1*dir/2,dof/1000,0);
         else for (int ldof : utl::getDigits(dof/1000))
           // The edge has a prescribed rotation, add an MPC for that
-          this->add2PC(MLGN[node-n1*dir/2-1],ldof,MLGN[node-1],code);
+          this->addC1MPC(MLGN[node-n1*dir/2-1],ldof,MLGN[node-1],0,code);
       }
       break;
     }
@@ -277,6 +277,48 @@ void ASMs2DC1::renumberNodes (const std::map<int,int>& old2new)
 	neighbors[it->second] = nit->second;
 	neighbors.erase(nit);
       }
+}
+
+
+bool ASMs2DC1::addRigidCpl (int lindx, int ldim, int basis,
+                            int& gMaster, const Vec3& Xmaster, bool extraPt)
+{
+  if (extraPt) // The master point is not a patch node, create an extra node
+    extraPt = this->createRgdMasterNode(gMaster);
+
+  // Get the boundary nodes, and the next layer of nodes directly connected
+  IntVec slaveNodes;
+  this->getBoundaryNodes(lindx,slaveNodes,basis,2,0,true);
+
+  for (int iSlave : slaveNodes)
+  {
+    Vec3 dX = this->getCoord(iSlave) - Xmaster;
+    if (nsd == 2 && nf == 1)
+    {
+      // Scalar plate problem (1 DOF per node -> 3 DOFs in master point)
+      MPC* cons = new MPC(MLGN[iSlave-1],1);
+      if (this->addMPC(cons) && cons)
+      {
+        cons->addMaster(gMaster,1, 1.0);
+        cons->addMaster(gMaster,2, dX.y);
+        cons->addMaster(gMaster,3,-dX.x);
+#if SP_DEBUG > 1
+        std::cout <<"Added constraint: "<< *cons;
+#endif
+      }
+    }
+    else if (nsd == 3 && nf == 3)
+      // Spatial shell problem (3 DOF per node -> 6 DOFs in master point)
+      this->addRigidMPC(MLGN[iSlave-1],gMaster,dX);
+    else
+    {
+      std::cerr <<"ASMs2DC1::addRigidCpl: Invalid nsd,nf combination: "
+                << (int)nsd <<","<< (int)nf << std::endl;
+      return false;
+    }
+  }
+
+  return extraPt;
 }
 
 
@@ -390,13 +432,32 @@ static bool initMPC4flat (MPC* mpc, std::vector<Vec3>& X)
 }
 
 
+void ASMs2DC1::addC1MPC (int slave, int dir, int master1, int master2, int code)
+{
+  if (master2 > 0)
+    this->add3PC(slave,dir,master1,master2,code);
+  else
+    this->add2PC(slave,dir,master1,code);
+
+  myC1slaves.insert(nf*(slave-1)+dir);
+}
+
+
 bool ASMs2DC1::initConstraints ()
 {
+  // Lambda function checking if the given MPC is for enforcing C1-continuity.
+  auto&& isC1constraint = [this](const MPC* mpc)
+  {
+    if (mpc->getNoMaster() < 2) return false;
+    int slaveDOF = nf*(mpc->getSlave().node-1) + mpc->getSlave().dof;
+    return myC1slaves.find(slaveDOF) != myC1slaves.end();
+  };
+
   // Compute coupling coefficients for the constraint equations
   // enforcing C1-continuity in the solution
   std::map<int,ASMs2DC1*>::const_iterator npit;
   for (MPC* mpce : mpcs)
-    if (dCode.find(mpce) == dCode.end())
+    if (isC1constraint(mpce))
     {
       // Extract coordinates of the control points involved, first the slave.
       // Note that some of the points are in a neighboring patch.
@@ -426,8 +487,6 @@ bool ASMs2DC1::initConstraints ()
 
       switch (nMaster)
 	{
-	case 1:
-	  break;
 	case 2:
 	  initMPC2(mpce,X);
 	  break;
@@ -439,7 +498,7 @@ bool ASMs2DC1::initConstraints ()
 	    break;
 	default:
 	  std::cerr <<" *** ASMs2DC1::initConstraints: Corner point with "
-		    << nMaster << " connections not supported."<< std::endl;
+		    << nMaster <<" connections is not supported."<< std::endl;
 	  return false;
 	}
     }

@@ -63,6 +63,14 @@ public:
   //! \param[in] dof Which local DOFs to constrain at the end point
   //! \param[in] code Inhomogeneous dirichlet condition code
   virtual size_t constrainEndLocal(int dir, int dof, int code);
+  //! \brief Adds MPCs representing a rigid coupling to this patch.
+  //! \param[in] lindx Local index of the boundary item that should be rigid
+  //! \param gMaster Global node number of the master node
+  //! \param[in] Xmaster Position of the master nodal point
+  //! \param[in] extraPt If \e true, the master point is not a patch node
+  //! \return \e true if a new global node was added, otherwise \e false
+  virtual bool addRigidCpl(int lindx, int, int,
+                           int& gMaster, const Vec3& Xmaster, bool extraPt);
 };
 
 #endif

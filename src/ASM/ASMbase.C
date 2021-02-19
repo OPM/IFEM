@@ -458,7 +458,7 @@ bool ASMbase::isFixed (int node, int dof, bool all) const
 }
 
 
-bool ASMbase::addMPC (MPC*& mpc, int code, bool silence)
+bool ASMbase::addMPC (MPC*& mpc, int code, bool verbose)
 {
   if (!mpc) return true;
 
@@ -474,14 +474,14 @@ bool ASMbase::addMPC (MPC*& mpc, int code, bool silence)
   if (mit.second)
   {
 #if SP_DEBUG > 1
-    if (!silence) std::cout <<"Added constraint: "<< *mpc;
+    if (verbose) std::cout <<"Added constraint: "<< *mpc;
 #endif
     if (code > 0) dCode[mpc] = code;
     return true;
   }
 
 #ifdef SP_DEBUG
-  if (!silence) std::cout <<"Ignored constraint (duplicated slave): "<< *mpc;
+  if (verbose) std::cout <<"Ignored constraint (duplicated slave): "<< *mpc;
 #endif
   delete mpc;
   mpc = *mit.first; // This dof is already a slave in another MPC
@@ -495,7 +495,7 @@ bool ASMbase::add2PC (int slave, int dir, int master, int code)
   if (slave == master) return true;
 
   MPC* cons = new MPC(slave,dir);
-  bool stat = this->addMPC(cons,code,true);
+  bool stat = this->addMPC(cons,code);
   if (!cons) return stat;
 
   cons->addMaster(master,dir);
@@ -514,7 +514,7 @@ bool ASMbase::add3PC (int slave, int dir, int master1, int master2, int code)
   if (dir < 1 || dir > nf) return true;
 
   MPC* cons = new MPC(slave,dir);
-  bool stat = this->addMPC(cons,code,true);
+  bool stat = this->addMPC(cons,code);
   if (!cons) return stat;
 
   if (master1 != slave) cons->addMaster(master1,dir);
@@ -536,7 +536,7 @@ void ASMbase::addLocal2GlobalCpl (int iSlave, int master, const Tensor& Tlg)
   for (unsigned char d = 1; d <= nf; d++)
   {
     MPC* cons = new MPC(MLGN[iSlave],d);
-    if (this->addMPC(cons,0,true) && cons)
+    if (this->addMPC(cons) && cons)
     {
       if (d > nsd)
       {
@@ -569,6 +569,56 @@ void ASMbase::addLocal2GlobalCpl (int iSlave, int master, const Tensor& Tlg)
 }
 
 
+bool ASMbase::createRgdMasterNode (int& gMaster)
+{
+  bool newNode = gMaster == 0;
+  if (newNode)
+    gMaster = ++gNod;
+  else if (std::find(MLGN.begin()+nnod,MLGN.end(),gMaster) != MLGN.end())
+    return newNode; // This node has already been created
+
+#if SP_DEBUG > 1
+  std::cout <<"Adding extra-ordinary node "<< gMaster
+            <<" for rigid coupling in Patch "<< idx+1 << std::endl;
+#endif
+  myMLGN.push_back(gMaster);
+  myRmaster.insert(myMLGN.size());
+  return newNode;
+}
+
+
+void ASMbase::addRigidMPC (int gSlave, int gMaster, const Vec3& dX)
+{
+  for (unsigned short int dof = 1; dof <= nf; dof++)
+  {
+    MPC* cons = new MPC(gSlave,dof);
+    if (this->addMPC(cons) && cons)
+    {
+      // Add one-to-one translation coupling
+      cons->addMaster(gMaster,dof,1.0);
+      // Add translation-to-rotation coupling
+      switch (dof) {
+      case 1: // u_x = dZ*theta_y - dY*theta_z
+        cons->addMaster(gMaster,5, dX.z);
+        cons->addMaster(gMaster,6,-dX.y);
+        break;
+      case 2: // u_y = dX*theta_z - dZ*theta_x
+        cons->addMaster(gMaster,4,-dX.z);
+        cons->addMaster(gMaster,6, dX.x);
+        break;
+      case 3: // u_z = dY*theta_x - dX*theta_y
+        cons->addMaster(gMaster,4, dX.y);
+        cons->addMaster(gMaster,5,-dX.x);
+        break;
+      }
+#if SP_DEBUG > 1
+      std::cout <<"Added constraint: "<< *cons;
+#endif
+    }
+  }
+}
+
+
 bool ASMbase::addRigidCpl (int lindx, int ldim, int basis,
                            int& gMaster, const Vec3& Xmaster, bool extraPt)
 {
@@ -579,79 +629,37 @@ bool ASMbase::addRigidCpl (int lindx, int ldim, int basis,
     return false;
   }
 
-  if (extraPt)
-  {
-    // The master point is not a patch node, create an extra node
-    bool addN = true;
-    if (gMaster)
-    {
-      addN = std::find(myMLGN.begin()+nnod,myMLGN.end(),gMaster) == myMLGN.end();
-      extraPt = false;
-    }
-    else
-      gMaster = ++gNod;
-    if (addN)
-    {
-#if SP_DEBUG > 1
-      std::cout <<"Adding extra-ordinary node for rigid coupling "<< gMaster
-                <<" in Patch "<< idx+1 << std::endl;
-#endif
-      myMLGN.push_back(gMaster);
-      myRmaster.insert(myMLGN.size());
-    }
-  }
+  if (extraPt) // The master point is not a patch node, create an extra node
+    extraPt = this->createRgdMasterNode(gMaster);
 
   IntVec nodes;
   this->getBoundaryNodes(lindx,nodes,basis,1,0,true);
   for (int node : nodes)
   {
     Vec3 dX = this->getCoord(node) - Xmaster;
-    MPC* cons = new MPC(MLGN[node-1],1);
-    if (this->addMPC(cons,0,true))
+    if (nsd == 3)
+      this->addRigidMPC(MLGN[node-1],gMaster,dX);
+    else if (nsd == 2 && nf > 1)
     {
-      cons->addMaster(gMaster,1,1.0);
-      if (nsd == 2)
+      // Special for 2D problems with (at least) 2 nodal DOFs
+      MPC* cons = new MPC(MLGN[node-1],1);
+      if (this->addMPC(cons) && cons)
+      {
+        cons->addMaster(gMaster,1, 1.0);
         cons->addMaster(gMaster,3,-dX.y);
-      else if (nsd == 3)
-      {
-        cons->addMaster(gMaster,5, dX.z);
-        cons->addMaster(gMaster,6,-dX.y);
       }
 #if SP_DEBUG > 1
       std::cout <<"Added constraint: "<< *cons;
 #endif
-    }
-    if (nf < 2) continue;
-
-    cons = new MPC(MLGN[node-1],2);
-    if (this->addMPC(cons,0,true))
-    {
-      cons->addMaster(gMaster,2,1.0);
-      if (nsd == 2)
+      cons = new MPC(MLGN[node-1],2);
+      if (this->addMPC(cons) && cons)
+      {
+        cons->addMaster(gMaster,2, 1.0);
         cons->addMaster(gMaster,3, dX.x);
-      else if (nsd == 3)
-      {
-        cons->addMaster(gMaster,4,-dX.z);
-        cons->addMaster(gMaster,6, dX.x);
-      }
 #if SP_DEBUG > 1
-      std::cout <<"Added constraint: "<< *cons;
+        std::cout <<"Added constraint: "<< *cons;
 #endif
-    }
-    if (nf < 3) continue;
-
-    cons = new MPC(MLGN[node-1],3);
-    if (this->addMPC(cons,0,true))
-    {
-      cons->addMaster(gMaster,3,1.0);
-      if (nsd == 3)
-      {
-        cons->addMaster(gMaster,4, dX.y);
-        cons->addMaster(gMaster,5,-dX.x);
       }
-#if SP_DEBUG > 1
-      std::cout <<"Added constraint: "<< *cons;
-#endif
     }
   }
 
@@ -753,7 +761,7 @@ int ASMbase::prescribe (size_t inod, int dirs, int code)
     if (dof <= nf)
     {
       MPC* mpc = new MPC(node,dof,1.0);
-      if (!this->addMPC(mpc,code))
+      if (!this->addMPC(mpc,code,true))
         ignoredDirs = 10*ignoredDirs + dof;
     }
     else
@@ -1126,9 +1134,9 @@ bool ASMbase::collapseNodes (ASMbase& pch1, int node1, ASMbase& pch2, int node2)
   if (node2 < 1 || (size_t)node2 > pch2.myMLGN.size()) return false;
 
   if (pch1.myMLGN[node1-1] > pch2.myMLGN[node2-1])
-    pch1.mergeNodes(node1,pch2.myMLGN[node2-1],true);
+    pch1.mergeNodes(node1,pch2.myMLGN[node2-1],false);
   else if (pch2.myMLGN[node2-1] > pch1.myMLGN[node1-1])
-    pch2.mergeNodes(node2,pch1.myMLGN[node1-1],true);
+    pch2.mergeNodes(node2,pch1.myMLGN[node1-1],false);
   else
     return false;
 
@@ -1143,7 +1151,7 @@ bool ASMbase::collapseNodes (ASMbase& pch1, int node1, ASMbase& pch2, int node2)
 }
 
 
-bool ASMbase::mergeNodes (size_t inod, int globalNum, bool silence)
+bool ASMbase::mergeNodes (size_t inod, int globalNum, bool verbose)
 {
   if (inod < 1 || inod > myMLGN.size())
     return false;
@@ -1152,7 +1160,7 @@ bool ASMbase::mergeNodes (size_t inod, int globalNum, bool silence)
   if (oldNum == globalNum)
     return false;
 
-  if (!silence)
+  if (verbose)
     IFEM::cout <<"  ** Merging duplicated nodes "<< globalNum <<" and "<< oldNum
                <<" at X="<< this->getCoord(inod) << std::endl;
 

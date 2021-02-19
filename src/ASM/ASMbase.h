@@ -345,8 +345,8 @@ public:
   //! \brief Merges a given node in this patch with a given global node.
   //! \param[in] inod 1-based node index local to current patch
   //! \param[in] globalNum Global number of the node to merge \a node with
-  //! \param[in] silence If \e true, suppress message on the merged nodes
-  bool mergeNodes(size_t inod, int globalNum, bool silence = false);
+  //! \param[in] verbose If \e true, print message on the merged nodes
+  bool mergeNodes(size_t inod, int globalNum, bool verbose = true);
 
   //! \brief Renumbers all global node numbers in the entire model.
   //! \param[in] model All spline patches in the model
@@ -707,8 +707,8 @@ public:
   //! \brief Adds a general multi-point-constraint (MPC) equation to this patch.
   //! \param mpc Pointer to an MPC-object
   //! \param[in] code Identifier for inhomogeneous Dirichlet condition field
-  //! \param[in] silence If \e true, suppress debug print
-  bool addMPC(MPC*& mpc, int code = 0, bool silence = false);
+  //! \param[in] verbose If \e true, print out added constraint (debug build)
+  bool addMPC(MPC*& mpc, int code = 0, bool verbose = false);
 
   //! \brief Adds MPCs representing a rigid coupling to this patch.
   //! \param[in] lindx Local index of the boundary item that should be rigid
@@ -752,6 +752,15 @@ protected:
   //! \brief Adds a patch to the list of neighbors of this patch.
   //! \param[in] pch Pointer to the neighboring patch
   void addNeighbor(ASMbase* pch);
+  //! \brief Creates an additional master node for a rigid coupling.
+  //! \param gMaster Global node number of the master node
+  //! \return \e true if a new global node was added, otherwise \e false
+  bool createRgdMasterNode(int& gMaster);
+  //! \brief Adds MPC equations representing a rigid arm to a 6-DOF node
+  //! \param[in] gSlave Global node number of the 3-DOF slave node
+  //! \param[in] gMaster Global node number of the 6-DOF master node
+  //! \param[in] dX Relative position of the slave w.r.t. the master node
+  void addRigidMPC(int gSlave, int gMaster, const Vec3& dX);
 
   //! \brief Returns the number of Gauss points to use in one direction.
   //! \param[in] p Polynomial order of the basis functions

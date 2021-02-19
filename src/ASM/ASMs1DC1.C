@@ -16,6 +16,9 @@
 #include "ASMs1DC1.h"
 #include "Utilities.h"
 #include "Tensor.h"
+#include "Vec3.h"
+#include "Vec3Oper.h"
+#include "MPC.h"
 
 
 bool ASMs1DC1::generateFEMTopology ()
@@ -112,4 +115,44 @@ size_t ASMs1DC1::constrainEndLocal (int dir, int dof, int code)
   }
 
   return added;
+}
+
+
+bool ASMs1DC1::addRigidCpl (int lindx, int, int,
+                            int& gMaster, const Vec3& Xmaster, bool extraPt)
+{
+  if (extraPt) // The master point is not a patch node, create an extra node
+    extraPt = this->createRgdMasterNode(gMaster);
+
+  for (int i = 0; i < 2; i++)
+  {
+    int iSn = lindx == 1 ? i : this->getSize()-1-i;
+    Vec3 dX = this->getCoord(iSn+1) - Xmaster;
+    if (nsd < 3 && nf == 1)
+    {
+      // Scalar beam problem (1 DOF per node -> 3 DOFs in master point)
+      MPC* cons = new MPC(MLGN[iSn],1);
+      if (this->addMPC(cons) && cons)
+      {
+        cons->addMaster(gMaster,1,1.0);
+        if (nsd == 2)
+          cons->addMaster(gMaster,2,dX.y);
+        cons->addMaster(gMaster,3,-dX.x);
+#if SP_DEBUG > 1
+        std::cout <<"Added constraint: "<< *cons;
+#endif
+      }
+    }
+    else if (nsd == 3 && nf == 3)
+      // Spatial beam problem (3 DOF per node -> 6 DOFs in master point)
+      this->addRigidMPC(MLGN[iSn],gMaster,dX);
+    else
+    {
+      std::cerr <<"ASMs1DC1::addRigidCpl: Invalid nsd,nf combination: "
+                << (int)nsd <<","<< (int)nf << std::endl;
+      return false;
+    }
+  }
+
+  return extraPt;
 }

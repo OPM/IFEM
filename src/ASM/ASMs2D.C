@@ -1060,7 +1060,7 @@ size_t ASMs2D::constrainEdgeLocal (int dir, bool open, int dof, int code,
     for (d = 1; d <= nf; d++)
     {
       MPC* cons = new MPC(slaveNode,d);
-      if (this->addMPC(cons,0,true) && cons)
+      if (this->addMPC(cons) && cons)
       {
         if (d > nsd)
           cons->addMaster(masterNode,d);

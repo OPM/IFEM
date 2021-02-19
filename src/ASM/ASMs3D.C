@@ -1253,7 +1253,7 @@ size_t ASMs3D::constrainFaceLocal (int dir, bool open, int dof, int code,
       for (d = 1; d <= nf; d++)
       {
         MPC* cons = new MPC(slaveNode,d);
-        if (this->addMPC(cons,0,true) && cons)
+        if (this->addMPC(cons) && cons)
         {
           if (d > 3)
             cons->addMaster(masterNode,d);

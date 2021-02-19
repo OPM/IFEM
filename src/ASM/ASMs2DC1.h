@@ -90,6 +90,17 @@ public:
   //! \param[in] dir Parameter direction defining the periodic edges
   virtual void closeBoundaries(int dir, int, int);
 
+  //! \brief Adds MPCs representing a rigid coupling to this patch.
+  //! \param[in] lindx Local index of the boundary item that should be rigid
+  //! \param[in] ldim Dimension of the boundary item that should be rigid
+  //! \param[in] basis Which basis to add rigid coupling for (mixed methods)
+  //! \param gMaster Global node number of the master node
+  //! \param[in] Xmaster Position of the master nodal point
+  //! \param[in] extraPt If \e true, the master point is not a patch node
+  //! \return \e true if a new global node was added, otherwise \e false
+  virtual bool addRigidCpl(int lindx, int ldim, int basis,
+                           int& gMaster, const Vec3& Xmaster, bool extraPt);
+
   //! \brief Renumbers the global node numbers in the \a neighbors map.
   //! \param[in] old2new Old-to-new node number mapping
   static void renumberNodes(const std::map<int,int>& old2new);
@@ -106,7 +117,18 @@ public:
                                const std::map<int,VecFunc*>& vfunc, double time,
                                const std::map<int,int>* g2l = nullptr);
 
+protected:
+  //! \brief Creates and adds a constraint equation enforcing C1-continuity.
+  //! \param[in] slave Global node number of the node to constrain
+  //! \param[in] dir Which local DOF to constrain (1, 2, 3)
+  //! \param[in] master1 Global node number of 1st master node of the constraint
+  //! \param[in] master2 Global node number of 2nd master node of the constraint
+  //! \param[in] code Identifier for inhomogeneous Dirichlet condition field
+  void addC1MPC(int slave, int dir, int master1, int master2 = 0, int code = 0);
+
 private:
+  std::set<int> myC1slaves; //!< Set of slave DOFs for C1-continuity enforcement
+
   static std::map<int,ASMs2DC1*> neighbors; //!< Global node to patch mapping
 };
 
