@@ -148,6 +148,9 @@ public:
   //! \return Number of invalid node numbers detected
   int renumberNodes(const std::map<int,int>& old2new, bool msg = false);
 
+  //! \brief Increments node numbers in the constraint equation by \a nshift.
+  void shiftNodes(int nshift);
+
   //! \brief Increments the \a c0 coefficient by a given \a offset.
   void addOffset(Real offset) { slave.coeff += offset; }
 

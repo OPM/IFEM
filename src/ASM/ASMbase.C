@@ -1212,39 +1212,64 @@ int ASMbase::renumberNodes (std::map<int,int>& old2new, int& nNod)
 }
 
 
-bool ASMbase::renumberNodes (const std::map<int,int>& old2new, bool renumNodes)
+/*!
+  This method renumbers the global node numbers referred by the boundary
+  condition- and multi-point constraint equation objects in the patch,
+  according to the provided mapping \a old2new.
+
+  The nodes themselves (in \a MLGN) are assumed already to be up to date,
+  unless \a renumGN is non-zero. If \a renumGN equals one, all node numbers
+  are assumed present in the \a old2new mapping and an error is flagged if
+  that is not the case.
+*/
+
+bool ASMbase::renumberNodes (const std::map<int,int>& old2new, char renumGN)
 {
+  bool renumAll = old2new.size() > 1 && renumGN < 2;
 #ifdef SP_DEBUG
-  bool printInvalidNodes = old2new.size() > 1;
+  bool printInvalidNodes = renumAll;
 #else
   bool printInvalidNodes = false;
 #endif
 
   int invalid = 0;
-  if (renumNodes)
+  if (renumGN > 0)
     for (int& node : myMLGN)
-      if (!utl::renumber(node,old2new,printInvalidNodes))
-	if (old2new.size() > 1)
-	  invalid++;
+      if (!utl::renumber(node,old2new,printInvalidNodes) && renumAll)
+        ++invalid;
 
   for (BCVec::iterator bit = BCode.begin(); bit != BCode.end();)
     if (utl::renumber(bit->node,old2new,printInvalidNodes))
       ++bit;
-    else if (old2new.size() > 1)
-    {
-      bit = BCode.erase(bit);
-      invalid++;
-    }
     else
-      ++bit;
+    {
+      if (renumAll)
+        bit = BCode.erase(bit); // Remove fixation codes on non-existing node
+      else
+        ++bit;
+      ++invalid;
+    }
 
   for (MPC* mpc : mpcs)
     invalid += mpc->renumberNodes(old2new,printInvalidNodes);
 
-  if (invalid == 0 || old2new.size() == 1) return true;
+  if (invalid == 0 || !renumAll) return true;
 
   std::cerr <<" *** "<< invalid <<" invalid nodes found while renumbering\n";
   return false;
+}
+
+
+void ASMbase::shiftGlobalNodeNums (int nshift)
+{
+  for (int& node : myMLGN)
+    node += nshift;
+
+  for (BC& bc : BCode)
+    bc.node += nshift;
+
+  for (MPC* mpc : mpcs)
+    mpc->shiftNodes(nshift);
 }
 
 

@@ -264,12 +264,17 @@ public:
   //! \brief Prints out element connections of this patch to the given stream.
   void printElements(std::ostream& os) const;
 
+  //! \brief Increase all global node numbers by \a nshift.
+  void shiftGlobalNodeNums(int nshift);
   //! \brief Sets the global node numbers for this patch.
   void setGlobalNodeNums(const IntVec& nodes) { myMLGN = nodes; }
   //! \brief Returns the actual global node numbers of this patch.
   const IntVec& getMyNodeNums() const { return myMLGN; }
   //! \brief Returns the global node numbers of this patch.
   const IntVec& getGlobalNodeNums() const { return MLGN; }
+
+  //! \brief Increase all global element numbers by \a eshift.
+  void shiftGlobalElmNums(int eshift) { for (int& e : myMLGE) e += eshift; }
   //! \brief Returns the global element numbers of this patch.
   const IntVec& getGlobalElementNums() const { return MLGE; }
 
@@ -371,13 +376,8 @@ public:
 
   //! \brief Renumbers the global node numbers referred by this patch.
   //! \param[in] old2new Old-to-new node number mapping
-  //! \param[in] renumNodes If \e true, the node number array is renumberd too
-  //!
-  //! \details The node numbers referred by boundary condition and
-  //! multi-point constraint objects in the patch are renumbered.
-  //! The nodes themselves are assumed already to be up to date,
-  //! unless \a renumNodes is \e true.
-  bool renumberNodes(const std::map<int,int>& old2new, bool renumNodes = false);
+  //! \param[in] renumGN Flag for renumbering the node number array \a MLGN
+  bool renumberNodes(const std::map<int,int>& old2new, char renumNodes = 0);
 
   //! \brief Computes the set of all MPCs over the whole model.
   //! \param[in] model All spline patches in the model

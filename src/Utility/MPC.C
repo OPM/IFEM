@@ -114,6 +114,14 @@ int MPC::renumberNodes (const std::map<int,int>& old2new, bool msg)
 }
 
 
+void MPC::shiftNodes (int nshift)
+{
+  slave.node += nshift;
+  for (DOF& mdof : master)
+    mdof.node += nshift;
+}
+
+
 void MPC::printMaster (std::ostream& os) const
 {
   if (slave.coeff != Real(0))
