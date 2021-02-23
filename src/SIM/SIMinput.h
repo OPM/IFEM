@@ -43,10 +43,11 @@ public:
     int geo_level;  //!< The time level for the (adapted) geometry in the file
     char basis;     //!< The basis to inject field into (for mixed)
     char component; //!< Component for field (for functions)
-    std::string sim_field;  //!< The name of the field in the SIM class
+    std::string sim_field;  //!< The name of the field in the %SIM class
     std::string file_basis; //!< Basis for field on file
     std::string file_field; //!< The field name in the file or type of function
-    std::string function;   //!< Function if given in function form
+    std::string function;   //!< Function expression if given in function form
+
     //! \brief Default constructor.
     ICInfo() : file_level(-1), geo_level(0), basis(1), component(0) {}
     //! \brief Constructor providing the field name.
@@ -255,6 +256,9 @@ public:
   TopEntity& topology(const std::string& name) { return myEntitys[name]; }
   //! \brief Returns the whole topology set container (for testing only).
   const TopologySet& getTopology() const { return myEntitys; }
+
+  //! \brief Returns the node numbers associated with a topological item.
+  bool getTopItemNodes(const TopItem& titem, std::vector<int>& glbNodes) const;
 
   //! \brief Returns pointer to an indexed discrete point.
   IdxVec3* getDiscretePoint(int idx);

@@ -1677,5 +1677,19 @@ const TopEntity& SIMinput::getEntity (const std::string& name) const
 
 SIMinput::IdxVec3* SIMinput::getDiscretePoint (int idx)
 {
-  return idx < 0 || idx >= (int)myTopPts.size() ? NULL : &myTopPts[idx];
+  return idx < 0 || idx >= (int)myTopPts.size() ? nullptr : &myTopPts[idx];
+}
+
+
+bool SIMinput::getTopItemNodes (const TopItem& titem, IntVec& glbNodes) const
+{
+  ASMbase* pch = this->getPatch(titem.patch);
+  if (pch)
+    pch->getBoundaryNodes(titem.item,glbNodes);
+  else if (!titem.patch && titem.item >= 0 && titem.item < (int)myTopPts.size())
+    glbNodes.push_back(myTopPts[titem.item].first);
+  else
+    return false;
+
+  return true;
 }
