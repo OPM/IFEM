@@ -1,0 +1,137 @@
+// $Id$
+//==============================================================================
+//!
+//! \file SIMmultiCpl.C
+//!
+//! \date Feb 12 2021
+//!
+//! \author Knut Morten Okstad / SINTEF
+//!
+//! \brief Monolithic coupling of multiple simulators.
+//!
+//==============================================================================
+
+#include "SIMmultiCpl.h"
+#include "SIMoutput.h"
+#include "Utilities.h"
+#include "IFEM.h"
+#include "tinyxml.h"
+
+
+SIMmultiCpl::SIMmultiCpl (const std::vector<SIMoutput*>& sims)
+  : SIMadmin(*sims.front()), mySims(sims)
+{
+  if (mySims.size() > 1)
+    for (SIMoutput* sim : mySims)
+      if (sim == mySims.front())
+        sim->setMDflag(1);
+      else if (sim == mySims.back())
+        sim->setMDflag(2);
+      else
+        sim->setMDflag(3);
+}
+
+
+SIMmultiCpl::~SIMmultiCpl ()
+{
+  for (SIMoutput*& sim : mySims)
+    delete sim;
+}
+
+
+bool SIMmultiCpl::parse (const TiXmlElement* elem)
+{
+  bool results = true;
+  if (!strcasecmp(elem->Value(),"coupling"))
+  {
+    const TiXmlElement* child = elem->FirstChildElement("connection");
+    for (; child; child = child->NextSiblingElement("connection"))
+      results &= this->parseConnection(child);
+  }
+  else for (SIMbase* sim : mySims)
+    if (!sim->parse(elem))
+      return false;
+
+  return true;
+}
+
+
+bool SIMmultiCpl::parseConnection (const TiXmlElement* elem)
+{
+  IFEM::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
+
+  std::string master, slave;
+  utl::getAttribute(elem,"master",master);
+  utl::getAttribute(elem,"slave",slave);
+  SIMinput* mstSim = nullptr;
+  SIMinput* slvSim = nullptr;
+  for (SIMoutput* sim : mySims)
+    if (sim->getEntity(master).size() == 1)
+      mstSim = sim;
+    else if (sim->getEntity(slave).size() == 1)
+      slvSim = sim;
+
+  if (!mstSim || !slvSim)
+    return false;
+
+  myCpl.push_back({mstSim,slvSim,
+                   mstSim->getEntity(master).begin(),
+                   slvSim->getEntity(slave).begin()});
+  IFEM::cout <<"\tMaster point: \""<< master <<"\""<< *myCpl.back().master
+             <<"\n\tSlave point:  \""<< slave <<"\""<< *myCpl.back().slave
+             << std::endl;
+
+  return true;
+}
+
+
+bool SIMmultiCpl::preprocess (const std::vector<int>& ignored, bool fixDup)
+{
+  // Preprocess the FE model of each sub-simulator
+  size_t nOffset = 0;
+  std::vector<int> empty;
+  std::map<SIMinput*,int> nSubNodes;
+  for (SIMoutput* sim : mySims)
+    if (sim->preprocess(nOffset == 0 ? ignored : empty, fixDup))
+    {
+      nSubNodes[sim] = nOffset;
+      nOffset += sim->getNoNodes();
+    }
+    else
+      return false;
+
+  int substep = 10 + mySims.size();
+  this->printHeading(substep);
+
+  // Process the inter-sim couplings
+  std::map<int,int> cplNodes;
+  for (const SIMcoupling& cpl : myCpl)
+  {
+    std::vector<int> mNodes, sNodes;
+    cpl.mstSim->getTopItemNodes(*cpl.master,mNodes);
+    cpl.slvSim->getTopItemNodes(*cpl.slave,sNodes);
+    for (int& n : mNodes) n += nSubNodes[cpl.mstSim];
+    for (int& n : sNodes) n += nSubNodes[cpl.slvSim];
+    if (sNodes.size() != mNodes.size())
+    {
+      std::cerr <<" *** SIMmultiCpl::preprocess: Mismatching topological items"
+                <<" for inter-sim coupling "<< sNodes.size() <<" "
+                << mNodes.size() << std::endl;
+      return false;
+    }
+    else for (size_t i = 0; i < sNodes.size(); i++)
+      cplNodes[sNodes[i]] = mNodes[i];
+  }
+
+  IFEM::cout <<"\nCoupling node mapping:";
+  for (const std::pair<int,int>& cp : cplNodes)
+    IFEM::cout <<"\n\t"<< cp.first <<" -> "<< cp.second;
+  IFEM::cout << std::endl;
+
+  // Merge the equation systems into one monolithic system
+  for (SIMoutput* sim : mySims)
+    if (!mySims.front()->merge(sim,&cplNodes))
+      return false;
+
+  return true;
+}
