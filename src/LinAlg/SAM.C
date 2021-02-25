@@ -136,7 +136,7 @@ void SAM::print (std::ostream& os) const
     os << ((i%10) ? " " : "\n           ") << mpar[i];
   os << std::endl;
 
-  if (mmnpc && mpmnpc)
+  if (mmnpc && mpmnpc && nel > 0)
   {
     os <<"\n\nElement --> Nodes";
     for (int e = 0; e < nel; e++)
@@ -151,7 +151,7 @@ void SAM::print (std::ostream& os) const
     os << std::endl;
   }
 
-  if (ttcc && mmceq && mpmceq)
+  if (ttcc && mmceq && mpmceq && nceq > 0)
   {
     os <<"\n\nConstraint Equations";
     for (int i = 0; i < nceq; i++)
@@ -162,7 +162,7 @@ void SAM::print (std::ostream& os) const
     os << std::endl;
   }
 
-  if (meqn && madof)
+  if (meqn && madof && nnod > 0 && neq > 0)
   {
     char code[7], dofType[7];
     os <<"\n\nNode --> Equations";

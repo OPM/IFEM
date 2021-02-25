@@ -56,6 +56,8 @@ SIMbase::SIMbase (IntegrandBase* itg) : g2l(&myGlb2Loc)
   isRefined = lagMTOK = false;
   nGlPatches = 0;
   nIntGP = nBouGP = 0;
+  nDofS = 0;
+  mdFlag = 0;
   extEnergy = 0.0;
 
   MPCLess::compareSlaveDofOnly = true; // to avoid multiple slave definitions
@@ -68,16 +70,19 @@ SIMbase::~SIMbase ()
   IFEM::cout <<"\nEntering SIMbase destructor"<< std::endl;
 #endif
 
-  for (auto& itg : myInts)
+  for (IntegrandMap::value_type& itg : myInts)
     if (itg.second != myProblem)
       delete itg.second;
 
-  if (myProblem)   delete myProblem;
-  if (mySol)       delete mySol;
-  if (myEqSys)     delete myEqSys;
-  if (mySam)       delete mySam;
-  if (mySolParams) delete mySolParams;
-  if (myGl2Params) delete myGl2Params;
+  delete myProblem;
+  delete mySol;
+  if (mdFlag <= 1)
+  {
+    delete myEqSys;
+    delete mySam;
+  }
+  delete mySolParams;
+  delete myGl2Params;
 
   for (ASMbase* patch : myModel)
     delete patch;
@@ -402,7 +407,9 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
     return false;
   }
 
-  if (!adm.dd.setup(adm,*this))
+  if (mdFlag > 0)
+    nDofS = mySam->getNoDOFs();
+  else if (!adm.dd.setup(adm,*this))
   {
     std::cerr <<"\n *** SIMbase::preprocess(): Failed to establish "
               <<" domain decomposition data."<< std::endl;
@@ -411,6 +418,37 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
 
   // Now perform the sub-class specific final preprocessing, if any
   return this->preprocessB() && ierr == 0;
+}
+
+
+bool SIMbase::merge (SIMbase* that, const std::map<int,int>* old2new)
+{
+  if (this == that)
+    return true;
+  else if (!mySam || this->mdFlag > 1 || that->mdFlag < 2)
+  {
+    std::cerr <<" *** SIMbase::merge: Logic error, this->mdFlag = "
+              << (short int)this->mdFlag <<" that->mdFlag = "
+              << (short int)that->mdFlag << std::endl;
+    return false;
+  }
+
+  that->shiftGlobalNums(mySam->getNoNodes(),mySam->getNoElms());
+  if (!mySam->merge(that->mySam,old2new))
+    return false;
+
+  delete that->mySam;
+  that->mySam = this->mySam;
+
+  // Set up domain decomposition data when we have merged all models
+  if (that->mdFlag == 3 && !adm.dd.setup(adm,*this))
+  {
+    std::cerr <<"\n *** SIMbase::merge(): Failed to establish "
+              <<" domain decomposition data."<< std::endl;
+    return false;
+  }
+
+  return true;
 }
 
 
@@ -483,6 +521,23 @@ bool SIMbase::initSystem (LinAlg::MatrixType mType,
 
   return myEqSys->init(mType, mySolParams, nMats, nVec, nScl,
                        withRF, opt.num_threads_SLU);
+}
+
+
+bool SIMbase::initSystem (const SIMbase* that)
+{
+  if (this == that)
+    return false;
+  else if (myEqSys || this->mdFlag < 2 || that->mdFlag > 1)
+  {
+    std::cerr <<" *** SIMbase::initSystem: Logic error, this->mdFlag = "
+              << (short int)this->mdFlag <<" that->mdFlag = "
+              << (short int)that->mdFlag << std::endl;
+    return false;
+  }
+
+  this->myEqSys = that->myEqSys;
+  return true;
 }
 
 
@@ -594,9 +649,9 @@ size_t SIMbase::getNoFields (int basis) const
 }
 
 
-size_t SIMbase::getNoDOFs () const
+size_t SIMbase::getNoDOFs (bool subSim) const
 {
-  return mySam ? mySam->getNoDOFs() : 0;
+  return subSim ? nDofS : (mySam ? mySam->getNoDOFs() : 0);
 }
 
 
@@ -872,7 +927,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
   bool ok = true;
   bool isAssembling = (myProblem->getMode() > SIM::INIT &&
                        myProblem->getMode() < SIM::RECOVERY);
-  if (isAssembling && myEqSys)
+  if (isAssembling && myEqSys && mdFlag <= 1)
     myEqSys->initialize(newLHSmatrix);
 
   // Loop over the integrands
@@ -884,7 +939,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
                 << std::endl;
 
     GlobalIntegral& sysQ = it->second->getGlobalInt(myEqSys);
-    if (&sysQ != myEqSys && isAssembling)
+    if (&sysQ != myEqSys && isAssembling && mdFlag <= 1)
       sysQ.initialize(newLHSmatrix);
 
     if (!prevSol.empty())
@@ -983,10 +1038,10 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
         }
 
     if (ok) ok = this->assembleDiscreteTerms(it->second,time);
-    if (ok && &sysQ != myEqSys && isAssembling)
+    if (ok && &sysQ != myEqSys && isAssembling && mdFlag%2 == 0)
       ok = sysQ.finalize(newLHSmatrix);
   }
-  if (ok && isAssembling && myEqSys)
+  if (ok && isAssembling && myEqSys && mdFlag%2 == 0)
     ok = myEqSys->finalize(newLHSmatrix);
 
   if (!ok)
@@ -1974,7 +2029,8 @@ bool SIMbase::project (Vector& values, const FunctionBase* f,
       {
         if (myModel.size() > 1) {
           std::cerr <<"  ** L2 projection of explicit functions onto a"
-                    <<" separate basis is not available for multi-patch models."<< std::endl;
+                    <<" separate basis is not available for multi-patch models."
+                    << std::endl;
           return false;
         }
         Matrix ftmp(loc_values);

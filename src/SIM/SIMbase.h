@@ -97,8 +97,12 @@ public:
   //! \brief Performs some pre-processing tasks on the FE model.
   //! \param[in] ignored Indices of patches to ignore in the analysis
   //! \param[in] fixDup Merge duplicated FE nodes on patch interfaces?
-  bool preprocess(const std::vector<int>& ignored = std::vector<int>(),
-                  bool fixDup = false);
+  //! \return Total number of unique FE nodes in the model
+  virtual bool preprocess(const std::vector<int>& ignored = std::vector<int>(),
+                          bool fixDup = false);
+
+  //! \brief Merges the global equation system of \a that simulator with this.
+  bool merge(SIMbase* that, const std::map<int,int>* old2new = nullptr);
 
   //! \brief Allocates the system matrices of the FE problem to be solved.
   //! \param[in] mType The matrix format to use
@@ -109,6 +113,9 @@ public:
   bool initSystem(LinAlg::MatrixType mType,
                   size_t nMats = 1, size_t nVec = 1, size_t nScl = 0,
                   bool withRF = false);
+
+  //! \brief Lets this simulator share equation system with \a that simulator.
+  bool initSystem(const SIMbase* that);
 
   //! \brief Associates a system vector to a system matrix.
   //! \sa AlgEqSystem::setAssociatedVector
@@ -168,7 +175,7 @@ public:
   //! \param[in] basis Which basis to consider when mixed methods (0 = all)
   size_t getNoFields(int basis = 0) const;
   //! \brief Returns the model size in terms of number of DOFs.
-  size_t getNoDOFs() const;
+  size_t getNoDOFs(bool subSim = false) const;
   //! \brief Returns the model size in terms of number of unique nodes.
   //! \param[in] basis Which basis to return the number of nodes for (0 = all)
   size_t getNoNodes(int basis = 0) const;
@@ -575,7 +582,7 @@ protected:
   //! \param[in] pindx Local patch index to extract solution vectors for
   //!
   //! \details This method is typically invoked before ASMbase::integrate()
-  //! on the specified path, in order to extract all patch-level vector
+  //! on the specified patch, in order to extract all patch-level vector
   //! quantities needed by the Integrand. This also includes any dependent
   //! vectors from other simulator classes that have been registered.
   //! All patch-level vectors are stored within the provided integrand.
@@ -584,9 +591,9 @@ protected:
 
 public:
   using SIMdependency::registerDependency;
-  //! \brief Registers a dependency on a field from another SIM object.
+  //! \brief Registers a dependency on a field from another %SIM object.
   //! \param[in] name Name of field we depend on
-  //! \param[in] sim The SIM object holding the field we depend on
+  //! \param[in] sim The %SIM object holding the field we depend on
   //! \param[in] nvc Number of components in field
   //! \param[in] basis The basis the dependent field should be defined on
   void registerDependency(const std::string& name, SIMdependency* sim,
@@ -668,7 +675,17 @@ public:
   //! \brief Returns a scalar function associated with \a code.
   RealFunc* getSclFunc(int code) const;
 
+  //! \brief Sets the multi-dimension simulator sequence flag.
+  void setMDflag(char flag) { mdFlag = flag; }
+  //! \brief Returns \e true, if this is the equation system owner.
+  bool isFirst() const { return mdFlag <= 1; }
+
 protected:
+  //! \brief Returns the multi-dimension simulator sequence flag.
+  char getMDflag() const { return mdFlag; }
+  //! \brief Shifts global node and element numbers by constant offsets.
+  virtual void shiftGlobalNums(int, int) {}
+
   //! \brief Initializes material properties for integration of interior terms.
   virtual bool initMaterial(size_t) { return true; }
   //! \brief Initializes the body load properties for current patch.
@@ -736,7 +753,7 @@ protected:
 
   std::vector<FunctionBase*> extrFunc; //!< Extraction functions for VCP
 
-  int isRefined; //!< Indicates if the model is adaptively refined
+  int  isRefined; //!< Indicates if the model is adaptively refined
   bool lagMTOK;   //!< Indicates if global multipliers is OK with multithreading
 
   //! \brief A struct with data for system matrix/vector dumps.
@@ -774,6 +791,8 @@ protected:
 private:
   size_t nIntGP; //!< Number of interior integration points in the whole model
   size_t nBouGP; //!< Number of boundary integration points in the whole model
+  size_t nDofS;  //!< Number of degrees of freedom in this sub-simulator
+  char   mdFlag; //!< Sequence flag for multi-dimensional simulators
 
   //! Additional MADOF arrays for mixed problems (extraordinary DOF counts)
   std::map<int, std::vector<int> > mixedMADOFs;

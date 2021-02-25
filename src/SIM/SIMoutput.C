@@ -1872,10 +1872,10 @@ bool SIMoutput::extractNodeVec (const Vector& glbVec, Vector& locVec,
       return false; // Can't use MADOF since different number of nodal DOFs
     }
   }
-  else if (emptyPatches)
-    patch->extractNodalVec(glbVec,locVec,mySam->getMADOF());
   else if (mySam->getNoNodes('X') > 0) // exclude any extraordinary DOFs
     patch->extractNodalVec(glbVec,locVec,mySam->getMADOF(),-2);
+  else if (emptyPatches || this->getMDflag() > 0)
+    patch->extractNodalVec(glbVec,locVec,mySam->getMADOF());
   else
   {
     if (nodalCmps < 0) nodalCmps = 0;

@@ -407,3 +407,87 @@ bool SAMpatch::updateConstraintEqs (const Vector* prevSol)
 
   return true;
 }
+
+
+bool SAMpatch::merge (const SAM* other, const std::map<int,int>* old2new)
+{
+#ifdef SP_DEBUG
+  std::cout <<"SAMpatch::merge()"<< std::endl;
+#endif
+
+  const SAMpatch* that = dynamic_cast<const SAMpatch*>(other);
+  if (!that) return false;
+
+  // Add patches from the other SAM object while updating the global numbers
+  model.reserve(model.size()+that->model.size());
+  for (ASMbase* pch : that->model)
+  {
+    pch->shiftGlobalElmNums(nel);
+    pch->shiftGlobalNodeNums(nnod);
+    if (old2new && !old2new->empty())
+      pch->renumberNodes(*old2new,2);
+    model.push_back(pch);
+  }
+
+  // Reinitialize some model size parameters
+  nnod += that->nnod;
+  nel  += that->nel;
+  nceq += that->nceq;
+  neq   = 0;
+
+  if (!nodeType.empty())
+    nodeType.resize(nnod,'0');
+
+  if (!dof_type.empty() || !that->dof_type.empty())
+  {
+    if (dof_type.empty())
+      dof_type.resize(ndof,'D');
+    if (!that->dof_type.empty())
+      dof_type.insert(dof_type.end(),
+                      that->dof_type.begin(),that->dof_type.end());
+  }
+
+  // Reinitialize the node/dof arrays (madof,msc) and compute ndof
+  delete[] madof;
+  delete[] msc;
+  if (!this->initNodeDofs({}))
+    return false;
+
+  IFEM::cout <<"\n\n >>> SAM model summary <<<"
+             <<"\nNumber of elements    "<< nel
+             <<"\nNumber of nodes       "<< nnod
+             <<"\nNumber of dofs        "<< ndof << std::endl;
+
+  // Count the number of DOFs of each type
+  std::map<char,size_t> ndofs;
+  ndofs['D'] = ndofs['L'] = ndofs['P'] = ndofs['Q'] = ndofs['X'] = 0;
+  for (size_t n = 0; n < nodeType.size(); n++)
+    ndofs[nodeType[n]] += madof[n+1] - madof[n];
+  for (size_t d = 0; d < dof_type.size(); d++)
+    ndofs[dof_type[d]] ++;
+  for (const std::pair<char,size_t>& dof : ndofs)
+    if (dof.second > 0)
+      IFEM::cout <<"Number of "<< dof.first <<"-dofs      "
+                 << dof.second << std::endl;
+
+  // Reinitialize the element connectivity arrays (mpmnpc,mmnpc)
+  delete[] mpmnpc;
+  delete[] mmnpc;
+  if (!this->initElementConn())
+    return false;
+
+  // Reinitialize the constraint equation arrays (mpmceq,mmceq,ttcc)
+  delete[] mpmceq;
+  delete[] mmceq;
+  delete[] ttcc;
+  if (!this->initConstraintEqs())
+    return false;
+  else if (nceq > 0)
+    IFEM::cout <<"Number of constraints "<< nceq << std::endl;
+
+  // Reinitialize the dof-to-equation connectivity array (meqn)
+  delete[] meqn;
+  bool status = this->initSystemEquations();
+  IFEM::cout <<"Number of unknowns    "<< neq << std::endl;
+  return status;
+}

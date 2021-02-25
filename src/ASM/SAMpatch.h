@@ -21,8 +21,8 @@ class ASMbase;
 
 /*!
   \brief This is a sub-class of SAM with added functionality for spline models.
-  \details It contains some additional functions for initializing the SAM-data
-  for an FE model based on ASMbase patches.
+  \details It contains some additional methods for initializing the SAM data
+  for an FE model based on a set of ASMbase patches.
 */
 
 class SAMpatch : public SAM
@@ -50,6 +50,9 @@ public:
   std::vector<ASMbase*>::const_iterator end() const { return model.end(); }
   //! \brief Returns the number of patches in model.
   size_t getNoPatches() const { return model.size(); }
+
+  //! \brief Merges the assembly data from another %SIM with this.
+  virtual bool merge(const SAM* other, const std::map<int,int>* old2new);
 
 protected:
   //! \brief Initializes the nodal arrays \a MINEX, \a MADOF and \a MSC.

@@ -16,6 +16,7 @@
 
 #include "MatVec.h"
 #include <set>
+#include <map>
 
 class SystemMatrix;
 class SystemVector;
@@ -28,7 +29,7 @@ typedef std::set<int>    IntSet; //!< General integer set
   \brief This class contains data and functions for the assembly of FE matrices.
   \details The names and meanings of (most of) the data members of this class
   are adopted from Kolbein Bell's pionering work on the field.
-  See his reports on the SAM library for a thorough elaboration.
+  See his reports on the %SAM library for a thorough elaboration.
 
   The class does not contain methods for initializing the data members.
   That has to be done by deriving sub-classes specific to the solution methods.
@@ -275,6 +276,9 @@ public:
   //! \param[out] nrf Nodal reaction forces
   //! \return \e true if the specified node has reaction forces
   bool getNodalReactions(int inod, const Vector& rf, Vector& nrf) const;
+
+  //! \brief Merges the assembly data from another %SIM with this.
+  virtual bool merge(const SAM*, const std::map<int,int>*) { return false; }
 
 protected:
   //! \brief Initializes the DOF-to-equation connectivity array \a MEQN.
