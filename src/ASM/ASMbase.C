@@ -291,7 +291,7 @@ unsigned char ASMbase::getNodalDOFs (size_t inod) const
   if (this->isLMn(inod))
     return nLag;
   else if (this->isRMn(inod))
-    return nsd*(nsd+1)/2; // Including rotational DOFs
+    return nsd < 3 ? 3 : 6; // Including rotational DOFs
   else
     return nf;
 }
@@ -1257,15 +1257,17 @@ bool ASMbase::extractNodalVec (const Vector& globRes, Vector& nodeVec,
                                const int* madof, int ngnod) const
 {
   nodeVec.clear();
-  if (nnod == 0)
+  if (ngnod == 0)
   {
     std::cerr <<" *** ASMbase::extractNodalVec: Empty MADOF array."<< std::endl;
     return false;
   }
 
-  nodeVec.reserve(nf*MLGN.size());
-  for (int inod : MLGN)
+  size_t nPchNod = ngnod == -2 ? nnod : MLGN.size();
+  nodeVec.reserve(nf*nPchNod);
+  for (size_t i = 0; i < nPchNod; i++)
   {
+    int inod = MLGN[i];
 #ifdef INDEX_CHECK
     if (inod < 1 || (inod > ngnod && ngnod > 0))
     {

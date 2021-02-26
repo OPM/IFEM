@@ -382,8 +382,8 @@ bool SIMoutput::writeGlvG (int& nBlock, const char* inpFile, bool doClear)
       return false;
   }
 
-  // Do not write the geometry blocks to file yet, writeVectors might create
-  // an additional block for the point vectors, see method VTF::writeVectors
+  // Do not write the geometry blocks to file yet, method VTF::writeVectors()
+  // might create an additional block for the point vectors
   return true;
 }
 
@@ -1637,7 +1637,7 @@ bool SIMoutput::evalResults (const Vector& psol, const ResPointVec& gPoints,
     return true; // no points in this patch
 
   // Extract patch-level control/nodal point values of the primary solution
-  patch->extractNodeVec(psol,myProblem->getSolution());
+  patch->extractNodalVec(psol,myProblem->getSolution(),mySam->getMADOF(),-2);
 
   // Lambda function augmenting two matrices with the same number of rows.
   auto&& augment = [](Matrix& A, const Matrix& B)
@@ -1707,7 +1707,8 @@ bool SIMoutput::dumpVector (const Vector& vsol, const char* fname,
 
   size_t ngNodes = this->getNoNodes();
   size_t nComp = vsol.size() / ngNodes;
-  if (nComp*ngNodes != vsol.size() || nComp == this->getNoFields())
+  bool useMADOF = nComp*ngNodes != vsol.size();
+  if (!useMADOF && nComp == this->getNoFields())
     nComp = 0; // Using the number of primary field components
 
   Matrix sol1;
@@ -1765,7 +1766,10 @@ bool SIMoutput::dumpVector (const Vector& vsol, const char* fname,
       if (points.empty()) continue; // no points in this patch
 
       // Evaluate/extract nodal solution variables
-      pch->extractNodeVec(vsol,lsol,nComp);
+      if (useMADOF)
+        pch->extractNodalVec(vsol,lsol,mySam->getMADOF(),-2);
+      else
+        pch->extractNodeVec(vsol,lsol,nComp);
       if (opt.discretization >= ASM::Spline)
         ok &= pch->evalSolution(sol1,lsol,params.data(),false);
       else
@@ -1870,12 +1874,17 @@ bool SIMoutput::extractNodeVec (const Vector& glbVec, Vector& locVec,
   }
   else if (emptyPatches)
     patch->extractNodalVec(glbVec,locVec,mySam->getMADOF());
+  else if (mySam->getNoNodes('X') > 0) // exclude any extraordinary DOFs
+    patch->extractNodalVec(glbVec,locVec,mySam->getMADOF(),-2);
   else
   {
     if (nodalCmps < 0) nodalCmps = 0;
     patch->extractNodeVec(glbVec,locVec,nodalCmps);
   }
 
+#if SP_DEBUG > 2
+  std::cout <<"\nSolution vector for patch "<< patch->idx+1 << locVec;
+#endif
   return true;
 }
 

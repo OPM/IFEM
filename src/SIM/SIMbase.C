@@ -1442,12 +1442,20 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
       else if (this->fieldProjections())
       {
         Vector c(nval);
-        std::copy(ssol[k].begin()+nCmp, ssol[k].begin()+nCmp+nval, c.begin());
-        norm->setProjectedFields(pch->getProjectedFields(c,nfld), k);
+        std::copy(ssol[k].begin()+nCmp,ssol[k].begin()+nCmp+nval,c.begin());
+        norm->setProjectedFields(pch->getProjectedFields(c,nfld),k);
         nCmp += nval;
       }
+      else if (nCmp != pch->getNoFields(1) && pch->getNoFields(2) > 0)
+      {
+        // Mixed problem using first basis for projection,
+        // need a separate MADOF array with nCmp dofs per node
+        const IntVec& madof = this->getMADOF(1,nCmp);
+        pch->extractNodalVec(ssol[k],norm->getProjection(k),
+                             madof.data(),madof.size());
+      }
       else
-        this->extractPatchSolution(ssol[k],norm->getProjection(k),pch,nCmp,1);
+        pch->extractNodeVec(ssol[k],norm->getProjection(k),nCmp,1);
 
     if (mySol)
       mySol->initPatch(pch->idx);
@@ -2093,6 +2101,9 @@ size_t SIMbase::extractPatchSolution (const Vector& sol, Vector& vec,
     const IntVec& madof = this->getMADOF(basis,nndof);
     pch->extractNodalVec(sol,vec,madof.data(),madof.size());
   }
+  else if (mySam && mySam->getNoNodes('X') > 0)
+    // Excluding the extraordinary DOFs
+    pch->extractNodalVec(sol,vec,mySam->getMADOF(),-2);
   else
     pch->extractNodeVec(sol,vec,nndof,basis);
 
