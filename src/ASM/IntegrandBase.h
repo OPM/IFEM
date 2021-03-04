@@ -49,7 +49,7 @@ public:
   virtual ~IntegrandBase() {}
 
   //! \brief Parses a data section from an XML element.
-  virtual bool parse(const TiXmlElement*) { return true; }
+  virtual bool parse(const TiXmlElement*) { return false; }
 
   //! \brief Prints out the problem definition to the log stream.
   virtual void printLog() const {}
