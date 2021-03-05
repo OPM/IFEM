@@ -188,7 +188,7 @@ static double getEndPoints (const Matrix& Xnod, Vec3Vec& XC)
   for (size_t i = 0; i < Xnod.cols(); i++)
   {
     XC[0][i] = Xnod(i+1,1);
-    XC[1][i] = Xnod(i+1,Xnod.rows());
+    XC[1][i] = Xnod(i+1,Xnod.cols());
   }
 
   return ASM1D::getElementSize(XC);
@@ -556,7 +556,7 @@ bool ASMs1DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 }
 
 
-bool ASMs1DLag::write(std::ostream& os, int) const
+bool ASMs1DLag::write (std::ostream& os, int) const
 {
-  return this->writeLagBasis(os, "line");
+  return this->writeLagBasis(os,"line");
 }
