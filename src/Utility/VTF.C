@@ -39,7 +39,8 @@ VTF::VTF (const char* filename, int type)
   myFile = nullptr;
   myState = nullptr;
   myGBlock = nullptr;
-  pointGeoID = lastStep = 0;
+  myPartID = pointGeoID = 0;
+  lastStep = 0;
   if (!filename) return;
 
 #if HAS_VTFAPI == 1
@@ -231,7 +232,7 @@ void VTF::clearGeometryBlocks ()
     delete myBlocks[i].second;
 
   myBlocks.clear();
-  pointGeoID = 0;
+  myPartID = pointGeoID = 0;
 }
 
 
@@ -246,8 +247,7 @@ const ElementBlock* VTF::getBlock (int geomID) const
 }
 
 
-bool VTF::writeGrid (const ElementBlock* block, const char* partname,
-                     int partID, int geomID)
+bool VTF::writeGrid (const ElementBlock* block, const char* gName, int geomID)
 {
   if (!myFile) return true;
   if (!block) return false;
@@ -257,7 +257,7 @@ bool VTF::writeGrid (const ElementBlock* block, const char* partname,
   if (!this->writeNodes(geomID))
     return showError("Error writing node block",geomID);
 
-  if (!this->writeElements(partname,partID,geomID,geomID))
+  if (!this->writeElements(gName,++myPartID,geomID,geomID))
     return showError("Error writing element block",geomID);
 
   return true;
@@ -467,8 +467,8 @@ bool VTF::writeNfunc (const RealFunc& f, Real time, int idBlock, int geomID)
 }
 
 
-bool VTF::writeVectors (const std::vector<Vec3Pair>& pntResult, int partID,
-                        int& gID, int idBlock, const char* resultName,
+bool VTF::writeVectors (const std::vector<Vec3Pair>& pntResult, int& gID,
+                        int idBlock, const char* resultName,
                         int iStep, int iBlock)
 {
 #if HAS_VTFAPI == 1
@@ -512,7 +512,7 @@ bool VTF::writeVectors (const std::vector<Vec3Pair>& pntResult, int partID,
     // We must define an element block (with point elements) also,
     // otherwise GLview does not visualize the vectors
     VTFAElementBlock eBlock(pointGeoID,0,0);
-    eBlock.SetPartID(partID);
+    eBlock.SetPartID(++myPartID);
     eBlock.SetNodeBlockID(pointGeoID);
     if (VTFA_FAILURE(eBlock.AddElements(VTFA_POINTS,mnpc.data(),np)))
       return showError("Error defining element block",pointGeoID);
@@ -532,7 +532,7 @@ bool VTF::writeVectors (const std::vector<Vec3Pair>& pntResult, int partID,
 }
 
 
-bool VTF::writePoints (const Vec3Vec& points, int partID, int& gID)
+bool VTF::writePoints (const Vec3Vec& points, int& gID)
 {
 #if HAS_VTFAPI == 1
   myBlocks.push_back(std::make_pair(++gID,new ElementBlock()));
@@ -555,7 +555,7 @@ bool VTF::writePoints (const Vec3Vec& points, int partID, int& gID)
   // We must define an element block (with point elements) also,
   // otherwise GLview does not visualize the points
   VTFAElementBlock eBlock(gID,0,0);
-  eBlock.SetPartID(partID);
+  eBlock.SetPartID(++myPartID);
   eBlock.SetNodeBlockID(gID);
   if (VTFA_FAILURE(eBlock.AddElements(VTFA_POINTS,mnpc.data(),np)))
     return showError("Error defining element block",gID);

@@ -67,11 +67,9 @@ public:
 
   //! \brief Writes the FE geometry to the VTF-file.
   //! \param[in] block The FE grid that all results written are referred to
-  //! \param[in] partname Name of the geometry being written
-  //! \param[in] partID Part identifier
+  //! \param[in] gName Name of the geometry being written
   //! \param[in] geomID Geometry block identifier
-  bool writeGrid(const ElementBlock* block, const char* partname,
-                 int partID, int geomID);
+  bool writeGrid(const ElementBlock* block, const char* gName, int geomID);
 
   //! \brief Writes a transformation matrix to the VTF-file.
   //! \param[in] X Position part of the transformation
@@ -111,7 +109,6 @@ public:
                   int idBlock = 1, int gID = 1);
   //! \brief Writes a block of point vector results to the VTF-file.
   //! \param[in] pntResult A set of result vectors with associated attack points
-  //! \param[in] partID Part identifier
   //! \param gID Running geometry block identifier
   //! \param[in] idBlock Result block identifier
   //! \param[in] resultName Name of the result quantity
@@ -121,15 +118,13 @@ public:
   //! \details This method creates a separate geometry block consisting of the
   //! attack points of the result vectors, since they are independent of the
   //! FE geometry created by the writeGrid() method.
-  bool writeVectors(const std::vector<Vec3Pair>& pntResult,
-                    int partID, int& gID, int idBlock = 1,
-                    const char* resultName = nullptr,
+  bool writeVectors(const std::vector<Vec3Pair>& pntResult, int& gID,
+                    int idBlock = 1, const char* resultName = nullptr,
                     int iStep = 0, int iBlock = 1);
   //! \brief Writes a block of points (no results) to the VTF-file.
   //! \param[in] points Vector of point coordinates
-  //! \param[in] partID Part identifier
   //! \param gID Running geometry block identifier
-  bool writePoints(const std::vector<Vec3>& points, int partID, int& gID);
+  bool writePoints(const std::vector<Vec3>& points, int& gID);
 
   //! \brief Writes a scalar block definition to the VTF-file.
   //! \param[in] sBlockID The result block that makes up this scalar block
@@ -229,6 +224,7 @@ private:
   std::vector<VTFAVectorBlock*>         myVBlock; //!< Vector field blocks
   std::vector<VTFAScalarBlock*>         mySBlock; //!< Scalar field blocks
 
+  int myPartID;                    //!< Internal geometry block part ID
   int pointGeoID;                  //!< ID of point vector geometry block
   int lastStep;                    //!< ID of the last state written to file
   std::vector<GridBlock> myBlocks; //!< The FE geometry of the whole model

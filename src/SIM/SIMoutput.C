@@ -346,7 +346,7 @@ bool SIMoutput::writeGlvG (int& nBlock, const char* inpFile, bool doClear)
       return false;
 
     sprintf(pname,"Patch %zu",pch->idx+1);
-    if (!myVtf->writeGrid(lvb,pname,pch->idx+1,++nBlock))
+    if (!myVtf->writeGrid(lvb,pname,++nBlock))
       return false;
   }
 
@@ -355,7 +355,7 @@ bool SIMoutput::writeGlvG (int& nBlock, const char* inpFile, bool doClear)
     if ((lvb = pch->immersedGeometry()))
     {
       sprintf(pname,"Immersed boundary %zu",pch->idx+1);
-      if (!myVtf->writeGrid(lvb,pname,nGlPatches+pch->idx+1,++nBlock))
+      if (!myVtf->writeGrid(lvb,pname,++nBlock))
         return false;
     }
 
@@ -367,7 +367,7 @@ bool SIMoutput::writeGlvG (int& nBlock, const char* inpFile, bool doClear)
       for (const ResultPoint& pt : points.second)
         lvb->merge(CubeBlock(pt.X,myPtSize));
 
-    if (!myVtf->writeGrid(lvb,"Result points",2*nGlPatches+1,++nBlock))
+    if (!myVtf->writeGrid(lvb,"Result points",++nBlock))
       return false;
   }
 
@@ -378,7 +378,7 @@ bool SIMoutput::writeGlvG (int& nBlock, const char* inpFile, bool doClear)
     for (const IdxVec3& pt : myTopPts)
       lvb->merge(CubeBlock(pt.second,myPtSize));
 
-    if (!myVtf->writeGrid(lvb,"Extra points",2*nGlPatches+2,++nBlock))
+    if (!myVtf->writeGrid(lvb,"Extra points",++nBlock))
       return false;
   }
 
