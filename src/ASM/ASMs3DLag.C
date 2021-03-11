@@ -553,12 +553,44 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
   const int t2 = 1 + t1%3; // second tangent direction of the face
 
   // Get Gaussian quadrature points and weights
-  // For now, use the largest polynomial order of the two tangent directions
-  int nG1 = this->getNoGaussPt(std::max(svol->order(t1-1),svol->order(t2-1)),true);
-  int nGP = integrand.getBouIntegrationPoints(nG1);
-  const double* xg = GaussQuadrature::getCoord(nGP);
-  const double* wg = GaussQuadrature::getWeight(nGP);
-  if (!xg || !wg) return false;
+  // and compute parameter values of the Gauss points over the whole patch face
+  std::array<int,3> ng;
+  std::array<const double*,3> xg, wg;
+  std::array<Matrix,3> gpar;
+  for (int d = 0; d < 3; d++)
+    if (-1-d == faceDir)
+    {
+      ng[d] = 1;
+      xg[d] = nullptr;
+      wg[d] = nullptr;
+      gpar[d].resize(1,1);
+      gpar[d].fill(svol->startparam(d));
+    }
+    else if (1+d == faceDir)
+    {
+      ng[d] = 1;
+      xg[d] = nullptr;
+      wg[d] = nullptr;
+      gpar[d].resize(1,1);
+      gpar[d].fill(svol->endparam(d));
+    }
+    else
+    {
+      int n = this->getNoGaussPt(svol->order(d),true);
+      ng[d] = integrand.getBouIntegrationPoints(n);
+      xg[d] = GaussQuadrature::getCoord(ng[d]);
+      wg[d] = GaussQuadrature::getWeight(ng[d]);
+      if (xg[d] && wg[d])
+        this->getGaussPointParameters(gpar[d],d,ng[d],xg[d]);
+      else
+        return false;
+    }
+
+  const int tt0 = t0-1;
+  const int tt1 = t1 > t2 ? t2-1 : t1-1;
+  const int tt2 = t1 > t2 ? t1-1 : t2-1;
+  const int nG1 = ng[tt1];
+  const int nG2 = ng[tt2];
 
   // Number of elements in each direction
   const int nel1 = (nx-1)/(p1-1);
@@ -593,6 +625,12 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
 
   std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex%10);
   size_t firstp = iit == firstBp.end() ? 0 : iit->second;
+
+  // Lambda function for linear interpolation between two values
+  auto&& linearInt = [](double xi, double v1, double v2)
+  {
+    return 0.5*(v1*(1.0-xi) + v2*(1.0+xi));
+  };
 
 
   // === Assembly loop over all elements on the patch face =====================
@@ -638,48 +676,43 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
         }
 
         // Define some loop control variables depending on which face we are on
-        int nf1, j1, j2;
+        int nf1 = 0, j1 = 0, j2 = 0;
         switch (abs(faceDir))
         {
           case 1: nf1 = nel2; j2 = i3; j1 = i2; break;
           case 2: nf1 = nel1; j2 = i3; j1 = i1; break;
           case 3: nf1 = nel1; j2 = i2; j1 = i1; break;
-          default: nf1 = j1 = j2 = 0;
         }
 
 
 	// --- Integration loop over all Gauss points in each direction --------
 
-        int k1, k2, k3;
-        int jp = (j2*nf1 + j1)*nGP*nGP;
+        int jp = (j2*nf1 + j1)*nG1*nG2;
         fe.iGP = firstp + jp; // Global integration point counter
 
-	for (int j = 0; j < nGP; j++)
-	  for (int i = 0; i < nGP; i++, fe.iGP++)
+	for (int j = 0; j < nG2; j++)
+	  for (int i = 0; i < nG1; i++, fe.iGP++)
 	  {
 	    // Local element coordinates of current integration point
-	    xi[t0-1] = faceDir < 0 ? -1.0 : 1.0;
-	    xi[t1-1] = xg[i];
-	    xi[t2-1] = xg[j];
+	    xi[tt0] = faceDir < 0 ? -1.0 : 1.0;
+	    xi[tt1] = xg[tt1][i];
+	    xi[tt2] = xg[tt2][j];
 	    fe.xi   = xi[0];
 	    fe.eta  = xi[1];
 	    fe.zeta = xi[2];
 
 	    // Local element coordinates and parameter values
 	    // of current integration point
-	    switch (abs(faceDir))
-	    {
-	      case 1: k2 = i; k3 = j; k1 = -1; break;
-	      case 2: k1 = i; k3 = j; k2 = -1; break;
-	      case 3: k1 = i; k2 = j; k3 = -1; break;
-	      default: k1 = k2 = k3 = -1;
-	    }
-	    if (upar.size() > 1)
-	      fe.u = 0.5*(upar[i1]*(1.0-xg[k1]) + upar[i1+1]*(1.0+xg[k1]));
-	    if (vpar.size() > 1)
-	      fe.v = 0.5*(vpar[i2]*(1.0-xg[k2]) + vpar[i2+1]*(1.0+xg[k2]));
-	    if (wpar.size() > 1)
-	      fe.w = 0.5*(wpar[i3]*(1.0-xg[k3]) + wpar[i3+1]*(1.0+xg[k3]));
+            int k1 = -1, k2 = -1, k3 = -1;
+            switch (abs(faceDir))
+            {
+              case 1: k2 = i; k3 = j; break;
+              case 2: k1 = i; k3 = j; break;
+              case 3: k1 = i; k2 = j; break;
+            }
+            if (xg[0]) fe.u = linearInt(xg[0][k1],upar[i1],upar[i1+1]);
+            if (xg[1]) fe.v = linearInt(xg[1][k2],vpar[i2],vpar[i2+1]);
+            if (xg[2]) fe.w = linearInt(xg[2][k3],wpar[i3],wpar[i3+1]);
 
 	    // Compute the basis functions and their derivatives, using
 	    // tensor product of one-dimensional Lagrange polynomials
@@ -697,7 +730,7 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
 	    X.t = time.t;
 
 	    // Evaluate the integrand and accumulate element contributions
-	    fe.detJxW *= wg[i]*wg[j];
+	    fe.detJxW *= wg[tt1][i]*wg[tt2][j];
             if (!integrand.evalBou(*A,fe,time,X,normal))
               ok = false;
 	  }
@@ -967,6 +1000,7 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   const int nel = this->getNoElms(true);
   for (int iel = 1; iel <= nel; iel++)
   {
+    fe.iel = MLGE[iel-1];
     const IntVec& mnpc = MNPC[iel-1];
     this->getElementCoordinates(Xnod,iel);
 
@@ -980,8 +1014,6 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 	  fe.zeta = -1.0 + k*incz;
 	  if (!Lagrange::computeBasis(fe.N,dNdu,p1,fe.xi,p2,fe.eta,p3,fe.zeta))
 	    return false;
-
-	  fe.iel = MLGE[iel-1];
 
 	  // Compute the Jacobian inverse
 	  fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
@@ -1094,7 +1126,7 @@ bool ASMs3DLag::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) con
 }
 
 
-bool ASMs3DLag::write(std::ostream& os, int) const
+bool ASMs3DLag::write (std::ostream& os, int) const
 {
-  return this->writeLagBasis(os, "hexahedron");
+  return this->writeLagBasis(os,"hexahedron");
 }

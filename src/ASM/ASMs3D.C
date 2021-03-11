@@ -2478,28 +2478,43 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
   const int t2 = 1 + t1%3;           // second tangent direction
 
   // Get Gaussian quadrature points and weights
-  // For now, use the largest polynomial order of the two tangent directions
-  int nG1 = this->getNoGaussPt(std::max(svol->order(t1-1),svol->order(t2-1)),true);
-  int nGP = integrand.getBouIntegrationPoints(nG1);
-  const double* xg = GaussQuadrature::getCoord(nGP);
-  const double* wg = GaussQuadrature::getWeight(nGP);
-  if (!xg || !wg) return false;
-
-  // Compute parameter values of the Gauss points over the whole patch face
+  // and compute parameter values of the Gauss points over the whole patch face
+  std::array<int,3> ng;
+  std::array<const double*,3> xg, wg;
   std::array<Matrix,3> gpar;
   for (int d = 0; d < 3; d++)
     if (-1-d == faceDir)
     {
+      ng[d] = 1;
+      xg[d] = nullptr;
+      wg[d] = nullptr;
       gpar[d].resize(1,1);
       gpar[d].fill(svol->startparam(d));
     }
     else if (1+d == faceDir)
     {
+      ng[d] = 1;
+      xg[d] = nullptr;
+      wg[d] = nullptr;
       gpar[d].resize(1,1);
       gpar[d].fill(svol->endparam(d));
     }
     else
-      this->getGaussPointParameters(gpar[d],d,nGP,xg);
+    {
+      int n = this->getNoGaussPt(svol->order(d),true);
+      ng[d] = integrand.getBouIntegrationPoints(n);
+      xg[d] = GaussQuadrature::getCoord(ng[d]);
+      wg[d] = GaussQuadrature::getWeight(ng[d]);
+      if (xg[d] && wg[d])
+        this->getGaussPointParameters(gpar[d],d,ng[d],xg[d]);
+      else
+        return false;
+    }
+
+  const int tt1 = t1 > t2 ? t2-1 : t1-1;
+  const int tt2 = t1 > t2 ? t1-1 : t2-1;
+  const int nG1 = ng[tt1];
+  const int nG2 = ng[tt2];
 
   // Extract the Neumann order flag (1 or higher) for the integrand
   integrand.setNeumannOrder(1 + lIndex/10);
@@ -2607,48 +2622,54 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
         }
 
         // Define some loop control variables depending on which face we are on
-        int nf1, j1, j2;
+        int nf1 = 0, j1 = 0, j2 = 0;
         switch (abs(faceDir))
         {
           case 1: nf1 = nel2; j2 = i3-p3; j1 = i2-p2; break;
           case 2: nf1 = nel1; j2 = i3-p3; j1 = i1-p1; break;
           case 3: nf1 = nel1; j2 = i2-p2; j1 = i1-p1; break;
-          default: nf1 = j1 = j2 = 0;
         }
 
 
         // --- Integration loop over all Gauss points in each direction --------
 
-        int k1, k2, k3;
-        int ip = (j2*nGP*nf1 + j1)*nGP;
-        int jp = (j2*nf1 + j1)*nGP*nGP;
+        int ip = (j2*nf1*nG2 + j1)*nG1;
+        int jp = (j2*nf1 + j1)*nG1*nG2;
         fe.iGP = firstp + jp; // Global integration point counter
 
-        for (int j = 0; j < nGP; j++, ip += nGP*(nf1-1))
-          for (int i = 0; i < nGP; i++, ip++, fe.iGP++)
+        for (int j = 0; j < nG2; j++, ip += nG1*(nf1-1))
+          for (int i = 0; i < nG1; i++, ip++, fe.iGP++)
           {
+#if SP_DEBUG > 4
+            std::cout <<"Elem "<< iel <<": "<< i1-p1 <<" "<< i2-p2 <<" "<< i3-p3
+                      <<", Face "<< faceDir <<": "<< j1 <<" "<< j2
+                      <<", Point "<< ip <<": "<< i <<" "<< j <<" "
+                      << spline.size() << std::endl;
+#endif
+
             // Local element coordinates and parameter values
             // of current integration point
+            int k1 = 0, k2 = 0, k3 = 0;
             switch (abs(faceDir))
             {
-              case 1: k2 = i; k3 = j; k1 = 0; break;
-              case 2: k1 = i; k3 = j; k2 = 0; break;
-              case 3: k1 = i; k2 = j; k3 = 0; break;
-              default: k1 = k2 = k3 = 0;
+              case 1: k2 = i; k3 = j; break;
+              case 2: k1 = i; k3 = j; break;
+              case 3: k1 = i; k2 = j; break;
             }
-            if (gpar[0].size() > 1)
+
+            if (xg[0])
             {
-              fe.xi = xg[k1];
+              fe.xi = xg[0][k1];
               fe.u = param[0] = gpar[0](k1+1,i1-p1+1);
             }
-            if (gpar[1].size() > 1)
+            if (xg[1])
             {
-              fe.eta = xg[k2];
+              fe.eta = xg[1][k2];
               fe.v = param[1] = gpar[1](k2+1,i2-p2+1);
             }
-            if (gpar[2].size() > 1)
+            if (xg[2])
             {
-              fe.zeta = xg[k3];
+              fe.zeta = xg[2][k3];
               fe.w = param[2] = gpar[2](k3+1,i3-p3+1);
             }
 
@@ -2675,7 +2696,7 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
             X.t = time.t;
 
             // Evaluate the integrand and accumulate element contributions
-            fe.detJxW *= dA*wg[i]*wg[j];
+            fe.detJxW *= dA*wg[tt1][i]*wg[tt2][j];
             if (!integrand.evalBou(*A,fe,time,X,normal))
               ok = false;
           }

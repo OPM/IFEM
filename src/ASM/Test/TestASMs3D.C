@@ -11,6 +11,8 @@
 //==============================================================================
 
 #include "ASMCube.h"
+#include "IntegrandBase.h"
+#include "GlobalIntegral.h"
 #include "SIM3D.h"
 #include <array>
 
@@ -325,4 +327,44 @@ TEST(TestASMs3D, Collapse)
       else
         EXPECT_FALSE(pch.collapseFace(iface,iedge));
     }
+}
+
+class NoProblem : public IntegrandBase
+{
+public:
+  NoProblem() : IntegrandBase(3) {}
+  virtual ~NoProblem() {}
+protected:
+  virtual bool evalBou(LocalIntegral&, const FiniteElement&,
+                       const Vec3&, const Vec3&) const { return true; }
+};
+
+
+TEST(TestASMs3D, FaceIntegrate)
+{
+  GlobalIntegral dummy;
+  NoProblem prb;
+  ASMCube patch;
+  ASMbase::resetNumbering();
+
+  ASSERT_TRUE(patch.raiseOrder(2,1,0));
+  ASSERT_TRUE(patch.generateFEMTopology());
+  for (int lIndex = 1; lIndex <= 6; lIndex++)
+  {
+    patch.generateThreadGroups(lIndex,false,false);
+    ASSERT_TRUE(patch.integrate(prb,lIndex,dummy,TimeDomain()));
+  }
+
+  patch.clear(true);
+  ASMbase::resetNumbering();
+
+  ASSERT_TRUE(patch.uniformRefine(0,3));
+  ASSERT_TRUE(patch.uniformRefine(1,2));
+  ASSERT_TRUE(patch.uniformRefine(2,1));
+  ASSERT_TRUE(patch.generateFEMTopology());
+  for (int lIndex = 1; lIndex <= 6; lIndex++)
+  {
+    patch.generateThreadGroups(lIndex,false,false);
+    ASSERT_TRUE(patch.integrate(prb,lIndex,dummy,TimeDomain()));
+  }
 }

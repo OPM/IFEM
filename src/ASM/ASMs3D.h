@@ -672,13 +672,6 @@ protected:
                        std::vector<utl::Point>& XC) const;
 
   //! \brief Generates element groups for multi-threading of interior integrals.
-  //! \param[in] integrand Object with problem-specific data and methods
-  //! \param[in] silence If \e true, suppress threading group outprint
-  //! \param[in] ignoreGlobalLM Sanity check option
-  virtual void generateThreadGroups(const Integrand& integrand, bool silence,
-                                    bool ignoreGlobalLM);
-
-  //! \brief Generates element groups for multi-threading of interior integrals.
   //! \param[in] strip1 Strip width in first direction
   //! \param[in] strip2 Strip width in second direction
   //! \param[in] strip3 Strip width in third direction
@@ -686,6 +679,14 @@ protected:
   //! \param[in] ignoreGlobalLM Sanity check option
   void generateThreadGroups(size_t strip1, size_t strip2, size_t strip3,
                             bool silence, bool ignoreGlobalLM);
+
+public:
+  //! \brief Generates element groups for multi-threading of interior integrals.
+  //! \param[in] integrand Object with problem-specific data and methods
+  //! \param[in] silence If \e true, suppress threading group outprint
+  //! \param[in] ignoreGlobalLM Sanity check option
+  virtual void generateThreadGroups(const Integrand& integrand, bool silence,
+                                    bool ignoreGlobalLM);
 
   //! \brief Generates element groups for multi-threading of boundary integrals.
   //! \param[in] lIndex Local index [1,6] of the boundary face
@@ -695,7 +696,6 @@ protected:
   //! \brief Generates element groups from a partition.
   virtual void generateThreadGroupsFromElms(const IntVec& elms);
 
-public:
   //! \brief Auxilliary function for computation of basis function indices.
   static void scatterInd(int n1, int n2, int n3, int p1, int p2, int p3,
 			 const int* start, IntVec& index);
