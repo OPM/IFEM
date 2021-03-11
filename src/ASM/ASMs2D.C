@@ -187,6 +187,10 @@ void ASMs2D::clear (bool retainGeometry)
   myNodeInd.clear();
   xnMap.clear();
   nxMap.clear();
+
+  // Erase threading group data
+  threadGroups[0].clear();
+  threadGroups[1].clear();
 }
 
 
