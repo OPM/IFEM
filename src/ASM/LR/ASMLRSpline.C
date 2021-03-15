@@ -99,24 +99,23 @@ void LR::generateThreadGroups (ThreadGroups& threadGroups,
 #ifdef USE_OPENMP
   if (omp_get_max_threads() > 1)
   {
-    for (int i = 0; i < 2; i++)
-      threadGroups[i].clear();
-    IntMat& answer = threadGroups[0];
+    threadGroups[0].clear();
+    threadGroups[1].clear();
 
     IntVec status(nElement,0); // status vector for elements:
 
-    std::vector<std::set<int>> additionals;
+    std::vector<IntSet> additionals;
     if (!addConstraints.empty()) {
       additionals.resize(nElement);
-      for (auto e : lr->getAllElements()) {
-        for (const LRSpline* lr2 : addConstraints) {
+      for (LR::Element* e : lr->getAllElements()) {
+        for (LRSpline* lr2 : addConstraints) {
            int elB = lr2->getElementContaining(e->midpoint());
-           for (auto b2 : lr2->getElement(elB)->support())
-             for (auto el3 : b2->support()) {
-               std::vector<double> midpoint = el3->midpoint();
-               std::vector<std::vector<double>> points;
+           for (LR::Basisfunction* b2 : lr2->getElement(elB)->support())
+             for (LR::Element* el3 : b2->support()) {
+               RealArray midpoint = el3->midpoint();
+               std::vector<RealArray> points;
                if (lr2->nElements() != lr->nElements()) {
-                 std::vector<double> diff(midpoint.size());
+                 RealArray diff(midpoint.size());
                  for (size_t j = 0; j < midpoint.size(); ++j)
                    diff[j] = (el3->getParmax(j) - el3->getParmin(j)) / 4.0;
                  if (lr->dimension() == 2)
@@ -136,7 +135,7 @@ void LR::generateThreadGroups (ThreadGroups& threadGroups,
                } else
                  points = {midpoint};
 
-               for (const std::vector<double>& vec : points)
+               for (const RealArray& vec : points)
                  additionals[e->getId()].insert(lr->getElementContaining(vec));
              }
         }
@@ -156,14 +155,14 @@ void LR::generateThreadGroups (ThreadGroups& threadGroups,
 
       // look for available elements
       IntVec thisColor;
-      for (auto e : lr->getAllElements()) {
+      for (LR::Element* e : lr->getAllElements()) {
         int i = e->getId();
         if (status[i] == 0) {
           status[i] = nColors+1;
           thisColor.push_back(i);
           fixedElements++;
-          for (auto b : e->support()) // for all basisfunctions with support here
-            for (auto el2 : b->support()) {// for all elements this function supports
+          for (LR::Basisfunction* b : e->support())
+            for (LR::Element* el2 : b->support()) {
               int j = el2->getId();
               if (status[j] == 0)  // if not assigned a color yet
                 status[j] = -1; // set as unavailable (with current color)
@@ -174,7 +173,7 @@ void LR::generateThreadGroups (ThreadGroups& threadGroups,
             }
         }
       }
-      answer.push_back(thisColor);
+      threadGroups[0].push_back(thisColor);
     }
     return;
   }
@@ -472,30 +471,28 @@ Vec3 ASMLRSpline::getElementCenter (int iel) const
 
 
 bool ASMLRSpline::checkThreadGroups (const IntMat& groups,
-                                     const std::vector<const LR::LRSpline*> bases,
+                                     const std::vector<const LR::LRSpline*>& bases,
                                      const LR::LRSpline* threadBasis)
 {
-  size_t groupId = 1;
   bool ok = true;
-  for (const IntVec& elms : groups) {
-    size_t basisId = 1;
-    for (const LR::LRSpline* basis : bases) {
-      std::set<int> nodes;
-      for (int elm : elms) {
-        std::vector<double> midpoint = threadBasis->getElement(elm)->midpoint();
+  for (size_t gId = 1; gId <= groups.size(); gId++)
+    for (size_t bId = 1; bId <= bases.size(); bId++)
+    {
+      IntSet nodes;
+      const LR::LRSpline* basis = bases[bId-1];
+      for (int elm : groups[gId-1]) {
+        RealArray midpoint = threadBasis->getElement(elm)->midpoint();
         int bElm = basis->getElementContaining(midpoint);
-        for (const LR::Basisfunction* func : basis->getElement(bElm)->support()) {
-          if (nodes.find(func->getId()) != nodes.end()) {
-            std::cerr << " ** Warning: Function " << func->getId() << " on basis " << basisId << " present for multiple elements in group " << groupId << std::endl;
+        for (const LR::Basisfunction* func : basis->getElement(bElm)->support())
+          if (!nodes.insert(func->getId()).second) {
+            std::cerr <<" *** ASMLRSpline::checkThreadGroups: Function "
+                      << func->getId() <<" on basis "<< bId
+                      <<" is present for multiple elements in group "<< gId
+                      << std::endl;
             ok = false;
           }
-          nodes.insert(func->getId());
-        }
       }
-      ++basisId;
     }
-    ++groupId;
-  }
 
   return ok;
 }
@@ -558,4 +555,32 @@ bool ASMLRSpline::getParameterDomain (Real2DMat& u, IntVec* corners) const
   }
 
   return true;
+}
+
+
+void ASMLRSpline::getNoIntPoints (size_t& nPt, size_t& nIPt)
+{
+  size_t nGp = 1;
+  if (nGauss > 0 && nGauss <= 10)
+    for (unsigned char d = 0; d < ndim; d++)
+      nGp *= nGauss;
+  else
+  {
+    // Use polynomial order to define number of quadrature points
+    int ng[3] = { 0, 0, 0 };
+    int nG1 = 0;
+    this->getOrder(ng[0],ng[1],ng[2]);
+    for (unsigned char d = 0; d < ndim; d++)
+      nG1 = std::max(nG1,ng[d]+nGauss%10);
+    for (unsigned char d = 0; d < ndim; d++)
+      nGp = nG1*nG1;
+  }
+
+  firstIp = nPt;
+  nPt += nel*nGp;
+
+  // Count additional interface quadrature points
+  size_t nInterface = MLGE.size() - nel;
+  if (nInterface > 0 && nInterface != nel && nGauss > 0 && nGauss <= 10)
+    nIPt += nInterface*nGp/nGauss;
 }

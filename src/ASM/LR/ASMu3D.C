@@ -1982,6 +1982,30 @@ int ASMu3D::getCorner(int I, int J, int K, int basis) const
 }
 
 
+void ASMu3D::getNoBouPoints (size_t& nPt, char ldim, char lindx)
+{
+  size_t nGp = 1;
+  if (nGauss > 0 && nGauss <= 10)
+    for (char d = 0; d < ldim; d++)
+      nGp *= nGauss;
+  else if (ldim == 2)
+  {
+    // Use polynomial order to define number of quadrature points
+    int p[3] = { 0, 0, 0 };
+    this->getOrder(p[0],p[1],p[2]);
+    p[(lindx-1)/2] = 1;
+    int nG = std::max(std::max(p[0],p[1]),p[2]);
+    nGp = nG*nG;
+  }
+  else
+    nGp = 0;
+
+  firstBp[lindx] = nPt;
+
+  nPt += this->getNoBoundaryElms(lindx,ldim)*nGp;
+}
+
+
 void ASMu3D::generateThreadGroups (const Integrand& integrand, bool silence,
                                    bool ignoreGlobalLM)
 {

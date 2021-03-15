@@ -178,6 +178,9 @@ public:
   //! \brief Returns the coordinates of the element center.
   virtual Vec3 getElementCenter(int iel) const;
 
+  //! \brief Computes the total number of integration points in this patch.
+  virtual void getNoIntPoints(size_t& nPt, size_t& nIPt);
+
 protected:
   //! \brief Refines the mesh adaptively.
   //! \param[in] prm Input data used to control the mesh refinement
@@ -188,15 +191,15 @@ protected:
   virtual int evalPoint(int iel, const double* param, Vec3& X) const = 0;
 
   //! \brief Santity check thread groups.
-  //! \param groups The generated thread groups
-  //! \param bases The bases to check for
-  //! \param threadBasis The LRSpline the element groups are derived from
+  //! \param[in] groups The generated thread groups
+  //! \param[in] bases The bases to check for
+  //! \param[in] threadBasis The LRSpline the element groups are derived from
   static bool checkThreadGroups(const IntMat& groups,
-                                const std::vector<const LR::LRSpline*> bases,
+                                const std::vector<const LR::LRSpline*>& bases,
                                 const LR::LRSpline* threadBasis);
 
   //! \brief Analyze and print thread group statistics.
-  //! \param groups The generated thread groups
+  //! \param[in] groups The generated thread groups
   static void analyzeThreadGroups(const IntMat& groups);
 
   LR::LRSpline* geo; //!< Pointer to the actual spline geometry object

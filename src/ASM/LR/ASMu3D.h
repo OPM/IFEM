@@ -277,6 +277,9 @@ public:
   // These are the main computational methods of the ASM class hierarchy.
   // ====================================================================
 
+  //! \brief Computes the number of boundary integration points in this patch.
+  virtual void getNoBouPoints(size_t& nPt, char ldim, char lindx);
+
   //! \brief Evaluates an integral over the interior patch domain.
   //! \param integrand Object with problem-specific data and methods
   //! \param glbInt The integrated quantity
