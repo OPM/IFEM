@@ -957,38 +957,73 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const Vector& locSol,
 int ASMs3DLag::findElement(double u, double v, double w,
                            double* xi, double* eta, double* zeta) const
 {
-  double du = 1.0 / (nx-1);
-  double dv = 1.0 / (ny-1);
-  double dw = 1.0 / (nz-1);
-
-  int elmx = std::min(nx-2.0, floor(u / du));
-  int elmy = std::min(ny-2.0, floor(v / dv));
-  int elmz = std::min(nz-2.0, floor(w / dw));
+  int elmx = std::min(nx-2.0, floor(u*(nx-1)));
+  int elmy = std::min(ny-2.0, floor(v*(ny-1)));
+  int elmz = std::min(nz-2.0, floor(w*(nz-1)));
 
   if (xi)
-    *xi   = -1.0 + (u - elmx*du)*2.0 / du;
+    *xi   = -1.0 + (u*(nx-1) - elmx)*2.0;
   if (eta)
-    *eta  = -1.0 + (v - elmy*dv)*2.0 / dv;
+    *eta  = -1.0 + (v*(ny-1) - elmy)*2.0;
   if (zeta)
-    *zeta = -1.0 + (w - elmz*dw)*2.0 / dw;
+    *zeta = -1.0 + (w*(nz-1) - elmz)*2.0;
 
   return 1 + elmx + elmy*(nx-1) + elmz*(ny-1)*(nx-1);
 }
 
 
 bool ASMs3DLag::evalSolution (Matrix& sField, const Vector& locSol,
-                              const RealArray*, bool, int, int) const
+                              const RealArray* gpar, bool, int, int) const
 {
-  size_t nPoints = coord.size();
-  size_t nNodes = this->getNoNodes(-1);
-  size_t nComp = locSol.size() / nNodes;
-  if (nNodes < nPoints || nComp*nNodes != locSol.size())
-    return false;
+  if (!gpar) {
+    size_t nPoints = coord.size();
+    size_t nNodes = this->getNoNodes(-1);
+    size_t nComp = locSol.size() / nNodes;
+    if (nNodes < nPoints || nComp*nNodes != locSol.size())
+      return false;
+    sField.resize(nComp,nPoints);
+    const double* u = locSol.ptr();
+    for (size_t n = 1; n <= nPoints; n++, u += nComp)
+      sField.fillColumn(n,u);
+    return true;
+  }
 
-  sField.resize(nComp,nPoints);
-  const double* u = locSol.ptr();
-  for (size_t n = 1; n <= nPoints; n++, u += nComp)
-    sField.fillColumn(n,u);
+  size_t nNodes = gpar[0].size()*gpar[1].size()*gpar[2].size();
+  size_t nComp = locSol.size() / this->getNoNodes();
+
+  sField.resize(nComp, nNodes);
+
+  RealArray N(p1*p2*p3);
+  double xi, eta, zeta;
+
+  size_t n = 1;
+  for (size_t k = 0; k < gpar[2].size(); ++k)
+    for (size_t j = 0; j < gpar[1].size(); ++j)
+      for (size_t i = 0; i < gpar[0].size(); ++i, ++n) {
+        int iel = this->findElement(gpar[0][i], gpar[1][j], gpar[2][k],
+                                    &xi, &eta, &zeta);
+
+        if (iel < 1 || iel > int(MNPC.size()))
+          return false;
+
+        if (!Lagrange::computeBasis(N,p1,xi,p2,eta,p3,zeta))
+          return false;
+
+        Matrix elmSol(nComp, p1*p2*p3);
+        const IntVec& mnpc = MNPC[iel-1];
+
+        size_t idx = 1;
+        for (const int& m : mnpc) {
+          for (size_t c = 1; c <= nComp; ++c)
+            elmSol(c,idx) = locSol(m*nComp+c);
+          ++idx;
+        }
+
+        Vector val;
+        elmSol.multiply(N, val);
+        for (size_t c = 1; c <= nComp; ++c)
+          sField(c,n) = val(c);
+      }
 
   return true;
 }
@@ -1151,4 +1186,28 @@ bool ASMs3DLag::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) con
 bool ASMs3DLag::write (std::ostream& os, int) const
 {
   return this->writeLagBasis(os,"hexahedron");
+}
+
+
+bool ASMs3DLag::evaluate (const ASMbase* basis, const Vector& locVec,
+                          RealArray& vec, int basisNum) const
+{
+  // Compute parameter values of the result sampling points
+  std::array<RealArray,3> gpar;
+  for (int dir = 0; dir < 3; dir++) {
+    int nel1 = dir == 0 ? (nx-1)/(p1-1) : (dir == 1 ? (ny-1)/(p2-1) : (nz-1)/(p3-1));
+    gpar[dir].resize(nel1+1);
+    double du = 1.0 / nel1;
+    for (int i = 0; i <= nel1; ++i)
+      gpar[dir][i] = i*du;
+  }
+
+  // Evaluate the result field at all sampling points.
+  // Note: it is here assumed that *basis and *this have spline bases
+  // defined over the same parameter domain.
+  Matrix sValues;
+  if (!basis->evalSolution(sValues,locVec,gpar.data()))
+    return false;
+  vec = sValues;
+  return true;
 }
