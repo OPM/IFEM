@@ -172,6 +172,14 @@ public:
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
                             const RealArray*, bool = false) const;
 
+  //! \brief Evaluates and interpolates a field over a given geometry.
+  //! \param[in] basis The basis of the field to evaluate
+  //! \param[in] locVec The coefficients of the field to evaluate
+  //! \param[out] vec The obtained coefficients after interpolation
+  //! \param[in] basisNum The basis to evaluate for (mixed)
+  virtual bool evaluate (const ASMbase* basis, const Vector& locVec,
+                         RealArray& vec, int basisNum) const;
+
   //! \brief Returns the number of nodal points in each parameter direction.
   //! \param[out] n1 Number of nodes in first (u) direction
   //! \param[out] n2 Number of nodes in second (v) direction
