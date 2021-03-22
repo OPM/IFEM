@@ -1627,8 +1627,11 @@ Vec3 ASMs3D::getCoord (size_t inod) const
     std::map<size_t,size_t>::const_iterator it = xnMap.find(inod);
     if (it != xnMap.end()) inod = it->second;
   }
-
   if (inod == 0) return Vec3();
+
+  std::map<size_t,XYZ>::const_iterator it = myRmaster.find(inod);
+  if (it != myRmaster.end()) return Vec3(it->second.data());
+
   int ip = this->coeffInd(inod-1)*svol->dimension();
   if (ip < 0) return Vec3();
 

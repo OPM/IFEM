@@ -658,6 +658,11 @@ double ASMs1D::getKnotSpan (int i) const
 
 Vec3 ASMs1D::getCoord (size_t inod) const
 {
+  if (inod == 0) return Vec3();
+
+  std::map<size_t,XYZ>::const_iterator it = myRmaster.find(inod);
+  if (it != myRmaster.end()) return Vec3(it->second.data());
+
   int ip = (inod-1)*curv->dimension();
   if (ip < 0) return Vec3();
 

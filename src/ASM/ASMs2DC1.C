@@ -284,7 +284,7 @@ bool ASMs2DC1::addRigidCpl (int lindx, int ldim, int basis,
                             int& gMaster, const Vec3& Xmaster, bool extraPt)
 {
   if (extraPt) // The master point is not a patch node, create an extra node
-    extraPt = this->createRgdMasterNode(gMaster);
+    extraPt = this->createRgdMasterNode(gMaster,Xmaster);
 
   // Get the boundary nodes, and the next layer of nodes directly connected
   IntVec slaveNodes;

@@ -569,7 +569,7 @@ void ASMbase::addLocal2GlobalCpl (int iSlave, int master, const Tensor& Tlg)
 }
 
 
-bool ASMbase::createRgdMasterNode (int& gMaster)
+bool ASMbase::createRgdMasterNode (int& gMaster, const Vec3& Xpt)
 {
   bool newNode = gMaster == 0;
   if (newNode)
@@ -582,7 +582,7 @@ bool ASMbase::createRgdMasterNode (int& gMaster)
             <<" for rigid coupling in Patch "<< idx+1 << std::endl;
 #endif
   myMLGN.push_back(gMaster);
-  myRmaster.insert(myMLGN.size());
+  myRmaster[myMLGN.size()] = { Xpt.x, Xpt.y, Xpt.z };
   return newNode;
 }
 
@@ -630,7 +630,7 @@ bool ASMbase::addRigidCpl (int lindx, int ldim, int basis,
   }
 
   if (extraPt) // The master point is not a patch node, create an extra node
-    extraPt = this->createRgdMasterNode(gMaster);
+    extraPt = this->createRgdMasterNode(gMaster,Xmaster);
 
   IntVec nodes;
   this->getBoundaryNodes(lindx,nodes,basis,1,0,true);

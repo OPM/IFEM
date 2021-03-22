@@ -122,7 +122,7 @@ bool ASMs1DC1::addRigidCpl (int lindx, int, int,
                             int& gMaster, const Vec3& Xmaster, bool extraPt)
 {
   if (extraPt) // The master point is not a patch node, create an extra node
-    extraPt = this->createRgdMasterNode(gMaster);
+    extraPt = this->createRgdMasterNode(gMaster,Xmaster);
 
   for (int i = 0; i < 2; i++)
   {

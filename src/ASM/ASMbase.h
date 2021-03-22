@@ -18,6 +18,7 @@
 #include "MPCLess.h"
 #include <map>
 #include <set>
+#include <array>
 #include <string>
 
 typedef std::vector<int>       IntVec;  //!< General integer vector
@@ -754,8 +755,9 @@ protected:
   void addNeighbor(ASMbase* pch);
   //! \brief Creates an additional master node for a rigid coupling.
   //! \param gMaster Global node number of the master node
+  //! \param[in] Xmaster Position of the master nodal point
   //! \return \e true if a new global node was added, otherwise \e false
-  bool createRgdMasterNode(int& gMaster);
+  bool createRgdMasterNode(int& gMaster, const Vec3& Xmaster);
   //! \brief Adds MPC equations representing a rigid arm to a 6-DOF node
   //! \param[in] gSlave Global node number of the 3-DOF slave node
   //! \param[in] gMaster Global node number of the 6-DOF master node
@@ -908,7 +910,10 @@ protected:
 private:
   std::vector<char> myLMTypes; //!< Type of Lagrange multiplier ('L' or 'G')
   std::set<size_t>  myLMs;     //!< Nodal indices of the Lagrange multipliers
-  std::set<size_t>  myRmaster; //!< Nodal indices of rigid master nodes
+
+protected:
+  typedef std::array<double,3> XYZ; //!< Convenience type definition
+  std::map<size_t,XYZ>   myRmaster; //!< Rigid master nodal points
 };
 
 #endif
