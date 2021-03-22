@@ -14,6 +14,7 @@
 #include "SIMmultiCpl.h"
 #include "SIMoutput.h"
 #include "Utilities.h"
+#include "Vec3Oper.h"
 #include "IFEM.h"
 #include "tinyxml.h"
 
@@ -104,6 +105,7 @@ bool SIMmultiCpl::preprocess (const std::vector<int>& ignored, bool fixDup)
   this->printHeading(substep);
 
   // Process the inter-sim couplings
+  int misMatch = 0;
   std::map<int,int> cplNodes;
   for (const SIMcoupling& cpl : myCpl)
   {
@@ -120,8 +122,22 @@ bool SIMmultiCpl::preprocess (const std::vector<int>& ignored, bool fixDup)
       return false;
     }
     else for (size_t i = 0; i < sNodes.size(); i++)
-      cplNodes[sNodes[i]] = mNodes[i];
+    {
+      Vec3 Xm = cpl.mstSim->getNodeCoord(mNodes[i]-nSubNodes[cpl.mstSim]);
+      Vec3 Xs = cpl.slvSim->getNodeCoord(sNodes[i]-nSubNodes[cpl.slvSim]);
+      if (Xm.equal(Xs,1.0e-4))
+	cplNodes[sNodes[i]] = mNodes[i];
+      else
+      {
+        misMatch++;
+        std::cerr <<" *** SIMmultiCpl::preprocess: Master node "<< mNodes[i]
+                  <<" ("<< Xm <<") does not match slave node "<< sNodes[i]
+                  <<" ("<< Xs <<")."<< std::endl;
+      }
+    }
   }
+  if (misMatch > 0)
+    return false;
 
   IFEM::cout <<"\nCoupling node mapping:";
   for (const std::pair<int,int>& cp : cplNodes)
