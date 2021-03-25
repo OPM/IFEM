@@ -377,6 +377,17 @@ public:
   //! \param[in] basis Which basis to collapse face for
   virtual bool collapseFace(int face, int edge = 0, int basis = 1);
 
+  //! \brief Adds MPCs representing a rigid coupling to this patch.
+  //! \param[in] lindx Local index of the boundary item that should be rigid
+  //! \param[in] ldim Dimension of the boundary item that should be rigid
+  //! \param[in] basis Which basis to add rigid coupling for (mixed methods)
+  //! \param gMaster Global node number of the master node
+  //! \param[in] Xmaster Position of the master nodal point
+  //! \param[in] extraPt If \e true, the master point is not a patch node
+  //! \return \e true if a new global node was added, otherwise \e false
+  virtual bool addRigidCpl(int lindx, int ldim, int basis,
+                           int& gMaster, const Vec3& Xmaster, bool extraPt);
+
   //! \brief Sets the global node numbers for this patch.
   //! \param[in] nodes Vector of global node numbers (zero-based)
   virtual void setNodeNumbers(const IntVec& nodes);

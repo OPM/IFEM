@@ -30,7 +30,7 @@ class ThreadGroups
 
 public:
   //! Directions to consider for element stripes.
-  enum StripDirection { U, V, W, ANY };
+  enum StripDirection { NONE, U, V, W, ANY };
 
   //! \brief Default constructor.
   explicit ThreadGroups(StripDirection dir = ANY) : stripDir(dir) {}
@@ -83,8 +83,7 @@ public:
   //! \brief Indexing operator.
   IntMat& operator[](int i) { return tg[i]; }
 
-  //! \brief Filter current threadgroups through a white list of elements.
-  //! \param[in] elmList The white list of elements
+  //! \brief Filters current threading groups through a white-list of elements.
   ThreadGroups filter(const IntVec& elmList) const;
 
 protected:

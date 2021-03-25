@@ -21,7 +21,6 @@
 #include "TimeDomain.h"
 #include "FiniteElement.h"
 #include "GlobalIntegral.h"
-#include "IFEM.h"
 #include "LocalIntegral.h"
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
@@ -31,10 +30,12 @@
 #include "SplineUtils.h"
 #include "Utilities.h"
 #include "Profiler.h"
+#include "Function.h"
 #include "Vec3Oper.h"
 #include "Point.h"
 #include "Tensor.h"
 #include "MPC.h"
+#include "IFEM.h"
 #include <array>
 #ifdef USE_OPENMP
 #include <omp.h>
@@ -2962,10 +2963,11 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 void ASMs2D::generateThreadGroups (const Integrand& integrand, bool silence,
                                    bool ignoreGlobalLM)
 {
-  const int p1 = surf->order_u() - 1;
-  const int p2 = surf->order_v() - 1;
-
-  generateThreadGroups(p1, p2, silence, ignoreGlobalLM);
+  if (threadGroups.stripDir == ThreadGroups::NONE)
+    threadGroups.oneGroup(nel);
+  else
+    this->generateThreadGroups(surf->order_u()-1, surf->order_v()-1,
+                               silence, ignoreGlobalLM);
 }
 
 
@@ -3210,4 +3212,35 @@ void ASMs2D::generateThreadGroupsFromElms (const IntVec& elms)
     myElms.push_back(-1);
 
   threadGroups = threadGroups.filter(myElms);
+}
+
+
+bool ASMs2D::addRigidCpl (int lindx, int ldim, int basis,
+                          int& gMaster, const Vec3& Xmaster, bool extraPt)
+{
+  if (ldim == 1)
+  {
+    ThreadGroups::StripDirection useDir = ThreadGroups::ANY;
+    switch (lindx) {
+    case 1:
+    case 2:
+      useDir = ThreadGroups::U;
+      break;
+    case 3:
+    case 4:
+      useDir = ThreadGroups::V;
+      break;
+    }
+
+    if (threadGroups.stripDir == ThreadGroups::ANY)
+      threadGroups.stripDir = useDir;
+    else if (threadGroups.stripDir != useDir)
+    {
+      useDir = ThreadGroups::NONE;
+      IFEM::cout <<"  ** ASMs2D::addRigidCpl: Conflicting strip directions."
+                 << std::endl;
+    }
+  }
+
+  return this->ASMstruct::addRigidCpl(lindx,ldim,basis,gMaster,Xmaster,extraPt);
 }

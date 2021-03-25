@@ -29,6 +29,7 @@
 #include "SplineUtils.h"
 #include "Utilities.h"
 #include "Profiler.h"
+#include "Function.h"
 #include "Vec3Oper.h"
 #include "Point.h"
 #include "Tensor.h"
@@ -3339,11 +3340,11 @@ bool ASMs3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 void ASMs3D::generateThreadGroups (const Integrand& integrand, bool silence,
                                    bool ignoreGlobalLM)
 {
-  const int p1 = svol->order(0) - 1;
-  const int p2 = svol->order(1) - 1;
-  const int p3 = svol->order(2) - 1;
-
-  ASMs3D::generateThreadGroups(p1, p2, p3, silence, ignoreGlobalLM);
+  if (threadGroupsVol.stripDir == ThreadGroups::NONE)
+    threadGroupsVol.oneGroup(nel);
+  else
+    this->generateThreadGroups(svol->order(0)-1, svol->order(1)-1,
+                               svol->order(2)-1, silence, ignoreGlobalLM);
 }
 
 
@@ -3702,4 +3703,39 @@ void ASMs3D::generateThreadGroupsFromElms (const IntVec& elms)
 
   for (std::pair<const char,ThreadGroups>& group : threadGroupsFace)
     group.second = group.second.filter(myElms);
+}
+
+
+bool ASMs3D::addRigidCpl (int lindx, int ldim, int basis,
+                          int& gMaster, const Vec3& Xmaster, bool extraPt)
+{
+  if (ldim == 2)
+  {
+    ThreadGroups::StripDirection useDir = ThreadGroups::ANY;
+    switch (lindx) {
+    case 1:
+    case 2:
+      useDir = ThreadGroups::U;
+      break;
+    case 3:
+    case 4:
+      useDir = ThreadGroups::V;
+      break;
+    case 5:
+    case 6:
+      useDir = ThreadGroups::W;
+      break;
+    }
+
+    if (threadGroupsVol.stripDir == ThreadGroups::ANY)
+      threadGroupsVol.stripDir = useDir;
+    else if (threadGroupsVol.stripDir != useDir)
+    {
+      useDir = ThreadGroups::NONE;
+      IFEM::cout <<"  ** ASMs3D::addRigidCpl: Conflicting strip directions."
+                 << std::endl;
+    }
+  }
+
+  return this->ASMstruct::addRigidCpl(lindx,ldim,basis,gMaster,Xmaster,extraPt);
 }

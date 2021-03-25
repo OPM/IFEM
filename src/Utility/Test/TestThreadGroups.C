@@ -59,7 +59,7 @@ TEST(TestThreadGroups, Groups2D)
   std::vector<bool> b24(4, true);
 
   for (int i = 0; i < 2; ++i) {
-    ThreadGroups group((ThreadGroups::StripDirection)i);
+    ThreadGroups group((ThreadGroups::StripDirection)(i+1));
     group.calcGroups(b14, b24, 1, 1);
 #ifdef USE_OPENMP
     const int ref1[4][4] = {{0,4,8,12}, {2,6,10,14},
