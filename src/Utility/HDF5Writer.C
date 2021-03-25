@@ -330,31 +330,31 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
   }
 
   size_t projOfs = 0;
-  for (int i = 0; i < sim->getNoPatches(); ++i) {
-    int loc = sim->getLocalPatchIndex(i+1);
+  for (int idx = 1; idx <= sim->getNoPatches(); idx++) {
+    int loc = sim->getLocalPatchIndex(idx);
     if ((!sim->getProcessAdm().dd.isPartitioned() || sim->getProcessAdm().getProcId() == 0) && loc > 0 &&
         (!(results & DataExporter::REDUNDANT) || sim->getGlobalProcessID() == 0)) // we own the patch
     {
+      Vector psol;
       ASMbase* pch = sim->getPatch(loc);
       if (results & DataExporter::PRIMARY && !sol->empty()) {
-        Vector psol;
         size_t ndof1 = sim->extractPatchSolution(*sol,psol,pch,entry.second.ncmps,
                                                  usedescription ? 1 : 0);
         const double* data = psol.ptr();
         if (usedescription)
           // Field assumed to be on basis 1 for now
-          writeArray(group.front(), entry.second.description,
-                     i+1, ndof1, data, H5T_NATIVE_DOUBLE);
+          this->writeArray(group.front(), entry.second.description,
+                           idx, ndof1, data, H5T_NATIVE_DOUBLE);
         else if (sim->mixedProblem())
           for (size_t b = 1; b <= sim->getNoBasis(); b++) {
             ndof1 = pch->getNoNodes(b)*pch->getNoFields(b);
-            writeArray(group[b-1], prefix+prob->getField1Name(10+b),
-                       i+1, ndof1, data, H5T_NATIVE_DOUBLE);
+            this->writeArray(group[b-1], prefix+prob->getField1Name(10+b),
+                             idx, ndof1, data, H5T_NATIVE_DOUBLE);
             data += ndof1;
           }
         else
-          writeArray(group.front(), prefix+prob->getField1Name(11),
-                     i+1, ndof1, data, H5T_NATIVE_DOUBLE);
+          this->writeArray(group.front(), prefix+prob->getField1Name(11),
+                           idx, ndof1, data, H5T_NATIVE_DOUBLE);
       }
 
       if (results & DataExporter::SECONDARY && !sol->empty()) {
@@ -365,33 +365,34 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
         sim->evalSecondarySolution(field,loc-1);
         const_cast<SIMbase*>(sim)->setMode(mode);
         for (size_t j = 0; j < field.rows(); j++)
-          writeArray(group.front(), prefix+prob->getField2Name(j),
-                     i+1, field.cols(), field.getRow(j+1).ptr(), H5T_NATIVE_DOUBLE);
+          this->writeArray(group.front(), prefix+prob->getField2Name(j),
+                           idx, field.cols(), field.getRow(j+1).ptr(),
+                           H5T_NATIVE_DOUBLE);
       }
 
       if (proj)
         for (size_t p = 0; p < proj->size(); ++p) {
           if (proj->at(p).empty())
             continue;
-          hid_t g = sim->fieldProjections() ? group.back() : group.front();
-          Vector locvec;
+
           if (sim->fieldProjections()) {
-            size_t ndof = sim->getPatch(loc)->getNoProjectionNodes() *
-                          prob->getNoFields(2);
-            locvec.resize(ndof);
+            psol.resize(prob->getNoFields(2) * pch->getNoProjectionNodes());
             std::copy(proj->at(p).begin()+projOfs,
-                      proj->at(p).begin()+projOfs+ndof, locvec.begin());
+                      proj->at(p).begin()+projOfs+psol.size(), psol.begin());
             if (p == proj->size()-1)
-              projOfs += ndof;
+              projOfs += psol.size();
           }
           else
-            sim->extractPatchSolution(proj->at(p),locvec,pch,prob->getNoFields(2),1);
+            sim->extractPatchSolution(proj->at(p),psol,pch,prob->getNoFields(2),1);
 
-          Matrix field(prob->getNoFields(2),locvec.size()/prob->getNoFields(2));
-          field.fill(locvec.ptr());
+          Matrix field(prob->getNoFields(2),psol.size()/prob->getNoFields(2));
+          field.fill(psol.ptr());
+
+          hid_t gid = sim->fieldProjections() ? group.back() : group.front();
           for (size_t j = 0; j < field.rows(); j++)
-            writeArray(g, m_prefix[p]+" "+prob->getField2Name(j),
-                       i+1, field.cols(), field.getRow(j+1).ptr(), H5T_NATIVE_DOUBLE);
+            this->writeArray(gid, m_prefix[p]+" "+prob->getField2Name(j),
+                             idx, field.cols(), field.getRow(j+1).ptr(),
+                             H5T_NATIVE_DOUBLE);
         }
 
       if (results & DataExporter::NORMS && eNorm) {
@@ -400,9 +401,10 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
         for (size_t j = 1, l = 1; l < eNorm->rows(); j++)
           for (size_t k = 1; k <= norm->getNoFields(j); k++)
             if (norm->hasElementContributions(j,k))
-              writeArray(egroup.front(),
-                         prefix+norm->getName(j, k, j > 1 && j-2 < m_prefix.size() ? m_prefix[j-2].c_str() : nullptr),
-                         i+1, patchEnorm.cols(), patchEnorm.getRow(l++).ptr(), H5T_NATIVE_DOUBLE);
+              this->writeArray(egroup.front(),
+                               prefix+norm->getName(j, k, j > 1 && j-2 < m_prefix.size() ? m_prefix[j-2].c_str() : nullptr),
+                               idx, patchEnorm.cols(), patchEnorm.getRow(l++).ptr(),
+                               H5T_NATIVE_DOUBLE);
       }
 
       if (results & DataExporter::EIGENMODES) {
@@ -410,30 +412,32 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
         const std::vector<Mode>* modes = static_cast<const std::vector<Mode>*>(entry.second.data2.front());
         for (const Mode& mode : *modes)
         {
-          Vector psol;
-          size_t ndof1 = sim->extractPatchSolution(mode.eigVec,psol,pch);
           std::stringstream str;
-          str << level;
-          str << '/' << sim->getName() << "-1/Eigenmode";
-          hid_t group2;
+          str << level << '/' << sim->getName() << "-1/Eigenmode";
+          hid_t gid;
           if (checkGroupExistence(m_file,str.str().c_str()))
-            group2 = H5Gopen2(m_file,str.str().c_str(),H5P_DEFAULT);
+            gid = H5Gopen2(m_file,str.str().c_str(),H5P_DEFAULT);
           else
-            group2 = H5Gcreate2(m_file,str.str().c_str(),0,H5P_DEFAULT,H5P_DEFAULT);
+            gid = H5Gcreate2(m_file,str.str().c_str(),0,H5P_DEFAULT,H5P_DEFAULT);
 
-          std::stringstream str4;
-          str4 << ++iMode;
-          writeArray(group2, str4.str(), i+1, ndof1, psol.ptr(), H5T_NATIVE_DOUBLE);
-          bool isFreq = sim->opt.eig==3 || sim->opt.eig==4 || sim->opt.eig==6;
-          if (isFreq)
-            writeArray(group2, str4.str()+"/Frequency", -1, 1, &mode.eigVal, H5T_NATIVE_DOUBLE);
+          std::stringstream str2;
+          str2 << ++iMode;
+          size_t ndof1 = sim->extractPatchSolution(mode.eigVec,psol,pch);
+          this->writeArray(gid, str2.str(), idx, ndof1, psol.ptr(),
+                           H5T_NATIVE_DOUBLE);
+          if (sim->opt.eig == 3 || sim->opt.eig == 4 || sim->opt.eig == 6)
+            str2 << "/Frequency";
           else
-            writeArray(group2, str4.str()+"/Value", -1, 1, &mode.eigVal, H5T_NATIVE_DOUBLE);
-          if (i == 0) {
-            str4 << "/eqn/";
-            writeArray(group2, str4.str(), i+1, mode.eqnVec.size(), mode.eqnVec.ptr(), H5T_NATIVE_DOUBLE);
+            str2 << "/Value";
+          this->writeArray(gid, str2.str(), -1, 1, &mode.eigVal,
+                           H5T_NATIVE_DOUBLE);
+          if (idx == 1) {
+            std::stringstream str3;
+            str3 << iMode << "/eqn/";
+            this->writeArray(gid, str3.str(), idx, mode.eqnVec.size(),
+                             mode.eqnVec.ptr(), H5T_NATIVE_DOUBLE);
           }
-          H5Gclose(group2);
+          H5Gclose(gid);
         }
       }
     }
@@ -443,26 +447,26 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
       if (results & DataExporter::PRIMARY) {
         if (usedescription)
           writeArray(group.front(), entry.second.description,
-                     i+1, 0, &dummy, H5T_NATIVE_DOUBLE);
+                     idx, 0, &dummy, H5T_NATIVE_DOUBLE);
         else if (sim->mixedProblem())
           for (size_t b = 1; b <= sim->getNoBasis(); b++)
             writeArray(group[b-1], prefix+prob->getField1Name(10+b),
-                       i+1, 0, &dummy, H5T_NATIVE_DOUBLE);
+                       idx, 0, &dummy, H5T_NATIVE_DOUBLE);
         else
           writeArray(group.front(), prefix+prob->getField1Name(11),
-                     i+1, 0, &dummy, H5T_NATIVE_DOUBLE);
+                     idx, 0, &dummy, H5T_NATIVE_DOUBLE);
       }
 
       if (results & DataExporter::SECONDARY)
         for (size_t j = 0; j < prob->getNoFields(2); j++)
           writeArray(group.front(), prefix+prob->getField2Name(j),
-                     i+1, 0, &dummy,H5T_NATIVE_DOUBLE);
+                     idx, 0, &dummy,H5T_NATIVE_DOUBLE);
 
       if (proj)
         for (size_t p = 0; p < proj->size(); p++)
           for (size_t j = 0; j < prob->getNoFields(2); j++)
             writeArray(group.front(), m_prefix[p]+" "+prob->getField2Name(j),
-                       i+1, 0, &dummy,H5T_NATIVE_DOUBLE);
+                       idx, 0, &dummy,H5T_NATIVE_DOUBLE);
 
       if (results & DataExporter::NORMS && eNorm)
         for (size_t j = 1; j <= norm->getNoFields(0); j++)
@@ -470,7 +474,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
             if (norm->hasElementContributions(j,k))
               writeArray(egroup.front(),
                          prefix+norm->getName(j, k, j > 1 && j-2 < m_prefix.size() ? m_prefix[j-2].c_str() : nullptr),
-                         i+1, 0, &dummy,H5T_NATIVE_DOUBLE);
+                         idx, 0, &dummy,H5T_NATIVE_DOUBLE);
 
       if (results & DataExporter::EIGENMODES) // TODO (akva?)
         std::cerr <<"  ** HDF5Writer: Oops, eigenmodes not yet supported for distributed patches"
@@ -514,19 +518,19 @@ void HDF5Writer::writeKnotspan (int level, const DataEntry& entry,
     group2 = H5Gopen2(m_file,str.str().c_str(),H5P_DEFAULT);
   else
     group2 = H5Gcreate2(m_file,str.str().c_str(),0,H5P_DEFAULT,H5P_DEFAULT);
-  for (int i = 0; i < sim->getNoPatches(); ++i) {
-    int loc = sim->getLocalPatchIndex(i+1);
+  for (int idx = 1; idx <= sim->getNoPatches(); idx++) {
+    int loc = sim->getLocalPatchIndex(idx);
     if (loc > 0 && (sim->getProcessAdm().isParallel() ||
                     sim->getGlobalProcessID() == 0)) // we own the patch
     {
       Matrix patchEnorm;
       sim->extractPatchElmRes(infield,patchEnorm,loc-1);
-      writeArray(group2,prefix+entry.second.description,i+1,patchEnorm.cols(),
+      writeArray(group2,prefix+entry.second.description,idx,patchEnorm.cols(),
                  patchEnorm.getRow(1).ptr(),H5T_NATIVE_DOUBLE);
     }
     else { // must write empty dummy records for the other patches
       double dummy=0.0;
-      writeArray(group2,prefix+entry.second.description,i+1,0,&dummy,H5T_NATIVE_DOUBLE);
+      writeArray(group2,prefix+entry.second.description,idx,0,&dummy,H5T_NATIVE_DOUBLE);
     }
 
   }
@@ -574,28 +578,24 @@ void HDF5Writer::writeBasis (const SIMbase* sim, const std::string& name,
     }
 #endif
 
-    for (int i = 1; i <= sim->getNoPatches(); i++) {
-      std::stringstream str;
-      int loc = sim->getLocalPatchIndex(i);
-      if (loc == 0)
-        continue;
-      const ASMbase* pch = sim->getPatch(loc);
+    for (int idx = 1; idx <= sim->getNoPatches(); idx++) {
+      const ASMbase* pch = sim->getPatch(idx,true);
+      if (!pch) continue;
+
       size_t ofs = 0;
-      const std::vector<int>& allNodeNums = sim->getPatch(loc)->getMyNodeNums();
       for (int b = 1; b < basis; ++b)
         ofs += pch->getNoNodes(b);
       for (size_t n = ofs; n < ofs + pch->getNoNodes(basis); ++n) {
-        int node = allNodeNums[n];
+        int node = pch->getNodeID(n+1);
         if (parallel) {
-          node = MLGN[node-1];
-          auto prevIt = prevNode.find(node);
+          auto prevIt = prevNode.find(MLGN[node-1]);
           if (prevIt != prevNode.end()) {
-            l2gNode.insert({allNodeNums[n], prevIt->second});
+            l2gNode[node] = prevIt->second;
             continue;
           }
         }
-        if (l2gNode.find(allNodeNums[n]) == l2gNode.end())
-          l2gNode.insert({allNodeNums[n],iNode++});
+        if (l2gNode.find(node) == l2gNode.end())
+          l2gNode[node] = iNode++;
       }
     }
 
@@ -620,37 +620,37 @@ void HDF5Writer::writeBasis (const SIMbase* sim, const std::string& name,
 
   }
 
-  for (int i = 1; i <= sim->getNoPatches(); i++) {
+  for (int idx = 1; idx <= sim->getNoPatches(); idx++) {
     std::stringstream str;
-    int loc = sim->getLocalPatchIndex(i);
-    if (loc > 0)
-      sim->getPatch(loc)->write(str,basis);
-    if (!redundant || rank == 0)
-      writeArray(group, "basis", i, str.str().size(), str.str().c_str(),
-                 H5T_NATIVE_CHAR);
-    if (redundant && rank != 0) {
-      char dummy=0;
-      writeArray(group, "basis", i, 0, &dummy, H5T_NATIVE_CHAR);
+    ASMbase* pch = sim->getPatch(idx,true);
+    int alen = 0;
+    if (pch && (!redundant || rank == 0))
+    {
+      pch->write(str,basis);
+      alen = str.str().size();
     }
+    this->writeArray(group, "basis", idx, alen , str.str().c_str(),
+                     H5T_NATIVE_CHAR);
 
     if (l2g) {
-      if (loc > 0) {
-        std::vector<int> nodeNumsLoc;
-        const std::vector<int>& allNodeNums = sim->getPatch(loc)->getMyNodeNums();
-        const std::vector<int>& nodeNums = l2gNode.empty() ? allNodeNums : nodeNumsLoc;
-        if (!l2gNode.empty()) {
+      std::vector<int> nodeNumsLoc;
+      const std::vector<int>* nodeNums = &nodeNumsLoc;
+      if (pch) {
+        const std::vector<int>& allNodeNums = pch->getGlobalNodeNums();
+        if (l2gNode.empty())
+          nodeNums = &allNodeNums;
+        else {
           size_t start_loc = 0;
           for (int b = 1; b < basis; ++b)
-            start_loc += sim->getPatch(loc)->getNoNodes(b);
+            start_loc += pch->getNoNodes(b);
 
-          nodeNumsLoc.resize(sim->getPatch(loc)->getNoNodes(basis));
-          for (size_t n = start_loc; n < start_loc + sim->getPatch(loc)->getNoNodes(basis); ++n)
+          nodeNumsLoc.resize(pch->getNoNodes(basis));
+          for (size_t n = start_loc; n < start_loc + pch->getNoNodes(basis); ++n)
             nodeNumsLoc[n-start_loc] = l2gNode[allNodeNums[n]];
         }
-        writeArray(group, "l2g-node", i, nodeNums.size(),
-                   nodeNums.data(), H5T_NATIVE_INT);
-      } else
-        writeArray(group, "l2g-node", i, 0, &i, H5T_NATIVE_INT);
+      }
+      this->writeArray(group, "l2g-node", idx, nodeNums->size(),
+                       nodeNums->data(), H5T_NATIVE_INT);
     }
   }
   H5Gclose(group);
@@ -682,7 +682,7 @@ bool HDF5Writer::writeTimeInfo (int level, int interval, const TimeStep& tp)
 }
 
 
-void HDF5Writer::writeNodalForces(int level, const DataEntry& entry)
+void HDF5Writer::writeNodalForces (int level, const DataEntry& entry)
 {
 #ifdef HAS_HDF5
   std::stringstream str;
@@ -745,18 +745,12 @@ bool HDF5Writer::writeLog (const std::string& data, const std::string& name)
   MPI_Comm_size(*m_adm.getCommunicator(), &size);
 #endif
 
-  for (int i = 0; i < size; ++i) {
-    if (rank == i)
-      writeArray(group, name.c_str(), i, data.size(), data.data(), H5T_NATIVE_CHAR);
-    else {
-      char dummy;
-      writeArray(group, name.c_str(), i, 0, &dummy, H5T_NATIVE_CHAR);
-    }
-  }
+  for (int i = 0; i < size; i++)
+    writeArray(group, name.c_str(), i, rank == i ? data.size() : 0, data.data(), H5T_NATIVE_CHAR);
   H5Gclose(group);
-
   return true;
-#endif
 
+#else
   return false;
+#endif
 }
