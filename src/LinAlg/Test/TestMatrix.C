@@ -112,6 +112,90 @@ TEST(TestMatrix, Norm)
 }
 
 
+TEST(TestMatrix, Read)
+{
+  utl::vector<double> a(26);
+  utl::matrix<double> A(2,3);
+  std::iota(a.begin(),a.end(),1.0);
+  std::iota(A.begin(),A.end(),1.0);
+  std::cout <<"a:"<< a;
+  std::cout <<"A:"<< A;
+
+  auto&& checkVector = [&a](const char* fname)
+  {
+    std::ifstream is(fname,std::ios::in);
+    utl::vector<double> b;
+    is >> b;
+    std::cout <<"b:"<< b;
+    ASSERT_EQ(a.size(),b.size());
+    for (size_t i = 1; i <= a.size(); i++)
+      EXPECT_NEAR(a(i), b(i), 1.0e-13);
+  };
+
+  auto&& checkMatrix = [&A](const char* fname)
+  {
+    std::ifstream is(fname,std::ios::in);
+    utl::matrix<double> B;
+    is >> B;
+    std::cout <<"B:"<< B;
+    ASSERT_EQ(A.rows(),B.rows());
+    ASSERT_EQ(A.cols(),B.cols());
+    for (size_t i = 1; i <= A.rows(); i++)
+      for (size_t j = 1; j <= A.cols(); j++)
+        EXPECT_NEAR(A(i,j), B(i,j), 1.0e-13);
+  };
+
+  const char* fname0 = "/tmp/testVector.dat";
+  const char* fname1 = "/tmp/testMatrix1.dat";
+  const char* fname2 = "/tmp/testMatrix2.dat";
+  const char* fname3 = "/tmp/testMatrix3.dat";
+  const char* fname4 = "/tmp/testMatrix4.dat";
+
+  std::ofstream os(fname0);
+  os << a.size() << a;
+  os.close();
+
+  os.open(fname1);
+  os << A.rows() <<' '<< A.cols() << A;
+  os.close();
+
+  os.open(fname2);
+  os << A.rows() <<' '<< A.cols();
+  for (size_t i = 1; i <= A.rows(); i++)
+    for (size_t j = 1; j <= A.cols(); j++)
+      os << (j == 1 ? '\n' : ' ') << A(i,j);
+  os <<'\n';
+  os.close();
+
+  checkVector(fname0);
+  checkMatrix(fname1);
+  checkMatrix(fname2);
+
+  double value = 0.0;
+  A.resize(6,6);
+  for (size_t i = 1; i <= A.rows(); i++)
+    for (size_t j = i; j <= A.cols(); j++)
+      A(i,j) = A(j,i) = ++value;
+  std::cout <<"Symmetric A:"<< A;
+
+  os.open(fname3);
+  os <<"Symmetric: "<< A.rows() << A;
+  os.close();
+
+  checkMatrix(fname3);
+
+  std::iota(A.begin(),A.end(),1.0);
+  std::cout <<"Non-symmetric A:"<< A;
+  os.open(fname4);
+  os <<"Column-oriented: "<< A.rows() <<" "<< A.cols();
+  for (double v : A) os <<"\n"<< v;
+  os <<"\n";
+  os.close();
+
+  checkMatrix(fname4);
+}
+
+
 TEST(TestMatrix3D, Trace)
 {
   utl::matrix3d<double> a(4,3,3);

@@ -23,6 +23,7 @@
 #include <iostream>
 #include <algorithm>
 #include <cstring>
+#include <cctype>
 #include <cmath>
 #include "BLAS.h"
 #include "print_tol.h"
@@ -242,19 +243,13 @@ namespace utl //! General utility classes and functions.
   {
   protected:
     //! \brief The constructor is protected to allow sub-class instances only.
-    matrixBase() : elem(myElem) { n[0] = n[1] = n[2] = n[3] = 0; }
+    matrixBase() : n{0,0,0,0}, elem(myElem) {}
     //! \brief Constructor using an external vector for matrix element storage.
-    explicit matrixBase(vector<T>& vec) : elem(vec) { n[0] = n[1] = n[2] = n[3] = 0; }
+    explicit matrixBase(vector<T>& vec) : n{0,0,0,0}, elem(vec) {}
     //! \brief Constructor creating a matrix of dimension
     //! \f$n_1 \times n_2 \times n_3 \times n_4\f$.
     matrixBase(size_t n_1, size_t n_2, size_t n_3 = 1, size_t n_4 = 1)
-      : elem(myElem), myElem(n_1*n_2*n_3*n_4)
-    {
-      n[0] = n_1;
-      n[1] = n_2;
-      n[2] = n_3;
-      n[3] = n_4;
-    }
+      : n{n_1,n_2,n_3,n_4}, elem(myElem), myElem(n_1*n_2*n_3*n_4) {}
 
     //! \brief Copy constructor.
     //! \param[in] mat The matrix to copy
@@ -1522,6 +1517,17 @@ namespace utl //! General utility classes and functions.
            v : T(0);
   }
 
+  //! \brief Read the vector \b X from the stream \a s.
+  template<class T> std::istream& operator>>(std::istream& s, vector<T>& X)
+  {
+    size_t n = 0;
+    s >> n;
+    X.resize(n);
+    for (T& val : X)
+      s >> val;
+    return s;
+  }
+
   //! \brief Print the vector \b X to the stream \a s.
   template<class T> std::ostream& operator<<(std::ostream& s,
                                              const vector<T>& X)
@@ -1532,6 +1538,48 @@ namespace utl //! General utility classes and functions.
       s << ((i%nval_per_line) ? ' ':'\n') << trunc(X[i]);
 
     return s << std::endl;
+  }
+
+  //! \brief Read the matrix \b A from the stream \a s.
+  template<class T> std::istream& operator>>(std::istream& s, matrix<T>& A)
+  {
+    size_t m = 0, n = 0;
+    char c = 0;
+    while (s.get(c) && isspace(c));
+    bool symmetric = (c == 'S' || c == 's');
+    bool columnori = (c == 'C' || c == 'c');
+    if (symmetric)
+    {
+      s.ignore(10,':');
+      s >> m;
+      n = m;
+    }
+    else if (isalpha(c))
+    {
+      s.ignore(15,' ');
+      s >> m >> n;
+    }
+    else
+    {
+      s.putback(c);
+      s >> m >> n;
+    }
+    A.resize(m,n);
+    for (size_t i = 1; i <= m; i++)
+    {
+      while (s.get(c) && isspace(c));
+      if (c == 'R')
+        s.ignore(10,':');
+      else
+        s.putback(c);
+      for (size_t j = (symmetric ? i : 1); j <= n; j++)
+      {
+        s >> (columnori ? A(j,i) : A(i,j));
+        if (symmetric && j > i)
+          A(j,i) = A(i,j);
+      }
+    }
+    return s;
   }
 
   //! \brief Print the matrix \b A to the stream \a s.
