@@ -187,10 +187,7 @@ public:
   unsigned char getNoLagPerNode() const { return nLag; }
 
   //! \brief Returns the polynomial order in each parameter direction.
-  //! \param[out] p1 Order in first (u) direction
-  //! \param[out] p2 Order in second (v) direction
-  //! \param[out] p3 Order in third (w) direction
-  virtual bool getOrder(int& p1, int& p2, int& p3) const = 0;
+  virtual bool getOrder(int&, int&, int&) const { return false; }
 
   //! \brief Returns local 1-based index of the node with given global number.
   //! \details If the given node number is not present, 0 is returned.
@@ -471,7 +468,7 @@ public:
   //! \param[in] iChk Object checking if an element interface has contributions
   virtual bool integrate(Integrand& integrand, GlobalIntegral& glbInt,
                          const TimeDomain& time,
-                         const ASM::InterfaceChecker& iChk) { return true; }
+                         const ASM::InterfaceChecker& iChk) { return false; }
 
   //! \brief Integrates a spatial dirac-delta function over a patch.
   //! \param integrand Object with problem-specific data and methods
@@ -479,7 +476,7 @@ public:
   //! \param[in] u Parameters of the non-zero point of the dirac-delta function
   //! \param[in] p Function value at the specified point
   virtual bool diracPoint(Integrand& integrand, GlobalIntegral& glbInt,
-                          const double* u, const Vec3& p) = 0;
+                          const double* u, const Vec3& p) { return false; }
 
 
   // Post-processing methods
@@ -789,7 +786,7 @@ protected:
   //! \param[in] continuous If \e false, a discrete L2-projection is used
   virtual bool assembleL2matrices(SparseMatrix& A, StdVector& B,
                                   const L2Integrand& obj,
-                                  bool continuous) const = 0;
+                                  bool continuous) const { return false; }
 
 public:
 

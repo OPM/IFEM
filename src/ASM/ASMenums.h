@@ -20,6 +20,7 @@ namespace ASM //! Assembly scope
   //! \brief Enum defining the available discretization methods.
   enum Discretization
   {
+    SuperElm =-2,
     Triangle =-1,
     Lagrange = 0,
     Spectral = 1,

@@ -19,6 +19,7 @@
 #include "LR/ASMu3D.h"
 #include "LR/ASMu3Dmx.h"
 #endif
+#include "ASMsupel.h"
 #include "Vec3Oper.h"
 
 
@@ -33,40 +34,41 @@ ASMbase* ASM3D::create (ASM::Discretization discretization,
 {
   switch (discretization) {
 
+  case ASM::SuperElm:
+    return new ASMsupel(nf.front());
+
   case ASM::Lagrange:
     if (nf.size() > 1 || mixedFEM)
       return new ASMs3DmxLag(nf);
     else
-      return new ASMs3DLag(nf[0]);
+      return new ASMs3DLag(nf.front());
 
   case ASM::Spectral:
-    return new ASMs3DSpec(nf[0]);
+    return new ASMs3DSpec(nf.front());
 
 #ifdef HAS_LRSPLINE
   case ASM::LRSpline:
     if (nf.size() > 1 || mixedFEM)
       return new ASMu3Dmx(nf);
     else
-      return new ASMu3D(nf[0]);
+      return new ASMu3D(nf.front());
 #endif
 
   default:
     if (nf.size() > 1 || mixedFEM)
       return new ASMs3Dmx(nf);
     else
-      return new ASMs3D(nf[0]);
+      return new ASMs3D(nf.front());
   }
 }
 
 
 #define TRY_CLONE1(classType,n) {					\
     const classType* p = dynamic_cast<const classType*>(this);		\
-    if (p) return n.empty() ? new classType(*p) : new classType(*p,n[0]);\
-  }
+    if (p) return n.empty() ? new classType(*p) : new classType(*p,n.front()); }
 #define TRY_CLONE2(classType,n) {					\
     const classType* p = dynamic_cast<const classType*>(this);		\
-    if (p) return n.empty() ? new classType(*p) : new classType(*p,n);	\
-  }
+    if (p) return n.empty() ? new classType(*p) : new classType(*p,n); }
 
 ASMbase* ASM3D::clone (const CharVec& nf) const
 {

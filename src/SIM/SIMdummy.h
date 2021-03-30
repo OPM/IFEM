@@ -21,6 +21,7 @@ class ASMbase;
 class IntegrandBase;
 class ModelGenerator;
 class TiXmlElement;
+namespace ASM { struct Interface; }
 
 
 /*!
