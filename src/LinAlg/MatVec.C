@@ -80,19 +80,19 @@ Matrix utl::operator* (const Matrix& A, const Matrix& B)
 
 /*!
   The following matrix multiplication is performed by this function:
-  \f[ {\bf A} = {\bf T}^T{\bf A}{\bf T} \f]
+  \f[ {\bf A} = {\bf T}{\bf A}{\bf T}^T \f]
   where \b A is a full, symmetric matrix, and \b T is an identity matrix
   with the nodal sub-matrix \b Tn inserted on the diagonal.
 */
 
-bool utl::transform (Matrix& A, const Matrix& T, size_t K)
+bool utl::transform (Matrix& A, const Matrix& Tn, size_t K)
 {
   size_t M = A.rows();
-  size_t N = T.rows();
-  if (M < A.cols() || N < T.cols()) return false;
+  size_t N = Tn.rows();
+  if (M < A.cols() || N < Tn.cols()) return false;
   if (K < 1 || K+N-1 > M || N > 3) return false;
 
-  Real WA[3] = {};
+  Real WA[N];
   size_t i, ii, j, jj, l, KN = K+N-1;
   for (jj = K; jj <= M; jj++)
   {
@@ -100,7 +100,7 @@ bool utl::transform (Matrix& A, const Matrix& T, size_t K)
     {
       WA[i-1] = Real(0);
       for (l = 1, ii = K; l <= N; l++, ii++)
-	WA[i-1] += T(l,i)*A(ii,jj);
+        WA[i-1] += Tn(i,l)*A(ii,jj);
     }
     ii = K;
     for (i = 1; i <= N; i++, ii++)
@@ -117,7 +117,7 @@ bool utl::transform (Matrix& A, const Matrix& T, size_t K)
     {
       WA[j-1] = Real(0);
       for (l = 1, jj = K; l <= N; l++, jj++)
-	WA[j-1] += A(ii,jj)*T(l,j);
+        WA[j-1] += A(ii,jj)*Tn(j,l);
     }
     jj = ii > K ? ii : K;
     for (j = JS; j <= N; j++, jj++)
@@ -140,21 +140,21 @@ bool utl::transform (Matrix& A, const Matrix& T, size_t K)
   the identity matrix with the nodal sub-matrix \b Tn inserted on the diagonal.
 */
 
-bool utl::transform (Vector& V, const Matrix& T, size_t K, bool transpose)
+bool utl::transform (Vector& V, const Matrix& Tn, size_t K, bool transpose)
 {
   size_t M = V.size();
-  size_t N = T.rows();
-  if (N < T.cols()) return false;
+  size_t N = Tn.rows();
+  if (N < Tn.cols()) return false;
   if (K < 1 || K+N-1 > M || N > 3) return false;
 
-  Real WA[3] = {};
+  Real WA[N];
   size_t i, ii, j;
   if (transpose)
     for (i = 1; i <= N; i++)
     {
       WA[i-1] = Real(0);
       for (j = 1, ii = K; j <= N; j++, ii++)
-	WA[i-1] += T(j,i)*V(ii);
+        WA[i-1] += Tn(j,i)*V(ii);
     }
 
   else
@@ -162,7 +162,7 @@ bool utl::transform (Vector& V, const Matrix& T, size_t K, bool transpose)
     {
       WA[i-1] = Real(0);
       for (j = 1, ii = K; j <= N; j++, ii++)
-	WA[i-1] += T(i,j)*V(ii);
+        WA[i-1] += Tn(i,j)*V(ii);
     }
 
   for (i = 0, ii = K; i < N; i++, ii++)
