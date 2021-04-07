@@ -1395,8 +1395,6 @@ void ASMs2D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
 {
   if (basis < 1) basis = 1;
 
-  if (!this->getBasis(basis)) return; // silently ignore empty patches
-
 #if SP_DEBUG > 1
   size_t last = nodes.size();
 #endif
