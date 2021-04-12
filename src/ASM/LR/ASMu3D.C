@@ -54,6 +54,7 @@ ASMu3D::ASMu3D (const ASMu3D& patch, unsigned char n_f)
 {
   vMin = 0.0;
   tensorspline = tensorPrjBas = nullptr;
+  projBasis = patch.projBasis;
 
   // Need to set nnod here,
   // as hasXNodes might be invoked before the FE data is generated
