@@ -362,22 +362,94 @@ bool ASMu3D::connectBasis (int face, ASMu3D& neighbor, int nface, int norient,
   }
 
   const double xtol = 1.0e-4;
-  IntVec::const_iterator slvIt = slaveNodes.begin();
-  for (int master : masterNodes)
+  for (size_t i = 0; i < masterNodes.size(); i++)
+  {
+    int node = masterNodes[i];
+    int slvn = slaveNodes[i];
     if (!coordCheck)
-      ASMbase::collapseNodes(neighbor,master,*this,*(slvIt++));
-    else if (neighbor.getCoord(master).equal(this->getCoord(*slvIt),xtol))
-      ASMbase::collapseNodes(neighbor,master,*this,*(slvIt++));
+      ASMbase::collapseNodes(neighbor,node,*this,slvn);
+    else if (neighbor.getCoord(node).equal(this->getCoord(slvn),xtol))
+      ASMbase::collapseNodes(neighbor,node,*this,slvn);
     else
     {
       std::cerr <<" *** ASMu3D::connectBasis: Non-matching nodes "
-                << master <<": "<< neighbor.getCoord(master)
+                << node <<": "<< neighbor.getCoord(node)
                 <<"\n                                          and "
-                << *slvIt <<": "<< this->getCoord(*slvIt) << std::endl;
+                << slvn <<": "<< this->getCoord(slvn) << std::endl;
       return false;
     }
+  }
 
   return true;
+}
+
+
+ASMu3D::DirichletFace::DirichletFace (LR::LRSplineVolume* sv,
+                                      int dir, int d, int c, int offset)
+  : lr(sv), edg(LR::NONE), dof(d), code(c), corners{0,0,0,0}
+{
+  // Figure out what face we are at
+  switch (dir) {
+  case -1: edg = LR::WEST;   break;
+  case  1: edg = LR::EAST;   break;
+  case -2: edg = LR::SOUTH;  break;
+  case  2: edg = LR::NORTH;  break;
+  case -3: edg = LR::BOTTOM; break;
+  case  3: edg = LR::TOP;    break;
+  default: return;
+  }
+
+  // Find the corners since these are not to be included in the L2-fitting
+  // of the inhomogenuous dirichlet boundaries; corners are interpolatory.
+  // Optimization note: loop over the "edge"-container to manually pick up
+  // the end nodes. LRspline::getEdgeFunctions() does a global search.
+  typedef std::array<int,3> Vrtx;
+  typedef std::vector<Vrtx> FaceVrtx;
+  static const std::map<LR::parameterEdge,FaceVrtx> faces = {{
+      {LR::WEST,  {{{{-1, -1, -1}},
+                    {{-1,  1, -1}},
+                    {{-1, -1,  1}},
+                    {{-1,  1,  1}}}}},
+      {LR::EAST,  {{{{ 1, -1, -1}},
+                    {{ 1,  1, -1}},
+                    {{ 1, -1,  1}},
+                    {{ 1,  1,  1}}}}},
+      {LR::SOUTH, {{{{-1, -1, -1}},
+                    {{ 1, -1, -1}},
+                    {{-1, -1,  1}},
+                    {{ 1, -1,  1}}}}},
+      {LR::NORTH, {{{{-1,  1, -1}},
+                    {{ 1,  1, -1}},
+                    {{-1,  1,  1}},
+                    {{ 1,  1,  1}}}}},
+      {LR::BOTTOM,{{{{-1, -1, -1}},
+                    {{ 1, -1, -1}},
+                    {{-1,  1, -1}},
+                    {{ 1,  1, -1}}}}},
+      {LR::TOP,   {{{{-1, -1,  1}},
+                    {{ 1, -1,  1}},
+                    {{-1,  1,  1}},
+                    {{ 1,  1,  1}}}}}
+    }};
+
+  int i = 0;
+  for (const Vrtx& vx : faces.find(edg)->second)
+  {
+    std::vector<LR::Basisfunction*> corner;
+
+    lr->getEdgeFunctions(corner,
+                         (vx[0] > 0 ? LR::EAST  : LR::WEST  ) |
+                         (vx[1] > 0 ? LR::NORTH : LR::SOUTH ) |
+                         (vx[2] > 0 ? LR::TOP   : LR::BOTTOM));
+
+    corners[i++] = corner.empty() ? 0 : offset + corner.front()->getId();
+  }
+}
+
+
+bool ASMu3D::DirichletFace::isCorner (int b) const
+{
+  return std::find(corners,corners+4,b) != corners+4;
 }
 
 
@@ -392,130 +464,66 @@ void ASMu3D::constrainFace (int dir, bool open, int dof, int code, char basis)
 {
   if (basis < 1) basis = 1;
 
-  // figure out function index offset (when using multiple basis)
-  size_t ofs = 1;
+  // Figure out function index offset (when using multiple basis)
+  int offset = 1;
   for (int i = 1; i < basis; i++)
-    ofs += this->getNoNodes(i);
+    offset += this->getNoNodes(i);
 
-  // figure out what edge we are at
-  LR::parameterEdge face;
-  switch (dir)
-  {
-  case -1: face = LR::WEST;   break;
-  case  1: face = LR::EAST;   break;
-  case -2: face = LR::SOUTH;  break;
-  case  2: face = LR::NORTH;  break;
-  case -3: face = LR::BOTTOM; break;
-  case  3: face = LR::TOP;    break;
-  default: return;
-  }
+  // Figure out what face we are at
+  DirichletFace de(this->getBasis(basis), dir, dof, code, offset);
 
-  // fetch the right basis to consider
-  LR::LRSplineVolume* lr = this->getBasis(basis);
-
-  // get all elements and functions on this face
+  // Get all basis functions on this face
   std::vector<LR::Basisfunction*> faceFunctions;
-  std::vector<LR::Element*>       faceElements;
-  lr->getEdgeFunctions(faceFunctions,face);
-  lr->getEdgeElements (faceElements ,face);
+  de.lr->getEdgeFunctions(faceFunctions,de.edg);
 
-  // build up the local element/node correspondence needed by the projection
-  // call on this face by ASMu3D::updateDirichlet()
-  DirichletFace de(faceFunctions.size(), faceElements.size(), dof, code, basis);
-  de.edg  = face;
-  de.lr   = lr;
-
-  // find the corners since these are not to be included in the L2-fitting
-  // of the inhomogenuous dirichlet boundaries; corners are interpolatory.
-  // Optimization note: loop over the "edge"-container to manually pick up
-  // the end nodes. LRspline::getEdgeFunctions() does a global search.
-  static const std::map<LR::parameterEdge,std::array<std::array<int,3>,4>> corners = {{
-        { LR::WEST,{{{{-1, -1, -1}},
-                     {{-1,  1, -1}},
-                     {{-1, -1,  1}},
-                     {{-1,  1,  1}}}}},
-        { LR::EAST,{{{{ 1, -1, -1}},
-                     {{ 1,  1, -1}},
-                     {{ 1, -1,  1}},
-                     {{ 1,  1,  1}}}}},
-        {LR::SOUTH,{{{{-1, -1, -1}},
-                     {{ 1, -1, -1}},
-                     {{-1, -1,  1}},
-                     {{ 1, -1,  1}}}}},
-        {LR::NORTH,{{{{-1, -1, -1}},
-                     {{ 1, -1, -1}},
-                     {{-1, -1,  1}},
-                     {{ 1, -1,  1}}}}},
-       {LR::BOTTOM,{{{{-1, -1, -1}},
-                     {{ 1, -1, -1}},
-                     {{-1,  1, -1}},
-                     {{ 1,  1, -1}}}}},
-          {LR::TOP,{{{{-1, -1,  1}},
-                     {{ 1, -1,  1}},
-                     {{-1,  1,  1}},
-                     {{ 1,  1,  1}}}}},
-  }};
-
-  int* c = de.corners;
-  for (const std::array<int,3>& vx : corners.find(face)->second)
-    *c++ = this->getCorner(vx[0], vx[1], vx[2], basis);
-
-  int bcode = abs(code);
+  // Add constraints for all basis functions on the face
   for (LR::Basisfunction* b : faceFunctions)
-  {
-    de.MLGN.push_back(b->getId());
-    int* cid = std::find(de.corners, de.corners+4, b->getId()+ofs);
-    // skip corners for open boundaries
-    if (open && cid == de.corners+4)
-      continue;
-    else
-    {
-      // corners are interpolated (positive 'code')
-      if (cid != de.corners+4)
-        this->prescribe(b->getId()+ofs, dof,  bcode);
-      // inhomogenuous dirichlet conditions by function evaluation (negative 'code')
-      else if (code > 0)
-        this->prescribe(b->getId()+ofs, dof, -bcode);
-      // (in)homogenuous constant dirichlet conditions
-      else
-        this->prescribe(b->getId()+ofs, dof,  bcode);
-    }
-  }
+    if (!de.isCorner(b->getId()+offset))
+      this->prescribe(b->getId()+offset, dof, -code);
+    else if (!open) // skip corners for open boundaries
+      // corners are always interpolated (positive 'code')
+      this->prescribe(b->getId()+offset, dof, abs(code));
 
-  // build MLGE and MNPC matrix
-  for (size_t i=0; i < faceElements.size(); i++)
-  {
-    LR::Element* el = faceElements[i];
+  if (code <= 0) return; // If no projection, we're done
 
+  // Build up the local face-node correspondence for this face
+  for (LR::Basisfunction* b : faceFunctions)
+    de.MLGN.push_back(b->getId()+offset);
+
+  // Get all elements connected to this face
+  std::vector<LR::Element*> faceElements;
+  de.lr->getEdgeElements(faceElements,de.edg);
+
+  // Build the MLGE and MNPC arrays
+  de.MLGE.reserve(faceElements.size());
+  de.MNPC.reserve(faceElements.size());
+  for (LR::Element* el : faceElements)
+  {
     // for mixed FEM models, let MLGE point to the *geometry* index
     if (de.lr != this->lrspline.get())
     {
       double umid = (el->umax() + el->umin())/2.0;
       double vmid = (el->vmax() + el->vmin())/2.0;
       double wmid = (el->wmax() + el->wmin())/2.0;
-      de.MLGE[i] = lrspline->getElementContaining(umid, vmid, wmid);
+      de.MLGE.push_back(lrspline->getElementContaining(umid,vmid,wmid));
     }
     else
-    {
-      de.MLGE[i] = el->getId();
-    }
+      de.MLGE.push_back(el->getId());
+
+    IntVec mnpc; mnpc.reserve(el->support().size());
     for (LR::Basisfunction* b : el->support())
-    {
-      de.MNPC[i].push_back(-1);
-      for (size_t j = 0; j < de.MLGN.size(); j++)
-        if (b->getId() == de.MLGN[j])
-          de.MNPC[i].back() = j;
-    }
+      mnpc.push_back(utl::findIndex(de.MLGN,b->getId()+offset));
+    de.MNPC.push_back(mnpc);
   }
-  if (code > 0)
-    dirich.push_back(de);
+
+  dirich.push_back(de);
 }
 
-size_t ASMu3D::constrainFaceLocal(int dir, bool open, int dof, int code, bool project, char T1)
+
+size_t ASMu3D::constrainFaceLocal (int dir, bool open, int dof, int code,
+                                   bool project, char T1)
 {
-  std::cerr << "ASMu3D::constrainFaceLocal not implemented properly yet" << std::endl;
-  exit(776654);
-  return 0;
+  return 0; // TODO...
 }
 
 
@@ -572,6 +580,7 @@ IntVec ASMu3D::getEdge (int lEdge, bool open, int basis, int orient) const
 
   return result;
 }
+
 
 void ASMu3D::constrainEdge (int lEdge, bool open, int dof, int code, char basis)
 {
@@ -726,24 +735,31 @@ bool ASMu3D::updateCoords (const Vector& displ)
 }
 
 
+/*!
+  \brief Static helper mapping a face index into a \a parameterEdge enum value.
+*/
+
+static LR::parameterEdge getFaceEnum (int faceIndex)
+{
+  switch (faceIndex) {
+  case 1: return LR::WEST;
+  case 2: return LR::EAST;
+  case 3: return LR::SOUTH;
+  case 4: return LR::NORTH;
+  case 5: return LR::BOTTOM;
+  case 6: return LR::TOP;
+  }
+
+  return LR::NONE;
+}
+
+
 size_t ASMu3D::getNoBoundaryElms (char lIndex, char ldim) const
 {
   if (!lrspline) return 0;
 
-  LR::parameterEdge edge;
-  switch (lIndex)
-  {
-  case 1: edge = LR::WEST;   break;
-  case 2: edge = LR::EAST;   break;
-  case 3: edge = LR::SOUTH;  break;
-  case 4: edge = LR::NORTH;  break;
-  case 5: edge = LR::BOTTOM; break;
-  case 6: edge = LR::TOP;    break;
-  default:edge = LR::NONE;
-  }
-
   std::vector<LR::Element*> edgeElms;
-  lrspline->getEdgeElements(edgeElms, edge);
+  lrspline->getEdgeElements(edgeElms,getFaceEnum(lIndex));
 
   return edgeElms.size();
 }
@@ -1258,21 +1274,9 @@ bool ASMu3D::integrate (Integrand& integrand, int lIndex,
   std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex%10);
   size_t firstp = iit == firstBp.end() ? 0 : iit->second;
 
-  LR::parameterEdge edge;
-  switch (lIndex%10)
-  {
-  case 1: edge = LR::WEST;   break;
-  case 2: edge = LR::EAST;   break;
-  case 3: edge = LR::SOUTH;  break;
-  case 4: edge = LR::NORTH;  break;
-  case 5: edge = LR::BOTTOM; break;
-  case 6: edge = LR::TOP;    break;
-  default:edge = LR::NONE;
-  }
-
-  // fetch all elements along the chosen edge
+  // Fetch all elements on the chosen face
   std::vector<LR::Element*> edgeElms;
-  lrspline->getEdgeElements(edgeElms,edge);
+  lrspline->getEdgeElements(edgeElms,getFaceEnum(lIndex%10));
 
 
   // === Assembly loop over all elements on the patch face =====================
@@ -1443,8 +1447,7 @@ bool ASMu3D::integrateEdge (Integrand& integrand, int lEdge,
                             GlobalIntegral& glInt,
                             const TimeDomain& time)
 {
-  std::cerr << "ASMu3D::integrateEdge(...) is not properly implemented yet :(" << std::endl;
-  exit(776654);
+  std::cerr <<" *** ASMu3D::integrateEdge is not implemented yet :("<< std::endl;
   return false;
 }
 
@@ -1896,20 +1899,8 @@ bool ASMu3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
 IntVec ASMu3D::getFaceNodes (int face, int basis, int orient) const
 {
-  size_t ofs = 1;
-  for (int i = 1; i < basis; i++)
-    ofs += this->getNoNodes(i);
-
-  LR::parameterEdge edge;
-  switch (face) {
-  case 1: edge = LR::WEST; break;
-  case 2: edge = LR::EAST; break;
-  case 3: edge = LR::SOUTH; break;
-  case 4: edge = LR::NORTH; break;
-  case 5: edge = LR::BOTTOM; break;
-  case 6: edge = LR::TOP; break;
-  default: return IntVec();
-  }
+  LR::parameterEdge edge = getFaceEnum(face);
+  if (edge == LR::NONE) return IntVec();
 
   std::vector<LR::Basisfunction*> edgeFunctions;
   this->getBasis(basis)->getEdgeFunctions(edgeFunctions, edge);
@@ -1919,6 +1910,10 @@ IntVec ASMu3D::getFaceNodes (int face, int basis, int orient) const
     int v = 1 + (dir != 2);
     ASMLRSpline::Sort(u, v, orient, edgeFunctions);
   }
+
+  size_t ofs = 1;
+  for (int i = 1; i < basis; i++)
+    ofs += this->getNoNodes(i);
 
   IntVec result(edgeFunctions.size());
   std::transform(edgeFunctions.begin(), edgeFunctions.end(), result.begin(),
@@ -1939,7 +1934,7 @@ void ASMu3D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
   nodes = this->getFaceNodes(lIndex, basis, orient);
 
 #if SP_DEBUG > 1
-  std::cout <<"Boundary nodes in patch "<< idx+1 <<" edge "<< lIndex <<":";
+  std::cout <<"Boundary nodes in patch "<< idx+1 <<" face "<< lIndex <<":";
   for (int n : nodes) std::cout <<" "<< n;
   std::cout << std::endl;
 #endif
@@ -1962,23 +1957,18 @@ bool ASMu3D::getOrder (int& p1, int& p2, int& p3) const
 
 int ASMu3D::getCorner(int I, int J, int K, int basis) const
 {
-  int edge = (I > 0 ? LR::EAST  : LR::WEST  ) |
-             (J > 0 ? LR::NORTH : LR::SOUTH ) |
-             (K > 0 ? LR::TOP   : LR::BOTTOM);
-
-  const LR::LRSplineVolume* vol = this->getBasis(basis);
-
   std::vector<LR::Basisfunction*> corner; // vector of one function for corner-input
-  vol->getEdgeFunctions(corner, (LR::parameterEdge) edge);
-
-  if ( corner.empty() )
+  this->getBasis(basis)->getEdgeFunctions(corner,
+                                          (I > 0 ? LR::EAST  : LR::WEST  ) |
+                                          (J > 0 ? LR::NORTH : LR::SOUTH ) |
+                                          (K > 0 ? LR::TOP   : LR::BOTTOM));
+  if (corner.empty())
     return -1;
 
-  size_t ofs = 1;
+  int nodeId = corner.front()->getId() + 1;
   for (int i = 1; i < basis; i++)
-    ofs += this->getNoNodes(i);
-
-  return corner.front()->getId()+ofs;
+    nodeId += this->getNoNodes(i);
+  return nodeId;
 }
 
 
@@ -2030,62 +2020,48 @@ bool ASMu3D::updateDirichlet (const std::map<int,RealFunc*>& func,
                               const std::map<int,VecFunc*>& vfunc, double time,
                               const std::map<int,int>* g2l)
 {
-
   std::map<int,RealFunc*>::const_iterator fit;
   std::map<int,VecFunc*>::const_iterator vfit;
 
-  for (size_t i = 0; i < dirich.size(); i++)
+  for (const DirichletFace& dfac : dirich)
   {
-    // figure out function index offset (when using multiple basis)
-    size_t ofs = 1;
-    for (int j = 1; j < dirich[i].basis; j++)
-      ofs += this->getNoNodes(j);
-
-    Real2DMat edgeControlmatrix;
-    if ((fit = func.find(dirich[i].code)) != func.end())
-      this->faceL2projection(dirich[i], *fit->second, edgeControlmatrix, time);
-    else if ((vfit = vfunc.find(dirich[i].code)) != vfunc.end())
-      this->faceL2projection(dirich[i], *vfit->second, edgeControlmatrix, time);
+    Real2DMat controlPts;
+    if ((fit = func.find(dfac.code)) != func.end())
+      this->faceL2projection(dfac, *fit->second, controlPts, time);
+    else if ((vfit = vfunc.find(dfac.code)) != vfunc.end())
+      this->faceL2projection(dfac, *vfit->second, controlPts, time);
     else
     {
-      std::cerr <<" *** ASMu3D::updateDirichlet: Code "<< dirich[i].code
+      std::cerr <<" *** ASMu3D::updateDirichlet: Code "<< dfac.code
                 <<" is not associated with any function."<< std::endl;
       return false;
     }
-    if (edgeControlmatrix.empty())
+    if (controlPts.empty())
     {
       std::cerr <<" *** ASMu3D::updateDirichlet: Projection failure."
                 << std::endl;
       return false;
     }
 
-    // Loop over the nodes of this boundary curve
-    int j = 0;
-    for (int node : dirich[i].MLGN)
-    {
-      // skip corner nodes, since these are special cased (interpolatory)
-      auto it = std::find(dirich[i].corners, dirich[i].corners+4, node+ofs);
-      if (it != dirich[i].corners+4) {
-        ++j;
-        continue;
-      }
-
-      for (int dofs = dirich[i].dof; dofs > 0; dofs /= 10)
-      {
-        int dof = dofs%10;
-        // Find the constraint equation for current (node,dof)
-        MPC pDOF(MLGN[node+ofs-1],dof);
-        MPCIter mit = mpcs.find(&pDOF);
-        if (mit == mpcs.end()) continue; // probably a deleted constraint
-
-        // Now update the prescribed value in the constraint equation
-        (*mit)->setSlaveCoeff(edgeControlmatrix[dirich[i].dof > 10 ? dof-1 : 0][j]);
+    // Loop over the (non-corner) nodes of this boundary face
+    for (size_t j = 0; j < dfac.MLGN.size(); j++)
+      if (!dfac.isCorner(dfac.MLGN[j]))
+        for (int dofs = dfac.dof; dofs > 0; dofs /= 10)
+        {
+          int dof = dofs%10;
+          // Find the constraint equation for current (node,dof)
+          MPC pDOF(MLGN[dfac.MLGN[j]-1],dof);
+          MPCIter mit = mpcs.find(&pDOF);
+          if (mit != mpcs.end())
+          {
+            // Now update the prescribed value in the constraint equation
+            if (dfac.dof < 10) dof = 1; // scalar condition
+            (*mit)->setSlaveCoeff(controlPts[dof-1][j]);
 #if SP_DEBUG > 1
-        std::cout <<"Updated constraint: "<< **mit;
+            std::cout <<"Updated constraint: "<< **mit;
 #endif
-      }
-      ++j;
-    }
+          }
+        }
   }
 
   // The parent class method takes care of the corner nodes with direct
@@ -2447,11 +2423,11 @@ void ASMu3D::getElmConnectivities (IntMat& neigh) const
 {
   const LR::LRSplineVolume* lr = this->getBasis(1);
   for (const LR::Element* m : lr->getAllElements()) {
-    int gEl = MLGE[m->getId()]-1;
-    for (auto edge : {LR::WEST, LR::EAST, LR::SOUTH, LR::NORTH, LR::BOTTOM, LR::TOP}) {
-      std::set<int> elms = lr->getElementNeighbours(m->getId(), edge);
+    IntVec& neighbor = neigh[MLGE[m->getId()]-1];
+    for (int face = 1; face <= 6; face++) {
+      std::set<int> elms = lr->getElementNeighbours(m->getId(),getFaceEnum(face));
       for (int elm : elms)
-        neigh[gEl].push_back(MLGE[elm]-1);
+        neighbor.push_back(MLGE[elm]-1);
     }
   }
 }
@@ -2459,20 +2435,8 @@ void ASMu3D::getElmConnectivities (IntMat& neigh) const
 
 void ASMu3D::getBoundaryElms (int lIndex, int orient, IntVec& elms) const
 {
-  LR::parameterEdge edge;
-  switch (lIndex)
-  {
-  case 1: edge = LR::WEST;   break;
-  case 2: edge = LR::EAST;   break;
-  case 3: edge = LR::SOUTH;  break;
-  case 4: edge = LR::NORTH;  break;
-  case 5: edge = LR::BOTTOM; break;
-  case 6: edge = LR::TOP;    break;
-  default:edge = LR::NONE;
-  }
-
   std::vector<LR::Element*> elements;
-  this->getBasis(1)->getEdgeElements(elements, edge);
+  this->getBasis(1)->getEdgeElements(elements,getFaceEnum(lIndex));
 
   std::sort(elements.begin(), elements.end(),
             [lIndex,orient](const LR::Element* a, const LR::Element* b)
