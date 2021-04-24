@@ -30,21 +30,23 @@
 
 int LR::extendControlPoints (LRSpline* basis, const Vector& v, int nf, int ofs)
 {
-  if (v.size() == (size_t)basis->nBasisFunctions())
+  if (v.empty())
+    return 0;
+  else if (v.size() == (size_t)basis->nBasisFunctions())
     nf = 1; // This is a scalar field
   else if (v.size() != (size_t)(basis->nBasisFunctions()*nf)) {
     std::cerr <<" *** LR::extendControlPoints: Invalid vector size "
               << v.size() <<", nBasis = "<< basis->nBasisFunctions()
               << std::endl;
-    return 0;
+    return -1;
   }
 
   RealArray cpts, cpp;
   for (LR::Basisfunction* b : basis->getAllBasisfunctions()) {
-    int id = b->getId();
+    int istart = ofs + b->getId()*nf;
     b->getControlPoint(cpp);
     cpts.insert(cpts.end(), cpp.begin(), cpp.end());
-    cpts.insert(cpts.end(), v.begin()+id*nf+ofs, v.begin()+(id+1)*nf+ofs);
+    cpts.insert(cpts.end(), v.begin()+istart, v.begin()+istart+nf);
   }
   basis->rebuildDimension(basis->dimension()+nf);
   basis->setControlPoints(cpts);
@@ -56,10 +58,10 @@ void LR::contractControlPoints (LRSpline* basis, Vector& v, int nf, int ofs)
 {
   RealArray cpts, cpp;
   for (LR::Basisfunction* b : basis->getAllBasisfunctions()) {
-    int id = b->getId();
+    int istart = ofs + b->getId()*nf;
     b->getControlPoint(cpp);
     for (int i = 0; i < nf; i++)
-      v[id*nf+ofs+i] = cpp[basis->dimension()-nf+i];
+      v[istart+i] = cpp[basis->dimension()-nf+i];
     cpts.insert(cpts.end(), cpp.begin(), cpp.end()-nf);
   }
   basis->rebuildDimension(basis->dimension()-nf);
@@ -73,7 +75,7 @@ void LR::getGaussPointParameters (const LRSpline* lrspline, RealArray& uGP,
 #ifdef INDEX_CHECK
   if (iel < 1 || iel > lrspline->nElements())
   {
-    std::cerr <<" *** getLRGaussPointParameters: Element index "<< iel
+    std::cerr <<" *** LR::getGaussPointParameters: Element index "<< iel
               <<" out of range [1,"<< lrspline->nElements() <<"]."<< std::endl;
     return;
   }
@@ -199,36 +201,41 @@ ASMLRSpline::ASMLRSpline (const ASMLRSpline& patch, unsigned char n_f)
 
 bool ASMLRSpline::refine (const LR::RefineData& prm, Vectors& sol)
 {
-  PROFILE2("ASMLRSpline::refine()");
-
   if (!geo)
     return false;
-  else if (shareFE && !prm.refShare)
+
+  if (shareFE && !prm.refShare)
   {
+    // This patch shares spline object with another patch
+    // (in another simulator on the same mesh),
+    // and is assumed to have been refined already
     nnod = geo->nBasisFunctions();
+    nel  = geo->nElements();
     return true;
   }
-  else if (prm.errors.empty() && prm.elements.empty())
+
+  if (prm.errors.empty() && prm.elements.empty())
     return true;
+
+  PROFILE2("ASMLRSpline::refine");
 
   IntVec nf(sol.size());
   for (size_t j = 0; j < sol.size(); j++)
-    if (!sol[j].empty())
-      if (!(nf[j] = LR::extendControlPoints(geo,sol[j],this->getNoFields(1))))
-        return false;
+    if ((nf[j] = LR::extendControlPoints(geo,sol[j],this->getNoFields(1))) < 0)
+      return false;
 
   if (!this->doRefine(prm,geo))
     return false;
 
   nnod = geo->nBasisFunctions();
+  nel  = geo->nElements();
+  IFEM::cout <<"Refined mesh: "<< nel <<" elements "<< nnod <<" nodes."<< std::endl;
+
   for (int i = sol.size()-1; i >= 0; i--)
-    if (!sol[i].empty()) {
-      sol[i].resize(nf[i]*geo->nBasisFunctions());
+    if (nf[i] > 0) {
+      sol[i].resize(nf[i]*nnod);
       LR::contractControlPoints(geo,sol[i],nf[i]);
     }
-
-  IFEM::cout <<"Refined mesh: "<< geo->nElements() <<" elements "
-             << geo->nBasisFunctions() <<" nodes."<< std::endl;
 
   bool linIndepTest = prm.options.size() > 3 ? prm.options[3] != 0 : false;
   if (linIndepTest)
@@ -244,10 +251,9 @@ bool ASMLRSpline::refine (const LR::RefineData& prm, Vectors& sol)
     }
     if (isLinIndep)
       std::cout <<"...Passed."<< std::endl;
-    else {
+    else
       std::cout <<"FAILED!!!"<< std::endl;
-      exit(228);
-    }
+    return isLinIndep;
   }
 
   return true;
@@ -351,8 +357,8 @@ IntVec ASMLRSpline::getBoundaryCovered (const IntSet& nodes) const
   {
     IntVec oneBoundary; // 1-based list of boundary nodes
     this->getBoundaryNodes(edge,oneBoundary,1,1,0,true);
-    for (const int i : nodes)
-      for (const int j : oneBoundary)
+    for (int i : nodes)
+      for (int j : oneBoundary)
         if (geo->getBasisfunction(i)->contains(*geo->getBasisfunction(j-1)))
           result.insert(j-1);
   }
@@ -364,11 +370,11 @@ IntVec ASMLRSpline::getBoundaryCovered (const IntSet& nodes) const
 IntVec ASMLRSpline::getOverlappingNodes (const IntSet& nodes, int dir) const
 {
   IntSet result;
-  for (const int i : nodes)
+  for (int i : nodes)
   {
-    LR::Basisfunction *b = geo->getBasisfunction(i);
-    for (auto el : b->support()) // for all elements where *b has support
-      for (auto basis : el->support()) // for all functions on this element
+    LR::Basisfunction* b = geo->getBasisfunction(i);
+    for (LR::Element* el : b->support())
+      for (LR::Basisfunction* basis : el->support())
       {
         bool support_only_bigger_in_allowed_direction = true;
         for (int j = 0; j < b->nVariate() && support_only_bigger_in_allowed_direction; j++)
@@ -447,7 +453,7 @@ bool ASMLRSpline::checkThreadGroups (const IntMat& groups,
 {
   size_t groupId = 1;
   bool ok = true;
-  for (const auto& elms : groups) {
+  for (const IntVec& elms : groups) {
     size_t basisId = 1;
     for (const LR::LRSpline* basis : bases) {
       std::set<int> nodes;
@@ -471,13 +477,13 @@ bool ASMLRSpline::checkThreadGroups (const IntMat& groups,
 }
 
 
-void ASMLRSpline::analyzeThreadGroups(const IntMat& groups)
+void ASMLRSpline::analyzeThreadGroups (const IntMat& groups)
 {
   size_t min = std::numeric_limits<size_t>::max() - 1;
   size_t max = 0;
   std::vector<size_t> groupSizes;
-  double avg = 0;
-  for (const auto& group : groups) {
+  double avg = 0.0;
+  for (const IntVec& group : groups) {
     min = std::min(group.size(), min);
     max = std::max(group.size(), max);
     groupSizes.push_back(group.size());
@@ -491,12 +497,11 @@ void ASMLRSpline::analyzeThreadGroups(const IntMat& groups)
              << ", max = " << max
              << ", avg = " << avg
              << ", med = " << groupSizes[half]
-             << ").\n";
-
+             << ")." << std::endl;
 }
 
 
-bool ASMLRSpline::getParameterDomain(Real2DMat& u, IntVec* corners) const
+bool ASMLRSpline::getParameterDomain (Real2DMat& u, IntVec* corners) const
 {
   u.resize(geo->nVariate(),RealArray(2));
   for (int i = 0; i < geo->nVariate(); ++i) {
