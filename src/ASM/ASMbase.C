@@ -149,6 +149,11 @@ void ASMbase::clear (bool retainGeometry)
     // Clear all FE structures, including the elements
     myMLGE.clear();
     myMNPC.clear();
+    if (shareFE == 'F')
+    {
+      const_cast<IntVec&>(MLGE).clear();
+      const_cast<IntMat&>(MNPC).clear();
+    }
   }
   else // Don't erase the elements, but set them to have zero nodes
     for (IntVec& mnpc : myMNPC)
@@ -163,6 +168,9 @@ void ASMbase::clear (bool retainGeometry)
   myRmaster.clear();
 
   myMLGN.clear();
+  if (shareFE == 'F')
+    const_cast<IntVec&>(MLGN).clear();
+
   BCode.clear();
   dCode.clear();
   mpcs.clear();

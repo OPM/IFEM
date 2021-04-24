@@ -304,6 +304,7 @@ bool ASMLRSpline::doRefine (const LR::RefineData& prm, LR::LRSpline* lrspline)
     lrspline->refineElement(prm.elements);
 
   lrspline->generateIDs();
+  this->clear(true);
 
   return doRefine;
 }
