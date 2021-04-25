@@ -16,13 +16,35 @@
 #include "gtest/gtest.h"
 
 
-TEST(TestASMsupel, Read)
+struct TestCase
+{
+  const char* file;
+  size_t      nsup;
+};
+
+
+class TestASMsup : public testing::Test,
+                   public testing::WithParamInterface<TestCase>
+{
+};
+
+
+TEST_P(TestASMsup, Read)
 {
   ASMsupel pch;
   ASMbase::resetNumbering();
-  std::ifstream is("src/ASM/Test/refdata/Supel.dat");
+  std::cout <<"Checking "<< GetParam().file << std::endl;
+  std::ifstream is(GetParam().file);
   ASSERT_TRUE(pch.read(is));
   ASSERT_FALSE(pch.empty());
   ASSERT_TRUE(pch.generateFEMTopology());
-  EXPECT_EQ(pch.getNoNodes(),2U);
+  EXPECT_EQ(pch.getNoNodes(),GetParam().nsup);
 }
+
+
+const std::vector<TestCase> testFiles = {
+  { "src/ASM/Test/refdata/Supel.dat", 2U },
+  { "src/ASM/Test/refdata/kjoint.dat", 4U }};
+
+
+INSTANTIATE_TEST_CASE_P(TestASMsup, TestASMsup, testing::ValuesIn(testFiles));

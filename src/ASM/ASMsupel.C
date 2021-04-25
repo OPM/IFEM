@@ -15,17 +15,69 @@
 #include "GlobalIntegral.h"
 #include "ElementBlock.h"
 #include "Vec3Oper.h"
+#include <numeric>
 
 
 bool ASMsupel::read (std::istream& is)
 {
-  int numNod = 0;
-  is >> numNod;
-  myNodes.resize(numNod);
+  // Lambda function for reading the supernode coordinates.
+  auto&& readCoord = [&is](Vec3Vec& Xsup)
+  {
+    int numNod = 0;
+    is >> numNod;
+    Xsup.resize(numNod);
+    for (Vec3& Xn : Xsup) is >> Xn;
+  };
+
   myElmMat.resize(1,1);
-  for (Vec3& Xn : myNodes) is >> Xn;
-  is >> myElmMat.A.front() >> myElmMat.b.front();
-  return is.good();
+
+  char c;
+  int readMat = 0;
+  while (readMat < 7 && is.get(c))
+    switch (c) {
+    case 'K':
+    case 'k':
+      is >> myElmMat.A.front();
+      if (c == 'K') // assume stored column-wise
+        myElmMat.A.front().transpose();
+      readMat |= 1;
+      break;
+    case 'R':
+      is >> myElmMat.b.front();
+      readMat |= 2;
+      break;
+    case 'L':
+      {
+        // The load vector is stored as a ndof x 1 matrix and not a vector
+        Matrix tmpMat;
+        is >> tmpMat;
+        myElmMat.b.front() = tmpMat.getColumn(1);
+      }
+      readMat |= 2;
+      break;
+    case 'G':
+      readCoord(myNodes);
+      readMat |= 4;
+      break;
+    case '\n':
+      break;
+    default:
+      is.putback(c);
+      if (readMat)
+      {
+        std::cerr <<" *** ASMsupel::read: Unknown label "<< c << std::endl;
+        return false;
+      }
+      else
+      {
+        // Assuming the order G, K, L but without the labels
+        readCoord(myNodes);
+        is >> myElmMat.A.front() >> myElmMat.b.front();
+        readMat = 7;
+      }
+    }
+
+  return readMat == 7 && is.good();
 }
 
 
