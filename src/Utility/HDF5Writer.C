@@ -168,12 +168,18 @@ void HDF5Writer::writeArray(hid_t group, const std::string& name, int patch,
     space = H5Screate_simple(1,&siz,nullptr);
     std::stringstream str;
     str << patch;
-    set = H5Dcreate2(group1,str.str().c_str(),
-                     type,space,H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
+    if (checkGroupExistence(group1,str.str().c_str()))
+      set = H5Dopen2(group1,str.str().c_str(),H5P_DEFAULT);
+    else
+      set = H5Dcreate2(group1,str.str().c_str(),
+                       type,space,H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
   } else {
     space = H5Screate_simple(1,&siz,nullptr);
-    set = H5Dcreate2(group,name.c_str(),
-                     type,space,H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
+    if (checkGroupExistence(group,name.c_str()))
+      set = H5Dopen2(group,name.c_str(),H5P_DEFAULT);
+    else
+      set = H5Dcreate2(group,name.c_str(),
+                       type,space,H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
   }
   if (len > 0) {
     hid_t file_space = H5Dget_space(set);
@@ -185,6 +191,7 @@ void HDF5Writer::writeArray(hid_t group, const std::string& name, int patch,
     H5Sclose(mem_space);
     H5Sclose(file_space);
   }
+  H5Dflush(set);
   H5Dclose(set);
   H5Sclose(space);
   if (group1 != -1)
@@ -241,6 +248,14 @@ void HDF5Writer::writeBasis (int level, const DataEntry& entry,
 
 void HDF5Writer::writeSIM (int level, const DataEntry& entry,
                            bool geometryUpdated, const std::string& prefix)
+{
+  this->writeSIMInt(level, entry, geometryUpdated, prefix, false);
+}
+
+
+void HDF5Writer::writeSIMInt (int level, const DataEntry& entry,
+                              bool geometryUpdated,
+                              const std::string& prefix, bool noData)
 {
   if (!entry.second.enabled || !entry.second.data || entry.second.data2.empty())
     return;
@@ -336,7 +351,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
         (!(results & DataExporter::REDUNDANT) || sim->getGlobalProcessID() == 0)) // we own the patch
     {
       ASMbase* pch = sim->getPatch(loc);
-      if (results & DataExporter::PRIMARY && !sol->empty()) {
+      if (results & DataExporter::PRIMARY && !sol->empty() && !noData) {
         Vector psol;
         size_t ndof1 = sim->extractPatchSolution(*sol,psol,pch,entry.second.ncmps,
                                                  usedescription ? 1 : 0);
@@ -357,7 +372,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
                      i+1, ndof1, data, H5T_NATIVE_DOUBLE);
       }
 
-      if (results & DataExporter::SECONDARY && !sol->empty()) {
+      if (results & DataExporter::SECONDARY && !sol->empty() && !noData) {
         Matrix field;
         SIM::SolutionMode mode = prob->getMode();
         const_cast<SIMbase*>(sim)->setMode(SIM::RECOVERY);
@@ -369,7 +384,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
                      i+1, field.cols(), field.getRow(j+1).ptr(), H5T_NATIVE_DOUBLE);
       }
 
-      if (proj)
+      if (proj && !noData)
         for (size_t p = 0; p < proj->size(); ++p) {
           if (proj->at(p).empty())
             continue;
@@ -394,7 +409,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
                        i+1, field.cols(), field.getRow(j+1).ptr(), H5T_NATIVE_DOUBLE);
         }
 
-      if (results & DataExporter::NORMS && eNorm) {
+      if (results & DataExporter::NORMS && eNorm && !noData) {
         Matrix patchEnorm;
         sim->extractPatchElmRes(*eNorm,patchEnorm,loc-1);
         for (size_t j = 1, l = 1; l < eNorm->rows(); j++)
@@ -405,7 +420,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
                          i+1, patchEnorm.cols(), patchEnorm.getRow(l++).ptr(), H5T_NATIVE_DOUBLE);
       }
 
-      if (results & DataExporter::EIGENMODES) {
+      if (results & DataExporter::EIGENMODES && !noData) {
         size_t iMode = 0;
         const std::vector<Mode>* modes = static_cast<const std::vector<Mode>*>(entry.second.data2.front());
         for (const Mode& mode : *modes)
@@ -440,7 +455,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
     else // must write empty dummy records for the other patches
     {
       double dummy=0.0;
-      if (results & DataExporter::PRIMARY) {
+      if (results & DataExporter::PRIMARY && !noData) {
         if (usedescription)
           writeArray(group.front(), entry.second.description,
                      i+1, 0, &dummy, H5T_NATIVE_DOUBLE);
@@ -453,18 +468,18 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
                      i+1, 0, &dummy, H5T_NATIVE_DOUBLE);
       }
 
-      if (results & DataExporter::SECONDARY)
+      if (results & DataExporter::SECONDARY && !noData)
         for (size_t j = 0; j < prob->getNoFields(2); j++)
           writeArray(group.front(), prefix+prob->getField2Name(j),
                      i+1, 0, &dummy,H5T_NATIVE_DOUBLE);
 
-      if (proj)
+      if (proj && !noData)
         for (size_t p = 0; p < proj->size(); p++)
           for (size_t j = 0; j < prob->getNoFields(2); j++)
             writeArray(group.front(), m_prefix[p]+" "+prob->getField2Name(j),
                        i+1, 0, &dummy,H5T_NATIVE_DOUBLE);
 
-      if (results & DataExporter::NORMS && eNorm)
+      if (results & DataExporter::NORMS && eNorm && !noData)
         for (size_t j = 1; j <= norm->getNoFields(0); j++)
           for (size_t k = 1; k <= norm->getNoFields(j); k++)
             if (norm->hasElementContributions(j,k))

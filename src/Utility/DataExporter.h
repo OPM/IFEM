@@ -189,6 +189,16 @@ public:
   //! \param[in] level Level we just wrote to the file
   virtual void closeFile(int level) = 0;
 
+  //! \brief Prepare writer for writing a time level.
+  //! \param[in] level The time level to write the data at
+  //! \param[in] entry The DataEntry describing the vector
+  //! \param[in] geometryUpdated Whether or not geometries should be written
+  //! \param[in] prefix Field name prefix
+  //! \details Used by SVV where we have to preallocate datasets
+  virtual bool prepare(int level, const DataEntry& entry,
+                       bool geometryUpdated, const std::string& prefix)
+  { return true; }
+
   //! \brief Writes a vector to file.
   //! \param[in] level The time level to write the vector at
   //! \param[in] entry The DataEntry describing the vector

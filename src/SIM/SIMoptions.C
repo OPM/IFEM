@@ -52,6 +52,8 @@ SIMoptions::SIMoptions ()
   nViz[0] = nViz[1] = nViz[2] = 2;
 
   printPid = 0;
+  saveHDF5viz = true;
+  saveHDF5ssv = false;
 }
 
 
@@ -174,6 +176,9 @@ bool SIMoptions::parseOutputTag (const TiXmlElement* elem)
     }
     else // use the default output file name
       hdf5 = "(default)";
+
+    utl::getAttribute(elem,"ssv",saveHDF5ssv);
+    utl::getAttribute(elem,"viz",saveHDF5viz);
   }
 
   else if (!strcasecmp(elem->Value(),"primarySolOnly"))

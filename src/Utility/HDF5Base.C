@@ -35,26 +35,39 @@ HDF5Base::HDF5Base (const std::string& name, const ProcessAdm& adm)
 }
 
 
-bool HDF5Base::openFile (unsigned int flags)
+bool HDF5Base::openFile (unsigned int flags, bool latest)
 {
 #ifdef HAS_HDF5
   if (m_file != -1)
     return true;
 
+  hid_t acc_tpl = H5P_DEFAULT;
+  bool acc_tpl_alloc = false;
+  if (latest
 #ifdef HAVE_MPI
-  hid_t acc_tpl;
+      && m_adm.getProcId() == 0 || !m_adm.dd.isPartitioned()
+ #endif
+      ) {
+    acc_tpl = H5Pcreate(H5P_FILE_ACCESS);
+    acc_tpl_alloc = true;
+  }
+
+#ifdef HAVE_MPI
   if (m_adm.dd.isPartitioned()) {
     if (m_adm.getProcId() != 0)
       return true;
-    acc_tpl = H5P_DEFAULT;
   } else {
     MPI_Info info = MPI_INFO_NULL;
-    acc_tpl = H5Pcreate(H5P_FILE_ACCESS);
+    if (!acc_tpl_alloc) {
+        acc_tpl = H5Pcreate(H5P_FILE_ACCESS);
+        acc_tpl_alloc = true;
+    }
     H5Pset_fapl_mpio(acc_tpl, *m_adm.getCommunicator(), info);
   }
-#else
-  hid_t acc_tpl = H5P_DEFAULT;
 #endif
+
+  if (latest)
+    H5Pset_libver_bounds(acc_tpl, H5F_LIBVER_LATEST, H5F_LIBVER_LATEST);
 
   if (flags == H5F_ACC_TRUNC)
     m_file = H5Fcreate(m_hdf5_name.c_str(),flags,H5P_DEFAULT,acc_tpl);
@@ -64,13 +77,14 @@ bool HDF5Base::openFile (unsigned int flags)
   if (m_file < 0)
   {
     std::cerr <<" *** HDF5Base: Failed to open "<< m_hdf5_name << std::endl;
+    if (acc_tpl_alloc)
+      H5Pclose(acc_tpl);
     return false;
   }
 
-#ifdef HAVE_MPI
-  if (!m_adm.dd.isPartitioned())
+  if (acc_tpl_alloc)
     H5Pclose(acc_tpl);
-#endif
+
   return true;
 #else
   return false;

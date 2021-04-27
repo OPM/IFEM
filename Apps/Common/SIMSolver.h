@@ -19,6 +19,7 @@
 #include "TimeStep.h"
 #include "HDF5Restart.h"
 #include "HDF5Writer.h"
+#include "HDF5WriterSSV.h"
 #include "tinyxml.h"
 
 
@@ -47,17 +48,23 @@ public:
   //! \param[in] hdf5file The file to save to
   //! \param[in] modelAdm Process administrator to use
   //! \param[in] saveInterval The stride in the output file
+  //! \param[in] ssv Enable SSV writer
   void handleDataOutput(const std::string& hdf5file,
                         const ProcessAdm& modelAdm,
-                        int saveInterval = 1)
+                        int saveInterval = 1,
+                        bool vis = true,
+                        bool ssv = false)
   {
     if (IFEM::getOptions().discretization == ASM::Spectral && !hdf5file.empty())
       IFEM::cout <<"\n  ** HDF5 output is available for spline/lagrangian discretization"
                  <<" only. Deactivating...\n"<< std::endl;
-    else
+    else if (vis || ssv)
     {
       exporter = new DataExporter(true,saveInterval);
-      exporter->registerWriter(new HDF5Writer(hdf5file,modelAdm));
+      if (vis)
+        exporter->registerWriter(new HDF5Writer(hdf5file,modelAdm));
+      if (ssv)
+        exporter->registerWriter(new HDF5WriterSSV(hdf5file,modelAdm));
       S1.registerFields(*exporter);
       IFEM::registerCallback(*exporter);
     }
@@ -169,15 +176,18 @@ public:
   //! \param[in] modelAdm Process administrator to use
   //! \param[in] saveInterval The stride in the output file
   //! \param[in] restartInterval The stride in the restart file
+  //! \param[in] ssv Enable SSV writer
   void handleDataOutput(const std::string& hdf5file,
                         const ProcessAdm& modelAdm,
                         int saveInterval = 1,
-                        int restartInterval = 0)
+                        int restartInterval = 0,
+                        bool vis = true,
+                        bool ssv = false)
   {
     if (restartInterval > 0)
       restartAdm = new HDF5Restart(hdf5file+"_restart",modelAdm,restartInterval);
 
-    this->SIMSolverStat<T1>::handleDataOutput(hdf5file, modelAdm, saveInterval);
+    this->SIMSolverStat<T1>::handleDataOutput(hdf5file, modelAdm, saveInterval, vis, ssv);
   }
 
   //! \brief Serialize internal state for restarting purposes.

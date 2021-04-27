@@ -121,6 +121,13 @@ bool DataExporter::dumpTimeLevel (const TimeStep* tp, bool geometryUpdated)
 
   for (DataWriter* writer : m_writers) {
     writer->openFile(m_level);
+    for (const DataEntry& it : m_entry)
+      if (it.second.field == SIM)
+        if (!writer->prepare(m_level,it,geometryUpdated,it.second.prefix)) {
+          std::cerr << "** DataExporter::dumpTimeLevel: Error preparing output for field " << it.first << std::endl;
+          return false;
+        }
+
     for (const DataEntry& it : m_entry) {
       if (!it.second.data)
         return false;

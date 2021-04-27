@@ -99,6 +99,19 @@ public:
 
 #ifdef HAS_HDF5
 protected:
+  //! \brief Writes data from a SIM to file.
+  //! \param[in] level The time level to write the data at
+  //! \param[in] entry The DataEntry describing the data to write
+  //! \param[in] geometryUpdated Whether or not geometries should be written
+  //! \param[in] prefix Field name prefix
+  //! \param[in] noData True to not write data (only open groups)
+  //!
+  //! \details If prefix is non-empty and we are asked to dump secondary
+  //! solutions, we assume they come from different projections
+  //! \sa SIMbase::project
+  void writeSIMInt(int level, const DataEntry& entry,
+                   bool geometryUpdated, const std::string& prefix, bool noData);
+
   //! \brief Internal helper function writing a data array to file.
   //! \param[in] group The HDF5 group to write data into
   //! \param[in] name The name of the array
@@ -120,7 +133,6 @@ protected:
                   int basis, int level, bool redundant = false,
                   bool l2g = false);
 
-private:
   unsigned int m_flag; //!< The file flags to open HDF5 file with
 #endif
 };
