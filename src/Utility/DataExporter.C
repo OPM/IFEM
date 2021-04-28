@@ -73,19 +73,6 @@ bool DataExporter::registerField (const std::string& name,
 }
 
 
-bool DataExporter::registerWriter (DataWriter* writer, bool info, bool data)
-{
-  m_writers.push_back(writer);
-
-  if (info)
-    m_infoReader = writer;
-  if (data)
-    m_dataReader = writer;
-
-  return true;
-}
-
-
 bool DataExporter::setFieldValue (const std::string& name,
                                   const void* data,
                                   const void* data2,
@@ -107,50 +94,45 @@ bool DataExporter::setFieldValue (const std::string& name,
 
 bool DataExporter::dumpTimeLevel (const TimeStep* tp, bool geometryUpdated)
 {
-  // ignore multiple calls for the same time step
-  if (tp && tp->step == m_last_step)
-    return true;
+  if (tp) {
+    if (tp->step == m_last_step)
+      return true; // ignore multiple calls for the same time step
+    else if (tp->step % m_ndump > 0)
+      return true; // write only every m_ndump step
 
-  bool writeData = !tp || tp->step % m_ndump == 0;
-
-  if (!writeData)
-    return true;
+    m_last_step = tp->step;
+  }
 
   PROFILE1("DataExporter::dumpTimeLevel");
-
-  if (tp)
-    m_last_step = tp->step;
 
   if (m_level == -1)
     m_level = this->getWritersTimeLevel()+1;
 
-  std::map<std::string,FileEntry>::iterator it;
   for (DataWriter* writer : m_writers) {
     writer->openFile(m_level);
-    for (it = m_entry.begin(); it != m_entry.end(); ++it) {
-      if (!it->second.data)
+    for (const DataEntry& it : m_entry) {
+      if (!it.second.data)
         return false;
-      switch (it->second.field) {
+      switch (it.second.field) {
         case INTVECTOR:
         case VECTOR:
-          writer->writeVector(m_level,*it);
+          writer->writeVector(m_level,it);
           break;
         case SIM:
-          if (writeData)
-            writer->writeSIM(m_level,*it,geometryUpdated,it->second.prefix);
+          writer->writeSIM(m_level,it,geometryUpdated,it.second.prefix);
           break;
         case NODALFORCES:
-          writer->writeNodalForces(m_level,*it);
+          writer->writeNodalForces(m_level,it);
           break;
         case KNOTSPAN:
-          writer->writeKnotspan(m_level,*it,it->second.prefix);
+          writer->writeKnotspan(m_level,it,it.second.prefix);
           break;
         case BASIS:
-          writer->writeBasis(m_level,*it,it->second.prefix);
+          writer->writeBasis(m_level,it,it.second.prefix);
           break;
         default:
           std::cerr <<"  ** DataExporter: Invalid field type registered "
-                    << it->second.field <<", skipping"<< std::endl;
+                    << it.second.field <<", skipping"<< std::endl;
           break;
       }
     }
@@ -162,9 +144,9 @@ bool DataExporter::dumpTimeLevel (const TimeStep* tp, bool geometryUpdated)
   m_level++;
 
   // disable fields marked as once
-  for (it = m_entry.begin(); it != m_entry.end(); ++it)
-    if (abs(it->second.results) & ONCE)
-      it->second.enabled = false;
+  for (std::pair<const std::string,FileEntry>& it : m_entry)
+    if (abs(it.second.results) & ONCE)
+      it.second.enabled = false;
 
   return true;
 }
@@ -225,8 +207,9 @@ void DataExporter::OnControl(const TiXmlElement* context)
 
 std::string DataExporter::getName() const
 {
-  if (!m_writers.empty())
-    return m_writers.front()->getName().substr(0,m_writers.front()->getName().rfind('.'));
+  if (m_writers.empty())
+    return "";
 
-  return "";
+  const std::string& name = m_writers.front()->getName();
+  return name.substr(0,name.rfind('.'));
 }

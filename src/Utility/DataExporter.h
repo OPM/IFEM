@@ -16,7 +16,6 @@
 
 #include "ControlFIFO.h"
 #include <map>
-#include <memory>
 #include <string>
 #include <vector>
 
@@ -80,11 +79,13 @@ public:
   //! \param[in] dynWriters If \e true, delete the writers on destruction
   //! \param[in] ndump Interval between dumps
   DataExporter(bool dynWriters = false, int ndump=1) :
-    m_delete(dynWriters), m_level(-1), m_ndump(ndump),
-    m_last_step(-1), m_infoReader(0), m_dataReader(0) {}
+    m_delete(dynWriters), m_level(-1), m_ndump(ndump), m_last_step(-1) {}
 
   //! \brief The destructor deletes the writers if \a dynWriters was \e true.
   virtual ~DataExporter();
+
+  //! \brief Adds the data \a writer to the list of registered writers.
+  void registerWriter(DataWriter* writer) { m_writers.push_back(writer); }
 
   //! \brief Registers an entry for storage.
   //! \param[in] name Name of entry
@@ -97,12 +98,6 @@ public:
                      const std::string& description,
                      FieldType field, int results = PRIMARY,
                      const std::string& prefix = "", int ncmps = 0);
-
-  //! \brief Registers a data writer.
-  //! \param[in] writer A pointer to the data writer we want registered
-  //! \param info If \e true, set as default info reader
-  //! \param reader If \e true, set as default data reader
-  bool registerWriter(DataWriter* writer, bool info=false, bool reader=false);
 
   //! \brief Sets the data values for a registered field.
   //! \param[in] name Name the field is registered with
@@ -135,10 +130,10 @@ public:
   //! \brief Returns context name for callback for external controller.
   virtual std::string GetContext() const { return "datawriter"; }
 
-  //! \brief Return name from data writer
+  //! \brief Returns name from (first) data writer.
   std::string getName() const;
 
-  //! \brief Returns visualization data stride
+  //! \brief Returns the data dump stride.
   int getStride() const { return m_ndump; }
 
 protected:
@@ -154,9 +149,6 @@ protected:
   int  m_level;     //!< Current time level
   int  m_ndump;     //!< Time level stride for dumping
   int  m_last_step; //!< Last time step we dumped for
-
-  DataWriter* m_infoReader; //!< DataWriter to read data information from
-  DataWriter* m_dataReader; //!< DataWriter to read numerical data from
 };
 
 //! \brief Convenience type
