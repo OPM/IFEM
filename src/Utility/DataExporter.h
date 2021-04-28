@@ -81,7 +81,7 @@ public:
   //! \param[in] ndump Interval between dumps
   DataExporter(bool dynWriters = false, int ndump=1) :
     m_delete(dynWriters), m_level(-1), m_ndump(ndump),
-    m_last_step(-1), m_infoReader(0), m_dataReader(0) {}
+    m_last_step(-1) {}
 
   //! \brief The destructor deletes the writers if \a dynWriters was \e true.
   virtual ~DataExporter();
@@ -154,9 +154,6 @@ protected:
   int  m_level;     //!< Current time level
   int  m_ndump;     //!< Time level stride for dumping
   int  m_last_step; //!< Last time step we dumped for
-
-  DataWriter* m_infoReader; //!< DataWriter to read data information from
-  DataWriter* m_dataReader; //!< DataWriter to read numerical data from
 };
 
 //! \brief Convenience type
