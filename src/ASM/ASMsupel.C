@@ -11,6 +11,8 @@
 //!
 //==============================================================================
 
+#include <numeric>
+
 #include "ASMsupel.h"
 #include "GlobalIntegral.h"
 #include "ElementBlock.h"
