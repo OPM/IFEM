@@ -91,6 +91,8 @@ public:
   bool pSolOnly; //!< If \e true, don't save secondary solution variables
   bool saveNorms;//!< If \e true, save element norms
   bool saveLog;  //!< If \e true, export the log
+  bool saveHDF5viz; //!< If \e true, save HDF5 visualization file
+  bool saveHDF5ssv; //!< If \e true, save HDF5 SSV file
 
   std::string hdf5; //!< Prefix for HDF5-file
   std::string vtf;  //!< Prefix for VTF-file

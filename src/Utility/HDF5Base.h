@@ -39,7 +39,8 @@ public:
 protected:
   //! \brief Opens the HDF5 file.
   //! \param[in] flag Mode to open file using
-  bool openFile(unsigned int flag);
+  //! \param[in] latest If true, open using latest version
+  bool openFile(unsigned int flag, bool latest = false);
   //! \brief Closes the HDF5 file.
   void closeFile();
 
