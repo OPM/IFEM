@@ -77,11 +77,6 @@ bool DataExporter::registerWriter (DataWriter* writer, bool info, bool data)
 {
   m_writers.push_back(writer);
 
-  if (info)
-    m_infoReader = writer;
-  if (data)
-    m_dataReader = writer;
-
   return true;
 }
 
@@ -124,33 +119,31 @@ bool DataExporter::dumpTimeLevel (const TimeStep* tp, bool geometryUpdated)
   if (m_level == -1)
     m_level = this->getWritersTimeLevel()+1;
 
-  std::map<std::string,FileEntry>::iterator it;
   for (DataWriter* writer : m_writers) {
     writer->openFile(m_level);
-    for (it = m_entry.begin(); it != m_entry.end(); ++it) {
-      if (!it->second.data)
+    for (const DataEntry& it : m_entry) {
+      if (!it.second.data)
         return false;
-      switch (it->second.field) {
+      switch (it.second.field) {
         case INTVECTOR:
         case VECTOR:
-          writer->writeVector(m_level,*it);
+          writer->writeVector(m_level,it);
           break;
         case SIM:
-          if (writeData)
-            writer->writeSIM(m_level,*it,geometryUpdated,it->second.prefix);
+          writer->writeSIM(m_level,it,geometryUpdated,it.second.prefix);
           break;
         case NODALFORCES:
-          writer->writeNodalForces(m_level,*it);
+          writer->writeNodalForces(m_level,it);
           break;
         case KNOTSPAN:
-          writer->writeKnotspan(m_level,*it,it->second.prefix);
+          writer->writeKnotspan(m_level,it,it.second.prefix);
           break;
         case BASIS:
-          writer->writeBasis(m_level,*it,it->second.prefix);
+          writer->writeBasis(m_level,it,it.second.prefix);
           break;
         default:
           std::cerr <<"  ** DataExporter: Invalid field type registered "
-                    << it->second.field <<", skipping"<< std::endl;
+                    << it.second.field <<", skipping"<< std::endl;
           break;
       }
     }
@@ -162,9 +155,9 @@ bool DataExporter::dumpTimeLevel (const TimeStep* tp, bool geometryUpdated)
   m_level++;
 
   // disable fields marked as once
-  for (it = m_entry.begin(); it != m_entry.end(); ++it)
-    if (abs(it->second.results) & ONCE)
-      it->second.enabled = false;
+  for (auto& it : m_entry)
+    if (abs(it.second.results) & ONCE)
+      it.second.enabled = false;
 
   return true;
 }
