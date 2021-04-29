@@ -2157,7 +2157,7 @@ size_t SIMbase::extractPatchSolution (const Vector& sol, Vector& vec,
     const IntVec& madof = this->getMADOF(basis,nndof);
     pch->extractNodalVec(sol,vec,madof.data(),madof.size());
   }
-  else if (mySam && mySam->getNoNodes('X') > 0)
+  else if (mySam && (mySam->getNoNodes('X') > 0 || this->getMDflag() > 0))
     // Excluding the extraordinary DOFs
     pch->extractNodalVec(sol,vec,mySam->getMADOF(),-2);
   else

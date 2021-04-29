@@ -38,6 +38,9 @@ public:
   //! \param[in] resetNumb If \e 'y', start element and node numbers from zero
   virtual bool createFEMmodel(char resetNumb);
 
+  //! \brief Returns the name of this simulator.
+  virtual std::string getName() const { return "SIMsupel"; }
+
 protected:
   using SIMdummy<SIMgeneric>::parse;
   //! \brief Parses a data section from an XML element

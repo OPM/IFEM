@@ -81,6 +81,21 @@ bool ASMsupel::read (std::istream& is)
 }
 
 
+bool ASMsupel::write (std::ostream& os, int) const
+{
+  // Write out the spider as a lagrangian mesh
+  os <<"# LAGRANGIAN nodes="<< 1+nnod <<" elements="<< nnod
+     <<" type=superelement\n";
+  os << this->getCoord(0) <<"\n";
+  for (const Vec3& X : myNodes)
+    os << X <<"\n";
+  for (size_t i = 1; i <= nnod; i++)
+    os <<"0 "<< i <<"\n";
+
+  return os.good();
+}
+
+
 bool ASMsupel::generateFEMTopology ()
 {
   nnod = myNodes.size();
@@ -145,10 +160,18 @@ void ASMsupel::getBoundaryNodes (int lIndex, IntVec& nodes,
 
 Vec3 ASMsupel::getCoord (size_t inod) const
 {
-  if (inod > 0 && inod <= nnod)
-    return myNodes[inod-1];
+  Vec3 Xn;
+  if (inod == 0)
+  {
+    // Calculate patch center
+    for (const Vec3& X : myNodes)
+      Xn += X;
+    Xn /= nnod;
+  }
+  else if (inod <= nnod)
+    Xn = myNodes[inod-1];
 
-  return Vec3();
+  return Xn;
 }
 
 
@@ -188,13 +211,8 @@ bool ASMsupel::integrate (Integrand& integrand, GlobalIntegral& glbInt,
 
 bool ASMsupel::tesselate (ElementBlock& grid, const int*) const
 {
-  Vec3 XC;
-  for (const Vec3& X : myNodes)
-    XC += X;
-  XC /= nnod;
-
   grid.unStructResize(nnod,1+nnod);
-  grid.setCoor(0,XC);
+  grid.setCoor(0,this->getCoord(0));
   for (size_t i = 1; i <= nnod; i++)
   {
     grid.setCoor(i,myNodes[i-1]);

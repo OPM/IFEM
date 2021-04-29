@@ -39,8 +39,8 @@ public:
 
   //! \brief Creates an instance by reading the given input stream.
   virtual bool read(std::istream& is);
-  //! \brief Dummy method (basis is unknown).
-  virtual bool write(std::ostream&, int) const { return false; }
+  //! \brief Writes the geometry of the patch to the given stream.
+  virtual bool write(std::ostream&, int) const;
   //! \brief Generates the finite element topology data for this patch.
   virtual bool generateFEMTopology();
   //! \brief Checks if this patch is empty.
@@ -54,7 +54,8 @@ public:
   virtual IntVec& getNodeSet(const std::string& setName);
 
   //! \brief Returns the global coordinates for the given node.
-  //! \param[in] inod 1-based node index local to current patch
+  //! \param[in] inod 1-based node index local to current patch.
+  //! If \a inod is 0, the centroid of the patch is returned.
   virtual Vec3 getCoord(size_t inod) const;
   //! \brief Returns a matrix with all nodal coordinates within the patch.
   //! \param[out] X nsd\f$\times\f$n-matrix, where \a n is the number of nodes
