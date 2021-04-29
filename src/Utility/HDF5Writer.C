@@ -14,7 +14,7 @@
 #include "HDF5Writer.h"
 #include "GlbForceVec.h"
 #include "SIMbase.h"
-#include "ASMbase.h"
+#include "ASMsupel.h"
 #include "IntegrandBase.h"
 #include "TimeStep.h"
 #include "Vec3.h"
@@ -356,6 +356,16 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
       if (results & DataExporter::PRIMARY && !sol->empty()) {
         size_t ndof1 = sim->extractPatchSolution(*sol,psol,pch,entry.second.ncmps,
                                                  usedescription ? 1 : 0);
+        if (dynamic_cast<ASMsupel*>(pch))
+        {
+          // Hack for superelement patches: Expand to include the center node
+          Matrix sField;
+          if (pch->evalSolution(sField,psol,nullptr,0))
+          {
+            psol = sField;
+            ndof1 = psol.size();
+          }
+        }
         const double* data = psol.ptr();
         if (usedescription)
           // Field assumed to be on basis 1 for now
