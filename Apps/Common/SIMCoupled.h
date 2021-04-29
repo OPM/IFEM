@@ -14,12 +14,13 @@
 #ifndef _SIM_COUPLED_H_
 #define _SIM_COUPLED_H_
 
-#include "Function.h"
 #include "Property.h"
 
 class SIMdependency;
 class ASMbase;
+class ProcessAdm;
 class DataExporter;
+class VecFunc;
 class TimeStep;
 class VTF;
 
@@ -45,6 +46,9 @@ public:
   {
     return S1.preprocess() && S2.preprocess();
   }
+
+  //! \brief Returns the parallel process administrator.
+  const ProcessAdm& getProcessAdm() const { return S1.getProcessAdm(); }
 
   //! \brief Advances the time step one step forward.
   virtual bool advanceStep(TimeStep& tp)

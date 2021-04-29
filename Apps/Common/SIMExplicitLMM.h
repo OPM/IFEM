@@ -56,9 +56,13 @@ public:
   //! \brief Destructor frees up the load vectors.
   ~SIMExplicitLMM()
   {
-    for (auto& v : loads)
+    for (SystemVector*& v : loads)
       delete v;
   }
+
+  //! \brief Returns the parallel process administrator.
+  //! \copydoc ISolver::getProcessAdm
+  const ProcessAdm& getProcessAdm() const { return solver.getProcessAdm(); }
 
   //! \copydoc ISolver::solveStep(TimeStep&)
   bool solveStep(TimeStep& tp)

@@ -83,6 +83,10 @@ public:
       RK.order = 0;
   }
 
+  //! \brief Returns the parallel process administrator.
+  //! \copydoc ISolver::getProcessAdm
+  const ProcessAdm& getProcessAdm() const { return solver.getProcessAdm(); }
+
   //! \copydoc ISolver::solveStep(TimeStep&)
   virtual bool solveStep(TimeStep& tp)
   {

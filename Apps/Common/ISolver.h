@@ -14,6 +14,7 @@
 #ifndef _I_SOLVER_H_
 #define _I_SOLVER_H_
 
+class ProcessAdm;
 class TimeStep;
 
 
@@ -25,6 +26,9 @@ class TimeStep;
 class ISolver
 {
 public:
+  //! \brief Returns the parallel process administrator.
+  virtual const ProcessAdm& getProcessAdm() const = 0;
+
   //! \brief Opens a new VTF-file and writes the model geometry to it.
   //! \param[in] fileName File name used to construct the VTF-file name from
   //! \param[out] geoBlk Running geometry block counter
