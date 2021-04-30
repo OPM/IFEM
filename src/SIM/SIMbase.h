@@ -718,6 +718,11 @@ protected:
   //! \param[in] other If \e true, include other bases in MADOF as well
   bool addMADOF(unsigned char basis, unsigned char nndof, bool other = true);
 
+  //! \brief Returns a pointer to the external energy path integral value.
+  double* theExtEnerg() { return &extEnergy; }
+  //! \brief Returns a const pointer to the external energy path integral value.
+  const double* getExtEnerg() const { return &extEnergy; }
+
 private:
   //! \brief Returns an extraordinary MADOF array.
   //! \param[in] basis The basis to specify number of DOFs for
