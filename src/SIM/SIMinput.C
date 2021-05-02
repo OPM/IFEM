@@ -28,6 +28,7 @@
 #include "Utilities.h"
 #include "Vec3Oper.h"
 #include "HDF5Reader.h"
+#include "HDF5Restart.h"
 #include "IFEM.h"
 #include "tinyxml.h"
 #include <fstream>
@@ -1686,7 +1687,69 @@ bool SIMinput::hasIC (const std::string& name) const
 }
 
 
-bool SIMinput::deSerialize (const std::map<std::string,std::string>&)
+bool SIMinput::saveBasis (SerializeMap& data) const
+{
+  if (!isRefined) return true; // no need to save unrefined basis
+
+  std::ostringstream str;
+  str << isRefined;
+  for (const ASMbase* pch : myModel)
+    pch->write(str);
+  data[this->getName()+"::basis"] = str.str();
+
+  return true;
+}
+
+
+bool SIMinput::restoreBasis (const SerializeMap& data)
+{
+  SerializeMap::const_iterator it = data.find(this->getName()+"::basis");
+  if (it == data.end()) return true; // no refined basis yet
+
+  std::istringstream str(it->second);
+  str >> isRefined;
+  if (!this->readPatches(str,nullptr))
+    return false;
+
+  if (myPatches.empty())
+    nGlPatches = myModel.size();
+
+  return true;
+}
+
+
+int SIMinput::restartBasis (const std::string& restartFile, int restartStep)
+{
+  if (restartFile.empty()) return 0; // No restart
+
+  ProcessAdm dummyAdm;
+  HDF5Restart hdf(restartFile,dummyAdm);
+  HDF5Restart::SerializeData data;
+  restartStep = hdf.readData(data,restartStep,true);
+  if (restartStep == 0 || data.empty())
+  {
+    IFEM::cout <<"\n  ** SIMinput: No serialized basis yet,"
+               <<" restarting on initial mesh.\n"<< std::endl;
+    return 1; // No refined basis serialized
+  }
+
+  if (restartStep >= 0)
+  {
+    IFEM::cout <<"\n === Reading serialized basis ==="
+               <<"\n     file = "<< restartFile
+               <<"\n     step = "<< restartStep << std::endl;
+    if (this->restoreBasis(data))
+      return restartStep+1;
+    else
+      restartStep = -2;
+  }
+
+  std::cerr <<"\n *** SIMinput: Failed to read restart basis."<< std::endl;
+  return restartStep;
+}
+
+
+bool SIMinput::deSerialize (const SerializeMap&)
 {
   std::cerr <<" *** SIMinput::deSerialize: Must be implemented in sub-class.\n"
             <<"     Restart not supported for "<< this->getName() << std::endl;

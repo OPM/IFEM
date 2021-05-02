@@ -256,6 +256,12 @@ public:
   //! \param[in] field Name of the displacement increment field to update with
   bool updateGrid(const std::string& field);
 
+  //! \brief Sets the refinement status (for restart of adaptive simulations).
+  //! \param[in] nref Number of refinement levels so far
+  void setRefined(int nref) { isRefined = nref; }
+  //! \brief Returns current refinement status.
+  int getRefined() const { return isRefined; }
+
 
   // Computational methods
   // =====================

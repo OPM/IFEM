@@ -238,7 +238,25 @@ protected:
   //! \param[in] coordCheck If \e false, do not check for matching coordinates
   virtual bool connectPatches(const ASM::Interface& ifc, bool coordCheck) = 0;
 
+  typedef std::map<std::string,std::string> SerializeMap; //!< Convenience type
+
+  //! \brief Writes current basis to a serialization container.
+  //! \param data Container for serialized data
+  bool saveBasis(SerializeMap& data) const;
+
+  //! \brief Restores the basis from a serialization container.
+  //! \param[in] data Container for serialized data
+  bool restoreBasis(const SerializeMap& data);
+
 public:
+  //! \brief Handles application restarts by reading a serialized basis.
+  //! \param[in] restartFile File to read restart basis from
+  //! \param[in] restartStep Index of the time step to read restart basis for
+  //! \return One-based index of the first time step to solve after restart.
+  //! If zero, no restart specified. If one, no serialized basis stored.
+  //! If negative, read failure.
+  int restartBasis(const std::string& restartFile, int restartStep);
+
   //! \brief Creates the computational FEM model from the spline patches.
   //! \param[in] resetNumb If \e 'y', start element and node numbers from zero
   virtual bool createFEMmodel(char resetNumb = 'y');
@@ -255,7 +273,7 @@ public:
   bool setInitialConditions(SIMdependency* fieldHolder = nullptr);
 
   //! \brief Deserialization support (for simulation restart).
-  virtual bool deSerialize(const std::map<std::string,std::string>&);
+  virtual bool deSerialize(const SerializeMap&);
 
   //! \brief Returns reference to a named topology entity.
   const TopEntity& getEntity(const std::string& name) const;
