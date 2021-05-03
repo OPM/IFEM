@@ -184,6 +184,11 @@ public:
   //! The default implementation is the same as SIMsolution::theSolutions().
   virtual const Vectors& realSolutions() { return solution; }
 
+  //! \brief Returns a pointer to the reference norm variable.
+  double* theRefNorm() { return &refNorm; }
+  //! \brief Returns const a pointer to the reference norm variable.
+  const double* getRefNorm() const { return &refNorm; }
+
 protected:
   SIMoutput& model;    //!< The isogeometric FE model
   Vector     residual; //!< Residual force vector

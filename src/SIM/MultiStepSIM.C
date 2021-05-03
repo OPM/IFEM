@@ -173,12 +173,18 @@ bool MultiStepSIM::saveStep (int iStep, int& rBlock, const char* vecName)
 
 bool MultiStepSIM::serialize (SerializeMap& data) const
 {
+  data["MultiStepSIM::refNorm"] = SIMsolution::serialize(&refNorm,1);
+
   return this->saveSolution(data,model.getName());
 }
 
 
 bool MultiStepSIM::deSerialize (const SerializeMap& data)
 {
+  SerializeMap::const_iterator sit = data.find("MultiStepSIM::refNorm");
+  if (sit != data.end())
+    SIMsolution::deSerialize(sit->second,&refNorm,1);
+
   return this->restoreSolution(data,model.getName());
 }
 
