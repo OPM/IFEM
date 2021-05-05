@@ -241,7 +241,7 @@ void PETScMatrix::initAssembly (const SAM& sam, bool delayLocking)
                 (*lA)(adm.dd.getGlobalEq(i)-iMin+1,adm.dd.getGlobalEq(j)) = 0.0;
       }
       IntVec iA, jA;
-      SparseMatrix::calcCSR(iA, jA, neq, lA->getValues());
+      lA->calcCSR(iA,jA);
       delete lA;
       MatMPIAIJSetPreallocationCSR(pA, iA.data(), jA.data(), nullptr);
 

@@ -1390,19 +1390,18 @@ Real SparseMatrix::Linfnorm () const
 }
 
 
-void SparseMatrix::calcCSR (IntVec& IA, IntVec& JA,
-                            size_t nrow, const ValueMap& elem)
+void SparseMatrix::calcCSR (IntVec& iA, IntVec& jA) const
 {
   size_t nnz = elem.size();
-  IA.resize(nrow+1,nnz);
-  JA.resize(nnz);
+  iA.resize(nrow+1,nnz);
+  jA.resize(nnz);
 
-  IA.front() = 0;
+  iA.front() = 0;
   size_t cur_row = 1, ix = 0;
   for (const ValueMap::value_type& val : elem)
   {
     while (val.first.first > cur_row)
-      IA[cur_row++] = ix;
-    JA[ix++] = val.first.second-1;
+      iA[cur_row++] = ix;
+    jA[ix++] = val.first.second-1;
   }
 }

@@ -22,7 +22,7 @@ TEST(TestSparseMatrix, CalcCSR)
   Mat1(2,1) = 2.0;
   Mat1(2,3) = 3.0;
   IntVec IA1, JA1;
-  SparseMatrix::calcCSR(IA1, JA1, 2, Mat1.getValues());
+  Mat1.calcCSR(IA1, JA1);
 
   EXPECT_EQ(IA1.size(), 3U);
   EXPECT_EQ(IA1[0], 0);
