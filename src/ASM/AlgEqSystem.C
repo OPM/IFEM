@@ -12,8 +12,10 @@
 //==============================================================================
 
 #include "AlgEqSystem.h"
+#include "SparseMatrix.h"
 #include "ElmMats.h"
 #include "SAM.h"
+#include "IFEM.h"
 #ifdef USE_OPENMP
 #include <omp.h>
 #endif
@@ -34,10 +36,10 @@ bool AlgEqSystem::init (LinAlg::MatrixType mtype, const LinSolParams* spar,
 
   size_t i;
   for (i = nmat; i < A.size(); i++)
-    if (A[i]._A) delete A[i]._A;
+    delete A[i]._A;
 
   for (i = nvec; i < b.size(); i++)
-    if (b[i]) delete b[i];
+    delete b[i];
 
   A.resize(nmat);
   b.resize(nvec,nullptr);
@@ -68,7 +70,10 @@ bool AlgEqSystem::init (LinAlg::MatrixType mtype, const LinSolParams* spar,
 
   bool ok = true;
   if (A.size() == 1 && !b.empty())
+  {
+    A.front()._b = b.front();
     ok = sam.initForAssembly(*b.front(), withReactions ? &R : nullptr);
+  }
 
   for (i = 0; i < b.size(); i++)
     b[i]->redim(sam.getNoEquations());
@@ -270,6 +275,101 @@ bool AlgEqSystem::finalize (bool newLHS)
     std::cout <<" "<< c[i];
   std::cout << std::endl;
 #endif
+
+  return true;
+}
+
+
+bool AlgEqSystem::staticCondensation (Matrix& Ared, Vector& bred,
+                                      const IntVec& extNodes, size_t imat) const
+{
+  if (imat > A.size()) return false;
+
+  const SparseMatrix* Amat = dynamic_cast<const SparseMatrix*>(A[imat]._A);
+  const double*       Rvec = A[imat]._b ? A[imat]._b->getRef() : nullptr;
+  if (!Amat || !Rvec) return false;
+
+  // Find the equation numbers to retain
+  IntVec mnen, meqn2;
+  for (int inod : extNodes)
+    if (sam.getNodeEqns(mnen,inod))
+      meqn2.insert(meqn2.end(),mnen.begin(),mnen.end());
+    else
+      return false;
+
+  // Check that all retain DOFs are free
+  size_t nspdof = 0;
+  for (int ieq : meqn2)
+    if (ieq <= 0) ++nspdof;
+  if (nspdof > 0)
+  {
+    std::cerr <<" *** AlgEqSystem::staticCondensation: There are "<< nspdof
+              <<" specified DOFs among the DOFs to retain."<< std::endl;
+    return false;
+  }
+
+  // Extract the sub-matrices associated with internal (1) and external (2) DOFs
+  IFEM::cout <<"\nExtracting sub-matrices A11, A12, A22 ..."<< std::endl;
+  std::sort(meqn2.begin(),meqn2.end());
+  std::array<SparseMatrix,4> Asub;
+  // Asub = { A11, A21, A12, A22 }
+  if (!Amat->split(Asub,meqn2))
+    return false;
+
+  size_t neq0 = Amat->rows();
+  size_t neq1 = Asub[0].rows();
+  size_t neq2 = Asub[1].rows();
+
+  // Extract the associated sub-vectors
+  StdVector R1(neq1); // Internal DOFs
+  Vector    R2(neq2); // External (retained) DOFs
+  size_t ieq, ip2, ieq1 = 0, ieq2 = 0;
+  for (ieq = ip2 = 0; ieq < neq0; ieq++)
+    if ((int)ieq+1 < meqn2[ip2])
+      R1(++ieq1) = Rvec[ieq];
+    else
+    {
+      R2(++ieq2) = Rvec[ieq];
+      ++ip2;
+    }
+
+  IFEM::cout <<"\nPerforming static condensation ["<< neq0 <<"x"<< neq0
+             <<"] --> ["<< neq2 <<"x"<< neq2 <<"]"<< std::endl;
+
+  // Calculate [A11]^-1*{R1} => R1
+  if (!Asub[0].solve(R1,true))
+    return false;
+
+  // Calculate [A21]*([A11]^-1*{R1}) => Rtmp
+  StdVector Rtmp;
+  if (!Asub[1].multiply(R1,Rtmp))
+    return false;
+
+  // Calculate the reduced right-hand-side vector
+  bred = R2 - Rtmp;
+
+  // Initialize the reduced coefficient matrix
+  Ared.resize(neq2,neq2);
+
+  // Loop over the external DOFs
+  for (ieq2 = 1; ieq2 <= neq2; ieq2++)
+  {
+    // Extract the ieq2'th column of [A12] => R1
+    Asub[2].getColumn(ieq2,R1);
+    // Extract the ieq2'th column of [A22] => R2
+    Asub[3].getColumn(ieq2,R2);
+
+    // Calculate [A11]^-1*{R1} => R1, reusing the factorization of [A11]
+    if (!Asub[0].solve(R1,false))
+      return false;
+
+    // Calculate [A21]*([A11]^-1*{R1}) => Rtmp
+    if (!Asub[1].multiply(R1,Rtmp))
+      return false;
+
+    // Insert {R2}-{Rtmp} into the reduced matrix Ared
+    Ared.fillColumn(ieq2,R2-Rtmp);
+  }
 
   return true;
 }

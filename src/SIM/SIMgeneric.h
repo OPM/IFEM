@@ -94,6 +94,9 @@ public:
   virtual double getEffectivityIndex(const Vectors& gNorm,
                                      size_t idx, size_t inorm) const;
 
+  //! \brief Interface for static condensation of the linear equation system.
+  virtual bool staticCondensation(Matrix&, Vector&) { return false; }
+
 protected:
   //! \brief Reverts the square-root operation on some norm quantities.
   //! \param gNorm Global norm values

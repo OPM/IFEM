@@ -81,6 +81,15 @@ public:
   //! \brief Returns a pointer to the nodal reaction forces, if any.
   const Vector* getReactions() const { return R.empty() ? 0 : &R; }
 
+  //! \brief Performs static condensation of the indicated equation system.
+  //! \param[out] Ared Reduced System matrix
+  //! \param[out] bred Associated reduced right-hand-side vector
+  //! \param[in] extNodes List of external nodes whose DOFs to retain
+  //! \param[in] imat Index of the system matrix-vector pair to condensate
+  bool staticCondensation(Matrix& Ared, Vector& bred,
+                          const std::vector<int>& extNodes,
+                          size_t imat = 0) const;
+
 private:
   //! \brief Struct defining a coefficient matrix and an associated RHS-vector.
   struct SysMatrixPair
