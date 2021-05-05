@@ -1405,3 +1405,73 @@ void SparseMatrix::calcCSR (IntVec& iA, IntVec& jA) const
     jA[ix++] = val.first.second-1;
   }
 }
+
+
+bool SparseMatrix::split (std::array<SparseMatrix,4>& Asub,
+                          const IntVec& meqn2) const
+{
+  if (elem.empty() || nrow != ncol)
+  {
+    std::cerr <<" *** SparseMatrix::split: Matrix is not editable"<< std::endl;
+    return false;
+  }
+
+  size_t neq2 = meqn2.size();
+  if (neq2 < 1 || neq2 >= nrow)
+  {
+    std::cerr <<" *** SparseMatrix::split: neq2="<< neq2
+              <<" is out of range [1,"<< nrow <<">"<< std::endl;
+    return false;
+  }
+
+  // Set up sub-matrices
+  Asub[0].solver = solver;
+  Asub[0].resize(nrow-neq2,ncol-neq2);
+  Asub[1].resize(neq2     ,ncol-neq2);
+  Asub[2].resize(nrow-neq2,neq2);
+  Asub[3].resize(neq2     ,neq2);
+
+  // Create mapping from global equation numbers to sub-matrix numbers
+  size_t ieq, ip2;
+  int ieq1 = 0, ieq2 = 0;
+  IntVec eqnmap(nrow,0);
+  for (ieq = ip2 = 0; ieq < nrow; ieq++)
+    if (ip2 == neq2 || (int)ieq+1 < meqn2[ip2])
+      eqnmap[ieq] = ++ieq1;
+    else
+    {
+      eqnmap[ieq] = -(++ieq2);
+      ++ip2;
+    }
+
+  // Populate the sub-matrices with non-zeroes
+  for (const ValueMap::value_type& val : elem)
+  {
+    ieq1 = eqnmap[val.first.first-1];
+    ieq2 = eqnmap[val.first.second-1];
+    if (ieq1 > 0 && ieq2 > 0)
+      Asub[0]( ieq1, ieq2) = val.second;
+    else if (ieq2 > 0)
+      Asub[1](-ieq1, ieq2) = val.second;
+    else if (ieq1 > 0)
+      Asub[2]( ieq1,-ieq2) = val.second;
+    else
+      Asub[3](-ieq1,-ieq2) = val.second;
+  }
+
+  return true;
+}
+
+
+bool SparseMatrix::getColumn (size_t c, Vector& col) const
+{
+  col.resize(nrow,true);
+  if (elem.empty() || c < 1 || c > ncol)
+    return false;
+
+  for (const ValueMap::value_type& val : elem)
+    if (val.first.second == c)
+      col(val.first.first) = val.second;
+
+  return true;
+}

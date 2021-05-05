@@ -15,9 +15,9 @@
 #define _SPARSE_MATRIX_H
 
 #include "SystemMatrix.h"
-#include <iostream>
 #include <map>
 #include <set>
+#include <array>
 
 typedef std::vector<int>         IntVec;    //!< General integer vector
 typedef std::pair<size_t,size_t> IJPair;    //!< 1-based matrix indices
@@ -213,6 +213,16 @@ public:
   //! \param[out] iA Start index of each row in jA
   //! \param[out] jA Column indices
   void calcCSR(IntVec& iA, IntVec& jA) const;
+
+  //! \brief Splits the matrix into four sub-matrices, A11, A12, A21, A22.
+  //! \param[out] Asub The resulting four sub-matrices
+  //! \param[in] meqn2 List of equation numbers in the A22-matrix
+  bool split(std::array<SparseMatrix,4>& Asub, const IntVec& meqn2) const;
+
+  //! \brief Extracts a specified column from the matrix.
+  //! \param[in] c One-based column index
+  //! \param[out] col Extracted column data
+  bool getColumn(size_t c, Vector& col) const;
 
 protected:
   //! \brief Converts the matrix to an optimized row-oriented format.
