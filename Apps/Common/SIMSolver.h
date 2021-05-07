@@ -35,6 +35,7 @@ public:
   SIMSolverStat(T1& s1, const char* head = nullptr) : SIMadmin(head), S1(s1)
   {
     exporter = nullptr;
+    startExpLevel = 0;
   }
 
   //! \brief The destructor deletes the results data exporter object.
@@ -52,11 +53,11 @@ public:
                         int saveInterval = 1)
   {
     if (IFEM::getOptions().discretization == ASM::Spectral && !hdf5file.empty())
-      IFEM::cout <<"\n  ** HDF5 output is available for spline/lagrangian discretization"
-                 <<" only. Deactivating...\n"<< std::endl;
+      IFEM::cout <<"\n  ** HDF5 output is not available for spectral"
+                 <<" discretization. Deactivating...\n"<< std::endl;
     else
     {
-      exporter = new DataExporter(true,saveInterval);
+      exporter = new DataExporter(true,saveInterval,startExpLevel);
       exporter->registerWriter(new HDF5Writer(hdf5file,modelAdm));
       S1.registerFields(*exporter);
       IFEM::registerCallback(*exporter);
@@ -109,6 +110,7 @@ protected:
   T1& S1; //!< The actual solver
 
   DataExporter* exporter; //!< Administrator for result output to HDF5 file
+  int      startExpLevel; //!< Initial time level for the DataExporter
 };
 
 
@@ -124,7 +126,7 @@ public:
   //! \brief The constructor initializes the reference to the actual solver.
   explicit SIMSolver(T1& s1) : SIMSolverStat<T1>(s1,"Time integration driver")
   {
-    saveDivergedSol = false;
+    saveDivergedSol = dumpLog = false;
     restartAdm = nullptr;
   }
 
@@ -222,14 +224,13 @@ protected:
     if (saveRes && !this->S1.saveStep(tp,nBlock))
       return false;
 
-    if (saveRes && SIMSolverStat<T1>::exporter) {
+    if (saveRes && restartAdm && restartAdm->dumpStep(tp)) {
       HDF5Restart::SerializeData data;
-      if (restartAdm && restartAdm->dumpStep(tp) && this->serialize(data))
-        if (!restartAdm->writeData(tp,data))
-          return false;
-
-      return SIMSolverStat<T1>::exporter->dumpTimeLevel(&tp,newMesh);
+      if (this->serialize(data) && !restartAdm->writeData(tp,data))
+        return false;
     }
+    if (saveRes && SIMSolverStat<T1>::exporter)
+      return SIMSolverStat<T1>::exporter->dumpTimeLevel(&tp,newMesh,dumpLog);
 
     return true;
   }
@@ -252,7 +253,11 @@ public:
                  <<"\n     file = "<< restartFile
                  <<"\n     step = "<< restartStep << std::endl;
       if (this->deSerialize(data))
+      {
+        // Record time level in case we are saving results in the restart also
+        SIMSolverStat<T1>::startExpLevel = restartStep;
         return restartStep+1;
+      }
       else
         restartStep = -2;
     }
@@ -265,7 +270,8 @@ private:
   bool saveDivergedSol; //!< If \e true, save also the diverged solution to VTF
 
 protected:
-  TimeStep tp; //!< Time stepping information
+  bool dumpLog; //!< Set to \e true, to print out dump time levels
+  TimeStep tp;  //!< Time stepping information
   HDF5Restart* restartAdm; //!< Administrator for restart output
 };
 

@@ -64,6 +64,9 @@ public:
       else if (!this->saveState(geoBlk,nBlock))
         return 2;
 
+    // Activate printing of time level for result dumps
+    SIMSolver<T1>::dumpLog = true;
+
     // Adaptive loop
     while (!this->tp.finished())
     {

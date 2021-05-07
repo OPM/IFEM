@@ -78,8 +78,9 @@ public:
   //! \brief Default constructor.
   //! \param[in] dynWriters If \e true, delete the writers on destruction
   //! \param[in] ndump Interval between dumps
-  DataExporter(bool dynWriters = false, int ndump=1) :
-    m_delete(dynWriters), m_level(-1), m_ndump(ndump), m_last_step(-1) {}
+  //! \param[in] level0 Time level to start dumping from (in case of restart)
+  DataExporter(bool dynWriters = false, int ndump = 1, int level0 = 0) :
+    m_delete(dynWriters), m_ndump(ndump), m_level(level0-1), m_last_step(-1) {}
 
   //! \brief The destructor deletes the writers if \a dynWriters was \e true.
   virtual ~DataExporter();
@@ -113,14 +114,10 @@ public:
 
   //! \brief Dumps all registered fields using the registered writers.
   //! \param[in] tp Current time stepping info
-  //! \param[in] geometryUpdated Whether or not geometries are updated
-  bool dumpTimeLevel(const TimeStep* tp=nullptr, bool geometryUpdated=false);
-
-  //! \brief Returns the current time level of the exporter.
-  int getTimeLevel();
-
-  //! \brief Calculates the real time level taking ndump into account.
-  int realTimeLevel(int filelevel) const;
+  //! \param[in] geoUpd If \e true, write updated geometry as well
+  //! \param[in] doLog If \e true, write a log message when dumping data
+  bool dumpTimeLevel(const TimeStep* tp = nullptr,
+                     bool geoUpd = false, bool doLog = false);
 
   //! \brief Sets the prefices used for norm output.
   void setNormPrefixes(const std::vector<std::string>& prefixes);
@@ -137,17 +134,14 @@ public:
   int getStride() const { return m_ndump; }
 
 protected:
-  //! \brief Internal helper function.
-  int getWritersTimeLevel() const;
-
   //! A map of field names -> field info structures
   std::map<std::string,FileEntry> m_entry;
   //! A vector of registered data writers
   std::vector<DataWriter*>        m_writers;
 
   bool m_delete;    //!< If true, we are in charge of freeing up datawriters
-  int  m_level;     //!< Current time level
   int  m_ndump;     //!< Time level stride for dumping
+  int  m_level;     //!< Current time level
   int  m_last_step; //!< Last time step we dumped for
 };
 

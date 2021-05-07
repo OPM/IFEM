@@ -92,7 +92,7 @@ bool DataExporter::setFieldValue (const std::string& name,
 }
 
 
-bool DataExporter::dumpTimeLevel (const TimeStep* tp, bool geometryUpdated)
+bool DataExporter::dumpTimeLevel (const TimeStep* tp, bool geoUpd, bool doLog)
 {
   if (tp) {
     if (tp->step == m_last_step)
@@ -102,11 +102,19 @@ bool DataExporter::dumpTimeLevel (const TimeStep* tp, bool geometryUpdated)
 
     m_last_step = tp->step;
   }
+  else if (m_level < 0)
+    for (DataWriter* writer : m_writers) {
+      int lastLevel = writer->getLastTimeLevel();
+      if (lastLevel < m_level || m_level < 0)
+        m_level = lastLevel;
+    }
 
   PROFILE1("DataExporter::dumpTimeLevel");
 
-  if (m_level == -1)
-    m_level = this->getWritersTimeLevel()+1;
+  ++m_level;
+  if (tp && doLog)
+    IFEM::cout <<"  Dumping results for step="<< tp->step <<" time="
+               << tp->time.t <<" (time level "<< m_level <<")"<< std::endl;
 
   for (DataWriter* writer : m_writers) {
     writer->openFile(m_level);
@@ -119,7 +127,7 @@ bool DataExporter::dumpTimeLevel (const TimeStep* tp, bool geometryUpdated)
           writer->writeVector(m_level,it);
           break;
         case SIM:
-          writer->writeSIM(m_level,it,geometryUpdated,it.second.prefix);
+          writer->writeSIM(m_level,it,geoUpd,it.second.prefix);
           break;
         case NODALFORCES:
           writer->writeNodalForces(m_level,it);
@@ -141,7 +149,6 @@ bool DataExporter::dumpTimeLevel (const TimeStep* tp, bool geometryUpdated)
 
     writer->closeFile(m_level);
   }
-  m_level++;
 
   // disable fields marked as once
   for (std::pair<const std::string,FileEntry>& it : m_entry)
@@ -152,34 +159,10 @@ bool DataExporter::dumpTimeLevel (const TimeStep* tp, bool geometryUpdated)
 }
 
 
-int DataExporter::getTimeLevel ()
-{
-  if (m_level == -1)
-    m_level = this->getWritersTimeLevel();
-
-  return m_level;
-}
-
-
-int DataExporter::getWritersTimeLevel () const
-{
-  std::vector<int> levels;
-  for (DataWriter* writer : m_writers)
-    levels.push_back(writer->getLastTimeLevel());
-  return *min_element(levels.begin(),levels.end());
-}
-
-
 void DataExporter::setNormPrefixes(const std::vector<std::string>& prefix)
 {
   for (DataWriter* writer : m_writers)
     writer->setNormPrefixes(prefix);
-}
-
-
-int DataExporter::realTimeLevel(int filelevel) const
-{
-  return filelevel*m_ndump;
 }
 
 
