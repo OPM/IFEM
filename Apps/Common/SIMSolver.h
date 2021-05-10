@@ -193,14 +193,14 @@ public:
 
   //! \brief Serialize internal state for restarting purposes.
   //! \param data Container for serialized data
-  bool serialize(HDF5Restart::SerializeData& data)
+  virtual bool serialize(HDF5Restart::SerializeData& data)
   {
     return tp.serialize(data) && this->S1.serialize(data);
   }
 
   //! \brief Set internal state from a serialized state.
   //! \param[in] data Container for serialized data
-  bool deSerialize(const HDF5Restart::SerializeData& data)
+  virtual bool deSerialize(const HDF5Restart::SerializeData& data)
   {
     return tp.deSerialize(data) && this->S1.deSerialize(data);
   }
@@ -219,6 +219,8 @@ protected:
     for (; child; child = child->NextSiblingElement())
       if (!strncasecmp(child->Value(),"savediverg",10))
         saveDivergedSol = true;
+      else if (!strncasecmp(child->Value(),"dumplog",7))
+        dumpLog = true;
 
     return true;
   }
@@ -241,6 +243,10 @@ protected:
     if (!restartAdm || !restartAdm->dumpStep(tp))
       return true;  // no restart output for this step
 
+    if (dumpLog)
+      IFEM::cout <<"  Serializing simulator state for restart (time level "
+                 << restartAdm->getTimeLevel()+1 <<")"<< std::endl;
+
     HDF5Restart::SerializeData data;
     if (exportAdm)
       data["TimeLevel"] = std::to_string(exportAdm->getTimeLevel());
@@ -262,20 +268,20 @@ public:
     HDF5Restart hdf(restartFile, adm.dd.isPartitioned() ? oneAdm : adm);
 
     HDF5Restart::SerializeData data;
-    if ((restartStep = hdf.readData(data,restartStep)) >= 0)
+    if ((restartStep = hdf.readData(data,restartStep-1)) >= 0)
     {
       IFEM::cout <<"\n === Restarting from a serialized state ==="
                  <<"\n     file = "<< restartFile
-                 <<"\n     step = "<< restartStep;
+                 <<"\n     step = "<< restartStep+1;
       if (this->deSerialize(data))
       {
         // Record time levels in case we are saving results in the restart also
-        startRstLevel = ++restartStep;
+        startRstLevel = restartStep;
         HDF5Restart::SerializeData::const_iterator it = data.find("TimeLevel");
         if (it != data.end())
         {
-          SIMSolverStat<T1>::startExpLevel = atoi(it->second.c_str())+1;
-          IFEM::cout <<" "<< SIMSolverStat<T1>::startExpLevel-1;
+          SIMSolverStat<T1>::startExpLevel = atoi(it->second.c_str());
+          IFEM::cout <<" "<< SIMSolverStat<T1>::startExpLevel+1;
         }
         else
           SIMSolverStat<T1>::startExpLevel = startRstLevel;

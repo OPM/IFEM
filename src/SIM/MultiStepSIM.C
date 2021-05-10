@@ -259,8 +259,8 @@ bool MultiStepSIM::checkForRestart ()
     return true; // No restart
 
   HDF5Restart::SerializeData data;
-  HDF5Restart hdf(opt.restartFile,adm,1);
-  int restartStep = hdf.readData(data,opt.restartStep);
+  HDF5Restart hdf(opt.restartFile,adm);
+  int restartStep = hdf.readData(data,opt.restartStep-1);
   if (restartStep < 0 || !this->deSerialize(data))
   {
     std::cerr <<" *** Failed to read restart data."<< std::endl;
@@ -269,6 +269,6 @@ bool MultiStepSIM::checkForRestart ()
 
   IFEM::cout <<"\n === Restarting from a serialized state ==="
              <<"\n     file = "<< opt.restartFile
-             <<"\n     step = "<< restartStep << std::endl;
+             <<"\n     step = "<< restartStep+1 << std::endl;
   return true;
 }
