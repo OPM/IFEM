@@ -127,6 +127,8 @@ public:
   //! \brief Returns name from (first) data writer.
   std::string getName() const;
 
+  //! \brief Returns current time level of the exporter.
+  int getTimeLevel() const { return m_level; }
   //! \brief Returns the data dump stride.
   int getStride() const { return m_ndump; }
 

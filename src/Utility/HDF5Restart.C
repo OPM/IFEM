@@ -29,8 +29,8 @@
 
 
 HDF5Restart::HDF5Restart (const std::string& name, const ProcessAdm& adm,
-                          int stride)
-  : HDF5Base(name, adm), m_stride(stride)
+                          int stride, int level0)
+  : HDF5Base(name, adm), m_stride(stride), m_level(level0-1), m_last(0)
 {
   if (m_hdf5_name.find('.') == std::string::npos)
     m_hdf5_name += ".hdf5";
@@ -39,22 +39,24 @@ HDF5Restart::HDF5Restart (const std::string& name, const ProcessAdm& adm,
 
 bool HDF5Restart::dumpStep (const TimeStep& tp)
 {
-  return (tp.step % m_stride) == 0;
+  if (tp.step < m_last + m_stride)
+    return false;
+
+  m_last = tp.step;
+  return true;
 }
 
 
-bool HDF5Restart::writeData (const TimeStep& tp, const SerializeData& data)
+bool HDF5Restart::writeData (const SerializeData& data)
 {
 #ifdef HAS_HDF5
-  int level = tp.step / m_stride;
-
   struct stat sb;
   int flag = stat(m_hdf5_name.c_str(),&sb) == 0 ? H5F_ACC_RDWR : H5F_ACC_TRUNC;
   if (!this->openFile(flag))
     return false;
 
   std::stringstream str;
-  str << '/' << level;
+  str << '/' << ++m_level;
   if (!checkGroupExistence(m_file,str.str().c_str()))
     H5Gclose(H5Gcreate2(m_file,str.str().c_str(),0,H5P_DEFAULT,H5P_DEFAULT));
 
@@ -100,7 +102,7 @@ bool HDF5Restart::writeData (const TimeStep& tp, const SerializeData& data)
   for (int p = 0; p < ptot; p++)
     for (const std::pair<std::string,std::string>& it : data) {
       std::stringstream str;
-      str << level << '/' << p;
+      str << m_level << '/' << p;
       hid_t group;
       if (checkGroupExistence(m_file,str.str().c_str()))
         group = H5Gopen2(m_file,str.str().c_str(),H5P_DEFAULT);

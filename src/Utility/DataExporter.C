@@ -95,19 +95,23 @@ bool DataExporter::setFieldValue (const std::string& name,
 bool DataExporter::dumpTimeLevel (const TimeStep* tp, bool geoUpd, bool doLog)
 {
   if (tp) {
-    if (tp->step == m_last_step)
-      return true; // ignore multiple calls for the same time step
-    else if (tp->step % m_ndump > 0)
+    if (tp->step > 0 && tp->step < std::max(0,m_last_step) + m_ndump)
       return true; // write only every m_ndump step
+
+    if (m_last_step < 0)
+      geoUpd = true; // always write geometry basis on first time level
 
     m_last_step = tp->step;
   }
   else if (m_level < 0)
+  {
+    geoUpd = true; // always write geometry basis on first time level
     for (DataWriter* writer : m_writers) {
       int lastLevel = writer->getLastTimeLevel();
       if (lastLevel < m_level || m_level < 0)
         m_level = lastLevel;
     }
+  }
 
   PROFILE1("DataExporter::dumpTimeLevel");
 

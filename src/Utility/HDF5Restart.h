@@ -37,16 +37,17 @@ public:
   //! \param[in] name The name (without extension) of the data file
   //! \param[in] adm The process administrator
   //! \param[in] stride Restart data output stride
-  HDF5Restart(const std::string& name, const ProcessAdm& adm, int stride = 1);
+  //! \param[in] level0 Time level to start output at (in case of new restart)
+  HDF5Restart(const std::string& name, const ProcessAdm& adm,
+              int stride = 1, int level0 = 0);
 
   //! \brief Returns whether or not restart data should be output.
   //! \param[in] tp Time stepping information
   bool dumpStep(const TimeStep& tp);
 
   //! \brief Writes restart data to file.
-  //! \param[in] tp Time stepping information
   //! \param[in] data Data to write
-  bool writeData(const TimeStep& tp, const SerializeData& data);
+  bool writeData(const SerializeData& data);
 
   //! \brief Reads restart data from file.
   //! \param[out] data The map to store data in
@@ -55,8 +56,13 @@ public:
   //! \returns Negative value on error, else restart level loaded
   int readData(SerializeData& data, int level = -1, bool basis = false);
 
+  //! \brief Returns current time level.
+  int getTimeLevel() const { return m_level; }
+
 private:
-  int m_stride; //!< Stride between outputs
+  int m_stride; //!< Time step stride between outputs
+  int m_level;  //!< Current time level for restart output
+  int m_last;   //!< Last time step that was written
 };
 
 #endif

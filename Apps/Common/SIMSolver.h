@@ -128,6 +128,7 @@ public:
     saveDivergedSol = dumpLog = false;
     restartAdm = nullptr;
     restartProcAdm = nullptr;
+    startRstLevel = 0;
   }
 
   //! \brief The destructor deletes the restart data handler.
@@ -186,7 +187,8 @@ public:
     else
       return; // Restart output on processor 0 only
 
-    restartAdm = new HDF5Restart(hdf5file+"_restart", *adm, restartInterval);
+    restartAdm = new HDF5Restart(hdf5file+"_restart", *adm, restartInterval,
+                                 startRstLevel);
   }
 
   //! \brief Serialize internal state for restarting purposes.
@@ -226,27 +228,30 @@ protected:
                  char* infile = nullptr, bool saveRes = true)
   {
     if (newMesh && !this->S1.saveModel(infile,geoBlk,nBlock))
-      return false;
+      return false; // saving new geometry to VTF failed
+    else if (!saveRes)
+      return true;  // no result saving
+    else if (!this->S1.saveStep(tp,nBlock))
+      return false; // saving results to VTF failed
 
-    if (saveRes && !this->S1.saveStep(tp,nBlock))
-      return false;
+    DataExporter* exportAdm = SIMSolverStat<T1>::exporter;
+    if (exportAdm && !exportAdm->dumpTimeLevel(&tp,newMesh,dumpLog))
+      return false; // saving results to HDF5 failed
 
-    if (saveRes && restartAdm && restartAdm->dumpStep(tp)) {
-      HDF5Restart::SerializeData data;
-      if (this->serialize(data) && !restartAdm->writeData(tp,data))
-        return false;
-    }
-    if (saveRes && SIMSolverStat<T1>::exporter)
-      return SIMSolverStat<T1>::exporter->dumpTimeLevel(&tp,newMesh,dumpLog);
+    if (!restartAdm || !restartAdm->dumpStep(tp))
+      return true;  // no restart output for this step
 
-    return true;
+    HDF5Restart::SerializeData data;
+    if (exportAdm)
+      data["TimeLevel"] = std::to_string(exportAdm->getTimeLevel());
+    return this->serialize(data) ? restartAdm->writeData(data) : true;
   }
 
 public:
   //! \brief Handles application restarts by reading a serialized solver state.
   //! \param[in] restartFile File to read restart state from
-  //! \param[in] restartStep Index of the time step to read restart state for
-  //! \return One-based time step index of the restart state read.
+  //! \param[in] restartStep Index of the time level to read restart state for
+  //! \return One-based time level index of the restart state read.
   //! If zero, no restart specified. If negative, read failure.
   int restart(const std::string& restartFile, int restartStep)
   {
@@ -261,18 +266,27 @@ public:
     {
       IFEM::cout <<"\n === Restarting from a serialized state ==="
                  <<"\n     file = "<< restartFile
-                 <<"\n     step = "<< restartStep << std::endl;
+                 <<"\n     step = "<< restartStep;
       if (this->deSerialize(data))
       {
-        // Record time level in case we are saving results in the restart also
-        SIMSolverStat<T1>::startExpLevel = restartStep;
-        return restartStep+1;
+        // Record time levels in case we are saving results in the restart also
+        startRstLevel = ++restartStep;
+        HDF5Restart::SerializeData::const_iterator it = data.find("TimeLevel");
+        if (it != data.end())
+        {
+          SIMSolverStat<T1>::startExpLevel = atoi(it->second.c_str())+1;
+          IFEM::cout <<" "<< SIMSolverStat<T1>::startExpLevel-1;
+        }
+        else
+          SIMSolverStat<T1>::startExpLevel = startRstLevel;
       }
       else
         restartStep = -2;
+      IFEM::cout << std::endl;
     }
 
-    std::cerr <<" *** SIMSolver: Failed to read restart data."<< std::endl;
+    if (restartStep < 0)
+      std::cerr <<" *** SIMSolver: Failed to read restart data."<< std::endl;
     return restartStep;
   }
 
@@ -282,8 +296,9 @@ private:
 protected:
   bool dumpLog; //!< Set to \e true, to print out dump time levels
   TimeStep tp;  //!< Time stepping information
-  HDF5Restart* restartAdm; //!< Administrator for restart output
+  HDF5Restart*    restartAdm; //!< Administrator for restart output
   ProcessAdm* restartProcAdm; //!< Process admin used for restart output
+  int          startRstLevel; //!< Initial time level for the restart output
 };
 
 #endif
