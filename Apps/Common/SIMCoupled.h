@@ -50,6 +50,20 @@ public:
   //! \brief Returns the parallel process administrator.
   const ProcessAdm& getProcessAdm() const { return S1.getProcessAdm(); }
 
+  //! \brief Returns current refinement status.
+  int getRefined() const { return S1.getRefined(); }
+
+  //! \brief Returns the name of this (or a substep) simulator.
+  std::string getName(int substep = 1) const
+  {
+    if (substep == 1)
+      return S1.getName();
+    else if (substep == 2)
+      return S2.getName();
+
+    return "SIMCoupled<" + S1.getName() +","+ S2.getName() +">";
+  }
+
   //! \brief Advances the time step one step forward.
   virtual bool advanceStep(TimeStep& tp)
   {

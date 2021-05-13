@@ -39,7 +39,7 @@
 SIMinput::SIMinput (IntegrandBase* itg) : SIMbase(itg)
 {
   myGen = nullptr;
-  isReading = false;
+  isReading = isSaved = false;
 }
 
 
@@ -1487,6 +1487,7 @@ bool SIMinput::refine (const LR::RefineData& prm, Vector& sol)
 
 bool SIMinput::refine (const LR::RefineData& prm, Vectors& sol)
 {
+  isSaved = false;
   if (myModel.empty())
     return false;
 
@@ -1689,6 +1690,7 @@ bool SIMinput::hasIC (const std::string& name) const
 
 bool SIMinput::saveBasis (SerializeMap& data) const
 {
+  if (isSaved) return true; // the basis is already saved
   if (!isRefined) return true; // no need to save unrefined basis
 
   std::ostringstream str;
@@ -1697,6 +1699,8 @@ bool SIMinput::saveBasis (SerializeMap& data) const
     pch->write(str);
   data[this->getName()+"::basis"] = str.str();
 
+  IFEM::cout <<"  New basis serialized "<< str.str().size() << std::endl;
+  const_cast<SIMinput*>(this)->isSaved = true;
   return true;
 }
 
@@ -1731,6 +1735,17 @@ int SIMinput::restartBasis (const std::string& restartFile, int restartStep)
     IFEM::cout <<"\n  ** SIMinput: No serialized basis yet,"
                <<" restarting on initial mesh.\n"<< std::endl;
     return 1; // No refined basis serialized
+  }
+
+  SerializeMap::const_iterator it = data.find(this->getName()+"::basis");
+  if (it != data.end() && it->second.size() < 12)
+  {
+    // Index of the time level containing the most recent basis was stored
+    int basisStep = atoi(it->second.c_str());
+    if (basisStep >= 0 && basisStep <= restartStep)
+      restartStep = hdf.readData(data,basisStep,true);
+    else
+      restartStep = -1;
   }
 
   if (restartStep >= 0)

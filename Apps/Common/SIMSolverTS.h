@@ -40,6 +40,7 @@ public:
     minFrac = 0.1;
     aStart = beta = -1.0;
     dumpGrid = 0;
+    lastRLev = -1;
   }
 
   //! \brief Empty destructor.
@@ -149,7 +150,11 @@ public:
         this->tp.reset(tranStep);
         IFEM::cout <<"\n  >>> Resuming simulation from time="<< this->tp.time.t;
         if (lastRef > 0)
+        {
           IFEM::cout <<" on the new mesh."<< std::endl;
+          if (SIMSolver<T1>::restartAdm)
+            lastRLev = SIMSolver<T1>::restartAdm->getTimeLevel()+1;
+        }
         else
         {
           IFEM::cout <<" on current mesh."<< std::endl;
@@ -170,6 +175,18 @@ public:
     return this->dumpMesh(infile) ? 0 : 2;
   }
 
+  //! \brief Serialize internal state for restarting purposes.
+  //! \param data Container for serialized data
+  virtual bool serialize(HDF5Restart::SerializeData& data)
+  {
+    if (lastRLev < 0 && SIMSolver<T1>::restartAdm && this->S1.getRefined())
+      lastRLev = SIMSolver<T1>::restartAdm->getTimeLevel()+1;
+
+    if (lastRLev >= 0)
+      data[this->S1.getName()+"::basis"] = std::to_string(lastRLev);
+    return this->SIMSolver<T1>::serialize(data);
+  }
+
 protected:
   using SIMSolver<T1>::parse;
   //! \brief Parses a data section from an XML element.
@@ -180,6 +197,7 @@ protected:
 
     utl::getAttribute(elem,"start",aStart);
     utl::getAttribute(elem,"dump",dumpGrid);
+    utl::getAttribute(elem,"dumpLog",SIMSolver<T1>::dumpLog);
 
     const char* value = nullptr;
     const TiXmlElement* child = elem->FirstChildElement();
@@ -255,6 +273,7 @@ private:
   double beta;     //!< Percentage of elements to refine
   double aStart;   //!< Time from where to check for mesh adaptation
   char   dumpGrid; //!< Option for mesh output: 0=none, 1=last, 2=all
+  int    lastRLev; //!< Restart time level for last mesh refinement
 };
 
 #endif

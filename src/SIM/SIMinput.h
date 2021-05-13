@@ -313,6 +313,7 @@ protected:
 
 private:
   bool isReading; //!< If \e true, we are reading multiple patch tags
+  bool isSaved;   //!< If \e true, the basis has been serialized
 };
 
 #endif
