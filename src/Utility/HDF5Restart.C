@@ -155,17 +155,22 @@ static herr_t read_restart_data (hid_t group_id, const char* name, void* data)
 int HDF5Restart::readData (SerializeData& data, int level, bool basis)
 {
 #ifdef HAS_HDF5
-  if (!openFile(H5F_ACC_RDONLY))
+  if (!this->openFile(H5F_ACC_RDONLY))
     return -1;
 
-  if (level == -1) {
-    while (true) {
-      std::stringstream str;
-      str << '/' << level+1;
-      if (!checkGroupExistence(m_file, str.str().c_str()))
-        break;
-      ++level;
-    }
+  if (level < 0)
+  {
+    // Lambda function extracting the highest time level among the groups.
+    auto&& find_last_level = [] (hid_t, const char* name, void* data) -> herr_t
+    {
+      int ilevel = atoi(name);
+      int* level = static_cast<int*>(data);
+      if (ilevel > *level) *level = ilevel;
+      return 0;
+    };
+
+    int idx = 0;
+    H5Giterate(m_file, "/", &idx, find_last_level, &level);
   }
 
   std::stringstream str;
