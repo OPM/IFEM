@@ -1694,7 +1694,9 @@ bool SIMinput::saveBasis (SerializeMap& data) const
   if (!isRefined) return true; // no need to save unrefined basis
 
   std::ostringstream str;
-  str << isRefined;
+  str << isRefined <<" "<< myModel.size();
+  for (const ASMbase* pch : myModel)
+    str <<" "<< pch->getMinimumSize();
   for (const ASMbase* pch : myModel)
     pch->write(str);
   data[this->getName()+"::basis"] = str.str();
@@ -1711,9 +1713,23 @@ bool SIMinput::restoreBasis (const SerializeMap& data)
   if (it == data.end()) return true; // no refined basis yet
 
   std::istringstream str(it->second);
-  str >> isRefined;
-  if (!this->readPatches(str,nullptr))
+  size_t i, n = 0;
+  str >> isRefined >> n;
+  RealArray sMin(n,0.0);
+  for (i = 0; i < n && str.good(); i++)
+    str >> sMin[i];
+  if (!str.good() || !this->readPatches(str,nullptr))
     return false;
+
+  for (i = 0; i < n && i < myModel.size(); i++)
+    if (sMin[i] > 0.0)
+    {
+      myModel[i]->setMinimumSize(sMin[i]);
+      IFEM::cout <<"     element size";
+      if (myModel.size() > 1)
+        IFEM::cout <<" (patch "<< myModel[i]->idx+1 <<")";
+      IFEM::cout <<": "<< sMin[i] << std::endl;
+    }
 
   if (myPatches.empty())
     nGlPatches = myModel.size();

@@ -168,6 +168,8 @@ public:
   //! \brief Creates a separate projection basis for this patch.
   virtual bool createProjectionBasis(bool init);
 
+  //! \brief Sets the minimum element volume for adaptive refinement.
+  virtual void setMinimumSize(double size) { vMin = size; }
   //! \brief Defines the minimum element volume for adaptive refinement.
   //! \param[in] nrefinements Maximum number of adaptive refinement levels
   virtual double getMinimumSize(int nrefinements) const;
