@@ -173,32 +173,6 @@ bool ASMs1D::refine (const LR::RefineData& prm, Vectors&)
 }
 
 
-/*!
-  Refines all elements for which refC(X0) < refTol,
-  where X0 is the element center.
-*/
-
-bool ASMs1D::refine (const RealFunc& refC, double refTol)
-{
-  if (!curv) return false;
-
-  Go::Point X0;
-  RealArray extraKnots;
-  RealArray::const_iterator uit = curv->basis().begin();
-  for (size_t i = curv->order(); i <= nnod; i++)
-    if (uit[i-1] < uit[i])
-    {
-      double u = 0.5*(uit[i-1] + uit[i]);
-      curv->point(X0,u);
-      if (refC(SplineUtils::toVec3(X0,nsd)) < refTol)
-        extraKnots.push_back(u);
-    }
-
-  curv->insertKnot(extraKnots);
-  return true;
-}
-
-
 bool ASMs1D::refine (const RealArray& xi)
 {
   if (!curv || xi.empty()) return false;
@@ -419,7 +393,7 @@ bool ASMs1D::initLocalElementAxes (const Vec3& Zaxis)
     if (MLGE[i] > 0)
     {
       Vec3 X1 = this->getCoord(1+MNPC[i].front());
-      Vec3 X2 = this->getCoord(1+MNPC[i][curv->order()-1]);
+      Vec3 X2 = this->getCoord(1+MNPC[i].back());
       if (Zaxis.isZero())
         myCS[i] = Tensor(X2-X1,true);
       else
@@ -445,7 +419,7 @@ bool ASMs1D::generateTwistedFEModel (const RealFunc& twist, const Vec3& Zaxis)
     if (MLGE[i] > 0)
     {
       Vec3 X1 = this->getCoord(1+MNPC[i].front());
-      Vec3 X2 = this->getCoord(1+MNPC[i][curv->order()-1]);
+      Vec3 X2 = this->getCoord(1+MNPC[i].back());
       double alpha = twist(0.5*(X1+X2)); // twist angle in the element mid-point
       myCS[i] *= Tensor(alpha*M_PI/180.0,1); // rotate about local X-axis
 #ifdef SP_DEBUG

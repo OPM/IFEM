@@ -139,11 +139,6 @@ public:
   //! \param[in] prm Input data used to control the mesh refinement
   virtual bool refine(const LR::RefineData& prm, Vectors&);
 
-  //! \brief Refines the parametrization based on a mesh density function.
-  //! \param[in] refC Mesh refinement criteria function
-  //! \param[in] refTol Mesh refinement threshold
-  virtual bool refine(const RealFunc& refC, double refTol);
-
   //! \brief Refines the parametrization by inserting extra knots.
   //! \param[in] xi Relative positions of added knots in each existing knot span
   virtual bool refine(const RealArray& xi);
