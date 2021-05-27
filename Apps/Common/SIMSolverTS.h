@@ -80,7 +80,7 @@ public:
     this->printHeading(heading);
 
     // Pre-adaptive loop, solve for a certain time period on the initial mesh
-    while (this->tp.time.t < aStart && this->advanceStep())
+    while (this->tp.time.t < aStart-1.0e-12 && this->advanceStep())
       if (!this->S1.solveStep(this->tp))
         return 3;
       else if (!this->saveState(geoBlk,nBlock))
@@ -214,6 +214,8 @@ protected:
         maxPred = atoi(value);
       else if ((value = utl::getValue(child,"min_frac")))
         minFrac = atof(value);
+      else if (this->S1.getRefined())
+        continue; // ignore pre-refinement tags if mesh already refined
       else if ((value = utl::getValue(child,"prerefine")))
       {
         if (utl::getAttribute(child,"levels",preRef))
