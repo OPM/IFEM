@@ -15,6 +15,7 @@
 #define _ASM_SUPEL_H
 
 #include "ASMbase.h"
+#include "ASMutils.h"
 #include "ElmMats.h"
 #include "Vec3.h"
 
@@ -112,8 +113,7 @@ private:
   Vec3Vec myNodes;  //!< Supernode coordinates
   ElmMats myElmMat; //!< Duperelement matrices
 
-  typedef std::pair<std::string,IntVec> NodeSet; //!< Named node set container
-  std::vector<NodeSet> nodeSets; //!< Pre-defined node sets for Dirichlet BCs
+  std::vector<ASM::NodeSet> nodeSets; //!< Node sets for Dirichlet BCs
 };
 
 #endif

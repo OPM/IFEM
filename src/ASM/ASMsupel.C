@@ -116,7 +116,7 @@ bool ASMsupel::generateFEMTopology ()
 int ASMsupel::getNodeSetIdx (const std::string& setName) const
 {
   int idx = 1;
-  for (const NodeSet& ns : nodeSets)
+  for (const ASM::NodeSet& ns : nodeSets)
     if (ns.first == setName)
       return idx;
     else
@@ -129,7 +129,7 @@ int ASMsupel::getNodeSetIdx (const std::string& setName) const
 const IntVec& ASMsupel::getNodeSet (int idx) const
 {
   int count = 0;
-  for (const NodeSet& ns : nodeSets)
+  for (const ASM::NodeSet& ns : nodeSets)
     if (++count == idx)
       return ns.second;
 
@@ -139,7 +139,7 @@ const IntVec& ASMsupel::getNodeSet (int idx) const
 
 IntVec& ASMsupel::getNodeSet (const std::string& setName)
 {
-  for (NodeSet& ns : nodeSets)
+  for (ASM::NodeSet& ns : nodeSets)
     if (ns.first == setName)
       return ns.second;
 

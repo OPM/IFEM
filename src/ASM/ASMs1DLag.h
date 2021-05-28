@@ -146,9 +146,10 @@ protected:
   int    p1; //!< Polynomial order of the basis
 
 private:
-  const std::vector<Vec3>& coord; //!< Nodal coordinates
+  const Vec3Vec& coord; //!< Nodal coordinates
 
-  std::vector<Vec3> myCoord; //!< The actual nodal coordinates
+protected:
+  Vec3Vec myCoord; //!< The actual nodal coordinates
 };
 
 #endif

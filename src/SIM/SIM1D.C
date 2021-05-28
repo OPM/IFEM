@@ -250,11 +250,31 @@ bool SIM1D::parseBCTag (const TiXmlElement* elem)
 
 bool SIM1D::parse (const TiXmlElement* elem)
 {
-  // Check if the number of dimensions is specified
-  int idim = nsd;
   if (!strcasecmp(elem->Value(),"geometry"))
+  {
+    // Check for unstructured Lagrange mesh.
+    // This code must be placed here (and not in parseGeometryTag)
+    // due to instantiation of the ASMu1DLag class.
+    const TiXmlElement* child = elem->FirstChildElement();
+    for (; child && nf < 10; child = child->NextSiblingElement())
+      if (!strcasecmp(child->Value(),"patchfile"))
+      {
+        std::string type;
+        if (utl::getAttribute(child,"type",type,true))
+        {
+          if (type == "matlab")
+            nf += 10;
+          else
+            continue;
+          opt.discretization = ASM::Lagrange;
+        }
+      }
+
+    // Check if the number of dimensions is specified
+    int idim = nsd;
     if (utl::getAttribute(elem,"dim",idim))
       nsd = idim;
+  }
 
   bool result = this->SIMgeneric::parse(elem);
 

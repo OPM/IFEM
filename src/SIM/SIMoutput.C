@@ -1316,12 +1316,6 @@ bool SIMoutput::dumpMatlabGrid (std::ostream& os, const std::string& name,
                                 const std::vector<std::string>& sets,
                                 double scale) const
 {
-  if (this->getNoParamDim() != 2)
-  {
-    std::cerr <<" *** SIMoutput::dumpMatlabGrid: For 2D only."<< std::endl;
-    return false;
-  }
-
   // Write function definition
   os <<"function [Node, Element";
   for (const std::string& setname : sets) os <<", "<< setname;

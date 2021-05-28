@@ -13,7 +13,7 @@
 
 #include "ASM1D.h"
 #include "ASMs1DC1.h"
-#include "ASMs1DLag.h"
+#include "ASMu1DLag.h"
 #include "ASMs1DSpec.h"
 #include "Vec3Oper.h"
 
@@ -32,7 +32,10 @@ ASMbase* ASM1D::create (ASM::Discretization discretization,
     return new ASMs1DC1(nd,nf);
 
   case ASM::Lagrange:
-    return new ASMs1DLag(nd,nf);
+    if (nf > 10) // hack for mesh input from file
+      return new ASMu1DLag(nd,nf-10,'m');
+    else
+      return new ASMs1DLag(nd,nf);
 
   case ASM::Spectral:
     return new ASMs1DSpec(nd,nf);

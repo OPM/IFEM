@@ -174,9 +174,10 @@ protected:
   int    p2; //!< Polynomial order in second parameter direction
 
 private:
-  const std::vector<Vec3>& coord; //!< Nodal coordinates
+  const Vec3Vec& coord; //!< Nodal coordinates
 
-  std::vector<Vec3> myCoord; //!< The actual nodal coordinates
+protected:
+  Vec3Vec myCoord; //!< The actual nodal coordinates
 };
 
 #endif
