@@ -255,21 +255,28 @@ class PressureField : public TractionFunc
 {
   const RealFunc* pressure; //!< Scalar field to derive the traction field from
   char            pdir;     //!< The global pressure direction (0...3)
+  const VecFunc*  pdfn;     //!< Varying global pressure direction
 
 public:
   //! \brief Constructor initializing a constant pressure field.
   //! \param[in] p The constant pressure value
   //! \param[in] dir The global direction the pressure is acting in
-  PressureField(Real p, int dir = 0);
+  explicit PressureField(Real p, int dir = 0);
   //! \brief Constructor initializing the scalar pressure field function.
   //! \param[in] p The scalar field defining the spatial pressure distribution
   //! \param[in] dir The global direction the pressure is acting in
-  PressureField(const RealFunc* p, int dir = 0) : pressure(p), pdir(dir) {}
+  explicit PressureField(const RealFunc* p, int dir = 0)
+    : pressure(p), pdir(dir), pdfn(nullptr) {}
+  //! \brief Constructor initializing the scalar pressure field function.
+  //! \param[in] p The scalar field defining the spatial pressure distribution
+  //! \param[in] dir The global direction the pressure is acting in
+  PressureField(const RealFunc* p, const VecFunc* dir)
+    : pressure(p), pdir(-1), pdfn(dir) {}
   //! \brief The destructor frees the scalar field function.
-  virtual ~PressureField() { delete pressure; }
+  virtual ~PressureField() { delete pressure; delete pdfn; }
 
   //! \brief Returns whether the traction is always normal to the face or not.
-  virtual bool isNormalPressure() const { return pdir < 1 || pdir > 3; }
+  virtual bool isNormalPressure() const { return !pdfn && (pdir<1 || pdir>3); }
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return pressure ? pressure->isZero() : true; }
 

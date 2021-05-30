@@ -27,7 +27,7 @@
 static const Real zTol = Real(1.0e-12); //!< Zero tolerance on function values
 
 
-PressureField::PressureField (Real p, int dir) : pdir(dir)
+PressureField::PressureField (Real p, int dir) : pdir(dir), pdfn(nullptr)
 {
   pressure = fabs(p) > zTol ? new ConstFunc(p) : nullptr;
 }

@@ -23,11 +23,18 @@ Vec3 PressureField::evaluate (const Vec3& x, const Vec3& n) const
 
   const RealFunc& p = *pressure;
 
-  if (pdir < 1) // normal pressure
+  if (pdir < 1 && !pdfn) // normal pressure
     return p(x) * n;
 
-  Vec3 t; // pressure acting in global pdir direction
-  t[(pdir-1)%3] = p(x);
+  Vec3 t;
+  if (pdfn) // pressure direction specified as a function
+  {
+    t = (*pdfn)(x);
+    t.normalize();
+    t *= p(x);
+  }
+  else if (pdir > 0) // pressure acting in global pdir direction
+    t[(pdir-1)%3] = p(x);
 
   if (pdir > 3) // normal pressure in global pdir direction
     t = (t*n) * n;
