@@ -66,6 +66,7 @@ public:
 private:
   char                      fileType; //!< Mesh file format
   std::vector<ASM::NodeSet> nodeSets; //!< Node sets for Dirichlet BCs
+  std::vector<ASM::NodeSet> elemSets; //!< Element sets for properties
 };
 
 #endif

@@ -32,7 +32,9 @@ ASMbase* ASM1D::create (ASM::Discretization discretization,
     return new ASMs1DC1(nd,nf);
 
   case ASM::Lagrange:
-    if (nf > 10) // hack for mesh input from file
+    if (nf > 20) // hack for mesh input from XML-file
+      return new ASMu1DLag(nd,nf-20,'x');
+    else if (nf > 10) // hack for mesh input from Matlab file
       return new ASMu1DLag(nd,nf-10,'m');
     else
       return new ASMs1DLag(nd,nf);

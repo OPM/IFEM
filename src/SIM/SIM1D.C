@@ -264,6 +264,8 @@ bool SIM1D::parse (const TiXmlElement* elem)
         {
           if (type == "matlab")
             nf += 10;
+          else if (type == "xml")
+            nf += 20;
           else
             continue;
           opt.discretization = ASM::Lagrange;

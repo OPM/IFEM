@@ -12,9 +12,12 @@
 //==============================================================================
 
 #include "ASMutils.h"
+#include "Utilities.h"
 #include "Vec3Oper.h"
 #include "Vec3.h"
+#include "tinyxml.h"
 #include <sstream>
+#include <cstring>
 #include <cctype>
 
 
@@ -130,6 +133,121 @@ bool ASM::readMatlab (std::istream& is, IntMat& MNPC, std::vector<Vec3>& nodes,
 #endif
         std::getline(is,cline);
         nodeSets.push_back(std::make_pair(setname,nodes));
+      }
+    }
+
+  return true;
+}
+
+
+bool ASM::readXML (std::istream& is, IntMat& MNPC, std::vector<Vec3>& nodes,
+                   std::vector<NodeSet>& nodeSets,
+                   std::vector<NodeSet>* elemSets)
+{
+  char cline[128];
+  if (!is.getline(cline,128))
+    return false;
+  else if (!strstr(cline,"<patch>"))
+  {
+    std::cerr <<" *** ASM::readXML: Failed to read patch geometry."<< std::endl;
+    return false;
+  }
+
+  std::string data("<patch>\n");
+  while (is.getline(cline,128))
+  {
+    data.append(cline);
+    data.append("\n");
+    if (strstr(cline,"</patch>"))
+      break;
+  }
+
+  TiXmlDocument doc;
+  doc.Parse(data.c_str(),nullptr,TIXML_ENCODING_UTF8);
+  const TiXmlElement* tag = doc.RootElement();
+  if (!tag)
+  {
+    std::cerr <<" *** ASM::readXML: Malformatted XML input."<< std::endl;
+    return false;
+  }
+
+  // Lambda function for parsing nodal points from a string.
+  auto&& parseNodes = [&nodes](const char* data)
+  {
+    Vec3 X;
+    std::istringstream iss(data);
+    for (size_t inod = 0; iss; inod++)
+    {
+      iss >> X;
+      if (iss)
+      {
+#if SP_DEBUG > 1
+        std::cout << inod <<": "<< X << std::endl;
+#endif
+        nodes.push_back(X);
+      }
+    }
+  };
+
+  // Lambda function for parsing element connectivities from a string.
+  auto&& parseElements = [&MNPC](const char* data, size_t nenod)
+  {
+    IntVec mnpc(nenod);
+    std::istringstream iss(data);
+    for (size_t iel = 0; iss; iel++)
+    {
+      for (int& n : mnpc) iss >> n;
+      if (iss)
+      {
+#if SP_DEBUG > 1
+        std::cout << iel <<":";
+        for (int n : mnpc) std::cout <<" "<< n;
+        std::cout << std::endl;
+#endif
+        MNPC.push_back(mnpc);
+      }
+    }
+  };
+
+  for (tag = tag->FirstChildElement(); tag; tag = tag->NextSiblingElement())
+    if (tag->Value() && tag->FirstChild())
+    {
+      std::vector<ASM::NodeSet>* nset = nullptr;
+      if (!strcasecmp(tag->Value(),"nodes"))
+        parseNodes(tag->FirstChild()->Value());
+      else if (!strcasecmp(tag->Value(),"elements"))
+      {
+        size_t nenod = 2;
+        utl::getAttribute(tag,"nenod",nenod);
+        parseElements(tag->FirstChild()->Value(),nenod);
+      }
+      else if (!strcasecmp(tag->Value(),"nodeset"))
+        nset = &nodeSets;
+      else if (!strcasecmp(tag->Value(),"elementset"))
+        nset = elemSets;
+      if (nset)
+      {
+        int node;
+        IntVec nodes;
+        std::string name;
+        utl::getAttribute(tag,"name",name);
+        std::istringstream iss(tag->FirstChild()->Value());
+        iss >> node;
+        while (iss)
+        {
+          nodes.push_back(1+node);
+          iss >> node;
+        }
+#if SP_DEBUG > 1
+        if (nset == &nodeSets)
+          std::cout <<"Node ";
+        else
+          std::cout <<"Element ";
+        std::cout <<"set \""<< name <<"\":";
+        for (int n : nodes) std::cout <<" "<< n;
+        std::cout << std::endl;
+#endif
+        nset->push_back(std::make_pair(name,nodes));
       }
     }
 

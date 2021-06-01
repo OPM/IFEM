@@ -417,23 +417,27 @@ bool SIM2D::parse (const TiXmlElement* elem)
 {
   if (!strcasecmp(elem->Value(),"geometry"))
   {
-    // Check for triangular/Matlab mesh or immersed boundary calculation.
+    // Check for triangular/unstructured Lagrange mesh
+    // or immersed boundary calculation.
     // This code must be placed here (and not in parseGeometryTag)
-    // due to instantiation of the ASMs2D[Tri|IB|Matlab] class.
-    int maxDepth = 0;
-    std::string type;
+    // due to instantiation of the ASMu2DLag and ASMs2D[Tri|IB] classes.
     const TiXmlElement* child = elem->FirstChildElement();
     for (; child; child = child->NextSiblingElement())
       if (!strcasecmp(child->Value(),"triangular"))
         opt.discretization = ASM::Triangle;
-      else if (!strcasecmp(child->Value(),"patchfile") &&
-               utl::getAttribute(child,"type",type,true) && type == "matlab")
+      else if (!strcasecmp(child->Value(),"patchfile"))
       {
-        opt.discretization = ASM::Lagrange;
-        nf.push_back('M');
+        std::string type;
+        if (utl::getAttribute(child,"type",type,true) && type[0] > 'l')
+        {
+          opt.discretization = ASM::Lagrange;
+          nf.push_back(type[0]);
+        }
       }
       else if (!strcasecmp(child->Value(),"immersedboundary"))
-        if (utl::getAttribute(child,"max_depth",maxDepth))
+      {
+        int maxDepth = 0;
+        if (utl::getAttribute(child,"max_depth",maxDepth) && maxDepth > 0)
         {
           nf.push_back('I');
           nf.push_back(maxDepth);
@@ -443,6 +447,7 @@ bool SIM2D::parse (const TiXmlElement* elem)
           if (opt.discretization == ASM::SplineC1)
             opt.discretization = ASM::Spline;
         }
+      }
   }
 
   bool result = this->SIMgeneric::parse(elem);

@@ -43,6 +43,9 @@ bool ASMu2DLag::read (std::istream& is)
   case 'm':
   case 'M':
     return ASM::readMatlab(is,myMNPC,myCoord,nodeSets);
+  case 'x':
+  case 'X':
+    return ASM::readXML(is,myMNPC,myCoord,nodeSets);
   default:
     std::cerr <<" *** ASMu2DLag::read: Undefined file format."<< std::endl;
     return false;

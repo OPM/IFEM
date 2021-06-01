@@ -31,6 +31,11 @@ namespace ASM
   //! \brief Creates a mesh by reading Matlab commands from an input stream.
   bool readMatlab(std::istream& is, IntMat& MNPC, std::vector<Vec3>& nodes,
                   std::vector<NodeSet>& nodeSets);
+
+  //! \brief Creates a mesh by reading XML tags from an input stream.
+  bool readXML(std::istream& is, IntMat& MNPC, std::vector<Vec3>& nodes,
+               std::vector<NodeSet>& nodeSets,
+               std::vector<NodeSet>* elemSets = nullptr);
 };
 
 #endif
