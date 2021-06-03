@@ -61,7 +61,7 @@ public:
 
 protected:
   //! \brief The constructor just forwards to the base class constructor.
-  explicit SIMinput(IntegrandBase* itg) : SIMbase(itg), myGen(nullptr) {}
+  explicit SIMinput(IntegrandBase* itg);
 
 public:
   //! \brief Empty destructor.
@@ -292,6 +292,9 @@ protected:
   std::vector<ASM::Interface> myInterfaces; //!< Topology interface descriptions
 
   std::map<std::string,InitialCondVec> myICs; //!< Initial condition definitions
+
+private:
+  bool isReading; //!< If \e true, we are reading multiple patch tags
 };
 
 #endif

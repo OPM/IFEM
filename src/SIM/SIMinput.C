@@ -35,6 +35,13 @@
 #include <numeric>
 
 
+SIMinput::SIMinput (IntegrandBase* itg) : SIMbase(itg)
+{
+  myGen = nullptr;
+  isReading = false;
+}
+
+
 std::istream* SIMinput::getPatchStream (const char* tag, const char* patch)
 {
   if (!strcasecmp(tag+5,"file"))
@@ -90,28 +97,31 @@ bool SIMinput::parseGeometryTag (const TiXmlElement* elem)
 
   if (!strncasecmp(elem->Value(),"patch",5) && elem->FirstChild())
   {
-    std::string fileNum;
-    utl::getAttribute(elem,"num",fileNum,true);
-    if (!myModel.empty() && (fileNum == "first" || fileNum.empty()))
+    if (!myModel.empty() && !isReading)
       return true; // We already have a model, skip geometry definition
 
-    size_t oldPatches = myModel.size();
     const char* patch = elem->FirstChild()->Value();
     std::istream* isp = getPatchStream(elem->Value(),patch);
-    if (isp)
-    {
-      this->readPatches(*isp,"\t");
-      delete isp;
-    }
-    else
-      return true;
+    if (!isp) return true; // Neither <patch>, <patches> nor <patchfile>
+
+    size_t oldPatches = myModel.size();
+    this->readPatches(*isp,"\t");
+    delete isp;
 
     if (myModel.size() == oldPatches)
     {
       std::cerr <<" *** SIMinput::parse: No patches read."<< std::endl;
       return false;
     }
-    if (myPatches.empty() && (fileNum == "last" || fileNum.empty()))
+
+    std::string fileNum;
+    utl::getAttribute(elem,"num",fileNum,true);
+    if (fileNum == "first" || fileNum == "1")
+      isReading = true;
+    else if (fileNum == "last")
+      isReading = false;
+
+    if (myPatches.empty() && !isReading)
       nGlPatches = myModel.size();
   }
 
