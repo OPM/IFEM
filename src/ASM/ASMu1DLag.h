@@ -53,7 +53,14 @@ public:
   //! \brief Returns an indexed pre-defined node set.
   virtual const IntVec& getNodeSet(int idx) const;
   //! \brief Returns a named node set for update.
-  virtual IntVec& getNodeSet(const std::string& setName);
+  virtual IntVec& getNodeSet(const std::string& setName, int& idx);
+
+  //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
+  //! \param[in] lIndex Local index of the boundary node set
+  //! \param nodes Array of node numbers
+  //! \param[in] local If \e true, return patch-local numbers
+  virtual void getBoundaryNodes(int lIndex, IntVec& nodes,
+                                int, int, int, bool local) const;
 
   // Post-processing methods
   // =======================

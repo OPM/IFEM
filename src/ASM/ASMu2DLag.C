@@ -97,14 +97,27 @@ const IntVec& ASMu2DLag::getNodeSet (int idx) const
 }
 
 
-IntVec& ASMu2DLag::getNodeSet (const std::string& setName)
+IntVec& ASMu2DLag::getNodeSet (const std::string& setName, int& idx)
 {
+  idx = 1;
   for (ASM::NodeSet& ns : nodeSets)
     if (ns.first == setName)
       return ns.second;
+    else if (idx)
+      ++idx;
 
   nodeSets.push_back(std::make_pair(setName,IntVec()));
   return nodeSets.back().second;
+}
+
+
+void ASMu2DLag::getBoundaryNodes (int lIndex, IntVec& nodes,
+                                  int, int, int, bool local) const
+{
+  nodes = this->getNodeSet(lIndex);
+  if (!local)
+    for (int& node : nodes)
+      node = this->getNodeID(node);
 }
 
 

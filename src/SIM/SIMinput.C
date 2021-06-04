@@ -271,10 +271,14 @@ bool SIMinput::parseGeometryTag (const TiXmlElement* elem)
               else if (idim == 4)
               {
                 ASMbase* pch = myModel[pid-1];
+                int setIndex = 0;
                 if (item->FirstChild())
-                  utl::parseIntegers(pch->getNodeSet(name),
+                  utl::parseIntegers(pch->getNodeSet(name,setIndex),
                                      item->FirstChild()->Value());
-                top.insert(TopItem(pid,pch->getNodeSetIdx(name),idim));
+                else
+                  setIndex = pch->getNodeSetIdx(name);
+                if (setIndex > 0)
+                  top.insert(TopItem(pid,setIndex,idim));
               }
               else if (item->FirstChild())
               {

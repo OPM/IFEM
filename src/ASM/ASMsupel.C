@@ -137,11 +137,14 @@ const IntVec& ASMsupel::getNodeSet (int idx) const
 }
 
 
-IntVec& ASMsupel::getNodeSet (const std::string& setName)
+IntVec& ASMsupel::getNodeSet (const std::string& setName, int& idx)
 {
+  idx = 1;
   for (ASM::NodeSet& ns : nodeSets)
     if (ns.first == setName)
       return ns.second;
+    else if (idx)
+      ++idx;
 
   nodeSets.push_back(std::make_pair(setName,IntVec()));
   return nodeSets.back().second;

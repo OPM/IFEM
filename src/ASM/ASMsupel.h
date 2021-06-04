@@ -52,7 +52,7 @@ public:
   //! \brief Returns an indexed pre-defined node set.
   virtual const IntVec& getNodeSet(int idx) const;
   //! \brief Returns a named node set for update.
-  virtual IntVec& getNodeSet(const std::string& setName);
+  virtual IntVec& getNodeSet(const std::string& setName, int& idx);
 
   //! \brief Returns the global coordinates for the given node.
   //! \param[in] inod 1-based node index local to current patch.

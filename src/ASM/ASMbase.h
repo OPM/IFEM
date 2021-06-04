@@ -251,7 +251,8 @@ public:
   //! \brief Returns an indexed predefined node set.
   virtual const IntVec& getNodeSet(int) const { static IntVec v; return v; }
   //! \brief Returns a named node set for update.
-  virtual IntVec& getNodeSet(const std::string&) { static IntVec v; return v; }
+  virtual IntVec& getNodeSet(const std::string&, int&)
+  { static IntVec v; return v; }
 
   //! \brief Finds the node that is closest to the given point.
   virtual std::pair<size_t,double> findClosestNode(const Vec3&) const

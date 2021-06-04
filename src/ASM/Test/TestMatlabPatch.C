@@ -116,8 +116,8 @@ TEST(TestMatlabPatch, IO)
   ASSERT_TRUE(pch2 != nullptr);
   int idx1 = pch2->getNodeSetIdx("Boundary");
   int idx2 = pch2->getNodeSetIdx("Edge2");
-  pch2->getNodeSet("ACorner").push_back(1);
-  int idx3 = pch2->getNodeSetIdx("ACorner");
+  int idx3 = 0;
+  pch2->getNodeSet("ACorner",idx3).push_back(1);
   EXPECT_EQ(idx1,1);
   EXPECT_EQ(idx2,2);
   EXPECT_EQ(idx3,3);
