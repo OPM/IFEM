@@ -109,6 +109,13 @@ bool ASMsupel::generateFEMTopology ()
   std::iota(myMNPC.front().begin(),myMNPC.front().end(),0);
   gNod += nnod;
 
+  if (nodeSets.size() == 1 && nodeSets.front().second.empty())
+  {
+    // Define the set of supernodes for this patch
+    nodeSets.front().second.resize(nnod);
+    std::iota(nodeSets.front().second.begin(),nodeSets.front().second.end(),1);
+  }
+
   return true;
 }
 
@@ -239,6 +246,39 @@ bool ASMsupel::evalSolution (Matrix& sField, const Vector& locSol,
       sField(i,1+j) = locSol(k++);
       sField(i,1) += sField(i,1+j) / (double)nnod;
     }
+
+  return true;
+}
+
+
+
+bool ASMsupel::transform (const Matrix& Tlg)
+{
+  if (Tlg.rows() < 3 || Tlg.cols() < 3)
+    return true; // No transformation defined
+
+  // Transform nodal coordinates to global system
+  for (Vec3& X : myNodes)
+    X = Tlg*X;
+
+#ifdef SP_DEBUG
+  std::cout <<"\nGlobal coordinates for superelement "<< idx+1;
+  for (const Vec3& X : myNodes)
+    std::cout <<"\n" << X;
+  std::cout << std::endl;
+#endif
+
+  // Transform the element matrices to global system
+  for (Matrix& A : myElmMat.A)
+    for (size_t k = 1; k < A.cols(); k += 3)
+      if (!utl::transform(A,Tlg,k))
+        return false;
+
+  // Transform the element force vectors to global system
+  for (Vector& b : myElmMat.b)
+    for (size_t k = 1; k < b.size(); k += 3)
+      if (!utl::transform(b,Tlg,k))
+        return false;
 
   return true;
 }

@@ -37,6 +37,13 @@ Vec3 operator* (const utl::matrix<Real>& A, const std::vector<Real>& x)
 
 Vec3 operator* (const utl::matrix<Real>& A, const Vec3& x)
 {
+  if (A.cols() == 4)
+  {
+    std::vector<Real> xx = x.vec();
+    xx.resize(4,1.0);
+    return A * xx;
+  }
+
   return A * x.vec();
 }
 

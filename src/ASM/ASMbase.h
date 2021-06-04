@@ -423,6 +423,9 @@ public:
   //! \param[in] displ Incremental displacements to update the coordinates with
   virtual bool updateCoords(const Vector& displ) = 0;
 
+  //! \brief Applies a transformation matrix from local to global system.
+  virtual bool transform(const Matrix&) { return true; }
+
   //! \brief Initializes the patch level MADOF array for mixed problems.
   virtual void initMADOF(const int*) {}
 

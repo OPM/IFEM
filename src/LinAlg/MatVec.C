@@ -89,7 +89,7 @@ bool utl::transform (Matrix& A, const Matrix& Tn, size_t K)
 {
   size_t M = A.rows();
   size_t N = Tn.rows();
-  if (M < A.cols() || N < Tn.cols()) return false;
+  if (M < A.cols() || N > Tn.cols()) return false;
   if (K < 1 || K+N-1 > M || N > 3) return false;
 
   Real WA[N];
@@ -144,7 +144,7 @@ bool utl::transform (Vector& V, const Matrix& Tn, size_t K, bool transpose)
 {
   size_t M = V.size();
   size_t N = Tn.rows();
-  if (N < Tn.cols()) return false;
+  if (N > Tn.cols()) return false;
   if (K < 1 || K+N-1 > M || N > 3) return false;
 
   Real WA[N];

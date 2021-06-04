@@ -23,7 +23,7 @@
 /*!
   \brief Driver for assembly of general superelements.
   \details This class contains methods for assembly of superelements
-  resulting from reduced order modeling.
+  resulting from static condensation or reduced order modeling.
 */
 
 class ASMsupel : public ASMbase
@@ -108,6 +108,9 @@ public:
   //! \param[in] locSol Solution vector local to current patch
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
                             const int*, int) const;
+
+  //! \brief Applies a transformation matrix from local to global system.
+  virtual bool transform(const Matrix& Tlg);
 
 private:
   Vec3Vec myNodes;  //!< Supernode coordinates

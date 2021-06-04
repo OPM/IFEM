@@ -12,9 +12,10 @@
 //==============================================================================
 
 #include "SIMsupel.h"
-#include "IntegrandBase.h"
 #include "ASMbase.h"
 #include "ASM3D.h"
+#include "IntegrandBase.h"
+#include "Utilities.h"
 #include "IFEM.h"
 #include "tinyxml.h"
 
@@ -47,18 +48,52 @@ bool SIMsupel::parse (const TiXmlElement* elem)
     return this->SIMgeneric::parse(elem);
 
   bool result = true;
+  size_t ifst = myModel.size();
+  Matrix MVP;
+  std::string supId, supNodeSet;
+  utl::getAttribute(elem,"id",supId);
+  utl::getAttribute(elem,"nodeset",supNodeSet);
   const TiXmlElement* child = elem->FirstChildElement();
   for (; child; child = child->NextSiblingElement())
-    result &= this->SIMgeneric::parse(child);
+    if (!strcasecmp(child->Value(),"mvp") && child->FirstChild())
+    {
+      MVP.resize(3,4);
+      std::stringstream value(child->FirstChild()->Value());
+      for (double& v : MVP) value >> v;
+      if (!value)
+      {
+        std::cerr <<" *** SIMsupel::parse: Failed to read transformation matrix"
+                  <<" for superelement \""<< supId <<"\""<< std::endl;
+        result = false;
+      }
+      IFEM::cout <<"  Parsing <"<< child->Value() <<">";
+#ifdef SP_DEBUG
+      IFEM::cout << MVP;
+#else
+      IFEM::cout << std::endl;
+#endif
+    }
+    else
+      result &= this->SIMgeneric::parse(child);
 
-  return true;
+  // Apply the superelement transformation and assign supernode set name
+  for (size_t i = ifst; i < myModel.size() && result; i++)
+    if ((result = myModel[i]->transform(MVP)) && !supNodeSet.empty())
+    {
+      int topIdx = 0;
+      myModel[i]->getNodeSet(supNodeSet,topIdx);
+      if (topIdx > 0)
+        myEntitys[supNodeSet].insert(TopItem(1+i,topIdx,4));
+    }
+
+  return result;
 }
 
 
 ASMbase* SIMsupel::readPatch (std::istream& isp, int pchInd, const CharVec&,
                               const char* whiteSpace) const
 {
-  ASMbase* pch = ASM3D::create(ASM::SuperElm,{ncmp});
+  ASMbase* pch = ASM3D::create(ASM::SuperElm,ncmp);
   if (pch)
   {
     if (!pch->read(isp) || this->getLocalPatchIndex(pchInd+1) < 1)
