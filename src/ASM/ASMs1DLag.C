@@ -231,12 +231,15 @@ bool ASMs1DLag::integrate (Integrand& integrand,
 
   // === Assembly loop over all elements in the patch ==========================
 
-  for (size_t iel = 0; iel < nel; iel++)
+  bool ok = true;
+  for (size_t iel = 0; iel < nel && ok; iel++)
   {
     fe.iel = MLGE[iel];
+    LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
+    if (!A) continue; // no integrand contributions for this element
 
     // Set up nodal point coordinates for current element
-    if (!this->getElementCoordinates(fe.Xn,1+iel)) return false;
+    ok = this->getElementCoordinates(fe.Xn,1+iel);
 
     if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
       fe.h = getEndPoints(fe.Xn,fe.XC);
@@ -248,8 +251,7 @@ bool ASMs1DLag::integrate (Integrand& integrand,
     }
 
     // Initialize element quantities
-    LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
-    bool ok = integrand.initElement(MNPC[iel],fe,X,nRed,*A);
+    ok &= integrand.initElement(MNPC[iel],fe,X,nRed,*A);
 
     if (xr)
     {
@@ -325,11 +327,9 @@ bool ASMs1DLag::integrate (Integrand& integrand,
       ok = false;
 
     A->destruct();
-
-    if (!ok) return false;
   }
 
-  return true;
+  return ok;
 }
 
 
@@ -363,8 +363,12 @@ bool ASMs1DLag::integrate (Integrand& integrand, int lIndex,
       return false;
     }
 
+  fe.iel = MLGE[iel];
+  LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
+  if (!A) return true; // no integrand contributions for this element
+
   // Set up nodal point coordinates for current element
-  if (!this->getElementCoordinates(fe.Xn,1+iel)) return false;
+  bool ok = this->getElementCoordinates(fe.Xn,1+iel);
 
   if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
     fe.h = getEndPoints(fe.Xn,fe.XC);
@@ -378,9 +382,7 @@ bool ASMs1DLag::integrate (Integrand& integrand, int lIndex,
   // Initialize element quantities
   std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex%10);
   fe.iGP = iit == firstBp.end() ? 0 : iit->second;
-  fe.iel = MLGE[iel];
-  LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
-  bool ok = integrand.initElementBou(MNPC[iel],*A);
+  ok &= integrand.initElementBou(MNPC[iel],*A);
 
   // Evaluate basis functions and corresponding derivatives
   Vec3 normal;

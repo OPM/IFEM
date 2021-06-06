@@ -1087,7 +1087,8 @@ bool ASMs1D::integrate (Integrand& integrand,
 
   // === Assembly loop over all elements in the patch ==========================
 
-  for (size_t iel = 0; iel < nel; iel++)
+  bool ok = true;
+  for (size_t iel = 0; iel < nel && ok; iel++)
   {
     fe.iel = MLGE[iel];
     if (fe.iel < 1) continue; // zero-length element
@@ -1098,12 +1099,15 @@ bool ASMs1D::integrate (Integrand& integrand,
       continue; // Skipping all elements, except for -dbgElm
 #endif
 
+    LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
+    if (!A) continue; // no integrand contributions for this element
+
     // Check that the current element has nonzero length
     double dL = 0.5*this->getParametricLength(1+iel);
-    if (dL < 0.0) return false; // topology error (probably logic error)
+    if (dL < 0.0) ok = false; // topology error (probably logic error)
 
     // Set up control point coordinates for current element
-    if (!this->getElementCoordinates(fe.Xn,1+iel)) return false;
+    ok &= this->getElementCoordinates(fe.Xn,1+iel);
 
     if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
       fe.h = this->getElementEnds(p1+iel,fe.XC);
@@ -1122,8 +1126,7 @@ bool ASMs1D::integrate (Integrand& integrand,
     }
 
     // Initialize element matrices
-    LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
-    bool ok = integrand.initElement(MNPC[iel],fe,X,nRed,*A);
+    ok &= integrand.initElement(MNPC[iel],fe,X,nRed,*A);
 
     if (xr)
     {
@@ -1234,15 +1237,13 @@ bool ASMs1D::integrate (Integrand& integrand,
 
     A->destruct();
 
-    if (!ok) return false;
-
 #ifdef SP_DEBUG
     if (ielm == -dbgElm)
       break; // Skipping all elements, except for -dbgElm
 #endif
   }
 
-  return true;
+  return ok;
 }
 
 
@@ -1276,19 +1277,23 @@ bool ASMs1D::integrate (Integrand& integrand, int lIndex,
       return false;
     }
 
-  std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex%10);
-  fe.iGP = iit == firstBp.end() ? 0 : iit->second;
-  fe.iel = MLGE[iel];
-  if (fe.iel < 1) return true; // zero-length element
-
 #ifdef SP_DEBUG
   int ielm = 1+iel;
   if (dbgElm < 0 && ielm != -dbgElm)
     return true; // Skipping all elements, except for -dbgElm
 #endif
 
+  fe.iel = MLGE[iel];
+  if (fe.iel < 1) return true; // zero-length element
+
+  LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
+  if (!A) return true; // no integrand contributions for this element
+
+  std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex%10);
+  fe.iGP = iit == firstBp.end() ? 0 : iit->second;
+
   // Set up control point coordinates for current element
-  if (!this->getElementCoordinates(fe.Xn,1+iel)) return false;
+  bool ok = this->getElementCoordinates(fe.Xn,1+iel);
 
   if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
     fe.h = this->getElementEnds(iel+curv->order(),fe.XC);
@@ -1300,8 +1305,7 @@ bool ASMs1D::integrate (Integrand& integrand, int lIndex,
   }
 
   // Initialize element matrices
-  LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
-  bool ok = integrand.initElementBou(MNPC[iel],*A);
+  ok &= integrand.initElementBou(MNPC[iel],*A);
 
   Vec3 normal;
 
