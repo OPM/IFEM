@@ -102,7 +102,11 @@ public:
                           bool fixDup = false);
 
   //! \brief Merges the global equation system of \a that simulator with this.
-  bool merge(SIMbase* that, const std::map<int,int>* old2new = nullptr);
+  //! \param that The simulator whose equation system is to be merged
+  //! \param[in] old2new Global node number mapping
+  //! \param[in] poff Global patch index offset
+  bool merge(SIMbase* that,
+             const std::map<int,int>* old2new = nullptr, int poff = 0);
 
   //! \brief Allocates the system matrices of the FE problem to be solved.
   //! \param[in] mType The matrix format to use

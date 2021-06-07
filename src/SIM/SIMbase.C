@@ -301,7 +301,7 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
   int code, dofs, ierr = 0, iwar = 0;
   for (unsigned char dim = 0; nprop < myProps.size(); dim++)
     for (const Property& p : myProps)
-      if (abs(p.ldim) == dim || (dim == 2 && abs(p.ldim) > 3))
+      if (abs(p.ldim)%4 == dim)
       {
         nprop++;
         code = p.pindx;
@@ -421,7 +421,7 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
 }
 
 
-bool SIMbase::merge (SIMbase* that, const std::map<int,int>* old2new)
+bool SIMbase::merge (SIMbase* that, const std::map<int,int>* old2new, int poff)
 {
   if (this == that)
     return true;
@@ -432,6 +432,9 @@ bool SIMbase::merge (SIMbase* that, const std::map<int,int>* old2new)
               << (short int)that->mdFlag << std::endl;
     return false;
   }
+
+  for (ASMbase* pch : that->myModel)
+    pch->idx += poff;
 
   that->shiftGlobalNums(mySam->getNoNodes(),mySam->getNoElms());
   if (!mySam->merge(that->mySam,old2new))

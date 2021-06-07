@@ -89,14 +89,16 @@ bool SIMmultiCpl::parseConnection (const TiXmlElement* elem)
 bool SIMmultiCpl::preprocess (const std::vector<int>& ignored, bool fixDup)
 {
   // Preprocess the FE model of each sub-simulator
-  size_t nOffset = 0;
   std::vector<int> empty;
-  std::map<SIMinput*,int> nSubNodes;
+  int nOffset = 0, pOffset = 0;
+  std::map<SIMinput*,int> nSubNodes, nSubPatch;
   for (SIMoutput* sim : mySims)
     if (sim->preprocess(nOffset == 0 ? ignored : empty, fixDup))
     {
       nSubNodes[sim] = nOffset;
+      nSubPatch[sim] = pOffset;
       nOffset += sim->getNoNodes();
+      pOffset += sim->getNoPatches();
     }
     else
       return false;
@@ -146,7 +148,7 @@ bool SIMmultiCpl::preprocess (const std::vector<int>& ignored, bool fixDup)
 
   // Merge the equation systems into one monolithic system
   for (SIMoutput* sim : mySims)
-    if (!mySims.front()->merge(sim,&cplNodes))
+    if (!mySims.front()->merge(sim,&cplNodes,nSubPatch[sim]))
       return false;
 
   return true;
