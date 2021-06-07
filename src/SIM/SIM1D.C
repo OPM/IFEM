@@ -472,22 +472,19 @@ bool SIM1D::parse (char* keyWord, std::istream& is)
 }
 
 
-/*!
-  \brief Local-scope convenience function for error message generation.
-*/
-
-static bool constrError (const char* lab, int idx)
-{
-  std::cerr <<" *** SIM1D::addConstraint: Invalid "<< lab << idx << std::endl;
-  return false;
-}
-
-
 bool SIM1D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
                            int& ngnod, char)
 {
+  // Lambda function for error message generation
+  auto&& error = [](const char* message, int idx)
+  {
+    std::cerr <<" *** SIM1D::addConstraint: Invalid "
+              << message <<" ("<< idx <<")."<< std::endl;
+    return false;
+  };
+
   if (patch < 1 || patch > (int)myModel.size())
-    return constrError("patch index ",patch);
+    return error("patch index",patch);
 
   if (lndx < -10) lndx += 10; // no projection in 1D
 
@@ -500,22 +497,41 @@ bool SIM1D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
   std::cout << std::endl;
 #endif
 
+  // Must dynamic cast here, since ASM1D is not derived from ASMbase
   ASM1D* pch = dynamic_cast<ASM1D*>(myModel[patch-1]);
-  if (ldim != 0) // Curve constraint
-    myModel[patch-1]->constrainPatch(dirs,code);
-  else switch (lndx) // Vertex constraints
+  if (!pch) return error("1D patch",patch);
+
+  switch (ldim)
     {
-    case  1: pch->constrainNode(0.0,dirs,code); break;
-    case  2: pch->constrainNode(1.0,dirs,code); break;
-    case -1:
-      ngnod += pch->constrainEndLocal(0,dirs,code);
+    case 0: // Vertex constraints
+      switch (lndx)
+        {
+        case  1: pch->constrainNode(0.0,dirs,code); break;
+        case  2: pch->constrainNode(1.0,dirs,code); break;
+        case -1:
+          ngnod += pch->constrainEndLocal(0,dirs,code);
+          break;
+        case -2:
+          ngnod += pch->constrainEndLocal(1,dirs,code);
+          break;
+        default:
+          IFEM::cout << std::endl;
+          return error("vertex index",lndx);
+        }
       break;
-    case -2:
-      ngnod += pch->constrainEndLocal(1,dirs,code);
+
+    case 1: // Curve constraint
+      myModel[patch-1]->constrainPatch(dirs,code);
       break;
+
+    case 4: // Explicit nodal constraints
+      myModel[patch-1]->constrainNodes(myModel[patch-1]->getNodeSet(lndx),
+                                       dirs,code);
+      break;
+
     default:
       IFEM::cout << std::endl;
-      return constrError("vertex index ",lndx);
+      return error("local dimension switch",ldim);
     }
 
   return true;
