@@ -185,7 +185,7 @@ bool ASMs1DLag::updateCoords (const Vector& displ)
 static double getEndPoints (const Matrix& Xnod, Vec3Vec& XC)
 {
   XC.resize(2);
-  for (size_t i = 0; i < Xnod.cols(); i++)
+  for (size_t i = 0; i < Xnod.rows() && i < 3; i++)
   {
     XC[0][i] = Xnod(i+1,1);
     XC[1][i] = Xnod(i+1,Xnod.cols());
