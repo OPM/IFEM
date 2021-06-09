@@ -194,8 +194,8 @@ bool ASMu3Dmx::generateFEMTopology ()
       std::shared_ptr<Go::SplineVolume> otherBasis =
           ASMmxBase::establishBases(tensorspline, ASMmxBase::FULL_CONT_RAISE_BASIS1).front();
       if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
-        projBasis = m_basis[0];
         refBasis.reset(new LR::LRSplineVolume(otherBasis.get()));
+        projBasis = ASMmxBase::subgridH ? refBasis : m_basis.front();
         refBasis->generateIDs();
       } else {
         projBasis.reset(new LR::LRSplineVolume(otherBasis.get()));

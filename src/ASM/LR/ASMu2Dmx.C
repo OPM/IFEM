@@ -207,9 +207,9 @@ bool ASMu2Dmx::generateFEMTopology ()
         otherBasis = ASMmxBase::raiseBasis(tensorspline);
 
       if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
-        if (!projBasis)
-          projBasis = m_basis.front();
         refBasis.reset(new LR::LRSplineSurface(otherBasis));
+        if (!projBasis)
+          projBasis = ASMmxBase::subgridH ? refBasis : m_basis.front();
       }
       else {
         if (!projBasis)
@@ -1000,7 +1000,8 @@ bool ASMu2Dmx::refine (const LR::RefineData& prm, Vectors& sol)
     // Uniformly refine to find basis 1
     if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
       m_basis[0].reset(refBasis->copy());
-      projBasis = m_basis[0];
+      if (!ASMmxBase::subgridH)
+        projBasis = m_basis[0];
       size_t nFunc = refBasis->nBasisFunctions();
       IntVec elems(nFunc);
       std::iota(elems.begin(),elems.end(),0);
