@@ -363,6 +363,14 @@ std::string IntegrandBase::getField2Name (size_t idx, const char* prefix) const
 }
 
 
+bool IntegrandBase::inActive (int iel) const
+{
+  if (elmGrp.empty()) return false;
+
+  return std::find(elmGrp.begin(),elmGrp.end(),iel) == elmGrp.end();
+}
+
+
 NormBase::~NormBase ()
 {
   for (Fields* f : prjFld)
@@ -419,6 +427,8 @@ bool NormBase::initProjection (const std::vector<int>& MNPC,
 
 LocalIntegral* NormBase::getLocalIntegral (size_t, size_t iEl, bool) const
 {
+  if (myProblem.inActive(iEl)) return nullptr;
+
   if (lints && iEl > 0 && iEl <= lints->size()) return (*lints)[iEl-1];
 
   // Element norms are not requested, so allocate one internally instead,

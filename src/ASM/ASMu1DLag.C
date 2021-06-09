@@ -119,6 +119,44 @@ IntVec& ASMu1DLag::getNodeSet (const std::string& setName, int& idx)
 }
 
 
+int ASMu1DLag::getElementSetIdx (const std::string& setName) const
+{
+  int idx = 1;
+  for (const ASM::NodeSet& es : elemSets)
+    if (es.first == setName)
+      return idx;
+    else
+      ++idx;
+
+  return 0;
+}
+
+
+const IntVec& ASMu1DLag::getElementSet (int idx) const
+{
+  int count = 0;
+  for (const ASM::NodeSet& es : elemSets)
+    if (++count == idx)
+      return es.second;
+
+  return this->ASMbase::getElementSet(idx);
+}
+
+
+IntVec& ASMu1DLag::getElementSet (const std::string& setName, int& idx)
+{
+  idx = 1;
+  for (ASM::NodeSet& es : nodeSets)
+    if (es.first == setName)
+      return es.second;
+    else if (idx)
+      ++idx;
+
+  elemSets.push_back(std::make_pair(setName,IntVec()));
+  return elemSets.back().second;
+}
+
+
 void ASMu1DLag::getBoundaryNodes (int lIndex, IntVec& nodes,
                                   int, int, int, bool local) const
 {
@@ -126,6 +164,16 @@ void ASMu1DLag::getBoundaryNodes (int lIndex, IntVec& nodes,
   if (!local)
     for (int& node : nodes)
       node = this->getNodeID(node);
+}
+
+
+void ASMu1DLag::shiftGlobalElmNums (int eshift)
+{
+  this->ASMs1DLag::shiftGlobalElmNums(eshift);
+
+  for (ASM::NodeSet& es : elemSets)
+    for (int& iel : es.second)
+      iel += eshift;
 }
 
 

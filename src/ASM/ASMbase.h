@@ -254,6 +254,14 @@ public:
   virtual IntVec& getNodeSet(const std::string&, int&)
   { static IntVec v; return v; }
 
+  //! \brief Returns (1-based) index of a predefined element set in the patch.
+  virtual int getElementSetIdx(const std::string&) const { return 0; }
+  //! \brief Returns an indexed predefined element set.
+  virtual const IntVec& getElementSet(int) const { static IntVec v; return v; }
+  //! \brief Returns a named element set for update.
+  virtual IntVec& getElementSet(const std::string&, int&)
+  { static IntVec v; return v; }
+
   //! \brief Finds the node that is closest to the given point.
   virtual std::pair<size_t,double> findClosestNode(const Vec3&) const
   { return std::make_pair(0,-1.0); }
@@ -264,7 +272,7 @@ public:
   void printElements(std::ostream& os) const;
 
   //! \brief Increase all global node numbers by \a nshift.
-  void shiftGlobalNodeNums(int nshift);
+  virtual void shiftGlobalNodeNums(int nshift);
   //! \brief Sets the global node numbers for this patch.
   void setGlobalNodeNums(const IntVec& nodes) { myMLGN = nodes; }
   //! \brief Returns the actual global node numbers of this patch.
@@ -273,7 +281,7 @@ public:
   const IntVec& getGlobalNodeNums() const { return MLGN; }
 
   //! \brief Increase all global element numbers by \a eshift.
-  void shiftGlobalElmNums(int eshift) { for (int& e : myMLGE) e += eshift; }
+  virtual void shiftGlobalElmNums(int eshift);
   //! \brief Returns the global element numbers of this patch.
   const IntVec& getGlobalElementNums() const { return MLGE; }
 

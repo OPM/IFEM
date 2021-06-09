@@ -967,6 +967,10 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
           }
           else if (this->initMaterial(p->pindx))
           {
+            if (p->ldim == 5)
+              it->second->activateElmGroup(pch->getElementSet(p->lindx));
+            else
+              it->second->activateElmGroup();
             lp = p->patch;
             ok = assembleInterior(it->second,sysQ,pch,lp);
           }
@@ -983,6 +987,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
 
     // Assemble contributions from the Neumann boundary conditions
     // and other boundary integrals (Robin properties, contact, etc.)
+    it->second->activateElmGroup();
     if (it->second->hasBoundaryTerms() && myEqSys && myEqSys->getVector())
       for (p = myProps.begin(); p != myProps.end() && ok; ++p)
         if ((p->pcode == Property::NEUMANN && it->first == 0) ||
@@ -1002,9 +1007,10 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
 
           for (p2 = myProps.begin(); p2 != myProps.end() && ok; ++p2)
             if (p2->pcode == Property::MATERIAL && p->patch == p2->patch)
-              if (!(ok = this->initMaterial(p2->pindx)))
-                std::cerr <<" *** SIMbase::assembleSystem: Failed to initialize"
-                          <<" material for patch "<< p2->patch << std::endl;
+            {
+              ok = this->initMaterial(p2->pindx);
+              break;
+            }
 
           if (abs(p->ldim)+1 == pch->getNoParamDim())
           {
@@ -1609,6 +1615,10 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
         ok = false;
       else if (this->initMaterial(p->pindx))
       {
+        if (p->ldim == 5)
+          norm->activateElmGroup(pch->getElementSet(p->lindx));
+        else
+          norm->activateElmGroup();
         lp = p->patch;
         ok = assembleNorms(norm,globalNorm,pch,lp);
       }

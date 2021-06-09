@@ -251,6 +251,8 @@ bool SIMinput::parseGeometryTag (const TiXmlElement* elem)
           idim = 0;
         else if (type == "nodes")
           idim = 4;
+        else if (type == "elements")
+          idim = 5;
         else
           utl::getAttribute(set,"dimension",idim);
         if (idim > 0 && idim < 4 && utl::getAttribute(set,"closure",type,true))
@@ -277,6 +279,18 @@ bool SIMinput::parseGeometryTag (const TiXmlElement* elem)
                                      item->FirstChild()->Value());
                 else
                   setIndex = pch->getNodeSetIdx(name);
+                if (setIndex > 0)
+                  top.insert(TopItem(pid,setIndex,idim));
+              }
+              else if (idim == 5)
+              {
+                ASMbase* pch = myModel[pid-1];
+                int setIndex = 0;
+                if (item->FirstChild())
+                  utl::parseIntegers(pch->getElementSet(name,setIndex),
+                                     item->FirstChild()->Value());
+                else
+                  setIndex = pch->getElementSetIdx(name);
                 if (setIndex > 0)
                   top.insert(TopItem(pid,setIndex,idim));
               }

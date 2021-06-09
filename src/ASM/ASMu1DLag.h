@@ -48,12 +48,22 @@ public:
   //! \brief Checks if this patch is empty.
   virtual bool empty() const { return nel == 0; }
 
+  //! \brief Increase all global element numbers by \a eshift.
+  virtual void shiftGlobalElmNums(int eshift);
+
   //! \brief Returns (1-based) index of a predefined node set in the patch.
   virtual int getNodeSetIdx(const std::string& setName) const;
   //! \brief Returns an indexed pre-defined node set.
   virtual const IntVec& getNodeSet(int idx) const;
   //! \brief Returns a named node set for update.
   virtual IntVec& getNodeSet(const std::string& setName, int& idx);
+
+  //! \brief Returns (1-based) index of a predefined element set in the patch.
+  virtual int getElementSetIdx(const std::string& setName) const;
+  //! \brief Returns an indexed pre-defined element set.
+  virtual const IntVec& getElementSet(int idx) const;
+  //! \brief Returns a named element set for update.
+  virtual IntVec& getElementSet(const std::string& setName, int& idx);
 
   //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
   //! \param[in] lIndex Local index of the boundary node set

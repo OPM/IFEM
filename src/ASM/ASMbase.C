@@ -1281,6 +1281,13 @@ void ASMbase::shiftGlobalNodeNums (int nshift)
 }
 
 
+void ASMbase::shiftGlobalElmNums (int eshift)
+{
+  for (int& iel : myMLGE)
+    iel += eshift;
+}
+
+
 void ASMbase::extractElmRes (const Matrix& globRes, Matrix& elmRes) const
 {
   elmRes.resize(globRes.rows(),MLGE.size(),true);

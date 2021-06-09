@@ -149,6 +149,11 @@ public:
   //! \brief Returns whether this integrand has explicit boundary contributions.
   virtual bool hasBoundaryTerms() const { return true; }
 
+  //! \brief Assigns the group of active elements.
+  void activateElmGroup(const std::vector<int>& elms = {}) { elmGrp = elms; }
+  //! \brief Returns \e true, if the element \a iel is deactivated.
+  bool inActive(int iel) const;
+
 
   // Secondary solution field evaluation interface
   // =============================================
@@ -306,6 +311,7 @@ protected:
   unsigned short int nsd;     //!< Number of spatial dimensions (1, 2 or 3)
   unsigned short int npv;     //!< Number of primary solution variables per node
   SIM::SolutionMode  m_mode;  //!< Current solution mode
+  std::vector<int>   elmGrp;  //!< List of currently active elements
   Vectors            primsol; //!< Primary solution vectors for current patch
 };
 
@@ -362,6 +368,12 @@ public:
 
   //! \brief Returns whether this norm has explicit boundary contributions.
   virtual bool hasBoundaryTerms() const { return false; }
+
+  //! \brief Assigns the group of active elements.
+  void activateElmGroup(const std::vector<int>& elms = {})
+  {
+    myProblem.activateElmGroup(elms);
+  }
 
   //! \brief Adds external energy terms to relevant norms.
   //! \param gNorm Global norm quantities
