@@ -458,6 +458,9 @@ protected:
   TensorVec myCS;  //!< The actual element coordinate systems
   TensorVec myT;   //!< The actual nodal rotation tensors
   TensorVec prevT; //!< Nodal rotation tensors of last converged configuration
+
+private:
+  bool updatedT; //!< If \e true, nodal rotation matrices have been updated
 };
 
 #endif

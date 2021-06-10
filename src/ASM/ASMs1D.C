@@ -40,6 +40,7 @@ ASMs1D::ASMs1D (unsigned char n_s, unsigned char n_f)
   : ASMstruct(1,n_s,n_f), elmCS(myCS), nodalT(myT)
 {
   curv = proj = nullptr;
+  updatedT = false;
 }
 
 
@@ -48,6 +49,7 @@ ASMs1D::ASMs1D (const ASMs1D& patch, unsigned char n_f)
 {
   curv = patch.curv;
   proj = patch.proj;
+  updatedT = false;
 
   // Need to set nnod here,
   // as hasXNodes might be invoked before the FE data is generated
@@ -777,6 +779,7 @@ bool ASMs1D::updateRotations (const Vector& displ, bool reInit)
   for (size_t i = 0; i < myT.size(); i++)
     myT[i].preMult(Tensor(displ[6*i+3],displ[6*i+4],displ[6*i+5]));
 
+  updatedT = true;
   return true;
 }
 
@@ -1463,7 +1466,7 @@ bool ASMs1D::getSolution (Matrix& sField, const Vector& locSol,
 {
   if (!this->ASMbase::getSolution(sField,locSol,nodes))
     return false;
-  else if (nf < 6)
+  else if (nf < 6 || !updatedT)
     return true;
 
   // Extract the total angular rotations as components 4-6
