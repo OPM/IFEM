@@ -50,6 +50,12 @@ public:
   //! \param is The file stream to read from
   virtual bool parse(char* keyWord, std::istream& is);
 
+  //! \brief Merges the global equation system of \a that simulator with this.
+  //! \param that The simulator whose equation system is to be merged
+  //! \param[in] old2new Global node number mapping
+  //! \param[in] poff Global patch index offset
+  virtual bool merge(SIMbase* that, const std::map<int,int>* old2new, int poff);
+
 protected:
   //! \brief Parses a subelement of the \a resultoutput XML-tag.
   virtual bool parseOutputTag(const TiXmlElement* elem);
@@ -297,7 +303,7 @@ public:
   virtual bool writeAddFuncs(int iStep, int& nBlock, int idBlock, double time);
 
 protected:
-  //! \brief Add an additional function for VTF output.
+  //! \brief Adds an additional function for VTF output.
   void addAddFunc(const std::string& name, RealFunc* f);
 
 private:

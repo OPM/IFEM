@@ -118,7 +118,11 @@ bool SIMoutput::parseOutputTag (const TiXmlElement* elem)
     ResultPoint thePoint;
     if (utl::getAttribute(point,"patch",patch) && patch > 0)
       thePoint.patch = patch;
-    IFEM::cout <<"\tPoint "<< i <<": P"<< thePoint.patch <<" xi =";
+    IFEM::cout <<"\tPoint "<< i <<": P"<< thePoint.patch;
+    if (utl::getAttribute(point,"node",thePoint.inod) && thePoint.inod > 0)
+      IFEM::cout <<" node = "<< thePoint.inod;
+    else
+      IFEM::cout <<" xi =";
     if (utl::getAttribute(point,"u",thePoint.u[0]))
       IFEM::cout <<' '<< thePoint.u[0];
     if (utl::getAttribute(point,"v",thePoint.u[1]))
@@ -238,6 +242,11 @@ void SIMoutput::preprocessResPtGroup (std::string& ptFile, ResPointVec& points)
     ASMbase* pch = this->getPatch(p->patch,true);
     if (!pch || pch->empty())
       p = points.erase(p);
+    else if (p->inod > 0)
+    {
+      p->X = pch->getCoord(p->inod);
+      (p++)->npar = pch->getNoParamDim();
+    }
     else if ((p->inod = pch->evalPoint(p->u,p->u,p->X)) < 0)
       p = points.erase(p);
     else
@@ -290,6 +299,30 @@ void SIMoutput::preprocessResPtGroup (std::string& ptFile, ResPointVec& points)
   }
 
   ptFile.erase(icoord,6); // Erase "_coord" from the file name
+}
+
+
+bool SIMoutput::merge (SIMbase* that, const std::map<int,int>* old2new, int poff)
+{
+  if (!this->SIMbase::merge(that,old2new,poff))
+    return false;
+  else if (poff < 1)
+    return true;
+
+  int iPoint = 0;
+  for (ResPtPair& rptp : static_cast<SIMoutput*>(that)->myPoints)
+    for (ResultPoint& rp : rptp.second)
+    {
+      if (++iPoint == 1) IFEM::cout <<'\n';
+      ASMbase* pch = that->getPatch(rp.patch,true);
+      if (pch && rp.inod > 0)
+        IFEM::cout <<"Result point #"<< iPoint <<": patch #"<< rp.patch
+                   <<",  local node "<< rp.inod
+                   <<"  global node "<< pch->getNodeID(rp.inod) << std::endl;
+      rp.patch += poff;
+    }
+
+  return true;
 }
 
 
