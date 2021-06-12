@@ -96,6 +96,10 @@ public:
 
   //! \brief Interface for static condensation of the linear equation system.
   virtual bool staticCondensation(Matrix&, Vector&) { return false; }
+  //! \brief Interface for returning the superelement file name, if any.
+  virtual std::string getSupelName() const { return ""; }
+  //! \brief Interface for dumping supernode coordinates to file.
+  virtual void dumpSupernodes(std::ostream&) const {}
 
 protected:
   //! \brief Reverts the square-root operation on some norm quantities.

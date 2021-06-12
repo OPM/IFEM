@@ -86,9 +86,11 @@ public:
   //! \param[out] bred Associated reduced right-hand-side vector
   //! \param[in] extNodes List of external nodes whose DOFs to retain
   //! \param[in] imat Index of the system matrix-vector pair to condensate
+  //! \param[in] recmatFile Name of recovery matrix file
   bool staticCondensation(Matrix& Ared, Vector& bred,
                           const std::vector<int>& extNodes,
-                          size_t imat = 0) const;
+                          size_t imat = 0,
+                          const char* recmatFile = nullptr) const;
 
 private:
   //! \brief Struct defining a coefficient matrix and an associated RHS-vector.
