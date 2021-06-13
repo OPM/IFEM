@@ -17,6 +17,7 @@
 #include "SIMinput.h"
 #include "Vec3.h"
 
+class ElementBlock;
 class VTF;
 
 typedef std::pair<Vec3,double>  PointValue;  //!< Convenience type
@@ -59,6 +60,9 @@ public:
 protected:
   //! \brief Parses a subelement of the \a resultoutput XML-tag.
   virtual bool parseOutputTag(const TiXmlElement* elem);
+
+  //! \brief Tesselates the specified patch.
+  virtual ElementBlock* tesselatePatch(size_t pidx) const;
 
 public:
   //! \brief Writes current model geometry to the VTF-file.
@@ -129,9 +133,10 @@ public:
   //! \param[in] idBlock Starting value of result block numbering
   //! \param[in] psolComps Optional number of primary solution components
   //! \param[in] scalarOnly If \e true, write vector as scalar components only
-  int writeGlvS1(const Vector& psol, int iStep, int& nBlock, double time = 0.0,
-                 const char* pvecName = nullptr, int idBlock = 10,
-                 int psolComps = 0, bool scalarOnly = false);
+  virtual int writeGlvS1(const Vector& psol, int iStep, int& nBlock,
+                         double time = 0.0, const char* pvecName = nullptr,
+                         int idBlock = 10, int psolComps = 0,
+                         bool scalarOnly = false);
 
   //! \brief Writes secondary solution for a load/time step to the VTF-file.
   //! \param[in] psol Primary solution vector
@@ -140,8 +145,9 @@ public:
   //! \param[in] time Load/time step parameter
   //! \param[in] idBlock Starting value of result block numbering
   //! \param[in] psolComps Optional number of primary solution components
-  bool writeGlvS2(const Vector& psol, int iStep, int& nBlock, double time = 0.0,
-                  int idBlock = 20, int psolComps = 0);
+  virtual bool writeGlvS2(const Vector& psol, int iStep, int& nBlock,
+                          double time = 0.0, int idBlock = 20,
+                          int psolComps = 0);
 
   //! \brief Evaluates the secondary solution for a given load/time step.
   //! \param[in] psol Primary solution vector
@@ -225,6 +231,8 @@ public:
   //! \brief Defines the VTF-file for subsequent results output.
   void setVTF(VTF* vtf) { myVtf = vtf; }
 
+  //! \brief Returns the initial geometry block index.
+  int getStartGeo() const { return myGeomID; }
   //! \brief Initializes the geometry block counter.
   void setStartGeo(int gID) { myGeomID = gID; }
 

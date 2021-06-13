@@ -326,6 +326,21 @@ bool SIMoutput::merge (SIMbase* that, const std::map<int,int>* old2new, int poff
 }
 
 
+ElementBlock* SIMoutput::tesselatePatch (size_t pidx) const
+{
+  if (pidx >= myModel.size())
+    return nullptr;
+
+  size_t nd = myModel[pidx]->getNoParamDim();
+  ElementBlock* lvb = new ElementBlock(nd == 3 ? 8 : (nd == 2 ? 4 : 2));
+  if (myModel[pidx]->tesselate(*lvb,opt.nViz))
+    return lvb;
+
+  delete lvb;
+  return nullptr;
+}
+
+
 bool SIMoutput::writeGlvG (int& nBlock, const char* inpFile, bool doClear)
 {
   if (adm.dd.isPartitioned() && adm.getProcId() != 0)
@@ -365,18 +380,19 @@ bool SIMoutput::writeGlvG (int& nBlock, const char* inpFile, bool doClear)
   char pname[32];
 
   // Convert and write model geometry
+  size_t pidx = 0;
   for (const ASMbase* pch : myModel)
   {
+    ++pidx;
     if (pch->empty())
       continue; // skip empty patches
 
+    if (!(lvb = this->tesselatePatch(pidx-1)))
+      return false;
+
     if (msgLevel > 1)
       IFEM::cout <<"Writing geometry for patch "
-                 << pch->idx+1 << std::endl;
-    size_t nd = pch->getNoParamDim();
-    lvb = new ElementBlock(nd == 3 ? 8 : (nd == 2 ? 4 : 2));
-    if (!pch->tesselate(*lvb,opt.nViz))
-      return false;
+                 << pch->idx+1 <<" ("<< lvb->getNoNodes() <<")"<< std::endl;
 
     sprintf(pname,"Patch %zu",pch->idx+1);
     if (!myVtf->writeGrid(lvb,pname,++nBlock))
