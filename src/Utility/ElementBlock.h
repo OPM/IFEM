@@ -15,8 +15,8 @@
 #define _ELEMENT_BLOCK_H
 
 #include "Point.h"
+#include "MatVec.h"
 #include <array>
-#include <vector>
 
 
 /*!
@@ -77,9 +77,13 @@ public:
   void setNoElmNodes(size_t nenod) { nen = nenod; }
 
   //! \brief Merges another element block into this one.
-  void merge(const ElementBlock* other, std::vector<int>& nodeNums);
+  void merge(const ElementBlock* other,
+             std::vector<int>& nodeNums, bool uniqNodes = true);
   //! \brief Merges another element block into this one.
-  void merge(const ElementBlock& other);
+  void merge(const ElementBlock& other, bool uniqNodes = true);
+
+  //! \brief Applies a transformation matrix from local to global system.
+  void transform(const Matrix& Tlg);
 
   //! \brief Returns the beginning of the coordinate array.
   std::vector<Vec3>::const_iterator begin_XYZ() const { return coord.begin(); }

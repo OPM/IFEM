@@ -129,14 +129,15 @@ size_t ElementBlock::addLine (size_t i1, const Vec3& X2)
 }
 
 
-void ElementBlock::merge (const ElementBlock* other, std::vector<int>& nodeNums)
+void ElementBlock::merge (const ElementBlock* other,
+                          std::vector<int>& nodeNums, bool uniqNodes)
 {
   nodeNums.clear();
   nodeNums.reserve(other->coord.size());
 
   std::vector<Vec3>::const_iterator cit;
   for (const Vec3& X : other->coord)
-    if ((cit = find(coord.begin(),coord.end(),X)) == coord.end())
+    if (!uniqNodes || (cit = find(coord.begin(),coord.end(),X)) == coord.end())
     {
       nodeNums.push_back(coord.size());
       coord.push_back(X);
@@ -151,10 +152,18 @@ void ElementBlock::merge (const ElementBlock* other, std::vector<int>& nodeNums)
 }
 
 
-void ElementBlock::merge (const ElementBlock& other)
+void ElementBlock::merge (const ElementBlock& other, bool uniqNodes)
 {
   std::vector<int> nodes;
-  this->merge(&other,nodes);
+  this->merge(&other,nodes,uniqNodes);
+}
+
+
+void ElementBlock::transform (const Matrix& Tlg)
+{
+  if (!Tlg.empty())
+    for (Vec3& X : coord)
+      X = Tlg * X;
 }
 
 
