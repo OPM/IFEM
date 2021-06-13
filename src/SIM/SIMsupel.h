@@ -21,7 +21,8 @@
 /*!
   \brief Solution driver for general superelement FEM analysis.
   \details This class contains methods for setting up a FE analysis
-  of a model consisting of superelements resulting from reduced order modeling.
+  of a model consisting of superelements resulting from static condensation
+  or reduced order modeling.
 */
 
 class SIMsupel : public SIMdummy<SIMgeneric>
@@ -56,6 +57,21 @@ protected:
 
 private:
   unsigned char ncmp; //!< Number of primary solution components per node
+
+protected:
+  //! \brief Struct with superelement data.
+  struct SuperElm
+  {
+    std::string id;  //!< Superelement id
+    Matrix      MVP; //!< Local-to-global transformation matrix
+    SIMgeneric* sim; //!< Pointer to underlying FE model of superelement|
+    Vector      sol; //!< Recovered primary solution on underlying FE model
+
+    //! \brief Default constructor.
+    SuperElm() : sim(nullptr) {}
+  };
+
+  std::vector<SuperElm> mySups; //!< Superelement data container
 };
 
 #endif

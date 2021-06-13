@@ -48,27 +48,27 @@ bool SIMsupel::parse (const TiXmlElement* elem)
     return this->SIMgeneric::parse(elem);
 
   bool result = true;
-  size_t ifst = myModel.size();
-  Matrix MVP;
-  std::string supId, supNodeSet;
-  utl::getAttribute(elem,"id",supId);
+  size_t last = myModel.size();
+  SuperElm sup;
+  std::string supNodeSet;
+  utl::getAttribute(elem,"id",sup.id);
   utl::getAttribute(elem,"nodeset",supNodeSet);
   const TiXmlElement* child = elem->FirstChildElement();
   for (; child; child = child->NextSiblingElement())
     if (!strcasecmp(child->Value(),"mvp") && child->FirstChild())
     {
-      MVP.resize(3,4);
+      sup.MVP.resize(3,4);
       std::stringstream value(child->FirstChild()->Value());
-      for (double& v : MVP) value >> v;
+      for (double& v : sup.MVP) value >> v;
       if (!value)
       {
         std::cerr <<" *** SIMsupel::parse: Failed to read transformation matrix"
-                  <<" for superelement \""<< supId <<"\""<< std::endl;
+                  <<" for superelement \""<< sup.id <<"\"."<< std::endl;
         result = false;
       }
       IFEM::cout <<"  Parsing <"<< child->Value() <<">";
 #ifdef SP_DEBUG
-      IFEM::cout << MVP;
+      IFEM::cout << sup.MVP;
 #else
       IFEM::cout << std::endl;
 #endif
@@ -76,15 +76,32 @@ bool SIMsupel::parse (const TiXmlElement* elem)
     else
       result &= this->SIMgeneric::parse(child);
 
+  if (myModel.size() == last)
+  {
+    std::cerr <<" *** SIMsupel::parse: Missing superelement data for \""
+              << sup.id <<"\",\""<< supNodeSet <<"\"."<< std::endl;
+    result = false;
+  }
+  else if (myModel.size() > last+1)
+  {
+    std::cerr <<" *** SIMsupel::parse: Multiple ("<< myModel.size()-last
+              <<") superelement data blocks detected for \""
+              << sup.id <<"\",\""<< supNodeSet <<"\"."<< std::endl;
+    result = false;
+  }
+
   // Apply the superelement transformation and assign supernode set name
-  for (size_t i = ifst; i < myModel.size() && result; i++)
-    if ((result = myModel[i]->transform(MVP)) && !supNodeSet.empty())
+  if (result && !sup.MVP.empty())
+    if ((result = myModel.back()->transform(sup.MVP)) && !supNodeSet.empty())
     {
       int topIdx = 0;
-      myModel[i]->getNodeSet(supNodeSet,topIdx);
+      myModel.back()->getNodeSet(supNodeSet,topIdx);
       if (topIdx > 0)
-        myEntitys[supNodeSet].insert(TopItem(1+i,topIdx,4));
+        myEntitys[supNodeSet].insert(TopItem(myModel.size(),topIdx,4));
     }
+
+  if (result)
+    mySups.push_back(sup);
 
   return result;
 }
