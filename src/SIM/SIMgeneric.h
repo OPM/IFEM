@@ -96,6 +96,8 @@ public:
 
   //! \brief Interface for static condensation of the linear equation system.
   virtual bool staticCondensation(Matrix&, Vector&) { return false; }
+  //! \brief Interface for recovery of internal DOFs from static condensation.
+  virtual bool recoverInternals(const Vector&, Vector&) { return false; }
   //! \brief Interface for returning the superelement file name, if any.
   virtual std::string getSupelName() const { return ""; }
   //! \brief Interface for dumping supernode coordinates to file.

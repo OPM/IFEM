@@ -92,6 +92,19 @@ public:
                           size_t imat = 0,
                           const char* recmatFile = nullptr) const;
 
+  //! \brief Reads the recovery matrix from file.
+  //! \param[out] Rmat The recovery matrix, xi = Rmat*xe
+  //! \param[in] recmatFile Name of recovery matrix file
+  static bool readRecoveryMatrix(Matrix& Rmat, const char* recmatFile);
+  //! \brief Performs recovery of internal DOF values from the external DOFs
+  //! \param[in] Rmat Recovery matrix
+  //! \param[in] extNodes List of external nodes whose DOFs were retained
+  //! \param[in] xe External DOF values
+  //! \param[out] xFull Expanded solution vector with all DOFs
+  bool recoverInternals(const Matrix& Rmat,
+                        const std::vector<int>& extNodes,
+                        const Vector& xe, Vector& xFull) const;
+
 private:
   //! \brief Struct defining a coefficient matrix and an associated RHS-vector.
   struct SysMatrixPair

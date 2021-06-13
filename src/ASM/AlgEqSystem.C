@@ -16,6 +16,8 @@
 #include "ElmMats.h"
 #include "SAM.h"
 #include "IFEM.h"
+#include <cstdio>
+#include <cstdlib>
 #ifdef USE_OPENMP
 #include <omp.h>
 #endif
@@ -398,4 +400,96 @@ bool AlgEqSystem::staticCondensation (Matrix& Ared, Vector& bred,
 
   if (fd) fclose(fd);
   return true;
+}
+
+
+bool AlgEqSystem::readRecoveryMatrix (Matrix& Rmat, const char* recmatFile)
+{
+  FILE* fd = fopen(recmatFile,"rb");
+  if (!fd)
+  {
+    std::cerr <<" *** AlgEqSystem::readRecoveryMatrix: Failed to open \""
+              << recmatFile <<"\"."<< std::endl;
+    return false;
+  }
+
+  bool ok = true;
+  size_t len = 0, n1, n2;
+  char* header = nullptr;
+  if (getline(&header,&len,fd) < 0 || !header)
+  {
+    ok = false;
+    std::cerr <<" *** AlgEqSystem::readRecoveryMatrix: Failed to read from \""
+              << recmatFile <<"\""<< std::endl;
+  }
+  else if (strstr(header,"#IFEM recovery matrix:") &&
+           sscanf(header+22,"%zu%zu",&n1,&n2) == 2)
+  {
+#ifdef SP_DEBUG
+    std::cout <<"\nReading recovery matrix: "<< n1 <<"x"<< n2 << std::endl;
+#endif
+    Rmat.resize(n1,n2);
+    for (size_t c = 0; c < n2 && ok; c++)
+      if ((len = fread(Rmat.ptr(c),sizeof(double),n1,fd)) < n1)
+      {
+        std::cerr <<" *** AlgEqSystem::readRecoveryMatrix: Failure reading "
+                  <<" column #"<< c+1 <<" "<< len <<" < "<< n1 << std::endl;
+        ok = false;
+      }
+  }
+  else
+  {
+    ok = false;
+    std::cerr <<" *** AlgEqSystem::readRecoveryMatrix: Invalid recovery file \""
+              << recmatFile <<"\""<< std::endl;
+  }
+
+  free(header);
+  fclose(fd);
+  return ok;
+}
+
+
+bool AlgEqSystem::recoverInternals (const Matrix& Rmat, const IntVec& extNodes,
+                                    const Vector& xe, Vector& xFull) const
+{
+  Vector x1, x2(xe);
+  x2.insert(x2.begin(),1,1.0); // Assume first column of Rmat is load vector
+  if (!Rmat.multiply(x2,x1))
+    return false;
+
+  // Find the equation numbers of the retained DOFs
+  IntVec mnen, meqn2;
+  for (int inod : extNodes)
+    if (sam.getNodeEqns(mnen,inod))
+      meqn2.insert(meqn2.end(),mnen.begin(),mnen.end());
+    else
+      return false;
+
+  std::sort(meqn2.begin(),meqn2.end());
+  int neq0 = sam.getNoEquations();
+  size_t neq2 = meqn2.size();
+  size_t neq1 = neq0 - neq2;
+  if (neq1 != x1.size() || neq2 != xe.size())
+  {
+    std::cerr <<" *** AlgEqSystem::recoverInternals: Vector length error, neq1="
+              << neq1 <<", size(x1)="<< x1.size() <<", neq2="<< neq2
+              <<", size(x2)="<< xe.size() << std::endl;
+    return false;
+  }
+
+  // Construct the full vector
+  Vector x(neq0);
+  int ieq, ip2, ieq1 = 0, ieq2 = 0;
+  for (ieq = ip2 = 0; ieq < neq0; ieq++)
+    if (ieq+1 < meqn2[ip2])
+      x[ieq] = x1(++ieq1);
+    else
+    {
+      x[ieq] = xe(++ieq2);
+      ++ip2;
+    }
+
+  // Expand to DOF-order
+  return sam.expandVector(x,xFull);
 }
