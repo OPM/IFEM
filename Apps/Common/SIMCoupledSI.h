@@ -14,8 +14,10 @@
 #ifndef SIM_COUPLED_SI_H_
 #define SIM_COUPLED_SI_H_
 
+#include "MatVec.h"
 #include "SIMCoupled.h"
 #include "SIMenums.h"
+#include "TimeStep.h"
 
 
 /*!
@@ -27,7 +29,11 @@ class SIMCoupledSI : public SIMCoupled<T1,T2>
 {
 public:
   //! \brief The constructor forwards to the parent class constructor.
-  SIMCoupledSI(T1& s1, T2& s2) : SIMCoupled<T1,T2>(s1,s2), maxIter(-1) {}
+  SIMCoupledSI(T1& s1, T2& s2) : SIMCoupled<T1,T2>(s1,s2), maxIter(-1)
+  {
+    omega = omega0 = 0.0;
+  }
+
   //! \brief Empty destructor.
   virtual ~SIMCoupledSI() {}
 
@@ -36,6 +42,23 @@ public:
   {
     maxIter = enable ? std::min(this->S1.getMaxit(),this->S2.getMaxit()) : 0;
   }
+
+  //! \brief Returns residual to use for aitken acceleration.
+  virtual const Vector& getAitkenResidual() const
+  {
+    static Vector empty;
+    return empty;
+  }
+
+  //! \brief Returns solution to use for relaxation.
+  virtual const Vector& getRelaxationVector() const
+  {
+    static Vector empty;
+    return empty;
+  }
+
+  //! \brief Set the relaxed solution.
+  virtual void setRelaxedSolution(const Vector&) {}
 
   //! \brief Computes the solution for the current time step.
   virtual bool solveStep(TimeStep& tp, bool firstS1 = true)
@@ -62,6 +85,29 @@ public:
 
       if ((conv = this->checkConvergence(tp,status1,status2)) <= SIM::DIVERGED)
         return false;
+
+      // Calculate aitken acceleration factor
+      if (aitken && omega0 != 0.0) {
+        if (tp.iter > 0) {
+            Vector r1 = this->getAitkenResidual();
+            r1 -= prevRes;
+            omega *= -prevRes.dot(r1) / r1.dot(r1);
+        }
+        prevRes = this->getAitkenResidual();
+      }
+
+      // Perform relaxation
+      if (omega0 != 0.0) {
+        if (tp.iter > 0) {
+          IFEM::cout << "  relaxing field update, omega=" << omega << std::endl;
+          prevSol *= 1.0 - omega;
+          prevSol.add(this->getRelaxationVector(), omega);
+          this->setRelaxedSolution(prevSol);
+        } else {
+          omega = omega0;
+          prevSol = this->getRelaxationVector();
+        }
+      }
     }
 
     this->S1.postSolve(tp);
@@ -90,6 +136,11 @@ public:
 
 protected:
   int maxIter; //!< Maximum number of iterations
+  double omega; //!< Relaxation parameter
+  double omega0; //!< Initial relaxation parameter
+  bool aitken; //!< True to enable aitken-acceleration
+  Vector prevSol; //!< Previous solution for relaxed field
+  Vector prevRes; //!< Previous residual used for aitken-acceleration factor
 };
 
 #endif
