@@ -63,6 +63,23 @@ TEST(TestMatrix, AddRows)
 }
 
 
+TEST(TestMatrix, Augment)
+{
+  utl::matrix<int> a(3,5), b(3,4), c(2,3);
+  std::iota(a.begin(),a.end(),1);
+  std::iota(b.begin(),b.end(),16);
+  std::cout <<"A:"<< a;
+  std::cout <<"B:"<< b;
+  ASSERT_TRUE(a.augmentCols(b));
+  ASSERT_FALSE(a.augmentCols(c));
+  std::cout <<"C:"<< a;
+  int fasit = 1;
+  for (size_t j = 1; j <= a.cols(); j++)
+    for (size_t i = 1; i <= a.rows(); i++, fasit++)
+      EXPECT_EQ(a(i,j), fasit);
+}
+
+
 TEST(TestMatrix, Multiply)
 {
   utl::vector<double> u(14), v(9), x, y;

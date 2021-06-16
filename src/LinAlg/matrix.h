@@ -435,6 +435,17 @@ namespace utl //! General utility classes and functions.
       return *this;
     }
 
+    //! \brief Increase the number of columns by augmenting the given matrix.
+    bool augmentCols(const matrix<T>& B)
+    {
+      if (B.nrow != nrow)
+	return false;
+
+      this->elem.insert(this->elem.end(),B.elem.begin(),B.elem.end());
+      ncol += B.ncol;
+      return true;
+    }
+
     //! \brief Query number of matrix rows.
     size_t rows() const { return nrow; }
     //! \brief Query number of matrix columns.
