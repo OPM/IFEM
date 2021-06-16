@@ -809,8 +809,8 @@ private:
   size_t nDofS;  //!< Number of degrees of freedom in this sub-simulator
   char   mdFlag; //!< Sequence flag for multi-dimensional simulators
 
-  //! Additional MADOF arrays for mixed problems (extraordinary DOF counts)
-  std::map<int, std::vector<int> > mixedMADOFs;
+  //! Additional MADOF arrays with varying DOF counts per node
+  mutable std::map<int,std::vector<int>> extraMADOFs;
 
   mutable double extEnergy;  //!< Path integral of external forces
   mutable Vector prevForces; //!< Reaction forces of previous time step

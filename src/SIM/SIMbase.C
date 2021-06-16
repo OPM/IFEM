@@ -131,8 +131,8 @@ void SIMbase::clearProperties ()
   myTracs.clear();
   myProps.clear();
   myInts.clear();
-  mixedMADOFs.clear();
   extrFunc.clear();
+  extraMADOFs.clear();
   adm.dd.setElms({},"");
 }
 
@@ -1047,6 +1047,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
         }
 
     if (ok) ok = this->assembleDiscreteTerms(it->second,time);
+    if (ok && msgLevel > 1) IFEM::cout <<"\nDone."<< std::endl;
     if (ok && &sysQ != myEqSys && isAssembling && mdFlag%2 == 0)
       ok = sysQ.finalize(newLHSmatrix);
   }
@@ -2164,15 +2165,46 @@ size_t SIMbase::extractPatchSolution (const Vector& sol, Vector& vec,
 {
   if (!pch || sol.empty()) return 0;
 
-  if (basis && nndof != pch->getNoFields(basis) && pch->getNoFields(2) > 0)
+  unsigned char ncmp = pch->getNoFields(basis);
+  if (basis && nndof > 0 && nndof != ncmp && pch->getNoFields(2) > 0)
   {
-    // Need an additional MADOF
+    // Mixed problem, and the incoming global vector field has more (or less)
+    // components per node than used on this basis for the primary solution.
+    // ==> Need to use a separate MADOF array (pre-computed) on this basis.
     const IntVec& madof = this->getMADOF(basis,nndof);
     pch->extractNodalVec(sol,vec,madof.data(),madof.size());
   }
   else if (mySam && (mySam->getNoNodes('X') > 0 || this->getMDflag() > 0))
+  {
+    // This is a model with extraordinary nodes,
+    // and/or with monolithic coupled simulators
+    const int* madof = mySam->getMADOF();
+    if (nndof > 0 && nndof != ncmp)
+    {
+      // Construct a separate MADOF array with nndof DOFs per node
+      IntVec& MADOF = extraMADOFs[-nndof];
+      if (MADOF.empty())
+      {
+        MADOF.resize(mySam->getNoNodes()+1,0);
+        for (const ASMbase* pch : myModel)
+          for (size_t inod = 1; inod <= pch->getNoNodes(); inod++)
+          {
+            int node = pch->getNodeID(inod);
+            if (node > 0 && pch->getNodeType(inod) == 'D')
+              MADOF[node] = nndof;
+          }
+
+        MADOF[0] = 1;
+        for (size_t n = 1; n < MADOF.size(); n++)
+          MADOF[n] += MADOF[n-1];
+
+      }
+      madof = MADOF.data();
+    }
+
     // Excluding the extraordinary DOFs
-    pch->extractNodalVec(sol,vec,mySam->getMADOF(),-2);
+    pch->extractNodalVec(sol,vec,madof,-2);
+  }
   else
     pch->extractNodeVec(sol,vec,nndof,basis);
 
@@ -2238,10 +2270,10 @@ bool SIMbase::setPatchMaterial (size_t patch) const
 bool SIMbase::addMADOF (unsigned char basis, unsigned char nndof, bool other)
 {
   int key = basis << 16 + nndof;
-  if (mixedMADOFs.find(key) != mixedMADOFs.end())
+  if (extraMADOFs.find(key) != extraMADOFs.end())
     return false; // This MADOF already calculated
 
-  IntVec& madof = mixedMADOFs[key];
+  IntVec& madof = extraMADOFs[key];
   madof.resize(this->getNoNodes()+1,0);
   if (madof.size() < 2) return false;
 
@@ -2282,8 +2314,8 @@ const IntVec& SIMbase::getMADOF (unsigned char basis,
                                  unsigned char nndof) const
 {
   int key = basis << 16 + nndof;
-  auto it = mixedMADOFs.find(key);
-  if (it != mixedMADOFs.end())
+  auto it = extraMADOFs.find(key);
+  if (it != extraMADOFs.end())
     return it->second;
 
   static IntVec empty;
