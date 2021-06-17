@@ -14,6 +14,7 @@
 #ifndef SIM_COUPLED_SI_H_
 #define SIM_COUPLED_SI_H_
 
+#include "IFEM.h"
 #include "MatVec.h"
 #include "SIMCoupled.h"
 #include "SIMenums.h"
@@ -29,8 +30,11 @@ class SIMCoupledSI : public SIMCoupled<T1,T2>
 {
 public:
   //! \brief The constructor forwards to the parent class constructor.
-  SIMCoupledSI(T1& s1, T2& s2) : SIMCoupled<T1,T2>(s1,s2), maxIter(-1)
+  SIMCoupledSI(T1& s1, T2& s2) : SIMCoupled<T1,T2>(s1,s2)
   {
+    maxIter = -1;
+    maxIter0 = 50;
+    aitken = false;
     omega = omega0 = 0.0;
   }
 
@@ -40,7 +44,7 @@ public:
   //! \brief Enable/disable the staggering iteration cycles.
   virtual void enableStaggering(bool enable = true)
   {
-    maxIter = enable ? std::min(this->S1.getMaxit(),this->S2.getMaxit()) : 0;
+    maxIter = enable ? maxIter0 : 0;
   }
 
   //! \brief Returns residual to use for aitken acceleration.
@@ -63,15 +67,15 @@ public:
   //! \brief Computes the solution for the current time step.
   virtual bool solveStep(TimeStep& tp, bool firstS1 = true)
   {
-    if (maxIter < 0)
-      maxIter = std::min(this->S1.getMaxit(),this->S2.getMaxit());
-
     if (tp.multiSteps())
       this->S1.getProcessAdm().cout <<"\n  step="<< tp.step
                                     <<"  time="<< tp.time.t << std::endl;
 
+    if (maxIter == -1)
+      maxIter = maxIter0;
+
     SIM::ConvStatus conv = SIM::OK;
-    for (tp.iter = 0; tp.iter <= maxIter && conv != SIM::CONVERGED; tp.iter++)
+    for (tp.iter = 0; tp.iter <= this->getMaxit(tp.step) && conv != SIM::CONVERGED; tp.iter++)
     {
       SIM::ConvStatus status1 = SIM::OK, status2 = SIM::OK;
       if (firstS1 && (status1 = this->S1.solveIteration(tp)) <= SIM::DIVERGED)
@@ -92,6 +96,10 @@ public:
             Vector r1 = this->getAitkenResidual();
             r1 -= prevRes;
             omega *= -prevRes.dot(r1) / r1.dot(r1);
+            if (fabs(omega) < 1e-6) {
+              std::cerr << "\n** relaxation weight too small, resetting to default";
+              omega = omega0;
+            }
         }
         prevRes = this->getAitkenResidual();
       }
@@ -99,7 +107,7 @@ public:
       // Perform relaxation
       if (omega0 != 0.0) {
         if (tp.iter > 0) {
-          IFEM::cout << "  relaxing field update, omega=" << omega << std::endl;
+          IFEM::cout << ", omega=" << omega;
           prevSol *= 1.0 - omega;
           prevSol.add(this->getRelaxationVector(), omega);
           this->setRelaxedSolution(prevSol);
@@ -108,6 +116,7 @@ public:
           prevSol = this->getRelaxationVector();
         }
       }
+      IFEM::cout << std::endl;
     }
 
     this->S1.postSolve(tp);
@@ -135,7 +144,21 @@ public:
   }
 
 protected:
+  //! \brief Returns the maximum number of iterations.
+  int getMaxit(int iStep = 0) const
+  {
+    if (maxSubItFunc) {
+      Vec4 X;
+      X.t = iStep;
+      return static_cast<int>((*maxSubItFunc)(X));
+    }
+
+    return maxIter;
+  }
+
+  int maxIter0; //!< Initial maximum number of iterations
   int maxIter; //!< Maximum number of iterations
+  std::unique_ptr<RealFunc> maxSubItFunc; //!< Maximum number of sub-iterations as a function
   double omega; //!< Relaxation parameter
   double omega0; //!< Initial relaxation parameter
   bool aitken; //!< True to enable aitken-acceleration
