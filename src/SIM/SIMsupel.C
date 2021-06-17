@@ -36,7 +36,6 @@ public:
 
 SIMsupel::SIMsupel (const char* hd, unsigned char nf) : ncmp(nf)
 {
-  opt.pSolOnly = true;
   myProblem = new NoProblem(nf);
   if (hd) myHeading = hd;
 }
