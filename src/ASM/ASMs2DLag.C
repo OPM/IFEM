@@ -773,3 +773,21 @@ bool ASMs2DLag::write(std::ostream& os, int) const
 {
   return this->writeLagBasis(os, "quad");
 }
+
+
+int ASMs2DLag::findElement(double u, double v,
+                           double* xi, double* eta) const
+{
+  double du = 1.0 / (nx-1);
+  double dv = 1.0 / (ny-1);
+
+  int elmx = std::min(nx-2.0, floor(u / du));
+  int elmy = std::min(ny-2.0, floor(v / dv));
+
+  if (xi)
+    *xi   = -1.0 + (u - elmx*du)*2.0 / du;
+  if (eta)
+    *eta  = -1.0 + (v - elmy*dv)*2.0 / dv;
+
+  return 1 + elmx + elmy*(nx-1);
+}
