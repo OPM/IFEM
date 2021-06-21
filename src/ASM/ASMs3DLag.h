@@ -81,6 +81,10 @@ public:
   //! \param[in] nSegSpan Number of visualization segments over each knot-span
   virtual bool getGridParameters(RealArray& prm, int dir, int nSegSpan) const;
 
+  //! \brief Find element for parameter, and optionally calculate local coordinates.
+  virtual int findElement(double u, double v, double w, double* xi = nullptr,
+                          double* eta = nullptr, double* zeta = nullptr) const;
+
 protected:
   //! \brief Assigned global coordinates for the given node.
   //! \param[in] inod 1-based node index local to current patch

@@ -921,6 +921,28 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const Vector& locSol,
 }
 
 
+int ASMs3DLag::findElement(double u, double v, double w,
+                           double* xi, double* eta, double* zeta) const
+{
+  double du = 1.0 / (nx-1);
+  double dv = 1.0 / (ny-1);
+  double dw = 1.0 / (nz-1);
+
+  int elmx = std::min(nx-2.0, floor(u / du));
+  int elmy = std::min(ny-2.0, floor(v / dv));
+  int elmz = std::min(nz-2.0, floor(w / dw));
+
+  if (xi)
+    *xi   = -1.0 + (u - elmx*du)*2.0 / du;
+  if (eta)
+    *eta  = -1.0 + (v - elmy*dv)*2.0 / dv;
+  if (zeta)
+    *zeta = -1.0 + (w - elmz*dw)*2.0 / dw;
+
+  return 1 + elmx + elmy*(nx-1) + elmz*(ny-1)*(nx-1);
+}
+
+
 bool ASMs3DLag::evalSolution (Matrix& sField, const Vector& locSol,
                               const RealArray*, bool, int, int) const
 {

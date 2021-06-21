@@ -81,6 +81,10 @@ protected:
   //! \param[in] Xnod Coordinates of the node
   void setCoord(size_t inod, const Vec3& Xnod);
 
+  //! \brief Find element for parameter, and optionally calculate local coordinates.
+  int findElement(double u, double v,
+                  double* xi = nullptr, double* eta = nullptr) const;
+
 public:
   //! \brief Updates the nodal coordinates for this patch.
   //! \param[in] displ Incremental displacements to update the coordinates with
