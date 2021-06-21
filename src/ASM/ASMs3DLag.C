@@ -1179,3 +1179,10 @@ bool ASMs3DLag::evaluate (const ASMbase* basis, const Vector& locVec,
   vec = sValues;
   return true;
 }
+
+
+void ASMs3DLag::updateOrigin (const Vec3& origin)
+{
+  for (Vec3& c : myCoord)
+    c += origin;
+}

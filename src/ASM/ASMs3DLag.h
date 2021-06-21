@@ -195,6 +195,10 @@ public:
   //! \brief Returns the number of elements on a boundary.
   virtual size_t getNoBoundaryElms(char lIndex, char ldim) const;
 
+  //! \brief Update patch origin by adding a constant to all nodes.
+  //! \param trans The new origin
+  void updateOrigin(const Vec3& origin);
+
 protected:
   size_t nx; //!< Number of nodes in first parameter direction
   size_t ny; //!< Number of nodes in second parameter direction
