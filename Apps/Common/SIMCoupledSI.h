@@ -15,6 +15,7 @@
 #define SIM_COUPLED_SI_H_
 
 #include "IFEM.h"
+#include "Function.h"
 #include "MatVec.h"
 #include "SIMCoupled.h"
 #include "SIMenums.h"
