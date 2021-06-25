@@ -154,8 +154,9 @@ public:
   //! \brief Evaluates the primary solution field at the nodal points.
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector local to current patch
+  //! \param[in] gpar Parameter values of the result sampling points
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-                            const RealArray*, bool = false,
+                            const RealArray* gpar, bool = false,
                             int = 0, int = 0) const;
 
   //! \brief Evaluates the secondary solution field at all visualization points.
@@ -196,7 +197,7 @@ public:
   virtual size_t getNoBoundaryElms(char lIndex, char ldim) const;
 
   //! \brief Update patch origin by adding a constant to all nodes.
-  //! \param trans The new origin
+  //! \param origin The new origin
   void updateOrigin(const Vec3& origin);
 
 protected:
