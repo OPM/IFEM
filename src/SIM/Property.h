@@ -15,6 +15,7 @@
 #define _PROPERTY_H
 
 #include <vector>
+#include <cstddef>
 
 
 /*!

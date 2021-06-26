@@ -15,6 +15,8 @@
 #define _SIM_COUPLED_H_
 
 #include "Property.h"
+#include "matrix.h"
+#include <map>
 
 class SIMdependency;
 class ASMbase;
