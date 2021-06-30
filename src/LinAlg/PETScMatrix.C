@@ -504,7 +504,7 @@ bool PETScMatrix::solve (SystemVector& B, bool newLHS, Real*)
   if (!Bptr)
     return false;
 
-  if (A.empty() || !assembled)
+  if (A.empty() || !assembled || B.dim() != this->rows())
     return this->solveDirect(*Bptr);
 
   Vec x;
@@ -582,27 +582,30 @@ bool PETScMatrix::solveDirect(PETScVector& B)
 {
   // the sparsity pattern has been grown in-place, we need to init PETsc state.
   // this is currently only used for patch-global L2 systems.
-  if (A.empty() && !this->optimiseSLU())
-    return false;
-
-  // Set correct number of rows and columns for matrix.
   size_t nrow = IA.size()-1;
-  MatSetSizes(pA, nrow, nrow, PETSC_DECIDE, PETSC_DECIDE);
-  MatSetFromOptions(pA);
-  PetscInt max = 0;
-  for (size_t i = 0; i < nrow; ++i) // symmetric so row/column sizes should be the same
-    if (IA[i+1]-IA[i] > max)
-      max = IA[i+1]-IA[i];
-  MatSeqAIJSetPreallocation(pA, max, nullptr);
-  MatSetOption(pA, MAT_NEW_NONZERO_LOCATION_ERR, PETSC_FALSE);
-  MatSetUp(pA);
+  if (!assembled) {
+    if (A.empty() && !this->optimiseSLU())
+      return false;
+    // Set correct number of rows and columns for matrix.
+    nrow = IA.size()-1;
+    MatSetSizes(pA, nrow, nrow, PETSC_DECIDE, PETSC_DECIDE);
+    MatSetFromOptions(pA);
+    PetscInt max = 0;
+    for (size_t i = 0; i < nrow; ++i) // symmetric so row/column sizes should be the same
+      if (IA[i+1]-IA[i] > max)
+        max = IA[i+1]-IA[i];
+    MatSeqAIJSetPreallocation(pA, max, nullptr);
+    MatSetOption(pA, MAT_NEW_NONZERO_LOCATION_ERR, PETSC_FALSE);
+    MatSetUp(pA);
 
-  for (size_t j = 0; j < nrow; ++j)
-    for (int i = IA[j]; i < IA[j+1]; ++i)
-      MatSetValue(pA, JA[i], j, A[i], INSERT_VALUES);
+    for (size_t j = 0; j < nrow; ++j)
+      for (int i = IA[j]; i < IA[j+1]; ++i)
+        MatSetValue(pA, JA[i], j, A[i], INSERT_VALUES);
 
-  MatAssemblyBegin(pA,MAT_FINAL_ASSEMBLY);
-  MatAssemblyEnd(pA,MAT_FINAL_ASSEMBLY);
+    MatAssemblyBegin(pA,MAT_FINAL_ASSEMBLY);
+    MatAssemblyEnd(pA,MAT_FINAL_ASSEMBLY);
+    assembled = true;
+  }
 
   Vec B1, x;
   VecCreate(PETSC_COMM_SELF, &B1);
