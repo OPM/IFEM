@@ -83,9 +83,18 @@ if(EXISTS ${PROJECT_SOURCE_DIR}/${ELASTICITY_SRC})
   endif()
 
   if(EXISTS ${PROJECT_SOURCE_DIR}/IFEM-PoroElasticity)
-    add_subdirectory(IFEM-PoroElasticity)
+    set(POROELAST_DIR IFEM-PoroElasticity)
   elseif(EXISTS ${PROJECT_SOURCE_DIR}/PoroElasticity)
-    add_subdirectory(PoroElasticity)
+    set(POROELAST_DIR PoroElasticity)
+  endif()
+
+  if(POROELAST_DIR)
+    add_subdirectory(${POROELAST_DIR})
+    if(EXISTS ${PROJECT_SOURCE_DIR}/IFEM-THM)
+      add_subdirectory(IFEM-THM)
+    elseif(EXISTS ${PROJECT_SOURCE_DIR}/THM)
+      add_subdirectory(THM)
+    endif()
   endif()
 
   if(EXISTS ${PROJECT_SOURCE_DIR}/IFEM-OpenFrac)
@@ -136,6 +145,10 @@ if(EXISTS ${PROJECT_SOURCE_DIR}/${STOKES_SRC})
 
     endif()
   endif()
+endif()
+
+if(EXISTS ${PROJECT_SOURCE_DIR}/SIMRA-PostProc)
+  add_subdirectory(SIMRA-PostProc)
 endif()
 
 # Add 'check' target which builds all test applications, then executes the tests
