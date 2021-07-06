@@ -690,6 +690,9 @@ public:
   //! \brief Returns \e true, if this is the equation system owner.
   bool isFirst() const { return mdFlag <= 1; }
 
+  //! \brief Dump left-hand-side matrix and right-hand-side vector to file.
+  void dumpEqSys();
+
 protected:
   //! \brief Returns the multi-dimension simulator sequence flag.
   char getMDflag() const { return mdFlag; }
@@ -735,9 +738,6 @@ private:
   //! \param[in] nndof Number of nodal DOFs on the given basis
   const std::vector<int>& getMADOF(unsigned char basis,
                                    unsigned char nndof) const;
-
-  //! \brief Dump requested left-hand-side matrices to file.
-  void dumpEqSys();
 
 public:
   static bool ignoreDirichlet; //!< Set to \e true for free vibration analysis
