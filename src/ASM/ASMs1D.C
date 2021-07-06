@@ -1714,6 +1714,7 @@ bool ASMs1D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     {
       // Compute the Jacobian inverse and derivatives
       fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xtmp,dNdu);
+      if (fe.detJxW == 0.0) continue; // skip singular points
 
       // Compute Hessian of coordinate mapping and 2nd order derivatives
       if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)

@@ -882,6 +882,7 @@ bool ASMu3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
     // Compute the Jacobian inverse
     fe.detJxW = utl::Jacobian(Jac,fe.grad(geoBasis),Xnod,dNxdu[geoBasis-1]);
+    if (fe.detJxW == 0.0) continue; // skip singular points
     for (size_t b = 0; b < m_basis.size(); ++b)
       if (b != (size_t)geoBasis-1)
         fe.grad(b+1).multiply(dNxdu[b],Jac);

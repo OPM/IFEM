@@ -167,6 +167,7 @@ bool ASMs1DSpec::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
       // Compute the Jacobian inverse
       fe.detJxW = utl::Jacobian(Jac,fe.dNdX,fe.Xn,dNdu);
+      if (fe.detJxW == 0.0) continue; // skip singular points
 
       // Now evaluate the solution field
       if (!integrand.evalSol(solPt,fe,fe.Xn.getColumn(i+1),mnpc))
