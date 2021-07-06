@@ -781,6 +781,7 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
 	// Compute the Jacobian inverse
 	fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+    if (fe.detJxW == 0.0) continue; // skip singular points
 
 	// Now evaluate the solution field
 	if (!integrand.evalSol(solPt,fe,Xnod*fe.N,mnpc))
