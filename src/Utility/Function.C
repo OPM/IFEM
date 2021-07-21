@@ -18,6 +18,9 @@
 
 Vec3 PressureField::evaluate (const Vec3& x, const Vec3& n) const
 {
+  if (!pressure) // zero pressure field
+    return Vec3();
+
   const RealFunc& p = *pressure;
 
   if (pdir < 1) // normal pressure
@@ -53,7 +56,7 @@ Vec3 TractionField::evaluate (const Vec3& x, const Vec3& n) const
     return (*sigma)(x) * n;
   else if (sigmaN) // non-symmetric tensor field
     return (*sigmaN)(x) * n;
-  else
+  else // zero tensor field
     return Vec3();
 }
 

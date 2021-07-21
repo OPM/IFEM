@@ -15,7 +15,9 @@
 #define _FUNCTIONS_H
 
 #include "Function.h"
+#include <string>
 
+typedef utl::Function<Real,Vec3> VecTimeFunc; //!< Convenience type
 
 
 /*!
@@ -45,21 +47,63 @@ protected:
 
 class LinearFunc : public ScalarFunc
 {
-  Real scale; //!< Scaling factor
+  typedef std::pair<Real,Real> Point; //!< Convenience type
+
+  std::vector<Point> fvals; //!< Values for piece-wise linear function
+  Real               scale; //!< Scaling factor
 
 public:
-  //! \brief Constructor initializing the function parameter.
+  //! \brief Constructor initializing the scaling parameter.
   explicit LinearFunc(Real s = Real(1)) : scale(s) {}
 
+  //! \brief Constructor initializing piece-wise linear function values.
+  //! \param[in] file Name of file to read the function values from
+  //! \param[in] c Which column of the file to read function values from
+  //! \param[in] s Optional scaling factor
+  explicit LinearFunc(const char* file, int c = 2, Real s = Real(1));
+
   //! \brief Returns whether the function is identically zero or not.
-  virtual bool isZero() const { return scale == Real(0); }
+  virtual bool isZero() const;
+  //! \brief Returns whether the function is constant or not.
+  virtual bool isConstant() const { return fvals.size() == 1; }
 
   //! \brief Returns the first-derivative of the function.
-  virtual Real deriv(Real x) const { return scale; }
+  virtual Real deriv(Real x) const;
 
 protected:
   //! \brief Evaluates the function at \a x.
-  virtual Real evaluate(const Real& x) const { return scale*x; }
+  virtual Real evaluate(const Real& x) const;
+
+private:
+  //! \brief Retuns the index of the first point after \a x.
+  size_t locate(Real x) const;
+};
+
+
+/*!
+  \brief A vector-valued linear function.
+*/
+
+class LinVecFunc : public utl::Function<Real,Vec3>
+{
+  typedef std::pair<Real,Vec3> Point; //!< Convenience type
+
+  std::vector<Point> fvals; //!< Values for piece-wise linear function
+
+public:
+  //! \brief Constructor initializing piece-wise linear function values.
+  //! \param[in] file Name of file to read the function values from
+  //! \param[in] c The column of the file to start reading function values from
+  explicit LinVecFunc(const char* file, int c = 2);
+
+  //! \brief Returns whether the function is identically zero or not.
+  virtual bool isZero() const;
+  //! \brief Returns whether the function is constant or not.
+  virtual bool isConstant() const { return fvals.size() == 1; }
+
+protected:
+  //! \brief Evaluates the function at \a x.
+  virtual Vec3 evaluate(const Real& x) const;
 };
 
 
@@ -494,26 +538,26 @@ protected:
 
 class Interpolate1D : public RealFunc
 {
-  std::vector<Real> grid;   //!< The (1D) grid the data is associated with
-  std::vector<Real> values; //!< The (scalar) data values
-  int               dir;    //!< In which direction to perform the interpolation
-  Real              time;   //!< Ramp-up time
+  LinearFunc lfunc; //!< The piece-wise linear function doing the interpolation
+  int        dir;   //!< In which direction to perform the interpolation
+  Real       time;  //!< Ramp-up time
 
 public:
   //! \brief The constructor initializes the function parameters from a file.
-  //! \param[in] file Name of file to read grid and function data from
+  //! \param[in] file Name of file to read function data from
   //! \param[in] dir_ Coordinate direction of the spatial variation
   //! \param[in] col Which column of the file to read function values from
   //! \param[in] ramp Ramp-up time
-  Interpolate1D(const char* file, int dir_, int col = 2, Real ramp = Real(0));
+  Interpolate1D(const char* file, int dir_, int col = 2, Real ramp = Real(0))
+    : lfunc(file,col), dir(dir_), time(ramp) {}
 
   //! \brief Returns whether the function is identically zero or not.
-  virtual bool isZero() const { return values.empty(); }
+  virtual bool isZero() const { return lfunc.isZero(); }
   //! \brief Returns whether the function is time-independent or not.
-  virtual bool isConstant() const { return time <= Real(0) || grid.size() < 2; }
+  virtual bool isConstant() const { return time <= Real(0); }
 
 protected:
-  //! \brief Evaluates the function by interpolating the 1D grid.
+  //! \brief Evaluates the function by interpolation.
   virtual Real evaluate(const Vec3& X) const;
 };
 
@@ -546,7 +590,8 @@ namespace utl
                                       Real C = Real(1));
 
   //! \brief Creates a scalar-valued function by parsing a character string.
-  const RealFunc* parseRealFunc(char* cline, Real A = Real(1), bool print = true);
+  const RealFunc* parseRealFunc(char* cline, Real A = Real(1),
+                                bool print = true);
 
   //! \brief Creates a time function by parsing a character string.
   //! \param[in] func Character string to parse function definition from
@@ -556,10 +601,16 @@ namespace utl
                             const std::string& type = "expression",
                             Real eps = Real(1.0e-8));
 
+  //! \brief Creates a vector-valued time function by parsing a char string.
+  //! \param[in] func Character string to parse function definition from
+  //! \param[in] type Function definition type flag
+  VecTimeFunc* parseVecTimeFunc(const char* func,
+                                const std::string& type);
+
   //! \brief Creates a scalar-valued function by parsing a character string.
   //! \param[in] func Character string to parse function definition from
   //! \param[in] type Function definition type flag
-  //! \param[in] print True to print function to terminal
+  //! \param[in] print If \e true, print function definition
   RealFunc* parseRealFunc(const std::string& func,
                           const std::string& type = "expression",
                           bool print = true);

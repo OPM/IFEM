@@ -24,9 +24,203 @@
 #include <algorithm>
 
 
+static const Real zTol = Real(1.0e-12); //!< Zero tolerance on function values
+
+
 PressureField::PressureField (Real p, int dir) : pdir(dir)
 {
-  pressure = new ConstFunc(p);
+  pressure = fabs(p) > zTol ? new ConstFunc(p) : nullptr;
+}
+
+
+LinearFunc::LinearFunc (const char* file, int c, Real s) : scale(s)
+{
+  std::ifstream is(file);
+  if (!is)
+  {
+    std::cerr <<"\n *** LinearFunc: Failed to open file "<< file
+              <<", function will be f(x) = "<< scale <<"*x"<< std::endl;
+    return;
+  }
+
+  char temp[1024];
+  while (is.good() && is.getline(temp,1024))
+  {
+    if (temp[0] == '#') continue;
+    std::stringstream str(temp);
+    Real x, v;
+    str >> x >> v;
+    if (c < 2)
+      std::swap(x,v);
+    else for (int i = 2; i < c; i++)
+      str >> v;
+    if (fvals.empty() || fvals.back().first <= x)
+      fvals.push_back({x,v});
+    else if (fvals.back().first-x < zTol*fvals.back().first)
+    {
+      x = 0.5*(fvals.back().first+x);
+      fvals.back().first = x;
+      fvals.push_back({x,v});
+    }
+    else
+    {
+      std::cerr <<"\n *** LinearFunc: x-values aren't monotonically increasing";
+      for (size_t i = 0; i < fvals.size(); i++)
+	if (i+5 == fvals.size())
+          std::cerr <<"\n           :";
+        else if (i+5 > fvals.size())
+          std::cerr <<"\n     Line "<< i+1 <<": "<< fvals[i].first;
+      std::cerr <<"\n     Line "<< fvals.size()+1 <<": "<< x
+                <<"\n\n     Only the first "<< fvals.size()
+                <<" points will be used."<< std::endl;
+      return;
+    }
+  }
+}
+
+
+size_t LinearFunc::locate (Real x) const
+{
+  if (fvals.size() < 2)
+    return 0;
+
+  auto&& compArgs = [](const Point& a, Real b) { return a.first < b; };
+  return std::lower_bound(fvals.begin(),fvals.end(),x,compArgs) - fvals.begin();
+}
+
+
+bool LinearFunc::isZero () const
+{
+  for (const Point& v : fvals)
+    if (fabs(v.second) > zTol)
+      return false;
+
+  return fabs(scale) <= zTol;
+}
+
+
+Real LinearFunc::deriv (Real x) const
+{
+  if (fvals.empty())
+    return scale;
+
+  size_t ix = this->locate(x);
+  if (ix == 0 || ix >= fvals.size())
+    return Real(0);
+
+  // Need to interpolate
+  Real x1 = fvals[ix-1].first;
+  Real x2 = fvals[ix  ].first;
+  Real f1 = fvals[ix-1].second;
+  Real f2 = fvals[ix  ].second;
+  return scale*(f2-f1)/(x2-x1);
+}
+
+
+Real LinearFunc::evaluate (const Real& x) const
+{
+  if (fvals.empty())
+    return scale*x;
+
+  size_t ix = this->locate(x);
+  if (ix == 0)
+    return scale*fvals.front().second;
+  else if (ix >= fvals.size())
+    return scale*fvals.back().second;
+
+  // Need to interpolate
+  Real x1 = fvals[ix-1].first;
+  Real x2 = fvals[ix  ].first;
+  Real f1 = fvals[ix-1].second;
+  Real f2 = fvals[ix  ].second;
+  return scale*(f1 + (f2-f1)*(x-x1)/(x2-x1));
+}
+
+
+LinVecFunc::LinVecFunc (const char* file, int c)
+{
+  std::ifstream is(file);
+  if (!is)
+  {
+    std::cerr <<"\n *** LinVecFunc: Failed to open file "<< file
+              <<", function will be identically zero."<< std::endl;
+    return;
+  }
+  else if (c < 2)
+  {
+    std::cerr <<"\n *** LinVecFunc: Column index ("<< c <<") should be > 1"
+              <<", function will be identically zero."<< std::endl;
+    return;
+  }
+
+  char temp[1024];
+  while (is.good() && is.getline(temp,1024))
+  {
+    if (temp[0] == '#') continue;
+    std::stringstream str(temp);
+    Real x;
+    Vec3 v;
+    str >> x;
+    for (int i = 2; i < c; i++) str >> v.x;
+    str >> v;
+    if (fvals.empty() || fvals.back().first <= x)
+      fvals.push_back({x,v});
+    else if (fvals.back().first-x < zTol*fvals.back().first)
+    {
+      x = 0.5*(fvals.back().first+x);
+      fvals.back().first = x;
+      fvals.push_back({x,v});
+    }
+    else
+    {
+      std::cerr <<"\n *** LinVecFunc: x-values aren't monotonically increasing";
+      for (size_t i = 0; i < fvals.size(); i++)
+	if (i+5 == fvals.size())
+          std::cerr <<"\n           :";
+        else if (i+5 > fvals.size())
+          std::cerr <<"\n     Line "<< i+1 <<": "<< fvals[i].first;
+      std::cerr <<"\n     Line "<< fvals.size()+1 <<": "<< x
+                <<"\n\n     Only the first "<< fvals.size()
+                <<" points will be used."<< std::endl;
+      return;
+    }
+  }
+}
+
+
+bool LinVecFunc::isZero () const
+{
+  for (const Point& v : fvals)
+    if (!v.second.isZero(zTol))
+      return false;
+
+  return true;
+}
+
+
+Vec3 LinVecFunc::evaluate (const Real& x) const
+{
+  if (fvals.empty())
+    return Vec3();
+
+  size_t ix = 0;
+  if (fvals.size() > 1)
+  {
+    auto&& compArgs = [](const Point& a, Real b) { return a.first < b; };
+    ix = std::lower_bound(fvals.begin(),fvals.end(),x,compArgs) - fvals.begin();
+  }
+
+  if (ix == 0)
+    return fvals.front().second;
+  else if (ix >= fvals.size())
+    return fvals.back().second;
+
+  // Need to interpolate
+  Real x1 = fvals[ix-1].first;
+  Real x2 = fvals[ix  ].first;
+  Vec3 f1 = fvals[ix-1].second;
+  Vec3 f2 = fvals[ix  ].second;
+  return f1 + (f2-f1)*((x-x1)/(x2-x1));
 }
 
 
@@ -251,54 +445,10 @@ Real StepXYFunc::evaluate (const Vec3& X) const
 }
 
 
-Interpolate1D::Interpolate1D (const char* file, int dir_, int col, Real ramp) :
-  dir(dir_), time(ramp)
-{
-  std::ifstream is(file);
-  if (!is)
-  {
-    std::cerr <<" *** Interpolate1D: Failed to open file "<< file
-              <<", function will be identically zero."<< std::endl;
-    return;
-  }
-
-  while (is.good() && !is.eof())
-  {
-    char temp[1024];
-    is.getline(temp,1024);
-    if (is.eof()) return;
-    if (temp[0] == '#') continue;
-    std::stringstream str(temp);
-    Real x, v;
-    str >> x >> v;
-    if (col < 2)
-      std::swap(x,v);
-    else for (int i = 2; i < col; i++)
-      str >> v;
-    grid.push_back(x);
-    values.push_back(v);
-  }
-}
-
-
 Real Interpolate1D::evaluate (const Vec3& X) const
 {
-  if (grid.empty())
-    return Real(0);
-  else if (grid.size() == 1 || X[dir] <= grid.front())
-    return values.front();
+  Real res = lfunc(X[dir]);
 
-  std::vector<Real>::const_iterator xb = std::lower_bound(grid.begin(),
-                                                          grid.end(),X[dir]);
-  if (xb == grid.end())
-    return values.back();
-
-  size_t pos = xb - grid.begin();
-  Real x1 = *(xb-1);
-  Real x2 = *xb;
-  Real v1 = values[pos-1];
-  Real v2 = values[pos];
-  Real res = v1 + (v2-v1)*(X[dir]-x1)/(x2-x1);
   const Vec4* Xt = dynamic_cast<const Vec4*>(&X);
   if (Xt && time > Real(0) && Xt->t < time)
     res *= Xt->t/time;
@@ -447,8 +597,8 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A, bool print)
     case 9:
       {
         std::string basis, field;
-        basis = strtok(nullptr, " ");
-        field = strtok(nullptr, " ");
+        basis = strtok(nullptr," ");
+        field = strtok(nullptr," ");
         if (print)
           IFEM::cout <<"Field("<< cline <<","<< basis <<","<< field <<")";
         f = new FieldFunction(cline,basis,field);
@@ -457,7 +607,7 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A, bool print)
     case 10:
       {
         if (print)
-          IFEM::cout << "Chebyshev(" << cline <<")";
+          IFEM::cout <<"Chebyshev("<< cline <<")";
         f = new ChebyshevFunc(cline);
       }
       break;
@@ -473,7 +623,8 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A, bool print)
     Real val = (a-b)*(a-b)/Real(4);
     char var = 'W' + quadratic;
     if (print)
-      IFEM::cout << A/val <<" * ("<< a <<"-"<< var <<")*("<< b <<"-"<< var <<")";
+      IFEM::cout << A/val <<" * ("<< a <<"-"<< var
+                 <<")*("<< b <<"-"<< var <<")";
     switch (quadratic) {
     case 1:
       f = new QuadraticXFunc(A,a,b);
@@ -563,6 +714,15 @@ const ScalarFunc* utl::parseTimeFunction (const char* type, char* cline, Real C)
       return new SineFunc(C,freq);
     }
   }
+  else if (strncasecmp(type,"PiecewiseLin",12) == 0)
+  {
+    char* fname = strtok(cline," ");
+    int   colum = (cline = strtok(nullptr," ")) ? atoi(cline) : 2;
+    Real  scale = (cline = strtok(nullptr," ")) ? atof(cline) : 1.0;
+    IFEM::cout <<"PiecewiseLin(t,"<< fname <<","<< colum <<")";
+    if (cline) IFEM::cout <<"*"<< scale;
+    return new LinearFunc(fname,colum,scale);
+  }
   else // linear in time
   {
     Real scale = atof(type);
@@ -594,6 +754,25 @@ ScalarFunc* utl::parseTimeFunc (const char* func, const std::string& type,
   if (cstr) free(cstr);
 
   return const_cast<ScalarFunc*>(sf);
+}
+
+
+VecTimeFunc* utl::parseVecTimeFunc (const char* func, const std::string& type)
+{
+  VecTimeFunc* vfunc = nullptr;
+  if (strncasecmp(type.c_str(),"PiecewiseLin",12) == 0)
+  {
+    char* cline = strdup(func);
+    char* ctemp = cline;
+    char* fname = strtok(cline," ");
+    int   colum = (cline = strtok(nullptr," ")) ? atoi(cline) : 2;
+    IFEM::cout <<"PiecewiseLin(t,"<< fname <<","<< colum <<")";
+    vfunc = new LinVecFunc(fname,colum);
+    free(ctemp);
+  }
+  IFEM::cout << std::endl;
+
+  return vfunc;
 }
 
 
@@ -641,6 +820,21 @@ RealFunc* utl::parseRealFunc (const std::string& func,
 }
 
 
+/*!
+  \brief Static helper splitting a string into an array of const char pointers.
+*/
+
+static std::vector<const char*> splitValue (const std::string& value)
+{
+  strtok(const_cast<char*>(value.c_str())," ");
+  std::vector<const char*> values;
+  const char* s = nullptr;
+  while ((s = strtok(nullptr," ")))
+    values.push_back(s);
+  return values;
+}
+
+
 VecFunc* utl::parseVecFunc (const std::string& func, const std::string& type,
                             const std::string& variables)
 {
@@ -669,16 +863,22 @@ VecFunc* utl::parseVecFunc (const std::string& func, const std::string& type,
     IFEM::cout <<": "<< v;
     return new ConstVecFunc(v);
   }
-  else if (type == "chebyshev" || type == "chebyshev2")
-  {
-    std::string tmp(func);
-    strtok(const_cast<char*>(tmp.c_str())," ");
-    std::vector<const char*> file;
-    const char* s;
-    while ((s = strtok(nullptr, " ")))
-      file.push_back(s);
-    return new ChebyshevVecFunc(file, type == "chebyshev2");
-  }
+  else if (type == "chebyshev")
+    return new ChebyshevVecFunc(splitValue(func),false);
+  else if (type == "chebyshev2")
+    return new ChebyshevVecFunc(splitValue(func),true);
+
+  return nullptr;
+}
+
+
+TensorFunc* utl::parseTensorFunc (const std::string& func,
+                                  const std::string& type)
+{
+  if (type == "chebyshev")
+    return new ChebyshevTensorFunc(splitValue(func),false);
+  else if (type == "chebyshev2")
+    return new ChebyshevTensorFunc(splitValue(func),true);
 
   return nullptr;
 }
@@ -723,21 +923,4 @@ TractionFunc* utl::parseTracFunc (const std::string& func,
   }
 
   return f ? new PressureField(f,dir) : new PressureField(p,dir);
-}
-
-
-TensorFunc* utl::parseTensorFunc (const std::string& func, const std::string& type)
-{
-  if (type == "chebyshev" || type == "chebyshev2")
-  {
-    std::string tmp(func);
-    strtok(const_cast<char*>(tmp.c_str())," ");
-    std::vector<const char*> file;
-    const char* s;
-    while ((s = strtok(nullptr, " ")))
-      file.push_back(s);
-    return new ChebyshevTensorFunc(file, type == "chebyshev2");
-  }
-
-  return nullptr;
 }
