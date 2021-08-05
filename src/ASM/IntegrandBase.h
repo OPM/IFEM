@@ -18,18 +18,19 @@
 #include "SIMenums.h"
 #include "ASMenums.h"
 #include "LinAlgenums.h"
-#include "Function.h"
 #include "MatVec.h"
 #include <map>
 
 class NormBase;
 class ForceBase;
 class GlobalIntegral;
-class GlbNorm;
 class AnaSol;
 class VTF;
 class Field;
 class Fields;
+class VecFunc;
+class TensorFunc;
+class STensorFunc;
 class TiXmlElement;
 
 

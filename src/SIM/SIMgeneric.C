@@ -16,6 +16,7 @@
 #include "ASMbase.h"
 #include "IntegrandBase.h"
 #include "Utilities.h"
+#include "Function.h"
 #include "IFEM.h"
 
 

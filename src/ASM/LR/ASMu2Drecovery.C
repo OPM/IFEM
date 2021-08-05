@@ -22,9 +22,12 @@
 #include "SparseMatrix.h"
 #include "DenseMatrix.h"
 #include "SplineUtils.h"
+#include "Function.h"
 #include "Profiler.h"
 #include <array>
+#if SP_DEBUG > 2
 #include <fstream>
+#endif
 
 
 bool ASMu2D::getGrevilleParameters (RealArray& prm, int dir, int basisNum) const

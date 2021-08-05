@@ -1,46 +1,19 @@
 // $Id$
 //==============================================================================
 //!
-//! \file Function.C
+//! \file TractionField.C
 //!
 //! \date Jul 1 2009
 //!
 //! \author Knut Morten Okstad / SINTEF
 //!
-//! \brief General functions with arbitrary argument and value type.
+//! \brief Function interfaces for representation of explicit traction fields.
 //!
 //==============================================================================
 
-#include "Function.h"
+#include "TractionField.h"
 #include "TensorFunction.h"
 #include "Vec3Oper.h"
-
-
-Vec3 PressureField::evaluate (const Vec3& x, const Vec3& n) const
-{
-  if (!pressure) // zero pressure field
-    return Vec3();
-
-  const RealFunc& p = *pressure;
-
-  if (pdir < 1 && !pdfn) // normal pressure
-    return p(x) * n;
-
-  Vec3 t;
-  if (pdfn) // pressure direction specified as a function
-  {
-    t = (*pdfn)(x);
-    t.normalize();
-    t *= p(x);
-  }
-  else if (pdir > 0) // pressure acting in global pdir direction
-    t[(pdir-1)%3] = p(x);
-
-  if (pdir > 3) // normal pressure in global pdir direction
-    t = (t*n) * n;
-
-  return t;
-}
 
 
 TractionField::TractionField (const STensorFunc& field)
@@ -76,4 +49,31 @@ bool TractionField::isZero () const
     return sigmaN->isZero();
   else
     return true;
+}
+
+
+Vec3 PressureField::evaluate (const Vec3& x, const Vec3& n) const
+{
+  if (!pressure) // zero pressure field
+    return Vec3();
+
+  const RealFunc& p = *pressure;
+
+  if (pdir < 1 && !pdfn) // normal pressure
+    return p(x) * n;
+
+  Vec3 t;
+  if (pdfn) // pressure direction specified as a function
+  {
+    t = (*pdfn)(x);
+    t.normalize();
+    t *= p(x);
+  }
+  else if (pdir > 0) // pressure acting in global pdir direction
+    t[(pdir-1)%3] = p(x);
+
+  if (pdir > 3) // normal pressure in global pdir direction
+    t = (t*n) * n;
+
+  return t;
 }

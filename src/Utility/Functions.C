@@ -16,6 +16,7 @@
 #include "ExprFunctions.h"
 #include "FieldFunctions.h"
 #include "TensorFunction.h"
+#include "TractionField.h"
 #include "Vec3Oper.h"
 #include "IFEM.h"
 #include <cstring>

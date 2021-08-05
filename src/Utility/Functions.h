@@ -19,6 +19,8 @@
 
 typedef utl::Function<Real,Vec3> VecTimeFunc; //!< Convenience type
 
+class TensorFunc;
+
 
 /*!
   \brief A scalar-valued constant function.
