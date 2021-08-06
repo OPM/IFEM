@@ -477,6 +477,16 @@ bool SIMinput::parseBCTag (const TiXmlElement* elem)
       IFEM::cout <<" (generic)";
       this->setPropertyType(code,Property::NEUMANN_GENERIC);
     }
+    else if (type == "distributed")
+    {
+      IFEM::cout <<" (distributed force)";
+      TractionFunc* f = utl::parseTracFunc(elem);
+      if (!f)
+        return false;
+      else
+        myTracs[code] = f;
+      this->setPropertyType(code,Property::NEUMANN);
+    }
     else if (nval)
     {
       IFEM::cout <<" direction "<< ndir;

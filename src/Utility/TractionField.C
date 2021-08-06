@@ -77,3 +77,47 @@ Vec3 PressureField::evaluate (const Vec3& x, const Vec3& n) const
 
   return t;
 }
+
+
+ForceDirField::~ForceDirField ()
+{
+  delete force;
+  delete fdir;
+  delete shape;
+}
+
+
+Vec3 ForceDirField::evaluate (const Vec3& x, const Vec3&) const
+{
+  if (!force || !shape) // zero force
+    return Vec3();
+
+  const ScalarFunc& F = *force;
+  const RealFunc& Shp = *shape;
+
+  const Vec4* Xt = dynamic_cast<const Vec4*>(&x);
+  Real time = Xt ? Xt->t : Real(0);
+
+  Vec3   Fdir;
+  Tensor Trot(3,true);
+  if (fdir)
+  {
+    Fdir = (*fdir)(time);
+    if (dirVec) // fdir gives the force direction
+      Trot = Tensor(Tlg[2],Fdir,true);
+    else // fdir gives rotation angles w.r.t. the local axes
+    {
+      Trot = Tensor(Fdir.x,Fdir.y,Fdir.z);
+      Fdir = Trot[1];
+    }
+  }
+
+  // Calculate updated local coordinates of evaluation point
+  Vec4 Xloc(Trot * ((x-X0) * Tlg), time);
+  // Evaluate traction magnitude at current point
+  Real Fa = F(time)*Shp(Xloc);
+  // Evaluate traction vector in local axes
+  Vec3 Fv = Fa*Fdir;
+  // Transform to global coordinates
+  return Tlg*Fv;
+}

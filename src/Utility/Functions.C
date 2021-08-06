@@ -17,8 +17,10 @@
 #include "FieldFunctions.h"
 #include "TensorFunction.h"
 #include "TractionField.h"
+#include "Utilities.h"
 #include "Vec3Oper.h"
 #include "IFEM.h"
+#include "tinyxml.h"
 #include <cstring>
 #include <fstream>
 #include <sstream>
@@ -924,4 +926,55 @@ TractionFunc* utl::parseTracFunc (const std::string& func,
   }
 
   return f ? new PressureField(f,dir) : new PressureField(p,dir);
+}
+
+
+TractionFunc* utl::parseTracFunc (const TiXmlElement* elem)
+{
+  Vec3 X0, Xaxis(1.0,0.0,0.0), Zaxis(0.0,0.0,1.0);
+  if (utl::getAttribute(elem,"X0",X0))
+    IFEM::cout <<"\n\tX0    = "<< X0;
+  if (utl::getAttribute(elem,"Xaxis",Xaxis))
+    IFEM::cout <<"\n\tXaxis = "<< Xaxis;
+  if (utl::getAttribute(elem,"Zaxis",Zaxis))
+    IFEM::cout <<"\n\tZaxis = "<< Zaxis;
+  IFEM::cout << std::endl;
+
+  const ScalarFunc*   force = nullptr;
+  const VecTimeFunc*  fdir  = nullptr;
+  const VecTimeFunc*  frot  = nullptr;
+  const RealFunc*     shape = nullptr;
+  const TiXmlElement* child = elem->FirstChildElement();
+  while (child && child->Value() && child->FirstChild())
+  {
+    std::string type;
+    utl::getAttribute(child,"type",type,true);
+    if (strcasecmp(child->Value(),"force") == 0)
+    {
+      IFEM::cout <<"\tForce resultant: ";
+      force = parseTimeFunc(child->FirstChild()->Value(),type);
+    }
+    else if (strncasecmp(child->Value(),"orient",6) == 0)
+    {
+      IFEM::cout <<"\tForce orientation: ";
+      frot = parseVecTimeFunc(child->FirstChild()->Value(),type.c_str());
+    }
+    else if (strcasecmp(child->Value(),"direction") == 0)
+    {
+      IFEM::cout <<"\tForce direction: ";
+      fdir = parseVecTimeFunc(child->FirstChild()->Value(),type.c_str());
+    }
+    else if (strcasecmp(child->Value(),"shape") == 0)
+    {
+      IFEM::cout <<"\tShape function";
+      shape = parseRealFunc(child->FirstChild()->Value(),type);
+      IFEM::cout << std::endl;
+    }
+    child = child->NextSiblingElement();
+  }
+
+  if (fdir)
+    return new ForceDirField(force,fdir,shape,Xaxis,Zaxis,X0,true);
+  else
+    return new ForceDirField(force,frot,shape,Xaxis,Zaxis,X0);
 }
