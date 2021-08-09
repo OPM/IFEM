@@ -97,7 +97,11 @@ bool PETScSolParams::addDirSmoother(PC pc, const Mat& P,
   PCSetType(pc,"composite");
   PCCompositeSetType(pc,PC_COMPOSITE_MULTIPLICATIVE);
   for (size_t k = 0;k < block.dirSmoother.size();k++)
+#if PETSC_VERSION_MINOR > 14
+    PCCompositeAddPCType(pc,PCSHELL);
+#else
     PCCompositeAddPC(pc,"shell");
+#endif
   for (size_t k = 0;k < block.dirSmoother.size();k++) {
     PC dirpc;
     PCCompositeGetPC(pc,k,&dirpc);
