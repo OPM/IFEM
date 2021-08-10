@@ -15,16 +15,15 @@
 #include "matrix.h"
 
 
-FunctionSum::FunctionSum (FunctionBase* f, double w)
-{
-  comps.push_back(std::make_pair(f,w));
-  ncmp = f->dim();
-}
-
-
 bool FunctionSum::add (FunctionBase* f, double w)
 {
-  if (f->dim() == comps.front().first->dim())
+  if (comps.empty())
+  {
+    comps.push_back(std::make_pair(f,w));
+    ncmp = f->dim();
+    return true;
+  }
+  else if (f->dim() == comps.front().first->dim())
   {
     comps.push_back(std::make_pair(f,w));
     return true;
