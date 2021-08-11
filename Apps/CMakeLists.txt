@@ -151,5 +151,11 @@ if(EXISTS ${PROJECT_SOURCE_DIR}/SIMRA-PostProc)
   add_subdirectory(SIMRA-PostProc)
 endif()
 
+if(EXISTS ${PROJECT_SOURCE_DIR}/IFEM-HM)
+  add_subdirectory(IFEM-HM)
+elseif(EXISTS ${PROJECT_SOURCE_DIR}/HM)
+  add_subdirectory(HM)
+endif()
+
 # Add 'check' target which builds all test applications, then executes the tests
 add_check_target()
