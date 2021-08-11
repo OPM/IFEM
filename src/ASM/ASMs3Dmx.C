@@ -1213,15 +1213,11 @@ bool ASMs3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     // Compute Jacobian inverse of the coordinate mapping and
     // basis function derivatives w.r.t. Cartesian coordinates
     fe.detJxW = utl::Jacobian(Jac,fe.grad(geoBasis),Xtmp,dNxdu[geoBasis-1]);
+    if (fe.detJxW == 0.0) continue; // skip singular points
 
     for (size_t b = 1; b <= m_basis.size(); b++)
       if (b != (size_t)geoBasis)
-      {
-        if (fe.detJxW == 0.0)
-          fe.grad(b).clear();
-        else
-          fe.grad(b).multiply(dNxdu[b-1],Jac);
-      }
+        fe.grad(b).multiply(dNxdu[b-1],Jac);
 
     // Cartesian coordinates of current integration point
     utl::Point X4(Xtmp * fe.basis(geoBasis),{fe.u,fe.v,fe.w});
