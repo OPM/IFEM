@@ -86,12 +86,12 @@ bool ASMs2DLag::addXElms (short int dim, short int item, size_t nXn,
 
       // Skip elements that are not on current boundary edge
       switch (item)
-        {
+      {
         case 1: skipMe = i1 > 0;      break;
         case 2: skipMe = i1 < nelx-1; break;
         case 3: skipMe = i2 > 0;      break;
         case 4: skipMe = i2 < nely-1; break;
-        }
+      }
       if (skipMe) continue;
 
       IntVec& mnpc = myMNPC[nel+iel];
@@ -111,15 +111,15 @@ bool ASMs2DLag::addXElms (short int dim, short int item, size_t nXn,
         for (int j1 = 0; j1 < p1; j1++, lnod++)
         {
           switch (item)
-            {
+          {
             case 1: skipMe = j1 > 0;    break;
             case 2: skipMe = j1 < p1-1; break;
             case 3: skipMe = j2 > 0;    break;
             case 4: skipMe = j2 < p2-1; break;
-	    }
-	  if (skipMe) // Hack for node 0: Using -maxint as flag instead
-	    mnpc[lnod] = mnpc[lnod] == 0 ? -2147483648 : -mnpc[lnod];
-	}
+          }
+          if (skipMe) // Hack for node 0: Using -maxint as flag instead
+            mnpc[lnod] = mnpc[lnod] == 0 ? -2147483648 : -mnpc[lnod];
+        }
 
       // Add connectivity to the extra-ordinary nodes
       for (size_t i = 0; i < nXn; i++)
@@ -194,10 +194,10 @@ bool ASMs2DLag::generateFEMTopology ()
 
       for (b = 0; b < p2; b++)
       {
-	int facenod = b*p1;
-	myMNPC[iel][facenod] = corner + b*nx;
-	for (a = 1; a < p1; a++)
-	  myMNPC[iel][facenod+a] = myMNPC[iel][facenod] + a;
+        int facenod = b*p1;
+        myMNPC[iel][facenod] = corner + b*nx;
+        for (a = 1; a < p1; a++)
+          myMNPC[iel][facenod+a] = myMNPC[iel][facenod] + a;
       }
     }
 
@@ -227,7 +227,7 @@ bool ASMs2DLag::getElementCoordinates (Matrix& X, int iel) const
   if (iel < 1 || (size_t)iel > MNPC.size())
   {
     std::cerr <<" *** ASMs2DLag::getElementCoordinates: Element index "<< iel
-	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
+              <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
     return false;
   }
 
@@ -259,8 +259,8 @@ bool ASMs2DLag::updateCoords (const Vector& displ)
   if (displ.size() != nsd*coord.size())
   {
     std::cerr <<" *** ASMs2DLag::updateCoords: Invalid dimension "
-	      << displ.size() <<" on displ, should be "
-	      << nsd*coord.size() << std::endl;
+              << displ.size() <<" on displ, should be "
+              << nsd*coord.size() << std::endl;
     return false;
   }
 
@@ -287,22 +287,22 @@ size_t ASMs2DLag::getNoBoundaryElms (char lIndex, char ldim) const
     return 1;
 
   switch (lIndex)
-    {
+  {
     case 1:
     case 2:
       return p2 > 1 ? (ny-1)/(p2-1) : 0;
     case 3:
     case 4:
       return p1 > 1 ? (nx-1)/(p1-1) : 0;
-    }
+  }
 
   return 0;
 }
 
 
 bool ASMs2DLag::integrate (Integrand& integrand,
-			   GlobalIntegral& glInt,
-			   const TimeDomain& time)
+                           GlobalIntegral& glInt,
+                           const TimeDomain& time)
 {
   if (this->empty()) return true; // silently ignore empty patches
 
@@ -476,8 +476,8 @@ bool ASMs2DLag::integrate (Integrand& integrand,
 
 
 bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
-			   GlobalIntegral& glInt,
-			   const TimeDomain& time)
+                           GlobalIntegral& glInt,
+                           const TimeDomain& time)
 {
   if (this->empty()) return true; // silently ignore empty patches
 
@@ -543,12 +543,12 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
       // Skip elements that are not on current boundary edge
       bool skipMe = false;
       switch (edgeDir)
-	{
-	case -1: if (i1 > 0)      skipMe = true; break;
-	case  1: if (i1 < nelx-1) skipMe = true; break;
-	case -2: if (i2 > 0)      skipMe = true; break;
-	case  2: if (i2 < nely-1) skipMe = true; break;
-	}
+      {
+        case -1: if (i1 > 0)      skipMe = true; break;
+        case  1: if (i1 < nelx-1) skipMe = true; break;
+        case -2: if (i2 > 0)      skipMe = true; break;
+        case  2: if (i2 < nely-1) skipMe = true; break;
+      }
       if (skipMe) continue;
 
       // Set up nodal point coordinates for current element
@@ -567,37 +567,37 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
 
       for (int i = 0; i < nGP && ok; i++, fe.iGP++)
       {
-	// Local element coordinates of current integration point
-	xi[t1-1] = edgeDir < 0 ? -1.0 : 1.0;
-	xi[t2-1] = xg[i];
-	fe.xi  = xi[0];
-	fe.eta = xi[1];
+        // Local element coordinates of current integration point
+        xi[t1-1] = edgeDir < 0 ? -1.0 : 1.0;
+        xi[t2-1] = xg[i];
+        fe.xi  = xi[0];
+        fe.eta = xi[1];
 
-	// Parameter values of current integration point
-	if (upar.size() > 1)
-	  fe.u = 0.5*(upar[i1]*(1.0-xg[i]) + upar[i1+1]*(1.0+xg[i]));
-	if (vpar.size() > 1)
-	  fe.v = 0.5*(vpar[i2]*(1.0-xg[i]) + vpar[i2+1]*(1.0+xg[i]));
+        // Parameter values of current integration point
+        if (upar.size() > 1)
+          fe.u = 0.5*(upar[i1]*(1.0-xg[i]) + upar[i1+1]*(1.0+xg[i]));
+        if (vpar.size() > 1)
+          fe.v = 0.5*(vpar[i2]*(1.0-xg[i]) + vpar[i2+1]*(1.0+xg[i]));
 
-	// Compute the basis functions and their derivatives, using
-	// tensor product of one-dimensional Lagrange polynomials
-	if (!Lagrange::computeBasis(fe.N,dNdu,p1,xi[0],p2,xi[1]))
-	  ok = false;
+        // Compute the basis functions and their derivatives, using
+        // tensor product of one-dimensional Lagrange polynomials
+        if (!Lagrange::computeBasis(fe.N,dNdu,p1,xi[0],p2,xi[1]))
+          ok = false;
 
-	// Compute basis function derivatives and the edge normal
-	fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,Xnod,dNdu,t1,t2);
-	if (fe.detJxW == 0.0) continue; // skip singular points
+        // Compute basis function derivatives and the edge normal
+        fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,Xnod,dNdu,t1,t2);
+        if (fe.detJxW == 0.0) continue; // skip singular points
 
-	if (edgeDir < 0) normal *= -1.0;
+        if (edgeDir < 0) normal *= -1.0;
 
-	// Cartesian coordinates of current integration point
-	X = Xnod * fe.N;
-	X.t = time.t;
+        // Cartesian coordinates of current integration point
+        X = Xnod * fe.N;
+        X.t = time.t;
 
-	// Evaluate the integrand and accumulate element contributions
-	fe.detJxW *= wg[i];
+        // Evaluate the integrand and accumulate element contributions
+        fe.detJxW *= wg[i];
         if (ok && !integrand.evalBou(*A,fe,time,X,normal))
-	  ok = false;
+          ok = false;
       }
 
       // Finalize the element quantities
@@ -606,7 +606,7 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
 
       // Assembly of global system integral
       if (ok && !glInt.assemble(A->ref(),fe.iel))
-	ok = false;
+        ok = false;
 
       A->destruct();
 
@@ -648,7 +648,7 @@ bool ASMs2DLag::tesselate (ElementBlock& grid, const int* npe) const
   {
     int* newnpe = const_cast<int*>(npe);
     std::cout <<"\nLagrange elements: The number of visualization points are "
-	      << p1 <<" "<< p2 <<" by default\n"<< std::endl;
+              << p1 <<" "<< p2 <<" by default\n"<< std::endl;
     newnpe[0] = p1;
     newnpe[1] = p2;
   }
@@ -739,14 +739,14 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const Vector& locSol,
 
 
 bool ASMs2DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
-			      const int*, char) const
+                              const int*, char) const
 {
   return this->evalSolution(sField,integrand,(const RealArray*)nullptr);
 }
 
 
 bool ASMs2DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
-			      const RealArray*, bool) const
+                              const RealArray*, bool) const
 {
   sField.resize(0,0);
 
@@ -772,27 +772,27 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     for (j = 0; j < p2; j++)
       for (i = 0; i < p1; i++, loc++)
       {
-	fe.xi  = -1.0 + i*incx;
-	fe.eta = -1.0 + j*incy;
-	if (!Lagrange::computeBasis(fe.N,dNdu,p1,fe.xi,p2,fe.eta))
-	  return false;
+        fe.xi  = -1.0 + i*incx;
+        fe.eta = -1.0 + j*incy;
+        if (!Lagrange::computeBasis(fe.N,dNdu,p1,fe.xi,p2,fe.eta))
+          return false;
 
-	fe.iel = MLGE[iel-1];
+        fe.iel = MLGE[iel-1];
 
-	// Compute the Jacobian inverse
-	fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
-    if (fe.detJxW == 0.0) continue; // skip singular points
+        // Compute the Jacobian inverse
+        fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+        if (fe.detJxW == 0.0) continue; // skip singular points
 
-	// Now evaluate the solution field
-	if (!integrand.evalSol(solPt,fe,Xnod*fe.N,mnpc))
-	  return false;
-	else if (sField.empty())
-	  sField.resize(solPt.size(),nPoints,true);
+        // Now evaluate the solution field
+        if (!integrand.evalSol(solPt,fe,Xnod*fe.N,mnpc))
+          return false;
+        else if (sField.empty())
+          sField.resize(solPt.size(),nPoints,true);
 
-	if (++check[mnpc[loc]] == 1)
-	  globSolPt[mnpc[loc]] = solPt;
-	else
-	  globSolPt[mnpc[loc]] += solPt;
+        if (++check[mnpc[loc]] == 1)
+          globSolPt[mnpc[loc]] = solPt;
+        else
+          globSolPt[mnpc[loc]] += solPt;
       }
   }
 
