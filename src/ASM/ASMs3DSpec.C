@@ -26,7 +26,7 @@
 
 
 bool ASMs3DSpec::getGridParameters (RealArray& prm, int dir,
-				    int nSegPerSpan) const
+                                    int nSegPerSpan) const
 {
   if (!svol) return false;
 
@@ -38,8 +38,8 @@ bool ASMs3DSpec::getGridParameters (RealArray& prm, int dir,
   {
     nSegPerSpan = xGLL.size() - 1;
     std::cout <<"Spectral elements: Number of nodes per knot-span in "
-	      << char('u'+dir) <<"-directon reset to "<< nSegPerSpan
-	      <<" (GLL points)"<< std::endl;
+              << char('u'+dir) <<"-directon reset to "<< nSegPerSpan
+              <<" (GLL points)"<< std::endl;
   }
 
   RealArray::const_iterator uit = svol->basis(dir).begin();
@@ -49,7 +49,7 @@ bool ASMs3DSpec::getGridParameters (RealArray& prm, int dir,
     double ucurr = *(uit++);
     if (ucurr > uprev)
       for (int i = 1; i <= nSegPerSpan; i++)
-	prm.push_back(0.5*(ucurr-uprev)*(1.0+xGLL(i)) + uprev);
+        prm.push_back(0.5*(ucurr-uprev)*(1.0+xGLL(i)) + uprev);
     uprev = ucurr;
   }
 
@@ -63,25 +63,25 @@ bool ASMs3DSpec::getGridParameters (RealArray& prm, int dir,
 */
 
 static void evalBasis (int i, int j, int k, int p1, int p2, int p3,
-		       const Matrix& der1, const Matrix& der2,
-		       const Matrix& der3, Vector& N, Matrix& dNdu)
+                       const Matrix& der1, const Matrix& der2,
+                       const Matrix& der3, Vector& N, Matrix& dNdu)
 {
   int a, b, c, n = 1;
   for (c = 1; c <= p3; c++)
     for (b = 1; b <= p2; b++)
       for (a = 1; a <= p1; a++, n++)
       {
-	 N  (n)   = (a == i && b == j && c == k) ? 1.0 : 0.0;
-	dNdu(n,1) = (b == j && c == k) ? der1(i,a) : 0.0;
-	dNdu(n,2) = (a == i && c == k) ? der2(j,b) : 0.0;
-	dNdu(n,3) = (a == i && b == j) ? der3(k,c) : 0.0;
+         N  (n)   = (a == i && b == j && c == k) ? 1.0 : 0.0;
+        dNdu(n,1) = (b == j && c == k) ? der1(i,a) : 0.0;
+        dNdu(n,2) = (a == i && c == k) ? der2(j,b) : 0.0;
+        dNdu(n,3) = (a == i && b == j) ? der3(k,c) : 0.0;
       }
 }
 
 
 bool ASMs3DSpec::integrate (Integrand& integrand,
-			    GlobalIntegral& glInt,
-			    const TimeDomain& time)
+                            GlobalIntegral& glInt,
+                            const TimeDomain& time)
 {
   if (this->empty()) return true; // silently ignore empty patches
 
@@ -120,7 +120,7 @@ bool ASMs3DSpec::integrate (Integrand& integrand,
           break;
         }
 
-	// Initialize element quantities
+        // Initialize element quantities
         fe.iel = MLGE[iel-1];
         LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
         if (!integrand.initElement(MNPC[iel-1],*A))
@@ -158,8 +158,8 @@ bool ASMs3DSpec::integrate (Integrand& integrand,
                 ok = false;
             }
 
-	// Assembly of global system integral
-	if (ok && !glInt.assemble(A->ref(),fe.iel))
+        // Assembly of global system integral
+        if (ok && !glInt.assemble(A->ref(),fe.iel))
           ok = false;
 
         A->destruct();
@@ -172,8 +172,8 @@ bool ASMs3DSpec::integrate (Integrand& integrand,
 
 
 bool ASMs3DSpec::integrate (Integrand& integrand, int lIndex,
-			    GlobalIntegral& glInt,
-			    const TimeDomain& time)
+                            GlobalIntegral& glInt,
+                            const TimeDomain& time)
 {
   if (this->empty()) return true; // silently ignore empty patches
 
@@ -181,7 +181,7 @@ bool ASMs3DSpec::integrate (Integrand& integrand, int lIndex,
   if ((tit = threadGroupsFace.find(lIndex)) == threadGroupsFace.end())
   {
     std::cerr <<" *** ASMs3DSpec::integrate: No thread groups for face "<<lIndex
-	      << std::endl;
+              << std::endl;
     return false;
   }
   const ThreadGroups& threadGrp = tit->second;
@@ -223,14 +223,14 @@ bool ASMs3DSpec::integrate (Integrand& integrand, int lIndex,
       {
         int iel = threadGrp[g][t][l];
 
-	// Set up nodal point coordinates for current element
+        // Set up nodal point coordinates for current element
         if (!this->getElementCoordinates(Xnod,++iel))
         {
           ok = false;
           break;
         }
 
-	// Initialize element quantities
+        // Initialize element quantities
         fe.iel = MLGE[iel-1];
         LocalIntegral* A = integrand.getLocalIntegral(nen,fe.iel,true);
         if (!integrand.initElementBou(MNPC[iel-1],*A))
@@ -241,41 +241,41 @@ bool ASMs3DSpec::integrate (Integrand& integrand, int lIndex,
         }
 
 
-	// --- Integration loop over all Gauss points in each direction --------
+        // --- Integration loop over all Gauss points in each direction --------
 
-	for (int j = 0; j < p[t2-1]; j++)
-	  for (int i = 0; i < p[t1-1]; i++)
-	  {
-	    // "Coordinates" on the face
-	    xi[t0-1] = faceDir < 0 ? 1 : p[t0-1];
-	    xi[t1-1] = i+1;
-	    xi[t2-1] = j+1;
+        for (int j = 0; j < p[t2-1]; j++)
+          for (int i = 0; i < p[t1-1]; i++)
+          {
+            // "Coordinates" on the face
+            xi[t0-1] = faceDir < 0 ? 1 : p[t0-1];
+            xi[t1-1] = i+1;
+            xi[t2-1] = j+1;
 
-	    // Compute the basis functions and their derivatives, using
-	    // tensor product of one-dimensional Lagrange polynomials
-	    evalBasis(xi[0],xi[1],xi[2],p1,p2,p3,D[0],D[1],D[2],fe.N,dNdu);
+            // Compute the basis functions and their derivatives, using
+            // tensor product of one-dimensional Lagrange polynomials
+            evalBasis(xi[0],xi[1],xi[2],p1,p2,p3,D[0],D[1],D[2],fe.N,dNdu);
 
-	    // Compute basis function derivatives and the face normal
-	    fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,Xnod,dNdu,t1,t2);
-	    if (fe.detJxW == 0.0) continue; // skip singular points
+            // Compute basis function derivatives and the face normal
+            fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,Xnod,dNdu,t1,t2);
+            if (fe.detJxW == 0.0) continue; // skip singular points
 
-	    if (faceDir < 0) normal *= -1.0;
+            if (faceDir < 0) normal *= -1.0;
 
-	    // Cartesian coordinates of current integration point
-	    X = Xnod * fe.N;
-	    X.t = time.t;
+            // Cartesian coordinates of current integration point
+            X = Xnod * fe.N;
+            X.t = time.t;
 
-	    // Evaluate the integrand and accumulate element contributions
-	    fe.detJxW *= wg[t1-1][i]*wg[t2-1][j];
+            // Evaluate the integrand and accumulate element contributions
+            fe.detJxW *= wg[t1-1][i]*wg[t2-1][j];
             if (!integrand.evalBou(*A,fe,time,X,normal))
               ok = false;
-	  }
+          }
 
         // Finalize the element quantities
         if (ok && !integrand.finalizeElementBou(*A,fe,time))
           ok = false;
 
-	// Assembly of global system integral
+        // Assembly of global system integral
         if (ok && !glInt.assemble(A->ref(),fe.iel))
           ok = false;
 
@@ -289,8 +289,8 @@ bool ASMs3DSpec::integrate (Integrand& integrand, int lIndex,
 
 
 bool ASMs3DSpec::integrateEdge (Integrand& integrand, int lEdge,
-				GlobalIntegral& glInt,
-				const TimeDomain& time)
+                                GlobalIntegral& glInt,
+                                const TimeDomain& time)
 {
   if (this->empty()) return true; // silently ignore empty patches
 
@@ -327,7 +327,7 @@ bool ASMs3DSpec::integrateEdge (Integrand& integrand, int lEdge,
   int    xi[3];
 
   switch (lEdge)
-    {
+  {
     case  1: xi[1] =  1; xi[2] =  1; break;
     case  2: xi[1] = p2; xi[2] =  1; break;
     case  3: xi[1] =  1; xi[2] = p3; break;
@@ -340,7 +340,7 @@ bool ASMs3DSpec::integrateEdge (Integrand& integrand, int lEdge,
     case 10: xi[0] = p1; xi[1] =  1; break;
     case 11: xi[0] =  1; xi[1] = p2; break;
     case 12: xi[0] = p1; xi[1] = p2; break;
-    }
+  }
 
 
   // === Assembly loop over all elements on the patch edge =====================
@@ -350,66 +350,66 @@ bool ASMs3DSpec::integrateEdge (Integrand& integrand, int lEdge,
     for (int i2 = 0; i2 < nely; i2++)
       for (int i1 = 0; i1 < nelx; i1++, iel++)
       {
-	// Skip elements that are not on current boundary edge
-	bool skipMe = false;
-	switch (lEdge)
-	  {
-	  case  1: if (i2 > 0      || i3 > 0)      skipMe = true; break;
-	  case  2: if (i2 < nely-1 || i3 > 0)      skipMe = true; break;
-	  case  3: if (i2 > 0      || i3 < nelz-1) skipMe = true; break;
-	  case  4: if (i2 < nely-1 || i3 < nelz-1) skipMe = true; break;
-	  case  5: if (i1 > 0      || i3 > 0)      skipMe = true; break;
-	  case  6: if (i1 < nelx-1 || i3 > 0)      skipMe = true; break;
-	  case  7: if (i1 > 0      || i3 < nelz-1) skipMe = true; break;
-	  case  8: if (i1 < nelx-1 || i3 < nelz-1) skipMe = true; break;
-	  case  9: if (i1 > 0      || i2 > 0)      skipMe = true; break;
-	  case 10: if (i1 < nelx-1 || i2 > 0)      skipMe = true; break;
-	  case 11: if (i1 > 0      || i2 < nely-1) skipMe = true; break;
-	  case 12: if (i1 < nelx-1 || i2 < nely-1) skipMe = true; break;
-	  }
-	if (skipMe) continue;
+        // Skip elements that are not on current boundary edge
+        bool skipMe = false;
+        switch (lEdge)
+        {
+          case  1: if (i2 > 0      || i3 > 0)      skipMe = true; break;
+          case  2: if (i2 < nely-1 || i3 > 0)      skipMe = true; break;
+          case  3: if (i2 > 0      || i3 < nelz-1) skipMe = true; break;
+          case  4: if (i2 < nely-1 || i3 < nelz-1) skipMe = true; break;
+          case  5: if (i1 > 0      || i3 > 0)      skipMe = true; break;
+          case  6: if (i1 < nelx-1 || i3 > 0)      skipMe = true; break;
+          case  7: if (i1 > 0      || i3 < nelz-1) skipMe = true; break;
+          case  8: if (i1 < nelx-1 || i3 < nelz-1) skipMe = true; break;
+          case  9: if (i1 > 0      || i2 > 0)      skipMe = true; break;
+          case 10: if (i1 < nelx-1 || i2 > 0)      skipMe = true; break;
+          case 11: if (i1 > 0      || i2 < nely-1) skipMe = true; break;
+          case 12: if (i1 < nelx-1 || i2 < nely-1) skipMe = true; break;
+        }
+        if (skipMe) continue;
 
-	// Set up nodal point coordinates for current element
-	if (!this->getElementCoordinates(Xnod,iel)) return false;
+        // Set up nodal point coordinates for current element
+        if (!this->getElementCoordinates(Xnod,iel)) return false;
 
-	// Initialize element quantities
-	fe.iel = MLGE[iel-1];
+        // Initialize element quantities
+        fe.iel = MLGE[iel-1];
         LocalIntegral* A = integrand.getLocalIntegral(nen,fe.iel,true);
         if (!integrand.initElementBou(MNPC[iel-1],*A)) return false;
 
 
-	// --- Integration loop over all Gauss points along the edge -----------
+        // --- Integration loop over all Gauss points along the edge -----------
 
-	for (int i = 0; i < pe; i++)
-	{
-	  // "Coordinate" on the edge
-	  xi[lDir] = i+1;
+        for (int i = 0; i < pe; i++)
+        {
+          // "Coordinate" on the edge
+          xi[lDir] = i+1;
 
-	  // Compute the basis functions and their derivatives, using
-	  // tensor product of one-dimensional Lagrange polynomials
-	  evalBasis(xi[0],xi[1],xi[2],p1,p2,p3,D1,D2,D3,fe.N,dNdu);
+          // Compute the basis functions and their derivatives, using
+          // tensor product of one-dimensional Lagrange polynomials
+          evalBasis(xi[0],xi[1],xi[2],p1,p2,p3,D1,D2,D3,fe.N,dNdu);
 
-	  // Compute basis function derivatives and the edge tangent
-	  fe.detJxW = utl::Jacobian(Jac,tangent,fe.dNdX,Xnod,dNdu,1+lDir);
-	  if (fe.detJxW == 0.0) continue; // skip singular points
+          // Compute basis function derivatives and the edge tangent
+          fe.detJxW = utl::Jacobian(Jac,tangent,fe.dNdX,Xnod,dNdu,1+lDir);
+          if (fe.detJxW == 0.0) continue; // skip singular points
 
-	  // Cartesian coordinates of current integration point
-	  X = Xnod * fe.N;
-	  X.t = time.t;
+          // Cartesian coordinates of current integration point
+          X = Xnod * fe.N;
+          X.t = time.t;
 
-	  // Evaluate the integrand and accumulate element contributions
-	  fe.detJxW *= wg[lDir][i];
+          // Evaluate the integrand and accumulate element contributions
+          fe.detJxW *= wg[lDir][i];
           if (!integrand.evalBou(*A,fe,time,X,tangent))
-	    return false;
-	}
+            return false;
+        }
 
         // Finalize the element quantities
         if (!integrand.finalizeElementBou(*A,fe,time))
           return false;
 
-	// Assembly of global system integral
-	if (!glInt.assemble(A->ref(),fe.iel))
-	  return false;
+        // Assembly of global system integral
+        if (!glInt.assemble(A->ref(),fe.iel))
+          return false;
       }
 
   return true;
@@ -417,7 +417,7 @@ bool ASMs3DSpec::integrateEdge (Integrand& integrand, int lEdge,
 
 
 bool ASMs3DSpec::evalSolution (Matrix& sField, const IntegrandBase& integrand,
-			       const RealArray*, bool) const
+                               const RealArray*, bool) const
 {
   sField.resize(0,0);
 
@@ -449,25 +449,25 @@ bool ASMs3DSpec::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     int i, j, k, loc = 0;
     for (k = 0; k < p3; k++)
       for (j = 0; j < p2; j++)
-	for (i = 0; i < p1; i++, loc++)
-	{
-	  evalBasis(i+1,j+1,k+1,p1,p2,p3,D1,D2,D3,fe.N,dNdu);
+        for (i = 0; i < p1; i++, loc++)
+        {
+          evalBasis(i+1,j+1,k+1,p1,p2,p3,D1,D2,D3,fe.N,dNdu);
 
-	  // Compute the Jacobian inverse
-	  fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+          // Compute the Jacobian inverse
+          fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
           if (fe.detJxW == 0.0) continue; // skip singular points
 
-	  // Now evaluate the solution field
-	  if (!integrand.evalSol(solPt,fe,Xnod.getColumn(loc+1),mnpc))
-	    return false;
-	  else if (sField.empty())
-	    sField.resize(solPt.size(),nPoints,true);
+          // Now evaluate the solution field
+          if (!integrand.evalSol(solPt,fe,Xnod.getColumn(loc+1),mnpc))
+            return false;
+          else if (sField.empty())
+            sField.resize(solPt.size(),nPoints,true);
 
-	  if (++check[mnpc[loc]] == 1)
-	    globSolPt[mnpc[loc]] = solPt;
-	  else
-	    globSolPt[mnpc[loc]] += solPt;
-	}
+          if (++check[mnpc[loc]] == 1)
+            globSolPt[mnpc[loc]] = solPt;
+          else
+            globSolPt[mnpc[loc]] += solPt;
+        }
   }
 
   for (size_t i = 0; i < nPoints; i++)

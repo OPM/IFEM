@@ -26,7 +26,7 @@
 
 
 bool ASMs2DSpec::getGridParameters (RealArray& prm, int dir,
-				    int nSegPerSpan) const
+                                    int nSegPerSpan) const
 {
   if (!surf) return false;
 
@@ -39,8 +39,8 @@ bool ASMs2DSpec::getGridParameters (RealArray& prm, int dir,
   {
     nSegPerSpan = xGLL.size() - 1;
     std::cout <<"Spectral elements: Number of nodes per knot-span in "
-	      << char('u'+dir) <<"-directon reset to "<< nSegPerSpan
-	      <<" (GLL points)"<< std::endl;
+              << char('u'+dir) <<"-directon reset to "<< nSegPerSpan
+              <<" (GLL points)"<< std::endl;
   }
 
   RealArray::const_iterator uit = surf->basis(dir).begin();
@@ -50,7 +50,7 @@ bool ASMs2DSpec::getGridParameters (RealArray& prm, int dir,
     double ucurr = *(uit++);
     if (ucurr > uprev)
       for (int i = 1; i <= nSegPerSpan; i++)
-	prm.push_back(0.5*(ucurr-uprev)*(1.0+xGLL(i)) + uprev);
+        prm.push_back(0.5*(ucurr-uprev)*(1.0+xGLL(i)) + uprev);
     uprev = ucurr;
   }
 
@@ -64,14 +64,14 @@ bool ASMs2DSpec::getGridParameters (RealArray& prm, int dir,
 */
 
 static void evalBasis (int i, int j, int p1, int p2,
-		       const Matrix& der1, const Matrix& der2,
-		       Vector& N, Matrix& dNdu)
+                       const Matrix& der1, const Matrix& der2,
+                       Vector& N, Matrix& dNdu)
 {
   int a, b, n = 1;
   for (b = 1; b <= p2; b++)
     for (a = 1; a <= p1; a++, n++)
     {
-       N  (n)   = (a == i && b == j) ? 1.0 : 0.0;
+      N  (n)   = (a == i && b == j) ? 1.0 : 0.0;
       dNdu(n,1) = (b == j) ? der1(i,a) : 0.0;
       dNdu(n,2) = (a == i) ? der2(j,b) : 0.0;
     }
@@ -79,8 +79,8 @@ static void evalBasis (int i, int j, int p1, int p2,
 
 
 bool ASMs2DSpec::integrate (Integrand& integrand,
-			    GlobalIntegral& glInt,
-			    const TimeDomain& time)
+                            GlobalIntegral& glInt,
+                            const TimeDomain& time)
 {
   if (this->empty()) return true; // silently ignore empty patches
 
@@ -166,8 +166,8 @@ bool ASMs2DSpec::integrate (Integrand& integrand,
 
 
 bool ASMs2DSpec::integrate (Integrand& integrand, int lIndex,
-			    GlobalIntegral& glInt,
-			    const TimeDomain& time)
+                            GlobalIntegral& glInt,
+                            const TimeDomain& time)
 {
   if (this->empty()) return true; // silently ignore empty patches
 
@@ -211,12 +211,12 @@ bool ASMs2DSpec::integrate (Integrand& integrand, int lIndex,
       // Skip elements that are not on current boundary edge
       bool skipMe = false;
       switch (edgeDir)
-	{
-	case -1: if (i1 > 0)      skipMe = true; break;
-	case  1: if (i1 < nelx-1) skipMe = true; break;
-	case -2: if (i2 > 0)      skipMe = true; break;
-	case  2: if (i2 < nely-1) skipMe = true; break;
-	}
+      {
+      case -1: if (i1 > 0)      skipMe = true; break;
+      case  1: if (i1 < nelx-1) skipMe = true; break;
+      case -2: if (i2 > 0)      skipMe = true; break;
+      case  2: if (i2 < nely-1) skipMe = true; break;
+      }
       if (skipMe) continue;
 
       // Set up control point coordinates for current element
@@ -232,28 +232,28 @@ bool ASMs2DSpec::integrate (Integrand& integrand, int lIndex,
 
       for (int i = 0; i < p[t2-1]; i++)
       {
-	// "Coordinates" along the edge
-	xi[t1-1] = edgeDir < 0 ? 1 : p[t1-1];
-	xi[t2-1] = i+1;
+        // "Coordinates" along the edge
+        xi[t1-1] = edgeDir < 0 ? 1 : p[t1-1];
+        xi[t2-1] = i+1;
 
-	// Evaluate the basis functions and gradients using
-	// tensor product of one-dimensional Lagrange polynomials
-	evalBasis(xi[0],xi[1],p1,p2,D[0],D[1],fe.N,dNdu);
+        // Evaluate the basis functions and gradients using
+        // tensor product of one-dimensional Lagrange polynomials
+        evalBasis(xi[0],xi[1],p1,p2,D[0],D[1],fe.N,dNdu);
 
-	// Compute basis function derivatives and the edge normal
-	fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,Xnod,dNdu,t1,t2);
-	if (fe.detJxW == 0.0) continue; // skip singular points
+        // Compute basis function derivatives and the edge normal
+        fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,Xnod,dNdu,t1,t2);
+        if (fe.detJxW == 0.0) continue; // skip singular points
 
-	if (edgeDir < 0) normal *= -1.0;
+        if (edgeDir < 0) normal *= -1.0;
 
-	// Cartesian coordinates of current integration point
-	X = Xnod * fe.N;
-	X.t = time.t;
+        // Cartesian coordinates of current integration point
+        X = Xnod * fe.N;
+        X.t = time.t;
 
-	// Evaluate the integrand and accumulate element contributions
-	fe.detJxW *= wg[t2-1][i];
+        // Evaluate the integrand and accumulate element contributions
+        fe.detJxW *= wg[t2-1][i];
         if (!integrand.evalBou(*A,fe,time,X,normal))
-	  return false;
+          return false;
       }
 
       // Finalize the element quantities
@@ -262,7 +262,7 @@ bool ASMs2DSpec::integrate (Integrand& integrand, int lIndex,
 
       // Assembly of global system integral
       if (!glInt.assemble(A->ref(),fe.iel))
-	return false;
+        return false;
 
       A->destruct();
     }
@@ -272,7 +272,7 @@ bool ASMs2DSpec::integrate (Integrand& integrand, int lIndex,
 
 
 bool ASMs2DSpec::evalSolution (Matrix& sField, const IntegrandBase& integrand,
-			       const RealArray*, bool) const
+                               const RealArray*, bool) const
 {
   sField.resize(0,0);
 
@@ -303,22 +303,22 @@ bool ASMs2DSpec::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     for (j = 0; j < p2; j++)
       for (i = 0; i < p1; i++, loc++)
       {
-	evalBasis(i+1,j+1,p1,p2,D1,D2,fe.N,dNdu);
+        evalBasis(i+1,j+1,p1,p2,D1,D2,fe.N,dNdu);
 
-	// Compute the Jacobian inverse
-	fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+        // Compute the Jacobian inverse
+        fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
         if (fe.detJxW == 0.0) continue; // skip singular points
 
-	// Now evaluate the solution field
-	if (!integrand.evalSol(solPt,fe,Xnod.getColumn(loc+1),mnpc))
-	  return false;
-	else if (sField.empty())
-	  sField.resize(solPt.size(),nPoints,true);
+        // Now evaluate the solution field
+        if (!integrand.evalSol(solPt,fe,Xnod.getColumn(loc+1),mnpc))
+          return false;
+        else if (sField.empty())
+          sField.resize(solPt.size(),nPoints,true);
 
-	if (++check[mnpc[loc]] == 1)
-	  globSolPt[mnpc[loc]] = solPt;
-	else
-	  globSolPt[mnpc[loc]] += solPt;
+        if (++check[mnpc[loc]] == 1)
+          globSolPt[mnpc[loc]] = solPt;
+        else
+          globSolPt[mnpc[loc]] += solPt;
       }
   }
 
