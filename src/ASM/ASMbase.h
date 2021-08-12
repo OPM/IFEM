@@ -918,6 +918,8 @@ protected:
   static int gEl;  //!< Global element counter
   static int gNod; //!< Global node counter
 
+  mutable SparseMatrix* glbL2_A = nullptr; //!< Global L2-projection (mass) matrix
+
 private:
   std::vector<char> myLMTypes; //!< Type of Lagrange multiplier ('L' or 'G')
   std::set<size_t>  myLMs;     //!< Nodal indices of the Lagrange multipliers

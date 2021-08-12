@@ -166,7 +166,7 @@ public:
   L2Mats(GlbL2& p, size_t nen, size_t nf, LocalIntegral* q = nullptr)
     : gl2Int(p), elmData(q)
   {
-    this->resize(1,nf);
+    this->resize(p.pA ? 1 : 0,nf);
     this->redim(nen);
   }
 
@@ -193,7 +193,8 @@ class L2GlobalInt : public GlobalIntegral
 {
 public:
   //! \brief The constructor initializes the system matrix references.
-  L2GlobalInt(SparseMatrix& A_, StdVector& B_) : A(A_), B(B_) {}
+  L2GlobalInt(int dim_, SparseMatrix* A_, StdVector& B_)
+    : dim(dim_), A(A_), B(B_) {}
 
   //! \brief Empty destructor.
   virtual ~L2GlobalInt() {}
@@ -205,41 +206,47 @@ public:
     for (size_t i = 0; i < elm->mnpc.size(); i++)
     {
       int inod = elm->mnpc[i]+1;
-      for (size_t j = 0; j < elm->mnpc.size(); j++)
-      {
-        int jnod = elm->mnpc[j]+1;
-        A(inod,jnod) += elm->A.front()(i+1,j+1);
+      if (A) {
+        for (size_t j = 0; j < elm->mnpc.size(); j++)
+        {
+          int jnod = elm->mnpc[j]+1;
+          (*A)(inod,jnod) += elm->A.front()(i+1,j+1);
+        }
       }
       for (const Vector& b : elm->b)
       {
         B(inod) += b[i];
-        inod += A.dim();
+        inod += dim;
       }
     }
     return true;
   }
 
 private:
-  SparseMatrix& A; //!< Reference to left-hand-side matrix
+  int dim; //!< Dimension of matrix
+  SparseMatrix* A; //!< Reference to left-hand-side matrix
   StdVector&    B; //!< Reference to right-hand-side vector
 };
 
 
-GlbL2::GlbL2 (IntegrandBase* p, size_t n) : problem(p)
+GlbL2::GlbL2 (IntegrandBase* p, size_t n, SparseMatrix* A) :
+  pA(A), problem(p)
 {
   nrhs = p->getNoFields(2);
   this->allocate(n);
 }
 
 
-GlbL2::GlbL2 (FunctionBase* f, size_t n) : problem(nullptr), functions({f})
+GlbL2::GlbL2 (FunctionBase* f, size_t n, SparseMatrix* A) :
+  pA(A), problem(nullptr), functions({f})
 {
   nrhs = f->dim();
   this->allocate(n);
 }
 
 
-GlbL2::GlbL2 (const FunctionVec& f, size_t n) : problem(nullptr), functions(f)
+GlbL2::GlbL2 (const FunctionVec& f, size_t n, SparseMatrix* A) :
+  pA(A), problem(nullptr), functions(f)
 {
   nrhs = 0;
   for (FunctionBase* func : f)
@@ -250,32 +257,32 @@ GlbL2::GlbL2 (const FunctionVec& f, size_t n) : problem(nullptr), functions(f)
 
 GlbL2::~GlbL2()
 {
-  delete pA;
   delete pB;
-#ifdef HAS_PETSC
-  delete adm;
-#endif
 }
 
 
 void GlbL2::allocate (size_t n)
 {
 #ifdef HAS_PETSC
-  adm = nullptr;
   if (GlbL2::MatrixType == LinAlg::PETSC && GlbL2::SolverParams)
   {
-    adm = new ProcessAdm();
-    pA = new PETScMatrix(*adm,*GlbL2::SolverParams);
-    pB = new PETScVector(*adm,n*nrhs);
+    static ProcessAdm adm;
+    if (!pA) {
+      pA = new PETScMatrix(adm,*GlbL2::SolverParams);
+      pA->redim(n,n);
+    }
+
+    pB = new PETScVector(adm,n*nrhs);
   }
   else
 #endif
   {
-    pA = new SparseMatrix(SparseMatrix::SUPERLU);
+    if (!pA) {
+      pA = new SparseMatrix(SparseMatrix::SUPERLU);
+      pA->redim(n,n);
+    }
     pB = new StdVector(n*nrhs);
   }
-
-  pA->redim(n,n);
 }
 
 
@@ -353,7 +360,8 @@ bool GlbL2::evalInt (LocalIntegral& elmInt,
     solPt.insert(solPt.end(),funcPt.begin(),funcPt.end());
   }
 
-  gl2.A.front().outer_product(fe.N,fe.N,true,fe.detJxW);
+  if (!gl2.A.empty())
+    gl2.A.front().outer_product(fe.N,fe.N,true,fe.detJxW);
   for (size_t j = 0; j < solPt.size(); j++)
     gl2.b[j].add(fe.N,solPt[j]*fe.detJxW);
 
@@ -376,7 +384,8 @@ bool GlbL2::evalIntMx (LocalIntegral& elmInt,
     if (!problem->diverged(fe.iGP+1))
       return false;
 
-  gl2.A.front().outer_product(fe.N,fe.N,true,fe.detJxW);
+  if (!gl2.A.empty())
+    gl2.A.front().outer_product(fe.N,fe.N,true,fe.detJxW);
   for (size_t j = 0; j < solPt.size(); j++)
     gl2.b[j].add(fe.N,solPt[j]*fe.detJxW);
 
@@ -418,6 +427,7 @@ bool GlbL2::solve (Matrix& sField)
 #if SP_DEBUG > 1
   std::cout <<"\nSolution:"<< sField;
 #endif
+
   return true;
 }
 
@@ -473,11 +483,11 @@ bool ASMbase::L2projection (Matrix& sField,
                             const TimeDomain& time)
 {
   PROFILE2("ASMbase::L2projection");
-
-  GlbL2 gl2(integrand,this->getNoNodes(1));
-  L2GlobalInt dummy(*gl2.pA,*gl2.pB);
-
-  gl2.preAssemble(MNPC,this->getNoElms(true));
+  GlbL2 gl2(integrand,this->getNoNodes(1),glbL2_A);
+  L2GlobalInt dummy(this->getNoNodes(1),glbL2_A ? nullptr : gl2.pA,*gl2.pB);
+  if (!glbL2_A)
+    gl2.preAssemble(MNPC,this->getNoElms(true));
+  glbL2_A = gl2.pA;
   return this->integrate(gl2,dummy,time) && gl2.solve(sField);
 }
 
@@ -485,12 +495,12 @@ bool ASMbase::L2projection (Matrix& sField,
 bool ASMbase::L2projection (Matrix& sField, FunctionBase* function, double t)
 {
   PROFILE2("ASMbase::L2projection");
-
-  GlbL2 gl2(function,this->getNoNodes(1));
-  L2GlobalInt dummy(*gl2.pA,*gl2.pB);
+  GlbL2 gl2(function,this->getNoNodes(1),glbL2_A);
+  L2GlobalInt dummy(this->getNoNodes(1),glbL2_A ? nullptr : gl2.pA,*gl2.pB);
+  if (!glbL2_A)
+    gl2.preAssemble(MNPC,this->getNoElms(true));
+  glbL2_A = gl2.pA;
   TimeDomain time; time.t = t;
-
-  gl2.preAssemble(MNPC,this->getNoElms(true));
   return this->integrate(gl2,dummy,time) && gl2.solve(sField);
 }
 
@@ -499,12 +509,12 @@ bool ASMbase::L2projection (const std::vector<Matrix*>& sField,
                             const FunctionVec& function, double t)
 {
   PROFILE2("ASMbase::L2projection");
-
-  GlbL2 gl2(function,this->getNoNodes(1));
-  L2GlobalInt dummy(*gl2.pA,*gl2.pB);
+  GlbL2 gl2(function,this->getNoNodes(1),glbL2_A);
+  L2GlobalInt dummy(this->getNoNodes(1),glbL2_A ? nullptr : gl2.pA,*gl2.pB);
+  if (!glbL2_A)
+    gl2.preAssemble(MNPC,this->getNoElms(true));
+  glbL2_A = gl2.pA;
   TimeDomain time; time.t = t;
-
-  gl2.preAssemble(MNPC,this->getNoElms(true));
   return this->integrate(gl2,dummy,time) && gl2.solve(sField);
 }
 
@@ -520,44 +530,45 @@ bool ASMbase::globalL2projection (Matrix& sField,
   // Assemble the projection matrices
   size_t i, nnod = this->getNoProjectionNodes();
   size_t j, ncomp = integrand.dim();
-  SparseMatrix* A;
   StdVector* B;
   switch (GlbL2::MatrixType) {
   case LinAlg::UMFPACK:
-    A = new SparseMatrix(SparseMatrix::UMFPACK);
+    if (!glbL2_A)
+      glbL2_A = new SparseMatrix(SparseMatrix::UMFPACK);
     B = new StdVector(nnod*ncomp);
     break;
 #ifdef HAS_PETSC
   case LinAlg::PETSC:
     if (GlbL2::SolverParams)
     {
-      A = new PETScMatrix(ProcessAdm(), *GlbL2::SolverParams);
-      B = new PETScVector(ProcessAdm(), nnod*ncomp);
+      static ProcessAdm adm;
+      if (!glbL2_A)
+        glbL2_A = new PETScMatrix(adm, *GlbL2::SolverParams);
+      B = new PETScVector(adm, nnod*ncomp);
       break;
     }
 #endif
   default:
-    A = new SparseMatrix(SparseMatrix::SUPERLU);
+    glbL2_A = new SparseMatrix(SparseMatrix::SUPERLU);
     B = new StdVector(nnod*ncomp);
   }
-  A->redim(nnod,nnod);
+  glbL2_A->redim(nnod,nnod);
 
-  if (!this->assembleL2matrices(*A,*B,integrand,continuous))
+  if (!this->assembleL2matrices(*glbL2_A,*B,integrand,continuous))
   {
-    delete A;
     delete B;
     return false;
   }
 
 #if SP_DEBUG > 1
-  std::cout <<"---- Matrix A -----\n"<< *A
+  std::cout <<"---- Matrix A -----\n"<< *glbL2_A
             <<"-------------------"<< std::endl;
   std::cout <<"---- Vector B -----"<< *B
             <<"-------------------"<< std::endl;
 #endif
 
   // Solve the patch-global equation system
-  if (!A->solve(*B)) return false;
+  if (!glbL2_A->solve(*B)) return false;
 
   // Store the control-point values of the projected field
   sField.resize(ncomp,nnod);
@@ -569,7 +580,6 @@ bool ASMbase::globalL2projection (Matrix& sField,
   std::cout <<"- Solution Vector -"<< sField
             <<"-------------------"<< std::endl;
 #endif
-  delete A;
   delete B;
   return true;
 }
