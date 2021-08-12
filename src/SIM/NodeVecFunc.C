@@ -25,9 +25,9 @@ bool NodeVecFunc::isZero () const
 }
 
 
-Vec3 NodeVecFunc::evaluate (const Vec3& xp) const
+Vec3 NodeVecFunc::evaluate (const Vec3& X) const
 {
-  int idx = this->getPointIndex(xp).second - 1;
+  int idx = this->getPointIndex(X).second - 1;
   if (idx < 0 || !value) return Vec3();
 
   size_t nf = model.getNoFields();
@@ -42,10 +42,10 @@ Vec3 NodeVecFunc::evaluate (const Vec3& xp) const
 }
 
 
-std::pair<int,int> NodeVecFunc::getPointIndex (const Vec3& xp) const
+std::pair<int,int> NodeVecFunc::getPointIndex (const Vec3& Xp) const
 {
   // Check if the nodal index is stored in the Vec3 object itself
-  const Vec4* x4 = dynamic_cast<const Vec4*>(&xp);
+  const Vec4* x4 = dynamic_cast<const Vec4*>(&Xp);
   if (x4 && x4->idx > 0)
   {
     if (idMap.empty())
@@ -55,24 +55,24 @@ std::pair<int,int> NodeVecFunc::getPointIndex (const Vec3& xp) const
       std::map<int,int>::const_iterator it = idMap.find(x4->idx);
       if (it != idMap.end()) return *it;
 
-      std::cerr <<" *** NodeVecFunc::getPointIndex: Point "<< xp
+      std::cerr <<" *** NodeVecFunc::getPointIndex: Point "<< Xp
                 <<" is not present in the index map."<< std::endl;
     }
   }
 
   // Search among the earlier nodes found
-  std::map<Vec3,int>::const_iterator it = ptMap.find(xp);
+  std::map<Vec3,int>::const_iterator it = ptMap.find(Xp);
   if (it != ptMap.end()) return std::make_pair(x4 ? x4->idx : 0, it->second);
 
   // Not found, search among all nodes in the model
   const ASMbase* pch = nullptr;
   for (size_t i = 1; (pch = model.getPatch(i)); i++)
     for (size_t inod = 1; inod <= pch->getNoNodes(); inod++)
-      if (xp.equal(pch->getCoord(inod)))
+      if (Xp.equal(pch->getCoord(inod)))
         return std::make_pair(x4 ? x4->idx : 0,
-                              ptMap[xp] = pch->getNodeID(inod));
+                              ptMap[Xp] = pch->getNodeID(inod));
 
   std::cerr <<" *** NodeVecFunc::getPointIndex: No nodes matches the point "
-            << xp << std::endl;
+            << Xp << std::endl;
   return std::make_pair(0,0);
 }
