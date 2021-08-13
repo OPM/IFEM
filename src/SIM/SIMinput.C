@@ -680,8 +680,12 @@ bool SIMinput::parseOutputTag (const TiXmlElement* elem)
     dmp.step.insert(steps.begin(),steps.end());
     if (format == "matlab")
       dmp.format = LinAlg::MATLAB;
-    else if (std::toupper(format[0]) == 'M')
-      dmp.format = LinAlg::MATLAB;
+    else if (format == "matrix_market")
+      dmp.format = LinAlg::MATRIX_MARKET;
+    else {
+      std::cerr << "  ** SIMinput::parseOutputTag: Unknown matrix dump format \"" << format << "\", ignored" << std::endl;
+      return true;
+    }
     dmp.fname = elem->FirstChild()->Value();
     if (toupper(elem->Value()[5]) == 'R')
       rhsDump.push_back(dmp);
