@@ -342,13 +342,12 @@ const Real& SparseMatrix::operator () (size_t r, size_t c) const
 }
 
 
-void SparseMatrix::dump (std::ostream& os, char format, const char* label)
+void SparseMatrix::dump (std::ostream& os, LinAlg::StorageFormat format, const char* label)
 {
   if (label) os << label <<" = [\n";
   switch (format)
-    {
-    case 'M':
-    case 'm':
+  {
+    case LinAlg::MATLAB:
       if (editable)
         for (const ValueMap::value_type& val : elem)
           os << val.first.first <<' '<< val.first.second <<" "<< val.second
@@ -372,9 +371,9 @@ void SparseMatrix::dump (std::ostream& os, char format, const char* label)
       os <<"];\n";
       break;
 
-    default:
+    case LinAlg::FLAT:
       this->write(os);
-    }
+  }
 }
 
 
