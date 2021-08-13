@@ -18,8 +18,6 @@
 #include <sstream>
 
 #ifdef HAS_HDF5
-#include <numeric>
-#include <unistd.h>
 #ifdef HAVE_MPI
 #include <mpi.h>
 #endif

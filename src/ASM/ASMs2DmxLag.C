@@ -20,8 +20,6 @@
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
-#include "Utilities.h"
-#include "Vec3Oper.h"
 #include <numeric>
 
 

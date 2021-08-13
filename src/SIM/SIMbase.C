@@ -28,6 +28,7 @@
 #include "GlbL2projector.h"
 #include "ElmNorm.h"
 #include "AnaSol.h"
+#include "SystemMatrix.h"
 #include "TensorFunction.h"
 #include "Vec3Oper.h"
 #include "Utilities.h"

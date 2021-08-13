@@ -19,10 +19,6 @@
 
 class ASMs3Dmx;
 
-namespace Go {
-  class SplineVolume;
-}
-
 
 /*!
   \brief Class for mixed spline-based finite element vector fields in 3D.

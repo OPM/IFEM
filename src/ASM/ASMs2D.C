@@ -37,9 +37,6 @@
 #include "MPC.h"
 #include "IFEM.h"
 #include <array>
-#ifdef USE_OPENMP
-#include <omp.h>
-#endif
 
 
 ASMs2D::ASMs2D (unsigned char n_s, unsigned char n_f)

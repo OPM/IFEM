@@ -11,10 +11,8 @@
 //==============================================================================
 
 #include "DataExporter.h"
-#include "Function.h"
 #include "Property.h"
 #include "TimeStep.h"
-#include "matrix.h"
 #include "SIMCoupled.h"
 
 #include "gtest/gtest.h"

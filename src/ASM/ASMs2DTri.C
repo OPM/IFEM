@@ -23,7 +23,6 @@
 #include "TriangleQuadrature.h"
 #include "GaussQuadrature.h"
 #include "ElementBlock.h"
-#include "Vec3Oper.h"
 #include <numeric>
 
 

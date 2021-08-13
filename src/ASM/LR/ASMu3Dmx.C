@@ -13,7 +13,6 @@
 
 #include "ASMu3Dmx.h"
 
-#include "GoTools/geometry/ObjectHeader.h"
 #include "GoTools/trivariate/SplineVolume.h"
 
 #include "LRSpline/LRSplineVolume.h"
@@ -28,12 +27,9 @@
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
-#include "Fields.h"
 #include "SplineUtils.h"
-#include "Utilities.h"
 #include "Point.h"
 #include "Profiler.h"
-#include "Vec3Oper.h"
 #include "Vec3.h"
 
 #include <array>

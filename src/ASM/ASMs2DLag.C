@@ -24,7 +24,6 @@
 #include "GaussQuadrature.h"
 #include "ElementBlock.h"
 #include "Utilities.h"
-#include "Vec3Oper.h"
 #include <array>
 
 

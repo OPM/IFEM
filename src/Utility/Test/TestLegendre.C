@@ -11,7 +11,6 @@
 //==============================================================================
 
 #include "Legendre.h"
-#include <fstream>
 
 #include "gtest/gtest.h"
 

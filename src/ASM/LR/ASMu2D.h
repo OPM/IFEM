@@ -28,7 +28,6 @@ namespace utl {
 }
 
 namespace Go {
-  class SplineCurve;
   class SplineSurface;
   struct BasisPtsSf;
   struct BasisDerivsSf;

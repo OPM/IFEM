@@ -19,10 +19,6 @@
 
 class ASMu2Dmx;
 
-namespace LR {
-  class LRSplineSurface;
-}
-
 
 /*!
   \brief Class for mixed LR spline-based finite element vector fields in 2D.

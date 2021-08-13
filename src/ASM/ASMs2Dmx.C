@@ -12,7 +12,6 @@
 //==============================================================================
 
 #include "GoTools/geometry/SplineSurface.h"
-#include "GoTools/geometry/SurfaceInterpolator.h"
 
 #include "ASMs2Dmx.h"
 #include "TimeDomain.h"
@@ -22,17 +21,12 @@
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
-#include "SplineFields2D.h"
 #include "SplineUtils.h"
 #include "Utilities.h"
 #include "Point.h"
 #include "Profiler.h"
-#include "Vec3Oper.h"
 #include <array>
 #include <numeric>
-#ifdef USE_OPENMP
-#include <omp.h>
-#endif
 
 
 ASMs2Dmx::ASMs2Dmx (unsigned char n_s, const CharVec& n_f)

@@ -14,7 +14,6 @@
 #ifdef USE_OPENMP
 #include <omp.h>
 #endif
-#include <fstream>
 
 #include "gtest/gtest.h"
 

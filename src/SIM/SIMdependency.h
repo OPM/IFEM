@@ -14,12 +14,13 @@
 #ifndef _SIM_DEPENDENCY_H
 #define _SIM_DEPENDENCY_H
 
-#include "matrix.h"
-#include <string>
 #include <map>
+#include <string>
+#include <vector>
 
 class ASMbase;
 class IntegrandBase;
+namespace utl { template<class T> class vector; }
 
 
 /*!

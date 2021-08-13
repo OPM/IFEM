@@ -22,7 +22,6 @@
 #include "GlbL2projector.h"
 #include "SparseMatrix.h"
 #include "SplineUtils.h"
-#include "Utilities.h"
 #include "Profiler.h"
 #include <array>
 
