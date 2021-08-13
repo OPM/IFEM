@@ -54,7 +54,7 @@ public:
   const Real& operator()(size_t r) const { return myMat(r); }
 
   //! \brief Dumps the system matrix on a specified format.
-  virtual void dump(std::ostream&, char, const char*);
+  virtual void dump(std::ostream&, LinAlg::StorageFormat, const char*);
 
   //! \brief Initializes the element assembly process.
   //! \details Must be called once before the element assembly loop.

@@ -678,7 +678,10 @@ bool SIMinput::parseOutputTag (const TiXmlElement* elem)
     utl::getAttribute(elem,"step",steps);
     utl::getAttribute(elem,"eps",dmp.eps);
     dmp.step.insert(steps.begin(),steps.end());
-    dmp.format = format[0];
+    if (format == "matlab")
+      dmp.format = LinAlg::MATLAB;
+    else if (std::toupper(format[0]) == 'M')
+      dmp.format = LinAlg::MATLAB;
     dmp.fname = elem->FirstChild()->Value();
     if (toupper(elem->Value()[5]) == 'R')
       rhsDump.push_back(dmp);

@@ -775,13 +775,13 @@ protected:
   struct DumpData
   {
     std::string   fname;  //!< File name
-    char          format; //!< File format flag
+    LinAlg::StorageFormat format; //!< File format flag
     std::set<int> step;   //!< Dump step identifiers
     int           count;  //!< Internal step counter, dump only when step==count
     double        eps;    //!< Zero tolerance for printing small values
 
     //! \brief Default constructor.
-    DumpData() : format('P'), count(0), eps(1.0e-6) { step.insert(1); }
+    DumpData() : format(LinAlg::FLAT), count(0), eps(1.0e-6) { step.insert(1); }
     //! \brief Checks if the matrix or vector should be dumped now.
     bool doDump() { return !fname.empty() && step.find(++count) != step.end(); }
   };

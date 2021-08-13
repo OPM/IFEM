@@ -99,7 +99,7 @@ public:
   virtual Real Linfnorm() const = 0;
 
   //! \brief Dumps the system vector on a specified format.
-  virtual void dump(std::ostream&, char, const char* = nullptr) {}
+  virtual void dump(std::ostream&, LinAlg::StorageFormat, const char* = nullptr) {}
 
 protected:
   //! \brief Writes the system vector to the given output stream.
@@ -179,7 +179,7 @@ public:
   virtual Real Linfnorm() const { size_t off = 0; return this->normInf(off); }
 
   //! \brief Dumps the system vector on a specified format.
-  virtual void dump(std::ostream& os, char format, const char* label = nullptr);
+  virtual void dump(std::ostream& os, LinAlg::StorageFormat format, const char* label = nullptr);
 
 protected:
   //! \brief Writes the system vector to the given output stream.
@@ -311,7 +311,7 @@ public:
   virtual Real Linfnorm() const = 0;
 
   //! \brief Dumps the system matrix on a specified format.
-  virtual void dump(std::ostream&, char, const char* = nullptr) {}
+  virtual void dump(std::ostream&, LinAlg::StorageFormat, const char* = nullptr) {}
 
   //! \brief Calculates a matrix-vector product.
   StdVector operator*(const SystemVector& b) const;

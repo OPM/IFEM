@@ -63,19 +63,18 @@ SystemVector& SystemVector::copy (const SystemVector& x)
 }
 
 
-void StdVector::dump (std::ostream& os, char format, const char* label)
+void StdVector::dump (std::ostream& os, LinAlg::StorageFormat format, const char* label)
 {
   switch (format)
-    {
-    case 'M':
-    case 'm':
+  {
+    case LinAlg::MATLAB:
       utl::writeMatlab(label,*this,os);
       break;
 
-    default:
+    case LinAlg::FLAT:
       if (label) os << label <<" =";
       os << *this;
-    }
+  }
 }
 
 

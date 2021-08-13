@@ -37,6 +37,13 @@ namespace LinAlg //! Linear algebra scope
     SYMMETRIC      = 1, //!< Symmetric matrix (value and structure)
     SPD            = 2  //!< Symmetric, positive definite matrix
   };
+
+  //! \brief Enumeration of storage formats.
+  enum StorageFormat
+  {
+    FLAT,         //!< Flat format
+    MATLAB        //!< Matlab format
+  };
 }
 
 #endif
