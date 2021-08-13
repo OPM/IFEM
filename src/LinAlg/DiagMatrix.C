@@ -38,6 +38,15 @@ void DiagMatrix::dump (std::ostream& os, LinAlg::StorageFormat format, const cha
       utl::writeMatlab(label,myMat,os);
       break;
 
+    case LinAlg::MATRIX_MARKET:
+      os << "%%MatrixMarket matrix coordinate real general\n";
+      if (label)
+        os << "% label = " << label << '\n';
+      os << myMat.size() << ' ' << myMat.size() << ' ' << myMat.size();
+      for (size_t row = 1; row <= myMat.size(); ++row)
+        os << '\n' << row << ' ' << row << ' ' << myMat(row);
+      break;
+
     case LinAlg::FLAT:
       if (label) os << label <<" =";
       os << myMat;

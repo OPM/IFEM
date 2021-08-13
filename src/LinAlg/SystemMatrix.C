@@ -71,6 +71,16 @@ void StdVector::dump (std::ostream& os, LinAlg::StorageFormat format, const char
       utl::writeMatlab(label,*this,os);
       break;
 
+    case LinAlg::MATRIX_MARKET:
+    {
+      os << "%%MatrixMarket matrix array real general\n" << this->size() << " 1";
+      int old = utl::nval_per_line;
+      utl::nval_per_line = 1;
+      os << *this;
+      utl::nval_per_line = old;
+      break;
+    }
+
     case LinAlg::FLAT:
       if (label) os << label <<" =";
       os << *this;

@@ -108,6 +108,16 @@ void DenseMatrix::dump (std::ostream& os, LinAlg::StorageFormat format, const ch
       utl::writeMatlab(label,myMat,os);
       break;
 
+    case LinAlg::MATRIX_MARKET:
+      os << "%%MatrixMarket matrix array real general\n";
+      if (label)
+        os << "% label = " << label << '\n';
+      os << myMat.rows() << ' ' << myMat.cols();
+      for (size_t j = 1; j <= myMat.rows(); ++j)
+        for (size_t i = 1; i <= myMat.cols(); ++i)
+          os << '\n' << myMat(i,j);
+      break;
+
     case LinAlg::FLAT:
       if (label) os << label <<" =";
       os << myMat;

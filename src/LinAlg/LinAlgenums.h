@@ -42,7 +42,8 @@ namespace LinAlg //! Linear algebra scope
   enum StorageFormat
   {
     FLAT,         //!< Flat format
-    MATLAB        //!< Matlab format
+    MATLAB,       //!< Matlab format
+    MATRIX_MARKET //!< Matrix-market format
   };
 }
 
