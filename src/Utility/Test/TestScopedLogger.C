@@ -14,29 +14,26 @@
 
 #include "gtest/gtest.h"
 
-void MockFunction(std::ostream& stream)
-{
-  ScopedLogger log("MockFunction", stream);
-}
 
 TEST(TestScopedLogger, General)
 {
   std::stringstream str;
-  MockFunction(str);
+  auto&& MockFunction = [&str]() { ScopedLogger log("MockFunction",str); };
 
+  MockFunction();
   char tmp[1024];
   str.getline(tmp, 1024);
+  std::cout << tmp << std::endl;
 #ifdef HAVE_MPI
   ASSERT_STREQ(tmp, "[0]: Entering \"MockFunction\"");
 #else
   ASSERT_STREQ(tmp, "Entering \"MockFunction\"");
 #endif
   str.getline(tmp, 1024);
+  std::cout << tmp << std::endl;
 #ifdef HAVE_MPI
   ASSERT_STREQ(tmp, "[0]: Exiting \"MockFunction\"");
 #else
   ASSERT_STREQ(tmp, "Exiting \"MockFunction\"");
 #endif
-
-
 }

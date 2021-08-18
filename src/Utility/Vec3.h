@@ -199,10 +199,10 @@ public:
   int  idx; //!< Nodal point index
 
   //! \brief Default constructor creating a point at origin.
-  Vec4(const Real* par = nullptr)
+  Vec4(const Real* par = nullptr, Real T = Real(0))
   {
     u = par;
-    t = Real(0);
+    t = T;
     idx = -1;
   }
 
