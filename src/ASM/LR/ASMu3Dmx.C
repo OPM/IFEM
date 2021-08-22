@@ -153,14 +153,14 @@ void ASMu3Dmx::initMADOF (const int* sysMadof)
 }
 
 
-void ASMu3Dmx::extractNodeVec (const Vector& globRes, Vector& nodeVec,
+void ASMu3Dmx::extractNodeVec (const RealArray& globRes, RealArray& nodeVec,
                                unsigned char, int basis) const
 {
   this->extractNodeVecMx(globRes,nodeVec,basis);
 }
 
 
-bool ASMu3Dmx::injectNodeVec (const Vector& nodeRes, Vector& globRes,
+bool ASMu3Dmx::injectNodeVec (const RealArray& nodeRes, RealArray& globRes,
                               unsigned char, int basis) const
 {
   this->injectNodeVecMx(globRes,nodeRes,basis);

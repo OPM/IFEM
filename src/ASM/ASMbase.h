@@ -682,7 +682,7 @@ public:
   //! \param[out] nodeVec Nodal result vector for this patch
   //! \param[in] madof Global Matrix of Accumulated DOFs
   //! \param[in] ngnod Dimension of madof (the default -1 means unknown)
-  bool extractNodalVec(const Vector& globVec, Vector& nodeVec,
+  bool extractNodalVec(const RealArray& globVec, RealArray& nodeVec,
                        const int* madof, int ngnod = -1) const;
 
   //! \brief Extracts nodal results for this patch from the global vector.
@@ -690,23 +690,23 @@ public:
   //! \param[out] nodeVec Nodal result vector for this patch
   //! \param[in] nndof Number of DOFs per node (the default is \a nf)
   //! \param[in] basis Which basis to extract nodal values for (mixed methods)
-  virtual void extractNodeVec(const Vector& globVec, Vector& nodeVec,
-			      unsigned char nndof = 0, int basis = 0) const;
+  virtual void extractNodeVec(const RealArray& globVec, RealArray& nodeVec,
+                              unsigned char nndof = 0, int basis = 0) const;
 
   //! \brief Injects nodal results for this patch into the global vector.
   //! \param[in] nodeVec Nodal result vector for this patch
   //! \param globVec Global solution vector in DOF-order
   //! \param[in] nndof Number of DOFs per node (the default is \a nf)
   //! \param[in] basis Which basis to inject nodal values for (mixed methods)
-  virtual bool injectNodeVec(const Vector& nodeVec, Vector& globVec,
-			     unsigned char nndof = 0, int basis = 0) const;
+  virtual bool injectNodeVec(const RealArray& nodeVec, RealArray& globVec,
+                             unsigned char nndof = 0, int basis = 0) const;
 
   //! \brief Injects nodal results for this patch into the global vector.
   //! \param[in] nodeVec Nodal result vector for this patch
   //! \param globVec Global solution vector in DOF-order
   //! \param[in] madof Global Matrix of Accumulated DOFs
   //! \param[in] basis Which basis to inject nodal values for (mixed methods)
-  bool injectNodalVec(const Vector& nodeVec, Vector& globVec,
+  bool injectNodalVec(const RealArray& nodeVec, RealArray& globVec,
                       const IntVec& madof, int basis = 0) const;
 
   //! \brief Creates and adds a two-point constraint to this patch.

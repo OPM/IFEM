@@ -1301,7 +1301,7 @@ void ASMbase::extractElmRes (const Matrix& globRes, Matrix& elmRes) const
 }
 
 
-bool ASMbase::extractNodalVec (const Vector& globRes, Vector& nodeVec,
+bool ASMbase::extractNodalVec (const RealArray& globRes, RealArray& nodeVec,
                                const int* madof, int ngnod) const
 {
   nodeVec.clear();
@@ -1340,14 +1340,14 @@ bool ASMbase::extractNodalVec (const Vector& globRes, Vector& nodeVec,
       return false;
     }
 #endif
-    nodeVec.insert(nodeVec.end(),globRes.ptr()+idof,globRes.ptr()+jdof);
+    nodeVec.insert(nodeVec.end(),globRes.data()+idof,globRes.data()+jdof);
   }
 
   return true;
 }
 
 
-bool ASMbase::injectNodalVec (const Vector& nodeVec, Vector& globVec,
+bool ASMbase::injectNodalVec (const RealArray& nodeVec, RealArray& globVec,
                               const IntVec& madof, int basis) const
 {
   if (madof.empty())
@@ -1396,7 +1396,7 @@ bool ASMbase::injectNodalVec (const Vector& nodeVec, Vector& globVec,
 }
 
 
-void ASMbase::extractNodeVec (const Vector& globRes, Vector& nodeVec,
+void ASMbase::extractNodeVec (const RealArray& globRes, RealArray& nodeVec,
                               unsigned char nndof, int basis) const
 {
   if (nndof == 0) nndof = nf;
@@ -1405,7 +1405,7 @@ void ASMbase::extractNodeVec (const Vector& globRes, Vector& nodeVec,
   size_t nNod = myLMs.empty() ? MLGN.size() : *myLMs.begin()-1;
 
   nodeVec.resize(nndof*nNod);
-  double* nodeP = nodeVec.ptr();
+  double* nodeP = nodeVec.data();
   for (size_t i = 1; i <= nNod; i++, nodeP += nndof)
   {
     // Note: If nndof==1 (scalar field) we should ignore possibly added nodes
@@ -1419,12 +1419,12 @@ void ASMbase::extractNodeVec (const Vector& globRes, Vector& nodeVec,
       std::cerr <<" *** ASMbase::extractNodeVec: Global DOF "<< nndof*(n+1)
                 <<" is out of range [1,"<< globRes.size() <<"]."<< std::endl;
 #endif
-    memcpy(nodeP,globRes.ptr()+nndof*n,nndof*sizeof(double));
+    memcpy(nodeP,globRes.data()+nndof*n,nndof*sizeof(double));
   }
 }
 
 
-bool ASMbase::injectNodeVec (const Vector& nodeVec, Vector& globRes,
+bool ASMbase::injectNodeVec (const RealArray& nodeVec, RealArray& globRes,
                              unsigned char nndof, int) const
 {
   if (nndof == 0) nndof = nf;
@@ -1439,12 +1439,12 @@ bool ASMbase::injectNodeVec (const Vector& nodeVec, Vector& globRes,
     return false;
   }
 
-  const double* nodeP = nodeVec.ptr();
+  const double* nodeP = nodeVec.data();
   for (size_t i = 0; i < nNod; i++, nodeP += nndof)
   {
     int n = MLGN[i];
     if (n > 0 && nndof*(size_t)n <= globRes.size())
-      memcpy(globRes.ptr()+nndof*(n-1),nodeP,nndof*sizeof(double));
+      memcpy(globRes.data()+nndof*(n-1),nodeP,nndof*sizeof(double));
 #ifdef SP_DEBUG
     else // This is most likely OK, print message only in debug mode
       std::cerr <<" *** ASMbase::injectNodeVec: Global DOF "<< nndof*n
@@ -1474,7 +1474,7 @@ bool ASMbase::getSolution (Matrix& sField, const Vector& locSol,
       sField.fillColumn(i+1,RealArray(nf,0.0));
     }
     else
-      sField.fillColumn(i+1,locSol.ptr()+nf*nodes[i]-nf);
+      sField.fillColumn(i+1,locSol.data()+nf*nodes[i]-nf);
 
   return true;
 }

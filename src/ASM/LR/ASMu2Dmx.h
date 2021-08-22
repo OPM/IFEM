@@ -48,7 +48,7 @@ public:
   // ============================
 
   //! \brief Writes the geometry/basis of the patch to given stream.
-  virtual bool write(std::ostream& os, int basis = 0) const;
+  virtual bool write(std::ostream& os, int basis) const;
 
   //! \brief Generates the finite element topology data for the patch.
   //! \details The data generated are the element-to-node connectivity array,
@@ -58,14 +58,14 @@ public:
   //! \brief Clears the contents of the patch, making it empty.
   //! \param[in] retainGeometry If \e true, the spline geometry is not cleared.
   //! This is used to reinitialize the patch after it has been refined.
-  virtual void clear(bool retainGeometry = false);
+  virtual void clear(bool retainGeometry);
 
   //! \brief Returns the number of bases.
   virtual size_t getNoBasis() const { return m_basis.size(); }
   //! \brief Returns the total number of nodes in this patch.
-  virtual size_t getNoNodes(int basis = 0) const;
+  virtual size_t getNoNodes(int basis) const;
   //! \brief Returns the number of solution fields.
-  virtual unsigned char getNoFields(int basis = 0) const;
+  virtual unsigned char getNoFields(int basis) const;
   //! \brief Returns the number of DOFs per node.
   //! \param[in] inod 1-based node index local to current patch
   virtual unsigned char getNodalDOFs(size_t inod) const;
@@ -131,8 +131,8 @@ public:
   //! Otherwise, we assume that it contains the \a u and \a v parameters
   //! directly for each sampling point.
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-                            const RealArray* gpar, bool = false,
-                            int deriv = 0, int nf = 0) const;
+                            const RealArray* gpar, bool,
+                            int deriv, int nf) const;
 
   //! \brief Evaluates the secondary solution field at the given points.
   //! \param[out] sField Solution field
@@ -147,21 +147,21 @@ public:
   //! Otherwise, we assume that it contains the \a u and \a v parameters
   //! directly for each sampling point.
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
-                            const RealArray* gpar, bool = true) const;
+                            const RealArray* gpar, bool) const;
 
   //! \brief Extracts nodal results for this patch from the global vector.
   //! \param[in] globVec Global solution vector in DOF-order
   //! \param[out] nodeVec Nodal result vector for this patch
   //! \param[in] basis Which basis (or 0 for both) to extract nodal values for
-  virtual void extractNodeVec(const Vector& globVec, Vector& nodeVec,
-                              unsigned char = 0, int basis = 0) const;
+  virtual void extractNodeVec(const RealArray& globVec, RealArray& nodeVec,
+                              unsigned char, int basis) const;
 
   //! \brief Inject nodal results for this patch into a global vector.
   //! \param[in] nodeVec Nodal result vector for this patch
   //! \param[out] globVec Global solution vector in DOF-order
   //! \param[in] basis Which basis (or 0 for both) to extract nodal values for
-  virtual bool injectNodeVec(const Vector& nodeVec, Vector& globVec,
-                             unsigned char = 0, int basis = 0) const;
+  virtual bool injectNodeVec(const RealArray& nodeVec, RealArray& globVec,
+                             unsigned char, int basis) const;
 
   //! \brief Returns the number of refinement nodes for this patch.
   virtual size_t getNoRefineNodes() const;
@@ -189,7 +189,7 @@ public:
   //! \param[in] coordCheck False to disable coordinate checks (periodic connections)
   //! \param[in] thick Thickness of connection
   virtual bool connectPatch(int edge, ASM2D& neighbor, int nedge, bool revers,
-                            int basis, bool coordCheck = true, int thick = 1);
+                            int basis, bool coordCheck, int thick);
 
   //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
   //! \param[in] lIndex Local index of the boundary edge
@@ -199,8 +199,7 @@ public:
   //! \param[in] orient Orientation for returned boundary nodes
   //! \param[in] local If \e true return patch-local node numbers
   virtual void getBoundaryNodes(int lIndex, IntVec& nodes,
-                                int basis, int thick = 1,
-                                int orient = 0, bool local = false) const;
+                                int basis, int thick, int orient, bool local) const;
 
   //! \brief Remap (geometry) element wise errors to refinement basis functions.
   //! \param     errors The remapped errors

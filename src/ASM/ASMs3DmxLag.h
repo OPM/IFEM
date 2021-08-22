@@ -48,12 +48,12 @@ public:
   //! \brief Clears the contents of the patch, making it empty.
   //! \param[in] retainGeometry If \e true, the spline geometry is not cleared.
   //! This is used to reinitialize the patch after it has been refined.
-  virtual void clear(bool retainGeometry = false);
+  virtual void clear(bool retainGeometry);
 
   //! \brief Returns the total number of nodes in this patch.
-  virtual size_t getNoNodes(int basis = 0) const;
+  virtual size_t getNoNodes(int basis) const;
   //! \brief Returns the number of solution fields.
-  virtual unsigned char getNoFields(int basis = 0) const;
+  virtual unsigned char getNoFields(int basis) const;
   //! \brief Returns the number of DOFs per node.
   //! \param[in] inod 1-based node index local to current patch
   virtual unsigned char getNodalDOFs(size_t inod) const;
@@ -73,7 +73,7 @@ public:
   //! \param[in] coordCheck False to disable coordinate checks (periodic connections)
   //! \param[in] thick Thickness of connection
   virtual bool connectPatch(int face, ASM3D& neighbor, int nface, int norient,
-                            int basis = 0, bool coordCheck = true, int thick = 1);
+                            int basis, bool coordCheck, int thick);
 
   //! \brief Makes two opposite boundary faces periodic.
   //! \param[in] dir Parameter direction defining the periodic faces
@@ -116,8 +116,7 @@ public:
   //! \param[in] locSol Solution vector local to current patch
   //! \param[in] nf If non-zero evaluates nf fields on first basis
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-                            const RealArray*, bool = true,
-                            int = 0, int nf = 0) const;
+                            const RealArray*, bool, int, int nf) const;
 
   //! \brief Evaluates the secondary solution field at the given points.
   //! \param[out] sField Solution field
@@ -129,8 +128,8 @@ public:
   //! \param[in] globVec Global solution vector in DOF-order
   //! \param[out] nodeVec Nodal result vector for this patch
   //! \param[in] basis Which basis (or 0 for both) to extract nodal values for
-  virtual void extractNodeVec(const Vector& globVec, Vector& nodeVec,
-                              unsigned char, int basis = 0) const;
+  virtual void extractNodeVec(const RealArray& globVec, RealArray& nodeVec,
+                              unsigned char, int basis) const;
 
 protected:
 
@@ -142,7 +141,7 @@ protected:
   //! \param[out] n2 Number of nodes in second (v) direction
   //! \param[out] n3 Number of nodes in third (w) direction
   //! \param[in] basis Which basis to return size parameters for
-  virtual bool getSize(int& n1, int& n2, int& n3, int basis = 0) const;
+  virtual bool getSize(int& n1, int& n2, int& n3, int basis) const;
 
 private:
   std::vector<size_t> nxx; //!< Basis dimensions in 1st parameter direction

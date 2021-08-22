@@ -58,7 +58,7 @@ public:
   //! \brief Clears the contents of the patch, making it empty.
   //! \param[in] retainGeometry If \e true, the spline geometry is not cleared.
   //! This is used to reinitialize the patch after it has been refined.
-  virtual void clear(bool retainGeometry = false);
+  virtual void clear(bool retainGeometry);
 
   //! \brief Returns a matrix with nodal coordinates for an element.
   //! \param[in] iel Element index
@@ -71,14 +71,14 @@ public:
   virtual Vec3 getCoord(size_t inod) const;
 
   //! \brief Writes the geometry/basis of the patch to given stream.
-  virtual bool write(std::ostream& os, int basis = 0) const;
+  virtual bool write(std::ostream& os, int basis) const;
 
   //! \brief Returns the number of bases.
   virtual size_t getNoBasis() const { return m_basis.size(); }
   //! \brief Returns the total number of nodes in this patch.
-  virtual size_t getNoNodes(int basis = 0) const;
+  virtual size_t getNoNodes(int basis) const;
   //! \brief Returns the number of solution fields.
-  virtual unsigned char getNoFields(int basis = 0) const;
+  virtual unsigned char getNoFields(int basis) const;
   //! \brief Returns the number of DOFs per node.
   //! \param[in] inod 1-based node index local to current patch
   virtual unsigned char getNodalDOFs(size_t inod) const;
@@ -98,7 +98,7 @@ public:
   //! \param[in] coordCheck False to disable coordinate checks (periodic connections)
   //! \param[in] thick Thickness of connection
   virtual bool connectPatch(int face, ASM3D& neighbor, int nface, int norient,
-                            int basis = 0, bool coordCheck = true, int thick = 1);
+                            int basis, bool coordCheck, int thick);
 
   //! \brief Makes two opposite boundary faces periodic.
   //! \param[in] dir Parameter direction defining the periodic faces
@@ -165,8 +165,8 @@ public:
   //! Otherwise, we assume that it contains the \a u, \a v and \a w parameters
   //! directly for each sampling point.
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-                            const RealArray* gpar, bool regular = true,
-                            int deriv = 0, int nf = 0) const;
+                            const RealArray* gpar, bool regular,
+                            int deriv, int nf) const;
 
   //! \brief Evaluates the secondary solution field at the given points.
   //! \param[out] sField Solution field
@@ -182,21 +182,21 @@ public:
   //! Otherwise, we assume that it contains the \a u, \a v and \a w parameters
   //! directly for each sampling point.
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
-			    const RealArray* gpar, bool regular = true) const;
+			    const RealArray* gpar, bool regular) const;
 
   //! \brief Extracts nodal results for this patch from the global vector.
   //! \param[in] globVec Global solution vector in DOF-order
   //! \param[out] nodeVec Nodal result vector for this patch
   //! \param[in] basis Which basis (or 0 for both) to extract nodal values for
-  virtual void extractNodeVec(const Vector& globVec, Vector& nodeVec,
-			      unsigned char = 0, int basis = 0) const;
+  virtual void extractNodeVec(const RealArray& globVec, RealArray& nodeVec,
+                              unsigned char, int basis) const;
 
   //! \brief Injects nodal results for this patch into a global vector.
   //! \param[in] nodeVec Nodal result vector for this patch
   //! \param[out] globVec Global solution vector in DOF-order
   //! \param[in] basis Which basis (or 0 for both) to extract nodal values for
-  virtual bool injectNodeVec(const Vector& nodeVec, Vector& globVec,
-                             unsigned char = 0, int basis = 0) const;
+  virtual bool injectNodeVec(const RealArray& nodeVec, RealArray& globVec,
+                             unsigned char, int basis) const;
 
   //! \brief Generates element groups for multi-threading of interior integrals.
   //! \param[in] integrand Object with problem-specific data and methods
@@ -214,7 +214,7 @@ public:
   //! \param[out] n2 Number of nodes in second (v) direction
   //! \param[out] n3 Number of nodes in third (w) direction
   //! \param[in] basis Which basis to return size parameters for
-  virtual bool getSize(int& n1, int& n2, int& n3, int basis = 0) const;
+  virtual bool getSize(int& n1, int& n2, int& n3, int basis) const;
 protected:
   //! \brief Returns the volume in the parameter space for an element.
   //! \param[in] iel Element index
@@ -230,8 +230,8 @@ protected:
   //! \param[in] basis Which basis to grab nodes for (0 for all)
   //! \param[in] thick Thickness of connection
   //! \param[in] local If \e true return patch-local node numbers
-  virtual void getBoundaryNodes(int lIndex, IntVec& nodes, int basis = 0,
-                                int thick = 1, int = 0, bool local = false) const;
+  virtual void getBoundaryNodes(int lIndex, IntVec& nodes, int basis,
+                                int thick, int, bool local) const;
 
   std::vector<std::shared_ptr<Go::SplineVolume>> m_basis; //!< Vector of bases
 };

@@ -17,7 +17,9 @@
 #include "GoTools/trivariate/SplineVolume.h"
 #include "GoTools/trivariate/VolumeInterpolator.h"
 #include "SplineUtils.h"
+#include <array>
 #include <numeric>
+
 
 char ASMmxBase::geoBasis             = 2;
 ASMmxBase::MixedType ASMmxBase::Type = ASMmxBase::FULL_CONT_RAISE_BASIS1;
@@ -33,7 +35,7 @@ void ASMmxBase::initMx (const std::vector<int>& MLGN, const int* sysMadof)
 }
 
 
-void ASMmxBase::extractNodeVecMx (const Vector& glbVec, Vector& nodVec,
+void ASMmxBase::extractNodeVecMx (const RealArray& glbVec, RealArray& nodVec,
                                   int basis) const
 {
   int b0 = basis-1, b1 = basis;
@@ -65,7 +67,7 @@ void ASMmxBase::extractNodeVecMx (const Vector& glbVec, Vector& nodVec,
 }
 
 
-void ASMmxBase::injectNodeVecMx (Vector& glbVec, const Vector& nodVec,
+void ASMmxBase::injectNodeVecMx (RealArray& glbVec, const RealArray& nodVec,
                                  int basis) const
 {
   int b0 = basis-1, b1 = basis;
@@ -124,8 +126,8 @@ bool ASMmxBase::getSolutionMx (Matrix& sField, const Vector& locSol,
 }
 
 
-ASMmxBase::SurfaceVec ASMmxBase::establishBases(Go::SplineSurface* surf,
-                                                MixedType type)
+ASMmxBase::SurfaceVec ASMmxBase::establishBases (Go::SplineSurface* surf,
+                                                 MixedType type)
 {
   SurfaceVec result(2);
   // With mixed methods we need two separate spline spaces

@@ -43,13 +43,15 @@ protected:
   //! \param[in] glbVec Global solution vector in DOF-order
   //! \param[out] nodVec Nodal result vector for this patch
   //! \param[in] basis Which basis to extract the nodal values for
-  void extractNodeVecMx(const Vector& glbVec, Vector& nodVec, int basis) const;
+  void extractNodeVecMx(const RealArray& glbVec, RealArray& nodVec,
+                        int basis) const;
 
   //! \brief Injects nodal results for this patch into a global vector.
   //! \param[out] glbVec Global solution vector in DOF-order
   //! \param[in] nodVec Nodal result vector for this patch
   //! \param[in] basis Which basis to inject the nodal values for
-  void injectNodeVecMx(Vector& glbVec, const Vector& nodVec, int basis) const;
+  void injectNodeVecMx(RealArray& glbVec, const RealArray& nodVec,
+                       int basis) const;
 
   //! \brief Extracts the primary solution field at the specified nodes.
   //! \param[out] sField Solution field

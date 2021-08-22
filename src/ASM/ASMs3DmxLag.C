@@ -93,7 +93,7 @@ void ASMs3DmxLag::initMADOF (const int* sysMadof)
 }
 
 
-void ASMs3DmxLag::extractNodeVec (const Vector& globRes, Vector& nodeVec,
+void ASMs3DmxLag::extractNodeVec (const RealArray& globRes, RealArray& nodeVec,
 				  unsigned char, int basis) const
 {
   this->extractNodeVecMx(globRes,nodeVec,basis);
