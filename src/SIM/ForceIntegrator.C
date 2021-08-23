@@ -21,11 +21,11 @@
 
 
 Vector SIM::getBoundaryForce (const Vectors& solution, SIMbase* model, int code,
-                              const TimeDomain& time, const Vector* X0)
+                              const TimeDomain& time, const RealArray* X0)
 {
   if (X0)
   {
-    Vec3 X(X0->ptr(),X0->size());
+    Vec3 X(X0->data(),X0->size());
     return SIM::getBoundaryForce(solution,model,code,time,&X);
   }
   return SIM::getBoundaryForce(solution,model,code,time);

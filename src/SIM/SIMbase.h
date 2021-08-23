@@ -254,7 +254,7 @@ public:
 
   //! \brief Updates the grid coordinates.
   //! \param[in] displ The displacement increment to update the grid with
-  bool updateGrid(const Vector& displ);
+  bool updateGrid(const RealArray& displ);
   //! \brief Updates the grid coordinates.
   //! \param[in] field Name of the displacement increment field to update with
   bool updateGrid(const std::string& field);
@@ -517,7 +517,7 @@ public:
   //! \param[in] nFields Number of field components in values vector
   //! \param[in] pMethod Projection method to use
   //! \param[in] time Current time
-  bool project(Vector& values, const FunctionBase* f,
+  bool project(RealArray& values, const FunctionBase* f,
                int basis = 1, int iField = 0, int nFields = 1,
                SIMoptions::ProjectionMethod pMethod = SIMoptions::GLOBAL,
                double time = 0.0) const;
@@ -624,7 +624,7 @@ public:
   //! \param[in] nndof Number of DOFs per node (optional)
   //! \param[in] basis Basis to extract for (optional)
   //! \return Total number of DOFs in the patch (first basis only if mixed)
-  size_t extractPatchSolution(const Vector& sol, Vector& vec,
+  size_t extractPatchSolution(const RealArray& sol, RealArray& vec,
                               const ASMbase* pch,
                               unsigned char nndof = 0,
                               unsigned char basis = 0) const;
@@ -635,7 +635,7 @@ public:
   //! \param[in] pch The patch to inject solution vector for
   //! \param[in] nndof Number of DOFs per node (optional)
   //! \param[in] basis Basis to inject for (optional)
-  bool injectPatchSolution(Vector& sol, const Vector& vec,
+  bool injectPatchSolution(RealArray& sol, const RealArray& vec,
                            const ASMbase* pch,
                            unsigned char nndof = 0,
                            unsigned char basis = 0) const;

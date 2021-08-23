@@ -781,7 +781,7 @@ bool SIMbase::updateDirichlet (double time, const Vector* prevSol)
 }
 
 
-bool SIMbase::updateGrid (const Vector& displ)
+bool SIMbase::updateGrid (const RealArray& displ)
 {
   if (displ.empty()) return true; // No displacements (yet), totally fine
 
@@ -804,7 +804,7 @@ bool SIMbase::updateGrid (const Vector& displ)
 
 bool SIMbase::updateGrid (const std::string& field)
 {
-  const Vector* displ = this->getDependentField(field);
+  const RealArray* displ = this->getDependentField(field);
   if (displ) return this->updateGrid(*displ);
 
   std::cerr <<" *** SIMbase::updateGrid: No such field \""<< field
@@ -2031,7 +2031,7 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
 }
 
 
-bool SIMbase::project (Vector& values, const FunctionBase* f,
+bool SIMbase::project (RealArray& values, const FunctionBase* f,
                        int basis, int iField, int nFields,
                        SIMoptions::ProjectionMethod pMethod, double time) const
 {
@@ -2170,7 +2170,7 @@ bool SIMbase::projectAnaSol (Vector& ssol,
 }
 
 
-size_t SIMbase::extractPatchSolution (const Vector& sol, Vector& vec,
+size_t SIMbase::extractPatchSolution (const RealArray& sol, RealArray& vec,
                                       const ASMbase* pch, unsigned char nndof,
                                       unsigned char basis) const
 {
@@ -2223,7 +2223,7 @@ size_t SIMbase::extractPatchSolution (const Vector& sol, Vector& vec,
 }
 
 
-bool SIMbase::injectPatchSolution (Vector& sol, const Vector& vec,
+bool SIMbase::injectPatchSolution (RealArray& sol, const RealArray& vec,
                                    const ASMbase* pch, unsigned char nndof,
                                    unsigned char basis) const
 {

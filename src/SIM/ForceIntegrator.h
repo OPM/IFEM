@@ -33,7 +33,7 @@ namespace SIM
   //! \param[in] X0 Pivot point for torque calculation
   //! \return The force (and torque) resultant
   Vector getBoundaryForce(const Vectors& solution, SIMbase* model, int code,
-                          const TimeDomain& time, const Vector* X0);
+                          const TimeDomain& time, const RealArray* X0);
   //! \brief Integrates the force resultant on a specified boundary.
   //! \param[in] solution Primary solution vectors in DOF order
   //! \param[in] model The isogeometric finite element model
