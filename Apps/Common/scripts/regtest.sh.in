@@ -12,6 +12,23 @@
 # blank line
 # output from program to compare to
 
+function atomic_log {
+(
+flock -x 200
+
+  echo "$1" >> @CMAKE_BINARY_DIR@/failed.log
+
+) 200>/var/lock/ifemloglock
+}
+
+function atomic_log_file {
+(
+  flock -x 200
+  cat $1 >> @CMAKE_BINARY_DIR@/failed.log
+
+) 200>/var/lock/ifemloglock
+}
+
 mysim=$1
 
 cd `dirname $2`
@@ -25,6 +42,7 @@ else
 fi
 hdf5=""
 tmplog=`mktemp -t ifemlogXXXXXX`
+faillog=`mktemp -t ifemfailXXXXXX`
 if test -n "$4"
 then
   hdf5="-hdf5 @CMAKE_BINARY_DIR@/Testing/$3"
@@ -35,7 +53,7 @@ $mysim $hdf5 $MAPFILE 2>&1 | tee $tmplog
 retcode=$?
 if test $retcode -ne 0
 then
-  echo Application returned error code: $retcode >> @CMAKE_BINARY_DIR@/failed.log
+  atomic_log "Application returned error code: $retcode"
   echo Application returned error code: $retcode >> /dev/stderr
   exit 1
 fi
@@ -59,33 +77,33 @@ do
   then
     if test $globres -eq 1
     then
-      echo "-------- $2 --------" >> @CMAKE_BINARY_DIR@/failed.log
+      echo "-------- $2 --------" > $faillog
     fi
     globres=0
-    echo Failed to find output: $line >> @CMAKE_BINARY_DIR@/failed.log
+    echo "Failed to find output: $line" >> $faillog
     echo Failed to find output: $line >> /dev/stderr
   fi
 done
-
-if test $globres -eq 0 || test $appres -ne 0
-then
-  cat $tmplog >> @CMAKE_BINARY_DIR@/failed.log
-  rm -f $tmplog
-  exit 1
-fi
+cat $tmplog >> $faillog
 
 if [ "@IFEM_TEST_MEMCHECK@" == "1" ] || [ "@IFEM_TEST_MEMCHECK@" == "ON" ]
 then
   if ! grep -q "ERROR SUMMARY: 0 errors" @CMAKE_BINARY_DIR@/valgrindlog
   then
-    cat $tmplog >> @CMAKE_BINARY_DIR@/failed.log
-    cat @CMAKE_BINARY_DIR@/valgrindlog >> @CMAKE_BINARY_DIR@/failed.log
-    rm -f $tmplog
+    cat @CMAKE_BINARY_DIR@/valgrindlog >> $faillog
     rm -f @CMAKE_BINARY_DIR@/valgrindlog
-    exit 1
+    appres=1
   fi
 fi
 
+if test $globres -eq 0 || test $appres -ne 0
+then
+  atomic_log_file $faillog
+  rm -f $tmplog
+  rm -f $faillog
+  exit 1
+fi
+
 rm -f $tmplog
-rm -f @CMAKE_BINARY_DIR@/valgrindlog
+rm -f $faillog
 exit 0

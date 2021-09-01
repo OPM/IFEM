@@ -12,6 +12,14 @@
 # blank line
 # output from listing application
 
+function atomic_log_file {
+(
+  flock -x 200
+  cat $1 >> @CMAKE_BINARY_DIR@/failed.log
+
+) 200>/var/lock/ifemloglock
+}
+
 mysim=$1
 
 test -f $2 || exit 1
@@ -31,7 +39,7 @@ else
 fi
 if test $? -ne 0
 then
-  cat $tmplog >> @CMAKE_BINARY_DIR@/failed.log
+  atomic_log_file $tmplog
   exit 1
 fi
 tail -n +3 $2 > $tmpold
@@ -46,10 +54,13 @@ diff -u $tmpold $tmpnew > $tmplog
 res=$?
 if test $res -ne 0
 then
-  echo "Failure for $2" >> @CMAKE_BINARY_DIR@/failed.log
-  echo "======================" >> @CMAKE_BINARY_DIR@/failed.log
-  cat $tmplog >> @CMAKE_BINARY_DIR@/failed.log
-  cat $tmplog
+  faillog=`mktemp -t ifemfailXXXXXX`
+  echo "Failure for $2" > $faillog
+  echo "======================" >> $faillog
+  cat $tmplog >> $faillog
+  atomic_log_file $faillog
+  cat $faillog
+  rm -f $faillog
 fi
 rm $tmpnew $tmpold $tmplog $output
 
