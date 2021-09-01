@@ -102,11 +102,13 @@ function build_module {
   then
     cmake --build . --target testapps -- -j$nproc
     test $? -eq 0 || exit 2
+    njob=$(( $nproc / 2 ))
+    nomp=$(( $nproc > 1 ? 2 : 1))
     if test -z "$CTEST_CONFIGURATION"
     then
-      ctest -T Test --test-timeout 180 --no-compress-output
+      OMP_NUM_THREADS=$nomp ctest -T Test --test-timeout 180 --no-compress-output -j$njob
     else
-      ctest -C $CTEST_CONFIGURATION -T Test --test-timeout 180 --no-compress-output
+     OMP_NUM_THREADS=$nomp ctest -C $CTEST_CONFIGURATION -T Test --test-timeout 180 --no-compress-output -j$njob
     fi
     $WORKSPACE/deps/IFEM/jenkins/convert.py -x $WORKSPACE/deps/IFEM/jenkins/conv.xsl -t . > testoutput.xml
   else
