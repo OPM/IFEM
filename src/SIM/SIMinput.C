@@ -1615,7 +1615,7 @@ bool SIMinput::setInitialCondition (SIMdependency* fieldHolder,
   for (const ICInfo& it : info)
   {
     // Do we have this field?
-    Vector* field = fieldHolder->getField(it.sim_field);
+    RealArray* field = fieldHolder->getField(it.sim_field);
     if (!field) continue;
 
     // Load basis
@@ -1677,7 +1677,7 @@ bool SIMinput::setInitialConditions (SIMdependency* fieldHolder)
     else for (const ICInfo& ic : it.second)
     {
       // Do we have this field?
-      Vector* field = fieldHolder->getField(ic.sim_field);
+      RealArray* field = fieldHolder->getField(ic.sim_field);
       if (!field) continue;
 
       IFEM::cout <<"\nLoading initial condition for \""<< ic.sim_field

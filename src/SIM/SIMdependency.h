@@ -14,8 +14,8 @@
 #ifndef _SIM_DEPENDENCY_H
 #define _SIM_DEPENDENCY_H
 
-#include "matrix.h"
 #include <string>
+#include <vector>
 #include <map>
 
 class ASMbase;
@@ -53,7 +53,7 @@ private:
   //! \brief SIM dependency container
   typedef std::vector<Dependency> DepVector;
   //! \brief Field name to nodal values map
-  typedef std::map<std::string,const utl::vector<double>*> FieldMap;
+  typedef std::map<std::string,const std::vector<double>*> FieldMap;
 
 protected:
   //! \brief The constructor is protected to allow sub-class instances only.
@@ -97,15 +97,15 @@ public:
   //! \brief Initializes the nodal vector of named field in this SIM.
   bool fillField(const std::string& name, const std::vector<double>& values);
   //! \brief Returns the nodal vector of named field in this SIM.
-  virtual utl::vector<double>* getField(const std::string& name);
+  virtual std::vector<double>* getField(const std::string& name);
   //! \brief Returns the nodal vector of named field in this SIM.
-  virtual const utl::vector<double>* getField(const std::string& name) const;
+  virtual const std::vector<double>* getField(const std::string& name) const;
   //! \brief Returns the nodal vector of named field in a dependent SIM.
-  const utl::vector<double>* getDependentField(const std::string& name) const;
+  const std::vector<double>* getDependentField(const std::string& name) const;
   //! \brief Returns a spline patch associated with a dependent field.
   ASMbase* getDependentPatch(const std::string& name, int pindx) const;
   //! \brief Registers a named field with associated nodal vector in this SIM.
-  void registerField(const std::string& name, const utl::vector<double>& vec);
+  void registerField(const std::string& name, const std::vector<double>& vec);
   //! \brief Checks whether a named initial condition is present.
   virtual bool hasIC(const std::string&) const { return false; }
 

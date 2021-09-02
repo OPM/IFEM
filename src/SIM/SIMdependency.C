@@ -59,22 +59,22 @@ bool SIMdependency::fillField (const std::string& name,
   FieldMap::iterator it = myFields.find(name);
   if (it == myFields.end()) return false;
 
-  *const_cast<utl::vector<double>*>(it->second) = values;
+  *const_cast<std::vector<double>*>(it->second) = values;
   return true;
 }
 
 
-utl::vector<double>*
+std::vector<double>*
 SIMdependency::getField (const std::string& name)
 {
   FieldMap::iterator it = myFields.find(name);
   if (it == myFields.end()) return nullptr;
 
-  return const_cast<utl::vector<double>*>(it->second);
+  return const_cast<std::vector<double>*>(it->second);
 }
 
 
-const utl::vector<double>*
+const std::vector<double>*
 SIMdependency::getField (const std::string& name) const
 {
   FieldMap::const_iterator it = myFields.find(name);
@@ -93,7 +93,7 @@ SIMdependency::getDependency (const std::string& name) const
 }
 
 
-const utl::vector<double>*
+const std::vector<double>*
 SIMdependency::getDependentField (const std::string& name) const
 {
   DepVector::const_iterator it = this->getDependency(name);
@@ -119,7 +119,7 @@ ASMbase* SIMdependency::getDependentPatch (const std::string& name,
 
 
 void SIMdependency::registerField (const std::string& name,
-                                   const utl::vector<double>& vec)
+                                   const std::vector<double>& vec)
 {
   myFields[name] = &vec;
 }
@@ -134,7 +134,7 @@ bool SIMdependency::extractPatchDependencies (IntegrandBase* problem,
     Vector* lvec = problem->getNamedVector(dp.name);
     if (!lvec) continue; // Ignore fields without corresponding integrand vector
 
-    const Vector* gvec = dp.sim->getField(dp.name);
+    const RealArray* gvec = dp.sim->getField(dp.name);
     if (!gvec)
     {
       std::cerr <<" *** SIMdependency::extractPatchDependencies: \""
