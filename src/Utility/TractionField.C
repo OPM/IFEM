@@ -82,6 +82,7 @@ Vec3 PressureField::evaluate (const Vec3& x, const Vec3& n) const
 ForceDirField::~ForceDirField ()
 {
   delete force;
+  delete angle;
   delete fdir;
   delete shape;
 }
@@ -110,6 +111,13 @@ Vec3 ForceDirField::evaluate (const Vec3& x, const Vec3&) const
       Trot = Tensor(Fdir.x,Fdir.y,Fdir.z);
       Fdir = Trot[1];
     }
+  }
+  else if (angle)
+  {
+    // angle gives the rotation angle about the local rotAxis
+    Fdir[rotAxis-'X'] = (*angle)(time);
+    Trot = Tensor(Fdir.x,Fdir.y,Fdir.z);
+    Fdir = Trot[1];
   }
 
   // Calculate updated local coordinates of evaluation point

@@ -940,9 +940,11 @@ TractionFunc* utl::parseTracFunc (const TiXmlElement* elem)
     IFEM::cout <<"\n\tZaxis = "<< Zaxis;
   IFEM::cout << std::endl;
 
+  char rotaxis = 'X';
   const ScalarFunc*   force = nullptr;
   const VecTimeFunc*  fdir  = nullptr;
   const VecTimeFunc*  frot  = nullptr;
+  const ScalarFunc*   angle = nullptr;
   const RealFunc*     shape = nullptr;
   const TiXmlElement* child = elem->FirstChildElement();
   while (child && child->Value() && child->FirstChild())
@@ -953,6 +955,13 @@ TractionFunc* utl::parseTracFunc (const TiXmlElement* elem)
     {
       IFEM::cout <<"\tForce resultant: ";
       force = parseTimeFunc(child->FirstChild()->Value(),type);
+    }
+    else if (strcasecmp(child->Value(),"angle") == 0)
+    {
+      if (utl::getAttribute(child,"axis",rotaxis,false))
+        rotaxis = toupper(rotaxis);
+      IFEM::cout <<"\tForce angle ("<< rotaxis <<"-axis): ";
+      angle = parseTimeFunc(child->FirstChild()->Value(),type);
     }
     else if (strncasecmp(child->Value(),"orient",6) == 0)
     {
@@ -973,7 +982,9 @@ TractionFunc* utl::parseTracFunc (const TiXmlElement* elem)
     child = child->NextSiblingElement();
   }
 
-  if (fdir)
+  if (angle && rotaxis >= 'X' && rotaxis <= 'Z')
+    return new ForceDirField(force,angle,rotaxis,shape,Xaxis,Zaxis,X0);
+  else if (fdir)
     return new ForceDirField(force,fdir,shape,Xaxis,Zaxis,X0,true);
   else
     return new ForceDirField(force,frot,shape,Xaxis,Zaxis,X0);

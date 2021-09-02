@@ -56,6 +56,8 @@ TEST(TestForceDirField, Evaluate)
   ForceDirField  fy(new SineFunc(force), rot_Y, new QuadraticXFunc(shape));
   ForceDirField  fz(new SineFunc(force), rot_Z, new QuadraticXFunc(shape));
   ForceDirField  fa(new SineFunc(force), rotAl, new QuadraticXFunc(shape));
+  ForceDirField  fY(new SineFunc(force), new LinearFunc(b), 'Y',
+                    new QuadraticXFunc(shape));
   auto&& Shape = [&shape](Real x) { return shape(Vec3(x,0,0)); };
 
   Vec3 Zero, nVec(1,0,0);
@@ -66,6 +68,7 @@ TEST(TestForceDirField, Evaluate)
   EXPECT_EQ(fy(Zero,nVec), Zero);
   EXPECT_EQ(fz(Zero,nVec), Zero);
   EXPECT_EQ(fa(Zero,nVec), Zero);
+  EXPECT_EQ(fY(Zero,nVec), Zero);
 
   // Check function evaluation at origin but with nonzero time (t=0.8)
   Vec4 X(nullptr,0.8);
@@ -80,6 +83,7 @@ TEST(TestForceDirField, Evaluate)
   EXPECT_EQ(fy(X,nVec), Fvec);
   EXPECT_EQ(fz(X,nVec), Vec3(-Fmax*sin(gamma), Fmax*cos(gamma), 0 ));
   EXPECT_EQ(fa(X,nVec), Frot);
+  EXPECT_EQ(fY(X,nVec), Fvec);
 
   // Check function evaluation at x=0.5*L ==> a scaling by 0.75
   Real x = 0.5*L;
@@ -93,4 +97,5 @@ TEST(TestForceDirField, Evaluate)
   EXPECT_EQ(fz(X,nVec), Vec3(-Fmax*sin(gamma), Fmax*cos(gamma), 0 ));
   Frot *= Shape(x*cos(beta)*cos(gamma));
   EXPECT_EQ(fa(X,nVec), Frot);
+  EXPECT_EQ(fY(X,nVec), Fvec * Shape(x*cos(beta)) );
 }

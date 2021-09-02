@@ -131,7 +131,8 @@ protected:
     {\bf x}(t) = {\bf T}_{rot}(t)\left\{({\bf X}-{\bf X}_0){\bf T}_{lg}\right\}
   \f]
   where \f${\bf T}_{rot}(t)\f$ is the time-dependent rotation matrix
-  derived from the function #fdir. The Local force direction vector
+  derived from either the vector-valued function #fdir, or the scalar-valued
+  function #angle and the #rotAxis parameter. The Local force direction vector
   \f${\bf d}(t)\f$ is then taken as the second column of this
   transformation matrix (i.e., the Y-axis).
 */
@@ -144,10 +145,12 @@ class ForceDirField : public TractionFunc
   Tensor Tlg; //!< Local-to-global transformation
 
   const ScalarFunc* force; //!< Force resultant magnitude
+  const ScalarFunc* angle; //!< Force angle about #rotAxis
   const Vec3Func*   fdir;  //!< Force direction/angles
   const RealFunc*   shape; //!< Shape function for force distribution
 
   bool dirVec;  //!< If \e true, #fdir is the force direction vector
+  char rotAxis; //!< Which local axis the #angle is referring to
 
 public:
   //! \brief The constructor initializes the function pointers.
@@ -162,8 +165,25 @@ public:
                 const Vec3& Xaxis = Vec3(Real(1),Real(0),Real(0)),
                 const Vec3& Zaxis = Vec3(Real(0),Real(0),Real(1)),
                 const Vec3& Xorig = Vec3(), bool v = false)
-    : X0(Xorig), Tlg(Xaxis,Zaxis,false,true), force(f), fdir(d),
-      shape(s), dirVec(v) {}
+    : X0(Xorig), Tlg(Xaxis,Zaxis,false,true), force(f), angle(nullptr), fdir(d),
+      shape(s), dirVec(v), rotAxis(0) {}
+
+  //! \brief Alternative constructor for single-axis rotation.
+  //! \param[in] f The scalar function defining the force magnitude
+  //! \param[in] a The scalar function defining the force angle
+  //! \param[in] x Which local axis the angle is referring to
+  //! \param[in] s Shape function defining the force distribution
+  //! \param[in] Xaxis Local X-axis direction
+  //! \param[in] Zaxis Local Z-axis direction
+  //! \param[in] Xorig Origin of the local coordinate system
+  ForceDirField(const ScalarFunc* f, const ScalarFunc* a, char x,
+                const RealFunc* s,
+                const Vec3& Xaxis = Vec3(Real(1),Real(0),Real(0)),
+                const Vec3& Zaxis = Vec3(Real(0),Real(0),Real(1)),
+                const Vec3& Xorig = Vec3())
+    : X0(Xorig), Tlg(Xaxis,Zaxis,false,true), force(f), angle(a), fdir(nullptr),
+      shape(s), dirVec(false), rotAxis(x) {}
+
   //! \brief The destructor frees the force functions.
   virtual ~ForceDirField();
 
