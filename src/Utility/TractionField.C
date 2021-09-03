@@ -103,7 +103,7 @@ Vec3 ForceDirField::evaluate (const Vec3& x, const Vec3&) const
   Tensor Trot(3,true);
   if (fdir)
   {
-    Fdir = (*fdir)(time);
+    Fdir = (*fdir)(time)*(M_PI/Real(180));
     if (dirVec) // fdir gives the force direction
       Trot = Tensor(Tlg[2],Fdir,true);
     else // fdir gives rotation angles w.r.t. the local axes
@@ -115,13 +115,13 @@ Vec3 ForceDirField::evaluate (const Vec3& x, const Vec3&) const
   else if (angle)
   {
     // angle gives the rotation angle about the local rotAxis
-    Fdir[rotAxis-'X'] = (*angle)(time);
+    Fdir[rotAxis-'X'] = (*angle)(time)*(M_PI/Real(180));
     Trot = Tensor(Fdir.x,Fdir.y,Fdir.z);
     Fdir = Trot[1];
   }
 
   // Calculate updated local coordinates of evaluation point
-  Vec4 Xloc(Trot * ((x-X0) * Tlg), time);
+  Vec4 Xloc(((x-X0) * Tlg) * Trot, time);
   // Evaluate traction magnitude at current point
   Real Fa = F(time)*Shp(Xloc);
   // Evaluate traction vector in local axes

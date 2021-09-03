@@ -41,8 +41,9 @@ public:
 TEST(TestForceDirField, Evaluate)
 {
   const Real A = 10, freq = 0.5;        // load magnitude and frequency
-  const Real a = 0.2, b = 0.4, c = 0.1; // load orientation angles
+  const Real a = 3.2, b = 7.4, c = 2.1; // load orientation angles (in degrees)
   const Real L = 30;                    // half of load domain length
+  const Real Rad = M_PI/Real(180);      // Deg-to-Rad convertion
 
   SineFunc       force(A,freq);
   QuadraticXFunc shape(1,-L,L);
@@ -74,10 +75,11 @@ TEST(TestForceDirField, Evaluate)
   Vec4 X(nullptr,0.8);
   Real Fmax  = force(X.t);
   Vec3 Fvec(0,Fmax,0);
-  Real alpha = a*X.t;
-  Real beta  = b*X.t;
-  Real gamma = c*X.t;
+  Real alpha = a*X.t*Rad;
+  Real beta  = b*X.t*Rad;
+  Real gamma = c*X.t*Rad;
   Vec3 Frot  = Tensor(alpha,beta,gamma)*Fvec;
+  EXPECT_EQ(A*sin(freq*X.t), Fmax);
   EXPECT_EQ(f0(X,nVec), Fvec);
   EXPECT_EQ(fx(X,nVec), Vec3( 0, Fmax*cos(alpha), Fmax*sin(alpha) ));
   EXPECT_EQ(fy(X,nVec), Fvec);
