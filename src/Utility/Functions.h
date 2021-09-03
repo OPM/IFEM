@@ -590,10 +590,6 @@ protected:
 
 namespace utl
 {
-  //! \brief Creates a time function by parsing a character string.
-  const ScalarFunc* parseTimeFunction(const char* type, char* cline,
-                                      Real C = Real(1));
-
   //! \brief Creates a scalar-valued function by parsing a character string.
   const RealFunc* parseRealFunc(char* cline, Real A = Real(1),
                                 bool print = true);

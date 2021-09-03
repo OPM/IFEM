@@ -29,6 +29,10 @@
 
 static const Real zTol = Real(1.0e-12); //!< Zero tolerance on function values
 
+//! \brief Creates a scalar function by parsing a character string.
+static const ScalarFunc* parseFunction(const char* type, char* cline,
+                                       Real C = Real(1));
+
 
 PressureField::PressureField (Real p, int dir) : pdir(dir), pdfn(nullptr)
 {
@@ -654,7 +658,7 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A, bool print)
 
   if (print)
     IFEM::cout <<" * ";
-  const ScalarFunc* s = parseTimeFunction(cline,nullptr,C);
+  const ScalarFunc* s = parseFunction(cline,nullptr,C);
 
   if (f)
     return new SpaceTimeFunc(f,s);
@@ -663,7 +667,7 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A, bool print)
 }
 
 
-const ScalarFunc* utl::parseTimeFunction (const char* type, char* cline, Real C)
+static const ScalarFunc* parseFunction (const char* type, char* cline, Real C)
 {
   if (strncasecmp(type,"expr",4) == 0 && cline != nullptr)
   {
@@ -726,9 +730,15 @@ const ScalarFunc* utl::parseTimeFunction (const char* type, char* cline, Real C)
     if (cline) IFEM::cout <<"*"<< scale;
     return new LinearFunc(fname,colum,scale);
   }
+  else if (strncasecmp(type,"Constant",8) == 0)
+  {
+    Real value = atof(cline);
+    IFEM::cout << value;
+    return new ConstantFunc(C*value);
+  }
   else // linear in time
   {
-    Real scale = atof(type);
+    Real scale = atof(strncasecmp(type,"Lin",3) == 0 ? cline : type);
     IFEM::cout << scale <<"*t";
     return new LinearFunc(C*scale);
   }
@@ -744,14 +754,14 @@ ScalarFunc* utl::parseTimeFunc (const char* func, const std::string& type,
   {
     IFEM::cout <<"(expression) ";
     if (func) cstr = strdup(func);
-    sf = parseTimeFunction("expression",cstr,eps);
+    sf = parseFunction("expression",cstr,eps);
   }
-  else if (type == "linear")
-    sf = parseTimeFunction(func,cstr);
+  else if (type.find("inear") == 1 || type.find("onstant") == 1)
+    sf = parseFunction(type.c_str(),const_cast<char*>(func));
   else
   {
     if (func) cstr = strdup(func);
-    sf = parseTimeFunction(type.c_str(),cstr);
+    sf = parseFunction(type.c_str(),cstr);
   }
   IFEM::cout << std::endl;
   if (cstr) free(cstr);
