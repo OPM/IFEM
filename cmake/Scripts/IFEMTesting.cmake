@@ -71,6 +71,10 @@ macro(IFEM_add_unittests IFEM_PATH)
     list(REMOVE_ITEM TEST_SOURCES ${IFEM_PATH}/src/Utility/Test/TestFieldFunctionsLR.C)
   endif()
 
+  if(NOT pybind11_FOUND)
+    list(REMOVE_ITEM TEST_SOURCES ${IFEM_PATH}/src/Utility/Test/TestPythonFunctions.C)
+  endif()
+
   IFEM_add_test_app("${TEST_SOURCES}"
                     ${IFEM_PATH}
                     IFEM

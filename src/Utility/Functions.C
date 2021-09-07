@@ -15,6 +15,7 @@
 #include "Chebyshev.h"
 #include "ExprFunctions.h"
 #include "FieldFunctions.h"
+#include "PythonFunctions.h"
 #include "TensorFunction.h"
 #include "Vec3Oper.h"
 #include "IFEM.h"
@@ -681,6 +682,16 @@ const ScalarFunc* utl::parseTimeFunction (const char* type, char* cline, Real C)
     }
     return sf;
   }
+#ifdef HAS_PYTHON
+  else if (strncasecmp(type,"python",6) == 0 && cline != nullptr) {
+    std::string func(cline);
+    auto pos = func.find_first_of('{');
+    std::string module = func.substr(0,pos-1);
+    std::string params = func.substr(pos);
+    IFEM::cout << "\n\t\tModule = " << module << "\n\t\tParams = " << params << std::endl;
+    return new PythonFunc(module.c_str(), params.c_str());
+  }
+#endif
   else if (strncasecmp(type,"Ramp",4) == 0 || strcmp(type,"Tinit") == 0)
   {
     Real xmax = atof(strtok(cline," "));
@@ -798,6 +809,15 @@ RealFunc* utl::parseRealFunc (const std::string& func,
     }
     return rf;
   }
+#ifdef HAS_PYTHON
+  else if (type == "python") {
+    auto pos = func.find_first_of('{');
+    std::string module = func.substr(0,pos-1);
+    std::string params = func.substr(pos);
+    IFEM::cout << "\n\t\tModule = " << module << "\n\t\tParams = " << params << std::endl;
+    return new PythonFunction(module.c_str(), params.c_str());
+  }
+#endif
   else if (type == "linear")
   {
     p = atof(func.c_str());
@@ -867,6 +887,15 @@ VecFunc* utl::parseVecFunc (const std::string& func, const std::string& type,
     return new ChebyshevVecFunc(splitValue(func),false);
   else if (type == "chebyshev2")
     return new ChebyshevVecFunc(splitValue(func),true);
+#ifdef HAS_PYTHON
+  else if (type == "python") {
+    auto pos = func.find_first_of('{');
+    std::string module = func.substr(0,pos-1);
+    std::string params = func.substr(pos);
+    IFEM::cout << "\n\t\tModule = " << module << "\n\t\tParams = " << params << std::endl;
+    return new PythonVecFunc(module.c_str(), params.c_str());
+  }
+#endif
 
   return nullptr;
 }
@@ -879,6 +908,15 @@ TensorFunc* utl::parseTensorFunc (const std::string& func,
     return new ChebyshevTensorFunc(splitValue(func),false);
   else if (type == "chebyshev2")
     return new ChebyshevTensorFunc(splitValue(func),true);
+#ifdef HAS_PYTHON
+  else if (type == "python") {
+    auto pos = func.find_first_of('{');
+    std::string module = func.substr(0,pos-1);
+    std::string params = func.substr(pos);
+    IFEM::cout << "\n\t\tModule = " << module << "\n\t\tParams = " << params << std::endl;
+    return new PythonTensorFunc(module.c_str(), params.c_str());
+  }
+#endif
 
   return nullptr;
 }
