@@ -44,7 +44,7 @@ SIMoptions::SIMoptions ()
   format  = -1;
   saveInc =  1;
   dtSave  =  0.0;
-  pSolOnly = saveNorms = saveLog = false;
+  pSolOnly = saveTrac = saveNorms = saveLog = false;
   restartInc = 0;
   restartStep = -1;
 
@@ -178,6 +178,9 @@ bool SIMoptions::parseOutputTag (const TiXmlElement* elem)
 
   else if (!strcasecmp(elem->Value(),"primarySolOnly"))
     pSolOnly = true;
+
+  else if (!strncasecmp(elem->Value(),"saveTrac",8))
+    saveTrac = true;
 
   else if (!strcasecmp(elem->Value(),"saveNorms"))
     saveNorms = true;

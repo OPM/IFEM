@@ -89,6 +89,7 @@ public:
   int saveInc;   //!< Number of load/time increments between each result output
   double dtSave; //!< Time interval between each result output
   bool pSolOnly; //!< If \e true, don't save secondary solution variables
+  bool saveTrac; //!< If \e true, save gauss point traction values
   bool saveNorms;//!< If \e true, save element norms
   bool saveLog;  //!< If \e true, export the log
 

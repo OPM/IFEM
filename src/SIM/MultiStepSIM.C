@@ -115,7 +115,7 @@ bool MultiStepSIM::saveStep (int iStep, double time, const char* vecName)
   lastSt = iStep;
 
   // Write boundary tractions, if any
-  if (!opt.pSolOnly)
+  if (!opt.pSolOnly || opt.saveTrac)
     if (!model.writeGlvT(iStep,geoBlk,nBlock))
       return false;
 
