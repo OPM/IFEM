@@ -52,7 +52,7 @@ NonLinSIM::~NonLinSIM ()
   cout <<"\n *** Here are the nodal points flagged with slow convergence"
        <<"\n     ======================================================="
        <<"\n     Node  Count  Patch  Coordinates\n";
-  for (const std::pair<int,int>& node : slowNodes)
+  for (const std::pair<const int,int>& node : slowNodes)
   {
     Vec4 X = model.getNodeCoord(node.first);
     cout << std::setw(9) << node.first
@@ -491,7 +491,7 @@ void NonLinSIM::printWorst (utl::LogStream& os, double eps)
   else
     os <<".";
 
-  for (const std::pair<std::pair<int,int>,RealArray>& wd : worstDOFs)
+  for (const std::pair<const std::pair<int,int>,RealArray>& wd : worstDOFs)
   {
     os <<"\n     Node "<< wd.first.first <<" local DOF "<< wd.first.second;
     char nodeType = model.getNodeType(wd.first.first);

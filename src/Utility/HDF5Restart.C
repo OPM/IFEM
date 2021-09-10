@@ -100,7 +100,7 @@ bool HDF5Restart::writeData (const SerializeData& data)
   };
 
   for (int p = 0; p < ptot; p++)
-    for (const std::pair<std::string,std::string>& it : data) {
+    for (const std::pair<const std::string,std::string>& it : data) {
       std::stringstream str;
       str << m_level << '/' << p;
       hid_t group;

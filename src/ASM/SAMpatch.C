@@ -59,7 +59,7 @@ bool SAMpatch::init (const std::vector<ASMbase*>& patches, int numNod,
     ndofs[nodeType[n]] += madof[n+1] - madof[n];
   for (size_t d = 0; d < dof_type.size(); d++)
     ndofs[dof_type[d]] ++;
-  for (const std::pair<char,size_t>& dof : ndofs)
+  for (const std::pair<const char,size_t>& dof : ndofs)
     if (dof.second > 0)
       IFEM::cout <<"Number of "<< dof.first <<"-dofs      "
                  << dof.second << std::endl;
@@ -226,7 +226,7 @@ bool SAMpatch::initElementConn ()
   int* new_mpmnpc = new int[nel+1];
   int* new_mmnpc  = new int[nmmnpc];
   ip = new_mpmnpc[0] = 1;
-  for (const std::pair<int,Ipair>& elm : sortedElms)
+  for (const std::pair<const int,Ipair>& elm : sortedElms)
   {
     int nen = elm.second.second;
     new_mpmnpc[ip] = new_mpmnpc[ip-1] + nen;
@@ -465,7 +465,7 @@ bool SAMpatch::merge (const SAM* other, const std::map<int,int>* old2new)
     ndofs[nodeType[n]] += madof[n+1] - madof[n];
   for (size_t d = 0; d < dof_type.size(); d++)
     ndofs[dof_type[d]] ++;
-  for (const std::pair<char,size_t>& dof : ndofs)
+  for (const std::pair<const char,size_t>& dof : ndofs)
     if (dof.second > 0)
       IFEM::cout <<"Number of "<< dof.first <<"-dofs      "
                  << dof.second << std::endl;

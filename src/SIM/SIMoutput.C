@@ -1952,7 +1952,7 @@ bool SIMoutput::serialize (std::map<std::string,std::string>&) const
 
 bool SIMoutput::writeAddFuncs (int iStep, int& nBlock, int idBlock, double time)
 {
-  for (const std::pair<std::string,RealFunc*>& func : myAddScalars)
+  for (const std::pair<const std::string,RealFunc*>& func : myAddScalars)
     if (!this->writeGlvF(*func.second, func.first.c_str(), iStep,
                          nBlock, idBlock++, time))
       return false;
