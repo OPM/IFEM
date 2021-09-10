@@ -142,7 +142,7 @@ bool SIMmultiCpl::preprocess (const std::vector<int>& ignored, bool fixDup)
     return false;
 
   IFEM::cout <<"\nCoupling node mapping:";
-  for (const std::pair<int,int>& cp : cplNodes)
+  for (const std::pair<const int,int>& cp : cplNodes)
     IFEM::cout <<"\n\t"<< cp.first <<" -> "<< cp.second;
   IFEM::cout << std::endl;
 

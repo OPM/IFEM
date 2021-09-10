@@ -122,7 +122,7 @@ bool DataExporter::dumpTimeLevel (const TimeStep* tp, bool geoUpd, bool doLog)
 
   for (DataWriter* writer : m_writers) {
     writer->openFile(m_level);
-    for (const DataEntry& it : m_entry) {
+    for (const std::pair<const std::string,DataExporter::FileEntry>& it : m_entry) {
       if (!it.second.data)
         return false;
       switch (it.second.field) {
