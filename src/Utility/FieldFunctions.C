@@ -314,7 +314,7 @@ RealArray FieldsFuncBase::getValues (const Vec3& X)
   else
   {
     int level = this->findClosestLevel(x4->t);
-    if (level < 0) return vals;
+    if (level < 0) return std::move(vals);
     if (level != currentLevel)
       if (this->load(fName,bName,level))
         currentLevel = level;
@@ -325,7 +325,7 @@ RealArray FieldsFuncBase::getValues (const Vec3& X)
       field[pidx]->valueCoor(*x4,vals);
   }
 
-  return vals;
+  return std::move(vals);
 }
 
 

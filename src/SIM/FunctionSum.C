@@ -84,7 +84,7 @@ std::vector<double> FunctionSum::getValue (const Vec3& X) const
         if (val[j] > sum[j]) sum[j] = val[j];
     }
 
-  return sum;
+  return std::move(sum);
 }
 
 
