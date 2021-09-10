@@ -187,6 +187,7 @@ protected:
   //! \param lrspline The spline to perform adaptation for
   bool doRefine(const LR::RefineData& prm, LR::LRSpline* lrspline);
 
+  using ASMbase::evalPoint;
   //! \brief Evaluates the geometry at a specified point.
   virtual int evalPoint(int iel, const double* param, Vec3& X) const = 0;
 
