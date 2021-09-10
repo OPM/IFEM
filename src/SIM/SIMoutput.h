@@ -210,7 +210,6 @@ public:
   //! \param[in] f The function to output
   //! \param[in] fname Name of the function
   //! \param[in] iStep Load/time step identifier
-  //! \param[in] idBlock Starting value of result block numbering
   //! \param nBlock Running result block counter
   //! \param[in] idBlock Starting value of result block numbering
   //! \param[in] time Load/time step parameter
