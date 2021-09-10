@@ -485,7 +485,14 @@ bool VTF::writeVectors (const std::vector<Vec3Pair>& pntResult, int& gID,
   VTFANodeBlock   nBlock(pointGeoID,0);
   VTFAResultBlock rBlock(idBlock,VTFA_DIM_VECTOR,VTFA_RESMAP_NODE,0);
 
-  size_t i = 0, np = pntResult.size();
+  // Count the nodes of the point mesh to associate the vectors with.
+  // It is assumed that identically zero points are associated with
+  // zero knot-span elements (due to multiple knots) which will not be
+  // assigned any results. Therefore we should ignore those points.
+  size_t i = 0, np = 0;
+  for (const Vec3Pair& pt : pntResult)
+    if (!pt.first.isZero(1.0e-15)) np++;
+
   if (writePoints && VTFA_FAILURE(nBlock.SetNumNodes(np)))
     return showError("Error defining node block",pointGeoID);
   else if (VTFA_FAILURE(rBlock.SetNumResults(np)))
@@ -495,17 +502,18 @@ bool VTF::writeVectors (const std::vector<Vec3Pair>& pntResult, int& gID,
 
   std::vector<int> mnpc;
   if (writePoints) mnpc.reserve(np);
-  for (const Vec3Pair& pnt : pntResult)
-    if (writePoints && VTFA_FAILURE(nBlock.AddNode(vecOffset[0]+pnt.first.x,
-                                                   vecOffset[1]+pnt.first.y,
-                                                   vecOffset[2]+pnt.first.z)))
-      return showError("Error adding node to block",pointGeoID);
-    else if (VTFA_FAILURE(rBlock.AddResult(pnt.second.x,
-                                           pnt.second.y,
-                                           pnt.second.z)))
-      return showError("Error adding result to block",idBlock);
-    else if (writePoints)
-      mnpc.push_back(i++);
+  for (const Vec3Pair& pt : pntResult)
+    if (!pt.first.isZero(1.0e-15)) // skip the zero-knotspan points
+    {
+      if (writePoints && VTFA_FAILURE(nBlock.AddNode(vecOffset[0]+pt.first.x,
+                                                     vecOffset[1]+pt.first.y,
+                                                     vecOffset[2]+pt.first.z)))
+        return showError("Error adding node to block",pointGeoID);
+      if (VTFA_FAILURE(rBlock.AddResult(pt.second.x,pt.second.y,pt.second.z)))
+        return showError("Error adding result to block",idBlock);
+      else if (writePoints)
+        mnpc.push_back(i++);
+    }
 
   if (writePoints)
   {
