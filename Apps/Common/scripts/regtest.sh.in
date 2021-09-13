@@ -4,9 +4,12 @@
 # It is used by the 'make test' target in the buildsystems
 # Usually you should use 'make test' rather than calling this script directly
 #
-# Parameters: $1 = Application binary
-#             $2 = Regression test file
-#             $3 = If given, number of MPI nodes
+# Parameters: -a = Application binary
+#             -r = Regression test file
+# Optional parameters:
+#             -v = Valgrind binary
+#             -m = Number of MPI nodes
+#             -s = Restart step
 # A regression test file is of the format:
 # parameters to application
 # blank line
@@ -29,43 +32,67 @@ function atomic_log_file {
 ) 200>/var/lock/ifemloglock
 }
 
-mysim=$1
+OPTIND=1
+while getopts "a:r:m:v:s:" OPT
+do
+  case "${OPT}" in
+    a) MYSIM=${OPTARG} ;;
+    r) REG_FILE=${OPTARG} ;;
+    m) MPI_NODES=${OPTARG} ;;
+    v) VALGRIND=${OPTARG} ;;
+    s) RSTEP=${OPTARG};;
+  esac
+done
 
-cd `dirname $2`
-MAPFILE=`head -n1 $2`
-test  $? -eq 0 || exit 1
-if test -z "$4"
+if test -z ${MYSIM} || test -z ${REG_FILE}
 then
-  test -n "$3" && mysim="mpirun -n $3 $mysim"
-else
-  test -n "$5" && mysim="mpirun -n $5 $mysim"
+  echo "Need simulator and regression file"
+  exit 1
 fi
+
+cd `dirname ${REG_FILE}`
+MAPFILE=`head -n1 ${REG_FILE}`
+test  $? -eq 0 || exit 1
 hdf5=""
 tmplog=`mktemp -t ifemlogXXXXXX`
 faillog=`mktemp -t ifemfailXXXXXX`
-if test -n "$4"
+if test -n "${RSTEP}"
 then
-  hdf5="-hdf5 @CMAKE_BINARY_DIR@/Testing/$3"
-  rm -f @CMAKE_BINARY_DIR@/Testing/$3.hdf5
-  rm -f @CMAKE_BINARY_DIR@/Testing/$3_restart.hdf5
+  REG_NAME=`head -n1 $REG_FILE | awk -F '.xinp' '{print $1}'`
+  if grep -q "../" <<< $REG_NAME
+  then
+    REG_NAME=`echo $REG_NAME | awk -F '../' '{print $2}'`
+  fi
+  h5file=`mktemp -t ${REG_NAME}_XXXXXX`
+  hdf5="-hdf5 ${h5file}"
 fi
-$mysim $hdf5 $MAPFILE 2>&1 | tee $tmplog 
+if test -n "${VALGRIND}"
+then
+  vallog=`mktemp -t ifemvallogXXXXXX`
+  MYSIM="${VALGRIND} --log-file=${vallog} ${MYSIM}"
+fi
+test -n "${MPI_NODES}" && MYSIM="mpirun -n ${MPI_NODES} ${MYSIM}"
+
+${MYSIM} ${hdf5} ${MAPFILE} 2>&1 | tee ${tmplog}
 retcode=$?
-if test $retcode -ne 0
+if test ${retcode} -ne 0
 then
   atomic_log "Application returned error code: $retcode"
   echo Application returned error code: $retcode >> /dev/stderr
   exit 1
 fi
-if test -n "$4"
+if test -n "${RSTEP}"
 then
-  MAPFILE=`echo $MAPFILE | sed 's/ -restartInc [1-9][0-9]*//'`
-  $mysim $MAPFILE -restart @CMAKE_BINARY_DIR@/Testing/$3_restart.hdf5 $4 2>&1 | tee $tmplog
+  MAPFILE=`echo ${MAPFILE} | sed 's/ -restartInc [1-9][0-9]*//'`
+  ${MYSIM} ${MAPFILE} -restart ${h5file}_restart.hdf5 ${RSTEP} 2>&1 | tee $tmplog
+  rm -f ${h5file}.hdf5
+  rm -f ${h5file}_restart.hdf5
 fi
 appres=$?
 globres=1
 IFS=$'\n'
-for line in `cat $2`
+echo $REG_FILE
+for line in `cat $REG_FILE`
 do
   test -z "$line" && continue
   echo "$line" | grep -q ".inp" && continue
@@ -77,7 +104,7 @@ do
   then
     if test $globres -eq 1
     then
-      echo "-------- $2 --------" > $faillog
+      echo "-------- ${REG_FILE} --------" > $faillog
     fi
     globres=0
     echo "Failed to find output: $line" >> $faillog
@@ -86,14 +113,14 @@ do
 done
 cat $tmplog >> $faillog
 
-if [ "@IFEM_TEST_MEMCHECK@" == "1" ] || [ "@IFEM_TEST_MEMCHECK@" == "ON" ]
+if test -n "$VALGRIND"
 then
-  if ! grep -q "ERROR SUMMARY: 0 errors" @CMAKE_BINARY_DIR@/valgrindlog
+  if ! grep -q "ERROR SUMMARY: 0 errors" $vallog
   then
-    cat @CMAKE_BINARY_DIR@/valgrindlog >> $faillog
-    rm -f @CMAKE_BINARY_DIR@/valgrindlog
+    cat $vallog >> $faillog
     appres=1
   fi
+  rm -f $vallog
 fi
 
 if test $globres -eq 0 || test $appres -ne 0
