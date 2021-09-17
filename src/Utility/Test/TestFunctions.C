@@ -10,6 +10,7 @@
 //!
 //==============================================================================
 
+#include "ExprFunctions.h"
 #include "Functions.h"
 #include <cstdlib>
 #include <cmath>
@@ -39,4 +40,17 @@ TEST(TestScalarFunc, ParseDerivative)
     EXPECT_FLOAT_EQ(f1->deriv(t),1.5*cos(1.5*t)*t+sin(1.5*t));
     EXPECT_FLOAT_EQ(f2->deriv(t),1.5*cos(1.5*t)*t+sin(1.5*t));
   }
+}
+
+
+TEST(TestEvalFunction, ExtraParam)
+{
+  const char* func1 = "x*foo";
+  EvalFunction f(func1);
+  f.setParam("foo", 2.0);
+  Vec3 X(1.0,0.0,0.0);
+  EXPECT_FLOAT_EQ(f(X), 2.0);
+  X.x = 0.5;
+  f.setParam("foo", 4.0);
+  EXPECT_FLOAT_EQ(f(X), 2.0);
 }

@@ -120,6 +120,9 @@ public:
   //! \brief Returns second-derivative of the function.
   virtual Real dderiv(const Vec3& X, int dir1, int dir2) const;
 
+  //! \brief Set an additional parameter in the function.
+  void setParam(const std::string& name, double value);
+
 protected:
   //! \brief Non-implemented copy constructor to disallow copying.
   EvalFunction(const EvalFunction&) = delete;
@@ -190,6 +193,13 @@ public:
   virtual Ret deriv(const Vec3& X, int dir) const;
   //! \brief Returns second-derivative of the function.
   virtual Ret dderiv(const Vec3& X, int dir1, int dir2) const;
+
+  //! \brief Set an additional parameter in the function.
+  void setParam(const std::string& name, double value)
+  {
+    for (EvalFunction* func : p)
+      func->setParam(name, value);
+  }
 
 protected:
   //! \brief Sets the number of spatial dimensions (default implementation).
