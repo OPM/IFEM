@@ -345,6 +345,18 @@ Real EvalFunction::dderiv (const Vec3& X, int d1, int d2) const
 }
 
 
+void EvalFunction::setParam (const std::string& name, double value)
+{
+  for (ExprEval::ValueList* v1 : v) {
+    double* address = v1->GetAddress(name);
+    if (!address)
+      v1->Add(name,value,false);
+    else
+      *address = value;
+  }
+}
+
+
 /*!
   \brief Static helper that splits a function expression into components.
 */
