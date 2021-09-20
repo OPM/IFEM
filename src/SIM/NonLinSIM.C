@@ -221,8 +221,8 @@ ConvStatus NonLinSIM::solveStep (TimeStep& param, SolutionMode mode,
     return FAILURE;
 
   bool poorConvg = false;
-  bool newTangent = true;
-  model.setMode(mode,false);
+  bool newTangent = param.time.first || iteNorm != NONE;
+  model.setMode(newTangent ? mode : RHS_ONLY, false);
   model.setQuadratureRule(opt.nGauss[0],true);
   if (!this->assembleSystem(param.time,solution,newTangent))
     return model.getProblem()->diverged() ? DIVERGED : FAILURE;
@@ -262,14 +262,8 @@ ConvStatus NonLinSIM::solveStep (TimeStep& param, SolutionMode mode,
 	if (subiter&FIRST && param.iter == 1 && !model.updateDirichlet())
 	  return FAILURE;
 
-	if (param.iter > nupdat)
-	{
-	  newTangent = false;
-	  model.setMode(RHS_ONLY,false);
-	}
-	else
-	  model.setMode(mode,false);
-
+	if (param.iter > nupdat) newTangent = false;
+	model.setMode(newTangent ? mode : RHS_ONLY, false);
 	if (!this->assembleSystem(param.time,solution,newTangent,poorConvg))
 	  return model.getProblem()->diverged() ? DIVERGED : FAILURE;
 
