@@ -26,7 +26,7 @@
 Profiler* utl::profiler = nullptr;
 
 
-Profiler::Profiler (const std::string& name) : myName(name), nRunners(0)
+Profiler::Profiler (const std::string& name, bool autoReport) : myName(name), autoReport(autoReport), nRunners(0)
 {
 #ifdef USE_OPENMP
   myMTimers.resize(omp_get_max_threads());
@@ -45,7 +45,8 @@ Profiler::Profiler (const std::string& name) : myName(name), nRunners(0)
 Profiler::~Profiler ()
 {
   this->stop("Total");
-  this->report(std::cout);
+  if (autoReport)
+    this->report(std::cout);
 
   IFEM::Close();
 }
