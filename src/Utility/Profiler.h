@@ -38,12 +38,13 @@ class Profiler
 public:
   //! \brief The constructor initializes the profiler object.
   //! \param[in] name Program name to be printed in the profiling report header.
+  //! \param[in] autoReport Automatically report results on program exit.
   //!
   //! \details The constructor also updates the global static pointer
   //! utl::profiler to point to \a *this, deleting any already pointed-to
   //! object first. This means, only one Profiler object can exist at any time.
-  explicit Profiler(const std::string& name);
-  //! \brief The destructor prints the profiling report to the console.
+  explicit Profiler(const std::string& name, bool autoReport = true);
+  //! \brief The destructor prints the profiling report to the console if requested.
   ~Profiler();
 
   //! \brief Starts profiling of task \a funcName and increments \a nRunners.
@@ -78,6 +79,7 @@ private:
   friend std::ostream& operator<<(std::ostream& os, const Profile& p);
 
   std::string myName; //!< Name of this profiler
+  bool autoReport;    //!< Whether to report results on program exit
 
   typedef std::map<std::string,Profile> ProfileMap; //!< Map of profilers
 
