@@ -683,7 +683,7 @@ bool SIMinput::parseOutputTag (const TiXmlElement* elem)
   {
     IntVec steps;
     DumpData dmp;
-    std::string format;
+    std::string format = "flat";
     utl::getAttribute(elem,"format",format);
     utl::getAttribute(elem,"step",steps);
     utl::getAttribute(elem,"eps",dmp.eps);
@@ -692,7 +692,7 @@ bool SIMinput::parseOutputTag (const TiXmlElement* elem)
       dmp.format = LinAlg::MATLAB;
     else if (format == "matrix_market")
       dmp.format = LinAlg::MATRIX_MARKET;
-    else {
+    else if (format != "flat" && format != "plain") {
       std::cerr << "  ** SIMinput::parseOutputTag: Unknown matrix dump format \"" << format << "\", ignored" << std::endl;
       return true;
     }
