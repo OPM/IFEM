@@ -28,7 +28,13 @@ class NonLinSIM : public MultiStepSIM
 {
 public:
   //! \brief Enum describing the norm used for convergence checks.
-  enum CNORM { NONE, L2, L2SOL, ENERGY };
+  //! \details The value \a NONE imples no checking at all and is used to
+  //! conduct a pure linear analysis without equilibrium iterations.
+  //! The value \a NONE_UPTAN value implies the same as \a NONE, but with
+  //! recalculation of the tangent matrix at each step. This is needed for
+  //! problems with inhomogeneous dirichlet conditions where the element
+  //! tangent matrix is used to calculate the equivalent load vector.
+  enum CNORM { NONE_UPTAN=-1, NONE=0, L2=1, L2SOL=2, ENERGY=3 };
 
   //! \brief The constructor initializes default solution parameters.
   //! \param sim Pointer to the spline FE model
@@ -38,7 +44,7 @@ public:
   virtual ~NonLinSIM();
 
   //! \brief Defines which type of iteration norm to use in convergence checks.
-  void setConvNorm(CNORM n) { if ((iteNorm = n) == NONE) fromIni = true; }
+  void setConvNorm(CNORM n) { if ((iteNorm = n) <= NONE) fromIni = true; }
 
   //! \brief Initializes the primary solution vectors.
   //! \param[in] nSol Number of consequtive solutions stored in core
@@ -77,7 +83,7 @@ public:
   int getMaxit() const { return maxit; }
 
   //! \brief Returns whether this solution driver is linear or not.
-  virtual bool isLinear() const { return iteNorm == NONE; }
+  virtual bool isLinear() const { return iteNorm <= NONE; }
 
 protected:
   //! \brief Prints out the worst DOFs when slow convergence is detected.

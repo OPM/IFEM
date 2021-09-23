@@ -30,7 +30,7 @@ const char* NonLinSIM::inputContext = "nonlinearsolver";
 NonLinSIM::NonLinSIM (SIMbase& sim, CNORM n) : MultiStepSIM(sim), iteNorm(n)
 {
   // Default solution parameters
-  fromIni = iteNorm == NONE;
+  fromIni = iteNorm <= NONE;
   maxIncr = 2;
   maxit   = 20;
   nupdat  = 20;
@@ -131,7 +131,7 @@ bool NonLinSIM::parse (const TiXmlElement* elem)
       else if (!strcasecmp(value,"max"))
         refNopt = MAX;
     }
-    else if (iteNorm != NONE && (value = utl::getValue(child,"convnorm")))
+    else if (iteNorm > NONE && (value = utl::getValue(child,"convnorm")))
     {
       if (!strncasecmp(value,"energ",5))
         iteNorm = ENERGY;
@@ -151,13 +151,16 @@ bool NonLinSIM::parse (const TiXmlElement* elem)
       rCond = 0.0; // Compute and report condition number in the iteration log
   }
 
+  if (iteNorm == NONE && nupdat < 0)
+    iteNorm = NONE_UPTAN; // Recalculate tangent in each step in linear analysis
+
   return true;
 }
 
 
 void NonLinSIM::initPrm ()
 {
-  if (iteNorm == NONE) // Flag to integrand that a linear solver is used
+  if (iteNorm <= NONE) // Flag to integrand that a linear solver is used
     model.setIntegrationPrm(3,1.0);
 }
 
@@ -227,7 +230,7 @@ ConvStatus NonLinSIM::solveStep (TimeStep& param, SolutionMode mode,
   if (!this->assembleSystem(param.time,solution,newTangent))
     return model.getProblem()->diverged() ? DIVERGED : FAILURE;
 
-  if (iteNorm != NONE)
+  if (iteNorm > NONE)
     if (!model.extractLoadVec(residual))
       return FAILURE;
 
@@ -391,7 +394,7 @@ bool NonLinSIM::lineSearch (TimeStep& param)
 
 ConvStatus NonLinSIM::checkConvergence (TimeStep& param)
 {
-  if (iteNorm == NONE)
+  if (iteNorm <= NONE)
     return CONVERGED; // No iterations, we are solving a linear problem
 
   static double convTol   = 0.0;
@@ -504,7 +507,7 @@ void NonLinSIM::printWorst (utl::LogStream& os, double eps)
 
 bool NonLinSIM::updateConfiguration (TimeStep& time)
 {
-  if (solution.front().empty() || iteNorm == NONE)
+  if (solution.front().empty() || iteNorm <= NONE)
   {
     solution.front() = linsol;
     model.updateRotations(linsol);
