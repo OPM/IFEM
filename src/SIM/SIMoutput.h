@@ -385,6 +385,7 @@ private:
   double myPtSize; //!< Size of result point visualization in VTF file
   int    myGeomID; //!< VTF geometry block ID for the first patch
   VTF*   myVtf;    //!< VTF-file for result visualization
+  bool   logRpMap; //!< If \e true, print out the result point mapping
 };
 
 #endif

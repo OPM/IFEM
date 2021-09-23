@@ -36,6 +36,7 @@ SIMoutput::SIMoutput (IntegrandBase* itg) : SIMinput(itg)
   myPtSize = 0.0;
   myGeomID = 0;
   myVtf = nullptr;
+  logRpMap = false;
 }
 
 
@@ -109,6 +110,8 @@ bool SIMoutput::parseOutputTag (const TiXmlElement* elem)
   }
   else if (strcasecmp(elem->Value(),"resultpoints"))
     return this->SIMinput::parseOutputTag(elem);
+
+  utl::getAttribute(elem,"printmapping",logRpMap);
 
   bool newGroup = true;
   const TiXmlElement* point = elem->FirstChildElement("point");
@@ -253,7 +256,7 @@ void SIMoutput::preprocessResPtGroup (std::string& ptFile, ResPointVec& points)
       (p++)->npar = pch->getNoParamDim();
   }
 
-  if (points.size() < 5 || msgLevel > 1)
+  if (logRpMap || msgLevel > 1)
   {
     int iPoint = 0;
     for (const ResultPoint& pt : points)
