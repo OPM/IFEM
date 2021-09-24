@@ -149,6 +149,7 @@ function clone_module {
   GH_USER[IFEM-Poisson]=OPM
   GH_USER[SIMRA-PostProc]=akva2
   GH_USER[IFEM-HM]=akva2
+  GH_USER[IFEM-CoSTA]=akva2
 
   if test -n "$GH_CREDENTIALS"
   then
