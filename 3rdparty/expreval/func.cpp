@@ -31,7 +31,7 @@ namespace
             SetArgumentCount(1, 1, 0, 0);
         }
     
-        double DoEvaluate()
+        double DoEvaluate() override
         {
             return fabs(m_nodes[0]->Evaluate());
         }
@@ -40,12 +40,12 @@ namespace
     class abs_FunctionFactory : public FunctionFactory
     {
     public:
-        std::string GetName() const
+        std::string GetName() const override
         {
             return "abs";
         }
             
-        FunctionNode *DoCreate(Expression *expr)
+        FunctionNode *DoCreate(Expression *expr) override
         {
             return new abs_FunctionNode(expr);
         }
@@ -61,7 +61,7 @@ namespace
             SetArgumentCount(2, 2, 0, 0);
         }
     
-        double DoEvaluate()
+        double DoEvaluate() override
         {
             errno = 0;
             
@@ -77,12 +77,12 @@ namespace
     class mod_FunctionFactory : public FunctionFactory
     {
     public:
-        std::string GetName() const
+        std::string GetName() const override
         {
             return "mod";
         }
 
-        FunctionNode *DoCreate(Expression *expr)
+        FunctionNode *DoCreate(Expression *expr) override
         {
             return new mod_FunctionNode(expr);
         }
@@ -98,7 +98,7 @@ namespace
             SetArgumentCount(1, 1, 0, 0);
         }
     
-        double DoEvaluate()
+        double DoEvaluate() override
         {
             double result;
             
@@ -111,12 +111,12 @@ namespace
     class ipart_FunctionFactory : public FunctionFactory
     {
     public:
-        std::string GetName() const
+        std::string GetName() const override
         {
             return "ipart";
         }
             
-        FunctionNode *DoCreate(Expression *expr)
+        FunctionNode *DoCreate(Expression *expr) override
         {
             return new ipart_FunctionNode(expr);
         }
@@ -132,7 +132,7 @@ namespace
             SetArgumentCount(1, 1, 0, 0);
         }
     
-        double DoEvaluate()
+        double DoEvaluate() override
         {
             double dummy;
             
@@ -143,12 +143,12 @@ namespace
     class fpart_FunctionFactory : public FunctionFactory
     {
     public:
-        std::string GetName() const
+        std::string GetName() const override
         {
             return "fpart";
         }
             
-        FunctionNode *DoCreate(Expression *expr)
+        FunctionNode *DoCreate(Expression *expr) override
         {
             return new fpart_FunctionNode(expr);
         }
@@ -164,7 +164,7 @@ namespace
             SetArgumentCount(2, -1, 0, 0);
         }
     
-        double DoEvaluate()
+        double DoEvaluate() override
         {
             std::vector<Node*>::size_type pos;
             
@@ -184,12 +184,12 @@ namespace
     class min_FunctionFactory : public FunctionFactory
     {
     public:
-        std::string GetName() const
+        std::string GetName() const override
         {
             return "min";
         }
             
-        FunctionNode *DoCreate(Expression *expr)
+        FunctionNode *DoCreate(Expression *expr) override
         {
             return new min_FunctionNode(expr);
         }
@@ -205,7 +205,7 @@ namespace
             SetArgumentCount(2, -1, 0, 0);
         }
     
-        double DoEvaluate()
+        double DoEvaluate() override
         {
             std::vector<Node*>::size_type pos;
             
@@ -225,12 +225,12 @@ namespace
     class max_FunctionFactory : public FunctionFactory
     {
     public:
-        std::string GetName() const
+        std::string GetName() const override
         {
             return "max";
         }
             
-        FunctionNode *DoCreate(Expression *expr)
+        FunctionNode *DoCreate(Expression *expr) override
         {
             return new max_FunctionNode(expr);
         }
@@ -246,7 +246,7 @@ namespace
             SetArgumentCount(1, 1, 0, 0);
         }
     
-        double DoEvaluate()
+        double DoEvaluate() override
         {
             errno = 0;
             
@@ -262,12 +262,12 @@ namespace
     class sqrt_FunctionFactory : public FunctionFactory
     {
     public:
-        std::string GetName() const
+        std::string GetName() const override
         {
             return "sqrt";
         }
             
-        FunctionNode *DoCreate(Expression *expr)
+        FunctionNode *DoCreate(Expression *expr) override
         {
             return new sqrt_FunctionNode(expr);
         }
@@ -283,7 +283,7 @@ namespace
             SetArgumentCount(1, 1, 0, 0);
         }
     
-        double DoEvaluate()
+        double DoEvaluate() override
         {
             errno = 0;
             
@@ -299,12 +299,12 @@ namespace
     class sin_FunctionFactory : public FunctionFactory
     {
     public:
-        std::string GetName() const
+        std::string GetName() const override
         {
             return "sin";
         }
             
-        FunctionNode *DoCreate(Expression *expr)
+        FunctionNode *DoCreate(Expression *expr) override
         {
             return new sin_FunctionNode(expr);
         }
@@ -320,7 +320,7 @@ namespace
             SetArgumentCount(1, 1, 0, 0);
         }
     
-        double DoEvaluate()
+        double DoEvaluate() override
         {
             errno = 0;
             
@@ -336,12 +336,12 @@ namespace
     class cos_FunctionFactory : public FunctionFactory
     {
     public:
-        std::string GetName() const
+        std::string GetName() const override
         {
             return "cos";
         }
             
-        FunctionNode *DoCreate(Expression *expr)
+        FunctionNode *DoCreate(Expression *expr) override
         {
             return new cos_FunctionNode(expr);
         }
@@ -357,7 +357,7 @@ namespace
             SetArgumentCount(1, 1, 0, 0);
         }
     
-        double DoEvaluate()
+        double DoEvaluate() override
         {
             errno = 0;
             
@@ -373,12 +373,12 @@ namespace
     class tan_FunctionFactory : public FunctionFactory
     {
     public:
-        std::string GetName() const
+        std::string GetName() const override
         {
             return "tan";
         }
             
-        FunctionNode *DoCreate(Expression *expr)
+        FunctionNode *DoCreate(Expression *expr) override
         {
             return new tan_FunctionNode(expr);
         }
@@ -394,7 +394,7 @@ namespace
             SetArgumentCount(1, 1, 0, 0);
         }
     
-        double DoEvaluate()
+        double DoEvaluate() override
         {
             errno = 0;
             
@@ -410,12 +410,12 @@ namespace
     class sinh_FunctionFactory : public FunctionFactory
     {
     public:
-        std::string GetName() const
+        std::string GetName() const override
         {
             return "sinh";
         }
             
-        FunctionNode *DoCreate(Expression *expr)
+        FunctionNode *DoCreate(Expression *expr) override
         {
             return new sinh_FunctionNode(expr);
         }
@@ -431,7 +431,7 @@ namespace
             SetArgumentCount(1, 1, 0, 0);
         }
     
-        double DoEvaluate()
+        double DoEvaluate() override
         {
             errno = 0;
             
@@ -447,12 +447,12 @@ namespace
     class cosh_FunctionFactory : public FunctionFactory
     {
     public:
-        std::string GetName() const
+        std::string GetName() const override
         {
             return "cosh";
         }
             
-        FunctionNode *DoCreate(Expression *expr)
+        FunctionNode *DoCreate(Expression *expr) override
         {
             return new cosh_FunctionNode(expr);
         }
@@ -468,7 +468,7 @@ namespace
             SetArgumentCount(1, 1, 0, 0);
         }
     
-        double DoEvaluate()
+        double DoEvaluate() override
         {
             errno = 0;
             
@@ -484,12 +484,12 @@ namespace
     class tanh_FunctionFactory : public FunctionFactory
     {
     public:
-        std::string GetName() const
+        std::string GetName() const override
         {
             return "tanh";
         }
             
-        FunctionNode *DoCreate(Expression *expr)
+        FunctionNode *DoCreate(Expression *expr) override
         {
             return new tanh_FunctionNode(expr);
         }
@@ -505,7 +505,7 @@ namespace
             SetArgumentCount(1, 1, 0, 0);
         }
     
-        double DoEvaluate()
+        double DoEvaluate() override
         {
             errno = 0;
             
@@ -521,12 +521,12 @@ namespace
     class asin_FunctionFactory : public FunctionFactory
     {
     public:
-        std::string GetName() const
+        std::string GetName() const override
         {
             return "asin";
         }
             
-        FunctionNode *DoCreate(Expression *expr)
+        FunctionNode *DoCreate(Expression *expr) override
         {
             return new asin_FunctionNode(expr);
         }
@@ -542,7 +542,7 @@ namespace
             SetArgumentCount(1, 1, 0, 0);
         }
     
-        double DoEvaluate()
+        double DoEvaluate() override
         {
             errno = 0;
             
@@ -558,12 +558,12 @@ namespace
     class acos_FunctionFactory : public FunctionFactory
     {
     public:
-        std::string GetName() const
+        std::string GetName() const override
         {
             return "acos";
         }
             
-        FunctionNode *DoCreate(Expression *expr)
+        FunctionNode *DoCreate(Expression *expr) override
         {
             return new acos_FunctionNode(expr);
         }
@@ -579,7 +579,7 @@ namespace
             SetArgumentCount(1, 1, 0, 0);
         }
     
-        double DoEvaluate()
+        double DoEvaluate() override
         {
             errno = 0;
             
@@ -595,12 +595,12 @@ namespace
     class atan_FunctionFactory : public FunctionFactory
     {
     public:
-        std::string GetName() const
+        std::string GetName() const override
         {
             return "atan";
         }
             
-        FunctionNode *DoCreate(Expression *expr)
+        FunctionNode *DoCreate(Expression *expr) override
         {
             return new atan_FunctionNode(expr);
         }
@@ -616,7 +616,7 @@ namespace
             SetArgumentCount(2, 2, 0, 0);
         }
     
-        double DoEvaluate()
+        double DoEvaluate() override
         {
             errno = 0;
             
@@ -632,12 +632,12 @@ namespace
     class atan2_FunctionFactory : public FunctionFactory
     {
     public:
-        std::string GetName() const
+        std::string GetName() const override
         {
             return "atan2";
         }
             
-        FunctionNode *DoCreate(Expression *expr)
+        FunctionNode *DoCreate(Expression *expr) override
         {
             return new atan2_FunctionNode(expr);
         }
@@ -653,7 +653,7 @@ namespace
             SetArgumentCount(1, 1, 0, 0);
         }
     
-        double DoEvaluate()
+        double DoEvaluate() override
         {
             errno = 0;
             
@@ -669,12 +669,12 @@ namespace
     class log_FunctionFactory : public FunctionFactory
     {
     public:
-        std::string GetName() const
+        std::string GetName() const override
         {
             return "log";
         }
             
-        FunctionNode *DoCreate(Expression *expr)
+        FunctionNode *DoCreate(Expression *expr) override
         {
             return new log_FunctionNode(expr);
         }
@@ -690,7 +690,7 @@ namespace
             SetArgumentCount(1, 1, 0, 0);
         }
     
-        double DoEvaluate()
+        double DoEvaluate() override
         {
             errno = 0;
             
@@ -706,12 +706,12 @@ namespace
     class ln_FunctionFactory : public FunctionFactory
     {
     public:
-        std::string GetName() const
+        std::string GetName() const override
         {
             return "ln";
         }
             
-        FunctionNode *DoCreate(Expression *expr)
+        FunctionNode *DoCreate(Expression *expr) override
         {
             return new ln_FunctionNode(expr);
         }
@@ -727,7 +727,7 @@ namespace
             SetArgumentCount(1, 1, 0, 0);
         }
     
-        double DoEvaluate()
+        double DoEvaluate() override
         {
             errno = 0;
             double x = m_nodes[0]->Evaluate();
@@ -743,12 +743,12 @@ namespace
     class exp_FunctionFactory : public FunctionFactory
     {
     public:
-        std::string GetName() const
+        std::string GetName() const override
         {
             return "exp";
         }
             
-        FunctionNode *DoCreate(Expression *expr)
+        FunctionNode *DoCreate(Expression *expr) override
         {
             return new exp_FunctionNode(expr);
         }
@@ -764,7 +764,7 @@ namespace
             SetArgumentCount(2, 2, 0, 0);
         }
     
-        double DoEvaluate()
+        double DoEvaluate() override
         {
             errno = 0;
             
@@ -787,12 +787,12 @@ namespace
     class logn_FunctionFactory : public FunctionFactory
     {
     public:
-        std::string GetName() const
+        std::string GetName() const override
         {
             return "logn";
         }
             
-        FunctionNode *DoCreate(Expression *expr)
+        FunctionNode *DoCreate(Expression *expr) override
         {
             return new logn_FunctionNode(expr);
         }
@@ -806,7 +806,7 @@ namespace
             SetArgumentCount(2, 2, 0, 0);
         }
 
-        double DoEvaluate()
+        double DoEvaluate() override
         {
             errno = 0;
 
@@ -822,12 +822,12 @@ namespace
     class pow_FunctionFactory : public FunctionFactory
     {
     public:
-        std::string GetName() const
+        std::string GetName() const override
         {
             return "pow";
         }
 
-        FunctionNode *DoCreate(Expression *expr)
+        FunctionNode *DoCreate(Expression *expr) override
         {
             return new pow_FunctionNode(expr);
         }
@@ -843,7 +843,7 @@ namespace
             SetArgumentCount(1, 1, 0, 0);
         }
     
-        double DoEvaluate()
+        double DoEvaluate() override
         {
             return ceil(m_nodes[0]->Evaluate());
         }
@@ -852,12 +852,12 @@ namespace
     class ceil_FunctionFactory : public FunctionFactory
     {
     public:
-        std::string GetName() const
+        std::string GetName() const override
         {
             return "ceil";
         }
             
-        FunctionNode *DoCreate(Expression *expr)
+        FunctionNode *DoCreate(Expression *expr) override
         {
             return new ceil_FunctionNode(expr);
         }
@@ -873,7 +873,7 @@ namespace
             SetArgumentCount(1, 1, 0, 0);
         }
     
-        double DoEvaluate()
+        double DoEvaluate() override
         {
             return floor(m_nodes[0]->Evaluate());
         }
@@ -882,12 +882,12 @@ namespace
     class floor_FunctionFactory : public FunctionFactory
     {
     public:
-        std::string GetName() const
+        std::string GetName() const override
         {
             return "floor";
         }
             
-        FunctionNode *DoCreate(Expression *expr)
+        FunctionNode *DoCreate(Expression *expr) override
         {
             return new floor_FunctionNode(expr);
         }
@@ -913,7 +913,7 @@ namespace
             SetArgumentCount(0, 0, 1, 1);
         }
     
-        double DoEvaluate()
+        double DoEvaluate() override
         {
             return NextRandom(m_refs[0]);
         }
@@ -922,12 +922,12 @@ namespace
     class rand_FunctionFactory : public FunctionFactory
     {
     public:
-        std::string GetName() const
+        std::string GetName() const override
         {
             return "rand";
         }
             
-        FunctionNode *DoCreate(Expression *expr)
+        FunctionNode *DoCreate(Expression *expr) override
         {
             return new rand_FunctionNode(expr);
         }
@@ -943,7 +943,7 @@ namespace
             SetArgumentCount(2, 2, 1, 1);
         }
     
-        double DoEvaluate()
+        double DoEvaluate() override
         {
             double a = m_nodes[0]->Evaluate();
             double b = m_nodes[1]->Evaluate();
@@ -955,12 +955,12 @@ namespace
     class random_FunctionFactory : public FunctionFactory
     {
     public:
-        std::string GetName() const
+        std::string GetName() const override
         {
             return "random";
         }
             
-        FunctionNode *DoCreate(Expression *expr)
+        FunctionNode *DoCreate(Expression *expr) override
         {
             return new random_FunctionNode(expr);
         }
@@ -976,7 +976,7 @@ namespace
             SetArgumentCount(0, 0, 1, 1);
         }
     
-        double DoEvaluate()
+        double DoEvaluate() override
         {
             static long curcall = 1;
             
@@ -990,12 +990,12 @@ namespace
     class randomize_FunctionFactory : public FunctionFactory
     {
     public:
-        std::string GetName() const
+        std::string GetName() const override
         {
             return "randomize";
         }
             
-        FunctionNode *DoCreate(Expression *expr)
+        FunctionNode *DoCreate(Expression *expr) override
         {
             return new randomize_FunctionNode(expr);
         }
@@ -1011,7 +1011,7 @@ namespace
             SetArgumentCount(1, 1, 0, 0);
         }
     
-        double DoEvaluate()
+        double DoEvaluate() override
         {
             return (m_nodes[0]->Evaluate() * 180.0) / M_PI;
         }
@@ -1020,12 +1020,12 @@ namespace
     class deg_FunctionFactory : public FunctionFactory
     {
     public:
-        std::string GetName() const
+        std::string GetName() const override
         {
             return "deg";
         }
             
-        FunctionNode *DoCreate(Expression *expr)
+        FunctionNode *DoCreate(Expression *expr) override
         {
             return new deg_FunctionNode(expr);
         }
@@ -1041,7 +1041,7 @@ namespace
             SetArgumentCount(1, 1, 0, 0);
         }
     
-        double DoEvaluate()
+        double DoEvaluate() override
         {
             return (m_nodes[0]->Evaluate() * M_PI) / 180.0;
         }
@@ -1050,12 +1050,12 @@ namespace
     class rad_FunctionFactory : public FunctionFactory
     {
     public:
-        std::string GetName() const
+        std::string GetName() const override
         {
             return "rad";
         }
             
-        FunctionNode *DoCreate(Expression *expr)
+        FunctionNode *DoCreate(Expression *expr) override
         {
             return new rad_FunctionNode(expr);
         }
@@ -1071,7 +1071,7 @@ namespace
             SetArgumentCount(2, 2, 2, 2);
         }
     
-        double DoEvaluate()
+        double DoEvaluate() override
         {
             errno = 0;
             
@@ -1097,12 +1097,12 @@ namespace
     class rect2pol_FunctionFactory : public FunctionFactory
     {
     public:
-        std::string GetName() const
+        std::string GetName() const override
         {
             return "rect2pol";
         }
             
-        FunctionNode *DoCreate(Expression *expr)
+        FunctionNode *DoCreate(Expression *expr) override
         {
             return new rect2pol_FunctionNode(expr);
         }
@@ -1118,7 +1118,7 @@ namespace
             SetArgumentCount(2, 2, 2, 2);
         }
     
-        double DoEvaluate()
+        double DoEvaluate() override
         {
             errno = 0;
             
@@ -1141,12 +1141,12 @@ namespace
     class pol2rect_FunctionFactory : public FunctionFactory
     {
     public:
-        std::string GetName() const
+        std::string GetName() const override
         {
             return "pol2rect";
         }
             
-        FunctionNode *DoCreate(Expression *expr)
+        FunctionNode *DoCreate(Expression *expr) override
         {
             return new pol2rect_FunctionNode(expr);
         }
@@ -1162,7 +1162,7 @@ namespace
             SetArgumentCount(3, 3, 0, 0);
         }
     
-        double DoEvaluate()
+        double DoEvaluate() override
         {
             double c = m_nodes[0]->Evaluate();
             
@@ -1176,12 +1176,12 @@ namespace
     class if_FunctionFactory : public FunctionFactory
     {
     public:
-        std::string GetName() const
+        std::string GetName() const override
         {
             return "if";
         }
             
-        FunctionNode *DoCreate(Expression *expr)
+        FunctionNode *DoCreate(Expression *expr) override
         {
             return new if_FunctionNode(expr);
         }
@@ -1197,7 +1197,7 @@ namespace
             SetArgumentCount(3, 4, 0, 0);
         }
     
-        double DoEvaluate()
+        double DoEvaluate() override
         {
             double c = m_nodes[0]->Evaluate();
             
@@ -1218,12 +1218,12 @@ namespace
     class select_FunctionFactory : public FunctionFactory
     {
     public:
-        std::string GetName() const
+        std::string GetName() const override
         {
             return "select";
         }
             
-        FunctionNode *DoCreate(Expression *expr)
+        FunctionNode *DoCreate(Expression *expr) override
         {
             return new select_FunctionNode(expr);
         }
@@ -1239,7 +1239,7 @@ namespace
             SetArgumentCount(2, 2, 0, 0);
         }
     
-        double DoEvaluate()
+        double DoEvaluate() override
         {
             if(m_nodes[0]->Evaluate() == m_nodes[1]->Evaluate())
                 return 1.0;
@@ -1251,12 +1251,12 @@ namespace
     class equal_FunctionFactory : public FunctionFactory
     {
     public:
-        std::string GetName() const
+        std::string GetName() const override
         {
             return "equal";
         }
             
-        FunctionNode *DoCreate(Expression *expr)
+        FunctionNode *DoCreate(Expression *expr) override
         {
             return new equal_FunctionNode(expr);
         }
@@ -1272,7 +1272,7 @@ namespace
             SetArgumentCount(2, 2, 0, 0);
         }
     
-        double DoEvaluate()
+        double DoEvaluate() override
         {
             if(m_nodes[0]->Evaluate() > m_nodes[1]->Evaluate())
                 return 1.0;
@@ -1284,12 +1284,12 @@ namespace
     class above_FunctionFactory : public FunctionFactory
     {
     public:
-        std::string GetName() const
+        std::string GetName() const override
         {
             return "above";
         }
             
-        FunctionNode *DoCreate(Expression *expr)
+        FunctionNode *DoCreate(Expression *expr) override
         {
             return new above_FunctionNode(expr);
         }
@@ -1305,7 +1305,7 @@ namespace
             SetArgumentCount(2, 2, 0, 0);
         }
     
-        double DoEvaluate()
+        double DoEvaluate() override
         {
             if(m_nodes[0]->Evaluate() < m_nodes[1]->Evaluate())
                 return 1.0;
@@ -1317,12 +1317,12 @@ namespace
     class below_FunctionFactory : public FunctionFactory
     {
     public:
-        std::string GetName() const
+        std::string GetName() const override
         {
             return "below";
         }
             
-        FunctionNode *DoCreate(Expression *expr)
+        FunctionNode *DoCreate(Expression *expr) override
         {
             return new below_FunctionNode(expr);
         }
@@ -1338,7 +1338,7 @@ namespace
             SetArgumentCount(3, 3, 0, 0);
         }
     
-        double DoEvaluate()
+        double DoEvaluate() override
         {
             double v = m_nodes[0]->Evaluate();
             double a = m_nodes[1]->Evaluate();
@@ -1356,12 +1356,12 @@ namespace
     class clip_FunctionFactory : public FunctionFactory
     {
     public:
-        std::string GetName() const
+        std::string GetName() const override
         {
             return "clip";
         }
             
-        FunctionNode *DoCreate(Expression *expr)
+        FunctionNode *DoCreate(Expression *expr) override
         {
             return new clip_FunctionNode(expr);
         }
@@ -1377,7 +1377,7 @@ namespace
             SetArgumentCount(3, 3, 0, 0);
         }
     
-        double DoEvaluate()
+        double DoEvaluate() override
         {
             double v = m_nodes[0]->Evaluate();
             double a = m_nodes[1]->Evaluate();
@@ -1400,12 +1400,12 @@ namespace
     class clamp_FunctionFactory : public FunctionFactory
     {
     public:
-        std::string GetName() const
+        std::string GetName() const override
         {
             return "clamp";
         }
             
-        FunctionNode *DoCreate(Expression *expr)
+        FunctionNode *DoCreate(Expression *expr) override
         {
             return new clamp_FunctionNode(expr);
         }
@@ -1421,7 +1421,7 @@ namespace
             SetArgumentCount(5, 5, 0, 0);
         }
     
-        double DoEvaluate()
+        double DoEvaluate() override
         {
             double pnt = m_nodes[0]->Evaluate();
             double o1 = m_nodes[1]->Evaluate();
@@ -1442,12 +1442,12 @@ namespace
     class rescale_FunctionFactory : public FunctionFactory
     {
     public:
-        std::string GetName() const
+        std::string GetName() const override
         {
             return "rescale";
         }
             
-        FunctionNode *DoCreate(Expression *expr)
+        FunctionNode *DoCreate(Expression *expr) override
         {
             return new rescale_FunctionNode(expr);
         }
@@ -1463,7 +1463,7 @@ namespace
             SetArgumentCount(2, -1, 0, 0);
         }
     
-        double DoEvaluate()
+        double DoEvaluate() override
         {
             double total = 0.0;
             double curpow;
@@ -1493,12 +1493,12 @@ namespace
     class poly_FunctionFactory : public FunctionFactory
     {
     public:
-        std::string GetName() const
+        std::string GetName() const override
         {
             return "poly";
         }
             
-        FunctionNode *DoCreate(Expression *expr)
+        FunctionNode *DoCreate(Expression *expr) override
         {
             return new poly_FunctionNode(expr);
         }
@@ -1514,7 +1514,7 @@ namespace
             SetArgumentCount(2, 2, 0, 0);
         }
     
-        double DoEvaluate()
+        double DoEvaluate() override
         {
             if(m_nodes[0]->Evaluate() == 0.0 || m_nodes[1]->Evaluate() == 0.0)
                 return 0.0;
@@ -1526,12 +1526,12 @@ namespace
     class and_FunctionFactory : public FunctionFactory
     {
     public:
-        std::string GetName() const
+        std::string GetName() const override
         {
             return "and";
         }
             
-        FunctionNode *DoCreate(Expression *expr)
+        FunctionNode *DoCreate(Expression *expr) override
         {
             return new and_FunctionNode(expr);
         }
@@ -1547,7 +1547,7 @@ namespace
             SetArgumentCount(2, 2, 0, 0);
         }
     
-        double DoEvaluate()
+        double DoEvaluate() override
         {
             if(m_nodes[0]->Evaluate() == 0.0 && m_nodes[1]->Evaluate() == 0.0)
                 return 0.0;
@@ -1559,12 +1559,12 @@ namespace
     class or_FunctionFactory : public FunctionFactory
     {
     public:
-        std::string GetName() const
+        std::string GetName() const override
         {
             return "or";
         }
             
-        FunctionNode *DoCreate(Expression *expr)
+        FunctionNode *DoCreate(Expression *expr) override
         {
             return new or_FunctionNode(expr);
         }
@@ -1580,7 +1580,7 @@ namespace
             SetArgumentCount(1, 1, 0, 0);
         }
     
-        double DoEvaluate()
+        double DoEvaluate() override
         {
             if(m_nodes[0]->Evaluate() == 0.0)
                 return 1.0;
@@ -1592,12 +1592,12 @@ namespace
     class not_FunctionFactory : public FunctionFactory
     {
     public:
-        std::string GetName() const
+        std::string GetName() const override
         {
             return "not";
         }
             
-        FunctionNode *DoCreate(Expression *expr)
+        FunctionNode *DoCreate(Expression *expr) override
         {
             return new not_FunctionNode(expr);
         }
