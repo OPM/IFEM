@@ -67,7 +67,7 @@ bool ASMs1DSpec::integrate (Integrand& integrand,
   Vector wg1, xg1, points1;
   Matrix D1, dNdu, Jac;
   bool ok = Legendre::GLL(wg1,points1,p1);
-  int nGP = nGauss;
+  int nGP;
 
   if (nGauss < 1) // using the nodal points themselves as integration points
     ok &= Legendre::basisDerivatives(nGP=p1,D1);
