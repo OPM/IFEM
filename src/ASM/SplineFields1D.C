@@ -92,9 +92,9 @@ bool SplineFields1D::gradFE (const ItgPoint& x, Matrix& grad) const
   RealArray::const_iterator cit = curv->coefs_begin();
   for (int inod = first; inod <= last; inod++)
   {
-    int ip = inod*curv->dimension();
+    int iip = inod*curv->dimension();
     for (size_t i = 0; i < nsd; i++)
-      Xelm(i+1,inod-first+1) = *(cit+(ip+i));
+      Xelm(i+1,inod-first+1) = *(cit+(iip+i));
   }
 
   // Evaluate the field gradient at the given point
@@ -134,9 +134,9 @@ bool SplineFields1D::hessianFE (const ItgPoint& x, Matrix3D& H) const
   RealArray::const_iterator cit = curv->coefs_begin();
   for (int inod = first; inod <= last; inod++)
   {
-    int ip = inod*curv->dimension();
+    int iip = inod*curv->dimension();
     for (size_t i = 0; i < nsd; i++)
-      Xelm(i+1,inod-first+1) = *(cit+(ip+i));
+      Xelm(i+1,inod-first+1) = *(cit+(iip+i));
   }
 
   // Evaluate the field hessian at the given point

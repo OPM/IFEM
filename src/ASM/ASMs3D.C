@@ -758,18 +758,18 @@ bool ASMs3D::connectBasis (int face, ASMs3D& neighbor, int nface, int norient,
 
       for (int t = 0; t < thick; t++)
       {
-        int slave = slaveNodes[(l*m1+k)*thick+t];
-        int node2 = masterNodes[(node-1)*thick+t];
+        int snode = slaveNodes[(l*m1+k)*thick+t];
+        int mnode = masterNodes[(node-1)*thick+t];
         if (!coordCheck)
-          ASMbase::collapseNodes(neighbor,node2,*this,slave);
-        else if (neighbor.getCoord(node2).equal(this->getCoord(slave),xtol))
-          ASMbase::collapseNodes(neighbor,node2,*this,slave);
+          ASMbase::collapseNodes(neighbor,mnode,*this,snode);
+        else if (neighbor.getCoord(mnode).equal(this->getCoord(snode),xtol))
+          ASMbase::collapseNodes(neighbor,mnode,*this,snode);
         else
         {
           std::cerr <<" *** ASMs3D::connectPatch: Non-matching nodes "
-                    << node2 <<": "<< neighbor.getCoord(node2) <<"\n"
+                    << mnode <<": "<< neighbor.getCoord(mnode) <<"\n"
                     << std::string(42,' ') <<"and "
-                    << slave <<": "<< this->getCoord(slave) << std::endl;
+                    << snode <<": "<< this->getCoord(snode) << std::endl;
           failures++;
         }
       }

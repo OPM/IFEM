@@ -350,9 +350,9 @@ bool ASMs2DLag::integrate (Integrand& integrand,
       FiniteElement fe(p1*p2);
       Matrix dNdu, Xnod, Jac;
       Vec4   X;
-      for (size_t i = 0; i < threadGroups[g][t].size() && ok; i++)
+      for (size_t e = 0; e < threadGroups[g][t].size() && ok; e++)
       {
-        int iel = threadGroups[g][t][i];
+        int iel = threadGroups[g][t][e];
         int i1  = nelx > 0 ? iel % nelx : 0;
         int i2  = nelx > 0 ? iel / nelx : 0;
 
