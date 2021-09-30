@@ -347,7 +347,7 @@ void ASMbase::getNoIntPoints (size_t& nPt, size_t& nIPt)
     // Use polynomial order to define number of quadrature points
     int ng[3] = { 0, 0, 0 };
     this->getOrder(ng[0],ng[1],ng[2]);
-    for (unsigned char d = 0; d < ndim; d++)
+    for (unsigned char d = 0; d < ndim && d < 3; d++)
       nGp *= ng[d] + nGauss%10;
   }
 
