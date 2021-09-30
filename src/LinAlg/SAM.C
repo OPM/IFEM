@@ -208,7 +208,7 @@ bool SAM::initSystemEquations ()
   std::cout <<"SAM::initSystemEquations()"<< std::endl;
 #endif
   if (!msc && ndof > 0) return false;
-  if (!mpmceq && nceq > 0) return false;
+  if ((!msc || !mpmceq) && nceq > 0) return false;
 
   // Initialize the DOF-to-equation connectivity array
   int i, j, ierr = 0;
