@@ -42,7 +42,7 @@ int IFEM::Init (int arg_c, char** arg_v, const char* title)
 {
   argc = arg_c;
   argv = arg_v;
-  LinAlgInit& linalg = LinAlgInit::Init(argc,argv);
+  const LinAlgInit& linalg = LinAlgInit::Init(argc,argv);
   LinAlgInit::increfs();
 
   bool enableController = false;

@@ -207,7 +207,7 @@ static void getNumEdges(void* mesh, int sizeGID, int sizeLID,
                         int numCells, ZOLTAN_ID_PTR globalID,
                         ZOLTAN_ID_PTR localID, int* numEdges, int* err)
 {
-  IntMat& neigh = *static_cast<IntMat*>(mesh);
+  const IntMat& neigh = *static_cast<const IntMat*>(mesh);
   int* ne = numEdges;
   for (const std::vector<int>& n : neigh)
     *ne++ = std::accumulate(n.begin(), n.end(), 0,
@@ -225,7 +225,7 @@ static void getEdges(void* mesh, int sizeGID, int sizeLID, int numCells,
                      int* numEdges, ZOLTAN_ID_PTR nborGID, int* nborProc,
                      int wgtDim, float* egts, int* err)
 {
-  IntMat& neigh = *static_cast<IntMat*>(mesh);
+  const IntMat& neigh = *static_cast<const IntMat*>(mesh);
 
   memset(nborProc, 0, numCells*sizeof(int));
   for (const std::vector<int>& elm : neigh)
