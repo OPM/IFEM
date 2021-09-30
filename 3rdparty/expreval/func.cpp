@@ -26,7 +26,7 @@ namespace
     class abs_FunctionNode : public FunctionNode
     {
     public:
-        abs_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit abs_FunctionNode(Expression *expr) : FunctionNode(expr)
         {
             SetArgumentCount(1, 1, 0, 0);
         }
@@ -56,7 +56,7 @@ namespace
     class mod_FunctionNode : public FunctionNode
     {
     public:
-        mod_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit mod_FunctionNode(Expression *expr) : FunctionNode(expr)
         {
             SetArgumentCount(2, 2, 0, 0);
         }
@@ -93,7 +93,7 @@ namespace
     class ipart_FunctionNode : public FunctionNode
     {
     public:
-        ipart_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit ipart_FunctionNode(Expression *expr) : FunctionNode(expr)
         {
             SetArgumentCount(1, 1, 0, 0);
         }
@@ -127,7 +127,7 @@ namespace
     class fpart_FunctionNode : public FunctionNode
     {
     public:
-        fpart_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit fpart_FunctionNode(Expression *expr) : FunctionNode(expr)
         {
             SetArgumentCount(1, 1, 0, 0);
         }
@@ -159,7 +159,7 @@ namespace
     class min_FunctionNode : public FunctionNode
     {
     public:
-        min_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit min_FunctionNode(Expression *expr) : FunctionNode(expr)
         {
             SetArgumentCount(2, -1, 0, 0);
         }
@@ -200,7 +200,7 @@ namespace
     class max_FunctionNode : public FunctionNode
     {
     public:
-        max_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit max_FunctionNode(Expression *expr) : FunctionNode(expr)
         {
             SetArgumentCount(2, -1, 0, 0);
         }
@@ -241,7 +241,7 @@ namespace
     class sqrt_FunctionNode : public FunctionNode
     {
     public:
-        sqrt_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit sqrt_FunctionNode(Expression *expr) : FunctionNode(expr)
         {
             SetArgumentCount(1, 1, 0, 0);
         }
@@ -278,7 +278,7 @@ namespace
     class sin_FunctionNode : public FunctionNode
     {
     public:
-        sin_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit sin_FunctionNode(Expression *expr) : FunctionNode(expr)
         {
             SetArgumentCount(1, 1, 0, 0);
         }
@@ -315,7 +315,7 @@ namespace
     class cos_FunctionNode : public FunctionNode
     {
     public:
-        cos_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit cos_FunctionNode(Expression *expr) : FunctionNode(expr)
         {
             SetArgumentCount(1, 1, 0, 0);
         }
@@ -352,7 +352,7 @@ namespace
     class tan_FunctionNode : public FunctionNode
     {
     public:
-        tan_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit tan_FunctionNode(Expression *expr) : FunctionNode(expr)
         {
             SetArgumentCount(1, 1, 0, 0);
         }
@@ -389,7 +389,7 @@ namespace
     class sinh_FunctionNode : public FunctionNode
     {
     public:
-        sinh_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit sinh_FunctionNode(Expression *expr) : FunctionNode(expr)
         {
             SetArgumentCount(1, 1, 0, 0);
         }
@@ -426,7 +426,7 @@ namespace
     class cosh_FunctionNode : public FunctionNode
     {
     public:
-        cosh_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit cosh_FunctionNode(Expression *expr) : FunctionNode(expr)
         {
             SetArgumentCount(1, 1, 0, 0);
         }
@@ -463,7 +463,7 @@ namespace
     class tanh_FunctionNode : public FunctionNode
     {
     public:
-        tanh_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit tanh_FunctionNode(Expression *expr) : FunctionNode(expr)
         {
             SetArgumentCount(1, 1, 0, 0);
         }
@@ -500,7 +500,7 @@ namespace
     class asin_FunctionNode : public FunctionNode
     {
     public:
-        asin_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit asin_FunctionNode(Expression *expr) : FunctionNode(expr)
         {
             SetArgumentCount(1, 1, 0, 0);
         }
@@ -537,7 +537,7 @@ namespace
     class acos_FunctionNode : public FunctionNode
     {
     public:
-        acos_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit acos_FunctionNode(Expression *expr) : FunctionNode(expr)
         {
             SetArgumentCount(1, 1, 0, 0);
         }
@@ -574,7 +574,7 @@ namespace
     class atan_FunctionNode : public FunctionNode
     {
     public:
-        atan_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit atan_FunctionNode(Expression *expr) : FunctionNode(expr)
         {
             SetArgumentCount(1, 1, 0, 0);
         }
@@ -611,7 +611,7 @@ namespace
     class atan2_FunctionNode : public FunctionNode
     {
     public:
-        atan2_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit atan2_FunctionNode(Expression *expr) : FunctionNode(expr)
         {
             SetArgumentCount(2, 2, 0, 0);
         }
@@ -648,7 +648,7 @@ namespace
     class log_FunctionNode : public FunctionNode
     {
     public:
-        log_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit log_FunctionNode(Expression *expr) : FunctionNode(expr)
         {
             SetArgumentCount(1, 1, 0, 0);
         }
@@ -685,7 +685,7 @@ namespace
     class ln_FunctionNode : public FunctionNode
     {
     public:
-        ln_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit ln_FunctionNode(Expression *expr) : FunctionNode(expr)
         {
             SetArgumentCount(1, 1, 0, 0);
         }
@@ -722,7 +722,7 @@ namespace
     class exp_FunctionNode : public FunctionNode
     {
     public:
-        exp_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit exp_FunctionNode(Expression *expr) : FunctionNode(expr)
         {
             SetArgumentCount(1, 1, 0, 0);
         }
@@ -759,7 +759,7 @@ namespace
     class logn_FunctionNode : public FunctionNode
     {
     public:
-        logn_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit logn_FunctionNode(Expression *expr) : FunctionNode(expr)
         {
             SetArgumentCount(2, 2, 0, 0);
         }
@@ -801,7 +801,7 @@ namespace
     class pow_FunctionNode : public FunctionNode
     {
     public:
-        pow_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit pow_FunctionNode(Expression *expr) : FunctionNode(expr)
         {
             SetArgumentCount(2, 2, 0, 0);
         }
@@ -838,7 +838,7 @@ namespace
     class ceil_FunctionNode : public FunctionNode
     {
     public:
-        ceil_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit ceil_FunctionNode(Expression *expr) : FunctionNode(expr)
         {
             SetArgumentCount(1, 1, 0, 0);
         }
@@ -868,7 +868,7 @@ namespace
     class floor_FunctionNode : public FunctionNode
     {
     public:
-        floor_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit floor_FunctionNode(Expression *expr) : FunctionNode(expr)
         {
             SetArgumentCount(1, 1, 0, 0);
         }
@@ -908,7 +908,7 @@ namespace
     class rand_FunctionNode : public FunctionNode
     {
     public:
-        rand_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit rand_FunctionNode(Expression *expr) : FunctionNode(expr)
         {
             SetArgumentCount(0, 0, 1, 1);
         }
@@ -938,7 +938,7 @@ namespace
     class random_FunctionNode : public FunctionNode
     {
     public:
-        random_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit random_FunctionNode(Expression *expr) : FunctionNode(expr)
         {
             SetArgumentCount(2, 2, 1, 1);
         }
@@ -971,7 +971,7 @@ namespace
     class randomize_FunctionNode : public FunctionNode
     {
     public:
-        randomize_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit randomize_FunctionNode(Expression *expr) : FunctionNode(expr)
         {
             SetArgumentCount(0, 0, 1, 1);
         }
@@ -1006,7 +1006,7 @@ namespace
     class deg_FunctionNode : public FunctionNode
     {
     public:
-        deg_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit deg_FunctionNode(Expression *expr) : FunctionNode(expr)
         {
             SetArgumentCount(1, 1, 0, 0);
         }
@@ -1036,7 +1036,7 @@ namespace
     class rad_FunctionNode : public FunctionNode
     {
     public:
-        rad_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit rad_FunctionNode(Expression *expr) : FunctionNode(expr)
         {
             SetArgumentCount(1, 1, 0, 0);
         }
@@ -1066,7 +1066,7 @@ namespace
     class rect2pol_FunctionNode : public FunctionNode
     {
     public:
-        rect2pol_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit rect2pol_FunctionNode(Expression *expr) : FunctionNode(expr)
         {
             SetArgumentCount(2, 2, 2, 2);
         }
@@ -1113,7 +1113,7 @@ namespace
     class pol2rect_FunctionNode : public FunctionNode
     {
     public:
-        pol2rect_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit pol2rect_FunctionNode(Expression *expr) : FunctionNode(expr)
         {
             SetArgumentCount(2, 2, 2, 2);
         }
@@ -1157,7 +1157,7 @@ namespace
     class if_FunctionNode : public FunctionNode
     {
     public:
-        if_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit if_FunctionNode(Expression *expr) : FunctionNode(expr)
         {
             SetArgumentCount(3, 3, 0, 0);
         }
@@ -1192,7 +1192,7 @@ namespace
     class select_FunctionNode : public FunctionNode
     {
     public:
-        select_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit select_FunctionNode(Expression *expr) : FunctionNode(expr)
         {
             SetArgumentCount(3, 4, 0, 0);
         }
@@ -1234,7 +1234,7 @@ namespace
     class equal_FunctionNode : public FunctionNode
     {
     public:
-        equal_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit equal_FunctionNode(Expression *expr) : FunctionNode(expr)
         {
             SetArgumentCount(2, 2, 0, 0);
         }
@@ -1267,7 +1267,7 @@ namespace
     class above_FunctionNode : public FunctionNode
     {
     public:
-        above_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit above_FunctionNode(Expression *expr) : FunctionNode(expr)
         {
             SetArgumentCount(2, 2, 0, 0);
         }
@@ -1300,7 +1300,7 @@ namespace
     class below_FunctionNode : public FunctionNode
     {
     public:
-        below_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit below_FunctionNode(Expression *expr) : FunctionNode(expr)
         {
             SetArgumentCount(2, 2, 0, 0);
         }
@@ -1333,7 +1333,7 @@ namespace
     class clip_FunctionNode : public FunctionNode
     {
     public:
-        clip_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit clip_FunctionNode(Expression *expr) : FunctionNode(expr)
         {
             SetArgumentCount(3, 3, 0, 0);
         }
@@ -1372,7 +1372,7 @@ namespace
     class clamp_FunctionNode : public FunctionNode
     {
     public:
-        clamp_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit clamp_FunctionNode(Expression *expr) : FunctionNode(expr)
         {
             SetArgumentCount(3, 3, 0, 0);
         }
@@ -1416,7 +1416,7 @@ namespace
     class rescale_FunctionNode : public FunctionNode
     {
     public:
-        rescale_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit rescale_FunctionNode(Expression *expr) : FunctionNode(expr)
         {
             SetArgumentCount(5, 5, 0, 0);
         }
@@ -1458,7 +1458,7 @@ namespace
     class poly_FunctionNode : public FunctionNode
     {
     public:
-        poly_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit poly_FunctionNode(Expression *expr) : FunctionNode(expr)
         {
             SetArgumentCount(2, -1, 0, 0);
         }
@@ -1509,7 +1509,7 @@ namespace
     class and_FunctionNode : public FunctionNode
     {
     public:
-        and_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit and_FunctionNode(Expression *expr) : FunctionNode(expr)
         {
             SetArgumentCount(2, 2, 0, 0);
         }
@@ -1542,7 +1542,7 @@ namespace
     class or_FunctionNode : public FunctionNode
     {
     public:
-        or_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit or_FunctionNode(Expression *expr) : FunctionNode(expr)
         {
             SetArgumentCount(2, 2, 0, 0);
         }
@@ -1575,7 +1575,7 @@ namespace
     class not_FunctionNode : public FunctionNode
     {
     public:
-        not_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit not_FunctionNode(Expression *expr) : FunctionNode(expr)
         {
             SetArgumentCount(1, 1, 0, 0);
         }
