@@ -620,40 +620,40 @@ namespace utl //! General utility classes and functions.
     //! \return Determinant of the matrix
     T inverse(T tol = T(0))
     {
-      T det = this->det();
-      if (det == T(-999))
-        return det;
-      else if (det <= tol && det >= -tol) {
-        std::cerr <<"matrix::inverse: Singular matrix |A|="<< det << std::endl;
+      T Det = this->det();
+      if (Det == T(-999))
+        return Det;
+      else if (Det <= tol && Det >= -tol) {
+        std::cerr <<"matrix::inverse: Singular matrix |A|="<< Det << std::endl;
         ABORT_ON_SINGULARITY;
         return T(0);
       }
 
       if (ncol == 1)
-        THIS(1,1) = T(1) / det;
+        THIS(1,1) = T(1) / Det;
       else if (ncol == 2) {
         matrix<T> B(2,2);
-        B(1,1) =  THIS(2,2) / det;
-        B(2,1) = -THIS(2,1) / det;
-        B(1,2) = -THIS(1,2) / det;
-        B(2,2) =  THIS(1,1) / det;
+        B(1,1) =  THIS(2,2) / Det;
+        B(2,1) = -THIS(2,1) / Det;
+        B(1,2) = -THIS(1,2) / Det;
+        B(2,2) =  THIS(1,1) / Det;
         *this = B;
       }
       else if (ncol == 3) {
         matrix<T> B(3,3);
-        B(1,1) =  (THIS(2,2)*THIS(3,3) - THIS(3,2)*THIS(2,3)) / det;
-        B(2,1) = -(THIS(2,1)*THIS(3,3) - THIS(3,1)*THIS(2,3)) / det;
-        B(3,1) =  (THIS(2,1)*THIS(3,2) - THIS(3,1)*THIS(2,2)) / det;
-        B(1,2) = -(THIS(1,2)*THIS(3,3) - THIS(3,2)*THIS(1,3)) / det;
-        B(2,2) =  (THIS(1,1)*THIS(3,3) - THIS(3,1)*THIS(1,3)) / det;
-        B(3,2) = -(THIS(1,1)*THIS(3,2) - THIS(3,1)*THIS(1,2)) / det;
-        B(1,3) =  (THIS(1,2)*THIS(2,3) - THIS(2,2)*THIS(1,3)) / det;
-        B(2,3) = -(THIS(1,1)*THIS(2,3) - THIS(2,1)*THIS(1,3)) / det;
-        B(3,3) =  (THIS(1,1)*THIS(2,2) - THIS(2,1)*THIS(1,2)) / det;
+        B(1,1) =  (THIS(2,2)*THIS(3,3) - THIS(3,2)*THIS(2,3)) / Det;
+        B(2,1) = -(THIS(2,1)*THIS(3,3) - THIS(3,1)*THIS(2,3)) / Det;
+        B(3,1) =  (THIS(2,1)*THIS(3,2) - THIS(3,1)*THIS(2,2)) / Det;
+        B(1,2) = -(THIS(1,2)*THIS(3,3) - THIS(3,2)*THIS(1,3)) / Det;
+        B(2,2) =  (THIS(1,1)*THIS(3,3) - THIS(3,1)*THIS(1,3)) / Det;
+        B(3,2) = -(THIS(1,1)*THIS(3,2) - THIS(3,1)*THIS(1,2)) / Det;
+        B(1,3) =  (THIS(1,2)*THIS(2,3) - THIS(2,2)*THIS(1,3)) / Det;
+        B(2,3) = -(THIS(1,1)*THIS(2,3) - THIS(2,1)*THIS(1,3)) / Det;
+        B(3,3) =  (THIS(1,1)*THIS(2,2) - THIS(2,1)*THIS(1,2)) / Det;
         *this = B;
       }
 
-      return det;
+      return Det;
     }
 
     //! \brief Check for symmetry.

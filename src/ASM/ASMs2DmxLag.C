@@ -264,9 +264,9 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
       Matrices dNxdu(nxx.size());
       Matrix Xnod, Jac;
       Vec4   X;
-      for (size_t i = 0; i < threadGroups[g][t].size() && ok; ++i)
+      for (size_t e = 0; e < threadGroups[g][t].size() && ok; ++e)
       {
-        int iel = threadGroups[g][t][i];
+        int iel = threadGroups[g][t][e];
         int i1  = iel % nelx;
         int i2  = iel / nelx;
 
