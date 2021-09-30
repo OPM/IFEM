@@ -3759,7 +3759,7 @@ bool ASMs3D::addRigidCpl (int lindx, int ldim, int basis,
       threadGroupsVol.stripDir = useDir;
     else if (threadGroupsVol.stripDir != useDir)
     {
-      useDir = ThreadGroups::NONE;
+      threadGroupsVol.stripDir = ThreadGroups::NONE;
       IFEM::cout <<"  ** ASMs3D::addRigidCpl: Conflicting strip directions."
                  << std::endl;
     }
