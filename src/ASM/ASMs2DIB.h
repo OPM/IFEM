@@ -37,7 +37,7 @@ class ASMs2DIB : public ASMs2D
     bool            alsoSW;  //!< If \e true, consider south/west neighbors too
   public:
     //! \brief The constructor initialises the reference to current patch.
-    Intersected(const ASMs2DIB& pch, bool all = false, bool sw = false)
+    explicit Intersected(const ASMs2DIB& pch, bool all = false, bool sw = false)
       : InterfaceChecker(pch), myAll(all), alsoSW(sw) {}
     //! \brief Empty destructor.
     virtual ~Intersected() {}

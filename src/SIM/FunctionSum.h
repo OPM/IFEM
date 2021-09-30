@@ -33,7 +33,7 @@ public:
   //! \brief The constructor specifies the first function to sum.
   //! \param[in] f Pointer to a function to sum
   //! \param[in] w Weighting factor. If negative, take max value instead.
-  FunctionSum(FunctionBase* f, double w = 1.0) { this->add(f,w); }
+  explicit FunctionSum(FunctionBase* f, double w = 1.0) { this->add(f,w); }
 
   //! \brief Empty destructor.
   virtual ~FunctionSum() {}

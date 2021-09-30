@@ -31,7 +31,7 @@ public:
   //! \brief The constructor initializes a reference to the global norm vector.
   //! \param[in] v Vector of global norm quantities
   //! \param[in] op Operation to be performed after accumulating element norms
-  GlbNorm(Vectors& v, ASM::FinalNormOp op = ASM::NONE);
+  explicit GlbNorm(Vectors& v, ASM::FinalNormOp op = ASM::NONE);
   //! \brief The destructor applies the operation \a myOp on \a myVals.
   virtual ~GlbNorm();
 

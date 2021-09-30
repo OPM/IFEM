@@ -39,7 +39,7 @@ namespace utl
     //! \brief Copy constructor.
     matrix3d(const matrix3d<T>& mat) : matrixBase<T>(mat) {}
     //! \brief Constructor to read a matrix from a stream.
-    matrix3d(std::istream& is, std::streamsize max = 10)
+    explicit matrix3d(std::istream& is, std::streamsize max = 10)
     {
       // Read size
       size_t n0 = 0, n1 = 0, n2 = 0;

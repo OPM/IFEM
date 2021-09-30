@@ -26,7 +26,7 @@ class AlgEqSystem : public GlobalIntegral
 {
 public:
   //! \brief The constructor sets its reference to SAM and ProcessAdm objects.
-  AlgEqSystem(const SAM& s, const ProcessAdm* a = nullptr);
+  explicit AlgEqSystem(const SAM& s, const ProcessAdm* a = nullptr);
 
   //! \brief The destructor frees the dynamically allocated objects.
   virtual ~AlgEqSystem() { this->clear(); }

@@ -34,7 +34,7 @@ namespace utl
     Point() : Vec4(par) { par[0] = par[1] = par[2] = Real(0); }
 
     //! \brief Constructor creating a point at the specified location.
-    Point(const Vec3& X) : Vec4(X,Real(0),par)
+    explicit Point(const Vec3& X) : Vec4(X,Real(0),par)
     {
       par[0] = par[1] = par[2] = Real(0);
     }
@@ -54,7 +54,7 @@ namespace utl
     }
 
     //! \brief Constructor creating a point from the given \a std::vector.
-    Point(const std::vector<Real>& X) : Vec4(X,par)
+    explicit Point(const std::vector<Real>& X) : Vec4(X,par)
     {
       for (size_t i = 0; i < 3; i++)
         par[i] = 3+i < X.size() ? X[3+i] : 0.0;

@@ -98,7 +98,7 @@ class MxFiniteElement : public FiniteElement
 {
 public:
   //! \brief The constructor initializes the size of each basis.
-  MxFiniteElement(const std::vector<size_t>& n, size_t ip = 0);
+  explicit MxFiniteElement(const std::vector<size_t>& n, size_t ip = 0);
 
   //! \brief Empty destructor.
   virtual ~MxFiniteElement() {}
