@@ -730,7 +730,7 @@ static const ScalarFunc* parseFunction (const char* type, char* cline, Real C)
     if (cline) IFEM::cout <<"*"<< scale;
     return new LinearFunc(fname,colum,scale);
   }
-  else if (strncasecmp(type,"Constant",8) == 0)
+  else if (strncasecmp(type,"Constant",8) == 0 && cline)
   {
     Real value = atof(cline);
     IFEM::cout << value;
@@ -738,7 +738,12 @@ static const ScalarFunc* parseFunction (const char* type, char* cline, Real C)
   }
   else // linear in time
   {
-    Real scale = atof(strncasecmp(type,"Lin",3) == 0 ? cline : type);
+    Real scale;
+    if (type && cline)
+      scale = atof(strncasecmp(type,"Lin",3) == 0 ? cline : type);
+    else
+      scale = 1.0;
+
     IFEM::cout << scale <<"*t";
     return new LinearFunc(C*scale);
   }

@@ -126,6 +126,9 @@ OrientIterator::OrientIterator(const ASMbase* pch,
 DomainDecomposition::
 OrientIterator::OrientIterator(const ASMbase* pch, int orient, int lIdx)
 {
+  if (!pch)
+    return;
+
   const ASMstruct* spch = dynamic_cast<const ASMstruct*>(pch);
   if (!spch) {
     nodes.resize(pch->getNoBoundaryElms(lIdx, pch->getNoSpaceDim()-1));
@@ -453,6 +456,9 @@ void DomainDecomposition::setupNodeNumbers(int basis, IntVec& lNodes,
                                            const ASMbase* pch,
                                            int dim, int lidx, int thick, int orient)
 {
+  if (!pch)
+    return;
+
   if (basis != 0) // specified base
     cbasis = utl::getDigits(basis);
   else if (dim == 0 || (dim == 1 && pch->getNoSpaceDim() == 3))

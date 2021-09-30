@@ -353,6 +353,9 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
     {
       Vector psol;
       ASMbase* pch = sim->getPatch(loc);
+      if (!pch)
+        continue;
+
       if (results & DataExporter::PRIMARY && !sol->empty()) {
         size_t ndof1 = sim->extractPatchSolution(*sol,psol,pch,entry.second.ncmps,
                                                  usedescription ? 1 : 0);

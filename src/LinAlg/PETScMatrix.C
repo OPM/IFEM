@@ -587,6 +587,9 @@ bool PETScMatrix::solveDirect(PETScVector& B)
 
   // Set correct number of rows and columns for matrix.
   size_t nrow = IA.size()-1;
+  if (nrow == 0 || IA.empty())
+    return false;
+
   MatSetSizes(pA, nrow, nrow, PETSC_DECIDE, PETSC_DECIDE);
   MatSetFromOptions(pA);
   PetscInt max = 0;
