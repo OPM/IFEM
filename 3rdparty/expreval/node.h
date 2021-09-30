@@ -48,7 +48,7 @@ namespace ExprEval
         
         // Parse nodes and references
         void Parse(Parser &parser, Parser::size_type start, Parser::size_type end,
-                Parser::size_type v1 = 0);
+                Parser::size_type v1 = 0) override;
                 
                 
     private:
@@ -84,9 +84,9 @@ namespace ExprEval
         explicit MultiNode(Expression *expr);
         ~MultiNode();
         
-        double DoEvaluate();
+        double DoEvaluate() override;
         void Parse(Parser &parser, Parser::size_type start, Parser::size_type end,
-                Parser::size_type v1 = 0);
+                Parser::size_type v1 = 0) override;
                 
     private:
         ::std::vector<Node*> m_nodes;
@@ -100,9 +100,9 @@ namespace ExprEval
         explicit AssignNode(Expression *expr);
         ~AssignNode();
         
-        double DoEvaluate();
+        double DoEvaluate() override;
         void Parse(Parser &parser, Parser::size_type start, Parser::size_type end,
-                Parser::size_type v1 = 0);
+                Parser::size_type v1 = 0) override;
                 
     private:
         double *m_var;
@@ -117,9 +117,9 @@ namespace ExprEval
         explicit AddNode(Expression *expr);
         ~AddNode();
         
-        double DoEvaluate();
+        double DoEvaluate() override;
         void Parse(Parser &parser, Parser::size_type start, Parser::size_type end,
-                Parser::size_type v1 = 0);
+                Parser::size_type v1 = 0) override;
                 
     private:
         Node *m_lhs;
@@ -134,9 +134,9 @@ namespace ExprEval
         explicit SubtractNode(Expression *expr);
         ~SubtractNode();
         
-        double DoEvaluate();
+        double DoEvaluate() override;
         void Parse(Parser &parser, Parser::size_type start, Parser::size_type end,
-                Parser::size_type v1 = 0);
+                Parser::size_type v1 = 0) override;
                 
     private:
         Node *m_lhs;
@@ -151,9 +151,9 @@ namespace ExprEval
         explicit MultiplyNode(Expression *expr);
         ~MultiplyNode();
         
-        double DoEvaluate();
+        double DoEvaluate() override;
         void Parse(Parser &parser, Parser::size_type start, Parser::size_type end,
-                Parser::size_type v1 = 0);
+                Parser::size_type v1 = 0) override;
                 
     private:
         Node *m_lhs;
@@ -168,9 +168,9 @@ namespace ExprEval
         explicit DivideNode(Expression *expr);
         ~DivideNode();
         
-        double DoEvaluate();
+        double DoEvaluate() override;
         void Parse(Parser &parser, Parser::size_type start, Parser::size_type end,
-                Parser::size_type v1 = 0);
+                Parser::size_type v1 = 0) override;
                 
     private:
         Node *m_lhs;
@@ -185,9 +185,9 @@ namespace ExprEval
         explicit NegateNode(Expression *expr);
         ~NegateNode();
         
-        double DoEvaluate();
+        double DoEvaluate() override;
         void Parse(Parser &parser, Parser::size_type start, Parser::size_type end,
-                Parser::size_type v1 = 0);
+                Parser::size_type v1 = 0) override;
                 
     private:
         Node *m_rhs;
@@ -201,9 +201,9 @@ namespace ExprEval
         explicit ExponentNode(Expression *expr);
         ~ExponentNode();
         
-        double DoEvaluate();
+        double DoEvaluate() override;
         void Parse(Parser &parser, Parser::size_type start, Parser::size_type end,
-                Parser::size_type v1 = 0);
+                Parser::size_type v1 = 0) override;
                 
     private:
         Node *m_lhs;
@@ -218,9 +218,9 @@ namespace ExprEval
         explicit VariableNode(Expression *expr);
         ~VariableNode();
         
-        double DoEvaluate();
+        double DoEvaluate() override;
         void Parse(Parser &parser, Parser::size_type start, Parser::size_type end,
-                Parser::size_type v1 = 0);
+                Parser::size_type v1 = 0) override;
                 
     private:
         double *m_var;
@@ -234,9 +234,9 @@ namespace ExprEval
         explicit ValueNode(Expression *expr);
         ~ValueNode();
         
-        double DoEvaluate();
+        double DoEvaluate() override;
         void Parse(Parser &parser, Parser::size_type start, Parser::size_type end,
-                Parser::size_type v1 = 0);
+                Parser::size_type v1 = 0) override;
                 
     private:
         double m_val;
