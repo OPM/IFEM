@@ -170,7 +170,7 @@ class StepFunc : public ScalarFunc
 
 public:
   //! \brief Constructor initializing the function parameters.
-  StepFunc(Real a, Real x = Real(0)) : amp(a), xmax(x) {}
+  explicit StepFunc(Real a, Real x = Real(0)) : amp(a), xmax(x) {}
 
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return amp == Real(0); }
@@ -298,7 +298,7 @@ class LinearXFunc : public RealFunc
 
 public:
   //! \brief Constructor initializing the function parameters.
-  LinearXFunc(Real A, Real B = Real(0)) : a(A), b(B) {}
+  explicit LinearXFunc(Real A, Real B = Real(0)) : a(A), b(B) {}
 
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return a == Real(0) && b == Real(0); }
@@ -323,7 +323,7 @@ class LinearYFunc : public RealFunc
 
 public:
   //! \brief Constructor initializing the function parameters.
-  LinearYFunc(Real A, Real B = Real(0)) : a(A), b(B) {}
+  explicit LinearYFunc(Real A, Real B = Real(0)) : a(A), b(B) {}
 
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return a == Real(0) && b == Real(0); }
@@ -348,7 +348,7 @@ class LinearZFunc : public RealFunc
 
 public:
   //! \brief Constructor initializing the function parameters.
-  LinearZFunc(Real A, Real B = Real(0)) : a(A), b(B) {}
+  explicit LinearZFunc(Real A, Real B = Real(0)) : a(A), b(B) {}
 
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return a == Real(0) && b == Real(0); }
@@ -497,7 +497,7 @@ class StepXFunc : public RealFunc
 
 public:
   //! \brief Constructor initializing the function parameters.
-  StepXFunc(Real v, Real X0 = Real(0), Real X1 = Real(1), char dir = 'X')
+  explicit StepXFunc(Real v, Real X0 = Real(0), Real X1 = Real(1), char dir = 'X')
     : fv(v), x0(X0), x1(X1), d(dir) {}
 
   //! \brief Returns whether the function is identically zero or not.
@@ -523,7 +523,7 @@ class StepXYFunc : public RealFunc
 
 public:
   //! \brief Constructor initializing the function parameters.
-  StepXYFunc(Real v,
+  explicit StepXYFunc(Real v,
              Real X1 = Real(1), Real Y1 = Real(1),
              Real X0 = Real(-1), Real Y0 = Real(-1))
     : fv(v), x0(X0), y0(Y0), x1(X1), y1(Y1) {}

@@ -32,7 +32,7 @@ template<class T1> class SIMSolverStat : public SIMadmin
 {
 public:
   //! \brief The constructor initializes the reference to the actual solver.
-  SIMSolverStat(T1& s1, const char* head = nullptr) : SIMadmin(head), S1(s1)
+  explicit SIMSolverStat(T1& s1, const char* head = nullptr) : SIMadmin(head), S1(s1)
   {
     exporter = nullptr;
     startExpLevel = 0;

@@ -29,7 +29,7 @@ class SIMmultiCpl : public SIMadmin
 {
 public:
   //! \brief The constructor initializes the array of base %SIM objects.
-  SIMmultiCpl(const std::vector<SIMoutput*>& sims);
+  explicit SIMmultiCpl(const std::vector<SIMoutput*>& sims);
   //! \brief The destructor deletes the base %SIM objects.
   virtual ~SIMmultiCpl();
 

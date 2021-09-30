@@ -44,7 +44,7 @@ public:
   //! \brief Default constructor creating an empty matrix.
   SparseMatrix(SparseSolver eqSolver = NONE, int nt = 1);
   //! \brief Constructor creating a \f$m \times n\f$ matrix.
-  SparseMatrix(size_t m, size_t n = 0);
+  explicit SparseMatrix(size_t m, size_t n = 0);
   //! \brief Copy constructor.
   SparseMatrix(const SparseMatrix& B);
   //! \brief The destructor frees the dynamically allocated arrays.

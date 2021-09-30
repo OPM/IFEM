@@ -50,7 +50,7 @@ public:
   static int numError; //!< Error counter - set by the exception handler
 
   //! \brief The constructor parses the expression string.
-  EvalFunc(const char* function, const char* x = "x", Real eps = Real(1.0e-8));
+  explicit EvalFunc(const char* function, const char* x = "x", Real eps = Real(1.0e-8));
   //! \brief The destructor frees the dynamically allocated objects.
   virtual ~EvalFunc();
 

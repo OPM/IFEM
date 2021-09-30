@@ -31,13 +31,13 @@ public:
   //! \brief Constructor for standard problems.
   //! \param[in] n1 Dimension of the primary solution field
   //! \param[in] checkRHS If \e true, ensure the model is in a right-hand system
-  SIMMultiPatchModelGen(int n1, bool checkRHS = false) : Dim(n1,checkRHS) {}
+  explicit SIMMultiPatchModelGen(int n1, bool checkRHS = false) : Dim(n1,checkRHS) {}
 
   //! \brief Constructor for mixed problems.
   //! \param[in] unf Dimension of the primary solution field
   //! \param[in] checkRHS If \e true, ensure the model is in a right-hand system
-  SIMMultiPatchModelGen(const std::vector<unsigned char>& unf,
-                        bool checkRHS = false) : Dim(unf,checkRHS) {}
+  explicit SIMMultiPatchModelGen(const std::vector<unsigned char>& unf,
+                                 bool checkRHS = false) : Dim(unf,checkRHS) {}
 
   //! \brief Empty destructor.
   virtual ~SIMMultiPatchModelGen() {}

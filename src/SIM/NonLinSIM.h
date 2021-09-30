@@ -39,7 +39,7 @@ public:
   //! \brief The constructor initializes default solution parameters.
   //! \param sim Pointer to the spline FE model
   //! \param[in] n Which type of iteration norm to use in convergence checks
-  NonLinSIM(SIMbase& sim, CNORM n = ENERGY);
+  explicit NonLinSIM(SIMbase& sim, CNORM n = ENERGY);
   //! \brief The destructor prints out the slow-converging nodes, if any.
   virtual ~NonLinSIM();
 

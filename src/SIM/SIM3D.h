@@ -36,12 +36,12 @@ public:
   //! \brief Constructor used for mixed problems.
   //! \param[in] unf Dimension of the primary solution fields
   //! \param[in] check If \e true, ensure the model is in a right-hand system
-  SIM3D(const CharVec& unf, bool check = false);
+  explicit SIM3D(const CharVec& unf, bool check = false);
   //! \brief Constructor that also initializes the integrand pointer.
   //! \param[in] itg Pointer to the integrand of the problem to solve
   //! \param[in] n Dimension of the primary solution field
   //! \param[in] check If \e true, ensure the model is in a right-hand system
-  SIM3D(IntegrandBase* itg, unsigned char n = 3, bool check = false);
+  explicit SIM3D(IntegrandBase* itg, unsigned char n = 3, bool check = false);
   //! \brief Empty destructor.
   virtual ~SIM3D() {}
 

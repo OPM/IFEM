@@ -32,11 +32,11 @@ public:
   SIM1D(unsigned char n1 = 1, bool = false);
   //! \brief Constructor used for mixed problems.
   //! \param[in] unf Dimension of the primary solution fields
-  SIM1D(const CharVec& unf, bool = false);
+  explicit SIM1D(const CharVec& unf, bool = false);
   //! \brief Constructor that also initializes the integrand pointer.
   //! \param[in] itg Pointer to the integrand of the problem to solve
   //! \param[in] n Dimension of the primary solution field
-  SIM1D(IntegrandBase* itg, unsigned char n = 1);
+  explicit SIM1D(IntegrandBase* itg, unsigned char n = 1);
   //! \brief Empty destructor.
   virtual ~SIM1D() {}
 

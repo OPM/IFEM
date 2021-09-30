@@ -31,9 +31,9 @@ public:
   //! \brief Copy constructor.
   DenseMatrix(const DenseMatrix& A);
   //! \brief Special constructor taking data from a one-dimensional array.
-  DenseMatrix(const RealArray& data, size_t nrows = 0);
+  explicit DenseMatrix(const RealArray& data, size_t nrows = 0);
   //! \brief Special constructor, type conversion from Matrix.
-  DenseMatrix(const Matrix& A, bool s = false);
+  explicit DenseMatrix(const Matrix& A, bool s = false);
   //! \brief The destructor frees the dynamically allocated arrays.
   virtual ~DenseMatrix() { if (ipiv) delete[] ipiv; }
 
