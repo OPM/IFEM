@@ -32,7 +32,7 @@ public:
   //! \brief The constructor initializes the block information arrays.
   //! \param[in] nBlk Number of matrix blocks (in each direction, row & column)
   //! \param[in] nb Number of bases (> 1 for mixed problems)
-  BlockElmMats(size_t nBlk, size_t nb = 1) : blockInfo(nBlk), basisInfo(nb) {}
+  explicit BlockElmMats(size_t nBlk, size_t nb = 1) : blockInfo(nBlk), basisInfo(nb) {}
   //! \brief Empty destructor.
   virtual ~BlockElmMats() {}
 

@@ -32,7 +32,7 @@ public:
   //! \param out The output stream to wrap
   //! \param ppid The PID to print on
   //! \param mypid The PID of this process
-  LogStream(std::ostream& out, int ppid = 0, int mypid = 0);
+  explicit LogStream(std::ostream& out, int ppid = 0, int mypid = 0);
 
   //! \brief Nullifies the output stream.
   void setNull() { m_out = nullptr; }
