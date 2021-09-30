@@ -2937,7 +2937,7 @@ void ASMu2D::storeMesh (const std::string& fName, int fType) const
     lrspline->writePostscriptFunctionSpace(meshFile);
   }
 
-  if ((fType/=2)%2)
+  if ((fType / 2)%2)
   {
     std::ofstream meshFile("physical_dot_"+fName+".eps");
     lrspline->writePostscriptMeshWithControlPoints(meshFile);
