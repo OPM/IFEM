@@ -324,7 +324,7 @@ bool ASMs3DSpec::integrateEdge (Integrand& integrand, int lEdge,
   Matrix dNdu(nen,3), Xnod, Jac;
   Vec4   X;
   Vec3   tangent;
-  int    xi[3];
+  int    xi[3] = {0,0,0};
 
   switch (lEdge)
   {

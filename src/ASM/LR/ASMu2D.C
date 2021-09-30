@@ -817,7 +817,7 @@ void ASMu2D::constrainCorner (int I, int J, int dof, int code, char basis)
 void ASMu2D::constrainNode (double xi, double eta, int dof, int code)
 {
   double xip[2] = { xi, eta };
-  double param[2];
+  double param[2] = {0.0, 0.0};
   Vec3 X;
 
   // Check if the point has a matching node

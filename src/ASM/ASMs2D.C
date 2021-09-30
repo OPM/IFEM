@@ -975,7 +975,7 @@ size_t ASMs2D::constrainEdgeLocal (int dir, bool open, int dof, int code,
   }
 
   // Find start index and increment of the (slave) node with the global DOFs
-  int n1, n2, incNod = 0, iSnod = 0;
+  int n1 = 1, n2 = 1, incNod = 0, iSnod = 0;
   this->getSize(n1,n2,1);
   switch (dir)
     {

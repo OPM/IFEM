@@ -776,7 +776,7 @@ bool ASMs3DLag::integrateEdge (Integrand& integrand, int lEdge,
   Matrix dNdu, Xnod, Jac;
   Vec4   X;
   Vec3   tangent;
-  double xi[3];
+  double xi[3] = {0.0, 0.0, 0.0};
 
   switch (lEdge)
   {
