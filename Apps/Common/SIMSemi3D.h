@@ -126,7 +126,7 @@ public:
   std::string getName() const override { return "Semi3D"; }
 
   //! \brief Adds fields to a data exporter.
-  void registerFields(DataExporter& exporter)
+  void registerFields(const DataExporter& exporter)
   {
     std::string name = exporter.getName();
     int plane = 1 + startCtx;

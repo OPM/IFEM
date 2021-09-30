@@ -326,7 +326,7 @@ bool ASMs2DC1::addRigidCpl (int lindx, int ldim, int basis,
   \brief Computes coupling coefficients for a 2-master constraint in a C1-patch.
 */
 
-static void initMPC2 (MPC* mpc, std::vector<Vec3>& X)
+static void initMPC2 (MPC* mpc, const std::vector<Vec3>& X)
 {
   double s1 = (X[1]-X[0]).length();
   double s2 = (X[2]-X[0]).length();
@@ -339,7 +339,7 @@ static void initMPC2 (MPC* mpc, std::vector<Vec3>& X)
   \brief Computes coupling coefficients for a 3-master constraint in a C1-patch.
 */
 
-static void initMPC3 (MPC* mpc, std::vector<Vec3>& X)
+static void initMPC3 (MPC* mpc, const std::vector<Vec3>& X)
 {
   Vec3 V10(X[0]-X[1]);
   Vec3 V12(X[2]-X[1]);
