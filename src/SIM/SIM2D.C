@@ -317,7 +317,10 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
         }
 
         if (!pch->setGeometry(lfunc,power,threshold))
+        {
+          delete lfunc;
           return false;
+        }
 
         if (type == "file")
           myAddScalars[val] = lfunc;
