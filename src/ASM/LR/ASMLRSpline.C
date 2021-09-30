@@ -570,7 +570,7 @@ void ASMLRSpline::getNoIntPoints (size_t& nPt, size_t& nIPt)
     int ng[3] = { 0, 0, 0 };
     int nG1 = 0;
     this->getOrder(ng[0],ng[1],ng[2]);
-    for (unsigned char d = 0; d < ndim; d++)
+    for (unsigned char d = 0; d < ndim && d < 3; d++)
       nG1 = std::max(nG1,ng[d]+nGauss%10);
     for (unsigned char d = 0; d < ndim; d++)
       nGp = nG1*nG1;

@@ -1556,9 +1556,10 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
   norm->initIntegration(nIntGP,nBouGP);
 
   // Number of recovered solution components
-  if (!this->fieldProjections())
+  size_t nNodes = this->getNoNodes(1);
+  if (nNodes > 0 && !this->fieldProjections())
     for (const Vector& s : ssol)
-      if ((nCmp = s.size() / this->getNoNodes(1)) > 0)
+      if ((nCmp = s.size() / nNodes) > 0)
         break;
 
 #ifdef USE_OPENMP
