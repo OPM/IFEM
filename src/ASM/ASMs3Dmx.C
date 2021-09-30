@@ -1197,7 +1197,7 @@ bool ASMs3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
       if (b == (size_t)geoBasis-1)
         utl::gather(ip[geoBasis-1], 3, Xnod, Xtmp);
 
-      for (int& i : ip[b]) i += ofs;
+      for (int& c : ip[b]) c += ofs;
       ipa.insert(ipa.end(), ip[b].begin(), ip[b].end());
       ofs += nb[b];
     }

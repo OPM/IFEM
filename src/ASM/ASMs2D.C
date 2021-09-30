@@ -694,18 +694,18 @@ bool ASMs2D::connectBasis (int edge, ASMs2D& neighbor, int nedge, bool revers,
   const double xtol = 1.0e-4;
   for (size_t i = 0; i < masterNodes.size(); i++)
   {
-    int node = masterNodes[i];
-    int slave = slaveNodes[revers ? slaveNodes.size()-i-1 : i];
+    int mnode = masterNodes[i];
+    int snode = slaveNodes[revers ? slaveNodes.size()-i-1 : i];
     if (!coordCheck)
-      ASMbase::collapseNodes(neighbor,node,*this,slave);
-    else if (neighbor.getCoord(node).equal(this->getCoord(slave),xtol))
-      ASMbase::collapseNodes(neighbor,node,*this,slave);
+      ASMbase::collapseNodes(neighbor,mnode,*this,snode);
+    else if (neighbor.getCoord(mnode).equal(this->getCoord(snode),xtol))
+      ASMbase::collapseNodes(neighbor,mnode,*this,snode);
     else
     {
       std::cerr <<" *** ASMs2D::connectBasis: Non-matching nodes "
-                << node <<": "<< neighbor.getCoord(node)
+                << mnode <<": "<< neighbor.getCoord(mnode)
                 <<"\n                                          and "
-                << slave <<": "<< this->getCoord(slave) << std::endl;
+                << snode <<": "<< this->getCoord(snode) << std::endl;
       return false;
     }
   }
@@ -1710,9 +1710,9 @@ bool ASMs2D::integrate (Integrand& integrand,
       double   dXidu[2];
       double   param[3] = { 0.0, 0.0, 0.0 };
       Vec4     X(param);
-      for (size_t i = 0; i < groups[g][t].size() && ok; i++)
+      for (size_t e = 0; e < groups[g][t].size() && ok; e++)
       {
-        int iel = groups[g][t][i];
+        int iel = groups[g][t][e];
         fe.iel = MLGE[iel];
         if (fe.iel < 1) continue; // zero-area element
 

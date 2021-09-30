@@ -292,9 +292,9 @@ std::vector<std::set<int>> DomainDecomposition::getSubdomains(int nx, int ny, in
             continue;
 
           getSAM()->getElmEqns(eqns, el);
-          for (auto& it : eqns) {
-            if (it > 0)
-              result[d].insert(it);
+          for (int eqn : eqns) {
+            if (eqn > 0)
+              result[d].insert(eqn);
           }
         } else {
           IntVec nodes;
@@ -305,9 +305,9 @@ std::vector<std::set<int>> DomainDecomposition::getSubdomains(int nx, int ny, in
             if (type == (basis == 1 ? 'D' : 'P'+basis-2) || (type == ' ' && basis < 2)) {
               IntVec eqns;
               getSAM()->getNodeEqns(eqns, node);
-              for (auto& it : eqns) {
-                if (it > 0) {
-                  auto geq = blocks[block+1].G2LEQ.find(it);
+              for (int eqn : eqns) {
+                if (eqn > 0) {
+                  auto geq = blocks[block+1].G2LEQ.find(eqn);
                   result[d].insert(geq->second);
                 }
               }
@@ -770,9 +770,9 @@ bool DomainDecomposition::calcGlobalEqNumbers(const ProcessAdm& adm,
     old2new[0][leq] = it;
     o2nu[0][leq-nEqs[0]-1] = true;
     if (blocks.size() > 1 && !blkLMs.empty()) {
-      int leq = blocks[2].MLGEQ[blocks[2].G2LEQ[seq]-1];
-      old2new[2][leq] = *blockIt;
-      o2nu[2][leq-nEqs[2]-1] = true;
+      int lleq = blocks[2].MLGEQ[blocks[2].G2LEQ[seq]-1];
+      old2new[2][lleq] = *blockIt;
+      o2nu[2][lleq-nEqs[2]-1] = true;
       ++blockIt;
     }
   }
@@ -876,9 +876,9 @@ bool DomainDecomposition::calcGlobalEqNumbers(const ProcessAdm& adm,
 
     std::vector<int> LM;
     size_t nMult = 0;
-    for (size_t n = 0; n < locLMs.size(); ++n) {
+    for (int node : locLMs) {
       // TODO: > 1 dof for multipliers
-      int eq = sim.getSAM()->getEquation(sim.getPatch(1)->getNodeID(locLMs[n]), 1);
+      int eq = sim.getSAM()->getEquation(sim.getPatch(1)->getNodeID(node), 1);
       if (eq > 0)
         LM.push_back(blocks[0].MLGEQ[eq-1]), ++nMult;
     }
