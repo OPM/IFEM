@@ -23,7 +23,7 @@
   coupling, where the element matrices typically consist of blocks resulting
   from the various integrands. The block sub-matrices are stitched together into
   an element-level Newton matrix corresponding to all DOFs of the element by the
-  getNewtonMatrix method.
+  getNewtonMatrix() method.
 */
 
 class BlockElmMats : public ElmMats
@@ -31,8 +31,8 @@ class BlockElmMats : public ElmMats
 public:
   //! \brief The constructor initializes the block information arrays.
   //! \param[in] nBlk Number of matrix blocks (in each direction, row & column)
-  //! \param[in] nb Number of bases (> 1 for mixed problems)
-  explicit BlockElmMats(size_t nBlk, size_t nb = 1) : blockInfo(nBlk), basisInfo(nb) {}
+  //! \param[in] nBas Number of bases (> 1 for mixed problems)
+  BlockElmMats(size_t nBlk, size_t nBas) : blockInfo(nBlk), basisInfo(nBas) {}
   //! \brief Empty destructor.
   virtual ~BlockElmMats() {}
 
@@ -59,9 +59,7 @@ public:
 
   //! \brief Returns the element-level Newton matrix.
   virtual const Matrix& getNewtonMatrix() const;
-
-  //! \brief Returns the element-level right-hand-side vector
-  //! associated with the Newton matrix.
+  //! \brief Returns the element-level right-hand-side vector.
   virtual const Vector& getRHSVector() const;
 
 private:

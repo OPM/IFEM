@@ -17,7 +17,7 @@
 
 TEST(TestBlockElmMats, 1Basis2BlocksDiag)
 {
-  BlockElmMats mats(2);
+  BlockElmMats mats(2, 1);
 
   mats.resize(3, 3);
   ASSERT_TRUE(mats.redim(1, 2, 1));
@@ -44,7 +44,7 @@ TEST(TestBlockElmMats, 1Basis2BlocksDiag)
 
 TEST(TestBlockElmMats, 1Basis2BlocksSymmetric)
 {
-  BlockElmMats mats(2);
+  BlockElmMats mats(2, 1);
 
   mats.resize(4, 3);
   ASSERT_TRUE(mats.redim(1, 2, 1));
@@ -76,7 +76,7 @@ TEST(TestBlockElmMats, 1Basis2BlocksSymmetric)
 
 TEST(TestBlockElmMats, 1Basis2BlocksSkewSymmetric)
 {
-  BlockElmMats mats(2);
+  BlockElmMats mats(2, 1);
 
   mats.resize(4, 3);
   ASSERT_TRUE(mats.redim(1, 2, 1));
@@ -108,7 +108,7 @@ TEST(TestBlockElmMats, 1Basis2BlocksSkewSymmetric)
 
 TEST(TestBlockElmMats, 1Basis2BlocksFull)
 {
-  BlockElmMats mats(2);
+  BlockElmMats mats(2, 1);
 
   mats.resize(5, 3);
   ASSERT_TRUE(mats.redim(1, 2, 1));
