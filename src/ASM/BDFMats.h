@@ -14,7 +14,7 @@
 #ifndef _BDF_MATS_H
 #define _BDF_MATS_H
 
-#include "NewmarkMats.h"
+#include "ElmMats.h"
 #include "BDF.h"
 
 
@@ -23,7 +23,7 @@
   using backward difference formulae (BDF).
 */
 
-class BDFMats : public NewmarkMats
+class BDFMats : public ElmMats
 {
 public:
   //! \brief The constructor initializes the time integration parameters.
@@ -32,6 +32,9 @@ public:
   //! \brief Empty destructor.
   virtual ~BDFMats() {}
 
+  //! \brief Updates the time step size.
+  virtual void setStepSize(double dt, int) { h = dt; }
+
   //! \brief Returns the element-level Newton matrix.
   virtual const Matrix& getNewtonMatrix() const;
   //! \brief Returns the element-level right-hand-side vector.
@@ -39,6 +42,7 @@ public:
 
 protected:
   TimeIntegration::BDFD2 bdf; //!< BDF time integration scheme
+  double                 h;   //!< Time step size
 };
 
 #endif

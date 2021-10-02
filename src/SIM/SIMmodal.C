@@ -164,8 +164,7 @@ bool SIMmodal::assembleModalSystem (const TimeDomain& time,
   }
 
   myElmMat->vec.resize(mSol.size(),Vector(1));
-  if (beta > 0.0)
-    static_cast<NewmarkMats*>(myElmMat)->setStepSize(time.dt,time.it);
+  myElmMat->setStepSize(time.dt,time.it);
 
   int iu = mSol.size() - (beta > 0.0 ? 3 : 1); // index to modal displacement
   if (iu < 0)
@@ -225,17 +224,6 @@ bool SIMmodal::assembleModalSystem (const TimeDomain& time,
 }
 
 
-#ifdef HAS_CEREAL
-//! \brief Serializes Mode data to/from the \a archive.
-template<class T> void doSerialize (T& archive, Mode& mode)
-{
-  archive(mode.eigNo);
-  archive(mode.eigVal);
-  archive(mode.eigVec);
-}
-#endif
-
-
 bool SIMmodal::saveModes (std::map<std::string,std::string>& data) const
 {
 #ifdef HAS_CEREAL
@@ -244,7 +232,11 @@ bool SIMmodal::saveModes (std::map<std::string,std::string>& data) const
     cereal::BinaryOutputArchive archive(str);
     archive(myModes.size());
     for (const Mode& mode : myModes)
-      doSerialize(archive,const_cast<Mode&>(mode));
+    {
+      archive(mode.eigNo);
+      archive(mode.eigVal);
+      archive(mode.eigVec);
+    }
   }
   data["ModalSIM"] = str.str();
   return true;
@@ -266,7 +258,11 @@ bool SIMmodal::restoreModes (const std::map<std::string,std::string>& data)
     archive(size);
     myModes.resize(size);
     for (Mode& mode : myModes)
-      doSerialize(archive,mode);
+    {
+      archive(mode.eigNo);
+      archive(mode.eigVal);
+      archive(mode.eigVec);
+    }
     return true;
   }
 #endif

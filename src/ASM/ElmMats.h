@@ -51,11 +51,12 @@ public:
   //! \brief Checks if the element matrices are empty.
   virtual bool empty() const { return A.empty() && b.empty(); }
 
+  //! \brief Updates the time step size.
+  virtual void setStepSize(double, int) {}
+
   //! \brief Returns the element-level Newton matrix.
   virtual const Matrix& getNewtonMatrix() const;
-
-  //! \brief Returns the element-level right-hand-side vector
-  //! associated with the Newton matrix.
+  //! \brief Returns the element-level right-hand-side vector.
   virtual const Vector& getRHSVector() const;
 
   std::vector<Matrix> A; //!< The element coefficient matrices

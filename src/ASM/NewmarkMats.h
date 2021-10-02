@@ -31,17 +31,17 @@ public:
   //! \param[in] b Time integration parameter
   //! \param[in] c Time integration parameter
   //! \param[in] generalizedAlpha If \e true, interpret \a b and \a c as the
-  //! generalized alpha parameters \a alpha_m and \a alpha_f, respectively,
-  //! otherwise as \a beta and \a gamma
-  NewmarkMats(double a1 = 0.0, double a2 = 0.0, double b = 0.0, double c = 0.0,
+  //! generalized-alpha parameters &alpha;<sub>m</sub> and &alpha;<sub>f</sub>,
+  //! respectively, otherwise as &beta; and &gamma;, respectively
+  NewmarkMats(double a1, double a2, double b = 0.0, double c = 0.0,
               bool generalizedAlpha = false);
   //! \brief Empty destructor.
   virtual ~NewmarkMats() {}
 
   //! \brief Updates the time step size and the \a isPredictor flag.
   //! \param[in] dt New time step size
-  //! \param[in] iter Newton-Raphson iteration counter
-  void setStepSize(double dt, int iter) { h = dt; isPredictor = iter == 0; }
+  //! \param[in] it Newton-Raphson iteration counter
+  virtual void setStepSize(double dt, int it) { h = dt; isPredictor = it == 0; }
 
   //! \brief Returns the element-level Newton matrix.
   virtual const Matrix& getNewtonMatrix() const;
@@ -54,12 +54,12 @@ protected:
 
   double alpha1; //!< Mass-proportional damping coefficient
   double alpha2; //!< Stiffness-proportional damping coefficient
-  double beta;   //!< Newmark time integration parameter
-  double gamma;  //!< Newmark time integration parameter
+  double beta;   //!< Newmark time integration parameter, &beta;
+  double gamma;  //!< Newmark time integration parameter, &gamma;
 
 private:
-  double alpha_m; //!< Generalized-alpha parameter
-  double alpha_f; //!< Generalized-alpha parameter
+  double alpha_m; //!< Generalized-alpha parameter, &alpha;<sub>m</sub>
+  double alpha_f; //!< Generalized-alpha parameter, &alpha;<sub>f</sub>
   bool   slvDisp; //!< If \e true, solve for displacement increments
 };
 
