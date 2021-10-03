@@ -160,6 +160,7 @@ public:
         elm = new HHTMats(intPrm[2],intPrm[0],intPrm[1]);
       else
         elm = new NewmarkMats(intPrm[0],intPrm[1],intPrm[2],intPrm[3]);
+      elm->rhsOnly = !newLHSmatrix;
       elm->resize(3, useHHT ? 2 : 1);
       elm->redim(1);
       elm->setStepSize(time.dt,time.it);
@@ -278,11 +279,12 @@ public:
 class Newmark : public NewmarkSIM
 {
 public:
-  Newmark(SIMbase& sim, bool useDispl) : NewmarkSIM(sim)
+  Newmark(SIMbase& sim, bool useDispl, int nupd = 20) : NewmarkSIM(sim)
   {
     beta = 0.3025; gamma = 0.6;
     solveDisp = useDispl;
     predictor = useDispl ? 'd' : 'a';
+    nupdat = nupd;
     this->initPrm();
     this->initSol(3);
   }
@@ -436,7 +438,7 @@ TEST(TestGenAlpha, SingleDOFa)
 TEST(TestNewmark, SingleDOFu)
 {
   SIM1DOF simulator;
-  Newmark integrator(simulator,true);
+  Newmark integrator(simulator,true,0);
   runSingleDof(simulator,integrator);
 }
 

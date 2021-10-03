@@ -101,6 +101,7 @@ protected:
   char   predictor; //!< Predictor type flag
   int    maxit;     //!< Maximum number of iterations in a time step
   int    maxIncr;   //!< Maximum number of iterations with increasing norm
+  int    nupdat;    //!< Number of iterations with updated tangent
   int    saveIts;   //!< Time step for which iteration result should be saved
   double rTol;      //!< Relative convergence tolerance
   double aTol;      //!< Absolute convergence tolerance

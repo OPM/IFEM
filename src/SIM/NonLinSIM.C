@@ -289,13 +289,13 @@ ConvStatus NonLinSIM::solveStep (TimeStep& param, SolutionMode mode,
 SIM::ConvStatus NonLinSIM::solveIteration (TimeStep& param)
 {
   if (param.iter == 0 && !model.updateDirichlet(param.time.t,&solution.front()))
-    return FAILURE;
+    return SIM::FAILURE;
   else if (param.iter == 1 && !model.updateDirichlet())
-    return FAILURE;
+    return SIM::FAILURE;
 
-  model.setMode(SIM::STATIC,false);
-
-  if (!this->assembleSystem(param.time,solution))
+  bool newTangent = param.iter <= nupdat;
+  model.setMode(newTangent ? SIM::STATIC : SIM::RHS_ONLY, false);
+  if (!this->assembleSystem(param.time,solution,newTangent))
     return SIM::FAILURE;
 
   if (!model.extractLoadVec(residual))
@@ -540,8 +540,8 @@ bool NonLinSIM::updateConfiguration (TimeStep& time)
 }
 
 
-bool NonLinSIM::assembleSystem(const TimeDomain& time, const Vectors& pSol,
-                               bool newLHSmatrix, bool poorConvg)
+bool NonLinSIM::assembleSystem (const TimeDomain& time, const Vectors& pSol,
+                                bool newLHSmatrix, bool poorConvg)
 {
   return model.assembleSystem(time, pSol, newLHSmatrix, poorConvg);
 }

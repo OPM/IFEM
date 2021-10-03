@@ -38,6 +38,7 @@ NewmarkSIM::NewmarkSIM (SIMbase& sim) : MultiStepSIM(sim)
   // Default iteration parameters
   maxIncr = 2;
   maxit   = 20;
+  nupdat  = 20;
   rTol    = 1.0e-6;
   aTol    = 0.0;
   divgLim = 10.0;
@@ -60,12 +61,15 @@ bool NewmarkSIM::parse (const TiXmlElement* elem)
   utl::getAttribute(elem,"gamma",gamma);
 
   const TiXmlElement* child = elem->FirstChildElement();
-  for (; child; child = child->NextSiblingElement()) {
-    const char* value;
-    if ((value = utl::getValue(child,"maxits")))
+  for (; child; child = child->NextSiblingElement())
+  {
+    const char* value = utl::getValue(child,"maxits");
+    if (value)
       maxit = atoi(value);
     else if ((value = utl::getValue(child,"maxIncr")))
       maxIncr = atoi(value);
+    else if ((value = utl::getValue(child,"nupdate")))
+      nupdat = atoi(value);
     else if ((value = utl::getValue(child,"rtol")))
       rTol = atof(value);
     else if ((value = utl::getValue(child,"atol")))
@@ -346,7 +350,8 @@ SIM::ConvStatus NewmarkSIM::solveStep (TimeStep& param, SIM::SolutionMode,
     return SIM::FAILURE;
 
   model.setQuadratureRule(opt.nGauss[0],true);
-  if (!model.assembleSystem(param.time,solution))
+  if (!model.assembleSystem(param.time, solution,
+                            param.time.first || nupdat > 0))
     return SIM::FAILURE;
 
   this->finalizeRHSvector(!param.time.first);
@@ -393,7 +398,7 @@ SIM::ConvStatus NewmarkSIM::solveStep (TimeStep& param, SIM::SolutionMode,
         if (subiter&FIRST && param.iter == 1 && !model.updateDirichlet())
           return SIM::FAILURE;
 
-        if (!model.assembleSystem(param.time,solution))
+        if (!model.assembleSystem(param.time, solution, param.iter < nupdat))
           return SIM::FAILURE;
 
         this->finalizeRHSvector(false);
@@ -429,7 +434,7 @@ SIM::ConvStatus NewmarkSIM::solveIteration (TimeStep& param)
   if (!model.setMode(SIM::DYNAMIC))
     return SIM::FAILURE;
 
-  if (!model.assembleSystem(param.time,solution))
+  if (!model.assembleSystem(param.time, solution, param.iter < nupdat))
     return SIM::FAILURE;
 
   this->finalizeRHSvector(!param.time.first && param.iter == 0);
@@ -468,11 +473,13 @@ SIM::ConvStatus NewmarkSIM::checkConvergence (TimeStep& param)
     if ((subiter&FIRST && refNopt == ALL) || fabs(norm) > refNorm)
       refNorm = fabs(norm);
 
-    if (refNorm*rTol > aTol) {
+    if (refNorm*rTol > aTol)
+    {
       convTol = rTol;
       norm /= refNorm;
     }
-    else {
+    else
+    {
       convTol = aTol;
       refNorm = 1.0;
     }
