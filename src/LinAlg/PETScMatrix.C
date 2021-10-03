@@ -498,7 +498,7 @@ bool PETScMatrix::multiply (const SystemVector& B, SystemVector& C) const
 }
 
 
-bool PETScMatrix::solve (SystemVector& B, bool newLHS, Real*)
+bool PETScMatrix::solve (SystemVector& B, Real*)
 {
   PETScVector* Bptr = dynamic_cast<PETScVector*>(&B);
   if (!Bptr)
@@ -511,7 +511,7 @@ bool PETScMatrix::solve (SystemVector& B, bool newLHS, Real*)
   VecDuplicate(Bptr->getVector(),&x);
   VecCopy(Bptr->getVector(),x);
 
-  bool result = this->solve(x,Bptr->getVector(),newLHS,
+  bool result = this->solve(x, Bptr->getVector(),
                             solParams.getStringValue("type") != "preonly");
   VecDestroy(&x);
 
@@ -519,7 +519,7 @@ bool PETScMatrix::solve (SystemVector& B, bool newLHS, Real*)
 }
 
 
-bool PETScMatrix::solve (const SystemVector& b, SystemVector& x, bool newLHS)
+bool PETScMatrix::solve (const SystemVector& b, SystemVector& x)
 {
   const PETScVector* Bptr = dynamic_cast<const PETScVector*>(&b);
   if (!Bptr)
@@ -529,11 +529,11 @@ bool PETScMatrix::solve (const SystemVector& b, SystemVector& x, bool newLHS)
   if (!Xptr)
     return false;
 
-  return this->solve(Bptr->getVector(),Xptr->getVector(),newLHS,false);
+  return this->solve(Bptr->getVector(),Xptr->getVector(),false);
 }
 
 
-bool PETScMatrix::solve (const Vec& b, Vec& x, bool newLHS, bool knoll)
+bool PETScMatrix::solve (const Vec& b, Vec& x, bool knoll)
 {
   // Reset linear solver
   if (nLinSolves && solParams.getIntValue("reset_solves"))
@@ -545,10 +545,10 @@ bool PETScMatrix::solve (const Vec& b, Vec& x, bool newLHS, bool knoll)
 
   if (setParams) {
 #if PETSC_VERSION_MINOR < 5
-    KSPSetOperators(ksp,pA,pA, newLHS ? SAME_NONZERO_PATTERN : SAME_PRECONDITIONER);
+    KSPSetOperators(ksp,pA,pA, factored ? SAME_PRECONDITIONER : SAME_NONZERO_PATTERN);
 #else
     KSPSetOperators(ksp,pA,pA);
-    KSPSetReusePreconditioner(ksp, newLHS ? PETSC_FALSE : PETSC_TRUE);
+    KSPSetReusePreconditioner(ksp, factored ? PETSC_TRUE : PETSC_FALSE);
 #endif
     if (!setParameters())
       return false;
@@ -573,6 +573,7 @@ bool PETScMatrix::solve (const Vec& b, Vec& x, bool newLHS, bool knoll)
     PetscPrintf(PETSC_COMM_WORLD,"\n Iterations for %s = %D\n",solParams.getStringValue("type").c_str(),its);
   }
   nLinSolves++;
+  factored = true;
 
   return true;
 }
@@ -623,7 +624,7 @@ bool PETScMatrix::solveDirect(PETScVector& B)
 
     VecAssemblyBegin(B1);
     VecAssemblyEnd(B1);
-    if (!this->solve(B1, x, i == 0, true))
+    if (!this->solve(B1, x, true))
       return false;
     PetscScalar* aa;
     VecGetArray(x, &aa);

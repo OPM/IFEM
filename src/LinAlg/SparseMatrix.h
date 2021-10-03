@@ -100,7 +100,8 @@ public:
   void printFull(std::ostream& os) const;
 
   //! \brief Dumps the system matrix on a specified format.
-  virtual void dump(std::ostream&, LinAlg::StorageFormat, const char* = nullptr);
+  virtual void dump(std::ostream& os, LinAlg::StorageFormat format,
+                    const char* label);
 
   //! \brief Initializes the element assembly process.
   //! \details Must be called once before the element assembly loop.
@@ -194,7 +195,7 @@ public:
   //! \brief Adds a matrix with similar sparsity pattern to the current matrix.
   //! \param[in] B     The matrix to be added
   //! \param[in] alpha Scale factor for matrix \b B
-  virtual bool add(const SystemMatrix& B, Real alpha = Real(1));
+  virtual bool add(const SystemMatrix& B, Real alpha);
 
   //! \brief Adds the diagonal matrix &sigma;\b I to the current matrix.
   virtual bool add(Real sigma);
@@ -205,9 +206,8 @@ public:
   using SystemMatrix::solve;
   //! \brief Solves the linear system of equations for a given right-hand-side.
   //! \param B Right-hand-side vector on input, solution vector on output
-  //! \param[in] newLHS \e true if the left-hand-side matrix has been updated
   //! \param[out] rc Reciprocal condition number of the LHS-matrix (optional)
-  virtual bool solve(SystemVector& B, bool newLHS = true, Real* rc = nullptr);
+  virtual bool solve(SystemVector& B, Real* rc = nullptr);
 
   //! \brief Calculates compressed-sparse-row arrays from the element map.
   //! \param[out] iA Start index of each row in jA
@@ -275,9 +275,8 @@ private:
   //! '\0' : Values may be edited but the pattern is permanently locked
   char editable;
 
-  bool factored; //!< \e true when the matrix is factorized
-  size_t nrow;   //!< Number of matrix rows
-  size_t ncol;   //!< Number of matrix columns
+  size_t nrow; //!< Number of matrix rows
+  size_t ncol; //!< Number of matrix columns
 
   ValueMap       elem; //!< Stores nonzero matrix elements with index pairs
   SparseSolver solver; //!< Which equation solver to use
@@ -289,6 +288,8 @@ private:
 #endif
 
 protected:
+  bool factored; //!< Set to \e true when the matrix is factorized
+
   IntVec IA; //!< Identifies the beginning of each row or column
   IntVec JA; //!< Specifies column/row index of each nonzero element
   Vector  A; //!< Stores the nonzero matrix elements

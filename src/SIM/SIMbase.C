@@ -1110,7 +1110,7 @@ bool SIMbase::solveSystem (Vector& solution, int printSol, double* rCond,
 
   double rcn = 1.0;
   utl::profiler->start("Equation solving");
-  bool status = A->solve(*b, newLHS, msgLevel > 1 ? &rcn : rCond);
+  bool status = A->solve(*b, msgLevel > 1 ? &rcn : rCond);
   utl::profiler->stop("Equation solving");
 
   if (msgLevel > 1)

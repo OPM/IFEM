@@ -51,7 +51,7 @@ public:
   virtual LinAlg::MatrixType getType() const { return LinAlg::PETSC; }
 
   //! \brief Initializes the vector to a given scalar value.
-  virtual void init(Real value = Real(0));
+  virtual void init(Real value);
 
   //! \brief Sets the dimension of the system vector.
   virtual void redim(size_t n);
@@ -80,8 +80,9 @@ public:
   //! \brief Returns the PETSc vector (for read access).
   virtual const Vec& getVector() const { return x; }
 
-  //! \brief Return associated process administrator
+  //! \brief Return associated process administrator.
   const ProcessAdm& getAdm() const { return adm; }
+
 protected:
   Vec x;                  //!< The actual PETSc vector
   const ProcessAdm& adm;  //!< Process administrator
@@ -130,18 +131,16 @@ public:
 
   //! \brief Solves the linear system of equations for a given right-hand-side.
   //! \param B Right-hand-side vector on input, solution vector on output
-  //! \param[in] newLHS \e true if the left-hand-side matrix has been updated
-  virtual bool solve(SystemVector& B, bool newLHS, Real*);
+  virtual bool solve(SystemVector& B, Real*);
 
   //! \brief Solves the linear system of equations for a given right-hand-side.
   //! \param[in] B Right-hand-side vector
   //! \param[out] x Solution vector
-  //! \param[in] newLHS \e true if the left-hand-side matrix has been updated
-  virtual bool solve(const SystemVector& B, SystemVector& x, bool newLHS);
+  virtual bool solve(const SystemVector& B, SystemVector& x);
 
   //! \brief Solves a generalized symmetric-definite eigenproblem.
   //! \details The eigenproblem is assumed to be on the form
-  //! \b A \b x = \f$\lambda\f$ \b B \b x where \b A ( = \a *this ) and \b B
+  //! \b A \b x = &lambda; \b B \b x where \b A ( = \a *this ) and \b B
   //! both are assumed to be symmetric and \b B also to be positive definite.
   //! The eigenproblem is solved by the SLEPc library subroutine \a EPSSolve.
   //! \sa SLEPc library documentation.
@@ -151,8 +150,8 @@ public:
   //! \param[in] nev The number of eigenvalues and eigenvectors to compute
   //! \param[in] shift Eigenvalue shift
   //! \param[in] iop Option telling whether to factorize matrix \a A or \b B.
-  virtual bool solveEig(PETScMatrix& B, RealArray& eigVal, Matrix& eigVec,
-			int nev, Real shift = Real(0), int iop = 1);
+  bool solveEig(PETScMatrix& B, RealArray& eigVal, Matrix& eigVec,
+                int nev, Real shift = Real(0), int iop = 1);
 
   //! \brief Returns the L-infinity norm of the matrix.
   virtual Real Linfnorm() const;
@@ -172,11 +171,11 @@ public:
   //! \param[in] P Preconditioner  matrix (ignored here)
   //! \param[in] Pb Preconditioner vector (ignored here)
   //! \return True on success
-  virtual bool setParameters(PETScMatrix* P = nullptr, PETScVector* Pb = nullptr);
+  bool setParameters(PETScMatrix* P = nullptr, PETScVector* Pb = nullptr);
 
 protected:
   //! \brief Solve a linear system
-  bool solve(const Vec& b, Vec& x, bool newLHS, bool knoll);
+  bool solve(const Vec& b, Vec& x, bool knoll);
 
   //! \brief Solve system stored in the elem map.
   //! \details Create matrix from elem table, and solve for (possibly) multiple

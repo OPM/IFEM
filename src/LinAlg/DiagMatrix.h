@@ -54,7 +54,8 @@ public:
   const Real& operator()(size_t r) const { return myMat(r); }
 
   //! \brief Dumps the system matrix on a specified format.
-  virtual void dump(std::ostream&, LinAlg::StorageFormat, const char*);
+  virtual void dump(std::ostream& os, LinAlg::StorageFormat format,
+                    const char* label);
 
   //! \brief Initializes the element assembly process.
   //! \details Must be called once before the element assembly loop.
@@ -100,7 +101,7 @@ public:
   using SystemMatrix::solve;
   //! \brief Solves the linear system of equations for a given right-hand-side.
   //! \param B Right-hand-side vector on input, solution vector on output
-  virtual bool solve(SystemVector& B, bool, Real*);
+  virtual bool solve(SystemVector& B, Real*);
 
   //! \brief Returns the L-infinity norm of the matrix.
   virtual Real Linfnorm() const { return myMat.normInf(); }

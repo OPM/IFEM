@@ -50,7 +50,7 @@ public:
   virtual size_t dim() const = 0;
 
   //! \brief Sets the dimension of the system vector.
-  virtual void redim(size_t) = 0;
+  virtual void redim(size_t n) = 0;
 
   //! \brief Resizes the vector to length \a n.
   virtual void resize(size_t n, bool = false) { this->redim(n); }
@@ -84,7 +84,7 @@ public:
   virtual bool endAssembly() { return true; }
 
   //! \brief Multiplication with a scalar.
-  virtual void mult(Real) = 0;
+  virtual void mult(Real alpha) = 0;
 
   //! \brief Addition of another system vector to this one.
   virtual void add(const SystemVector& vec, Real scale = Real(1)) = 0;
@@ -99,7 +99,8 @@ public:
   virtual Real Linfnorm() const = 0;
 
   //! \brief Dumps the system vector on a specified format.
-  virtual void dump(std::ostream&, LinAlg::StorageFormat, const char* = nullptr) {}
+  virtual void dump(std::ostream&, LinAlg::StorageFormat,
+                    const char* = nullptr) {}
 
 protected:
   //! \brief Writes the system vector to the given output stream.
@@ -179,7 +180,8 @@ public:
   virtual Real Linfnorm() const { size_t off = 0; return this->normInf(off); }
 
   //! \brief Dumps the system vector on a specified format.
-  virtual void dump(std::ostream& os, LinAlg::StorageFormat format, const char* label = nullptr);
+  virtual void dump(std::ostream& os, LinAlg::StorageFormat format,
+                    const char* label);
 
 protected:
   //! \brief Writes the system vector to the given output stream.
@@ -280,7 +282,7 @@ public:
   virtual bool truncate(Real = Real(1.0e-16)) { return false; }
 
   //! \brief Multiplication with a scalar.
-  virtual void mult(Real) = 0;
+  virtual void mult(Real alpha) = 0;
 
   //! \brief Adds a matrix with similar structure to the current matrix.
   virtual bool add(const SystemMatrix&, Real = Real(1)) { return false; }
@@ -293,25 +295,23 @@ public:
 
   //! \brief Solves the linear system of equations for a given right-hand-side.
   //! \param b Right-hand-side vector on input, solution vector on output
-  //! \param[in] newLHS \e true if the left-hand-side matrix has been updated
   //! \param[out] rc Reciprocal condition number of the LHS-matrix (optional)
-  virtual bool solve(SystemVector& b, bool newLHS = true,
-                     Real* rc = nullptr) = 0;
+  virtual bool solve(SystemVector& b, Real* rc = nullptr) = 0;
 
   //! \brief Solves the linear system of equations for a given right-hand-side.
   //! \param[in] b Right-hand-side vector
   //! \param[out] x Solution vector
-  //! \param[in] newLHS \e true if the left-hand-side matrix has been updated
-  virtual bool solve(const SystemVector& b, SystemVector& x, bool newLHS = true)
+  virtual bool solve(const SystemVector& b, SystemVector& x)
   {
-    return this->solve(x.copy(b),newLHS);
+    return this->solve(x.copy(b));
   }
 
   //! \brief Returns the L-infinity norm of the matrix.
   virtual Real Linfnorm() const = 0;
 
   //! \brief Dumps the system matrix on a specified format.
-  virtual void dump(std::ostream&, LinAlg::StorageFormat, const char* = nullptr) {}
+  virtual void dump(std::ostream&, LinAlg::StorageFormat,
+                    const char* = nullptr) {}
 
   //! \brief Calculates a matrix-vector product.
   StdVector operator*(const SystemVector& b) const;

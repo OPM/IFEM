@@ -144,11 +144,11 @@ SPRMatrix::SPRMatrix (const SPRMatrix& A)
 
 SPRMatrix::~SPRMatrix ()
 {
-  if (msica)  delete[] msica;
-  if (msifa)  delete[] msifa;
-  if (mtrees) delete[] mtrees;
-  if (mvarnc) delete[] mvarnc;
-  if (values) delete[] values;
+  delete[] msica;
+  delete[] msifa;
+  delete[] mtrees;
+  delete[] mvarnc;
+  delete[] values;
 }
 
 
@@ -367,7 +367,7 @@ bool SPRMatrix::multiply (const SystemVector& B, SystemVector& C) const
 //! \brief Convenience macro.
 #define MAX(a,b) (a) > (b) ? (a) : (b)
 
-bool SPRMatrix::solve (SystemVector& B, bool, Real*)
+bool SPRMatrix::solve (SystemVector& B, Real*)
 {
   if (mpar[7] < 1) return true; // No equations to solve
 
