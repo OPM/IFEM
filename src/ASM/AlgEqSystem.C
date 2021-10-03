@@ -340,7 +340,7 @@ bool AlgEqSystem::staticCondensation (Matrix& Ared, Vector& bred,
              <<"] --> ["<< neq2 <<"x"<< neq2 <<"]"<< std::endl;
 
   // Calculate [A11]^-1*{R1} => R1
-  if (!Asub[0].solve(R1,true))
+  if (!Asub[0].solve(R1))
     return false;
 
   FILE* fd = recmatFile ? fopen(recmatFile,"wb") : nullptr;
@@ -378,7 +378,7 @@ bool AlgEqSystem::staticCondensation (Matrix& Ared, Vector& bred,
     Asub[3].getColumn(ieq2,R2);
 
     // Calculate [A11]^-1*{R1} => R1, reusing the factorization of [A11]
-    if (!Asub[0].solve(R1,false))
+    if (!Asub[0].solve(R1))
       return false;
 
     // Calculate [A21]*([A11]^-1*{R1}) => Rtmp
