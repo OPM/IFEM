@@ -297,11 +297,10 @@ public:
   //! \param[in] printSol Print solution if its size is less than \a printSol
   //! \param[out] rCond Reciprocal condition number
   //! \param[in] compName Solution name to be used in norm output
-  //! \param[in] newLHS If \e false, reuse the LHS-matrix from previous call.
   //! \param[in] idxRHS Index to the right-hand-side vector to solve for
   virtual bool solveSystem(Vector& solution, int printSol, double* rCond,
                            const char* compName = "displacement",
-                           bool newLHS = true, size_t idxRHS = 0);
+                           size_t idxRHS = 0);
 
   //! \brief Solves the assembled linear system of equations for a given load.
   //! \param[out] solution Global primary solution vector
@@ -352,7 +351,7 @@ public:
                        char type = 'D') const;
 
   //! \brief Integrates some solution norm quantities.
-  //! \param[in] time Parameters for nonlinear/time-dependent simulations.
+  //! \param[in] time Parameters for nonlinear/time-dependent simulations
   //! \param[in] psol Primary solution vectors
   //! \param[in] ssol Secondary solution vectors
   //! \param[out] gNorm Global norm quantities
@@ -369,7 +368,7 @@ public:
                      Vectors& gNorm, Matrix* eNorm = nullptr,
                      const char* name = nullptr);
   //! \brief Integrates some solution norm quantities.
-  //! \param[in] time Parameters for nonlinear/time-dependent simulations.
+  //! \param[in] time Parameters for nonlinear/time-dependent simulations
   //! \param[in] psol Primary solution vectors
   //! \param[out] gNorm Global norm quantities
   //! \param[out] eNorm Element-wise norm quantities

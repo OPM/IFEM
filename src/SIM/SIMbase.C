@@ -1091,7 +1091,7 @@ bool SIMbase::applyDirichlet (Vector& glbVec) const
 
 
 bool SIMbase::solveSystem (Vector& solution, int printSol, double* rCond,
-                           const char* compName, bool newLHS, size_t idxRHS)
+                           const char* compName, size_t idxRHS)
 {
   if (!myEqSys) return false;
 
@@ -1162,7 +1162,7 @@ bool SIMbase::solveSystem (Vectors& solution, int printSol, const char* cmpName)
 
   bool status = nSol > 0;
   for (size_t i = 0; i < nSol && status; i++)
-    status = this->solveSystem(solution[i],printSol,nullptr,cmpName,i==0,i);
+    status = this->solveSystem(solution[i],printSol,nullptr,cmpName,i);
 
   return status;
 }
