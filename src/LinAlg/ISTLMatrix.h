@@ -39,7 +39,6 @@ public:
   ISTLVector(const ISTLVector& vec);
   //! \brief Destructor.
   virtual ~ISTLVector();
-#endif
 
   //! \brief Returns the vector type.
   virtual LinAlg::MatrixType getType() const { return LinAlg::ISTL; }
@@ -48,19 +47,12 @@ public:
   virtual void init(Real value = Real(0));
 
   //! \brief Returns the dimension of the system vector.
-  virtual size_t dim() const;
+  virtual size_t dim() const { return x.size(); }
 
   //! \brief Sets the dimension of the system vector.
   virtual void redim(size_t n);
 
-  //! \brief Begins communication step needed in parallel vector assembly.
-  //! \details Must be called together with endAssembly after vector assembly
-  //! is completed on each processor and before the linear system is solved.
-  virtual bool beginAssembly();
-
-  //! \brief Ends communication step needed in parallel vector assembly.
-  //! \details Must be called together with beginAssembly after vector assembly
-  //! is completed on each processor and before the linear system is solved.
+  //! \brief Copies the assembled vector into \ref x.
   virtual bool endAssembly();
 
   //! \brief L1-norm of vector.
@@ -75,16 +67,14 @@ public:
   //! \brief Return associated process administrator
   const ProcessAdm& getAdm() const { return adm; }
 
-  typedef Dune::BlockVector<Dune::FieldVector<double,1>> Vec; //!< Convenice typedef
-
-  //! \brief Obtain a reference to the dune vector.
-  Vec& getVector() { return x; }
-  //! \brief Obtain a const reference to the dune vector.
-  const Vec& getVector() const { return x; }
+  //! \brief Returns the ISTL vector (for assignment).
+  ISTL::Vec& getVector() { return x; }
+  //! \brief Returns the ISTL vector (for read access).
+  const ISTL::Vec& getVector() const { return x; }
 
 protected:
-  ISTL::Vec x; //!< ISTL vector
-  const ProcessAdm& adm;  //!< Process administrator
+  ISTL::Vec         x;   //!< The actual ISTL vector
+  const ProcessAdm& adm; //!< Process administrator
 };
 
 
@@ -122,25 +112,17 @@ public:
   //! \brief Initializes the matrix to zero assuming it is properly dimensioned.
   virtual void init();
 
-  //! \brief Begins communication step needed in parallel matrix assembly.
-  //! \details Must be called together with endAssembly after matrix assembly
-  //! is completed on each processor and before the linear system is solved.
-  virtual bool beginAssembly();
-  //! \brief Ends communication step needed in parallel matrix assembly.
-  //! \details Must be called together with beginAssembly after matrix assembly
-  //! is completed on each processor and before the linear system is solved.
+  //! \brief Copies the assembled matrix into \ref iA.
   virtual bool endAssembly();
 
   //! \brief Solves the linear system of equations for a given right-hand-side.
   //! \param B Right-hand-side vector on input, solution vector on output
-  //! \param[in] newLHS \e true if the left-hand-side matrix has been updated
-  virtual bool solve(SystemVector& B, bool newLHS, Real*);
+  virtual bool solve(SystemVector& B, Real*);
 
   //! \brief Solves the linear system of equations for a given right-hand-side.
   //! \param[in] B Right-hand-side vector
   //! \param[out] x Solution vector
-  //! \param[in] newLHS \e true if the left-hand-side matrix has been updated
-  virtual bool solve(const SystemVector& B, SystemVector& x, bool newLHS);
+  virtual bool solve(const SystemVector& B, SystemVector& x);
 
   //! \brief Returns the L-infinity norm of the matrix.
   virtual Real Linfnorm() const;
@@ -151,12 +133,13 @@ public:
   virtual const ISTL::Mat& getMatrix() const { return iA; }
 
 protected:
-  ISTL::Mat iA; //!< The actual ISTL matrix
   std::unique_ptr<ISTL::Operator> op; //!< The matrix adapter
   std::unique_ptr<ISTL::InverseOperator> solver; //!< Solver to use
   std::unique_ptr<ISTL::Preconditioner> pre; //!< Preconditioner to use
-  const ProcessAdm&   adm;             //!< Process administrator
-  ISTLSolParams       solParams;       //!< Linear solver parameters
-  bool                setParams;       //!< If linear solver parameters are set
-  int                 nLinSolves;      //!< Number of linear solves
+
+  ISTL::Mat         iA;        //!< The actual ISTL matrix
+  const ProcessAdm& adm;       //!< Process administrator
+  ISTLSolParams     solParams; //!< Linear solver parameters
 };
+
+#endif

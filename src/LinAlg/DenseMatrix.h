@@ -35,7 +35,7 @@ public:
   //! \brief Special constructor, type conversion from Matrix.
   DenseMatrix(const Matrix& A, bool s = false);
   //! \brief The destructor frees the dynamically allocated arrays.
-  virtual ~DenseMatrix() { if (ipiv) delete[] ipiv; }
+  virtual ~DenseMatrix() { delete[] ipiv; }
 
   //! \brief Returns the matrix type.
   virtual LinAlg::MatrixType getType() const { return LinAlg::DENSE; }
@@ -52,7 +52,7 @@ public:
   void setSymmetric(bool s = true) { symm = s && myMat.rows() == myMat.cols(); }
 
   //! \brief Returns the dimension of the system matrix.
-  //! \param[in] idim Which direction to return the dimension in.
+  //! \param[in] idim Which direction to return the dimension in
   virtual size_t dim(int idim = 1) const;
 
   //! \brief Access to the matrix itself.
@@ -63,7 +63,8 @@ public:
   const Real& operator()(size_t r, size_t c) const { return myMat(r,c); }
 
   //! \brief Dumps the system matrix on a specified format.
-  virtual void dump(std::ostream&, LinAlg::StorageFormat, const char* = nullptr);
+  virtual void dump(std::ostream& os, LinAlg::StorageFormat format,
+                    const char* label);
 
   //! \brief Initializes the element assembly process.
   //! \details Must be called once before the element assembly loop.
@@ -115,7 +116,7 @@ public:
   //! \brief Adds a matrix with similar dimension to the current matrix.
   //! \param[in] B     The matrix to be added
   //! \param[in] alpha Scale factor for matrix \b B
-  virtual bool add(const SystemMatrix& B, Real alpha = Real(1));
+  virtual bool add(const SystemMatrix& B, Real alpha);
 
   //! \brief Adds the diagonal matrix &sigma;\b I to the current matrix.
   virtual bool add(Real sigma);
@@ -127,7 +128,7 @@ public:
   //! \brief Solves the linear system of equations for a given right-hand-side.
   //! \param B Right-hand-side vector on input, solution vector on output
   //! \param[out] rc Reciprocal condition number of the LHS-matrix (optional)
-  virtual bool solve(SystemVector& B, bool, Real* rc = nullptr);
+  virtual bool solve(SystemVector& B, Real* rc = nullptr);
   //! \brief Solves the linear system of equations for a given right-hand-side.
   //! \param B Right-hand-side matrix on input, solution matrix on output
   bool solve(Matrix& B);

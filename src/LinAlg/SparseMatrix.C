@@ -342,7 +342,8 @@ const Real& SparseMatrix::operator () (size_t r, size_t c) const
 }
 
 
-void SparseMatrix::dump (std::ostream& os, LinAlg::StorageFormat format, const char* label)
+void SparseMatrix::dump (std::ostream& os, LinAlg::StorageFormat format,
+                         const char* label)
 {
   if (label && format != LinAlg::MATRIX_MARKET) os << label <<" = [\n";
 
@@ -1011,7 +1012,7 @@ bool SparseMatrix::optimiseSLU (const std::vector<IntSet>& dofc)
 }
 
 
-bool SparseMatrix::solve (SystemVector& B, bool, Real* rc)
+bool SparseMatrix::solve (SystemVector& B, Real* rc)
 {
   if (this->size() < 1) return true; // No equations to solve
 

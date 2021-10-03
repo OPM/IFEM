@@ -79,7 +79,7 @@ public:
   //! \brief Adds a matrix with similar sparsity pattern to the current matrix.
   //! \param[in] B     The matrix to be added
   //! \param[in] alpha Scale factor for matrix \b B
-  virtual bool add(const SystemMatrix& B, Real alpha = 1.0);
+  virtual bool add(const SystemMatrix& B, Real alpha);
 
   //! \brief Adds the diagonal matrix &sigma;\b I to the current matrix.
   virtual bool add(Real sigma);
@@ -90,7 +90,7 @@ public:
   using SystemMatrix::solve;
   //! \brief Solves the linear system of equations for a given right-hand-side.
   //! \param B Right-hand-side vector on input, solution vector on output
-  virtual bool solve(SystemVector& B, bool, Real*);
+  virtual bool solve(SystemVector& B, Real*);
 
   //! \brief Solves a generalized symmetric-definite eigenproblem.
   //! \param B Symmetric and positive definite mass matrix.
@@ -106,12 +106,12 @@ public:
   virtual Real Linfnorm() const;
 
 private:
-  int mpar[NS] = {};      //!< Matrix of sparse PARameters
-  int* msica = nullptr;   //!< Matrix of Storage Information for CA
-  int* msifa = nullptr;   //!< Matrix of Storage Information for FA
-  int* mtrees = nullptr;  //!< Matrix of elimination assembly TREES
-  int* mvarnc = nullptr;  //!< Matrix of VARiable to Node Correspondence
-  Real* values = nullptr; //!< The actual matrix VALUES
+  int mpar[NS]; //!< Matrix of sparse PARameters
+  int* msica;   //!< Matrix of Storage Information for CA
+  int* msifa;   //!< Matrix of Storage Information for FA
+  int* mtrees;  //!< Matrix of elimination assembly TREES
+  int* mvarnc;  //!< Matrix of VARiable to Node Correspondence
+  Real* values; //!< The actual matrix VALUES
 
   std::vector<int>  iWork; //!< Integer work array
   std::vector<Real> rWork; //!< Real work array

@@ -52,34 +52,23 @@ ISTLVector::~ISTLVector()
 
 void ISTLVector::init(Real value)
 {
-  StdVector::init(value);
   x = value;
-}
-
-size_t ISTLVector::dim() const
-{
-  return x.size();
+  this->StdVector::init(value);
 }
 
 
 void ISTLVector::redim(size_t n)
 {
   x.resize(n);
-  StdVector::redim(n);
-}
-
-
-bool ISTLVector::beginAssembly()
-{
-  for (size_t i = 0; i < size(); ++i)
-    x[i] = (*this)[i];
-
-  return true;
+  this->StdVector::redim(n);
 }
 
 
 bool ISTLVector::endAssembly()
 {
+  for (size_t i = 0; i < x.size(); ++i)
+    x[i] = (*this)[i];
+
   return true;
 }
 
@@ -106,9 +95,6 @@ ISTLMatrix::ISTLMatrix (const ProcessAdm& padm, const LinSolParams& spar)
   : SparseMatrix(SUPERLU,1), adm(padm), solParams(spar,adm)
 {
   LinAlgInit::increfs();
-
-  setParams = true;
-  nLinSolves = 0;
 }
 
 
@@ -118,9 +104,6 @@ ISTLMatrix::ISTLMatrix (const ISTLMatrix& B)
   iA = B.iA;
 
   LinAlgInit::increfs();
-
-  setParams = true;
-  nLinSolves = 0;
 }
 
 
@@ -159,18 +142,13 @@ void ISTLMatrix::initAssembly (const SAM& sam, bool delayLocking)
   iA = 0;
 }
 
-bool ISTLMatrix::beginAssembly()
+
+bool ISTLMatrix::endAssembly()
 {
   for (size_t j = 0; j < cols(); ++j)
     for (int i = IA[j]; i < IA[j+1]; ++i)
       iA[JA[i]][j] = A[i];
 
-  return true;
-}
-
-
-bool ISTLMatrix::endAssembly()
-{
   return true;
 }
 
@@ -184,8 +162,7 @@ void ISTLMatrix::init ()
 }
 
 
-
-bool ISTLMatrix::solve (SystemVector& B, bool newLHS, Real*)
+bool ISTLMatrix::solve (SystemVector& B, Real*)
 {
   if (!pre)
     std::tie(solver, pre, op) = solParams.setupPC(iA);
@@ -211,7 +188,7 @@ bool ISTLMatrix::solve (SystemVector& B, bool newLHS, Real*)
 }
 
 
-bool ISTLMatrix::solve (const SystemVector& b, SystemVector& x, bool newLHS)
+bool ISTLMatrix::solve (const SystemVector& b, SystemVector& x)
 {
   if (!pre)
     std::tie(solver, pre, op) = solParams.setupPC(iA);

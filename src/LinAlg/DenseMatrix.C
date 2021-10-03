@@ -100,7 +100,8 @@ void DenseMatrix::init ()
 }
 
 
-void DenseMatrix::dump (std::ostream& os, LinAlg::StorageFormat format, const char* label)
+void DenseMatrix::dump (std::ostream& os, LinAlg::StorageFormat format,
+                        const char* label)
 {
   switch (format)
   {
@@ -386,7 +387,7 @@ bool DenseMatrix::multiply (const SystemVector& B, SystemVector& C) const
 }
 
 
-bool DenseMatrix::solve (SystemVector& B, bool, Real* rc)
+bool DenseMatrix::solve (SystemVector& B, Real* rc)
 {
   size_t nrhs = myMat.rows() > 0 ? B.dim()/myMat.rows() : 1;
   return this->solve(B.getPtr(),nrhs,rc);

@@ -30,7 +30,8 @@ void DiagMatrix::initAssembly (const SAM& sam, bool)
 }
 
 
-void DiagMatrix::dump (std::ostream& os, LinAlg::StorageFormat format, const char* label)
+void DiagMatrix::dump (std::ostream& os, LinAlg::StorageFormat format,
+                       const char* label)
 {
   switch (format)
   {
@@ -131,7 +132,7 @@ bool DiagMatrix::multiply (const SystemVector& B, SystemVector& C) const
 }
 
 
-bool DiagMatrix::solve (SystemVector& B, bool, Real*)
+bool DiagMatrix::solve (SystemVector& B, Real*)
 {
   if (myMat.empty()) return true; // Nothing to solve
 
