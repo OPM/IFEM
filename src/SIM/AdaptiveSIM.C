@@ -78,7 +78,7 @@ bool AdaptiveSIM::assembleAndSolveSystem ()
   int printSol = 1;
   solution.resize(model.getNoRHS());
   for (size_t i = 0; i < solution.size(); i++)
-    if (!model.solveSystem(solution[i],printSol,&rCond,"displacement",i==0,i))
+    if (!model.solveSystem(solution[i],printSol,&rCond,"displacement",i))
       return false;
     else if (i == 0)
     {
