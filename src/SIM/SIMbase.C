@@ -2270,7 +2270,7 @@ bool SIMbase::setPatchMaterial (size_t patch) const
 
 bool SIMbase::addMADOF (unsigned char basis, unsigned char nndof, bool other)
 {
-  int key = basis << 16 + nndof;
+  int key = basis*65536 + nndof;
   if (extraMADOFs.find(key) != extraMADOFs.end())
     return false; // This MADOF already calculated
 
@@ -2314,7 +2314,7 @@ bool SIMbase::addMADOF (unsigned char basis, unsigned char nndof, bool other)
 const IntVec& SIMbase::getMADOF (unsigned char basis,
                                  unsigned char nndof) const
 {
-  int key = basis << 16 + nndof;
+  int key = basis*65536 + nndof;
   auto it = extraMADOFs.find(key);
   if (it != extraMADOFs.end())
     return it->second;
