@@ -53,7 +53,7 @@ public:
 
   //! \brief Writes current mesh and results to the VTF-file.
   //! \param[in] infile File name used to construct the VTF-file name from
-  //! \param[in] iStep  Refinement step identifier
+  //! \param[in] iStep  Refinement step counter
   bool writeGlv(const char* infile, int iStep);
 
   //! \brief Accesses the solution of the linear system.
@@ -78,15 +78,15 @@ public:
   //! \param[in] fixDup Merge duplicated FE nodes on patch interfaces?
   virtual bool preprocess(const std::vector<int>& ignored, bool fixDup);
 
-  //! \brief Saves point results to output file for a given time step.
-  //! \param[in] time Load/time step parameter
-  //! \param[in] iStep Load/time step counter
-  //! \details By default it just forwards to the underlying model
-  virtual bool savePoints(double time, int iStep) const;
-
 protected:
   //! \brief Assembles and solves the linear FE equation system.
   virtual bool assembleAndSolveSystem();
+
+  //! \brief Saves point results to output file for a given refinement step.
+  //! \param[in] iStep Refinement step counter
+  //!
+  //! \details By default, this method just forwards to the underlying model.
+  virtual bool savePoints(int iStep) const;
 
 private:
   Vectors gNorm; //!< Global norms

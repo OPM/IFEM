@@ -44,12 +44,11 @@ protected:
     return true;
   }
 
-  //! \brief Saves point results to output file for a given time step.
-  //! \param[in] time Load/time step parameter
-  //! \param[in] iStep Load/time step counter
-  bool savePoints(double time, int iStep) const override
+  //! \brief Saves point results to output file for a given refinement step.
+  //! \param[in] iStep Refinement step counter
+  bool savePoints(int iStep) const override
   {
-    return model.savePoints(time, iStep);
+    return model.savePoints(0.0,iStep);
   }
 
   T1& model; //!< Reference to the actual sim

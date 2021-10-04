@@ -180,7 +180,7 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep, bool withRF,
                          model.getProcessAdm().cout,true,precision))
     return failure();
 
-  if (!this->savePoints(0.0, iStep))
+  if (!this->savePoints(iStep))
     return failure();
 
   return true;
@@ -267,7 +267,7 @@ bool AdaptiveSIM::writeGlv (const char* infile, int iStep)
 }
 
 
-bool AdaptiveSIM::savePoints(double time, int iStep) const
+bool AdaptiveSIM::savePoints (int iStep) const
 {
-  return model.savePoints(solution.front(), time, iStep);
+  return model.savePoints(solution.front(),0.0,iStep);
 }
