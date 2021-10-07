@@ -149,6 +149,8 @@ void NewmarkSIM::initPrm ()
   model.setIntegrationPrm(1,fabs(alpha2));
   model.setIntegrationPrm(2,solveDisp ? -beta : beta);
   model.setIntegrationPrm(3,gamma);
+  if (nupdat < maxit)
+    model.initLHSbuffers();
 }
 
 

@@ -121,6 +121,9 @@ public:
   //! \brief Lets this simulator share equation system with \a that simulator.
   bool initSystem(const SIMbase* that);
 
+  //! \brief Initializes left-hand-side element matrix buffers for integrand.
+  void initLHSbuffers();
+
   //! \brief Associates a system vector to a system matrix.
   //! \sa AlgEqSystem::setAssociatedVector
   //! \param[in] iMat Index of a coefficient matrix

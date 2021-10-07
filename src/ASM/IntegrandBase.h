@@ -74,6 +74,8 @@ public:
   //! \details This method is invoked once before starting the numerical
   //! integration over the entire spatial domain.
   virtual void initIntegration(const TimeDomain&, const Vector&, bool = false){}
+  //! \brief Initializes and toggles the use of left-hand-side matrix buffers.
+  virtual void initLHSbuffers(size_t) {}
   //! \brief Initializes the integrand for a new result point loop.
   //! \details This method is invoked once before starting the evaluation of
   //! the secondary solution at all result sampling points, after the converged

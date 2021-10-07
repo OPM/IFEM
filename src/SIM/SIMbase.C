@@ -544,6 +544,13 @@ bool SIMbase::initSystem (const SIMbase* that)
 }
 
 
+void SIMbase::initLHSbuffers ()
+{
+  if (myProblem)
+    myProblem->initLHSbuffers(this->getNoElms());
+}
+
+
 bool SIMbase::setAssociatedRHS (size_t iMat, size_t iVec)
 {
   return myEqSys ? myEqSys->setAssociatedVector(iMat,iVec) : false;
@@ -944,6 +951,9 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
     GlobalIntegral& sysQ = it->second->getGlobalInt(myEqSys);
     if (&sysQ != myEqSys && isAssembling && mdFlag <= 1)
       sysQ.initialize(newLHSmatrix);
+
+    if (isAssembling && mdFlag <= 1)
+      it->second->initLHSbuffers(newLHSmatrix);
 
     if (!prevSol.empty())
       it->second->initIntegration(time,prevSol.front(),poorConvg);
