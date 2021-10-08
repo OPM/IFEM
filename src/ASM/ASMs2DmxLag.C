@@ -20,8 +20,6 @@
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
-#include "Utilities.h"
-#include "Vec3Oper.h"
 #include <numeric>
 
 
@@ -202,7 +200,8 @@ bool ASMs2DmxLag::connectPatch (int edge, ASM2D& neighbor, int nedge, bool rever
   size_t nb1 = 0, nb2 = 0;
   for (size_t i = 1; i <= nxx.size(); i++) {
     if (basis == 0 || i == (size_t)basis)
-      if (!this->connectBasis(edge,*neighMx,nedge,revers,i,nb1,nb2,coordCheck,thick))
+      if (!this->connectBasis(edge,*neighMx,nedge,revers,i,nb1,nb2,
+                              coordCheck,thick))
         return false;
     nb1 += nb[i-1];
     nb2 += neighMx->nb[i-1];
@@ -263,7 +262,7 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
       MxFiniteElement fe(elem_size);
       Matrices dNxdu(nxx.size());
       Matrix Xnod, Jac;
-      Vec4   X;
+      Vec4   X(nullptr,time.t);
       for (size_t e = 0; e < threadGroups[g][t].size() && ok; ++e)
       {
         int iel = threadGroups[g][t][e];
@@ -306,20 +305,21 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
             // Compute basis function derivatives at current integration point
             // using tensor product of one-dimensional Lagrange polynomials
             for (size_t b = 0; b < nxx.size(); ++b)
-              if (!Lagrange::computeBasis(fe.basis(b+1),dNxdu[b],elem_sizes[b][0],xg[i],
+              if (!Lagrange::computeBasis(fe.basis(b+1),dNxdu[b],
+                                          elem_sizes[b][0],xg[i],
                                           elem_sizes[b][1],xg[j]))
                 ok = false;
 
             // Compute Jacobian inverse of coordinate mapping and derivatives
-            fe.detJxW = utl::Jacobian(Jac,fe.grad(geoBasis),Xnod,dNxdu[geoBasis-1]);
+            fe.detJxW = utl::Jacobian(Jac,fe.grad(geoBasis),Xnod,
+                                      dNxdu[geoBasis-1]);
             if (fe.detJxW == 0.0) continue; // skip singular points
             for (size_t b = 0; b < nxx.size(); ++b)
               if (b != (size_t)geoBasis-1)
                 fe.grad(b+1).multiply(dNxdu[b],Jac);
 
             // Cartesian coordinates of current integration point
-            X = Xnod * fe.basis(geoBasis);
-            X.t = time.t;
+            X.assign(Xnod * fe.basis(geoBasis));
 
             // Evaluate the integrand and accumulate element contributions
             fe.detJxW *= wg[i]*wg[j];
@@ -328,7 +328,7 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
           }
 
         // Finalize the element quantities
-        if (ok && !integrand.finalizeElement(*A,time,firstIp+jp))
+        if (ok && !integrand.finalizeElement(*A,fe,time,firstIp+jp))
           ok = false;
 
         // Assembly of global system integral
@@ -375,7 +375,7 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
   MxFiniteElement fe(elem_size);
   Matrices dNxdu(nxx.size());
   Matrix Xnod, Jac;
-  Vec4   X;
+  Vec4   X(nullptr,time.t);
   Vec3   normal;
   double xi[2];
 
@@ -418,12 +418,14 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
 	// Compute the basis functions and their derivatives, using
 	// tensor product of one-dimensional Lagrange polynomials
         for (size_t b = 0; b < nxx.size(); ++b)
-          if (!Lagrange::computeBasis(fe.basis(b+1),dNxdu[b],elem_sizes[b][0],xi[0],
+          if (!Lagrange::computeBasis(fe.basis(b+1),dNxdu[b],
+                                      elem_sizes[b][0],xi[0],
                                       elem_sizes[b][1],xi[1]))
             ok = false;
 
 	// Compute basis function derivatives and the edge normal
-	fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(geoBasis),Xnod,dNxdu[geoBasis-1],t1,t2);
+	fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(geoBasis),Xnod,
+                                  dNxdu[geoBasis-1],t1,t2);
 	if (fe.detJxW == 0.0) continue; // skip singular points
         for (size_t b = 0; b < nxx.size(); ++b)
           if (b != (size_t)geoBasis-1)
@@ -432,8 +434,7 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
 	if (edgeDir < 0) normal *= -1.0;
 
 	// Cartesian coordinates of current integration point
-	X = Xnod * fe.basis(geoBasis);
-	X.t = time.t;
+	X.assign(Xnod * fe.basis(geoBasis));
 
 	// Evaluate the integrand and accumulate element contributions
 	fe.detJxW *= wg[i];
@@ -520,7 +521,8 @@ bool ASMs2DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 	double xi  = -1.0 + i*incx;
 	double eta = -1.0 + j*incy;
         for (size_t b = 0; b < nxx.size(); ++b)
-          if (!Lagrange::computeBasis(fe.basis(b+1),dNxdu[b],elem_sizes[b][0],xi,
+          if (!Lagrange::computeBasis(fe.basis(b+1),dNxdu[b],
+                                      elem_sizes[b][0],xi,
                                       elem_sizes[b][1],eta))
 	  return false;
 
@@ -533,7 +535,8 @@ bool ASMs2DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
             fe.grad(b).multiply(dNxdu[b-1],Jac);
 
 	// Now evaluate the solution field
-	if (!integrand.evalSol(solPt,fe,Xnod*fe.basis(geoBasis),MNPC[iel-1],elem_size,nb))
+	if (!integrand.evalSol(solPt,fe,Xnod*fe.basis(geoBasis),
+                               MNPC[iel-1],elem_size,nb))
 	  return false;
 	else if (sField.empty())
 	  sField.resize(solPt.size(),nPoints,true);

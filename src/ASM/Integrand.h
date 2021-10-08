@@ -146,7 +146,7 @@ public:
     STANDARD           = 0, //!< Default integrand type (first derivatives only)
     NO_DERIVATIVES     = 1, //!< Integrand don't want any derivatives
     SECOND_DERIVATIVES = 2, //!< Integrand wants second derivatives
-    THIRD_DERIVATIVES  = 1<< 2, //!< Integrand wants third derivatives
+    THIRD_DERIVATIVES  = 4, //!< Integrand wants third derivatives
     AVERAGE            = 1<< 3, //!< Integrand wants basis function averages
     ELEMENT_CORNERS    = 1<< 4, //!< Integrand wants element corner coordinates
     ELEMENT_CENTER     = 1<< 5, //!< Integrand wants element center coordinates
@@ -267,19 +267,9 @@ public:
   //! FiniteElement argument. Reimplement this method if time domain parameters,
   //! element quantities and/or the integration point counter are needed.
   virtual bool finalizeElement(LocalIntegral& elmInt, const FiniteElement& fe,
-                               const TimeDomain& time, size_t iGP)
+                               const TimeDomain& time, size_t iGP = 0)
   {
     return this->finalizeElement(elmInt,time,iGP);
-  }
-
-  //! \brief Finalizes the element quantities after the numerical integration.
-  //! \details Simplified interface for when finite element data is not needed.
-  //! The default implementation forwards to the basic interface taking no
-  //! additional arguments. Reimplement this method if time domain parameters,
-  //! and/or the integration point counter are needed.
-  virtual bool finalizeElement(LocalIntegral& elmInt, const TimeDomain&, size_t)
-  {
-    return this->finalizeElement(elmInt);
   }
 
   //! \brief Finalizes the element quantities after boundary integration.
@@ -354,7 +344,18 @@ protected:
   virtual bool evalBouMx(LocalIntegral&, const MxFiniteElement&,
 			 const Vec3&, const Vec3&) const { return false; }
 
-  //! \brief Finalizes the element quantities, basic interface.
+  //! \brief Finalizes the element quantities after the numerical integration.
+  //! \details Simplified interface for when finite element data is not needed.
+  //! The default implementation forwards to the basic interface taking no
+  //! additional arguments. Reimplement this method if time domain parameters,
+  //! and/or the integration point counter are needed.
+  virtual bool finalizeElement(LocalIntegral& elmInt, const TimeDomain&, size_t)
+  {
+    return this->finalizeElement(elmInt);
+  }
+  //! \brief Finalizes the element quantities after the numerical integration.
+  //! \details Basic interface. Reimplement this method if no additional
+  //! parameters are needed.
   virtual bool finalizeElement(LocalIntegral&) { return true; }
 };
 

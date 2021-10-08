@@ -1141,7 +1141,7 @@ bool ASMu2D::integrate (Integrand& integrand,
       Matrix4D d3Ndu3;
       double   dXidu[2];
       double   param[3] = { 0.0, 0.0, 0.0 };
-      Vec4     X(param);
+      Vec4     X(param,time.t);
 
       // Get element area in the parameter space
       double dA = 0.25*this->getParametricArea(iel);
@@ -1233,7 +1233,6 @@ bool ASMu2D::integrate (Integrand& integrand,
 
             // Cartesian coordinates of current integration point
             X.assign(Xnod * fe.N);
-            X.t = time.t;
 
             // Compute the reduced integration terms of the integrand
             fe.detJxW *= dA*wr[i]*wr[j];
@@ -1313,7 +1312,6 @@ bool ASMu2D::integrate (Integrand& integrand,
 
           // Cartesian coordinates of current integration point
           X.assign(Xnod * fe.N);
-          X.t = time.t;
 
           // Evaluate the integrand and accumulate element contributions
           fe.detJxW *= dA*wg[i]*wg[j];
@@ -1325,7 +1323,7 @@ bool ASMu2D::integrate (Integrand& integrand,
         }
 
       // Finalize the element quantities
-      if (ok && !integrand.finalizeElement(*A,time,firstIp+jp))
+      if (ok && !integrand.finalizeElement(*A,fe,time,firstIp+jp))
         ok = false;
 
       // Assembly of global system integral
@@ -1415,7 +1413,7 @@ bool ASMu2D::integrate (Integrand& integrand,
       fe.q   = lrspline->order(1) - 1;
       Matrix   dNdu, Xnod, Jac;
       Matrix3D d2Ndu2, Hess;
-      Vec4     X;
+      Vec4     X(nullptr,time.t);
 
       // Get element area in the parameter space
       double dA = 0.25*this->getParametricArea(iel);
@@ -1439,7 +1437,7 @@ bool ASMu2D::integrate (Integrand& integrand,
       {
         // Compute the element center
         fe.h = this->getElementCorners(iel,fe.XC);
-        X = 0.25*(fe.XC[0]+fe.XC[1]+fe.XC[2]+fe.XC[3]);
+        X.assign(0.25*(fe.XC[0]+fe.XC[1]+fe.XC[2]+fe.XC[3]));
       }
 
       // Initialize element quantities
@@ -1500,9 +1498,8 @@ bool ASMu2D::integrate (Integrand& integrand,
 #endif
 
         // Cartesian coordinates of current integration point
-        X = Xnod * fe.N;
+        X.assign(Xnod * fe.N);
         X.u = elmPts[ip].data();
-        X.t = time.t;
 
         // Evaluate the integrand and accumulate element contributions
         fe.detJxW *= dA*elmPts[ip][2];
@@ -1514,7 +1511,7 @@ bool ASMu2D::integrate (Integrand& integrand,
       }
 
       // Finalize the element quantities
-      if (ok && !integrand.finalizeElement(*A,time,firstIp+MPitg[iel]))
+      if (ok && !integrand.finalizeElement(*A,fe,time,firstIp+MPitg[iel]))
         ok = false;
 
       // Assembly of global system integral
@@ -1583,7 +1580,7 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
   double param[3] = { 0.0, 0.0, 0.0 };
 
   Matrix dNdu, Xnod, Jac;
-  Vec4   X(param);
+  Vec4   X(param,time.t);
   Vec3   normal;
 
 
@@ -1673,7 +1670,6 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
 
       // Cartesian coordinates of current integration point
       X.assign(Xnod * fe.N);
-      X.t = time.t;
 
       // Evaluate the integrand and accumulate element contributions
       fe.detJxW *= dS*wg[i];
@@ -1723,7 +1719,7 @@ bool ASMu2D::integrate (Integrand& integrand,
   FiniteElement fe;
   Matrix Xnod, Xnod2, dNdu, dN2du, Jac;
   double param[3] = { 0.0, 0.0, 0.0 };
-  Vec4   X(param);
+  Vec4   X(param,time.t);
   Vec3   normal;
 
   int iel = 0;
@@ -1811,7 +1807,6 @@ bool ASMu2D::integrate (Integrand& integrand,
 
             // Cartesian coordinates of current integration point
             X.assign(Xnod * fe.N);
-            X.t = time.t;
 
 #if SP_DEBUG > 4
             std::cout <<"\n"<< fe;
@@ -1825,7 +1820,7 @@ bool ASMu2D::integrate (Integrand& integrand,
       }
 
     // Finalize the element quantities
-    if (ok && !integrand.finalizeElement(*A,time,0))
+    if (ok && !integrand.finalizeElement(*A,fe,time))
       ok = false;
 
     // Assembly of global system integral

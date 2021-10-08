@@ -1036,7 +1036,7 @@ bool ASMu3D::integrate (Integrand& integrand,
       Matrix3D d2Ndu2, Hess;
       double   dXidu[3];
       double   param[3] = { 0.0, 0.0, 0.0 };
-      Vec4     X(param);
+      Vec4     X(param,time.t);
 
       // Get element volume in the parameter space
       const LR::Element* el = lrspline->getElement(iel-1);
@@ -1078,7 +1078,7 @@ bool ASMu3D::integrate (Integrand& integrand,
         double w0 = 0.5*(el->getParmin(2) + el->getParmax(2));
 #pragma omp critical
         lrspline->point(X0,u0,v0,w0,iel-1);
-        X = SplineUtils::toVec3(X0);
+        X.assign(SplineUtils::toVec3(X0));
       }
 
       if (integrand.getIntegrandType() & Integrand::G_MATRIX)
@@ -1130,7 +1130,6 @@ bool ASMu3D::integrate (Integrand& integrand,
 
               // Cartesian coordinates of current integration point
               X.assign(Xnod * fe.N);
-              X.t = time.t;
 
               // Compute the reduced integration terms of the integrand
               fe.detJxW *= 0.125*dV*wr[i]*wr[j]*wr[k];
@@ -1216,7 +1215,6 @@ bool ASMu3D::integrate (Integrand& integrand,
 
             // Cartesian coordinates of current integration point
             X.assign(Xnod * fe.N);
-            X.t = time.t;
 
             // Evaluate the integrand and accumulate element contributions
             fe.detJxW *= 0.125*dV*wg[i]*wg[j]*wg[k];
@@ -1226,7 +1224,7 @@ bool ASMu3D::integrate (Integrand& integrand,
           }
 
       // Finalize the element quantities
-      if (ok && !integrand.finalizeElement(*A,time,firstIp+jp))
+      if (ok && !integrand.finalizeElement(*A,fe,time,firstIp+jp))
         ok = false;
 
       // Assembly of global system integral
@@ -1322,7 +1320,7 @@ bool ASMu3D::integrate (Integrand& integrand, int lIndex,
 
     Matrix dNdu, Xnod, Jac;
     double param[3] = { fe.u, fe.v, fe.w };
-    Vec4   X(param);
+    Vec4   X(param,time.t);
     Vec3   normal;
     double dXidu[3];
 
@@ -1415,7 +1413,6 @@ bool ASMu3D::integrate (Integrand& integrand, int lIndex,
 
         // Cartesian coordinates of current integration point
         X.assign(Xnod * fe.N);
-        X.t = time.t;
 
         // Evaluate the integrand and accumulate element contributions
         fe.detJxW *= dA*wg[i]*wg[j];

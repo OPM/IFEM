@@ -13,7 +13,6 @@
 
 #include "ASMu3Dmx.h"
 
-#include "GoTools/geometry/ObjectHeader.h"
 #include "GoTools/trivariate/SplineVolume.h"
 
 #include "LRSpline/LRSplineVolume.h"
@@ -28,12 +27,9 @@
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
-#include "Fields.h"
 #include "SplineUtils.h"
-#include "Utilities.h"
 #include "Point.h"
 #include "Profiler.h"
-#include "Vec3Oper.h"
 #include "Vec3.h"
 
 #include <array>
@@ -392,7 +388,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
       Matrix3D Hess;
       double   dXidu[3];
       double   param[3] = { 0.0, 0.0, 0.0 };
-      Vec4     X(param);
+      Vec4     X(param,time.t);
       // Get element volume in the parameter space
       double du = el->umax() - el->umin();
       double dv = el->vmax() - el->vmin();
@@ -468,7 +464,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
         double v0 = 0.5*(el->getParmin(1) + el->getParmax(1));
         double w0 = 0.5*(el->getParmin(2) + el->getParmax(2));
         this->getBasis(geoBasis)->point(X0,u0,v0,w0);
-        X = SplineUtils::toVec3(X0);
+        X.assign(SplineUtils::toVec3(X0));
       }
 
       // Initialize element quantities
@@ -551,7 +547,6 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
 
             // Cartesian coordinates of current integration point
             X.assign(Xnod * fe.basis(geoBasis));
-            X.t = time.t;
 
             // Evaluate the integrand and accumulate element contributions
             fe.detJxW *= 0.125*vol*wg[i]*wg[j]*wg[k];
@@ -561,10 +556,8 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
       } // end gauss integrand
 
       // Finalize the element quantities
-      if (ok && !integrand.finalizeElement(*A,time,0)) {
+      if (ok && !integrand.finalizeElement(*A,fe,time))
         ok = false;
-        continue;
-      }
 
       // Assembly of global system integral
       if (ok && !glInt.assemble(A->ref(),fe.iel))
@@ -655,8 +648,8 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
     std::vector<Matrix> dNxdu(m_basis.size());
     Matrix Xnod, Jac;
 
-    double   param[3] = { fe.u, fe.v, fe.w };
-    Vec4   X(param);
+    double param[3] = { fe.u, fe.v, fe.w };
+    Vec4   X(param,time.t);
     Vec3   normal;
     double dXidu[3];
 
@@ -747,7 +740,6 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
 
         // Cartesian coordinates of current integration point
         X.assign(Xnod * fe.basis(geoBasis));
-        X.t = time.t;
 
         // Evaluate the integrand and accumulate element contributions
         fe.detJxW *= 0.25*dA*wg[i]*wg[j];
@@ -762,6 +754,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
     // Assembly of global system integral
     if (ok && !glInt.assemble(A->ref(),fe.iel))
       ok = false;
+
     A->destruct();
 
     firstp += nGP*nGP*nGP;

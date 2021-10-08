@@ -37,9 +37,6 @@
 #include "MPC.h"
 #include "IFEM.h"
 #include <array>
-#ifdef USE_OPENMP
-#include <omp.h>
-#endif
 
 
 ASMs2D::ASMs2D (unsigned char n_s, unsigned char n_f)
@@ -1709,7 +1706,7 @@ bool ASMs2D::integrate (Integrand& integrand,
       Matrix4D d3Ndu3;
       double   dXidu[2];
       double   param[3] = { 0.0, 0.0, 0.0 };
-      Vec4     X(param);
+      Vec4     X(param,time.t);
       for (size_t e = 0; e < groups[g][t].size() && ok; e++)
       {
         int iel = groups[g][t][e];
@@ -1838,7 +1835,6 @@ bool ASMs2D::integrate (Integrand& integrand,
 
               // Cartesian coordinates of current integration point
               X.assign(Xnod * fe.N);
-              X.t = time.t;
 
               // Compute the reduced integration terms of the integrand
               fe.detJxW *= dA*wr[i]*wr[j];
@@ -1903,7 +1899,6 @@ bool ASMs2D::integrate (Integrand& integrand,
 
             // Cartesian coordinates of current integration point
             X.assign(Xnod * fe.N);
-            X.t = time.t;
 
             // Evaluate the integrand and accumulate element contributions
             fe.detJxW *= dA*wg[0][i]*wg[1][j];
@@ -1915,7 +1910,7 @@ bool ASMs2D::integrate (Integrand& integrand,
           }
 
         // Finalize the element quantities
-        if (ok && !integrand.finalizeElement(*A,time,firstIp+jp))
+        if (ok && !integrand.finalizeElement(*A,fe,time,firstIp+jp))
           ok = false;
 
         // Assembly of global system integral
@@ -1997,7 +1992,7 @@ bool ASMs2D::integrate (Integrand& integrand,
       Matrix   dNdu, Xnod, Jac;
       Matrix3D d2Ndu2, Hess;
       double   dXidu[2];
-      Vec4     X;
+      Vec4     X(nullptr,time.t);
       for (size_t e = 0; e < groups[g][t].size() && ok; e++)
       {
         int iel = groups[g][t][e];
@@ -2107,9 +2102,8 @@ bool ASMs2D::integrate (Integrand& integrand,
 #endif
 
           // Cartesian coordinates of current integration point
-          X = Xnod * fe.N;
+          X.assign(Xnod * fe.N);
           X.u = elmPts[ip].data();
-          X.t = time.t;
 
           // Evaluate the integrand and accumulate element contributions
           fe.detJxW *= dA*elmPts[ip][2];
@@ -2121,7 +2115,7 @@ bool ASMs2D::integrate (Integrand& integrand,
         }
 
         // Finalize the element quantities
-        if (ok && !integrand.finalizeElement(*A,time,firstIp+MPitg[iel]))
+        if (ok && !integrand.finalizeElement(*A,fe,time,firstIp+MPitg[iel]))
           ok = false;
 
         // Assembly of global system integral
@@ -2166,7 +2160,7 @@ bool ASMs2D::integrate (Integrand& integrand,
   FiniteElement fe(p1*p2);
   Matrix        dNdu, Xnod, Jac;
   double        u[2], v[2], param[3] = { 0.0, 0.0, 0.0 };
-  Vec4          X(param);
+  Vec4          X(param,time.t);
   Vec3          normal;
   bool          hasInterfaceElms = MLGE.size() > nel && MLGE.size() != 2*nel;
 
@@ -2265,7 +2259,6 @@ bool ASMs2D::integrate (Integrand& integrand,
 
             // Cartesian coordinates of current integration point
             X.assign(Xnod * fe.N);
-            X.t = time.t;
 
             if (integrand.getIntegrandType() & Integrand::NORMAL_DERIVS)
             {
@@ -2379,7 +2372,7 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
   double param[3] = { fe.u, fe.v, 0.0 };
 
   Matrix dNdu, Xnod, Jac;
-  Vec4   X(param);
+  Vec4   X(param,time.t);
   Vec3   normal;
   double dXidu[2];
 
@@ -2477,7 +2470,6 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
 
 	// Cartesian coordinates of current integration point
 	X.assign(Xnod * fe.N);
-	X.t = time.t;
 
 	// Evaluate the integrand and accumulate element contributions
 	fe.detJxW *= dS*wg[i];

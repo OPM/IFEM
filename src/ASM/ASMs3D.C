@@ -36,9 +36,6 @@
 #include "MPC.h"
 #include "IFEM.h"
 #include <array>
-#ifdef USE_OPENMP
-#include <omp.h>
-#endif
 
 
 ASMs3D::ASMs3D (unsigned char n_f) : ASMstruct(3,3,n_f), nodeInd(myNodeInd)
@@ -2037,7 +2034,7 @@ bool ASMs3D::integrate (Integrand& integrand,
       Matrix3D d2Ndu2, Hess;
       double   dXidu[3];
       double   param[3];
-      Vec4     X(param);
+      Vec4     X(param,time.t);
       for (size_t l = 0; l < groups[g][t].size() && ok; l++)
       {
         int iel = groups[g][t][l];
@@ -2159,8 +2156,7 @@ bool ASMs3D::integrate (Integrand& integrand,
                 fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
 
                 // Cartesian coordinates of current integration point
-                X = Xnod * fe.N;
-                X.t = time.t;
+                X.assign(Xnod * fe.N);
 
                 // Compute the reduced integration terms of the integrand
                 fe.detJxW *= dV*wr[i]*wr[j]*wr[k];
@@ -2216,7 +2212,6 @@ bool ASMs3D::integrate (Integrand& integrand,
 
               // Cartesian coordinates of current integration point
               X.assign(Xnod * fe.N);
-              X.t = time.t;
 
               // Evaluate the integrand and accumulate element contributions
               fe.detJxW *= dV*wg[0][i]*wg[1][j]*wg[2][k];
@@ -2228,7 +2223,7 @@ bool ASMs3D::integrate (Integrand& integrand,
             }
 
         // Finalize the element quantities
-        if (ok && !integrand.finalizeElement(*A,time,firstIp+jp))
+        if (ok && !integrand.finalizeElement(*A,fe,time,firstIp+jp))
           ok = false;
 
         // Assembly of global system integral
@@ -2312,7 +2307,7 @@ bool ASMs3D::integrate (Integrand& integrand,
       Matrix   dNdu, Xnod, Jac;
       Matrix3D d2Ndu2, Hess;
       double   dXidu[3];
-      Vec4     X;
+      Vec4     X(nullptr,time.t);
       for (size_t e = 0; e < groups[g][t].size() && ok; e++)
       {
         int iel = groups[g][t][e];
@@ -2410,9 +2405,8 @@ bool ASMs3D::integrate (Integrand& integrand,
 #endif
 
           // Cartesian coordinates of current integration point
-          X = Xnod * fe.N;
+          X.assign(Xnod * fe.N);
           X.u = itgPts[iel][ip].data();
-          X.t = time.t;
 
           // Evaluate the integrand and accumulate element contributions
           fe.detJxW *= dV*itgPts[iel][ip][3];
@@ -2424,7 +2418,7 @@ bool ASMs3D::integrate (Integrand& integrand,
         }
 
         // Finalize the element quantities
-        if (ok && !integrand.finalizeElement(*A,time,firstIp+MPitg[iel]))
+        if (ok && !integrand.finalizeElement(*A,fe,time,firstIp+MPitg[iel]))
           ok = false;
 
         // Assembly of global system integral
@@ -2570,7 +2564,7 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
 
       Matrix dNdu, Xnod, Jac;
       double param[3] = { fe.u, fe.v, fe.w };
-      Vec4   X(param);
+      Vec4   X(param,time.t);
       Vec3   normal;
       double dXidu[3];
 
@@ -2696,7 +2690,6 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
 
             // Cartesian coordinates of current integration point
             X.assign(Xnod * fe.N);
-            X.t = time.t;
 
             // Evaluate the integrand and accumulate element contributions
             fe.detJxW *= dA*wg[tt1][i]*wg[tt2][j];
@@ -2801,7 +2794,7 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
 
   Matrix dNdu, Xnod, Jac;
   double param[3] = { 0.0, 0.0, 0.0 };
-  Vec4   X(param);
+  Vec4   X(param,time.t);
   Vec3   tang;
 
 
@@ -2888,7 +2881,6 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
 
 	  // Cartesian coordinates of current integration point
 	  X.assign(Xnod * fe.N);
-	  X.t = time.t;
 
 	  // Evaluate the integrand and accumulate element contributions
 	  fe.detJxW *= 0.5*dS*wg[i];

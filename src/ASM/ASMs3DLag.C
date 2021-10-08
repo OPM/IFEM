@@ -24,7 +24,6 @@
 #include "GaussQuadrature.h"
 #include "ElementBlock.h"
 #include "Utilities.h"
-#include "Vec3Oper.h"
 #include <array>
 
 
@@ -390,7 +389,7 @@ bool ASMs3DLag::integrate (Integrand& integrand,
     {
       FiniteElement fe(p1*p2*p3);
       Matrix dNdu, Xnod, Jac;
-      Vec4   X;
+      Vec4   X(nullptr,time.t);
       for (size_t l = 0; l < threadGroupsVol[g][t].size() && ok; l++)
       {
         int iel = threadGroupsVol[g][t][l];
@@ -460,8 +459,7 @@ bool ASMs3DLag::integrate (Integrand& integrand,
                 fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
 
                 // Cartesian coordinates of current integration point
-                X = Xnod * fe.N;
-                X.t = time.t;
+                X.assign(Xnod * fe.N);
 
                 // Compute the reduced integration terms of the integrand
                 fe.detJxW *= wr[i]*wr[j]*wr[k];
@@ -504,8 +502,7 @@ bool ASMs3DLag::integrate (Integrand& integrand,
               if (fe.detJxW == 0.0) continue; // skip singular points
 
               // Cartesian coordinates of current integration point
-              X = Xnod * fe.N;
-              X.t = time.t;
+              X.assign(Xnod * fe.N);
 
               // Evaluate the integrand and accumulate element contributions
               fe.detJxW *= wg[0][i]*wg[1][j]*wg[2][k];
@@ -514,7 +511,7 @@ bool ASMs3DLag::integrate (Integrand& integrand,
             }
 
         // Finalize the element quantities
-        if (ok && !integrand.finalizeElement(*A,time,firstIp+jp))
+        if (ok && !integrand.finalizeElement(*A,fe,time,firstIp+jp))
           ok = false;
 
         // Assembly of global system integral
@@ -647,7 +644,7 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
       fe.w = wpar.front();
 
       Matrix dNdu, Xnod, Jac;
-      Vec4   X;
+      Vec4   X(nullptr,time.t);
       Vec3   normal;
       double xi[3];
 
@@ -726,8 +723,7 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
             if (faceDir < 0) normal *= -1.0;
 
             // Cartesian coordinates of current integration point
-            X = Xnod * fe.N;
-            X.t = time.t;
+            X.assign(Xnod * fe.N);
 
             // Evaluate the integrand and accumulate element contributions
             fe.detJxW *= wg[tt1][i]*wg[tt2][j];
@@ -774,7 +770,7 @@ bool ASMs3DLag::integrateEdge (Integrand& integrand, int lEdge,
 
   FiniteElement fe(p1*p2*p3);
   Matrix dNdu, Xnod, Jac;
-  Vec4   X;
+  Vec4   X(nullptr,time.t);
   Vec3   tangent;
   double xi[3] = {0.0, 0.0, 0.0};
 
@@ -859,8 +855,7 @@ bool ASMs3DLag::integrateEdge (Integrand& integrand, int lEdge,
           if (fe.detJxW == 0.0) continue; // skip singular points
 
           // Cartesian coordinates of current integration point
-          X = Xnod * fe.N;
-          X.t = time.t;
+          X.assign(Xnod * fe.N);
 
           // Evaluate the integrand and accumulate element contributions
           if (!integrand.evalBou(*A,fe,time,X,tangent))

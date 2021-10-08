@@ -13,9 +13,7 @@
 
 #include "ASMu2Dmx.h"
 
-#include "GoTools/geometry/ObjectHeader.h"
 #include "GoTools/geometry/SplineSurface.h"
-#include "GoTools/geometry/SurfaceInterpolator.h"
 
 #include "LRSpline/LRSplineSurface.h"
 #include "LRSpline/Element.h"
@@ -29,12 +27,9 @@
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
-#include "Fields.h"
 #include "SplineUtils.h"
-#include "Utilities.h"
 #include "Point.h"
 #include "Profiler.h"
-#include "Vec3Oper.h"
 #include "Vec3.h"
 
 #include <array>
@@ -331,7 +326,7 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
       std::vector<Matrix> dNxdu(m_basis.size());
       Matrix   Xnod, Jac;
       double   param[3] = { 0.0, 0.0, 0.0 };
-      Vec4     X(param);
+      Vec4     X(param,time.t);
       std::vector<Matrix3D> d2Nxdu2(m_basis.size());
       Matrix3D Hess;
       double   dXidu[2];
@@ -431,30 +426,20 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
 
           // Cartesian coordinates of current integration point
           X.assign(Xnod * fe.basis(geoBasis));
-          X.t = time.t;
 
           // Evaluate the integrand and accumulate element contributions
           fe.detJxW *= 0.25*dA*wg[i]*wg[j];
           if (!integrand.evalIntMx(*A,fe,time,X))
-          {
             ok = false;
-            continue;
-          }
         }
 
       // Finalize the element quantities
-      if (!integrand.finalizeElement(*A,time,firstIp+jp))
-      {
+      if (ok && !integrand.finalizeElement(*A,fe,time,firstIp+jp))
         ok = false;
-        continue;
-      }
 
       // Assembly of global system integral
-      if (!glInt.assemble(A->ref(),fe.iel))
-      {
+      if (ok && !glInt.assemble(A->ref(),fe.iel))
         ok = false;
-        continue;
-      }
 
       A->destruct();
     }
@@ -507,7 +492,7 @@ bool ASMu2Dmx::integrate (Integrand& integrand, int lIndex,
   std::vector<Matrix> dNxdu(m_basis.size());
   Matrix Xnod, Jac;
   double param[3] = { 0.0, 0.0, 0.0 };
-  Vec4   X(param);
+  Vec4   X(param,time.t);
   Vec3   normal;
 
 
@@ -598,7 +583,6 @@ bool ASMu2Dmx::integrate (Integrand& integrand, int lIndex,
 
       // Cartesian coordinates of current integration point
       X.assign(Xnod * fe.basis(geoBasis));
-      X.t = time.t;
 
       // Evaluate the integrand and accumulate element contributions
       fe.detJxW *= dS*wg[i];
@@ -642,7 +626,7 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
   if (!xg || !wg) return false;
 
   Matrix   Xnod, Jac;
-  Vec4     X;
+  Vec4     X(nullptr,time.t);
   Vec3     normal;
 
   std::vector<LR::Element*>::iterator el1 = m_basis[0]->elementBegin();
@@ -669,11 +653,11 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
       return false;
 
     LocalIntegral* A = integrand.getLocalIntegral(elem_sizes, iel);
-    integrand.initElement(MNPC[els[geoBasis-1]-1],elem_sizes,nb,*A);
+    bool ok = integrand.initElement(MNPC[els[geoBasis-1]-1],elem_sizes,nb,*A);
     size_t origSize = A->vec.size();
 
     int bit = 8;
-    for (int iedge = 4; iedge > 0 && status > 0; iedge--, bit /= 2) {
+    for (int iedge = 4; iedge > 0 && status > 0 && ok; iedge--, bit /= 2) {
       if (status & bit) {
         const int edgeDir = (iedge+1)/((iedge%2) ? -2 : 2);
         const int t1 = abs(edgeDir);   // Tangent direction normal to the edge
@@ -696,7 +680,7 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
           epsv = -epsilon;
 
         std::vector<double> intersections = iChk.getIntersections(iel, iedge);
-        for (size_t i = 0; i < intersections.size(); ++i) {
+        for (size_t i = 0; i < intersections.size() && ok; ++i) {
           std::vector<double> parval(2);
           parval[0] = u1-epsu;
           parval[1] = v1-epsv;
@@ -717,7 +701,8 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
           }
 
           LocalIntegral* A_neigh = integrand.getLocalIntegral(elem_sizes2, el_neigh);
-          integrand.initElement(MNPC[els2[geoBasis-1]-1],elem_sizes2,nb,*A_neigh);
+          ok = integrand.initElement(MNPC[els2[geoBasis-1]-1],
+                                     elem_sizes2,nb,*A_neigh);
 
           // Element sizes for both elements
           std::vector<size_t> elem_sizes3(elem_sizes);
@@ -751,10 +736,9 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
             gpar[1].fill(v1);
           }
           Matrix Xnod2, Jac2;
-          if (!this->getElementCoordinates(Xnod2,els2[geoBasis-1]))
-            return false;
+          ok &= this->getElementCoordinates(Xnod2,els2[geoBasis-1]);
 
-          for (int g = 0; g < nGP; g++, ++fe.iGP)
+          for (int g = 0; g < nGP && ok; g++, ++fe.iGP)
           {
             // Local element coordinates and parameter values
             // of current integration point
@@ -792,13 +776,11 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
               normal *= -1.0;
 
             // Cartesian coordinates of current integration point
-            X = Xnod * fe.basis(geoBasis);
-            X.t = time.t;
+            X.assign(Xnod * fe.basis(geoBasis));
 
             // Evaluate the integrand and accumulate element contributions
             fe.detJxW *= 0.5*dS*wg[g];
-            if (!integrand.evalIntMx(*A,fe,time,X,normal))
-              return false;
+            ok = integrand.evalIntMx(*A,fe,time,X,normal);
           }
 
           if (iedge == 1 || iedge == 2)
@@ -808,15 +790,18 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
         }
       }
     }
+
     // Finalize the element quantities
-    if (!integrand.finalizeElement(*A,time,0))
-      return false;
+    if (ok && !integrand.finalizeElement(*A,FiniteElement(),time))
+      ok = false;
 
     // Assembly of global system integral
-    if (!glInt.assemble(A,els[geoBasis-1]))
-      return false;
+    if (ok && !glInt.assemble(A,els[geoBasis-1]))
+      ok = false;
 
     A->destruct();
+
+    if (!ok) return false;
   }
 
   return true;

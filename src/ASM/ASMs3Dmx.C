@@ -508,7 +508,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
       double dXidu[3];
       Matrix Xnod, Jac;
       double param[3] = { 0.0, 0.0, 0.0 };
-      Vec4   X(param);
+      Vec4   X(param,time.t);
       for (size_t l = 0; l < groups[g][t].size() && ok; l++)
       {
         int iel = groups[g][t][l];
@@ -611,7 +611,6 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
 
               // Cartesian coordinates of current integration point
               X.assign(Xnod * fe.basis(geoBasis));
-              X.t = time.t;
 
               // Evaluate the integrand and accumulate element contributions
               fe.detJxW *= dV*wg[i]*wg[j]*wg[k];
@@ -620,7 +619,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
             }
 
         // Finalize the element quantities
-        if (ok && !integrand.finalizeElement(*A,time,firstIp+jp))
+        if (ok && !integrand.finalizeElement(*A,fe,time,firstIp+jp))
           ok = false;
 
         // Assembly of global system integral
@@ -720,7 +719,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
       Matrices dNxdu(m_basis.size());
       Matrix Xnod, Jac;
       double param[3] = { fe.u, fe.v, fe.w };
-      Vec4   X(param);
+      Vec4   X(param,time.t);
       Vec3   normal;
       for (size_t l = 0; l < threadGrp[g][t].size() && ok; ++l)
       {
@@ -823,7 +822,6 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
 
             // Cartesian coordinates of current integration point
             X.assign(Xnod * fe.basis(geoBasis));
-            X.t = time.t;
 
             // Evaluate the integrand and accumulate element contributions
             fe.detJxW *= dA*wg[i]*wg[j];
@@ -853,7 +851,20 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
                           const ASM::InterfaceChecker& iChk)
 {
   if (!svol) return true; // silently ignore empty patches
-  if (!(integrand.getIntegrandType() & Integrand::INTERFACE_TERMS)) return true;
+  if (!(integrand.getIntegrandType() & Integrand::INTERFACE_TERMS))
+    return true; // silently ignore if no interface terms
+  else if (integrand.getIntegrandType() & Integrand::NORMAL_DERIVS)
+  {
+    std::cerr <<" *** Normal derivatives not implemented for mixed integrands."
+              << std::endl;
+    return false;
+  }
+  else if (MLGE.size() > nel && MLGE.size() != 2*nel)
+  {
+    std::cerr <<" *** Interface elements not implemented for mixed integrands."
+              << std::endl;
+    return false;
+  }
 
   PROFILE2("ASMs3Dmx::integrate(J)");
 
@@ -878,13 +889,9 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
   MxFiniteElement fe(elem_sizes2);
   Matrix        dNdu, Xnod, Jac;
   Vector        dN;
-  Vec4          X;
+  Vec4          X(nullptr,time.t);
   Vec3          normal;
   double        u[2], v[2], w[2];
-  if (MLGE.size() > nel && MLGE.size() != 2*nel) {
-    std::cerr << "Interface elements not implemented for mixed integrands." << std::endl;
-    return false;
-  }
 
   // === Assembly loop over all elements in the patch ==========================
 
@@ -1034,14 +1041,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
               if (faceDir < 0) normal *= -1.0;
 
               // Cartesian coordinates of current integration point
-              X = Xnod * fe.basis(geoBasis);
-              X.t = time.t;
-
-              if (integrand.getIntegrandType() & Integrand::NORMAL_DERIVS)
-              {
-                std::cerr << "Normal derivs not implemented for mixed integrands." << std::endl;
-                return false;
-              }
+              X.assign(Xnod * fe.basis(geoBasis));
 
               // Evaluate the integrand and accumulate element contributions
               fe.detJxW *= 0.25*dA*wg[i]*wg[j];
@@ -1050,7 +1050,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
           }
 
         // Finalize the element quantities
-        if (ok && !integrand.finalizeElement(*A,time,0))
+        if (ok && !integrand.finalizeElement(*A,fe,time))
           ok = false;
 
         // Assembly of global system integral

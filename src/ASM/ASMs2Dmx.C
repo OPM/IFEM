@@ -12,7 +12,6 @@
 //==============================================================================
 
 #include "GoTools/geometry/SplineSurface.h"
-#include "GoTools/geometry/SurfaceInterpolator.h"
 
 #include "ASMs2Dmx.h"
 #include "TimeDomain.h"
@@ -22,17 +21,12 @@
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
-#include "SplineFields2D.h"
 #include "SplineUtils.h"
 #include "Utilities.h"
 #include "Point.h"
 #include "Profiler.h"
-#include "Vec3Oper.h"
 #include <array>
 #include <numeric>
-#ifdef USE_OPENMP
-#include <omp.h>
-#endif
 
 
 ASMs2Dmx::ASMs2Dmx (unsigned char n_s, const CharVec& n_f)
@@ -558,7 +552,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
       double dXidu[2];
       Matrix Xnod, Jac;
       double param[3] = { 0.0, 0.0, 0.0 };
-      Vec4   X(param);
+      Vec4   X(param,time.t);
       for (size_t l = 0; l < groups[g][t].size() && ok; l++)
       {
         int iel = groups[g][t][l];
@@ -656,7 +650,6 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
 
             // Cartesian coordinates of current integration point
             X.assign(Xnod * fe.basis(geoBasis));
-            X.t = time.t;
 
             // Evaluate the integrand and accumulate element contributions
             fe.detJxW *= dA*wg[i]*wg[j];
@@ -665,7 +658,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
           }
 
         // Finalize the element quantities
-        if (ok && !integrand.finalizeElement(*A,time,firstIp+jp))
+        if (ok && !integrand.finalizeElement(*A,fe,time,firstIp+jp))
           ok = false;
 
         // Assembly of global system integral
@@ -742,7 +735,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
 
   Matrices dNxdu(m_basis.size());
   Matrix Xnod, Jac;
-  Vec4   X(param);
+  Vec4   X(param,time.t);
   Vec3   normal;
 
 
@@ -823,7 +816,6 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
 
 	// Cartesian coordinates of current integration point
 	X.assign(Xnod * fe.basis(geoBasis));
-	X.t = time.t;
 
 	// Evaluate the integrand and accumulate element contributions
 	fe.detJxW *= dS*wg[i];
@@ -853,7 +845,20 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
                           const ASM::InterfaceChecker& iChk)
 {
   if (!surf) return true; // silently ignore empty patches
-  if (!(integrand.getIntegrandType() & Integrand::INTERFACE_TERMS)) return true;
+  if (!(integrand.getIntegrandType() & Integrand::INTERFACE_TERMS))
+    return true; // silently ignore if no interface terms
+  else if (integrand.getIntegrandType() & Integrand::NORMAL_DERIVS)
+  {
+    std::cerr <<" *** Normal derivatives not implemented for mixed integrands."
+              << std::endl;
+    return false;
+  }
+  else if (MLGE.size() > nel && MLGE.size() != 2*nel)
+  {
+    std::cerr <<" *** Interface elements not implemented for mixed integrands."
+              << std::endl;
+    return false;
+  }
 
   PROFILE2("ASMs2Dmx::integrate(J)");
 
@@ -873,13 +878,9 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
   MxFiniteElement fe(elem_sizes2);
   Matrix        dNdu, Xnod, Jac;
   Vector        dN;
-  Vec4          X;
+  Vec4          X(nullptr,time.t);
   Vec3          normal;
   double        u[2], v[2];
-  if (MLGE.size() > nel && MLGE.size() != 2*nel) {
-    std::cerr << "Interface elements not implemented for mixed integrands." << std::endl;
-    return false;
-  }
 
   // === Assembly loop over all elements in the patch ==========================
 
@@ -995,14 +996,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
             if (edgeDir < 0) normal *= -1.0;
 
             // Cartesian coordinates of current integration point
-            X = Xnod * fe.basis(geoBasis);
-            X.t = time.t;
-
-            if (integrand.getIntegrandType() & Integrand::NORMAL_DERIVS)
-            {
-              std::cerr << "Normal derivs not implemented for mixed integrands." << std::endl;
-              return false;
-            }
+            X.assign(Xnod * fe.basis(geoBasis));
 
             // Evaluate the integrand and accumulate element contributions
             fe.detJxW *= dS*wg[i];
@@ -1011,7 +1005,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
         }
 
       // Finalize the element quantities
-      if (ok && !integrand.finalizeElement(*A,time,0))
+      if (ok && !integrand.finalizeElement(*A,fe,time))
         ok = false;
 
       // Assembly of global system integral

@@ -24,7 +24,6 @@
 #include "GaussQuadrature.h"
 #include "ElementBlock.h"
 #include "Utilities.h"
-#include "Vec3Oper.h"
 #include <array>
 
 
@@ -349,7 +348,7 @@ bool ASMs2DLag::integrate (Integrand& integrand,
     {
       FiniteElement fe(p1*p2);
       Matrix dNdu, Xnod, Jac;
-      Vec4   X;
+      Vec4   X(nullptr,time.t);
       for (size_t e = 0; e < threadGroups[g][t].size() && ok; e++)
       {
         int iel = threadGroups[g][t][e];
@@ -410,8 +409,7 @@ bool ASMs2DLag::integrate (Integrand& integrand,
               fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
 
               // Cartesian coordinates of current integration point
-              X = Xnod * fe.N;
-              X.t = time.t;
+              X.assign(Xnod * fe.N);
 
               // Compute the reduced integration terms of the integrand
               fe.detJxW *= wr[i]*wr[j];
@@ -449,8 +447,7 @@ bool ASMs2DLag::integrate (Integrand& integrand,
             if (fe.detJxW == 0.0) continue; // skip singular points
 
             // Cartesian coordinates of current integration point
-            X = Xnod * fe.N;
-            X.t = time.t;
+            X.assign(Xnod * fe.N);
 
             // Evaluate the integrand and accumulate element contributions
             fe.detJxW *= wg[0][i]*wg[1][j];
@@ -459,7 +456,7 @@ bool ASMs2DLag::integrate (Integrand& integrand,
           }
 
         // Finalize the element quantities
-        if (ok && !integrand.finalizeElement(*A,time,firstIp+jp))
+        if (ok && !integrand.finalizeElement(*A,fe,time,firstIp+jp))
           ok = false;
 
         // Assembly of global system integral
@@ -529,7 +526,7 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
   size_t firstp = iit == firstBp.end() ? 0 : iit->second;
 
   Matrix dNdu, Xnod, Jac;
-  Vec4   X;
+  Vec4   X(nullptr,time.t);
   Vec3   normal;
   double xi[2];
 
@@ -591,8 +588,7 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
         if (edgeDir < 0) normal *= -1.0;
 
         // Cartesian coordinates of current integration point
-        X = Xnod * fe.N;
-        X.t = time.t;
+        X.assign(Xnod * fe.N);
 
         // Evaluate the integrand and accumulate element contributions
         fe.detJxW *= wg[i];
