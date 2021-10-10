@@ -172,14 +172,6 @@ public:
                  int idBlock = 100, const char* prefix = "Global projected",
                  std::vector<PointValues>* maxVal = nullptr);
 
-  //! \brief Evaluates the projected solution for a given load/time step.
-  //! \param[in] ssol Secondary solution vector (control point values)
-  //! \param[in] maxVal Array of maximum values
-  //!
-  //! \details This method only evaluates/updates the maximum values of the
-  //! secondary solution fields (i.e. same as writeGlvP but without VTF output).
-  bool evalProjSolution(const Vector& ssol, std::vector<PointValues>& maxVal);
-
   //! \brief Writes a mode shape to the VTF-file.
   //! \param[in] mode The mode shape eigenvector and associated eigenvalue
   //! \param[in] freq \e true if the eigenvalue is a frequency
