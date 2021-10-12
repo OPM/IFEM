@@ -28,7 +28,7 @@ class BDFMats : public ElmMats
 public:
   //! \brief The constructor initializes the time integration parameters.
   //! param[in] bdfscheme BDF time discretization scheme
-  explicit BDFMats(const TimeIntegration::BDFD2& bdfscheme) : bdf(bdfscheme) {}
+  explicit BDFMats(const TimeIntegration::BDFD2& bdfscheme) : bdf(bdfscheme) { h = 1.0; }
   //! \brief Empty destructor.
   virtual ~BDFMats() {}
 
