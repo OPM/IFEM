@@ -10,6 +10,7 @@ set_directory_properties(PROPERTIES EP_PREFIX ${CMAKE_BINARY_DIR}/third_party)
 externalproject_add(
     googletest
     URL http://github.com/google/googletest/archive/release-1.8.0.tar.gz
+    BUILD_BYPRODUCTS third_party/src/googletest-build/googlemock/gtest/libgtest.a
     # Disable install step
     INSTALL_COMMAND ""
     # Wrap download, configure and build steps in a script to log output
