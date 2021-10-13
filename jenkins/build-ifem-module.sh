@@ -300,6 +300,17 @@ function build_module_and_upstreams {
     cmake --build . --target install
     popd
 
+    if test -n "${MODULE_EXTRA_APP_DIR[$1]}"
+    then
+      mkdir -p ${BTYPES_ARRAY[$BTYPE]}/build-${MODULE_EXTRA_APP_DIR[$1]}
+      pushd ${BTYPES_ARRAY[$BTYPE]}/build-${MODULE_EXTRA_APP_DIR[$1]}
+      build_module "-DCMAKE_INSTALL_PREFIX=$WORKSPACE/${BTYPES_ARRAY[$BTYPE]}/install -DCMAKE_PREFIX_PATH=$WORKSPACE/${BTYPES_ARRAY[$BTYPE]}/install -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}" 1 $WORKSPACE/deps/${MODULE_EXTRA_DIR[$1]}$1/${MODULE_EXTRA_APP_DIR[$1]}
+      test $? -eq 0 || exit 1
+      cmake --build . --target install
+      test $? -eq 0 || exit 1
+      popd
+    fi
+
     # Add testsuite names
     sed -e "s/classname=\"TestSuite\"/classname=\"${BTYPES_ARRAY[$BTYPE]}\"/g" ${WORKSPACE}/${BTYPES_ARRAY[$BTYPE]}/build-$1/testoutput.xml > ${WORKSPACE}/${BTYPES_ARRAY[$BTYPE]}/testoutput.xml
   done
