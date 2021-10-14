@@ -14,6 +14,7 @@
 #include "SIMgeneric.h"
 #include "ModelGenerator.h"
 #include "ASMbase.h"
+#include "Function.h"
 #include "IntegrandBase.h"
 #include "Utilities.h"
 #include "Function.h"

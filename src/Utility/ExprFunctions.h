@@ -19,9 +19,7 @@
 #include <string>
 #include <vector>
 #include <array>
-#ifdef USE_OPENMP
-#include <omp.h>
-#endif
+
 
 namespace ExprEval {
   class Expression;

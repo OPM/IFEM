@@ -15,7 +15,15 @@
 #define _ALG_EQ_SYSTEM_H
 
 #include "GlobalIntegral.h"
-#include "SystemMatrix.h"
+#include "LinAlgenums.h"
+#include "MatVec.h"
+
+
+class LinSolParams;
+class ProcessAdm;
+class SAM;
+class SystemMatrix;
+class SystemVector;
 
 
 /*!

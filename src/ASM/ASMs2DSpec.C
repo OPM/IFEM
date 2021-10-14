@@ -20,7 +20,6 @@
 #include "LocalIntegral.h"
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
-#include "Vec3Oper.h"
 #include "Legendre.h"
 #include <array>
 

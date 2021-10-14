@@ -19,7 +19,6 @@
 #include "GoTools/trivariate/SphereVolume.h"
 #include "GoTools/trivariate/SplineVolume.h"
 #include "ExprFunctions.h"
-#include <fstream>
 
 #include "gtest/gtest.h"
 

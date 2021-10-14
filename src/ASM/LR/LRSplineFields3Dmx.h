@@ -19,10 +19,6 @@
 
 class ASMu3Dmx;
 
-namespace LR {
-  class LRSplineVolume;
-}
-
 
 /*!
   \brief Class for LR spline-based finite element vector fields in 3D.

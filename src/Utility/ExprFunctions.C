@@ -15,6 +15,9 @@
 #include "Vec3.h"
 #include "Tensor.h"
 #include "expreval.h"
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
 
 
 /*!

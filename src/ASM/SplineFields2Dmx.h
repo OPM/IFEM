@@ -19,10 +19,6 @@
 
 class ASMs2Dmx;
 
-namespace Go {
-  class SplineSurface;
-}
-
 
 /*!
   \brief Class for mixed spline-based finite element vector fields in 2D.

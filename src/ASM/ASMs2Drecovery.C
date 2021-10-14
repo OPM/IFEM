@@ -24,7 +24,6 @@
 #include "SparseMatrix.h"
 #include "DenseMatrix.h"
 #include "SplineUtils.h"
-#include "Utilities.h"
 #include "Profiler.h"
 #include <array>
 

@@ -11,17 +11,18 @@
 //!
 //==============================================================================
 
-#include "LRSpline/LRSplineSurface.h"
-#include "LRSpline/Basisfunction.h"
-
 #include "ASMLRSpline.h"
+
+#include "LRSpline/LRSpline.h"
+#include "LRSpline/Basisfunction.h"
+#include "LRSpline/Element.h"
+
 #include "Vec3.h"
 #include "Vec3Oper.h"
 #include "ThreadGroups.h"
 #include "Utilities.h"
 #include "Profiler.h"
 #include "IFEM.h"
-#include <fstream>
 
 #ifdef USE_OPENMP
 #include <omp.h>

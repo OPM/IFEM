@@ -19,7 +19,6 @@
 #ifdef HAS_HDF5
 #include <numeric>
 #include <sys/stat.h>
-#include <unistd.h>
 #include <string.h>
 #ifdef HAVE_MPI
 #include <mpi.h>

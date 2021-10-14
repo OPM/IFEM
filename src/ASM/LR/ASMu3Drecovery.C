@@ -17,6 +17,7 @@
 #include "ASMu3D.h"
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
+#include "Function.h"
 #include "GaussQuadrature.h"
 #include "GlbL2projector.h"
 #include "SparseMatrix.h"

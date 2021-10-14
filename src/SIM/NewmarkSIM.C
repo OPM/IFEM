@@ -17,6 +17,7 @@
 #include "TimeStep.h"
 #include "IFEM.h"
 #include "Profiler.h"
+#include "SystemMatrix.h"
 #include "Utilities.h"
 #include "tinyxml.h"
 

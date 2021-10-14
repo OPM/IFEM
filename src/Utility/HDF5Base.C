@@ -15,7 +15,6 @@
 
 #ifdef HAS_HDF5
 #include <iostream>
-#include <unistd.h>
 #ifdef HAVE_MPI
 #include "ProcessAdm.h"
 #include <mpi.h>

@@ -15,8 +15,8 @@
 
 #include "LRSplineField3D.h"
 #include "ASMu3D.h"
-#include "FiniteElement.h"
 #include "CoordinateMapping.h"
+#include "ItgPoint.h"
 #include "Vec3.h"
 
 

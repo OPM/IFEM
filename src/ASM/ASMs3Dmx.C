@@ -12,7 +12,6 @@
 //==============================================================================
 
 #include "GoTools/trivariate/SplineVolume.h"
-#include "GoTools/trivariate/VolumeInterpolator.h"
 
 #include "ASMs3Dmx.h"
 #include "TimeDomain.h"
@@ -22,12 +21,10 @@
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
-#include "SplineFields3D.h"
 #include "SplineUtils.h"
 #include "Utilities.h"
 #include "Point.h"
 #include "Profiler.h"
-#include "Vec3Oper.h"
 #include <array>
 #include <numeric>
 #ifdef USE_OPENMP
