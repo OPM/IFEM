@@ -26,13 +26,13 @@ class SystemVector;
   algorithm, with a constant displacement predictor step. The algorithm relies 
   on the following three algorithm parameters:
 
-  \f$\alpha_H\f$ = parameter controlling the amount of numerical damping<BR>
-  \f$\alpha_1\f$ = mass-proportional damping factor<BR>
-  \f$\alpha_2\f$ = stiffness-proportional damping factor<BR>
+  &alpha;<SUB>H</SUB> = parameter defining the amount of numerical damping<BR>
+  &alpha;<SUB>1</SUB> = mass-proportional damping factor<BR>
+  &alpha;<SUB>2</SUB> = stiffness-proportional damping factor<BR>
 
   For a given time discretization,
   <I>t<SUB>0</SUB></I> = 0 and <I>t<SUB>n</SUB></I> =
-  <I>t<SUB>n-1</SUB></I> + \f$\Delta\f$<I>t<SUB>n</SUB></I>
+  <I>t<SUB>n-1</SUB></I> + &Delta;<I>t<SUB>n</SUB></I>
   for <I>n</I>=1...<I>n<SUB>step</SUB></I>,
   the HHT time integration algorithm goes like this:
 
@@ -194,7 +194,7 @@ public:
   virtual bool advanceStep(TimeStep& param, bool updateTime = true);
 
   //! \brief Modifies the current solution vector (used by sub-iterations only).
-  virtual void setSolution(const Vector& newSol, int idx);
+  virtual void setSolution(const RealArray& newSol, int idx);
 
   //! \brief Returns whether this solution driver is linear or not.
   virtual bool isLinear() const { return false; }

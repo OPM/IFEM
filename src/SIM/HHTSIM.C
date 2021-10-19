@@ -268,7 +268,7 @@ bool HHTSIM::correctStep (TimeStep& param, bool converged)
 }
 
 
-void HHTSIM::setSolution (const Vector& newSol, int idx)
+void HHTSIM::setSolution (const RealArray& newSol, int idx)
 {
   if (idx == 0)
   {

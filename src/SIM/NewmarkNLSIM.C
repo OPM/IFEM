@@ -237,7 +237,7 @@ bool NewmarkNLSIM::correctStep (TimeStep& param, bool converged)
 }
 
 
-void NewmarkNLSIM::setSolution (const Vector& newSol, int idx)
+void NewmarkNLSIM::setSolution (const RealArray& newSol, int idx)
 {
   if (idx == 0)
   {

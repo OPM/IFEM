@@ -64,7 +64,8 @@ bool SIMsolution::restoreSolution (const SerializeMap& data,
 {
 #ifdef HAS_CEREAL
   SerializeMap::const_iterator sit = data.find(name);
-  if (sit != data.end()) {
+  if (sit != data.end())
+  {
     std::stringstream str(sit->second);
     cereal::BinaryInputArchive archive(str);
     for (Vector& sol : this->theSolutions())

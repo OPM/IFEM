@@ -45,7 +45,7 @@ public:
   virtual bool advanceStep(TimeStep& param, bool updateTime = true);
 
   //! \brief Modifies the current solution vector (used by sub-iterations only).
-  virtual void setSolution(const Vector& newSol, int idx);
+  virtual void setSolution(const RealArray& newSol, int idx);
 
 protected:
   //! \brief Calculates predicted velocities and accelerations.

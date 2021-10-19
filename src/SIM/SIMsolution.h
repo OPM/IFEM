@@ -73,7 +73,7 @@ public:
   //! \brief Returns a const reference to current solution vector.
   virtual const Vector& getSolution(int idx = 0) const { return solution[idx]; }
   //! \brief Modifies the current solution vector (used by sub-iterations only).
-  virtual void setSolution(const Vector& s, int idx = 0) { solution[idx] = s; }
+  virtual void setSolution(const RealArray& s, int ix = 0) { solution[ix] = s; }
 
 protected:
   Vectors solution; //!< Stack of solution vectors

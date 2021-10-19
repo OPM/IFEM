@@ -175,12 +175,12 @@ bool GenAlphaSIM::correctStep (TimeStep& param, bool converged)
               <<"\nConverged acceleration:"<< solution[ipA].max() << std::endl;
 #endif
 
-  model.updateRotations(linsol,alpha_f); //TODO look at this
+  model.updateRotations(linsol,alpha_f); // TODO: Look at this
   return model.updateConfiguration(tempSol[0]);
 }
 
 
-void GenAlphaSIM::setSolution (const Vector& newSol, int idx)
+void GenAlphaSIM::setSolution (const RealArray& newSol, int idx)
 {
   solution[idx] = newSol;
 
