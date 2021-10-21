@@ -16,6 +16,7 @@
 
 #include <vector>
 
+class TiXmlDocument;
 class TiXmlElement;
 
 
@@ -33,11 +34,19 @@ public:
   //! \param[in] verbose If \e true, print the tags being parsed
   bool readXML(const char* fileName, bool verbose = true);
 
-  //! \brief Loads data from the XML-formatted text string.
+  //! \brief Loads data from an XML-formatted text string.
   //! \details This method is a convenience offered for unit testing only.
   bool loadXML(const char* xml);
 
 protected:
+  //! \brief Loads an XML input file into a TiXmlDocument object.
+  //! \param[out] doc The top-level node of the XML-file
+  //! \param[in] fileName File to read
+  //! \param[in] verbose If \e true, print the file(s) being read
+  //! \return Pointer to the root element of the XML-file
+  const TiXmlElement* loadFile(TiXmlDocument& doc,
+                               const char* fileName, bool verbose = false);
+
   //! \brief Parses a data section from an XML element.
   virtual bool parse(const TiXmlElement* elem) = 0;
 

@@ -15,21 +15,23 @@
 #include "IFEM.h"
 #include "tinyxml.h"
 #include <algorithm>
+#include <cstring>
 
 
 /*!
   \brief Helper method to load an XML file and print error message if failure.
 */
 
-static bool loadXMLfile (TiXmlDocument& doc, const char* fileName)
+static const TiXmlElement* loadXMLfile (TiXmlDocument& doc,
+                                        const char* fileName)
 {
   if (doc.LoadFile(fileName))
-    return true;
+    return doc.RootElement();
 
-  std::cerr <<" *** SIMadmin::read: Failed to load \""<< fileName
-            <<"\".\n\tError at line "<< doc.ErrorRow() <<": "
+  std::cerr <<" *** Failed to load XML-file \""<< fileName
+            <<"\".\n     Error at line "<< doc.ErrorRow() <<": "
             << doc.ErrorDesc() << std::endl;
-  return false;
+  return nullptr;
 }
 
 
@@ -65,24 +67,22 @@ bool XMLInputBase::injectIncludeFiles (TiXmlElement* tag, bool verbose) const
 }
 
 
-bool XMLInputBase::readXML (const char* fileName, bool verbose)
+const TiXmlElement* XMLInputBase::loadFile (TiXmlDocument& doc,
+                                            const char* fileName, bool verbose)
 {
-  TiXmlDocument doc;
-  if (!loadXMLfile(doc,fileName))
-    return false;
+  const TiXmlElement* tag = loadXMLfile(doc,fileName);
 
-  const TiXmlElement* tag = doc.RootElement();
-  if (!tag || strcmp(tag->Value(),"simulation")) {
-    std::cerr <<" *** SIMadmin::read: Malformatted input file \""<< fileName
-              <<"\"."<< std::endl;
-    return false;
+  if (tag && strcmp(tag->Value(),"simulation")) {
+    std::cerr <<" *** Malformatted XML-file \""<< fileName <<"\"."<< std::endl;
+    verbose = false;
+    tag = nullptr;
   }
 
   if (verbose)
     IFEM::cout <<"\nParsing input file "<< fileName << std::endl;
 
-  if (!this->injectIncludeFiles(const_cast<TiXmlElement*>(tag),verbose))
-    return false;
+  if (tag && !this->injectIncludeFiles(const_cast<TiXmlElement*>(tag),verbose))
+    tag = nullptr;
 
 #ifdef SP_DEBUG
   if (verbose) {
@@ -91,8 +91,18 @@ bool XMLInputBase::readXML (const char* fileName, bool verbose)
   }
 #endif
 
+  return tag;
+}
+
+
+bool XMLInputBase::readXML (const char* fileName, bool verbose)
+{
+  TiXmlDocument doc;
+  const TiXmlElement* tag = this->loadFile(doc,fileName,verbose);
+  if (!tag) return false;
+
   std::vector<const TiXmlElement*> parsed;
-  if (!this->handlePriorityTags(doc.RootElement(),parsed,verbose))
+  if (!this->handlePriorityTags(tag,parsed,verbose))
     return false;
 
   for (tag = tag->FirstChildElement(); tag; tag = tag->NextSiblingElement())
