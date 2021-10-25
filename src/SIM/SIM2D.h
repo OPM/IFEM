@@ -32,7 +32,7 @@ public:
   //! \brief Default constructor.
   //! \param[in] n1 Dimension of the primary solution field
   //! \param[in] check If \e true, ensure the model is in a right-hand system
-  SIM2D(unsigned char n1 = 2, bool check = false);
+  explicit SIM2D(unsigned char n1 = 2, bool check = false);
   //! \brief Constructor used for mixed problems.
   //! \param[in] unf Dimension of the primary solution fields
   //! \param[in] check If \e true, ensure the model is in a right-hand system
@@ -82,6 +82,12 @@ protected:
   //! \param[in] keyWord Keyword of current data section to read
   //! \param is The file stream to read from
   virtual bool parse(char* keyWord, std::istream& is);
+
+  //! \brief Parses a dimension-specific subelement of the \a geometry XML-tag.
+  virtual bool parseGeometryDimTag(const TiXmlElement* elem)
+  {
+    return this->parseGeometryTag(elem);
+  }
 
   //! \brief Reads global node data for a patch from given input stream.
   //! \param[in] isn The input stream to read from

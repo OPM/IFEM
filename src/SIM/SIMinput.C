@@ -986,6 +986,30 @@ const char** SIMinput::getPrioritizedTags () const
 }
 
 
+/*!
+  This method is typically invoked by coupled simulators using shared grids.
+  It is then invoked for the simulator that owns the grid to resolve the
+  patch topology, in case the other simulators using the grid invokes
+  SIMbase::preprocess() first.
+*/
+
+bool SIMinput::readTopologyOnly (const std::string& fileName)
+{
+  TiXmlDocument doc;
+  const TiXmlElement* elem = this->loadFile(doc,fileName.c_str());
+  if (!elem) return false;
+
+  for (elem = elem->FirstChildElement("geometry"); elem;
+       elem = elem->NextSiblingElement("geometry"))
+    for (const TiXmlElement* child = elem->FirstChildElement("topology"); child;
+         child = child->NextSiblingElement("topology"))
+      if (!this->parseGeometryDimTag(child))
+        return false;
+
+  return true;
+}
+
+
 bool SIMinput::parse (char* keyWord, std::istream& is)
 {
   char* cline = 0;

@@ -67,17 +67,12 @@ public:
   //! \brief Empty destructor.
   virtual ~SIMinput() {}
 
-  //! \brief Parses a data section from an input stream.
-  //! \param[in] keyWord Keyword of current data section to read
-  //! \param is The file stream to read from
-  virtual bool parse(char* keyWord, std::istream& is);
-
-  //! \brief Parses a data section from an XML document.
-  //! \param[in] elem The XML element to parse
-  virtual bool parse(const TiXmlElement* elem);
-
   //! \brief Returns a list of prioritized XML-tags.
   virtual const char** getPrioritizedTags() const;
+
+  //! \brief Reads patch topology from the specified input file.
+  //! \param[in] fileName Path to XML file to read patch topology from
+  bool readTopologyOnly(const std::string& fileName);
 
   //! \brief Returns a unique integer code for a Property set.
   //! \param[in] setName Name of the topology set the property is defined on
@@ -114,6 +109,17 @@ private:
   bool parseLinSolTag(const TiXmlElement* elem);
 
 protected:
+  //! \brief Parses a data section from an input stream.
+  //! \param[in] keyWord Keyword of current data section to read
+  //! \param is The file stream to read from
+  virtual bool parse(char* keyWord, std::istream& is);
+
+  //! \brief Parses a data section from an XML document.
+  //! \param[in] elem The XML element to parse
+  virtual bool parse(const TiXmlElement* elem);
+
+  //! \brief Parses a dimension-specific subelement of the \a geometry XML-tag.
+  virtual bool parseGeometryDimTag(const TiXmlElement* elem) = 0;
   //! \brief Parses the \a periodic XML-tag.
   bool parsePeriodic(const TiXmlElement* elem);
   //! \brief Parses a subelement of the \a resultoutput XML-tag.
@@ -206,7 +212,7 @@ protected:
   //! \brief Helper method returning a stream for patch geometry input.
   //! \param[in] tag The XML-tag containing the patch geometry definition
   //! \param[in] patch The value of the \a tag, either a file name or g2 string
-  static std::istream* getPatchStream (const char* tag, const char* patch);
+  static std::istream* getPatchStream(const char* tag, const char* patch);
 
   //! \brief Reads a patch from given input stream.
   //! \param[in] isp The input stream to read from
@@ -250,7 +256,7 @@ protected:
 
 public:
   //! \brief Handles application restarts by reading a serialized basis.
-  //! \param[in] restartFile File to read restart basis from
+  //! \param[in] restartFile Path to file to read restart basis from
   //! \param[in] restartStep Index of the time step to read restart basis for
   //! \return One-based index of the first time step to solve after restart.
   //! If zero, no restart specified. If one, no serialized basis stored.
@@ -294,7 +300,7 @@ public:
 private:
   //! \brief Sets initial conditions from a file.
   //! \param fieldHolder The SIM-object to inject the initial conditions into
-  //! \param[in] fileName Name of file to read the initial conditions from
+  //! \param[in] fileName Path to file to read the initial conditions from
   //! \param[in] info Initial condition information
   bool setInitialCondition(SIMdependency* fieldHolder,
                            const std::string& fileName,

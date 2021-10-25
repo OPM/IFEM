@@ -7,7 +7,7 @@
 //!
 //! \author Knut Morten Okstad / SINTEF
 //!
-//! \brief Dummy SIM template class for drivers not associated with a FE model.
+//! \brief Dummy %SIM template class for drivers not associated with a FE model.
 //!
 //==============================================================================
 
@@ -25,7 +25,7 @@ namespace ASM { struct Interface; }
 
 
 /*!
-  \brief Template SIM class with some dummy implementations.
+  \brief Template %SIM class with some dummy implementations.
   \details This class only implements dummy versions for the pure virtual
   virtual methods of the base class SIMbase, and can be used as a base for
   simulator drivers that do not require any FE model.
@@ -33,11 +33,12 @@ namespace ASM { struct Interface; }
 
 template<class Base> class SIMdummy : public Base
 {
-public:
+protected:
   //! \brief Default constructor.
-  SIMdummy(IntegrandBase* p = nullptr) : Base(p) {}
+  explicit SIMdummy(IntegrandBase* p = nullptr) : Base(p) {}
   //! \brief Empty destructor.
   virtual ~SIMdummy() {}
+public:
   //! \brief Returns the number of parameter dimensions in the model.
   virtual unsigned short int getNoParamDim() const { return 0; }
   //! \brief Creates the computational FEM model from the spline patches.
@@ -46,6 +47,8 @@ public:
   virtual std::vector<std::vector<int>> getElmConnectivities() const
   { return std::vector<std::vector<int>>(); }
 protected:
+  //! \brief Parses a dimension-specific subelement of the \a geometry XML-tag.
+  virtual bool parseGeometryDimTag(const TiXmlElement*) { return false; }
   //! \brief Preprocesses a user-defined Dirichlet boundary property.
   virtual bool addConstraint(int,int,int,int,int,int&,char) { return false; }
   //! \brief Preprocesses the result sampling points.

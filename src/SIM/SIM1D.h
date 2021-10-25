@@ -29,7 +29,7 @@ public:
 
   //! \brief Default constructor.
   //! \param[in] n1 Dimension of the primary solution field
-  SIM1D(unsigned char n1 = 1, bool = false);
+  explicit SIM1D(unsigned char n1 = 1, bool = false);
   //! \brief Constructor used for mixed problems.
   //! \param[in] unf Dimension of the primary solution fields
   explicit SIM1D(const CharVec& unf, bool = false);
@@ -62,6 +62,12 @@ protected:
   //! \brief Parses a data section from an XML document.
   //! \param[in] elem The XML element to parse
   virtual bool parse(const TiXmlElement* elem);
+
+  //! \brief Parses a dimension-specific subelement of the \a geometry XML-tag.
+  virtual bool parseGeometryDimTag(const TiXmlElement* elem)
+  {
+    return this->parseGeometryTag(elem);
+  }
 
   //! \brief Parses or generates app-specific explicit knots for refinement.
   virtual bool parseXi(const TiXmlElement*, RealArray&) const { return false; }
