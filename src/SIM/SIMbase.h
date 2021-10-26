@@ -584,6 +584,10 @@ protected:
   virtual bool preprocessB() { return true; }
   //! \brief Preprocesses the result sampling points.
   virtual void preprocessResultPoints() = 0;
+
+  //! \brief Renumbers the global node numbers after resolving patch topology.
+  //! \return Total number of unique nodes in the model, negative on error
+  int renumberNodes();
   //! \brief Renumbers all global node numbers if the model.
   //! \param[in] nodeMap Mapping from old to new node number
   virtual bool renumberNodes(const std::map<int,int>& nodeMap);
@@ -770,6 +774,11 @@ protected:
 
   std::vector<FunctionBase*> extrFunc; //!< Extraction functions for VCP
 
+  //! \brief Total number of unique nodes in the model
+  //! \details This variable is only used to carry the number of nodes in
+  //! the model, in the case that renumberNodes() is called before preprocess()
+  //! and until the SAMpatch::init() method is invoked.
+  int  nGlbNodes; //!< This value will be equal to SAM::getNoNodes('A').
   int  isRefined; //!< Indicates if the model is adaptively refined
   bool lagMTOK;   //!< Indicates if global multipliers is OK with multithreading
 

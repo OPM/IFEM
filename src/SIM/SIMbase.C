@@ -54,7 +54,7 @@ SIMbase::SIMbase (IntegrandBase* itg) : g2l(&myGlb2Loc)
   myGl2Params = nullptr;
   dualField = nullptr;
   isRefined = lagMTOK = false;
-  nGlPatches = 0;
+  nGlbNodes = nGlPatches = 0;
   nIntGP = nBouGP = 0;
   nDofS = 0;
   mdFlag = 0;
@@ -124,6 +124,7 @@ void SIMbase::clearProperties ()
   for (FunctionBase* f : extrFunc)
     delete f;
 
+  nGlbNodes = 0;
   myPatches.clear();
   myGlb2Loc.clear();
   myScalars.clear();
@@ -263,33 +264,14 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
   printNodalConnectivity(myModel,std::cout);
 #endif
 
-  // Renumber the nodes to account for overlapping nodes and erased patches.
-  // In parallel simulations, the resulting global-to-local node number mapping
-  // will map the global node numbers to local node numbers on the current
-  // processor. In serial simulations, the global-to-local mapping will be unity
-  // unless the original global node number sequence had "holes" due to
-  // duplicated nodes and/or erased patches.
-  int ngnod = 0;
-  int renum = 0;
-  if (preserveNOrder)
-  {
-    renum = ASMbase::renumberNodes(myModel,myGlb2Loc);
-    ngnod = g2l->size();
-  }
-  else for (ASMbase* pch : myModel)
-    renum += pch->renumberNodes(myGlb2Loc,ngnod);
-
-  if (renum > 0)
-    IFEM::cout <<"\nRenumbered "<< renum <<" nodes."<< std::endl;
-
-  // Apply the old-to-new node number mapping to all node tables in the model
-  if (!this->renumberNodes(*g2l))
-    return false;
+  // Renumber the nodes to account for resolved patch topology
+  if (!nGlbNodes) nGlbNodes = this->renumberNodes();
+  if (nGlbNodes < 0) return false;
 
   // Perform specialized preprocessing before the assembly initialization.
   // This typically involves the system-level Lagrange multipliers, etc.
-  ASMbase::resetNumbering(ngnod); // to account for possibly added nodes
-  if (!this->preprocessBeforeAsmInit(ngnod))
+  ASMbase::resetNumbering(nGlbNodes); // to account for possibly added nodes
+  if (!this->preprocessBeforeAsmInit(nGlbNodes))
     return false;
 
   IFEM::cout <<"\nResolving Dirichlet boundary conditions"<< std::endl;
@@ -325,7 +307,7 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
         }
 
         if (dofs > 0)
-          if (this->addConstraint(p.patch,p.lindx,p.ldim,dofs,code,ngnod,
+          if (this->addConstraint(p.patch,p.lindx,p.ldim,dofs,code,nGlbNodes,
                                   p.basis))
             IFEM::cout << std::endl;
           else
@@ -398,7 +380,7 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
   mySam = new SAMpatch();
 #endif
 
-  if (!static_cast<SAMpatch*>(mySam)->init(myModel,ngnod,dofTypes))
+  if (!static_cast<SAMpatch*>(mySam)->init(myModel,nGlbNodes,dofTypes))
   {
 #ifdef SP_DEBUG
     for (ASMbase* pch : myModel)
@@ -452,6 +434,35 @@ bool SIMbase::merge (SIMbase* that, const std::map<int,int>* old2new, int poff)
   }
 
   return true;
+}
+
+
+/*!
+  This method renumbers the nodes to account for overlapping nodes
+  for multi-patch models, erased patches, etc. In parallel simulations,
+  the resulting global-to-local node number mapping \ref myGlb2Loc will map
+  the global node numbers to local node numbers on the current processor.
+  In serial simulations, this mapping will be unity unless the original global
+  node number sequence had "holes" due to duplicated nodes or erased patches.
+*/
+
+int SIMbase::renumberNodes ()
+{
+  int ngnod = 0;
+  int renum = 0;
+  if (preserveNOrder)
+  {
+    renum = ASMbase::renumberNodes(myModel,myGlb2Loc);
+    ngnod = g2l->size();
+  }
+  else for (ASMbase* pch : myModel)
+    renum += pch->renumberNodes(myGlb2Loc,ngnod);
+
+  if (renum > 0)
+    IFEM::cout <<"\nRenumbered "<< renum <<" nodes."<< std::endl;
+
+  // Apply the old-to-new node number mapping to all node tables in the model
+  return this->renumberNodes(*g2l) ? ngnod : -ngnod;
 }
 
 
@@ -680,6 +691,8 @@ size_t SIMbase::getNoNodes (int basis) const
   }
   else if (myModel.size() == 1)
     return myModel.front()->getNoNodes(basis);
+  else if (basis < 1 && nGlbNodes > 0)
+    return nGlbNodes;
 
   std::cerr <<" *** SIMbase::getNoNodes: Number of nodes in a multi-patch model"
             <<" is not known at this point."<< std::endl;

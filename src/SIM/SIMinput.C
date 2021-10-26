@@ -1006,7 +1006,7 @@ bool SIMinput::readTopologyOnly (const std::string& fileName)
       if (!this->parseGeometryDimTag(child))
         return false;
 
-  return true;
+  return (nGlbNodes = this->renumberNodes()) > 0;
 }
 
 
