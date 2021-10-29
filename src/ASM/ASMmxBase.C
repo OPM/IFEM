@@ -245,7 +245,7 @@ ASMmxBase::SurfaceVec ASMmxBase::establishBases (Go::SplineSurface* surf,
   }
 
   if (type == FULL_CONT_RAISE_BASIS2 || type == REDUCED_CONT_RAISE_BASIS2)
-    std::swap(result[0], result[1]);
+    std::swap(result[0], result[1]), geoBasis = 1;
 
   return result;
 }

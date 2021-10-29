@@ -197,8 +197,11 @@ bool ASMu3Dmx::generateFEMTopology ()
         projBasis.reset(new LR::LRSplineVolume(otherBasis.get()));
         refBasis = projBasis;
       }
-    } else
-     projBasis = refBasis = m_basis[0];
+    } else {
+      if (!projBasis)
+        projBasis = m_basis[2-ASMmxBase::geoBasis];
+      refBasis = projBasis;
+    }
   }
   lrspline = m_basis[geoBasis-1];
   projBasis->generateIDs();
