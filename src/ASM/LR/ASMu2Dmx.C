@@ -215,7 +215,7 @@ bool ASMu2Dmx::generateFEMTopology ()
     }
     else {
       if (!projBasis)
-        projBasis = m_basis.front();
+        projBasis = m_basis[2-ASMmxBase::geoBasis];
       refBasis = projBasis;
     }
   }

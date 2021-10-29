@@ -183,7 +183,7 @@ bool ASMs2Dmx::generateFEMTopology ()
         ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
       projB = proj = ASMmxBase::raiseBasis(surf);
     else
-      projB = proj = m_basis.front()->clone();
+      projB = proj = m_basis[2-ASMmxBase::geoBasis]->clone();
   }
   delete surf;
   geomB = surf = m_basis[geoBasis-1]->clone();
