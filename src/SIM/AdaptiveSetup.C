@@ -276,12 +276,12 @@ int AdaptiveSetup::calcRefinement (LR::RefineData& prm, int iStep,
   // Check if further refinement is required
   if (iStep > maxStep)
   {
-    IFEM::cout << "\n   * Stopping the adaptive cyles as max steps " << maxStep << " was reached." << std::endl;
+    IFEM::cout << "\n   * Stopping the adaptive cycles as max steps " << maxStep << " was reached." << std::endl;
     return 0;
   }
   else if (model.getNoDOFs() > (size_t)maxDOFs)
   {
-    IFEM::cout << "\n   * Stopping the adaptive cyles as max DOFs " << maxDOFs <<" was reached." << std::endl;
+    IFEM::cout << "\n   * Stopping the adaptive cycles as max DOFs " << maxDOFs <<" was reached." << std::endl;
     return 0; // Refinement cycle or model size limit reached
   }
   else if (gNorm[adaptor](adNorm) < errTol*refNorm)
