@@ -123,6 +123,9 @@ public:
   //! \brief Set an additional parameter in the function.
   void setParam(const std::string& name, double value);
 
+  //! \brief Returns function string.
+  const std::string& asString() const { return definition; }
+
 protected:
   //! \brief Non-implemented copy constructor to disallow copying.
   EvalFunction(const EvalFunction&) = delete;
@@ -133,6 +136,8 @@ protected:
 
   //! \brief Cleans up the allocated data.
   void cleanup();
+
+  std::string definition; //!< Function definition, used for serialization purposes.
 };
 
 
@@ -200,6 +205,10 @@ public:
     for (EvalFunction* func : p)
       func->setParam(name, value);
   }
+
+  //! \brief Returns function string for component.
+  //! \param idx 1-based index for component to return.
+  const std::string& asString(size_t idx) const { return p[idx-1]->asString(); }
 
 protected:
   //! \brief Sets the number of spatial dimensions (default implementation).

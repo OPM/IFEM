@@ -511,6 +511,9 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
     }
   }
 
+  if (sim->haveAnaSol())
+    this->writeAnaSol(sim->getAnaSolDefinitions(), sim->getName());
+
   delete norm;
   for (hid_t g : group)
     if (g != -1)
@@ -779,6 +782,44 @@ bool HDF5Writer::writeLog (const std::string& data, const std::string& name)
   H5Gclose(group);
   return true;
 
+#else
+  return false;
+#endif
+}
+
+
+bool HDF5Writer::writeAnaSol (const std::map<std::string,std::string>& aSols,
+                              const std::string& name)
+{
+  if (aSols.empty())
+    return true;
+
+#ifdef HAS_HDF5
+  hid_t group;
+  if (!checkGroupExistence(m_file,"/anasol")) {
+    group = H5Gcreate2(m_file,"/anasol",0,H5P_DEFAULT,H5P_DEFAULT);
+    H5Gclose(group);
+  }
+
+  std::stringstream str;
+  str << "/anasol/" << name;
+
+  if (checkGroupExistence(m_file,str.str().c_str()))
+    group = H5Gopen2(m_file,str.str().c_str(),H5P_DEFAULT);
+  else
+    group = H5Gcreate2(m_file,str.str().c_str(),0,H5P_DEFAULT,H5P_DEFAULT);
+
+  int rank = 0;
+#ifdef HAVE_MPI
+  MPI_Comm_rank(*m_adm.getCommunicator(), &rank);
+#endif
+
+  for (const auto& it : aSols)
+    this->writeArray(group,it. first, -1,
+                     rank == 0 ? it.second.size() : 0, it.second.data(), H5T_NATIVE_CHAR);
+
+  H5Gclose(group);
+  return true;
 #else
   return false;
 #endif

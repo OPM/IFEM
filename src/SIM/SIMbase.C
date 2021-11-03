@@ -24,6 +24,7 @@
 #include "AlgEqSystem.h"
 #include "LinSolParams.h"
 #include "EigSolver.h"
+#include "ExprFunctions.h"
 #include "GlbNorm.h"
 #include "GlbL2projector.h"
 #include "ElmNorm.h"
@@ -2399,4 +2400,65 @@ void SIMbase::dumpEqSys ()
         c->dump(os,dmp.format,vecName); // label vectors as b,c,d,...
       utl::zero_print_tol = old_tol;
     }
+}
+
+
+std::map<std::string, std::string> SIMbase::getAnaSolDefinitions () const
+{
+  std::map<std::string, std::string> result;
+
+  if (mySol) {
+    size_t nf = this->getNoFields(0);
+
+    if (nf == 1) // Scalar solution
+    {
+      const EvalFunction* pSol = dynamic_cast<const EvalFunction*>(mySol->getScalarSol());
+      if (pSol)
+        result.insert(std::make_pair(myProblem->getField1Name(0,"Exact"), pSol->asString()));
+
+      const VecFuncExpr* sSol = dynamic_cast<const VecFuncExpr*>(mySol->getScalarSecSol());
+      if (sSol)
+        for (size_t i = 1; i <= this->getNoSpaceDim(); ++i)
+          result.insert(std::make_pair(myProblem->getField2Name(i-1,"Exact"),sSol->asString(i)));
+    }
+    else
+    {
+      const VecFuncExpr* vSol = dynamic_cast<const VecFuncExpr*>(mySol->getVectorSol());
+      size_t idx = 0;
+      if (vSol) {
+        for (; idx < this->getNoSpaceDim(); ++idx)
+          result.insert(std::make_pair(myProblem->getField1Name(idx,"Exact"),vSol->asString(idx+1)));
+      }
+      size_t scalSol = 0;
+      while (mySol->getScalarSol(scalSol)) {
+        const EvalFunction* pSol = dynamic_cast<const EvalFunction*>(mySol->getScalarSol(scalSol));
+        if (pSol)
+          result.insert(std::make_pair(myProblem->getField1Name(idx++,"Exact"), pSol->asString()));
+        ++scalSol;
+      }
+
+      idx = 0;
+      const STensorFuncExpr* stSol = dynamic_cast<const STensorFuncExpr*>(mySol->getStressSol());
+      if (stSol)
+        for (size_t i = 1; i <= stSol->dim(); ++i, ++idx)
+          result.insert(std::make_pair(myProblem->getField2Name(idx,"Exact"),stSol->asString(i)));
+
+      const TensorFuncExpr* tSol = dynamic_cast<const TensorFuncExpr*>(mySol->getVectorSecSol());
+      if (tSol)
+        for (size_t i = 1; i <= tSol->dim(); ++i, ++idx)
+          result.insert(std::make_pair(myProblem->getField2Name(idx,"Exact"),tSol->asString(i)));
+
+      scalSol = 0;
+      while (mySol->getScalarSecSol(scalSol)) {
+        const VecFuncExpr* sSol = dynamic_cast<const VecFuncExpr*>(mySol->getScalarSecSol(scalSol));
+        if (sSol) {
+          for (size_t i = 1; i <= this->getNoSpaceDim(); ++i, ++idx)
+            result.insert(std::make_pair(myProblem->getField2Name(idx,"Exact"),sSol->asString(i)));
+        }
+        ++scalSol;
+      }
+    }
+  }
+
+  return result;
 }
