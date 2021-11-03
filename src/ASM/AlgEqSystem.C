@@ -140,7 +140,7 @@ void AlgEqSystem::initialize (bool initLHS)
   }
 #endif
 
-  R.fill(0.0);
+  std::fill(R.begin(),R.end(),0.0);
 }
 
 
@@ -159,7 +159,7 @@ bool AlgEqSystem::assemble (const LocalIntegral* elmObj, int elmId)
     // The algebraic system consists of one system matrix and one RHS-vector.
     // Extract the element-level Newton matrix and associated RHS-vector for
     // general time-dependent and/or nonlinear problems.
-    Vector* reac = R.empty() ? nullptr : &R;
+    std::vector<double>* reac = R.empty() ? nullptr : &R;
     status = sam.assembleSystem(*b.front(), elMat->getRHSVector(), elmId, reac);
 #if SP_DEBUG > 2
     for (i = 1; i < b.size() && i < elMat->b.size(); i++)

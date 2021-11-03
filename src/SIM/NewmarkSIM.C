@@ -13,7 +13,7 @@
 
 #include "NewmarkSIM.h"
 #include "SIMoutput.h"
-#include "AlgEqSystem.h"
+#include "SystemMatrix.h"
 #include "TimeStep.h"
 #include "IFEM.h"
 #include "Profiler.h"

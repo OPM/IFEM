@@ -451,8 +451,8 @@ public:
   //! \brief Checks for total reaction forces associated with a boundary.
   //! \param[in] pcode Property code identifying the boundary (0 = all)
   bool haveReactions(int pcode = 0) const;
-  //! \brief Returns current reaction force vector.
-  virtual const Vector* getReactionForces() const;
+  //! \brief Returns current reaction force container.
+  virtual const RealArray* getReactionForces() const;
   //! \brief Computes the total external load of current time/load step.
   virtual bool getExtLoad(RealArray&, const TimeDomain&) const { return false; }
 

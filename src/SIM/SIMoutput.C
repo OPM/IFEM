@@ -1493,7 +1493,7 @@ bool SIMoutput::dumpResults (const Vector& psol, double time,
   if (adm.dd.isPartitioned() && adm.getProcId() != 0)
     return true; // dump only for procId=0 when domain decomposition
 
-  const Vector* reactionForces = this->getReactionForces();
+  const RealArray* reactionForces = this->getReactionForces();
   RealFunc*     psolScl = mySol ? mySol->getScalarSol() : nullptr;
   VecFunc*      psolVec = mySol ? mySol->getVectorSol() : nullptr;
   VecFunc*      ssolScl = mySol ? mySol->getScalarSecSol() : nullptr;

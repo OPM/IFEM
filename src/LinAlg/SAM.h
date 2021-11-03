@@ -81,9 +81,9 @@ public:
   //! \return \e false if no free DOFs in the system, otherwise \e true
   //!
   //! \details This method must be called once before the first call to
-  //! \a assembleSystem for a given load case or time step.
+  //! assembleSystem() for a given load case or time step.
   bool initForAssembly(SystemMatrix& sysK, SystemVector& sysRHS,
-                       Vector* reactionForces = nullptr,
+                       RealArray* reactionForces = nullptr,
                        bool dontLockSP = false) const;
 
   //! \brief Initializes a system matrix prior to the element assembly.
@@ -91,7 +91,7 @@ public:
   //! \return \e false if no free DOFs in the system, otherwise \e true
   //!
   //! \details This method must be called once before the first call to
-  //! \a assembleSystem for a given load case or time step.
+  //! assembleSystem() for a given load case or time step.
   bool initForAssembly(SystemMatrix& sysM) const;
 
   //! \brief Initializes the system load vector prior to the element assembly.
@@ -99,7 +99,7 @@ public:
   //! \param reactionForces Pointer to vector of nodal reaction forces
   //! \return \e false if no free DOFs in the system, otherwise \e true
   bool initForAssembly(SystemVector& sysRHS,
-                       Vector* reactionForces = nullptr) const;
+                       RealArray* reactionForces = nullptr) const;
 
   //! \brief Adds an element stiffness matrix into the system stiffness matrix.
   //! \param sysK    The left-hand-side system stiffness matrix
@@ -113,7 +113,7 @@ public:
   //! these are also added into the right-hand-side system load vector.
   bool assembleSystem(SystemMatrix& sysK, SystemVector& sysRHS,
                       const Matrix& eK, int iel = 0,
-                      Vector* reactionForces = nullptr) const;
+                      RealArray* reactionForces = nullptr) const;
 
   //! \brief Adds an element matrix into the corresponding system matrix.
   //! \param sysM    The left-hand-side system matrix
@@ -133,7 +133,7 @@ public:
   //! these are added into the right-hand-side system load vector.
   bool assembleSystem(SystemVector& sysRHS,
                       const Matrix& eK, int iel = 0,
-                      Vector* reactionForces = nullptr) const;
+                      RealArray* reactionForces = nullptr) const;
 
   //! \brief Adds an element load vector into the system load vector.
   //! \param sysRHS  The right-hand-side system load vector
@@ -143,7 +143,7 @@ public:
   //! \return \e true on successful assembly, otherwise \e false
   bool assembleSystem(SystemVector& sysRHS,
                       const RealArray& eS, int iel = 0,
-                      Vector* reactionForces = nullptr) const;
+                      RealArray* reactionForces = nullptr) const;
 
   //! \brief Adds a node load vector into the system load vector.
   //! \param sysRHS The right-hand-side system load vector
@@ -153,7 +153,7 @@ public:
   //! \return \e true on successful assembly, otherwise \e false
   bool assembleSystem(SystemVector& sysRHS,
                       const Real* nS, int inod = 0,
-                      Vector* reactionForces = nullptr) const;
+                      RealArray* reactionForces = nullptr) const;
 
   //! \brief Adds a node load vector into the system load vector.
   //! \param sysRHS The right-hand-side system load vector
@@ -258,13 +258,13 @@ public:
 
   //! \brief Computes the energy norm contributions from nodal reaction forces.
   //! \param[in] u The (incremental) nodal displacement vector
-  //! \param[in] rf Compressed reaction force vector for the entire model
-  virtual Real normReact(const Vector& u, const Vector& rf) const;
+  //! \param[in] rf Reaction force container for the entire model
+  virtual Real normReact(const RealArray& u, const RealArray& rf) const;
   //! \brief Returns the total reaction force in the given coordinate direction.
   //! \param[in] dir 1-based coordinate direction index
-  //! \param[in] rf Compressed reaction force vector for the entire model
+  //! \param[in] rf Reaction force container for the entire model
   //! \param[in] nodes The set of nodes to consider (null means all nodes)
-  Real getReaction(int dir, const Vector& rf,
+  Real getReaction(int dir, const RealArray& rf,
                    const IntVec* nodes = nullptr) const;
   //! \brief Checks for total reaction force in the given coordinate direction.
   //! \param[in] dir 1-based coordinate direction index
@@ -272,10 +272,10 @@ public:
   bool haveReaction(int dir, const IntVec* nodes = nullptr) const;
   //! \brief Returns a vector of reaction forces for a given node.
   //! \param[in] inod Identifier for the node to get the reaction forces for
-  //! \param[in] rf Compressed reaction force vector for the entire model
+  //! \param[in] rf Reaction force container for the entire model
   //! \param[out] nrf Nodal reaction forces
   //! \return \e true if the specified node has reaction forces
-  bool getNodalReactions(int inod, const Vector& rf, Vector& nrf) const;
+  bool getNodalReactions(int inod, const RealArray& rf, Vector& nrf) const;
 
   //! \brief Merges the assembly data from another %SIM with this.
   virtual bool merge(const SAM*, const std::map<int,int>*) { return false; }
@@ -295,10 +295,10 @@ protected:
   void assembleRHS(Real* RHS, Real value, int ieq) const;
 
   //! \brief Assembles reaction forces for the fixed and prescribed DOFs.
-  //! \param reac The vector of reaction forces
-  //! \param[in] eS  The element load vector
+  //! \param rf Reaction force container for the entire model
+  //! \param[in] eS The element load vector
   //! \param[in] iel Identifier for the element that \a eS belongs to
-  void assembleReactions(Vector& reac, const RealArray& eS, int iel) const;
+  void assembleReactions(RealArray& rf, const RealArray& eS, int iel) const;
 
   //! \brief Expands a solution vector from equation-ordering to DOF-ordering.
   //! \param[in] solVec Pointer to solution vector, length = NEQ
@@ -325,7 +325,7 @@ protected:
   int& nmmnpc; //!< Number of elements in MMNPC
   int& nmmceq; //!< Number of elements in MMCEQ
 
-  // The standard SAM arrays (see K. Bell's reports for detailed explanation).
+  // The standard %SAM arrays (see K. Bell's reports for detailed explanation).
   // We are using plane C-pointers for these items such that they more easily
   // can be passed directly as arguments to FORTRAN subroutines.
   int*  mpmnpc; //!< Matrix of pointers to MNPCs in MMNPC

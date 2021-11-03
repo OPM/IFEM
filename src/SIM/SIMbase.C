@@ -22,6 +22,7 @@
 #endif
 #include "IntegrandBase.h"
 #include "AlgEqSystem.h"
+#include "SystemMatrix.h"
 #include "LinSolParams.h"
 #include "EigSolver.h"
 #include "GlbNorm.h"
@@ -1717,20 +1718,21 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
 
 double SIMbase::externalEnergy (const Vectors& psol, const TimeDomain&) const
 {
-  const Vector* reactionFrcs = this->getReactionForces();
-  if (!reactionFrcs || !mySam || psol.empty()) return 0.0;
+  const RealArray* reactionForces = this->getReactionForces();
+  if (!reactionForces || !mySam || psol.empty()) return 0.0;
 
   // Add norm contributions due to inhomogeneous Dirichlet boundary conditions.
   // That is, the path integral of the total solution vector times the
   // reaction forces at the prescribed DOFs.
   if (psol.size() == 1)
-    return mySam->normReact(psol.front(),*reactionFrcs);
+    return mySam->normReact(psol.front(),*reactionForces);
 
   if (prevForces.empty())
-    extEnergy += 0.5*mySam->normReact(psol[0]-psol[1],*reactionFrcs);
+    extEnergy += 0.5*mySam->normReact(psol[0]-psol[1],*reactionForces);
   else
-    extEnergy += 0.5*mySam->normReact(psol[0]-psol[1],*reactionFrcs+prevForces);
-  prevForces = *reactionFrcs;
+    extEnergy += 0.5*mySam->normReact(psol[0]-psol[1],
+                                      prevForces.add(*reactionForces));
+  prevForces = *reactionForces;
 
   return extEnergy;
 }
@@ -1748,7 +1750,7 @@ double SIMbase::externalEnergy (const Vectors& psol, const TimeDomain&) const
 
 bool SIMbase::getCurrentReactions (RealArray& RF, const Vector& psol) const
 {
-  const Vector* reactionForces = this->getReactionForces();
+  const RealArray* reactionForces = this->getReactionForces();
   if (!reactionForces || !mySam) return false;
 
   RF.resize(1+nsd);
@@ -1762,7 +1764,7 @@ bool SIMbase::getCurrentReactions (RealArray& RF, const Vector& psol) const
 
 bool SIMbase::getCurrentReactions (RealArray& RF, int pcode) const
 {
-  const Vector* reactionForces = this->getReactionForces();
+  const RealArray* reactionForces = this->getReactionForces();
   if (!reactionForces || !mySam) return false;
 
   IntVec glbNodes;
@@ -1790,7 +1792,7 @@ bool SIMbase::haveReactions (int pcode) const
 }
 
 
-const Vector* SIMbase::getReactionForces () const
+const RealArray* SIMbase::getReactionForces () const
 {
   return myEqSys ? myEqSys->getReactions() : nullptr;
 }

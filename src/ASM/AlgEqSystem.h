@@ -15,7 +15,14 @@
 #define _ALG_EQ_SYSTEM_H
 
 #include "GlobalIntegral.h"
-#include "SystemMatrix.h"
+#include "LinAlgenums.h"
+#include "MatVec.h"
+
+class SAM;
+class ProcessAdm;
+class LinSolParams;
+class SystemMatrix;
+class SystemVector;
 
 
 /*!
@@ -79,7 +86,7 @@ public:
   double getScalar(size_t i = 0) { return i < c.size() ? c[i] : 0.0; }
 
   //! \brief Returns a pointer to the nodal reaction forces, if any.
-  const Vector* getReactions() const { return R.empty() ? 0 : &R; }
+  const std::vector<double>* getReactions() const { return R.empty() ? 0 : &R; }
 
   //! \brief Performs static condensation of the indicated equation system.
   //! \param[out] Ared Reduced System matrix
@@ -120,7 +127,7 @@ private:
   std::vector<SystemVector*> b; //!< The actual right-hand-side vectors
   std::vector<double>        c; //!< Global scalar quantities
   std::vector<double>*       d; //!< Multithreading buffer for the scalar values
-  Vector                     R; //!< Nodal reaction forces
+  std::vector<double>        R; //!< Nodal reaction forces
 
   const SAM&        sam; //!< Data for FE assembly management
   const ProcessAdm* adm; //!< Parallel process administrator

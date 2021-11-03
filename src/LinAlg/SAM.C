@@ -417,7 +417,7 @@ bool SAM::getDofCouplings (std::vector<IntSet>& dofc) const
 
 
 bool SAM::initForAssembly (SystemMatrix& sysK, SystemVector& sysRHS,
-			   Vector* reactionForces, bool dontLockSP) const
+                           RealArray* reactionForces, bool dontLockSP) const
 {
   sysK.initAssembly(*this,dontLockSP);
   return this->initForAssembly(sysRHS,reactionForces);
@@ -431,7 +431,8 @@ bool SAM::initForAssembly (SystemMatrix& sysM) const
 }
 
 
-bool SAM::initForAssembly (SystemVector& sysRHS, Vector* reactionForces) const
+bool SAM::initForAssembly (SystemVector& sysRHS,
+                           RealArray* reactionForces) const
 {
   sysRHS.redim(neq);
   sysRHS.init();
@@ -443,8 +444,8 @@ bool SAM::initForAssembly (SystemVector& sysRHS, Vector* reactionForces) const
 
 
 bool SAM::assembleSystem (SystemMatrix& sysK, SystemVector& sysRHS,
-			  const Matrix& eK, int iel,
-			  Vector* reactionForces) const
+                          const Matrix& eK, int iel,
+                          RealArray* reactionForces) const
 {
   if (reactionForces)
   {
@@ -487,8 +488,8 @@ bool SAM::assembleSystem (SystemMatrix& sysM,
 
 
 bool SAM::assembleSystem (SystemVector& sysRHS,
-			  const Matrix& eK, int iel,
-			  Vector* reactionForces) const
+                          const Matrix& eK, int iel,
+                          RealArray* reactionForces) const
 {
   IntVec meen;
   if (!this->getElmEqns(meen,iel,eK.rows()))
@@ -527,8 +528,8 @@ bool SAM::assembleSystem (SystemVector& sysRHS,
 
 
 bool SAM::assembleSystem (SystemVector& sysRHS,
-			  const RealArray& eS, int iel,
-			  Vector* reactionForces) const
+                          const RealArray& eS, int iel,
+                          RealArray* reactionForces) const
 {
   Real* sysrhsPtr = sysRHS.getPtr();
   int ierr = 0;
@@ -554,7 +555,7 @@ bool SAM::assembleSystem (SystemVector& sysRHS,
 
 
 bool SAM::assembleSystem (SystemVector& sysRHS, const Real* nS, int inod,
-			  Vector* reactionForces) const
+                          RealArray* reactionForces) const
 {
   IntVec mnen;
   if (!this->getNodeEqns(mnen,inod))
@@ -572,7 +573,7 @@ bool SAM::assembleSystem (SystemVector& sysRHS, const Real* nS, int inod,
     {
       int ipR = -msc[j-1];
       if (ipR > 0 && (size_t)ipR <= reactionForces->size())
-        (*reactionForces)(ipR) += nS[k];
+        (*reactionForces)[ipR-1] += nS[k];
     }
   }
 
@@ -635,7 +636,7 @@ void SAM::assembleRHS (Real* RHS, Real value, int ieq) const
 }
 
 
-void SAM::assembleReactions (Vector& reac, const RealArray& eS, int iel) const
+void SAM::assembleReactions (RealArray& rf, const RealArray& eS, int iel) const
 {
   size_t k = 0;
   int ip = mpmnpc[iel-1];
@@ -649,8 +650,8 @@ void SAM::assembleReactions (Vector& reac, const RealArray& eS, int iel) const
       for (int j = madof[node-1]; j < madof[node] && k < eS.size(); j++, k++)
       {
         int ipR = -msc[j-1];
-        if (ipR > 0 && (size_t)ipR <= reac.size())
-          reac(ipR) += eS[k];
+        if (ipR > 0 && (size_t)ipR <= rf.size())
+          rf[ipR-1] += eS[k];
       }
   }
 }
@@ -931,7 +932,7 @@ Real SAM::normInf (const Vector& x, size_t& comp, char dofType) const
 }
 
 
-Real SAM::normReact (const Vector& u, const Vector& rf) const
+Real SAM::normReact (const RealArray& u, const RealArray& rf) const
 {
   Real retVal = Real(0);
 
@@ -939,11 +940,11 @@ Real SAM::normReact (const Vector& u, const Vector& rf) const
     if (meqn[i] < 0 && msc[i] < 0 && -msc[i] <= (int)rf.size())
       if (mpmceq[-meqn[i]] - mpmceq[-meqn[i]-1] == 1) // Only prescribed DOFs
       {
-        retVal += u[i]*rf(-msc[i]);
+        double RF = rf[-msc[i]-1];
+        retVal += u[i]*RF;
 #if SP_DEBUG > 1
         std::cout <<"SAM::normReact: idof="<< i+1 <<" SC="<< msc[i]
-                  <<" u="<< u[i] <<" RF="<< rf(-msc[i]) <<" --> "
-                  << retVal << std::endl;
+                  <<" u="<< u[i] <<" RF="<< RF <<" --> "<< retVal << std::endl;
 #endif
       }
 
@@ -966,7 +967,7 @@ bool SAM::haveReaction (int dir, const IntVec* nodes) const
 }
 
 
-Real SAM::getReaction (int dir, const Vector& rf, const IntVec* nodes) const
+Real SAM::getReaction (int dir, const RealArray& rf, const IntVec* nodes) const
 {
   Real retVal = Real(0);
 
@@ -977,14 +978,14 @@ Real SAM::getReaction (int dir, const Vector& rf, const IntVec* nodes) const
         int idof = madof[i]+dir-2;
         if (idof < madof[i+1]-1)
           if (msc[idof] < 0 && -msc[idof] <= (int)rf.size())
-            retVal += rf(-msc[idof]);
+            retVal += rf[-msc[idof]-1];
       }
 
   return retVal;
 }
 
 
-bool SAM::getNodalReactions (int inod, const Vector& rf, Vector& nrf) const
+bool SAM::getNodalReactions (int inod, const RealArray& rf, Vector& nrf) const
 {
   if (inod < 1 || inod > nnod)
   {
@@ -1000,7 +1001,7 @@ bool SAM::getNodalReactions (int inod, const Vector& rf, Vector& nrf) const
     if (msc[ip] < 0 && -msc[ip] <= (int)rf.size())
     {
       haveRF = true;
-      nrf[i] = rf(-msc[ip]);
+      nrf[i] = rf[-msc[ip]-1];
     }
 
   return haveRF;
