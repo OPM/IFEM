@@ -39,6 +39,7 @@ add_definitions(${IFEM_DEFINITIONS})
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${IFEM_BUILD_CXX_FLAGS}")
 
 if(NOT IFEM_USE_SYSTEM_TINYXML)
+  message(STATUS "Using bundled tinyxml")
   set(IFEM_INCLUDES ${IFEM_INCLUDES}
                     ${PROJECT_SOURCE_DIR}/3rdparty/tinyxml)
   file(GLOB_RECURSE TINYXML_SRCS ${PROJECT_SOURCE_DIR}/3rdparty/tinyxml/*.C)
