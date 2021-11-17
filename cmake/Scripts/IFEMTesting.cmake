@@ -3,7 +3,7 @@
 # Thanks to Daniel Blezek <blezek@gmail.com> for the GTEST_ADD_TESTS code
 function(gtest_add_tests executable working_dir source_var)
     if(NOT UNIT_TEST_NUMBER)
-      set(UNIT_TEST_NUMBER 0 CACHE INT "" FORCE)
+      set(UNIT_TEST_NUMBER 0 CACHE INTERNAL "" FORCE)
     endif()
     foreach(source ${${source_var}})
         file(READ "${source}" contents)
