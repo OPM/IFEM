@@ -1121,7 +1121,6 @@ bool DomainDecomposition::setup(const ProcessAdm& adm, const SIMbase& sim)
 
   // Establish local equation mappings for each block.
   if (sim.getSolParams() && sim.getSolParams()->getNoBlocks() > 1) {
-    IFEM::cout << "\tEstablishing local block equation numbers" << std::endl;
     const LinSolParams& solParams = *sim.getSolParams();
     blocks.clear();
     blocks.resize(solParams.getNoBlocks()+1);
@@ -1162,6 +1161,7 @@ bool DomainDecomposition::setup(const ProcessAdm& adm, const SIMbase& sim)
       size_t idx = 1;
       for (auto& it : blocks[i+1].localEqs)
         blocks[i+1].G2LEQ[it] = idx++;
+      IFEM::cout << "  Block " << i+1 << "             " << blocks[i+1].localEqs.size() << std::endl;
     }
   }
 
