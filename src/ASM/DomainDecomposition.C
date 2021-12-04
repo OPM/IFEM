@@ -1144,16 +1144,17 @@ bool DomainDecomposition::setup(const ProcessAdm& adm, const SIMbase& sim)
           dofType = cb == 1 ? 'D' : 'P'+cb-2;
           std::set<int> tmp = adm.dd.getSAM()->getEquations(dofType);
           blocks[i+1].localEqs.insert(tmp.begin(), tmp.end());
-          // HACK: multipliers always in second block
-          // Correct thing to do for average pressure constraint in Stokes.
-          if (i == 1) {
-            for (size_t n = 1; n <= sim.getPatch(1)->getNoNodes(); ++n) {
-              if (sim.getPatch(1)->isLMn(n) && sim.getPatch(1)->getLMType(n) == 'G') {
-                int lEq = sam->getEquation(sim.getPatch(1)->getNodeID(n), 1);
-                if (lEq > 0)
-                  blocks[i+1].localEqs.insert(lEq);
-              }
-            }
+        }
+      }
+
+      // HACK: multipliers always in second block
+      // Correct thing to do for average pressure constraint in Stokes.
+      if (i == 1) {
+        for (size_t n = 1; n <= sim.getPatch(1)->getNoNodes(); ++n) {
+          if (sim.getPatch(1)->isLMn(n) && sim.getPatch(1)->getLMType(n) == 'G') {
+            int lEq = sam->getEquation(sim.getPatch(1)->getNodeID(n), 1);
+            if (lEq > 0)
+              blocks[i+1].localEqs.insert(lEq);
           }
         }
       }
