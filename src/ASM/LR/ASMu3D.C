@@ -1090,7 +1090,7 @@ bool ASMu3D::integrate (Integrand& integrand,
       }
 
       // Initialize element quantities
-      LocalIntegral* A = integrand.getLocalIntegral(MNPC[iel-1].size(),fe.iel);
+      LocalIntegral* A = integrand.getLocalIntegral(el->support().size(),fe.iel);
       if (!integrand.initElement(MNPC[iel-1],fe,X,nRed*nRed*nRed,*A))
       {
         A->destruct();
@@ -2067,9 +2067,12 @@ bool ASMu3D::updateDirichlet (const std::map<int,RealFunc*>& func,
 }
 
 
-size_t ASMu3D::getNoNodes (int) const
+size_t ASMu3D::getNoNodes (int basis) const
 {
-  return lrspline->nBasisFunctions();
+  if (basis == 0)
+    return this->ASMbase::getNoNodes(0);
+  else
+    return lrspline->nBasisFunctions();
 }
 
 

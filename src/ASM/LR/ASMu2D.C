@@ -1179,16 +1179,16 @@ bool ASMu2D::integrate (Integrand& integrand,
           ok = false;
       }
 
+      const LR::Element* el = lrspline->getElement(iel-1);
       if (integrand.getIntegrandType() & Integrand::G_MATRIX)
       {
         // Element size in parametric space
-        const LR::Element* el = lrspline->getElement(iel-1);
         dXidu[0] = el->umax() - el->umin();
         dXidu[1] = el->vmax() - el->vmin();
       }
 
       // Initialize element quantities
-      LocalIntegral* A = integrand.getLocalIntegral(MNPC[iel-1].size(),fe.iel);
+      LocalIntegral* A = integrand.getLocalIntegral(el->support().size(),fe.iel);
       if (!integrand.initElement(MNPC[iel-1],fe,X,nRed*nRed,*A))
       {
         A->destruct();
@@ -1441,7 +1441,8 @@ bool ASMu2D::integrate (Integrand& integrand,
       }
 
       // Initialize element quantities
-      LocalIntegral* A = integrand.getLocalIntegral(MNPC[iel-1].size(),fe.iel);
+      const LR::Element* el = lrspline->getElement(iel-1);
+      LocalIntegral* A = integrand.getLocalIntegral(el->support().size(),fe.iel);
       if (!integrand.initElement(MNPC[iel-1],fe,X,0,*A))
       {
         A->destruct();
@@ -2396,9 +2397,12 @@ bool ASMu2D::updateDirichlet (const std::map<int,RealFunc*>& func,
 }
 
 
-size_t ASMu2D::getNoNodes (int) const
+size_t ASMu2D::getNoNodes (int basis) const
 {
-  return lrspline->nBasisFunctions();
+  if (basis == 0)
+    return this->ASMbase::getNoNodes(basis);
+  else
+    return lrspline->nBasisFunctions();
 }
 
 
