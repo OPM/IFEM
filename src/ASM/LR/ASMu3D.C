@@ -1162,7 +1162,7 @@ bool ASMu3D::integrate (Integrand& integrand,
             // Fetch basis function derivatives at current integration point
             if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
 #pragma omp critical
-              this->evaluateBasis(iel, fe, dNdu, d2Ndu2);
+              this->evaluateBasis(iel-1, fe, dNdu, d2Ndu2);
             else
             {
               // Extract bezier basis functions
