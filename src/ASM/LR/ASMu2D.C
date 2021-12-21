@@ -1187,6 +1187,32 @@ bool ASMu2D::integrate (Integrand& integrand,
         dXidu[1] = el->vmax() - el->vmin();
       }
 
+      if (integrand.getIntegrandType() & Integrand::AVERAGE)
+      {
+        // --- Compute average value of basis functions over the element -----
+
+        fe.Navg.resize(el->support().size(), true);
+        double area = 0.0;
+        int ip = (iel-1)*nGP*nGP;
+        for (int j = 0; j < nGP; j++)
+          for (int i = 0; i < nGP; i++, ip++)
+          {
+            SplineUtils::extractBasis(spline1[ip],fe.N,dNdu);
+
+            // Compute Jacobian determinant of coordinate mapping
+            // and multiply by weight of current integration point
+            double detJac = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu,false);
+            double weight = dA*wg[i]*wg[j];
+
+            // Numerical quadrature
+            fe.Navg.add(fe.N,detJac*weight);
+            area += detJac*weight;
+          }
+
+        // Divide by element area
+        fe.Navg /= area;
+      }
+
       // Initialize element quantities
       LocalIntegral* A = integrand.getLocalIntegral(el->support().size(),fe.iel);
       if (!integrand.initElement(MNPC[iel-1],fe,X,nRed*nRed,*A))
