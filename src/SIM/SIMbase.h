@@ -287,7 +287,9 @@ public:
   //! \brief Extracts the assembled load vector for inspection/visualization.
   //! \param[out] loadVec Global load vector in DOF-order
   //! \param[in] idx Index to the system vector to extract
-  bool extractLoadVec(Vector& loadVec, size_t idx = 0) const;
+  //! \param[in] hd Header for outprint of resultant
+  bool extractLoadVec(Vector& loadVec, size_t idx = 0,
+                      const char* hd = NULL) const;
   //! \brief Extracts an assembled global scalar quantity.
   double extractScalar(size_t idx = 0) const;
 

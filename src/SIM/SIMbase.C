@@ -656,11 +656,50 @@ void SIMbase::printProblem () const
   }
 
 #if SP_DEBUG > 1
-  std::cout <<"\nProperty mapping:";
-  for (PropertyVec::const_iterator p = myProps.begin(); p != myProps.end(); ++p)
-    std::cout <<"\n"<< p->pcode <<" "<< p->pindx <<" "<< p->patch
-              <<" "<< (int)p->lindx <<" "<< (int)p->ldim;
-  std::cout << std::endl;
+  std::cout <<"\nProperty mapping:\n";
+  for (const Property& p : myProps)
+  {
+    switch (p.pcode) {
+    case Property::MATERIAL:
+      std::cout <<"MATERIAL        : ";
+      break;
+    case Property::BODYLOAD:
+      std::cout <<"BODYLOAD        : ";
+      break;
+    case Property::NEUMANN:
+      std::cout <<"NEUMANN         : ";
+      break;
+    case Property::NEUMANN_ANASOL:
+      std::cout <<"NEUMANN_ANASOL  : ";
+      break;
+    case Property::NEUMANN_GENERIC:
+      std::cout <<"NEUMANN_GENERIC : ";
+      break;
+    case Property::ROBIN:
+      std::cout <<"ROBIN           : ";
+      break;
+    case Property::RIGID:
+      std::cout <<"RIGID           : ";
+      break;
+    case Property::DIRICHLET:
+      std::cout <<"DIRICHLET       : ";
+      break;
+    case Property::DIRICHLET_INHOM:
+      std::cout <<"DIRICHLET_INHOM : ";
+      break;
+    case Property::DIRICHLET_ANASOL:
+      std::cout <<"DIRICHLET_ANASOL: ";
+      break;
+    case Property::OTHER:
+      std::cout <<"OTHER           : ";
+      break;
+    default:
+      continue;
+    }
+    std::cout <<"code="<< p.pindx <<"\tP"<< p.patch+1
+              <<"\ttop. item "<< (int)p.lindx
+              <<" "<< (int)p.ldim <<"D"<< std::endl;
+  }
 #endif
 }
 
@@ -1085,7 +1124,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
 }
 
 
-bool SIMbase::extractLoadVec (Vector& loadVec, size_t idx) const
+bool SIMbase::extractLoadVec (Vector& loadVec, size_t idx, const char* hd) const
 {
   if (!myEqSys || !mySam)
     return false;
@@ -1098,6 +1137,19 @@ bool SIMbase::extractLoadVec (Vector& loadVec, size_t idx) const
 #if SP_DEBUG > 1
   std::cout <<"\nLoad vector:"<< loadVec;
 #endif
+  if (hd)
+  {
+    Vec3 sumLoad;
+    for (int inod = 1; inod <= mySam->getNoNodes(); inod++)
+    {
+      std::pair<int,int> dofs = mySam->getNodeDOFs(inod);
+      int idof = dofs.first-1;
+      for (int i = 0; i < 3 && idof < dofs.second; i++, idof++)
+        sumLoad[i] += loadVec[idof];
+    }
+    IFEM::cout <<"\nSum "<< hd <<" : "<< sumLoad << std::endl;
+  }
+
   return true;
 }
 
@@ -1758,6 +1810,17 @@ bool SIMbase::getCurrentReactions (RealArray& RF, const Vector& psol) const
   for (unsigned char dir = 1; dir <= nsd; dir++)
     RF[dir] = mySam->getReaction(dir,*reactionForces);
 
+#if SP_DEBUG > 1
+  std::cout <<"\nHere are the nodal reaction forces:";
+  Vector nrf;
+  for (int inod = 1; inod <= mySam->getNoNodes(); inod++)
+    if (mySam->getNodalReactions(inod,*reactionForces,nrf))
+    {
+      std::cout <<"\nNode "<< inod <<":";
+      for (double f : nrf) IFEM::cout <<" "<< f;
+    }
+  std::cout << std::endl;
+#endif
   return true;
 }
 
@@ -1774,6 +1837,17 @@ bool SIMbase::getCurrentReactions (RealArray& RF, int pcode) const
   for (unsigned char dir = 1; dir <= nsd; dir++)
     RF[dir-1] = mySam->getReaction(dir,*reactionForces,&glbNodes);
 
+#if SP_DEBUG > 1
+  std::cout <<"\nReaction forces associated with property code "<< pcode;
+  Vector nrf;
+  for (int inod : glbNodes)
+    if (mySam->getNodalReactions(inod,*reactionForces,nrf))
+    {
+      std::cout <<"\nNode "<< inod <<":";
+      for (double f : nrf) IFEM::cout <<" "<< f;
+    }
+  std::cout << std::endl;
+#endif
   return true;
 }
 
