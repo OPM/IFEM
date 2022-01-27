@@ -24,7 +24,7 @@ void CompatibleOperators::Weak::Advection(std::vector<Matrix>& EM,
   for (size_t n = 1; n <= nsd; ++n)
     for (size_t k = 1; k <= nsd; ++k)
         EM[n].outer_product(fe.basis(n), fe.grad(n).getColumn(k),
-                            true,scale*AC[k]*fe.detJxW);
+                            true,scale*AC[k-1]*fe.detJxW);
 }
 
 
