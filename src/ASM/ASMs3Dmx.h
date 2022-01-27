@@ -206,10 +206,6 @@ public:
   //! \param[in] ignoreGlobalLM If \e true ignore global multipliers in sanity check
   virtual void generateThreadGroups(const Integrand& integrand, bool silence,
                                     bool ignoreGlobalLM);
-  //! \brief Generates element groups for multi-threading of boundary integrals.
-  //! \param[in] lIndex Local index [1,6] of the boundary face
-  //! \param[in] silence If \e true, suppress threading group outprint
-  virtual void generateThreadGroups(char lIndex, bool silence, bool);
 
   //! \brief Returns the number of nodal points in each parameter direction.
   //! \param[out] n1 Number of nodes in first (u) direction
