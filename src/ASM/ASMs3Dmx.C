@@ -1249,15 +1249,6 @@ void ASMs3Dmx::generateThreadGroups (const Integrand& integrand, bool silence,
 }
 
 
-void ASMs3Dmx::generateThreadGroups (char lIndex, bool silence, bool)
-{
-#ifdef USE_OPENMP
-  omp_set_num_threads(1);
-#endif
-  this->ASMs3D::generateThreadGroups(lIndex,silence,false);
-}
-
-
 #define DERR -999.99
 
 double ASMs3Dmx::getParametricVolume (int iel) const
