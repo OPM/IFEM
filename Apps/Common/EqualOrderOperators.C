@@ -60,20 +60,18 @@ void EqualOrderOperators::Weak::Advection(Matrix& EM, const FiniteElement& fe,
 {
   Matrix C(fe.basis(basis).size(), fe.basis(basis).size());
   size_t ncmp = EM.rows() / C.rows();
-  for (size_t i = 1; i <= fe.basis(basis).size(); ++i) {
-    for (size_t j = 1; j <= fe.basis(basis).size(); ++j) {
-      if (form == WeakOperators::CONVECTIVE) {
-        // Sum convection for each direction
-        for (size_t k = 1; k <= fe.grad(basis).cols(); ++k)
-          C(i,j) += AC[k-1] * fe.grad(basis)(j,k);
-        C(i,j) *= scale * fe.basis(basis)(i) * fe.detJxW;
-      } else if (form == WeakOperators::CONSERVATIVE) {
-        for (size_t k = 1; k <= fe.grad(basis).cols(); ++k)
-          C(i,j) -= AC[k-1] * fe.grad(basis)(i,k);
-        C(i,j) *= scale * fe.basis(basis)(j) * fe.detJxW;
-      }
-    }
-  }
+
+  // Sum convection for each direction
+  for (size_t k = 1; k <= fe.grad(basis).cols(); ++k)
+    if (form == WeakOperators::CONVECTIVE)
+      C.outer_product(fe.basis(basis),
+                      fe.grad(basis).getColumn(k), true,
+                      scale*AC[k-1]*fe.detJxW);
+    else if (form == WeakOperators::CONSERVATIVE)
+      C.outer_product(fe.grad(basis).getColumn(k),
+                      fe.basis(basis), true,
+                      -scale*AC[k-1]*fe.detJxW);
+
   addComponents(EM, C, ncmp, ncmp, 0);
 }
 
