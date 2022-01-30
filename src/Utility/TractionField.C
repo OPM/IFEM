@@ -41,6 +41,17 @@ Vec3 TractionField::evaluate (const Vec3& x, const Vec3& n) const
 }
 
 
+Vec3 TractionField::deriv (const Vec3& x, const Vec3& n) const
+{
+  if (sigma) // symmetric tensor field
+    return sigma->deriv(x,4) * n;
+  else if (sigmaN) // non-symmetric tensor field
+    return sigmaN->deriv(x,4) * n;
+  else // zero tensor field
+    return Vec3();
+}
+
+
 bool TractionField::isZero () const
 {
   if (sigma)
@@ -71,6 +82,31 @@ Vec3 PressureField::evaluate (const Vec3& x, const Vec3& n) const
   }
   else if (pdir > 0) // pressure acting in global pdir direction
     t[(pdir-1)%3] = p(x);
+
+  if (pdir > 3) // normal pressure in global pdir direction
+    t = (t*n) * n;
+
+  return t;
+}
+
+
+Vec3 PressureField::deriv (const Vec3& x, const Vec3& n) const
+{
+  if (!pressure) // zero pressure field
+    return Vec3();
+
+  if (pdir < 1 && !pdfn) // normal pressure
+    return pressure->deriv(x,4) * n;
+
+  Vec3 t;
+  if (pdfn) // pressure direction specified as a function
+  {
+    t = (*pdfn)(x);
+    t.normalize();
+    t *= pressure->deriv(x,4);
+  }
+  else if (pdir > 0) // pressure acting in global pdir direction
+    t[(pdir-1)%3] = pressure->deriv(x,4);
 
   if (pdir > 3) // normal pressure in global pdir direction
     t = (t*n) * n;

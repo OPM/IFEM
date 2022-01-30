@@ -19,9 +19,6 @@
 #include <string>
 #include <vector>
 #include <array>
-#ifdef USE_OPENMP
-#include <omp.h>
-#endif
 
 namespace ExprEval {
   class Expression;
@@ -50,7 +47,8 @@ public:
   static int numError; //!< Error counter - set by the exception handler
 
   //! \brief The constructor parses the expression string.
-  explicit EvalFunc(const char* function, const char* x = "x", Real eps = Real(1.0e-8));
+  explicit EvalFunc(const char* function, const char* x = "x",
+                    Real eps = Real(1.0e-8));
   //! \brief The destructor frees the dynamically allocated objects.
   virtual ~EvalFunc();
 
@@ -102,9 +100,13 @@ class EvalFunction : public RealFunc
 
   bool IAmConstant; //!< Indicates whether the time coordinate is given or not
 
+  Real dx; //!< Domain increment for calculation of numerical derivative
+  Real dt; //!< Domain increment for calculation of numerical time-derivative
+
 public:
   //! \brief The constructor parses the expression string.
-  explicit EvalFunction(const char* function);
+  explicit EvalFunction(const char* function,
+                        Real epsX = Real(1.0e-8), Real epsT = Real(1.0e-12));
   //! \brief The destructor frees the dynamically allocated objects.
   virtual ~EvalFunction();
 

@@ -47,6 +47,11 @@ public:
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const;
 
+  //! \brief Returns the time-derivative of the function.
+  //! \param[in] x Global coordinates of evaluation point
+  //! \param[in] n Outward-directed unit normal vector at evaluation point
+  virtual Vec3 deriv(const Vec3& x, const Vec3& n) const;
+
 protected:
   //! \brief Evaluates the traction field function at the specified point.
   //! \param[in] x Global coordinates of evaluation point
@@ -94,6 +99,11 @@ public:
   virtual bool isNormalPressure() const { return !pdfn && (pdir<1 || pdir>3); }
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return pressure ? pressure->isZero() : true; }
+
+  //! \brief Returns the time-derivative of the function.
+  //! \param[in] x Global coordinates of evaluation point
+  //! \param[in] n Outward-directed unit normal vector at evaluation point
+  virtual Vec3 deriv(const Vec3& x, const Vec3& n) const;
 
 protected:
   //! \brief Evaluates the traction field function at the specified point.

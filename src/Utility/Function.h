@@ -241,6 +241,9 @@ class TractionFunc : public utl::Function2<Vec3,Vec3>
 public:
   //! \brief Returns whether the traction is always normal to the face or not.
   virtual bool isNormalPressure() const { return false; }
+
+  //! \brief Returns the time-derivative of the function.
+  virtual Vec3 deriv(const Vec3&, const Vec3&) const { return Vec3(); }
 };
 
 #endif

@@ -271,10 +271,16 @@ Real SineFunc::deriv (Real x) const
 Real ConstTimeFunc::evaluate (const Vec3& X) const
 {
   const Vec4* Xt = dynamic_cast<const Vec4*>(&X);
-  if (Xt)
-    return (*tfunc)(Xt->t);
-  else
-    return (*tfunc)(Real(0));
+  return (*tfunc)(Xt ? Xt->t : Real(0));
+}
+
+
+Real ConstTimeFunc::deriv (const Vec3& X, int dir) const
+{
+  if (dir < 4) return Real(0);
+
+  const Vec4* Xt = dynamic_cast<const Vec4*>(&X);
+  return tfunc->deriv(Xt ? Xt->t : Real(0));
 }
 
 
@@ -288,14 +294,24 @@ Real SpaceTimeFunc::evaluate (const Vec3& X) const
 Real SpaceTimeFunc::deriv (const Vec3& X, int dir) const
 {
   const Vec4* Xt = dynamic_cast<const Vec4*>(&X);
-  return sfunc->deriv(X,dir) * (*tfunc)(Xt ? Xt->t : Real(0));
+  if (dir < 4)
+    return sfunc->deriv(X,dir) * (*tfunc)(Xt ? Xt->t : Real(0));
+  else
+    return (*sfunc)(X) * tfunc->deriv(Xt ? Xt->t : Real(0));
 }
 
 
 Real SpaceTimeFunc::dderiv (const Vec3& X, int dir1, int dir2) const
 {
   const Vec4* Xt = dynamic_cast<const Vec4*>(&X);
-  return sfunc->dderiv(X,dir1,dir2) * (*tfunc)(Xt ? Xt->t : Real(0));
+  if (dir1 < 4 && dir2 < 4)
+    return sfunc->dderiv(X,dir1,dir2) * (*tfunc)(Xt ? Xt->t : Real(0));
+  else if (dir1 < 4)
+    return sfunc->deriv(X,dir1) * tfunc->deriv(Xt ? Xt->t : Real(0));
+  else if (dir2 < 4)
+    return sfunc->deriv(X,dir2) * tfunc->deriv(Xt ? Xt->t : Real(0));
+  else
+    return Real(0);
 }
 
 
@@ -460,6 +476,26 @@ Real Interpolate1D::evaluate (const Vec3& X) const
   const Vec4* Xt = dynamic_cast<const Vec4*>(&X);
   if (Xt && time > Real(0) && Xt->t < time)
     res *= Xt->t/time;
+
+  return res;
+}
+
+
+Real Interpolate1D::deriv (const Vec3& X, int ddir) const
+{
+  Real res = Real(0);
+  if (ddir == dir+1)
+    res = lfunc.deriv(X[dir]);
+  else if (ddir > 3)
+    res = lfunc(X[dir]);
+  else
+    return res;
+
+  const Vec4* Xt = dynamic_cast<const Vec4*>(&X);
+  if (Xt && time > Real(0) && Xt->t < time)
+    res *= (ddir < 4 ? Xt->t : 1.0)/time;
+  else if (ddir > 3)
+    res = Real(0);
 
   return res;
 }

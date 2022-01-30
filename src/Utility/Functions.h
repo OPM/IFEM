@@ -235,7 +235,7 @@ protected:
 
 class ConstTimeFunc : public RealFunc
 {
-  const ScalarFunc* tfunc; //!< The time dependent function value
+  const ScalarFunc* tfunc; //!< The time-dependent function value
 
 public:
   //! \brief Constructor initializing the function value.
@@ -247,6 +247,9 @@ public:
   virtual bool isZero() const { return tfunc->isZero(); }
   //! \brief Returns whether the function is time-independent or not.
   virtual bool isConstant() const { return tfunc->isZero(); }
+
+  //! \brief Returns first-derivative of the function.
+  virtual Real deriv(const Vec3& X, int dir) const;
 
 protected:
   //! \brief Evaluates the time-varying function.
@@ -497,8 +500,8 @@ class StepXFunc : public RealFunc
 
 public:
   //! \brief Constructor initializing the function parameters.
-  explicit StepXFunc(Real v, Real X0 = Real(0), Real X1 = Real(1), char dir = 'X')
-    : fv(v), x0(X0), x1(X1), d(dir) {}
+  explicit StepXFunc(Real v, Real a = Real(0), Real b = Real(1), char dir = 'X')
+    : fv(v), x0(a), x1(b), d(dir) {}
 
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return fv == Real(0); }
@@ -560,6 +563,9 @@ public:
   virtual bool isZero() const { return lfunc.isZero(); }
   //! \brief Returns whether the function is time-independent or not.
   virtual bool isConstant() const { return time <= Real(0); }
+
+  //! \brief Returns first-derivative of the function.
+  virtual Real deriv(const Vec3&, int ddir) const;
 
 protected:
   //! \brief Evaluates the function by interpolation.

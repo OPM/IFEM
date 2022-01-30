@@ -15,6 +15,9 @@
 #include "Vec3.h"
 #include "Tensor.h"
 #include "expreval.h"
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
 
 
 /*!
@@ -181,7 +184,8 @@ Real EvalFunc::deriv (Real x) const
 }
 
 
-EvalFunction::EvalFunction (const char* function) : gradient{}, dgradient{}
+EvalFunction::EvalFunction (const char* function, Real epsX, Real epsT)
+  : gradient{}, dgradient{}, dx(epsX), dt(epsT)
 {
   try {
 #ifdef USE_OPENMP
@@ -318,10 +322,29 @@ Real EvalFunction::evaluate (const Vec3& X) const
 
 Real EvalFunction::deriv (const Vec3& X, int dir) const
 {
-  if (dir < 1 || dir > 3 || !gradient[--dir])
+  if (dir < 1)
     return Real(0);
+  else if (dir < 4)
+  {
+    if (gradient[--dir])
+      return gradient[dir]->evaluate(X);
 
-  return gradient[dir]->evaluate(X);
+    // Evaluate spatial derivative using central difference
+    Vec4 X0, X1;
+    X0.assign(X); X0[dir] -= 0.5*dx;
+    X1.assign(X); X1[dir] += 0.5*dx;
+    return (this->evaluate(X1) - this->evaluate(X0)) / dx;
+  }
+  else if (!IAmConstant)
+  {
+    // Evaluate time-derivative using central difference
+    Vec4 X0, X1;
+    X0.assign(X); X0.t -= 0.5*dt;
+    X1.assign(X); X1.t += 0.5*dt;
+    return (this->evaluate(X1) - this->evaluate(X0)) / dt;
+  }
+  else
+    return Real(0);
 }
 
 
