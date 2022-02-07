@@ -434,7 +434,7 @@ ConvStatus NonLinSIM::checkConvergence (TimeStep& param)
   if (param.iter > 1 && prevNorm > 0.0 && fabs(norm) > prevNorm*0.1)
     status = SLOW;
 
-  if (msgLevel > 0)
+  if (msgLevel > 0 || msgLevel == -1)
   {
     // Print convergence history
     utl::LogStream& cout = model.getProcessAdm().cout;
