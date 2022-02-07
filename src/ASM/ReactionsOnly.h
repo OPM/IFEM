@@ -36,7 +36,9 @@ public:
   //! \param[in] rf The reaction force vector to be assembled
   //! \param[in] sam Data for FE assembly management
   //! \param[in] adm Parallell processing administrator
-  ReactionsOnly(Vector& rf, const SAM* sam, const ProcessAdm& adm);
+  //! \param[in] sf Internal force vector to be assembled
+  ReactionsOnly(Vector& rf, const SAM* sam, const ProcessAdm& adm,
+                Vector* sf = nullptr);
   //! \brief Empty destructor.
   virtual ~ReactionsOnly() {}
 
@@ -62,6 +64,7 @@ private:
 
   Vector&   R; //!< Nodal reaction forces
   StdVector b; //!< Dummy right-hand-side vector
+  Vector*   S; //!< Internal force vector
 };
 
 #endif

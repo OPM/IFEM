@@ -18,8 +18,9 @@
 #include "ProcessAdm.h"
 
 
-ReactionsOnly::ReactionsOnly (Vector& rf, const SAM* sam, const ProcessAdm& adm)
-  : mySam(sam), myAdm(adm), R(rf)
+ReactionsOnly::ReactionsOnly (Vector& rf, const SAM* sam,
+                              const ProcessAdm& adm, Vector* sf)
+  : mySam(sam), myAdm(adm), R(rf), S(sf)
 {
   mySam->initForAssembly(b,&R);
 }
@@ -41,6 +42,14 @@ bool ReactionsOnly::finalize (bool)
 #if SP_DEBUG > 2
   std::cout <<"\nReaction forces:"<< R;
 #endif
+
+  if (!S)
+    return true;
+  else if (!b.beginAssembly() || !b.endAssembly())
+    return false;
+  else if (!mySam->expandSolution(b,*S,0.0))
+    return false;
+
   return true;
 }
 

@@ -289,7 +289,7 @@ public:
   //! \param[in] idx Index to the system vector to extract
   //! \param[in] hd Header for outprint of resultant
   bool extractLoadVec(Vector& loadVec, size_t idx = 0,
-                      const char* hd = NULL) const;
+                      const char* hd = nullptr) const;
   //! \brief Extracts an assembled global scalar quantity.
   double extractScalar(size_t idx = 0) const;
 
