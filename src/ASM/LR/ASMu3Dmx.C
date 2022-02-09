@@ -472,7 +472,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
 
       // Initialize element quantities
       LocalIntegral* A = integrand.getLocalIntegral(elem_sizes,fe.iel);
-      if (!integrand.initElement(MNPC[iEl],elem_sizes,nb,*A))
+      if (!integrand.initElement(MNPC[iEl],fe,elem_sizes,nb,*A))
       {
         A->destruct();
         ok = false;

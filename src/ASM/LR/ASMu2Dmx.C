@@ -363,7 +363,7 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
 
       // Initialize element quantities
       LocalIntegral* A = integrand.getLocalIntegral(elem_sizes,fe.iel,false);
-      if (!integrand.initElement(MNPC[geoEl-1], elem_sizes, nb, *A))
+      if (!integrand.initElement(MNPC[geoEl-1], fe, elem_sizes, nb, *A))
       {
         A->destruct();
         ok = false;

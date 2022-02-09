@@ -131,6 +131,17 @@ public:
                            const std::vector<size_t>& elem_sizes,
                            const std::vector<size_t>& basis_sizes,
                            LocalIntegral& elmInt);
+  //! \brief Initializes current element for numerical integration (mixed).
+  //! \param[in] MNPC Matrix of nodal point correspondance for current element
+  //! \param[in] fe Nodal and integration point data for current element
+  //! \param[in] elem_sizes Size of each basis on the element
+  //! \param[in] basis_sizes Size of each basis on the patch
+  //! \param elmInt Local integral for element
+  virtual bool initElement(const std::vector<int>& MNPC,
+                           const MxFiniteElement& fe,
+                           const std::vector<size_t>& elem_sizes,
+                           const std::vector<size_t>& basis_sizes,
+                           LocalIntegral& elmInt);
 
   //! \brief Initializes current element for boundary integration.
   //! \param[in] MNPC Matrix of nodal point correspondance for current element
@@ -359,6 +370,14 @@ public:
                            const std::vector<size_t>& elem_sizes,
                            const std::vector<size_t>& basis_sizes,
                            LocalIntegral& elmInt);
+  //! \brief Initializes current element for numerical integration (mixed).
+  virtual bool initElement(const std::vector<int>& MNPC,
+                           const MxFiniteElement&,
+                           const std::vector<size_t>& elem_sizes,
+                           const std::vector<size_t>& basis_sizes,
+                           LocalIntegral& elmInt)
+  { return this->initElement(MNPC,elem_sizes,basis_sizes,elmInt); }
+
 
   //! \brief Initializes current element for boundary integration.
   virtual bool initElementBou(const std::vector<int>& MNPC,
@@ -484,6 +503,14 @@ public:
 
   //! \brief Dummy implementation (only boundary integration is relevant).
   virtual bool initElement(const std::vector<int>&,
+                           const std::vector<size_t>&,
+                           const std::vector<size_t>&,
+                           LocalIntegral&)
+  { return false; }
+
+  //! \brief Dummy implementation (only boundary integration is relevant).
+  virtual bool initElement(const std::vector<int>&,
+                           const MxFiniteElement&,
                            const std::vector<size_t>&,
                            const std::vector<size_t>&,
                            LocalIntegral&)

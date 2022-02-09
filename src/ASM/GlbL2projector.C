@@ -315,7 +315,9 @@ bool GlbL2::initElement (const IntVec& MNPC, const FiniteElement& fe,
 
 
 bool GlbL2::initElement (const IntVec& MNPC1,
-                         const uIntVec& elem_sizes, const uIntVec& basis_sizes,
+                         const MxFiniteElement& fe,
+                         const uIntVec& elem_sizes,
+                         const uIntVec& basis_sizes,
                          LocalIntegral& elmInt)
 {
   L2Mats& gl2 = static_cast<L2Mats&>(elmInt);
