@@ -70,8 +70,7 @@ ProcessAdm::~ProcessAdm()
 {
   myPid = nProc = 0;
 #ifdef HAS_PETSC
-  if (parallel)
-    MPI_Comm_free(&comm);
+  MPI_Comm_free(&comm);
 #endif
   parallel = false;
   LinAlgInit::decrefs();
@@ -81,8 +80,7 @@ ProcessAdm::~ProcessAdm()
 #if defined(HAS_PETSC) || defined(HAVE_MPI)
 void ProcessAdm::setCommunicator(const MPI_Comm* comm2)
 {
-  if (parallel)
-    MPI_Comm_free(&comm);
+  MPI_Comm_free(&comm);
   MPI_Comm_dup(*comm2, &comm);
   MPI_Comm_rank(comm,&myPid);
   MPI_Comm_size(comm,&nProc);
