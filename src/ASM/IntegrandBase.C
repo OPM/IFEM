@@ -159,6 +159,16 @@ bool IntegrandBase::initElement (const std::vector<int>& MNPC,
 }
 
 
+bool IntegrandBase::initElement (const std::vector<int>& MNPC,
+                                 const MxFiniteElement&,
+                                 const std::vector<size_t>& elem_sizes,
+                                 const std::vector<size_t>& basis_sizes,
+                                 LocalIntegral& elmInt)
+{
+  return this->initElement(MNPC, elem_sizes, basis_sizes, elmInt);
+}
+
+
 /*!
   The default implementation extracts the element-level vector only for the
   first (current) primary solution vector.

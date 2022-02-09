@@ -121,6 +121,17 @@ public:
                            const std::vector<size_t>& elem_sizes,
                            const std::vector<size_t>& basis_sizes,
                            LocalIntegral& elmInt) = 0;
+  //! \brief Initializes current element for numerical integration (mixed).
+  //! \param[in] MNPC Nodal point correspondance for the bases
+  //! \param[in] fe Nodal and integration point data for current element
+  //! \param[in] elem_sizes Size of each basis on the element
+  //! \param[in] basis_sizes Size of each basis on the patch level
+  //! \param elmInt Local integral for element
+  virtual bool initElement(const std::vector<int>& MNPC,
+                           const MxFiniteElement& fe,
+                           const std::vector<size_t>& elem_sizes,
+                           const std::vector<size_t>& basis_sizes,
+                           LocalIntegral& elmInt) = 0;
 
   //! \brief Initializes current element for boundary integration.
   //! \param[in] MNPC Matrix of nodal point correspondance for current element

@@ -147,14 +147,21 @@ public:
                            LocalIntegral& elmInt);
   //! \brief Initializes current element for numerical integration (mixed).
   //! \param[in] MNPC1 Matrix of nodal point correspondance for current element
+  //! \param[in] fe Nodal and integration point data for current element
   //! \param[in] elem_sizes Size of each basis on the element
   //! \param[in] basis_sizes Size of each basis on the patch
   //! \param elmInt Local integral for element
   virtual bool initElement(const IntVec& MNPC1,
+                           const MxFiniteElement& fe,
                            const uIntVec& elem_sizes,
                            const uIntVec& basis_sizes,
                            LocalIntegral& elmInt);
 
+  //! \brief Dummy implementation.
+  virtual bool initElement(const IntVec& MNPC1,
+                           const uIntVec& elem_sizes,
+                           const uIntVec& basis_sizes,
+                           LocalIntegral& elmInt) { return false; }
   //! \brief Dummy implementation.
   virtual bool initElement(const IntVec&, LocalIntegral&) { return false; }
   //! \brief Dummy implementation.

@@ -547,7 +547,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
 
         // Initialize element quantities
         LocalIntegral* A = integrand.getLocalIntegral(elem_size,fe.iel,false);
-        if (!integrand.initElement(MNPC[iel-1],elem_size,nb,*A))
+        if (!integrand.initElement(MNPC[iel-1],fe,elem_size,nb,*A))
         {
           A->destruct();
           ok = false;
@@ -922,7 +922,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
 
         // Initialize element quantities
         LocalIntegral* A = integrand.getLocalIntegral(elem_size,fe.iel);
-        bool ok = integrand.initElement(MNPC[iel],elem_size,nb,*A);
+        bool ok = integrand.initElement(MNPC[iel],fe,elem_size,nb,*A);
         size_t origSize = A->vec.size();
 
         // Loop over the element edges with contributions
@@ -953,7 +953,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
 
             // initialize neighbor element
             LocalIntegral* A_neigh = integrand.getLocalIntegral(elem_size,kel+1);
-            ok &= integrand.initElement(MNPC[kel],elem_size,nb,*A_neigh);
+            ok &= integrand.initElement(MNPC[kel],fe,elem_size,nb,*A_neigh);
             if (!A_neigh->vec.empty()) {
               A->vec.resize(origSize+A_neigh->vec.size());
               std::copy(A_neigh->vec.begin(), A_neigh->vec.end(), A->vec.begin()+origSize);
