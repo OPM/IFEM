@@ -17,6 +17,7 @@
 #include "IntegrandBase.h"
 #include "Utilities.h"
 #include "Function.h"
+#include "SAM.h"
 #include "IFEM.h"
 
 
@@ -56,6 +57,31 @@ Vector SIMgeneric::getSolution (const Vector& psol, const double* par,
     return Vector();
 
   return tmpVal.getColumn(1);
+}
+
+
+Vector SIMgeneric::getInterfaceForces (const Vector& sf,
+                                       const RealArray& weights, int code) const
+{
+  Vector force(nsd);
+  if (!mySam)
+    return force;
+
+  IntVec glbNodes;
+  this->getBoundaryNodes(code,glbNodes);
+
+  for (int inod : glbNodes)
+  {
+    double w = inod <= (int)weights.size() ? weights[inod-1] : 1.0;
+    std::pair<int,int> dof = mySam->getNodeDOFs(inod);
+    for (unsigned char i = 0; i < nsd; i++, dof.first++)
+      if (dof.first <= dof.second && dof.first < (int)sf.size())
+        force[i] += w*sf(dof.first);
+      else
+        break;
+  }
+
+  return force;
 }
 
 

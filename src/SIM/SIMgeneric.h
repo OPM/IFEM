@@ -57,6 +57,14 @@ public:
   int evalPoint(const double* xi, Vec3& X, double* param = nullptr,
                 int patch = 1, bool global = false) const;
 
+  //! \brief Extracts the force resultant on a specified interface.
+  //! \param[in] sf Internal nodal forces
+  //! \param[in] weights Nodal weights
+  //! \param[in] code Code indentifying the interface to extract forces for
+  //! \return The interface force resultant
+  Vector getInterfaceForces(const Vector& sf,
+                            const RealArray& weights, int code) const;
+
   //! \brief Returns the element that contains a specified spatial point.
   //! \param[in] param The parameters of the point in the knot-span domain
   //! \param[in] patch 1-based patch index containing the point
