@@ -871,37 +871,50 @@ void SIMbase::getBoundaryNodes (int pcode, IntVec& glbNodes, Vec3Vec* XYZ) const
   glbNodes.clear();
   if (XYZ) XYZ->clear();
 
-  ASMbase* pch;
-  size_t node;
-  for (PropertyVec::const_iterator p = myProps.begin(); p != myProps.end(); ++p)
-    if (abs(p->pindx) == pcode && (pch = this->getPatch(p->patch))) {
-      if (abs(p->ldim)+1 == pch->getNoParamDim() || p->ldim == 4) {
+  for (const Property& prop : myProps)
+    if (abs(prop.pindx) == pcode)
+    {
+      ASMbase* pch = this->getPatch(prop.patch);
+      if (!pch) continue; // Silently ignore invalid patch index
+
+      IntVec nodes;
+      if (abs(prop.ldim)+1 == pch->getNoParamDim())
         // The boundary is of one dimension lower than the patch
-        IntVec nodes;
-        if (p->ldim == 4) // The boundary nodes are stored explicitly
-          nodes = pch->getNodeSet(p->lindx);
-        else
-          pch->getBoundaryNodes(abs(p->lindx%10),nodes);
-        for (int n : nodes)
-          if (std::find(glbNodes.begin(),glbNodes.end(),n) == glbNodes.end()) {
-            glbNodes.push_back(n);
-            if (XYZ) {
-              if ((node = pch->getNodeIndex(n,true)))
-                XYZ->push_back(pch->getCoord(node));
-              else
-                XYZ->push_back(Vec3());
-            }
-          }
-      }
-      else if (pch->getNoParamDim() == abs(p->ldim)) {
+        pch->getBoundaryNodes(abs(prop.lindx%10),nodes);
+      else if (abs(prop.ldim)+2 == pch->getNoParamDim())
+        // The boundary is of two dimensions lower than the patch
+        pch->getBoundary1Nodes(prop.lindx,nodes);
+      else if (abs(prop.ldim) == pch->getNoParamDim())
         // The boundary and the patch are of same dimension
-        for (node = 1; node <= pch->getNoNodes(); node++)
-        {
+        for (size_t node = 1; node <= pch->getNoNodes(); node++)
           glbNodes.push_back(pch->getNodeID(node));
-          if (XYZ) XYZ->push_back(pch->getCoord(node));
+      else if (prop.ldim == 4)
+        // The boundary nodes are stored explicitly
+        nodes = pch->getNodeSet(prop.lindx);
+      else
+        continue; // Silently ignore other/invalid dimension specification
+
+      // Ensure the global node numbers are unique if more than one patch
+      for (int n : nodes)
+        if (std::find(glbNodes.begin(),glbNodes.end(),n) == glbNodes.end())
+        {
+          glbNodes.push_back(n);
+          if (XYZ)
+          {
+            size_t node = pch->getNodeIndex(n,true);
+            XYZ->push_back(node ? pch->getCoord(node) : Vec3());
+          }
         }
-      }
     }
+
+#ifdef SP_DEBUG
+  std::cout <<"Boundary nodes associated with property code "<< pcode <<":";
+  if (glbNodes.empty())
+    std::cout <<" (none)";
+  else for (size_t i = 0; i < glbNodes.size(); i++)
+    std::cout << (i%10 ? " " : "\n") << glbNodes[i];
+  std::cout << std::endl;
+#endif
 }
 
 
