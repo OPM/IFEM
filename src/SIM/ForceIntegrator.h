@@ -17,10 +17,10 @@
 #include "MatVec.h"
 
 class SIMbase;
-struct TimeDomain;
 class Vec3;
 class ForceBase;
 class GlbForceVec;
+struct TimeDomain;
 
 
 namespace SIM
@@ -69,7 +69,7 @@ namespace SIM
   //! \return True if integration succeeded
   bool integrate(const Vectors& solution, SIMbase* model, int code,
                  const TimeDomain& time, ForceBase* forceInt,
-                 GlbForceVec* force=nullptr);
+                 GlbForceVec* force = nullptr);
 }
 
 #endif

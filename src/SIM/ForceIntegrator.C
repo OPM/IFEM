@@ -83,38 +83,35 @@ bool SIM::getNodalForces (const Vectors& solution, SIMbase* model, int code,
 bool SIM::initBoundaryNodeMap (SIMbase* model, int code, GlbForceVec& force)
 {
   IntVec glbNodes;
-  PropertyVec::const_iterator p;
-  for (p = model->begin_prop(); p != model->end_prop(); ++p) {
-    ASMbase* patch;
-    if (abs(p->pindx) == code && (patch = model->getPatch(p->patch)))
-      if (abs(p->ldim)+1 == patch->getNoParamDim())
-        patch->getBoundaryNodes(abs(p->lindx)%10,glbNodes);
-  }
-
+  model->getBoundaryNodes(code,glbNodes);
   return force.initNodeMap(glbNodes,model->getNoSpaceDim());
 }
 
 
-bool SIM::integrate(const Vectors& solution, SIMbase* model, int code,
-                    const TimeDomain& time, ForceBase* forceInt,
-                    GlbForceVec* force)
+bool SIM::integrate (const Vectors& solution, SIMbase* model, int code,
+                     const TimeDomain& time, ForceBase* forceInt,
+                     GlbForceVec* force)
 {
   // Integrate forces for given boundary segment
-  bool ok = true;
-  size_t prevPatch = 0;
   GlobalIntegral dummy;
   GlobalIntegral& frc = force ? *force : dummy;
 
-  if (code == 0) { // special case - volume integral over the entire model
-    for (int p = 1; p <= model->getNoPatches() && ok; ++p) {
-      ASMbase* patch = model->getPatch(p);
-      ok = model->extractPatchSolution(solution,p-1);
-      model->setPatchMaterial(p);
-      ok &= patch->integrate(*forceInt,frc,time);
+  if (code == 0)
+  {
+    // Special case - volume integral over the entire model
+    int pid = 0;
+    for (ASMbase* patch : model->getFEModel())
+    {
+      model->setPatchMaterial(pid+1);
+      if (!model->extractPatchSolution(solution,pid++) ||
+          !patch->integrate(*forceInt,frc,time))
+        return false;
     }
-    return ok;
+    return true;
   }
 
+  bool ok = true;
+  size_t prevPatch = 0;
   PropertyVec::const_iterator p;
   for (p = model->begin_prop(); p != model->end_prop() && ok; ++p)
     if (abs(p->pindx) == code)
