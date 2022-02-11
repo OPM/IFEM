@@ -144,8 +144,8 @@ bool SplineFields3Dmx::gradFE (const ItgPoint& x, Matrix& grad) const
     Matrix grad2;
     grad2.multiply(Xnod,dNdX); // grad = Xnod * dNdX
     grad(row,1) = grad2(1,1);
-    grad(row,2) = grad(1,2);
-    grad(row++,3) = grad(1,3);
+    grad(row,2) = grad2(1,2);
+    grad(row++,3) = grad2(1,3);
     vit += nval;
   }
 
