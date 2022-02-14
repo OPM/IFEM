@@ -111,7 +111,18 @@ public:
   //! \param[in] orient Orientation of boundary (used for sorting)
   //! \param[in] local If \e true, return patch-local node numbers
   virtual void getBoundaryNodes(int lIndex, IntVec& nodes, int basis,
-                                int, int orient, bool local = false) const;
+                                int, int orient, bool local) const;
+
+  //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
+  //! \param[in] lEdge Local index of the boundary edge
+  //! \param nodes Array of node numbers
+  //! \param[in] basis Which basis to grab nodes for (for mixed methods)
+  //! \param[in] orient Local orientation of indices, see ASMLRSpline::Sort()
+  //! \param[in] local If \e true, return patch-local numbers
+  //! \param[in] open If \e true, exclude edge end points
+  virtual void getBoundary1Nodes(int lIndex, IntVec& nodes, int basis,
+                                 int orient, bool local,
+                                 bool open = false) const;
 
   //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
   //! \param[in] lIndex Local index of the boundary face/edge
@@ -125,13 +136,6 @@ public:
   //! \param[in] K -1 or +1 for either wmin or wmax corner
   //! \param[in] basis which basis to consider (for mixed methods)
   virtual int getCorner(int I, int J, int K, int basis) const;
-
-  //! \brief Returns the (1-indexed) node indices for a given edge.
-  //! \param[in] lEdge index to local edge (1,2,...12)
-  //! \param[in] open include end points or not
-  //! \param[in] basis which basis to consider (for mixed methods)
-  //! \param[in] orient local orientation of indices, see ASMLRSpline::Sort
-  virtual IntVec getEdge(int lEdge, bool open, int basis, int orient) const;
 
   //! \brief Returns the polynomial order in each parameter direction.
   //! \param[out] p1 Order in first (u) direction

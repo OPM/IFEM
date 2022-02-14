@@ -215,6 +215,14 @@ public:
   virtual void getBoundaryNodes(int lIndex, IntVec& nodes,
                                 int basis, int thick = 1,
                                 int = 0, bool local = false) const;
+  //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
+  //! \param[in] lEdge Local index of the boundary edge
+  //! \param nodes Array of node numbers
+  //! \param[in] basis Which basis to grab nodes for (for mixed methods)
+  //! \param[in] local If \e true, return patch-local numbers
+  //! \param[in] open If \e true, exclude edge end points
+  virtual void getBoundary1Nodes(int lEdge, IntVec& nodes, int basis, int = 0,
+                                 bool local = false, bool open = false) const;
 
   //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
   //! \param[in] lIndex Local index of the boundary face/edge
@@ -227,12 +235,6 @@ public:
   //! \param[in] K -1 or +1 for either wmin or wmax corner
   //! \param[in] basis which basis to consider (for mixed methods)
   virtual int getCorner(int I, int J, int K, int basis) const;
-
-  //! \brief Returns the (1-indexed) node indices for a given edge.
-  //! \param[in] lEdge index to local edge (1,2,...12)
-  //! \param[in] open include end points or not
-  //! \param[in] basis which basis to consider (for mixed methods)
-  virtual IntVec getEdge(int lEdge, bool open, int basis, int = 0) const;
 
   //! \brief Assigns new global node numbers for all nodes of the patch.
   //! \param nodes Object with global nodes numbers to assign to this patch

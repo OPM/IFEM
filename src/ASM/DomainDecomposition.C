@@ -44,14 +44,11 @@ OrientIterator::OrientIterator(const ASMbase* pch,
     nodes.resize(1,0);
     return;
   }
-  const ASMstruct* spch = dynamic_cast<const ASMstruct*>(pch);
-  const ASMunstruct* upch = dynamic_cast<const ASMunstruct*>(pch);
 
   int nsd = pch->getNoSpaceDim();
-  if (upch) {
+  if (dynamic_cast<const ASMunstruct*>(pch)) {
     if (nsd == 3 && dim == 1) {
-      const ASM3D* pch3D = dynamic_cast<const ASM3D*>(pch);
-      nodes = pch3D->getEdge(lIdx, true, basis, -1);
+      pch->getBoundary1Nodes(lIdx, nodes, basis, -1, true);
       std::iota(nodes.begin(), nodes.end(), 0);
     } else if (nsd == 2 || dim == 2) {
       pch->getBoundaryNodes(lIdx, nodes, basis);
@@ -63,6 +60,7 @@ OrientIterator::OrientIterator(const ASMbase* pch,
     return;
   }
 
+  const ASMstruct* spch = dynamic_cast<const ASMstruct*>(pch);
   int n1, n2, n3;
   spch->getSize(n1,n2,n3,basis);
   if (nsd == 3) {
@@ -466,7 +464,7 @@ void DomainDecomposition::setupNodeNumbers(int basis, IntVec& lNodes,
     for (size_t b = 1; b <= pch->getNoBasis(); ++b)
       cbasis.insert(b);
   else // directly add nodes, cbasis remains empty
-    pch->getBoundaryNodes(lidx, lNodes, 0, thick, orient, false);
+    pch->getBoundaryNodes(lidx, lNodes, 0, thick, orient);
 
   const ASM2D* pch2D = dynamic_cast<const ASM2D*>(pch);
   const ASM3D* pch3D = dynamic_cast<const ASM3D*>(pch);
@@ -492,12 +490,11 @@ void DomainDecomposition::setupNodeNumbers(int basis, IntVec& lNodes,
         case 8: node = pch3D->getCorner( 1, 1, 1, it2); break;
         }
       lNodes.push_back(pch->getNodeID(node));
-    } else if (dim == 1 && pch3D) {
-      std::vector<int> eNodes = pch3D->getEdge(lidx, false, it2, orient);
-      for (const int& it : eNodes)
-        lNodes.push_back(pch->getNodeID(it));
-    } else
-      pch->getBoundaryNodes(lidx, lNodes, it2, thick, orient, false);
+    }
+    else if (dim == 1 && pch3D)
+      pch->getBoundary1Nodes(lidx, lNodes, it2, orient);
+    else
+      pch->getBoundaryNodes(lidx, lNodes, it2, thick, orient);
 }
 #endif
 

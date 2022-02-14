@@ -163,9 +163,6 @@ public:
 
   //! \brief Returns the node index for a given corner.
   virtual int getCorner(int I, int J, int K, int basis) const = 0;
-  //! \brief Returns the node indices for a given edge.
-  virtual std::vector<int> getEdge(int lEdge, bool open,
-                                   int basis, int orient = 0) const = 0;
 
   //! \brief Connects all matching nodes on two adjacent boundary faces.
   //! \param[in] face Local face index of this patch, in range [1,6]

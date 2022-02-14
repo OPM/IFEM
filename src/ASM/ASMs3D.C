@@ -817,8 +817,8 @@ bool ASMs3D::collapseFace (int face, int edge, int basis)
   int node = this->findStartNode(n1,n2,n3,basis);
   if (node < 1) return false;
 
-  if (swapW) // Account for swapped parameter direction
-    if (face == 5 || face == 6) face = 11-face;
+  if (swapW && face > 4) // Account for swapped parameter direction
+    face = 11-face;
 
   // Lambda function to verify co-location of nodes and collapse them
   auto&& collapse = [this](int master, int slave)
@@ -993,8 +993,8 @@ void ASMs3D::constrainFace (int dir, bool open, int dof,
   int node = this->findStartNode(n1,n2,n3,basis);
   if (node < 1) return;
 
-  if (swapW) // Account for swapped parameter direction
-    if (dir == 3 || dir == -3) dir = -dir;
+  if (swapW && abs(dir) == 3) // Account for swapped parameter direction
+    dir = -dir;
 
   int bcode = code;
   if (code > 0) // Dirichlet projection will be performed
@@ -1274,69 +1274,12 @@ size_t ASMs3D::constrainFaceLocal (int dir, bool open, int dof, int code,
 }
 
 
-IntVec ASMs3D::getEdge (int lEdge, bool open, int basis, int) const
-{
-  IntVec result;
-  int n1, n2, n3, n, inc = 1;
-  int node = this->findStartNode(n1,n2,n3,basis);
-  if (node < 1) return result;
-
-  if (swapW && lEdge <= 8) // Account for swapped parameter direction
-    lEdge += (lEdge-1)%4 < 2 ? 2 : -2;
-
-  if (lEdge > 8)
-  {
-    inc = n1*n2;
-    n = n3;
-  }
-  else if (lEdge > 4)
-  {
-    inc = n1;
-    n = n2;
-  }
-  else
-    n = n1;
-
-  switch (lEdge)
-    {
-    case  6:
-    case 10:
-      node += n1 - 1;
-      break;
-    case  2:
-    case 11:
-      node += n1*(n2-1);
-      break;
-    case 12:
-      node += n1*n2 - 1;
-      break;
-    case  3:
-    case  7:
-      node += n1*n2*(n3-1);
-      break;
-    case  8:
-      node += n1*(n2*(n3-1) + 1) - 1;
-      break;
-    case  4:
-      node += n1*(n2*n3-1);
-      break;
-    }
-
-  // Skip the first and last node if we are requesting an open boundary
-  for (int i = 1; i <= n; i++, node += inc)
-    if (!open || (i > 1 && i < n))
-      result.push_back(node);
-
-  return result;
-}
-
-
 void ASMs3D::constrainEdge (int lEdge, bool open, int dof,
                             int code, char basis)
 {
-  if (basis < 1) basis = 1;
-
-  for (const int& node : this->getEdge(lEdge,open,basis))
+  IntVec edgeNodes;
+  this->getBoundary1Nodes(lEdge,edgeNodes,basis,0,true,open);
+  for (int node : edgeNodes)
     this->prescribe(node,dof,code);
 }
 
@@ -1351,8 +1294,8 @@ void ASMs3D::constrainLine (int fdir, int ldir, double xi, int dof,
   int node = this->findStartNode(n1,n2,n3,basis);
   if (node < 1) return;
 
-  if (swapW) // Account for swapped parameter direction
-    if (fdir == 3 || fdir == -3) fdir = -fdir;
+  if (swapW && abs(fdir) == 3) // Account for swapped parameter direction
+    fdir = -fdir;
 
   switch (fdir)
     {
@@ -1720,12 +1663,18 @@ void ASMs3D::getBoundaryNodes (int lIndex, IntVec& nodes,
 
 #if SP_DEBUG > 1
   size_t last = nodes.size();
+  std::cout <<"Boundary nodes in patch "<< idx+1 <<" face "<< lIndex <<":";
 #endif
 
-  int n1, n2, n3;
+  int n1, n2, n3, inod, t;
   int node = this->findStartNode(n1,n2,n3,basis);
-  if (local)
+  if (node < 1)
+    return;
+  else if (local)
     node = 1;
+
+  if (swapW && lIndex > 4) // Account for swapped parameter direction
+    lIndex = 11-lIndex;
 
   switch (lIndex)
   {
@@ -1734,8 +1683,8 @@ void ASMs3D::getBoundaryNodes (int lIndex, IntVec& nodes,
     case 1: // Left face (negative I-direction)
       for (int i3 = 1; i3 <= n3; i3++)
 	for (int i2 = 1; i2 <= n2; i2++, node += n1)
-          for (int t = 0; t < thick; t++)
-            nodes.push_back(local ? node+t : this->getNodeID(node+t));
+          for (t = 0, inod = node; t < thick; t++, inod++)
+            nodes.push_back(local ? inod : this->getNodeID(inod));
       break;
 
     case 4: // Back face (positive J-direction)
@@ -1743,8 +1692,8 @@ void ASMs3D::getBoundaryNodes (int lIndex, IntVec& nodes,
     case 3: // Front face (negative J-direction)
       for (int i3 = 1; i3 <= n3; i3++, node += n1*(n2-1))
 	for (int i1 = 1; i1 <= n1; i1++, node++)
-          for (int t = 0; t < thick; t++)
-            nodes.push_back(local ? node+t*n1 : this->getNodeID(node+t*n1));
+          for (t = 0, inod = node; t < thick; t++, inod += n1)
+            nodes.push_back(local ? inod : this->getNodeID(inod));
       break;
 
     case 6: // Top face (positive K-direction)
@@ -1752,13 +1701,80 @@ void ASMs3D::getBoundaryNodes (int lIndex, IntVec& nodes,
     case 5: // Bottom face (negative K-direction)
       for (int i2 = 1; i2 <= n2; i2++)
 	for (int i1 = 1; i1 <= n1; i1++, node++)
-          for (int t = 0; t < thick; t++)
-            nodes.push_back(local ? node+t*n1*n2 : this->getNodeID(node+t*n1*n2));
+          for (t = 0, inod = node; t < thick; t++, inod += n1*n2)
+            nodes.push_back(local ? inod : this->getNodeID(inod));
       break;
   }
 
 #if SP_DEBUG > 1
-  std::cout <<"Boundary nodes in patch "<< idx+1 <<" face "<< lIndex <<":";
+  if (nodes.size() == last)
+    std::cout <<" (none)";
+  else for (size_t i = last; i < nodes.size(); i++)
+    std::cout <<" "<< nodes[i];
+  std::cout << std::endl;
+#endif
+}
+
+
+void ASMs3D::getBoundary1Nodes (int lEdge, IntVec& nodes,
+                                int basis, int, bool local, bool open) const
+{
+  if (basis < 1) basis = 1;
+
+#if SP_DEBUG > 1
+  size_t last = nodes.size();
+  std::cout <<"Boundary nodes in patch "<< idx+1 <<" edge "<< lEdge <<":";
+#endif
+
+  int n1, n2, n3;
+  int node = this->findStartNode(n1,n2,n3,basis);
+  if (node < 1)
+    return;
+  else if (local)
+    node = 1;
+
+  if (swapW && lEdge <= 8) // Account for swapped parameter direction
+    lEdge += (lEdge-1)%4 < 2 ? 2 : -2;
+
+  std::array<int,2> range;
+  if (lEdge > 8)
+    range = { n1*n2, n3 };
+  else if (lEdge > 4)
+    range = { n1, n2 };
+  else
+    range = { 1, n1 };
+
+  switch (lEdge)
+    {
+    case  6:
+    case 10:
+      node += n1 - 1;
+      break;
+    case  2:
+    case 11:
+      node += n1*(n2-1);
+      break;
+    case 12:
+      node += n1*n2 - 1;
+      break;
+    case  3:
+    case  7:
+      node += n1*n2*(n3-1);
+      break;
+    case  8:
+      node += n1*(n2*(n3-1) + 1) - 1;
+      break;
+    case  4:
+      node += n1*(n2*n3-1);
+      break;
+    }
+
+  // Skip the first and last node if we are requesting an open boundary
+  for (int i = 1; i <= range[1]; i++, node += range[0])
+    if (!open || (i > 1 && i < range[1]))
+      nodes.push_back(local ? node : this->getNodeID(node));
+
+#if SP_DEBUG > 1
   if (nodes.size() == last)
     std::cout <<" (none)";
   else for (size_t i = last; i < nodes.size(); i++)

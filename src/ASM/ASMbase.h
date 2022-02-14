@@ -243,6 +243,17 @@ public:
                                 int orient = -1, bool local = false) const = 0;
 
   //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
+  //! \param[in] lIndex Local index of the boundary edge/vertex
+  //! \param nodes Array of node numbers
+  //! \param[in] basis Which basis to grab nodes for (for mixed methods)
+  //! \param[in] orient Local orientation flag (for LR splines only)
+  //! \param[in] local If \e true, return patch-local numbers
+  //! \param[in] open If \e true, exclude edge end points
+  virtual void getBoundary1Nodes(int lIndex, IntVec& nodes,
+                                 int basis = 0, int orient = -1,
+                                 bool local = false, bool open = false) const {}
+
+  //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
   //! \param[in] lIndex Local index of the boundary face/edge
   //! \param[in] orient Local orientation of the boundary face/edge
   //! \param[out] elms Array of element numbers

@@ -527,8 +527,11 @@ size_t ASMu3D::constrainFaceLocal (int dir, bool open, int dof, int code,
 }
 
 
-IntVec ASMu3D::getEdge (int lEdge, bool open, int basis, int orient) const
+void ASMu3D::getBoundary1Nodes (int lEdge, IntVec& nodes,
+                                int basis, int orient, bool local, bool) const
 {
+  if (basis < 1) basis = 1;
+
   // lEdge = 1-4, running index is u (vmin,wmin), (vmax,wmin), (vmin,wmax), (vmax,wmax)
   // lEdge = 5-8, running index is v (umin,wmin), (umax,wmin), (umin,wmax), (umax,wmax)
   // lEdge = 9-12, running index is w
@@ -574,11 +577,8 @@ IntVec ASMu3D::getEdge (int lEdge, bool open, int basis, int orient) const
     ASMLRSpline::Sort(u, v, orient, thisEdge);
   }
 
-  IntVec result;
   for (LR::Basisfunction* b : thisEdge)
-    result.push_back(b->getId()+ofs);
-
-  return result;
+    nodes.push_back(local ? ofs+b->getId() : this->getNodeID(ofs+b->getId()));
 }
 
 
@@ -588,10 +588,9 @@ void ASMu3D::constrainEdge (int lEdge, bool open, int dof, int code, char basis)
     std::cout <<"  ** ASMu3D::constrainEdge: Open boundary conditions are not"
               <<" supported for LR B-splines. Treated as closed."<< std::endl;
 
-  if (basis < 1) basis = 1;
-
-  // enforce the boundary conditions
-  for (int node : this->getEdge(lEdge, open, basis, -1))
+  IntVec edgeNodes;
+  this->getBoundary1Nodes(lEdge,edgeNodes,basis,-1,true);
+  for (int node : edgeNodes)
     this->prescribe(node,dof,code);
 }
 
@@ -2377,9 +2376,9 @@ void ASMu3D::extendRefinementDomain (IntSet& refineIndices,
       for (int I = -1; I < 2; I += 2)
         bndry0.push_back(this->getCorner(I,J,K,1));
 
-  std::vector<IntVec> bndry1;
+  std::vector<IntVec> bndry1(nedge);
   for (int j = 1; j <= nedge; j++)
-    bndry1.push_back(this->getEdge(j, true, 1, 0));
+    this->getBoundary1Nodes(j , bndry1[j-1], 1, 0, true);
 
   std::vector<IntVec> bndry2(nface);
   for (int j = 1; j <= nface; j++)
