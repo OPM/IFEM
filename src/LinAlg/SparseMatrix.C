@@ -143,7 +143,7 @@ SparseMatrix::SparseMatrix (SparseSolver eqSolver, int nt)
 #ifdef HAS_UMFPACK
   umfSymbolic = nullptr;
 #endif
-  slu = 0;
+  slu = nullptr;
 }
 
 
@@ -155,7 +155,7 @@ SparseMatrix::SparseMatrix (size_t m, size_t n)
   ncol = n > 0 ? n : m;
   solver = NONE;
   numThreads = 0;
-  slu = 0;
+  slu = nullptr;
 #ifdef HAS_UMFPACK
   umfSymbolic = nullptr;
 #endif
@@ -171,7 +171,7 @@ SparseMatrix::SparseMatrix (const SparseMatrix& B) :
   ncol = B.ncol;
   solver = B.solver;
   numThreads = B.numThreads;
-  slu = 0; // The SuperLU data (if any) is not copied
+  slu = nullptr; // The SuperLU data (if any) is not copied
 #ifdef HAS_UMFPACK
   umfSymbolic = nullptr;
 #endif
@@ -225,7 +225,7 @@ void SparseMatrix::resize (size_t r, size_t c, bool forceEditable)
   ncol = c > 0 ? c : r;
 
   delete slu;
-  slu = 0;
+  slu = nullptr;
 #ifdef HAS_UMFPACK
   if (umfSymbolic) {
     umfpack_di_free_symbolic(&umfSymbolic);
