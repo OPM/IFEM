@@ -1221,6 +1221,7 @@ bool SparseMatrix::solveSLUx (Vector& B, Real* rcond)
     dCreate_CompCol_Matrix(&slu->A, nrow, ncol, this->size(),
                            &A.front(), &JA.front(), &IA.front(),
                            SLU_NC, SLU_D, SLU_GE);
+    slu->opts->Fact = SamePattern;
   }
 
   // Create right-hand-side vector and solution vector
