@@ -73,19 +73,13 @@ bool BlockElmMats::redimOffDiag (size_t blkIndex, char symmetric)
 }
 
 
-bool BlockElmMats::redimNewtonMat ()
+bool BlockElmMats::finalize ()
 {
   // Calculate the total number of element dofs
-  size_t neldof = 0;
+  neldof = 0;
   size_t nDiagB = blockInfo.size();
   for (size_t i = 0; i < nDiagB; i++)
     neldof += blockInfo[i].ncmp*basisInfo[blockInfo[i].basis-1].nen;
-
-  // Set the element Newton matrix dimension
-  if (!A.empty() && A.front().empty())
-    A.front().resize(neldof,neldof);
-  if (!b.empty() && b.front().empty())
-    b.front().resize(neldof);
 
   // Calculate the offset of each block sub-matrix
   size_t idof = 1;
@@ -103,13 +97,18 @@ bool BlockElmMats::redimNewtonMat ()
     idof += ndof;
   }
 
-  return A.empty() ? true : idof-1 == A.front().rows();
+  return idof-1 == neldof;
 }
 
 
 const Matrix& BlockElmMats::getNewtonMatrix () const
 {
+  if (!A.front().empty())
+    return A.front();
+
   Matrix& N = const_cast<Matrix&>(A.front());
+  // Set the element Newton matrix dimension
+  N.resize(neldof,neldof);
 
   size_t ib, jb, kb;
   size_t nDiagB = blockInfo.size();
@@ -174,7 +173,11 @@ const Matrix& BlockElmMats::getNewtonMatrix () const
 
 const Vector& BlockElmMats::getRHSVector () const
 {
+  if (!b.front().empty())
+    return b.front();
+
   Vector& R = const_cast<Vector&>(b.front());
+  R.resize(neldof);
 
   for (size_t ib = 0; ib < blockInfo.size(); ib++)
   {

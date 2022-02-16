@@ -22,7 +22,7 @@ TEST(TestBlockElmMats, 1Basis2BlocksDiag)
   mats.resize(3, 3);
   ASSERT_TRUE(mats.redim(1, 2, 1));
   ASSERT_TRUE(mats.redim(2, 2, 1));
-  mats.redimNewtonMat();
+  mats.finalize();
 
   mats.A[1].fill(1);
   mats.A[2].fill(2);
@@ -50,7 +50,7 @@ TEST(TestBlockElmMats, 1Basis2BlocksSymmetric)
   ASSERT_TRUE(mats.redim(1, 2, 1));
   ASSERT_TRUE(mats.redim(2, 2, 1));
   ASSERT_TRUE(mats.redimOffDiag(3, 1));
-  mats.redimNewtonMat();
+  mats.finalize();
 
   mats.A[1].fill(1);
   mats.A[2].fill(2);
@@ -82,7 +82,7 @@ TEST(TestBlockElmMats, 1Basis2BlocksSkewSymmetric)
   ASSERT_TRUE(mats.redim(1, 2, 1));
   ASSERT_TRUE(mats.redim(2, 2, 1));
   ASSERT_TRUE(mats.redimOffDiag(3, -1));
-  mats.redimNewtonMat();
+  mats.finalize();
 
   mats.A[1].fill(1);
   mats.A[2].fill(2);
@@ -115,7 +115,7 @@ TEST(TestBlockElmMats, 1Basis2BlocksFull)
   ASSERT_TRUE(mats.redim(2, 2, 1));
   ASSERT_TRUE(mats.redimOffDiag(3, 0));
   ASSERT_TRUE(mats.redimOffDiag(4, 0));
-  mats.redimNewtonMat();
+  mats.finalize();
 
   mats.A[1].fill(1);
   mats.A[2].fill(2);
@@ -146,7 +146,7 @@ TEST(TestBlockElmMats, 2Basis2BlocksDiag)
   mats.resize(3, 3);
   ASSERT_TRUE(mats.redim(1, 2, 2, 1));
   ASSERT_TRUE(mats.redim(2, 2, 1, 2));
-  mats.redimNewtonMat();
+  mats.finalize();
 
   mats.A[1].fill(1);
   mats.A[2].fill(2);
@@ -173,7 +173,7 @@ TEST(TestBlockElmMats, 2Basis2BlocksSymmetric)
   ASSERT_TRUE(mats.redim(1, 2, 2, 1));
   ASSERT_TRUE(mats.redim(2, 2, 1, 2));
   ASSERT_TRUE(mats.redimOffDiag(3, 1));
-  mats.redimNewtonMat();
+  mats.finalize();
 
   mats.A[1].fill(1);
   mats.A[2].fill(2);
@@ -201,7 +201,7 @@ TEST(TestBlockElmMats, 2Basis2BlocksSkewSymmetric)
   ASSERT_TRUE(mats.redim(1, 2, 2, 1));
   ASSERT_TRUE(mats.redim(2, 2, 1, 2));
   ASSERT_TRUE(mats.redimOffDiag(3, -1));
-  mats.redimNewtonMat();
+  mats.finalize();
 
   mats.A[1].fill(1);
   mats.A[2].fill(2);
@@ -230,7 +230,7 @@ TEST(TestBlockElmMats, 2Basis2BlocksFull)
   ASSERT_TRUE(mats.redim(2, 2, 1, 2));
   ASSERT_TRUE(mats.redimOffDiag(3, 0));
   ASSERT_TRUE(mats.redimOffDiag(4, 0));
-  mats.redimNewtonMat();
+  mats.finalize();
 
   mats.A[1].fill(1);
   mats.A[2].fill(2);

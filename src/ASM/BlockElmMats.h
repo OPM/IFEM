@@ -32,7 +32,8 @@ public:
   //! \brief The constructor initializes the block information arrays.
   //! \param[in] nBlk Number of matrix blocks (in each direction, row & column)
   //! \param[in] nBas Number of bases (> 1 for mixed problems)
-  BlockElmMats(size_t nBlk, size_t nBas) : blockInfo(nBlk), basisInfo(nBas) {}
+  BlockElmMats(size_t nBlk, size_t nBas) :
+    neldof(0), blockInfo(nBlk), basisInfo(nBas) {}
   //! \brief Empty destructor.
   virtual ~BlockElmMats() {}
 
@@ -52,10 +53,10 @@ public:
   //! \details This method must not be invoked until the \a redim method has
   //! been invoked for all the diagonal blocks.
   bool redimOffDiag(size_t blkIndex, char symmetric = 1);
-  //! \brief Sets the dimension of the Newton matrix.
+  //! \brief Calculates the dimension of the Newton matrix.
   //! \details This method must not be invoked until the \a redim method has
   //! been invoked for all the diagonal blocks.
-  bool redimNewtonMat();
+  bool finalize();
 
   //! \brief Returns the element-level Newton matrix.
   virtual const Matrix& getNewtonMatrix() const;
@@ -84,6 +85,7 @@ private:
     Basis() : nen(0), ncmp(0) {}
   };
 
+  size_t neldof; //!< Size of newton matrix
   std::vector<Block> blockInfo; //!< Block information
   std::vector<Basis> basisInfo; //!< Basis information
   std::vector<char>  symmFlag;  //!< Symmetry flag for off-diagonal blocks
