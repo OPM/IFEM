@@ -90,11 +90,18 @@ public:
   //! \copydoc ISolver::solveStep(TimeStep&)
   virtual bool solveStep(TimeStep& tp)
   {
+    int msgLevel = 0;
     if (alone)
       solver.getProcessAdm().cout <<"\n  step = "<< tp.step <<"  time = "<< tp.time.t << std::endl;
+    else
+      std::swap(SIMadmin::msgLevel, msgLevel);
 
     Vectors stages;
-    return this->solveRK(stages, tp);
+    bool result = this->solveRK(stages, tp);
+    if (!alone)
+      std::swap(SIMadmin::msgLevel, msgLevel);
+
+    return result;
   }
 
   //! \brief Applies the Runge-Kutta scheme.
