@@ -50,6 +50,9 @@ bool ReactionsOnly::finalize (bool)
   else if (!mySam->expandSolution(b,*S,0.0))
     return false;
 
+#if SP_DEBUG > 2
+  mySam->printVector(std::cout,*S,"Internal forces");
+#endif
   return true;
 }
 
@@ -73,10 +76,14 @@ bool ReactionsOnly::assemble (const LocalIntegral* elmObj, int elmId)
 bool ReactionsOnly::haveContributions (size_t pidx,
                                        const PropertyVec& pvec) const
 {
-  auto&& isConstrained = [pidx](const Property& p)
+  auto&& isConstrained = [this,pidx](const Property& p)
   {
-    return (p.patch == pidx &&
-            p.pcode >= Property::DIRICHLET &&
+    if (p.patch != pidx)
+      return false;
+    else if (S)
+      return p.pcode == Property::OTHER;
+
+    return (p.pcode >= Property::DIRICHLET &&
             p.pcode <= Property::DIRICHLET_ANASOL);
   };
 

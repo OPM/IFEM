@@ -371,7 +371,7 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
     myProblem->getNodalDofTypes(dofTypes);
 
   // Initialize data structures for the algebraic system
-  if (mySam) delete mySam;
+  delete mySam;
 #ifdef HAS_PETSC
   if (opt.solver == LinAlg::PETSC)
     mySam = new SAMpatchPETSc(*g2l,adm);
@@ -523,7 +523,7 @@ bool SIMbase::initSystem (LinAlg::MatrixType mType,
   printNodalConnectivity(myModel,std::cout);
 #endif
 
-  if (myEqSys) delete myEqSys;
+  delete myEqSys;
   myEqSys = new AlgEqSystem(*mySam,&adm);
 
   // Workaround SuperLU bug for tiny systems
@@ -1064,7 +1064,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
     // Assemble contributions from the Neumann boundary conditions
     // and other boundary integrals (Robin properties, contact, etc.)
     it->second->activateElmGroup();
-    if (it->second->hasBoundaryTerms() && myEqSys && myEqSys->getVector())
+    if (it->second->hasBoundaryTerms())
       for (p = myProps.begin(); p != myProps.end() && ok; ++p)
         if ((p->pcode == Property::NEUMANN && it->first == 0) ||
             ((p->pcode == Property::NEUMANN_GENERIC ||
