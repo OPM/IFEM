@@ -629,7 +629,7 @@ void SIMbase::setQuadratureRule (size_t ng, bool redimBuffers, bool printQP)
           notCounted = false;
 
       if (notCounted) // Count the boundary integration points
-        myModel[p->patch-1]->getNoBouPoints(nBouGP,abs(p->ldim),p->lindx%10);
+        myModel[p->patch-1]->getNoBouPoints(nBouGP,abs(p->ldim),p->lindx);
     }
 
   // Let the integrands know how many integration points in total we have
@@ -696,7 +696,7 @@ void SIMbase::printProblem () const
     default:
       continue;
     }
-    std::cout <<"code="<< p.pindx <<"\tP"<< p.patch+1
+    std::cout <<"code="<< p.pindx <<"\tP"<< p.patch
               <<"\ttop. item "<< (int)p.lindx
               <<" "<< (int)p.ldim <<"D"<< std::endl;
   }
@@ -1111,7 +1111,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
             {
               if (msgLevel > 1)
                 IFEM::cout <<"\nAssembling Neumann matrix terms for edge "
-                           << p->lindx%10 <<" on P"<< p->patch << std::endl;
+                           << (int)p->lindx <<" on P"<< p->patch << std::endl;
               if (p->patch != lp)
                 ok &= this->extractPatchSolution(it->second,prevSol,p->patch-1);
               ok &= pch->integrateEdge(*it->second,p->lindx,sysQ,time);

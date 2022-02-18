@@ -363,6 +363,9 @@ void ASMbase::getNoIntPoints (size_t& nPt, size_t& nIPt)
 
 void ASMbase::getNoBouPoints (size_t& nPt, char ldim, char lindx)
 {
+  if (ldim+1 == ndim)
+    lindx %= 10; // Mask off Neumann order flag
+
   size_t nGp = 1;
   if (nGauss > 0 && nGauss <= 10)
     for (char d = 0; d < ldim; d++)

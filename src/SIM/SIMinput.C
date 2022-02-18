@@ -400,14 +400,14 @@ bool SIMinput::parseBCTag (const TiXmlElement* elem)
     while (isp.good())
     {
       Property p;
-      int ldim, lindx = 0;
+      int ldim, lindex = 0;
       isp >> p.pindx >> p.patch >> ldim;
       if (ldim < (int)this->getNoParamDim())
-        isp >> lindx;
+        isp >> lindex;
 
       // We always require the item indices to be 1-based
       p.ldim = ldim;
-      p.lindx = 1+lindx;
+      p.lindx = 1+lindex;
       p.patch = this->getLocalPatchIndex(1+p.patch);
       if (p.patch > 0 && isp.good())
         myProps.push_back(p);
@@ -464,7 +464,12 @@ bool SIMinput::parseBCTag (const TiXmlElement* elem)
       IFEM::cout <<" order "<< order;
       // Flag Neumann order by increasing the topology index by 10
       for (; i < myProps.size(); i++)
-        myProps[i].lindx += 10*(order-1);
+      {
+        // But not for edge boundaries in 3D
+        ASMbase* pch = this->getPatch(myProps[i].patch);
+        if (pch && myProps[i].ldim+1 == pch->getNoParamDim())
+          myProps[i].lindx += 10*(order-1);
+      }
     }
 
     if (type == "anasol")
@@ -1131,20 +1136,20 @@ bool SIMinput::parse (char* keyWord, std::istream& is)
     while (isp.good())
     {
       Property p;
-      int ldim, lindx = 0;
+      int ldim, lindex = 0;
       isp >> p.pindx >> p.patch >> ldim;
       if (ldim < (int)this->getNoParamDim())
-        isp >> lindx;
+        isp >> lindex;
 
       if (!oneBasedIdx)
       {
         // We always require the item indices to be 1-based
         ++p.patch;
-        ++lindx;
+        ++lindex;
       }
 
       p.ldim = ldim;
-      p.lindx = lindx;
+      p.lindx = lindex;
       p.patch = this->getLocalPatchIndex(p.patch);
       if (p.patch > 0 && isp.good())
         myProps.push_back(p);
@@ -1381,16 +1386,20 @@ size_t SIMinput::setPropertyType (int code, Property::Type ptype,
         }
         else if (ptype >= Property::DIRICHLET && pindex <= LOCAL_AXES)
         {
-          p->lindx *= -1; // flag the use of local axis directions
-          if (abs(p->ldim) == 2 && pindex < 10)
+          ASMbase* pch = this->getPatch(p->patch);
+          if (pch && abs(p->ldim)+1 == pch->getNoParamDim())
           {
-            // Flag first local tangent direction ['x','z']
-            p->ldim = (p->ldim/2)*('w'-pindex/10);
-            pindex %= 10;
+            p->lindx *= -1; // flag the use of local axis directions
+            if (abs(p->ldim) == 2 && pindex < -10)
+            {
+              // Flag first local tangent direction ['x','z']
+              p->ldim = (p->ldim/2)*('w'-pindex/10);
+              pindex %= 10;
+            }
+            if (pindex == LOCAL_PROJECTED)
+              p->lindx -= 10; // enable projection of the local axes definitions
+            preserveNOrder = true; // because extra nodes might be added
           }
-          if (pindex == LOCAL_PROJECTED)
-            p->lindx -= 10; // enable projection of the local axes definitions
-          preserveNOrder = true; // because extra nodes might be added
         }
 
         if (p->ldim != 0 && p->pindx > 0 && code < 0) // flag direct evaluation
