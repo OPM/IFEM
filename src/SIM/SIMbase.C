@@ -1311,17 +1311,7 @@ void SIMbase::printSolutionSummary (const Vector& solution, int printSol,
 
   // Print entire solution vector if it is small enough
   if (mySam && mySam->getNoEquations() < printSol)
-  {
-    adm.cout <<"\nSolution vector:";
-    for (int inod = 1; inod <= mySam->getNoNodes(); inod++)
-    {
-      adm.cout <<"\nNode "<< inod <<":";
-      std::pair<int,int> dofs = mySam->getNodeDOFs(inod);
-      for (int d = dofs.first-1; d < dofs.second; d++)
-        adm.cout <<" "<< utl::trunc(solution[d]);
-    }
-    adm.cout << std::endl;
-  }
+    mySam->printVector(adm.cout,solution,"Solution vector");
 }
 
 

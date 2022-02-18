@@ -46,6 +46,21 @@ public:
   //! \brief Prints out the key data to the given stream.
   void print(std::ostream& os) const;
 
+  //! \brief Prints out a nodal DOF vector to the given stream.
+  template<class T> void printVector(T& os, const RealArray& vec,
+                                     const char* heading = nullptr) const
+  {
+    if (heading)
+      os <<"\n"<< heading <<":";
+    for (int inod = 1; inod <= nnod; inod++)
+    {
+      os <<"\nNode "<< inod <<":";
+      for (int idof = madof[inod-1]; idof < madof[inod]; idof++)
+        os <<" "<< utl::trunc(vec[idof-1]);
+    }
+    os << std::endl;
+  }
+
   //! \brief Returns the number of elements in the model.
   int getNoElms() const { return nel; }
   //! \brief Returns the number of FE nodes in the model.
