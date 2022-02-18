@@ -35,8 +35,10 @@ public:
     //! \param[in] fe The finite element to evaluate for
     //! \param[in] AC Advecting field
     //! \param[in] scale Scaling factor for contribution
+    //! \param[in] cnvForm Form of advection operator
     static void Advection(std::vector<Matrix>& EM, const FiniteElement& fe,
-                          const Vec3& AC, double scale=1.0);
+                          const Vec3& AC, double scale=1.0,
+                          WeakOperators::ConvectionForm cnvForm = WeakOperators::CONVECTIVE);
 
     //! \brief Compute a (nonlinear) convection term.
     //! \param[out] EM The element matrix to add contribution to
@@ -47,7 +49,7 @@ public:
     //! \param[in] form Which form of the convective form to use
     static void Convection(std::vector<Matrix>& EM, const FiniteElement& fe,
                            const Vec3& U, const Tensor& dUdX, double scale,
-                           WeakOperators::ConvectionForm form=WeakOperators::CONVECTIVE);
+                           WeakOperators::ConvectionForm form = WeakOperators::CONVECTIVE);
 
     //! \brief Compute a gradient term.
     //! \param[out] EM The element matrix to add contribution to

@@ -18,7 +18,8 @@
 
 void CompatibleOperators::Weak::Advection(std::vector<Matrix>& EM,
                                           const FiniteElement& fe,
-                                          const Vec3& AC, double scale)
+                                          const Vec3& AC, double scale,
+                                          WeakOperators::ConvectionForm cnvForm)
 {
   size_t nsd = fe.grad(1).cols();
   for (size_t n = 1; n <= nsd; ++n)
