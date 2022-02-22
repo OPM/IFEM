@@ -71,6 +71,14 @@ void EqualOrderOperators::Weak::Advection(Matrix& EM, const FiniteElement& fe,
       C.outer_product(fe.grad(basis).getColumn(k),
                       fe.basis(basis), true,
                       -scale*AC[k-1]*fe.detJxW);
+    else if (form == WeakOperators::SKEWSYMMETRIC) {
+      C.outer_product(fe.basis(basis),
+                      fe.grad(basis).getColumn(k), true,
+                      0.5*scale*AC[k-1]*fe.detJxW);
+      C.outer_product(fe.grad(basis).getColumn(k),
+                      fe.basis(basis), true,
+                      -0.5*scale*AC[k-1]*fe.detJxW);
+    }
 
   addComponents(EM, C, ncmp, ncmp, 0);
 }
