@@ -256,7 +256,9 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
   const Vectors* proj = nullptr;
   const Matrix* eNorm = nullptr;
   if (entry.second.data2.size() > 1 && entry.second.data2[1])
-    proj = static_cast<const Vectors*>(entry.second.data2[1]);
+    if ((proj = static_cast<const Vectors*>(entry.second.data2[1])))
+      if (proj->empty() || proj->front().empty())
+        proj = nullptr;
   if (entry.second.data2.size() > 2 && entry.second.data2[2])
     eNorm = static_cast<const Matrix*>(entry.second.data2[2]);
 
@@ -282,12 +284,8 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
     std::string bName = sim->getName() + "-1";
     for (size_t b = 1; b <= sim->getNoBasis(); b++, ++bName.back())
       this->writeBasis(sim,bName,b,level,results & DataExporter::REDUNDANT,results & DataExporter::L2G_NODE);
-
-    if (sim->fieldProjections() &&
-        proj && !proj->empty() && !proj->front().empty()) {
-      bName = sim->getName() + "-proj";
-      this->writeBasis(sim,bName,-1,level);
-    }
+    if (proj && sim->fieldProjections())
+      this->writeBasis(sim, sim->getName() + "-proj", -1, level);
   }
 
   const IntegrandBase* prob = sim->getProblem();
@@ -333,8 +331,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
     }
   }
 
-  if (sim->fieldProjections() &&
-      proj && !proj->empty() && !proj->front().empty()) {
+  if (proj && sim->fieldProjections()) {
     std::stringstream str;
     str << level;
     str << '/' << sim->getName() << "-proj";
@@ -345,18 +342,37 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
       group.push_back(H5Gcreate2(m_file,str.str().c_str(),0,H5P_DEFAULT,H5P_DEFAULT));
   }
 
+  // Lambda function for extracting projected solution for a patch.
   size_t projOfs = 0;
+  auto&& extractProjection=[sim,&projOfs](ASMbase* pch, const Vector& glbVec,
+                                          Matrix& field, bool isLastProj = false)
+  {
+    Vector pchVec;
+    size_t ncmp = sim->getProblem()->getNoFields(2);
+    if (sim->fieldProjections())
+    {
+      pchVec.resize(ncmp * pch->getNoProjectionNodes());
+      size_t projEnd = projOfs + pchVec.size();
+      std::copy(glbVec.begin()+projOfs, glbVec.begin()+projEnd, pchVec.begin());
+      if (isLastProj) projOfs = projEnd;
+    }
+    else
+      sim->extractPatchSolution(glbVec,pchVec,pch,ncmp,1);
+
+    field.resize(ncmp,pchVec.size()/ncmp);
+    field.fill(pchVec.ptr());
+  };
+
   for (int idx = 1; idx <= sim->getNoPatches(); idx++) {
     int loc = sim->getLocalPatchIndex(idx);
     if ((!sim->getProcessAdm().dd.isPartitioned() || sim->getProcessAdm().getProcId() == 0) && loc > 0 &&
         (!(results & DataExporter::REDUNDANT) || sim->getGlobalProcessID() == 0)) // we own the patch
     {
-      Vector psol;
       ASMbase* pch = sim->getPatch(loc);
-      if (!pch)
-        continue;
+      if (!pch) continue;
 
       if (results & DataExporter::PRIMARY && !sol->empty()) {
+        Vector psol;
         size_t ndof1 = sim->extractPatchSolution(*sol,psol,pch,entry.second.ncmps,
                                                  usedescription ? 1 : 0);
         if (dynamic_cast<ASMsupel*>(pch))
@@ -388,41 +404,39 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
 
       if (results & DataExporter::SECONDARY && !sol->empty()) {
         Matrix field;
-        SIM::SolutionMode mode = prob->getMode();
-        const_cast<SIMbase*>(sim)->setMode(SIM::RECOVERY);
-        sim->extractPatchSolution({*sol},loc-1);
-        sim->evalSecondarySolution(field,loc-1);
-        const_cast<SIMbase*>(sim)->setMode(mode);
+        hid_t gid = group.front();
+        if (entry.second.description == "projected") {
+          // The projected solution has been registered as a separate field
+          extractProjection(pch, *sol, field);
+          if (sim->fieldProjections())
+            gid = group.back();
+        }
+        else {
+          SIM::SolutionMode mode = prob->getMode();
+          const_cast<SIMbase*>(sim)->setMode(SIM::RECOVERY);
+          sim->extractPatchSolution({*sol},loc-1);
+          sim->evalSecondarySolution(field,loc-1);
+          const_cast<SIMbase*>(sim)->setMode(mode);
+        }
         for (size_t j = 0; j < field.rows(); j++)
-          this->writeArray(group.front(), prefix+prob->getField2Name(j),
+          this->writeArray(gid, prefix+prob->getField2Name(j),
                            idx, field.cols(), field.getRow(j+1).ptr(),
                            H5T_NATIVE_DOUBLE);
       }
 
-      if (proj)
-        for (size_t p = 0; p < proj->size(); ++p) {
-          if (proj->at(p).empty())
-            continue;
-
-          if (sim->fieldProjections()) {
-            psol.resize(prob->getNoFields(2) * pch->getNoProjectionNodes());
-            std::copy(proj->at(p).begin()+projOfs,
-                      proj->at(p).begin()+projOfs+psol.size(), psol.begin());
-            if (p == proj->size()-1)
-              projOfs += psol.size();
+      if (proj) {
+        hid_t gid = sim->fieldProjections() ? group.back() : group.front();
+        for (size_t p = 0; p < proj->size(); p++)
+          if (!proj->at(p).empty())
+          {
+            Matrix field;
+            extractProjection(pch, proj->at(p), field, p+1 == proj->size());
+            for (size_t j = 0; j < field.rows(); j++)
+              this->writeArray(gid, prob->getField2Name(j,projPfx[p]),
+                               idx, field.cols(), field.getRow(j+1).ptr(),
+                               H5T_NATIVE_DOUBLE);
           }
-          else
-            sim->extractPatchSolution(proj->at(p),psol,pch,prob->getNoFields(2),1);
-
-          Matrix field(prob->getNoFields(2),psol.size()/prob->getNoFields(2));
-          field.fill(psol.ptr());
-
-          hid_t gid = sim->fieldProjections() ? group.back() : group.front();
-          for (size_t j = 0; j < field.rows(); j++)
-            this->writeArray(gid, prob->getField2Name(j,projPfx[p]),
-                             idx, field.cols(), field.getRow(j+1).ptr(),
-                             H5T_NATIVE_DOUBLE);
-        }
+      }
 
       if (norm) {
         Matrix patchEnorm;
@@ -438,6 +452,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
 
       if (results & DataExporter::EIGENMODES) {
         size_t iMode = 0;
+        Vector psol;
         const std::vector<Mode>* modes = static_cast<const std::vector<Mode>*>(entry.second.data2.front());
         for (const Mode& mode : *modes)
         {
@@ -486,16 +501,23 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
                      idx, 0, &dummy, H5T_NATIVE_DOUBLE);
       }
 
-      if (results & DataExporter::SECONDARY)
+      if (results & DataExporter::SECONDARY) {
+        hid_t gid = group.front();
+        if (entry.second.description == "projected" && sim->fieldProjections())
+          gid = group.back();
         for (size_t j = 0; j < prob->getNoFields(2); j++)
-          writeArray(group.front(), prefix+prob->getField2Name(j),
+          writeArray(gid, prefix+prob->getField2Name(j),
                      idx, 0, &dummy,H5T_NATIVE_DOUBLE);
+      }
 
-      if (proj)
+      if (proj) {
+        hid_t gid = sim->fieldProjections() ? group.back() : group.front();
         for (size_t p = 0; p < proj->size(); p++)
-          for (size_t j = 0; j < prob->getNoFields(2); j++)
-            writeArray(group.front(), prob->getField2Name(j,projPfx[p]),
-                       idx, 0, &dummy,H5T_NATIVE_DOUBLE);
+          if (!proj->at(p).empty())
+            for (size_t j = 0; j < prob->getNoFields(2); j++)
+              writeArray(gid, prob->getField2Name(j,projPfx[p]),
+                         idx, 0, &dummy,H5T_NATIVE_DOUBLE);
+      }
 
       if (norm)
         for (size_t j = 1; j <= normGrp; j++)
