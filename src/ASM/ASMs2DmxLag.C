@@ -401,7 +401,8 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
 
       // Initialize element quantities
       fe.iel = MLGE[iel-1];
-      LocalIntegral* A = integrand.getLocalIntegral(elem_size,fe.iel,true);
+      LocalIntegral* A = integrand.getLocalIntegral(elem_size,fe.iel,
+                                                    !integrand.hasRobinTerms());
       bool ok = integrand.initElementBou(MNPC[iel-1],elem_size,nb,*A);
 
       // --- Integration loop over all Gauss points along the edge -------------

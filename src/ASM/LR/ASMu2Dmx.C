@@ -541,7 +541,8 @@ bool ASMu2Dmx::integrate (Integrand& integrand, int lIndex,
       fe.h = this->getElementCorners(iel,fe.XC);
 
     // Initialize element quantities
-    LocalIntegral* A = integrand.getLocalIntegral(elem_sizes,fe.iel,true);
+    LocalIntegral* A = integrand.getLocalIntegral(elem_sizes,fe.iel,
+                                                  !integrand.hasRobinTerms());
     bool ok = integrand.initElementBou(MNPC[geoEl-1],elem_sizes,nb,*A);
 
     // Get integration gauss points over this element

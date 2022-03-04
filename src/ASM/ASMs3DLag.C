@@ -664,7 +664,8 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
 
         // Initialize element quantities
         fe.iel = abs(MLGE[doXelms+iel-1]);
-        LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
+        LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,
+                                                      !integrand.hasRobinTerms());
         if (!integrand.initElementBou(MNPC[doXelms+iel-1],*A))
         {
           A->destruct();

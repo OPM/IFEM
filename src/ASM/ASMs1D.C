@@ -1289,7 +1289,8 @@ bool ASMs1D::integrate (Integrand& integrand, int lIndex,
   fe.iel = MLGE[iel];
   if (fe.iel < 1) return true; // zero-length element
 
-  LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
+  LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,
+                                                !integrand.hasRobinTerms());
   if (!A) return true; // no integrand contributions for this element
 
   std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex%10);

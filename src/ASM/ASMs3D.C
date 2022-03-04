@@ -2626,7 +2626,8 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
         }
 
         // Initialize element quantities
-        LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
+        LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,
+                                                      !integrand.hasRobinTerms());
         if (!integrand.initElementBou(MNPC[doXelms+iel-1],*A))
         {
           A->destruct();

@@ -2424,7 +2424,8 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
       }
 
       // Initialize element quantities
-      LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
+      LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,
+                                                    !integrand.hasRobinTerms());
       bool ok = integrand.initElementBou(MNPC[doXelms+iel-1],*A);
 
 

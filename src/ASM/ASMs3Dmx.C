@@ -750,7 +750,8 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
           fe.h = this->getElementCorners(i1-1,i2-1,i3-1,fe.XC);
 
 	// Initialize element quantities
-        LocalIntegral* A = integrand.getLocalIntegral(elem_size,fe.iel,true);
+        LocalIntegral* A = integrand.getLocalIntegral(elem_size,fe.iel,
+                                                      !integrand.hasRobinTerms());
 	if (!integrand.initElementBou(MNPC[iel-1],elem_size,nb,*A))
         {
           A->destruct();

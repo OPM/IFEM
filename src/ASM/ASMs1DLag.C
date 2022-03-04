@@ -364,7 +364,8 @@ bool ASMs1DLag::integrate (Integrand& integrand, int lIndex,
     }
 
   fe.iel = MLGE[iel];
-  LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
+  LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,
+                                                !integrand.hasRobinTerms());
   if (!A) return true; // no integrand contributions for this element
 
   // Set up nodal point coordinates for current element
