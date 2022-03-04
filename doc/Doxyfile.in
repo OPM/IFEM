@@ -1050,6 +1050,9 @@ LATEX_BATCHMODE        = NO
 
 LATEX_HIDE_INDICES     = NO
 
+# To render equations in the browser instead of generating png-files
+USE_MATHJAX = TRUE
+
 #---------------------------------------------------------------------------
 # configuration options related to the RTF output
 #---------------------------------------------------------------------------

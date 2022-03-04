@@ -120,7 +120,7 @@ public:
   //! \param[in] orient Local orientation of indices, see ASMLRSpline::Sort()
   //! \param[in] local If \e true, return patch-local numbers
   //! \param[in] open If \e true, exclude edge end points
-  virtual void getBoundary1Nodes(int lIndex, IntVec& nodes, int basis,
+  virtual void getBoundary1Nodes(int lEdge, IntVec& nodes, int basis,
                                  int orient, bool local,
                                  bool open = false) const;
 
