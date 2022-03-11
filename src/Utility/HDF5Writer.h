@@ -97,6 +97,12 @@ public:
   //! \param name Name of log
   virtual bool writeLog(const std::string& data, const std::string& name);
 
+  //! \brief Write analytical solutions to file.
+  //! \param aSol Map of functions
+  //! \param name Name of simulator
+  bool writeAnaSol(const std::map<std::string, std::string>& aSols,
+                   const std::string& name);
+
 #ifdef HAS_HDF5
 protected:
   //! \brief Internal helper function writing a data array to file.

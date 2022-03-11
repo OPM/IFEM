@@ -181,7 +181,7 @@ Real EvalFunc::deriv (Real x) const
 }
 
 
-EvalFunction::EvalFunction (const char* function) : gradient{}, dgradient{}
+EvalFunction::EvalFunction (const char* function) : gradient{}, dgradient{}, definition(function)
 {
   try {
 #ifdef USE_OPENMP

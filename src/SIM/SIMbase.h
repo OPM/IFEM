@@ -542,6 +542,9 @@ public:
   //! \brief Returns whether a dual solution is available or not.
   virtual bool haveDualSol() const { return dualField ? true : false; }
 
+  //! \brief Returns analytic solutions as their string definitions if possible.
+  std::map<std::string, std::string> getAnaSolDefinitions() const;
+
   //! \brief Returns a pointer to a norm integrand object for this simulator.
   //! \note The object is allocated dynamically and has therefore to be
   //! manually deleted before the variable receiving the pointer value goes
