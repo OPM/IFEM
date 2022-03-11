@@ -255,6 +255,19 @@ if(IFEM_USE_ZOLTAN)
   endif()
 endif()
 
+# Python
+if(IFEM_USE_PYTHON)
+  find_package(Python3 COMPONENTS Development)
+  find_package(pybind11)
+  if(pybind11_FOUND)
+    include(CMakePrintHelpers)
+    list(APPEND IFEM_DEPLIBS pybind11::pybind11 Python3::Python)
+    list(APPEND IFEM_DEPINCLUDES ${pybind11_INCLUDE_DIRS})
+    list(APPEND IFEM_DEFINITIONS -DHAS_PYTHON=1)
+    message(STATUS "Python support enabled")
+  endif()
+endif()
+
 # Portability issues
 include(CheckFunctionExists)
 set(CMAKE_REQUIRED_DEFINITIONS)
