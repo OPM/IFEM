@@ -23,6 +23,9 @@ TEST(TestFieldFunctions, 2D1P)
   VecFieldFunction f2D_vec("src/Utility/Test/refdata/Field2D-1P",
                            "Stokes-1", "u", 0);
 
+  VecFieldFunction f2Dmx_vec("src/Utility/Test/refdata/Field2D-1Pmx",
+                              "Stokes", "u_x|u_y", 0);
+
   TensorFieldFunction f2D_ten("src/Utility/Test/refdata/Field2D-1P",
                               "Stokes-1", "u_x,x|u_x,y|u_y,x|u_y,y", 0);
 
@@ -37,6 +40,9 @@ TEST(TestFieldFunctions, 2D1P)
   Vec3 vec = f2D_vec(X);
   EXPECT_NEAR(vec[0],  x, 1e-14);
   EXPECT_NEAR(vec[1], -y, 1e-14);
+  Vec3 vecmx = f2Dmx_vec(X);
+  EXPECT_NEAR(vecmx[0],  x, 1e-14);
+  EXPECT_NEAR(vecmx[1], -y, 1e-14);
   Tensor ten = f2D_ten(X); // see above
   EXPECT_NEAR(ten(1,1), 1.0, 1e-14);
   EXPECT_NEAR(ten(1,2), 0.0, 1e-14);
@@ -89,6 +95,9 @@ TEST(TestFieldFunctions, 3D1P)
   VecFieldFunction f3D_vec("src/Utility/Test/refdata/Field3D-1P",
                            "Stokes-1", "u", 0);
 
+  VecFieldFunction f3Dmx_vec("src/Utility/Test/refdata/Field3D-1Pmx",
+                           "Stokes", "u_x|u_y|u_z", 0);
+
   TensorFieldFunction f3D_ten("src/Utility/Test/refdata/Field3D-1P",
                               "Stokes-1", "u_x,x|u_y,x|u_z,x|u_x,y|u_y,y|u_z,y|u_x,z|u_x,y|u_z,z", 0);
 
@@ -106,6 +115,10 @@ TEST(TestFieldFunctions, 3D1P)
   EXPECT_NEAR(vec[0], y*(1.0-y), 1e-14); // y*(1-y)
   EXPECT_NEAR(vec[1], z*(1.0-z), 1e-14); // z*(1-z)
   EXPECT_NEAR(vec[2], x*(1.0-x), 1e-14); // x*(1-x)
+  Vec3 vecmx = f3Dmx_vec(X);
+  EXPECT_NEAR(vecmx[0], x, 1e-13);
+  EXPECT_NEAR(vecmx[1], y, 1e-13);
+  EXPECT_NEAR(vecmx[2], -2*z, 1e-13);
   param[0] = param[1] = param[2] = 0.5;
   Tensor ten = f3D_ten(X);
   x = y = z = 1.0;
