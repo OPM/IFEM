@@ -58,7 +58,7 @@ ASMs1D::ASMs1D (const ASMs1D& patch, unsigned char n_f)
 }
 
 
-bool ASMs1D::read (std::istream& is)
+bool ASMs1D::read (std::istream& is, int)
 {
   if (shareFE) return true;
   if (curv) delete curv;

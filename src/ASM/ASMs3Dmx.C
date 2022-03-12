@@ -11,6 +11,7 @@
 //!
 //==============================================================================
 
+#include "GoTools/geometry/ObjectHeader.h"
 #include "GoTools/trivariate/SplineVolume.h"
 #include "GoTools/trivariate/VolumeInterpolator.h"
 
@@ -68,6 +69,30 @@ Go::SplineSurface* ASMs3Dmx::getBoundary (int dir, int basis)
   // The boundary surfaces are stored internally in the SplineVolume object
   int iface = dir > 0 ? 2*dir-1 : -2*dir-2;
   return m_basis[basis-1]->getBoundarySurface(iface).get();
+}
+
+
+bool ASMs3Dmx::read (std::istream& is, int basis)
+{
+  if (basis == 0)
+    return this->ASMs3D::read(is);
+
+  if (basis < 0 || basis > static_cast<int>(nfx.size()))
+    return false;
+
+  if (m_basis.empty()) {
+    m_basis.resize(nfx.size());
+    nb.resize(nfx.size(), 0);
+  }
+
+  Go::ObjectHeader head;
+  m_basis[basis-1] = std::make_shared<Go::SplineVolume>();
+  is >> head >> *m_basis[basis-1];
+  nb[basis-1] = m_basis[basis-1]->numCoefs(0)*
+                m_basis[basis-1]->numCoefs(1)*
+                m_basis[basis-1]->numCoefs(2);
+
+  return true;
 }
 
 

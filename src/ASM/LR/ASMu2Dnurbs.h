@@ -33,7 +33,7 @@ public:
   virtual ~ASMu2Dnurbs() {}
 
   //! \brief Creates an instance by reading the given input stream.
-  virtual bool read(std::istream& is);
+  virtual bool read(std::istream& is, int = 0);
 
 protected:
   //! \brief Evaluates the basis functions and derivatives of an element.

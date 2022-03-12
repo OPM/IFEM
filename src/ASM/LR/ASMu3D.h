@@ -65,9 +65,9 @@ public:
   // ===========================================
 
   //! \brief Creates an instance by reading the given input stream.
-  virtual bool read(std::istream&);
+  virtual bool read(std::istream&, int = 0);
   //! \brief Writes the geometry of the SplineVolume object to given stream.
-  virtual bool write(std::ostream&, int = 0) const;
+  virtual bool write(std::ostream&, int) const;
 
   //! \brief Generates the finite element topology data for the patch.
   //! \details The data generated are the element-to-node connectivity array,
