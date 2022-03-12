@@ -41,7 +41,7 @@ public:
   // ============================
 
   //! \brief Creates an instance by reading the given input stream.
-  virtual bool read(std::istream& is);
+  virtual bool read(std::istream& is, int = 0);
   //! \brief Generates the finite element topology data for the patch.
   virtual bool generateFEMTopology();
   //! \brief Checks if this patch is empty.

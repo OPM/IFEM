@@ -11,6 +11,7 @@
 //!
 //==============================================================================
 
+#include "GoTools/geometry/ObjectHeader.h"
 #include "GoTools/geometry/SplineSurface.h"
 
 #include "ASMs2Dmx.h"
@@ -69,6 +70,28 @@ Go::SplineCurve* ASMs2Dmx::getBoundary (int dir, int basis)
     bou[iedge] = m_basis.front()->edgeCurve(iedge);
 
   return bou[iedge];
+}
+
+
+bool ASMs2Dmx::read (std::istream& is, int basis)
+{
+  if (basis == 0)
+    return this->ASMs2D::read(is);
+
+  if (basis < 0 || basis > static_cast<int>(nfx.size()))
+    return false;
+
+  if (m_basis.empty()) {
+    m_basis.resize(nfx.size());
+    nb.resize(nfx.size(), 0);
+  }
+
+  Go::ObjectHeader head;
+  m_basis[basis-1] = std::make_shared<Go::SplineSurface>();
+  is >> head >> *m_basis[basis-1];
+  nb[basis-1] = m_basis[basis-1]->numCoefs_u()*m_basis[basis-1]->numCoefs_v();
+
+  return true;
 }
 
 

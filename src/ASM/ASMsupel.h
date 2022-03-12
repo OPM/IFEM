@@ -39,7 +39,7 @@ public:
   virtual ~ASMsupel() {}
 
   //! \brief Creates an instance by reading the given input stream.
-  virtual bool read(std::istream& is);
+  virtual bool read(std::istream& is, int = 0);
   //! \brief Writes the geometry of the patch to the given stream.
   virtual bool write(std::ostream&, int) const;
   //! \brief Generates the finite element topology data for this patch.

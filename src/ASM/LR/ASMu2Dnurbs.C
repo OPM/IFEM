@@ -37,7 +37,7 @@ ASMu2Dnurbs::ASMu2Dnurbs (const ASMu2Dnurbs& patch, unsigned char n_f)
 }
 
 
-bool ASMu2Dnurbs::read (std::istream& is)
+bool ASMu2Dnurbs::read (std::istream& is, int)
 {
   bool ok = this->ASMu2DC1::read(is);
   if (ok && !(tensorspline && tensorspline->rational()))

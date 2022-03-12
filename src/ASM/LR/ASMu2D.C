@@ -64,7 +64,7 @@ ASMu2D::ASMu2D (const ASMu2D& patch, unsigned char n_f)
 }
 
 
-bool ASMu2D::read (std::istream& is)
+bool ASMu2D::read (std::istream& is, int)
 {
   if (shareFE) return true;
 
