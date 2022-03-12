@@ -18,6 +18,7 @@
 #include "ItgPoint.h"
 #include "CoordinateMapping.h"
 #include "Utilities.h"
+#include "Vec3.h"
 
 
 LRSplineFields2Dmx::LRSplineFields2Dmx (const ASMu2Dmx* patch,
@@ -44,6 +45,18 @@ LRSplineFields2Dmx::LRSplineFields2Dmx (const ASMu2Dmx* patch,
 
 bool LRSplineFields2Dmx::valueNode (size_t node, Vector& vals) const
 {
+  return false;
+}
+
+
+bool LRSplineFields2Dmx::valueCoor (const Vec4& x, Vector& vals) const
+{
+  if (x.u)
+    return this->valueFE(ItgPoint(x.u[0],x.u[1]),vals);
+
+  std::cerr << "** LRSplineFields2Dmx::valueCoor: "
+            << "not implemented without parameters\n";
+
   return false;
 }
 

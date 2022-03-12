@@ -52,6 +52,11 @@ public:
   //! \param[out] vals Node values
   bool valueNode(size_t node, Vector& vals) const;
 
+  //! \brief Computes the value at a given global coordinate.
+  //! \param[in] x Global/physical coordinate for point
+  //! \param[out] vals Values in given physical coordinate
+  bool valueCoor(const Vec4& x, Vector& vals) const;
+
   //! \brief Computes the value at a given local coordinate.
   //! \param[in] x Local coordinate of evaluation point
   //! \param[out] vals Values in local point in given element

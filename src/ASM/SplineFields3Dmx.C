@@ -18,6 +18,7 @@
 #include "ItgPoint.h"
 #include "CoordinateMapping.h"
 #include "Utilities.h"
+#include "Vec3.h"
 
 
 SplineFields3Dmx::SplineFields3Dmx (const ASMs3Dmx* patch,
@@ -45,6 +46,21 @@ SplineFields3Dmx::SplineFields3Dmx (const ASMs3Dmx* patch,
 bool SplineFields3Dmx::valueNode (size_t node, Vector& vals) const
 {
   return false;
+}
+
+
+bool SplineFields3Dmx::valueCoor (const Vec4& x, Vector& vals) const
+{
+  if (x.u)
+    return this->valueFE(ItgPoint(x.u[0],x.u[1],x.u[2]),vals);
+
+  // Use with caution, very slow!
+  Go::Point pt(x.x,x.y,x.z), clopt(3);
+  double clo_u, clo_v, clo_w, dist;
+#pragma omp critical
+  svol->getBasis(1)->closestPoint(pt, clo_u, clo_v, clo_w, clopt, dist, 1.0e-5);
+
+  return this->valueFE(ItgPoint(clo_u,clo_v,clo_w),vals);
 }
 
 
