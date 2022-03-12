@@ -79,7 +79,11 @@ protected:
   //! \brief Adds a patch-wise field with the given coefficient values.
   //! \param[in] pch The patch to define the field over
   //! \param[in] coefs Field values
-  virtual void addPatchField(ASMbase* pch, const std::vector<Real>& coefs) = 0;
+  //! \param[in] nf Number of field components
+  //! \param[in] basis Basis to use
+  virtual void addPatchField(ASMbase* pch,
+                             const std::vector<Real>& coefs,
+                             int nf, int basis) = 0;
   //! \brief Clears the field container.
   virtual void clearField() = 0;
 
@@ -121,7 +125,9 @@ protected:
   //! \brief Adds a patch-wise field with the given coefficient values.
   //! \param[in] pch The patch to define the field over
   //! \param[in] coefs Field values
-  virtual void addPatchField(ASMbase* pch, const std::vector<Real>& coefs);
+  virtual void addPatchField(ASMbase* pch,
+                             const std::vector<Real>& coefs,
+                             int, int);
   //! \brief Clears the field container.
   virtual void clearField();
 
@@ -184,7 +190,11 @@ protected:
   //! \brief Adds a patch-wise field with the given coefficient values.
   //! \param[in] pch The patch to define the field over
   //! \param[in] coefs Field values
-  virtual void addPatchField(ASMbase* pch, const std::vector<Real>& coefs);
+  //! \param[in] nf Number of field components
+  //! \param[in] basis Basis to use
+  virtual void addPatchField(ASMbase* pch,
+                             const std::vector<Real>& coefs,
+                             int nf, int basis);
   //! \brief Clears the field container.
   virtual void clearField();
 

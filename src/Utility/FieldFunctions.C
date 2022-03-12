@@ -103,8 +103,12 @@ bool FieldFuncHDF5::load (const std::vector<std::string>& fieldNames,
   size_t nOK = 0;
   size_t nPatches = 0;
 #ifdef HAS_HDF5
+  bool mixedField = basisName.find('-') == std::string::npos;
   std::stringstream str;
-  str << level << "/" << basisName << "/fields/" << fieldNames.front();
+  str << level << "/" << basisName;
+  if (mixedField)
+    str << "-1";
+  str << "/fields/" << fieldNames.front();
   nPatches = hdf5->getFieldSize(str.str());
 #endif
   if (nPatches == 0)
@@ -120,39 +124,63 @@ bool FieldFuncHDF5::load (const std::vector<std::string>& fieldNames,
   for (size_t ip = 0; ip < nPatches; ip++)
   {
     std::stringstream str;
-    str << level << "/" << basisName << "/basis";
+    str << level << "/" << basisName;
+    if (mixedField)
+      str << "-1";
+    str << "/basis";
     if (hdf5->getFieldSize(str.str()))
     {
-      if (patch[ip])
-      {
-        // We have an updated basis at this level, replace current one
-        if (patch[ip]->getNoParamDim() == 2) nFldC2D = patch[ip]->getNoFields();
-        if (patch[ip]->getNoParamDim() == 3) nFldC3D = patch[ip]->getNoFields();
-        delete patch[ip];
+      if (mixedField) {
+        std::vector<unsigned char> nFld(fieldNames.size(), 1);
+        for (size_t i = 1; i <= fieldNames.size(); ++i) {
+          std::string g2;
+          std::stringstream sbasis;
+          sbasis << level << "/" << basisName << '-' << i << "/basis/"<< ip+1;
+          hdf5->readString(sbasis.str(),g2);
+          if (i == 1) {
+            if (g2.compare(0,9,"200 1 0 0") == 0)
+              patch[ip] = ASM2D::create(ASM::Spline,2,nFld);
+            else if (g2.compare(0,9,"700 1 0 0") == 0)
+              patch[ip] = ASM3D::create(ASM::Spline,nFld);
+            else if (g2.compare(0,18,"# LRSPLINE SURFACE") == 0)
+              patch[ip] = ASM2D::create(ASM::LRSpline,2,nFld);
+            else if (g2.compare(0,17,"# LRSPLINE VOLUME") == 0)
+              patch[ip] = ASM3D::create(ASM::LRSpline,nFld);
+          }
+          std::stringstream strg2(g2);
+          patch[ip]->read(strg2, i);
+        }
+      } else {
+        if (patch[ip])
+        {
+          // We have an updated basis at this level, replace current one
+          if (patch[ip]->getNoParamDim() == 2) nFldC2D = patch[ip]->getNoFields();
+          if (patch[ip]->getNoParamDim() == 3) nFldC3D = patch[ip]->getNoFields();
+          delete patch[ip];
+        }
+        std::string g2;
+        std::stringstream sbasis;
+        sbasis << level << "/" << basisName << "/basis/"<< ip+1;
+        hdf5->readString(sbasis.str(),g2);
+        if (g2.compare(0,9,"200 1 0 0") == 0)
+          patch[ip] = ASM2D::create(ASM::Spline,nFldC2D);
+        else if (g2.compare(0,9,"700 1 0 0") == 0)
+          patch[ip] = ASM3D::create(ASM::Spline,nFldC3D);
+        else if (g2.compare(0,18,"# LRSPLINE SURFACE") == 0)
+          patch[ip] = ASM2D::create(ASM::LRSpline,nFldC2D);
+        else if (g2.compare(0,17,"# LRSPLINE VOLUME") == 0)
+          patch[ip] = ASM3D::create(ASM::LRSpline,nFldC3D);
+        else
+          patch[ip] = nullptr;
+        if (patch[ip])
+        {
+          std::stringstream strg2(g2);
+          patch[ip]->read(strg2);
+        }
+        else
+          std::cerr <<" *** FieldFuncHDF5::load: Undefined basis "<< sbasis.str()
+                   <<" ("<< g2.substr(0,9) <<")"<< std::endl;
       }
-      std::string g2;
-      std::stringstream sbasis;
-      sbasis << level << "/" << basisName << "/basis/"<< ip+1;
-      hdf5->readString(sbasis.str(),g2);
-      if (g2.compare(0,9,"200 1 0 0") == 0)
-        patch[ip] = ASM2D::create(ASM::Spline,nFldC2D);
-      else if (g2.compare(0,9,"700 1 0 0") == 0)
-        patch[ip] = ASM3D::create(ASM::Spline,nFldC3D);
-      else if (g2.compare(0,18,"# LRSPLINE SURFACE") == 0)
-        patch[ip] = ASM2D::create(ASM::LRSpline,nFldC2D);
-      else if (g2.compare(0,17,"# LRSPLINE VOLUME") == 0)
-        patch[ip] = ASM3D::create(ASM::LRSpline,nFldC3D);
-      else
-        patch[ip] = nullptr;
-
-      if (patch[ip])
-      {
-        std::stringstream strg2(g2);
-        patch[ip]->read(strg2);
-      }
-      else
-        std::cerr <<" *** FieldFuncHDF5::load: Undefined basis "<< sbasis.str()
-                  <<" ("<< g2.substr(0,9) <<")"<< std::endl;
     }
 
     if (patch[ip])
@@ -161,7 +189,10 @@ bool FieldFuncHDF5::load (const std::vector<std::string>& fieldNames,
       for (size_t i = 0; i < nFldCmp; i++)
       {
         std::stringstream str;
-        str << level << "/" << basisName << "/fields/" << fieldNames[i] << "/" << ip+1;
+        str << level << "/" << basisName;
+        if (mixedField)
+          str << '-' << i+1;
+        str << "/fields/" << fieldNames[i] << "/" << ip+1;
         hdf5->readVector(str.str(),coefs[i]);
 #if SP_DEBUG > 1
         std::cout <<"FieldFuncHDF5::load: Reading \""<< fieldNames[i]
@@ -174,14 +205,25 @@ bool FieldFuncHDF5::load (const std::vector<std::string>& fieldNames,
       if (nFldCmp > 1)
       {
         RealArray coef1;
-        coef1.reserve(nFldCmp*coefs.front().size());
-        for (size_t i = 0; i < coefs.front().size(); i++)
-          for (size_t j = 0; j < nFldCmp; j++)
-            coef1.push_back(coefs[j][i]);
-        this->addPatchField(patch[ip],coef1);
+        int basis, nf;
+        if (mixedField) {
+          for (const RealArray& v : coefs)
+            std::copy(v.begin(), v.end(), std::back_inserter(coef1));
+          basis = nFldCmp == 2 ? 12 : 123;
+          nf = coefs.size();
+        } else {
+          coef1.reserve(nFldCmp*coefs.front().size());
+          for (size_t i = 0; i < coefs.front().size(); i++)
+            for (size_t j = 0; j < nFldCmp; j++)
+              coef1.push_back(coefs[j][i]);
+          basis = 1;
+          nf = patch[ip]->getNoFields(1);
+        }
+        this->addPatchField(patch[ip],coef1,nf,basis);
       }
       else
-        this->addPatchField(patch[ip],coefs.front());
+        this->addPatchField(patch[ip],coefs.front(),
+                            patch[ip]->getNoFields(1),1);
 
       nOK++;
     }
@@ -215,7 +257,9 @@ void FieldFunction::clearField ()
 }
 
 
-void FieldFunction::addPatchField (ASMbase* pch, const RealArray& coefs)
+void FieldFunction::addPatchField (ASMbase* pch,
+                                   const RealArray& coefs,
+                                   int, int)
 {
   field.push_back(Field::create(pch,coefs));
   npch = field.size();
@@ -298,9 +342,12 @@ void FieldsFuncBase::clearField ()
 }
 
 
-void FieldsFuncBase::addPatchField (ASMbase* pch, const RealArray& coefs)
+void FieldsFuncBase::addPatchField (ASMbase* pch,
+                                    const RealArray& coefs,
+                                    int nf,
+                                    int basis)
 {
-  field.push_back(Fields::create(pch,coefs,1,pch->getNoFields(1)));
+  field.push_back(Fields::create(pch,coefs,basis,nf));
   npch = field.size();
 }
 
