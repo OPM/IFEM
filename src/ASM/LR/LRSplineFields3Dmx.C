@@ -18,6 +18,7 @@
 #include "ItgPoint.h"
 #include "CoordinateMapping.h"
 #include "Utilities.h"
+#include "Vec3.h"
 
 
 LRSplineFields3Dmx::LRSplineFields3Dmx (const ASMu3Dmx* patch,
@@ -44,6 +45,18 @@ LRSplineFields3Dmx::LRSplineFields3Dmx (const ASMu3Dmx* patch,
 
 bool LRSplineFields3Dmx::valueNode (size_t node, Vector& vals) const
 {
+  return false;
+}
+
+
+bool LRSplineFields3Dmx::valueCoor (const Vec4& x, Vector& vals) const
+{
+  if (x.u)
+    return this->valueFE(ItgPoint(x.u[0],x.u[1],x.u[2]),vals);
+
+  std::cerr << "** LRSplineFields3Dmx::valueCoor: "
+            << "not implemented without parameters\n";
+
   return false;
 }
 
