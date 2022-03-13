@@ -19,6 +19,7 @@
 class ASMu2D;
 
 namespace LR {
+  class Element;
   class LRSplineSurface;
 }
 

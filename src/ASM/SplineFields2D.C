@@ -14,9 +14,11 @@
 #include "GoTools/geometry/SplineSurface.h"
 
 #include "SplineFields2D.h"
+#include "SplineField.h"
+
 #include "ASMs2D.h"
 #include "ItgPoint.h"
-#include "CoordinateMapping.h"
+#include "SplineUtils.h"
 #include "Utilities.h"
 #include "Vec3.h"
 
@@ -123,56 +125,18 @@ bool SplineFields2D::gradFE (const ItgPoint& x, Matrix& grad) const
   if (!surf)  return false;
 
   // Evaluate the basis functions at the given point
-  Go::BasisDerivsSf spline;
-#pragma omp critical
-  surf->computeBasis(x.u,x.v,spline);
-
-  const int uorder = surf->order_u();
-  const int vorder = surf->order_v();
-  const size_t nen = uorder*vorder;
-
-  Matrix dNdu(nen,2), dNdX;
-  for (size_t n = 1; n <= nen; n++)
-  {
-    dNdu(n,1) = spline.basisDerivs_u[n-1];
-    dNdu(n,2) = spline.basisDerivs_v[n-1];
-  }
-
   std::vector<int> ip;
-  ASMs2D::scatterInd(surf->numCoefs_u(),surf->numCoefs_v(),
-		     uorder,vorder,spline.left_idx,ip);
+  Matrix Xnod, Jac, dNdX;
+  if (!SplineField::evalMapping(*surf,nsd,x,ip,Xnod,Jac,dNdX))
+    return false;
 
-  // Evaluate the Jacobian inverse
-  Matrix Xnod(nsd,ip.size()), Jac;
-  for (size_t i = 0; i < ip.size(); i++)
-    Xnod.fillColumn(1+i,&(*surf->coefs_begin())+surf->dimension()*ip[i]);
-  if (!utl::Jacobian(Jac,dNdX,Xnod,dNdu))
-    return false; // Singular Jacobian
+  if (surf != basis)
+    if (!SplineField::evalBasis(*basis,x,ip,Xnod,Jac,dNdX))
+      return false;
 
-  // Evaluate the gradient of the solution field at the given point
-  if (basis != surf)
-  {
-    // Mixed formulation, the solution uses a different basis than the geometry
-#pragma omp critical
-    basis->computeBasis(x.u,x.v,spline);
-
-    const size_t nbf = basis->order_u()*basis->order_v();
-    dNdu.resize(nbf,2);
-    for (size_t n = 1; n <= nbf; n++)
-    {
-      dNdu(n,1) = spline.basisDerivs_u[n-1];
-      dNdu(n,2) = spline.basisDerivs_v[n-1];
-    }
-    dNdX.multiply(dNdu,Jac); // dNdX = dNdu * Jac
-
-    ip.clear();
-    ASMs2D::scatterInd(basis->numCoefs_u(),basis->numCoefs_v(),
-		       basis->order_u(),basis->order_v(),
-		       spline.left_idx,ip);
-  }
-
-  utl::gather(ip,nf,values,Xnod);
-  return !grad.multiply(Xnod,dNdX).empty(); // grad = Xnod * dNdX
+  Matrix Vnod;
+  utl::gather(ip,nf,values,Vnod);
+  return !grad.multiply(Vnod,dNdX).empty(); // grad = Vnod * dNdX
 }
 
 
@@ -181,45 +145,18 @@ bool SplineFields2D::hessianFE (const ItgPoint& x, Matrix3D& H) const
   if (!basis) return false;
   if (!surf)  return false;
 
-  Go::BasisDerivsSf2 spline2;
-  Matrix3D d2Ndu2;
-  IntVec ip;
+  std::vector<int> ip;
+  Matrix Xnod, Jac, dNdX;
+  Matrix3D d2NdX2, Hess;
+  if (!SplineField::evalMapping(*surf,nsd,x,ip,Xnod,Jac,dNdX,&d2NdX2,&Hess))
+    return false;
 
-  if (surf == basis) {
-#pragma omp critical
-    surf->computeBasis(x.u,x.v,spline2);
-
-    const size_t nen = surf->order_u()*surf->order_v();
-    d2Ndu2.resize(nen,2,2);
-    for (size_t n = 1; n <= nen; n++) {
-      d2Ndu2(n,1,1) = spline2.basisDerivs_uu[n-1];
-      d2Ndu2(n,1,2) = d2Ndu2(n,2,1) = spline2.basisDerivs_uv[n-1];
-      d2Ndu2(n,2,2) = spline2.basisDerivs_vv[n-1];
-    }
-
-    ASMs2D::scatterInd(surf->numCoefs_u(),surf->numCoefs_v(),
-                       surf->order_u(),surf->order_v(),
-                       spline2.left_idx,ip);
-  }
-  else {
-    // Mixed formulation, the solution uses a different basis than the geometry
-#pragma omp critical
-    basis->computeBasis(x.u,x.v,spline2);
-
-    const size_t nbf = basis->order_u()*basis->order_v();
-    d2Ndu2.resize(nbf,2,2);
-    for (size_t n = 1; n <= nbf; n++) {
-      d2Ndu2(n,1,1) = spline2.basisDerivs_uu[n-1];
-      d2Ndu2(n,1,2) = d2Ndu2(n,2,1) = spline2.basisDerivs_uv[n-1];
-      d2Ndu2(n,2,2) = spline2.basisDerivs_vv[n-1];
-    }
-
-    ASMs2D::scatterInd(basis->numCoefs_u(),basis->numCoefs_v(),
-                       basis->order_u(),basis->order_v(),
-                       spline2.left_idx,ip);
-  }
+  if (surf != basis)
+    if (!SplineField::evalBasis(*basis,x,ip,Xnod,Jac,dNdX,&d2NdX2,&Hess))
+      return false;
 
   Matrix Vnod;
   utl::gather(ip,nf,values,Vnod);
-  return H.multiply(Vnod,d2Ndu2);
+
+  return H.multiply(Vnod,d2NdX2);
 }

@@ -14,9 +14,11 @@
 #include "GoTools/trivariate/SplineVolume.h"
 
 #include "SplineFields3D.h"
+#include "SplineField.h"
+
 #include "ASMs3D.h"
 #include "ItgPoint.h"
-#include "CoordinateMapping.h"
+#include "SplineUtils.h"
 #include "Utilities.h"
 #include "Vec3.h"
 
@@ -92,8 +94,8 @@ bool SplineFields3D::valueFE (const ItgPoint& x, Vector& vals) const
   // Evaluate the solution field at the given point
   std::vector<int> ip;
   ASMs3D::scatterInd(basis->numCoefs(0),basis->numCoefs(1),basis->numCoefs(2),
-		     basis->order(0),basis->order(1),basis->order(2),
-		     spline.left_idx,ip);
+                     basis->order(0),basis->order(1),basis->order(2),
+                     spline.left_idx,ip);
 
   Matrix Vnod;
   utl::gather(ip,nf,values,Vnod);
@@ -124,59 +126,19 @@ bool SplineFields3D::gradFE (const ItgPoint& x, Matrix& grad) const
   if (!vol)   return false;
 
   // Evaluate the basis functions at the given point
-  Go::BasisDerivs spline;
-#pragma omp critical
-  vol->computeBasis(x.u,x.v,x.w,spline);
-
-  const int uorder = vol->order(0);
-  const int vorder = vol->order(1);
-  const int worder = vol->order(2);
-  const size_t nen = uorder*vorder*worder;
-
-  Matrix dNdu(nen,3), dNdX;
-  for (size_t n = 1; n <= nen; n++)
-  {
-    dNdu(n,1) = spline.basisDerivs_u[n-1];
-    dNdu(n,2) = spline.basisDerivs_v[n-1];
-    dNdu(n,3) = spline.basisDerivs_w[n-1];
-  }
-
-  std::vector<int> ip;
-  ASMs3D::scatterInd(vol->numCoefs(0),vol->numCoefs(1),vol->numCoefs(2),
-		     uorder,vorder,worder,spline.left_idx,ip);
-
-  // Evaluate the Jacobian inverse
-  Matrix Xnod(nsd,ip.size()), Jac;
-  for (size_t i = 0; i < ip.size(); i++)
-    Xnod.fillColumn(1+i,&(*vol->coefs_begin())+vol->dimension()*ip[i]);
-  if (!utl::Jacobian(Jac,dNdX,Xnod,dNdu))
-    return false; // Singular Jacobian
+  IntVec ip;
+  Matrix Xnod, Jac, dNdX;
+  if (!SplineField::evalMapping(*vol,x,ip,Xnod,Jac,dNdX))
+    return false;
 
   // Evaluate the gradient of the solution field at the given point
   if (basis != vol)
-  {
-    // Mixed formulation, the solution uses a different basis than the geometry
-#pragma omp critical
-    basis->computeBasis(x.u,x.v,x.w,spline);
+    if (!SplineField::evalBasis(*basis,x,ip,Xnod,Jac,dNdX))
+      return false;
 
-    const size_t nbf = basis->order(0)*basis->order(1)*basis->order(2);
-    dNdu.resize(nbf,3);
-    for (size_t n = 1; n <= nbf; n++)
-    {
-      dNdu(n,1) = spline.basisDerivs_u[n-1];
-      dNdu(n,2) = spline.basisDerivs_v[n-1];
-      dNdu(n,3) = spline.basisDerivs_w[n-1];
-    }
-    dNdX.multiply(dNdu,Jac); // dNdX = dNdu * Jac
-
-    ip.clear();
-    ASMs3D::scatterInd(basis->numCoefs(0),basis->numCoefs(1),basis->numCoefs(2),
-		       basis->order(0),basis->order(1),basis->order(2),
-		       spline.left_idx,ip);
-  }
-
-  utl::gather(ip,nf,values,Xnod);
-  return !grad.multiply(Xnod,dNdX).empty(); // grad = Xnod * dNdX
+  Matrix Vnod;
+  utl::gather(ip,nf,values,Vnod);
+  return !grad.multiply(Vnod,dNdX).empty(); // grad = Vnod * dNdX
 }
 
 
@@ -186,50 +148,18 @@ bool SplineFields3D::hessianFE (const ItgPoint& x, Matrix3D& H) const
   if (!vol)  return false;
 
   // Evaluate the basis functions at the given point
-  Go::BasisDerivs2 spline2;
-  Matrix3D d2Ndu2;
   IntVec ip;
-  if (vol == basis) {
-#pragma omp critical
-    vol->computeBasis(x.u,x.v,x.w,spline2);
+  Matrix Xnod, Jac, dNdX;
+  Matrix3D d2NdX2, Hess;
+  if (!SplineField::evalMapping(*vol,x,ip,Xnod,Jac,dNdX,&d2NdX2,&Hess))
+    return false;
 
-    const size_t nen = vol->order(0)*vol->order(1)*vol->order(2);
-    d2Ndu2.resize(nen,3,3);
-    for (size_t n = 1; n <= nen; n++) {
-      d2Ndu2(n,1,1) = spline2.basisDerivs_uu[n-1];
-      d2Ndu2(n,1,2) = d2Ndu2(n,2,1) = spline2.basisDerivs_uv[n-1];
-      d2Ndu2(n,1,3) = d2Ndu2(n,3,1) = spline2.basisDerivs_uw[n-1];
-      d2Ndu2(n,2,2) = spline2.basisDerivs_vv[n-1];
-      d2Ndu2(n,2,3) = d2Ndu2(n,3,2) = spline2.basisDerivs_vw[n-1];
-      d2Ndu2(n,3,3) = spline2.basisDerivs_ww[n-1];
-    }
-
-    ASMs3D::scatterInd(vol->numCoefs(0),vol->numCoefs(1),vol->numCoefs(2),
-		       vol->order(0),vol->order(1),vol->order(2),
-		       spline2.left_idx,ip);
-  }
-  else {
-    // Mixed formulation, the solution uses a different basis than the geometry
-#pragma omp critical
-    basis->computeBasis(x.u,x.v,x.w,spline2);
-
-    const size_t nbf = basis->order(0)*basis->order(1)*basis->order(2);
-    d2Ndu2.resize(nbf,3,3);
-    for (size_t n = 1; n <= nbf; n++) {
-      d2Ndu2(n,1,1) = spline2.basisDerivs_uu[n-1];
-      d2Ndu2(n,1,2) = d2Ndu2(n,2,1) = spline2.basisDerivs_uv[n-1];
-      d2Ndu2(n,1,3) = d2Ndu2(n,3,1) = spline2.basisDerivs_uw[n-1];
-      d2Ndu2(n,2,2) = spline2.basisDerivs_vv[n-1];
-      d2Ndu2(n,2,3) = d2Ndu2(n,3,2) = spline2.basisDerivs_vw[n-1];
-      d2Ndu2(n,3,3) = spline2.basisDerivs_ww[n-1];
-    }
-
-    ASMs3D::scatterInd(basis->numCoefs(0),basis->numCoefs(1),basis->numCoefs(2),
-		       basis->order(0),basis->order(1),basis->order(2),
-		       spline2.left_idx,ip);
-  }
+  if (vol != basis)
+    if (!SplineField::evalBasis(*basis,x,ip,Xnod,Jac,dNdX,&d2NdX2,&Hess))
+      return false;
 
   Matrix Vnod;
   utl::gather(ip,nf,values,Vnod);
-  return H.multiply(Vnod,d2Ndu2);
+
+  return H.multiply(Vnod,d2NdX2);
 }

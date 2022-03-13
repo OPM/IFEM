@@ -19,6 +19,7 @@
 class ASMu3D;
 
 namespace LR {
+  class Element;
   class LRSplineVolume;
 }
 

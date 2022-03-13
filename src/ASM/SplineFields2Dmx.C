@@ -14,9 +14,11 @@
 #include "GoTools/geometry/SplineSurface.h"
 
 #include "SplineFields2Dmx.h"
+#include "SplineField.h"
+
 #include "ASMs2Dmx.h"
 #include "ItgPoint.h"
-#include "CoordinateMapping.h"
+#include "SplineUtils.h"
 #include "Utilities.h"
 #include "Vec3.h"
 
@@ -57,8 +59,11 @@ bool SplineFields2Dmx::valueCoor (const Vec4& x, Vector& vals) const
   // Use with caution, very slow!
   Go::Point pt(x.x,x.y,x.z), clopt(3);
   double clo_u, clo_v, dist;
+  const Go::SplineSurface* geo = surf->getBasis(ASMmxBase::geoBasis);
+  if (!geo)
+    geo = surf->getBasis(1);
 #pragma omp critical
-  surf->getBasis(1)->closestPoint(pt, clo_u, clo_v, clopt, dist, 1.0e-5);
+  geo->closestPoint(pt, clo_u, clo_v, clopt, dist, 1.0e-5);
 
   return this->valueFE(ItgPoint(clo_u,clo_v),vals);
 }
@@ -99,64 +104,71 @@ bool SplineFields2Dmx::valueFE (const ItgPoint& x, Vector& vals) const
 
 bool SplineFields2Dmx::gradFE (const ItgPoint& x, Matrix& grad) const
 {
-  if (!surf)  return false;
+  if (!surf) return false;
 
   // Evaluate the basis functions at the given point
-  Go::BasisDerivsSf spline;
-  const Go::SplineSurface* gsurf = surf->getBasis(ASMmxBase::geoBasis);
-#pragma omp critical
-  gsurf->computeBasis(x.u,x.v,spline);
-
-  const int uorder = gsurf->order_u();
-  const int vorder = gsurf->order_v();
-  const size_t nen = uorder*vorder;
-
-  Matrix dNdu(nen,2), dNdX;
-  for (size_t n = 1; n <= nen; n++)
-  {
-    dNdu(n,1) = spline.basisDerivs_u[n-1];
-    dNdu(n,2) = spline.basisDerivs_v[n-1];
-  }
-
+  Matrix Xnod, Jac, dNdX;
   std::vector<int> ip;
-  ASMs2D::scatterInd(gsurf->numCoefs_u(),gsurf->numCoefs_v(),
-		     uorder,vorder,spline.left_idx,ip);
-
-  // Evaluate the Jacobian inverse
-  Matrix Xnod(surf->getNoSpaceDim(),ip.size()), Jac;
-  for (size_t i = 0; i < ip.size(); i++)
-    Xnod.fillColumn(1+i,&(*gsurf->coefs_begin())+gsurf->dimension()*ip[i]);
-  if (!utl::Jacobian(Jac,dNdX,Xnod,dNdu))
-    return false; // Singular Jacobian
+  const Go::SplineSurface* geo = surf->getBasis(ASMmxBase::geoBasis);
+  if (!geo)
+    geo = surf->getBasis(1);
+  if (!SplineField::evalMapping(*geo,surf->getNoSpaceDim(),x,ip,Xnod,Jac,dNdX))
+    return false;
 
   // Evaluate the gradient of the solution field at the given point
   auto vit = values.begin();
   size_t row = 1;
+  grad.resize(2,2);
   for (int b : bases) {
     const Go::SplineSurface* basis = surf->getBasis(b);
-#pragma omp critical
-    basis->computeBasis(x.u,x.v,spline);
-
-    const size_t nbf = basis->order_u()*basis->order_v();
-    dNdu.resize(nbf,2);
-    for (size_t n = 1; n <= nbf; n++)
-    {
-      dNdu(n,1) = spline.basisDerivs_u[n-1];
-      dNdu(n,2) = spline.basisDerivs_v[n-1];
-    }
-    dNdX.multiply(dNdu,Jac); // dNdX = dNdu * Jac
-
-    ip.clear();
-    ASMs2D::scatterInd(basis->numCoefs_u(),basis->numCoefs_v(),
-		       basis->order_u(),basis->order_v(),
-		       spline.left_idx,ip);
+    if (!SplineField::evalBasis(*basis,x,ip,Xnod,Jac,dNdX))
+      return false;
 
     const size_t nval = surf->getNoNodes(b)*surf->getNoFields(b);
-    utl::gather(ip,1,Vector(&*vit,nval),Xnod);
+    Matrix Vnod;
+    utl::gather(ip,1,Vector(&*vit,nval),Vnod);
     Matrix grad2;
-    grad2.multiply(Xnod,dNdX); // grad = Xnod * dNdX
+    grad2.multiply(Vnod,dNdX); // grad = Vnod * dNdX
     grad(row,1) = grad2(1,1);
     grad(row++,2) = grad2(1,2);
+    vit += nval;
+  }
+
+  return true;
+}
+
+
+bool SplineFields2Dmx::hessianFE (const ItgPoint& x, Matrix3D& H) const
+{
+  if (!surf)  return false;
+
+  // Evaluate the basis functions at the given point
+  Matrix Xnod, Jac, dNdX;
+  Matrix3D d2NdX2, Hess;
+  std::vector<int> ip;
+  const Go::SplineSurface* geo = surf->getBasis(ASMmxBase::geoBasis);
+  if (!geo)
+    geo = surf->getBasis(1);
+  if (!SplineField::evalMapping(*geo,surf->getNoSpaceDim(),x,ip,Xnod,Jac,dNdX,&d2NdX2,&Hess))
+    return false;
+
+  H.resize(2,2,2);
+  auto vit = values.begin();
+  for (int b : bases) {
+    const Go::SplineSurface* basis = surf->getBasis(b);
+    if (!SplineField::evalBasis(*basis,x,ip,Xnod,Jac,dNdX,&d2NdX2,&Hess))
+      return false;
+
+    const size_t nval = surf->getNoNodes(b)*surf->getNoFields(b);
+    Matrix Vnod;
+    utl::gather(ip,1,Vector(&*vit,nval),Vnod);
+
+    Matrix3D hess(1,2,2);
+    hess.multiply(Vnod,d2NdX2);
+    for (size_t i = 1; i <= 2; ++i)
+      for (size_t j = 1; j <= 2; ++j)
+        H(b,i,j) = hess(1,i,j);
+
     vit += nval;
   }
 
