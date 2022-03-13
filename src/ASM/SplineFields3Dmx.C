@@ -14,9 +14,11 @@
 #include "GoTools/trivariate/SplineVolume.h"
 
 #include "SplineFields3Dmx.h"
+#include "SplineField.h"
+
 #include "ASMs3Dmx.h"
 #include "ItgPoint.h"
-#include "CoordinateMapping.h"
+#include "SplineUtils.h"
 #include "Utilities.h"
 #include "Vec3.h"
 
@@ -57,8 +59,11 @@ bool SplineFields3Dmx::valueCoor (const Vec4& x, Vector& vals) const
   // Use with caution, very slow!
   Go::Point pt(x.x,x.y,x.z), clopt(3);
   double clo_u, clo_v, clo_w, dist;
+  const Go::SplineVolume* geo = svol->getBasis(ASMmxBase::geoBasis);
+  if (!geo)
+    geo = svol->getBasis(1);
 #pragma omp critical
-  svol->getBasis(1)->closestPoint(pt, clo_u, clo_v, clo_w, clopt, dist, 1.0e-5);
+  geo->closestPoint(pt, clo_u, clo_v, clo_w, clopt, dist, 1.0e-5);
 
   return this->valueFE(ItgPoint(clo_u,clo_v,clo_w),vals);
 }
@@ -103,57 +108,22 @@ bool SplineFields3Dmx::gradFE (const ItgPoint& x, Matrix& grad) const
   if (!svol)  return false;
 
   // Evaluate the basis functions at the given point
-  Go::BasisDerivs spline;
-  const Go::SplineVolume* gvol = svol->getBasis(ASMmxBase::geoBasis);
-#pragma omp critical
-  gvol->computeBasis(x.u,x.v,x.w,spline);
-
-  const int uorder = gvol->order(0);
-  const int vorder = gvol->order(1);
-  const int worder = gvol->order(2);
-  const size_t nen = uorder*vorder*worder;
-
-  Matrix dNdu(nen,3), dNdX;
-  for (size_t n = 1; n <= nen; n++)
-  {
-    dNdu(n,1) = spline.basisDerivs_u[n-1];
-    dNdu(n,2) = spline.basisDerivs_v[n-1];
-    dNdu(n,3) = spline.basisDerivs_w[n-1];
-  }
-
-  IntVec ip;
-  ASMs3D::scatterInd(gvol->numCoefs(0),gvol->numCoefs(1),gvol->numCoefs(2),
-		     uorder,vorder,worder,spline.left_idx,ip);
-
-  // Evaluate the Jacobian inverse
-  Matrix Xnod(svol->getNoSpaceDim(),ip.size()), Jac;
-  for (size_t i = 0; i < ip.size(); i++)
-    Xnod.fillColumn(1+i,&(*gvol->coefs_begin())+gvol->dimension()*ip[i]);
-  if (!utl::Jacobian(Jac,dNdX,Xnod,dNdu))
-    return false; // Singular Jacobian
+  Matrix Xnod, Jac, dNdX;
+  std::vector<int> ip;
+  const Go::SplineVolume* geo = svol->getBasis(ASMmxBase::geoBasis);
+  if (!geo)
+    geo = svol->getBasis(1);
+  if (!SplineField::evalMapping(*geo,x,ip,Xnod,Jac,dNdX))
+    return false;
 
   // Evaluate the gradient of the solution field at the given point
   auto vit = values.begin();
   size_t row = 1;
+  grad.resize(3,3);
   for (int b : bases) {
     const Go::SplineVolume* basis = svol->getBasis(b);
-#pragma omp critical
-    basis->computeBasis(x.u,x.v,x.w,spline);
-
-    const size_t nbf = basis->order(0)*basis->order(1)*basis->order(2);
-    dNdu.resize(nbf,3);
-    for (size_t n = 1; n <= nbf; n++)
-    {
-      dNdu(n,1) = spline.basisDerivs_u[n-1];
-      dNdu(n,2) = spline.basisDerivs_v[n-1];
-      dNdu(n,3) = spline.basisDerivs_w[n-1];
-    }
-    dNdX.multiply(dNdu,Jac); // dNdX = dNdu * Jac
-
-    ip.clear();
-    ASMs3D::scatterInd(basis->numCoefs(0),basis->numCoefs(1),basis->numCoefs(2),
-		       basis->order(0),basis->order(1),basis->order(2),
-		       spline.left_idx,ip);
+    if (!SplineField::evalBasis(*basis,x,ip,Xnod,Jac,dNdX))
+      return false;
 
     const size_t nval = svol->getNoNodes(b)*svol->getNoFields(b);
     utl::gather(ip,1,Vector(&*vit,nval),Xnod);
@@ -162,6 +132,43 @@ bool SplineFields3Dmx::gradFE (const ItgPoint& x, Matrix& grad) const
     grad(row,1) = grad2(1,1);
     grad(row,2) = grad2(1,2);
     grad(row++,3) = grad2(1,3);
+    vit += nval;
+  }
+
+  return true;
+}
+
+
+bool SplineFields3Dmx::hessianFE (const ItgPoint& x, Matrix3D& H) const
+{
+  if (!svol)  return false;
+
+  Matrix Xnod, Jac, dNdX;
+  Matrix3D d2NdX2, Hess;
+  std::vector<int> ip;
+  const Go::SplineVolume* geo = svol->getBasis(ASMmxBase::geoBasis);
+  if (!geo)
+    geo = svol->getBasis(1);
+  if (!SplineField::evalMapping(*geo,x,ip,Xnod,Jac,dNdX,&d2NdX2,&Hess))
+    return false;
+
+  H.resize(3,3,3);
+  auto vit = values.begin();
+  for (int b : bases) {
+    const Go::SplineVolume* basis = svol->getBasis(b);
+    if (!SplineField::evalBasis(*basis,x,ip,Xnod,Jac,dNdX,&d2NdX2,&Hess))
+      return false;
+
+    const size_t nval = svol->getNoNodes(b)*svol->getNoFields(b);
+    Matrix Vnod;
+    utl::gather(ip,1,Vector(&*vit,nval),Vnod);
+
+    Matrix3D hess(1,3,3);
+    hess.multiply(Vnod,d2NdX2);
+    for (size_t i = 1; i <= 3; ++i)
+      for (size_t j = 1; j <= 3; ++j)
+        H(b,i,j) = hess(1,i,j);
+
     vit += nval;
   }
 

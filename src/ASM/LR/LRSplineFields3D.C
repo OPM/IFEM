@@ -14,9 +14,11 @@
 #include "LRSpline/LRSplineVolume.h"
 
 #include "LRSplineFields3D.h"
+#include "LRSplineField.h"
+
 #include "ASMu3D.h"
 #include "ItgPoint.h"
-#include "CoordinateMapping.h"
+#include "SplineUtils.h"
 #include "Vec3.h"
 
 
@@ -84,10 +86,11 @@ bool LRSplineFields3D::valueFE (const ItgPoint& x, Vector& vals) const
   // Evaluate the solution field at the given point
   Matrix Vnod(nf, elm->nBasisFunctions());
   size_t i = 1;
-  for (auto it  = elm->constSupportBegin();
-            it != elm->constSupportEnd(); ++it, ++i)
+  for (const LR::Basisfunction* f : elm->support()) {
     for (size_t j = 1; j <= nf; ++j)
-      Vnod(j,i) = values((*it)->getId()*nf+j);
+      Vnod(j,i) = values(f->getId()*nf+j);
+    ++i;
+  }
 
   Vnod.multiply(spline.basisValues,vals); // vals = Vnod * basisValues
 
@@ -110,64 +113,23 @@ bool LRSplineFields3D::gradFE (const ItgPoint& x, Matrix& grad) const
   if (!vol)   return false;
 
   // Evaluate the basis functions at the given point
-  int iel = vol->getElementContaining(x.u,x.v,x.w);
-  auto elm = vol->getElement(iel);
-  Go::BasisDerivs spline;
-  vol->computeBasis(x.u,x.v,x.w,spline,iel);
-
-  const size_t nen = elm->nBasisFunctions();
-
-  Matrix dNdu(nen,3), dNdX;
-  for (size_t n = 1; n <= nen; n++)
-  {
-    dNdu(n,1) = spline.basisDerivs_u[n-1];
-    dNdu(n,2) = spline.basisDerivs_v[n-1];
-    dNdu(n,3) = spline.basisDerivs_w[n-1];
-  }
-
-  Matrix Xnod(3, nen), Jac;
-  size_t i = 1;
-  for (auto it  = elm->constSupportBegin();
-            it != elm->constSupportEnd(); ++it, ++i)
-    for (size_t j = 1; j <= 3; ++j)
-      Xnod(j,i) = (*it)->cp(j-1);
-
-  // Evaluate the Jacobian inverse
-  utl::Jacobian(Jac,dNdX,Xnod,dNdu);
+  Matrix Xnod, Jac, dNdX;
+  const LR::Element* elm;
+  if (!LRSplineField::evalMapping(*vol,x,elm,Xnod,Jac,dNdX))
+    return false;
 
   // Evaluate the gradient of the solution field at the given point
   Matrix Vnod;
   if (basis != vol)
-  {
-    // Mixed formulation, the solution uses a different basis than the geometry
-    int iel = basis->getElementContaining(x.u,x.v,x.w);
-    auto belm = basis->getElement(iel);
-    basis->computeBasis(x.u,x.v,x.w,spline,iel);
+    if (!LRSplineField::evalBasis(*basis,x,elm,Xnod,Jac,dNdX))
+      return false;
 
-    const size_t nbf = belm->nBasisFunctions();
-    dNdu.resize(nbf,3);
-    for (size_t n = 1; n <= nbf; n++)
-    {
-      dNdu(n,1) = spline.basisDerivs_u[n-1];
-      dNdu(n,2) = spline.basisDerivs_v[n-1];
-      dNdu(n,3) = spline.basisDerivs_w[n-1];
-    }
-    dNdX.multiply(dNdu,Jac); // dNdX = dNdu * Jac
-
-    Vnod.resize(nf, nbf);
-    i = 1;
-    for (auto it  = belm->constSupportBegin();
-              it != belm->constSupportEnd(); ++it, ++i)
-      for (size_t j = 1; j <= nf; ++j)
-        Vnod(j,i) = values((*it)->getId()*nf+j);
-  }
-  else {
-    Vnod.resize(nf, nen);
-    i = 1;
-    for (auto it  = elm->constSupportBegin();
-              it != elm->constSupportEnd(); ++it, ++i)
-      for (size_t j = 1; j <= nf; ++j)
-        Vnod(j,i) = values((*it)->getId()*nf+j);
+  Vnod.resize(nf, elm->nBasisFunctions());
+  size_t i = 1;
+  for (const LR::Basisfunction* f : elm->support()) {
+    for (size_t j = 1; j <= nf; ++j)
+      Vnod(j,i) = values(f->getId()*nf+j);
+    ++i;
   }
 
   grad.multiply(Vnod,dNdX); // grad = Vnod * dNdX
@@ -181,89 +143,24 @@ bool LRSplineFields3D::hessianFE (const ItgPoint& x, Matrix3D& H) const
   if (!basis) return false;
   if (!vol)  return false;
 
-  int iel = vol->getElementContaining(x.u,x.v,x.w);
-  auto elm = vol->getElement(iel);
-  const size_t nen = elm->nBasisFunctions();
-
   // Evaluate the basis functions at the given point
-  Go::BasisDerivs  spline;
-  Go::BasisDerivs2 spline2;
-  Matrix3D d2Ndu2;
-  Matrix dNdu, dNdX;
-  Matrix Xnod(3, nen), Jac, Vnod;
+  Matrix Xnod, Jac, dNdX;
+  const LR::Element* elm;
+  Matrix3D Hess, d2NdX2;
+  if (!LRSplineField::evalMapping(*vol,x,elm,Xnod,Jac,dNdX,&d2NdX2,&Hess))
+    return false;
+
+  if (vol != basis)
+    if (!LRSplineField::evalBasis(*basis,x,elm,Xnod,Jac,dNdX,&d2NdX2,&Hess))
+      return false;
+
+  Matrix Vnod(nf, elm->nBasisFunctions());
   size_t i = 1;
-  for (auto it  = elm->constSupportBegin();
-            it != elm->constSupportEnd(); ++it, ++i)
-    for (size_t j = 1; j <= 3; ++j)
-      Xnod(j,i) = (*it)->cp(j-1);
-
-  if (vol == basis) {
-    vol->computeBasis(x.u,x.v,x.w,spline2,iel);
-
-    dNdu.resize(nen,3);
-    d2Ndu2.resize(nen,3,3);
-    for (size_t n = 1; n <= nen; n++) {
-      dNdu(n,1) = spline2.basisDerivs_u[n-1];
-      dNdu(n,2) = spline2.basisDerivs_v[n-1];
-      dNdu(n,3) = spline2.basisDerivs_w[n-1];
-      d2Ndu2(n,1,1) = spline2.basisDerivs_uu[n-1];
-      d2Ndu2(n,1,2) = d2Ndu2(n,2,1) = spline2.basisDerivs_uv[n-1];
-      d2Ndu2(n,1,3) = d2Ndu2(n,3,1) = spline2.basisDerivs_uw[n-1];
-      d2Ndu2(n,2,2) = spline2.basisDerivs_vv[n-1];
-      d2Ndu2(n,2,3) = d2Ndu2(n,3,2) = spline2.basisDerivs_vw[n-1];
-      d2Ndu2(n,3,3) = spline2.basisDerivs_ww[n-1];
-    }
-
-    Vnod.resize(nf, nen);
-    i = 1;
-    for (auto it  = elm->constSupportBegin();
-              it != elm->constSupportEnd(); ++it, ++i)
-      for (size_t j = 1; j <= nf; ++j)
-        Vnod(j,i) = values((*it)->getId()*nf+j);
-  }
-  else {
-    vol->computeBasis(x.u,x.v,x.w,spline,iel);
-
-    dNdu.resize(nen,3);
-    for (size_t n = 1; n <= nen; n++) {
-      dNdu(n,1) = spline.basisDerivs_u[n-1];
-      dNdu(n,2) = spline.basisDerivs_v[n-1];
-      dNdu(n,3) = spline.basisDerivs_w[n-1];
-    }
+  for (const LR::Basisfunction* f : elm->support()) {
+    for (size_t j = 1; j <= nf; ++j)
+      Vnod(j,i) = values(f->getId()*nf+j);
+    ++i;
   }
 
-  // Evaluate the Jacobian inverse
-  utl::Jacobian(Jac,dNdX,Xnod,dNdu);
-
-  // Evaluate the gradient of the solution field at the given point
-  if (basis != vol) {
-    // Mixed formulation, the solution uses a different basis than the geometry
-    int iel = basis->getElementContaining(x.u,x.v,x.w);
-    auto belm = basis->getElement(iel);
-    basis->computeBasis(x.u,x.v,x.w,spline2,iel);
-
-    const size_t nbf = belm->nBasisFunctions();
-    dNdu.resize(nbf,3);
-    d2Ndu2.resize(nbf,3,3);
-    for (size_t n = 1; n <= nbf; n++) {
-      dNdu(n,1) = spline2.basisDerivs_u[n-1];
-      dNdu(n,2) = spline2.basisDerivs_v[n-1];
-      dNdu(n,3) = spline2.basisDerivs_w[n-1];
-      d2Ndu2(n,1,1) = spline2.basisDerivs_uu[n-1];
-      d2Ndu2(n,1,2) = d2Ndu2(n,2,1) = spline2.basisDerivs_uv[n-1];
-      d2Ndu2(n,1,3) = d2Ndu2(n,3,1) = spline2.basisDerivs_uw[n-1];
-      d2Ndu2(n,2,2) = spline2.basisDerivs_vv[n-1];
-      d2Ndu2(n,2,3) = d2Ndu2(n,3,2) = spline2.basisDerivs_vw[n-1];
-      d2Ndu2(n,3,3) = spline2.basisDerivs_ww[n-1];
-    }
-
-    Vnod.resize(nf, nbf);
-    i = 1;
-    for (auto it  = belm->constSupportBegin();
-              it != belm->constSupportEnd(); ++it, ++i)
-      for (size_t j = 1; j <= nf; ++j)
-        Vnod(j,i) = values((*it)->getId()*nf+j);
-  }
-
-  return H.multiply(Vnod,d2Ndu2);
+  return H.multiply(Vnod,d2NdX2);
 }

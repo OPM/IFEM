@@ -67,6 +67,11 @@ public:
   //! \param[out] grad Gradient of solution in a given local coordinate
   bool gradFE(const ItgPoint& x, Matrix& grad) const;
 
+  //! \brief Computes the hessian for a given local coordinate.
+  //! \param[in] x Local coordinate of evaluation point
+  //! \param[out] H Hessian of solution in a given local coordinate
+  virtual bool hessianFE(const ItgPoint& x, Matrix3D& H) const;
+
 protected:
   const ASMs2Dmx* surf; //!< Patch description
   std::set<int>  bases; //!< Bases to use
