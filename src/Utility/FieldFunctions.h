@@ -30,6 +30,9 @@ class ProcessAdm;
 
 class FieldFuncBase
 {
+public:
+  static constexpr int FIXED_LEVEL = 1 << 24; //!< Bit flag in level for using fixed
+
 protected:
   //! \brief Default constructor.
   FieldFuncBase() : pidx(0), npch(0) {}
@@ -87,11 +90,13 @@ protected:
   //! \brief Clears the field container.
   virtual void clearField() = 0;
 
+  bool hasMultipleLevels; //!< True if we have multiple time levels
+  mutable int lastLevel; //!< The last time level read from
+
 private:
   HDF5Reader* hdf5; //!< The HDF5-file containing the field data
   ProcessAdm* pAdm; //!< Process administrator for the HDF5-file reader
 
-  mutable int    lastLevel; //!< The last time level read from
   mutable double lastTime;  //!< The time of \a lastLevel
 };
 

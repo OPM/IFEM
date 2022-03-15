@@ -50,6 +50,7 @@ FieldFuncHDF5::FieldFuncHDF5 (const std::string& fName)
 {
   lastLevel = 0;
   lastTime = 0.0;
+  hasMultipleLevels = true;
 #ifdef HAS_HDF5
   pAdm = new ProcessAdm();
   hdf5 = new HDF5Reader(fName,*pAdm);
@@ -69,6 +70,7 @@ FieldFuncHDF5::~FieldFuncHDF5 ()
 
 int FieldFuncHDF5::findClosestLevel (double time) const
 {
+  if (!hasMultipleLevels) return lastLevel;
   if (time == lastTime) return lastLevel;
 #ifdef HAS_HDF5
   double t;
@@ -102,6 +104,11 @@ bool FieldFuncHDF5::load (const std::vector<std::string>& fieldNames,
 {
   size_t nOK = 0;
   size_t nPatches = 0;
+  if (level & FIXED_LEVEL) {
+    hasMultipleLevels = false;
+    level = level & ~FIXED_LEVEL;
+    lastLevel = level;
+  }
 #ifdef HAS_HDF5
   bool mixedField = basisName.find('-') == std::string::npos;
   std::stringstream str;
@@ -246,6 +253,8 @@ FieldFunction::FieldFunction (const std::string& fileName,
 {
   if (level >= 0)
     this->load({fieldName},basisName,level,true);
+  if (!hasMultipleLevels)
+    currentLevel = lastLevel;
 }
 
 
@@ -331,6 +340,8 @@ FieldsFuncBase::FieldsFuncBase (const std::string& fileName,
 {
   if (level >= 0)
     this->load(fName,basisName,level);
+  if (!hasMultipleLevels)
+    currentLevel = lastLevel;
 }
 
 
