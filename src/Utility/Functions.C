@@ -17,6 +17,7 @@
 #include "FieldFunctions.h"
 #include "TensorFunction.h"
 #include "TractionField.h"
+#include "StringUtils.h"
 #include "Utilities.h"
 #include "Vec3Oper.h"
 #include "IFEM.h"
@@ -606,9 +607,16 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A, bool print)
         std::string basis, field;
         basis = strtok(nullptr," ");
         field = strtok(nullptr," ");
+        char* lev = strtok(nullptr, " ");
+        int level = 0;
+        if (lev) {
+          level = atoi(lev);
+          if (strstr(lev,"f"))
+            level |= FieldFuncBase::FIXED_LEVEL;
+        }
         if (print)
           IFEM::cout <<"Field("<< cline <<","<< basis <<","<< field <<")";
-        f = new FieldFunction(cline,basis,field);
+        f = new FieldFunction(cline,basis,field,level);
       }
       break;
     case 10:
@@ -885,6 +893,36 @@ VecFunc* utl::parseVecFunc (const std::string& func, const std::string& type,
     return new ChebyshevVecFunc(splitValue(func),false);
   else if (type == "chebyshev2")
     return new ChebyshevVecFunc(splitValue(func),true);
+  else if (type == "field") {
+    std::vector<std::string> params = splitString(func);
+    if (params.size() < 3)
+      return nullptr;
+    int level = 0;
+    if (params.size() > 3) {
+     level = atoi(params[3].c_str());
+     if (params[3].find('f' != std::string::npos))
+       level |= FieldFuncBase::FIXED_LEVEL;
+    }
+    return new VecFieldFunction(params[0],params[1],params[2],level);
+  } else if (type == "fieldgrad") {
+    std::vector<std::string> params = splitString(func);
+    int level = 0;
+    if (params.size() > 3) {
+     level = atoi(params[3].c_str());
+     if (params[3].find('f' != std::string::npos))
+       level |= FieldFuncBase::FIXED_LEVEL;
+    }
+    return new ScalarGradFieldFunction(params[0],params[1],params[2],level);
+  } else if (type == "fieldlaplacian") {
+    std::vector<std::string> params = splitString(func);
+    int level = 0;
+    if (params.size() > 3) {
+     level = atoi(params[3].c_str());
+     if (params[3].find('f' != std::string::npos))
+       level |= FieldFuncBase::FIXED_LEVEL;
+    }
+    return new ScalarLaplacianFieldFunction(params[0],params[1],params[2],level);
+  }
 
   return nullptr;
 }
@@ -897,6 +935,25 @@ TensorFunc* utl::parseTensorFunc (const std::string& func,
     return new ChebyshevTensorFunc(splitValue(func),false);
   else if (type == "chebyshev2")
     return new ChebyshevTensorFunc(splitValue(func),true);
+  else if (type == "fieldgrad") {
+    std::vector<std::string> params = splitString(func);
+    int level = 0;
+    if (params.size() > 3) {
+     level = atoi(params[3].c_str());
+     if (params[3].find('f' != std::string::npos))
+       level |= FieldFuncBase::FIXED_LEVEL;
+    }
+    return new VecGradFieldFunction(params[0],params[1],params[2],level);
+  } else if (type == "fieldlaplacian") {
+    std::vector<std::string> params = splitString(func);
+    int level = 0;
+    if (params.size() > 3) {
+     level = atoi(params[3].c_str());
+     if (params[3].find('f' != std::string::npos))
+       level |= FieldFuncBase::FIXED_LEVEL;
+    }
+    return new VecLaplacianFieldFunction(params[0],params[1],params[2],level);
+  }
 
   return nullptr;
 }

@@ -102,10 +102,48 @@ private:
 
 
 /*!
+  \brief Base class for field functions derived from a scalar field.
+*/
+
+class FieldFuncScalarBase : protected FieldFuncHDF5
+{
+public:
+  //! \brief The constructor creates a field from the provided HDF5-file.
+  //! \param[in] fileName Name of the HDF5-file
+  //! \param[in] basisName Name of the basis which the field values refer to
+  //! \param[in] fieldName Name of the field in the HDF5-file
+  //! \param[in] level Time level to read for
+  FieldFuncScalarBase(const std::string& fileName,
+                      const std::string& basisName,
+                      const std::string& fieldName,
+                      int level = 0);
+  //! \brief The destructor deletes the scalar fields.
+  virtual ~FieldFuncScalarBase() { this->clearField(); }
+
+protected:
+  //! \brief Adds a patch-wise field with the given coefficient values.
+  //! \param[in] pch The patch to define the field over
+  //! \param[in] coefs Field values
+  virtual void addPatchField(ASMbase* pch,
+                             const std::vector<Real>& coefs,
+                             int, int);
+  //! \brief Clears the field container.
+  virtual void clearField();
+
+  mutable int currentLevel; //!< Current time level to evaluate at
+
+  std::string fName; //!< Name of field
+  std::string bName; //!< Name of basis
+
+  std::vector<Field*> field; //!< The scalar field to be evaluated
+};
+
+
+/*!
   \brief A scalar-valued spatial function, defined through scalar fields.
 */
 
-class FieldFunction : public RealFunc, private FieldFuncHDF5
+class FieldFunction : public RealFunc, public FieldFuncScalarBase
 {
 public:
   //! \brief The constructor creates a field from the provided HDF5-file.
@@ -117,8 +155,8 @@ public:
                 const std::string& basisName,
                 const std::string& fieldName,
                 int level = 0);
-  //! \brief The destructor deletes the scalar fields.
-  virtual ~FieldFunction() { this->clearField(); }
+  //! \brief Empty destructor.
+  virtual ~FieldFunction() {}
 
   //! \brief Sets the active patch.
   virtual bool initPatch(size_t pIdx) { return this->setPatch(pIdx); }
@@ -126,23 +164,6 @@ public:
 protected:
   //! \brief Evaluates the scalar field function.
   virtual Real evaluate(const Vec3& X) const;
-
-  //! \brief Adds a patch-wise field with the given coefficient values.
-  //! \param[in] pch The patch to define the field over
-  //! \param[in] coefs Field values
-  virtual void addPatchField(ASMbase* pch,
-                             const std::vector<Real>& coefs,
-                             int, int);
-  //! \brief Clears the field container.
-  virtual void clearField();
-
-private:
-  mutable int currentLevel; //!< Current time level to evaluate at
-
-  std::string fName; //!< Name of field
-  std::string bName; //!< Name of basis
-
-  std::vector<Field*> field; //!< The scalar field to be evaluated
 };
 
 
@@ -263,6 +284,118 @@ public:
                       int level = 0);
   //! \brief Empty destructor.
   virtual ~TensorFieldFunction() {}
+
+  //! \brief Sets the active patch.
+  virtual bool initPatch(size_t pIdx) { return this->setPatch(pIdx); }
+
+protected:
+  //! \brief Evaluates the tensorial field function.
+  virtual Tensor evaluate(const Vec3& X) const;
+};
+
+
+/*!
+  \brief A vector-valued spatial function, defined through gradient of a scalar field.
+*/
+
+class ScalarGradFieldFunction : public VecFunc, private FieldFuncScalarBase
+{
+public:
+  //! \brief The constructor creates a field from the provided HDF5-file.
+  //! \param[in] fileName Name of the HDF5-file
+  //! \param[in] basisName Name of the basis which the field values refer to
+  //! \param[in] fieldName Name of the field in the HDF5-file
+  //! \param[in] level Time level to read for
+  ScalarGradFieldFunction(const std::string& fileName,
+                          const std::string& basisName,
+                          const std::string& fieldName,
+                          int level = 0);
+  //! \brief Empty destructor.
+  virtual ~ScalarGradFieldFunction() {}
+
+  //! \brief Sets the active patch.
+  virtual bool initPatch(size_t pIdx) { return this->setPatch(pIdx); }
+
+protected:
+  //! \brief Evaluates the vectorial field function.
+  virtual Vec3 evaluate(const Vec3& X) const;
+};
+
+
+/*!
+  \brief A vector-valued spatial function, defined through laplacian of a scalar field.
+*/
+
+class ScalarLaplacianFieldFunction : public VecFunc, private FieldFuncScalarBase
+{
+public:
+  //! \brief The constructor creates a field from the provided HDF5-file.
+  //! \param[in] fileName Name of the HDF5-file
+  //! \param[in] basisName Name of the basis which the field values refer to
+  //! \param[in] fieldName Name of the field in the HDF5-file
+  //! \param[in] level Time level to read for
+  ScalarLaplacianFieldFunction(const std::string& fileName,
+                               const std::string& basisName,
+                               const std::string& fieldName,
+                               int level = 0);
+  //! \brief Empty destructor.
+  virtual ~ScalarLaplacianFieldFunction() {}
+
+  //! \brief Sets the active patch.
+  virtual bool initPatch(size_t pIdx) { return this->setPatch(pIdx); }
+
+protected:
+  //! \brief Evaluates the vectorial field function.
+  virtual Vec3 evaluate(const Vec3& X) const;
+};
+
+
+/*!
+  \brief A tensor-valued spatial function, defined through gradient of a vector field.
+*/
+
+class VecGradFieldFunction : public TensorFunc, private FieldsFuncBase
+{
+public:
+  //! \brief The constructor creates a field from the provided HDF5-file.
+  //! \param[in] fileName Name of the HDF5-file
+  //! \param[in] basisName Name of the basis which the field values refer to
+  //! \param[in] fieldName Name of the field in the HDF5-file
+  //! \param[in] level Time level to read for
+  VecGradFieldFunction(const std::string& fileName,
+                       const std::string& basisName,
+                       const std::string& fieldName,
+                       int level = 0);
+  //! \brief Empty destructor.
+  virtual ~VecGradFieldFunction() {}
+
+  //! \brief Sets the active patch.
+  virtual bool initPatch(size_t pIdx) { return this->setPatch(pIdx); }
+
+protected:
+  //! \brief Evaluates the tensorial field function.
+  virtual Tensor evaluate(const Vec3& X) const;
+};
+
+
+/*!
+  \brief A tensor-valued spatial function, defined through laplacian of a vector field.
+  \details Laplacian refers to the hessian without cross terms.
+*/
+class VecLaplacianFieldFunction : public TensorFunc, private FieldsFuncBase
+{
+public:
+  //! \brief The constructor creates a field from the provided HDF5-file.
+  //! \param[in] fileName Name of the HDF5-file
+  //! \param[in] basisName Name of the basis which the field values refer to
+  //! \param[in] fieldName Name of the field in the HDF5-file
+  //! \param[in] level Time level to read for
+  VecLaplacianFieldFunction(const std::string& fileName,
+                            const std::string& basisName,
+                            const std::string& fieldName,
+                            int level = 0);
+  //! \brief Empty destructor.
+  virtual ~VecLaplacianFieldFunction() {}
 
   //! \brief Sets the active patch.
   virtual bool initPatch(size_t pIdx) { return this->setPatch(pIdx); }

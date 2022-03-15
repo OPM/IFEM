@@ -17,6 +17,7 @@
 #include "ASM3D.h"
 #include "Field.h"
 #include "Fields.h"
+#include "ItgPoint.h"
 #include "Vec3.h"
 #include "StringUtils.h"
 #ifdef HAS_HDF5
@@ -244,10 +245,11 @@ bool FieldFuncHDF5::load (const std::vector<std::string>& fieldNames,
 }
 
 
-FieldFunction::FieldFunction (const std::string& fileName,
-                              const std::string& basisName,
-                              const std::string& fieldName,
-                              int level)
+FieldFuncScalarBase::
+FieldFuncScalarBase (const std::string& fileName,
+                     const std::string& basisName,
+                     const std::string& fieldName,
+                     int level)
   : FieldFuncHDF5(fileName), currentLevel(level),
     fName(fieldName), bName(basisName)
 {
@@ -258,7 +260,7 @@ FieldFunction::FieldFunction (const std::string& fileName,
 }
 
 
-void FieldFunction::clearField ()
+void FieldFuncScalarBase::clearField ()
 {
   for (Field* f : field) delete f;
   field.clear();
@@ -266,12 +268,21 @@ void FieldFunction::clearField ()
 }
 
 
-void FieldFunction::addPatchField (ASMbase* pch,
-                                   const RealArray& coefs,
-                                   int, int)
+void FieldFuncScalarBase::addPatchField (ASMbase* pch,
+                                         const RealArray& coefs,
+                                         int, int)
 {
   field.push_back(Field::create(pch,coefs));
   npch = field.size();
+}
+
+
+FieldFunction::FieldFunction (const std::string& fileName,
+                              const std::string& basisName,
+                              const std::string& fieldName,
+                              int level)
+  : FieldFuncScalarBase(fileName, basisName, fieldName,  level)
+{
 }
 
 
@@ -407,6 +418,66 @@ Vec3 VecFieldFunction::evaluate (const Vec3& X) const
 }
 
 
+ScalarGradFieldFunction::
+ScalarGradFieldFunction (const std::string& fileName,
+                         const std::string& basisName,
+                         const std::string& fieldName,
+                         int level)
+  : FieldFuncScalarBase(fileName,basisName,fieldName,level)
+{
+  if (!field.empty())
+    ncmp = patch.front()->getNoSpaceDim();
+}
+
+
+Vec3 ScalarGradFieldFunction::evaluate (const Vec3& X) const
+{
+  const Vec4* x4 = dynamic_cast<const Vec4*>(&X);
+  if (pidx >= field.size() || !field[pidx] || !x4 || !x4->u)
+    return Vec3();
+
+  Vector vals;
+  if (patch[pidx]->getNoSpaceDim() == 2)
+    field[pidx]->gradFE(ItgPoint(x4->u[0], x4->u[1]), vals);
+  else
+    field[pidx]->gradFE(ItgPoint(x4->u[0], x4->u[1], x4->u[2]), vals);
+
+  return Vec3(vals.ptr(), vals.size());
+}
+
+
+ScalarLaplacianFieldFunction::
+ScalarLaplacianFieldFunction (const std::string& fileName,
+                              const std::string& basisName,
+                              const std::string& fieldName,
+                              int level)
+  : FieldFuncScalarBase(fileName,basisName,fieldName,level)
+{
+  if (!field.empty())
+    ncmp = patch.front()->getNoSpaceDim();
+}
+
+
+Vec3 ScalarLaplacianFieldFunction::evaluate (const Vec3& X) const
+{
+  const Vec4* x4 = dynamic_cast<const Vec4*>(&X);
+  if (pidx >= field.size() || !field[pidx] || !x4 || !x4->u)
+    return Vec3();
+
+  Matrix vals;
+  if (patch[pidx]->getNoSpaceDim() == 2)
+    field[pidx]->hessianFE(ItgPoint(x4->u[0], x4->u[1]), vals);
+  else
+    field[pidx]->hessianFE(ItgPoint(x4->u[0], x4->u[1], x4->u[2]), vals);
+
+  Vec3 result;
+  for (size_t i = 1; i <= ncmp; ++i)
+    result[i-1] = vals(i,i);
+
+  return result;
+}
+
+
 TensorFieldFunction::TensorFieldFunction (const std::string& fileName,
                                           const std::string& basisName,
                                           const std::string& fieldName,
@@ -424,6 +495,74 @@ Tensor TensorFieldFunction::evaluate (const Vec3& X) const
     return Tensor(3);
 
   return const_cast<TensorFieldFunction*>(this)->getValues(X);
+}
+
+
+VecGradFieldFunction::
+VecGradFieldFunction (const std::string& fileName,
+                      const std::string& basisName,
+                      const std::string& fieldName,
+                      int level)
+  : FieldsFuncBase(fileName,basisName,fieldName,level)
+{
+  if (!field.empty())
+    ncmp = field.front()->getNoFields();
+}
+
+
+Tensor VecGradFieldFunction::evaluate (const Vec3& X) const
+{
+  const Vec4* x4 = dynamic_cast<const Vec4*>(&X);
+  if (pidx >= field.size() || !field[pidx] || !x4 || !x4->u)
+    return Tensor(3);
+
+  size_t nsd = patch[pidx]->getNoSpaceDim();
+  Matrix vals;
+  if (nsd == 2)
+    field[pidx]->gradFE(ItgPoint(x4->u[0], x4->u[1]), vals);
+  else
+    field[pidx]->gradFE(ItgPoint(x4->u[0], x4->u[1], x4->u[2]), vals);
+
+  Tensor result(patch[pidx]->getNoSpaceDim());
+  for (size_t i = 1; i <= nsd; ++i)
+    for (size_t j = 1;  j <=  nsd; ++j)
+      result(i,j) = vals(i,j);
+
+  return result;
+}
+
+
+VecLaplacianFieldFunction::
+VecLaplacianFieldFunction (const std::string& fileName,
+                           const std::string& basisName,
+                           const std::string& fieldName,
+                           int level)
+  : FieldsFuncBase(fileName,basisName,fieldName,level)
+{
+  if (!field.empty())
+    ncmp = field.front()->getNoFields();
+}
+
+
+Tensor VecLaplacianFieldFunction::evaluate (const Vec3& X) const
+{
+  const Vec4* x4 = dynamic_cast<const Vec4*>(&X);
+  if (pidx >= field.size() || !field[pidx] || !x4 || !x4->u)
+    return Tensor(3);
+
+  size_t nsd = patch[pidx]->getNoSpaceDim();
+  Matrix3D vals;
+  if (nsd == 2)
+    field[pidx]->hessianFE(ItgPoint(x4->u[0], x4->u[1]), vals);
+  else
+    field[pidx]->hessianFE(ItgPoint(x4->u[0], x4->u[1], x4->u[2]), vals);
+
+  Tensor result(patch[pidx]->getNoSpaceDim());
+  for (size_t i = 1; i <= nsd; ++i)
+    for (size_t j = 1;  j <=  nsd; ++j)
+      result(i,j) = vals(i,j,j);
+
+  return result;
 }
 
 
