@@ -84,6 +84,8 @@ public:
   virtual void initResultPoints(double, bool = false) {}
   //! \brief Initializes the global node number mapping for current patch.
   virtual void initNodeMap(const std::vector<int>&) {}
+  //! \brief Assigns a secondary integral to be computed (for reaction forces).
+  virtual void setSecondaryInt(GlobalIntegral* = nullptr) {}
   //! \brief Returns the system quantity to be integrated by \a *this.
   virtual GlobalIntegral& getGlobalInt(GlobalIntegral* gq) const;
 

@@ -278,11 +278,12 @@ public:
                               bool newLHSmatrix = true, bool poorConvg = false);
 
   //! \brief Administers assembly of the linear equation system.
+  //! \param[in] t0 Time for evaluation of time-dependent property functions
   //! \param[in] pSol Primary solution vectors in DOF-order
   //!
   //! \details Use this version for linear/stationary problems only.
-  bool assembleSystem(const Vectors& pSol = Vectors())
-  { return this->assembleSystem(TimeDomain(),pSol); }
+  bool assembleSystem(double t0 = 0.0, const Vectors& pSol = Vectors())
+  { return this->assembleSystem(TimeDomain(t0),pSol); }
 
   //! \brief Extracts the assembled load vector for inspection/visualization.
   //! \param[out] loadVec Global load vector in DOF-order
@@ -464,19 +465,30 @@ public:
   //! \param[in] ncv Number of Arnoldi vectors (see ARPack documentation)
   //! \param[in] shift Eigenvalue shift
   //! \param[out] solution Computed eigenvalues and associated eigenvectors
-  //! \param[in] iA Index of system matrix \b A in \a myEqSys->A
-  //! \param[in] iB Index of system matrix \b B in \a myEqSys->A
+  //! \param[in] iA Index of system matrix \b A in \ref myEqSys
+  //! \param[in] iB Index of system matrix \b B in \ref myEqSys
   bool systemModes(std::vector<Mode>& solution,
                    int nev, int ncv, int iop, double shift,
                    size_t iA = 0, size_t iB = 1);
   //! \brief Performs a generalized eigenvalue analysis of the assembled system.
   //! \param[out] solution Computed eigenvalues and associated eigenvectors
-  //! \param[in] iA Index of system matrix \b A in \a myEqSys->A
-  //! \param[in] iB Index of system matrix \b B in \a myEqSys->A
+  //! \param[in] iA Index of system matrix \b A in \ref myEqSys
+  //! \param[in] iB Index of system matrix \b B in \ref myEqSys
   bool systemModes(std::vector<Mode>& solution, size_t iA = 0, size_t iB = 1)
   {
     return this->systemModes(solution,opt.nev,opt.ncv,opt.eig,opt.shift,iA,iB);
   }
+
+  //! \brief Returns whether reaction forces are to be computed or not.
+  virtual bool haveBoundaryReactions(bool = false) const { return false; }
+
+  //! \brief Assembles reaction and interface forces for specified boundaries.
+  //! \param[in] solution Current primary solution vector
+  //! \param[in] t0 Current time (for time-dependent loads)
+  //! \param[out] R Nodal reaction force container
+  //! \param[out] S Nodal interface force container
+  bool assembleForces(const Vector& solution, double t0,
+                      Vector* R, Vector* S = nullptr);
 
 
   // Post-processing methods

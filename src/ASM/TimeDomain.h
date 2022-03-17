@@ -31,6 +31,9 @@ struct TimeDomain
   //! \brief Default constructor.
   explicit TimeDomain(int i = 0, bool f = true) : it(i), first(f)
   { t = dt = dtn = CFL = 0.0; }
+  //! \brief Constructor for linear problems with fixed (non-zero) time.
+  explicit TimeDomain(double t0) : t(t0), it(0), first(true)
+  { dt = dtn = CFL = 0.0; }
 };
 
 #endif

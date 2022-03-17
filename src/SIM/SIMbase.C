@@ -22,6 +22,7 @@
 #endif
 #include "IntegrandBase.h"
 #include "AlgEqSystem.h"
+#include "ReactionsOnly.h"
 #include "SystemMatrix.h"
 #include "LinSolParams.h"
 #include "EigSolver.h"
@@ -2478,4 +2479,27 @@ void SIMbase::dumpEqSys ()
         c->dump(os,dmp.format,vecName); // label vectors as b,c,d,...
       utl::zero_print_tol = old_tol;
     }
+}
+
+
+bool SIMbase::assembleForces (const Vector& solution, double t0,
+                              Vector* R, Vector* S)
+{
+  if (!myProblem) return false;
+
+  // Assign secondary integral to the integrand
+  myProblem->setSecondaryInt(new ReactionsOnly(mySam,adm,R,S));
+
+  // Temporarily nullify myEqSys such that the secondary integral will be used
+  AlgEqSystem* tmpEqSys = myEqSys;
+  myEqSys = nullptr;
+
+  // Integrate the reaction and/or interface forces
+  bool ok = this->setMode(SIM::RHS_ONLY) && this->assembleSystem(t0,{solution});
+
+  // Release the secondary integral and restore the system matrix pointer
+  myProblem->setSecondaryInt();
+  myEqSys = tmpEqSys;
+
+  return ok;
 }

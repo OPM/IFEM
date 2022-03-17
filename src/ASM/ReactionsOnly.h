@@ -7,7 +7,7 @@
 //!
 //! \author Knut Morten Okstad / SINTEF
 //!
-//! \brief Global integral sub-class for reaction force integration.
+//! \brief Global integral class for reaction- and interface force calculation.
 //!
 //==============================================================================
 
@@ -19,7 +19,7 @@
 
 
 /*!
-  \brief Class for assembly of reaction forces only.
+  \brief Class for assembly of reaction- and interface forces.
 
   \details This class can be used for linear problems which normally consists
   of a single assembly loop. For non-linear problems, the reaction forces for
@@ -27,18 +27,21 @@
   the solution vector of the previous iteration is used. In linear problems we
   therefore need a separate assembly loop where only the reaction forces are
   calculated. This class is provided to facilitate such calculations.
+
+  The class can also be used to calculate interface force resultants,
+  for boundaries not associated with dirichlet conditions.
 */
 
 class ReactionsOnly : public GlobalIntegral
 {
 public:
   //! \brief The constructor initializes the data members.
-  //! \param[in] rf The reaction force vector to be assembled
   //! \param[in] sam Data for FE assembly management
   //! \param[in] adm Parallell processing administrator
+  //! \param[in] rf Reaction force vector to be assembled
   //! \param[in] sf Internal force vector to be assembled
-  ReactionsOnly(Vector& rf, const SAM* sam, const ProcessAdm& adm,
-                Vector* sf = nullptr);
+  ReactionsOnly(const SAM* sam, const ProcessAdm& adm,
+                Vector* rf = nullptr, Vector* sf = nullptr);
   //! \brief Empty destructor.
   virtual ~ReactionsOnly() {}
 
@@ -49,10 +52,10 @@ public:
 
   //! \brief Adds a LocalIntegral object into a corresponding global object.
   //! \param[in] elmObj The local integral object to add into \a *this.
-  //! \param[in] elmId Global number of the element associated with elmObj
+  //! \param[in] elmId Global number of the element associated with \a elmObj
   virtual bool assemble(const LocalIntegral* elmObj, int elmId);
 
-  //! \brief Returns \e false if no contributions from the specified patch.
+  //! \brief Returns \e true if the patch \a pidx have any force contributions.
   //! \param[in] pidx 1-based patch index
   //! \param[in] pvec Physical property mapping
   virtual bool haveContributions(size_t pidx,
@@ -62,9 +65,9 @@ private:
   const SAM*        mySam; //!< Data for FE assembly management
   const ProcessAdm& myAdm; //!< Parallel processing administrator
 
-  Vector&   R; //!< Nodal reaction forces
-  StdVector b; //!< Dummy right-hand-side vector
-  Vector*   S; //!< Internal force vector
+  StdVector b; //!< Internal right-hand-side vector used in the assembly process
+  Vector*   R; //!< Nodal reaction forces
+  Vector*   S; //!< Nodal internal forces
 };
 
 #endif

@@ -18,30 +18,34 @@
 #include "ProcessAdm.h"
 
 
-ReactionsOnly::ReactionsOnly (Vector& rf, const SAM* sam,
-                              const ProcessAdm& adm, Vector* sf)
+ReactionsOnly::ReactionsOnly (const SAM* sam, const ProcessAdm& adm,
+                              Vector* rf, Vector* sf)
   : mySam(sam), myAdm(adm), R(rf), S(sf)
 {
-  mySam->initForAssembly(b,&R);
+  mySam->initForAssembly(b,R);
 }
 
 
 void ReactionsOnly::initialize (bool)
 {
   b.init();
-  R.fill(0.0);
+  if (R)
+    R->fill(0.0);
 }
 
 
 bool ReactionsOnly::finalize (bool)
 {
- if (myAdm.dd.isPartitioned())
-   myAdm.allReduceAsSum(R);
+  if (R)
+  {
+    if (myAdm.dd.isPartitioned())
+      myAdm.allReduceAsSum(*R);
 
-  R *= -1.0;
+    (*R) *= -1.0;
 #if SP_DEBUG > 2
-  std::cout <<"\nReaction forces:"<< R;
+    std::cout <<"\nReaction forces:"<< *R;
 #endif
+  }
 
   if (!S)
     return true;
@@ -60,7 +64,7 @@ bool ReactionsOnly::finalize (bool)
 bool ReactionsOnly::assemble (const LocalIntegral* elmObj, int elmId)
 {
   const ElmMats* elMat = dynamic_cast<const ElmMats*>(elmObj);
-  if (elMat && mySam->assembleSystem(b,elMat->getRHSVector(),elmId,&R))
+  if (elMat && mySam->assembleSystem(b,elMat->getRHSVector(),elmId,R))
     return true;
 
   std::cerr <<" *** ReactionsOnly::assemble: Failure for element "<< elmId
@@ -69,23 +73,22 @@ bool ReactionsOnly::assemble (const LocalIntegral* elmObj, int elmId)
 }
 
 
-/*!
-  Returns \e true if the patch \a pidx have any dirichlet boundary conditions.
-*/
-
 bool ReactionsOnly::haveContributions (size_t pidx,
                                        const PropertyVec& pvec) const
 {
-  auto&& isConstrained = [this,pidx](const Property& p)
+  // Lambda function checking if a property have force contribution on a patch.
+  auto&& contributed = [this,pidx](const Property& p)
   {
     if (p.patch != pidx)
       return false;
     else if (S)
       return p.pcode == Property::OTHER;
+    else if (!R)
+      return false;
 
     return (p.pcode >= Property::DIRICHLET &&
             p.pcode <= Property::DIRICHLET_ANASOL);
   };
 
-  return std::find_if(pvec.begin(),pvec.end(),isConstrained) != pvec.end();
+  return std::find_if(pvec.begin(),pvec.end(),contributed) != pvec.end();
 }

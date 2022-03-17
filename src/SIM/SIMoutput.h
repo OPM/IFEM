@@ -297,6 +297,8 @@ public:
   virtual double getEffectivityIndex(const Vectors&, size_t, size_t) const = 0;
   //! \brief Prints integrated solution norms to the log stream.
   virtual void printNorms(const Vectors&, size_t = 36) const = 0;
+  //! \brief Prints out interface force resultants to log stream.
+  virtual void printIFforces(const Vector&, RealArray&) {}
 
   //! \brief Writes out the additional functions to VTF-file.
   virtual bool writeAddFuncs(int iStep, int& nBlock, int idBlock, double time);
