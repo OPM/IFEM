@@ -3501,14 +3501,16 @@ void ASMs3D::generateThreadGroups (char lIndex, bool silence, bool)
 
   fGrp.applyMap(map);
 
-  if (!silence && fGrp.size() > 1)
-    for (size_t i = 0; i < fGrp.size(); i++)
-    {
-      std::cout <<"\n Thread group "<< i+1 <<" for boundary face "<<(int)lIndex;
-      for (size_t j = 0; j < fGrp[i].size(); j++)
-	std::cout <<"\n\tthread "<< j+1
-		  << ": "<< fGrp[i][j].size() <<" elements";
-    }
+  if (silence || fGrp.size() < 2) return;
+
+  for (size_t i = 0; i < fGrp.size(); i++)
+  {
+    IFEM::cout <<"\n Thread group "<< i+1 <<" for boundary face "<< (int)lIndex;
+    for (size_t j = 0; j < fGrp[i].size(); j++)
+      IFEM::cout <<"\n\tthread "<< j+1
+                 << ": "<< fGrp[i][j].size() <<" elements";
+  }
+  IFEM::cout << std::endl;
 }
 
 
