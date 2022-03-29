@@ -127,6 +127,8 @@ public:
 
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return fval == Real(0); }
+  //! \brief Returns whether the function is time-independent or not.
+  virtual bool isConstant() const { return xmax <= Real(0); }
 
   //! \brief Returns the first-derivative of the function.
   virtual Real deriv(Real x) const;
@@ -198,6 +200,8 @@ public:
 
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return scale == Real(0); }
+  //! \brief Returns whether the function is time-independent or not.
+  virtual bool isConstant() const { return this->isZero(); }
 
   //! \brief Returns the first-derivative of the function.
   virtual Real deriv(Real x) const;
@@ -246,7 +250,7 @@ public:
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return tfunc->isZero(); }
   //! \brief Returns whether the function is time-independent or not.
-  virtual bool isConstant() const { return tfunc->isZero(); }
+  virtual bool isConstant() const { return tfunc->isConstant(); }
 
   //! \brief Returns first-derivative of the function.
   virtual Real deriv(const Vec3& X, int dir) const;
@@ -277,7 +281,7 @@ public:
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return sfunc->isZero() || tfunc->isZero(); }
   //! \brief Returns whether the function is time-independent or not.
-  virtual bool isConstant() const { return this->isZero(); }
+  virtual bool isConstant() const { return this->isConstant(); }
 
   //! \brief Returns first-derivative of the function.
   virtual Real deriv(const Vec3& X, int dir) const;
@@ -476,7 +480,7 @@ public:
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return A == Real(0); }
   //! \brief Returns whether the function is time-independent or not.
-  virtual bool isConstant() const { return A == Real(0); }
+  virtual bool isConstant() const { return this->isZero(); }
 
   //! \brief Returns first-derivative of the function.
   virtual Real deriv(const Vec3&, int dir) const;

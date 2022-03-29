@@ -223,9 +223,14 @@ EvalFunction::EvalFunction (const char* function, Real epsX, Real epsT)
   }
 
   // Checking if the expression is time-independent
-  // Note, this will also catch things like tan(x), but...
+  // by searching for the occurance of 't' where the next character is not a letter
+  IAmConstant = true;
   std::string expr(function);
-  IAmConstant = expr.find_first_of('t') > expr.size();
+  for (size_t i = expr.find_first_of('t'); IAmConstant; i = expr.find_first_of('t',i+1))
+    if (i >= expr.size())
+      return;
+    else if (i+1 == expr.size() || !isalpha(expr[i+1]))
+      IAmConstant = false;
 }
 
 

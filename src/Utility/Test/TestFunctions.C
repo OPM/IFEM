@@ -29,6 +29,9 @@ TEST(TestScalarFunc, ParseDerivative)
   ASSERT_TRUE(f1 != nullptr);
   ASSERT_TRUE(f2 != nullptr);
 
+  EXPECT_FALSE(f1->isConstant());
+  EXPECT_FALSE(f2->isConstant());
+
   double t = 0.0;
   for (int i = 0; i < 20; i++)
   {
@@ -45,12 +48,20 @@ TEST(TestScalarFunc, ParseDerivative)
 
 TEST(TestEvalFunction, ExtraParam)
 {
-  const char* func1 = "x*foo";
-  EvalFunction f(func1);
+  EvalFunction f("x*foo");
   f.setParam("foo", 2.0);
   Vec3 X(1.0,0.0,0.0);
   EXPECT_FLOAT_EQ(f(X), 2.0);
   X.x = 0.5;
   f.setParam("foo", 4.0);
   EXPECT_FLOAT_EQ(f(X), 2.0);
+}
+
+
+TEST(TestEvalFunction, isConstant)
+{
+  EXPECT_TRUE (EvalFunction("2.0*x*y").isConstant());
+  EXPECT_FALSE(EvalFunction("2.0*x*t").isConstant());
+  EXPECT_TRUE (EvalFunction("1.8*tan(x)*x").isConstant());
+  EXPECT_FALSE(EvalFunction("2.0*x*tan(t*3)+y").isConstant());
 }
