@@ -9,6 +9,7 @@ IF (NOT VTFAPI OR VTFAPI GREATER 1)
   FIND_PATH(VTFWRITER_INCLUDES
     NAMES VTFXAPI.h
     PATHS $ENV{HOME}/include
+    /usr/local/include
     /sima/libs/VTFx/include
   )
   IF(VTFWRITER_INCLUDES)
@@ -20,6 +21,7 @@ IF (NOT VTFWRITER_INCLUDES)
   FIND_PATH(VTFWRITER_INCLUDES
     NAMES VTFAPI.h
     PATHS $ENV{HOME}/include
+    /usr/local/include
     /sima/libs/GLviewExpressWriter/include
   )
   IF(VTFWRITER_INCLUDES)
@@ -32,6 +34,7 @@ IF(VTFWRITER_INCLUDES)
     FIND_LIBRARY(VTFWRITER_LIBRARIES
       NAMES VTFExpressAPI
       PATHS $ENV{HOME}/lib
+      /usr/local/lib
       /sima/libs/GLviewExpressWriter/lib
     )
     MESSAGE(STATUS "Using VTF libraries")
@@ -39,11 +42,13 @@ IF(VTFWRITER_INCLUDES)
     FIND_LIBRARY(VTFWRITER_LIBRARIES
       NAMES GLviewExpressWriter2d
       PATHS $ENV{HOME}/lib
+      /usr/local/lib
       /sima/libs/VTFx/lib
     )
     FIND_LIBRARY(ZIP_LIBRARIES
       NAMES ziparch
       PATHS $ENV{HOME}/lib
+      /usr/local/lib
       /sima/libs/VTFx/lib
     )
     SET(VTFWRITER_LIBRARIES ${VTFWRITER_LIBRARIES} ${ZIP_LIBRARIES})
