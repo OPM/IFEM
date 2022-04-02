@@ -1149,7 +1149,7 @@ bool SIMbase::extractLoadVec (Vector& loadVec, size_t idx, const char* hd) const
     return false;
 
 #if SP_DEBUG > 1
-  std::cout <<"\nLoad vector:"<< loadVec;
+  mySam->printVector(std::cout,loadVec,"\nLoad vector");
 #endif
   if (hd)
   {

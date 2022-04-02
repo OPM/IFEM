@@ -69,11 +69,21 @@ Vector SIMgeneric::getInterfaceForces (const Vector& sf,
 
   IntVec glbNodes;
   this->getBoundaryNodes(code,glbNodes);
+#if SP_DEBUG > 1
+  std::cout <<"\nInternal nodal forces at interface "<< code
+            <<" with "<< glbNodes.size() <<" nodes"<< std::endl;
+#endif
 
   for (int inod : glbNodes)
   {
     double w = inod <= (int)weights.size() ? weights[inod-1] : 1.0;
     std::pair<int,int> dof = mySam->getNodeDOFs(inod);
+#if SP_DEBUG > 1
+    std::cout <<"Node "<< inod <<":";
+    for (int j = dof.first; j <= dof.second; j++)
+      std::cout <<" "<< sf(j);
+    std::cout << std::endl;
+#endif
     for (unsigned char i = 0; i < nsd; i++, dof.first++)
       if (dof.first <= dof.second && dof.first < (int)sf.size())
         force[i] += w*sf(dof.first);
