@@ -80,7 +80,7 @@ public:
   //! \brief Writes additional, problem-specific, results to the VTF-file.
   //! \param nBlock Running result block counter
   //! \param[in] iStep Load/time step identifier
-  virtual bool writeGlvA(int& nBlock, int iStep = 1) const { return true; }
+  virtual bool writeGlvA(int& nBlock, int iStep, int = 1) const { return true; }
 
   //! \brief Writes boundary conditions as scalar fields to the VTF-file.
   //! \param nBlock Running result block counter
