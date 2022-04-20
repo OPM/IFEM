@@ -1167,7 +1167,8 @@ bool ASMs2D::updateDirichlet (const std::map<int,RealFunc*>& func,
     if ((fit = func.find(dirich[i].code)) != func.end())
       dcrv = SplineUtils::project(dirich[i].curve,*fit->second,1,time);
     else if ((vfit = vfunc.find(dirich[i].code)) != vfunc.end())
-      dcrv = SplineUtils::project(dirich[i].curve,*vfit->second,nf,time);
+      dcrv = SplineUtils::project(dirich[i].curve,*vfit->second,
+                                  vfit->second->dim(),time);
     else
     {
       std::cerr <<" *** ASMs2D::updateDirichlet: Code "<< dirich[i].code
