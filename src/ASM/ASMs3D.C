@@ -1428,7 +1428,8 @@ bool ASMs3D::updateDirichlet (const std::map<int,RealFunc*>& func,
     if ((fit = func.find(dirich[i].code)) != func.end())
       dsurf = SplineUtils::project(dirich[i].surf,*fit->second,1,time);
     else if ((vfit = vfunc.find(dirich[i].code)) != vfunc.end())
-      dsurf = SplineUtils::project(dirich[i].surf,*vfit->second,nf,time);
+      dsurf = SplineUtils::project(dirich[i].surf,*vfit->second,
+                                   vfit->second->dim(),time);
     else
     {
       std::cerr <<" *** ASMs3D::updateDirichlet: Code "<< dirich[i].code
