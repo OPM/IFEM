@@ -143,7 +143,8 @@ bool AdaptiveSetup::parse (const TiXmlElement* elem)
         threshold = TRUE_BETA;
       else if (type.compare("dorfel") == 0)
         threshold = DORFEL;
-      else if (type.compare("symmetrized") == 0) {
+      else if (type.compare("symmetrized") == 0 ||
+               type.compare("symmetric") == 0) {
         threshold = SYMMETRIZED;
         utl::getAttribute(child,"eps",symmEps);
       }
