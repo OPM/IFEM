@@ -52,6 +52,9 @@ SIMoutput::~SIMoutput ()
 void SIMoutput::clearProperties ()
 {
   myPoints.clear();
+  for (std::pair<const std::string,RealFunc*>& func : myAddScalars)
+    delete func.second;
+  myAddScalars.clear();
   this->SIMinput::clearProperties();
 }
 
