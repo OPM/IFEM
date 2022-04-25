@@ -26,6 +26,7 @@
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
 #include "ElementBlock.h"
+#include "SplineField2D.h"
 #include "SplineFields2D.h"
 #include "SplineUtils.h"
 #include "Utilities.h"
@@ -3123,6 +3124,18 @@ int ASMs2D::getCorner (int I, int J, int basis) const
   if (J > 0) node += n1*(n2-1);
 
   return node;
+}
+
+
+Field* ASMs2D::getProjectedField (const Vector& coefs) const
+{
+  if (this->getNoProjectionNodes() == coefs.size())
+    return new SplineField2D(proj,coefs);
+
+  std::cerr <<" *** ASMs2D::getProjectedField: Non-matching coefficent array,"
+            <<" size="<< coefs.size() <<" nnod="<< this->getNoProjectionNodes()
+            << std::endl;
+  return nullptr;
 }
 
 

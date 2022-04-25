@@ -26,6 +26,7 @@
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
 #include "LagrangeInterpolator.h"
+#include "LRSplineField3D.h"
 #include "LRSplineFields3D.h"
 #include "ElementBlock.h"
 #include "MPC.h"
@@ -2116,6 +2117,18 @@ size_t ASMu3D::getNoProjectionNodes () const
 bool ASMu3D::separateProjectionBasis () const
 {
   return projBasis.get() != this->getBasis(1);
+}
+
+
+Field* ASMu3D::getProjectedField (const Vector& coefs) const
+{
+  if (coefs.size() == this->getNoProjectionNodes())
+    return new LRSplineField3D(projBasis.get(),coefs);
+
+  std::cerr <<" *** ASMu3D::getProjectedFields: Non-matching coefficent array,"
+            <<" size="<< coefs.size() <<" nnod="<< this->getNoProjectionNodes()
+            << std::endl;
+  return nullptr;
 }
 
 
