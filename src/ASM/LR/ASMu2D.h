@@ -415,6 +415,10 @@ public:
 
   //! \brief Returns a field using the projection basis.
   //! \param[in] coefs The coefficients for the field
+  virtual Field* getProjectedField(const Vector& coefs) const;
+
+  //! \brief Returns a field using the projection basis.
+  //! \param[in] coefs The coefficients for the field
   virtual Fields* getProjectedFields(const Vector& coefs, size_t = 0) const;
 
   //! \brief Stores the mesh basis to encapsulated postscript files.

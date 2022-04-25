@@ -1210,8 +1210,8 @@ void ASMu2Dmx::storeMesh (const std::string& fName, int fType) const
 }
 
 
-void ASMu2Dmx::copyRefinement(LR::LRSplineSurface* basis,
-                              int multiplicity) const
+void ASMu2Dmx::copyRefinement (LR::LRSplineSurface* basis,
+                               int multiplicity) const
 {
   for (const LR::Meshline* line : refBasis->getAllMeshlines()) {
     int mult = line->multiplicity_ > 1 ? line->multiplicity_ : multiplicity;

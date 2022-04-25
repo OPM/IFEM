@@ -25,6 +25,7 @@
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
 #include "ElementBlock.h"
+#include "SplineField3D.h"
 #include "SplineFields3D.h"
 #include "SplineUtils.h"
 #include "Utilities.h"
@@ -3633,6 +3634,18 @@ bool ASMs3D::getFaceSize (int& n1, int& n2, int basis, int face) const
     n1 = n2 = 0;
 
   return true;
+}
+
+
+Field* ASMs3D::getProjectedField (const Vector& coefs) const
+{
+  if (this->getNoProjectionNodes() == coefs.size())
+    return new SplineField3D(proj,coefs);
+
+  std::cerr <<" *** ASMs3D::getProjectedField: Non-matching coefficent array,"
+            <<" size="<< coefs.size() <<" nnod="<< this->getNoProjectionNodes()
+            << std::endl;
+  return nullptr;
 }
 
 

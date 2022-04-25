@@ -671,6 +671,10 @@ public:
   virtual size_t getNoRefineElms() const { return this->getNoElms(); }
 
   //! \brief Returns a field using the projection basis.
+  virtual Field* getProjectedField(const Vector&) const
+  { return nullptr; }
+
+  //! \brief Returns a field using the projection basis.
   virtual Fields* getProjectedFields(const Vector&, size_t) const
   { return nullptr; }
 
