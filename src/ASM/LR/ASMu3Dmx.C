@@ -224,6 +224,9 @@ bool ASMu3Dmx::generateFEMTopology ()
         projBasis = m_basis[2-ASMmxBase::geoBasis];
       refBasis = projBasis;
     }
+
+    delete tensorspline;
+    tensorspline = nullptr;
   }
   lrspline = m_basis[geoBasis-1];
   projBasis->generateIDs();
