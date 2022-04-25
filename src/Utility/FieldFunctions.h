@@ -59,6 +59,8 @@ protected:
 class FieldFuncHDF5 : public FieldFuncBase
 {
 protected:
+  //! \brief Default constructor.
+  FieldFuncHDF5() : hasMultipleLevels(false), lastLevel(-1) {}
   //! \brief The constructor opens the provided HDF5-file.
   //! \param[in] fileName Name of the HDF5-file
   explicit FieldFuncHDF5(const std::string& fileName);
@@ -121,6 +123,9 @@ public:
   virtual ~FieldFuncScalarBase() { this->clearField(); }
 
 protected:
+  //! \brief Default constructor
+  FieldFuncScalarBase() : currentLevel(-1) {}
+
   //! \brief Adds a patch-wise field with the given coefficient values.
   //! \param[in] pch The patch to define the field over
   //! \param[in] coefs Field values
@@ -155,6 +160,10 @@ public:
                 const std::string& basisName,
                 const std::string& fieldName,
                 int level = 0);
+  //! \brief Wrap an existings field.
+  //! \param fields Field to evaluate
+  //! \details Takes ownership of given fields.
+  FieldFunction(const std::vector<Field*>& fields);
   //! \brief Empty destructor.
   virtual ~FieldFunction() {}
 
