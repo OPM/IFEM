@@ -43,6 +43,12 @@ public:
   //! \param[in] name Name of spline field
   LRSplineField2D(const ASMu2D* patch, const RealArray& v,
                   char basis = 1, char cmp = 1, const char* name = nullptr);
+  //! \brief Construct directly from surface.
+  //! \param[in] srf The spline surface to use
+  //! \param[in] v Array of control point field values
+  //! \param[in] name Name of spline field
+  LRSplineField2D(const LR::LRSplineSurface* srf, const RealArray& v,
+                  const char* name = nullptr);
   //! \brief Empty destructor.
   virtual ~LRSplineField2D() {}
 
