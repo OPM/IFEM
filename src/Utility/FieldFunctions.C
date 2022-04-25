@@ -286,6 +286,15 @@ FieldFunction::FieldFunction (const std::string& fileName,
 }
 
 
+FieldFunction::FieldFunction (const std::vector<Field*>& fields)
+{
+  field = fields;
+  hasMultipleLevels = false;
+  lastLevel = currentLevel = 0;
+  npch = fields.size();
+}
+
+
 Real FieldFunction::evaluate (const Vec3& X) const
 {
   if (pidx >= field.size() || !field[pidx])
