@@ -42,6 +42,12 @@ public:
   //! \param[in] name Name of spline field
   SplineField3D(const ASMs3D* patch, const RealArray& v,
                 char basis = 1, char cmp = 1, const char* name = nullptr);
+  //! \brief Construct directly from volume.
+  //! \param[in] svol The spline volume to use
+  //! \param[in] v Array of control point field values
+  //! \param[in] name Name of spline field
+  SplineField3D(const Go::SplineVolume* svol, const RealArray& v,
+                const char* name = nullptr);
   //! \brief Empty destructor.
   virtual ~SplineField3D() {}
 

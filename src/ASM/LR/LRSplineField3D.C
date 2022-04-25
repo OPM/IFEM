@@ -49,6 +49,14 @@ LRSplineField3D::LRSplineField3D (const ASMu3D* patch,
 }
 
 
+LRSplineField3D::LRSplineField3D (const LR::LRSplineVolume* svol,
+                                  const RealArray& v, const char* name)
+  : FieldBase(name), basis(svol), vol(svol)
+{
+  values = v;
+}
+
+
 double LRSplineField3D::valueNode (size_t node) const
 {
   return node > 0 && node <= nno ? values(node) : 0.0;

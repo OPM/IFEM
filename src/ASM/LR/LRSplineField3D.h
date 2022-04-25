@@ -43,6 +43,12 @@ public:
   //! \param[in] name Name of spline field
   LRSplineField3D(const ASMu3D* patch, const RealArray& v,
                   char basis = 1, char cmp = 1, const char* name = nullptr);
+  //! \brief Construct directly from volume.
+  //! \param[in] svol The spline volume to use
+  //! \param[in] v Array of control point field values
+  //! \param[in] name Name of spline field
+  LRSplineField3D(const LR::LRSplineVolume* svol, const RealArray& v,
+                  const char* name = nullptr);
   //! \brief Empty destructor.
   virtual ~LRSplineField3D() {}
 

@@ -57,6 +57,14 @@ SplineField2D::SplineField2D (const ASMs2D* patch,
 }
 
 
+SplineField2D::SplineField2D (const Go::SplineSurface* srf,
+                              const RealArray& v, const char* name)
+  : FieldBase(name), basis(srf), surf(srf)
+{
+  values = v;
+}
+
+
 double SplineField2D::valueNode (size_t node) const
 {
   return node > 0 && node <= nno ? values(node) : 0.0;
