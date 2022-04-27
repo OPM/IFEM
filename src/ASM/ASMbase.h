@@ -682,6 +682,8 @@ public:
   virtual bool createProjectionBasis(bool) { return false; }
   //! \brief Checks if a separate projection basis is used for this patch.
   virtual bool separateProjectionBasis() const { return false; }
+  //! \brief Swap between main and alternative projection basis.
+  virtual void swapProjectionBasis() {}
 
 
   // Methods for result extraction

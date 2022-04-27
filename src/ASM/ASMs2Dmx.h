@@ -36,8 +36,8 @@ public:
   ASMs2Dmx(unsigned char n_s, const CharVec& n_f);
   //! \brief Copy constructor.
   ASMs2Dmx(const ASMs2Dmx& patch, const CharVec& n_f = CharVec(2,0));
-  //! \brief Empty destructor.
-  virtual ~ASMs2Dmx() {}
+  //! \brief Destructor.
+  virtual ~ASMs2Dmx();
 
   //! \brief Returns the spline surface representing the basis of this patch.
   virtual Go::SplineSurface* getBasis(int basis = 1) const;
@@ -123,7 +123,7 @@ public:
   //! \param glbInt The integrated quantity
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
   virtual bool integrate(Integrand& integrand,
-			 GlobalIntegral& glbInt, const TimeDomain& time);
+                         GlobalIntegral& glbInt, const TimeDomain& time);
 
   //! \brief Evaluates a boundary integral over a patch edge.
   //! \param integrand Object with problem-specific data and methods
@@ -131,7 +131,7 @@ public:
   //! \param glbInt The integrated quantity
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
   virtual bool integrate(Integrand& integrand, int lIndex,
-			 GlobalIntegral& glbInt, const TimeDomain& time);
+                         GlobalIntegral& glbInt, const TimeDomain& time);
 
   //! \brief Evaluates an integral over element interfaces in the patch.
   //! \param integrand Object with problem-specific data and methods
@@ -158,7 +158,7 @@ public:
   //! \param[in] locSol Solution vector local to current patch
   //! \param[in] nodes 1-based local node numbers to extract solution for
   virtual bool getSolution(Matrix& sField, const Vector& locSol,
-			   const IntVec& nodes) const;
+                           const IntVec& nodes) const;
 
   using ASMs2D::evalSolution;
   //! \brief Evaluates the primary solution field at the given points.
@@ -192,7 +192,10 @@ public:
   //! Otherwise, we assume that it contains the \a u and \a v parameters
   //! directly for each sampling point.
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
-			    const RealArray* gpar, bool regular) const;
+                            const RealArray* gpar, bool regular) const;
+
+  //! \brief Swap between main and alternative projection basis.
+  virtual void swapProjectionBasis();
 
   //! \brief Extracts nodal results for this patch from the global vector.
   //! \param[in] globVec Global solution vector in DOF-order
@@ -234,6 +237,7 @@ public:
 
 protected:
   std::vector<std::shared_ptr<Go::SplineSurface>> m_basis; //!< Vector of bases
+  Go::SplineSurface* altProjBasis = nullptr; //!< Alternative projection basis
 };
 
 #endif
