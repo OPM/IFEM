@@ -181,6 +181,9 @@ public:
   //! \param multiplicity Wanted multiplicity
   void copyRefinement(LR::LRSplineVolume* basis, int multiplicity) const;
 
+  //! \brief Swap between main and alternative projection basis.
+  virtual void swapProjectionBasis();
+
 protected:
   //! \brief Generates element groups for multi-threading of interior integrals.
   //! \param[in] integrand Object with problem-specific data and methods
@@ -192,9 +195,11 @@ protected:
 private:
   std::vector<std::shared_ptr<LR::LRSplineVolume>> m_basis; //!< Spline bases
   std::shared_ptr<LR::LRSplineVolume> refBasis; //!< Basis to refine based on
+  std::shared_ptr<LR::LRSplineVolume> altProjBasis; //!< Alternative projection basis
   LR::LRSplineVolume* threadBasis; //!< Basis for thread groups
   const std::vector<Matrices>& bezierExtractmx;  //!< Bezier extraction matrices
   std::vector<Matrices>        myBezierExtractmx; //!< Bezier extraction matrices
+  ThreadGroups altProjThreadGroups; //!< Element groups for multi-threaded assembly - alternative projection basis
 };
 
 #endif

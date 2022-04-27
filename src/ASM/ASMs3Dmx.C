@@ -50,6 +50,12 @@ ASMs3Dmx::ASMs3Dmx (const ASMs3Dmx& patch, const CharVec& n_f)
 }
 
 
+ASMs3Dmx::~ASMs3Dmx ()
+{
+  delete altProjBasis;
+}
+
+
 Go::SplineVolume* ASMs3Dmx::getBasis (int basis) const
 {
   if (basis < 1 || basis > (int)m_basis.size())
@@ -207,9 +213,10 @@ bool ASMs3Dmx::generateFEMTopology ()
         ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS2 ||
         ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
       projB = proj = ASMmxBase::raiseBasis(svol);
-    else if (ASMmxBase::Type == ASMmxBase::SUBGRID)
+    else if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
       projB = proj = m_basis.front()->clone();
-    else
+      altProjBasis = ASMmxBase::raiseBasis(svol);
+    } else
       projB = proj = m_basis[2-ASMmxBase::geoBasis]->clone();
   }
   delete svol;
@@ -1358,4 +1365,14 @@ void ASMs3Dmx::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
   else
     for (size_t b = 1; b <= m_basis.size(); b++)
       this->ASMs3D::getBoundaryNodes(lIndex, nodes, b, thick, 0, local);
+}
+
+
+void ASMs3Dmx::swapProjectionBasis ()
+{
+  if (altProjBasis) {
+    ASMmxBase::geoBasis = ASMmxBase::geoBasis == 1 ? 2 : 1;
+    std::swap(proj, altProjBasis);
+    svol = this->getBasis(ASMmxBase::geoBasis);
+  }
 }

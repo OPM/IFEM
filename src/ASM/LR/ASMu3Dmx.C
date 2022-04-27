@@ -215,6 +215,7 @@ bool ASMu3Dmx::generateFEMTopology ()
         refBasis.reset(new LR::LRSplineVolume(otherBasis.get()));
         projBasis = m_basis.front();
         refBasis->generateIDs();
+        altProjBasis = refBasis;
       } else {
         projBasis.reset(new LR::LRSplineVolume(otherBasis.get()));
         refBasis = projBasis;
@@ -231,6 +232,10 @@ bool ASMu3Dmx::generateFEMTopology ()
   lrspline = m_basis[geoBasis-1];
   projBasis->generateIDs();
   projBasis->getElementContaining(projBasis->getElement(0)->midpoint()); // to force cache generation
+  if (altProjBasis) {
+    altProjBasis->generateIDs();
+    altProjBasis->getElementContaining(projBasis->getElement(0)->midpoint()); // to force cache generation
+  }
   myGeoBasis = ASMmxBase::geoBasis;
 
   nb.resize(m_basis.size());
@@ -977,6 +982,9 @@ bool ASMu3Dmx::refine (const LR::RefineData& prm, Vectors& sol)
       m_basis[0]->refineBasisFunction(elems);
     }
 
+    if (altProjBasis)
+      altProjBasis->generateIDs();
+
     size_t len = 0;
     for (size_t j = 0; j< m_basis.size(); ++j) {
       m_basis[j]->generateIDs();
@@ -1100,6 +1108,8 @@ void ASMu3Dmx::generateThreadGroups (const Integrand& integrand, bool silence,
 
   LR::generateThreadGroups(threadGroups,threadBasis,secConstraint);
   LR::generateThreadGroups(projThreadGroups,projBasis.get());
+  if (altProjBasis)
+    LR::generateThreadGroups(altProjThreadGroups,altProjBasis.get());
 
   std::vector<const LR::LRSpline*> bases;
   for (const std::shared_ptr<LR::LRSplineVolume>& basis : m_basis)
@@ -1118,4 +1128,14 @@ void ASMu3Dmx::generateThreadGroups (const Integrand& integrand, bool silence,
 #else
   this->analyzeThreadGroups(threadGroups[0]);
 #endif
+}
+
+
+void ASMu3Dmx::swapProjectionBasis ()
+{
+  if (altProjBasis) {
+    ASMmxBase::geoBasis = ASMmxBase::geoBasis == 1 ? 2 : 1;
+    std::swap(projBasis, altProjBasis);
+    std::swap(projThreadGroups, altProjThreadGroups);
+  }
 }

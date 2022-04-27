@@ -215,6 +215,9 @@ public:
   //! \param multiplicity Wanted multiplicity
   void copyRefinement(LR::LRSplineSurface* basis, int multiplicity) const;
 
+  //! \brief Swap between main and alternative projection basis.
+  virtual void swapProjectionBasis();
+
 protected:
   using ASMu2D::generateThreadGroups;
   //! \brief Generates element groups for multi-threading of interior integrals.
@@ -228,6 +231,8 @@ private:
   std::vector<std::shared_ptr<LR::LRSplineSurface>> m_basis; //!< All bases
   LR::LRSplineSurface* threadBasis; //!< Basis for thread groups
   std::shared_ptr<LR::LRSplineSurface> refBasis; //!< Basis to refine based on
+  std::shared_ptr<LR::LRSplineSurface> altProjBasis; //!< Alternative projection basis
+  ThreadGroups altProjThreadGroups; //!< Element groups for multi-threaded assembly - alternative projection basis
 };
 
 #endif
