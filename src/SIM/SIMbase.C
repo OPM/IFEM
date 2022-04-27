@@ -980,6 +980,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
         myProblem->getExtractionField()->clear();
     }
 
+    integrand->initPatch(pch->idx);
     if (mySol)
       mySol->initPatch(pch->idx);
 
@@ -1078,6 +1079,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
             break;
           }
 
+          it->second->initPatch(pch->idx);
           if (mySol)
             mySol->initPatch(pch->idx);
 
@@ -1601,6 +1603,7 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
       else
         pch->extractNodeVec(ssol[k],norm->getProjection(k),nCmp,1);
 
+    norm->initPatch(pch->idx);
     if (mySol)
       mySol->initPatch(pch->idx);
 
@@ -1715,34 +1718,35 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
   if (norm->hasBoundaryTerms())
     for (p = myProps.begin(); p != myProps.end() && ok; ++p)
       if (p->pcode == Property::NEUMANN)
-	if (!(pch = this->getPatch(p->patch)))
-	  ok = false;
-
-	else if (abs(p->ldim)+1 == pch->getNoParamDim())
-	  if (this->initNeumann(p->pindx))
-	  {
-	    if (p->patch != lp)
-	      ok = this->extractPatchSolution(psol,p->patch-1);
+        if (!(pch = this->getPatch(p->patch)))
+          ok = false;
+        else if (abs(p->ldim)+1 == pch->getNoParamDim())
+          if (this->initNeumann(p->pindx))
+          {
+            if (p->patch != lp)
+              ok = this->extractPatchSolution(psol,p->patch-1);
+            norm->initPatch(pch->idx);
             if (mySol)
               mySol->initPatch(pch->idx);
-	    ok &= pch->integrate(*norm,p->lindx,globalNorm,time);
-	    lp = p->patch;
-	  }
-	  else
-	    ok = false;
+            ok &= pch->integrate(*norm,p->lindx,globalNorm,time);
+            lp = p->patch;
+          }
+          else
+            ok = false;
 
-	else if (abs(p->ldim)+2 == pch->getNoParamDim())
-	  if (this->initNeumann(p->pindx))
-	  {
-	    if (p->patch != lp)
-	      ok = this->extractPatchSolution(psol,p->patch-1);
+        else if (abs(p->ldim)+2 == pch->getNoParamDim())
+          if (this->initNeumann(p->pindx))
+          {
+            if (p->patch != lp)
+              ok = this->extractPatchSolution(psol,p->patch-1);
+            norm->initPatch(pch->idx);
             if (mySol)
               mySol->initPatch(pch->idx);
-	    ok &= pch->integrateEdge(*norm,p->lindx,globalNorm,time);
-	    lp = p->patch;
-	  }
-	  else
-	    ok = false;
+            ok &= pch->integrateEdge(*norm,p->lindx,globalNorm,time);
+            lp = p->patch;
+          }
+          else
+            ok = false;
 
   if (!ok) std::cerr <<" *** SIMbase::solutionNorms: Failure.\n"<< std::endl;
 
