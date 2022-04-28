@@ -976,8 +976,8 @@ Real SAM::getReaction (int dir, const RealArray& rf, const IntVec* nodes) const
       if (!nodes || std::find(nodes->begin(),nodes->end(),i+1) != nodes->end())
       {
         int idof = madof[i]+dir-2;
-        int ipr = -msc[idof]-1;
-        if (idof < madof[i+1]-1 && ipr >= 0 && ipr < (int)rf.size())
+        int ipr = idof < madof[i+1]-1 ? -msc[idof]-1 : -1;
+        if (ipr >= 0 && ipr < (int)rf.size())
         {
           retVal += rf[ipr];
           if (nodes) // clear this force component to avoid it being added twice
