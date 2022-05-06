@@ -186,6 +186,25 @@ protected:
   //! \brief Disabled copy constructor.
   PETScMatrix(const PETScMatrix& A) = delete;
 
+  //! \brief Setup sparsity pattern for a DD partitioned model.
+  //! \param[in] sam Auxiliary data describing the FE model topology, etc.
+  void setupSparsityDD(const SAM& sam);
+  //! \brief Setup sparsity pattern for a graph partitioned model.
+  //! \param[in] sam Auxiliary data describing the FE model topology, etc.
+  void setupSparsityPartitioned(const SAM& sam);
+  //! \brief Setup sparsity pattern for a serial model.
+  //! \param[in] sam Auxiliary data describing the FE model topology, etc.
+  void setupSparsitySerial(const SAM& sam);
+
+  //! \brief Setup sparsity pattern for block-matrices for a DD partitioned model.
+  //! \param[in] sam Auxiliary data describing the FE model topology, etc.
+  void setupBlockSparsityDD(const SAM& sam);
+  //! \brief Setup sparsity pattern for block-matrices for a serial model.
+  void setupBlockSparsitySerial(const SAM& sam);
+
+  //! \brief Calculates the global-to-block mapping for equations.
+  std::vector<std::array<int,2>> setupGlb2Blk (const SAM& sam);
+
   Mat                 pA;              //!< The actual PETSc matrix
   KSP                 ksp;             //!< Linear equation solver
   MatNullSpace*       nsp;             //!< Null-space of linear operator
