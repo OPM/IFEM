@@ -23,7 +23,6 @@
 
 char ASMmxBase::geoBasis             = 2;
 ASMmxBase::MixedType ASMmxBase::Type = ASMmxBase::FULL_CONT_RAISE_BASIS1;
-bool ASMmxBase::subgridH             = false;
 
 
 void ASMmxBase::initMx (const std::vector<int>& MLGN, const int* sysMadof)
