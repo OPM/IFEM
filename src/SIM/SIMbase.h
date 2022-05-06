@@ -503,9 +503,9 @@ public:
   //! \details The secondary solution, defined through the Integrand object,
   //! corresponding to the primary solution \a psol is projected onto the
   //! spline basis to obtain the control point values of the secondary solution.
-  bool project(Matrix& ssol, const Vector& psol,
-               SIMoptions::ProjectionMethod pMethod = SIMoptions::GLOBAL,
-               const TimeDomain& time = TimeDomain()) const;
+  virtual bool project(Matrix& ssol, const Vector& psol,
+                       SIMoptions::ProjectionMethod pMethod = SIMoptions::GLOBAL,
+                       const TimeDomain& time = TimeDomain()) const;
   //! \brief Projects the secondary solution associated with a primary solution.
   //! \param[out] ssol Vector of control point values of the secondary solution
   //! \param[in] psol Vector of control point values of the primary solution
