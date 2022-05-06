@@ -204,8 +204,11 @@ bool ASMs3Dmx::generateFEMTopology ()
 
     // we need to project on something that is not one of our bases
     if (ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS1 ||
+        ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS2 ||
         ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
       projB = proj = ASMmxBase::raiseBasis(svol);
+    else if (ASMmxBase::Type == ASMmxBase::SUBGRID)
+      projB = proj = m_basis.front()->clone();
     else
       projB = proj = m_basis[2-ASMmxBase::geoBasis]->clone();
   }
