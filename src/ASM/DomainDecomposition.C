@@ -916,37 +916,48 @@ bool DomainDecomposition::calcGlobalEqNumbersPart(const ProcessAdm& adm,
                                                   const SIMbase& sim)
 {
 #ifdef HAVE_MPI
-  blocks[0].MLGEQ.clear();
-  blocks[0].MLGEQ.resize(sim.getSAM()->getNoEquations(), -1);
+  for (size_t b = 0; b < blocks.size(); ++b) {
+    blocks[b].MLGEQ.clear();
+    blocks[b].MLGEQ.resize(sim.getSAM()->getNoEquations(), -1);
 
-  blocks[0].minEq = 1;
-  blocks[0].maxEq = 0;
+    blocks[b].minEq = 1;
+    blocks[b].maxEq = 0;
 
-  if (adm.getProcId() != 0) {
-    adm.receive(blocks[0].MLGEQ, adm.getProcId()-1);
-    adm.receive(blocks[0].minEq, adm.getProcId()-1);
-    blocks[0].maxEq = blocks[0].minEq;
-    blocks[0].minEq++;
+    if (adm.getProcId() != 0) {
+      adm.receive(blocks[b].MLGEQ, adm.getProcId()-1);
+      adm.receive(blocks[b].minEq, adm.getProcId()-1);
+      blocks[b].maxEq = blocks[b].minEq;
+      blocks[b].minEq++;
+    }
   }
 
   for (size_t i = 0; i < myElms.size(); ++i) {
     IntVec meen;
     sim.getSAM()->getElmEqns(meen, myElms[i]+1);
-    for (int eq : meen)
-      if (eq > 0 && blocks[0].MLGEQ[eq-1] == -1)
-        blocks[0].MLGEQ[eq-1] = ++blocks[0].maxEq;
+    for (int eq : meen) {
+      for (size_t b = 0; b < blocks.size(); ++b) {
+        int beq = eq;
+        if (b > 0 && blocks[b].localEqs.find(eq) == blocks[b].localEqs.end())
+          beq = 0;
+        if (beq > 0 && blocks[b].MLGEQ[beq-1] == -1)
+          blocks[b].MLGEQ[beq-1] = ++blocks[b].maxEq;
+      }
+    }
   }
 
-  if (adm.getProcId() < adm.getNoProcs()-1) {
-    adm.send(blocks[0].MLGEQ, adm.getProcId()+1);
-    adm.send(blocks[0].maxEq, adm.getProcId()+1);
+  for (size_t b = 0; b < blocks.size(); ++b) {
+    if (adm.getProcId() < adm.getNoProcs()-1) {
+      adm.send(blocks[b].MLGEQ, adm.getProcId()+1);
+      adm.send(blocks[b].maxEq, adm.getProcId()+1);
+    }
   }
 
-  MPI_Bcast(&blocks[0].MLGEQ[0], blocks[0].MLGEQ.size(), MPI_INT,
-            adm.getNoProcs()-1, *adm.getCommunicator());
-
-  for (size_t i = 0; i < blocks[0].MLGEQ.size(); ++i)
-    blocks[0].G2LEQ[blocks[0].MLGEQ[i]] = i+1;
+  for (size_t b = 0; b < blocks.size(); ++b) {
+    MPI_Bcast(&blocks[b].MLGEQ[0], blocks[b].MLGEQ.size(), MPI_INT,
+              adm.getNoProcs()-1, *adm.getCommunicator());
+    for (size_t i = 0; i < blocks[0].MLGEQ.size(); ++i)
+      blocks[b].G2LEQ[blocks[b].MLGEQ[i]] = i+1;
+  }
 #endif
 
   return true;
