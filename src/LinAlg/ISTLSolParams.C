@@ -394,6 +394,8 @@ ISTL::Preconditioner* ISTLSolParams::setupPCInternal(ISTL::Mat& A,
                                                      std::unique_ptr<ISTL::InverseOperator>* solver)
 {
   std::string prec = solParams.getBlock(block).getStringValue("pc");
+  if (prec == "default")
+    prec = adm.getNoProcs() > 1 ? "asm" : "ilu";
   if (prec == "ilu") {
     int fill_level = solParams.getBlock(block).getIntValue("ilu_fill_level");
     if (fill_level == 0)
