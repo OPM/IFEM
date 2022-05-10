@@ -60,7 +60,9 @@ class FieldFuncHDF5 : public FieldFuncBase
 {
 protected:
   //! \brief Default constructor.
-  FieldFuncHDF5() : hasMultipleLevels(false), lastLevel(-1) {}
+  FieldFuncHDF5() : hasMultipleLevels(false), lastLevel(-1),
+                    hdf5(nullptr), pAdm(nullptr)
+  {}
   //! \brief The constructor opens the provided HDF5-file.
   //! \param[in] fileName Name of the HDF5-file
   explicit FieldFuncHDF5(const std::string& fileName);
