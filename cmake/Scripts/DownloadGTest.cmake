@@ -25,8 +25,11 @@ set(GTEST_INCLUDE_DIRS ${source_dir}/googletest/include)
 # Library
 externalproject_get_property(googletest binary_dir)
 set(GTEST_LIBRARIES ${binary_dir}/googlemock/gtest/${CMAKE_FIND_LIBRARY_PREFIXES}gtest.a)
-add_library(gtest UNKNOWN IMPORTED)
-set_property(TARGET gtest PROPERTY IMPORTED_LOCATION
-             ${GTEST_LIBRARIES})
+add_library(GTest::GTest UNKNOWN IMPORTED)
+file(MAKE_DIRECTORY ${GTEST_INCLUDE_DIRS})
+set_target_properties(GTest::GTest PROPERTIES
+                      IMPORTED_LOCATION  ${GTEST_LIBRARIES}
+                      INTERFACE_INCLUDE_DIRECTORIES ${GTEST_INCLUDE_DIRS}
+                      INTERFACE_LINK_LIBRARIES Threads::Threads)
 set_property(TARGET googletest PROPERTY EXCLUDE_FROM_ALL 1)
-add_dependencies(gtest googletest)
+add_dependencies(GTest::GTest googletest)
