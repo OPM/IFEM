@@ -34,15 +34,12 @@ endif()
 
 IFEM_add_test_app("${APPCOMMON_TEST_SRCS}"
                   ${PROJECT_SOURCE_DIR}/Test
-                  AppCommon
+                  AppCommon 0
                   IFEMAppCommon ${IFEM_LIBRARIES})
 if(MPI_FOUND)
   set(TEST_SRCS_MPI ${PROJECT_SOURCE_DIR}/Test/MPI/TestMultiPatchModelGenerator.C)
-  add_executable(AppCommon-MPI-test EXCLUDE_FROM_ALL
-                 ${IFEM_PATH}/src/IFEM-test.C ${TEST_SRCS_MPI})
-  target_link_libraries(AppCommon-MPI-test IFEMAppCommon ${IFEM_LIBRARIES} ${IFEM_DEPLIBS} gtest)
-  gtest_add_tests($<TARGET_FILE:AppCommon-MPI-test> ${IFEM_PATH}/Apps/Common TEST_SRCS_MPI
-                  ${MPIEXEC} -np 4)
+  ifem_add_test_app(${TEST_SRCS_MPI} ${IFEM_PATH}/Apps/Common AppCommon-MPI 4
+                    IFEMAppCommon ${IFEM_LIBRARIES} ${IFEM_DEPLIBS})
   list(APPEND TEST_APPS AppCommon-MPI-test)
 endif()
 
