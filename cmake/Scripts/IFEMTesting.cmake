@@ -1,50 +1,18 @@
-# Get GTest tests as CMake tests.
-# Copied from FindGTest.cmake
-# Thanks to Daniel Blezek <blezek@gmail.com> for the GTEST_ADD_TESTS code
-function(gtest_add_tests executable working_dir source_var)
-    if(NOT UNIT_TEST_NUMBER)
-      set(UNIT_TEST_NUMBER 0 CACHE INTERNAL "" FORCE)
-    endif()
-    foreach(source ${${source_var}})
-        file(READ "${source}" contents)
-        string(REGEX MATCHALL "TEST_?[F]?\\(([A-Za-z_0-9 ,]+)\\)" found_tests ${contents})
-        foreach(hit ${found_tests})
-            string(REGEX REPLACE ".*\\( *([A-Za-z_0-9]+), *([A-Za-z_0-9]+) *\\).*" "\\1.\\2" test_name ${hit})
-            math(EXPR UNIT_TEST_NUMBER "${UNIT_TEST_NUMBER}+1")
-            set(UNIT_TEST${UNIT_TEST_NUMBER} ${test_name} ${working_dir} ${ARGN} ${executable} --gtest_filter=${test_name} CACHE STRING "" FORCE)
-        endforeach()
-        # Groups parametrized tests under a single ctest entry
-        string(REGEX MATCHALL "INSTANTIATE_TEST_CASE_P\\(([^,]+), *([^,]+)" found_tests2 ${contents})
-        foreach(hit ${found_tests2})
-          string(SUBSTRING ${hit} 24 -1 test_name)
-          string(REPLACE "," ";" test_name "${test_name}")
-          list(GET test_name 0 filter_name)
-          list(GET test_name 1 test_prefix)
-          string(STRIP ${test_prefix} test_prefix)
-          string(REGEX MATCHALL "TEST_P\\(${test_prefix},([^\\)]+)\\)" found_tests3 ${contents})
-          foreach(ghit ${found_tests3})
-            string(SUBSTRING ${ghit} 8 -1 ghit_name)
-            string(REPLACE "," ";" ghit_name "${ghit_name}")
-            list(GET ghit_name 1 ghit_tname)
-            string(STRIP ${ghit_tname} ghit_tname)
-            string(REPLACE ")" "" ghit_tname "${ghit_tname}")
-            math(EXPR UNIT_TEST_NUMBER "${UNIT_TEST_NUMBER}+1")
-            set(UNIT_TEST${UNIT_TEST_NUMBER} ${test_prefix}.${ghit_tname} ${working_dir} ${ARGN} ${executable} --gtest_filter=*${filter_name}.${ghit_tname}/* CACHE STRING "" FORCE)
-          endforeach()
-        endforeach()
-    endforeach()
-    set(UNIT_TEST_NUMBER ${UNIT_TEST_NUMBER} PARENT_SCOPE)
-endfunction()
-
-
-macro(IFEM_add_test_app path workdir name)
+macro(IFEM_add_test_app path workdir name parallel)
   if("${path}" MATCHES "\\*")
     file(GLOB TEST_SRCS ${path})
   else()
     set(TEST_SRCS ${path})
   endif()
   add_executable(${name}-test ${EXCL_ALL} ${IFEM_PATH}/src/IFEM-test.C ${TEST_SRCS})
-  gtest_add_tests($<TARGET_FILE:${name}-test> ${workdir} TEST_SRCS)
+  if(${parallel} GREATER 0)
+    set_property(TARGET ${name}-test PROPERTY
+                 CROSSCOMPILING_EMULATOR '${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${parallel}')
+  endif()
+  include(GoogleTest)
+  gtest_discover_tests(${name}-test
+                       WORKING_DIRECTORY ${workdir}
+                       NO_PRETTY_VALUES)
   list(APPEND TEST_APPS ${name}-test)
   target_link_libraries(${name}-test ${ARGN} gtest pthread)
 endmacro()
@@ -73,7 +41,7 @@ macro(IFEM_add_unittests IFEM_PATH)
 
   IFEM_add_test_app("${TEST_SOURCES}"
                     ${IFEM_PATH}
-                    IFEM
+                    IFEM 0
                     ${IFEM_LIBRARIES} ${IFEM_DEPLIBS})
 
   # Parallel unit tests. These all run with 4 processes.
@@ -85,11 +53,7 @@ macro(IFEM_add_unittests IFEM_PATH)
     if(ISTL_FOUND)
       list(APPEND TEST_SRCS_MPI ${IFEM_PATH}/src/LinAlg/Test/MPI/TestISTLMatrix.C)
     endif()
-    add_executable(IFEM-MPI-test ${EXCL_ALL}
-                   ${IFEM_PATH}/src/IFEM-test.C ${TEST_SRCS_MPI})
-    target_link_libraries(IFEM-MPI-test ${IFEM_LIBRARIES} ${IFEM_DEPLIBS} gtest)
-    gtest_add_tests($<TARGET_FILE:IFEM-MPI-test> ${IFEM_PATH} TEST_SRCS_MPI
-                    ${MPIEXEC} -np 4)
+    IFEM_add_test_app("${TEST_SRCS_MPI}" ${IFEM_PATH} IFEM-MPI 4 ${IFEM_LIBRARIES} ${IFEM_DEPLIBS})
     list(APPEND TEST_APPS IFEM-MPI-test)
   endif()
 endmacro()
@@ -161,19 +125,6 @@ macro(add_check_target)
   if(NOT TARGET gtest)
     add_subdirectory(${IFEM_PATH}/3rdparty/gtest gtest ${EXCL_ALL})
   endif()
-  if (${UNIT_TEST_NUMBER} GREATER 0)
-    foreach(test_number RANGE 1 ${UNIT_TEST_NUMBER})
-      list(GET UNIT_TEST${test_number} 0 name)
-      list(GET UNIT_TEST${test_number} 1 dir)
-      list(REMOVE_AT UNIT_TEST${test_number} 0 1)
-      if(IFEM_TEST_MEMCHECK)
-        set(cmd ${MEMCHECK_COMMAND} ${cmd})
-      endif()
-      add_test(NAME ${name}
-               COMMAND ${UNIT_TEST${test_number}}
-               WORKING_DIRECTORY ${dir})
-    endforeach()
-  endif()
   add_dependencies(check ${TEST_APPS})
   add_custom_target(testapps DEPENDS ${TEST_APPS})
 
@@ -216,12 +167,17 @@ macro(add_check_target)
   endforeach()
 endmacro()
 
+# For regression tests
 if(IFEM_TEST_MEMCHECK)
   find_program(MEMCHECK_COMMAND valgrind)
   if(NOT MEMCHECK_COMMAND)
     message(FATAL_ERROR "Could not locate valgrind and IFEM_TEST_MEMCHECK is requested.")
   endif()
 endif()
+
+# Used for unit tests
+set(MEMORYCHECK_COMMAND_OPTIONS "--leak-check=yes")
+include(CTest)
 
 set(IFEM_TESTING_INCLUDED 1)
 if(IFEM_INTREE_BUILD)
