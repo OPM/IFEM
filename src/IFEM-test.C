@@ -24,7 +24,7 @@ int main (int argc, char** argv)
 {
   testing::InitGoogleTest(&argc, argv);
   IFEM::Init(argc, argv);
-  Profiler prof(argv[0]);
+  Profiler prof(argv[0], false);
 
   return RUN_ALL_TESTS();
 }
