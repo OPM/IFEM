@@ -2,6 +2,9 @@
 enable_language(CXX)
 enable_language(Fortran)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 # Custom profiles
 
 if(NOT IFEM_BUILD_TYPE)
