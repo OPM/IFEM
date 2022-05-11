@@ -38,15 +38,6 @@ endif()
 
 list(APPEND ISTL_INCLUDE_DIRS ${ISTL_INCLUDEDIR})
 
-if(DUNE_ISTL_VERSION_MAJOR GREATER 2 OR DUNE_ISTL_VERSION_MINOR GREATER 4)
-  if(NOT CXX_STD14_FLAGS)
-    message(STATUS dune-istl >= 2.5 requires c++14 support)
-    set(ISTL_LIBRARIES)
-    set(ISTL_DEFINITIONS)
-    set(ISTL_INCLUDE_DIRS)
-  endif()
-endif()
-
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(ISTL DEFAULT_MSG
                                   ISTL_INCLUDE_DIRS ISTL_LIBRARIES)
