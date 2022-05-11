@@ -1,6 +1,6 @@
 project(IFEM)
 
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 3.0)
 
 set(IFEM_VERSION_MAJOR 0)
 set(IFEM_VERSION_MINOR 9)
