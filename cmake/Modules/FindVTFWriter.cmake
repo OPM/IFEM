@@ -57,7 +57,7 @@ IF(VTFWRITER_INCLUDES)
 ENDIF(VTFWRITER_INCLUDES)
 
 INCLUDE(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(VTFWRITER DEFAULT_MSG
+find_package_handle_standard_args(VTFWriter DEFAULT_MSG
                                   VTFWRITER_INCLUDES VTFWRITER_LIBRARIES)
 
 MARK_AS_ADVANCED(VTFAPI VTFWRITER_INCLUDES VTFWRITER_LIBRARIES)

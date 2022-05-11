@@ -8,5 +8,5 @@ set(ENV{PKG_CONFIG_PATH} ${OLD_PKG})
 set(PETSC_LIBRARIES ${PETSC_STATIC_LDFLAGS})
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(PETSC DEFAULT_MSG
+find_package_handle_standard_args(Petsc DEFAULT_MSG
                                   PETSC_INCLUDE_DIRS PETSC_LIBRARIES)
