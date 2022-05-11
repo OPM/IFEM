@@ -335,7 +335,11 @@ static ISTL::Preconditioner* setupAMG2_smoother(const LinSolParams& params, size
 {
   std::string smoother = params.getBlock(block).getStringValue("multigrid_smoother");
   if (smoother == "ilu")
+#if DUNE_VERSION_NEWER(DUNE_ISTL, 2, 7)
+    return setupAMG2_full<ISTL::ILU>(params, block, op, solver, fsmooth);
+#else
     return setupAMG2_full<ISTL::ILU0>(params, block, op, solver, fsmooth);
+#endif
   else if (smoother == "sor")
     return setupAMG2_full<ISTL::SOR>(params, block, op, solver, fsmooth);
   else if (smoother == "ssor")
@@ -355,7 +359,11 @@ static ISTL::Preconditioner* setupAMG2(const LinSolParams& params, size_t block,
 {
   std::string smoother = params.getBlock(block).getStringValue("multigrid_finesmoother");
   if (params.getBlock(block).getStringValue("multigrid_finesmoother") == "ilu") {
+#if DUNE_VERSION_NEWER(DUNE_ISTL, 2, 7)
+    auto fsmooth = new ISTL::ILU(op.getmat(), 1.0);
+#else
     auto fsmooth = new ISTL::ILU0(op.getmat(), 1.0);
+#endif
     return setupAMG2_smoother(params, block, op, solver, fsmooth);
   } else  if (params.getBlock(block).getStringValue("multigrid_finesmoother") == "sor") {
     auto fsmooth = new ISTL::SOR(op.getmat(), 1, 1.0);
@@ -399,10 +407,19 @@ ISTL::Preconditioner* ISTLSolParams::setupPCInternal(ISTL::Mat& A,
   if (prec == "ilu") {
     int fill_level = solParams.getBlock(block).getIntValue("ilu_fill_level");
     if (fill_level == 0)
+#if DUNE_VERSION_NEWER(DUNE_ISTL, 2, 7)
+      return setupSolver(new ISTL::ILU(A, 1.0), op, solParams, solver);
+#else
       return setupSolver(new ISTL::ILU0(A, 1.0), op, solParams, solver);
+#endif
     else
+#if DUNE_VERSION_NEWER(DUNE_ISTL, 2, 7)
+      return setupSolver(new ISTL::ILU(A, fill_level, 1.0),
+                         op, solParams, solver);
+#else
       return setupSolver(new ISTL::ILUn(A, fill_level, 1.0),
                          op, solParams, solver);
+#endif
   } else if (prec == "lu")
     return setupSolver(new ISTL::LU(new ISTL::LUType(A)),
                        op, solParams, solver);
@@ -457,7 +474,11 @@ ISTL::Preconditioner* ISTLSolParams::setupPCInternal(ISTL::Mat& A,
         smoother = "ilu";
       }
       if (smoother == "ilu")
+#if DUNE_VERSION_NEWER(DUNE_ISTL, 2, 7)
+        return setupAMG<ISTL::ILU>(solParams, block, op, solver);
+#else
         return setupAMG<ISTL::ILU0>(solParams, block, op, solver);
+#endif
       else if (smoother == "sor")
         return setupAMG<ISTL::SOR>(solParams, block, op, solver);
       else if (smoother == "ssor")
