@@ -17,6 +17,7 @@
 #include <vector>
 
 #ifdef HAS_ISTL
+#include <dune/common/version.hh>
 #include <dune/istl/bcrsmatrix.hh>
 #include <dune/istl/overlappingschwarz.hh>
 #include <dune/istl/preconditioners.hh>
@@ -60,8 +61,12 @@ namespace ISTL
 #endif
 
   // Preconditioner types
+#if DUNE_VERSION_NEWER(DUNE_ISTL, 2, 7)
+  using ILU = Dune::SeqILU<Mat, Vec, Vec>; //!< Sequential ILU
+#else
   typedef Dune::SeqILU0<Mat, Vec, Vec> ILU0; //!< Sequential ILU(0)
   typedef Dune::SeqILUn<Mat, Vec, Vec> ILUn; //!< Sequential ILU(n)
+#endif
   typedef  Dune::SeqSOR<Mat, Vec, Vec>  SOR; //!< Sequential SOR
   typedef Dune::SeqSSOR<Mat, Vec,Vec> SSOR; //!< Sequential SSOR
   typedef  Dune::SeqJac<Mat, Vec, Vec>    GJ; //!< Sequential Gauss-Jacobi
