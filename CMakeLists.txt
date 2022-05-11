@@ -61,7 +61,6 @@ set(IFEM_INCLUDES
     ${PROJECT_SOURCE_DIR}/src/Utility
     ${PROJECT_SOURCE_DIR}/3rdparty
     ${PROJECT_SOURCE_DIR}/3rdparty/expreval
-    ${PROJECT_SOURCE_DIR}/3rdparty/gtest/include
     ${PROJECT_BINARY_DIR}
 )
 
@@ -195,6 +194,7 @@ else()
   configure_file(cmake/Templates/IFEMConfig.cmake.in IFEMConfig.cmake @ONLY)
   install(FILES ${CMAKE_BINARY_DIR}/IFEMConfigVersion.cmake
                 ${CMAKE_BINARY_DIR}/IFEMConfig.cmake
+                cmake/Modules/FindTestLib.cmake
                 cmake/Scripts/CheckCommits.cmake
                 cmake/Scripts/DownloadGTest.cmake
                 cmake/Scripts/UseMultiArch.cmake

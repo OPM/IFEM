@@ -77,8 +77,7 @@ else()
                     ${IFEM_PATH}/src/LinAlg
                     ${IFEM_PATH}/src/SIM
                     ${IFEM_PATH}/src/Utility
-                    ${IFEM_PATH}/3rdparty
-                    ${IFEM_PATH}/3rdparty/gtest/include)
+                    ${IFEM_PATH}/3rdparty)
 
   find_library(IFEM_LIBRARIES
     NAMES IFEM
@@ -155,8 +154,5 @@ set(IFEM_CXX_FLAGS "${IFEM_CXX_FLAGS} -DReal=double")
 list(APPEND IFEM_DEFINITIONS -DReal=double)
 
 set(IFEM_CONFIGURED 1)
-if(NOT IFEM_TESTING_INCLUDED)
-  include(../Scripts/IFEMTesting)
-endif()
 
 include(../Scripts/IFEMDoxy)

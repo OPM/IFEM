@@ -104,11 +104,12 @@ function build_module {
     test $? -eq 0 || exit 2
     njob=$(( $nproc / 2 ))
     nomp=$(( $nproc > 1 ? 2 : 1))
+    CTEST_OP=${CTEST_OP:-Test}
     if test -z "$CTEST_CONFIGURATION"
     then
-      OMP_NUM_THREADS=$nomp ctest -T Test --test-timeout 180 --no-compress-output -j$njob
+      OMP_NUM_THREADS=$nomp ctest -T ${CTEST_OP} --test-timeout 180 --no-compress-output -j$njob
     else
-     OMP_NUM_THREADS=$nomp ctest -C $CTEST_CONFIGURATION -T Test --test-timeout 180 --no-compress-output -j$njob
+     OMP_NUM_THREADS=$nomp ctest -C $CTEST_CONFIGURATION -T ${CTEST_OP} --test-timeout 180 --no-compress-output -j$njob
      for log in Testing/Temporary/MemoryCheck.*.log
      do
        if ! grep -q "ERROR SUMMARY: 0 errors" $log
