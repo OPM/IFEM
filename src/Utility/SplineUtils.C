@@ -276,8 +276,8 @@ Go::SplineVolume* SplineUtils::project (const Go::SplineVolume* volume,
     upar[i] = ubas.grevilleParameter(i);
   for (j = 0; j < nv; j++)
     vpar[j] = vbas.grevilleParameter(j);
-  for (j = 0; j < nv; j++)
-    wpar[j] = wbas.grevilleParameter(j);
+  for (k = 0; k < nw; k++)
+    wpar[k] = wbas.grevilleParameter(k);
 
   // Evaluate the function at the sampling points
   Go::Point X;
@@ -287,7 +287,7 @@ Go::SplineVolume* SplineUtils::project (const Go::SplineVolume* volume,
     for (j = 0; j < nv; j++)
       for (i = 0; i < nu; i++)
       {
-        volume->point(X,upar[i],vpar[j],wpar[j]);
+        volume->point(X,upar[i],vpar[j],wpar[k]);
         fOfX = f.getValue(toVec4(X,time));
         fval.insert(fval.end(),fOfX.begin(),fOfX.begin()+nComp);
       }
