@@ -220,13 +220,6 @@ void PETScMatrix::initAssembly (const SAM& sam, bool delayLocking)
     MatSetOption(pA,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_FALSE);
 #endif
   } else {
-    if (adm.isParallel() && !adm.dd.isPartitioned())
-      this->setupBlockSparsityDD(sam);
-    else if (adm.dd.isPartitioned())
-      this->setupBlockSparsityPartitioned(sam);
-    else
-      this->setupBlockSparsitySerial(sam);
-
     isvec.resize(adm.dd.getNoBlocks());
     // index sets
     for (size_t i = 0; i < isvec.size(); ++i) {
@@ -243,6 +236,13 @@ void PETScMatrix::initAssembly (const SAM& sam, bool delayLocking)
       ISCreateGeneral(*adm.getCommunicator(),blockEq.size(),
                       blockEq.data(),PETSC_COPY_VALUES,&isvec[i]);
     }
+
+    if (adm.isParallel() && !adm.dd.isPartitioned())
+      this->setupBlockSparsityDD(sam);
+    else if (adm.dd.isPartitioned())
+      this->setupBlockSparsityPartitioned(sam);
+    else
+      this->setupBlockSparsitySerial(sam);
 
     MatCreateNest(*adm.getCommunicator(),solParams.getNoBlocks(),isvec.data(),
                   solParams.getNoBlocks(),isvec.data(),matvec.data(),&pA);
@@ -512,8 +512,6 @@ void PETScMatrix::setupBlockSparsityPartitioned (const SAM& sam)
 {
   size_t blocks = solParams.getNoBlocks();
   const DomainDecomposition& dd = adm.dd;
-  std::vector<IntSet> dofc;
-  sam.getDofCouplings(dofc);
 
   // Setup sparsity pattern for local matrix
   for (int elm : adm.dd.getElms()) {
@@ -528,27 +526,51 @@ void PETScMatrix::setupBlockSparsityPartitioned (const SAM& sam)
   this->optimiseSLU();
 
   this->setupGlb2BlkPart(sam);
-  std::vector<std::vector<PetscInt>> d_nnz(blocks*blocks), o_nnz(blocks*blocks);
-  for (size_t i = 0; i < blocks; ++i)
-    for (size_t j = 0; j < blocks; ++j) {
-      d_nnz[i+j*blocks].resize(dd.getMaxEq(i+1)-dd.getMinEq(i+1)+1);
-      o_nnz[i+j*blocks].resize(dd.getMaxEq(i+1)-dd.getMinEq(i+1)+1);
+
+  std::vector<Mat> prealloc;
+  prealloc.resize(blocks*blocks);
+  auto itPre = prealloc.begin();
+  for (size_t i = 0; i < blocks; ++i) {
+    for (size_t j = 0; j < blocks; ++j, ++itPre) {
+      MatCreate(*adm.getCommunicator(), &(*itPre));
+      MatSetType(*itPre, MATPREALLOCATOR);
+      int nrows = dd.getMaxEq(i+1)-dd.getMinEq(i+1)+1;
+      int ncols = dd.getMaxEq(j+1)-dd.getMinEq(j+1)+1;
+      MatSetSizes(*itPre, nrows, ncols,
+                  PETSC_DETERMINE, PETSC_DETERMINE);
+      MatSetUp(*itPre);
     }
+  }
+  Mat pBlock;
+  MatCreate(*adm.getCommunicator(), &pBlock);
+  MatCreateNest(*adm.getCommunicator(),solParams.getNoBlocks(),isvec.data(),
+                solParams.getNoBlocks(),isvec.data(),prealloc.data(),&pBlock);
+
+  std::swap(matvec, prealloc);
+  std::swap(pBlock, pA);
+  this->beginAssembly();
+  this->endAssembly();
+  std::swap(pBlock, pA);
+  std::swap(matvec, prealloc);
+  MatDestroy(&pBlock);
 
   auto it = matvec.begin();
+  itPre = prealloc.begin();
   for (size_t i = 0; i < blocks; ++i) {
-    for (size_t j = 0; j < blocks; ++j, ++it) {
-      std::vector<PetscInt> nnz;
+    for (size_t j = 0; j < blocks; ++j, ++it, ++itPre) {
       int nrows = dd.getMaxEq(i+1)-dd.getMinEq(i+1)+1;
       int ncols = dd.getMaxEq(j+1)-dd.getMinEq(j+1)+1;
       MatSetSizes(*it, nrows, ncols,
                   PETSC_DETERMINE, PETSC_DETERMINE);
 
-      // TODO: Proper preallocation
-      MatMPIAIJSetPreallocation(*it, 30, nullptr, 30, nullptr);
+      MatPreallocatorPreallocate(*itPre, PETSC_TRUE, *it);
+
       MatSetUp(*it);
     }
   }
+
+  for (Mat& it : prealloc)
+    MatDestroy(&it);
 }
 
 
@@ -590,18 +612,19 @@ bool PETScMatrix::beginAssembly()
   } else {
     for (size_t j = 0; j < cols(); ++j) {
       for (int i = IA[j]; i < IA[j+1]; ++i) {
-        int rblock = glb2Blk[i][0] / adm.dd.getNoBlocks() + 1;
-        int cblock = glb2Blk[i][0] % adm.dd.getNoBlocks() + 1;
         if (adm.dd.isPartitioned())
           MatSetValue(matvec[glb2Blk[i][0]],
                       glb2Blk[i][1],
                       glb2Blk[i][2],
                       A[i], ADD_VALUES);
-        else
+        else {
+          int rblock = glb2Blk[i][0] / adm.dd.getNoBlocks() + 1;
+          int cblock = glb2Blk[i][0] % adm.dd.getNoBlocks() + 1;
           MatSetValue(matvec[glb2Blk[i][0]],
                       adm.dd.getGlobalEq(glb2Blk[i][1]+1, rblock)-1,
                       adm.dd.getGlobalEq(glb2Blk[i][2]+1, cblock)-1,
                       A[i], ADD_VALUES);
+        }
       }
     }
   }

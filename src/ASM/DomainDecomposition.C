@@ -955,9 +955,9 @@ bool DomainDecomposition::calcGlobalEqNumbersPart(const ProcessAdm& adm,
   for (size_t b = 0; b < blocks.size(); ++b) {
     MPI_Bcast(&blocks[b].MLGEQ[0], blocks[b].MLGEQ.size(), MPI_INT,
               adm.getNoProcs()-1, *adm.getCommunicator());
-    for (size_t i = 0; i < blocks[0].MLGEQ.size(); ++i)
-      blocks[b].G2LEQ[blocks[b].MLGEQ[i]] = i+1;
   }
+  for (size_t i = 0; i < blocks[0].MLGEQ.size(); ++i)
+    blocks[0].G2LEQ[blocks[0].MLGEQ[i]] = i+1;
 #endif
 
   return true;
