@@ -57,7 +57,7 @@ First, we will add in-house dependencies by a secondary repository.
 
 3. Install required official libraries
 
-    `sudo apt-get install libboost-dev libarpack2-dev libsuperlu-dev`
+    `sudo apt-get install libboost-dev libarpack2-dev libsuperlu-dev libgtest-dev`
 
 4. Install required in-house GoTools libraries by typing
 
