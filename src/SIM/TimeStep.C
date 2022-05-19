@@ -32,6 +32,7 @@ TimeStep::TimeStep () : step(0), iter(time.it), lstep(0)
   f1 = 1.5;
   f2 = 0.25;
   maxStep = niter = 0;
+  stop_tol = 0.0;
   stepIt = mySteps.end();
 }
 
@@ -51,6 +52,7 @@ TimeStep& TimeStep::operator= (const TimeStep& ts)
   maxStep = ts.maxStep;
   niter = ts.niter;
   iter = ts.iter;
+  stop_tol = ts.stop_tol;
 
   time = ts.time;
   mySteps = ts.mySteps;
@@ -110,6 +112,7 @@ bool TimeStep::parse (const TiXmlElement* elem)
   utl::getAttribute(elem,"dtMax",dtMax);
   utl::getAttribute(elem,"maxCFL",maxCFL);
   utl::getAttribute(elem,"nInitStep",nInitStep);
+  utl::getAttribute(elem,"stop_tolerance",stop_tol);
   utl::getAttribute(elem,"maxStep",maxStep);
   utl::getAttribute(elem,"f1",f1);
   utl::getAttribute(elem,"f2",f2);
@@ -264,6 +267,12 @@ bool TimeStep::increment ()
   {
     IFEM::cout <<"\n  ** Terminating, maximum number of time steps reached."
                << std::endl;
+    return false;
+  }
+  else if (time.incNorm > 0.0 && time.incNorm < stop_tol)
+  {
+    IFEM::cout <<"\n  ** Terminating, solution increment norm "
+               << time.incNorm << " less than tolerance " << stop_tol << std::endl;
     return false;
   }
 
