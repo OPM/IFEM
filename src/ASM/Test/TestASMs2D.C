@@ -75,7 +75,7 @@ TEST_P(TestASMs2D, Connect)
 }
 
 
-INSTANTIATE_TEST_CASE_P(TestASMs2D, TestASMs2D, testing::Values(0,1));
+INSTANTIATE_TEST_SUITE_P(TestASMs2D, TestASMs2D, testing::Values(0,1));
 
 
 class ASMdegenerate2D : public ASMs2D

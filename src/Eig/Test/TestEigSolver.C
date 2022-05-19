@@ -68,4 +68,4 @@ TEST_P(TestEigSolver, Arpack)
 
 
 const std::vector<int> modes = {1,2,3,4};
-INSTANTIATE_TEST_CASE_P(TestEigSolver, TestEigSolver, testing::ValuesIn(modes));
+INSTANTIATE_TEST_SUITE_P(TestEigSolver, TestEigSolver, testing::ValuesIn(modes));

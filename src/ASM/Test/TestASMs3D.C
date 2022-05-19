@@ -105,8 +105,8 @@ TEST_P(TestASMs3D, ConnectUneven)
 }
 
 
-INSTANTIATE_TEST_CASE_P(TestASMs3D, TestASMs3D,
-                        testing::Values(0,1,2,3,5,6,7,8,9,10,11,12));
+INSTANTIATE_TEST_SUITE_P(TestASMs3D, TestASMs3D,
+                         testing::Values(0,1,2,3,5,6,7,8,9,10,11,12));
 
 
 class ASMdegenerate3D : public ASMs3D

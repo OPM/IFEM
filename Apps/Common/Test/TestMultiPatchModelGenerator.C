@@ -431,9 +431,9 @@ const std::vector<SubPatchTest> SubPatch1D =
   };
 
 
-INSTANTIATE_TEST_CASE_P(TestGetSubPatch1D,
-                        TestGetSubPatch1D,
-                        testing::ValuesIn(SubPatch1D));
+INSTANTIATE_TEST_SUITE_P(TestGetSubPatch1D,
+                         TestGetSubPatch1D,
+                         testing::ValuesIn(SubPatch1D));
 
 
 class TestGetSubPatch2D :
@@ -605,9 +605,9 @@ const std::vector<SubPatchTest> SubPatch2D =
   };
 
 
-INSTANTIATE_TEST_CASE_P(TestGetSubPatch2D,
-                        TestGetSubPatch2D,
-                        testing::ValuesIn(SubPatch2D));
+INSTANTIATE_TEST_SUITE_P(TestGetSubPatch2D,
+                         TestGetSubPatch2D,
+                         testing::ValuesIn(SubPatch2D));
 
 
 class TestGetSubPatch3D :
@@ -820,9 +820,9 @@ const std::vector<SubPatchTest> SubPatch3D =
   };
 
 
-INSTANTIATE_TEST_CASE_P(TestGetSubPatch3D,
-                        TestGetSubPatch3D,
-                        testing::ValuesIn(SubPatch3D));
+INSTANTIATE_TEST_SUITE_P(TestGetSubPatch3D,
+                         TestGetSubPatch3D,
+                         testing::ValuesIn(SubPatch3D));
 
 TEST(TestMultiPatchModelGenerator3D, InnerPatches)
 {
@@ -1068,9 +1068,9 @@ const std::vector<GeomTest> geometry2D =
      "Vertex4: 4 4 0 \n"}};
 
 
-INSTANTIATE_TEST_CASE_P(TestMultiPatchModelGenerator2D,
-                        TestMultiPatchModelGenerator2D,
-                        testing::ValuesIn(geometry2D));
+INSTANTIATE_TEST_SUITE_P(TestMultiPatchModelGenerator2D,
+                         TestMultiPatchModelGenerator2D,
+                         testing::ValuesIn(geometry2D));
 
 
 const std::vector<GeomTest> geometry3D =
@@ -1663,6 +1663,6 @@ const std::vector<GeomTest> geometry3D =
     "Vertex8: 8 8 0 \n"}};
 
 
-INSTANTIATE_TEST_CASE_P(TestMultiPatchModelGenerator3D,
-                        TestMultiPatchModelGenerator3D,
-                        testing::ValuesIn(geometry3D));
+INSTANTIATE_TEST_SUITE_P(TestMultiPatchModelGenerator3D,
+                         TestMultiPatchModelGenerator3D,
+                         testing::ValuesIn(geometry3D));

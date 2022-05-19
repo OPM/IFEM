@@ -194,7 +194,7 @@ const std::vector<DefaultGeomTest> geometry1D =
     "Vertex2: 1 2 0 \n"}};
 
 
-INSTANTIATE_TEST_CASE_P(TestModelGenerator1D, TestModelGenerator1D, testing::ValuesIn(geometry1D));
+INSTANTIATE_TEST_SUITE_P(TestModelGenerator1D, TestModelGenerator1D, testing::ValuesIn(geometry1D));
 
 
 const std::vector<DefaultGeomTest> geometry2D =
@@ -337,7 +337,7 @@ const std::vector<DefaultGeomTest> geometry2D =
      "1 2\n", ""}};
 
 
-INSTANTIATE_TEST_CASE_P(TestModelGenerator2D, TestModelGenerator2D, testing::ValuesIn(geometry2D));
+INSTANTIATE_TEST_SUITE_P(TestModelGenerator2D, TestModelGenerator2D, testing::ValuesIn(geometry2D));
 
 
 const std::vector<DefaultGeomTest> geometry3D =
@@ -674,4 +674,4 @@ const std::vector<DefaultGeomTest> geometry3D =
      "1 1 2 \n", ""}};
 
 
-INSTANTIATE_TEST_CASE_P(TestModelGenerator3D, TestModelGenerator3D, testing::ValuesIn(geometry3D));
+INSTANTIATE_TEST_SUITE_P(TestModelGenerator3D, TestModelGenerator3D, testing::ValuesIn(geometry3D));
