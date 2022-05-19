@@ -40,6 +40,6 @@ TEST_P(TestGaussQuadrature, Integrate)
 }
 
 
-INSTANTIATE_TEST_CASE_P(TestGaussQuadrature,
-                        TestGaussQuadrature,
-                        testing::Values(1, 2, 3, 4, 5, 6, 7, 8, 9, 10));
+INSTANTIATE_TEST_SUITE_P(TestGaussQuadrature,
+                         TestGaussQuadrature,
+                         testing::Values(1, 2, 3, 4, 5, 6, 7, 8, 9, 10));

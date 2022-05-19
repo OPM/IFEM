@@ -392,5 +392,5 @@ TEST(TestSIMNodalConstraint, ASMs3DmxE3)
 }
 
 const std::vector<int> tests = {1,2,3,4,5,6,7,8,9,10,11,12};
-INSTANTIATE_TEST_CASE_P(TestSIMNodalConstraint, TestSIMNodalConstraint,
-                        testing::ValuesIn(tests));
+INSTANTIATE_TEST_SUITE_P(TestSIMNodalConstraint, TestSIMNodalConstraint,
+                         testing::ValuesIn(tests));

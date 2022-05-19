@@ -47,4 +47,4 @@ const std::vector<TestCase> testFiles = {
   { "src/ASM/Test/refdata/kjoint.dat", 4U }};
 
 
-INSTANTIATE_TEST_CASE_P(TestASMsup, TestASMsup, testing::ValuesIn(testFiles));
+INSTANTIATE_TEST_SUITE_P(TestASMsup, TestASMsup, testing::ValuesIn(testFiles));

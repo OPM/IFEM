@@ -273,7 +273,7 @@ std::vector<std::pair<int,ASM::Discretization>> orientations2D = {{0, ASM::Splin
                                                                   {1, ASM::LRSpline}
 #endif
                                                                  };
-INSTANTIATE_TEST_CASE_P(TestSIM2D, TestSIM2D, testing::ValuesIn(orientations2D));
+INSTANTIATE_TEST_SUITE_P(TestSIM2D, TestSIM2D, testing::ValuesIn(orientations2D));
 
 
 class TestSIM3D : public testing::Test,
@@ -452,4 +452,4 @@ const std::vector<std::pair<int,ASM::Discretization>> orientations3D = {{0, ASM:
 #endif
                                                                        };
 
-INSTANTIATE_TEST_CASE_P(TestSIM3D, TestSIM3D, testing::ValuesIn(orientations3D));
+INSTANTIATE_TEST_SUITE_P(TestSIM3D, TestSIM3D, testing::ValuesIn(orientations3D));
