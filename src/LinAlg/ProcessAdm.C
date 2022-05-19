@@ -53,6 +53,14 @@ ProcessAdm::ProcessAdm(const ProcessAdm& adm) : cout(adm.cout)
 }
 
 
+void ProcessAdm::broadcast (std::vector<double>& vec, int root) const
+{
+#ifdef HAVE_MPI
+  MPI_Bcast(vec.data(), vec.size(), MPI_DOUBLE, root, comm);
+#endif
+}
+
+
 #ifdef HAVE_MPI
 ProcessAdm::ProcessAdm(bool) : cout(std::cout)
 {
