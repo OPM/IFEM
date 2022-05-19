@@ -1651,42 +1651,47 @@ bool SIMinput::setInitialCondition (SIMdependency* fieldHolder,
     RealArray* field = fieldHolder->getField(it.sim_field);
     if (!field) continue;
 
-    // Load basis
-    CharVec nf(1,this->getNoFields(it.basis));
-    PatchVec& basisVec = basisMap[it.file_basis];
-    std::stringstream str;
-    str << it.geo_level << "/" << it.file_basis << "/basis";
-    int nPatches = hdf5reader.getFieldSize(str.str());
-    if (basisVec.empty())
-      for (int i = 0; i < nPatches; i++)
-        if (this->getLocalPatchIndex(i+1) > 0)
-        {
-          std::stringstream str, spg2;
-          str << it.geo_level << "/" << it.file_basis << "/basis/" << i+1;
-          std::string pg2;
-          hdf5reader.readString(str.str(),pg2);
-          spg2 << pg2;
-          basisVec.push_back(this->readPatch(spg2,i,nf));
-        }
-
-    // Load result field, patch by patch
-    for (int i = 0; i < nPatches; i++)
-    {
-      int p = this->getLocalPatchIndex(i+1);
-      if (p <= 0) continue;
-
-      ASMbase* pch = myModel[p-1];
-      Vector loc, newloc;
+    if (!adm.dd.isPartitioned() || adm.getProcId() == 0) {
+      // Load basis
+      CharVec nf(1,this->getNoFields(it.basis));
+      PatchVec& basisVec = basisMap[it.file_basis];
       std::stringstream str;
-      str << it.file_level <<"/"
-          << it.file_basis <<"/fields/"
-          << it.file_field <<"/"<< i+1;
-      hdf5reader.readVector(str.str(), loc);
-      basisVec[p-1]->copyParameterDomain(pch);
-      if (pch->evaluate(basisVec[p-1], loc, newloc, it.basis))
-        pch->injectNodeVec(newloc, *field,
-                           newloc.size()/pch->getNoNodes(it.basis), it.basis);
+      str << it.geo_level << "/" << it.file_basis << "/basis";
+      int nPatches = hdf5reader.getFieldSize(str.str());
+      if (basisVec.empty())
+        for (int i = 0; i < nPatches; i++)
+          if (this->getLocalPatchIndex(i+1) > 0)
+          {
+            std::stringstream str, spg2;
+            str << it.geo_level << "/" << it.file_basis << "/basis/" << i+1;
+            std::string pg2;
+            hdf5reader.readString(str.str(),pg2);
+            spg2 << pg2;
+            basisVec.push_back(this->readPatch(spg2,i,nf));
+          }
+
+      // Load result field, patch by patch
+      for (int i = 0; i < nPatches; i++)
+      {
+        int p = this->getLocalPatchIndex(i+1);
+        if (p <= 0) continue;
+
+        ASMbase* pch = myModel[p-1];
+        Vector loc, newloc;
+        std::stringstream str;
+        str << it.file_level <<"/"
+            << it.file_basis <<"/fields/"
+            << it.file_field <<"/"<< i+1;
+        hdf5reader.readVector(str.str(), loc);
+        basisVec[p-1]->copyParameterDomain(pch);
+        if (pch->evaluate(basisVec[p-1], loc, newloc, it.basis))
+          pch->injectNodeVec(newloc, *field,
+                             newloc.size()/pch->getNoNodes(it.basis), it.basis);
+      }
     }
+
+    if (adm.dd.isPartitioned())
+      adm.broadcast(*field, 0);
   }
 
   // Clean up basis patches
