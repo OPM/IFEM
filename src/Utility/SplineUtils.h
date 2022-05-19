@@ -38,7 +38,8 @@ namespace SplineUtils //! Various utility functions on spline objects.
   //! \brief Helper method for casting a \a Go::Point object to Vec3.
   Vec3 toVec3(const Go::Point& X, int nsd = 3);
   //! \brief Helper method for casting a \a Go::Point and time object to Vec4.
-  Vec4 toVec4(const Go::Point& X, Real time = Real(0));
+  Vec4 toVec4(const Go::Point& X, Real time = Real(0),
+              const double* u = nullptr);
 
   //! \brief Evaluates given spline curve at a parametric point.
   void point(Vec3& X, double u, Go::SplineCurve* curve);

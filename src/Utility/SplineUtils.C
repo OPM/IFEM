@@ -31,11 +31,13 @@ Vec3 SplineUtils::toVec3 (const Go::Point& X, int nsd)
 }
 
 
-Vec4 SplineUtils::toVec4 (const Go::Point& X, Real time)
+Vec4 SplineUtils::toVec4 (const Go::Point& X, Real time,
+                          const double* u)
 {
   Vec4 Y;
   for (int i = 0; i < X.size() && i < 3; i++) Y[i] = X[i];
   Y.t = time;
+  Y.u = u;
   return Y;
 }
 
@@ -195,7 +197,7 @@ Go::SplineCurve* SplineUtils::project (const Go::SplineCurve* curve,
   {
     gpar[i] = basis.grevilleParameter(i);
     curve->point(X,gpar[i]);
-    fOfX = f.getValue(toVec4(X,time));
+    fOfX = f.getValue(toVec4(X,time,&gpar[i]));
     fval.insert(fval.end(),fOfX.begin(),fOfX.begin()+nComp);
   }
 
@@ -238,7 +240,8 @@ Go::SplineSurface* SplineUtils::project (const Go::SplineSurface* surface,
     for (i = 0; i < nu; i++)
     {
       surface->point(X,upar[i],vpar[j]);
-      fOfX = f.getValue(toVec4(X,time));
+      double u[2] = {upar[i], vpar[j]};
+      fOfX = f.getValue(toVec4(X,time,u));
       fval.insert(fval.end(),fOfX.begin(),fOfX.begin()+nComp);
     }
 
@@ -288,7 +291,8 @@ Go::SplineVolume* SplineUtils::project (const Go::SplineVolume* volume,
       for (i = 0; i < nu; i++)
       {
         volume->point(X,upar[i],vpar[j],wpar[k]);
-        fOfX = f.getValue(toVec4(X,time));
+        double u[3] = {upar[i], vpar[j], wpar[k]};
+        fOfX = f.getValue(toVec4(X,time,u));
         fval.insert(fval.end(),fOfX.begin(),fOfX.begin()+nComp);
       }
 
