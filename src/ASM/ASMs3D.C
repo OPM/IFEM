@@ -1978,52 +1978,21 @@ bool ASMs3D::integrate (Integrand& integrand,
   bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
   bool useElmVtx = integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS;
 
+  if (myCache.empty())
+    myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this, integrand, cachePolicy, 1));
+
+  BasisFunctionCache& cache = *myCache.front();
+  if (!cache.init(use2ndDer ? 2 : 1))
+    return false;
+
   // Get Gaussian quadrature points and weights
-  std::array<int,3> ng;
-  std::array<const double*,3> xg, wg;
-  for (int d = 0; d < 3; d++)
-  {
-    ng[d] = this->getNoGaussPt(svol->order(d));
-    xg[d] = GaussQuadrature::getCoord(ng[d]);
-    wg[d] = GaussQuadrature::getWeight(ng[d]);
-    if (!xg[d] || !wg[d]) return false;
-  }
+  const std::array<int,3>& ng = cache.nGauss();
+  const std::array<const double*,3>& xg = cache.coord();
+  const std::array<const double*,3>& wg = cache.weight();
 
   // Get the reduced integration quadrature points, if needed
-  const double* xr = nullptr;
-  const double* wr = nullptr;
-  int nRed = integrand.getReducedIntegration(ng[0]);
-  if (nRed > 0)
-  {
-    xr = GaussQuadrature::getCoord(nRed);
-    wr = GaussQuadrature::getWeight(nRed);
-    if (!xr || !wr) return false;
-  }
-  else if (nRed < 0)
-    nRed = ng[0]; // The integrand needs to know nGauss
-
-  // Compute parameter values of the Gauss points over the whole patch
-  std::array<Matrix,3> gpar, redpar;
-  for (int d = 0; d < 3; d++)
-  {
-    this->getGaussPointParameters(gpar[d],d,ng[d],xg[d]);
-    if (xr)
-      this->getGaussPointParameters(redpar[d],d,nRed,xr);
-  }
-
-  // Evaluate basis function derivatives at all integration points
-  std::vector<Go::BasisDerivs>  spline;
-  std::vector<Go::BasisDerivs2> spline2;
-  std::vector<Go::BasisDerivs>  splineRed;
-  {
-    PROFILE2("Spline evaluation");
-    if (use2ndDer)
-      svol->computeBasisGrid(gpar[0],gpar[1],gpar[2],spline2);
-    else
-      svol->computeBasisGrid(gpar[0],gpar[1],gpar[2],spline);
-    if (xr)
-      svol->computeBasisGrid(redpar[0],redpar[1],redpar[2],splineRed);
-  }
+  const double* xr = cache.coord(true)[0];
+  const double* wr = cache.weight(true)[0];
 
   const int n1 = svol->numCoefs(0);
   const int n2 = svol->numCoefs(1);
@@ -2100,21 +2069,21 @@ bool ASMs3D::integrate (Integrand& integrand,
 
           fe.Navg.resize(p1*p2*p3,true);
           double vol = 0.0;
-          int ip = (((i3-p3)*ng[2]*nel2 + i2-p2)*ng[1]*nel1 + i1-p1)*ng[0];
-          for (int k = 0; k < ng[2]; k++, ip += ng[1]*(nel2-1)*ng[0]*nel1)
-            for (int j = 0; j < ng[1]; j++, ip += ng[0]*(nel1-1))
+          size_t ip = 1;
+          for (int k = 0; k < ng[2]; k++)
+            for (int j = 0; j < ng[1]; j++)
               for (int i = 0; i < ng[0]; i++, ip++)
               {
                 // Fetch basis function derivatives at current integration point
-                SplineUtils::extractBasis(spline[ip],fe.N,dNdu);
+                const BasisFunctionVals& bfs = cache.getVals(iel-1,ip);
 
                 // Compute Jacobian determinant of coordinate mapping
                 // and multiply by weight of current integration point
-                double detJac = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu,false);
+                double detJac = utl::Jacobian(Jac,fe.dNdX,Xnod,bfs.dNdu,false);
                 double weight = dV*wg[0][i]*wg[1][j]*wg[2][k];
 
                 // Numerical quadrature
-                fe.Navg.add(fe.N,detJac*weight);
+                fe.Navg.add(bfs.N,detJac*weight);
                 vol += detJac*weight;
               }
 
@@ -2125,9 +2094,9 @@ bool ASMs3D::integrate (Integrand& integrand,
         if (integrand.getIntegrandType() & Integrand::ELEMENT_CENTER)
         {
           // Compute the element center
-          param[0] = 0.5*(gpar[0](1,i1-p1+1) + gpar[0](ng[0],i1-p1+1));
-          param[1] = 0.5*(gpar[1](1,i2-p2+1) + gpar[1](ng[1],i2-p2+1));
-          param[2] = 0.5*(gpar[2](1,i3-p3+1) + gpar[2](ng[2],i3-p3+1));
+          param[0] = 0.5*(cache.getParam(0,i1-p1,0) + cache.getParam(0,i1-p1,ng[0]-1));
+          param[1] = 0.5*(cache.getParam(1,i2-p2,0) + cache.getParam(1,i2-p2,ng[1]-1));
+          param[2] = 0.5*(cache.getParam(2,i3-p3,0) + cache.getParam(2,i3-p3,ng[2]-1));
           SplineUtils::point(X,param[0],param[1],param[2],svol);
           if (!useElmVtx)
           {
@@ -2141,6 +2110,7 @@ bool ASMs3D::integrate (Integrand& integrand,
 
         // Initialize element quantities
         LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
+        int nRed = cache.nGauss(true)[0];
         if (!integrand.initElement(MNPC[iel-1],fe,X,nRed*nRed*nRed,*A))
         {
           A->destruct();
@@ -2148,13 +2118,13 @@ bool ASMs3D::integrate (Integrand& integrand,
           break;
         }
 
-        if (xr)
+        if (cache.hasReduced())
         {
           // --- Selective reduced integration loop ----------------------------
 
-          int ip = (((i3-p3)*nRed*nel2 + i2-p2)*nRed*nel1 + i1-p1)*nRed;
-          for (int k = 0; k < nRed; k++, ip += nRed*(nel2-1)*nRed*nel1)
-            for (int j = 0; j < nRed; j++, ip += nRed*(nel1-1))
+          size_t ip = 0;
+          for (int k = 0; k < nRed; k++)
+            for (int j = 0; j < nRed; j++)
               for (int i = 0; i < nRed; i++, ip++)
               {
                 // Local element coordinates of current integration point
@@ -2163,15 +2133,15 @@ bool ASMs3D::integrate (Integrand& integrand,
                 fe.zeta = xr[k];
 
                 // Parameter values of current integration point
-                fe.u = param[0] = redpar[0](i+1,i1-p1+1);
-                fe.v = param[1] = redpar[1](j+1,i2-p2+1);
-                fe.w = param[2] = redpar[2](k+1,i3-p3+1);
+                fe.u = param[0] = cache.getParam(0,i,i1-p1,true);
+                fe.v = param[1] = cache.getParam(1,j,i2-p2,true);
+                fe.w = param[2] = cache.getParam(2,k,i3-p3,true);
 
-                // Fetch basis function derivatives at current point
-                SplineUtils::extractBasis(splineRed[ip],fe.N,dNdu);
+                const BasisFunctionVals& bfs = cache.getVals(iel-1,ip,true);
+                fe.N = bfs.N;
 
                 // Compute Jacobian inverse and derivatives
-                fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+                fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,bfs.dNdu);
 
                 // Cartesian coordinates of current integration point
                 X.assign(Xnod * fe.N);
@@ -2186,13 +2156,12 @@ bool ASMs3D::integrate (Integrand& integrand,
 
         // --- Integration loop over all Gauss points in each direction --------
 
-        int ip = (((i3-p3)*ng[2]*nel2 + i2-p2)*ng[1]*nel1 + i1-p1)*ng[0];
+        size_t ip = 0;
         int jp = (((i3-p3)*nel2 + i2-p2)*nel1 + i1-p1)*ng[0]*ng[1]*ng[2];
         fe.iGP = firstIp + jp; // Global integration point counter
-
-        for (int k = 0; k < ng[2]; k++, ip += ng[1]*(nel2-1)*ng[0]*nel1)
-          for (int j = 0; j < ng[1]; j++, ip += ng[0]*(nel1-1))
-            for (int i = 0; i < ng[0]; i++, ip++, fe.iGP++)
+        for (int k = 0; k < ng[2]; k++)
+          for (int j = 0; j < ng[1]; j++)
+            for (int i = 0; i < ng[0]; i++, ++ip, ++fe.iGP)
             {
               // Local element coordinates of current integration point
               fe.xi   = xg[0][i];
@@ -2200,23 +2169,21 @@ bool ASMs3D::integrate (Integrand& integrand,
               fe.zeta = xg[2][k];
 
               // Parameter values of current integration point
-              fe.u = param[0] = gpar[0](i+1,i1-p1+1);
-              fe.v = param[1] = gpar[1](j+1,i2-p2+1);
-              fe.w = param[2] = gpar[2](k+1,i3-p3+1);
+              fe.u = param[0] = cache.getParam(0,i,i1-p1);
+              fe.v = param[1] = cache.getParam(1,j,i2-p2);
+              fe.w = param[2] = cache.getParam(2,k,i3-p3);
 
               // Fetch basis function derivatives at current integration point
-              if (use2ndDer)
-                SplineUtils::extractBasis(spline2[ip],fe.N,dNdu,d2Ndu2);
-              else
-                SplineUtils::extractBasis(spline[ip],fe.N,dNdu);
+              const BasisFunctionVals& bfs = cache.getVals(iel-1,ip);
+              fe.N = bfs.N;
 
               // Compute Jacobian inverse of coordinate mapping and derivatives
-              fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+              fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,bfs.dNdu);
               if (fe.detJxW == 0.0) continue; // skip singular points
 
               // Compute Hessian of coordinate mapping and 2nd order derivatives
               if (use2ndDer)
-                if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,fe.dNdX))
+                if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,bfs.d2Ndu2,fe.dNdX))
                   ok = false;
 
               // Compute G-matrix
@@ -2257,6 +2224,7 @@ bool ASMs3D::integrate (Integrand& integrand,
       }
     }
 
+  cache.finalizeAssembly();
   return ok;
 }
 
@@ -3790,4 +3758,179 @@ bool ASMs3D::addRigidCpl (int lindx, int ldim, int basis,
   }
 
   return this->ASMstruct::addRigidCpl(lindx,ldim,basis,gMaster,Xmaster,extraPt);
+}
+
+
+ASMs3D::BasisFunctionCache::BasisFunctionCache (const ASMs3D& pch,
+                                                const Integrand& itg,
+                                                ASM::CachePolicy plcy,
+                                                int b) :
+  ::BasisFunctionCache(plcy),
+  patch(pch),
+  integrand(itg),
+  mainQ(std::make_shared<Quadrature>()),
+  reducedQ(std::make_shared<Quadrature>()),
+  basis(b)
+{
+}
+
+
+ASMs3D::BasisFunctionCache::BasisFunctionCache (const BasisFunctionCache& cache,
+                                                int b) :
+  ::BasisFunctionCache(cache.policy),
+  patch(cache.patch),
+  integrand(cache.integrand),
+  mainQ(cache.mainQ),
+  reducedQ(cache.reducedQ),
+  basis(b)
+{
+}
+
+
+bool ASMs3D::BasisFunctionCache::internalInit ()
+{
+  if (!mainQ->xg[0])
+    this->setupQuadrature();
+
+  const int p1 = patch.svol->order(0);
+  const int p2 = patch.svol->order(1);
+  const int p3 = patch.svol->order(1);
+  const int n1 = patch.svol->numCoefs(0);
+  const int n2 = patch.svol->numCoefs(1);
+  const int n3 = patch.svol->numCoefs(1);
+  nel1 = n1 - p1 + 1;
+  nel2 = n2 - p2 + 1;
+  const int nel3 = n3 - p3 + 1;
+
+  nTotal = nel1*nel2*nel3*mainQ->ng[0]*mainQ->ng[1]*mainQ->ng[2];
+  if (reducedQ->xg[0])
+    nTotalRed = nel1*nel2*nel3*reducedQ->ng[0]*reducedQ->ng[1]*reducedQ->ng[2];
+
+  return true;
+}
+
+
+bool ASMs3D::BasisFunctionCache::setupQuadrature ()
+{
+  // Get Gaussian quadrature points and weights
+  for (int d = 0; d < 3; d++)
+  {
+    mainQ->ng[d] = patch.getNoGaussPt(patch.svol->order(d));
+    mainQ->xg[d] = GaussQuadrature::getCoord(mainQ->ng[d]);
+    mainQ->wg[d] = GaussQuadrature::getWeight(mainQ->ng[d]);
+    if (!mainQ->xg[d] || !mainQ->wg[d]) return false;
+  }
+
+  // Get the reduced integration quadrature points, if needed
+  int nRed = integrand.getReducedIntegration(mainQ->ng[0]);
+  if (nRed > 0)
+  {
+    reducedQ->xg[0] = GaussQuadrature::getCoord(nRed);
+    reducedQ->xg[0] = GaussQuadrature::getCoord(nRed);
+    reducedQ->wg[0] = GaussQuadrature::getWeight(nRed);
+    if (!reducedQ->xg[0] || !reducedQ->wg[0]) return false;
+  } else
+    nRed = mainQ->ng[0];
+  reducedQ->ng[0] = reducedQ->ng[1] = reducedQ->ng[2] = nRed;
+
+  // Compute parameter values of the Gauss points over the whole patch
+  for (int d = 0; d < 3; d++) {
+    patch.getGaussPointParameters(mainQ->gpar[d],d,mainQ->ng[d],mainQ->xg[d]);
+    if (reducedQ->xg[0])
+      patch.getGaussPointParameters(reducedQ->gpar[d],d,nRed,mainQ->xg[0]);
+  }
+  return true;
+}
+
+
+double ASMs3D::BasisFunctionCache::getParam (int dir, size_t gp,
+                                             size_t el, bool reduced) const
+{
+  const Quadrature& q = reduced ? *reducedQ : *mainQ;
+  return q.gpar[dir](gp+1,el+1);
+}
+
+
+BasisFunctionVals ASMs3D::BasisFunctionCache::calculatePt (size_t el,
+                                                           size_t gp,
+                                                           bool reduced) const
+{
+  PROFILE2("Spline evaluation");
+  std::array<size_t,3> gpIdx = this->gpIndex(gp,reduced);
+  std::array<size_t,3> elIdx = this->elmIndex(el);
+
+  BasisFunctionVals result;
+  if (nderiv == 1) {
+    Go::BasisDerivs spline;
+#pragma omp critical
+    patch.getBasis(basis)->computeBasis(this->getParam(0,gpIdx[0],elIdx[0],reduced),
+                                        this->getParam(1,gpIdx[1],elIdx[1],reduced),
+                                        this->getParam(2,gpIdx[2],elIdx[2],reduced), spline);
+    SplineUtils::extractBasis(spline,result.N,result.dNdu);
+  } else if (nderiv == 2) {
+    Go::BasisDerivs2 spline;
+#pragma omp critical
+    patch.getBasis(basis)->computeBasis(this->getParam(0,gpIdx[0],elIdx[0],reduced),
+                                        this->getParam(1,gpIdx[1],elIdx[1],reduced),
+                                        this->getParam(2,gpIdx[2],elIdx[2],reduced), spline);
+    SplineUtils::extractBasis(spline,result.N,result.dNdu,result.d2Ndu2);
+  }
+
+  return result;
+}
+
+
+size_t ASMs3D::BasisFunctionCache::index (size_t el, size_t gp, bool reduced) const
+{
+  const Quadrature& q = reduced ? *reducedQ : *mainQ;
+  std::array<size_t,3> elIdx = this->elmIndex(el);
+  std::array<size_t,3> gpIdx = this->gpIndex(gp,reduced);
+
+  return ((elIdx[2]*q.ng[2]*nel2 + elIdx[1])*q.ng[1]*nel1 + elIdx[0])*q.ng[0]
+          + (gpIdx[2]*q.ng[1]*nel2 + gpIdx[1])*q.ng[0]*nel1 + gpIdx[0];
+}
+
+
+std::array<size_t, 3> ASMs3D::BasisFunctionCache::elmIndex (size_t el) const
+{
+  return { el % nel1, (el/nel1) % nel2, el / (nel1*nel2) };
+}
+
+
+std::array<size_t, 3> ASMs3D::BasisFunctionCache::gpIndex (size_t gp, bool reduced) const
+{
+  const Quadrature& q = reduced ? *reducedQ : *mainQ;
+  return { gp % q.ng[0], (gp / q.ng[0]) % q.ng[1],  gp / (q.ng[0]*q.ng[1]) };
+}
+
+
+void ASMs3D::BasisFunctionCache::calculateAll ()
+{
+  PROFILE2("Spline evaluation");
+  auto&& extract1 = [this](const Matrix& par1,
+                           const Matrix& par2,
+                           const Matrix& par3,
+                           std::vector<BasisFunctionVals>& values)
+  {
+    std::vector<Go::BasisDerivs>  spline;
+    patch.getBasis(basis)->computeBasisGrid(par1,par2,par3,spline);
+    size_t idx = 0;
+    for (const Go::BasisDerivs& spl : spline) {
+      SplineUtils::extractBasis(spl,values[idx].N,values[idx].dNdu);
+      ++idx;
+    }
+  };
+  if (nderiv == 1)
+    extract1(mainQ->gpar[0],mainQ->gpar[1],mainQ->gpar[2],values);
+  else if (nderiv == 2) {
+    std::vector<Go::BasisDerivs2> spline;
+    patch.getBasis(basis)->computeBasisGrid(mainQ->gpar[0],mainQ->gpar[1],mainQ->gpar[2],spline);
+    size_t idx = 0;
+    for (const Go::BasisDerivs2& spl : spline) {
+      SplineUtils::extractBasis(spl,values[idx].N,values[idx].dNdu,values[idx].d2Ndu2);
+      ++idx;
+    }
+  }
+  if (!reducedQ->gpar[0].empty())
+    extract1(reducedQ->gpar[0],reducedQ->gpar[1],reducedQ->gpar[2],valuesRed);
 }

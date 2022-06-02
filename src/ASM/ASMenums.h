@@ -38,6 +38,14 @@ namespace ASM //! Assembly scope
     ABS  = 1,
     SQRT = 2
   };
+
+  enum CachePolicy {
+    NO_CACHE,   //!< Cache is disabled - calculate on the fly
+    PRE_CACHE,  //!< Cache basis function values up front, clear on assembly end
+    ON_THE_FLY, //!< Cache basis functions on the fly
+    FULL_CACHE  //!< Cache basis function values up front
+  };
+
 }
 
 #endif

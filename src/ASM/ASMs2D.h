@@ -16,8 +16,11 @@
 
 #include "ASMstruct.h"
 #include "ASM2D.h"
+#include "BasisFunctionCache.h"
 #include "Interface.h"
 #include "ThreadGroups.h"
+
+#include <memory>
 
 namespace utl {
   class Point;
@@ -55,6 +58,50 @@ class ASMs2D : public ASMstruct, public ASM2D
     Edge() { icnod = incr = 0; }
     //! \brief Returns \a icnod which then is incremented.
     int next();
+  };
+
+protected:
+  class BasisFunctionCache : public ::BasisFunctionCache
+  {
+  public:
+    BasisFunctionCache(const ASMs2D& pch, const Integrand& itg, ASM::CachePolicy plcy, int b);
+    BasisFunctionCache(const BasisFunctionCache& cache, int b);
+
+    double getParam(int dir, size_t gp, size_t el, bool reduced = false) const;
+
+    const std::array<int,2>& nGauss(bool reduced = false)
+    { return reduced ? reducedQ->ng : mainQ->ng; }
+    const std::array<const double*,2>& weight(bool reduced = false) const
+    { return reduced ? reducedQ->wg : mainQ->wg; }
+    const std::array<const double*,2>& coord(bool reduced = false) const
+    { return reduced ? reducedQ->xg : mainQ->xg; }
+
+    bool hasReduced() const override { return !reducedQ->gpar[0].empty(); }
+
+    bool internalInit() override;
+    BasisFunctionVals calculatePt(size_t el, size_t gp, bool reduced) const override;
+    void calculateAll() override;
+
+    virtual size_t index(size_t el, size_t gp, bool reduced) const override;
+
+    const ASMs2D& patch;
+    const Integrand& integrand;
+    struct Quadrature {
+      std::array<Matrix,2> gpar;
+      std::array<int,2> ng;
+      std::array<const double*,2> wg = {nullptr, nullptr};
+      std::array<const double*,2> xg = {nullptr, nullptr};
+    };
+
+    std::shared_ptr<Quadrature> mainQ;
+    std::shared_ptr<Quadrature> reducedQ;
+    int basis;
+    int nel1;
+
+private:
+    std::array<size_t,2> elmIndex(size_t gp) const;
+    std::array<size_t,2> gpIndex(size_t gp, bool reduced) const;
+    bool setupQuadrature();
   };
 
 public:
@@ -728,6 +775,9 @@ protected:
 
   //! Element groups for multi-threaded assembly
   ThreadGroups threadGroups;
+
+  //! Basis function cache
+  std::vector<std::unique_ptr<BasisFunctionCache>> myCache;
 };
 
 #endif
