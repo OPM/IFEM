@@ -16,6 +16,7 @@
 
 #include "ASMLRSpline.h"
 #include "ASM2D.h"
+#include "BasisFunctionCache.h"
 #include "Interface.h"
 #include "LRSpline/LRSpline.h"
 #include "ThreadGroups.h"
@@ -48,6 +49,50 @@ namespace LR {
 
 class ASMu2D : public ASMLRSpline, public ASM2D
 {
+protected:
+  //! \brief Implementation of basis function cache.
+  class BasisFunctionCache : public ::BasisFunctionCache<2>
+  {
+  public:
+    //! \brief The constructor initializes the class.
+    //! \param pch Patch the cache is for
+    //! \param plcy Cache policy to use
+    //! \param b Basis to use
+    BasisFunctionCache(const ASMu2D& pch, ASM::CachePolicy plcy, int b);
+
+    //! \brief Constructor reusing quadrature info from another instance.
+    //! \param cache Instance holding quadrature information
+    //! \param b Basis to use
+    BasisFunctionCache(const BasisFunctionCache& cache, int b);
+
+    //! \brief Empty destructor.
+    virtual ~BasisFunctionCache() = default;
+
+  protected:
+    //! \brief Implementation specific initialization.
+    bool internalInit() override;
+
+    //! \brief Implementation specific cleanup.
+    void internalCleanup() override;
+
+    //! \brief Calculates basis function info in a single integration point.
+    //! \param el Element of integration point (0-indexed)
+    //! \param gp Integration point on element (0-indexed)
+    //! \param reduced If true, returns values for reduced integration scheme
+    BasisFunctionVals calculatePt(size_t el, size_t gp, bool reduced) const override;
+
+    //! \brief Calculates basis function info in all integration points.
+    void calculateAll() override;
+
+  protected:
+    const ASMu2D& patch; //!< Reference to patch cache is for
+    int basis; //!< Basis to use
+
+private:
+    //! \brief Configure quadratures.
+    bool setupQuadrature();
+  };
+
 public:
   //! \brief Base class that checks if an element has interface contributions.
   class InterfaceChecker : public ASM::InterfaceChecker
@@ -719,6 +764,9 @@ protected:
 
   Go::BsplineBasis bezier_u; //!< Bezier basis in the u-direction
   Go::BsplineBasis bezier_v; //!< Bezier basis in the v-direction
+
+  //! Basis function cache
+  std::vector<std::unique_ptr<BasisFunctionCache>> myCache;
 
 private:
   mutable double aMin; //!< Minimum element area for adaptive refinement
