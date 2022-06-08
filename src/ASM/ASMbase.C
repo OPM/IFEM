@@ -28,6 +28,7 @@
 
 bool ASMbase::fixHomogeneousDirichlet = true;
 int  ASMbase::dbgElm = 0;
+ASM::CachePolicy ASMbase::cachePolicy = ASM::PRE_CACHE;
 
 //! This quantitiy is used to scale the characteristic element sizes which
 //! are used by residual error estimates, etc., such that they always are in
