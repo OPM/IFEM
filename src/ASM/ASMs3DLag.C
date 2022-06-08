@@ -344,39 +344,26 @@ bool ASMs3DLag::integrate (Integrand& integrand,
 {
   if (this->empty()) return true; // silently ignore empty patches
 
+  if (myCache.empty())
+    myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this, cachePolicy, 1));
+
+  ASMs3D::BasisFunctionCache& cache = *myCache.front();
+  cache.setIntegrand(&integrand);
+  if (!cache.init(1))
+    return false;
+
   // Get Gaussian quadrature points and weights
-  std::array<int,3> ng;
-  std::array<const double*,3> xg, wg;
-  for (int d = 0; d < 3; d++)
-  {
-    ng[d] = this->getNoGaussPt(d == 0 ? p1 : (d == 1 ? p2 : p3));
-    xg[d] = GaussQuadrature::getCoord(ng[d]);
-    wg[d] = GaussQuadrature::getWeight(ng[d]);
-    if (!xg[d] || !wg[d]) return false;
-  }
+  const std::array<int,3>& ng = cache.nGauss();
+  const std::array<const double*,3>& xg = cache.coord();
+  const std::array<const double*,3>& wg = cache.weight();
 
   // Get the reduced integration quadrature points, if needed
-  const double* xr = nullptr;
-  const double* wr = nullptr;
-  int nRed = integrand.getReducedIntegration(ng[0]);
-  if (nRed > 0)
-  {
-    xr = GaussQuadrature::getCoord(nRed);
-    wr = GaussQuadrature::getWeight(nRed);
-    if (!xr || !wr) return false;
-  }
-  else if (nRed < 0)
-    nRed = ng[0]; // The integrand needs to know nGauss
-
-  // Get parametric coordinates of the elements
-  RealArray upar, vpar, wpar;
-  this->getGridParameters(upar,0,1);
-  this->getGridParameters(vpar,1,1);
-  this->getGridParameters(wpar,2,1);
+  const double* xr = cache.coord(true)[0];
+  const double* wr = cache.weight(true)[0];
 
   // Number of elements in each direction
-  const int nel1 = upar.empty() ? 0 : upar.size() - 1;
-  const int nel2 = vpar.empty() ? 0 : vpar.size() - 1;
+  const int nel1 = cache.noElms()[0];
+  const int nel2 = cache.noElms()[1];
 
 
   // === Assembly loop over all elements in the patch ==========================
@@ -388,7 +375,7 @@ bool ASMs3DLag::integrate (Integrand& integrand,
     for (size_t t = 0; t < threadGroupsVol[g].size(); t++)
     {
       FiniteElement fe(p1*p2*p3);
-      Matrix dNdu, Xnod, Jac;
+      Matrix Xnod, Jac;
       Vec4   X(nullptr,time.t);
       for (size_t l = 0; l < threadGroupsVol[g][t].size() && ok; l++)
       {
@@ -418,6 +405,7 @@ bool ASMs3DLag::integrate (Integrand& integrand,
         // Initialize element quantities
         fe.iel = MLGE[iel];
         LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
+        int nRed = cache.nGauss(true)[0];
         if (!integrand.initElement(MNPC[iel],fe,X,nRed*nRed*nRed,*A))
         {
           A->destruct();
@@ -429,9 +417,10 @@ bool ASMs3DLag::integrate (Integrand& integrand,
         {
           // --- Selective reduced integration loop ----------------------------
 
+          size_t ip = 0;
           for (int k = 0; k < nRed; k++)
             for (int j = 0; j < nRed; j++)
-              for (int i = 0; i < nRed; i++)
+              for (int i = 0; i < nRed; i++, ++ip)
               {
                 // Local element coordinates of current integration point
                 fe.xi   = xr[i];
@@ -439,24 +428,16 @@ bool ASMs3DLag::integrate (Integrand& integrand,
                 fe.zeta = xr[k];
 
                 // Parameter value of current integration point
-                if (!upar.empty())
-                  fe.u = 0.5*(upar[i1]*(1.0-xr[i]) + upar[i1+1]*(1.0+xr[i]));
-                if (!vpar.empty())
-                  fe.v = 0.5*(vpar[i2]*(1.0-xr[j]) + vpar[i2+1]*(1.0+xr[j]));
-                if (!wpar.empty())
-                  fe.w = 0.5*(wpar[i3]*(1.0-xr[k]) + wpar[i3+1]*(1.0+xr[k]));
+                fe.u = cache.getParam(0,i1,i,true);
+                fe.v = cache.getParam(1,i2,j,true);
+                fe.w = cache.getParam(2,i3,k,true);
 
                 // Compute basis function derivatives at current point
-                // using tensor product of one-dimensional Lagrange polynomials
-                if (!Lagrange::computeBasis(fe.N,dNdu,
-                                            p1,xr[i],p2,xr[j],p3,xr[k]))
-                {
-                  ok = false;
-                  break;
-                }
+                const BasisFunctionVals& bfs = cache.getVals(iel,ip,true);
+                fe.N = bfs.N;
 
                 // Compute Jacobian inverse and derivatives
-                fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+                fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,bfs.dNdu);
 
                 // Cartesian coordinates of current integration point
                 X.assign(Xnod * fe.N);
@@ -471,12 +452,13 @@ bool ASMs3DLag::integrate (Integrand& integrand,
 
         // --- Integration loop over all Gauss points in each direction --------
 
+        size_t ip = 0;
         int jp = iel*ng[0]*ng[1]*ng[2];
         fe.iGP = firstIp + jp; // Global integration point counter
 
         for (int k = 0; k < ng[2]; k++)
           for (int j = 0; j < ng[1]; j++)
-            for (int i = 0; i < ng[0]; i++, fe.iGP++)
+            for (int i = 0; i < ng[0]; i++, fe.iGP++, ++ip)
             {
               // Local element coordinates of current integration point
               fe.xi   = xg[0][i];
@@ -484,21 +466,16 @@ bool ASMs3DLag::integrate (Integrand& integrand,
               fe.zeta = xg[2][k];
 
               // Parameter value of current integration point
-              if (!upar.empty())
-                fe.u = 0.5*(upar[i1]*(1.0-fe.xi) + upar[i1+1]*(1.0+fe.xi));
-              if (!vpar.empty())
-                fe.v = 0.5*(vpar[i2]*(1.0-fe.eta) + vpar[i2+1]*(1.0+fe.eta));
-              if (!wpar.empty())
-                fe.w = 0.5*(wpar[i3]*(1.0-fe.zeta) + wpar[i3+1]*(1.0+fe.zeta));
+              fe.u = cache.getParam(0,i1,i);
+              fe.v = cache.getParam(1,i2,j);
+              fe.w = cache.getParam(2,i3,k);
 
               // Compute basis function derivatives at current integration point
-              // using tensor product of one-dimensional Lagrange polynomials
-              if (!Lagrange::computeBasis(fe.N,dNdu,
-                                          p1,fe.xi,p2,fe.eta,p3,fe.zeta))
-                ok = false;
+              const BasisFunctionVals& bfs = cache.getVals(iel,ip);
+              fe.N = bfs.N;
 
               // Compute Jacobian inverse of coordinate mapping and derivatives
-              fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+              fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,bfs.dNdu);
               if (fe.detJxW == 0.0) continue; // skip singular points
 
               // Cartesian coordinates of current integration point
@@ -1214,4 +1191,88 @@ void ASMs3DLag::updateOrigin (const Vec3& origin)
 {
   for (Vec3& c : myCoord)
     c += origin;
+}
+
+
+ASMs3DLag::BasisFunctionCache::BasisFunctionCache (const ASMs3DLag& pch,
+                                                   ASM::CachePolicy plcy,
+                                                   int b) :
+  ASMs3D::BasisFunctionCache(pch,plcy,b)
+{
+  nel[0] = (pch.nx-1) / (pch.p1-1);
+  nel[1] = (pch.ny-1) / (pch.p2-1);
+  nel[2] = (pch.nz-1) / (pch.p3-1);
+}
+
+
+ASMs3DLag::BasisFunctionCache::BasisFunctionCache (const BasisFunctionCache& cache,
+                                                int b) :
+  ASMs3D::BasisFunctionCache(cache,b)
+{
+}
+
+
+void ASMs3DLag::BasisFunctionCache::setupParameters ()
+{
+  // Compute parameter values of the Gauss points over the whole patch
+  for (int d = 0; d < 3; d++) {
+    RealArray par;
+    patch.getGridParameters(par,d,1);
+    mainQ->gpar[d].resize(par.size(), 1);
+    mainQ->gpar[d].fillColumn(1,par.data());
+    if (reducedQ->xg[0])
+      reducedQ->gpar[d] = mainQ->gpar[d];
+  }
+}
+
+
+double ASMs3DLag::BasisFunctionCache::getParam (int dir, size_t el,
+                                                size_t gp, bool reduced) const
+{
+  const Quadrature& q = reduced ? *reducedQ : *mainQ;
+  return 0.5*(q.gpar[dir](el+1,1)*(1.0-q.xg[dir][gp]) +
+              q.gpar[dir](el+2,1)*(1.0+q.xg[dir][gp]));
+}
+
+
+BasisFunctionVals ASMs3DLag::BasisFunctionCache::calculatePt (size_t el,
+                                                              size_t gp,
+                                                              bool reduced) const
+{
+  std::array<size_t,3> gpIdx = this->gpIndex(gp,reduced);
+  const Quadrature& q = reduced ? *reducedQ : *mainQ;
+
+  const ASMs3DLag& pch = static_cast<const ASMs3DLag&>(patch);
+
+  BasisFunctionVals result;
+  if (nderiv == 1)
+    Lagrange::computeBasis(result.N,result.dNdu,
+                           pch.p1,q.xg[0][gpIdx[0]],
+                           pch.p2,q.xg[1][gpIdx[1]],
+                           pch.p3,q.xg[2][gpIdx[2]]);
+
+  return result;
+}
+
+
+void ASMs3DLag::BasisFunctionCache::calculateAll ()
+{
+  // Evaluate basis function values and derivatives at all integration points.
+  // We do this before the integration point loop to exploit multi-threading
+  // in the integrand evaluations, which may be the computational bottleneck.
+  size_t iel, jp, rp;
+  const ASMs3DLag& pch = static_cast<const ASMs3DLag&>(patch);
+  for (iel = jp = rp = 0; iel < pch.nel; iel++)
+  {
+    for (int k = 0; k < mainQ->ng[2]; k++)
+      for (int j = 0; j < mainQ->ng[1]; j++)
+        for (int i = 0; i < mainQ->ng[0]; i++, jp++)
+          values[jp] = this->calculatePt(iel,(k*mainQ->ng[1]+j)*mainQ->ng[0]+i,false);
+
+    if (reducedQ->xg[0])
+      for (int k = 0; k < reducedQ->ng[2]; k++)
+        for (int j = 0; j < reducedQ->ng[1]; j++)
+          for (int i = 0; i < reducedQ->ng[0]; i++, rp++)
+            valuesRed[rp] = this->calculatePt(iel,(k*reducedQ->ng[1]+j)*reducedQ->ng[0]+i,true);
+  }
 }
