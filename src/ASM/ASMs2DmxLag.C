@@ -238,17 +238,26 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
 {
   if (this->empty()) return true; // silently ignore empty patches
 
+  if (myCache.empty()) {
+    myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this, cachePolicy, 1));
+    const BasisFunctionCache& front = static_cast<const BasisFunctionCache&>(*myCache.front());
+    for (size_t b = 2; b <= this->getNoBasis(); ++b)
+      myCache.emplace_back(std::make_unique<BasisFunctionCache>(front, b));
+  }
+
+  for (std::unique_ptr<ASMs2D::BasisFunctionCache>& cache : myCache) {
+    cache->setIntegrand(&integrand);
+    cache->init(1);
+  }
+
+  BasisFunctionCache& cache = static_cast<BasisFunctionCache&>(*myCache.front());
+
   // Get Gaussian quadrature points and weights
-  const double* xg = GaussQuadrature::getCoord(nGauss);
-  const double* wg = GaussQuadrature::getWeight(nGauss);
-  if (!xg || !wg) return false;
+  const std::array<int,2>& ng = cache.nGauss();
+  const std::array<const double*,2>& xg = cache.coord();
+  const std::array<const double*,2>& wg = cache.weight();
 
-  // Get parametric coordinates of the elements
-  RealArray upar, vpar;
-  this->getGridParameters(upar,0,1);
-  this->getGridParameters(vpar,1,1);
-
-  const int nelx = upar.size() - 1;
+  const int nelx = cache.noElms()[0];
 
 
   // === Assembly loop over all elements in the patch ==========================
@@ -260,7 +269,6 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
     for (size_t t = 0; t < threadGroups[g].size(); t++)
     {
       MxFiniteElement fe(elem_size);
-      Matrices dNxdu(nxx.size());
       Matrix Xnod, Jac;
       Vec4   X(nullptr,time.t);
       for (size_t e = 0; e < threadGroups[g][t].size() && ok; ++e)
@@ -288,37 +296,37 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
 
         // --- Integration loop over all Gauss points in each direction --------
 
-        int jp = (i2*nelx + i1)*nGauss*nGauss;
+        size_t ip = 0;
+        int jp = (i2*nelx + i1)*ng[0]*ng[1];
         fe.iGP = firstIp + jp; // Global integration point counter
 
-        for (int j = 0; j < nGauss; j++)
-          for (int i = 0; i < nGauss; i++, fe.iGP++)
+        for (int j = 0; j < ng[1]; j++)
+          for (int i = 0; i < ng[0]; i++, fe.iGP++, ++ip)
           {
             // Parameter value of current integration point
-            fe.u = 0.5*(upar[i1]*(1.0-xg[i]) + upar[i1+1]*(1.0+xg[i]));
-            fe.v = 0.5*(vpar[i2]*(1.0-xg[j]) + vpar[i2+1]*(1.0+xg[j]));
+            fe.u = cache.getParam(0,i1,i);
+            fe.v = cache.getParam(1,i2,j);
 
             // Local coordinates of current integration point
-            fe.xi  = xg[i];
-            fe.eta = xg[j];
+            fe.xi  = xg[0][i];
+            fe.eta = xg[1][j];
 
-            // Compute basis function derivatives at current integration point
-            // using tensor product of one-dimensional Lagrange polynomials
-            for (size_t b = 0; b < nxx.size(); ++b)
-              if (!Lagrange::computeBasis(fe.basis(b+1),dNxdu[b],
-                                          elem_sizes[b][0],xg[i],
-                                          elem_sizes[b][1],xg[j]))
-                ok = false;
+            // Fetch basis function derivatives at current integration point
+            std::vector<const BasisFunctionVals*> bfs(this->getNoBasis());
+            for (size_t b = 0; b < this->getNoBasis(); ++b) {
+              bfs[b] = &myCache[b]->getVals(iel-1,ip);
+              fe.basis(b+1) = bfs[b]->N;
+            }
 
             // Compute Jacobian inverse of coordinate mapping and derivatives
-            if (!fe.Jacobian(Jac,Xnod,dNxdu,geoBasis))
+            if (!fe.Jacobian(Jac,Xnod,geoBasis,&bfs))
               continue; // skip singular points
 
             // Cartesian coordinates of current integration point
             X.assign(Xnod * fe.basis(geoBasis));
 
             // Evaluate the integrand and accumulate element contributions
-            fe.detJxW *= wg[i]*wg[j];
+            fe.detJxW *= wg[0][i]*wg[1][j];
             if (!integrand.evalIntMx(*A,fe,time,X))
               ok = false;
           }
@@ -525,7 +533,7 @@ bool ASMs2DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
         // Compute Jacobian inverse of the coordinate mapping and
         // basis function derivatives w.r.t. Cartesian coordinates
-        if (!fe.Jacobian(Jac,Xnod,dNxdu,geoBasis))
+        if (!fe.Jacobian(Jac,Xnod,geoBasis,nullptr,&dNxdu))
           continue; // skip singular points
 
 	// Now evaluate the solution field
@@ -546,4 +554,38 @@ bool ASMs2DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     sField.fillColumn(1+i,globSolPt[i] /= check[i]);
 
   return true;
+}
+
+
+ASMs2DmxLag::BasisFunctionCache::BasisFunctionCache (const ASMs2DLag& pch,
+                                                     ASM::CachePolicy plcy,
+                                                     int b) :
+  ASMs2DLag::BasisFunctionCache(pch,plcy,b)
+{
+}
+
+
+ASMs2DmxLag::BasisFunctionCache::BasisFunctionCache (const BasisFunctionCache& cache,
+                                                     int b) :
+  ASMs2DLag::BasisFunctionCache(cache,b)
+{
+}
+
+
+BasisFunctionVals ASMs2DmxLag::BasisFunctionCache::calculatePt (size_t el,
+                                                                size_t gp,
+                                                                bool reduced) const
+{
+  std::array<size_t,2> gpIdx = this->gpIndex(gp,reduced);
+  const Quadrature& q = reduced ? *reducedQ : *mainQ;
+
+  const ASMs2DmxLag& pch = static_cast<const ASMs2DmxLag&>(patch);
+
+  BasisFunctionVals result;
+  if (nderiv == 1)
+    Lagrange::computeBasis(result.N,result.dNdu,
+                           pch.elem_sizes[basis-1][0],q.xg[0][gpIdx[0]],
+                           pch.elem_sizes[basis-1][1],q.xg[1][gpIdx[1]]);
+
+  return result;
 }
