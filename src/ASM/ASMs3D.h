@@ -16,8 +16,11 @@
 
 #include "ASMstruct.h"
 #include "ASM3D.h"
+#include "BasisFunctionCache.h"
 #include "Interface.h"
 #include "ThreadGroups.h"
+
+#include <memory>
 
 namespace utl {
   class Point;
@@ -71,6 +74,68 @@ class ASMs3D : public ASMstruct, public ASM3D
     Face() { isnod = incrI = incrJ = nnodI = 0; indxI = 1; }
     //! \brief Returns \a isnod which then is incremented.
     int next();
+  };
+
+protected:
+  //! \brief Implementation of basis function cache.
+  class BasisFunctionCache : public ::BasisFunctionCache<3>
+  {
+  public:
+    //! \brief The constructor initializes the class.
+    //! \param pch Patch the cache is for
+    //! \param plcy Cache policy to use
+    //! \param b Basis to use
+    BasisFunctionCache(const ASMs3D& pch, ASM::CachePolicy plcy, int b);
+
+    //! \brief Constructor reusing quadrature info from another instance.
+    //! \param cache Instance holding quadrature information
+    //! \param b Basis to use
+    BasisFunctionCache(const BasisFunctionCache& cache, int b);
+
+    //! \brief Empty destructor.
+    virtual ~BasisFunctionCache() = default;
+
+    //! \brief Returns number of elements in each direction.
+    const std::array<size_t,3>& noElms() const
+    { return nel; }
+
+ protected:
+    //! \brief Implementation specific initialization.
+    bool internalInit() override;
+
+    //! \brief Implementation specific cleanup.
+    void internalCleanup() override;
+
+    //! \brief Calculates basis function info in a single integration point.
+    //! \param el Element of integration point (0-indexed)
+    //! \param gp Integratin point on element (0-indexed)
+    //! \param reduced If true, returns values for reduced integration scheme
+    BasisFunctionVals calculatePt(size_t el, size_t gp, bool reduced) const override;
+
+    //! \brief Calculates basis function info in all integration points.
+    void calculateAll() override;
+
+    //! \brief Obtain global integration point index.
+    //! \param el Element of integration point (0-indexed)
+    //! \param gp Integration point on element (0-indexed)
+    //! \param reduced True to return index for reduced quadrature
+    size_t index(size_t el, size_t gp, bool reduced) const override;
+
+    //! \brief Setup integration point parameters.
+    virtual void setupParameters();
+
+    const ASMs3D& patch; //!< Reference to patch cache is for
+
+    int basis; //!< Basis to use
+    std::array<size_t,3> nel; //!< Number of elements in each direction
+
+private:
+    //! \brief Obtain structured element indices.
+    //! \param el Global element index
+    std::array<size_t,3> elmIndex(size_t el) const;
+
+    //! \brief Configure quadratures.
+    bool setupQuadrature();
   };
 
 public:
@@ -620,7 +685,7 @@ protected:
   //! \param[in] xi Dimensionless Gauss point coordinates [-1,1]
   //! \return The parameter value matrix casted into a one-dimensional vector
   const Vector& getGaussPointParameters(Matrix& uGP, int dir, int nGauss,
-					const double* xi) const;
+                                        const double* xi) const;
 
   //! \brief Calculates parameter values for the Greville points.
   //! \param[out] prm Parameter values in given direction for all points
@@ -821,6 +886,9 @@ protected:
   ThreadGroups                threadGroupsVol;
   //! Element groups for multi-threaded face assembly
   std::map<char,ThreadGroups> threadGroupsFace;
+
+  //! Basis function cache
+  std::vector<std::unique_ptr<BasisFunctionCache>> myCache;
 };
 
 #endif
