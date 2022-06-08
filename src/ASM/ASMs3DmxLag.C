@@ -266,20 +266,28 @@ bool ASMs3DmxLag::integrate (Integrand& integrand,
 {
   if (this->empty()) return true; // silently ignore empty patches
 
-  // Get Gaussian quadrature points and weights
-  const double* x = GaussQuadrature::getCoord(nGauss);
-  const double* w = GaussQuadrature::getWeight(nGauss);
-  if (!x || !w) return false;
+  if (myCache.empty()) {
+    myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this, cachePolicy, 1));
+    const BasisFunctionCache& front = static_cast<const BasisFunctionCache&>(*myCache.front());
+    for (size_t b = 2; b <= this->getNoBasis(); ++b)
+      myCache.emplace_back(std::make_unique<BasisFunctionCache>(front, b));
+  }
 
-  // Get parametric coordinates of the elements
-  RealArray upar, vpar, wpar;
-  this->getGridParameters(upar,0,1);
-  this->getGridParameters(vpar,1,1);
-  this->getGridParameters(wpar,2,1);
+  for (std::unique_ptr<ASMs3D::BasisFunctionCache>& cache : myCache) {
+    cache->setIntegrand(&integrand);
+    cache->init(1);
+  }
+
+  BasisFunctionCache& cache = static_cast<BasisFunctionCache&>(*myCache.front());
+
+  // Get Gaussian quadrature points and weights
+  const std::array<int,3>& ng = cache.nGauss();
+  const std::array<const double*,3>& xg = cache.coord();
+  const std::array<const double*,3>& wg = cache.weight();
 
   // Number of elements in each direction
-  const int nelx = upar.size() - 1;
-  const int nely = vpar.size() - 1;
+  const int nelx = cache.noElms()[0];
+  const int nely = cache.noElms()[1];
 
 
   // === Assembly loop over all elements in the patch ==========================
@@ -321,41 +329,40 @@ bool ASMs3DmxLag::integrate (Integrand& integrand,
 
         // --- Integration loop over all Gauss points in each direction --------
 
-        int jp = ((i3*nely + i2)*nelx + i1)*nGauss*nGauss*nGauss;
+        size_t ip = 0;
+        int jp = ((i3*nely + i2)*nelx + i1)*ng[0]*ng[1]*ng[2];
         fe.iGP = firstIp + jp; // Global integration point counter
 
-        for (int k = 0; k < nGauss; k++)
-          for (int j = 0; j < nGauss; j++)
-            for (int i = 0; i < nGauss; i++, fe.iGP++)
+        for (int k = 0; k < ng[2]; k++)
+          for (int j = 0; j < ng[1]; j++)
+            for (int i = 0; i < ng[0]; i++, fe.iGP++)
             {
               // Parameter value of current integration point
-              fe.u = 0.5*(upar[i1]*(1.0-x[i]) + upar[i1+1]*(1.0+x[i]));
-              fe.v = 0.5*(vpar[i2]*(1.0-x[j]) + vpar[i2+1]*(1.0+x[j]));
-              fe.w = 0.5*(wpar[i3]*(1.0-x[k]) + wpar[i3+1]*(1.0+x[k]));
+              fe.u = cache.getParam(0,i1,i);
+              fe.v = cache.getParam(1,i2,j);
+              fe.w = cache.getParam(2,i3,k);
 
               // Local coordinate of current integration point
-              fe.xi   = x[i];
-              fe.eta  = x[j];
-              fe.zeta = x[k];
+              fe.xi   = xg[0][i];
+              fe.eta  = xg[1][j];
+              fe.zeta = xg[2][k];
 
               // Compute basis function derivatives at current integration point
-              // using tensor product of one-dimensional Lagrange polynomials
-              for (size_t b = 0; b < nxx.size(); ++b)
-                if (!Lagrange::computeBasis(fe.basis(b+1),dNxdu[b],
-                                            elem_sizes[b][0],x[i],
-                                            elem_sizes[b][1],x[j],
-                                            elem_sizes[b][2],x[k]))
-                  ok = false;
+              std::vector<const BasisFunctionVals*> bfs(this->getNoBasis());
+              for (size_t b = 0; b < this->getNoBasis(); ++b) {
+                bfs[b] = &myCache[b]->getVals(iel-1,ip);
+                fe.basis(b+1) = bfs[b]->N;
+              }
 
               // Compute Jacobian inverse of coordinate mapping and derivatives
-              if (!fe.Jacobian(Jac,Xnod,dNxdu,geoBasis))
+              if (!fe.Jacobian(Jac,Xnod,geoBasis,&bfs))
                 continue; // skip singular points
 
               // Cartesian coordinates of current integration point
               X.assign(Xnod * fe.basis(geoBasis));
 
               // Evaluate the integrand and accumulate element contributions
-              fe.detJxW *= w[i]*w[j]*w[k];
+              fe.detJxW *= wg[0][i]*wg[1][j]*wg[2][k];
               if (!integrand.evalIntMx(*A,fe,time,X))
                 ok = false;
             }
@@ -596,7 +603,7 @@ bool ASMs3DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
           // Compute Jacobian inverse of the coordinate mapping and
           // basis function derivatives w.r.t. Cartesian coordinates
-          if (!fe.Jacobian(Jac,Xnod,dNxdu,geoBasis))
+          if (!fe.Jacobian(Jac,Xnod,geoBasis,nullptr,&dNxdu))
             continue; // skip singular points
 
 	  // Now evaluate the solution field
@@ -617,4 +624,39 @@ bool ASMs3DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     sField.fillColumn(1+i,globSolPt[i] /= check[i]);
 
   return true;
+}
+
+
+ASMs3DmxLag::BasisFunctionCache::BasisFunctionCache (const ASMs3DLag& pch,
+                                                     ASM::CachePolicy plcy,
+                                                     int b) :
+  ASMs3DLag::BasisFunctionCache(pch,plcy,b)
+{
+}
+
+
+ASMs3DmxLag::BasisFunctionCache::BasisFunctionCache (const BasisFunctionCache& cache,
+                                                     int b) :
+  ASMs3DLag::BasisFunctionCache(cache,b)
+{
+}
+
+
+BasisFunctionVals ASMs3DmxLag::BasisFunctionCache::calculatePt (size_t el,
+                                                                size_t gp,
+                                                                bool reduced) const
+{
+  std::array<size_t,3> gpIdx = this->gpIndex(gp,reduced);
+  const Quadrature& q = reduced ? *reducedQ : *mainQ;
+
+  const ASMs3DmxLag& pch = static_cast<const ASMs3DmxLag&>(patch);
+
+  BasisFunctionVals result;
+  if (nderiv == 1)
+    Lagrange::computeBasis(result.N,result.dNdu,
+                           pch.elem_sizes[basis-1][0],q.xg[0][gpIdx[0]],
+                           pch.elem_sizes[basis-1][1],q.xg[1][gpIdx[1]],
+                           pch.elem_sizes[basis-1][2],q.xg[2][gpIdx[2]]);
+
+  return result;
 }
