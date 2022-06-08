@@ -16,8 +16,11 @@
 
 #include "ASMstruct.h"
 #include "ASM2D.h"
+#include "BasisFunctionCache.h"
 #include "Interface.h"
 #include "ThreadGroups.h"
+
+#include <memory>
 
 namespace utl {
   class Point;
@@ -55,6 +58,69 @@ class ASMs2D : public ASMstruct, public ASM2D
     Edge() { icnod = incr = 0; }
     //! \brief Returns \a icnod which then is incremented.
     int next();
+  };
+
+protected:
+  //! \brief Implementation of basis function cache.
+  class BasisFunctionCache : public ::BasisFunctionCache<2>
+  {
+  public:
+    //! \brief The constructor initializes the class.
+    //! \param pch Patch the cache is for
+    //! \param plcy Cache policy to use
+    //! \param b Basis to use
+    BasisFunctionCache(const ASMs2D& pch, ASM::CachePolicy plcy, int b);
+
+    //! \brief Constructor reusing quadrature info from another instance.
+    //! \param cache Instance holding quadrature information
+    //! \param b Basis to use
+    BasisFunctionCache(const BasisFunctionCache& cache, int b);
+
+    //! \brief Empty destructor.
+    virtual ~BasisFunctionCache() = default;
+
+    //! \brief Returns number of elements in each direction.
+    const std::array<size_t,2>& noElms() const
+    { return nel; }
+
+  protected:
+    //! \brief Implementation specific initialization.
+    bool internalInit() override;
+
+    //! \brief Implementation specific cleanup.
+    void internalCleanup() override;
+
+    //! \brief Calculates basis function info in a single integration point.
+    //! \param el Element of integration point (0-indexed)
+    //! \param gp Integration point on element (0-indexed)
+    //! \param reduced If true, returns values for reduced integration scheme
+    BasisFunctionVals calculatePt(size_t el, size_t gp, bool reduced) const override;
+
+    //! \brief Calculates basis function info in all integration points.
+    void calculateAll() override;
+
+    //! \brief Obtain global integration point index.
+    //! \param el Element of integration point (0-indexed)
+    //! \param gp Integration point on element (0-indexed)
+    //! \param reduced True to return index for reduced quadrature
+    size_t index(size_t el, size_t gp, bool reduced) const override;
+
+  protected:
+    //! \brief Configure quadratures.
+    bool setupQuadrature();
+
+    //! \brief Setup integration point parameters.
+    virtual void setupParameters();
+
+    const ASMs2D& patch; //!< Reference to patch cache is for
+
+    int basis; //!< Basis to use
+    std::array<size_t,2> nel{0,0}; //!< Number of elements in each direction
+
+  private:
+    //! \brief Obtain structured element indices.
+    //! \param el Global element index
+    std::array<size_t,2> elmIndex(size_t el) const;
   };
 
 public:
@@ -728,6 +794,9 @@ protected:
 
   //! Element groups for multi-threaded assembly
   ThreadGroups threadGroups;
+
+  //! Basis function cache
+  std::vector<std::unique_ptr<BasisFunctionCache>> myCache;
 };
 
 #endif
