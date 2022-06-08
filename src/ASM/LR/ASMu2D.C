@@ -148,6 +148,8 @@ void ASMu2D::clear (bool retainGeometry)
   this->ASMbase::clear(retainGeometry);
   this->dirich.clear();
   projThreadGroups = ThreadGroups();
+
+  myCache.clear();
 }
 
 
@@ -1064,69 +1066,24 @@ bool ASMu2D::integrate (Integrand& integrand,
   bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
   bool use3rdDer = integrand.getIntegrandType() & Integrand::THIRD_DERIVATIVES;
 
-  const int p1 = lrspline->order(0);
-  const int p2 = lrspline->order(1);
+  if (myCache.empty())
+    myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this, cachePolicy, 1));
 
-  // Get Gaussian quadrature points and weights
-  const int nGP = this->getNoGaussPt(p1 > p2 ? p1 : p2);
-  const double* xg = GaussQuadrature::getCoord(nGP);
-  const double* wg = GaussQuadrature::getWeight(nGP);
-  if (!xg || !wg) return false;
+  BasisFunctionCache& cache = *myCache.front();
+  cache.setIntegrand(&integrand);
+  if (!cache.init(use3rdDer ? 3 : (use2ndDer ? 2 : 1)))
+    return false;
+
+  const std::array<int,2>& ng = cache.nGauss();
+  const std::array<const double*,2>& xg = cache.coord();
+  const std::array<const double*,2>& wg = cache.weight();
 
   // Get the reduced integration quadrature points, if needed
-  const double* xr = nullptr;
-  const double* wr = nullptr;
-  int nRed = integrand.getReducedIntegration(nGP);
-  if (nRed > 0)
-  {
-    xr = GaussQuadrature::getCoord(nRed);
-    wr = GaussQuadrature::getWeight(nRed);
-    if (!xr || !wr) return false;
-  }
-  else if (nRed < 0)
-    nRed = nGP; // The integrand needs to know nGauss
+  const double* xr = cache.coord(true)[0];
+  const double* wr = cache.weight(true)[0];
 
-  // Evaluate basis function values and derivatives at all integration points.
-  // We do this before the integration point loop to exploit multi-threading
-  // in the integrand evaluations, which may be the computational bottleneck.
-
-  std::vector<Go::BasisDerivsSf>  spline1, splineRed;
-  std::vector<Go::BasisDerivsSf2> spline2;
-  std::vector<Go::BasisDerivsSf3> spline3;
-
-  if (use3rdDer)
-    spline3.resize(nel*nGP*nGP);
-  else if (use2ndDer)
-    spline2.resize(nel*nGP*nGP);
-  else
-    spline1.resize(nel*nGP*nGP);
-  if (xr)
-    splineRed.resize(nel*nRed*nRed);
-
-  size_t iel, jp, rp;
-  for (iel = jp = rp = 0; iel < nel; iel++)
-  {
-    RealArray u, v;
-    this->getGaussPointParameters(u,0,nGP,1+iel,xg);
-    this->getGaussPointParameters(v,1,nGP,1+iel,xg);
-    for (int j = 0; j < nGP; j++)
-      for (int i = 0; i < nGP; i++, jp++)
-        if (use3rdDer)
-          this->computeBasis(u[i],v[j],spline3[jp],iel);
-        else if (use2ndDer)
-          this->computeBasis(u[i],v[j],spline2[jp],iel);
-        else
-          this->computeBasis(u[i],v[j],spline1[jp],iel);
-
-    if (xr)
-    {
-      this->getGaussPointParameters(u,0,nRed,1+iel,xg);
-      this->getGaussPointParameters(v,1,nRed,1+iel,xg);
-      for (int j = 0; j < nRed; j++)
-        for (int i = 0; i < nRed; i++, rp++)
-          this->computeBasis(u[i],v[j],splineRed[rp],iel);
-    }
-  }
+  const int p1 = lrspline->order(0);
+  const int p2 = lrspline->order(1);
 
   ThreadGroups oneGroup;
   if (glInt.threadSafe()) oneGroup.oneGroup(nel);
@@ -1153,9 +1110,8 @@ bool ASMu2D::integrate (Integrand& integrand,
       fe.iel = MLGE[iel-1];
       fe.p   = p1 - 1;
       fe.q   = p2 - 1;
-      Matrix   dNdu, Xnod, Jac;
-      Matrix3D d2Ndu2, Hess;
-      Matrix4D d3Ndu3;
+      Matrix   Xnod, Jac;
+      Matrix3D Hess;
       double   dXidu[2];
       double   param[3] = { 0.0, 0.0, 0.0 };
       Vec4     X(param,time.t);
@@ -1175,23 +1131,14 @@ bool ASMu2D::integrate (Integrand& integrand,
         continue;
       }
 
-      // Compute parameter values of the Gauss points over this element
-      std::array<RealArray,2> gpar, redpar;
-      for (int d = 0; d < 2; d++)
-      {
-        this->getGaussPointParameters(gpar[d],d,nGP,iel,xg);
-        if (xr)
-          this->getGaussPointParameters(redpar[d],d,nRed,iel,xr);
-      }
-
       if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
         fe.h = this->getElementCorners(iel,fe.XC);
 
       if (integrand.getIntegrandType() & Integrand::ELEMENT_CENTER)
       {
         // Compute the element center
-        param[0] = 0.5*(gpar[0].front() + gpar[0].back());
-        param[1] = 0.5*(gpar[1].front() + gpar[1].back());
+        param[0] = 0.5*(cache.getParam(0,iel-1,0)+cache.getParam(0,iel-1,ng[0]-1));
+        param[1] = 0.5*(cache.getParam(1,iel-1,0)+cache.getParam(1,iel-1,ng[1]-1));
         if (this->evalPoint(iel-1,param,X) < 0)
           ok = false;
       }
@@ -1211,16 +1158,17 @@ bool ASMu2D::integrate (Integrand& integrand,
 
         fe.Navg.resize(nen,true);
         double area = 0.0;
-        int ip = (iel-1)*nGP*nGP;
-        for (int j = 0; j < nGP; j++)
-          for (int i = 0; i < nGP; i++, ip++)
+        size_t ip = 0;
+        for (int j = 0; j < ng[1]; j++)
+          for (int i = 0; i < ng[0]; i++, ip++)
           {
-            SplineUtils::extractBasis(spline1[ip],fe.N,dNdu);
+            const BasisFunctionVals& bfs = cache.getVals(iel-1,ip);
+            fe.N = bfs.N;
 
             // Compute Jacobian determinant of coordinate mapping
             // and multiply by weight of current integration point
-            double detJac = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu,false);
-            double weight = dA*wg[i]*wg[j];
+            double detJac = utl::Jacobian(Jac,fe.dNdX,Xnod,bfs.dNdu,false);
+            double weight = dA*wg[0][i]*wg[1][j];
 
             // Numerical quadrature
             fe.Navg.add(fe.N,detJac*weight);
@@ -1233,6 +1181,7 @@ bool ASMu2D::integrate (Integrand& integrand,
 
       // Initialize element quantities
       LocalIntegral* A = integrand.getLocalIntegral(nen,fe.iel);
+      int nRed = cache.nGauss(true)[0];
       if (!integrand.initElement(MNPC[iel-1],fe,X,nRed*nRed,*A))
       {
         A->destruct();
@@ -1253,23 +1202,23 @@ bool ASMu2D::integrate (Integrand& integrand,
       {
         // --- Selective reduced integration loop ------------------------------
 
-        int jp = (iel-1)*nRed*nRed;
+        size_t ip = 0;
         for (int j = 0; j < nRed; j++)
-          for (int i = 0; i < nRed; i++, jp++)
+          for (int i = 0; i < nRed; i++, ++ip)
           {
             // Local element coordinates of current integration point
             fe.xi  = xr[i];
             fe.eta = xr[j];
 
             // Parameter values of current integration point
-            fe.u = param[0] = redpar[0][i];
-            fe.v = param[1] = redpar[1][j];
+            fe.u = param[0] = cache.getParam(0,iel-1,i,true);
+            fe.v = param[1] = cache.getParam(1,iel-1,j,true);
 
-            // Extract basis function derivatives at current point
-            SplineUtils::extractBasis(splineRed[jp],fe.N,dNdu);
+            const BasisFunctionVals& bfs = cache.getVals(iel-1,ip,true);
+            fe.N = bfs.N;
 
             // Compute Jacobian inverse and derivatives
-            fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+            fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,bfs.dNdu);
             if (fe.detJxW == 0.0) continue; // skip singular points
 
             // Store tangent vectors in fe.G for shells
@@ -1288,52 +1237,41 @@ bool ASMu2D::integrate (Integrand& integrand,
 
       // --- Integration loop over all Gauss points in each direction ----------
 
-      int jp = (iel-1)*nGP*nGP;
-      fe.iGP = firstIp + jp; // Global integration point counter
+      size_t ip = 0;
+      fe.iGP = firstIp + (iel-1)*ng[0]*ng[1]; // Global integration point counter
 
-      for (int j = 0; j < nGP; j++)
-        for (int i = 0; i < nGP; i++, fe.iGP++)
+      for (int j = 0; j < ng[1]; j++)
+        for (int i = 0; i < ng[0]; i++, fe.iGP++, ++ip)
         {
           // Local element coordinates of current integration point
-          fe.xi  = xg[i];
-          fe.eta = xg[j];
+          fe.xi  = xg[0][i];
+          fe.eta = xg[1][j];
 
           // Parameter values of current integration point
-          fe.u = param[0] = gpar[0][i];
-          fe.v = param[1] = gpar[1][j];
+          fe.u = param[0] = cache.getParam(0,iel-1,i);
+          fe.v = param[1] = cache.getParam(1,iel-1,j);
 
-          // Extract basis function derivatives at current integration point
-          if (use3rdDer)
-            SplineUtils::extractBasis(spline3[fe.iGP-firstIp],fe.N,dNdu,d2Ndu2,d3Ndu3);
-          else if (use2ndDer)
-            SplineUtils::extractBasis(spline2[fe.iGP-firstIp],fe.N,dNdu,d2Ndu2);
-          else {
-            SplineUtils::extractBasis(spline1[fe.iGP-firstIp],fe.N,dNdu);
+          const BasisFunctionVals& bfs = cache.getVals(iel-1,ip);
+          fe.N = bfs.N;
 #if SP_DEBUG > 4
-            if (iel == dbgElm || iel == -dbgElm || dbgElm == 0)
-            {
-              const Go::BasisDerivsSf& spline = spline1[fe.iGP-firstIp];
-              std::cout <<"\nBasis functions at a integration point "
-                        <<" : (u,v) = "<< spline.param[0] <<" "<< spline.param[1]
-                        <<"  left_idx = "<< spline.left_idx[0]
-                        <<" "<< spline.left_idx[1];
-              for (size_t ii = 0; ii < spline.basisValues.size(); ii++)
-                std::cout <<'\n'<< 1+ii <<'\t' << spline.basisValues[ii] <<'\t'
-                          << spline.basisDerivs_u[ii] <<'\t'
-                          << spline.basisDerivs_v[ii];
-              std::cout << std::endl;
-            }
-#endif
+          if (iel == dbgElm || iel == -dbgElm || dbgElm == 0)
+          {
+            std::cout <<"\nBasis functions at a integration point "
+                      <<" : (u,v) = "<< fe.u <<" "<< fe.v;
+            for (size_t ii = 0; ii < bfs.N.size(); ii++)
+              std::cout <<'\n'<< 1+ii <<'\t' << bfs.N[ii] <<'\t'
+            std::cout << std::endl;
           }
+#endif
 
           // Compute Jacobian inverse of coordinate mapping and derivatives
-          fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+          fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,bfs.dNdu);
           if (fe.detJxW == 0.0) continue; // skip singular points
 
           // Compute Hessian of coordinate mapping and 2nd order derivatives
           if (use2ndDer)
           {
-            if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
+            if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,bfs.d2Ndu2,bfs.dNdu))
               ok = false;
             else if (nsd > 2)
               utl::Hessian(Hess,fe.H);
@@ -1341,7 +1279,7 @@ bool ASMu2D::integrate (Integrand& integrand,
 
           // Compute 3rd order derivatives
           if (use3rdDer)
-            ok &= utl::Hessian2(fe.d3NdX3,Jac,d3Ndu3);
+            ok &= utl::Hessian2(fe.d3NdX3,Jac,bfs.d3Ndu3);
 
           // Compute G-matrix
           if (integrand.getIntegrandType() & Integrand::G_MATRIX)
@@ -1358,7 +1296,7 @@ bool ASMu2D::integrate (Integrand& integrand,
           X.assign(Xnod * fe.N);
 
           // Evaluate the integrand and accumulate element contributions
-          fe.detJxW *= dA*wg[i]*wg[j];
+          fe.detJxW *= dA*wg[0][i]*wg[1][j];
 #ifndef USE_OPENMP
           PROFILE3("Integrand::evalInt");
 #endif
@@ -1367,7 +1305,7 @@ bool ASMu2D::integrate (Integrand& integrand,
         }
 
       // Finalize the element quantities
-      if (ok && !integrand.finalizeElement(*A,fe,time,firstIp+jp))
+      if (ok && !integrand.finalizeElement(*A,fe,time,firstIp+(iel-1)*ng[0]*ng[1]))
         ok = false;
 
       // Assembly of global system integral
@@ -1382,6 +1320,7 @@ bool ASMu2D::integrate (Integrand& integrand,
 #endif
     }
 
+  cache.finalizeAssembly();
   return ok;
 }
 
@@ -3028,5 +2967,148 @@ void ASMu2D::storeMesh (const std::string& fName, int fType) const
       const_cast<ASMu2D*>(this)->writePostscriptMeshWithControlPointsNurbs(lrspline, meshFile);
     else
       lrspline->writePostscriptMeshWithControlPoints(meshFile);
+  }
+}
+
+
+ASMu2D::BasisFunctionCache::BasisFunctionCache (const ASMu2D& pch,
+                                                ASM::CachePolicy plcy,
+                                                int b) :
+  ::BasisFunctionCache<2>(plcy),
+  patch(pch),
+  basis(b)
+{
+}
+
+
+ASMu2D::BasisFunctionCache::BasisFunctionCache (const BasisFunctionCache& cache,
+                                                int b) :
+  ::BasisFunctionCache<2>(cache),
+  patch(cache.patch),
+  basis(b)
+{
+}
+
+
+bool ASMu2D::BasisFunctionCache::internalInit ()
+{
+  if (!mainQ->xg[0])
+    this->setupQuadrature();
+
+  nTotal = patch.nel*mainQ->ng[0]*mainQ->ng[1];
+  if (reducedQ->xg[0])
+    nTotalRed = patch.nel*reducedQ->ng[0]*reducedQ->ng[1];
+
+  return true;
+}
+
+
+void ASMu2D::BasisFunctionCache::internalCleanup ()
+{
+  if (basis == 1) {
+    mainQ->reset();
+    reducedQ->reset();
+  }
+}
+
+
+bool ASMu2D::BasisFunctionCache::setupQuadrature ()
+{
+  const int p1 = patch.lrspline->order(0);
+  const int p2 = patch.lrspline->order(1);
+
+  // Get Gaussian quadrature points and weights
+  for (int d = 0; d < 2; d++)
+  {
+    mainQ->ng[d] = patch.getNoGaussPt(d == 0 ? p1 : p2);
+    mainQ->xg[d] = GaussQuadrature::getCoord(mainQ->ng[d]);
+    mainQ->wg[d] = GaussQuadrature::getWeight(mainQ->ng[d]);
+    if (!mainQ->xg[d] || !mainQ->wg[d]) return false;
+  }
+
+  // Get the reduced integration quadrature points, if needed
+  int nRed = integrand ? integrand->getReducedIntegration(mainQ->ng[0]) : 0;
+  if (nRed > 0)
+  {
+    reducedQ->xg[0] = reducedQ->xg[1] = GaussQuadrature::getCoord(nRed);
+    reducedQ->wg[0] = reducedQ->wg[1] = GaussQuadrature::getWeight(nRed);
+    if (!reducedQ->xg[0] || !reducedQ->wg[0]) return false;
+  } else if (nRed < 0)
+    nRed = mainQ->ng[0]; // The integrand needs to know nGauss
+
+  reducedQ->ng[0] = reducedQ->ng[1] = nRed;
+
+  // Compute parameter values of the Gauss points over the whole patch
+  mainQ->gpar[0].resize(mainQ->ng[0],patch.nel);
+  mainQ->gpar[1].resize(mainQ->ng[1],patch.nel);
+  if (reducedQ->xg[0]) {
+    reducedQ->gpar[0].resize(reducedQ->ng[0],patch.nel);
+    reducedQ->gpar[1].resize(reducedQ->ng[1],patch.nel);
+  }
+  for (size_t iel = 1; iel <= patch.nel; ++iel)
+  {
+    RealArray u, v;
+    patch.getGaussPointParameters(u,0,mainQ->ng[0],iel,mainQ->xg[0]);
+    patch.getGaussPointParameters(v,1,mainQ->ng[1],iel,mainQ->xg[1]);
+    mainQ->gpar[0].fillColumn(iel,u.data());
+    mainQ->gpar[1].fillColumn(iel,v.data());
+
+    if (reducedQ->xg[0])
+    {
+      patch.getGaussPointParameters(u,0,reducedQ->ng[0],iel,reducedQ->xg[0]);
+      patch.getGaussPointParameters(v,1,reducedQ->ng[1],iel,reducedQ->xg[0]);
+      reducedQ->gpar[0].fillColumn(iel,u.data());
+      reducedQ->gpar[1].fillColumn(iel,v.data());
+    }
+  }
+  return true;
+}
+
+
+BasisFunctionVals ASMu2D::BasisFunctionCache::calculatePt (size_t el,
+                                                           size_t gp,
+                                                           bool reduced) const
+{
+  PROFILE2("Spline evaluation");
+  const std::array<size_t,2> gpIdx = this->gpIndex(gp,reduced);
+  double u = this->getParam(0,el,gpIdx[0],reduced);
+  double v = this->getParam(1,el,gpIdx[1],reduced);
+
+  BasisFunctionVals result;
+  if (nderiv == 1 || reduced) {
+    Go::BasisDerivsSf spline;
+    patch.computeBasis(u,v,spline,el,patch.getBasis(basis));
+    SplineUtils::extractBasis(spline,result.N,result.dNdu);
+  } else if (nderiv == 2) {
+    Go::BasisDerivsSf2 spline;
+    patch.computeBasis(u,v,spline,el,patch.getBasis(basis));
+    SplineUtils::extractBasis(spline,result.N,result.dNdu,result.d2Ndu2);
+  } else if (nderiv == 3) {
+    Go::BasisDerivsSf3 spline;
+    patch.computeBasis(u,v,spline,el,patch.getBasis(basis));
+    SplineUtils::extractBasis(spline,result.N,result.dNdu,result.d2Ndu2,result.d3Ndu3);
+  }
+
+  return result;
+}
+
+
+void ASMu2D::BasisFunctionCache::calculateAll ()
+{
+  PROFILE2("Spline evaluation");
+  // Evaluate basis function values and derivatives at all integration points.
+  // We do this before the integration point loop to exploit multi-threading
+  // in the integrand evaluations, which may be the computational bottleneck.
+  size_t iel, jp, rp;
+  for (iel = jp = rp = 0; iel < patch.nel; iel++)
+  {
+    for (int j = 0; j < mainQ->ng[1]; j++)
+      for (int i = 0; i < mainQ->ng[0]; i++, jp++)
+        values[jp] = this->calculatePt(iel,j*mainQ->ng[0]+i,false);
+
+    if (reducedQ->xg[0])
+      for (int j = 0; j < reducedQ->ng[1]; j++)
+        for (int i = 0; i < reducedQ->ng[0]; i++, rp++)
+          valuesRed[rp] = this->calculatePt(iel,j*reducedQ->ng[0]+i,true);
   }
 }
