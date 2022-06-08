@@ -490,33 +490,21 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
   bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
   bool useElmVtx = integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS;
 
-  // Get Gaussian quadrature points and weights
-  const double* xg = GaussQuadrature::getCoord(nGauss);
-  const double* wg = GaussQuadrature::getWeight(nGauss);
-  if (!xg || !wg) return false;
-
-  // Compute parameter values of the Gauss points over the whole patch
-  std::array<Matrix,3> gpar;
-  for (int d = 0; d < 3; d++)
-    this->getGaussPointParameters(gpar[d],d,nGauss,xg);
-
-  // Evaluate basis function derivatives at all integration points
-  std::vector<std::vector<Go::BasisDerivs>>  splinex;
-  std::vector<std::vector<Go::BasisDerivs2>> splinex2;
-  if (use2ndDer)
-  {
-    splinex2.resize(m_basis.size());
-#pragma omp parallel for schedule(static)
-    for (size_t i = 0; i < m_basis.size(); i++)
-      m_basis[i]->computeBasisGrid(gpar[0],gpar[1],gpar[2],splinex2[i]);
+  if (myCache.empty()) {
+    myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this, cachePolicy, 1));
+    for (size_t b = 2; b <= this->getNoBasis(); ++b)
+      myCache.emplace_back(std::make_unique<BasisFunctionCache>(*myCache.front(), b));
   }
-  else
-  {
-    splinex.resize(m_basis.size());
-#pragma omp parallel for schedule(static)
-    for (size_t i = 0; i < m_basis.size(); i++)
-      m_basis[i]->computeBasisGrid(gpar[0],gpar[1],gpar[2],splinex[i]);
+
+  for (std::unique_ptr<BasisFunctionCache>& cache : myCache) {
+    cache->init(use2ndDer ? 2 : 1);
   }
+
+  BasisFunctionCache& cache = *myCache.front();
+
+  const std::array<int,3>& ng = cache.nGauss();
+  const std::array<const double*,3>& xg = cache.coord();
+  const std::array<const double*,3>& wg = cache.weight();
 
   const int p1 = svol->order(0);
   const int p2 = svol->order(1);
@@ -540,8 +528,6 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
     for (size_t t = 0; t < groups[g].size(); t++)
     {
       MxFiniteElement fe(elem_size);
-      std::vector<Matrix>   dNxdu(m_basis.size());
-      std::vector<Matrix3D> d2Nxdu2(m_basis.size());
       Matrix3D Hess;
       double dXidu[3];
       Matrix Xnod, Jac;
@@ -595,39 +581,38 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
 
         // --- Integration loop over all Gauss points in each direction --------
 
-        int ip = (((i3-p3)*nGauss*nel2 + i2-p2)*nGauss*nel1 + i1-p1)*nGauss;
-        int jp = (((i3-p3)*nel2 + i2-p2)*nel1 + i1-p1)*nGauss*nGauss*nGauss;
+        size_t ip = 0;
+        int jp = (((i3-p3)*nel2 + i2-p2)*nel1 + i1-p1)*ng[0]*ng[1]*ng[2];
         fe.iGP = firstIp + jp; // Global integration point counter
 
-        for (int k = 0; k < nGauss; k++, ip += nGauss*(nel2-1)*nGauss*nel1)
-          for (int j = 0; j < nGauss; j++, ip += nGauss*(nel1-1))
-            for (int i = 0; i < nGauss; i++, ip++, fe.iGP++)
+        for (int k = 0; k < ng[2]; k++)
+          for (int j = 0; j < ng[1]; j++)
+            for (int i = 0; i < ng[0]; i++, ip++, fe.iGP++)
             {
               // Local element coordinates of current integration point
-              fe.xi   = xg[i];
-              fe.eta  = xg[j];
-              fe.zeta = xg[k];
+              fe.xi   = xg[0][i];
+              fe.eta  = xg[1][j];
+              fe.zeta = xg[2][k];
 
               // Parameter values of current integration point
-              fe.u = param[0] = gpar[0](i+1,i1-p1+1);
-              fe.v = param[1] = gpar[1](j+1,i2-p2+1);
-              fe.w = param[2] = gpar[2](k+1,i3-p3+1);
+              fe.u = param[0] = cache.getParam(0,i1-p1,i);
+              fe.v = param[1] = cache.getParam(1,i2-p2,j);
+              fe.w = param[2] = cache.getParam(2,i3-p3,k);
 
               // Fetch basis function derivatives at current integration point
-              if (use2ndDer)
-                for (size_t b = 0; b < m_basis.size(); ++b)
-                  SplineUtils::extractBasis(splinex2[b][ip],fe.basis(b+1),dNxdu[b], d2Nxdu2[b]);
-              else
-                for (size_t b = 0; b < m_basis.size(); ++b)
-                  SplineUtils::extractBasis(splinex[b][ip],fe.basis(b+1),dNxdu[b]);
+              std::vector<const BasisFunctionVals*> bfs(this->getNoBasis());
+              for (size_t b = 0; b < m_basis.size(); ++b) {
+                bfs[b] = &myCache[b]->getVals(iel-1, ip);
+                fe.basis(b+1) = bfs[b]->N;
+              }
 
               // Compute Jacobian inverse of the coordinate mapping and
               // basis function derivatives w.r.t. Cartesian coordinates
-              if (!fe.Jacobian(Jac,Xnod,dNxdu,geoBasis))
+              if (!fe.Jacobian(Jac,Xnod,geoBasis,&bfs))
                 continue; // skip singular points
 
               // Compute Hessian of coordinate mapping and 2nd order derivatives
-              if (use2ndDer && !fe.Hessian(Hess,Jac,Xnod,d2Nxdu2,geoBasis))
+              if (use2ndDer && !fe.Hessian(Hess,Jac,Xnod,geoBasis,&bfs))
                 ok = false;
 
               // Compute G-matrix
@@ -638,7 +623,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
               X.assign(Xnod * fe.basis(geoBasis));
 
               // Evaluate the integrand and accumulate element contributions
-              fe.detJxW *= dV*wg[i]*wg[j]*wg[k];
+              fe.detJxW *= dV*wg[0][i]*wg[1][j]*wg[2][k];
               if (!integrand.evalIntMx(*A,fe,time,X))
                 ok = false;
             }
@@ -655,6 +640,8 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
       }
     }
 
+  for (std::unique_ptr<BasisFunctionCache>& cache : myCache)
+    cache->finalizeAssembly();
   return ok;
 }
 
@@ -1237,7 +1224,7 @@ bool ASMs3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
     // Compute Jacobian inverse of the coordinate mapping and
     // basis function derivatives w.r.t. Cartesian coordinate
-    if (!fe.Jacobian(Jac,Xtmp,dNxdu,geoBasis))
+    if (!fe.Jacobian(Jac,Xtmp,geoBasis,nullptr,&dNxdu))
       continue; // skip singular points
 
     // Cartesian coordinates of current integration point
