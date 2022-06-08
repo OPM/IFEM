@@ -19,6 +19,8 @@
 #include "Vec3.h"
 #include "Tensor.h"
 
+struct BasisFunctionVals;
+
 
 /*!
   \brief Class representing a finite element.
@@ -119,19 +121,25 @@ public:
   //! \brief Sets up the Jacobian matrix of the coordinate mapping.
   //! \param[out] Jac The inverse of the Jacobian matrix
   //! \param[in] Xnod Matrix of element nodal coordinates
-  //! \param[in] dNxdu First order derivatives of basis functions
   //! \param[in] gBasis 1-based index of basis representing the geometry
+  //! \param[in] bf Basis function values and derivatives
+  //! \param[in] dNxdu First order derivatives of basis functions
   bool Jacobian(Matrix& Jac, const Matrix& Xnod,
-                const std::vector<Matrix>& dNxdu, unsigned short int gBasis);
+                unsigned short int gBasis,
+                const std::vector<const BasisFunctionVals*>* bf,
+                const std::vector<Matrix>* dNxdu = nullptr);
 
   //! \brief Sets up the Hessian matrix of the coordinate mapping.
   //! \param[out] Hess The Hessian matrix
   //! \param[in] Jac The inverse of the Jacobian matrix
   //! \param[in] Xnod Matrix of element nodal coordinates
-  //! \param[in] d2Nxdu2 Second order derivatives of basis functions
   //! \param[in] gBasis 1-based index of basis representing the geometry
+  //! \param[in] bf Basis function values and derivatives
+  //! \param[in] d2Nxdu2 Second order derivatives of basis functions
   bool Hessian(Matrix3D& Hess, const Matrix& Jac, const Matrix& Xnod,
-               const std::vector<Matrix3D>& d2Nxdu2, unsigned short int gBasis);
+               unsigned short int gBasis,
+               const std::vector<const BasisFunctionVals*>* bf,
+               const std::vector<Matrix3D>* d2Nxdu2 = nullptr);
 
 protected:
   //! \brief Writes the finite element object to the given output stream.

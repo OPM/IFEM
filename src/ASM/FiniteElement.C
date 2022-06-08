@@ -12,6 +12,7 @@
 //==============================================================================
 
 #include "FiniteElement.h"
+#include "BasisFunctionVals.h"
 #include "CoordinateMapping.h"
 #include "Vec3Oper.h"
 
@@ -75,20 +76,22 @@ std::ostream& MxFiniteElement::write (std::ostream& os) const
 */
 
 bool MxFiniteElement::Jacobian (Matrix& Jac, const Matrix& Xnod,
-                                const std::vector<Matrix>& dNxdu,
-                                unsigned short int gBasis)
+                                unsigned short int gBasis,
+                                const std::vector<const BasisFunctionVals*>* bf,
+                                const std::vector<Matrix>* dNxdu)
 {
   detJxW = utl::Jacobian(Jac,
-                         gBasis > 1 ? dMdX[gBasis-2] : dNdX,
-                         Xnod, dNxdu[gBasis-1]);
+                         gBasis > 1 ? dMdX[gBasis-2] : dNdX, Xnod,
+                         bf ? (*bf)[gBasis-1]->dNdu : (*dNxdu)[gBasis-1]);
   if (detJxW == 0.0) return false; // singular point
 
   if (gBasis > 1)
-    dNdX.multiply(dNxdu.front(),Jac);
+    dNdX.multiply(bf ? bf->front()->dNdu : dNxdu->front(),Jac);
 
-  for (size_t basis = 2; basis <= dNxdu.size(); basis++)
-    if (basis != gBasis)
-      dMdX[basis-2].multiply(dNxdu[basis-1],Jac);
+  size_t nBasis = bf ? bf->size() : dNxdu->size();
+  for (size_t b = 2; b <= nBasis; b++)
+    if (b != gBasis)
+      dMdX[b-2].multiply(bf ? (*bf)[b-1]->dNdu : (*dNxdu)[b-1], Jac);
 
   return true;
 }
@@ -102,22 +105,26 @@ bool MxFiniteElement::Jacobian (Matrix& Jac, const Matrix& Xnod,
 
 bool MxFiniteElement::Hessian (Matrix3D& Hess, const Matrix& Jac,
                                const Matrix& Xnod,
-                               const std::vector<Matrix3D>& d2Nxdu2,
-                               unsigned short int gBasis)
+                               unsigned short int gBasis,
+                               const std::vector<const BasisFunctionVals*>* bf,
+                               const std::vector<Matrix3D>* d2Nxdu2)
 {
   bool ok = utl::Hessian(Hess,
-                         gBasis > 1 ? d2MdX2[gBasis-2] : d2NdX2,
-                         Jac, Xnod, d2Nxdu2[gBasis-1],
+                         gBasis > 1 ? d2MdX2[gBasis-2] : d2NdX2, Jac, Xnod,
+                         bf ? (*bf)[gBasis-1]->d2Ndu2 : (*d2Nxdu2)[gBasis-1],
                          gBasis > 1 ? dMdX[gBasis-2] : dNdX);
 
   if (ok && gBasis > 1)
     ok = utl::Hessian(Hess, d2NdX2, Jac, Xnod,
-                      d2Nxdu2.front(), dNdX, false);
+                      bf ? bf->front()->d2Ndu2 : d2Nxdu2->front(),
+                      dNdX, false);
 
-  for (size_t basis = 2; basis <= d2Nxdu2.size() && ok; basis++)
-    if (basis != gBasis)
-      ok = utl::Hessian(Hess, d2MdX2[basis-2], Jac, Xnod,
-                        d2Nxdu2[basis-1], dMdX[basis-2], false);
+  size_t nBasis = bf ? bf->size() : d2Nxdu2->size();
+  for (size_t b = 2; b <= nBasis && ok; b++)
+    if (b != gBasis)
+      ok = utl::Hessian(Hess, d2MdX2[b-2], Jac, Xnod,
+                        bf ? (*bf)[b-1]->d2Ndu2 : (*d2Nxdu2)[b-1],
+                        dMdX[b-2], false);
 
   return ok;
 }

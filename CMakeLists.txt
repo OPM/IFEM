@@ -157,7 +157,7 @@ else()
   # headers
   file(GLOB IFEM_HEADERS src/ASM/AlgEqSystem.h src/ASM/ASMbase.h
                          src/ASM/ASMenums.h src/ASM/ASMmxBase.h
-                         src/ASM/ASMs?Dmx.h
+                         src/ASM/ASMs?Dmx.h src/ASM/BasisFunction*.h
                          src/ASM/ASM*truct.h src/ASM/*Mats.h src/ASM/ElmNorm.h
                          src/ASM/Field.h src/ASM/Fields.h src/ASM/GlbForceVec.h
                          src/ASM/FiniteElement.h src/ASM/GlbNorm.h
