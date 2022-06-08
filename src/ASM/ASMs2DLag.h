@@ -25,6 +25,53 @@
 
 class ASMs2DLag : public ASMs2D
 {
+protected:
+  //! \brief Implementation of basis function cache.
+  class BasisFunctionCache : public ASMs2D::BasisFunctionCache
+  {
+  public:
+    //! \brief The constructor initializes the class.
+    //! \param pch Patch the cache is for
+    //! \param plcy Cache policy to use
+    //! \param b Basis to use
+    BasisFunctionCache(const ASMs2DLag& pch, ASM::CachePolicy plcy, int b);
+
+    //! \brief Constructor reusing quadrature info from another instance.
+    //! \param cache Instance holding quadrature information
+    //! \param b Basis to use
+    BasisFunctionCache(const BasisFunctionCache& cache, int b);
+
+    //! \brief Empty destructor.
+    virtual ~BasisFunctionCache() = default;
+
+    //! \brief Obtain a single integration point parameter.
+    //! \param dir Direction of for integration point
+    //! \param el Element number in given direction
+    //! \param gp Integration point in given direction
+    //! \param reduced True to return parameter for reduced quadrature
+    double getParam(int dir, size_t el, size_t gp, bool reduced = false) const override;
+
+  protected:
+    //! \brief Obtain global integration point index.
+    //! \param el Element of integration point (0-indexed)
+    //! \param gp Integration point on element (0-indexed)
+    //! \param reduced True to return index for reduced quadrature
+    size_t index(size_t el, size_t gp, bool reduced) const override
+    { return ::BasisFunctionCache<2>::index(el,gp,reduced); }
+
+    //! \brief Calculates basis function info in a single integration point.
+    //! \param el Element of integration point (0-indexed)
+    //! \param gp Integratin point on element (0-indexed)
+    //! \param reduced If true, returns values for reduced integration scheme
+    BasisFunctionVals calculatePt(size_t el, size_t gp, bool reduced) const override;
+
+    //! \brief Calculates basis function info in all integration points.
+    void calculateAll() override;
+
+    //! \brief Configure quadrature points.
+    void setupParameters() override;
+  };
+
 public:
   //! \brief Default constructor.
   ASMs2DLag(unsigned char n_s = 2, unsigned char n_f = 2);
