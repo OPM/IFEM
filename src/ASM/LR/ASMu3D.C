@@ -137,6 +137,8 @@ void ASMu3D::clear (bool retainGeometry)
   this->ASMbase::clear(retainGeometry);
   this->dirich.clear();
   projThreadGroups = ThreadGroups();
+
+  myCache.clear();
 }
 
 
@@ -896,78 +898,28 @@ bool ASMu3D::integrate (Integrand& integrand,
 
   PROFILE2("ASMu3D::integrate(I)");
 
-  int p1 = lrspline->order(0);
-  int p2 = lrspline->order(1);
-  int p3 = lrspline->order(2);
-  int pm = std::max(std::max(p1,p2),p3);
 
-  // Get Gaussian quadrature points and weights
-  int nGP = this->getNoGaussPt(pm);
-  const double* xg = GaussQuadrature::getCoord(nGP);
-  const double* wg = GaussQuadrature::getWeight(nGP);
-  if (!xg || !wg) return false;
+  bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
 
-  // Evaluate all gauss points on the bezier patch (-1, 1)
-  double u[2*p1], v[2*p2], w[2*p3];
-  Go::BsplineBasis basis1 = getBezierBasis(p1);
-  Go::BsplineBasis basis2 = getBezierBasis(p2);
-  Go::BsplineBasis basis3 = getBezierBasis(p3);
-  Matrix BN(   p1*p2*p3, nGP*nGP*nGP), rBN;
-  Matrix BdNdu(p1*p2*p3, nGP*nGP*nGP), rBdNdu;
-  Matrix BdNdv(p1*p2*p3, nGP*nGP*nGP), rBdNdv;
-  Matrix BdNdw(p1*p2*p3, nGP*nGP*nGP), rBdNdw;
-  int ig = 1; // gauss point iterator
-  for (int zeta = 0; zeta < nGP; zeta++)
-    for (int eta = 0; eta < nGP; eta++)
-      for (int xi = 0; xi < nGP; xi++, ig++) {
-        basis1.computeBasisValues(xg[xi],   u, 1);
-        basis2.computeBasisValues(xg[eta],  v, 1);
-        basis3.computeBasisValues(xg[zeta], w, 1);
-        int ib = 1; // basis function iterator
-        for (int k = 0; k < p3; k++)
-          for (int j = 0; j < p2; j++)
-            for (int i = 0; i < p1; i++, ib++) {
-              BN(ib,ig)    = u[2*i  ]*v[2*j  ]*w[2*k  ];
-              BdNdu(ib,ig) = u[2*i+1]*v[2*j  ]*w[2*k  ];
-              BdNdv(ib,ig) = u[2*i  ]*v[2*j+1]*w[2*k  ];
-              BdNdw(ib,ig) = u[2*i  ]*v[2*j  ]*w[2*k+1];
-            }
-      }
+  if (myCache.empty())
+    myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this, cachePolicy, 1));
+
+  BasisFunctionCache& cache = *myCache.front();
+  cache.setIntegrand(&integrand);
+  if (!cache.init(use2ndDer ? 2 : 1))
+    return false;
+
+  const std::array<int,3>& ng = cache.nGauss();
+  const std::array<const double*,3>& xg = cache.coord();
+  const std::array<const double*,3>& wg = cache.weight();
 
   // Get the reduced integration quadrature points, if needed
-  const double* xr = nullptr;
-  const double* wr = nullptr;
-  int nRed = integrand.getReducedIntegration(nGP);
-  if (nRed > 0)
-  {
-    xr = GaussQuadrature::getCoord(nRed);
-    wr = GaussQuadrature::getWeight(nRed);
-    if (!xr || !wr) return false;
+  const double* xr = cache.coord(true)[0];
+  const double* wr = cache.weight(true)[0];
 
-    rBN.resize(   p1*p2*p3, nRed*nRed*nRed);
-    rBdNdu.resize(p1*p2*p3, nRed*nRed*nRed);
-    rBdNdv.resize(p1*p2*p3, nRed*nRed*nRed);
-    rBdNdw.resize(p1*p2*p3, nRed*nRed*nRed);
-    int ig = 1; // gauss point iterator
-    for (int zeta = 0; zeta < nRed; zeta++)
-      for (int eta = 0; eta < nRed; eta++)
-        for (int xi = 0; xi < nRed; xi++, ig++) {
-          basis1.computeBasisValues(xr[xi],   u, 1);
-          basis2.computeBasisValues(xr[eta],  v, 1);
-          basis3.computeBasisValues(xr[zeta], w, 1);
-          int ib = 1; // basis function iterator
-          for (int k = 0; k < p3; k++)
-            for (int j = 0; j < p2; j++)
-              for (int i = 0; i < p1; i++, ib++) {
-                rBN(ib,ig)    = u[2*i  ]*v[2*j  ]*w[2*k  ];
-                rBdNdu(ib,ig) = u[2*i+1]*v[2*j  ]*w[2*k  ];
-                rBdNdv(ib,ig) = u[2*i  ]*v[2*j+1]*w[2*k  ];
-                rBdNdw(ib,ig) = u[2*i  ]*v[2*j  ]*w[2*k+1];
-              }
-        }
-  }
-  else if (nRed < 0)
-    nRed = nGP; // The integrand needs to know nGauss
+  const int p1 = lrspline->order(0);
+  const int p2 = lrspline->order(1);
+  const int p3 = lrspline->order(2);
 
   ThreadGroups oneGroup;
   if (glInt.threadSafe()) oneGroup.oneGroup(nel);
@@ -995,35 +947,21 @@ bool ASMu3D::integrate (Integrand& integrand,
       fe.p   = p1 - 1;
       fe.q   = p2 - 1;
       fe.r   = p3 - 1;
-      Matrix   B(p1*p2*p3,4); // Bezier evaluation points and derivatives
-      const Matrix& C = bezierExtract[iel-1];
-      Matrix   dNdu, Xnod, Jac;
-      Matrix3D d2Ndu2, Hess;
+      Matrix   Xnod, Jac;
+      Matrix3D Hess;
       double   dXidu[3];
       double   param[3] = { 0.0, 0.0, 0.0 };
       Vec4     X(param,time.t);
 
       // Get element volume in the parameter space
       const LR::Element* el = lrspline->getElement(iel-1);
-      double du = 0.5*(el->umax() - el->umin());
-      double dv = 0.5*(el->vmax() - el->vmin());
-      double dw = 0.5*(el->wmax() - el->wmin());
-      double dV = du*dv*dw;
+      double dV = 0.125*el->volume();
 
       // Set up control point (nodal) coordinates for current element
       if (!this->getElementCoordinates(Xnod,iel))
       {
         ok = false;
         continue;
-      }
-
-      // Compute parameter values of the Gauss points over this element
-      std::array<RealArray,3> gpar, redpar;
-      for (int d = 0; d < 3; d++)
-      {
-        this->getGaussPointParameters(gpar[d],d,nGP,iel,xg);
-        if (xr)
-          this->getGaussPointParameters(redpar[d],d,nRed,iel,xr);
       }
 
       if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
@@ -1051,24 +989,21 @@ bool ASMu3D::integrate (Integrand& integrand,
       {
         // --- Compute average value of basis functions over the element -----
 
-        int ip = (iel-1)*nGP*nGP*nGP + firstIp;
+        int ip = (iel-1)*ng[0]*ng[1]*ng[2] + firstIp;
         fe.Navg.resize(nen,true);
         double vol = 0.0;
-        int ig = 1;
-        for (int k = 0; k < nGP; k++)
-          for (int j = 0; j < nGP; j++)
-            for (int i = 0; i < nGP; i++, ++ip, ++ig)
+        int ig = 0;
+        for (int k = 0; k < ng[2]; k++)
+          for (int j = 0; j < ng[1]; j++)
+            for (int i = 0; i < ng[0]; i++, ++ip, ++ig)
             {
-              B.fillColumn(1, BN.getColumn(ig));
-              B.fillColumn(2, BdNdu.getColumn(ig)/du);
-              B.fillColumn(3, BdNdv.getColumn(ig)/dv);
-              B.fillColumn(4, BdNdw.getColumn(ig)/dw);
-              this->evaluateBasis(fe, dNdu, C, B);
+              const BasisFunctionVals& bfs = cache.getVals(iel-1,ig);
+              fe.N = bfs.N;
 
               // Compute Jacobian determinant of coordinate mapping
               // and multiply by weight of current integration point
-              double detJac = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu,false);
-              double weight = dV*wg[i]*wg[j]*wg[k];
+              double detJac = utl::Jacobian(Jac,fe.dNdX,Xnod,bfs.dNdu,false);
+              double weight = dV*wg[0][i]*wg[1][j]*wg[2][k];
 
               // Numerical quadrature
               fe.Navg.add(fe.N,detJac*weight);
@@ -1081,6 +1016,7 @@ bool ASMu3D::integrate (Integrand& integrand,
 
       // Initialize element quantities
       LocalIntegral* A = integrand.getLocalIntegral(nen,fe.iel);
+      int nRed = cache.nGauss(true)[0];
       if (!integrand.initElement(MNPC[iel-1],fe,X,nRed*nRed*nRed,*A))
       {
         A->destruct();
@@ -1092,7 +1028,7 @@ bool ASMu3D::integrate (Integrand& integrand,
       {
         // --- Selective reduced integration loop ------------------------------
 
-        int ig = 1;
+        int ig = 0;
         for (int k = 0; k < nRed; k++)
           for (int j = 0; j < nRed; j++)
             for (int i = 0; i < nRed; i++, ig++)
@@ -1103,19 +1039,15 @@ bool ASMu3D::integrate (Integrand& integrand,
               fe.zeta = xr[k];
 
               // Parameter values of current integration point
-              fe.u = param[0] = redpar[0][i];
-              fe.v = param[1] = redpar[1][j];
-              fe.w = param[2] = redpar[2][k];
+              fe.u = param[0] = cache.getParam(0,iel-1,i,true);
+              fe.v = param[1] = cache.getParam(1,iel-1,j,true);
+              fe.w = param[2] = cache.getParam(2,iel-1,k,true);
 
-              // Extract bezier basis functions
-              B.fillColumn(1, rBN.getColumn(ig));
-              B.fillColumn(2, rBdNdu.getColumn(ig)/du);
-              B.fillColumn(3, rBdNdv.getColumn(ig)/dv);
-              B.fillColumn(4, rBdNdw.getColumn(ig)/dw);
-              this->evaluateBasis(fe, dNdu, C, B);
+              const BasisFunctionVals& bfs = cache.getVals(iel-1,ig,true);
+              fe.N = bfs.N;
 
               // Compute Jacobian inverse and derivatives
-              fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+              fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,bfs.dNdu);
               if (fe.detJxW == 0.0) continue; // skip singular points
 
               // Cartesian coordinates of current integration point
@@ -1131,67 +1063,34 @@ bool ASMu3D::integrate (Integrand& integrand,
 
       // --- Integration loop over all Gauss points in each direction ----------
 
-      int ig = 1;
-      int jp = (iel-1)*nGP*nGP*nGP;
+      int ig = 0;
+      int jp = (iel-1)*ng[0]*ng[1]*ng[2];
       fe.iGP = firstIp + jp; // Global integration point counter
 
-      for (int k = 0; k < nGP; k++)
-        for (int j = 0; j < nGP; j++)
-          for (int i = 0; i < nGP; i++, fe.iGP++, ig++)
+      for (int k = 0; k < ng[2]; k++)
+        for (int j = 0; j < ng[1]; j++)
+          for (int i = 0; i < ng[0]; i++, fe.iGP++, ig++)
           {
             // Local element coordinates of current integration point
-            fe.xi   = xg[i];
-            fe.eta  = xg[j];
-            fe.zeta = xg[k];
+            fe.xi   = xg[0][i];
+            fe.eta  = xg[1][j];
+            fe.zeta = xg[2][k];
 
             // Parameter values of current integration point
-            fe.u = param[0] = gpar[0][i];
-            fe.v = param[1] = gpar[1][j];
-            fe.w = param[2] = gpar[2][k];
+            fe.u = param[0] = cache.getParam(0,iel-1,i);
+            fe.v = param[1] = cache.getParam(1,iel-1,j);
+            fe.w = param[2] = cache.getParam(2,iel-1,k);
 
-            // Fetch basis function derivatives at current integration point
-            if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
-#pragma omp critical
-              this->evaluateBasis(iel-1, fe, dNdu, d2Ndu2);
-            else
-            {
-              // Extract bezier basis functions
-              B.fillColumn(1, BN.getColumn(ig));
-              B.fillColumn(2, BdNdu.getColumn(ig)/du);
-              B.fillColumn(3, BdNdv.getColumn(ig)/dv);
-              B.fillColumn(4, BdNdw.getColumn(ig)/dw);
-              this->evaluateBasis(fe, dNdu, C, B);
-
-#ifdef SP_DEBUG
-              // Check for errors in the bezier extraction
-              if (fabs(fe.N.sum()-1.0) > 1.0e-10) {
-                std::cerr <<" *** N does not sum to one at integration point #"<< ig << std::endl;
-                exit(123);
-              }
-              char u = 'u';
-              for (size_t d = 1; d <= 3; d++, u++)
-                if (fabs(dNdu.getColumn(d).sum()) > 1.0e-10) {
-                  std::cerr <<" *** dNd"<< u <<" does not sum to zero at integration point #"<< ig << std::endl;
-                  exit(123);
-                }
-              if (fabs(B.getColumn(1).sum()-1.0) > 1.0e-10) {
-                std::cerr <<" *** Bezier basis does not sum to one at integration point #"<< ig << std::endl;
-                exit(123);
-              }
-              if (fabs(B.getColumn(2).sum()) > 1.0e-10) {
-                std::cerr <<" *** Bezier derivatives do not sum to zero at integration point #"<< ig << std::endl;
-                exit(123);
-              }
-#endif
-            }
+            const BasisFunctionVals& bfs = cache.getVals(iel-1,ig);
+            fe.N = bfs.N;
 
             // Compute Jacobian inverse of coordinate mapping and derivatives
-            fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+            fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,bfs.dNdu);
             if (fe.detJxW == 0.0) continue; // skip singular points
 
             // Compute Hessian of coordinate mapping and 2nd order derivatives
             if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
-              if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
+              if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,bfs.d2Ndu2,bfs.dNdu))
                 ok = false;
 
             // Compute G-matrix
@@ -1207,7 +1106,7 @@ bool ASMu3D::integrate (Integrand& integrand,
             X.assign(Xnod * fe.N);
 
             // Evaluate the integrand and accumulate element contributions
-            fe.detJxW *= dV*wg[i]*wg[j]*wg[k];
+            fe.detJxW *= dV*wg[0][i]*wg[1][j]*wg[2][k];
             PROFILE3("Integrand::evalInt");
             if (!integrand.evalInt(*A,fe,time,X))
               ok = false;
@@ -1229,6 +1128,7 @@ bool ASMu3D::integrate (Integrand& integrand,
 #endif
     }
 
+  cache.finalizeAssembly();
   return ok;
 }
 
@@ -2483,4 +2383,222 @@ void ASMu3D::generateThreadGroupsFromElms (const IntVec& elms)
     projThreadGroups = threadGroups;
 
   threadGroups = threadGroups.filter(myElms);
+}
+
+
+ASMu3D::BasisFunctionCache::BasisFunctionCache (const ASMu3D& pch,
+                                                ASM::CachePolicy plcy,
+                                                int b) :
+  ::BasisFunctionCache<3>(plcy),
+  patch(pch),
+  basis(b)
+{
+}
+
+
+ASMu3D::BasisFunctionCache::BasisFunctionCache (const BasisFunctionCache& cache,
+                                                int b) :
+  ::BasisFunctionCache<3>(cache),
+  patch(cache.patch),
+  basis(b)
+{
+}
+
+
+bool ASMu3D::BasisFunctionCache::internalInit ()
+{
+  if (!mainQ->xg[0])
+    this->setupQuadrature();
+
+  std::array<int,3> order = { patch.getBasis(basis)->order(0),
+                              patch.getBasis(basis)->order(1),
+                              patch.getBasis(basis)->order(2) };
+  // Evaluate all gauss points on the bezier patch (-1, 1)
+  auto&& extractBezier = [order](const Quadrature& q,
+                                 BezierExtract& b)
+  {
+    double u[2*order[0]], v[2*order[1]], w[2*order[2]];
+    Go::BsplineBasis basis1 = getBezierBasis(order[0]);
+    Go::BsplineBasis basis2 = getBezierBasis(order[1]);
+    Go::BsplineBasis basis3 = getBezierBasis(order[2]);
+    int P = order[0]*order[1]*order[2];
+    int N = q.ng[0]*q.ng[1]*q.ng[2];
+    b.N.resize(P,N);
+    b.dNdu.resize(P,N);
+    b.dNdv.resize(P,N);
+    b.dNdw.resize(P,N);
+    int ig = 1; // gauss point iterator
+    for (int zeta = 0; zeta < q.ng[2]; zeta++)
+      for (int eta = 0; eta < q.ng[1]; eta++)
+        for (int xi = 0; xi < q.ng[0]; xi++, ig++) {
+          basis1.computeBasisValues(q.xg[0][xi],   u, 1);
+          basis2.computeBasisValues(q.xg[1][eta],  v, 1);
+          basis3.computeBasisValues(q.xg[2][zeta], w, 1);
+          int ib = 1; // basis function iterator
+          for (int k = 0; k < order[2]; k++)
+            for (int j = 0; j < order[1]; j++)
+              for (int i = 0; i < order[0]; i++, ib++) {
+                b.N(ib,ig)    = u[2*i  ]*v[2*j  ]*w[2*k  ];
+                b.dNdu(ib,ig) = u[2*i+1]*v[2*j  ]*w[2*k  ];
+                b.dNdv(ib,ig) = u[2*i  ]*v[2*j+1]*w[2*k  ];
+                b.dNdw(ib,ig) = u[2*i  ]*v[2*j  ]*w[2*k+1];
+              }
+        }
+  };
+
+  extractBezier(*mainQ, mainB);
+  if (reducedQ->xg[0])
+    extractBezier(*reducedQ, reducedB);
+
+  nTotal = patch.nel*mainQ->ng[0]*mainQ->ng[1]*mainQ->ng[2];
+  if (reducedQ->xg[0])
+    nTotalRed = patch.nel*reducedQ->ng[0]*reducedQ->ng[1]*reducedQ->ng[2];
+
+  return true;
+}
+
+
+void ASMu3D::BasisFunctionCache::internalCleanup ()
+{
+  if (basis == 1) {
+    mainQ->reset();
+    reducedQ->reset();
+  }
+}
+
+
+bool ASMu3D::BasisFunctionCache::setupQuadrature ()
+{
+  std::array<int,3> order = { patch.getBasis(basis)->order(0),
+                              patch.getBasis(basis)->order(1),
+                              patch.getBasis(basis)->order(2) };
+
+  // Get Gaussian quadrature points and weights
+  for (int d = 0; d < 3; d++)
+  {
+    mainQ->ng[d] = patch.getNoGaussPt(order[d]);
+    mainQ->xg[d] = GaussQuadrature::getCoord(mainQ->ng[d]);
+    mainQ->wg[d] = GaussQuadrature::getWeight(mainQ->ng[d]);
+    if (!mainQ->xg[d] || !mainQ->wg[d]) return false;
+  }
+
+  // Get the reduced integration quadrature points, if needed
+  int nRed = integrand ? integrand->getReducedIntegration(mainQ->ng[0]) : 0;
+  if (nRed > 0)
+  {
+    reducedQ->xg[0] = reducedQ->xg[1] = reducedQ->xg[2] = GaussQuadrature::getCoord(nRed);
+    reducedQ->wg[0] = reducedQ->wg[1] = reducedQ->wg[2] = GaussQuadrature::getWeight(nRed);
+    if (!reducedQ->xg[0] || !reducedQ->wg[0]) return false;
+  } else
+    nRed = mainQ->ng[0];
+
+  reducedQ->ng[0] = reducedQ->ng[1] = reducedQ->ng[2] = nRed;
+
+  // Compute parameter values of the Gauss points over the whole patch
+  mainQ->gpar[0].resize(mainQ->ng[0],patch.nel);
+  mainQ->gpar[1].resize(mainQ->ng[1],patch.nel);
+  mainQ->gpar[2].resize(mainQ->ng[2],patch.nel);
+  if (reducedQ->xg[0]) {
+    reducedQ->gpar[0].resize(reducedQ->ng[0],patch.nel);
+    reducedQ->gpar[1].resize(reducedQ->ng[1],patch.nel);
+    reducedQ->gpar[2].resize(reducedQ->ng[2],patch.nel);
+  }
+  for (size_t iel = 1; iel <= patch.nel; ++iel)
+  {
+    RealArray u, v, w;
+    patch.getGaussPointParameters(u,0,mainQ->ng[0],iel,mainQ->xg[0]);
+    patch.getGaussPointParameters(v,1,mainQ->ng[1],iel,mainQ->xg[1]);
+    patch.getGaussPointParameters(w,2,mainQ->ng[2],iel,mainQ->xg[2]);
+    mainQ->gpar[0].fillColumn(iel,u.data());
+    mainQ->gpar[1].fillColumn(iel,v.data());
+    mainQ->gpar[2].fillColumn(iel,w.data());
+
+    if (reducedQ->xg[0])
+    {
+      patch.getGaussPointParameters(u,0,reducedQ->ng[0],iel,reducedQ->xg[0]);
+      patch.getGaussPointParameters(v,1,reducedQ->ng[1],iel,reducedQ->xg[0]);
+      patch.getGaussPointParameters(w,2,reducedQ->ng[2],iel,reducedQ->xg[0]);
+      reducedQ->gpar[0].fillColumn(iel,u.data());
+      reducedQ->gpar[1].fillColumn(iel,v.data());
+      reducedQ->gpar[2].fillColumn(iel,w.data());
+    }
+  }
+  return true;
+}
+
+
+BasisFunctionVals ASMu3D::BasisFunctionCache::calculatePt (size_t el,
+                                                           size_t gp,
+                                                           bool reduced) const
+{
+  PROFILE2("Spline evaluation");
+  const std::array<size_t,3> gpIdx = this->gpIndex(gp,reduced);
+  FiniteElement fe;
+  fe.u = this->getParam(0,el,gpIdx[0],reduced);
+  fe.v = this->getParam(1,el,gpIdx[1],reduced);
+  fe.w = this->getParam(2,el,gpIdx[2],reduced);
+
+  const LR::Element* elm = patch.lrspline->getElement(el);
+  std::array<double,3> du;
+  du[0] = elm->umax() - elm->umin();
+  du[1] = elm->vmax() - elm->vmin();
+  du[2] = elm->wmax() - elm->wmin();
+
+  return this->calculatePrm(fe,du,el,gp,reduced);
+}
+
+
+BasisFunctionVals ASMu3D::BasisFunctionCache::
+calculatePrm (FiniteElement& fe,
+              const std::array<double,3>& du,
+              size_t el, size_t gp, bool reduced) const
+{
+  BasisFunctionVals result;
+  const BezierExtract& b = reduced ? reducedB : mainB;
+  RealArray extrMat;
+  patch.getBasis(basis)->getBezierExtraction(el,extrMat);
+  Matrix C;
+  const LR::Element* elm = patch.getBasis(basis)->getElement(el);
+  C.resize(elm->nBasisFunctions(), b.N.rows());
+  C.fill(extrMat.data(),extrMat.size());
+
+  if (nderiv == 1 || reduced) {
+    Matrix B(b.N.rows(), 4);
+    B.fillColumn(1, b.N.getColumn(gp+1));
+    B.fillColumn(2, b.dNdu.getColumn(gp+1)*2.0/du[0]);
+    B.fillColumn(3, b.dNdv.getColumn(gp+1)*2.0/du[1]);
+    B.fillColumn(4, b.dNdw.getColumn(gp+1)*2.0/du[2]);
+
+    patch.evaluateBasis(fe, result.dNdu, C, B, basis);
+    result.N = fe.N;
+  } else if (nderiv == 2) {
+    patch.evaluateBasis(el, fe, result.dNdu, result.d2Ndu2, basis);
+    result.N = fe.N;
+  }
+
+  return result;
+}
+
+
+void ASMu3D::BasisFunctionCache::calculateAll ()
+{
+  PROFILE2("Spline evaluation");
+  // Evaluate basis function values and derivatives at all integration points.
+  // We do this before the integration point loop to exploit multi-threading
+  // in the integrand evaluations, which may be the computational bottleneck.
+  size_t iel, jp, rp;
+  for (iel = jp = rp = 0; iel < patch.nel; iel++)
+  {
+    for (int k = 0; k < reducedQ->ng[2]; k++)
+      for (int j = 0; j < mainQ->ng[1]; j++)
+        for (int i = 0; i < mainQ->ng[0]; i++, jp++)
+          values[jp] = this->calculatePt(iel,(k*mainQ->ng[1]+j)*mainQ->ng[0]+i,false);
+
+    if (reducedQ->xg[0])
+      for (int k = 0; k < reducedQ->ng[2]; k++)
+        for (int j = 0; j < reducedQ->ng[1]; j++)
+          for (int i = 0; i < reducedQ->ng[0]; i++, rp++)
+            valuesRed[rp] = this->calculatePt(iel,
+                                              (k*reducedQ->ng[1]+j)*reducedQ->ng[0]+i,true);
+  }
 }

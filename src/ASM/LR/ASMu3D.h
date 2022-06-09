@@ -16,6 +16,7 @@
 
 #include "ASMLRSpline.h"
 #include "ASM3D.h"
+#include "BasisFunctionCache.h"
 #include "LRSpline/LRSpline.h"
 #include "ThreadGroups.h"
 #include <memory>
@@ -42,6 +43,71 @@ namespace LR {
 
 class ASMu3D : public ASMLRSpline, public ASM3D
 {
+protected:
+  //! \brief Implementation of basis function cache.
+  class BasisFunctionCache : public ::BasisFunctionCache<3>
+  {
+  public:
+    //! \brief The constructor initializes the class.
+    //! \param pch Patch the cache is for
+    //! \param plcy Cache policy to use
+    //! \param b Basis to use
+    BasisFunctionCache(const ASMu3D& pch, ASM::CachePolicy plcy, int b);
+
+    //! \brief Constructor reusing quadrature info from another instance.
+    //! \param cache Instance holding quadrature information
+    //! \param b Basis to use
+    BasisFunctionCache(const BasisFunctionCache& cache, int b);
+
+    //! \brief Empty destructor.
+    virtual ~BasisFunctionCache() = default;
+
+ protected:
+    //! \brief Implementation specific initialization.
+    bool internalInit() override;
+
+    //! \brief Implementation specific cleanup.
+    void internalCleanup() override;
+
+    //! \brief Calculates basis function info in a single integration point.
+    //! \param el Element of integration point (0-indexed)
+    //! \param gp Integration point on element (0-indexed)
+    //! \param reduced If true, returns values for reduced integration scheme
+    BasisFunctionVals calculatePt(size_t el, size_t gp, bool reduced) const override;
+
+    //! \brief Calculates basis function info in a single integration point.
+    //! \param fe Finite element information in integration point
+    //! \param el Element of integration point (0-indexed)
+    //! \param du Element size in parameter space
+    //! \param gp Integration point on element (0-indexed)
+    //! \param reduced If true, returns values for reduced integration scheme
+    BasisFunctionVals calculatePrm(FiniteElement& fe,
+                                   const std::array<double,3>& du,
+                                   size_t el, size_t gp, bool reduced) const;
+
+    //! \brief Calculates basis function info in all integration points.
+    void calculateAll() override;
+
+    //! \brief Struct holding bezier extraction matrices.
+    struct BezierExtract {
+      Matrix N;     //!< Basis function values
+      Matrix dNdu; //!< Basis function u-derivatives
+      Matrix dNdv; //!< Basis function v-derivatives
+      Matrix dNdw; //!< Basis function w-derivatives
+    };
+
+    BezierExtract mainB; //!< Bezier extraction for main basis
+    BezierExtract reducedB; //!< Bezier extraction for reduced basis
+
+    const ASMu3D& patch; //!< Reference to patch cache is for
+
+    int basis; //!< Basis to use
+
+private:
+    //! \brief Configure quadratures.
+    bool setupQuadrature();
+  };
+
 public:
   //! \brief Default constructor.
   explicit ASMu3D(unsigned char n_f = 3);
@@ -645,6 +711,9 @@ protected:
 
   const Matrices& bezierExtract; //!< Bezier extraction matrices
   Matrices      myBezierExtract; //!< Bezier extraction matrices
+
+  //! Basis function cache
+  std::vector<std::unique_ptr<BasisFunctionCache>> myCache;
 
 private:
   mutable double vMin; //!< Minimum element volume for adaptive refinement
