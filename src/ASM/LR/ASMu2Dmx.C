@@ -321,11 +321,6 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
 
   PROFILE2("ASMu2Dmx::integrate(I)");
 
-  // Get Gaussian quadrature points and weights
-  const double* xg = GaussQuadrature::getCoord(nGauss);
-  const double* wg = GaussQuadrature::getWeight(nGauss);
-  if (!xg || !wg) return false;
-
   if (integrand.getReducedIntegration(nGauss))
   {
     std::cerr <<" *** Reduced integration not available for mixed LR splines"
@@ -334,6 +329,25 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
   }
 
   bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
+
+  if (myCache.empty()) {
+    myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this, cachePolicy, 1));
+    for (size_t b = 2; b <= this->getNoBasis(); ++b) {
+      const BasisFunctionCache& c = static_cast<const BasisFunctionCache&>(*myCache.front());
+      myCache.emplace_back(std::make_unique<BasisFunctionCache>(c,b));
+    }
+  }
+
+  for (std::unique_ptr<ASMu2D::BasisFunctionCache>& cache : myCache) {
+    cache->setIntegrand(&integrand);
+    cache->init(use2ndDer ? 2 : 1);
+  }
+
+  ASMu2D::BasisFunctionCache& cache = *myCache.front();
+
+  const std::array<int,2>& ng = cache.nGauss();
+  const std::array<const double*,2>& xg = cache.coord();
+  const std::array<const double*,2>& wg = cache.weight();
 
   ThreadGroups oneGroup;
   if (glInt.threadSafe()) oneGroup.oneGroup(nel);
@@ -354,9 +368,7 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
       std::vector<size_t> elem_sizes;
       this->getElementsAt(threadBasis->getElement(groups[t][e])->midpoint(),els,elem_sizes);
 
-      MxFiniteElement       fe(elem_sizes);
-      std::vector<Matrix>   dNxdu(m_basis.size());
-      std::vector<Matrix3D> d2Nxdu2(use2ndDer ? m_basis.size() : 0);
+      MxFiniteElement fe(elem_sizes);
       Matrix   Xnod, Jac;
       Matrix3D Hess;
       double   dXidu[2];
@@ -391,11 +403,6 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
         dXidu[1] = geo->getElement(geoEl-1)->vmax()-geo->getElement(geoEl-1)->vmin();
       }
 
-      // Compute parameter values of the Gauss points over this element
-      std::array<RealArray,2> gpar;
-      for (int d = 0; d < 2; d++)
-        this->getGaussPointParameters(gpar[d],d,nGauss,geoEl,xg);
-
       // Initialize element quantities
       LocalIntegral* A = integrand.getLocalIntegral(elem_sizes,fe.iel);
       if (!integrand.initElement(MNPC[geoEl-1],fe,elem_sizes,nb,*A))
@@ -407,41 +414,34 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
 
       // --- Integration loop over all Gauss points in each direction ----------
 
-      int jp = (geoEl-1)*nGauss*nGauss;
+      int jp = (geoEl-1)*ng[0]*ng[1];
       fe.iGP = firstIp + jp; // Global integration point counter
 
-      for (int j = 0; j < nGauss; j++)
-        for (int i = 0; i < nGauss; i++, fe.iGP++)
+      size_t ig = 0;
+      for (int j = 0; j < ng[1]; j++)
+        for (int i = 0; i < ng[0]; i++, fe.iGP++, ig++)
         {
           // Local element coordinates of current integration point
-          fe.xi  = xg[i];
-          fe.eta = xg[j];
+          fe.xi  = xg[0][i];
+          fe.eta = xg[1][j];
 
           // Parameter values of current integration point
-          fe.u = param[0] = gpar[0][i];
-          fe.v = param[1] = gpar[1][j];
+          fe.u = param[0] = cache.getParam(0,geoEl-1,i);
+          fe.v = param[1] = cache.getParam(1,geoEl-1,j);
 
-          // Compute basis function derivatives at current integration point
-          if (use2ndDer)
-            for (size_t b = 0; b < m_basis.size(); ++b) {
-              Go::BasisDerivsSf2 spline;
-              this->computeBasis(fe.u,fe.v,spline,els[b]-1,m_basis[b].get());
-              SplineUtils::extractBasis(spline,fe.basis(b+1),dNxdu[b],d2Nxdu2[b]);
-            }
-          else
-            for (size_t b=0; b < m_basis.size(); ++b) {
-              Go::BasisDerivsSf spline;
-              this->computeBasis(fe.u, fe.v, spline, els[b]-1, m_basis[b].get());
-              SplineUtils::extractBasis(spline,fe.basis(b+1),dNxdu[b]);
-            }
+          std::vector<const BasisFunctionVals*> bfs(this->getNoBasis());
+          for (size_t b = 0; b < m_basis.size(); ++b) {
+            bfs[b] = &myCache[b]->getVals(geoEl-1,ig);
+            fe.basis(b+1) = bfs[b]->N;
+          }
 
           // Compute Jacobian inverse of the coordinate mapping and
           // basis function derivatives w.r.t. Cartesian coordinates
-          if (!fe.Jacobian(Jac,Xnod,dNxdu,geoBasis))
+          if (!fe.Jacobian(Jac,Xnod,geoBasis,&bfs))
             continue; // skip singular points
 
           // Compute Hessian of coordinate mapping and 2nd order derivatives
-          if (use2ndDer && !fe.Hessian(Hess,Jac,Xnod,d2Nxdu2,geoBasis))
+          if (use2ndDer && !fe.Hessian(Hess,Jac,Xnod,geoBasis,&bfs))
             ok = false;
 
           // Compute G-matrix
@@ -452,7 +452,7 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
           X.assign(Xnod * fe.basis(geoBasis));
 
           // Evaluate the integrand and accumulate element contributions
-          fe.detJxW *= dA*wg[i]*wg[j];
+          fe.detJxW *= dA*wg[0][i]*wg[1][j];
           if (!integrand.evalIntMx(*A,fe,time,X))
             ok = false;
         }
@@ -468,6 +468,8 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
       A->destruct();
     }
 
+  for (std::unique_ptr<ASMu2D::BasisFunctionCache>& cache : myCache)
+    cache->finalizeAssembly();
   return ok;
 }
 
@@ -545,8 +547,8 @@ bool ASMu2Dmx::integrate (Integrand& integrand, int lIndex,
     std::vector<size_t> elem_sizes;
     this->getElementsAt(el1->midpoint(),els,elem_sizes);
 
-    int geoEl = els[geoBasis-1];
     MxFiniteElement fe(elem_sizes,firstp);
+    int geoEl = els[geoBasis-1];
     fe.iel = MLGE[geoEl-1];
     fe.xi = fe.eta = edgeDir < 0 ? -1.0 : 1.0;
     firstp += nGP; // Global integration point counter
@@ -933,11 +935,11 @@ bool ASMu2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
     // Compute Jacobian inverse of the coordinate mapping and
     // basis function derivatives w.r.t. Cartesian coordinates
-    if (!fe.Jacobian(Jac,Xnod,dNxdu,geoBasis))
+    if (!fe.Jacobian(Jac,Xnod,geoBasis,nullptr,&dNxdu))
       continue; // skip singular points
 
     // Compute Hessian of coordinate mapping and 2nd order derivatives
-    if (use2ndDer && !fe.Hessian(Hess,Jac,Xnod,d2Nxdu2,geoBasis))
+    if (use2ndDer && !fe.Hessian(Hess,Jac,Xnod,geoBasis,nullptr,&d2Nxdu2))
       return false;
 
     // Cartesian coordinates of current integration point
@@ -1241,4 +1243,32 @@ void ASMu2Dmx::getElementsAt (const RealArray& param,
     elms.push_back(1+iel);
     sizes.push_back(basis->getElement(iel)->nBasisFunctions());
   }
+}
+
+
+BasisFunctionVals ASMu2Dmx::BasisFunctionCache::calculatePt (size_t el,
+                                                             size_t gp,
+                                                             bool reduced) const
+{
+  const std::array<size_t,2> gpIdx = this->gpIndex(gp,reduced);
+  double u = this->getParam(0,el,gpIdx[0],reduced);
+  double v = this->getParam(1,el,gpIdx[1],reduced);
+
+  const ASMu2Dmx& pch = static_cast<const ASMu2Dmx&>(patch);
+
+  const LR::Element* el1 = pch.getBasis(ASMmxBase::geoBasis)->getElement(el);
+  size_t el_b = patch.getBasis(basis)->getElementContaining(el1->midpoint());
+
+  BasisFunctionVals result;
+  if (nderiv == 1 || reduced) {
+    Go::BasisDerivsSf spline;
+    pch.computeBasis(u,v,spline,el_b,patch.getBasis(basis));
+    SplineUtils::extractBasis(spline,result.N,result.dNdu);
+  } else if (nderiv == 2) {
+    Go::BasisDerivsSf2 spline;
+    pch.computeBasis(u,v,spline,el_b,patch.getBasis(basis));
+    SplineUtils::extractBasis(spline,result.N,result.dNdu,result.d2Ndu2);
+  }
+
+  return result;
 }

@@ -30,6 +30,33 @@
 
 class ASMu2Dmx : public ASMu2D, private ASMmxBase
 {
+protected:
+  //! \brief Implementation of basis function cache.
+  class BasisFunctionCache : public ASMu2D::BasisFunctionCache
+  {
+  public:
+    //! \brief The constructor initializes the class.
+    //! \param pch Patch the cache is for
+    //! \param plcy Cache policy to use
+    //! \param b Basis to use
+    BasisFunctionCache(const ASMu2D& pch,
+                       ASM::CachePolicy plcy, int b)
+      : ASMu2D::BasisFunctionCache(pch,plcy,b) {}
+
+    //! \brief Constructor reusing quadrature info from another instance.
+    //! \param cache Instance holding quadrature information
+    //! \param b Basis to use
+    BasisFunctionCache(const BasisFunctionCache& cache, int b)
+      : ASMu2D::BasisFunctionCache(cache,b) {}
+
+  protected:
+    //! \brief Calculates basis function info in a single integration point.
+    //! \param el Element of integration point (0-indexed)
+    //! \param gp Integration point on element (0-indexed)
+    //! \param reduced If true, returns values for reduced integration scheme
+    BasisFunctionVals calculatePt(size_t el, size_t gp, bool reduced) const override;
+  };
+
 public:
   //! \brief The constructor initializes the dimension of each basis.
   ASMu2Dmx(unsigned char n_s, const CharVec& n_f);
