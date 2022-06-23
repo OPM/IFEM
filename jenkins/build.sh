@@ -18,7 +18,8 @@ downstreams=(IFEM-AdvectionDiffusion
              IFEM-FSI
              SIMRA-PostProc
              IFEM-HM
-             IFEM-CoSTA)
+             IFEM-CoSTA
+             IFEM-Burgers)
 
 declare -A downstreamRev
 downstreamRev[IFEM-Poisson]=master
@@ -38,6 +39,7 @@ downstreamRev[IFEM-FSI]=master
 downstreamRev[SIMRA-PostProc]=master
 downstreamRev[IFEM-HM]=master
 downstreamRev[IFEM-CoSTA]=master
+downstreamRev[IFEM-Burgers]=master
 
 IFEM_REVISION=$sha1
 

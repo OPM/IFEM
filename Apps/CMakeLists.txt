@@ -163,5 +163,11 @@ elseif(EXISTS ${PROJECT_SOURCE_DIR}/CoSTA)
   add_subdirectory(CoSTA)
 endif()
 
+if(EXISTS ${PROJECT_SOURCE_DIR}/IFEM-Burgers)
+  add_subdirectory(IFEM-Burgers)
+elseif(EXISTS ${PROJECT_SOURCE_DIR}/Burgers)
+  add_subdirectory(Burgers)
+endif()
+
 # Add 'check' target which builds all test applications, then executes the tests
 add_check_target()
