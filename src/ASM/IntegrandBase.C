@@ -571,26 +571,36 @@ bool NormBase::reducedInt (LocalIntegral& elmInt,
 
 ForceBase::~ForceBase ()
 {
-  for (LocalIntegral* lint : eForce)
-    delete lint;
-  delete[] eBuffer;
+  this->clearBuffer();
 }
 
 
-bool ForceBase::initBuffer (size_t nel)
+void ForceBase::clearBuffer ()
 {
-  if (eBuffer) return false;
+  for (LocalIntegral* lint : eForce)
+    delete lint;
+  eForce.clear();
+  delete[] eBuffer;
+  eBuffer = nullptr;
+}
 
+
+void ForceBase::initBuffer (size_t nel)
+{
   size_t ncmp = this->getNoComps();
-  eBuffer = new double[ncmp*nel];
+
+  if (eForce.size() != nel) {
+    this->clearBuffer();
+
+    eBuffer = new double[ncmp*nel];
+
+    eForce.reserve(nel);
+    double* q = eBuffer;
+    for (size_t i = 0; i < nel; i++, q += ncmp)
+      eForce.push_back(new ElmNorm(q,ncmp));
+  }
+
   memset(eBuffer,0,ncmp*nel*sizeof(double));
-
-  eForce.reserve(nel);
-  double* q = eBuffer;
-  for (size_t i = 0; i < nel; i++, q += ncmp)
-    eForce.push_back(new ElmNorm(q,ncmp));
-
-  return true;
 }
 
 
