@@ -481,7 +481,7 @@ public:
   virtual ~ForceBase();
 
   //! \brief Allocates internal element force buffers.
-  bool initBuffer(size_t nel);
+  void initBuffer(size_t nel);
 
   //! \brief Assembles the global forces.
   void assemble(RealArray& force) const;
@@ -536,6 +536,9 @@ public:
   virtual bool hasBoundaryTerms() const { return true; }
 
 protected:
+  //! \brief Clears out internal buffers.
+  void clearBuffer();
+
   IntegrandBase& myProblem; //!< The problem-specific data
   LintegralVec      eForce; //!< Local integrals used during force integration
   double*          eBuffer; //!< Element force buffer used during integration
