@@ -1,3 +1,6 @@
+# Shipped cmake modules for gtest relies on policy to avoid warnings
+cmake_policy(SET CMP0012 NEW)
+
 find_package(GTest QUIET)
 if(NOT TestLib_FOUND)
   if(GTest_FOUND)
