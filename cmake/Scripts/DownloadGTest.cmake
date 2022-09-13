@@ -10,7 +10,7 @@ set_directory_properties(PROPERTIES EP_PREFIX ${CMAKE_BINARY_DIR}/third_party)
 externalproject_add(
     googletest
     URL https://github.com/google/googletest/archive/refs/tags/release-1.11.0.tar.gz
-    BUILD_BYPRODUCTS third_party/src/googletest-build/googlemock/gtest/libgtest.a
+    BUILD_BYPRODUCTS third_party/src/googletest-build/lib/libgtest.a
     # Disable install step
     INSTALL_COMMAND ""
     # Wrap download, configure and build steps in a script to log output
@@ -24,7 +24,7 @@ set(GTEST_INCLUDE_DIRS ${source_dir}/googletest/include)
 
 # Library
 externalproject_get_property(googletest binary_dir)
-set(GTEST_LIBRARIES ${binary_dir}/googlemock/gtest/${CMAKE_FIND_LIBRARY_PREFIXES}gtest.a)
+set(GTEST_LIBRARIES ${binary_dir}/lib/${CMAKE_FIND_LIBRARY_PREFIXES}gtest.a)
 add_library(GTest::GTest UNKNOWN IMPORTED)
 file(MAKE_DIRECTORY ${GTEST_INCLUDE_DIRS})
 set_target_properties(GTest::GTest PROPERTIES
