@@ -291,6 +291,8 @@ public:
   //! \param[in] hd Header for outprint of resultant
   bool extractLoadVec(Vector& loadVec, size_t idx = 0,
                       const char* hd = nullptr) const;
+  //! \brief Extracts the assembled global scalar quantities.
+  bool extractScalars(RealArray& values) const;
   //! \brief Extracts an assembled global scalar quantity.
   double extractScalar(size_t idx = 0) const;
 
@@ -456,8 +458,6 @@ public:
   bool haveReactions(int pcode = 0) const;
   //! \brief Returns current reaction force container.
   virtual const RealArray* getReactionForces() const;
-  //! \brief Computes the total external load of current time/load step.
-  virtual bool getExtLoad(RealArray&, const TimeDomain&) const { return false; }
 
   //! \brief Performs a generalized eigenvalue analysis of the assembled system.
   //! \param[in] iop Which eigensolver method to use

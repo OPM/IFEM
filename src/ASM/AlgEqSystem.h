@@ -84,6 +84,10 @@ public:
   SystemVector* getVector(size_t i = 0) { return i < b.size() ? b[i] : 0; }
   //! \brief Returns the \a i'th scalar quantity.
   double getScalar(size_t i = 0) { return i < c.size() ? c[i] : 0.0; }
+  //! \brief Adds the value \a s to the \a i'th scalar quantity.
+  void addScalar(double s, size_t i = 0) { if (i < c.size()) c[i] += s; }
+  //! \brief Returns a const reference to the assembled scalars.
+  const std::vector<double>& getScalars() const { return c; }
 
   //! \brief Returns a pointer to the nodal reaction forces, if any.
   const std::vector<double>* getReactions() const { return R.empty() ? 0 : &R; }

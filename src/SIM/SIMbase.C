@@ -177,7 +177,7 @@ static void printNodalConnectivity (const ASMVec& model, std::ostream& os)
       for (size_t n = 1; n <= pch->getNoNodes(); n++)
         nodeInfo[pch->getNodeID(n)].push_back(std::make_pair(pch->idx,n));
 
-  for (const std::pair<int,Ipairs>& node : nodeInfo)
+  for (const std::pair<const int,Ipairs>& node : nodeInfo)
     if (node.second.size() > 1)
     {
       os <<"\nConnectivity for node "<< node.first <<":";
@@ -1170,6 +1170,19 @@ bool SIMbase::extractLoadVec (Vector& loadVec, size_t idx, const char* hd) const
 }
 
 
+bool SIMbase::extractScalars (RealArray& values) const
+{
+  if (!myEqSys) return false;
+
+  values = myEqSys->getScalars();
+  for (double v : values)
+    if (fabs(v) > utl::zero_print_tol)
+      return true;
+
+  return false; // All scalars are zero
+}
+
+
 double SIMbase::extractScalar (size_t idx) const
 {
   return myEqSys ? myEqSys->getScalar(idx) : 0.0;
@@ -1658,7 +1671,7 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
     gNorm.reserve(norm->getNoFields(0)+1);
   gNorm.resize(norm->getNoFields(0));
   size_t nNorms = 0;
-  auto proj_idx = opt.project.begin();
+  SIMoptions::ProjectionMap::const_iterator proj_idx = opt.project.begin();
   // count norms if they are:
   // 1) associated with the primary solution
   // 2) associated with a projected secondary solution
