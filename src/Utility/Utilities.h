@@ -203,6 +203,9 @@ namespace utl
   //! \brief Splits an integer into its (unique) digits in ascending order.
   std::set<int> getDigits(int value);
 
+  //! \brief Makes a direction integer for given number of components.
+  int getDirs(int ncmp);
+
   //! \brief Returns a const iterator to the entry with value \a iVal.
   IntMap::const_iterator findValue(const IntMap& iMap, int iVal);
   //! \brief Returns the key corresponding to the value \a iVal.

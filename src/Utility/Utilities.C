@@ -445,6 +445,16 @@ std::set<int> utl::getDigits (int num)
 }
 
 
+int utl::getDirs (int ncmp)
+{
+  int res = 0, mul = 1;
+  for (int i = ncmp; i >= 1; --i, mul *= 10)
+    res += i*mul;
+
+  return res;
+}
+
+
 namespace utl
 {
   /*!

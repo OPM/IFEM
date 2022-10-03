@@ -192,3 +192,16 @@ TEST(TestUtilities, GetAttribute)
   EXPECT_FLOAT_EQ(val4.y, 3.4);
   EXPECT_FLOAT_EQ(val4.z, 5.6);
 }
+
+TEST(TestUtilities, getDirs)
+{
+  int cmp1 = utl::getDirs(1);
+  int cmp2 = utl::getDirs(2);
+  int cmp3 = utl::getDirs(3);
+  int cmp4 = utl::getDirs(4);
+
+  EXPECT_EQ(cmp1, 1);
+  EXPECT_EQ(cmp2, 12);
+  EXPECT_EQ(cmp3, 123);
+  EXPECT_EQ(cmp4, 1234);
+}
