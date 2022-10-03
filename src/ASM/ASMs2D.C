@@ -718,18 +718,19 @@ void ASMs2D::closeBoundaries (int dir, int basis, int master)
 
   int n1, n2;
   if (!this->getSize(n1,n2,basis)) return;
+  int dirs = utl::getDirs(this->getNoFields(basis));
 
   switch (dir)
     {
     case 1: // Edges are closed in I-direction
       for (int i2 = 1; i2 <= n2; i2++, master += n1)
-	this->makePeriodic(master,master+n1-1);
+        this->makePeriodic(master,master+n1-1,dirs);
       threadGroups.stripDir = ThreadGroups::U;
       break;
 
     case 2: // Edges are closed in J-direction
       for (int i1 = 1; i1 <= n1; i1++, master++)
-	this->makePeriodic(master,master+n1*(n2-1));
+        this->makePeriodic(master,master+n1*(n2-1),dirs);
       threadGroups.stripDir = ThreadGroups::V;
       break;
     }

@@ -784,26 +784,28 @@ void ASMs3D::closeBoundaries (int dir, int basis, int master)
   int n1, n2, n3;
   if (!this->getSize(n1,n2,n3,basis)) return;
 
+  int dirs = utl::getDirs(this->getNoFields(basis));
+
   switch (dir)
     {
     case 1: // Faces are closed in I-direction
       for (int i3 = 1; i3 <= n3; i3++)
-	for (int i2 = 1; i2 <= n2; i2++, master += n1)
-	  this->makePeriodic(master,master+n1-1);
+        for (int i2 = 1; i2 <= n2; i2++, master += n1)
+          this->makePeriodic(master,master+n1-1,dirs);
       threadGroupsVol.stripDir = ThreadGroups::U;
       break;
 
     case 2: // Faces are closed in J-direction
       for (int i3 = 1; i3 <= n3; i3++, master += n1*(n2-1))
-	for (int i1 = 1; i1 <= n1; i1++, master++)
-	  this->makePeriodic(master,master+n1*(n2-1));
+        for (int i1 = 1; i1 <= n1; i1++, master++)
+          this->makePeriodic(master,master+n1*(n2-1),dirs);
       threadGroupsVol.stripDir = ThreadGroups::V;
       break;
 
     case 3: // Faces are closed in K-direction
       for (int i2 = 1; i2 <= n2; i2++)
-	for (int i1 = 1; i1 <= n1; i1++, master++)
-	  this->makePeriodic(master,master+n1*n2*(n3-1));
+        for (int i1 = 1; i1 <= n1; i1++, master++)
+          this->makePeriodic(master,master+n1*n2*(n3-1),dirs);
       threadGroupsVol.stripDir = ThreadGroups::W;
       break;
     }
