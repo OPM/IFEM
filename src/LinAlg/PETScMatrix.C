@@ -306,13 +306,12 @@ void PETScMatrix::setupSparsityPartitioned (const SAM& sam)
   int iMin = adm.dd.getMinEq(0);
   int iMax = adm.dd.getMaxEq(0);
   for (int elm = 1; elm <= sam.nel; ++elm) {
-    IntVec meen;
-    sam.getElmEqns(meen,elm);
+    IntSet meen;
+    sam.getUniqueEqns(meen,elm);
     for (int i : meen)
-      if (i > 0 && adm.dd.getGlobalEq(i) >= iMin && adm.dd.getGlobalEq(i) <= iMax)
+      if (adm.dd.getGlobalEq(i) >= iMin && adm.dd.getGlobalEq(i) <= iMax)
         for (int j : meen)
-          if (j > 0)
-            (*lA)(adm.dd.getGlobalEq(i)-iMin+1,adm.dd.getGlobalEq(j)) = 0.0;
+          (*lA)(adm.dd.getGlobalEq(i)-iMin+1,adm.dd.getGlobalEq(j)) = 0.0;
   }
   IntVec iA, jA;
   lA->calcCSR(iA,jA);
@@ -321,13 +320,11 @@ void PETScMatrix::setupSparsityPartitioned (const SAM& sam)
 
   // Setup sparsity pattern for local matrix
   for (int elm : adm.dd.getElms()) {
-    IntVec meen;
-    sam.getElmEqns(meen,elm+1);
+    IntSet meen;
+    sam.getUniqueEqns(meen,elm+1);
     for (int i : meen)
-      if (i > 0)
-        for (int j : meen)
-          if (j > 0)
-            (*this)(i,j) = 0.0;
+      for (int j : meen)
+        (*this)(i,j) = 0.0;
   }
   this->optimiseSLU();
 }
@@ -515,13 +512,11 @@ void PETScMatrix::setupBlockSparsityPartitioned (const SAM& sam)
 
   // Setup sparsity pattern for local matrix
   for (int elm : adm.dd.getElms()) {
-    IntVec meen;
-    sam.getElmEqns(meen,elm+1);
+    IntSet meen;
+    sam.getUniqueEqns(meen,elm+1);
     for (int i : meen)
-      if (i > 0)
-        for (int j : meen)
-          if (j > 0)
-            (*this)(i,j) = 0.0;
+      for (int j : meen)
+        (*this)(i,j) = 0.0;
   }
   this->optimiseSLU();
 
