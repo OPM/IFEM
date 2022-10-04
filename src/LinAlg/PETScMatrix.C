@@ -733,14 +733,15 @@ bool PETScMatrix::solve (const Vec& b, Vec& x, bool knoll)
   KSPConvergedReason reason;
   KSPGetConvergedReason(ksp,&reason);
   if (reason < 0) {
-    PetscPrintf(PETSC_COMM_WORLD, "\n Linear solve failed with reason %s",KSPConvergedReasons[reason]);
+    adm.cout << "\n Linear solve failed with reason " << KSPConvergedReasons[reason] << std::endl;
     return false;
   }
 
   if (solParams.getIntValue("verbosity") > 1) {
     PetscInt its;
     KSPGetIterationNumber(ksp,&its);
-    PetscPrintf(PETSC_COMM_WORLD,"\n Iterations for %s = %D\n",solParams.getStringValue("type").c_str(),its);
+    adm.cout << "\n Iterations for " << solParams.getStringValue("type")
+             << " = " << its << std::endl;
   }
   nLinSolves++;
   factored = true;
