@@ -720,6 +720,32 @@ bool SAM::getElmEqns (IntVec& meen, int iel, int nedof) const
 }
 
 
+bool SAM::getUniqueEqns (IntSet& meen, int iel) const
+{
+  meen.clear();
+
+  IntVec meenTmp;
+  if (!this->getElmEqns(meenTmp, iel))
+    return false;
+
+  for (int jeq : meenTmp)
+  {
+    if (jeq < 0)
+    {
+      int jpmceq1 = mpmceq[-jeq-1];
+      int jpmceq2 = mpmceq[-jeq]-1;
+      for (int jp = jpmceq1; jp < jpmceq2; ++jp)
+        if (mmceq[jp] > 0)
+          meen.insert(meqn[mmceq[jp]-1]);
+    }
+    else if (jeq != 0)
+      meen.insert(jeq);
+  }
+
+  return true;
+}
+
+
 size_t SAM::getNoElmEqns (int iel) const
 {
   size_t result = 0;
