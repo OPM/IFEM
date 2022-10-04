@@ -196,6 +196,8 @@ public:
   //! \brief Returns the number equations for an element.
   //! \param[in] iel Identifier for the element to get number of equations for
   size_t getNoElmEqns(int iel) const;
+  //! \brief Finds the matrix of unique equation numbers for an element.
+  bool getUniqueEqns(IntSet& meen, int iel) const;
 
   //! \brief Finds the matrix of equation numbers for a node.
   //! \param[out] mnen Matrix of node equation numbers
