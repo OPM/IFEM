@@ -281,7 +281,7 @@ public:
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return sfunc->isZero() || tfunc->isZero(); }
   //! \brief Returns whether the function is time-independent or not.
-  virtual bool isConstant() const { return this->isConstant(); }
+  virtual bool isConstant() const { return tfunc->isConstant(); }
 
   //! \brief Returns first-derivative of the function.
   virtual Real deriv(const Vec3& X, int dir) const;
