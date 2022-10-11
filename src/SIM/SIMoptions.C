@@ -409,7 +409,7 @@ utl::LogStream& SIMoptions::print (utl::LogStream& os, bool addBlankLine) const
     if (n > 0 && n <= 10)
     {
       os <<" "<< n;
-      return false;
+      return 0;
     }
     else if (n > 10)
       os <<" p+"<< 1+n%10;
@@ -419,7 +419,7 @@ utl::LogStream& SIMoptions::print (utl::LogStream& os, bool addBlankLine) const
       os <<" p";
     else
       os <<" p"<< 1+n;
-    return true;
+    return 1;
   };
 
   os <<"\nNumber of Gauss points:";

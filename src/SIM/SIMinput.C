@@ -740,7 +740,7 @@ FunctionBase* SIMinput::parseDualTag (const TiXmlElement* elem, int ftype)
     ftype = 3;
     depth = (Xd.second-Xd.first).length();
   }
-  else if (utl::getAttribute(elem,"u0",xi[0])|
+  else if (static_cast<int>(utl::getAttribute(elem,"u0",xi[0]))|
            utl::getAttribute(elem,"v0",xi[1])|
            utl::getAttribute(elem,"w0",xi[2]))
   {

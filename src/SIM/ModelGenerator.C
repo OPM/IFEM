@@ -33,8 +33,9 @@ static std::string parseKnots (const TiXmlElement* geo, int num)
   std::stringstream str;
   for (int i = 0; i < num; ++i, ++min[0], ++max[0]) {
     double pmin = 0.0, pmax = 1.0;
-    if (utl::getAttribute(geo,min.c_str(),pmin) |
-        utl::getAttribute(geo,max.c_str(),pmax))
+    bool parsed = utl::getAttribute(geo,min.c_str(),pmin);
+    parsed &= utl::getAttribute(geo,max.c_str(),pmax);
+    if (parsed)
       IFEM::cout <<"\n\t"<< min[0] <<" = ["<< pmin <<","<< pmax<<"]";
     str <<"\n2 2\n"<< pmin <<" "<< pmin <<" "<< pmax <<" "<< pmax;
   }
