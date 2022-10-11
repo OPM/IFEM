@@ -53,7 +53,7 @@ bool SIMmultiCpl::parse (const TiXmlElement* elem)
     if (!sim->parse(elem))
       return false;
 
-  return true;
+  return results;
 }
 
 
