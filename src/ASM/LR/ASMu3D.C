@@ -1089,12 +1089,13 @@ bool ASMu3D::integrate (Integrand& integrand,
         dXidu[2] = el->getParmin(2);
       }
 
+      size_t nen = el->support().size();
       if (integrand.getIntegrandType() & Integrand::AVERAGE)
       {
         // --- Compute average value of basis functions over the element -----
 
         int ip = (iel-1)*nGP*nGP*nGP + firstIp;
-        fe.Navg.resize(el->support().size(),true);
+        fe.Navg.resize(nen,true);
         double vol = 0.0;
         int ig = 1;
         for (int k = 0; k < nGP; k++)
@@ -1122,7 +1123,7 @@ bool ASMu3D::integrate (Integrand& integrand,
       }
 
       // Initialize element quantities
-      LocalIntegral* A = integrand.getLocalIntegral(el->support().size(),fe.iel);
+      LocalIntegral* A = integrand.getLocalIntegral(nen,fe.iel);
       if (!integrand.initElement(MNPC[iel-1],fe,X,nRed*nRed*nRed,*A))
       {
         A->destruct();
@@ -1383,7 +1384,8 @@ bool ASMu3D::integrate (Integrand& integrand, int lIndex,
     }
 
     // Initialize element quantities
-    LocalIntegral* A = integrand.getLocalIntegral(MNPC[iEl].size(),fe.iel,true);
+    size_t nen = el->support().size();
+    LocalIntegral* A = integrand.getLocalIntegral(nen,fe.iel,true);
     if (!integrand.initElementBou(MNPC[iEl],*A))
     {
       A->destruct();
@@ -1537,70 +1539,73 @@ bool ASMu3D::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) const
 {
   if (!lrspline) return false;
 
-  for (LR::Element* el : lrspline->getAllElements())
+  double eps = ElementBlock::eps;
+
+  for (const LR::Element* el : lrspline->getAllElements())
   {
-    // evaluate element at element corner points
-    double umin = el->umin();
-    double umax = el->umax();
-    double vmin = el->vmin();
-    double vmax = el->vmax();
-    double wmin = el->wmin();
-    double wmax = el->wmax();
-    for (int iw = 0; iw <= nSegPerSpan; iw++)
-      for (int iv = 0; iv <= nSegPerSpan; iv++)
-        for (int iu = 0; iu <= nSegPerSpan; iu++)
-          if (dir == 0)
-            prm.push_back(umin + (umax-umin)/nSegPerSpan*iu);
-          else if (dir == 1)
-            prm.push_back(vmin + (vmax-vmin)/nSegPerSpan*iv);
-          else
-            prm.push_back(wmin + (wmax-wmin)/nSegPerSpan*iw);
+    // Get parametric element evaluation points, optionally with some shrinkage
+    std::pair<double,double> u;
+    if (dir == 0)
+      u = { el->umin(), el->umax() };
+    else if (dir == 1)
+      u = { el->vmin(), el->vmax() };
+    else
+      u = { el->wmin(), el->wmax() };
+
+    double du = (u.second - u.first)*(1.0-2.0*eps)/nSegPerSpan;
+    u.first = u.first*(1.0-eps) + u.second*eps;
+    for (int k = 0; k <= nSegPerSpan; k++)
+      for (int j = 0; j <= nSegPerSpan; j++)
+        for (int i = 0; i <= nSegPerSpan; i++)
+          prm.push_back(u.first + du*double(dir == 0 ? i : (dir == 1 ? j : k)));
   }
 
   return true;
 }
 
 
+/*!
+  Each nodal point in \a grid is generated once for each element using it.
+  This results in a lot of unnecessary duplicates (if ElementBlock::eps is 0.0),
+  but is preferable instead of figuring out all element topology information.
+
+  Setting ElementBlock::eps > 0.0 will handle the case of internal
+  C<sup>-1</sup> continuities automatically, in that result quantities along
+  the discontinuity will not be unique.
+*/
+
 bool ASMu3D::tesselate (ElementBlock& grid, const int* npe) const
 {
   if (!lrspline) return false;
 
-  if (npe[0] != npe[1] || npe[0] != npe[2]) {
-    std::cerr <<" *** ASMu3D::tesselate does not support different resolution in"
-              <<" in u-, v- and w-direction.\n     nviz u = "<< npe[0]
-              <<", nviz v = "<< npe[1] <<", nviz w = "<< npe[2] << std::endl;
-    return false;
-  }
-
   int nNodesPerElement =  npe[0]   * npe[1]   * npe[2];
   int nSubElPerElement = (npe[0]-1)*(npe[1]-1)*(npe[2]-1);
   int nElements        = lrspline->nElements();
-
-  // output is written once for each element resulting in a lot of unnecessary storage
-  // this is preferable to figuring out all element topology information
   grid.unStructResize(nElements * nSubElPerElement,
                       nElements * nNodesPerElement);
+
+  double eps = ElementBlock::eps;
 
   int iel = 0, inod = 0;
   for (const LR::Element* el : lrspline->getAllElements())
   {
-    // evaluate element at element corner points
-    double umin = el->umin();
-    double umax = el->umax();
-    double vmin = el->vmin();
-    double vmax = el->vmax();
-    double wmin = el->wmin();
-    double wmax = el->wmax();
+    // Evaluate element at corner points, optionally with some shrinkage (eps)
+    double umin = el->umin()*(1.0-eps) + el->umax()*eps;
+    double vmin = el->vmin()*(1.0-eps) + el->vmax()*eps;
+    double wmin = el->wmin()*(1.0-eps) + el->wmax()*eps;
+    double du = (el->umax() - el->umin())*(1.0-2.0*eps)/(npe[0]-1);
+    double dv = (el->vmax() - el->vmin())*(1.0-2.0*eps)/(npe[1]-1);
+    double dw = (el->wmax() - el->wmin())*(1.0-2.0*eps)/(npe[2]-1);
     for (int iw = 0; iw < npe[2]; iw++)
       for (int iv = 0; iv < npe[1]; iv++)
         for (int iu = 0; iu < npe[0]; iu++, inod++) {
-          double u = umin + (umax-umin)/(npe[0]-1)*iu;
-          double v = vmin + (vmax-vmin)/(npe[1]-1)*iv;
-          double w = wmin + (wmax-wmin)/(npe[2]-1)*iw;
+          double u = umin + du*iu;
+          double v = vmin + dv*iv;
+          double w = wmin + dw*iw;
           Go::Point pt;
           lrspline->point(pt, u,v,w, iel, iu!=npe[0]-1, iv!=npe[1]-1, iw!=npe[2]-1);
-          grid.setParams(inod, u, v, w);
           grid.setCoor(inod, SplineUtils::toVec3(pt,nsd));
+          grid.setParams(inod, u, v, w);
         }
     ++iel;
   }

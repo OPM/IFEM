@@ -818,7 +818,7 @@ void ASMu2D::constrainCorner (int I, int J, int dof, int code, char basis)
 void ASMu2D::constrainNode (double xi, double eta, int dof, int code)
 {
   double xip[2] = { xi, eta };
-  double param[2] = {0.0, 0.0};
+  double param[2] = { 0.0, 0.0 };
   Vec3 X;
 
   // Check if the point has a matching node
@@ -989,8 +989,7 @@ void ASMu2D::getGaussPointParameters (RealArray& uGP, int dir, int nGauss,
 }
 
 
-double ASMu2D::getElementCorners (int iel, Vec3Vec& XC,
-                                  RealArray* uC) const
+double ASMu2D::getElementCorners (int iel, Vec3Vec& XC, RealArray* uC) const
 {
 #ifdef INDEX_CHECK
   if (iel < 1 || iel > lrspline->nElements())
@@ -1188,11 +1187,12 @@ bool ASMu2D::integrate (Integrand& integrand,
         dXidu[1] = el->vmax() - el->vmin();
       }
 
+      size_t nen = el->support().size();
       if (integrand.getIntegrandType() & Integrand::AVERAGE)
       {
         // --- Compute average value of basis functions over the element -----
 
-        fe.Navg.resize(el->support().size(), true);
+        fe.Navg.resize(nen,true);
         double area = 0.0;
         int ip = (iel-1)*nGP*nGP;
         for (int j = 0; j < nGP; j++)
@@ -1215,7 +1215,7 @@ bool ASMu2D::integrate (Integrand& integrand,
       }
 
       // Initialize element quantities
-      LocalIntegral* A = integrand.getLocalIntegral(el->support().size(),fe.iel);
+      LocalIntegral* A = integrand.getLocalIntegral(nen,fe.iel);
       if (!integrand.initElement(MNPC[iel-1],fe,X,nRed*nRed,*A))
       {
         A->destruct();
@@ -1468,8 +1468,8 @@ bool ASMu2D::integrate (Integrand& integrand,
       }
 
       // Initialize element quantities
-      const LR::Element* el = lrspline->getElement(iel-1);
-      LocalIntegral* A = integrand.getLocalIntegral(el->support().size(),fe.iel);
+      size_t nen = lrspline->getElement(iel-1)->support().size();
+      LocalIntegral* A = integrand.getLocalIntegral(nen,fe.iel);
       if (!integrand.initElement(MNPC[iel-1],fe,X,0,*A))
       {
         A->destruct();
@@ -1651,8 +1651,8 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
       fe.h = this->getElementCorners(iel,fe.XC);
 
     // Initialize element quantities
-    LocalIntegral* A = integrand.getLocalIntegral(MNPC[iel-1].size(),
-                                                  fe.iel,true);
+    size_t nen = el->support().size();
+    LocalIntegral* A = integrand.getLocalIntegral(nen,fe.iel,true);
     bool ok = integrand.initElementBou(MNPC[iel-1],*A);
 
     // Get integration gauss points over this element
@@ -1899,10 +1899,7 @@ int ASMu2D::evalPoint (const double* xi, double* param, Vec3& X) const
   double u[2];
   if (param)
     for (int i = 0; i < 2; i++)
-    {
-      u[i] = (1.0-xi[i])*lrspline->startparam(i) + xi[i]*lrspline->endparam(i);
-      param[i] = u[i];
-    }
+      u[i] = param[i] = (1.0-xi[i])*lrspline->startparam(i) + xi[i]*lrspline->endparam(i);
   else
   {
     u[0] = xi[0];
@@ -1943,59 +1940,66 @@ int ASMu2D::findElementContaining (const double* param) const
 
 bool ASMu2D::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) const
 {
+  if (!lrspline) return false;
+
+  double eps = ElementBlock::eps;
+
   for (const LR::Element* el : lrspline->getAllElements())
   {
-    // evaluate element at element corner points
-    double umin = el->umin();
-    double umax = el->umax();
-    double vmin = el->vmin();
-    double vmax = el->vmax();
-    for (int iv = 0; iv <= nSegPerSpan; iv++)
-      for (int iu = 0; iu <= nSegPerSpan; iu++)
-        if (dir == 0)
-          prm.push_back(umin + (umax-umin)/nSegPerSpan*iu);
-        else
-          prm.push_back(vmin + (vmax-vmin)/nSegPerSpan*iv);
+    // Get parametric element evaluation points, optionally with some shrinkage
+    std::pair<double,double> u;
+    if (dir == 0)
+      u = { el->umin(), el->umax() };
+    else
+      u = { el->vmin(), el->vmax() };
+
+    double du = (u.second - u.first)*(1.0-2.0*eps)/nSegPerSpan;
+    u.first = u.first*(1.0-eps) + u.second*eps;
+    for (int j = 0; j <= nSegPerSpan; j++)
+      for (int i = 0; i <= nSegPerSpan; i++)
+        prm.push_back(u.first + du*double(dir == 0 ? i : j));
   }
 
   return true;
 }
 
 
+/*!
+  Each nodal point in \a grid is generated once for each element using it.
+  This results in a lot of unnecessary duplicates (if ElementBlock::eps is 0.0),
+  but is preferable instead of figuring out all element topology information.
+
+  Setting ElementBlock::eps > 0.0 will handle the case of internal
+  C<sup>-1</sup> continuities automatically, in that result quantities along
+  the discontinuity will not be unique.
+*/
+
 bool ASMu2D::tesselate (ElementBlock& grid, const int* npe) const
 {
   if (!lrspline) return false;
 
-  if (npe[0] != npe[1]) {
-    std::cerr <<" *** ASMu2D::tesselate does not support different resolution"
-              <<" in u- and v-direction.\n"
-              <<"     nviz u = "<< npe[0] <<", nviz v = "<< npe[1] << std::endl;
-    return false;
-  }
-
   int nNodesPerElement =  npe[0]   * npe[1];
   int nSubElPerElement = (npe[0]-1)*(npe[1]-1);
   int nElements        = lrspline->nElements();
-
-  // output is written once for each element resulting in a lot of unnecessary storage
-  // this is preferable to figuring out all element topology information
   grid.unStructResize(nElements * nSubElPerElement,
                       nElements * nNodesPerElement);
+
+  double eps = ElementBlock::eps;
 
   int iel = 0, inod = 0;
   for (const LR::Element* el : lrspline->getAllElements())
   {
-    // evaluate element at element corner points
-    double umin = el->umin();
-    double vmin = el->vmin();
-    double du = (el->umax() - umin)/(npe[0]-1);
-    double dv = (el->vmax() - vmin)/(npe[1]-1);
+    // Evaluate element at corner points, optionally with some shrinkage (eps)
+    double umin = el->umin()*(1.0-eps) + el->umax()*eps;
+    double vmin = el->vmin()*(1.0-eps) + el->vmax()*eps;
+    double du = (el->umax() - el->umin())*(1.0-2.0*eps)/(npe[0]-1);
+    double dv = (el->vmax() - el->vmin())*(1.0-2.0*eps)/(npe[1]-1);
     for (int iv = 0; iv < npe[1]; iv++)
       for (int iu = 0; iu < npe[0]; iu++, inod++) {
         Vec3 Xpt;
         double U[2] = { umin + du*iu, vmin + dv*iv };
-        if (this->evalPoint(iel, U, Xpt) >= 0)
-          grid.setCoor(inod, Xpt);
+        this->evalPoint(iel, U, Xpt);
+        grid.setCoor(inod, Xpt);
         grid.setParams(inod, U[0], U[1]);
       }
     ++iel;

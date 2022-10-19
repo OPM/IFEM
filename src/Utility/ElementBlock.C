@@ -18,6 +18,9 @@
 #include <numeric>
 
 
+double ElementBlock::eps = 0.0;
+
+
 ElementBlock::ElementBlock (size_t nenod)
 {
   if (nenod != 2 && nenod != 3 && nenod != 4 && nenod != 6 && nenod != 9 &&

@@ -109,6 +109,9 @@ private:
   std::vector<int>  MMNPC; //!< Matrix of Matrices of Nodal Point Correspondance
   std::vector<int>  MINEX; //!< Matrix of Internal to External element numbers
   size_t            nen;   //!< Number of Element Nodes
+
+public:
+  static double eps; //!< Element shrinkage factor
 };
 
 
