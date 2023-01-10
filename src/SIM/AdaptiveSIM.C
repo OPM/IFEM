@@ -215,7 +215,7 @@ bool AdaptiveSIM::adaptMesh (int iStep, std::streamsize outPrec)
     return false;
 
   // Now refine the mesh and write out resulting grid
-  return model.refine(prm) & this->writeMesh(iStep);
+  return model.refine(prm) && this->writeMesh(iStep);
 }
 
 
