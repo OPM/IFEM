@@ -491,8 +491,6 @@ bool ASMs2D::evaluate (const Field* field, RealArray& vec, int basisNum) const
     for (double u : gpar[0])
       sValues.push_back(field->valueFE(ItgPoint(u,v)));
 
-  Go::SplineSurface* surf = this->getBasis(basisNum);
-
   // Project the results onto the spline basis to find control point
   // values based on the result values evaluated at the Greville points.
   // Note that we here implicitly assume that the number of Greville points
@@ -500,16 +498,8 @@ bool ASMs2D::evaluate (const Field* field, RealArray& vec, int basisNum) const
   // the result array. Think that is always the case, but beware if trying
   // other projection schemes later.
 
-  RealArray weights;
-  if (surf->rational())
-    surf->getWeights(weights);
-
   Go::SplineSurface* surf_new =
-    VariationDiminishingSplineApproximation(surf->basis(0),
-                                            surf->basis(1),
-                                            gpar[0], gpar[1],
-                                            sValues, 1, surf->rational(),
-                                            weights);
+    VariationDiminishingSplineApproximation(this->getBasis(basisNum),sValues,1);
 
   vec.assign(surf_new->coefs_begin(),surf_new->coefs_end());
   delete surf_new;
@@ -616,15 +606,6 @@ Go::SplineSurface* ASMs2D::projectSolutionLocalApprox (const IntegrandBase& inte
   if (!this->evalSolution(sValues,integrand,gpar.data()))
     return nullptr;
 
-  RealArray weights;
-  if (surf->rational())
-    surf->getWeights(weights);
-
-  return VariationDiminishingSplineApproximation(surf->basis(0),
-						 surf->basis(1),
-						 gpar[0], gpar[1],
-						 sValues,
-						 sValues.rows(),
-						 surf->rational(),
-						 weights);
+  // Project onto the geometry basis
+  return VariationDiminishingSplineApproximation(surf,sValues,sValues.rows());
 }

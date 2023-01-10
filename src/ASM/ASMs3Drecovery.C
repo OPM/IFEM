@@ -337,8 +337,6 @@ bool ASMs3D::evaluate (const Field* field, RealArray& vec, int basisNum) const
       for (double u : gpar[0])
         sValues.push_back(field->valueFE(ItgPoint(u,v,w)));
 
-  Go::SplineVolume* svol = this->getBasis(basisNum);
-
   // Project the results onto the spline basis to find control point
   // values based on the result values evaluated at the Greville points.
   // Note that we here implicitly assume that the number of Greville points
@@ -346,17 +344,8 @@ bool ASMs3D::evaluate (const Field* field, RealArray& vec, int basisNum) const
   // the result array. Think that is always the case, but beware if trying
   // other projection schemes later.
 
-  RealArray weights;
-  if (svol->rational())
-    svol->getWeights(weights);
-
   Go::SplineVolume* vol_new =
-    VariationDiminishingSplineApproximation(svol->basis(0),
-                                            svol->basis(1),
-                                            svol->basis(2),
-                                            gpar[0], gpar[1], gpar[2],
-                                            sValues, 1, svol->rational(),
-                                            weights);
+    VariationDiminishingSplineApproximation(this->getBasis(basisNum),sValues,1);
 
   vec.assign(vol_new->coefs_begin(),vol_new->coefs_end());
   delete vol_new;
@@ -464,16 +453,6 @@ Go::SplineVolume* ASMs3D::projectSolutionLocalApprox(const IntegrandBase& integr
   if (!this->evalSolution(sValues,integrand,gpar.data()))
     return nullptr;
 
-  RealArray weights;
-  if (svol->rational())
-    svol->getWeights(weights);
-
-  return VariationDiminishingSplineApproximation(svol->basis(0),
-						 svol->basis(1),
-						 svol->basis(2),
-						 gpar[0], gpar[1], gpar[2],
-						 sValues,
-						 sValues.rows(),
-						 svol->rational(),
-						 weights);
+  // Project onto the geometry basis
+  return VariationDiminishingSplineApproximation(svol,sValues,sValues.rows());
 }

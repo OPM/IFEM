@@ -724,55 +724,32 @@ quasiInterpolation(const Go::BsplineBasis& basis_u,
 
 /*!
   \brief Local projection method (Variation Diminishing Spline Approximation).
-  \param[in] basis_u Basis values in the first parameter direction
-  \param[in] basis_v Basis values in the second parameter direction
-  \param[in] basis_w Basis values in the third parameter direction
-  \param[in] par_u Grevielle sites in the first parameter direction
-  \param[in] par_v Grevielle sites in the second parameter direction
-  \param[in] par_w Grevielle sites in the third parameter direction
+  \param[in] svol Spline volume to project onto
   \param[in] points Secondary solution field evaluated at Greville points
   \param[in] dimension Dimension of the secondary solution field
-  \param[in] rational Value marks NURBS geometry
-  \param[in] weights NURBS weights for the projective control points
   \return Spline volume object representing the projected field
-
-  \note VariationDiminishingSplineApproximation only for function values! 
 */
 
 static Go::SplineVolume*
-VariationDiminishingSplineApproximation(const Go::BsplineBasis& basis_u,
-					const Go::BsplineBasis& basis_v,
-					const Go::BsplineBasis& basis_w,
-					const RealArray& par_u,
-					const RealArray& par_v,
-					const RealArray& par_w,
-					const RealArray& points,
-					int dimension, bool rational,
-					const RealArray& weights)
+VariationDiminishingSplineApproximation(const Go::SplineVolume* svol,
+                                        const RealArray& points, int dimension)
 {
-  // Check input
-  ASSERT(par_u.size()*par_v.size()*par_w.size() == points.size()/dimension);
-  ASSERT(basis_u.numCoefs() == (int)par_u.size());
-  ASSERT(basis_v.numCoefs() == (int)par_v.size());
-  ASSERT(basis_w.numCoefs() == (int)par_w.size());
+  if (!svol->rational()) // Make spline surface
+    return new Go::SplineVolume(svol->basis(0), svol->basis(1), svol->basis(2),
+                                points.begin(), dimension);
 
-  std::vector<double> local_coefs;
-  if (rational)
+  RealArray local_coefs, weights;
+  size_t k = 0, sizepoints = points.size()/dimension;
+  local_coefs.reserve((dimension+1)*sizepoints);
+  svol->getWeights(weights);
+  for (size_t i = 0; i < sizepoints; i++)
   {
-    ASSERT(weights.size() == points.size()/dimension);
-    size_t sizepoints = par_u.size()*par_v.size()*par_w.size();
-    size_t countpoints = 0;
-    for (size_t i = 0; i < sizepoints; i++)
-    {
-      for (int j = 0; j < dimension; j++, countpoints++)
-        local_coefs.push_back(points[countpoints]*weights[i]);
-      local_coefs.push_back(weights[i]);
-    }
+    for (int j = 0; j < dimension; j++, k++)
+      local_coefs.push_back(points[k]*weights[i]);
+    local_coefs.push_back(weights[i]);
   }
-  else
-    local_coefs = points;
 
-  // Make volume
-  return new Go::SplineVolume(basis_u, basis_v, basis_w, local_coefs.begin(),
-                              dimension, rational);
+  // Make rational spline volume
+  return new Go::SplineVolume(svol->basis(0), svol->basis(1), svol->basis(2),
+                              local_coefs.begin(), dimension, true);
 }
