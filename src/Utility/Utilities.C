@@ -167,7 +167,7 @@ bool utl::ignoreComments (std::istream& is)
 }
 
 
-bool utl::getAttribute (const TiXmlElement* xml, const char* att, bool& val)
+int utl::getAttribute (const TiXmlElement* xml, const char* att, bool& val)
 {
   if (!xml || !xml->Attribute(att))
     return false;
@@ -188,7 +188,7 @@ bool utl::getAttribute (const TiXmlElement* xml, const char* att, bool& val)
 }
 
 
-bool utl::getAttribute (const TiXmlElement* xml, const char* att, int& val)
+int utl::getAttribute (const TiXmlElement* xml, const char* att, int& val)
 {
   if (xml && xml->Attribute(att))
     val = atoi(xml->Attribute(att));
@@ -199,8 +199,8 @@ bool utl::getAttribute (const TiXmlElement* xml, const char* att, int& val)
 }
 
 
-bool utl::getAttribute (const TiXmlElement* xml, const char* att, char& val,
-                        bool useIntValue)
+int utl::getAttribute (const TiXmlElement* xml, const char* att, char& val,
+                       bool useIntValue)
 {
   if (xml && xml->Attribute(att))
     val = useIntValue ? atoi(xml->Attribute(att)) : xml->Attribute(att)[0];
@@ -211,7 +211,7 @@ bool utl::getAttribute (const TiXmlElement* xml, const char* att, char& val,
 }
 
 
-bool utl::getAttribute (const TiXmlElement* xml, const char* att, size_t& val)
+int utl::getAttribute (const TiXmlElement* xml, const char* att, size_t& val)
 {
   if (xml && xml->Attribute(att))
     val = atoi(xml->Attribute(att));
@@ -222,7 +222,7 @@ bool utl::getAttribute (const TiXmlElement* xml, const char* att, size_t& val)
 }
 
 
-bool utl::getAttribute (const TiXmlElement* xml, const char* att, Real& val)
+int utl::getAttribute (const TiXmlElement* xml, const char* att, Real& val)
 {
   if (xml && xml->Attribute(att))
     val = atof(xml->Attribute(att));
@@ -238,8 +238,8 @@ bool utl::getAttribute (const TiXmlElement* xml, const char* att, Real& val)
   If \a ncomp is zero, use the value zero for the missing components, if any.
 */
 
-bool utl::getAttribute (const TiXmlElement* xml, const char* att,
-                        Vec3& val, int ncomp)
+int utl::getAttribute (const TiXmlElement* xml, const char* att,
+                       Vec3& val, int ncomp)
 {
   if (!xml || !xml->Attribute(att))
     return false;
@@ -260,8 +260,8 @@ bool utl::getAttribute (const TiXmlElement* xml, const char* att,
 }
 
 
-bool utl::getAttribute (const TiXmlElement* xml, const char* att,
-                        std::vector<int>& val)
+int utl::getAttribute (const TiXmlElement* xml, const char* att,
+                       std::vector<int>& val)
 {
   if (xml && xml->Attribute(att))
     parseIntegers(val,xml->Attribute(att));
@@ -272,8 +272,8 @@ bool utl::getAttribute (const TiXmlElement* xml, const char* att,
 }
 
 
-bool utl::getAttribute (const TiXmlElement* xml, const char* att,
-                        std::string& val, bool toLower)
+int utl::getAttribute (const TiXmlElement* xml, const char* att,
+                       std::string& val, bool toLower)
 {
   if (!xml || !xml->Attribute(att))
     return false;

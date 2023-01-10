@@ -61,14 +61,14 @@ namespace utl
   //! \param[out] val The attribute value
   //! \return \e true if the attribute \a att is found in \a xml,
   //! otherwise \e false
-  bool getAttribute(const TiXmlElement* xml, const char* att, bool& val);
+  int getAttribute(const TiXmlElement* xml, const char* att, bool& val);
   //! \brief Extracts an integer attribute value from the specified XML-element.
   //! \param[in] xml Pointer to XML-element to extract from
   //! \param[in] att The attribute tag
   //! \param[out] val The attribute value
   //! \return \e true if the attribute \a att is found in \a xml,
   //! otherwise \e false
-  bool getAttribute(const TiXmlElement* xml, const char* att, int& val);
+  int getAttribute(const TiXmlElement* xml, const char* att, int& val);
   //! \brief Extracts a char attribute value from the specified XML-element.
   //! \param[in] xml Pointer to XML-element to extract from
   //! \param[in] att The attribute tag
@@ -76,22 +76,22 @@ namespace utl
   //! \param[in] useIntValue If \e true, convert the value to an integer
   //! \return \e true if the attribute \a att is found in \a xml,
   //! otherwise \e false
-  bool getAttribute(const TiXmlElement* xml, const char* att, char& val,
-                    bool useIntValue = true);
+  int getAttribute(const TiXmlElement* xml, const char* att, char& val,
+                   bool useIntValue = true);
   //! \brief Extracts a size_t attribute value from the specified XML-element.
   //! \param[in] xml Pointer to XML-element to extract from
   //! \param[in] att The attribute tag
   //! \param[out] val The attribute value
   //! \return \e true if the attribute \a att is found in \a xml,
   //! otherwise \e false
-  bool getAttribute(const TiXmlElement* xml, const char* att, size_t& val);
+  int getAttribute(const TiXmlElement* xml, const char* att, size_t& val);
   //! \brief Extracts a real attribute value from the specified XML-element.
   //! \param[in] xml Pointer to XML-element to extract from
   //! \param[in] att The attribute tag
   //! \param[out] val The attribute value
   //! \return \e true if the attribute \a att is found in \a xml,
   //! otherwise \e false
-  bool getAttribute(const TiXmlElement* xml, const char* att, Real& val);
+  int getAttribute(const TiXmlElement* xml, const char* att, Real& val);
   //! \brief Extracts a vector attribute value from the specified XML-element.
   //! \param[in] xml Pointer to XML-element to extract from
   //! \param[in] att The attribute tag
@@ -99,16 +99,16 @@ namespace utl
   //! \param[in] ncomp Maximum number of components to read
   //! \return \e true if the attribute \a att is found in \a xml,
   //! otherwise \e false
-  bool getAttribute(const TiXmlElement* xml, const char* att, Vec3& val,
-                    int ncomp = 0);
+  int getAttribute(const TiXmlElement* xml, const char* att, Vec3& val,
+                   int ncomp = 0);
   //! \brief Extracts an integer vector attribute from specified XML-element.
   //! \param[in] xml Pointer to XML-element to extract from
   //! \param[in] att The attribute tag
   //! \param[out] val The attribute value
   //! \return \e true if the attribute \a att is found in \a xml,
   //! otherwise \e false
-  bool getAttribute(const TiXmlElement* xml, const char* att,
-                    std::vector<int>& val);
+  int getAttribute(const TiXmlElement* xml, const char* att,
+                   std::vector<int>& val);
 
   //! \brief Extracts a string attribute value from the specified XML-element.
   //! \param[in] xml Pointer to XML-element to extract from
@@ -117,8 +117,8 @@ namespace utl
   //! \param[in] toLower If \e true, convert return string to lower case
   //! \return \e true if the attribute \a att is found in \a xml,
   //! otherwise \e false
-  bool getAttribute(const TiXmlElement* xml, const char* att, std::string& val,
-                    bool toLower = false);
+  int getAttribute(const TiXmlElement* xml, const char* att, std::string& val,
+                   bool toLower = false);
   //! \brief Returns the value (if any) of the specified XML-node.
   //! \param[in] xml Pointer to XML-node to extract the value from
   //! \param[in] tag The name of the XML-element to extract the value from

@@ -24,6 +24,7 @@
 #include <cstring>
 #include <cstdlib>
 #include <fstream>
+#include <functional>
 
 
 SIMoptions::SIMoptions ()
@@ -404,7 +405,7 @@ utl::LogStream& SIMoptions::print (utl::LogStream& os, bool addBlankLine) const
        <<"\nShift value: "<< shift;
 
   // Lambda function to print proper interpretation of nGauss
-  auto printG = [&os](int n)
+  std::function<int(int)> printG = [&os](int n) -> int
   {
     if (n > 0 && n <= 10)
     {
@@ -443,7 +444,7 @@ utl::LogStream& SIMoptions::print (utl::LogStream& os, bool addBlankLine) const
   }
 
   std::vector<std::string> projections;
-  for (const auto& prj : project)
+  for (const ProjectionMap::value_type& prj : project)
     if (prj.first == NONE)
       os <<"\nPure residual error estimates enabled";
     else
