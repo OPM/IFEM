@@ -43,7 +43,7 @@ LinSolParams*      GlbL2::SolverParams = nullptr;
      out[1] = {2,2,2,3,3,3,5,5,5}
 */
 
-static void expandTensorGrid2 (const RealArray* in, RealArray* out)
+static const RealArray* expandTensorGrid2 (const RealArray* in, RealArray* out)
 {
   out[0].resize(in[0].size()*in[1].size());
   out[1].resize(in[0].size()*in[1].size());
@@ -54,6 +54,8 @@ static void expandTensorGrid2 (const RealArray* in, RealArray* out)
       out[0][ip] = in[0][i];
       out[1][ip] = in[1][j];
     }
+
+  return out;
 }
 
 
@@ -69,7 +71,7 @@ static void expandTensorGrid2 (const RealArray* in, RealArray* out)
      out[2] = {7,7,7,7,9,9,9,9}
 */
 
-static void expandTensorGrid3 (const RealArray* in, RealArray* out)
+static const RealArray* expandTensorGrid3 (const RealArray* in, RealArray* out)
 {
   out[0].resize(in[0].size()*in[1].size()*in[2].size());
   out[1].resize(in[0].size()*in[1].size()*in[2].size());
@@ -83,6 +85,8 @@ static void expandTensorGrid3 (const RealArray* in, RealArray* out)
         out[1][ip] = in[1][j];
         out[2][ip] = in[2][k];
       }
+
+  return out;
 }
 
 
@@ -113,29 +117,27 @@ L2FuncIntegrand::L2FuncIntegrand (const ASMbase& patch, const FunctionBase& func
 bool L2FuncIntegrand::evaluate (Matrix& sField, const RealArray* gpar) const
 {
   std::array<RealArray,3> expanded;
-  if (dynamic_cast<const ASMunstruct*>(&m_patch) == nullptr) {
-    if (m_patch.getNoSpaceDim() == 2) {
-      expandTensorGrid2(gpar, expanded.data());
-      gpar = expanded.data();
-    } else if (m_patch.getNoSpaceDim() == 3) {
-      expandTensorGrid3(gpar, expanded.data());
-      gpar = expanded.data();
-    }
+  if (!dynamic_cast<const ASMunstruct*>(&m_patch))
+  {
+    if (m_patch.getNoSpaceDim() == 2)
+      gpar = expandTensorGrid2(gpar, expanded.data());
+    else if (m_patch.getNoSpaceDim() == 3)
+      gpar = expandTensorGrid3(gpar, expanded.data());
   }
 
   sField.resize(m_func.dim(), gpar[0].size());
 
   Real2DMat u;
   m_patch.getParameterDomain(u);
+
+  double xi[3];    // Normalized spline domain parameters always in [0,1]
+  double param[3]; // Actual domain parameters to be used for evaluation
+  Vec4   X(param);
   for (size_t i = 0; i < gpar[0].size(); ++i) {
-    std::vector<double> xi(3), param(3);
-    Vec4 X(xi.data());
     for (size_t j = 0; j < 3 && j < m_patch.getNoSpaceDim(); ++j)
       xi[j] = u[j][0] + gpar[j][i] / (u[j][1] - u[j][0]);
-    m_patch.evalPoint(xi.data(), param.data(), X);
-    std::vector<Real> vals = m_func.getValue(X);
-    for (size_t j = 1; j <= m_func.dim(); ++j)
-      sField(j,i+1) = vals[j-1];
+    m_patch.evalPoint(xi, param, X);
+    sField.fillColumn(i+1, m_func.getValue(X));
   }
 
   return true;
@@ -383,7 +385,7 @@ bool GlbL2::evalIntMx (LocalIntegral& elmInt,
 }
 
 
-void GlbL2::preAssemble (const std::vector<IntVec>& MMNPC, size_t nel)
+void GlbL2::preAssemble (const IntMat& MMNPC, size_t nel)
 {
   pA->preAssemble(MMNPC,nel);
 }
@@ -551,12 +553,17 @@ bool ASMbase::globalL2projection (Matrix& sField,
 #if SP_DEBUG > 1
   std::cout <<"---- Matrix A -----\n"<< *A
             <<"-------------------"<< std::endl;
-  std::cout <<"---- Vector B -----"<< *B
+  std::cout <<"---- Vector B -----\n"<< *B
             <<"-------------------"<< std::endl;
 #endif
 
   // Solve the patch-global equation system
-  if (!A->solve(*B)) return false;
+  if (!A->solve(*B))
+  {
+    delete A;
+    delete B;
+    return false;
+  }
 
   // Store the control-point values of the projected field
   sField.resize(ncomp,nnod);
