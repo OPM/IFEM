@@ -106,13 +106,14 @@ public:
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
   //! \param[in] iChk Object checking if an element interface has contributions
   virtual bool integrate(Integrand& integrand, GlobalIntegral& glbInt,
-                         const TimeDomain& time, const ASM::InterfaceChecker& iChk);
+                         const TimeDomain& time,
+                         const ASM::InterfaceChecker& iChk);
 
 
   // Post-processing methods
   // =======================
 
-  //! \brief Extract the primary solution field at the specified nodes.
+  //! \brief Extracts the primary solution field at the specified nodes.
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector local to current patch
   //! \param[in] nodes 1-based local node numbers to extract solution for
@@ -125,7 +126,7 @@ public:
   //! \param[in] locSol Solution vector local to current patch
   //! \param[in] gpar Parameter values of the result sampling points
   //! \param[in] deriv Derivative order to return
-  //! \param[in] nf If nonzero, evaluate nf fields on first basis
+  //! \param[in] nf If nonzero, evaluates \a nf fields on first basis
   //!
   //! \details When \a regular is \e true, it is assumed that the parameter
   //! value array \a gpar forms a regular tensor-product point grid of dimension
@@ -158,7 +159,7 @@ public:
   virtual void extractNodeVec(const RealArray& globVec, RealArray& nodeVec,
                               unsigned char, int basis) const;
 
-  //! \brief Inject nodal results for this patch into a global vector.
+  //! \brief Injects nodal results for this patch into a global vector.
   //! \param[in] nodeVec Nodal result vector for this patch
   //! \param[out] globVec Global solution vector in DOF-order
   //! \param[in] basis Which basis (or 0 for both) to extract nodal values for
@@ -168,7 +169,7 @@ public:
   //! \brief Returns the number of refinement nodes for this patch.
   virtual size_t getNoRefineNodes() const;
 
-  //! \brief Returns the number of projection elements for this patch.
+  //! \brief Returns the number of refinement elements for this patch.
   virtual size_t getNoRefineElms() const;
 
   using ASMu2D::refine;
@@ -188,7 +189,7 @@ public:
   //! \param[in] nedge Local edge index of neighbor patch, in range [1,4]
   //! \param[in] revers Indicates whether the two edges have opposite directions
   //! \param[in] basis Which basis to connect
-  //! \param[in] coordCheck False to disable coordinate checks (periodic connections)
+  //! \param[in] coordCheck False to disable coordinate checks
   //! \param[in] thick Thickness of connection
   virtual bool connectPatch(int edge, ASM2D& neighbor, int nedge, bool revers,
                             int basis, bool coordCheck, int thick);
@@ -203,19 +204,19 @@ public:
   virtual void getBoundaryNodes(int lIndex, IntVec& nodes,
                                 int basis, int thick, int orient, bool local) const;
 
-  //! \brief Remap (geometry) element wise errors to refinement basis functions.
-  //! \param     errors The remapped errors
-  //! \param[in] origErr The element wise errors on the geometry mesh
-  //! \param[in] elemErrors If true, map to elements instead of basis functions
+  //! \brief Remaps element-wise errors from geometry mesh to refinement mesh.
+  //! \param[out] errors The remapped errors
+  //! \param[in] origErr The element-wise errors on the geometry mesh
+  //! \param[in] elemErrors If \e true, map to elements and not basis functions
   virtual void remapErrors(RealArray& errors,
                            const RealArray& origErr, bool elemErrors) const;
 
-  //! \brief Copy refinement to another surface.
+  //! \brief Copies the refinement to another surface.
   //! \param basis Surface to copy refinement to
-  //! \param multiplicity Wanted multiplicity
+  //! \param[in] multiplicity Wanted multiplicity
   void copyRefinement(LR::LRSplineSurface* basis, int multiplicity) const;
 
-  //! \brief Swap between main and alternative projection basis.
+  //! \brief Swaps between the main and alternative projection basis.
   virtual void swapProjectionBasis();
 
 protected:

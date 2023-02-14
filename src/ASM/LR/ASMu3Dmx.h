@@ -20,7 +20,7 @@
 
 /*!
   \brief Driver for assembly of unstructured 3D spline mixed FE models.
-  \details This class implements a three-field mixed formulation with splines as
+  \details This class implements a two-field mixed formulation with splines as
   basis functions. The first field is of one order higher than the second field,
   and its basis is obtained by order-elevating the input spline object once.
   By default, the geometry is represented by the second (lower order) basis,
@@ -104,7 +104,7 @@ public:
   // Post-processing methods
   // =======================
 
-  //! \brief Extract the primary solution field at the specified nodes.
+  //! \brief Extracts the primary solution field at the specified nodes.
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector local to current patch
   //! \param[in] nodes 1-based local node numbers to extract solution for
@@ -117,7 +117,7 @@ public:
   //! \param[in] locSol Solution vector local to current patch
   //! \param[in] gpar Parameter values of the result sampling points
   //! \param[in] deriv Derivative order to return
-  //! \param[in] nf If nonzero, evaluates nf fields on first basis
+  //! \param[in] nf If nonzero, evaluates \a nf fields on first basis
   //!
   //! \details When \a regular is \e true, it is assumed that the parameter
   //! value array \a gpar forms a regular tensor-product point grid of dimension
@@ -150,7 +150,7 @@ public:
   virtual void extractNodeVec(const RealArray& globVec, RealArray& nodeVec,
                               unsigned char, int basis) const;
 
-  //! \brief Inject nodal results for this patch into a global vector.
+  //! \brief Injects nodal results for this patch into a global vector.
   //! \param[in] nodeVec Nodal result vector for this patch
   //! \param[out] globVec Global solution vector in DOF-order
   //! \param[in] basis Which basis (or 0 for both) to extract nodal values for
@@ -169,19 +169,19 @@ public:
   //! \param sol Control point results values that are transferred to new mesh
   virtual bool refine(const LR::RefineData& prm, Vectors& sol);
 
-  //! \brief Remap (geometry) element wise errors to refinement basis functions.
-  //! \param     errors The remapped errors
-  //! \param[in] origErr The element wise errors on the geometry mesh
-  //! \param[in] elemErrors If true, map to elements instead of basis functions
+  //! \brief Remaps element-wise errors from geometry mesh to refinement mesh.
+  //! \param[out] errors The remapped errors
+  //! \param[in] origErr The element-wise errors on the geometry mesh
+  //! \param[in] elemErrors If \e true, map to elements and not basis functions
   virtual void remapErrors(RealArray& errors,
                            const RealArray& origErr, bool elemErrors) const;
 
-  //! \brief Copy refinement to another volume.
+  //! \brief Copies the refinement to another spline volume.
   //! \param basis Volume to copy refinement to
-  //! \param multiplicity Wanted multiplicity
+  //! \param[in] multiplicity Wanted multiplicity
   void copyRefinement(LR::LRSplineVolume* basis, int multiplicity) const;
 
-  //! \brief Swap between main and alternative projection basis.
+  //! \brief Swaps between the main and alternative projection basis.
   virtual void swapProjectionBasis();
 
 protected:
@@ -193,10 +193,10 @@ protected:
                             bool ignoreGlobalLM);
 
 private:
-  std::vector<std::shared_ptr<LR::LRSplineVolume>> m_basis; //!< Spline bases
+  std::vector<std::shared_ptr<LR::LRSplineVolume>> m_basis; //!< All bases
+  LR::LRSplineVolume* threadBasis; //!< Basis for thread groups
   std::shared_ptr<LR::LRSplineVolume> refBasis; //!< Basis to refine based on
   std::shared_ptr<LR::LRSplineVolume> altProjBasis; //!< Alternative projection basis
-  LR::LRSplineVolume* threadBasis; //!< Basis for thread groups
   const std::vector<Matrices>& bezierExtractmx;  //!< Bezier extraction matrices
   std::vector<Matrices>        myBezierExtractmx; //!< Bezier extraction matrices
   ThreadGroups altProjThreadGroups; //!< Element groups for multi-threaded assembly - alternative projection basis
