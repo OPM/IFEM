@@ -644,7 +644,8 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
       fe.w = wpar.front();
 
       Matrix dNdu, Xnod, Jac;
-      Vec4   X(nullptr,time.t);
+      double param[3] = { fe.u, fe.v, fe.w };
+      Vec4   X(param,time.t);
       Vec3   normal;
       double xi[3];
 
