@@ -1237,5 +1237,9 @@ void ASMu2Dmx::swapProjectionBasis ()
     ASMmxBase::geoBasis = ASMmxBase::geoBasis == 1 ? 2 : 1;
     std::swap(projBasis, altProjBasis);
     std::swap(projThreadGroups, altProjThreadGroups);
+    lrspline = m_basis[ASMmxBase::geoBasis-1];
+    geo = lrspline.get();
+    this->generateBezierBasis();
+    this->generateBezierExtraction();
   }
 }
