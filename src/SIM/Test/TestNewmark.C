@@ -17,6 +17,7 @@
 #include "SIMdummy.h"
 
 #include "GenAlphaSIM.h"
+#include "NewmarkNLSIM.h"
 #include "HHTSIM.h"
 #include "HHTMats.h"
 #include "AlgEqSystem.h"
@@ -186,7 +187,7 @@ class SIM2DOFdmp : public TestSIMbase
   const double Kx = 200.0; // Stiffness of the oscillator in x-direction
   const double Ky = 100.0; // Stiffness of the oscillator in y-direction
   const double Cx = 100.0; // Velocity-proportional damping coefficient
-  const double Fx = 100.0; // External load in X-direction (constant)
+  const double Fx = 100.0; // External load in x-direction (constant)
   const double Fy = 1.0;   // External load in y-direction (constant)
 
 public:
@@ -208,22 +209,22 @@ public:
       NewmarkMats* elm;
       double v = prevSol[prevSol.size()-2].front();
       const double* intPrm = static_cast<Problem*>(myProblem)->getIntPrm();
-      bool useHHT = intPrm[4] == 1.0;
-      if (useHHT)
-        elm = new HHTMats(intPrm[2],intPrm[0],intPrm[1]);
+      bool nlDyn = intPrm[3] <= 0.0;
+      if (nlDyn)
+        elm = new HHTMats(intPrm[2],intPrm[0],intPrm[1],intPrm[4]!=1.0);
       else
         elm = new NewmarkMats(intPrm[0],intPrm[1],intPrm[2],intPrm[3]);
-      elm->resize(useHHT ? 5 : 4, useHHT ? 4 : 2);
+      elm->resize(nlDyn ? 5 : 4, nlDyn ? 4 : 2);
       elm->redim(2);
       elm->setStepSize(time.dt,time.it);
       elm->A[1].diag(M); // Mass matrix
       elm->A[2](1,1) = Kx; // Stiffness matrix
       elm->A[2](2,2) = Ky; // Stiffness matrix
-      if (useHHT) elm->A[3].clear(); // No geometric stiffness
-      elm->A[useHHT ? 4 : 3](1,1) = Cx*v; // Damping matrix
+      if (nlDyn) elm->A[3].clear(); // No geometric stiffness
+      elm->A[nlDyn ? 4 : 3](1,1) = Cx*v; // Damping matrix
       elm->b[0](1) = -Kx*prevSol[0][0]; // Elastic force in X-direction
       elm->b[0](2) = -Ky*prevSol[0][1]; // Elastic force in Y-direction
-      elm->b[useHHT ? 3 : 1](1) = 0.5*Cx*v*v; // Damping force, integral of Cx*v
+      elm->b[nlDyn ? 3 : 1](1) = 0.5*Cx*v*v; // Damping force, integral of Cx*v
       elm->vec = prevSol;
       ok = myEqSys->assemble(elm,1);
       delete elm;
@@ -455,6 +456,15 @@ TEST(TestNewmark, Damped)
 {
   SIM2DOFdmp simulator;
   Newmark integrator(simulator,true);
+  runTwoDof(simulator,integrator);
+}
+
+TEST(TestNewmarkNL, Damped)
+{
+  SIM2DOFdmp simulator;
+  NewmarkNLSIM integrator(simulator);
+  integrator.initPrm();
+  integrator.initSol();
   runTwoDof(simulator,integrator);
 }
 
