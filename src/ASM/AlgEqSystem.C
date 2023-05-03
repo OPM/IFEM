@@ -152,6 +152,11 @@ bool AlgEqSystem::assemble (const LocalIntegral* elmObj, int elmId)
   else if (elMat->empty())
     return true; // Silently ignore if no element matrices
 
+#if SP_DEBUG > 2
+  std::cout <<"\n>>> Assembling equation system contributions from element "
+            << elmId <<" <<<\n";
+#endif
+
   size_t i;
   bool status = true;
   if (A.size() == 1 && !b.empty())
@@ -162,8 +167,8 @@ bool AlgEqSystem::assemble (const LocalIntegral* elmObj, int elmId)
     std::vector<double>* reac = R.empty() ? nullptr : &R;
     status = sam.assembleSystem(*b.front(), elMat->getRHSVector(), elmId, reac);
 #if SP_DEBUG > 2
-    for (i = 1; i < b.size() && i < elMat->b.size(); i++)
-      std::cout <<"\nElement right-hand-side vector "<< i+1 << elMat->b[i];
+    for (i = 1; i < b.size(); i++)
+      elMat->printVec(std::cout,i);
 #endif
 
     if (status && elMat->withLHS) // we have LHS element matrices
@@ -184,12 +189,10 @@ bool AlgEqSystem::assemble (const LocalIntegral* elmObj, int elmId)
   {
 #if SP_DEBUG > 2
     if (elMat->withLHS && !elMat->rhsOnly)
-      for (i = 0; i < elMat->A.size() && i < A.size(); i++)
-	std::cout <<"Coefficient matrix A"<< i <<" for element "
-		  << elmId << elMat->A[i] << std::endl;
-    for (i = 0; i < elMat->b.size() && i < b.size(); i++)
-      std::cout <<"Right-hand-side vector b"<< i <<" for element "
-		<< elmId << elMat->b[i] << std::endl;
+      for (i = 0; i < A.size(); i++)
+        elMat->printMat(std::cout,i);
+    for (i = 0; i < b.size(); i++)
+      elMat->printVec(std::cout,i);
 #endif
 
     // Assembly of system right-hand-side vectors
@@ -212,9 +215,8 @@ bool AlgEqSystem::assemble (const LocalIntegral* elmObj, int elmId)
   }
 
 #if SP_DEBUG > 2
-  for (i = 0; i < elMat->c.size() && i < c.size(); i++)
-    std::cout <<"Scalar "<< i <<" for element "
-              << elmId <<": "<< elMat->c[i] << std::endl;
+  for (i = 0; i < c.size(); i++)
+    elMat->printScl(std::cout,i);
 #endif
 
   // Assembly of scalar quantities

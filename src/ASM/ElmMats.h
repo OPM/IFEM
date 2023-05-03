@@ -59,9 +59,20 @@ public:
   //! \brief Returns the element-level right-hand-side vector.
   virtual const Vector& getRHSVector() const;
 
+  //! \brief Prints element matrix \a idx to output stream \a os.
+  void printMat(std::ostream& os, size_t idx = 0) const;
+  //! \brief Prints element vector \a idx to output stream \a os.
+  void printVec(std::ostream& os, size_t idx = 0) const;
+  //! \brief Prints element scalar \a idx to output stream \a os.
+  void printScl(std::ostream& os, size_t idx = 0) const;
+
   std::vector<Matrix> A; //!< The element coefficient matrices
   std::vector<Vector> b; //!< The element right-hand-side vectors
   std::vector<double> c; //!< The scalar quantities
+
+  std::vector<const char*> Aname; //!< Matrix names (for debug print)
+  std::vector<const char*> Bname; //!< Vector names (for debug print)
+  std::vector<const char*> Cname; //!< Scalar names (for debug print)
 
   bool rhsOnly; //!< If \e true, only the right-hand-sides are assembled
   bool withLHS; //!< If \e true, left-hand-side element matrices are present

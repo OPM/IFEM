@@ -89,7 +89,7 @@ const Vector& HHTMats::getRHSVector () const
     if (iv > 0 && A.size() > 4)
       Fia.add(A[4]*vec[iv],-1.0); // Fia -= C*v
 #if SP_DEBUG > 2
-    std::cout <<"Element inertia vector"<< Fia;
+    std::cout <<"Element inertia force vector"<< Fia;
 #endif
   }
 
@@ -151,7 +151,7 @@ const Vector& HHTMats::getRHSVector () const
     RHS.add(A[4]*vec[iv],alphaPlus1);        // RHS -= (1+alphaH)*C*v
 
 #if SP_DEBUG > 2
-  std::cout <<"\nElement right-hand-side vector"<< b.front();
+  this->printVec(std::cout);
 #endif
 
   return b.front();

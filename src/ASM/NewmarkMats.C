@@ -110,7 +110,7 @@ const Vector& NewmarkMats::getRHSVector () const
     dF.add(A[2]*vec[iv],-alpha2); // dF -= alpha2*K*v
 
 #if SP_DEBUG > 2
-  std::cout <<"\nElement right-hand-side vector"<< b.front();
+  this->printVec(std::cout);
 #endif
 
   return b.front();
