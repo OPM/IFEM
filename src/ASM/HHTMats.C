@@ -136,7 +136,7 @@ const Vector& HHTMats::getRHSVector () const
     RHS.add(A[1]*vec[ia],-1.0); // RHS -= M*a
   }
 
-  if (b.size() > 2)
+  if (oldHHT && b.size() > 2)
     RHS.add(b[2],alphaPlus1); // RHS += (1+alphaH)*S_ext
 
   if (!isPredictor) alphaPlus1 = -alphaPlus1;
