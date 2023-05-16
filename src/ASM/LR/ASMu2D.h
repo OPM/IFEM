@@ -589,23 +589,22 @@ protected:
   //! \param[in] iel 0-based element index
   //! \param fe Integration point data for current element
   //! \param[in] derivs Derivative order of the basis functions
-  virtual bool evaluateBasis(int iel, FiniteElement& fe, int derivs = 0) const;
+  bool evaluateBasis(int iel, FiniteElement& fe, int derivs = 0) const;
 
   //! \brief Evaluate basis functions in a point.
-  virtual void computeBasis(double u, double v,
-                            Go::BasisPtsSf& bas, int iel,
-                            const LR::LRSplineSurface* spline = nullptr) const;
-
+  void computeBasis(double u, double v,
+                    Go::BasisPtsSf& bas, int iel,
+                    const LR::LRSplineSurface* spline = nullptr) const;
   //! \brief Evaluate basis functions and first derivatives in a point.
-  virtual void computeBasis(double u, double v,
-                            Go::BasisDerivsSf& bas, int iel,
-                            const LR::LRSplineSurface* spline = nullptr) const;
+  void computeBasis(double u, double v,
+                    Go::BasisDerivsSf& bas, int iel,
+                    const LR::LRSplineSurface* spline = nullptr) const;
   //! \brief Evaluate basis functions and two derivatives in a point.
-  virtual void computeBasis(double u, double v,
-                            Go::BasisDerivsSf2& bas, int iel) const;
+  void computeBasis(double u, double v,
+                     Go::BasisDerivsSf2& bas, int iel) const;
   //! \brief Evaluate basis functions and three derivatives in a point.
-  virtual void computeBasis(double u, double v,
-                            Go::BasisDerivsSf3& bas, int iel) const;
+  void computeBasis(double u, double v,
+                    Go::BasisDerivsSf3& bas, int iel) const;
 
   //! \brief Evaluates the geometry at a specified point.
   //! \param[in] iel 0-based local element index
@@ -640,7 +639,7 @@ protected:
                                       const IntSet& neighborIndices) const;
 
   //! \brief Converts current tensor spline object to LR-spline.
-  virtual LR::LRSplineSurface* createLRfromTensor();
+  LR::LRSplineSurface* createLRfromTensor();
 
   //! \brief Generate bezier basis.
   void generateBezierBasis();
@@ -660,6 +659,8 @@ public:
 protected:
   std::shared_ptr<LR::LRSplineSurface> lrspline; //!< Pointer to the LR-spline surface object
   std::shared_ptr<LR::LRSplineSurface> projBasis; //!< Basis to project onto
+
+  bool is_rational = false; //!< True if basis is rational
 
   Go::SplineSurface* tensorspline; //!< Pointer to original tensor spline object
   Go::SplineSurface* tensorPrjBas; //!< Pointer to tensor spline projection base
@@ -682,6 +683,28 @@ protected:
 
 private:
   mutable double aMin; //!< Minimum element area for adaptive refinement
+
+  //! \brief Evaluates the NURBS basis functions and derivatives of an element.
+  //! \param[in] iel 0-based element index
+  //! \param fe Integration point data for current element
+  //! \param[in] derivs Derivative order of the basis functions
+  bool evaluateBasisNurbs(int iel, FiniteElement& fe,
+                          int derivs) const;
+
+  //! \brief Evaluate NURBS basis functions in a point.
+  void computeBasisNurbs(double u, double v,
+                         Go::BasisPtsSf& bas, int iel,
+                         const LR::LRSplineSurface* spline = nullptr) const;
+  //! \brief Evaluate NURBS basis functions and first derivatives in a point.
+  void computeBasisNurbs(double u, double v,
+                         Go::BasisDerivsSf& bas, int iel,
+                         const LR::LRSplineSurface* spline) const;
+  //! \brief Evaluate NURBS basis functions and two derivatives in a point.
+  void computeBasisNurbs(double u, double v,
+                         Go::BasisDerivsSf2& bas, int iel) const;
+  //! \brief Evaluate NURBS basis functions and three derivatives in a point.
+  void computeBasisNurbs(double u, double v,
+                         Go::BasisDerivsSf3& bas, int iel) const;
 };
 
 #endif

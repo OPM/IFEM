@@ -27,8 +27,7 @@ namespace ASM //! Assembly scope
     // The spline entries need to be at the end and successively numbered
     Spline   = 2,
     SplineC1 = 3,
-    LRSpline = 4,
-    LRNurbs  = 5
+    LRSpline = 4
   };
 
   //! \brief Operations to be applied after summing norm element contributions.

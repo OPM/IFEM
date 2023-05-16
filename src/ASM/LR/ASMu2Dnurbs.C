@@ -17,42 +17,15 @@
 #include "LRSpline/Element.h"
 #include "LRSpline/Basisfunction.h"
 
-#include "ASMu2Dnurbs.h"
+#include "ASMu2D.h"
 #include "FiniteElement.h"
 #include "CoordinateMapping.h"
 #include "Profiler.h"
 
 
-ASMu2Dnurbs::ASMu2Dnurbs (unsigned char n_s, unsigned char n_f)
-  : ASMu2DC1(n_s, n_f)
-{
-  noNurbs = false;
-}
-
-
-ASMu2Dnurbs::ASMu2Dnurbs (const ASMu2Dnurbs& patch, unsigned char n_f)
-  : ASMu2DC1(patch, n_f)
-{
-  noNurbs = patch.noNurbs;
-}
-
-
-bool ASMu2Dnurbs::read (std::istream& is, int)
-{
-  bool ok = this->ASMu2DC1::read(is);
-  if (ok && !(tensorspline && tensorspline->rational()))
-    std::cout <<"  ** LR-nurbs requested but input is a spline."<< std::endl;
-
-  return ok;
-}
-
-
-bool ASMu2Dnurbs::evaluateBasis (int iel, FiniteElement& fe,
+bool ASMu2D::evaluateBasisNurbs (int iel, FiniteElement& fe,
                                  int derivs) const
 {
-  if (noNurbs)
-    return this->ASMu2DC1::evaluateBasis(iel,fe,derivs);
-
   const LR::Element* el = lrspline->getElement(iel);
   if (!el) return false;
 
@@ -153,14 +126,11 @@ bool ASMu2Dnurbs::evaluateBasis (int iel, FiniteElement& fe,
 }
 
 
-void ASMu2Dnurbs::computeBasis (double u, double v,
+void ASMu2D::computeBasisNurbs (double u, double v,
                                 Go::BasisPtsSf& bas, int iel,
                                 const LR::LRSplineSurface* spline) const
 {
-  if (noNurbs)
-    return this->ASMu2DC1::computeBasis(u,v,bas,iel,spline);
-
-  PROFILE3("ASMu2Dn::compBasis(0)");
+  PROFILE3("ASMu2D::compBasisN(0)");
 
   if (!spline)
     spline = lrspline.get();
@@ -181,14 +151,11 @@ void ASMu2Dnurbs::computeBasis (double u, double v,
 }
 
 
-void ASMu2Dnurbs::computeBasis (double u, double v,
+void ASMu2D::computeBasisNurbs (double u, double v,
                                 Go::BasisDerivsSf& bas, int iel,
                                 const LR::LRSplineSurface* spline) const
 {
-  if (noNurbs)
-    return this->ASMu2DC1::computeBasis(u,v,bas,iel,spline);
-
-  PROFILE3("ASMu2Dn::compBasis(1)");
+  PROFILE3("ASMu2D::compBasisN(1)");
 
   if (!spline)
     spline = lrspline.get();
@@ -215,13 +182,10 @@ void ASMu2Dnurbs::computeBasis (double u, double v,
 }
 
 
-void ASMu2Dnurbs::computeBasis (double u, double v,
+void ASMu2D::computeBasisNurbs (double u, double v,
                                 Go::BasisDerivsSf2& bas, int iel) const
 {
-  if (noNurbs)
-    return this->ASMu2DC1::computeBasis(u,v,bas,iel);
-
-  PROFILE3("ASMu2Dn::compBasis(2)");
+  PROFILE3("ASMu2D::compBasisN(2)");
 
   const LR::Element* el = lrspline->getElement(iel);
 
@@ -259,13 +223,10 @@ void ASMu2Dnurbs::computeBasis (double u, double v,
 }
 
 
-void ASMu2Dnurbs::computeBasis (double u, double v,
+void ASMu2D::computeBasisNurbs (double u, double v,
                                 Go::BasisDerivsSf3& bas, int iel) const
 {
-  if (noNurbs)
-    return this->ASMu2DC1::computeBasis(u,v,bas,iel);
-
-  PROFILE3("ASMu2Dn::compBasis(3)");
+  PROFILE3("ASMu2D::compBasisN(3)");
 
   const LR::Element* el = lrspline->getElement(iel);
 
@@ -327,31 +288,4 @@ void ASMu2Dnurbs::computeBasis (double u, double v,
     bas.basisDerivs_uuv[i] = (G1y*W - 3.0*G1*Wy)*w[i]/(W*W*W*W);
     bas.basisDerivs_uvv[i] = (G2x*W - 3.0*G2*Wx)*w[i]/(W*W*W*W);
   }
-}
-
-
-LR::LRSplineSurface* ASMu2Dnurbs::createLRfromTensor ()
-{
-  // Creates a dim+1 dimensional LRSplineSurface from a tensor NURBS surface.
-  auto&& createLRnurbs = [](const Go::SplineSurface* srf)
-  {
-    return new LR::LRSplineSurface(srf->numCoefs_u(), srf->numCoefs_v(),
-                                   srf->order_u(), srf->order_v(),
-                                   srf->basis_u().begin(),
-                                   srf->basis_v().begin(),
-                                   srf->rcoefs_begin(),
-                                   srf->dimension()+1);
-  };
-
-  if (tensorspline)
-  {
-    if ((noNurbs = !tensorspline->rational()))
-      lrspline.reset(new LR::LRSplineSurface(tensorspline));
-    else
-      lrspline.reset(createLRnurbs(tensorspline));
-    delete tensorspline;
-    tensorspline = nullptr;
-  }
-
-  return lrspline.get();
 }
