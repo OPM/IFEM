@@ -57,6 +57,7 @@ ASMu2D::ASMu2D (const ASMu2D& patch, unsigned char n_f)
   aMin = 0.0;
   tensorspline = tensorPrjBas = nullptr;
   projBasis = patch.projBasis;
+  is_rational = patch.is_rational;
 
   // Need to set nnod here,
   // as hasXNodes might be invoked before the FE data is generated
@@ -406,6 +407,9 @@ bool ASMu2D::createProjectionBasis (bool init)
 
 bool ASMu2D::evaluateBasis (int iel, FiniteElement& fe, int derivs) const
 {
+  if (is_rational)
+    return this->evaluateBasisNurbs(iel, fe, derivs);
+
   PROFILE3("ASMu2D::evalBasis");
 #ifdef INDEX_CHECK
   if (iel < 0 || iel >= lrspline->nElements())
@@ -496,9 +500,18 @@ LR::LRSplineSurface* ASMu2D::createLRfromTensor ()
   {
     if (tensorspline->rational())
     {
-      std::cerr <<" *** ASMu2D::createLRfromTensor: Cannot convert from a"
-                <<" rational spline, use LRnurbs instead."<< std::endl;
-      lrspline.reset();
+        // Creates a dim+1 dimensional LRSplineSurface from a tensor NURBS surface.
+      auto&& createLRnurbs = [](const Go::SplineSurface* srf)
+      {
+         return new LR::LRSplineSurface(srf->numCoefs_u(), srf->numCoefs_v(),
+                                        srf->order_u(), srf->order_v(),
+                                        srf->basis_u().begin(),
+                                        srf->basis_v().begin(),
+                                        srf->rcoefs_begin(),
+                                        srf->dimension()+1);
+      };
+      lrspline.reset(createLRnurbs(tensorspline));
+      is_rational = true;
     }
     else if (tensorspline->dimension() > nsd)
     {
@@ -2835,6 +2848,11 @@ void ASMu2D::generateBezierExtraction ()
 void ASMu2D::computeBasis (double u, double v, Go::BasisPtsSf& bas,
                            int iel, const LR::LRSplineSurface* spline) const
 {
+  if (is_rational) {
+    this->computeBasisNurbs(u, v, bas, iel, spline);
+    return;
+  }
+
   PROFILE3("ASMu2D::compBasis(0)");
 
   if (spline)
@@ -2847,6 +2865,10 @@ void ASMu2D::computeBasis (double u, double v, Go::BasisPtsSf& bas,
 void ASMu2D::computeBasis (double u, double v, Go::BasisDerivsSf& bas,
                            int iel, const LR::LRSplineSurface* spline) const
 {
+  if (is_rational) {
+    this->computeBasisNurbs(u, v, bas, iel, spline);
+    return;
+  }
   PROFILE3("ASMu2D::compBasis(1)");
 
   if (spline)
@@ -2859,6 +2881,10 @@ void ASMu2D::computeBasis (double u, double v, Go::BasisDerivsSf& bas,
 void ASMu2D::computeBasis (double u, double v, Go::BasisDerivsSf2& bas,
                            int iel) const
 {
+  if (is_rational) {
+    this->computeBasisNurbs(u, v, bas, iel);
+    return;
+  }
   PROFILE3("ASMu2D::compBasis(2)");
 
   lrspline->computeBasis(u,v,bas,iel);
@@ -2868,6 +2894,10 @@ void ASMu2D::computeBasis (double u, double v, Go::BasisDerivsSf2& bas,
 void ASMu2D::computeBasis (double u, double v, Go::BasisDerivsSf3& bas,
                            int iel) const
 {
+  if (is_rational) {
+    this->computeBasisNurbs(u, v, bas, iel);
+    return;
+  }
   PROFILE3("ASMu2D::compBasis(3)");
 
   lrspline->computeBasis(u,v,bas,iel);

@@ -52,7 +52,7 @@ bool ModelGenerator::topologySets () const
 
 bool ModelGenerator::createGeometry (SIMinput& sim) const
 {
-  bool rational = sim.opt.discretization == ASM::LRNurbs;
+  bool rational = false;
   utl::getAttribute(geo,"rational",rational);
 
   std::istringstream g2(this->createG2(sim.getNoSpaceDim(),rational));

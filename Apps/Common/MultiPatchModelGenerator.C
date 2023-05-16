@@ -81,7 +81,7 @@ std::string MultiPatchModelGenerator1D::createG2 (int nsd, bool rational) const
 
 bool MultiPatchModelGenerator1D::createGeometry (SIMinput& sim) const
 {
-  bool rational = sim.opt.discretization == ASM::LRNurbs;
+  bool rational = false;
   utl::getAttribute(geo,"rational",rational);
   std::istringstream line(this->createG2(sim.getNoSpaceDim(),rational));
 
@@ -309,7 +309,7 @@ std::string MultiPatchModelGenerator2D::createG2 (int nsd, bool rational) const
 
 bool MultiPatchModelGenerator2D::createGeometry (SIMinput& sim) const
 {
-  bool rational = sim.opt.discretization == ASM::LRNurbs;
+  bool rational = false;
   utl::getAttribute(geo,"rational",rational);
   std::istringstream rect(this->createG2(sim.getNoSpaceDim(),rational));
   if (!subdivision)
@@ -615,7 +615,7 @@ std::string MultiPatchModelGenerator3D::createG2 (int, bool rational) const
 
 bool MultiPatchModelGenerator3D::createGeometry (SIMinput& sim) const
 {
-  bool rational = sim.opt.discretization == ASM::LRNurbs;
+  bool rational = false;
   utl::getAttribute(geo,"rational",rational);
   std::istringstream cube(this->createG2(sim.getNoSpaceDim(),rational));
   if (!subdivision)
