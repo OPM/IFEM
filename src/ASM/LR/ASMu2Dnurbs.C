@@ -285,3 +285,183 @@ void ASMu2D::computeBasisNurbs (double u, double v,
     bas.basisDerivs_uvv[i] = (G2x*W - 3.0*G2*Wx)*w[i]/(W*W*W*W);
   }
 }
+
+void ASMu2D::writePostscriptElementsNurbs (std::shared_ptr<LR::LRSplineSurface> mesh,
+                                           std::ostream& out, bool close,
+                                           int nu, int nv)
+{
+  // get date
+  time_t t = time(0);
+  tm* lt = localtime(&t);
+  char date[128];
+  sprintf(date, "%02d/%02d/%04d", lt->tm_mday, lt->tm_mon + 1, lt->tm_year+1900);
+
+  if (mesh != lrspline) {
+    mesh.swap(lrspline);
+    geo = lrspline.get();
+  }
+
+  // This is done unconditionally as it will not have been performed
+  // for the refined mesh. It will be on the next adaptive cycle though,
+  // so we do it here instead of in general to avoid paying the price if not
+  // outputting eps files.
+  this->generateBezierBasis();
+  this->generateBezierExtraction();
+
+  // get bounding box (max/min of the control points)
+  std::array<double,2> x{1e7, -1e7};
+  std::array<double,2> y{1e7, -1e7};
+  for (const LR::Basisfunction* b : lrspline->getAllBasisfunctions()) {
+    std::vector<double>::const_iterator cp = b->cp();
+    x[0] = (cp[0] < x[0]) ? cp[0] : x[0];
+    x[1] = (cp[0] > x[1]) ? cp[0] : x[1];
+    y[0] = (cp[1] < y[0]) ? cp[1] : y[0];
+    y[1] = (cp[1] > y[1]) ? cp[1] : y[1];
+  }
+
+  double dx = x[1] - x[0];
+  double dy = y[1] - y[0];
+  double scale = dx > dy ? 1000.0/dx : 1000.0/dy;
+
+  int xmin = (x[0] - dx/20.0)*scale;
+  int ymin = (y[0] - dy/20.0)*scale;
+  int xmax = (x[1] + dx/20.0)*scale;
+  int ymax = (y[1] + dy/20.0)*scale;
+
+  // print eps header
+  out << "%!PS-Adobe-3.0 EPSF-3.0\n";
+  out << "%%Creator: LRSplineHelpers.cpp object\n";
+  out << "%%Title: LR-spline physical domain\n";
+  out << "%%CreationDate: " << date << std::endl;
+  out << "%%Origin: 0 0\n";
+  out << "%%BoundingBox: " << xmin << " " << ymin << " " << xmax << " " << ymax << std::endl;
+  out << "0 setgray\n";
+  out << "1 setlinewidth\n";
+
+  for (const LR::Element* el : lrspline->getAllElements()) {
+    double umin = el->umin();
+    double umax = el->umax();
+    double vmin = el->vmin();
+    double vmax = el->vmax();
+
+    Vec3 pt;
+    double u[2] = {umin, vmin};
+    this->evalPoint(el->getId(), u, pt);
+
+    out << "newpath\n";
+    out <<  pt[0]*scale << " " << pt[1]*scale << " moveto\n";
+    for (int i = 1; i < nu; i++) { // SOUTH side
+      u[0] = umin + (umax-umin)*i/(nu-1);
+      u[1] = vmin;
+      this->evalPoint(el->getId(), u, pt);
+      out <<  pt[0]*scale << " " << pt[1]*scale << " lineto\n";
+    }
+    for (int i = 1; i < nv; i++) { // EAST side
+      u[0] = umax;
+      u[1] = vmin + (vmax-vmin)*i/(nv-1);
+      this->evalPoint(el->getId(), u, pt);
+      out <<  pt[0]*scale << " " << pt[1]*scale << " lineto\n";
+    }
+    for (int i = nu-1 ; i-- > 0; ) { // NORTH side
+      u[0] = umin + (umax-umin)*i/(nu-1);
+      u[1] = vmax;
+      this->evalPoint(el->getId(), u, pt);
+      out <<  pt[0]*scale << " " << pt[1]*scale << " lineto\n";
+    }
+    for (int i = nv-1; i-- > 1; ) { // WEST side
+      u[0] = umin;
+      u[1] = vmin + (vmax-vmin)*i/(nv-1);
+      this->evalPoint(el->getId(), u, pt);
+      out <<  pt[0]*scale << " " << pt[1]*scale << " lineto\n";
+    }
+    out << "closepath\n";
+    out << "stroke\n";
+  }
+
+  if (close)
+    out << "%%EOF\n";
+
+  if (mesh != lrspline) {
+    mesh.swap(lrspline);
+    geo = lrspline.get();
+    this->generateBezierBasis();
+    this->generateBezierExtraction();
+  }
+}
+
+
+void ASMu2D::writePostscriptMeshWithControlPointsNurbs (std::shared_ptr<LR::LRSplineSurface> mesh,
+                                                        std::ostream& out, int nu, int nv)
+{
+  this->writePostscriptElementsNurbs(mesh, out, false, nu, nv);
+
+  // get bounding box (max/min of the control points)
+  std::array<double,2> x{1e7, -1e7};
+  std::array<double,2> y{1e7, -1e7};
+  for (const LR::Basisfunction* b : mesh->getAllBasisfunctions()) {
+    std::vector<double>::const_iterator cp = b->cp();
+    x[0] = (cp[0] < x[0]) ? cp[0] : x[0];
+    x[1] = (cp[0] > x[1]) ? cp[0] : x[1];
+    y[0] = (cp[1] < y[0]) ? cp[1] : y[0];
+    y[1] = (cp[1] > y[1]) ? cp[1] : y[1];
+  }
+
+  double dx = x[1] - x[0];
+  double dy = y[1] - y[0];
+  double scale = dx > dy ? 1000.0/dx : 1000.0/dy;
+
+  double circleSize = 15.0;
+
+  // create the ellipse function
+  out << "/ellipse {\n";
+  out << "/endangle exch def\n";
+  out << "/startangle exch def\n";
+  out << "/yrad exch def\n";
+  out << "/xrad exch def\n";
+  out << "/y exch def\n";
+  out << "/x exch def\n";
+  out << "/savematrix matrix currentmatrix def\n";
+  out << "x y translate\n";
+  out << "xrad yrad scale\n";
+  out << "0 0 1 startangle endangle arc\n";
+  out << "savematrix setmatrix\n";
+  out << "} def\n";
+
+  // load the font to use
+  out << "/Times-Roman findfont\n";
+  out << "24 scalefont\n";
+  out << "setfont\n";
+
+  int i = -1;
+  for (const LR::Basisfunction* b : mesh->getAllBasisfunctions()) {
+    i++;
+    double cp_x = b->cp(0);
+    double cp_y = b->cp(1);
+    // move C^{-1} text on internal functions
+    int textX   = ((*b)[0][1] == (*b)[0][mesh->order(0)]) ? -2 : 1;
+    int textY   = ((*b)[1][1] == (*b)[1][mesh->order(1)]) ? -2 : 1;
+    // move text on edge functions
+    if ((*b)[0][1] == mesh->endparam(0))
+      textX = 1;
+    else if ((*b)[0][mesh->order(0)-1] == mesh->startparam(0))
+      textX = -2;
+    if ((*b)[1][1] == mesh->endparam(1))
+      textY = 1;
+    else if ((*b)[1][mesh->order(1)-1] == mesh->startparam(1))
+      textY = -2;
+
+    out << "newpath\n";
+    out << "0.45 0.45 0.45 setrgbcolor \n";
+    out << cp_x*scale << " " << cp_y*scale << " " << circleSize << " " << circleSize << " 0 360 ellipse\n";
+    out << "closepath fill\n";
+    out << "0 setgray\n";
+    out << cp_x*scale << " " << cp_y*scale << " " << circleSize << " " << circleSize << " 0 360 ellipse\n";
+    out << "closepath stroke\n";
+    out << "\n";
+    out << "newpath\n";
+    out << cp_x*scale + textX*circleSize << " " << cp_y*scale + textY*circleSize << " moveto\n";
+    out << "(" << i << ") show\n";
+    out << "\n";
+  }
+  out << "%%EOF\n";
+}
