@@ -2832,7 +2832,7 @@ void ASMu2D::generateBezierExtraction ()
   const int p1 = geo->order(0);
   const int p2 = geo->order(1);
 
-  myBezierExtract.resize(nel);
+  myBezierExtract.resize(geo->nElements());
   RealArray extrMat;
   int iel = 0;
   for (const LR::Element* elm : geo->getAllElements())
@@ -3005,7 +3005,10 @@ void ASMu2D::storeMesh (const std::string& fName, int fType) const
   if ((fType/=2)%2)
   {
     std::ofstream meshFile("physical_"+fName+".eps");
-    lrspline->writePostscriptElements(meshFile);
+    if (is_rational)
+      const_cast<ASMu2D*>(this)->writePostscriptElementsNurbs(lrspline, meshFile);
+    else
+      lrspline->writePostscriptElements(meshFile);
   }
 
   if ((fType/=2)%2)
@@ -3017,6 +3020,9 @@ void ASMu2D::storeMesh (const std::string& fName, int fType) const
   if ((fType / 2)%2)
   {
     std::ofstream meshFile("physical_dot_"+fName+".eps");
-    lrspline->writePostscriptMeshWithControlPoints(meshFile);
+    if (is_rational)
+      const_cast<ASMu2D*>(this)->writePostscriptMeshWithControlPointsNurbs(lrspline, meshFile);
+    else
+      lrspline->writePostscriptMeshWithControlPoints(meshFile);
   }
 }

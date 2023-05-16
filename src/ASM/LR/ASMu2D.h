@@ -709,6 +709,14 @@ private:
   void computeBasisNurbs(double u, double v,
                          Go::BasisDerivsSf3& bas, int iel,
                          const LR::LRSplineSurface& spline) const;
+
+  //! \brief Write NURBS elements as postscript file.
+  void writePostscriptElementsNurbs (std::shared_ptr<LR::LRSplineSurface> mesh,
+                                     std::ostream& out, bool close = true,
+                                     int nu = 2, int nv = 2);
+  //! \brief Write NURBS elements as postscript file.
+  void writePostscriptMeshWithControlPointsNurbs (std::shared_ptr<LR::LRSplineSurface> mesh,
+                                                  std::ostream& out, int nu = 2, int nv = 2);
 };
 
 #endif
