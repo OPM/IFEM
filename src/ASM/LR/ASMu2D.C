@@ -1833,7 +1833,7 @@ bool ASMu2D::integrate (Integrand& integrand,
 
             // Evaluate basis function derivatives at current integration points
             Go::BasisDerivsSf spline;
-            lrspline->computeBasis(fe.u, fe.v, spline, iel-1);
+            this->computeBasis(fe.u, fe.v, spline, iel-1);
             SplineUtils::extractBasis(spline, fe.N, dNdu);
 
             // Compute Jacobian inverse of the coordinate mapping and
