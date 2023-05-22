@@ -601,10 +601,12 @@ protected:
                     const LR::LRSplineSurface* spline = nullptr) const;
   //! \brief Evaluate basis functions and two derivatives in a point.
   void computeBasis(double u, double v,
-                     Go::BasisDerivsSf2& bas, int iel) const;
+                    Go::BasisDerivsSf2& bas, int iel,
+                    const LR::LRSplineSurface* spline = nullptr) const;
   //! \brief Evaluate basis functions and three derivatives in a point.
   void computeBasis(double u, double v,
-                    Go::BasisDerivsSf3& bas, int iel) const;
+                    Go::BasisDerivsSf3& bas, int iel,
+                    const LR::LRSplineSurface* spline = nullptr) const;
 
   //! \brief Evaluates the geometry at a specified point.
   //! \param[in] iel 0-based local element index
@@ -694,17 +696,19 @@ private:
   //! \brief Evaluate NURBS basis functions in a point.
   void computeBasisNurbs(double u, double v,
                          Go::BasisPtsSf& bas, int iel,
-                         const LR::LRSplineSurface* spline = nullptr) const;
+                         const LR::LRSplineSurface& spline) const;
   //! \brief Evaluate NURBS basis functions and first derivatives in a point.
   void computeBasisNurbs(double u, double v,
                          Go::BasisDerivsSf& bas, int iel,
-                         const LR::LRSplineSurface* spline) const;
+                         const LR::LRSplineSurface& spline) const;
   //! \brief Evaluate NURBS basis functions and two derivatives in a point.
   void computeBasisNurbs(double u, double v,
-                         Go::BasisDerivsSf2& bas, int iel) const;
+                         Go::BasisDerivsSf2& bas, int iel,
+                         const LR::LRSplineSurface& spline) const;
   //! \brief Evaluate NURBS basis functions and three derivatives in a point.
   void computeBasisNurbs(double u, double v,
-                         Go::BasisDerivsSf3& bas, int iel) const;
+                         Go::BasisDerivsSf3& bas, int iel,
+                         const LR::LRSplineSurface& spline) const;
 };
 
 #endif
