@@ -2848,59 +2848,64 @@ void ASMu2D::generateBezierExtraction ()
 void ASMu2D::computeBasis (double u, double v, Go::BasisPtsSf& bas,
                            int iel, const LR::LRSplineSurface* spline) const
 {
+  if (!spline)
+    spline = lrspline.get();
+
   if (is_rational) {
-    this->computeBasisNurbs(u, v, bas, iel, spline);
+    this->computeBasisNurbs(u, v, bas, iel, *spline);
     return;
   }
 
   PROFILE3("ASMu2D::compBasis(0)");
-
-  if (spline)
-    spline->computeBasis(u,v,bas,iel);
-  else
-    lrspline->computeBasis(u,v,bas,iel);
+  spline->computeBasis(u,v,bas,iel);
 }
 
 
 void ASMu2D::computeBasis (double u, double v, Go::BasisDerivsSf& bas,
                            int iel, const LR::LRSplineSurface* spline) const
 {
+  if (!spline)
+    spline = lrspline.get();
+
   if (is_rational) {
-    this->computeBasisNurbs(u, v, bas, iel, spline);
+    this->computeBasisNurbs(u, v, bas, iel, *spline);
     return;
   }
-  PROFILE3("ASMu2D::compBasis(1)");
 
-  if (spline)
-    spline->computeBasis(u,v,bas,iel);
-  else
-    lrspline->computeBasis(u,v,bas,iel);
+  PROFILE3("ASMu2D::compBasis(1)");
+  spline->computeBasis(u,v,bas,iel);
 }
 
 
 void ASMu2D::computeBasis (double u, double v, Go::BasisDerivsSf2& bas,
-                           int iel) const
+                           int iel, const LR::LRSplineSurface* spline) const
 {
+  if (!spline)
+    spline = lrspline.get();
+
   if (is_rational) {
-    this->computeBasisNurbs(u, v, bas, iel);
+    this->computeBasisNurbs(u, v, bas, iel, *spline);
     return;
   }
-  PROFILE3("ASMu2D::compBasis(2)");
 
-  lrspline->computeBasis(u,v,bas,iel);
+  PROFILE3("ASMu2D::compBasis(2)");
+  spline->computeBasis(u,v,bas,iel);
 }
 
 
 void ASMu2D::computeBasis (double u, double v, Go::BasisDerivsSf3& bas,
-                           int iel) const
+                           int iel, const LR::LRSplineSurface* spline) const
 {
+  if (!spline)
+    spline = lrspline.get();
+
   if (is_rational) {
-    this->computeBasisNurbs(u, v, bas, iel);
+    this->computeBasisNurbs(u, v, bas, iel, *spline);
     return;
   }
-  PROFILE3("ASMu2D::compBasis(3)");
 
-  lrspline->computeBasis(u,v,bas,iel);
+  PROFILE3("ASMu2D::compBasis(3)");
+  spline->computeBasis(u,v,bas,iel);
 }
 
 

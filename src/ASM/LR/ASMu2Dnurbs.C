@@ -128,17 +128,14 @@ bool ASMu2D::evaluateBasisNurbs (int iel, FiniteElement& fe,
 
 void ASMu2D::computeBasisNurbs (double u, double v,
                                 Go::BasisPtsSf& bas, int iel,
-                                const LR::LRSplineSurface* spline) const
+                                const LR::LRSplineSurface& spline) const
 {
   PROFILE3("ASMu2D::compBasisN(0)");
 
-  if (!spline)
-    spline = lrspline.get();
-
-  const LR::Element* el = spline->getElement(iel);
+  const LR::Element* el = spline.getElement(iel);
 
   Go::BasisPtsSf tmp;
-  spline->computeBasis(u,v,tmp,iel);
+  spline.computeBasis(u,v,tmp,iel);
   Vector w; w.reserve(tmp.basisValues.size());
   for (const LR::Basisfunction* func : el->support())
     w.push_back(func->cp(func->dim()-1));
@@ -153,17 +150,14 @@ void ASMu2D::computeBasisNurbs (double u, double v,
 
 void ASMu2D::computeBasisNurbs (double u, double v,
                                 Go::BasisDerivsSf& bas, int iel,
-                                const LR::LRSplineSurface* spline) const
+                                const LR::LRSplineSurface& spline) const
 {
   PROFILE3("ASMu2D::compBasisN(1)");
 
-  if (!spline)
-    spline = lrspline.get();
-
-  const LR::Element* el = spline->getElement(iel);
+  const LR::Element* el = spline.getElement(iel);
 
   Go::BasisDerivsSf tmp;
-  spline->computeBasis(u,v,tmp,iel);
+  spline.computeBasis(u,v,tmp,iel);
   Vector w; w.reserve(tmp.basisValues.size());
   for (const LR::Basisfunction* func : el->support())
     w.push_back(func->cp(func->dim()-1));
@@ -183,14 +177,15 @@ void ASMu2D::computeBasisNurbs (double u, double v,
 
 
 void ASMu2D::computeBasisNurbs (double u, double v,
-                                Go::BasisDerivsSf2& bas, int iel) const
+                                Go::BasisDerivsSf2& bas, int iel,
+                                const LR::LRSplineSurface& spline) const
 {
   PROFILE3("ASMu2D::compBasisN(2)");
 
-  const LR::Element* el = lrspline->getElement(iel);
+  const LR::Element* el = spline.getElement(iel);
 
   Go::BasisDerivsSf2 tmp;
-  lrspline->computeBasis(u,v,tmp,iel);
+  spline.computeBasis(u,v,tmp,iel);
   Vector w; w.reserve(tmp.basisValues.size());
   for (const LR::Basisfunction* func : el->support())
     w.push_back(func->cp(func->dim()-1));
@@ -224,14 +219,15 @@ void ASMu2D::computeBasisNurbs (double u, double v,
 
 
 void ASMu2D::computeBasisNurbs (double u, double v,
-                                Go::BasisDerivsSf3& bas, int iel) const
+                                Go::BasisDerivsSf3& bas, int iel,
+                                const LR::LRSplineSurface& spline) const
 {
   PROFILE3("ASMu2D::compBasisN(3)");
 
-  const LR::Element* el = lrspline->getElement(iel);
+  const LR::Element* el = spline.getElement(iel);
 
   Go::BasisDerivsSf3 tmp;
-  lrspline->computeBasis(u,v,tmp,iel);
+  spline.computeBasis(u,v,tmp,iel);
   Vector w; w.reserve(tmp.basisValues.size());
   for (const LR::Basisfunction* func : el->support())
     w.push_back(func->cp(func->dim()-1));
