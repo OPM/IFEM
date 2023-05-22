@@ -319,7 +319,7 @@ TEST(TestASMs3D, Collapse)
       ASSERT_TRUE(pch.generateFEMTopology());
       std::cout <<"Degenerating F"<< iface <<" onto E"<< iedge << std::endl;
 #ifdef SP_DEBUG
-      pch.write(std::cout);
+      pch.write(std::cout,0);
 #endif
       const std::array<int,4>& face = faceTop[iface-1];
       if (iedge == 0 || std::find(face.begin(),face.end(),iedge) != face.end())

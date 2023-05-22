@@ -120,7 +120,7 @@ TEST(TestASMs2D, Collapse)
     ASSERT_TRUE(pch.generateFEMTopology());
     std::cout <<"Degenerating E"<< iedge << std::endl;
 #ifdef SP_DEBUG
-    pch.write(std::cout);
+    pch.write(std::cout,0);
 #endif
     EXPECT_TRUE(pch.collapseEdge(iedge));
   }

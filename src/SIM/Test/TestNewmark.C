@@ -98,7 +98,7 @@ public:
 class Problem : public IntegrandBase
 {
 public:
-  Problem() : IntegrandBase(1) {}
+  Problem() : IntegrandBase(1) { memset(prm,0,sizeof(prm)); }
   virtual ~Problem() {}
 
   virtual void setIntegrationPrm(unsigned short int i, double p) { prm[i] = p; }
