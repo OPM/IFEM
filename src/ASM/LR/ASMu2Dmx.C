@@ -416,13 +416,13 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
           if (use2ndDer)
             for (size_t b = 0; b < m_basis.size(); ++b) {
               Go::BasisDerivsSf2 spline;
-              m_basis[b]->computeBasis(fe.u,fe.v,spline,els[b]-1);
+              this->computeBasis(fe.u,fe.v,spline,els[b]-1,m_basis[b].get());
               SplineUtils::extractBasis(spline,fe.basis(b+1),dNxdu[b],d2Nxdu2[b]);
             }
           else
             for (size_t b=0; b < m_basis.size(); ++b) {
               Go::BasisDerivsSf spline;
-              m_basis[b]->computeBasis(fe.u, fe.v, spline, els[b]-1);
+              this->computeBasis(fe.u, fe.v, spline, els[b]-1, m_basis[b].get());
               SplineUtils::extractBasis(spline,fe.basis(b+1),dNxdu[b]);
             }
 
@@ -590,7 +590,7 @@ bool ASMu2Dmx::integrate (Integrand& integrand, int lIndex,
       // Evaluate basis function derivatives at current integration points
       std::vector<Go::BasisDerivsSf> splinex(m_basis.size());
       for (size_t b=0; b < m_basis.size(); ++b) {
-        m_basis[b]->computeBasis(fe.u, fe.v, splinex[b], els[b]-1);
+        this->computeBasis(fe.u, fe.v, splinex[b], els[b]-1, m_basis[b].get());
         SplineUtils::extractBasis(splinex[b],fe.basis(b+1),dNxdu[b]);
       }
 
@@ -777,9 +777,9 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
             std::vector<Matrix> dNxdu(m_basis.size()*2);
             for (size_t b=0; b < m_basis.size(); ++b) {
               Go::BasisDerivsSf spline;
-              m_basis[b]->computeBasis(fe.u+epsu, fe.v+epsv, spline, els[b]-1);
+              this->computeBasis(fe.u+epsu, fe.v+epsv, spline, els[b]-1, m_basis[b].get());
               SplineUtils::extractBasis(spline,fe.basis(b+1),dNxdu[b]);
-              m_basis[b]->computeBasis(fe.u-epsu, fe.v-epsv, spline, els2[b]-1);
+              this->computeBasis(fe.u-epsu, fe.v-epsv, spline, els2[b]-1, m_basis[b].get());
               SplineUtils::extractBasis(spline,fe.basis(b+1+m_basis.size()),
                                         dNxdu[b+m_basis.size()]);
             }
@@ -869,7 +869,7 @@ bool ASMu2Dmx::evalSolution (Matrix& sField, const Vector& locSol,
 
       // Evaluate basis function values/derivatives at current parametric point
       // and multiply with control point values to get the point-wise solution
-      m_basis[j]->computeBasis(gpar[0][i],gpar[1][i],splinex[j],iel);
+      this->computeBasis(gpar[0][i],gpar[1][i],splinex[j],iel,m_basis[j].get());
 
       std::vector<LR::Element*>::iterator el_it = m_basis[j]->elementBegin()+iel;
       Matrix val1(nc[j], splinex[j].basisValues.size());
@@ -930,13 +930,13 @@ bool ASMu2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     if (use2ndDer)
       for (size_t b = 0; b < m_basis.size(); ++b) {
         Go::BasisDerivsSf2 spline;
-        m_basis[b]->computeBasis(gpar[0][i],gpar[1][i],spline,els[b]-1);
+        this->computeBasis(gpar[0][i],gpar[1][i],spline,els[b]-1,m_basis[b].get());
         SplineUtils::extractBasis(spline,fe.basis(b+1),dNxdu[b],d2Nxdu2[b]);
       }
     else
       for (size_t b = 0; b < m_basis.size(); ++b) {
         Go::BasisDerivsSf spline;
-        m_basis[b]->computeBasis(gpar[0][i],gpar[1][i],spline,els[b]-1);
+        this->computeBasis(gpar[0][i],gpar[1][i],spline,els[b]-1,m_basis[b].get());
         SplineUtils::extractBasis(spline,fe.basis(b+1),dNxdu[b]);
       }
 
