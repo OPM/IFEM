@@ -657,6 +657,23 @@ public:
   //! \brief Returns the number of elements on a boundary.
   virtual size_t getNoBoundaryElms(char lIndex, char ldim) const;
 
+  //! \brief Evaluate NURBS basis functions in a point.
+  static void computeBasisNurbs(double u, double v,
+                                Go::BasisPtsSf& bas, int iel,
+                                const LR::LRSplineSurface& spline);
+  //! \brief Evaluate NURBS basis functions and first derivatives in a point.
+  static void computeBasisNurbs(double u, double v,
+                                Go::BasisDerivsSf& bas, int iel,
+                                const LR::LRSplineSurface& spline);
+  //! \brief Evaluate NURBS basis functions and two derivatives in a point.
+  static void computeBasisNurbs(double u, double v,
+                                Go::BasisDerivsSf2& bas, int iel,
+                                const LR::LRSplineSurface& spline);
+  //! \brief Evaluate NURBS basis functions and three derivatives in a point.
+  static void computeBasisNurbs(double u, double v,
+                                Go::BasisDerivsSf3& bas, int iel,
+                                const LR::LRSplineSurface& spline);
+
   //! \brief Query whether basis is rational or not.
   bool rational() const { return is_rational; }
 
@@ -704,23 +721,6 @@ private:
   //! \param[in] derivs Derivative order of the basis functions
   bool evaluateBasisNurbs(int iel, FiniteElement& fe,
                           int derivs) const;
-
-  //! \brief Evaluate NURBS basis functions in a point.
-  void computeBasisNurbs(double u, double v,
-                         Go::BasisPtsSf& bas, int iel,
-                         const LR::LRSplineSurface& spline) const;
-  //! \brief Evaluate NURBS basis functions and first derivatives in a point.
-  void computeBasisNurbs(double u, double v,
-                         Go::BasisDerivsSf& bas, int iel,
-                         const LR::LRSplineSurface& spline) const;
-  //! \brief Evaluate NURBS basis functions and two derivatives in a point.
-  void computeBasisNurbs(double u, double v,
-                         Go::BasisDerivsSf2& bas, int iel,
-                         const LR::LRSplineSurface& spline) const;
-  //! \brief Evaluate NURBS basis functions and three derivatives in a point.
-  void computeBasisNurbs(double u, double v,
-                         Go::BasisDerivsSf3& bas, int iel,
-                         const LR::LRSplineSurface& spline) const;
 
   //! \brief Write NURBS elements as postscript file.
   void writePostscriptElementsNurbs (std::shared_ptr<LR::LRSplineSurface> mesh,
