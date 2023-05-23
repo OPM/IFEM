@@ -2469,7 +2469,7 @@ bool ASMu2D::separateProjectionBasis () const
 Field* ASMu2D::getProjectedField (const Vector& coefs) const
 {
   if (coefs.size() == this->getNoProjectionNodes())
-    return new LRSplineField2D(projBasis.get(),coefs);
+    return new LRSplineField2D(projBasis.get(),coefs,is_rational);
 
   std::cerr <<" *** ASMu2D::getProjectedFields: Non-matching coefficent array,"
             <<" size="<< coefs.size() <<" nnod="<< this->getNoProjectionNodes()
@@ -2485,7 +2485,7 @@ Fields* ASMu2D::getProjectedFields (const Vector& coefs, size_t) const
 
   size_t ncmp = coefs.size() / this->getNoProjectionNodes();
   if (ncmp*this->getNoProjectionNodes() == coefs.size())
-    return new LRSplineFields2D(projBasis.get(),coefs,ncmp);
+    return new LRSplineFields2D(projBasis.get(),coefs,ncmp,is_rational);
 
   std::cerr <<" *** ASMu2D::getProjectedFields: Non-matching coefficent array,"
             <<" size="<< coefs.size() <<" nnod="<< this->getNoProjectionNodes()

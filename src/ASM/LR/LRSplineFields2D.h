@@ -47,8 +47,10 @@ public:
   //! \param[in] srf The spline surface to use
   //! \param[in] v Array of control point field values
   //! \param[in] ncmp Number of field components
+  //! \param[in] rational Whether or not surface is rational
   //! \param[in] name Name of spline field
-  LRSplineFields2D(const LR::LRSplineSurface* srf, const RealArray& v, int ncmp,
+  LRSplineFields2D(const LR::LRSplineSurface* srf, const RealArray& v,
+                   int ncmp, bool rational,
                    const char* name = nullptr);
 
   //! \brief Empty destructor.
@@ -85,6 +87,8 @@ public:
 protected:
   const LR::LRSplineSurface* basis; //!< Spline basis description
   const LR::LRSplineSurface* surf;  //!< Spline geometry description
+
+  bool is_rational; //!< Whether or not surfaces are rational.
 };
 
 #endif
