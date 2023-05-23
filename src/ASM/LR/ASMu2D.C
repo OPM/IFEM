@@ -494,23 +494,24 @@ bool ASMu2D::evaluateBasis (int iel, FiniteElement& fe, int derivs) const
 }
 
 
+LR::LRSplineSurface* ASMu2D::createLRNurbs (const Go::SplineSurface& srf)
+{
+  return new LR::LRSplineSurface(srf.numCoefs_u(), srf.numCoefs_v(),
+                                 srf.order_u(), srf.order_v(),
+                                 srf.basis_u().begin(),
+                                 srf.basis_v().begin(),
+                                 srf.rcoefs_begin(),
+                                 srf.dimension()+1);
+}
+
+
 LR::LRSplineSurface* ASMu2D::createLRfromTensor ()
 {
   if (tensorspline)
   {
     if (tensorspline->rational())
     {
-        // Creates a dim+1 dimensional LRSplineSurface from a tensor NURBS surface.
-      auto&& createLRnurbs = [](const Go::SplineSurface* srf)
-      {
-         return new LR::LRSplineSurface(srf->numCoefs_u(), srf->numCoefs_v(),
-                                        srf->order_u(), srf->order_v(),
-                                        srf->basis_u().begin(),
-                                        srf->basis_v().begin(),
-                                        srf->rcoefs_begin(),
-                                        srf->dimension()+1);
-      };
-      lrspline.reset(createLRnurbs(tensorspline));
+      lrspline.reset(createLRNurbs(*tensorspline));
       is_rational = true;
     }
     else if (tensorspline->dimension() > nsd)
