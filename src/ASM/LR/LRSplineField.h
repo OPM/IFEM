@@ -42,6 +42,7 @@ public:
   //! \param Xnod Geometry coefficients in point
   //! \param Jac Jacobian of geometry mapping in point
   //! \param dNdX Derivatives of basis functions in point
+  //! \param is_rational True if surface is rational
   //! \param d2NdX2 Second derivatives of basis functions in point
   //! \param Hess Hessian of geometry mapping in point
   static bool evalMapping(const LR::LRSplineSurface& surf,
@@ -50,6 +51,7 @@ public:
                           Matrix& Xnod,
                           Matrix& Jac,
                           Matrix& dNdX,
+                          bool is_rational,
                           Matrix3D* d2NdX2 = nullptr,
                           Matrix3D* Hess = nullptr);
 
@@ -60,6 +62,7 @@ public:
   //! \param Xnod Geometry coefficients in point
   //! \param Jac Jacobian of geometry mapping in point
   //! \param dNdX Derivatives of basis functions in point
+  //! \param is_rational True if surface is rational
   //! \param d2NdX2 Second derivatives of basis functions in point
   //! \param Hess Hessian of geometry mapping in point
   static bool evalBasis(const LR::LRSplineSurface& surf,
@@ -68,6 +71,7 @@ public:
                         const Matrix& Xnod,
                         const Matrix& Jac,
                         Matrix& dNdX,
+                        bool is_rational,
                         Matrix3D* d2NdX2 = nullptr,
                         Matrix3D* Hess = nullptr);
 

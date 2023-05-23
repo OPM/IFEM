@@ -14,6 +14,7 @@
 #include "LRSpline/LRSplineSurface.h"
 #include "LRSpline/LRSplineVolume.h"
 
+#include "ASMu2D.h"
 #include "LRSplineField.h"
 #include "CoordinateMapping.h"
 #include "ItgPoint.h"
@@ -26,6 +27,7 @@ bool LRSplineField::evalMapping (const LR::LRSplineSurface& surf,
                                  Matrix& Xnod,
                                  Matrix& Jac,
                                  Matrix& dNdX,
+                                 bool is_rational,
                                  Matrix3D* d2NdX2,
                                  Matrix3D* Hess)
 {
@@ -36,21 +38,21 @@ bool LRSplineField::evalMapping (const LR::LRSplineSurface& surf,
   Matrix3D d2Ndu2;
   if (Hess) {
     Go::BasisDerivsSf2 spline2;
-    surf.computeBasis(x.u,x.v,spline2,iel);
+    if (is_rational)
+      ASMu2D::computeBasisNurbs(x.u,x.v,spline2,iel,surf);
+    else
+      surf.computeBasis(x.u,x.v,spline2,iel);
     SplineUtils::extractBasis(spline2, N, dNdu, d2Ndu2);
   } else {
     Go::BasisDerivsSf spline;
-    surf.computeBasis(x.u,x.v,spline,iel);
+    if (is_rational)
+      ASMu2D::computeBasisNurbs(x.u,x.v,spline,iel,surf);
+    else
+      surf.computeBasis(x.u,x.v,spline,iel);
     SplineUtils::extractBasis(spline, N, dNdu);
   }
 
-  Xnod.resize(2,elm->nBasisFunctions());
-  size_t i = 1;
-  for (const LR::Basisfunction* f : elm->support()) {
-    for (size_t j = 1; j <= 2; ++j)
-      Xnod(j,i) = f->cp(j-1);
-    ++i;
-  }
+  ASMu2D::getCoordinates(Xnod,surf.dimension()-is_rational,surf,iel+1);
 
   // Evaluate the Jacobian inverse
   if (!utl::Jacobian(Jac,dNdX,Xnod,dNdu))
@@ -66,6 +68,7 @@ bool LRSplineField::evalBasis (const LR::LRSplineSurface& surf,
                                const Matrix& Xnod,
                                const Matrix& Jac,
                                Matrix& dNdX,
+                               bool is_rational,
                                Matrix3D* d2NdX2,
                                Matrix3D* Hess)
 {
@@ -76,11 +79,17 @@ bool LRSplineField::evalBasis (const LR::LRSplineSurface& surf,
   Matrix3D d2Ndu2;
   if (Hess) {
     Go::BasisDerivsSf2 spline2;
-    surf.computeBasis(x.u,x.v,spline2,iel);
+    if (is_rational)
+      ASMu2D::computeBasisNurbs(x.u,x.v,spline2,iel,surf);
+    else
+      surf.computeBasis(x.u,x.v,spline2,iel);
     SplineUtils::extractBasis(spline2, N, dNdu, d2Ndu2);
   } else {
     Go::BasisDerivsSf spline;
-    surf.computeBasis(x.u,x.v,spline,iel);
+    if (is_rational)
+      ASMu2D::computeBasisNurbs(x.u,x.v,spline,iel,surf);
+    else
+      surf.computeBasis(x.u,x.v,spline,iel);
     SplineUtils::extractBasis(spline, N, dNdu);
   }
 

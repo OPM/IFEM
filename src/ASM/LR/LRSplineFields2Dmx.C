@@ -18,7 +18,6 @@
 
 #include "ASMu2Dmx.h"
 #include "ItgPoint.h"
-#include "SplineUtils.h"
 #include "Utilities.h"
 #include "Vec3.h"
 
@@ -78,7 +77,10 @@ bool LRSplineFields2Dmx::valueFE (const ItgPoint& x, Vector& vals) const
     int iel = basis->getElementContaining(x.u,x.v);
     const LR::Element* elm = basis->getElement(iel);
     Go::BasisPtsSf spline;
-    basis->computeBasis(x.u,x.v,spline,iel);
+    if (surf->rational())
+      ASMu2D::computeBasisNurbs(x.u,x.v,spline,iel,*basis);
+    else
+      basis->computeBasis(x.u,x.v,spline,iel);
 
     // Evaluate the solution field at the given point
     size_t i = 1;
@@ -104,7 +106,7 @@ bool LRSplineFields2Dmx::gradFE (const ItgPoint& x, Matrix& grad) const
   const LR::LRSplineSurface* geo = surf->getBasis(ASMmxBase::geoBasis);
   if (!geo)
     geo = surf->getBasis(1);
-  if (!LRSplineField::evalMapping(*geo,x,elm,Xnod,Jac,dNdX))
+  if (!LRSplineField::evalMapping(*geo,x,elm,Xnod,Jac,dNdX,surf->rational()))
     return false;
 
   // Evaluate the gradient of the solution field at the given point
@@ -113,7 +115,7 @@ bool LRSplineFields2Dmx::gradFE (const ItgPoint& x, Matrix& grad) const
   grad.resize(2,2);
   for (int b : bases) {
     const LR::LRSplineSurface* basis = surf->getBasis(b);
-    if (!LRSplineField::evalBasis(*basis,x,elm,Xnod,Jac,dNdX))
+    if (!LRSplineField::evalBasis(*basis,x,elm,Xnod,Jac,dNdX,surf->rational()))
       return false;
 
     size_t i = 1;
@@ -143,14 +145,16 @@ bool LRSplineFields2Dmx::hessianFE (const ItgPoint& x, Matrix3D& H) const
   const LR::LRSplineSurface* geo = surf->getBasis(ASMmxBase::geoBasis);
   if (!geo)
     geo = surf->getBasis(1);
-  if (!LRSplineField::evalMapping(*geo,x,elm,Xnod,Jac,dNdX,&d2NdX2,&Hess))
+  if (!LRSplineField::evalMapping(*geo,x,elm,Xnod,Jac,
+                                  dNdX,surf->rational(),&d2NdX2,&Hess))
     return false;
 
   H.resize(2,2,2);
   size_t ofs = 0;
   for (int b : bases) {
     const LR::LRSplineSurface* basis = surf->getBasis(b);
-    if (!LRSplineField::evalBasis(*basis,x,elm,Xnod,Jac,dNdX,&d2NdX2,&Hess))
+    if (!LRSplineField::evalBasis(*basis,x,elm,Xnod,Jac,
+                                  dNdX,surf->rational(),&d2NdX2,&Hess))
       return false;
 
     size_t i = 1;

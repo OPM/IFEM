@@ -18,14 +18,16 @@
 
 #include "ASMu2D.h"
 #include "ItgPoint.h"
-#include "SplineUtils.h"
 #include "Vec3.h"
 
 
 LRSplineField2D::LRSplineField2D (const ASMu2D* patch,
                                   const RealArray& v, char nbasis,
                                   char cmp, const char* name)
-  : FieldBase(name), basis(patch->getBasis(nbasis)), surf(patch->getSurface())
+  : FieldBase(name),
+    basis(patch->getBasis(nbasis)),
+    surf(patch->getSurface()),
+    is_rational(patch->rational())
 {
   nno = basis->nBasisFunctions();
   nelm = basis->nElements();
@@ -50,8 +52,9 @@ LRSplineField2D::LRSplineField2D (const ASMu2D* patch,
 
 
 LRSplineField2D::LRSplineField2D (const LR::LRSplineSurface* srf,
-                                  const RealArray& v, const char* name)
-  : FieldBase(name), basis(srf), surf(srf)
+                                  const RealArray& v, bool rational,
+                                  const char* name)
+  : FieldBase(name), basis(srf), surf(srf), is_rational(rational)
 {
   values = v;
 }
@@ -71,7 +74,10 @@ double LRSplineField2D::valueFE (const ItgPoint& x) const
   int iel = basis->getElementContaining(x.u,x.v);
   auto elm = basis->getElement(iel);
   Go::BasisPtsSf spline;
-  basis->computeBasis(x.u,x.v,spline,iel);
+  if (is_rational)
+    ASMu2D::computeBasisNurbs(x.u,x.v,spline,iel,*basis);
+  else
+    basis->computeBasis(x.u,x.v,spline,iel);
 
   Vector Vnod;
   Vnod.reserve(elm->nBasisFunctions());
@@ -103,13 +109,13 @@ bool LRSplineField2D::gradFE (const ItgPoint& x, Vector& grad) const
   // Evaluate the basis functions at the given point
   Matrix Xnod, Jac, dNdX;
   const LR::Element* elm;
-  if (!LRSplineField::evalMapping(*surf,x,elm,Xnod,Jac,dNdX))
+  if (!LRSplineField::evalMapping(*surf,x,elm,Xnod,Jac,dNdX,is_rational))
     return false;
 
   // Evaluate the gradient of the solution field at the given point
   Vector Vnod;
   if (basis != surf)
-    if (!LRSplineField::evalBasis(*basis,x,elm,Xnod,Jac,dNdX))
+    if (!LRSplineField::evalBasis(*basis,x,elm,Xnod,Jac,dNdX,is_rational))
       return false;
 
   Vnod.reserve(elm->nBasisFunctions());
@@ -129,11 +135,11 @@ bool LRSplineField2D::hessianFE (const ItgPoint& x, Matrix& H) const
   Matrix Xnod, Jac, dNdX;
   const LR::Element* elm;
   Matrix3D d2NdX2, Hess;
-  if (!LRSplineField::evalMapping(*surf,x,elm,Xnod,Jac,dNdX,&d2NdX2,&Hess))
+  if (!LRSplineField::evalMapping(*surf,x,elm,Xnod,Jac,dNdX,is_rational,&d2NdX2,&Hess))
     return false;
 
   if (surf != basis)
-    if (!LRSplineField::evalBasis(*basis,x,elm,Xnod,Jac,dNdX,&d2NdX2,&Hess))
+    if (!LRSplineField::evalBasis(*basis,x,elm,Xnod,Jac,dNdX,is_rational,&d2NdX2,&Hess))
       return false;
 
   Matrix Vnod(1,elm->nBasisFunctions());
