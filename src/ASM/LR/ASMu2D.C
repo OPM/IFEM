@@ -549,7 +549,8 @@ bool ASMu2D::generateFEMTopology ()
 
   if (tensorPrjBas)
   {
-    projBasis.reset(new LR::LRSplineSurface(tensorPrjBas));
+    projBasis.reset(tensorPrjBas->rational() ? createLRNurbs(*tensorPrjBas)
+                                             : new LR::LRSplineSurface(tensorPrjBas));
     projBasis->generateIDs();
     delete tensorPrjBas;
     tensorPrjBas = nullptr;
