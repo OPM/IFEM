@@ -902,10 +902,12 @@ double ASMu2D::getParametricLength (int iel, int dir) const
   Consider introducing ASMbase::getCoefficients() to lessen confusion.
 */
 
-bool ASMu2D::getCoordinates (Matrix& X, int iel) const
+bool ASMu2D::getCoordinates (Matrix& X, unsigned char nsd,
+                             const LR::LRSplineSurface& spline,
+                             int iel)
 {
-  const LR::Element* elm = iel > 0 ? lrspline->getElement(iel-1) : nullptr;
-  X.resize(nsd, iel > 0 ? elm->nBasisFunctions() : lrspline->nBasisFunctions());
+  const LR::Element* elm = iel > 0 ? spline.getElement(iel-1) : nullptr;
+  X.resize(nsd, iel > 0 ? elm->nBasisFunctions() : spline.nBasisFunctions());
 
   // Lambda-function inserting coordinates for a given basis function
   // into the array X, accounting for the weights in case of NURBS
@@ -933,7 +935,7 @@ bool ASMu2D::getCoordinates (Matrix& X, int iel) const
     for (LR::Basisfunction* b : elm->support())
       status &= insertCoords(nsd,++inod,b);
   else
-    for (LR::Basisfunction* b : lrspline->getAllBasisfunctions())
+    for (LR::Basisfunction* b : spline.getAllBasisfunctions())
       status &= insertCoords(nsd,++inod,b);
 
   return status;
@@ -950,7 +952,7 @@ bool ASMu2D::getElementCoordinates (Matrix& X, int iel) const
     return false;
   }
 #endif
-  bool status = this->getCoordinates(X,iel);
+  bool status = this->getCoordinates(X,nsd,*lrspline,iel);
 #if SP_DEBUG > 2
   std::cout <<"\nCoordinates for element "<< iel << X << std::endl;
 #endif
