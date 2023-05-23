@@ -643,6 +643,9 @@ protected:
   //! \brief Converts current tensor spline object to LR-spline.
   LR::LRSplineSurface* createLRfromTensor();
 
+  //! \brief Converts a rational spline surface to a LR NURBS surface.
+  static LR::LRSplineSurface* createLRNurbs(const Go::SplineSurface& srf);
+
   //! \brief Generate bezier basis.
   void generateBezierBasis();
 
