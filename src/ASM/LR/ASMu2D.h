@@ -661,6 +661,9 @@ public:
   //! \brief Returns the number of elements on a boundary.
   virtual size_t getNoBoundaryElms(char lIndex, char ldim) const;
 
+  //! \brief Query whether basis is rational or not.
+  bool rational() const { return is_rational; }
+
 protected:
   std::shared_ptr<LR::LRSplineSurface> lrspline; //!< Pointer to the LR-spline surface object
   std::shared_ptr<LR::LRSplineSurface> projBasis; //!< Basis to project onto
