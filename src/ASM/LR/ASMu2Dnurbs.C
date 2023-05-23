@@ -128,7 +128,7 @@ bool ASMu2D::evaluateBasisNurbs (int iel, FiniteElement& fe,
 
 void ASMu2D::computeBasisNurbs (double u, double v,
                                 Go::BasisPtsSf& bas, int iel,
-                                const LR::LRSplineSurface& spline) const
+                                const LR::LRSplineSurface& spline)
 {
   PROFILE3("ASMu2D::compBasisN(0)");
 
@@ -150,7 +150,7 @@ void ASMu2D::computeBasisNurbs (double u, double v,
 
 void ASMu2D::computeBasisNurbs (double u, double v,
                                 Go::BasisDerivsSf& bas, int iel,
-                                const LR::LRSplineSurface& spline) const
+                                const LR::LRSplineSurface& spline)
 {
   PROFILE3("ASMu2D::compBasisN(1)");
 
@@ -178,7 +178,7 @@ void ASMu2D::computeBasisNurbs (double u, double v,
 
 void ASMu2D::computeBasisNurbs (double u, double v,
                                 Go::BasisDerivsSf2& bas, int iel,
-                                const LR::LRSplineSurface& spline) const
+                                const LR::LRSplineSurface& spline)
 {
   PROFILE3("ASMu2D::compBasisN(2)");
 
@@ -220,7 +220,7 @@ void ASMu2D::computeBasisNurbs (double u, double v,
 
 void ASMu2D::computeBasisNurbs (double u, double v,
                                 Go::BasisDerivsSf3& bas, int iel,
-                                const LR::LRSplineSurface& spline) const
+                                const LR::LRSplineSurface& spline)
 {
   PROFILE3("ASMu2D::compBasisN(3)");
 
