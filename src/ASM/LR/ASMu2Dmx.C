@@ -201,9 +201,15 @@ bool ASMu2Dmx::generateFEMTopology ()
   if (!myMLGN.empty())
     return true;
 
+  auto createLR = [this](Go::SplineSurface& srf)
+                  {
+                    return srf.rational() ? this->createLRNurbs(srf)
+                                          : new LR::LRSplineSurface(&srf);
+                  };
+
   if (tensorPrjBas)
   {
-    projBasis.reset(new LR::LRSplineSurface(tensorPrjBas));
+    projBasis.reset(createLR(*tensorPrjBas));
     delete tensorPrjBas;
     tensorPrjBas = nullptr;
   }
@@ -212,7 +218,7 @@ bool ASMu2Dmx::generateFEMTopology ()
     SurfaceVec svec = ASMmxBase::establishBases(tensorspline, ASMmxBase::Type);
     m_basis.resize(svec.size());
     for (size_t b = 0; b < svec.size(); b++)
-      m_basis[b].reset(new LR::LRSplineSurface(svec[b].get()));
+      m_basis[b].reset(createLR(*svec[b]));
 
     // we need to project on something that is not one of our bases
     if (ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS1 ||
@@ -224,14 +230,14 @@ bool ASMu2Dmx::generateFEMTopology ()
         otherBasis = ASMmxBase::raiseBasis(tensorspline);
 
       if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
-        refBasis.reset(new LR::LRSplineSurface(otherBasis));
+        refBasis.reset(createLR(*otherBasis));
         if (!projBasis)
           projBasis = m_basis.front();
         altProjBasis = refBasis;
       }
       else {
         if (!projBasis)
-          projBasis.reset(new LR::LRSplineSurface(otherBasis));
+          projBasis.reset(createLR(*otherBasis));
         refBasis = projBasis;
       }
       delete otherBasis;
@@ -242,6 +248,7 @@ bool ASMu2Dmx::generateFEMTopology ()
       refBasis = projBasis;
     }
 
+    is_rational = tensorspline->rational();
     delete tensorspline;
     tensorspline = nullptr;
   }
@@ -1183,8 +1190,8 @@ size_t ASMu2Dmx::getNoRefineElms() const
 
 void ASMu2Dmx::storeMesh (const std::string& fName, int fType) const
 {
-  auto&& writeBasis = [fName,fType](const LR::LRSplineSurface* patch,
-                                    const std::string& tag)
+  auto&& writeBasis = [fName,fType,this](std::shared_ptr<LR::LRSplineSurface> patch,
+                                         const std::string& tag)
   {
     std::string fileName = "_patch_" + tag + "_" + fName + ".eps";
     if (fType%2) {
@@ -1193,7 +1200,10 @@ void ASMu2Dmx::storeMesh (const std::string& fName, int fType) const
     }
     if ((fType/2)%2) {
       std::ofstream meshFile("physical"+fileName);
-      patch->writePostscriptElements(meshFile);
+      if (is_rational)
+        const_cast<ASMu2Dmx*>(this)->writePostscriptElementsNurbs(patch, meshFile);
+      else
+        patch->writePostscriptElements(meshFile);
     }
     if ((fType/4)%2) {
       std::ofstream meshFile("param_dot"+fileName);
@@ -1201,18 +1211,21 @@ void ASMu2Dmx::storeMesh (const std::string& fName, int fType) const
     }
     if ((fType/8)%2) {
       std::ofstream meshFile("physical_dot"+fileName);
-      patch->writePostscriptMeshWithControlPoints(meshFile);
+      if (is_rational)
+        const_cast<ASMu2Dmx*>(this)->writePostscriptMeshWithControlPointsNurbs(patch, meshFile);
+      else
+        patch->writePostscriptMeshWithControlPoints(meshFile);
     }
   };
 
   std::string btag("basis1");
   for (const auto& patch : m_basis)
   {
-    writeBasis(patch.get(), btag);
+    writeBasis(patch, btag);
     ++btag.back();
   }
-  writeBasis(projBasis.get(), "proj");
-  writeBasis(refBasis.get(), "ref");
+  writeBasis(projBasis, "proj");
+  writeBasis(refBasis, "ref");
 }
 
 

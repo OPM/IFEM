@@ -653,6 +653,14 @@ protected:
   //! \brief Generate bezier extraction operators.
   void generateBezierExtraction();
 
+  //! \brief Write NURBS elements as postscript file.
+  void writePostscriptElementsNurbs (std::shared_ptr<LR::LRSplineSurface> mesh,
+                                     std::ostream& out, bool close = true,
+                                     int nu = 2, int nv = 2);
+  //! \brief Write NURBS elements as postscript file.
+  void writePostscriptMeshWithControlPointsNurbs (std::shared_ptr<LR::LRSplineSurface> mesh,
+                                                  std::ostream& out, int nu = 2, int nv = 2);
+
 public:
   //! \brief Returns the number of elements on a boundary.
   virtual size_t getNoBoundaryElms(char lIndex, char ldim) const;
@@ -721,14 +729,6 @@ private:
   //! \param[in] derivs Derivative order of the basis functions
   bool evaluateBasisNurbs(int iel, FiniteElement& fe,
                           int derivs) const;
-
-  //! \brief Write NURBS elements as postscript file.
-  void writePostscriptElementsNurbs (std::shared_ptr<LR::LRSplineSurface> mesh,
-                                     std::ostream& out, bool close = true,
-                                     int nu = 2, int nv = 2);
-  //! \brief Write NURBS elements as postscript file.
-  void writePostscriptMeshWithControlPointsNurbs (std::shared_ptr<LR::LRSplineSurface> mesh,
-                                                  std::ostream& out, int nu = 2, int nv = 2);
 };
 
 #endif
