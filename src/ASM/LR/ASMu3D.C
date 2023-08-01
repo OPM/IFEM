@@ -1005,15 +1005,10 @@ bool ASMu3D::integrate (Integrand& integrand,
 
       // Get element volume in the parameter space
       const LR::Element* el = lrspline->getElement(iel-1);
-      double du = el->umax() - el->umin();
-      double dv = el->vmax() - el->vmin();
-      double dw = el->wmax() - el->wmin();
-      double dV = el->volume();
-      if (dV < 0.0)
-      {
-        ok = false;
-        continue;
-      }
+      double du = 0.5*(el->umax() - el->umin());
+      double dv = 0.5*(el->vmax() - el->vmin());
+      double dw = 0.5*(el->wmax() - el->wmin());
+      double dV = du*dv*dw;
 
       // Set up control point (nodal) coordinates for current element
       if (!this->getElementCoordinates(Xnod,iel))
@@ -1047,12 +1042,9 @@ bool ASMu3D::integrate (Integrand& integrand,
       }
 
       if (integrand.getIntegrandType() & Integrand::G_MATRIX)
-      {
         // Element size in parametric space
-        dXidu[0] = el->getParmin(0);
-        dXidu[1] = el->getParmin(1);
-        dXidu[2] = el->getParmin(2);
-      }
+        for (int i = 0; i < 3; i++)
+          dXidu[i] = el->getParmax(i) - el->getParmin(i);
 
       size_t nen = el->support().size();
       if (integrand.getIntegrandType() & Integrand::AVERAGE)
@@ -1068,9 +1060,9 @@ bool ASMu3D::integrate (Integrand& integrand,
             for (int i = 0; i < nGP; i++, ++ip, ++ig)
             {
               B.fillColumn(1, BN.getColumn(ig));
-              B.fillColumn(2, BdNdu.getColumn(ig)*2.0/du);
-              B.fillColumn(3, BdNdv.getColumn(ig)*2.0/dv);
-              B.fillColumn(4, BdNdw.getColumn(ig)*2.0/dw);
+              B.fillColumn(2, BdNdu.getColumn(ig)/du);
+              B.fillColumn(3, BdNdv.getColumn(ig)/dv);
+              B.fillColumn(4, BdNdw.getColumn(ig)/dw);
               this->evaluateBasis(fe, dNdu, C, B);
 
               // Compute Jacobian determinant of coordinate mapping
@@ -1117,9 +1109,9 @@ bool ASMu3D::integrate (Integrand& integrand,
 
               // Extract bezier basis functions
               B.fillColumn(1, rBN.getColumn(ig));
-              B.fillColumn(2, rBdNdu.getColumn(ig)*2.0/du);
-              B.fillColumn(3, rBdNdv.getColumn(ig)*2.0/dv);
-              B.fillColumn(4, rBdNdw.getColumn(ig)*2.0/dw);
+              B.fillColumn(2, rBdNdu.getColumn(ig)/du);
+              B.fillColumn(3, rBdNdv.getColumn(ig)/dv);
+              B.fillColumn(4, rBdNdw.getColumn(ig)/dw);
               this->evaluateBasis(fe, dNdu, C, B);
 
               // Compute Jacobian inverse and derivatives
@@ -1130,7 +1122,7 @@ bool ASMu3D::integrate (Integrand& integrand,
               X.assign(Xnod * fe.N);
 
               // Compute the reduced integration terms of the integrand
-              fe.detJxW *= 0.125*dV*wr[i]*wr[j]*wr[k];
+              fe.detJxW *= dV*wr[i]*wr[j]*wr[k];
               if (!integrand.reducedInt(*A,fe,X))
                 ok = false;
             }
@@ -1165,9 +1157,9 @@ bool ASMu3D::integrate (Integrand& integrand,
             {
               // Extract bezier basis functions
               B.fillColumn(1, BN.getColumn(ig));
-              B.fillColumn(2, BdNdu.getColumn(ig)*2.0/du);
-              B.fillColumn(3, BdNdv.getColumn(ig)*2.0/dv);
-              B.fillColumn(4, BdNdw.getColumn(ig)*2.0/dw);
+              B.fillColumn(2, BdNdu.getColumn(ig)/du);
+              B.fillColumn(3, BdNdv.getColumn(ig)/dv);
+              B.fillColumn(4, BdNdw.getColumn(ig)/dw);
               this->evaluateBasis(fe, dNdu, C, B);
 
 #ifdef SP_DEBUG
@@ -1215,7 +1207,7 @@ bool ASMu3D::integrate (Integrand& integrand,
             X.assign(Xnod * fe.N);
 
             // Evaluate the integrand and accumulate element contributions
-            fe.detJxW *= 0.125*dV*wg[i]*wg[j]*wg[k];
+            fe.detJxW *= dV*wg[i]*wg[j]*wg[k];
             PROFILE3("Integrand::evalInt");
             if (!integrand.evalInt(*A,fe,time,X))
               ok = false;
@@ -1341,12 +1333,9 @@ bool ASMu3D::integrate (Integrand& integrand, int lIndex,
       fe.h = this->getElementCorners(iEl+1,fe.XC);
 
     if (integrand.getIntegrandType() & Integrand::G_MATRIX)
-    {
       // Element size in parametric space
-      dXidu[0] = el->getParmax(0) - el->getParmin(0);
-      dXidu[1] = el->getParmax(1) - el->getParmin(1);
-      dXidu[2] = el->getParmax(2) - el->getParmin(2);
-    }
+      for (int i = 0; i < 3; i++)
+        dXidu[i] = el->getParmax(i) - el->getParmin(i);
 
     // Initialize element quantities
     size_t nen = el->support().size();

@@ -408,15 +408,10 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
       fe.iel = MLGE[iEl];
 
       // Get element volume in the parameter space
-      double du = el->umax() - el->umin();
-      double dv = el->vmax() - el->vmin();
-      double dw = el->wmax() - el->wmin();
-      double vol = el->volume();
-      if (vol < 0.0)
-      {
-        ok = false; // topology error (probably logic error)
-        continue;
-      }
+      double du = 0.5*(el->umax() - el->umin());
+      double dv = 0.5*(el->vmax() - el->vmin());
+      double dw = 0.5*(el->wmax() - el->wmin());
+      double dV = du*dv*dw;
 
       // Set up control point (nodal) coordinates for current element
       if (!this->getElementCoordinates(Xnod,iEl+1))
@@ -434,12 +429,10 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
         fe.h = this->getElementCorners(iEl+1, fe.XC);
 
       if (integrand.getIntegrandType() & Integrand::G_MATRIX)
-      {
         // Element size in parametric space
-        dXidu[0] = el->getParmin(0);
-        dXidu[1] = el->getParmin(1);
-        dXidu[2] = el->getParmin(2);
-      }
+        for (int i = 0; i < 3; i++)
+          dXidu[i] = el->getParmax(i) - el->getParmin(i);
+
       else if (integrand.getIntegrandType() & Integrand::AVERAGE)
       {
         // --- Compute average value of basis functions over the element -----
@@ -458,7 +451,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
               // and multiply by weight of current integration point
               double detJac = utl::Jacobian(Jac,fe.grad(geoBasis),
                                             Xnod,dNxdu[geoBasis-1],false);
-              double weight = 0.125*vol*wg[i]*wg[j]*wg[k];
+              double weight = dV*wg[i]*wg[j]*wg[k];
 
               // Numerical quadrature
               fe.Navg.add(fe.N,detJac*weight);
@@ -514,9 +507,9 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
             for (size_t b = 0; b < m_basis.size(); ++b) {
               Matrix B(BN[b].rows(), 4);
               B.fillColumn(1, BN[b].getColumn(ig));
-              B.fillColumn(2, BdNdu[b].getColumn(ig)*2.0/du);
-              B.fillColumn(3, BdNdv[b].getColumn(ig)*2.0/dv);
-              B.fillColumn(4, BdNdw[b].getColumn(ig)*2.0/dw);
+              B.fillColumn(2, BdNdu[b].getColumn(ig)/du);
+              B.fillColumn(3, BdNdv[b].getColumn(ig)/dv);
+              B.fillColumn(4, BdNdw[b].getColumn(ig)/dw);
 
               // Fetch basis function derivatives at current integration point
               if (use2ndDer)
@@ -542,7 +535,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
             X.assign(Xnod * fe.basis(geoBasis));
 
             // Evaluate the integrand and accumulate element contributions
-            fe.detJxW *= 0.125*vol*wg[i]*wg[j]*wg[k];
+            fe.detJxW *= dV*wg[i]*wg[j]*wg[k];
             if (!integrand.evalIntMx(*A,fe,time,X))
               ok = false;
           }
@@ -661,12 +654,9 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
       fe.h = this->getElementCorners(iEl+1,fe.XC);
 
     if (integrand.getIntegrandType() & Integrand::G_MATRIX)
-    {
       // Element size in parametric space
-      dXidu[0] = el->getParmax(0) - el->getParmin(0);
-      dXidu[1] = el->getParmax(1) - el->getParmin(1);
-      dXidu[2] = el->getParmax(2) - el->getParmin(2);
-    }
+      for (int i = 0; i < 3; i++)
+        dXidu[i] = el->getParmax(i) - el->getParmin(i);
 
     // Initialize element quantities
     LocalIntegral* A = integrand.getLocalIntegral(elem_sizes,fe.iel,true);
