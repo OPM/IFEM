@@ -1163,7 +1163,6 @@ bool ASMu2D::integrate (Integrand& integrand,
           for (int i = 0; i < ng[0]; i++, ip++)
           {
             const BasisFunctionVals& bfs = cache.getVals(iel-1,ip);
-            fe.N = bfs.N;
 
             // Compute Jacobian determinant of coordinate mapping
             // and multiply by weight of current integration point
@@ -1171,7 +1170,7 @@ bool ASMu2D::integrate (Integrand& integrand,
             double weight = dA*wg[0][i]*wg[1][j];
 
             // Numerical quadrature
-            fe.Navg.add(fe.N,detJac*weight);
+            fe.Navg.add(bfs.N,detJac*weight);
             area += detJac*weight;
           }
 
@@ -1258,8 +1257,9 @@ bool ASMu2D::integrate (Integrand& integrand,
           {
             std::cout <<"\nBasis functions at a integration point "
                       <<" : (u,v) = "<< fe.u <<" "<< fe.v;
-            for (size_t ii = 0; ii < bfs.N.size(); ii++)
-              std::cout <<'\n'<< 1+ii <<'\t' << bfs.N[ii] <<'\t'
+            for (size_t n = 1; n <= bfs.N.size(); n++)
+              std::cout <<'\n'<< n <<'\t'<< bfs.N(n) <<'\t'
+                        << bfs.dNdu(n,1) <<'\t'<< bfs.dNdu(n,2);
             std::cout << std::endl;
           }
 #endif

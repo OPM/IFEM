@@ -414,7 +414,6 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
             {
               // Fetch basis function derivatives at current integration point
               const BasisFunctionVals& bfs = myCache[geoBasis-1]->getVals(iEl,jp);
-              fe.N = bfs.N;
 
               // Compute Jacobian determinant of coordinate mapping
               // and multiply by weight of current integration point
@@ -423,7 +422,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
               double weight = dV*wg[0][i]*wg[1][j]*wg[2][k];
 
               // Numerical quadrature
-              fe.Navg.add(fe.N,detJac*weight);
+              fe.Navg.add(bfs.N,detJac*weight);
               vol += detJac*weight;
         }
 
