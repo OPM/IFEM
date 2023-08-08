@@ -1726,7 +1726,6 @@ bool ASMs2D::integrate (Integrand& integrand,
             for (int i = 0; i < ng[0]; i++, ip++)
             {
               const BasisFunctionVals& bfs = cache.getVals(iel-1,ip);
-              fe.N = bfs.N;
 
               // Compute Jacobian determinant of coordinate mapping
               // and multiply by weight of current integration point
@@ -1734,7 +1733,7 @@ bool ASMs2D::integrate (Integrand& integrand,
               double weight = dA*wg[0][i]*wg[1][j];
 
               // Numerical quadrature
-              fe.Navg.add(fe.N,detJac*weight);
+              fe.Navg.add(bfs.N,detJac*weight);
               area += detJac*weight;
             }
 
