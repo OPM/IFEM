@@ -75,6 +75,26 @@ public:
   Matrix     G;    //!< Covariant basis / Matrix used for stabilized methods
   Matrix     H;    //!< Hessian
 
+  //! \brief Matrix holding Piola-mapped basis function values.
+  //! \details The column index \a i is cummulative, e.g., if
+  //! N1 is the number of functions in basis 1 and
+  //! N2 is the number of functions in basis 2, then
+  //! 1 &le; \a i &le; N1 for the first basis and
+  //! N1+1 &le; \a i &le; N1+N2 or the second basis.
+  //! This matrix is therefore of dimension 2&times;(N1+N2).
+  Matrix P;
+
+  //! \brief Matrix holding Piola-mapped basis derivatives.
+  //! \details The column index \a i is cummulative, e.g., if
+  //! N1 is the number of functions in basis 1 and
+  //! N2 is the number of functions in basis 2, then
+  //! 1 &le; \a i &le; N1 for the first basis and
+  //! N1+1 &le; \a i &le; N1+N2 or the second basis.
+  //! This matrix is therefore of dimension 4&times;(N1+N2),
+  //! where the two first rows are the X-derivatives
+  //! and the two last rows are the Y-derivatives.
+  Matrix dPdX;
+
   // Element quantities
   short int           p;    //!< Polynomial order of the basis in u-direction
   short int           q;    //!< Polynomial order of the basis in v-direction
@@ -151,7 +171,31 @@ public:
                unsigned short int gBasis,
                const BasisValuesPtrs& bfs);
 
+  //! \brief Calculates the Piola basis functions and their derivatives.
+  //! \param[in] detJ Determinant of Jacobian of the geometry mapping
+  //! \param[in] Ji Inverse jacobian of the geometry mapping
+  //! \param[in] Xnod Matrix of element nodal coordinates
+  //! \param[in] bfs Derivatives of basis functions
+  void piolaMapping (const double detJ,
+                     const Matrix& Ji,
+                     const Matrix& Xnod,
+                     const BasisValuesPtrs& bfs);
+
+  //! \brief Calculates the Piola basis functions.
+  //! \param[in] detJ Determinant of Jacobian of the geometry mapping
+  //! \param[in] J The Jacobian of the geometry mapping
+  void piolaBasis(const double detJ, const Matrix& J);
+
 protected:
+  //! \brief Calculates the Piola derivatives.
+  //! \param[in] detJ Determinant of Jacobian of the geometry mapping
+  //! \param[in] J Jacobian of the geometry mapping
+  //! \param[in] Ji Inverse jacobian of the geometry mapping
+  //! \param[in] Xnod Matrix of element nodal coordinates
+  //! \param[in] bfs Derivatives of basis functions
+  void piolaGradient(const double detJ, const Matrix& J, const Matrix& Ji,
+                     const Matrix& Xnod, const BasisValuesPtrs& bfs);
+
   //! \brief Returns a reference to the basis function derivatives.
   virtual Matrix& grad(char b) { return b < 2 ? dNdX : dMdX[b-2]; }
   //! \brief Returns a reference to the basis function 2nd-derivatives.

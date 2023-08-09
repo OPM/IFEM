@@ -296,3 +296,73 @@ bool utl::Hessian2 (matrix4d<Real>& d3NdX3,
 
   return true;
 }
+
+
+void utl::JacobianGradient (const matrix<Real>& dudX,
+                            const matrix3d<Real>& d2Xdu2,
+                            std::vector<matrix<Real>>& dJdX)
+{
+  size_t i, j, k, dim = dudX.rows();
+
+  std::vector<matrix<Real>> dJdu(dim);
+  for (k = 1; k <= dim; ++k)
+  {
+    matrix<Real>& dJ = dJdu[k-1];
+    dJ.resize(dim, dim);
+    for (i = 1; i <= dim; ++i)
+      for (j = 1; j <= dim; ++j)
+        dJ(i,j) = d2Xdu2(i,k,j);
+  }
+
+  dJdX.resize(dim);
+  for (j = 1; j <= dim; ++j)
+  {
+    matrix<Real>& dJ = dJdX[j-1];
+    dJ.resize(dim, dim);
+    for (i = 0; i < dim; ++i)
+      dJ.add(dJdu[i], dudX(i+1,j));
+  }
+}
+
+
+void utl::detJacGradient (const matrix<Real>& J, const matrix<Real>& Ji,
+                          const matrix3d<Real>& H, std::vector<Real>& dDetdX)
+{
+  size_t dim = J.rows();
+
+  std::vector<Real> dDetdu(dim,Real(0));
+
+  if (dim == 2)
+  {
+    dDetdu[0] =   H(1,1,1)*J(2,2) + J(1,1)*H(2,2,1)
+                - H(1,2,1)*J(2,1) - J(1,2)*H(2,1,1);
+
+    dDetdu[1] =   H(1,1,2)*J(2,2) + J(1,1)*H(2,2,2)
+                - H(1,2,2)*J(2,1) - J(1,2)*H(2,1,2);
+  }
+  else if (dim == 3)
+  {
+    auto det = [&J](size_t i)
+    {
+      const size_t i1 = (i == 1 ? 2 : 1);
+      const size_t i2 = (i == 3 ? 2 : 3);
+      return J(2,i1) * J(3,i2) - J(2,i2) * J(3,i1);
+    };
+
+    auto detD = [&J,&H](size_t i, size_t d)
+    {
+      const size_t i1 = (i == 1 ? 2 : 1);
+      const size_t i2 = (i == 3 ? 2 : 3);
+      return   H(2,i1,d) * J(3,i2) + J(2,i1) * H(3,i2,d)
+             - H(2,i2,d) * J(3,i1) - J(2,i2) * H(3,i1,d);
+    };
+
+    for (size_t i = 1; i <= 3; ++i)
+      dDetdu[i-1] =    H(1,1,i) * det(1) + J(1,1) * detD(1, i)
+                    - (H(1,2,i) * det(2) + J(1,2) * detD(2, i))
+                    +  H(1,3,i) * det(3) + J(1,3) * detD(3, i);
+  }
+
+  dDetdX.resize(dim,Real(0));
+  Ji.multiply(dDetdu, dDetdX, true);
+}
