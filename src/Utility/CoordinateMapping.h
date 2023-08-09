@@ -89,6 +89,22 @@ namespace utl
   //! \return \e false if matrix dimensions are incompatible, otherwise \e true
   bool Hessian2(matrix4d<Real>& d3NdX3,
                 const matrix<Real>& Ji, const matrix4d<Real>& d3Ndu3);
+
+  //! \brief Calculates the derivatives of the Jacobian of the coordinate mapping.
+  //! \param[in] dudX Derivatives of the geometry basis
+  //! \param[in] d2Xdu2 Second order derivatives of the geometry basis
+  //! \param[out] dJdX Derivatives of the Jacobian wrt physical coordinates
+  void JacobianGradient(const matrix<Real>& dudX,
+                        const matrix3d<Real>& d2Xdu2,
+                        std::vector<matrix<Real>>& dJdX);
+
+  //! \brief Calculates the derivatives of determinant of the Jacobian.
+  //! \param[in] J Jacobian of the geometry mapping
+  //! \param[in] Ji Inverse jacobian of the geometry mapping
+  //! \param[in] H Hessian of the geometry mapping wrt parameters
+  //! \param[out] ddet Derivatives of the determinant
+  void detJacGradient(const matrix<Real>& J, const matrix<Real>& Ji,
+                      const matrix3d<Real>& H, std::vector<Real>& ddet);
 }
 
 #endif

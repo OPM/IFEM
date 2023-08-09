@@ -1,0 +1,140 @@
+\documentclass{article}
+
+% Packages
+\usepackage{amsmath,amssymb,amsfonts}
+
+\newcommand{\bxi}{\boldsymbol{\xi}}
+
+\begin{document}
+
+\section{Derivatives of the Piola mapping}
+
+\subsection{First-order derivatives}\noindent
+If we have a mapping $\mathcal{F}:\widehat{\Omega}\to\Omega$, where $\bxi\in\widehat{\Omega}$ and $\mathbf{x}\in\Omega$ are the parametric and physical coordinates, respectively, then its Jacobi-matrix is defined as
+\begin{equation}\label{Jacobi}
+\mathbf{J} = \begin{bmatrix} x_{\xi} & x_{\eta} \\ y_{\xi} & y_{\eta} \end{bmatrix}
+\qquad\text{or}\qquad
+\mathbf{J} = \begin{bmatrix} x_{\xi} & x_{\eta} & x_{\zeta} \\ y_{\xi} & y_{\eta} & y_{\zeta} \\ z_{\xi} & z_{\eta} & z_{\zeta} \end{bmatrix}
+\end{equation}
+We denote the Jacobian as $J = \det(\mathbf{J})$, and it is given by the determinant formula:
+\begin{equation}\label{Jacobian}
+J = \begin{cases}
+x_{\xi}y_{\eta}-x_{\eta}y_{\xi}																	&,\quad\bxi = (\xi,\eta) \\
+x_{\xi}(y_{\eta}z_{\zeta}-y_{\zeta}z_{\eta})-x_{\eta}(y_{\xi}z_{\zeta}-y_{\zeta}z_{\xi})+x_{\zeta}(y_{\xi}z_{\eta}-y_{\eta}z_{\xi})	&,\quad\bxi = (\xi,\eta,\zeta)
+\end{cases}
+\end{equation}
+From the general inversion matrix formula using the transpose of cofactor matrices, we can define the inverse of the Jacobi-matrix in two ways:
+\begin{equation}\label{InvJacobi}
+\mathbf{J}^{-1} = \begin{cases} \begin{bmatrix} \xi_x & \xi_y \\ \eta_x & \eta_y \end{bmatrix} =
+\frac{1}{J}\begin{bmatrix} y_{\eta} & -x_{\eta} \\ -y_{\xi} & x_{\xi} \end{bmatrix}	&,\quad\bxi = (\xi,\eta) \\
+\begin{bmatrix} \xi_x & \xi_y & \xi_z \\ \eta_x & \eta_y & \eta_z \\ \zeta_x & \zeta_y & \zeta_z \end{bmatrix} =
+\frac{1}{J}\begin{bmatrix}
+\begin{vmatrix}  y_{\eta} & y_{\zeta} \\ z_{\eta} & z_{\zeta} \end{vmatrix} &
+-\begin{vmatrix}  x_{\eta} & x_{\zeta} \\ z_{\eta} & z_{\zeta} \end{vmatrix} &
+\begin{vmatrix}  x_{\eta} & x_{\zeta} \\ y_{\eta} & y_{\zeta} \end{vmatrix} \\
+-\begin{vmatrix}  y_{\xi} & y_{\zeta} \\ z_{\xi} & z_{\zeta} \end{vmatrix} &
+\begin{vmatrix}  x_{\xi} & x_{\zeta} \\ z_{\xi} & z_{\zeta} \end{vmatrix} &
+-\begin{vmatrix}  x_{\xi} & x_{\zeta} \\ y_{\xi} & y_{\zeta} \end{vmatrix} \\
+\begin{vmatrix}  y_{\xi} & y_{\eta} \\ z_{\xi} & z_{\eta} \end{vmatrix} &
+-\begin{vmatrix}  x_{\xi} & x_{\eta} \\ z_{\xi} & z_{\eta} \end{vmatrix} &
+\begin{vmatrix}  x_{\xi} & x_{\eta} \\ y_{\xi} & y_{\eta} \end{vmatrix}
+\end{bmatrix}	&,\quad\bxi = (\xi,\eta,\zeta)
+\end{cases}
+\end{equation}
+From the chain rule, we have a universal formula for the total derivative:
+\begin{subequations}\label{Mapped_Gradient}
+\begin{align}
+&\nabla_{x}f = \begin{bmatrix} f_x \\ f_y \end{bmatrix} = \begin{bmatrix} f_{\xi}\xi_x + f_{\eta}\eta_x \\ f_{\xi}\xi_y + f_{\eta}\eta_y \end{bmatrix} = \begin{bmatrix} \xi_x & \eta_x \\ \xi_y & \eta_y \end{bmatrix}\begin{bmatrix} f_{\xi} \\ f_{\eta} \end{bmatrix} = \mathbf{J}^{-T}\nabla_{\xi}f		&&,\quad\bxi = (\xi,\eta) \\
+&\nabla_{x}f = \begin{bmatrix} f_x \\ f_y \\ f_z \end{bmatrix} = \begin{bmatrix} f_{\xi}\xi_x + f_{\eta}\eta_x + f_{\zeta}\zeta_x \\ f_{\xi}\xi_y + f_{\eta}\eta_y + f_{\zeta}\zeta_y \\ f_{\xi}\xi_z + f_{\eta}\eta_z + f_{\zeta}\zeta_z \end{bmatrix} = \begin{bmatrix} \xi_x & \eta_x & \zeta_x \\ \xi_y & \eta_y & \zeta_y \\ \xi_z & \eta_z & \zeta_z \end{bmatrix}\begin{bmatrix} f_{\xi} \\ f_{\eta} \\ f_{\zeta} \end{bmatrix} = \mathbf{J}^{-T}\nabla_{\xi}f	&&,\quad\bxi = (\xi,\eta,\zeta)
+\end{align}
+\end{subequations}
+The Piola mapping is defined as $\mathbf{J}/J$. Its first-order derivatives are
+\begin{equation}
+\frac{\partial}{\partial x_i}\left[\frac{1}{J}\mathbf{J}\right] = -\frac{J_{x_i}}{J^2}\mathbf{J}+\frac{1}{J}\mathbf{J}_{x_i} \qquad,\qquad x_i = \{x,y,z\}
+\end{equation}
+In 2D ($x_i = \{x,y\}$), the components of the first-order derivatives are
+\begin{subequations}
+\begin{align}
+&\mathbf{J}_{x_i} = \mathbf{J}_{\xi}\xi_{x_i} + \mathbf{J}_{\eta}\eta_{x_i} \\
+&J_{x_i} = J_{\xi}\xi_{x_i}+J_{\eta}\eta_{x_i} \\
+&J_{\xi} = (x_{\xi}y_{\eta}-x_{\eta}y_{\xi})_{\xi} \\
+&J_{\eta} = (x_{\xi}y_{\eta}-x_{\eta}y_{\xi})_{\eta}
+\end{align}
+\end{subequations}
+Likewise, in 3D ($x_i = \{x,y,z\}$), the components of the first-order derivatives are
+\begin{subequations}
+\begin{align}
+\mathbf{J}_{x_i}	&= \mathbf{J}_{\xi}\xi_{x_i} + \mathbf{J}_{\eta}\eta_{x_i}+ \mathbf{J}_{\zeta}\zeta_{x_i} \\
+J_{x_i} 		&= J_{\xi}\xi_{x_i}+J_{\eta}\eta_{x_i}+J_{\zeta}\zeta_{x_i} \\
+J_{\xi} 		&= x_{\xi\xi}(y_{\eta}z_{\zeta}-y_{\zeta}z_{\eta})+x_{\xi}(y_{\eta}z_{\zeta}-y_{\zeta}z_{\eta})_{\xi}-x_{\xi\eta}(y_{\xi}z_{\zeta}-y_{\zeta}z_{\xi}) \notag \\
+			&\hspace{6mm}-x_{\eta}(y_{\xi}z_{\zeta}-y_{\zeta}z_{\xi})_{\xi}+x_{\xi\zeta}(y_{\xi}z_{\eta}-y_{\eta}z_{\xi})+x_{\zeta}(y_{\xi}z_{\eta}-y_{\eta}z_{\xi})_{\xi} \\
+J_{\eta}		&= x_{\xi\eta}(y_{\eta}z_{\zeta}-y_{\zeta}z_{\eta})+x_{\xi}(y_{\eta}z_{\zeta}-y_{\zeta}z_{\eta})_{\eta}-x_{\eta\eta}(y_{\xi}z_{\zeta}-y_{\zeta}z_{\xi}) \notag \\
+			&\hspace{6mm}-x_{\eta}(y_{\xi}z_{\zeta}-y_{\zeta}z_{\xi})_{\eta}+x_{\eta\zeta}(y_{\xi}z_{\eta}-y_{\eta}z_{\xi})+x_{\zeta}(y_{\xi}z_{\eta}-y_{\eta}z_{\xi})_{\eta} \\
+J_{\zeta}		&= x_{\xi\zeta}(y_{\eta}z_{\zeta}-y_{\zeta}z_{\eta})+x_{\xi}(y_{\eta}z_{\zeta}-y_{\zeta}z_{\eta})_{\zeta}-x_{\eta\zeta}(y_{\xi}z_{\zeta}-y_{\zeta}z_{\xi}) \notag \\
+			&\hspace{6mm}-x_{\eta}(y_{\xi}z_{\zeta}-y_{\zeta}z_{\xi})_{\zeta}+x_{\zeta\zeta}(y_{\xi}z_{\eta}-y_{\eta}z_{\xi})+x_{\zeta}(y_{\xi}z_{\eta}-y_{\eta}z_{\xi})_{\zeta}
+\end{align}
+\end{subequations}
+Imagine now that we have a vector function on the form
+\begin{equation*}
+\begin{bmatrix} u \\ v \end{bmatrix} = \frac{1}{J}\mathbf{J}\begin{bmatrix} \widehat{u} \\ \widehat{v} \end{bmatrix}
+\qquad\text{or}\qquad
+\begin{bmatrix} u \\ v \\ w \end{bmatrix} = \frac{1}{J}\mathbf{J}\begin{bmatrix} \widehat{u} \\ \widehat{v} \\ \widehat{w} \end{bmatrix}
+\end{equation*}
+By using the product rule, we obtain
+\begin{subequations}
+\begin{align}
+&\begin{bmatrix} u \\ v \end{bmatrix}_{x_i} = \left(-\frac{J_{x_i}}{J^2}\mathbf{J}+\frac{1}{J}\mathbf{J}_{x_i}\right)\begin{bmatrix} \widehat{u} \\ \widehat{v} \end{bmatrix} + \frac{1}{J}\mathbf{J}\begin{bmatrix} \widehat{u}_{\xi} & \widehat{u}_{\eta} \\ \widehat{v}_{\xi} & \widehat{v}_{\eta} \end{bmatrix}\begin{bmatrix} \xi \\ \eta \end{bmatrix}_{x_i} \\
+&\begin{bmatrix} u \\ v \\ w \end{bmatrix}_{x_i} = \left(-\frac{J_{x_i}}{J^2}\mathbf{J}+\frac{1}{J}\mathbf{J}_{x_i}\right)\begin{bmatrix} \widehat{u} \\ \widehat{v} \\ \widehat{w} \end{bmatrix} + \frac{1}{J}\mathbf{J}\begin{bmatrix} \widehat{u}_{\xi} & \widehat{u}_{\eta} & \widehat{u}_{\zeta} \\ \widehat{v}_{\xi} & \widehat{v}_{\eta} & \widehat{v}_{\zeta} \\ \widehat{w}_{\xi} & \widehat{w}_{\eta} & \widehat{w}_{\zeta} \end{bmatrix}\begin{bmatrix} \xi \\ \eta \\ \zeta \end{bmatrix}_{x_i}
+\end{align}
+\end{subequations}
+%
+%
+\subsection{Second-order derivatives}\noindent
+From the double product rule, the second-order derivative is given by
+\begin{equation}
+\left[\frac{1}{J}\mathbf{J}\right]_{x_i x_i} = \left[-\frac{J_{x_i x_i}}{J^2}+\frac{2J_{x_i}^2}{J^3}\right]\mathbf{J}-2\frac{J_{x_i}}{J^2}\mathbf{J}_{x_i}+\frac{1}{J}\mathbf{J}_{x_i x_i} \qquad,\qquad x_i = \{x,y,z\}
+\end{equation}
+As we see from these formulas, the real objective is finding $J_{xx}$, $J_{yy}$, $J_{zz}$, $\mathbf{J}_{xx}$, $\mathbf{J}_{yy}$ and $\mathbf{J}_{zz}$. We start with $\mathbf{J}$ and use the total derivative rule:
+\begin{subequations}
+\begin{align}
+&\mathbf{J}_{x_i x_i} = (\mathbf{J}_{\xi\xi}\xi_{x_i}+\mathbf{J}_{\xi\eta}\eta_{x_i})\xi_{x_i}+\mathbf{J}_{\xi}\xi_{x_i x_i}+(\mathbf{J}_{\xi\eta}\xi_{x_i}+\mathbf{J}_{\eta\eta}\eta_{x_i})\eta_{x_i}+\mathbf{J}_{\eta}\eta_{x_i x_i} \\
+&\mathbf{J}_{x_i x_i} = (\mathbf{J}_{\xi\xi}\xi_{x_i}+\mathbf{J}_{\xi\eta}\eta_{x_i}+\mathbf{J}_{\xi\zeta}\zeta_{x_i})\xi_{x_i}+\mathbf{J}_{\xi}\xi_{x_i x_i}+(\mathbf{J}_{\xi\eta}\xi_{x_i}+\mathbf{J}_{\eta\eta}\eta_{x_i}+\mathbf{J}_{\eta\zeta}\zeta_{x_i})\eta_{x_i} \notag \\
+&\hspace{12mm}+\mathbf{J}_{\eta}\eta_{x_i x_i}+(\mathbf{J}_{\xi\zeta}\xi_{x_i}+\mathbf{J}_{\eta\zeta}\eta_{x_i}+\mathbf{J}_{\zeta\zeta}\zeta_{x_i})\zeta_{x_i}+\mathbf{J}_{\zeta}\zeta_{x_i x_i}
+\end{align}
+\end{subequations}
+In 2D ($x_i = \{x,y\}$), the second-order derivative determinants become
+\begin{subequations}
+\begin{align}
+J_{x_i x_i}	&= \left(J_{\xi\xi}\xi_{x_i}+J_{\xi\eta}\eta_{x_i}\right)\xi_{x_i}+J_{\xi}\xi_{x_i x_i}+\left(J_{\xi\eta}\xi_{x_i}+J_{\eta\eta}\eta_{x_i}\right)\eta_{x_i}+J_{\eta}\eta_{x_i x_i} \\
+J_{\xi\xi} 	&= (x_{\xi}y_{\eta}-x_{\eta}y_{\xi})_{\xi\xi} \\
+J_{\xi\eta} 	&= (x_{\xi}y_{\eta}-x_{\eta}y_{\xi})_{\xi\eta} \\
+J_{\eta\eta} 	&= (x_{\xi}y_{\eta}-x_{\eta}y_{\xi})_{\eta\eta}
+\end{align}
+\end{subequations}
+Likewise, in 3D ($x_i = \{x,y,z\}$), the second-order derivative determinants become
+\begin{subequations}
+\begin{align}
+J_{x_i x_i}		&= \left(J_{\xi\xi}\xi_{x_i}+J_{\xi\eta}\eta_{x_i}+J_{\xi\zeta}\zeta_{x_i}\right)\xi_{x_i}+J_{\xi}\xi_{x_i x_i}+\left(J_{\xi\eta}\xi_{x_i}+J_{\eta\eta}\eta_{x_i}+J_{\eta\zeta}\zeta_{x_i}\right)\eta_{x_i} \notag \\
+			&\hspace{6mm}+J_{\eta}\eta_{x_i x_i}+\left(J_{\xi\zeta}\xi_{x_i}+J_{\eta\zeta}\eta_{x_i}+J_{\zeta\zeta}\zeta_{x_i}\right)\zeta_{x_i}+J_{\zeta}\zeta_{x_i x_i} \\
+J_{\xi\xi}		&= x_{\xi\xi\xi}(y_{\eta}z_{\zeta}-y_{\zeta}z_{\eta})+2x_{\xi\xi}(y_{\eta}z_{\zeta}-y_{\zeta}z_{\eta})_{\xi}+x_{\xi}(y_{\eta}z_{\zeta}-y_{\zeta}z_{\eta})_{\xi\xi} \notag \\
+			&\hspace{6mm}-x_{\xi\xi\eta}(y_{\xi}z_{\zeta}-y_{\zeta}z_{\xi})-2x_{\xi\eta}(y_{\xi}z_{\zeta}-y_{\zeta}z_{\xi})_{\xi}-x_{\eta}(y_{\xi}z_{\zeta}-y_{\zeta}z_{\xi})_{\xi\xi} \notag \\
+			&\hspace{6mm}+x_{\xi\xi\zeta}(y_{\xi}z_{\eta}-y_{\eta}z_{\xi})+2x_{\xi\zeta}(y_{\xi}z_{\eta}-y_{\eta}z_{\xi})_{\xi}+x_{\zeta}(y_{\xi}z_{\eta}-y_{\eta}z_{\xi})_{\xi\xi} \\
+J_{\eta\eta}		&= x_{\xi\eta\eta}(y_{\eta}z_{\zeta}-y_{\zeta}z_{\eta})+2x_{\xi\eta}(y_{\eta}z_{\zeta}-y_{\zeta}z_{\eta})_{\eta}+x_{\xi}(y_{\eta}z_{\zeta}-y_{\zeta}z_{\eta})_{\eta\eta} \notag \\
+			&\hspace{6mm}-x_{\eta\eta\eta}(y_{\xi}z_{\zeta}-y_{\zeta}z_{\xi})-2x_{\eta\eta}(y_{\xi}z_{\zeta}-y_{\zeta}z_{\xi})_{\eta}-x_{\eta}(y_{\xi}z_{\zeta}-y_{\zeta}z_{\xi})_{\eta\eta} \notag \\
+			&\hspace{6mm}+x_{\eta\eta\zeta}(y_{\xi}z_{\eta}-y_{\eta}z_{\xi})+2x_{\eta\zeta}(y_{\xi}z_{\eta}-y_{\eta}z_{\xi})_{\eta}+x_{\zeta}(y_{\xi}z_{\eta}-y_{\eta}z_{\xi})_{\eta\eta} \\
+J_{\zeta\zeta}	&= x_{\xi\zeta\zeta}(y_{\eta}z_{\zeta}-y_{\zeta}z_{\eta})+2x_{\xi\zeta}(y_{\eta}z_{\zeta}-y_{\zeta}z_{\eta})_{\zeta}+x_{\xi}(y_{\eta}z_{\zeta}-y_{\zeta}z_{\eta})_{\zeta\zeta} \notag \\
+			&\hspace{6mm}-x_{\eta\zeta\zeta}(y_{\xi}z_{\zeta}-y_{\zeta}z_{\xi})-2x_{\eta\zeta}(y_{\xi}z_{\zeta}-y_{\zeta}z_{\xi})_{\zeta}-x_{\eta}(y_{\xi}z_{\zeta}-y_{\zeta}z_{\xi})_{\zeta\zeta} \notag \\
+			&\hspace{6mm}+x_{\zeta\zeta\zeta}(y_{\xi}z_{\eta}-y_{\eta}z_{\xi})+2x_{\zeta\zeta}(y_{\xi}z_{\eta}-y_{\eta}z_{\xi})_{\zeta}+x_{\zeta}(y_{\xi}z_{\eta}-y_{\eta}z_{\xi})_{\zeta\zeta} \\
+J_{\xi\eta}		&= x_{\xi\xi\eta}(y_{\eta}z_{\zeta}-y_{\zeta}z_{\eta})+x_{\xi\xi}(y_{\eta}z_{\zeta}-y_{\zeta}z_{\eta})_{\eta}+x_{\xi\eta}(y_{\eta}z_{\zeta}-y_{\zeta}z_{\eta})_{\xi}+x_{\xi}(y_{\eta}z_{\zeta}-y_{\zeta}z_{\eta})_{\eta\eta} \notag \\
+			&\hspace{6mm}-x_{\xi\eta\eta}(y_{\xi}z_{\zeta}-y_{\zeta}z_{\xi})-x_{\xi\eta}(y_{\xi}z_{\zeta}-y_{\zeta}z_{\xi})_{\eta}-x_{\eta\eta}(y_{\xi}z_{\zeta}-y_{\zeta}z_{\xi})_{\xi}-x_{\eta}(y_{\xi}z_{\zeta}-y_{\zeta}z_{\xi})_{\xi\eta} \notag \\
+			&\hspace{6mm}+x_{\xi\eta\zeta}(y_{\xi}z_{\eta}-y_{\eta}z_{\xi})+x_{\xi\zeta}(y_{\xi}z_{\eta}-y_{\eta}z_{\xi})_{\eta}+x_{\eta\zeta}(y_{\xi}z_{\eta}-y_{\eta}z_{\xi})_{\xi}+x_{\zeta}(y_{\xi}z_{\eta}-y_{\eta}z_{\xi\xi\eta}) \\
+J_{\xi\zeta}		&= x_{\xi\xi\zeta}(y_{\eta}z_{\zeta}-y_{\zeta}z_{\eta})+x_{\xi\xi}(y_{\eta}z_{\zeta}-y_{\zeta}z_{\eta})_{\zeta}+x_{\xi\zeta}(y_{\eta}z_{\zeta}-y_{\zeta}z_{\eta})_{\xi}+x_{\xi}(y_{\eta}z_{\zeta}-y_{\zeta}z_{\eta})_{\xi\zeta} \notag \\
+			&\hspace{6mm}-x_{\xi\eta\zeta}(y_{\xi}z_{\zeta}-y_{\zeta}z_{\xi})-x_{\xi\eta}(y_{\xi}z_{\zeta}-y_{\zeta}z_{\xi})_{\zeta}-x_{\eta\zeta}(y_{\xi}z_{\zeta}-y_{\zeta}z_{\xi})_{\xi}-x_{\eta}(y_{\xi}z_{\zeta}-y_{\zeta}z_{\xi})_{\xi\zeta} \notag \\
+			&\hspace{6mm}+x_{\xi\zeta\zeta}(y_{\xi}z_{\eta}-y_{\eta}z_{\xi})+x_{\xi\zeta}(y_{\xi}z_{\eta}-y_{\eta}z_{\xi})_{\zeta}+x_{\zeta\zeta}(y_{\xi}z_{\eta}-y_{\eta}z_{\xi})_{\xi}+x_{\zeta}(y_{\xi}z_{\eta}-y_{\eta}z_{\xi})_{\xi\zeta} \\
+J_{\eta\zeta}	& = x_{\xi\eta\zeta}(y_{\eta}z_{\zeta}-y_{\zeta}z_{\eta})+x_{\xi\eta}(y_{\eta}z_{\zeta}-y_{\zeta}z_{\eta})_{\zeta}+x_{\xi\zeta}(y_{\eta}z_{\zeta}-y_{\zeta}z_{\eta})_{\eta}+x_{\xi}(y_{\eta}z_{\zeta}-y_{\zeta}z_{\eta})_{\eta\zeta} \notag \\
+			&\hspace{6mm}-x_{\eta\eta\zeta}(y_{\xi}z_{\zeta}-y_{\zeta}z_{\xi})-x_{\eta\eta}(y_{\xi}z_{\zeta}-y_{\zeta}z_{\xi})_{\zeta}-x_{\eta\zeta}(y_{\xi}z_{\zeta}-y_{\zeta}z_{\xi})_{\eta}-x_{\eta}(y_{\xi}z_{\zeta}-y_{\zeta}z_{\xi})_{\eta\zeta} \notag \\
+			&\hspace{6mm}+x_{\eta\zeta\zeta}(y_{\xi}z_{\eta}-y_{\eta}z_{\xi})+x_{\eta\zeta}(y_{\xi}z_{\eta}-y_{\eta}z_{\xi})_{\zeta}+x_{\zeta\zeta}(y_{\xi}z_{\eta}-y_{\eta}z_{\xi})_{\eta}+x_{\zeta}(y_{\xi}z_{\eta}-y_{\eta}z_{\xi})_{\zeta\zeta}
+\end{align}
+\end{subequations}
+\clearpage\noindent
+\end{document}
