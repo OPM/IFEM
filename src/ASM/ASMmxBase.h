@@ -76,8 +76,10 @@ public:
   static char  geoBasis; //!< 1-based index of basis representing the geometry
 
 protected:
-  typedef std::vector<std::shared_ptr<Go::SplineSurface>> SurfaceVec; //!< Convenience type
-  typedef std::vector<std::shared_ptr<Go::SplineVolume>> VolumeVec; //!< Convenience type
+  typedef std::shared_ptr<Go::SplineSurface> SurfacePtr; //!< Pointer to spline
+  typedef std::shared_ptr<Go::SplineVolume>  VolumePtr;  //!< Pointer to spline
+  typedef std::vector<SurfacePtr> SurfaceVec; //!< Convenience type
+  typedef std::vector<VolumePtr>  VolumeVec;  //!< Convenience type
 
   //! \brief Establish mixed bases in 2D.
   //! \param[in] surf The base basis to use
@@ -95,6 +97,12 @@ protected:
   static Go::SplineSurface* raiseBasis(Go::SplineSurface* surf);
   //! \brief Returns a C^p-1 basis of one degree higher than \a *svol.
   static Go::SplineVolume*  raiseBasis(Go::SplineVolume* svol);
+
+  //! \brief Mask off DOFs not residing on the specified basis
+  //! \param[in] dofs Encoded DOF indices (like 123456 meaning dofs 1 to 6)
+  //! \param[in] basis Which basis to return DOF indices for
+  //! \return Encoded DOF indices related to the specified basis only
+  int maskDOFs(int dofs, char basis) const;
 
 private:
   std::vector<int> MADOF; //!< Matrix of accumulated DOFs for this patch

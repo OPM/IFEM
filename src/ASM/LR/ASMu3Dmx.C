@@ -315,6 +315,47 @@ bool ASMu3Dmx::generateFEMTopology ()
 }
 
 
+void ASMu3Dmx::constrainFace (int dir, bool open, int dof, int code, char basis)
+{
+  if (basis > 0)
+    this->ASMu3D::constrainFace(dir,open,dof,code,basis);
+  else for (basis = 1; basis <= (char)nfx.size(); basis++)
+  {
+    int basisDofs = this->maskDOFs(dof,basis);
+    if (basisDofs > 0)
+      this->ASMu3D::constrainFace(dir,open,basisDofs,code,basis);
+  }
+}
+
+
+void ASMu3Dmx::constrainEdge (int lEdge, bool open, int dof,
+                              int code, char basis)
+{
+  if (basis > 0)
+    this->ASMu3D::constrainEdge(lEdge,open,dof,code,basis);
+  else for (basis = 1; basis <= (char)nfx.size(); basis++)
+  {
+    int basisDofs = this->maskDOFs(dof,basis);
+    if (basisDofs > 0)
+      this->ASMu3D::constrainEdge(lEdge,open,basisDofs,code,basis);
+  }
+}
+
+
+void ASMu3Dmx::constrainCorner (int I, int J, int K, int dof,
+                                int code, char basis)
+{
+  if (basis > 0)
+    this->ASMu3D::constrainCorner(I,J,K,dof,code,basis);
+  else for (basis = 1; basis <= (char)nfx.size(); basis++)
+  {
+    int basisDofs = this->maskDOFs(dof,basis);
+    if (basisDofs > 0)
+      this->ASMu3D::constrainCorner(I,J,K,basisDofs,code,basis);
+  }
+}
+
+
 bool ASMu3Dmx::integrate (Integrand& integrand,
                           GlobalIntegral& glInt,
                           const TimeDomain& time)

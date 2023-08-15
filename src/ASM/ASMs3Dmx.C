@@ -355,6 +355,47 @@ bool ASMs3Dmx::generateFEMTopology ()
 }
 
 
+void ASMs3Dmx::constrainFace (int dir, bool open, int dof, int code, char basis)
+{
+  if (basis > 0)
+    this->ASMs3D::constrainFace(dir,open,dof,code,basis);
+  else for (basis = 1; basis <= (char)nfx.size(); basis++)
+  {
+    int basisDofs = this->maskDOFs(dof,basis);
+    if (basisDofs > 0)
+      this->ASMs3D::constrainFace(dir,open,basisDofs,code,basis);
+  }
+}
+
+
+void ASMs3Dmx::constrainEdge (int lEdge, bool open, int dof,
+                              int code, char basis)
+{
+  if (basis > 0)
+    this->ASMs3D::constrainEdge(lEdge,open,dof,code,basis);
+  else for (basis = 1; basis <= (char)nfx.size(); basis++)
+  {
+    int basisDofs = this->maskDOFs(dof,basis);
+    if (basisDofs > 0)
+      this->ASMs3D::constrainEdge(lEdge,open,basisDofs,code,basis);
+  }
+}
+
+
+void ASMs3Dmx::constrainCorner (int I, int J, int K, int dof,
+                                int code, char basis)
+{
+  if (basis > 0)
+    this->ASMs3D::constrainCorner(I,J,K,dof,code,basis);
+  else for (basis = 1; basis <= (char)nfx.size(); basis++)
+  {
+    int basisDofs = this->maskDOFs(dof,basis);
+    if (basisDofs > 0)
+      this->ASMs3D::constrainCorner(I,J,K,basisDofs,code,basis);
+  }
+}
+
+
 bool ASMs3Dmx::connectPatch (int face, ASM3D& neighbor, int nface, int norient,
                              int basis, bool coordCheck, int thick)
 {
@@ -476,6 +517,79 @@ bool ASMs3Dmx::getSize (int& n1, int& n2, int& n3, int basis) const
   n2 = m_basis[basis-1]->numCoefs(1);
   n3 = m_basis[basis-1]->numCoefs(2);
   return true;
+}
+
+
+#define DERR -999.99
+
+double ASMs3Dmx::getParametricVolume (int iel) const
+{
+#ifdef INDEX_CHECK
+  if (iel < 1 || (size_t)iel > MNPC.size())
+  {
+    std::cerr <<" *** ASMs3Dmx::getParametricVolume: Element index "<< iel
+	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
+    return DERR;
+  }
+#endif
+  if (MNPC[iel-1].empty())
+    return 0.0;
+
+  int inod1 = MNPC[iel-1][std::accumulate(elem_size.begin(),
+                                          elem_size.begin()+geoBasis, -1)];
+#ifdef INDEX_CHECK
+  if (inod1 < 0 || (size_t)inod1 >= nnod)
+  {
+    std::cerr <<" *** ASMs3Dmx::getParametricVolume: Node index "<< inod1
+	      <<" out of range [0,"<< nnod <<">."<< std::endl;
+    return DERR;
+  }
+#endif
+
+  double du = svol->knotSpan(0,nodeInd[inod1].I);
+  double dv = svol->knotSpan(1,nodeInd[inod1].J);
+  double dw = svol->knotSpan(2,nodeInd[inod1].K);
+  return du*dv*dw;
+}
+
+
+double ASMs3Dmx::getParametricArea (int iel, int dir) const
+{
+#ifdef INDEX_CHECK
+  if (iel < 1 || (size_t)iel > MNPC.size())
+  {
+    std::cerr <<" *** ASMs3Dmx::getParametricArea: Element index "<< iel
+	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
+    return DERR;
+  }
+#endif
+  if (MNPC[iel-1].empty())
+    return 0.0;
+
+  int inod1 = MNPC[iel-1][std::accumulate(elem_size.begin(),
+                                          elem_size.begin()+geoBasis, -1)];
+#ifdef INDEX_CHECK
+  if (inod1 < 0 || (size_t)inod1 >= nnod)
+  {
+    std::cerr <<" *** ASMs3Dmx::getParametricArea: Node index "<< inod1
+	      <<" out of range [0,"<< nnod <<">."<< std::endl;
+    return DERR;
+  }
+#endif
+
+  const int ni = nodeInd[inod1].I;
+  const int nj = nodeInd[inod1].J;
+  const int nk = nodeInd[inod1].K;
+  switch (dir)
+    {
+    case 1: return svol->knotSpan(1,nj)*svol->knotSpan(2,nk);
+    case 2: return svol->knotSpan(0,ni)*svol->knotSpan(2,nk);
+    case 3: return svol->knotSpan(0,ni)*svol->knotSpan(1,nj);
+    }
+
+  std::cerr <<" *** ASMs3Dmx::getParametricArea: Invalid face direction "
+	    << dir << std::endl;
+  return DERR;
 }
 
 
@@ -1254,79 +1368,6 @@ void ASMs3Dmx::generateThreadGroups (const Integrand& integrand, bool silence,
 
   this->ASMs3D::generateThreadGroups(p[0]-1, p[1]-1, p[2]-1,
                                      silence, ignoreGlobalLM);
-}
-
-
-#define DERR -999.99
-
-double ASMs3Dmx::getParametricVolume (int iel) const
-{
-#ifdef INDEX_CHECK
-  if (iel < 1 || (size_t)iel > MNPC.size())
-  {
-    std::cerr <<" *** ASMs3Dmx::getParametricVolume: Element index "<< iel
-	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
-    return DERR;
-  }
-#endif
-  if (MNPC[iel-1].empty())
-    return 0.0;
-
-  int inod1 = MNPC[iel-1][std::accumulate(elem_size.begin(),
-                                          elem_size.begin()+geoBasis, -1)];
-#ifdef INDEX_CHECK
-  if (inod1 < 0 || (size_t)inod1 >= nnod)
-  {
-    std::cerr <<" *** ASMs3Dmx::getParametricVolume: Node index "<< inod1
-	      <<" out of range [0,"<< nnod <<">."<< std::endl;
-    return DERR;
-  }
-#endif
-
-  double du = svol->knotSpan(0,nodeInd[inod1].I);
-  double dv = svol->knotSpan(1,nodeInd[inod1].J);
-  double dw = svol->knotSpan(2,nodeInd[inod1].K);
-  return du*dv*dw;
-}
-
-
-double ASMs3Dmx::getParametricArea (int iel, int dir) const
-{
-#ifdef INDEX_CHECK
-  if (iel < 1 || (size_t)iel > MNPC.size())
-  {
-    std::cerr <<" *** ASMs3Dmx::getParametricArea: Element index "<< iel
-	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
-    return DERR;
-  }
-#endif
-  if (MNPC[iel-1].empty())
-    return 0.0;
-
-  int inod1 = MNPC[iel-1][std::accumulate(elem_size.begin(),
-                                          elem_size.begin()+geoBasis, -1)];
-#ifdef INDEX_CHECK
-  if (inod1 < 0 || (size_t)inod1 >= nnod)
-  {
-    std::cerr <<" *** ASMs3Dmx::getParametricArea: Node index "<< inod1
-	      <<" out of range [0,"<< nnod <<">."<< std::endl;
-    return DERR;
-  }
-#endif
-
-  const int ni = nodeInd[inod1].I;
-  const int nj = nodeInd[inod1].J;
-  const int nk = nodeInd[inod1].K;
-  switch (dir)
-    {
-    case 1: return svol->knotSpan(1,nj)*svol->knotSpan(2,nk);
-    case 2: return svol->knotSpan(0,ni)*svol->knotSpan(2,nk);
-    case 3: return svol->knotSpan(0,ni)*svol->knotSpan(1,nj);
-    }
-
-  std::cerr <<" *** ASMs3Dmx::getParametricArea: Invalid face direction "
-	    << dir << std::endl;
-  return DERR;
 }
 
 

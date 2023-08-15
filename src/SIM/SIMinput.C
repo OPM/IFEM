@@ -508,7 +508,7 @@ bool SIMinput::parseBCTag (const TiXmlElement* elem)
   else if (!strcasecmp(elem->Value(),"dirichlet") && !ignoreDirichlet)
   {
     const TiXmlNode* dval = nullptr;
-    int comp = 0, symm = 0, basis = 1;
+    int comp = 0, symm = 0, basis = 0;
     std::string set, type, axes;
     utl::getAttribute(elem,"set",set);
     utl::getAttribute(elem,"type",type,true);

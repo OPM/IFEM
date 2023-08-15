@@ -312,6 +312,32 @@ bool ASMu2Dmx::generateFEMTopology ()
 }
 
 
+void ASMu2Dmx::constrainEdge (int dir, bool open, int dof, int code, char basis)
+{
+  if (basis > 0)
+    this->ASMu2D::constrainEdge(dir,open,dof,code,basis);
+  else for (basis = 1; basis <= (char)nfx.size(); basis++)
+  {
+    int basisDofs = this->maskDOFs(dof,basis);
+    if (basisDofs > 0)
+      this->ASMu2D::constrainEdge(dir,open,basisDofs,code,basis);
+  }
+}
+
+
+void ASMu2Dmx::constrainCorner (int I, int J, int dof, int code, char basis)
+{
+  if (basis > 0)
+    this->ASMu2D::constrainCorner(I,J,dof,code,basis);
+  else for (basis = 1; basis <= (char)nfx.size(); basis++)
+  {
+    int basisDofs = this->maskDOFs(dof,basis);
+    if (basisDofs > 0)
+      this->ASMu2D::constrainCorner(I,J,basisDofs,code,basis);
+  }
+}
+
+
 bool ASMu2Dmx::integrate (Integrand& integrand,
                           GlobalIntegral& glInt,
                           const TimeDomain& time)

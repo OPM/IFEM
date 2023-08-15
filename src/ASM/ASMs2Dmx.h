@@ -16,7 +16,6 @@
 
 #include "ASMs2D.h"
 #include "ASMmxBase.h"
-#include <memory>
 
 
 /*!
@@ -35,7 +34,7 @@ public:
   //! \brief The constructor initializes the dimension of each basis.
   ASMs2Dmx(unsigned char n_s, const CharVec& n_f);
   //! \brief Copy constructor.
-  ASMs2Dmx(const ASMs2Dmx& patch, const CharVec& n_f = CharVec(2,0));
+  ASMs2Dmx(const ASMs2Dmx& patch, const CharVec& n_f);
   //! \brief Destructor.
   virtual ~ASMs2Dmx();
 
@@ -87,16 +86,24 @@ public:
   //! \brief Returns the classification of a node.
   //! \param[in] inod 1-based node index local to current patch
   virtual char getNodeType(size_t inod) const;
-  //! \brief Returns the area in the parameter space for an element.
-  //! \param[in] iel Element index
-  virtual double getParametricArea(int iel) const;
-  //! \brief Returns boundary edge length in the parameter space for an element.
-  //! \param[in] iel Element index
-  //! \param[in] dir Local index of the boundary edge
-  double getParametricLength(int iel, int dir) const;
 
   //! \brief Initializes the patch level MADOF array for mixed problems.
   virtual void initMADOF(const int* sysMadof);
+
+  //! \brief Constrains all DOFs on a given boundary edge.
+  //! \param[in] dir Parameter direction defining the edge to constrain
+  //! \param[in] open If \e true, exclude the end points of the edge
+  //! \param[in] dof Which DOFs to constrain at each node along the edge
+  //! \param[in] code Inhomogeneous dirichlet condition code
+  //! \param[in] basis Which basis to constrain edge for (0 means check all)
+  virtual void constrainEdge(int dir, bool open, int dof, int code, char basis);
+  //! \brief Constrains a corner node identified by the two parameter indices.
+  //! \param[in] I Parameter index in u-direction
+  //! \param[in] J Parameter index in v-direction
+  //! \param[in] dof Which DOFs to constrain at the node
+  //! \param[in] code Inhomogeneous dirichlet condition code
+  //! \param[in] basis Which basis to constrain node for (0 means check all)
+  virtual void constrainCorner(int I, int J, int dof, int code, char basis);
 
   //! \brief Connects all matching nodes on two adjacent boundary edges.
   //! \param[in] edge Local edge index of this patch, in range [1,4]
@@ -139,7 +146,8 @@ public:
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
   //! \param[in] iChk Object checking if an element interface has contributions
   virtual bool integrate(Integrand& integrand, GlobalIntegral& glbInt,
-                         const TimeDomain& time, const ASM::InterfaceChecker& iChk);
+                         const TimeDomain& time,
+                         const ASM::InterfaceChecker& iChk);
 
 
   // Post-processing methods
@@ -204,7 +212,7 @@ public:
   virtual void extractNodeVec(const RealArray& globVec, RealArray& nodeVec,
                               unsigned char, int basis) const;
 
-  //! \brief Inject nodal results for this patch into a global vector.
+  //! \brief Injects nodal results for this patch into a global vector.
   //! \param[in] nodeVec Nodal result vector for this patch
   //! \param[out] globVec Global solution vector in DOF-order
   //! \param[in] basis Which basis (or 0 for both) to extract nodal values for
@@ -215,7 +223,7 @@ public:
   //! \brief Generates element groups for multi-threading of interior integrals.
   //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] silence If \e true, suppress threading group outprint
-  //! \param[in] ignoreGlobalLM If \e true, ignore global multipliers in sanity check
+  //! \param[in] ignoreGlobalLM Sanity check option
   virtual void generateThreadGroups(const Integrand& integrand, bool silence,
                                     bool ignoreGlobalLM);
 
@@ -226,6 +234,15 @@ public:
   //! \param[in] basis Which basis to return size parameters for
   virtual bool getSize(int& n1, int& n2, int basis) const;
 
+protected:
+  //! \brief Returns the area in the parameter space for an element.
+  //! \param[in] iel Element index
+  double getParametricArea(int iel) const;
+  //! \brief Returns boundary edge length in the parameter space for an element.
+  //! \param[in] iel Element index
+  //! \param[in] dir Local index of the boundary edge
+  double getParametricLength(int iel, int dir) const;
+
   //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
   //! \param[in] lIndex Local index of the boundary edge
   //! \param nodes Array of node numbers
@@ -235,7 +252,7 @@ public:
   virtual void getBoundaryNodes(int lIndex, IntVec& nodes, int basis,
                                 int thick, int, bool local) const;
 
-protected:
+private:
   std::vector<std::shared_ptr<Go::SplineSurface>> m_basis; //!< Vector of bases
   Go::SplineSurface* altProjBasis = nullptr; //!< Alternative projection basis
 };

@@ -341,6 +341,32 @@ bool ASMs2Dmx::generateFEMTopology ()
 }
 
 
+void ASMs2Dmx::constrainEdge (int dir, bool open, int dof, int code, char basis)
+{
+  if (basis > 0)
+    this->ASMs2D::constrainEdge(dir,open,dof,code,basis);
+  else for (basis = 1; basis <= (char)nfx.size(); basis++)
+  {
+    int basisDofs = this->maskDOFs(dof,basis);
+    if (basisDofs > 0)
+      this->ASMs2D::constrainEdge(dir,open,basisDofs,code,basis);
+  }
+}
+
+
+void ASMs2Dmx::constrainCorner (int I, int J, int dof, int code, char basis)
+{
+  if (basis > 0)
+    this->ASMs2D::constrainCorner(I,J,dof,code,basis);
+  else for (basis = 1; basis <= (char)nfx.size(); basis++)
+  {
+    int basisDofs = this->maskDOFs(dof,basis);
+    if (basisDofs > 0)
+      this->ASMs2D::constrainCorner(I,J,basisDofs,code,basis);
+  }
+}
+
+
 bool ASMs2Dmx::connectPatch (int edge, ASM2D& neighbor, int nedge, bool revers,
                              int basis, bool coordCheck, int thick)
 {
