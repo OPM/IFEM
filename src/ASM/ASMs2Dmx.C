@@ -217,7 +217,7 @@ bool ASMs2Dmx::generateFEMTopology ()
       else if (ASMmxBase::Type == ASMmxBase::SUBGRID)
         projB = m_basis.front().get();
       else // FULL_CONT_RAISE_BASISx
-        projB = m_basis[2-geoBasis].get();
+        projB = m_basis[2-itgBasis].get();
     }
 
     if (ASMmxBase::Type == ASMmxBase::SUBGRID)
@@ -225,7 +225,7 @@ bool ASMs2Dmx::generateFEMTopology ()
 
     delete surf;
   }
-  geomB = surf = m_basis[geoBasis-1].get();
+  geomB = surf = m_basis[itgBasis-1].get();
 
   nb.clear();
   nb.reserve(m_basis.size());
@@ -299,7 +299,7 @@ bool ASMs2Dmx::generateFEMTopology ()
         myMNPC[iel][elm_node++] = last_node - spline.numCoefs_u()*j - i;
   };
 
-  inod = std::accumulate(nb.begin(),nb.begin()+geoBasis-1,0u);
+  inod = std::accumulate(nb.begin(),nb.begin()+itgBasis-1,0u);
   auto knotv = itg->basis_v().begin();
   for (int i2 = 1; i2 <= itg->numCoefs_v(); i2++, ++knotv) {
     auto knotu = itg->basis_u().begin();
@@ -316,7 +316,7 @@ bool ASMs2Dmx::generateFEMTopology ()
           size_t basis_ofs = 0;
           int basis = 0;
           for (const std::shared_ptr<Go::SplineSurface>& spline : m_basis) {
-            if (basis != geoBasis-1) {
+            if (basis != itgBasis-1) {
               double ku = *knotu;
               double kv = *knotv;
               int iu = spline->basis_u().knotIntervalFuzzy(ku);
@@ -541,11 +541,11 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
 
             // Compute Jacobian inverse of the coordinate mapping and
             // basis function derivatives w.r.t. Cartesian coordinates
-            if (!fe.Jacobian(Jac,Xnod,geoBasis,&bfs))
+            if (!fe.Jacobian(Jac,Xnod,itgBasis,&bfs))
               continue; // skip singular points
 
             // Compute Hessian of coordinate mapping and 2nd order derivatives
-            if (use2ndDer && !fe.Hessian(Hess,Jac,Xnod,geoBasis,&bfs))
+            if (use2ndDer && !fe.Hessian(Hess,Jac,Xnod,itgBasis,&bfs))
               ok = false;
 
             // Compute G-matrix
@@ -553,7 +553,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
               utl::getGmat(Jac,dXidu,fe.G);
 
             // Cartesian coordinates of current integration point
-            X.assign(Xnod * fe.basis(geoBasis));
+            X.assign(Xnod * fe.basis(itgBasis));
 
             // Evaluate the integrand and accumulate element contributions
             fe.detJxW *= dA*wg[0][i]*wg[1][j];
@@ -710,18 +710,18 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
 
 	// Compute Jacobian inverse of the coordinate mapping and
 	// basis function derivatives w.r.t. Cartesian coordinates
-        fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(geoBasis),Xnod,
-                                  dNxdu[geoBasis-1],t1,t2);
+        fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(itgBasis),Xnod,
+                                  dNxdu[itgBasis-1],t1,t2);
         if (fe.detJxW == 0.0) continue; // skip singular points
 
         for (size_t b = 0; b < m_basis.size(); ++b)
-          if (b != (size_t)geoBasis-1)
+          if (b != (size_t)itgBasis-1)
             fe.grad(b+1).multiply(dNxdu[b],Jac);
 
 	if (edgeDir < 0) normal *= -1.0;
 
 	// Cartesian coordinates of current integration point
-	X.assign(Xnod * fe.basis(geoBasis));
+    X.assign(Xnod * fe.basis(itgBasis));
 
 	// Evaluate the integrand and accumulate element contributions
 	fe.detJxW *= dS*wg[i];
@@ -888,13 +888,13 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
             }
 
             // Compute basis function derivatives and the edge normal
-            fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(geoBasis+m_basis.size()),Xnod,
-                                      dNxdu[geoBasis-1+m_basis.size()],t1,t2);
-            fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(geoBasis),Xnod,
-                                      dNxdu[geoBasis-1],t1,t2);
+            fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(itgBasis+m_basis.size()),Xnod,
+                                      dNxdu[itgBasis-1+m_basis.size()],t1,t2);
+            fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(itgBasis),Xnod,
+                                      dNxdu[itgBasis-1],t1,t2);
             if (fe.detJxW == 0.0) continue; // skip singular points
             for (size_t b = 0; b < m_basis.size(); ++b)
-              if (b != (size_t)geoBasis-1) {
+              if (b != (size_t)itgBasis-1) {
                 fe.grad(b+1).multiply(dNxdu[b],Jac);
                 fe.grad(b+1+m_basis.size()).multiply(dNxdu[b+m_basis.size()],Jac);
               }
@@ -902,7 +902,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
             if (edgeDir < 0) normal *= -1.0;
 
             // Cartesian coordinates of current integration point
-            X.assign(Xnod * fe.basis(geoBasis));
+            X.assign(Xnod * fe.basis(itgBasis));
 
             // Evaluate the integrand and accumulate element contributions
             fe.detJxW *= dS*wg[i];
@@ -1053,8 +1053,8 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
                  splinex[b][i].left_idx,ip[b]);
 
       // Fetch associated control point coordinates
-      if (b == (size_t)geoBasis-1)
-        utl::gather(ip[geoBasis-1], nsd, Xnod, Xtmp);
+      if (b == (size_t)itgBasis-1)
+        utl::gather(ip[itgBasis-1], nsd, Xnod, Xtmp);
 
       for (int& c : ip[b]) c += ofs;
       ipa.insert(ipa.end(), ip[b].begin(), ip[b].end());
@@ -1070,11 +1070,11 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
     // Compute Jacobian inverse of the coordinate mapping and
     // basis function derivatives w.r.t. Cartesian coordinates
-    if (!fe.Jacobian(Jac,Xtmp,geoBasis,nullptr,&dNxdu))
+    if (!fe.Jacobian(Jac,Xtmp,itgBasis,nullptr,&dNxdu))
       continue; // skip singular points
 
     // Cartesian coordinates of current integration point
-    utl::Point X4(Xtmp*fe.basis(geoBasis),{fe.u,fe.v});
+    utl::Point X4(Xtmp*fe.basis(itgBasis),{fe.u,fe.v});
 
     // Now evaluate the solution field
     if (!integrand.evalSol(solPt,fe,X4,ipa,elem_size,nb))
@@ -1118,22 +1118,22 @@ void ASMs2Dmx::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
 void ASMs2Dmx::swapProjectionBasis ()
 {
   if (projB2) {
-    ASMmxBase::geoBasis = ASMmxBase::geoBasis == 1 ? 2 : 1;
+    ASMmxBase::itgBasis = ASMmxBase::itgBasis == 1 ? 2 : 1;
     std::swap(projB, projB2);
-    surf = this->getBasis(ASMmxBase::geoBasis);
+    surf = this->getBasis(ASMmxBase::itgBasis);
   }
 }
 
 
 int ASMs2Dmx::getFirstItgElmNode () const
 {
-  return std::accumulate(elem_size.begin(), elem_size.begin() + geoBasis-1, 0);
+  return std::accumulate(elem_size.begin(), elem_size.begin() + itgBasis-1, 0);
 }
 
 
 int ASMs2Dmx::getLastItgElmNode () const
 {
-  return std::accumulate(elem_size.begin(), elem_size.begin() + geoBasis, -1);
+  return std::accumulate(elem_size.begin(), elem_size.begin() + itgBasis, -1);
 }
 
 

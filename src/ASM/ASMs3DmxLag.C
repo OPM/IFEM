@@ -112,7 +112,7 @@ bool ASMs3DmxLag::generateFEMTopology ()
   // Generate/check FE data for the geometry/basis1
   bool haveFEdata = !MLGN.empty();
   bool basis1IsOK = this->ASMs3DLag::generateFEMTopology();
-  geoBasis = 1;
+  itgBasis = 1;
   if ((haveFEdata && !shareFE) || !basis1IsOK) return basis1IsOK;
 
   // Order of 2nd basis in the three parametric directions (order = degree + 1)
@@ -355,11 +355,11 @@ bool ASMs3DmxLag::integrate (Integrand& integrand,
               }
 
               // Compute Jacobian inverse of coordinate mapping and derivatives
-              if (!fe.Jacobian(Jac,Xnod,geoBasis,&bfs))
+              if (!fe.Jacobian(Jac,Xnod,itgBasis,&bfs))
                 continue; // skip singular points
 
               // Cartesian coordinates of current integration point
-              X.assign(Xnod * fe.basis(geoBasis));
+              X.assign(Xnod * fe.basis(itgBasis));
 
               // Evaluate the integrand and accumulate element contributions
               fe.detJxW *= wg[0][i]*wg[1][j]*wg[2][k];
@@ -415,8 +415,8 @@ bool ASMs3DmxLag::integrate (Integrand& integrand, int lIndex,
   integrand.setNeumannOrder(1 + lIndex/10);
 
   // Number of elements in each direction
-  const int nel1 = (nxx[geoBasis-1]-1)/(elem_sizes[geoBasis-1][0]-1);
-  const int nel2 = (nyx[geoBasis-1]-1)/(elem_sizes[geoBasis-1][1]-1);
+  const int nel1 = (nxx[itgBasis-1]-1)/(elem_sizes[itgBasis-1][0]-1);
+  const int nel2 = (nyx[itgBasis-1]-1)/(elem_sizes[itgBasis-1][1]-1);
 
   std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex%10);
   size_t firstp = iit == firstBp.end() ? 0 : iit->second;
@@ -494,18 +494,18 @@ bool ASMs3DmxLag::integrate (Integrand& integrand, int lIndex,
                 ok = false;
 
 	    // Compute basis function derivatives and the edge normal
-	    fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(geoBasis),Xnod,
-                                      dNxdu[geoBasis-1],t1,t2);
+        fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(itgBasis),Xnod,
+                                      dNxdu[itgBasis-1],t1,t2);
 	    if (fe.detJxW == 0.0) continue; // skip singular points
 
             for (size_t b = 0; b < nxx.size(); ++b)
-              if (b != (size_t)geoBasis-1)
+              if (b != (size_t)itgBasis-1)
                 fe.grad(b+1).multiply(dNxdu[b],Jac);
 
 	    if (faceDir < 0) normal *= -1.0;
 
 	    // Cartesian coordinates of current integration point
-	    X.assign(Xnod * fe.basis(geoBasis));
+        X.assign(Xnod * fe.basis(itgBasis));
 
 	    // Evaluate the integrand and accumulate element contributions
 	    fe.detJxW *= wg[i]*wg[j];
@@ -577,11 +577,11 @@ bool ASMs3DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   // Evaluate the secondary solution field at each point
   for (size_t iel = 1; iel <= nel; iel++)
   {
-    IntVec::const_iterator f2start = geoBasis == 1? MNPC[iel-1].begin() :
+    IntVec::const_iterator f2start = itgBasis == 1? MNPC[iel-1].begin() :
                                      MNPC[iel-1].begin() +
-                                     std::accumulate(elem_size.begin()+geoBasis-2,
-                                                     elem_size.begin()+geoBasis-1, 0);
-    IntVec::const_iterator f2end = f2start + elem_size[geoBasis-1];
+                                     std::accumulate(elem_size.begin()+itgBasis-2,
+                                                     elem_size.begin()+itgBasis-1, 0);
+    IntVec::const_iterator f2end = f2start + elem_size[itgBasis-1];
     IntVec mnpc1(f2start,f2end);
 
     this->getElementCoordinates(Xnod,iel);
@@ -603,11 +603,11 @@ bool ASMs3DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
           // Compute Jacobian inverse of the coordinate mapping and
           // basis function derivatives w.r.t. Cartesian coordinates
-          if (!fe.Jacobian(Jac,Xnod,geoBasis,nullptr,&dNxdu))
+          if (!fe.Jacobian(Jac,Xnod,itgBasis,nullptr,&dNxdu))
             continue; // skip singular points
 
 	  // Now evaluate the solution field
-	  if (!integrand.evalSol(solPt,fe,Xnod*fe.basis(geoBasis),
+      if (!integrand.evalSol(solPt,fe,Xnod*fe.basis(itgBasis),
                                  MNPC[iel-1],elem_size,nb))
 	    return false;
 	  else if (sField.empty())

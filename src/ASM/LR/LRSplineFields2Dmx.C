@@ -103,7 +103,7 @@ bool LRSplineFields2Dmx::gradFE (const ItgPoint& x, Matrix& grad) const
   // Evaluate the basis functions at the given point
   Matrix Xnod, Jac, dNdX;
   const LR::Element* elm;
-  const LR::LRSplineSurface* geo = surf->getBasis(ASMmxBase::geoBasis);
+  const LR::LRSplineSurface* geo = surf->getBasis(ASMmxBase::itgBasis);
   if (!geo)
     geo = surf->getBasis(1);
   if (!LRSplineField::evalMapping(*geo,x,elm,Xnod,Jac,dNdX,surf->rational()))
@@ -142,7 +142,7 @@ bool LRSplineFields2Dmx::hessianFE (const ItgPoint& x, Matrix3D& H) const
   Matrix Xnod, Jac, dNdX;
   Matrix3D d2NdX2, Hess;
   const LR::Element* elm;
-  const LR::LRSplineSurface* geo = surf->getBasis(ASMmxBase::geoBasis);
+  const LR::LRSplineSurface* geo = surf->getBasis(ASMmxBase::itgBasis);
   if (!geo)
     geo = surf->getBasis(1);
   if (!LRSplineField::evalMapping(*geo,x,elm,Xnod,Jac,

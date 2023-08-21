@@ -73,7 +73,7 @@ public:
   };
 
   static MixedType Type; //!< Type of mixed formulation used
-  static char  geoBasis; //!< 1-based index of basis representing the geometry
+  static char  itgBasis; //!< 1-based index of basis representing the integration elements
 
 protected:
   typedef std::vector<std::shared_ptr<Go::SplineSurface>> SurfaceVec; //!< Convenience type

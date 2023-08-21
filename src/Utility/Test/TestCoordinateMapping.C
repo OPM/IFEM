@@ -305,14 +305,14 @@ TEST(TestCoordinateMapping, Hessian2D_mixed)
   Matrix Jac;
   std::array<Matrix, 2> grad;
 
-  int geoBasis = ASMmxBase::geoBasis - 1;
+  int itgBasis = ASMmxBase::itgBasis - 1;
 
   Matrix Xnod;
   p.getElementCoordinates(Xnod,1);
 
-  utl::Jacobian(Jac, grad[geoBasis], Xnod, dNxdu[geoBasis]);
+  utl::Jacobian(Jac, grad[itgBasis], Xnod, dNxdu[itgBasis]);
 
-  grad[1-geoBasis].multiply(dNxdu[1-geoBasis],Jac);
+  grad[1-itgBasis].multiply(dNxdu[1-itgBasis],Jac);
 
   const double Hess_basis1[] = {
     0.5,-1.0, 0.5, 1.0,-2.0, 1.0, 0.5,-1.0, 0.5,
