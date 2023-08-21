@@ -69,7 +69,7 @@ TEST(TestISTLMatrix, Assemble)
 TEST(TestISTLMatrix, AssembleBasisBlocks)
 {
   ASMmxBase::Type = ASMmxBase::FULL_CONT_RAISE_BASIS1;
-  ASMmxBase::geoBasis = 2;
+  ASMmxBase::elmBasis = 2;
   SIM2D sim({1,1});
   sim.read("src/LinAlg/Test/refdata/petsc_test_blocks_basis.xinp");
   sim.opt.solver = LinAlg::ISTL;

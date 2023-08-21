@@ -845,7 +845,7 @@ bool SIMbase::updateGrid (const RealArray& displ)
     Vector locdisp;
     if (this->mixedProblem())
       this->extractPatchSolution(displ,locdisp,pch,
-                                 pch->getNoSpaceDim(),ASMmxBase::geoBasis);
+                                 pch->getNoSpaceDim(),ASMmxBase::elmBasis);
     else
       pch->extractNodeVec(displ,locdisp,pch->getNoSpaceDim(),-1);
 

@@ -41,7 +41,7 @@ ASMu3Dmx::ASMu3Dmx (const CharVec& n_f)
     bezierExtractmx(myBezierExtractmx)
 {
   threadBasis = nullptr;
-  myGeoBasis = ASMmxBase::geoBasis;
+  myGeoBasis = ASMmxBase::elmBasis;
 }
 
 
@@ -53,7 +53,7 @@ ASMu3Dmx::ASMu3Dmx (const ASMu3Dmx& patch, const CharVec& n_f)
   threadBasis = patch.threadBasis;
   nfx = patch.nfx;
   nb =  patch.nb;
-  myGeoBasis = ASMmxBase::geoBasis;
+  myGeoBasis = ASMmxBase::elmBasis;
 }
 
 
@@ -227,21 +227,21 @@ bool ASMu3Dmx::generateFEMTopology ()
       }
     } else {
       if (!projBasis)
-        projBasis = m_basis[2-ASMmxBase::geoBasis];
+        projBasis = m_basis[2-ASMmxBase::elmBasis];
       refBasis = projBasis;
     }
 
     delete tensorspline;
     tensorspline = nullptr;
   }
-  lrspline = m_basis[geoBasis-1];
+  lrspline = m_basis[elmBasis-1];
   projBasis->generateIDs();
   projBasis->getElementContaining(projBasis->getElement(0)->midpoint()); // to force cache generation
   if (altProjBasis) {
     altProjBasis->generateIDs();
     altProjBasis->getElementContaining(projBasis->getElement(0)->midpoint()); // to force cache generation
   }
-  myGeoBasis = ASMmxBase::geoBasis;
+  myGeoBasis = ASMmxBase::elmBasis;
 
   nb.clear();
   nb.reserve(m_basis.size());
@@ -257,7 +257,7 @@ bool ASMu3Dmx::generateFEMTopology ()
 
   if (shareFE == 'F') return true;
 
-  nel = m_basis[geoBasis-1]->nElements();
+  nel = m_basis[elmBasis-1]->nElements();
   nnod = std::accumulate(nb.begin(), nb.end(), 0);
 
   myMLGE.resize(nel,0);
@@ -267,7 +267,7 @@ bool ASMu3Dmx::generateFEMTopology ()
     it->generateIDs();
 
   size_t iel = 0;
-  for (const LR::Element* el1 : m_basis[geoBasis-1]->getAllElements())
+  for (const LR::Element* el1 : m_basis[elmBasis-1]->getAllElements())
   {
     size_t nfunc = 0;
     for (const SplinePtr& it : m_basis)
@@ -309,7 +309,7 @@ bool ASMu3Dmx::generateFEMTopology ()
   std::cout <<"NEL = "<< nel <<" NNOD = "<< nnod << std::endl;
 #endif
 
-  geo = m_basis[geoBasis-1].get();
+  geo = m_basis[elmBasis-1].get();
 
   return true;
 }
@@ -413,11 +413,11 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
             for (int i = 0; i < ng[0]; i++, jp++)
             {
               // Fetch basis function derivatives at current integration point
-              const BasisFunctionVals& bfs = myCache[geoBasis-1]->getVals(iEl,jp);
+              const BasisFunctionVals& bfs = myCache[elmBasis-1]->getVals(iEl,jp);
 
               // Compute Jacobian determinant of coordinate mapping
               // and multiply by weight of current integration point
-              double detJac = utl::Jacobian(Jac,fe.grad(geoBasis),
+              double detJac = utl::Jacobian(Jac,fe.grad(elmBasis),
                                             Xnod,bfs.dNdu,false);
               double weight = dV*wg[0][i]*wg[1][j]*wg[2][k];
 
@@ -437,7 +437,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
         double u0 = 0.5*(el->getParmin(0) + el->getParmax(0));
         double v0 = 0.5*(el->getParmin(1) + el->getParmax(1));
         double w0 = 0.5*(el->getParmin(2) + el->getParmax(2));
-        this->getBasis(geoBasis)->point(X0,u0,v0,w0);
+        this->getBasis(elmBasis)->point(X0,u0,v0,w0);
         X.assign(SplineUtils::toVec3(X0));
       }
 
@@ -478,11 +478,11 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
 
             // Compute Jacobian inverse of the coordinate mapping and
             // basis function derivatives w.r.t. Cartesian coordinates
-            if (!fe.Jacobian(Jac,Xnod,geoBasis,&bfs))
+            if (!fe.Jacobian(Jac,Xnod,elmBasis,&bfs))
               continue; // skip singular points
 
             // Compute Hessian of coordinate mapping and 2nd order derivatives
-            if (use2ndDer && !fe.Hessian(Hess,Jac,Xnod,geoBasis,&bfs))
+            if (use2ndDer && !fe.Hessian(Hess,Jac,Xnod,elmBasis,&bfs))
               ok = false;
 
             // Compute G-matrix
@@ -490,7 +490,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
               utl::getGmat(Jac,dXidu,fe.G);
 
             // Cartesian coordinates of current integration point
-            X.assign(Xnod * fe.basis(geoBasis));
+            X.assign(Xnod * fe.basis(elmBasis));
 
             // Evaluate the integrand and accumulate element contributions
             fe.detJxW *= dV*wg[0][i]*wg[1][j]*wg[2][k];
@@ -555,7 +555,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
 
   // Fetch all elements on the chosen face
   std::vector<LR::Element*> edgeElms;
-  this->getBasis(geoBasis)->getEdgeElements(edgeElms,getFaceEnum(lIndex));
+  this->getBasis(elmBasis)->getEdgeElements(edgeElms,getFaceEnum(lIndex));
 
 
   // === Assembly loop over all elements on the patch face =====================
@@ -580,12 +580,12 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
       if (-1-d == faceDir)
       {
         gpar[d].resize(1);
-        gpar[d].fill(this->getBasis(geoBasis)->startparam(d));
+        gpar[d].fill(this->getBasis(elmBasis)->startparam(d));
       }
       else if (1+d == faceDir)
       {
         gpar[d].resize(1);
-        gpar[d].fill(this->getBasis(geoBasis)->endparam(d));
+        gpar[d].fill(this->getBasis(elmBasis)->endparam(d));
       }
       else
         this->getGaussPointParameters(gpar[d],d,nGP,iEl+1,xg);
@@ -663,12 +663,12 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
           this->evaluateBasis(iEl, fe, dNxdu[b-1], b);
 
         // Compute basis function derivatives and the face normal
-        fe.detJxW = utl::Jacobian(Jac, normal, fe.grad(geoBasis), Xnod,
-                                  dNxdu[geoBasis-1], t1, t2);
+        fe.detJxW = utl::Jacobian(Jac, normal, fe.grad(elmBasis), Xnod,
+                                  dNxdu[elmBasis-1], t1, t2);
         if (fe.detJxW == 0.0) continue; // skip singular points
 
         for (size_t b = 1; b <= m_basis.size(); ++b)
-          if ((int)b != geoBasis)
+          if ((int)b != elmBasis)
             fe.grad(b).multiply(dNxdu[b-1],Jac);
 
         if (faceDir < 0) normal *= -1.0;
@@ -678,7 +678,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
           utl::getGmat(Jac,dXidu,fe.G);
 
         // Cartesian coordinates of current integration point
-        X.assign(Xnod * fe.basis(geoBasis));
+        X.assign(Xnod * fe.basis(elmBasis));
 
         // Evaluate the integrand and accumulate element contributions
         fe.detJxW *= dA*wg[i]*wg[j];
@@ -804,27 +804,27 @@ bool ASMu3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
       }
 
     // Set up control point (nodal) coordinates for current element
-    if (!this->getElementCoordinates(Xnod,els[geoBasis-1])) return false;
+    if (!this->getElementCoordinates(Xnod,els[elmBasis-1])) return false;
 
     // Compute Jacobian inverse of the coordinate mapping and
     // basis function derivatives w.r.t. Cartesian coordinates
-    if (!fe.Jacobian(Jac,Xnod,geoBasis,nullptr,&dNxdu))
+    if (!fe.Jacobian(Jac,Xnod,elmBasis,nullptr,&dNxdu))
       continue; // skip singular points
 
     // Compute Hessian of coordinate mapping and 2nd order derivatives
-    if (use2ndDer && !fe.Hessian(Hess,Jac,Xnod,geoBasis,nullptr,&d2Nxdu2))
+    if (use2ndDer && !fe.Hessian(Hess,Jac,Xnod,elmBasis,nullptr,&d2Nxdu2))
       return false;
 
     // Cartesian coordinates of current integration point
     fe.u = gpar[0][i];
     fe.v = gpar[1][i];
     fe.w = gpar[2][i];
-    utl::Point X4(Xnod*fe.basis(geoBasis), {fe.u, fe.v, fe.w});
+    utl::Point X4(Xnod*fe.basis(elmBasis), {fe.u, fe.v, fe.w});
 
     // Now evaluate the solution field
     Vector solPt;
     if (!integrand.evalSol(solPt,fe,X4,
-                           MNPC[els[geoBasis-1]-1],elem_sizes,nb))
+                           MNPC[els[elmBasis-1]-1],elem_sizes,nb))
       return false;
     else if (sField.empty())
       sField.resize(solPt.size(),nPoints,true);
@@ -981,7 +981,7 @@ void ASMu3Dmx::generateThreadGroups (const Integrand& integrand, bool silence,
 void ASMu3Dmx::remapErrors (RealArray& errors,
                             const RealArray& origErr, bool elemErrors) const
 {
-  const LR::LRSplineVolume* geo = this->getBasis(ASMmxBase::geoBasis);
+  const LR::LRSplineVolume* geo = this->getBasis(ASMmxBase::elmBasis);
   for (const LR::Element* elm : geo->getAllElements()) {
     int rEl = refBasis->getElementContaining((elm->umin()+elm->umax())/2.0,
                                              (elm->vmin()+elm->vmax())/2.0,
@@ -1024,7 +1024,7 @@ void ASMu3Dmx::copyRefinement (LR::LRSplineVolume* basis,
 void ASMu3Dmx::swapProjectionBasis ()
 {
   if (altProjBasis) {
-    ASMmxBase::geoBasis = ASMmxBase::geoBasis == 1 ? 2 : 1;
+    ASMmxBase::elmBasis = ASMmxBase::elmBasis == 1 ? 2 : 1;
     std::swap(projBasis, altProjBasis);
     std::swap(projThreadGroups, altProjThreadGroups);
   }

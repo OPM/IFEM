@@ -216,13 +216,13 @@ bool ASMs2Dmx::generateFEMTopology ()
       projB = proj = m_basis.front()->clone();
       altProjBasis = ASMmxBase::raiseBasis(surf);
     }
-    else if (geoBasis < 3)
-      projB = proj = m_basis[2-geoBasis]->clone();
+    else if (elmBasis < 3)
+      projB = proj = m_basis[2-elmBasis]->clone();
     else
       return false; // Logic error
   }
   delete surf;
-  geomB = surf = m_basis[geoBasis-1]->clone();
+  geomB = surf = m_basis[elmBasis-1]->clone();
 
   nb.clear();
   nb.reserve(m_basis.size());
@@ -265,8 +265,8 @@ bool ASMs2Dmx::generateFEMTopology ()
   }
 #endif
 
-  nel = (m_basis[geoBasis-1]->numCoefs_u()-m_basis[geoBasis-1]->order_u()+1)*
-        (m_basis[geoBasis-1]->numCoefs_v()-m_basis[geoBasis-1]->order_v()+1);
+  nel = (m_basis[elmBasis-1]->numCoefs_u()-m_basis[elmBasis-1]->order_u()+1)*
+        (m_basis[elmBasis-1]->numCoefs_v()-m_basis[elmBasis-1]->order_v()+1);
 
   myMLGE.resize(nel,0);
   myMLGN.resize(nnod);
@@ -285,14 +285,14 @@ bool ASMs2Dmx::generateFEMTopology ()
 
   int lnod2 = 0;
   int lnod3 = 0;
-  for (i2 = 0; i2 < geoBasis-1; ++i2)
+  for (i2 = 0; i2 < elmBasis-1; ++i2)
     lnod2 += m_basis[i2]->order_u()*m_basis[i2]->order_v();
   for (i2 = 0; i2 < (int)m_basis.size(); ++i2)
     lnod3 += m_basis[i2]->order_u()*m_basis[i2]->order_v();
 
   // Create nodal connectivities for bases
-  inod = std::accumulate(nb.begin(),nb.begin()+geoBasis-1,0u);
-  Go::SplineSurface* b = m_basis[geoBasis-1].get();
+  inod = std::accumulate(nb.begin(),nb.begin()+elmBasis-1,0u);
+  Go::SplineSurface* b = m_basis[elmBasis-1].get();
   auto knotv = b->basis_v().begin();
   for (i2 = 1; i2 <= b->numCoefs_v(); i2++, ++knotv) {
     auto knotu = b->basis_u().begin();
@@ -315,7 +315,7 @@ bool ASMs2Dmx::generateFEMTopology ()
             lnod = 0;
             size_t lnod4 = 0;
             for (size_t bas = 0; bas < m_basis.size(); ++bas) {
-              if (bas != (size_t)geoBasis-1) {
+              if (bas != (size_t)elmBasis-1) {
                 double ku = *knotu;
                 double kv = *knotv;
                 int bknotu = m_basis[bas]->basis_u().knotIntervalFuzzy(ku);
@@ -384,7 +384,7 @@ bool ASMs2Dmx::getElementCoordinates (Matrix& X, int iel) const
 
   size_t nenod = surf->order_u()*surf->order_v();
   size_t lnod0 = 0;
-  for (int i = 1; i < geoBasis; ++i)
+  for (int i = 1; i < elmBasis; ++i)
     lnod0 += m_basis[i-1]->order_u()*m_basis[i-1]->order_v();
 
   X.resize(nsd,nenod);
@@ -472,7 +472,7 @@ double ASMs2Dmx::getParametricArea (int iel) const
     return 0.0;
 
   int inod1 = MNPC[iel-1][std::accumulate(elem_size.begin(),
-                                          elem_size.begin()+geoBasis, -1)];
+                                          elem_size.begin()+elmBasis, -1)];
 #ifdef INDEX_CHECK
   if (inod1 < 0 || (size_t)inod1 >= nnod)
   {
@@ -482,8 +482,8 @@ double ASMs2Dmx::getParametricArea (int iel) const
   }
 #endif
 
-  double du = m_basis[geoBasis-1]->knotSpan(0,nodeInd[inod1].I);
-  double dv = m_basis[geoBasis-1]->knotSpan(1,nodeInd[inod1].J);
+  double du = m_basis[elmBasis-1]->knotSpan(0,nodeInd[inod1].I);
+  double dv = m_basis[elmBasis-1]->knotSpan(1,nodeInd[inod1].J);
 
   return du*dv;
 }
@@ -503,7 +503,7 @@ double ASMs2Dmx::getParametricLength (int iel, int dir) const
     return 0.0;
 
   int inod1 = MNPC[iel-1][std::accumulate(elem_size.begin(),
-                                          elem_size.begin()+geoBasis, -1)];
+                                          elem_size.begin()+elmBasis, -1)];
 #ifdef INDEX_CHECK
   if (inod1 < 0 || (size_t)inod1 >= nnod)
   {
@@ -515,8 +515,8 @@ double ASMs2Dmx::getParametricLength (int iel, int dir) const
 
   switch (dir)
     {
-    case 1: return m_basis[geoBasis-1]->knotSpan(0,nodeInd[inod1].I);
-    case 2: return m_basis[geoBasis-1]->knotSpan(1,nodeInd[inod1].J);
+    case 1: return m_basis[elmBasis-1]->knotSpan(0,nodeInd[inod1].I);
+    case 2: return m_basis[elmBasis-1]->knotSpan(1,nodeInd[inod1].J);
     }
 
   std::cerr <<" *** ASMs2Dmx::getParametricLength: Invalid edge direction "
@@ -647,11 +647,11 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
 
             // Compute Jacobian inverse of the coordinate mapping and
             // basis function derivatives w.r.t. Cartesian coordinates
-            if (!fe.Jacobian(Jac,Xnod,geoBasis,&bfs))
+            if (!fe.Jacobian(Jac,Xnod,elmBasis,&bfs))
               continue; // skip singular points
 
             // Compute Hessian of coordinate mapping and 2nd order derivatives
-            if (use2ndDer && !fe.Hessian(Hess,Jac,Xnod,geoBasis,&bfs))
+            if (use2ndDer && !fe.Hessian(Hess,Jac,Xnod,elmBasis,&bfs))
               ok = false;
 
             // Compute G-matrix
@@ -659,7 +659,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
               utl::getGmat(Jac,dXidu,fe.G);
 
             // Cartesian coordinates of current integration point
-            X.assign(Xnod * fe.basis(geoBasis));
+            X.assign(Xnod * fe.basis(elmBasis));
 
             // Evaluate the integrand and accumulate element contributions
             fe.detJxW *= dA*wg[0][i]*wg[1][j];
@@ -816,18 +816,18 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
 
 	// Compute Jacobian inverse of the coordinate mapping and
 	// basis function derivatives w.r.t. Cartesian coordinates
-        fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(geoBasis),Xnod,
-                                  dNxdu[geoBasis-1],t1,t2);
+        fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(elmBasis),Xnod,
+                                  dNxdu[elmBasis-1],t1,t2);
         if (fe.detJxW == 0.0) continue; // skip singular points
 
         for (size_t b = 0; b < m_basis.size(); ++b)
-          if (b != (size_t)geoBasis-1)
+          if (b != (size_t)elmBasis-1)
             fe.grad(b+1).multiply(dNxdu[b],Jac);
 
 	if (edgeDir < 0) normal *= -1.0;
 
 	// Cartesian coordinates of current integration point
-	X.assign(Xnod * fe.basis(geoBasis));
+    X.assign(Xnod * fe.basis(elmBasis));
 
 	// Evaluate the integrand and accumulate element contributions
 	fe.detJxW *= dS*wg[i];
@@ -994,13 +994,13 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
             }
 
             // Compute basis function derivatives and the edge normal
-            fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(geoBasis+m_basis.size()),Xnod,
-                                      dNxdu[geoBasis-1+m_basis.size()],t1,t2);
-            fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(geoBasis),Xnod,
-                                      dNxdu[geoBasis-1],t1,t2);
+            fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(elmBasis+m_basis.size()),Xnod,
+                                      dNxdu[elmBasis-1+m_basis.size()],t1,t2);
+            fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(elmBasis),Xnod,
+                                      dNxdu[elmBasis-1],t1,t2);
             if (fe.detJxW == 0.0) continue; // skip singular points
             for (size_t b = 0; b < m_basis.size(); ++b)
-              if (b != (size_t)geoBasis-1) {
+              if (b != (size_t)elmBasis-1) {
                 fe.grad(b+1).multiply(dNxdu[b],Jac);
                 fe.grad(b+1+m_basis.size()).multiply(dNxdu[b+m_basis.size()],Jac);
               }
@@ -1008,7 +1008,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
             if (edgeDir < 0) normal *= -1.0;
 
             // Cartesian coordinates of current integration point
-            X.assign(Xnod * fe.basis(geoBasis));
+            X.assign(Xnod * fe.basis(elmBasis));
 
             // Evaluate the integrand and accumulate element contributions
             fe.detJxW *= dS*wg[i];
@@ -1159,8 +1159,8 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
                  splinex[b][i].left_idx,ip[b]);
 
       // Fetch associated control point coordinates
-      if (b == (size_t)geoBasis-1)
-        utl::gather(ip[geoBasis-1], nsd, Xnod, Xtmp);
+      if (b == (size_t)elmBasis-1)
+        utl::gather(ip[elmBasis-1], nsd, Xnod, Xtmp);
 
       for (int& c : ip[b]) c += ofs;
       ipa.insert(ipa.end(), ip[b].begin(), ip[b].end());
@@ -1176,11 +1176,11 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
     // Compute Jacobian inverse of the coordinate mapping and
     // basis function derivatives w.r.t. Cartesian coordinates
-    if (!fe.Jacobian(Jac,Xtmp,geoBasis,nullptr,&dNxdu))
+    if (!fe.Jacobian(Jac,Xtmp,elmBasis,nullptr,&dNxdu))
       continue; // skip singular points
 
     // Cartesian coordinates of current integration point
-    utl::Point X4(Xtmp*fe.basis(geoBasis),{fe.u,fe.v});
+    utl::Point X4(Xtmp*fe.basis(elmBasis),{fe.u,fe.v});
 
     // Now evaluate the solution field
     if (!integrand.evalSol(solPt,fe,X4,ipa,elem_size,nb))
@@ -1224,8 +1224,8 @@ void ASMs2Dmx::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
 void ASMs2Dmx::swapProjectionBasis ()
 {
   if (altProjBasis) {
-    ASMmxBase::geoBasis = ASMmxBase::geoBasis == 1 ? 2 : 1;
+    ASMmxBase::elmBasis = ASMmxBase::elmBasis == 1 ? 2 : 1;
     std::swap(proj, altProjBasis);
-    surf = this->getBasis(ASMmxBase::geoBasis);
+    surf = this->getBasis(ASMmxBase::elmBasis);
   }
 }
