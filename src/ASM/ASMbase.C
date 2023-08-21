@@ -27,6 +27,7 @@
 
 
 bool ASMbase::fixHomogeneousDirichlet = true;
+bool ASMbase::refineGeometry = false;
 int  ASMbase::dbgElm = 0;
 ASM::CachePolicy ASMbase::cachePolicy = ASM::PRE_CACHE;
 

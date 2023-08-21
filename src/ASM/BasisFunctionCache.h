@@ -104,7 +104,7 @@ protected:
 
   //! \brief Calculates basis function info in a single integration point.
   //! \param el Element of integration point (0-indexed)
-  //! \param gp Integratin point on element (0-indexed)
+  //! \param gp Integration point on element (0-indexed)
   //! \param reduced If true, returns values for reduced integration scheme
   virtual BasisFunctionVals calculatePt(size_t el, size_t gp,
                                         bool reduced = false) const = 0;

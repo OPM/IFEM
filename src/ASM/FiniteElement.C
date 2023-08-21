@@ -80,15 +80,17 @@ bool MxFiniteElement::Jacobian (Matrix& Jac, const Matrix& Xnod,
                                 const std::vector<const BasisFunctionVals*>* bf,
                                 const std::vector<Matrix>* dNxdu)
 {
-  detJxW = utl::Jacobian(Jac,
-                         gBasis > 1 ? dMdX[gBasis-2] : dNdX, Xnod,
-                         bf ? (*bf)[gBasis-1]->dNdu : (*dNxdu)[gBasis-1]);
-  if (detJxW == 0.0) return false; // singular point
+  size_t nBasis = bf ? bf->size() : dNxdu->size();
+  if (gBasis <= nBasis) {
+    detJxW = utl::Jacobian(Jac,
+                           gBasis > 1 ? dMdX[gBasis-2] : dNdX, Xnod,
+                           bf ? (*bf)[gBasis-1]->dNdu : (*dNxdu)[gBasis-1]);
+    if (detJxW == 0.0) return false; // singular point
+  }
 
   if (gBasis > 1)
     dNdX.multiply(bf ? bf->front()->dNdu : dNxdu->front(),Jac);
 
-  size_t nBasis = bf ? bf->size() : dNxdu->size();
   for (size_t b = 2; b <= nBasis; b++)
     if (b != gBasis)
       dMdX[b-2].multiply(bf ? (*bf)[b-1]->dNdu : (*dNxdu)[b-1], Jac);

@@ -89,6 +89,12 @@ ASMs2D::~ASMs2D ()
 }
 
 
+const Go::SplineSurface* ASMs2D::getGeometry () const
+{
+  return static_cast<const Go::SplineSurface*>(geomB);
+}
+
+
 Go::SplineCurve* ASMs2D::getBoundary (int dir, int)
 {
   if (dir < -2 || dir == 0 || dir > 2)
@@ -115,7 +121,7 @@ void ASMs2D::copyParameterDomain (const ASMbase* other)
 bool ASMs2D::read (std::istream& is, int)
 {
   if (shareFE) return true;
-  if (surf) delete surf;
+  delete surf;
 
   Go::ObjectHeader head;
   surf = new Go::SplineSurface;
@@ -154,7 +160,11 @@ bool ASMs2D::read (std::istream& is, int)
     nsd = surf->dimension();
   }
 
-  geomB = surf;
+  if (ASMbase::refineGeometry)
+    geomB = surf;
+  else
+    geomB = surf->clone();
+
   return true;
 }
 
@@ -177,6 +187,7 @@ void ASMs2D::clear (bool retainGeometry)
     // Erase spline data
     if (proj && proj != surf) delete proj;
     if (surf && !shareFE) delete surf;
+    if (geomB != surf) delete geomB;
     geomB = projB = surf = proj = nullptr;
   }
 
@@ -359,6 +370,8 @@ bool ASMs2D::checkRightHandSystem ()
   // This patch has a negative Jacobian determinant. Probably it is modelled
   // in a left-hand-system. Swap the v-parameter direction to correct for this.
   surf->reverseParameterDirection(false);
+  if (geomB != surf)
+    static_cast<Go::SplineSurface*>(geomB)->reverseParameterDirection(false);
   return swapV = true;
 }
 
@@ -952,7 +965,7 @@ size_t ASMs2D::constrainEdgeLocal (int dir, bool open, int dof, int code,
     // Compute the surface normal at this edge point.
     // That will be the local z-axis of the local coordinate system.
     u[tdir] = gpar[i];
-    surf->point(pts,u[0],u[1],1);
+    static_cast<Go::SplineSurface*>(geomB)->point(pts,u[0],u[1],1);
     Vec3 Zaxis(SplineUtils::toVec3(pts[1],nsd),SplineUtils::toVec3(pts[2],nsd));
     gdata[k+3] = Zaxis.x;
     gdata[k+4] = Zaxis.y;
@@ -1353,6 +1366,36 @@ bool ASMs2D::getElementCoordinates (Matrix& X, int iel) const
 }
 
 
+bool ASMs2D::getGeoElementCoordinates (Matrix& X, int node) const
+{
+  const Go::SplineSurface* mgeo = static_cast<const Go::SplineSurface*>(geomB);
+  X.resize(nsd,mgeo->order_u()*mgeo->order_v());
+
+  double u = surf->basis_u().getKnots()[nodeInd[node].I + surf->order_u() - 1];
+  double v = surf->basis_v().getKnots()[nodeInd[node].J + surf->order_v() - 1];
+  int ni, nj;
+#pragma omp critical
+  {
+    ni = mgeo->basis_u().knotInterval(u) - mgeo->order_u() + 1;
+    nj = mgeo->basis_v().knotInterval(v) - mgeo->order_v() + 1;
+  }
+
+  size_t n = 0;
+  for (int i2 = 0; i2 < mgeo->order_v(); ++i2)
+    for (int i1 = 0; i1 < mgeo->order_u(); ++i1, n++)
+    {
+      auto it = mgeo->coefs_begin() + (ni + i1 + (nj + i2)*mgeo->numCoefs_u())*mgeo->dimension();
+      for (size_t i = 0; i < nsd; i++)
+        X(i+1,n+1) = *it++;
+    }
+
+#if SP_DEBUG > 2
+  std::cout <<"\nCoordinates for geometry element "<< iel << X << std::endl;
+#endif
+  return true;
+}
+
+
 void ASMs2D::getNodalCoordinates (Matrix& X) const
 {
   const int n1 = surf->numCoefs_u();
@@ -1633,8 +1676,14 @@ bool ASMs2D::integrate (Integrand& integrand,
   bool use3rdDer = integrand.getIntegrandType() & Integrand::THIRD_DERIVATIVES;
   bool useElmVtx = integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS;
 
-  if (myCache.empty())
+  if (myCache.empty()) {
     myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this, cachePolicy, 1));
+    if (geomB != surf) {
+      myCache.emplace_back(std::make_unique<BasisFunctionCache>(*myCache.front(), 0));
+      myCache.back()->setIntegrand(&integrand);
+      myCache.back()->init(1);
+    }
+  }
 
   BasisFunctionCache& cache = *myCache.front();
   cache.setIntegrand(&integrand);
@@ -1671,7 +1720,7 @@ bool ASMs2D::integrate (Integrand& integrand,
       FiniteElement fe(p1*p2);
       fe.p = p1 - 1;
       fe.q = p2 - 1;
-      Matrix   Xnod, Jac;
+      Matrix   Xnod, Jac, Xnodg;
       Matrix3D Hess;
       double   dXidu[2];
       double   param[3] = { 0.0, 0.0, 0.0 };
@@ -1705,6 +1754,13 @@ bool ASMs2D::integrate (Integrand& integrand,
           break;
         }
 
+        // Set up control point (nodal) coordinates for current element
+        if (geomB != surf && !this->getGeoElementCoordinates(Xnodg,MNPC[iel-1].front()))
+        {
+          ok = false;
+          break;
+        }
+
         if (useElmVtx)
           fe.h = this->getElementCorners(i1-1,i2-1,fe.XC);
 
@@ -1725,10 +1781,10 @@ bool ASMs2D::integrate (Integrand& integrand,
           for (int j = 0; j < ng[1]; j++)
             for (int i = 0; i < ng[0]; i++, ip++)
             {
-              const BasisFunctionVals& bfs = cache.getVals(iel-1,ip);
-
               // Compute Jacobian determinant of coordinate mapping
               // and multiply by weight of current integration point
+              const BasisFunctionVals& bfs = geomB != surf ? myCache.back()->getVals(iel-1,ip)
+                                                           : cache.getVals(iel-1,ip);
               double detJac = utl::Jacobian(Jac,fe.dNdX,Xnod,bfs.dNdu,false);
               double weight = dA*wg[0][i]*wg[1][j];
 
@@ -1746,7 +1802,7 @@ bool ASMs2D::integrate (Integrand& integrand,
           // Compute the element center
           param[0] = 0.5*(cache.getParam(0,i1-p1,0) + cache.getParam(0,i1-p1,ng[0]-1));
           param[1] = 0.5*(cache.getParam(1,i2-p2,0) + cache.getParam(1,i2-p2,ng[1]-1));
-          SplineUtils::point(X,param[0],param[1],surf);
+          SplineUtils::point(X,param[0],param[1],static_cast<Go::SplineSurface*>(geomB));
           if (!useElmVtx)
           {
             // When element corner coordinates are not needed, store coordinates
@@ -1796,14 +1852,22 @@ bool ASMs2D::integrate (Integrand& integrand,
               fe.N = bfs.N;
 
               // Compute Jacobian inverse and derivatives
-              fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,bfs.dNdu);
+              if (geomB != surf) {
+                const BasisFunctionVals& bfsg = myCache.back()->getVals(iel-1,ip,true);
+                fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnodg,bfsg.dNdu,false);
+                fe.dNdX.multiply(bfs.dNdu,Jac); // dNdX = dNdu * J^-1
+                X.assign(Xnodg * bfsg.N);
+              } else
+                fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,bfs.dNdu);
+
               if (fe.detJxW == 0.0) continue; // skip singular points
 
               // Store tangent vectors in fe.G for shells
               if (nsd > 2) fe.G = Jac;
 
               // Cartesian coordinates of current integration point
-              X.assign(Xnod * fe.N);
+              if (geomB == surf)
+                X.assign(Xnod * fe.N);
 
               // Compute the reduced integration terms of the integrand
               fe.detJxW *= dA*wr[i]*wr[j];
@@ -1834,8 +1898,16 @@ bool ASMs2D::integrate (Integrand& integrand,
             const BasisFunctionVals& bfs = cache.getVals(iel-1,ip);
             fe.N = bfs.N;
 
-            // Compute Jacobian inverse of coordinate mapping and derivatives
-            fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,bfs.dNdu);
+            if (geomB != surf) {
+              const BasisFunctionVals& bfsg = myCache.back()->getVals(iel-1,ip);
+              fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnodg,bfsg.dNdu,false);
+              fe.dNdX.multiply(bfs.dNdu, Jac);
+              X.assign(Xnodg * bfsg.N);
+            } else {
+              // Compute Jacobian inverse of coordinate mapping and derivatives
+              fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,bfs.dNdu);
+            }
+
             if (fe.detJxW == 0.0) continue; // skip singular points
 
             // Compute Hessian of coordinate mapping and 2nd order derivatives
@@ -1863,7 +1935,8 @@ bool ASMs2D::integrate (Integrand& integrand,
 #endif
 
             // Cartesian coordinates of current integration point
-            X.assign(Xnod * fe.N);
+            if (geomB == surf)
+              X.assign(Xnod * fe.N);
 
             // Evaluate the integrand and accumulate element contributions
             fe.detJxW *= dA*wg[0][i]*wg[1][j];
@@ -3314,22 +3387,23 @@ BasisFunctionVals ASMs2D::BasisFunctionCache::calculatePt (size_t el,
   std::array<size_t,2> elIdx = this->elmIndex(el);
 
   BasisFunctionVals result;
+  const Go::SplineSurface* surf = basis == 0 ? patch.getGeometry() : patch.getBasis(basis);
   if (nderiv == 1) {
     Go::BasisDerivsSf spline;
 #pragma omp critical
-    patch.getBasis(basis)->computeBasis(this->getParam(0,elIdx[0],gpIdx[0],reduced),
-                                        this->getParam(1,elIdx[1],gpIdx[1],reduced), spline);
+    surf->computeBasis(this->getParam(0,elIdx[0],gpIdx[0],reduced),
+                       this->getParam(1,elIdx[1],gpIdx[1],reduced), spline);
     SplineUtils::extractBasis(spline,result.N,result.dNdu);
   } else if (nderiv == 2) {
     Go::BasisDerivsSf2 spline;
 #pragma omp critical
-    patch.getBasis(basis)->computeBasis(this->getParam(0,elIdx[0],gpIdx[0],reduced),
-                                        this->getParam(1,elIdx[1],gpIdx[1],reduced), spline);
+    surf->computeBasis(this->getParam(0,elIdx[0],gpIdx[0],reduced),
+                       this->getParam(1,elIdx[1],gpIdx[1],reduced), spline);
     SplineUtils::extractBasis(spline,result.N,result.dNdu,result.d2Ndu2);
   } else if (nderiv == 3) {
     Go::BasisDerivsSf3 spline;
-    patch.getBasis(basis)->computeBasis(this->getParam(0,elIdx[0],gpIdx[0],reduced),
-                                        this->getParam(1,elIdx[1],gpIdx[1],reduced), spline);
+    surf->computeBasis(this->getParam(0,elIdx[0],gpIdx[0],reduced),
+                       this->getParam(1,elIdx[1],gpIdx[1],reduced), spline);
     SplineUtils::extractBasis(spline,result.N,result.dNdu,result.d2Ndu2,result.d3Ndu3);
   }
 
@@ -3362,18 +3436,20 @@ void ASMs2D::BasisFunctionCache::calculateAll ()
                            std::vector<BasisFunctionVals>& values)
   {
     std::vector<Go::BasisDerivsSf>  spline;
-    patch.getBasis(basis)->computeBasisGrid(par1,par2,spline);
+    const Go::SplineSurface* surf = basis == 0 ? patch.getGeometry() : patch.getBasis(basis);
+    surf->computeBasisGrid(par1,par2,spline);
     size_t idx = 0;
     for (const Go::BasisDerivsSf& spl : spline) {
       SplineUtils::extractBasis(spl,values[idx].N,values[idx].dNdu);
       ++idx;
     }
   };
-  if (nderiv == 1)
+  if (nderiv == 1) {
     extract1(mainQ->gpar[0],mainQ->gpar[1],values);
-  else if (nderiv == 2) {
+  } else if (nderiv == 2) {
     std::vector<Go::BasisDerivsSf2> spline;
-    patch.getBasis(basis)->computeBasisGrid(mainQ->gpar[0],mainQ->gpar[1],spline);
+    const Go::SplineSurface* surf = basis == 0 ? patch.getGeometry() : patch.getBasis(basis);
+    surf->computeBasisGrid(mainQ->gpar[0],mainQ->gpar[1],spline);
     size_t idx = 0;
     for (const Go::BasisDerivsSf2& spl : spline) {
       SplineUtils::extractBasis(spl,values[idx].N,values[idx].dNdu,values[idx].d2Ndu2);
@@ -3381,7 +3457,8 @@ void ASMs2D::BasisFunctionCache::calculateAll ()
     }
   } else if (nderiv == 3) {
     std::vector<Go::BasisDerivsSf3> spline;
-    patch.getBasis(basis)->computeBasisGrid(mainQ->gpar[0],mainQ->gpar[1],spline);
+    const Go::SplineSurface* surf = basis == 0 ? patch.getGeometry() : patch.getBasis(basis);
+    surf->computeBasisGrid(mainQ->gpar[0],mainQ->gpar[1],spline);
     size_t idx = 0;
     for (const Go::BasisDerivsSf3& spl : spline) {
       SplineUtils::extractBasis(spl,values[idx].N,

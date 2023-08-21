@@ -222,7 +222,10 @@ bool ASMs2Dmx::generateFEMTopology ()
       return false; // Logic error
   }
   delete surf;
-  geomB = surf = m_basis[elmBasis-1]->clone();
+  const Go::SplineSurface* surfOld = surf;
+  surf = m_basis[elmBasis-1]->clone();
+  if (geomB == surfOld)
+    geomB = surf;
 
   nb.clear();
   nb.reserve(m_basis.size());
@@ -547,6 +550,15 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
     cache->init(use2ndDer ? 2 : 1);
   }
 
+  size_t elm_ofs = 0;
+  if (geomB != surf) {
+    myCache.emplace_back(std::make_unique<BasisFunctionCache>(*myCache.front(), 0));
+    myCache.back()->setIntegrand(&integrand);
+    myCache.back()->init(1);
+    for (int i = 0; i < elmBasis-1; ++i)
+      elm_ofs += m_basis[i]->order_u()*m_basis[i]->order_v();
+  }
+
   BasisFunctionCache& cache = *myCache.front();
 
   // Get Gaussian quadrature points and weights
@@ -574,7 +586,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
       MxFiniteElement fe(elem_size);
       Matrix3D Hess;
       double dXidu[2];
-      Matrix Xnod, Jac;
+      Matrix Xnod, Xnodg, Jac;
       double param[3] = { 0.0, 0.0, 0.0 };
       Vec4   X(param,time.t);
       for (size_t l = 0; l < groups[g][t].size() && ok; l++)
@@ -596,6 +608,12 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
 
         // Set up control point (nodal) coordinates for current element
         if (!this->getElementCoordinates(Xnod,iel))
+        {
+          ok = false;
+          break;
+        }
+
+        if (geomB != surf && !this->getGeoElementCoordinates(Xnodg, myMNPC[iel-1][elm_ofs]))
         {
           ok = false;
           break;
@@ -647,7 +665,15 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
 
             // Compute Jacobian inverse of the coordinate mapping and
             // basis function derivatives w.r.t. Cartesian coordinates
-            if (!fe.Jacobian(Jac,Xnod,elmBasis,&bfs))
+            if (geomB != surf) {
+              const BasisFunctionVals& bfsg = myCache.back()->getVals(iel-1,ip);
+              fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnodg,bfsg.dNdu,false);
+              if (fe.detJxW <= 0.0)
+                continue;
+              X.assign(Xnodg * bfsg.N);
+              if (!fe.Jacobian(Jac,Xnod,this->getNoBasis()+1,&bfs))
+                continue;
+            } else if (!fe.Jacobian(Jac,Xnod,elmBasis,&bfs))
               continue; // skip singular points
 
             // Compute Hessian of coordinate mapping and 2nd order derivatives
@@ -659,7 +685,8 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
               utl::getGmat(Jac,dXidu,fe.G);
 
             // Cartesian coordinates of current integration point
-            X.assign(Xnod * fe.basis(elmBasis));
+            if (geomB == surf)
+              X.assign(Xnod * fe.basis(elmBasis));
 
             // Evaluate the integrand and accumulate element contributions
             fe.detJxW *= dA*wg[0][i]*wg[1][j];
