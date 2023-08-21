@@ -215,7 +215,7 @@ bool ASMs3Dmx::generateFEMTopology ()
       else if (ASMmxBase::Type == ASMmxBase::SUBGRID)
         projB = m_basis.front().get();
       else // FULL_CONT_RAISE_BASISx
-        projB = m_basis[2-geoBasis].get();
+        projB = m_basis[2-itgBasis].get();
     }
 
     if (ASMmxBase::Type == ASMmxBase::SUBGRID)
@@ -223,7 +223,7 @@ bool ASMs3Dmx::generateFEMTopology ()
 
     delete svol;
   }
-  geomB = svol = m_basis[geoBasis-1].get();
+  geomB = svol = m_basis[itgBasis-1].get();
 
   nb.clear();
   nb.reserve(m_basis.size());
@@ -307,7 +307,7 @@ bool ASMs3Dmx::generateFEMTopology ()
           myMNPC[iel][elm_node++] = last_node - (k*nv + j)*nu - i;
   };
 
-  inod = std::accumulate(nb.begin(),nb.begin()+geoBasis-1,0u);
+  inod = std::accumulate(nb.begin(),nb.begin()+itgBasis-1,0u);
   auto knotw = itg->basis(2).begin();
   for (int k = 1; k <= itg->numCoefs(2); k++, ++knotw) {
     auto knotv = itg->basis(1).begin();
@@ -328,7 +328,7 @@ bool ASMs3Dmx::generateFEMTopology ()
             size_t basis_ofs = 0;
             int basis = 0;
             for (const std::shared_ptr<Go::SplineVolume>& spline : m_basis) {
-              if (basis != geoBasis-1) {
+              if (basis != itgBasis-1) {
                 double ku = *knotu;
                 double kv = *knotv;
                 double kw = *knotw;
@@ -404,7 +404,7 @@ bool ASMs3Dmx::getElementCoordinates (Matrix& X, int iel) const
 
   size_t nenod = svol->order(0)*svol->order(1)*svol->order(2);
   size_t lnod0 = 0;
-  for (int i = 1; i < geoBasis; ++i)
+  for (int i = 1; i < itgBasis; ++i)
     lnod0 += m_basis[i-1]->order(0)*m_basis[i-1]->order(1)*m_basis[i-1]->order(2);
 
   X.resize(3,nenod);
@@ -608,11 +608,11 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
 
               // Compute Jacobian inverse of the coordinate mapping and
               // basis function derivatives w.r.t. Cartesian coordinates
-              if (!fe.Jacobian(Jac,Xnod,geoBasis,&bfs))
+              if (!fe.Jacobian(Jac,Xnod,itgBasis,&bfs))
                 continue; // skip singular points
 
               // Compute Hessian of coordinate mapping and 2nd order derivatives
-              if (use2ndDer && !fe.Hessian(Hess,Jac,Xnod,geoBasis,&bfs))
+              if (use2ndDer && !fe.Hessian(Hess,Jac,Xnod,itgBasis,&bfs))
                 ok = false;
 
               // Compute G-matrix
@@ -620,7 +620,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
                 utl::getGmat(Jac,dXidu,fe.G);
 
               // Cartesian coordinates of current integration point
-              X.assign(Xnod * fe.basis(geoBasis));
+              X.assign(Xnod * fe.basis(itgBasis));
 
               // Evaluate the integrand and accumulate element contributions
               fe.detJxW *= dV*wg[0][i]*wg[1][j]*wg[2][k];
@@ -822,18 +822,18 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
 
             // Compute Jacobian inverse of the coordinate mapping and
             // basis function derivatives w.r.t. Cartesian coordinates
-            fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(geoBasis),Xnod,
-                                      dNxdu[geoBasis-1],t1,t2);
+            fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(itgBasis),Xnod,
+                                      dNxdu[itgBasis-1],t1,t2);
             if (fe.detJxW == 0.0) continue; // skip singular points
 
             for (size_t b = 0; b < m_basis.size(); ++b)
-              if (b != (size_t)geoBasis-1)
+              if (b != (size_t)itgBasis-1)
                 fe.grad(b+1).multiply(dNxdu[b],Jac);
 
             if (faceDir < 0) normal *= -1.0;
 
             // Cartesian coordinates of current integration point
-            X.assign(Xnod * fe.basis(geoBasis));
+            X.assign(Xnod * fe.basis(itgBasis));
 
             // Evaluate the integrand and accumulate element contributions
             fe.detJxW *= dA*wg[i]*wg[j];
@@ -1039,13 +1039,13 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
                 }
 
               // Compute basis function derivatives and the edge normal
-              fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(geoBasis+m_basis.size()),
-                                        Xnod,dNxdu[geoBasis-1+m_basis.size()],t1,t2);
-              fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(geoBasis),Xnod,
-                                        dNxdu[geoBasis-1],t1,t2);
+              fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(itgBasis+m_basis.size()),
+                                        Xnod,dNxdu[itgBasis-1+m_basis.size()],t1,t2);
+              fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(itgBasis),Xnod,
+                                        dNxdu[itgBasis-1],t1,t2);
               if (fe.detJxW == 0.0) continue; // skip singular points
               for (size_t b = 0; b < m_basis.size(); ++b)
-                if (b != (size_t)geoBasis-1) {
+                if (b != (size_t)itgBasis-1) {
                   fe.grad(b+1).multiply(dNxdu[b],Jac);
                   fe.grad(b+1+m_basis.size()).multiply(dNxdu[b+m_basis.size()],Jac);
                 }
@@ -1053,7 +1053,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
               if (faceDir < 0) normal *= -1.0;
 
               // Cartesian coordinates of current integration point
-              X.assign(Xnod * fe.basis(geoBasis));
+              X.assign(Xnod * fe.basis(itgBasis));
 
               // Evaluate the integrand and accumulate element contributions
               fe.detJxW *= 0.25*dA*wg[i]*wg[j];
@@ -1206,8 +1206,8 @@ bool ASMs3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
                  splinex[b][i].left_idx,ip[b]);
 
       // Fetch associated control point coordinates
-      if (b == (size_t)geoBasis-1)
-        utl::gather(ip[geoBasis-1], 3, Xnod, Xtmp);
+      if (b == (size_t)itgBasis-1)
+        utl::gather(ip[itgBasis-1], 3, Xnod, Xtmp);
 
       for (int& c : ip[b]) c += ofs;
       ipa.insert(ipa.end(), ip[b].begin(), ip[b].end());
@@ -1224,11 +1224,11 @@ bool ASMs3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
     // Compute Jacobian inverse of the coordinate mapping and
     // basis function derivatives w.r.t. Cartesian coordinate
-    if (!fe.Jacobian(Jac,Xtmp,geoBasis,nullptr,&dNxdu))
+    if (!fe.Jacobian(Jac,Xtmp,itgBasis,nullptr,&dNxdu))
       continue; // skip singular points
 
     // Cartesian coordinates of current integration point
-    utl::Point X4(Xtmp * fe.basis(geoBasis),{fe.u,fe.v,fe.w});
+    utl::Point X4(Xtmp * fe.basis(itgBasis),{fe.u,fe.v,fe.w});
 
     // Now evaluate the solution field
     if (!integrand.evalSol(solPt,fe,X4,ipa,elem_size,nb))
@@ -1271,22 +1271,22 @@ void ASMs3Dmx::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
 void ASMs3Dmx::swapProjectionBasis ()
 {
   if (projB2) {
-    ASMmxBase::geoBasis = ASMmxBase::geoBasis == 1 ? 2 : 1;
+    ASMmxBase::itgBasis = ASMmxBase::itgBasis == 1 ? 2 : 1;
     std::swap(projB, projB2);
-    svol = this->getBasis(ASMmxBase::geoBasis);
+    svol = this->getBasis(ASMmxBase::itgBasis);
   }
 }
 
 
 int ASMs3Dmx::getFirstItgElmNode () const
 {
-  return std::accumulate(elem_size.begin(), elem_size.begin() + geoBasis-1, 0);
+  return std::accumulate(elem_size.begin(), elem_size.begin() + itgBasis-1, 0);
 }
 
 
 int ASMs3Dmx::getLastItgElmNode () const
 {
-  return std::accumulate(elem_size.begin(), elem_size.begin() + geoBasis, -1);
+  return std::accumulate(elem_size.begin(), elem_size.begin() + itgBasis, -1);
 }
 
 

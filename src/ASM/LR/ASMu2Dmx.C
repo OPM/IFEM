@@ -220,7 +220,7 @@ bool ASMu2Dmx::generateFEMTopology ()
       else if (ASMmxBase::Type == ASMmxBase::SUBGRID)
         projB = m_basis.front();
       else // FULL_CONT_RAISE_BASISx
-        projB = m_basis[2-ASMmxBase::geoBasis];
+        projB = m_basis[2-ASMmxBase::itgBasis];
     }
 
     if (ASMmxBase::Type == ASMmxBase::SUBGRID)
@@ -234,7 +234,7 @@ bool ASMu2Dmx::generateFEMTopology ()
   }
   projB->generateIDs();
   refB->generateIDs();
-  lrspline = m_basis[geoBasis-1];
+  lrspline = m_basis[itgBasis-1];
 
   nb.clear();
   nb.reserve(m_basis.size());
@@ -249,7 +249,7 @@ bool ASMu2Dmx::generateFEMTopology ()
 
   if (shareFE == 'F') return true;
 
-  nel = m_basis[geoBasis-1]->nElements();
+  nel = m_basis[itgBasis-1]->nElements();
   nnod = std::accumulate(nb.begin(), nb.end(), 0);
 
   myMLGE.resize(nel,0);
@@ -259,7 +259,7 @@ bool ASMu2Dmx::generateFEMTopology ()
     it->generateIDs();
 
   size_t iel = 0;
-  for (const LR::Element* el1 : m_basis[geoBasis-1]->getAllElements())
+  for (const LR::Element* el1 : m_basis[itgBasis-1]->getAllElements())
   {
     size_t nfunc = 0;
     for (const SplinePtr& it : m_basis)
@@ -284,7 +284,7 @@ bool ASMu2Dmx::generateFEMTopology ()
   std::cout <<"NEL = "<< nel <<" NNOD = "<< nnod << std::endl;
 #endif
 
-  geomB = m_basis[geoBasis-1];
+  geomB = m_basis[itgBasis-1];
   this->generateBezierBasis();
   this->generateBezierExtraction();
 
@@ -355,7 +355,7 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
       double   param[3] = { 0.0, 0.0, 0.0 };
       Vec4     X(param,time.t);
 
-      int geoEl = els[geoBasis-1];
+      int geoEl = els[itgBasis-1];
       fe.iel = MLGE[geoEl-1];
 
       // Get element area in the parameter space
@@ -417,11 +417,11 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
 
           // Compute Jacobian inverse of the coordinate mapping and
           // basis function derivatives w.r.t. Cartesian coordinates
-          if (!fe.Jacobian(Jac,Xnod,geoBasis,&bfs))
+          if (!fe.Jacobian(Jac,Xnod,itgBasis,&bfs))
             continue; // skip singular points
 
           // Compute Hessian of coordinate mapping and 2nd order derivatives
-          if (use2ndDer && !fe.Hessian(Hess,Jac,Xnod,geoBasis,&bfs))
+          if (use2ndDer && !fe.Hessian(Hess,Jac,Xnod,itgBasis,&bfs))
             ok = false;
 
           // Compute G-matrix
@@ -429,7 +429,7 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
             utl::getGmat(Jac,dXidu,fe.G);
 
           // Cartesian coordinates of current integration point
-          X.assign(Xnod * fe.basis(geoBasis));
+          X.assign(Xnod * fe.basis(itgBasis));
 
           // Evaluate the integrand and accumulate element contributions
           fe.detJxW *= dA*wg[0][i]*wg[1][j];
@@ -504,7 +504,7 @@ bool ASMu2Dmx::integrate (Integrand& integrand, int lIndex,
   // === Assembly loop over all elements on the patch edge =====================
 
   int iel = 0;
-  for (const LR::Element* el1 : m_basis[geoBasis-1]->getAllElements())
+  for (const LR::Element* el1 : m_basis[itgBasis-1]->getAllElements())
   {
     ++iel;
 
@@ -512,10 +512,10 @@ bool ASMu2Dmx::integrate (Integrand& integrand, int lIndex,
     bool skipMe = false;
     switch (edgeDir)
     {
-      case -1: if (el1->umin() != m_basis[geoBasis-1]->startparam(0)) skipMe = true; break;
-      case  1: if (el1->umax() != m_basis[geoBasis-1]->endparam(0)  ) skipMe = true; break;
-      case -2: if (el1->vmin() != m_basis[geoBasis-1]->startparam(1)) skipMe = true; break;
-      case  2: if (el1->vmax() != m_basis[geoBasis-1]->endparam(1)  ) skipMe = true; break;
+      case -1: if (el1->umin() != m_basis[itgBasis-1]->startparam(0)) skipMe = true; break;
+      case  1: if (el1->umax() != m_basis[itgBasis-1]->endparam(0)  ) skipMe = true; break;
+      case -2: if (el1->vmin() != m_basis[itgBasis-1]->startparam(1)) skipMe = true; break;
+      case  2: if (el1->vmax() != m_basis[itgBasis-1]->endparam(1)  ) skipMe = true; break;
     }
     if (skipMe) continue;
 
@@ -528,7 +528,7 @@ bool ASMu2Dmx::integrate (Integrand& integrand, int lIndex,
     this->getElementsAt(el1->midpoint(),els,elem_sizes);
 
     MxFiniteElement fe(elem_sizes,firstp);
-    int geoEl = els[geoBasis-1];
+    int geoEl = els[itgBasis-1];
     fe.iel = MLGE[geoEl-1];
     fe.xi = fe.eta = edgeDir < 0 ? -1.0 : 1.0;
     firstp += nGP; // Global integration point counter
@@ -574,19 +574,19 @@ bool ASMu2Dmx::integrate (Integrand& integrand, int lIndex,
 
       // Compute Jacobian inverse of the coordinate mapping and
       // basis function derivatives w.r.t. Cartesian coordinates
-      fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(geoBasis),Xnod,
-                                dNxdu[geoBasis-1],t1,t2);
+      fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(itgBasis),Xnod,
+                                dNxdu[itgBasis-1],t1,t2);
       if (fe.detJxW == 0.0) continue; // skip singular points
 
       for (size_t b = 1; b <= m_basis.size(); ++b)
-        if ((int)b != geoBasis)
+        if ((int)b != itgBasis)
           fe.grad(b).multiply(dNxdu[b-1],Jac);
 
       if (edgeDir < 0)
         normal *= -1.0;
 
       // Cartesian coordinates of current integration point
-      X.assign(Xnod * fe.basis(geoBasis));
+      X.assign(Xnod * fe.basis(itgBasis));
 
       // Evaluate the integrand and accumulate element contributions
       fe.detJxW *= dS*wg[i];
@@ -654,11 +654,11 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
     elem_sizes.front() = el1->nBasisFunctions();
 
     // Set up control point coordinates for current element
-    if (!this->getElementCoordinates(Xnod,els[geoBasis-1]))
+    if (!this->getElementCoordinates(Xnod,els[itgBasis-1]))
       return false;
 
     LocalIntegral* A = integrand.getLocalIntegral(elem_sizes, iel);
-    bool ok = integrand.initElement(MNPC[els[geoBasis-1]-1],elem_sizes,nb,*A);
+    bool ok = integrand.initElement(MNPC[els[itgBasis-1]-1],elem_sizes,nb,*A);
     size_t origSize = A->vec.size();
 
     int bit = 8;
@@ -700,7 +700,7 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
           elem_sizes2.front() = el2->nBasisFunctions();
 
           LocalIntegral* A_neigh = integrand.getLocalIntegral(elem_sizes2, el_neigh);
-          ok = integrand.initElement(MNPC[els2[geoBasis-1]-1],
+          ok = integrand.initElement(MNPC[els2[itgBasis-1]-1],
                                      elem_sizes2,nb,*A_neigh);
 
           // Element sizes for both elements
@@ -709,7 +709,7 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
                     std::back_inserter(elem_sizes3));
 
           MxFiniteElement fe(elem_sizes3);
-          fe.h = this->getElementCorners(els2[geoBasis-1], fe.XC);
+          fe.h = this->getElementCorners(els2[itgBasis-1], fe.XC);
 
           if (!A_neigh->vec.empty()) {
             A->vec.resize(origSize+A_neigh->vec.size());
@@ -735,7 +735,7 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
             gpar[1].fill(v1);
           }
           Matrix Xnod2, Jac2;
-          ok &= this->getElementCoordinates(Xnod2,els2[geoBasis-1]);
+          ok &= this->getElementCoordinates(Xnod2,els2[itgBasis-1]);
 
           for (int g = 0; g < nGP && ok; g++, ++fe.iGP)
           {
@@ -760,15 +760,15 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
             // Compute Jacobian inverse of the coordinate mapping and
             // basis function derivatives w.r.t. Cartesian coordinates
             fe.detJxW = utl::Jacobian(Jac2,normal,
-                                      fe.grad(geoBasis+m_basis.size()),Xnod2,
-                                      dNxdu[geoBasis-1+m_basis.size()],t1,t2);
+                                      fe.grad(itgBasis+m_basis.size()),Xnod2,
+                                      dNxdu[itgBasis-1+m_basis.size()],t1,t2);
             fe.detJxW = utl::Jacobian(Jac,normal,
-                                      fe.grad(geoBasis),Xnod,
-                                      dNxdu[geoBasis-1],t1,t2);
+                                      fe.grad(itgBasis),Xnod,
+                                      dNxdu[itgBasis-1],t1,t2);
             if (fe.detJxW == 0.0) continue; // skip singular points
 
             for (size_t b = 1; b <= m_basis.size(); ++b)
-              if ((int)b != geoBasis) {
+              if ((int)b != itgBasis) {
                 fe.grad(b).multiply(dNxdu[b-1],Jac);
                 fe.grad(b+m_basis.size()).multiply(dNxdu[b-1+m_basis.size()],Jac);
               }
@@ -777,7 +777,7 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
               normal *= -1.0;
 
             // Cartesian coordinates of current integration point
-            X.assign(Xnod * fe.basis(geoBasis));
+            X.assign(Xnod * fe.basis(itgBasis));
 
             // Evaluate the integrand and accumulate element contributions
             fe.detJxW *= 0.5*dS*wg[g];
@@ -797,7 +797,7 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
       ok = false;
 
     // Assembly of global system integral
-    if (ok && !glInt.assemble(A,els[geoBasis-1]))
+    if (ok && !glInt.assemble(A,els[itgBasis-1]))
       ok = false;
 
     A->destruct();
@@ -911,26 +911,26 @@ bool ASMu2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
       }
 
     // Set up control point (nodal) coordinates for current element
-    if (!this->getElementCoordinates(Xnod,els[geoBasis-1])) return false;
+    if (!this->getElementCoordinates(Xnod,els[itgBasis-1])) return false;
 
     // Compute Jacobian inverse of the coordinate mapping and
     // basis function derivatives w.r.t. Cartesian coordinates
-    if (!fe.Jacobian(Jac,Xnod,geoBasis,nullptr,&dNxdu))
+    if (!fe.Jacobian(Jac,Xnod,itgBasis,nullptr,&dNxdu))
       continue; // skip singular points
 
     // Compute Hessian of coordinate mapping and 2nd order derivatives
-    if (use2ndDer && !fe.Hessian(Hess,Jac,Xnod,geoBasis,nullptr,&d2Nxdu2))
+    if (use2ndDer && !fe.Hessian(Hess,Jac,Xnod,itgBasis,nullptr,&d2Nxdu2))
       return false;
 
     // Cartesian coordinates of current integration point
     fe.u = gpar[0][i];
     fe.v = gpar[1][i];
-    utl::Point X4(Xnod*fe.basis(geoBasis),{fe.u,fe.v});
+    utl::Point X4(Xnod*fe.basis(itgBasis),{fe.u,fe.v});
 
     // Now evaluate the solution field
     Vector solPt;
     if (!integrand.evalSol(solPt,fe,X4,
-                           MNPC[els[geoBasis-1]-1],elem_sizes,nb))
+                           MNPC[els[itgBasis-1]-1],elem_sizes,nb))
       return false;
     else if (sField.empty())
       sField.resize(solPt.size(),nPoints,true);
@@ -1114,7 +1114,7 @@ void ASMu2Dmx::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
 void ASMu2Dmx::remapErrors (RealArray& errors,
                             const RealArray& origErr, bool elemErrors) const
 {
-  const LR::LRSplineSurface* geo = this->getBasis(ASMmxBase::geoBasis);
+  const LR::LRSplineSurface* geo = this->getBasis(ASMmxBase::itgBasis);
   for (const LR::Element* elm : geo->getAllElements()) {
     int rEl = refB->getElementContaining(elm->midpoint());
     if (elemErrors)
@@ -1198,10 +1198,10 @@ void ASMu2Dmx::copyRefinement (LR::LRSplineSurface* basis,
 void ASMu2Dmx::swapProjectionBasis ()
 {
   if (projB2) {
-    ASMmxBase::geoBasis = ASMmxBase::geoBasis == 1 ? 2 : 1;
+    ASMmxBase::itgBasis = ASMmxBase::itgBasis == 1 ? 2 : 1;
     std::swap(projB, projB2);
     std::swap(projThreadGroups, proj2ThreadGroups);
-    lrspline = m_basis[ASMmxBase::geoBasis-1];
+    lrspline = m_basis[ASMmxBase::itgBasis-1];
     geomB = lrspline;
     this->generateBezierBasis();
     this->generateBezierExtraction();
@@ -1236,7 +1236,7 @@ BasisFunctionVals ASMu2Dmx::BasisFunctionCache::calculatePt (size_t el,
 
   const ASMu2Dmx& pch = static_cast<const ASMu2Dmx&>(patch);
 
-  const LR::Element* el1 = pch.getBasis(ASMmxBase::geoBasis)->getElement(el);
+  const LR::Element* el1 = pch.getBasis(ASMmxBase::itgBasis)->getElement(el);
   size_t el_b = patch.getBasis(basis)->getElementContaining(el1->midpoint());
 
   BasisFunctionVals result;
