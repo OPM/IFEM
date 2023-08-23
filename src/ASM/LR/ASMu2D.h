@@ -139,9 +139,7 @@ public:
   const LR::LRSplineSurface* getSurface() const { return lrspline.get(); }
 
   //! \brief Returns the spline surface representing the basis of this patch.
-  virtual const LR::LRSplineSurface* getBasis(int = 1) const { return lrspline.get(); }
-  //! \brief Returns the spline surface representing the basis of this patch.
-  virtual LR::LRSplineSurface* getBasis(int = 1) { return lrspline.get(); }
+  virtual LR::LRSplineSurface* getBasis(int basis = 1) const;
 
 
   // Methods for model generation and refinement
@@ -690,7 +688,8 @@ protected:
   std::shared_ptr<LR::LRSplineSurface> createLRfromTensor();
 
   //! \brief Converts a rational spline surface to a LR NURBS surface.
-  static LR::LRSplineSurface* createLRNurbs(const Go::SplineSurface& srf);
+  static std::shared_ptr<LR::LRSplineSurface>
+  createLRNurbs(const Go::SplineSurface& srf);
 
   //! \brief Generate bezier basis.
   void generateBezierBasis();
@@ -742,7 +741,6 @@ public:
 
 protected:
   std::shared_ptr<LR::LRSplineSurface> lrspline; //!< Pointer to the LR-spline surface object
-  std::shared_ptr<LR::LRSplineSurface> projBasis; //!< Basis to project onto
 
   bool is_rational = false; //!< True if basis is rational
 

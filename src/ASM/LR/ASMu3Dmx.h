@@ -66,10 +66,7 @@ public:
   virtual ~ASMu3Dmx() { lrspline = nullptr; geomB = nullptr; }
 
   //! \brief Returns the spline surface representing the basis of this patch.
-  virtual LR::LRSplineVolume* getBasis(int basis = 1);
-
-  //! \brief Returns the spline surface representing the basis of this patch.
-  virtual const LR::LRSplineVolume* getBasis(int basis = 1) const;
+  virtual LR::LRSplineVolume* getBasis(int basis = 1) const;
 
   // Methods for model generation
   // ============================
@@ -233,8 +230,6 @@ private:
 
   std::vector<SplinePtr> m_basis;      //!< All bases
   LR::LRSplineVolume*    threadBasis;  //!< Basis for thread groups
-  SplinePtr              refBasis;     //!< Basis to refine based on
-  SplinePtr              altProjBasis; //!< Alternative projection basis
 
   const std::vector<Matrices>& bezierExtractmx;  //!< Bezier extraction matrices
   std::vector<Matrices>        myBezierExtractmx; //!< Bezier extraction matrices

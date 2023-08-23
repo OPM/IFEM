@@ -54,19 +54,10 @@ ASMu2Dmx::ASMu2Dmx (const ASMu2Dmx& patch, const CharVec& n_f)
 }
 
 
-const LR::LRSplineSurface* ASMu2Dmx::getBasis (int basis) const
+LR::LRSplineSurface* ASMu2Dmx::getBasis (int basis) const
 {
   if (basis < 1 || basis > (int)m_basis.size())
-    return nullptr;
-
-  return m_basis[basis-1].get();
-}
-
-
-LR::LRSplineSurface* ASMu2Dmx::getBasis (int basis)
-{
-  if (basis < 1 || basis > (int)m_basis.size())
-    return nullptr;
+    return this->ASMu2D::getBasis(basis);
 
   return m_basis[basis-1].get();
 }
@@ -94,10 +85,10 @@ bool ASMu2Dmx::readBasis (std::istream& is, size_t basis)
 
 bool ASMu2Dmx::write (std::ostream& os, int basis) const
 {
-  if (basis == -1)
-    os << *projBasis;
-  else
-    os << *m_basis[basis-1];
+  if (basis > static_cast<int>(m_basis.size()))
+    return false;
+
+  os << *this->getBasis(basis);
 
   return os.good();
 }
@@ -201,22 +192,24 @@ bool ASMu2Dmx::generateFEMTopology ()
 
   auto createLR = [this](Go::SplineSurface& srf)
                   {
-                    return srf.rational() ? this->createLRNurbs(srf)
-                                          : new LR::LRSplineSurface(&srf);
+                    if (srf.rational())
+                      return this->createLRNurbs(srf);
+                    else
+                      return std::make_shared<LR::LRSplineSurface>(&srf);
                   };
 
   if (tensorPrjBas)
   {
-    projBasis.reset(createLR(*tensorPrjBas));
+    projB = createLR(*tensorPrjBas);
     delete tensorPrjBas;
     tensorPrjBas = nullptr;
   }
 
   if (m_basis.empty()) {
     SurfaceVec svec = ASMmxBase::establishBases(tensorspline, ASMmxBase::Type);
-    m_basis.resize(svec.size());
-    for (size_t b = 0; b < svec.size(); b++)
-      m_basis[b].reset(createLR(*svec[b]));
+    m_basis.reserve(svec.size());
+    for (std::shared_ptr<Go::SplineSurface>& srf : svec)
+      m_basis.push_back(createLR(*srf));
 
     // we need to project on something that is not one of our bases
     if (ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS1 ||
@@ -224,34 +217,33 @@ bool ASMu2Dmx::generateFEMTopology ()
         ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE ||
         ASMmxBase::Type == ASMmxBase::SUBGRID) {
       Go::SplineSurface* otherBasis = nullptr;
-      if (!projBasis)
+      if (!projB)
         otherBasis = ASMmxBase::raiseBasis(tensorspline);
 
       if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
-        refBasis.reset(createLR(*otherBasis));
-        if (!projBasis)
-          projBasis = m_basis.front();
-        altProjBasis = refBasis;
-      }
-      else {
-        if (!projBasis)
-          projBasis.reset(createLR(*otherBasis));
-        refBasis = projBasis;
+        refB = createLR(*otherBasis);
+        if (!projB)
+          projB = m_basis.front();
+        altProjB = refB;
+      } else {
+        if (!projB)
+          projB = createLR(*otherBasis);
+        refB = projB;
       }
       delete otherBasis;
     }
     else {
-      if (!projBasis)
-        projBasis = m_basis[2-ASMmxBase::geoBasis];
-      refBasis = projBasis;
+      if (!projB)
+        projB = m_basis[2-ASMmxBase::geoBasis];
+      refB = projB;
     }
 
     is_rational = tensorspline->rational();
     delete tensorspline;
     tensorspline = nullptr;
   }
-  projBasis->generateIDs();
-  refBasis->generateIDs();
+  projB->generateIDs();
+  refB->generateIDs();
   lrspline = m_basis[geoBasis-1];
 
   nb.clear();
@@ -975,9 +967,9 @@ bool ASMu2Dmx::refine (const LR::RefineData& prm, Vectors& sol)
       LR::extendControlPoints(m_basis[j].get(), bVec, nfx[j]);
     }
 
-  if (doRefine(prm, refBasis.get())) {
+  if (doRefine(prm, this->getBasis(ASM::REFINEMENT_BASIS))) {
     for (size_t j = 0; j < m_basis.size(); ++j)
-      if (refBasis != m_basis[j]) {
+      if (refB != m_basis[j]) {
         if ((j == 0 && ASMmxBase::Type == REDUCED_CONT_RAISE_BASIS1) ||
             (j == 1 && ASMmxBase::Type == REDUCED_CONT_RAISE_BASIS2))
           this->copyRefinement(m_basis[j].get(), 2);
@@ -987,16 +979,16 @@ bool ASMu2Dmx::refine (const LR::RefineData& prm, Vectors& sol)
 
     // Uniformly refine to find basis 1
     if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
-      m_basis[0].reset(refBasis->copy());
-      projBasis = m_basis.front();
-      size_t nFunc = refBasis->nBasisFunctions();
+      m_basis[0].reset(this->getBasis(ASM::REFINEMENT_BASIS)->copy());
+      projB = m_basis.front();
+      size_t nFunc = refB->nBasisFunctions();
       IntVec elems(nFunc);
       std::iota(elems.begin(),elems.end(),0);
       m_basis[0]->refineBasisFunction(elems);
     }
 
-    if (altProjBasis)
-      altProjBasis->generateIDs();
+    if (altProjB)
+      altProjB->generateIDs();
 
     size_t len = 0;
     for (size_t j = 0; j< m_basis.size(); ++j) {
@@ -1022,11 +1014,11 @@ bool ASMu2Dmx::refine (const LR::RefineData& prm, Vectors& sol)
       std::cout << it->nBasisFunctions() <<" ";
     std::cout <<"nodes."<< std::endl;
     std::cout << "Projection basis: "
-              << projBasis->nElements() << " elements "
-              << projBasis->nBasisFunctions() << " nodes" << std::endl;
+              << projB->nElements() << " elements "
+              << projB->nBasisFunctions() << " nodes" << std::endl;
     std::cout << "Refinement basis: "
-              << refBasis->nElements() << " elements "
-              << refBasis->nBasisFunctions() << " nodes" << std::endl;
+              << refB->nElements() << " elements "
+              << refB->nBasisFunctions() << " nodes" << std::endl;
   #endif
 
     return true;
@@ -1078,9 +1070,9 @@ void ASMu2Dmx::generateThreadGroups (const Integrand& integrand, bool silence,
     secConstraint = {this->getBasis(1), this->getBasis(2)};
 
   LR::generateThreadGroups(threadGroups,threadBasis,secConstraint);
-  LR::generateThreadGroups(projThreadGroups,projBasis.get());
-  if (altProjBasis)
-    LR::generateThreadGroups(altProjThreadGroups,altProjBasis.get());
+  LR::generateThreadGroups(projThreadGroups,projB.get());
+  if (altProjB)
+    LR::generateThreadGroups(altProjThreadGroups,altProjB.get());
 
   std::vector<const LR::LRSpline*> bases;
   for (const SplinePtr& basis : m_basis)
@@ -1133,13 +1125,14 @@ void ASMu2Dmx::remapErrors (RealArray& errors,
                             const RealArray& origErr, bool elemErrors) const
 {
   const LR::LRSplineSurface* geo = this->getBasis(ASMmxBase::geoBasis);
+  const LR::LRSplineSurface* ref = this->getBasis(ASM::REFINEMENT_BASIS);
   for (const LR::Element* elm : geo->getAllElements()) {
-    int rEl = refBasis->getElementContaining((elm->umin()+elm->umax())/2.0,
-                                             (elm->vmin()+elm->vmax())/2.0);
+    int rEl = ref->getElementContaining((elm->umin()+elm->umax())/2.0,
+                                        (elm->vmin()+elm->vmax())/2.0);
     if (elemErrors)
       errors[rEl] += origErr[elm->getId()];
     else
-      for (LR::Basisfunction* b : refBasis->getElement(rEl)->support())
+      for (LR::Basisfunction* b : ref->getElement(rEl)->support())
         errors[b->getId()] += origErr[elm->getId()];
   }
 }
@@ -1147,13 +1140,13 @@ void ASMu2Dmx::remapErrors (RealArray& errors,
 
 size_t ASMu2Dmx::getNoRefineNodes() const
 {
-  return refBasis->nBasisFunctions();
+  return refB->nBasisFunctions();
 }
 
 
 size_t ASMu2Dmx::getNoRefineElms() const
 {
-  return refBasis->nElements();
+  return refB->nElements();
 }
 
 
@@ -1193,15 +1186,16 @@ void ASMu2Dmx::storeMesh (const std::string& fName, int fType) const
     writeBasis(patch, btag);
     ++btag.back();
   }
-  writeBasis(projBasis, "proj");
-  writeBasis(refBasis, "ref");
+  writeBasis(std::static_pointer_cast<LR::LRSplineSurface>(projB), "proj");
+  writeBasis(std::static_pointer_cast<LR::LRSplineSurface>(refB), "ref");
 }
 
 
 void ASMu2Dmx::copyRefinement (LR::LRSplineSurface* basis,
                                int multiplicity) const
 {
-  for (const LR::Meshline* line : refBasis->getAllMeshlines()) {
+  const LR::LRSplineSurface* ref = this->getBasis(ASM::REFINEMENT_BASIS);
+  for (const LR::Meshline* line : ref->getAllMeshlines()) {
     int mult = line->multiplicity_ > 1 ? line->multiplicity_ : multiplicity;
     if (line->span_u_line_)
       basis->insert_const_v_edge(line->const_par_,
@@ -1215,12 +1209,12 @@ void ASMu2Dmx::copyRefinement (LR::LRSplineSurface* basis,
 
 void ASMu2Dmx::swapProjectionBasis ()
 {
-  if (altProjBasis) {
+  if (altProjB) {
     ASMmxBase::geoBasis = ASMmxBase::geoBasis == 1 ? 2 : 1;
-    std::swap(projBasis, altProjBasis);
+    std::swap(projB, altProjB);
     std::swap(projThreadGroups, altProjThreadGroups);
     lrspline = m_basis[ASMmxBase::geoBasis-1];
-    geomB = lrspline;
+    geomB = lrspline; // TODO
     this->generateBezierBasis();
     this->generateBezierExtraction();
   }

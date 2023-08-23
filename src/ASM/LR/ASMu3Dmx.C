@@ -57,19 +57,10 @@ ASMu3Dmx::ASMu3Dmx (const ASMu3Dmx& patch, const CharVec& n_f)
 }
 
 
-const LR::LRSplineVolume* ASMu3Dmx::getBasis (int basis) const
+LR::LRSplineVolume* ASMu3Dmx::getBasis (int basis) const
 {
   if (basis < 1 || basis > (int)m_basis.size())
-    return nullptr;
-
-  return m_basis[basis-1].get();
-}
-
-
-LR::LRSplineVolume* ASMu3Dmx::getBasis (int basis)
-{
-  if (basis < 1 || basis > (int)m_basis.size())
-    return nullptr;
+    return this->ASMu3D::getBasis(basis);
 
   return m_basis[basis-1].get();
 }
@@ -97,10 +88,10 @@ bool ASMu3Dmx::readBasis (std::istream& is, size_t basis)
 
 bool ASMu3Dmx::write (std::ostream& os, int basis) const
 {
-  if (basis == -1)
-    os << *projBasis;
-  else
-    os << *m_basis[basis-1];
+  if (basis > static_cast<int>(m_basis.size()))
+    return false;
+
+  os << *this->getBasis(basis);
 
   return os.good();
 }
@@ -204,9 +195,9 @@ bool ASMu3Dmx::generateFEMTopology ()
 
   if (m_basis.empty()) {
     VolumeVec vvec = ASMmxBase::establishBases(tensorspline, ASMmxBase::Type);
-    m_basis.resize(vvec.size());
-    for (size_t b = 0; b < vvec.size(); b++)
-      m_basis[b].reset(new LR::LRSplineVolume(vvec[b].get()));
+    m_basis.reserve(vvec.size());
+    for (const std::shared_ptr<Go::SplineVolume>& svol : vvec)
+      m_basis.push_back(std::make_shared<LR::LRSplineVolume>(svol.get()));
 
     // we need to project on something that is not one of our bases
     if (ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS1 ||
@@ -219,29 +210,29 @@ bool ASMu3Dmx::generateFEMTopology ()
                                     ASMmxBase::FULL_CONT_RAISE_BASIS1).front();
       geoBasis = geoB;
       if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
-        refBasis.reset(new LR::LRSplineVolume(otherBasis.get()));
-        projBasis = m_basis.front();
-        refBasis->generateIDs();
-        altProjBasis = refBasis;
+        refB = std::make_shared<LR::LRSplineVolume>(otherBasis.get());
+        projB = std::static_pointer_cast<LR::LRSpline>(m_basis.front());
+        refB->generateIDs();
+        altProjB = refB;
       } else {
-        projBasis.reset(new LR::LRSplineVolume(otherBasis.get()));
-        refBasis = projBasis;
+        projB.reset(new LR::LRSplineVolume(otherBasis.get()));
+        refB = projB;
       }
     } else {
-      if (!projBasis)
-        projBasis = m_basis[2-ASMmxBase::geoBasis];
-      refBasis = projBasis;
+      if (!projB)
+        projB = m_basis[2-ASMmxBase::geoBasis];
+      refB = projB;
     }
 
     delete tensorspline;
     tensorspline = nullptr;
   }
   lrspline = m_basis[geoBasis-1];
-  projBasis->generateIDs();
-  projBasis->getElementContaining(projBasis->getElement(0)->midpoint()); // to force cache generation
-  if (altProjBasis) {
-    altProjBasis->generateIDs();
-    altProjBasis->getElementContaining(projBasis->getElement(0)->midpoint()); // to force cache generation
+  projB->generateIDs();
+  projB->getElementContaining(projB->getElement(0)->midpoint()); // to force cache generation
+  if (altProjB) {
+    altProjB->generateIDs();
+    altProjB->getElementContaining(projB->getElement(0)->midpoint()); // to force cache generation
   }
   myGeoBasis = ASMmxBase::geoBasis;
 
@@ -853,9 +844,9 @@ bool ASMu3Dmx::refine (const LR::RefineData& prm, Vectors& sol)
       LR::extendControlPoints(m_basis[j].get(), bVec, nfx[j]);
     }
 
-  if (doRefine(prm, refBasis.get())) {
+  if (doRefine(prm, this->getBasis(ASM::REFINEMENT_BASIS))) {
     for (size_t j = 0; j < m_basis.size(); ++j)
-      if (refBasis != m_basis[j]) {
+      if (refB != m_basis[j]) {
         if ((j == 0 && ASMmxBase::Type == REDUCED_CONT_RAISE_BASIS1) ||
             (j == 1 && ASMmxBase::Type == REDUCED_CONT_RAISE_BASIS2))
           this->copyRefinement(m_basis[j].get(), 2);
@@ -865,16 +856,16 @@ bool ASMu3Dmx::refine (const LR::RefineData& prm, Vectors& sol)
 
     // Uniformly refine to find basis 1
     if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
-      m_basis[0].reset(refBasis->copy());
-      projBasis = m_basis.front();
-      size_t nFunc = refBasis->nBasisFunctions();
+      m_basis[0].reset(this->getBasis(ASM::REFINEMENT_BASIS)->copy());
+      projB = m_basis.front();
+      size_t nFunc = refB->nBasisFunctions();
       IntVec elems(nFunc);
       std::iota(elems.begin(),elems.end(),0);
       m_basis[0]->refineBasisFunction(elems);
     }
 
-    if (altProjBasis)
-      altProjBasis->generateIDs();
+    if (altProjB)
+      altProjB->generateIDs();
 
     size_t len = 0;
     for (size_t j = 0; j< m_basis.size(); ++j) {
@@ -900,11 +891,11 @@ bool ASMu3Dmx::refine (const LR::RefineData& prm, Vectors& sol)
       std::cout << it->nBasisFunctions() <<" ";
     std::cout <<"nodes."<< std::endl;
     std::cout << "Projection basis: "
-              << projBasis->nElements() << " elements "
-              << projBasis->nBasisFunctions() << " nodes" << std::endl;
+              << projB->nElements() << " elements "
+              << projB->nBasisFunctions() << " nodes" << std::endl;
     std::cout << "Refinement basis: "
-              << refBasis->nElements() << " elements "
-              << refBasis->nBasisFunctions() << " nodes" << std::endl;
+              << refB->nElements() << " elements "
+              << refB->nBasisFunctions() << " nodes" << std::endl;
   #endif
 
     return true;
@@ -956,9 +947,9 @@ void ASMu3Dmx::generateThreadGroups (const Integrand& integrand, bool silence,
     secConstraint = {this->getBasis(1),this->getBasis(2),this->getBasis(3)};
 
   LR::generateThreadGroups(threadGroups,threadBasis,secConstraint);
-  LR::generateThreadGroups(projThreadGroups,projBasis.get());
-  if (altProjBasis)
-    LR::generateThreadGroups(altProjThreadGroups,altProjBasis.get());
+  LR::generateThreadGroups(projThreadGroups,projB.get());
+  if (altProjB)
+    LR::generateThreadGroups(altProjThreadGroups,altProjB.get());
 
   std::vector<const LR::LRSpline*> bases;
   for (const SplinePtr& basis : m_basis)
@@ -984,14 +975,15 @@ void ASMu3Dmx::remapErrors (RealArray& errors,
                             const RealArray& origErr, bool elemErrors) const
 {
   const LR::LRSplineVolume* geo = this->getBasis(ASMmxBase::geoBasis);
+  const LR::LRSplineVolume* ref = this->getBasis(ASM::REFINEMENT_BASIS);
   for (const LR::Element* elm : geo->getAllElements()) {
-    int rEl = refBasis->getElementContaining((elm->umin()+elm->umax())/2.0,
-                                             (elm->vmin()+elm->vmax())/2.0,
-                                             (elm->wmin()+elm->wmax())/2.0);
+    int rEl = ref->getElementContaining((elm->umin()+elm->umax())/2.0,
+                                        (elm->vmin()+elm->vmax())/2.0,
+                                        (elm->wmin()+elm->wmax())/2.0);
     if (elemErrors)
       errors[rEl] += origErr[elm->getId()];
     else
-      for (LR::Basisfunction* b : refBasis->getElement(rEl)->support())
+      for (LR::Basisfunction* b : ref->getElement(rEl)->support())
         errors[b->getId()] += origErr[elm->getId()];
   }
 }
@@ -999,20 +991,21 @@ void ASMu3Dmx::remapErrors (RealArray& errors,
 
 size_t ASMu3Dmx::getNoRefineNodes() const
 {
-  return refBasis->nBasisFunctions();
+  return refB->nBasisFunctions();
 }
 
 
 size_t ASMu3Dmx::getNoRefineElms() const
 {
-  return refBasis->nElements();
+  return refB->nElements();
 }
 
 
 void ASMu3Dmx::copyRefinement (LR::LRSplineVolume* basis,
                                int multiplicity) const
 {
-  for (const LR::MeshRectangle* rect : refBasis->getAllMeshRectangles()) {
+  const LR::LRSplineVolume* ref = this->getBasis(ASM::REFINEMENT_BASIS);
+  for (const LR::MeshRectangle* rect : ref->getAllMeshRectangles()) {
     int mult = rect->multiplicity_ > 1 ? basis->order(rect->constDirection())
                                        : multiplicity;
     LR::MeshRectangle* newRect = rect->copy();
@@ -1025,9 +1018,9 @@ void ASMu3Dmx::copyRefinement (LR::LRSplineVolume* basis,
 
 void ASMu3Dmx::swapProjectionBasis ()
 {
-  if (altProjBasis) {
+  if (altProjB) {
     ASMmxBase::geoBasis = ASMmxBase::geoBasis == 1 ? 2 : 1;
-    std::swap(projBasis, altProjBasis);
+    std::swap(projB, altProjB);
     std::swap(projThreadGroups, altProjThreadGroups);
   }
 }

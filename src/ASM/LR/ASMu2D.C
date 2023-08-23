@@ -56,13 +56,30 @@ ASMu2D::ASMu2D (const ASMu2D& patch, unsigned char n_f)
 {
   aMin = 0.0;
   tensorspline = tensorPrjBas = nullptr;
-  projBasis = patch.projBasis;
+  projB = patch.projB;
   is_rational = patch.is_rational;
 
   // Need to set nnod here,
   // as hasXNodes might be invoked before the FE data is generated
   if (nnod == 0 && lrspline)
     nnod = lrspline->nBasisFunctions();
+}
+
+
+LR::LRSplineSurface* ASMu2D::getBasis (int basis) const
+{
+  switch (basis) {
+    case ASM::GEOMETRY_BASIS:
+      return static_cast<LR::LRSplineSurface*>(geomB.get());
+    case ASM::PROJECTION_BASIS:
+      return static_cast<LR::LRSplineSurface*>(projB.get());
+    case ASM::ALT_PROJECTION_BASIS:
+      return static_cast<LR::LRSplineSurface*>(altProjB.get());
+    case ASM::REFINEMENT_BASIS:
+      return static_cast<LR::LRSplineSurface*>(refB.get());
+    default:
+      return lrspline.get();
+  }
 }
 
 
@@ -121,11 +138,12 @@ bool ASMu2D::read (std::istream& is)
 }
 
 
-bool ASMu2D::write (std::ostream& os, int) const
+bool ASMu2D::write (std::ostream& os, int basis) const
 {
   if (!lrspline) return false;
+  if (basis > 1) return false;
 
-  os << *lrspline;
+  os << *this->getBasis(basis);
 
   return os.good();
 }
@@ -401,8 +419,8 @@ bool ASMu2D::createProjectionBasis (bool init)
     tensorPrjBas = tensorspline->clone();
 
   std::swap(tensorspline,tensorPrjBas);
-  std::swap(lrspline,projBasis);
-  geomB = lrspline;
+  std::swap(geomB, projB);
+  lrspline = std::static_pointer_cast<LR::LRSplineSurface>(geomB);
   return true;
 }
 
@@ -496,14 +514,15 @@ bool ASMu2D::evaluateBasis (int iel, FiniteElement& fe, int derivs) const
 }
 
 
-LR::LRSplineSurface* ASMu2D::createLRNurbs (const Go::SplineSurface& srf)
+std::shared_ptr<LR::LRSplineSurface>
+ASMu2D::createLRNurbs (const Go::SplineSurface& srf)
 {
-  return new LR::LRSplineSurface(srf.numCoefs_u(), srf.numCoefs_v(),
-                                 srf.order_u(), srf.order_v(),
-                                 srf.basis_u().begin(),
-                                 srf.basis_v().begin(),
-                                 srf.rcoefs_begin(),
-                                 srf.dimension()+1);
+  return std::make_shared<LR::LRSplineSurface>(srf.numCoefs_u(), srf.numCoefs_v(),
+                                               srf.order_u(), srf.order_v(),
+                                               srf.basis_u().begin(),
+                                               srf.basis_v().begin(),
+                                               srf.rcoefs_begin(),
+                                               srf.dimension()+1);
 }
 
 
@@ -513,7 +532,7 @@ std::shared_ptr<LR::LRSplineSurface> ASMu2D::createLRfromTensor ()
   {
     if (tensorspline->rational())
     {
-      lrspline.reset(createLRNurbs(*tensorspline));
+      lrspline = createLRNurbs(*tensorspline);
       is_rational = true;
     }
     else if (tensorspline->dimension() > nsd)
@@ -548,17 +567,18 @@ std::shared_ptr<LR::LRSplineSurface> ASMu2D::createLRfromTensor ()
 bool ASMu2D::generateFEMTopology ()
 {
   geomB = this->createLRfromTensor();
+  refB = lrspline;
 
   if (tensorPrjBas)
   {
-    projBasis.reset(tensorPrjBas->rational() ? createLRNurbs(*tensorPrjBas)
-                                             : new LR::LRSplineSurface(tensorPrjBas));
-    projBasis->generateIDs();
+    projB = tensorPrjBas->rational() ? createLRNurbs(*tensorPrjBas)
+                                     : std::make_shared<LR::LRSplineSurface>(tensorPrjBas);
+    projB->generateIDs();
     delete tensorPrjBas;
     tensorPrjBas = nullptr;
   }
-  else if (!projBasis)
-    projBasis = lrspline;
+  else if (!projB)
+    projB = lrspline;
 
   if (!lrspline) return false;
 
@@ -2395,20 +2415,21 @@ size_t ASMu2D::getNoNodes (int basis) const
 
 size_t ASMu2D::getNoProjectionNodes () const
 {
-  return projBasis->nBasisFunctions();
+  return projB->nBasisFunctions();
 }
 
 
 bool ASMu2D::separateProjectionBasis () const
 {
-  return projBasis.get() != this->getBasis(1);
+  return this->getBasis(ASM::PROJECTION_BASIS) != this->getBasis(1);
 }
 
 
 Field* ASMu2D::getProjectedField (const Vector& coefs) const
 {
   if (coefs.size() == this->getNoProjectionNodes())
-    return new LRSplineField2D(projBasis.get(),coefs,is_rational);
+    return new LRSplineField2D(this->getBasis(ASM::PROJECTION_BASIS),
+                               coefs,is_rational);
 
   std::cerr <<" *** ASMu2D::getProjectedFields: Non-matching coefficent array,"
             <<" size="<< coefs.size() <<" nnod="<< this->getNoProjectionNodes()
@@ -2419,12 +2440,13 @@ Field* ASMu2D::getProjectedField (const Vector& coefs) const
 
 Fields* ASMu2D::getProjectedFields (const Vector& coefs, size_t) const
 {
-  if (projBasis.get() == this->getBasis(1))
+  if (this->getBasis(ASM::PROJECTION_BASIS) == this->getBasis(1))
     return nullptr;
 
   size_t ncmp = coefs.size() / this->getNoProjectionNodes();
   if (ncmp*this->getNoProjectionNodes() == coefs.size())
-    return new LRSplineFields2D(projBasis.get(),coefs,ncmp,is_rational);
+    return new LRSplineFields2D(this->getBasis(ASM::PROJECTION_BASIS),
+                                coefs,ncmp,is_rational);
 
   std::cerr <<" *** ASMu2D::getProjectedFields: Non-matching coefficent array,"
             <<" size="<< coefs.size() <<" nnod="<< this->getNoProjectionNodes()
@@ -2585,8 +2607,8 @@ void ASMu2D::generateThreadGroups (const Integrand& integrand, bool silence,
                                    bool ignoreGlobalLM)
 {
   LR::generateThreadGroups(threadGroups, this->getBasis(1));
-  if (projBasis != lrspline)
-    LR::generateThreadGroups(projThreadGroups, projBasis.get());
+  if (projB != lrspline)
+    LR::generateThreadGroups(projThreadGroups, projB.get());
   if (silence || threadGroups[0].size() < 2) return;
 
   IFEM::cout <<"\nMultiple threads are utilized during element assembly.";
@@ -2741,21 +2763,23 @@ bool ASMu2D::refine (const LR::RefineData& prm, Vectors& sol)
       prm.elements.size() + prm.errors.size() == 0)
     return ok;
 
+  LR::LRSplineSurface* proj = this->getBasis(ASM::PROJECTION_BASIS);
+
   for (const LR::Meshline* line : lrspline->getAllMeshlines())
     if (line->span_u_line_)
-      projBasis->insert_const_v_edge(line->const_par_,
-                                     line->start_, line->stop_,
-                                     line->multiplicity());
+      proj->insert_const_v_edge(line->const_par_,
+                                line->start_, line->stop_,
+                                line->multiplicity());
     else
-      projBasis->insert_const_u_edge(line->const_par_,
-                                     line->start_, line->stop_,
-                                     line->multiplicity());
+      proj->insert_const_u_edge(line->const_par_,
+                                line->start_, line->stop_,
+                                line->multiplicity());
 
-  if (projBasis != lrspline)
-    projBasis->generateIDs();
+  if (projB != lrspline)
+    projB->generateIDs();
 
-  IFEM::cout <<"Refined projection basis: "<< projBasis->nElements()
-             <<" elements "<< projBasis->nBasisFunctions() <<" nodes."
+  IFEM::cout <<"Refined projection basis: "<< projB->nElements()
+             <<" elements "<< projB->nBasisFunctions() <<" nodes."
              << std::endl;
   return true;
 }

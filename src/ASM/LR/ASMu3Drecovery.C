@@ -110,9 +110,11 @@ bool ASMu3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
 {
   size_t nnod = this->getNoProjectionNodes();
 
-  const int p1 = projBasis->order(0);
-  const int p2 = projBasis->order(1);
-  const int p3 = projBasis->order(2);
+  const LR::LRSplineVolume* proj = this->getBasis(ASM::PROJECTION_BASIS);
+
+  const int p1 = proj->order(0);
+  const int p2 = proj->order(1);
+  const int p3 = proj->order(2);
   const int pm = std::max(std::max(p1,p2),p3);
 
   // Get Gaussian quadrature points
@@ -126,12 +128,12 @@ bool ASMu3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
   if (!xg || !yg || !zg) return false;
   if (continuous && !wg) return false;
 
-  bool singleBasis = (this->getNoBasis() == 1 && projBasis == lrspline);
+  bool singleBasis = (this->getNoBasis() == 1 && proj == lrspline.get());
   IntMat lmnpc;
   const IntMat& gmnpc = singleBasis ? MNPC : lmnpc;
   if (!singleBasis) {
-    lmnpc.resize(projBasis->nElements());
-    for (const LR::Element* elm : projBasis->getAllElements()) {
+    lmnpc.resize(proj->nElements());
+    for (const LR::Element* elm : proj->getAllElements()) {
       lmnpc[elm->getId()].reserve(elm->nBasisFunctions());
       for (const LR::Basisfunction* f : elm->support())
         lmnpc[elm->getId()].push_back(f->getId());
@@ -152,7 +154,7 @@ bool ASMu3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
       Go::BasisPts    spl0;
       Go::BasisDerivs spl1, spl2;
       int ielp = group[t][e];
-      const LR::Element* elm = projBasis->getElement(ielp);
+      const LR::Element* elm = proj->getElement(ielp);
       int iel = lrspline->getElementContaining(elm->midpoint())+1;
 
       if (continuous)
@@ -196,14 +198,14 @@ bool ASMu3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
           {
             if (continuous)
             {
-              projBasis->computeBasis(gpar[0][i],gpar[1][j],gpar[2][k],spl1,ielp);
+              proj->computeBasis(gpar[0][i],gpar[1][j],gpar[2][k],spl1,ielp);
               SplineUtils::extractBasis(spl1,phi,dNdu);
               lrspline->computeBasis(gpar[0][i],gpar[1][j],gpar[2][k],spl2,iel-1);
               SplineUtils::extractBasis(spl2,phi2,dNdu);
             }
             else
             {
-              projBasis->computeBasis(gpar[0][i],gpar[1][j],gpar[2][k],spl0,ielp);
+              proj->computeBasis(gpar[0][i],gpar[1][j],gpar[2][k],spl0,ielp);
               phi = spl0.basisValues;
             }
 

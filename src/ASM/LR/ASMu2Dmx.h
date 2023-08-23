@@ -66,10 +66,7 @@ public:
   virtual ~ASMu2Dmx() { lrspline = nullptr; geomB = nullptr; }
 
   //! \brief Returns the spline surface representing the basis of this patch.
-  virtual LR::LRSplineSurface* getBasis(int basis = 1);
-
-  //! \brief Returns the spline surface representing the basis of this patch.
-  virtual const LR::LRSplineSurface* getBasis(int basis = 1) const;
+  virtual LR::LRSplineSurface* getBasis(int basis = 1) const;
 
   // Methods for model generation
   // ============================
@@ -269,8 +266,6 @@ private:
 
   std::vector<SplinePtr> m_basis;      //!< All bases
   LR::LRSplineSurface*   threadBasis;  //!< Basis for thread groups
-  SplinePtr              refBasis;     //!< Basis to refine based on
-  SplinePtr              altProjBasis; //!< Alternative projection basis
 
   ThreadGroups altProjThreadGroups; //!< Element groups for multi-threaded assembly - alternative projection basis
 };

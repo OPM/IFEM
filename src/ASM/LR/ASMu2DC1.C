@@ -18,8 +18,8 @@
 
 bool ASMu2DC1::generateFEMTopology ()
 {
-    geomB = std::shared_ptr<LR::LRSpline>(this->createLRfromTensor());
-    if (!geomB)
+  geomB = std::shared_ptr<LR::LRSpline>(this->createLRfromTensor());
+  if (!geomB)
     return false;
   else if (geomB->order(0) > 2 || geomB->order(1) > 2)
     return this->ASMu2D::generateFEMTopology();

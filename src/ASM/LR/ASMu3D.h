@@ -122,9 +122,7 @@ public:
   const LR::LRSplineVolume* getVolume() const { return lrspline.get(); }
 
   //! \brief Returns the spline volume representing the basis of this patch.
-  virtual const LR::LRSplineVolume* getBasis(int = 1) const { return lrspline.get(); }
-  //! \brief Returns the spline volume representing the basis of this patch.
-  virtual LR::LRSplineVolume* getBasis(int = 1) { return lrspline.get(); }
+  virtual LR::LRSplineVolume* getBasis(int basis = 1) const;
 
 
   // Methods for model generation and refinement
@@ -693,7 +691,6 @@ public:
 
 protected:
   std::shared_ptr<LR::LRSplineVolume> lrspline; //!< Pointer to the LR-spline volume object
-  std::shared_ptr<LR::LRSplineVolume> projBasis; //!< Basis to project onto
 
   Go::SplineVolume* tensorspline; //!< Pointer to original tensor spline object
   Go::SplineVolume* tensorPrjBas; //!< Pointer to tensor spline projection base

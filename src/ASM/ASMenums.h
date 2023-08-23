@@ -52,6 +52,7 @@ namespace ASM //! Assembly scope
     GEOMETRY_BASIS       =  0,  //!< Geometry basis
     PROJECTION_BASIS     = -1, //!< Projection basis
     ALT_PROJECTION_BASIS = -2, //!< Alternative projection basis
+    REFINEMENT_BASIS     = -3, //!< Refinement basis
   };
 }
 

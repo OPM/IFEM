@@ -108,8 +108,10 @@ bool ASMu2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
 {
   size_t nnod = this->getNoProjectionNodes();
 
-  const int p1 = projBasis->order(0);
-  const int p2 = projBasis->order(1);
+  const LR::LRSplineSurface* proj = this->getBasis(ASM::PROJECTION_BASIS);
+
+  const int p1 = proj->order(0);
+  const int p2 = proj->order(1);
   const int pm = p1 > p2 ? p1 : p2;
 
   // Get Gaussian quadrature points
@@ -121,12 +123,12 @@ bool ASMu2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
   if (!xg || !yg) return false;
   if (continuous && !wg) return false;
 
-  bool singleBasis = (this->getNoBasis() == 1 && projBasis == lrspline);
+  bool singleBasis = (this->getNoBasis() == 1 && proj == lrspline.get());
   IntMat lmnpc;
   const IntMat& gmnpc = singleBasis ? MNPC : lmnpc;
   if (!singleBasis) {
-    lmnpc.resize(projBasis->nElements());
-    for (const LR::Element* elm : projBasis->getAllElements()) {
+    lmnpc.resize(proj->nElements());
+    for (const LR::Element* elm : proj->getAllElements()) {
       lmnpc[elm->getId()].reserve(elm->nBasisFunctions());
       for (const LR::Basisfunction* f : elm->support())
         lmnpc[elm->getId()].push_back(f->getId());
@@ -147,7 +149,7 @@ bool ASMu2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
       Go::BasisPtsSf    spl0;
       Go::BasisDerivsSf spl1, spl2;
       int ielp = group[t][e];
-      const LR::Element* elm = projBasis->getElement(ielp);
+      const LR::Element* elm = proj->getElement(ielp);
       int iel = lrspline->getElementContaining(elm->midpoint())+1;
 
       if (continuous)
@@ -189,14 +191,14 @@ bool ASMu2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
         {
           if (continuous)
           {
-            this->computeBasis(gpar[0][i],gpar[1][j],spl1,ielp,projBasis.get());
+            this->computeBasis(gpar[0][i],gpar[1][j],spl1,ielp,proj);
             SplineUtils::extractBasis(spl1,phi,dNdu);
             this->computeBasis(gpar[0][i],gpar[1][j],spl2,iel-1);
             SplineUtils::extractBasis(spl2,phi2,dNdu);
           }
           else
           {
-            this->computeBasis(gpar[0][i],gpar[1][j],spl0,ielp,projBasis.get());
+            this->computeBasis(gpar[0][i],gpar[1][j],spl0,ielp,proj);
             phi = spl0.basisValues;
           }
 
