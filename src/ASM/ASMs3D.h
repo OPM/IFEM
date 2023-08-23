@@ -875,7 +875,6 @@ private:
 
 protected:
   Go::SplineVolume* svol;  //!< Pointer to the actual spline volume object
-  Go::SplineVolume* proj;  //!< Pointer to spline volume for projection basis
   bool              swapW; //!< Has the w-parameter direction been swapped?
 
   const IndexVec& nodeInd; //!< IJK-triplets for the control points (nodes)

@@ -784,7 +784,6 @@ private:
 
 protected:
   Go::SplineSurface* surf; //!< Pointer to the actual spline surface object
-  Go::SplineSurface* proj; //!< Pointer to spline surface for projection basis
   Go::SplineCurve* bou[4]; //!< Pointers to the four boundary curves
   bool              swapV; //!< Has the v-parameter direction been swapped?
 

@@ -95,14 +95,10 @@ bool ASMs2Dmx::readBasis (std::istream& is, size_t basis)
 
 bool ASMs2Dmx::write (std::ostream& os, int basis) const
 {
-  if (basis == -1)
-    os <<"200 1 0 0\n" << *proj;
-  else if (basis < 1 || basis > (int)m_basis.size())
-    os <<"200 1 0 0\n" << *surf;
-  else if (m_basis[basis-1])
-    os <<"200 1 0 0\n" << *m_basis[basis-1];
-  else
+  if (basis > static_cast<int>(m_basis.size()))
     return false;
+
+  os <<"200 1 0 0\n" << *this->getBasis(basis);
 
   return os.good();
 }
@@ -203,13 +199,13 @@ bool ASMs2Dmx::generateFEMTopology ()
     if (ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS1 ||
         ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS2 ||
         ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
-      projB = proj = ASMmxBase::raiseBasis(surf);
+      projB = ASMmxBase::raiseBasis(surf);
     else if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
-      projB = proj = m_basis.front()->clone();
+      projB = m_basis.front()->clone();
       altProjB = ASMmxBase::raiseBasis(surf);
     }
     else if (geoBasis < 3)
-      projB = proj = m_basis[2-geoBasis]->clone();
+      projB = m_basis[2-geoBasis]->clone();
     else
       return false; // Logic error
   }
@@ -1113,7 +1109,6 @@ void ASMs2Dmx::swapProjectionBasis ()
   if (altProjB) {
     ASMmxBase::geoBasis = ASMmxBase::geoBasis == 1 ? 2 : 1;
     std::swap(projB, altProjB);
-    proj = this->getBasis(ASM::PROJECTION_BASIS);
     surf = this->getBasis(ASMmxBase::geoBasis);
   }
 }

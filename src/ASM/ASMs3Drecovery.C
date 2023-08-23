@@ -166,6 +166,8 @@ bool ASMs3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
 {
   const size_t nnod = this->getNoProjectionNodes();
 
+  const Go::SplineVolume* proj = this->getBasis(ASM::PROJECTION_BASIS);
+
   const int g1 = svol->order(0);
   const int g2 = svol->order(1);
   const int g3 = svol->order(2);

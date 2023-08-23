@@ -41,7 +41,7 @@
 
 ASMs3D::ASMs3D (unsigned char n_f) : ASMstruct(3,3,n_f), nodeInd(myNodeInd)
 {
-  svol = proj = nullptr;
+  svol = nullptr;
   swapW = false;
 }
 
@@ -50,7 +50,6 @@ ASMs3D::ASMs3D (const ASMs3D& patch, unsigned char n_f)
   : ASMstruct(patch,n_f), nodeInd(patch.myNodeInd)
 {
   svol = patch.svol;
-  proj = patch.proj;
 
   swapW = patch.swapW;
 
@@ -62,7 +61,7 @@ ASMs3D::ASMs3D (const ASMs3D& patch, unsigned char n_f)
 
 
 ASMs3D::ASMs3D (const ASMs3D& patch)
-  : ASMstruct(patch), svol(patch.svol), proj(patch.proj),
+  : ASMstruct(patch), svol(patch.svol),
     nodeInd(myNodeInd), myNodeInd(patch.nodeInd), dirich(patch.dirich)
 {
   swapW = patch.swapW;
@@ -86,7 +85,7 @@ Go::SplineVolume* ASMs3D::getBasis (int basis) const
     case ASM::GEOMETRY_BASIS:
       return static_cast<Go::SplineVolume*>(geomB);
     case ASM::PROJECTION_BASIS:
-      return proj;
+    return static_cast<Go::SplineVolume*>(projB);
     case ASM::ALT_PROJECTION_BASIS:
       return static_cast<Go::SplineVolume*>(altProjB);
     default:
@@ -144,12 +143,12 @@ bool ASMs3D::read (std::istream& is)
 }
 
 
-bool ASMs3D::write (std::ostream& os, int) const
+bool ASMs3D::write (std::ostream& os, int basis) const
 {
   if (!svol) return false;
+  if (basis > 1) return false;
 
-  os <<"700 1 0 0\n";
-  os << *svol;
+  os <<"700 1 0 0\n" << *this->getBasis(basis);
 
   return os.good();
 }
@@ -160,9 +159,9 @@ void ASMs3D::clear (bool retainGeometry)
   if (!retainGeometry)
   {
     // Erase spline data
-    if (proj && proj != svol) delete proj;
+    if (projB != svol) delete projB;
     if (svol && !shareFE) delete svol;
-    geomB = projB = svol = proj = nullptr;
+    geomB = projB = svol = nullptr;
   }
 
   // Erase the FE data
@@ -397,11 +396,11 @@ bool ASMs3D::createProjectionBasis (bool init)
 {
   if (!svol)
     return false;
-  else if (init && !proj)
-    projB = proj = svol->clone();
+  else if (init && !projB)
+    projB = svol->clone();
 
   std::swap(geomB,projB);
-  std::swap(svol,proj);
+  svol = this->getBasis(ASM::GEOMETRY_BASIS);
   return true;
 }
 
@@ -409,7 +408,7 @@ bool ASMs3D::createProjectionBasis (bool init)
 bool ASMs3D::generateFEMTopology ()
 {
   if (!svol) return false;
-  if (!proj) proj = svol;
+  if (!projB) projB = svol;
 
   const int n1 = svol->numCoefs(0);
   const int n2 = svol->numCoefs(1);
@@ -3635,7 +3634,7 @@ bool ASMs3D::getFaceSize (int& n1, int& n2, int basis, int face) const
 Field* ASMs3D::getProjectedField (const Vector& coefs) const
 {
   if (this->getNoProjectionNodes() == coefs.size())
-    return new SplineField3D(proj,coefs);
+    return new SplineField3D(this->getBasis(ASM::PROJECTION_BASIS),coefs);
 
   std::cerr <<" *** ASMs3D::getProjectedField: Non-matching coefficent array,"
             <<" size="<< coefs.size() <<" nnod="<< this->getNoProjectionNodes()
@@ -3646,12 +3645,13 @@ Field* ASMs3D::getProjectedField (const Vector& coefs) const
 
 Fields* ASMs3D::getProjectedFields (const Vector& coefs, size_t) const
 {
-  if (proj == this->getBasis(1) || this->getNoProjectionNodes() == 0)
+  if (this->getBasis(ASM::PROJECTION_BASIS) == this->getBasis(1) ||
+      this->getNoProjectionNodes() == 0)
     return nullptr;
 
   size_t ncmp = coefs.size() / this->getNoProjectionNodes();
   if (ncmp*this->getNoProjectionNodes() == coefs.size())
-    return new SplineFields3D(proj,coefs,ncmp);
+    return new SplineFields3D(this->getBasis(ASM::PROJECTION_BASIS),coefs,ncmp);
 
   std::cerr <<" *** ASMs3D::getProjectedFields: Non-matching coefficent array,"
             <<" size="<< coefs.size() <<" nnod="<< this->getNoProjectionNodes()
@@ -3662,7 +3662,9 @@ Fields* ASMs3D::getProjectedFields (const Vector& coefs, size_t) const
 
 size_t ASMs3D::getNoProjectionNodes () const
 {
-  if (!proj) return 0;
+  if (!projB) return 0;
+
+  const Go::SplineVolume* proj = this->getBasis(ASM::PROJECTION_BASIS);
 
   return proj->numCoefs(0) * proj->numCoefs(1) * proj->numCoefs(2);
 }
