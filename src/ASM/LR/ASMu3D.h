@@ -116,11 +116,6 @@ public:
   //! \brief Empty destructor.
   virtual ~ASMu3D() {}
 
-  //! \brief Returns the spline volume representing the geometry of this patch.
-  LR::LRSplineVolume* getVolume() { return this->createLRfromTensor().get(); }
-  //! \brief Returns the spline volume representing the geometry of this patch.
-  const LR::LRSplineVolume* getVolume() const { return lrspline.get(); }
-
   //! \brief Returns the spline volume representing the basis of this patch.
   virtual const LR::LRSplineVolume* getBasis(int basis = 1) const;
   //! \brief Returns the spline volume representing the basis of this patch.

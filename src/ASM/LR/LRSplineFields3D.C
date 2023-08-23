@@ -18,14 +18,15 @@
 
 #include "ASMu3D.h"
 #include "ItgPoint.h"
-#include "SplineUtils.h"
 #include "Vec3.h"
 
 
 LRSplineFields3D::LRSplineFields3D (const ASMu3D* patch,
                                     const RealArray& v, char nbasis,
                                     int nnf, const char* name)
-  : Fields(name), basis(patch->getBasis(nbasis)), vol(patch->getVolume())
+  : Fields(name),
+    basis(patch->getBasis(nbasis)),
+    vol(patch->getBasis(ASM::GEOMETRY_BASIS))
 {
   nno = basis->nBasisFunctions();
   nelm = basis->nElements();

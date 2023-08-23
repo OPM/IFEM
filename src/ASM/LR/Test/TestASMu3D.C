@@ -110,7 +110,7 @@ public:
 TEST(TestASMu3D, TransferGaussPtVars)
 {
   ASMuCube pch;
-  LR::LRSplineVolume* lr = pch.getVolume();
+  LR::LRSplineVolume* lr = pch.getBasis(1);
   ASSERT_TRUE(lr != nullptr);
   lr->generateIDs();
 
@@ -120,7 +120,7 @@ TEST(TestASMu3D, TransferGaussPtVars)
   for (size_t idx = 0; idx < 3; ++idx) {
     ASMuCube pchNew;
     pchNew.uniformRefine(idx,1);
-    pchNew.getVolume()->generateIDs();
+    pchNew.getBasis(1)->generateIDs();
     for (id[2] = 0; id[2] < 3; ++id[2])
       for (id[1] = 0; id[1] < 3; ++id[1])
         for (id[0] = 0; id[0] < 3; ++id[0])
@@ -139,12 +139,12 @@ TEST(TestASMu3D, TransferGaussPtVars)
 TEST(TestASMu3D, TransferGaussPtVarsN)
 {
   ASMuCube pch, pchNew;
-  LR::LRSplineVolume* lr = pch.getVolume();
+  LR::LRSplineVolume* lr = pch.getBasis(1);
   ASSERT_TRUE(lr != nullptr);
   lr->generateIDs();
 
   pchNew.uniformRefine(0,1);
-  pchNew.getVolume()->generateIDs();
+  pchNew.getBasis(1)->generateIDs();
 
   RealArray oldAr(3*3*3), newAr;
   std::iota(oldAr.begin(), oldAr.end(), 1);
