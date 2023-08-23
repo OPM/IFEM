@@ -81,7 +81,7 @@ bool ASMs3D::evaluate (const ASMbase* basis, const Vector& locVec,
   if (!pch->evalSolution(sValues,locVec,gpar.data()))
     return false;
 
-  Go::SplineVolume* svol = this->getBasis(basisNum);
+  const Go::SplineVolume* svol = this->getBasis(basisNum);
 
   // Project the results onto the spline basis to find control point
   // values based on the result values evaluated at the Greville points.

@@ -121,10 +121,10 @@ public:
   //! \brief Returns the spline volume representing the geometry of this patch.
   const LR::LRSplineVolume* getVolume() const { return lrspline.get(); }
 
-  //! \brief Returns the spline volume representing the basis of this patch.
-  virtual const LR::LRSplineVolume* getBasis(int = 1) const { return lrspline.get(); }
-  //! \brief Returns the spline volume representing the basis of this patch.
-  virtual LR::LRSplineVolume* getBasis(int = 1) { return lrspline.get(); }
+  //! \brief Returns the spline volume representing a basis of this patch.
+  virtual const LR::LRSplineVolume* getBasis(int basis = 1) const;
+  //! \brief Returns the spline volume representing a basis of this patch.
+  virtual LR::LRSplineVolume* getBasis(int basis = 1);
 
 
   // Methods for model generation and refinement

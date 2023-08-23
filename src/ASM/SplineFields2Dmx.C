@@ -79,7 +79,7 @@ bool SplineFields2Dmx::valueFE (const ItgPoint& x, Vector& vals) const
   auto vit = values.begin();
   auto rit = vals.begin();
   for (int b : bases) {
-    Go::SplineSurface* basis = surf->getBasis(b);
+    const Go::SplineSurface* basis = surf->getBasis(b);
     Go::BasisPtsSf spline;
 #pragma omp critical
     basis->computeBasis(x.u,x.v,spline);

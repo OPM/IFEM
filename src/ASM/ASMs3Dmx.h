@@ -39,8 +39,10 @@ public:
   //! \brief Empty Destructor.
   virtual ~ASMs3Dmx() {}
 
-  //! \brief Returns the spline surface representing the basis of this patch.
-  virtual Go::SplineVolume* getBasis(int basis = 1) const;
+  //! \brief Returns the spline surface representing a basis of this patch.
+  virtual const Go::SplineVolume* getBasis(int basis = 1) const;
+  //! \brief Returns the spline surface representing a basis of this patch.
+  virtual Go::SplineVolume* getBasis(int basis = 1);
   //! \brief Returns the spline curve representing a boundary of this patch.
   //! \param[in] dir Parameter direction defining which boundary to return
   //! \param[in] basis The basis to get the boundary for

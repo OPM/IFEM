@@ -37,6 +37,7 @@
 #include "MPC.h"
 #include "IFEM.h"
 #include <array>
+#include <utility>
 
 
 ASMs3D::ASMs3D (unsigned char n_f) : ASMstruct(3,3,n_f), nodeInd(myNodeInd)
@@ -76,6 +77,29 @@ Go::SplineSurface* ASMs3D::getBoundary (int dir, int)
   // The boundary surfaces are stored internally in the SplineVolume object
   int iface = dir > 0 ? 2*dir-1 : -2*dir-2;
   return svol->getBoundarySurface(iface).get();
+}
+
+
+const Go::SplineVolume* ASMs3D::getBasis (int basis) const
+{
+  switch (basis) {
+    case ASM::GEOMETRY_BASIS:
+      return static_cast<const Go::SplineVolume*>(geomB);
+    case ASM::PROJECTION_BASIS:
+      return static_cast<const Go::SplineVolume*>(projB);
+    case ASM::PROJECTION_BASIS_2:
+      return static_cast<const Go::SplineVolume*>(projB2);
+    case ASM::REFINEMENT_BASIS:
+      return nullptr;
+    default:
+      return svol;
+  }
+}
+
+
+Go::SplineVolume* ASMs3D::getBasis (int basis)
+{
+  return const_cast<Go::SplineVolume*>(std::as_const(*this).getBasis(basis));
 }
 
 
@@ -3572,7 +3596,7 @@ short int ASMs3D::InterfaceChecker::hasContribution (int, int I, int J, int K) c
 bool ASMs3D::evaluate (const FunctionBase* func, RealArray& vec,
                        int basisNum, double time) const
 {
-  Go::SplineVolume* oldVol = this->getBasis(basisNum);
+  const Go::SplineVolume* oldVol = this->getBasis(basisNum);
   Go::SplineVolume* newVol = SplineUtils::project(oldVol,*func,
                                                   func->dim(),time);
   if (!newVol)

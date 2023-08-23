@@ -38,6 +38,7 @@
 #include "Point.h"
 #include "IFEM.h"
 #include <array>
+#include <utility>
 
 
 ASMu3D::ASMu3D (unsigned char n_f)
@@ -60,6 +61,32 @@ ASMu3D::ASMu3D (const ASMu3D& patch, unsigned char n_f)
   // as hasXNodes might be invoked before the FE data is generated
   if (nnod == 0 && lrspline)
     nnod = lrspline->nBasisFunctions();
+}
+
+
+const LR::LRSplineVolume* ASMu3D::getBasis (int basis) const
+{
+  switch (basis) {
+    case ASM::GEOMETRY_BASIS:
+      return static_cast<const LR::LRSplineVolume*>(geomB.get());
+    case ASM::PROJECTION_BASIS:
+      return static_cast<const LR::LRSplineVolume*>(projB.get());
+    case ASM::PROJECTION_BASIS_2:
+      return static_cast<const LR::LRSplineVolume*>(projB2.get());
+    case ASM::REFINEMENT_BASIS:
+      return static_cast<const LR::LRSplineVolume*>(refB.get());
+    default:
+      return lrspline.get();
+  }
+}
+
+
+LR::LRSplineVolume* ASMu3D::getBasis (int basis)
+{
+  if (tensorspline)
+    this->createLRfromTensor();
+
+  return const_cast<LR::LRSplineVolume*>(std::as_const(*this).getBasis(basis));
 }
 
 
