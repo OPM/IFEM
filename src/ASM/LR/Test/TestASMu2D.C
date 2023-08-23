@@ -107,7 +107,7 @@ TEST(TestASMu2D, InterfaceChecker)
   pch->raiseOrder(1,1);
   pch->uniformRefine(0, 3);
   pch->uniformRefine(1, 3);
-  LR::LRSplineSurface* lr = pch->getSurface();
+  LR::LRSplineSurface* lr = pch->getBasis(1);
   lr->insert_const_u_edge(0.5,   0, 1, 2);
   lr->insert_const_v_edge(0.125, 0.5, 1, 2);
   lr->insert_const_v_edge(0.25,  0.5, 1, 2);
@@ -190,7 +190,7 @@ TEST(TestASMu2D, TransferGaussPtVars)
   sim.opt.discretization = ASM::LRSpline;
 
   ASMu2D* pch = static_cast<ASMu2D*>(sim.createDefaultModel());
-  LR::LRSplineSurface* lr = pch->getSurface();
+  LR::LRSplineSurface* lr = pch->getBasis(1);
   lr->generateIDs();
 
   RealArray oldAr(9), newAr;
@@ -201,7 +201,7 @@ TEST(TestASMu2D, TransferGaussPtVars)
     simNew.opt.discretization = ASM::LRSpline;
     ASMu2D* pchNew = static_cast<ASMu2D*>(simNew.createDefaultModel());
     pchNew->uniformRefine(idx, 1);
-    LR::LRSplineSurface* lrNew = pchNew->getSurface();
+    LR::LRSplineSurface* lrNew = pchNew->getBasis(1);
     ASSERT_TRUE(lrNew != nullptr);
     lrNew->generateIDs();
     for (id[1] = 0; id[1] < 3; ++id[1])
@@ -223,12 +223,12 @@ TEST(TestASMu2D, TransferGaussPtVarsN)
   sim.opt.discretization = sim2.opt.discretization = ASM::LRSpline;
 
   ASMu2D* pch = static_cast<ASMu2D*>(sim.createDefaultModel());
-  LR::LRSplineSurface* lr = pch->getSurface();
+  LR::LRSplineSurface* lr = pch->getBasis(1);
   lr->generateIDs();
 
   ASMu2D* pchNew = static_cast<ASMu2D*>(sim2.createDefaultModel());
   pchNew->uniformRefine(0, 1);
-  LR::LRSplineSurface* lrNew = pchNew->getSurface();
+  LR::LRSplineSurface* lrNew = pchNew->getBasis(1);
   ASSERT_TRUE(lrNew != nullptr);
   lrNew->generateIDs();
 
@@ -281,7 +281,7 @@ TEST(TestASMu2D, ElementConnectivities)
   ASSERT_TRUE(pch1.uniformRefine(0,1));
   ASSERT_TRUE(pch1.uniformRefine(1,1));
   ASSERT_TRUE(pch1.generateFEMTopology());
-  pch1.getSurface()->generateIDs();
+  pch1.getBasis(1)->generateIDs();
   IntMat neigh(4);
   pch1.getElmConnectivities(neigh);
   const std::array<std::vector<int>,4> ref = {{{1, 2},

@@ -133,11 +133,6 @@ public:
   //! \brief Empty destructor.
   virtual ~ASMu2D() { geomB = nullptr; }
 
-  //! \brief Returns the spline surface representing the geometry of this patch.
-  LR::LRSplineSurface* getSurface() { return this->createLRfromTensor().get(); }
-  //! \brief Returns the spline surface representing the geometry of this patch.
-  const LR::LRSplineSurface* getSurface() const { return lrspline.get(); }
-
   //! \brief Returns the spline surface representing the basis of this patch.
   virtual const LR::LRSplineSurface* getBasis(int basis = 1) const;
   //! \brief Returns the spline surface representing the basis of this patch.

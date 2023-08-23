@@ -26,7 +26,7 @@ LRSplineFields2D::LRSplineFields2D (const ASMu2D* patch,
                                     int nnf, const char* name)
   : Fields(name),
     basis(patch->getBasis(nbasis)),
-    surf(patch->getSurface()),
+    surf(patch->getBasis(ASM::GEOMETRY_BASIS)),
     is_rational(patch->rational())
 {
   nno = basis->nBasisFunctions();
