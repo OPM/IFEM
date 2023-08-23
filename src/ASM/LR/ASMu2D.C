@@ -116,7 +116,7 @@ bool ASMu2D::read (std::istream& is)
     nsd = readDim;
   }
 
-  geo = lrspline.get();
+  geomB = lrspline;
   return true;
 }
 
@@ -140,7 +140,7 @@ void ASMu2D::clear (bool retainGeometry)
       delete tensorspline;
       delete tensorPrjBas;
     }
-    geo = nullptr;
+    geomB = nullptr;
     tensorspline = tensorPrjBas = nullptr;
   }
 
@@ -402,7 +402,7 @@ bool ASMu2D::createProjectionBasis (bool init)
 
   std::swap(tensorspline,tensorPrjBas);
   std::swap(lrspline,projBasis);
-  geo = lrspline.get();
+  geomB = lrspline;
   return true;
 }
 
@@ -507,7 +507,7 @@ LR::LRSplineSurface* ASMu2D::createLRNurbs (const Go::SplineSurface& srf)
 }
 
 
-LR::LRSplineSurface* ASMu2D::createLRfromTensor ()
+std::shared_ptr<LR::LRSplineSurface> ASMu2D::createLRfromTensor ()
 {
   if (tensorspline)
   {
@@ -541,13 +541,13 @@ LR::LRSplineSurface* ASMu2D::createLRfromTensor ()
     tensorspline = nullptr;
   }
 
-  return lrspline.get();
+  return lrspline;
 }
 
 
 bool ASMu2D::generateFEMTopology ()
 {
-  geo = this->createLRfromTensor();
+  geomB = this->createLRfromTensor();
 
   if (tensorPrjBas)
   {
@@ -1687,7 +1687,7 @@ bool ASMu2D::integrate (Integrand& integrand,
                         const TimeDomain& time,
                         const ASM::InterfaceChecker& iChkgen)
 {
-  if (!geo) return true; // silently ignore empty patches
+  if (!geomB) return true; // silently ignore empty patches
   if (!(integrand.getIntegrandType() & Integrand::INTERFACE_TERMS)) return true;
 
   PROFILE2("ASMu2D::integrate(J)");
@@ -2322,8 +2322,8 @@ void ASMu2D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
 
 bool ASMu2D::getOrder (int& p1, int& p2, int& p3) const
 {
-  p1 = geo->order(0);
-  p2 = geo->order(1);
+  p1 = geomB->order(0);
+  p2 = geomB->order(1);
   p3 = 0;
 
   return true;
@@ -2700,13 +2700,13 @@ ASMu2D::InterfaceChecker::InterfaceChecker (const ASMu2D& pch) : myPatch(pch)
 
 short int ASMu2D::InterfaceChecker::hasContribution (int e, int, int, int) const
 {
-  const LR::Element* elm = myPatch.geo->getElement(e-1);
+  const LR::Element* elm = myPatch.geomB->getElement(e-1);
 
   bool neighbor[4];
-  neighbor[0] = elm->getParmin(0) != myPatch.geo->startparam(0); // West
-  neighbor[1] = elm->getParmax(0) != myPatch.geo->endparam(0);   // East
-  neighbor[2] = elm->getParmin(1) != myPatch.geo->startparam(1); // South
-  neighbor[3] = elm->getParmax(1) != myPatch.geo->endparam(1);   // North
+  neighbor[0] = elm->getParmin(0) != myPatch.geomB->startparam(0); // West
+  neighbor[1] = elm->getParmax(0) != myPatch.geomB->endparam(0);   // East
+  neighbor[2] = elm->getParmin(1) != myPatch.geomB->startparam(1); // South
+  neighbor[3] = elm->getParmax(1) != myPatch.geomB->endparam(1);   // North
 
   // Check for existing neighbors
   short int status = 0, s = 1;
@@ -2763,8 +2763,8 @@ bool ASMu2D::refine (const LR::RefineData& prm, Vectors& sol)
 
 void ASMu2D::generateBezierBasis ()
 {
-  bezier_u = this->getBezierBasis(geo->order(0));
-  bezier_v = this->getBezierBasis(geo->order(1));
+  bezier_u = this->getBezierBasis(geomB->order(0));
+  bezier_v = this->getBezierBasis(geomB->order(1));
 }
 
 
@@ -2772,16 +2772,16 @@ void ASMu2D::generateBezierExtraction ()
 {
   PROFILE2("Bezier extraction");
 
-  const int p1 = geo->order(0);
-  const int p2 = geo->order(1);
+  const int p1 = geomB->order(0);
+  const int p2 = geomB->order(1);
 
-  myBezierExtract.resize(geo->nElements());
+  myBezierExtract.resize(geomB->nElements());
   RealArray extrMat;
   int iel = 0;
-  for (const LR::Element* elm : geo->getAllElements())
+  for (const LR::Element* elm : geomB->getAllElements())
   {
     // Get bezier extraction matrix
-    geo->getBezierExtraction(iel,extrMat);
+    geomB->getBezierExtraction(iel,extrMat);
     myBezierExtract[iel].resize(elm->nBasisFunctions(),p1*p2);
     myBezierExtract[iel++].fill(extrMat.data(),extrMat.size());
   }

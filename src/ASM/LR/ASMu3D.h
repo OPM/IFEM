@@ -117,7 +117,7 @@ public:
   virtual ~ASMu3D() {}
 
   //! \brief Returns the spline volume representing the geometry of this patch.
-  LR::LRSplineVolume* getVolume() { return this->createLRfromTensor(); }
+  LR::LRSplineVolume* getVolume() { return this->createLRfromTensor().get(); }
   //! \brief Returns the spline volume representing the geometry of this patch.
   const LR::LRSplineVolume* getVolume() const { return lrspline.get(); }
 
@@ -685,7 +685,7 @@ protected:
                                       const IntSet& neighborIndices) const;
 
   //! \brief Converts current tensor spline object to LR-spline.
-  LR::LRSplineVolume* createLRfromTensor();
+  std::shared_ptr<LR::LRSplineVolume> createLRfromTensor();
 
 public:
   //! \brief Returns the number of elements on a boundary.
