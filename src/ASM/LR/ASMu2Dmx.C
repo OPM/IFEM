@@ -302,7 +302,7 @@ bool ASMu2Dmx::generateFEMTopology ()
   std::cout <<"NEL = "<< nel <<" NNOD = "<< nnod << std::endl;
 #endif
 
-  geo = m_basis[geoBasis-1].get();
+  geomB = m_basis[geoBasis-1];
   this->generateBezierBasis();
   this->generateBezierExtraction();
 
@@ -397,8 +397,8 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
       if (integrand.getIntegrandType() & Integrand::G_MATRIX)
       {
         // Element size in parametric space
-        dXidu[0] = geo->getElement(geoEl-1)->umax()-geo->getElement(geoEl-1)->umin();
-        dXidu[1] = geo->getElement(geoEl-1)->vmax()-geo->getElement(geoEl-1)->vmin();
+        dXidu[0] = geomB->getElement(geoEl-1)->umax() - geomB->getElement(geoEl-1)->umin();
+        dXidu[1] = geomB->getElement(geoEl-1)->vmax() - geomB->getElement(geoEl-1)->vmin();
       }
 
       // Initialize element quantities
@@ -1220,7 +1220,7 @@ void ASMu2Dmx::swapProjectionBasis ()
     std::swap(projBasis, altProjBasis);
     std::swap(projThreadGroups, altProjThreadGroups);
     lrspline = m_basis[ASMmxBase::geoBasis-1];
-    geo = lrspline.get();
+    geomB = lrspline;
     this->generateBezierBasis();
     this->generateBezierExtraction();
   }

@@ -131,10 +131,10 @@ public:
   //! \brief Copy constructor.
   ASMu2D(const ASMu2D& patch, unsigned char n_f = 0);
   //! \brief Empty destructor.
-  virtual ~ASMu2D() { geo = nullptr; }
+  virtual ~ASMu2D() { geomB = nullptr; }
 
   //! \brief Returns the spline surface representing the geometry of this patch.
-  LR::LRSplineSurface* getSurface() { return this->createLRfromTensor(); }
+  LR::LRSplineSurface* getSurface() { return this->createLRfromTensor().get(); }
   //! \brief Returns the spline surface representing the geometry of this patch.
   const LR::LRSplineSurface* getSurface() const { return lrspline.get(); }
 
@@ -687,7 +687,7 @@ protected:
                                       const IntSet& neighborIndices) const;
 
   //! \brief Converts current tensor spline object to LR-spline.
-  LR::LRSplineSurface* createLRfromTensor();
+  std::shared_ptr<LR::LRSplineSurface> createLRfromTensor();
 
   //! \brief Converts a rational spline surface to a LR NURBS surface.
   static LR::LRSplineSurface* createLRNurbs(const Go::SplineSurface& srf);
