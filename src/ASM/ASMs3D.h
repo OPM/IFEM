@@ -206,8 +206,6 @@ public:
   //! \brief Empty destructor.
   virtual ~ASMs3D() {}
 
-  //! \brief Returns the spline volume representing the geometry of this patch.
-  Go::SplineVolume* getVolume() const { return svol; }
   //! \brief Returns the spline surface representing a boundary of this patch.
   //! \param[in] dir Parameter direction defining which boundary to return
   virtual Go::SplineSurface* getBoundary(int dir, int = 1);

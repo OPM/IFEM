@@ -650,7 +650,7 @@ bool MultiPatchModelGenerator3D::createGeometry (SIMinput& sim) const
     }
 
   // Compute parameters
-  const Go::SplineVolume* vol = pch.getVolume();
+  const Go::SplineVolume* vol = pch.getBasis(ASM::GEOMETRY_BASIS);
   size_t px = vol->order(0)-1;
   size_t py = vol->order(1)-1;
   size_t pz = vol->order(2)-1;
