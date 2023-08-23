@@ -187,20 +187,20 @@ ASMLRSpline::ASMLRSpline (unsigned char n_p, unsigned char n_s,
                           unsigned char n_f)
   : ASMbase(n_p,n_s,n_f)
 {
-  geo = nullptr;
+  geomB = nullptr;
 }
 
 
 ASMLRSpline::ASMLRSpline (const ASMLRSpline& patch, unsigned char n_f)
   : ASMbase(patch,n_f)
 {
-  geo = patch.geo;
+  geomB = patch.geomB;
 }
 
 
 bool ASMLRSpline::refine (const LR::RefineData& prm, Vectors& sol)
 {
-  if (!geo)
+  if (!geomB)
     return false;
 
   if (shareFE && !prm.refShare)
@@ -208,8 +208,8 @@ bool ASMLRSpline::refine (const LR::RefineData& prm, Vectors& sol)
     // This patch shares spline object with another patch
     // (in another simulator on the same mesh),
     // and is assumed to have been refined already
-    nnod = geo->nBasisFunctions();
-    nel  = geo->nElements();
+    nnod = geomB->nBasisFunctions();
+    nel  = geomB->nElements();
     return true;
   }
 
@@ -220,32 +220,32 @@ bool ASMLRSpline::refine (const LR::RefineData& prm, Vectors& sol)
 
   IntVec nf(sol.size());
   for (size_t j = 0; j < sol.size(); j++)
-    if ((nf[j] = LR::extendControlPoints(geo,sol[j],this->getNoFields(1))) < 0)
+    if ((nf[j] = LR::extendControlPoints(geomB,sol[j],this->getNoFields(1))) < 0)
       return false;
 
-  if (!this->doRefine(prm,geo))
+  if (!this->doRefine(prm,geomB))
     return false;
 
-  nnod = geo->nBasisFunctions();
-  nel  = geo->nElements();
+  nnod = geomB->nBasisFunctions();
+  nel  = geomB->nElements();
   IFEM::cout <<"Refined mesh: "<< nel <<" elements "<< nnod <<" nodes."<< std::endl;
 
   for (int i = sol.size()-1; i >= 0; i--)
     if (nf[i] > 0) {
       sol[i].resize(nf[i]*nnod);
-      LR::contractControlPoints(geo,sol[i],nf[i]);
+      LR::contractControlPoints(geomB,sol[i],nf[i]);
     }
 
   bool linIndepTest = prm.options.size() > 3 ? prm.options[3] != 0 : false;
   if (linIndepTest)
   {
     std::cout <<"Testing for linear independence by overloading"<< std::endl;
-    bool isLinIndep = geo->isLinearIndepByOverloading(false);
+    bool isLinIndep = geomB->isLinearIndepByOverloading(false);
     if (!isLinIndep) {
       std::cout <<"Inconclusive..."<< std::endl;
 #ifdef HAS_BOOST
       std::cout <<"Testing for linear independence by full tensor expansion"<< std::endl;
-      isLinIndep = geo->isLinearIndepByMappingMatrix(false);
+      isLinIndep = geomB->isLinearIndepByMappingMatrix(false);
 #endif
     }
     if (isLinIndep)
@@ -337,12 +337,12 @@ void ASMLRSpline::getFunctionsForElements (IntSet& functions,
                                            const IntVec& elements,
                                            bool globalId) const
 {
-  geo->generateIDs();
+  geomB->generateIDs();
   for (int elmId : elements)
   {
     int iel = globalId ? utl::findIndex(MLGE,1+elmId) : elmId;
-    if (iel >= 0 && iel < geo->nElements())
-      for (LR::Basisfunction* b : geo->getElement(iel)->support())
+    if (iel >= 0 && iel < geomB->nElements())
+      for (LR::Basisfunction* b : geomB->getElement(iel)->support())
         functions.insert(globalId ? this->getNodeID(b->getId()+1)-1:b->getId());
   }
 }
@@ -358,7 +358,7 @@ IntVec ASMLRSpline::getBoundaryCovered (const IntSet& nodes) const
     this->getBoundaryNodes(edge,oneBoundary,1,1,0,true);
     for (int i : nodes)
       for (int j : oneBoundary)
-        if (geo->getBasisfunction(i)->contains(*geo->getBasisfunction(j-1)))
+        if (geomB->getBasisfunction(i)->contains(*geomB->getBasisfunction(j-1)))
           result.insert(j-1);
   }
 
@@ -371,7 +371,7 @@ IntVec ASMLRSpline::getOverlappingNodes (const IntSet& nodes, int dir) const
   IntSet result;
   for (int i : nodes)
   {
-    LR::Basisfunction* b = geo->getBasisfunction(i);
+    LR::Basisfunction* b = geomB->getBasisfunction(i);
     for (LR::Element* el : b->support())
       for (LR::Basisfunction* basis : el->support())
       {
@@ -432,7 +432,7 @@ std::pair<size_t,double> ASMLRSpline::findClosestNode (const Vec3& X) const
 {
   double distance = 0.0;
   size_t inod = 0, iclose = 0;
-  for (LR::Basisfunction* b : geo->getAllBasisfunctions())
+  for (LR::Basisfunction* b : geomB->getAllBasisfunctions())
   {
     double d = (X-Vec3(&(*b->cp()),nsd)).length();
     if (++inod == 1 || d < distance)
@@ -458,7 +458,7 @@ Vec3 ASMLRSpline::getElementCenter (int iel) const
 #endif
 
   double u0[3] = { 0.0, 0.0, 0.0 };
-  LR::Element* elm = geo->getElement(iel-1);
+  LR::Element* elm = geomB->getElement(iel-1);
   for (unsigned char d = 0; d < ndim; d++)
     u0[d] = 0.5*(elm->getParmin(d) + elm->getParmax(d));
 
@@ -524,23 +524,23 @@ void ASMLRSpline::analyzeThreadGroups (const IntMat& groups)
 
 bool ASMLRSpline::getParameterDomain (Real2DMat& u, IntVec* corners) const
 {
-  u.resize(geo->nVariate(),RealArray(2));
-  for (int i = 0; i < geo->nVariate(); ++i) {
-    u[i][0] = geo->startparam(i);
-    u[i][1] = geo->endparam(i);
+  u.resize(geomB->nVariate(),RealArray(2));
+  for (int i = 0; i < geomB->nVariate(); ++i) {
+    u[i][0] = geomB->startparam(i);
+    u[i][1] = geomB->endparam(i);
   }
 
   if (corners) {
-    if (geo->nVariate() == 2) {
+    if (geomB->nVariate() == 2) {
       for (int J = 0; J < 2; ++J)
         for (int I = 0; I < 2; ++I) {
           std::vector<LR::Basisfunction*> funcs;
           int dir = (I > 0 ? LR::EAST : LR::WEST) |
                     (J > 0 ? LR::NORTH : LR::SOUTH);
-          geo->getEdgeFunctions(funcs, static_cast<LR::parameterEdge>(dir));
+          geomB->getEdgeFunctions(funcs, static_cast<LR::parameterEdge>(dir));
           corners->push_back(funcs.front()->getId()+1);
         }
-    } else if (geo->nVariate() == 3) {
+    } else if (geomB->nVariate() == 3) {
       for (int K = 0; K < 2; ++K)
         for (int J = 0; J < 2; ++J)
           for (int I = 0; I < 2; ++I) {
@@ -548,7 +548,7 @@ bool ASMLRSpline::getParameterDomain (Real2DMat& u, IntVec* corners) const
             int dir = (I > 0 ? LR::EAST  : LR::WEST)  |
                       (J > 0 ? LR::NORTH : LR::SOUTH) |
                       (K > 0 ? LR::TOP   : LR::BOTTOM);
-            geo->getEdgeFunctions(funcs, static_cast<LR::parameterEdge>(dir));
+            geomB->getEdgeFunctions(funcs, static_cast<LR::parameterEdge>(dir));
             corners->push_back(funcs.front()->getId()+1);
           }
     }

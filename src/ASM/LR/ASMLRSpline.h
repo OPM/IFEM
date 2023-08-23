@@ -85,7 +85,7 @@ public:
   virtual ~ASMLRSpline() {}
 
   //! \brief Checks if the patch is empty.
-  virtual bool empty() const { return geo == nullptr; }
+  virtual bool empty() const { return geomB == nullptr; }
 
   //! \brief Returns parameter values and node numbers of the domain corners.
   virtual bool getParameterDomain(Real2DMat&, IntVec*) const;
@@ -203,7 +203,7 @@ protected:
   //! \param[in] groups The generated thread groups
   static void analyzeThreadGroups(const IntMat& groups);
 
-  LR::LRSpline* geo; //!< Pointer to the actual spline geometry object
+  LR::LRSpline* geomB; //!< Pointer to the actual spline geometry object
 };
 
 #endif

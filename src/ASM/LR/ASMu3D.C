@@ -105,7 +105,7 @@ bool ASMu3D::read (std::istream& is)
     return false;
   }
 
-  geo = lrspline.get();
+  geomB = lrspline.get();
   return true;
 }
 
@@ -129,7 +129,7 @@ void ASMu3D::clear (bool retainGeometry)
       delete tensorspline;
       delete tensorPrjBas;
     }
-    geo = nullptr;
+    geomB = nullptr;
     tensorspline = tensorPrjBas = nullptr;
   }
 
@@ -231,7 +231,7 @@ bool ASMu3D::createProjectionBasis (bool init)
 
   std::swap(tensorspline,tensorPrjBas);
   std::swap(lrspline,projBasis);
-  geo = lrspline.get();
+  geomB = lrspline.get();
   return true;
 }
 
@@ -251,7 +251,7 @@ LR::LRSplineVolume* ASMu3D::createLRfromTensor ()
 
 bool ASMu3D::generateFEMTopology ()
 {
-  geo = this->createLRfromTensor();
+  geomB = this->createLRfromTensor();
 
   if (tensorPrjBas)
   {
@@ -1836,9 +1836,9 @@ void ASMu3D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
 
 bool ASMu3D::getOrder (int& p1, int& p2, int& p3) const
 {
-  p1 = geo->order(0);
-  p2 = geo->order(1);
-  p3 = geo->order(2);
+  p1 = geomB->order(0);
+  p2 = geomB->order(1);
+  p3 = geomB->order(2);
 
   return true;
 }

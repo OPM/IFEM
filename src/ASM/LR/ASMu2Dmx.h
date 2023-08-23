@@ -63,7 +63,7 @@ public:
   //! \brief Copy constructor.
   ASMu2Dmx(const ASMu2Dmx& patch, const CharVec& n_f = CharVec(2,0));
   //! \brief Empty destructor.
-  virtual ~ASMu2Dmx() { lrspline = nullptr; geo = nullptr; }
+  virtual ~ASMu2Dmx() { lrspline = nullptr; geomB = nullptr; }
 
   //! \brief Returns the spline surface representing the basis of this patch.
   virtual LR::LRSplineSurface* getBasis(int basis = 1);

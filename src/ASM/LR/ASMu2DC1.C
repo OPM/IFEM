@@ -18,13 +18,13 @@
 
 bool ASMu2DC1::generateFEMTopology ()
 {
-  if (!(geo = this->createLRfromTensor()))
+  if (!(geomB = this->createLRfromTensor()))
     return false;
-  else if (geo->order(0) > 2 || geo->order(1) > 2)
+  else if (geomB->order(0) > 2 || geomB->order(1) > 2)
     return this->ASMu2D::generateFEMTopology();
 
   std::cerr <<" *** ASMu2DC1::generateFEMTopology:"
-            <<" The polynomial order "<< geo->order(0) <<"x"<< geo->order(1)
+            <<" The polynomial order "<< geomB->order(0) <<"x"<< geomB->order(1)
             <<" is too low.\n     C1-continuity requires"
             <<" at least quadratic order."<< std::endl;
   return false;

@@ -131,7 +131,7 @@ public:
   //! \brief Copy constructor.
   ASMu2D(const ASMu2D& patch, unsigned char n_f = 0);
   //! \brief Empty destructor.
-  virtual ~ASMu2D() { geo = nullptr; }
+  virtual ~ASMu2D() { geomB = nullptr; }
 
   //! \brief Returns the spline surface representing the geometry of this patch.
   LR::LRSplineSurface* getSurface() { return this->createLRfromTensor(); }
