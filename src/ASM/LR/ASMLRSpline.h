@@ -203,7 +203,7 @@ protected:
   //! \param[in] groups The generated thread groups
   static void analyzeThreadGroups(const IntMat& groups);
 
-  LR::LRSpline* geomB; //!< Pointer to the actual spline geometry object
+  std::shared_ptr<LR::LRSpline> geomB; //!< Pointer to the actual spline geometry object
 };
 
 #endif

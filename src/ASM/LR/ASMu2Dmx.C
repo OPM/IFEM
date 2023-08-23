@@ -302,7 +302,7 @@ bool ASMu2Dmx::generateFEMTopology ()
   std::cout <<"NEL = "<< nel <<" NNOD = "<< nnod << std::endl;
 #endif
 
-  geomB = m_basis[geoBasis-1].get();
+  geomB = m_basis[geoBasis-1];
   this->generateBezierBasis();
   this->generateBezierExtraction();
 
@@ -1220,7 +1220,7 @@ void ASMu2Dmx::swapProjectionBasis ()
     std::swap(projBasis, altProjBasis);
     std::swap(projThreadGroups, altProjThreadGroups);
     lrspline = m_basis[ASMmxBase::geoBasis-1];
-    geomB = lrspline.get();
+    geomB = lrspline;
     this->generateBezierBasis();
     this->generateBezierExtraction();
   }

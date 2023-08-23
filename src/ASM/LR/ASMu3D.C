@@ -105,7 +105,7 @@ bool ASMu3D::read (std::istream& is)
     return false;
   }
 
-  geomB = lrspline.get();
+  geomB = lrspline;
   return true;
 }
 
@@ -231,12 +231,12 @@ bool ASMu3D::createProjectionBasis (bool init)
 
   std::swap(tensorspline,tensorPrjBas);
   std::swap(lrspline,projBasis);
-  geomB = lrspline.get();
+  geomB = lrspline;
   return true;
 }
 
 
-LR::LRSplineVolume* ASMu3D::createLRfromTensor ()
+std::shared_ptr<LR::LRSplineVolume> ASMu3D::createLRfromTensor ()
 {
   if (tensorspline)
   {
@@ -245,7 +245,7 @@ LR::LRSplineVolume* ASMu3D::createLRfromTensor ()
     tensorspline = nullptr;
   }
 
-  return lrspline.get();
+  return lrspline;
 }
 
 

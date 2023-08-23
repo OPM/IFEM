@@ -220,10 +220,10 @@ bool ASMLRSpline::refine (const LR::RefineData& prm, Vectors& sol)
 
   IntVec nf(sol.size());
   for (size_t j = 0; j < sol.size(); j++)
-    if ((nf[j] = LR::extendControlPoints(geomB,sol[j],this->getNoFields(1))) < 0)
+    if ((nf[j] = LR::extendControlPoints(geomB.get(),sol[j],this->getNoFields(1))) < 0)
       return false;
 
-  if (!this->doRefine(prm,geomB))
+  if (!this->doRefine(prm,geomB.get()))
     return false;
 
   nnod = geomB->nBasisFunctions();
@@ -233,7 +233,7 @@ bool ASMLRSpline::refine (const LR::RefineData& prm, Vectors& sol)
   for (int i = sol.size()-1; i >= 0; i--)
     if (nf[i] > 0) {
       sol[i].resize(nf[i]*nnod);
-      LR::contractControlPoints(geomB,sol[i],nf[i]);
+      LR::contractControlPoints(geomB.get(),sol[i],nf[i]);
     }
 
   bool linIndepTest = prm.options.size() > 3 ? prm.options[3] != 0 : false;
@@ -449,10 +449,10 @@ std::pair<size_t,double> ASMLRSpline::findClosestNode (const Vec3& X) const
 Vec3 ASMLRSpline::getElementCenter (int iel) const
 {
 #ifdef INDEX_CHECK
-  if (iel < 1 || iel > geo->nElements())
+  if (iel < 1 || iel > geomB->nElements())
   {
     std::cerr <<" *** ASMLRSpline::getElementCenter: Element index "<< iel
-              <<" out of range [1,"<< geo->nElements() <<"]."<< std::endl;
+              <<" out of range [1,"<< geomB->nElements() <<"]."<< std::endl;
     return Vec3();
   }
 #endif

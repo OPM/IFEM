@@ -298,7 +298,7 @@ void ASMu2D::writePostscriptElementsNurbs (std::shared_ptr<LR::LRSplineSurface> 
 
   if (mesh != lrspline) {
     mesh.swap(lrspline);
-    geomB = lrspline.get();
+    geomB = lrspline;
   }
 
   // This is done unconditionally as it will not have been performed
@@ -383,7 +383,7 @@ void ASMu2D::writePostscriptElementsNurbs (std::shared_ptr<LR::LRSplineSurface> 
 
   if (mesh != lrspline) {
     mesh.swap(lrspline);
-    geomB = lrspline.get();
+    geomB = lrspline;
     this->generateBezierBasis();
     this->generateBezierExtraction();
   }

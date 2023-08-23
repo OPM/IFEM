@@ -116,7 +116,7 @@ bool ASMu2D::read (std::istream& is)
     nsd = readDim;
   }
 
-  geomB = lrspline.get();
+  geomB = lrspline;
   return true;
 }
 
@@ -402,7 +402,7 @@ bool ASMu2D::createProjectionBasis (bool init)
 
   std::swap(tensorspline,tensorPrjBas);
   std::swap(lrspline,projBasis);
-  geomB = lrspline.get();
+  geomB = lrspline;
   return true;
 }
 
@@ -507,7 +507,7 @@ LR::LRSplineSurface* ASMu2D::createLRNurbs (const Go::SplineSurface& srf)
 }
 
 
-LR::LRSplineSurface* ASMu2D::createLRfromTensor ()
+std::shared_ptr<LR::LRSplineSurface> ASMu2D::createLRfromTensor ()
 {
   if (tensorspline)
   {
@@ -541,7 +541,7 @@ LR::LRSplineSurface* ASMu2D::createLRfromTensor ()
     tensorspline = nullptr;
   }
 
-  return lrspline.get();
+  return lrspline;
 }
 
 
