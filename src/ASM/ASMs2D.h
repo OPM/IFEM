@@ -187,8 +187,6 @@ public:
   //! \brief The destructor frees the dynamically allocated boundary curves.
   virtual ~ASMs2D();
 
-  //! \brief Returns the spline surface representing the geometry of this patch.
-  Go::SplineSurface* getSurface() const { return surf; }
   //! \brief Returns the spline curve representing a boundary of this patch.
   //! \param[in] dir Parameter direction defining which boundary to return
   virtual Go::SplineCurve* getBoundary(int dir, int = 1);

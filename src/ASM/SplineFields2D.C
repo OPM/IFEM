@@ -26,7 +26,9 @@
 SplineFields2D::SplineFields2D (const ASMs2D* patch,
                                 const RealArray& v, char nbasis,
                                 int nnf, const char* name)
-  : Fields(name), basis(patch->getBasis(nbasis)), surf(patch->getSurface())
+    : Fields(name),
+      basis(patch->getBasis(nbasis)),
+      surf(patch->getBasis(ASM::GEOMETRY_BASIS))
 {
   const int n1 = basis->numCoefs_u();
   const int n2 = basis->numCoefs_v();

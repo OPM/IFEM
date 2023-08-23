@@ -340,7 +340,7 @@ bool MultiPatchModelGenerator2D::createGeometry (SIMinput& sim) const
     }
 
   // Compute parameters
-  const Go::SplineSurface* srf = pch.getSurface();
+  const Go::SplineSurface* srf = pch.getBasis(ASM::GEOMETRY_BASIS);
   size_t px = srf->order_u()-1;
   size_t py = srf->order_v()-1;
   size_t nelemsx = srf->numCoefs_u() - px;
