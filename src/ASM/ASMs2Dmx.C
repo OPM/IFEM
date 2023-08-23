@@ -28,6 +28,7 @@
 #include "Profiler.h"
 #include <array>
 #include <numeric>
+#include <utility>
 
 
 ASMs2Dmx::ASMs2Dmx (unsigned char n_s, const CharVec& n_f)
@@ -44,12 +45,18 @@ ASMs2Dmx::ASMs2Dmx (const ASMs2Dmx& patch, const CharVec& n_f)
 }
 
 
-Go::SplineSurface* ASMs2Dmx::getBasis (int basis) const
+const Go::SplineSurface* ASMs2Dmx::getBasis (int basis) const
 {
   if (basis < 1 || basis > (int)m_basis.size())
     return this->ASMs2D::getBasis(basis);
 
   return m_basis[basis-1].get();
+}
+
+
+Go::SplineSurface* ASMs2Dmx::getBasis (int basis)
+{
+  return const_cast<Go::SplineSurface*>(std::as_const(*this).getBasis(basis));
 }
 
 

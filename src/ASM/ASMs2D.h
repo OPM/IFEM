@@ -193,7 +193,9 @@ public:
   //! \param[in] dir Parameter direction defining which boundary to return
   virtual Go::SplineCurve* getBoundary(int dir, int = 1);
   //! \brief Returns the spline surface representing the basis of this patch.
-  virtual Go::SplineSurface* getBasis(int basis = 1) const;
+  virtual Go::SplineSurface* getBasis(int basis = 1);
+  //! \brief Returns the spline surface representing the basis of this patch.
+  virtual const Go::SplineSurface* getBasis(int basis = 1) const;
   //! \brief Copies the parameter domain from the \a other patch.
   virtual void copyParameterDomain(const ASMbase* other);
 

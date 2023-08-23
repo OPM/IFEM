@@ -38,6 +38,7 @@
 #include "MPC.h"
 #include "IFEM.h"
 #include <array>
+#include <utility>
 
 
 ASMs2D::ASMs2D (unsigned char n_s, unsigned char n_f)
@@ -100,18 +101,23 @@ Go::SplineCurve* ASMs2D::getBoundary (int dir, int)
 }
 
 
-Go::SplineSurface* ASMs2D::getBasis (int basis) const
+const Go::SplineSurface* ASMs2D::getBasis (int basis) const
 {
   switch (basis) {
     case ASM::GEOMETRY_BASIS:
-      return static_cast<Go::SplineSurface*>(geomB);
+      return static_cast<const Go::SplineSurface*>(geomB);
     case ASM::PROJECTION_BASIS:
-      return static_cast<Go::SplineSurface*>(projB);
+      return static_cast<const Go::SplineSurface*>(projB);
     case ASM::ALT_PROJECTION_BASIS:
-      return static_cast<Go::SplineSurface*>(altProjB);
+      return static_cast<const Go::SplineSurface*>(altProjB);
     default:
       return surf;
   }
+}
+
+Go::SplineSurface* ASMs2D::getBasis (int basis)
+{
+  return const_cast<Go::SplineSurface*>(std::as_const(*this).getBasis(basis));
 }
 
 
@@ -3070,7 +3076,7 @@ short int ASMs2D::InterfaceChecker::hasContribution (int,
 bool ASMs2D::evaluate (const FunctionBase* func, RealArray& vec,
                        int basisNum, double time) const
 {
-  Go::SplineSurface* oldSurf = this->getBasis(basisNum);
+  const Go::SplineSurface* oldSurf = this->getBasis(basisNum);
   Go::SplineSurface* newSurf = SplineUtils::project(oldSurf,*func,
                                                     func->dim(),time);
   if (!newSurf)

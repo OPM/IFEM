@@ -66,7 +66,9 @@ public:
   virtual ~ASMu3Dmx() { lrspline = nullptr; geomB = nullptr; }
 
   //! \brief Returns the spline surface representing the basis of this patch.
-  virtual LR::LRSplineVolume* getBasis(int basis = 1) const;
+  virtual const LR::LRSplineVolume* getBasis(int basis = 1) const;
+  //! \brief Returns the spline surface representing the basis of this patch.
+  virtual LR::LRSplineVolume* getBasis(int basis = 1);
 
   // Methods for model generation
   // ============================

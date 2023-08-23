@@ -212,7 +212,9 @@ public:
   //! \param[in] dir Parameter direction defining which boundary to return
   virtual Go::SplineSurface* getBoundary(int dir, int = 1);
   //! \brief Returns the spline volume representing the basis of this patch.
-  virtual Go::SplineVolume* getBasis(int basis = 1) const;
+  virtual const Go::SplineVolume* getBasis(int basis = 1) const;
+  //! \brief Returns the spline volume representing the basis of this patch.
+  virtual Go::SplineVolume* getBasis(int basis = 1);
   //! \brief Copies the parameter domain from the \a other patch.
   virtual void copyParameterDomain(const ASMbase* other);
 

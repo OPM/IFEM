@@ -83,7 +83,7 @@ bool ASMs2D::evaluate (const ASMbase* basis, const Vector& locVec,
   if (!pch->evalSolution(sValues,locVec,gpar.data()))
     return false;
 
-  Go::SplineSurface* surf = this->getBasis(basisNum);
+  const Go::SplineSurface* surf = this->getBasis(basisNum);
 
   // Project the results onto the spline basis to find control point
   // values based on the result values evaluated at the Greville points.

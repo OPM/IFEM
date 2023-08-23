@@ -50,12 +50,18 @@ ASMs3Dmx::ASMs3Dmx (const ASMs3Dmx& patch, const CharVec& n_f)
 }
 
 
-Go::SplineVolume* ASMs3Dmx::getBasis (int basis) const
+const Go::SplineVolume* ASMs3Dmx::getBasis (int basis) const
 {
   if (basis < 1 || basis > (int)m_basis.size())
     return this->ASMs3D::getBasis(basis);
 
   return m_basis[basis-1].get();
+}
+
+
+Go::SplineVolume* ASMs3Dmx::getBasis (int basis)
+{
+  return const_cast<Go::SplineVolume*>(std::as_const(*this).getBasis(basis));
 }
 
 

@@ -38,6 +38,7 @@
 #include "Point.h"
 #include "IFEM.h"
 #include <array>
+#include <utility>
 
 
 ASMu3D::ASMu3D (unsigned char n_f)
@@ -64,20 +65,29 @@ ASMu3D::ASMu3D (const ASMu3D& patch, unsigned char n_f)
 }
 
 
-LR::LRSplineVolume* ASMu3D::getBasis (int basis) const
+const LR::LRSplineVolume* ASMu3D::getBasis (int basis) const
 {
   switch (basis) {
     case ASM::GEOMETRY_BASIS:
-      return static_cast<LR::LRSplineVolume*>(geomB.get());
+      return static_cast<const LR::LRSplineVolume*>(geomB.get());
     case ASM::PROJECTION_BASIS:
-      return static_cast<LR::LRSplineVolume*>(projB.get());
+      return static_cast<const LR::LRSplineVolume*>(projB.get());
     case ASM::ALT_PROJECTION_BASIS:
-      return static_cast<LR::LRSplineVolume*>(altProjB.get());
+      return static_cast<const LR::LRSplineVolume*>(altProjB.get());
     case ASM::REFINEMENT_BASIS:
-      return static_cast<LR::LRSplineVolume*>(refB.get());
+      return static_cast<const LR::LRSplineVolume*>(refB.get());
     default:
       return lrspline.get();
   }
+}
+
+
+LR::LRSplineVolume* ASMu3D::getBasis (int basis)
+{
+  if (tensorspline)
+    this->createLRfromTensor();
+
+  return const_cast<LR::LRSplineVolume*>(std::as_const(*this).getBasis(basis));
 }
 
 
