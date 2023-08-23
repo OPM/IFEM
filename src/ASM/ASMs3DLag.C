@@ -144,7 +144,7 @@ bool ASMs3DLag::addXElms (short int dim, short int item, size_t nXn,
 bool ASMs3DLag::generateFEMTopology ()
 {
   if (!svol) return false;
-  if (!proj) proj = svol;
+  if (!projB) projB = svol;
 
   // Order of basis in the three parametric directions (order = degree + 1)
   p1 = svol->order(0);

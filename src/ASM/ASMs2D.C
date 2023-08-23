@@ -43,7 +43,7 @@
 ASMs2D::ASMs2D (unsigned char n_s, unsigned char n_f)
   : ASMstruct(2,n_s,n_f), nodeInd(myNodeInd)
 {
-  surf = proj = nullptr;
+  surf = nullptr;
   bou[0] = bou[1] = bou[2] = bou[3] = nullptr;
   swapV = false;
 }
@@ -53,7 +53,6 @@ ASMs2D::ASMs2D (const ASMs2D& patch, unsigned char n_f)
   : ASMstruct(patch,n_f), nodeInd(patch.myNodeInd)
 {
   surf = patch.surf;
-  proj = patch.proj;
 
   for (int i = 0; i < 4; i++)
     bou[i] = patch.bou[i];
@@ -70,7 +69,6 @@ ASMs2D::ASMs2D (const ASMs2D& patch, unsigned char n_f)
 ASMs2D::ASMs2D (const ASMs2D& patch) : ASMstruct(patch), nodeInd(myNodeInd)
 {
   surf = patch.surf;
-  proj = patch.proj;
 
   for (int i = 0; i < 4; i++)
     bou[i] = patch.bou[i];
@@ -175,9 +173,9 @@ void ASMs2D::clear (bool retainGeometry)
   if (!retainGeometry)
   {
     // Erase spline data
-    if (proj && proj != surf) delete proj;
+    if (projB != surf) delete projB;
     if (surf && !shareFE) delete surf;
-    geomB = projB = surf = proj = nullptr;
+    geomB = projB = surf = nullptr;
   }
 
   // Erase the FE data
@@ -449,11 +447,11 @@ bool ASMs2D::createProjectionBasis (bool init)
 {
   if (!surf)
     return false;
-  else if (init && !proj)
-    projB = proj = surf->clone();
+  else if (init && !projB)
+    projB = surf->clone();
 
   std::swap(geomB,projB);
-  std::swap(surf,proj);
+  surf = static_cast<Go::SplineSurface*>(geomB);
   return true;
 }
 
@@ -461,7 +459,7 @@ bool ASMs2D::createProjectionBasis (bool init)
 bool ASMs2D::generateFEMTopology ()
 {
   if (!surf) return false;
-  if (!proj) proj = surf;
+  if (!projB) projB = surf;
 
   const int n1 = surf->numCoefs_u();
   const int n2 = surf->numCoefs_v();
@@ -3095,7 +3093,7 @@ int ASMs2D::getCorner (int I, int J, int basis) const
 Field* ASMs2D::getProjectedField (const Vector& coefs) const
 {
   if (this->getNoProjectionNodes() == coefs.size())
-    return new SplineField2D(proj,coefs);
+    return new SplineField2D(static_cast<const Go::SplineSurface*>(projB),coefs);
 
   std::cerr <<" *** ASMs2D::getProjectedField: Non-matching coefficent array,"
             <<" size="<< coefs.size() <<" nnod="<< this->getNoProjectionNodes()
@@ -3106,12 +3104,12 @@ Field* ASMs2D::getProjectedField (const Vector& coefs) const
 
 Fields* ASMs2D::getProjectedFields (const Vector& coefs, size_t) const
 {
-  if (proj == this->getBasis(1) || this->getNoProjectionNodes() == 0)
+  if (projB == this->getBasis(1) || this->getNoProjectionNodes() == 0)
     return nullptr;
 
   size_t ncmp = coefs.size() / this->getNoProjectionNodes();
   if (ncmp*this->getNoProjectionNodes() == coefs.size())
-    return new SplineFields2D(proj,coefs,ncmp);
+    return new SplineFields2D(static_cast<const Go::SplineSurface*>(projB),coefs,ncmp);
 
   std::cerr <<" *** ASMs2D::getProjectedFields: Non-matching coefficent array,"
             <<" size="<< coefs.size() <<" nnod="<< this->getNoProjectionNodes()
@@ -3122,7 +3120,9 @@ Fields* ASMs2D::getProjectedFields (const Vector& coefs, size_t) const
 
 size_t ASMs2D::getNoProjectionNodes () const
 {
-  if (!proj) return 0;
+  if (!projB) return 0;
+
+  const Go::SplineSurface* proj = static_cast<const Go::SplineSurface*>(projB);
 
   return proj->numCoefs_u() * proj->numCoefs_v();
 }
