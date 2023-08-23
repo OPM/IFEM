@@ -31,6 +31,7 @@
 #include "Vec3Oper.h"
 #include <array>
 #include <numeric>
+#include <utility>
 #ifdef USE_OPENMP
 #include <omp.h>
 #endif
@@ -50,12 +51,21 @@ ASMs3Dmx::ASMs3Dmx (const ASMs3Dmx& patch, const CharVec& n_f)
 }
 
 
-Go::SplineVolume* ASMs3Dmx::getBasis (int basis) const
+const Go::SplineVolume* ASMs3Dmx::getBasis (int basis) const
 {
-  if (basis < 1 || basis > (int)m_basis.size())
-    return svol;
+  if (basis < 1)
+    return this->ASMs3D::getBasis(basis);
+
+  if (basis > static_cast<int>(m_basis.size()))
+    return nullptr;
 
   return m_basis[basis-1].get();
+}
+
+
+Go::SplineVolume* ASMs3Dmx::getBasis (int basis)
+{
+  return const_cast<Go::SplineVolume*>(std::as_const(*this).getBasis(basis));
 }
 
 

@@ -34,6 +34,7 @@
 
 #include <array>
 #include <numeric>
+#include <utility>
 
 
 ASMu3Dmx::ASMu3Dmx (const CharVec& n_f)
@@ -59,7 +60,10 @@ ASMu3Dmx::ASMu3Dmx (const ASMu3Dmx& patch, const CharVec& n_f)
 
 const LR::LRSplineVolume* ASMu3Dmx::getBasis (int basis) const
 {
-  if (basis < 1 || basis > (int)m_basis.size())
+  if (basis < 1)
+    return this->ASMu3D::getBasis(basis);
+
+  if (basis > static_cast<int>(m_basis.size()))
     return nullptr;
 
   return m_basis[basis-1].get();
@@ -68,10 +72,7 @@ const LR::LRSplineVolume* ASMu3Dmx::getBasis (int basis) const
 
 LR::LRSplineVolume* ASMu3Dmx::getBasis (int basis)
 {
-  if (basis < 1 || basis > (int)m_basis.size())
-    return nullptr;
-
-  return m_basis[basis-1].get();
+  return const_cast<LR::LRSplineVolume*>(std::as_const(*this).getBasis(basis));
 }
 
 

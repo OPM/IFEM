@@ -79,7 +79,7 @@ bool SplineFields3Dmx::valueFE (const ItgPoint& x, Vector& vals) const
   auto vit = values.begin();
   auto rit = vals.begin();
   for (int b : bases) {
-    Go::SplineVolume* basis = svol->getBasis(b);
+    const Go::SplineVolume* basis = svol->getBasis(b);
     Go::BasisPts spline;
 #pragma omp critical
     basis->computeBasis(x.u,x.v,x.w,spline);

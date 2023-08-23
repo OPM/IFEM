@@ -65,11 +65,10 @@ public:
   //! \brief Empty destructor.
   virtual ~ASMu2Dmx() {}
 
-  //! \brief Returns the spline surface representing the basis of this patch.
-  virtual LR::LRSplineSurface* getBasis(int basis = 1);
-
-  //! \brief Returns the spline surface representing the basis of this patch.
+  //! \brief Returns the spline surface representing a basis of this patch.
   virtual const LR::LRSplineSurface* getBasis(int basis = 1) const;
+  //! \brief Returns the spline surface representing a basis of this patch.
+  virtual LR::LRSplineSurface* getBasis(int basis = 1);
 
   // Methods for model generation
   // ============================

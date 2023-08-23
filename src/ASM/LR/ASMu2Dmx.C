@@ -35,6 +35,7 @@
 #include <array>
 #include <fstream>
 #include <numeric>
+#include <utility>
 
 
 ASMu2Dmx::ASMu2Dmx (unsigned char n_s, const CharVec& n_f)
@@ -56,7 +57,10 @@ ASMu2Dmx::ASMu2Dmx (const ASMu2Dmx& patch, const CharVec& n_f)
 
 const LR::LRSplineSurface* ASMu2Dmx::getBasis (int basis) const
 {
-  if (basis < 1 || basis > (int)m_basis.size())
+  if (basis < 1)
+    return this->ASMu2D::getBasis(basis);
+
+  if (basis > static_cast<int>(m_basis.size()))
     return nullptr;
 
   return m_basis[basis-1].get();
@@ -65,10 +69,7 @@ const LR::LRSplineSurface* ASMu2Dmx::getBasis (int basis) const
 
 LR::LRSplineSurface* ASMu2Dmx::getBasis (int basis)
 {
-  if (basis < 1 || basis > (int)m_basis.size())
-    return nullptr;
-
-  return m_basis[basis-1].get();
+  return const_cast<LR::LRSplineSurface*>(std::as_const(*this).getBasis(basis));
 }
 
 

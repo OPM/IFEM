@@ -39,6 +39,7 @@
 #include "IFEM.h"
 #include <array>
 #include <fstream>
+#include <utility>
 
 
 ASMu2D::ASMu2D (unsigned char n_s, unsigned char n_f)
@@ -62,6 +63,32 @@ ASMu2D::ASMu2D (const ASMu2D& patch, unsigned char n_f)
   // as hasXNodes might be invoked before the FE data is generated
   if (nnod == 0 && lrspline)
     nnod = lrspline->nBasisFunctions();
+}
+
+
+const LR::LRSplineSurface* ASMu2D::getBasis (int basis) const
+{
+  switch (basis) {
+    case ASM::GEOMETRY_BASIS:
+      return static_cast<const LR::LRSplineSurface*>(geomB.get());
+    case ASM::PROJECTION_BASIS:
+      return static_cast<const LR::LRSplineSurface*>(projB.get());
+    case ASM::PROJECTION_BASIS_2:
+      return static_cast<const LR::LRSplineSurface*>(projB2.get());
+    case ASM::REFINEMENT_BASIS:
+      return static_cast<const LR::LRSplineSurface*>(refB.get());
+    default:
+      return lrspline.get();
+  }
+}
+
+
+LR::LRSplineSurface* ASMu2D::getBasis (int basis)
+{
+  if (tensorspline)
+    this->createLRfromTensor();
+
+  return const_cast<LR::LRSplineSurface*>(std::as_const(*this).getBasis(basis));
 }
 
 

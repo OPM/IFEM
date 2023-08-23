@@ -138,10 +138,10 @@ public:
   //! \brief Returns the spline surface representing the geometry of this patch.
   const LR::LRSplineSurface* getSurface() const { return lrspline.get(); }
 
-  //! \brief Returns the spline surface representing the basis of this patch.
-  virtual const LR::LRSplineSurface* getBasis(int = 1) const { return lrspline.get(); }
-  //! \brief Returns the spline surface representing the basis of this patch.
-  virtual LR::LRSplineSurface* getBasis(int = 1) { return lrspline.get(); }
+  //! \brief Returns the spline surface representing a basis of this patch.
+  virtual const LR::LRSplineSurface* getBasis(int basis = 1) const;
+  //! \brief Returns the spline surface representing a basis of this patch.
+  virtual LR::LRSplineSurface* getBasis(int basis = 1);
 
 
   // Methods for model generation and refinement
