@@ -80,6 +80,19 @@ Go::SplineSurface* ASMs3D::getBoundary (int dir, int)
 }
 
 
+Go::SplineVolume* ASMs3D::getBasis (int basis) const
+{
+  switch (basis) {
+    case ASM::GEOMETRY_BASIS:
+      return static_cast<Go::SplineVolume*>(geomB);
+    case ASM::PROJECTION_BASIS:
+      return proj;
+    default:
+      return svol;
+  }
+}
+
+
 void ASMs3D::copyParameterDomain (const ASMbase* other)
 {
   const ASMs3D* o = dynamic_cast<const ASMs3D*>(other);

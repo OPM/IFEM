@@ -53,7 +53,7 @@ ASMs2Dmx::~ASMs2Dmx ()
 Go::SplineSurface* ASMs2Dmx::getBasis (int basis) const
 {
   if (basis < 1 || basis > (int)m_basis.size())
-    return surf;
+    return this->ASMs2D::getBasis(basis);
 
   return m_basis[basis-1].get();
 }

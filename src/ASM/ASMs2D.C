@@ -102,6 +102,19 @@ Go::SplineCurve* ASMs2D::getBoundary (int dir, int)
 }
 
 
+Go::SplineSurface* ASMs2D::getBasis (int basis) const
+{
+  switch (basis) {
+    case ASM::GEOMETRY_BASIS:
+      return static_cast<Go::SplineSurface*>(geomB);
+    case ASM::PROJECTION_BASIS:
+      return static_cast<Go::SplineSurface*>(projB);
+    default:
+      return surf;
+  }
+}
+
+
 void ASMs2D::copyParameterDomain (const ASMbase* other)
 {
   const ASMs2D* o = dynamic_cast<const ASMs2D*>(other);

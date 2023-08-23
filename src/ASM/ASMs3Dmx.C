@@ -59,7 +59,7 @@ ASMs3Dmx::~ASMs3Dmx ()
 Go::SplineVolume* ASMs3Dmx::getBasis (int basis) const
 {
   if (basis < 1 || basis > (int)m_basis.size())
-    return svol;
+    return this->ASMs3D::getBasis(basis);
 
   return m_basis[basis-1].get();
 }
