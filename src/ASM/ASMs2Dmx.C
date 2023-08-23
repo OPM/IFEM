@@ -44,12 +44,6 @@ ASMs2Dmx::ASMs2Dmx (const ASMs2Dmx& patch, const CharVec& n_f)
 }
 
 
-ASMs2Dmx::~ASMs2Dmx ()
-{
-  delete altProjBasis;
-}
-
-
 Go::SplineSurface* ASMs2Dmx::getBasis (int basis) const
 {
   if (basis < 1 || basis > (int)m_basis.size())
@@ -212,7 +206,7 @@ bool ASMs2Dmx::generateFEMTopology ()
       projB = proj = ASMmxBase::raiseBasis(surf);
     else if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
       projB = proj = m_basis.front()->clone();
-      altProjBasis = ASMmxBase::raiseBasis(surf);
+      altProjB = ASMmxBase::raiseBasis(surf);
     }
     else if (geoBasis < 3)
       projB = proj = m_basis[2-geoBasis]->clone();
@@ -1116,9 +1110,10 @@ void ASMs2Dmx::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
 
 void ASMs2Dmx::swapProjectionBasis ()
 {
-  if (altProjBasis) {
+  if (altProjB) {
     ASMmxBase::geoBasis = ASMmxBase::geoBasis == 1 ? 2 : 1;
-    std::swap(proj, altProjBasis);
+    std::swap(projB, altProjB);
+    proj = this->getBasis(ASM::PROJECTION_BASIS);
     surf = this->getBasis(ASMmxBase::geoBasis);
   }
 }

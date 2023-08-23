@@ -109,6 +109,7 @@ protected:
 protected:
   Go::GeomObject* geomB; //!< Pointer to spline object of the geometry basis
   Go::GeomObject* projB; //!< Pointer to spline object of the projection basis
+  Go::GeomObject* altProjB; //!< Pointer to spline object of the alternative projection basis
 };
 
 #endif

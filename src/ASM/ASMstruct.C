@@ -24,7 +24,7 @@
 ASMstruct::ASMstruct (unsigned char n_p, unsigned char n_s, unsigned char n_f)
   : ASMbase(n_p,n_s,n_f)
 {
-  geomB = projB = nullptr;
+  geomB = projB = altProjB = nullptr;
 }
 
 
@@ -33,6 +33,7 @@ ASMstruct::ASMstruct (const ASMstruct& patch, unsigned char n_f)
 {
   geomB = patch.geomB;
   projB = patch.projB;
+  altProjB = patch.altProjB;
 }
 
 
@@ -40,6 +41,8 @@ ASMstruct::~ASMstruct ()
 {
   if (projB && projB != geomB)
     delete projB;
+
+  delete altProjB;
 
   if (geomB && !shareFE)
     delete geomB;

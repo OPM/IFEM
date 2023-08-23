@@ -49,8 +49,9 @@ namespace ASM //! Assembly scope
   //! \brief Enumeration of different basis types.
   //! \details Entries should have non-positive values
   enum BasisType {
-    GEOMETRY_BASIS   = 0,  //!< Geometry basis
-    PROJECTION_BASIS = -1, //!< Projection basis
+    GEOMETRY_BASIS       =  0,  //!< Geometry basis
+    PROJECTION_BASIS     = -1, //!< Projection basis
+    ALT_PROJECTION_BASIS = -2, //!< Alternative projection basis
   };
 }
 

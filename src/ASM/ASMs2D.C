@@ -109,6 +109,8 @@ Go::SplineSurface* ASMs2D::getBasis (int basis) const
       return static_cast<Go::SplineSurface*>(geomB);
     case ASM::PROJECTION_BASIS:
       return static_cast<Go::SplineSurface*>(projB);
+    case ASM::ALT_PROJECTION_BASIS:
+      return static_cast<Go::SplineSurface*>(altProjB);
     default:
       return surf;
   }

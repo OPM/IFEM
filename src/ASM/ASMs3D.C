@@ -87,6 +87,8 @@ Go::SplineVolume* ASMs3D::getBasis (int basis) const
       return static_cast<Go::SplineVolume*>(geomB);
     case ASM::PROJECTION_BASIS:
       return proj;
+    case ASM::ALT_PROJECTION_BASIS:
+      return static_cast<Go::SplineVolume*>(altProjB);
     default:
       return svol;
   }

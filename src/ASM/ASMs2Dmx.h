@@ -36,8 +36,8 @@ public:
   ASMs2Dmx(unsigned char n_s, const CharVec& n_f);
   //! \brief Copy constructor.
   ASMs2Dmx(const ASMs2Dmx& patch, const CharVec& n_f = CharVec(2,0));
-  //! \brief Destructor.
-  virtual ~ASMs2Dmx();
+  //! \brief Empty destructor.
+  virtual ~ASMs2Dmx() {}
 
   //! \brief Returns the spline surface representing the basis of this patch.
   virtual Go::SplineSurface* getBasis(int basis = 1) const;
@@ -229,7 +229,6 @@ protected:
   virtual int getLastItgElmNode() const;
 
   std::vector<std::shared_ptr<Go::SplineSurface>> m_basis; //!< Vector of bases
-  Go::SplineSurface* altProjBasis = nullptr; //!< Alternative projection basis
 };
 
 #endif
