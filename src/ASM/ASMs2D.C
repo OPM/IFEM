@@ -1233,7 +1233,7 @@ double ASMs2D::getParametricArea (int iel) const
   if (MNPC[iel-1].empty())
     return 0.0;
 
-  int inod1 = MNPC[iel-1][surf->order_u()*surf->order_v()-1];
+  int inod1 = MNPC[iel-1][this->getLastItgElmNode()];
 #ifdef INDEX_CHECK
   if (inod1 < 0 || (size_t)inod1 >= nnod)
   {
@@ -1263,7 +1263,7 @@ double ASMs2D::getParametricLength (int iel, int dir) const
   if (MNPC[iel-1].empty())
     return 0.0;
 
-  int inod1 = MNPC[iel-1][surf->order_u()*surf->order_v()-1];
+  int inod1 = MNPC[iel-1][this->getLastItgElmNode()];
 #ifdef INDEX_CHECK
   if (inod1 < 0 || (size_t)inod1 >= nnod)
   {
@@ -1274,13 +1274,13 @@ double ASMs2D::getParametricLength (int iel, int dir) const
 #endif
 
   switch (dir)
-    {
+  {
     case 1: return surf->knotSpan(0,nodeInd[inod1].I);
     case 2: return surf->knotSpan(1,nodeInd[inod1].J);
-    }
+  }
 
   std::cerr <<" *** ASMs2D::getParametricLength: Invalid edge direction "
-	    << dir << std::endl;
+            << dir << std::endl;
   return DERR;
 }
 
@@ -3219,6 +3219,12 @@ bool ASMs2D::addRigidCpl (int lindx, int ldim, int basis,
   }
 
   return this->ASMstruct::addRigidCpl(lindx,ldim,basis,gMaster,Xmaster,extraPt);
+}
+
+
+int ASMs2D::getLastItgElmNode () const
+{
+  return surf->order_u()*surf->order_v()-1;
 }
 
 
