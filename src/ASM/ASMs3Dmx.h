@@ -218,6 +218,8 @@ public:
   virtual bool getSize(int& n1, int& n2, int& n3, int basis) const;
 
 protected:
+  //! \brief Returns 0-based index of first node on integration basis.
+  virtual int getFirstItgElmNode() const;
   //! \brief Returns 0-based index of last node on integration basis.
   virtual int getLastItgElmNode() const;
 

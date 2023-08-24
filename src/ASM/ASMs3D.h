@@ -747,6 +747,8 @@ protected:
   void generateThreadGroups(size_t strip1, size_t strip2, size_t strip3,
                             bool silence, bool ignoreGlobalLM);
 
+  //! \brief Returns 0-based index of first node on integration basis.
+  virtual int getFirstItgElmNode() const { return 0; }
   //! \brief Returns 0-based index of last node on integration basis.
   virtual int getLastItgElmNode() const;
 

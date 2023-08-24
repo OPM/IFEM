@@ -65,12 +65,6 @@ public:
   //! This is used to reinitialize the patch after it has been refined.
   virtual void clear(bool retainGeometry);
 
-  //! \brief Returns a matrix with nodal coordinates for an element.
-  //! \param[in] iel Element index
-  //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
-  //! in one element
-  virtual bool getElementCoordinates(Matrix& X, int iel) const;
-
   //! \brief Returns the global coordinates for the given node.
   //! \param[in] inod 1-based node index local to current patch
   virtual Vec3 getCoord(size_t inod) const;
@@ -229,6 +223,8 @@ public:
                                 int thick, int, bool local) const;
 
 protected:
+  //! \brief Returns 0-based index of first node on integration basis.
+  virtual int getFirstItgElmNode() const;
   //! \brief Returns 0-based index of last node on integration basis.
   virtual int getLastItgElmNode() const;
 

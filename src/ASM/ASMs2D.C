@@ -1336,10 +1336,11 @@ bool ASMs2D::getElementCoordinates (Matrix& X, int iel) const
 
   X.resize(nsd,surf->order_u()*surf->order_v());
 
+  int lnod0 = this->getFirstItgElmNode();
   RealArray::const_iterator cit = surf->coefs_begin();
   for (size_t n = 0; n < X.cols(); n++)
   {
-    int ip = this->coeffInd(MNPC[iel-1][n])*surf->dimension();
+    int ip = this->coeffInd(MNPC[iel-1][n + lnod0])*surf->dimension();
     if (ip < 0) return false;
 
     for (size_t i = 0; i < nsd; i++)

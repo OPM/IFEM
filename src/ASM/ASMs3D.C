@@ -1603,11 +1603,12 @@ bool ASMs3D::getElementCoordinates (Matrix& X, int iel) const
 #endif
 
   X.resize(3,svol->order(0)*svol->order(1)*svol->order(2));
+  int lnod0 = this->getFirstItgElmNode();
 
   RealArray::const_iterator cit = svol->coefs_begin();
   for (size_t n = 0; n < X.cols(); n++)
   {
-    int ip = this->coeffInd(MNPC[iel-1][n])*svol->dimension();
+    int ip = this->coeffInd(MNPC[iel-1][n + lnod0])*svol->dimension();
     if (ip < 0) return false;
 
     for (size_t i = 0; i < 3; i++)
