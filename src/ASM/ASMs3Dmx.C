@@ -1278,6 +1278,12 @@ void ASMs3Dmx::swapProjectionBasis ()
 }
 
 
+int ASMs3Dmx::getFirstItgElmNode () const
+{
+  return std::accumulate(elem_size.begin(), elem_size.begin() + geoBasis-1, 0);
+}
+
+
 int ASMs3Dmx::getLastItgElmNode () const
 {
   return std::accumulate(elem_size.begin(), elem_size.begin() + geoBasis, -1);

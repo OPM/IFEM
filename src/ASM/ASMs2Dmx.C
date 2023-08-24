@@ -371,42 +371,6 @@ void ASMs2Dmx::closeBoundaries (int dir, int, int)
 }
 
 
-bool ASMs2Dmx::getElementCoordinates (Matrix& X, int iel) const
-{
-#ifdef INDEX_CHECK
-  if (iel < 1 || (size_t)iel > MNPC.size())
-  {
-    std::cerr <<" *** ASMs2Dmx::getElementCoordinates: Element index "<< iel
-	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
-    return false;
-  }
-#endif
-
-  size_t nenod = surf->order_u()*surf->order_v();
-  size_t lnod0 = 0;
-  for (int i = 1; i < geoBasis; ++i)
-    lnod0 += m_basis[i-1]->order_u()*m_basis[i-1]->order_v();
-
-  X.resize(nsd,nenod);
-  const IntVec& mnpc = MNPC[iel-1];
-
-  RealArray::const_iterator cit = surf->coefs_begin();
-  for (size_t n = 0; n < nenod; n++)
-  {
-    int iI = nodeInd[mnpc[lnod0+n]].I;
-    int iJ = nodeInd[mnpc[lnod0+n]].J;
-    int ip = (iJ*surf->numCoefs_u() + iI)*surf->dimension();
-    for (size_t i = 0; i < nsd; i++)
-      X(i+1,n+1) = *(cit+(ip+i));
-  }
-
-#if SP_DEBUG > 2
-  std::cout <<"\nCoordinates for element "<< iel << X << std::endl;
-#endif
-  return true;
-}
-
-
 Vec3 ASMs2Dmx::getCoord (size_t inod) const
 {
   if (inod > nodeInd.size() && inod <= MLGN.size())
@@ -1159,6 +1123,12 @@ void ASMs2Dmx::swapProjectionBasis ()
     std::swap(proj, altProjBasis);
     surf = this->getBasis(ASMmxBase::geoBasis);
   }
+}
+
+
+int ASMs2Dmx::getFirstItgElmNode () const
+{
+  return std::accumulate(elem_size.begin(), elem_size.begin() + geoBasis-1, 0);
 }
 
 

@@ -680,6 +680,8 @@ protected:
   //! \brief Generates element groups from a partition.
   virtual void generateThreadGroupsFromElms(const IntVec& elms);
 
+  //! \brief Returns 0-based index of first node on integration basis.
+  virtual int getFirstItgElmNode() const { return 0; }
   //! \brief Returns 0-based index of last node on integration basis.
   virtual int getLastItgElmNode() const;
 
