@@ -218,13 +218,8 @@ public:
   virtual bool getSize(int& n1, int& n2, int& n3, int basis) const;
 
 protected:
-  //! \brief Returns the volume in the parameter space for an element.
-  //! \param[in] iel Element index
-  virtual double getParametricVolume(int iel) const;
-  //! \brief Returns boundary face area in the parameter space for an element.
-  //! \param[in] iel Element index
-  //! \param[in] dir Local face index of the boundary face
-  double getParametricArea(int iel, int dir) const;
+  //! \brief Returns 0-based index of last node on integration basis.
+  virtual int getLastItgElmNode() const;
 
   //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
   //! \param[in] lIndex Local index of the boundary edge

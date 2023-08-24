@@ -456,75 +456,6 @@ bool ASMs2Dmx::getSize (int& n1, int& n2, int basis) const
 }
 
 
-#define DERR -999.99
-
-double ASMs2Dmx::getParametricArea (int iel) const
-{
-#ifdef INDEX_CHECK
-  if (iel < 1 || (size_t)iel > MNPC.size())
-  {
-    std::cerr <<" *** ASMs2Dmx::getParametricArea: Element index "<< iel
-	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
-    return DERR;
-  }
-#endif
-  if (MNPC[iel-1].empty())
-    return 0.0;
-
-  int inod1 = MNPC[iel-1][std::accumulate(elem_size.begin(),
-                                          elem_size.begin()+geoBasis, -1)];
-#ifdef INDEX_CHECK
-  if (inod1 < 0 || (size_t)inod1 >= nnod)
-  {
-    std::cerr <<" *** ASMs2Dmx::getParametricArea: Node index "<< inod1
-	      <<" out of range [0,"<< nnod <<">."<< std::endl;
-    return DERR;
-  }
-#endif
-
-  double du = m_basis[geoBasis-1]->knotSpan(0,nodeInd[inod1].I);
-  double dv = m_basis[geoBasis-1]->knotSpan(1,nodeInd[inod1].J);
-
-  return du*dv;
-}
-
-
-double ASMs2Dmx::getParametricLength (int iel, int dir) const
-{
-#ifdef INDEX_CHECK
-  if (iel < 1 || (size_t)iel > MNPC.size())
-  {
-    std::cerr <<" *** ASMs2Dmx::getParametricLength: Element index "<< iel
-	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
-    return DERR;
-  }
-#endif
-  if (MNPC[iel-1].empty())
-    return 0.0;
-
-  int inod1 = MNPC[iel-1][std::accumulate(elem_size.begin(),
-                                          elem_size.begin()+geoBasis, -1)];
-#ifdef INDEX_CHECK
-  if (inod1 < 0 || (size_t)inod1 >= nnod)
-  {
-    std::cerr <<" *** ASMs2Dmx::getParametricLength: Node index "<< inod1
-	      <<" out of range [0,"<< nnod <<">."<< std::endl;
-    return DERR;
-  }
-#endif
-
-  switch (dir)
-    {
-    case 1: return m_basis[geoBasis-1]->knotSpan(0,nodeInd[inod1].I);
-    case 2: return m_basis[geoBasis-1]->knotSpan(1,nodeInd[inod1].J);
-    }
-
-  std::cerr <<" *** ASMs2Dmx::getParametricLength: Invalid edge direction "
-	    << dir << std::endl;
-  return DERR;
-}
-
-
 bool ASMs2Dmx::integrate (Integrand& integrand,
 			  GlobalIntegral& glInt,
 			  const TimeDomain& time)
@@ -1228,4 +1159,10 @@ void ASMs2Dmx::swapProjectionBasis ()
     std::swap(proj, altProjBasis);
     surf = this->getBasis(ASMmxBase::geoBasis);
   }
+}
+
+
+int ASMs2Dmx::getLastItgElmNode () const
+{
+  return std::accumulate(elem_size.begin(), elem_size.begin() + geoBasis, -1);
 }

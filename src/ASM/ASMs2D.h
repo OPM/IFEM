@@ -630,7 +630,7 @@ protected:
 
   //! \brief Returns the area in the parameter space for an element.
   //! \param[in] iel Element index
-  virtual double getParametricArea(int iel) const;
+  double getParametricArea(int iel) const;
   //! \brief Returns boundary edge length in the parameter space for an element.
   //! \param[in] iel Element index
   //! \param[in] dir Local index of the boundary edge
@@ -679,6 +679,9 @@ protected:
 
   //! \brief Generates element groups from a partition.
   virtual void generateThreadGroupsFromElms(const IntVec& elms);
+
+  //! \brief Returns 0-based index of last node on integration basis.
+  virtual int getLastItgElmNode() const;
 
 public:
   //! \brief Auxilliary function for computation of basis function indices.

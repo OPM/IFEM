@@ -700,7 +700,7 @@ protected:
 
   //! \brief Returns the volume in the parameter space for an element.
   //! \param[in] iel Element index
-  virtual double getParametricVolume(int iel) const;
+  double getParametricVolume(int iel) const;
   //! \brief Returns boundary face area in the parameter space for an element.
   //! \param[in] iel Element index
   //! \param[in] dir Local face index of the boundary face
@@ -746,6 +746,9 @@ protected:
   //! \param[in] ignoreGlobalLM Sanity check option
   void generateThreadGroups(size_t strip1, size_t strip2, size_t strip3,
                             bool silence, bool ignoreGlobalLM);
+
+  //! \brief Returns 0-based index of last node on integration basis.
+  virtual int getLastItgElmNode() const;
 
 public:
   //! \brief Generates element groups for multi-threading of interior integrals.

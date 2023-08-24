@@ -1495,7 +1495,7 @@ double ASMs3D::getParametricVolume (int iel) const
   if (MNPC[iel-1].empty())
     return 0.0;
 
-  int inod1 = MNPC[iel-1][svol->order(0)*svol->order(1)*svol->order(2)-1];
+  int inod1 = MNPC[iel-1][this->getLastItgElmNode()];
 #ifdef INDEX_CHECK
   if (inod1 < 0 || (size_t)inod1 >= nnod)
   {
@@ -1525,7 +1525,7 @@ double ASMs3D::getParametricArea (int iel, int dir) const
   if (MNPC[iel-1].empty())
     return 0.0;
 
-  int inod1 = MNPC[iel-1][svol->order(0)*svol->order(1)*svol->order(2)-1];
+  int inod1 = MNPC[iel-1][this->getLastItgElmNode()];
 #ifdef INDEX_CHECK
   if (inod1 < 0 || (size_t)inod1 >= nnod)
   {
@@ -3485,6 +3485,12 @@ void ASMs3D::generateThreadGroups (char lIndex, bool silence, bool)
                  << ": "<< fGrp[i][j].size() <<" elements";
   }
   IFEM::cout << std::endl;
+}
+
+
+int ASMs3D::getLastItgElmNode () const
+{
+  return svol->order(0)*svol->order(1)*svol->order(2)-1;
 }
 
 
