@@ -263,9 +263,11 @@ bool ASMs3Dmx::generateFEMTopology ()
   }
 #endif
 
-  nel = (m_basis[geoBasis-1]->numCoefs(0)-m_basis[geoBasis-1]->order(0)+1)*
-        (m_basis[geoBasis-1]->numCoefs(1)-m_basis[geoBasis-1]->order(1)+1)*
-        (m_basis[geoBasis-1]->numCoefs(2)-m_basis[geoBasis-1]->order(2)+1);
+  const Go::SplineVolume* itg = this->getBasis(ASM::INTEGRATION_BASIS);
+
+  nel = (itg->numCoefs(0) - itg->order(0) + 1) *
+        (itg->numCoefs(1) - itg->order(1) + 1) *
+        (itg->numCoefs(2) - itg->order(2) + 1);
 
   myMLGE.resize(nel,0);
   myMLGN.resize(nnod);
@@ -285,55 +287,52 @@ bool ASMs3Dmx::generateFEMTopology ()
           myMLGN[inod++]    = ++gNod;
         }
 
-  int lnod2 = 0;
-  int lnod3 = 0;
-  for (i2 = 0; i2 < geoBasis-1; ++i2)
-    lnod2 += m_basis[i2]->order(0)*m_basis[i2]->order(1)*m_basis[i2]->order(2);
-  for (i2 = 0; i2 < (int)m_basis.size(); ++i2)
-    lnod3 += m_basis[i2]->order(0)*m_basis[i2]->order(1)*m_basis[i2]->order(2);
+  int firstItgElmNode = this->getFirstItgElmNode();
+  int nElmNode = std::accumulate(elem_size.begin(), elem_size.end(), 0);
 
   // Create nodal connectivities for bases
   inod = std::accumulate(nb.begin(),nb.begin()+geoBasis-1,0u);
-  Go::SplineVolume* b = m_basis[geoBasis-1].get();
-  auto knotw = b->basis(2).begin();
-  for (i3 = 1; i3 <= b->numCoefs(2); i3++, ++knotw) {
-    auto knotv = b->basis(1).begin();
-    for (i2 = 1; i2 <= b->numCoefs(1); i2++, ++knotv) {
-      auto knotu = b->basis(0).begin();
-      for (i1 = 1; i1 <= b->numCoefs(0); i1++, inod++, ++knotu)
-        if (i1 >= b->order(0) && i2 >= b->order(1) && i3 >= b->order(2))
+  auto knotw = itg->basis(2).begin();
+  for (i3 = 1; i3 <= itg->numCoefs(2); i3++, ++knotw) {
+    auto knotv = itg->basis(1).begin();
+    for (i2 = 1; i2 <= itg->numCoefs(1); i2++, ++knotv) {
+      auto knotu = itg->basis(0).begin();
+      for (i1 = 1; i1 <= itg->numCoefs(0); i1++, inod++, ++knotu)
+        if (i1 >= itg->order(0) && i2 >= itg->order(1) && i3 >= itg->order(2))
         {
-          if (b->knotSpan(0,i1-1) > 0.0)
-            if (b->knotSpan(1,i2-1) > 0.0)
-              if (b->knotSpan(2,i3-1) > 0.0)
+          if (itg->knotSpan(0,i1-1) > 0.0)
+            if (itg->knotSpan(1,i2-1) > 0.0)
+              if (itg->knotSpan(2,i3-1) > 0.0)
               {
                 myMLGE[iel] = ++gEl; // global element number over all patches
 
-                int lnod = lnod2;
-                myMNPC[iel].resize(lnod3,0);
-                for (j3 = b->order(2)-1; j3 >= 0; j3--)
-                  for (j2 = b->order(1)-1; j2 >= 0; j2--)
-                    for (j1 = b->order(0)-1; j1 >= 0; j1--)
-                      myMNPC[iel][lnod++] = inod - b->numCoefs(0)*b->numCoefs(1)*j3 - b->numCoefs(0)*j2 - j1;
+                int lnod = firstItgElmNode;
+                myMNPC[iel].resize(nElmNode,0);
+                for (j3 = itg->order(2) - 1; j3 >= 0; j3--)
+                  for (j2 = itg->order(1) - 1; j2 >= 0; j2--)
+                    for (j1 = itg->order(0) - 1; j1 >= 0; j1--)
+                      myMNPC[iel][lnod++] = inod - itg->numCoefs(0)*itg->numCoefs(1)*j3 - itg->numCoefs(0)*j2 - j1;
+
                 // find knotspan spanning element for other bases
                 lnod = 0;
-                size_t lnod4 = 0;
+                size_t basis_ofs = 0;
                 for (size_t bas = 0; bas < m_basis.size(); ++bas) {
-                  if (bas != (size_t)geoBasis-1) {
+                  if (bas != static_cast<size_t>(geoBasis)-1) {
+                    const Go::SplineVolume*  basis = this->getBasis(bas+1);
                     double ku = *knotu;
                     double kv = *knotv;
                     double kw = *knotw;
-                    int bknotu = m_basis[bas]->basis(0).knotIntervalFuzzy(ku);
-                    int bknotv = m_basis[bas]->basis(1).knotIntervalFuzzy(kv);
-                    int bknotw = m_basis[bas]->basis(2).knotIntervalFuzzy(kw);
-                    size_t iinod = lnod4+(bknotw*m_basis[bas]->numCoefs(1)+bknotv)*m_basis[bas]->numCoefs(0) + bknotu;
-                    for (j3 = m_basis[bas]->order(2)-1; j3 >= 0; j3--)
-                      for (j2 = m_basis[bas]->order(1)-1; j2 >= 0; j2--)
-                        for (j1 = m_basis[bas]->order(0)-1; j1 >= 0; j1--)
-                          myMNPC[iel][lnod++] = iinod - (j3*m_basis[bas]->numCoefs(1)+j2)*m_basis[bas]->numCoefs(0) - j1;
+                    int bknotu = basis->basis(0).knotIntervalFuzzy(ku);
+                    int bknotv = basis->basis(1).knotIntervalFuzzy(kv);
+                    int bknotw = basis->basis(2).knotIntervalFuzzy(kw);
+                    size_t iinod = basis_ofs+(bknotw*basis->numCoefs(1)+bknotv)*basis->numCoefs(0) + bknotu;
+                    for (j3 = basis->order(2)-1; j3 >= 0; j3--)
+                      for (j2 = basis->order(1)-1; j2 >= 0; j2--)
+                        for (j1 = basis->order(0)-1; j1 >= 0; j1--)
+                          myMNPC[iel][lnod++] = iinod - (j3*basis->numCoefs(1)+j2)*basis->numCoefs(0) - j1;
                   } else
-                    lnod += m_basis[bas]->order(0)*m_basis[bas]->order(1)*m_basis[bas]->order(2);
-                  lnod4 += nb[bas];
+                    lnod += elem_size[bas];
+                  basis_ofs += nb[bas];
                 }
               }
 
