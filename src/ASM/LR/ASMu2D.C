@@ -2617,7 +2617,7 @@ void ASMu2D::generateThreadGroups (const Integrand& integrand, bool silence,
                                    bool ignoreGlobalLM)
 {
   LR::generateThreadGroups(threadGroups, this->getBasis(1));
-  if (projB != lrspline)
+  if (this->separateProjectionBasis())
     LR::generateThreadGroups(projThreadGroups, projB.get());
   if (silence || threadGroups[0].size() < 2) return;
 
@@ -2769,12 +2769,15 @@ const RealArray& ASMu2D::InterfaceChecker::getIntersections (int iel, int edge,
 bool ASMu2D::refine (const LR::RefineData& prm, Vectors& sol)
 {
   bool ok = this->ASMLRSpline::refine(prm,sol);
-  if (!ok || !this->separateProjectionBasis() ||
-      prm.elements.size() + prm.errors.size() == 0)
+
+  // check if refinement was actually done
+  if (prm.elements.size() + prm.errors.size() == 0 || !ok)
     return ok;
 
-  LR::LRSplineSurface* proj = this->getBasis(ASM::PROJECTION_BASIS);
+  if (!this->separateProjectionBasis())
+    return true;
 
+  LR::LRSplineSurface* proj = this->getBasis(ASM::PROJECTION_BASIS);
   for (const LR::Meshline* line : lrspline->getAllMeshlines())
     if (line->span_u_line_)
       proj->insert_const_v_edge(line->const_par_,
@@ -2785,12 +2788,12 @@ bool ASMu2D::refine (const LR::RefineData& prm, Vectors& sol)
                                 line->start_, line->stop_,
                                 line->multiplicity());
 
-  if (projB != lrspline)
-    projB->generateIDs();
+  proj->generateIDs();
 
-  IFEM::cout <<"Refined projection basis: "<< projB->nElements()
-             <<" elements "<< projB->nBasisFunctions() <<" nodes."
+  IFEM::cout <<"Refined projection basis: "<< proj->nElements()
+             <<" elements "<< proj->nBasisFunctions() <<" nodes."
              << std::endl;
+
   return true;
 }
 

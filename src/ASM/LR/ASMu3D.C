@@ -1918,7 +1918,7 @@ void ASMu3D::generateThreadGroups (const Integrand& integrand, bool silence,
                                    bool ignoreGlobalLM)
 {
   LR::generateThreadGroups(threadGroups, this->getBasis(1));
-  if (projB != lrspline)
+  if (this->separateProjectionBasis())
     LR::generateThreadGroups(projThreadGroups, projB.get());
   if (silence || threadGroups[0].size() < 2) return;
 
@@ -2340,13 +2340,23 @@ void ASMu3D::extendRefinementDomain (IntSet& refineIndices,
 bool ASMu3D::refine (const LR::RefineData& prm, Vectors& sol)
 {
   bool ok = this->ASMLRSpline::refine(prm,sol);
-  if (!ok || !this->separateProjectionBasis() ||
-      prm.elements.size() + prm.errors.size() == 0)
+
+  // check if refinement was actually done
+  if (prm.elements.size() + prm.errors.size() == 0 || !ok)
     return ok;
 
-  // TODO: check this
+  if (!this->separateProjectionBasis())
+    return true;
+
+  LR::LRSplineVolume* proj = this->getBasis(ASM::PROJECTION_BASIS);
   for (const LR::MeshRectangle* rect : lrspline->getAllMeshRectangles())
-    this->getBasis(ASM::PROJECTION_BASIS)->insert_line(rect->copy());
+    proj->insert_line(rect->copy());
+
+  proj->generateIDs();
+
+  IFEM::cout <<"Refined projection basis: "<< proj->nElements()
+             <<" elements "<< proj->nBasisFunctions() <<" nodes."
+             << std::endl;
 
   return true;
 }
