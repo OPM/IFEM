@@ -206,30 +206,31 @@ bool ASMu3Dmx::generateFEMTopology ()
     for (const std::shared_ptr<Go::SplineVolume>& svol : vvec)
       m_basis.push_back(std::make_shared<LR::LRSplineVolume>(svol.get()));
 
-    // we need to project on something that is not one of our bases
-    if (ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS1 ||
-        ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE ||
-        ASMmxBase::Type == ASMmxBase::SUBGRID) {
-      // make a backup as establishBases resets it
-      int geoB = ASMmxBase::geoBasis;
-      std::shared_ptr<Go::SplineVolume> otherBasis =
-          ASMmxBase::establishBases(tensorspline,
-                                    ASMmxBase::FULL_CONT_RAISE_BASIS1).front();
-      geoBasis = geoB;
-      if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
-        refB = std::make_shared<LR::LRSplineVolume>(otherBasis.get());
-        projB = std::static_pointer_cast<LR::LRSpline>(m_basis.front());
-        refB->generateIDs();
-        altProjB = refB;
-      } else {
-        projB.reset(new LR::LRSplineVolume(otherBasis.get()));
-        refB = projB;
-      }
-    } else {
-      if (!projB)
+    // make a backup as establishBases resets it
+    int geoB = ASMmxBase::geoBasis;
+    // we need to project or refine based on something that is not one of our bases
+    std::shared_ptr<Go::SplineVolume> otherBasis =
+        ASMmxBase::establishBases(tensorspline,
+                                  ASMmxBase::FULL_CONT_RAISE_BASIS1).front();
+    geoBasis = geoB;
+
+    if (!projB)
+      if (ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS1 ||
+          ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS2 ||
+          ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
+        projB = std::make_shared<LR::LRSplineVolume>(otherBasis.get());
+      else if (ASMmxBase::Type == ASMmxBase::SUBGRID)
+        projB = m_basis.front();
+      else
         projB = m_basis[2-ASMmxBase::geoBasis];
+
+    if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
+      refB = std::make_shared<LR::LRSplineVolume>(otherBasis.get());
+      refB->generateIDs();
+      refB->getElementContaining(refB->getElement(0)->midpoint()); // to force cache generation
+      altProjB = refB;
+    } else
       refB = projB;
-    }
 
     delete tensorspline;
     tensorspline = nullptr;
@@ -237,10 +238,6 @@ bool ASMu3Dmx::generateFEMTopology ()
   lrspline = m_basis[geoBasis-1];
   projB->generateIDs();
   projB->getElementContaining(projB->getElement(0)->midpoint()); // to force cache generation
-  if (altProjB) {
-    altProjB->generateIDs();
-    altProjB->getElementContaining(projB->getElement(0)->midpoint()); // to force cache generation
-  }
   myGeoBasis = ASMmxBase::geoBasis;
 
   nb.clear();
@@ -868,11 +865,15 @@ bool ASMu3Dmx::refine (const LR::RefineData& prm, Vectors& sol)
       size_t nFunc = refB->nBasisFunctions();
       IntVec elems(nFunc);
       std::iota(elems.begin(),elems.end(),0);
-      m_basis[0]->refineBasisFunction(elems);
+      m_basis.front()->refineBasisFunction(elems);
+      m_basis.front()->generateIDs();
+      m_basis.front()->getElementContaining(m_basis.front()->getElement(0)->midpoint()); // to force cache generation
     }
 
-    if (altProjB)
+    if (altProjB) {
       altProjB->generateIDs();
+      altProjB->getElementContaining(altProjB->getElement(0)->midpoint()); // to force cache generation
+    }
 
     size_t len = 0;
     for (size_t j = 0; j< m_basis.size(); ++j) {

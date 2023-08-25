@@ -218,40 +218,36 @@ bool ASMu2Dmx::generateFEMTopology ()
     for (std::shared_ptr<Go::SplineSurface>& srf : svec)
       m_basis.push_back(createLR(*srf));
 
-    // we need to project on something that is not one of our bases
-    if (ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS1 ||
-        ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS2 ||
-        ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE ||
-        ASMmxBase::Type == ASMmxBase::SUBGRID) {
-      Go::SplineSurface* otherBasis = nullptr;
-      if (!projB)
-        otherBasis = ASMmxBase::raiseBasis(tensorspline);
+    // we need to project or refine based on something that is not one of our bases
+    Go::SplineSurface* otherBasis = ASMmxBase::raiseBasis(tensorspline);
+    if (!otherBasis)
+      return false;
 
-      if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
-        refB = createLR(*otherBasis);
-        if (!projB)
-          projB = m_basis.front();
-        altProjB = refB;
-      } else {
-        if (!projB)
-          projB = createLR(*otherBasis);
-        refB = projB;
-      }
-      delete otherBasis;
-    }
-    else {
-      if (!projB)
+    if (!projB)
+      if (ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS1 ||
+          ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS2 ||
+          ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
+        projB = createLR(*otherBasis);
+      else if (ASMmxBase::Type == ASMmxBase::SUBGRID)
+        projB = m_basis.front();
+      else
         projB = m_basis[2-ASMmxBase::geoBasis];
+
+    if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
+      refB = createLR(*otherBasis);
+      refB->generateIDs();
+      altProjB = refB;
+    } else
       refB = projB;
-    }
 
     is_rational = tensorspline->rational();
     delete tensorspline;
+    delete otherBasis;
     tensorspline = nullptr;
   }
+  lrspline = m_basis[geoBasis-1];
   projB->generateIDs();
   refB->generateIDs();
-  lrspline = m_basis[geoBasis-1];
 
   nb.clear();
   nb.reserve(m_basis.size());
