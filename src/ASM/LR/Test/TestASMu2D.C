@@ -305,3 +305,35 @@ TEST(TestASMu2D, EvalPointNurbs)
   EXPECT_FLOAT_EQ(x1[0], x2[0]);
   EXPECT_FLOAT_EQ(x1[1], x2[1]);
 }
+
+
+TEST(TestASMu2D, Write)
+{
+  ASMbase::resetNumbering();
+  ASMuSquare pch1;
+  EXPECT_TRUE(pch1.generateFEMTopology());
+
+  std::stringstream str;
+  EXPECT_TRUE(pch1.write(str, 1));
+  EXPECT_EQ(str.str(), ASMuSquare::square);
+
+  EXPECT_FALSE(pch1.write(str, 2));
+
+  str.str("");
+  EXPECT_TRUE(pch1.write(str, ASM::GEOMETRY_BASIS));
+  EXPECT_EQ(str.str(), ASMuSquare::square);
+
+  str.str("");
+  EXPECT_TRUE(pch1.write(str, ASM::PROJECTION_BASIS));
+  EXPECT_EQ(str.str(), ASMuSquare::square);
+
+  EXPECT_FALSE(pch1.write(str, ASM::PROJECTION_BASIS_2));
+
+  str.str("");
+  EXPECT_TRUE(pch1.write(str, ASM::REFINEMENT_BASIS));
+  EXPECT_EQ(str.str(), ASMuSquare::square);
+
+  str.str("");
+  EXPECT_TRUE(pch1.write(str, ASM::INTEGRATION_BASIS));
+  EXPECT_EQ(str.str(), ASMuSquare::square);
+}
