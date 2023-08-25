@@ -103,21 +103,6 @@ bool ASMs2Dmx::readBasis (std::istream& is, size_t basis)
 }
 
 
-bool ASMs2Dmx::write (std::ostream& os, int basis) const
-{
-  if (basis == -1)
-    os <<"200 1 0 0\n" << *projB;
-  else if (basis < 1 || basis > (int)m_basis.size())
-    os <<"200 1 0 0\n" << *surf;
-  else if (m_basis[basis-1])
-    os <<"200 1 0 0\n" << *m_basis[basis-1];
-  else
-    return false;
-
-  return os.good();
-}
-
-
 void ASMs2Dmx::clear (bool retainGeometry)
 {
   // Erase the solution field bases

@@ -152,12 +152,14 @@ bool ASMs3D::read (std::istream& is)
 }
 
 
-bool ASMs3D::write (std::ostream& os, int) const
+bool ASMs3D::write (std::ostream& os, int basis) const
 {
   if (!svol) return false;
+  if (basis > static_cast<int>(this->getNoBasis())) return false;
+  const Go::SplineVolume* spline = this->getBasis(basis);
+  if (!spline) return false;
 
-  os <<"700 1 0 0\n";
-  os << *svol;
+  os <<"700 1 0 0\n" << *spline;
 
   return os.good();
 }
