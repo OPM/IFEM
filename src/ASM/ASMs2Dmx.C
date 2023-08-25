@@ -45,6 +45,15 @@ ASMs2Dmx::ASMs2Dmx (const ASMs2Dmx& patch, const CharVec& n_f)
 }
 
 
+ASMs2Dmx::~ASMs2Dmx ()
+{
+  // these are managed by shared ptrs, make sure base class do not delete them.
+  if (!this->separateProjectionBasis())
+    projB = nullptr;
+  geomB = surf = nullptr;
+}
+
+
 const Go::SplineSurface* ASMs2Dmx::getBasis (int basis) const
 {
   if (basis < 1)
@@ -120,6 +129,11 @@ bool ASMs2Dmx::write (std::ostream& os, int basis) const
 
 void ASMs2Dmx::clear (bool retainGeometry)
 {
+  // these are managed by shared ptrs, make sure base class do not delete them.
+  if (!this->separateProjectionBasis())
+    projB = nullptr;
+  geomB = surf = nullptr;
+
   // Erase the solution field bases
   for (auto& it : m_basis)
     it.reset();
@@ -210,21 +224,23 @@ bool ASMs2Dmx::generateFEMTopology ()
     m_basis = ASMmxBase::establishBases(surf, ASMmxBase::Type);
 
     // we need to project on something that is not one of our bases
-    if (ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS1 ||
-        ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS2 ||
-        ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
-      projB = ASMmxBase::raiseBasis(surf);
-    else if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
-      projB = m_basis.front()->clone();
-      projB2 = ASMmxBase::raiseBasis(surf);
+    if (!projB) {
+      if (ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS1 ||
+          ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS2 ||
+          ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
+        projB = ASMmxBase::raiseBasis(surf);
+      else if (ASMmxBase::Type == ASMmxBase::SUBGRID)
+        projB = m_basis.front().get();
+      else // FULL_CONT_RAISE_BASISx
+        projB = m_basis[2-geoBasis].get();
     }
-    else if (geoBasis < 3)
-      projB = m_basis[2-geoBasis]->clone();
-    else
-      return false; // Logic error
+
+    if (ASMmxBase::Type == ASMmxBase::SUBGRID)
+      projB2 = ASMmxBase::raiseBasis(surf);
+
+    delete surf;
   }
-  delete surf;
-  geomB = surf = m_basis[geoBasis-1]->clone();
+  geomB = surf = m_basis[geoBasis-1].get();
 
   nb.clear();
   nb.reserve(m_basis.size());

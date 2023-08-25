@@ -13,7 +13,6 @@
 
 #include "GoTools/geometry/ObjectHeader.h"
 #include "GoTools/trivariate/SplineVolume.h"
-#include "GoTools/trivariate/VolumeInterpolator.h"
 
 #include "ASMs3Dmx.h"
 #include "TimeDomain.h"
@@ -23,12 +22,10 @@
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
-#include "SplineFields3D.h"
 #include "SplineUtils.h"
 #include "Utilities.h"
 #include "Point.h"
 #include "Profiler.h"
-#include "Vec3Oper.h"
 #include <array>
 #include <numeric>
 #include <utility>
@@ -48,6 +45,15 @@ ASMs3Dmx::ASMs3Dmx (const ASMs3Dmx& patch, const CharVec& n_f)
     m_basis(patch.m_basis)
 {
   nb = patch.nb;
+}
+
+
+ASMs3Dmx::~ASMs3Dmx ()
+{
+  // these are managed by shared ptrs, make sure base class do not delete them.
+  if (!this->separateProjectionBasis())
+    projB = nullptr;
+  geomB = svol = nullptr;
 }
 
 
@@ -121,6 +127,11 @@ bool ASMs3Dmx::write (std::ostream& os, int basis) const
 
 void ASMs3Dmx::clear (bool retainGeometry)
 {
+  // these are managed by shared ptrs, make sure base class do not delete them.
+  if (!this->separateProjectionBasis())
+    projB = nullptr;
+  geomB = svol = nullptr;
+
   // Erase the solution field bases
   for (auto& it : m_basis)
     it.reset();
@@ -211,21 +222,23 @@ bool ASMs3Dmx::generateFEMTopology ()
     m_basis = ASMmxBase::establishBases(svol, ASMmxBase::Type);
 
     // we need to project on something that is not one of our bases
-    if (ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS1 ||
-        ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS2 ||
-        ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
-      projB = ASMmxBase::raiseBasis(svol);
-    else if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
-      projB = m_basis.front()->clone();
-      projB2 = ASMmxBase::raiseBasis(svol);
+    if (!projB) {
+      if (ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS1 ||
+          ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS2 ||
+          ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
+        projB = ASMmxBase::raiseBasis(svol);
+      else if (ASMmxBase::Type == ASMmxBase::SUBGRID)
+        projB = m_basis.front().get();
+      else // FULL_CONT_RAISE_BASISx
+        projB = m_basis[2-geoBasis].get();
     }
-    else if (geoBasis < 3)
-      projB = m_basis[2-geoBasis]->clone();
-    else
-      return false; // Logic error
+
+    if (ASMmxBase::Type == ASMmxBase::SUBGRID)
+      projB2 = ASMmxBase::raiseBasis(svol);
+
+    delete svol;
   }
-  delete svol;
-  geomB = svol = m_basis[geoBasis-1]->clone();
+  geomB = svol = m_basis[geoBasis-1].get();
 
   nb.clear();
   nb.reserve(m_basis.size());
