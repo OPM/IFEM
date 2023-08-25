@@ -72,6 +72,35 @@ TEST(TestASMs3D, BoundaryElements)
 }
 
 
+TEST(TestASMs3D, Write)
+{
+  ASMbase::resetNumbering();
+  ASMCube pch1;
+  EXPECT_TRUE(pch1.generateFEMTopology());
+
+  std::stringstream str;
+  EXPECT_TRUE(pch1.write(str, 1));
+  EXPECT_EQ(str.str(), ASMCube::cube);
+
+  EXPECT_FALSE(pch1.write(str, 2));
+
+  str.str("");
+  EXPECT_TRUE(pch1.write(str, ASM::GEOMETRY_BASIS));
+  EXPECT_EQ(str.str(), ASMCube::cube);
+
+  str.str("");
+  EXPECT_TRUE(pch1.write(str, ASM::PROJECTION_BASIS));
+  EXPECT_EQ(str.str(), ASMCube::cube);
+
+  EXPECT_FALSE(pch1.write(str, ASM::ALT_PROJECTION_BASIS));
+  EXPECT_FALSE(pch1.write(str, ASM::REFINEMENT_BASIS));
+
+  str.str("");
+  EXPECT_TRUE(pch1.write(str, ASM::INTEGRATION_BASIS));
+  EXPECT_EQ(str.str(), ASMCube::cube);
+}
+
+
 class TestASMs3D : public testing::Test,
                    public testing::WithParamInterface<int>
 {
