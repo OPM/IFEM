@@ -10,7 +10,7 @@
 //!
 //==============================================================================
 
-#include "ASMu3D.h"
+#include "ASMuCube.h"
 #include "SIM3D.h"
 #include "GaussQuadrature.h"
 #include "LRSpline/LRSplineVolume.h"
@@ -88,23 +88,6 @@ const std::vector<int> tests = {0,1,2,3,4,5,6,7,8,9,10,11,12};
 INSTANTIATE_TEST_CASE_P(TestASMu3D,
                         TestASMu3D,
                         testing::ValuesIn(tests));
-
-
-class ASMuCube : public ASMu3D
-{
-public:
-  ASMuCube()
-  {
-    std::stringstream geo("700 1 0 0\n3 0\n"
-                          "2 2\n0 0 1 1\n"
-                          "2 2\n0 0 1 1\n"
-                          "2 2\n0 0 1 1\n"
-                          "0 0 0\n1 0 0\n0 1 0\n1 1 0\n"
-                          "0 0 1\n1 0 1\n0 1 1\n1 1 1\n");
-    EXPECT_TRUE(this->read(geo));
-  }
-  virtual ~ASMuCube() {}
-};
 
 
 TEST(TestASMu3D, TransferGaussPtVars)
