@@ -2766,13 +2766,17 @@ const RealArray& ASMu2D::InterfaceChecker::getIntersections (int iel, int edge,
 
 bool ASMu2D::refine (const LR::RefineData& prm, Vectors& sol)
 {
-  bool ok = this->ASMLRSpline::refine(prm,sol);
-  if (!ok || !this->separateProjectionBasis() ||
-      prm.elements.size() + prm.errors.size() == 0)
-    return ok;
+  if (!this->ASMLRSpline::refine(prm,sol))
+    return false;
 
-  LR::LRSplineSurface* proj = static_cast<LR::LRSplineSurface*>(projB.get());
+  // check if refinement was actually done
+  if (prm.elements.size() + prm.errors.size() == 0)
+    return true;
 
+  if (!this->separateProjectionBasis())
+    return true;
+
+  LR::LRSplineSurface* proj = this->getBasis(ASM::PROJECTION_BASIS);
   for (const LR::Meshline* line : lrspline->getAllMeshlines())
     if (line->span_u_line_)
       proj->insert_const_v_edge(line->const_par_,
@@ -2783,11 +2787,12 @@ bool ASMu2D::refine (const LR::RefineData& prm, Vectors& sol)
                                 line->start_, line->stop_,
                                 line->multiplicity());
 
-  projB->generateIDs();
+  proj->generateIDs();
 
-  IFEM::cout <<"Refined projection basis: "<< projB->nElements()
-             <<" elements "<< projB->nBasisFunctions() <<" nodes."
+  IFEM::cout <<"Refined projection basis: "<< proj->nElements()
+             <<" elements "<< proj->nBasisFunctions() <<" nodes."
              << std::endl;
+
   return true;
 }
 
