@@ -75,8 +75,6 @@ public:
 
   //! \brief Reads a basis from the given input stream.
   virtual bool readBasis(std::istream& is, size_t basis);
-  //! \brief Writes the geometry/basis of the patch to given stream.
-  virtual bool write(std::ostream& os, int basis) const;
 
   //! \brief Generates the finite element topology data for the patch.
   //! \details The data generated are the element-to-node connectivity array,
