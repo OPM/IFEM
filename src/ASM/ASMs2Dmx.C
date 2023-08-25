@@ -79,23 +79,21 @@ Go::SplineCurve* ASMs2Dmx::getBoundary (int dir, int basis)
 }
 
 
-bool ASMs2Dmx::read (std::istream& is, int basis)
+bool ASMs2Dmx::readBasis (std::istream& is, size_t basis)
 {
-  if (basis == 0)
-    return this->ASMs2D::read(is);
-
-  if (basis < 0 || basis > static_cast<int>(nfx.size()))
+  if (basis < 1 || basis > nfx.size())
     return false;
 
-  if (m_basis.empty()) {
+  if (m_basis.empty())
+  {
     m_basis.resize(nfx.size());
     nb.resize(nfx.size(), 0);
   }
 
   Go::ObjectHeader head;
-  m_basis[basis-1] = std::make_shared<Go::SplineSurface>();
-  is >> head >> *m_basis[basis-1];
-  nb[basis-1] = m_basis[basis-1]->numCoefs_u()*m_basis[basis-1]->numCoefs_v();
+  m_basis[--basis] = std::make_shared<Go::SplineSurface>();
+  is >> head >> *m_basis[basis];
+  nb[basis] = m_basis[basis]->numCoefs_u() * m_basis[basis]->numCoefs_v();
 
   return true;
 }

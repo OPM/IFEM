@@ -156,7 +156,7 @@ bool FieldFuncHDF5::load (const std::vector<std::string>& fieldNames,
               patch[ip] = ASM3D::create(ASM::LRSpline,nFld);
           }
           std::stringstream strg2(g2);
-          patch[ip]->read(strg2, i);
+          patch[ip]->readBasis(strg2, i);
         }
       } else {
         if (patch[ip])

@@ -41,7 +41,7 @@ public:
   // ============================
 
   //! \brief Creates an instance by reading the given input stream.
-  virtual bool read(std::istream& is, int = 0);
+  virtual bool read(std::istream& is);
   //! \brief Generates a beam finite element model for the patch.
   //! \param[in] Zaxis Vector defining a point in the local XZ-plane
   virtual bool generateOrientedFEModel(const Vec3& Zaxis);

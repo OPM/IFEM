@@ -18,7 +18,7 @@
 #include <numeric>
 
 
-bool ASMsupel::read (std::istream& is, int)
+bool ASMsupel::read (std::istream& is)
 {
   // Lambda function for reading the supernode coordinates.
   auto&& readCoord = [&is](Vec3Vec& Xsup)

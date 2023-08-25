@@ -64,7 +64,7 @@ ASMu3D::ASMu3D (const ASMu3D& patch, unsigned char n_f)
 }
 
 
-bool ASMu3D::read (std::istream& is, int)
+bool ASMu3D::read (std::istream& is)
 {
   if (shareFE) return true;
 

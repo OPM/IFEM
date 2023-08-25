@@ -70,8 +70,8 @@ public:
   //! \param[in] inod 1-based node index local to current patch
   virtual Vec3 getCoord(size_t inod) const;
 
-  //! \brief Creates an instance by reading the given input stream.
-  virtual bool read(std::istream&, int basis = 0);
+  //! \brief Reads a basis from the given input stream.
+  virtual bool readBasis(std::istream& is, size_t basis);
   //! \brief Writes the geometry/basis of the patch to given stream.
   virtual bool write(std::ostream& os, int basis) const;
 

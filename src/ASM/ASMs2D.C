@@ -112,7 +112,7 @@ void ASMs2D::copyParameterDomain (const ASMbase* other)
 }
 
 
-bool ASMs2D::read (std::istream& is, int)
+bool ASMs2D::read (std::istream& is)
 {
   if (shareFE) return true;
   if (surf) delete surf;

@@ -90,7 +90,7 @@ void ASMs3D::copyParameterDomain (const ASMbase* other)
 }
 
 
-bool ASMs3D::read (std::istream& is, int)
+bool ASMs3D::read (std::istream& is)
 {
   if (shareFE) return true;
   if (svol) delete svol;

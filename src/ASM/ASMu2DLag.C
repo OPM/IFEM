@@ -37,7 +37,7 @@ ASMu2DLag::ASMu2DLag (const ASMu2DLag& p) :
 }
 
 
-bool ASMu2DLag::read (std::istream& is, int)
+bool ASMu2DLag::read (std::istream& is)
 {
   switch (fileType) {
   case 'm':

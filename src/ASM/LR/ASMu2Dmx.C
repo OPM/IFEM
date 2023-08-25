@@ -72,23 +72,21 @@ LR::LRSplineSurface* ASMu2Dmx::getBasis (int basis)
 }
 
 
-bool ASMu2Dmx::read (std::istream& is, int basis)
+bool ASMu2Dmx::readBasis (std::istream& is, size_t basis)
 {
-  if (basis == 0)
-    return this->ASMu2D::read(is);
-
-  if (basis < 0 || basis > static_cast<int>(nfx.size()))
+  if (basis < 1 || basis > nfx.size())
     return false;
 
-  if (m_basis.empty()) {
+  if (m_basis.empty())
+  {
     m_basis.resize(nfx.size());
     nb.resize(nfx.size(), 0);
   }
 
-  m_basis[basis-1] = std::make_shared<LR::LRSplineSurface>();
-  is >> *m_basis[basis-1];
-  nb[basis-1] = m_basis[basis-1]->nBasisFunctions();
-  m_basis[basis-1]->generateIDs();
+  m_basis[--basis] = std::make_shared<LR::LRSplineSurface>();
+  is >> *m_basis[basis];
+  nb[basis] = m_basis[basis]->nBasisFunctions();
+  m_basis[basis]->generateIDs();
 
   return true;
 }

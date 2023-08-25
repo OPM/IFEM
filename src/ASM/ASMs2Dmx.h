@@ -50,8 +50,8 @@ public:
   // Methods for model generation
   // ============================
 
-  //! \brief Creates an instance by reading the given input stream.
-  virtual bool read(std::istream&, int basis = 0);
+  //! \brief Reads a basis from the given input stream.
+  virtual bool readBasis(std::istream& is, size_t basis);
   //! \brief Writes the geometry/basis of the patch to given stream.
   virtual bool write(std::ostream& os, int basis) const;
 
