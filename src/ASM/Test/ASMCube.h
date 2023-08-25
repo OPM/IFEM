@@ -43,7 +43,6 @@ public:
   {
     std::stringstream geo(cube);
     this->read(geo);
-    this->generateFEMTopology();
   }
   virtual ~ASMmxCube() {}
 };
