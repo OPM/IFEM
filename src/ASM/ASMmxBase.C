@@ -135,6 +135,7 @@ ASMmxBase::SurfaceVec ASMmxBase::establishBases (Go::SplineSurface* surf,
     // basis1 should be one degree higher than basis2 and C^p-1 continuous
     result[0].reset(ASMmxBase::raiseBasis(surf));
     result[1].reset(new Go::SplineSurface(*surf));
+    geoBasis = 2;
   }
   else if (type == REDUCED_CONT_RAISE_BASIS1 || type == REDUCED_CONT_RAISE_BASIS2)
   {
@@ -143,6 +144,7 @@ ASMmxBase::SurfaceVec ASMmxBase::establishBases (Go::SplineSurface* surf,
     result[0].reset(new Go::SplineSurface(*surf));
     result[0]->raiseOrder(1,1);
     result[1].reset(new Go::SplineSurface(*surf));
+    geoBasis = 2;
   }
   else if (ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
   {
@@ -260,6 +262,7 @@ ASMmxBase::VolumeVec ASMmxBase::establishBases(Go::SplineVolume* svol,
     // basis1 should be one degree higher than basis2 and C^p-1 continuous
     result[0].reset(ASMmxBase::raiseBasis(svol));
     result[1].reset(new Go::SplineVolume(*svol));
+    geoBasis = 2;
   }
   else if (type == REDUCED_CONT_RAISE_BASIS1 || type == REDUCED_CONT_RAISE_BASIS2)
   {
@@ -268,6 +271,7 @@ ASMmxBase::VolumeVec ASMmxBase::establishBases(Go::SplineVolume* svol,
     result[0].reset(new Go::SplineVolume(*svol));
     result[0]->raiseOrder(1,1,1);
     result[1].reset(new Go::SplineVolume(*svol));
+    geoBasis = 2;
   }
   else if (ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
   {
@@ -380,7 +384,7 @@ ASMmxBase::VolumeVec ASMmxBase::establishBases(Go::SplineVolume* svol,
   }
 
   if (type == FULL_CONT_RAISE_BASIS2 || type == REDUCED_CONT_RAISE_BASIS2)
-    std::swap(result[0], result[1]);
+    std::swap(result[0], result[1]), geoBasis = 1;
 
   return result;
 }

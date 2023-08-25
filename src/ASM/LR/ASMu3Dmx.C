@@ -214,8 +214,12 @@ bool ASMu3Dmx::generateFEMTopology ()
     if (ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS1 ||
         ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE ||
         ASMmxBase::Type == ASMmxBase::SUBGRID) {
+      // make a backup as establishBases resets it
+      int geoB = ASMmxBase::geoBasis;
       std::shared_ptr<Go::SplineVolume> otherBasis =
-          ASMmxBase::establishBases(tensorspline, ASMmxBase::FULL_CONT_RAISE_BASIS1).front();
+          ASMmxBase::establishBases(tensorspline,
+                                    ASMmxBase::FULL_CONT_RAISE_BASIS1).front();
+      geoBasis = geoB;
       if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
         refBasis.reset(new LR::LRSplineVolume(otherBasis.get()));
         projBasis = m_basis.front();
