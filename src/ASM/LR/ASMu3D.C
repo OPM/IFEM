@@ -2331,14 +2331,25 @@ void ASMu3D::extendRefinementDomain (IntSet& refineIndices,
 
 bool ASMu3D::refine (const LR::RefineData& prm, Vectors& sol)
 {
-  bool ok = this->ASMLRSpline::refine(prm,sol);
-  if (!ok || !this->separateProjectionBasis() ||
-      prm.elements.size() + prm.errors.size() == 0)
-    return ok;
+  if (!this->ASMLRSpline::refine(prm,sol))
+    return false;
 
-  // TODO: check this
+  // check if refinement was actually done
+  if (prm.elements.size() + prm.errors.size() == 0)
+    return true;
+
+  if (!this->separateProjectionBasis())
+    return true;
+
+  LR::LRSplineVolume* proj = this->getBasis(ASM::PROJECTION_BASIS);
   for (const LR::MeshRectangle* rect : lrspline->getAllMeshRectangles())
-    std::static_pointer_cast<LR::LRSplineVolume>(projB)->insert_line(rect->copy());
+    proj->insert_line(rect->copy());
+
+  proj->generateIDs();
+
+  IFEM::cout <<"Refined projection basis: "<< proj->nElements()
+             <<" elements "<< proj->nBasisFunctions() <<" nodes."
+             << std::endl;
 
   return true;
 }
