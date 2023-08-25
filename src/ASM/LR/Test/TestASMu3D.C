@@ -219,3 +219,35 @@ TEST(TestASMu3D, DirichletFace)
     EXPECT_EQ(corners,refArr[dir+3]);
   }
 }
+
+
+TEST(TestASMu3D, Write)
+{
+  ASMbase::resetNumbering();
+  ASMuCube pch1;
+  EXPECT_TRUE(pch1.generateFEMTopology());
+
+  std::stringstream str;
+  EXPECT_TRUE(pch1.write(str, 1));
+  EXPECT_EQ(str.str(), ASMuCube::cube);
+
+  EXPECT_FALSE(pch1.write(str, 2));
+
+  str.str("");
+  EXPECT_TRUE(pch1.write(str, ASM::GEOMETRY_BASIS));
+  EXPECT_EQ(str.str(), ASMuCube::cube);
+
+  str.str("");
+  EXPECT_TRUE(pch1.write(str, ASM::PROJECTION_BASIS));
+  EXPECT_EQ(str.str(), ASMuCube::cube);
+
+  EXPECT_FALSE(pch1.write(str, ASM::PROJECTION_BASIS_2));
+
+  str.str("");
+  EXPECT_TRUE(pch1.write(str, ASM::REFINEMENT_BASIS));
+  EXPECT_EQ(str.str(), ASMuCube::cube);
+
+  str.str("");
+  EXPECT_TRUE(pch1.write(str, ASM::INTEGRATION_BASIS));
+  EXPECT_EQ(str.str(), ASMuCube::cube);
+}
