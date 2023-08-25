@@ -10,7 +10,7 @@
 //!
 //==============================================================================
 
-#include "ASMu2D.h"
+#include "ASMuSquare.h"
 #include "ASMs2D.h"
 #include "GaussQuadrature.h"
 #include "SIM2D.h"
@@ -260,18 +260,6 @@ TEST(TestASMu2D, Connect)
   ASSERT_TRUE(sim2.read("src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_orient1.xinp"));
   ASSERT_TRUE(sim2.createFEMmodel());
 }
-
-
-class ASMuSquare : public ASMu2D
-{
-public:
-  ASMuSquare()
-  {
-    std::stringstream geo("200 1 0 0\n2 0\n2 2\n0 0 1 1\n2 2\n0 0 1 1\n0 0\n1 0\n0 1\n1 1\n");
-    EXPECT_TRUE(this->read(geo));
-  }
-  virtual ~ASMuSquare() {}
-};
 
 
 TEST(TestASMu2D, ElementConnectivities)
