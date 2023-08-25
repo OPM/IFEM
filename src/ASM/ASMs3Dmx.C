@@ -110,21 +110,6 @@ bool ASMs3Dmx::readBasis (std::istream& is, size_t basis)
 }
 
 
-bool ASMs3Dmx::write (std::ostream& os, int basis) const
-{
-  if (basis == -1)
-    os <<"700 1 0 0\n" << *projB;
-  else if (basis < 1 || basis > (int)m_basis.size())
-    os <<"700 1 0 0\n" << *svol;
-  else if (m_basis[basis-1])
-    os <<"700 1 0 0\n" << *m_basis[basis-1];
-  else
-    return false;
-
-  return os.good();
-}
-
-
 void ASMs3Dmx::clear (bool retainGeometry)
 {
   // these are managed by shared ptrs, make sure base class do not delete them.
