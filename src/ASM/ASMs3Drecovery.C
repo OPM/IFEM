@@ -63,7 +63,7 @@ bool ASMs3D::getQuasiInterplParameters (RealArray& prm, int dir) const
 
 
 bool ASMs3D::evaluate (const ASMbase* basis, const Vector& locVec,
-		       RealArray& vec, int basisNum) const
+                       RealArray& vec, int basisNum) const
 {
   const ASMs3D* pch = dynamic_cast<const ASMs3D*>(basis);
   if (!pch) return false;
@@ -97,13 +97,13 @@ bool ASMs3D::evaluate (const ASMbase* basis, const Vector& locVec,
   const Vector& vec2 = sValues;
   Go::SplineVolume* vol_new =
     Go::VolumeInterpolator::regularInterpolation(svol->basis(0),
-						 svol->basis(1),
-						 svol->basis(2),
-						 gpar[0], gpar[1], gpar[2],
-						 const_cast<Vector&>(vec2),
-						 sValues.rows(),
-						 svol->rational(),
-						 weights);
+                                                 svol->basis(1),
+                                                 svol->basis(2),
+                                                 gpar[0], gpar[1], gpar[2],
+                                                 const_cast<Vector&>(vec2),
+                                                 sValues.rows(),
+                                                 svol->rational(),
+                                                 weights);
 
   vec.assign(vol_new->coefs_begin(),vol_new->coefs_end());
   delete vol_new;
@@ -166,19 +166,21 @@ bool ASMs3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
 {
   const size_t nnod = this->getNoProjectionNodes();
 
-  const Go::SplineVolume* proj = static_cast<const Go::SplineVolume*>(projB);
+  const Go::SplineVolume* itg = this->getBasis(ASM::INTEGRATION_BASIS);
+  const Go::SplineVolume* proj = this->getBasis(ASM::PROJECTION_BASIS);
+  const bool separateProjBasis = proj != itg;
 
-  const int g1 = svol->order(0);
-  const int g2 = svol->order(1);
-  const int g3 = svol->order(2);
+  const int g1 = itg->order(0);
+  const int g2 = itg->order(1);
+  const int g3 = itg->order(2);
   const int p1 = proj->order(0);
   const int p2 = proj->order(1);
   const int p3 = proj->order(2);
   const int n1 = proj->numCoefs(0);
   const int n2 = proj->numCoefs(1);
-  const int nel1 = svol->numCoefs(0) - g1 + 1;
-  const int nel2 = svol->numCoefs(1) - g2 + 1;
-  const int nel3 = svol->numCoefs(2) - g3 + 1;
+  const int nel1 = itg->numCoefs(0) - g1 + 1;
+  const int nel2 = itg->numCoefs(1) - g2 + 1;
+  const int nel3 = itg->numCoefs(2) - g3 + 1;
 
   int pmax = p1 > p2 ? p1 : p2;
   if (pmax < p3) pmax = p3;
@@ -202,15 +204,13 @@ bool ASMs3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
   gpar[2] = this->getGaussPointParameters(gp,2,ng3,zg);
 
   // Evaluate basis functions at all integration points
-  std::vector<Go::BasisPts>    spl0;
-  std::vector<Go::BasisDerivs> spl1, spl2;
+  std::vector<Go::BasisPts>    spl1;
+  std::vector<Go::BasisDerivs> spl2;
   if (continuous)
-  {
+    itg->computeBasisGrid(gpar[0],gpar[1],gpar[2],spl2);
+
+  if (!continuous || separateProjBasis)
     proj->computeBasisGrid(gpar[0],gpar[1],gpar[2],spl1);
-    svol->computeBasisGrid(gpar[0],gpar[1],gpar[2],spl2);
-  }
-  else
-    proj->computeBasisGrid(gpar[0],gpar[1],gpar[2],spl0);
 
   // Evaluate the secondary solution at all integration points
   Matrix sField;
@@ -234,62 +234,56 @@ bool ASMs3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
     for (int i2 = 0; i2 < nel2; i2++)
       for (int i1 = 0; i1 < nel1; i1++, iel++)
       {
-	if (MLGE[iel] < 1) continue; // zero-volume element
+        if (MLGE[iel] < 1) continue; // zero-volume element
 
-	if (continuous)
-	{
-	  // Set up control point (nodal) coordinates for current element
-	  if (!this->getElementCoordinates(Xnod,1+iel))
-	    return false;
-	  else if ((dV = 0.125*this->getParametricVolume(1+iel)) < 0.0)
-	    return false; // topology error (probably logic error)
-	}
+        if (continuous)
+        {
+          // Set up control point (nodal) coordinates for current element
+          if (!this->getElementCoordinates(Xnod,1+iel))
+            return false;
+          else if ((dV = 0.125*this->getParametricVolume(1+iel)) < 0.0)
+            return false; // topology error (probably logic error)
+        }
 
         int ip = ((i3*ng2*nel2 + i2)*ng1*nel1 + i1)*ng3;
         IntVec lmnpc;
-        if (proj != svol)
+        if (separateProjBasis)
         {
           // Establish nodal point correspondance for the projection element
           int i, j, k, vidx, widx;
           lmnpc.reserve(phi.size());
-          if (continuous)
-            widx = ((spl1[ip].left_idx[2]-p3+1)*n1*n2 +
-                    (spl1[ip].left_idx[1]-p2+1)*n1    +
-                    (spl1[ip].left_idx[0]-p1+1));
-          else
-            widx = ((spl0[ip].left_idx[2]-p3+1)*n1*n2 +
-                    (spl0[ip].left_idx[1]-p2+1)*n1    +
-                    (spl0[ip].left_idx[0]-p1+1));
+          widx = ((spl1[ip].left_idx[2]-p3+1)*n1*n2 +
+                  (spl1[ip].left_idx[1]-p2+1)*n1    +
+                  (spl1[ip].left_idx[0]-p1+1));
+
           for (k = 0; k < p3; k++, widx += n1*n2)
             for (j = vidx = 0; j < p2; j++, vidx += n1)
               for (i = 0; i < p1; i++)
                 lmnpc.push_back(widx+vidx+i);
         }
-        const IntVec& mnpc = proj == svol ? MNPC[iel] : lmnpc;
+        const IntVec& mnpc = separateProjBasis ? lmnpc : MNPC[iel];
 
-	// --- Integration loop over all Gauss points in each direction --------
+        // --- Integration loop over all Gauss points in each direction --------
 
         Matrix eA(p1*p2*p3, p1*p2*p3);
         Vectors eB(sField.rows(), Vector(p1*p2*p3));
         for (int k = 0; k < ng3; k++, ip += ng2*(nel2-1)*ng1*nel1)
           for (int j = 0; j < ng2; j++, ip += ng1*(nel1-1))
             for (int i = 0; i < ng1; i++, ip++)
-	    {
-	      if (continuous)
-	      {
-		SplineUtils::extractBasis(spl1[ip],phi,dNdu);
-		SplineUtils::extractBasis(spl2[ip],phi2,dNdu);
-	      }
-	      else
-		phi = spl0[ip].basisValues;
+            {
+              if (continuous)
+                SplineUtils::extractBasis(spl2[ip],phi,dNdu);
 
-	      // Compute the Jacobian inverse and derivatives
-	      double dJw = dV;
-	      if (continuous)
-	      {
-		dJw *= wg[i]*wg[j]*wg[k]*utl::Jacobian(J,dNdu,Xnod,dNdu,false);
-		if (dJw == 0.0) continue; // skip singular points
-	      }
+              if (!continuous || separateProjBasis)
+                phi = spl1[ip].basisValues;
+
+              // Compute the Jacobian inverse and derivatives
+              double dJw = dV;
+              if (continuous)
+              {
+                dJw *= wg[i]*wg[j]*wg[k]*utl::Jacobian(J,dNdu,Xnod,dNdu,false);
+                if (dJw == 0.0) continue; // skip singular points
+              }
 
               // Integrate the mass matrix
               eA.outer_product(phi, phi, true, dJw);
@@ -297,7 +291,7 @@ bool ASMs3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
               // Integrate the rhs vector B
               for (size_t r = 1; r <= sField.rows(); r++)
                 eB[r-1].add(phi,sField(r,ip+1)*dJw);
-	    }
+            }
 
         for (int i = 0; i < p1*p2*p3; ++i) {
           for (int j = 0; j < p1*p2*p3; ++j)
@@ -307,7 +301,7 @@ bool ASMs3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
           for (size_t r = 0; r < sField.rows(); r++, jp += nnod)
             B(jp) += eB[r](1+i);
         }
-    }
+      }
 
   return true;
 }
@@ -432,13 +426,13 @@ Go::SplineVolume* ASMs3D::projectSolutionLocal (const IntegrandBase& integrand) 
     svol->getWeights(weights);
 
   return quasiInterpolation(svol->basis(0),
-			    svol->basis(1),
-			    svol->basis(2),
-			    gpar[0], gpar[1], gpar[2],
-			    sValues,
-			    sValues.rows(),
-			    svol->rational(),
-			    weights);
+                            svol->basis(1),
+                            svol->basis(2),
+                            gpar[0], gpar[1], gpar[2],
+                            sValues,
+                            sValues.rows(),
+                            svol->rational(),
+                            weights);
 }
 
 

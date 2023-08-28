@@ -110,9 +110,13 @@ bool ASMu3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
 {
   size_t nnod = this->getNoProjectionNodes();
 
-  const int p1 = projB->order(0);
-  const int p2 = projB->order(1);
-  const int p3 = projB->order(2);
+  const LR::LRSplineVolume* itg = this->getBasis(ASM::INTEGRATION_BASIS);
+  const LR::LRSplineVolume* proj = this->getBasis(ASM::PROJECTION_BASIS);
+  const bool separateProjBasis = proj != itg;
+
+  const int p1 = proj->order(0);
+  const int p2 = proj->order(1);
+  const int p3 = proj->order(2);
   const int pm = std::max(std::max(p1,p2),p3);
 
   // Get Gaussian quadrature points
@@ -126,17 +130,16 @@ bool ASMu3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
   if (!xg || !yg || !zg) return false;
   if (continuous && !wg) return false;
 
-  bool singleBasis = (this->getNoBasis() == 1 && projB == lrspline);
   IntMat lmnpc;
-  const IntMat& gmnpc = singleBasis ? MNPC : lmnpc;
-  if (!singleBasis) {
-    lmnpc.resize(projB->nElements());
-    for (const LR::Element* elm : projB->getAllElements()) {
+  if (separateProjBasis) {
+    lmnpc.resize(proj->nElements());
+    for (const LR::Element* elm : proj->getAllElements()) {
       lmnpc[elm->getId()].reserve(elm->nBasisFunctions());
       for (const LR::Basisfunction* f : elm->support())
         lmnpc[elm->getId()].push_back(f->getId());
     }
   }
+  const IntMat& gmnpc = separateProjBasis ? lmnpc : MNPC;
   A.preAssemble(gmnpc, gmnpc.size());
 
   // === Assembly loop over all elements in the patch ==========================
@@ -147,12 +150,12 @@ bool ASMu3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
     for (size_t e = 0; e < group[t].size(); e++)
     {
       double dV = 0.0;
-      Vector phi, phi2;
+      Vector phi;
       Matrix dNdu, Xnod, Jac;
-      Go::BasisPts    spl0;
-      Go::BasisDerivs spl1, spl2;
+      Go::BasisPts    spl1;
+      Go::BasisDerivs spl2;
       int ielp = group[t][e];
-      const LR::Element* elm = projB->getElement(ielp);
+      const LR::Element* elm = proj->getElement(ielp);
       int iel = lrspline->getElementContaining(elm->midpoint())+1;
 
       if (continuous)
@@ -183,7 +186,7 @@ bool ASMu3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
 
       // Set up basis function size (for extractBasis subroutine)
       size_t nbf = elm->nBasisFunctions();
-      const IntVec& mnpc = singleBasis ? gmnpc[iel-1] : gmnpc[ielp];
+      const IntVec& mnpc = separateProjBasis ? gmnpc[ielp] : gmnpc[iel-1];
 
       // --- Integration loop over all Gauss points in each direction ------------
 
@@ -196,15 +199,14 @@ bool ASMu3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
           {
             if (continuous)
             {
-              static_cast<const LR::LRSplineVolume*>(projB.get())->computeBasis(gpar[0][i],gpar[1][j],gpar[2][k],spl1,ielp);
-              SplineUtils::extractBasis(spl1,phi,dNdu);
-              lrspline->computeBasis(gpar[0][i],gpar[1][j],gpar[2][k],spl2,iel-1);
-              SplineUtils::extractBasis(spl2,phi2,dNdu);
+              itg->computeBasis(gpar[0][i],gpar[1][j],gpar[2][k],spl2,iel-1);
+              SplineUtils::extractBasis(spl2,phi,dNdu);
             }
-            else
+
+            if (!continuous || separateProjBasis)
             {
-              static_cast<const LR::LRSplineVolume*>(projB.get())->computeBasis(gpar[0][i],gpar[1][j],gpar[2][k],spl0,ielp);
-              phi = spl0.basisValues;
+              proj->computeBasis(gpar[0][i],gpar[1][j],gpar[2][k],spl1,ielp);
+              phi = spl1.basisValues;
             }
 
             // Compute the Jacobian inverse and derivatives
