@@ -108,7 +108,9 @@ bool ASMu2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
 {
   size_t nnod = this->getNoProjectionNodes();
 
+  const LR::LRSplineSurface* itg = this->getBasis(ASM::INTEGRATION_BASIS);
   const LR::LRSplineSurface* proj = this->getBasis(ASM::PROJECTION_BASIS);
+  const bool separateProjBasis = proj != itg;
 
   const int p1 = proj->order(0);
   const int p2 = proj->order(1);
@@ -123,10 +125,8 @@ bool ASMu2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
   if (!xg || !yg) return false;
   if (continuous && !wg) return false;
 
-  bool singleBasis = (this->getNoBasis() == 1 && proj == lrspline.get());
   IntMat lmnpc;
-  const IntMat& gmnpc = singleBasis ? MNPC : lmnpc;
-  if (!singleBasis) {
+  if (separateProjBasis) {
     lmnpc.resize(proj->nElements());
     for (const LR::Element* elm : proj->getAllElements()) {
       lmnpc[elm->getId()].reserve(elm->nBasisFunctions());
@@ -134,6 +134,7 @@ bool ASMu2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
         lmnpc[elm->getId()].push_back(f->getId());
     }
   }
+  const IntMat& gmnpc = separateProjBasis ? lmnpc : MNPC;
   A.preAssemble(gmnpc, gmnpc.size());
 
   // === Assembly loop over all elements in the patch ==========================
@@ -144,10 +145,10 @@ bool ASMu2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
     for (size_t e = 0; e < group[t].size(); e++)
     {
       double dA = 0.0;
-      Vector phi, phi2;
+      Vector phi;
       Matrix dNdu, Xnod, Jac;
-      Go::BasisPtsSf    spl0;
-      Go::BasisDerivsSf spl1, spl2;
+      Go::BasisPtsSf    spl1;
+      Go::BasisDerivsSf spl2;
       int ielp = group[t][e];
       const LR::Element* elm = proj->getElement(ielp);
       int iel = lrspline->getElementContaining(elm->midpoint())+1;
@@ -180,7 +181,7 @@ bool ASMu2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
       // Set up basis function size (for extractBasis subroutine)
       size_t nbf = elm->nBasisFunctions();
 
-      const IntVec& mnpc = singleBasis ? gmnpc[iel-1] : gmnpc[ielp];
+      const IntVec& mnpc = separateProjBasis ? gmnpc[ielp] : gmnpc[iel-1];
       // --- Integration loop over all Gauss points in each direction ------------
 
       Matrix eA(nbf, nbf);
@@ -191,15 +192,14 @@ bool ASMu2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
         {
           if (continuous)
           {
-            this->computeBasis(gpar[0][i],gpar[1][j],spl1,ielp,proj);
-            SplineUtils::extractBasis(spl1,phi,dNdu);
-            this->computeBasis(gpar[0][i],gpar[1][j],spl2,iel-1);
-            SplineUtils::extractBasis(spl2,phi2,dNdu);
+            this->computeBasis(gpar[0][i],gpar[1][j],spl2,iel-1,itg);
+            SplineUtils::extractBasis(spl2,phi,dNdu);
           }
-          else
+
+          if (!continuous || separateProjBasis)
           {
-            this->computeBasis(gpar[0][i],gpar[1][j],spl0,ielp,proj);
-            phi = spl0.basisValues;
+            this->computeBasis(gpar[0][i],gpar[1][j],spl1,ielp,proj);
+            phi = spl1.basisValues;
           }
 
           // Compute the Jacobian inverse and derivatives
