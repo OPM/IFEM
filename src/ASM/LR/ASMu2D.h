@@ -742,7 +742,6 @@ public:
 
 protected:
   std::shared_ptr<LR::LRSplineSurface> lrspline; //!< Pointer to the LR-spline surface object
-  std::shared_ptr<LR::LRSplineSurface> projBasis; //!< Basis to project onto
 
   bool is_rational = false; //!< True if basis is rational
 

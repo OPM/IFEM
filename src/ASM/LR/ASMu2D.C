@@ -56,7 +56,6 @@ ASMu2D::ASMu2D (const ASMu2D& patch, unsigned char n_f)
 {
   aMin = 0.0;
   tensorspline = tensorPrjBas = nullptr;
-  projBasis = patch.projBasis;
   is_rational = patch.is_rational;
 
   // Need to set nnod here,
@@ -401,8 +400,8 @@ bool ASMu2D::createProjectionBasis (bool init)
     tensorPrjBas = tensorspline->clone();
 
   std::swap(tensorspline,tensorPrjBas);
-  std::swap(lrspline,projBasis);
-  geomB = lrspline;
+  std::swap(geomB,projB);
+  lrspline = std::static_pointer_cast<LR::LRSplineSurface>(geomB);
   return true;
 }
 
@@ -551,14 +550,14 @@ bool ASMu2D::generateFEMTopology ()
 
   if (tensorPrjBas)
   {
-    projBasis.reset(tensorPrjBas->rational() ? createLRNurbs(*tensorPrjBas)
-                                             : new LR::LRSplineSurface(tensorPrjBas));
-    projBasis->generateIDs();
+    projB.reset(tensorPrjBas->rational() ? createLRNurbs(*tensorPrjBas)
+                                         : new LR::LRSplineSurface(tensorPrjBas));
+    projB->generateIDs();
     delete tensorPrjBas;
     tensorPrjBas = nullptr;
   }
-  else if (!projBasis)
-    projBasis = lrspline;
+  else if (!projB)
+    projB = lrspline;
 
   if (!lrspline) return false;
 
@@ -2395,20 +2394,20 @@ size_t ASMu2D::getNoNodes (int basis) const
 
 size_t ASMu2D::getNoProjectionNodes () const
 {
-  return projBasis->nBasisFunctions();
+  return projB->nBasisFunctions();
 }
 
 
 bool ASMu2D::separateProjectionBasis () const
 {
-  return projBasis.get() != this->getBasis(1);
+  return projB.get() != this->getBasis(1);
 }
 
 
 Field* ASMu2D::getProjectedField (const Vector& coefs) const
 {
   if (coefs.size() == this->getNoProjectionNodes())
-    return new LRSplineField2D(projBasis.get(),coefs,is_rational);
+    return new LRSplineField2D(static_cast<const LR::LRSplineSurface*>(projB.get()),coefs,is_rational);
 
   std::cerr <<" *** ASMu2D::getProjectedFields: Non-matching coefficent array,"
             <<" size="<< coefs.size() <<" nnod="<< this->getNoProjectionNodes()
@@ -2419,12 +2418,12 @@ Field* ASMu2D::getProjectedField (const Vector& coefs) const
 
 Fields* ASMu2D::getProjectedFields (const Vector& coefs, size_t) const
 {
-  if (projBasis.get() == this->getBasis(1))
+  if (!this->separateProjectionBasis())
     return nullptr;
 
   size_t ncmp = coefs.size() / this->getNoProjectionNodes();
   if (ncmp*this->getNoProjectionNodes() == coefs.size())
-    return new LRSplineFields2D(projBasis.get(),coefs,ncmp,is_rational);
+    return new LRSplineFields2D(static_cast<const LR::LRSplineSurface*>(projB.get()),coefs,ncmp,is_rational);
 
   std::cerr <<" *** ASMu2D::getProjectedFields: Non-matching coefficent array,"
             <<" size="<< coefs.size() <<" nnod="<< this->getNoProjectionNodes()
@@ -2585,8 +2584,8 @@ void ASMu2D::generateThreadGroups (const Integrand& integrand, bool silence,
                                    bool ignoreGlobalLM)
 {
   LR::generateThreadGroups(threadGroups, this->getBasis(1));
-  if (projBasis != lrspline)
-    LR::generateThreadGroups(projThreadGroups, projBasis.get());
+  if (this->separateProjectionBasis())
+    LR::generateThreadGroups(projThreadGroups, projB.get());
   if (silence || threadGroups[0].size() < 2) return;
 
   IFEM::cout <<"\nMultiple threads are utilized during element assembly.";
@@ -2741,21 +2740,22 @@ bool ASMu2D::refine (const LR::RefineData& prm, Vectors& sol)
       prm.elements.size() + prm.errors.size() == 0)
     return ok;
 
+  LR::LRSplineSurface* proj = static_cast<LR::LRSplineSurface*>(projB.get());
+
   for (const LR::Meshline* line : lrspline->getAllMeshlines())
     if (line->span_u_line_)
-      projBasis->insert_const_v_edge(line->const_par_,
-                                     line->start_, line->stop_,
-                                     line->multiplicity());
+      proj->insert_const_v_edge(line->const_par_,
+                                line->start_, line->stop_,
+                                line->multiplicity());
     else
-      projBasis->insert_const_u_edge(line->const_par_,
-                                     line->start_, line->stop_,
-                                     line->multiplicity());
+      proj->insert_const_u_edge(line->const_par_,
+                                line->start_, line->stop_,
+                                line->multiplicity());
 
-  if (projBasis != lrspline)
-    projBasis->generateIDs();
+  projB->generateIDs();
 
-  IFEM::cout <<"Refined projection basis: "<< projBasis->nElements()
-             <<" elements "<< projBasis->nBasisFunctions() <<" nodes."
+  IFEM::cout <<"Refined projection basis: "<< projB->nElements()
+             <<" elements "<< projB->nBasisFunctions() <<" nodes."
              << std::endl;
   return true;
 }

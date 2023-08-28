@@ -55,7 +55,6 @@ ASMu3D::ASMu3D (const ASMu3D& patch, unsigned char n_f)
 {
   vMin = 0.0;
   tensorspline = tensorPrjBas = nullptr;
-  projBasis = patch.projBasis;
 
   // Need to set nnod here,
   // as hasXNodes might be invoked before the FE data is generated
@@ -230,8 +229,8 @@ bool ASMu3D::createProjectionBasis (bool init)
     tensorPrjBas = tensorspline->clone();
 
   std::swap(tensorspline,tensorPrjBas);
-  std::swap(lrspline,projBasis);
-  geomB = lrspline;
+  std::swap(geomB,projB);
+  lrspline = std::static_pointer_cast<LR::LRSplineVolume>(geomB);
   return true;
 }
 
@@ -255,12 +254,12 @@ bool ASMu3D::generateFEMTopology ()
 
   if (tensorPrjBas)
   {
-    projBasis.reset(new LR::LRSplineVolume(tensorPrjBas));
+    projB.reset(new LR::LRSplineVolume(tensorPrjBas));
     delete tensorPrjBas;
     tensorPrjBas = nullptr;
   }
-  else if (!projBasis)
-    projBasis = lrspline;
+  else if (!projB)
+    projB = lrspline;
 
   if (!lrspline) return false;
 
@@ -1889,8 +1888,8 @@ void ASMu3D::generateThreadGroups (const Integrand& integrand, bool silence,
                                    bool ignoreGlobalLM)
 {
   LR::generateThreadGroups(threadGroups, this->getBasis(1));
-  if (projBasis != lrspline)
-    LR::generateThreadGroups(projThreadGroups, projBasis.get());
+  if (this->separateProjectionBasis())
+    LR::generateThreadGroups(projThreadGroups, projB.get());
   if (silence || threadGroups[0].size() < 2) return;
 
   IFEM::cout <<"\nMultiple threads are utilized during element assembly.";
@@ -1970,20 +1969,20 @@ size_t ASMu3D::getNoNodes (int basis) const
 
 size_t ASMu3D::getNoProjectionNodes () const
 {
-  return projBasis->nBasisFunctions();
+  return projB->nBasisFunctions();
 }
 
 
 bool ASMu3D::separateProjectionBasis () const
 {
-  return projBasis.get() != this->getBasis(1);
+  return projB.get() != this->getBasis(1);
 }
 
 
 Field* ASMu3D::getProjectedField (const Vector& coefs) const
 {
   if (coefs.size() == this->getNoProjectionNodes())
-    return new LRSplineField3D(projBasis.get(),coefs);
+    return new LRSplineField3D(static_cast<const LR::LRSplineVolume*>(projB.get()),coefs);
 
   std::cerr <<" *** ASMu3D::getProjectedFields: Non-matching coefficent array,"
             <<" size="<< coefs.size() <<" nnod="<< this->getNoProjectionNodes()
@@ -1994,12 +1993,12 @@ Field* ASMu3D::getProjectedField (const Vector& coefs) const
 
 Fields* ASMu3D::getProjectedFields (const Vector& coefs, size_t) const
 {
-  if (projBasis.get() == this->getBasis(1))
+  if (!this->separateProjectionBasis())
     return nullptr;
 
   size_t ncmp = coefs.size() / this->getNoProjectionNodes();
   if (ncmp*this->getNoProjectionNodes() == coefs.size())
-    return new LRSplineFields3D(projBasis.get(),coefs,ncmp);
+    return new LRSplineFields3D(static_cast<const LR::LRSplineVolume*>(projB.get()),coefs,ncmp);
 
   std::cerr <<" *** ASMu3D::getProjectedFields: Non-matching coefficent array,"
             <<" size="<< coefs.size() <<" nnod="<< this->getNoProjectionNodes()
@@ -2317,7 +2316,7 @@ bool ASMu3D::refine (const LR::RefineData& prm, Vectors& sol)
 
   // TODO: check this
   for (const LR::MeshRectangle* rect : lrspline->getAllMeshRectangles())
-    projBasis->insert_line(rect->copy());
+    std::static_pointer_cast<LR::LRSplineVolume>(projB)->insert_line(rect->copy());
 
   return true;
 }
