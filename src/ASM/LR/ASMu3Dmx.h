@@ -211,6 +211,9 @@ public:
   //! \brief Swaps between the main and alternative projection basis.
   virtual void swapProjectionBasis();
 
+  //! \brief Checks if a separate projection basis is used for this patch.
+  virtual bool separateProjectionBasis() const;
+
 private:
   //! \brief Finds the elements and associted sizes at given parametric point.
   //! \param[in] param Parametric point to find elements at

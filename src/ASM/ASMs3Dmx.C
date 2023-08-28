@@ -1276,3 +1276,11 @@ int ASMs3Dmx::getLastItgElmNode () const
 {
   return std::accumulate(elem_size.begin(), elem_size.begin() + geoBasis, -1);
 }
+
+
+bool ASMs3Dmx::separateProjectionBasis () const
+{
+  return std::none_of(m_basis.begin(), m_basis.end(),
+                      [this](const std::shared_ptr<Go::SplineVolume>& entry)
+                      { return entry.get() == projB; });
+}

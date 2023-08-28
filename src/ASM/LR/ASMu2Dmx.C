@@ -1271,3 +1271,11 @@ BasisFunctionVals ASMu2Dmx::BasisFunctionCache::calculatePt (size_t el,
 
   return result;
 }
+
+
+bool ASMu2Dmx::separateProjectionBasis () const
+{
+  return std::none_of(m_basis.begin(), m_basis.end(),
+                      [this](const SplinePtr& entry)
+                      { return entry == projB; });
+}

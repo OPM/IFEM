@@ -431,6 +431,12 @@ bool ASMs2D::raiseOrder (int ru, int rv)
 }
 
 
+bool ASMs2D::separateProjectionBasis () const
+{
+  return projB && projB != surf;
+}
+
+
 /*!
   This method is supposed to be invoked twice during the model generation.
   In the first call, with \a init = \e true, the spline surface object \a *surf
