@@ -337,6 +337,9 @@ public:
   //! \brief Creates a separate projection basis for this patch.
   virtual bool createProjectionBasis(bool init);
 
+  //! \brief Checks if a separate projection basis is used for this patch.
+  virtual bool separateProjectionBasis() const;
+
 
   // Various methods for preprocessing of boundary conditions and patch topology
   // ===========================================================================

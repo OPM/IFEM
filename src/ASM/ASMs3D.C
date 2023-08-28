@@ -391,6 +391,12 @@ bool ASMs3D::raiseOrder (int ru, int rv, int rw, bool setOrder)
 }
 
 
+bool ASMs3D::separateProjectionBasis () const
+{
+  return projB && projB != svol;
+}
+
+
 /*!
   This method is supposed to be invoked twice during the model generation.
   In the first call, with \a init = \e true, the spline volume object \a *svol

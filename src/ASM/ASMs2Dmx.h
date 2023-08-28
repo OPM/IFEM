@@ -185,6 +185,9 @@ public:
   //! \brief Swap between main and alternative projection basis.
   virtual void swapProjectionBasis();
 
+  //! \brief Checks if a separate projection basis is used for this patch.
+  virtual bool separateProjectionBasis() const;
+
   //! \brief Extracts nodal results for this patch from the global vector.
   //! \param[in] globVec Global solution vector in DOF-order
   //! \param[out] nodeVec Nodal result vector for this patch

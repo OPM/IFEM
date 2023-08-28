@@ -48,9 +48,7 @@ ASMs2Dmx::ASMs2Dmx (const ASMs2Dmx& patch, const CharVec& n_f)
 ASMs2Dmx::~ASMs2Dmx ()
 {
   // these are managed by shared ptrs, make sure base class do not delete them.
-  if (std::any_of(m_basis.begin(), m_basis.end(),
-                 [this](const auto& entry)
-                 { return entry.get() == projB; }))
+  if (!this->separateProjectionBasis())
     projB = nullptr;
   geomB = surf = nullptr;
 }
@@ -114,9 +112,7 @@ bool ASMs2Dmx::readBasis (std::istream& is, size_t basis)
 void ASMs2Dmx::clear (bool retainGeometry)
 {
   // these are managed by shared ptrs
-  if (std::any_of(m_basis.begin(), m_basis.end(),
-                 [this](const auto& entry)
-                 { return entry.get() == projB; }))
+  if (!this->separateProjectionBasis())
     projB = nullptr;
   geomB = surf = nullptr;
 
@@ -1135,4 +1131,12 @@ int ASMs2Dmx::getFirstItgElmNode () const
 int ASMs2Dmx::getLastItgElmNode () const
 {
   return std::accumulate(elem_size.begin(), elem_size.begin() + geoBasis, -1);
+}
+
+
+bool ASMs2Dmx::separateProjectionBasis () const
+{
+  return std::none_of(m_basis.begin(), m_basis.end(),
+                      [this](const std::shared_ptr<Go::SplineSurface>& entry)
+                      { return entry.get() == projB; });
 }

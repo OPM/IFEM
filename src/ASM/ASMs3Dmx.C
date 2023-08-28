@@ -53,9 +53,7 @@ ASMs3Dmx::ASMs3Dmx (const ASMs3Dmx& patch, const CharVec& n_f)
 ASMs3Dmx::~ASMs3Dmx ()
 {
   // these are managed by shared ptrs, make sure base class do not delete them.
-  if (std::any_of(m_basis.begin(), m_basis.end(),
-                 [this](const auto& entry)
-                 { return entry.get() == projB; }))
+  if (!this->separateProjectionBasis())
     projB = nullptr;
   geomB = svol = nullptr;
 }
@@ -114,9 +112,7 @@ bool ASMs3Dmx::readBasis (std::istream& is, size_t basis)
 void ASMs3Dmx::clear (bool retainGeometry)
 {
   // these are managed by shared ptrs
-  if (std::any_of(m_basis.begin(), m_basis.end(),
-                 [this](const auto& entry)
-                 { return entry.get() == projB; }))
+  if (!this->separateProjectionBasis())
     projB = nullptr;
   geomB = svol = nullptr;
 
@@ -1287,4 +1283,12 @@ int ASMs3Dmx::getFirstItgElmNode () const
 int ASMs3Dmx::getLastItgElmNode () const
 {
   return std::accumulate(elem_size.begin(), elem_size.begin() + geoBasis, -1);
+}
+
+
+bool ASMs3Dmx::separateProjectionBasis () const
+{
+  return std::none_of(m_basis.begin(), m_basis.end(),
+                      [this](const std::shared_ptr<Go::SplineVolume>& entry)
+                      { return entry.get() == projB; });
 }
