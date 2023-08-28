@@ -166,15 +166,17 @@ bool ASMs2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
 {
   const size_t nnod = this->getNoProjectionNodes();
 
-  const Go::SplineSurface* proj = static_cast<const Go::SplineSurface*>(projB);
+  const Go::SplineSurface* itg = this->getBasis(ASM::INTEGRATION_BASIS);
+  const Go::SplineSurface* proj = this->getBasis(ASM::PROJECTION_BASIS);
+  const bool separateProjBasis = proj != itg;
 
-  const int g1 = surf->order_u();
-  const int g2 = surf->order_v();
+  const int g1 = itg->order_u();
+  const int g2 = itg->order_v();
   const int p1 = proj->order_u();
   const int p2 = proj->order_v();
   const int n1 = proj->numCoefs_u();
-  const int nel1 = surf->numCoefs_u() - g1 + 1;
-  const int nel2 = surf->numCoefs_v() - g2 + 1;
+  const int nel1 = itg->numCoefs_u() - g1 + 1;
+  const int nel2 = itg->numCoefs_v() - g2 + 1;
   const int pmax = p1 > p2 ? p1 : p2;
 
   // Get Gaussian quadrature point coordinates (and weights if continuous)
@@ -193,15 +195,13 @@ bool ASMs2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
   gpar[1] = this->getGaussPointParameters(gp,1,ng2,yg);
 
   // Evaluate basis functions at all integration points
-  std::vector<Go::BasisPtsSf>    spl0;
-  std::vector<Go::BasisDerivsSf> spl1, spl2;
+  std::vector<Go::BasisPtsSf>    spl1;
+  std::vector<Go::BasisDerivsSf> spl2;
   if (continuous)
-  {
+    itg->computeBasisGrid(gpar[0],gpar[1],spl2);
+
+  if (!continuous || separateProjBasis)
     proj->computeBasisGrid(gpar[0],gpar[1],spl1);
-    surf->computeBasisGrid(gpar[0],gpar[1],spl2);
-  }
-  else
-    proj->computeBasisGrid(gpar[0],gpar[1],spl0);
 
   // Evaluate the secondary solution at all integration points
   Matrix sField;
@@ -213,7 +213,7 @@ bool ASMs2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
   }
 
   double dA = 1.0;
-  Vector phi(p1*p2), phi2(g1*g2);
+  Vector phi(p1*p2);
   Matrix dNdu, Xnod, J;
 
 
@@ -236,20 +236,17 @@ bool ASMs2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
 
       int ip = (i2*ng1*nel1 + i1)*ng2;
       IntVec lmnpc;
-      if (proj != surf)
+      if (separateProjBasis)
       {
         // Establish nodal point correspondance for the projection element
         int i, j, vidx;
         lmnpc.reserve(phi.size());
-        if (continuous)
-          vidx = (spl1[ip].left_idx[1]-p1+1)*n1 + (spl1[ip].left_idx[0]-p1+1);
-        else
-          vidx = (spl0[ip].left_idx[1]-p1+1)*n1 + (spl0[ip].left_idx[0]-p1+1);
+        vidx = (spl1[ip].left_idx[1]-p1+1)*n1 + (spl1[ip].left_idx[0]-p1+1);
         for (j = 0; j < p2; j++, vidx += n1)
           for (i = 0; i < p1; i++)
             lmnpc.push_back(vidx+i);
       }
-      const IntVec& mnpc = proj == surf ? MNPC[iel] : lmnpc;
+      const IntVec& mnpc = separateProjBasis ? lmnpc : MNPC[iel];
 
       // --- Integration loop over all Gauss points in each direction ----------
 
@@ -259,12 +256,10 @@ bool ASMs2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
         for (int i = 0; i < ng1; i++, ip++)
         {
           if (continuous)
-          {
-            SplineUtils::extractBasis(spl1[ip],phi,dNdu);
-            SplineUtils::extractBasis(spl2[ip],phi2,dNdu);
-          }
-          else
-            phi = spl0[ip].basisValues;
+            SplineUtils::extractBasis(spl2[ip],phi,dNdu);
+
+          if (!continuous || separateProjBasis)
+            phi = spl1[ip].basisValues;
 
           // Compute the Jacobian inverse and derivatives
           double dJw = 1.0;
