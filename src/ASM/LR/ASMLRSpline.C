@@ -195,6 +195,8 @@ ASMLRSpline::ASMLRSpline (const ASMLRSpline& patch, unsigned char n_f)
   : ASMbase(patch,n_f)
 {
   geomB = patch.geomB;
+  projB = patch.projB;
+  projB2 = patch.projB2;
 }
 
 

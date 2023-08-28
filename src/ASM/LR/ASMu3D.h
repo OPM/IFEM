@@ -693,7 +693,6 @@ public:
 
 protected:
   std::shared_ptr<LR::LRSplineVolume> lrspline; //!< Pointer to the LR-spline volume object
-  std::shared_ptr<LR::LRSplineVolume> projBasis; //!< Basis to project onto
 
   Go::SplineVolume* tensorspline; //!< Pointer to original tensor spline object
   Go::SplineVolume* tensorPrjBas; //!< Pointer to tensor spline projection base
