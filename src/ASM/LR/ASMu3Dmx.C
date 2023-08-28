@@ -1069,3 +1069,11 @@ BasisFunctionVals ASMu3Dmx::BasisFunctionCache::calculatePt (size_t el,
 
   return this->calculatePrm(fe,du,el,gp,reduced);
 }
+
+
+bool ASMu3Dmx::separateProjectionBasis () const
+{
+  return std::none_of(m_basis.begin(), m_basis.end(),
+                      [this](const SplinePtr& entry)
+                      { return entry == projB; });
+}

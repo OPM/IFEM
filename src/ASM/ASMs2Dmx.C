@@ -1128,3 +1128,11 @@ int ASMs2Dmx::getLastItgElmNode () const
 {
   return std::accumulate(elem_size.begin(), elem_size.begin() + geoBasis, -1);
 }
+
+
+bool ASMs2Dmx::separateProjectionBasis () const
+{
+  return std::none_of(m_basis.begin(), m_basis.end(),
+                      [this](const std::shared_ptr<Go::SplineSurface>& entry)
+                      { return entry.get() == projB; });
+}
