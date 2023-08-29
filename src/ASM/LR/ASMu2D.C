@@ -147,11 +147,14 @@ bool ASMu2D::read (std::istream& is)
 }
 
 
-bool ASMu2D::write (std::ostream& os, int) const
+bool ASMu2D::write (std::ostream& os, int basis) const
 {
   if (!lrspline) return false;
+  if (basis > static_cast<int>(this->getNoBasis())) return false;
+  const LR::LRSplineSurface* spline = this->getBasis(basis);
+  if (!spline) return false;
 
-  os << *lrspline;
+  os << *spline;
 
   return os.good();
 }
