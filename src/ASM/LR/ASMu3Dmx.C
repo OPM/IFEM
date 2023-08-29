@@ -96,17 +96,6 @@ bool ASMu3Dmx::readBasis (std::istream& is, size_t basis)
 }
 
 
-bool ASMu3Dmx::write (std::ostream& os, int basis) const
-{
-  if (basis == -1)
-    os << *projB;
-  else
-    os << *m_basis[basis-1];
-
-  return os.good();
-}
-
-
 void ASMu3Dmx::clear (bool retainGeometry)
 {
   if (!retainGeometry) {
