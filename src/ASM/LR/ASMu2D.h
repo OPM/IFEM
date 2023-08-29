@@ -690,7 +690,7 @@ protected:
   std::shared_ptr<LR::LRSplineSurface> createLRfromTensor();
 
   //! \brief Converts a rational spline surface to a LR NURBS surface.
-  static LR::LRSplineSurface* createLRNurbs(const Go::SplineSurface& srf);
+  static std::shared_ptr<LR::LRSplineSurface> createLRNurbs(const Go::SplineSurface& srf);
 
   //! \brief Generate bezier basis.
   void generateBezierBasis();

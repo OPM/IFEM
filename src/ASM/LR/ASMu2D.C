@@ -495,14 +495,15 @@ bool ASMu2D::evaluateBasis (int iel, FiniteElement& fe, int derivs) const
 }
 
 
-LR::LRSplineSurface* ASMu2D::createLRNurbs (const Go::SplineSurface& srf)
+std::shared_ptr<LR::LRSplineSurface>
+ASMu2D::createLRNurbs (const Go::SplineSurface& srf)
 {
-  return new LR::LRSplineSurface(srf.numCoefs_u(), srf.numCoefs_v(),
-                                 srf.order_u(), srf.order_v(),
-                                 srf.basis_u().begin(),
-                                 srf.basis_v().begin(),
-                                 srf.rcoefs_begin(),
-                                 srf.dimension()+1);
+  return std::make_shared<LR::LRSplineSurface>(srf.numCoefs_u(), srf.numCoefs_v(),
+                                               srf.order_u(), srf.order_v(),
+                                               srf.basis_u().begin(),
+                                               srf.basis_v().begin(),
+                                               srf.rcoefs_begin(),
+                                               srf.dimension()+1);
 }
 
 
@@ -512,7 +513,7 @@ std::shared_ptr<LR::LRSplineSurface> ASMu2D::createLRfromTensor ()
   {
     if (tensorspline->rational())
     {
-      lrspline.reset(createLRNurbs(*tensorspline));
+      lrspline = createLRNurbs(*tensorspline);
       is_rational = true;
     }
     else if (tensorspline->dimension() > nsd)
@@ -550,8 +551,8 @@ bool ASMu2D::generateFEMTopology ()
 
   if (tensorPrjBas)
   {
-    projB.reset(tensorPrjBas->rational() ? createLRNurbs(*tensorPrjBas)
-                                         : new LR::LRSplineSurface(tensorPrjBas));
+    projB = tensorPrjBas->rational() ? createLRNurbs(*tensorPrjBas)
+                                     : std::make_shared<LR::LRSplineSurface>(tensorPrjBas);
     projB->generateIDs();
     delete tensorPrjBas;
     tensorPrjBas = nullptr;
