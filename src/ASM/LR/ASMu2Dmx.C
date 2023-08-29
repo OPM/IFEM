@@ -201,22 +201,23 @@ bool ASMu2Dmx::generateFEMTopology ()
 
   auto createLR = [this](Go::SplineSurface& srf)
                   {
-                    return srf.rational() ? this->createLRNurbs(srf)
-                                          : new LR::LRSplineSurface(&srf);
+                    if (srf.rational())
+                      return this->createLRNurbs(srf);
+                    else
+                      return std::make_shared<LR::LRSplineSurface>(&srf);
                   };
 
   if (tensorPrjBas)
   {
-    projB.reset(createLR(*tensorPrjBas));
+    projB = createLR(*tensorPrjBas);
     delete tensorPrjBas;
     tensorPrjBas = nullptr;
   }
 
   if (m_basis.empty()) {
     SurfaceVec svec = ASMmxBase::establishBases(tensorspline, ASMmxBase::Type);
-    m_basis.resize(svec.size());
     for (size_t b = 0; b < svec.size(); b++)
-      m_basis[b].reset(createLR(*svec[b]));
+      m_basis.push_back(createLR(*svec[b]));
 
     // we need to project on something that is not one of our bases
     if (ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS1 ||
@@ -228,14 +229,14 @@ bool ASMu2Dmx::generateFEMTopology ()
         otherBasis = ASMmxBase::raiseBasis(tensorspline);
 
       if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
-        refBasis.reset(createLR(*otherBasis));
+        refBasis = createLR(*otherBasis);
         if (!projB)
           projB = m_basis.front();
         projB2 = refBasis;
       }
       else {
         if (!projB)
-          projB.reset(createLR(*otherBasis));
+          projB = createLR(*otherBasis);
         refBasis = std::static_pointer_cast<LR::LRSplineSurface>(projB);
       }
       delete otherBasis;
