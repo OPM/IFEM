@@ -208,28 +208,29 @@ bool ASMu3Dmx::generateFEMTopology ()
     for (size_t b = 0; b < vvec.size(); b++)
       m_basis.push_back(std::make_shared<LR::LRSplineVolume>(vvec[b].get()));
 
+    // make a backup as establishBases resets it
+    int geoB = ASMmxBase::geoBasis;
+    std::shared_ptr<Go::SplineVolume> otherBasis =
+        ASMmxBase::establishBases(tensorspline,
+                                  ASMmxBase::FULL_CONT_RAISE_BASIS1).front();
+    geoBasis = geoB;
+
     // we need to project on something that is not one of our bases
-    if (ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS1 ||
-        ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE ||
-        ASMmxBase::Type == ASMmxBase::SUBGRID) {
-      // make a backup as establishBases resets it
-      int geoB = ASMmxBase::geoBasis;
-      std::shared_ptr<Go::SplineVolume> otherBasis =
-          ASMmxBase::establishBases(tensorspline,
-                                    ASMmxBase::FULL_CONT_RAISE_BASIS1).front();
-      geoBasis = geoB;
-      if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
-        refB = std::make_shared<LR::LRSplineVolume>(otherBasis.get());
+    if (!projB) {
+      if (ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS1 ||
+          ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS2 ||
+          ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
+        projB = std::make_shared<LR::LRSplineVolume>(otherBasis.get());
+      else if (ASMmxBase::Type == ASMmxBase::SUBGRID)
         projB = m_basis.front();
-        refB->generateIDs();
-        projB2 = refB;
-      } else
-        refB = projB = std::make_shared<LR::LRSplineVolume>(otherBasis.get());
-    } else {
-      if (!projB)
+      else // FULL_CONT_RAISE_BASISx
         projB = m_basis[2-ASMmxBase::geoBasis];
-      refB = projB;
     }
+
+    if (ASMmxBase::Type == ASMmxBase::SUBGRID)
+      projB2 = refB = std::make_shared<LR::LRSplineVolume>(otherBasis.get());
+    else
+      refB = projB;
 
     delete tensorspline;
     tensorspline = nullptr;
