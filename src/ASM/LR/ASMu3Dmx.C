@@ -218,18 +218,16 @@ bool ASMu3Dmx::generateFEMTopology ()
                                     ASMmxBase::FULL_CONT_RAISE_BASIS1).front();
       geoBasis = geoB;
       if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
-        refBasis = std::make_shared<LR::LRSplineVolume>(otherBasis.get());
+        refB = std::make_shared<LR::LRSplineVolume>(otherBasis.get());
         projB = m_basis.front();
-        refBasis->generateIDs();
-        projB2 = refBasis;
-      } else {
-        projB = std::make_shared<LR::LRSplineVolume>(otherBasis.get());
-        refBasis = std::static_pointer_cast<LR::LRSplineVolume>(projB);
-      }
+        refB->generateIDs();
+        projB2 = refB;
+      } else
+        refB = projB = std::make_shared<LR::LRSplineVolume>(otherBasis.get());
     } else {
       if (!projB)
         projB = m_basis[2-ASMmxBase::geoBasis];
-      refBasis = std::static_pointer_cast<LR::LRSplineVolume>(projB);
+      refB = projB;
     }
 
     delete tensorspline;
@@ -852,9 +850,9 @@ bool ASMu3Dmx::refine (const LR::RefineData& prm, Vectors& sol)
       LR::extendControlPoints(m_basis[j].get(), bVec, nfx[j]);
     }
 
-  if (doRefine(prm, refBasis.get())) {
+  if (doRefine(prm, refB.get())) {
     for (size_t j = 0; j < m_basis.size(); ++j)
-      if (refBasis != m_basis[j]) {
+      if (refB != m_basis[j]) {
         if ((j == 0 && ASMmxBase::Type == REDUCED_CONT_RAISE_BASIS1) ||
             (j == 1 && ASMmxBase::Type == REDUCED_CONT_RAISE_BASIS2))
           this->copyRefinement(m_basis[j].get(), 2);
@@ -864,9 +862,9 @@ bool ASMu3Dmx::refine (const LR::RefineData& prm, Vectors& sol)
 
     // Uniformly refine to find basis 1
     if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
-      m_basis[0].reset(refBasis->copy());
+      m_basis[0].reset(std::static_pointer_cast<LR::LRSplineVolume>(refB)->copy());
       projB = m_basis.front();
-      size_t nFunc = refBasis->nBasisFunctions();
+      size_t nFunc = refB->nBasisFunctions();
       IntVec elems(nFunc);
       std::iota(elems.begin(),elems.end(),0);
       m_basis[0]->refineBasisFunction(elems);
@@ -902,8 +900,8 @@ bool ASMu3Dmx::refine (const LR::RefineData& prm, Vectors& sol)
               << projB->nElements() << " elements "
               << projB->nBasisFunctions() << " nodes" << std::endl;
     std::cout << "Refinement basis: "
-              << refBasis->nElements() << " elements "
-              << refBasis->nBasisFunctions() << " nodes" << std::endl;
+              << refB->nElements() << " elements "
+              << refB->nBasisFunctions() << " nodes" << std::endl;
   #endif
 
     return true;
@@ -984,11 +982,11 @@ void ASMu3Dmx::remapErrors (RealArray& errors,
 {
   const LR::LRSplineVolume* geo = this->getBasis(ASMmxBase::geoBasis);
   for (const LR::Element* elm : geo->getAllElements()) {
-    int rEl = refBasis->getElementContaining(elm->midpoint());
+    int rEl = refB->getElementContaining(elm->midpoint());
     if (elemErrors)
       errors[rEl] += origErr[elm->getId()];
     else
-      for (LR::Basisfunction* b : refBasis->getElement(rEl)->support())
+      for (LR::Basisfunction* b : refB->getElement(rEl)->support())
         errors[b->getId()] += origErr[elm->getId()];
   }
 }
@@ -996,20 +994,21 @@ void ASMu3Dmx::remapErrors (RealArray& errors,
 
 size_t ASMu3Dmx::getNoRefineNodes() const
 {
-  return refBasis->nBasisFunctions();
+  return refB->nBasisFunctions();
 }
 
 
 size_t ASMu3Dmx::getNoRefineElms() const
 {
-  return refBasis->nElements();
+  return refB->nElements();
 }
 
 
 void ASMu3Dmx::copyRefinement (LR::LRSplineVolume* basis,
                                int multiplicity) const
 {
-  for (const LR::MeshRectangle* rect : refBasis->getAllMeshRectangles()) {
+  const LR::LRSplineVolume* ref = static_cast<const LR::LRSplineVolume*>(refB.get());
+  for (const LR::MeshRectangle* rect : ref->getAllMeshRectangles()) {
     int mult = rect->multiplicity_ > 1 ? basis->order(rect->constDirection())
                                        : multiplicity;
     LR::MeshRectangle* newRect = rect->copy();

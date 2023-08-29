@@ -229,22 +229,22 @@ bool ASMu2Dmx::generateFEMTopology ()
         otherBasis = ASMmxBase::raiseBasis(tensorspline);
 
       if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
-        refBasis = createLR(*otherBasis);
+        refB = createLR(*otherBasis);
         if (!projB)
           projB = m_basis.front();
-        projB2 = refBasis;
+        projB2 = refB;
       }
       else {
         if (!projB)
           projB = createLR(*otherBasis);
-        refBasis = std::static_pointer_cast<LR::LRSplineSurface>(projB);
+        refB = projB;
       }
       delete otherBasis;
     }
     else {
       if (!projB)
         projB = m_basis[2-ASMmxBase::geoBasis];
-      refBasis = std::static_pointer_cast<LR::LRSplineSurface>(projB);
+      refB = projB;
     }
 
     is_rational = tensorspline->rational();
@@ -252,7 +252,7 @@ bool ASMu2Dmx::generateFEMTopology ()
     tensorspline = nullptr;
   }
   projB->generateIDs();
-  refBasis->generateIDs();
+  refB->generateIDs();
   lrspline = m_basis[geoBasis-1];
 
   nb.clear();
@@ -976,9 +976,9 @@ bool ASMu2Dmx::refine (const LR::RefineData& prm, Vectors& sol)
       LR::extendControlPoints(m_basis[j].get(), bVec, nfx[j]);
     }
 
-  if (doRefine(prm, refBasis.get())) {
+  if (doRefine(prm, refB.get())) {
     for (size_t j = 0; j < m_basis.size(); ++j)
-      if (refBasis != m_basis[j]) {
+      if (refB != m_basis[j]) {
         if ((j == 0 && ASMmxBase::Type == REDUCED_CONT_RAISE_BASIS1) ||
             (j == 1 && ASMmxBase::Type == REDUCED_CONT_RAISE_BASIS2))
           this->copyRefinement(m_basis[j].get(), 2);
@@ -988,9 +988,9 @@ bool ASMu2Dmx::refine (const LR::RefineData& prm, Vectors& sol)
 
     // Uniformly refine to find basis 1
     if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
-      m_basis[0].reset(refBasis->copy());
+      m_basis[0].reset(std::static_pointer_cast<const LR::LRSplineSurface>(refB)->copy());
       projB = m_basis.front();
-      size_t nFunc = refBasis->nBasisFunctions();
+      size_t nFunc = refB->nBasisFunctions();
       IntVec elems(nFunc);
       std::iota(elems.begin(),elems.end(),0);
       m_basis[0]->refineBasisFunction(elems);
@@ -1026,8 +1026,8 @@ bool ASMu2Dmx::refine (const LR::RefineData& prm, Vectors& sol)
               << projB->nElements() << " elements "
               << projB->nBasisFunctions() << " nodes" << std::endl;
     std::cout << "Refinement basis: "
-              << refBasis->nElements() << " elements "
-              << refBasis->nBasisFunctions() << " nodes" << std::endl;
+              << refB->nElements() << " elements "
+              << refB->nBasisFunctions() << " nodes" << std::endl;
   #endif
 
     return true;
@@ -1135,11 +1135,11 @@ void ASMu2Dmx::remapErrors (RealArray& errors,
 {
   const LR::LRSplineSurface* geo = this->getBasis(ASMmxBase::geoBasis);
   for (const LR::Element* elm : geo->getAllElements()) {
-    int rEl = refBasis->getElementContaining(elm->midpoint());
+    int rEl = refB->getElementContaining(elm->midpoint());
     if (elemErrors)
       errors[rEl] += origErr[elm->getId()];
     else
-      for (LR::Basisfunction* b : refBasis->getElement(rEl)->support())
+      for (LR::Basisfunction* b : refB->getElement(rEl)->support())
         errors[b->getId()] += origErr[elm->getId()];
   }
 }
@@ -1147,13 +1147,13 @@ void ASMu2Dmx::remapErrors (RealArray& errors,
 
 size_t ASMu2Dmx::getNoRefineNodes() const
 {
-  return refBasis->nBasisFunctions();
+  return refB->nBasisFunctions();
 }
 
 
 size_t ASMu2Dmx::getNoRefineElms() const
 {
-  return refBasis->nElements();
+  return refB->nElements();
 }
 
 
@@ -1194,14 +1194,15 @@ void ASMu2Dmx::storeMesh (const std::string& fName, int fType) const
     ++btag.back();
   }
   writeBasis(std::static_pointer_cast<LR::LRSplineSurface>(projB), "proj");
-  writeBasis(refBasis, "ref");
+  writeBasis(std::static_pointer_cast<LR::LRSplineSurface>(refB), "ref");
 }
 
 
 void ASMu2Dmx::copyRefinement (LR::LRSplineSurface* basis,
                                int multiplicity) const
 {
-  for (const LR::Meshline* line : refBasis->getAllMeshlines()) {
+  const LR::LRSplineSurface* ref = static_cast<const LR::LRSplineSurface*>(refB.get());
+  for (const LR::Meshline* line : ref->getAllMeshlines()) {
     int mult = line->multiplicity_ > 1 ? line->multiplicity_ : multiplicity;
     if (line->span_u_line_)
       basis->insert_const_v_edge(line->const_par_,

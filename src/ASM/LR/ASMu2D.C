@@ -547,7 +547,7 @@ std::shared_ptr<LR::LRSplineSurface> ASMu2D::createLRfromTensor ()
 
 bool ASMu2D::generateFEMTopology ()
 {
-  geomB = this->createLRfromTensor();
+  refB = geomB = this->createLRfromTensor();
 
   if (tensorPrjBas)
   {
