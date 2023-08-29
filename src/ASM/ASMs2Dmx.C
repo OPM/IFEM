@@ -281,12 +281,8 @@ bool ASMs2Dmx::generateFEMTopology ()
         myMLGN[inod++]    = ++gNod;
       }
 
-  int lnod2 = 0;
-  int lnod3 = 0;
-  for (i2 = 0; i2 < geoBasis-1; ++i2)
-    lnod2 += m_basis[i2]->order_u()*m_basis[i2]->order_v();
-  for (i2 = 0; i2 < (int)m_basis.size(); ++i2)
-    lnod3 += m_basis[i2]->order_u()*m_basis[i2]->order_v();
+  int firstItgNode = this->getFirstItgElmNode();
+  int nElmNode = std::accumulate(elem_size.begin(), elem_size.end(), 0);
 
   // Create nodal connectivities for bases
   inod = std::accumulate(nb.begin(),nb.begin()+geoBasis-1,0u);
@@ -302,8 +298,8 @@ bool ASMs2Dmx::generateFEMTopology ()
           {
             myMLGE[iel] = ++gEl; // global element number over all patches
 
-            int lnod = lnod2;
-            myMNPC[iel].resize(lnod3,0);
+            int lnod = firstItgNode;
+            myMNPC[iel].resize(nElmNode,0);
 
             for (j2 = b->order_v()-1; j2 >= 0; j2--)
               for (j1 = b->order_u()-1; j1 >= 0; j1--)
@@ -311,20 +307,20 @@ bool ASMs2Dmx::generateFEMTopology ()
 
             // find knotspan spanning element for other bases
             lnod = 0;
-            size_t lnod4 = 0;
+            size_t basis_ofs = 0;
             for (size_t bas = 0; bas < m_basis.size(); ++bas) {
-              if (bas != (size_t)geoBasis-1) {
+              if (bas != static_cast<size_t>(geoBasis-1)) {
                 double ku = *knotu;
                 double kv = *knotv;
                 int bknotu = m_basis[bas]->basis_u().knotIntervalFuzzy(ku);
                 int bknotv = m_basis[bas]->basis_v().knotIntervalFuzzy(kv);
-                size_t iinod = lnod4+bknotv*m_basis[bas]->numCoefs_u() + bknotu;
+                size_t iinod = basis_ofs + bknotv*m_basis[bas]->numCoefs_u() + bknotu;
                 for (j2 = m_basis[bas]->order_v()-1; j2 >= 0; j2--)
                   for (j1 = m_basis[bas]->order_u()-1; j1 >= 0; j1--)
                     myMNPC[iel][lnod++] = iinod - m_basis[bas]->numCoefs_u()*j2 - j1;
               } else
-                lnod += m_basis[bas]->order_u()*m_basis[bas]->order_v();
-              lnod4 += nb[bas];
+                lnod += elem_size[bas];
+              basis_ofs += nb[bas];
             }
           }
 
