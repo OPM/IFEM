@@ -957,7 +957,7 @@ void ASMu3Dmx::generateThreadGroups (const Integrand& integrand, bool silence,
   LR::generateThreadGroups(threadGroups,threadBasis,secConstraint);
   LR::generateThreadGroups(projThreadGroups,projB.get());
   if (projB2)
-    LR::generateThreadGroups(altProjThreadGroups,projB2.get());
+    LR::generateThreadGroups(proj2ThreadGroups,projB2.get());
 
   std::vector<const LR::LRSpline*> bases;
   for (const SplinePtr& basis : m_basis)
@@ -1025,7 +1025,7 @@ void ASMu3Dmx::swapProjectionBasis ()
   if (projB2) {
     ASMmxBase::geoBasis = ASMmxBase::geoBasis == 1 ? 2 : 1;
     std::swap(projB, projB2);
-    std::swap(projThreadGroups, altProjThreadGroups);
+    std::swap(projThreadGroups, proj2ThreadGroups);
   }
 }
 
