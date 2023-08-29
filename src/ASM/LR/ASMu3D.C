@@ -250,7 +250,7 @@ std::shared_ptr<LR::LRSplineVolume> ASMu3D::createLRfromTensor ()
 
 bool ASMu3D::generateFEMTopology ()
 {
-  geomB = this->createLRfromTensor();
+  refB = geomB = this->createLRfromTensor();
 
   if (tensorPrjBas)
   {

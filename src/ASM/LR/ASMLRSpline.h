@@ -206,6 +206,7 @@ protected:
   std::shared_ptr<LR::LRSpline> geomB;  //!< Pointer to spline object of the geometry basis
   std::shared_ptr<LR::LRSpline> projB;  //!< Pointer to spline object of the projection basis
   std::shared_ptr<LR::LRSpline> projB2; //!< Pointer to spline object of the secondary projection basis
+  std::shared_ptr<LR::LRSpline> refB;   //!< Pointer to spline object of the refinement basis
 };
 
 #endif

@@ -269,7 +269,6 @@ private:
 
   std::vector<SplinePtr> m_basis;      //!< All bases
   LR::LRSplineSurface*   threadBasis;  //!< Basis for thread groups
-  SplinePtr              refBasis;     //!< Basis to refine based on
 
   ThreadGroups proj2ThreadGroups; //!< Element groups for multi-threaded assembly - second projection basis
 };
