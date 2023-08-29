@@ -238,7 +238,7 @@ private:
   const std::vector<Matrices>& bezierExtractmx;  //!< Bezier extraction matrices
   std::vector<Matrices>        myBezierExtractmx; //!< Bezier extraction matrices
 
-  ThreadGroups altProjThreadGroups; //!< Element groups for multi-threaded assembly - alternative projection basis
+  ThreadGroups proj2ThreadGroups; //!< Element groups for multi-threaded assembly - second projection basis
 };
 
 #endif
