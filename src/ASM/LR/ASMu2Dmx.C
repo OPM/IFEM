@@ -1134,8 +1134,7 @@ void ASMu2Dmx::remapErrors (RealArray& errors,
 {
   const LR::LRSplineSurface* geo = this->getBasis(ASMmxBase::geoBasis);
   for (const LR::Element* elm : geo->getAllElements()) {
-    int rEl = refBasis->getElementContaining((elm->umin()+elm->umax())/2.0,
-                                             (elm->vmin()+elm->vmax())/2.0);
+    int rEl = refBasis->getElementContaining(elm->midpoint());
     if (elemErrors)
       errors[rEl] += origErr[elm->getId()];
     else
