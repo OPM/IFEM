@@ -2000,14 +2000,14 @@ size_t ASMu3D::getNoProjectionNodes () const
 
 bool ASMu3D::separateProjectionBasis () const
 {
-  return projB.get() != this->getBasis(1);
+  return this->getBasis(ASM::PROJECTION_BASIS) != this->getBasis(1);
 }
 
 
 Field* ASMu3D::getProjectedField (const Vector& coefs) const
 {
   if (coefs.size() == this->getNoProjectionNodes())
-    return new LRSplineField3D(static_cast<const LR::LRSplineVolume*>(projB.get()),coefs);
+    return new LRSplineField3D(this->getBasis(ASM::PROJECTION_BASIS),coefs);
 
   std::cerr <<" *** ASMu3D::getProjectedFields: Non-matching coefficent array,"
             <<" size="<< coefs.size() <<" nnod="<< this->getNoProjectionNodes()
@@ -2023,7 +2023,7 @@ Fields* ASMu3D::getProjectedFields (const Vector& coefs, size_t) const
 
   size_t ncmp = coefs.size() / this->getNoProjectionNodes();
   if (ncmp*this->getNoProjectionNodes() == coefs.size())
-    return new LRSplineFields3D(static_cast<const LR::LRSplineVolume*>(projB.get()),coefs,ncmp);
+    return new LRSplineFields3D(this->getBasis(ASM::PROJECTION_BASIS),coefs,ncmp);
 
   std::cerr <<" *** ASMu3D::getProjectedFields: Non-matching coefficent array,"
             <<" size="<< coefs.size() <<" nnod="<< this->getNoProjectionNodes()
