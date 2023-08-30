@@ -841,7 +841,7 @@ bool ASMu3Dmx::refine (const LR::RefineData& prm, Vectors& sol)
       LR::extendControlPoints(m_basis[j].get(), bVec, nfx[j]);
     }
 
-  if (doRefine(prm, refB.get())) {
+  if (doRefine(prm, this->getBasis(ASM::REFINEMENT_BASIS))) {
     for (size_t j = 0; j < m_basis.size(); ++j)
       if (refB != m_basis[j]) {
         if ((j == 0 && ASMmxBase::Type == REDUCED_CONT_RAISE_BASIS1) ||
@@ -853,7 +853,7 @@ bool ASMu3Dmx::refine (const LR::RefineData& prm, Vectors& sol)
 
     // Uniformly refine to find basis 1
     if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
-      m_basis[0].reset(std::static_pointer_cast<LR::LRSplineVolume>(refB)->copy());
+      m_basis[0].reset(this->getBasis(ASM::REFINEMENT_BASIS)->copy());
       projB = m_basis.front();
       size_t nFunc = refB->nBasisFunctions();
       IntVec elems(nFunc);
@@ -998,7 +998,7 @@ size_t ASMu3Dmx::getNoRefineElms() const
 void ASMu3Dmx::copyRefinement (LR::LRSplineVolume* basis,
                                int multiplicity) const
 {
-  const LR::LRSplineVolume* ref = static_cast<const LR::LRSplineVolume*>(refB.get());
+  const LR::LRSplineVolume* ref = this->getBasis(ASM::REFINEMENT_BASIS);
   for (const LR::MeshRectangle* rect : ref->getAllMeshRectangles()) {
     int mult = rect->multiplicity_ > 1 ? basis->order(rect->constDirection())
                                        : multiplicity;
