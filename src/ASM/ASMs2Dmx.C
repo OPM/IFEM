@@ -251,7 +251,6 @@ bool ASMs2Dmx::generateFEMTopology ()
   else if (shareFE == 'F')
     return true;
 
-  int i1, i2, j1, j2;
 #ifdef SP_DEBUG
   size_t nbasis = 0;
   for (auto& it : m_basis) {
@@ -259,17 +258,19 @@ bool ASMs2Dmx::generateFEMTopology ()
     std::cout <<":\nnumCoefs: "<< it->numCoefs_u() <<" "<< it->numCoefs_v();
     std::cout <<"\norder: "<< it->order_u() <<" "<< it->order_v();
     std::cout <<"\ndu:";
-    for (i1 = 0; i1 < it->numCoefs_u(); i1++)
+    for (int i1 = 0; i1 < it->numCoefs_u(); i1++)
       std::cout <<' '<< it->knotSpan(0,i1);
     std::cout <<"\ndv:";
-    for (i2 = 0; i2 < it->numCoefs_v(); i2++)
+    for (int i2 = 0; i2 < it->numCoefs_v(); i2++)
       std::cout <<' '<< it->knotSpan(1,i2);
     std::cout << std::endl;
   }
 #endif
 
-  nel = (m_basis[geoBasis-1]->numCoefs_u()-m_basis[geoBasis-1]->order_u()+1)*
-        (m_basis[geoBasis-1]->numCoefs_v()-m_basis[geoBasis-1]->order_v()+1);
+  const Go::SplineSurface* itg = this->getBasis(ASM::INTEGRATION_BASIS);
+
+  nel = (itg->numCoefs_u() - itg->order_u() + 1) *
+        (itg->numCoefs_v() - itg->order_v() + 1);
 
   myMLGE.resize(nel,0);
   myMLGN.resize(nnod);
@@ -278,60 +279,59 @@ bool ASMs2Dmx::generateFEMTopology ()
 
   size_t iel = 0, inod = 0;
   for (auto& it : m_basis)
-    for (i2 = 0; i2 < it->numCoefs_v(); i2++)
-      for (i1 = 0; i1 < it->numCoefs_u(); i1++)
+    for (int i2 = 0; i2 < it->numCoefs_v(); i2++)
+      for (int i1 = 0; i1 < it->numCoefs_u(); i1++)
       {
         myNodeInd[inod].I = i1;
         myNodeInd[inod].J = i2;
         myMLGN[inod++]    = ++gNod;
       }
 
-  int firstItgNode = this->getFirstItgElmNode();
-  int nElmNode = std::accumulate(elem_size.begin(), elem_size.end(), 0);
+  const size_t firstItgElmNode = this->getFirstItgElmNode();
+  const size_t nElmNode = std::accumulate(elem_size.begin(), elem_size.end(), 0);
 
   // Create nodal connectivities for bases
+  auto&& enumerate_elem = [this,&iel](const Go::SplineSurface& spline,
+                                      size_t elm_node, int last_node)
+  {
+    for (int j = spline.order_v() - 1; j >= 0; j--)
+      for (int i = spline.order_u() - 1; i >= 0; i--)
+        myMNPC[iel][elm_node++] = last_node - spline.numCoefs_u()*j - i;
+  };
+
   inod = std::accumulate(nb.begin(),nb.begin()+geoBasis-1,0u);
-  Go::SplineSurface* b = m_basis[geoBasis-1].get();
-  auto knotv = b->basis_v().begin();
-  for (i2 = 1; i2 <= b->numCoefs_v(); i2++, ++knotv) {
-    auto knotu = b->basis_u().begin();
-    for (i1 = 1; i1 <= b->numCoefs_u(); i1++, inod++, ++knotu)
-      if (i1 >= b->order_u() && i2 >= b->order_v())
-      {
-        if (b->knotSpan(0,i1-1) > 0.0)
-          if (b->knotSpan(1,i2-1) > 0.0)
-          {
-            myMLGE[iel] = ++gEl; // global element number over all patches
+  auto knotv = itg->basis_v().begin();
+  for (int i2 = 1; i2 <= itg->numCoefs_v(); i2++, ++knotv) {
+    auto knotu = itg->basis_u().begin();
+    for (int i1 = 1; i1 <= itg->numCoefs_u(); i1++, inod++, ++knotu)
+      if (i1 >= itg->order_u() && i2 >= itg->order_v()) {
+        if (itg->knotSpan(0,i1-1) > 0.0 && itg->knotSpan(1,i2-1) > 0.0) {
+          myMLGE[iel] = ++gEl; // global element number over all patches
 
-            int lnod = firstItgNode;
-            myMNPC[iel].resize(nElmNode,0);
+          myMNPC[iel].resize(nElmNode, 0);
+          enumerate_elem(*itg, firstItgElmNode, inod);
 
-            for (j2 = b->order_v()-1; j2 >= 0; j2--)
-              for (j1 = b->order_u()-1; j1 >= 0; j1--)
-                myMNPC[iel][lnod++] = inod - b->numCoefs_u()*j2 - j1;
-
-            // find knotspan spanning element for other bases
-            lnod = 0;
-            size_t basis_ofs = 0;
-            for (size_t bas = 0; bas < m_basis.size(); ++bas) {
-              if (bas != static_cast<size_t>(geoBasis-1)) {
-                double ku = *knotu;
-                double kv = *knotv;
-                int bknotu = m_basis[bas]->basis_u().knotIntervalFuzzy(ku);
-                int bknotv = m_basis[bas]->basis_v().knotIntervalFuzzy(kv);
-                size_t iinod = basis_ofs + bknotv*m_basis[bas]->numCoefs_u() + bknotu;
-                for (j2 = m_basis[bas]->order_v()-1; j2 >= 0; j2--)
-                  for (j1 = m_basis[bas]->order_u()-1; j1 >= 0; j1--)
-                    myMNPC[iel][lnod++] = iinod - m_basis[bas]->numCoefs_u()*j2 - j1;
-              } else
-                lnod += elem_size[bas];
-              basis_ofs += nb[bas];
+          // find knot span for other bases
+          size_t elem_ofs = 0;
+          size_t basis_ofs = 0;
+          int basis = 0;
+          for (const std::shared_ptr<Go::SplineSurface>& spline : m_basis) {
+            if (basis != geoBasis-1) {
+              double ku = *knotu;
+              double kv = *knotv;
+              int iu = spline->basis_u().knotIntervalFuzzy(ku);
+              int iv = spline->basis_v().knotIntervalFuzzy(kv);
+              int iinod = basis_ofs + iv*spline->numCoefs_u() + iu;
+              enumerate_elem(*spline, elem_ofs, iinod);
             }
+            elem_ofs += elem_size[basis];
+            basis_ofs += nb[basis++];
           }
+        }
 
         ++iel;
       }
-    }
+  }
 
 #ifdef SP_DEBUG
   std::cout <<"NEL = "<< nel <<" NNOD = "<< nnod << std::endl;
