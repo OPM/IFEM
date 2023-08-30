@@ -565,31 +565,26 @@ void ASMu3D::getBoundary1Nodes (int lEdge, IntVec& nodes,
   // lEdge = 5-8, running index is v (umin,wmin), (umax,wmin), (umin,wmax), (umax,wmax)
   // lEdge = 9-12, running index is w
 
-  int edge = LR::NONE;
-  if (lEdge == 1)
-    edge = LR::BOTTOM | LR::SOUTH;
-  else if (lEdge == 2)
-    edge = LR::BOTTOM | LR::NORTH;
-  else if (lEdge == 3)
-    edge = LR::TOP    | LR::SOUTH;
-  else if (lEdge == 4)
-    edge = LR::TOP    | LR::NORTH;
-  else if (lEdge == 5)
-    edge = LR::BOTTOM | LR::WEST;
-  else if (lEdge == 6)
-    edge = LR::BOTTOM | LR::EAST;
-  else if (lEdge == 7)
-    edge = LR::TOP    | LR::WEST;
-  else if (lEdge == 8)
-    edge = LR::TOP    | LR::EAST;
-  else if (lEdge == 9)
-    edge = LR::SOUTH  | LR::WEST;
-  else if (lEdge == 10)
-    edge = LR::SOUTH  | LR::EAST;
-  else if (lEdge == 11)
-    edge = LR::NORTH  | LR::WEST;
-  else if (lEdge == 12)
-    edge = LR::NORTH  | LR::EAST;
+  auto&& getEdge = [](int in)
+  {
+    switch (in) {
+      case  1: return LR::BOTTOM | LR::SOUTH;
+      case  2: return LR::BOTTOM | LR::NORTH;
+      case  3: return LR::TOP    | LR::SOUTH;
+      case  4: return LR::TOP    | LR::NORTH;
+      case  5: return LR::BOTTOM | LR::WEST;
+      case  6: return LR::BOTTOM | LR::EAST;
+      case  7: return LR::TOP    | LR::WEST;
+      case  8: return LR::TOP    | LR::EAST;
+      case  9: return LR::SOUTH  | LR::WEST;
+      case 10: return LR::SOUTH  | LR::EAST;
+      case 11: return LR::NORTH  | LR::WEST;
+      case 12: return LR::NORTH  | LR::EAST;
+      default: return LR::NONE;
+    }
+  };
+
+  const LR::parameterEdge edge = getEdge(lEdge);
 
   // figure out function index offset (when using multiple basis)
   size_t ofs = 1;
@@ -598,7 +593,7 @@ void ASMu3D::getBoundary1Nodes (int lEdge, IntVec& nodes,
 
   // get all the boundary functions from the LRspline object
   std::vector<LR::Basisfunction*> thisEdge;
-  this->getBasis(basis)->getEdgeFunctions(thisEdge, (LR::parameterEdge) edge, 1);
+  this->getBasis(basis)->getEdgeFunctions(thisEdge, edge, 1);
   if (orient > -1) {
     int dir = (edge-1)/4;
     int u = dir == 0;
