@@ -51,6 +51,8 @@ public:
 
   //! \brief Returns a const reference to the basis function 2nd-derivatives.
   virtual const Matrix3D& hess(char) const { return d2NdX2; }
+  //! \brief Returns a reference to the basis function 2nd-derivatives.
+  virtual Matrix3D& hess(char) { return d2NdX2; }
   //! \brief Returns a const reference to the basis function 3nd-derivatives.
   virtual const Matrix4D& hess2(char) const { return d3NdX3; }
 
@@ -115,6 +117,8 @@ public:
 
   //! \brief Returns a const reference to the basis function 2nd-derivatives.
   virtual const Matrix3D& hess(char b) const { return b < 2 ? d2NdX2 : d2MdX2[b-2]; }
+  //! \brief Returns a reference to the basis function 2nd-derivatives.
+  virtual Matrix3D& hess(char b) { return b < 2 ? d2NdX2 : d2MdX2[b-2]; }
   //! \brief Returns a const reference to the basis function 3rd-derivatives.
   virtual const Matrix4D& hess2(char b) const { return b < 2 ? d3NdX3 : d3MdX3[b-2]; }
 

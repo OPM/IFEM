@@ -110,22 +110,22 @@ bool MxFiniteElement::Hessian (Matrix3D& Hess, const Matrix& Jac,
                                const std::vector<const BasisFunctionVals*>* bf,
                                const std::vector<Matrix3D>* d2Nxdu2)
 {
-  bool ok = utl::Hessian(Hess,
-                         gBasis > 1 ? d2MdX2[gBasis-2] : d2NdX2, Jac, Xnod,
-                         bf ? (*bf)[gBasis-1]->d2Ndu2 : (*d2Nxdu2)[gBasis-1],
-                         gBasis > 1 ? dMdX[gBasis-2] : dNdX);
-
-  if (ok && gBasis > 1)
-    ok = utl::Hessian(Hess, d2NdX2, Jac, Xnod,
-                      bf ? bf->front()->d2Ndu2 : d2Nxdu2->front(),
-                      dNdX, false);
-
   size_t nBasis = bf ? bf->size() : d2Nxdu2->size();
-  for (size_t b = 2; b <= nBasis && ok; b++)
-    if (b != gBasis)
-      ok = utl::Hessian(Hess, d2MdX2[b-2], Jac, Xnod,
+  const bool separateGeometry = nBasis > this->getNoBasis();
+  bool ok;
+  if (separateGeometry)
+    ok = Hess.multiply(Xnod, (bf ? bf->back()->d2Ndu2 : d2Nxdu2->back()));
+  else {
+    ok = utl::Hessian(Hess, this->hess(gBasis), Jac, Xnod,
+                      bf ? (*bf)[gBasis-1]->d2Ndu2 : (*d2Nxdu2)[gBasis-1],
+                      this->grad(gBasis));
+  }
+
+  for (size_t b = 1; b <= this->getNoBasis() && ok; b++)
+    if (b != gBasis || separateGeometry)
+      ok = utl::Hessian(Hess, this->hess(b), Jac, Xnod,
                         bf ? (*bf)[b-1]->d2Ndu2 : (*d2Nxdu2)[b-1],
-                        dMdX[b-2], false);
+                        this->grad(b), false);
 
   return ok;
 }
