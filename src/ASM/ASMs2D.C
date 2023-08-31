@@ -1590,12 +1590,16 @@ bool ASMs2D::getParameterDomain (Real2DMat& u, IntVec* corners) const
 
 
 const Vector& ASMs2D::getGaussPointParameters (Matrix& uGP, int dir, int nGauss,
-					       const double* xi) const
+                                               const double* xi,
+                                               const Go::SplineSurface* spline) const
 {
-  int pm1 = (dir == 0 ? surf->order_u() : surf->order_v()) - 1;
-  RealArray::const_iterator uit = surf->basis(dir).begin() + pm1;
+  if (!spline)
+    spline = surf;
 
-  int nCol = (dir == 0 ? surf->numCoefs_u() : surf->numCoefs_v()) - pm1;
+  int pm1 = (dir == 0 ? spline->order_u() : spline->order_v()) - 1;
+  RealArray::const_iterator uit = spline->basis(dir).begin() + pm1;
+
+  int nCol = (dir == 0 ? spline->numCoefs_u() : spline->numCoefs_v()) - pm1;
   uGP.resize(nGauss,nCol);
 
   double uprev = *(uit++);
