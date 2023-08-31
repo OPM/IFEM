@@ -24,7 +24,6 @@
 #include "SparseMatrix.h"
 #include "DenseMatrix.h"
 #include "SplineUtils.h"
-#include "Utilities.h"
 #include "Profiler.h"
 #include <array>
 
@@ -166,17 +165,17 @@ bool ASMs2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
 {
   const size_t nnod = this->getNoProjectionNodes();
 
-  const Go::SplineSurface* itg = this->getBasis(ASM::INTEGRATION_BASIS);
+  const Go::SplineSurface* geo = this->getBasis(ASM::GEOMETRY_BASIS);
   const Go::SplineSurface* proj = this->getBasis(ASM::PROJECTION_BASIS);
-  const bool separateProjBasis = proj != itg;
+  const bool separateProjBasis = proj != geo;
+  const bool singleBasis = !separateProjBasis && this->getNoBasis() == 1;
 
-  const int g1 = itg->order_u();
-  const int g2 = itg->order_v();
   const int p1 = proj->order_u();
   const int p2 = proj->order_v();
   const int n1 = proj->numCoefs_u();
-  const int nel1 = itg->numCoefs_u() - g1 + 1;
-  const int nel2 = itg->numCoefs_v() - g2 + 1;
+  int nel1 = proj->numCoefs_u() - p1 + 1;
+  int nel2 = proj->numCoefs_v() - p2 + 1;
+
   const int pmax = p1 > p2 ? p1 : p2;
 
   // Get Gaussian quadrature point coordinates (and weights if continuous)
@@ -191,14 +190,14 @@ bool ASMs2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
   // Compute parameter values of the Gauss points over the whole patch
   Matrix gp;
   std::array<RealArray,2> gpar;
-  gpar[0] = this->getGaussPointParameters(gp,0,ng1,xg);
-  gpar[1] = this->getGaussPointParameters(gp,1,ng2,yg);
+  gpar[0] = this->getGaussPointParameters(gp,0,ng1,xg,proj);
+  gpar[1] = this->getGaussPointParameters(gp,1,ng2,yg,proj);
 
   // Evaluate basis functions at all integration points
   std::vector<Go::BasisPtsSf>    spl1;
   std::vector<Go::BasisDerivsSf> spl2;
   if (continuous)
-    itg->computeBasisGrid(gpar[0],gpar[1],spl2);
+    geo->computeBasisGrid(gpar[0],gpar[1],spl2);
 
   if (!continuous || separateProjBasis)
     proj->computeBasisGrid(gpar[0],gpar[1],spl1);
@@ -223,30 +222,45 @@ bool ASMs2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
   for (int i2 = 0; i2 < nel2; i2++)
     for (int i1 = 0; i1 < nel1; i1++, iel++)
     {
-      if (MLGE[iel] < 1) continue; // zero-area element
+      int ip = (i2*ng1*nel1 + i1)*ng2;
+      IntVec lmnpc;
+      if (!singleBasis && proj->knotSpan(0,i1+p1-1) > 0.0
+                       && proj->knotSpan(1,i2+p2-1) > 0.0)
+      {
+        // Establish nodal point correspondance for the projection element
+        int vidx;
+        lmnpc.reserve(phi.size());
+        if (separateProjBasis)
+          vidx = (spl1[ip].left_idx[1]-p1+1)*n1 + (spl1[ip].left_idx[0]-p1+1);
+        else
+          vidx = (spl2[ip].left_idx[1]-p1+1)*n1 + (spl2[ip].left_idx[0]-p1+1);
+        for (int j = 0; j < p2; j++, vidx += n1)
+          for (int i = 0; i < p1; i++)
+            lmnpc.push_back(vidx+i);
+      }
+      const IntVec& mnpc = singleBasis ? MNPC[iel] : lmnpc;
+      if (mnpc.empty())
+        continue;
 
       if (continuous)
       {
         // Set up control point (nodal) coordinates for current element
-        if (!this->getElementCoordinates(Xnod,1+iel))
-          return false;
-        else if ((dA = 0.25*this->getParametricArea(1+iel)) < 0.0)
-          return false; // topology error (probably logic error)
+        if (singleBasis)
+        {
+          if (!this->getElementCoordinates(Xnod,1+iel))
+            return false;
+          else if ((dA = this->getParametricArea(1+iel)) < 0.0)
+            return false; // topology error (probably logic error)
+        }
+        else
+        {
+          if (!this->getElementCoordinatesPrm(Xnod,gpar[0][i1*ng1],gpar[1][i2*ng2]))
+            return false;
+          else if ((dA = 0.25 * proj->knotSpan(0,mnpc.back() % n1)
+                              * proj->knotSpan(1,mnpc.back() / n1)) < 0.0)
+            return false; // topology error (probably logic error)
+        }
       }
-
-      int ip = (i2*ng1*nel1 + i1)*ng2;
-      IntVec lmnpc;
-      if (separateProjBasis)
-      {
-        // Establish nodal point correspondance for the projection element
-        int i, j, vidx;
-        lmnpc.reserve(phi.size());
-        vidx = (spl1[ip].left_idx[1]-p1+1)*n1 + (spl1[ip].left_idx[0]-p1+1);
-        for (j = 0; j < p2; j++, vidx += n1)
-          for (i = 0; i < p1; i++)
-            lmnpc.push_back(vidx+i);
-      }
-      const IntVec& mnpc = separateProjBasis ? lmnpc : MNPC[iel];
 
       // --- Integration loop over all Gauss points in each direction ----------
 

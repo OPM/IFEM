@@ -1123,11 +1123,8 @@ void ASMs2Dmx::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
 
 void ASMs2Dmx::swapProjectionBasis ()
 {
-  if (projB2) {
-    ASMmxBase::itgBasis = ASMmxBase::itgBasis == 1 ? 2 : 1;
+  if (projB2)
     std::swap(projB, projB2);
-    surf = this->getBasis(ASMmxBase::itgBasis);
-  }
 }
 
 
