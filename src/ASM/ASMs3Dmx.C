@@ -1239,11 +1239,8 @@ void ASMs3Dmx::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
 
 void ASMs3Dmx::swapProjectionBasis ()
 {
-  if (projB2) {
-    ASMmxBase::itgBasis = ASMmxBase::itgBasis == 1 ? 2 : 1;
+  if (projB2)
     std::swap(projB, projB2);
-    svol = this->getBasis(ASMmxBase::itgBasis);
-  }
 }
 
 
