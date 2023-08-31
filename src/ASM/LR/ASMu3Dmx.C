@@ -214,10 +214,13 @@ bool ASMu3Dmx::generateFEMTopology ()
         projB = m_basis[2-ASMmxBase::itgBasis];
     }
 
-    if (ASMmxBase::Type == ASMmxBase::SUBGRID)
+    if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
       projB2 = refB = std::make_shared<LR::LRSplineVolume>(otherBasis.get());
-    else
+      geomB = m_basis[1];
+    } else {
       refB = projB;
+      geomB = m_basis[itgBasis-1];
+    }
 
     delete tensorspline;
     tensorspline = nullptr;
@@ -279,8 +282,6 @@ bool ASMu3Dmx::generateFEMTopology ()
 #ifdef SP_DEBUG
   std::cout <<"NEL = "<< nel <<" NNOD = "<< nnod << std::endl;
 #endif
-
-  geomB = m_basis[itgBasis-1];
 
   return true;
 }
@@ -1007,10 +1008,8 @@ void ASMu3Dmx::copyRefinement (LR::LRSplineVolume* basis,
 void ASMu3Dmx::swapProjectionBasis ()
 {
   if (projB2) {
-    ASMmxBase::itgBasis = ASMmxBase::itgBasis == 1 ? 2 : 1;
     std::swap(projB, projB2);
     std::swap(projThreadGroups, proj2ThreadGroups);
-    geomB = lrspline = m_basis[ASMmxBase::itgBasis-1];
   }
 }
 
