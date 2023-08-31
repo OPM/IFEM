@@ -221,7 +221,9 @@ bool ASMs3Dmx::generateFEMTopology ()
     if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
       projB2 = ASMmxBase::raiseBasis(svol);
       geomB = m_basis[1].get();
-    } else
+    } else if (ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
+      geomB = projB;
+    else
       geomB = m_basis[itgBasis-1].get();
 
     delete svol;
