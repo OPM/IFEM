@@ -218,12 +218,15 @@ bool ASMs3Dmx::generateFEMTopology ()
         projB = m_basis[2-itgBasis].get();
     }
 
-    if (ASMmxBase::Type == ASMmxBase::SUBGRID)
+    if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
       projB2 = ASMmxBase::raiseBasis(svol);
+      geomB = m_basis[1].get();
+    } else
+      geomB = m_basis[itgBasis-1].get();
 
     delete svol;
   }
-  geomB = svol = m_basis[itgBasis-1].get();
+  svol = m_basis[itgBasis-1].get();
 
   nb.clear();
   nb.reserve(m_basis.size());
