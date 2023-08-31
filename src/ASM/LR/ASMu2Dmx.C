@@ -574,13 +574,8 @@ bool ASMu2Dmx::integrate (Integrand& integrand, int lIndex,
 
       // Compute Jacobian inverse of the coordinate mapping and
       // basis function derivatives w.r.t. Cartesian coordinates
-      fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(itgBasis),Xnod,
-                                dNxdu[itgBasis-1],t1,t2);
-      if (fe.detJxW == 0.0) continue; // skip singular points
-
-      for (size_t b = 1; b <= m_basis.size(); ++b)
-        if ((int)b != itgBasis)
-          fe.grad(b).multiply(dNxdu[b-1],Jac);
+      if (!fe.Jacobian(Jac,normal,Xnod,itgBasis,dNxdu,t1,t2))
+        continue; // skip singular points
 
       if (edgeDir < 0)
         normal *= -1.0;
@@ -631,6 +626,8 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
   const double* xg = GaussQuadrature::getCoord(nGP);
   const double* wg = GaussQuadrature::getWeight(nGP);
   if (!xg || !wg) return false;
+
+  const size_t nB = m_basis.size();
 
   Matrix   Xnod, Jac;
   Vec4     X(nullptr,time.t);
@@ -747,31 +744,18 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
             fe.v = gpar[1][g];
 
             // Evaluate basis function derivatives at current integration points
-            std::vector<Matrix> dNxdu(m_basis.size()*2);
-            for (size_t b=0; b < m_basis.size(); ++b) {
+            std::vector<Matrix> dNxdu(2*nB);
+            for (size_t b = 0; b < nB; b++) {
               Go::BasisDerivsSf spline;
               this->computeBasis(fe.u+epsu, fe.v+epsv, spline, els[b]-1, m_basis[b].get());
               SplineUtils::extractBasis(spline,fe.basis(b+1),dNxdu[b]);
               this->computeBasis(fe.u-epsu, fe.v-epsv, spline, els2[b]-1, m_basis[b].get());
-              SplineUtils::extractBasis(spline,fe.basis(b+1+m_basis.size()),
-                                        dNxdu[b+m_basis.size()]);
+              SplineUtils::extractBasis(spline,fe.basis(nB+b+1),dNxdu[nB+b]);
             }
 
-            // Compute Jacobian inverse of the coordinate mapping and
-            // basis function derivatives w.r.t. Cartesian coordinates
-            fe.detJxW = utl::Jacobian(Jac2,normal,
-                                      fe.grad(itgBasis+m_basis.size()),Xnod2,
-                                      dNxdu[itgBasis-1+m_basis.size()],t1,t2);
-            fe.detJxW = utl::Jacobian(Jac,normal,
-                                      fe.grad(itgBasis),Xnod,
-                                      dNxdu[itgBasis-1],t1,t2);
-            if (fe.detJxW == 0.0) continue; // skip singular points
-
-            for (size_t b = 1; b <= m_basis.size(); ++b)
-              if ((int)b != itgBasis) {
-                fe.grad(b).multiply(dNxdu[b-1],Jac);
-                fe.grad(b+m_basis.size()).multiply(dNxdu[b-1+m_basis.size()],Jac);
-              }
+            // Compute basis function derivatives and the edge normal
+            if (!fe.Jacobian(Jac,normal,Xnod,itgBasis,dNxdu,t1,t2,nB,&Xnod2))
+              continue; // skip singular points
 
             if (edgeDir < 0)
               normal *= -1.0;

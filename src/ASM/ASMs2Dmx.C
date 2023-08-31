@@ -691,41 +691,36 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
 
       for (int i = 0; i < nGauss && ok; i++, ip++, fe.iGP++)
       {
-        // Local element coordinates and parameter values
+          // Local element coordinates and parameter values
         // of current integration point
-	if (gpar[0].size() > 1)
-	{
+        if (gpar[0].size() > 1)
+        {
           fe.xi = xg[i];
           fe.u = param[0] = gpar[0](i+1,i1-p1+1);
-	}
-	if (gpar[1].size() > 1)
-	{
+        }
+        if (gpar[1].size() > 1)
+        {
           fe.eta = xg[i];
           fe.v = param[1] = gpar[1](i+1,i2-p2+1);
-	}
+        }
 
-	// Fetch basis function derivatives at current integration point
+        // Fetch basis function derivatives at current integration point
         for (size_t b = 0; b < m_basis.size(); ++b)
           SplineUtils::extractBasis(splinex[b][ip],fe.basis(b+1),dNxdu[b]);
 
-	// Compute Jacobian inverse of the coordinate mapping and
-	// basis function derivatives w.r.t. Cartesian coordinates
-        fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(itgBasis),Xnod,
-                                  dNxdu[itgBasis-1],t1,t2);
-        if (fe.detJxW == 0.0) continue; // skip singular points
+        // Compute Jacobian inverse of the coordinate mapping and
+        // basis function derivatives w.r.t. Cartesian coordinates
+        if (!fe.Jacobian(Jac,normal,Xnod,itgBasis,dNxdu,t1,t2))
+          continue; // skip singular points
 
-        for (size_t b = 0; b < m_basis.size(); ++b)
-          if (b != (size_t)itgBasis-1)
-            fe.grad(b+1).multiply(dNxdu[b],Jac);
+        if (edgeDir < 0) normal *= -1.0;
 
-	if (edgeDir < 0) normal *= -1.0;
+        // Cartesian coordinates of current integration point
+        X.assign(Xnod * fe.basis(itgBasis));
 
-	// Cartesian coordinates of current integration point
-    X.assign(Xnod * fe.basis(itgBasis));
-
-	// Evaluate the integrand and accumulate element contributions
-	fe.detJxW *= dS*wg[i];
-	ok = integrand.evalBouMx(*A,fe,time,X,normal);
+        // Evaluate the integrand and accumulate element contributions
+        fe.detJxW *= dS*wg[i];
+        ok = integrand.evalBouMx(*A,fe,time,X,normal);
       }
 
       // Finalize the element quantities
@@ -777,9 +772,10 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
   const int p2 = surf->order_v();
   const int n1 = surf->numCoefs_u();
   const int n2 = surf->numCoefs_v();
+  const size_t nB = m_basis.size();
 
   std::vector<size_t> elem_sizes2(elem_size);
-  std::copy(elem_size.begin(), elem_size.end(), std::back_inserter(elem_sizes2));
+  std::copy(elem_size.begin(),elem_size.end(),std::back_inserter(elem_sizes2));
 
   MxFiniteElement fe(elem_sizes2);
   Matrix        dNdu, Xnod, Jac;
@@ -877,27 +873,18 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
             }
 
             // Fetch basis function derivatives at current integration point
-            Matrices dNxdu(m_basis.size()*2);
-            for (size_t b = 0; b < m_basis.size(); ++b) {
+            Matrices dNxdu(2*nB);
+            for (size_t b = 1; b <= nB; b++) {
               Go::BasisDerivsSf spline;
-              this->getBasis(b+1)->computeBasis(fe.u, fe.v, spline, edgeDir < 0);
-              SplineUtils::extractBasis(spline, fe.basis(b+1), dNxdu[b]);
-              this->getBasis(b+1)->computeBasis(fe.u, fe.v, spline, edgeDir > 0);
-              SplineUtils::extractBasis(spline, fe.basis(b+1+m_basis.size()),
-                                        dNxdu[b+m_basis.size()]);
+              this->getBasis(b)->computeBasis(fe.u, fe.v, spline, edgeDir < 0);
+              SplineUtils::extractBasis(spline, fe.basis(b), dNxdu[b-1]);
+              this->getBasis(b)->computeBasis(fe.u, fe.v, spline, edgeDir > 0);
+              SplineUtils::extractBasis(spline, fe.basis(nB+b), dNxdu[nB+b-1]);
             }
 
             // Compute basis function derivatives and the edge normal
-            fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(itgBasis+m_basis.size()),Xnod,
-                                      dNxdu[itgBasis-1+m_basis.size()],t1,t2);
-            fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(itgBasis),Xnod,
-                                      dNxdu[itgBasis-1],t1,t2);
-            if (fe.detJxW == 0.0) continue; // skip singular points
-            for (size_t b = 0; b < m_basis.size(); ++b)
-              if (b != (size_t)itgBasis-1) {
-                fe.grad(b+1).multiply(dNxdu[b],Jac);
-                fe.grad(b+1+m_basis.size()).multiply(dNxdu[b+m_basis.size()],Jac);
-              }
+            if (!fe.Jacobian(Jac,normal,Xnod,itgBasis,dNxdu,t1,t2,nB))
+              continue; // skip singular points
 
             if (edgeDir < 0) normal *= -1.0;
 

@@ -822,13 +822,8 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
 
             // Compute Jacobian inverse of the coordinate mapping and
             // basis function derivatives w.r.t. Cartesian coordinates
-            fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(itgBasis),Xnod,
-                                      dNxdu[itgBasis-1],t1,t2);
-            if (fe.detJxW == 0.0) continue; // skip singular points
-
-            for (size_t b = 0; b < m_basis.size(); ++b)
-              if (b != (size_t)itgBasis-1)
-                fe.grad(b+1).multiply(dNxdu[b],Jac);
+            if (!fe.Jacobian(Jac,normal,Xnod,itgBasis,dNxdu,t1,t2))
+              continue; // skip singular points
 
             if (faceDir < 0) normal *= -1.0;
 
@@ -894,6 +889,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
   const int n3 = svol->numCoefs(2);
   const int nel1 = n1 - p1 + 1;
   const int nel2 = n2 - p2 + 1;
+  const size_t nB = m_basis.size();
 
   std::vector<size_t> elem_sizes2(elem_size);
   std::copy(elem_size.begin(), elem_size.end(), std::back_inserter(elem_sizes2));
@@ -1028,27 +1024,18 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
                 }
 
                 // Fetch basis function derivatives at current integration point
-                Matrices dNxdu(m_basis.size()*2);
-                for (size_t b = 0; b < m_basis.size(); ++b) {
+                Matrices dNxdu(2*nB);
+                for (size_t b = 1; b <= nB; b++) {
                   Go::BasisDerivs spline;
-                  this->getBasis(b+1)->computeBasis(fe.u, fe.v, fe.w, spline, faceDir < 0);
-                  SplineUtils::extractBasis(spline, fe.basis(b+1), dNxdu[b]);
-                  this->getBasis(b+1)->computeBasis(fe.u, fe.v, fe.w, spline, faceDir > 0);
-                  SplineUtils::extractBasis(spline, fe.basis(b+1+m_basis.size()),
-                                            dNxdu[b+m_basis.size()]);
+                  this->getBasis(b)->computeBasis(fe.u, fe.v, fe.w, spline, faceDir < 0);
+                  SplineUtils::extractBasis(spline, fe.basis(b), dNxdu[b-1]);
+                  this->getBasis(b)->computeBasis(fe.u, fe.v, fe.w, spline, faceDir > 0);
+                  SplineUtils::extractBasis(spline, fe.basis(nB+b), dNxdu[nB+b-1]);
                 }
 
               // Compute basis function derivatives and the edge normal
-              fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(itgBasis+m_basis.size()),
-                                        Xnod,dNxdu[itgBasis-1+m_basis.size()],t1,t2);
-              fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(itgBasis),Xnod,
-                                        dNxdu[itgBasis-1],t1,t2);
-              if (fe.detJxW == 0.0) continue; // skip singular points
-              for (size_t b = 0; b < m_basis.size(); ++b)
-                if (b != (size_t)itgBasis-1) {
-                  fe.grad(b+1).multiply(dNxdu[b],Jac);
-                  fe.grad(b+1+m_basis.size()).multiply(dNxdu[b+m_basis.size()],Jac);
-                }
+              if (!fe.Jacobian(Jac,normal,Xnod,itgBasis,dNxdu,t1,t2,nB))
+                continue; // skip singular points
 
               if (faceDir < 0) normal *= -1.0;
 

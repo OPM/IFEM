@@ -99,6 +99,51 @@ bool MxFiniteElement::Jacobian (Matrix& Jac, const Matrix& Xnod,
 
 
 /*!
+  If the input argument \a nBasis is half (or less than half) of the size of
+  the internal basis function value array, it is used to flag that we are doing
+  element interface terms, and the basis function values of both elements
+  sharing the interface are stored internally. If \a nBasis is zero (default),
+  it is reset to the size of the \a dNxdu argument, which will fit normal cases.
+*/
+
+bool MxFiniteElement::Jacobian (Matrix& Jac, Vec3& n,
+                                const Matrix& Xnod,
+                                unsigned short int gBasis,
+                                const std::vector<Matrix>& dNxdu,
+                                size_t t1, size_t t2, size_t nBasis,
+                                const Matrix* Xnod2)
+{
+  if (nBasis == 0) nBasis = dNxdu.size();
+  const bool separateGeometry = nBasis > this->getNoBasis();
+  if (separateGeometry) gBasis = nBasis;
+
+  Matrix dummy;
+  if (2*nBasis <= this->getNoBasis())
+  {
+    // We are are doing interface terms, evaluate for the second element first
+    detJxW = utl::Jacobian(Jac,n,this->grad(nBasis+gBasis),
+                           Xnod2 ? *Xnod2 : Xnod,
+                           dNxdu[nBasis+gBasis-1],t1,t2);
+
+    for (size_t b = 1; b <= nBasis; ++b)
+      if (b != gBasis)
+        this->grad(nBasis+b).multiply(dNxdu[nBasis+b-1],Jac);
+  }
+  else if (separateGeometry)
+    nBasis = this->getNoBasis();
+
+  Matrix& dX = separateGeometry ? dummy : this->grad(gBasis);
+  detJxW = utl::Jacobian(Jac,n,dX,Xnod,dNxdu[gBasis-1],t1,t2);
+
+  for (size_t b = 1; b <= nBasis; ++b)
+    if (b != gBasis || separateGeometry)
+      this->grad(b).multiply(dNxdu[b-1],Jac);
+
+  return detJxW != 0.0;
+}
+
+
+/*!
   This method also calculates the second-derivatives of the basis functions
   with respect to the Cartesian coordinates, using the same geometry mapping
   for all bases.
@@ -114,12 +159,11 @@ bool MxFiniteElement::Hessian (Matrix3D& Hess, const Matrix& Jac,
   const bool separateGeometry = nBasis > this->getNoBasis();
   bool ok;
   if (separateGeometry)
-    ok = Hess.multiply(Xnod, (bf ? bf->back()->d2Ndu2 : d2Nxdu2->back()));
-  else {
+    ok = Hess.multiply(Xnod, bf ? bf->back()->d2Ndu2 : d2Nxdu2->back());
+  else
     ok = utl::Hessian(Hess, this->hess(gBasis), Jac, Xnod,
                       bf ? (*bf)[gBasis-1]->d2Ndu2 : (*d2Nxdu2)[gBasis-1],
                       this->grad(gBasis));
-  }
 
   for (size_t b = 1; b <= this->getNoBasis() && ok; b++)
     if (b != gBasis || separateGeometry)
