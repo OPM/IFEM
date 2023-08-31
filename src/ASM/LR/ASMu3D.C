@@ -705,7 +705,7 @@ double ASMu3D::getParametricVolume (int iel) const
 }
 
 
-bool ASMu3D::getElementCoordinates (Matrix& X, int iel, bool) const
+bool ASMu3D::getElementCoordinates (Matrix& X, int iel, bool forceItg) const
 {
 #ifdef INDEX_CHECK
   if (iel < 1 || (size_t)iel > MNPC.size())
@@ -715,8 +715,12 @@ bool ASMu3D::getElementCoordinates (Matrix& X, int iel, bool) const
     return false;
   }
 #endif
+  const LR::LRSplineVolume* spline = this->getBasis(forceItg ? ASM::INTEGRATION_BASIS
+                                                             : ASM::GEOMETRY_BASIS);
+  if (spline != lrspline.get())
+    iel = spline->getElementContaining(lrspline->getElement(iel-1)->midpoint()) + 1;
 
-  const LR::Element* el = lrspline->getElement(iel-1);
+  const LR::Element* el = spline->getElement(iel-1);
   X.resize(3,el->nBasisFunctions());
 
   int n = 1;
