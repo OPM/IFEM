@@ -233,9 +233,11 @@ public:
   virtual void getNodalCoordinates(Matrix& X) const = 0;
   //! \brief Returns a matrix with nodal coordinates for an element.
   //! \param[in] iel 1-based element index local to current patch
+  //! \param[in] forceItg If true force returning integration basis coordinates
   //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
   //! in one element
-  virtual bool getElementCoordinates(Matrix& X, int iel) const = 0;
+  virtual bool getElementCoordinates(Matrix& X, int iel,
+                                     bool forceItg = false) const = 0;
 
   //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
   //! \param[in] lIndex Local index of the boundary face/edge

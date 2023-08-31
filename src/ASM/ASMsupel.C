@@ -197,7 +197,7 @@ void ASMsupel::getNodalCoordinates (Matrix& X) const
 }
 
 
-bool ASMsupel::getElementCoordinates (Matrix& X, int iel) const
+bool ASMsupel::getElementCoordinates (Matrix& X, int iel, bool) const
 {
   if (iel != 1)
     return false;

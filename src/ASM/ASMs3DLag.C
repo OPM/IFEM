@@ -246,7 +246,7 @@ void ASMs3DLag::setCoord (size_t inod, const Vec3& Xnod)
 }
 
 
-bool ASMs3DLag::getElementCoordinates (Matrix& X, int iel) const
+bool ASMs3DLag::getElementCoordinates (Matrix& X, int iel, bool) const
 {
   if (iel < 1 || (size_t)iel > MNPC.size())
   {

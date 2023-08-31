@@ -705,7 +705,7 @@ double ASMu3D::getParametricVolume (int iel) const
 }
 
 
-bool ASMu3D::getElementCoordinates (Matrix& X, int iel) const
+bool ASMu3D::getElementCoordinates (Matrix& X, int iel, bool) const
 {
 #ifdef INDEX_CHECK
   if (iel < 1 || (size_t)iel > MNPC.size())

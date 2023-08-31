@@ -66,7 +66,7 @@ public:
   //! \param[in] iel Element index
   //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
   //! in one element
-  virtual bool getElementCoordinates(Matrix& X, int iel) const;
+  virtual bool getElementCoordinates(Matrix& X, int iel, bool = true) const;
 
   //! \brief Returns the global coordinates for the given node.
   //! \param[in] inod 1-based node index local to current patch

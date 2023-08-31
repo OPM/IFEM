@@ -130,7 +130,7 @@ Vec3 ASMs1DLag::getCoord (size_t inod) const
 }
 
 
-bool ASMs1DLag::getElementCoordinates (Matrix& X, int iel) const
+bool ASMs1DLag::getElementCoordinates (Matrix& X, int iel, bool) const
 {
   if (iel < 1 || (size_t)iel > MNPC.size())
   {
