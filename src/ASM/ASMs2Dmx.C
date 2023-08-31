@@ -429,11 +429,15 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
 
   bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
   bool useElmVtx = integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS;
+  const bool separateGeometry = this->getBasis(ASM::GEOMETRY_BASIS) != surf;
 
   if (myCache.empty()) {
     myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this, cachePolicy, 1));
     for (size_t b = 2; b <= this->getNoBasis(); ++b)
       myCache.emplace_back(std::make_unique<BasisFunctionCache>(*myCache.front(), b));
+    if (separateGeometry)
+      myCache.emplace_back(std::make_unique<BasisFunctionCache>(*myCache.front(),
+                                                                ASM::GEOMETRY_BASIS));
   }
 
   for (std::unique_ptr<BasisFunctionCache>& cache : myCache) {
@@ -533,10 +537,11 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
             fe.v = param[1] = cache.getParam(1,i2-p2,j);
 
             // Fetch basis function derivatives at current integration point
-            std::vector<const BasisFunctionVals*> bfs(this->getNoBasis());
-            for (size_t b = 0; b < m_basis.size(); ++b) {
+            std::vector<const BasisFunctionVals*> bfs(myCache.size());
+            for (size_t b = 0; b < myCache.size(); ++b) {
               bfs[b] = &myCache[b]->getVals(iel-1, ip);
-              fe.basis(b+1) = bfs[b]->N;
+              if (b < m_basis.size())
+                fe.basis(b+1) = bfs[b]->N;
             }
 
             // Compute Jacobian inverse of the coordinate mapping and
@@ -553,7 +558,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
               utl::getGmat(Jac,dXidu,fe.G);
 
             // Cartesian coordinates of current integration point
-            X.assign(Xnod * fe.basis(itgBasis));
+            X.assign(Xnod * (separateGeometry ? bfs.back()->N : fe.basis(itgBasis)));
 
             // Evaluate the integrand and accumulate element contributions
             fe.detJxW *= dA*wg[0][i]*wg[1][j];
@@ -588,6 +593,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
   PROFILE2("ASMs2Dmx::integrate(B)");
 
   bool useElmVtx = integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS;
+  const bool separateGeometry = this->getBasis(ASM::GEOMETRY_BASIS) != surf;
 
   // Get Gaussian quadrature points and weights
   const double* xg = GaussQuadrature::getCoord(nGauss);
@@ -620,10 +626,13 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
   integrand.setNeumannOrder(1 + lIndex/10);
 
   // Evaluate basis function derivatives at all integration points
-  std::vector<std::vector<Go::BasisDerivsSf>> splinex(m_basis.size());
+  std::vector<std::vector<Go::BasisDerivsSf>> splinex(m_basis.size() + separateGeometry);
 #pragma omp parallel for schedule(static)
   for (size_t i = 0; i < m_basis.size(); ++i)
     m_basis[i]->computeBasisGrid(gpar[0],gpar[1],splinex[i]);
+
+  if (separateGeometry)
+    this->getBasis(ASM::GEOMETRY_BASIS)->computeBasisGrid(gpar[0],gpar[1],splinex.back());
 
   const int p1 = surf->order_u();
   const int p2 = surf->order_v();
@@ -639,7 +648,8 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
   fe.v = gpar[1](1,1);
   double param[3] = { fe.u, fe.v, 0.0 };
 
-  Matrices dNxdu(m_basis.size());
+  Matrices dNxdu(splinex.size());
+  Vector Ng;
   Matrix Xnod, Jac;
   Vec4   X(param,time.t);
   Vec3   normal;
@@ -704,6 +714,9 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
           fe.v = param[1] = gpar[1](i+1,i2-p2+1);
         }
 
+        if (separateGeometry)
+          SplineUtils::extractBasis(splinex.back()[ip],Ng,dNxdu.back());
+
         // Fetch basis function derivatives at current integration point
         for (size_t b = 0; b < m_basis.size(); ++b)
           SplineUtils::extractBasis(splinex[b][ip],fe.basis(b+1),dNxdu[b]);
@@ -716,7 +729,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
         if (edgeDir < 0) normal *= -1.0;
 
         // Cartesian coordinates of current integration point
-        X.assign(Xnod * fe.basis(itgBasis));
+        X.assign(Xnod * (separateGeometry ? Ng : fe.basis(itgBasis)));
 
         // Evaluate the integrand and accumulate element contributions
         fe.detJxW *= dS*wg[i];
@@ -746,6 +759,12 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
                           const ASM::InterfaceChecker& iChk)
 {
   if (!surf) return true; // silently ignore empty patches
+  if (this->getBasis(ASM::GEOMETRY_BASIS) != surf)
+  {
+    std::cerr <<" *** Jump integration not implemented for a separate geometry basis."
+              << std::endl;
+    return false;
+  }
   if (!(integrand.getIntegrandType() & Integrand::INTERFACE_TERMS))
     return true; // silently ignore if no interface terms
   else if (integrand.getIntegrandType() & Integrand::NORMAL_DERIVS)
