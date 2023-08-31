@@ -22,29 +22,30 @@ const auto check_matrix_equal = [](const Matrix& A, const DoubleVec& B)
                                       ASSERT_NEAR(A(i,j), B[i-1][j-1], 1e-13);
                                 };
 
-static MxFiniteElement getFE()
+class MyFiniteElement : public MxFiniteElement
 {
-  MxFiniteElement fe({6,6,4});
-  for (size_t i = 1; i <= 2; ++i) {
-    fe.grad(i).resize(6,2);
-    fe.basis(i).resize(6);
-    for (size_t j = 1; j <= 6; ++j) {
-      fe.grad(i)(j,1) = 1.0+12*(i-1)+2*(j-1);
-      fe.grad(i)(j,2) = 2.0+12*(i-1)+2*(j-1);
-      fe.basis(i)(j) = j + 6*(i-1);
+public:
+  MyFiniteElement() : MxFiniteElement({6,6,4})
+  {
+    for (size_t i = 1; i <= 2; ++i) {
+      this->grad(i).resize(6,2);
+      this->basis(i).resize(6);
+      for (size_t j = 1; j <= 6; ++j) {
+	this->grad(i)(j,1) = 1.0+12*(i-1)+2*(j-1);
+	this->grad(i)(j,2) = 2.0+12*(i-1)+2*(j-1);
+	this->basis(i)(j) = j + 6*(i-1);
+      }
+    }
+
+    this->grad(3).resize(4,2);
+    this->basis(3).resize(4);
+    for (size_t j = 1; j <= 4; ++j) {
+      this->grad(3)(j,1) = 1.0 + 14.0 + 2*(j-1);
+      this->grad(3)(j,2) = 2.0 + 14.0 + 2*(j-1);
+      this->basis(3)(j) = 12 + j;
     }
   }
-
-  fe.grad(3).resize(4,2);
-  fe.basis(3).resize(4);
-  for (size_t j = 1; j <= 4; ++j) {
-    fe.grad(3)(j,1) = 1.0 + 14.0 + 2*(j-1);
-    fe.grad(3)(j,2) = 2.0 + 14.0 + 2*(j-1);
-    fe.basis(3)(j) = 12 + j;
-  }
-
-  return fe;
-}
+};
 
 
 /*
@@ -118,7 +119,7 @@ TESTI(TestEqualOrderOperators, Gradient)
 
 TEST(TestCompatibleOperators, Laplacian)
 {
-  MxFiniteElement fe = getFE();
+  MyFiniteElement fe;
 
   std::vector<Matrix> EM(3);
   EM[1].resize(6,6);
@@ -174,7 +175,7 @@ TEST(TestCompatibleOperators, Laplacian)
 
 TEST(TestCompatibleOperators, Mass)
 {
-  MxFiniteElement fe = getFE();
+  MyFiniteElement fe;
 
   std::vector<Matrix> EM_vec(3);
   EM_vec[1].resize(6,6);
@@ -204,7 +205,7 @@ TEST(TestCompatibleOperators, Mass)
 
 TEST(TestCompatibleOperators, Source)
 {
-  MxFiniteElement fe = getFE();
+  MyFiniteElement fe;
 
   Vectors EV_scalar(3);
   EV_scalar[1].resize(6);

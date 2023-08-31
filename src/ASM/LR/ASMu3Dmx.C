@@ -376,6 +376,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
       {
         // --- Compute average value of basis functions over the element -----
 
+        Matrix dNdX;
         fe.Navg.resize(elem_sizes[0],true);
         double vol = 0.0;
         size_t jp = 0;
@@ -388,8 +389,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
 
               // Compute Jacobian determinant of coordinate mapping
               // and multiply by weight of current integration point
-              double detJac = utl::Jacobian(Jac,fe.grad(itgBasis),
-                                            Xnod,bfs.dNdu,false);
+              double detJac = utl::Jacobian(Jac,dNdX,Xnod,bfs.dNdu,false);
               double weight = dV*wg[0][i]*wg[1][j]*wg[2][k];
 
               // Numerical quadrature
@@ -634,13 +634,8 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
           this->evaluateBasis(iEl, fe, dNxdu[b-1], b);
 
         // Compute basis function derivatives and the face normal
-        fe.detJxW = utl::Jacobian(Jac, normal, fe.grad(itgBasis), Xnod,
-                                  dNxdu[itgBasis-1], t1, t2);
-        if (fe.detJxW == 0.0) continue; // skip singular points
-
-        for (size_t b = 1; b <= m_basis.size(); ++b)
-          if ((int)b != itgBasis)
-            fe.grad(b).multiply(dNxdu[b-1],Jac);
+        if (!fe.Jacobian(Jac,normal,Xnod,itgBasis,dNxdu,t1,t2))
+          continue; // skip singular points
 
         if (faceDir < 0) normal *= -1.0;
 

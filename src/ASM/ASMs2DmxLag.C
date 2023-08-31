@@ -415,12 +415,12 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
 
       for (int i = 0; i < nGauss && ok; i++, fe.iGP++)
       {
-	// Gauss point coordinates along the edge
-	xi[t1-1] = edgeDir < 0 ? -1.0 : 1.0;
-	xi[t2-1] = xg[i];
+        // Gauss point coordinates along the edge
+        xi[t1-1] = edgeDir < 0 ? -1.0 : 1.0;
+        xi[t2-1] = xg[i];
 
-	// Compute the basis functions and their derivatives, using
-	// tensor product of one-dimensional Lagrange polynomials
+        // Compute the basis functions and their derivatives, using
+        // tensor product of one-dimensional Lagrange polynomials
         for (size_t b = 0; b < nxx.size(); ++b)
           if (!Lagrange::computeBasis(fe.basis(b+1),dNxdu[b],
                                       elem_sizes[b][0],xi[0],
@@ -428,23 +428,18 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
             ok = false;
 
         // Compute basis function derivatives and the edge normal
-        fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(itgBasis),Xnod,
-                                  dNxdu[itgBasis-1],t1,t2);
-        if (fe.detJxW == 0.0) continue; // skip singular points
+        if (!fe.Jacobian(Jac,normal,Xnod,itgBasis,dNxdu,t1,t2))
+          continue; // skip singular points
 
-        for (size_t b = 0; b < nxx.size(); ++b)
-          if (b != (size_t)itgBasis-1)
-            fe.grad(b+1).multiply(dNxdu[b],Jac);
+        if (edgeDir < 0) normal *= -1.0;
 
-	if (edgeDir < 0) normal *= -1.0;
+        // Cartesian coordinates of current integration point
+        X.assign(Xnod * fe.basis(itgBasis));
 
-	// Cartesian coordinates of current integration point
-    X.assign(Xnod * fe.basis(itgBasis));
-
-	// Evaluate the integrand and accumulate element contributions
-	fe.detJxW *= wg[i];
-	if (ok && !integrand.evalBouMx(*A,fe,time,X,normal))
-	  ok = false;
+        // Evaluate the integrand and accumulate element contributions
+        fe.detJxW *= wg[i];
+        if (ok && !integrand.evalBouMx(*A,fe,time,X,normal))
+          ok = false;
       }
 
       // Finalize the element quantities
@@ -453,7 +448,7 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
 
       // Assembly of global system integral
       if (ok && !glInt.assemble(A->ref(),fe.iel))
-	ok = false;
+        ok = false;
 
       A->destruct();
 
