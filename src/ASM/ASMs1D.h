@@ -87,7 +87,7 @@ public:
   //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
   //! in one element
   //! \param[in] iel Element index
-  virtual bool getElementCoordinates(Matrix& X, int iel) const;
+  virtual bool getElementCoordinates(Matrix& X, int iel, bool = false) const;
 
   //! \brief Returns a matrix with nodal coordinates for an element.
   //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes

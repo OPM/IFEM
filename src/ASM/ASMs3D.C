@@ -1622,7 +1622,7 @@ Vec3 ASMs3D::getCoord (size_t inod) const
 }
 
 
-bool ASMs3D::getElementCoordinates (Matrix& X, int iel) const
+bool ASMs3D::getElementCoordinates (Matrix& X, int iel, bool) const
 {
 #ifdef INDEX_CHECK
   if (iel < 1 || (size_t)iel > MNPC.size())

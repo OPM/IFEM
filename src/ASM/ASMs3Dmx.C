@@ -391,7 +391,7 @@ void ASMs3Dmx::closeBoundaries (int dir, int, int)
 }
 
 
-bool ASMs3Dmx::getElementCoordinates (Matrix& X, int iel) const
+bool ASMs3Dmx::getElementCoordinates (Matrix& X, int iel, bool) const
 {
 #ifdef INDEX_CHECK
   if (iel < 1 || (size_t)iel > MNPC.size())

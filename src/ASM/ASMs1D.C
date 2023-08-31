@@ -652,7 +652,7 @@ Tensor ASMs1D::getRotation (size_t inod) const
 }
 
 
-bool ASMs1D::getElementCoordinates (Matrix& X, int iel) const
+bool ASMs1D::getElementCoordinates (Matrix& X, int iel, bool) const
 {
   return this->getElementCoordinates(X,iel,MNPC,curv);
 }

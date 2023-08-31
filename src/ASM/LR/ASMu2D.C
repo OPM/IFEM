@@ -974,7 +974,7 @@ bool ASMu2D::getCoordinates (Matrix& X, unsigned char nsd,
 }
 
 
-bool ASMu2D::getElementCoordinates (Matrix& X, int iel) const
+bool ASMu2D::getElementCoordinates (Matrix& X, int iel, bool) const
 {
 #ifdef INDEX_CHECK
   if (iel < 1 || iel > lrspline->nElements())
@@ -1909,7 +1909,7 @@ int ASMu2D::evalPoint (int iel, const double* param, Vec3& X) const
     return -1;
 
   Matrix Xnod;
-  if (!this->getElementCoordinates(Xnod,1+iel))
+  if (!this->getElementCoordinates(Xnod,1+iel,true))
     return -1;
 
   X = Xnod * fe.N;
