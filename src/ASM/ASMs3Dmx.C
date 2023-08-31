@@ -391,43 +391,6 @@ void ASMs3Dmx::closeBoundaries (int dir, int, int)
 }
 
 
-bool ASMs3Dmx::getElementCoordinates (Matrix& X, int iel, bool) const
-{
-#ifdef INDEX_CHECK
-  if (iel < 1 || (size_t)iel > MNPC.size())
-  {
-    std::cerr <<" *** ASMs3Dmx::getElementCoordinates: Element index "<< iel
-	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
-    return false;
-  }
-#endif
-
-  size_t nenod = svol->order(0)*svol->order(1)*svol->order(2);
-  size_t lnod0 = 0;
-  for (int i = 1; i < itgBasis; ++i)
-    lnod0 += m_basis[i-1]->order(0)*m_basis[i-1]->order(1)*m_basis[i-1]->order(2);
-
-  X.resize(3,nenod);
-  const IntVec& mnpc = MNPC[iel-1];
-
-  RealArray::const_iterator cit = svol->coefs_begin();
-  for (size_t n = 0; n < nenod; n++)
-  {
-    int iI = nodeInd[mnpc[lnod0+n]].I;
-    int iJ = nodeInd[mnpc[lnod0+n]].J;
-    int iK = nodeInd[mnpc[lnod0+n]].K;
-    int ip = ((iK*svol->numCoefs(1)+ iJ)*svol->numCoefs(0)+ iI)*svol->dimension();
-    for (size_t i = 0; i < 3; i++)
-      X(i+1,n+1) = *(cit+(ip+i));
-  }
-
-#if SP_DEBUG > 2
-  std::cout <<"\nCoordinates for element "<< iel << X << std::endl;
-#endif
-  return true;
-}
-
-
 Vec3 ASMs3Dmx::getCoord (size_t inod) const
 {
   if (inod > nodeInd.size() && inod <= MLGN.size())
