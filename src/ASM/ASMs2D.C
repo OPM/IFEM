@@ -1359,19 +1359,64 @@ bool ASMs2D::getElementCoordinates (Matrix& X, int iel) const
   if (iel < 1 || (size_t)iel > MNPC.size())
   {
     std::cerr <<" *** ASMs2D::getElementCoordinates: Element index "<< iel
-	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
+              <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
     return false;
   }
 #endif
 
-  X.resize(nsd,surf->order_u()*surf->order_v());
+  const Go::SplineSurface* geo = this->getBasis(ASM::GEOMETRY_BASIS);
 
   int lnod0 = this->getFirstItgElmNode();
-  RealArray::const_iterator cit = surf->coefs_begin();
+  if (geo != surf) {
+    const IJ& nIdx = nodeInd[MNPC[iel-1][lnod0]];
+    double u = surf->basis_u().getKnots()[nIdx.I + surf->order_u() - 1];
+    double v = surf->basis_v().getKnots()[nIdx.J + surf->order_v() - 1];
+    return this->getElementCoordinatesPrm(X,u,v);
+  }
+
+  X.resize(nsd,geo->order_u()*geo->order_v());
+
+  RealArray::const_iterator cit = geo->coefs_begin();
   for (size_t n = 0; n < X.cols(); n++)
   {
     int ip = this->coeffInd(MNPC[iel-1][n + lnod0])*surf->dimension();
     if (ip < 0) return false;
+
+    for (size_t i = 0; i < nsd; i++)
+      X(i+1,n+1) = *(cit+(ip+i));
+  }
+
+#if SP_DEBUG > 2
+  std::cout <<"\nCoordinates for element "<< iel << X << std::endl;
+#endif
+  return true;
+}
+
+
+bool ASMs2D::getElementCoordinatesPrm (Matrix& X, double u, double v) const
+{
+  const Go::SplineSurface* geo = this->getBasis(ASM::GEOMETRY_BASIS);
+  X.resize(nsd,geo->order_u()*geo->order_v());
+
+  if (u < geo->startparam_u() ||
+      u > geo->endparam_u() ||
+      v < geo->startparam_v() ||
+      v > geo->endparam_v())
+    return false;
+
+  int ni, nj;
+#pragma omp critical
+  {
+    ni = geo->basis_u().knotInterval(u) - geo->order_u() + 1;
+    nj = geo->basis_v().knotInterval(v) - geo->order_v() + 1;
+  }
+
+  RealArray::const_iterator cit = geo->coefs_begin();
+  for (size_t n = 0; n < X.cols(); n++)
+  {
+    const int iu = n % geo->order_u();
+    const int iv = n / geo->order_u();
+    const int ip = (ni + iu + (nj + iv)*geo->numCoefs_u())*geo->dimension();
 
     for (size_t i = 0; i < nsd; i++)
       X(i+1,n+1) = *(cit+(ip+i));
