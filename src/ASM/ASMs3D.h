@@ -256,7 +256,8 @@ public:
   //! \param[in] iel Element index
   //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
   //! in one element
-  virtual bool getElementCoordinates(Matrix& X, int iel, bool = false) const;
+  //! \param[in] forceItg If true return integration basis element coordinates
+  virtual bool getElementCoordinates(Matrix& X, int iel, bool forceItg = false) const;
 
   //! \brief Returns a matrix with all nodal coordinates within the patch.
   //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
@@ -700,6 +701,13 @@ protected:
   //! \param[out] prm Parameter values in given direction for all points
   //! \param[in] dir Parameter direction (0,1,2)
   bool getQuasiInterplParameters(RealArray& prm, int dir) const;
+
+  //! \brief Returns a matrix with nodal coordinates for element spanning given parameters.
+  //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
+  //! \param[in] u First parameter of point
+  //! \param[in] v Second parameter of point
+  //! \param[in] w Third parameter of point
+  bool getElementCoordinatesPrm(Matrix& X, double u, double v, double w) const;
 
   //! \brief Returns the volume in the parameter space for an element.
   //! \param[in] iel Element index

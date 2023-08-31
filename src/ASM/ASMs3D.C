@@ -1622,21 +1622,31 @@ Vec3 ASMs3D::getCoord (size_t inod) const
 }
 
 
-bool ASMs3D::getElementCoordinates (Matrix& X, int iel, bool) const
+bool ASMs3D::getElementCoordinates (Matrix& X, int iel, bool forceItg) const
 {
 #ifdef INDEX_CHECK
   if (iel < 1 || (size_t)iel > MNPC.size())
   {
     std::cerr <<" *** ASMs3D::getElementCoordinates: Element index "<< iel
-	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
+              <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
     return false;
   }
 #endif
 
-  X.resize(3,svol->order(0)*svol->order(1)*svol->order(2));
-  int lnod0 = this->getFirstItgElmNode();
+  const Go::SplineVolume* geo = forceItg ? svol : this->getBasis(ASM::GEOMETRY_BASIS);
 
-  RealArray::const_iterator cit = svol->coefs_begin();
+  int lnod0 = this->getFirstItgElmNode();
+  if (geo != svol) {
+    const IJK& nIdx = nodeInd[MNPC[iel-1][lnod0]];
+    double u = *(svol->basis(0).begin() + nIdx.I + svol->order(0) - 1);
+    double v = *(svol->basis(1).begin() + nIdx.J + svol->order(1) - 1);
+    double w = *(svol->basis(2).begin() + nIdx.K + svol->order(2) - 1);
+    return this->getElementCoordinatesPrm(X,u,v,w);
+  }
+
+  X.resize(3,geo->order(0)*geo->order(1)*geo->order(2));
+
+  RealArray::const_iterator cit = geo->coefs_begin();
   for (size_t n = 0; n < X.cols(); n++)
   {
     int ip = this->coeffInd(MNPC[iel-1][n + lnod0])*svol->dimension();
@@ -1648,6 +1658,45 @@ bool ASMs3D::getElementCoordinates (Matrix& X, int iel, bool) const
 
 #if SP_DEBUG > 2
   std::cout <<"\nCoordinates for element "<< iel << X << std::endl;
+#endif
+  return true;
+}
+
+
+bool ASMs3D::getElementCoordinatesPrm (Matrix& X, double u,
+                                       double v, double w) const
+{
+  const Go::SplineVolume* geo = this->getBasis(ASM::GEOMETRY_BASIS);
+
+  if (u < geo->startparam(0) || u > geo->endparam(0) ||
+      v < geo->startparam(1) || v > geo->endparam(1) ||
+      w < geo->startparam(2) || w > geo->endparam(2))
+    return false;
+
+  int ni, nj, nk;
+#pragma omp critical
+  {
+    ni = geo->basis(0).knotInterval(u) - geo->order(0) + 1;
+    nj = geo->basis(1).knotInterval(v) - geo->order(1) + 1;
+    nk = geo->basis(2).knotInterval(w) - geo->order(2) + 1;
+  }
+
+  X.resize(3,geo->order(0)*geo->order(1)*geo->order(2));
+  RealArray::const_iterator cit = geo->coefs_begin();
+  for (size_t n = 0; n < X.cols(); n++)
+  {
+    const int iu = n % geo->order(0);
+    const int iv = (n / geo->order(0)) % geo->order(1);
+    const int iw = n / (geo->order(0) * geo->order(1));
+    const int ip = (ni + iu + ((nk + iw)*geo->numCoefs(1) + (nj + iv))*geo->numCoefs(0))*geo->dimension();
+
+    for (size_t i = 0; i < 3; i++)
+      X(i+1,n+1) = *(cit+(ip+i));
+  }
+
+#if SP_DEBUG > 2
+  std::cout <<"\nCoordinates for element containing parameters ("
+            << u <<"," << v << "," << w <<"):" << X << std::endl;
 #endif
   return true;
 }

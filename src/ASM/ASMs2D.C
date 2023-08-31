@@ -1396,7 +1396,6 @@ bool ASMs2D::getElementCoordinates (Matrix& X, int iel, bool forceItg) const
 bool ASMs2D::getElementCoordinatesPrm (Matrix& X, double u, double v) const
 {
   const Go::SplineSurface* geo = this->getBasis(ASM::GEOMETRY_BASIS);
-  X.resize(nsd,geo->order_u()*geo->order_v());
 
   if (u < geo->startparam_u() ||
       u > geo->endparam_u() ||
@@ -1411,6 +1410,7 @@ bool ASMs2D::getElementCoordinatesPrm (Matrix& X, double u, double v) const
     nj = geo->basis_v().knotInterval(v) - geo->order_v() + 1;
   }
 
+  X.resize(nsd,geo->order_u()*geo->order_v());
   RealArray::const_iterator cit = geo->coefs_begin();
   for (size_t n = 0; n < X.cols(); n++)
   {
