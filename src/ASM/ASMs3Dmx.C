@@ -193,7 +193,7 @@ bool ASMs3Dmx::injectNodeVec (const RealArray& nodeRes, RealArray& globRes,
 
 
 bool ASMs3Dmx::getSolution (Matrix& sField, const Vector& locSol,
-			    const IntVec& nodes) const
+                            const IntVec& nodes) const
 {
   return this->getSolutionMx(sField,locSol,nodes);
 }
@@ -241,9 +241,9 @@ bool ASMs3Dmx::generateFEMTopology ()
       return true;
 
     std::cerr <<" *** ASMs3Dmx::generateFEMTopology: Inconsistency between the"
-	      <<" number of FE nodes "<< nodeInd.size()
-	      <<"\n     and the number of spline coefficients "<< nnod
-	      <<" in the patch."<< std::endl;
+              <<" number of FE nodes "<< nodeInd.size()
+              <<"\n     and the number of spline coefficients "<< nnod
+              <<" in the patch."<< std::endl;
     return false;
   }
   else if (shareFE == 'F')
@@ -443,8 +443,8 @@ bool ASMs3Dmx::getSize (int& n1, int& n2, int& n3, int basis) const
 
 
 bool ASMs3Dmx::integrate (Integrand& integrand,
-			  GlobalIntegral& glInt,
-			  const TimeDomain& time)
+                          GlobalIntegral& glInt,
+                          const TimeDomain& time)
 {
   if (!svol) return true; // silently ignore empty patches
 
@@ -615,8 +615,8 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
 
 
 bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
-			  GlobalIntegral& glInt,
-			  const TimeDomain& time)
+                          GlobalIntegral& glInt,
+                          const TimeDomain& time)
 {
   if (!svol) return true; // silently ignore empty patches
 
@@ -717,17 +717,17 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
         int i2 = p2 + (iel / nel1) % nel2;
         int i3 = p3 + iel / (nel1*nel2);
 
-	// Get element face area in the parameter space
-	double dA = 0.25*this->getParametricArea(++iel,abs(faceDir));
-	if (dA < 0.0) // topology error (probably logic error)
-	{
+        // Get element face area in the parameter space
+        double dA = 0.25*this->getParametricArea(++iel,abs(faceDir));
+        if (dA < 0.0) // topology error (probably logic error)
+        {
           ok = false;
           break;
         }
 
-	// Set up control point coordinates for current element
-	if (!this->getElementCoordinates(Xnod,iel))
-	{
+        // Set up control point coordinates for current element
+        if (!this->getElementCoordinates(Xnod,iel))
+        {
           ok = false;
           break;
         }
@@ -735,9 +735,9 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
         if (useElmVtx)
           fe.h = this->getElementCorners(i1-1,i2-1,i3-1,fe.XC);
 
-	// Initialize element quantities
+        // Initialize element quantities
         LocalIntegral* A = integrand.getLocalIntegral(elem_size,fe.iel,true);
-	if (!integrand.initElementBou(MNPC[iel-1],elem_size,nb,*A))
+        if (!integrand.initElementBou(MNPC[iel-1],elem_size,nb,*A))
         {
           A->destruct();
           ok = false;
@@ -755,7 +755,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
         }
 
 
-	// --- Integration loop over all Gauss points in each direction --------
+        // --- Integration loop over all Gauss points in each direction --------
 
         int k1, k2, k3;
         int ip = (j2*nGauss*nf1 + j1)*nGauss;
@@ -817,8 +817,8 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
         if (ok && !integrand.finalizeElementBou(*A,fe,time))
           ok = false;
 
-	// Assembly of global system integral
-	if (ok && !glInt.assemble(A->ref(),fe.iel))
+        // Assembly of global system integral
+        if (ok && !glInt.assemble(A->ref(),fe.iel))
           ok = false;
 
         A->destruct();
@@ -1132,7 +1132,7 @@ bool ASMs3Dmx::evalSolution (Matrix& sField, const Vector& locSol,
 
 
 bool ASMs3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
-			     const RealArray* gpar, bool regular) const
+                             const RealArray* gpar, bool regular) const
 {
   sField.resize(0,0);
 
