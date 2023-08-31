@@ -601,8 +601,10 @@ protected:
   //! \param[in] nGauss Number of Gauss points along a knot-span
   //! \param[in] iel 1-based element index
   //! \param[in] xi Dimensionless Gauss point coordinates [-1,1]
+  //! \param[in] spline If given get gauss points for this spline instead of integration basis
   void getGaussPointParameters(RealArray& uGP, int dir, int nGauss,
-                               int iel, const double* xi) const;
+                               int iel, const double* xi,
+                               const LR::LRSplineVolume* spline = nullptr) const;
 
   //! \brief Calculates parameter values for the Greville points.
   //! \param[out] prm Parameter values in given direction for all points

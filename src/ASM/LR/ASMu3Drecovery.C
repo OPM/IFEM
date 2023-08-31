@@ -110,9 +110,9 @@ bool ASMu3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
 {
   size_t nnod = this->getNoProjectionNodes();
 
-  const LR::LRSplineVolume* itg = this->getBasis(ASM::INTEGRATION_BASIS);
+  const LR::LRSplineVolume* geo = this->getBasis(ASM::GEOMETRY_BASIS);
   const LR::LRSplineVolume* proj = this->getBasis(ASM::PROJECTION_BASIS);
-  const bool separateProjBasis = proj != itg;
+  const bool separateProjBasis = proj != geo;
   const bool useModelMNPC = !separateProjBasis && this->getNoBasis() == 1;
 
   const int p1 = proj->order(0);
@@ -157,7 +157,8 @@ bool ASMu3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
       Go::BasisDerivs spl2;
       int ielp = group[t][e];
       const LR::Element* elm = proj->getElement(ielp);
-      int iel = lrspline->getElementContaining(elm->midpoint())+1;
+      int iel = lrspline->getElementContaining(elm->midpoint()) + 1;
+      int ielG = geo->getElementContaining(elm->midpoint()) + 1;
 
       if (continuous)
       {
@@ -165,17 +166,17 @@ bool ASMu3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
         if (!this->getElementCoordinates(Xnod,iel)) {
           ok = false;
           continue;
-        } else if ((dV = 0.125*this->getParametricVolume(iel)) < 0.0) {
-          ok = false; // topology error (probably logic error)
+        } else if ((dV = 0.125*elm->volume()) < 0.0) {
+          ok = false;
           continue;
         }
       }
 
       // Compute parameter values of the Gauss points over this element
       std::array<RealArray,3> gpar, unstrGpar;
-      this->getGaussPointParameters(gpar[0],0,ng1,iel,xg);
-      this->getGaussPointParameters(gpar[1],1,ng2,iel,yg);
-      this->getGaussPointParameters(gpar[2],2,ng3,iel,zg);
+      this->getGaussPointParameters(gpar[0],0,ng1,ielp+1,xg,proj);
+      this->getGaussPointParameters(gpar[1],1,ng2,ielp+1,yg,proj);
+      this->getGaussPointParameters(gpar[2],2,ng3,ielp+1,zg,proj);
       expandTensorGrid(gpar.data(),unstrGpar.data());
 
       // Evaluate the secondary solution at all integration points
@@ -200,7 +201,7 @@ bool ASMu3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
           {
             if (continuous)
             {
-              itg->computeBasis(gpar[0][i],gpar[1][j],gpar[2][k],spl2,iel-1);
+              geo->computeBasis(gpar[0][i],gpar[1][j],gpar[2][k],spl2,ielG-1);
               SplineUtils::extractBasis(spl2,phi,dNdu);
             }
 

@@ -791,9 +791,13 @@ size_t ASMu3D::getNoBoundaryElms (char lIndex, char ldim) const
 
 
 void ASMu3D::getGaussPointParameters (RealArray& uGP, int dir, int nGauss,
-                                      int iEl, const double* xi) const
+                                      int iEl, const double* xi,
+                                      const LR::LRSplineVolume* spline) const
 {
-  const LR::Element* el = lrspline->getElement(iEl-1);
+  if (!spline)
+    spline = lrspline.get();
+
+  const LR::Element* el = spline->getElement(iEl-1);
   double start = el->getParmin(dir);
   double stop  = el->getParmax(dir);
 
