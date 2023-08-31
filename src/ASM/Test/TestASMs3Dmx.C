@@ -471,7 +471,7 @@ TEST(TestASMs3Dmx, WriteSG)
 
   str.str("");
   EXPECT_TRUE(pch1.write(str, ASM::GEOMETRY_BASIS));
-  EXPECT_EQ(str.str(), cubeTH_p);
+  EXPECT_EQ(str.str(), ASMCube::cube);
 
   str.str("");
   EXPECT_TRUE(pch1.write(str, ASM::PROJECTION_BASIS));
