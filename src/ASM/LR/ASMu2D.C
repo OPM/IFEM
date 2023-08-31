@@ -974,7 +974,7 @@ bool ASMu2D::getCoordinates (Matrix& X, unsigned char nsd,
 }
 
 
-bool ASMu2D::getElementCoordinates (Matrix& X, int iel, bool) const
+bool ASMu2D::getElementCoordinates (Matrix& X, int iel, bool forceItg) const
 {
 #ifdef INDEX_CHECK
   if (iel < 1 || iel > lrspline->nElements())
@@ -984,7 +984,12 @@ bool ASMu2D::getElementCoordinates (Matrix& X, int iel, bool) const
     return false;
   }
 #endif
-  bool status = this->getCoordinates(X,nsd,*lrspline,iel);
+  const LR::LRSplineSurface* spline = this->getBasis(forceItg ? ASM::INTEGRATION_BASIS
+                                                              : ASM::GEOMETRY_BASIS);
+  if (spline != lrspline.get())
+    iel = spline->getElementContaining(lrspline->getElement(iel-1)->midpoint()) + 1;
+
+  bool status = this->getCoordinates(X,nsd,*spline,iel);
 #if SP_DEBUG > 2
   std::cout <<"\nCoordinates for element "<< iel << X << std::endl;
 #endif
