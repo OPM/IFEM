@@ -1949,12 +1949,16 @@ bool ASMs3D::getParameterDomain (Real2DMat& u, IntVec* corners) const
 
 
 const Vector& ASMs3D::getGaussPointParameters (Matrix& uGP, int dir, int nGauss,
-					       const double* xi) const
+                                               const double* xi,
+                                               const Go::SplineVolume* spline) const
 {
-  int pm1 = svol->order(dir) - 1;
-  RealArray::const_iterator uit = svol->basis(dir).begin() + pm1;
+  if (!spline)
+    spline = svol;
 
-  int nCol = svol->numCoefs(dir) - pm1;
+  int pm1 = spline->order(dir) - 1;
+  RealArray::const_iterator uit = spline->basis(dir).begin() + pm1;
+
+  int nCol = spline->numCoefs(dir) - pm1;
   uGP.resize(nGauss,nCol);
 
   double uprev = *(uit++);

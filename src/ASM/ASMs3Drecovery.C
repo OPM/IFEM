@@ -166,21 +166,19 @@ bool ASMs3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
 {
   const size_t nnod = this->getNoProjectionNodes();
 
-  const Go::SplineVolume* itg = this->getBasis(ASM::INTEGRATION_BASIS);
+  const Go::SplineVolume* geo = this->getBasis(ASM::GEOMETRY_BASIS);
   const Go::SplineVolume* proj = this->getBasis(ASM::PROJECTION_BASIS);
-  const bool separateProjBasis = proj != itg;
+  const bool separateProjBasis = proj != geo;
+  const bool singleBasis = !separateProjBasis && this->getNoBasis() == 1;
 
-  const int g1 = itg->order(0);
-  const int g2 = itg->order(1);
-  const int g3 = itg->order(2);
   const int p1 = proj->order(0);
   const int p2 = proj->order(1);
   const int p3 = proj->order(2);
   const int n1 = proj->numCoefs(0);
   const int n2 = proj->numCoefs(1);
-  const int nel1 = itg->numCoefs(0) - g1 + 1;
-  const int nel2 = itg->numCoefs(1) - g2 + 1;
-  const int nel3 = itg->numCoefs(2) - g3 + 1;
+  const int nel1 = proj->numCoefs(0) - p1 + 1;
+  const int nel2 = proj->numCoefs(1) - p2 + 1;
+  const int nel3 = proj->numCoefs(2) - p3 + 1;
 
   int pmax = p1 > p2 ? p1 : p2;
   if (pmax < p3) pmax = p3;
@@ -199,15 +197,15 @@ bool ASMs3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
   // Compute parameter values of the Gauss points over the whole patch
   Matrix gp;
   std::array<RealArray,3> gpar;
-  gpar[0] = this->getGaussPointParameters(gp,0,ng1,xg);
-  gpar[1] = this->getGaussPointParameters(gp,1,ng2,yg);
-  gpar[2] = this->getGaussPointParameters(gp,2,ng3,zg);
+  gpar[0] = this->getGaussPointParameters(gp,0,ng1,xg,proj);
+  gpar[1] = this->getGaussPointParameters(gp,1,ng2,yg,proj);
+  gpar[2] = this->getGaussPointParameters(gp,2,ng3,zg,proj);
 
   // Evaluate basis functions at all integration points
   std::vector<Go::BasisPts>    spl1;
   std::vector<Go::BasisDerivs> spl2;
   if (continuous)
-    itg->computeBasisGrid(gpar[0],gpar[1],gpar[2],spl2);
+    geo->computeBasisGrid(gpar[0],gpar[1],gpar[2],spl2);
 
   if (!continuous || separateProjBasis)
     proj->computeBasisGrid(gpar[0],gpar[1],gpar[2],spl1);
@@ -223,7 +221,7 @@ bool ASMs3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
   }
 
   double dV = 1.0;
-  Vector phi(p1*p2*p3), phi2(g1*g2*g3);
+  Vector phi(p1*p2*p3);
   Matrix dNdu, Xnod, J;
 
 
@@ -234,34 +232,51 @@ bool ASMs3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
     for (int i2 = 0; i2 < nel2; i2++)
       for (int i1 = 0; i1 < nel1; i1++, iel++)
       {
-        if (MLGE[iel] < 1) continue; // zero-volume element
+        int ip = ((i3*ng2*nel2 + i2)*ng1*nel1 + i1)*ng3;
+        IntVec lmnpc;
+        if (!singleBasis && proj->knotSpan(0,i1+p1-1) > 0.0 &&
+                            proj->knotSpan(1,i2+p2-1) > 0.0 &&
+                            proj->knotSpan(2,i3+p3-1) > 0.0)
+        {
+          // Establish nodal point correspondance for the projection element
+          int vidx, widx;
+          lmnpc.reserve(phi.size());
+          if (separateProjBasis)
+            widx = ((spl1[ip].left_idx[2]-p3+1)*n1*n2 +
+                    (spl1[ip].left_idx[1]-p2+1)*n1    +
+                    (spl1[ip].left_idx[0]-p1+1));
+          else
+            widx = ((spl2[ip].left_idx[2]-p3+1)*n1*n2 +
+                    (spl2[ip].left_idx[1]-p2+1)*n1    +
+                    (spl2[ip].left_idx[0]-p1+1));
+
+          for (int k = 0; k < p3; k++, widx += n1*n2)
+            for (int j = vidx = 0; j < p2; j++, vidx += n1)
+              for (int i = 0; i < p1; i++)
+                lmnpc.push_back(widx+vidx+i);
+        }
+        const IntVec& mnpc = singleBasis ? MNPC[iel] : lmnpc;
+        if (mnpc.empty())
+          continue;
 
         if (continuous)
         {
           // Set up control point (nodal) coordinates for current element
-          if (!this->getElementCoordinates(Xnod,1+iel))
-            return false;
-          else if ((dV = 0.125*this->getParametricVolume(1+iel)) < 0.0)
-            return false; // topology error (probably logic error)
+          if (singleBasis) {
+            if (!this->getElementCoordinates(Xnod,1+iel))
+              return false;
+            else if ((dV = 0.125*this->getParametricVolume(1+iel)) < 0.0)
+              return false; // topology error (probably logic error)
+          } else {
+            if (!this->getElementCoordinatesPrm(Xnod,gpar[0][i1*ng1],
+                                                gpar[1][i2*ng2],gpar[2][i3*ng3]))
+              return false;
+            else if ((dV = 0.125 * proj->knotSpan(0, mnpc.back() % n1)
+                                 * proj->knotSpan(1,(mnpc.back() / n1) % n2)
+                                 * proj->knotSpan(2, mnpc.back() / (n1*n2))) < 0.0)
+              return false;
+          }
         }
-
-        int ip = ((i3*ng2*nel2 + i2)*ng1*nel1 + i1)*ng3;
-        IntVec lmnpc;
-        if (separateProjBasis)
-        {
-          // Establish nodal point correspondance for the projection element
-          int i, j, k, vidx, widx;
-          lmnpc.reserve(phi.size());
-          widx = ((spl1[ip].left_idx[2]-p3+1)*n1*n2 +
-                  (spl1[ip].left_idx[1]-p2+1)*n1    +
-                  (spl1[ip].left_idx[0]-p1+1));
-
-          for (k = 0; k < p3; k++, widx += n1*n2)
-            for (j = vidx = 0; j < p2; j++, vidx += n1)
-              for (i = 0; i < p1; i++)
-                lmnpc.push_back(widx+vidx+i);
-        }
-        const IntVec& mnpc = separateProjBasis ? lmnpc : MNPC[iel];
 
         // --- Integration loop over all Gauss points in each direction --------
 
