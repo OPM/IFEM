@@ -503,7 +503,7 @@ TEST(TestASMu3Dmx, WriteRT)
 
   str.str("");
   EXPECT_TRUE(pch1.write(str, ASM::GEOMETRY_BASIS));
-  EXPECT_EQ(str.str(), ASMuCube::cube);
+  EXPECT_EQ(str.str(), cubeFRTH_1);
 
   str.str("");
   EXPECT_TRUE(pch1.write(str, ASM::PROJECTION_BASIS));

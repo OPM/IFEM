@@ -217,7 +217,9 @@ bool ASMu3Dmx::generateFEMTopology ()
     if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
       projB2 = refB = std::make_shared<LR::LRSplineVolume>(otherBasis.get());
       geomB = m_basis[1];
-    } else {
+    } else if (ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
+      geomB = refB = projB;
+    else {
       refB = projB;
       geomB = m_basis[itgBasis-1];
     }
