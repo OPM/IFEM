@@ -226,7 +226,9 @@ bool ASMu2Dmx::generateFEMTopology ()
     if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
       projB2 = refB = createLR(*otherBasis);
       geomB = m_basis[1];
-    } else {
+    } else if (ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
+      geomB = refB = projB;
+    else {
       refB = projB;
       geomB = m_basis[itgBasis-1];
     }
