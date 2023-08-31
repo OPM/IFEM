@@ -195,7 +195,7 @@ bool ASMs2Dmx::injectNodeVec (const RealArray& nodeRes, RealArray& globRes,
 
 
 bool ASMs2Dmx::getSolution (Matrix& sField, const Vector& locSol,
-			    const IntVec& nodes) const
+                            const IntVec& nodes) const
 {
   return this->getSolutionMx(sField,locSol,nodes);
 }
@@ -243,9 +243,9 @@ bool ASMs2Dmx::generateFEMTopology ()
       return true;
 
     std::cerr <<" *** ASMs2Dmx::generateFEMTopology: Inconsistency between the"
-	      <<" number of FE nodes "<< nodeInd.size()
-	      <<"\n     and the number of spline coefficients "<< nnod
-	      <<" in the patch."<< std::endl;
+              <<" number of FE nodes "<< nodeInd.size()
+              <<"\n     and the number of spline coefficients "<< nnod
+              <<" in the patch."<< std::endl;
     return false;
   }
   else if (shareFE == 'F')
@@ -420,8 +420,8 @@ bool ASMs2Dmx::getSize (int& n1, int& n2, int basis) const
 
 
 bool ASMs2Dmx::integrate (Integrand& integrand,
-			  GlobalIntegral& glInt,
-			  const TimeDomain& time)
+                          GlobalIntegral& glInt,
+                          const TimeDomain& time)
 {
   if (!surf) return true; // silently ignore empty patches
 
@@ -585,8 +585,8 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
 
 
 bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
-			  GlobalIntegral& glInt,
-			  const TimeDomain& time)
+                          GlobalIntegral& glInt,
+                          const TimeDomain& time)
 {
   if (!surf) return true; // silently ignore empty patches
 
@@ -671,12 +671,12 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
       // Skip elements that are not on current boundary edge
       bool skipMe = false;
       switch (edgeDir)
-	{
-	case -1: if (i1 > p1) skipMe = true; break;
-	case  1: if (i1 < n1) skipMe = true; break;
-	case -2: if (i2 > p2) skipMe = true; break;
-	case  2: if (i2 < n2) skipMe = true; break;
-	}
+      {
+        case -1: if (i1 > p1) skipMe = true; break;
+        case  1: if (i1 < n1) skipMe = true; break;
+        case -2: if (i2 > p2) skipMe = true; break;
+        case  2: if (i2 < n2) skipMe = true; break;
+      }
       if (skipMe) continue;
 
       // Get element edge length in the parameter space
@@ -1016,7 +1016,7 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const Vector& locSol,
 
 
 bool ASMs2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
-			     const RealArray* gpar, bool regular) const
+                             const RealArray* gpar, bool regular) const
 {
   sField.resize(0,0);
 
