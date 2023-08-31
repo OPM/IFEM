@@ -638,6 +638,12 @@ protected:
   //! \param[in] dir Local index of the boundary edge
   double getParametricLength(int iel, int dir) const;
 
+  //! \brief Returns a matrix with nodal coordinates for element containing given parameters.
+  //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
+  //! \param[in] u First parameter of point
+  //! \param[in] v Second parameter of point
+  bool getElementCoordinatesPrm(Matrix& X, double u, double v) const;
+
   //! \brief Computes the element border parameters.
   //! \param[in] i1 Parameter index in u-direction
   //! \param[in] i2 Parameter index in v-direction
