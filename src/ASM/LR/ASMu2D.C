@@ -1037,9 +1037,12 @@ size_t ASMu2D::getNoBoundaryElms (char lIndex, char ldim) const
 
 
 void ASMu2D::getGaussPointParameters (RealArray& uGP, int dir, int nGauss,
-                                      int iel, const double* xi) const
+                                      int iel, const double* xi,
+                                      const LR::LRSplineSurface* spline) const
 {
-  LR::getGaussPointParameters(lrspline.get(), uGP, dir, nGauss, iel, xi);
+  if (!spline)
+    spline = lrspline.get();
+  LR::getGaussPointParameters(spline, uGP, dir, nGauss, iel, xi);
 }
 
 

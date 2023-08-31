@@ -108,9 +108,9 @@ bool ASMu2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
 {
   size_t nnod = this->getNoProjectionNodes();
 
-  const LR::LRSplineSurface* itg = this->getBasis(ASM::INTEGRATION_BASIS);
+  const LR::LRSplineSurface* geo = this->getBasis(ASM::GEOMETRY_BASIS);
   const LR::LRSplineSurface* proj = this->getBasis(ASM::PROJECTION_BASIS);
-  const bool separateProjBasis = proj != itg;
+  const bool separateProjBasis = proj != geo;
   const bool useModelMNPC = !separateProjBasis && this->getNoBasis() == 1;
 
   const int p1 = proj->order(0);
@@ -153,6 +153,7 @@ bool ASMu2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
       int ielp = group[t][e];
       const LR::Element* elm = proj->getElement(ielp);
       int iel = lrspline->getElementContaining(elm->midpoint())+1;
+      int ielG = geo->getElementContaining(elm->midpoint())+1;
 
       if (continuous)
       {
@@ -160,7 +161,7 @@ bool ASMu2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
         if (!this->getElementCoordinates(Xnod,iel)) {
           ok = false;
           continue;
-        } else if ((dA = 0.25*this->getParametricArea(iel)) < 0.0) {
+        } else if ((dA = 0.25*elm->area()) < 0.0) {
           ok = false;
           continue;
         }
@@ -168,8 +169,8 @@ bool ASMu2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
 
       // Compute parameter values of the Gauss points over this element
       std::array<RealArray,2> gpar, unstrGpar;
-      this->getGaussPointParameters(gpar[0],0,ng1,iel,xg);
-      this->getGaussPointParameters(gpar[1],1,ng2,iel,yg);
+      this->getGaussPointParameters(gpar[0],0,ng1,ielp+1,xg,proj);
+      this->getGaussPointParameters(gpar[1],1,ng2,ielp+1,yg,proj);
       expandTensorGrid(gpar.data(),unstrGpar.data());
 
       // Evaluate the secondary solution at all integration points
@@ -193,7 +194,7 @@ bool ASMu2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
         {
           if (continuous)
           {
-            this->computeBasis(gpar[0][i],gpar[1][j],spl2,iel-1,itg);
+            this->computeBasis(gpar[0][i],gpar[1][j],spl2,ielG-1,geo);
             SplineUtils::extractBasis(spl2,phi,dNdu);
           }
 
