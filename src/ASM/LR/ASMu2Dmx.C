@@ -874,6 +874,9 @@ bool ASMu2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   std::cout <<"ASMu2Dmx::evalSolution(Matrix&,const IntegrandBase&,const RealArray*,bool)\n";
 #endif
 
+  const LR::LRSplineSurface* geo = this->getBasis(ASM::GEOMETRY_BASIS);
+  const bool separateGeometry = geo != lrspline.get();
+
   sField.resize(0,0);
 
   // TODO: investigate the possibility of doing "regular" refinement by
@@ -895,21 +898,26 @@ bool ASMu2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
     // Evaluate the basis functions at current parametric point
     MxFiniteElement       fe(elem_sizes,firstIp+i);
-    std::vector<Matrix>   dNxdu(m_basis.size());
-    std::vector<Matrix3D> d2Nxdu2(use2ndDer ? m_basis.size() : 0);
+    std::vector<Matrix>   dNxdu(m_basis.size() + separateGeometry);
+    std::vector<Matrix3D> d2Nxdu2(use2ndDer ? m_basis.size() + separateGeometry : 0);
     Matrix Jac, Xnod;
+    Vector Ng;
     Matrix3D Hess;
     if (use2ndDer)
-      for (size_t b = 0; b < m_basis.size(); ++b) {
+      for (size_t b = 0; b < d2Nxdu2.size(); ++b) {
         Go::BasisDerivsSf2 spline;
-        this->computeBasis(gpar[0][i],gpar[1][i],spline,els[b]-1,m_basis[b].get());
-        SplineUtils::extractBasis(spline,fe.basis(b+1),dNxdu[b],d2Nxdu2[b]);
+        this->computeBasis(gpar[0][i],gpar[1][i],spline,els[b]-1,
+                           b < m_basis.size() ? m_basis[b].get() : geo);
+        SplineUtils::extractBasis(spline,b < m_basis.size() ? fe.basis(b+1) : Ng,
+                                  dNxdu[b],d2Nxdu2[b]);
       }
     else
-      for (size_t b = 0; b < m_basis.size(); ++b) {
+      for (size_t b = 0; b < dNxdu.size(); ++b) {
         Go::BasisDerivsSf spline;
-        this->computeBasis(gpar[0][i],gpar[1][i],spline,els[b]-1,m_basis[b].get());
-        SplineUtils::extractBasis(spline,fe.basis(b+1),dNxdu[b]);
+        this->computeBasis(gpar[0][i],gpar[1][i],spline,els[b]-1,
+                           b < m_basis.size() ? m_basis[b].get() : geo);
+        SplineUtils::extractBasis(spline,b < m_basis.size() ? fe.basis(b+1) : Ng,
+                                  dNxdu[b]);
       }
 
     // Set up control point (nodal) coordinates for current element
@@ -927,7 +935,7 @@ bool ASMu2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     // Cartesian coordinates of current integration point
     fe.u = gpar[0][i];
     fe.v = gpar[1][i];
-    utl::Point X4(Xnod*fe.basis(itgBasis),{fe.u,fe.v});
+    utl::Point X4(Xnod * (separateGeometry ? Ng : fe.basis(itgBasis)),{fe.u,fe.v});
 
     // Now evaluate the solution field
     Vector solPt;
