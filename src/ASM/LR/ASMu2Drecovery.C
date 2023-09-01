@@ -481,6 +481,8 @@ bool ASMu2D::edgeL2projection (const DirichletEdge& edge,
   StdVector B(n*m);
   A.resize(n,n);
 
+  const LR::LRSplineSurface* geo = this->getBasis(ASM::GEOMETRY_BASIS);
+
   // find the normal and tangent direction for the edge
   int edgeDir, t1, t2;
   switch (edge.edg)
@@ -521,6 +523,9 @@ bool ASMu2D::edgeL2projection (const DirichletEdge& edge,
   for (size_t i = 0; i < edge.MLGE.size(); i++) // for all edge elements
   {
     int iel = 1 + edge.MLGE[i];
+    int ielG = iel;
+    if (geo != lrspline.get())
+      ielG = geo->getElementContaining(lrspline->getElement(iel-1)->midpoint()) + 1;
 
     // Get element edge length in the parameter space
     double dS = 0.5*this->getParametricLength(iel,t2);
@@ -542,7 +547,7 @@ bool ASMu2D::edgeL2projection (const DirichletEdge& edge,
 
       // Evaluate basis function derivatives at current integration points
       Go::BasisDerivsSf spline;
-      this->computeBasis(u,v,spline,iel-1);
+      this->computeBasis(u,v,spline,ielG-1,geo);
 
       // Fetch basis function derivatives at current integration point
       SplineUtils::extractBasis(spline,N,dNdu);
@@ -556,7 +561,7 @@ bool ASMu2D::edgeL2projection (const DirichletEdge& edge,
       X.t = time;
 
       // For mixed basis, we need to compute functions separate from geometry
-      if (edge.lr != lrspline.get())
+      if (edge.lr != geo)
       {
         // different lrspline instances enumerate elements differently
         edge.lr->computeBasis(u,v,spline,edge.lr->getElementContaining(u,v));
