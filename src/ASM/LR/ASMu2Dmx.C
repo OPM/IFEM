@@ -379,8 +379,8 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
       if (integrand.getIntegrandType() & Integrand::G_MATRIX)
       {
         // Element size in parametric space
-        dXidu[0] = geomB->getElement(geoEl-1)->umax() - geomB->getElement(geoEl-1)->umin();
-        dXidu[1] = geomB->getElement(geoEl-1)->vmax() - geomB->getElement(geoEl-1)->vmin();
+        dXidu[0] = lrspline->getElement(geoEl-1)->umax() - lrspline->getElement(geoEl-1)->umin();
+        dXidu[1] = lrspline->getElement(geoEl-1)->vmax() - lrspline->getElement(geoEl-1)->vmin();
       }
 
       // Initialize element quantities

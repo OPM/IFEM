@@ -1854,9 +1854,9 @@ void ASMu3D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
 
 bool ASMu3D::getOrder (int& p1, int& p2, int& p3) const
 {
-  p1 = geomB->order(0);
-  p2 = geomB->order(1);
-  p3 = geomB->order(2);
+  p1 = lrspline->order(0);
+  p2 = lrspline->order(1);
+  p3 = lrspline->order(2);
 
   return true;
 }
