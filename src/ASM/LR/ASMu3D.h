@@ -644,8 +644,8 @@ protected:
                      int basis = 1) const;
 
   //! \brief Evaluate all basis functions and second order derivatives on one element
-  void evaluateBasis(int iel, FiniteElement& fe, Matrix& dNdu, Matrix3D& d2Ndu2,
-                     int basis = 1) const;
+  void evaluateBasis(int iel, double u, double v, double w,
+                     Vector& N, Matrix& dNdu, Matrix3D& d2Ndu2, int basis = 1) const;
 
   //! \brief Evaluates the geometry at a specified point.
   //! \param[in] iel 0-based local element index
