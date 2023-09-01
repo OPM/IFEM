@@ -842,8 +842,8 @@ void ASMu3D::getCornerPoints (int iel, PointVec& XC) const
 }
 
 
-void ASMu3D::evaluateBasis (int iel, int basis, double u, double v, double w,
-                            Vector& N, Matrix& dNdu) const
+void ASMu3D::evaluateBasis (int iel, double u, double v, double w,
+                            Vector& N, Matrix& dNdu, int basis) const
 {
   PROFILE3("ASMu3D::evalBasis(1)");
 
@@ -864,20 +864,20 @@ void ASMu3D::evaluateBasis (int iel, int basis, double u, double v, double w,
 void ASMu3D::evaluateBasis (int iel, FiniteElement& fe, Matrix& dNdu,
                             int basis) const
 {
-  this->evaluateBasis(iel, basis, fe.u, fe.v, fe.w, fe.basis(basis), dNdu);
+  this->evaluateBasis(iel, fe.u, fe.v, fe.w, fe.basis(basis), dNdu, basis);
 }
 
-void ASMu3D::evaluateBasis (FiniteElement& fe, Matrix& dNdu,
-                            const Matrix& C, const Matrix& B, int basis) const
+void ASMu3D::evaluateBasis (Vector& N, Matrix& dNdu,
+                            const Matrix& C, const Matrix& B) const
 {
   PROFILE3("ASMu3D::evalBasis(BE)");
 
-  Matrix N = C*B;
-  dNdu.resize(N.rows(),3);
-  fe.basis(basis) = N.getColumn(1);
-  dNdu.fillColumn(1,N.getColumn(2));
-  dNdu.fillColumn(2,N.getColumn(3));
-  dNdu.fillColumn(3,N.getColumn(4));
+  Matrix CB = C*B;
+  dNdu.resize(CB.rows(),3);
+  N = CB.getColumn(1);
+  dNdu.fillColumn(1,CB.getColumn(2));
+  dNdu.fillColumn(2,CB.getColumn(3));
+  dNdu.fillColumn(3,CB.getColumn(4));
 }
 
 void ASMu3D::evaluateBasis (int iel, FiniteElement& fe,
@@ -1766,7 +1766,7 @@ bool ASMu3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     if (use2ndDer)
       this->evaluateBasis(iel, fe, dNdu, d2Ndu2);
     else
-      this->evaluateBasis(fe, dNdu, bezierExtract[iel], B);
+      this->evaluateBasis(fe.basis(1), dNdu, bezierExtract[iel], B);
 
     if (iel != lel)
     {
@@ -2598,8 +2598,7 @@ calculatePrm (FiniteElement& fe,
     B.fillColumn(3, b.dNdv.getColumn(gp+1)*2.0/du[1]);
     B.fillColumn(4, b.dNdw.getColumn(gp+1)*2.0/du[2]);
 
-    patch.evaluateBasis(fe, result.dNdu, C, B, basis);
-    result.N = fe.N;
+    patch.evaluateBasis(result.N, result.dNdu, C, B);
   } else if (nderiv == 2) {
     patch.evaluateBasis(el, fe, result.dNdu, result.d2Ndu2, basis);
     result.N = fe.N;

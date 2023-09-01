@@ -577,7 +577,7 @@ bool ASMu3D::faceL2projection (const DirichletFace& face,
         if (gpar[2].size() > 1) w = param[2] = gpar[2](k3+1);
 
         // Evaluate basis function derivatives at integration points
-        this->evaluateBasis(iel-1, myGeoBasis, u, v, w, N, dNdu);
+        this->evaluateBasis(iel-1, u, v, w, N, dNdu, myGeoBasis);
 
         // Compute basis function derivatives
         double dJxW = dA*wg[i]*wg[j]*utl::Jacobian(Jac,X,dNdX,Xnod,dNdu,t1,t2);
