@@ -500,6 +500,8 @@ bool ASMu3D::faceL2projection (const DirichletFace& face,
   StdVector B(n*m);
   A.resize(n,n);
 
+  const LR::LRSplineVolume* geo = this->getBasis(ASM::GEOMETRY_BASIS);
+
   // find the normal direction for the face
   int faceDir;
   switch (face.edg)
@@ -533,6 +535,7 @@ bool ASMu3D::faceL2projection (const DirichletFace& face,
   for (size_t ie = 0; ie < face.MLGE.size(); ie++) // for all face elements
   {
     int iel = 1 + face.MLGE[ie];
+    int ielG = geo == lrspline.get() ? iel : geo->getElementContaining(lrspline->getElement(iel-1)->midpoint()) + 1;
 
     std::array<Vector,3> gpar;
     for (int d = 0; d < 3; d++)
@@ -579,7 +582,7 @@ bool ASMu3D::faceL2projection (const DirichletFace& face,
         if (gpar[2].size() > 1) w = param[2] = gpar[2](k3+1);
 
         // Evaluate basis function derivatives at integration points
-        this->evaluateBasis(iel-1, u, v, w, N, dNdu, myGeoBasis);
+        this->evaluateBasis(ielG-1, u, v, w, N, dNdu, ASM::GEOMETRY_BASIS);
 
         // Compute basis function derivatives
         double dJxW = dA*wg[i]*wg[j]*utl::Jacobian(Jac,X,dNdX,Xnod,dNdu,t1,t2);
@@ -590,7 +593,7 @@ bool ASMu3D::faceL2projection (const DirichletFace& face,
         X.t = time;
 
         // For mixed basis, we need to compute functions separate from geometry
-        if (face.lr != lrspline.get())
+        if (face.lr != geo)
         {
           // different lrspline instances enumerate elements differently
           Go::BasisDerivs spline;
