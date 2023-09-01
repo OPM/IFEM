@@ -531,14 +531,9 @@ void ASMu3D::constrainFace (int dir, bool open, int dof, int code, char basis)
   de.MNPC.reserve(faceElements.size());
   for (LR::Element* el : faceElements)
   {
-    // for mixed FEM models, let MLGE point to the *geometry* index
+    // for mixed FEM models, let MLGE point to the integration basis
     if (de.lr != this->lrspline.get())
-    {
-      double umid = (el->umax() + el->umin())/2.0;
-      double vmid = (el->vmax() + el->vmin())/2.0;
-      double wmid = (el->wmax() + el->wmin())/2.0;
-      de.MLGE.push_back(lrspline->getElementContaining(umid,vmid,wmid));
-    }
+      de.MLGE.push_back(lrspline->getElementContaining(el->midpoint()));
     else
       de.MLGE.push_back(el->getId());
 
