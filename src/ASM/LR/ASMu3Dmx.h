@@ -207,9 +207,6 @@ private:
   std::vector<SplinePtr> m_basis;      //!< All bases
   LR::LRSplineVolume*    threadBasis;  //!< Basis for thread groups
 
-  const std::vector<Matrices>& bezierExtractmx;  //!< Bezier extraction matrices
-  std::vector<Matrices>        myBezierExtractmx; //!< Bezier extraction matrices
-
   ThreadGroups proj2ThreadGroups; //!< Element groups for multi-threaded assembly - second projection basis
 };
 
