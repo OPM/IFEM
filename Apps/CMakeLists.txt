@@ -1,6 +1,6 @@
-project(IFEM_Apps)
-
 cmake_minimum_required(VERSION 3.5)
+
+project(IFEM_Apps)
 
 # Add local modules
 set(IFEM_PATH ${PROJECT_SOURCE_DIR}/..)
