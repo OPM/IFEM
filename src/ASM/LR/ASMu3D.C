@@ -2416,8 +2416,9 @@ void ASMu3D::generateThreadGroupsFromElms (const IntVec& elms)
 
 ASMu3D::BasisFunctionCache::BasisFunctionCache (const ASMu3D& pch,
                                                 ASM::CachePolicy plcy,
-                                                int b) :
+                                                int b, bool useBezier) :
   ::BasisFunctionCache<3>(plcy),
+  bezierEnabled(useBezier),
   patch(pch),
   basis(b)
 {
@@ -2427,6 +2428,7 @@ ASMu3D::BasisFunctionCache::BasisFunctionCache (const ASMu3D& pch,
 ASMu3D::BasisFunctionCache::BasisFunctionCache (const BasisFunctionCache& cache,
                                                 int b) :
   ::BasisFunctionCache<3>(cache),
+  bezierEnabled(cache.bezierEnabled),
   patch(cache.patch),
   basis(b)
 {
@@ -2474,9 +2476,11 @@ bool ASMu3D::BasisFunctionCache::internalInit ()
         }
   };
 
-  extractBezier(*mainQ, mainB);
-  if (reducedQ->xg[0])
-    extractBezier(*reducedQ, reducedB);
+  if (bezierEnabled) {
+    extractBezier(*mainQ, mainB);
+    if (reducedQ->xg[0])
+      extractBezier(*reducedQ, reducedB);
+  }
 
   nTotal = patch.nel*mainQ->ng[0]*mainQ->ng[1]*mainQ->ng[2];
   if (reducedQ->xg[0])
@@ -2586,20 +2590,23 @@ calculatePrm (FiniteElement& fe,
 {
   BasisFunctionVals result;
   if (nderiv == 1 || reduced) {
-    const BezierExtract& b = reduced ? reducedB : mainB;
-    RealArray extrMat;
-    patch.getBasis(basis)->getBezierExtraction(el,extrMat);
-    Matrix C;
-    const LR::Element* elm = patch.getBasis(basis)->getElement(el);
-    C.resize(elm->nBasisFunctions(), b.N.rows());
-    C.fill(extrMat.data(),extrMat.size());
-    Matrix B(b.N.rows(), 4);
-    B.fillColumn(1, b.N.getColumn(gp+1));
-    B.fillColumn(2, b.dNdu.getColumn(gp+1) / du[0]);
-    B.fillColumn(3, b.dNdv.getColumn(gp+1) / du[1]);
-    B.fillColumn(4, b.dNdw.getColumn(gp+1) / du[2]);
+    if (bezierEnabled) {
+      const BezierExtract& b = reduced ? reducedB : mainB;
+      RealArray extrMat;
+      patch.getBasis(basis)->getBezierExtraction(el,extrMat);
+      Matrix C;
+      const LR::Element* elm = patch.getBasis(basis)->getElement(el);
+      C.resize(elm->nBasisFunctions(), b.N.rows());
+      C.fill(extrMat.data(),extrMat.size());
+      Matrix B(b.N.rows(), 4);
+      B.fillColumn(1, b.N.getColumn(gp+1));
+      B.fillColumn(2, b.dNdu.getColumn(gp+1) / du[0]);
+      B.fillColumn(3, b.dNdv.getColumn(gp+1) / du[1]);
+      B.fillColumn(4, b.dNdw.getColumn(gp+1) / du[2]);
 
-    patch.evaluateBasis(result.N, result.dNdu, C, B);
+      patch.evaluateBasis(result.N, result.dNdu, C, B);
+    } else
+      patch.evaluateBasis(el, fe.u, fe.v, fe.w, result.N, result.dNdu, basis);
   } else if (nderiv == 2)
     patch.evaluateBasis(el, fe.u, fe.v, fe.w,
                         result.N, result.dNdu, result.d2Ndu2, basis);

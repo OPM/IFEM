@@ -52,7 +52,9 @@ protected:
     //! \param pch Patch the cache is for
     //! \param plcy Cache policy to use
     //! \param b Basis to use
-    BasisFunctionCache(const ASMu3D& pch, ASM::CachePolicy plcy, int b);
+    //! \param useBezier True to use bezier extraction
+    BasisFunctionCache(const ASMu3D& pch, ASM::CachePolicy plcy,
+                       int b, bool useBezier = true);
 
     //! \brief Constructor reusing quadrature info from another instance.
     //! \param cache Instance holding quadrature information
@@ -96,6 +98,7 @@ protected:
       Matrix dNdw; //!< Basis function w-derivatives
     };
 
+    bool bezierEnabled; //!< True to enable Bezier extraction
     BezierExtract mainB; //!< Bezier extraction for main basis
     BezierExtract reducedB; //!< Bezier extraction for reduced basis
 
