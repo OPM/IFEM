@@ -38,8 +38,7 @@
 
 
 ASMu3Dmx::ASMu3Dmx (const CharVec& n_f)
-  : ASMu3D(std::accumulate(n_f.begin(), n_f.end(), 0)), ASMmxBase(n_f),
-    bezierExtractmx(myBezierExtractmx)
+  : ASMu3D(std::accumulate(n_f.begin(), n_f.end(), 0)), ASMmxBase(n_f)
 {
   threadBasis = nullptr;
   myGeoBasis = ASMmxBase::itgBasis;
@@ -48,8 +47,7 @@ ASMu3Dmx::ASMu3Dmx (const CharVec& n_f)
 
 ASMu3Dmx::ASMu3Dmx (const ASMu3Dmx& patch, const CharVec& n_f)
   : ASMu3D(patch), ASMmxBase(n_f[0]==0?patch.nfx:n_f),
-    m_basis(patch.m_basis),
-    bezierExtractmx(patch.myBezierExtractmx)
+    m_basis(patch.m_basis)
 {
   threadBasis = patch.threadBasis;
   nfx = patch.nfx;
@@ -273,23 +271,6 @@ bool ASMu3Dmx::generateFEMTopology ()
     }
 
     myMLGE[iel++] = ++gEl; // global element number over all patches
-  }
-
-  size_t b = 0;
-  myBezierExtractmx.resize(m_basis.size());
-  for (const SplinePtr& it : m_basis) {
-    myBezierExtractmx[b].resize(it->nElements());
-    for (int iel = 0; iel < it->nElements(); iel++)
-    {
-      PROFILE("Bezier extraction");
-      // Get bezier extraction matrix
-      RealArray extrMat;
-      it->getBezierExtraction(iel,extrMat);
-      myBezierExtractmx[b][iel].resize(it->getElement(iel)->nBasisFunctions(),
-                                       it->order(0)*it->order(1)*it->order(2));
-      myBezierExtractmx[b][iel].fill(extrMat.data(),extrMat.size());
-    }
-    ++b;
   }
 
   for (size_t inod = 0; inod < nnod; ++inod)
