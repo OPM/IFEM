@@ -2615,7 +2615,7 @@ void ASMu3D::BasisFunctionCache::calculateAll ()
   size_t iel, jp, rp;
   for (iel = jp = rp = 0; iel < patch.nel; iel++)
   {
-    for (int k = 0; k < reducedQ->ng[2]; k++)
+    for (int k = 0; k < mainQ->ng[2]; k++)
       for (int j = 0; j < mainQ->ng[1]; j++)
         for (int i = 0; i < mainQ->ng[0]; i++, jp++)
           values[jp] = this->calculatePt(iel,(k*mainQ->ng[1]+j)*mainQ->ng[0]+i,false);
