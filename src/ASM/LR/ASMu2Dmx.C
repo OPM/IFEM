@@ -1226,34 +1226,6 @@ void ASMu2Dmx::getElementsAt (const RealArray& param,
 }
 
 
-BasisFunctionVals ASMu2Dmx::BasisFunctionCache::calculatePt (size_t el,
-                                                             size_t gp,
-                                                             bool reduced) const
-{
-  const std::array<size_t,2> gpIdx = this->gpIndex(gp,reduced);
-  double u = this->getParam(0,el,gpIdx[0],reduced);
-  double v = this->getParam(1,el,gpIdx[1],reduced);
-
-  const ASMu2Dmx& pch = static_cast<const ASMu2Dmx&>(patch);
-
-  const LR::Element* el1 = pch.getBasis(ASMmxBase::itgBasis)->getElement(el);
-  size_t el_b = patch.getBasis(basis)->getElementContaining(el1->midpoint());
-
-  BasisFunctionVals result;
-  if (nderiv == 1 || reduced) {
-    Go::BasisDerivsSf spline;
-    pch.computeBasis(u,v,spline,el_b,patch.getBasis(basis));
-    SplineUtils::extractBasis(spline,result.N,result.dNdu);
-  } else if (nderiv == 2) {
-    Go::BasisDerivsSf2 spline;
-    pch.computeBasis(u,v,spline,el_b,patch.getBasis(basis));
-    SplineUtils::extractBasis(spline,result.N,result.dNdu,result.d2Ndu2);
-  }
-
-  return result;
-}
-
-
 bool ASMu2Dmx::separateProjectionBasis () const
 {
   return std::none_of(m_basis.begin(), m_basis.end(),

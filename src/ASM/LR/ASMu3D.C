@@ -2568,9 +2568,12 @@ BasisFunctionVals ASMu3D::BasisFunctionCache::calculatePt (size_t el,
 
   const LR::Element* elm = patch.lrspline->getElement(el);
   std::array<double,3> du;
-  du[0] = elm->umax() - elm->umin();
-  du[1] = elm->vmax() - elm->vmin();
-  du[2] = elm->wmax() - elm->wmin();
+  du[0] = 0.5*(elm->umax() - elm->umin());
+  du[1] = 0.5*(elm->vmax() - elm->vmin());
+  du[2] = 0.5*(elm->wmax() - elm->wmin());
+
+  if (patch.lrspline.get() != patch.getBasis(basis))
+    el = patch.getBasis(basis)->getElementContaining(elm->midpoint());
 
   return this->calculatePrm(fe,du,el,gp,reduced);
 }
@@ -2582,20 +2585,19 @@ calculatePrm (FiniteElement& fe,
               size_t el, size_t gp, bool reduced) const
 {
   BasisFunctionVals result;
-  const BezierExtract& b = reduced ? reducedB : mainB;
-  RealArray extrMat;
-  patch.getBasis(basis)->getBezierExtraction(el,extrMat);
-  Matrix C;
-  const LR::Element* elm = patch.getBasis(basis)->getElement(el);
-  C.resize(elm->nBasisFunctions(), b.N.rows());
-  C.fill(extrMat.data(),extrMat.size());
-
   if (nderiv == 1 || reduced) {
+    const BezierExtract& b = reduced ? reducedB : mainB;
+    RealArray extrMat;
+    patch.getBasis(basis)->getBezierExtraction(el,extrMat);
+    Matrix C;
+    const LR::Element* elm = patch.getBasis(basis)->getElement(el);
+    C.resize(elm->nBasisFunctions(), b.N.rows());
+    C.fill(extrMat.data(),extrMat.size());
     Matrix B(b.N.rows(), 4);
     B.fillColumn(1, b.N.getColumn(gp+1));
-    B.fillColumn(2, b.dNdu.getColumn(gp+1)*2.0/du[0]);
-    B.fillColumn(3, b.dNdv.getColumn(gp+1)*2.0/du[1]);
-    B.fillColumn(4, b.dNdw.getColumn(gp+1)*2.0/du[2]);
+    B.fillColumn(2, b.dNdu.getColumn(gp+1) / du[0]);
+    B.fillColumn(3, b.dNdv.getColumn(gp+1) / du[1]);
+    B.fillColumn(4, b.dNdw.getColumn(gp+1) / du[2]);
 
     patch.evaluateBasis(result.N, result.dNdu, C, B);
   } else if (nderiv == 2)

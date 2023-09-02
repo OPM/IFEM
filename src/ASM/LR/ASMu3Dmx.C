@@ -1037,31 +1037,6 @@ void ASMu3Dmx::getElementsAt (const RealArray& param,
 }
 
 
-BasisFunctionVals ASMu3Dmx::BasisFunctionCache::calculatePt (size_t el,
-                                                             size_t gp,
-                                                             bool reduced) const
-{
-  PROFILE2("Spline evaluation");
-  const std::array<size_t,3> gpIdx = this->gpIndex(gp,reduced);
-  FiniteElement fe;
-  fe.u = this->getParam(0,el,gpIdx[0],reduced);
-  fe.v = this->getParam(1,el,gpIdx[1],reduced);
-  fe.w = this->getParam(2,el,gpIdx[2],reduced);
-
-  const ASMu3Dmx& pch = static_cast<const ASMu3Dmx&>(patch);
-
-  const LR::Element* elm = pch.lrspline->getElement(el);
-  std::array<double,3> du;
-  du[0] = elm->umax() - elm->umin();
-  du[1] = elm->vmax() - elm->vmin();
-  du[2] = elm->wmax() - elm->wmin();
-
-  el = pch.getBasis(basis)->getElementContaining(elm->midpoint());
-
-  return this->calculatePrm(fe,du,el,gp,reduced);
-}
-
-
 bool ASMu3Dmx::separateProjectionBasis () const
 {
   return std::none_of(m_basis.begin(), m_basis.end(),
