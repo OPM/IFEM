@@ -3112,6 +3112,11 @@ BasisFunctionVals ASMu2D::BasisFunctionCache::calculatePt (size_t el,
   double u = this->getParam(0,el,gpIdx[0],reduced);
   double v = this->getParam(1,el,gpIdx[1],reduced);
 
+  if (patch.lrspline.get() != patch.getBasis(basis)) {
+    const LR::Element* el1 = patch.lrspline->getElement(el);
+    el = patch.getBasis(basis)->getElementContaining(el1->midpoint());
+  }
+
   BasisFunctionVals result;
   if (nderiv == 1 || reduced) {
     Go::BasisDerivsSf spline;
