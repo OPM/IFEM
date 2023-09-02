@@ -85,9 +85,9 @@ TEST_P(TestASMu3D, ConnectUneven)
 
 
 const std::vector<int> tests = {0,1,2,3,4,5,6,7,8,9,10,11,12};
-INSTANTIATE_TEST_CASE_P(TestASMu3D,
-                        TestASMu3D,
-                        testing::ValuesIn(tests));
+INSTANTIATE_TEST_SUITE_P(TestASMu3D,
+                         TestASMu3D,
+                         testing::ValuesIn(tests));
 
 
 TEST(TestASMu3D, TransferGaussPtVars)
