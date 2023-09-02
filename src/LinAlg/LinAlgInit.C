@@ -36,7 +36,7 @@ LinAlgInit::LinAlgInit (int argc, char** argv)
 #if defined(HAS_SLEPC)
   SlepcInitialize(&argc,&argv,(char*)0,PETSC_NULL);
 #elif defined(HAS_PETSC)
-  PetscInitialize(&argc,&argv,(char*)0,PETSC_NULL);
+  PetscInitialize(&argc,&argv,(char*)0,PETSC_NULLPTR);
 #endif
 #ifdef HAVE_MPI
 #ifndef HAS_PETSC
