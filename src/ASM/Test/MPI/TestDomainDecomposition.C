@@ -619,6 +619,6 @@ TEST_P(TestDomainDecomposition3D, CornerLR)
 }
 
 const std::vector<int> orientations2D = {0,1};
-INSTANTIATE_TEST_CASE_P(TestDomainDecomposition2D, TestDomainDecomposition2D, testing::ValuesIn(orientations2D));
+INSTANTIATE_TEST_SUITE_P(TestDomainDecomposition2D, TestDomainDecomposition2D, testing::ValuesIn(orientations2D));
 const std::vector<int> orientations3D = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16};
-INSTANTIATE_TEST_CASE_P(TestDomainDecomposition3D, TestDomainDecomposition3D, testing::ValuesIn(orientations3D));
+INSTANTIATE_TEST_SUITE_P(TestDomainDecomposition3D, TestDomainDecomposition3D, testing::ValuesIn(orientations3D));

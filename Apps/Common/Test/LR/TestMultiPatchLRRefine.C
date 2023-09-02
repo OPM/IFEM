@@ -123,9 +123,9 @@ TEST_P(TestMultiPatchLRRefine3D, Refine)
 
 
 const std::vector<int> refValues = {0,1,2};
-INSTANTIATE_TEST_CASE_P(TestMultiPatchLRRefine2D,
-                        TestMultiPatchLRRefine2D,
-                        testing::ValuesIn(refValues));
-INSTANTIATE_TEST_CASE_P(TestMultiPatchLRRefine3D,
-                        TestMultiPatchLRRefine3D,
-                        testing::ValuesIn(refValues));
+INSTANTIATE_TEST_SUITE_P(TestMultiPatchLRRefine2D,
+                         TestMultiPatchLRRefine2D,
+                         testing::ValuesIn(refValues));
+INSTANTIATE_TEST_SUITE_P(TestMultiPatchLRRefine3D,
+                         TestMultiPatchLRRefine3D,
+                         testing::ValuesIn(refValues));

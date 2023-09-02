@@ -95,8 +95,8 @@ static const std::vector<EdgeTest> edgeTestData =
           {4,  2, {{-1,  1}}, {{ 1,  1}}}}};
 
 
-INSTANTIATE_TEST_CASE_P(TestASMu2D, TestASMu2D,
-                        testing::ValuesIn(edgeTestData));
+INSTANTIATE_TEST_SUITE_P(TestASMu2D, TestASMu2D,
+                         testing::ValuesIn(edgeTestData));
 
 
 TEST(TestASMu2D, InterfaceChecker)
