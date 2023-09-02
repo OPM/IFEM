@@ -41,6 +41,10 @@
 #include "slepceps.h"
 #endif
 
+#if PETSC_VERSION_MINOR < 19
+#define PETSC_NULLPTR PETSC_NULL
+#endif
+
 #else
 typedef int    PetscInt;  //!< To avoid compilation failures
 typedef double PetscReal; //!< To avoid compilation failures
