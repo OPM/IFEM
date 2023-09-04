@@ -305,7 +305,8 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
   bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
 
   if (myCache.empty()) {
-    myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this, cachePolicy, 1));
+    myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this, cachePolicy, 1,
+                                                              ASMmxBase::Type != SUBGRID));
     for (size_t b = 2; b <= this->getNoBasis(); ++b) {
       const BasisFunctionCache& c = static_cast<const BasisFunctionCache&>(*myCache.front());
       myCache.emplace_back(std::make_unique<BasisFunctionCache>(c,b));
@@ -992,6 +993,7 @@ void ASMu3Dmx::swapProjectionBasis ()
     ASMmxBase::itgBasis = ASMmxBase::itgBasis == 1 ? 2 : 1;
     std::swap(projB, projB2);
     std::swap(projThreadGroups, proj2ThreadGroups);
+    geomB = lrspline = m_basis[ASMmxBase::itgBasis-1];
   }
 }
 
