@@ -113,6 +113,7 @@ bool ASMu3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
   const LR::LRSplineVolume* itg = this->getBasis(ASM::INTEGRATION_BASIS);
   const LR::LRSplineVolume* proj = this->getBasis(ASM::PROJECTION_BASIS);
   const bool separateProjBasis = proj != itg;
+  const bool useModelMNPC = !separateProjBasis && this->getNoBasis() == 1;
 
   const int p1 = proj->order(0);
   const int p2 = proj->order(1);
@@ -131,7 +132,7 @@ bool ASMu3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
   if (continuous && !wg) return false;
 
   IntMat lmnpc;
-  if (separateProjBasis) {
+  if (!useModelMNPC) {
     lmnpc.resize(proj->nElements());
     for (const LR::Element* elm : proj->getAllElements()) {
       lmnpc[elm->getId()].reserve(elm->nBasisFunctions());
@@ -139,7 +140,7 @@ bool ASMu3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
         lmnpc[elm->getId()].push_back(f->getId());
     }
   }
-  const IntMat& gmnpc = separateProjBasis ? lmnpc : MNPC;
+  const IntMat& gmnpc = useModelMNPC ? MNPC : lmnpc;
   A.preAssemble(gmnpc, gmnpc.size());
 
   // === Assembly loop over all elements in the patch ==========================
@@ -186,7 +187,7 @@ bool ASMu3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
 
       // Set up basis function size (for extractBasis subroutine)
       size_t nbf = elm->nBasisFunctions();
-      const IntVec& mnpc = separateProjBasis ? gmnpc[ielp] : gmnpc[iel-1];
+      const IntVec& mnpc = useModelMNPC ? gmnpc[iel-1] : gmnpc[ielp];
 
       // --- Integration loop over all Gauss points in each direction ------------
 
