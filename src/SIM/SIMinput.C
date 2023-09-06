@@ -148,7 +148,8 @@ bool SIMinput::parseGeometryTag (const TiXmlElement* elem)
     else if (strstr(file,".hdf5"))
     {
       IFEM::cout <<"\tReading global node numbers from "<< file << std::endl;
-      HDF5Reader hdf5(file,ProcessAdm());
+      ProcessAdm adm;
+      HDF5Reader hdf5(file,adm);
       const char* field = elem->Attribute("field");
       for (int i = 1; i <= nGlPatches; i++)
       {
