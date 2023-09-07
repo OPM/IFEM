@@ -2982,12 +2982,13 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
 
 int ASMs3D::evalPoint (const double* xi, double* param, Vec3& X) const
 {
-  if (!svol) return -3;
+  const Go::SplineVolume* geo = this->getBasis(ASM::GEOMETRY_BASIS);
+  if (!geo) return -3;
 
   for (int i = 0; i < 3; i++)
-    param[i] = (1.0-xi[i])*svol->startparam(i) + xi[i]*svol->endparam(i);
+    param[i] = (1.0-xi[i])*geo->startparam(i) + xi[i]*geo->endparam(i);
 
-  SplineUtils::point(X,param[0],param[1],param[2],svol);
+  SplineUtils::point(X,param[0],param[1],param[2],geo);
 
   // Check if this point matches any of the control points (nodes)
   return this->searchCtrlPt(svol->coefs_begin(),svol->coefs_end(),
