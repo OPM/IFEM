@@ -750,9 +750,6 @@ protected:
   //! Inhomogeneous Dirichlet boundary condition data
   std::vector<DirichletEdge> dirich;
 
-  ThreadGroups threadGroups; //!< Element groups for multi-threaded assembly
-  ThreadGroups projThreadGroups; //!< Element groups for multi-threaded assembly - projection basis
-
   const Matrices& bezierExtract; //!< Bezier extraction matrices
   Matrices      myBezierExtract; //!< Bezier extraction matrices
 
