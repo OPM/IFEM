@@ -223,10 +223,13 @@ bool ASMu2Dmx::generateFEMTopology ()
         projB = m_basis[2-ASMmxBase::itgBasis];
     }
 
-    if (ASMmxBase::Type == ASMmxBase::SUBGRID)
+    if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
       projB2 = refB = createLR(*otherBasis);
-    else
+      geomB = m_basis[1];
+    } else {
       refB = projB;
+      geomB = m_basis[itgBasis-1];
+    }
 
     is_rational = tensorspline->rational();
     delete tensorspline;
@@ -284,7 +287,6 @@ bool ASMu2Dmx::generateFEMTopology ()
   std::cout <<"NEL = "<< nel <<" NNOD = "<< nnod << std::endl;
 #endif
 
-  geomB = m_basis[itgBasis-1];
   this->generateBezierBasis();
   this->generateBezierExtraction();
 
@@ -1208,13 +1210,8 @@ void ASMu2Dmx::copyRefinement (LR::LRSplineSurface* basis,
 void ASMu2Dmx::swapProjectionBasis ()
 {
   if (projB2) {
-    ASMmxBase::itgBasis = ASMmxBase::itgBasis == 1 ? 2 : 1;
     std::swap(projB, projB2);
     std::swap(projThreadGroups, proj2ThreadGroups);
-    lrspline = m_basis[ASMmxBase::itgBasis-1];
-    geomB = lrspline;
-    this->generateBezierBasis();
-    this->generateBezierExtraction();
   }
 }
 

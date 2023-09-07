@@ -287,7 +287,7 @@ TEST(TestASMu2Dmx, WriteSG)
 
   str.str("");
   EXPECT_TRUE(pch1.write(str, ASM::GEOMETRY_BASIS));
-  EXPECT_EQ(str.str(), squareTH_p);
+  EXPECT_EQ(str.str(), ASMuSquare::square);
 
   str.str("");
   EXPECT_TRUE(pch1.write(str, ASM::PROJECTION_BASIS));
