@@ -27,6 +27,7 @@ namespace Go {
   struct BasisDerivsSf3;
   struct BasisDerivs;
   struct BasisDerivs2;
+  class BsplineBasis;
   class SplineCurve;
   class SplineSurface;
   class SplineVolume;
@@ -81,6 +82,17 @@ namespace SplineUtils //! Various utility functions on spline objects.
   Go::SplineVolume* project(const Go::SplineVolume* volume,
                             const FunctionBase& f,
                             int nComp = 1, Real time = Real(0));
+
+  //! \brief Enumeration of basis adjustment operations.
+  enum class AdjustOp {
+    Lower,    //!< Lower order by one
+    Original, //!< Keep original
+    Raise,    //!< Raise order by one
+  };
+
+  //! \brief Returns a basis adjusted according to the given operation.
+  Go::BsplineBasis adjustBasis(const Go::BsplineBasis& basis,
+                               AdjustOp adjust);
 
   //! \brief Builds a knot vector from a given polynomial order, knots and continuities.
   std::vector<double> buildKnotVector(int p, const std::vector<double>& simple_knots,

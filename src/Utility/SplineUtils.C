@@ -309,6 +309,30 @@ Go::SplineVolume* SplineUtils::project (const Go::SplineVolume* volume,
 }
 
 
+Go::BsplineBasis SplineUtils::adjustBasis (const Go::BsplineBasis& basis,
+                                           SplineUtils::AdjustOp adjust)
+{
+  if (adjust == AdjustOp::Original)
+    return basis;
+
+  std::vector<double> knots;
+  basis.knotsSimple(knots);
+  std::vector<int> mult;
+  basis.knotMultiplicities(mult);
+  std::vector<int> cont(knots.size());
+  cont.front() = cont.back() = -1;
+  int order = basis.order();
+  int start_cont = adjust == AdjustOp::Lower ? order-2 : order;
+  int mult_adjust = adjust == AdjustOp::Lower ? 0 : 1;
+  int new_order = adjust == AdjustOp::Lower ? order - 1 : order + 1;
+  for (size_t i = 1; i < knots.size()-1; ++i)
+    cont[i] = start_cont - (mult[i] == 1 ? 1 : mult[i] + mult_adjust);
+
+  std::vector<double> newknot = SplineUtils::buildKnotVector(new_order-1, knots, cont);
+  return Go::BsplineBasis(new_order, newknot.begin(), newknot.end());
+}
+
+
 std::vector<double> SplineUtils::buildKnotVector(int p,
                                                  const std::vector<double>& knots,
                                                  const std::vector<int>& cont)

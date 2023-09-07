@@ -12,10 +12,11 @@
 
 #include "SplineUtils.h"
 #include "GoTools/utils/Point.h"
-#include "GoTools/geometry/SplineSurface.h"
+#include <GoTools/geometry/BsplineBasis.h>
 #include "GoTools/geometry/Line.h"
 #include "GoTools/geometry/Disc.h"
 #include "GoTools/geometry/Plane.h"
+#include "GoTools/geometry/SplineSurface.h"
 #include "GoTools/trivariate/SphereVolume.h"
 #include "GoTools/trivariate/SplineVolume.h"
 #include "ExprFunctions.h"
@@ -450,3 +451,75 @@ TEST(TestSplineUtils, BuildKnotVector)
   for (size_t i = 0; i < ref.size(); ++i)
     EXPECT_FLOAT_EQ(ref[i], res[i]);
 }
+
+
+namespace {
+
+struct AdjustBasisTest {
+  int order_in;
+  std::vector<double> knots_in;
+  SplineUtils::AdjustOp op;
+  std::vector<double> knots_out;
+};
+
+using Op = SplineUtils::AdjustOp;
+
+const std::vector<AdjustBasisTest> tests = {
+  // p1 -> p1
+  {2, {0.0, 0.0, 1.0, 1.0}, Op::Original,
+      {0.0, 0.0, 1.0, 1.0}},
+
+  // p1 -> p2
+  {2, {0.0, 0.0, 1.0, 1.0}, Op::Raise,
+      {0.0, 0.0, 0.0, 1.0, 1.0, 1.0}},
+  // p1 -> p2, extra knot
+  {2, {0.0, 0.0, 0.5, 1.0, 1.0}, Op::Raise,
+      {0.0, 0.0, 0.0, 0.5, 1.0, 1.0, 1.0}},
+  // p2 -> p3, extra knot
+  {3, {0.0, 0.0, 0.0, 0.5, 1.0, 1.0, 1.0}, Op::Raise,
+      {0.0, 0.0, 0.0, 0.0, 0.5, 1.0, 1.0, 1.0, 1.0}},
+  // p2 -> p3, reduced cont
+  {3, {0.0, 0.0, 0.0, 0.5, 0.5, 1.0, 1.0, 1.0}, Op::Raise,
+      {0.0, 0.0, 0.0, 0.0, 0.5, 0.5, 0.5, 1.0, 1.0, 1.0, 1.0}},
+  //p3 -> p4
+  {4, {0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0}, Op::Raise,
+      {0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0}},
+  //p3 -> p4, reduced cont
+  {4, {0.0, 0.0, 0.0, 0.0, 0.5, 0.5, 1.0, 1.0, 1.0, 1.0}, Op::Raise,
+      {0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.5, 0.5, 1.0, 1.0, 1.0, 1.0, 1.0}},
+
+  //p2 -> p1
+  {3, {0.0, 0.0, 0.0, 1.0, 1.0, 1.0}, Op::Lower,
+      {0.0, 0.0, 1.0, 1.0}},
+  //p2 -> p1, extra knot
+  {3, {0.0, 0.0, 0.0, 0.5, 1.0, 1.0, 1.0}, Op::Lower,
+      {0.0, 0.0, 0.5, 1.0, 1.0}},
+  //p3 -> p2, reduced cont
+  {4, {0.0, 0.0, 0.0, 0.0, 0.5, 0.5, 1.0, 1.0, 1.0, 1.0}, Op::Lower,
+      {0.0, 0.0, 0.0, 0.5, 0.5, 1.0, 1.0, 1.0}},
+  //p4 -> p3
+  {5, {0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0}, Op::Lower,
+      {0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0}},
+};
+
+}
+
+class TestSplineUtils : public testing::Test,
+                        public testing::WithParamInterface<AdjustBasisTest>
+{
+};
+
+
+TEST_P(TestSplineUtils, AdjustBasis)
+{
+  Go::BsplineBasis basis_in(GetParam().order_in,
+                            GetParam().knots_in.begin(),
+                            GetParam().knots_in.end());
+
+  const Go::BsplineBasis res = SplineUtils::adjustBasis(basis_in,GetParam().op);
+  const std::vector<double> out{res.begin(), res.end()};
+  EXPECT_EQ(out, GetParam().knots_out);
+}
+
+
+INSTANTIATE_TEST_SUITE_P(TestSplineUtils, TestSplineUtils, testing::ValuesIn(tests));
