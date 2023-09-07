@@ -81,6 +81,9 @@ public:
   //! \brief Checks if a separate projection basis is used for this patch.
   virtual bool separateProjectionBasis() const;
 
+  //! \brief Swaps between the first and second projection basis.
+  virtual void swapProjectionBasis();
+
 protected:
   //! \brief Adds extraordinary nodes associated with a patch boundary.
   //! \param[in] dim Dimension of the boundary
