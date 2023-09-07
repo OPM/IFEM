@@ -42,7 +42,7 @@ Vec4 SplineUtils::toVec4 (const Go::Point& X, Real time,
 }
 
 
-void SplineUtils::point (Vec3& X, double u, Go::SplineCurve* curve)
+void SplineUtils::point (Vec3& X, double u, const Go::SplineCurve* curve)
 {
   Go::Point Y;
 #pragma omp critical
@@ -51,7 +51,7 @@ void SplineUtils::point (Vec3& X, double u, Go::SplineCurve* curve)
 }
 
 
-void SplineUtils::point (Vec3& X, double u, double v, Go::SplineSurface* surf)
+void SplineUtils::point (Vec3& X, double u, double v, const Go::SplineSurface* surf)
 {
   Go::Point Y;
 #pragma omp critical
@@ -61,7 +61,7 @@ void SplineUtils::point (Vec3& X, double u, double v, Go::SplineSurface* surf)
 
 
 void SplineUtils::point (Vec3& X, double u, double v, double w,
-                         Go::SplineVolume* vol)
+                         const Go::SplineVolume* vol)
 {
   Go::Point Y;
 #pragma omp critical

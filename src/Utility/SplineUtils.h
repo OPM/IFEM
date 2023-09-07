@@ -42,11 +42,11 @@ namespace SplineUtils //! Various utility functions on spline objects.
               const double* u = nullptr);
 
   //! \brief Evaluates given spline curve at a parametric point.
-  void point(Vec3& X, double u, Go::SplineCurve* curve);
+  void point(Vec3& X, double u, const Go::SplineCurve* curve);
   //! \brief Evaluates given spline surface at a parametric point.
-  void point(Vec3& X, double u, double v, Go::SplineSurface* surf);
+  void point(Vec3& X, double u, double v, const Go::SplineSurface* surf);
   //! \brief Evaluates given spline colume at a parametric point.
-  void point(Vec3& X, double u, double v, double w, Go::SplineVolume* vol);
+  void point(Vec3& X, double u, double v, double w, const Go::SplineVolume* vol);
 
   //! \brief Establishes matrices with basis functions and 1st derivatives.
   void extractBasis(const Go::BasisDerivsSf& spline,
