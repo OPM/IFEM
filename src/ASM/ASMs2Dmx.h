@@ -182,9 +182,6 @@ public:
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
                             const RealArray* gpar, bool regular) const;
 
-  //! \brief Swap between main and alternative projection basis.
-  virtual void swapProjectionBasis();
-
   //! \brief Checks if a separate projection basis is used for this patch.
   virtual bool separateProjectionBasis() const;
 

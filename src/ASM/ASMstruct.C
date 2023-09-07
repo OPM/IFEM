@@ -178,3 +178,10 @@ bool ASMstruct::diracPoint (Integrand& integr, GlobalIntegral& glInt,
 
   return ok;
 }
+
+
+void ASMstruct::swapProjectionBasis ()
+{
+  if (projB2)
+    std::swap(projB, projB2);
+}
