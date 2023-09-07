@@ -1210,15 +1210,6 @@ void ASMu2Dmx::copyRefinement (LR::LRSplineSurface* basis,
 }
 
 
-void ASMu2Dmx::swapProjectionBasis ()
-{
-  if (projB2) {
-    std::swap(projB, projB2);
-    std::swap(projThreadGroups, proj2ThreadGroups);
-  }
-}
-
-
 void ASMu2Dmx::getElementsAt (const RealArray& param,
                               std::vector<int>& elms,
                               std::vector<size_t>& sizes) const

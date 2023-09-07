@@ -1004,15 +1004,6 @@ void ASMu3Dmx::copyRefinement (LR::LRSplineVolume* basis,
 }
 
 
-void ASMu3Dmx::swapProjectionBasis ()
-{
-  if (projB2) {
-    std::swap(projB, projB2);
-    std::swap(projThreadGroups, proj2ThreadGroups);
-  }
-}
-
-
 void ASMu3Dmx::getElementsAt (const RealArray& param,
                               std::vector<int>& elms,
                               std::vector<size_t>& sizes) const

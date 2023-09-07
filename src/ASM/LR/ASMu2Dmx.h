@@ -213,9 +213,6 @@ public:
   //! \param[in] multiplicity Wanted multiplicity
   void copyRefinement(LR::LRSplineSurface* basis, int multiplicity) const;
 
-  //! \brief Swaps between the main and alternative projection basis.
-  virtual void swapProjectionBasis();
-
   //! \brief Checks if a separate projection basis is used for this patch.
   virtual bool separateProjectionBasis() const;
 

@@ -181,6 +181,9 @@ public:
   //! \brief Computes the total number of integration points in this patch.
   virtual void getNoIntPoints(size_t& nPt, size_t& nIPt);
 
+  //! \brief Swaps between the first and second projection basis.
+  virtual void swapProjectionBasis();
+
 protected:
   //! \brief Refines the mesh adaptively.
   //! \param[in] prm Input data used to control the mesh refinement
