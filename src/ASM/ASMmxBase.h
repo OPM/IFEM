@@ -22,6 +22,10 @@ namespace Go {
   class SplineVolume;
 }
 
+namespace SplineUtils {
+  enum class AdjustOp;
+}
+
 
 /*!
   \brief Base class for spline-based mixed finite element assembly drivers.
@@ -92,9 +96,11 @@ protected:
   static VolumeVec establishBases(Go::SplineVolume* svol, MixedType type);
 
   //! \brief Returns a C^p-1 basis of one degree higher than \a *surf.
-  static Go::SplineSurface* raiseBasis(Go::SplineSurface* surf);
+  static Go::SplineSurface* adjustBasis(const Go::SplineSurface& surf,
+                                        const std::array<SplineUtils::AdjustOp,2>& ops);
   //! \brief Returns a C^p-1 basis of one degree higher than \a *svol.
-  static Go::SplineVolume*  raiseBasis(Go::SplineVolume* svol);
+  static Go::SplineVolume* adjustBasis(const Go::SplineVolume& svol,
+                                       const std::array<SplineUtils::AdjustOp,3>& ops);
 
 private:
   std::vector<int> MADOF; //!< Matrix of accumulated DOFs for this patch

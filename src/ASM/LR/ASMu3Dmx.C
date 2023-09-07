@@ -193,12 +193,10 @@ bool ASMu3Dmx::generateFEMTopology ()
     for (size_t b = 0; b < vvec.size(); b++)
       m_basis.push_back(std::make_shared<LR::LRSplineVolume>(vvec[b].get()));
 
-    // make a backup as establishBases resets it
-    int geoB = ASMmxBase::itgBasis;
-    std::shared_ptr<Go::SplineVolume> otherBasis =
-        ASMmxBase::establishBases(tensorspline,
-                                  ASMmxBase::FULL_CONT_RAISE_BASIS1).front();
-    itgBasis = geoB;
+    std::unique_ptr<Go::SplineVolume> otherBasis(
+        ASMmxBase::adjustBasis(*tensorspline,{SplineUtils::AdjustOp::Raise,
+                                              SplineUtils::AdjustOp::Raise,
+                                              SplineUtils::AdjustOp::Raise}));
 
     // we need to project on something that is not one of our bases
     if (!projB) {
