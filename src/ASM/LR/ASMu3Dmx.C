@@ -41,7 +41,6 @@ ASMu3Dmx::ASMu3Dmx (const CharVec& n_f)
   : ASMu3D(std::accumulate(n_f.begin(), n_f.end(), 0)), ASMmxBase(n_f)
 {
   threadBasis = nullptr;
-  myGeoBasis = ASMmxBase::itgBasis;
 }
 
 
@@ -52,7 +51,6 @@ ASMu3Dmx::ASMu3Dmx (const ASMu3Dmx& patch, const CharVec& n_f)
   threadBasis = patch.threadBasis;
   nfx = patch.nfx;
   nb =  patch.nb;
-  myGeoBasis = ASMmxBase::itgBasis;
 }
 
 
@@ -234,7 +232,6 @@ bool ASMu3Dmx::generateFEMTopology ()
     projB2->generateIDs();
     projB2->getElementContaining(projB2->getElement(0)->midpoint()); // to force cache generation
   }
-  myGeoBasis = ASMmxBase::itgBasis;
 
   nb.clear();
   nb.reserve(m_basis.size());

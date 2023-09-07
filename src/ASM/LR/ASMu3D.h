@@ -704,7 +704,6 @@ protected:
 
   //! Inhomogeneous Dirichlet boundary condition data
   std::vector<DirichletFace> dirich;
-  int myGeoBasis; //!< Used with mixed
 
   ThreadGroups threadGroups; //!< Element groups for multi-threaded assembly
   ThreadGroups projThreadGroups; //!< Element groups for multi-threaded assembly - projection basis

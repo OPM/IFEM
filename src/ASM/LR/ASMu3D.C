@@ -42,7 +42,7 @@
 
 
 ASMu3D::ASMu3D (unsigned char n_f)
-  : ASMLRSpline(3,3,n_f), lrspline(nullptr), myGeoBasis(1),
+  : ASMLRSpline(3,3,n_f), lrspline(nullptr),
     bezierExtract(myBezierExtract)
 {
   vMin = 0.0;
@@ -51,7 +51,7 @@ ASMu3D::ASMu3D (unsigned char n_f)
 
 
 ASMu3D::ASMu3D (const ASMu3D& patch, unsigned char n_f)
-  : ASMLRSpline(patch,n_f), lrspline(patch.lrspline), myGeoBasis(1),
+  : ASMLRSpline(patch,n_f), lrspline(patch.lrspline),
     bezierExtract(patch.myBezierExtract)
 {
   vMin = 0.0;
