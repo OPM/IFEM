@@ -586,3 +586,12 @@ void ASMLRSpline::getNoIntPoints (size_t& nPt, size_t& nIPt)
   if (nInterface > 0 && nInterface != nel && nGauss > 0 && nGauss <= 10)
     nIPt += nInterface*nGp/nGauss;
 }
+
+
+void ASMLRSpline::swapProjectionBasis ()
+{
+  if (projB2) {
+    std::swap(projB, projB2);
+    std::swap(projThreadGroups, proj2ThreadGroups);
+  }
+}
