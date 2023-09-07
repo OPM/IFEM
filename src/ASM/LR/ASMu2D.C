@@ -1888,12 +1888,13 @@ bool ASMu2D::diracPoint (Integrand& integrand, GlobalIntegral& glInt,
 
 int ASMu2D::evalPoint (const double* xi, double* param, Vec3& X) const
 {
-  if (!lrspline) return -2;
+  const LR::LRSplineSurface* geo = this->getBasis(ASM::GEOMETRY_BASIS);
+  if (!geo) return -2;
 
   double u[2];
   if (param)
     for (int i = 0; i < 2; i++)
-      u[i] = param[i] = (1.0-xi[i])*lrspline->startparam(i) + xi[i]*lrspline->endparam(i);
+      u[i] = param[i] = (1.0-xi[i])*geo->startparam(i) + xi[i]*geo->endparam(i);
   else
   {
     u[0] = xi[0];
@@ -1910,17 +1911,17 @@ int ASMu2D::evalPoint (const double* xi, double* param, Vec3& X) const
 
 int ASMu2D::evalPoint (int iel, const double* param, Vec3& X) const
 {
-  FiniteElement fe;
-  fe.u = param[0];
-  fe.v = param[1];
-  if (!this->evaluateBasis(iel,fe))
-    return -1;
+  const LR::LRSplineSurface* geo = this->getBasis(ASM::GEOMETRY_BASIS);
+
+  int ielG = geo->getElementContaining(lrspline->getElement(iel)->midpoint());
+  Go::BasisPtsSf bas;
+  this->computeBasis(param[0],param[1],bas,ielG,geo);
 
   Matrix Xnod;
-  if (!this->getElementCoordinates(Xnod,1+iel,true))
+  if (!this->getElementCoordinates(Xnod,1+iel))
     return -1;
 
-  X = Xnod * fe.N;
+  X = Xnod * bas.basisValues;
 
   return 0;
 }
