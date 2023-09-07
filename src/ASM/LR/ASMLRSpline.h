@@ -16,9 +16,9 @@
 
 #include "ASMbase.h"
 #include "ASMunstruct.h"
-#include "GoTools/geometry/BsplineBasis.h"
+#include "ThreadGroups.h"
 
-class ThreadGroups;
+#include "GoTools/geometry/BsplineBasis.h"
 
 
 namespace LR //! Utilities for LR-splines.
@@ -207,6 +207,10 @@ protected:
   std::shared_ptr<LR::LRSpline> projB;  //!< Pointer to spline object of the projection basis
   std::shared_ptr<LR::LRSpline> projB2; //!< Pointer to spline object of the secondary projection basis
   std::shared_ptr<LR::LRSpline> refB;   //!< Pointer to spline object of the refinement basis
+
+  ThreadGroups threadGroups; //!< Element groups for multi-threaded assembly
+  ThreadGroups projThreadGroups; //!< Element groups for multi-threaded assembly - projection basis
+  ThreadGroups proj2ThreadGroups; //!< Element groups for multi-threaded assembly - second projection basis
 };
 
 #endif
