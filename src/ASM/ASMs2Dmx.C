@@ -213,7 +213,8 @@ bool ASMs2Dmx::generateFEMTopology ()
       if (ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS1 ||
           ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS2 ||
           ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
-        projB = ASMmxBase::raiseBasis(surf);
+        projB = ASMmxBase::adjustBasis(*surf,{SplineUtils::AdjustOp::Raise,
+                                              SplineUtils::AdjustOp::Raise});
       else if (ASMmxBase::Type == ASMmxBase::SUBGRID)
         projB = m_basis.front().get();
       else // FULL_CONT_RAISE_BASISx
@@ -221,7 +222,8 @@ bool ASMs2Dmx::generateFEMTopology ()
     }
 
     if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
-      projB2 = ASMmxBase::raiseBasis(surf);
+      projB2 = ASMmxBase::adjustBasis(*surf,{SplineUtils::AdjustOp::Raise,
+                                             SplineUtils::AdjustOp::Raise});
       geomB = m_basis[1].get();
     } else if (ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
       geomB = projB;

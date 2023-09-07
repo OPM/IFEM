@@ -209,7 +209,9 @@ bool ASMu2Dmx::generateFEMTopology ()
     for (size_t b = 0; b < svec.size(); b++)
       m_basis.push_back(createLR(*svec[b]));
 
-    std::unique_ptr<Go::SplineSurface> otherBasis(ASMmxBase::raiseBasis(tensorspline));
+    std::unique_ptr<Go::SplineSurface> otherBasis(
+      ASMmxBase::adjustBasis(*tensorspline,{SplineUtils::AdjustOp::Raise,
+                                            SplineUtils::AdjustOp::Raise}));
 
     // we need to project on something that is not one of our bases
     if (!projB) {
