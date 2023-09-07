@@ -186,14 +186,14 @@ ASMmxBase::SurfaceVec ASMmxBase::establishBases (Go::SplineSurface* surf,
     itgBasis = 3;
   } else if (type == SUBGRID) {
     // basis1 should be one degree higher than basis2 and C^p-1 continuous
-    int ndim = surf->dimension();
     result[1].reset(new Go::SplineSurface(*surf));
-    Go::SplineSurface tmp(*surf);
+    result[0].reset(ASMmxBase::adjustBasis(*surf,{SplineUtils::AdjustOp::Raise,
+                                                  SplineUtils::AdjustOp::Raise}));
     for (size_t i = 0; i < 2; ++i) {
       RealArray extraKnots;
-      RealArray::const_iterator uit = tmp.basis(i).begin();
+      RealArray::const_iterator uit = result[0]->basis(i).begin();
       double uprev = *(uit++);
-      while (uit != tmp.basis(i).end())
+      while (uit != result[0]->basis(i).end())
       {
         double ucurr = *(uit++);
         if (ucurr > uprev)
@@ -201,47 +201,9 @@ ASMmxBase::SurfaceVec ASMmxBase::establishBases (Go::SplineSurface* surf,
         uprev = ucurr;
       }
       if (i == 0)
-        tmp.insertKnot_u(extraKnots);
+        result[0]->insertKnot_u(extraKnots);
       else
-        tmp.insertKnot_v(extraKnots);
-    }
-    Go::BsplineBasis b1 = tmp.basis(0).extendedBasis(tmp.order_u()+1);
-    Go::BsplineBasis b2 = tmp.basis(1).extendedBasis(tmp.order_v()+1);
-
-    // Compute parameter values of the Greville points
-    size_t i;
-    RealArray ug(b1.numCoefs()), vg(b2.numCoefs());
-    for (i = 0; i < ug.size(); i++)
-      ug[i] = b1.grevilleParameter(i);
-    for (i = 0; i < vg.size(); i++)
-      vg[i] = b2.grevilleParameter(i);
-
-    if (surf->rational()) {
-      std::vector<double> rCoefs(tmp.rcoefs_begin(), tmp.rcoefs_end());
-
-      // we normally would set coefs as (x*w, y*w, w)
-      // however, gotools use this representation internally already.
-
-      // instance a Bspline surface in ndim+1
-      Go::SplineSurface surf2(tmp.basis(0), tmp.basis(1), rCoefs.begin(), ndim+1, false);
-
-      // interpolate the Bspline surface onto new basis
-      RealArray XYZ((ndim+1)*ug.size()*vg.size());
-      surf2.gridEvaluator(XYZ,ug,vg);
-      std::unique_ptr<Go::SplineSurface> surf3(Go::SurfaceInterpolator::regularInterpolation(b1,b2,ug,vg,XYZ,ndim+1,false,XYZ));
-
-      // new rational coefs are (x/w', y/w', w')
-      // apparently gotools will rescale coeffs on surface creation.
-      result[0].reset(new Go::SplineSurface(surf3->basis(0), surf3->basis(1), surf3->coefs_begin(), ndim, true));
-    } else {
-      RealArray XYZ(ndim*ug.size()*vg.size());
-      // Evaluate the spline surface at all points
-      tmp.gridEvaluator(XYZ,ug,vg);
-
-      // Project the coordinates onto the new basis (the 2nd XYZ is dummy here)
-      result[0].reset(Go::SurfaceInterpolator::regularInterpolation(b1,b2,
-                                                                    ug,vg,XYZ,ndim,
-                                                                    false,XYZ));
+        result[0]->insertKnot_v(extraKnots);
     }
     itgBasis = 1;
   }
@@ -253,8 +215,8 @@ ASMmxBase::SurfaceVec ASMmxBase::establishBases (Go::SplineSurface* surf,
 }
 
 
-ASMmxBase::VolumeVec ASMmxBase::establishBases(Go::SplineVolume* svol,
-                                               MixedType type)
+ASMmxBase::VolumeVec ASMmxBase::establishBases (Go::SplineVolume* svol,
+                                                MixedType type)
 {
   VolumeVec result(2);
   // With mixed methods we need two separate spline spaces
@@ -325,64 +287,22 @@ ASMmxBase::VolumeVec ASMmxBase::establishBases(Go::SplineVolume* svol,
     itgBasis = 4;
   } else if (type == SUBGRID) {
     // basis1 should be one degree higher than basis2 and C^p-1 continuous
-    int ndim = svol->dimension();
     result[1].reset(new Go::SplineVolume(*svol));
-    Go::SplineVolume tmp(*svol);
+    result[0].reset(ASMmxBase::adjustBasis(*svol,{SplineUtils::AdjustOp::Raise,
+                                                  SplineUtils::AdjustOp::Raise,
+                                                  SplineUtils::AdjustOp::Raise}));
     for (size_t dir = 0; dir < 3; ++dir) {
       RealArray extraKnots;
-      RealArray::const_iterator uit = tmp.basis(dir).begin();
+      RealArray::const_iterator uit = result[0]->basis(dir).begin();
       double uprev = *(uit++);
-      while (uit != tmp.basis(dir).end())
+      while (uit != result[0]->basis(dir).end())
       {
         double ucurr = *(uit++);
         if (ucurr > uprev)
           extraKnots.push_back(ucurr*0.5 + uprev*0.5);
         uprev = ucurr;
       }
-      tmp.insertKnot(dir, extraKnots);
-    }
-
-    Go::BsplineBasis b1 = tmp.basis(0).extendedBasis(tmp.order(0)+1);
-    Go::BsplineBasis b2 = tmp.basis(1).extendedBasis(tmp.order(1)+1);
-    Go::BsplineBasis b3 = tmp.basis(2).extendedBasis(tmp.order(2)+1);
-
-    // Compute parameter values of the Greville points
-    size_t i;
-    RealArray ug(b1.numCoefs()), vg(b2.numCoefs()), wg(b3.numCoefs());
-    for (i = 0; i < ug.size(); i++)
-      ug[i] = b1.grevilleParameter(i);
-    for (i = 0; i < vg.size(); i++)
-      vg[i] = b2.grevilleParameter(i);
-    for (i = 0; i < wg.size(); i++)
-      wg[i] = b3.grevilleParameter(i);
-
-    if (svol->rational()) {
-      std::vector<double> rCoefs(tmp.rcoefs_begin(), tmp.rcoefs_end());
-
-      // we normally would set coefs as (x*w, y*w, w)
-      // however, gotools use this representation internally already.
-
-      // instance a Bspline surface in ndim+1
-      Go::SplineVolume svol2(tmp.basis(0), tmp.basis(1), tmp.basis(2), rCoefs.begin(), ndim+1, false);
-
-      // interpolate the Bspline surface onto new basis
-      RealArray XYZ((ndim+1)*ug.size()*vg.size()*wg.size());
-      svol2.gridEvaluator(ug,vg,wg,XYZ);
-      std::unique_ptr<Go::SplineVolume> svol3(Go::VolumeInterpolator::regularInterpolation(b1,b2,b3,ug,vg,wg,XYZ,ndim+1,false,XYZ));
-
-      // new rational coefs are (x/w', y/w', w')
-      // apparently gotools will rescale coeffs on surface creation.
-      result[0].reset(new Go::SplineVolume(svol3->basis(0), svol3->basis(1), svol3->basis(2),svol3->coefs_begin(), ndim, true));
-    } else {
-      RealArray XYZ(ndim*ug.size()*vg.size()*wg.size());
-      // Evaluate the spline surface at all points
-      tmp.gridEvaluator(ug,vg,wg,XYZ);
-
-      // Project the coordinates onto the new basis (the 2nd XYZ is dummy here)
-      result[0].reset(Go::VolumeInterpolator::regularInterpolation(b1,b2,b3,
-                                                                   ug,vg,wg,
-                                                                   XYZ,ndim,
-                                                                   false,XYZ));
+      result[0]->insertKnot(dir, extraKnots);
     }
     itgBasis = 1;
   }
