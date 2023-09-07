@@ -394,21 +394,9 @@ Go::SplineSurface* ASMmxBase::raiseBasis (Go::SplineSurface* surf)
 {
   // Create a C^p-1 basis of one degree higher than *surf
   // but keep lines of reduced continuity
-  std::array<Go::BsplineBasis,2> basis;
-  for (size_t idx = 0; idx < 2; ++idx) {
-    std::vector<double> knots;
-    surf->basis(idx).knotsSimple(knots);
-    std::vector<int> mult;
-    surf->basis(idx).knotMultiplicities(mult);
-    std::vector<int> cont(knots.size());
-    cont.front() = cont.back() = -1;
-    int order = idx == 0 ? surf->order_u() : surf->order_v();
-    for (size_t i = 1; i < knots.size()-1; ++i)
-      cont[i]  = order - (mult[i] == 1 ? 1 : mult[i]+1);
-
-    std::vector<double> newknot = SplineUtils::buildKnotVector(order, knots, cont);
-    basis[idx] = Go::BsplineBasis(order+1, newknot.begin(), newknot.end());
-  }
+  using Op = SplineUtils::AdjustOp;
+  std::array<Go::BsplineBasis,2> basis{SplineUtils::adjustBasis(surf->basis(0),Op::Raise),
+                                       SplineUtils::adjustBasis(surf->basis(1),Op::Raise)};
 
   // Compute parameter values of the Greville points
   std::array<RealArray,2> ug;
@@ -453,21 +441,10 @@ Go::SplineVolume* ASMmxBase::raiseBasis (Go::SplineVolume* svol)
 {
   // Create a C^p-1 basis of one degree higher than *svol
   // but keep lines of reduced continuity
-  std::array<Go::BsplineBasis,3> basis;
-  for (size_t idx = 0; idx < 3; ++idx) {
-    std::vector<double> knots;
-    svol->basis(idx).knotsSimple(knots);
-    std::vector<int> mult;
-    svol->basis(idx).knotMultiplicities(mult);
-    std::vector<int> cont(knots.size());
-    cont.front() = cont.back() = -1;
-    int order = svol->order(idx);
-    for (size_t i = 1; i < knots.size()-1; ++i)
-      cont[i]  = order - (mult[i] == 1 ? 1 : mult[i]+1);
-
-    std::vector<double> newknot = SplineUtils::buildKnotVector(order, knots, cont);
-    basis[idx] = Go::BsplineBasis(order+1, newknot.begin(), newknot.end());
-  }
+  using Op = SplineUtils::AdjustOp;
+  std::array<Go::BsplineBasis,3> basis{SplineUtils::adjustBasis(svol->basis(0),Op::Raise),
+                                       SplineUtils::adjustBasis(svol->basis(1),Op::Raise),
+                                       SplineUtils::adjustBasis(svol->basis(2),Op::Raise)};
 
   // Compute parameter values of the Greville points
   std::array<RealArray,3> ug;
