@@ -1389,10 +1389,11 @@ bool ASMu3D::diracPoint (Integrand& integrand, GlobalIntegral& glInt,
 
 int ASMu3D::evalPoint (const double* xi, double* param, Vec3& X) const
 {
-  if (!lrspline) return -3;
+  const LR::LRSplineVolume* geo = this->getBasis(ASM::GEOMETRY_BASIS);
+  if (!geo) return -3;
 
   for (int i = 0; i < 3; i++)
-    param[i] = (1.0-xi[i])*lrspline->startparam(i) + xi[i]*lrspline->endparam(i);
+    param[i] = (1.0-xi[i])*geo->startparam(i) + xi[i]*geo->endparam(i);
 
   int iel = 0;
   return this->evalPoint(iel,param,X);
@@ -1401,9 +1402,10 @@ int ASMu3D::evalPoint (const double* xi, double* param, Vec3& X) const
 
 int ASMu3D::evalPoint (int, const double* param, Vec3& X) const
 {
+  const LR::LRSplineVolume* geo = this->getBasis(ASM::GEOMETRY_BASIS);
   Go::Point X0;
-  lrspline->point(X0,param[0],param[1],param[2]);
-  for (int i = 0; i < 3 && i < lrspline->dimension(); i++)
+  geo->point(X0,param[0],param[1],param[2]);
+  for (int i = 0; i < 3 && i < geo->dimension(); i++)
     X[i] = X0[i];
 
   return 0;
