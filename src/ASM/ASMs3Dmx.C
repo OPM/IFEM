@@ -204,18 +204,24 @@ bool ASMs3Dmx::generateFEMTopology ()
   if (!svol) return false;
 
   if (m_basis.empty()) {
+    if (ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE &&
+        (svol->order(0) < 3 || svol->order(1) < 3 || svol->order(2) < 3)) {
+      std::cerr << "*** RT basis cannot use a linear geometry." << std::endl;
+      return false;
+    }
     m_basis = ASMmxBase::establishBases(svol, ASMmxBase::Type);
 
     // we need to project on something that is not one of our bases
     if (!projB) {
       if (ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS1 ||
-          ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS2 ||
-          ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
+          ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS2)
         projB = ASMmxBase::adjustBasis(*svol,{SplineUtils::AdjustOp::Raise,
                                               SplineUtils::AdjustOp::Raise,
                                               SplineUtils::AdjustOp::Raise});
       else if (ASMmxBase::Type == ASMmxBase::SUBGRID)
         projB = m_basis.front().get();
+      else if (ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
+        projB = new Go::SplineVolume(*svol);
       else // FULL_CONT_RAISE_BASISx
         projB = m_basis[2-itgBasis].get();
     }

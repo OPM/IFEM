@@ -415,6 +415,7 @@ TEST(TestASMs3Dmx, WriteRT)
   ASMmxBase::Type = ASMmxBase::DIV_COMPATIBLE;
   ASMbase::resetNumbering();
   ASMmxCube pch1({1,1,1});
+  pch1.raiseOrder(1,1,1);
   EXPECT_TRUE(pch1.generateFEMTopology());
 
   std::stringstream str;

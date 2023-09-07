@@ -189,23 +189,32 @@ bool ASMu3Dmx::generateFEMTopology ()
     return true;
 
   if (m_basis.empty()) {
+    if (ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE &&
+        (tensorspline->order(0) < 3 ||
+         tensorspline->order(1) < 3 ||
+         tensorspline->order(2) < 3)) {
+      std::cerr << "*** RT basis cannot use a linear geometry." << std::endl;
+      return false;
+    }
     VolumeVec vvec = ASMmxBase::establishBases(tensorspline, ASMmxBase::Type);
     for (size_t b = 0; b < vvec.size(); b++)
       m_basis.push_back(std::make_shared<LR::LRSplineVolume>(vvec[b].get()));
 
-    std::unique_ptr<Go::SplineVolume> otherBasis(
-        ASMmxBase::adjustBasis(*tensorspline,{SplineUtils::AdjustOp::Raise,
-                                              SplineUtils::AdjustOp::Raise,
-                                              SplineUtils::AdjustOp::Raise}));
+    std::unique_ptr<Go::SplineVolume> otherBasis;
+    if (ASMmxBase::Type != ASMmxBase::DIV_COMPATIBLE)
+      otherBasis.reset(ASMmxBase::adjustBasis(*tensorspline,{SplineUtils::AdjustOp::Raise,
+                                                             SplineUtils::AdjustOp::Raise,
+                                                             SplineUtils::AdjustOp::Raise}));
 
     // we need to project on something that is not one of our bases
     if (!projB) {
       if (ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS1 ||
-          ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS2 ||
-          ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
+          ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS2)
         projB = std::make_shared<LR::LRSplineVolume>(otherBasis.get());
       else if (ASMmxBase::Type == ASMmxBase::SUBGRID)
         projB = m_basis.front();
+      else if (ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
+        projB = std::make_shared<LR::LRSplineVolume>(tensorspline);
       else // FULL_CONT_RAISE_BASISx
         projB = m_basis[2-ASMmxBase::itgBasis];
     }
