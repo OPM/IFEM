@@ -2546,11 +2546,12 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
 
 int ASMs2D::evalPoint (const double* xi, double* param, Vec3& X) const
 {
-  if (!surf) return -2;
+  const Go::SplineSurface* geo = this->getBasis(ASM::GEOMETRY_BASIS);
+  if (!geo) return -2;
 
-  param[0] = (1.0-xi[0])*surf->startparam_u() + xi[0]*surf->endparam_u();
-  param[1] = (1.0-xi[1])*surf->startparam_v() + xi[1]*surf->endparam_v();
-  SplineUtils::point(X,param[0],param[1],surf);
+  param[0] = (1.0-xi[0])*geo->startparam_u() + xi[0]*geo->endparam_u();
+  param[1] = (1.0-xi[1])*geo->startparam_v() + xi[1]*geo->endparam_v();
+  SplineUtils::point(X,param[0],param[1],geo);
 
   // Check if this point matches any of the control points (nodes)
   return this->searchCtrlPt(surf->coefs_begin(),surf->coefs_end(),
