@@ -57,6 +57,7 @@ TEST(TestLRSplineFields, Value2Dmx)
 {
   ASMmxBase::Type = ASMmxBase::DIV_COMPATIBLE;
   ASMmxuSquare patch({1,1,1});
+  patch.raiseOrder(1,1);
   EXPECT_TRUE(patch.generateFEMTopology());
 
   // {x+y+x*y, x-y+x*y}
@@ -225,6 +226,7 @@ TEST(TestLRSplineFields, Value3Dmx)
 {
   ASMmxBase::Type = ASMmxBase::DIV_COMPATIBLE;
   ASMmxuCube patch({1,1,1,1});
+  patch.raiseOrder(1,1,1,false);
   ASSERT_TRUE(patch.generateFEMTopology());
 
   // {x+y+z+x*y*z, x+y-z+x*y*z, x-y+z+x*y*z}
