@@ -684,27 +684,6 @@ double ASMu3D::getParametricArea (int iel, int dir) const
 }
 
 
-double ASMu3D::getParametricVolume (int iel) const
-{
-#ifdef INDEX_CHECK
-  if (iel < 1 || (size_t)iel > MNPC.size())
-  {
-    std::cerr <<" *** ASMu3D::getParametricArea: Element index "<< iel
-              <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
-    return DERR;
-  }
-#endif
-  if (MNPC[iel-1].empty())
-    return 0.0;
-
-  const LR::Element* el = lrspline->getElement(iel-1);
-  double du = el->getParmax(0) - el->getParmin(0);
-  double dv = el->getParmax(1) - el->getParmin(1);
-  double dw = el->getParmax(2) - el->getParmin(2);
-  return du*dv*dw;
-}
-
-
 bool ASMu3D::getElementCoordinates (Matrix& X, int iel, bool forceItg) const
 {
 #ifdef INDEX_CHECK
