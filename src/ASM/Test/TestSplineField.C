@@ -17,13 +17,14 @@
 
 #include "gtest/gtest.h"
 #include <array>
+#include <memory>
 
 
 TEST(TestSplineField, Value2D)
 {
   ASMSquare patch(1);
   std::vector<double> sc = {0.0, 1.0, 1.0, 2.0}; // x + y
-  Field* fscalar = Field::create(&patch,sc);
+  std::unique_ptr<Field>fscalar(Field::create(&patch,sc));
   static std::vector<std::array<double,3>> tests_scalar = {{{{0.5, 0.5, 1.0}},
                                                             {{1.0, 0.0, 1.0}},
                                                             {{0.0, 1.0, 1.0}},
@@ -36,7 +37,7 @@ TEST(TestSplineField, Grad2D)
 {
   ASMSquare patch(1);
   std::vector<double> sc = {0.0, 1.0, 1.0, 2.0}; // x + y
-  Field* fscalar = Field::create(&patch,sc);
+  std::unique_ptr<Field> fscalar(Field::create(&patch,sc));
   static std::vector<std::array<double,2>> tests_scalar = {{{{0.5, 0.5}},
                                                             {{1.0, 0.0}},
                                                             {{0.0, 1.0}},
@@ -54,7 +55,7 @@ TEST(TestSplineField, Value3D)
 {
   ASMCube patch(1);
   std::vector<double> sc = {0.0, 1.0, 1.0, 2.0, 1.0, 2.0, 2.0, 3.0}; // x + y + z
-  Field* fscalar = Field::create(&patch,sc);
+  std::unique_ptr<Field> fscalar(Field::create(&patch,sc));
   static std::vector<std::array<double,4>> tests_scalar = {{{{0.5, 0.5, 0.5, 1.5}},
                                                             {{0.0, 0.0, 0.0, 0.0}},
                                                             {{1.0, 0.0, 0.0, 1.0}},
@@ -72,7 +73,7 @@ TEST(TestSplineField, Grad3D)
 {
   ASMCube patch(1);
   std::vector<double> sc = {0.0, 1.0, 1.0, 2.0, 1.0, 2.0, 2.0, 3.0}; // x + y + z
-  Field* fscalar = Field::create(&patch,sc);
+  std::unique_ptr<Field> fscalar(Field::create(&patch,sc));
   static std::vector<std::array<double,3>> tests_scalar = {{{{0.5, 0.5, 0.5}},
                                                             {{0.0, 0.0, 0.0}},
                                                             {{1.0, 0.0, 0.0}},
