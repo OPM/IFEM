@@ -886,21 +886,6 @@ void ASMu2D::constrainNode (double xi, double eta, int dof, int code)
 
 #define DERR -999.99
 
-double ASMu2D::getParametricArea (int iel) const
-{
-#ifdef INDEX_CHECK
-  if (iel < 1 || iel > lrspline->nElements())
-  {
-    std::cerr <<" *** ASMu2D::getParametricArea: Element index "<< iel
-              <<" out of range [1,"<< lrspline->nElements() <<"]."<< std::endl;
-    return DERR;
-  }
-#endif
-
-  return lrspline->getElement(iel-1)->area();
-}
-
-
 double ASMu2D::getParametricLength (int iel, int dir) const
 {
 #ifdef INDEX_CHECK
@@ -1154,8 +1139,10 @@ bool ASMu2D::integrate (Integrand& integrand,
       double   param[3] = { 0.0, 0.0, 0.0 };
       Vec4     X(param,time.t);
 
+      const LR::Element* el = lrspline->getElement(iel-1);
+
       // Get element area in the parameter space
-      double dA = 0.25*this->getParametricArea(iel);
+      double dA = 0.25*el->area();
       if (dA < 0.0)
       {
         ok = false;
@@ -1181,7 +1168,6 @@ bool ASMu2D::integrate (Integrand& integrand,
           ok = false;
       }
 
-      const LR::Element* el = lrspline->getElement(iel-1);
       if (integrand.getIntegrandType() & Integrand::G_MATRIX)
       {
         // Element size in parametric space
@@ -1436,8 +1422,10 @@ bool ASMu2D::integrate (Integrand& integrand,
       Matrix3D d2Ndu2, Hess;
       Vec4     X(nullptr,time.t);
 
+      const LR::Element* el = lrspline->getElement(iel-1);
+
       // Get element area in the parameter space
-      double dA = 0.25*this->getParametricArea(iel);
+      double dA = 0.25*el->area();
       if (dA < 0.0)
       {
         ok = false;

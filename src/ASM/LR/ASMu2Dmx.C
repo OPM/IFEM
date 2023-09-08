@@ -365,7 +365,8 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
       fe.iel = MLGE[geoEl-1];
 
       // Get element area in the parameter space
-      double dA = 0.25*this->getParametricArea(geoEl);
+      const LR::Element* el = lrspline->getElement(geoEl-1);
+      double dA = 0.25*el->area();
       if (dA < 0.0)
       {
         ok = false; // topology error (probably logic error)
@@ -385,8 +386,8 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
       if (integrand.getIntegrandType() & Integrand::G_MATRIX)
       {
         // Element size in parametric space
-        dXidu[0] = lrspline->getElement(geoEl-1)->umax() - lrspline->getElement(geoEl-1)->umin();
-        dXidu[1] = lrspline->getElement(geoEl-1)->vmax() - lrspline->getElement(geoEl-1)->vmin();
+        dXidu[0] = el->umax() - el->umin();
+        dXidu[1] = el->vmax() - el->vmin();
       }
 
       // Initialize element quantities

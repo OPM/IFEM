@@ -600,9 +600,6 @@ protected:
   //! \param[in] basisNum Which basis to get Greville point parameters for
   bool getGrevilleParameters(RealArray& prm, int dir, int basisNum = 1) const;
 
-  //! \brief Returns the area in the parameter space for an element.
-  //! \param[in] iel 1-based element index
-  double getParametricArea(int iel) const;
   //! \brief Returns boundary edge length in the parameter space for an element.
   //! \param[in] iel 1-based element index
   //! \param[in] dir Local index of the boundary edge
