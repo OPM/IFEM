@@ -617,9 +617,6 @@ protected:
   //! \param[in] dir Parameter direction (0,1,2)
   bool getQuasiInterplParameters(RealArray& prm, int dir) const;
 
-  //! \brief Returns the volume in the parameter space for an element.
-  //! \param[in] iel 1-based element index
-  double getParametricVolume(int iel) const;
   //! \brief Returns boundary face area in the parameter space for an element.
   //! \param[in] iel 1-based element index
   //! \param[in] dir Local face index of the boundary face
