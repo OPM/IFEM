@@ -14,28 +14,27 @@
 #include "Fields.h"
 #include "FiniteElement.h"
 #include "ASMmxBase.h"
-#include "IFEM.h"
-#include "SIM2D.h"
-#include "SIM3D.h"
+#include "ASMuCube.h"
+#include "ASMuSquare.h"
 
 #include "gtest/gtest.h"
 #include <array>
+#include <memory>
 #include <vector>
 
 
 TEST(TestLRSplineFields, Value2D)
 {
-  IFEM::getOptions().discretization = ASM::LRSpline;
-  SIM2D sim(2);
-  ASSERT_TRUE(sim.createDefaultModel());
+  ASMuSquare patch;
+  EXPECT_TRUE(patch.generateFEMTopology());
 
   // {x+y+x*y, x-y+x*y}
   std::vector<double> vc = {0.0,  0.0,
                             1.0,  1.0,
                             1.0, -1.0,
                             3.0, 1.0};
-  Fields* fvector = Fields::create(sim.getPatch(1), vc);
-  Field* fscalar = Field::create(sim.getPatch(1), vc, 1, 2);
+  std::unique_ptr<Fields> fvector(Fields::create(&patch, vc));
+  std::unique_ptr<Field> fscalar(Field::create(&patch, vc, 1, 2));
   static std::vector<std::array<double,4>> tests_vector =
         {{{0.5, 0.5, 1.25, 0.25}},
          {{1.0, 0.0, 1.0,  1.0}},
@@ -57,10 +56,8 @@ TEST(TestLRSplineFields, Value2D)
 TEST(TestLRSplineFields, Value2Dmx)
 {
   ASMmxBase::Type = ASMmxBase::DIV_COMPATIBLE;
-  IFEM::getOptions().discretization = ASM::LRSpline;
-  SIM2D sim({1,1,1});
-  ASSERT_TRUE(sim.createDefaultModel());
-  ASSERT_TRUE(sim.createFEMmodel());
+  ASMmxuSquare patch({1,1,1});
+  EXPECT_TRUE(patch.generateFEMTopology());
 
   // {x+y+x*y, x-y+x*y}
   std::vector<double> vc = {0.0,
@@ -78,8 +75,8 @@ TEST(TestLRSplineFields, Value2Dmx)
                             1.0,
                             // p
                             0.0, 1.0, 1.0, 2.0}; // x + y
-  Fields* fvector = Fields::create(sim.getPatch(1), vc, 12);
-  Field* fscalar = Field::create(sim.getPatch(1), vc, 3, 1);
+  std::unique_ptr<Fields> fvector(Fields::create(&patch, vc, 12));
+  std::unique_ptr<Field> fscalar(Field::create(&patch, vc, 3, 1));
   static std::vector<std::array<double,5>> tests_vector =
                           {{{0.5, 0.5, 1.25, 0.25, 1.0}},
                            {{1.0, 0.0, 1.0,  1.0,  1.0}},
@@ -100,13 +97,12 @@ TEST(TestLRSplineFields, Value2Dmx)
 
 TEST(TestLRSplineFields, Grad2D)
 {
-  IFEM::getOptions().discretization = ASM::LRSpline;
-  SIM2D sim(2);
-  ASSERT_TRUE(sim.createDefaultModel());
+  ASMuSquare patch;
+  EXPECT_TRUE(patch.generateFEMTopology());
 
   // {x+y+x*y, x-y+x*y}
   std::vector<double> vc = {0.0, 0.0, 1.0, 1.0, 1.0, -1.0, 3.0, 1.0};
-  Fields* fvector = Fields::create(sim.getPatch(1), vc);
+  std::unique_ptr<Fields> fvector(Fields::create(&patch, vc));
   static std::vector<std::array<double,6>> tests_vector =
         {{{0.5, 0.5, 1.5, 1.5, 1.5, -0.5}},
          {{1.0, 0.0, 1.0, 2.0, 1.0, 0.0}},
@@ -128,9 +124,8 @@ TEST(TestLRSplineFields, Grad2D)
 
 TEST(TestLRSplineFields, Value3D)
 {
-  IFEM::getOptions().discretization = ASM::LRSpline;
-  SIM3D sim(3);
-  ASSERT_TRUE(sim.createDefaultModel());
+  ASMuCube patch;
+  EXPECT_TRUE(patch.generateFEMTopology());
 
   // {x+y+z, x+y-z, x-y+z}
   std::vector<double> vc = {0.0,  0.0,  0.0,
@@ -141,8 +136,8 @@ TEST(TestLRSplineFields, Value3D)
                             2.0,  0.0,  2.0,
                             2.0,  0.0,  0.0,
                             3.0,  1.0,  1.0};
-  Fields* fvector = Fields::create(sim.getPatch(1), vc);
-  Field* fscalar = Field::create(sim.getPatch(1), vc, 1, 2);
+  std::unique_ptr<Fields> fvector(Fields::create(&patch, vc));
+  std::unique_ptr<Field> fscalar(Field::create(&patch, vc, 1, 2));
   static std::vector<std::array<double,6>> tests_scalar =
       {{{0.5, 0.5, 0.5, 1.5,  0.5,  0.5}},
        {{0.0, 0.0, 0.0, 0.0,  0.0,  0.0}},
@@ -170,9 +165,8 @@ TEST(TestLRSplineFields, Value3D)
 
 TEST(TestLRSplineFields, Grad3D)
 {
-  IFEM::getOptions().discretization = ASM::LRSpline;
-  SIM3D sim(3);
-  ASSERT_TRUE(sim.createDefaultModel());
+  ASMuCube patch;
+  EXPECT_TRUE(patch.generateFEMTopology());
 
   // {x+y+z+x*y*z, x+y-z+x*y*z, x-y+z+x*y*z}
   std::vector<double> vc = {0.0,  0.0,  0.0,
@@ -183,7 +177,7 @@ TEST(TestLRSplineFields, Grad3D)
                             2.0,  0.0,  2.0,
                             2.0,  0.0,  0.0,
                             4.0,  2.0,  2.0};
-  Fields* fvector = Fields::create(sim.getPatch(1), vc);
+  std::unique_ptr<Fields> fvector(Fields::create(&patch, vc));
   static std::vector<std::pair<std::array<double,3>,
                                std::array<double,9>>> tests_vector =
     {{{{0.5, 0.5, 0.5}}, {{1.25,  1.25,  1.25,
@@ -230,9 +224,8 @@ TEST(TestLRSplineFields, Grad3D)
 TEST(TestLRSplineFields, Value3Dmx)
 {
   ASMmxBase::Type = ASMmxBase::DIV_COMPATIBLE;
-  SIM3D sim({1,1,1,1});
-  ASSERT_TRUE(sim.createDefaultModel());
-  ASSERT_TRUE(sim.createFEMmodel());
+  ASMmxuCube patch({1,1,1,1});
+  ASSERT_TRUE(patch.generateFEMTopology());
 
   // {x+y+z+x*y*z, x+y-z+x*y*z, x-y+z+x*y*z}
   std::vector<double> vc = {0.0, 0.5, 1.0,
@@ -255,8 +248,8 @@ TEST(TestLRSplineFields, Value3Dmx)
                             0.0, 2.0,
 //                             p
                             0.0, 1.0, 1.0, 2.0, 1.0, 2.0, 2.0, 3.0};
-  Fields* fvector = Fields::create(sim.getPatch(1), vc, 123);
-  Field* fscalar = Field::create(sim.getPatch(1), vc, 4, 1);
+  std::unique_ptr<Fields> fvector(Fields::create(&patch, vc, 123));
+  std::unique_ptr<Field> fscalar(Field::create(&patch, vc, 4, 1));
   static std::vector<std::array<double,7>> tests_vector =
                          {{{0.5, 0.5, 0.5, 1.625, 0.625, 0.625, 1.5}},
                           {{0.0, 0.0, 0.0,   0.0,   0.0,   0.0, 0.0}},
