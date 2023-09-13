@@ -350,7 +350,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
 
       std::vector<int>    els;
       std::vector<size_t> elem_sizes;
-      this->getElementsAt(threadBasis->getElement(groups[t][e])->midpoint(),els,elem_sizes);
+      this->getElementsAt(threadBasis->getElement(groups[t][e])->midpoint(),els,&elem_sizes);
 
       MxFiniteElement fe(elem_sizes);
       Matrix   Xnod, Jac;
@@ -553,7 +553,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
 
     std::vector<int>    els;
     std::vector<size_t> elem_sizes;
-    this->getElementsAt(el->midpoint(),els,elem_sizes);
+    this->getElementsAt(el->midpoint(),els,&elem_sizes);
 
     MxFiniteElement fe(elem_sizes);
     fe.iel = MLGE[iEl];
@@ -697,7 +697,7 @@ bool ASMu3Dmx::evalSolution (Matrix& sField, const Vector& locSol,
   Vector   ptSol;
   Matrix   Jac, Xnod, eSol, ptDer;
 
-  std::vector<Go::BasisPts> splinex(m_basis.size());
+  Go::BasisPts spline;
 
   std::vector<size_t> nc(nfx.size(), 0);
   if (nf)
@@ -709,27 +709,26 @@ bool ASMu3Dmx::evalSolution (Matrix& sField, const Vector& locSol,
   sField.resize(std::accumulate(nc.begin(), nc.end(), 0), nPoints);
   for (size_t i = 0; i < nPoints; i++)
   {
+    std::vector<int> els;
+    this->getElementsAt({gpar[0][i],gpar[1][i],gpar[2][i]},els);
     RealArray Ztmp;
     const double* locPtr = locSol.data();
-    for (size_t j=0; j <  m_basis.size(); ++j) {
+    for (size_t j = 0; j < m_basis.size(); ++j) {
       if (nc[j] == 0)
         continue;
 
-      // Fetch element containing evaluation point.
-      // Sadly, points are not always ordered in the same way as the elements.
-      int iel = m_basis[j]->getElementContaining(gpar[0][i],gpar[1][i],gpar[2][i]);
-      const LR::Element* el = m_basis[j]->getElement(iel);
+      const LR::Element* el = m_basis[j]->getElement(els[j]-1);
 
       // Evaluate basis function values/derivatives at current parametric point
       // and multiply with control point values to get the point-wise solution
-      m_basis[j]->computeBasis(gpar[0][i],gpar[1][i],gpar[2][i],splinex[j],iel);
+      m_basis[j]->computeBasis(gpar[0][i],gpar[1][i],gpar[2][i],spline,els[j]-1);
 
-      Matrix val1(nc[j], splinex[j].basisValues.size());
+      Matrix val1(nc[j], spline.basisValues.size());
       size_t col = 0;
       for (LR::Basisfunction* b : el->support())
         val1.fillColumn(++col, locPtr+b->getId()*nc[j]);
       Vector Ytmp;
-      val1.multiply(splinex[j].basisValues,Ytmp);
+      val1.multiply(spline.basisValues,Ytmp);
       Ztmp.insert(Ztmp.end(),Ytmp.begin(),Ytmp.end());
       locPtr += nb[j]*nc[j];
     }
@@ -768,7 +767,7 @@ bool ASMu3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     // sadly, points are not always ordered in the same way as the elements
     std::vector<int>    els;
     std::vector<size_t> elem_sizes;
-    this->getElementsAt({gpar[0][i],gpar[1][i],gpar[2][i]},els,elem_sizes);
+    this->getElementsAt({gpar[0][i],gpar[1][i],gpar[2][i]},els,&elem_sizes);
 
     // Evaluate the basis functions at current parametric point
     MxFiniteElement       fe(elem_sizes,firstIp+i);
@@ -1013,17 +1012,20 @@ void ASMu3Dmx::copyRefinement (LR::LRSplineVolume* basis,
 
 void ASMu3Dmx::getElementsAt (const RealArray& param,
                               std::vector<int>& elms,
-                              std::vector<size_t>& sizes) const
+                              std::vector<size_t>* sizes) const
 {
   elms.clear();
-  sizes.clear();
   elms.reserve(m_basis.size());
-  sizes.reserve(m_basis.size());
+  if (sizes) {
+    sizes->clear();
+    sizes->reserve(m_basis.size());
+  }
   for (const SplinePtr& basis : m_basis)
   {
     int iel = basis->getElementContaining(param);
     elms.push_back(1+iel);
-    sizes.push_back(basis->getElement(iel)->nBasisFunctions());
+    if (sizes)
+      sizes->push_back(basis->getElement(iel)->nBasisFunctions());
   }
   const LR::LRSplineVolume* geo = this->getBasis(ASM::GEOMETRY_BASIS);
   if (geo != lrspline.get())

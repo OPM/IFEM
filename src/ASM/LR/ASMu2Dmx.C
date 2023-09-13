@@ -362,7 +362,7 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
 
       std::vector<int>    els;
       std::vector<size_t> elem_sizes;
-      this->getElementsAt(threadBasis->getElement(groups[t][e])->midpoint(),els,elem_sizes);
+      this->getElementsAt(threadBasis->getElement(groups[t][e])->midpoint(),els,&elem_sizes);
 
       MxFiniteElement fe(elem_sizes);
       Matrix   Xnod, Jac;
@@ -546,7 +546,7 @@ bool ASMu2Dmx::integrate (Integrand& integrand, int lIndex,
 
     std::vector<int>    els;
     std::vector<size_t> elem_sizes;
-    this->getElementsAt(el1->midpoint(),els,elem_sizes);
+    this->getElementsAt(el1->midpoint(),els,&elem_sizes);
 
     MxFiniteElement fe(elem_sizes,firstp);
     int geoEl = els[itgBasis-1];
@@ -678,7 +678,7 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
 
     std::vector<int>    els;
     std::vector<size_t> elem_sizes;
-    this->getElementsAt(el1->midpoint(),els,elem_sizes);
+    this->getElementsAt(el1->midpoint(),els,&elem_sizes);
     // Replace first entry by hosting element
     els.front()        = iel;
     elem_sizes.front() = el1->nBasisFunctions();
@@ -725,7 +725,7 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
           const LR::Element* el2 = m_basis.front()->getElement(el_neigh-1);
           std::vector<int>    els2;
           std::vector<size_t> elem_sizes2;
-          this->getElementsAt(el2->midpoint(),els2,elem_sizes2);
+          this->getElementsAt(el2->midpoint(),els2,&elem_sizes2);
           els2.front()        = el_neigh;
           elem_sizes2.front() = el2->nBasisFunctions();
 
@@ -838,7 +838,7 @@ bool ASMu2Dmx::evalSolution (Matrix& sField, const Vector& locSol,
   std::vector<Matrix> dNxdu(m_basis.size()), dNxdX(m_basis.size());
   Matrix   Jac, Xnod, eSol, ptDer;
 
-  std::vector<Go::BasisPtsSf> splinex(m_basis.size());
+  Go::BasisPtsSf spline;
 
   std::vector<size_t> nc(nfx.size(), 0);
   if (nf)
@@ -850,27 +850,26 @@ bool ASMu2Dmx::evalSolution (Matrix& sField, const Vector& locSol,
   sField.resize(std::accumulate(nc.begin(), nc.end(), 0), nPoints);
   for (size_t i = 0; i < nPoints; i++)
   {
+    std::vector<int> els;
+    this->getElementsAt({gpar[0][i],gpar[1][i]},els);
     RealArray Ztmp;
     const double* locPtr = locSol.data();
-    for (size_t j=0; j <  m_basis.size(); ++j) {
+    for (size_t j = 0; j < m_basis.size(); ++j) {
       if (nc[j] == 0)
         continue;
 
-      // Fetch element containing evaluation point.
-      // Sadly, points are not always ordered in the same way as the elements.
-      int iel = m_basis[j]->getElementContaining(gpar[0][i],gpar[1][i]);
-      const LR::Element* el = m_basis[j]->getElement(iel);
+      const LR::Element* el = m_basis[j]->getElement(els[j]-1);
 
       // Evaluate basis function values/derivatives at current parametric point
       // and multiply with control point values to get the point-wise solution
-      this->computeBasis(gpar[0][i],gpar[1][i],splinex[j],iel,m_basis[j].get());
+      this->computeBasis(gpar[0][i],gpar[1][i],spline,els[j]-1,m_basis[j].get());
 
-      Matrix val1(nc[j], splinex[j].basisValues.size());
+      Matrix val1(nc[j], spline.basisValues.size());
       size_t col = 0;
       for (LR::Basisfunction* b : el->support())
         val1.fillColumn(++col, locPtr+b->getId()*nc[j]);
       Vector Ytmp;
-      val1.multiply(splinex[j].basisValues,Ytmp);
+      val1.multiply(spline.basisValues,Ytmp);
       Ztmp.insert(Ztmp.end(),Ytmp.begin(),Ytmp.end());
       locPtr += nb[j]*nc[j];
     }
@@ -909,7 +908,7 @@ bool ASMu2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     // sadly, points are not always ordered in the same way as the elements
     std::vector<int>    els;
     std::vector<size_t> elem_sizes;
-    this->getElementsAt({gpar[0][i],gpar[1][i]},els,elem_sizes);
+    this->getElementsAt({gpar[0][i],gpar[1][i]},els,&elem_sizes);
 
     // Evaluate the basis functions at current parametric point
     MxFiniteElement       fe(elem_sizes,firstIp+i);
@@ -1222,17 +1221,20 @@ void ASMu2Dmx::copyRefinement (LR::LRSplineSurface* basis,
 
 void ASMu2Dmx::getElementsAt (const RealArray& param,
                               std::vector<int>& elms,
-                              std::vector<size_t>& sizes) const
+                              std::vector<size_t>* sizes) const
 {
   elms.clear();
-  sizes.clear();
   elms.reserve(m_basis.size());
-  sizes.reserve(m_basis.size());
+  if (sizes) {
+    sizes->clear();
+    sizes->reserve(m_basis.size());
+  }
   for (const SplinePtr& basis : m_basis)
   {
     int iel = basis->getElementContaining(param);
     elms.push_back(1+iel);
-    sizes.push_back(basis->getElement(iel)->nBasisFunctions());
+    if (sizes)
+      sizes->push_back(basis->getElement(iel)->nBasisFunctions());
   }
   const LR::LRSplineSurface* geo = this->getBasis(ASM::GEOMETRY_BASIS);
   if (geo != lrspline.get())
