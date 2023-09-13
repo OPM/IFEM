@@ -1430,20 +1430,21 @@ bool ASMs2D::getElementCoordinatesPrm (Matrix& X, double u, double v) const
 }
 
 
-void ASMs2D::getNodalCoordinates (Matrix& X) const
+void ASMs2D::getNodalCoordinates (Matrix& X, bool geo) const
 {
-  const int n1 = surf->numCoefs_u();
-  const int n2 = surf->numCoefs_v();
+  const Go::SplineSurface* spline = geo ? this->getBasis(ASM::GEOMETRY_BASIS) : surf;
+  const int n1 = spline->numCoefs_u();
+  const int n2 = spline->numCoefs_v();
   X.resize(nsd,n1*n2);
 
-  RealArray::const_iterator cit = surf->coefs_begin();
+  RealArray::const_iterator cit = spline->coefs_begin();
   size_t inod = 1;
   for (int i2 = 0; i2 < n2; i2++)
     for (int i1 = 0; i1 < n1; i1++, inod++)
     {
-      int ip = (i2*n1 + i1)*surf->dimension();
+      int ip = (i2*n1 + i1)*spline->dimension();
       for (size_t i = 0; i < nsd; i++)
-	X(i+1,inod) = *(cit+(ip+i));
+        X(i+1,inod) = *(cit+(ip+i));
     }
 }
 

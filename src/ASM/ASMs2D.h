@@ -246,8 +246,9 @@ public:
 
   //! \brief Returns a matrix with all nodal coordinates within the patch.
   //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
+  //! \param[in] geo If true return coordinates of geometry basis
   //! in the patch
-  virtual void getNodalCoordinates(Matrix& X) const;
+  virtual void getNodalCoordinates(Matrix& X, bool geo = false) const;
 
   //! \brief Returns the global coordinates for the given node.
   //! \param[in] inod 1-based node index local to current patch

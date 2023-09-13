@@ -229,8 +229,9 @@ public:
   virtual Vec3 getCoord(size_t inod) const = 0;
   //! \brief Returns a matrix with all nodal coordinates within the patch.
   //! \param[out] X nsd\f$\times\f$n-matrix, where \a n is the number of nodes
+  //! \param[in] geo If true returns coordinates for geometry basis
   //! in the patch
-  virtual void getNodalCoordinates(Matrix& X) const = 0;
+  virtual void getNodalCoordinates(Matrix& X, bool geo = false) const = 0;
   //! \brief Returns a matrix with nodal coordinates for an element.
   //! \param[in] iel 1-based element index local to current patch
   //! \param[in] forceItg If true force returning integration basis coordinates
