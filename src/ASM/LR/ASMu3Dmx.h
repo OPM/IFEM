@@ -184,11 +184,11 @@ public:
 private:
   //! \brief Finds the elements and associted sizes at given parametric point.
   //! \param[in] param Parametric point to find elements at
-  //! \param[out] elms List of elements on each basis containign given point
-  //! \param[out] sizes List of element sizes (numer of element nodes)
+  //! \param[out] elms List of elements on each basis containing given point
+  //! \param[out] sizes List of element sizes (number of element nodes)
   void getElementsAt(const RealArray& param,
                      std::vector<int>& elms,
-                     std::vector<size_t>& sizes) const;
+                     std::vector<size_t>* sizes = nullptr) const;
 
 protected:
   //! \brief Generates element groups for multi-threading of interior integrals.
