@@ -713,7 +713,7 @@ bool ASMu3D::getElementCoordinates (Matrix& X, int iel, bool forceItg) const
 }
 
 
-void ASMu3D::getNodalCoordinates (Matrix& X) const
+void ASMu3D::getNodalCoordinates (Matrix& X, bool) const
 {
   X.resize(3,lrspline->nBasisFunctions());
 

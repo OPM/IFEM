@@ -1702,22 +1702,23 @@ bool ASMs3D::getElementCoordinatesPrm (Matrix& X, double u,
 }
 
 
-void ASMs3D::getNodalCoordinates (Matrix& X) const
+void ASMs3D::getNodalCoordinates (Matrix& X, bool geo) const
 {
-  const int n1 = svol->numCoefs(0);
-  const int n2 = svol->numCoefs(1);
-  const int n3 = svol->numCoefs(2);
+  const Go::SplineVolume* spline = geo ? this->getBasis(ASM::GEOMETRY_BASIS) : svol;
+  const int n1 = spline->numCoefs(0);
+  const int n2 = spline->numCoefs(1);
+  const int n3 = spline->numCoefs(2);
   X.resize(3,n1*n2*n3);
 
-  RealArray::const_iterator cit = svol->coefs_begin();
+  RealArray::const_iterator cit = spline->coefs_begin();
   size_t inod = 1;
   for (int i3 = 0; i3 < n3; i3++)
     for (int i2 = 0; i2 < n2; i2++)
       for (int i1 = 0; i1 < n1; i1++, inod++)
       {
-	int ip = ((i3*n2 + i2)*n1 + i1)*svol->dimension();
-	for (size_t i = 0; i < 3; i++)
-	  X(i+1,inod) = *(cit+(ip+i));
+        int ip = ((i3*n2 + i2)*n1 + i1)*spline->dimension();
+        for (size_t i = 0; i < 3; i++)
+          X(i+1,inod) = *(cit+(ip+i));
       }
 }
 

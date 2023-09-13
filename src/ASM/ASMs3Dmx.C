@@ -1149,29 +1149,35 @@ bool ASMs3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 {
   sField.resize(0,0);
 
+  const Go::SplineVolume* geo = this->getBasis(ASM::GEOMETRY_BASIS);
+  const bool separateGeometry = geo != svol;
+
   // Evaluate the basis functions and their derivatives at all points
-  std::vector<std::vector<Go::BasisDerivs>> splinex(m_basis.size());
+  std::vector<std::vector<Go::BasisDerivs>> splinex(m_basis.size() + separateGeometry);
   if (regular)
   {
     for (size_t b = 0; b < m_basis.size(); ++b)
       m_basis[b]->computeBasisGrid(gpar[0],gpar[1],gpar[2],splinex[b]);
+    if (separateGeometry)
+      geo->computeBasisGrid(gpar[0],gpar[1],gpar[2],splinex.back());
   }
   else if (gpar[0].size() == gpar[1].size() && gpar[0].size() == gpar[2].size())
   {
-    for (size_t b = 0; b < m_basis.size(); ++b) {
+    for (size_t b = 0; b < splinex.size(); ++b) {
       splinex[b].resize(gpar[0].size());
+      const Go::SplineVolume* basis = b < m_basis.size() ? m_basis[b].get() : geo;
       for (size_t i = 0; i < splinex[b].size(); i++)
-        m_basis[b]->computeBasis(gpar[0][i],gpar[1][i],gpar[2][i],splinex[b][i]);
+        basis->computeBasis(gpar[0][i],gpar[1][i],gpar[2][i],splinex[b][i]);
     }
   }
 
   // Fetch nodal (control point) coordinates
   Matrix Xnod, Xtmp;
-  this->getNodalCoordinates(Xnod);
+  this->getNodalCoordinates(Xnod,true);
 
   MxFiniteElement fe(elem_size,firstIp);
   Vector          solPt;
-  BasisValues     bfs(m_basis.size());
+  BasisValues     bfs(splinex.size());
   Matrix          Jac;
 
   // Evaluate the secondary solution field at each point
@@ -1188,12 +1194,20 @@ bool ASMs3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
                  splinex[b][i].left_idx,ip[b]);
 
       // Fetch associated control point coordinates
-      if (b == (size_t)itgBasis-1)
+      if (!separateGeometry && b == static_cast<size_t>(itgBasis)-1)
         utl::gather(ip[itgBasis-1], 3, Xnod, Xtmp);
 
       for (int& c : ip[b]) c += ofs;
       ipa.insert(ipa.end(), ip[b].begin(), ip[b].end());
       ofs += nb[b];
+    }
+    if (separateGeometry) {
+      ip.front().clear();
+      scatterInd(geo->numCoefs(0),geo->numCoefs(1),geo->numCoefs(2),
+                 geo->order(0),geo->order(1),geo->order(2),
+                 splinex.back()[i].left_idx,ip.front());
+
+      utl::gather(ip.front(), 3, Xnod, Xtmp);
     }
 
     fe.u = splinex[0][i].param[0];
@@ -1201,8 +1215,10 @@ bool ASMs3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     fe.w = splinex[0][i].param[2];
 
     // Fetch basis function derivatives at current integration point
-    for (size_t b = 0; b < m_basis.size(); ++b)
-      SplineUtils::extractBasis(splinex[b][i],fe.basis(b+1),bfs[b].dNdu);
+    for (size_t b = 0; b < splinex.size(); ++b)
+      SplineUtils::extractBasis(splinex[b][i],
+                                b < m_basis.size() ? fe.basis(b+1) : bfs[b].N,
+                                bfs[b].dNdu);
 
     // Compute Jacobian inverse of the coordinate mapping and
     // basis function derivatives w.r.t. Cartesian coordinate
@@ -1210,7 +1226,8 @@ bool ASMs3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
       continue; // skip singular points
 
     // Cartesian coordinates of current integration point
-    utl::Point X4(Xtmp * fe.basis(itgBasis),{fe.u,fe.v,fe.w});
+    utl::Point X4(Xtmp * (separateGeometry ? bfs.back().N : fe.basis(itgBasis)),
+                  {fe.u,fe.v,fe.w});
 
     // Now evaluate the solution field
     if (!integrand.evalSol(solPt,fe,X4,ipa,elem_size,nb))

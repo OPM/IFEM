@@ -267,7 +267,7 @@ bool ASMs3DLag::getElementCoordinates (Matrix& X, int iel, bool) const
 }
 
 
-void ASMs3DLag::getNodalCoordinates (Matrix& X) const
+void ASMs3DLag::getNodalCoordinates (Matrix& X, bool) const
 {
   X.resize(3,coord.size());
 

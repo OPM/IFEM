@@ -185,7 +185,7 @@ Vec3 ASMsupel::getCoord (size_t inod) const
 }
 
 
-void ASMsupel::getNodalCoordinates (Matrix& X) const
+void ASMsupel::getNodalCoordinates (Matrix& X, bool) const
 {
   X.resize(3,nnod);
   for (size_t inod = 1; inod <= nnod; inod++)

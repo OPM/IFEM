@@ -149,7 +149,7 @@ bool ASMs1DLag::getElementCoordinates (Matrix& X, int iel, bool) const
 }
 
 
-void ASMs1DLag::getNodalCoordinates (Matrix& X) const
+void ASMs1DLag::getNodalCoordinates (Matrix& X, bool) const
 {
   X.resize(nsd,coord.size());
 

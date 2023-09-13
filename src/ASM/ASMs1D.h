@@ -101,7 +101,7 @@ public:
   //! \brief Returns a matrix with all nodal coordinates within the patch.
   //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
   //! in the patch
-  virtual void getNodalCoordinates(Matrix& X) const;
+  virtual void getNodalCoordinates(Matrix& X, bool = false) const;
 
   //! \brief Updates the nodal coordinates for this patch.
   //! \param[in] displ Incremental displacements to update the coordinates with

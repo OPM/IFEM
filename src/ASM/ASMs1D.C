@@ -715,7 +715,7 @@ bool ASMs1D::getElementNodalRotations (TensorVec& T, size_t iel) const
 }
 
 
-void ASMs1D::getNodalCoordinates (Matrix& X) const
+void ASMs1D::getNodalCoordinates (Matrix& X, bool) const
 {
   const int n1 = curv->numCoefs();
 
