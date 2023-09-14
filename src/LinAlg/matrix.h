@@ -565,6 +565,24 @@ namespace utl //! General utility classes and functions.
       }
     }
 
+    //! \brief Extract a block of the matrix to another matrix.
+    void extractBlock(matrix<T>& block, size_t r, size_t c,
+                      bool addTo = false,
+                      bool transposed = false) const
+    {
+      size_t nr = transposed ? block.cols() : block.rows();
+      size_t nc = transposed ? block.rows() : block.cols();
+      for (size_t i = 1; i <= nr && i+r-1 <= nrow; i++)
+      {
+        size_t ip = i+r-2 + nrow*(c-1);
+        for (size_t j = 1; j <= nc && j+c-1 <= ncol; j++, ip += nrow)
+          if (addTo)
+            (transposed ? block(j,i) : block(i,j)) += this->elem[ip];
+          else
+            (transposed ? block(j,i) : block(i,j)) = this->elem[ip];
+      }
+    }
+
     //! \brief Create a diagonal matrix.
     matrix<T>& diag(T d, size_t dim = 0)
     {
