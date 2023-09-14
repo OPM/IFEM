@@ -38,6 +38,26 @@ TEST(TestMatrix, AddBlock)
 }
 
 
+TEST(TestMatrix, ExtractBlock)
+{
+  utl::matrix<int> a(3,3), b(2,2);
+
+  std::iota(a.begin(), a.end(), 1);
+
+  a.extractBlock(b,1,1);
+  EXPECT_EQ(b(1,1), 1);
+  EXPECT_EQ(b(2,1), 2);
+  EXPECT_EQ(b(1,2), 4);
+  EXPECT_EQ(b(2,2), 5);
+
+  a.extractBlock(b,2,2,true);
+  EXPECT_EQ(b(1,1), 1+5);
+  EXPECT_EQ(b(2,1), 2+6);
+  EXPECT_EQ(b(1,2), 4+8);
+  EXPECT_EQ(b(2,2), 5+9);
+}
+
+
 TEST(TestMatrix, AddRows)
 {
   utl::matrix<int> a(3,5);
