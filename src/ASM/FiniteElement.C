@@ -77,22 +77,20 @@ std::ostream& MxFiniteElement::write (std::ostream& os) const
 
 bool MxFiniteElement::Jacobian (Matrix& Jac, const Matrix& Xnod,
                                 unsigned short int gBasis,
-                                const std::vector<const BasisFunctionVals*>* bf,
-                                const std::vector<Matrix>* dNxdu)
+                                const BasisValuesPtrs& bfs)
 {
-  size_t nBasis = bf ? bf->size() : dNxdu->size();
-  const bool separateGeometry = nBasis > this->getNoBasis();
+  const bool separateGeometry = bfs.size() > this->getNoBasis();
   if (separateGeometry)
-    gBasis = nBasis;
+    gBasis = bfs.size();
 
   detJxW = utl::Jacobian(Jac, this->grad(gBasis), Xnod,
-                         bf ? (*bf)[gBasis-1]->dNdu : (*dNxdu)[gBasis-1],
+                         bfs[gBasis-1]->dNdu,
                          !separateGeometry);
   if (detJxW == 0.0) return false; // singular point
 
   for (size_t b = 1; b <= this->getNoBasis(); b++)
     if (b != gBasis || separateGeometry)
-      this->grad(b).multiply(bf ? (*bf)[b-1]->dNdu : (*dNxdu)[b-1], Jac);
+      this->grad(b).multiply(bfs[b-1]->dNdu, Jac);
 
   return true;
 }
@@ -109,11 +107,11 @@ bool MxFiniteElement::Jacobian (Matrix& Jac, const Matrix& Xnod,
 bool MxFiniteElement::Jacobian (Matrix& Jac, Vec3& n,
                                 const Matrix& Xnod,
                                 unsigned short int gBasis,
-                                const std::vector<Matrix>& dNxdu,
+                                const BasisValuesPtrs& bfs,
                                 size_t t1, size_t t2, size_t nBasis,
                                 const Matrix* Xnod2)
 {
-  if (nBasis == 0) nBasis = dNxdu.size();
+  if (nBasis == 0) nBasis = bfs.size();
   const bool separateGeometry = nBasis > this->getNoBasis();
   if (separateGeometry) gBasis = nBasis;
 
@@ -123,21 +121,21 @@ bool MxFiniteElement::Jacobian (Matrix& Jac, Vec3& n,
     // We are are doing interface terms, evaluate for the second element first
     detJxW = utl::Jacobian(Jac,n,this->grad(nBasis+gBasis),
                            Xnod2 ? *Xnod2 : Xnod,
-                           dNxdu[nBasis+gBasis-1],t1,t2);
+                           bfs[nBasis+gBasis-1]->dNdu,t1,t2);
 
     for (size_t b = 1; b <= nBasis; ++b)
       if (b != gBasis)
-        this->grad(nBasis+b).multiply(dNxdu[nBasis+b-1],Jac);
+        this->grad(nBasis+b).multiply(bfs[nBasis+b-1]->dNdu,Jac);
   }
   else if (separateGeometry)
     nBasis = this->getNoBasis();
 
   Matrix& dX = separateGeometry ? dummy : this->grad(gBasis);
-  detJxW = utl::Jacobian(Jac,n,dX,Xnod,dNxdu[gBasis-1],t1,t2);
+  detJxW = utl::Jacobian(Jac,n,dX,Xnod,bfs[gBasis-1]->dNdu,t1,t2);
 
   for (size_t b = 1; b <= nBasis; ++b)
     if (b != gBasis || separateGeometry)
-      this->grad(b).multiply(dNxdu[b-1],Jac);
+      this->grad(b).multiply(bfs[b-1]->dNdu,Jac);
 
   return detJxW != 0.0;
 }
@@ -152,23 +150,21 @@ bool MxFiniteElement::Jacobian (Matrix& Jac, Vec3& n,
 bool MxFiniteElement::Hessian (Matrix3D& Hess, const Matrix& Jac,
                                const Matrix& Xnod,
                                unsigned short int gBasis,
-                               const std::vector<const BasisFunctionVals*>* bf,
-                               const std::vector<Matrix3D>* d2Nxdu2)
+                               const BasisValuesPtrs& bfs)
 {
-  size_t nBasis = bf ? bf->size() : d2Nxdu2->size();
-  const bool separateGeometry = nBasis > this->getNoBasis();
+  const bool separateGeometry = bfs.size() > this->getNoBasis();
   bool ok;
   if (separateGeometry)
-    ok = Hess.multiply(Xnod, bf ? bf->back()->d2Ndu2 : d2Nxdu2->back());
+    ok = Hess.multiply(Xnod, bfs.back()->d2Ndu2);
   else
     ok = utl::Hessian(Hess, this->hess(gBasis), Jac, Xnod,
-                      bf ? (*bf)[gBasis-1]->d2Ndu2 : (*d2Nxdu2)[gBasis-1],
+                      bfs[gBasis-1]->d2Ndu2,
                       this->grad(gBasis));
 
   for (size_t b = 1; b <= this->getNoBasis() && ok; b++)
     if (b != gBasis || separateGeometry)
       ok = utl::Hessian(Hess, this->hess(b), Jac, Xnod,
-                        bf ? (*bf)[b-1]->d2Ndu2 : (*d2Nxdu2)[b-1],
+                        bfs[b-1]->d2Ndu2,
                         this->grad(b), false);
 
   return ok;
