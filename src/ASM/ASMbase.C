@@ -1572,9 +1572,9 @@ int ASMbase::getNoGaussPt (int p, bool neumann) const
 }
 
 
-bool ASMbase::evalSolution (Matrix&, const Vector&, const int*, int) const
+bool ASMbase::evalSolution (Matrix&, const Vector&, const int*, int, bool) const
 {
-  return Aerror("evalSolution(Matrix&,const Vector&,const int*,int)");
+  return Aerror("evalSolution(Matrix&,const Vector&,const int*,int,bool)");
 }
 
 
@@ -1582,6 +1582,13 @@ bool ASMbase::evalSolution (Matrix&, const Vector&,
                             const RealArray*, bool, int, int) const
 {
   return Aerror("evalSolution(Matrix&,const Vector&,const RealArray*,bool,int,int)");
+}
+
+
+bool ASMbase::evalSolutionPiola (Matrix&, const Vector&,
+                                 const RealArray*, bool) const
+{
+  return Aerror("evalSolutionPiola(Matrix&,const Vector&,const RealArray*,bool)");
 }
 
 

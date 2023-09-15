@@ -103,11 +103,12 @@ public:
   //! \param[out] grid The generated finite element grid
   virtual bool tesselate(ElementBlock& grid, const int*) const;
 
+  using ASMbase::evalSolution;
   //! \brief Evaluates the primary solution field at all visualization points.
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector local to current patch
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-                            const int*, int) const;
+                            const int*, int, bool) const;
 
   //! \brief Applies a transformation matrix from local to global system.
   virtual bool transform(const Matrix& Tlg);
