@@ -2404,9 +2404,9 @@ ASMu3D::BasisFunctionCache::BasisFunctionCache (const ASMu3D& pch,
                                                 int b, bool useBezier) :
   ::BasisFunctionCache<3>(plcy),
   bezierEnabled(useBezier),
-  patch(pch),
-  basis(b)
+  patch(pch)
 {
+  basis = b;
 }
 
 
@@ -2414,9 +2414,9 @@ ASMu3D::BasisFunctionCache::BasisFunctionCache (const BasisFunctionCache& cache,
                                                 int b) :
   ::BasisFunctionCache<3>(cache),
   bezierEnabled(cache.bezierEnabled),
-  patch(cache.patch),
-  basis(b)
+  patch(cache.patch)
 {
+  basis = b;
 }
 
 

@@ -79,6 +79,8 @@ public:
   //! \param reduced True to return parameter for reduced quadrature
   virtual double getParam(int dir, size_t el, size_t gp, bool reduced = false) const;
 
+  int basis = 1; //!< Basis to use
+
 protected:
   //! \brief Template struct holding information about a quadrature.
   struct Quadrature {

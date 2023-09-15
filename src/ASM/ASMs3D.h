@@ -125,8 +125,7 @@ protected:
 
     const ASMs3D& patch; //!< Reference to patch cache is for
 
-    int basis; //!< Basis to use
-    std::array<size_t,3> nel; //!< Number of elements in each direction
+    std::array<size_t,3> nel{}; //!< Number of elements in each direction
 
   private:
     //! \brief Obtain structured element indices.

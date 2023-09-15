@@ -3301,9 +3301,9 @@ ASMs2D::BasisFunctionCache::BasisFunctionCache (const ASMs2D& pch,
                                                 ASM::CachePolicy plcy,
                                                 int b) :
   ::BasisFunctionCache<2>(plcy),
-  patch(pch),
-  basis(b)
+  patch(pch)
 {
+  basis = b;
   nel[0] = patch.surf->numCoefs_u() - patch.surf->order_u() + 1;
   nel[1] = patch.surf->numCoefs_v() - patch.surf->order_v() + 1;
 }
@@ -3313,9 +3313,9 @@ ASMs2D::BasisFunctionCache::BasisFunctionCache (const BasisFunctionCache& cache,
                                                 int b) :
   ::BasisFunctionCache<2>(cache),
   patch(cache.patch),
-  basis(b),
   nel(cache.nel)
 {
+  basis = b;
 }
 
 

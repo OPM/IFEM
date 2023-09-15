@@ -104,8 +104,6 @@ protected:
 
     const ASMu3D& patch; //!< Reference to patch cache is for
 
-    int basis; //!< Basis to use
-
 private:
     //! \brief Configure quadratures.
     bool setupQuadrature();

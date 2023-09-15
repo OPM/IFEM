@@ -28,7 +28,8 @@ BasisFunctionCache<Dim>::BasisFunctionCache (ASM::CachePolicy policy)
 
 template<size_t Dim>
 BasisFunctionCache<Dim>::BasisFunctionCache (const BasisFunctionCache<Dim>& rhs)
-  : policy(rhs.policy)
+  : basis(rhs.basis)
+  , policy(rhs.policy)
   , mainQ(rhs.mainQ)
   , reducedQ(rhs.reducedQ)
 {

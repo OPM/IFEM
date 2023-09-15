@@ -3012,18 +3012,18 @@ ASMu2D::BasisFunctionCache::BasisFunctionCache (const ASMu2D& pch,
                                                 ASM::CachePolicy plcy,
                                                 int b) :
   ::BasisFunctionCache<2>(plcy),
-  patch(pch),
-  basis(b)
+  patch(pch)
 {
+  basis = b;
 }
 
 
 ASMu2D::BasisFunctionCache::BasisFunctionCache (const BasisFunctionCache& cache,
                                                 int b) :
   ::BasisFunctionCache<2>(cache),
-  patch(cache.patch),
-  basis(b)
+  patch(cache.patch)
 {
+  basis = b;
 }
 
 
