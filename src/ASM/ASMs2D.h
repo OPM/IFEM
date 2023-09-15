@@ -69,7 +69,7 @@ protected:
     //! \param pch Patch the cache is for
     //! \param plcy Cache policy to use
     //! \param b Basis to use
-    BasisFunctionCache(const ASMs2D& pch, ASM::CachePolicy plcy, int b);
+    BasisFunctionCache(const ASMs2D& pch, ASM::CachePolicy plcy, int b = 1);
 
     //! \brief Constructor reusing quadrature info from another instance.
     //! \param cache Instance holding quadrature information
@@ -109,8 +109,7 @@ protected:
 
     const ASMs2D& patch; //!< Reference to patch cache is for
 
-    int basis; //!< Basis to use
-    std::array<size_t,2> nel; //!< Number of elements in each direction
+    std::array<size_t,2> nel{}; //!< Number of elements in each direction
 
   private:
     //! \brief Obtain structured element indices.

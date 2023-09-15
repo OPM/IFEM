@@ -3843,9 +3843,9 @@ ASMs3D::BasisFunctionCache::BasisFunctionCache (const ASMs3D& pch,
                                                 ASM::CachePolicy plcy,
                                                 int b) :
   ::BasisFunctionCache<3>(plcy),
-  patch(pch),
-  basis(b)
+  patch(pch)
 {
+  basis = b;
   for (size_t d = 0; d < 3 && patch.svol; ++d)
     nel[d] = patch.svol->numCoefs(d) - patch.svol->order(d) + 1;
 }
@@ -3855,9 +3855,9 @@ ASMs3D::BasisFunctionCache::BasisFunctionCache (const BasisFunctionCache& cache,
                                                 int b) :
   ::BasisFunctionCache<3>(cache),
   patch(cache.patch),
-  basis(b),
   nel(cache.nel)
 {
+  basis = b;
 }
 
 

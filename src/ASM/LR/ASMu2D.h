@@ -86,7 +86,6 @@ protected:
 
   protected:
     const ASMu2D& patch; //!< Reference to patch cache is for
-    int basis; //!< Basis to use
 
 private:
     //! \brief Configure quadratures.
