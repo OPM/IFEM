@@ -582,7 +582,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
               fe.w = param[2] = cache.getParam(2,i3-p3,k);
 
               // Fetch basis function derivatives at current integration point
-              std::vector<const BasisFunctionVals*> bfs(myCache.size());
+              BasisValuesPtrs bfs(myCache.size());
               for (size_t b = 0; b < myCache.size(); ++b) {
                 bfs[b] = &myCache[b]->getVals(iel-1, ip);
                 if (b < m_basis.size())
@@ -591,11 +591,11 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
 
               // Compute Jacobian inverse of the coordinate mapping and
               // basis function derivatives w.r.t. Cartesian coordinates
-              if (!fe.Jacobian(Jac,Xnod,itgBasis,&bfs))
+              if (!fe.Jacobian(Jac,Xnod,itgBasis,bfs))
                 continue; // skip singular points
 
               // Compute Hessian of coordinate mapping and 2nd order derivatives
-              if (use2ndDer && !fe.Hessian(Hess,Jac,Xnod,itgBasis,&bfs))
+              if (use2ndDer && !fe.Hessian(Hess,Jac,Xnod,itgBasis,bfs))
                 ok = false;
 
               // Compute G-matrix
@@ -716,8 +716,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
       fe.v = gpar[1](1,1);
       fe.w = gpar[2](1,1);
 
-      Matrices dNxdu(splinex.size());
-      Vector Ng;
+      BasisValues bfs(splinex.size());
       Matrix Xnod, Jac;
       double param[3] = { fe.u, fe.v, fe.w };
       Vec4   X(param,time.t);
@@ -806,21 +805,21 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
             }
 
             if (separateGeometry)
-              SplineUtils::extractBasis(splinex.back()[ip],Ng,dNxdu.back());
+              SplineUtils::extractBasis(splinex.back()[ip],bfs.back().N,bfs.back().dNdu);
 
             // Fetch basis function derivatives at current integration point
             for (size_t b = 0; b < m_basis.size(); ++b)
-              SplineUtils::extractBasis(splinex[b][ip],fe.basis(b+1),dNxdu[b]);
+              SplineUtils::extractBasis(splinex[b][ip],fe.basis(b+1),bfs[b].dNdu);
 
             // Compute Jacobian inverse of the coordinate mapping and
             // basis function derivatives w.r.t. Cartesian coordinates
-            if (!fe.Jacobian(Jac,normal,Xnod,itgBasis,dNxdu,t1,t2))
+            if (!fe.Jacobian(Jac,normal,Xnod,itgBasis,bfs,t1,t2))
               continue; // skip singular points
 
             if (faceDir < 0) normal *= -1.0;
 
             // Cartesian coordinates of current integration point
-            X.assign(Xnod * (separateGeometry ? Ng : fe.basis(itgBasis)));
+            X.assign(Xnod * (separateGeometry ? bfs.back().N : fe.basis(itgBasis)));
 
             // Evaluate the integrand and accumulate element contributions
             fe.detJxW *= dA*wg[i]*wg[j];
@@ -892,8 +891,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
   std::copy(elem_size.begin(), elem_size.end(), std::back_inserter(elem_sizes2));
 
   MxFiniteElement fe(elem_sizes2);
-  Matrix        dNdu, Xnod, Jac;
-  Vector        dN;
+  Matrix        Xnod, Jac;
   Vec4          X(nullptr,time.t);
   Vec3          normal;
   double        u[2], v[2], w[2];
@@ -1021,17 +1019,17 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
                 }
 
                 // Fetch basis function derivatives at current integration point
-                Matrices dNxdu(2*nB);
+                BasisValues bfs(2*nB);
                 for (size_t b = 1; b <= nB; b++) {
                   Go::BasisDerivs spline;
-                  this->getBasis(b)->computeBasis(fe.u, fe.v, fe.w, spline, faceDir < 0);
-                  SplineUtils::extractBasis(spline, fe.basis(b), dNxdu[b-1]);
-                  this->getBasis(b)->computeBasis(fe.u, fe.v, fe.w, spline, faceDir > 0);
-                  SplineUtils::extractBasis(spline, fe.basis(nB+b), dNxdu[nB+b-1]);
+                  this->getBasis(b)->computeBasis(fe.u,fe.v,fe.w,spline,faceDir < 0);
+                  SplineUtils::extractBasis(spline,fe.basis(b),bfs[b-1].dNdu);
+                  this->getBasis(b)->computeBasis(fe.u,fe.v,fe.w,spline,faceDir > 0);
+                  SplineUtils::extractBasis(spline,fe.basis(nB+b),bfs[nB+b-1].dNdu);
                 }
 
               // Compute basis function derivatives and the edge normal
-              if (!fe.Jacobian(Jac,normal,Xnod,itgBasis,dNxdu,t1,t2,nB))
+              if (!fe.Jacobian(Jac,normal,Xnod,itgBasis,bfs,t1,t2,nB))
                 continue; // skip singular points
 
               if (faceDir < 0) normal *= -1.0;
@@ -1173,7 +1171,7 @@ bool ASMs3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
   MxFiniteElement fe(elem_size,firstIp);
   Vector          solPt;
-  Matrices        dNxdu(m_basis.size());
+  BasisValues     bfs(m_basis.size());
   Matrix          Jac;
 
   // Evaluate the secondary solution field at each point
@@ -1204,11 +1202,11 @@ bool ASMs3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
     // Fetch basis function derivatives at current integration point
     for (size_t b = 0; b < m_basis.size(); ++b)
-      SplineUtils::extractBasis(splinex[b][i],fe.basis(b+1),dNxdu[b]);
+      SplineUtils::extractBasis(splinex[b][i],fe.basis(b+1),bfs[b].dNdu);
 
     // Compute Jacobian inverse of the coordinate mapping and
     // basis function derivatives w.r.t. Cartesian coordinate
-    if (!fe.Jacobian(Jac,Xtmp,itgBasis,nullptr,&dNxdu))
+    if (!fe.Jacobian(Jac,Xtmp,itgBasis,bfs))
       continue; // skip singular points
 
     // Cartesian coordinates of current integration point

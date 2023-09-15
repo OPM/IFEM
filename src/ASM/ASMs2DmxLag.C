@@ -312,14 +312,14 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
             fe.eta = xg[1][j];
 
             // Fetch basis function derivatives at current integration point
-            std::vector<const BasisFunctionVals*> bfs(this->getNoBasis());
+            BasisValuesPtrs bfs(this->getNoBasis());
             for (size_t b = 0; b < this->getNoBasis(); ++b) {
               bfs[b] = &myCache[b]->getVals(iel-1,ip);
               fe.basis(b+1) = bfs[b]->N;
             }
 
             // Compute Jacobian inverse of coordinate mapping and derivatives
-            if (!fe.Jacobian(Jac,Xnod,itgBasis,&bfs))
+            if (!fe.Jacobian(Jac,Xnod,itgBasis,bfs))
               continue; // skip singular points
 
             // Cartesian coordinates of current integration point
@@ -377,7 +377,7 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
   size_t firstp = iit == firstBp.end() ? 0 : iit->second;
 
   MxFiniteElement fe(elem_size);
-  Matrices dNxdu(nxx.size());
+  BasisValues bfs(nxx.size());
   Matrix Xnod, Jac;
   Vec4   X(nullptr,time.t);
   Vec3   normal;
@@ -422,13 +422,13 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
         // Compute the basis functions and their derivatives, using
         // tensor product of one-dimensional Lagrange polynomials
         for (size_t b = 0; b < nxx.size(); ++b)
-          if (!Lagrange::computeBasis(fe.basis(b+1),dNxdu[b],
+          if (!Lagrange::computeBasis(fe.basis(b+1),bfs[b].dNdu,
                                       elem_sizes[b][0],xi[0],
                                       elem_sizes[b][1],xi[1]))
             ok = false;
 
         // Compute basis function derivatives and the edge normal
-        if (!fe.Jacobian(Jac,normal,Xnod,itgBasis,dNxdu,t1,t2))
+        if (!fe.Jacobian(Jac,normal,Xnod,itgBasis,bfs,t1,t2))
           continue; // skip singular points
 
         if (edgeDir < 0) normal *= -1.0;
@@ -499,7 +499,7 @@ bool ASMs2DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   MxFiniteElement fe(elem_size);
   Vector          solPt;
   Vectors         globSolPt(nPoints);
-  Matrices        dNxdu(nxx.size());
+  BasisValues     bfs(nxx.size());
   Matrix          Xnod, Jac;
 
   // Evaluate the secondary solution field at each point
@@ -521,14 +521,14 @@ bool ASMs2DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 	double xi  = -1.0 + i*incx;
 	double eta = -1.0 + j*incy;
         for (size_t b = 0; b < nxx.size(); ++b)
-          if (!Lagrange::computeBasis(fe.basis(b+1),dNxdu[b],
+          if (!Lagrange::computeBasis(fe.basis(b+1),bfs[b].dNdu,
                                       elem_sizes[b][0],xi,
                                       elem_sizes[b][1],eta))
 	  return false;
 
         // Compute Jacobian inverse of the coordinate mapping and
         // basis function derivatives w.r.t. Cartesian coordinates
-        if (!fe.Jacobian(Jac,Xnod,itgBasis,nullptr,&dNxdu))
+        if (!fe.Jacobian(Jac,Xnod,itgBasis,bfs))
           continue; // skip singular points
 
 	// Now evaluate the solution field

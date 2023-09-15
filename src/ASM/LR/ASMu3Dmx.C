@@ -451,7 +451,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
             fe.v = param[1] = cache.getParam(1,iEl,j);
             fe.w = param[2] = cache.getParam(2,iEl,k);
 
-            std::vector<const BasisFunctionVals*> bfs(myCache.size());
+            BasisValuesPtrs bfs(myCache.size());
             for (size_t b = 0; b < myCache.size(); ++b) {
               bfs[b] = &myCache[b]->getVals(iEl,ig);
               if (b < m_basis.size())
@@ -460,11 +460,11 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
 
             // Compute Jacobian inverse of the coordinate mapping and
             // basis function derivatives w.r.t. Cartesian coordinates
-            if (!fe.Jacobian(Jac,Xnod,itgBasis,&bfs))
+            if (!fe.Jacobian(Jac,Xnod,itgBasis,bfs))
               continue; // skip singular points
 
             // Compute Hessian of coordinate mapping and 2nd order derivatives
-            if (use2ndDer && !fe.Hessian(Hess,Jac,Xnod,itgBasis,&bfs))
+            if (use2ndDer && !fe.Hessian(Hess,Jac,Xnod,itgBasis,bfs))
               ok = false;
 
             // Compute G-matrix
@@ -579,12 +579,11 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
     fe.v = gpar[1](1);
     fe.w = gpar[2](1);
 
-    std::vector<Matrix> dNxdu(m_basis.size() + separateGeometry);
+    BasisValues bfs(m_basis.size() + separateGeometry);
     Matrix Xnod, Jac;
 
     double param[3] = { fe.u, fe.v, fe.w };
     Vec4   X(param,time.t);
-    Vector Ng;
     Vec3   normal;
     double dXidu[3];
 
@@ -645,14 +644,14 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
 
         if (separateGeometry)
           this->evaluateBasis(els.back()-1, fe.u, fe.v, fe.w,
-                              Ng, dNxdu.back(), ASM::GEOMETRY_BASIS);
+                              bfs.back().N, bfs.back().dNdu, ASM::GEOMETRY_BASIS);
 
         // Fetch basis function derivatives at current integration point
         for (size_t b = 1; b <= m_basis.size(); ++b)
-          this->evaluateBasis(els[b-1]-1, fe, dNxdu[b-1], b);
+          this->evaluateBasis(els[b-1]-1, fe, bfs[b-1].dNdu, b);
 
         // Compute basis function derivatives and the face normal
-        if (!fe.Jacobian(Jac,normal,Xnod,itgBasis,dNxdu,t1,t2))
+        if (!fe.Jacobian(Jac,normal,Xnod,itgBasis,bfs,t1,t2))
           continue; // skip singular points
 
         if (faceDir < 0) normal *= -1.0;
@@ -662,7 +661,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
           utl::getGmat(Jac,dXidu,fe.G);
 
         // Cartesian coordinates of current integration point
-        X.assign(Xnod * (separateGeometry ? Ng : fe.basis(itgBasis)));
+        X.assign(Xnod * (separateGeometry ? bfs.back().N : fe.basis(itgBasis)));
 
         // Evaluate the integrand and accumulate element contributions
         fe.detJxW *= dA*wg[i]*wg[j];
@@ -693,9 +692,6 @@ bool ASMu3Dmx::evalSolution (Matrix& sField, const Vector& locSol,
   size_t nPoints = gpar[0].size();
   if (nPoints != gpar[1].size() || nPoints != gpar[2].size())
     return false;
-
-  Vector   ptSol;
-  Matrix   Jac, Xnod, eSol, ptDer;
 
   Go::BasisPts spline;
 
@@ -770,46 +766,48 @@ bool ASMu3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     this->getElementsAt({gpar[0][i],gpar[1][i],gpar[2][i]},els,&elem_sizes);
 
     // Evaluate the basis functions at current parametric point
-    MxFiniteElement       fe(elem_sizes,firstIp+i);
-    std::vector<Matrix>   dNxdu(m_basis.size() + separateGeometry);
-    std::vector<Matrix3D> d2Nxdu2(use2ndDer ? m_basis.size() + separateGeometry : 0);
+    MxFiniteElement fe(elem_sizes,firstIp+i);
+    BasisValues     bfs(m_basis.size() + separateGeometry);
     Matrix Jac, Xnod;
-    Vector Ng;
     Matrix3D Hess;
     if (use2ndDer)
-      for (size_t b = 0; b < d2Nxdu2.size(); ++b) {
+      for (size_t b = 0; b < bfs.size(); ++b) {
         Go::BasisDerivs2 spline;
         const LR::LRSplineVolume* sv = b < m_basis.size() ? m_basis[b].get() : geo;
         sv->computeBasis(gpar[0][i],gpar[1][i],gpar[2][i],spline,els[b]-1);
-        SplineUtils::extractBasis(spline,b < m_basis.size() ? fe.basis(b+1) : Ng,
-                                  dNxdu[b],d2Nxdu2[b]);
+        SplineUtils::extractBasis(spline,
+                                  b < m_basis.size() ? fe.basis(b+1) : bfs.back().N,
+                                  bfs[b].dNdu,bfs[b].d2Ndu2);
       }
     else
-      for (size_t b = 0; b < dNxdu.size(); ++b) {
+      for (size_t b = 0; b < bfs.size(); ++b) {
         Go::BasisDerivs spline;
         const LR::LRSplineVolume* sv = b < m_basis.size() ? m_basis[b].get() : geo;
         sv->computeBasis(gpar[0][i],gpar[1][i],gpar[2][i],spline,els[b]-1);
-        SplineUtils::extractBasis(spline,b < m_basis.size() ? fe.basis(b+1) : Ng,
-                                  dNxdu[b]);
+        SplineUtils::extractBasis(spline,
+                                  b < m_basis.size() ? fe.basis(b+1) : bfs.back().N,
+                                  bfs[b].dNdu);
       }
 
     // Set up control point (nodal) coordinates for current element
-    if (!this->getElementCoordinates(Xnod,els[itgBasis-1])) return false;
+    if (!this->getElementCoordinates(Xnod,els[itgBasis-1]))
+      return false;
 
     // Compute Jacobian inverse of the coordinate mapping and
     // basis function derivatives w.r.t. Cartesian coordinates
-    if (!fe.Jacobian(Jac,Xnod,itgBasis,nullptr,&dNxdu))
+    if (!fe.Jacobian(Jac,Xnod,itgBasis,bfs))
       continue; // skip singular points
 
     // Compute Hessian of coordinate mapping and 2nd order derivatives
-    if (use2ndDer && !fe.Hessian(Hess,Jac,Xnod,itgBasis,nullptr,&d2Nxdu2))
+    if (use2ndDer && !fe.Hessian(Hess,Jac,Xnod,itgBasis,bfs))
       return false;
 
     // Cartesian coordinates of current integration point
     fe.u = gpar[0][i];
     fe.v = gpar[1][i];
     fe.w = gpar[2][i];
-    utl::Point X4(Xnod * (separateGeometry ? Ng : fe.basis(itgBasis)), {fe.u, fe.v, fe.w});
+    utl::Point X4(Xnod * (separateGeometry ? bfs.back().N : fe.basis(itgBasis)),
+                  {fe.u, fe.v, fe.w});
 
     // Now evaluate the solution field
     Vector solPt;

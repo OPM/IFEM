@@ -1423,7 +1423,8 @@ bool ASMs2D::getElementCoordinatesPrm (Matrix& X, double u, double v) const
   }
 
 #if SP_DEBUG > 2
-  std::cout <<"\nCoordinates for element "<< iel << X << std::endl;
+  std::cout <<"\nCoordinates for element containing parameters ("
+            << u <<"," << v << "):" << X << std::endl;
 #endif
   return true;
 }
