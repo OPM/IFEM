@@ -159,8 +159,8 @@ public:
   enum Traits {
     STANDARD           = 0, //!< Default integrand type (first derivatives only)
     NO_DERIVATIVES     = 1, //!< Integrand don't want any derivatives
-    SECOND_DERIVATIVES = 2, //!< Integrand wants second derivatives
-    THIRD_DERIVATIVES  = 4, //!< Integrand wants third derivatives
+    SECOND_DERIVATIVES = 1<< 1, //!< Integrand wants second derivatives
+    THIRD_DERIVATIVES  = 1<< 2, //!< Integrand wants third derivatives
     AVERAGE            = 1<< 3, //!< Integrand wants basis function averages
     ELEMENT_CORNERS    = 1<< 4, //!< Integrand wants element corner coordinates
     ELEMENT_CENTER     = 1<< 5, //!< Integrand wants element center coordinates
@@ -169,7 +169,8 @@ public:
     XO_ELEMENTS        = 1<< 8, //!< Integrand uses extraordinary elements
     INTERFACE_TERMS    = 1<< 9, //!< Integrand has element interface terms
     NORMAL_DERIVS      = 1<<10, //!< Integrand uses p-order normal derivatives
-    UPDATED_NODES      = 1<<11  //!< Integrand wants updated nodal coordinates
+    UPDATED_NODES      = 1<<11, //!< Integrand wants updated nodal coordinates
+    PIOLA_MAPPING      = 1<<12, //!< Integrand wants Piola mapping
   };
 
   //! \brief Defines which FE quantities are needed by the integrand.
