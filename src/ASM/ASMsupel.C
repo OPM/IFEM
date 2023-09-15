@@ -236,7 +236,7 @@ bool ASMsupel::tesselate (ElementBlock& grid, const int*) const
 
 
 bool ASMsupel::evalSolution (Matrix& sField, const Vector& locSol,
-                             const int*, int) const
+                             const int*, int, bool) const
 {
   size_t i, j, k, nComp = locSol.size() / nnod;
   sField.resize(nComp,1+nnod,true);

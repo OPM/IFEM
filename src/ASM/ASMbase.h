@@ -552,8 +552,9 @@ public:
   //! \param[in] locSol Solution vector local to current patch
   //! \param[in] npe Number of visualization nodes over each knot span
   //! \param[in] nf If nonzero, mixed evaluates nf fields on first basis
+  //! \param[in] piola If true, use piola mapping
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-                            const int* npe, int nf = 0) const;
+                            const int* npe, int nf = 0, bool piola = false) const;
 
   //! \brief Evaluates the projected solution field at all visualization points.
   //! \param[out] sField Solution field
@@ -580,6 +581,20 @@ public:
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
                             const RealArray* gpar, bool regular = true,
                             int deriv = 0, int nf = 0) const;
+
+  //! \brief Evaluates the primary solution field at the given points with Piola mapping.
+  //! \param[out] sField Solution field
+  //! \param[in] locSol Solution vector local to current patch
+  //! \param[in] gpar Parameter values of the result sampling points
+  //! \param[in] regular Flag indicating how the sampling points are defined
+  //!
+  //! \details When \a regular is \e true, it is assumed that the parameter
+  //! value array \a gpar forms a regular tensor-product point grid of dimension
+  //! \a gpar[0].size() \a X \a gpar[1].size() \a X \a gpar[2].size().
+  //! Otherwise, we assume that it contains the \a u, \a v and \a w parameters
+  //! directly for each sampling point.
+  virtual bool evalSolutionPiola(Matrix& sField, const Vector& locSol,
+                                 const RealArray* gpar, bool regular = true) const;
 
   //! \brief Evaluates and interpolates a field over a given geometry.
   //! \param[in] basis The basis of the field to evaluate
