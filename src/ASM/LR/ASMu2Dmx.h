@@ -134,6 +134,20 @@ public:
                             const RealArray* gpar, bool,
                             int deriv, int nf) const;
 
+  //! \brief Evaluates the primary solution field at the given points with Piola mapping.
+  //! \param[out] sField Solution field
+  //! \param[in] locSol Solution vector local to current patch
+  //! \param[in] gpar Parameter values of the result sampling points
+  //! \param[in] regular Flag indicating how the sampling points are defined
+  //!
+  //! \details When \a regular is \e true, it is assumed that the parameter
+  //! value array \a gpar forms a regular tensor-product point grid of dimension
+  //! \a gpar[0].size() \a X \a gpar[1].size().
+  //! Otherwise, we assume that it contains the \a u and \a v parameters
+  //! directly for each sampling point.
+  virtual bool evalSolutionPiola(Matrix& sField, const Vector& locSol,
+                                 const RealArray* gpar, bool regular) const;
+
   //! \brief Evaluates the secondary solution field at the given points.
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
