@@ -876,6 +876,76 @@ bool ASMu2Dmx::evalSolution (Matrix& sField, const Vector& locSol,
 }
 
 
+bool ASMu2Dmx::evalSolutionPiola (Matrix& sField, const Vector& locSol,
+                                  const RealArray* gpar, bool) const
+{
+  size_t nPoints = gpar[0].size();
+  if (nPoints != gpar[1].size())
+    return false;
+
+  if (std::any_of(nfx.begin(), nfx.end(),
+                  [](const unsigned char in) { return in > 1; })) {
+    std::cerr << "*** ASMu2Dmx::evalSolution: Piola mapping requires "
+              << "a single field on each basis" << std::endl;
+    return false;
+  }
+
+  size_t len = std::accumulate(nb.begin(),nb.end(),0u);
+  if (len != locSol.size()) {
+    std::cerr << "*** ASMu2Dmx::evalSolution: Unexpected solution size ("
+              << locSol.size() << "), expected " << len << std::endl;
+    return false;
+  }
+
+  const LR::LRSplineSurface* geo = this->getBasis(ASM::GEOMETRY_BASIS);
+
+  Go::BasisPtsSf spline;
+
+  // Evaluate the primary solution field at each point
+  sField.resize(3, nPoints);
+  for (size_t i = 0; i < nPoints; i++)
+  {
+    std::vector<int>    els;
+    std::vector<size_t> elem_size;
+    this->getElementsAt({gpar[0][i],gpar[1][i]},els,&elem_size);
+    const double* locPtr = locSol.data();
+    Vectors coefs(nsd+1);
+    MxFiniteElement fe(elem_size);
+    for (size_t j = 0; j < m_basis.size(); ++j)
+    {
+      const LR::Element* el = m_basis[j]->getElement(els[j]-1);
+
+      // Evaluate basis function values/derivatives at current parametric point
+      // and multiply with control point values to get the point-wise solution
+      this->computeBasis(gpar[0][i],gpar[1][i],spline,els[j]-1,m_basis[j].get());
+      Vector val1(spline.basisValues.size());
+      size_t r = 1;
+      coefs[j].resize(spline.basisValues.size());
+      for (const LR::Basisfunction* b : el->support())
+        coefs[j](r++) = *(locPtr + b->getId());
+      fe.basis(j+1) = spline.basisValues;
+      locPtr += nb[j];
+    }
+    Go::BasisDerivsSf splineg;
+    this->computeBasis(gpar[0][i],gpar[1][i],splineg,els.back()-1,geo);
+    BasisFunctionVals bf;
+    Matrix Xnod;
+    SplineUtils::extractBasis(splineg, bf.N, bf.dNdu);
+    this->getElementCoordinates(Xnod,els[itgBasis-1]);
+    Matrix J;
+    J.multiply(Xnod, bf.dNdu);
+    fe.piolaBasis(J.det(), J);
+    coefs[0].insert(coefs[0].end(), coefs[1].begin(), coefs[1].end());
+    Vector Ytmp;
+    fe.P.multiply(coefs[0], Ytmp);
+    Ytmp.push_back(coefs[nsd].dot(fe.basis(nsd+1)));
+    sField.fillColumn(1+i,Ytmp);
+  }
+
+  return true;
+}
+
+
 bool ASMu2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
                              const RealArray* gpar, bool) const
 {
