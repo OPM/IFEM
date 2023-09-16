@@ -1027,6 +1027,91 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const Vector& locSol,
 }
 
 
+bool ASMs2Dmx::evalSolutionPiola (Matrix& sField, const Vector& locSol,
+                                  const RealArray* gpar, bool regular) const
+{
+  // Evaluate the basis functions at all points
+  std::vector<std::vector<Go::BasisPtsSf>> splinex(m_basis.size());
+  std::vector<Go::BasisDerivsSf> splineg;
+
+  if (std::any_of(nfx.begin(), nfx.end(),
+                  [](const unsigned char in) { return in > 1; })) {
+    std::cerr << "*** ASMs2Dmx::evalSolution: Piola mapping requires "
+              << "a single field on each basis" << std::endl;
+    return false;
+  }
+
+  size_t len = std::accumulate(nb.begin(),nb.end(),0u);
+  if (len != locSol.size()) {
+    std::cerr << "*** ASMs2Dmx::evalSolution: Unexpected solution size ("
+              << locSol.size() << "), expected " << len << std::endl;
+    return false;
+  }
+
+  const Go::SplineSurface* geo = this->getBasis(ASM::GEOMETRY_BASIS);
+
+  if (regular)
+  {
+    for (size_t b = 0; b < m_basis.size(); ++b)
+      m_basis[b]->computeBasisGrid(gpar[0],gpar[1],splinex[b]);
+    geo->computeBasisGrid(gpar[0],gpar[1],splineg);
+  }
+  else if (gpar[0].size() == gpar[1].size())
+  {
+    for (size_t b = 0; b < m_basis.size(); ++b) {
+      splinex[b].resize(gpar[0].size());
+      for (size_t i = 0; i < splinex[b].size(); i++)
+        m_basis[b]->computeBasis(gpar[0][i],gpar[1][i],splinex[b][i]);
+    }
+    splineg.resize(gpar[0].size());
+    for (size_t i = 0; i < splineg.size(); i++)
+      geo->computeBasis(gpar[0][i],gpar[1][i],splineg[i]);
+  }
+  else
+    return false;
+
+  Vector Ytmp;
+  std::vector<Vector> coefs(3);
+
+  // Evaluate the primary solution field at each point
+  size_t nPoints = splinex.front().size();
+  sField.resize(std::accumulate(nfx.begin(), nfx.end(), 0),nPoints);
+  for (size_t i = 0; i < nPoints; i++)
+  {
+    size_t comp = 0;
+    MxFiniteElement fe(elem_size);
+    for (size_t b = 0; b < 3; ++b) {
+      IntVec ip;
+      scatterInd(m_basis[b]->numCoefs_u(),m_basis[b]->numCoefs_v(),
+                 m_basis[b]->order_u(),m_basis[b]->order_v(),
+                 splinex[b][i].left_idx,ip);
+
+      utl::gather(ip,1,locSol,coefs[b],comp);
+      comp += nb[b];
+    }
+
+    BasisFunctionVals bf;
+    SplineUtils::extractBasis(splineg[i], bf.N, bf.dNdu);
+    Matrix Xnod;
+    this->getElementCoordinatesPrm(Xnod,
+                                   splineg[i].param[0], splineg[i].param[1]);
+    Matrix J;
+    J.multiply(Xnod, bf.dNdu);
+
+    const Real detJ = J.det();
+    fe.basis(1) = splinex[0][i].basisValues;
+    fe.basis(2) = splinex[1][i].basisValues;
+    fe.piolaBasis(detJ, J);
+    coefs[0].insert(coefs[0].end(), coefs[1].begin(), coefs[1].end());
+    fe.P.multiply(coefs[0], Ytmp);
+    Ytmp.push_back(coefs[2].dot(splinex[2][i].basisValues));
+    sField.fillColumn(1+i,Ytmp);
+  }
+
+  return true;
+}
+
+
 bool ASMs2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
                              const RealArray* gpar, bool regular) const
 {
