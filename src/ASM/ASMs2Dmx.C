@@ -1119,23 +1119,40 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
   const Go::SplineSurface* geo = this->getBasis(ASM::GEOMETRY_BASIS);
   const bool separateGeometry = geo != surf;
+  const bool piolaMapping = integrand.getIntegrandType() & Integrand::PIOLA_MAPPING;
 
   // Evaluate the basis functions and their derivatives at all points
-  std::vector<std::vector<Go::BasisDerivsSf>> splinex(m_basis.size() + separateGeometry);
+  std::vector<std::vector<Go::BasisDerivsSf>> splinex(m_basis.size());
+  std::vector<Go::BasisDerivsSf2> splineg2;
+  std::vector<Go::BasisDerivsSf> splineg1;
   if (regular)
   {
     for (size_t b = 0; b < m_basis.size(); ++b)
       m_basis[b]->computeBasisGrid(gpar[0],gpar[1],splinex[b]);
-    if (separateGeometry)
-      geo->computeBasisGrid(gpar[0],gpar[1],splinex.back());
+    if (separateGeometry) {
+      if (piolaMapping)
+        geo->computeBasisGrid(gpar[0],gpar[1],splineg2);
+      else
+        geo->computeBasisGrid(gpar[0],gpar[1],splineg1);
+    }
   }
   else if (gpar[0].size() == gpar[1].size())
   {
-    for (size_t b = 0; b < splinex.size(); ++b) {
+    for (size_t b = 0; b < m_basis.size(); ++b) {
       splinex[b].resize(gpar[0].size());
-      const Go::SplineSurface* basis = b < m_basis.size() ? m_basis[b].get() : geo;
       for (size_t i = 0; i < splinex[b].size(); i++)
-        basis->computeBasis(gpar[0][i],gpar[1][i],splinex[b][i]);
+        m_basis[b]->computeBasis(gpar[0][i],gpar[1][i],splinex[b][i]);
+    }
+    if (separateGeometry) {
+      if (piolaMapping)
+        splineg2.resize(gpar[0].size());
+      else
+        splineg1.resize(gpar[0].size());
+      for (size_t i = 0; i < gpar[0].size(); i++)
+        if (piolaMapping)
+          geo->computeBasis(gpar[0][i],gpar[1][i],splineg2[i]);
+        else
+          geo->computeBasis(gpar[0][i],gpar[1][i],splineg1[i]);
     }
   }
 
@@ -1145,7 +1162,7 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
   MxFiniteElement fe(elem_size,firstIp);
   Vector          solPt;
-  BasisValues     bfs(splinex.size());
+  BasisValues     bfs(m_basis.size() + separateGeometry);
   Matrix          Jac;
 
   // Evaluate the secondary solution field at each point
@@ -1173,7 +1190,8 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
       ip.front().clear();
       scatterInd(geo->numCoefs_u(),geo->numCoefs_v(),
                  geo->order_u(),geo->order_v(),
-                 splinex.back()[i].left_idx,ip.front());
+                 piolaMapping ? splineg2[i].left_idx
+                              : splineg1[i].left_idx,ip.front());
 
       utl::gather(ip.front(), nsd, Xnod, Xtmp);
     }
@@ -1187,10 +1205,21 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
                                 b < m_basis.size() ? fe.basis(b+1) : bfs[b].N,
                                 bfs[b].dNdu);
 
+    if (separateGeometry) {
+      if (piolaMapping)
+        SplineUtils::extractBasis(splineg2[i],bfs.back().N,
+                                  bfs.back().dNdu,bfs.back().d2Ndu2);
+      else
+        SplineUtils::extractBasis(splineg1[i],bfs.back().N,bfs.back().dNdu);
+    }
+
     // Compute Jacobian inverse of the coordinate mapping and
     // basis function derivatives w.r.t. Cartesian coordinates
     if (!fe.Jacobian(Jac,Xtmp,itgBasis,bfs))
       continue; // skip singular points
+
+    if (piolaMapping)
+      fe.piolaMapping(fe.detJxW, Jac, Xtmp, bfs);
 
     // Cartesian coordinates of current integration point
     utl::Point X4(Xtmp * (separateGeometry ? bfs.back().N : fe.basis(itgBasis)),
