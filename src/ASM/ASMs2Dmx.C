@@ -444,6 +444,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
   bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
   bool useElmVtx = integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS;
   const bool separateGeometry = this->getBasis(ASM::GEOMETRY_BASIS) != surf;
+  const bool piolaMapping = integrand.getIntegrandType() & Integrand::PIOLA_MAPPING;
 
   if (myCache.empty()) {
     myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this, cachePolicy, 1));
@@ -456,7 +457,8 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
 
   for (std::unique_ptr<BasisFunctionCache>& cache : myCache) {
     cache->setIntegrand(&integrand);
-    cache->init(use2ndDer ? 2 : 1);
+    cache->init(use2ndDer ||
+                (piolaMapping && cache->basis == ASM::GEOMETRY_BASIS) ? 2 : 1);
   }
 
   BasisFunctionCache& cache = *myCache.front();
@@ -567,6 +569,9 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
             if (use2ndDer && !fe.Hessian(Hess,Jac,Xnod,itgBasis,bfs))
               ok = false;
 
+            if (piolaMapping)
+              fe.piolaMapping(fe.detJxW, Jac, Xnod, bfs);
+
             // Compute G-matrix
             if (integrand.getIntegrandType() & Integrand::G_MATRIX)
               utl::getGmat(Jac,dXidu,fe.G);
@@ -608,6 +613,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
 
   bool useElmVtx = integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS;
   const bool separateGeometry = this->getBasis(ASM::GEOMETRY_BASIS) != surf;
+  const bool piolaMapping = integrand.getIntegrandType() & Integrand::PIOLA_MAPPING;
 
   // Get Gaussian quadrature points and weights
   const double* xg = GaussQuadrature::getCoord(nGauss);
@@ -640,13 +646,19 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
   integrand.setNeumannOrder(1 + lIndex/10);
 
   // Evaluate basis function derivatives at all integration points
-  std::vector<std::vector<Go::BasisDerivsSf>> splinex(m_basis.size() + separateGeometry);
+  std::vector<std::vector<Go::BasisDerivsSf>> splinex(m_basis.size());
 #pragma omp parallel for schedule(static)
   for (size_t i = 0; i < m_basis.size(); ++i)
     m_basis[i]->computeBasisGrid(gpar[0],gpar[1],splinex[i]);
 
-  if (separateGeometry)
-    this->getBasis(ASM::GEOMETRY_BASIS)->computeBasisGrid(gpar[0],gpar[1],splinex.back());
+  std::vector<Go::BasisDerivsSf> splineg1(m_basis.size());
+  std::vector<Go::BasisDerivsSf2> splineg2(m_basis.size());
+  if (separateGeometry) {
+    if (piolaMapping)
+      this->getBasis(ASM::GEOMETRY_BASIS)->computeBasisGrid(gpar[0],gpar[1],splineg2);
+    else
+      this->getBasis(ASM::GEOMETRY_BASIS)->computeBasisGrid(gpar[0],gpar[1],splineg1);
+  }
 
   const int p1 = surf->order_u();
   const int p2 = surf->order_v();
@@ -662,7 +674,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
   fe.v = gpar[1](1,1);
   double param[3] = { fe.u, fe.v, 0.0 };
 
-  BasisValues bfs(splinex.size());
+  BasisValues bfs(splinex.size() + separateGeometry);
   Matrix Xnod, Jac;
   Vec4   X(param,time.t);
   Vec3   normal;
@@ -727,8 +739,13 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
           fe.v = param[1] = gpar[1](i+1,i2-p2+1);
         }
 
-        if (separateGeometry)
-          SplineUtils::extractBasis(splinex.back()[ip],bfs.back().N,bfs.back().dNdu);
+        if (separateGeometry) {
+          if (piolaMapping)
+            SplineUtils::extractBasis(splineg2[ip],bfs.back().N,
+                                      bfs.back().dNdu,bfs.back().d2Ndu2);
+          else
+            SplineUtils::extractBasis(splineg1[ip],bfs.back().N,bfs.back().dNdu);
+        }
 
         // Fetch basis function derivatives at current integration point
         for (size_t b = 0; b < m_basis.size(); ++b)
@@ -740,6 +757,9 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
           continue; // skip singular points
 
         if (edgeDir < 0) normal *= -1.0;
+
+        if (piolaMapping)
+          fe.piolaMapping(fe.detJxW, Jac, Xnod, bfs);
 
         // Cartesian coordinates of current integration point
         X.assign(Xnod * (separateGeometry ? bfs.back().N : fe.basis(itgBasis)));
