@@ -324,6 +324,7 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
 
   bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
   const bool separateGeometry = this->getBasis(ASM::GEOMETRY_BASIS) != lrspline.get();
+  const bool piolaMapping = integrand.getIntegrandType() & Integrand::PIOLA_MAPPING;
 
   if (myCache.empty()) {
     myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this, cachePolicy, 1));
@@ -336,7 +337,8 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
 
   for (std::unique_ptr<ASMu2D::BasisFunctionCache>& cache : myCache) {
     cache->setIntegrand(&integrand);
-    cache->init(use2ndDer ? 2 : 1);
+    cache->init(use2ndDer ||
+                (piolaMapping && cache->basis == ASM::GEOMETRY_BASIS) ? 2 : 1);
   }
 
   ASMu2D::BasisFunctionCache& cache = *myCache.front();
@@ -442,6 +444,9 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
           if (use2ndDer && !fe.Hessian(Hess,Jac,Xnod,itgBasis,bfs))
             ok = false;
 
+          if (piolaMapping)
+            fe.piolaMapping(fe.detJxW, Jac, Xnod, bfs);
+
           // Compute G-matrix
           if (integrand.getIntegrandType() & Integrand::G_MATRIX)
             utl::getGmat(Jac,dXidu,fe.G);
@@ -481,7 +486,9 @@ bool ASMu2Dmx::integrate (Integrand& integrand, int lIndex,
 
   PROFILE2("ASMu2Dmx::integrate(B)");
 
-  const bool separateGeometry = this->getBasis(ASM::GEOMETRY_BASIS) != lrspline.get();
+  const LR::LRSplineSurface* geo = this->getBasis(ASM::GEOMETRY_BASIS);
+  const bool separateGeometry = geo != lrspline.get();
+  const bool piolaMapping = integrand.getIntegrandType() & Integrand::PIOLA_MAPPING;
 
   // Get Gaussian quadrature points and weights
   int nGP = integrand.getBouIntegrationPoints(nGauss);
@@ -585,11 +592,18 @@ bool ASMu2Dmx::integrate (Integrand& integrand, int lIndex,
       fe.u = param[0] = gpar[0][i];
       fe.v = param[1] = gpar[1][i];
 
-      std::vector<Go::BasisDerivsSf> splinex(m_basis.size() + separateGeometry);
+      std::vector<Go::BasisDerivsSf> splinex(m_basis.size());
       if (separateGeometry) {
-        this->computeBasis(fe.u,fe.v,splinex.back(),els.back()-1,
-                           this->getBasis(ASM::GEOMETRY_BASIS));
-        SplineUtils::extractBasis(splinex.back(),bfs.back().N,bfs.back().dNdu);
+        if (piolaMapping) {
+          Go::BasisDerivsSf2 splineg;
+          this->computeBasis(fe.u,fe.v,splineg,els.back()-1,geo);
+          SplineUtils::extractBasis(splineg,bfs.back().N,
+                                    bfs.back().dNdu,bfs.back().d2Ndu2);
+        } else {
+          Go::BasisDerivsSf splineg;
+          this->computeBasis(fe.u,fe.v,splineg,els.back()-1,geo);
+          SplineUtils::extractBasis(splineg,bfs.back().N,bfs.back().dNdu);
+        }
       }
 
       // Evaluate basis function derivatives at current integration points
@@ -602,6 +616,9 @@ bool ASMu2Dmx::integrate (Integrand& integrand, int lIndex,
       // basis function derivatives w.r.t. Cartesian coordinates
       if (!fe.Jacobian(Jac,normal,Xnod,itgBasis,bfs,t1,t2))
         continue; // skip singular points
+
+      if (piolaMapping)
+        fe.piolaMapping(fe.detJxW, Jac, Xnod, bfs);
 
       if (edgeDir < 0)
         normal *= -1.0;
