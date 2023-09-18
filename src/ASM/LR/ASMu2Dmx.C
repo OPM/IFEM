@@ -955,6 +955,7 @@ bool ASMu2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
   const LR::LRSplineSurface* geo = this->getBasis(ASM::GEOMETRY_BASIS);
   const bool separateGeometry = geo != lrspline.get();
+  const bool piolaMapping = integrand.getIntegrandType() & Integrand::PIOLA_MAPPING;
 
   sField.resize(0,0);
 
@@ -981,23 +982,30 @@ bool ASMu2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     Matrix Jac, Xnod;
     Matrix3D Hess;
     if (use2ndDer)
-      for (size_t b = 0; b < bfs.size(); ++b) {
+      for (size_t b = 0; b < m_basis.size(); ++b) {
         Go::BasisDerivsSf2 spline;
-        this->computeBasis(gpar[0][i],gpar[1][i],spline,els[b]-1,
-                           b < m_basis.size() ? m_basis[b].get() : geo);
-        SplineUtils::extractBasis(spline,
-                                  b < m_basis.size() ? fe.basis(b+1) : bfs.back().N,
+        this->computeBasis(gpar[0][i],gpar[1][i],spline,els[b]-1,m_basis[b].get());
+        SplineUtils::extractBasis(spline, fe.basis(b+1),
                                   bfs[b].dNdu,bfs[b].d2Ndu2);
       }
     else
-      for (size_t b = 0; b < bfs.size(); ++b) {
+      for (size_t b = 0; b < m_basis.size(); ++b) {
         Go::BasisDerivsSf spline;
-        this->computeBasis(gpar[0][i],gpar[1][i],spline,els[b]-1,
-                           b < m_basis.size() ? m_basis[b].get() : geo);
-        SplineUtils::extractBasis(spline,
-                                  b < m_basis.size() ? fe.basis(b+1) : bfs.back().N,
-                                  bfs[b].dNdu);
+        this->computeBasis(gpar[0][i],gpar[1][i],spline,els[b]-1,m_basis[b].get());
+        SplineUtils::extractBasis(spline,fe.basis(b+1),bfs[b].dNdu);
       }
+
+    if (separateGeometry) {
+      if (piolaMapping) {
+        Go::BasisDerivsSf2 spline;
+        this->computeBasis(gpar[0][i],gpar[1][i],spline,els.back()-1,geo);
+        SplineUtils::extractBasis(spline,bfs.back().N,bfs.back().dNdu,bfs.back().d2Ndu2);
+      } else {
+        Go::BasisDerivsSf spline;
+        this->computeBasis(gpar[0][i],gpar[1][i],spline,els.back()-1,geo);
+        SplineUtils::extractBasis(spline,bfs.back().N,bfs.back().dNdu);
+      }
+    }
 
     // Set up control point (nodal) coordinates for current element
     if (!this->getElementCoordinates(Xnod,els[itgBasis-1]))
@@ -1011,6 +1019,9 @@ bool ASMu2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     // Compute Hessian of coordinate mapping and 2nd order derivatives
     if (use2ndDer && !fe.Hessian(Hess,Jac,Xnod,itgBasis,bfs))
       return false;
+
+    if (piolaMapping)
+      fe.piolaMapping(fe.detJxW, Jac, Xnod, bfs);
 
     // Cartesian coordinates of current integration point
     fe.u = gpar[0][i];
