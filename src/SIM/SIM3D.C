@@ -135,10 +135,12 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
       // Non-uniform (graded) refinement
       int dir = 1;
       utl::getAttribute(elem,"dir",dir);
+      const char* refdata = elem->FirstChild()->Value();
       for (int j : patches)
       {
-        IFEM::cout <<"\tRefining P"<< j <<" dir="<< dir
-                   <<" with grading "<< elem->FirstChild()->Value() <<":";
+        IFEM::cout <<"\tRefining P"<< j <<" dir="<< dir;
+        if (refdata && isalpha(refdata[0]))
+          IFEM::cout <<" with grading "<< refdata <<":";
         for (size_t i = 0; i < xi.size(); i++)
           IFEM::cout << (i%10 || xi.size() < 11 ? " " : "\n\t") << xi[i];
         IFEM::cout << std::endl;

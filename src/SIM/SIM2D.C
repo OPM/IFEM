@@ -146,10 +146,12 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
       double scale = 1.0;
       utl::getAttribute(elem,"dir",dir);
       utl::getAttribute(elem,"scale",scale);
+      const char* refdata = elem->FirstChild()->Value();
       for (int j : patches)
       {
-        IFEM::cout <<"\tRefining P"<< j <<" dir="<< dir
-                   <<" with grading "<< elem->FirstChild()->Value() <<":";
+        IFEM::cout <<"\tRefining P"<< j <<" dir="<< dir;
+        if (refdata && isalpha(refdata[0]))
+          IFEM::cout <<" with grading "<< refdata <<":";
         for (size_t i = 0; i < xi.size(); i++)
           IFEM::cout << (i%10 || xi.size() < 11 ? " " : "\n\t") << xi[i];
         IFEM::cout << std::endl;

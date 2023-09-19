@@ -110,11 +110,11 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
 
       for (int j : patches)
       {
-        IFEM::cout <<"\tRefining P"<< j <<" with ";
+        IFEM::cout <<"\tRefining P"<< j;
         if (refdata && isalpha(refdata[0]))
-          IFEM::cout <<"grading "<< refdata <<":";
+          IFEM::cout <<" with grading "<< refdata <<":";
         else
-          IFEM::cout <<"explicit knots:";
+          IFEM::cout <<" with explicit knots:";
         for (size_t i = 0; i < xi.size(); i++)
           IFEM::cout << (i%10 || xi.size() < 11 ? " " : "\n\t") << xi[i];
         IFEM::cout << std::endl;
