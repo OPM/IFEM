@@ -15,8 +15,8 @@
 namespace ExprEval
 {
     // Forward declarations
-    class Expression;
-    class Node;
+    template<class Value> class Expression;
+    template<class Value> class Node;
     
     // Token class
     //--------------------------------------------------------------------------
@@ -70,24 +70,25 @@ namespace ExprEval
         
     // Parser class
     //--------------------------------------------------------------------------
+    template<class Value>
     class Parser
     {
     public:
         typedef ::std::vector<Token*>::size_type size_type;
-    
-        explicit Parser(Expression *expr);
+
+        explicit Parser(Expression<Value> *expr);
         ~Parser();
-                    
-        Node *Parse(const ::std::string &exstr);
-        Node *ParseRegion(size_type start, size_type end);
+
+        Node<Value> *Parse(const ::std::string &exstr);
+        Node<Value> *ParseRegion(size_type start, size_type end);
         
         const Token &operator[] (size_type pos) const;
         
     private:
 
         void BuildTokens(const std::string &exstr);
-    
-        Expression *m_expr;
+
+        Expression<Value>* m_expr;
         ::std::vector<Token> m_tokens; // Store token and not pointer to token
     };
 }

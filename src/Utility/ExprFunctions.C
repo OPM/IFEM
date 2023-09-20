@@ -105,9 +105,9 @@ EvalFunc::EvalFunc (const char* function, const char* x, Real eps)
     expr.resize(nalloc);
     arg.resize(nalloc);
     for (size_t i = 0; i < nalloc; ++i) {
-      expr[i] = new ExprEval::Expression;
-      f[i] = new ExprEval::FunctionList;
-      v[i] = new ExprEval::ValueList;
+      expr[i] = new Expression;
+      f[i] = new FunctionList;
+      v[i] = new ValueList;
       f[i]->AddDefaultFunctions();
       v[i]->AddDefaultValues();
       v[i]->Add(x,0.0,false);
@@ -132,11 +132,11 @@ EvalFunc::~EvalFunc ()
 
 void EvalFunc::cleanup ()
 {
-  for (ExprEval::Expression* it : expr)
+  for (Expression* it : expr)
     delete it;
-  for (ExprEval::FunctionList* it : f)
+  for (FunctionList* it : f)
     delete it;
-  for (ExprEval::ValueList* it : v)
+  for (ValueList* it : v)
     delete it;
   delete gradient;
   expr.clear();
@@ -199,9 +199,9 @@ EvalFunction::EvalFunction (const char* function, Real epsX, Real epsT)
     expr.resize(nalloc);
     arg.resize(nalloc);
     for (size_t i = 0; i < nalloc; ++i) {
-      expr[i] = new ExprEval::Expression;
-      f[i] = new ExprEval::FunctionList;
-      v[i] = new ExprEval::ValueList;
+      expr[i] = new Expression;
+      f[i] = new FunctionList;
+      v[i] = new ValueList;
       f[i]->AddDefaultFunctions();
       v[i]->AddDefaultValues();
       v[i]->Add("x",0.0,false);
@@ -242,11 +242,11 @@ EvalFunction::~EvalFunction ()
 
 void EvalFunction::cleanup ()
 {
-  for (ExprEval::Expression* it : expr)
+  for (Expression* it : expr)
     delete it;
-  for (ExprEval::FunctionList* it : f)
+  for (FunctionList* it : f)
     delete it;
-  for (ExprEval::ValueList* it : v)
+  for (ValueList* it : v)
     delete it;
   for (EvalFunction* it : gradient)
     delete it;
@@ -378,7 +378,7 @@ Real EvalFunction::dderiv (const Vec3& X, int d1, int d2) const
 
 void EvalFunction::setParam (const std::string& name, double value)
 {
-  for (ExprEval::ValueList* v1 : v) {
+  for (ValueList* v1 : v) {
     double* address = v1->GetAddress(name);
     if (!address)
       v1->Add(name,value,false);
