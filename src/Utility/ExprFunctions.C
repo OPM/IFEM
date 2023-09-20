@@ -91,7 +91,7 @@ int EvalFunc::numError = 0;
 
 
 EvalFunc::EvalFunc (const char* function, const char* x, Real eps)
-  : gradient(nullptr), dx(eps)
+  : dx(eps)
 {
   try {
 #ifdef USE_OPENMP
@@ -105,51 +105,31 @@ EvalFunc::EvalFunc (const char* function, const char* x, Real eps)
     expr.resize(nalloc);
     arg.resize(nalloc);
     for (size_t i = 0; i < nalloc; ++i) {
-      expr[i] = new Expression;
-      f[i] = new FunctionList;
-      v[i] = new ValueList;
+      expr[i] = std::make_unique<Expression>();
+      f[i] = std::make_unique<FunctionList>();
+      v[i] = std::make_unique<ValueList>();
       f[i]->AddDefaultFunctions();
       v[i]->AddDefaultValues();
       v[i]->Add(x,0.0,false);
-      expr[i]->SetFunctionList(f[i]);
-      expr[i]->SetValueList(v[i]);
+      expr[i]->SetFunctionList(f[i].get());
+      expr[i]->SetValueList(v[i].get());
       expr[i]->Parse(function);
       arg[i] = v[i]->GetAddress(x);
     }
   }
   catch (ExprEval::Exception& e) {
-    this->cleanup();
     ExprException(e,"parsing",function);
   }
 }
 
 
-EvalFunc::~EvalFunc ()
-{
-  this->cleanup();
-}
-
-
-void EvalFunc::cleanup ()
-{
-  for (Expression* it : expr)
-    delete it;
-  for (FunctionList* it : f)
-    delete it;
-  for (ValueList* it : v)
-    delete it;
-  delete gradient;
-  expr.clear();
-  f.clear();
-  v.clear();
-  arg.clear();
-}
+EvalFunc::~EvalFunc () = default;
 
 
 void EvalFunc::derivative (const std::string& function, const char* x)
 {
   if (!gradient)
-    gradient = new EvalFunc(function.c_str(),x);
+    gradient = std::make_unique<EvalFunc>(function.c_str(),x);
 }
 
 
@@ -185,7 +165,7 @@ Real EvalFunc::deriv (Real x) const
 
 
 EvalFunction::EvalFunction (const char* function, Real epsX, Real epsT)
-  : gradient{}, dgradient{}, dx(epsX), dt(epsT)
+  : dx(epsX), dt(epsT)
 {
   try {
 #ifdef USE_OPENMP
@@ -199,17 +179,17 @@ EvalFunction::EvalFunction (const char* function, Real epsX, Real epsT)
     expr.resize(nalloc);
     arg.resize(nalloc);
     for (size_t i = 0; i < nalloc; ++i) {
-      expr[i] = new Expression;
-      f[i] = new FunctionList;
-      v[i] = new ValueList;
+      expr[i] = std::make_unique<Expression>();
+      f[i] = std::make_unique<FunctionList>();
+      v[i] = std::make_unique<ValueList>();
       f[i]->AddDefaultFunctions();
       v[i]->AddDefaultValues();
       v[i]->Add("x",0.0,false);
       v[i]->Add("y",0.0,false);
       v[i]->Add("z",0.0,false);
       v[i]->Add("t",0.0,false);
-      expr[i]->SetFunctionList(f[i]);
-      expr[i]->SetValueList(v[i]);
+      expr[i]->SetFunctionList(f[i].get());
+      expr[i]->SetValueList(v[i].get());
       expr[i]->Parse(function);
       arg[i].x = v[i]->GetAddress("x");
       arg[i].y = v[i]->GetAddress("y");
@@ -218,7 +198,6 @@ EvalFunction::EvalFunction (const char* function, Real epsX, Real epsT)
     }
   }
   catch (ExprEval::Exception& e) {
-    this->cleanup();
     ExprException(e,"parsing",function);
   }
 
@@ -234,31 +213,7 @@ EvalFunction::EvalFunction (const char* function, Real epsX, Real epsT)
 }
 
 
-EvalFunction::~EvalFunction ()
-{
-  this->cleanup();
-}
-
-
-void EvalFunction::cleanup ()
-{
-  for (Expression* it : expr)
-    delete it;
-  for (FunctionList* it : f)
-    delete it;
-  for (ValueList* it : v)
-    delete it;
-  for (EvalFunction* it : gradient)
-    delete it;
-  for (EvalFunction* it : dgradient)
-    delete it;
-  expr.clear();
-  f.clear();
-  v.clear();
-  arg.clear();
-  gradient.fill(nullptr);
-  dgradient.fill(nullptr);
-}
+EvalFunction::~EvalFunction () = default;
 
 
 /*!
@@ -289,12 +244,12 @@ void EvalFunction::addDerivative (const std::string& function,
   if (d1 > 0 && d1 <= 3 && d2 < 1) // A first derivative is specified
   {
     if (!gradient[--d1])
-      gradient[d1] = new EvalFunction((variables+function).c_str());
+      gradient[d1] = std::make_unique<EvalFunction>((variables+function).c_str());
   }
   else if ((d1 = voigtIdx(d1,d2)) >= 0) // A second derivative is specified
   {
     if (!dgradient[d1])
-      dgradient[d1] = new EvalFunction((variables+function).c_str());
+      dgradient[d1] = std::make_unique<EvalFunction>((variables+function).c_str());
   }
 }
 
@@ -375,7 +330,7 @@ Real EvalFunction::dderiv (const Vec3& X, int d1, int d2) const
 
 void EvalFunction::setParam (const std::string& name, double value)
 {
-  for (ValueList* v1 : v) {
+  for (std::unique_ptr<ValueList>& v1 : v) {
     double* address = v1->GetAddress(name);
     if (!address)
       v1->Add(name,value,false);
@@ -418,15 +373,11 @@ EvalFunctions::EvalFunctions (const std::string& functions,
 {
   std::vector<std::string> components = splitComps(functions,variables);
   for (const std::string& comp : components)
-    p.push_back(new EvalFunction(comp.c_str()));
+    p.emplace_back(std::make_unique<EvalFunction>(comp.c_str()));
 }
 
 
-EvalFunctions::~EvalFunctions ()
-{
-  for (EvalFunction* it : p)
-    delete it;
-}
+EvalFunctions::~EvalFunctions () = default;
 
 
 void EvalFunctions::addDerivative (const std::string& functions,
