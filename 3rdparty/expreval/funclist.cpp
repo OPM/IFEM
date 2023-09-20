@@ -11,6 +11,8 @@
 #include "except.h"
 #include "node.h"
 
+#include <autodiff/reverse/var.hpp>
+
 using namespace std;
 using namespace ExprEval;
 
@@ -18,19 +20,22 @@ using namespace ExprEval;
 //------------------------------------------------------------------------------
 
 // Constructor
-FunctionFactory::FunctionFactory()
+template<class Value>
+FunctionFactory<Value>::FunctionFactory()
 {
 }
     
 // Destructor
-FunctionFactory::~FunctionFactory()
+template<class Value>
+FunctionFactory<Value>::~FunctionFactory()
 {
 }
     
 // Create
-FunctionNode *FunctionFactory::Create(Expression *expr)
+template<class Value>
+FunctionNode<Value> *FunctionFactory<Value>::Create(Expression<Value> *expr)
 {
-    FunctionNode *n = DoCreate(expr);
+    FunctionNode<Value> *n = DoCreate(expr);
     if(n)
         n->m_factory = this;
         
@@ -42,19 +47,22 @@ FunctionNode *FunctionFactory::Create(Expression *expr)
 //------------------------------------------------------------------------------
 
 // Constructor
-FunctionList::FunctionList()
+template<class Value>
+FunctionList<Value>::FunctionList()
 {
 }
                     
 // Destructor
-FunctionList::~FunctionList()
+template<class Value>
+FunctionList<Value>::~FunctionList()
 {
     // Free function factories
     Clear();
 }
             
 // Add factory to list
-void FunctionList::Add(FunctionFactory *factory)
+template<class Value>
+void FunctionList<Value>::Add(FunctionFactory<Value> *factory)
 {
     // Check it
     if(factory == 0)
@@ -73,7 +81,8 @@ void FunctionList::Add(FunctionFactory *factory)
 }
     
 // Create a node for a function
-FunctionNode *FunctionList::Create(const string &name, Expression *expr)
+template<class Value>
+FunctionNode<Value> *FunctionList<Value>::Create(const string &name, Expression<Value> *expr)
 {
     // Make sure pointer exists
     if(expr == 0)
@@ -98,7 +107,8 @@ FunctionNode *FunctionList::Create(const string &name, Expression *expr)
 // along with the default function factories            
           
 // Free function list
-void FunctionList::Clear()
+template<class Value>
+void FunctionList<Value>::Clear()
 {
     size_type pos;
     
@@ -108,6 +118,11 @@ void FunctionList::Clear()
     }
 }
 
+#define INSTANCE(...) \
+template class FunctionFactory<__VA_ARGS__>; \
+template class FunctionList<__VA_ARGS__>;
 
-
-
+namespace ExprEval {
+INSTANCE(double)
+INSTANCE(autodiff::var)
+}

@@ -61,6 +61,7 @@ set(IFEM_INCLUDES
     ${PROJECT_SOURCE_DIR}/src/Utility
     ${PROJECT_SOURCE_DIR}/3rdparty
     ${PROJECT_SOURCE_DIR}/3rdparty/expreval
+    ${PROJECT_SOURCE_DIR}/3rdparty/autodiff
     ${PROJECT_BINARY_DIR}
 )
 

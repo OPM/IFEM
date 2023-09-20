@@ -17,6 +17,8 @@
 #include "funclist.h"
 #include "except.h"
 
+#include <autodiff/reverse/var.hpp>
+
 using namespace std;
 using namespace ExprEval;
 
@@ -24,19 +26,22 @@ using namespace ExprEval;
 //------------------------------------------------------------------------------
 
 // Constructor
-Node::Node(Expression *expr) : m_expr(expr)
+template<class Value>
+Node<Value>::Node(Expression<Value>* expr) : m_expr(expr)
 {
     if(expr == 0)
         throw(NullPointerException("Node::Node"));
 }
 
 // Destructor
-Node::~Node()
+template<class Value>
+Node<Value>::~Node()
 {
 }
     
 // Evaluate
-double Node::Evaluate()
+template<class Value>
+Value Node<Value>::Evaluate()
 {
     m_expr->TestAbort();
     
@@ -47,31 +52,30 @@ double Node::Evaluate()
 //------------------------------------------------------------------------------
 
 // Constructor
-FunctionNode::FunctionNode(Expression *expr) : Node(expr),
+template<class Value>
+FunctionNode<Value>::FunctionNode(Expression<Value> *expr) : Node<Value>(expr),
         m_argMin(0), m_argMax(0), m_refMin(0), m_refMax(0)
 {
 }
     
 // Destructor
-FunctionNode::~FunctionNode()
+template<class Value>
+FunctionNode<Value>::~FunctionNode()
 {
-    // Delete child nodes
-    vector<Node*>::size_type pos;
-    
-    for(pos = 0; pos < m_nodes.size(); pos++)
-    {
-        delete m_nodes[pos];
-    }
+    for (auto& node : m_nodes)
+        delete node;
 }
     
 // Get name
-string FunctionNode::GetName() const
+template<class Value>
+string FunctionNode<Value>::GetName() const
 {
     return m_factory->GetName();
 }
     
 // Set argument count
-void FunctionNode::SetArgumentCount(long argMin, long argMax, long refMin, long refMax)
+template<class Value>
+void FunctionNode<Value>::SetArgumentCount(long argMin, long argMax, long refMin, long refMax)
 {
     m_argMin = argMin;
     m_argMax = argMax;
@@ -80,10 +84,13 @@ void FunctionNode::SetArgumentCount(long argMin, long argMax, long refMin, long 
 }
     
 // Parse expression
-void FunctionNode::Parse(Parser &parser, Parser::size_type start, Parser::size_type end,
-        Parser::size_type v1)
+template<class Value>
+void FunctionNode<Value>::Parse(Parser<Value> &parser,
+                                typename Parser<Value>::size_type start,
+                                typename Parser<Value>::size_type end,
+                                typename Parser<Value>::size_type v1)
 {
-    Parser::size_type pos, last;
+    typename Parser<Value>::size_type pos, last;
     int plevel = 0;
     
     // Sanity check (start/end are function parenthesis)
@@ -135,7 +142,7 @@ void FunctionNode::Parse(Parser &parser, Parser::size_type start, Parser::size_t
                             if(last == pos - 2 && parser[last + 1].GetType() == Token::TypeIdentifier)
                             {
                                 // Get value list
-                                ValueList *vlist = m_expr->GetValueList();
+                                ValueList<Value> *vlist = this->m_expr->GetValueList();
                                 if(vlist == 0)
                                 {
                                     NoValueListException e;
@@ -159,7 +166,7 @@ void FunctionNode::Parse(Parser &parser, Parser::size_type start, Parser::size_t
                                 }
                                     
                                 // Get address
-                                double *vaddr = vlist->GetAddress(ident);
+                                Value *vaddr = vlist->GetAddress(ident);
                                 if(vaddr == 0)
                                 {
                                     // Try to add it and get again
@@ -192,7 +199,7 @@ void FunctionNode::Parse(Parser &parser, Parser::size_type start, Parser::size_t
                         else
                         {
                             // Create node
-                            aptr(Node) n(parser.ParseRegion(last, pos - 1));
+                            aptr(Node<Value>) n(parser.ParseRegion(last, pos - 1));
                             m_nodes.push_back(n.get());
                             n.release();
                         }
@@ -229,7 +236,7 @@ void FunctionNode::Parse(Parser &parser, Parser::size_type start, Parser::size_t
 
 
     // Check argument count
-    if(m_argMin != -1 && m_nodes.size() < (vector<Node*>::size_type)m_argMin)
+    if(m_argMin != -1 && m_nodes.size() < static_cast<size_t>(m_argMin))
     {
         InvalidArgumentCountException e(GetName());
         
@@ -237,8 +244,8 @@ void FunctionNode::Parse(Parser &parser, Parser::size_type start, Parser::size_t
         e.SetEnd(parser[end].GetEnd());
         throw(e);
     }
-        
-    if(m_argMax != -1 && m_nodes.size() > (vector<Node*>::size_type)m_argMax)
+
+    if(m_argMax != -1 && m_nodes.size() > static_cast<size_t>(m_argMax))
     {
         InvalidArgumentCountException e(GetName());
         
@@ -246,8 +253,8 @@ void FunctionNode::Parse(Parser &parser, Parser::size_type start, Parser::size_t
         e.SetEnd(parser[end].GetEnd());
         throw(e);
     }
-        
-    if(m_refMin != -1 && m_refs.size() < (vector<double*>::size_type)m_refMin)
+
+    if(m_refMin != -1 && m_refs.size() < static_cast<size_t>(m_refMin))
     {
         InvalidArgumentCountException e(GetName());
         
@@ -255,8 +262,8 @@ void FunctionNode::Parse(Parser &parser, Parser::size_type start, Parser::size_t
         e.SetEnd(parser[end].GetEnd());
         throw(e);
     }
-        
-    if(m_refMax != -1 && m_refs.size() > (vector<double*>::size_type)m_refMax)
+
+    if(m_refMax != -1 && m_refs.size() > static_cast<size_t>(m_refMax))
     {
         InvalidArgumentCountException e(GetName());
         
@@ -270,41 +277,43 @@ void FunctionNode::Parse(Parser &parser, Parser::size_type start, Parser::size_t
 //------------------------------------------------------------------------------
 
 // Constructor
-MultiNode::MultiNode(Expression *expr) : Node(expr)
+template<class Value>
+MultiNode<Value>::MultiNode(Expression<Value> *expr) : Node<Value>(expr)
 {
 }
     
 // Destructor
-MultiNode::~MultiNode()
+template<class Value>
+MultiNode<Value>::~MultiNode()
 {
-    // Free child nodes
-    vector<Node*>::size_type pos;
-    
-    for(pos = 0; pos < m_nodes.size(); pos++)
+    for(auto& node : m_nodes)
     {
-        delete m_nodes[pos];
+        delete node;
     }
 }
         
 // Evaluate
-double MultiNode::DoEvaluate()
+template<class Value>
+Value MultiNode<Value>::DoEvaluate()
 {
-    vector<Node*>::size_type pos;
-    double result = 0.0;
+    Value result = 0.0;
     
-    for(pos = 0; pos < m_nodes.size(); pos++)
+    for(auto& node : m_nodes)
     {
-        result = m_nodes[pos]->Evaluate();
+        result = node->Evaluate();
     }
         
     return result;
 }
     
 // Parse
-void MultiNode::Parse(Parser &parser, Parser::size_type start, Parser::size_type end,
-        Parser::size_type v1)
+template<class Value>
+void MultiNode<Value>::Parse(Parser<Value> &parser,
+                             typename Parser<Value>::size_type start,
+                             typename Parser<Value>::size_type end,
+                             typename Parser<Value>::size_type v1)
 {
-    Parser::size_type pos, last;
+    typename Parser<Value>::size_type pos, last;
     int plevel = 0;
     
     // Sanity check
@@ -346,7 +355,7 @@ void MultiNode::Parse(Parser &parser, Parser::size_type start, Parser::size_type
                     if(pos > last)
                     {
                         // Everything from last to pos - 1
-                        aptr(Node) n(parser.ParseRegion(last, pos - 1));
+                        aptr(Node<Value>) n(parser.ParseRegion(last, pos - 1));
                         m_nodes.push_back(n.get());
                         n.release();
                     }
@@ -382,7 +391,7 @@ void MultiNode::Parse(Parser &parser, Parser::size_type start, Parser::size_type
     // If the end was not a semicolon, test it as well
     if(last < end + 1)
     {
-        aptr(Node) n(parser.ParseRegion(last, end));
+        aptr(Node<Value>) n(parser.ParseRegion(last, end));
         m_nodes.push_back(n.get());
         n.release();
     }        
@@ -392,26 +401,32 @@ void MultiNode::Parse(Parser &parser, Parser::size_type start, Parser::size_type
 //------------------------------------------------------------------------------
 
 // Constructor
-AssignNode::AssignNode(Expression *expr) : Node(expr), m_var(0), m_rhs(0)
+template<class Value>
+AssignNode<Value>::AssignNode(Expression<Value> *expr) : Node<Value>(expr), m_var(0), m_rhs(0)
 {
 }
     
 // Destructor
-AssignNode::~AssignNode()
+template<class Value>
+AssignNode<Value>::~AssignNode()
 {
     // Free child node
     delete m_rhs;
 }
         
 // Evaluate
-double AssignNode::DoEvaluate()
+template<class Value>
+Value AssignNode<Value>::DoEvaluate()
 {
     return (*m_var = m_rhs->Evaluate());        
 }
     
 // Parse
-void AssignNode::Parse(Parser &parser, Parser::size_type start, Parser::size_type end,
-        Parser::size_type v1)
+template<class Value>
+void AssignNode<Value>::Parse(Parser<Value> &parser,
+                              typename Parser<Value>::size_type start,
+                              typename Parser<Value>::size_type end,
+                              typename Parser<Value>::size_type v1)
 {
     // Check some basic syntax
     if(v1 != start + 1 || v1 >= end)
@@ -424,7 +439,7 @@ void AssignNode::Parse(Parser &parser, Parser::size_type start, Parser::size_typ
     }
         
     // Get the value list
-    ValueList *vlist = m_expr->GetValueList();
+    ValueList<Value> *vlist = this->m_expr->GetValueList();
     if(vlist == 0)
     {
         NoValueListException e;
@@ -448,7 +463,7 @@ void AssignNode::Parse(Parser &parser, Parser::size_type start, Parser::size_typ
     }
         
     // Get address
-    double *vaddr = vlist->GetAddress(ident);
+    Value *vaddr = vlist->GetAddress(ident);
     
     if(vaddr == 0)
     {
@@ -467,7 +482,7 @@ void AssignNode::Parse(Parser &parser, Parser::size_type start, Parser::size_typ
     }
         
     // Parse the node (will throw if it can not parse)
-    aptr(Node) n(parser.ParseRegion(v1 + 1, end));
+    aptr(Node<Value>) n(parser.ParseRegion(v1 + 1, end));
     
     // Set data
     m_var = vaddr;
@@ -479,12 +494,14 @@ void AssignNode::Parse(Parser &parser, Parser::size_type start, Parser::size_typ
 //------------------------------------------------------------------------------
 
 // Constructor
-AddNode::AddNode(Expression *expr) : Node(expr), m_lhs(0), m_rhs(0)
+template<class Value>
+AddNode<Value>::AddNode(Expression<Value> *expr) : Node<Value>(expr), m_lhs(0), m_rhs(0)
 {
 }
     
 // Destructor
-AddNode::~AddNode()
+template<class Value>
+AddNode<Value>::~AddNode()
 {
     // Free child nodes
     delete m_lhs;
@@ -492,14 +509,18 @@ AddNode::~AddNode()
 }
         
 // Evaluate
-double AddNode::DoEvaluate()
+template<class Value>
+Value AddNode<Value>::DoEvaluate()
 {
     return m_lhs->Evaluate() + m_rhs->Evaluate();        
 }
     
 // Parse
-void AddNode::Parse(Parser &parser, Parser::size_type start, Parser::size_type end,
-        Parser::size_type v1)
+template<class Value>
+void AddNode<Value>::Parse(Parser<Value> &parser,
+                           typename Parser<Value>::size_type start,
+                           typename Parser<Value>::size_type end,
+                           typename Parser<Value>::size_type v1)
 {
     // Check some basic syntax
     if(v1 <= start || v1 >= end)
@@ -512,8 +533,8 @@ void AddNode::Parse(Parser &parser, Parser::size_type start, Parser::size_type e
     }
         
     // Parse sides
-    aptr(Node) left(parser.ParseRegion(start, v1 - 1));
-    aptr(Node) right(parser.ParseRegion(v1 + 1, end));
+    aptr(Node<Value>) left(parser.ParseRegion(start, v1 - 1));
+    aptr(Node<Value>) right(parser.ParseRegion(v1 + 1, end));
     
     m_lhs = left.release();
     m_rhs = right.release();
@@ -523,12 +544,14 @@ void AddNode::Parse(Parser &parser, Parser::size_type start, Parser::size_type e
 //------------------------------------------------------------------------------
 
 // Constructor
-SubtractNode::SubtractNode(Expression *expr) : Node(expr), m_lhs(0), m_rhs(0)
+template<class Value>
+SubtractNode<Value>::SubtractNode(Expression<Value> *expr) : Node<Value>(expr), m_lhs(0), m_rhs(0)
 {
 }
     
 // Destructor
-SubtractNode::~SubtractNode()
+template<class Value>
+SubtractNode<Value>::~SubtractNode()
 {
     // Free child nodes
     delete m_lhs;
@@ -536,14 +559,18 @@ SubtractNode::~SubtractNode()
 }
         
 // Evaluate
-double SubtractNode::DoEvaluate()
+template<class Value>
+Value SubtractNode<Value>::DoEvaluate()
 {
     return m_lhs->Evaluate() - m_rhs->Evaluate();        
 }
     
 // Parse
-void SubtractNode::Parse(Parser &parser, Parser::size_type start, Parser::size_type end,
-        Parser::size_type v1)
+template<class Value>
+void SubtractNode<Value>::Parse(Parser<Value> &parser,
+                                typename Parser<Value>::size_type start,
+                                typename Parser<Value>::size_type end,
+                                typename Parser<Value>::size_type v1)
 {
     // Check some basic syntax
     if(v1 <= start || v1 >= end)
@@ -556,8 +583,8 @@ void SubtractNode::Parse(Parser &parser, Parser::size_type start, Parser::size_t
     }
         
     // Parse sides
-    aptr(Node) left(parser.ParseRegion(start, v1 - 1));
-    aptr(Node) right(parser.ParseRegion(v1 + 1, end));
+    aptr(Node<Value>) left(parser.ParseRegion(start, v1 - 1));
+    aptr(Node<Value>) right(parser.ParseRegion(v1 + 1, end));
     
     m_lhs = left.release();
     m_rhs = right.release();
@@ -567,12 +594,14 @@ void SubtractNode::Parse(Parser &parser, Parser::size_type start, Parser::size_t
 //------------------------------------------------------------------------------
 
 // Constructor
-MultiplyNode::MultiplyNode(Expression *expr) : Node(expr), m_lhs(0), m_rhs(0)
+template<class Value>
+MultiplyNode<Value>::MultiplyNode(Expression<Value> *expr) : Node<Value>(expr), m_lhs(0), m_rhs(0)
 {
 }
     
 // Destructor
-MultiplyNode::~MultiplyNode()
+template<class Value>
+MultiplyNode<Value>::~MultiplyNode()
 {
     // Free child nodes
     delete m_lhs;
@@ -580,14 +609,18 @@ MultiplyNode::~MultiplyNode()
 }
         
 // Evaluate
-double MultiplyNode::DoEvaluate()
+template<class Value>
+Value MultiplyNode<Value>::DoEvaluate()
 {
     return m_lhs->Evaluate() * m_rhs->Evaluate();        
 }
     
 // Parse
-void MultiplyNode::Parse(Parser &parser, Parser::size_type start, Parser::size_type end,
-        Parser::size_type v1)
+template<class Value>
+void MultiplyNode<Value>::Parse(Parser<Value> &parser,
+                                typename Parser<Value>::size_type start,
+                                typename Parser<Value>::size_type end,
+                                typename Parser<Value>::size_type v1)
 {
     // Check some basic syntax
     if(v1 <= start || v1 >= end)
@@ -600,8 +633,8 @@ void MultiplyNode::Parse(Parser &parser, Parser::size_type start, Parser::size_t
     }
         
     // Parse sides
-    aptr(Node) left(parser.ParseRegion(start, v1 - 1));
-    aptr(Node) right(parser.ParseRegion(v1 + 1, end));
+    aptr(Node<Value>) left(parser.ParseRegion(start, v1 - 1));
+    aptr(Node<Value>) right(parser.ParseRegion(v1 + 1, end));
     
     m_lhs = left.release();
     m_rhs = right.release();
@@ -611,12 +644,14 @@ void MultiplyNode::Parse(Parser &parser, Parser::size_type start, Parser::size_t
 //------------------------------------------------------------------------------
 
 // Constructor
-DivideNode::DivideNode(Expression *expr) : Node(expr), m_lhs(0), m_rhs(0)
+template<class Value>
+DivideNode<Value>::DivideNode(Expression<Value> *expr) : Node<Value>(expr), m_lhs(0), m_rhs(0)
 {
 }
     
 // Destructor
-DivideNode::~DivideNode()
+template<class Value>
+DivideNode<Value>::~DivideNode()
 {
     // Free child nodes
     delete m_lhs;
@@ -624,11 +659,12 @@ DivideNode::~DivideNode()
 }
         
 // Evaluate
-double DivideNode::DoEvaluate()
+template<class Value>
+Value DivideNode<Value>::DoEvaluate()
 {
-    double r2 = m_rhs->Evaluate();
+    Value r2 = m_rhs->Evaluate();
     
-    if(r2 != 0.0)
+    if(r2 != Value(0.0))
     {
         return m_lhs->Evaluate() / r2;
     }
@@ -639,8 +675,11 @@ double DivideNode::DoEvaluate()
 }
     
 // Parse
-void DivideNode::Parse(Parser &parser, Parser::size_type start, Parser::size_type end,
-        Parser::size_type v1)
+template<class Value>
+void DivideNode<Value>::Parse(Parser<Value> &parser,
+                              typename Parser<Value>::size_type start,
+                              typename Parser<Value>::size_type end,
+                              typename Parser<Value>::size_type v1)
 {
     // Check some basic syntax
     if(v1 <= start || v1 >= end)
@@ -653,8 +692,8 @@ void DivideNode::Parse(Parser &parser, Parser::size_type start, Parser::size_typ
     }
         
     // Parse sides
-    aptr(Node) left(parser.ParseRegion(start, v1 - 1));
-    aptr(Node) right(parser.ParseRegion(v1 + 1, end));
+    aptr(Node<Value>) left(parser.ParseRegion(start, v1 - 1));
+    aptr(Node<Value>) right(parser.ParseRegion(v1 + 1, end));
     
     m_lhs = left.release();
     m_rhs = right.release();
@@ -664,26 +703,32 @@ void DivideNode::Parse(Parser &parser, Parser::size_type start, Parser::size_typ
 //------------------------------------------------------------------------------
 
 // Constructor
-NegateNode::NegateNode(Expression *expr) : Node(expr), m_rhs(0)
+template<class Value>
+NegateNode<Value>::NegateNode(Expression<Value> *expr) : Node<Value>(expr), m_rhs(0)
 {
 }
     
 // Destructor
-NegateNode::~NegateNode()
+template<class Value>
+NegateNode<Value>::~NegateNode()
 {
     // Free child nodes
     delete m_rhs;
 }
         
 // Evaluate
-double NegateNode::DoEvaluate()
+template<class Value>
+Value NegateNode<Value>::DoEvaluate()
 {
     return -(m_rhs->Evaluate());        
 }
     
 // Parse
-void NegateNode::Parse(Parser &parser, Parser::size_type start, Parser::size_type end,
-        Parser::size_type v1)
+template<class Value>
+void NegateNode<Value>::Parse(Parser<Value> &parser,
+                              typename Parser<Value>::size_type start,
+                              typename Parser<Value>::size_type end,
+                              typename Parser<Value>::size_type v1)
 {
     // Check some basic syntax
     if(start != v1 || v1 >= end)
@@ -696,7 +741,7 @@ void NegateNode::Parse(Parser &parser, Parser::size_type start, Parser::size_typ
     }
         
     // Parse sides
-    aptr(Node) right(parser.ParseRegion(v1 + 1, end));
+    aptr(Node<Value>) right(parser.ParseRegion(v1 + 1, end));
     
     m_rhs = right.release();
 }
@@ -705,12 +750,14 @@ void NegateNode::Parse(Parser &parser, Parser::size_type start, Parser::size_typ
 //------------------------------------------------------------------------------
 
 // Constructor
-ExponentNode::ExponentNode(Expression *expr) : Node(expr), m_lhs(0), m_rhs(0)
+template<class Value>
+ExponentNode<Value>::ExponentNode(Expression<Value> *expr) : Node<Value>(expr), m_lhs(0), m_rhs(0)
 {
 }
     
 // Destructor
-ExponentNode::~ExponentNode()
+template<class Value>
+ExponentNode<Value>::~ExponentNode()
 {
     // Free child nodes
     delete m_lhs;
@@ -718,12 +765,13 @@ ExponentNode::~ExponentNode()
 }
         
 // Evaluate
-double ExponentNode::DoEvaluate()
+template<class Value>
+Value ExponentNode<Value>::DoEvaluate()
 {
     errno = 0;
-    
-    double result =  pow(m_lhs->Evaluate(), m_rhs->Evaluate());
-    
+
+    Value result = pow(m_lhs->Evaluate(), m_rhs->Evaluate());
+
     if(errno)
         throw(MathException("^"));
         
@@ -731,8 +779,11 @@ double ExponentNode::DoEvaluate()
 }
     
 // Parse
-void ExponentNode::Parse(Parser &parser, Parser::size_type start, Parser::size_type end,
-        Parser::size_type v1)
+template<class Value>
+void ExponentNode<Value>::Parse(Parser<Value> &parser,
+                                typename Parser<Value>::size_type start,
+                                typename Parser<Value>::size_type end,
+                                typename Parser<Value>::size_type v1)
 {
     // Check some basic syntax
     if(v1 <= start || v1 >= end)
@@ -745,8 +796,8 @@ void ExponentNode::Parse(Parser &parser, Parser::size_type start, Parser::size_t
     }
         
     // Parse sides
-    aptr(Node) left(parser.ParseRegion(start, v1 - 1));
-    aptr(Node) right(parser.ParseRegion(v1 + 1, end));
+    aptr(Node<Value>) left(parser.ParseRegion(start, v1 - 1));
+    aptr(Node<Value>) right(parser.ParseRegion(v1 + 1, end));
     
     m_lhs = left.release();
     m_rhs = right.release();
@@ -756,24 +807,30 @@ void ExponentNode::Parse(Parser &parser, Parser::size_type start, Parser::size_t
 //------------------------------------------------------------------------------
 
 // Constructor
-VariableNode::VariableNode(Expression *expr) : Node(expr), m_var(0)
+template<class Value>
+VariableNode<Value>::VariableNode(Expression<Value> *expr) : Node<Value>(expr), m_var(0)
 {
 }
     
 // Destructor
-VariableNode::~VariableNode()
+template<class Value>
+VariableNode<Value>::~VariableNode()
 {
 }
         
 // Evaluate
-double VariableNode::DoEvaluate()
+template<class Value>
+Value VariableNode<Value>::DoEvaluate()
 {
     return *m_var;        
 }
     
 // Parse
-void VariableNode::Parse(Parser &parser, Parser::size_type start, Parser::size_type end,
-        Parser::size_type v1)
+template<class Value>
+void VariableNode<Value>::Parse(Parser<Value> &parser,
+                                typename Parser<Value>::size_type start,
+                                typename Parser<Value>::size_type end,
+                                typename Parser<Value>::size_type v1)
 {
     // Check some basic syntax
     if(start != end)
@@ -786,7 +843,7 @@ void VariableNode::Parse(Parser &parser, Parser::size_type start, Parser::size_t
     }
         
     // Get value list
-    ValueList *vlist = m_expr->GetValueList();
+    ValueList<Value> *vlist = this->m_expr->GetValueList();
     if(vlist == 0)
     {
         NoValueListException e;
@@ -800,7 +857,7 @@ void VariableNode::Parse(Parser &parser, Parser::size_type start, Parser::size_t
     string ident = parser[start].GetIdentifier();
     
     // Get address
-    double *vaddr = vlist->GetAddress(ident);
+    Value *vaddr = vlist->GetAddress(ident);
     
     if(vaddr == 0)
     {
@@ -826,24 +883,30 @@ void VariableNode::Parse(Parser &parser, Parser::size_type start, Parser::size_t
 //------------------------------------------------------------------------------
 
 // Constructor
-ValueNode::ValueNode(Expression *expr) : Node(expr), m_val(0)
+template<class Value>
+ValueNode<Value>::ValueNode(Expression<Value> *expr) : Node<Value>(expr), m_val(0)
 {
 }
     
 // Destructor
-ValueNode::~ValueNode()
+template<class Value>
+ValueNode<Value>::~ValueNode()
 {
 }
         
 // Evaluate
-double ValueNode::DoEvaluate()
+template<class Value>
+Value ValueNode<Value>::DoEvaluate()
 {
     return m_val;        
 }
     
 // Parse
-void ValueNode::Parse(Parser &parser, Parser::size_type start, Parser::size_type end,
-        Parser::size_type v1)
+template<class Value>
+void ValueNode<Value>::Parse(Parser<Value> &parser,
+                             typename Parser<Value>::size_type start,
+                             typename Parser<Value>::size_type end,
+                             typename Parser<Value>::size_type v1)
 {
     // Check basic syntax
     if(start != end)
@@ -857,7 +920,23 @@ void ValueNode::Parse(Parser &parser, Parser::size_type start, Parser::size_type
         
     // Set info
     m_val = parser[start].GetValue();
-}    
-    
-    
-    
+}
+
+#define INSTANCE(T) \
+  template class T<double>; \
+  template class T<autodiff::var>;
+
+namespace ExprEval {
+INSTANCE(AddNode)
+INSTANCE(AssignNode)
+INSTANCE(DivideNode)
+INSTANCE(ExponentNode)
+INSTANCE(FunctionNode)
+INSTANCE(MultiNode)
+INSTANCE(MultiplyNode)
+INSTANCE(NegateNode)
+INSTANCE(Node)
+INSTANCE(SubtractNode)
+INSTANCE(ValueNode)
+INSTANCE(VariableNode)
+}

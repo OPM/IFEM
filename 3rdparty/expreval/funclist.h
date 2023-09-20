@@ -15,11 +15,12 @@
 namespace ExprEval
 {
     // Forward declarations
-    class FunctionNode;
-    class Expression;
+    template<class Value> class FunctionNode;
+    template<class Value> class Expression;
     
     // Function factory
     //--------------------------------------------------------------------------
+    template<class Value>
     class FunctionFactory
     {
     public:
@@ -27,26 +28,28 @@ namespace ExprEval
         virtual ~FunctionFactory();
         
         virtual ::std::string GetName() const = 0;
-        virtual FunctionNode *DoCreate(Expression *expr) = 0;
+        virtual FunctionNode<Value> *DoCreate(Expression<Value> *expr) = 0;
         
-        FunctionNode *Create(Expression *expr);
+        FunctionNode<Value> *Create(Expression<Value> *expr);
     };
         
     // Function list
     //--------------------------------------------------------------------------
+    template<class Value>
     class FunctionList
     {
     public:
-        typedef ::std::vector<FunctionFactory*>::size_type size_type;
+        using FactoryVec = std::vector<FunctionFactory<Value>*>;
+        using size_type = typename FactoryVec::size_type;
                 
         FunctionList();
         ~FunctionList();
         
         // Add a function factory to the list
-        void Add(FunctionFactory *factory);
+        void Add(FunctionFactory<Value> *factory);
         
         // Create a node for a function
-        FunctionNode *Create(const ::std::string &name, Expression *expr);
+        FunctionNode<Value> *Create(const ::std::string &name, Expression<Value> *expr);
         
         // Initialize default functions
         void AddDefaultFunctions();
@@ -55,7 +58,7 @@ namespace ExprEval
         void Clear();
     
     private:
-        ::std::vector<FunctionFactory*> m_functions;
+        ::std::vector<FunctionFactory<Value>*> m_functions;
     };
         
 }

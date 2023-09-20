@@ -16,57 +16,66 @@
 using namespace std;
 using namespace ExprEval;
 
+#include <autodiff/reverse/var.hpp>
 
 // Expression object
 //------------------------------------------------------------------------------
 
 // Constructor
-Expression::Expression() : m_vlist(0), m_flist(0), m_expr(0)
+template<class Value>
+Expression<Value>::Expression() : m_vlist(0), m_flist(0), m_expr(0)
 {
     m_abortcount = 200000;
     m_abortreset = 200000;
 }
 
 // Destructor
-Expression::~Expression()
+template<class Value>
+Expression<Value>::~Expression()
 {
     // Delete expression nodes
     delete m_expr;
 }
 
 // Set value list
-void Expression::SetValueList(ValueList *vlist)
+template<class Value>
+void Expression<Value>::SetValueList(ValueList<Value>* vlist)
 {
     m_vlist = vlist;
 }
 
 // Get value list
-ValueList *Expression::GetValueList() const
+template<class Value>
+ValueList<Value>* Expression<Value>::GetValueList() const
 {
     return m_vlist;
 }
 
 // Set function list
-void Expression::SetFunctionList(FunctionList *flist)
+template<class Value>
+void Expression<Value>::SetFunctionList(FunctionList<Value> *flist)
 {
     m_flist = flist;
 }
 
 // Get function list
-FunctionList *Expression::GetFunctionList() const
+template<class Value>
+FunctionList<Value>* Expression<Value>::GetFunctionList() const
 {
     return m_flist;
 }
 
 // Test for an abort
-bool Expression::DoTestAbort()
+template<class Value>
+bool Expression<Value>::DoTestAbort()
 {
     // Derive a class to test abort
     return false;
 }
 
 // Test for an abort
-void Expression::TestAbort(bool force)
+template<class Value>
+void Expression<Value>::TestAbort(bool force)
 {
     if(force)
     {
@@ -99,7 +108,8 @@ void Expression::TestAbort(bool force)
 }
 
 // Set test abort count
-void Expression::SetTestAbortCount(unsigned long count)
+template<class Value>
+void Expression<Value>::SetTestAbortCount(unsigned long count)
 {
     m_abortreset = count;
     if(m_abortcount > count)
@@ -107,28 +117,31 @@ void Expression::SetTestAbortCount(unsigned long count)
 }
 
 // Parse expression
-void Expression::Parse(const string &exstr)
+template<class Value>
+void Expression<Value>::Parse(const string &exstr)
 {
     // Clear the expression if needed
     if(m_expr)
         Clear();
 
     // Create parser
-    aptr(Parser) p(new Parser(this));
+    aptr(Parser<Value>) p(new Parser<Value>(this));
 
     // Parse the expression
     m_expr = p->Parse(exstr);
 }
 
 // Clear the expression
-void Expression::Clear()
+template<class Value>
+void Expression<Value>::Clear()
 {
     delete m_expr;
     m_expr = 0;
 }
 
 // Evaluate an expression
-double Expression::Evaluate()
+template<class Value>
+Value Expression<Value>::Evaluate()
 {
     if(m_expr)
     {
@@ -138,4 +151,9 @@ double Expression::Evaluate()
     {
         throw(EmptyExpressionException());
     }
+}
+
+namespace ExprEval {
+template class Expression<double>;
+template class Expression<autodiff::var>;
 }

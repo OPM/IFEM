@@ -16,44 +16,49 @@
 namespace ExprEval
 {
     // Forward declarations
-    class Expression;
-    class FunctionFactory;
-
+    template<class Value> class Expression;
+    template<class Value> class FunctionFactory;
     
     // Node class
     //--------------------------------------------------------------------------
+    template<class Value>
     class Node
     {
     public:
-        explicit Node(Expression *expr);
+        explicit Node(Expression<Value>* expr);
         virtual ~Node();
         
-        virtual double DoEvaluate() = 0;
-        virtual void Parse(Parser &parser, Parser::size_type start, Parser::size_type end,
-                Parser::size_type v1 = 0) = 0;
+        virtual Value DoEvaluate() = 0;
+        virtual void Parse(Parser<Value> &parser,
+                           typename Parser<Value>::size_type start,
+                           typename Parser<Value>::size_type end,
+                           typename Parser<Value>::size_type v1 = 0) = 0;
                 
-        double Evaluate(); // Calls Expression::TestAbort, then DoEvaluate
+        Value Evaluate(); // Calls Expression::TestAbort, then DoEvaluate
         
     protected:
-        Expression *m_expr;    
+        Expression<Value> *m_expr;
     };
         
     // General function node class
     //--------------------------------------------------------------------------
-    class FunctionNode : public Node
+    template<class Value>
+    class FunctionNode : public Node<Value>
     {
     public:
-        explicit FunctionNode(Expression *expr);
+        explicit FunctionNode(Expression<Value> *expr);
         ~FunctionNode();
         
         // Parse nodes and references
-        void Parse(Parser &parser, Parser::size_type start, Parser::size_type end,
-                Parser::size_type v1 = 0) override;
+        void Parse(Parser<Value> &parser,
+                   typename Parser<Value>::size_type start,
+                   typename Parser<Value>::size_type end,
+                   typename Parser<Value>::size_type v1 = 0) override;
                 
                 
     private:
         // Function factory
-        FunctionFactory *m_factory;
+        FunctionFactory<Value> *m_factory;
         
         // Argument count
         long m_argMin;
@@ -70,176 +75,206 @@ namespace ExprEval
         ::std::string GetName() const;
     
         // Normal, reference, and data parameters
-        ::std::vector<Node*> m_nodes;
-        ::std::vector<double*> m_refs;
+        ::std::vector<Node<Value>*> m_nodes;
+        ::std::vector<Value*> m_refs;
 
-    friend class FunctionFactory;
+        friend class FunctionFactory<Value>;
     };
         
     // Mulit-expression node
     //--------------------------------------------------------------------------
-    class MultiNode : public Node
+    template<class Value>
+    class MultiNode : public Node<Value>
     {
     public:
-        explicit MultiNode(Expression *expr);
+        explicit MultiNode(Expression<Value> *expr);
         ~MultiNode();
         
-        double DoEvaluate() override;
-        void Parse(Parser &parser, Parser::size_type start, Parser::size_type end,
-                Parser::size_type v1 = 0) override;
+        Value DoEvaluate() override;
+        void Parse(Parser<Value>& parser,
+                   typename Parser<Value>::size_type start,
+                   typename Parser<Value>::size_type end,
+                   typename Parser<Value>::size_type v1 = 0) override;
                 
     private:
-        ::std::vector<Node*> m_nodes;
+        ::std::vector<Node<Value>*> m_nodes;
     };
         
     // Assign node
     //--------------------------------------------------------------------------
-    class AssignNode : public Node
+    template<class Value>
+    class AssignNode : public Node<Value>
     {
     public:
-        explicit AssignNode(Expression *expr);
+        explicit AssignNode(Expression<Value> *expr);
         ~AssignNode();
         
-        double DoEvaluate() override;
-        void Parse(Parser &parser, Parser::size_type start, Parser::size_type end,
-                Parser::size_type v1 = 0) override;
+        Value DoEvaluate() override;
+        void Parse(Parser<Value> &parser,
+                   typename Parser<Value>::size_type start,
+                   typename Parser<Value>::size_type end,
+                   typename Parser<Value>::size_type v1 = 0) override;
                 
     private:
-        double *m_var;
-        Node *m_rhs;
+        Value *m_var;
+        Node<Value> *m_rhs;
     };
         
     // Add node
     //--------------------------------------------------------------------------
-    class AddNode : public Node
+    template<class Value>
+    class AddNode : public Node<Value>
     {
     public:
-        explicit AddNode(Expression *expr);
+        explicit AddNode(Expression<Value> *expr);
         ~AddNode();
         
-        double DoEvaluate() override;
-        void Parse(Parser &parser, Parser::size_type start, Parser::size_type end,
-                Parser::size_type v1 = 0) override;
+        Value DoEvaluate() override;
+        void Parse(Parser<Value> &parser,
+                   typename Parser<Value>::size_type start,
+                   typename Parser<Value>::size_type end,
+                   typename Parser<Value>::size_type v1 = 0) override;
                 
     private:
-        Node *m_lhs;
-        Node *m_rhs;
+        Node<Value> *m_lhs;
+        Node<Value> *m_rhs;
     };
         
     // Subtract node
     //--------------------------------------------------------------------------
-    class SubtractNode : public Node
+    template<class Value>
+    class SubtractNode : public Node<Value>
     {
     public:
-        explicit SubtractNode(Expression *expr);
+        explicit SubtractNode(Expression<Value> *expr);
         ~SubtractNode();
         
-        double DoEvaluate() override;
-        void Parse(Parser &parser, Parser::size_type start, Parser::size_type end,
-                Parser::size_type v1 = 0) override;
+        Value DoEvaluate() override;
+        void Parse(Parser<Value> &parser,
+                   typename Parser<Value>::size_type start,
+                   typename Parser<Value>::size_type end,
+                   typename Parser<Value>::size_type v1 = 0) override;
                 
     private:
-        Node *m_lhs;
-        Node *m_rhs;
+        Node<Value> *m_lhs;
+        Node<Value> *m_rhs;
     };
         
     // Multiply node
     //--------------------------------------------------------------------------
-    class MultiplyNode : public Node
+    template<class Value>
+    class MultiplyNode : public Node<Value>
     {
     public:
-        explicit MultiplyNode(Expression *expr);
+        explicit MultiplyNode(Expression<Value> *expr);
         ~MultiplyNode();
         
-        double DoEvaluate() override;
-        void Parse(Parser &parser, Parser::size_type start, Parser::size_type end,
-                Parser::size_type v1 = 0) override;
+        Value DoEvaluate() override;
+        void Parse(Parser<Value> &parser,
+                   typename Parser<Value>::size_type start,
+                   typename Parser<Value>::size_type end,
+                   typename Parser<Value>::size_type v1 = 0) override;
                 
     private:
-        Node *m_lhs;
-        Node *m_rhs;
+        Node<Value> *m_lhs;
+        Node<Value> *m_rhs;
     };
         
     // Divide node
     //--------------------------------------------------------------------------
-    class DivideNode : public Node
+    template<class Value>
+    class DivideNode : public Node<Value>
     {
     public:
-        explicit DivideNode(Expression *expr);
+        explicit DivideNode(Expression<Value> *expr);
         ~DivideNode();
         
-        double DoEvaluate() override;
-        void Parse(Parser &parser, Parser::size_type start, Parser::size_type end,
-                Parser::size_type v1 = 0) override;
+        Value DoEvaluate() override;
+        void Parse(Parser<Value> &parser,
+                   typename Parser<Value>::size_type start,
+                   typename Parser<Value>::size_type end,
+                   typename Parser<Value>::size_type v1 = 0) override;
                 
     private:
-        Node *m_lhs;
-        Node *m_rhs;
+        Node<Value> *m_lhs;
+        Node<Value> *m_rhs;
     };
         
     // Negate node
     //--------------------------------------------------------------------------
-    class NegateNode : public Node
+    template<class Value>
+    class NegateNode : public Node<Value>
     {
     public:
-        explicit NegateNode(Expression *expr);
+        explicit NegateNode(Expression<Value> *expr);
         ~NegateNode();
         
-        double DoEvaluate() override;
-        void Parse(Parser &parser, Parser::size_type start, Parser::size_type end,
-                Parser::size_type v1 = 0) override;
+        Value DoEvaluate() override;
+        void Parse(Parser<Value> &parser,
+                   typename Parser<Value>::size_type start,
+                   typename Parser<Value>::size_type end,
+                   typename Parser<Value>::size_type v1 = 0) override;
                 
     private:
-        Node *m_rhs;
+        Node<Value> *m_rhs;
     };
         
     // Exponent node
     //--------------------------------------------------------------------------
-    class ExponentNode : public Node
+    template<class Value>
+    class ExponentNode : public Node<Value>
     {
     public:
-        explicit ExponentNode(Expression *expr);
+        explicit ExponentNode(Expression<Value> *expr);
         ~ExponentNode();
         
-        double DoEvaluate() override;
-        void Parse(Parser &parser, Parser::size_type start, Parser::size_type end,
-                Parser::size_type v1 = 0) override;
+        Value DoEvaluate() override;
+        void Parse(Parser<Value> &parser,
+                   typename Parser<Value>::size_type start,
+                   typename Parser<Value>::size_type end,
+                   typename Parser<Value>::size_type v1 = 0) override;
                 
     private:
-        Node *m_lhs;
-        Node *m_rhs;
+        Node<Value> *m_lhs;
+        Node<Value> *m_rhs;
     };
         
     // Variable node (also used for constants)
     //--------------------------------------------------------------------------
-    class VariableNode : public Node
+    template<class Value>
+    class VariableNode : public Node<Value>
     {
     public:
-        explicit VariableNode(Expression *expr);
+        explicit VariableNode(Expression<Value> *expr);
         ~VariableNode();
         
-        double DoEvaluate() override;
-        void Parse(Parser &parser, Parser::size_type start, Parser::size_type end,
-                Parser::size_type v1 = 0) override;
+        Value DoEvaluate() override;
+        void Parse(Parser<Value> &parser,
+                   typename Parser<Value>::size_type start,
+                   typename Parser<Value>::size_type end,
+                   typename Parser<Value>::size_type v1 = 0) override;
                 
     private:
-        double *m_var;
+        Value *m_var;
     };
         
     // Value node
     //--------------------------------------------------------------------------
-    class ValueNode : public Node
+    template<class Value>
+    class ValueNode : public Node<Value>
     {
     public:
-        explicit ValueNode(Expression *expr);
+        explicit ValueNode(Expression<Value> *expr);
         ~ValueNode();
         
-        double DoEvaluate() override;
-        void Parse(Parser &parser, Parser::size_type start, Parser::size_type end,
-                Parser::size_type v1 = 0) override;
+        Value DoEvaluate() override;
+        void Parse(Parser<Value> &parser,
+                   typename Parser<Value>::size_type start,
+                   typename Parser<Value>::size_type end,
+                   typename Parser<Value>::size_type v1 = 0) override;
                 
     private:
-        double m_val;
+        Value m_val;
     };        
         
 } // namespace ExprEval

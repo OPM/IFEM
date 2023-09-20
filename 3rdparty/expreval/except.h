@@ -15,7 +15,7 @@
 namespace ExprEval
 {
     // Forward declarations
-    class Expression;
+    template<class Value> class Expression;
 
     // Exception class
     //--------------------------------------------------------------------------

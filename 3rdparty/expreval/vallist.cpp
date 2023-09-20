@@ -8,6 +8,7 @@
 #include <new>
 #include <memory>
 
+#include "autodiff/reverse/var/var.hpp"
 #include "defs.h"
 #include "vallist.h"
 #include "except.h"
@@ -19,7 +20,8 @@ using namespace ExprEval;
 //------------------------------------------------------------------------------
 
 // Constructor for internal value
-ValueListItem::ValueListItem(const string &name, double def, bool constant)
+template<class Value>
+ValueListItem<Value>::ValueListItem(const string &name, Value def, bool constant)
 {
     m_name = name;
     m_constant = constant;
@@ -27,8 +29,9 @@ ValueListItem::ValueListItem(const string &name, double def, bool constant)
     m_ptr = 0;
 }
 
-// Constructor for external value    
-ValueListItem::ValueListItem(const string &name, double *ptr, double def, bool constant)
+// Constructor for external value
+template<class Value>
+ValueListItem<Value>::ValueListItem(const string &name, Value *ptr, Value def, bool constant)
 {
     m_name = name;
     m_constant = constant;
@@ -42,25 +45,29 @@ ValueListItem::ValueListItem(const string &name, double *ptr, double def, bool c
 }    
     
 // Get the name
-const string &ValueListItem::GetName() const
+template<class Value>
+const string& ValueListItem<Value>::GetName() const
 {
     return m_name;
 }
         
 // Return if it is constant
-bool ValueListItem::IsConstant() const
+template<class Value>
+bool ValueListItem<Value>::IsConstant() const
 {
     return m_constant;
 }
     
 // Get value address
-double *ValueListItem::GetAddress()
+template<class Value>
+Value* ValueListItem<Value>::GetAddress()
 {
     return m_ptr ? m_ptr : &m_value;
 } 
     
 // Reset to default value
-void ValueListItem::Reset()
+template<class Value>
+void ValueListItem<Value>::Reset()
 {
     if(m_ptr)
         *m_ptr = m_def;
@@ -73,18 +80,21 @@ void ValueListItem::Reset()
 //------------------------------------------------------------------------------
 
 // Constructor
-ValueList::ValueList()
+template<class Value>
+ValueList<Value>::ValueList()
 {
 }
     
 // Destructor
-ValueList::~ValueList()
+template<class Value>
+ValueList<Value>::~ValueList()
 {
     Clear();
 }    
     
 // Add value to list
-void ValueList::Add(const string &name, double def, bool constant)
+template<class Value>
+void ValueList<Value>::Add(const string &name, Value def, bool constant)
 {
     // Ensure value does not already exist
     if(GetAddress(name))
@@ -94,7 +104,7 @@ void ValueList::Add(const string &name, double def, bool constant)
     else
     {
         // Create value
-        aptr(ValueListItem) i(new ValueListItem(name, def ,constant));
+        aptr(ValueListItem<Value>) i(new ValueListItem<Value>(name, def, constant));
         
         // Add value to list
         m_values.push_back(i.get());
@@ -103,7 +113,8 @@ void ValueList::Add(const string &name, double def, bool constant)
 }
     
 // Add an external value to the list
-void ValueList::AddAddress(const string &name, double *ptr, double def, bool constant)
+template<class Value>
+void ValueList<Value>::AddAddress(const string &name, Value* ptr, Value def, bool constant)
 {
     if(GetAddress(name))
     {
@@ -116,7 +127,7 @@ void ValueList::AddAddress(const string &name, double *ptr, double def, bool con
     else
     {
         // Create value
-        aptr(ValueListItem) i(new ValueListItem(name, ptr, def, constant));
+        aptr(ValueListItem<Value>) i(new ValueListItem<Value>(name, ptr, def, constant));
         
         // Add value to list
         m_values.push_back(i.get());
@@ -125,7 +136,8 @@ void ValueList::AddAddress(const string &name, double *ptr, double def, bool con
 }    
     
 // Get the address of the value, internal or external
-double *ValueList::GetAddress(const string &name) const
+template<class Value>
+Value* ValueList<Value>::GetAddress(const string &name) const
 {
     size_type pos;
     
@@ -143,7 +155,8 @@ double *ValueList::GetAddress(const string &name) const
 }    
     
 // Is the value a constant
-bool ValueList::IsConstant(const string &name) const
+template<class Value>
+bool ValueList<Value>::IsConstant(const string &name) const
 {
     size_type pos;
     
@@ -159,13 +172,15 @@ bool ValueList::IsConstant(const string &name) const
 }   
     
 // Number of values in the list
-ValueList::size_type ValueList::Count() const
+template<class Value>
+typename ValueList<Value>::size_type ValueList<Value>::Count() const
 {
     return m_values.size();
 }
     
 // Get an item
-void ValueList::Item(size_type pos, string *name, double *value) const
+template<class Value>
+void ValueList<Value>::Item(size_type pos, string *name, Value* value) const
 {
     if(name)
         *name = m_values[pos]->GetName();
@@ -175,7 +190,8 @@ void ValueList::Item(size_type pos, string *name, double *value) const
 }
     
 // Add some default values
-void ValueList::AddDefaultValues()
+template<class Value>
+void ValueList<Value>::AddDefaultValues()
 {
     // Math constant 'e'
     Add("E", EXPREVAL_E, true);
@@ -185,7 +201,8 @@ void ValueList::AddDefaultValues()
 }
     
 // Reset values
-void ValueList::Reset()
+template<class Value>
+void ValueList<Value>::Reset()
 {
     size_type pos;
     
@@ -196,7 +213,8 @@ void ValueList::Reset()
 }
     
 // Free values
-void ValueList::Clear()
+template<class Value>
+void ValueList<Value>::Clear()
 {
     size_type pos;
     
@@ -204,5 +222,9 @@ void ValueList::Clear()
     {
         delete m_values[pos];
     }
-}        
-                                                  
+}
+
+namespace ExprEval {
+template class ValueList<double>;
+template class ValueList<autodiff::var>;
+}

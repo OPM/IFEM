@@ -9,13 +9,13 @@
 #include <memory>
 #include <cstdlib>
 
+#include "autodiff/reverse/var/var.hpp"
 #include "defs.h"
 #include "parser.h"
 #include "node.h"
 #include "except.h"
 #include "funclist.h"
 #include "expr.h"
-
 
 using namespace std;
 using namespace ExprEval;
@@ -158,19 +158,22 @@ string::size_type Token::GetEnd() const
 //------------------------------------------------------------------------------
 
 // Constructor
-Parser::Parser(Expression *expr) : m_expr(expr)
+template<class Value>
+Parser<Value>::Parser(Expression<Value>* expr) : m_expr(expr)
 {
     if(expr == 0)
         throw(NullPointerException("Parser::Parser"));
 }
     
 // Destructor
-Parser::~Parser()
+template<class Value>
+Parser<Value>::~Parser()
 {
 }
     
 // Parse an expression string
-Node *Parser::Parse(const string &exstr)
+template<class Value>
+Node<Value> *Parser<Value>::Parse(const string &exstr)
 {
     BuildTokens(exstr);
     
@@ -183,7 +186,8 @@ Node *Parser::Parse(const string &exstr)
 }
 
 // Parse a region of tokens
-Node *Parser::ParseRegion(Parser::size_type start, Parser::size_type end)
+template<class Value>
+Node<Value> *Parser<Value>::ParseRegion(Parser::size_type start, Parser::size_type end)
 {
     size_type pos;
     size_type fgopen = (size_type)-1;
@@ -335,14 +339,14 @@ Node *Parser::ParseRegion(Parser::size_type start, Parser::size_type end)
     // Multi-expression first
     if(multiexpr)
     {
-        aptr(Node) n(new MultiNode(m_expr));
+        aptr(Node<Value>) n(new MultiNode<Value>(m_expr));
         n->Parse(*this, start, end);
         return n.release();
     }
     else if(assignindex != (size_type)-1)
     {
         // Assignment next
-        aptr(Node) n(new AssignNode(m_expr));
+        aptr(Node<Value>) n(new AssignNode<Value>(m_expr));
         n->Parse(*this, start, end, assignindex);
         return n.release();
     }
@@ -352,14 +356,14 @@ Node *Parser::ParseRegion(Parser::size_type start, Parser::size_type end)
         if(m_tokens[addsubindex].GetType() == Token::TypePlus)
         {
             // Addition
-            aptr(Node) n(new AddNode(m_expr));
+            aptr(Node<Value>) n(new AddNode<Value>(m_expr));
             n->Parse(*this, start, end, addsubindex);
             return n.release();
         }
         else
         {
             // Subtraction
-            aptr(Node) n(new SubtractNode(m_expr));
+            aptr(Node<Value>) n(new SubtractNode<Value>(m_expr));
             n->Parse(*this, start, end, addsubindex);
             return n.release();
         }
@@ -371,14 +375,14 @@ Node *Parser::ParseRegion(Parser::size_type start, Parser::size_type end)
         if(m_tokens[muldivindex].GetType() == Token::TypeAsterisk)
         {
             // Multiplication
-            aptr(Node) n(new MultiplyNode(m_expr));
+            aptr(Node<Value>) n(new MultiplyNode<Value>(m_expr));
             n->Parse(*this, start, end, muldivindex);
             return n.release();
         }
         else
         {
             // Division
-            aptr(Node) n(new DivideNode(m_expr));
+            aptr(Node<Value>) n(new DivideNode<Value>(m_expr));
             n->Parse(*this, start, end, muldivindex);
             return n.release();
         }
@@ -393,7 +397,7 @@ Node *Parser::ParseRegion(Parser::size_type start, Parser::size_type end)
         }
         else
         {
-            aptr(Node) n(new NegateNode(m_expr));
+            aptr(Node<Value>) n(new NegateNode<Value>(m_expr));
             n->Parse(*this, start, end, posnegindex);
             return n.release();
         }
@@ -401,7 +405,7 @@ Node *Parser::ParseRegion(Parser::size_type start, Parser::size_type end)
     else if(expindex != (size_type)-1)
     {
         // Exponent
-        aptr(Node) n(new ExponentNode(m_expr));
+        aptr(Node<Value>) n(new ExponentNode<Value>(m_expr));
         n->Parse(*this, start, end, expindex);
         return n.release();
     }
@@ -441,7 +445,7 @@ Node *Parser::ParseRegion(Parser::size_type start, Parser::size_type end)
         if(fgclose == end)
         {
             // Find function list
-            FunctionList *flist = m_expr->GetFunctionList();
+            FunctionList<Value> *flist = m_expr->GetFunctionList();
             
             if(flist == 0)
             {
@@ -456,7 +460,7 @@ Node *Parser::ParseRegion(Parser::size_type start, Parser::size_type end)
             string ident = m_tokens[start].GetIdentifier();
             
             // Create function node
-            aptr(FunctionNode) n(flist->Create(ident, m_expr));
+            aptr(FunctionNode<Value>) n(flist->Create(ident, m_expr));
             
             if(n.get())
             {
@@ -493,14 +497,14 @@ Node *Parser::ParseRegion(Parser::size_type start, Parser::size_type end)
         if(m_tokens[start].GetType() == Token::TypeIdentifier)
         {
             // Variable/constant
-            aptr(Node) n(new VariableNode(m_expr));
+            aptr(Node<Value>) n(new VariableNode<Value>(m_expr));
             n->Parse(*this, start, end);
             return n.release();    
         }
         else
         {
             // Value
-            aptr(Node) n(new ValueNode(m_expr));
+            aptr(Node<Value>) n(new ValueNode<Value>(m_expr));
             n->Parse(*this, start, end);
             return n.release();
         }
@@ -518,13 +522,15 @@ Node *Parser::ParseRegion(Parser::size_type start, Parser::size_type end)
 }
     
 // Get a token
-const Token &Parser::operator[] (Parser::size_type pos) const
+template<class Value>
+const Token &Parser<Value>::operator[] (Parser::size_type pos) const
 {
     return m_tokens[pos];
 }
     
 // Build tokens
-void Parser::BuildTokens(const string &exstr)
+template<class Value>
+void Parser<Value>::BuildTokens(const string &exstr)
 {
     m_tokens.clear();
     
@@ -774,6 +780,10 @@ void Parser::BuildTokens(const string &exstr)
             }
         }
     }
-}    
-    
-    
+}
+
+
+namespace ExprEval {
+template class Parser<double>;
+template class Parser<autodiff::var>;
+}

@@ -16,55 +16,58 @@ namespace ExprEval
 {
 // Value list item
 //--------------------------------------------------------------------------
+template<class Value>
     class ValueListItem
     {
     public:
-        ValueListItem(const ::std::string &name, double def = 0.0, bool constant = false);
-        ValueListItem(const ::std::string &name, double *ptr, double def = 0.0, bool constant = false);
+        ValueListItem(const ::std::string &name, Value def = 0.0, bool constant = false);
+        ValueListItem(const ::std::string &name, Value *ptr, Value def = 0.0, bool constant = false);
         
         const ::std::string &GetName() const;
         bool IsConstant() const;
         
-        double *GetAddress();
+        Value *GetAddress();
         void Reset();
         
     private:
         ::std::string m_name; // Name of value
         bool m_constant; // Value is constant
         
-        double m_value; // Internal value (if ptr == 0)
-        double *m_ptr; // Pointer to extern value if not 0
+        Value m_value; // Internal value (if ptr == 0)
+        Value *m_ptr; // Pointer to extern value if not 0
             
-        double m_def; // Default value when reset
+        Value m_def; // Default value when reset
     };
         
     
         
     // Value list
     //--------------------------------------------------------------------------
+    template<class Value>
     class ValueList
     {
     public:
-        typedef ::std::vector<ValueListItem*>::size_type size_type;
+        using ValueVector = std::vector<ValueListItem<Value>*>;
+        using size_type = typename ValueVector::size_type;
                 
         ValueList();
         ~ValueList();
         
         // Add variable or constant to the list
-        void Add(const ::std::string &name, double def = 0.0, bool constant = false);
+        void Add(const ::std::string &name, Value def = 0.0, bool constant = false);
         
         // Add an external variable or constant to the list
-        void AddAddress(const ::std::string &name, double *ptr, double def = 0.0, bool constant = false);
+        void AddAddress(const ::std::string &name, Value *ptr, Value def = 0.0, bool constant = false);
         
         // Get the address of a variable or constant, internal or external
-        double *GetAddress(const ::std::string &name) const;
+        Value *GetAddress(const ::std::string &name) const;
         
         // Is the value constant
         bool IsConstant(const ::std::string &name) const;
         
         // Enumerate values
         size_type Count() const;
-        void Item(size_type pos, ::std::string *name = 0, double *value = 0) const;
+        void Item(size_type pos, ::std::string *name = 0, Value *value = 0) const;
         
         // Initialize some default values (math constants)
         void AddDefaultValues();
@@ -76,7 +79,7 @@ namespace ExprEval
         void Clear();
     
     private:
-        ::std::vector<ValueListItem*> m_values;
+        ::std::vector<ValueListItem<Value>*> m_values;
     };
 };
 
