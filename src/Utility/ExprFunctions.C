@@ -324,15 +324,15 @@ void EvalFunction::addDerivative (const std::string& function,
       return 5;
   };
 
-  if (d1 > 0 && d1 <= 4 && d2 < 1) // A first derivative is specified
+  if (d1 > 0 && d1 <= 4 && d2 < 1) // A first order derivative is specified
   {
-    if (!gradient[--d1])
-      gradient[d1] = std::make_unique<EvalFunction>((variables+function).c_str());
+    if (!derivative1[--d1])
+      derivative1[d1] = std::make_unique<EvalFunction>((variables+function).c_str());
   }
-  else if ((d1 = voigtIdx(d1,d2)) >= 0) // A second derivative is specified
+  else if ((d1 = voigtIdx(d1,d2)) >= 0) // A second order derivative is specified
   {
-    if (!dgradient[d1])
-      dgradient[d1] = std::make_unique<EvalFunction>((variables+function).c_str());
+    if (!derivative2[d1])
+      derivative2[d1] = std::make_unique<EvalFunction>((variables+function).c_str());
   }
 }
 
@@ -369,8 +369,8 @@ Real EvalFunction::deriv (const Vec3& X, int dir) const
     return Real(0);
   else if (dir < 4)
   {
-    if (gradient[--dir])
-      return gradient[dir]->evaluate(X);
+    if (derivative1[--dir])
+      return derivative1[dir]->evaluate(X);
 
     // Evaluate spatial derivative using central difference
     Vec4 X0, X1;
@@ -380,8 +380,8 @@ Real EvalFunction::deriv (const Vec3& X, int dir) const
   }
   else if (!IAmConstant)
   {
-    if (gradient[3])
-      return gradient[3]->evaluate(X);
+    if (derivative1[3])
+      return derivative1[3]->evaluate(X);
 
     // Evaluate time-derivative using central difference
     Vec4 X0, X1;
@@ -410,7 +410,7 @@ Real EvalFunction::dderiv (const Vec3& X, int d1, int d2) const
   else // off-diagonal term, 13
     d1 = 5;
 
-  return dgradient[d1] ? dgradient[d1]->evaluate(X) : Real(0);
+  return derivative2[d1] ? derivative2[d1]->evaluate(X) : Real(0);
 }
 
 

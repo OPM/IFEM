@@ -47,6 +47,66 @@ TEST(TestScalarFunc, ParseDerivative)
 }
 
 
+TEST(TestRealFunc, Gradient)
+{
+  const char* f1 = "sin(x)*sin(y)*sin(z)";
+  const char* d1 = "cos(x)*sin(y)*sin(z)";
+  const char* d2 = "sin(x)*cos(y)*sin(z)";
+  const char* d3 = "sin(x)*sin(y)*cos(z)";
+
+  EvalFunction f(f1);
+  f.addDerivative(d1, "", 1);
+  f.addDerivative(d2, "", 2);
+  f.addDerivative(d3, "", 3);
+
+  EXPECT_TRUE(f.isConstant());
+
+  for (double x : {0.1, 0.2, 0.3})
+    for (double y : {0.5, 0.6, 0.7})
+      for (double z : {0.8, 0.9, 1.0}) {
+        const Vec3 X(x,y,z);
+        const Vec3 r(cos(x)*sin(y)*sin(z),
+                     sin(x)*cos(y)*sin(z),
+                     sin(x)*sin(y)*cos(z));
+
+        const Vec3 grad = f.gradient(X);
+        for (size_t i = 1; i <= 3; ++i) {
+          EXPECT_DOUBLE_EQ(f.deriv(X, i), r[i-1]);
+          EXPECT_DOUBLE_EQ(grad[i-1], r[i-1]);
+        }
+      }
+}
+
+
+TEST(TestRealFunc, GradientFD)
+{
+  const char* f1 = "sin(x)*sin(y)*sin(z)";
+
+  const double eps = 1e-6;
+
+  EvalFunction f(f1, eps);
+
+  EXPECT_TRUE(f.isConstant());
+
+  for (double x : {0.1, 0.2, 0.3})
+    for (double y : {0.5, 0.6, 0.7})
+      for (double z : {0.8, 0.9, 1.0}) {
+        const Vec3 X(x,y,z);
+        const Vec3 Xp(x+0.5*eps, y+0.5*eps, z+0.5*eps);
+        const Vec3 Xm(x-0.5*eps, y-0.5*eps, z-0.5*eps);
+        const Vec3 r((sin(Xp.x) - sin(Xm.x))*sin(y)*sin(z) / eps,
+                     sin(x)*(sin(Xp.y) - sin(Xm.y))*sin(z) / eps,
+                     sin(x)*sin(y)*(sin(Xp.z) - sin(Xm.z)) / eps);
+
+        const Vec3 grad = f.gradient(X);
+        for (size_t i = 1; i <= 3; ++i) {
+          EXPECT_NEAR(f.deriv(X, i), r[i-1], 1e-8);
+          EXPECT_NEAR(grad[i-1], r[i-1], 1e-8);
+        }
+      }
+}
+
+
 TEST(TestVecFunc, Evaluate)
 {
   const char* func = "sin(x) | cos (y) | exp(z)";
