@@ -20,12 +20,17 @@
 #endif
 
 
+int EvalFunc::numError = 0;
+
+
+namespace {
+
 /*!
   Prints an error message with the exception occured to std::cerr.
 */
 
-static void ExprException (const ExprEval::Exception& exc, const char* task,
-                           const char* function = nullptr)
+void ExprException (const ExprEval::Exception& exc, const char* task,
+                    const char* function = nullptr)
 {
   std::cerr <<"\n *** Error "<< task <<" function";
   if (function)
@@ -87,7 +92,56 @@ static void ExprException (const ExprEval::Exception& exc, const char* task,
 }
 
 
-int EvalFunc::numError = 0;
+/*!
+  \brief Static helper converting an index pair into a single index.
+  \details Assuming Voigt notation ordering; 11, 22, 33, 12, 23, 13.
+*/
+
+int voigtIdx (int d1, int d2)
+{
+  if (d1 > d2)
+    std::swap(d1,d2); // Assuming symmetry
+
+  if (d1 < 1 || d2 > 3)
+    return -1; // Out-of-range
+  else if (d2-d1 == 0) // diagonal term, 11, 22 and 33
+    return d1-1;
+  else if (d2-d1 == 1) // off-diagonal term, 12 and 23
+    return d2+1;
+  else // off-diagonal term, 13
+    return 5;
+}
+
+
+/*!
+  \brief Static helper that splits a function expression into components.
+*/
+
+std::vector<std::string> splitComps (const std::string& functions,
+                                     const std::string& variables)
+{
+  std::vector<std::string> comps;
+  size_t pos1 = functions.find("|");
+  size_t pos2 = 0;
+  while (pos2 < functions.size())
+  {
+    std::string func(variables);
+    if (!func.empty() && func[func.size()-1] != ';')
+      func += ';';
+    if (pos1 == std::string::npos)
+      func += functions.substr(pos2);
+    else
+      func += functions.substr(pos2,pos1-pos2);
+    comps.push_back(func);
+    pos2 = pos1 > 0 && pos1 < std::string::npos ? pos1+1 : pos1;
+    pos1 = functions.find("|",pos1+1);
+  }
+
+  return comps;
+}
+
+
+}
 
 
 EvalFunc::EvalFunc (const char* function, const char* x, Real eps)
@@ -216,27 +270,6 @@ EvalFunction::EvalFunction (const char* function, Real epsX, Real epsT)
 EvalFunction::~EvalFunction () = default;
 
 
-/*!
-  \brief Static helper converting an index pair into a single index.
-  \details Assuming Voigt notation ordering; 11, 22, 33, 12, 23, 13.
-*/
-
-static int voigtIdx (int d1, int d2)
-{
-  if (d1 > d2)
-    std::swap(d1,d2); // Assuming symmetry
-
-  if (d1 < 1 || d2 > 3)
-    return -1; // Out-of-range
-  else if (d2-d1 == 0) // diagonal term, 11, 22 and 33
-    return d1-1;
-  else if (d2-d1 == 1) // off-diagonal term, 12 and 23
-    return d2+1;
-  else // off-diagonal term, 13
-    return 5;
-}
-
-
 void EvalFunction::addDerivative (const std::string& function,
                                   const std::string& variables,
                                   int d1, int d2)
@@ -337,34 +370,6 @@ void EvalFunction::setParam (const std::string& name, double value)
     else
       *address = value;
   }
-}
-
-
-/*!
-  \brief Static helper that splits a function expression into components.
-*/
-
-static std::vector<std::string> splitComps (const std::string& functions,
-                                            const std::string& variables)
-{
-  std::vector<std::string> comps;
-  size_t pos1 = functions.find("|");
-  size_t pos2 = 0;
-  while (pos2 < functions.size())
-  {
-    std::string func(variables);
-    if (!func.empty() && func[func.size()-1] != ';')
-      func += ';';
-    if (pos1 == std::string::npos)
-      func += functions.substr(pos2);
-    else
-      func += functions.substr(pos2,pos1-pos2);
-    comps.push_back(func);
-    pos2 = pos1 > 0 && pos1 < std::string::npos ? pos1+1 : pos1;
-    pos1 = functions.find("|",pos1+1);
-  }
-
-  return comps;
 }
 
 
