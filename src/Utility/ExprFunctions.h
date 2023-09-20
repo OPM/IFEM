@@ -214,11 +214,11 @@ protected:
 };
 
 //! Vector-valued function expression
-typedef EvalMultiFunction<VecFunc,Vec3>           VecFuncExpr;
+using VecFuncExpr = EvalMultiFunction<VecFunc,Vec3>;
 //! Tensor-valued function expression
-typedef EvalMultiFunction<TensorFunc,Tensor>      TensorFuncExpr;
+using TensorFuncExpr = EvalMultiFunction<TensorFunc,Tensor>;
 //! Symmetric tensor-valued function expression
-typedef EvalMultiFunction<STensorFunc,SymmTensor> STensorFuncExpr;
+using STensorFuncExpr = EvalMultiFunction<STensorFunc,SymmTensor>;
 
 //! \brief Specialization for vector functions.
 template<> Vec3 VecFuncExpr::evaluate(const Vec3& X) const;
