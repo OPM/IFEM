@@ -11,6 +11,7 @@
 #include <cerrno>
 #include <ctime>
 
+#include "autodiff/reverse/var/var.hpp"
 #include "defs.h"
 #include "funclist.h"
 #include "node.h"
@@ -23,58 +24,66 @@ namespace
 {
     // Absolute value
     //--------------------------------------------------------------------------
-    class abs_FunctionNode : public FunctionNode
+    template<class Value>
+    class abs_FunctionNode : public FunctionNode<Value>
     {
     public:
-        explicit abs_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit abs_FunctionNode(Expression<Value> *expr) : FunctionNode<Value>(expr)
         {
-            SetArgumentCount(1, 1, 0, 0);
+            this->SetArgumentCount(1, 1, 0, 0);
         }
-    
-        double DoEvaluate() override
+
+        Value DoEvaluate() override
         {
-            return fabs(m_nodes[0]->Evaluate());
+            if constexpr (std::is_same_v<Value, Real>)
+                return fabs(this->m_nodes[0]->Evaluate());
+            else
+                return abs(this->m_nodes[0]->Evaluate());
         }
     };
-        
-    class abs_FunctionFactory : public FunctionFactory
+
+    template<class Value>
+    class abs_FunctionFactory : public FunctionFactory<Value>
     {
     public:
         std::string GetName() const override
         {
             return "abs";
         }
-            
-        FunctionNode *DoCreate(Expression *expr) override
+
+        FunctionNode<Value> *DoCreate(Expression<Value> *expr) override
         {
-            return new abs_FunctionNode(expr);
+            return new abs_FunctionNode<Value>(expr);
         }
     };
-        
+
     // Modulus
     //--------------------------------------------------------------------------
-    class mod_FunctionNode : public FunctionNode
+    template<class Value>
+    class mod_FunctionNode : public FunctionNode<Value>
     {
     public:
-        explicit mod_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit mod_FunctionNode(Expression<Value> *expr) : FunctionNode<Value>(expr)
         {
-            SetArgumentCount(2, 2, 0, 0);
+            this->SetArgumentCount(2, 2, 0, 0);
         }
-    
-        double DoEvaluate() override
+
+        Value DoEvaluate() override
         {
             errno = 0;
-            
-            double result = fmod(m_nodes[0]->Evaluate(), m_nodes[1]->Evaluate());
-            
+
+            Value result = fmod(this->m_nodes[0]->Evaluate(),
+                                this->m_nodes[1]->Evaluate());
+
             if(errno)
-                throw(MathException(GetName()));
-                
+                throw(MathException(this->GetName()));
+
             return result;
         }
     };
-        
-    class mod_FunctionFactory : public FunctionFactory
+
+    template<class Value>
+    class mod_FunctionFactory : public FunctionFactory<Value>
     {
     public:
         std::string GetName() const override
@@ -82,744 +91,783 @@ namespace
             return "mod";
         }
 
-        FunctionNode *DoCreate(Expression *expr) override
+        FunctionNode<Value> *DoCreate(Expression<Value> *expr) override
         {
-            return new mod_FunctionNode(expr);
+            return new mod_FunctionNode<Value>(expr);
         }
     };
-        
+
     // Integer part
     //--------------------------------------------------------------------------
-    class ipart_FunctionNode : public FunctionNode
+    template<class Value>
+    class ipart_FunctionNode : public FunctionNode<Value>
     {
     public:
-        explicit ipart_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit ipart_FunctionNode(Expression<Value> *expr) : FunctionNode<Value>(expr)
         {
-            SetArgumentCount(1, 1, 0, 0);
+            this->SetArgumentCount(1, 1, 0, 0);
         }
-    
-        double DoEvaluate() override
+
+        Value DoEvaluate() override
         {
-            double result;
-            
-            modf(m_nodes[0]->Evaluate(), &result);
-                
+            Value result;
+
+            modf(this->m_nodes[0]->Evaluate(), &result);
+
             return result;
         }
     };
-        
-    class ipart_FunctionFactory : public FunctionFactory
+
+    template<class Value>
+    class ipart_FunctionFactory : public FunctionFactory<Value>
     {
     public:
         std::string GetName() const override
         {
             return "ipart";
         }
-            
-        FunctionNode *DoCreate(Expression *expr) override
+
+        FunctionNode<Value> *DoCreate(Expression<Value> *expr) override
         {
-            return new ipart_FunctionNode(expr);
+            return new ipart_FunctionNode<Value>(expr);
         }
     };
-                
+
     // Fraction part
     //--------------------------------------------------------------------------
-    class fpart_FunctionNode : public FunctionNode
+    template<class Value>
+    class fpart_FunctionNode : public FunctionNode<Value>
     {
     public:
-        explicit fpart_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit fpart_FunctionNode(Expression<Value> *expr) : FunctionNode<Value>(expr)
         {
-            SetArgumentCount(1, 1, 0, 0);
+            this->SetArgumentCount(1, 1, 0, 0);
         }
-    
-        double DoEvaluate() override
+
+        Value DoEvaluate() override
         {
-            double dummy;
-            
-            return modf(m_nodes[0]->Evaluate(), &dummy);
+            Value dummy;
+
+            return modf(this->m_nodes[0]->Evaluate(), &dummy);
         }
     };
-        
-    class fpart_FunctionFactory : public FunctionFactory
+
+    template<class Value>
+    class fpart_FunctionFactory : public FunctionFactory<Value>
     {
     public:
         std::string GetName() const override
         {
             return "fpart";
         }
-            
-        FunctionNode *DoCreate(Expression *expr) override
+
+        FunctionNode<Value> *DoCreate(Expression<Value> *expr) override
         {
-            return new fpart_FunctionNode(expr);
+            return new fpart_FunctionNode<Value>(expr);
         }
-    };        
-        
+    };
+
     // Minimum
     //--------------------------------------------------------------------------
-    class min_FunctionNode : public FunctionNode
+    template<class Value>
+    class min_FunctionNode : public FunctionNode<Value>
     {
     public:
-        explicit min_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit min_FunctionNode(Expression<Value> *expr) : FunctionNode<Value>(expr)
         {
-            SetArgumentCount(2, -1, 0, 0);
+            this->SetArgumentCount(2, -1, 0, 0);
         }
-    
-        double DoEvaluate() override
+
+        Value DoEvaluate() override
         {
-            std::vector<Node*>::size_type pos;
-            
-            double result = m_nodes[0]->Evaluate();
-            
-            for(pos = 1; pos < m_nodes.size(); pos++)
-            {
-                double tmp = m_nodes[pos]->Evaluate();
-                if(tmp < result)
-                    result = tmp;
+            Value result = 0;
+            size_t pos = 0;
+            for (const auto& node : this->m_nodes) {
+                Value tmp = node->Evaluate();
+                if (pos == 0 || tmp < result)
+                  result = tmp;
+                ++pos;
             }
-                
+
             return result;
         }
     };
-        
-    class min_FunctionFactory : public FunctionFactory
+
+    template<class Value>
+    class min_FunctionFactory : public FunctionFactory<Value>
     {
     public:
         std::string GetName() const override
         {
             return "min";
         }
-            
-        FunctionNode *DoCreate(Expression *expr) override
+
+        FunctionNode<Value> *DoCreate(Expression<Value> *expr) override
         {
-            return new min_FunctionNode(expr);
+            return new min_FunctionNode<Value>(expr);
         }
-    };        
-        
+    };
+
     // Maximum
     //--------------------------------------------------------------------------
-    class max_FunctionNode : public FunctionNode
+    template<class Value>
+    class max_FunctionNode : public FunctionNode<Value>
     {
     public:
-        explicit max_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit max_FunctionNode(Expression<Value> *expr) : FunctionNode<Value>(expr)
         {
-            SetArgumentCount(2, -1, 0, 0);
+            this->SetArgumentCount(2, -1, 0, 0);
         }
-    
-        double DoEvaluate() override
+
+        Value DoEvaluate() override
         {
-            std::vector<Node*>::size_type pos;
-            
-            double result = m_nodes[0]->Evaluate();
-            
-            for(pos = 1; pos < m_nodes.size(); pos++)
+            Value result = 0;
+            size_t pos = 0;
+            for (const auto& node : this->m_nodes)
             {
-                double tmp = m_nodes[pos]->Evaluate();
-                if(tmp > result)
-                    result = tmp;
+                Value tmp = node->Evaluate();
+                if (pos == 0 || tmp > result)
+                  result = tmp;
+                ++pos;
             }
-                
+
             return result;
         }
     };
-        
-    class max_FunctionFactory : public FunctionFactory
+
+    template<class Value>
+    class max_FunctionFactory : public FunctionFactory<Value>
     {
     public:
         std::string GetName() const override
         {
             return "max";
         }
-            
-        FunctionNode *DoCreate(Expression *expr) override
+
+        FunctionNode<Value> *DoCreate(Expression<Value> *expr) override
         {
-            return new max_FunctionNode(expr);
+            return new max_FunctionNode<Value>(expr);
         }
-    };        
-        
+    };
+
     // Square root
     //--------------------------------------------------------------------------
-    class sqrt_FunctionNode : public FunctionNode
+    template<class Value>
+    class sqrt_FunctionNode : public FunctionNode<Value>
     {
     public:
-        explicit sqrt_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit sqrt_FunctionNode(Expression<Value> *expr) : FunctionNode<Value>(expr)
         {
-            SetArgumentCount(1, 1, 0, 0);
+            this->SetArgumentCount(1, 1, 0, 0);
         }
-    
-        double DoEvaluate() override
+
+        Value DoEvaluate() override
         {
             errno = 0;
-            
-            double result = sqrt(m_nodes[0]->Evaluate());
-            
+
+            Value result = sqrt(this->m_nodes[0]->Evaluate());
+
             if(errno)
-                throw(MathException(GetName()));
-            
+                throw(MathException(this->GetName()));
+
             return result;
         }
     };
-        
-    class sqrt_FunctionFactory : public FunctionFactory
+
+    template<class Value>
+    class sqrt_FunctionFactory : public FunctionFactory<Value>
     {
     public:
         std::string GetName() const override
         {
             return "sqrt";
         }
-            
-        FunctionNode *DoCreate(Expression *expr) override
+
+        FunctionNode<Value> *DoCreate(Expression<Value> *expr) override
         {
-            return new sqrt_FunctionNode(expr);
+            return new sqrt_FunctionNode<Value>(expr);
         }
     };
-        
+
     // Sine
     //--------------------------------------------------------------------------
-    class sin_FunctionNode : public FunctionNode
+    template<class Value>
+    class sin_FunctionNode : public FunctionNode<Value>
     {
     public:
-        explicit sin_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit sin_FunctionNode(Expression<Value> *expr) : FunctionNode<Value>(expr)
         {
-            SetArgumentCount(1, 1, 0, 0);
+            this->SetArgumentCount(1, 1, 0, 0);
         }
-    
-        double DoEvaluate() override
+
+        Value DoEvaluate() override
         {
             errno = 0;
-            
-            double result = sin(m_nodes[0]->Evaluate());
-            
+
+            Value result = sin(this->m_nodes[0]->Evaluate());
+
             if(errno)
-                throw(MathException(GetName()));
-            
+                throw(MathException(this->GetName()));
+
             return result;
         }
     };
-        
-    class sin_FunctionFactory : public FunctionFactory
+
+    template<class Value>
+    class sin_FunctionFactory : public FunctionFactory<Value>
     {
     public:
         std::string GetName() const override
         {
             return "sin";
         }
-            
-        FunctionNode *DoCreate(Expression *expr) override
+
+        FunctionNode<Value> *DoCreate(Expression<Value> *expr) override
         {
-            return new sin_FunctionNode(expr);
+            return new sin_FunctionNode<Value>(expr);
         }
     };
-        
+
     // Cosine
     //--------------------------------------------------------------------------
-    class cos_FunctionNode : public FunctionNode
+    template<class Value>
+    class cos_FunctionNode : public FunctionNode<Value>
     {
     public:
-        explicit cos_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit cos_FunctionNode(Expression<Value> *expr) : FunctionNode<Value>(expr)
         {
-            SetArgumentCount(1, 1, 0, 0);
+            this->SetArgumentCount(1, 1, 0, 0);
         }
-    
-        double DoEvaluate() override
+
+        Value DoEvaluate() override
         {
             errno = 0;
-            
-            double result = cos(m_nodes[0]->Evaluate());
-            
+
+            Value result = cos(this->m_nodes[0]->Evaluate());
+
             if(errno)
-                throw(MathException(GetName()));
-            
+                throw(MathException(this->GetName()));
+
             return result;
         }
     };
-        
-    class cos_FunctionFactory : public FunctionFactory
+
+    template<class Value>
+    class cos_FunctionFactory : public FunctionFactory<Value>
     {
     public:
         std::string GetName() const override
         {
             return "cos";
         }
-            
-        FunctionNode *DoCreate(Expression *expr) override
+
+        FunctionNode<Value> *DoCreate(Expression<Value> *expr) override
         {
-            return new cos_FunctionNode(expr);
+            return new cos_FunctionNode<Value>(expr);
         }
     };
-        
+
     // Tangent
     //--------------------------------------------------------------------------
-    class tan_FunctionNode : public FunctionNode
+    template<class Value>
+    class tan_FunctionNode : public FunctionNode<Value>
     {
     public:
-        explicit tan_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit tan_FunctionNode(Expression<Value> *expr) : FunctionNode<Value>(expr)
         {
-            SetArgumentCount(1, 1, 0, 0);
+            this->SetArgumentCount(1, 1, 0, 0);
         }
-    
-        double DoEvaluate() override
+
+        Value DoEvaluate() override
         {
             errno = 0;
-            
-            double result = tan(m_nodes[0]->Evaluate());
-            
+
+            Value result = tan(this->m_nodes[0]->Evaluate());
+
             if(errno)
-                throw(MathException(GetName()));
-            
+                throw(MathException(this->GetName()));
+
             return result;
         }
     };
-        
-    class tan_FunctionFactory : public FunctionFactory
+
+    template<class Value>
+    class tan_FunctionFactory : public FunctionFactory<Value>
     {
     public:
         std::string GetName() const override
         {
             return "tan";
         }
-            
-        FunctionNode *DoCreate(Expression *expr) override
+
+        FunctionNode<Value> *DoCreate(Expression<Value> *expr) override
         {
-            return new tan_FunctionNode(expr);
+            return new tan_FunctionNode<Value>(expr);
         }
     };
-        
+
     // Hyperbolic Sine
     //--------------------------------------------------------------------------
-    class sinh_FunctionNode : public FunctionNode
+    template<class Value>
+    class sinh_FunctionNode : public FunctionNode<Value>
     {
     public:
-        explicit sinh_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit sinh_FunctionNode(Expression<Value> *expr) : FunctionNode<Value>(expr)
         {
-            SetArgumentCount(1, 1, 0, 0);
+            this->SetArgumentCount(1, 1, 0, 0);
         }
-    
-        double DoEvaluate() override
+
+        Value DoEvaluate() override
         {
             errno = 0;
-            
-            double result = sinh(m_nodes[0]->Evaluate());
-            
+
+            auto result = sinh(this->m_nodes[0]->Evaluate());
+
             if(errno)
-                throw(MathException(GetName()));
-            
+                throw(MathException(this->GetName()));
+
             return result;
         }
     };
-        
-    class sinh_FunctionFactory : public FunctionFactory
+
+    template<class Value>
+    class sinh_FunctionFactory : public FunctionFactory<Value>
     {
     public:
         std::string GetName() const override
         {
             return "sinh";
         }
-            
-        FunctionNode *DoCreate(Expression *expr) override
+
+        FunctionNode<Value> *DoCreate(Expression<Value> *expr) override
         {
-            return new sinh_FunctionNode(expr);
+            return new sinh_FunctionNode<Value>(expr);
         }
     };
-        
+
     // Hyperbolic Cosine
     //--------------------------------------------------------------------------
-    class cosh_FunctionNode : public FunctionNode
+    template<class Value>
+    class cosh_FunctionNode : public FunctionNode<Value>
     {
     public:
-        explicit cosh_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit cosh_FunctionNode(Expression<Value> *expr) : FunctionNode<Value>(expr)
         {
-            SetArgumentCount(1, 1, 0, 0);
+            this->SetArgumentCount(1, 1, 0, 0);
         }
-    
-        double DoEvaluate() override
+
+        Value DoEvaluate() override
         {
             errno = 0;
-            
-            double result = cosh(m_nodes[0]->Evaluate());
-            
+
+            Value result = cosh(this->m_nodes[0]->Evaluate());
+
             if(errno)
-                throw(MathException(GetName()));
-            
+                throw(MathException(this->GetName()));
+
             return result;
         }
     };
-        
-    class cosh_FunctionFactory : public FunctionFactory
+
+    template<class Value>
+    class cosh_FunctionFactory : public FunctionFactory<Value>
     {
     public:
         std::string GetName() const override
         {
             return "cosh";
         }
-            
-        FunctionNode *DoCreate(Expression *expr) override
+
+        FunctionNode<Value> *DoCreate(Expression<Value> *expr) override
         {
-            return new cosh_FunctionNode(expr);
+            return new cosh_FunctionNode<Value>(expr);
         }
     };
-        
+
     // Hyperbolic Tangent
     //--------------------------------------------------------------------------
-    class tanh_FunctionNode : public FunctionNode
+    template<class Value>
+    class tanh_FunctionNode : public FunctionNode<Value>
     {
     public:
-        explicit tanh_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit tanh_FunctionNode(Expression<Value> *expr) : FunctionNode<Value>(expr)
         {
-            SetArgumentCount(1, 1, 0, 0);
+            this->SetArgumentCount(1, 1, 0, 0);
         }
-    
-        double DoEvaluate() override
+
+        Value DoEvaluate() override
         {
             errno = 0;
-            
-            double result = tanh(m_nodes[0]->Evaluate());
-            
+
+            Value result = tanh(this->m_nodes[0]->Evaluate());
+
             if(errno)
-                throw(MathException(GetName()));
-            
+                throw(MathException(this->GetName()));
+
             return result;
         }
     };
-        
-    class tanh_FunctionFactory : public FunctionFactory
+
+    template<class Value>
+    class tanh_FunctionFactory : public FunctionFactory<Value>
     {
     public:
         std::string GetName() const override
         {
             return "tanh";
         }
-            
-        FunctionNode *DoCreate(Expression *expr) override
+
+        FunctionNode<Value> *DoCreate(Expression<Value> *expr) override
         {
-            return new tanh_FunctionNode(expr);
+            return new tanh_FunctionNode<Value>(expr);
         }
     };
-        
+
     // Arc Sine
     //--------------------------------------------------------------------------
-    class asin_FunctionNode : public FunctionNode
+    template<class Value>
+    class asin_FunctionNode : public FunctionNode<Value>
     {
     public:
-        explicit asin_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit asin_FunctionNode(Expression<Value> *expr) : FunctionNode<Value>(expr)
         {
-            SetArgumentCount(1, 1, 0, 0);
+            this->SetArgumentCount(1, 1, 0, 0);
         }
-    
-        double DoEvaluate() override
+
+        Value DoEvaluate() override
         {
             errno = 0;
-            
-            double result = asin(m_nodes[0]->Evaluate());
-            
+
+            Value result = asin(this->m_nodes[0]->Evaluate());
+
             if(errno)
-                throw(MathException(GetName()));
-            
+                throw(MathException(this->GetName()));
+
             return result;
         }
     };
-        
-    class asin_FunctionFactory : public FunctionFactory
+
+    template<class Value>
+    class asin_FunctionFactory : public FunctionFactory<Value>
     {
     public:
         std::string GetName() const override
         {
             return "asin";
         }
-            
-        FunctionNode *DoCreate(Expression *expr) override
+
+        FunctionNode<Value> *DoCreate(Expression<Value> *expr) override
         {
-            return new asin_FunctionNode(expr);
+            return new asin_FunctionNode<Value>(expr);
         }
     };
-        
+
     // Arc Cosine
     //--------------------------------------------------------------------------
-    class acos_FunctionNode : public FunctionNode
+    template<class Value>
+    class acos_FunctionNode : public FunctionNode<Value>
     {
     public:
-        explicit acos_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit acos_FunctionNode(Expression<Value> *expr) : FunctionNode<Value>(expr)
         {
-            SetArgumentCount(1, 1, 0, 0);
+            this->SetArgumentCount(1, 1, 0, 0);
         }
-    
-        double DoEvaluate() override
+
+        Value DoEvaluate() override
         {
             errno = 0;
-            
-            double result = acos(m_nodes[0]->Evaluate());
-            
+
+            Value result = acos(this->m_nodes[0]->Evaluate());
+
             if(errno)
-                throw(MathException(GetName()));
-            
+                throw(MathException(this->GetName()));
+
             return result;
         }
     };
-        
-    class acos_FunctionFactory : public FunctionFactory
+
+    template<class Value>
+    class acos_FunctionFactory : public FunctionFactory<Value>
     {
     public:
         std::string GetName() const override
         {
             return "acos";
         }
-            
-        FunctionNode *DoCreate(Expression *expr) override
+
+        FunctionNode<Value> *DoCreate(Expression<Value> *expr) override
         {
-            return new acos_FunctionNode(expr);
+            return new acos_FunctionNode<Value>(expr);
         }
     };
-        
+
     // Arc Tangent
     //--------------------------------------------------------------------------
-    class atan_FunctionNode : public FunctionNode
+    template<class Value>
+    class atan_FunctionNode : public FunctionNode<Value>
     {
     public:
-        explicit atan_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit atan_FunctionNode(Expression<Value> *expr) : FunctionNode<Value>(expr)
         {
-            SetArgumentCount(1, 1, 0, 0);
+            this->SetArgumentCount(1, 1, 0, 0);
         }
-    
-        double DoEvaluate() override
+
+        Value DoEvaluate() override
         {
             errno = 0;
-            
-            double result = atan(m_nodes[0]->Evaluate());
-            
+
+            Value result = atan(this->m_nodes[0]->Evaluate());
+
             if(errno)
-                throw(MathException(GetName()));
-            
+                throw(MathException(this->GetName()));
+
             return result;
         }
     };
-        
-    class atan_FunctionFactory : public FunctionFactory
+
+    template<class Value>
+    class atan_FunctionFactory : public FunctionFactory<Value>
     {
     public:
         std::string GetName() const override
         {
             return "atan";
         }
-            
-        FunctionNode *DoCreate(Expression *expr) override
+
+        FunctionNode<Value> *DoCreate(Expression<Value> *expr) override
         {
-            return new atan_FunctionNode(expr);
+            return new atan_FunctionNode<Value>(expr);
         }
     };
-        
+
     // Arc Tangent 2: atan2(y, x)
     //--------------------------------------------------------------------------
-    class atan2_FunctionNode : public FunctionNode
+    template<class Value>
+    class atan2_FunctionNode : public FunctionNode<Value>
     {
     public:
-        explicit atan2_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit atan2_FunctionNode(Expression<Value> *expr) : FunctionNode<Value>(expr)
         {
-            SetArgumentCount(2, 2, 0, 0);
+            this->SetArgumentCount(2, 2, 0, 0);
         }
-    
-        double DoEvaluate() override
+
+        Value DoEvaluate() override
         {
             errno = 0;
-            
-            double result = atan2(m_nodes[0]->Evaluate(), m_nodes[1]->Evaluate());
-            
+
+            Value result = atan2(this->m_nodes[0]->Evaluate(), this->m_nodes[1]->Evaluate());
+
             if(errno)
-                throw(MathException(GetName()));
-            
+                throw(MathException(this->GetName()));
+
             return result;
         }
     };
-        
-    class atan2_FunctionFactory : public FunctionFactory
+
+    template<class Value>
+    class atan2_FunctionFactory : public FunctionFactory<Value>
     {
     public:
         std::string GetName() const override
         {
             return "atan2";
         }
-            
-        FunctionNode *DoCreate(Expression *expr) override
+
+        FunctionNode<Value> *DoCreate(Expression<Value> *expr) override
         {
-            return new atan2_FunctionNode(expr);
+            return new atan2_FunctionNode<Value>(expr);
         }
     };
-        
+
     // Log
     //--------------------------------------------------------------------------
-    class log_FunctionNode : public FunctionNode
+    template<class Value>
+    class log_FunctionNode : public FunctionNode<Value>
     {
     public:
-        explicit log_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit log_FunctionNode(Expression<Value> *expr) : FunctionNode<Value>(expr)
         {
-            SetArgumentCount(1, 1, 0, 0);
+            this->SetArgumentCount(1, 1, 0, 0);
         }
-    
-        double DoEvaluate() override
+
+        Value DoEvaluate() override
         {
             errno = 0;
-            
-            double result = log10(m_nodes[0]->Evaluate());
-            
+
+            Value result = log10(this->m_nodes[0]->Evaluate());
+
             if(errno)
-                throw(MathException(GetName()));
-            
+                throw(MathException(this->GetName()));
+
             return result;
         }
     };
-        
-    class log_FunctionFactory : public FunctionFactory
+
+    template<class Value>
+    class log_FunctionFactory : public FunctionFactory<Value>
     {
     public:
         std::string GetName() const override
         {
             return "log";
         }
-            
-        FunctionNode *DoCreate(Expression *expr) override
+
+        FunctionNode<Value> *DoCreate(Expression<Value> *expr) override
         {
-            return new log_FunctionNode(expr);
+            return new log_FunctionNode<Value>(expr);
         }
     };
-        
+
     // Ln
     //--------------------------------------------------------------------------
-    class ln_FunctionNode : public FunctionNode
+    template<class Value>
+    class ln_FunctionNode : public FunctionNode<Value>
     {
     public:
-        explicit ln_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit ln_FunctionNode(Expression<Value> *expr) : FunctionNode<Value>(expr)
         {
-            SetArgumentCount(1, 1, 0, 0);
+            this->SetArgumentCount(1, 1, 0, 0);
         }
-    
-        double DoEvaluate() override
+
+        Value DoEvaluate() override
         {
             errno = 0;
-            
-            double result = log(m_nodes[0]->Evaluate());
-            
+
+            Value result = log(this->m_nodes[0]->Evaluate());
+
             if(errno)
-                throw(MathException(GetName()));
-            
+                throw(MathException(this->GetName()));
+
             return result;
         }
     };
-        
-    class ln_FunctionFactory : public FunctionFactory
+
+    template<class Value>
+    class ln_FunctionFactory : public FunctionFactory<Value>
     {
     public:
         std::string GetName() const override
         {
             return "ln";
         }
-            
-        FunctionNode *DoCreate(Expression *expr) override
+
+        FunctionNode<Value> *DoCreate(Expression<Value> *expr) override
         {
-            return new ln_FunctionNode(expr);
+            return new ln_FunctionNode<Value>(expr);
         }
     };
-        
+
     // Exp
     //--------------------------------------------------------------------------
-    class exp_FunctionNode : public FunctionNode
+    template<class Value>
+    class exp_FunctionNode : public FunctionNode<Value>
     {
     public:
-        explicit exp_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit exp_FunctionNode(Expression<Value> *expr) : FunctionNode<Value>(expr)
         {
-            SetArgumentCount(1, 1, 0, 0);
+            this->SetArgumentCount(1, 1, 0, 0);
         }
-    
-        double DoEvaluate() override
+
+        Value DoEvaluate() override
         {
             errno = 0;
-            double x = m_nodes[0]->Evaluate();
-            double result = exp(x);
+            Value x = this->m_nodes[0]->Evaluate();
+            Value result = exp(x);
 
-            if (errno && x > 0.0) // Fixed: No exception on underflow
-                throw(MathException(GetName()));
+            if (errno && x > Value(0.0)) // Fixed: No exception on underflow
+                throw(MathException(this->GetName()));
 
             return result;
         }
     };
-        
-    class exp_FunctionFactory : public FunctionFactory
+
+    template<class Value>
+    class exp_FunctionFactory : public FunctionFactory<Value>
     {
     public:
         std::string GetName() const override
         {
             return "exp";
         }
-            
-        FunctionNode *DoCreate(Expression *expr) override
+
+        FunctionNode<Value> *DoCreate(Expression<Value> *expr) override
         {
-            return new exp_FunctionNode(expr);
+            return new exp_FunctionNode<Value>(expr);
         }
     };
-        
+
     // Logn
     //--------------------------------------------------------------------------
-    class logn_FunctionNode : public FunctionNode
+    template<class Value>
+    class logn_FunctionNode : public FunctionNode<Value>
     {
     public:
-        explicit logn_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit logn_FunctionNode(Expression<Value> *expr) : FunctionNode<Value>(expr)
         {
-            SetArgumentCount(2, 2, 0, 0);
+            this->SetArgumentCount(2, 2, 0, 0);
         }
-    
-        double DoEvaluate() override
+
+        Value DoEvaluate() override
         {
             errno = 0;
-            
+
             // Check for division by zero
-            double tmp = log(m_nodes[1]->Evaluate());
-            
+            Value tmp = log(this->m_nodes[1]->Evaluate());
+
             if(tmp == 0.0)
-                throw(MathException(GetName()));
-                
+                throw(MathException(this->GetName()));
+
             // Calculate result
-            double result = log(m_nodes[0]->Evaluate()) / tmp;
-            
+            Value result = log(this->m_nodes[0]->Evaluate()) / tmp;
+
             if(errno)
-                throw(MathException(GetName()));
-            
+                throw(MathException(this->GetName()));
+
             return result;
         }
     };
-        
-    class logn_FunctionFactory : public FunctionFactory
+
+    template<class Value>
+    class logn_FunctionFactory : public FunctionFactory<Value>
     {
     public:
         std::string GetName() const override
         {
             return "logn";
         }
-            
-        FunctionNode *DoCreate(Expression *expr) override
+
+        FunctionNode<Value> *DoCreate(Expression<Value> *expr) override
         {
-            return new logn_FunctionNode(expr);
+            return new logn_FunctionNode<Value>(expr);
         }
     };
 
-    class pow_FunctionNode : public FunctionNode
+    template<class Value>
+    class pow_FunctionNode : public FunctionNode<Value>
     {
     public:
-        explicit pow_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit pow_FunctionNode(Expression<Value> *expr) : FunctionNode<Value>(expr)
         {
-            SetArgumentCount(2, 2, 0, 0);
+            this->SetArgumentCount(2, 2, 0, 0);
         }
 
-        double DoEvaluate() override
+        Value DoEvaluate() override
         {
             errno = 0;
 
-            double result = pow(m_nodes[0]->Evaluate(), m_nodes[1]->Evaluate());
+            Value result = pow(this->m_nodes[0]->Evaluate(), this->m_nodes[1]->Evaluate());
 
-            if(errno)
-                throw(MathException(GetName()));
+            if constexpr (std::is_same_v<Value, double>) { // disable exception with autodiff
+                if(errno)
+                    throw(MathException(this->GetName()));
+            }
 
             return result;
         }
     };
 
-    class pow_FunctionFactory : public FunctionFactory
+    template<class Value>
+    class pow_FunctionFactory : public FunctionFactory<Value>
     {
     public:
         std::string GetName() const override
@@ -827,523 +875,552 @@ namespace
             return "pow";
         }
 
-        FunctionNode *DoCreate(Expression *expr) override
+        FunctionNode<Value> *DoCreate(Expression<Value> *expr) override
         {
-            return new pow_FunctionNode(expr);
+            return new pow_FunctionNode<Value>(expr);
         }
     };
 
     // Ceil
     //--------------------------------------------------------------------------
-    class ceil_FunctionNode : public FunctionNode
+    template<class Value>
+    class ceil_FunctionNode : public FunctionNode<Value>
     {
     public:
-        explicit ceil_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit ceil_FunctionNode(Expression<Value> *expr) : FunctionNode<Value>(expr)
         {
-            SetArgumentCount(1, 1, 0, 0);
+            this->SetArgumentCount(1, 1, 0, 0);
         }
-    
-        double DoEvaluate() override
+
+        Value DoEvaluate() override
         {
-            return ceil(m_nodes[0]->Evaluate());
+            return ceil(this->m_nodes[0]->Evaluate());
         }
     };
-        
-    class ceil_FunctionFactory : public FunctionFactory
+
+    template<class Value>
+    class ceil_FunctionFactory : public FunctionFactory<Value>
     {
     public:
         std::string GetName() const override
         {
             return "ceil";
         }
-            
-        FunctionNode *DoCreate(Expression *expr) override
+
+        FunctionNode<Value> *DoCreate(Expression<Value> *expr) override
         {
-            return new ceil_FunctionNode(expr);
+            return new ceil_FunctionNode<Value>(expr);
         }
     };
-        
+
     // Floor
     //--------------------------------------------------------------------------
-    class floor_FunctionNode : public FunctionNode
+    template<class Value>
+    class floor_FunctionNode : public FunctionNode<Value>
     {
     public:
-        explicit floor_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit floor_FunctionNode(Expression<Value> *expr) : FunctionNode<Value>(expr)
         {
-            SetArgumentCount(1, 1, 0, 0);
+            this->SetArgumentCount(1, 1, 0, 0);
         }
-    
-        double DoEvaluate() override
+
+        Value DoEvaluate() override
         {
-            return floor(m_nodes[0]->Evaluate());
+            return floor(this->m_nodes[0]->Evaluate());
         }
     };
-        
-    class floor_FunctionFactory : public FunctionFactory
+
+    template<class Value>
+    class floor_FunctionFactory : public FunctionFactory<Value>
     {
     public:
         std::string GetName() const override
         {
             return "floor";
         }
-            
-        FunctionNode *DoCreate(Expression *expr) override
+
+        FunctionNode<Value> *DoCreate(Expression<Value> *expr) override
         {
-            return new floor_FunctionNode(expr);
+            return new floor_FunctionNode<Value>(expr);
         }
     };
-        
+
     // Rand
     //--------------------------------------------------------------------------
-    
+
     // Get next random (0,1)
     inline double NextRandom(double *seed)
     {
         long a = (long)(*seed) * 214013L + 2531011L;
         *seed = (double)a;
-        
+
         return (double)((a >> 16) & 0x7FFF) / 32767.0;
     }
-    
-    class rand_FunctionNode : public FunctionNode
+
+    template<class Value>
+    class rand_FunctionNode : public FunctionNode<Value>
     {
     public:
-        explicit rand_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit rand_FunctionNode(Expression<Value> *expr) : FunctionNode<Value>(expr)
         {
-            SetArgumentCount(0, 0, 1, 1);
+            this->SetArgumentCount(0, 0, 1, 1);
         }
-    
-        double DoEvaluate() override
+
+        Value DoEvaluate() override
         {
-            return NextRandom(m_refs[0]);
+            return NextRandom(this->m_refs[0]);
         }
     };
-        
-    class rand_FunctionFactory : public FunctionFactory
+
+    template<class Value>
+    class rand_FunctionFactory : public FunctionFactory<Value>
     {
     public:
         std::string GetName() const override
         {
             return "rand";
         }
-            
-        FunctionNode *DoCreate(Expression *expr) override
+
+        FunctionNode<Value> *DoCreate(Expression<Value> *expr) override
         {
-            return new rand_FunctionNode(expr);
+            return new rand_FunctionNode<Value>(expr);
         }
     };
-        
+
     // Random
     //--------------------------------------------------------------------------
-    class random_FunctionNode : public FunctionNode
+    template<class Value>
+    class random_FunctionNode : public FunctionNode<Value>
     {
     public:
-        explicit random_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit random_FunctionNode(Expression<Value> *expr) : FunctionNode<Value>(expr)
         {
-            SetArgumentCount(2, 2, 1, 1);
+            this->SetArgumentCount(2, 2, 1, 1);
         }
-    
-        double DoEvaluate() override
+
+        Value DoEvaluate() override
         {
-            double a = m_nodes[0]->Evaluate();
-            double b = m_nodes[1]->Evaluate();
-            
-            return NextRandom(m_refs[0]) * (b - a) + a;
+            Value a = this->m_nodes[0]->Evaluate();
+            Value b = this->m_nodes[1]->Evaluate();
+
+            return NextRandom(this->m_refs[0]) * (b - a) + a;
         }
     };
-        
-    class random_FunctionFactory : public FunctionFactory
+
+    template<class Value>
+    class random_FunctionFactory : public FunctionFactory<Value>
     {
     public:
         std::string GetName() const override
         {
             return "random";
         }
-            
-        FunctionNode *DoCreate(Expression *expr) override
+
+        FunctionNode<Value> *DoCreate(Expression<Value> *expr) override
         {
-            return new random_FunctionNode(expr);
+            return new random_FunctionNode<Value>(expr);
         }
-    };        
-        
+    };
+
     // Randomize
     //--------------------------------------------------------------------------
-    class randomize_FunctionNode : public FunctionNode
+    template<class Value>
+    class randomize_FunctionNode : public FunctionNode<Value>
     {
     public:
-        explicit randomize_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit randomize_FunctionNode(Expression<Value> *expr) : FunctionNode<Value>(expr)
         {
-            SetArgumentCount(0, 0, 1, 1);
+            this->SetArgumentCount(0, 0, 1, 1);
         }
-    
-        double DoEvaluate() override
+
+        Value DoEvaluate() override
         {
             static long curcall = 1;
-            
-            *m_refs[0] = (double)(((clock() + 1024u + curcall) * time(NULL)) % 2176971487u);
+
+            *this->m_refs[0] = (Value)(((clock() + 1024u + curcall) * time(NULL)) % 2176971487u);
             curcall++;
-            
+
             return 0.0;
         }
     };
-        
-    class randomize_FunctionFactory : public FunctionFactory
+
+    template<class Value>
+    class randomize_FunctionFactory : public FunctionFactory<Value>
     {
     public:
         std::string GetName() const override
         {
             return "randomize";
         }
-            
-        FunctionNode *DoCreate(Expression *expr) override
+
+        FunctionNode<Value> *DoCreate(Expression<Value> *expr) override
         {
-            return new randomize_FunctionNode(expr);
+            return new randomize_FunctionNode<Value>(expr);
         }
     };
-        
+
     // Radians to degrees
     //--------------------------------------------------------------------------
-    class deg_FunctionNode : public FunctionNode
+    template<class Value>
+    class deg_FunctionNode : public FunctionNode<Value>
     {
     public:
-        explicit deg_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit deg_FunctionNode(Expression<Value> *expr) : FunctionNode<Value>(expr)
         {
-            SetArgumentCount(1, 1, 0, 0);
+            this->SetArgumentCount(1, 1, 0, 0);
         }
-    
-        double DoEvaluate() override
+
+        Value DoEvaluate() override
         {
-            return (m_nodes[0]->Evaluate() * 180.0) / M_PI;
+            return (this->m_nodes[0]->Evaluate() * 180.0) / M_PI;
         }
     };
-        
-    class deg_FunctionFactory : public FunctionFactory
+
+    template<class Value>
+    class deg_FunctionFactory : public FunctionFactory<Value>
     {
     public:
         std::string GetName() const override
         {
             return "deg";
         }
-            
-        FunctionNode *DoCreate(Expression *expr) override
+
+        FunctionNode<Value> *DoCreate(Expression<Value> *expr) override
         {
-            return new deg_FunctionNode(expr);
+            return new deg_FunctionNode<Value>(expr);
         }
     };
-        
+
     // Degrees to radians
     //--------------------------------------------------------------------------
-    class rad_FunctionNode : public FunctionNode
+    template<class Value>
+    class rad_FunctionNode : public FunctionNode<Value>
     {
     public:
-        explicit rad_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit rad_FunctionNode(Expression<Value> *expr) : FunctionNode<Value>(expr)
         {
-            SetArgumentCount(1, 1, 0, 0);
+            this->SetArgumentCount(1, 1, 0, 0);
         }
-    
-        double DoEvaluate() override
+
+        Value DoEvaluate() override
         {
-            return (m_nodes[0]->Evaluate() * M_PI) / 180.0;
+            return (this->m_nodes[0]->Evaluate() * M_PI) / 180.0;
         }
     };
-        
-    class rad_FunctionFactory : public FunctionFactory
+
+    template<class Value>
+    class rad_FunctionFactory : public FunctionFactory<Value>
     {
     public:
         std::string GetName() const override
         {
             return "rad";
         }
-            
-        FunctionNode *DoCreate(Expression *expr) override
+
+        FunctionNode<Value> *DoCreate(Expression<Value> *expr) override
         {
-            return new rad_FunctionNode(expr);
+            return new rad_FunctionNode<Value>(expr);
         }
     };
-        
+
     // Rectangular to polar: rect2pol(x, y, &distance, &angle)
     //--------------------------------------------------------------------------
-    class rect2pol_FunctionNode : public FunctionNode
+    template<class Value>
+    class rect2pol_FunctionNode : public FunctionNode<Value>
     {
     public:
-        explicit rect2pol_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit rect2pol_FunctionNode(Expression<Value> *expr) : FunctionNode<Value>(expr)
         {
-            SetArgumentCount(2, 2, 2, 2);
+            this->SetArgumentCount(2, 2, 2, 2);
         }
-    
-        double DoEvaluate() override
+
+        Value DoEvaluate() override
         {
             errno = 0;
-            
-            double x = m_nodes[0]->Evaluate();
-            double y = m_nodes[1]->Evaluate();
-            
-            double d = hypot(x, y);
-            double a = atan2(y, x);
-            
+
+            Value x = this->m_nodes[0]->Evaluate();
+            Value y = this->m_nodes[1]->Evaluate();
+
+            Value d = hypot(x, y);
+            Value a = atan2(y, x);
+
             if(errno)
-                throw(MathException(GetName()));
-                
-            *m_refs[0] = d;
+                throw(MathException(this->GetName()));
+
+            *this->m_refs[0] = d;
             if(a < 0.0)
-                *m_refs[1] = a + (2.0 * M_PI);
+                *this->m_refs[1] = a + (2.0 * M_PI);
             else
-                *m_refs[1] = a;
-                
+                *this->m_refs[1] = a;
+
             return d;
         }
     };
-        
-    class rect2pol_FunctionFactory : public FunctionFactory
+
+    template<class Value>
+    class rect2pol_FunctionFactory : public FunctionFactory<Value>
     {
     public:
         std::string GetName() const override
         {
             return "rect2pol";
         }
-            
-        FunctionNode *DoCreate(Expression *expr) override
+
+        FunctionNode<Value> *DoCreate(Expression<Value> *expr) override
         {
-            return new rect2pol_FunctionNode(expr);
+            return new rect2pol_FunctionNode<Value>(expr);
         }
     };
-        
+
     // Polar to rectangular: pol2rect(distance, angle, &x, &y)
     //--------------------------------------------------------------------------
-    class pol2rect_FunctionNode : public FunctionNode
+    template<class Value>
+    class pol2rect_FunctionNode : public FunctionNode<Value>
     {
     public:
-        explicit pol2rect_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit pol2rect_FunctionNode(Expression<Value> *expr) : FunctionNode<Value>(expr)
         {
-            SetArgumentCount(2, 2, 2, 2);
+            this->SetArgumentCount(2, 2, 2, 2);
         }
-    
-        double DoEvaluate() override
+
+        Value DoEvaluate() override
         {
             errno = 0;
-            
-            double d = m_nodes[0]->Evaluate();
-            double a = m_nodes[1]->Evaluate();
-            
-            double x = d * cos(a);
-            double y = d * sin(a);
-            
+
+            Value d = this->m_nodes[0]->Evaluate();
+            Value a = this->m_nodes[1]->Evaluate();
+
+            Value x = d * cos(a);
+            Value y = d * sin(a);
+
             if(errno)
-                throw(MathException(GetName()));
-                
-            *m_refs[0] = x;
-            *m_refs[1] = y;
-                
+                throw(MathException(this->GetName()));
+
+            *this->m_refs[0] = x;
+            *this->m_refs[1] = y;
+
             return x;
         }
     };
-        
-    class pol2rect_FunctionFactory : public FunctionFactory
+
+    template<class Value>
+    class pol2rect_FunctionFactory : public FunctionFactory<Value>
     {
     public:
         std::string GetName() const override
         {
             return "pol2rect";
         }
-            
-        FunctionNode *DoCreate(Expression *expr) override
+
+        FunctionNode<Value> *DoCreate(Expression<Value> *expr) override
         {
-            return new pol2rect_FunctionNode(expr);
+            return new pol2rect_FunctionNode<Value>(expr);
         }
     };
-        
+
     // If
     //--------------------------------------------------------------------------
-    class if_FunctionNode : public FunctionNode
+    template<class Value>
+    class if_FunctionNode : public FunctionNode<Value>
     {
     public:
-        explicit if_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit if_FunctionNode(Expression<Value> *expr) : FunctionNode<Value>(expr)
         {
-            SetArgumentCount(3, 3, 0, 0);
+            this->SetArgumentCount(3, 3, 0, 0);
         }
-    
-        double DoEvaluate() override
+
+        Value DoEvaluate() override
         {
-            double c = m_nodes[0]->Evaluate();
-            
+            Value c = this->m_nodes[0]->Evaluate();
+
             if(c == 0.0)
-                return m_nodes[2]->Evaluate();
+                return this->m_nodes[2]->Evaluate();
             else
-                return m_nodes[1]->Evaluate();
+                return this->m_nodes[1]->Evaluate();
         }
     };
-        
-    class if_FunctionFactory : public FunctionFactory
+
+    template<class Value>
+    class if_FunctionFactory : public FunctionFactory<Value>
     {
     public:
         std::string GetName() const override
         {
             return "if";
         }
-            
-        FunctionNode *DoCreate(Expression *expr) override
+
+        FunctionNode<Value> *DoCreate(Expression<Value> *expr) override
         {
-            return new if_FunctionNode(expr);
+            return new if_FunctionNode<Value>(expr);
         }
     };
-        
+
     // Select
     //--------------------------------------------------------------------------
-    class select_FunctionNode : public FunctionNode
+    template<class Value>
+    class select_FunctionNode : public FunctionNode<Value>
     {
     public:
-        explicit select_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit select_FunctionNode(Expression<Value> *expr) : FunctionNode<Value>(expr)
         {
-            SetArgumentCount(3, 4, 0, 0);
+            this->SetArgumentCount(3, 4, 0, 0);
         }
-    
-        double DoEvaluate() override
+
+        Value DoEvaluate() override
         {
-            double c = m_nodes[0]->Evaluate();
-            
+            Value c = this->m_nodes[0]->Evaluate();
+
             if(c < 0.0)
-                return m_nodes[1]->Evaluate();
+                return this->m_nodes[1]->Evaluate();
             else if(c == 0.0)
-                return m_nodes[2]->Evaluate();
+                return this->m_nodes[2]->Evaluate();
             else
             {
-                if(m_nodes.size() == 3)
-                    return m_nodes[2]->Evaluate();
+                if(this->m_nodes.size() == 3)
+                    return this->m_nodes[2]->Evaluate();
                 else
-                    return m_nodes[3]->Evaluate();
+                    return this->m_nodes[3]->Evaluate();
             }
         }
     };
-        
-    class select_FunctionFactory : public FunctionFactory
+
+    template<class Value>
+    class select_FunctionFactory : public FunctionFactory<Value>
     {
     public:
         std::string GetName() const override
         {
             return "select";
         }
-            
-        FunctionNode *DoCreate(Expression *expr) override
+
+        FunctionNode<Value> *DoCreate(Expression<Value> *expr) override
         {
-            return new select_FunctionNode(expr);
+            return new select_FunctionNode<Value>(expr);
         }
     };
-        
+
     // Equal
     //--------------------------------------------------------------------------
-    class equal_FunctionNode : public FunctionNode
+    template<class Value>
+    class equal_FunctionNode : public FunctionNode<Value>
     {
     public:
-        explicit equal_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit equal_FunctionNode(Expression<Value> *expr) : FunctionNode<Value>(expr)
         {
-            SetArgumentCount(2, 2, 0, 0);
+            this->SetArgumentCount(2, 2, 0, 0);
         }
-    
-        double DoEvaluate() override
+
+        Value DoEvaluate() override
         {
-            if(m_nodes[0]->Evaluate() == m_nodes[1]->Evaluate())
+            if(this->m_nodes[0]->Evaluate() == this->m_nodes[1]->Evaluate())
                 return 1.0;
             else
                 return 0.0;
         }
     };
-        
-    class equal_FunctionFactory : public FunctionFactory
+
+    template<class Value>
+    class equal_FunctionFactory : public FunctionFactory<Value>
     {
     public:
         std::string GetName() const override
         {
             return "equal";
         }
-            
-        FunctionNode *DoCreate(Expression *expr) override
+
+        FunctionNode<Value> *DoCreate(Expression<Value> *expr) override
         {
-            return new equal_FunctionNode(expr);
+            return new equal_FunctionNode<Value>(expr);
         }
     };
-        
+
     // Above
     //--------------------------------------------------------------------------
-    class above_FunctionNode : public FunctionNode
+    template<class Value>
+    class above_FunctionNode : public FunctionNode<Value>
     {
     public:
-        explicit above_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit above_FunctionNode(Expression<Value> *expr) : FunctionNode<Value>(expr)
         {
-            SetArgumentCount(2, 2, 0, 0);
+            this->SetArgumentCount(2, 2, 0, 0);
         }
-    
-        double DoEvaluate() override
+
+        Value DoEvaluate() override
         {
-            if(m_nodes[0]->Evaluate() > m_nodes[1]->Evaluate())
+            if(this->m_nodes[0]->Evaluate() > this->m_nodes[1]->Evaluate())
                 return 1.0;
             else
                 return 0.0;
         }
     };
-        
-    class above_FunctionFactory : public FunctionFactory
+
+    template<class Value>
+    class above_FunctionFactory : public FunctionFactory<Value>
     {
     public:
         std::string GetName() const override
         {
             return "above";
         }
-            
-        FunctionNode *DoCreate(Expression *expr) override
+
+        FunctionNode<Value> *DoCreate(Expression<Value> *expr) override
         {
-            return new above_FunctionNode(expr);
+            return new above_FunctionNode<Value>(expr);
         }
     };
-        
+
     // Below
     //--------------------------------------------------------------------------
-    class below_FunctionNode : public FunctionNode
+    template<class Value>
+    class below_FunctionNode : public FunctionNode<Value>
     {
     public:
-        explicit below_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit below_FunctionNode(Expression<Value> *expr) : FunctionNode<Value>(expr)
         {
-            SetArgumentCount(2, 2, 0, 0);
+            this->SetArgumentCount(2, 2, 0, 0);
         }
-    
-        double DoEvaluate() override
+
+        Value DoEvaluate() override
         {
-            if(m_nodes[0]->Evaluate() < m_nodes[1]->Evaluate())
+            if(this->m_nodes[0]->Evaluate() < this->m_nodes[1]->Evaluate())
                 return 1.0;
             else
                 return 0.0;
         }
     };
-        
-    class below_FunctionFactory : public FunctionFactory
+
+    template<class Value>
+    class below_FunctionFactory : public FunctionFactory<Value>
     {
     public:
         std::string GetName() const override
         {
             return "below";
         }
-            
-        FunctionNode *DoCreate(Expression *expr) override
+
+        FunctionNode<Value> *DoCreate(Expression<Value> *expr) override
         {
-            return new below_FunctionNode(expr);
+            return new below_FunctionNode<Value>(expr);
         }
     };
-        
+
     // Clip
     //--------------------------------------------------------------------------
-    class clip_FunctionNode : public FunctionNode
+    template<class Value>
+    class clip_FunctionNode : public FunctionNode<Value>
     {
     public:
-        explicit clip_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit clip_FunctionNode(Expression<Value> *expr) : FunctionNode<Value>(expr)
         {
-            SetArgumentCount(3, 3, 0, 0);
+            this->SetArgumentCount(3, 3, 0, 0);
         }
-    
-        double DoEvaluate() override
+
+        Value DoEvaluate() override
         {
-            double v = m_nodes[0]->Evaluate();
-            double a = m_nodes[1]->Evaluate();
-            double b = m_nodes[2]->Evaluate();
-            
+            Value v = this->m_nodes[0]->Evaluate();
+            Value a = this->m_nodes[1]->Evaluate();
+            Value b = this->m_nodes[2]->Evaluate();
+
             if(v < a)
                 return a;
             else if(v > b)
@@ -1352,43 +1429,45 @@ namespace
                 return v;
         }
     };
-        
-    class clip_FunctionFactory : public FunctionFactory
+
+    template<class Value>
+    class clip_FunctionFactory : public FunctionFactory<Value>
     {
     public:
         std::string GetName() const override
         {
             return "clip";
         }
-            
-        FunctionNode *DoCreate(Expression *expr) override
+
+        FunctionNode<Value> *DoCreate(Expression<Value> *expr) override
         {
-            return new clip_FunctionNode(expr);
+            return new clip_FunctionNode<Value>(expr);
         }
     };
-        
+
     // Clamp
     //--------------------------------------------------------------------------
-    class clamp_FunctionNode : public FunctionNode
+    template<class Value>
+    class clamp_FunctionNode : public FunctionNode<Value>
     {
     public:
-        explicit clamp_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit clamp_FunctionNode(Expression<Value> *expr) : FunctionNode<Value>(expr)
         {
-            SetArgumentCount(3, 3, 0, 0);
+            this->SetArgumentCount(3, 3, 0, 0);
         }
-    
-        double DoEvaluate() override
+
+        Value DoEvaluate() override
         {
-            double v = m_nodes[0]->Evaluate();
-            double a = m_nodes[1]->Evaluate();
-            double b = m_nodes[2]->Evaluate();
-            
+            Value v = this->m_nodes[0]->Evaluate();
+            Value a = this->m_nodes[1]->Evaluate();
+            Value b = this->m_nodes[2]->Evaluate();
+
             if(a == b)
                 return a;
             else
             {
-                double tmp = fmod(v - a, b - a);
-                
+                Value tmp = fmod(v - a, b - a);
+
                 if(tmp < 0)
                     return tmp + b;
                 else
@@ -1396,40 +1475,42 @@ namespace
             }
         }
     };
-        
-    class clamp_FunctionFactory : public FunctionFactory
+
+    template<class Value>
+    class clamp_FunctionFactory : public FunctionFactory<Value>
     {
     public:
         std::string GetName() const override
         {
             return "clamp";
         }
-            
-        FunctionNode *DoCreate(Expression *expr) override
+
+        FunctionNode<Value> *DoCreate(Expression<Value> *expr) override
         {
-            return new clamp_FunctionNode(expr);
+            return new clamp_FunctionNode<Value>(expr);
         }
     };
-        
+
     // Rescale
     //--------------------------------------------------------------------------
-    class rescale_FunctionNode : public FunctionNode
+    template<class Value>
+    class rescale_FunctionNode : public FunctionNode<Value>
     {
     public:
-        explicit rescale_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit rescale_FunctionNode(Expression<Value> *expr) : FunctionNode<Value>(expr)
         {
-            SetArgumentCount(5, 5, 0, 0);
+            this->SetArgumentCount(5, 5, 0, 0);
         }
-    
-        double DoEvaluate() override
+
+        Value DoEvaluate() override
         {
-            double pnt = m_nodes[0]->Evaluate();
-            double o1 = m_nodes[1]->Evaluate();
-            double o2 = m_nodes[2]->Evaluate();
-            double n1 = m_nodes[3]->Evaluate();
-            double n2 = m_nodes[4]->Evaluate();
-            
-            double odiff = o2 - o1;
+            Value pnt = this->m_nodes[0]->Evaluate();
+            Value o1 = this->m_nodes[1]->Evaluate();
+            Value o2 = this->m_nodes[2]->Evaluate();
+            Value n1 = this->m_nodes[3]->Evaluate();
+            Value n2 = this->m_nodes[4]->Evaluate();
+
+            Value odiff = o2 - o1;
             if(odiff == 0.0)
                 return n1;
             else
@@ -1438,239 +1519,257 @@ namespace
             }
         }
     };
-        
-    class rescale_FunctionFactory : public FunctionFactory
+
+    template<class Value>
+    class rescale_FunctionFactory : public FunctionFactory<Value>
     {
     public:
         std::string GetName() const override
         {
             return "rescale";
         }
-            
-        FunctionNode *DoCreate(Expression *expr) override
+
+        FunctionNode<Value> *DoCreate(Expression<Value> *expr) override
         {
-            return new rescale_FunctionNode(expr);
+            return new rescale_FunctionNode<Value>(expr);
         }
     };
-        
+
     // Poly: poly(x, c3, c2, c1, c0): c3*x^3 + c2*x^2 + c1*x + c0
     //--------------------------------------------------------------------------
-    class poly_FunctionNode : public FunctionNode
+    template<class Value>
+    class poly_FunctionNode : public FunctionNode<Value>
     {
     public:
-        explicit poly_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit poly_FunctionNode(Expression<Value> *expr) : FunctionNode<Value>(expr)
         {
-            SetArgumentCount(2, -1, 0, 0);
+            this->SetArgumentCount(2, -1, 0, 0);
         }
-    
-        double DoEvaluate() override
+
+        Value DoEvaluate() override
         {
-            double total = 0.0;
+            Value total = 0.0;
             double curpow;
-            
-            std::vector<Node*>::size_type pos, count = m_nodes.size();
-            
-            curpow = (double)(count - 2);
-            
+
+            curpow = (double)(this->m_nodes.size() - 2);
+
             // Value of x
-            double x = m_nodes[0]->Evaluate();
-            
+            Value x = this->m_nodes[0]->Evaluate();
+
             errno = 0;
-            
-            for(pos = 1; pos < count; pos++)
+
+            for (const auto& node : this->m_nodes)
             {
-                total += (m_nodes[pos]->Evaluate() * pow(x, curpow));
+                total += node->Evaluate() * pow(x, curpow);
                 curpow -= 1.0;
             }
-                
+
             if(errno)
-                throw(MathException(GetName()));
-                
+                throw(MathException(this->GetName()));
+
             return total;
         }
     };
-        
-    class poly_FunctionFactory : public FunctionFactory
+
+    template<class Value>
+    class poly_FunctionFactory : public FunctionFactory<Value>
     {
     public:
         std::string GetName() const override
         {
             return "poly";
         }
-            
-        FunctionNode *DoCreate(Expression *expr) override
+
+        FunctionNode<Value> *DoCreate(Expression<Value> *expr) override
         {
-            return new poly_FunctionNode(expr);
+            return new poly_FunctionNode<Value>(expr);
         }
     };
-        
+
     // And
     //--------------------------------------------------------------------------
-    class and_FunctionNode : public FunctionNode
+    template<class Value>
+    class and_FunctionNode : public FunctionNode<Value>
     {
     public:
-        explicit and_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit and_FunctionNode(Expression<Value> *expr) : FunctionNode<Value>(expr)
         {
-            SetArgumentCount(2, 2, 0, 0);
+            this->SetArgumentCount(2, 2, 0, 0);
         }
-    
-        double DoEvaluate() override
+
+        Value DoEvaluate() override
         {
-            if(m_nodes[0]->Evaluate() == 0.0 || m_nodes[1]->Evaluate() == 0.0)
+            if(this->m_nodes[0]->Evaluate() == 0.0 || this->m_nodes[1]->Evaluate() == 0.0)
                 return 0.0;
             else
                 return 1.0;
         }
     };
-        
-    class and_FunctionFactory : public FunctionFactory
+
+    template<class Value>
+    class and_FunctionFactory : public FunctionFactory<Value>
     {
     public:
         std::string GetName() const override
         {
             return "and";
         }
-            
-        FunctionNode *DoCreate(Expression *expr) override
+
+        FunctionNode<Value> *DoCreate(Expression<Value> *expr) override
         {
-            return new and_FunctionNode(expr);
+            return new and_FunctionNode<Value>(expr);
         }
     };
-        
+
     // Or
     //--------------------------------------------------------------------------
-    class or_FunctionNode : public FunctionNode
+    template<class Value>
+    class or_FunctionNode : public FunctionNode<Value>
     {
     public:
-        explicit or_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit or_FunctionNode(Expression<Value> *expr) : FunctionNode<Value>(expr)
         {
-            SetArgumentCount(2, 2, 0, 0);
+            this->SetArgumentCount(2, 2, 0, 0);
         }
-    
-        double DoEvaluate() override
+
+        Value DoEvaluate() override
         {
-            if(m_nodes[0]->Evaluate() == 0.0 && m_nodes[1]->Evaluate() == 0.0)
+            if(this->m_nodes[0]->Evaluate() == 0.0 && this->m_nodes[1]->Evaluate() == 0.0)
                 return 0.0;
             else
                 return 1.0;
         }
     };
-        
-    class or_FunctionFactory : public FunctionFactory
+
+    template<class Value>
+    class or_FunctionFactory : public FunctionFactory<Value>
     {
     public:
         std::string GetName() const override
         {
             return "or";
         }
-            
-        FunctionNode *DoCreate(Expression *expr) override
+
+        FunctionNode<Value> *DoCreate(Expression<Value> *expr) override
         {
-            return new or_FunctionNode(expr);
+            return new or_FunctionNode<Value>(expr);
         }
     };
-        
+
     // Not
     //--------------------------------------------------------------------------
-    class not_FunctionNode : public FunctionNode
+    template<class Value>
+    class not_FunctionNode : public FunctionNode<Value>
     {
     public:
-        explicit not_FunctionNode(Expression *expr) : FunctionNode(expr)
+        explicit not_FunctionNode(Expression<Value> *expr) : FunctionNode<Value>(expr)
         {
-            SetArgumentCount(1, 1, 0, 0);
+            this->SetArgumentCount(1, 1, 0, 0);
         }
-    
-        double DoEvaluate() override
+
+        Value DoEvaluate() override
         {
-            if(m_nodes[0]->Evaluate() == 0.0)
+            if(this->m_nodes[0]->Evaluate() == 0.0)
                 return 1.0;
             else
                 return 0.0;
         }
     };
-        
-    class not_FunctionFactory : public FunctionFactory
+
+    template<class Value>
+    class not_FunctionFactory : public FunctionFactory<Value>
     {
     public:
         std::string GetName() const override
         {
             return "not";
         }
-            
-        FunctionNode *DoCreate(Expression *expr) override
+
+        FunctionNode<Value> *DoCreate(Expression<Value> *expr) override
         {
-            return new not_FunctionNode(expr);
+            return new not_FunctionNode<Value>(expr);
         }
     };
 
-        
+
 } // namespace
 
 
 // Initialize default functions
-void FunctionList::AddDefaultFunctions()
+template<class Value>
+void FunctionList<Value>::AddDefaultFunctions()
 {
     #define ADDFUNCTION(name) \
-        aptr(FunctionFactory) name ## _func(new name ## _FunctionFactory()); \
+    aptr(FunctionFactory<Value>) name ## _func(new name ## _FunctionFactory<Value>()); \
         m_functions.push_back(name ## _func.get()); \
         name ## _func.release();
-    
+
     ADDFUNCTION(abs);
-    ADDFUNCTION(mod);
-    
-    ADDFUNCTION(ipart);
-    ADDFUNCTION(fpart);
-    
-    ADDFUNCTION(min);
-    ADDFUNCTION(max);
+
     ADDFUNCTION(sqrt);
-    
+
     ADDFUNCTION(sin);
     ADDFUNCTION(cos);
     ADDFUNCTION(tan);
-    
+
     ADDFUNCTION(sinh);
     ADDFUNCTION(cosh);
     ADDFUNCTION(tanh);
-    
+
     ADDFUNCTION(asin);
     ADDFUNCTION(acos);
     ADDFUNCTION(atan);
     ADDFUNCTION(atan2);
-    
+
     ADDFUNCTION(log);
     ADDFUNCTION(ln);
     ADDFUNCTION(exp);
     ADDFUNCTION(logn);
     ADDFUNCTION(pow);
-    
-    ADDFUNCTION(ceil);
-    ADDFUNCTION(floor);
-    
-    ADDFUNCTION(rand);
-    ADDFUNCTION(random);
-    ADDFUNCTION(randomize);
-    
+
     ADDFUNCTION(deg);
     ADDFUNCTION(rad);
-    
+
     ADDFUNCTION(rect2pol);
     ADDFUNCTION(pol2rect);
-    
+
     ADDFUNCTION(if); // Preprocess will take care of this beforehand
     ADDFUNCTION(select);
-    
-    ADDFUNCTION(equal)
+
+    ADDFUNCTION(equal);
     ADDFUNCTION(above);
     ADDFUNCTION(below);
-    
+
     ADDFUNCTION(clip);
-    ADDFUNCTION(clamp);
     ADDFUNCTION(rescale);
-    
+
     ADDFUNCTION(poly);
-    
+
     ADDFUNCTION(and);
     ADDFUNCTION(or);
     ADDFUNCTION(not);
+
+    if constexpr (std::is_same_v<Value,double>) {
+      ADDFUNCTION(mod);
+
+      ADDFUNCTION(ipart);
+      ADDFUNCTION(fpart);
+
+      ADDFUNCTION(min);
+      ADDFUNCTION(max);
+
+      ADDFUNCTION(ceil);
+      ADDFUNCTION(floor);
+
+      ADDFUNCTION(rand);
+      ADDFUNCTION(random);
+      ADDFUNCTION(randomize);
+
+      ADDFUNCTION(clamp);
+    }
+}
+
+namespace ExprEval {
+template void FunctionList<double>::AddDefaultFunctions();
+template class FunctionList<autodiff::var>;
 }

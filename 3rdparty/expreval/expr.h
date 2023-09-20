@@ -14,12 +14,13 @@
 namespace ExprEval
 {
     // Forward declarations
-    class ValueList;
-    class FunctionList;
-    class Node;
+    template<class Value> class ValueList;
+    template<class Value> class FunctionList;
+    template<class Value> class Node;
 
     // Expression class
     //--------------------------------------------------------------------------
+    template<class Value>
     class Expression
     {
     public:
@@ -27,12 +28,12 @@ namespace ExprEval
         virtual ~Expression();
 
         // Variable list
-        void SetValueList(ValueList *vlist);
-        ValueList *GetValueList() const;
+        void SetValueList(ValueList<Value> *vlist);
+        ValueList<Value> *GetValueList() const;
 
         // Function list
-        void SetFunctionList(FunctionList *flist);
-        FunctionList *GetFunctionList() const;
+        void SetFunctionList(FunctionList<Value> *flist);
+        FunctionList<Value> *GetFunctionList() const;
 
         // Abort control
         virtual bool DoTestAbort();
@@ -46,12 +47,12 @@ namespace ExprEval
         void Clear();
 
         // Evaluate expression
-        double Evaluate();
+        Value Evaluate();
 
     protected:
-        ValueList *m_vlist;
-        FunctionList *m_flist;
-        Node *m_expr;
+        ValueList<Value> *m_vlist;
+        FunctionList<Value> *m_flist;
+        Node<Value> *m_expr;
         unsigned long m_abortcount;
         unsigned long m_abortreset;
     };
