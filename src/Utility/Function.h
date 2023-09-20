@@ -193,6 +193,16 @@ public:
     return std::vector<Real>(1,this->evaluate(X));
   }
 
+  //! \brief Evaluates first derivatives of the function.
+  virtual Vec3 gradient(const Vec3& X) const
+  {
+    Vec3 result;
+    for (size_t d = 1; d <= 3; ++d)
+      result[d-1] = this->deriv(X,d);
+
+    return result;
+  }
+
   //! \brief Returns a representative scalar equivalent of the function value.
   virtual Real getScalarValue(const Vec3& X) const { return this->evaluate(X); }
 };
