@@ -141,6 +141,59 @@ std::vector<std::string> splitComps (const std::string& functions,
 }
 
 
+/*!
+  \brief Helper template to get size and dimension of a return type.
+*/
+
+template<class ArgType>
+std::pair<size_t,size_t> getNoDims(size_t psize);
+
+
+/*!
+  \brief Template specialization for Vec3.
+*/
+template<>
+std::pair<size_t,size_t> getNoDims<Vec3>(size_t psize)
+{
+  return {psize, psize};
+}
+
+
+/*!
+  \brief Template specialization for Tensor.
+*/
+template<>
+std::pair<size_t,size_t> getNoDims<Tensor>(size_t psize)
+{
+  size_t nsd = 0;
+  if (psize > 8)
+    nsd = 3;
+  else if (psize > 3)
+    nsd = 2;
+  else if (psize > 0)
+    nsd = 1;
+
+  return {nsd, nsd*nsd};
+}
+
+
+/*!
+  \brief Template specialization for SymmTensor.
+*/
+template<>
+std::pair<size_t,size_t> getNoDims<SymmTensor>(size_t psize)
+{
+  size_t nsd = 0;
+  if (psize > 5)
+    nsd = 3;
+  else if (psize > 2)
+    nsd = 2;
+  else if (psize > 0)
+    nsd = 1;
+
+  return {nsd, psize == 4 ? 4 : (nsd+1)*nsd/2};
+}
+
 }
 
 
@@ -406,6 +459,13 @@ Ret EvalMultiFunction<ParentFunc,Ret>::evaluate (const Vec3& X) const
 }
 
 
+template <class ParentFunc, class Ret>
+void EvalMultiFunction<ParentFunc,Ret>::setNoDims ()
+{
+  std::tie(nsd, this->ncmp) = getNoDims<Ret>(this->p.size());
+}
+
+
 template<>
 Vec3 VecFuncExpr::deriv (const Vec3& X, int dir) const
 {
@@ -427,20 +487,6 @@ Vec3 VecFuncExpr::dderiv (const Vec3& X, int d1, int d2) const
     result[i] = p[i]->dderiv(X,d1,d2);
 
   return result;
-}
-
-
-template<>
-void TensorFuncExpr::setNoDims ()
-{
-  if (p.size() > 8)
-    nsd = 3;
-  else if (p.size() > 3)
-    nsd = 2;
-  else if (p.size() > 0)
-    nsd = 1;
-
-  ncmp = nsd*nsd;
 }
 
 
@@ -473,20 +519,6 @@ Tensor TensorFuncExpr::dderiv (const Vec3& X, int d1, int d2) const
 
 
 template<>
-void STensorFuncExpr::setNoDims ()
-{
-  if (p.size() > 5)
-    nsd = 3;
-  else if (p.size() > 2)
-    nsd = 2;
-  else if (p.size() > 0)
-    nsd = 1;
-
-  ncmp = p.size() == 4 ? 4 : (nsd+1)*nsd/2;
-}
-
-
-template<>
 SymmTensor STensorFuncExpr::deriv (const Vec3& X, int dir) const
 {
   SymmTensor sigma(nsd,p.size()==4);
@@ -513,5 +545,8 @@ SymmTensor STensorFuncExpr::dderiv (const Vec3& X, int d1, int d2) const
 
 
 template Vec3 VecFuncExpr::evaluate(const Vec3&) const;
+template void VecFuncExpr::setNoDims();
 template Tensor TensorFuncExpr::evaluate(const Vec3&) const;
+template void TensorFuncExpr::setNoDims();
 template SymmTensor STensorFuncExpr::evaluate(const Vec3&) const;
+template void STensorFuncExpr::setNoDims();

@@ -66,6 +66,24 @@ TEST(TestVecFunc, Evaluate)
 }
 
 
+TEST(TestVecFuncExpr, NumDimensions)
+{
+  const char* func1 = "x";
+  const char* func2 = "x | y";
+  const char* func3 = "x | y | z";
+
+  VecFuncExpr f1(func1);
+  EXPECT_EQ(f1.getNoSpaceDim(), 1);
+  EXPECT_EQ(f1.dim(), 1);
+  VecFuncExpr f2(func2);
+  EXPECT_EQ(f2.getNoSpaceDim(), 2);
+  EXPECT_EQ(f2.dim(), 2);
+  VecFuncExpr f3(func3);
+  EXPECT_EQ(f3.getNoSpaceDim(), 3);
+  EXPECT_EQ(f3.dim(), 3);
+}
+
+
 TEST(TestTensorFunc, Evaluate)
 {
   const char* func = "sin(x) | cos (y) | exp(z) | sin(x)*cos(y)";
@@ -381,6 +399,23 @@ TEST(TestTensorFunction, Hessian3D)
 }
 
 
+TEST(TestTensorFuncExpr, NumDimensions)
+{
+  const char* func1 = "x";
+  const char* func2 = "x | y | z | x";
+  const char* func3 = "x | y | z | x | y | z | x | y | z";
+
+  TensorFuncExpr f1(func1);
+  EXPECT_EQ(f1.getNoSpaceDim(), 1);
+  EXPECT_EQ(f1.dim(), 1);
+  TensorFuncExpr f2(func2);
+  EXPECT_EQ(f2.getNoSpaceDim(), 2);
+  EXPECT_EQ(f2.dim(), 4);
+  TensorFuncExpr f3(func3);
+  EXPECT_EQ(f3.getNoSpaceDim(), 3);
+  EXPECT_EQ(f3.dim(), 9);
+}
+
 
 TEST(TestSTensorFunc, Evaluate2D)
 {
@@ -604,6 +639,24 @@ TEST(TestSTensorFunction, Gradient3DFD)
               EXPECT_NEAR(dx(i,j), r(i,j,d), 1e-8);
         }
       }
+}
+
+
+TEST(TestSTensorFuncExpr, NumDimensions)
+{
+  const char* func1 = "x";
+  const char* func2 = "x | y | z";
+  const char* func3 = "x | y | z | x | y | z";
+
+  STensorFuncExpr f1(func1);
+  EXPECT_EQ(f1.getNoSpaceDim(), 1);
+  EXPECT_EQ(f1.dim(), 1);
+  STensorFuncExpr f2(func2);
+  EXPECT_EQ(f2.getNoSpaceDim(), 2);
+  EXPECT_EQ(f2.dim(), 3);
+  STensorFuncExpr f3(func3);
+  EXPECT_EQ(f3.getNoSpaceDim(), 3);
+  EXPECT_EQ(f3.dim(), 6);
 }
 
 
