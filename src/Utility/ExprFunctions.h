@@ -231,17 +231,8 @@ using STensorFuncExpr = EvalMultiFunction<STensorFunc,SymmTensor>;
 
 //! \brief Specialization for tensor functions.
 template<> void TensorFuncExpr::setNoDims();
-//! \brief Specialization for tensor functions.
-template<> Tensor TensorFuncExpr::deriv(const Vec3& X, int dir) const;
-//! \brief Specialization for tensor functions.
-template<> Tensor TensorFuncExpr::dderiv(const Vec3& X, int d1, int d2) const;
 
 //! \brief Specialization for symmetric tensor functions.
 template<> void STensorFuncExpr::setNoDims();
-//! \brief Specialization for symmetric tensor functions.
-template<> SymmTensor STensorFuncExpr::deriv(const Vec3& X, int dir) const;
-//! \brief Specialization for symmetric tensor functions.
-template<> SymmTensor STensorFuncExpr::dderiv(const Vec3& X,
-                                              int d1, int d2) const;
 
 #endif
