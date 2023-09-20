@@ -63,10 +63,10 @@ public:
   void addDerivative(const std::string& function, const char* x = "x");
 
   //! \brief Returns whether the function is time-independent or not.
-  virtual bool isConstant() const { return false; }
+  bool isConstant() const override { return false; }
 
   //! \brief Returns the first-derivative of the function.
-  virtual Real deriv(Real x) const;
+  Real deriv(Real x) const override;
 
 protected:
   //! \brief Non-implemented copy constructor to disallow copying.
@@ -74,7 +74,7 @@ protected:
   //! \brief Non-implemented assignment operator to disallow copying.
   EvalFunc& operator=(const EvalFunc&) = delete;
   //! \brief Evaluates the function expression.
-  virtual Real evaluate(const Real& x) const;
+  Real evaluate(const Real& x) const override;
 };
 
 
@@ -124,12 +124,12 @@ public:
                      int d1, int d2 = 0);
 
   //! \brief Returns whether the function is time-independent or not.
-  virtual bool isConstant() const { return IAmConstant; }
+  bool isConstant() const override { return IAmConstant; }
 
   //! \brief Returns first-derivative of the function.
-  virtual Real deriv(const Vec3& X, int dir) const;
+  Real deriv(const Vec3& X, int dir) const override;
   //! \brief Returns second-derivative of the function.
-  virtual Real dderiv(const Vec3& X, int dir1, int dir2) const;
+  Real dderiv(const Vec3& X, int dir1, int dir2) const override;
 
   //! \brief Set an additional parameter in the function.
   void setParam(const std::string& name, double value);
@@ -140,7 +140,7 @@ protected:
   //! \brief Non-implemented assignment operator to disallow copying.
   EvalFunction& operator=(const EvalFunction&) = delete;
   //! \brief Evaluates the function expression.
-  virtual Real evaluate(const Vec3& X) const;
+  Real evaluate(const Vec3& X) const override;
 };
 
 
@@ -188,7 +188,7 @@ public:
   virtual ~EvalMultiFunction() {}
 
   //! \brief Returns whether the function is time-independent or not.
-  virtual bool isConstant() const
+  bool isConstant() const override
   {
     for (const std::unique_ptr<EvalFunction>& func : p)
       if (!func->isConstant())
@@ -197,12 +197,12 @@ public:
   }
 
   //! \brief Returns the function type flag.
-  virtual unsigned char getType() const { return 2; }
+  unsigned char getType() const override { return 2; }
 
   //! \brief Returns first-derivative of the function.
-  virtual Ret deriv(const Vec3& X, int dir) const;
+  Ret deriv(const Vec3& X, int dir) const override;
   //! \brief Returns second-derivative of the function.
-  virtual Ret dderiv(const Vec3& X, int dir1, int dir2) const;
+  Ret dderiv(const Vec3& X, int dir1, int dir2) const override;
 
   //! \brief Set an additional parameter in the function.
   void setParam(const std::string& name, double value)
@@ -216,7 +216,7 @@ protected:
   void setNoDims() { ParentFunc::ncmp = nsd = p.size(); }
 
   //! \brief Evaluates the function expressions.
-  virtual Ret evaluate(const Vec3& X) const;
+  Ret evaluate(const Vec3& X) const override;
 };
 
 //! Vector-valued function expression
