@@ -499,6 +499,19 @@ EvalMultiFunction<ParentFunc, Ret>::evalGradient (const Vec3& X) const
 }
 
 
+template <class ParentFunc, class Ret>
+std::vector<Real>
+EvalMultiFunction<ParentFunc, Ret>::evalTimeDerivative (const Vec3& X) const
+{
+  std::vector<Real> result;
+  result.reserve(this->ncmp);
+  for (const std::unique_ptr<EvalFunction>& f : this->p)
+    result.push_back(f->deriv(X,4));
+
+  return result;
+}
+
+
 template class EvalMultiFunction<VecFunc,Vec3>;
 template class EvalMultiFunction<TensorFunc,Tensor>;
 template class EvalMultiFunction<STensorFunc,SymmTensor>;
