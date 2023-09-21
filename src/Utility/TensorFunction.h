@@ -54,6 +54,9 @@ public:
   //! \brief Evaluates first derivatives of the function.
   utl::matrix3d<Real> gradient(const Vec3& X) const;
 
+  //! \brief Evaluates second derivatives of the function.
+  utl::matrix4d<Real> hessian(const Vec3& X) const;
+
   //! \brief Evaluates time derivatives of the function.
   Tensor timeDerivative(const Vec3& X) const;
 };
@@ -98,6 +101,9 @@ public:
 
   //! \brief Evaluates first derivatives of the function.
   utl::matrix3d<Real> gradient(const Vec3& X) const;
+
+  //! \brief Evaluates second derivatives of the function.
+  utl::matrix4d<Real> hessian(const Vec3& X) const;
 
   //! \brief Evaluates time derivatives of the function.
   SymmTensor timeDerivative(const Vec3& X) const;

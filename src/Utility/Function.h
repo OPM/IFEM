@@ -14,6 +14,7 @@
 #ifndef UTL_FUNCTION_H
 #define UTL_FUNCTION_H
 
+#include "matrixnd.h"
 #include "Tensor.h"
 #include "Vec3.h"
 #include <functional>
@@ -112,6 +113,8 @@ namespace utl
   protected:
     //! \brief Returns the gradient of the function as a 1D array.
     virtual std::vector<Real> evalGradient(const Vec3&) const { return {}; }
+    //! \brief Returns the hessian of the function as a 1D array.
+    virtual std::vector<Real> evalHessian(const Vec3&) const { return {}; }
     //! \brief Returns the time derivatives of the function as a 1D array.
     virtual std::vector<Real> evalTimeDerivative(const Vec3&) const { return {}; }
 
@@ -265,6 +268,14 @@ public:
   {
     Tensor result(ncmp);
     result = this->evalGradient(X);
+    return result;
+  }
+
+  //! \brief Evaluates second derivatives of the function.
+  utl::matrix3d<Real> hessian(const Vec3& X) const
+  {
+    utl::matrix3d<Real> result(ncmp,ncmp,ncmp);
+    result.fill(this->evalHessian(X).data());
     return result;
   }
 

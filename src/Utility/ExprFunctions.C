@@ -485,15 +485,36 @@ template <class ParentFunc, class Ret>
 std::vector<Real>
 EvalMultiFunction<ParentFunc, Ret>::evalGradient (const Vec3& X) const
 {
-  std::vector<Real> result(this->ncmp*this->nsd);
+  std::vector<Real> result;
+  result.reserve(this->ncmp*this->nsd);
   std::vector<Vec3> dx;
+  dx.reserve(this->p.size());
   for (const std::unique_ptr<EvalFunction>& f : this->p)
     dx.push_back(f->gradient(X));
 
-  size_t k = 0;
   for (size_t d = 1; d <= this->nsd; ++d)
     for (size_t i = 1; i <= this->ncmp; ++i)
-      result[k++] = dx[i-1][d-1];
+      result.push_back(dx[i-1][d-1]);
+
+  return result;
+}
+
+
+template <class ParentFunc, class Ret>
+std::vector<Real>
+EvalMultiFunction<ParentFunc,Ret>::evalHessian (const Vec3& X) const
+{
+  std::vector<Real> result;
+  result.reserve(this->p.size()*this->nsd*this->nsd);
+  std::vector<SymmTensor> dx;
+  dx.reserve(this->p.size());
+  for (const std::unique_ptr<EvalFunction>& f : this->p)
+    dx.push_back(f->hessian(X));
+
+  for (size_t d2 = 1; d2 <= this->nsd; ++d2)
+    for (size_t d1 = 1; d1 <= this->nsd; ++d1)
+      for (size_t i = 0; i < this->p.size(); ++i)
+        result.push_back(dx[i](d1,d2));
 
   return result;
 }

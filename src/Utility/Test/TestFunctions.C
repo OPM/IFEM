@@ -40,7 +40,7 @@ TEST(TestScalarFunc, ParseDerivative)
   {
     t += 0.314*(double)random()/(double)RAND_MAX;
     std::cout <<"f("<< t <<") = "<< (*f1)(t)
-	      <<"  f'("<< t <<") = "<< f1->deriv(t) << std::endl;
+              <<"  f'("<< t <<") = "<< f1->deriv(t) << std::endl;
     EXPECT_FLOAT_EQ((*f1)(t),sin(1.5*t)*t);
     EXPECT_FLOAT_EQ((*f2)(t),sin(1.5*t)*t);
     EXPECT_FLOAT_EQ(f1->deriv(t),1.5*cos(1.5*t)*t+sin(1.5*t));
@@ -302,6 +302,92 @@ TEST(TestVecFunction, Gradient3DFD)
 }
 
 
+TEST(TestVecFunction, Hessian2D)
+{
+  const char* g    = "sin(x)*sin(y)  | x*x*y*y";
+  const char* g_xx = "-sin(x)*sin(y) | 2*y*y";
+  const char* g_xy = "cos(x)*cos(y)  | 2*x*2*y";
+  const char* g_yy = "-sin(x)*sin(y) | 2*x*x";
+
+  VecFuncExpr f(g);
+  f.addDerivative(g_xx,"",1,1);
+  f.addDerivative(g_yy,"",2,2);
+  f.addDerivative(g_xy,"",1,2);
+
+  EXPECT_TRUE(f.isConstant());
+
+  for (double x : {0.1, 0.2, 0.3})
+    for (double y : {0.5, 0.6, 0.7}) {
+      const Vec3 X(x,y);
+      utl::matrix3d<Real> r(2,2,2);
+      r.fill(std::array{-sin(x)*sin(y), 2*y*y,
+                         cos(x)*cos(y), 2*x*2*y,
+                         cos(x)*cos(y), 2*x*2*y,
+                        -sin(x)*sin(y), 2*x*x}.data());
+
+      const utl::matrix3d<Real> hess = f.hessian(X);
+      for (size_t d1 = 1; d1 <= 2; ++d1)
+        for (size_t d2 = 1; d2 <= 2; ++d2) {
+          const Vec3 d2x = f.dderiv(X,d1,d2);
+          for (size_t i = 1; i <= 2; ++i) {
+            EXPECT_DOUBLE_EQ(hess(i,d1,d2), r(i,d1,d2));
+            EXPECT_DOUBLE_EQ(d2x[i-1], r(i,d1,d2));
+          }
+        }
+    }
+}
+
+
+TEST(TestVecFunction, Hessian3D)
+{
+  const char* g    = "sin(x)*sin(y)*sin(z)  | x*x*y*y*z*z | exp(x)*exp(2*y)*exp(3*z)";
+  const char* g_xx = "-sin(x)*sin(y)*sin(z) | 2*y*y*z*z   | exp(x)*exp(2*y)*exp(3*z)";
+  const char* g_xy = "cos(x)*cos(y)*sin(z)  | 2*x*2*y*z*z | exp(x)*2*exp(2*y)*exp(3*z)";
+  const char* g_xz = "cos(x)*sin(y)*cos(z)  | 2*x*y*y*2*z | exp(x)*exp(2*y)*3*exp(3*z)";
+  const char* g_yy = "-sin(x)*sin(y)*sin(z) | x*x*2*z*z   | exp(x)*4*exp(2*y)*exp(3*z)";
+  const char* g_yz = "sin(x)*cos(y)*cos(z)  | x*x*2*y*2*z | exp(x)*2*exp(2*y)*3*exp(3*z)";
+  const char* g_zz = "-sin(x)*sin(y)*sin(z) | x*x*y*y*2   | exp(x)*exp(2*y)*9*exp(3*z)";
+
+  VecFuncExpr f(g);
+  f.addDerivative(g_xx,"",1,1);
+  f.addDerivative(g_yy,"",2,2);
+  f.addDerivative(g_zz,"",3,3);
+  f.addDerivative(g_xy,"",1,2);
+  f.addDerivative(g_xz,"",1,3);
+  f.addDerivative(g_yz,"",2,3);
+
+  EXPECT_TRUE(f.isConstant());
+
+  for (double x : {0.1, 0.2, 0.3})
+    for (double y : {0.5, 0.6, 0.7})
+      for (double z : {0.8, 0.9, 1.0}) {
+        const Vec3 X(x,y,z);
+        utl::matrix3d<Real> r(3,3,3);
+        r.fill(std::array{-sin(x)*sin(y)*sin(z), 2*y*y*z*z,   exp(x)*exp(2*y)*exp(3*z),
+                           cos(x)*cos(y)*sin(z), 2*x*2*y*z*z, exp(x)*2*exp(2*y)*exp(3*z),
+                           cos(x)*sin(y)*cos(z), 2*x*y*y*2*z, exp(x)*exp(2*y)*3*exp(3*z),
+
+                           cos(x)*cos(y)*sin(z), 2*x*2*y*z*z, exp(x)*2*exp(2*y)*exp(3*z),
+                          -sin(x)*sin(y)*sin(z), x*x*2*z*z,   exp(x)*4*exp(2*y)*exp(3*z),
+                           sin(x)*cos(y)*cos(z), x*x*2*y*2*z, exp(x)*2*exp(2*y)*3*exp(3*z),
+
+                           cos(x)*sin(y)*cos(z), 2*x*y*y*2*z, exp(x)*exp(2*y)*3*exp(3*z),
+                           sin(x)*cos(y)*cos(z), x*x*2*y*2*z, exp(x)*2*exp(2*y)*3*exp(3*z),
+                          -sin(x)*sin(y)*sin(z), x*x*y*y*2,   exp(x)*exp(2*y)*9*exp(3*z)}.data());
+
+        const utl::matrix3d<Real> hess = f.hessian(X);
+        for (size_t d1 = 1; d1 <= 3; ++d1)
+          for (size_t d2 = 1; d2 <= 3; ++d2) {
+            const Vec3 d2x = f.dderiv(X,d1,d2);
+            for (size_t i = 1; i <= 3; ++i) {
+              EXPECT_DOUBLE_EQ(d2x[i-1], r(i,d1,d2));
+              EXPECT_DOUBLE_EQ(hess(i,d1,d2), r(i,d1,d2));
+            }
+          }
+       }
+ }
+
+
 TEST(TestVecFuncExpr, NumDimensions)
 {
   const char* func1 = "x";
@@ -476,7 +562,7 @@ TEST(TestTensorFunction, Gradient3D)
                     "exp(-2*x)*exp(y)*z    | x*z       | x*z*z |"
                     "0.0                   | 1.0       | 0.0";
   const char* g_z = "sin(x)*sin(y)*cos(z)  | x*x*y*y   | exp(x)*exp(2*y)*2*z |"
-                    "exp(-2*x)*exp(y)      | y*z       | x*y*2*z |"
+                    "exp(-2*x)*exp(y)      | x*y       | x*y*2*z |"
                     "0.0                   | 0.0       | 1.0";
 
   TensorFuncExpr f(g);
@@ -494,11 +580,13 @@ TEST(TestTensorFunction, Gradient3D)
         r.fill(std::array{cos(x)*sin(y)*sin(z),  2*x*y*y*z, exp(x)*exp(2*y)*z*z,
                           -2*exp(-2*x)*exp(y)*z, y*z,       y*z*z,
                           1.0,                   0.0,       0.0,
+
                           sin(x)*cos(y)*sin(z),  2*x*x*y*z, 2*exp(x)*exp(2*y)*z*z,
                           exp(-2*x)*exp(y)*z,    x*z,       x*z*z,
                           0.0,                   1.0,       0.0,
+
                           sin(x)*sin(y)*cos(z),  x*x*y*y,   exp(x)*exp(2*y)*2*z,
-                          exp(-2*x)*exp(y),      y*z,       x*y*2*z,
+                          exp(-2*x)*exp(y),      x*y,       x*y*2*z,
                           0.0,                   0.0,       1.0}.data());
 
         const utl::matrix3d<Real> grad = f.gradient(X);
@@ -605,12 +693,15 @@ TEST(TestTensorFunction, Hessian2D)
                         -sin(x)*sin(y), 2*x*x,
                         exp(x)*4*exp(2*y), exp(-2*x)*exp(y)}.data());
 
+      const utl::matrix4d<Real> hess = f.hessian(X);
       for (size_t d1 = 1; d1 <= 2; ++d1)
         for (size_t d2 = 1; d2 <= 2; ++d2) {
           const Tensor dx = f.dderiv(X,d1,d2);
           for (size_t i = 1; i <= 2; ++i)
-            for (size_t j = 1; j <= 2; ++j)
+            for (size_t j = 1; j <= 2; ++j) {
               EXPECT_DOUBLE_EQ(dx(i,j), r(i,j,d1,d2));
+              EXPECT_DOUBLE_EQ(hess(i,j,d1,d2), r(i,j,d1,d2));
+            }
         }
     }
 }
@@ -637,7 +728,7 @@ TEST(TestTensorFunction, Hessian3D)
                      "exp(-2*x)*exp(y)       | x         | x*2*z |"
                      "0.0                    | 0.0       | 0.0";
   const char* g_zz = "-sin(x)*sin(y)*sin(z) | 0.0       | exp(x)*exp(2*y)*2 |"
-                     "0.0                    | 0.0       | 2.0 |"
+                     "0.0                    | 0.0       | 2.0*x*y |"
                      "0.0                    | 0.0       | 2.0";
 
   TensorFuncExpr f(g);
@@ -688,15 +779,18 @@ TEST(TestTensorFunction, Hessian3D)
                           0.0,                   0.0,       0.0,
 
                           -sin(x)*sin(y)*sin(z), 0.0,      exp(x)*exp(2*y)*2,
-                          0.0,                   0.0,      2.0,
+                          0.0,                   0.0,      2.0*x*y,
                           0.0,                   0.0,      2.0}.data());
 
+        const utl::matrix4d<Real> hess = f.hessian(X);
         for (size_t d1 = 1; d1 <= 3; ++d1)
           for (size_t d2 = 1; d2 <= 3; ++d2) {
             const Tensor dx = f.dderiv(X,d1,d2);
             for (size_t i = 1; i <= 3; ++i)
-              for (size_t j = 1; j <= 3; ++j)
+              for (size_t j = 1; j <= 3; ++j) {
                 EXPECT_DOUBLE_EQ(dx(i,j), r(i,j,d1,d2));
+                EXPECT_DOUBLE_EQ(hess(i,j,d1,d2), r(i,j,d1,d2));
+              }
           }
       }
 }
@@ -731,8 +825,6 @@ TEST(TestTensorFunction, TimeDerivative)
               EXPECT_DOUBLE_EQ(dt(i,j), r(i,j));
       }
 }
-
-
 
 
 TEST(TestTensorFuncExpr, NumDimensions)
@@ -1039,6 +1131,133 @@ TEST(TestSTensorFuncExpr, NumDimensions)
   EXPECT_EQ(f3.getNoSpaceDim(), 3);
   EXPECT_EQ(f3.dim(), 6);
 }
+
+
+TEST(TestSTensorFunction, Hessian2D)
+{
+  const char* g    = "sin(x)*sin(y) | exp(x)*exp(2*y) | x*x*y*y";
+  const char* g_xx = "-sin(x)*sin(y) | exp(x)*exp(2*y) | 2*y*y";
+  const char* g_xy = "cos(x)*cos(y) | exp(x)*2*exp(2*y) | 2*x*2*y";
+  const char* g_yy = "-sin(x)*sin(y) | exp(x)*4*exp(2*y) | x*x*2";
+
+  STensorFuncExpr f(g);
+  f.addDerivative(g_xx,"",1,1);
+  f.addDerivative(g_xy,"",1,2);
+  f.addDerivative(g_yy,"",2,2);
+
+  EXPECT_TRUE(f.isConstant());
+
+  for (double x : {0.1, 0.2, 0.3})
+    for (double y : {0.5, 0.6, 0.7}) {
+      const Vec3 X(x,y);
+      utl::matrix4d<Real> r(2,2,2,2);
+      r.fill(std::array{-sin(x)*sin(y), 2*y*y,
+                         2*y*y,         exp(x)*exp(2*y),
+
+                         cos(x)*cos(y), 2*x*2*y,
+                         2*x*2*y,       exp(x)*2*exp(2*y),
+
+                         cos(x)*cos(y), 2*x*2*y,
+                         2*x*2*y,       exp(x)*2*exp(2*y),
+
+                        -sin(x)*sin(y), x*x*2,
+                         x*x*2,         exp(x)*4*exp(2*y)}.data());
+
+      const utl::matrix4d<Real> hess = f.hessian(X);
+      for (size_t d1 = 1; d1 <= 2; ++d1)
+        for (size_t d2 = 1; d2 <= 2; ++d2) {
+          const SymmTensor dx = f.dderiv(X,d1,d2);
+          for (size_t i = 1; i <= 2; ++i)
+            for (size_t j = 1; j <= 2; ++j) {
+              EXPECT_DOUBLE_EQ(dx(i,j), r(i,j,d1,d2));
+              EXPECT_DOUBLE_EQ(hess(i,j,d1,d2), r(i,j,d1,d2));
+            }
+        }
+    }
+}
+
+
+TEST(TestSTensorFunction, Hessian3D)
+{
+  const char* g    = "sin(x)*sin(y)*sin(z) | exp(x)*exp(2*y)*exp(z) | x*x*y*y*z*z |"
+                     "x*y*z | x*x*y*z | z";
+  const char* g_xx = "-sin(x)*sin(y)*sin(z) | exp(x)*exp(2*y)*exp(z) | 2*y*y*z*z |"
+                     "0.0 | 2*y*z | 0.0";
+  const char* g_xy = "cos(x)*cos(y)*sin(z) | exp(x)*2*exp(2*y)*exp(z) | 2*x*2*y*z*z |"
+                     "z | 2*x*z | 0.0";
+  const char* g_xz = "cos(x)*sin(y)*cos(z) | exp(x)*exp(2*y)*exp(z) | 2*x*y*y*2*z |"
+                     "y | 2*x*y | 0.0";
+  const char* g_yy = "-sin(x)*sin(y)*sin(z) | exp(x)*4*exp(2*y)*exp(z) | x*x*2*z*z |"
+                     "0.0 | 0.0 | 0.0";
+  const char* g_yz = "sin(x)*cos(y)*cos(z) | exp(x)*2*exp(2*y)*exp(z) | x*x*2*y*2*z |"
+                     "x | x*x | 0.0";
+  const char* g_zz = "-sin(x)*sin(y)*sin(z) | exp(x)*exp(2*y)*exp(z) | x*x*y*y*2 |"
+                     "0.0 | 0.0 | 0.0";
+
+
+  STensorFuncExpr f(g);
+  f.addDerivative(g_xx,"",1,1);
+  f.addDerivative(g_xy,"",1,2);
+  f.addDerivative(g_xz,"",1,3);
+  f.addDerivative(g_yy,"",2,2);
+  f.addDerivative(g_yz,"",2,3);
+  f.addDerivative(g_zz,"",3,3);
+
+  EXPECT_TRUE(f.isConstant());
+
+  for (double x : {0.1, 0.2, 0.3})
+    for (double y : {0.5, 0.6, 0.7})
+      for (double z : {0.8, 0.9, 1.0}) {
+        const Vec3 X(x,y,z);
+        utl::matrix4d<Real> r(3,3,3,3);
+        r.fill(std::array{-sin(x)*sin(y)*sin(z), 0.0, 0.0,
+                           0.0,                  exp(x)*exp(2*y)*exp(z),   2*y*z,
+                           0.0,                  2*y*z,                    2*y*y*z*z,
+
+                           cos(x)*cos(y)*sin(z), z,                        0.0,
+                           z,                    exp(x)*2*exp(2*y)*exp(z), 2*x*z,
+                           0.0,                  2*x*z,                    2*x*2*y*z*z,
+
+                           cos(x)*sin(y)*cos(z), y,                        0.0,
+                           y,                    exp(x)*exp(2*y)*exp(z),   2*x*y,
+                           0.0,                  2*x*y,                    2*x*y*y*2*z,
+
+                           cos(x)*cos(y)*sin(z), z,                        0.0,
+                           z,                    exp(x)*2*exp(2*y)*exp(z), 2*x*z,
+                           0.0,                  2*x*z,                    2*x*2*y*z*z,
+
+                          -sin(x)*sin(y)*sin(z), 0.0,                      0.0,
+                           0.0,                  exp(x)*4*exp(2*y)*exp(z), 0.0,
+                           0.0,                  0.0,                      x*x*2*z*z,
+
+                           sin(x)*cos(y)*cos(z), x,                        0.0,
+                           x,                    exp(x)*2*exp(2*y)*exp(z), x*x,
+                           0.0,                  x*x,                      x*x*2*y*2*z,
+
+                           cos(x)*sin(y)*cos(z), y,                        0.0,
+                           y,                    exp(x)*exp(2*y)*exp(z),   2*x*y,
+                           0.0,                  2*x*y,                    2*x*y*y*2*z,
+
+                           sin(x)*cos(y)*cos(z), x,                        0.0,
+                           x,                    exp(x)*2*exp(2*y)*exp(z), x*x,
+                           0.0,                  x*x,                      x*x*2*y*2*z,
+
+                          -sin(x)*sin(y)*sin(z), 0.0,                      0.0,
+                           0.0,                  exp(x)*exp(2*y)*exp(z),   0.0,
+                           0.0,                  0.0,                      x*x*y*y*2}.data());
+
+        const utl::matrix4d<Real> hess = f.hessian(X);
+        for (size_t d1 = 1; d1 <= 3; ++d1)
+          for (size_t d2 = 1; d2 <= 3; ++d2) {
+            const SymmTensor dx = f.dderiv(X,d1,d2);
+            for (size_t i = 1; i <= 3; ++i)
+              for (size_t j = 1; j <= 3; ++j) {
+                EXPECT_DOUBLE_EQ(dx(i,j), r(i,j,d1,d2));
+                EXPECT_DOUBLE_EQ(hess(i,j,d1,d2), r(i,j,d1,d2));
+              }
+          }
+       }
+ }
 
 
 TEST(TestSTensorFunction, TimeDerivative)
