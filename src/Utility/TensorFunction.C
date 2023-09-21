@@ -23,6 +23,15 @@ utl::matrix3d<Real> TensorFunc::gradient(const Vec3& X) const
 }
 
 
+Tensor TensorFunc::timeDerivative(const Vec3& X) const
+{
+  const size_t nsd = sqrt(ncmp);
+  Tensor result(nsd);
+  result = this->evalTimeDerivative(X);
+  return result;
+}
+
+
 size_t STensorFunc::index(size_t nsd, size_t i, size_t j) const
 {
   if (i == j)
@@ -48,5 +57,14 @@ utl::matrix3d<Real> STensorFunc::gradient(const Vec3& X) const
       for (size_t j = 1; j <= nsd; ++j)
         result(i,j,d) = temp[index(nsd,i,j) + (d-1)*ncmp];
 
+  return result;
+}
+
+
+SymmTensor STensorFunc::timeDerivative(const Vec3& X) const
+{
+  const size_t nsd = ncmp > 5 ? 3 : (ncmp > 2 ? 2 : 1);
+  SymmTensor result(nsd, ncmp == 4);
+  result = this->evalTimeDerivative(X);
   return result;
 }

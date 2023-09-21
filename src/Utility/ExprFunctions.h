@@ -226,6 +226,9 @@ protected:
 
   //! \brief Returns the gradient of the function as a 1D array.
   std::vector<Real> evalGradient(const Vec3& X) const override;
+
+  //! \brief Returns the time derivatives of the function as a 1D array.
+  std::vector<Real> evalTimeDerivative(const Vec3& X) const override;
 };
 
 //! Vector-valued function expression

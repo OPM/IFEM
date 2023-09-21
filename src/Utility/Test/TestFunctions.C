@@ -320,6 +320,61 @@ TEST(TestVecFuncExpr, NumDimensions)
 }
 
 
+TEST(TestVecFuncExpr, TimeDerivative)
+{
+  const char* g   = "sin(x)*sin(y)*sin(z)*sin(t) | x*x*y*y*z*t*t | exp(-2*t)";
+  const char* g_t = "sin(x)*sin(y)*sin(z)*cos(t) | x*x*y*y*z*2*t | -2*exp(-2*t)";
+
+  VecFuncExpr f(g);
+  f.addDerivative(g_t,"",4);
+
+  EXPECT_FALSE(f.isConstant());
+
+  for (double t : {0.1, 0.2, 0.3})
+    for (double x : {0.1, 0.2, 0.3})
+      for (double y : {0.5, 0.6, 0.7})
+        for (double z : {0.8, 0.9, 1.0}) {
+          const Vec4 X(x,y,z,t);
+          const Vec3 r(sin(x)*sin(y)*sin(z)*cos(t),
+                       x*x*y*y*z*2*t,
+                       -2*exp(-2*t));
+          const Vec3 dt = f.timeDerivative(X);
+          EXPECT_DOUBLE_EQ(dt[0], r[0]);
+          EXPECT_DOUBLE_EQ(dt[1], r[1]);
+          EXPECT_DOUBLE_EQ(dt[2], r[2]);
+        }
+}
+
+
+TEST(TestVecFuncExpr, TimeDerivativeFD)
+{
+  const char* g   = "sin(x)*sin(y)*sin(z)*sin(t) | x*x*y*y*z*t*t | exp(-2*t)";
+
+  const double eps = 1e-6;
+  VecFuncExpr f(g,"",1e-8,eps);
+
+  EXPECT_FALSE(f.isConstant());
+
+  for (double t : {0.1, 0.2, 0.3})
+    for (double x : {0.1, 0.2, 0.3})
+      for (double y : {0.5, 0.6, 0.7})
+        for (double z : {0.8, 0.9, 1.0}) {
+          const Vec4 X(x,y,z,t);
+          const Vec4 Xp(x,y,z,t + 0.5*eps);
+          const Vec4 Xm(x,y,z,t - 0.5*eps);
+          Vec3 r(sin(x)*sin(y)*sin(z)*(sin(Xp.t) - sin(Xm.t)),
+                 x*x*y*y*z*(Xp.t*Xp.t - Xm.t*Xm.t),
+                 exp(-2*Xp.t) - exp(-2*Xm.t));
+          r *= 1.0 / eps;
+
+          const Vec3 dt = f.timeDerivative(X);
+          EXPECT_NEAR(dt[0], r[0], 1e-8);
+          EXPECT_NEAR(dt[1], r[1], 1e-8);
+          EXPECT_NEAR(dt[2], r[2], 1e-8);
+        }
+}
+
+
 TEST(TestTensorFunc, Evaluate)
 {
   const char* func = "sin(x) | cos (y) | exp(z) | sin(x)*cos(y)";
@@ -515,7 +570,7 @@ TEST(TestTensorFunction, Gradient3DFD)
               EXPECT_NEAR(grad(i,j,d), r(i,j,d), 1e-8);
             }
         }
-      }
+    }
 }
 
 
@@ -645,6 +700,39 @@ TEST(TestTensorFunction, Hessian3D)
           }
       }
 }
+
+
+TEST(TestTensorFunction, TimeDerivative)
+{
+  const char* g   = "sin(x)*sin(y)*sin(z)*sin(t)  | x*x*y*y*z*t*t | exp(x)*exp(2*y)*z*z*t |"
+                    "exp(-2*x)*exp(y)*z*sin(t)    | x*y*z*t*t     | x*y*z*z*t |"
+                    "x*sin(t)                     | y*t*t         | z*t";
+  const char* g_t = "sin(x)*sin(y)*sin(z)*cos(t)  | x*x*y*y*z*2*t | exp(x)*exp(2*y)*z*z |"
+                    "exp(-2*x)*exp(y)*z*cos(t)    | x*y*z*2*t     | x*y*z*z |"
+                    "x*cos(t)                     | y*2*t         | z";
+
+  TensorFuncExpr f(g);
+  f.addDerivative(g_t,"",4);
+
+  EXPECT_FALSE(f.isConstant());
+
+  for (double t : {0.1, 0.2, 0.3})
+    for (double x : {0.1, 0.2, 0.3})
+      for (double y : {0.5, 0.6, 0.7})
+        for (double z : {0.8, 0.9, 1.0}) {
+          const Vec4 X(x,y,z,t);
+          const Tensor r({sin(x)*sin(y)*sin(z)*cos(t), x*x*y*y*z*2*t, exp(x)*exp(2*y)*z*z,
+                          exp(-2*x)*exp(y)*z*cos(t),   x*y*z*2*t,     x*y*z*z,
+                          x*cos(t),                    y*2*t,         z});
+
+          const Tensor dt = f.timeDerivative(X);
+          for (size_t i = 1; i <= 3; ++i)
+            for (size_t j = 1; j <= 3; ++j)
+              EXPECT_DOUBLE_EQ(dt(i,j), r(i,j));
+      }
+}
+
+
 
 
 TEST(TestTensorFuncExpr, NumDimensions)
@@ -950,6 +1038,58 @@ TEST(TestSTensorFuncExpr, NumDimensions)
   STensorFuncExpr f3(func3);
   EXPECT_EQ(f3.getNoSpaceDim(), 3);
   EXPECT_EQ(f3.dim(), 6);
+}
+
+
+TEST(TestSTensorFunction, TimeDerivative)
+{
+  const char* g   = "sin(x)*sin(y)*sin(t) | exp(x)*exp(2*y)*exp(-4*t) | x*x*y*y*t*t";
+  const char* g_t = "sin(x)*sin(y)*cos(t) | exp(x)*exp(2*y)*-4*exp(-4*t) | x*x*y*y*2*t";
+
+  STensorFuncExpr f(g);
+  f.addDerivative(g_t,"",4);
+
+  EXPECT_FALSE(f.isConstant());
+
+  for (double t : {0.1, 0.2, 0.3})
+    for (double x : {0.1, 0.2, 0.3})
+      for (double y : {0.5, 0.6, 0.7}) {
+        const Vec4 X(x,y,0,t);
+        const SymmTensor r({sin(x)*sin(y)*cos(t), exp(x)*exp(2*y)*-4*exp(-4*t), x*x*y*y*2*t});
+
+        const SymmTensor dt = f.timeDerivative(X);
+        for (size_t i = 1; i <= 2; ++i)
+          for (size_t j = 1; j <= 2; ++j)
+            EXPECT_DOUBLE_EQ(dt(i,j), r(i,j));
+      }
+}
+
+
+TEST(TestSTensorFunction, TimeDerivativeFD)
+{
+  const char* g   = "sin(x)*sin(y)*sin(t) | exp(x)*exp(2*y)*exp(-4*t) | x*x*y*y*t*t";
+
+  const double eps = 1e-6;
+  STensorFuncExpr f(g,"",1e-8,eps);
+
+  EXPECT_FALSE(f.isConstant());
+
+  for (double t : {0.1, 0.2, 0.3})
+    for (double x : {0.1, 0.2, 0.3})
+      for (double y : {0.5, 0.6, 0.7}) {
+        const Vec4 X(x,y,0,t);
+        const Vec4 Xp(x,y,0,t + 0.5*eps);
+        const Vec4 Xm(x,y,0,t - 0.5*eps);
+        SymmTensor r({sin(x)*sin(y)*(sin(Xp.t) - sin(Xm.t)),
+                      exp(x)*exp(2*y)*(exp(-4*Xp.t) - exp(-4*Xm.t)),
+                      x*x*y*y*(Xp.t*Xp.t - Xm.t*Xm.t)});
+        r *= 1.0 / eps;
+
+        const SymmTensor dt = f.timeDerivative(X);
+        for (size_t i = 1; i <= 2; ++i)
+          for (size_t j = 1; j <= 2; ++j)
+            EXPECT_NEAR(dt(i,j), r(i,j), 1e-8);
+      }
 }
 
 
