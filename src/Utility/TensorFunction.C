@@ -14,7 +14,7 @@
 #include "TensorFunction.h"
 
 
-utl::matrix3d<Real> TensorFunc::gradient(const Vec3& X) const
+utl::matrix3d<Real> TensorFunc::gradient (const Vec3& X) const
 {
   const size_t nsd = sqrt(ncmp);
   utl::matrix3d<Real> result(nsd, nsd, nsd);
@@ -23,7 +23,16 @@ utl::matrix3d<Real> TensorFunc::gradient(const Vec3& X) const
 }
 
 
-Tensor TensorFunc::timeDerivative(const Vec3& X) const
+utl::matrix4d<Real> TensorFunc::hessian (const Vec3& X) const
+{
+  const size_t nsd = sqrt(ncmp);
+  utl::matrix4d<Real> result(nsd, nsd, nsd, nsd);
+  result.fill(this->evalHessian(X).data());
+  return result;
+}
+
+
+Tensor TensorFunc::timeDerivative (const Vec3& X) const
 {
   const size_t nsd = sqrt(ncmp);
   Tensor result(nsd);
@@ -32,7 +41,7 @@ Tensor TensorFunc::timeDerivative(const Vec3& X) const
 }
 
 
-size_t STensorFunc::index(size_t nsd, size_t i, size_t j) const
+size_t STensorFunc::index (size_t nsd, size_t i, size_t j) const
 {
   if (i == j)
     return i-1; // diagonal term
@@ -46,7 +55,7 @@ size_t STensorFunc::index(size_t nsd, size_t i, size_t j) const
 }
 
 
-utl::matrix3d<Real> STensorFunc::gradient(const Vec3& X) const
+utl::matrix3d<Real> STensorFunc::gradient (const Vec3& X) const
 {
   const size_t nsd = ncmp > 5 ? 3 : (ncmp > 2 ? 2 : 1);
   utl::matrix3d<Real> result(nsd,nsd,nsd);
@@ -61,7 +70,25 @@ utl::matrix3d<Real> STensorFunc::gradient(const Vec3& X) const
 }
 
 
-SymmTensor STensorFunc::timeDerivative(const Vec3& X) const
+utl::matrix4d<Real> STensorFunc::hessian (const Vec3& X) const
+{
+  const size_t nsd = ncmp > 5 ? 3 : (ncmp > 2 ? 2 : 1);
+  utl::matrix4d<Real> result(nsd, nsd, nsd, nsd);
+  const std::vector<Real> temp = this->evalHessian(X);
+
+  // de-voigt the blocks
+  size_t d = 1;
+  for (size_t d2 = 1; d2 <= nsd; ++d2)
+    for (size_t d1 = 1; d1 <= nsd; ++d1, ++d)
+      for (size_t j = 1; j <= nsd; ++j)
+        for (size_t i = 1; i <= nsd; ++i)
+          result(i,j,d1,d2) = temp[index(nsd,i,j) + (d-1)*ncmp];
+
+  return result;
+}
+
+
+SymmTensor STensorFunc::timeDerivative (const Vec3& X) const
 {
   const size_t nsd = ncmp > 5 ? 3 : (ncmp > 2 ? 2 : 1);
   SymmTensor result(nsd, ncmp == 4);
