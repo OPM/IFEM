@@ -223,6 +223,9 @@ protected:
 
   //! \brief Evaluates the function expressions.
   Ret evaluate(const Vec3& X) const override;
+
+  //! \brief Returns the gradient of the function as a 1D array.
+  std::vector<Real> evalGradient(const Vec3& X) const override;
 };
 
 //! Vector-valued function expression

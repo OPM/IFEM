@@ -11,6 +11,7 @@
 //==============================================================================
 
 #include "ExprFunctions.h"
+#include "TensorFunction.h"
 #include "Functions.h"
 #include "matrixnd.h"
 
@@ -18,6 +19,7 @@
 
 #include <cstdlib>
 #include <cmath>
+
 
 TEST(TestScalarFunc, ParseDerivative)
 {
@@ -167,6 +169,139 @@ TEST(TestVecFunc, Evaluate)
 }
 
 
+TEST(TestVecFunction, Gradient2D)
+{
+  const char* g   = "sin(x)*sin(y) | x*x*y*y";
+  const char* g_x = "cos(x)*sin(y) | 2*x*y*y";
+  const char* g_y = "sin(x)*cos(y) | 2*x*x*y";
+
+  VecFuncExpr f(g);
+  f.addDerivative(g_x,"",1);
+  f.addDerivative(g_y,"",2);
+
+  EXPECT_TRUE(f.isConstant());
+
+  for (double x : {0.1, 0.2, 0.3})
+    for (double y : {0.5, 0.6, 0.7}) {
+      const Vec3 X(x,y);
+      const Tensor r({cos(x)*sin(y), 2*x*y*y,
+                      sin(x)*cos(y), 2*x*x*y});
+
+      const Tensor grad = f.gradient(X);
+      for (size_t d = 1; d <= 2; ++d) {
+        const Vec3 dx = f.deriv(X,d);
+        for (size_t i = 1; i <= 2; ++i) {
+          EXPECT_DOUBLE_EQ(dx[i-1], r(i,d));
+          EXPECT_DOUBLE_EQ(grad(i,d), r(i,d));
+        }
+      }
+    }
+}
+
+
+TEST(TestVecFunction, Gradient2DFD)
+{
+  const char* g = "sin(x)*sin(y) | x*x*y*y";
+
+  const double eps = 1e-6;
+
+  VecFuncExpr f(g,"",eps);
+
+  EXPECT_TRUE(f.isConstant());
+
+  for (double x : {0.1, 0.2, 0.3})
+    for (double y : {0.5, 0.6, 0.7}) {
+      const Vec3 X(x,y);
+      const Vec3 Xp(x + 0.5*eps, y + 0.5*eps);
+      const Vec3 Xm(x - 0.5*eps, y - 0.5*eps);
+      const Tensor r({(sin(Xp.x) - sin(Xm.x))*sin(y) / eps,
+                      (Xp.x*Xp.x - Xm.x*Xm.x)*y*y / eps,
+                      sin(x)*(sin(Xp.y) - sin(Xm.y)) / eps,
+                      x*x*(Xp.y*Xp.y - Xm.y*Xm.y) / eps});
+
+      const Tensor grad = f.gradient(X);
+      for (size_t d = 1; d <= 2; ++d) {
+        const Vec3 dx = f.deriv(X,d);
+        for (size_t i = 1; i <= 2; ++i) {
+          EXPECT_NEAR(dx[i-1], r(i,d), 1e-8);
+          EXPECT_NEAR(grad(i,d), r(i,d), 1e-8);
+        }
+      }
+    }
+}
+
+
+TEST(TestVecFunction, Gradient3D)
+{
+  const char* g   = "sin(x)*sin(y)*sin(z) | x*x*y*y*z*z*z | exp(-x)*exp(2*y)*exp(z*z)";
+  const char* g_x = "cos(x)*sin(y)*sin(z) | 2*x*y*y*z*z*z | -exp(-x)*exp(2*y)*exp(z*z)";
+  const char* g_y = "sin(x)*cos(y)*sin(z) | 2*x*x*y*z*z*z | 2*exp(-x)*exp(2*y)*exp(z*z)";
+  const char* g_z = "sin(x)*sin(y)*cos(z) | 3*x*x*y*y*z*z | 2*z*exp(-x)*exp(2*y)*exp(z*z)";
+
+  VecFuncExpr f(g);
+  f.addDerivative(g_x,"",1);
+  f.addDerivative(g_y,"",2);
+  f.addDerivative(g_z,"",3);
+
+  EXPECT_TRUE(f.isConstant());
+
+  for (double x : {0.1, 0.2, 0.3})
+    for (double y : {0.5, 0.6, 0.7})
+      for (double z : {0.8, 0.9, 1.0}) {
+        const Vec3 X(x,y,z);
+        const Tensor r({cos(x)*sin(y)*sin(z), 2*x*y*y*z*z*z, -exp(-x)*exp(2*y)*exp(z*z),
+                        sin(x)*cos(y)*sin(z), 2*x*x*y*z*z*z, 2*exp(-x)*exp(2*y)*exp(z*z),
+                        sin(x)*sin(y)*cos(z), 3*x*x*y*y*z*z, 2*z*exp(-x)*exp(2*y)*exp(z*z)});
+
+        const Tensor grad = f.gradient(X);
+        for (size_t d = 1; d <= 3; ++d) {
+          const Vec3 dx = f.deriv(X,d);
+          for (size_t i = 1; i <= 3; ++i) {
+            EXPECT_DOUBLE_EQ(dx[i-1], r(i,d));
+            EXPECT_DOUBLE_EQ(grad(i,d), r(i,d));
+          }
+        }
+      }
+}
+
+
+TEST(TestVecFunction, Gradient3DFD)
+{
+  const char* g   = "sin(x)*sin(y)*sin(z) | x*x*y*y*z*z*z | exp(-x)*exp(2*y)*exp(z*z)";
+
+  const double eps = 1e-6;
+  VecFuncExpr f(g,"",eps);
+
+  EXPECT_TRUE(f.isConstant());
+
+  for (double x : {0.1, 0.2, 0.3})
+    for (double y : {0.5, 0.6, 0.7})
+      for (double z : {0.8, 0.9, 1.0}) {
+        const Vec3 X(x,y,z);
+        const Vec3 Xp(x + 0.5*eps, y + 0.5*eps, z + 0.5*eps);
+        const Vec3 Xm(x - 0.5*eps, y - 0.5*eps, z - 0.5*eps);
+        const Tensor r({(sin(Xp.x) - sin(Xm.x))*sin(y)*sin(z) / eps,
+                        (Xp.x*Xp.x - Xm.x*Xm.x)*X.y*X.y*X.z*X.z*X.z / eps,
+                        (exp(-Xp.x) - exp(-Xm.x))*exp(2*y)*exp(z*z) / eps,
+                        sin(x)*(sin(Xp.y) - sin(Xm.y))*sin(z) / eps,
+                        x*x*(Xp.y*Xp.y - Xm.y*Xm.y)*z*z*z / eps,
+                        exp(-x)*(exp(2*Xp.y) - exp(2*Xm.y))*exp(z*z) / eps,
+                        sin(x)*sin(y)*(sin(Xp.z) - sin(Xm.z)) / eps,
+                        x*x*y*y*(Xp.z*Xp.z*Xp.z - Xm.z*Xm.z*Xm.z) / eps,
+                        exp(-x)*exp(2*y)*(exp(Xp.z*Xp.z) - exp(Xm.z*Xm.z)) / eps});
+
+        const Tensor grad = f.gradient(X);
+        for (size_t d = 1; d <= 3; ++d) {
+          const Vec3 dx = f.deriv(X,d);
+          for (size_t i = 1; i <= 3; ++i) {
+            EXPECT_NEAR(dx[i-1], r(i,d), 1e-8);
+            EXPECT_NEAR(grad(i,d), r(i,d), 1e-8);
+          }
+        }
+      }
+}
+
+
 TEST(TestVecFuncExpr, NumDimensions)
 {
   const char* func1 = "x";
@@ -223,11 +358,14 @@ TEST(TestTensorFunction, Gradient2D)
       r.fill(std::array{cos(x)*sin(y), 2*x*y*y, exp(x)*exp(2*y), -2*exp(-2*x)*exp(y),
                         sin(x)*cos(y), 2*x*x*y, 2*exp(x)*exp(2*y), exp(-2*x)*exp(y)}.data());
 
+      const utl::matrix3d<Real> grad = f.gradient(X);
       for (size_t d = 1; d <= 2; ++d) {
         const Tensor dx = f.deriv(X,d);
         for (size_t i = 1; i <= 2; ++i)
-          for (size_t j = 1; j <= 2; ++j)
+          for (size_t j = 1; j <= 2; ++j) {
             EXPECT_DOUBLE_EQ(dx(i,j), r(i,j,d));
+            EXPECT_DOUBLE_EQ(grad(i,j,d), r(i,j,d));
+          }
       }
     }
 }
@@ -258,11 +396,14 @@ TEST(TestTensorFunction, Gradient2DFD)
                         exp(-2*x)*(exp(Xp.y) - exp(Xm.y))}.data());
       r.multiply(1.0 / eps);
 
+      const utl::matrix3d<Real> grad = f.gradient(X);
       for (size_t d = 1; d <= 2; ++d) {
         const Tensor dx = f.deriv(X,d);
         for (size_t i = 1; i <= 2; ++i)
-          for (size_t j = 1; j <= 2; ++j)
+          for (size_t j = 1; j <= 2; ++j) {
             EXPECT_NEAR(dx(i,j), r(i,j,d), 1e-8);
+            EXPECT_NEAR(grad(i,j,d), r(i,j,d), 1e-8);
+          }
       }
     }
 }
@@ -305,11 +446,14 @@ TEST(TestTensorFunction, Gradient3D)
                           exp(-2*x)*exp(y),      y*z,       x*y*2*z,
                           0.0,                   0.0,       1.0}.data());
 
+        const utl::matrix3d<Real> grad = f.gradient(X);
         for (size_t d = 1; d <= 3; ++d) {
           const Tensor dx = f.deriv(X,d);
           for (size_t i = 1; i <= 3; ++i)
-            for (size_t j = 1; j <= 3; ++j)
+            for (size_t j = 1; j <= 3; ++j) {
               EXPECT_DOUBLE_EQ(dx(i,j), r(i,j,d));
+              EXPECT_DOUBLE_EQ(grad(i,j,d), r(i,j,d));
+            }
         }
       }
 }
@@ -362,11 +506,14 @@ TEST(TestTensorFunction, Gradient3DFD)
                           Xp.z - Xm.z}.data());
         r.multiply(1.0 / eps);
 
+        const utl::matrix3d<Real> grad = f.gradient(X);
         for (size_t d = 1; d <= 3; ++d) {
           const Tensor dx = f.deriv(X,d);
           for (size_t i = 1; i <= 3; ++i)
-            for (size_t j = 1; j <= 3; ++j)
+            for (size_t j = 1; j <= 3; ++j) {
               EXPECT_NEAR(dx(i,j), r(i,j,d), 1e-8);
+              EXPECT_NEAR(grad(i,j,d), r(i,j,d), 1e-8);
+            }
         }
       }
 }
@@ -598,11 +745,14 @@ TEST(TestSTensorFunction, Gradient2D)
       r.fill(std::array{cos(x)*sin(y), 2*x*y*y, 2*x*y*y, exp(x)*exp(2*y),
                         sin(x)*cos(y), 2*x*x*y, 2*x*x*y, 2*exp(x)*exp(2*y)}.data());
 
+      const utl::matrix3d<Real> grad = f.gradient(X);
       for (size_t d = 1; d <= 2; ++d) {
         const SymmTensor dx = f.deriv(X,d);
         for (size_t i = 1; i <= 2; ++i)
-          for (size_t j = 1; j <= 2; ++j)
+          for (size_t j = 1; j <= 2; ++j) {
             EXPECT_DOUBLE_EQ(dx(i,j), r(i,j,d));
+            EXPECT_DOUBLE_EQ(grad(i,j,d), r(i,j,d));
+          }
       }
     }
 }
@@ -663,11 +813,14 @@ TEST(TestSTensorFunction, Gradient2DFD)
                         exp(x)*(exp(2*Xp.y) - exp(2*Xm.y))}.data());
       r.multiply(1.0 / eps);
 
+      const utl::matrix3d<Real> grad = f.gradient(X);
       for (size_t d = 1; d <= 2; ++d) {
         const SymmTensor dx = f.deriv(X,d);
         for (size_t i = 1; i <= 2; ++i)
-          for (size_t j = 1; j <= 2; ++j)
+          for (size_t j = 1; j <= 2; ++j) {
             EXPECT_NEAR(dx(i,j), r(i,j,d), 1e-8);
+            EXPECT_NEAR(grad(i,j,d), r(i,j,d), 1e-8);
+          }
       }
     }
 }
@@ -708,11 +861,14 @@ TEST(TestSTensorFunction, Gradient3D)
                           x*y,                  exp(x)*exp(2*y)*exp(z),   x*x*y,
                           1.0,                  x*x*y,                    x*x*y*y*2*z}.data());
 
+        const utl::matrix3d<Real> grad = f.gradient(X);
         for (size_t d = 1; d <= 3; ++d) {
           const SymmTensor dx = f.deriv(X,d);
           for (size_t i = 1; i <= 3; ++i)
-            for (size_t j = 1; j <= 3; ++j)
+            for (size_t j = 1; j <= 3; ++j) {
               EXPECT_DOUBLE_EQ(dx(i,j), r(i,j,d));
+              EXPECT_DOUBLE_EQ(grad(i,j,d), r(i,j,d));
+            }
         }
       }
 }
@@ -766,11 +922,14 @@ TEST(TestSTensorFunction, Gradient3DFD)
                           x*x*y*y*(Xp.z*Xp.z - Xm.z*Xm.z)}.data());
         r.multiply(1.0 / eps);
 
+        const utl::matrix3d<Real> grad = f.gradient(X);
         for (size_t d = 1; d <= 3; ++d) {
           const SymmTensor dx = f.deriv(X,d);
           for (size_t i = 1; i <= 3; ++i)
-            for (size_t j = 1; j <= 3; ++j)
+            for (size_t j = 1; j <= 3; ++j) {
               EXPECT_NEAR(dx(i,j), r(i,j,d), 1e-8);
+              EXPECT_NEAR(grad(i,j,d), r(i,j,d), 1e-8);
+            }
         }
       }
 }
