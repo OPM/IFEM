@@ -374,11 +374,12 @@ void EvalFunction::setParam (const std::string& name, double value)
 
 
 EvalFunctions::EvalFunctions (const std::string& functions,
-                              const std::string& variables)
+                              const std::string& variables,
+                              const Real epsX, const Real epsT)
 {
   std::vector<std::string> components = splitComps(functions,variables);
   for (const std::string& comp : components)
-    p.emplace_back(std::make_unique<EvalFunction>(comp.c_str()));
+    p.emplace_back(std::make_unique<EvalFunction>(comp.c_str(),epsX,epsT));
 }
 
 

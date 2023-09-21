@@ -148,7 +148,8 @@ class EvalFunctions
 {
 protected:
   //! \brief The constructor parses the expression string for each component.
-  EvalFunctions(const std::string& functions, const std::string& variables);
+  EvalFunctions(const std::string& functions, const std::string& variables,
+                const Real epsX, const Real epsT);
   //! \brief The destructor frees the dynamically allocated function components.
   virtual ~EvalFunctions();
 
@@ -175,8 +176,10 @@ class EvalMultiFunction : public ParentFunc, public EvalFunctions
 public:
   //! \brief The constructor parses the expression string for each component.
   EvalMultiFunction(const std::string& functions,
-                    const std::string& variables = "")
-    : EvalFunctions(functions,variables), nsd(0) { this->setNoDims(); }
+                    const std::string& variables = "",
+                    const Real epsX = 1e-8,
+                    const Real epsT = 1e-12)
+    : EvalFunctions(functions,variables,epsX,epsT), nsd(0) { this->setNoDims(); }
 
   //! \brief Empty destructor.
   virtual ~EvalMultiFunction() {}
