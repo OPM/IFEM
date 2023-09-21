@@ -107,6 +107,47 @@ TEST(TestRealFunc, GradientFD)
 }
 
 
+TEST(TestRealFunc, Hessian)
+{
+  const char* f1 = "sin(x)*sin(y)*sin(z)";
+  const char* d11 = "-sin(x)*sin(y)*sin(z)";
+  const char* d22 = "-sin(x)*sin(y)*sin(z)";
+  const char* d33 = "-sin(x)*sin(y)*sin(z)";
+  const char* d12 = "cos(x)*cos(y)*sin(z)";
+  const char* d13 = "cos(x)*sin(y)*cos(z)";
+  const char* d23 = "sin(x)*cos(y)*cos(z)";
+
+  EvalFunction f(f1);
+  f.addDerivative(d11,"",1,1);
+  f.addDerivative(d12,"",1,2);
+  f.addDerivative(d13,"",1,3);
+  f.addDerivative(d22,"",2,2);
+  f.addDerivative(d23,"",2,3);
+  f.addDerivative(d33,"",3,3);
+
+  EXPECT_TRUE(f.isConstant());
+
+  for (double x : {0.1, 0.2, 0.3})
+    for (double y : {0.5, 0.6, 0.7})
+      for (double z : {0.8, 0.9, 1.0}) {
+        const Vec3 X(x,y,z);
+        const SymmTensor r({-sin(x)*sin(y)*sin(z),
+                            -sin(x)*sin(y)*sin(z),
+                            -sin(x)*sin(y)*sin(z),
+                             cos(x)*cos(y)*sin(z),
+                             sin(x)*cos(y)*cos(z),
+                             cos(x)*sin(y)*cos(z)});
+
+        const SymmTensor hess = f.hessian(X);
+        for (size_t i = 1; i <= 3; ++i)
+          for (size_t j = 1; j <= 3; ++j) {
+            EXPECT_DOUBLE_EQ(f.dderiv(X,i,j), r(i,j));
+            EXPECT_DOUBLE_EQ(hess(i,j), r(i,j));
+          }
+      }
+}
+
+
 TEST(TestVecFunc, Evaluate)
 {
   const char* func = "sin(x) | cos (y) | exp(z)";

@@ -14,6 +14,7 @@
 #ifndef UTL_FUNCTION_H
 #define UTL_FUNCTION_H
 
+#include "Tensor.h"
 #include "Vec3.h"
 #include <functional>
 #include <cstddef>
@@ -199,6 +200,17 @@ public:
     Vec3 result;
     for (size_t d = 1; d <= 3; ++d)
       result[d-1] = this->deriv(X,d);
+
+    return result;
+  }
+
+  //! \brief Evaluates second derivatives of the function.
+  virtual SymmTensor hessian(const Vec3& X) const
+  {
+    SymmTensor result(3);
+    for (size_t d1 = 1; d1 <= 3; ++d1)
+      for (size_t d2 = d1; d2 <= 3; ++d2)
+        result(d1,d2) = this->dderiv(X, d1, d2);
 
     return result;
   }

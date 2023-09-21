@@ -133,7 +133,7 @@ std::pair<size_t,size_t> getNoDims(size_t psize);
 */
 
 template<>
-std::pair<size_t,size_t> getNoDims<Vec3>(size_t psize)
+std::pair<size_t,size_t> getNoDims<Vec3> (size_t psize)
 {
   return {psize, psize};
 }
@@ -144,7 +144,7 @@ std::pair<size_t,size_t> getNoDims<Vec3>(size_t psize)
 */
 
 template<>
-std::pair<size_t,size_t> getNoDims<Tensor>(size_t psize)
+std::pair<size_t,size_t> getNoDims<Tensor> (size_t psize)
 {
   size_t nsd = 0;
   if (psize > 8)
@@ -163,7 +163,7 @@ std::pair<size_t,size_t> getNoDims<Tensor>(size_t psize)
 */
 
 template<>
-std::pair<size_t,size_t> getNoDims<SymmTensor>(size_t psize)
+std::pair<size_t,size_t> getNoDims<SymmTensor> (size_t psize)
 {
   size_t nsd = 0;
   if (psize > 5)
@@ -174,6 +174,25 @@ std::pair<size_t,size_t> getNoDims<SymmTensor>(size_t psize)
     nsd = 1;
 
   return {nsd, psize == 4 ? 4 : (nsd+1)*nsd/2};
+}
+
+/*!
+  \brief Helper to obtain Voigt index.
+*/
+
+int voigtIdx (int d1, int d2)
+{
+  if (d1 > d2)
+    std::swap(d1,d2); // Assuming symmetry
+
+  if (d1 < 1 || d2 > 3)
+    return -1; // Out-of-range
+  else if (d2-d1 == 0) // diagonal term, 11, 22 and 33
+    return d1-1;
+  else if (d2-d1 == 1) // off-diagonal term, 12 and 23
+    return d2+1;
+  else // off-diagonal term, 13
+    return 5;
 }
 
 }
@@ -309,21 +328,6 @@ void EvalFunction::addDerivative (const std::string& function,
                                   const std::string& variables,
                                   int d1, int d2)
 {
-  auto&& voigtIdx = [](int d1, int d2)
-  {
-    if (d1 > d2)
-      std::swap(d1,d2); // Assuming symmetry
-
-    if (d1 < 1 || d2 > 3)
-      return -1; // Out-of-range
-    else if (d2-d1 == 0) // diagonal term, 11, 22 and 33
-      return d1-1;
-    else if (d2-d1 == 1) // off-diagonal term, 12 and 23
-      return d2+1;
-    else // off-diagonal term, 13
-      return 5;
-  };
-
   if (d1 > 0 && d1 <= 4 && d2 < 1) // A first order derivative is specified
   {
     if (!derivative1[--d1])
@@ -396,19 +400,8 @@ Real EvalFunction::deriv (const Vec3& X, int dir) const
 
 Real EvalFunction::dderiv (const Vec3& X, int d1, int d2) const
 {
-  if (d1 > d2)
-    std::swap(d1,d2); // Assuming symmetry
-
-  if (d1 < 1 || d2 > 3)
+  if ((d1 = voigtIdx(d1,d2)) < 0)
     return Real(0);
-
-  // Assuming Voigt notation ordering; 11, 22, 33, 12, 23, 13
-  if (d2-d1 == 0) // diagoal term, 11, 22 and 33
-    --d1;
-  else if (d2-d1 == 1) // off-diagonal term, 12 and 23
-    d1 = d2+1;
-  else // off-diagonal term, 13
-    d1 = 5;
 
   return derivative2[d1] ? derivative2[d1]->evaluate(X) : Real(0);
 }
