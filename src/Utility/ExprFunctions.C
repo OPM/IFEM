@@ -286,7 +286,7 @@ void EvalFunction::addDerivative (const std::string& function,
                                   const std::string& variables,
                                   int d1, int d2)
 {
-  if (d1 > 0 && d1 <= 3 && d2 < 1) // A first derivative is specified
+  if (d1 > 0 && d1 <= 4 && d2 < 1) // A first derivative is specified
   {
     if (!gradient[--d1])
       gradient[d1] = new EvalFunction((variables+function).c_str());
@@ -342,6 +342,9 @@ Real EvalFunction::deriv (const Vec3& X, int dir) const
   }
   else if (!IAmConstant)
   {
+    if (gradient[3])
+      return gradient[3]->evaluate(X);
+
     // Evaluate time-derivative using central difference
     Vec4 X0, X1;
     X0.assign(X); X0.t -= 0.5*dt;
