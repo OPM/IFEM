@@ -110,6 +110,9 @@ namespace utl
     virtual Result dderiv(const Vec3&, int, int) const { return zero; }
 
   protected:
+    //! \brief Returns the gradient of the function as a 1D array.
+    virtual std::vector<Real> evalGradient(const Vec3&) const { return {}; }
+
     Result zero; //!< Return value for default implementations of derivatives
   };
 }
@@ -250,6 +253,14 @@ public:
   virtual Real getScalarValue(const Vec3& X) const
   {
     return this->evaluate(X).length();
+  }
+
+  //! \brief Evaluates first derivatives of the function.
+  Tensor gradient(const Vec3& X) const
+  {
+    Tensor result(ncmp);
+    result = this->evalGradient(X);
+    return result;
   }
 };
 

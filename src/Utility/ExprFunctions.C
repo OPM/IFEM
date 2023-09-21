@@ -481,6 +481,24 @@ Ret EvalMultiFunction<ParentFunc,Ret>::dderiv (const Vec3& X, int d1, int d2) co
 }
 
 
+template <class ParentFunc, class Ret>
+std::vector<Real>
+EvalMultiFunction<ParentFunc, Ret>::evalGradient (const Vec3& X) const
+{
+  std::vector<Real> result(this->ncmp*this->nsd);
+  std::vector<Vec3> dx;
+  for (const std::unique_ptr<EvalFunction>& f : this->p)
+    dx.push_back(f->gradient(X));
+
+  size_t k = 0;
+  for (size_t d = 1; d <= this->nsd; ++d)
+    for (size_t i = 1; i <= this->ncmp; ++i)
+      result[k++] = dx[i-1][d-1];
+
+  return result;
+}
+
+
 template class EvalMultiFunction<VecFunc,Vec3>;
 template class EvalMultiFunction<TensorFunc,Tensor>;
 template class EvalMultiFunction<STensorFunc,SymmTensor>;

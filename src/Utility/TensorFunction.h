@@ -15,6 +15,7 @@
 #define _TENSOR_FUNCTION_H
 
 #include "Function.h"
+#include "matrixnd.h"
 #include "Tensor.h"
 
 
@@ -49,6 +50,9 @@ public:
   {
     return this->evaluate(X).trace();
   }
+
+  //! \brief Evaluates first derivatives of the function.
+  utl::matrix3d<Real> gradient(const Vec3& X) const;
 };
 
 
@@ -59,6 +63,9 @@ public:
 class STensorFunc : public utl::SpatialFunction<SymmTensor>,
                     public FunctionBase
 {
+  //! \brief Returns the flat indices of the symmetric tensor.
+  size_t index(size_t nsd, size_t i, size_t j) const;
+
 protected:
   //! \brief The constructor is protected to allow sub-class instances only.
   STensorFunc(size_t n = 0, bool with33 = false)
@@ -85,6 +92,9 @@ public:
   {
     return this->evaluate(X).trace();
   }
+
+  //! \brief Evaluates first derivatives of the function.
+  utl::matrix3d<Real> gradient(const Vec3& X) const;
 };
 
 #endif
