@@ -17,6 +17,8 @@
 
 #include "gtest/gtest.h"
 
+#include <autodiff/reverse/var.hpp>
+
 #include <cstdlib>
 #include <cmath>
 
@@ -28,6 +30,8 @@ TEST(TestScalarFunc, ParseDerivative)
 
   ScalarFunc* f1 = utl::parseTimeFunc(func1,"expression");
   ScalarFunc* f2 = utl::parseTimeFunc(func2,"expression");
+
+  EvalFuncImpl<autodiff::var> f3(func1,"t");
 
   ASSERT_TRUE(f1 != nullptr);
   ASSERT_TRUE(f2 != nullptr);
@@ -45,6 +49,7 @@ TEST(TestScalarFunc, ParseDerivative)
     EXPECT_FLOAT_EQ((*f2)(t),sin(1.5*t)*t);
     EXPECT_FLOAT_EQ(f1->deriv(t),1.5*cos(1.5*t)*t+sin(1.5*t));
     EXPECT_FLOAT_EQ(f2->deriv(t),1.5*cos(1.5*t)*t+sin(1.5*t));
+    EXPECT_FLOAT_EQ(f3.deriv(t),1.5*cos(1.5*t)*t+sin(1.5*t));
   }
 }
 
