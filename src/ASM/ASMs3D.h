@@ -96,10 +96,9 @@ protected:
     virtual ~BasisFunctionCache() = default;
 
     //! \brief Returns number of elements in each direction.
-    const std::array<size_t,3>& noElms() const
-    { return nel; }
+    const std::array<size_t,3>& noElms() const { return nel; }
 
- protected:
+  protected:
     //! \brief Implementation specific initialization.
     bool internalInit() override;
 
@@ -108,7 +107,7 @@ protected:
 
     //! \brief Calculates basis function info in a single integration point.
     //! \param el Element of integration point (0-indexed)
-    //! \param gp Integratin point on element (0-indexed)
+    //! \param gp Integration point on element (0-indexed)
     //! \param reduced If true, returns values for reduced integration scheme
     BasisFunctionVals calculatePt(size_t el, size_t gp, bool reduced) const override;
 
@@ -129,7 +128,7 @@ protected:
     int basis; //!< Basis to use
     std::array<size_t,3> nel; //!< Number of elements in each direction
 
-private:
+  private:
     //! \brief Obtain structured element indices.
     //! \param el Global element index
     std::array<size_t,3> elmIndex(size_t el) const;
@@ -210,9 +209,9 @@ public:
   //! \param[in] dir Parameter direction defining which boundary to return
   virtual Go::SplineSurface* getBoundary(int dir, int = 1);
   //! \brief Returns the spline volume representing a basis of this patch.
-  virtual const Go::SplineVolume* getBasis(int basis = 1) const;
-  //! \brief Returns the spline volume representing a basis of this patch.
   virtual Go::SplineVolume* getBasis(int basis = 1);
+  //! \brief Returns the spline volume representing a basis of this patch.
+  virtual const Go::SplineVolume* getBasis(int basis = 1) const;
   //! \brief Copies the parameter domain from the \a other patch.
   virtual void copyParameterDomain(const ASMbase* other);
 
@@ -253,16 +252,17 @@ public:
   virtual int getNodeID(size_t inod, bool noAddedNodes = false) const;
 
   //! \brief Returns a matrix with nodal coordinates for an element.
-  //! \param[in] iel Element index
   //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
   //! in one element
-  //! \param[in] forceItg If true return integration basis element coordinates
+  //! \param[in] iel 1-based element index local to current patch
+  //! \param[in] forceItg If \e true, return the integration basis coordinates
+  //! otherwise the geometry basis coordinates are returned
   virtual bool getElementCoordinates(Matrix& X, int iel, bool forceItg = false) const;
 
   //! \brief Returns a matrix with all nodal coordinates within the patch.
   //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
-  //! \param[in] geo If true returns coordinates for geometry basis
-  //! in the patch
+  //! \param[in] geo If \e true, coordinates for the geometry basis are returned
+  //! otherwise the integration basis coordinates are returned
   virtual void getNodalCoordinates(Matrix& X, bool geo = false) const;
 
   //! \brief Returns the global coordinates for the given node.
@@ -290,11 +290,6 @@ public:
   //! \param[in] open If \e true, exclude edge end points
   virtual void getBoundary1Nodes(int lEdge, IntVec& nodes, int basis, int = 0,
                                  bool local = false, bool open = false) const;
-
-  //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
-  //! \param[in] lIndex Local index of the boundary face/edge
-  //! \param[out] elms Array of element numbers
-  virtual void getBoundaryElms(int lIndex, int, IntVec& elms) const;
 
   //! \brief Returns the node index for a given corner.
   //! \param[in] I -1 or +1 for either umin or umax corner
@@ -659,6 +654,11 @@ protected:
 
   // Internal utility methods
   // ========================
+
+  //! \brief Finds the patch-local element numbers on a patch boundary.
+  //! \param[out] elms Array of element numbers
+  //! \param[in] lIndex Local index of the boundary face
+  virtual void findBoundaryElms(IntVec& elms, int lIndex, int = 0) const;
 
   //! \brief Assembles L2-projection matrices for the secondary solution.
   //! \param[out] A Left-hand-side matrix

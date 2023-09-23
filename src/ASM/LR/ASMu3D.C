@@ -2355,33 +2355,32 @@ void ASMu3D::getElmConnectivities (IntMat& neigh) const
 }
 
 
-void ASMu3D::getBoundaryElms (int lIndex, int orient, IntVec& elms) const
+void ASMu3D::findBoundaryElms (IntVec& elms, int lIndex, int orient) const
 {
   std::vector<LR::Element*> elements;
   this->getBasis(1)->getEdgeElements(elements,getFaceEnum(lIndex));
 
-  std::sort(elements.begin(), elements.end(),
-            [lIndex,orient](const LR::Element* a, const LR::Element* b)
-            {
-              int dir = (lIndex - 1) / 2;
-              int u = dir == 0 ? 1 : 0;
-              int v = 1 + (dir != 2 ? 1 : 0);
-              int idx = (orient & 4) ? v : u;
-              auto A = a->midpoint();
-              auto B = b->midpoint();
-              if (A[idx] != B[idx])
-                return (orient & 2) ? A[idx] > B[idx] : A[idx] < B[idx];
+  if (orient >= 0)
+    std::sort(elements.begin(), elements.end(),
+              [lIndex,orient](const LR::Element* a, const LR::Element* b)
+              {
+                int u = lIndex <= 2 ? 1 : 0;
+                int v = lIndex >= 5 ? 1 : 2;
+                int idx = (orient & 4) ? v : u;
+                std::vector<double> A = a->midpoint();
+                std::vector<double> B = b->midpoint();
+                if (A[idx] != B[idx])
+                  return (orient & 2) ? A[idx] > B[idx] : A[idx] < B[idx];
 
-              idx = (orient & 4) ? u : v;
-              if (A[idx] != B[idx])
-                return (orient & 1) ? A[idx] > B[idx] : A[idx] < B[idx];
+                idx = (orient & 4) ? u : v;
+                if (A[idx] != B[idx])
+                  return (orient & 1) ? A[idx] > B[idx] : A[idx] < B[idx];
 
-              return false;
-            });
-
+                return false;
+              });
 
   for (const LR::Element* elem : elements)
-    elms.push_back(MLGE[elem->getId()]-1);
+    elms.push_back(elem->getId());
 }
 
 

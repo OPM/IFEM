@@ -80,8 +80,7 @@ protected:
     virtual ~BasisFunctionCache() = default;
 
     //! \brief Returns number of elements in each direction.
-    const std::array<size_t,2>& noElms() const
-    { return nel; }
+    const std::array<size_t,2>& noElms() const { return nel; }
 
   protected:
     //! \brief Implementation specific initialization.
@@ -105,22 +104,21 @@ protected:
     //! \param reduced True to return index for reduced quadrature
     size_t index(size_t el, size_t gp, bool reduced) const override;
 
-  protected:
-    //! \brief Configure quadratures.
-    bool setupQuadrature();
-
     //! \brief Setup integration point parameters.
     virtual void setupParameters();
 
     const ASMs2D& patch; //!< Reference to patch cache is for
 
     int basis; //!< Basis to use
-    std::array<size_t,2> nel{0,0}; //!< Number of elements in each direction
+    std::array<size_t,2> nel; //!< Number of elements in each direction
 
   private:
     //! \brief Obtain structured element indices.
     //! \param el Global element index
     std::array<size_t,2> elmIndex(size_t el) const;
+
+    //! \brief Configure quadratures.
+    bool setupQuadrature();
   };
 
 public:
@@ -238,16 +236,17 @@ public:
   virtual int getNodeID(size_t inod, bool noAddedNodes = false) const;
 
   //! \brief Returns a matrix with nodal coordinates for an element.
-  //! \param[in] iel Element index
   //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
   //! in one element
-  //! \param[in] forceItg If true return integration basis element coordinates
+  //! \param[in] iel 1-based element index local to current patch
+  //! \param[in] forceItg If \e true, return the integration basis coordinates
+  //! otherwise the geometry basis coordinates are returned
   virtual bool getElementCoordinates(Matrix& X, int iel, bool forceItg = false) const;
 
   //! \brief Returns a matrix with all nodal coordinates within the patch.
   //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
-  //! \param[in] geo If true return coordinates of geometry basis
-  //! in the patch
+  //! \param[in] geo If \e true, coordinates for the geometry basis are returned
+  //! otherwise the integration basis coordinates are returned
   virtual void getNodalCoordinates(Matrix& X, bool geo = false) const;
 
   //! \brief Returns the global coordinates for the given node.
@@ -267,11 +266,6 @@ public:
   virtual void getBoundaryNodes(int lIndex, IntVec& nodes,
                                 int basis, int thick = 1,
                                 int = 0, bool local = false) const;
-
-  //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
-  //! \param[in] lIndex Local index of the boundary face/edge
-  //! \param[out] elms Array of element numbers
-  virtual void getBoundaryElms(int lIndex, int, IntVec& elms) const;
 
   //! \brief Returns the node index for a given corner.
   //! \param[in] I -1 or +1 for either umin or umax corner
@@ -316,6 +310,7 @@ public:
 
   //! \brief Checks if a separate projection basis is used for this patch.
   virtual bool separateProjectionBasis() const;
+
 
   // Various methods for preprocessing of boundary conditions and patch topology
   // ===========================================================================
@@ -588,6 +583,11 @@ protected:
 
   // Internal utility methods
   // ========================
+
+  //! \brief Finds the patch-local element numbers on a patch boundary.
+  //! \param[out] elms Array of element numbers
+  //! \param[in] lIndex Local index of the boundary edge
+  virtual void findBoundaryElms(IntVec& elms, int lIndex, int = 0) const;
 
   //! \brief Assembles L2-projection matrices for the secondary solution.
   //! \param[out] A Left-hand-side matrix

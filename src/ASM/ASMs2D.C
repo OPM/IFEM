@@ -3239,7 +3239,7 @@ void ASMs2D::getElmConnectivities (IntMat& neigh) const
 }
 
 
-void ASMs2D::getBoundaryElms (int lIndex, int, IntVec& elms) const
+void ASMs2D::findBoundaryElms (IntVec& elms, int lIndex, int) const
 {
   int N1m = surf->numCoefs_u() - surf->order_u() + 1;
   int N2m = surf->numCoefs_v() - surf->order_v() + 1;
@@ -3250,13 +3250,13 @@ void ASMs2D::getBoundaryElms (int lIndex, int, IntVec& elms) const
   case 2:
     elms.reserve(N2m);
     for (int i = 0; i < N2m; ++i)
-      elms.push_back(MLGE[i*N1m + (lIndex-1)*(N1m-1)] - 1);
+      elms.push_back(i*N1m + (lIndex-1)*(N1m-1));
     break;
   case 3:
   case 4:
     elms.reserve(N1m);
     for (int i = 0; i < N1m; ++i)
-      elms.push_back(MLGE[i + (lIndex-3)*N1m*(N2m-1)] - 1);
+      elms.push_back(i + (lIndex-3)*N1m*(N2m-1));
   }
 }
 

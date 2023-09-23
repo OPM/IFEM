@@ -2928,7 +2928,7 @@ void ASMu2D::getElmConnectivities (IntMat& neigh) const
 }
 
 
-void ASMu2D::getBoundaryElms (int lIndex, int orient, IntVec& elms) const
+void ASMu2D::findBoundaryElms (IntVec& elms, int lIndex, int orient) const
 {
   std::vector<LR::Element*> elements;
   switch (lIndex) {
@@ -2939,18 +2939,18 @@ void ASMu2D::getBoundaryElms (int lIndex, int orient, IntVec& elms) const
   default: return;
   }
 
-  // Lambda function for sorting wrt. element centre coordinate
-  auto&& onMidPoint = [orient,lIndex](LR::Element* a, LR::Element* b)
-  {
-    int index = lIndex < 3 ? 1 : 0;
-    double am = a->midpoint()[index];
-    double bm = b->midpoint()[index];
-    return orient == 1 ? bm < am : am < bm;
-  };
+  if (orient >= 0)
+    std::sort(elements.begin(), elements.end(),
+              [orient,lIndex](LR::Element* a, LR::Element* b)
+              {
+                int index = lIndex < 3 ? 1 : 0;
+                double am = a->midpoint()[index];
+                double bm = b->midpoint()[index];
+                return orient == 1 ? bm < am : am < bm;
+              });
 
-  std::sort(elements.begin(),elements.end(),onMidPoint);
   for (const LR::Element* elem : elements)
-    elms.push_back(MLGE[elem->getId()]-1);
+    elms.push_back(elem->getId());
 }
 
 

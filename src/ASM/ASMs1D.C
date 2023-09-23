@@ -1893,10 +1893,7 @@ void ASMs1D::getElmConnectivities (IntMat& neigh) const
 }
 
 
-void ASMs1D::getBoundaryElms (int lIndex, int, IntVec& elms) const
+void ASMs1D::findBoundaryElms (IntVec& elms, int lIndex, int) const
 {
-  if (lIndex == 1)
-    elms = {0};
-  else
-    elms = {MLGE[nel-1]-1};
+  elms = { lIndex == 1 ? 0 : static_cast<int>(nel)-1 };
 }

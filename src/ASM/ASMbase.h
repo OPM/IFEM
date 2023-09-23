@@ -229,14 +229,15 @@ public:
   virtual Vec3 getCoord(size_t inod) const = 0;
   //! \brief Returns a matrix with all nodal coordinates within the patch.
   //! \param[out] X nsd\f$\times\f$n-matrix, where \a n is the number of nodes
-  //! \param[in] geo If true returns coordinates for geometry basis
-  //! in the patch
+  //! \param[in] geo If \e true, coordinates for the geometry basis are returned
+  //! otherwise the integration basis coordinates are returned
   virtual void getNodalCoordinates(Matrix& X, bool geo = false) const = 0;
   //! \brief Returns a matrix with nodal coordinates for an element.
-  //! \param[in] iel 1-based element index local to current patch
-  //! \param[in] forceItg If true force returning integration basis coordinates
   //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
   //! in one element
+  //! \param[in] iel 1-based element index local to current patch
+  //! \param[in] forceItg If \e true, return the integration basis coordinates
+  //! otherwise the geometry basis coordinates are returned
   virtual bool getElementCoordinates(Matrix& X, int iel,
                                      bool forceItg = false) const = 0;
 
@@ -245,7 +246,7 @@ public:
   //! \param nodes Array of node numbers
   //! \param[in] basis Which basis to grab nodes for (for mixed methods)
   //! \param[in] thick Thickness of connection
-  //! \param[in] orient Local orientation of the boundary face/edge
+  //! \param[in] orient Local orientation flag (for LR splines only)
   //! \param[in] local If \e true, return patch-local numbers
   virtual void getBoundaryNodes(int lIndex, IntVec& nodes,
                                 int basis = 0, int thick = 1,
@@ -262,11 +263,13 @@ public:
                                  int basis = 0, int orient = -1,
                                  bool local = false, bool open = false) const {}
 
-  //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
-  //! \param[in] lIndex Local index of the boundary face/edge
-  //! \param[in] orient Local orientation of the boundary face/edge
+  //! \brief Finds the global (or patch-local) element numbers on a boundary.
+  //! \param[in] lIndex Local index of the boundary face/edge/vertex
   //! \param[out] elms Array of element numbers
-  virtual void getBoundaryElms(int lIndex, int orient, IntVec& elms) const = 0;
+  //! \param[in] orient Local orientation flag (for LR splines only)
+  //! \param[in] local If \e true, return patch-local element numbers
+  void getBoundaryElms(int lIndex, IntVec& elms,
+                       int orient = -1, bool local = false) const;
 
   //! \brief Returns (1-based) index of a predefined node set in the patch.
   virtual int getNodeSetIdx(const std::string&) const { return 0; }
@@ -820,6 +823,12 @@ protected:
   //! \param[in] tol Zero tolerance
   int searchCtrlPt(RealArray::const_iterator cit, RealArray::const_iterator end,
                    const Vec3& X, int dimension, double tol = 0.001) const;
+
+  //! \brief Finds the patch-local element numbers on a patch boundary.
+  //! \param[out] elms Array of element numbers
+  //! \param[in] lIndex Local index of the boundary face/edge/vertex
+  //! \param[in] orient Local orientation flag (for LR splines only)
+  virtual void findBoundaryElms(IntVec& elms, int lIndex, int orient) const = 0;
 
   //! \brief Assembles L2-projection matrices for the secondary solution.
   //! \param[out] A Left-hand-side matrix

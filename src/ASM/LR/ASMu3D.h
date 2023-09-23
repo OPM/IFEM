@@ -189,12 +189,6 @@ public:
                                  int orient, bool local,
                                  bool open = false) const;
 
-  //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
-  //! \param[in] lIndex Local index of the boundary face/edge
-  //! \param[in] orient Orientation of boundary (used for sorting)
-  //! \param[out] elms Array of element numbers
-  virtual void getBoundaryElms(int lIndex, int orient, IntVec& elms) const;
-
   //! \brief Returns the node index for a given corner.
   //! \param[in] I -1 or +1 for either umin or umax corner
   //! \param[in] J -1 or +1 for either vmin or vmax corner
@@ -571,6 +565,12 @@ protected:
 
   // Internal utility methods
   // ========================
+
+  //! \brief Finds the patch-local element numbers on a patch boundary.
+  //! \param[out] elms Array of element numbers
+  //! \param[in] lIndex Local index of the boundary face
+  //! \param[in] orient Orientation of boundary (used for sorting)
+  virtual void findBoundaryElms(IntVec& elms, int lIndex, int orient) const;
 
   //! \brief Assembles L2-projection matrices for the secondary solution.
   //! \param[out] A Left-hand-side matrix

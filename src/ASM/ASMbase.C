@@ -1630,3 +1630,14 @@ bool ASMbase::writeLagBasis (std::ostream& os, const char* type) const
 
   return true;
 }
+
+
+void ASMbase::getBoundaryElms (int lIndex, IntVec& elms,
+                               int orient, bool local) const
+{
+  this->findBoundaryElms(elms,lIndex,orient);
+  if (local) return;
+
+  for (int& elm : elms)
+    elm = MLGE[elm]-1;
+}

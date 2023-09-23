@@ -50,7 +50,7 @@ TEST(TestASMs2D, BoundaryElements)
 
   std::array<IntVec,4> n;
   for (size_t i = 1; i <= 4; ++i) {
-    pch1.getBoundaryElms(i, 0, n[i-1]);
+    pch1.getBoundaryElms(i, n[i-1]);
     ASSERT_EQ(n[i-1].size(), ref[i-1].size());
     for (size_t j = 0; j < ref[i-1].size(); ++j)
       EXPECT_EQ(n[i-1][j], ref[i-1][j]);

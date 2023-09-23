@@ -76,7 +76,7 @@ public:
                                 int, int, int, bool local) const;
 
   //! \brief Dummy method doing nothing.
-  virtual void getBoundaryElms(int, int, IntVec&) const {}
+  virtual void findBoundaryElms(IntVec&, int, int) const {}
   //! \brief Dummy method doing nothing.
   virtual bool getParameterDomain(Real2DMat&, IntVec*) const { return false; }
   //! \brief Dummy method doing nothing.

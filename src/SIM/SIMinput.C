@@ -1854,8 +1854,8 @@ IntMat SIMinput::getElmConnectivities () const
     if (iface.dim == static_cast<int>(nsd)-1)
     {
       IntVec sElms, mElms;
-      myModel[iface.slave-1]->getBoundaryElms(iface.sidx, iface.orient, sElms);
-      myModel[iface.master-1]->getBoundaryElms(iface.midx, 0, mElms);
+      myModel[iface.slave-1]->getBoundaryElms(iface.sidx, sElms, iface.orient);
+      myModel[iface.master-1]->getBoundaryElms(iface.midx, mElms, 0);
       DomainDecomposition::OrientIterator iter(myModel[iface.slave-1],
                                                iface.orient, iface.sidx);
 

@@ -125,11 +125,6 @@ public:
   virtual void getBoundaryNodes(int lIndex, IntVec& nodes,
                                 int, int thick, int, bool local) const;
 
-  //! \brief Finds the global (or patch-local) node number on a patch end.
-  //! \param[in] lIndex Local index of the end point
-  //! \param[out] elms Array of global element numbers
-  virtual void getBoundaryElms(int lIndex, int, IntVec& elms) const;
-
   //! \brief Finds the node that is closest to the given point.
   //! \param[in] X Global coordinates of point to search for
   //! \return 1-based nodal index and distance to to the found node
@@ -343,6 +338,11 @@ protected:
 
   // Internal utility methods
   // ========================
+
+  //! \brief Finds the path-local element numbers on a patch boundary.
+  //! \param[out] elms Array of element numbers
+  //! \param[in] lIndex Local index of the end point
+  virtual void findBoundaryElms(IntVec& elms, int lIndex, int = 0) const;
 
   //! \brief Assembles L2-projection matrices for the secondary solution.
   //! \param[out] A Left-hand-side matrix

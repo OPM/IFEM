@@ -3776,7 +3776,7 @@ void ASMs3D::getElmConnectivities (IntMat& neigh) const
 }
 
 
-void ASMs3D::getBoundaryElms (int lIndex, int, IntVec& elms) const
+void ASMs3D::findBoundaryElms (IntVec& elms, int lIndex, int) const
 {
   int N1m = svol->numCoefs(0) - svol->order(0) + 1;
   int N2m = svol->numCoefs(1) - svol->order(1) + 1;
@@ -3789,21 +3789,21 @@ void ASMs3D::getBoundaryElms (int lIndex, int, IntVec& elms) const
     elms.reserve(N2m*N3m);
     for (int k = 0; k < N3m; ++k)
       for (int j = 0; j < N2m; ++j)
-        elms.push_back(MLGE[j*N1m + k*N1m*N2m + (lIndex-1)*(N1m-1)] - 1);
+        elms.push_back(j*N1m + k*N1m*N2m + (lIndex-1)*(N1m-1));
     break;
   case 3:
   case 4:
     elms.reserve(N1m*N3m);
     for (int k = 0; k < N3m; ++k)
       for (int i = 0; i < N1m; ++i)
-        elms.push_back(MLGE[i + k*N1m*N2m + (lIndex-3)*(N1m*(N2m-1))] - 1);
+        elms.push_back(i + k*N1m*N2m + (lIndex-3)*(N1m*(N2m-1)));
     break;
   case 5:
   case 6:
     elms.reserve(N1m*N2m);
     for (int j = 0; j < N2m; ++j)
       for (int i = 0; i < N1m; ++i)
-        elms.push_back(MLGE[i + j*N1m + (lIndex-5)*(N1m*N2m*(N3m-1))] - 1);
+        elms.push_back(i + j*N1m + (lIndex-5)*(N1m*N2m*(N3m-1)));
   }
 }
 
