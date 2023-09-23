@@ -305,7 +305,9 @@ Real EvalFuncScalar<autodiff::var>::deriv (Real x) const
 }
 
 
-EvalFunction::EvalFunction (const char* function, Real epsX, Real epsT)
+template<class Scalar>
+EvalFuncSpatial<Scalar>::
+EvalFuncSpatial (const char* function, Real epsX, Real epsT)
   : dx(epsX), dt(epsT)
 {
   try {
@@ -354,27 +356,31 @@ EvalFunction::EvalFunction (const char* function, Real epsX, Real epsT)
 }
 
 
-EvalFunction::~EvalFunction () = default;
+template<class Scalar>
+EvalFuncSpatial<Scalar>::~EvalFuncSpatial () = default;
 
 
-void EvalFunction::addDerivative (const std::string& function,
-                                  const std::string& variables,
-                                  int d1, int d2)
+template<class Scalar>
+void EvalFuncSpatial<Scalar>::
+addDerivative (const std::string& function,
+               const std::string& variables,
+               int d1, int d2)
 {
   if (d1 > 0 && d1 <= 4 && d2 < 1) // A first order derivative is specified
   {
     if (!derivative1[--d1])
-      derivative1[d1] = std::make_unique<EvalFunction>((variables+function).c_str());
+      derivative1[d1] = std::make_unique<FuncType>((variables+function).c_str());
   }
   else if ((d1 = voigtIdx(d1,d2)) >= 0) // A second order derivative is specified
   {
     if (!derivative2[d1])
-      derivative2[d1] = std::make_unique<EvalFunction>((variables+function).c_str());
+      derivative2[d1] = std::make_unique<FuncType>((variables+function).c_str());
   }
 }
 
 
-Real EvalFunction::evaluate (const Vec3& X) const
+template<class Scalar>
+Real EvalFuncSpatial<Scalar>::evaluate (const Vec3& X) const
 {
   const Vec4* Xt = dynamic_cast<const Vec4*>(&X);
   Real result = Real(0);
@@ -390,7 +396,10 @@ Real EvalFunction::evaluate (const Vec3& X) const
     *arg[i].y = X.y;
     *arg[i].z = X.z;
     *arg[i].t = Xt ? Xt->t : Real(0);
-    result = expr[i]->Evaluate();
+    if constexpr (std::is_same_v<Scalar,Real>)
+      result = expr[i]->Evaluate();
+    else
+      result = expr[i]->Evaluate().expr->val;
   }
   catch (ExprEval::Exception& e) {
     ExprException(e,"evaluating expression");
@@ -400,7 +409,8 @@ Real EvalFunction::evaluate (const Vec3& X) const
 }
 
 
-Real EvalFunction::deriv (const Vec3& X, int dir) const
+template<>
+Real EvalFuncSpatial<Real>::deriv (const Vec3& X, int dir) const
 {
   if (dir < 1)
     return Real(0);
@@ -431,7 +441,31 @@ Real EvalFunction::deriv (const Vec3& X, int dir) const
 }
 
 
-Real EvalFunction::dderiv (const Vec3& X, int d1, int d2) const
+template<>
+Real EvalFuncSpatial<autodiff::var>::deriv (const Vec3& X, int dir) const
+{
+  if (dir < 1 || dir > 4)
+    return Real(0);
+
+  size_t i = 0;
+#ifdef USE_OPENMP
+  i = omp_get_thread_num();
+#endif
+
+  const Vec4* Xt = dynamic_cast<const Vec4*>(&X);
+  *arg[i].x = X.x;
+  *arg[i].y = X.y;
+  *arg[i].z = X.z;
+  *arg[i].t = Xt ? Xt->t : Real(0);
+
+  // Evaluate spatial derivative using auto-diff
+  return derivativesx(expr[i]->Evaluate(),
+                      autodiff::wrt(arg[i].get(dir)))[0].expr->val;
+}
+
+
+template<>
+Real EvalFuncSpatial<Real>::dderiv (const Vec3& X, int d1, int d2) const
 {
   if ((d1 = voigtIdx(d1,d2)) < 0)
     return Real(0);
@@ -440,10 +474,88 @@ Real EvalFunction::dderiv (const Vec3& X, int d1, int d2) const
 }
 
 
-void EvalFunction::setParam (const std::string& name, double value)
+template<>
+Real EvalFuncSpatial<autodiff::var>::dderiv (const Vec3& X, int d1, int d2) const
+{
+  if (d1 < 1 || d1 > 3 ||
+      d2 < 1 || d2 > 3)
+    return Real(0);
+
+  size_t i = 0;
+#ifdef USE_OPENMP
+  i = omp_get_thread_num();
+#endif
+
+  const Vec4* Xt = dynamic_cast<const Vec4*>(&X);
+  *arg[i].x = X.x;
+  *arg[i].y = X.y;
+  *arg[i].z = X.z;
+  *arg[i].t = Xt ? Xt->t : Real(0);
+
+  return derivativesx(derivativesx(expr[i]->Evaluate(),
+                                   autodiff::wrt(arg[i].get(d1)))[0],
+                                   autodiff::wrt(arg[i].get(d2)))[0].expr->val;
+}
+
+
+template<>
+Vec3 EvalFuncSpatial<autodiff::var>::gradient (const Vec3& X) const
+{
+  size_t i = 0;
+#ifdef USE_OPENMP
+  i = omp_get_thread_num();
+#endif
+
+  const Vec4* Xt = dynamic_cast<const Vec4*>(&X);
+  double t;
+  *arg[i].x = X.x;
+  *arg[i].y = X.y;
+  *arg[i].z = X.z;
+  *arg[i].t = t = Xt ? Xt->t : Real(0);
+
+  const auto dx = derivativesx(expr[i]->Evaluate(),
+                               autodiff::wrt(*arg[i].x, *arg[i].y, *arg[i].z));
+
+  return Vec4(dx[0].expr->val, dx[1].expr->val, dx[2].expr->val, t);
+}
+
+
+template<>
+SymmTensor EvalFuncSpatial<autodiff::var>::hessian (const Vec3& X) const
+{
+  size_t i = 0;
+#ifdef USE_OPENMP
+  i = omp_get_thread_num();
+#endif
+
+  const Vec4* Xt = dynamic_cast<const Vec4*>(&X);
+  *arg[i].x = X.x;
+  *arg[i].y = X.y;
+  *arg[i].z = X.z;
+  *arg[i].t = Xt ? Xt->t : Real(0);
+
+  const auto dx =
+    derivativesx(expr[i]->Evaluate(), autodiff::wrt(*arg[i].x, *arg[i].y, *arg[i].z));
+
+  const auto [uxx, uxy, uxz] =
+    derivativesx(dx[0], autodiff::wrt(*arg[i].x, *arg[i].y, *arg[i].z));
+
+  const auto [uyy, uyz] =
+    derivativesx(dx[1], autodiff::wrt(*arg[i].y, *arg[i].z));
+
+  const auto [uzz] =
+    derivativesx(dx[2], autodiff::wrt(*arg[i].z));
+
+  return SymmTensor({uxx.expr->val, uyy.expr->val, uzz.expr->val,
+                     uxy.expr->val, uyz.expr->val, uxz.expr->val});
+}
+
+
+template<class Scalar>
+void EvalFuncSpatial<Scalar>::setParam (const std::string& name, double value)
 {
   for (std::unique_ptr<ValueList>& v1 : v) {
-    double* address = v1->GetAddress(name);
+    Scalar* address = v1->GetAddress(name);
     if (!address)
       v1->Add(name,value,false);
     else
@@ -452,21 +564,24 @@ void EvalFunction::setParam (const std::string& name, double value)
 }
 
 
-EvalFunctions::EvalFunctions (const std::string& functions,
-                              const std::string& variables,
-                              const Real epsX, const Real epsT)
+template<class Scalar>
+EvalFunctions<Scalar>::EvalFunctions (const std::string& functions,
+                                      const std::string& variables,
+                                      const Real epsX, const Real epsT)
 {
   std::vector<std::string> components = splitComps(functions,variables);
   for (const std::string& comp : components)
-    p.emplace_back(std::make_unique<EvalFunction>(comp.c_str(),epsX,epsT));
+    p.emplace_back(std::make_unique<FuncType>(comp.c_str(),epsX,epsT));
 }
 
 
-EvalFunctions::~EvalFunctions () = default;
+template<class Scalar>
+EvalFunctions<Scalar>::~EvalFunctions () = default;
 
 
-void EvalFunctions::addDerivative (const std::string& functions,
-                                   const std::string& variables, int d1, int d2)
+template<class Scalar>
+void EvalFunctions<Scalar>::addDerivative (const std::string& functions,
+                                           const std::string& variables, int d1, int d2)
 {
   std::vector<std::string> components = splitComps(functions,variables);
   for (size_t i = 0; i < p.size() && i < components.size(); i++)
@@ -474,8 +589,9 @@ void EvalFunctions::addDerivative (const std::string& functions,
 }
 
 
-template <class ParentFunc, class Ret>
-Ret EvalMultiFunction<ParentFunc,Ret>::evaluate (const Vec3& X) const
+template <class ParentFunc, class Ret, class Scalar>
+Ret EvalMultiFunction<ParentFunc,Ret,Scalar>::
+evaluate (const Vec3& X) const
 {
   std::vector<Real> res_array(this->p.size());
   for (size_t i = 0; i < this->p.size(); ++i)
@@ -485,44 +601,47 @@ Ret EvalMultiFunction<ParentFunc,Ret>::evaluate (const Vec3& X) const
 }
 
 
-template <class ParentFunc, class Ret>
-void EvalMultiFunction<ParentFunc,Ret>::setNoDims ()
+template <class ParentFunc, class Ret, class Scalar>
+void EvalMultiFunction<ParentFunc,Ret,Scalar>::setNoDims ()
 {
   std::tie(nsd, this->ncmp) = getNoDims<Ret>(this->p.size());
 }
 
 
-template<class ParentFunc, class Ret>
-Ret EvalMultiFunction<ParentFunc,Ret>::deriv (const Vec3& X, int dir) const
+template<class ParentFunc, class Ret, class Scalar>
+Ret EvalMultiFunction<ParentFunc,Ret,Scalar>::
+deriv (const Vec3& X, int dir) const
 {
-  std::vector<Real> tmp(p.size());
-  for (size_t i = 0; i < p.size(); ++i)
-    tmp[i] = p[i]->deriv(X,dir);
+  std::vector<Real> tmp(this->p.size());
+  for (size_t i = 0; i < this->p.size(); ++i)
+    tmp[i] = this->p[i]->deriv(X,dir);
 
   return Ret(tmp);
 }
 
 
-template<class ParentFunc, class Ret>
-Ret EvalMultiFunction<ParentFunc,Ret>::dderiv (const Vec3& X, int d1, int d2) const
+template<class ParentFunc, class Ret, class Scalar>
+Ret EvalMultiFunction<ParentFunc,Ret,Scalar>::
+dderiv (const Vec3& X, int d1, int d2) const
 {
-  std::vector<Real> tmp(p.size());
-  for (size_t i = 0; i < p.size(); ++i)
-    tmp[i] = p[i]->dderiv(X,d1,d2);
+  std::vector<Real> tmp(this->p.size());
+  for (size_t i = 0; i < this->p.size(); ++i)
+    tmp[i] = this->p[i]->dderiv(X,d1,d2);
 
   return Ret(tmp);
 }
 
 
-template <class ParentFunc, class Ret>
+template <class ParentFunc, class Ret, class Scalar>
 std::vector<Real>
-EvalMultiFunction<ParentFunc, Ret>::evalGradient (const Vec3& X) const
+EvalMultiFunction<ParentFunc,Ret,Scalar>::
+evalGradient (const Vec3& X) const
 {
   std::vector<Real> result;
   result.reserve(this->ncmp*this->nsd);
   std::vector<Vec3> dx;
   dx.reserve(this->p.size());
-  for (const std::unique_ptr<EvalFunction>& f : this->p)
+  for (const std::unique_ptr<FuncType>& f : this->p)
     dx.push_back(f->gradient(X));
 
   for (size_t d = 1; d <= this->nsd; ++d)
@@ -533,15 +652,16 @@ EvalMultiFunction<ParentFunc, Ret>::evalGradient (const Vec3& X) const
 }
 
 
-template <class ParentFunc, class Ret>
+template <class ParentFunc, class Ret, class Scalar>
 std::vector<Real>
-EvalMultiFunction<ParentFunc,Ret>::evalHessian (const Vec3& X) const
+EvalMultiFunction<ParentFunc,Ret,Scalar>::
+evalHessian (const Vec3& X) const
 {
   std::vector<Real> result;
   result.reserve(this->p.size()*this->nsd*this->nsd);
   std::vector<SymmTensor> dx;
   dx.reserve(this->p.size());
-  for (const std::unique_ptr<EvalFunction>& f : this->p)
+  for (const std::unique_ptr<FuncType>& f : this->p)
     dx.push_back(f->hessian(X));
 
   for (size_t d2 = 1; d2 <= this->nsd; ++d2)
@@ -553,14 +673,14 @@ EvalMultiFunction<ParentFunc,Ret>::evalHessian (const Vec3& X) const
 }
 
 
-template <class ParentFunc, class Ret>
+template <class ParentFunc, class Ret, class Scalar>
 std::vector<Real>
-EvalMultiFunction<ParentFunc, Ret>::evalTimeDerivative (const Vec3& X) const
+EvalMultiFunction<ParentFunc,Ret,Scalar>::evalTimeDerivative (const Vec3& X) const
 {
   std::vector<Real> result;
   result.reserve(this->ncmp);
-  for (const std::unique_ptr<EvalFunction>& f : this->p)
-    result.push_back(f->deriv(X,4));
+  for (const std::unique_ptr<FuncType>& f : this->p)
+    result.push_back(f->timeDerivative(X));
 
   return result;
 }
@@ -568,6 +688,13 @@ EvalMultiFunction<ParentFunc, Ret>::evalTimeDerivative (const Vec3& X) const
 
 template class EvalFuncScalar<Real>;
 template class EvalFuncScalar<autodiff::var>;
-template class EvalMultiFunction<VecFunc,Vec3>;
-template class EvalMultiFunction<TensorFunc,Tensor>;
-template class EvalMultiFunction<STensorFunc,SymmTensor>;
+template class EvalFuncSpatial<Real>;
+template class EvalFuncSpatial<autodiff::var>;
+template class EvalFunctions<Real>;
+template class EvalFunctions<autodiff::var>;
+template class EvalMultiFunction<VecFunc,Vec3,Real>;
+template class EvalMultiFunction<VecFunc,Vec3,autodiff::var>;
+template class EvalMultiFunction<TensorFunc,Tensor,Real>;
+template class EvalMultiFunction<TensorFunc,Tensor,autodiff::var>;
+template class EvalMultiFunction<STensorFunc,SymmTensor,Real>;
+template class EvalMultiFunction<STensorFunc,SymmTensor,autodiff::var>;
