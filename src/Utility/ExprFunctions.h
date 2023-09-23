@@ -33,18 +33,20 @@ namespace ExprEval {
   \brief A scalar-valued function, general expression.
 */
 
-class EvalFunc : public ScalarFunc
+template<class Scalar>
+class EvalFuncImpl : public ScalarFunc
 {
-  using Expression = ExprEval::Expression<Real>;     //!< Type alias for expression tree
-  using FunctionList = ExprEval::FunctionList<Real>; //!< Type alias for function list
-  using ValueList = ExprEval::ValueList<Real>;       //!< Type alias for value list
+  using Expression = ExprEval::Expression<Scalar>;     //!< Type alias for expression tree
+  using FunctionList = ExprEval::FunctionList<Scalar>; //!< Type alias for function list
+  using ValueList = ExprEval::ValueList<Scalar>;       //!< Type alias for value list
+  using FuncType = EvalFuncImpl<Scalar>;             //!< Type alias for function
   std::vector<std::unique_ptr<Expression>> expr; //!< Roots of the expression tree
   std::vector<std::unique_ptr<FunctionList>>  f; //!< Lists of functions
   std::vector<std::unique_ptr<ValueList>>     v; //!< Lists of variables and constants
 
-  std::vector<Real*> arg; //!< Function argument values
+  std::vector<Scalar*> arg; //!< Function argument values
 
-  std::unique_ptr<EvalFunc> gradient; //!< First derivative expression
+  std::unique_ptr<FuncType> gradient; //!< First derivative expression
 
   Real dx; //!< Domain increment for calculation of numerical derivative
 
@@ -52,12 +54,12 @@ public:
   static int numError; //!< Error counter - set by the exception handler
 
   //! \brief The constructor parses the expression string.
-  explicit EvalFunc(const char* function, const char* x = "x",
-                    Real eps = Real(1.0e-8));
+  explicit EvalFuncImpl(const char* function, const char* x = "x",
+                        Real eps = Real(1.0e-8));
   //! \brief Defaulted destructor.
   //! \details The implementation needs to be in compile unit so we have the
   //!          definition for the types of the unique_ptr's.
-  virtual ~EvalFunc();
+  virtual ~EvalFuncImpl();
 
   //! \brief Adds an expression function for a first derivative.
   void addDerivative(const std::string& function, const char* x = "x");
@@ -69,10 +71,6 @@ public:
   Real deriv(Real x) const override;
 
 protected:
-  //! \brief Non-implemented copy constructor to disallow copying.
-  EvalFunc(const EvalFunc&) = delete;
-  //! \brief Non-implemented assignment operator to disallow copying.
-  EvalFunc& operator=(const EvalFunc&) = delete;
   //! \brief Evaluates the function expression.
   Real evaluate(const Real& x) const override;
 };
@@ -234,6 +232,8 @@ protected:
   std::vector<Real> evalTimeDerivative(const Vec3& X) const override;
 };
 
+//! Scalar-valued function expression
+using EvalFunc = EvalFuncImpl<Real>;
 //! Vector-valued function expression
 using VecFuncExpr = EvalMultiFunction<VecFunc,Vec3>;
 //! Tensor-valued function expression
