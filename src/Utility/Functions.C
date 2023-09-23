@@ -728,7 +728,7 @@ static const ScalarFunc* parseFunction (const char* type, char* cline, Real C)
     if (sf && (cline = strtok(nullptr,":")))
     {
       IFEM::cout <<" (derivative: "<< cline <<")";
-      static_cast<EvalFunc*>(sf)->derivative(cline,"t");
+      static_cast<EvalFunc*>(sf)->addDerivative(cline,"t");
     }
     return sf;
   }
