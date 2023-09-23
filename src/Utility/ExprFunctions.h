@@ -53,7 +53,7 @@ public:
   virtual ~EvalFunc();
 
   //! \brief Adds an expression function for a first derivative.
-  void derivative(const std::string& function, const char* x = "x");
+  void addDerivative(const std::string& function, const char* x = "x");
 
   //! \brief Returns whether the function is time-independent or not.
   virtual bool isConstant() const { return false; }

@@ -146,7 +146,7 @@ void EvalFunc::cleanup ()
 }
 
 
-void EvalFunc::derivative (const std::string& function, const char* x)
+void EvalFunc::addDerivative (const std::string& function, const char* x)
 {
   if (!gradient)
     gradient = new EvalFunc(function.c_str(),x);
