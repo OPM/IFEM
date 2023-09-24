@@ -3507,58 +3507,49 @@ void ASMs3D::generateThreadGroups (char lIndex, bool silence, bool)
 {
   if (threadGroupsFace.find(lIndex) != threadGroupsFace.end()) return;
 
-  const int p1 = svol->order(0);
-  const int p2 = svol->order(1);
-  const int p3 = svol->order(2);
+  const int p1 = svol->order(0) - 1;
+  const int p2 = svol->order(1) - 1;
+  const int p3 = svol->order(2) - 1;
   const int n1 = svol->numCoefs(0);
   const int n2 = svol->numCoefs(1);
   const int n3 = svol->numCoefs(2);
 
-  // Find elements that are on the boundary face 'lIndex'
-  IntVec map; map.reserve(this->getNoBoundaryElms(lIndex,2));
-  int iel = 0;
-  for (int i3 = p3; i3 <= n3; i3++)
-    for (int i2 = p2; i2 <= n2; i2++)
-      for (int i1 = p1; i1 <= n1; i1++, iel++)
-	switch (lIndex)
-          {
-	  case 1: if (i1 == p1) map.push_back(iel); break;
-	  case 2: if (i1 == n1) map.push_back(iel); break;
-	  case 3: if (i2 == p2) map.push_back(iel); break;
-	  case 4: if (i2 == n2) map.push_back(iel); break;
-	  case 5: if (i3 == p3) map.push_back(iel); break;
-	  case 6: if (i3 == n3) map.push_back(iel); break;
-          }
-
+  // Flag the non-zero knot-spans
   std::vector<bool> el1, el2, el3;
-  el1.reserve(n1 - p1 + 1);
-  el2.reserve(n2 - p2 + 1);
-  el3.reserve(n3 - p3 + 1);
-
-  if (lIndex > 2)
-    for (int i = p1-1; i < n1; i++)
+  if (lIndex > 2) {
+    el1.reserve(n1-p1);
+    for (int i = p1; i < n1; i++)
       el1.push_back(svol->knotSpan(0,i) > 0.0);
-  if (lIndex < 3 || lIndex > 4)
-    for (int i = p2-1; i < n2; i++)
+  }
+  if (lIndex < 3 || lIndex > 4) {
+    el2.reserve(n2-p2);
+    for (int i = p2; i < n2; i++)
       el2.push_back(svol->knotSpan(1,i) > 0.0);
-  if (lIndex < 6)
-    for (int i = p3-1; i < n3; i++)
+  }
+  if (lIndex < 6) {
+    el3.reserve(n3-p3);
+    for (int i = p3; i < n3; i++)
       el3.push_back(svol->knotSpan(2,i) > 0.0);
+  }
 
   ThreadGroups& fGrp = threadGroupsFace[lIndex];
   switch (lIndex)
     {
     case 1:
     case 2:
-      fGrp.calcGroups(el2,el3,p2-1,p3-1);
+      fGrp.calcGroups(el2,el3,p2,p3);
       break;
     case 3:
     case 4:
-      fGrp.calcGroups(el1,el3,p1-1,p3-1);
+      fGrp.calcGroups(el1,el3,p1,p3);
       break;
     default:
-      fGrp.calcGroups(el1,el2,p1-1,p2-1);
+      fGrp.calcGroups(el1,el2,p1,p2);
     }
+
+  // Find elements that are on the boundary face 'lIndex'
+  IntVec map;
+  this->findBoundaryElms(map,lIndex);
 
   fGrp.applyMap(map);
 

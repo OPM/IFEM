@@ -1079,45 +1079,58 @@ void ASMs3DLag::generateThreadGroups (char lIndex, bool, bool)
 {
   if (threadGroupsFace.find(lIndex) != threadGroupsFace.end()) return;
 
-  const int n1 = (nx-1)/(p1-1);
-  const int n2 = (ny-1)/(p2-1);
-  const int n3 = (nz-1)/(p3-1);
-
-  // Find elements that are on the boundary face 'lIndex'
-  IntVec map; map.reserve(this->getNoBoundaryElms(lIndex,2));
-  int d1, d2, iel = 0;
-  for (int i3 = 1; i3 <= n3; i3++)
-    for (int i2 = 1; i2 <= n2; i2++)
-      for (int i1 = 1; i1 <= n1; i1++, iel++)
-        switch (lIndex)
-        {
-          case 1: if (i1 ==  1) map.push_back(iel); break;
-          case 2: if (i1 == n1) map.push_back(iel); break;
-          case 3: if (i2 ==  1) map.push_back(iel); break;
-          case 4: if (i2 == n2) map.push_back(iel); break;
-          case 5: if (i3 ==  1) map.push_back(iel); break;
-          case 6: if (i3 == n3) map.push_back(iel); break;
-        }
-
+  ThreadGroups& fGrp = threadGroupsFace[lIndex];
   switch (lIndex)
   {
     case 1:
     case 2:
-      d1 = n2;
-      d2 = n3;
+      fGrp.calcGroups((ny-1)/(p2-1), (nz-1)/(p3-1), 1);
       break;
     case 3:
     case 4:
-      d1 = n1;
-      d2 = n3;
+      fGrp.calcGroups((nx-1)/(p1-1), (nz-1)/(p3-1), 1);
       break;
     default:
-      d1 = n1;
-      d2 = n2;
+      fGrp.calcGroups((nx-1)/(p1-1), (ny-1)/(p2-1), 1);
   }
 
-  threadGroupsFace[lIndex].calcGroups(d1,d2,1);
-  threadGroupsFace[lIndex].applyMap(map);
+  // Find elements that are on the boundary face 'lIndex'
+  IntVec map;
+  this->findBoundaryElms(map,lIndex);
+
+  fGrp.applyMap(map);
+}
+
+
+void ASMs3DLag::findBoundaryElms (IntVec& elms, int lIndex, int) const
+{
+  const int N1m = (nx-1)/(p1-1);
+  const int N2m = (ny-1)/(p2-1);
+  const int N3m = (nz-1)/(p3-1);
+
+  elms.clear();
+  switch (lIndex) {
+  case 1:
+  case 2:
+    elms.reserve(N2m*N3m);
+    for (int k = 0; k < N3m; ++k)
+      for (int j = 0; j < N2m; ++j)
+        elms.push_back(j*N1m + k*N1m*N2m + (lIndex-1)*(N1m-1));
+    break;
+  case 3:
+  case 4:
+    elms.reserve(N1m*N3m);
+    for (int k = 0; k < N3m; ++k)
+      for (int i = 0; i < N1m; ++i)
+        elms.push_back(i + k*N1m*N2m + (lIndex-3)*(N1m*(N2m-1)));
+    break;
+  case 5:
+  case 6:
+    elms.reserve(N1m*N2m);
+    for (int j = 0; j < N2m; ++j)
+      for (int i = 0; i < N1m; ++i)
+        elms.push_back(i + j*N1m + (lIndex-5)*(N1m*N2m*(N3m-1)));
+  }
 }
 
 

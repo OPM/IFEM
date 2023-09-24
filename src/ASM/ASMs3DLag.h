@@ -128,17 +128,23 @@ public:
   //! \param[in] nSegSpan Number of visualization segments over each knot-span
   virtual bool getGridParameters(RealArray& prm, int dir, int nSegSpan) const;
 
-  //! \brief Find element for parameter, and optionally calculate local coordinates.
-  virtual int findElement(double u, double v, double w, double* xi = nullptr,
-                          double* eta = nullptr, double* zeta = nullptr) const;
-
 protected:
   //! \brief Assigned global coordinates for the given node.
   //! \param[in] inod 1-based node index local to current patch
   //! \param[in] Xnod Coordinates of the node
   void setCoord(size_t inod, const Vec3& Xnod);
 
+  //! \brief Finds the patch-local element numbers on a patch boundary.
+  //! \param[out] elms Array of element numbers
+  //! \param[in] lIndex Local index of the boundary face
+  virtual void findBoundaryElms(IntVec& elms, int lIndex, int = 0) const;
+
 public:
+  //! \brief Find element for parameter, and optionally calculate local coordinates.
+  virtual int findElement(double u, double v, double w,
+                          double* xi = nullptr, double* eta = nullptr,
+                          double* zeta = nullptr) const;
+
   //! \brief Updates the nodal coordinates for this patch.
   //! \param[in] displ Incremental displacements to update the coordinates with
   virtual bool updateCoords(const Vector& displ);

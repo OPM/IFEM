@@ -789,6 +789,28 @@ void ASMs2DLag::generateThreadGroups (const Integrand&, bool, bool)
 }
 
 
+void ASMs2DLag::findBoundaryElms (IntVec& elms, int lIndex, int) const
+{
+  const int N1m = (nx-1)/(p1-1);
+  const int N2m = (ny-1)/(p2-1);
+
+  elms.clear();
+  switch (lIndex) {
+  case 1:
+  case 2:
+    elms.reserve(N2m);
+    for (int i = 0; i < N2m; ++i)
+      elms.push_back(i*N1m + (lIndex-1)*(N1m-1));
+    break;
+  case 3:
+  case 4:
+    elms.reserve(N1m);
+    for (int i = 0; i < N1m; ++i)
+      elms.push_back(i + (lIndex-3)*N1m*(N2m-1));
+  }
+}
+
+
 bool ASMs2DLag::write(std::ostream& os, int) const
 {
   return this->writeLagBasis(os, "quad");
