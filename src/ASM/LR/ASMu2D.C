@@ -1001,21 +1001,34 @@ bool ASMu2D::updateCoords (const Vector& displ)
 }
 
 
+
+/*!
+  \brief Static helper mapping an edge index into a \a parameterEdge enum value.
+*/
+
+static LR::parameterEdge getEdgeEnum (int edgeIndex)
+{
+  switch (edgeIndex) {
+  case 1: return LR::WEST;
+  case 2: return LR::EAST;
+  case 3: return LR::SOUTH;
+  case 4: return LR::NORTH;
+  }
+
+  return LR::NONE;
+}
+
+
 size_t ASMu2D::getNoBoundaryElms (char lIndex, char ldim) const
 {
-  if (!lrspline)
+  if (!lrspline || lIndex < 1 || lIndex > 4)
     return 0;
   else if (ldim < 1)
-    return lIndex > 0 && lIndex < 5 ? 1 : 0;
+    return 1;
 
   std::vector<LR::Element*> edgeElms;
-  switch (lIndex) {
-  case 1: lrspline->getEdgeElements(edgeElms,LR::WEST);  break;
-  case 2: lrspline->getEdgeElements(edgeElms,LR::EAST);  break;
-  case 3: lrspline->getEdgeElements(edgeElms,LR::SOUTH); break;
-  case 4: lrspline->getEdgeElements(edgeElms,LR::NORTH); break;
-  default: return 0;
-  }
+  if (lIndex > 0 || lIndex <= 4)
+    lrspline->getEdgeElements(edgeElms, getEdgeEnum(lIndex));
 
   return edgeElms.size();
 }
@@ -2303,41 +2316,30 @@ bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 }
 
 
-void ASMu2D::getEdgeNodes (IntVec& nodes, int edge, int basis,
-                           int orient, bool local) const
-{
-  const LR::LRSplineSurface* srf = this->getBasis(basis);
-  if (!srf) return; // silently ignore empty patches
-
-  size_t ofs = 1;
-  for (int i = 1; i < basis; i++)
-    ofs += this->getNoNodes(i);
-
-  std::vector<LR::Basisfunction*> edgeFunctions;
-  srf->getEdgeFunctions(edgeFunctions, static_cast<LR::parameterEdge>(edge));
-  if (orient >= 0) {
-    int u = (edge == 1 || edge == 2) ? 1 : 0;
-    ASMLRSpline::Sort(u, 1-u, orient, edgeFunctions);
-  }
-
-  for (LR::Basisfunction* b : edgeFunctions)
-    nodes.push_back(local ? b->getId()+ofs : this->getNodeID(b->getId()+ofs));
-}
-
-
 void ASMu2D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
                                int, int orient, bool local) const
 {
   if (basis == 0)
     basis = 1;
 
-  switch (lIndex) {
-  case 1: this->getEdgeNodes(nodes,LR::WEST ,basis,orient,local); break;
-  case 2: this->getEdgeNodes(nodes,LR::EAST ,basis,orient,local); break;
-  case 3: this->getEdgeNodes(nodes,LR::SOUTH,basis,orient,local); break;
-  case 4: this->getEdgeNodes(nodes,LR::NORTH,basis,orient,local); break;
-  default: return;
+  const LR::LRSplineSurface* srf = this->getBasis(basis);
+  if (!srf) return; // silently ignore empty patches
+
+  std::vector<LR::Basisfunction*> edgeFunctions;
+  if (lIndex > 0 && lIndex <= 4) {
+    srf->getEdgeFunctions(edgeFunctions, getEdgeEnum(lIndex));
+    if (orient >= 0) {
+      int u = lIndex <= 2 ? 1 : 0;
+      ASMLRSpline::Sort(u, 1-u, orient, edgeFunctions);
+    }
   }
+
+  size_t ofs = 1;
+  for (int i = 1; i < basis; i++)
+    ofs += this->getNoNodes(i);
+
+  for (LR::Basisfunction* b : edgeFunctions)
+    nodes.push_back(local ? b->getId()+ofs : this->getNodeID(b->getId()+ofs));
 
 #if SP_DEBUG > 1
   std::cout <<"Boundary nodes in patch "<< idx+1 <<" edge "<< lIndex <<":";
@@ -2930,14 +2932,12 @@ void ASMu2D::getElmConnectivities (IntMat& neigh) const
 
 void ASMu2D::findBoundaryElms (IntVec& elms, int lIndex, int orient) const
 {
+  elms.clear();
+  if (lIndex < 1 || lIndex > 4)
+    return;
+
   std::vector<LR::Element*> elements;
-  switch (lIndex) {
-  case 1: this->getBasis(1)->getEdgeElements(elements,LR::WEST);  break;
-  case 2: this->getBasis(1)->getEdgeElements(elements,LR::EAST);  break;
-  case 3: this->getBasis(1)->getEdgeElements(elements,LR::SOUTH); break;
-  case 4: this->getBasis(1)->getEdgeElements(elements,LR::NORTH); break;
-  default: return;
-  }
+  this->getBasis(1)->getEdgeElements(elements, getEdgeEnum(lIndex));
 
   if (orient >= 0)
     std::sort(elements.begin(), elements.end(),

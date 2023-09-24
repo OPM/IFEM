@@ -617,15 +617,6 @@ protected:
   //! \param[out] XC Coordinates and parameters of the element corners
   void getCornerPoints(int iel, std::vector<utl::Point>& XC) const;
 
-  //! \brief Returns the node indices for a given edge.
-  //! \param nodes Array of node numbers
-  //! \param[in] edge Local index of the boundary edge
-  //! \param[in] basis Which basis to grab nodes for
-  //! \param[in] orient Orientation of boundary (used for sorting)
-  //! \param[in] local If \e true, return patch-local node numbers
-  void getEdgeNodes(IntVec& nodes, int edge, int basis,
-                    int orient, bool local) const;
-
   //! \brief Evaluates the basis functions and derivatives of an element.
   //! \param[in] iel 0-based element index
   //! \param fe Integration point data for current element
