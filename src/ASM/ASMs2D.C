@@ -3279,29 +3279,10 @@ void ASMs2D::generateThreadGroupsFromElms (const IntVec& elms)
 bool ASMs2D::addRigidCpl (int lindx, int ldim, int basis,
                           int& gMaster, const Vec3& Xmaster, bool extraPt)
 {
-  if (ldim == 1)
-  {
-    ThreadGroups::StripDirection useDir = ThreadGroups::ANY;
-    switch (lindx) {
-    case 1:
-    case 2:
-      useDir = ThreadGroups::U;
-      break;
-    case 3:
-    case 4:
-      useDir = ThreadGroups::V;
-      break;
-    }
-
-    if (threadGroups.stripDir == ThreadGroups::ANY)
-      threadGroups.stripDir = useDir;
-    else if (threadGroups.stripDir != useDir)
-    {
-      threadGroups.stripDir = ThreadGroups::NONE;
-      IFEM::cout <<"  ** ASMs2D::addRigidCpl: Conflicting strip directions."
-                 << std::endl;
-    }
-  }
+  if (threadGroups.stripDir != ThreadGroups::NONE)
+    IFEM::cout <<"  ** ASMs2D::addRigidCpl: Multi-threading deactivated"
+               <<" for Patch "<< idx+1 << std::endl;
+  threadGroups.stripDir = ThreadGroups::NONE;
 
   return this->ASMstruct::addRigidCpl(lindx,ldim,basis,gMaster,Xmaster,extraPt);
 }

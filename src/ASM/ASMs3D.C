@@ -3505,7 +3505,13 @@ void ASMs3D::generateThreadGroups (size_t strip1, size_t strip2, size_t strip3,
 
 void ASMs3D::generateThreadGroups (char lIndex, bool silence, bool)
 {
-  if (threadGroupsFace.find(lIndex) != threadGroupsFace.end()) return;
+  std::map<char,ThreadGroups>::iterator tit = threadGroupsFace.find(lIndex);
+  if (tit != threadGroupsFace.end())
+  {
+    if (tit->second.stripDir == ThreadGroups::NONE)
+      tit->second.oneGroup(nel);
+    return;
+  }
 
   const int p1 = svol->order(0) - 1;
   const int p2 = svol->order(1) - 1;
@@ -3820,33 +3826,11 @@ void ASMs3D::generateThreadGroupsFromElms (const IntVec& elms)
 bool ASMs3D::addRigidCpl (int lindx, int ldim, int basis,
                           int& gMaster, const Vec3& Xmaster, bool extraPt)
 {
-  if (ldim == 2)
-  {
-    ThreadGroups::StripDirection useDir = ThreadGroups::ANY;
-    switch (lindx) {
-    case 1:
-    case 2:
-      useDir = ThreadGroups::U;
-      break;
-    case 3:
-    case 4:
-      useDir = ThreadGroups::V;
-      break;
-    case 5:
-    case 6:
-      useDir = ThreadGroups::W;
-      break;
-    }
-
-    if (threadGroupsVol.stripDir == ThreadGroups::ANY)
-      threadGroupsVol.stripDir = useDir;
-    else if (threadGroupsVol.stripDir != useDir)
-    {
-      threadGroupsVol.stripDir = ThreadGroups::NONE;
-      IFEM::cout <<"  ** ASMs3D::addRigidCpl: Conflicting strip directions."
-                 << std::endl;
-    }
-  }
+  if (threadGroupsVol.stripDir != ThreadGroups::NONE)
+    IFEM::cout <<"  ** ASMs3D::addRigidCpl: Multi-threading deactivated"
+               <<" for Patch "<< idx+1 << std::endl;
+  threadGroupsVol.stripDir = ThreadGroups::NONE;
+  threadGroupsFace[lindx].stripDir = ThreadGroups::NONE;
 
   return this->ASMstruct::addRigidCpl(lindx,ldim,basis,gMaster,Xmaster,extraPt);
 }

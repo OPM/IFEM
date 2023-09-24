@@ -20,6 +20,7 @@
 #include "Vec3Oper.h"
 #include "Vec3.h"
 #include "MPC.h"
+#include "IFEM.h"
 
 //! \brief Solves A1j*xi*eta + A2j*ci + A3j*eta = A4j, j=1,2 for xi,eta.
 extern "C" void dslbln_(const int& ipsw, const int& iwr, const double& eps,
@@ -317,6 +318,11 @@ bool ASMs2DC1::addRigidCpl (int lindx, int ldim, int basis,
       return false;
     }
   }
+
+  if (threadGroups.stripDir != ThreadGroups::NONE)
+    IFEM::cout <<"  ** ASMs2DC1::addRigidCpl: Multi-threading deactivated"
+               <<" for Patch "<< idx+1 << std::endl;
+  threadGroups.stripDir = ThreadGroups::NONE;
 
   return extraPt;
 }
