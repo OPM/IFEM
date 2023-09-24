@@ -365,7 +365,7 @@ bool ASMu3D::connectPatch (int face, ASM3D& neighbor, int nface,
 
 bool ASMu3D::connectBasis (int face, ASMu3D& neighbor, int nface, int norient,
                            int basis, int slave, int master,
-                           bool coordCheck, int /*thick*/)
+                           bool coordCheck, int thick)
 {
   if (this->isShared() && neighbor.isShared())
     return true;
@@ -377,12 +377,14 @@ bool ASMu3D::connectBasis (int face, ASMu3D& neighbor, int nface, int norient,
   }
 
   // Set up the slave node numbers for this volume patch
-  IntVec slaveNodes = this->getFaceNodes(face, basis, 0);
+  IntVec slaveNodes;
+  this->getBoundaryNodes(face, slaveNodes, basis, thick, 0, true);
   for (int& it : slaveNodes)
     it += slave;
 
   // Set up the master node numbers for the neighboring volume patch
-  IntVec masterNodes = neighbor.getFaceNodes(nface, basis, norient);
+  IntVec masterNodes;
+  neighbor.getBoundaryNodes(nface, masterNodes, basis, thick, norient, true);
   for (int& it : masterNodes)
     it += master;
 
@@ -592,10 +594,9 @@ void ASMu3D::getBoundary1Nodes (int lEdge, IntVec& nodes,
   // get all the boundary functions from the LRspline object
   std::vector<LR::Basisfunction*> thisEdge;
   this->getBasis(basis)->getEdgeFunctions(thisEdge, edge, 1);
-  if (orient > -1) {
-    int dir = (edge-1)/4;
-    int u = dir == 0;
-    int v = 1 + (dir != 2);
+  if (orient >= 0) {
+    int u = lEdge <= 4 ? 1 : 0;
+    int v = lEdge >= 9 ? 1 : 2;
     ASMLRSpline::Sort(u, v, orient, thisEdge);
   }
 
@@ -760,10 +761,12 @@ static LR::parameterEdge getFaceEnum (int faceIndex)
 
 size_t ASMu3D::getNoBoundaryElms (char lIndex, char ldim) const
 {
-  if (!lrspline) return 0;
+  if (!lrspline || ldim < 2)
+    return 0;
 
   std::vector<LR::Element*> edgeElms;
-  lrspline->getEdgeElements(edgeElms,getFaceEnum(lIndex));
+  if (lIndex > 0 && lIndex <= 6)
+    lrspline->getEdgeElements(edgeElms,getFaceEnum(lIndex));
 
   return edgeElms.size();
 }
@@ -1793,51 +1796,37 @@ bool ASMu3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 }
 
 
-IntVec ASMu3D::getFaceNodes (int face, int basis, int orient) const
-{
-  LR::parameterEdge edge = getFaceEnum(face);
-  if (edge == LR::NONE) return IntVec();
-
-  std::vector<LR::Basisfunction*> edgeFunctions;
-  this->getBasis(basis)->getEdgeFunctions(edgeFunctions, edge);
-  if (orient > -1) {
-    int dir = (face-1)/2;
-    int u = dir == 0;
-    int v = 1 + (dir != 2);
-    ASMLRSpline::Sort(u, v, orient, edgeFunctions);
-  }
-
-  size_t ofs = 1;
-  for (int i = 1; i < basis; i++)
-    ofs += this->getNoNodes(i);
-
-  IntVec result(edgeFunctions.size());
-  std::transform(edgeFunctions.begin(), edgeFunctions.end(), result.begin(),
-                 [ofs](LR::Basisfunction* a) { return a->getId()+ofs; });
-
-  return result;
-}
-
-
 void ASMu3D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
                                int, int orient, bool local) const
 {
   if (basis == 0)
     basis = 1;
 
-  if (!this->getBasis(basis)) return; // silently ignore empty patches
+  const LR::LRSplineVolume* vol = this->getBasis(basis);
+  if (!vol) return; // silently ignore empty patches
 
-  nodes = this->getFaceNodes(lIndex, basis, orient);
+  std::vector<LR::Basisfunction*> edgeFunctions;
+  if (lIndex > 0 && lIndex <= 6) {
+    this->getBasis(basis)->getEdgeFunctions(edgeFunctions, getFaceEnum(lIndex));
+    if (orient >= 0) {
+      int u = lIndex <= 2 ? 1 : 0;
+      int v = lIndex >= 5 ? 1 : 2;
+      ASMLRSpline::Sort(u, v, orient, edgeFunctions);
+    }
+  }
+
+  size_t ofs = 1;
+  for (int i = 1; i < basis; i++)
+    ofs += this->getNoNodes(i);
+
+  for (LR::Basisfunction* b : edgeFunctions)
+    nodes.push_back(local ? b->getId()+ofs : this->getNodeID(b->getId()+ofs));
 
 #if SP_DEBUG > 1
   std::cout <<"Boundary nodes in patch "<< idx+1 <<" face "<< lIndex <<":";
   for (int n : nodes) std::cout <<" "<< n;
   std::cout << std::endl;
 #endif
-
-  if (!local)
-    for (int& node : nodes)
-      node = this->getNodeID(node);
 }
 
 
@@ -2345,9 +2334,10 @@ void ASMu3D::getElmConnectivities (IntMat& neigh) const
 {
   const LR::LRSplineVolume* lr = this->getBasis(1);
   for (const LR::Element* m : lr->getAllElements()) {
-    IntVec& neighbor = neigh[MLGE[m->getId()]-1];
+    int iel = m->getId();
+    IntVec& neighbor = neigh[MLGE[iel]-1];
     for (int face = 1; face <= 6; face++) {
-      std::set<int> elms = lr->getElementNeighbours(m->getId(),getFaceEnum(face));
+      std::set<int> elms = lr->getElementNeighbours(iel,getFaceEnum(face));
       for (int elm : elms)
         neighbor.push_back(MLGE[elm]-1);
     }
@@ -2357,6 +2347,10 @@ void ASMu3D::getElmConnectivities (IntMat& neigh) const
 
 void ASMu3D::findBoundaryElms (IntVec& elms, int lIndex, int orient) const
 {
+  elms.clear();
+  if (lIndex < 1 || lIndex > 6)
+    return;
+
   std::vector<LR::Element*> elements;
   this->getBasis(1)->getEdgeElements(elements,getFaceEnum(lIndex));
 

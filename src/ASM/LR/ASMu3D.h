@@ -166,9 +166,6 @@ public:
   //! \param[in] displ Incremental displacements to update the coordinates with
   virtual bool updateCoords(const Vector& displ);
 
-  //! \brief Returns the node indices for a given face.
-  IntVec getFaceNodes(int face, int basis = 1, int orient = -1) const;
-
   //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
   //! \param[in] lIndex Local index of the boundary face
   //! \param nodes Array of node numbers
