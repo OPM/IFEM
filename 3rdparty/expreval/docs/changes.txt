@@ -2,6 +2,10 @@ IFEM Hacks
 ----------
 - Added a define in defs.h. auto_ptr is deprecated in c++0x. uses
 std::unique_ptr instead. Quells the warnings
+- add support for exponential format (e.g. 1e-1) for constants
+- add support for 'pow' function
+- Improved exception handling
+- Added integration with autodiff
 
 ExprEval 3.6
 ------------
