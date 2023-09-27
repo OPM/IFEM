@@ -123,14 +123,22 @@ public:
   //! \brief Sets the patch to use.
   void initPatch(size_t pIdx);
 
+  //! \brief Make sure we have a secondary solution.
+  //! \details If none is given, we use derivation (automatic or finite difference)
+  //!          to obtain one.
+  virtual void setupSecondarySolutions();
+
 private:
   //! \brief Parses expression functions from XML definition.
+  template<class Scalar>
   void parseExpressionFunctions(const TiXmlElement* elem, bool scalarSol);
 
   //! \brief Parses field functions from XML definition.
   void parseFieldFunctions(const TiXmlElement* elem, bool scalarSol);
 
 protected:
+  bool symmetric = false; //!< True to use symmetric secondary solution
+
   std::vector<RealFunc*>   scalSol; //!< Primary scalar solution fields
   std::vector<VecFunc*> scalSecSol; //!< Secondary scalar solution fields
 

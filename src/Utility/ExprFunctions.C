@@ -22,7 +22,7 @@
 #include <autodiff/reverse/var.hpp>
 
 
-template<> int EvalFunc::numError = 0;
+template<> int EvalFuncScalar<Real>::numError = 0; //!< Explicit instantiation
 
 
 namespace {
@@ -90,7 +90,7 @@ void ExprException (const ExprEval::Exception& exc, const char* task,
     std::cerr <<": Unknown exception";
   }
   std::cerr << std::endl;
-  EvalFunc::numError++;
+  EvalFuncScalar<Real>::numError++;
 }
 
 
