@@ -208,6 +208,9 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
   static int substep = 10;
   this->printHeading(substep);
 
+  if (mySol)
+    mySol->setupSecondarySolutions();
+
   // Perform some sub-class specific pre-preprocessing, if any
   this->preprocessA();
 

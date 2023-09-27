@@ -717,7 +717,7 @@ static const ScalarFunc* parseFunction (const char* type, char* cline, Real C)
   {
     cline = strtok(cline,":");
     IFEM::cout << cline;
-    EvalFunc::numError = 0;
+    EvalFuncScalar<Real>::numError = 0;
     ScalarFunc* sf = new EvalFunc(cline,"t",C);
     if (EvalFunc::numError > 0)
     {

@@ -17,11 +17,49 @@
 #include "Utilities.h"
 #include "IFEM.h"
 #include "tinyxml.h"
+
+#include <autodiff/reverse/var.hpp>
+
 #ifdef HAS_HDF5
-#include "ProcessAdm.h"
-#include "HDF5Writer.h"
 #include "FieldFunctions.h"
 #endif
+
+
+namespace {
+
+//! \brief Function returning the gradient of a scalar or vector function.
+template<class FromFunc, class ToFunc, class Ret>
+class GradientFunc : public ToFunc
+{
+public:
+  //! \brief The constructor initializes the function to use.
+  GradientFunc(const FromFunc& f) : func(f) {}
+
+protected:
+  //! \brief Evaluates the gradient in a point.
+  Ret evaluate(const Vec3& X) const { return func.gradient(X); }
+
+private:
+  const FromFunc& func; //!< Reference to scalar/vector function
+};
+
+
+//! \brief Specialization for symmetric tensors.
+//! \details We need to construct a symmtensor from the returned tensor.
+template<>
+SymmTensor GradientFunc<VecFunc,STensorFunc,SymmTensor>::evaluate(const Vec3& X) const
+{
+  Tensor tmp = func.gradient(X);
+  const size_t nsd = tmp.dim();
+  SymmTensor ret(nsd);
+  for (size_t i = 1; i <= nsd; ++i)
+    for (size_t j = i; j <= nsd; ++j)
+      ret(i,j) = tmp(i,j);
+
+  return ret;
+}
+
+}
 
 
 AnaSol::AnaSol (RealFunc* s1, VecFunc* s2,
@@ -92,8 +130,15 @@ AnaSol::AnaSol (const TiXmlElement* elem, bool scalarSol)
   const char* type = elem->Attribute("type");
   if (type && !strcasecmp(type,"fields"))
     this->parseFieldFunctions(elem,scalarSol);
-  else
-    this->parseExpressionFunctions(elem,scalarSol);
+  else {
+    bool useAD = false;
+    utl::getAttribute(elem, "autodiff", useAD);
+    utl::getAttribute(elem, "symmetric", symmetric);
+    if (useAD)
+      this->parseExpressionFunctions<autodiff::var>(elem,scalarSol);
+    else
+      this->parseExpressionFunctions<Real>(elem,scalarSol);
+  }
 }
 
 
@@ -128,8 +173,13 @@ void AnaSol::initPatch (size_t pIdx)
 }
 
 
+template<class Scalar>
 void AnaSol::parseExpressionFunctions (const TiXmlElement* elem, bool scalarSol)
 {
+  using EvalF = EvalFuncSpatial<Scalar>;
+  using VecF = EvalMultiFunction<VecFunc,Vec3,Scalar>;
+  using TensorF = EvalMultiFunction<TensorFunc,Tensor,Scalar>;
+  using STensorF = EvalMultiFunction<STensorFunc,SymmTensor,Scalar>;
   std::string variables;
   const TiXmlElement* var = elem->FirstChildElement("variables");
   if (var && var->FirstChild())
@@ -168,16 +218,16 @@ void AnaSol::parseExpressionFunctions (const TiXmlElement* elem, bool scalarSol)
     if (scalarSol)
     {
       if (type == "expression") {
-        scalSol.push_back(new EvalFunction((variables+primary).c_str()));
-        parseDerivatives(static_cast<EvalFunction*>(scalSol.back()),prim);
+        scalSol.push_back(new EvalF((variables+primary).c_str()));
+        parseDerivatives(static_cast<EvalF*>(scalSol.back()),prim);
       } else
         scalSol.push_back(utl::parseRealFunc(primary,type,false));
     }
     else
     {
       if (type == "expression") {
-        vecSol = new VecFuncExpr(primary,variables);
-        parseDerivatives(static_cast<VecFuncExpr*>(vecSol),prim);
+        vecSol = new VecF(primary,variables);
+        parseDerivatives(static_cast<VecF*>(vecSol),prim);
       } else
         vecSol = utl::parseVecFunc(primary, type);
     }
@@ -190,9 +240,9 @@ void AnaSol::parseExpressionFunctions (const TiXmlElement* elem, bool scalarSol)
     utl::getAttribute(prim, "type", type);
     std::string prType = (type == "expression" ? "" : "("+type+") ");
     std::string primary = prim->FirstChild()->Value();
-    IFEM::cout <<"\tScalar Primary " << prType << "=" << primary << std::endl;
+    IFEM::cout <<"\tScalar Primary" << prType << "=" << primary << std::endl;
     if (type == "expression")
-      scalSol.push_back(new EvalFunction((variables+primary).c_str()));
+      scalSol.push_back(new EvalF((variables+primary).c_str()));
     else
       scalSol.push_back(utl::parseRealFunc(primary, type, false));
     prim = prim->NextSiblingElement("scalarprimary");
@@ -209,18 +259,18 @@ void AnaSol::parseExpressionFunctions (const TiXmlElement* elem, bool scalarSol)
     if (scalarSol)
     {
       if (type == "expression") {
-        scalSecSol.push_back(new VecFuncExpr(secondary,variables));
-        parseDerivatives(static_cast<VecFuncExpr*>(scalSecSol.back()),sec);
+        scalSecSol.push_back(new VecF(secondary,variables));
+        parseDerivatives(static_cast<VecF*>(scalSecSol.back()),sec);
       } else
         scalSecSol.push_back(utl::parseVecFunc(secondary, type));
     }
     else
     {
-      if (type == "expression")
-        vecSecSol = new TensorFuncExpr(secondary,variables);
-      else
+      if (type == "expression") {
+        vecSecSol = new TensorF(secondary,variables);
+        parseDerivatives(static_cast<TensorF*>(vecSecSol),sec);
+      } else
         vecSecSol = utl::parseTensorFunc(secondary, type);
-      parseDerivatives(static_cast<TensorFuncExpr*>(vecSecSol),sec);
     }
   }
 
@@ -232,7 +282,7 @@ void AnaSol::parseExpressionFunctions (const TiXmlElement* elem, bool scalarSol)
     std::string secondary = sec->FirstChild()->Value();
     IFEM::cout <<"\tScalar Secondary="<< secondary << std::endl;
     if (type == "expression")
-      scalSecSol.push_back(new VecFuncExpr(secondary,variables));
+      scalSecSol.push_back(new VecF(secondary,variables));
     else
       scalSecSol.push_back(utl::parseVecFunc(secondary, type));
     sec = sec->NextSiblingElement("scalarsecondary");
@@ -241,10 +291,11 @@ void AnaSol::parseExpressionFunctions (const TiXmlElement* elem, bool scalarSol)
   const TiXmlElement* stress = elem->FirstChildElement("stress");
   if (stress && stress->FirstChild())
   {
+    symmetric = true;
     std::string sigma = stress->FirstChild()->Value();
     IFEM::cout <<"\tStress="<< sigma << std::endl;
-    stressSol = new STensorFuncExpr(sigma,variables);
-    parseDerivatives(static_cast<STensorFuncExpr*>(stressSol),stress);
+    stressSol = new STensorF(sigma,variables);
+    parseDerivatives(static_cast<STensorF*>(stressSol),stress);
   }
 }
 
@@ -309,4 +360,24 @@ void AnaSol::parseFieldFunctions (const TiXmlElement* elem, bool scalarSol)
   std::cerr <<" *** AnaSol::parseFieldFunctions: Compiled without HDF5 support"
             <<", no fields read."<< std::endl;
 #endif
+}
+
+
+void AnaSol::setupSecondarySolutions ()
+{
+  // if we are given a stress sol, no scalar secondaries should be registered.
+  // this is tailored to assumptions in elasticity applications.
+  if (!stressSol && !scalSol.empty()) {
+    scalSecSol.resize(scalSol.size());
+    for (size_t i = 0; i < scalSol.size(); ++i)
+      if (!scalSecSol[i])
+        scalSecSol[i] = new GradientFunc<RealFunc,VecFunc,Vec3>(*scalSol[i]);
+  }
+
+  if (vecSol) {
+    if (symmetric && !stressSol)
+      stressSol = new GradientFunc<VecFunc,STensorFunc,SymmTensor>(*vecSol);
+    else if (!symmetric && !vecSecSol)
+      vecSecSol = new GradientFunc<VecFunc,TensorFunc,Tensor>(*vecSol);
+  }
 }

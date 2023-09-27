@@ -99,14 +99,16 @@ class EvalFuncSpatial : public RealFunc
     Scalar* z; //!< Z-coordinate
     Scalar* t; //!< Time
 
+    //! \brief Returns a const ref to a member.
+    //! \param dir One-based index to member
     const Scalar& get(int dir) const
     {
       switch (dir) {
-        default:
-        case 1: return *x;
-        case 2: return *y;
-        case 3: return *z;
-        case 4: return *t;
+        case  1: return *x;
+        case  2: return *y;
+        case  3: return *z;
+        case  4: return *t;
+        default: return *x;
       }
     }
   };
@@ -267,5 +269,8 @@ using VecFuncExpr = EvalMultiFunction<VecFunc,Vec3,Real>;
 using TensorFuncExpr = EvalMultiFunction<TensorFunc,Tensor,Real>;
 //! Symmetric tensor-valued function expression
 using STensorFuncExpr = EvalMultiFunction<STensorFunc,SymmTensor,Real>;
+
+//! \brief Explicit instantiation of error flag.
+template<> int EvalFunc::numError;
 
 #endif
