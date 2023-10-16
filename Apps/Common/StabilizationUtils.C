@@ -43,51 +43,48 @@ double getTauPt (double dt, double mu, const Vector& U,
 {
   double Gnorm2 = G.norm2();
   Gnorm2 *= Gnorm2;
-  return 1.0/ sqrt(Ct/pow(dt,2) + U.dot(G*U) + Cl*mu*mu*Gnorm2);
+  return 1.0 / sqrt(Ct/pow(dt,2) + U.dot(G*U) + Cl*mu*mu*Gnorm2);
 }
 
 
-bool getTauNSPt (double dt, double mu, const Vector& U,
-                 const Matrix& G, double &tauM, double& tauC,
-                 const double Ct, const double Cl)
+std::pair<double,double>
+getTauNSPt (double dt, double mu, const Vector& U,
+            const Matrix& G, const double Ct, const double Cl)
 {
-  tauM = getTauPt(dt,mu,U,G,Ct,Cl);
-  tauC = 1.0/(tauM*G.trace());
-  return true;
+  double tauM = getTauPt(dt,mu,U,G,Ct,Cl);
+  double tauC = 1.0 / (tauM*G.trace());
+
+  return {tauM, tauC};
 }
 
 
-bool getTauNSALEPt (double dt, double mu, const Vector& U,
-                    const Matrix& G, double & tauM, double& tauC,
-                    const double Ct, const double Cl)
+std::pair<double,double>
+getTauNSALEPt (double dt, double mu, const Vector& U,
+               const Matrix& G,
+               const double Ct, const double Cl)
 {
-  tauM = getTauPt(dt,mu,U,G,Ct,Cl);
+  double tauM = getTauPt(dt,mu,U,G,Ct,Cl);
+  double tauC = tauM*(U.dot(U));
 
-  tauC = tauM*(U.dot(U));
-
-  return true;
+  return {tauM, tauC};
 }
 
 
-bool getTauPtJac (const Vector& U, const Matrix& G,
-                  const double tauM, Vector& tauMjac)
+Vector getTauPtJac (const Vector& U, const Matrix& G,
+                    const double tauM)
 {
-  tauMjac = -pow(tauM,3)*G*U;
-
-  return true;
+  return -pow(tauM,3)*G*U;
 }
 
 
-bool getTauNSPtJac (const Vector& U, const Matrix& G,
-                    const double tauM, const double& tauC,
-                    Vector& tauMjac, Vector& tauCjac)
+std::pair<Vector,Vector>
+getTauNSPtJac (const Vector& U, const Matrix& G,
+                    const double tauM, const double& tauC)
 {
-  if (!getTauPtJac(U, G, tauM, tauMjac))
-    return false;
+  Vector tauMjac = getTauPtJac(U, G, tauM);
+  Vector tauCjac = (-tauC/tauM) * tauMjac;
 
-  tauCjac = (-tauC/tauM) * tauMjac;
-
-  return true;
+  return {tauMjac, tauCjac};
 }
 
 }

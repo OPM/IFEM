@@ -40,45 +40,40 @@ namespace StabilizationUtils {
   //! \param[in] mu Diffusion/viscosity parameter
   //! \param[in] U  Velocity vector
   //! \param[in] G  The G matrix
-  //! \param[out] tauM Stabilization parameter for momentum
-  //! \param[out] tauC Stabilization parameter for continuity
   //! \param[in] Ct VMS parameter
   //! \param[in] Cl VMS parameter
-  //! \details Stabilization parameters in integration point
-  bool getTauNSPt(double dt, double mu, const Vector& U, const Matrix& G,
-                  double& tauM, double& tauC,
-                  const double Ct = 2.0, const double Cl = 36.0);
+  //! \return Stabilization parameters in integration point
+  std::pair<double,double>
+  getTauNSPt(double dt, double mu, const Vector& U, const Matrix& G,
+             const double Ct = 2.0, const double Cl = 36.0);
 
   //! \brief Computes stabilization parameters for Navier-Stokes equations.
   //! \param[in] dt The timestep size
   //! \param[in] mu Diffusion/viscosity parameter
   //! \param[in] U Velocity vector
   //! \param[in] G The G matrix
-  //! \param[out] tauM Stabilization parameter for momentum
-  //! \param[out] tauC Stabilization parameter for continuity
   //! \param[in] Ct VMS parameter
   //! \param[in] Cl VMS parameter
-  //! \details Stabilization parameters in integration point
-  bool getTauNSALEPt(double dt, double mu, const Vector& U, const Matrix& G,
-                     double& tauM, double& tauC,
-                     const double Ct = 2.0, const double Cl = 36.0);
+  //! \return Stabilization parameters in integration point
+  std::pair<double,double>
+  getTauNSALEPt(double dt, double mu, const Vector& U, const Matrix& G,
+                const double Ct = 2.0, const double Cl = 36.0);
 
   //! \brief Computes variation of stability parameters with respect to velocity.
   //! \param[in] U  Velocity vector
   //! \param[in] G  The G matrix
   //! \param[in] tauM Stabilization parameter for momentum
-  //! \param[out] tauMjac Variation of tauM with respect to U
-  bool getTauPtJac(const Vector& U, const Matrix& G, const double tauM, Vector& tauMjac);
+  Vector getTauPtJac(const Vector& U, const Matrix& G,
+                   const double tauM);
 
   //! \brief Computes variation of stability parameters with respect to velocity.
   //! \param[in] U  Velocity vector
   //! \param[in] G  The G matrix
   //! \param[in] tauM Stabilization parameter for momentum
   //! \param[in] tauC Stabilization parameter for continuity
-  //! \param[out] tauMjac Variation of tauM with respect to U
-  //! \param[out] tauCjac Variation of tauC with respect to U
-  bool getTauNSPtJac(const Vector& U, const Matrix& G, const double tauM,
-                     const double& tauC, Vector& tauMjac, Vector& tauCjac);
+  std::pair<Vector,Vector>
+  getTauNSPtJac(const Vector& U, const Matrix& G,
+                const double tauM, const double& tauC);
 }
 
 #endif
