@@ -16,7 +16,7 @@
 
 namespace StabilizationUtils {
 
-double getElementSize(const std::vector<Vec3>& XC, int nsd)
+double getElementSize (const std::vector<Vec3>& XC, int nsd)
 {
   double h;
   if (nsd == 2) {
@@ -38,7 +38,8 @@ double getElementSize(const std::vector<Vec3>& XC, int nsd)
 }
 
 
-double getTauPt(double dt, double mu, const Vector& U, const Matrix& G, const double Ct, const double Cl)
+double getTauPt (double dt, double mu, const Vector& U,
+                 const Matrix& G, const double Ct, const double Cl)
 {
   double Gnorm2 = 0.0;
   for (size_t i = 1;i <= G.rows();i++)
@@ -49,7 +50,9 @@ double getTauPt(double dt, double mu, const Vector& U, const Matrix& G, const do
 }
 
 
-bool getTauNSPt(double dt, double mu, const Vector& U, const Matrix& G, double & tauM, double& tauC, const double Ct, const double Cl)
+bool getTauNSPt (double dt, double mu, const Vector& U,
+                 const Matrix& G, double &tauM, double& tauC,
+                 const double Ct, const double Cl)
 {
   tauM = getTauPt(dt,mu,U,G,Ct,Cl);
 
@@ -63,7 +66,9 @@ bool getTauNSPt(double dt, double mu, const Vector& U, const Matrix& G, double &
 }
 
 
-bool getTauNSALEPt(double dt, double mu, const Vector& U, const Matrix& G, double & tauM, double& tauC, const double Ct, const double Cl)
+bool getTauNSALEPt (double dt, double mu, const Vector& U,
+                    const Matrix& G, double & tauM, double& tauC,
+                    const double Ct, const double Cl)
 {
   tauM = getTauPt(dt,mu,U,G,Ct,Cl);
 
@@ -73,7 +78,8 @@ bool getTauNSALEPt(double dt, double mu, const Vector& U, const Matrix& G, doubl
 }
 
 
-bool getTauPtJac(const Vector& U, const Matrix& G, const double tauM, Vector& tauMjac)
+bool getTauPtJac (const Vector& U, const Matrix& G,
+                  const double tauM, Vector& tauMjac)
 {
   tauMjac = -pow(tauM,3)*G*U;
 
@@ -81,7 +87,9 @@ bool getTauPtJac(const Vector& U, const Matrix& G, const double tauM, Vector& ta
 }
 
 
-bool getTauNSPtJac(const Vector& U, const Matrix& G, const double tauM, const double& tauC, Vector& tauMjac, Vector& tauCjac)
+bool getTauNSPtJac (const Vector& U, const Matrix& G,
+                    const double tauM, const double& tauC,
+                    Vector& tauMjac, Vector& tauCjac)
 {
   if (!getTauPtJac(U, G, tauM, tauMjac))
     return false;
