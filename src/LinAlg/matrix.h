@@ -129,7 +129,8 @@ namespace utl //! General utility classes and functions.
     vector<T>& operator-=(const vector<T>& X) { return this->add(X,T(-1)); }
     //! \brief Add the given vector \b X scaled by \a alfa to \a *this.
     vector<T>& add(const std::vector<T>& X, const T& alfa = T(1),
-                   int ofsx = 0, int stridex = 1);
+                   unsigned int ofsx = 0, int stridex = 1,
+                   unsigned int ofsy = 0, int stridey = 1);
 
     //! \brief Perform \f${\bf Y} = \alpha{\bf Y} + (1-\alpha){\bf X} \f$
     //! where \b Y = \a *this.
@@ -983,20 +984,22 @@ namespace utl //! General utility classes and functions.
   template<> inline
   vector<float>& vector<float>::add(const std::vector<float>& X,
                                     const float& alfa,
-                                    int ofsx, int stridex)
+                                    unsigned int ofsx, int stridex,
+                                    unsigned int ofsy, int stridey)
   {
     size_t n = this->size() < X.size() ? this->size() : X.size();
-    cblas_saxpy(n,alfa,X.data()+ofsx,stridex,this->data(),1);
+    cblas_saxpy(n,alfa,X.data()+ofsx,stridex,this->data()+ofsy,stridey);
     return *this;
   }
 
   template<> inline
   vector<double>& vector<double>::add(const std::vector<double>& X,
                                       const double& alfa,
-                                      int ofsx, int stridex)
+                                      unsigned int ofsx, int stridex,
+                                      unsigned int ofsy, int stridey)
   {
     size_t n = this->size() < X.size() ? this->size() : X.size();
-    cblas_daxpy(n,alfa,X.data()+ofsx,stridex,this->data(),1);
+    cblas_daxpy(n,alfa,X.data()+ofsx,stridex,this->data()+ofsy,stridey);
     return *this;
   }
 
@@ -1367,11 +1370,13 @@ namespace utl //! General utility classes and functions.
 
   template<class T> inline
   vector<T>& vector<T>::add(const std::vector<T>& X, const T& alfa,
-                            int ofsx, int stridex)
+                            unsigned int ofsx, int stridex,
+                            unsigned int ofsy, int stridey)
   {
-    T* p = this->ptr();
+    T* p = this->data() + ofsy;
     const T* q = X.data() + ofsx;
-    for (size_t i = 0; i < this->size() && i < X.size(); i++, p++, q += stridex)
+    size_t size = std::min(this->size() / stridey, X.size() / stridex);
+    for (size_t i = 0; i < size; ++i, p += stridey, q += stridex)
       *p += alfa*(*q);
     return *this;
   }
