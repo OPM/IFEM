@@ -52,13 +52,7 @@ bool getTauNSPt (double dt, double mu, const Vector& U,
                  const double Ct, const double Cl)
 {
   tauM = getTauPt(dt,mu,U,G,Ct,Cl);
-
-  double Gtrace = 0.0;
-  for (size_t i = 1;i <= G.rows();i++)
-    Gtrace += G(i,i);
-
-  tauC = 1.0/(tauM*Gtrace);
-
+  tauC = 1.0/(tauM*G.trace());
   return true;
 }
 
