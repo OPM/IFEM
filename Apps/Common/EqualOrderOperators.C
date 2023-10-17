@@ -17,6 +17,21 @@
 
 namespace {
 
+//! \brief Helper for adding an element matrix to one component.
+//! \param[out] EM The element matrix to add to.
+//! \param[in] A The scalar element matrix to add.
+//! \param[in] cmp1 First components to add matrix to
+//! \param[in] cmp2 Second irst components to add matrix to
+//! \param[in] nf Number of components in total matrix.
+void addComponent (Matrix& EM, const Matrix& A,
+                   size_t cmp1, size_t cmp2, size_t nf)
+{
+  for (size_t i = 1; i <= A.rows(); ++i)
+    for (size_t j = 1; j <= A.cols(); ++j)
+      EM(nf*(i-1)+cmp1,nf*(j-1)+cmp2) += A(i, j);
+}
+
+
 //! \brief Helper for adding an element matrix to several components.
 //! \param[out] EM The element matrix to add to.
 //! \param[in] A The scalar element matrix to add.
@@ -24,15 +39,13 @@ namespace {
 //! \param[in] nf Number of components in total matrix.
 //! \param[in] scmp Index of first component to add matrix to.
 void addComponents (Matrix& EM, const Matrix& A,
-                           size_t cmp, size_t nf, size_t scmp)
+                    size_t cmp, size_t nf, size_t scmp)
 {
   if (cmp == 1 && nf == 1)
     EM += A;
   else
-    for (size_t i = 1; i <= A.rows(); ++i)
-      for (size_t j = 1; j <= A.cols(); ++j)
-        for (size_t k = 1; k <= cmp; ++k)
-          EM(nf*(i-1)+k+scmp,nf*(j-1)+k+scmp) += A(i, j);
+    for (size_t k = 1; k <= cmp; ++k)
+      addComponent(EM, A, k+scmp, k+scmp, nf);
 }
 
 
@@ -165,16 +178,26 @@ void EqualOrderOperators::Weak::Laplacian (Matrix& EM, const FiniteElement& fe,
 {
   size_t cmp = EM.rows() / fe.basis(basis).size();
   Matrix A;
-  A.multiply(fe.grad(basis),fe.grad(basis),false,true);
-  A *= scale*fe.detJxW;
+  A.multiply(fe.grad(basis),fe.grad(basis),false,true,false,scale*fe.detJxW);
   addComponents(EM, A, cmp, cmp, 0);
   if (stress)
-    for (size_t i = 1; i <= fe.basis(basis).size(); i++)
-      for (size_t j = 1; j <= fe.basis(basis).size(); j++)
-        for (size_t k = 1; k <= cmp; k++)
-          for (size_t l = 1; l <= cmp; l++)
-            EM(cmp*(i-1)+k,cmp*(j-1)+l) += scale * fe.grad(basis)(i,l)
-                                                 * fe.grad(basis)(j,k) * fe.detJxW;
+    Stress(EM, fe, scale, basis);
+}
+
+
+void EqualOrderOperators::Weak::Stress (Matrix& EM,
+                                        const FiniteElement& fe,
+                                        double scale, int basis)
+{
+  Matrix A;
+  size_t cmp = EM.rows() / fe.basis(basis).size();
+  for (size_t k = 1; k <= cmp; k++)
+    for (size_t l = 1; l <= cmp; l++) {
+      A.outer_product(fe.grad(basis).getColumn(l),
+                      fe.grad(basis).getColumn(k),
+                      false, scale * fe.detJxW);
+      addComponent(EM, A, k, l, cmp);
+    }
 }
 
 
