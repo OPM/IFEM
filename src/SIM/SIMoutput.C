@@ -37,6 +37,7 @@ SIMoutput::SIMoutput (IntegrandBase* itg) : SIMinput(itg)
   myGeomID = 0;
   myVtf = nullptr;
   logRpMap = false;
+  idxGrid = -1;
 }
 
 
@@ -114,8 +115,8 @@ bool SIMoutput::parseOutputTag (const TiXmlElement* elem)
   else if (strcasecmp(elem->Value(),"resultpoints"))
     return this->SIMinput::parseOutputTag(elem);
 
-  utl::getAttribute(elem,"printmapping",logRpMap);
-
+  // Parse the result point specifications.
+  // Can either be explicit points, lines or a grid.
   bool newGroup = true;
   const TiXmlElement* point = elem->FirstChildElement("point");
   for (int i = 1; point; i++, point = point->NextSiblingElement())
@@ -137,7 +138,7 @@ bool SIMoutput::parseOutputTag (const TiXmlElement* elem)
       IFEM::cout <<' '<< thePoint.u[2];
     IFEM::cout << std::endl;
     if (newGroup)
-      myPoints.push_back(std::make_pair("",ResPointVec(1,thePoint)));
+      myPoints.push_back({"",{thePoint}});
     else
       myPoints.back().second.push_back(thePoint);
     newGroup = false;
@@ -163,7 +164,7 @@ bool SIMoutput::parseOutputTag (const TiXmlElement* elem)
 
     memcpy(thePoint.u,u0,3*sizeof(double));
     if (newGroup)
-      myPoints.push_back(std::make_pair("",ResPointVec(1,thePoint)));
+      myPoints.push_back({"",{thePoint}});
     else
       myPoints.back().second.push_back(thePoint);
     newGroup = false;
@@ -190,6 +191,77 @@ bool SIMoutput::parseOutputTag (const TiXmlElement* elem)
     IFEM::cout << std::endl;
   }
 
+  const TiXmlElement* grid = elem->FirstChildElement("grid");
+  if (!newGroup)
+    grid = nullptr; // Don't mix grid output with other lines or points
+  else if (grid)
+    idxGrid = myPoints.size();
+
+  for (int g = 1; grid; g++, grid = grid->NextSiblingElement())
+  {
+    int patch = 0;
+    ResultPoint thePoint;
+    if (utl::getAttribute(grid,"patch",patch) && patch > 0)
+      thePoint.patch = patch;
+
+    // Get grid bounds
+    double u0[3], u1[3];
+    if (!utl::getAttribute(grid,"u0",u0[0])) u0[0] = 0.0;
+    if (!utl::getAttribute(grid,"v0",u0[1])) u0[1] = 0.0;
+    if (!utl::getAttribute(grid,"w0",u0[2])) u0[2] = 0.0;
+    if (!utl::getAttribute(grid,"u1",u1[0])) u1[0] = u0[0];
+    if (!utl::getAttribute(grid,"v1",u1[1])) u1[1] = u0[1];
+    if (!utl::getAttribute(grid,"w1",u1[2])) u1[2] = u0[2];
+
+    // Get grid resolution
+    int npt[3] = { 10, 10, 10 };
+    for (int d = 0; d < 3; d++)
+      if (u0[d] == u1[d]) npt[d] = 1;
+    if (grid->FirstChild())
+    {
+      char* sval = strdup(grid->FirstChild()->Value());
+      char* cval = strtok(sval," ");
+      for (int d = 0; d < 3 && cval; cval = strtok(nullptr," "))
+      {
+        while (d < 3 && npt[d] == 1) ++d;
+        if (d < 3) npt[d++] = atoi(cval);
+      }
+      free(sval);
+    }
+
+    if (newGroup)
+      myPoints.push_back({"",{}});
+    newGroup = false;
+
+    for (int k = 0; k < npt[2]; k++)
+    {
+      double zeta = npt[2] > 1 ? double(k)/double(npt[2]-1) : 0.0;
+      thePoint.u[2] = u0[2]*(1.0-zeta) + u1[2]*zeta;
+      for (int j = 0; j < npt[1]; j++)
+      {
+        double eta = npt[1] > 1 ? double(j)/double(npt[1]-1) : 0.0;
+        thePoint.u[1] = u0[1]*(1.0-eta) + u1[1]*eta;
+        for (int i = 0; i < npt[0]; i++)
+        {
+          double xi = npt[0] > 1 ? double(i)/double(npt[0]-1) : 0.0;
+          thePoint.u[0] = u0[0]*(1.0-xi) + u1[0]*xi;
+          myPoints.back().second.push_back(thePoint);
+        }
+      }
+    }
+
+    IFEM::cout <<"\tGrid "<< g <<": P"<< thePoint.patch
+               <<" npt = "<< npt[0]*npt[1]*npt[2] <<" xi =";
+    for (int d = 0; d < 3; d++)
+    {
+      IFEM::cout <<' '<< u0[d];
+      if (u1[d] != u0[d])
+        IFEM::cout <<'-'<< u1[d];
+    }
+    IFEM::cout << std::endl;
+  }
+
+  utl::getAttribute(elem,"printmapping",logRpMap);
   utl::getAttribute(elem,"precision",myPrec);
   utl::getAttribute(elem,"vtfsize",myPtSize);
 
@@ -215,8 +287,7 @@ bool SIMoutput::parse (char* keyWord, std::istream& is)
       this->setPointResultFile(cline);
   }
 
-  myPoints.resize(1);
-  myPoints.back().second.resize(nres);
+  myPoints = {{"",ResPointVec(nres)}};
   for (int i = 0; i < nres && (cline = utl::readLine(is)); i++)
   {
     ResultPoint& thePoint = myPoints.back().second[i];
@@ -308,7 +379,8 @@ void SIMoutput::preprocessResPtGroup (std::string& ptFile, ResPointVec& points)
 }
 
 
-bool SIMoutput::merge (SIMbase* that, const std::map<int,int>* old2new, int poff)
+bool SIMoutput::merge (SIMbase* that, const std::map<int,int>* old2new,
+                       int poff)
 {
   if (!this->SIMbase::merge(that,old2new,poff))
     return false;
@@ -1543,7 +1615,7 @@ bool SIMoutput::dumpResults (const Vector& psol, double time,
         sol4.x = (*psolScl)(Vec4(Xp[j],time));
       else if (psolVec)
         sol4 = (*psolVec)(Vec4(Xp[j],time));
-      if (nxsol > 0)
+      if (formatted && nxsol > 0)
         os <<"\n\t\texact1";
       for (size_t k = 0; k < nxsol; k++)
         os << std::setw(flWidth) << utl::trunc(sol4[k]);
@@ -1559,14 +1631,14 @@ bool SIMoutput::dumpResults (const Vector& psol, double time,
         }
 
         Vector sol3;
-        if (ssolScl || ssolVec || ssolStr)
-          os <<"\n\t\texact2";
         if (ssolScl)
           sol3 = (*ssolScl)(Vec4(Xp[j],time)).vec(this->getNoSpaceDim());
         else if (ssolVec)
           sol3 = (*ssolVec)(Vec4(Xp[j],time));
         else if (ssolStr)
           sol3 = (*ssolStr)(Vec4(Xp[j],time));
+        if (formatted && !sol3.empty())
+          os <<"\n\t\texact2";
         for (double s : sol3) os << std::setw(flWidth) << utl::trunc(s);
       }
 

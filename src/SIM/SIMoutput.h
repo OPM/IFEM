@@ -379,6 +379,7 @@ private:
   int    myGeomID; //!< VTF geometry block ID for the first patch
   VTF*   myVtf;    //!< VTF-file for result visualization
   bool   logRpMap; //!< If \e true, print out the result point mapping
+  int    idxGrid;  //!< Index into \ref myPoints for grid result output
 };
 
 #endif
