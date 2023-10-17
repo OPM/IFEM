@@ -20,9 +20,6 @@
 class ElementBlock;
 class VTF;
 
-typedef std::pair<Vec3,double>  PointValue;  //!< Convenience type
-typedef std::vector<PointValue> PointValues; //!< Convenience type
-
 
 /*!
   \brief Sub-class with additional functionality for result output.
@@ -335,8 +332,10 @@ protected:
     ResultPoint() : npar(0), patch(1), inod(0) { u[0] = u[1] = u[2] = 0.0; }
   };
 
-  typedef std::vector<ResultPoint> ResPointVec; //!< Result point container
-  typedef std::pair<std::string,ResPointVec> ResPtPair; //!< Result point group
+  //! \brief Result point container.
+  using ResPointVec = std::vector<ResultPoint>;
+  //! \brief File name to result point group mapping.
+  using ResPtPair = std::pair<std::string,ResPointVec>;
 
   //! \brief Preprocesses the result sampling points.
   virtual void preprocessResultPoints();

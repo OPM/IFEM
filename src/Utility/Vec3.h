@@ -290,7 +290,9 @@ public:
 };
 
 
-typedef std::pair<Vec3,Vec3> Vec3Pair; //!< A pair of two point vectors
-typedef std::vector<Vec3>    Vec3Vec;  //!< An array of point vectors
+using Vec3Pair    = std::pair<Vec3,Vec3>;    //!< A pair of two point vectors
+using PointValue  = std::pair<Vec3,double>;  //!< A point with associated value
+using Vec3Vec     = std::vector<Vec3>;       //!< An array of point vectors
+using PointValues = std::vector<PointValue>; //!< An array of point values
 
 #endif
