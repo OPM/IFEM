@@ -10,7 +10,7 @@
 //!
 //==============================================================================
 
-#include "MatVec.h"
+#include "matrixnd.h"
 
 #include "gtest/gtest.h"
 #include <numeric>
@@ -83,7 +83,29 @@ TEST(TestMatrix, AddRows)
 }
 
 
-TEST(TestMatrix, Augment)
+TEST(TestMatrix, AugmentRows)
+{
+  utl::matrix<int> a(5,3), b(4,3), c(3,2);
+  std::iota(a.begin(),a.end(),1);
+  std::iota(b.begin(),b.end(),16);
+  std::cout <<"A:"<< a;
+  std::cout <<"B:"<< b;
+  size_t nA = a.size();
+  size_t na = a.rows();
+  size_t nb = b.rows();
+  ASSERT_TRUE(a.augmentRows(b));
+  ASSERT_FALSE(a.augmentRows(c));
+  std::cout <<"C:"<< a;
+  for (size_t j = 1; j <= a.cols(); j++)
+    for (size_t i = 1; i <= a.rows(); i++)
+      if (i <= na)
+        EXPECT_EQ(a(i,j), i+na*(j-1));
+      else
+        EXPECT_EQ(a(i,j), nA-na+i+nb*(j-1));
+}
+
+
+TEST(TestMatrix, AugmentCols)
 {
   utl::matrix<int> a(3,5), b(3,4), c(2,3);
   std::iota(a.begin(),a.end(),1);
@@ -128,7 +150,9 @@ TEST(TestMatrix, Multiply)
   EXPECT_FLOAT_EQ(y.sum(),0.0);
 
   u.std::vector<double>::resize(5);
-  v = 0.5*A*u;
+  ASSERT_TRUE(A.multiply(u,v));
+  v *= 0.5;
+
   EXPECT_FLOAT_EQ(v(1),67.5);
   EXPECT_FLOAT_EQ(v(2),75.0);
   EXPECT_FLOAT_EQ(v(3),82.5);

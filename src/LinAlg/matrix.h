@@ -437,11 +437,31 @@ namespace utl //! General utility classes and functions.
       return *this;
     }
 
+    //! \brief Increase the number of rows by augmenting the given matrix.
+    bool augmentRows(const matrix<T>& B)
+    {
+      if (B.ncol != ncol)
+        return false;
+
+      size_t oldRows = nrow;
+      nrow += B.nrow;
+      this->elem.std::template vector<T>::resize(nrow*ncol,T(0));
+      T* oldMat = this->ptr() + oldRows*(ncol-1);
+      for (size_t c = ncol; c > 0; c--, oldMat -= oldRows)
+      {
+        if (c > 1)
+          memmove(this->ptr(c-1),oldMat,oldRows*sizeof(T));
+        for (size_t r = nrow; r > oldRows; r--)
+          this->elem[r-1+nrow*(c-1)] = B(r-oldRows,c);
+      }
+      return true;
+    }
+
     //! \brief Increase the number of columns by augmenting the given matrix.
     bool augmentCols(const matrix<T>& B)
     {
       if (B.nrow != nrow)
-	return false;
+        return false;
 
       this->elem.insert(this->elem.end(),B.elem.begin(),B.elem.end());
       ncol += B.ncol;
@@ -568,8 +588,7 @@ namespace utl //! General utility classes and functions.
 
     //! \brief Extract a block of the matrix to another matrix.
     void extractBlock(matrix<T>& block, size_t r, size_t c,
-                      bool addTo = false,
-                      bool transposed = false) const
+                      bool addTo = false, bool transposed = false) const
     {
       size_t nr = transposed ? block.cols() : block.rows();
       size_t nc = transposed ? block.rows() : block.cols();
