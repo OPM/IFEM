@@ -363,7 +363,7 @@ void SIMoutput::preprocessResPtGroup (std::string& ptFile, ResPointVec& points)
   // Formatted output, use scientific notation with fixed field width.
   std::streamsize precision = 3;
   std::streamsize flWidth = 8 + precision;
-  std::ofstream os(ptFile.c_str(),std::ios::out);
+  std::ofstream os(ptFile,std::ios::out);
   os.flags(std::ios::scientific | std::ios::right);
   os.precision(precision);
 
@@ -837,7 +837,7 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
         ok = myVtf->writeDblk(vID[i],vname.c_str(),idBlock+i,iStep);
     }
 
-  if (idBlock <= (int)this->getNoSpaceDim())
+  if (idBlock <= static_cast<int>(this->getNoSpaceDim()))
     idBlock = this->getNoSpaceDim()+1; // since we might have written BCs above
 
   std::vector<std::string> xname;
@@ -1705,14 +1705,7 @@ bool SIMoutput::evalResults (const Vector& psol, const ResPointVec& gPoints,
   {
     if (A.empty())
       A = B;
-    else if (A.rows() == B.rows())
-    {
-      size_t col = A.cols();
-      A.resize(B.rows(),col+B.cols());
-      for (size_t c = 1; c <= B.cols(); c++)
-        A.fillColumn(col+c,B.getColumn(c));
-    }
-    else
+    else if (!A.augmentCols(B))
     {
       std::cerr <<" *** SIMoutput::evalResults: Incompatible matrices, rows(A)="
                 << A.rows() <<" rows(B)="<< B.rows() << std::endl;
@@ -1781,8 +1774,12 @@ bool SIMoutput::dumpVector (const Vector& vsol, const char* fname,
   std::streamsize oldPrec;
   std::ios::fmtflags oldFlgs;
 
+  int gCount = 0;
   for (const ResPtPair& rptp : myPoints)
   {
+    if (gCount++ == idxGrid)
+      continue; // Skip grid output
+
     if (fname)
     {
       // Formatted output, use scientific notation with fixed field width
@@ -1792,7 +1789,7 @@ bool SIMoutput::dumpVector (const Vector& vsol, const char* fname,
     else if (!rptp.first.empty())
     {
       // Output to a separate file for plotting
-      fs = new std::ofstream(rptp.first.c_str(),std::ios::out);
+      fs = new std::ofstream(rptp.first,std::ios::out);
       oldPrec = fs->precision(precision);
       oldFlgs = fs->flags(std::ios::scientific | std::ios::right);
     }
@@ -1884,12 +1881,18 @@ bool SIMoutput::dumpResults (const Vector& psol, double time,
   if (psol.empty())
     return true;
 
-  myProblem->initResultPoints(time);
-
+  int gCount = 0;
+  bool first = true;
   for (const ResPtPair& rptp : myPoints)
-    if (!formatted || rptp.first.empty())
+    if (gCount++ != idxGrid && (!formatted || rptp.first.empty()))
+    {
+      if (first)
+        myProblem->initResultPoints(time);
+      first = false;
+
       if (!this->dumpResults(psol,time,os,rptp.second,formatted,precision))
         return false;
+    }
 
   return true;
 }
@@ -1900,20 +1903,67 @@ bool SIMoutput::savePoints (const Vector& psol, double time, int step) const
   if (step < 1 || psol.empty())
     return true;
 
-  myProblem->initResultPoints(time);
-
+  int gCount = 0;
+  bool first = true;
   for (const ResPtPair& rptp : myPoints)
-    if (!rptp.first.empty())
+    if (gCount++ != idxGrid && !rptp.first.empty())
       for (const ResultPoint& resPt : rptp.second)
         if (this->getLocalPatchIndex(resPt.patch) > 0)
         {
-          std::ofstream fs(rptp.first.c_str(),
-                           step == 1 ? std::ios::out : std::ios::app);
+          if (first)
+            myProblem->initResultPoints(time);
+          first = false;
+
+          std::ofstream fs(rptp.first,step > 1 ? std::ios::app : std::ios::out);
           utl::LogStream logs(fs);
           if (!this->dumpResults(psol,time,logs,rptp.second,false,myPrec))
             return false;
           break;
         }
+
+  return true;
+}
+
+
+bool SIMoutput::saveResults (const Vector& psol, double time, int step) const
+{
+  if (idxGrid < 0 || step < 1 || psol.empty())
+    return true;
+  else if (idxGrid > static_cast<int>(myPoints.size()))
+    return false;
+
+  const std::string& filName = myPoints[idxGrid].first;
+  const ResPointVec& gridPts = myPoints[idxGrid].second;
+  if (filName.empty() || gridPts.empty())
+    return false;
+
+  size_t idot = filName.find_last_of('.');
+  std::string fileName = filName.substr(0,idot);
+  std::string fileExt  = filName.substr(idot);
+
+  myProblem->initResultPoints(time);
+
+  // Evaluate the solution variables in all grid points
+  IntVec  points;
+  Vec3Vec Xp;
+  Matrix  sol, sol2;
+  for (const ASMbase* pch : myModel)
+    if (!this->evalResults(psol,gridPts,pch,points,Xp,sol,sol2))
+      return false;
+
+  if (!sol.augmentRows(sol2))
+    return false;
+
+  // Write one file for each result component
+  for (size_t r = 1; r <= sol.rows(); r++)
+  {
+    std::string fName = fileName + "_" + std::to_string(r) + fileExt;
+    std::ofstream fs(fName,step > 1 ? std::ios::app : std::ios::out);
+    fs << time;
+    for (size_t c = 1; c <= sol.cols(); c++)
+      fs <<" "<< sol(r,c);
+    fs << '\n';
+  }
 
   return true;
 }

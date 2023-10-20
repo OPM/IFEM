@@ -276,6 +276,12 @@ public:
   //! \param[in] step Load/time step counter
   bool savePoints(const Vector& psol, double time, int step) const;
 
+  //! \brief Saves result components to output files for a given time step.
+  //! \param[in] psol Primary solution vector
+  //! \param[in] time Load/time step parameter
+  //! \param[in] step Load/time step counter
+  bool saveResults(const Vector& psol, double time, int step) const;
+
   //! \brief Sets the file name for result point output.
   //! \param[in] filename The file name prefix (optionally with extension)
   //! \param[in] dumpCoord If \e true, write point coordinates to separate file
