@@ -16,6 +16,8 @@
 
 #include "BasisFunctionVals.h"
 #include "ASMenums.h"
+
+#include <array>
 #include <memory>
 
 class Integrand;
