@@ -1027,8 +1027,7 @@ size_t ASMu2D::getNoBoundaryElms (char lIndex, char ldim) const
     return 1;
 
   std::vector<LR::Element*> edgeElms;
-  if (lIndex > 0 || lIndex <= 4)
-    lrspline->getEdgeElements(edgeElms, getEdgeEnum(lIndex));
+  lrspline->getEdgeElements(edgeElms, getEdgeEnum(lIndex));
 
   return edgeElms.size();
 }
