@@ -155,7 +155,7 @@ public:
     this->printHeading(heading);
 
     // Solve for each time step up to final time
-    for (int iStep = 1; this->advanceStep(); iStep++)
+    while (this->advanceStep())
       if (!this->S1.solveStep(tp))
         return saveDivergedSol && !this->S1.saveStep(tp,nBlock) ? 4 : 3;
       else if (!this->saveState(geoBlk,nBlock))
