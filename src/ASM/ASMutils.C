@@ -176,7 +176,11 @@ bool ASM::readXML (std::istream& is, IntMat& MNPC, std::vector<Vec3>& nodes,
   {
     Vec3 X;
     std::istringstream iss(data);
+#if SP_DEBUG > 1
     for (size_t inod = 0; iss; inod++)
+#else
+    while (iss)
+#endif
     {
       iss >> X;
       if (iss)
@@ -194,7 +198,11 @@ bool ASM::readXML (std::istream& is, IntMat& MNPC, std::vector<Vec3>& nodes,
   {
     IntVec mnpc(nenod);
     std::istringstream iss(data);
+#if SP_DEBUG > 1
     for (size_t iel = 0; iss; iel++)
+#else
+    while (iss)
+#endif
     {
       for (int& n : mnpc) iss >> n;
       if (iss)
