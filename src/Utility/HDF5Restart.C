@@ -69,8 +69,13 @@ bool HDF5Restart::writeData (const SerializeData& data)
 #endif
 
   // Lambda function for writing data to the HDF5 file.
-  auto&& writeGroup = [this,pid,ptot] (hid_t group, const std::string& name,
-                                       int len, const void* data, hid_t type)
+#ifdef HAVE_MPI
+  auto&& writeGroup = [this,pid,ptot]
+#else
+  auto&& writeGroup = []
+#endif
+      (hid_t group, const std::string& name,
+       int len, const void* data, hid_t type)
   {
 #ifdef HAVE_MPI
     int lens[ptot], lens2[ptot];
