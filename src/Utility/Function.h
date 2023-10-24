@@ -17,7 +17,6 @@
 #include "matrixnd.h"
 #include "Tensor.h"
 #include "Vec3.h"
-#include <functional>
 #include <cstddef>
 
 
@@ -28,7 +27,7 @@ namespace utl
   */
 
   template<class Arg, class Result>
-  class Function : public std::unary_function<const Arg&,Result>
+  class Function
   {
   protected:
     //! \brief The constructor is protected to allow sub-class instances only.
@@ -62,7 +61,7 @@ namespace utl
   */
 
   template<class Arg, class Result>
-  class Function2 : public std::binary_function<const Arg&,const Arg&,Result>
+  class Function2
   {
   protected:
     //! \brief The constructor is protected to allow sub-class instances only.
