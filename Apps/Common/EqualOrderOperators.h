@@ -191,8 +191,8 @@ public:
     //! \param[in] scale Scaling factor for contribution
     //! \param[in] basis Basis to use
     static void Laplacian(Vector& EV, const FiniteElement& fe,
-                          const Vec3& dUdX, double scale=1.0,
-                          int basis=1);
+                          const Vec3& dUdX, double scale = 1.0,
+                          int basis = 1);
 
     //! \brief Compute a laplacian term in a residual vector.
     //! \param EV The element vector to add contribution to
@@ -201,33 +201,9 @@ public:
     //! \param[in] scale Scaling factor for contribution
     //! \param[in] stress Whether to add extra stress formulation terms
     //! \param[in] basis Basis to use
-    template<class T>
     static void Laplacian(Vector& EV, const FiniteElement& fe,
-                          const T& dUdX, double scale=1.0,
-                          bool stress=false, int basis=1)
-    {
-      size_t cmp = EV.size() / fe.basis(basis).size();
-      for (size_t i = 1;i <= fe.basis(basis).size();i++) {
-        for (size_t k = 1;k <= cmp;k++) {
-          double diff = 0.0;
-          for (size_t l = 1;l <= fe.grad(basis).cols();l++)
-            diff += dUdX(k,l)*fe.grad(basis)(i,l);
-          diff *= scale*fe.detJxW;
-
-          // Add residual to rhs of momentum equation
-          EV((i-1)*cmp + k) += diff;
-        }
-      }
-
-      // Use stress formulation
-      if (stress) {
-        for (size_t i = 1;i <= fe.basis(basis).size();i++)
-          for (size_t k = 1;k <= cmp;k++)
-            for (size_t l = 1;l <= cmp;l++)
-              // Diffusion
-              EV((i-1)*cmp + k) += scale*dUdX(l,k)*fe.grad(basis)(i,l)*fe.detJxW;
-      }
-    }
+                          const Tensor& dUdX, double scale = 1.0,
+                          bool stress = false, int basis = 1);
   };
 };
 

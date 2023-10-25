@@ -302,3 +302,21 @@ void EqualOrderOperators::Residual::Laplacian (Vector& EV,
   size_t nsd = fe.grad(basis).cols();
   fe.grad(basis).multiply(Vector(dUdX.ptr(),nsd),EV,scale*fe.detJxW,1.0);
 }
+
+void EqualOrderOperators::Residual::Laplacian (Vector& EV,
+                                               const FiniteElement& fe,
+                                               const Tensor& dUdX,
+                                               double scale,
+                                               bool stress, int basis)
+{
+  size_t nsd = fe.grad(1).cols();
+  auto dUdXT = dUdX;
+  dUdXT.transpose();
+  for (size_t k = 1; k <= nsd; ++k) {
+    Vector diff;
+    fe.grad(basis).multiply(Vector(dUdXT[k-1].ptr(), nsd), diff);
+    if (stress)
+      fe.grad(basis).multiply(Vector(dUdX[k-1].ptr(), nsd), diff, false, 1);
+    EV.add(diff, scale*fe.detJxW, 0, 1, k-1, nsd);
+  }
+}

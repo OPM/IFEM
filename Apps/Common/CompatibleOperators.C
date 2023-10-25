@@ -183,11 +183,13 @@ void CompatibleOperators::Residual::Laplacian(Vectors& EV,
                                               double scale, bool stress)
 {
   size_t nsd = fe.grad(1).cols();
-  for (size_t k = 1; k <= nsd; ++k)
-    for (size_t i = 1; i <= fe.basis(k).size(); ++i) {
-      double diff = 0.0;
-      for (size_t m = 1; m <= nsd; ++m)
-        diff += fe.grad(k)(i,m)*dUdX(k,m);
-      EV[k](i) += scale*diff*fe.detJxW;
-    }
+  auto dUdXT = dUdX;
+  dUdXT.transpose();
+  for (size_t k = 1; k <= nsd; ++k) {
+    Vector diff;
+    fe.grad(k).multiply(Vector(dUdXT[k-1].ptr(), nsd), diff);
+    if (stress)
+      fe.grad(k).multiply(Vector(dUdX[k-1].ptr(), nsd), diff, false, 1);
+    EV[k].add(diff, scale*fe.detJxW);
+  }
 }
