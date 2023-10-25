@@ -105,11 +105,17 @@ void CompatibleOperators::Weak::Laplacian(std::vector<Matrix>& EM,
   for (size_t n = 1; n <= nsd; ++n)
     EqualOrderOperators::Weak::Laplacian(EM[n], fe, scale, false, n);
 
+  static const double vidx[3][3] = {{ 1,  7,  8},
+                                    {12,  2, 13},
+                                    {17, 18,  3}};
+
   for (size_t m = 1; m <= nsd && stress; m++)
     for (size_t n = m; n <= nsd; n++) {
-      int idx = m == n ? m : (m == 1 ? 6+n-m : 13);
-      EM[idx].outer_product(fe.grad(m).getColumn(n),
-                            fe.grad(n).getColumn(m), true, scale*fe.detJxW);
+      const Vector mn = fe.grad(m).getColumn(n);
+      const Vector nm = fe.grad(n).getColumn(m);
+      EM[vidx[m-1][n-1]].outer_product(mn, nm, true, scale*fe.detJxW);
+      if (m != n && !EM[vidx[n-1][m-1]].empty())
+        EM[vidx[n-1][m-1]].outer_product(nm, mn, true, scale*fe.detJxW);
     }
 }
 
