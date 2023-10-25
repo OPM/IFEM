@@ -165,9 +165,8 @@ void EqualOrderOperators::Weak::Gradient (Vector& EV,
                                           double scale, int basis)
 {
   size_t nsd = fe.grad(basis).cols();
-  for (size_t i = 1; i <= fe.basis(basis).size(); ++i)
-    for (size_t k = 1; k <= nsd; ++k)
-      EV((i-1)*nsd+k) += scale*fe.grad(basis)(i,k)*fe.detJxW;
+  for (size_t k = 1; k <= nsd; ++k)
+    EV.add(fe.grad(basis).getColumn(k), scale*fe.detJxW, 0, 1, k-1, nsd);
 }
 
 
@@ -184,8 +183,8 @@ void EqualOrderOperators::Weak::Laplacian (Matrix& EM, const FiniteElement& fe,
       for (size_t j = 1; j <= fe.basis(basis).size(); j++)
         for (size_t k = 1; k <= cmp; k++)
           for (size_t l = 1; l <= cmp; l++)
-            EM(cmp*(j-1)+k,cmp*(i-1)+l) += scale * fe.grad(basis)(i,k)
-                                                 * fe.grad(basis)(j,l) * fe.detJxW;
+            EM(cmp*(i-1)+k,cmp*(j-1)+l) += scale * fe.grad(basis)(i,l)
+                                                 * fe.grad(basis)(j,k) * fe.detJxW;
 }
 
 
@@ -218,10 +217,9 @@ void EqualOrderOperators::Weak::Source (Vector& EV,
   if (cmp == 1 && ncmp == 1)
     EV.add(fe.basis(basis), scale*fe.detJxW);
   else {
-    for (size_t i = 1; i <= fe.basis(basis).size(); ++i)
-      for (size_t k  = (cmp == 0 ? 1 : cmp);
-                  k <= (cmp == 0 ? ncmp : cmp); ++k)
-        EV(ncmp*(i-1)+k) += scale*fe.basis(basis)(i)*fe.detJxW;
+    for (size_t k  = (cmp == 0 ? 1 : cmp);
+                k <= (cmp == 0 ? ncmp : cmp); ++k)
+      EV.add(fe.basis(basis), scale*fe.detJxW, 0, 1, k-1, ncmp);
   }
 }
 
@@ -230,9 +228,8 @@ void EqualOrderOperators::Weak::Source (Vector& EV, const FiniteElement& fe,
                                         const Vec3& f, double scale, int basis)
 {
   size_t cmp = EV.size() / fe.basis(basis).size();
-  for (size_t i = 1; i <= fe.basis(basis).size(); ++i)
-    for (size_t k = 1; k <= cmp; ++k)
-      EV(cmp*(i-1)+k) += scale*f[k-1]*fe.basis(basis)(i)*fe.detJxW;
+  for (size_t k = 1; k <= cmp; ++k)
+    EV.add(fe.basis(basis), scale*f[k-1]*fe.detJxW, 0, 1, k-1, cmp);
 }
 
 
@@ -242,11 +239,8 @@ void EqualOrderOperators::Residual::Advection (Vector& EV,
                                                double scale, int basis)
 {
   size_t nsd = fe.grad(basis).cols();
-  for (size_t k = 1; k <= nsd; ++k) {
-    double ag = g[k-1]*AC;
-    for (size_t i = 1; i <= fe.basis(basis).size(); ++i)
-        EV((i-1)*nsd+k) = ag*scale*fe.basis(basis)(i)*fe.detJxW;
-  }
+  for (size_t k = 1; k <= nsd; ++k)
+    EV.add(fe.basis(basis), (g[k-1]*AC)*scale*fe.detJxW, 0, 1, k-1, nsd);
 }
 
 
