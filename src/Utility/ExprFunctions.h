@@ -34,12 +34,12 @@ namespace ExprEval {
 */
 
 template<class Scalar>
-class EvalFuncImpl : public ScalarFunc
+class EvalFuncScalar : public ScalarFunc
 {
   using Expression = ExprEval::Expression<Scalar>;     //!< Type alias for expression tree
   using FunctionList = ExprEval::FunctionList<Scalar>; //!< Type alias for function list
   using ValueList = ExprEval::ValueList<Scalar>;       //!< Type alias for value list
-  using FuncType = EvalFuncImpl<Scalar>;             //!< Type alias for function
+  using FuncType = EvalFuncScalar<Scalar>;             //!< Type alias for function
   std::vector<std::unique_ptr<Expression>> expr; //!< Roots of the expression tree
   std::vector<std::unique_ptr<FunctionList>>  f; //!< Lists of functions
   std::vector<std::unique_ptr<ValueList>>     v; //!< Lists of variables and constants
@@ -54,12 +54,12 @@ public:
   static int numError; //!< Error counter - set by the exception handler
 
   //! \brief The constructor parses the expression string.
-  explicit EvalFuncImpl(const char* function, const char* x = "x",
-                        Real eps = Real(1.0e-8));
+  explicit EvalFuncScalar(const char* function, const char* x = "x",
+                          Real eps = Real(1.0e-8));
   //! \brief Defaulted destructor.
   //! \details The implementation needs to be in compile unit so we have the
   //!          definition for the types of the unique_ptr's.
-  virtual ~EvalFuncImpl();
+  virtual ~EvalFuncScalar();
 
   //! \brief Adds an expression function for a first derivative.
   void addDerivative(const std::string& function, const char* x = "x");
@@ -233,7 +233,7 @@ protected:
 };
 
 //! Scalar-valued function expression
-using EvalFunc = EvalFuncImpl<Real>;
+using EvalFunc = EvalFuncScalar<Real>;
 //! Vector-valued function expression
 using VecFuncExpr = EvalMultiFunction<VecFunc,Vec3>;
 //! Tensor-valued function expression

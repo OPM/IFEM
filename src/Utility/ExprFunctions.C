@@ -201,7 +201,7 @@ int voigtIdx (int d1, int d2)
 
 
 template<class Scalar>
-EvalFuncImpl<Scalar>::EvalFuncImpl (const char* function, const char* x, Real eps)
+EvalFuncScalar<Scalar>::EvalFuncScalar (const char* function, const char* x, Real eps)
   : dx(eps)
 {
   try {
@@ -235,11 +235,11 @@ EvalFuncImpl<Scalar>::EvalFuncImpl (const char* function, const char* x, Real ep
 
 
 template<class Scalar>
-EvalFuncImpl<Scalar>::~EvalFuncImpl () = default;
+EvalFuncScalar<Scalar>::~EvalFuncScalar () = default;
 
 
 template<class Scalar>
-void EvalFuncImpl<Scalar>::addDerivative (const std::string& function, const char* x)
+void EvalFuncScalar<Scalar>::addDerivative (const std::string& function, const char* x)
 {
   if (!gradient)
     gradient = std::make_unique<FuncType>(function.c_str(),x);
@@ -247,7 +247,7 @@ void EvalFuncImpl<Scalar>::addDerivative (const std::string& function, const cha
 
 
 template<class Scalar>
-Real EvalFuncImpl<Scalar>::evaluate (const Real& x) const
+Real EvalFuncScalar<Scalar>::evaluate (const Real& x) const
 {
   Real result = Real(0);
   size_t i = 0;
@@ -283,7 +283,7 @@ Real EvalFunc::deriv (Real x) const
 
 
 template<>
-Real EvalFuncImpl<autodiff::var>::deriv (Real x) const
+Real EvalFuncScalar<autodiff::var>::deriv (Real x) const
 {
   if (gradient)
     return gradient->evaluate(x);
@@ -566,8 +566,8 @@ EvalMultiFunction<ParentFunc, Ret>::evalTimeDerivative (const Vec3& X) const
 }
 
 
-template class EvalFuncImpl<Real>;
-template class EvalFuncImpl<autodiff::var>;
+template class EvalFuncScalar<Real>;
+template class EvalFuncScalar<autodiff::var>;
 template class EvalMultiFunction<VecFunc,Vec3>;
 template class EvalMultiFunction<TensorFunc,Tensor>;
 template class EvalMultiFunction<STensorFunc,SymmTensor>;
