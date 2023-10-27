@@ -31,7 +31,7 @@ TEST(TestScalarFunc, ParseDerivative)
   ScalarFunc* f1 = utl::parseTimeFunc(func1,"expression");
   ScalarFunc* f2 = utl::parseTimeFunc(func2,"expression");
 
-  EvalFuncImpl<autodiff::var> f3(func1,"t");
+  EvalFuncScalar<autodiff::var> f3(func1,"t");
 
   ASSERT_TRUE(f1 != nullptr);
   ASSERT_TRUE(f2 != nullptr);
