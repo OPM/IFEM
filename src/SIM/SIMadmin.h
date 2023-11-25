@@ -46,7 +46,7 @@ public:
   //! \brief Parses a data section from an input stream.
   virtual bool parse(char* keyWord, std::istream& is);
   //! \brief Parses a data section from an XML document.
-  virtual bool parse(const TiXmlElement* elem);
+  virtual bool parse(const tinyxml2::XMLElement* elem);
 
   //! \brief Performs some pre-processing tasks on the FE model.
   virtual bool preprocess(const std::vector<int>&, bool) { return false; }

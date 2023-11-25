@@ -23,7 +23,7 @@
 //! \brief Template specialization for 1D.
 //! \param[in] geo XML element containing geometry definition
 template<>
-ModelGenerator* SIMMultiPatchModelGen<SIM1D>::getModelGenerator(const TiXmlElement* geo) const
+ModelGenerator* SIMMultiPatchModelGen<SIM1D>::getModelGenerator(const tinyxml2::XMLElement* geo) const
 {
   IFEM::cout <<"  Using 1D multi-patch model generator."<< std::endl;
   return new MultiPatchModelGenerator1D(geo);
@@ -33,7 +33,7 @@ ModelGenerator* SIMMultiPatchModelGen<SIM1D>::getModelGenerator(const TiXmlEleme
 //! \brief Template specialization for 2D.
 //! \param[in] geo XML element containing geometry definition
 template<>
-ModelGenerator* SIMMultiPatchModelGen<SIM2D>::getModelGenerator(const TiXmlElement* geo) const
+ModelGenerator* SIMMultiPatchModelGen<SIM2D>::getModelGenerator(const tinyxml2::XMLElement* geo) const
 {
   IFEM::cout <<"  Using 2D multi-patch model generator."<< std::endl;
   return new MultiPatchModelGenerator2D(geo);
@@ -43,7 +43,7 @@ ModelGenerator* SIMMultiPatchModelGen<SIM2D>::getModelGenerator(const TiXmlEleme
 //! \brief Template specialization for 3D.
 //! \param[in] geo XML element containing geometry definition
 template<>
-ModelGenerator* SIMMultiPatchModelGen<SIM3D>::getModelGenerator(const TiXmlElement* geo) const
+ModelGenerator* SIMMultiPatchModelGen<SIM3D>::getModelGenerator(const tinyxml2::XMLElement* geo) const
 {
   IFEM::cout <<"  Using 3D multi-patch model generator."<< std::endl;
   return new MultiPatchModelGenerator3D(geo);

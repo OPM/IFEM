@@ -21,7 +21,7 @@
 #include <string>
 #include <vector>
 
-class TiXmlElement;
+namespace tinyxml2 { class XMLElement; }
 
 
 /*!
@@ -73,7 +73,7 @@ public:
                LinAlg::LinearSystemType ls = LinAlg::GENERAL_MATRIX);
 
   //! \brief Read linear solver parameters from XML document.
-  bool read(const TiXmlElement* elem);
+  bool read(const tinyxml2::XMLElement* elem);
 
   //! \brief Linear solver settings for a block of the linear system
   class BlockParams : public SettingMap
@@ -92,7 +92,7 @@ public:
     //! \brief Read settings from XML block
     //! \param[in] child XML block
     //! \param[in] prefix Prefix to add to read data
-    bool read(const TiXmlElement* child, const std::string& prefix="");
+    bool read(const tinyxml2::XMLElement* child, const std::string& prefix = "");
 
     size_t basis; //!< Basis for block
     size_t comps; //!< Components from basis (1, 2, 3, 12, 13, 23, 123, ..., 0 = all)

@@ -18,7 +18,7 @@
 #include "MatVec.h"
 #include <map>
 
-class TiXmlElement;
+namespace tinyxml2 { class XMLElement; }
 class Vec3;
 
 
@@ -27,7 +27,7 @@ class TextureProperties {
 public:
   //! \brief Parse an XML definition.
   //! param elem XML element to parse
-  void parse (const TiXmlElement* elem);
+  void parse (const tinyxml2::XMLElement* elem);
 
   //! \brief Print property information to log.
   void printLog() const;

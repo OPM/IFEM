@@ -13,7 +13,7 @@
 
 #include "LinSolParams.h"
 #include "Utilities.h"
-#include "tinyxml.h"
+#include "tinyxml2.h"
 #include <cstdlib>
 
 
@@ -83,13 +83,14 @@ LinSolParams::LinSolParams (const LinSolParams& p, LinAlg::LinearSystemType ls)
 }
 
 
-bool LinSolParams::BlockParams::read(const TiXmlElement* elem, const std::string& prefix)
+bool LinSolParams::BlockParams::read (const tinyxml2::XMLElement* elem,
+                                      const std::string& prefix)
 {
   utl::getAttribute(elem, "basis", basis);
   utl::getAttribute(elem, "components", comps);
 
   const char* value;
-  const TiXmlElement* child = elem->FirstChildElement();
+  const tinyxml2::XMLElement* child = elem->FirstChildElement();
   for (; child; child = child->NextSiblingElement())
     if (!strcasecmp(child->Value(), "multigrid")) {
       std::string v;
@@ -154,12 +155,12 @@ bool LinSolParams::BlockParams::read(const TiXmlElement* elem, const std::string
 }
 
 
-bool LinSolParams::read (const TiXmlElement* elem)
+bool LinSolParams::read (const tinyxml2::XMLElement* elem)
 {
   if (elem->Attribute("verbosity"))
     this->addValue("verbosity", elem->Attribute("verbosity"));
 
-  const TiXmlElement* child = elem->FirstChildElement();
+  const tinyxml2::XMLElement* child = elem->FirstChildElement();
   int parseblock = 0;
   for (; child; child = child->NextSiblingElement()) {
     const char* value;

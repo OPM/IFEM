@@ -24,10 +24,10 @@
 #include "Functions.h"
 #include "Utilities.h"
 #include "IFEM.h"
-#include "tinyxml.h"
+#include "tinyxml2.h"
+#include <array>
 #include <fstream>
 #include <iomanip>
-#include <array>
 
 
 SIMoutput::SIMoutput (IntegrandBase* itg) : SIMinput(itg)
@@ -91,7 +91,7 @@ void SIMoutput::setPointResultFile (const std::string& filename, bool dumpCoord)
 }
 
 
-bool SIMoutput::parseOutputTag (const TiXmlElement* elem)
+bool SIMoutput::parseOutputTag (const tinyxml2::XMLElement* elem)
 {
   IFEM::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
 
@@ -118,7 +118,7 @@ bool SIMoutput::parseOutputTag (const TiXmlElement* elem)
   // Parse the result point specifications.
   // Can either be explicit points, lines or a grid.
   bool newGroup = true;
-  const TiXmlElement* point = elem->FirstChildElement("point");
+  const tinyxml2::XMLElement* point = elem->FirstChildElement("point");
   for (int i = 1; point; i++, point = point->NextSiblingElement())
   {
     int patch = 0;
@@ -144,7 +144,7 @@ bool SIMoutput::parseOutputTag (const TiXmlElement* elem)
     newGroup = false;
   }
 
-  const TiXmlElement* line = elem->FirstChildElement("line");
+  const tinyxml2::XMLElement* line = elem->FirstChildElement("line");
   for (int j = 1; line; j++, line = line->NextSiblingElement())
   {
     int patch = 0;
@@ -191,7 +191,7 @@ bool SIMoutput::parseOutputTag (const TiXmlElement* elem)
     IFEM::cout << std::endl;
   }
 
-  const TiXmlElement* grid = elem->FirstChildElement("grid");
+  const tinyxml2::XMLElement* grid = elem->FirstChildElement("grid");
   if (!newGroup)
     grid = nullptr; // Don't mix grid output with other lines or points
   else if (grid)

@@ -15,7 +15,7 @@
 #include "Tensor.h"
 #include "TensorFunction.h"
 #include "Vec3Oper.h"
-#include "tinyxml.h"
+#include "tinyxml2.h"
 
 #include "gtest/gtest.h"
 
@@ -39,9 +39,9 @@ TEST(TestAnaSol, ParseDerivatives)
     "  </secondary>"
     "</anasol>";
 
-  TiXmlDocument doc;
-  doc.Parse(input,nullptr,TIXML_ENCODING_UTF8);
-  const TiXmlElement* tag = doc.RootElement();
+  tinyxml2::XMLDocument doc;
+  doc.Parse(input);
+  const tinyxml2::XMLElement* tag = doc.RootElement();
   ASSERT_TRUE(tag != nullptr);
   ASSERT_EQ(strcmp(tag->Value(),"anasol"),0);
 
@@ -77,9 +77,9 @@ TEST(TestAnaSol, ParseAD)
     "  </primary>"
     "</anasol>";
 
-  TiXmlDocument doc;
-  doc.Parse(input,nullptr,TIXML_ENCODING_UTF8);
-  const TiXmlElement* tag = doc.RootElement();
+  tinyxml2::XMLDocument doc;
+  doc.Parse(input);
+  const tinyxml2::XMLElement* tag = doc.RootElement();
   ASSERT_TRUE(tag != nullptr);
   ASSERT_EQ(strcmp(tag->Value(),"anasol"),0);
 
@@ -127,9 +127,9 @@ TEST(TestAnaSol, ParseFD)
     "  </primary>"
     "</anasol>";
 
-  TiXmlDocument doc;
-  doc.Parse(input,nullptr,TIXML_ENCODING_UTF8);
-  const TiXmlElement* tag = doc.RootElement();
+  tinyxml2::XMLDocument doc;
+  doc.Parse(input);
+  const tinyxml2::XMLElement* tag = doc.RootElement();
   ASSERT_TRUE(tag != nullptr);
   ASSERT_EQ(strcmp(tag->Value(),"anasol"),0);
 
@@ -165,9 +165,9 @@ TEST(TestAnaSol, ParseADStress)
     "  </primary>"
     "</anasol>";
 
-  TiXmlDocument doc;
-  doc.Parse(input,nullptr,TIXML_ENCODING_UTF8);
-  const TiXmlElement* tag = doc.RootElement();
+  tinyxml2::XMLDocument doc;
+  doc.Parse(input);
+  const tinyxml2::XMLElement* tag = doc.RootElement();
   ASSERT_TRUE(tag != nullptr);
   ASSERT_EQ(strcmp(tag->Value(),"anasol"),0);
 

@@ -30,7 +30,7 @@
 #include "HDF5Reader.h"
 #include "HDF5Restart.h"
 #include "IFEM.h"
-#include "tinyxml.h"
+#include "tinyxml2.h"
 #include <fstream>
 #include <sstream>
 #include <numeric>
@@ -92,7 +92,7 @@ bool SIMinput::readPatches (std::istream& isp, const char* whiteSpace)
 }
 
 
-bool SIMinput::parseGeometryTag (const TiXmlElement* elem)
+bool SIMinput::parseGeometryTag (const tinyxml2::XMLElement* elem)
 {
   IFEM::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
 
@@ -172,7 +172,7 @@ bool SIMinput::parseGeometryTag (const TiXmlElement* elem)
       return true;
     IFEM::cout <<"\tNumber of partitions: "<< proc << std::endl;
 
-    const TiXmlElement* part = elem->FirstChildElement("part");
+    const tinyxml2::XMLElement* part = elem->FirstChildElement("part");
     if (part) nGlPatches = 0;
     for (; part; part = part->NextSiblingElement("part"))
     {
@@ -237,7 +237,7 @@ bool SIMinput::parseGeometryTag (const TiXmlElement* elem)
   else if (!strcasecmp(elem->Value(),"topologysets"))
   {
     std::string name, type;
-    const TiXmlElement* set = elem->FirstChildElement("set");
+    const tinyxml2::XMLElement* set = elem->FirstChildElement("set");
     for (; set; set = set->NextSiblingElement("set"))
       if (utl::getAttribute(set,"name",name))
       {
@@ -261,7 +261,7 @@ bool SIMinput::parseGeometryTag (const TiXmlElement* elem)
           if (type == "open") idim = -idim; // i.e., excluding its boundary
 
         TopEntity& top = myEntitys[name];
-        const TiXmlElement* item = set->FirstChildElement("item");
+        const tinyxml2::XMLElement* item = set->FirstChildElement("item");
         for (; item; item = item->NextSiblingElement("item"))
         {
           int pid = 0;
@@ -349,7 +349,7 @@ bool SIMinput::parseGeometryTag (const TiXmlElement* elem)
   dimension-specific sub-classes which handle the refinements.
 */
 
-bool SIMinput::parsePeriodic (const TiXmlElement* elem)
+bool SIMinput::parsePeriodic (const tinyxml2::XMLElement* elem)
 {
   if (strcasecmp(elem->Value(),"periodic") || !this->createFEMmodel())
     return false;
@@ -383,7 +383,7 @@ bool SIMinput::parsePeriodic (const TiXmlElement* elem)
 //! \brief Integer value flagging local projected axes in boundary conditions.
 #define LOCAL_PROJECTED -3
 
-bool SIMinput::parseBCTag (const TiXmlElement* elem)
+bool SIMinput::parseBCTag (const tinyxml2::XMLElement* elem)
 {
   IFEM::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
 
@@ -417,12 +417,12 @@ bool SIMinput::parseBCTag (const TiXmlElement* elem)
 
   else if (!strcasecmp(elem->Value(),"propertycodes"))
   {
-    const TiXmlElement* code = elem->FirstChildElement("code");
+    const tinyxml2::XMLElement* code = elem->FirstChildElement("code");
     for (; code; code = code->NextSiblingElement())
     {
       int icode = 0;
       utl::getAttribute(code,"value",icode);
-      const TiXmlElement* patch = code->FirstChildElement("patch");
+      const tinyxml2::XMLElement* patch = code->FirstChildElement("patch");
       for (; patch; patch = patch->NextSiblingElement("patch"))
       {
         Property p;
@@ -445,7 +445,7 @@ bool SIMinput::parseBCTag (const TiXmlElement* elem)
 
   else if (!strcasecmp(elem->Value(),"neumann"))
   {
-    const TiXmlNode* nval = elem->FirstChild();
+    const tinyxml2::XMLNode* nval = elem->FirstChild();
 
     std::string set, type;
     utl::getAttribute(elem,"set",set);
@@ -508,7 +508,7 @@ bool SIMinput::parseBCTag (const TiXmlElement* elem)
 
   else if (!strcasecmp(elem->Value(),"dirichlet") && !ignoreDirichlet)
   {
-    const TiXmlNode* dval = nullptr;
+    const tinyxml2::XMLNode* dval = nullptr;
     int comp = 0, symm = 0, basis = 1;
     std::string set, type, axes;
     utl::getAttribute(elem,"set",set);
@@ -580,7 +580,7 @@ bool SIMinput::parseBCTag (const TiXmlElement* elem)
 
   else if (!strcasecmp(elem->Value(),"robin"))
   {
-    const TiXmlNode* rval = elem->FirstChild();
+    const tinyxml2::XMLNode* rval = elem->FirstChild();
 
     std::string set, type;
     utl::getAttribute(elem,"set",set);
@@ -607,7 +607,7 @@ bool SIMinput::parseBCTag (const TiXmlElement* elem)
 }
 
 
-bool SIMinput::parseICTag (const TiXmlElement* elem)
+bool SIMinput::parseICTag (const tinyxml2::XMLElement* elem)
 {
   std::string field;
   if (!utl::getAttribute(elem,"field",field))
@@ -666,7 +666,7 @@ bool SIMinput::parseICTag (const TiXmlElement* elem)
 }
 
 
-bool SIMinput::parseLinSolTag (const TiXmlElement* elem)
+bool SIMinput::parseLinSolTag (const tinyxml2::XMLElement* elem)
 {
   if (!strcasecmp(elem->Value(),"class"))
     if (elem->FirstChild())
@@ -678,7 +678,7 @@ bool SIMinput::parseLinSolTag (const TiXmlElement* elem)
 
 static bool noDumpDataYet = true; //!< To read only once in adaptive loops
 
-bool SIMinput::parseOutputTag (const TiXmlElement* elem)
+bool SIMinput::parseOutputTag (const tinyxml2::XMLElement* elem)
 {
   if (strcasecmp(elem->Value(),"dump_lhs_matrix") &&
       strcasecmp(elem->Value(),"dump_rhs_vector") &&
@@ -715,7 +715,7 @@ bool SIMinput::parseOutputTag (const TiXmlElement* elem)
 }
 
 
-FunctionBase* SIMinput::parseDualTag (const TiXmlElement* elem, int ftype)
+FunctionBase* SIMinput::parseDualTag (const tinyxml2::XMLElement* elem, int ftype)
 {
   IFEM::cout <<"  Parsing <"<< elem->Value() <<">";
 
@@ -811,7 +811,7 @@ FunctionBase* SIMinput::parseDualTag (const TiXmlElement* elem, int ftype)
 }
 
 
-bool SIMinput::parse (const TiXmlElement* elem)
+bool SIMinput::parse (const tinyxml2::XMLElement* elem)
 {
   bool result = true;
   if (!strcasecmp(elem->Value(),"discretization"))
@@ -848,7 +848,7 @@ bool SIMinput::parse (const TiXmlElement* elem)
     {
       if (myModel.empty())
       {
-        const TiXmlElement* part = elem->FirstChildElement("partitioning");
+        const tinyxml2::XMLElement* part = elem->FirstChildElement("partitioning");
         for (; part; part = part->NextSiblingElement("partitioning"))
           result &= this->parseGeometryTag(part);
       }
@@ -881,7 +881,7 @@ bool SIMinput::parse (const TiXmlElement* elem)
     result &= mySolParams->read(elem);
     if (GlbL2::MatrixType == LinAlg::PETSC)
     {
-      const TiXmlElement* l2 = elem->FirstChildElement("l2params");
+      const tinyxml2::XMLElement* l2 = elem->FirstChildElement("l2params");
       if (l2)
       {
         myGl2Params = new LinSolParams(LinAlg::SYMMETRIC);
@@ -893,7 +893,7 @@ bool SIMinput::parse (const TiXmlElement* elem)
     }
   }
 
-  const TiXmlElement* child = elem->FirstChildElement();
+  const tinyxml2::XMLElement* child = elem->FirstChildElement();
   for (; child; child = child->NextSiblingElement())
     if (!strcasecmp(elem->Value(),"geometry"))
       result &= this->parseGeometryTag(child);
@@ -914,7 +914,7 @@ bool SIMinput::parse (const TiXmlElement* elem)
 }
 
 
-int SIMinput::parseMaterialSet (const TiXmlElement* elem, int mindex)
+int SIMinput::parseMaterialSet (const tinyxml2::XMLElement* elem, int mindex)
 {
   std::string setName;
   utl::getAttribute(elem,"set",setName);
@@ -931,7 +931,7 @@ int SIMinput::parseMaterialSet (const TiXmlElement* elem, int mindex)
 }
 
 
-bool SIMinput::parseTopologySet (const TiXmlElement* elem,
+bool SIMinput::parseTopologySet (const tinyxml2::XMLElement* elem,
                                  IntVec& patches) const
 {
   std::string setName;
@@ -961,7 +961,8 @@ bool SIMinput::parseTopologySet (const TiXmlElement* elem,
 }
 
 
-bool SIMinput::parsePatchList (const TiXmlElement* elem, IntVec& patches) const
+bool SIMinput::parsePatchList (const tinyxml2::XMLElement* elem,
+                               IntVec& patches) const
 {
   int lowpatch = 1, uppatch = 1;
   if (utl::getAttribute(elem,"patch",lowpatch))
@@ -1001,13 +1002,13 @@ const char** SIMinput::getPrioritizedTags () const
 
 bool SIMinput::readTopologyOnly (const std::string& fileName)
 {
-  TiXmlDocument doc;
-  const TiXmlElement* elem = this->loadFile(doc,fileName.c_str());
+  tinyxml2::XMLDocument doc;
+  const tinyxml2::XMLElement* elem = this->loadFile(doc,fileName.c_str());
   if (!elem) return false;
 
   for (elem = elem->FirstChildElement("geometry"); elem;
        elem = elem->NextSiblingElement("geometry"))
-    for (const TiXmlElement* child = elem->FirstChildElement("topology"); child;
+    for (const tinyxml2::XMLElement* child = elem->FirstChildElement("topology"); child;
          child = child->NextSiblingElement("topology"))
       if (!this->parseGeometryDimTag(child))
         return false;

@@ -13,64 +13,89 @@
 
 #include "XMLInputBase.h"
 #include "IFEM.h"
-#include "tinyxml.h"
+#include "tinyxml2.h"
 #include <algorithm>
 #include <cstring>
 
+namespace {
 
 /*!
   \brief Helper method to load an XML file and print error message if failure.
 */
 
-static const TiXmlElement* loadXMLfile (TiXmlDocument& doc,
-                                        const char* fileName)
+const tinyxml2::XMLElement* loadXMLfile (tinyxml2::XMLDocument& doc,
+                                         const char* fileName)
 {
-  if (doc.LoadFile(fileName))
+  tinyxml2::XMLError err = doc.LoadFile(fileName);
+  if (err == tinyxml2::XML_SUCCESS)
     return doc.RootElement();
 
   std::cerr <<" *** Failed to load XML-file \""<< fileName
-            <<"\".\n     Error at line "<< doc.ErrorRow() <<": "
-            << doc.ErrorDesc() << std::endl;
+            <<"\".\n" << doc.ErrorStr() << std::endl;
   return nullptr;
 }
 
+/*!
+  \brief Helper to handle includes.
+*/
 
-bool XMLInputBase::injectIncludeFiles (TiXmlElement* tag, bool verbose) const
+struct IncludeInjector : public tinyxml2::XMLVisitor
 {
-  static int nLevels = 0;
-  std::string spaces(2*(nLevels++),' ');
-  bool foundIncludes = false, status = true;
-  TiXmlElement* elem = tag->FirstChildElement();
-  for (; elem && status; elem = elem->NextSiblingElement())
-    if (strcasecmp(elem->Value(),"include"))
-      status = this->injectIncludeFiles(elem,verbose);
-    else if (elem->FirstChild() && elem->FirstChild()->Value()) {
-      TiXmlDocument doc;
-      if ((status = loadXMLfile(doc,elem->FirstChild()->Value()))) {
-        if (verbose)
-          IFEM::cout << spaces <<"Loaded included file "
-                     << elem->FirstChild()->Value() << std::endl;
-        TiXmlElement* e2 = doc.RootElement();
-        TiXmlNode* n2 = elem = tag->ReplaceChild(elem,*e2)->ToElement();
-        for (e2 = e2->NextSiblingElement(); e2; e2 = e2->NextSiblingElement())
-          n2 = tag->InsertAfterChild(n2,*e2);
-        foundIncludes = true;
+  //! \brief The constructor creates the new document.
+  IncludeInjector() : new_doc(true, tinyxml2::COLLAPSE_WHITESPACE) {}
+
+  //! \brief If elem is include, replace with contents of include file, else copy element.
+  bool VisitEnter(const tinyxml2::XMLElement& elem,
+                  const tinyxml2::XMLAttribute* attribute) override
+  {
+      tinyxml2::XMLElement* e;
+      if (std::string(elem.Value()) == "include") {
+        tinyxml2::XMLDocument inc_doc(true, tinyxml2::COLLAPSE_WHITESPACE);
+          if (inc_doc.LoadFile(elem.GetText()) != tinyxml2::XML_SUCCESS) {
+            std::cerr << "** Error parsing include file " << elem.GetText() << std::endl;
+            return false;
+        }
+        currElem->InsertEndChild(inc_doc.RootElement()->DeepClone(&new_doc));
+        include_found = true;
+      } else {
+        e = new_doc.NewElement(elem.Name());
+        if (elem.GetText())
+          e->SetText(elem.GetText());
+        if (!currElem)
+          new_doc.InsertEndChild(e);
+        else
+          currElem->InsertEndChild(e);
+        while (attribute)
+        {
+          e->SetAttribute(attribute->Name(), attribute->Value());
+          attribute = attribute->Next();
+        }
+        currElem = e;
       }
-    }
+      return true;
+  }
 
-  if (foundIncludes && status)
-    status = this->injectIncludeFiles(tag,verbose);
+  //! brief Set element to insert into to the parent.
+  bool VisitExit(const tinyxml2::XMLElement& elem) override
+  {
+      if (currElem && currElem->Parent())
+        currElem = const_cast<tinyxml2::XMLElement*>(currElem->Parent()->ToElement());
+      return true;
+  }
 
-  --nLevels;
+  tinyxml2::XMLDocument new_doc; //!< New document
+  tinyxml2::XMLElement* currElem = nullptr; //!< Current root element
+  bool include_found = false; //!< True if an include tag was found
+};
 
-  return status;
 }
 
 
-const TiXmlElement* XMLInputBase::loadFile (TiXmlDocument& doc,
-                                            const char* fileName, bool verbose)
+const tinyxml2::XMLElement*
+XMLInputBase::loadFile (tinyxml2::XMLDocument& doc,
+                        const char* fileName, bool verbose)
 {
-  const TiXmlElement* tag = loadXMLfile(doc,fileName);
+  const tinyxml2::XMLElement* tag = loadXMLfile(doc,fileName);
 
   if (tag && strcmp(tag->Value(),"simulation")) {
     std::cerr <<" *** Malformatted XML-file \""<< fileName <<"\"."<< std::endl;
@@ -81,8 +106,17 @@ const TiXmlElement* XMLInputBase::loadFile (TiXmlDocument& doc,
   if (verbose)
     IFEM::cout <<"\nParsing input file "<< fileName << std::endl;
 
-  if (tag && !this->injectIncludeFiles(const_cast<TiXmlElement*>(tag),verbose))
-    tag = nullptr;
+  if (tag) {
+    for (size_t i = 0; i < 10; ++i) { // Maximum 10 levels of include files
+      IncludeInjector v;
+      doc.RootElement()->Accept(&v);
+      if (v.include_found)
+        v.new_doc.DeepCopy(&doc);
+      else
+        break;
+    }
+    tag = doc.RootElement();
+  }
 
 #ifdef SP_DEBUG
   if (verbose) {
@@ -97,11 +131,11 @@ const TiXmlElement* XMLInputBase::loadFile (TiXmlDocument& doc,
 
 bool XMLInputBase::readXML (const char* fileName, bool verbose)
 {
-  TiXmlDocument doc;
-  const TiXmlElement* tag = this->loadFile(doc,fileName,verbose);
+  tinyxml2::XMLDocument doc(true, tinyxml2::COLLAPSE_WHITESPACE);
+  const tinyxml2::XMLElement* tag = this->loadFile(doc,fileName,verbose);
   if (!tag) return false;
 
-  std::vector<const TiXmlElement*> parsed;
+  std::vector<const tinyxml2::XMLElement*> parsed;
   if (!this->handlePriorityTags(tag,parsed,verbose))
     return false;
 
@@ -125,22 +159,22 @@ bool XMLInputBase::readXML (const char* fileName, bool verbose)
 
 bool XMLInputBase::loadXML (const char* xml)
 {
-  TiXmlDocument doc;
-  doc.Parse(xml,nullptr,TIXML_ENCODING_UTF8);
-  const TiXmlElement* tag = doc.RootElement();
+  tinyxml2::XMLDocument doc;
+  doc.Parse(xml);
+  const tinyxml2::XMLElement* tag = doc.RootElement();
   return tag ? this->parse(tag) : false;
 }
 
 
-bool XMLInputBase::handlePriorityTags (const TiXmlElement* base,
-                                       std::vector<const TiXmlElement*>& parsed,
+bool XMLInputBase::handlePriorityTags (const tinyxml2::XMLElement* base,
+                                       std::vector<const tinyxml2::XMLElement*>& parsed,
                                        bool verbose)
 {
   const char** q = this->getPrioritizedTags();
   if (!q) return true; // No prioritized tags defined
 
   while (*q) {
-    const TiXmlElement* elem = base->FirstChildElement(*(q++));
+    const tinyxml2::XMLElement* elem = base->FirstChildElement(*(q++));
     if (elem) {
       if (verbose)
         IFEM::cout <<"\nParsing <"<< elem->Value() <<">"<< std::endl;

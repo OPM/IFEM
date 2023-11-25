@@ -108,7 +108,7 @@ protected:
   //! \brief Parses a data section from an input stream.
   virtual bool parse(char* kyw, std::istream& is) { return aSim.parse(kyw,is); }
   //! \brief Parses a data section from an XML element.
-  virtual bool parse(const TiXmlElement* elem) { return aSim.parse(elem); }
+  virtual bool parse(const tinyxml2::XMLElement* elem) { return aSim.parse(elem); }
 
   AdapSim aSim; //!< Adaptive simulation driver
   std::string exporterName = "u"; //!< Name for data exporter registration to use
@@ -159,7 +159,7 @@ public:
   }
 
   //! \brief Parse an element from an XML input file.
-  bool parse(const TiXmlElement* elem) override
+  bool parse(const tinyxml2::XMLElement* elem) override
   {
     return this->S1.parse(elem);
   }

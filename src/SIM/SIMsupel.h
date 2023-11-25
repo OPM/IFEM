@@ -46,7 +46,7 @@ protected:
   using SIMdummy<SIMgeneric>::parse;
   //! \brief Parses a data section from an XML element
   //! \param[in] elem The XML element to parse
-  virtual bool parse(const TiXmlElement* elem);
+  virtual bool parse(const tinyxml2::XMLElement* elem);
 
   //! \brief Reads a patch from given input stream.
   //! \param[in] isp The input stream to read from

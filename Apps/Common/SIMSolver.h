@@ -19,7 +19,7 @@
 #include "TimeStep.h"
 #include "HDF5Restart.h"
 #include "HDF5Writer.h"
-#include "tinyxml.h"
+#include "tinyxml2.h"
 
 
 /*!
@@ -210,12 +210,12 @@ protected:
   virtual bool parse(char* keyw, std::istream& is) { return tp.parse(keyw,is); }
 
   //! \brief Parses a data section from an XML element.
-  virtual bool parse(const TiXmlElement* elem)
+  virtual bool parse(const tinyxml2::XMLElement* elem)
   {
     if (strcasecmp(elem->Value(),"postprocessing"))
       return tp.parse(elem);
 
-    const TiXmlElement* child = elem->FirstChildElement();
+    const tinyxml2::XMLElement* child = elem->FirstChildElement();
     for (; child; child = child->NextSiblingElement())
       if (!strncasecmp(child->Value(),"savediverg",10))
         saveDivergedSol = true;

@@ -19,13 +19,13 @@
 #include "Utilities.h"
 
 #include "gtest/gtest.h"
-#include "tinyxml.h"
+#include "tinyxml2.h"
 
 
 template<class Generator>
 class TestModelGeneratorWrapper : public Generator {
 public:
-  TestModelGeneratorWrapper(const TiXmlElement* geo) : Generator(geo) {}
+  TestModelGeneratorWrapper(const tinyxml2::XMLElement* geo) : Generator(geo) {}
   std::string createG2(int nsd, bool = false) const
   {
     bool rational = false;
@@ -86,7 +86,7 @@ auto&& DoTest = [](const DefaultGeomTest& ref, const std::string& gen,
 
 TEST_P(TestModelGenerator1D, Generate)
 {
-  TiXmlDocument doc;
+  tinyxml2::XMLDocument doc;
   doc.Parse(GetParam().xml.c_str());
   TestModelGeneratorWrapper<DefaultGeometry1D> gen(doc.RootElement());
   std::string g2 = gen.createG2(GetParam().dim);
@@ -98,7 +98,7 @@ TEST_P(TestModelGenerator1D, Generate)
 
 TEST_P(TestModelGenerator2D, Generate)
 {
-  TiXmlDocument doc;
+  tinyxml2::XMLDocument doc;
   doc.Parse(GetParam().xml.c_str());
   TestModelGeneratorWrapper<DefaultGeometry2D> gen(doc.RootElement());
   std::string g2 = gen.createG2(GetParam().dim);
@@ -110,7 +110,7 @@ TEST_P(TestModelGenerator2D, Generate)
 
 TEST_P(TestModelGenerator3D, Generate)
 {
-  TiXmlDocument doc;
+  tinyxml2::XMLDocument doc;
   doc.Parse(GetParam().xml.c_str());
   TestModelGeneratorWrapper<DefaultGeometry3D> gen(doc.RootElement());
   std::string g2 = gen.createG2(GetParam().dim);

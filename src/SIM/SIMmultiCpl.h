@@ -35,7 +35,7 @@ public:
 
   using SIMadmin::parse;
   //! \brief Parses a data section from an XML document.
-  virtual bool parse(const TiXmlElement* elem);
+  virtual bool parse(const tinyxml2::XMLElement* elem);
 
   //! \brief Performs some pre-processing tasks on the FE model.
   //! \param[in] ignored Indices of patches to ignore in the analysis
@@ -44,7 +44,7 @@ public:
 
 private:
   //! \brief Parses a connection definition from an XML element.
-  bool parseConnection(const TiXmlElement* elem);
+  bool parseConnection(const tinyxml2::XMLElement* elem);
 
 protected:
   //! \brief Struct defining an inter-simulator coupling.

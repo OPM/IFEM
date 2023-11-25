@@ -16,7 +16,7 @@
 #include "SystemMatrix.h"
 #include "TimeStep.h"
 #include "IFEM.h"
-#include "tinyxml.h"
+#include "tinyxml2.h"
 
 
 HHTSIM::HHTSIM (SIMbase& sim) : NewmarkSIM(sim), Finert(nullptr), Fext(nullptr)
@@ -33,7 +33,7 @@ HHTSIM::HHTSIM (SIMbase& sim) : NewmarkSIM(sim), Finert(nullptr), Fext(nullptr)
 }
 
 
-bool HHTSIM::parse (const TiXmlElement* elem)
+bool HHTSIM::parse (const tinyxml2::XMLElement* elem)
 {
   bool ok = this->NewmarkSIM::parse(elem);
 

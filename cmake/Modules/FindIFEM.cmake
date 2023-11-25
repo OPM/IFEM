@@ -98,10 +98,6 @@ else()
   if(LRSpline_FOUND)
     list(APPEND IFEM_INCLUDES ${IFEM_PATH}/src/ASM/LR)
   endif()
-  if(NOT IFEM_USE_SYSTEM_TINYXML)
-    set(IFEM_INCLUDES ${IFEM_INCLUDES}
-                      ${IFEM_PATH}/3rdparty/tinyxml)
-  endif()
   set(IFEM_LIBRARIES ${IFEM_LIBRARIES} ${CMAKE_Fortran_IMPLICIT_LINK_LIBRARIES})
 endif()
 

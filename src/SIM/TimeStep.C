@@ -14,7 +14,7 @@
 #include "TimeStep.h"
 #include "Utilities.h"
 #include "IFEM.h"
-#include "tinyxml.h"
+#include "tinyxml2.h"
 #include <sstream>
 #ifdef HAS_CEREAL
 #include <cereal/cereal.hpp>
@@ -99,7 +99,7 @@ bool TimeStep::parse (char* keyWord, std::istream& is)
 }
 
 
-bool TimeStep::parse (const TiXmlElement* elem)
+bool TimeStep::parse (const tinyxml2::XMLElement* elem)
 {
   if (strcasecmp(elem->Value(),"timestepping"))
     return true;
@@ -117,7 +117,7 @@ bool TimeStep::parse (const TiXmlElement* elem)
   if (f1 < 1.0) f1 = 1.0;
   if (f2 > 1.0) f2 = 1.0;
 
-  const TiXmlElement* child = elem->FirstChildElement("step");
+  const tinyxml2::XMLElement* child = elem->FirstChildElement("step");
   for (; child; child = child->NextSiblingElement())
   {
     double start = 0.0, end = 0.0;

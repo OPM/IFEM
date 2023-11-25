@@ -18,7 +18,7 @@
 #include "IFEM.h"
 #include "Profiler.h"
 #include "Utilities.h"
-#include "tinyxml.h"
+#include "tinyxml2.h"
 
 const char* NewmarkSIM::inputContext = "newmarksolver";
 
@@ -46,7 +46,7 @@ NewmarkSIM::NewmarkSIM (SIMbase& sim) : MultiStepSIM(sim)
 }
 
 
-bool NewmarkSIM::parse (const TiXmlElement* elem)
+bool NewmarkSIM::parse (const tinyxml2::XMLElement* elem)
 {
   if (strcasecmp(elem->Value(),inputContext))
     return model.parse(elem);
@@ -60,7 +60,7 @@ bool NewmarkSIM::parse (const TiXmlElement* elem)
   utl::getAttribute(elem,"beta",beta);
   utl::getAttribute(elem,"gamma",gamma);
 
-  const TiXmlElement* child = elem->FirstChildElement();
+  const tinyxml2::XMLElement* child = elem->FirstChildElement();
   for (; child; child = child->NextSiblingElement())
   {
     const char* value = utl::getValue(child,"maxits");

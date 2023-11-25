@@ -69,14 +69,14 @@ public:
 
 private:
   //! \brief Parses a subelement of the \a geometry XML-tag.
-  bool parseGeometryTag(const TiXmlElement* elem);
+  bool parseGeometryTag(const tinyxml2::XMLElement* elem);
   //! \brief Parses a subelement of the \a boundaryconditions XML-tag.
-  bool parseBCTag(const TiXmlElement* elem);
+  bool parseBCTag(const tinyxml2::XMLElement* elem);
 
 protected:
   //! \brief Parses a data section from an XML document.
   //! \param[in] elem The XML element to parse
-  virtual bool parse(const TiXmlElement* elem);
+  virtual bool parse(const tinyxml2::XMLElement* elem);
 
   //! \brief Parses a data section from an input stream.
   //! \param[in] keyWord Keyword of current data section to read
@@ -84,7 +84,7 @@ protected:
   virtual bool parse(char* keyWord, std::istream& is);
 
   //! \brief Parses a dimension-specific subelement of the \a geometry XML-tag.
-  virtual bool parseGeometryDimTag(const TiXmlElement* elem)
+  virtual bool parseGeometryDimTag(const tinyxml2::XMLElement* elem)
   {
     return this->parseGeometryTag(elem);
   }
@@ -115,7 +115,7 @@ protected:
 
   //! \brief Returns a FEM model generator for a default single-patch model.
   //! \param[in] geo XML element containing geometry definition
-  virtual ModelGenerator* getModelGenerator(const TiXmlElement* geo) const;
+  virtual ModelGenerator* getModelGenerator(const tinyxml2::XMLElement* geo) const;
 
   //! \brief Reads a patch from given input stream.
   //! \param[in] isp The input stream to read from

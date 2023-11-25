@@ -13,7 +13,7 @@
 #include "ControlFIFO.h"
 
 #include "gtest/gtest.h"
-#include "tinyxml.h"
+#include "tinyxml2.h"
 #include <fcntl.h>
 
 class MockCallback : public ControlCallback
@@ -21,12 +21,12 @@ class MockCallback : public ControlCallback
   public:
   MockCallback() : callback1(false), callback2(false) {}
 
-  void OnControl(const TiXmlElement* context)
+  void OnControl(const tinyxml2::XMLElement* context)
   {
     if (!context)
       return;
 
-    const TiXmlElement* elem2 = context->FirstChildElement();
+    const tinyxml2::XMLElement* elem2 = context->FirstChildElement();
     if (elem2 && strcmp(elem2->Value(), "callback1") == 0)
       callback1 = true;
     if (elem2 && strcmp(elem2->Value(), "callback2") == 0)

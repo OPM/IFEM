@@ -12,14 +12,14 @@
 //==============================================================================
 
 #include "SIM1D.h"
+
+#include "ASM1D.h"
+#include "ASMbase.h"
 #include "ModelGenerator.h"
-#include "ASMs1D.h"
 #include "Functions.h"
 #include "Utilities.h"
-#include "Vec3Oper.h"
 #include "IFEM.h"
-#include "tinyxml.h"
-#include <fstream>
+#include "tinyxml2.h"
 
 
 SIM1D::SIM1D (unsigned char n1, bool)
@@ -79,7 +79,7 @@ bool SIM1D::connectPatches (const ASM::Interface& ifc, bool)
 }
 
 
-bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
+bool SIM1D::parseGeometryTag (const tinyxml2::XMLElement* elem)
 {
   IFEM::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
 
@@ -147,7 +147,7 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
     int offset = 0;
     utl::getAttribute(elem,"offset",offset);
 
-    const TiXmlElement* child = elem->FirstChildElement("connection");
+    const tinyxml2::XMLElement* child = elem->FirstChildElement("connection");
     for (; child; child = child->NextSiblingElement())
     {
       ASM::Interface ifc;
@@ -170,7 +170,7 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
 
   else if (!strcasecmp(elem->Value(),"projection") && !isRefined)
   {
-    const TiXmlElement* child = elem->FirstChildElement();
+    const tinyxml2::XMLElement* child = elem->FirstChildElement();
     if (child && !strncasecmp(child->Value(),"patch",5) && child->FirstChild())
     {
       // Read projection basis from file
@@ -223,7 +223,7 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
 }
 
 
-bool SIM1D::parseBCTag (const TiXmlElement* elem)
+bool SIM1D::parseBCTag (const tinyxml2::XMLElement* elem)
 {
   if (!strcasecmp(elem->Value(),"fixpoint") && !ignoreDirichlet)
   {
@@ -248,14 +248,14 @@ bool SIM1D::parseBCTag (const TiXmlElement* elem)
 }
 
 
-bool SIM1D::parse (const TiXmlElement* elem)
+bool SIM1D::parse (const tinyxml2::XMLElement* elem)
 {
   if (!strcasecmp(elem->Value(),"geometry"))
   {
     // Check for unstructured Lagrange mesh.
     // This code must be placed here (and not in parseGeometryTag)
     // due to instantiation of the ASMu1DLag class.
-    const TiXmlElement* child = elem->FirstChildElement();
+    const tinyxml2::XMLElement* child = elem->FirstChildElement();
     for (; child && nf < 10; child = child->NextSiblingElement())
       if (!strcasecmp(child->Value(),"patchfile"))
       {
@@ -280,7 +280,7 @@ bool SIM1D::parse (const TiXmlElement* elem)
 
   bool result = this->SIMgeneric::parse(elem);
 
-  const TiXmlElement* child = elem->FirstChildElement();
+  const tinyxml2::XMLElement* child = elem->FirstChildElement();
   for (; child; child = child->NextSiblingElement())
     if (!strcasecmp(elem->Value(),"geometry"))
       result &= this->parseGeometryTag(child);
@@ -562,7 +562,7 @@ ASMbase* SIM1D::readPatch (std::istream& isp, int pchInd, const CharVec& unf,
 }
 
 
-ModelGenerator* SIM1D::getModelGenerator (const TiXmlElement* geo) const
+ModelGenerator* SIM1D::getModelGenerator (const tinyxml2::XMLElement* geo) const
 {
   return new DefaultGeometry1D(geo);
 }

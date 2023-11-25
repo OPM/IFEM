@@ -120,7 +120,7 @@ public:
                      bool geoUpd = false, bool doLog = false);
 
   //! \brief Callback on receiving a XML control block from external controller.
-  virtual void OnControl(const TiXmlElement* context);
+  virtual void OnControl(const tinyxml2::XMLElement* context);
   //! \brief Returns context name for callback for external controller.
   virtual std::string GetContext() const { return "datawriter"; }
 

@@ -21,7 +21,7 @@
 #include "Functions.h"
 #include "Utilities.h"
 #include "IFEM.h"
-#include <tinyxml.h>
+#include <tinyxml2.h>
 
 
 /*!
@@ -143,7 +143,7 @@ public:
 
 protected:
   //! \brief Parses sub-iteration setup from an XML tag.
-  void parseIterations(const TiXmlElement* elem)
+  void parseIterations(const tinyxml2::XMLElement* elem)
   {
     IFEM::cout <<"\tUsing sub-iterations\n";
 

@@ -21,8 +21,12 @@
 #include <map>
 #include <set>
 
+namespace tinyxml2 {
+  class XMLElement;
+  class XMLNode;
+}
+
 class Vec3;
-class TiXmlElement;
 class TiXmlNode;
 
 typedef std::map<int,int> IntMap; //!< Convenience type
@@ -61,14 +65,14 @@ namespace utl
   //! \param[out] val The attribute value
   //! \return \e true if the attribute \a att is found in \a xml,
   //! otherwise \e false
-  int getAttribute(const TiXmlElement* xml, const char* att, bool& val);
+  int getAttribute(const tinyxml2::XMLElement* xml, const char* att, bool& val);
   //! \brief Extracts an integer attribute value from the specified XML-element.
   //! \param[in] xml Pointer to XML-element to extract from
   //! \param[in] att The attribute tag
   //! \param[out] val The attribute value
   //! \return \e true if the attribute \a att is found in \a xml,
   //! otherwise \e false
-  int getAttribute(const TiXmlElement* xml, const char* att, int& val);
+  int getAttribute(const tinyxml2::XMLElement* xml, const char* att, int& val);
   //! \brief Extracts a char attribute value from the specified XML-element.
   //! \param[in] xml Pointer to XML-element to extract from
   //! \param[in] att The attribute tag
@@ -76,7 +80,7 @@ namespace utl
   //! \param[in] useIntValue If \e true, convert the value to an integer
   //! \return \e true if the attribute \a att is found in \a xml,
   //! otherwise \e false
-  int getAttribute(const TiXmlElement* xml, const char* att, char& val,
+  int getAttribute(const tinyxml2::XMLElement* xml, const char* att, char& val,
                    bool useIntValue = true);
   //! \brief Extracts a size_t attribute value from the specified XML-element.
   //! \param[in] xml Pointer to XML-element to extract from
@@ -84,14 +88,14 @@ namespace utl
   //! \param[out] val The attribute value
   //! \return \e true if the attribute \a att is found in \a xml,
   //! otherwise \e false
-  int getAttribute(const TiXmlElement* xml, const char* att, size_t& val);
+  int getAttribute(const tinyxml2::XMLElement* xml, const char* att, size_t& val);
   //! \brief Extracts a real attribute value from the specified XML-element.
   //! \param[in] xml Pointer to XML-element to extract from
   //! \param[in] att The attribute tag
   //! \param[out] val The attribute value
   //! \return \e true if the attribute \a att is found in \a xml,
   //! otherwise \e false
-  int getAttribute(const TiXmlElement* xml, const char* att, Real& val);
+  int getAttribute(const tinyxml2::XMLElement* xml, const char* att, Real& val);
   //! \brief Extracts a vector attribute value from the specified XML-element.
   //! \param[in] xml Pointer to XML-element to extract from
   //! \param[in] att The attribute tag
@@ -99,7 +103,7 @@ namespace utl
   //! \param[in] ncomp Maximum number of components to read
   //! \return \e true if the attribute \a att is found in \a xml,
   //! otherwise \e false
-  int getAttribute(const TiXmlElement* xml, const char* att, Vec3& val,
+  int getAttribute(const tinyxml2::XMLElement* xml, const char* att, Vec3& val,
                    int ncomp = 0);
   //! \brief Extracts an integer vector attribute from specified XML-element.
   //! \param[in] xml Pointer to XML-element to extract from
@@ -107,7 +111,7 @@ namespace utl
   //! \param[out] val The attribute value
   //! \return \e true if the attribute \a att is found in \a xml,
   //! otherwise \e false
-  int getAttribute(const TiXmlElement* xml, const char* att,
+  int getAttribute(const tinyxml2::XMLElement* xml, const char* att,
                    std::vector<int>& val);
 
   //! \brief Extracts a string attribute value from the specified XML-element.
@@ -117,17 +121,17 @@ namespace utl
   //! \param[in] toLower If \e true, convert return string to lower case
   //! \return \e true if the attribute \a att is found in \a xml,
   //! otherwise \e false
-  int getAttribute(const TiXmlElement* xml, const char* att, std::string& val,
-                   bool toLower = false);
+  int getAttribute(const tinyxml2::XMLElement* xml, const char* att,
+                   std::string& val, bool toLower = false);
   //! \brief Returns the value (if any) of the specified XML-node.
   //! \param[in] xml Pointer to XML-node to extract the value from
   //! \param[in] tag The name of the XML-element to extract the value from
-  const char* getValue(const TiXmlNode* xml, const char* tag);
+  const char* getValue(const tinyxml2::XMLNode* xml, const char* tag);
 
   //! \brief Parses a sequence of knot values from the specified XML-node.
   //! \param[in] xml Pointer to XML-node to extract from
   //! \param xi The knot value(s) is/are appended to this vector
-  bool parseKnots(const TiXmlNode* xml, std::vector<Real>& xi);
+  bool parseKnots(const tinyxml2::XMLNode* xml, std::vector<Real>& xi);
 
   //! \brief Transforms the integer value \a num into a unique range.
   //! \details This method is invoked on a series of (non-unique) values.

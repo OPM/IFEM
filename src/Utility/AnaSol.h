@@ -21,7 +21,7 @@ class RealFunc;
 class VecFunc;
 class TensorFunc;
 class STensorFunc;
-class TiXmlElement;
+namespace tinyxml2 { class XMLElement; }
 
 
 /*!
@@ -69,7 +69,7 @@ public:
   //! \brief Constructor initializing expression functions by parsing XML tags.
   //! \param[in] elem Pointer to XML-element to extract data from
   //! \param[in] scalarSol If \e true, the primary solution is a scalar field
-  explicit AnaSol(const TiXmlElement* elem, bool scalarSol = true);
+  explicit AnaSol(const tinyxml2::XMLElement* elem, bool scalarSol = true);
 
   //! \brief No copying of this class.
   AnaSol(const AnaSol&) = delete;
@@ -131,10 +131,10 @@ public:
 private:
   //! \brief Parses expression functions from XML definition.
   template<class Scalar>
-  void parseExpressionFunctions(const TiXmlElement* elem, bool scalarSol);
+  void parseExpressionFunctions(const tinyxml2::XMLElement* elem, bool scalarSol);
 
   //! \brief Parses field functions from XML definition.
-  void parseFieldFunctions(const TiXmlElement* elem, bool scalarSol);
+  void parseFieldFunctions(const tinyxml2::XMLElement* elem, bool scalarSol);
 
 protected:
   bool symmetric = false; //!< True to use symmetric secondary solution

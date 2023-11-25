@@ -17,7 +17,7 @@
 #include <vector>
 
 class ModelGenerator;
-class TiXmlElement;
+namespace tinyxml2 { class XMLElement; }
 
 
 /*!
@@ -45,7 +45,7 @@ public:
 protected:
   //! \brief Instantiates a FEM model generator for a multi-patch model.
   //! \param[in] geo XML element containing geometry definition
-  virtual ModelGenerator* getModelGenerator(const TiXmlElement* geo) const;
+  virtual ModelGenerator* getModelGenerator(const tinyxml2::XMLElement* geo) const;
 };
 
 #endif

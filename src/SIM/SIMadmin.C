@@ -14,7 +14,7 @@
 #include "SIMadmin.h"
 #include "Utilities.h"
 #include "IFEM.h"
-#include "tinyxml.h"
+#include "tinyxml2.h"
 #ifdef HAVE_MPI
 #include <mpi.h>
 #endif
@@ -119,7 +119,7 @@ bool SIMadmin::parse (char*, std::istream&)
 }
 
 
-bool SIMadmin::parse (const TiXmlElement* elem)
+bool SIMadmin::parse (const tinyxml2::XMLElement* elem)
 {
   const char* value = utl::getValue(elem,"messageLevel");
   if (value) msgLevel = atoi(value);

@@ -190,7 +190,7 @@ public:
 protected:
   using SIMSolver<T1>::parse;
   //! \brief Parses a data section from an XML element.
-  virtual bool parse(const TiXmlElement* elem)
+  virtual bool parse(const tinyxml2::XMLElement* elem)
   {
     if (strcasecmp(elem->Value(),"adaptive"))
       return this->SIMSolver<T1>::parse(elem);
@@ -200,7 +200,7 @@ protected:
     utl::getAttribute(elem,"dumpLog",SIMSolver<T1>::dumpLog);
 
     const char* value = nullptr;
-    const TiXmlElement* child = elem->FirstChildElement();
+    const tinyxml2::XMLElement* child = elem->FirstChildElement();
     for (; child; child = child->NextSiblingElement())
       if ((value = utl::getValue(child,"forward_steps")))
         nForward = atoi(value);

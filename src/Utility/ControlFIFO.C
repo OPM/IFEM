@@ -12,11 +12,12 @@
 //==============================================================================
 
 #include "ControlFIFO.h"
-#include "tinyxml.h"
+#include "tinyxml2.h"
 
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <fcntl.h>
+#include <iostream>
 #include <unistd.h>
 
 
@@ -62,14 +63,14 @@ void ControlFIFO::poll ()
   if (!strlen(temp))
     return;
 
-  TiXmlDocument doc;
+  tinyxml2::XMLDocument doc;
   doc.Parse(temp);
   if (!doc.RootElement()) {
     std::cerr <<" *** Invalid control data received:\n"<< temp << std::endl;
     return;
   }
 
-  TiXmlElement* elem = doc.RootElement()->FirstChildElement();
+  tinyxml2::XMLElement* elem = doc.RootElement()->FirstChildElement();
   for (; elem; elem = elem->NextSiblingElement())
     if (callbacks.find(elem->Value()) != callbacks.end())
       callbacks[elem->Value()]->OnControl(elem);

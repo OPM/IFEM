@@ -25,7 +25,7 @@
 #include "ASMu2D.h"
 #endif
 
-#include <tinyxml.h>
+#include <tinyxml2.h>
 
 
 //! \brief Base class for helpers applying nodal constraints.
@@ -392,7 +392,7 @@ template<> bool SIMNodalConstraint<SIM3D>::applyConstraint()
 
 
 template <class Dim>
-bool SIMNodalConstraint<Dim>::parse (const TiXmlElement* elem)
+bool SIMNodalConstraint<Dim>::parse (const tinyxml2::XMLElement* elem)
 {
   if (strcasecmp(elem->Value(),"constraintovertex"))
     return this->Dim::parse(elem);

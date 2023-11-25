@@ -18,7 +18,7 @@
 
 class SIMinput;
 class ASMbase;
-class TiXmlElement;
+namespace tinyxml2 { class XMLElement; }
 
 
 /*!
@@ -30,7 +30,7 @@ class ModelGenerator
 public:
   //! \brief The constructor initializes the common members.
   //! \param[in] elem XML element containing geometry definition
-  explicit ModelGenerator(const TiXmlElement* elem) : geo(elem) {}
+  explicit ModelGenerator(const tinyxml2::XMLElement* elem) : geo(elem) {}
   //! \brief Empty destructor.
   virtual ~ModelGenerator() {}
 
@@ -53,7 +53,7 @@ protected:
   bool topologySets() const;
 
 protected:
-  const TiXmlElement* geo; //!< Pointer to XML element describing geometry
+  const tinyxml2::XMLElement* geo; //!< Pointer to XML element describing geometry
 };
 
 
@@ -66,7 +66,7 @@ class DefaultGeometry1D : public ModelGenerator
 {
 public:
   //! \brief The constructor forwards to the base class.
-  explicit DefaultGeometry1D(const TiXmlElement* geo) : ModelGenerator(geo) {}
+  explicit DefaultGeometry1D(const tinyxml2::XMLElement* geo) : ModelGenerator(geo) {}
   //! \brief Empty destructor.
   virtual ~DefaultGeometry1D() {}
 
@@ -88,7 +88,7 @@ class DefaultGeometry2D : public ModelGenerator
 {
 public:
   //! \brief The constructor forwards to the base class.
-  explicit DefaultGeometry2D(const TiXmlElement* geo) : ModelGenerator(geo) {}
+  explicit DefaultGeometry2D(const tinyxml2::XMLElement* geo) : ModelGenerator(geo) {}
   //! \brief Empty destructor.
   virtual ~DefaultGeometry2D() {}
 
@@ -110,7 +110,7 @@ class DefaultGeometry3D : public ModelGenerator
 {
 public:
   //! \brief The constructor forwards to the base class.
-  explicit DefaultGeometry3D(const TiXmlElement* geo) : ModelGenerator(geo) {}
+  explicit DefaultGeometry3D(const tinyxml2::XMLElement* geo) : ModelGenerator(geo) {}
   //! \brief Empty destructor.
   virtual ~DefaultGeometry3D() {}
 

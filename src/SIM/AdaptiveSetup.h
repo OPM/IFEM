@@ -18,7 +18,7 @@
 
 class ScalarFunc;
 class SIMoutput;
-class TiXmlElement;
+namespace tinyxml2 { class XMLElement; }
 namespace LR { struct RefineData; }
 
 
@@ -66,7 +66,7 @@ public:
   bool parse(char* keyWord, std::istream& is);
   //! \brief Parses a data section from an XML document.
   //! \param[in] elem The XML element to parse
-  bool parse(const TiXmlElement* elem);
+  bool parse(const tinyxml2::XMLElement* elem);
 
   //! \brief Prints out global norms to the log stream.
   //! \param[in] gNorm Global norms

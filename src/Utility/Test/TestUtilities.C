@@ -12,7 +12,7 @@
 
 #include "Utilities.h"
 #include "Vec3.h"
-#include "tinyxml.h"
+#include "tinyxml2.h"
 
 #include "gtest/gtest.h"
 
@@ -107,8 +107,8 @@ TEST(TestUtilities, GetAttribute)
     "  <vecval3 bar=\"1.2 3.4 5.6\"/>"
     "</xml>";
 
-  TiXmlDocument doc;
-  doc.Parse(input,nullptr,TIXML_ENCODING_UTF8);
+  tinyxml2::XMLDocument doc;
+  doc.Parse(input);
   ASSERT_TRUE(doc.RootElement() != nullptr);
 
   const char* bTrue[4]  = { "booltrue" , "boolone" , "boolon" , "boolyes" };
@@ -116,7 +116,7 @@ TEST(TestUtilities, GetAttribute)
 
   int i;
   for (i = 0; i < 4; i++) {
-    const TiXmlElement* elem = doc.RootElement()->FirstChildElement(bTrue[i]);
+    const tinyxml2::XMLElement* elem = doc.RootElement()->FirstChildElement(bTrue[i]);
     ASSERT_TRUE(elem != nullptr);
     bool b = false;
     EXPECT_TRUE(utl::getAttribute(elem, "bar", b));
@@ -124,14 +124,14 @@ TEST(TestUtilities, GetAttribute)
   }
 
   for (i = 0; i < 4; i++) {
-    const TiXmlElement* elem = doc.RootElement()->FirstChildElement(bFalse[i]);
+    const tinyxml2::XMLElement* elem = doc.RootElement()->FirstChildElement(bFalse[i]);
     ASSERT_TRUE(elem != nullptr);
     bool b = false;
     EXPECT_TRUE(utl::getAttribute(elem, "bar", b));
     EXPECT_FALSE(b);
   }
 
-  const TiXmlElement* elem = doc.RootElement()->FirstChildElement("intval");
+  const tinyxml2::XMLElement* elem = doc.RootElement()->FirstChildElement("intval");
   ASSERT_TRUE(elem != nullptr);
   int val1 = 0;
   EXPECT_TRUE(utl::getAttribute(elem, "bar", val1));

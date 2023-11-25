@@ -16,7 +16,7 @@
 #include "SystemMatrix.h"
 #include "TimeStep.h"
 #include "IFEM.h"
-#include "tinyxml.h"
+#include "tinyxml2.h"
 
 
 NewmarkNLSIM::NewmarkNLSIM (SIMbase& sim) : NewmarkSIM(sim), Finert(nullptr)
@@ -37,7 +37,7 @@ NewmarkNLSIM::~NewmarkNLSIM ()
 }
 
 
-bool NewmarkNLSIM::parse (const TiXmlElement* elem)
+bool NewmarkNLSIM::parse (const tinyxml2::XMLElement* elem)
 {
   bool ok = this->NewmarkSIM::parse(elem);
 
@@ -57,7 +57,7 @@ bool NewmarkNLSIM::parse (const TiXmlElement* elem)
     beta = 0.25*(1.0-alpha)*(1.0-alpha);
     gamma = 0.5 - alpha;
 
-    const TiXmlElement* child = elem->FirstChildElement();
+    const tinyxml2::XMLElement* child = elem->FirstChildElement();
     for (; child; child = child->NextSiblingElement())
       if (!strcasecmp(child->Value(),"trueinertia"))
         nRHSvec = 2; // using true inertia forces from previous time step

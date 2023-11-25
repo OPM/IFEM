@@ -20,7 +20,7 @@
 #include <map>
 #include <string>
 
-class TiXmlElement;
+namespace tinyxml2 { class XMLElement; }
 
 
 /*!
@@ -43,7 +43,7 @@ public:
   bool parse(char* keyWord, std::istream& is);
   //! \brief Parses a data section from an XML document.
   //! \param[in] elem The XML element to parse
-  bool parse(const TiXmlElement* elem);
+  bool parse(const tinyxml2::XMLElement* elem);
 
   //! \brief Returns \e true if the simulation consists of several time steps.
   bool multiSteps() const;

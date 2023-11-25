@@ -16,8 +16,10 @@
 
 #include <vector>
 
-class TiXmlDocument;
-class TiXmlElement;
+namespace tinyxml2 {
+  class XMLDocument;
+  class XMLElement;
+}
 
 
 /*!
@@ -44,11 +46,12 @@ protected:
   //! \param[in] fileName File to read
   //! \param[in] verbose If \e true, print the file(s) being read
   //! \return Pointer to the root element of the XML-file
-  const TiXmlElement* loadFile(TiXmlDocument& doc,
-                               const char* fileName, bool verbose = false);
+  const tinyxml2::XMLElement* loadFile(tinyxml2::XMLDocument& doc,
+                                       const char* fileName,
+                                       bool verbose = false);
 
   //! \brief Parses a data section from an XML element.
-  virtual bool parse(const TiXmlElement* elem) = 0;
+  virtual bool parse(const tinyxml2::XMLElement* elem) = 0;
 
   //! \brief Returns a list of prioritized XML-tags.
   virtual const char** getPrioritizedTags() const { return nullptr; }
@@ -65,12 +68,9 @@ private:
   //! application-specific %SIM class prior to parsing its data blocks.
   //! In that case the getPrioritizedTags() method should be reimplemented
   //! by the sub-class to take care of the application-specific tags.
-  bool handlePriorityTags(const TiXmlElement* base,
-                          std::vector<const TiXmlElement*>& parsed,
+  bool handlePriorityTags(const tinyxml2::XMLElement* base,
+                          std::vector<const tinyxml2::XMLElement*>& parsed,
                           bool verbose);
-
-  //! \brief Recursive helper method for processing the \a include XML-tags.
-  bool injectIncludeFiles(TiXmlElement* tag, bool verbose) const;
 };
 
 #endif

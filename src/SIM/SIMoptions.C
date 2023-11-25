@@ -14,7 +14,7 @@
 #include "SIMoptions.h"
 #include "Utilities.h"
 #include "IFEM.h"
-#include "tinyxml.h"
+#include "tinyxml2.h"
 #ifdef HAVE_MPI
 #include <mpi.h>
 #endif
@@ -76,7 +76,7 @@ void SIMoptions::setLinearSolver (const std::string& eqsolver)
 }
 
 
-bool SIMoptions::parseEigSolTag (const TiXmlElement* elem)
+bool SIMoptions::parseEigSolTag (const tinyxml2::XMLElement* elem)
 {
   const char* value;
   if ((value = utl::getValue(elem,"mode")))
@@ -92,7 +92,7 @@ bool SIMoptions::parseEigSolTag (const TiXmlElement* elem)
 }
 
 
-bool SIMoptions::parseDiscretizationTag (const TiXmlElement* elem)
+bool SIMoptions::parseDiscretizationTag (const tinyxml2::XMLElement* elem)
 {
   if (!strcasecmp(elem->Value(),"discretization")) {
     std::string discr;
@@ -122,7 +122,7 @@ bool SIMoptions::parseDiscretizationTag (const TiXmlElement* elem)
 
   else if (!strcasecmp(elem->Value(),"geometry")) {
     std::string type;
-    const TiXmlElement* child = elem->FirstChildElement();
+    const tinyxml2::XMLElement* child = elem->FirstChildElement();
     for (; child; child = child->NextSiblingElement())
       if (!strcasecmp(child->Value(),"patchfile"))
         if (utl::getAttribute(child,"type",type) && type == "lrspline")
@@ -146,7 +146,7 @@ bool SIMoptions::parseDiscretizationTag (const TiXmlElement* elem)
 }
 
 
-bool SIMoptions::parseOutputTag (const TiXmlElement* elem)
+bool SIMoptions::parseOutputTag (const tinyxml2::XMLElement* elem)
 {
   const char* value = nullptr;
   if (!strcasecmp(elem->Value(),"vtfformat")) {
@@ -204,7 +204,7 @@ bool SIMoptions::parseOutputTag (const TiXmlElement* elem)
     std::string type;
     if (utl::getAttribute(elem,"type",type))
       this->parseProjectionMethod(type.c_str());
-    const TiXmlElement* child = elem->FirstChildElement();
+    const tinyxml2::XMLElement* child = elem->FirstChildElement();
     for (; child; child = child->NextSiblingElement())
     {
       int version = 1;
@@ -220,7 +220,7 @@ bool SIMoptions::parseOutputTag (const TiXmlElement* elem)
 }
 
 
-bool SIMoptions::parseRestartTag (const TiXmlElement* elem)
+bool SIMoptions::parseRestartTag (const tinyxml2::XMLElement* elem)
 {
   if (!strcasecmp(elem->Value(),"restart")) {
     utl::getAttribute(elem,"step",restartStep);
@@ -232,7 +232,7 @@ bool SIMoptions::parseRestartTag (const TiXmlElement* elem)
 }
 
 
-bool SIMoptions::parseConsoleTag (const TiXmlElement* elem)
+bool SIMoptions::parseConsoleTag (const tinyxml2::XMLElement* elem)
 {
   if (!strcasecmp(elem->Value(),"logging")) {
     int pid = 0;

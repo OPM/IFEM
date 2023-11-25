@@ -17,11 +17,11 @@
 #include "SIMMultiPatchModelGen.h"
 #include "SIM2D.h"
 #include "SIM3D.h"
-#include "tinyxml.h"
+#include "tinyxml2.h"
 
 #include "gtest/gtest.h"
 
-#include <fstream>
+#include <sstream>
 
 
 // Dummy SIM class.
@@ -34,7 +34,7 @@ public:
     Dim::opt.discretization = ASM::LRSpline;
   }
 
-  bool parse(const TiXmlElement* elem) override
+  bool parse(const tinyxml2::XMLElement* elem) override
   { return this->SIMMultiPatchModelGen<Dim>::parse(elem); }
 
   virtual ~RefineSim() {}
@@ -51,7 +51,7 @@ class TestMultiPatchLRRefine2D :
 TEST_P(TestMultiPatchLRRefine2D, Refine)
 {
   RefineSim<SIM2D> sim;
-  TiXmlDocument doc;
+  tinyxml2::XMLDocument doc;
   std::stringstream str;
   str << R"(<geometry dim="2" nx="2" ny="2">)"
       << R"(  <raiseorder lowerpatch="1" upperpatch="4)"
@@ -90,7 +90,7 @@ class TestMultiPatchLRRefine3D :
 TEST_P(TestMultiPatchLRRefine3D, Refine)
 {
   RefineSim<SIM3D> sim;
-  TiXmlDocument doc;
+  tinyxml2::XMLDocument doc;
   std::stringstream str;
   str << R"(<geometry dim="3" nx="2" ny="2" nz="2">)"
       << R"(  <raiseorder lowerpatch="1" upperpatch="8")"

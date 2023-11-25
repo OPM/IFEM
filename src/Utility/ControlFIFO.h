@@ -17,7 +17,7 @@
 #include <string>
 #include <map>
 
-class TiXmlElement;
+namespace tinyxml2 { class XMLElement; }
 
 
 /*!
@@ -28,7 +28,7 @@ class ControlCallback
 {
 public:
   //! \brief Callback on receiving a XML control block.
-  virtual void OnControl(const TiXmlElement* context) = 0;
+  virtual void OnControl(const tinyxml2::XMLElement* context) = 0;
   //! \brief Returns context name for callback.
   virtual std::string GetContext() const = 0;
 };
