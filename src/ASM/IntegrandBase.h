@@ -31,7 +31,7 @@ class Fields;
 class VecFunc;
 class TensorFunc;
 class STensorFunc;
-class TiXmlElement;
+namespace tinyxml2 { class XMLElement; }
 
 
 /*!
@@ -50,7 +50,7 @@ public:
   virtual ~IntegrandBase() {}
 
   //! \brief Parses a data section from an XML element.
-  virtual bool parse(const TiXmlElement*) { return false; }
+  virtual bool parse(const tinyxml2::XMLElement*) { return false; }
 
   //! \brief Prints out the problem definition to the log stream.
   virtual void printLog() const {}

@@ -23,6 +23,13 @@ if(NOT IFEM_FOUND)
   set(IFEM_CHECKCOMMITS_SCRIPT ${IFEM_PATH}/CheckCommits.cmake)
   set(CMAKE_INSTALL_DOCDIR @CMAKE_INSTALL_DOCDIR@)
 
+  if(NOT TARGET tinyxml2::tinyxml2)
+    add_library(tinyxml2::tinyxml2 UNKNOWN IMPORTED)
+    set_target_properties(tinyxml2::tinyxml2 PROPERTIES
+                          IMPORTED_LOCATION @TinyXML2_LIBRARIES@
+                          INCLUDE_DIRECTORIES @TinyXML2_INCLUDE_DIRECTORIES@)
+  endif()
+
   add_library(IFEMAppCommon STATIC IMPORTED)
   set_target_properties(IFEMAppCommon PROPERTIES IMPORTED_LOCATION
                         @CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_LIBDIR@/libIFEMAppCommon${CMAKE_STATIC_LIBRARY_SUFFIX})

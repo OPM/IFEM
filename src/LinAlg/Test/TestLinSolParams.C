@@ -11,13 +11,13 @@
 //==============================================================================
 
 #include "LinSolParams.h"
-#include "tinyxml.h"
+#include "tinyxml2.h"
 
 #include "gtest/gtest.h"
 
 TEST(TestLinSolParams, ParseBlocks)
 {
-  TiXmlDocument doc;
+  tinyxml2::XMLDocument doc;
   doc.LoadFile("src/LinAlg/Test/refdata/linsolver_blocks.xml");
 
   LinSolParams params;
@@ -47,7 +47,7 @@ TEST(TestLinSolParams, ParseBlocks)
 
 TEST(TestLinSolParams, ParseGAMG)
 {
-  TiXmlDocument doc;
+  tinyxml2::XMLDocument doc;
   doc.LoadFile("src/LinAlg/Test/refdata/linsolver_gamg.xml");
 
   LinSolParams params;
@@ -68,7 +68,7 @@ TEST(TestLinSolParams, ParseGAMG)
 
 TEST(TestLinSolParams, ParseML)
 {
-  TiXmlDocument doc;
+  tinyxml2::XMLDocument doc;
   doc.LoadFile("src/LinAlg/Test/refdata/linsolver_ml.xml");
 
   LinSolParams params;
@@ -91,7 +91,7 @@ TEST(TestLinSolParams, ParseML)
 
 TEST(TestLinSolParams, ParseHypre)
 {
-  TiXmlDocument doc;
+  tinyxml2::XMLDocument doc;
   doc.LoadFile("src/LinAlg/Test/refdata/linsolver_hypre.xml");
 
   LinSolParams params;

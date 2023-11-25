@@ -17,7 +17,7 @@
 #include <string>
 #include <vector>
 
-class TiXmlElement;
+namespace tinyxml2 { class XMLElement; }
 
 
 //! \brief Describes a topologyset constrained to a vertex.
@@ -52,7 +52,7 @@ protected:
 
   using Dim::parse;
   //! \brief Parses a data section from an XML element.
-  virtual bool parse(const TiXmlElement* elem);
+  virtual bool parse(const tinyxml2::XMLElement* elem);
 
 private:
   //! \brief Applies the nodal constraints on the defined topology sets.

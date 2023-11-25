@@ -56,7 +56,7 @@ public:
 
 protected:
   //! \brief Parses a subelement of the \a resultoutput XML-tag.
-  virtual bool parseOutputTag(const TiXmlElement* elem);
+  virtual bool parseOutputTag(const tinyxml2::XMLElement* elem);
 
   //! \brief Tesselates the specified patch.
   virtual ElementBlock* tesselatePatch(size_t pidx) const;

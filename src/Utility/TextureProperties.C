@@ -18,13 +18,13 @@
 #include "Utilities.h"
 #include "Vec3.h"
 
-#include "tinyxml.h"
+#include "tinyxml2.h"
 #include "StbImage.h"
 
 
-void TextureProperties::parse(const TiXmlElement* elem)
+void TextureProperties::parse(const tinyxml2::XMLElement* elem)
 {
-  const TiXmlElement* child = elem->FirstChildElement("property");
+  const tinyxml2::XMLElement* child = elem->FirstChildElement("property");
   for (; child; child = child->NextSiblingElement()) {
     std::string prop;
     utl::getAttribute(child,"name",prop);

@@ -19,10 +19,8 @@
 #include <string>
 #include <map>
 
-namespace utl {
-  class LogStream;
-}
-class TiXmlElement;
+namespace utl { class LogStream; }
+namespace tinyxml2 { class XMLElement; }
 
 
 /*!
@@ -45,15 +43,15 @@ public:
   void setLinearSolver(const std::string& eqsolver);
 
   //! \brief Parses a subelement of the \a console XML-tag.
-  bool parseConsoleTag(const TiXmlElement* elem);
+  bool parseConsoleTag(const tinyxml2::XMLElement* elem);
   //! \brief Parses a subelement of the \a discretization XML-tag.
-  bool parseDiscretizationTag(const TiXmlElement* elem);
+  bool parseDiscretizationTag(const tinyxml2::XMLElement* elem);
   //! \brief Parses a subelement of the \a eigensolver XML-tag.
-  bool parseEigSolTag(const TiXmlElement* elem);
+  bool parseEigSolTag(const tinyxml2::XMLElement* elem);
   //! \brief Parses a subelement of the \a resultoutput XML-tag.
-  bool parseOutputTag(const TiXmlElement* elem);
+  bool parseOutputTag(const tinyxml2::XMLElement* elem);
   //! \brief Parses the \a restart XML-tag.
-  bool parseRestartTag(const TiXmlElement* elem);
+  bool parseRestartTag(const tinyxml2::XMLElement* elem);
 
   //! \brief Parses obsolete command-line arguments (backward compatibility).
   bool parseOldOptions(int argc, char** argv, int& i);

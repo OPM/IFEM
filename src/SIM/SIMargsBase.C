@@ -14,7 +14,7 @@
 #include "SIMargsBase.h"
 #include "Utilities.h"
 #include "IFEM.h"
-#include "tinyxml.h"
+#include "tinyxml2.h"
 #include <cstring>
 #include <cstdlib>
 #include <cctype>
@@ -39,7 +39,7 @@ bool SIMargsBase::parseArg (const char* argv)
 }
 
 
-bool SIMargsBase::parse (const TiXmlElement* elem)
+bool SIMargsBase::parse (const tinyxml2::XMLElement* elem)
 {
   if (!strcasecmp(elem->Value(),context))
     if (utl::getAttribute(elem,"adaptive",adap,false))

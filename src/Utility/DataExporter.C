@@ -17,7 +17,7 @@
 #include "Profiler.h"
 #include "ProcessAdm.h"
 #include "TimeStep.h"
-#include "tinyxml.h"
+#include "tinyxml2.h"
 
 
 DataWriter::DataWriter (const std::string& name,
@@ -163,9 +163,9 @@ bool DataExporter::dumpTimeLevel (const TimeStep* tp, bool geoUpd, bool doLog)
 }
 
 
-void DataExporter::OnControl(const TiXmlElement* context)
+void DataExporter::OnControl(const tinyxml2::XMLElement* context)
 {
-  const TiXmlElement* child = context->FirstChildElement();
+  const tinyxml2::XMLElement* child = context->FirstChildElement();
   for (; child; child = child->NextSiblingElement())
     if (strcasecmp(child->Value(),"enable_field") == 0) {
       std::string name;

@@ -15,7 +15,7 @@
 #include "ASMs1D.h"
 #include "ASMs2D.h"
 #include "ModelGenerator.h"
-#include "tinyxml.h"
+#include "tinyxml2.h"
 #include <fstream>
 
 #include "gtest/gtest.h"
@@ -33,8 +33,8 @@ public:
     EXPECT_TRUE(this->createFEMmodel());
 
     // Create topological boundary entities (vertices)
-    TiXmlDocument doc;
-    doc.Parse("<geometry sets='true'/>",nullptr,TIXML_ENCODING_UTF8);
+    tinyxml2::XMLDocument doc;
+    doc.Parse("<geometry sets='true'/>");
     DefaultGeometry1D(doc.RootElement()).createTopologySets(*this);
     EXPECT_EQ(myEntitys.size(),4U);
   }
@@ -55,8 +55,8 @@ public:
     EXPECT_TRUE(this->createFEMmodel());
 
     // Create topological boundary entities (vertices and edges)
-    TiXmlDocument doc;
-    doc.Parse("<geometry sets='true'/>",nullptr,TIXML_ENCODING_UTF8);
+    tinyxml2::XMLDocument doc;
+    doc.Parse("<geometry sets='true'/>");
     DefaultGeometry2D(doc.RootElement()).createTopologySets(*this);
     EXPECT_EQ(myEntitys.size(),10U);
   }

@@ -20,7 +20,7 @@
 #include "Utilities.h"
 #include "Vec3.h"
 #include "Vec3Oper.h"
-#include "tinyxml.h"
+#include "tinyxml2.h"
 #include <array>
 
 
@@ -97,7 +97,7 @@ bool MultiPatchModelGenerator1D::createGeometry (SIMinput& sim) const
   pch.read(line);
 
   // Parse XML input
-  const TiXmlElement* sub = geo->FirstChildElement("subdivision")->FirstChildElement();
+  const tinyxml2::XMLElement* sub = geo->FirstChildElement("subdivision")->FirstChildElement();
   for (; sub; sub = sub->NextSiblingElement())
     if (strcasecmp(sub->Value(),"raiseorder") == 0) {
       int nu;
@@ -147,7 +147,7 @@ MultiPatchModelGenerator1D::getSubPatch(const Go::SplineCurve* cur,
 }
 
 
-MultiPatchModelGenerator1D::MultiPatchModelGenerator1D (const TiXmlElement* geo) :
+MultiPatchModelGenerator1D::MultiPatchModelGenerator1D (const tinyxml2::XMLElement* geo) :
   ModelGenerator(geo)
 {
   nx = 1;
@@ -157,7 +157,7 @@ MultiPatchModelGenerator1D::MultiPatchModelGenerator1D (const TiXmlElement* geo)
   utl::getAttribute(geo,"nx",nx);
   utl::getAttribute(geo,"subdivision",subdivision);
   utl::getAttribute(geo,"periodic_x", periodic_x);
-  const TiXmlElement* subd = geo->FirstChildElement("subdivision");
+  const tinyxml2::XMLElement* subd = geo->FirstChildElement("subdivision");
   if (subd) {
     subdivision = true;
     utl::getAttribute(subd,"nx",nx);
@@ -214,7 +214,7 @@ bool MultiPatchModelGenerator1D::createTopologySets (SIMinput& sim) const
 }
 
 
-MultiPatchModelGenerator2D::MultiPatchModelGenerator2D (const TiXmlElement* geo) :
+MultiPatchModelGenerator2D::MultiPatchModelGenerator2D (const tinyxml2::XMLElement* geo) :
   ModelGenerator(geo)
 {
   nx = ny = 1;
@@ -226,7 +226,7 @@ MultiPatchModelGenerator2D::MultiPatchModelGenerator2D (const TiXmlElement* geo)
   utl::getAttribute(geo,"subdivision",subdivision);
   utl::getAttribute(geo,"periodic_x", periodic_x);
   utl::getAttribute(geo,"periodic_y", periodic_y);
-  const TiXmlElement* subd = geo->FirstChildElement("subdivision");
+  const tinyxml2::XMLElement* subd = geo->FirstChildElement("subdivision");
   if (subd) {
     subdivision = true;
     utl::getAttribute(subd,"nx",nx);
@@ -324,7 +324,7 @@ bool MultiPatchModelGenerator2D::createGeometry (SIMinput& sim) const
   pch.read(rect);
 
   // Parse XML input
-  const TiXmlElement* sub = geo->FirstChildElement("subdivision")->FirstChildElement();
+  const tinyxml2::XMLElement* sub = geo->FirstChildElement("subdivision")->FirstChildElement();
   for (; sub; sub = sub->NextSiblingElement())
     if (strcasecmp(sub->Value(),"raiseorder") == 0) {
       int nu, nv;
@@ -507,7 +507,7 @@ bool MultiPatchModelGenerator2D::createTopologySets (SIMinput& sim) const
 }
 
 
-MultiPatchModelGenerator3D::MultiPatchModelGenerator3D (const TiXmlElement* geo) :
+MultiPatchModelGenerator3D::MultiPatchModelGenerator3D (const tinyxml2::XMLElement* geo) :
   ModelGenerator(geo)
 {
   nx = ny = nz = 1;
@@ -521,7 +521,7 @@ MultiPatchModelGenerator3D::MultiPatchModelGenerator3D (const TiXmlElement* geo)
   utl::getAttribute(geo,"periodic_y", periodic_y);
   utl::getAttribute(geo,"periodic_z", periodic_z);
   utl::getAttribute(geo,"subdivision", subdivision);
-  const TiXmlElement* subd = geo->FirstChildElement("subdivision");
+  const tinyxml2::XMLElement* subd = geo->FirstChildElement("subdivision");
   if (subd) {
     subdivision = true;
     utl::getAttribute(subd,"nx",nx);
@@ -631,7 +631,7 @@ bool MultiPatchModelGenerator3D::createGeometry (SIMinput& sim) const
   pch.read(cube);
 
   // Parse XML input
-  const TiXmlElement* sub = geo->FirstChildElement("subdivision")->FirstChildElement();
+  const tinyxml2::XMLElement* sub = geo->FirstChildElement("subdivision")->FirstChildElement();
   for (; sub; sub = sub->NextSiblingElement())
     if (strcasecmp(sub->Value(),"raiseorder") == 0) {
       int nu, nv, nw;

@@ -16,19 +16,19 @@
 
 #include <string>
 #include <vector>
-#include <tinyxml.h>
+#include <tinyxml2.h>
 
 namespace {
 
 class TestXMLInputBase : public XMLInputBase
 {
 public:
-  bool parse(const TiXmlElement* elem)
+  bool parse(const tinyxml2::XMLElement* elem)
   {
     bool child = false;
     while (elem) {
       strings.push_back(elem->Value());
-      const TiXmlAttribute* attribute = elem->FirstAttribute();
+      const tinyxml2::XMLAttribute* attribute = elem->FirstAttribute();
       while (attribute)
       {
         strings.push_back(attribute->Name());

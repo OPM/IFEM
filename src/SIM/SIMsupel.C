@@ -17,7 +17,7 @@
 #include "IntegrandBase.h"
 #include "Utilities.h"
 #include "IFEM.h"
-#include "tinyxml.h"
+#include "tinyxml2.h"
 
 
 /*!
@@ -41,7 +41,7 @@ SIMsupel::SIMsupel (const char* hd, unsigned char nf) : ncmp(nf)
 }
 
 
-bool SIMsupel::parse (const TiXmlElement* elem)
+bool SIMsupel::parse (const tinyxml2::XMLElement* elem)
 {
   if (strncasecmp(elem->Value(),"superel",7))
     return this->SIMgeneric::parse(elem);
@@ -52,7 +52,7 @@ bool SIMsupel::parse (const TiXmlElement* elem)
   std::string supNodeSet;
   utl::getAttribute(elem,"id",sup.id);
   utl::getAttribute(elem,"nodeset",supNodeSet);
-  const TiXmlElement* child = elem->FirstChildElement();
+  const tinyxml2::XMLElement* child = elem->FirstChildElement();
   for (; child; child = child->NextSiblingElement())
     if (!strcasecmp(child->Value(),"mvp") && child->FirstChild())
     {

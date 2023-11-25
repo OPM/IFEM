@@ -16,7 +16,7 @@
 #include "TimeStep.h"
 #include "Utilities.h"
 #include "IFEM.h"
-#include "tinyxml.h"
+#include "tinyxml2.h"
 
 
 EigenModeSIM::EigenModeSIM (SIMbase& sim) : MultiStepSIM(sim)
@@ -27,14 +27,14 @@ EigenModeSIM::EigenModeSIM (SIMbase& sim) : MultiStepSIM(sim)
 }
 
 
-bool EigenModeSIM::parse (const TiXmlElement* elem)
+bool EigenModeSIM::parse (const tinyxml2::XMLElement* elem)
 {
   if (strcasecmp(elem->Value(),"eigenmodes"))
     return model.parse(elem);
 
   size_t imode = 0;
   double freq = 0.0;
-  const TiXmlElement* child = elem->FirstChildElement();
+  const tinyxml2::XMLElement* child = elem->FirstChildElement();
   for (; child; child = child->NextSiblingElement()) {
     const char* value = nullptr;
     if ((value = utl::getValue(child,"mode")))

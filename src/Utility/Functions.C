@@ -21,7 +21,7 @@
 #include "Utilities.h"
 #include "Vec3Oper.h"
 #include "IFEM.h"
-#include "tinyxml.h"
+#include "tinyxml2.h"
 #include <cstring>
 #include <fstream>
 #include <sstream>
@@ -1037,7 +1037,7 @@ TractionFunc* utl::parseTracFunc (const std::string& func,
 }
 
 
-TractionFunc* utl::parseTracFunc (const TiXmlElement* elem)
+TractionFunc* utl::parseTracFunc (const tinyxml2::XMLElement* elem)
 {
   Vec3 X0, Xaxis(1.0,0.0,0.0), Zaxis(0.0,0.0,1.0);
   if (utl::getAttribute(elem,"X0",X0))
@@ -1054,7 +1054,7 @@ TractionFunc* utl::parseTracFunc (const TiXmlElement* elem)
   const VecTimeFunc*  frot  = nullptr;
   const ScalarFunc*   angle = nullptr;
   const RealFunc*     shape = nullptr;
-  const TiXmlElement* child = elem->FirstChildElement();
+  const tinyxml2::XMLElement* child = elem->FirstChildElement();
   while (child && child->Value() && child->FirstChild())
   {
     std::string type;

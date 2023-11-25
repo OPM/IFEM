@@ -26,7 +26,7 @@ AdaptiveSIM::AdaptiveSIM (SIMoutput& sim, bool sa)
 }
 
 
-bool AdaptiveSIM::parse (const TiXmlElement* elem)
+bool AdaptiveSIM::parse (const tinyxml2::XMLElement* elem)
 {
   return this->AdaptiveSetup::parse(elem);
 }

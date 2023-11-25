@@ -17,7 +17,7 @@
 #include "Vec3.h"
 #include "Vec3Oper.h"
 #include "IFEM.h"
-#include "tinyxml.h"
+#include "tinyxml2.h"
 #include <array>
 
 
@@ -27,7 +27,7 @@
   \param[in] num Number of knot vectors to add
 */
 
-static std::string parseKnots (const TiXmlElement* geo, int num)
+static std::string parseKnots (const tinyxml2::XMLElement* geo, int num)
 {
   std::string min = "umin", max = "umax";
   std::stringstream str;

@@ -22,7 +22,7 @@
 #include "Utilities.h"
 
 #include "gtest/gtest.h"
-#include "tinyxml.h"
+#include "tinyxml2.h"
 
 #include <GoTools/geometry/SplineCurve.h>
 #include <GoTools/geometry/SplineSurface.h>
@@ -72,7 +72,7 @@ static void check_point_near(const Go::Point p1,
 template<class Generator>
 class TestModelGeneratorWrapper : public Generator {
 public:
-  TestModelGeneratorWrapper(const TiXmlElement* geo) : Generator(geo) {}
+  TestModelGeneratorWrapper(const tinyxml2::XMLElement* geo) : Generator(geo) {}
   virtual std::string createG2(int nsd, bool = false) const
   {
     bool rational = false;
@@ -135,7 +135,7 @@ static void DoTest(const GeomTest& ref, const std::string& gen,
 
 TEST_P(TestMultiPatchModelGenerator2D, Generate)
 {
-  TiXmlDocument doc;
+  tinyxml2::XMLDocument doc;
   doc.Parse(GetParam().xml.c_str());
   TestModelGeneratorWrapper<MultiPatchModelGenerator2D> gen(doc.RootElement());
   SIM2D sim;
@@ -200,7 +200,7 @@ TEST(TestMultiPatchModelGenerator2D, Subdivisions)
 
 TEST(TestMultiPatchModelGenerator2D, InnerPatches)
 {
-  TiXmlDocument doc;
+  tinyxml2::XMLDocument doc;
   doc.Parse("<geometry nx=\"3\" ny=\"3\" sets=\"true\"/>");
   TestModelGeneratorWrapper<MultiPatchModelGenerator2D> gen(doc.RootElement());
   SIM2D sim;
@@ -212,7 +212,7 @@ TEST(TestMultiPatchModelGenerator2D, InnerPatches)
 
 TEST_P(TestMultiPatchModelGenerator3D, Generate)
 {
-  TiXmlDocument doc;
+  tinyxml2::XMLDocument doc;
   doc.Parse(GetParam().xml.c_str());
   TestModelGeneratorWrapper<MultiPatchModelGenerator3D> gen(doc.RootElement());
   SIM3D sim;
@@ -826,7 +826,7 @@ INSTANTIATE_TEST_SUITE_P(TestGetSubPatch3D,
 
 TEST(TestMultiPatchModelGenerator3D, InnerPatches)
 {
-  TiXmlDocument doc;
+  tinyxml2::XMLDocument doc;
   doc.Parse("<geometry nx=\"3\" ny=\"3\" nz=\"3\"  sets=\"true\"/>");
   TestModelGeneratorWrapper<MultiPatchModelGenerator3D> gen(doc.RootElement());
   SIM3D sim;

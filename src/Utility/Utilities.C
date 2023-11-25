@@ -13,7 +13,7 @@
 
 #include "Utilities.h"
 #include "Vec3.h"
-#include "tinyxml.h"
+#include "tinyxml2.h"
 #include <cstdlib>
 #include <cstring>
 #include <algorithm>
@@ -167,7 +167,7 @@ bool utl::ignoreComments (std::istream& is)
 }
 
 
-int utl::getAttribute (const TiXmlElement* xml, const char* att, bool& val)
+int utl::getAttribute (const tinyxml2::XMLElement* xml, const char* att, bool& val)
 {
   if (!xml || !xml->Attribute(att))
     return false;
@@ -188,7 +188,7 @@ int utl::getAttribute (const TiXmlElement* xml, const char* att, bool& val)
 }
 
 
-int utl::getAttribute (const TiXmlElement* xml, const char* att, int& val)
+int utl::getAttribute (const tinyxml2::XMLElement* xml, const char* att, int& val)
 {
   if (xml && xml->Attribute(att))
     val = atoi(xml->Attribute(att));
@@ -199,7 +199,7 @@ int utl::getAttribute (const TiXmlElement* xml, const char* att, int& val)
 }
 
 
-int utl::getAttribute (const TiXmlElement* xml, const char* att, char& val,
+int utl::getAttribute (const tinyxml2::XMLElement* xml, const char* att, char& val,
                        bool useIntValue)
 {
   if (xml && xml->Attribute(att))
@@ -211,7 +211,7 @@ int utl::getAttribute (const TiXmlElement* xml, const char* att, char& val,
 }
 
 
-int utl::getAttribute (const TiXmlElement* xml, const char* att, size_t& val)
+int utl::getAttribute (const tinyxml2::XMLElement* xml, const char* att, size_t& val)
 {
   if (xml && xml->Attribute(att))
     val = atoi(xml->Attribute(att));
@@ -222,7 +222,7 @@ int utl::getAttribute (const TiXmlElement* xml, const char* att, size_t& val)
 }
 
 
-int utl::getAttribute (const TiXmlElement* xml, const char* att, Real& val)
+int utl::getAttribute (const tinyxml2::XMLElement* xml, const char* att, Real& val)
 {
   if (xml && xml->Attribute(att))
     val = atof(xml->Attribute(att));
@@ -238,7 +238,7 @@ int utl::getAttribute (const TiXmlElement* xml, const char* att, Real& val)
   If \a ncomp is zero, use the value zero for the missing components, if any.
 */
 
-int utl::getAttribute (const TiXmlElement* xml, const char* att,
+int utl::getAttribute (const tinyxml2::XMLElement* xml, const char* att,
                        Vec3& val, int ncomp)
 {
   if (!xml || !xml->Attribute(att))
@@ -260,7 +260,7 @@ int utl::getAttribute (const TiXmlElement* xml, const char* att,
 }
 
 
-int utl::getAttribute (const TiXmlElement* xml, const char* att,
+int utl::getAttribute (const tinyxml2::XMLElement* xml, const char* att,
                        std::vector<int>& val)
 {
   if (xml && xml->Attribute(att))
@@ -272,7 +272,7 @@ int utl::getAttribute (const TiXmlElement* xml, const char* att,
 }
 
 
-int utl::getAttribute (const TiXmlElement* xml, const char* att,
+int utl::getAttribute (const tinyxml2::XMLElement* xml, const char* att,
                        std::string& val, bool toLower)
 {
   if (!xml || !xml->Attribute(att))
@@ -294,11 +294,11 @@ int utl::getAttribute (const TiXmlElement* xml, const char* att,
   \verbatim <name value="myValue"/> \endverbatim
 */
 
-const char* utl::getValue (const TiXmlNode* xml, const char* tag)
+const char* utl::getValue (const tinyxml2::XMLNode* xml, const char* tag)
 {
   if (xml->Value() && !strcasecmp(xml->Value(),tag))
   {
-    const TiXmlElement* elm = dynamic_cast<const TiXmlElement*>(xml);
+    const tinyxml2::XMLElement* elm = dynamic_cast<const tinyxml2::XMLElement*>(xml);
     if (elm && elm->Attribute("value"))
       return elm->Attribute("value");
     else if (xml->FirstChild())
@@ -309,7 +309,7 @@ const char* utl::getValue (const TiXmlNode* xml, const char* tag)
 }
 
 
-bool utl::parseKnots (const TiXmlNode* xml, std::vector<Real>& xi)
+bool utl::parseKnots (const tinyxml2::XMLNode* xml, std::vector<Real>& xi)
 {
   if (!xml->FirstChild())
     return false;

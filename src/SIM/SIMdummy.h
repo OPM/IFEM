@@ -20,7 +20,7 @@
 class ASMbase;
 class IntegrandBase;
 class ModelGenerator;
-class TiXmlElement;
+namespace tinyxml2 { class XMLElement; }
 namespace ASM { struct Interface; }
 
 
@@ -48,13 +48,13 @@ public:
   { return std::vector<std::vector<int>>(); }
 protected:
   //! \brief Parses a dimension-specific subelement of the \a geometry XML-tag.
-  virtual bool parseGeometryDimTag(const TiXmlElement*) { return false; }
+  virtual bool parseGeometryDimTag(const tinyxml2::XMLElement*) { return false; }
   //! \brief Preprocesses a user-defined Dirichlet boundary property.
   virtual bool addConstraint(int,int,int,int,int,int&,char) { return false; }
   //! \brief Preprocesses the result sampling points.
   virtual void preprocessResultPoints() {}
   //! \brief Creates a model generator.
-  virtual ModelGenerator* getModelGenerator(const TiXmlElement*) const
+  virtual ModelGenerator* getModelGenerator(const tinyxml2::XMLElement*) const
   { return nullptr; }
   //! \brief Reads a patch from given input stream.
   virtual ASMbase* readPatch(std::istream&,int,

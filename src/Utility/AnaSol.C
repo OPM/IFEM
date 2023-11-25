@@ -16,7 +16,7 @@
 #include "ExprFunctions.h"
 #include "Utilities.h"
 #include "IFEM.h"
-#include "tinyxml.h"
+#include "tinyxml2.h"
 
 #include <autodiff/reverse/var.hpp>
 
@@ -124,7 +124,7 @@ AnaSol::AnaSol (std::istream& is, const int nlines, bool scalarSol)
 }
 
 
-AnaSol::AnaSol (const TiXmlElement* elem, bool scalarSol)
+AnaSol::AnaSol (const tinyxml2::XMLElement* elem, bool scalarSol)
   : vecSol(nullptr), vecSecSol(nullptr), stressSol(nullptr)
 {
   const char* type = elem->Attribute("type");
@@ -174,14 +174,14 @@ void AnaSol::initPatch (size_t pIdx)
 
 
 template<class Scalar>
-void AnaSol::parseExpressionFunctions (const TiXmlElement* elem, bool scalarSol)
+void AnaSol::parseExpressionFunctions (const tinyxml2::XMLElement* elem, bool scalarSol)
 {
   using EvalF = EvalFuncSpatial<Scalar>;
   using VecF = EvalMultiFunction<VecFunc,Vec3,Scalar>;
   using TensorF = EvalMultiFunction<TensorFunc,Tensor,Scalar>;
   using STensorF = EvalMultiFunction<STensorFunc,SymmTensor,Scalar>;
   std::string variables;
-  const TiXmlElement* var = elem->FirstChildElement("variables");
+  const tinyxml2::XMLElement* var = elem->FirstChildElement("variables");
   if (var && var->FirstChild())
   {
     variables = var->FirstChild()->Value();
@@ -190,9 +190,9 @@ void AnaSol::parseExpressionFunctions (const TiXmlElement* elem, bool scalarSol)
   }
 
   // Lambda function for parsing the derivative of an expression function
-  auto&& parseDerivatives = [variables](auto* func, const TiXmlElement* elem)
+  auto&& parseDerivatives = [variables](auto* func, const tinyxml2::XMLElement* elem)
   {
-    const TiXmlElement* child = elem->FirstChildElement("derivative");
+    const tinyxml2::XMLElement* child = elem->FirstChildElement("derivative");
     for (; child; child = child->NextSiblingElement("derivative"))
     {
       int dir1 = 0, dir2 = 0;
@@ -207,7 +207,7 @@ void AnaSol::parseExpressionFunctions (const TiXmlElement* elem, bool scalarSol)
     }
   };
 
-  const TiXmlElement* prim = elem->FirstChildElement("primary");
+  const tinyxml2::XMLElement* prim = elem->FirstChildElement("primary");
   if (prim && prim->FirstChild())
   {
     std::string type = "expression";
@@ -248,7 +248,7 @@ void AnaSol::parseExpressionFunctions (const TiXmlElement* elem, bool scalarSol)
     prim = prim->NextSiblingElement("scalarprimary");
   }
 
-  const TiXmlElement* sec = elem->FirstChildElement("secondary");
+  const tinyxml2::XMLElement* sec = elem->FirstChildElement("secondary");
   if (sec && sec->FirstChild())
   {
     std::string type = "expression";
@@ -288,7 +288,7 @@ void AnaSol::parseExpressionFunctions (const TiXmlElement* elem, bool scalarSol)
     sec = sec->NextSiblingElement("scalarsecondary");
   }
 
-  const TiXmlElement* stress = elem->FirstChildElement("stress");
+  const tinyxml2::XMLElement* stress = elem->FirstChildElement("stress");
   if (stress && stress->FirstChild())
   {
     symmetric = true;
@@ -300,7 +300,7 @@ void AnaSol::parseExpressionFunctions (const TiXmlElement* elem, bool scalarSol)
 }
 
 
-void AnaSol::parseFieldFunctions (const TiXmlElement* elem, bool scalarSol)
+void AnaSol::parseFieldFunctions (const tinyxml2::XMLElement* elem, bool scalarSol)
 {
 #ifdef HAS_HDF5
   const char* file = elem->Attribute("file");
@@ -314,7 +314,7 @@ void AnaSol::parseFieldFunctions (const TiXmlElement* elem, bool scalarSol)
   int level = 0;
   utl::getAttribute(elem, "level", level);
 
-  const TiXmlElement* prim = elem->FirstChildElement("primary");
+  const tinyxml2::XMLElement* prim = elem->FirstChildElement("primary");
   if (prim && prim->FirstChild())
   {
     std::string primary = prim->FirstChild()->Value();
@@ -332,7 +332,7 @@ void AnaSol::parseFieldFunctions (const TiXmlElement* elem, bool scalarSol)
     scalSol.push_back(new FieldFunction(file, basis, primary, level));
   }
 
-  const TiXmlElement* sec = elem->FirstChildElement("secondary");
+  const tinyxml2::XMLElement* sec = elem->FirstChildElement("secondary");
   if (sec && sec->FirstChild())
   {
     std::string secondary = sec->FirstChild()->Value();

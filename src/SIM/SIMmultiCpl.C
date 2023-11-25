@@ -16,7 +16,7 @@
 #include "Utilities.h"
 #include "Vec3Oper.h"
 #include "IFEM.h"
-#include "tinyxml.h"
+#include "tinyxml2.h"
 
 
 SIMmultiCpl::SIMmultiCpl (const std::vector<SIMoutput*>& sims)
@@ -40,12 +40,12 @@ SIMmultiCpl::~SIMmultiCpl ()
 }
 
 
-bool SIMmultiCpl::parse (const TiXmlElement* elem)
+bool SIMmultiCpl::parse (const tinyxml2::XMLElement* elem)
 {
   bool results = true;
   if (!strcasecmp(elem->Value(),"coupling"))
   {
-    const TiXmlElement* child = elem->FirstChildElement("connection");
+    const tinyxml2::XMLElement* child = elem->FirstChildElement("connection");
     for (; child; child = child->NextSiblingElement("connection"))
       results &= this->parseConnection(child);
   }
@@ -57,7 +57,7 @@ bool SIMmultiCpl::parse (const TiXmlElement* elem)
 }
 
 
-bool SIMmultiCpl::parseConnection (const TiXmlElement* elem)
+bool SIMmultiCpl::parseConnection (const tinyxml2::XMLElement* elem)
 {
   IFEM::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
 
@@ -128,7 +128,7 @@ bool SIMmultiCpl::preprocess (const std::vector<int>& ignored, bool fixDup)
       Vec3 Xm = cpl.mstSim->getNodeCoord(mNodes[i]-nSubNodes[cpl.mstSim]);
       Vec3 Xs = cpl.slvSim->getNodeCoord(sNodes[i]-nSubNodes[cpl.slvSim]);
       if (Xm.equal(Xs,1.0e-4))
-	cplNodes[sNodes[i]] = mNodes[i];
+        cplNodes[sNodes[i]] = mNodes[i];
       else
       {
         misMatch++;

@@ -23,7 +23,7 @@
 #include "Vec3.h"
 #include "DataExporter.h"
 #include "HDF5Writer.h"
-#include "tinyxml.h"
+#include "tinyxml2.h"
 #include <fstream>
 #include <memory>
 
@@ -253,10 +253,10 @@ public:
   using SIMadmin::parse;
   //! \brief Parses a data section from an XML element.
   //! \param[in] elem The XML element to parse
-  bool parse(const TiXmlElement* elem) override
+  bool parse(const tinyxml2::XMLElement* elem) override
   {
     if (!strcasecmp(elem->Value(),"postprocessing")) {
-      const TiXmlElement* child = elem->FirstChildElement();
+      const tinyxml2::XMLElement* child = elem->FirstChildElement();
       for (; child; child = child->NextSiblingElement())
         opt.parseOutputTag(child);
     }

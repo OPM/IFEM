@@ -16,9 +16,8 @@
 #include "ASMs3D.h"
 #include "Functions.h"
 #include "Utilities.h"
-#include "Vec3Oper.h"
 #include "IFEM.h"
-#include "tinyxml.h"
+#include "tinyxml2.h"
 #include <fstream>
 
 
@@ -100,7 +99,7 @@ bool SIM3D::connectPatches (const ASM::Interface& ifc, bool coordCheck)
 }
 
 
-bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
+bool SIM3D::parseGeometryTag (const tinyxml2::XMLElement* elem)
 {
   IFEM::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
 
@@ -178,7 +177,7 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
     int offset = 0;
     utl::getAttribute(elem,"offset",offset);
 
-    const TiXmlElement* child = elem->FirstChildElement("connection");
+    const tinyxml2::XMLElement* child = elem->FirstChildElement("connection");
     for (; child; child = child->NextSiblingElement())
     {
       ASM::Interface ifc;
@@ -230,7 +229,7 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
 
   else if (!strcasecmp(elem->Value(),"projection") && !isRefined)
   {
-    const TiXmlElement* child = elem->FirstChildElement();
+    const tinyxml2::XMLElement* child = elem->FirstChildElement();
     if (child && !strncasecmp(child->Value(),"patch",5) && child->FirstChild())
     {
       // Read projection basis from file
@@ -283,7 +282,7 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
 }
 
 
-bool SIM3D::parseBCTag (const TiXmlElement* elem)
+bool SIM3D::parseBCTag (const tinyxml2::XMLElement* elem)
 {
   if (!strcasecmp(elem->Value(),"fixpoint") && !ignoreDirichlet)
   {
@@ -312,11 +311,11 @@ bool SIM3D::parseBCTag (const TiXmlElement* elem)
 }
 
 
-bool SIM3D::parse (const TiXmlElement* elem)
+bool SIM3D::parse (const tinyxml2::XMLElement* elem)
 {
   bool result = this->SIMgeneric::parse(elem);
 
-  const TiXmlElement* child = elem->FirstChildElement();
+  const tinyxml2::XMLElement* child = elem->FirstChildElement();
   for (; child; child = child->NextSiblingElement())
     if (!strcasecmp(elem->Value(),"geometry"))
       result &= this->parseGeometryTag(child);
@@ -829,7 +828,7 @@ void SIM3D::clonePatches (const PatchVec& patches,
 }
 
 
-ModelGenerator* SIM3D::getModelGenerator (const TiXmlElement* geo) const
+ModelGenerator* SIM3D::getModelGenerator (const tinyxml2::XMLElement* geo) const
 {
   return new DefaultGeometry3D(geo);
 }

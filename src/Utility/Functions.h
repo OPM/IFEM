@@ -20,7 +20,7 @@
 typedef utl::Function<Real,Vec3> VecTimeFunc; //!< Convenience type
 
 class TensorFunc;
-class TiXmlElement;
+namespace tinyxml2 { class XMLElement; }
 
 typedef utl::Function<Real,Vec3> VecTimeFunc; //!< Convenience type
 
@@ -650,7 +650,7 @@ namespace utl
 
   //! \brief Creates a vector-valued function defining a surface traction.
   //! \param[in] elem Pointer to XML-element to parse function definition from
-  TractionFunc* parseTracFunc(const TiXmlElement* elem);
+  TractionFunc* parseTracFunc(const tinyxml2::XMLElement* elem);
 }
 
 #endif

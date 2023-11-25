@@ -13,14 +13,13 @@
 
 #include "AdaptiveSetup.h"
 #include "SIMoutput.h"
-#include "SIMenums.h"
 #include "ASMbase.h"
 #include "ASMunstruct.h"
 #include "Functions.h"
 #include "IntegrandBase.h"
 #include "Utilities.h"
 #include "IFEM.h"
-#include "tinyxml.h"
+#include "tinyxml2.h"
 #ifdef HAS_LRSPLINE
 #include <LRSpline/Basisfunction.h>
 #endif
@@ -60,12 +59,12 @@ AdaptiveSetup::~AdaptiveSetup()
 }
 
 
-bool AdaptiveSetup::parse (const TiXmlElement* elem)
+bool AdaptiveSetup::parse (const tinyxml2::XMLElement* elem)
 {
   if (strcasecmp(elem->Value(),"adaptive"))
     return alone ? model.parse(elem) : true;
 
-  const TiXmlElement* child = elem->FirstChildElement();
+  const tinyxml2::XMLElement* child = elem->FirstChildElement();
   for (; child; child = child->NextSiblingElement()) {
     const char* value = utl::getValue(child,"maxstep");
     if (value)

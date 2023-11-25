@@ -31,7 +31,7 @@ public:
 
   using NewmarkSIM::parse;
   //! \brief Parses a data section from an XML document.
-  virtual bool parse(const TiXmlElement* elem);
+  virtual bool parse(const tinyxml2::XMLElement* elem);
 
   //! \brief Initializes time integration parameters for the integrand.
   virtual void initPrm();

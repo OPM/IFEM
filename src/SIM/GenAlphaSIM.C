@@ -14,8 +14,7 @@
 #include "GenAlphaSIM.h"
 #include "SIMoutput.h"
 #include "TimeStep.h"
-#include "IFEM.h"
-#include "tinyxml.h"
+#include "tinyxml2.h"
 
 
 GenAlphaSIM::GenAlphaSIM (SIMbase& s) : NewmarkSIM(s), prevSol(3), tempSol(3)
@@ -28,7 +27,7 @@ GenAlphaSIM::GenAlphaSIM (SIMbase& s) : NewmarkSIM(s), prevSol(3), tempSol(3)
 }
 
 
-bool GenAlphaSIM::parse (const TiXmlElement* elem)
+bool GenAlphaSIM::parse (const tinyxml2::XMLElement* elem)
 {
   bool ok = this->NewmarkSIM::parse(elem);
 

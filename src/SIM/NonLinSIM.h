@@ -114,7 +114,7 @@ public:
 
   //! \brief Parses a data section from an XML document.
   //! \param[in] elem The XML element to parse
-  virtual bool parse(const TiXmlElement* elem);
+  virtual bool parse(const tinyxml2::XMLElement* elem);
 
 protected:
   bool   fromIni; //!< If \e true, always solve from initial configuration

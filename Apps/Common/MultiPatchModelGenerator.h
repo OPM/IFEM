@@ -30,7 +30,7 @@ class MultiPatchModelGenerator1D : public ModelGenerator
 public:
   //! \brief The constructor initializes common members.
   //!\ param[in] elem XML element to parse
-  explicit MultiPatchModelGenerator1D(const TiXmlElement* elem);
+  explicit MultiPatchModelGenerator1D(const tinyxml2::XMLElement* elem);
   //! \brief Empty destructor.
   virtual ~MultiPatchModelGenerator1D() {}
 
@@ -71,7 +71,7 @@ class MultiPatchModelGenerator2D : public ModelGenerator
 public:
   //! \brief The constructor initializes common members.
   //!\ param[in] elem XML element to parse
-  explicit MultiPatchModelGenerator2D(const TiXmlElement* elem);
+  explicit MultiPatchModelGenerator2D(const tinyxml2::XMLElement* elem);
   //! \brief Empty destructor.
   virtual ~MultiPatchModelGenerator2D() {}
 
@@ -115,7 +115,7 @@ class MultiPatchModelGenerator3D : public ModelGenerator
 public:
   //! \brief The constructor initializes common members.
   //! \param[in] geo XML element to parse
-  explicit MultiPatchModelGenerator3D(const TiXmlElement* geo);
+  explicit MultiPatchModelGenerator3D(const tinyxml2::XMLElement* geo);
   //! \brief Empty destructor.
   virtual ~MultiPatchModelGenerator3D() {}
 

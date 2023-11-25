@@ -15,7 +15,7 @@
 #include "Utilities.h"
 #include "Vec3Oper.h"
 #include "Vec3.h"
-#include "tinyxml.h"
+#include "tinyxml2.h"
 #include <sstream>
 #include <cstring>
 #include <cctype>
@@ -162,9 +162,9 @@ bool ASM::readXML (std::istream& is, IntMat& MNPC, std::vector<Vec3>& nodes,
       break;
   }
 
-  TiXmlDocument doc;
-  doc.Parse(data.c_str(),nullptr,TIXML_ENCODING_UTF8);
-  const TiXmlElement* tag = doc.RootElement();
+  tinyxml2::XMLDocument doc(true, tinyxml2::COLLAPSE_WHITESPACE);
+  doc.Parse(data.c_str());
+  const tinyxml2::XMLElement* tag = doc.RootElement();
   if (!tag)
   {
     std::cerr <<" *** ASM::readXML: Malformatted XML input."<< std::endl;

@@ -13,12 +13,11 @@
 
 #include "NonLinSIM.h"
 #include "SIMoutput.h"
-#include "IFEM.h"
 #include "IntegrandBase.h"
 #include "TimeStep.h"
 #include "Profiler.h"
 #include "Utilities.h"
-#include "tinyxml.h"
+#include "tinyxml2.h"
 #include <sstream>
 #include <iomanip>
 
@@ -96,7 +95,7 @@ bool NonLinSIM::parse (char* keyWord, std::istream& is)
 }
 
 
-bool NonLinSIM::parse (const TiXmlElement* elem)
+bool NonLinSIM::parse (const tinyxml2::XMLElement* elem)
 {
   if (strcasecmp(elem->Value(),inputContext))
     return model.parse(elem);
@@ -105,7 +104,7 @@ bool NonLinSIM::parse (const TiXmlElement* elem)
   if (utl::getAttribute(elem,"rotation",rotUpdate,true) && !rotUpdate.empty())
     rotUpd = rotUpdate[0];
 
-  const TiXmlElement* child = elem->FirstChildElement();
+  const tinyxml2::XMLElement* child = elem->FirstChildElement();
   for (; child; child = child->NextSiblingElement()) {
     const char* value;
     if ((value = utl::getValue(child,"maxits")))

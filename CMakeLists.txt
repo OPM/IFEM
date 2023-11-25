@@ -38,13 +38,6 @@ endif()
 add_definitions(${IFEM_DEFINITIONS})
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${IFEM_BUILD_CXX_FLAGS}")
 
-if(NOT IFEM_USE_SYSTEM_TINYXML)
-  message(STATUS "Using bundled tinyxml")
-  set(IFEM_INCLUDES ${IFEM_INCLUDES}
-                    ${PROJECT_SOURCE_DIR}/3rdparty/tinyxml)
-  file(GLOB_RECURSE TINYXML_SRCS ${PROJECT_SOURCE_DIR}/3rdparty/tinyxml/*.C)
-endif()
-
 if(LRSpline_LIBRARIES AND LRSpline_INCLUDE_DIRS)
   set(IFEM_INCLUDES ${IFEM_INCLUDES}
                     ${PROJECT_SOURCE_DIR}/src/ASM/LR)
@@ -108,7 +101,7 @@ if(LRSPLINE_FOUND OR LRSpline_FOUND)
   list(APPEND IFEM_SRCS ${LR_SRCS})
 endif()
 list(APPEND CHECK_SOURCES ${IFEM_SRCS})
-add_library(IFEM ${IFEM_SRCS} ${TINYXML_SRCS})
+add_library(IFEM ${IFEM_SRCS})
 target_link_libraries(IFEM ${IFEM_DEPLIBS})
 set_target_properties(IFEM PROPERTIES VERSION ${IFEM_VERSION}
                            SOVERSION ${IFEM_ABI_VERSION})
@@ -175,9 +168,6 @@ else()
                          src/LinAlg/*.h src/SIM/*.h src/Utility/*.h
                          3rdparty/*.h
                          ${CMAKE_BINARY_DIR}/IFEM.h)
-  if(NOT IFEM_USE_SYSTEM_TINYXML)
-    list(APPEND IFEM_HEADERS 3rdparty/tinyxml/tinyxml.h)
-  endif()
   install(FILES ${IFEM_HEADERS}
           DESTINATION include/IFEM COMPONENT ${IFEM_DEV_COMPONENT})
 
@@ -192,6 +182,8 @@ else()
   string(REPLACE ";" " " IFEM_CXX_FLAGS ${IFEM_CXX_FLAGS})
   string(REPLACE ";" " " IFEM_DEPLIBS "${IFEM_DEPLIBS}")
   string(REPLACE ";" " " IFEM_DEFINITIONS "${IFEM_DEFINITIONS}")
+  get_target_property(TinyXML2_LIBRARIES tinyxml2::tinyxml2 IMPORTED_LOCATION)
+  get_target_property(TinyXML2_INCLUDE_DIRECTORIES tinyxml2::tinyxml2 INCLUDE_DIRECTORIES)
   configure_file(cmake/Templates/IFEMConfigVersion.cmake.in IFEMConfigVersion.cmake @ONLY)
   configure_file(cmake/Templates/IFEMConfig.cmake.in IFEMConfig.cmake @ONLY)
   install(FILES ${CMAKE_BINARY_DIR}/IFEMConfigVersion.cmake

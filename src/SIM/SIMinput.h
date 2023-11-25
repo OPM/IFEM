@@ -100,13 +100,13 @@ public:
 
 private:
   //! \brief Parses a subelement of the \a geometry XML-tag.
-  bool parseGeometryTag(const TiXmlElement* elem);
+  bool parseGeometryTag(const tinyxml2::XMLElement* elem);
   //! \brief Parses a subelement of the \a boundaryconditions XML-tag.
-  bool parseBCTag(const TiXmlElement* elem);
+  bool parseBCTag(const tinyxml2::XMLElement* elem);
   //! \brief Parses the \a initialconditions XML-tag.
-  bool parseICTag(const TiXmlElement* elem);
+  bool parseICTag(const tinyxml2::XMLElement* elem);
   //! \brief Parses a subelement of the \a linearsolver XML-tag.
-  bool parseLinSolTag(const TiXmlElement* elem);
+  bool parseLinSolTag(const tinyxml2::XMLElement* elem);
 
 protected:
   //! \brief Parses a data section from an input stream.
@@ -116,30 +116,30 @@ protected:
 
   //! \brief Parses a data section from an XML document.
   //! \param[in] elem The XML element to parse
-  virtual bool parse(const TiXmlElement* elem);
+  virtual bool parse(const tinyxml2::XMLElement* elem);
 
   //! \brief Parses a dimension-specific subelement of the \a geometry XML-tag.
-  virtual bool parseGeometryDimTag(const TiXmlElement* elem) = 0;
+  virtual bool parseGeometryDimTag(const tinyxml2::XMLElement* elem) = 0;
   //! \brief Parses the \a periodic XML-tag.
-  bool parsePeriodic(const TiXmlElement* elem);
+  bool parsePeriodic(const tinyxml2::XMLElement* elem);
   //! \brief Parses a subelement of the \a resultoutput XML-tag.
-  virtual bool parseOutputTag(const TiXmlElement* elem);
+  virtual bool parseOutputTag(const tinyxml2::XMLElement* elem);
   //! \brief Parses the \a dualfield tag.
-  FunctionBase* parseDualTag(const TiXmlElement* elem, int ftype = 1);
+  FunctionBase* parseDualTag(const tinyxml2::XMLElement* elem, int ftype = 1);
   //! \brief Parses the "set" attribute of a material XML-tag.
   //! \param[in] elem The XML element extract the set name from
   //! \param[in] mindex Index into problem-dependent material property container
   //! \return The property code to be associated with the material
-  int parseMaterialSet(const TiXmlElement* elem, int mindex);
+  int parseMaterialSet(const tinyxml2::XMLElement* elem, int mindex);
   //! \brief Parses the "set" attribute of a refine/raiseorder XML-tag.
   //! \param[in] elem The XML element extract the set name from
   //! \param[in] patches List of patch indices of the specified set
-  bool parseTopologySet(const TiXmlElement* elem,
+  bool parseTopologySet(const tinyxml2::XMLElement* elem,
                         std::vector<int>& patches) const;
   //! \brief Parses a list of patch indices from an XML-tag.
   //! \param[in] elem The XML element extract the patch indices from
   //! \param[in] patches List of patch indices
-  bool parsePatchList(const TiXmlElement* elem,
+  bool parsePatchList(const tinyxml2::XMLElement* elem,
                       std::vector<int>& patches) const;
 
   //! \brief Creates a set of Property objects.
@@ -237,7 +237,7 @@ protected:
 
   //! \brief Instantiates a FEM model generator.
   //! \param[in] geo XML element containing geometry definition
-  virtual ModelGenerator* getModelGenerator(const TiXmlElement* geo) const = 0;
+  virtual ModelGenerator* getModelGenerator(const tinyxml2::XMLElement* geo) const = 0;
 
   //! \brief Connects two patches.
   //! \param[in] ifc Patch interface definition
