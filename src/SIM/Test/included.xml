@@ -1,0 +1,5 @@
+<boundaryconditions>
+  <dirichlet set="foo" comp="12"/>
+  <dirichlet set="bar" comp="12" type="expression">a*b*c</dirichlet>
+  <include>src/SIM/Test/included2.xml</include>
+</boundaryconditions>
