@@ -15,10 +15,17 @@
 #include "ASMs1D.h"
 #include "ASMs2D.h"
 #include "ASMs3D.h"
+#include "IFEM.h"
+#include "SIM1D.h"
+#include "SIM2D.h"
+#include "SIM3D.h"
+#include "Utilities.h"
+
 #ifdef HAS_LRSPLINE
 #include "ASMu2D.h"
-#include "LRSpline/LRSpline.h"
 #endif
+
+#include <tinyxml.h>
 
 
 //! \brief Base class for helpers applying nodal constraints.
@@ -382,3 +389,31 @@ template<> bool SIMNodalConstraint<SIM3D>::applyConstraint()
   }
   return true;
 }
+
+
+template <class Dim>
+bool SIMNodalConstraint<Dim>::parse (const TiXmlElement* elem)
+{
+  if (strcasecmp(elem->Value(),"constraintovertex"))
+    return this->Dim::parse(elem);
+
+  TopSetToVertex topset;
+  utl::getAttribute(elem,"set",topset.topset);
+  utl::getAttribute(elem,"patch",topset.patch);
+  utl::getAttribute(elem,"vertex",topset.vertex);
+  utl::getAttribute(elem,"comp",topset.comp);
+  utl::getAttribute(elem,"basis",topset.basis);
+  vertConstraints.push_back(topset);
+  IFEM::cout <<"\tConstraining set \""<< topset.topset
+             <<"\" to P"<< topset.patch <<" V"<< topset.vertex
+             <<" in direction "<< topset.comp;
+  if (topset.basis > 1)
+    IFEM::cout <<" (basis "<< topset.basis <<")";
+  IFEM::cout << std::endl;
+  return true;
+}
+
+
+template class SIMNodalConstraint<SIM1D>;
+template class SIMNodalConstraint<SIM2D>;
+template class SIMNodalConstraint<SIM3D>;
