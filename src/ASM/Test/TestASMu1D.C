@@ -19,7 +19,7 @@
 TEST(TestASMu1D, Read)
 {
   std::string xml("<geometry dim='3'><patchfile type='xml'>"
-                  "  src/ASM/Test/refdata/bridge.xinp"
+                  "src/ASM/Test/refdata/bridge.xinp"
                   "</patchfile></geometry>");
 
   SIM1D sim;
