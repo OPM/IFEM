@@ -12,13 +12,18 @@
 //==============================================================================
 
 #include "SIMNodalConstraint.h"
+#include "ASMs2D.h"
+#include "ASMs3D.h"
+#include "ASMs3Dmx.h"
+#include "IFEM.h"
+#include "MPC.h"
+#include "SIM1D.h"
+#include "SIM2D.h"
+#include "SIM3D.h"
+
 #ifdef HAS_LRSPLINE
 #include "ASMu2D.h"
-#include "LRSpline/LRSpline.h"
 #endif
-#include "ASMs2Dmx.h"
-#include "ASMs3Dmx.h"
-#include "MPC.h"
 
 #include "gtest/gtest.h"
 
