@@ -1,0 +1,3 @@
+<simulation>
+  <include>src/SIM/Test/included.xml</include>
+</simulation>
