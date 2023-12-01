@@ -91,7 +91,11 @@ public:
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
-                            const RealArray*, bool) const;
+                            const int*, char = 0) const;
+
+  //! \brief Evaluates the secondary solution field at the given points.
+  virtual bool evalSolution(Matrix& , const IntegrandBase&,
+                            const RealArray*, bool = false) const;
 
   using ASMs2DLag::generateThreadGroups;
   //! \brief Generates element groups for multi-threading of interior integrals.

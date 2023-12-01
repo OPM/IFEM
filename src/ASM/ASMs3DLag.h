@@ -241,6 +241,7 @@ public:
   //! \brief Evaluates the secondary solution field at the nodal points.
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
+  //! \param[in] gpar Parameter values of the result sampling points
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
                             const RealArray*, bool = false) const;
 

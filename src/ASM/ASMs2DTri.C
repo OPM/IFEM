@@ -522,7 +522,7 @@ bool ASMs2DTri::tesselate (ElementBlock& grid, const int* npe) const
 
 
 bool ASMs2DTri::evalSolution (Matrix& sField, const IntegrandBase& integrand,
-                              const RealArray*, bool) const
+                              const int*, char) const
 {
   sField.resize(0,0);
 
@@ -562,6 +562,14 @@ bool ASMs2DTri::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     sField.fillColumn(1+i,globSolPt[i] /= check[i]);
 
   return true;
+}
+
+
+bool ASMs2DTri::evalSolution (Matrix&, const IntegrandBase&,
+                              const RealArray*, bool) const
+{
+  std::cerr << "*** Not implemented" << std::endl;
+  return false;
 }
 
 

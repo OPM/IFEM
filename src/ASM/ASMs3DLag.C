@@ -1025,13 +1025,6 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const Vector& locSol,
 bool ASMs3DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
                               const int*, char) const
 {
-  return this->evalSolution(sField,integrand,(const RealArray*)nullptr);
-}
-
-
-bool ASMs3DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
-                              const RealArray*, bool) const
-{
   sField.resize(0,0);
 
   double incx = 2.0/double(p1-1);
@@ -1084,6 +1077,47 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
   for (size_t i = 0; i < nPoints; i++)
     sField.fillColumn(1+i,globSolPt[i] /= check[i]);
+
+  return true;
+}
+
+
+bool ASMs3DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
+                              const RealArray* gpar, bool) const
+{
+  sField.resize(0,0);
+
+  size_t nPoints = gpar[0].size();
+
+  FiniteElement fe(p1*p2*p3);
+  Vector        solPt;
+  Vectors       globSolPt(nPoints);
+  Matrix        dNdu, Xnod, Jac;
+
+  // Evaluate the secondary solution field at each point
+  for (size_t i = 0; i < gpar[0].size(); ++i) {
+    const int iel = this->findElement(gpar[0][i], gpar[1][i], gpar[2][i],
+                                      &fe.xi, &fe.eta, &fe.zeta);
+
+    this->getElementCoordinates(Xnod,iel);
+
+    if (!Lagrange::computeBasis(fe.N,dNdu,p1,fe.xi,p2,fe.eta,p3,fe.zeta))
+      return false;
+
+    fe.iel = MLGE[iel-1];
+
+    // Compute the Jacobian inverse
+    fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+    if (fe.detJxW == 0.0) continue; // skip singular points
+
+    // Now evaluate the solution field
+    if (!integrand.evalSol(solPt,fe,Xnod*fe.N,MNPC[iel-1]))
+      return false;
+    else if (sField.empty())
+      sField.resize(solPt.size(),nPoints,true);
+
+    sField.fillColumn(1+i, solPt);
+  }
 
   return true;
 }
