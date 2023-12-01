@@ -654,6 +654,12 @@ bool ASMs2DLag::tesselate (ElementBlock& grid, const int* npe) const
 }
 
 
+void ASMs2DLag::constrainEdge (int dir, bool open, int dof, int code, char basis)
+{
+  this->ASMs2D::constrainEdge(dir, open, dof, code > 0 ? -code : code, basis);
+}
+
+
 bool ASMs2DLag::evalSolution (Matrix& sField, const Vector& locSol,
                               const int*, int nf) const
 {
