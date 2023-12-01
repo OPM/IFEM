@@ -13,6 +13,7 @@
 
 #include "ASMs3DmxLag.h"
 #include "Lagrange.h"
+#include "Point.h"
 #include "TimeDomain.h"
 #include "FiniteElement.h"
 #include "GlobalIntegral.h"
@@ -551,7 +552,7 @@ bool ASMs3DmxLag::evalSolution (Matrix& sField, const Vector& locSol,
 
 
 bool ASMs3DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
-				const RealArray*, bool) const
+                                const int*, char) const
 {
   sField.resize(0,0);
 
@@ -616,6 +617,56 @@ bool ASMs3DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
   for (size_t i = 0; i < nPoints; i++)
     sField.fillColumn(1+i,globSolPt[i] /= check[i]);
+
+  return true;
+}
+
+
+bool ASMs3DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
+                                const RealArray* gpar, bool) const
+{
+  sField.resize(0,0);
+
+  size_t nPoints = gpar[0].size();
+
+  MxFiniteElement fe(elem_size);
+  Vector        solPt;
+  Vectors       globSolPt(nPoints);
+  Matrix        Xnod, Jac;
+  BasisValues   bfs(nxx.size());
+
+  // Evaluate the secondary solution field at each point
+  for (size_t i = 0; i < nPoints; ++i) {
+    const int iel = this->findElement(gpar[0][i], gpar[1][i], gpar[2][i],
+                                      &fe.xi, &fe.eta, &fe.zeta);
+
+    this->getElementCoordinates(Xnod,iel);
+
+    for (size_t b = 0; b < nxx.size(); ++b)
+      if (!Lagrange::computeBasis(fe.basis(b+1),bfs[b].dNdu,
+                                  elem_sizes[b][0],fe.xi,
+                                  elem_sizes[b][1],fe.eta,
+                                  elem_sizes[b][2],fe.zeta))
+        return false;
+
+    fe.iel = MLGE[iel-1];
+    fe.u = gpar[0][i];
+    fe.v = gpar[1][i];
+    fe.w = gpar[2][i];
+
+    // Compute the Jacobian inverse
+    if (!fe.Jacobian(Jac,Xnod,itgBasis,bfs))
+      continue; // skip singular points
+
+    // Now evaluate the solution field
+    utl::Point X4(Xnod*fe.basis(itgBasis),{fe.u,fe.v,fe.w});
+    if (!integrand.evalSol(solPt,fe,X4,MNPC[iel-1],elem_size,nb))
+      return false;
+    else if (sField.empty())
+      sField.resize(solPt.size(),nPoints,true);
+
+    sField.fillColumn(1+i, solPt);
+  }
 
   return true;
 }
