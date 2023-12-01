@@ -826,15 +826,25 @@ bool ASMs2DLag::write(std::ostream& os, int) const
 int ASMs2DLag::findElement(double u, double v,
                            double* xi, double* eta) const
 {
-  int elmx = std::min(nx-2.0, floor(u*(nx-1)));
-  int elmy = std::min(ny-2.0, floor(v*(ny-1)));
+  int ku = surf->basis(0).knotInterval(u);
+  int kv = surf->basis(1).knotInterval(v);
+  int elmx = ku - (p1 - 1);
+  int elmy = kv - (p2 - 1);
 
-  if (xi)
-    *xi   = -1.0 + (u*(nx-1) - elmx)*2.0;
-  if (eta)
-    *eta  = -1.0 + (v*(ny-1) - elmy)*2.0;
+  if (xi) {
+    const double knot_1 = *(surf->basis(0).begin() + ku);
+    const double knot_2 = *(surf->basis(0).begin() + ku+1);
+    *xi = -1.0 + 2.0 * (u - knot_1) / (knot_2 - knot_1);
+  }
+  if (eta) {
+    const double knot_1 = *(surf->basis(1).begin() + kv);
+    const double knot_2 = *(surf->basis(1).begin() + kv+1);
+    *eta = -1.0 + 2.0 * (v - knot_1) / (knot_2 - knot_1);
+  }
 
-  return 1 + elmx + elmy*(nx-1);
+  int nel1 = surf->numCoefs_u() - surf->order_u() + 1;
+
+  return 1 + elmx + elmy*nel1;
 }
 
 
