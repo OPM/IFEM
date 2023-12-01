@@ -248,12 +248,12 @@ void ASMs3DmxLag::closeBoundaries (int dir, int, int)
 
 bool ASMs3DmxLag::getSize (int& n1, int& n2, int& n3, int basis) const
 {
-  if (basis <= 1)
-    return this->ASMs3DLag::getSize(n1,n2,n3,1);
+  if (basis < 1 || basis > static_cast<int>(nxx.size()))
+    return false;
 
-  n1 = nxx[1];
-  n2 = nyx[1];
-  n3 = nzx[1];
+  n1 = nxx[basis-1];
+  n2 = nyx[basis-1];
+  n3 = nzx[basis-1];
 
   return true;
 }
