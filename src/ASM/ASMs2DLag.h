@@ -213,11 +213,14 @@ public:
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
                             const int*, char = 0) const;
 
-  //! \brief Evaluates the secondary solution field at the nodal points.
+  //! \brief Evaluates the secondary solution field at the given points.
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
+  //! \param[in] gpar Parameter values of the result sampling points.
+  //! \details We assume that the parameter value array \a gpar contains
+  //! the \a u and \a v parameters directly for each sampling point.
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
-                            const RealArray*, bool = false) const;
+                            const RealArray* gpar, bool = false) const;
 
   //! \brief Evaluates and interpolates a field over a given geometry.
   //! \param[in] basis The basis of the field to evaluate
