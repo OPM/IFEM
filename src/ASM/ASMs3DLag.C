@@ -15,8 +15,10 @@
 
 #include "ASMs3DLag.h"
 #include "Lagrange.h"
+#include "SparseMatrix.h"
 #include "TimeDomain.h"
 #include "FiniteElement.h"
+#include "GlbL2projector.h"
 #include "GlobalIntegral.h"
 #include "LocalIntegral.h"
 #include "IntegrandBase.h"
@@ -1272,6 +1274,88 @@ void ASMs3DLag::updateOrigin (const Vec3& origin)
 {
   for (Vec3& c : myCoord)
     c += origin;
+}
+
+
+size_t ASMs3DLag::getNoProjectionNodes () const
+{
+  return this->getNoNodes(1);
+}
+
+
+bool ASMs3DLag::assembleL2matrices (SparseMatrix& A, StdVector& B,
+                                    const L2Integrand& integrand,
+                                    bool continuous) const
+{
+  const size_t nnod = this->getNoProjectionNodes();
+
+  BasisFunctionCache& cache = static_cast<BasisFunctionCache&>(*myCache.front());
+  if (!cache.init(1))
+    return false;
+
+  const std::array<const double*,3>& wg = cache.weight();
+  const std::array<int,3> nGP = cache.nGauss();
+
+  Matrix dNdX, Xnod, J;
+
+  // === Assembly loop over all elements in the patch ==========================
+
+  int iel = 0;
+  for (size_t i3 = 0; i3 < cache.noElms()[2]; ++i3)
+    for (size_t i2 = 0; i2 < cache.noElms()[1]; ++i2)
+      for (size_t i1 = 0; i1 < cache.noElms()[0]; ++i1, ++iel)
+      {
+        // --- Integration loop over all Gauss points in each direction ----------
+        Matrix eA(p1*p2*p3, p1*p2*p3);
+
+        if (!this->getElementCoordinates(Xnod,1+iel))
+          return false;
+
+        std::array<RealArray,3> GP;
+        GP[0].resize(nGP[0]*nGP[1]*nGP[2]);
+        GP[1].resize(nGP[0]*nGP[1]*nGP[2]);
+        GP[2].resize(nGP[0]*nGP[1]*nGP[2]);
+        size_t eip = 0;
+        for (int g3 = 0; g3 < nGP[2]; ++g3)
+          for (int g2 = 0; g2 < nGP[1]; ++g2)
+            for (int g1 = 0; g1 < nGP[0]; ++g1, ++eip) {
+              GP[0][eip] = cache.getParam(0, i1, g1);
+              GP[1][eip] = cache.getParam(1, i2, g2);
+              GP[2][eip] = cache.getParam(2, i3, g3);
+            }
+        Matrix sField;
+        integrand.evaluate(sField, GP.data());
+
+        Vectors eB(sField.rows(), Vector(p1*p2*p3));
+        size_t ip = 0;
+        for (int gp3 = 0; gp3 < nGP[2]; ++gp3)
+          for (int gp2 = 0; gp2 < nGP[1]; ++gp2)
+            for (int gp1 = 0; gp1 < nGP[0]; ++gp1, ++ip) {
+              const BasisFunctionVals& bfs = cache.getVals(iel,ip);
+
+              double dJw = wg[0][gp1]*wg[1][gp2]*wg[2][gp3]*utl::Jacobian(J,dNdX,Xnod,bfs.dNdu);
+
+              // Integrate the mass matrix
+              eA.outer_product(bfs.N, bfs.N, true, dJw);
+
+              // Integrate the rhs vector B
+              for (size_t r = 1; r <= sField.rows(); r++)
+                eB[r-1].add(bfs.N,sField(r,ip+1)*dJw);
+            }
+
+        const IntVec& mnpc = MNPC[iel];
+
+        for (int i = 0; i < p1*p2*p3; ++i) {
+          for (int j = 0; j < p1*p2*p3; ++j)
+            A(mnpc[i]+1, mnpc[j]+1) += eA(i+1, j+1);
+
+          int jp = mnpc[i]+1;
+          for (size_t r = 0; r < sField.rows(); r++, jp += nnod)
+            B(jp) += eB[r](1+i);
+        }
+      }
+
+  return true;
 }
 
 

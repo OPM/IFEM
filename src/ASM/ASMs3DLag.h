@@ -272,6 +272,18 @@ public:
   //! \param origin The new origin
   void updateOrigin(const Vec3& origin);
 
+  //! \brief Returns the number of projection nodes for this patch.
+  virtual size_t getNoProjectionNodes() const;
+
+  //! \brief Assembles L2-projection matrices for the secondary solution.
+  //! \param[out] A Left-hand-side matrix
+  //! \param[out] B Right-hand-side vectors
+  //! \param[in] integrand Object with problem-specific data and methods
+  //! \param[in] continuous If \e false, a discrete L2-projection is used
+  virtual bool assembleL2matrices(SparseMatrix& A, StdVector& B,
+                                  const L2Integrand& integrand,
+                                  bool continuous) const;
+
 protected:
   size_t nx; //!< Number of nodes in first parameter direction
   size_t ny; //!< Number of nodes in second parameter direction
