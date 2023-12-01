@@ -765,7 +765,8 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
         if (fe.detJxW == 0.0) continue; // skip singular points
 
         // Now evaluate the solution field
-        if (!integrand.evalSol(solPt,fe,Xnod*fe.N,mnpc))
+        utl::Point X4(Xnod*fe.N,{fe.u,fe.v});
+        if (!integrand.evalSol(solPt,fe,X4,mnpc))
           return false;
         else if (sField.empty())
           sField.resize(solPt.size(),nPoints,true);

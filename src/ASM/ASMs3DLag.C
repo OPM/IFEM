@@ -1113,7 +1113,8 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     if (fe.detJxW == 0.0) continue; // skip singular points
 
     // Now evaluate the solution field
-    if (!integrand.evalSol(solPt,fe,Xnod*fe.N,MNPC[iel-1]))
+    utl::Point X4(Xnod*fe.N,{fe.u,fe.v,fe.w});
+    if (!integrand.evalSol(solPt,fe,X4,MNPC[iel-1]))
       return false;
     else if (sField.empty())
       sField.resize(solPt.size(),nPoints,true);

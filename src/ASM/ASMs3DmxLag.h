@@ -139,6 +139,14 @@ public:
                            const IntVec& nodes) const;
 
   using ASMs3DLag::evalSolution;
+  //! \brief Evaluates the secondary solution field at all visualization points.
+  //! \details The number of visualization points is the same as the order of
+  //! the Lagrange elements by default.
+  //! \param[out] sField Solution field
+  //! \param[in] integrand Object with problem-specific data and methods
+  virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
+                            const int*, char = 0) const;
+
   //! \brief Evaluates the primary solution field at the given points.
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector local to current patch
@@ -149,8 +157,9 @@ public:
   //! \brief Evaluates the secondary solution field at the given points.
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
+  //! \param[in] gpar Parameter values of the result sampling points
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
-                            const RealArray*, bool) const;
+                            const RealArray* gpar, bool) const;
 
   //! \brief Extracts nodal results for this patch from the global vector.
   //! \param[in] globVec Global solution vector in DOF-order
