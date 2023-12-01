@@ -46,10 +46,10 @@ void ASMs2DmxLag::clear (bool retainGeometry)
 
 size_t ASMs2DmxLag::getNoNodes (int basis) const
 {
-  if (basis > 0 && basis <= (int)nb.size())
-    return nb[basis-1];
-  else
-    return MLGN.size();
+  if (basis < 1 || basis > (int)nb.size())
+    return this->ASMbase::getNoNodes(basis);
+
+  return nb[basis-1];
 }
 
 
