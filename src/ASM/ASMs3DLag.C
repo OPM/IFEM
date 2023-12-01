@@ -1200,6 +1200,20 @@ bool ASMs3DLag::evaluate (const ASMbase* basis, const Vector& locVec,
 }
 
 
+void ASMs3DLag::constrainFace (int dir, bool open, int dof,
+                               int code, char basis)
+{
+  this->ASMs3D::constrainFace(dir, open, dof, code > 0 ? -code : code, basis);
+}
+
+
+void ASMs3DLag::constrainEdge (int lEdge, bool open, int dof,
+                               int code, char basis)
+{
+  this->ASMs3D::constrainEdge(lEdge, open, dof, code > 0 ? -code : code, basis);
+}
+
+
 void ASMs3DLag::updateOrigin (const Vec3& origin)
 {
   for (Vec3& c : myCoord)
@@ -1219,7 +1233,7 @@ ASMs3DLag::BasisFunctionCache::BasisFunctionCache (const ASMs3DLag& pch,
 
 
 ASMs3DLag::BasisFunctionCache::BasisFunctionCache (const BasisFunctionCache& cache,
-                                                int b) :
+                                                   int b) :
   ASMs3D::BasisFunctionCache(cache,b)
 {
 }

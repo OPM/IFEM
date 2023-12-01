@@ -128,6 +128,24 @@ public:
   //! \param[in] nSegSpan Number of visualization segments over each knot-span
   virtual bool getGridParameters(RealArray& prm, int dir, int nSegSpan) const;
 
+  //! \brief Constrains all DOFs on a given boundary face.
+  //! \param[in] dir Parameter direction defining the face to constrain
+  //! \param[in] open If \e true, exclude all points along the face boundary
+  //! \param[in] dof Which DOFs to constrain at each node on the face
+  //! \param[in] code Inhomogeneous dirichlet condition code
+  //! \param[in] basis Which basis to constrain face for
+  virtual void constrainFace(int dir, bool open, int dof,
+                             int code = 0, char basis = 1);
+
+  //! \brief Constrains all DOFs on a given boundary edge.
+  //! \param[in] lEdge Local index [1,12] of the edge to constrain
+  //! \param[in] open If \e true, exclude the end points of the edge
+  //! \param[in] dof Which DOFs to constrain at each node along the edge
+  //! \param[in] code Inhomogeneous dirichlet condition code
+  //! \param[in] basis Which basis to constrain edge for
+  virtual void constrainEdge(int lEdge, bool open, int dof,
+                             int code = 0, char basis = 1);
+
 protected:
   //! \brief Assigned global coordinates for the given node.
   //! \param[in] inod 1-based node index local to current patch
