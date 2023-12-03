@@ -234,7 +234,7 @@ ConvStatus NonLinSIM::solveStep (TimeStep& param, SolutionMode mode,
       return FAILURE;
 
   double* rCondPtr = rCond < 0.0 ? nullptr : &rCond;
-  if (!model.solveSystem(linsol,msgLevel-1,rCondPtr))
+  if (!model.solveEqSystem(linsol,0,rCondPtr,msgLevel-1,true))
     return FAILURE;
 
   while (param.iter <= maxit)
@@ -272,7 +272,7 @@ ConvStatus NonLinSIM::solveStep (TimeStep& param, SolutionMode mode,
 	if (!model.extractLoadVec(residual))
 	  return FAILURE;
 
-	if (!model.solveSystem(linsol,msgLevel-1,rCondPtr))
+	if (!model.solveEqSystem(linsol,0,rCondPtr,msgLevel-1))
 	  return FAILURE;
 
 	if (!this->lineSearch(param))
@@ -301,7 +301,7 @@ SIM::ConvStatus NonLinSIM::solveIteration (TimeStep& param)
     return SIM::FAILURE;
 
   double* rCondPtr = rCond < 0.0 ? nullptr : &rCond;
-  if (!model.solveSystem(linsol,msgLevel-1,rCondPtr))
+  if (!model.solveEqSystem(linsol,0,rCondPtr,msgLevel-1))
     return SIM::FAILURE;
 
   if (!this->lineSearch(param))

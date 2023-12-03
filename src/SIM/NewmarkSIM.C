@@ -170,8 +170,8 @@ bool NewmarkSIM::initAcc (double zero_tolerance, std::streamsize outPrec)
     model.addToRHSvector(0,*Rext);
 
   // Solve for the initial accelerations
-  size_t iA = solution.size() - 1;
-  if (!model.solveSystem(solution[iA],msgLevel-1,"acceleration"))
+  Vector& accVec = solution.back();
+  if (!model.solveEqSystem(accVec,0,nullptr,msgLevel-1,false,"acceleration"))
     return false;
   else if (msgLevel < 1)
     return true;
@@ -179,7 +179,7 @@ bool NewmarkSIM::initAcc (double zero_tolerance, std::streamsize outPrec)
   size_t d, nf = model.getNoFields(1);
   size_t kMax[nf];
   double aMax[nf];
-  double accL2 = model.solutionNorms(solution[iA],aMax,kMax,nf);
+  double accL2 = model.solutionNorms(accVec,aMax,kMax,nf);
 
   utl::LogStream& cout = model.getProcessAdm().cout;
   std::streamsize stdPrec = outPrec > 0 ? cout.precision(outPrec) : 0;
@@ -362,7 +362,7 @@ SIM::ConvStatus NewmarkSIM::solveStep (TimeStep& param, SIM::SolutionMode,
     return SIM::FAILURE;
 
   double* rCondPtr = rCond < 0.0 ? nullptr : &rCond;
-  if (!model.solveSystem(linsol,msgLevel-1,rCondPtr))
+  if (!model.solveEqSystem(linsol,0,rCondPtr,msgLevel-1,true))
     return SIM::FAILURE;
 
   while (param.iter <= maxit)
@@ -408,7 +408,7 @@ SIM::ConvStatus NewmarkSIM::solveStep (TimeStep& param, SIM::SolutionMode,
         if (!model.extractLoadVec(residual))
           return SIM::FAILURE;
 
-        if (!model.solveSystem(linsol,msgLevel-1,rCondPtr))
+        if (!model.solveEqSystem(linsol,0,rCondPtr,msgLevel-1))
           return SIM::FAILURE;
       }
 
@@ -445,7 +445,7 @@ SIM::ConvStatus NewmarkSIM::solveIteration (TimeStep& param)
     return SIM::FAILURE;
 
   double* rCondPtr = rCond < 0.0 ? nullptr : &rCond;
-  if (!model.solveSystem(linsol,msgLevel-1,rCondPtr))
+  if (!model.solveEqSystem(linsol,0,rCondPtr,msgLevel-1))
     return SIM::FAILURE;
 
   SIM::ConvStatus result = this->checkConvergence(param);

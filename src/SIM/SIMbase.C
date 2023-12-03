@@ -1199,19 +1199,20 @@ bool SIMbase::applyDirichlet (Vector& glbVec) const
 }
 
 
-bool SIMbase::solveSystem (Vector& solution, int printSol, double* rCond,
-                           const char* compName, size_t idxRHS)
+bool SIMbase::solveEqSystem (Vector& solution, size_t idxRHS, double* rCond,
+			     int printSol, bool dumpEqSys, const char* compName)
 {
   if (!myEqSys) return false;
 
   SystemMatrix* A = myEqSys->getMatrix();
   SystemVector* b = myEqSys->getVector(idxRHS);
-  if (!A) std::cerr <<" *** SIMbase::solveSystem: No LHS matrix."<< std::endl;
-  if (!b) std::cerr <<" *** SIMbase::solveSystem: No RHS vector."<< std::endl;
+  if (!A) std::cerr <<" *** SIMbase::solveEqSystem: No LHS matrix."<< std::endl;
+  if (!b) std::cerr <<" *** SIMbase::solveEqSystem: No RHS vector."<< std::endl;
   if (!A || !b) return false;
 
   // Dump equation system to file(s) if requested
-  this->dumpEqSys();
+  if (dumpEqSys)
+    this->dumpEqSys(msgLevel > 1);
 
   // Solve the linear system of equations
   if (msgLevel > 1)
@@ -1911,7 +1912,7 @@ bool SIMbase::systemModes (std::vector<Mode>& solution,
   if (ncv > mySam->getNoEquations()) ncv = mySam->getNoEquations();
 
   // Dump equation system to file(s) if requested
-  this->dumpEqSys();
+  this->dumpEqSys(true);
 
   // Solve the eigenvalue problem
   IFEM::cout <<"\nSolving the eigenvalue problem ..."<< std::endl;
@@ -2456,12 +2457,13 @@ void SIMbase::registerDependency (const std::string& name, SIMdependency* sim,
 }
 
 
-void SIMbase::dumpEqSys ()
+void SIMbase::dumpEqSys (bool initialBlankLine)
 {
   // Dump system matrix to file, if requested
   for (DumpData& dmp : lhsDump)
     if (dmp.doDump()) {
-      IFEM::cout <<"\nDumping system matrix to file "<< dmp.fname << std::endl;
+      if (initialBlankLine) IFEM::cout <<"\n";
+      IFEM::cout <<"Dumping system matrix to file "<< dmp.fname << std::endl;
       std::ofstream os(dmp.fname.c_str(),
                        dmp.step.size() == 1 ? std::ios::out : std::ios::app);
       os << std::setprecision(17);
@@ -2476,6 +2478,7 @@ void SIMbase::dumpEqSys ()
       for (int i = 0; M; M = myEqSys->getMatrix(++i), ++matName[0])
         M->dump(os,dmp.format,matName); // label matrices as A,B,C,...
       utl::zero_print_tol = old_tol;
+      initialBlankLine = false;
     }
 
   if (myEqSys->getNoRHS() == 0)
@@ -2484,7 +2487,8 @@ void SIMbase::dumpEqSys ()
   // Dump right-hand-side vector to file, if requested
   for (DumpData& dmp : rhsDump)
     if (dmp.doDump()) {
-      IFEM::cout <<"\nDumping RHS vector to file "<< dmp.fname << std::endl;
+      if (initialBlankLine) IFEM::cout <<"\n";
+      IFEM::cout <<"Dumping RHS vector to file "<< dmp.fname << std::endl;
       std::ofstream os(dmp.fname.c_str(),
                        dmp.step.size() == 1 ? std::ios::out : std::ios::app);
       os << std::setprecision(17);
@@ -2499,6 +2503,7 @@ void SIMbase::dumpEqSys ()
       for (int i = 0; c; c = myEqSys->getVector(++i), ++vecName[0])
         c->dump(os,dmp.format,vecName); // label vectors as b,c,d,...
       utl::zero_print_tol = old_tol;
+      initialBlankLine = false;
     }
 }
 

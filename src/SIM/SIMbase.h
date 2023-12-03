@@ -302,13 +302,27 @@ public:
 
   //! \brief Solves the assembled linear system of equations for a given load.
   //! \param[out] solution Global primary solution vector
+  //! \param[in] idxRHS Index to the right-hand-side vector to solve for
+  //! \param[out] rCond Reciprocal condition number
+  //! \param[in] compName Solution name to be used in norm output
+  //! \param[in] printSol Print solution if its size is less than \a printSol
+  //! \param[in] dumpEqSys If \e true, activate dump of equation system to file
+  bool solveEqSystem(Vector& solution, size_t idxRHS, double* rCond,
+                     int printSol = 0, bool dumpEqSys = false,
+                     const char* compName = "displacement");
+
+  //! \brief Solves the assembled linear system of equations for a given load.
+  //! \param[out] solution Global primary solution vector
   //! \param[in] printSol Print solution if its size is less than \a printSol
   //! \param[out] rCond Reciprocal condition number
   //! \param[in] compName Solution name to be used in norm output
   //! \param[in] idxRHS Index to the right-hand-side vector to solve for
   virtual bool solveSystem(Vector& solution, int printSol, double* rCond,
                            const char* compName = "displacement",
-                           size_t idxRHS = 0);
+                           size_t idxRHS = 0)
+  {
+    return this->solveEqSystem(solution,idxRHS,nullptr,printSol,true,compName);
+  }
 
   //! \brief Solves the assembled linear system of equations for a given load.
   //! \param[out] solution Global primary solution vector
@@ -711,7 +725,7 @@ public:
   bool isFirst() const { return mdFlag <= 1; }
 
   //! \brief Dump left-hand-side matrix and right-hand-side vector to file.
-  void dumpEqSys();
+  void dumpEqSys(bool initialBlankLine = false);
 
 protected:
   //! \brief Returns the multi-dimension simulator sequence flag.
