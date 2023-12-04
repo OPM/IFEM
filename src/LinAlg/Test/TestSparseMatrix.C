@@ -53,6 +53,10 @@ TEST(TestSparseMatrix, split)
   Amat(5,7) = Amat(7,5) = 8.0;
   Amat(6,7) = Amat(7,6) = 9.0;
 
+  Amat.dump(std::cout,LinAlg::MATRIX_MARKET,"A_mmarket");
+  Amat.dump(std::cout,LinAlg::MATLAB,"A_matlab");
+  Amat.dump(std::cout,LinAlg::FLAT,"A");
+
   std::array<SparseMatrix,4> Asub;
   ASSERT_TRUE(Amat.split(Asub,{2,5,7}));
   std::cout <<"A11: "<< Asub[0];

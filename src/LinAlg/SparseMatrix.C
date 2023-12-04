@@ -345,57 +345,55 @@ const Real& SparseMatrix::operator () (size_t r, size_t c) const
 void SparseMatrix::dump (std::ostream& os, LinAlg::StorageFormat format,
                          const char* label)
 {
-  if (label && format != LinAlg::MATRIX_MARKET) os << label <<" = [\n";
-
-  auto dumpData = [this,&os](const char* trail)
-  {
-    if (editable)
-      for (const ValueMap::value_type& val : elem)
-        os << val.first.first <<' '<< val.first.second <<" "<< val.second
-           << trail;
-    else if (solver == SUPERLU || solver == UMFPACK) {
-      // Column-oriented format with 0-based indices
-      os << JA.front()+1 <<" 1 "<< A.front();
-      for (size_t j = 1; j <= ncol; j++)
-        for (int i = IA[j-1]; i < IA[j]; i++)
-          if (j > 1 || i != IA.front())
-            os << trail << JA[i]+1 <<' '<< j <<' '<< A[i];
-    }
-    else {
-      // Row-oriented format with 1-based indices
-      os <<"1 "<< JA.front() <<' '<< A.front();
-      for (size_t i = 1; i <= nrow; i++)
-        for (int j = IA[i-1]; j < IA[i]; j++)
-          if (i > 1 || j != IA.front())
-            os << trail << i <<' '<< JA[j-1] <<' '<< A[i-1];
-    }
-  };
-
-  std::string trail = ";\n";
+  std::string end;
   switch (format)
-  {
+    {
     case LinAlg::MATRIX_MARKET:
-      os << "%%MatrixMarket matrix coordinate real general\n";
+      os <<"%%MatrixMarket matrix coordinate real general\n";
       if (label)
-        os << "% label = " << label << '\n';
-      trail = '\n';
-      os << nrow << " " << ncol << ' ';
-      if (editable)
-        os << elem.size();
-      else
-        os << A.size();
-      os << '\n';
-      dumpData("\n");
+        os <<"% label = "<< label <<'\n';
+      os << nrow <<' '<< ncol <<' '
+         << (editable ? elem.size() : A.size()) <<'\n';
+      end = "\n";
       break;
 
     case LinAlg::MATLAB:
-      dumpData(";\n");
-      os <<"];\n";
+      if (label) os << label <<" = [\n";
+      end = ";\n";
       break;
 
     case LinAlg::FLAT:
+      if (label) os << label <<" = [\n";
       this->write(os);
+      if (label) os <<"]\n";
+      return;
+    }
+
+  if (editable)
+    for (const ValueMap::value_type& val : elem)
+      os << val.first.first <<' '<< val.first.second <<' '<< val.second << end;
+
+  else if (solver == SUPERLU || solver == UMFPACK)
+  {
+    // Column-oriented format with 0-based indices
+    os << JA.front()+1 <<" 1 "<< A.front();
+    for (size_t j = 1; j <= ncol; j++)
+      for (int i = IA[j-1]; i < IA[j]; i++)
+        if (j > 1 || i != IA.front())
+          os << end << JA[i]+1 <<' '<< j <<' '<< A[i];
   }
+  else
+  {
+    // Row-oriented format with 1-based indices
+    os <<"1 "<< JA.front() <<' '<< A.front();
+    for (size_t i = 1; i <= nrow; i++)
+      for (int j = IA[i-1]; j < IA[i]; j++)
+        if (i > 1 || j != IA.front())
+          os << end << i <<' '<< JA[j-1] <<' '<< A[i-1];
+  }
+
+  if (format == LinAlg::MATLAB)
+    os <<"];\n";
 }
 
 
