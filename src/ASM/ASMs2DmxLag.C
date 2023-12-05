@@ -239,6 +239,8 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
 {
   if (this->empty()) return true; // silently ignore empty patches
 
+  bool useElmVtx = integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS;
+
   if (myCache.empty()) {
     myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this, cachePolicy, 1));
     const BasisFunctionCache& front = static_cast<const BasisFunctionCache&>(*myCache.front());
@@ -284,6 +286,9 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
           ok = false;
           break;
         }
+
+        if (useElmVtx)
+          fe.h = this->getElementCorners(p1+i1-1,p2+i2-1,fe.XC);
 
         // Initialize element quantities
         fe.iel = MLGE[iel-1];
