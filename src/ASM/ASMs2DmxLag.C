@@ -94,14 +94,14 @@ void ASMs2DmxLag::initMADOF (const int* sysMadof)
 
 
 void ASMs2DmxLag::extractNodeVec (const RealArray& globRes, RealArray& nodeVec,
-				  unsigned char, int basis) const
+                                  unsigned char, int basis) const
 {
   this->extractNodeVecMx(globRes,nodeVec,basis);
 }
 
 
 bool ASMs2DmxLag::getSolution (Matrix& sField, const Vector& locSol,
-			       const IntVec& nodes) const
+                               const IntVec& nodes) const
 {
   return this->getSolutionMx(sField,locSol,nodes);
 }
@@ -181,10 +181,10 @@ bool ASMs2DmxLag::generateFEMTopology ()
 
       for (size_t b = 0; b < q2; b++)
       {
-	int facenod = nen1 + b*q1;
-	myMNPC[iel][facenod] = corner + b*nxx[1];
-	for (size_t a = 1; a < q1; a++)
-	  myMNPC[iel][facenod+a] = myMNPC[iel][facenod] + a;
+        int facenod = nen1 + b*q1;
+        myMNPC[iel][facenod] = corner + b*nxx[1];
+        for (size_t a = 1; a < q1; a++)
+            myMNPC[iel][facenod+a] = myMNPC[iel][facenod] + a;
       }
     }
 
@@ -234,8 +234,8 @@ bool ASMs2DmxLag::getSize (int& n1, int& n2, int basis) const
 
 
 bool ASMs2DmxLag::integrate (Integrand& integrand,
-			     GlobalIntegral& glInt,
-			     const TimeDomain& time)
+                             GlobalIntegral& glInt,
+                             const TimeDomain& time)
 {
   if (this->empty()) return true; // silently ignore empty patches
 
@@ -350,8 +350,8 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
 
 
 bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
-			     GlobalIntegral& glInt,
-			     const TimeDomain& time)
+                             GlobalIntegral& glInt,
+                             const TimeDomain& time)
 {
   if (this->empty()) return true; // silently ignore empty patches
 
@@ -393,12 +393,12 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
       // Skip elements that are not on current boundary edge
       bool skipMe = false;
       switch (edgeDir)
-	{
-	case -1: if (i1 > 0)      skipMe = true; break;
-	case  1: if (i1 < nelx-1) skipMe = true; break;
-	case -2: if (i2 > 0)      skipMe = true; break;
-	case  2: if (i2 < nely-1) skipMe = true; break;
-	}
+      {
+        case -1: if (i1 > 0)      skipMe = true; break;
+        case  1: if (i1 < nelx-1) skipMe = true; break;
+        case -2: if (i2 > 0)      skipMe = true; break;
+        case  2: if (i2 < nely-1) skipMe = true; break;
+      }
       if (skipMe) continue;
 
       // Set up control point coordinates for current element
@@ -519,30 +519,30 @@ bool ASMs2DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     for (j = 0; j < p2; j++)
       for (i = 0; i < p1; i++, loc++)
       {
-	double xi  = -1.0 + i*incx;
-	double eta = -1.0 + j*incy;
+        double xi  = -1.0 + i*incx;
+        double eta = -1.0 + j*incy;
         for (size_t b = 0; b < nxx.size(); ++b)
           if (!Lagrange::computeBasis(fe.basis(b+1),bfs[b].dNdu,
                                       elem_sizes[b][0],xi,
                                       elem_sizes[b][1],eta))
-	  return false;
+            return false;
 
         // Compute Jacobian inverse of the coordinate mapping and
         // basis function derivatives w.r.t. Cartesian coordinates
         if (!fe.Jacobian(Jac,Xnod,itgBasis,bfs))
           continue; // skip singular points
 
-	// Now evaluate the solution field
-    if (!integrand.evalSol(solPt,fe,Xnod*fe.basis(itgBasis),
+        // Now evaluate the solution field
+        if (!integrand.evalSol(solPt,fe,Xnod*fe.basis(itgBasis),
                                MNPC[iel-1],elem_size,nb))
-	  return false;
-	else if (sField.empty())
-	  sField.resize(solPt.size(),nPoints,true);
+          return false;
+        else if (sField.empty())
+          sField.resize(solPt.size(),nPoints,true);
 
-	if (++check[mnpc1[loc]] == 1)
-	  globSolPt[mnpc1[loc]] = solPt;
-	else
-	  globSolPt[mnpc1[loc]] += solPt;
+        if (++check[mnpc1[loc]] == 1)
+          globSolPt[mnpc1[loc]] = solPt;
+        else
+          globSolPt[mnpc1[loc]] += solPt;
       }
   }
 
