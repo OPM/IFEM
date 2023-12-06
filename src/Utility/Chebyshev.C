@@ -238,3 +238,30 @@ Tensor ChebyshevTensorFunc::evaluate (const Vec3& X) const
 
   return result;
 }
+
+
+std::vector<Real> ChebyshevTensorFunc::evalGradient (const Vec3& X) const
+{
+  const size_t nsd = sqrt(ncmp);
+  std::vector<Real> result;
+  result.reserve(ncmp*nsd);
+  for (size_t d = 1; d <= nsd; ++d)
+    for (size_t c = 0; c < ncmp; ++c)
+       result.push_back(f[c]->deriv(X, d));
+
+  return result;
+}
+
+
+std::vector<Real> ChebyshevTensorFunc::evalHessian (const Vec3& X) const
+{
+  const size_t nsd = sqrt(ncmp);
+  std::vector<Real> result;
+  result.reserve(ncmp*nsd*nsd);
+  for (size_t d2 = 1; d2 <= nsd; ++d2)
+    for (size_t d1 = 1; d1 <= nsd; ++d1)
+      for (size_t c = 0; c < ncmp; ++c)
+        result.push_back(f[c]->dderiv(X, d1, d2));
+
+  return result;
+}

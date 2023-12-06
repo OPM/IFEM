@@ -382,6 +382,76 @@ TEST(TestChebyshevTensorFunc, Value2D)
 }
 
 
+TEST(TestChebyshevTensorFunc, Gradient2D)
+{
+  ChebyshevTensorFunc cheb({cheby_12, cheby_13, cheby_23, cheby_21}, false);
+
+  auto  f1 = [](Real x) { return x*x*x + x*x + x - 1.0; };
+  auto df1 = [](Real x) { return 3.0*x*x + 2.0*x + 1.0; };
+  auto  f2 = [](Real x) { return x*x*x - 2.0*x*x + 3.0*x - 1.0; };
+  auto df2 = [](Real x) { return 3.0*x*x - 4.0*x + 3.0; };
+  auto  f3 = [](Real x) { return 4.0*x*x*x - 7.0*x*x - 3.0*x + 5.0; };
+  auto df3 = [](Real x) { return 12.0*x*x - 14.0*x - 3.0; };
+
+  for (double x : {0.0, 0.2, 0.7, 0.5, 0.66, 1.0})
+    for (double y : {0.1, 0.5, 0.7, 0.88}) {
+      const double p[] {x,y};
+      const Vec4 Xc({x, y, 0.0, 0.0}, p);
+      const utl::matrix3d<Real> res = cheb.gradient(Xc);
+      EXPECT_NEAR(res(1,1,1), df1(x) *  f2(y), 3e-12);
+      EXPECT_NEAR(res(1,1,2),  f1(x) * df2(y), 3e-12);
+      EXPECT_NEAR(res(2,1,1), df1(x) *  f3(y), 3e-12);
+      EXPECT_NEAR(res(2,1,2),  f1(x) * df3(y), 3e-12);
+      EXPECT_NEAR(res(1,2,1), df2(x) *  f3(y), 3e-12);
+      EXPECT_NEAR(res(1,2,2),  f2(x) * df3(y), 3e-12);
+      EXPECT_NEAR(res(2,2,1), df2(x) *  f1(y), 3e-12);
+      EXPECT_NEAR(res(2,2,2),  f2(x) * df1(y), 3e-12);
+    }
+}
+
+
+TEST(TestChebyshevTensorFunc, Hessian2D)
+{
+  ChebyshevTensorFunc cheb({cheby_12, cheby_13, cheby_23, cheby_21}, false);
+
+  auto   f1 = [](Real x) { return x*x*x + x*x + x - 1.0; };
+  auto  df1 = [](Real x) { return 3.0*x*x + 2.0*x + 1.0; };
+  auto d2f1 = [](Real x) { return 6.0*x + 2.0; };
+  auto   f2 = [](Real x) { return x*x*x - 2.0*x*x + 3.0*x - 1.0; };
+  auto  df2 = [](Real x) { return 3.0*x*x - 4.0*x + 3.0; };
+  auto d2f2 = [](Real x) { return 6.0*x - 4.0; };
+  auto   f3 = [](Real x) { return 4.0*x*x*x - 7.0*x*x - 3.0*x + 5.0; };
+  auto  df3 = [](Real x) { return 12*x*x - 14.0*x - 3.0; };
+  auto d2f3 = [](Real x) { return 24.0*x - 14.0; };
+
+  for (double x : {0.0, 0.2, 0.7, 0.5, 0.66, 1.0})
+    for (double y : {0.1, 0.5, 0.7, 0.88}) {
+      const double p[] {x,y};
+      const Vec4 Xc({x, y, 0.0, 0.0}, p);
+      const utl::matrix4d<Real> res = cheb.hessian(Xc);
+      EXPECT_NEAR(res(1,1,1,1), d2f1(x) *   f2(y), 5e-12);
+      EXPECT_NEAR(res(1,1,1,2),  df1(x) *  df2(y), 5e-12);
+      EXPECT_NEAR(res(1,1,2,1),  df1(x) *  df2(y), 5e-12);
+      EXPECT_NEAR(res(1,1,2,2),   f1(x) * d2f2(y), 5e-12);
+
+      EXPECT_NEAR(res(2,1,1,1), d2f1(x) *   f3(y), 5e-12);
+      EXPECT_NEAR(res(2,1,1,2),  df1(x) *  df3(y), 5e-12);
+      EXPECT_NEAR(res(2,1,2,1),  df1(x) *  df3(y), 5e-12);
+      EXPECT_NEAR(res(2,1,2,2),   f1(x) * d2f3(y), 5e-12);
+
+      EXPECT_NEAR(res(1,2,1,1), d2f2(x) *   f3(y), 5e-12);
+      EXPECT_NEAR(res(1,2,1,2),  df2(x) *  df3(y), 5e-12);
+      EXPECT_NEAR(res(1,2,2,1),  df2(x) *  df3(y), 5e-12);
+      EXPECT_NEAR(res(1,2,2,2),   f2(x) * d2f3(y), 5e-12);
+
+      EXPECT_NEAR(res(2,2,1,1), d2f2(x) *   f1(y), 5e-12);
+      EXPECT_NEAR(res(2,2,1,2),  df2(x) *  df1(y), 5e-12);
+      EXPECT_NEAR(res(2,2,2,1),  df2(x) *  df1(y), 5e-12);
+      EXPECT_NEAR(res(2,2,2,2),   f2(x) * d2f1(y), 5e-12);
+    }
+}
+
+
 TEST(TestChebyshevTensorFunc, Value3D)
 {
   ChebyshevTensorFunc cheb({cheby_123, cheby_213, cheby_132,
@@ -409,5 +479,178 @@ TEST(TestChebyshevTensorFunc, Value3D)
         EXPECT_NEAR(res(1,3), f2(x) * f1(y) * f3(z), 1e-12);
         EXPECT_NEAR(res(2,3), f3(x) * f1(y) * f2(z), 1e-12);
         EXPECT_NEAR(res(3,3), f3(x) * f1(y) * f2(z), 1e-12);
+      }
+}
+
+
+TEST(TestChebyshevTensorFunc, Gradient3D)
+{
+  ChebyshevTensorFunc cheb({cheby_123, cheby_213, cheby_132,
+                            cheby_132, cheby_231, cheby_321,
+                            cheby_213, cheby_312, cheby_312}, false);
+
+  auto  f1 = [](Real x) { return x*x*x + x*x + x - 1.0; };
+  auto df1 = [](Real x) { return 3.0*x*x + 2.0*x + 1.0; };
+  auto  f2 = [](Real x) { return x*x*x - 2.0*x*x + 3.0*x - 1.0; };
+  auto df2 = [](Real x) { return 3.0*x*x - 4.0*x + 3.0; };
+  auto  f3 = [](Real x) { return 4.0*x*x*x - 7.0*x*x - 3.0*x + 5.0; };
+  auto df3 = [](Real x) { return 12.0*x*x - 14.0*x - 3.0; };
+
+  for (double x : {0.0, 0.2, 0.7, 0.5, 0.66, 1.0})
+    for (double y : {0.1, 0.5, 0.7, 0.88})
+      for (double z : {0.2, 0.4, 0.6, 0.77}) {
+        const double p[] {x,y,z};
+        const Vec4 Xc({x, y, z, 0.0}, p);
+        const utl::matrix3d<Real> res = cheb.gradient(Xc);
+        EXPECT_NEAR(res(1,1,1), df1(x) *  f2(y) *  f3(z), 1e-12);
+        EXPECT_NEAR(res(1,1,2),  f1(x) * df2(y) *  f3(z), 1e-12);
+        EXPECT_NEAR(res(1,1,3),  f1(x) *  f2(y) * df3(z), 1e-12);
+
+        EXPECT_NEAR(res(2,1,1), df2(x) *  f1(y) *  f3(z), 1e-12);
+        EXPECT_NEAR(res(2,1,2),  f2(x) * df1(y) *  f3(z), 1e-12);
+        EXPECT_NEAR(res(2,1,3),  f2(x) *  f1(y) * df3(z), 1e-12);
+
+        EXPECT_NEAR(res(3,1,1), df1(x) *  f3(y) *  f2(z), 1e-12);
+        EXPECT_NEAR(res(3,1,2),  f1(x) * df3(y) *  f2(z), 1e-12);
+        EXPECT_NEAR(res(3,1,3),  f1(x) *  f3(y) * df2(z), 1e-12);
+
+        EXPECT_NEAR(res(1,2,1), df1(x) *  f3(y) *  f2(z), 1e-12);
+        EXPECT_NEAR(res(1,2,2),  f1(x) * df3(y) *  f2(z), 1e-12);
+        EXPECT_NEAR(res(1,2,3),  f1(x) *  f3(y) * df2(z), 1e-12);
+
+        EXPECT_NEAR(res(2,2,1), df2(x) *  f3(y) *  f1(z), 1e-12);
+        EXPECT_NEAR(res(2,2,2),  f2(x) * df3(y) *  f1(z), 1e-12);
+        EXPECT_NEAR(res(2,2,3),  f2(x) *  f3(y) * df1(z), 1e-12);
+
+        EXPECT_NEAR(res(3,2,1), df3(x) *  f2(y) *  f1(z), 1e-12);
+        EXPECT_NEAR(res(3,2,2),  f3(x) * df2(y) *  f1(z), 1e-12);
+        EXPECT_NEAR(res(3,2,3),  f3(x) *  f2(y) * df1(z), 1e-12);
+
+        EXPECT_NEAR(res(1,3,1), df2(x) *  f1(y) *  f3(z), 1e-12);
+        EXPECT_NEAR(res(1,3,2),  f2(x) * df1(y) *  f3(z), 1e-12);
+        EXPECT_NEAR(res(1,3,3),  f2(x) *  f1(y) * df3(z), 1e-12);
+
+        EXPECT_NEAR(res(2,3,1), df3(x) *  f1(y) *  f2(z), 1e-12);
+        EXPECT_NEAR(res(2,3,2),  f3(x) * df1(y) *  f2(z), 1e-12);
+        EXPECT_NEAR(res(2,3,3),  f3(x) *  f1(y) * df2(z), 1e-12);
+
+        EXPECT_NEAR(res(3,3,1), df3(x) *  f1(y) *  f2(z), 1e-12);
+        EXPECT_NEAR(res(3,3,2),  f3(x) * df1(y) *  f2(z), 1e-12);
+        EXPECT_NEAR(res(3,3,3),  f3(x) *  f1(y) * df2(z), 1e-12);
+      }
+}
+
+
+TEST(TestChebyshevTensorFunc, Hessian3D)
+{
+  ChebyshevTensorFunc cheb({cheby_123, cheby_213, cheby_132,
+                            cheby_132, cheby_231, cheby_321,
+                            cheby_213, cheby_312, cheby_312}, false);
+
+  auto   f1 = [](Real x) { return x*x*x + x*x + x - 1.0; };
+  auto  df1 = [](Real x) { return 3.0*x*x + 2.0*x + 1.0; };
+  auto d2f1 = [](Real x) { return 6.0*x + 2.0; };
+  auto   f2 = [](Real x) { return x*x*x - 2.0*x*x + 3.0*x - 1.0; };
+  auto  df2 = [](Real x) { return 3.0*x*x - 4.0*x + 3.0; };
+  auto d2f2 = [](Real x) { return 6.0*x - 4.0; };
+  auto   f3 = [](Real x) { return 4.0*x*x*x - 7.0*x*x - 3.0*x + 5.0; };
+  auto  df3 = [](Real x) { return 12*x*x - 14.0*x - 3.0; };
+  auto d2f3 = [](Real x) { return 24.0*x - 14.0; };
+
+  for (double x : {0.0, 0.2, 0.7, 0.5, 0.66, 1.0})
+    for (double y : {0.1, 0.5, 0.7, 0.88})
+      for (double z : {0.2, 0.4, 0.6, 0.77}) {
+        const double p[] {x,y,z};
+        const Vec4 Xc({x, y, z, 0.0}, p);
+        const utl::matrix4d<Real> res = cheb.hessian(Xc);
+        EXPECT_NEAR(res(1,1,1,1), d2f1(x) *   f2(y) *   f3(z), 5e-12);
+        EXPECT_NEAR(res(1,1,1,2),  df1(x) *  df2(y) *   f3(z), 5e-12);
+        EXPECT_NEAR(res(1,1,1,3),  df1(x) *   f2(y) *  df3(z), 5e-12);
+        EXPECT_NEAR(res(1,1,2,1),  df1(x) *  df2(y) *   f3(z), 5e-12);
+        EXPECT_NEAR(res(1,1,2,2),   f1(x) * d2f2(y) *   f3(z), 5e-12);
+        EXPECT_NEAR(res(1,1,2,3),   f1(x) *  df2(y) *  df3(z), 5e-12);
+        EXPECT_NEAR(res(1,1,3,1),  df1(x) *   f2(y) *  df3(z), 5e-12);
+        EXPECT_NEAR(res(1,1,3,2),   f1(x) *  df2(y) *  df3(z), 5e-12);
+        EXPECT_NEAR(res(1,1,3,3),   f1(x) *   f2(y) * d2f3(z), 5e-12);
+
+        EXPECT_NEAR(res(2,1,1,1), d2f2(x) *   f1(y) *   f3(z), 5e-12);
+        EXPECT_NEAR(res(2,1,1,2),  df2(x) *  df1(y) *   f3(z), 5e-12);
+        EXPECT_NEAR(res(2,1,1,3),  df2(x) *   f1(y) *  df3(z), 5e-12);
+        EXPECT_NEAR(res(2,1,2,1),  df2(x) *  df1(y) *   f3(z), 5e-12);
+        EXPECT_NEAR(res(2,1,2,2),   f2(x) * d2f1(y) *   f3(z), 5e-12);
+        EXPECT_NEAR(res(2,1,2,3),   f2(x) *  df1(y) *  df3(z), 5e-12);
+        EXPECT_NEAR(res(2,1,3,1),  df2(x) *   f1(y) *  df3(z), 5e-12);
+        EXPECT_NEAR(res(2,1,3,2),   f2(x) *  df1(y) *  df3(z), 5e-12);
+        EXPECT_NEAR(res(2,1,3,3),   f2(x) *   f1(y) * d2f3(z), 5e-12);
+
+        EXPECT_NEAR(res(3,1,1,1), d2f1(x) *   f3(y) *   f2(z), 5e-12);
+        EXPECT_NEAR(res(3,1,1,2),  df1(x) *  df3(y) *   f2(z), 5e-12);
+        EXPECT_NEAR(res(3,1,1,3),  df1(x) *   f3(y) *  df2(z), 5e-12);
+        EXPECT_NEAR(res(3,1,2,1),  df1(x) *  df3(y) *   f2(z), 5e-12);
+        EXPECT_NEAR(res(3,1,2,2),   f1(x) * d2f3(y) *   f2(z), 5e-12);
+        EXPECT_NEAR(res(3,1,2,3),   f1(x) *  df3(y) *  df2(z), 5e-12);
+        EXPECT_NEAR(res(3,1,3,1),  df1(x) *   f3(y) *  df2(z), 5e-12);
+        EXPECT_NEAR(res(3,1,3,2),   f1(x) *  df3(y) *  df2(z), 5e-12);
+        EXPECT_NEAR(res(3,1,3,3),   f1(x) *   f3(y) * d2f2(z), 5e-12);
+
+        EXPECT_NEAR(res(1,2,1,1), d2f1(x) *   f3(y) *   f2(z), 5e-12);
+        EXPECT_NEAR(res(1,2,1,2),  df1(x) *  df3(y) *   f2(z), 5e-12);
+        EXPECT_NEAR(res(1,2,1,3),  df1(x) *   f3(y) *  df2(z), 5e-12);
+        EXPECT_NEAR(res(1,2,2,1),  df1(x) *  df3(y) *   f2(z), 5e-12);
+        EXPECT_NEAR(res(1,2,2,2),   f1(x) * d2f3(y) *   f2(z), 5e-12);
+        EXPECT_NEAR(res(1,2,2,3),   f1(x) *  df3(y) *  df2(z), 5e-12);
+        EXPECT_NEAR(res(1,2,3,1),  df1(x) *   f3(y) *  df2(z), 5e-12);
+        EXPECT_NEAR(res(1,2,3,2),   f1(x) *  df3(y) *  df2(z), 5e-12);
+        EXPECT_NEAR(res(1,2,3,3),   f1(x) *   f3(y) * d2f2(z), 5e-12);
+
+        EXPECT_NEAR(res(2,2,1,1), d2f2(x) *   f3(y) *   f1(z), 5e-12);
+        EXPECT_NEAR(res(2,2,1,2),  df2(x) *  df3(y) *   f1(z), 5e-12);
+        EXPECT_NEAR(res(2,2,1,3),  df2(x) *   f3(y) *  df1(z), 5e-12);
+        EXPECT_NEAR(res(2,2,2,1),  df2(x) *  df3(y) *   f1(z), 5e-12);
+        EXPECT_NEAR(res(2,2,2,2),   f2(x) * d2f3(y) *   f1(z), 5e-12);
+        EXPECT_NEAR(res(2,2,2,3),   f2(x) *  df3(y) *  df1(z), 5e-12);
+        EXPECT_NEAR(res(2,2,3,1),  df2(x) *   f3(y) *  df1(z), 5e-12);
+        EXPECT_NEAR(res(2,2,3,2),   f2(x) *  df3(y) *  df1(z), 5e-12);
+        EXPECT_NEAR(res(2,2,3,3),   f2(x) *   f3(y) * d2f1(z), 5e-12);
+
+        EXPECT_NEAR(res(3,2,1,1), d2f3(x) *   f2(y) *   f1(z), 5e-12);
+        EXPECT_NEAR(res(3,2,1,2),  df3(x) *  df2(y) *   f1(z), 5e-12);
+        EXPECT_NEAR(res(3,2,1,3),  df3(x) *   f2(y) *  df1(z), 5e-12);
+        EXPECT_NEAR(res(3,2,2,1),  df3(x) *  df2(y) *   f1(z), 5e-12);
+        EXPECT_NEAR(res(3,2,2,2),   f3(x) * d2f2(y) *   f1(z), 5e-12);
+        EXPECT_NEAR(res(3,2,2,3),   f3(x) *  df2(y) *  df1(z), 5e-12);
+        EXPECT_NEAR(res(3,2,3,1),  df3(x) *   f2(y) *  df1(z), 5e-12);
+        EXPECT_NEAR(res(3,2,3,2),   f3(x) *  df2(y) *  df1(z), 5e-12);
+        EXPECT_NEAR(res(3,2,3,3),   f3(x) *   f2(y) * d2f1(z), 5e-12);
+
+        EXPECT_NEAR(res(1,3,1,1), d2f2(x) *   f1(y) *   f3(z), 5e-12);
+        EXPECT_NEAR(res(1,3,1,2),  df2(x) *  df1(y) *   f3(z), 5e-12);
+        EXPECT_NEAR(res(1,3,1,3),  df2(x) *   f1(y) *  df3(z), 5e-12);
+        EXPECT_NEAR(res(1,3,2,1),  df2(x) *  df1(y) *   f3(z), 5e-12);
+        EXPECT_NEAR(res(1,3,2,2),   f2(x) * d2f1(y) *   f3(z), 5e-12);
+        EXPECT_NEAR(res(1,3,2,3),   f2(x) *  df1(y) *  df3(z), 5e-12);
+        EXPECT_NEAR(res(1,3,3,1),  df2(x) *   f1(y) *  df3(z), 5e-12);
+        EXPECT_NEAR(res(1,3,3,2),   f2(x) *  df1(y) *  df3(z), 5e-12);
+        EXPECT_NEAR(res(1,3,3,3),   f2(x) *   f1(y) * d2f3(z), 5e-12);
+
+        EXPECT_NEAR(res(2,3,1,1), d2f3(x) *   f1(y) *   f2(z), 5e-12);
+        EXPECT_NEAR(res(2,3,1,2),  df3(x) *  df1(y) *   f2(z), 5e-12);
+        EXPECT_NEAR(res(2,3,1,3),  df3(x) *   f1(y) *  df2(z), 5e-12);
+        EXPECT_NEAR(res(2,3,2,1),  df3(x) *  df1(y) *   f2(z), 5e-12);
+        EXPECT_NEAR(res(2,3,2,2),   f3(x) * d2f1(y) *   f2(z), 5e-12);
+        EXPECT_NEAR(res(2,3,2,3),   f3(x) *  df1(y) *  df2(z), 5e-12);
+        EXPECT_NEAR(res(2,3,3,1),  df3(x) *   f1(y) *  df2(z), 5e-12);
+        EXPECT_NEAR(res(2,3,3,2),   f3(x) *  df1(y) *  df2(z), 5e-12);
+        EXPECT_NEAR(res(2,3,3,3),   f3(x) *   f1(y) * d2f2(z), 5e-12);
+
+        EXPECT_NEAR(res(3,3,1,1), d2f3(x) *   f1(y) *   f2(z), 5e-12);
+        EXPECT_NEAR(res(3,3,1,2),  df3(x) *  df1(y) *   f2(z), 5e-12);
+        EXPECT_NEAR(res(3,3,1,3),  df3(x) *   f1(y) *  df2(z), 5e-12);
+        EXPECT_NEAR(res(3,3,2,1),  df3(x) *  df1(y) *   f2(z), 5e-12);
+        EXPECT_NEAR(res(3,3,2,2),   f3(x) * d2f1(y) *   f2(z), 5e-12);
+        EXPECT_NEAR(res(3,3,2,3),   f3(x) *  df1(y) *  df2(z), 5e-12);
+        EXPECT_NEAR(res(3,3,3,1),  df3(x) *   f1(y) *  df2(z), 5e-12);
+        EXPECT_NEAR(res(3,3,3,2),   f3(x) *  df1(y) *  df2(z), 5e-12);
+        EXPECT_NEAR(res(3,3,3,3),   f3(x) *   f1(y) * d2f2(z), 5e-12);
       }
 }
