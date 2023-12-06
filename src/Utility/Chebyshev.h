@@ -146,11 +146,15 @@ public:
   ChebyshevTensorFunc(const std::vector<std::string>& input, bool file);
 
   //! \brief Returns whether the function is identically zero or not.
-  virtual bool isZero() const { return f.empty(); }
+  bool isZero() const override { return f.empty(); }
 
 protected:
   //! \brief Evaluates the function at point \a X.
-  virtual Tensor evaluate(const Vec3& X) const;
+  Tensor evaluate(const Vec3& X) const override;
+  //! \brief Returns the gradient of the function as a 1D array.
+  std::vector<Real> evalGradient(const Vec3&) const override;
+  //! \brief Returns the hessian of the function as a 1D array.
+  std::vector<Real> evalHessian(const Vec3&) const override;
 };
 
 #endif
