@@ -18,7 +18,7 @@
 #include <numeric>
 
 
-double Chebyshev::evalPol1 (int polnum, double xi)
+Real Chebyshev::evalPol1 (int polnum, Real xi)
 {
   if (polnum <= 0)
     return 1.0;
@@ -29,7 +29,7 @@ double Chebyshev::evalPol1 (int polnum, double xi)
 }
 
 
-double Chebyshev::evalPol2 (int polnum, double xi)
+Real Chebyshev::evalPol2 (int polnum, Real xi)
 {
   if (polnum <= 0)
     return 1.0;
@@ -40,7 +40,7 @@ double Chebyshev::evalPol2 (int polnum, double xi)
 }
 
 
-double Chebyshev::evalDer1 (int polnum, double xi)
+Real Chebyshev::evalDer1 (int polnum, Real xi)
 {
   if (polnum <= 0)
     return 0.0;
@@ -49,13 +49,13 @@ double Chebyshev::evalDer1 (int polnum, double xi)
 }
 
 
-double Chebyshev::evalDer2 (int polnum, double xi)
+Real Chebyshev::evalDer2 (int polnum, Real xi)
 {
   return ((polnum + 1)*evalPol1(polnum + 1, xi) - xi*evalPol2(polnum, xi)) / (xi*xi - 1.0);
 }
 
 
-double Chebyshev::eval2Der1 (int polnum, double xi)
+Real Chebyshev::eval2Der1 (int polnum, Real xi)
 {
   if (polnum < 2)
     return 0.0;
@@ -69,7 +69,7 @@ double Chebyshev::eval2Der1 (int polnum, double xi)
 }
 
 
-ChebyshevFunc::ChebyshevFunc(const char* file)
+ChebyshevFunc::ChebyshevFunc (const char* file)
 {
   std::ifstream in(file);
   if (!in.good()) {
@@ -88,7 +88,7 @@ ChebyshevFunc::ChebyshevFunc(const char* file)
 }
 
 
-Real ChebyshevFunc::evaluate(const Vec3& X) const
+Real ChebyshevFunc::evaluate (const Vec3& X) const
 {
   const Vec4& X4 = static_cast<const Vec4&>(X);
   double res = 0.0;
@@ -115,20 +115,20 @@ Real ChebyshevFunc::evaluate(const Vec3& X) const
 }
 
 
-ChebyshevVecFunc::ChebyshevVecFunc(const std::vector<const char*>& file, bool second)
+ChebyshevVecFunc::ChebyshevVecFunc (const std::vector<const char*>& file, bool second)
   : secondDer(second)
 {
-  f[0].reset(new ChebyshevFunc(file[0]));
+  f[0] = std::make_unique<ChebyshevFunc>(file[0]);
   if (file.size() > 1)
-    f[1].reset(new ChebyshevFunc(file[1]));
+    f[1] = std::make_unique<ChebyshevFunc>(file[1]);
   if (file.size() > 2)
-    f[2].reset(new ChebyshevFunc(file[2]));
+    f[2] = std::make_unique<ChebyshevFunc>(file[2]);
   if (f[0]->getSize()[2] == 1)
     ncmp = 2;
 }
 
 
-Vec3 ChebyshevVecFunc::evaluate(const Vec3& X) const
+Vec3 ChebyshevVecFunc::evaluate (const Vec3& X) const
 {
   const Vec4& X4 = static_cast<const Vec4&>(X);
   Vec3 res;
@@ -192,7 +192,7 @@ Vec3 ChebyshevVecFunc::evaluate(const Vec3& X) const
 }
 
 
-ChebyshevTensorFunc::ChebyshevTensorFunc(const std::vector<const char*>& file, bool second)
+ChebyshevTensorFunc::ChebyshevTensorFunc (const std::vector<const char*>& file, bool second)
 {
   if (file.size() < 4) {
     for (size_t i = 0; i < file.size(); ++i)
@@ -211,7 +211,7 @@ ChebyshevTensorFunc::ChebyshevTensorFunc(const std::vector<const char*>& file, b
 }
 
 
-Tensor ChebyshevTensorFunc::evaluate(const Vec3& X) const
+Tensor ChebyshevTensorFunc::evaluate (const Vec3& X) const
 {
   Tensor result(ncmp);
   Vec3 r1 = (*f[0])(X);
