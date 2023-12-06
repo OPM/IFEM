@@ -137,6 +137,42 @@ Real ChebyshevFunc::evaluateTP (const Vec3& X,
 }
 
 
+Real ChebyshevFunc::deriv (const Vec3& X, int c) const
+{
+  if (n[c-1] == 1)
+    return 0.0;
+
+  const Func der{Chebyshev::evalDer1, 2.0 / (domain[c-1][1]-domain[c-1][0])};
+  const Func eval{Chebyshev::evalPol1, 1.0};
+
+  return this->evaluateTP(X, {c == 1 ? der : eval,
+                              c == 2 ? der : eval,
+                              c == 3 ? der : eval});
+}
+
+
+Real ChebyshevFunc::dderiv (const Vec3& X, int c1, int c2) const
+{
+  if (n[c1-1] == 1 || n[c2-1] == 1)
+    return 0.0;
+
+  const Func eval{Chebyshev::evalPol1, 1.0};
+
+  if (c1 == c2) {
+    const Func der2{Chebyshev::eval2Der1, 4.0 / pow(domain[c1-1][1]-domain[c1-1][0], 2.0)};
+    return this->evaluateTP(X, {c1 == 1 ? der2 : eval,
+                                c1 == 2 ? der2 : eval,
+                                c1 == 3 ? der2 : eval});
+  }
+
+  const Func der1{Chebyshev::evalDer1, 2.0 / (domain[c1-1][1]-domain[c1-1][0])};
+  const Func der2{Chebyshev::evalDer1, 2.0 / (domain[c2-1][1]-domain[c2-1][0])};
+  return this->evaluateTP(X, {c1 == 1 ? der1 : (c2 == 1 ? der2 : eval),
+                              c1 == 2 ? der1 : (c2 == 2 ? der2 : eval),
+                              c1 == 3 ? der1 : (c2 == 3 ? der2 : eval)});
+}
+
+
 ChebyshevVecFunc::ChebyshevVecFunc (const std::vector<std::string>& input,
                                     bool file, bool second)
   : secondDer(second)
@@ -212,6 +248,31 @@ Vec3 ChebyshevVecFunc::evaluate (const Vec3& X) const
   }
 
   return res;
+}
+
+
+std::vector<Real> ChebyshevVecFunc::evalGradient (const Vec3& X) const
+{
+  std::vector<Real> result;
+  result.reserve(ncmp*ncmp);
+  for (size_t d = 1; d <= ncmp; ++d)
+    for (size_t c = 0; c < ncmp; ++c)
+      result.push_back(f[c]->deriv(X, d));
+
+  return result;
+}
+
+
+std::vector<Real> ChebyshevVecFunc::evalHessian (const Vec3& X) const
+{
+  std::vector<Real> result;
+  result.reserve(ncmp*ncmp*ncmp);
+  for (size_t d2 = 1; d2 <= ncmp; ++d2)
+    for (size_t d1 = 1; d1 <= ncmp; ++d1)
+      for (size_t c = 0; c < ncmp; ++c)
+        result.push_back(f[c]->dderiv(X, d1, d2));
+
+  return result;
 }
 
 
