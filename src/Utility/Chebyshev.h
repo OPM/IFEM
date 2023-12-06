@@ -111,15 +111,12 @@ private:
 class ChebyshevVecFunc : public VecFunc
 {
   std::array<std::unique_ptr<ChebyshevFunc>,3> f; //!< Functions
-  bool secondDer; //!< True to take second derivatives
 
 public:
   //! \brief The constructor initializes the function parameters from files.
   //! \param[in] input Name of files or strings to read coefs from
   //! \param[in] file True if input is file names
-  //! \param[in] second True to take second derivatives
-  ChebyshevVecFunc(const std::vector<std::string>& input,
-                   bool file, bool second = false);
+  ChebyshevVecFunc(const std::vector<std::string>& input, bool file);
 
   //! \brief Returns whether the function is identically zero or not.
   bool isZero() const override { return !f[0] || f[0]->isZero(); }
@@ -136,25 +133,20 @@ protected:
 
 /*!
   \brief A tensor-valued spatial function, chebyshev polynomials.
-
-  \details If 2 or 3 functions: Take the derivative of the interpolants.
-           If 4 or 9 functions: Each component has their own interpolant.
 */
 
 class ChebyshevTensorFunc : public TensorFunc
 {
-  std::array<std::unique_ptr<ChebyshevVecFunc>,3> f; //!< Array of vector components
+  std::vector<std::unique_ptr<ChebyshevFunc>> f; //!< Vector of components
 
 public:
   //! \brief The constructor initializes the function parameters from files.
   //! \param[in] input Name of files or strings to read coefs from
   //! \param[in] file True if input is file names
-  //! \param[in] second True to take second derivatives
-  ChebyshevTensorFunc(const std::vector<std::string>& input,
-                      bool file, bool second);
+  ChebyshevTensorFunc(const std::vector<std::string>& input, bool file);
 
   //! \brief Returns whether the function is identically zero or not.
-  virtual bool isZero() const { return !(f[0] || f[1] || f[2]); }
+  virtual bool isZero() const { return f.empty(); }
 
 protected:
   //! \brief Evaluates the function at point \a X.

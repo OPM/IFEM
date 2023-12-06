@@ -866,9 +866,11 @@ RealFunc* utl::parseRealFunc (const std::string& func,
     if (print)
       IFEM::cout << p <<"*t";
     return new ConstTimeFunc(new LinearFunc(p));
-  }
-  else if (type == "constant" || func.find_first_of("\t ") == std::string::npos)
-  {
+  } else if (type == "chebyshev") {
+    if (print)
+      IFEM::cout << func;
+    return new ChebyshevFunc(func, true);
+  } else if (type == "constant" || func.find_first_of("\t ") == std::string::npos) {
     p = atof(func.c_str());
     if (print)
       IFEM::cout << p;
@@ -910,10 +912,14 @@ VecFunc* utl::parseVecFunc (const std::string& func, const std::string& type,
     IFEM::cout <<": "<< v;
     return new ConstVecFunc(v);
   }
-  else if (type == "chebyshev")
-    return new ChebyshevVecFunc(splitString(func),true,false);
-  else if (type == "chebyshev2")
-    return new ChebyshevVecFunc(splitString(func),true,true);
+  else if (type == "chebyshev") {
+    const std::vector<std::string> files = splitString(func);
+    if (files.size() < 2) {
+      std::cerr <<"*** ChebyshevVecFunc: Minimum two files must be given" << std::endl;
+      return nullptr;
+    }
+    return new ChebyshevVecFunc(files, true);
+  }
   else if (type == "field") {
     std::vector<std::string> params = splitString(func);
     if (params.size() < 3)
@@ -952,11 +958,14 @@ VecFunc* utl::parseVecFunc (const std::string& func, const std::string& type,
 TensorFunc* utl::parseTensorFunc (const std::string& func,
                                   const std::string& type)
 {
-  if (type == "chebyshev")
-    return new ChebyshevTensorFunc(splitString(func),true,false);
-  else if (type == "chebyshev2")
-    return new ChebyshevTensorFunc(splitString(func),true,true);
-  else if (type == "fieldgrad") {
+  if (type == "chebyshev") {
+    const std::vector<std::string> files = splitString(func);
+    if (files.size() != 4 && files.size() != 9) {
+      std::cerr <<"*** ChebyshevTensorFunc: Either 4 or 9 files must be given" << std::endl;
+      return nullptr;
+    }
+    return new ChebyshevTensorFunc(files, true);
+  } else if (type == "fieldgrad") {
     std::vector<std::string> params = splitString(func);
     int level = 0;
     if (params.size() > 3) {

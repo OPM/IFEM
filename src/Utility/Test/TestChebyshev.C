@@ -189,7 +189,7 @@ TEST(TestChebyshevFunc, Hessian3D)
 
 TEST(TestChebyshevVecFunc, Value2D)
 {
-  ChebyshevVecFunc cheb({cheby_12, cheby_21}, false, false);
+  ChebyshevVecFunc cheb({cheby_12, cheby_21}, false);
 
   auto f1 = [](Real x) { return x*x*x + x*x + x - 1.0; };
   auto f2 = [](Real x) { return x*x*x - 2.0*x*x + 3.0*x - 1.0; };
@@ -208,7 +208,7 @@ TEST(TestChebyshevVecFunc, Value2D)
 
 TEST(TestChebyshevVecFunc, Gradient2D)
 {
-  ChebyshevVecFunc cheb({cheby_12, cheby_21}, false, false);
+  ChebyshevVecFunc cheb({cheby_12, cheby_21}, false);
 
   auto  f1 = [](Real x) { return x*x*x + x*x + x - 1.0; };
   auto df1 = [](Real x) { return 3.0*x*x + 2.0*x + 1.0; };
@@ -230,7 +230,7 @@ TEST(TestChebyshevVecFunc, Gradient2D)
 
 TEST(TestChebyshevVecFunc, Hessian2D)
 {
-  ChebyshevVecFunc cheb({cheby_12, cheby_21}, false, false);
+  ChebyshevVecFunc cheb({cheby_12, cheby_21}, false);
 
   auto   f1 = [](Real x) { return x*x*x + x*x + x - 1.0; };
   auto  df1 = [](Real x) { return 3.0*x*x + 2.0*x + 1.0; };
@@ -258,7 +258,7 @@ TEST(TestChebyshevVecFunc, Hessian2D)
 
 TEST(TestChebyshevVecFunc, Value3D)
 {
-  ChebyshevVecFunc cheb({cheby_123, cheby_132, cheby_213}, false, false);
+  ChebyshevVecFunc cheb({cheby_123, cheby_132, cheby_213}, false);
 
   auto f1 = [](Real x) { return x*x*x + x*x + x - 1.0; };
   auto f2 = [](Real x) { return x*x*x - 2.0*x*x + 3.0*x - 1.0; };
@@ -279,7 +279,7 @@ TEST(TestChebyshevVecFunc, Value3D)
 
 TEST(TestChebyshevVecFunc, Gradient3D)
 {
-  ChebyshevVecFunc cheb({cheby_123, cheby_132, cheby_213}, false, false);
+  ChebyshevVecFunc cheb({cheby_123, cheby_132, cheby_213}, false);
 
   auto  f1 = [](Real x) { return x*x*x + x*x + x - 1.0; };
   auto df1 = [](Real x) { return 3.0*x*x + 2.0*x + 1.0; };
@@ -309,7 +309,7 @@ TEST(TestChebyshevVecFunc, Gradient3D)
 
 TEST(TestChebyshevVecFunc, Hessian3D)
 {
-  ChebyshevVecFunc cheb({cheby_123, cheby_132, cheby_213}, false, false);
+  ChebyshevVecFunc cheb({cheby_123, cheby_132, cheby_213}, false);
 
   auto   f1 = [](Real x) { return x*x*x + x*x + x - 1.0; };
   auto  df1 = [](Real x) { return 3.0*x*x + 2.0*x + 1.0; };
@@ -363,7 +363,7 @@ TEST(TestChebyshevVecFunc, Hessian3D)
 
 TEST(TestChebyshevTensorFunc, Value2D)
 {
-  ChebyshevTensorFunc cheb({cheby_12, cheby_23, cheby_13, cheby_21}, false, false);
+  ChebyshevTensorFunc cheb({cheby_12, cheby_13, cheby_23, cheby_21}, false);
 
   auto f1 = [](Real x) { return x*x*x + x*x + x - 1.0; };
   auto f2 = [](Real x) { return x*x*x - 2.0*x*x + 3.0*x - 1.0; };
@@ -384,9 +384,9 @@ TEST(TestChebyshevTensorFunc, Value2D)
 
 TEST(TestChebyshevTensorFunc, Value3D)
 {
-  ChebyshevTensorFunc cheb({cheby_123, cheby_132, cheby_213,
-                            cheby_132, cheby_231, cheby_312,
-                            cheby_132, cheby_321, cheby_312}, false, false);
+  ChebyshevTensorFunc cheb({cheby_123, cheby_213, cheby_132,
+                            cheby_132, cheby_231, cheby_321,
+                            cheby_213, cheby_312, cheby_312}, false);
 
   auto f1 = [](Real x) { return x*x*x + x*x + x - 1.0; };
   auto f2 = [](Real x) { return x*x*x - 2.0*x*x + 3.0*x - 1.0; };
@@ -399,13 +399,15 @@ TEST(TestChebyshevTensorFunc, Value3D)
         const Vec4 Xc({x, y, z, 0.0}, p);
         const Tensor res = cheb(Xc);
         EXPECT_NEAR(res(1,1), f1(x) * f2(y) * f3(z), 1e-12);
-        EXPECT_NEAR(res(1,2), f1(x) * f3(y) * f2(z), 1e-12);
-        EXPECT_NEAR(res(1,3), f2(x) * f1(y) * f3(z), 1e-12);
-        EXPECT_NEAR(res(2,1), f1(x) * f3(y) * f2(z), 1e-12);
-        EXPECT_NEAR(res(2,2), f2(x) * f3(y) * f1(z), 1e-12);
-        EXPECT_NEAR(res(2,3), f3(x) * f1(y) * f2(z), 1e-12);
+        EXPECT_NEAR(res(2,1), f2(x) * f1(y) * f3(z), 1e-12);
         EXPECT_NEAR(res(3,1), f1(x) * f3(y) * f2(z), 1e-12);
+
+        EXPECT_NEAR(res(1,2), f1(x) * f3(y) * f2(z), 1e-12);
+        EXPECT_NEAR(res(2,2), f2(x) * f3(y) * f1(z), 1e-12);
         EXPECT_NEAR(res(3,2), f3(x) * f2(y) * f1(z), 1e-12);
+
+        EXPECT_NEAR(res(1,3), f2(x) * f1(y) * f3(z), 1e-12);
+        EXPECT_NEAR(res(2,3), f3(x) * f1(y) * f2(z), 1e-12);
         EXPECT_NEAR(res(3,3), f3(x) * f1(y) * f2(z), 1e-12);
       }
 }
