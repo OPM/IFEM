@@ -30,25 +30,25 @@ namespace Chebyshev
   //! \brief Evaluates a 1D Chebyshev polynomial of first kind.
   //! \param[in] polnum Which polynomial of the basis to evaluate
   //! \param[in] xi Natural coordinate of the evaluation point
-  double evalPol1(int polnum, double xi);
+  Real evalPol1(int polnum, Real xi);
   //! \brief Evaluates a 1D Chebyshev polynomial of second kind.
   //! \param[in] polnum Which polynomial of the basis to evaluate
   //! \param[in] xi Natural coordinate of the evaluation point
-  double evalPol2(int polnum, double xi);
+  Real evalPol2(int polnum, Real xi);
 
   //! \brief Evaluates the first derivative of a 1D Chebyshev polynomial of first kind.
   //! \param[in] polnum Which polynomial of the basis to evaluate
   //! \param[in] xi Natural coordinate of the evaluation point
-  double evalDer1(int polnum, double xi);
+  Real evalDer1(int polnum, Real xi);
   //! \brief Evaluates the first derivative of a 1D Chebyshev polynomial of second kind.
   //! \param[in] polnum Which polynomial of the basis to evaluate
   //! \param[in] xi Natural coordinate of the evaluation point
-  double evalDer2(int polnum, double xi);
+  Real evalDer2(int polnum, Real xi);
 
   //! \brief Evaluates the second derivative of a 1D Chebyshev polynomial of first kind.
   //! \param[in] polnum Which polynomial of the basis to evaluate
   //! \param[in] xi Natural coordinate of the evaluation point
-  double eval2Der1(int polnum, double xi);
+  Real eval2Der1(int polnum, Real xi);
 }
 
 
