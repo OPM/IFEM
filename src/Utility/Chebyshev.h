@@ -70,12 +70,18 @@ public:
   ChebyshevFunc(const std::string& input, bool file);
 
   //! \brief Returns whether the function is identically zero or not.
-  bool isZero() const override { return n[0] == n[1] == n[2] == 0; }
+  bool isZero() const override { return coefs.empty(); }
 
   //! \brief Returns a const reference to the coefficients.
   const std::vector<Real>& getCoefs() const { return coefs; }
   //! \brief Returns the number of polynomials in each parameter direction.
   const std::array<int,3>& getSize() const { return n; }
+
+  //! \brief Returns a first-derivative of the function.
+  Real deriv(const Vec3& X, int c) const override;
+
+  //! \brief Returns a second-derivative of the function.
+  Real dderiv(const Vec3& X, int c, int c2) const override;
 
 protected:
   //! \brief Evaluates the function at point \a X.
@@ -116,11 +122,15 @@ public:
                    bool file, bool second = false);
 
   //! \brief Returns whether the function is identically zero or not.
-  virtual bool isZero() const { return f[0]->isZero(); }
+  bool isZero() const override { return !f[0] || f[0]->isZero(); }
 
 protected:
   //! \brief Evaluates the function at point \a X.
-  virtual Vec3 evaluate(const Vec3& X) const;
+  Vec3 evaluate(const Vec3& X) const override;
+  //! \brief Returns the gradient of the function as a 1D array.
+  std::vector<Real> evalGradient(const Vec3&) const override;
+  //! \brief Returns the hessian of the function as a 1D array.
+  std::vector<Real> evalHessian(const Vec3& X) const override;
 };
 
 
