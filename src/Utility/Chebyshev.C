@@ -102,28 +102,38 @@ void ChebyshevFunc::read (std::istream& in)
 
 Real ChebyshevFunc::evaluate (const Vec3& X) const
 {
+  const Func eval{Chebyshev::evalPol1, 1.0};
+  return this->evaluateTP(X, {eval, eval, eval});
+}
+
+
+Real ChebyshevFunc::evaluateTP (const Vec3& X,
+                                const std::array<Func,3>& funcs) const
+{
   const Vec4& X4 = static_cast<const Vec4&>(X);
-  double res = 0.0;
-  Vector TX(n[0]);
+
+  auto eval = [&funcs,&X4,this](int c)
+  {
+    Vector V(n[c]);
+    for (int i = 0; i < n[c]; ++i)
+      V[i] = funcs[c].f(i, (-1.0+2.0*X4.u[c])) * funcs[c].w;
+    return V;
+  };
+
+  Vector TX = eval(0);
+  if (n[1] == 1 && n[2] == 1)
+    return std::inner_product(coefs.begin(), coefs.end(), TX.begin(), 0.0);
+
   Matrix T;
-  for (int i = 0; i < n[0]; ++i)
-    TX[i] = Chebyshev::evalPol1(i, (-1.0+2.0*X4.u[0]));
-  Vector TY(n[1]);
-  for (int j = 0; j < n[1]; ++j)
-    TY[j] = Chebyshev::evalPol1(j, (-1.0+2.0*X4.u[1]));
+  Vector TY = eval(1);
   T.outer_product(TX, TY);
   if (n[2] == 1)
-    res = std::inner_product(coefs.begin(), coefs.end(), T.begin(), 0.0);
-  else {
-    Vector TZ(n[2]);
-    for (int k = 0; k < n[2]; ++k)
-      TZ[k] = Chebyshev::evalPol1(k, (-1.0 + 2.0*X4.u[2]));
-    Matrix T2;
-    T2.outer_product(T, TZ);
-    res = std::inner_product(coefs.begin(), coefs.end(), T2.begin(), 0.0);
-  }
+    return std::inner_product(coefs.begin(), coefs.end(), T.begin(), 0.0);
 
-  return res;
+  Vector TZ = eval(2);
+  Matrix T2;
+  T2.outer_product(T, TZ);
+  return std::inner_product(coefs.begin(), coefs.end(), T2.begin(), 0.0);
 }
 
 

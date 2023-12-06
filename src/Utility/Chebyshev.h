@@ -18,6 +18,7 @@
 #include "TensorFunction.h"
 
 #include <array>
+#include <functional>
 #include <memory>
 
 
@@ -68,7 +69,7 @@ public:
   ChebyshevFunc(const std::string& input, bool file);
 
   //! \brief Returns whether the function is identically zero or not.
-  virtual bool isZero() const { return n[0] == n[1] == n[2] == 0; }
+  bool isZero() const override { return n[0] == n[1] == n[2] == 0; }
 
   //! \brief Returns a const reference to the coefficients.
   const std::vector<Real>& getCoefs() const { return coefs; }
@@ -77,9 +78,19 @@ public:
 
 protected:
   //! \brief Evaluates the function at point \a X.
-  virtual Real evaluate(const Vec3& X) const;
+  Real evaluate(const Vec3& X) const override;
 
 private:
+  //! \brief Struct defining function and weight in one direction.
+  struct Func
+  {
+    std::function<Real(int, Real)> f; //!< Function to evaluate
+    double w; //!< Weight
+  };
+
+  //! \brief Performs the actual tensor-product evaluation.
+  Real evaluateTP (const Vec3& X, const std::array<Func,3>& funcs) const;
+
   //! \brief Reads input from a stream.
   //! \param in Stream to read from
   void read(std::istream& in);
