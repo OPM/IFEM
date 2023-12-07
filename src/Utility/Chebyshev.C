@@ -15,6 +15,7 @@
 #include "MatVec.h"
 
 #include <fstream>
+#include <sstream>
 #include <numeric>
 
 
@@ -69,14 +70,25 @@ Real Chebyshev::eval2Der1 (int polnum, Real xi)
 }
 
 
-ChebyshevFunc::ChebyshevFunc (const char* file)
+ChebyshevFunc::ChebyshevFunc (const std::string& input, bool file)
 {
-  std::ifstream in(file);
-  if (!in.good()) {
-    n[0] = n[1] = n[2] = 0;
-    return;
+  if (file) {
+    std::ifstream in(input);
+    if (!in.good()) {
+      n[0] = n[1] = n[2] = 0;
+      return;
+    }
+    read(in);
+  } else {
+    std::stringstream in;
+    in.str(input);
+    read(in);
   }
+}
 
+
+void ChebyshevFunc::read (std::istream& in)
+{
   in >> n[0] >> n[1] >> n[2];
   if (n[1] == 0)
     n[1] = 1;
@@ -115,14 +127,15 @@ Real ChebyshevFunc::evaluate (const Vec3& X) const
 }
 
 
-ChebyshevVecFunc::ChebyshevVecFunc (const std::vector<const char*>& file, bool second)
+ChebyshevVecFunc::ChebyshevVecFunc (const std::vector<std::string>& input,
+                                    bool file, bool second)
   : secondDer(second)
 {
-  f[0] = std::make_unique<ChebyshevFunc>(file[0]);
-  if (file.size() > 1)
-    f[1] = std::make_unique<ChebyshevFunc>(file[1]);
-  if (file.size() > 2)
-    f[2] = std::make_unique<ChebyshevFunc>(file[2]);
+  f[0] = std::make_unique<ChebyshevFunc>(input[0], file);
+  if (input.size() > 1)
+    f[1] = std::make_unique<ChebyshevFunc>(input[1], file);
+  if (input.size() > 2)
+    f[2] = std::make_unique<ChebyshevFunc>(input[2], file);
   if (f[0]->getSize()[2] == 1)
     ncmp = 2;
 }
@@ -192,19 +205,20 @@ Vec3 ChebyshevVecFunc::evaluate (const Vec3& X) const
 }
 
 
-ChebyshevTensorFunc::ChebyshevTensorFunc (const std::vector<const char*>& file, bool second)
+ChebyshevTensorFunc::ChebyshevTensorFunc (const std::vector<std::string>& input,
+                                          bool file, bool second)
 {
-  if (file.size() < 4) {
-    for (size_t i = 0; i < file.size(); ++i)
-      f[i].reset(new ChebyshevVecFunc({file[i]}, second));
+  if (input.size() < 4) {
+    for (size_t i = 0; i < input.size(); ++i)
+      f[i].reset(new ChebyshevVecFunc({input[i]}, file, second));
   } else {
-    if (file.size() == 4) {
-      f[0].reset(new ChebyshevVecFunc({file[0], file[1]}));
-      f[1].reset(new ChebyshevVecFunc({file[2], file[3]}));
+    if (input.size() == 4) {
+      f[0].reset(new ChebyshevVecFunc({input[0], input[1]}, file));
+      f[1].reset(new ChebyshevVecFunc({input[2], input[3]}, file));
     } else {
-      f[0].reset(new ChebyshevVecFunc({file[0], file[1], file[2]}));
-      f[1].reset(new ChebyshevVecFunc({file[3], file[4], file[5]}));
-      f[2].reset(new ChebyshevVecFunc({file[6], file[7], file[8]}));
+      f[0].reset(new ChebyshevVecFunc({input[0], input[1], input[2]}, file));
+      f[1].reset(new ChebyshevVecFunc({input[3], input[4], input[5]}, file));
+      f[2].reset(new ChebyshevVecFunc({input[6], input[7], input[8]}, file));
     }
   }
   ncmp = f[0]->dim();

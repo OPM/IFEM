@@ -63,8 +63,9 @@ class ChebyshevFunc : public RealFunc
 
 public:
   //! \brief The constructor initializes the function parameters from a file.
-  //! \param[in] file Name of file to read \ref coefs from
-  ChebyshevFunc(const char* file);
+  //! \param[in] input Name of file or string to read \ref coefs from
+  //! \param[in] file True if input is a file name
+  ChebyshevFunc(const std::string& input, bool file);
 
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return n[0] == n[1] == n[2] == 0; }
@@ -77,6 +78,11 @@ public:
 protected:
   //! \brief Evaluates the function at point \a X.
   virtual Real evaluate(const Vec3& X) const;
+
+private:
+  //! \brief Reads input from a stream.
+  //! \param in Stream to read from
+  void read(std::istream& in);
 };
 
 
@@ -90,10 +96,12 @@ class ChebyshevVecFunc : public VecFunc
   bool secondDer; //!< True to take second derivatives
 
 public:
-  //! \brief The constructor initializes the function parameters from a file.
-  //! \param[in] file Name of files to read coefs from
+  //! \brief The constructor initializes the function parameters from files.
+  //! \param[in] input Name of files or strings to read coefs from
+  //! \param[in] file True if input is file names
   //! \param[in] second True to take second derivatives
-  ChebyshevVecFunc(const std::vector<const char*>& file, bool second = false);
+  ChebyshevVecFunc(const std::vector<std::string>& input,
+                   bool file, bool second = false);
 
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return f[0]->isZero(); }
@@ -117,9 +125,11 @@ class ChebyshevTensorFunc : public TensorFunc
 
 public:
   //! \brief The constructor initializes the function parameters from files.
-  //! \param[in] file Name of files to read from
+  //! \param[in] input Name of files or strings to read coefs from
+  //! \param[in] file True if input is file names
   //! \param[in] second True to take second derivatives
-  ChebyshevTensorFunc(const std::vector<const char*>& file, bool second);
+  ChebyshevTensorFunc(const std::vector<std::string>& input,
+                      bool file, bool second);
 
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return !(f[0] || f[1] || f[2]); }

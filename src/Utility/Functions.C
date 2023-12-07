@@ -659,7 +659,7 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A, bool print)
       {
         if (print)
           IFEM::cout <<"Chebyshev("<< cline <<")";
-        f = new ChebyshevFunc(cline);
+        f = new ChebyshevFunc(cline, true);
       }
       break;
     }
@@ -882,21 +882,6 @@ RealFunc* utl::parseRealFunc (const std::string& func,
 }
 
 
-/*!
-  \brief Static helper splitting a string into an array of const char pointers.
-*/
-
-static std::vector<const char*> splitValue (const std::string& value)
-{
-  strtok(const_cast<char*>(value.c_str())," ");
-  std::vector<const char*> values;
-  const char* s = nullptr;
-  while ((s = strtok(nullptr," ")))
-    values.push_back(s);
-  return values;
-}
-
-
 VecFunc* utl::parseVecFunc (const std::string& func, const std::string& type,
                             const std::string& variables)
 {
@@ -926,9 +911,9 @@ VecFunc* utl::parseVecFunc (const std::string& func, const std::string& type,
     return new ConstVecFunc(v);
   }
   else if (type == "chebyshev")
-    return new ChebyshevVecFunc(splitValue(func),false);
+    return new ChebyshevVecFunc(splitString(func),true,false);
   else if (type == "chebyshev2")
-    return new ChebyshevVecFunc(splitValue(func),true);
+    return new ChebyshevVecFunc(splitString(func),true,true);
   else if (type == "field") {
     std::vector<std::string> params = splitString(func);
     if (params.size() < 3)
@@ -968,9 +953,9 @@ TensorFunc* utl::parseTensorFunc (const std::string& func,
                                   const std::string& type)
 {
   if (type == "chebyshev")
-    return new ChebyshevTensorFunc(splitValue(func),false);
+    return new ChebyshevTensorFunc(splitString(func),true,false);
   else if (type == "chebyshev2")
-    return new ChebyshevTensorFunc(splitValue(func),true);
+    return new ChebyshevTensorFunc(splitString(func),true,true);
   else if (type == "fieldgrad") {
     std::vector<std::string> params = splitString(func);
     int level = 0;
