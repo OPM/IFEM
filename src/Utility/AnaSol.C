@@ -91,13 +91,13 @@ AnaSol::AnaSol (std::istream& is, const int nlines, bool scalarSol)
     {
       variables += function.substr(pos+10);
       if (variables[variables.size()-1] != ';') variables += ";";
-      IFEM::cout <<"\tVariables="<< variables << std::endl;
+      IFEM::cout <<"\tVariables: "<< variables << std::endl;
     }
 
     if ((pos = function.find("Primary=")) != std::string::npos)
     {
       std::string primary = function.substr(pos+8);
-      IFEM::cout <<"\tPrimary="<< primary << std::endl;
+      IFEM::cout <<"\tPrimary: "<< primary << std::endl;
       if (scalarSol)
         scalSol.push_back(new EvalFunction((variables+primary).c_str()));
       else
@@ -107,7 +107,7 @@ AnaSol::AnaSol (std::istream& is, const int nlines, bool scalarSol)
     if ((pos = function.find("Secondary=")) != std::string::npos)
     {
       std::string secondary = function.substr(pos+10);
-      IFEM::cout <<"\tSecondary="<< secondary << std::endl;
+      IFEM::cout <<"\tSecondary: "<< secondary << std::endl;
       if (scalarSol)
         scalSecSol.push_back(new VecFuncExpr(secondary,variables));
       else
@@ -117,7 +117,7 @@ AnaSol::AnaSol (std::istream& is, const int nlines, bool scalarSol)
     if ((pos = function.find("Stress=")) != std::string::npos)
     {
       std::string stress = function.substr(pos+7);
-      IFEM::cout <<"\tStress="<< stress << std::endl;
+      IFEM::cout <<"\tStress: "<< stress << std::endl;
       stressSol = new STensorFuncExpr(stress,variables);
     }
   }
@@ -186,7 +186,7 @@ void AnaSol::parseExpressionFunctions (const tinyxml2::XMLElement* elem, bool sc
   {
     variables = var->FirstChild()->Value();
     if (variables[variables.size()-1] != ';') variables += ";";
-    IFEM::cout <<"\tVariables="<< variables << std::endl;
+    IFEM::cout <<"\tVariables: "<< variables << std::endl;
   }
 
   // Lambda function for parsing the derivative of an expression function
@@ -202,7 +202,7 @@ void AnaSol::parseExpressionFunctions (const tinyxml2::XMLElement* elem, bool sc
       IFEM::cout <<"\tDerivative_"<< dir1;
       if (dir2 > 0) IFEM::cout << dir2;
       std::string derivative = child->FirstChild()->Value();
-      IFEM::cout <<"="<< derivative << std::endl;
+      IFEM::cout <<": "<< derivative << std::endl;
       func->addDerivative(derivative,variables,dir1,dir2);
     }
   };
@@ -212,9 +212,9 @@ void AnaSol::parseExpressionFunctions (const tinyxml2::XMLElement* elem, bool sc
   {
     std::string type = "expression";
     utl::getAttribute(prim, "type", type);
-    std::string prType = (type == "expression" ? "" : "("+type+") ");
+    std::string prType = (type == "expression" ? "" : " ("+type+")");
     std::string primary = prim->FirstChild()->Value();
-    IFEM::cout <<"\tPrimary" << prType << "=" << primary << std::endl;
+    IFEM::cout <<"\tPrimary" << prType << ": " << primary << std::endl;
     if (scalarSol)
     {
       if (type == "expression") {
@@ -238,9 +238,9 @@ void AnaSol::parseExpressionFunctions (const tinyxml2::XMLElement* elem, bool sc
   {
     std::string type = "expression";
     utl::getAttribute(prim, "type", type);
-    std::string prType = (type == "expression" ? "" : "("+type+") ");
+    std::string prType = (type == "expression" ? "" : " ("+type+")");
     std::string primary = prim->FirstChild()->Value();
-    IFEM::cout <<"\tScalar Primary" << prType << "=" << primary << std::endl;
+    IFEM::cout <<"\tScalar Primary" << prType << ": " << primary << std::endl;
     if (type == "expression")
       scalSol.push_back(new EvalF((variables+primary).c_str()));
     else
@@ -253,9 +253,9 @@ void AnaSol::parseExpressionFunctions (const tinyxml2::XMLElement* elem, bool sc
   {
     std::string type = "expression";
     utl::getAttribute(sec, "type", type);
-    std::string prType = (type == "expression" ? "" : "("+type+") ");
+    std::string prType = (type == "expression" ? "" : " ("+type+") ");
     std::string secondary = sec->FirstChild()->Value();
-    IFEM::cout <<"\tSecondary" << prType << "=" << secondary << std::endl;
+    IFEM::cout <<"\tSecondary" << prType << ": " << secondary << std::endl;
     if (scalarSol)
     {
       if (type == "expression") {
@@ -280,7 +280,8 @@ void AnaSol::parseExpressionFunctions (const tinyxml2::XMLElement* elem, bool sc
     std::string type = "expression";
     utl::getAttribute(sec, "type", type);
     std::string secondary = sec->FirstChild()->Value();
-    IFEM::cout <<"\tScalar Secondary="<< secondary << std::endl;
+    std::string prType = (type == "expression" ? "" : " ("+type+") ");
+    IFEM::cout <<"\tScalar Secondary" << prType << ": " << secondary << std::endl;
     if (type == "expression")
       scalSecSol.push_back(new VecF(secondary,variables));
     else
@@ -292,8 +293,10 @@ void AnaSol::parseExpressionFunctions (const tinyxml2::XMLElement* elem, bool sc
   if (stress && stress->FirstChild())
   {
     symmetric = true;
+    std::string type = "expression";
     std::string sigma = stress->FirstChild()->Value();
-    IFEM::cout <<"\tStress="<< sigma << std::endl;
+    std::string prType = (type == "expression" ? "" : " ("+type+") ");
+    IFEM::cout <<"\tStress" << prType << ": " << sigma << std::endl;
     stressSol = new STensorF(sigma,variables);
     parseDerivatives(static_cast<STensorF*>(stressSol),stress);
   }
@@ -318,7 +321,7 @@ void AnaSol::parseFieldFunctions (const tinyxml2::XMLElement* elem, bool scalarS
   if (prim && prim->FirstChild())
   {
     std::string primary = prim->FirstChild()->Value();
-    IFEM::cout <<"\tPrimary="<< primary << std::endl;
+    IFEM::cout <<"\tPrimary: "<< primary << std::endl;
     if (scalarSol)
       scalSol.push_back(new FieldFunction(file, basis, primary, level));
     else
@@ -328,7 +331,7 @@ void AnaSol::parseFieldFunctions (const tinyxml2::XMLElement* elem, bool scalarS
   if (prim && prim->FirstChild())
   {
     std::string primary = prim->FirstChild()->Value();
-    IFEM::cout <<"\tScalar Primary="<< primary << std::endl;
+    IFEM::cout <<"\tScalar Primary: "<< primary << std::endl;
     scalSol.push_back(new FieldFunction(file, basis, primary, level));
   }
 
@@ -336,7 +339,7 @@ void AnaSol::parseFieldFunctions (const tinyxml2::XMLElement* elem, bool scalarS
   if (sec && sec->FirstChild())
   {
     std::string secondary = sec->FirstChild()->Value();
-    IFEM::cout <<"\tSecondary="<< secondary << std::endl;
+    IFEM::cout <<"\tSecondary: "<< secondary << std::endl;
     if (scalarSol)
       scalSecSol.push_back(new VecFieldFunction(file, basis, secondary, level));
     else
@@ -346,14 +349,14 @@ void AnaSol::parseFieldFunctions (const tinyxml2::XMLElement* elem, bool scalarS
   if (sec && sec->FirstChild())
   {
     std::string secondary = sec->FirstChild()->Value();
-    IFEM::cout <<"\tScalar Secondary="<< secondary << std::endl;
+    IFEM::cout <<"\tScalar Secondary: "<< secondary << std::endl;
     scalSecSol.push_back(new VecFieldFunction(file, basis, secondary, level));
   }
   sec = elem->FirstChildElement("stress");
   if (sec && sec->FirstChild())
   {
     std::string secondary = sec->FirstChild()->Value();
-    IFEM::cout <<"\tStress="<< secondary << std::endl;
+    IFEM::cout <<"\tStress: "<< secondary << std::endl;
     stressSol = new STensorFieldFunction(file, basis, secondary, level);
   }
 #else
