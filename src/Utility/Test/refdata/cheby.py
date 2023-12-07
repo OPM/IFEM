@@ -1,8 +1,9 @@
 import numpy as np
 
 def write(data, name, dim, file):
-    file.write(f'const std::string cheby_{name} =\n')
-    file.write('R"({} {} {}'.format(dim[0], dim[1], dim[2]))
+    file.write(f'const std::string cheby_{name} =\nR"(')
+    for d in dim:
+        file.write(f'{d} 0.0 1.0\n')
     for p in data:
         file.write(f'\n{str(p)}')
     file.write(')";\n\n')
