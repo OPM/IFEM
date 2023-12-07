@@ -89,11 +89,11 @@ ChebyshevFunc::ChebyshevFunc (const std::string& input, bool file)
 
 void ChebyshevFunc::read (std::istream& in)
 {
-  in >> n[0] >> n[1] >> n[2];
-  if (n[1] == 0)
-    n[1] = 1;
-  if (n[2] == 0)
-    n[2] = 1;
+  for (size_t i = 0; i < 3; ++i) {
+    in >> n[i] >> domain[i][0] >> domain[i][1];
+    if (n[i] == 0)
+      n[i] = 1;
+  }
   coefs.resize(n[0]*n[1]*n[2]);
   for (double& coef : coefs)
     in >> coef;
@@ -110,13 +110,13 @@ Real ChebyshevFunc::evaluate (const Vec3& X) const
 Real ChebyshevFunc::evaluateTP (const Vec3& X,
                                 const std::array<Func,3>& funcs) const
 {
-  const Vec4& X4 = static_cast<const Vec4&>(X);
-
-  auto eval = [&funcs,&X4,this](int c)
+  auto eval = [&funcs,&X,this](int c)
   {
     Vector V(n[c]);
+    const double coord = -1.0 + 2.0 * (X[c] - domain[c][0]) /
+                                      (domain[c][1] - domain[c][0]);
     for (int i = 0; i < n[c]; ++i)
-      V[i] = funcs[c].f(i, (-1.0+2.0*X4.u[c])) * funcs[c].w;
+      V[i] = funcs[c].f(i, coord) * funcs[c].w;
     return V;
   };
 

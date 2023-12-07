@@ -61,6 +61,7 @@ class ChebyshevFunc : public RealFunc
 {
   std::vector<Real> coefs; //!< Function coefficients
   std::array<int,3> n;     //!< Number of coefficients
+  std::array<std::array<double,2>,3> domain; //!< Physical domain
 
 public:
   //! \brief The constructor initializes the function parameters from a file.
