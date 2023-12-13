@@ -729,7 +729,6 @@ bool SAM::getUniqueEqns (IntSet& meen, int iel) const
     return false;
 
   for (int jeq : meenTmp)
-  {
     if (jeq < 0)
     {
       int jpmceq1 = mpmceq[-jeq-1];
@@ -738,9 +737,8 @@ bool SAM::getUniqueEqns (IntSet& meen, int iel) const
         if (mmceq[jp] > 0)
           meen.insert(meqn[mmceq[jp]-1]);
     }
-    else if (jeq != 0)
+    else if (jeq > 0)
       meen.insert(jeq);
-  }
 
   return true;
 }
@@ -847,6 +845,22 @@ bool SAM::expandVector (const Real* solVec, Vector& dofVec, Real scaleSD) const
     }
   }
 #endif
+
+  return true;
+}
+
+
+bool SAM::getSolVec (RealArray& solVec, const RealArray& dofVec) const
+{
+  if (!meqn) return false;
+
+  solVec.resize(neq,Real(0));
+  for (int idof = 0; idof < ndof; idof++)
+  {
+    int ieq = meqn[idof];
+    if (ieq > 0)
+      solVec[ieq-1] = dofVec[idof];
+  }
 
   return true;
 }
@@ -966,7 +980,7 @@ Real SAM::normReact (const RealArray& u, const RealArray& rf) const
     if (meqn[i] < 0 && msc[i] < 0 && -msc[i] <= (int)rf.size())
       if (mpmceq[-meqn[i]] - mpmceq[-meqn[i]-1] == 1) // Only prescribed DOFs
       {
-        double RF = rf[-msc[i]-1];
+        Real RF = rf[-msc[i]-1];
         retVal += u[i]*RF;
 #if SP_DEBUG > 1
         std::cout <<"SAM::normReact: idof="<< i+1 <<" SC="<< msc[i]

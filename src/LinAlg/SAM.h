@@ -196,7 +196,9 @@ public:
   //! \brief Returns the number equations for an element.
   //! \param[in] iel Identifier for the element to get number of equations for
   size_t getNoElmEqns(int iel) const;
-  //! \brief Finds the matrix of unique equation numbers for an element.
+  //! \brief Finds the set of unique equation numbers for an element.
+  //! \param[out] meen Matrix of unique element equation numbers
+  //! \param[in] iel Identifier for the element to get equation numbers for
   bool getUniqueEqns(IntSet& meen, int iel) const;
 
   //! \brief Finds the matrix of equation numbers for a node.
@@ -246,6 +248,14 @@ public:
   //!
   //! \details This version is typically used to expand eigenvectors.
   bool expandVector(const Vector& solVec, Vector& dofVec) const;
+
+  //! \brief Extracts equation-ordered solution vector from DOF-ordered vector.
+  //! \param[out] solVec Solution vector in equation order
+  //! \param[in] dofVec Solution vector in DOF order
+  //!
+  //! \details This method is basically doing the opposite transformation
+  //! as expandVector().
+  bool getSolVec(RealArray& solVec, const RealArray& dofVec) const;
 
   //! \brief Applies the non-homogenous Dirichlet BCs to the given vector.
   //! \param dofVec Degrees of freedom vector, length = NDOF
