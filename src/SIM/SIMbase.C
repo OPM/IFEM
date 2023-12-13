@@ -1231,22 +1231,8 @@ bool SIMbase::solveEqSystem (Vector& solution, size_t idxRHS, double* rCond,
   }
 
   // Dump solution vector to file, if requested
-  for (DumpData& dmp : solDump)
-    if (dmp.doDump()) {
-      IFEM::cout <<"Dumping solution vector to file "<< dmp.fname << std::endl;
-      std::ofstream os(dmp.fname.c_str(),
-                       dmp.step.size() == 1 ? std::ios::out : std::ios::app);
-      os << std::setprecision(17);
-      double old_tol = utl::zero_print_tol;
-      utl::zero_print_tol = dmp.eps;
-      char vecName[16];
-      if (dmp.step.size() == 1)
-        strcpy(vecName,"x");
-      else
-        sprintf(vecName,"x%d",dmp.count);
-      b->dump(os,dmp.format,vecName);
-      utl::zero_print_tol = old_tol;
-    }
+  if (printSol > 0)
+    this->dumpSysVec(*b);
 
   // Expand solution vector from equation ordering to DOF-ordering
   if (status && mySam)
@@ -1333,6 +1319,8 @@ void SIMbase::printSolutionSummary (const Vector& solution, int printSol,
   // Print entire solution vector if it is small enough
   if (mySam && mySam->getNoEquations() < printSol)
     mySam->printVector(adm.cout,solution,"Solution vector");
+  else if (printSol <= 0) // Dump solution vector to file, if requested
+    this->dumpSolVec(solution);
 }
 
 
@@ -2461,7 +2449,8 @@ void SIMbase::dumpEqSys (bool initialBlankLine)
 {
   // Dump system matrix to file, if requested
   for (DumpData& dmp : lhsDump)
-    if (dmp.doDump()) {
+    if (dmp.doDump())
+    {
       if (initialBlankLine) IFEM::cout <<"\n";
       IFEM::cout <<"Dumping system matrix to file "<< dmp.fname << std::endl;
       std::ofstream os(dmp.fname.c_str(),
@@ -2484,9 +2473,10 @@ void SIMbase::dumpEqSys (bool initialBlankLine)
   if (myEqSys->getNoRHS() == 0)
     return;
 
-  // Dump right-hand-side vector to file, if requested
+  // Dump right-hand-side vector(s) to file, if requested
   for (DumpData& dmp : rhsDump)
-    if (dmp.doDump()) {
+    if (dmp.doDump())
+    {
       if (initialBlankLine) IFEM::cout <<"\n";
       IFEM::cout <<"Dumping RHS vector to file "<< dmp.fname << std::endl;
       std::ofstream os(dmp.fname.c_str(),
@@ -2504,6 +2494,45 @@ void SIMbase::dumpEqSys (bool initialBlankLine)
         c->dump(os,dmp.format,vecName); // label vectors as b,c,d,...
       utl::zero_print_tol = old_tol;
       initialBlankLine = false;
+    }
+}
+
+
+void SIMbase::dumpSysVec (SystemVector& vec)
+{
+  // Dump solution vector to file, if requested
+  for (DumpData& dmp : solDump)
+    if (dmp.doDump())
+    {
+      IFEM::cout <<"Dumping solution vector to file "<< dmp.fname << std::endl;
+      std::ofstream os(dmp.fname.c_str(),
+                       dmp.step.size() == 1 ? std::ios::out : std::ios::app);
+      os << std::setprecision(17);
+      double old_tol = utl::zero_print_tol;
+      utl::zero_print_tol = dmp.eps;
+      char vecName[16];
+      if (dmp.step.size() == 1)
+        strcpy(vecName,"x");
+      else
+        sprintf(vecName,"x%d",dmp.count);
+      vec.dump(os,dmp.format,vecName);
+      utl::zero_print_tol = old_tol;
+    }
+}
+
+
+void SIMbase::dumpSolVec (const RealArray& vec)
+{
+  if (!mySam) return;
+
+  // Dump solution vector to file, if requested
+  for (DumpData& dmp : solDump)
+    if (!dmp.fname.empty() && dmp.step.find(dmp.count+1) != dmp.step.end())
+    {
+      StdVector solVec;
+      if (mySam->getSolVec(solVec,vec))
+        this->dumpSysVec(solVec);
+      return;
     }
 }
 

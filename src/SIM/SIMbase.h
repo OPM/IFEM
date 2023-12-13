@@ -724,8 +724,12 @@ public:
   //! \brief Returns \e true, if this is the equation system owner.
   bool isFirst() const { return mdFlag <= 1; }
 
-  //! \brief Dump left-hand-side matrix and right-hand-side vector to file.
+  //! \brief Dumps left-hand-side matrix and right-hand-side vector to file.
   void dumpEqSys(bool initialBlankLine = false);
+  //! \brief Dumps a system vector to file.
+  void dumpSysVec(SystemVector& vec);
+  //! \brief Dumps a solution vector to file.
+  void dumpSolVec(const RealArray& vec);
 
 protected:
   //! \brief Returns the multi-dimension simulator sequence flag.

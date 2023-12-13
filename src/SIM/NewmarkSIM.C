@@ -375,7 +375,11 @@ SIM::ConvStatus NewmarkSIM::solveStep (TimeStep& param, SIM::SolutionMode,
         if (!this->solutionNorms(param.time,zero_tolerance,outPrec))
           return SIM::FAILURE;
 
-        if (subiter&LAST) param.time.first = false;
+        if (subiter&LAST)
+        {
+           model.dumpSolVec(solution.front());
+           param.time.first = false;
+        }
         return SIM::CONVERGED;
 
       case SIM::DIVERGED:

@@ -241,44 +241,45 @@ ConvStatus NonLinSIM::solveStep (TimeStep& param, SolutionMode mode,
     switch (this->checkConvergence(param))
       {
       case CONVERGED:
-	if (!this->updateConfiguration(param))
-	  return FAILURE;
+        if (!this->updateConfiguration(param))
+          return FAILURE;
 
-	if (!this->solutionNorms(param.time,zero_tolerance,outPrec))
-	  return FAILURE;
+        if (!this->solutionNorms(param.time,zero_tolerance,outPrec))
+          return FAILURE;
 
-	param.time.first = false;
-	return CONVERGED;
+        model.dumpSolVec(solution.front());
+        param.time.first = false;
+        return CONVERGED;
 
       case DIVERGED:
-	return DIVERGED;
+        return DIVERGED;
 
       case SLOW:
-	poorConvg = true;
+        poorConvg = true;
 
       default:
-	param.iter++;
-	if (!this->updateConfiguration(param))
-	  return FAILURE;
+        param.iter++;
+        if (!this->updateConfiguration(param))
+          return FAILURE;
 
-	if (subiter&FIRST && param.iter == 1 && !model.updateDirichlet())
-	  return FAILURE;
+        if (subiter&FIRST && param.iter == 1 && !model.updateDirichlet())
+          return FAILURE;
 
-	if (param.iter > nupdat) newTangent = false;
-	model.setMode(newTangent ? mode : RHS_ONLY, false);
-	if (!this->assembleSystem(param.time,solution,newTangent,poorConvg))
-	  return model.getProblem()->diverged() ? DIVERGED : FAILURE;
+        if (param.iter > nupdat) newTangent = false;
+        model.setMode(newTangent ? mode : RHS_ONLY, false);
+        if (!this->assembleSystem(param.time,solution,newTangent,poorConvg))
+          return model.getProblem()->diverged() ? DIVERGED : FAILURE;
 
-	if (!model.extractLoadVec(residual))
-	  return FAILURE;
+        if (!model.extractLoadVec(residual))
+          return FAILURE;
 
-	if (!model.solveEqSystem(linsol,0,rCondPtr,msgLevel-1))
-	  return FAILURE;
+        if (!model.solveEqSystem(linsol,0,rCondPtr,msgLevel-1))
+          return FAILURE;
 
-	if (!this->lineSearch(param))
-	  return FAILURE;
+        if (!this->lineSearch(param))
+          return FAILURE;
 
-	poorConvg = false;
+        poorConvg = false;
       }
 
   return DIVERGED;
