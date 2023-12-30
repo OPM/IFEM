@@ -27,7 +27,6 @@ namespace tinyxml2 {
 }
 
 class Vec3;
-class TiXmlNode;
 
 typedef std::map<int,int> IntMap; //!< Convenience type
 
