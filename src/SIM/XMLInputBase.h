@@ -41,7 +41,7 @@ public:
   bool loadXML(const char* xml);
 
 protected:
-  //! \brief Loads an XML input file into a TiXmlDocument object.
+  //! \brief Loads an XML input file into a tinyxml2::XMLDocument object.
   //! \param[out] doc The top-level node of the XML-file
   //! \param[in] fileName File to read
   //! \param[in] verbose If \e true, print the file(s) being read
