@@ -329,7 +329,7 @@ int AdaptiveSetup::calcRefinement (LR::RefineData& prm, int iStep,
   if (scheme == ISOTROPIC_FUNCTION) // use errors per function
   {
     if (thePatch->getNoRefineNodes() == thePatch->getNoNodes(1))
-      error.resize(model.getNoNodes(),DblIdx(0.0,0));
+      error.resize(model.getNoNodes(1),DblIdx(0.0,0));
     else if (model.getNoPatches() == 1)
       error.resize(thePatch->getNoRefineNodes(),DblIdx(0.0,0));
     else
