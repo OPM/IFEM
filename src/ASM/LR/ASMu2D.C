@@ -2038,8 +2038,8 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
 {
   PROFILE2("ASMu2D::evalSol(P)");
 
-  size_t nComp = locSol.size() / this->getNoNodes();
-  if (nComp*this->getNoNodes() != locSol.size())
+  size_t nComp = locSol.size() / this->getNoNodes(-1);
+  if (nComp*this->getNoNodes(-1) > locSol.size())
     return false;
 
   size_t nPoints = gpar[0].size();
@@ -2073,9 +2073,12 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
         return false;
     }
 
+    const LR::Element* el = lrspline->getElement(iel);
+
     // Evaluate basis function values/derivatives at current parametric point
     // and multiply with control point values to get the point-wise solution
-    utl::gather(MNPC[iel],nComp,locSol,eSol);
+    utl::gather({MNPC[iel].begin(), MNPC[iel].begin() + el->nBasisFunctions()},
+                nComp,locSol,eSol);
     switch (deriv)
     {
     case 0: // Evaluate the solution
