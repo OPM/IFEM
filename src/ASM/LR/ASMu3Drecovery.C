@@ -113,7 +113,8 @@ bool ASMu3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
   const LR::LRSplineVolume* geo = this->getBasis(ASM::GEOMETRY_BASIS);
   const LR::LRSplineVolume* proj = this->getBasis(ASM::PROJECTION_BASIS);
   const bool separateProjBasis = proj != geo;
-  const bool useModelMNPC = !separateProjBasis && this->getNoBasis() == 1;
+  const bool useModelMNPC = !separateProjBasis && this->getNoBasis() == 1 &&
+                            this->getNoNodes(0) == this->getNoNodes(1);
 
   const int p1 = proj->order(0);
   const int p2 = proj->order(1);

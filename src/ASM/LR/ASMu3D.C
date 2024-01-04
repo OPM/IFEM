@@ -1518,8 +1518,8 @@ bool ASMu3D::evalSolution (Matrix& sField, const Vector& locSol,
 {
   PROFILE2("ASMu3D::evalSol(P)");
 
-  size_t nComp = locSol.size() / this->getNoNodes();
-  if (nComp*this->getNoNodes() != locSol.size())
+  size_t nComp = locSol.size() / this->getNoNodes(-1);
+  if (nComp*this->getNoNodes(-1) > locSol.size())
     return false;
 
   size_t nPoints = gpar[0].size();
@@ -1547,7 +1547,10 @@ bool ASMu3D::evalSolution (Matrix& sField, const Vector& locSol,
                 << gpar[1][i] <<", "<< gpar[2][i] <<") not found."<< std::endl;
       return false;
     }
-    utl::gather(MNPC[iel],nComp,locSol,eSol);
+    const LR::Element* el = lrspline->getElement(iel);
+
+    utl::gather({MNPC[iel].begin(),MNPC[iel].begin()+el->nBasisFunctions()},
+                nComp,locSol,eSol);
 
     if (iel != lel && deriv > 0)
     {
