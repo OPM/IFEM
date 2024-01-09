@@ -37,12 +37,12 @@ endif()
 
 INCLUDE(TestCXXAcceptsFlag)
 
-IF(${CMAKE_BUILD_TYPE} MATCHES "Release")
-  CHECK_CXX_ACCEPTS_FLAG("-mtune=native" HAVE_MTUNE)
-  IF (HAVE_MTUNE)
-    SET(IFEM_BUILD_CXX_FLAGS "${IFEM_BUILD_CXX_FLAGS} -mtune=native")
-  ENDIF(HAVE_MTUNE)
-ENDIF(${CMAKE_BUILD_TYPE} MATCHES "Release")
+if(CMAKE_BUILD_TYPE MATCHES "Release" AND IFEM_USE_NATIVE)
+  check_cxx_accepts_flag("-mtune=native" HAVE_MTUNE)
+  if(HAVE_MTUNE)
+    set(IFEM_BUILD_CXX_FLAGS "${IFEM_BUILD_CXX_FLAGS} -mtune=native")
+  endif(HAVE_MTUNE)
+endif()
 
 IF(IFEM_WHOLE_PROG_OPTIM)
   CHECK_CXX_ACCEPTS_FLAG("-flto" HAVE_LINK_OPTS)
