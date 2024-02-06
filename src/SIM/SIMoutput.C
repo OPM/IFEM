@@ -206,18 +206,29 @@ bool SIMoutput::parseOutputTag (const tinyxml2::XMLElement* elem)
       thePoint.patch = patch;
 
     // Get grid bounds
+    Vec3 X0, X1;
+    bool center = false;
+    bool cartesianGrid = (utl::getAttribute(grid,"X0",X0) &&
+                          utl::getAttribute(grid,"X1",X1));
     double u0[3], u1[3];
-    if (!utl::getAttribute(grid,"u0",u0[0])) u0[0] = 0.0;
-    if (!utl::getAttribute(grid,"v0",u0[1])) u0[1] = 0.0;
-    if (!utl::getAttribute(grid,"w0",u0[2])) u0[2] = 0.0;
-    if (!utl::getAttribute(grid,"u1",u1[0])) u1[0] = u0[0];
-    if (!utl::getAttribute(grid,"v1",u1[1])) u1[1] = u0[1];
-    if (!utl::getAttribute(grid,"w1",u1[2])) u1[2] = u0[2];
+    if (cartesianGrid)
+      utl::getAttribute(grid,"center",center);
+    else
+    {
+      if (!utl::getAttribute(grid,"u0",u0[0])) u0[0] = 0.0;
+      if (!utl::getAttribute(grid,"v0",u0[1])) u0[1] = 0.0;
+      if (!utl::getAttribute(grid,"w0",u0[2])) u0[2] = 0.0;
+      if (!utl::getAttribute(grid,"u1",u1[0])) u1[0] = u0[0];
+      if (!utl::getAttribute(grid,"v1",u1[1])) u1[1] = u0[1];
+      if (!utl::getAttribute(grid,"w1",u1[2])) u1[2] = u0[2];
+      X0 = Vec3(u0);
+      X1 = Vec3(u1);
+    }
 
     // Get grid resolution
     int npt[3] = { 10, 10, 10 };
     for (int d = 0; d < 3; d++)
-      if (u0[d] == u1[d]) npt[d] = 1;
+      if (X0[d] == X1[d]) npt[d] = 1;
     if (grid->FirstChild())
     {
       char* sval = strdup(grid->FirstChild()->Value());
@@ -234,30 +245,65 @@ bool SIMoutput::parseOutputTag (const tinyxml2::XMLElement* elem)
       myPoints.push_back({"",{}});
     newGroup = false;
 
-    for (int k = 0; k < npt[2]; k++)
+    if (cartesianGrid)
     {
-      double zeta = npt[2] > 1 ? double(k)/double(npt[2]-1) : 0.0;
-      thePoint.u[2] = u0[2]*(1.0-zeta) + u1[2]*zeta;
-      for (int j = 0; j < npt[1]; j++)
-      {
-        double eta = npt[1] > 1 ? double(j)/double(npt[1]-1) : 0.0;
-        thePoint.u[1] = u0[1]*(1.0-eta) + u1[1]*eta;
-        for (int i = 0; i < npt[0]; i++)
+      thePoint.inod = -npt[0];
+      Vec3 dX = X1 - X0;
+      for (int d = 0; d < 3; d++)
+        if (center && npt[d] > 1)
         {
-          double xi = npt[0] > 1 ? double(i)/double(npt[0]-1) : 0.0;
-          thePoint.u[0] = u0[0]*(1.0-xi) + u1[0]*xi;
-          myPoints.back().second.push_back(thePoint);
+          dX[d] /= npt[d];
+          X0[d] += 0.5*dX[d];
+        }
+        else if (npt[d] > 2)
+          dX[d] /= npt[d]-1;
+
+      for (int k = 0; k < npt[2]; k++)
+      {
+        thePoint.X.z = X0.z + dX.z*k;
+        for (int j = 0; j < npt[1]; j++)
+        {
+          thePoint.X.y = X0.y + dX.y*j;
+          for (int i = 0; i < npt[0]; i++)
+          {
+            thePoint.X.x = X0.x + dX.x*i;
+            myPoints.back().second.push_back(thePoint);
+          }
         }
       }
-    }
 
-    IFEM::cout <<"\tGrid "<< g <<": P"<< thePoint.patch
-               <<" npt = "<< npt[0]*npt[1]*npt[2] <<" xi =";
-    for (int d = 0; d < 3; d++)
+      IFEM::cout <<"\tGrid "<< g <<": P"<< thePoint.patch
+                 <<" npt = "<< npt[0]*npt[1]*npt[2] <<" X = "
+                 << myPoints.back().second.front().X <<" - "
+                 << myPoints.back().second.back().X;
+    }
+    else
     {
-      IFEM::cout <<' '<< u0[d];
-      if (u1[d] != u0[d])
-        IFEM::cout <<'-'<< u1[d];
+      for (int k = 0; k < npt[2]; k++)
+      {
+        double zeta = npt[2] > 1 ? double(k)/double(npt[2]-1) : 0.0;
+        thePoint.u[2] = u0[2]*(1.0-zeta) + u1[2]*zeta;
+        for (int j = 0; j < npt[1]; j++)
+        {
+          double eta = npt[1] > 1 ? double(j)/double(npt[1]-1) : 0.0;
+          thePoint.u[1] = u0[1]*(1.0-eta) + u1[1]*eta;
+          for (int i = 0; i < npt[0]; i++)
+          {
+            double xi = npt[0] > 1 ? double(i)/double(npt[0]-1) : 0.0;
+            thePoint.u[0] = u0[0]*(1.0-xi) + u1[0]*xi;
+            myPoints.back().second.push_back(thePoint);
+          }
+        }
+      }
+
+      IFEM::cout <<"\tGrid "<< g <<": P"<< thePoint.patch
+                 <<" npt = "<< npt[0]*npt[1]*npt[2] <<" xi =";
+      for (int d = 0; d < 3; d++)
+      {
+        IFEM::cout <<' '<< u0[d];
+        if (u1[d] != u0[d])
+          IFEM::cout <<'-'<< u1[d];
+      }
     }
     IFEM::cout << std::endl;
   }
@@ -315,25 +361,60 @@ void SIMoutput::preprocessResultPoints ()
 
 void SIMoutput::preprocessResPtGroup (std::string& ptFile, ResPointVec& points)
 {
-  for (ResPointVec::iterator p = points.begin(); p != points.end();)
+  if (points.empty()) return;
+
+  // Check if we have Cartesian grid input
+  size_t nX = 0;
+  IntMat pointMap;
+  if (points.front().inod < 0 && points.back().inod < 0)
   {
-    ASMbase* pch = this->getPatch(p->patch,true);
-    if (!pch || pch->empty())
-      p = points.erase(p);
-    else if (p->inod > 0)
-    {
-      p->X = pch->getCoord(p->inod);
-      (p++)->npar = pch->getNoParamDim();
-    }
-    else if ((p->inod = pch->evalPoint(p->u,p->u,p->X)) < 0)
-      p = points.erase(p);
+    nX = -points.front().inod;
+    size_t nY = points.size() / nX;
+    if (nX*nY == points.size())
+      pointMap.resize(nY,IntVec(nX,0));
     else
-      (p++)->npar = pch->getNoParamDim();
+      nX = 0;
   }
+
+  int iPoint = 0;
+  size_t iX = 0, iY = 0;
+  for (ResPointVec::iterator pit = points.begin(); pit != points.end();)
+  {
+    bool pointIsOK = false;
+    ASMbase* pch = this->getPatch(pit->patch,true);
+    if (pch && !pch->empty())
+    {
+      if ((pointIsOK = pit->inod > 0)) // A nodal number is specified
+        pit->X = pch->getCoord(pit->inod);
+
+      else if (pit->inod < 0) // A spatial point is specified
+        pointIsOK = fabs(pch->findPoint(pit->X,pit->u)) < 1.0e-3;
+
+      else // A parametric point is specified
+        pointIsOK = (pit->inod = pch->evalPoint(pit->u,pit->u,pit->X)) >= 0;
+    }
+
+    if (pointIsOK)
+    {
+      (pit++)->npar = pch->getNoParamDim();
+      ++iPoint;
+      if (nX > 0)
+        pointMap[iY][iX] = iPoint;
+    }
+    else
+      pit = points.erase(pit);
+
+    if (++iX == nX)
+    {
+      ++iY;
+      iX = 0;
+    }
+  }
+  if (iPoint == 0) return; // No valid result points
 
   if (logRpMap || msgLevel > 1)
   {
-    int iPoint = 0;
+    iPoint = 0;
     for (const ResultPoint& pt : points)
     {
       if (++iPoint == 1) IFEM::cout <<'\n';
@@ -354,6 +435,19 @@ void SIMoutput::preprocessResPtGroup (std::string& ptFile, ResPointVec& points)
         IFEM::cout <<", global #"<< pch->getNodeID(pt.inod);
       }
       IFEM::cout <<", X = "<< pt.X << std::endl;
+    }
+  }
+
+  if (!pointMap.empty())
+  {
+    // Write point mapping to file
+    size_t idot = ptFile.find_last_of('.');
+    std::string mapFile = ptFile.substr(0,idot) + ".map";
+    std::ofstream os(mapFile,std::ios::out);
+    for (const IntVec& row : pointMap)
+    {
+      for (int idx : row) os <<" "<< idx;
+      os <<"\n";
     }
   }
 
@@ -869,7 +963,7 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
       }
 
       if (!this->writeScalarFields(field,geomID,nBlock,xID))
-	return -3;
+        return -3;
     }
   }
 
@@ -1727,15 +1821,16 @@ bool SIMoutput::evalResults (const Vector& psol, const ResPointVec& gPoints,
   // Find all evaluation points within this patch, if any
   std::array<RealArray,3> params;
 
-  int jPoint = 1;
+  size_t jPoint = 0;
   for (const ResultPoint& pt : gPoints)
   {
+    ++jPoint;
     if (pt.patch == patch->idx+1)
     {
       if (opt.discretization >= ASM::Spline)
       {
         points.push_back(pt.inod > 0 ? pt.inod : -jPoint);
-        for (unsigned short int k = 0; k < patch->getNoParamDim(); k++)
+        for (unsigned short int k = 0; k < pt.npar; k++)
           params[k].push_back(pt.u[k]);
         if (mySol) Xp.push_back(pt.X);
       }
@@ -1745,7 +1840,6 @@ bool SIMoutput::evalResults (const Vector& psol, const ResPointVec& gPoints,
         if (mySol) Xp.push_back(pt.X);
       }
     }
-    ++jPoint;
   }
 
   if (points.empty())
@@ -2005,7 +2099,7 @@ bool SIMoutput::saveResults (const Vector& psol, double time, int step) const
     if (!this->evalResults(psol,gridPts,pch,points,Xp,sol,sol2))
       return false;
 
-  if (!sol.augmentRows(sol2))
+  if (!sol2.empty() && !sol.augmentRows(sol2))
     return false;
 
   // Write one file for each result component
