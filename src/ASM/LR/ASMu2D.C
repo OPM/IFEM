@@ -1933,6 +1933,13 @@ int ASMu2D::findElementContaining (const double* param) const
 }
 
 
+double ASMu2D::findPoint (Vec3&, double*) const
+{
+  std::cerr <<" *** ASMu2D::findPoint: Not implemented yet"<< std::endl;
+  return -1.0;
+}
+
+
 bool ASMu2D::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) const
 {
   if (!lrspline) return false;
@@ -2017,7 +2024,7 @@ bool ASMu2D::tesselate (ElementBlock& grid, const int* npe) const
 
 
 bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
-                           const int* npe, int nf, bool piola) const
+                           const int* npe, int n_f, bool piola) const
 {
   // Compute parameter values of the result sampling points
   std::array<RealArray,2> gpar;
@@ -2029,7 +2036,7 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
   if (piola)
     return this->evalSolutionPiola(sField,locSol,gpar.data(),false);
   else
-    return this->evalSolution(sField,locSol,gpar.data(),false,0,nf);
+    return this->evalSolution(sField,locSol,gpar.data(),false,0,n_f);
 }
 
 
@@ -2113,7 +2120,7 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
 
 
 bool ASMu2D::evalProjSolution (Matrix& sField, const Vector& locSol,
-                               const int* npe, int nf) const
+                               const int* npe, int n_f) const
 {
   // Compute parameter values of the result sampling points
   std::array<RealArray,2> gpar;
@@ -2123,7 +2130,7 @@ bool ASMu2D::evalProjSolution (Matrix& sField, const Vector& locSol,
 
   // Evaluate the projected solution at all sampling points
   if (!this->separateProjectionBasis())
-    return this->evalSolution(sField,locSol,gpar.data(),false,0,nf);
+    return this->evalSolution(sField,locSol,gpar.data(),false,0,n_f);
 
   // The projection uses a separate basis, need to interpolate
   size_t nPoints = gpar[0].size();
@@ -2397,7 +2404,7 @@ bool ASMu2D::updateDirichlet (const std::map<int,RealFunc*>& func,
         for (int dofs = dedg.dof; dofs > 0; dofs /= 10)
         {
           int dof = dofs%10;
-          // Find the constraint equation for current (node,dof)
+          // Find the constraint equation for current (node, local DOF)
           MPC pDOF(MLGN[dedg.MLGN[j]-1],dof);
           MPCIter mit = mpcs.find(&pDOF);
           if (mit != mpcs.end())

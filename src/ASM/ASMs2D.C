@@ -1131,7 +1131,7 @@ void ASMs2D::constrainCorner (int I, int J, int dof, int code, char basis)
   // apply not only at the corner, but also at the <n> closest control points
   // along the boundary in the u-parameter direction, and/or the <m> closest
   // control points along the boundary in the v-parameter direction, where
-  // n and m are the 4th and fifth digit in dof-value, i.e. dof = <m><n>321.
+  // n and m are the 4th and fifth digit in DOF-value, i.e. dof = <m><n>321.
   this->prescribe(node,dof%1000,code);
 
   int nneigu = (dof/1000)%10;
@@ -1221,16 +1221,16 @@ bool ASMs2D::updateDirichlet (const std::map<int,RealFunc*>& func,
       for (int dofs = dirich[i].dof; dofs > 0; dofs /= 10)
       {
 	int dof = dofs%10;
-	// Find the constraint equation for current (node,dof)
+	// Find the constraint equation for current (node, local DOF)
 	MPC pDOF(MLGN[node.second-1],dof);
 	MPCIter mit = mpcs.find(&pDOF);
 	if (mit == mpcs.end()) continue; // probably a deleted constraint
 
-	// Find index to the control point value for this (node,dof) in dcrv
+	// Find the control point index for this (node, local DOF) in dcrv
 	RealArray::const_iterator cit = dcrv->coefs_begin();
 	if (dcrv->dimension() > 1) // A vector field is specified
 	  cit += (node.first-1)*dcrv->dimension() + (dof-1);
-	else // A scalar field is specified at this dof
+	else // A scalar field is specified at this DOF
 	  cit += (node.first-1);
 
 	// Now update the prescribed value in the constraint equation
@@ -2574,6 +2574,20 @@ int ASMs2D::findElementContaining (const double* param) const
 }
 
 
+double ASMs2D::findPoint (Vec3& X, double* param) const
+{
+  if (!surf) return -1.0;
+
+  // Use with caution, very slow!
+  double dist;
+  Go::Point Xpt(X.x,X.y,X.z), Xfound(3);
+#pragma omp critical
+  surf->closestPoint(Xpt, param[0], param[1], Xfound, dist, 1.0e-5);
+  for (int i = 0; i < surf->dimension(); i++) X[i] = Xfound[i];
+  return dist;
+}
+
+
 bool ASMs2D::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) const
 {
   if (!surf) return false;
@@ -2670,7 +2684,7 @@ void ASMs2D::scatterInd (int n1, int n2, int p1, int p2,
 
 
 bool ASMs2D::evalSolution (Matrix& sField, const Vector& locSol,
-                           const int* npe, int nf, bool piola) const
+                           const int* npe, int n_f, bool piola) const
 {
   // Compute parameter values of the result sampling points
   std::array<RealArray,2> gpar;
@@ -2682,7 +2696,7 @@ bool ASMs2D::evalSolution (Matrix& sField, const Vector& locSol,
   if (piola)
     return this->evalSolutionPiola(sField,locSol,gpar.data(),true);
   else
-    return this->evalSolution(sField,locSol,gpar.data(),true,0,nf);
+    return this->evalSolution(sField,locSol,gpar.data(),true,0,n_f);
 }
 
 
@@ -2789,7 +2803,7 @@ bool ASMs2D::evalSolution (Matrix& sField, const Vector& locSol,
 
 
 bool ASMs2D::evalProjSolution (Matrix& sField, const Vector& locSol,
-                               const int* npe, int nf) const
+                               const int* npe, int n_f) const
 {
   // Compute parameter values of the result sampling points
   std::array<RealArray,2> gpar;
@@ -2799,7 +2813,7 @@ bool ASMs2D::evalProjSolution (Matrix& sField, const Vector& locSol,
 
   // Evaluate the projected solution at all sampling points
   if (!this->separateProjectionBasis())
-    return this->evalSolution(sField,locSol,gpar.data(),true,0,nf);
+    return this->evalSolution(sField,locSol,gpar.data(),true,0,n_f);
 
   // The projection uses a separate basis, need to interpolate
   Fields* f = this->getProjectedFields(locSol);

@@ -61,7 +61,7 @@ protected:
     //! \brief Empty destructor.
     virtual ~BasisFunctionCache() = default;
 
- protected:
+  protected:
     //! \brief Implementation specific initialization.
     bool internalInit() override;
 
@@ -101,7 +101,7 @@ protected:
 
     const ASMu3D& patch; //!< Reference to patch cache is for
 
-private:
+  private:
     //! \brief Configure quadratures.
     bool setupQuadrature();
   };
@@ -391,6 +391,12 @@ public:
   //! \return Local element number within the patch that contains the point
   virtual int findElementContaining(const double* param) const;
 
+  //! \brief Searches for the specified Cartesian point in the patch.
+  //! \param X The Cartesian coordinates of the point, updated on output
+  //! \param[out] param The parameters of the point in the knot-span domain
+  //! \return Distance from the point \a X to the found point
+  virtual double findPoint(Vec3& X, double* param) const;
+
   //! \brief Calculates parameter values for visualization nodal points.
   //! \param[out] prm Parameter values in given direction for all points
   //! \param[in] dir Parameter direction (0,1,2)
@@ -407,10 +413,10 @@ public:
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector in DOF-order
   //! \param[in] npe Number of visualization nodes over each knot span
-  //! \param[in] nf If nonzero, mixed evaluates nf fields on first basis
-  //! \param[in] piola True if solution uses Piola mapping
+  //! \param[in] n_f If nonzero, mixed evaluates \a n_f fields on first basis
+  //! \param[in] piola If \e true, use piola mapping
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-                            const int* npe, int nf, bool piola) const;
+                            const int* npe, int n_f, bool piola) const;
 
   //! \brief Evaluates the primary solution field at the given points.
   //! \param[out] sField Solution field
@@ -425,9 +431,9 @@ public:
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector local to current patch
   //! \param[in] npe Number of visualization nodes over each knot span
-  //! \param[in] nf If nonzero, mixed evaluates nf fields on first basis
+  //! \param[in] n_f If nonzero, mixed evaluates \a n_f fields on first basis
   virtual bool evalProjSolution(Matrix& sField, const Vector& locSol,
-                                const int* npe, int nf = 0) const;
+                                const int* npe, int n_f) const;
 
   //! \brief Evaluates and interpolates a function over a given geometry.
   //! \param[in] func The function to evaluate

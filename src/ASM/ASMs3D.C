@@ -1484,16 +1484,16 @@ bool ASMs3D::updateDirichlet (const std::map<int,RealFunc*>& func,
       for (int dofs = dirich[i].dof; dofs > 0; dofs /= 10)
       {
         int dof = dofs%10;
-        // Find the constraint equation for current (node,dof)
+        // Find the constraint equation for current (node, local DOF)
         MPC pDOF(MLGN[node.second-1],dof);
         MPCIter mit = mpcs.find(&pDOF);
         if (mit == mpcs.end()) continue; // probably a deleted constraint
 
-        // Find index to the control point value for this (node,dof) in dsurf
+        // Find the control point index for this (node,local DOF) in dsurf
         RealArray::const_iterator cit = dsurf->coefs_begin();
         if (dsurf->dimension() > 1) // A vector field is specified
           cit += (node.first-1)*dsurf->dimension() + (dof-1);
-        else // A scalar field is specified at this dof
+        else // A scalar field is specified at this DOF
           cit += (node.first-1);
 
         // Now update the prescribed value in the constraint equation
@@ -3013,6 +3013,20 @@ int ASMs3D::findElementContaining (const double* param) const
 }
 
 
+double ASMs3D::findPoint (Vec3& X, double* param) const
+{
+  if (!svol) return -1.0;
+
+  // Use with caution, very slow!
+  double dist;
+  Go::Point Xpt(X.x,X.y,X.z), Xfound(3);
+#pragma omp critical
+  svol->closestPoint(Xpt, param[0], param[1], param[2], Xfound, dist, 1.0e-5);
+  for (int i = 0; i < svol->dimension(); i++) X[i] = Xfound[i];
+  return dist;
+}
+
+
 bool ASMs3D::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) const
 {
   if (!svol) return false;
@@ -3120,7 +3134,7 @@ void ASMs3D::scatterInd (int n1, int n2, int n3, int p1, int p2, int p3,
 
 
 bool ASMs3D::evalSolution (Matrix& sField, const Vector& locSol,
-                           const int* npe, int nf, bool piola) const
+                           const int* npe, int n_f, bool piola) const
 {
   // Compute parameter values of the result sampling points
   std::array<RealArray,3> gpar;
@@ -3132,7 +3146,7 @@ bool ASMs3D::evalSolution (Matrix& sField, const Vector& locSol,
   if (piola)
     return this->evalSolutionPiola(sField,locSol,gpar.data(),true);
   else
-    return this->evalSolution(sField,locSol,gpar.data(),true,0,nf);
+    return this->evalSolution(sField,locSol,gpar.data(),true,0,n_f);
 }
 
 
@@ -3243,7 +3257,7 @@ bool ASMs3D::evalSolution (Matrix& sField, const Vector& locSol,
 
 
 bool ASMs3D::evalProjSolution (Matrix& sField, const Vector& locSol,
-                               const int* npe, int nf) const
+                               const int* npe, int n_f) const
 {
   // Compute parameter values of the result sampling points
   std::array<RealArray,3> gpar;
@@ -3253,7 +3267,7 @@ bool ASMs3D::evalProjSolution (Matrix& sField, const Vector& locSol,
 
   // Evaluate the projected solution at all sampling points
   if (!this->separateProjectionBasis())
-    return this->evalSolution(sField,locSol,gpar.data(),true,0,nf);
+    return this->evalSolution(sField,locSol,gpar.data(),true,0,n_f);
 
   // The projection uses a separate basis, need to interpolate
   Fields* f = this->getProjectedFields(locSol);

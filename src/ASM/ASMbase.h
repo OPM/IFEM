@@ -23,9 +23,9 @@
 
 typedef std::vector<int>       IntVec;  //!< General integer vector
 typedef std::vector<IntVec>    IntMat;  //!< General 2D integer matrix
-typedef std::map<MPC*,int,MPCLess> MPCMap; //!< MPC to function code mapping
-typedef std::set<MPC*,MPCLess> MPCSet;  //!< Sorted set of MPC equations
-typedef MPCSet::const_iterator MPCIter; //!< Iterator over an MPC equation set
+typedef std::map<MPC*,int,MPCLess> MPCMap; //!< MPC-to-function code mapping
+typedef std::set<MPC*,MPCLess> MPCSet;  //!< Sorted set of MPC-equations
+typedef MPCSet::const_iterator MPCIter; //!< Iterator over an MPC-equation set
 
 struct TimeDomain;
 class ElementBlock;
@@ -138,7 +138,7 @@ public:
   virtual void clear(bool retainGeometry = false);
 
   //! \brief Adds extraordinary elements associated with a patch boundary.
-  //! \param[in] dim Dimension of the boundary (should be \a nsd - 1)
+  //! \param[in] dim Dimension of the boundary (should equal \ref nsd - 1)
   //! \param[in] item Local index of the boundary face/edge
   //! \param[in] nXn Number of extraordinary nodes
   //! \param[out] nodes Global numbers assigned to the extraordinary nodes
@@ -158,11 +158,11 @@ public:
   bool addGlobalLagrangeMultipliers(const IntVec& mGLag,
                                     unsigned char nnLag = 1);
 
-  //! \brief Defines the numerical integration scheme \a nGauss in the patch.
+  //! \brief Defines the numerical integration scheme \ref nGauss in the patch.
   void setGauss(int ng) { nGauss = ng; }
 
-  //! \brief Defines the number of solution fields \a nf in the patch.
-  //! \details This method is to be used by simulators where \a nf is not known
+  //! \brief Defines the number of solution fields in the patch.
+  //! \details This method is to be used by simulators where \ref nf is not known
   //! when the patch is constructed, e.g., it depends on the input file content.
   //! It must be invoked only before SIMbase::preprocess() is invoked.
   void setNoFields(unsigned char n) { nf = n; }
@@ -324,7 +324,7 @@ public:
                    bool includeXElms = false) const;
   //! \brief Returns the number of elements on a boundary.
   virtual size_t getNoBoundaryElms(char, char) const { return 0; }
-  //! \brief Returns the total number of MPC equations in this patch.
+  //! \brief Returns the total number of multi-point constraint equations.
   size_t getNoMPCs() const { return mpcs.size(); }
 
   //! \brief Computes the total number of integration points in this patch.
@@ -332,21 +332,21 @@ public:
   //! \brief Computes the number of boundary integration points in this patch.
   virtual void getNoBouPoints(size_t& nPt, char ldim, char lindx);
 
-  //! \brief Returns the beginning of the BC array.
+  //! \brief Returns the beginning of the \ref BCode array.
   BCVec::const_iterator begin_BC() const { return BCode.begin(); }
-  //! \brief Returns the end of the BC array.
+  //! \brief Returns the end of the \ref BCode array.
   BCVec::const_iterator end_BC() const { return BCode.end(); }
 
-  //! \brief Returns the beginning of the MNPC array.
+  //! \brief Returns the beginning of the \ref MNPC array.
   IntMat::const_iterator begin_elm() const { return MNPC.begin(); }
-  //! \brief Returns the end of the MNPC array.
+  //! \brief Returns the end of the \ref MNPC array.
   IntMat::const_iterator end_elm() const { return MNPC.end(); }
 
-  //! \brief Returns the beginning of the MPC set.
+  //! \brief Returns the beginning of the \ref mpcs set.
   MPCIter begin_MPC() const { return mpcs.begin(); }
-  //! \brief Returns the end of the MPC set.
+  //! \brief Returns the end of the \ref mpcs set.
   MPCIter end_MPC() const { return mpcs.end(); }
-  //! \brief Returns the MPC equation for a specified slave, if any.
+  //! \brief Returns a pointer to the MPC object for a specified slave, if any.
   //! \param[in] node Global node number of the slave node
   //! \param[in] dof Which local DOF which is constrained (1, 2, 3)
   MPC* findMPC(int node, int dof) const;
@@ -407,24 +407,24 @@ public:
   //! \brief Renumbers the global node numbers referred by this patch.
   //! \param[in] old2new Old-to-new node number mapping
   //! \param[in] new2old New-to-old node number mapping
-  //! \param[in] renumGN Flag for renumbering the node number array \a MLGN
+  //! \param[in] renumGN Flag for renumbering the node number array \ref MLGN
   //! \param[out] degenElm Global node to degenerated element number mapping
   bool renumberNodes(const std::map<int,int>& old2new,
                      const std::vector<int>& new2old = {}, int renumGN = 0,
                      std::map<int,int>* degenElm = nullptr);
 
-  //! \brief Computes the set of all MPCs over the whole model.
+  //! \brief Computes the set of all MPC-equations over the whole model.
   //! \param[in] model All spline patches in the model
   //! \param[out] allMPCs All multi-point constraint equations in the model
   //!
-  //! \details The MPC equations are stored distributed over the patches,
+  //! \details The MPC-equations are stored distributed over the patches,
   //! based on the slave DOF of the constraint. Therefore, constraints on the
   //! interface nodes between patches (to enforce higher order regularity) may
   //! be defined on both neighboring patches. This method will also merge such
   //! multiply defined equations into a single equation.
   static void mergeAndGetAllMPCs(const ASMVec& model, MPCSet& allMPCs);
 
-  //! \brief Resolves (possibly multi-level) chaining in MPC equations.
+  //! \brief Resolves (possibly multi-level) chaining in MPC-equations.
   //! \param[in] allMPCs All multi-point constraint equations in the model
   //! \param[in] model All spline patches in the model
   //! \param[in] setPtrOnly If \e true, only set pointer to next MPC in chain
@@ -461,7 +461,7 @@ public:
   //! \brief Applies a transformation matrix from local to global system.
   virtual bool transform(const Matrix&) { return true; }
 
-  //! \brief Initializes the patch level MADOF array for mixed problems.
+  //! \brief Initializes the patch level \a MADOF array for mixed problems.
   virtual void initMADOF(const int*) {}
 
   //! \brief Generates element groups for multi-threading of interior integrals.
@@ -531,6 +531,11 @@ public:
   //! \param[in] param The parameters of the point in the knot-span domain
   //! \return Local element number within the patch that contains the point
   virtual int findElementContaining(const double* param) const = 0;
+  //! \brief Searches for the specified Cartesian point in the patch.
+  //! \param X The Cartesian coordinates of the point, updated on output
+  //! \param[out] param The parameters of the point in the knot-span domain
+  //! \return Distance from the point \a X to the found point
+  virtual double findPoint(Vec3& X, double* param) const = 0;
 
   //! \brief Creates a standard FE model of this patch for visualization.
   //! \param[out] grid The generated finite element grid
@@ -553,20 +558,20 @@ public:
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector local to current patch
   //! \param[in] npe Number of visualization nodes over each knot span
-  //! \param[in] nf If nonzero, mixed evaluates nf fields on first basis
+  //! \param[in] n_f If nonzero, mixed evaluates \a n_f fields on first basis
   //! \param[in] piola If \e true, use piola mapping
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-                            const int* npe, int nf = 0,
+                            const int* npe, int n_f = 0,
                             bool piola = false) const;
 
   //! \brief Evaluates the projected solution field at all visualization points.
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector local to current patch
   //! \param[in] npe Number of visualization nodes over each knot span
-  //! \param[in] nf If nonzero, mixed evaluates nf fields on first basis
+  //! \param[in] n_f If nonzero, mixed evaluates \a n_f fields on first basis
   virtual bool evalProjSolution(Matrix& sField, const Vector& locSol,
-                                const int* npe, int nf = 0) const
-  { return this->evalSolution(sField, locSol, npe, nf); }
+                                const int* npe, int n_f = 0) const
+  { return this->evalSolution(sField, locSol, npe, n_f); }
 
   //! \brief Evaluates the primary solution field at the given points.
   //! \param[out] sField Solution field
@@ -574,7 +579,7 @@ public:
   //! \param[in] gpar Parameter values of the result sampling points
   //! \param[in] regular Flag indicating how the sampling points are defined
   //! \param[in] deriv Derivative order to return
-  //! \param[in] nf If non-zero, mixed evaluates \a nf fields on first basis
+  //! \param[in] n_f If nonzero, mixed evaluates \a n_f fields on first basis
   //!
   //! \details When \a regular is \e true, it is assumed that the parameter
   //! value array \a gpar forms a regular tensor-product point grid of dimension
@@ -583,7 +588,7 @@ public:
   //! directly for each sampling point.
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
                             const RealArray* gpar, bool regular = true,
-                            int deriv = 0, int nf = 0) const;
+                            int deriv = 0, int n_f = 0) const;
 
   //! \brief Evaluates the primary solution field with Piola mapping.
   //! \param[out] sField Solution field
@@ -747,7 +752,7 @@ public:
   //! \brief Extracts nodal results for this patch from the global vector.
   //! \param[in] globVec Global solution vector in DOF-order
   //! \param[out] nodeVec Nodal result vector for this patch
-  //! \param[in] nndof Number of DOFs per node (the default is \a nf)
+  //! \param[in] nndof Number of DOFs per node (the default is \ref nf)
   //! \param[in] basis Which basis to extract nodal values for (mixed methods)
   virtual void extractNodeVec(const RealArray& globVec, RealArray& nodeVec,
                               unsigned char nndof = 0, int basis = 0) const;
@@ -755,7 +760,7 @@ public:
   //! \brief Injects nodal results for this patch into the global vector.
   //! \param[in] nodeVec Nodal result vector for this patch
   //! \param globVec Global solution vector in DOF-order
-  //! \param[in] nndof Number of DOFs per node (the default is \a nf)
+  //! \param[in] nndof Number of DOFs per node (the default is \ref nf)
   //! \param[in] basis Which basis to inject nodal values for (mixed methods)
   virtual bool injectNodeVec(const RealArray& nodeVec, RealArray& globVec,
                              unsigned char nndof = 0, int basis = 0) const;
@@ -776,12 +781,12 @@ public:
   bool add2PC(int slave, int dir, int master, int code = 0);
 
   //! \brief Adds a general multi-point-constraint (MPC) equation to this patch.
-  //! \param mpc Pointer to an MPC-object
+  //! \param mpc Pointer to an MPC object
   //! \param[in] code Identifier for inhomogeneous Dirichlet condition field
   //! \param[in] verbose If \e true, print out added constraint (debug build)
   bool addMPC(MPC*& mpc, int code = 0, bool verbose = false);
 
-  //! \brief Adds MPCs representing a rigid coupling to this patch.
+  //! \brief Adds MPC-equations representing a rigid coupling to this patch.
   //! \param[in] lindx Local index of the boundary item that should be rigid
   //! \param[in] ldim Dimension of the boundary item that should be rigid
   //! \param[in] basis Which basis to add rigid coupling for (mixed methods)
@@ -793,7 +798,7 @@ public:
                            int& gMaster, const Vec3& Xmaster,
                            bool extraPt = true);
 
-  //! \brief Adds MPCs representing a rigid coupling to this patch.
+  //! \brief Adds MPC-equations representing a rigid coupling to this patch.
   //! \param[in] gMaster Global node number of the master node
   //! \param[in] slaveNodes Local node numbers of the slave nodes
   //! \param[in] Xmaster Position of the master node
@@ -835,7 +840,7 @@ protected:
   //! \param[in] Xmaster Position of the master nodal point
   //! \return \e true if a new global node was added, otherwise \e false
   bool createRgdMasterNode(int& gMaster, const Vec3& Xmaster);
-  //! \brief Adds MPC equations representing a rigid arm to a 6-DOF node
+  //! \brief Adds MPC-equations representing a rigid arm to a 6-DOF node
   //! \param[in] gSlave Global node number of the 3-DOF slave node
   //! \param[in] gMaster Global node number of the 6-DOF master node
   //! \param[in] dX Relative position of the slave w.r.t. the master node
@@ -958,7 +963,7 @@ protected:
   //! 'F' means this patch uses FE data and spline geometry of another patch.
   const char shareFE; //!< If \e true, this patch uses FE data of another patch
 
-  BCVec  BCode; //!< Array of Boundary condition codes
+  BCVec  BCode; //!< Array of Boundary Condition codes
   MPCMap dCode; //!< Inhomogeneous Dirichlet condition codes for the MPCs
   MPCSet mpcs;  //!< All multi-point constraints with the slave in this patch
 

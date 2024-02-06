@@ -444,7 +444,7 @@ class fixed
   int myDofs; //!< The local DOFs to compare with
 
 public:
-  //! \brief Constructor initializing the node and local dof index.
+  //! \brief Constructor initializing the node and local DOF index.
   fixed(int node, int dof) : myNode(node), myDofs(dof) {}
   //! \brief Returns \e true if the DOF has the same fixed status as \a bc.
   bool operator()(const ASMbase::BC& bc)
@@ -484,7 +484,7 @@ bool ASMbase::addMPC (MPC*& mpc, int code, bool verbose)
 
   if (this->isFixed(mpc->getSlave().node,mpc->getSlave().dof))
   {
-    // Silently ignore MPC's on dofs that already are marked as FIXED
+    // Silently ignore MPCs on DOFs that already are marked as FIXED
     delete mpc;
     mpc = nullptr;
     return true;
@@ -504,7 +504,7 @@ bool ASMbase::addMPC (MPC*& mpc, int code, bool verbose)
   if (verbose) std::cout <<"Ignored constraint (duplicated slave): "<< *mpc;
 #endif
   delete mpc;
-  mpc = *mit.first; // This dof is already a slave in another MPC
+  mpc = *mit.first; // This DOF is already a slave in another MPC-equation
   return false;
 }
 
@@ -572,7 +572,7 @@ void ASMbase::addLocal2GlobalCpl (int iSlave, int master, const Tensor& Tlg)
       if (cons->getNoMaster() == 0)
       {
         // All master DOFs are fixed.
-        // Then the MPC is not needed, fix the slave DOF instead.
+        // Then the MPC-equation is not needed, fix the slave DOF instead.
         mpcs.erase(cons);
         delete cons;
         fixDirs = d + 10*fixDirs;
@@ -948,18 +948,18 @@ void ASMbase::mergeAndGetAllMPCs (const ASMVec& model, MPCSet& allMPCs)
 
 /*!
   Recursive resolving of (possibly multi-level) chaining in the multi-point
-  constraint equations (MPCs). If a master dof in one MPC is specified as a
-  slave by another MPC, it is replaced by the master(s) of that other equation.
-  Since an MPC-equation may couple nodes belonging to different patches,
-  this method must have access to all patches in the model.
+  constraint (MPC) equations. If a master DOF in one MPC-equation is specified
+  as a slave by another one, it is replaced by the master(s) of that other
+  equation. Since an MPC-equation may couple nodes belonging to different
+  patches, this method must have access to all patches in the model.
 
-  If \a setPtrOnly is \e true, the MPC equations are not modified. Instead
-  the pointers to the next MPC in the chain is assigned for the master DOFs
-  which are slaves in other MPCs.
+  If \a setPtrOnly is \e true, the MPC-equations are not modified.
+  Instead the pointers to the next %MPC object in the chain is assigned for
+  the master DOFs which are slaves in other MPCs.
 
   This is used in time-dependent/nonlinear simulators where the constraint
   coefficients might be updated due to time variation. The resolving is then
-  done directly in the MMCEQ/TTCC arrays of the SAM data object.
+  done directly in the \a MMCEQ/TTCC arrays of the SAM object.
   \sa SAMpatch::updateConstraintEqs.
 */
 
@@ -986,8 +986,8 @@ void ASMbase::resolveMPCchains (const MPCSet& allMPCs,
       MPCIter cit = allMPCs.find(&master);
       if (cit != allMPCs.end())
       {
-        // We have a master dof which is a slave in another constraint equation.
-        // Invoke resolve() recursively to ensure that all master dofs of that
+        // We have a master DOF which is a slave in another constraint equation.
+        // Invoke resolve() recursively to ensure that all master DOFs of that
         // equation are not slaves themselves.
         resolve(*cit);
 
@@ -1243,10 +1243,10 @@ int ASMbase::renumberNodes (std::map<int,int>& old2new, int& nNod)
   condition- and multi-point constraint equation objects in the patch,
   according to the provided mapping \a old2new.
 
-  The nodes themselves (in \a MLGN) are assumed already to be up to date, unless
-  \a renumGN is greater than zero. If \a renumGN equals one, all node numbers
-  are assumed present in the \a old2new mapping and an error is flagged if
-  that is not the case.
+  The nodes themselves (in \ref MLGN) are assumed already to be up to date,
+  unless \a renumGN is greater than zero. If \a renumGN equals one,
+  all node numbers are assumed present in the \a old2new mapping
+  and an error is flagged if that is not the case.
 
   If \a renumGN is less than zero, the element connectivities are also updated
   such that that only the first instance of a duplicated node is referred.
