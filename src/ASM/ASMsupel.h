@@ -98,6 +98,8 @@ public:
   virtual int evalPoint(const double*, double*, Vec3&) const { return 0; }
   //! \brief Dummy method doing nothing.
   virtual int findElementContaining(const double*) const { return 0; }
+  //! \brief Dummy method doing nothing.
+  virtual double findPoint(Vec3&, double*) const { return -1.0; }
 
   //! \brief Creates a standard FE model of this patch for visualization.
   //! \param[out] grid The generated finite element grid

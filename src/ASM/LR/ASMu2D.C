@@ -1933,6 +1933,13 @@ int ASMu2D::findElementContaining (const double* param) const
 }
 
 
+double ASMu2D::findPoint (Vec3& X, double* param) const
+{
+  std::cerr <<" *** ASMu2D::findPoint: Not implemented yet"<< std::endl;
+  return -1.0;
+}
+
+
 bool ASMu2D::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) const
 {
   if (!lrspline) return false;

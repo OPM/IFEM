@@ -3013,6 +3013,20 @@ int ASMs3D::findElementContaining (const double* param) const
 }
 
 
+double ASMs3D::findPoint (Vec3& X, double* param) const
+{
+  if (!svol) return -1.0;
+
+  // Use with caution, very slow!
+  double dist;
+  Go::Point Xpt(X.x,X.y,X.z), Xfound(3);
+#pragma omp critical
+  svol->closestPoint(Xpt, param[0], param[1], param[2], Xfound, dist, 1.0e-5);
+  for (int i = 0; i < svol->dimension(); i++) X[i] = Xfound[i];
+  return dist;
+}
+
+
 bool ASMs3D::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) const
 {
   if (!svol) return false;
