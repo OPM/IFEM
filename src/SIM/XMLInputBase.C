@@ -48,39 +48,39 @@ struct IncludeInjector : public tinyxml2::XMLVisitor
   bool VisitEnter(const tinyxml2::XMLElement& elem,
                   const tinyxml2::XMLAttribute* attribute) override
   {
-      tinyxml2::XMLElement* e;
-      if (std::string(elem.Value()) == "include") {
-        tinyxml2::XMLDocument inc_doc(true, tinyxml2::COLLAPSE_WHITESPACE);
-          if (inc_doc.LoadFile(elem.GetText()) != tinyxml2::XML_SUCCESS) {
-            std::cerr << "** Error parsing include file " << elem.GetText() << std::endl;
-            return false;
-        }
-        currElem->InsertEndChild(inc_doc.RootElement()->DeepClone(&new_doc));
-        include_found = true;
-      } else {
-        e = new_doc.NewElement(elem.Name());
-        if (elem.GetText())
-          e->SetText(elem.GetText());
-        if (!currElem)
-          new_doc.InsertEndChild(e);
-        else
-          currElem->InsertEndChild(e);
-        while (attribute)
-        {
-          e->SetAttribute(attribute->Name(), attribute->Value());
-          attribute = attribute->Next();
-        }
-        currElem = e;
+    tinyxml2::XMLElement* e;
+    if (std::string(elem.Value()) == "include") {
+      tinyxml2::XMLDocument inc_doc(true, tinyxml2::COLLAPSE_WHITESPACE);
+        if (inc_doc.LoadFile(elem.GetText()) != tinyxml2::XML_SUCCESS) {
+          std::cerr << "** Error parsing include file " << elem.GetText() << std::endl;
+          return false;
       }
-      return true;
+      currElem->InsertEndChild(inc_doc.RootElement()->DeepClone(&new_doc));
+      include_found = true;
+    } else {
+      e = new_doc.NewElement(elem.Name());
+      if (elem.GetText())
+        e->SetText(elem.GetText());
+      if (!currElem)
+        new_doc.InsertEndChild(e);
+      else
+        currElem->InsertEndChild(e);
+      while (attribute)
+      {
+        e->SetAttribute(attribute->Name(), attribute->Value());
+        attribute = attribute->Next();
+      }
+      currElem = e;
+    }
+    return true;
   }
 
   //! brief Set element to insert into to the parent.
   bool VisitExit(const tinyxml2::XMLElement& elem) override
   {
-      if (currElem && currElem->Parent())
-        currElem = const_cast<tinyxml2::XMLElement*>(currElem->Parent()->ToElement());
-      return true;
+    if (currElem && currElem->Parent())
+      currElem = const_cast<tinyxml2::XMLElement*>(currElem->Parent()->ToElement());
+    return true;
   }
 
   tinyxml2::XMLDocument new_doc; //!< New document
