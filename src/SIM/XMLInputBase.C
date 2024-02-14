@@ -48,7 +48,6 @@ struct IncludeInjector : public tinyxml2::XMLVisitor
   bool VisitEnter(const tinyxml2::XMLElement& elem,
                   const tinyxml2::XMLAttribute* attribute) override
   {
-    tinyxml2::XMLElement* e;
     if (std::string(elem.Value()) == "include") {
       tinyxml2::XMLDocument inc_doc(true, tinyxml2::COLLAPSE_WHITESPACE);
         if (inc_doc.LoadFile(elem.GetText()) != tinyxml2::XML_SUCCESS) {
@@ -56,9 +55,9 @@ struct IncludeInjector : public tinyxml2::XMLVisitor
           return false;
       }
       currElem->InsertEndChild(inc_doc.RootElement()->DeepClone(&new_doc));
-      include_found = true;
+      include_found = include_processed = true;
     } else {
-      e = new_doc.NewElement(elem.Name());
+      tinyxml2::XMLElement* e = new_doc.NewElement(elem.Name());
       if (elem.GetText())
         e->SetText(elem.GetText());
       if (!currElem)
@@ -78,14 +77,18 @@ struct IncludeInjector : public tinyxml2::XMLVisitor
   //! brief Set element to insert into to the parent.
   bool VisitExit(const tinyxml2::XMLElement& elem) override
   {
-    if (currElem && currElem->Parent())
+    if (currElem && currElem->Parent() && !include_processed)
       currElem = const_cast<tinyxml2::XMLElement*>(currElem->Parent()->ToElement());
+    include_processed = false;
     return true;
   }
 
   tinyxml2::XMLDocument new_doc; //!< New document
   tinyxml2::XMLElement* currElem = nullptr; //!< Current root element
   bool include_found = false; //!< True if an include tag was found
+
+private:
+  bool include_processed = false; //!< True if an include tag was processed
 };
 
 }

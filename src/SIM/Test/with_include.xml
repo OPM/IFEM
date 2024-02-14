@@ -1,3 +1,4 @@
 <simulation>
   <include>src/SIM/Test/included.xml</include>
+  <someothertag>is_here</someothertag>
 </simulation>
