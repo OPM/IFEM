@@ -62,6 +62,7 @@ TEST(TestXMLInputBase, IncludeFiles)
     "dirichlet", "set", "foo", "comp", "12",
     "dirichlet", "set", "bar", "comp", "12", "type", "expression", "a*b*c",
     "neumann", "set", "foobar", "type", "constant", "1.0",
+    "someothertag", "is_here"
   };
 
   EXPECT_EQ(x.strings, ref);
