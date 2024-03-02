@@ -3130,7 +3130,7 @@ bool ASMs3D::evalSolution (Matrix& sField, const Vector& locSol,
 
   // Evaluate the primary solution at all sampling points
   if (piola)
-    return this->evalSolutionPiola(sField,locSol,gpar.data());
+    return this->evalSolutionPiola(sField,locSol,gpar.data(),true);
   else
     return this->evalSolution(sField,locSol,gpar.data(),true,0,nf);
 }
