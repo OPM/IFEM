@@ -646,7 +646,15 @@ bool ASMbase::addRigidCpl (int lindx, int ldim, int basis,
 
   IntVec nodes;
   this->getBoundaryNodes(lindx,nodes,basis,1,0,true);
-  for (int node : nodes)
+  this->addRigidCouplings(gMaster,Xmaster,nodes);
+  return extraPt;
+}
+
+
+void ASMbase::addRigidCouplings (int gMaster, const Vec3& Xmaster,
+                                 const IntVec& slaveNodes)
+{
+  for (int node : slaveNodes)
   {
     Vec3 dX = this->getCoord(node) - Xmaster;
     if (nsd == 3)
@@ -674,8 +682,6 @@ bool ASMbase::addRigidCpl (int lindx, int ldim, int basis,
       }
     }
   }
-
-  return extraPt;
 }
 
 
@@ -1217,7 +1223,7 @@ int ASMbase::renumberNodes (std::map<int,int>& old2new, int& nNod)
       if (utl::renumber(node,nNod,old2new))
         renum++;
 
-  if (renum == 0)
+  if (renum == 0 && !MLGN.empty())
     nNod = std::max(nNod,*std::max_element(MLGN.begin(),MLGN.end()));
 
   return renum;
