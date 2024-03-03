@@ -836,61 +836,68 @@ bool VTF::writeNodes (int iBlockID)
 bool VTF::writeElements (const char* partName, int partID,
                          int iBlockID, int iNodeBlockID)
 {
-  bool ok = true;
-
 #if HAS_VTFAPI == 1
   VTFAElementBlock eBlock(iBlockID,0,0);
+#elif HAS_VTFAPI == 2
+  VTFXAElementBlock eBlock(iBlockID,0,0);
+#else
+  bool eBlock = true;
+#endif
+  bool ok = true;
+
+  // Lambda function writing an element block with nen nodes per element to VTF
+  auto&& addElementBlock = [&eBlock](const int* mnpc, int nel, int nen)
+  {
+    switch (nen) {
+#if HAS_VTFAPI == 1
+    case 2:
+      return VTFA_SUCCESS(eBlock.AddElements(VTFA_BEAMS,mnpc,nel));
+    case 3:
+      return VTFA_SUCCESS(eBlock.AddElements(VTFA_TRIANGLES,mnpc,nel));
+    case 4:
+      return VTFA_SUCCESS(eBlock.AddElements(VTFA_QUADS,mnpc,nel));
+    case 8:
+      return VTFA_SUCCESS(eBlock.AddElements(VTFA_HEXAHEDRONS,mnpc,nel));
+#elif HAS_VTFAPI == 2
+    case 2:
+      return VTFA_SUCCESS(eBlock.AddElements(VTFXA_BEAMS,mnpc,nel));
+    case 3:
+      return VTFA_SUCCESS(eBlock.AddElements(VTFXA_TRIANGLES,mnpc,nel));
+    case 4:
+      return VTFA_SUCCESS(eBlock.AddElements(VTFXA_QUADS,mnpc,nel));
+    case 8:
+      return VTFA_SUCCESS(eBlock.AddElements(VTFXA_HEXAHEDRONS,mnpc,nel));
+#else
+    case 2:
+    case 3:
+    case 4:
+    case 8:
+      return eBlock;
+#endif
+    }
+    return false;
+  };
 
   const ElementBlock* grid = myBlocks.back().second;
-  const int* mnpc = grid->getElements();
-  int nel = grid->getNoElms();
-  switch (grid->getNoElmNodes()) {
-  case 2:
-    ok = VTFA_SUCCESS(eBlock.AddElements(VTFA_BEAMS,mnpc,nel));
-    break;
-  case 3:
-    ok = VTFA_SUCCESS(eBlock.AddElements(VTFA_TRIANGLES,mnpc,nel));
-    break;
-  case 4:
-    ok = VTFA_SUCCESS(eBlock.AddElements(VTFA_QUADS,mnpc,nel));
-    break;
-  case 8:
-    ok = VTFA_SUCCESS(eBlock.AddElements(VTFA_HEXAHEDRONS,mnpc,nel));
-    break;
-  default:
-    ok = false;
+  int nenod = grid->getNoElmNodes();
+  if (nenod > 0)
+    ok = addElementBlock(grid->getElements(),grid->getNoElms(),nenod);
+  else
+  {
+    std::vector<int> mnpc;
+    for (nenod = 2; nenod <= 8 && ok; nenod++)
+      if (nenod <= 4 || nenod == 8)
+        if (grid->getElements(mnpc,nenod))
+          ok = addElementBlock(mnpc.data(),mnpc.size()/nenod,nenod);
   }
 
+#if HAS_VTFAPI == 1
   eBlock.SetPartID(partID);
   eBlock.SetPartName(partName);
   eBlock.SetNodeBlockID(iNodeBlockID);
-
   if (VTFA_FAILURE(myFile->WriteBlock(&eBlock)))
     ok = false;
-
 #elif HAS_VTFAPI == 2
-  VTFXAElementBlock eBlock(iBlockID,0,0);
-
-  const ElementBlock* grid = myBlocks.back().second;
-  const int* mnpc = grid->getElements();
-  int nel = grid->getNoElms();
-  switch (grid->getNoElmNodes()) {
-  case 2:
-    ok = VTFA_SUCCESS(eBlock.AddElements(VTFXA_BEAMS,mnpc,nel));
-    break;
-  case 3:
-    ok = VTFA_SUCCESS(eBlock.AddElements(VTFXA_TRIANGLES,mnpc,nel));
-    break;
-  case 4:
-    ok = VTFA_SUCCESS(eBlock.AddElements(VTFXA_QUADS,mnpc,nel));
-    break;
-  case 8:
-    ok = VTFA_SUCCESS(eBlock.AddElements(VTFXA_HEXAHEDRONS,mnpc,nel));
-    break;
-  default:
-    ok = false;
-  }
-
   eBlock.SetNodeBlockID(iNodeBlockID);
   if (VTFA_FAILURE(myDatabase->WriteBlock(&eBlock)))
     ok = false;
