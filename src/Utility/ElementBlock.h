@@ -38,9 +38,10 @@ public:
   void resize(size_t nI, size_t nJ = 1, size_t nK = 1);
 
   //! \brief Reallocates the internal arrays to fit an unstructured grid.
-  //! \param[in] nEl  Number of elements
+  //! \param[in] nEl Number of elements
   //! \param[in] nPts Number of nodes
-  void unStructResize(size_t nEl, size_t nPts);
+  //! \param[in] nMNPC Total size of element connectivity array
+  void unStructResize(size_t nEl, size_t nPts, size_t nMNPC = 0);
 
   //! \brief Defines the \a j'th coordinate of node \a i.
   bool setCoor(size_t i, size_t j, Real x);
@@ -54,6 +55,8 @@ public:
 
   //! \brief Defines the global number of element node \a i.
   bool setNode(size_t i, int nodeNumb);
+  //! \brief Marks the end of current element for unstructured grids.
+  bool endOfElm(size_t& i);
 
   //! \brief Adds a line element to the grid, assuming \a nen is equal to two.
   bool addLine(Real x1, Real y1, Real z1, Real x2, Real y2, Real z2);
@@ -97,6 +100,8 @@ public:
 
   //! \brief Returns a pointer to the element connectivity array.
   const int* getElements() const { return MMNPC.data(); }
+  //! \brief Get element connectivity array for elements with \a nenod nodes.
+  bool getElements(std::vector<int>& mnpc, size_t nenod) const;
 
   //! \brief Returns the coordinates of the center of the given elemment.
   utl::Point getCenter(size_t i) const;
