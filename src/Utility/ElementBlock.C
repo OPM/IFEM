@@ -58,12 +58,21 @@ void ElementBlock::resize (size_t nI, size_t nJ, size_t nK)
 }
 
 
-void ElementBlock::unStructResize (size_t nEl, size_t nPts)
+void ElementBlock::unStructResize (size_t nEL, size_t nPts, size_t nMNPC)
 {
+  if (nMNPC > 0)
+  {
+    nen = nMNPC/nEL;
+    if (nen*nEL != nMNPC)
+      nen = 0; // Unstructured grid with varying element types
+  }
+  else
+    nMNPC = nen*nEL;
+
   coord.resize(nPts);
   param.resize(nPts);
-  MMNPC.resize(nen*nEl);
-  MINEX.resize(MMNPC.size()/nen,0);
+  MMNPC.resize(nen > 0 ? nMNPC : nMNPC+nEL);
+  MINEX.resize(nEL,0);
   std::iota(MINEX.begin(),MINEX.end(),1);
 }
 
@@ -102,6 +111,18 @@ bool ElementBlock::setNode (size_t i, int nodeNumb)
   if (i >= MMNPC.size()) return false;
 
   MMNPC[i] = nodeNumb;
+  return true;
+}
+
+
+bool ElementBlock::endOfElm (size_t& i)
+{
+  if (nen == 0)
+  {
+    if (i >= MMNPC.size()) return false;
+
+    MMNPC[i++] = -1;
+  }
   return true;
 }
 
@@ -149,7 +170,7 @@ void ElementBlock::merge (const ElementBlock* other,
       nodeNums.push_back(cit - coord.begin());
 
   for (int inod : other->MMNPC)
-    MMNPC.push_back(nodeNums[inod]);
+    MMNPC.push_back(inod < 0 ? inod : nodeNums[inod]);
 
   MINEX.insert(MINEX.end(),other->MINEX.begin(),other->MINEX.end());
 }
@@ -176,18 +197,75 @@ const Real* ElementBlock::getParam (size_t i) const
 }
 
 
+bool ElementBlock::getElements (std::vector<int>& mnpc, size_t nenod) const
+{
+  mnpc.clear();
+  if (nen > 0)
+  {
+    if (nen != nenod)
+      return false;
+
+    mnpc = MMNPC;
+    return true;
+  }
+
+  size_t npc = 0;
+  std::vector<int>::const_iterator it, itb = MMNPC.begin();
+  for (it = MMNPC.begin(); it != MMNPC.end(); ++it)
+    if (*it < 0)
+    {
+      if (npc == nenod)
+        mnpc.insert(mnpc.end(),itb,itb+npc);
+      itb = it + 1;
+      npc = 0;
+    }
+    else
+      ++npc;
+
+  return !mnpc.empty();
+}
+
+
 utl::Point ElementBlock::getCenter (size_t i) const
 {
   if (i < 1 || i > MINEX.size())
     return utl::Point();
 
   utl::Point XC;
-  for (size_t j = 0; j < nen; j++)
+  if (nen > 0)
   {
-    const Prm3& uu = param[MMNPC[nen*(i-1)+j]];
-    XC += utl::Point(coord[MMNPC[nen*(i-1)+j]],{uu[0],uu[1],uu[2]});
+    for (size_t j = nen*i-nen; j < nen*i; j++)
+      if (MMNPC[j] < (int)param.size())
+      {
+        const Prm3& uu = param[MMNPC[j]];
+        XC += utl::Point(coord[MMNPC[j]],{uu[0],uu[1],uu[2]});
+      }
+      else // No spline parameters
+        XC += utl::Point(coord[MMNPC[j]]);
+    XC /= nen;
   }
-  XC /= nen;
+  else
+  {
+    size_t elm = 0, nenod = 0;
+    for (int inod : MMNPC)
+      if (inod < 0)
+      {
+        if (++elm == i)
+          break;
+      }
+      else if (elm == i-1)
+      {
+        if (inod < (int)param.size())
+        {
+          const Prm3& uu = param[inod];
+          XC += utl::Point(coord[inod],{uu[0],uu[1],uu[2]});
+        }
+        else // No spline parameters
+          XC += utl::Point(coord[inod]);
+        ++nenod;
+      }
+    XC /= nenod;
+  }
 
   return XC;
 }
