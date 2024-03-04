@@ -1718,7 +1718,7 @@ bool ASMs2D::integrate (Integrand& integrand,
   if (myCache.empty())
     myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this, cachePolicy, 1));
 
-  BasisFunctionCache& cache = *myCache.front();
+  ::BasisFunctionCache<2>& cache = *myCache.front();
   cache.setIntegrand(&integrand);
   if (!cache.init(use3rdDer ? 3 : (use2ndDer ? 2 : 1)))
     return false;

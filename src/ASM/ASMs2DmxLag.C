@@ -248,7 +248,7 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
       myCache.emplace_back(std::make_unique<BasisFunctionCache>(front, b));
   }
 
-  for (std::unique_ptr<ASMs2D::BasisFunctionCache>& cache : myCache) {
+  for (std::unique_ptr<::BasisFunctionCache<2>>& cache : myCache) {
     cache->setIntegrand(&integrand);
     cache->init(1);
   }
