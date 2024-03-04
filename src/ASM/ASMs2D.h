@@ -812,7 +812,7 @@ protected:
   ThreadGroups threadGroups;
 
   //! Basis function cache
-  std::vector<std::unique_ptr<BasisFunctionCache>> myCache;
+  std::vector<std::unique_ptr<::BasisFunctionCache<2>>> myCache;
 };
 
 #endif

@@ -27,6 +27,45 @@
 
 class ASMu2DLag : public ASMs2DLag
 {
+  //! \brief Implementation of basis function cache.
+  class BasisFunctionCache : public ::BasisFunctionCache<2>
+  {
+  public:
+    //! \brief The constructor initializes the class.
+    //! \param pch Patch the cache is for
+    //! \param plcy Cache policy to use
+    BasisFunctionCache(const ASMu2DLag& pch, ASM::CachePolicy plcy);
+
+    //! \brief Empty destructor.
+    virtual ~BasisFunctionCache() = default;
+
+    //! \brief Obtain a single integration point parameter.
+    double getParam(int, size_t, size_t, bool = false) const override
+    { return 0.0; }
+
+  protected:
+    //! \brief Implementation specific initialization.
+    bool internalInit() override;
+
+    //! \brief Implementation specific cleanup.
+    void internalCleanup() override;
+
+    //! \brief Calculates basis function info in a single integration point.
+    //! \param el Element of integration point (0-indexed)
+    //! \param gp Integratin point on element (0-indexed)
+    //! \param reduced If true, returns values for reduced integration scheme
+    BasisFunctionVals calculatePt(size_t el, size_t gp, bool reduced) const override;
+
+    //! \brief Calculates basis function info in all integration points.
+    void calculateAll() override;
+
+    const ASMu2DLag& patch; //!< Reference to patch
+
+private:
+    //! \brief Configure quadratures.
+    bool setupQuadrature();
+  };
+
 public:
   //! \brief Default constructor.
   ASMu2DLag(unsigned char n = 2, unsigned char n_f = 2, char fType = 'm');

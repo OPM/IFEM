@@ -36,6 +36,9 @@ public:
   //! \brief Copy-constructor.
   BasisFunctionCache(const BasisFunctionCache& rhs);
 
+  //! \brief Empty destructor.
+  virtual ~BasisFunctionCache() = default;
+
   //! \brief Should be called after assembly is finished.
   //! \details This clears up the cache according to policy.
   void finalizeAssembly();

@@ -310,7 +310,7 @@ bool ASMs2DLag::integrate (Integrand& integrand,
   if (myCache.empty())
     myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this, cachePolicy, 1));
 
-  BasisFunctionCache& cache = static_cast<BasisFunctionCache&>(*myCache.front());
+  ::BasisFunctionCache<2>& cache = static_cast<::BasisFunctionCache<2>&>(*myCache.front());
   cache.setIntegrand(&integrand);
   if (!cache.init(1))
     return false;
@@ -325,7 +325,8 @@ bool ASMs2DLag::integrate (Integrand& integrand,
   const double* wr = cache.weight(true)[0];
 
   // Number of elements in each direction
-  const int nelx = cache.noElms()[0];
+  const BasisFunctionCache* scache = dynamic_cast<const BasisFunctionCache*>(myCache.front().get());
+  const int nelx = scache ? scache->noElms()[0] : 0;
 
 
   // === Assembly loop over all elements in the patch ==========================
