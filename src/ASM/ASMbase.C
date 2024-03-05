@@ -351,7 +351,10 @@ void ASMbase::getNoIntPoints (size_t& nPt, size_t& nIPt)
     int ng[3] = { 0, 0, 0 };
     this->getOrder(ng[0],ng[1],ng[2]);
     for (unsigned char d = 0; d < ndim && d < 3; d++)
-      nGp *= ng[d] + nGauss%10;
+      if (nGauss > -ng[d])
+        nGp *= ng[d] + nGauss%10;
+      else
+        nGp = 0;
   }
 
   firstIp = nPt;
@@ -380,7 +383,10 @@ void ASMbase::getNoBouPoints (size_t& nPt, char ldim, char lindx)
     this->getOrder(ng[0],ng[1],ng[2]);
     ng[(lindx-1)/2] = 1;
     for (unsigned char d = 0; d < ndim; d++)
-      nGp *= ng[d];
+      if (nGauss > -ng[d])
+        nGp *= ng[d];
+      else if (d != (lindx-1)/2)
+        nGp = 0;
   }
 
   firstBp[lindx] = nPt;
@@ -1571,7 +1577,9 @@ int ASMbase::searchCtrlPt (RealArray::const_iterator cit,
 
 int ASMbase::getNoGaussPt (int p, bool neumann) const
 {
-  if (nGauss > 0 && nGauss < 11)
+  if (nGauss <= -p)
+    return 0;
+  else if (nGauss > 0 && nGauss < 11)
     return nGauss;
   else if (neumann)
     return p;
