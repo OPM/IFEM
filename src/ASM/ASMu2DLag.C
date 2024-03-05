@@ -23,6 +23,7 @@ ASMu2DLag::ASMu2DLag (unsigned char n_s,
                       unsigned char n_f, char fType) : ASMs2DLag(n_s,n_f)
 {
   fileType = fType;
+  swapNode34 = false;
 }
 
 
@@ -30,6 +31,7 @@ ASMu2DLag::ASMu2DLag (const ASMu2DLag& p, unsigned char n_f) :
   ASMs2DLag(p,n_f), nodeSets(p.nodeSets)
 {
   fileType = 0;
+  swapNode34 = p.swapNode34;
 }
 
 
@@ -37,6 +39,7 @@ ASMu2DLag::ASMu2DLag (const ASMu2DLag& p) :
   ASMs2DLag(p), nodeSets(p.nodeSets)
 {
   fileType = 0;
+  swapNode34 = p.swapNode34;
 }
 
 
@@ -45,6 +48,7 @@ bool ASMu2DLag::read (std::istream& is)
   switch (fileType) {
   case 'm':
   case 'M':
+    swapNode34 = true;
     return ASM::readMatlab(is,myMNPC,myCoord,nodeSets);
   case 'x':
   case 'X':
@@ -147,7 +151,7 @@ bool ASMu2DLag::tesselate (ElementBlock& grid, const int*) const
   for (i = k = 0; i < nel; i++)
   {
     for (j = 0; j < MNPC[i].size(); j++)
-      if (j > 1 && MNPC[i].size() == 4)
+      if (j > 1 && swapNode34 && MNPC[i].size() == 4)
         grid.setNode(k++,MNPC[i][5-j]);
       else
         grid.setNode(k++,MNPC[i][j]);
@@ -158,7 +162,7 @@ bool ASMu2DLag::tesselate (ElementBlock& grid, const int*) const
 
 
 ASMu2DLag::BasisFunctionCache::BasisFunctionCache (const ASMu2DLag& pch,
-                                                  ASM::CachePolicy plcy) :
+                                                   ASM::CachePolicy plcy) :
   ::BasisFunctionCache<2>(plcy),
   patch(pch)
 {
@@ -203,7 +207,8 @@ bool ASMu2DLag::BasisFunctionCache::setupQuadrature ()
     reducedQ->xg[0] = reducedQ->xg[1] = GaussQuadrature::getCoord(nRed);
     reducedQ->wg[0] = reducedQ->wg[1] = GaussQuadrature::getWeight(nRed);
     if (!reducedQ->xg[0] || !reducedQ->wg[0]) return false;
-  } else if (nRed < 0)
+  }
+  else if (nRed < 0)
     nRed = mainQ->ng[0]; // The integrand needs to know nGauss
 
   reducedQ->ng[0] = reducedQ->ng[1] = nRed;

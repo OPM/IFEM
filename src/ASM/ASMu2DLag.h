@@ -112,6 +112,9 @@ public:
   //! \note The number of element nodes must be set in \a grid on input.
   virtual bool tesselate(ElementBlock& grid, const int*) const;
 
+protected:
+  bool swapNode34; //!< If \e true, element nodes 3 and 4 should be swapped
+
 private:
   char                      fileType; //!< Mesh file format
   std::vector<ASM::NodeSet> nodeSets; //!< Node sets for Dirichlet BCs
