@@ -291,10 +291,10 @@ size_t ASMs2DLag::getNoBoundaryElms (char lIndex, char ldim) const
   {
     case 1:
     case 2:
-      return p2 > 1 ? (ny-1)/(p2-1) : 0;
+      return ny > 1 && p2 > 1 ? (ny-1)/(p2-1) : 0;
     case 3:
     case 4:
-      return p1 > 1 ? (nx-1)/(p1-1) : 0;
+      return nx > 1 && p1 > 1 ? (nx-1)/(p1-1) : 0;
   }
 
   return 0;
@@ -338,8 +338,8 @@ bool ASMs2DLag::integrate (Integrand& integrand,
     for (size_t t = 0; t < threadGroups[g].size(); t++)
     {
       FiniteElement fe(p1*p2);
-      Matrix dNdu, Xnod, Jac;
-      Vec4   X(nullptr,time.t);
+      Matrix Jac;
+      Vec4 X(nullptr,time.t);
       for (size_t e = 0; e < threadGroups[g][t].size() && ok; e++)
       {
         int iel = threadGroups[g][t][e];
@@ -347,7 +347,7 @@ bool ASMs2DLag::integrate (Integrand& integrand,
         int i2  = nelx > 0 ? iel / nelx : 0;
 
         // Set up nodal point coordinates for current element
-        if (!this->getElementCoordinates(Xnod,1+iel))
+        if (!this->getElementCoordinates(fe.Xn,1+iel))
         {
           ok = false;
           break;
@@ -358,10 +358,10 @@ bool ASMs2DLag::integrate (Integrand& integrand,
           // Compute the element "center" (average of element node coordinates)
           X = 0.0;
           for (size_t i = 1; i <= nsd; i++)
-            for (size_t j = 1; j <= Xnod.cols(); j++)
-              X[i-1] += Xnod(i,j);
+            for (size_t j = 1; j <= fe.Xn.cols(); j++)
+              X[i-1] += fe.Xn(i,j);
 
-          X *= 1.0/(double)Xnod.cols();
+          X *= 1.0 / static_cast<double>(fe.Xn.cols());
         }
 
         // Initialize element quantities
@@ -395,10 +395,10 @@ bool ASMs2DLag::integrate (Integrand& integrand,
               fe.N = bfs.N;
 
               // Compute Jacobian inverse and derivatives
-              fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,bfs.dNdu);
+              fe.detJxW = utl::Jacobian(Jac,fe.dNdX,fe.Xn,bfs.dNdu);
 
               // Cartesian coordinates of current integration point
-              X.assign(Xnod * fe.N);
+              X.assign(fe.Xn * fe.N);
 
               // Compute the reduced integration terms of the integrand
               fe.detJxW *= wr[i]*wr[j];
@@ -429,11 +429,11 @@ bool ASMs2DLag::integrate (Integrand& integrand,
             fe.N = bfs.N;
 
             // Compute Jacobian inverse of coordinate mapping and derivatives
-            fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,bfs.dNdu);
+            fe.detJxW = utl::Jacobian(Jac,fe.dNdX,fe.Xn,bfs.dNdu);
             if (fe.detJxW == 0.0) continue; // skip singular points
 
             // Cartesian coordinates of current integration point
-            X.assign(Xnod * fe.N);
+            X.assign(fe.Xn * fe.N);
 
             // Evaluate the integrand and accumulate element contributions
             fe.detJxW *= wg[0][i]*wg[1][j];
@@ -482,18 +482,21 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
   const int nelx = (nx-1)/(p1-1);
   const int nely = (ny-1)/(p2-1);
 
-  // Get parametric coordinates of the elements
   FiniteElement fe(p1*p2);
   RealArray upar, vpar;
-  if (t1 == 1)
+  if (surf)
   {
-    fe.u = edgeDir < 0 ? surf->startparam_u() : surf->endparam_u();
-    this->getGridParameters(vpar,1,1);
-  }
-  else if (t1 == 2)
-  {
-    this->getGridParameters(upar,0,1);
-    fe.v = edgeDir < 0 ? surf->startparam_v() : surf->endparam_v();
+    // Get parametric coordinates of the elements
+    if (t1 == 1)
+    {
+      fe.u = edgeDir < 0 ? surf->startparam_u() : surf->endparam_u();
+      this->getGridParameters(vpar,1,1);
+    }
+    else if (t1 == 2)
+    {
+      this->getGridParameters(upar,0,1);
+      fe.v = edgeDir < 0 ? surf->startparam_v() : surf->endparam_v();
+    }
   }
 
   // Extract the Neumann order flag (1 or higher) for the integrand
@@ -512,7 +515,7 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
   std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex%10);
   size_t firstp = iit == firstBp.end() ? 0 : iit->second;
 
-  Matrix dNdu, Xnod, Jac;
+  Matrix dNdu, Jac;
   Vec4   X(nullptr,time.t);
   Vec3   normal;
   double xi[2];
@@ -536,7 +539,7 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
       if (skipMe) continue;
 
       // Set up nodal point coordinates for current element
-      if (!this->getElementCoordinates(Xnod,iel)) return false;
+      if (!this->getElementCoordinates(fe.Xn,iel)) return false;
 
       // Initialize element quantities
       fe.iel = abs(MLGE[doXelms+iel-1]);
@@ -569,13 +572,13 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
           ok = false;
 
         // Compute basis function derivatives and the edge normal
-        fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,Xnod,dNdu,t1,t2);
+        fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,fe.Xn,dNdu,t1,t2);
         if (fe.detJxW == 0.0) continue; // skip singular points
 
         if (edgeDir < 0) normal *= -1.0;
 
         // Cartesian coordinates of current integration point
-        X.assign(Xnod * fe.N);
+        X.assign(fe.Xn * fe.N);
 
         // Evaluate the integrand and accumulate element contributions
         fe.detJxW *= wg[i];
@@ -740,14 +743,14 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   FiniteElement fe(p1*p2);
   Vector        solPt;
   Vectors       globSolPt(nPoints);
-  Matrix        dNdu, Xnod, Jac;
+  Matrix        dNdu, Jac;
 
   // Evaluate the secondary solution field at each point
   const int nel = this->getNoElms(true);
   for (int iel = 1; iel <= nel; iel++)
   {
     const IntVec& mnpc = MNPC[iel-1];
-    this->getElementCoordinates(Xnod,iel);
+    this->getElementCoordinates(fe.Xn,iel);
 
     int i, j, loc = 0;
     for (j = 0; j < p2; j++)
@@ -761,11 +764,11 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
         fe.iel = MLGE[iel-1];
 
         // Compute the Jacobian inverse
-        fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+        fe.detJxW = utl::Jacobian(Jac,fe.dNdX,fe.Xn,dNdu);
         if (fe.detJxW == 0.0) continue; // skip singular points
 
         // Now evaluate the solution field
-        utl::Point X4(Xnod*fe.N,{fe.u,fe.v});
+        utl::Point X4(fe.Xn*fe.N,{fe.u,fe.v});
         if (!integrand.evalSol(solPt,fe,X4,mnpc))
           return false;
         else if (sField.empty())
@@ -795,13 +798,13 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   FiniteElement fe(p1*p2);
   Vector        solPt;
   Vectors       globSolPt(nPoints);
-  Matrix        dNdu, Xnod, Jac;
+  Matrix        dNdu, Jac;
 
   // Evaluate the secondary solution field at each point
   for (size_t i = 0; i < gpar[0].size(); ++i) {
     const int iel = this->findElement(gpar[0][i], gpar[1][i], &fe.xi, &fe.eta);
 
-    if (!this->getElementCoordinates(Xnod,iel))
+    if (!this->getElementCoordinates(fe.Xn,iel))
       return false;
 
     if (!Lagrange::computeBasis(fe.N,dNdu,p1,fe.xi,p2,fe.eta))
@@ -810,11 +813,11 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     fe.iel = MLGE[iel-1];
 
     // Compute the Jacobian inverse
-    fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+    fe.detJxW = utl::Jacobian(Jac,fe.dNdX,fe.Xn,dNdu);
     if (fe.detJxW == 0.0) continue; // skip singular points
 
     // Now evaluate the solution field
-    if (!integrand.evalSol(solPt,fe,Xnod*fe.N,MNPC[iel-1]))
+    if (!integrand.evalSol(solPt,fe,fe.Xn*fe.N,MNPC[iel-1]))
       return false;
     else if (sField.empty())
       sField.resize(solPt.size(),nPoints,true);
@@ -862,6 +865,12 @@ bool ASMs2DLag::write (std::ostream& os, int) const
 
 int ASMs2DLag::findElement (double u, double v, double* xi, double* eta) const
 {
+  if (!surf)
+  {
+    std::cerr <<" *** ASMs2DLag::findElement: No spline geometry"<< std::endl;
+    return -1;
+  }
+
   int ku = surf->basis(0).knotInterval(u);
   int kv = surf->basis(1).knotInterval(v);
   int elmx = ku - (p1 - 1);
@@ -878,7 +887,7 @@ int ASMs2DLag::findElement (double u, double v, double* xi, double* eta) const
     *eta = -1.0 + 2.0 * (v - knot_1) / (knot_2 - knot_1);
   }
 
-  int nel1 = surf->numCoefs_u() - surf->order_u() + 1;
+  int nel1 = surf->numCoefs_u() - p1 + 1;
 
   return 1 + elmx + elmy*nel1;
 }
@@ -918,8 +927,6 @@ bool ASMs2DLag::assembleL2matrices (SparseMatrix& A, StdVector& B,
                                     const L2Integrand& integrand,
                                     bool continuous) const
 {
-  const size_t nnod = this->getNoProjectionNodes();
-
   BasisFunctionCache& cache = static_cast<BasisFunctionCache&>(*myCache.front());
   if (!cache.init(1))
     return false;
@@ -929,37 +936,39 @@ bool ASMs2DLag::assembleL2matrices (SparseMatrix& A, StdVector& B,
 
   Matrix dNdX, Xnod, J;
 
+  const size_t nnod = this->getNoProjectionNodes();
+
   // === Assembly loop over all elements in the patch ==========================
 
   int iel = 0;
   for (size_t i2 = 0; i2 < cache.noElms()[1]; ++i2)
     for (size_t i1 = 0; i1 < cache.noElms()[0]; ++i1, ++iel)
     {
-      // --- Integration loop over all Gauss points in each direction ----------
-      Matrix eA(p1*p2, p1*p2);
-
       if (!this->getElementCoordinates(Xnod,1+iel))
         return false;
 
       std::array<RealArray,2> GP;
-      GP[0].resize(nGP[0]*nGP[1]);
-      GP[1].resize(nGP[0]*nGP[1]);
-      size_t eip = 0;
-      for (int g2 = 0; g2 < nGP[1]; ++g2)
-        for (int g1 = 0; g1 < nGP[0]; ++g1, ++eip) {
-          GP[0][eip] = cache.getParam(0, i1, g1);
-          GP[1][eip] = cache.getParam(1, i2, g2);
+      GP[0].reserve(nGP[0]*nGP[1]);
+      GP[1].reserve(nGP[0]*nGP[1]);
+      for (int j = 0; j < nGP[1]; ++j)
+        for (int i = 0; i < nGP[0]; ++i) {
+          GP[0].push_back(cache.getParam(0, i1, i));
+          GP[1].push_back(cache.getParam(1, i2, j));
         }
+
       Matrix sField;
       integrand.evaluate(sField, GP.data());
 
+      // --- Integration loop over all Gauss points in each direction ----------
+
+      Matrix eA(p1*p2, p1*p2);
       Vectors eB(sField.rows(), Vector(p1*p2));
       size_t ip = 0;
-      for (int gp2 = 0; gp2 < nGP[1]; ++gp2)
-        for (int gp1 = 0; gp1 < nGP[0]; ++gp1, ++ip) {
+      for (int j = 0; j < nGP[1]; ++j)
+        for (int i = 0; i < nGP[0]; ++i, ++ip) {
           const BasisFunctionVals& bfs = cache.getVals(iel,ip);
 
-          double dJw = wg[0][gp1]*wg[1][gp2]*utl::Jacobian(J,dNdX,Xnod,bfs.dNdu);
+          double dJw = wg[0][i]*wg[1][j]*utl::Jacobian(J,dNdX,Xnod,bfs.dNdu);
 
           // Integrate the mass matrix
           eA.outer_product(bfs.N, bfs.N, true, dJw);
