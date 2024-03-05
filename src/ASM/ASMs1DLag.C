@@ -226,7 +226,7 @@ bool ASMs1DLag::integrate (Integrand& integrand,
 
   FiniteElement fe(p1);
   Matrix dNdu, Jac;
-  Vec4   X;
+  Vec4 X(nullptr,time.t);
 
 
   // === Assembly loop over all elements in the patch ==========================
@@ -277,8 +277,7 @@ bool ASMs1DLag::integrate (Integrand& integrand,
 	}
 
 	// Cartesian coordinates of current integration point
-	X = fe.Xn * fe.N;
-	X.t = time.t;
+	X.assign(fe.Xn * fe.N);
 
 	// Compute the reduced integration terms of the integrand
 	ok &= integrand.reducedInt(*A,fe,X);
@@ -311,8 +310,7 @@ bool ASMs1DLag::integrate (Integrand& integrand,
       }
 
       // Cartesian coordinates of current integration point
-      X = fe.Xn * fe.N;
-      X.t = time.t;
+      X.assign(fe.Xn * fe.N);
 
       // Evaluate the integrand and accumulate element contributions
       ok &= integrand.evalInt(*A,fe,time,X);
