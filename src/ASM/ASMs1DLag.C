@@ -139,11 +139,12 @@ bool ASMs1DLag::getElementCoordinates (Matrix& X, int iel, bool) const
     return false;
   }
 
-  const IntVec& ien = MNPC[iel-1];
-  X.resize(nsd,ien.size());
+  // Number of nodes per element
+  size_t nen = std::min((size_t)p1,MNPC[--iel].size());
 
-  for (size_t i = 0; i < ien.size(); i++)
-    X.fillColumn(i+1,coord[ien[i]].ptr());
+  X.resize(nsd,nen);
+  for (size_t i = 0; i < nen; i++)
+    X.fillColumn(i+1,coord[MNPC[iel][i]].ptr());
 
   return true;
 }
@@ -224,7 +225,7 @@ bool ASMs1DLag::integrate (Integrand& integrand,
   RealArray gpar;
   this->getGridParameters(gpar,1);
 
-  FiniteElement fe(p1);
+  FiniteElement fe;
   Matrix dNdu, Jac;
   Vec4 X(nullptr,time.t);
 
@@ -235,11 +236,12 @@ bool ASMs1DLag::integrate (Integrand& integrand,
   for (size_t iel = 0; iel < nel && ok; iel++)
   {
     fe.iel = MLGE[iel];
-    LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
-    if (!A) continue; // no integrand contributions for this element
 
     // Set up nodal point coordinates for current element
     ok = this->getElementCoordinates(fe.Xn,1+iel);
+
+    LocalIntegral* A = integrand.getLocalIntegral(fe.Xn.cols(),fe.iel);
+    if (!A) continue; // no integrand contributions for this element
 
     if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
       fe.h = getEndPoints(fe.Xn,fe.XC);
@@ -342,7 +344,7 @@ bool ASMs1DLag::integrate (Integrand& integrand, int lIndex,
 
   // Integration of boundary point
 
-  FiniteElement fe(p1);
+  FiniteElement fe;
   size_t iel = 0;
   switch (lIndex%10)
     {
@@ -362,11 +364,12 @@ bool ASMs1DLag::integrate (Integrand& integrand, int lIndex,
     }
 
   fe.iel = MLGE[iel];
-  LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
-  if (!A) return true; // no integrand contributions for this element
 
   // Set up nodal point coordinates for current element
   bool ok = this->getElementCoordinates(fe.Xn,1+iel);
+
+  LocalIntegral* A = integrand.getLocalIntegral(fe.Xn.cols(),fe.iel,true);
+  if (!A) return true; // no integrand contributions for this element
 
   if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
     fe.h = getEndPoints(fe.Xn,fe.XC);
@@ -508,7 +511,7 @@ bool ASMs1DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   size_t nPoints = coord.size();
   IntVec check(nPoints,0);
 
-  FiniteElement fe(p1);
+  FiniteElement fe;
   Vector        solPt;
   Vectors       globSolPt(nPoints);
   Matrix        dNdu, Jac;
