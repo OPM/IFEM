@@ -250,7 +250,7 @@ void ASMs3DLag::setCoord (size_t inod, const Vec3& Xnod)
 
 bool ASMs3DLag::getElementCoordinates (Matrix& X, int iel, bool) const
 {
-  if (iel < 1 || (size_t)iel > MNPC.size())
+  if (iel < 1 || static_cast<size_t>(iel) > MNPC.size())
   {
     std::cerr <<" *** ASMs3DLag::getElementCoordinates: Element index "<< iel
               <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
@@ -258,8 +258,7 @@ bool ASMs3DLag::getElementCoordinates (Matrix& X, int iel, bool) const
   }
 
   // Number of nodes per element
-  size_t nen = p1*p2*p3;
-  if (nen > MNPC[--iel].size()) nen = MNPC[iel].size();
+  size_t nen = std::min(static_cast<size_t>(p1*p2*p3),MNPC[--iel].size());
 
   X.resize(3,nen);
   for (size_t i = 0; i < nen; i++)
@@ -374,7 +373,7 @@ bool ASMs3DLag::integrate (Integrand& integrand,
 #pragma omp parallel for schedule(static)
     for (size_t t = 0; t < threadGroupsVol[g].size(); t++)
     {
-      FiniteElement fe(p1*p2*p3);
+      FiniteElement fe;
       Matrix Jac;
       Vec4 X(nullptr,time.t);
       for (size_t l = 0; l < threadGroupsVol[g][t].size() && ok; l++)
@@ -404,7 +403,7 @@ bool ASMs3DLag::integrate (Integrand& integrand,
 
         // Initialize element quantities
         fe.iel = MLGE[iel];
-        LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
+        LocalIntegral* A = integrand.getLocalIntegral(fe.Xn.cols(),fe.iel);
         int nRed = cache.nGauss(true)[0];
         if (!integrand.initElement(MNPC[iel],fe,X,nRed*nRed*nRed,*A))
         {
@@ -618,7 +617,7 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
 #pragma omp parallel for schedule(static)
     for (size_t t = 0; t < threadGrp[g].size(); t++)
     {
-      FiniteElement fe(p1*p2*p3);
+      FiniteElement fe;
       fe.u = upar.front();
       fe.v = vpar.front();
       fe.w = wpar.front();
@@ -645,7 +644,7 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
 
         // Initialize element quantities
         fe.iel = abs(MLGE[doXelms+iel-1]);
-        LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
+        LocalIntegral* A = integrand.getLocalIntegral(fe.Xn.cols(),fe.iel,true);
         if (!integrand.initElementBou(MNPC[doXelms+iel-1],*A))
         {
           A->destruct();
@@ -749,7 +748,7 @@ bool ASMs3DLag::integrateEdge (Integrand& integrand, int lEdge,
   const int nely = (ny-1)/(p2-1);
   const int nelz = (nz-1)/(p3-1);
 
-  FiniteElement fe(p1*p2*p3);
+  FiniteElement fe;
   Matrix dNdu, Jac;
   Vec4   X(nullptr,time.t);
   Vec3   tangent;
@@ -813,7 +812,7 @@ bool ASMs3DLag::integrateEdge (Integrand& integrand, int lEdge,
 
         // Initialize element quantities
         fe.iel = MLGE[iel-1];
-        LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
+        LocalIntegral* A = integrand.getLocalIntegral(fe.Xn.cols(),fe.iel,true);
         bool ok = integrand.initElementBou(MNPC[iel-1],*A);
 
 
