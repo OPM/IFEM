@@ -21,6 +21,7 @@
 #include "MatVec.h"
 #include <map>
 
+class ASMbase;
 class NormBase;
 class ForceBase;
 class GlobalIntegral;
@@ -88,6 +89,8 @@ public:
   virtual void setSecondaryInt(GlobalIntegral* = nullptr) {}
   //! \brief Returns the system quantity to be integrated by \a *this.
   virtual GlobalIntegral& getGlobalInt(GlobalIntegral* gq) const;
+  //! \brief Interface for initialization of integrand with patch-specific data.
+  virtual void initForPatch(const ASMbase* pch);
 
 
   // Element-level initialization interface
