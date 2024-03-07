@@ -12,6 +12,7 @@
 //==============================================================================
 
 #include "IntegrandBase.h"
+#include "ASMbase.h"
 #include "GlobalIntegral.h"
 #include "FiniteElement.h"
 #include "ElmMats.h"
@@ -22,6 +23,18 @@
 #include "Fields.h"
 #include <cstring>
 #include <cstdio>
+
+
+/*!
+  Override this method if the integrand needs some patch-specific data
+  to be initialized before performing the numerical integration.
+  The default version only passes the patch index to the initPatch() method.
+*/
+
+void IntegrandBase::initForPatch (const ASMbase* pch)
+{
+  if (pch) this->initPatch(pch->idx);
+}
 
 
 /*!
