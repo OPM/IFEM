@@ -64,18 +64,35 @@ bool ASMu2DLag::generateFEMTopology ()
   nnod = myCoord.size();
   nel  = myMNPC.size();
 
-  myMLGN.resize(nnod);
-  myMLGE.resize(nel);
+  bool ok = true;
+  if (myMLGN.empty())
+  {
+    myMLGN.resize(nnod);
+    std::iota(myMLGN.begin(),myMLGN.end(),gNod+1);
+  }
+  else
+    ok = myMLGN.size() == nnod;
 
-  std::iota(myMLGN.begin(),myMLGN.end(),gNod+1);
-  std::iota(myMLGE.begin(),myMLGE.end(),gEl+1);
+  if (myMLGE.empty())
+  {
+    myMLGE.resize(nel);
+    std::iota(myMLGE.begin(),myMLGE.end(),gEl+1);
+  }
+  else if (ok)
+    ok = myMLGE.size() == nel;
+
+  if (!ok)
+    std::cerr <<" *** ASMu2DLag::generateFEMTopology: Array mismatch, "
+              <<" size(coord)="<< myCoord.size() <<" size(MLGN)="<< MLGN.size()
+              <<" size(MNPC)="<< MNPC.size() <<" size(MLGE)="<< MLGE.size()
+              << std::endl;
 
   gNod += nnod;
   gEl  += nel;
 
   myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this));
 
-  return true;
+  return ok;
 }
 
 

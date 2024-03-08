@@ -58,8 +58,32 @@ bool ASMu1DLag::generateOrientedFEModel (const Vec3& Zaxis)
   nnod = myCoord.size();
   nel  = myMNPC.size();
 
-  myMLGN.resize(nnod);
-  myMLGE.resize(nel);
+  bool ok = true;
+  if (myMLGN.empty())
+  {
+    myMLGN.resize(nnod);
+    std::iota(myMLGN.begin(),myMLGN.end(),gNod+1);
+  }
+  else
+    ok = myMLGN.size() == nnod && gNod == 0;
+
+  if (myMLGE.empty())
+  {
+    myMLGE.resize(nel);
+    std::iota(myMLGE.begin(),myMLGE.end(),gEl+1);
+  }
+  else if (ok)
+    ok = myMLGE.size() == nel && gEl == 0;
+
+  if (!ok)
+  {
+    std::cerr <<" *** ASMu1DLag::generateOrientedFEModel: Array mismatch, "
+              <<" size(coord)="<< myCoord.size() <<" size(MLGN)="<< MLGN.size()
+              <<" size(MNPC)="<< MNPC.size() <<" size(MLGE)="<< MLGE.size()
+              << std::endl;
+    return false;
+  }
+
   if (nsd == 3 && nf == 6)
   {
     // This is a 3D beam problem, allocate the nodal/element rotation tensors.
@@ -68,9 +92,6 @@ bool ASMu1DLag::generateOrientedFEModel (const Vec3& Zaxis)
     myCS.resize(nel,Tensor(3));
     myT.resize(nnod,Tensor(3,true)); // Initialize nodal rotations to unity
   }
-
-  std::iota(myMLGN.begin(),myMLGN.end(),gNod+1);
-  std::iota(myMLGE.begin(),myMLGE.end(),gEl+1);
 
   gNod += nnod;
   gEl  += nel;
