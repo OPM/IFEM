@@ -67,18 +67,33 @@ bool ASMu2DLag::generateFEMTopology ()
   nnod = myCoord.size();
   nel  = myMNPC.size();
 
-  myMLGN.resize(nnod);
-  myMLGE.resize(nel);
+  bool ok = true;
+  if (myMLGN.empty())
+  {
+    myMLGN.resize(nnod);
+    std::iota(myMLGN.begin(),myMLGN.end(),gNod+1);
+  }
+  else
+    ok = myMLGN.size() == nnod && gNod == 0;
 
-  std::iota(myMLGN.begin(),myMLGN.end(),gNod+1);
-  std::iota(myMLGE.begin(),myMLGE.end(),gEl+1);
+  if (myMLGE.empty())
+  {
+    myMLGE.resize(nel);
+    std::iota(myMLGE.begin(),myMLGE.end(),gEl+1);
+  }
+  else if (ok)
+    ok = myMLGE.size() == nel && gEl == 0;
+
+  if (!ok)
+    std::cerr <<" *** Unstructured multi-patch models not supported yet"
+              << std::endl;
 
   gNod += nnod;
   gEl  += nel;
 
-  myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this, cachePolicy));
+  myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this,cachePolicy));
 
-  return true;
+  return ok;
 }
 
 
@@ -163,8 +178,7 @@ bool ASMu2DLag::tesselate (ElementBlock& grid, const int*) const
 
 ASMu2DLag::BasisFunctionCache::BasisFunctionCache (const ASMu2DLag& pch,
                                                    ASM::CachePolicy plcy) :
-  ::BasisFunctionCache<2>(plcy),
-  patch(pch)
+  ::BasisFunctionCache<2>(plcy), patch(pch)
 {
 }
 
