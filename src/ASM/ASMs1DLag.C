@@ -7,7 +7,7 @@
 //!
 //! \author Einar Christensen / SINTEF
 //!
-//! \brief Driver for assembly of 1D Lagrange FE models.
+//! \brief Driver for assembly of 1D %Lagrange FE models.
 //!
 //==============================================================================
 
@@ -470,7 +470,7 @@ bool ASMs1DLag::tesselate (ElementBlock& grid, const int* npe) const
 
 
 bool ASMs1DLag::evalSolution (Matrix& sField, const Vector& locSol,
-                              const int*, int) const
+                              const int*, int, bool) const
 {
   return this->evalSolution(sField,locSol,nullptr,false,0,0);
 }
@@ -496,7 +496,7 @@ bool ASMs1DLag::evalSolution (Matrix& sField, const Vector& locSol,
 bool ASMs1DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 			      const int*, char) const
 {
-  return this->evalSolution(sField,integrand,(const RealArray*)nullptr);
+  return this->evalSolution(sField,integrand,(const RealArray*)nullptr,0);
 }
 
 

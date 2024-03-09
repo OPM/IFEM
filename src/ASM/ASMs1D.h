@@ -237,7 +237,7 @@ public:
   //! \param[in] locSol Solution vector in DOF-order
   //! \param[in] npe Number of visualization nodes over each knot span
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-                            const int* npe, int = 0) const;
+                            const int* npe, int, bool) const;
 
   //! \brief Evaluates the primary solution field at the given points.
   //! \param[out] sField Solution field

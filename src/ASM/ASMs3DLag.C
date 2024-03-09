@@ -7,7 +7,7 @@
 //!
 //! \author Einar Christensen / SINTEF
 //!
-//! \brief Driver for assembly of structured 3D Lagrange FE models.
+//! \brief Driver for assembly of structured 3D %Lagrange FE models.
 //!
 //==============================================================================
 
@@ -923,14 +923,14 @@ bool ASMs3DLag::tesselate (ElementBlock& grid, const int* npe) const
 
 
 bool ASMs3DLag::evalSolution (Matrix& sField, const Vector& locSol,
-                              const int*, int nf) const
+                              const int*, int nf, bool) const
 {
   return this->evalSolution(sField,locSol,nullptr,true,0,nf);
 }
 
 
-int ASMs3DLag::findElement(double u, double v, double w,
-                           double* xi, double* eta, double* zeta) const
+int ASMs3DLag::findElement (double u, double v, double w,
+                            double* xi, double* eta, double* zeta) const
 {
   const std::array<std::pair<double,int>,3> knot {{
     {u, svol->basis(0).knotInterval(u)},
@@ -995,8 +995,8 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const Vector& locSol,
   for (size_t k = 0; k < gpar[2].size(); ++k)
     for (size_t j = 0; j < gpar[1].size(); ++j)
       for (size_t i = 0; i < gpar[0].size(); ++i, ++n) {
-        int iel = this->findElement(gpar[0][i], gpar[1][j], gpar[2][k],
-                                    &xi, &eta, &zeta);
+        const int iel = this->findElement(gpar[0][i], gpar[1][j], gpar[2][k],
+                                          &xi, &eta, &zeta);
 
         if (iel < 1 || iel > int(MNPC.size()))
           return false;
@@ -1101,7 +1101,8 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     const int iel = this->findElement(gpar[0][i], gpar[1][i], gpar[2][i],
                                       &fe.xi, &fe.eta, &fe.zeta);
 
-    this->getElementCoordinates(Xnod,iel);
+    if (!this->getElementCoordinates(Xnod,iel))
+      return false;
 
     if (!Lagrange::computeBasis(fe.N,dNdu,p1,fe.xi,p2,fe.eta,p3,fe.zeta))
       return false;

@@ -7,7 +7,7 @@
 //!
 //! \author Einar Christensen / SINTEF
 //!
-//! \brief Driver for assembly of structured 3D Lagrange FE models.
+//! \brief Driver for assembly of structured 3D %Lagrange FE models.
 //!
 //==============================================================================
 
@@ -19,8 +19,8 @@
 
 
 /*!
-  \brief Driver for assembly of structured 3D Lagrange FE models.
-  \details This class contains methods for structured 3D Lagrange patches.
+  \brief Driver for assembly of structured 3D %Lagrange FE models.
+  \details This class contains methods for structured 3D %Lagrange patches.
 */
 
 class ASMs3DLag : public ASMs3D
@@ -157,12 +157,13 @@ protected:
   //! \param[in] lIndex Local index of the boundary face
   virtual void findBoundaryElms(IntVec& elms, int lIndex, int = 0) const;
 
-public:
-  //! \brief Find element for parameter, and optionally calculate local coordinates.
+  //! \brief Finds the element containing specified parametric point.
+  //! \details Optionally, the local coordinates of the point are calculated.
   virtual int findElement(double u, double v, double w,
                           double* xi = nullptr, double* eta = nullptr,
                           double* zeta = nullptr) const;
 
+public:
   //! \brief Updates the nodal coordinates for this patch.
   //! \param[in] displ Incremental displacements to update the coordinates with
   virtual bool updateCoords(const Vector& displ);
@@ -214,44 +215,48 @@ public:
 
   using ASMs3D::evalSolution;
   //! \brief Evaluates the primary solution field at all visualization points.
-  //! \details The number of visualization points is the same as the order of
-  //! the Lagrange elements by default.
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector in DOF-order
   //! \param[in] nf If nonzero, mixed evaluates nf fields on first basis
+  //!
+  //! \details The number of visualization points is the same as the order of
+  //! the %Lagrange elements by default.
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-                            const int*, int nf = 0) const;
+                            const int*, int nf, bool) const;
 
   //! \brief Evaluates the primary solution field at the nodal points.
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector local to current patch
   //! \param[in] gpar Parameter values of the result sampling points
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-                            const RealArray* gpar, bool = false,
-                            int = 0, int = 0) const;
+                            const RealArray* gpar, bool, int, int) const;
 
   //! \brief Evaluates the secondary solution field at all visualization points.
-  //! \details The number of visualization points is the same as the order of
-  //! the Lagrange elements by default.
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
+  //!
+  //! \details The number of visualization points is the same as the order of
+  //! the %Lagrange elements by default.
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
-                            const int*, char = 0) const;
+                            const int*, char) const;
 
-  //! \brief Evaluates the secondary solution field at the nodal points.
+  //! \brief Evaluates the secondary solution field at the given points.
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] gpar Parameter values of the result sampling points
+  //!
+  //! \details We assume that the parameter value array \a gpar contains
+  //! the \a u \a v and \a w parameters directly for each sampling point.
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
-                            const RealArray*, bool = false) const;
+                            const RealArray* gpar, bool) const;
 
   //! \brief Evaluates and interpolates a field over a given geometry.
   //! \param[in] basis The basis of the field to evaluate
   //! \param[in] locVec The coefficients of the field to evaluate
   //! \param[out] vec The obtained coefficients after interpolation
   //! \param[in] basisNum The basis to evaluate for (mixed)
-  virtual bool evaluate (const ASMbase* basis, const Vector& locVec,
-                         RealArray& vec, int basisNum) const;
+  virtual bool evaluate(const ASMbase* basis, const Vector& locVec,
+                        RealArray& vec, int basisNum) const;
 
   //! \brief Returns the number of nodal points in each parameter direction.
   //! \param[out] n1 Number of nodes in first (u) direction
@@ -292,10 +297,9 @@ protected:
   int    p2; //!< Polynomial order in second parameter direction
   int    p3; //!< Polynomial order in third parameter direction
 
-  const std::vector<Vec3>& coord; //!< Nodal coordinates
+  const Vec3Vec& coord; //!< Nodal coordinates
 
-private:
-  std::vector<Vec3> myCoord; //!< The actual nodal coordinates
+  Vec3Vec myCoord; //!< The actual nodal coordinates
 };
 
 #endif

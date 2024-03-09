@@ -7,7 +7,7 @@
 //!
 //! \author Einar Christensen / SINTEF
 //!
-//! \brief Driver for assembly of structured 2D Lagrange FE models.
+//! \brief Driver for assembly of structured 2D %Lagrange FE models.
 //!
 //==============================================================================
 
@@ -19,8 +19,8 @@
 
 
 /*!
-  \brief Driver for assembly of structured 2D Lagrange FE models.
-  \details This class contains methods for structured 2D Lagrange patches.
+  \brief Driver for assembly of structured 2D %Lagrange FE models.
+  \details This class contains methods for structured 2D %Lagrange patches.
 */
 
 class ASMs2DLag : public ASMs2D
@@ -74,7 +74,7 @@ protected:
 
 public:
   //! \brief Default constructor.
-  ASMs2DLag(unsigned char n_s = 2, unsigned char n_f = 2);
+  explicit ASMs2DLag(unsigned char n_s = 2, unsigned char n_f = 2);
   //! \brief Special copy constructor for sharing of FE data.
   ASMs2DLag(const ASMs2DLag& patch, unsigned char n_f);
   //! \brief Default copy constructor copying everything.
@@ -153,7 +153,8 @@ protected:
   //! \param[in] lIndex Local index of the boundary edge
   virtual void findBoundaryElms(IntVec& elms, int lIndex, int = 0) const;
 
-  //! \brief Find element for parameter, and optionally calculate local coordinates.
+  //! \brief Finds the element containing specified parametric point.
+  //! \details Optionally, the local coordinates of the point are calculated.
   int findElement(double u, double v,
                   double* xi = nullptr, double* eta = nullptr) const;
 
@@ -201,46 +202,48 @@ public:
 
   using ASMs2D::evalSolution;
   //! \brief Evaluates the primary solution field at all visualization points.
-  //! \details The number of visualization points is the same as the order of
-  //! the Lagrange elements by default.
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector in DOF-order
   //! \param[in] nf If nonzero, mixed evaluates nf fields on first basis
+  //!
+  //! \details The number of visualization points is the same as the order of
+  //! the %Lagrange elements by default.
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-                            const int*, int nf = 0) const;
+                            const int*, int nf, bool) const;
 
   //! \brief Evaluates the primary solution field at the nodal points.
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector local to current patch
   //! \param[in] gpar Parameter values of the result sampling points
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-                            const RealArray* gpar, bool = false,
-                            int = 0, int = 0) const;
+                            const RealArray* gpar, bool, int, int) const;
 
   //! \brief Evaluates the secondary solution field at all visualization points.
-  //! \details The number of visualization points is the same as the order of
-  //! the Lagrange elements by default.
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
+  //!
+  //! \details The number of visualization points is the same as the order of
+  //! the %Lagrange elements by default.
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
-                            const int*, char = 0) const;
+                            const int*, char) const;
 
   //! \brief Evaluates the secondary solution field at the given points.
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
-  //! \param[in] gpar Parameter values of the result sampling points.
+  //! \param[in] gpar Parameter values of the result sampling points
+  //!
   //! \details We assume that the parameter value array \a gpar contains
   //! the \a u and \a v parameters directly for each sampling point.
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
-                            const RealArray* gpar, bool = false) const;
+                            const RealArray* gpar, bool) const;
 
   //! \brief Evaluates and interpolates a field over a given geometry.
   //! \param[in] basis The basis of the field to evaluate
   //! \param[in] locVec The coefficients of the field to evaluate
   //! \param[out] vec The obtained coefficients after interpolation
   //! \param[in] basisNum The basis to evaluate for (mixed)
-  virtual bool evaluate (const ASMbase* basis, const Vector& locVec,
-                         RealArray& vec, int basisNum) const;
+  virtual bool evaluate(const ASMbase* basis, const Vector& locVec,
+                        RealArray& vec, int basisNum) const;
 
   using ASMs2D::getSize;
   //! \brief Returns the number of nodal points in each parameter direction.

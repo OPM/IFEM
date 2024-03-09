@@ -7,7 +7,7 @@
 //!
 //! \author Einar Christensen / SINTEF
 //!
-//! \brief Driver for assembly of 1D Lagrange FE models.
+//! \brief Driver for assembly of 1D %Lagrange FE models.
 //!
 //==============================================================================
 
@@ -19,15 +19,15 @@
 
 
 /*!
-  \brief Driver for assembly of 1D Lagrange FE models.
-  \details This class contains methods for 1D Lagrange patches.
+  \brief Driver for assembly of 1D %Lagrange FE models.
+  \details This class contains methods for 1D %Lagrange patches.
 */
 
 class ASMs1DLag : public ASMs1D
 {
 public:
   //! \brief Default constructor.
-  ASMs1DLag(unsigned char n_s = 1, unsigned char n_f = 1);
+  explicit ASMs1DLag(unsigned char n_s = 1, unsigned char n_f = 1);
   //! \brief Special copy constructor for sharing of FE data.
   ASMs1DLag(const ASMs1DLag& patch, unsigned char n_f);
   //! \brief Default copy constructor copying everything.
@@ -109,33 +109,34 @@ public:
 
   using ASMs1D::evalSolution;
   //! \brief Evaluates the primary solution field at all visualization points.
-  //! \details The number of visualization points is the same as the order of
-  //! the Lagrange elements by default.
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector in DOF-order
+  //!
+  //! \details The number of visualization points is the same as the order of
+  //! the %Lagrange elements by default.
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-                            const int*, int = 0) const;
+                            const int*, int, bool) const;
 
   //! \brief Evaluates the primary solution field at the nodal points.
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector local to current patch
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-                            const RealArray*, bool = false,
-                            int = 0, int = 0) const;
+                            const RealArray*, bool, int, int) const;
 
   //! \brief Evaluates the secondary solution field at all visualization points.
-  //! \details The number of visualization points is the same as the order of
-  //! the Lagrange elements by default.
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
+  //!
+  //! \details The number of visualization points is the same as the order of
+  //! the %Lagrange elements by default.
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
-                            const int*, char = 0) const;
+                            const int*, char) const;
 
   //! \brief Evaluates the secondary solution field at the nodal points.
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
-                            const RealArray*, bool = false) const;
+                            const RealArray*, bool) const;
 
   using ASMs1D::getSize;
   //! \brief Returns the number of nodal points in the patch.

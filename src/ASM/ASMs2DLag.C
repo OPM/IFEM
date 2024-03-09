@@ -664,7 +664,7 @@ void ASMs2DLag::constrainEdge (int dir, bool open, int dof, int code, char basis
 
 
 bool ASMs2DLag::evalSolution (Matrix& sField, const Vector& locSol,
-                              const int*, int nf) const
+                              const int*, int nf, bool) const
 {
   return this->evalSolution(sField,locSol,nullptr,true,0,nf);
 }
@@ -699,8 +699,7 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const Vector& locSol,
   size_t n = 1;
   for (size_t j = 0; j < gpar[1].size(); ++j)
     for (size_t i = 0; i < gpar[0].size(); ++i, ++n) {
-      int iel = this->findElement(gpar[0][i], gpar[1][j], &xi, &eta);
-
+      const int iel = this->findElement(gpar[0][i], gpar[1][j], &xi, &eta);
       if (iel < 1 || iel > int(MNPC.size()))
         return false;
 
@@ -802,7 +801,8 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   for (size_t i = 0; i < gpar[0].size(); ++i) {
     const int iel = this->findElement(gpar[0][i], gpar[1][i], &fe.xi, &fe.eta);
 
-    this->getElementCoordinates(Xnod,iel);
+    if (!this->getElementCoordinates(Xnod,iel))
+      return false;
 
     if (!Lagrange::computeBasis(fe.N,dNdu,p1,fe.xi,p2,fe.eta))
       return false;
@@ -854,14 +854,13 @@ void ASMs2DLag::findBoundaryElms (IntVec& elms, int lIndex, int) const
 }
 
 
-bool ASMs2DLag::write(std::ostream& os, int) const
+bool ASMs2DLag::write (std::ostream& os, int) const
 {
   return this->writeLagBasis(os, "quad");
 }
 
 
-int ASMs2DLag::findElement(double u, double v,
-                           double* xi, double* eta) const
+int ASMs2DLag::findElement (double u, double v, double* xi, double* eta) const
 {
   int ku = surf->basis(0).knotInterval(u);
   int kv = surf->basis(1).knotInterval(v);
