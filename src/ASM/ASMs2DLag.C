@@ -325,7 +325,6 @@ bool ASMs2DLag::integrate (Integrand& integrand,
     return false;
 
   // Get Gaussian quadrature points and weights
-  const std::array<int,2>& ng = cache.nGauss();
   const std::array<const double*,2>& xg = cache.coord();
   const std::array<const double*,2>& wg = cache.weight();
 
@@ -375,7 +374,7 @@ bool ASMs2DLag::integrate (Integrand& integrand,
         // Initialize element quantities
         fe.iel = MLGE[iel];
         LocalIntegral* A = integrand.getLocalIntegral(fe.Xn.cols(),fe.iel);
-        int nRed = cache.nGauss(true)[0];
+        const int nRed = fe.Xn.cols() < 4 ? 0 : cache.nGauss(true).front();
         if (!integrand.initElement(MNPC[iel],fe,X,nRed*nRed,*A))
         {
           A->destruct();
@@ -418,12 +417,15 @@ bool ASMs2DLag::integrate (Integrand& integrand,
 
         // --- Integration loop over all Gauss points in each direction --------
 
+        const int ng1 = fe.Xn.cols() < 4 ? 0 : cache.nGauss().front();
+        const int ng2 = fe.Xn.cols() < 4 ? 0 : cache.nGauss().back();
+
         size_t ip = 0;
-        int jp = iel*ng[0]*ng[1];
+        int jp = iel*ng1*ng2;
         fe.iGP = firstIp + jp; // Global integration point counter
 
-        for (int j = 0; j < ng[1]; j++)
-          for (int i = 0; i < ng[0]; i++, fe.iGP++, ++ip)
+        for (int j = 0; j < ng2; j++)
+          for (int i = 0; i < ng1; i++, fe.iGP++, ++ip)
           {
             // Local element coordinates of current integration point
             fe.xi  = xg[0][i];
