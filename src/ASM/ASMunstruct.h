@@ -22,6 +22,7 @@ typedef std::vector<int> IntVec; //!< General integer vector
 typedef std::set<int>    IntSet; //!< General integer set
 
 class RealFunc;
+class Vec3;
 
 
 namespace LR //! Utilities for LR-splines.
