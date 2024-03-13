@@ -350,6 +350,14 @@ Real FieldFuncStream::evaluate (const Vec3& X) const
 }
 
 
+FieldsFuncBase::FieldsFuncBase (const std::vector<Fields*>& fields)
+  : currentLevel(0), field(fields)
+{
+  lastLevel = 0;
+  hasMultipleLevels = false;
+}
+
+
 FieldsFuncBase::FieldsFuncBase (const std::string& fileName,
                                 const std::string& basisName,
                                 const std::string& fieldName,
@@ -415,6 +423,14 @@ VecFieldFunction::VecFieldFunction (const std::string& fileName,
 {
   if (!field.empty())
     ncmp = field.front()->getNoFields();
+}
+
+
+VecFieldFunction::VecFieldFunction (const std::vector<Fields*>& fields)
+  : FieldsFuncBase(fields)
+{
+  npch = fields.size();
+  ncmp = fields.front()->getNoFields();
 }
 
 

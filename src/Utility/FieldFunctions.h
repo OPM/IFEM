@@ -162,7 +162,7 @@ public:
                 const std::string& basisName,
                 const std::string& fieldName,
                 int level = 0);
-  //! \brief Wrap an existings field.
+  //! \brief Wrap existing field.
   //! \param fields Field to evaluate
   //! \details Takes ownership of given fields.
   FieldFunction(const std::vector<Field*>& fields);
@@ -212,6 +212,10 @@ private:
 class FieldsFuncBase : public FieldFuncHDF5
 {
 protected:
+  //! \brief Construct from vector of fields.
+  //! \param fields Fields to use
+  FieldsFuncBase(const std::vector<Fields*>& fields);
+
   //! \brief The constructor creates a field from the provided HDF5-file.
   //! \param[in] fileName Name of the HDF5-file
   //! \param[in] basisName Name of the basis which the field values refer to
@@ -265,6 +269,12 @@ public:
                    const std::string& basisName,
                    const std::string& fieldName,
                    int level = 0);
+
+  //! \brief Wrap existing fields.
+  //! \param fields Fields to evaluate
+  //! \details Takes ownership of given fields.
+  VecFieldFunction(const std::vector<Fields*>& fields);
+
   //! \brief Empty destructor.
   virtual ~VecFieldFunction() {}
 
