@@ -23,19 +23,49 @@
   \brief Adaptive simulator driver using the ISolver interface.
 */
 
-template<class T1>
+template<class T1, bool SolutionTransfer = false>
 class AdaptiveISolver : public AdaptiveSIM
 {
 public:
   //! \brief The constructor forwards to the parent class constructor.
   AdaptiveISolver(T1& sim, bool sa) : AdaptiveSIM(sim,sa), model(sim) {}
 
+  //! \brief Refines the current mesh based on the element norms.
+  //! \param[in] iStep Refinement step counter
+  //! \param[in] outPrec Number of digits after the decimal point in norm print
+  bool adaptMesh(int iStep, std::streamsize outPrec = 0)
+  {
+    if constexpr (SolutionTransfer) {
+      if (iStep > 1) {
+        transfered = solution;
+        this->prepareAdapt();
+      }
+      return this->AdaptiveSIM::adaptMesh(iStep, transfered, outPrec);
+    } else
+      return this->AdaptiveSIM::adaptMesh(iStep, outPrec);
+  }
+
 protected:
+  //! \brief Hook for preparation steps before mesh adaptation.
+  virtual void prepareAdapt() {}
+
+  //! \brief Hook for preparation steps before solution transfer.
+  virtual void prepareSolutionTransfer() {}
+
   //! \brief Assembles and solves the linearized FE equation system.
   bool assembleAndSolveSystem() override
   {
     TimeStep dummy;
     model.init(dummy);
+
+    if constexpr (SolutionTransfer) {
+      if (!transfered.empty()) {
+        this->prepareSolutionTransfer();
+        for (size_t i = 0; i < transfered.size(); ++i)
+          model.setSolution(transfered[i], i);
+      }
+    }
+
     if (model.solveStep(dummy))
       solution = model.getSolutions();
     else
@@ -52,6 +82,7 @@ protected:
   }
 
   T1& model; //!< Reference to the actual sim
+  Vectors transfered; //!< Transfered solutions
 };
 
 
