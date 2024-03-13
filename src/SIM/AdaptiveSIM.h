@@ -51,6 +51,12 @@ public:
   //! \param[in] outPrec Number of digits after the decimal point in norm print
   bool adaptMesh(int iStep, std::streamsize outPrec = 0);
 
+  //! \brief Refines the current mesh based on the element norms.
+  //! \param[in] iStep Refinement step counter
+  //! \param sol Vectors for solution transfer
+  //! \param[in] outPrec Number of digits after the decimal point in norm print
+  bool adaptMesh(int iStep, Vectors& sol, std::streamsize outPrec = 0);
+
   //! \brief Writes current mesh and results to the VTF-file.
   //! \param[in] infile File name used to construct the VTF-file name from
   //! \param[in] iStep  Refinement step counter
