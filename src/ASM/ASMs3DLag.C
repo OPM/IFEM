@@ -297,6 +297,16 @@ bool ASMs3DLag::updateCoords (const Vector& displ)
 }
 
 
+bool ASMs3DLag::getOrder (int& pu, int& pv, int& pw) const
+{
+  pu = p1;
+  pv = p2;
+  pw = p3;
+
+  return true;
+}
+
+
 bool ASMs3DLag::getSize (int& n1, int& n2, int& n3, int) const
 {
   n1 = nx;
@@ -1379,10 +1389,23 @@ ASMs3DLag::BasisFunctionCache::BasisFunctionCache (const ASMs3DLag& pch,
 }
 
 
-ASMs3DLag::BasisFunctionCache::BasisFunctionCache (const BasisFunctionCache& cache,
+ASMs3DLag::BasisFunctionCache::BasisFunctionCache (const ASMs3D::BasisFunctionCache& cache,
                                                    int b) :
   ASMs3D::BasisFunctionCache(cache,b)
 {
+}
+
+
+bool ASMs3DLag::BasisFunctionCache::internalInit ()
+{
+  if (!mainQ->xg[0])
+    this->setupQuadrature();
+
+  nTotal = mainQ->ng[0]*mainQ->ng[1]*mainQ->ng[2];
+  if (reducedQ->xg[0])
+    nTotalRed = reducedQ->ng[0]*reducedQ->ng[1]*reducedQ->ng[2];
+
+  return true;
 }
 
 
@@ -1409,44 +1432,47 @@ double ASMs3DLag::BasisFunctionCache::getParam (int dir, size_t el,
 }
 
 
-BasisFunctionVals ASMs3DLag::BasisFunctionCache::calculatePt (size_t el,
-                                                              size_t gp,
-                                                              bool reduced) const
+BasisFunctionVals ASMs3DLag::BasisFunctionCache::calculatePt (size_t, size_t gp,
+                                                              bool red) const
 {
-  std::array<size_t,3> gpIdx = this->gpIndex(gp,reduced);
-  const Quadrature& q = reduced ? *reducedQ : *mainQ;
+  std::array<size_t,3> gpIdx = this->gpIndex(gp,red);
+  const Quadrature& q = red ? *reducedQ : *mainQ;
 
-  const ASMs3DLag& pch = static_cast<const ASMs3DLag&>(patch);
+  int p1, p2, p3;
+  patch.getOrder(p1,p2,p3);
 
   BasisFunctionVals result;
-  if (nderiv == 1)
-    Lagrange::computeBasis(result.N,result.dNdu,
-                           pch.p1,q.xg[0][gpIdx[0]],
-                           pch.p2,q.xg[1][gpIdx[1]],
-                           pch.p3,q.xg[2][gpIdx[2]]);
-
+  Lagrange::computeBasis(result.N,result.dNdu,
+                         p1,q.xg[0][gpIdx[0]],
+                         p2,q.xg[1][gpIdx[1]],
+                         p3,q.xg[2][gpIdx[2]]);
   return result;
 }
 
 
 void ASMs3DLag::BasisFunctionCache::calculateAll ()
 {
-  // Evaluate basis function values and derivatives at all integration points.
-  // We do this before the integration point loop to exploit multi-threading
-  // in the integrand evaluations, which may be the computational bottleneck.
-  size_t iel, jp, rp;
-  const ASMs3DLag& pch = static_cast<const ASMs3DLag&>(patch);
-  for (iel = jp = rp = 0; iel < pch.nel; iel++)
-  {
-    for (int k = 0; k < mainQ->ng[2]; k++)
-      for (int j = 0; j < mainQ->ng[1]; j++)
-        for (int i = 0; i < mainQ->ng[0]; i++, jp++)
-          values[jp] = this->calculatePt(iel,(k*mainQ->ng[1]+j)*mainQ->ng[0]+i,false);
+  int i, j, k, p1, p2, p3;
+  patch.getOrder(p1,p2,p3);
 
-    if (reducedQ->xg[0])
-      for (int k = 0; k < reducedQ->ng[2]; k++)
-        for (int j = 0; j < reducedQ->ng[1]; j++)
-          for (int i = 0; i < reducedQ->ng[0]; i++, rp++)
-            valuesRed[rp] = this->calculatePt(iel,(k*reducedQ->ng[1]+j)*reducedQ->ng[0]+i,true);
-  }
+  // Evaluate basis function values and derivatives at all integration points.
+  // They will be the same for all elements in the patch,
+  // so no need to repeat for all.
+  std::vector<BasisFunctionVals>::iterator it = values.begin();
+  for (k = 0; k < mainQ->ng[2]; k++)
+    for (j = 0; j < mainQ->ng[1]; j++)
+      for (i = 0; i < mainQ->ng[0]; i++, ++it)
+        Lagrange::computeBasis(it->N, it->dNdu,
+                               p1, mainQ->xg[0][i],
+                               p2, mainQ->xg[1][j],
+                               p3, mainQ->xg[2][k]);
+
+  if (reducedQ->xg[0])
+    for (k = 0, it = valuesRed.begin(); k < reducedQ->ng[2]; k++)
+      for (j = 0; j < reducedQ->ng[1]; j++)
+        for (i = 0; i < reducedQ->ng[0]; i++, ++it)
+          Lagrange::computeBasis(it->N, it->dNdu,
+                                 p1, reducedQ->xg[0][i],
+                                 p2, reducedQ->xg[1][j],
+                                 p3, reducedQ->xg[2][k]);
 }

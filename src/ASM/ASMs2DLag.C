@@ -7,7 +7,7 @@
 //!
 //! \author Einar Christensen / SINTEF
 //!
-//! \brief Driver for assembly of structured 2D Lagrange FE models.
+//! \brief Driver for assembly of structured 2D %Lagrange FE models.
 //!
 //==============================================================================
 
@@ -272,6 +272,16 @@ bool ASMs2DLag::updateCoords (const Vector& displ)
 }
 
 
+bool ASMs2DLag::getOrder (int& pu, int& pv, int& pw) const
+{
+  pu = p1;
+  pv = p2;
+  pw = 0;
+
+  return true;
+}
+
+
 bool ASMs2DLag::getSize (int& n1, int& n2, int) const
 {
   n1 = nx;
@@ -323,9 +333,8 @@ bool ASMs2DLag::integrate (Integrand& integrand,
   const double* xr = cache.coord(true)[0];
   const double* wr = cache.weight(true)[0];
 
-  // Number of elements in each direction
-  const BasisFunctionCache* scache = dynamic_cast<const BasisFunctionCache*>(myCache.front().get());
-  const int nelx = scache ? scache->noElms()[0] : 0;
+  // Number of elements in first parameter direction
+  const int nelx = (nx-1)/(p1-1);
 
 
   // === Assembly loop over all elements in the patch ==========================
@@ -1003,10 +1012,23 @@ ASMs2DLag::BasisFunctionCache::BasisFunctionCache (const ASMs2DLag& pch,
 }
 
 
-ASMs2DLag::BasisFunctionCache::BasisFunctionCache (const BasisFunctionCache& cache,
+ASMs2DLag::BasisFunctionCache::BasisFunctionCache (const ASMs2D::BasisFunctionCache& cache,
                                                    int b) :
   ASMs2D::BasisFunctionCache(cache,b)
 {
+}
+
+
+bool ASMs2DLag::BasisFunctionCache::internalInit ()
+{
+  if (!mainQ->xg[0])
+    this->setupQuadrature();
+
+  nTotal = mainQ->ng[0]*mainQ->ng[1];
+  if (reducedQ->xg[0])
+    nTotalRed = reducedQ->ng[0]*reducedQ->ng[1];
+
+  return true;
 }
 
 
@@ -1033,41 +1055,40 @@ double ASMs2DLag::BasisFunctionCache::getParam (int dir, size_t el,
 }
 
 
-BasisFunctionVals ASMs2DLag::BasisFunctionCache::calculatePt (size_t el,
-                                                              size_t gp,
-                                                              bool reduced) const
+BasisFunctionVals ASMs2DLag::BasisFunctionCache::calculatePt (size_t, size_t gp,
+                                                              bool red) const
 {
-  std::array<size_t,2> gpIdx = this->gpIndex(gp,reduced);
-  const Quadrature& q = reduced ? *reducedQ : *mainQ;
+  std::array<size_t,2> gpIdx = this->gpIndex(gp,red);
+  const Quadrature& q = red ? *reducedQ : *mainQ;
 
-  const ASMs2DLag& pch = static_cast<const ASMs2DLag&>(patch);
+  int p1, p2, p3;
+  patch.getOrder(p1,p2,p3);
 
   BasisFunctionVals result;
-  if (nderiv == 1)
-    Lagrange::computeBasis(result.N,result.dNdu,
-                           pch.p1,q.xg[0][gpIdx[0]],
-                           pch.p2,q.xg[1][gpIdx[1]]);
-
+  Lagrange::computeBasis(result.N,result.dNdu,
+                         p1,q.xg[0][gpIdx[0]],
+                         p2,q.xg[1][gpIdx[1]]);
   return result;
 }
 
 
 void ASMs2DLag::BasisFunctionCache::calculateAll ()
 {
-  // Evaluate basis function values and derivatives at all integration points.
-  // We do this before the integration point loop to exploit multi-threading
-  // in the integrand evaluations, which may be the computational bottleneck.
-  size_t iel, jp, rp;
-  const ASMs2DLag& pch = static_cast<const ASMs2DLag&>(patch);
-  for (iel = jp = rp = 0; iel < pch.nel; iel++)
-  {
-    for (int j = 0; j < mainQ->ng[1]; j++)
-      for (int i = 0; i < mainQ->ng[0]; i++, jp++)
-        values[jp] = this->calculatePt(iel,j*mainQ->ng[0]+i,false);
+  int i, j, p1, p2;
+  patch.getOrder(p1,p2,i);
 
-    if (reducedQ->xg[0])
-      for (int j = 0; j < reducedQ->ng[1]; j++)
-        for (int i = 0; i < reducedQ->ng[0]; i++, rp++)
-          valuesRed[rp] = this->calculatePt(iel,j*reducedQ->ng[0]+i,true);
-  }
+  // Evaluate basis function values and derivatives at all integration points.
+  // They will be the same for all elements in the patch,
+  // so no need to repeat for all.
+  std::vector<BasisFunctionVals>::iterator it = values.begin();
+  for (j = 0; j < mainQ->ng[1]; j++)
+    for (i = 0; i < mainQ->ng[0]; i++, ++it)
+      Lagrange::computeBasis(it->N, it->dNdu,
+                             p1, mainQ->xg[0][i], p2, mainQ->xg[1][j]);
+
+  if (reducedQ->xg[0])
+    for (j = 0, it = valuesRed.begin(); j < reducedQ->ng[1]; j++)
+      for (i = 0; i < reducedQ->ng[0]; i++, ++it)
+        Lagrange::computeBasis(it->N, it->dNdu,
+                               p1, reducedQ->xg[0][i],  p2, reducedQ->xg[1][j]);
 }

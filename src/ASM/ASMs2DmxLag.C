@@ -7,7 +7,7 @@
 //!
 //! \author Knut Morten Okstad / SINTEF
 //!
-//! \brief Driver for assembly of structured 2D Lagrange mixed FE models.
+//! \brief Driver for assembly of structured 2D %Lagrange mixed FE models.
 //!
 //==============================================================================
 
@@ -243,9 +243,8 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
 
   if (myCache.empty()) {
     myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this, cachePolicy, 1));
-    const BasisFunctionCache& front = static_cast<const BasisFunctionCache&>(*myCache.front());
     for (size_t b = 2; b <= this->getNoBasis(); ++b)
-      myCache.emplace_back(std::make_unique<BasisFunctionCache>(front, b));
+      myCache.emplace_back(std::make_unique<BasisFunctionCache>(*myCache.front(), b));
   }
 
   for (std::unique_ptr<::BasisFunctionCache<2>>& cache : myCache) {
@@ -260,6 +259,7 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
   const std::array<const double*,2>& xg = cache.coord();
   const std::array<const double*,2>& wg = cache.weight();
 
+  // Number of elements in first parameter direction
   const int nelx = cache.noElms()[0];
 
 
@@ -374,7 +374,6 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
   // Extract the Neumann order flag (1 or higher) for the integrand
   integrand.setNeumannOrder(1 + lIndex/10);
 
-
   // Number of elements in each direction
   const int nelx = (nxx[itgBasis-1]-1)/(elem_sizes[itgBasis-1][0]-1);
   const int nely = (nyx[itgBasis-1]-1)/(elem_sizes[itgBasis-1][1]-1);
@@ -388,6 +387,7 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
   Vec4   X(nullptr,time.t);
   Vec3   normal;
   double xi[2];
+
 
   // === Assembly loop over all elements on the patch edge =====================
 
@@ -613,27 +613,49 @@ ASMs2DmxLag::BasisFunctionCache::BasisFunctionCache (const ASMs2DLag& pch,
 }
 
 
-ASMs2DmxLag::BasisFunctionCache::BasisFunctionCache (const BasisFunctionCache& cache,
+ASMs2DmxLag::BasisFunctionCache::BasisFunctionCache (const ASMs2D::BasisFunctionCache& cache,
                                                      int b) :
   ASMs2DLag::BasisFunctionCache(cache,b)
 {
 }
 
 
-BasisFunctionVals ASMs2DmxLag::BasisFunctionCache::calculatePt (size_t el,
+BasisFunctionVals ASMs2DmxLag::BasisFunctionCache::calculatePt (size_t,
                                                                 size_t gp,
-                                                                bool reduced) const
+                                                                bool red) const
 {
   std::array<size_t,2> gpIdx = this->gpIndex(gp,reduced);
-  const Quadrature& q = reduced ? *reducedQ : *mainQ;
+  const Quadrature& q = red ? *reducedQ : *mainQ;
 
   const ASMs2DmxLag& pch = static_cast<const ASMs2DmxLag&>(patch);
 
   BasisFunctionVals result;
-  if (nderiv == 1)
-    Lagrange::computeBasis(result.N,result.dNdu,
-                           pch.elem_sizes[basis-1][0],q.xg[0][gpIdx[0]],
-                           pch.elem_sizes[basis-1][1],q.xg[1][gpIdx[1]]);
-
+  Lagrange::computeBasis(result.N,result.dNdu,
+                         pch.elem_sizes[basis-1][0],q.xg[0][gpIdx[0]],
+                         pch.elem_sizes[basis-1][1],q.xg[1][gpIdx[1]]);
   return result;
+}
+
+
+void ASMs2DmxLag::BasisFunctionCache::calculateAll ()
+{
+  const ASMs2DmxLag& pch = static_cast<const ASMs2DmxLag&>(patch);
+  int i, j;
+
+  // Evaluate basis function values and derivatives at all integration points.
+  // They will be the same for all elements in the patch,
+  // so no need to repeat for all.
+  std::vector<BasisFunctionVals>::iterator it = values.begin();
+  for (j = 0; j < mainQ->ng[1]; j++)
+    for (i = 0; i < mainQ->ng[0]; i++, ++it)
+      Lagrange::computeBasis(it->N, it->dNdu,
+                             pch.elem_sizes[basis-1][0], mainQ->xg[0][i],
+                             pch.elem_sizes[basis-1][1], mainQ->xg[1][j]);
+
+  if (reducedQ->xg[0])
+    for (j = 0, it = valuesRed.begin(); j < reducedQ->ng[1]; j++)
+      for (i = 0; i < reducedQ->ng[0]; i++, ++it)
+        Lagrange::computeBasis(it->N, it->dNdu,
+                               pch.elem_sizes[basis-1][0], reducedQ->xg[0][i],
+                               pch.elem_sizes[basis-1][1], reducedQ->xg[1][j]);
 }

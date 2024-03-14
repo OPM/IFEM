@@ -7,7 +7,7 @@
 //!
 //! \author Knut Morten Okstad / SINTEF
 //!
-//! \brief Driver for assembly of structured 3D Lagrange mixed FE models.
+//! \brief Driver for assembly of structured 3D %Lagrange mixed FE models.
 //!
 //==============================================================================
 
@@ -270,9 +270,8 @@ bool ASMs3DmxLag::integrate (Integrand& integrand,
 
   if (myCache.empty()) {
     myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this, cachePolicy, 1));
-    const BasisFunctionCache& front = static_cast<const BasisFunctionCache&>(*myCache.front());
     for (size_t b = 2; b <= this->getNoBasis(); ++b)
-      myCache.emplace_back(std::make_unique<BasisFunctionCache>(front, b));
+      myCache.emplace_back(std::make_unique<BasisFunctionCache>(*myCache.front(), b));
   }
 
   for (std::unique_ptr<ASMs3D::BasisFunctionCache>& cache : myCache) {
@@ -280,7 +279,7 @@ bool ASMs3DmxLag::integrate (Integrand& integrand,
     cache->init(1);
   }
 
-  BasisFunctionCache& cache = static_cast<BasisFunctionCache&>(*myCache.front());
+  ASMs3D::BasisFunctionCache& cache = *myCache.front();
 
   // Get Gaussian quadrature points and weights
   const std::array<int,3>& ng = cache.nGauss();
@@ -685,28 +684,55 @@ ASMs3DmxLag::BasisFunctionCache::BasisFunctionCache (const ASMs3DLag& pch,
 }
 
 
-ASMs3DmxLag::BasisFunctionCache::BasisFunctionCache (const BasisFunctionCache& cache,
+ASMs3DmxLag::BasisFunctionCache::BasisFunctionCache (const ASMs3D::BasisFunctionCache& cache,
                                                      int b) :
   ASMs3DLag::BasisFunctionCache(cache,b)
 {
 }
 
 
-BasisFunctionVals ASMs3DmxLag::BasisFunctionCache::calculatePt (size_t el,
+BasisFunctionVals ASMs3DmxLag::BasisFunctionCache::calculatePt (size_t,
                                                                 size_t gp,
-                                                                bool reduced) const
+                                                                bool red) const
 {
-  std::array<size_t,3> gpIdx = this->gpIndex(gp,reduced);
-  const Quadrature& q = reduced ? *reducedQ : *mainQ;
+  std::array<size_t,3> gpIdx = this->gpIndex(gp,red);
+  const Quadrature& q = red ? *reducedQ : *mainQ;
 
   const ASMs3DmxLag& pch = static_cast<const ASMs3DmxLag&>(patch);
 
   BasisFunctionVals result;
-  if (nderiv == 1)
-    Lagrange::computeBasis(result.N,result.dNdu,
-                           pch.elem_sizes[basis-1][0],q.xg[0][gpIdx[0]],
-                           pch.elem_sizes[basis-1][1],q.xg[1][gpIdx[1]],
-                           pch.elem_sizes[basis-1][2],q.xg[2][gpIdx[2]]);
+  Lagrange::computeBasis(result.N,result.dNdu,
+                         pch.elem_sizes[basis-1][0],q.xg[0][gpIdx[0]],
+                         pch.elem_sizes[basis-1][1],q.xg[1][gpIdx[1]],
+                         pch.elem_sizes[basis-1][2],q.xg[2][gpIdx[2]]);
 
   return result;
+}
+
+
+void ASMs3DmxLag::BasisFunctionCache::calculateAll ()
+{
+  const ASMs3DmxLag& pch = static_cast<const ASMs3DmxLag&>(patch);
+  int i, j, k;
+
+  // Evaluate basis function values and derivatives at all integration points.
+  // They will be the same for all elements in the patch,
+  // so no need to repeat for all.
+  std::vector<BasisFunctionVals>::iterator it = values.begin();
+  for (k = 0; k < mainQ->ng[2]; k++)
+    for (j = 0; j < mainQ->ng[1]; j++)
+      for (i = 0; i < mainQ->ng[0]; i++, ++it)
+        Lagrange::computeBasis(it->N, it->dNdu,
+                               pch.elem_sizes[basis-1][0], mainQ->xg[0][i],
+                               pch.elem_sizes[basis-1][1], mainQ->xg[1][j],
+                               pch.elem_sizes[basis-1][2], mainQ->xg[2][k]);
+
+  if (reducedQ->xg[0])
+    for (k = 0, it = valuesRed.begin(); k < reducedQ->ng[2]; k++)
+      for (j = 0; j < reducedQ->ng[1]; j++)
+        for (i = 0; i < reducedQ->ng[0]; i++, ++it)
+          Lagrange::computeBasis(it->N, it->dNdu,
+                                 pch.elem_sizes[basis-1][0],reducedQ->xg[0][i],
+                                 pch.elem_sizes[basis-1][1],reducedQ->xg[1][j],
+                                 pch.elem_sizes[basis-1][2],reducedQ->xg[2][k]);
 }

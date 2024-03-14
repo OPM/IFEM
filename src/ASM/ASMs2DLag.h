@@ -34,12 +34,12 @@ protected:
     //! \param pch Patch the cache is for
     //! \param plcy Cache policy to use
     //! \param b Basis to use
-    BasisFunctionCache(const ASMs2DLag& pch, ASM::CachePolicy plcy, int b);
+    BasisFunctionCache(const ASMs2DLag& pch, ASM::CachePolicy plcy, int b = 1);
 
     //! \brief Constructor reusing quadrature info from another instance.
     //! \param cache Instance holding quadrature information
     //! \param b Basis to use
-    BasisFunctionCache(const BasisFunctionCache& cache, int b);
+    BasisFunctionCache(const ASMs2D::BasisFunctionCache& cache, int b);
 
     //! \brief Empty destructor.
     virtual ~BasisFunctionCache() = default;
@@ -52,18 +52,17 @@ protected:
     double getParam(int dir, size_t el, size_t gp, bool reduced = false) const override;
 
   protected:
+    //! \brief Implementation specific initialization.
+    bool internalInit() override;
+
     //! \brief Obtain global integration point index.
-    //! \param el Element of integration point (0-indexed)
-    //! \param gp Integration point on element (0-indexed)
-    //! \param reduced True to return index for reduced quadrature
-    size_t index(size_t el, size_t gp, bool reduced) const override
-    { return ::BasisFunctionCache<2>::index(el,gp,reduced); }
+    //! \param[in] gp Integration point on element (0-indexed)
+    size_t index(size_t, size_t gp, bool) const override { return gp; }
 
     //! \brief Calculates basis function info in a single integration point.
-    //! \param el Element of integration point (0-indexed)
-    //! \param gp Integratin point on element (0-indexed)
-    //! \param reduced If true, returns values for reduced integration scheme
-    BasisFunctionVals calculatePt(size_t el, size_t gp, bool reduced) const override;
+    //! \param[in] gp Integration point on element (0-indexed)
+    //! \param[in] red If \e true, returns for reduced integration scheme
+    BasisFunctionVals calculatePt(size_t, size_t gp, bool red) const override;
 
     //! \brief Calculates basis function info in all integration points.
     void calculateAll() override;
@@ -244,6 +243,12 @@ public:
   //! \param[in] basisNum The basis to evaluate for (mixed)
   virtual bool evaluate(const ASMbase* basis, const Vector& locVec,
                         RealArray& vec, int basisNum) const;
+
+  //! \brief Returns the polynomial order in each parameter direction.
+  //! \param[out] pu Order in first (u) direction
+  //! \param[out] pv Order in second (v) direction
+  //! \param[out] pw Order in third (w) direction (always zero)
+  virtual bool getOrder(int& pu, int& pv, int& pw) const;
 
   using ASMs2D::getSize;
   //! \brief Returns the number of nodal points in each parameter direction.
