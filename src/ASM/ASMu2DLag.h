@@ -7,7 +7,7 @@
 //!
 //! \author Knut Morten Okstad / SINTEF
 //!
-//! \brief Assembly of unstructured 2D Lagrange FE models.
+//! \brief Assembly of unstructured 2D %Lagrange FE models.
 //!
 //==============================================================================
 
@@ -19,7 +19,7 @@
 
 
 /*!
-  \brief Driver for assembly of unstructured 2D Lagrange FE models.
+  \brief Driver for assembly of unstructured 2D %Lagrange FE models.
   \details This class overrides the methods of its parent class such that
   it does not depend on a surface spline object for geometry discretization.
   It can therefore be used for any unstructured grid read from mesh files.
@@ -73,6 +73,8 @@ public:
   virtual const IntVec& getNodeSet(int idx) const;
   //! \brief Returns a named node set for update.
   virtual IntVec& getNodeSet(const std::string& setName, int& idx);
+  //! \brief Defines a node set by parsing a 3D bounding box.
+  virtual int parseNodeBox(const std::string& setName, const char* bbox);
 
   //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
   //! \param[in] lIndex Local index of the boundary node set

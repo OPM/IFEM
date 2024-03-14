@@ -145,16 +145,16 @@ public:
   virtual bool addXElms(short int dim, short int item, size_t nXn,
                         IntVec& nodes);
 
-  //! \brief Adds a set of Lagrange multipliers to the specified element.
+  //! \brief Adds a set of %Lagrange multipliers to the specified element.
   //! \param[in] iel 1-based element index local to current patch
-  //! \param[in] mGLag Global node numbers of the Lagrange multipliers
-  //! \param[in] nnLag Number of Lagrange multipliers per node
+  //! \param[in] mGLag Global node numbers of the %Lagrange multipliers
+  //! \param[in] nnLag Number of %Lagrange multipliers per node
   bool addLagrangeMultipliers(size_t iel, const IntVec& mGLag,
                               unsigned char nnLag = 1);
 
-  //! \brief Adds global Lagrange multipliers to the system.
-  //! \param[in] mGLag Global node numbers of the Lagrange multipliers
-  //! \param[in] nnLag Number of Lagrange multipliers to add
+  //! \brief Adds global %Lagrange multipliers to the system.
+  //! \param[in] mGLag Global node numbers of the %Lagrange multipliers
+  //! \param[in] nnLag Number of %Lagrange multipliers to add
   bool addGlobalLagrangeMultipliers(const IntVec& mGLag,
                                     unsigned char nnLag = 1);
 
@@ -187,7 +187,7 @@ public:
   unsigned char getNoParamDim() const { return ndim; }
   //! \brief Returns the number of solution fields.
   virtual unsigned char getNoFields(int b = 0) const { return b > 1 ? 0 : nf; }
-  //! \brief Returns the number of Lagrange multipliers per node.
+  //! \brief Returns the number of %Lagrange multipliers per node.
   unsigned char getNoLagPerNode() const { return nLag; }
 
   //! \brief Returns the polynomial order in each parameter direction.
@@ -213,12 +213,12 @@ public:
   //! \brief Returns the classification of a node.
   //! \param[in] inod 1-based node index local to current patch
   virtual char getNodeType(size_t inod) const;
-  //! \brief Returns \e true if node \a n is a Lagrange multiplier node.
+  //! \brief Returns \e true if node \a n is a %Lagrange multiplier node.
   bool isLMn(size_t n) const { return myLMs.find(n) != myLMs.end(); }
   //! \brief Returns \e true if node \a n is a master node of a rigid coupling.
   bool isRMn(size_t n) const { return myRmaster.find(n) != myRmaster.end(); }
-  //! \brief Returns the type of a Lagrange multiplier node.
-  //! \param[in] inod 1-based node index for the Lagrange multiplier
+  //! \brief Returns the type of a %Lagrange multiplier node.
+  //! \param[in] inod 1-based node index for the %Lagrange multiplier
   char getLMType(size_t inod) const;
   //! \brief Returns the global coordinates for the given node.
   //! \param[in] inod 1-based node index local to current patch
@@ -274,6 +274,8 @@ public:
   //! \brief Returns a named node set for update.
   virtual IntVec& getNodeSet(const std::string&, int&)
   { static IntVec v; return v; }
+  //! \brief Defines a node set by parsing a 3D bounding box.
+  virtual int parseNodeBox(const std::string&, const char*) { return 0; }
 
   //! \brief Returns (1-based) index of a predefined element set in the patch.
   virtual int getElementSetIdx(const std::string&) const { return 0; }
@@ -929,7 +931,7 @@ protected:
   unsigned char ndim;   //!< Number of parametric dimensions (1, 2 or 3)
   unsigned char nsd;    //!< Number of space dimensions (ndim <= nsd <= 3)
   unsigned char nf;     //!< Number of primary solution fields (1 or larger)
-  unsigned char nLag;   //!< Number of Lagrange multipliers per node
+  unsigned char nLag;   //!< Number of %Lagrange multipliers per node
   size_t        nel;    //!< Number of regular elements in this patch
   size_t        nnod;   //!< Number of regular nodes in this patch
 
@@ -975,8 +977,8 @@ protected:
   static int gNod; //!< Global node counter
 
 private:
-  std::vector<char> myLMTypes; //!< Type of Lagrange multiplier ('L' or 'G')
-  std::set<size_t>  myLMs;     //!< Nodal indices of the Lagrange multipliers
+  std::vector<char> myLMTypes; //!< Type of %Lagrange multiplier ('L' or 'G')
+  std::set<size_t>  myLMs;     //!< Nodal indices of the %Lagrange multipliers
 
 protected:
   typedef std::array<double,3> XYZ; //!< Convenience type definition

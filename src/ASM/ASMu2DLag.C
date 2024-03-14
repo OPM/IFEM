@@ -7,13 +7,16 @@
 //!
 //! \author Knut Morten Okstad / SINTEF
 //!
-//! \brief Assembly of unstructured 2D Lagrange FE models.
+//! \brief Assembly of unstructured 2D %Lagrange FE models.
 //!
 //==============================================================================
 
 #include "ASMu2DLag.h"
 #include "ElementBlock.h"
+#include "Vec3Oper.h"
+#include "IFEM.h"
 #include <numeric>
+#include <sstream>
 
 
 ASMu2DLag::ASMu2DLag (unsigned char n_s,
@@ -131,6 +134,46 @@ IntVec& ASMu2DLag::getNodeSet (const std::string& setName, int& idx)
 
   nodeSets.push_back(std::make_pair(setName,IntVec()));
   return nodeSets.back().second;
+}
+
+
+int ASMu2DLag::parseNodeBox (const std::string& setName, const char* data)
+{
+  if (myCoord.empty()) return 0; // No nodes yet
+
+  Vec3 X0, X1;
+  std::istringstream(data) >> X0 >> X1;
+
+  // Lambda function for checking if a point is within the bounding box
+  auto&& isInside=[&X0,&X1](const Vec3& X)
+  {
+    for (int i = 0; i < 3; i++)
+      if (X[i] < X0[i] || X[i] > X1[i])
+        return false;
+    return true;
+  };
+
+  IntVec nodes;
+  for (size_t inod = 0; inod < myCoord.size(); inod++)
+    if (isInside(myCoord[inod]))
+      nodes.push_back(1+inod);
+
+  IFEM::cout <<"\tBounding Box: "<< X0 <<" - "<< X1
+             <<": "<< nodes.size() <<" nodes"<< std::endl;
+
+  if (nodes.empty()) return 0; // No nodes are within the given box
+
+  size_t idx = 0;
+  while (idx < nodeSets.size())
+    if (nodeSets[idx].first == setName)
+    {
+      nodeSets[idx].second.insert(nodeSets[idx].second.end(),
+                                  nodes.begin(),nodes.end());
+      return idx+1;
+    }
+
+  nodeSets.push_back(std::make_pair(setName,nodes));
+  return nodeSets.size();
 }
 
 
