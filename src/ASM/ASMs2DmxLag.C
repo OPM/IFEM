@@ -7,7 +7,7 @@
 //!
 //! \author Knut Morten Okstad / SINTEF
 //!
-//! \brief Driver for assembly of structured 2D Lagrange mixed FE models.
+//! \brief Driver for assembly of structured 2D %Lagrange mixed FE models.
 //!
 //==============================================================================
 
@@ -620,20 +620,42 @@ ASMs2DmxLag::BasisFunctionCache::BasisFunctionCache (const BasisFunctionCache& c
 }
 
 
-BasisFunctionVals ASMs2DmxLag::BasisFunctionCache::calculatePt (size_t el,
+BasisFunctionVals ASMs2DmxLag::BasisFunctionCache::calculatePt (size_t,
                                                                 size_t gp,
-                                                                bool reduced) const
+                                                                bool red) const
 {
   std::array<size_t,2> gpIdx = this->gpIndex(gp,reduced);
-  const Quadrature& q = reduced ? *reducedQ : *mainQ;
+  const Quadrature& q = red ? *reducedQ : *mainQ;
 
   const ASMs2DmxLag& pch = static_cast<const ASMs2DmxLag&>(patch);
 
   BasisFunctionVals result;
-  if (nderiv == 1)
-    Lagrange::computeBasis(result.N,result.dNdu,
-                           pch.elem_sizes[basis-1][0],q.xg[0][gpIdx[0]],
-                           pch.elem_sizes[basis-1][1],q.xg[1][gpIdx[1]]);
-
+  Lagrange::computeBasis(result.N,result.dNdu,
+                         pch.elem_sizes[basis-1][0],q.xg[0][gpIdx[0]],
+                         pch.elem_sizes[basis-1][1],q.xg[1][gpIdx[1]]);
   return result;
+}
+
+
+void ASMs2DmxLag::BasisFunctionCache::calculateAll ()
+{
+  const ASMs2DmxLag& pch = static_cast<const ASMs2DmxLag&>(patch);
+  int i, j;
+
+  // Evaluate basis function values and derivatives at all integration points.
+  // They will be the same for all elements in the patch,
+  // so no need to repeat for all.
+  std::vector<BasisFunctionVals>::iterator it = values.begin();
+  for (j = 0; j < mainQ->ng[1]; j++)
+    for (i = 0; i < mainQ->ng[0]; i++, ++it)
+      Lagrange::computeBasis(it->N, it->dNdu,
+                             pch.elem_sizes[basis-1][0], mainQ->xg[0][i],
+                             pch.elem_sizes[basis-1][1], mainQ->xg[1][j]);
+
+  if (reducedQ->xg[0])
+    for (j = 0, it = valuesRed.begin(); j < reducedQ->ng[1]; j++)
+      for (i = 0; i < reducedQ->ng[0]; i++, ++it)
+        Lagrange::computeBasis(it->N, it->dNdu,
+                               pch.elem_sizes[basis-1][0], reducedQ->xg[0][i],
+                               pch.elem_sizes[basis-1][1], reducedQ->xg[1][j]);
 }
