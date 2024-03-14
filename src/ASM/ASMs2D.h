@@ -107,6 +107,9 @@ protected:
     //! \brief Setup integration point parameters.
     virtual void setupParameters();
 
+    //! \brief Configure quadratures.
+    bool setupQuadrature();
+
     const ASMs2D& patch; //!< Reference to patch cache is for
 
     std::array<size_t,2> nel{}; //!< Number of elements in each direction
@@ -115,9 +118,6 @@ protected:
     //! \brief Obtain structured element indices.
     //! \param el Global element index
     std::array<size_t,2> elmIndex(size_t el) const;
-
-    //! \brief Configure quadratures.
-    bool setupQuadrature();
   };
 
 public:
@@ -702,10 +702,13 @@ public:
   static void scatterInd(int n1, int n2, int p1, int p2,
 			 const int* start, IntVec& index);
 
+private:
   //! \brief Returns the polynomial order in each parameter direction.
   //! \param[out] p1 Order in first (u) direction
   //! \param[out] p2 Order in second (v) direction
   bool getOrder(int& p1, int& p2) const;
+
+public:
   //! \brief Returns the polynomial order in each parameter direction.
   //! \param[out] p1 Order in first (u) direction
   //! \param[out] p2 Order in second (v) direction

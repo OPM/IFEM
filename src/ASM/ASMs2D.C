@@ -3298,14 +3298,15 @@ int ASMs2D::getLastItgElmNode () const
 
 
 ASMs2D::BasisFunctionCache::BasisFunctionCache (const ASMs2D& pch,
-                                                ASM::CachePolicy plcy,
-                                                int b) :
-  ::BasisFunctionCache<2>(plcy),
-  patch(pch)
+                                                ASM::CachePolicy plcy, int b) :
+  ::BasisFunctionCache<2>(plcy), patch(pch)
 {
   basis = b;
-  nel[0] = patch.surf->numCoefs_u() - patch.surf->order_u() + 1;
-  nel[1] = patch.surf->numCoefs_v() - patch.surf->order_v() + 1;
+  if (patch.surf)
+  {
+    nel[0] = patch.surf->numCoefs_u() - patch.surf->order_u() + 1;
+    nel[1] = patch.surf->numCoefs_v() - patch.surf->order_v() + 1;
+  }
 }
 
 
@@ -3324,9 +3325,9 @@ bool ASMs2D::BasisFunctionCache::internalInit ()
   if (!mainQ->xg[0])
     this->setupQuadrature();
 
-  nTotal = nel[0]*nel[1]*mainQ->ng[0]*mainQ->ng[1];
+  nTotal = patch.nel * mainQ->ng[0]*mainQ->ng[1];
   if (reducedQ->xg[0])
-    nTotalRed = nel[0]*nel[1]*reducedQ->ng[0]*reducedQ->ng[1];
+    nTotalRed = patch.nel * reducedQ->ng[0]*reducedQ->ng[1];
 
   return true;
 }
@@ -3343,11 +3344,13 @@ void ASMs2D::BasisFunctionCache::internalCleanup ()
 
 bool ASMs2D::BasisFunctionCache::setupQuadrature ()
 {
+  int p[3];
+  patch.getOrder(p[0],p[1],p[2]);
+
   // Get Gaussian quadrature points and weights
   for (int d = 0; d < 2; d++)
   {
-    mainQ->ng[d] = patch.getNoGaussPt(d == 0 ? patch.surf->order_u()
-                                             : patch.surf->order_v());
+    mainQ->ng[d] = patch.getNoGaussPt(p[d]);
     mainQ->xg[d] = GaussQuadrature::getCoord(mainQ->ng[d]);
     mainQ->wg[d] = GaussQuadrature::getWeight(mainQ->ng[d]);
     if (!mainQ->xg[d] || !mainQ->wg[d]) return false;
@@ -3360,8 +3363,10 @@ bool ASMs2D::BasisFunctionCache::setupQuadrature ()
     reducedQ->xg[0] = reducedQ->xg[1] = GaussQuadrature::getCoord(nRed);
     reducedQ->wg[0] = reducedQ->wg[1] = GaussQuadrature::getWeight(nRed);
     if (!reducedQ->xg[0] || !reducedQ->wg[0]) return false;
-  } else if (nRed < 0)
+  }
+  else if (nRed < 0)
     nRed = mainQ->ng[0];
+
   reducedQ->ng[0] = reducedQ->ng[1] = nRed;
 
   this->setupParameters();

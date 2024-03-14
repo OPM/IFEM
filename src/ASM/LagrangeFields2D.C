@@ -23,10 +23,10 @@ LagrangeFields2D::LagrangeFields2D (const ASMs2DLag* patch,
                                     const char* name) : Fields(name)
 {
   patch->getNodalCoordinates(coord);
+  patch->getOrder(p1,p2,n2);
   patch->getSize(n1,n2);
-  patch->getOrder(p1,p2);
-  nno = n1*n2;
   nelm = (n1-1)*(n2-1)/(p1*p2);
+  nno = n1*n2;
   nf = v.size()/nno;
 
   // Ensure the values array has compatible length, pad with zeros if necessary

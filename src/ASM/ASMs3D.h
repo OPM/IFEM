@@ -123,6 +123,9 @@ protected:
     //! \brief Setup integration point parameters.
     virtual void setupParameters();
 
+    //! \brief Configure quadratures.
+    bool setupQuadrature();
+
     const ASMs3D& patch; //!< Reference to patch cache is for
 
     std::array<size_t,3> nel{}; //!< Number of elements in each direction
@@ -131,9 +134,6 @@ protected:
     //! \brief Obtain structured element indices.
     //! \param el Global element index
     std::array<size_t,3> elmIndex(size_t el) const;
-
-    //! \brief Configure quadratures.
-    bool setupQuadrature();
   };
 
 public:

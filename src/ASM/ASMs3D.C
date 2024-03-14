@@ -3840,10 +3840,8 @@ bool ASMs3D::addRigidCpl (int lindx, int ldim, int basis,
 
 
 ASMs3D::BasisFunctionCache::BasisFunctionCache (const ASMs3D& pch,
-                                                ASM::CachePolicy plcy,
-                                                int b) :
-  ::BasisFunctionCache<3>(plcy),
-  patch(pch)
+                                                ASM::CachePolicy plcy, int b) :
+  ::BasisFunctionCache<3>(plcy), patch(pch)
 {
   basis = b;
   for (size_t d = 0; d < 3 && patch.svol; ++d)
@@ -3853,9 +3851,7 @@ ASMs3D::BasisFunctionCache::BasisFunctionCache (const ASMs3D& pch,
 
 ASMs3D::BasisFunctionCache::BasisFunctionCache (const BasisFunctionCache& cache,
                                                 int b) :
-  ::BasisFunctionCache<3>(cache),
-  patch(cache.patch),
-  nel(cache.nel)
+  ::BasisFunctionCache<3>(cache), patch(cache.patch), nel(cache.nel)
 {
   basis = b;
 }
@@ -3866,9 +3862,9 @@ bool ASMs3D::BasisFunctionCache::internalInit ()
   if (!mainQ->xg[0])
     this->setupQuadrature();
 
-  nTotal = nel[0]*nel[1]*nel[2]*mainQ->ng[0]*mainQ->ng[1]*mainQ->ng[2];
+  nTotal = patch.nel * mainQ->ng[0]*mainQ->ng[1]*mainQ->ng[2];
   if (reducedQ->xg[0])
-    nTotalRed = nel[0]*nel[1]*nel[2]*reducedQ->ng[0]*reducedQ->ng[1]*reducedQ->ng[2];
+    nTotalRed = patch.nel * reducedQ->ng[0]*reducedQ->ng[1]*reducedQ->ng[2];
 
   return true;
 }
@@ -3885,10 +3881,13 @@ void ASMs3D::BasisFunctionCache::internalCleanup ()
 
 bool ASMs3D::BasisFunctionCache::setupQuadrature ()
 {
+   int p[3];
+   patch.getOrder(p[0],p[1],p[2]);
+
   // Get Gaussian quadrature points and weights
   for (int d = 0; d < 3; d++)
   {
-    mainQ->ng[d] = patch.getNoGaussPt(patch.svol ? patch.svol->order(d) : 2);
+    mainQ->ng[d] = patch.getNoGaussPt(p[d]);
     mainQ->xg[d] = GaussQuadrature::getCoord(mainQ->ng[d]);
     mainQ->wg[d] = GaussQuadrature::getWeight(mainQ->ng[d]);
     if (!mainQ->xg[d] || !mainQ->wg[d]) return false;
@@ -3901,7 +3900,8 @@ bool ASMs3D::BasisFunctionCache::setupQuadrature ()
     reducedQ->xg[0] = reducedQ->xg[1] = reducedQ->xg[2] = GaussQuadrature::getCoord(nRed);
     reducedQ->wg[0] = reducedQ->wg[1] = reducedQ->wg[2] = GaussQuadrature::getWeight(nRed);
     if (!reducedQ->xg[0] || !reducedQ->wg[0]) return false;
-  } else if (nRed < 0)
+  }
+   else if (nRed < 0)
     nRed = mainQ->ng[0];
 
   reducedQ->ng[0] = reducedQ->ng[1] = reducedQ->ng[2] = nRed;
