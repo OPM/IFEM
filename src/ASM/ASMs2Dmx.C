@@ -448,21 +448,20 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
 
   if (myCache.empty()) {
     myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this, cachePolicy, 1));
-    const BasisFunctionCache& bc = static_cast<BasisFunctionCache&>(*myCache.front());
     for (size_t b = 2; b <= this->getNoBasis(); ++b)
-      myCache.emplace_back(std::make_unique<BasisFunctionCache>(bc, b));
+      myCache.emplace_back(std::make_unique<BasisFunctionCache>(*myCache.front(), b));
     if (separateGeometry)
-      myCache.emplace_back(std::make_unique<BasisFunctionCache>(bc,
+      myCache.emplace_back(std::make_unique<BasisFunctionCache>(*myCache.front(),
                                                                 ASM::GEOMETRY_BASIS));
   }
 
-  for (std::unique_ptr<::BasisFunctionCache<2>>& cache : myCache) {
+  for (std::unique_ptr<BasisFunctionCache>& cache : myCache) {
     cache->setIntegrand(&integrand);
     cache->init(use2ndDer ||
                 (piolaMapping && cache->basis == ASM::GEOMETRY_BASIS) ? 2 : 1);
   }
 
-  ::BasisFunctionCache<2>& cache = *myCache.front();
+  BasisFunctionCache& cache = *myCache.front();
 
   // Get Gaussian quadrature points and weights
   const std::array<int,2>& ng = cache.nGauss();
@@ -598,7 +597,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
       }
     }
 
-  for (std::unique_ptr<::BasisFunctionCache<2>>& cache : myCache)
+  for (std::unique_ptr<BasisFunctionCache>& cache : myCache)
     cache->finalizeAssembly();
   return ok;
 }

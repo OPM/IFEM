@@ -49,7 +49,7 @@ protected:
     //! \param el Element number in given direction
     //! \param gp Integration point in given direction
     //! \param reduced True to return parameter for reduced quadrature
-    double getParam(int dir, size_t el, size_t gp, bool reduced = false) const override;
+    double getParam(int dir, size_t el, size_t gp, bool reduced) const override;
 
   protected:
     //! \brief Implementation specific initialization.

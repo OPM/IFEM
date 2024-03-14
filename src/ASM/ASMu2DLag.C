@@ -13,9 +13,6 @@
 
 #include "ASMu2DLag.h"
 #include "ElementBlock.h"
-#include "GaussQuadrature.h"
-#include "Integrand.h"
-#include "Lagrange.h"
 #include <numeric>
 
 
@@ -153,99 +150,4 @@ bool ASMu2DLag::tesselate (ElementBlock& grid, const int*) const
         grid.setNode(k++,MNPC[i][j]);
 
   return true;
-}
-
-
-ASMu2DLag::BasisFunctionCache::BasisFunctionCache (const ASMu2DLag& pch,
-                                                   ASM::CachePolicy plcy) :
-  ::BasisFunctionCache<2>(plcy),
-  patch(pch)
-{
-}
-
-
-bool ASMu2DLag::BasisFunctionCache::internalInit ()
-{
-  if (!mainQ->xg[0])
-    this->setupQuadrature();
-
-  nTotal = patch.nel*mainQ->ng[0]*mainQ->ng[1];
-  if (reducedQ->xg[0])
-    nTotalRed = patch.nel*reducedQ->ng[0]*reducedQ->ng[1];
-
-  return true;
-}
-
-
-void ASMu2DLag::BasisFunctionCache::internalCleanup ()
-{
-  mainQ->reset();
-  reducedQ->reset();
-}
-
-
-bool ASMu2DLag::BasisFunctionCache::setupQuadrature ()
-{
-  // Get Gaussian quadrature points and weights
-  for (int d = 0; d < 2; d++)
-  {
-    mainQ->ng[d] = patch.getNoGaussPt(d == 0 ? patch.p1 : patch.p2);
-    mainQ->xg[d] = GaussQuadrature::getCoord(mainQ->ng[d]);
-    mainQ->wg[d] = GaussQuadrature::getWeight(mainQ->ng[d]);
-    if (!mainQ->xg[d] || !mainQ->wg[d]) return false;
-  }
-
-  // Get the reduced integration quadrature points, if needed
-  int nRed = integrand ? integrand->getReducedIntegration(mainQ->ng[0]) : 0;
-  if (nRed > 0)
-  {
-    reducedQ->xg[0] = reducedQ->xg[1] = GaussQuadrature::getCoord(nRed);
-    reducedQ->wg[0] = reducedQ->wg[1] = GaussQuadrature::getWeight(nRed);
-    if (!reducedQ->xg[0] || !reducedQ->wg[0]) return false;
-  }
-  else if (nRed < 0)
-    nRed = mainQ->ng[0]; // The integrand needs to know nGauss
-
-  reducedQ->ng[0] = reducedQ->ng[1] = nRed;
-
-  return true;
-}
-
-
-BasisFunctionVals ASMu2DLag::BasisFunctionCache::calculatePt (size_t el,
-                                                              size_t gp,
-                                                              bool reduced) const
-{
-  std::array<size_t,2> gpIdx = this->gpIndex(gp,reduced);
-  const Quadrature& q = reduced ? *reducedQ : *mainQ;
-
-  const ASMu2DLag& pch = static_cast<const ASMu2DLag&>(patch);
-
-  BasisFunctionVals result;
-  if (nderiv == 1)
-    Lagrange::computeBasis(result.N,result.dNdu,
-                           pch.p1,q.xg[0][gpIdx[0]],
-                           pch.p2,q.xg[1][gpIdx[1]]);
-
-  return result;
-}
-
-
-void ASMu2DLag::BasisFunctionCache::calculateAll ()
-{
-  // Evaluate basis function values and derivatives at all integration points.
-  // We do this before the integration point loop to exploit multi-threading
-  // in the integrand evaluations, which may be the computational bottleneck.
-  size_t iel, jp, rp;
-  for (iel = jp = rp = 0; iel < patch.nel; iel++)
-  {
-    for (int j = 0; j < mainQ->ng[1]; j++)
-      for (int i = 0; i < mainQ->ng[0]; i++, jp++)
-        values[jp] = this->calculatePt(iel,j*mainQ->ng[0]+i,false);
-
-    if (reducedQ->xg[0])
-      for (int j = 0; j < reducedQ->ng[1]; j++)
-        for (int i = 0; i < reducedQ->ng[0]; i++, rp++)
-          valuesRed[rp] = this->calculatePt(iel,j*reducedQ->ng[0]+i,true);
-  }
 }

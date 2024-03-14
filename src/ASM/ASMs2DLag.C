@@ -319,7 +319,7 @@ bool ASMs2DLag::integrate (Integrand& integrand,
   if (myCache.empty())
     myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this, cachePolicy, 1));
 
-  ::BasisFunctionCache<2>& cache = static_cast<::BasisFunctionCache<2>&>(*myCache.front());
+  ASMs2D::BasisFunctionCache& cache = *myCache.front();
   cache.setIntegrand(&integrand);
   if (!cache.init(1))
     return false;
@@ -935,7 +935,7 @@ bool ASMs2DLag::assembleL2matrices (SparseMatrix& A, StdVector& B,
                                     const L2Integrand& integrand,
                                     bool continuous) const
 {
-  BasisFunctionCache& cache = static_cast<BasisFunctionCache&>(*myCache.front());
+  ASMs2D::BasisFunctionCache& cache = *myCache.front();
   if (!cache.init(1))
     return false;
 

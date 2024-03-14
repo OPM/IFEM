@@ -247,12 +247,12 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
       myCache.emplace_back(std::make_unique<BasisFunctionCache>(*myCache.front(), b));
   }
 
-  for (std::unique_ptr<::BasisFunctionCache<2>>& cache : myCache) {
+  for (std::unique_ptr<ASMs2D::BasisFunctionCache>& cache : myCache) {
     cache->setIntegrand(&integrand);
     cache->init(1);
   }
 
-  BasisFunctionCache& cache = static_cast<BasisFunctionCache&>(*myCache.front());
+  ASMs2D::BasisFunctionCache& cache = *myCache.front();
 
   // Get Gaussian quadrature points and weights
   const std::array<int,2>& ng = cache.nGauss();
@@ -624,7 +624,7 @@ BasisFunctionVals ASMs2DmxLag::BasisFunctionCache::calculatePt (size_t,
                                                                 size_t gp,
                                                                 bool red) const
 {
-  std::array<size_t,2> gpIdx = this->gpIndex(gp,reduced);
+  std::array<size_t,2> gpIdx = this->gpIndex(gp,red);
   const Quadrature& q = red ? *reducedQ : *mainQ;
 
   const ASMs2DmxLag& pch = static_cast<const ASMs2DmxLag&>(patch);
