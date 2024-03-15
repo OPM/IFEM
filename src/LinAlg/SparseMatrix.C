@@ -56,19 +56,24 @@ struct SuperLUdata
 #ifdef HAS_SUPERLU_MT
   equed_t equed; //!< Specifies the form of equilibration that was done
 #else
-  char equed[1]; //!< Specifies the form of equilibration that was done
+  char    equed; //!< Specifies the form of equilibration that was done
 #endif
   Real    rcond; //!< Reciprocal condition number
   Real      rpg; //!< Reciprocal pivot growth
 
   //! \brief The constructor initializes the default input options.
-  explicit SuperLUdata(int numThreads = 0) :
-    A{}, L{}, U{}
+  SuperLUdata(size_t nrow, size_t ncol, int numThreads = 0) :  A{}, L{}, U{}
   {
-    equed[0] = 0;
-    R = C = 0;
-    perm_r = perm_c = etree = 0;
-    rcond = rpg = 0.0;
+    R = C = nullptr;
+    perm_r = new int[nrow];
+    perm_c = new int[ncol];
+    etree = nullptr;
+#ifdef HAS_SUPERLU_MT
+    equed = NOEQUIL;
+#else
+    equed = 0;
+#endif
+    rcond = rpg = Real(0);
     if (numThreads > 0)
     {
       opts = new sluop_t;
@@ -85,13 +90,13 @@ struct SuperLUdata
       opts->usepr = NO;
       opts->SymmetricMode = NO;
       opts->PrintStat = NO;
-      opts->perm_c = 0;
-      opts->perm_r = 0;
-      opts->work = 0;
+      opts->perm_c = nullptr;
+      opts->perm_r = nullptr;
+      opts->work = nullptr;
       opts->lwork = 0;
-      opts->etree = 0;
-      opts->colcnt_h = 0;
-      opts->part_super_h = 0;
+      opts->etree = nullptr;
+      opts->colcnt_h = nullptr;
+      opts->part_super_h = nullptr;
 #else
       set_default_options(opts);
       opts->SymmetricMode = YES;
@@ -100,7 +105,7 @@ struct SuperLUdata
 #endif
     }
     else
-      opts = 0;
+      opts = nullptr;
   }
 
   //! \brief No copying of this class.
@@ -1033,12 +1038,11 @@ bool SparseMatrix::solveSLU (Vector& B)
 {
   if (!factored) this->optimiseSLU();
 
+  int ierr = -99;
 #ifdef HAS_SUPERLU_MT
   if (!slu) {
     // Create a new SuperLU matrix
-    slu = new SuperLUdata;
-    slu->perm_c = new int[ncol];
-    slu->perm_r = new int[nrow];
+    slu = new SuperLUdata(nrow,ncol);
     dCreate_CompCol_Matrix(&slu->A, nrow, ncol, this->size(),
                            &A.front(), &JA.front(), &IA.front(),
                            SLU_NC, SLU_D, SLU_GE);
@@ -1067,21 +1071,14 @@ bool SparseMatrix::solveSLU (Vector& B)
                        SLU_DN, SLU_D, SLU_GE);
 
   // Invoke the simple driver
-  int ierr = ncol+1;
   pdgssv(numThreads, &slu->A, slu->perm_c, slu->perm_r,
          &slu->L, &slu->U, &Bmat, &ierr);
   Destroy_SuperMatrix_Store(&Bmat);
-  if (ierr > 0)
-    std::cerr <<"SuperLU_MT Failure "<< ierr << std::endl;
-  else if (ierr == 0)
-    return true;
 
 #elif defined(HAS_SUPERLU)
   if (!slu) {
     // Create a new SuperLU matrix
-    slu = new SuperLUdata(1);
-    slu->perm_c = new int[ncol];
-    slu->perm_r = new int[nrow];
+    slu = new SuperLUdata(nrow,ncol,1);
     dCreate_CompCol_Matrix(&slu->A, nrow, ncol, this->size(),
                            &A.front(), &JA.front(), &IA.front(),
                            SLU_NC, SLU_D, SLU_GE);
@@ -1107,24 +1104,24 @@ bool SparseMatrix::solveSLU (Vector& B)
   StatInit(&stat);
 
   // Invoke the simple driver
-  int ierr = ncol+1;
   dgssv(slu->opts, &slu->A, slu->perm_c, slu->perm_r,
         &slu->L, &slu->U, &Bmat, &stat, &ierr);
   Destroy_SuperMatrix_Store(&Bmat);
-  if (ierr > 0)
-    std::cerr <<"SuperLU Failure "<< ierr << std::endl;
-  else
-    factored = true;
 
   if (printSLUstat)
     StatPrint(&stat);
   StatFree(&stat);
 
-  if (ierr == 0) return true;
 #else
   std::cerr <<"SparseMatrix::solve: SuperLU solver not available"<< std::endl;
 #endif
-  return false;
+
+  if (ierr > 0)
+    std::cerr <<"SuperLU Failure "<< ierr << std::endl;
+  else if (ierr == 0)
+    factored = true;
+
+  return ierr == 0;
 }
 
 
@@ -1132,13 +1129,11 @@ bool SparseMatrix::solveSLUx (Vector& B, Real* rcond)
 {
   if (!factored) this->optimiseSLU();
 
+  int ierr = -99;
 #ifdef HAS_SUPERLU_MT
   if (!slu) {
     // Create a new SuperLU matrix
-    slu = new SuperLUdata(numThreads);
-    slu->equed = NOEQUIL;
-    slu->perm_c = new int[ncol];
-    slu->perm_r = new int[nrow];
+    slu = new SuperLUdata(nrow,ncol,numThreads);
     slu->C = new Real[ncol];
     slu->R = new Real[nrow];
     slu->opts->etree = new int[ncol];
@@ -1177,32 +1172,19 @@ bool SparseMatrix::solveSLUx (Vector& B, Real* rcond)
   superlu_memusage_t mem_usage;
 
   // Invoke the expert driver
-  int ierr = ncol+1;
   pdgssvx(numThreads, slu->opts, &slu->A, slu->perm_c, slu->perm_r,
           &slu->equed, slu->R, slu->C, &slu->L, &slu->U, &Bmat, &Xmat,
           &slu->rpg, &slu->rcond, ferr, berr, &mem_usage, &ierr);
 
   B.swap(X);
 
-  if (ierr > 0)
-    std::cerr <<"SuperLU_MT Failure "<< ierr << std::endl;
-  else if (!factored)
-  {
-    factored = true;
-    if (rcond)
-      *rcond = slu->rcond;
-  }
-
   Destroy_SuperMatrix_Store(&Bmat);
   Destroy_SuperMatrix_Store(&Xmat);
-  if (ierr == 0) return true;
 
 #elif defined(HAS_SUPERLU)
   if (!slu) {
     // Create a new SuperLU matrix
-    slu = new SuperLUdata(1);
-    slu->perm_c = new int[ncol];
-    slu->perm_r = new int[nrow];
+    slu = new SuperLUdata(nrow,ncol,1);
     slu->etree = new int[ncol];
     slu->C = new Real[ncol];
     slu->R = new Real[nrow];
@@ -1243,28 +1225,18 @@ bool SparseMatrix::solveSLUx (Vector& B, Real* rcond)
   StatInit(&stat);
 
   // Invoke the expert driver
-  int ierr = ncol+1;
 #if SUPERLU_VERSION == 5
   GlobalLU_t Glu;
-  dgssvx(slu->opts, &slu->A, slu->perm_c, slu->perm_r, slu->etree, slu->equed,
+  dgssvx(slu->opts, &slu->A, slu->perm_c, slu->perm_r, slu->etree, &slu->equed,
          slu->R, slu->C, &slu->L, &slu->U, work, lwork, &Bmat, &Xmat,
          &slu->rpg, &slu->rcond, ferr, berr, &Glu, &mem_usage, &stat, &ierr);
 #else
-  dgssvx(slu->opts, &slu->A, slu->perm_c, slu->perm_r, slu->etree, slu->equed,
+  dgssvx(slu->opts, &slu->A, slu->perm_c, slu->perm_r, slu->etree, &slu->equed,
          slu->R, slu->C, &slu->L, &slu->U, work, lwork, &Bmat, &Xmat,
          &slu->rpg, &slu->rcond, ferr, berr, &mem_usage, &stat, &ierr);
 #endif
 
   B.swap(X);
-
-  if (ierr > 0)
-    std::cerr <<"SuperLU Failure "<< ierr << std::endl;
-  else if (!factored)
-  {
-    factored = true;
-    if (rcond)
-      *rcond = slu->rcond;
-  }
 
   if (printSLUstat)
   {
@@ -1276,11 +1248,33 @@ bool SparseMatrix::solveSLUx (Vector& B, Real* rcond)
 
   Destroy_SuperMatrix_Store(&Bmat);
   Destroy_SuperMatrix_Store(&Xmat);
-  if (ierr == 0) return true;
+
 #else
   std::cerr <<"SparseMatrix::solve: SuperLU solver not available"<< std::endl;
 #endif
-  return false;
+
+  if (ierr == (int)ncol+1)
+  {
+    ierr = 0; // Accept near-singular matrices
+    IFEM::cout <<"  ** Warning: The condition number "<< slu->rcond
+               <<" is less than machine precision.\n"
+               <<"              The solution is computed, but be aware..."
+               << std::endl;
+  }
+  else if (ierr > 0)
+  {
+    std::cerr <<"SuperLU Failure "<< ierr << std::endl;
+    return false;
+  }
+
+  if (!factored)
+  {
+    factored = true;
+    if (rcond && slu)
+      *rcond = slu->rcond;
+  }
+
+  return true;
 }
 
 
