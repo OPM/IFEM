@@ -67,6 +67,11 @@ public:
   //! \param[in] s Optional scaling factor
   explicit LinearFunc(const char* file, int c = 2, Real s = Real(1));
 
+  //! \brief Constructor initializing piece-wise linear function values.
+  //! \param[in] x List of function argument values
+  //! \param[in] y List of function values associated with the \a x values
+  LinearFunc(const std::vector<Real>& x, const std::vector<Real>& y);
+
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const;
   //! \brief Returns whether the function is constant or not.
@@ -555,13 +560,22 @@ class Interpolate1D : public RealFunc
   Real       time;  //!< Ramp-up time
 
 public:
-  //! \brief The constructor initializes the function parameters from a file.
+  //! \brief Constructor initializing the function parameters from a file.
   //! \param[in] file Name of file to read function data from
   //! \param[in] dir_ Coordinate direction of the spatial variation
   //! \param[in] col Which column of the file to read function values from
   //! \param[in] ramp Ramp-up time
   Interpolate1D(const char* file, int dir_, int col = 2, Real ramp = Real(0))
     : lfunc(file,col), dir(dir_), time(ramp) {}
+
+  //! \brief Constructor initializing the function parameters from two lists.
+  //! \param[in] xVal List of function argument values
+  //! \param[in] yVal List of function values
+  //! \param[in] dir_ Coordinate direction of the spatial variation
+  //! \param[in] ramp Ramp-up time
+  Interpolate1D(const std::vector<Real>& xVal, const std::vector<Real>& yVal,
+                int dir_ = 1, Real ramp = Real(0))
+    : lfunc(xVal,yVal), dir(dir_), time(ramp) {}
 
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return lfunc.isZero(); }

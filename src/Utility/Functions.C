@@ -74,7 +74,7 @@ LinearFunc::LinearFunc (const char* file, int c, Real s) : scale(s)
     {
       std::cerr <<"\n *** LinearFunc: x-values aren't monotonically increasing";
       for (size_t i = 0; i < fvals.size(); i++)
-	if (i+5 == fvals.size())
+        if (i+5 == fvals.size())
           std::cerr <<"\n           :";
         else if (i+5 > fvals.size())
           std::cerr <<"\n     Line "<< i+1 <<": "<< fvals[i].first;
@@ -84,6 +84,15 @@ LinearFunc::LinearFunc (const char* file, int c, Real s) : scale(s)
       return;
     }
   }
+}
+
+
+LinearFunc::LinearFunc (const std::vector<Real>& x, const std::vector<Real>& y)
+{
+  scale = Real(1);
+  fvals.reserve(x.size());
+  for (size_t i = 0; i < x.size() && i < y.size(); i++)
+    fvals.push_back({x[i],y[i]});
 }
 
 
@@ -183,7 +192,7 @@ LinVecFunc::LinVecFunc (const char* file, int c)
     {
       std::cerr <<"\n *** LinVecFunc: x-values aren't monotonically increasing";
       for (size_t i = 0; i < fvals.size(); i++)
-	if (i+5 == fvals.size())
+        if (i+5 == fvals.size())
           std::cerr <<"\n           :";
         else if (i+5 > fvals.size())
           std::cerr <<"\n     Line "<< i+1 <<": "<< fvals[i].first;
@@ -866,11 +875,15 @@ RealFunc* utl::parseRealFunc (const std::string& func,
     if (print)
       IFEM::cout << p <<"*t";
     return new ConstTimeFunc(new LinearFunc(p));
-  } else if (type == "chebyshev") {
+  }
+  else if (type == "chebyshev")
+  {
     if (print)
       IFEM::cout << func;
     return new ChebyshevFunc(func, true);
-  } else if (type == "constant" || func.find_first_of("\t ") == std::string::npos) {
+  }
+  else if (type == "constant" || func.find_first_of("\t ") == std::string::npos)
+  {
     p = atof(func.c_str());
     if (print)
       IFEM::cout << p;
@@ -912,41 +925,52 @@ VecFunc* utl::parseVecFunc (const std::string& func, const std::string& type,
     IFEM::cout <<": "<< v;
     return new ConstVecFunc(v);
   }
-  else if (type == "chebyshev") {
+  else if (type == "chebyshev")
+  {
     const std::vector<std::string> files = splitString(func);
     if (files.size() < 2) {
-      std::cerr <<"*** ChebyshevVecFunc: Minimum two files must be given" << std::endl;
+      std::cerr <<"*** ChebyshevVecFunc: Minimum two files must be given"
+                << std::endl;
       return nullptr;
     }
     return new ChebyshevVecFunc(files, true);
   }
-  else if (type == "field") {
+  else if (type == "field")
+  {
     std::vector<std::string> params = splitString(func);
+    int level = 0;
     if (params.size() < 3)
       return nullptr;
-    int level = 0;
-    if (params.size() > 3) {
-     level = atoi(params[3].c_str());
-     if (params[3].find('f' != std::string::npos))
-       level |= FieldFuncBase::FIXED_LEVEL;
+    else if (params.size() > 3) {
+      level = atoi(params[3].c_str());
+      if (params[3].find('f' != std::string::npos))
+        level |= FieldFuncBase::FIXED_LEVEL;
     }
     return new VecFieldFunction(params[0],params[1],params[2],level);
-  } else if (type == "fieldgrad") {
+  }
+  else if (type == "fieldgrad")
+  {
     std::vector<std::string> params = splitString(func);
     int level = 0;
-    if (params.size() > 3) {
-     level = atoi(params[3].c_str());
-     if (params[3].find('f' != std::string::npos))
-       level |= FieldFuncBase::FIXED_LEVEL;
+    if (params.size() < 3)
+      return nullptr;
+    else if (params.size() > 3) {
+      level = atoi(params[3].c_str());
+      if (params[3].find('f' != std::string::npos))
+        level |= FieldFuncBase::FIXED_LEVEL;
     }
     return new ScalarGradFieldFunction(params[0],params[1],params[2],level);
-  } else if (type == "fieldlaplacian") {
+  }
+  else if (type == "fieldlaplacian")
+  {
     std::vector<std::string> params = splitString(func);
     int level = 0;
-    if (params.size() > 3) {
-     level = atoi(params[3].c_str());
-     if (params[3].find('f' != std::string::npos))
-       level |= FieldFuncBase::FIXED_LEVEL;
+    if (params.size() < 3)
+      return nullptr;
+    else if (params.size() > 3) {
+      level = atoi(params[3].c_str());
+      if (params[3].find('f' != std::string::npos))
+        level |= FieldFuncBase::FIXED_LEVEL;
     }
     return new ScalarLaplacianFieldFunction(params[0],params[1],params[2],level);
   }
@@ -958,29 +982,40 @@ VecFunc* utl::parseVecFunc (const std::string& func, const std::string& type,
 TensorFunc* utl::parseTensorFunc (const std::string& func,
                                   const std::string& type)
 {
-  if (type == "chebyshev") {
-    const std::vector<std::string> files = splitString(func);
+
+  if (type == "chebyshev")
+  {
+    std::vector<std::string> files = splitString(func);
     if (files.size() != 4 && files.size() != 9) {
-      std::cerr <<"*** ChebyshevTensorFunc: Either 4 or 9 files must be given" << std::endl;
+      std::cerr <<"*** ChebyshevTensorFunc: Either 4 or 9 files must be given"
+                << std::endl;
       return nullptr;
     }
     return new ChebyshevTensorFunc(files, true);
-  } else if (type == "fieldgrad") {
+  }
+  else if (type == "fieldgrad")
+  {
     std::vector<std::string> params = splitString(func);
     int level = 0;
-    if (params.size() > 3) {
-     level = atoi(params[3].c_str());
-     if (params[3].find('f' != std::string::npos))
-       level |= FieldFuncBase::FIXED_LEVEL;
+    if (params.size() < 3)
+      return nullptr;
+    else if (params.size() > 3) {
+      level = atoi(params[3].c_str());
+      if (params[3].find('f' != std::string::npos))
+        level |= FieldFuncBase::FIXED_LEVEL;
     }
     return new VecGradFieldFunction(params[0],params[1],params[2],level);
-  } else if (type == "fieldlaplacian") {
+  }
+  else if (type == "fieldlaplacian")
+  {
     std::vector<std::string> params = splitString(func);
     int level = 0;
-    if (params.size() > 3) {
-     level = atoi(params[3].c_str());
-     if (params[3].find('f' != std::string::npos))
-       level |= FieldFuncBase::FIXED_LEVEL;
+    if (params.size() < 3)
+      return nullptr;
+    else if (params.size() > 3) {
+      level = atoi(params[3].c_str());
+      if (params[3].find('f' != std::string::npos))
+        level |= FieldFuncBase::FIXED_LEVEL;
     }
     return new VecLaplacianFieldFunction(params[0],params[1],params[2],level);
   }
@@ -1043,11 +1078,11 @@ TractionFunc* utl::parseTracFunc (const tinyxml2::XMLElement* elem)
   IFEM::cout << std::endl;
 
   char rotaxis = 'X';
-  const ScalarFunc*   force = nullptr;
-  const VecTimeFunc*  fdir  = nullptr;
-  const VecTimeFunc*  frot  = nullptr;
-  const ScalarFunc*   angle = nullptr;
-  const RealFunc*     shape = nullptr;
+  const ScalarFunc*  force = nullptr;
+  const VecTimeFunc* fdir  = nullptr;
+  const VecTimeFunc* frot  = nullptr;
+  const ScalarFunc*  angle = nullptr;
+  const RealFunc*    shape = nullptr;
   const tinyxml2::XMLElement* child = elem->FirstChildElement();
   while (child && child->Value() && child->FirstChild())
   {
