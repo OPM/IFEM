@@ -284,7 +284,7 @@ void EqualOrderOperators::Residual::Divergence (Vector& EV,
                                                 const Tensor& dUdX,
                                                 double scale, size_t basis)
 {
-  EV.add(fe.basis(basis),scale*dUdX.trace()*fe.detJxW);
+  EV.add(fe.basis(basis),-scale*dUdX.trace()*fe.detJxW);
 }
 
 
