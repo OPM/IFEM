@@ -21,10 +21,13 @@
 class ASMLine : public ASMs1D
 {
 public:
-  ASMLine()
+  explicit ASMLine(int extraKnots = 0, int extraOrder = 0)
   {
     std::stringstream geo("100 1 0 0\n2 0\n2 2\n0 0 1 1\n0 0\n1 0\n");
     EXPECT_TRUE(this->read(geo));
+    EXPECT_TRUE(this->raiseOrder(extraOrder));
+    EXPECT_TRUE(this->uniformRefine(extraKnots));
+    EXPECT_TRUE(this->generateFEMTopology());
   }
   virtual ~ASMLine() {}
 };
@@ -33,7 +36,7 @@ public:
 class ASMArch : public ASMs1D
 {
 public:
-  ASMArch()
+  explicit ASMArch(int extraOrder = 0, int extraKnots = 0)
   {
     std::stringstream geo("100 1 0 0\n"
                           "3 1\n3 3\n"
@@ -43,6 +46,9 @@ public:
                           "0 2.171071412473507 0 0.9918115419161011\n"
                           "-17 0 0 1\n");
     EXPECT_TRUE(this->read(geo));
+    EXPECT_TRUE(this->raiseOrder(extraOrder));
+    EXPECT_TRUE(this->uniformRefine(extraKnots));
+    EXPECT_TRUE(this->generateFEMTopology());
   }
   virtual ~ASMArch() {}
 };
@@ -50,12 +56,11 @@ public:
 
 TEST(TestASMs1D, findClosestNode)
 {
-  ASMLine pch1;
-  std::cout <<"\nTesting a linear patch: ";
   ASMbase::resetNumbering();
-  ASSERT_TRUE(pch1.uniformRefine(7));
+
+  ASMLine pch1(7);
+  std::cout <<"\nTesting a linear patch: ";
   EXPECT_TRUE(pch1.write(std::cout));
-  ASSERT_TRUE(pch1.generateFEMTopology());
   EXPECT_EQ  (pch1.getNoNodes(),9u);
 
   Vec3 X;
@@ -81,12 +86,9 @@ TEST(TestASMs1D, findClosestNode)
   const char* order[] = { "quadratic","cubic","quartic","quintic","sextic","septic", nullptr };
   for (const char** q = order; *q; p++, q++)
   {
-    ASMArch pch;
+    ASMArch pch(p-2,8-p);
     std::cout <<"\nTesting a "<< *q <<" patch: ";
-    ASSERT_TRUE(pch.raiseOrder(p-2));
-    ASSERT_TRUE(pch.uniformRefine(8-p));
     EXPECT_TRUE(pch.write(std::cout));
-    ASSERT_TRUE(pch.generateFEMTopology());
     EXPECT_EQ  (pch.getNoNodes(),9u);
 
     ipoint = pch.evalPoint(&xin,&u,X);
@@ -107,15 +109,40 @@ TEST(TestASMs1D, findClosestNode)
 }
 
 
+TEST(TestASMs1D, findElement)
+{
+  ASMbase::resetNumbering();
+
+  ASMLine pch1(9);
+  std::cout <<"\nTesting a linear patch: ";
+  EXPECT_TRUE(pch1.write(std::cout));
+  EXPECT_EQ(pch1.getNoNodes(),11u);
+  EXPECT_EQ(pch1.findElement({-0.03,0.0,0.0}).first,1);
+  EXPECT_EQ(pch1.findElement({ 0.02,0.0,0.0}).first,1);
+  EXPECT_EQ(pch1.findElement({ 0.43,0.0,0.0}).first,5);
+  EXPECT_EQ(pch1.findElement({ 0.96,0.0,0.0}).first,10);
+  EXPECT_EQ(pch1.findElement({ 1.16,0.0,0.0}).first,10);
+
+  ASMLine pch2(9,1);
+  std::cout <<"\nTesting a quadratic patch: ";
+  EXPECT_TRUE(pch2.write(std::cout));
+  EXPECT_EQ(pch2.getNoNodes(),12u);
+  EXPECT_EQ(pch2.findElement({-0.03,0.0,0.0}).first,1);
+  EXPECT_EQ(pch2.findElement({ 0.02,0.0,0.0}).first,1);
+  EXPECT_EQ(pch2.findElement({ 0.43,0.0,0.0}).first,5);
+  EXPECT_EQ(pch2.findElement({ 0.96,0.0,0.0}).first,10);
+  EXPECT_EQ(pch2.findElement({ 1.16,0.0,0.0}).first,10);
+}
+
+
 TEST(TestASMs1D, ElementConnectivities)
 {
-  ASMLine pch1;
   ASMbase::resetNumbering();
-  ASSERT_TRUE(pch1.uniformRefine(2));
-  ASSERT_TRUE(pch1.generateFEMTopology());
+  const std::array<IntVec,3> ref = {{{-1, 1}, {0, 2}, {1, -1}}};
+
+  ASMLine pch1(2);
   IntMat neigh(3);
   pch1.getElmConnectivities(neigh);
-  const std::array<std::vector<int>,3> ref = {{{-1, 1}, {0, 2}, {1, -1}}};
   ASSERT_EQ(neigh.size(), 3U);
   for (size_t n = 0; n < neigh.size(); ++n) {
     ASSERT_EQ(neigh[n].size(), ref[n].size());
@@ -127,15 +154,13 @@ TEST(TestASMs1D, ElementConnectivities)
 
 TEST(TestASMs1D, BoundaryElements)
 {
-  ASMLine pch1;
   ASMbase::resetNumbering();
-  ASSERT_TRUE(pch1.uniformRefine(2));
-  ASSERT_TRUE(pch1.generateFEMTopology());
-  IntMat neigh(3);
-  std::array<IntVec,2> n;
+
+  ASMLine pch1(2);
   for (size_t i = 1; i <= 2; ++i) {
-    pch1.getBoundaryElms(i, n[i-1]);
-    ASSERT_EQ(n[i-1].size(), 1U);
-    EXPECT_EQ(n[i-1][0], i == 1 ? 0 : 2);
+    IntVec nodes;
+    pch1.getBoundaryElms(i, nodes);
+    ASSERT_EQ(nodes.size(), 1u);
+    EXPECT_EQ(nodes.front(), i == 1 ? 0 : 2);
   }
 }

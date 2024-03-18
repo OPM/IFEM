@@ -130,6 +130,15 @@ public:
   //! \return 1-based nodal index and distance to to the found node
   virtual std::pair<size_t,double> findClosestNode(const Vec3& X) const;
 
+  //! \brief Finds the element that contains the given point.
+  //! \param[in] X Global coordinates of point to search for
+  //! \return 1-based element index and local parameter in [-1,1] of the point
+  //!
+  //! \details If the point is outside the domain, either the first or the last
+  //! element is returned, and the local parameter is then either less than -1.0
+  //! or greater than 1.0 such that extrapolation can be performed.
+  std::pair<int,double> findElement(const Vec3& X) const;
+
   //! \brief Refines the mesh adaptively.
   //! \param[in] prm Input data used to control the mesh refinement
   virtual bool refine(const LR::RefineData& prm, Vectors&);

@@ -848,11 +848,64 @@ std::pair<size_t,double> ASMs1D::findClosestNode (const Vec3& X) const
   }
 
 #ifdef SP_DEBUG
-  std::cout <<"ASMs1D::findClosestNode("<< X
-            <<"): Found "<< Xfound <<" at u="<< param
-            <<" inod="<< jnod <<" distance="<< sqrt(dmin) << std::endl;
+  std::cout <<"ASMs1D::findClosestNode("<< X <<"): Found "<< Xfound
+            <<" at u="<< param <<" inod="<< jnod <<" distance="<< sqrt(dmin)
+            << std::endl;
 #endif
   return std::make_pair(jnod,sqrt(dmin));
+}
+
+
+std::pair<int,double> ASMs1D::findElement (const Vec3& X) const
+{
+  if (!curv) return std::make_pair(0,-1.0); // silently ignore empty patches
+
+  // Find the closest point on the spline curve
+  int iknot, ielno;
+  double param, dist;
+  Go::Point Xtarget(X.x,X.y,X.z), Xfound;
+  curv->ParamCurve::closestPoint(Xtarget,param,Xfound,dist);
+
+  // Check if point is inside parameter domain
+  if (param <= curv->startparam() && dist > 0.0)
+  {
+    // Extrapolate before start of domain
+    iknot = curv->basis().knotInterval(curv->startparam()+0.0001);
+    ielno = 1;
+    dist = -dist;
+  }
+  else if (param >= curv->endparam() && dist > 0.0)
+  {
+    // Extrapolate after end of domain
+    iknot = curv->basis().knotInterval(curv->endparam()-0.0001);
+    ielno = nel;
+  }
+  else
+  {
+    // We are inside, now find which knot-span we are in
+    iknot = curv->basis().knotInterval(param);
+    ielno = iknot - curv->order() + 2;
+    dist = 0.0;
+  }
+
+  // Calculate the local parameter \xi in the unit domain [-1,1] of the element
+  double u0 = curv->basis().getKnots()[iknot];
+  double u1 = curv->basis().getKnots()[iknot+1];
+  if (dist != 0.0)
+  {
+    Vec3 X0, X1;
+    SplineUtils::point(X0,u0,curv);
+    SplineUtils::point(X1,u1,curv);
+    param = (dist < 0.0 ? u0 : u1) + (u1-u0)*dist/(X1-X0).length();
+  }
+  double xi = 2.0*(param-u0)/(u1-u0) - 1.0;
+
+#ifdef SP_DEBUG
+  std::cout <<"ASMs1D::findElement("<< X <<"): Found "<< Xfound
+            <<" at u="<< param <<" (dist="<< dist <<") ielno="<< ielno
+            <<" ["<< u0 <<","<< u1 <<"] xi="<< xi << std::endl;
+#endif
+  return std::make_pair(ielno,xi);
 }
 
 
