@@ -196,6 +196,6 @@ void CompatibleOperators::Residual::Laplacian(Vectors& EV,
     fe.grad(k).multiply(Vector(dUdXT[k-1].ptr(), nsd), diff);
     if (stress)
       fe.grad(k).multiply(Vector(dUdX[k-1].ptr(), nsd), diff, false, 1);
-    EV[k].add(diff, scale*fe.detJxW);
+    EV[k].add(diff, -scale*fe.detJxW);
   }
 }
