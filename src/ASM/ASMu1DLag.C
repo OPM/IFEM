@@ -7,7 +7,7 @@
 //!
 //! \author Knut Morten Okstad / SINTEF
 //!
-//! \brief Assembly of unstructured 1D Lagrange FE models.
+//! \brief Assembly of unstructured 1D %Lagrange FE models.
 //!
 //==============================================================================
 
@@ -23,15 +23,13 @@ ASMu1DLag::ASMu1DLag (unsigned char n_s,
 }
 
 
-ASMu1DLag::ASMu1DLag (const ASMu1DLag& p, unsigned char n_f) :
-  ASMs1DLag(p,n_f), nodeSets(p.nodeSets)
+ASMu1DLag::ASMu1DLag (const ASMu1DLag& p, unsigned char n_f) : ASMs1DLag(p,n_f)
 {
   fileType = 0;
 }
 
 
-ASMu1DLag::ASMu1DLag (const ASMu1DLag& p) :
-  ASMs1DLag(p), nodeSets(p.nodeSets)
+ASMu1DLag::ASMu1DLag (const ASMu1DLag& p) : ASMs1DLag(p)
 {
   fileType = 0;
 }
@@ -78,44 +76,6 @@ bool ASMu1DLag::generateOrientedFEModel (const Vec3& Zaxis)
   gEl  += nel;
 
   return myCS.empty() ? true : this->initLocalElementAxes(Zaxis);
-}
-
-
-int ASMu1DLag::getNodeSetIdx (const std::string& setName) const
-{
-  int idx = 1;
-  for (const ASM::NodeSet& ns : nodeSets)
-    if (ns.first == setName)
-      return idx;
-    else
-      ++idx;
-
-  return 0;
-}
-
-
-const IntVec& ASMu1DLag::getNodeSet (int idx) const
-{
-  int count = 0;
-  for (const ASM::NodeSet& ns : nodeSets)
-    if (++count == idx)
-      return ns.second;
-
-  return this->ASMbase::getNodeSet(idx);
-}
-
-
-IntVec& ASMu1DLag::getNodeSet (const std::string& setName, int& idx)
-{
-  idx = 1;
-  for (ASM::NodeSet& ns : nodeSets)
-    if (ns.first == setName)
-      return ns.second;
-    else if (idx)
-      ++idx;
-
-  nodeSets.push_back(std::make_pair(setName,IntVec()));
-  return nodeSets.back().second;
 }
 
 

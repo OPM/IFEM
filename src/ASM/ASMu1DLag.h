@@ -7,7 +7,7 @@
 //!
 //! \author Knut Morten Okstad / SINTEF
 //!
-//! \brief Assembly of unstructured 1D Lagrange FE models.
+//! \brief Assembly of unstructured 1D %Lagrange FE models.
 //!
 //==============================================================================
 
@@ -15,11 +15,10 @@
 #define _ASM_U1D_LAG_H
 
 #include "ASMs1DLag.h"
-#include "ASMutils.h"
 
 
 /*!
-  \brief Driver for assembly of unstructured 1D Lagrange FE models.
+  \brief Driver for assembly of unstructured 1D %Lagrange FE models.
   \details This class overrides the methods of its parent class such that
   it does not depend on a curve spline object for geometry discretization.
   It can therefore be used for any unstructured grid read from mesh files.
@@ -51,13 +50,6 @@ public:
   //! \brief Increase all global element numbers by \a eshift.
   virtual void shiftGlobalElmNums(int eshift);
 
-  //! \brief Returns (1-based) index of a predefined node set in the patch.
-  virtual int getNodeSetIdx(const std::string& setName) const;
-  //! \brief Returns an indexed pre-defined node set.
-  virtual const IntVec& getNodeSet(int idx) const;
-  //! \brief Returns a named node set for update.
-  virtual IntVec& getNodeSet(const std::string& setName, int& idx);
-
   //! \brief Returns (1-based) index of a predefined element set in the patch.
   virtual int getElementSetIdx(const std::string& setName) const;
   //! \brief Returns an indexed pre-defined element set.
@@ -82,7 +74,6 @@ public:
 
 private:
   char                      fileType; //!< Mesh file format
-  std::vector<ASM::NodeSet> nodeSets; //!< Node sets for Dirichlet BCs
   std::vector<ASM::NodeSet> elemSets; //!< Element sets for properties
 };
 

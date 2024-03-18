@@ -17,6 +17,7 @@
 #include "ASMstruct.h"
 #include "ASMunstruct.h"
 #include "ASM1D.h"
+#include "ASMutils.h"
 #include "Tensor.h"
 
 typedef std::vector<Tensor> TensorVec; //!< An array of non-symmetric tensors
@@ -124,6 +125,13 @@ public:
   //! \param[in] local If \e true, return patch-local node numbers
   virtual void getBoundaryNodes(int lIndex, IntVec& nodes,
                                 int, int thick, int, bool local) const;
+
+  //! \brief Returns (1-based) index of a predefined node set in the patch.
+  virtual int getNodeSetIdx(const std::string& setName) const;
+  //! \brief Returns an indexed pre-defined node set.
+  virtual const IntVec& getNodeSet(int idx) const;
+  //! \brief Returns a named node set for update.
+  virtual IntVec& getNodeSet(const std::string& setName, int& idx);
 
   //! \brief Finds the node that is closest to the given point.
   //! \param[in] X Global coordinates of point to search for
@@ -467,6 +475,8 @@ protected:
   TensorVec myCS;  //!< The actual element coordinate systems
   TensorVec myT;   //!< The actual nodal rotation tensors
   TensorVec prevT; //!< Nodal rotation tensors of last converged configuration
+
+  std::vector<ASM::NodeSet> nodeSets; //!< Node sets for Dirichlet BCs
 
 private:
   bool updatedT; //!< If \e true, nodal rotation matrices have been updated

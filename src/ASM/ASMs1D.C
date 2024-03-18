@@ -45,7 +45,8 @@ ASMs1D::ASMs1D (unsigned char n_s, unsigned char n_f)
 
 
 ASMs1D::ASMs1D (const ASMs1D& patch, unsigned char n_f)
-  : ASMstruct(patch,n_f), elmCS(patch.myCS), nodalT(patch.myT)
+  : ASMstruct(patch,n_f),
+    elmCS(patch.myCS), nodalT(patch.myT), nodeSets(patch.nodeSets)
 {
   curv = patch.curv;
   proj = patch.proj;
@@ -431,6 +432,44 @@ bool ASMs1D::generateTwistedFEModel (const RealFunc& twist, const Vec3& Zaxis)
     }
 
   return true;
+}
+
+
+int ASMs1D::getNodeSetIdx (const std::string& setName) const
+{
+  int idx = 1;
+  for (const ASM::NodeSet& ns : nodeSets)
+    if (ns.first == setName)
+      return idx;
+    else
+      ++idx;
+
+  return 0;
+}
+
+
+const IntVec& ASMs1D::getNodeSet (int idx) const
+{
+  int count = 0;
+  for (const ASM::NodeSet& ns : nodeSets)
+    if (++count == idx)
+      return ns.second;
+
+  return this->ASMbase::getNodeSet(idx);
+}
+
+
+IntVec& ASMs1D::getNodeSet (const std::string& setName, int& idx)
+{
+  idx = 1;
+  for (ASM::NodeSet& ns : nodeSets)
+    if (ns.first == setName)
+      return ns.second;
+    else
+      ++idx;
+
+  nodeSets.push_back(std::make_pair(setName,IntVec()));
+  return nodeSets.back().second;
 }
 
 
