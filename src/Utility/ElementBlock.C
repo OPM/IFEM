@@ -170,6 +170,12 @@ void ElementBlock::transform (const Matrix& Tlg)
 }
 
 
+const Real* ElementBlock::getParam (size_t i) const
+{
+  return i < param.size() ? nullptr : param[i].data();
+}
+
+
 utl::Point ElementBlock::getCenter (size_t i) const
 {
   if (i < 1 || i > MINEX.size())

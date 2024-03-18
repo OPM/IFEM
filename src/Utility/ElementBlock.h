@@ -93,7 +93,7 @@ public:
   //! \brief Returns the coordinate of a given node.
   const Vec3& getCoord(size_t i) const { return coord[i]; }
   //! \brief Returns a pointer to the parameter values of a given node.
-  const Real* getParam(size_t i) const { return param[i].data(); }
+  const Real* getParam(size_t i) const;
 
   //! \brief Returns a pointer to the element connectivity array.
   const int* getElements() const { return MMNPC.data(); }
@@ -101,7 +101,7 @@ public:
   //! \brief Returns the coordinates of the center of the given elemment.
   utl::Point getCenter(size_t i) const;
 
-private:
+protected:
   typedef std::array<Real,3> Prm3; //!< Convenience type
 
   std::vector<Vec3> coord; //!< Vector of nodal coordinates
