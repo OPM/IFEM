@@ -182,13 +182,16 @@ utl::Point ElementBlock::getCenter (size_t i) const
     return utl::Point();
 
   utl::Point XC;
-  for (size_t j = 0; j < nen; j++)
-  {
-    const Prm3& uu = param[MMNPC[nen*(i-1)+j]];
-    XC += utl::Point(coord[MMNPC[nen*(i-1)+j]],{uu[0],uu[1],uu[2]});
-  }
-  XC /= nen;
+  for (size_t j = nen*i-nen; j < nen*i; j++)
+    if (MMNPC[j] < param.size())
+    {
+      const Prm3& uu = param[MMNPC[j]];
+      XC += utl::Point(coord[MMNPC[j]],{uu[0],uu[1],uu[2]});
+    }
+    else // No spline parameters
+      XC += utl::Point(coord[MMNPC[j]]);
 
+  XC /= nen;
   return XC;
 }
 
