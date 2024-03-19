@@ -133,6 +133,9 @@ public:
   virtual const ISTL::Mat& getMatrix() const { return iA; }
 
 protected:
+  //! \brief Handles solver resets.
+  void handleSolverReset();
+
   std::unique_ptr<ISTL::Operator> op; //!< The matrix adapter
   std::unique_ptr<ISTL::InverseOperator> solver; //!< Solver to use
   std::unique_ptr<ISTL::Preconditioner> pre; //!< Preconditioner to use
@@ -140,6 +143,7 @@ protected:
   ISTL::Mat         iA;        //!< The actual ISTL matrix
   const ProcessAdm& adm;       //!< Process administrator
   ISTLSolParams     solParams; //!< Linear solver parameters
+  int               nLinSolves = 0; //!< Number of linear solves
 };
 
 #endif

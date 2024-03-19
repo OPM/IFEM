@@ -82,6 +82,9 @@ public:
   //! \brief Get string setting
   std::string getStringValue(const std::string& key) const { return params.getStringValue(key); }
 
+  //! \brief Get integer setting
+  bool hasValue(const std::string& key) const { return params.hasValue(key); }
+
   //! \brief Returns the linear system type.
   LinAlg::LinearSystemType getLinSysType() const { return params.getLinSysType(); }
 
