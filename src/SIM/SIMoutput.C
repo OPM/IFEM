@@ -651,6 +651,9 @@ bool SIMoutput::writeGlvS (const Vector& scl, const char* fieldName,
   if (scl.empty() || !myVtf)
     return true;
 
+  const bool piolaMapping = myProblem ?
+    myProblem->getIntegrandType() & Integrand::PIOLA_MAPPING : false;
+
   Matrix field;
   Vector lovec;
   IntVec sID;
@@ -666,8 +669,7 @@ bool SIMoutput::writeGlvS (const Vector& scl, const char* fieldName,
 
     int ncmp = scl.size() / this->getNoNodes(basis);
     this->extractPatchSolution(scl,lovec,pch,ncmp,basis);
-    if (!pch->evalSolution(field,lovec,opt.nViz,ncmp,
-                           myProblem->getIntegrandType() & Integrand::PIOLA_MAPPING))
+    if (!pch->evalSolution(field,lovec,opt.nViz,ncmp,piolaMapping))
       return false;
 
     if (!myVtf->writeNres(field,++nBlock,++geomID))
@@ -700,18 +702,25 @@ bool SIMoutput::writeGlvS (const Vector& psol, int iStep, int& nBlock,
 
 /*!
   This method writes only the primary solution field to the VTF-file.
-  The primary solution is written as a deformation plot (labelled "Solution")
-  if \a pvecName is null. If the primary solution is a scalar field, the field
-  value is in that case interpreted as a deformation along the global Z-axis.
-  If the primary solution is a vector field and \a pvecName is not null,
-  it is written as a named vector field instead (no deformation plot),
-  unless \a psolComps is negative.
-
-  If the primary solution is a vector field, each vector component is written
-  as a scalar field in addition. If \a scalarOnly is \e true, it is only
-  written as scalar field components (no deformation or vector field output).
-
   If analytical solution fields are available, those fields are written as well.
+
+  The way the solution is written depends on whether it is a scalar or vector
+  field, and on the input parameters \a pvecName and \a psolComps, as follows:
+
+  - If the primary solution is a vector field, it is written as a deformation
+    (labelled "Solution") if \a pvecName is null or \a psolComps is negative,
+    otherwise it is written as a named vector field (no deformation plot).
+  - If the primary solution is a scalar field and \a pvecName is null,
+    the field value is interpreted as a deformation along the global Z-axis.
+  - If the primary solution is a vector field, each vector component is in
+    addition written as a scalar field. If \a scalarOnly is \e true, it is only
+    written as scalar field components (no deformation or vector field output).
+
+  The scalar field components are labelled \a pvecName_(i)
+  where (i) is in (x,y,z,rx,ry,rz), if \a pvecName is not null and
+  \a psolComps is positive or the \ref myProblem member is null,
+  otherwise their names are obtained by invoking the method
+  IntegrandBase::getField1Name() of the \ref myProblem member.
 */
 
 int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
@@ -720,6 +729,9 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
 {
   if (psol.empty() || !myVtf)
     return 0; // no primary solution
+
+  const bool piolaMapping = myProblem ?
+    myProblem->getIntegrandType() & Integrand::PIOLA_MAPPING : false;
 
   size_t nf     = scalarOnly ? 1 : this->getNoFields();
   size_t nVcomp = nf > this->getNoSpaceDim() ? this->getNoSpaceDim() : nf;
@@ -755,8 +767,7 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
 
     // Evaluate primary solution variables
 
-    if (!pch->evalSolution(field,lovec,opt.nViz,0,
-                           myProblem->getIntegrandType() & Integrand::PIOLA_MAPPING))
+    if (!pch->evalSolution(field,lovec,opt.nViz,0,piolaMapping))
       return -1;
 
     pch->filterResults(field,myVtf->getBlock(++geomID));
@@ -814,13 +825,17 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
         }
       }
 
+      if (!scalarOnly && (nVcomp > 1 || !pvecName))
+      {
+        // Output as vector field
+        if (!myVtf->writeVres(field,++nBlock,geomID,nVcomp))
+          return -2;
+
+        vID[1].push_back(nBlock);
+      }
+
       if (!this->writeScalarFields(field,geomID,nBlock,xID))
-        return -3;
-
-      if (!myVtf->writeVres(field,++nBlock,geomID,nVcomp))
-        return -2;
-
-      vID[1].push_back(nBlock);
+	return -3;
     }
   }
 
@@ -847,10 +862,15 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
   if (nf > 1) pname += "_w";
   for (i = 0; i < sID.size() && !sID[i].empty() && ok; i++)
   {
-    if (myProblem && (!pvecName || nf > nVcomp))
+    if (myProblem && (!pvecName || psolComps <= 0))
       pname = myProblem->getField1Name(i);
+    else if (i > 0 && nVcomp > 1 && i%nVcomp == 0)
+    {
+      pname.back() = 'r';
+      pname += 'x';
+    }
     else if (nf > 1)
-      (*pname.rbegin()) ++;
+      ++pname.back();
     ok = myVtf->writeSblk(sID[i],pname.c_str(),idBlock++,iStep);
     if (haveXsol) xname.push_back("Exact " + pname);
   }
