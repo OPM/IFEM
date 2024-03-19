@@ -20,11 +20,11 @@
 #include "PETScSolParams.h"
 #include <array>
 
-typedef std::vector<PetscInt>    PetscIntVec;  //!< PETSc integer vector
-typedef std::vector<PetscIntVec> PetscIntMat;  //!< PETSc integer matrix
-typedef std::vector<PetscReal>   PetscRealVec; //!< PETSc real vector
-typedef std::vector<IS>          ISVec;        //!< Index set vector
-typedef std::vector<ISVec>       ISMat;        //!< Index set matrix
+using PetscIntVec = std::vector<PetscInt>;    //!< PETSc integer vector
+using PetscIntMat = std::vector<PetscIntVec>; //!< PETSc integer matrix
+using PetscRealVec = std::vector<PetscReal>;  //!< PETSc real vector
+using ISVec = std::vector<IS>;                //!< Index set vector
+using ISMat = std::vector<ISVec>;             //!< Index set matrix
 
 
 /*!
@@ -45,40 +45,40 @@ public:
   //! \brief Copy constructor.
   PETScVector(const PETScVector& vec);
   //! \brief Destructor.
-  virtual ~PETScVector();
+  ~PETScVector() override;
 
   //! \brief Returns the vector type.
-  virtual LinAlg::MatrixType getType() const { return LinAlg::PETSC; }
+  LinAlg::MatrixType getType() const override { return LinAlg::PETSC; }
 
   //! \brief Initializes the vector to a given scalar value.
-  virtual void init(Real value);
+  void init(Real value) override;
 
   //! \brief Sets the dimension of the system vector.
-  virtual void redim(size_t n);
+  void redim(size_t n) override;
 
   //! \brief Begins communication step needed in parallel vector assembly.
   //! \details Must be called together with endAssembly after vector assembly
   //! is completed on each processor and before the linear system is solved.
-  virtual bool beginAssembly();
+  bool beginAssembly() override;
 
   //! \brief Ends communication step needed in parallel vector assembly.
   //! \details Must be called together with beginAssembly after vector assembly
   //! is completed on each processor and before the linear system is solved.
-  virtual bool endAssembly();
+  bool endAssembly() override;
 
   //! \brief L1-norm of vector.
-  virtual Real L1norm() const;
+  Real L1norm() const override;
 
   //! \brief L2-norm of vector.
-  virtual Real L2norm() const;
+  Real L2norm() const override;
 
   //! \brief Linfinity-norm of vector.
-  virtual Real Linfnorm() const;
+  Real Linfnorm() const override;
 
   //! \brief Returns the PETSc vector (for assignment).
-  virtual Vec& getVector() { return x; }
+  Vec& getVector() { return x; }
   //! \brief Returns the PETSc vector (for read access).
-  virtual const Vec& getVector() const { return x; }
+  const Vec& getVector() const { return x; }
 
   //! \brief Return associated process administrator.
   const ProcessAdm& getAdm() const { return adm; }
@@ -101,10 +101,10 @@ public:
   //! \brief Constructor.
   PETScMatrix(const ProcessAdm& padm, const LinSolParams& spar);
   //! \brief The destructor frees the dynamically allocated arrays.
-  virtual ~PETScMatrix();
+  ~PETScMatrix() override;
 
   //! \brief Returns the matrix type.
-  virtual LinAlg::MatrixType getType() const { return LinAlg::PETSC; }
+  LinAlg::MatrixType getType() const override { return LinAlg::PETSC; }
 
   //! \brief Initializes the element assembly process.
   //! \details Must be called once before the element assembly loop.
@@ -112,31 +112,31 @@ public:
   //! that are needed before the actual assembly can start are performed.
   //! \param[in] sam Auxiliary data describing the FE model topology, etc.
   //! \param[in] delayLocking If \e true, do not lock the sparsity pattern yet
-  virtual void initAssembly(const SAM& sam, bool delayLocking);
+  void initAssembly(const SAM& sam, bool delayLocking) override;
 
   //! \brief Initializes the matrix to zero assuming it is properly dimensioned.
-  virtual void init();
+  void init() override;
 
   //! \brief Begins communication step needed in parallel matrix assembly.
   //! \details Must be called together with endAssembly after matrix assembly
   //! is completed on each processor and before the linear system is solved.
-  virtual bool beginAssembly();
+  bool beginAssembly() override;
   //! \brief Ends communication step needed in parallel matrix assembly.
   //! \details Must be called together with beginAssembly after matrix assembly
   //! is completed on each processor and before the linear system is solved.
-  virtual bool endAssembly();
+  bool endAssembly() override;
 
   //! \brief Performs the matrix-vector multiplication \b C = \a *this * \b B.
-  virtual bool multiply(const SystemVector& B, SystemVector& C) const;
+  bool multiply(const SystemVector& B, SystemVector& C) const override;
 
   //! \brief Solves the linear system of equations for a given right-hand-side.
   //! \param B Right-hand-side vector on input, solution vector on output
-  virtual bool solve(SystemVector& B, Real*);
+  bool solve(SystemVector& B, Real*) override;
 
   //! \brief Solves the linear system of equations for a given right-hand-side.
   //! \param[in] B Right-hand-side vector
   //! \param[out] x Solution vector
-  virtual bool solve(const SystemVector& B, SystemVector& x);
+  bool solve(const SystemVector& B, SystemVector& x) override;
 
   //! \brief Solves a generalized symmetric-definite eigenproblem.
   //! \details The eigenproblem is assumed to be on the form
@@ -154,12 +154,12 @@ public:
                 int nev, Real shift = Real(0), int iop = 1);
 
   //! \brief Returns the L-infinity norm of the matrix.
-  virtual Real Linfnorm() const;
+  Real Linfnorm() const override;
 
   //! \brief Returns the PETSc matrix (for assignment).
-  virtual Mat& getMatrix() { return pA; }
+  Mat& getMatrix() { return pA; }
   //! \brief Returns the PETSc matrix (for read access).
-  virtual const Mat& getMatrix() const { return pA; }
+  const Mat& getMatrix() const { return pA; }
 
   //! \brief Get vector of block matrices. Used for tests only.
   const std::vector<Mat>& getBlockMatrices() const { return matvec; }
