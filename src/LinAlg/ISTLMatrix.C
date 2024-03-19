@@ -12,6 +12,8 @@
 //==============================================================================
 
 #include "ISTLMatrix.h"
+#include "LinSolParams.h"
+#include "ProcessAdm.h"
 #include "SAM.h"
 #include "LinAlgInit.h"
 
@@ -164,6 +166,8 @@ void ISTLMatrix::init ()
 
 bool ISTLMatrix::solve (SystemVector& B, Real*)
 {
+  this->handleSolverReset();
+
   if (!pre)
     std::tie(solver, pre, op) = solParams.setupPC(iA);
 
@@ -184,12 +188,16 @@ bool ISTLMatrix::solve (SystemVector& B, Real*)
   for (size_t i = 0; i < rows(); ++i)
     (*Bptr)(i+1) = Bptr->getVector()[i];
 
+  ++nLinSolves;
+
   return true;
 }
 
 
 bool ISTLMatrix::solve (const SystemVector& b, SystemVector& x)
 {
+  this->handleSolverReset();
+
   if (!pre)
     std::tie(solver, pre, op) = solParams.setupPC(iA);
 
@@ -213,6 +221,8 @@ bool ISTLMatrix::solve (const SystemVector& b, SystemVector& x)
   for (size_t i = 0; i < rows(); ++i)
     (*Xptr)(i+1) = Xptr->getVector()[i];
 
+  ++nLinSolves;
+
   return true;
 }
 
@@ -220,4 +230,22 @@ bool ISTLMatrix::solve (const SystemVector& b, SystemVector& x)
 Real ISTLMatrix::Linfnorm () const
 {
   return iA.infinity_norm();
+}
+
+
+void ISTLMatrix::handleSolverReset ()
+{
+  // Reset linear solver
+  if (nLinSolves && solParams.get().hasValue("reset_pc")) {
+    const std::string string_val = solParams.get().getStringValue("reset_pc");
+    int val = solParams.get().getIntValue("reset_pc");
+    if (string_val == "all" ||
+        (string_val == "first" && nLinSolves == 1) ||
+        (val > 0 && nLinSolves % val == 0)) {
+      pre.reset();
+      solver.reset();
+      op.reset();
+      adm.cout << "Resetting preconditioner" << std::endl;
+    }
+  }
 }

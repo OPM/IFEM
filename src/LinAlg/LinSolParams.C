@@ -168,6 +168,8 @@ bool LinSolParams::read (const tinyxml2::XMLElement* elem)
       this->addValue("type", value);
     else if ((value = utl::getValue(child,"gmres_restart_iterations")))
       this->addValue("gmres_restart_iterations", value);
+    else if ((value = utl::getValue(child,"reset_pc")))
+      this->addValue("reset_pc", value);
     else if ((value = utl::getValue(child,"pc")))
       this->addValue("pc", value);
     else if ((value = utl::getValue(child,"schur")))

@@ -706,12 +706,19 @@ bool PETScMatrix::solve (const SystemVector& b, SystemVector& x)
 bool PETScMatrix::solve (const Vec& b, Vec& x, bool knoll)
 {
   // Reset linear solver
-  if (nLinSolves && solParams.getIntValue("reset_solves"))
-    if (nLinSolves%solParams.getIntValue("reset_solves") == 0) {
+  if (nLinSolves && solParams.hasValue("reset_pc")) {
+    const std::string string_val = solParams.getStringValue("reset_pc");
+    int val = solParams.getIntValue("reset_pc");
+    if (string_val == "all" ||
+        (string_val == "first" && nLinSolves == 1) ||
+        (val > 0 && nLinSolves % val == 0)) {
       KSPDestroy(&ksp);
       KSPCreate(*adm.getCommunicator(),&ksp);
       setParams = true;
+      factored = false;
+      adm.cout << "Resetting preconditioner" << std::endl;
     }
+  }
 
   if (setParams) {
 #if PETSC_VERSION_MINOR < 5
