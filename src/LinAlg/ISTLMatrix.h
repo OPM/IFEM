@@ -38,31 +38,31 @@ public:
   //! \brief Copy constructor.
   ISTLVector(const ISTLVector& vec);
   //! \brief Destructor.
-  virtual ~ISTLVector();
+  ~ISTLVector() override;
 
   //! \brief Returns the vector type.
-  virtual LinAlg::MatrixType getType() const { return LinAlg::ISTL; }
+  LinAlg::MatrixType getType() const override { return LinAlg::ISTL; }
 
   //! \brief Initializes the vector to a given scalar value.
-  virtual void init(Real value = Real(0));
+  void init(Real value = Real(0)) override;
 
   //! \brief Returns the dimension of the system vector.
-  virtual size_t dim() const { return x.size(); }
+  size_t dim() const override { return x.size(); }
 
   //! \brief Sets the dimension of the system vector.
-  virtual void redim(size_t n);
+  void redim(size_t n) override;
 
   //! \brief Copies the assembled vector into \ref x.
-  virtual bool endAssembly();
+  bool endAssembly() override;
 
   //! \brief L1-norm of vector.
-  virtual Real L1norm() const;
+  Real L1norm() const override;
 
   //! \brief L2-norm of vector.
-  virtual Real L2norm() const;
+  Real L2norm() const override;
 
   //! \brief Linfinity-norm of vector.
-  virtual Real Linfnorm() const;
+  Real Linfnorm() const override;
 
   //! \brief Return associated process administrator
   const ProcessAdm& getAdm() const { return adm; }
@@ -90,16 +90,16 @@ public:
   //! \brief Copy constructor.
   ISTLMatrix(const ISTLMatrix& A);
   //! \brief The destructor frees the dynamically allocated arrays.
-  virtual ~ISTLMatrix();
+  ~ISTLMatrix() override;
 
   //! \brief Returns the matrix type.
-  virtual LinAlg::MatrixType getType() const { return LinAlg::ISTL; }
+  LinAlg::MatrixType getType() const override { return LinAlg::ISTL; }
 
   //! \brief Returns the dimension of the system matrix.
-  virtual size_t dim(int = 1) const { return 0; }
+  size_t dim(int = 1) const override { return 0; }
 
   //! \brief Creates a copy of the system matrix and returns a pointer to it.
-  virtual SystemMatrix* copy() const { return new ISTLMatrix(*this); }
+  SystemMatrix* copy() const override { return new ISTLMatrix(*this); }
 
   //! \brief Initializes the element assembly process.
   //! \details Must be called once before the element assembly loop.
@@ -107,30 +107,30 @@ public:
   //! that are needed before the actual assembly can start are performed.
   //! \param[in] sam Auxiliary data describing the FE model topology, etc.
   //! \param[in] delayLocking If \e true, do not lock the sparsity pattern yet
-  virtual void initAssembly(const SAM& sam, bool delayLocking);
+  void initAssembly(const SAM& sam, bool delayLocking) override;
 
   //! \brief Initializes the matrix to zero assuming it is properly dimensioned.
-  virtual void init();
+  void init() override;
 
   //! \brief Copies the assembled matrix into \ref iA.
-  virtual bool endAssembly();
+  bool endAssembly() override;
 
   //! \brief Solves the linear system of equations for a given right-hand-side.
   //! \param B Right-hand-side vector on input, solution vector on output
-  virtual bool solve(SystemVector& B, Real*);
+  bool solve(SystemVector& B, Real*) override;
 
   //! \brief Solves the linear system of equations for a given right-hand-side.
   //! \param[in] B Right-hand-side vector
   //! \param[out] x Solution vector
-  virtual bool solve(const SystemVector& B, SystemVector& x);
+  bool solve(const SystemVector& B, SystemVector& x) override;
 
   //! \brief Returns the L-infinity norm of the matrix.
-  virtual Real Linfnorm() const;
+  Real Linfnorm() const override;
 
   //! \brief Returns the ISTL matrix (for assignment).
-  virtual ISTL::Mat& getMatrix() { return iA; }
+  ISTL::Mat& getMatrix() { return iA; }
   //! \brief Returns the ISTL matrix (for read access).
-  virtual const ISTL::Mat& getMatrix() const { return iA; }
+  const ISTL::Mat& getMatrix() const { return iA; }
 
 protected:
   //! \brief Handles solver resets.
