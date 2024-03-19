@@ -67,7 +67,7 @@ const Vector& ElmMats::getRHSVector () const
 
 void ElmMats::printMat (std::ostream& os, size_t idx) const
 {
-  if (idx > A.size()) return;
+  if (idx >= A.size()) return;
 
   os <<"\nElement coefficient matrix";
   if (idx > 0) os <<" "<< idx;
@@ -81,7 +81,7 @@ void ElmMats::printMat (std::ostream& os, size_t idx) const
 
 void ElmMats::printVec (std::ostream& os, size_t idx) const
 {
-  if (idx > b.size()) return;
+  if (idx >= b.size()) return;
 
   os <<"\nElement right-hand-side vector";
   if (idx > 0) os <<" "<< idx;
@@ -95,7 +95,7 @@ void ElmMats::printVec (std::ostream& os, size_t idx) const
 
 void ElmMats::printScl (std::ostream& os, size_t idx) const
 {
-  if (idx > c.size()) return;
+  if (idx >= c.size()) return;
 
   os <<"Element scalar";
   if (idx > 0) os <<" "<< idx;
