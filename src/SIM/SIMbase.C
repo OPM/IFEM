@@ -985,7 +985,8 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
         myProblem->getExtractionField()->clear();
     }
 
-    integrand->initPatch(pch->idx);
+    integrand->initForPatch(pch);
+
     if (mySol)
       mySol->initPatch(pch->idx);
 
@@ -1084,7 +1085,8 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
             break;
           }
 
-          it->second->initPatch(pch->idx);
+          it->second->initForPatch(pch);
+
           if (mySol)
             mySol->initPatch(pch->idx);
 

@@ -255,6 +255,8 @@ bool SIMinput::parseGeometryTag (const tinyxml2::XMLElement* elem)
           idim = 4;
         else if (type == "elements")
           idim = 5;
+        else if (type == "bbox")
+          idim = 6;
         else
           utl::getAttribute(set,"dimension",idim);
         if (idim > 0 && idim < 4 && utl::getAttribute(set,"closure",type,true))
@@ -270,12 +272,12 @@ bool SIMinput::parseGeometryTag (const tinyxml2::XMLElement* elem)
           for (int patch : patches)
             if ((pid = this->getLocalPatchIndex(patch)) > 0)
             {
+              int setIndex = 0;
+              ASMbase* pch = myModel[pid-1];
               if (abs(idim) == (int)this->getNoParamDim())
                 top.insert(TopItem(pid,0,idim));
               else if (idim == 4)
               {
-                ASMbase* pch = myModel[pid-1];
-                int setIndex = 0;
                 if (item->FirstChild())
                   utl::parseIntegers(pch->getNodeSet(name,setIndex),
                                      item->FirstChild()->Value());
@@ -286,8 +288,6 @@ bool SIMinput::parseGeometryTag (const tinyxml2::XMLElement* elem)
               }
               else if (idim == 5)
               {
-                ASMbase* pch = myModel[pid-1];
-                int setIndex = 0;
                 if (item->FirstChild())
                   utl::parseIntegers(pch->getElementSet(name,setIndex),
                                      item->FirstChild()->Value());
@@ -295,6 +295,12 @@ bool SIMinput::parseGeometryTag (const tinyxml2::XMLElement* elem)
                   setIndex = pch->getElementSetIdx(name);
                 if (setIndex > 0)
                   top.insert(TopItem(pid,setIndex,idim));
+              }
+              else if (idim == 6 && item->FirstChild())
+              {
+                setIndex = pch->parseNodeBox(name,item->FirstChild()->Value());
+                if (setIndex > 0)
+                  top.insert(TopItem(pid,setIndex,4));
               }
               else if (item->FirstChild())
               {

@@ -7,22 +7,23 @@
 //!
 //! \author Knut Morten Okstad / SINTEF
 //!
-//! \brief Assembly of unstructured 2D Lagrange FE models.
+//! \brief Assembly of unstructured 2D %Lagrange FE models.
 //!
 //==============================================================================
 
 #include "ASMu2DLag.h"
 #include "ElementBlock.h"
-#include "GaussQuadrature.h"
-#include "Integrand.h"
-#include "Lagrange.h"
+#include "Vec3Oper.h"
+#include "IFEM.h"
 #include <numeric>
+#include <sstream>
 
 
 ASMu2DLag::ASMu2DLag (unsigned char n_s,
                       unsigned char n_f, char fType) : ASMs2DLag(n_s,n_f)
 {
   fileType = fType;
+  swapNode34 = false;
 }
 
 
@@ -30,6 +31,7 @@ ASMu2DLag::ASMu2DLag (const ASMu2DLag& p, unsigned char n_f) :
   ASMs2DLag(p,n_f), nodeSets(p.nodeSets)
 {
   fileType = 0;
+  swapNode34 = p.swapNode34;
 }
 
 
@@ -37,6 +39,7 @@ ASMu2DLag::ASMu2DLag (const ASMu2DLag& p) :
   ASMs2DLag(p), nodeSets(p.nodeSets)
 {
   fileType = 0;
+  swapNode34 = p.swapNode34;
 }
 
 
@@ -45,6 +48,7 @@ bool ASMu2DLag::read (std::istream& is)
   switch (fileType) {
   case 'm':
   case 'M':
+    swapNode34 = true;
     return ASM::readMatlab(is,myMNPC,myCoord,nodeSets);
   case 'x':
   case 'X':
@@ -63,18 +67,33 @@ bool ASMu2DLag::generateFEMTopology ()
   nnod = myCoord.size();
   nel  = myMNPC.size();
 
-  myMLGN.resize(nnod);
-  myMLGE.resize(nel);
+  bool ok = true;
+  if (myMLGN.empty())
+  {
+    myMLGN.resize(nnod);
+    std::iota(myMLGN.begin(),myMLGN.end(),gNod+1);
+  }
+  else
+    ok = myMLGN.size() == nnod && gNod == 0;
 
-  std::iota(myMLGN.begin(),myMLGN.end(),gNod+1);
-  std::iota(myMLGE.begin(),myMLGE.end(),gEl+1);
+  if (myMLGE.empty())
+  {
+    myMLGE.resize(nel);
+    std::iota(myMLGE.begin(),myMLGE.end(),gEl+1);
+  }
+  else if (ok)
+    ok = myMLGE.size() == nel && gEl == 0;
+
+  if (!ok)
+    std::cerr <<" *** Unstructured multi-patch models not supported yet"
+              << std::endl;
 
   gNod += nnod;
   gEl  += nel;
 
-  myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this, cachePolicy));
+  myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this,cachePolicy));
 
-  return true;
+  return ok;
 }
 
 
@@ -116,6 +135,46 @@ IntVec& ASMu2DLag::getNodeSet (const std::string& setName, int& idx)
 }
 
 
+int ASMu2DLag::parseNodeBox (const std::string& setName, const char* data)
+{
+  if (myCoord.empty()) return 0; // No nodes yet
+
+  Vec3 X0, X1;
+  std::istringstream(data) >> X0 >> X1;
+
+  // Lambda function for checking if a point is within the bounding box
+  auto&& isInside=[&X0,&X1](const Vec3& X)
+  {
+    for (int i = 0; i < 3; i++)
+      if (X[i] < X0[i] || X[i] > X1[i])
+        return false;
+    return true;
+  };
+
+  IntVec nodes;
+  for (size_t inod = 0; inod < myCoord.size(); inod++)
+    if (isInside(myCoord[inod]))
+      nodes.push_back(1+inod);
+
+  IFEM::cout <<"\tBounding Box: "<< X0 <<" - "<< X1
+             <<": "<< nodes.size() <<" nodes"<< std::endl;
+
+  if (nodes.empty()) return 0; // No nodes are within the given box
+
+  size_t idx = 0;
+  while (idx < nodeSets.size())
+    if (nodeSets[idx].first == setName)
+    {
+      nodeSets[idx].second.insert(nodeSets[idx].second.end(),
+                                  nodes.begin(),nodes.end());
+      return idx+1;
+    }
+
+  nodeSets.push_back(std::make_pair(setName,nodes));
+  return nodeSets.size();
+}
+
+
 void ASMu2DLag::getBoundaryNodes (int lIndex, IntVec& nodes,
                                   int, int, int, bool local) const
 {
@@ -135,112 +194,23 @@ void ASMu2DLag::generateThreadGroups (const Integrand&, bool, bool)
 
 bool ASMu2DLag::tesselate (ElementBlock& grid, const int*) const
 {
-  grid.unStructResize(nel,nnod);
+  size_t nmnpc = 0;
+  for (const IntVec& mnpc : MNPC)
+    nmnpc += mnpc.size();
+  grid.unStructResize(nel,nnod,nmnpc);
 
   size_t i, j, k;
   for (i = 0; i < nnod; i++)
     grid.setCoor(i,this->getCoord(1+i));
 
   for (i = k = 0; i < nel; i++)
+  {
     for (j = 0; j < MNPC[i].size(); j++)
-      if (j > 1 && MNPC[i].size() == 4)
+      if (j > 1 && swapNode34 && MNPC[i].size() == 4)
         grid.setNode(k++,MNPC[i][5-j]);
       else
         grid.setNode(k++,MNPC[i][j]);
-
-  return true;
-}
-
-
-ASMu2DLag::BasisFunctionCache::BasisFunctionCache (const ASMu2DLag& pch,
-                                                  ASM::CachePolicy plcy) :
-  ::BasisFunctionCache<2>(plcy),
-  patch(pch)
-{
-}
-
-
-bool ASMu2DLag::BasisFunctionCache::internalInit ()
-{
-  if (!mainQ->xg[0])
-    this->setupQuadrature();
-
-  nTotal = patch.nel*mainQ->ng[0]*mainQ->ng[1];
-  if (reducedQ->xg[0])
-    nTotalRed = patch.nel*reducedQ->ng[0]*reducedQ->ng[1];
-
-  return true;
-}
-
-
-void ASMu2DLag::BasisFunctionCache::internalCleanup ()
-{
-  mainQ->reset();
-  reducedQ->reset();
-}
-
-
-bool ASMu2DLag::BasisFunctionCache::setupQuadrature ()
-{
-  // Get Gaussian quadrature points and weights
-  for (int d = 0; d < 2; d++)
-  {
-    mainQ->ng[d] = patch.getNoGaussPt(d == 0 ? patch.p1 : patch.p2);
-    mainQ->xg[d] = GaussQuadrature::getCoord(mainQ->ng[d]);
-    mainQ->wg[d] = GaussQuadrature::getWeight(mainQ->ng[d]);
-    if (!mainQ->xg[d] || !mainQ->wg[d]) return false;
+    grid.endOfElm(k);
   }
-
-  // Get the reduced integration quadrature points, if needed
-  int nRed = integrand ? integrand->getReducedIntegration(mainQ->ng[0]) : 0;
-  if (nRed > 0)
-  {
-    reducedQ->xg[0] = reducedQ->xg[1] = GaussQuadrature::getCoord(nRed);
-    reducedQ->wg[0] = reducedQ->wg[1] = GaussQuadrature::getWeight(nRed);
-    if (!reducedQ->xg[0] || !reducedQ->wg[0]) return false;
-  } else if (nRed < 0)
-    nRed = mainQ->ng[0]; // The integrand needs to know nGauss
-
-  reducedQ->ng[0] = reducedQ->ng[1] = nRed;
-
   return true;
-}
-
-
-BasisFunctionVals ASMu2DLag::BasisFunctionCache::calculatePt (size_t el,
-                                                              size_t gp,
-                                                              bool reduced) const
-{
-  std::array<size_t,2> gpIdx = this->gpIndex(gp,reduced);
-  const Quadrature& q = reduced ? *reducedQ : *mainQ;
-
-  const ASMu2DLag& pch = static_cast<const ASMu2DLag&>(patch);
-
-  BasisFunctionVals result;
-  if (nderiv == 1)
-    Lagrange::computeBasis(result.N,result.dNdu,
-                           pch.p1,q.xg[0][gpIdx[0]],
-                           pch.p2,q.xg[1][gpIdx[1]]);
-
-  return result;
-}
-
-
-void ASMu2DLag::BasisFunctionCache::calculateAll ()
-{
-  // Evaluate basis function values and derivatives at all integration points.
-  // We do this before the integration point loop to exploit multi-threading
-  // in the integrand evaluations, which may be the computational bottleneck.
-  size_t iel, jp, rp;
-  for (iel = jp = rp = 0; iel < patch.nel; iel++)
-  {
-    for (int j = 0; j < mainQ->ng[1]; j++)
-      for (int i = 0; i < mainQ->ng[0]; i++, jp++)
-        values[jp] = this->calculatePt(iel,j*mainQ->ng[0]+i,false);
-
-    if (reducedQ->xg[0])
-      for (int j = 0; j < reducedQ->ng[1]; j++)
-        for (int i = 0; i < reducedQ->ng[0]; i++, rp++)
-          valuesRed[rp] = this->calculatePt(iel,j*reducedQ->ng[0]+i,true);
-  }
 }

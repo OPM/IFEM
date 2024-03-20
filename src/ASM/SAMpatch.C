@@ -170,15 +170,19 @@ bool SAMpatch::initElementConn ()
 
   // Find the size of the element connectivity array
   size_t i;
+  int id, eMax = 0;
   IntMat::const_iterator eit;
   for (const ASMbase* pch : model)
     for (i = 1, eit = pch->begin_elm(); eit != pch->end_elm(); ++eit)
-      if (pch->getElmID(i++) > 0)
-	nmmnpc += eit->size();
+      if ((id = pch->getElmID(i++)) > 0)
+      {
+        nmmnpc += eit->size();
+        if (id > eMax) eMax = id;
+      }
 
   IntVec elmId;
   elmId.reserve(nel);
-  int id, outOfOrder = 0;
+  int outOfOrder = 0;
 
   // Initialize the element connectivity arrays
   mpmnpc = new int[nel+1];
@@ -204,11 +208,16 @@ bool SAMpatch::initElementConn ()
 	elmId.push_back(id);
       }
 
-  if (outOfOrder == 0) return true;
+  if (outOfOrder == 0 && eMax == nel)
+    return true;
 
   // We need to sort the elements in increasing external element numbers
-  IFEM::cout <<"Detected "<< outOfOrder
-             <<" elements out of order, reordering..."<< std::endl;
+  if (outOfOrder > 0)
+    IFEM::cout <<"Detected "<< outOfOrder
+               <<" elements out of order, reordering..."<< std::endl;
+  else
+    IFEM::cout <<"Detected "<< eMax-nel
+               <<" holes in the element numbers, reordering..."<< std::endl;
 
   typedef std::pair<int,int> Ipair;
   std::map<int,Ipair> sortedElms;
@@ -218,16 +227,20 @@ bool SAMpatch::initElementConn ()
     else
     {
       std::cerr <<" *** SAMpatch::initElementConn: Multiple elements with"
-		<<" external ID "<< elmId[i] <<" detected."<< std::endl;
+                <<" external ID "<< elmId[i] <<" detected."<< std::endl;
       return false;
     }
 
   // Create new element connectivity arrays
+  nel = eMax;
   int* new_mpmnpc = new int[nel+1];
   int* new_mmnpc  = new int[nmmnpc];
   ip = new_mpmnpc[0] = 1;
   for (const std::pair<const int,Ipair>& elm : sortedElms)
   {
+    for (int k = ip; k < elm.first; k++)
+      new_mpmnpc[k] = new_mpmnpc[ip-1];
+    ip = elm.first;
     int nen = elm.second.second;
     new_mpmnpc[ip] = new_mpmnpc[ip-1] + nen;
     memcpy(new_mmnpc+new_mpmnpc[ip-1]-1,mmnpc+elm.second.first,nen*sizeof(int));

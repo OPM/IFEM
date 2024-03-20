@@ -7,7 +7,7 @@
 //!
 //! \author Knut Morten Okstad / SINTEF
 //!
-//! \brief Driver for assembly of structured 3D Lagrange mixed FE models.
+//! \brief Driver for assembly of structured 3D %Lagrange mixed FE models.
 //!
 //==============================================================================
 
@@ -20,7 +20,7 @@
 
 
 /*!
-  \brief Driver for assembly of structured 3D Lagrange mixed FE models.
+  \brief Driver for assembly of structured 3D %Lagrange mixed FE models.
   \details This class implements a two-field mixed formulation with Lagrangian
   basis functions. The geometry and the first field are of equal order and
   is one order higher than the second field.
@@ -48,10 +48,12 @@ class ASMs3DmxLag : public ASMs3DLag, private ASMmxBase
 
   protected:
     //! \brief Calculates basis function info in a single integration point.
-    //! \param el Element of integration point (0-indexed)
-    //! \param gp Integratin point on element (0-indexed)
-    //! \param reduced If true, returns values for reduced integration scheme
-    BasisFunctionVals calculatePt(size_t el, size_t gp, bool reduced) const override;
+    //! \param[in] gp Integration point on element (0-indexed)
+    //! \param[in] red If \e true, returns for reduced integration scheme
+    BasisFunctionVals calculatePt(size_t, size_t gp, bool red) const override;
+
+    //! \brief Calculates basis function info in all integration points.
+    void calculateAll() override;
   };
 
 public:
@@ -140,10 +142,11 @@ public:
 
   using ASMs3DLag::evalSolution;
   //! \brief Evaluates the secondary solution field at all visualization points.
-  //! \details The number of visualization points is the same as the order of
-  //! the Lagrange elements by default.
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
+  //!
+  //! \details The number of visualization points is the same as the order of
+  //! the %Lagrange elements by default.
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
                             const int*, char = 0) const;
 

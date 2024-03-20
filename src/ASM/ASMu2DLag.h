@@ -7,7 +7,7 @@
 //!
 //! \author Knut Morten Okstad / SINTEF
 //!
-//! \brief Assembly of unstructured 2D Lagrange FE models.
+//! \brief Assembly of unstructured 2D %Lagrange FE models.
 //!
 //==============================================================================
 
@@ -19,7 +19,7 @@
 
 
 /*!
-  \brief Driver for assembly of unstructured 2D Lagrange FE models.
+  \brief Driver for assembly of unstructured 2D %Lagrange FE models.
   \details This class overrides the methods of its parent class such that
   it does not depend on a surface spline object for geometry discretization.
   It can therefore be used for any unstructured grid read from mesh files.
@@ -28,42 +28,24 @@
 class ASMu2DLag : public ASMs2DLag
 {
   //! \brief Implementation of basis function cache.
-  class BasisFunctionCache : public ::BasisFunctionCache<2>
+  class BasisFunctionCache : public ASMs2DLag::BasisFunctionCache
   {
   public:
-    //! \brief The constructor initializes the class.
+    //! \brief The constructor forwards to the parent class constructor.
     //! \param pch Patch the cache is for
     //! \param plcy Cache policy to use
-    BasisFunctionCache(const ASMu2DLag& pch, ASM::CachePolicy plcy);
+    BasisFunctionCache(const ASMu2DLag& pch, ASM::CachePolicy plcy)
+      : ASMs2DLag::BasisFunctionCache(pch,plcy) {}
 
     //! \brief Empty destructor.
     virtual ~BasisFunctionCache() = default;
 
-    //! \brief Obtain a single integration point parameter.
-    double getParam(int, size_t, size_t, bool = false) const override
-    { return 0.0; }
+    //! \brief No integration point parameters for unstructured patches.
+    double getParam(int, size_t, size_t, bool) const override { return 0.0; }
 
   protected:
-    //! \brief Implementation specific initialization.
-    bool internalInit() override;
-
-    //! \brief Implementation specific cleanup.
-    void internalCleanup() override;
-
-    //! \brief Calculates basis function info in a single integration point.
-    //! \param el Element of integration point (0-indexed)
-    //! \param gp Integratin point on element (0-indexed)
-    //! \param reduced If true, returns values for reduced integration scheme
-    BasisFunctionVals calculatePt(size_t el, size_t gp, bool reduced) const override;
-
-    //! \brief Calculates basis function info in all integration points.
-    void calculateAll() override;
-
-    const ASMu2DLag& patch; //!< Reference to patch
-
-private:
-    //! \brief Configure quadratures.
-    bool setupQuadrature();
+    //! \brief No integration point parameters for unstructured patches.
+    void setupParameters() override {}
   };
 
 public:
@@ -92,6 +74,8 @@ public:
   virtual const IntVec& getNodeSet(int idx) const;
   //! \brief Returns a named node set for update.
   virtual IntVec& getNodeSet(const std::string& setName, int& idx);
+  //! \brief Defines a node set by parsing a 3D bounding box.
+  virtual int parseNodeBox(const std::string& setName, const char* bbox);
 
   //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
   //! \param[in] lIndex Local index of the boundary node set
@@ -111,6 +95,9 @@ public:
   //! \param[out] grid The generated quadrilateral grid
   //! \note The number of element nodes must be set in \a grid on input.
   virtual bool tesselate(ElementBlock& grid, const int*) const;
+
+protected:
+  bool swapNode34; //!< If \e true, element nodes 3 and 4 should be swapped
 
 private:
   char                      fileType; //!< Mesh file format

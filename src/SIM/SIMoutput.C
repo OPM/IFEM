@@ -651,6 +651,9 @@ bool SIMoutput::writeGlvS (const Vector& scl, const char* fieldName,
   if (scl.empty() || !myVtf)
     return true;
 
+  const bool piolaMapping = myProblem ?
+    myProblem->getIntegrandType() & Integrand::PIOLA_MAPPING : false;
+
   Matrix field;
   Vector lovec;
   IntVec sID;
@@ -666,8 +669,7 @@ bool SIMoutput::writeGlvS (const Vector& scl, const char* fieldName,
 
     int ncmp = scl.size() / this->getNoNodes(basis);
     this->extractPatchSolution(scl,lovec,pch,ncmp,basis);
-    if (!pch->evalSolution(field,lovec,opt.nViz,ncmp,
-                           myProblem->getIntegrandType() & Integrand::PIOLA_MAPPING))
+    if (!pch->evalSolution(field,lovec,opt.nViz,ncmp,piolaMapping))
       return false;
 
     if (!myVtf->writeNres(field,++nBlock,++geomID))
@@ -721,6 +723,9 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
   if (psol.empty() || !myVtf)
     return 0; // no primary solution
 
+  const bool piolaMapping = myProblem ?
+    myProblem->getIntegrandType() & Integrand::PIOLA_MAPPING : false;
+
   size_t nf     = scalarOnly ? 1 : this->getNoFields();
   size_t nVcomp = nf > this->getNoSpaceDim() ? this->getNoSpaceDim() : nf;
   bool haveXsol = false;
@@ -755,8 +760,7 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
 
     // Evaluate primary solution variables
 
-    if (!pch->evalSolution(field,lovec,opt.nViz,0,
-                           myProblem->getIntegrandType() & Integrand::PIOLA_MAPPING))
+    if (!pch->evalSolution(field,lovec,opt.nViz,0,piolaMapping))
       return -1;
 
     pch->filterResults(field,myVtf->getBlock(++geomID));
@@ -847,10 +851,15 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
   if (nf > 1) pname += "_w";
   for (i = 0; i < sID.size() && !sID[i].empty() && ok; i++)
   {
-    if (myProblem && (!pvecName || nf > nVcomp))
+    if (myProblem && !pvecName)
       pname = myProblem->getField1Name(i);
+    else if (i > 0 && i%nVcomp == 0)
+    {
+      pname.back() = 'r';
+      pname += 'x';
+    }
     else if (nf > 1)
-      (*pname.rbegin()) ++;
+      ++pname.back();
     ok = myVtf->writeSblk(sID[i],pname.c_str(),idBlock++,iStep);
     if (haveXsol) xname.push_back("Exact " + pname);
   }

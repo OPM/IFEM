@@ -349,7 +349,10 @@ void ASMbase::getNoIntPoints (size_t& nPt, size_t& nIPt)
     int ng[3] = { 0, 0, 0 };
     this->getOrder(ng[0],ng[1],ng[2]);
     for (unsigned char d = 0; d < ndim && d < 3; d++)
-      nGp *= ng[d] + nGauss%10;
+      if (nGauss > -ng[d])
+        nGp *= ng[d] + nGauss%10;
+      else
+        nGp = 0;
   }
 
   firstIp = nPt;
@@ -378,7 +381,10 @@ void ASMbase::getNoBouPoints (size_t& nPt, char ldim, char lindx)
     this->getOrder(ng[0],ng[1],ng[2]);
     ng[(lindx-1)/2] = 1;
     for (unsigned char d = 0; d < ndim; d++)
-      nGp *= ng[d];
+      if (nGauss > -ng[d])
+        nGp *= ng[d];
+      else if (d != (lindx-1)/2)
+        nGp = 0;
   }
 
   firstBp[lindx] = nPt;
@@ -646,7 +652,15 @@ bool ASMbase::addRigidCpl (int lindx, int ldim, int basis,
 
   IntVec nodes;
   this->getBoundaryNodes(lindx,nodes,basis,1,0,true);
-  for (int node : nodes)
+  this->addRigidCouplings(gMaster,Xmaster,nodes);
+  return extraPt;
+}
+
+
+void ASMbase::addRigidCouplings (int gMaster, const Vec3& Xmaster,
+                                 const IntVec& slaveNodes)
+{
+  for (int node : slaveNodes)
   {
     Vec3 dX = this->getCoord(node) - Xmaster;
     if (nsd == 3)
@@ -674,8 +688,6 @@ bool ASMbase::addRigidCpl (int lindx, int ldim, int basis,
       }
     }
   }
-
-  return extraPt;
 }
 
 
@@ -1217,7 +1229,7 @@ int ASMbase::renumberNodes (std::map<int,int>& old2new, int& nNod)
       if (utl::renumber(node,nNod,old2new))
         renum++;
 
-  if (renum == 0)
+  if (renum == 0 && !MLGN.empty())
     nNod = std::max(nNod,*std::max_element(MLGN.begin(),MLGN.end()));
 
   return renum;
@@ -1563,7 +1575,9 @@ int ASMbase::searchCtrlPt (RealArray::const_iterator cit,
 
 int ASMbase::getNoGaussPt (int p, bool neumann) const
 {
-  if (nGauss > 0 && nGauss < 11)
+  if (nGauss <= -p)
+    return 0;
+  else if (nGauss > 0 && nGauss < 11)
     return nGauss;
   else if (neumann)
     return p;

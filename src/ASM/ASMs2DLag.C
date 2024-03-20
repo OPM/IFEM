@@ -7,7 +7,7 @@
 //!
 //! \author Einar Christensen / SINTEF
 //!
-//! \brief Driver for assembly of structured 2D Lagrange FE models.
+//! \brief Driver for assembly of structured 2D %Lagrange FE models.
 //!
 //==============================================================================
 
@@ -233,8 +233,7 @@ bool ASMs2DLag::getElementCoordinates (Matrix& X, int iel, bool) const
   }
 
   // Number of nodes per element
-  size_t nen = p1*p2;
-  if (nen > MNPC[--iel].size()) nen = MNPC[iel].size();
+  size_t nen = std::min((size_t)p1*p2,MNPC[--iel].size());
 
   X.resize(nsd,nen);
   for (size_t i = 0; i < nen; i++)
@@ -273,6 +272,16 @@ bool ASMs2DLag::updateCoords (const Vector& displ)
 }
 
 
+bool ASMs2DLag::getOrder (int& pu, int& pv, int& pw) const
+{
+  pu = p1;
+  pv = p2;
+  pw = 0;
+
+  return true;
+}
+
+
 bool ASMs2DLag::getSize (int& n1, int& n2, int) const
 {
   n1 = nx;
@@ -291,10 +300,10 @@ size_t ASMs2DLag::getNoBoundaryElms (char lIndex, char ldim) const
   {
     case 1:
     case 2:
-      return p2 > 1 ? (ny-1)/(p2-1) : 0;
+      return ny > 1 && p2 > 1 ? (ny-1)/(p2-1) : 0;
     case 3:
     case 4:
-      return p1 > 1 ? (nx-1)/(p1-1) : 0;
+      return nx > 1 && p1 > 1 ? (nx-1)/(p1-1) : 0;
   }
 
   return 0;
@@ -310,13 +319,12 @@ bool ASMs2DLag::integrate (Integrand& integrand,
   if (myCache.empty())
     myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this, cachePolicy, 1));
 
-  ::BasisFunctionCache<2>& cache = static_cast<::BasisFunctionCache<2>&>(*myCache.front());
+  ASMs2D::BasisFunctionCache& cache = *myCache.front();
   cache.setIntegrand(&integrand);
   if (!cache.init(1))
     return false;
 
   // Get Gaussian quadrature points and weights
-  const std::array<int,2>& ng = cache.nGauss();
   const std::array<const double*,2>& xg = cache.coord();
   const std::array<const double*,2>& wg = cache.weight();
 
@@ -324,9 +332,8 @@ bool ASMs2DLag::integrate (Integrand& integrand,
   const double* xr = cache.coord(true)[0];
   const double* wr = cache.weight(true)[0];
 
-  // Number of elements in each direction
-  const BasisFunctionCache* scache = dynamic_cast<const BasisFunctionCache*>(myCache.front().get());
-  const int nelx = scache ? scache->noElms()[0] : 0;
+  // Number of elements in first parameter direction
+  const int nelx = (nx-1)/(p1-1);
 
 
   // === Assembly loop over all elements in the patch ==========================
@@ -337,9 +344,9 @@ bool ASMs2DLag::integrate (Integrand& integrand,
 #pragma omp parallel for schedule(static)
     for (size_t t = 0; t < threadGroups[g].size(); t++)
     {
-      FiniteElement fe(p1*p2);
-      Matrix dNdu, Xnod, Jac;
-      Vec4   X(nullptr,time.t);
+      FiniteElement fe;
+      Matrix Jac;
+      Vec4 X(nullptr,time.t);
       for (size_t e = 0; e < threadGroups[g][t].size() && ok; e++)
       {
         int iel = threadGroups[g][t][e];
@@ -347,7 +354,7 @@ bool ASMs2DLag::integrate (Integrand& integrand,
         int i2  = nelx > 0 ? iel / nelx : 0;
 
         // Set up nodal point coordinates for current element
-        if (!this->getElementCoordinates(Xnod,1+iel))
+        if (!this->getElementCoordinates(fe.Xn,1+iel))
         {
           ok = false;
           break;
@@ -358,16 +365,16 @@ bool ASMs2DLag::integrate (Integrand& integrand,
           // Compute the element "center" (average of element node coordinates)
           X = 0.0;
           for (size_t i = 1; i <= nsd; i++)
-            for (size_t j = 1; j <= Xnod.cols(); j++)
-              X[i-1] += Xnod(i,j);
+            for (size_t j = 1; j <= fe.Xn.cols(); j++)
+              X[i-1] += fe.Xn(i,j);
 
-          X *= 1.0/(double)Xnod.cols();
+          X *= 1.0/(double)fe.Xn.cols();
         }
 
         // Initialize element quantities
         fe.iel = MLGE[iel];
-        LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
-        int nRed = cache.nGauss(true)[0];
+        LocalIntegral* A = integrand.getLocalIntegral(fe.Xn.cols(),fe.iel);
+        const int nRed = fe.Xn.cols() < 4 ? 0 : cache.nGauss(true).front();
         if (!integrand.initElement(MNPC[iel],fe,X,nRed*nRed,*A))
         {
           A->destruct();
@@ -395,10 +402,10 @@ bool ASMs2DLag::integrate (Integrand& integrand,
               fe.N = bfs.N;
 
               // Compute Jacobian inverse and derivatives
-              fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,bfs.dNdu);
+              fe.detJxW = utl::Jacobian(Jac,fe.dNdX,fe.Xn,bfs.dNdu);
 
               // Cartesian coordinates of current integration point
-              X.assign(Xnod * fe.N);
+              X.assign(fe.Xn * fe.N);
 
               // Compute the reduced integration terms of the integrand
               fe.detJxW *= wr[i]*wr[j];
@@ -410,12 +417,15 @@ bool ASMs2DLag::integrate (Integrand& integrand,
 
         // --- Integration loop over all Gauss points in each direction --------
 
+        const int ng1 = fe.Xn.cols() < 4 ? 0 : cache.nGauss().front();
+        const int ng2 = fe.Xn.cols() < 4 ? 0 : cache.nGauss().back();
+
         size_t ip = 0;
-        int jp = iel*ng[0]*ng[1];
+        int jp = iel*ng1*ng2;
         fe.iGP = firstIp + jp; // Global integration point counter
 
-        for (int j = 0; j < ng[1]; j++)
-          for (int i = 0; i < ng[0]; i++, fe.iGP++, ++ip)
+        for (int j = 0; j < ng2; j++)
+          for (int i = 0; i < ng1; i++, fe.iGP++, ++ip)
           {
             // Local element coordinates of current integration point
             fe.xi  = xg[0][i];
@@ -429,11 +439,11 @@ bool ASMs2DLag::integrate (Integrand& integrand,
             fe.N = bfs.N;
 
             // Compute Jacobian inverse of coordinate mapping and derivatives
-            fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,bfs.dNdu);
+            fe.detJxW = utl::Jacobian(Jac,fe.dNdX,fe.Xn,bfs.dNdu);
             if (fe.detJxW == 0.0) continue; // skip singular points
 
             // Cartesian coordinates of current integration point
-            X.assign(Xnod * fe.N);
+            X.assign(fe.Xn * fe.N);
 
             // Evaluate the integrand and accumulate element contributions
             fe.detJxW *= wg[0][i]*wg[1][j];
@@ -482,18 +492,21 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
   const int nelx = (nx-1)/(p1-1);
   const int nely = (ny-1)/(p2-1);
 
-  // Get parametric coordinates of the elements
-  FiniteElement fe(p1*p2);
+  FiniteElement fe;
   RealArray upar, vpar;
-  if (t1 == 1)
+  if (surf)
   {
-    fe.u = edgeDir < 0 ? surf->startparam_u() : surf->endparam_u();
-    this->getGridParameters(vpar,1,1);
-  }
-  else if (t1 == 2)
-  {
-    this->getGridParameters(upar,0,1);
-    fe.v = edgeDir < 0 ? surf->startparam_v() : surf->endparam_v();
+    // Get parametric coordinates of the elements
+    if (t1 == 1)
+    {
+      fe.u = edgeDir < 0 ? surf->startparam_u() : surf->endparam_u();
+      this->getGridParameters(vpar,1,1);
+    }
+    else if (t1 == 2)
+    {
+      this->getGridParameters(upar,0,1);
+      fe.v = edgeDir < 0 ? surf->startparam_v() : surf->endparam_v();
+    }
   }
 
   // Extract the Neumann order flag (1 or higher) for the integrand
@@ -512,7 +525,7 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
   std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex%10);
   size_t firstp = iit == firstBp.end() ? 0 : iit->second;
 
-  Matrix dNdu, Xnod, Jac;
+  Matrix dNdu, Jac;
   Vec4   X(nullptr,time.t);
   Vec3   normal;
   double xi[2];
@@ -536,11 +549,11 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
       if (skipMe) continue;
 
       // Set up nodal point coordinates for current element
-      if (!this->getElementCoordinates(Xnod,iel)) return false;
+      if (!this->getElementCoordinates(fe.Xn,iel)) return false;
 
       // Initialize element quantities
       fe.iel = abs(MLGE[doXelms+iel-1]);
-      LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
+      LocalIntegral* A = integrand.getLocalIntegral(fe.Xn.cols(),fe.iel,true);
       bool ok = integrand.initElementBou(MNPC[doXelms+iel-1],*A);
 
 
@@ -569,13 +582,13 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
           ok = false;
 
         // Compute basis function derivatives and the edge normal
-        fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,Xnod,dNdu,t1,t2);
+        fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,fe.Xn,dNdu,t1,t2);
         if (fe.detJxW == 0.0) continue; // skip singular points
 
         if (edgeDir < 0) normal *= -1.0;
 
         // Cartesian coordinates of current integration point
-        X.assign(Xnod * fe.N);
+        X.assign(fe.Xn * fe.N);
 
         // Evaluate the integrand and accumulate element contributions
         fe.detJxW *= wg[i];
@@ -740,14 +753,14 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   FiniteElement fe(p1*p2);
   Vector        solPt;
   Vectors       globSolPt(nPoints);
-  Matrix        dNdu, Xnod, Jac;
+  Matrix        dNdu, Jac;
 
   // Evaluate the secondary solution field at each point
   const int nel = this->getNoElms(true);
   for (int iel = 1; iel <= nel; iel++)
   {
     const IntVec& mnpc = MNPC[iel-1];
-    this->getElementCoordinates(Xnod,iel);
+    this->getElementCoordinates(fe.Xn,iel);
 
     int i, j, loc = 0;
     for (j = 0; j < p2; j++)
@@ -761,11 +774,11 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
         fe.iel = MLGE[iel-1];
 
         // Compute the Jacobian inverse
-        fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+        fe.detJxW = utl::Jacobian(Jac,fe.dNdX,fe.Xn,dNdu);
         if (fe.detJxW == 0.0) continue; // skip singular points
 
         // Now evaluate the solution field
-        utl::Point X4(Xnod*fe.N,{fe.u,fe.v});
+        utl::Point X4(fe.Xn*fe.N,{fe.u,fe.v});
         if (!integrand.evalSol(solPt,fe,X4,mnpc))
           return false;
         else if (sField.empty())
@@ -795,13 +808,13 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   FiniteElement fe(p1*p2);
   Vector        solPt;
   Vectors       globSolPt(nPoints);
-  Matrix        dNdu, Xnod, Jac;
+  Matrix        dNdu, Jac;
 
   // Evaluate the secondary solution field at each point
   for (size_t i = 0; i < gpar[0].size(); ++i) {
     const int iel = this->findElement(gpar[0][i], gpar[1][i], &fe.xi, &fe.eta);
 
-    if (!this->getElementCoordinates(Xnod,iel))
+    if (!this->getElementCoordinates(fe.Xn,iel))
       return false;
 
     if (!Lagrange::computeBasis(fe.N,dNdu,p1,fe.xi,p2,fe.eta))
@@ -810,11 +823,11 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     fe.iel = MLGE[iel-1];
 
     // Compute the Jacobian inverse
-    fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+    fe.detJxW = utl::Jacobian(Jac,fe.dNdX,fe.Xn,dNdu);
     if (fe.detJxW == 0.0) continue; // skip singular points
 
     // Now evaluate the solution field
-    if (!integrand.evalSol(solPt,fe,Xnod*fe.N,MNPC[iel-1]))
+    if (!integrand.evalSol(solPt,fe,fe.Xn*fe.N,MNPC[iel-1]))
       return false;
     else if (sField.empty())
       sField.resize(solPt.size(),nPoints,true);
@@ -862,6 +875,12 @@ bool ASMs2DLag::write (std::ostream& os, int) const
 
 int ASMs2DLag::findElement (double u, double v, double* xi, double* eta) const
 {
+  if (!surf)
+  {
+    std::cerr <<" *** ASMs2DLag::findElement: No spline geometry"<< std::endl;
+    return -1;
+  }
+
   int ku = surf->basis(0).knotInterval(u);
   int kv = surf->basis(1).knotInterval(v);
   int elmx = ku - (p1 - 1);
@@ -878,7 +897,7 @@ int ASMs2DLag::findElement (double u, double v, double* xi, double* eta) const
     *eta = -1.0 + 2.0 * (v - knot_1) / (knot_2 - knot_1);
   }
 
-  int nel1 = surf->numCoefs_u() - surf->order_u() + 1;
+  int nel1 = surf->numCoefs_u() - p1 + 1;
 
   return 1 + elmx + elmy*nel1;
 }
@@ -918,9 +937,7 @@ bool ASMs2DLag::assembleL2matrices (SparseMatrix& A, StdVector& B,
                                     const L2Integrand& integrand,
                                     bool continuous) const
 {
-  const size_t nnod = this->getNoProjectionNodes();
-
-  BasisFunctionCache& cache = static_cast<BasisFunctionCache&>(*myCache.front());
+  ASMs2D::BasisFunctionCache& cache = *myCache.front();
   if (!cache.init(1))
     return false;
 
@@ -929,37 +946,39 @@ bool ASMs2DLag::assembleL2matrices (SparseMatrix& A, StdVector& B,
 
   Matrix dNdX, Xnod, J;
 
+  const size_t nnod = this->getNoProjectionNodes();
+
   // === Assembly loop over all elements in the patch ==========================
 
   int iel = 0;
   for (size_t i2 = 0; i2 < cache.noElms()[1]; ++i2)
     for (size_t i1 = 0; i1 < cache.noElms()[0]; ++i1, ++iel)
     {
-      // --- Integration loop over all Gauss points in each direction ----------
-      Matrix eA(p1*p2, p1*p2);
-
       if (!this->getElementCoordinates(Xnod,1+iel))
         return false;
 
       std::array<RealArray,2> GP;
-      GP[0].resize(nGP[0]*nGP[1]);
-      GP[1].resize(nGP[0]*nGP[1]);
-      size_t eip = 0;
-      for (int g2 = 0; g2 < nGP[1]; ++g2)
-        for (int g1 = 0; g1 < nGP[0]; ++g1, ++eip) {
-          GP[0][eip] = cache.getParam(0, i1, g1);
-          GP[1][eip] = cache.getParam(1, i2, g2);
+      GP[0].reserve(nGP[0]*nGP[1]);
+      GP[1].reserve(nGP[0]*nGP[1]);
+      for (int j = 0; j < nGP[1]; ++j)
+        for (int i = 0; i < nGP[0]; ++i) {
+          GP[0].push_back(cache.getParam(0, i1, i));
+          GP[1].push_back(cache.getParam(1, i2, j));
         }
+
       Matrix sField;
       integrand.evaluate(sField, GP.data());
 
+      // --- Integration loop over all Gauss points in each direction ----------
+
+      Matrix eA(p1*p2, p1*p2);
       Vectors eB(sField.rows(), Vector(p1*p2));
       size_t ip = 0;
-      for (int gp2 = 0; gp2 < nGP[1]; ++gp2)
-        for (int gp1 = 0; gp1 < nGP[0]; ++gp1, ++ip) {
+      for (int j = 0; j < nGP[1]; ++j)
+        for (int i = 0; i < nGP[0]; ++i, ++ip) {
           const BasisFunctionVals& bfs = cache.getVals(iel,ip);
 
-          double dJw = wg[0][gp1]*wg[1][gp2]*utl::Jacobian(J,dNdX,Xnod,bfs.dNdu);
+          double dJw = wg[0][i]*wg[1][j]*utl::Jacobian(J,dNdX,Xnod,bfs.dNdu);
 
           // Integrate the mass matrix
           eA.outer_product(bfs.N, bfs.N, true, dJw);
@@ -1002,6 +1021,19 @@ ASMs2DLag::BasisFunctionCache::BasisFunctionCache (const BasisFunctionCache& cac
 }
 
 
+bool ASMs2DLag::BasisFunctionCache::internalInit ()
+{
+  if (!mainQ->xg[0])
+    this->setupQuadrature();
+
+  nTotal = mainQ->ng[0]*mainQ->ng[1];
+  if (reducedQ->xg[0])
+    nTotalRed = reducedQ->ng[0]*reducedQ->ng[1];
+
+  return true;
+}
+
+
 void ASMs2DLag::BasisFunctionCache::setupParameters ()
 {
   // Compute parameter values of the Gauss points over the whole patch
@@ -1025,41 +1057,40 @@ double ASMs2DLag::BasisFunctionCache::getParam (int dir, size_t el,
 }
 
 
-BasisFunctionVals ASMs2DLag::BasisFunctionCache::calculatePt (size_t el,
-                                                              size_t gp,
-                                                              bool reduced) const
+BasisFunctionVals ASMs2DLag::BasisFunctionCache::calculatePt (size_t, size_t gp,
+                                                              bool red) const
 {
-  std::array<size_t,2> gpIdx = this->gpIndex(gp,reduced);
-  const Quadrature& q = reduced ? *reducedQ : *mainQ;
+  std::array<size_t,2> gpIdx = this->gpIndex(gp,red);
+  const Quadrature& q = red ? *reducedQ : *mainQ;
 
-  const ASMs2DLag& pch = static_cast<const ASMs2DLag&>(patch);
+  int p1, p2, p3;
+  patch.getOrder(p1,p2,p3);
 
   BasisFunctionVals result;
-  if (nderiv == 1)
-    Lagrange::computeBasis(result.N,result.dNdu,
-                           pch.p1,q.xg[0][gpIdx[0]],
-                           pch.p2,q.xg[1][gpIdx[1]]);
-
+  Lagrange::computeBasis(result.N,result.dNdu,
+                         p1,q.xg[0][gpIdx[0]],
+                         p2,q.xg[1][gpIdx[1]]);
   return result;
 }
 
 
 void ASMs2DLag::BasisFunctionCache::calculateAll ()
 {
-  // Evaluate basis function values and derivatives at all integration points.
-  // We do this before the integration point loop to exploit multi-threading
-  // in the integrand evaluations, which may be the computational bottleneck.
-  size_t iel, jp, rp;
-  const ASMs2DLag& pch = static_cast<const ASMs2DLag&>(patch);
-  for (iel = jp = rp = 0; iel < pch.nel; iel++)
-  {
-    for (int j = 0; j < mainQ->ng[1]; j++)
-      for (int i = 0; i < mainQ->ng[0]; i++, jp++)
-        values[jp] = this->calculatePt(iel,j*mainQ->ng[0]+i,false);
+  int i, j, p1, p2;
+  patch.getOrder(p1,p2,i);
 
-    if (reducedQ->xg[0])
-      for (int j = 0; j < reducedQ->ng[1]; j++)
-        for (int i = 0; i < reducedQ->ng[0]; i++, rp++)
-          valuesRed[rp] = this->calculatePt(iel,j*reducedQ->ng[0]+i,true);
-  }
+  // Evaluate basis function values and derivatives at all integration points.
+  // They will be the same for all elements in the patch,
+  // so no need to repeat for all.
+  std::vector<BasisFunctionVals>::iterator it = values.begin();
+  for (j = 0; j < mainQ->ng[1]; j++)
+    for (i = 0; i < mainQ->ng[0]; i++, ++it)
+      Lagrange::computeBasis(it->N, it->dNdu,
+                             p1, mainQ->xg[0][i], p2, mainQ->xg[1][j]);
+
+  if (reducedQ->xg[0])
+    for (j = 0, it = valuesRed.begin(); j < reducedQ->ng[1]; j++)
+      for (i = 0; i < reducedQ->ng[0]; i++, ++it)
+        Lagrange::computeBasis(it->N, it->dNdu,
+                               p1, reducedQ->xg[0][i],  p2, reducedQ->xg[1][j]);
 }

@@ -146,16 +146,16 @@ public:
   virtual bool addXElms(short int dim, short int item, size_t nXn,
                         IntVec& nodes);
 
-  //! \brief Adds a set of Lagrange multipliers to the specified element.
+  //! \brief Adds a set of %Lagrange multipliers to the specified element.
   //! \param[in] iel 1-based element index local to current patch
-  //! \param[in] mGLag Global node numbers of the Lagrange multipliers
-  //! \param[in] nnLag Number of Lagrange multipliers per node
+  //! \param[in] mGLag Global node numbers of the %Lagrange multipliers
+  //! \param[in] nnLag Number of %Lagrange multipliers per node
   bool addLagrangeMultipliers(size_t iel, const IntVec& mGLag,
                               unsigned char nnLag = 1);
 
-  //! \brief Adds global Lagrange multipliers to the system.
-  //! \param[in] mGLag Global node numbers of the Lagrange multipliers
-  //! \param[in] nnLag Number of Lagrange multipliers to add
+  //! \brief Adds global %Lagrange multipliers to the system.
+  //! \param[in] mGLag Global node numbers of the %Lagrange multipliers
+  //! \param[in] nnLag Number of %Lagrange multipliers to add
   bool addGlobalLagrangeMultipliers(const IntVec& mGLag,
                                     unsigned char nnLag = 1);
 
@@ -191,7 +191,7 @@ public:
   unsigned char getNoParamDim() const { return ndim; }
   //! \brief Returns the number of solution fields.
   virtual unsigned char getNoFields(int b = 0) const { return b > 1 ? 0 : nf; }
-  //! \brief Returns the number of Lagrange multipliers per node.
+  //! \brief Returns the number of %Lagrange multipliers per node.
   unsigned char getNoLagPerNode() const { return nLag; }
 
   //! \brief Returns the polynomial order in each parameter direction.
@@ -217,12 +217,12 @@ public:
   //! \brief Returns the classification of a node.
   //! \param[in] inod 1-based node index local to current patch
   virtual char getNodeType(size_t inod) const;
-  //! \brief Returns \e true if node \a n is a Lagrange multiplier node.
+  //! \brief Returns \e true if node \a n is a %Lagrange multiplier node.
   bool isLMn(size_t n) const { return myLMs.find(n) != myLMs.end(); }
   //! \brief Returns \e true if node \a n is a master node of a rigid coupling.
   bool isRMn(size_t n) const { return myRmaster.find(n) != myRmaster.end(); }
-  //! \brief Returns the type of a Lagrange multiplier node.
-  //! \param[in] inod 1-based node index for the Lagrange multiplier
+  //! \brief Returns the type of a %Lagrange multiplier node.
+  //! \param[in] inod 1-based node index for the %Lagrange multiplier
   char getLMType(size_t inod) const;
   //! \brief Returns the global coordinates for the given node.
   //! \param[in] inod 1-based node index local to current patch
@@ -278,6 +278,8 @@ public:
   //! \brief Returns a named node set for update.
   virtual IntVec& getNodeSet(const std::string&, int&)
   { static IntVec v; return v; }
+  //! \brief Defines a node set by parsing a 3D bounding box.
+  virtual int parseNodeBox(const std::string&, const char*) { return 0; }
 
   //! \brief Returns (1-based) index of a predefined element set in the patch.
   virtual int getElementSetIdx(const std::string&) const { return 0; }
@@ -552,9 +554,10 @@ public:
   //! \param[in] locSol Solution vector local to current patch
   //! \param[in] npe Number of visualization nodes over each knot span
   //! \param[in] nf If nonzero, mixed evaluates nf fields on first basis
-  //! \param[in] piola If true, use piola mapping
+  //! \param[in] piola If \e true, use piola mapping
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-                            const int* npe, int nf = 0, bool piola = false) const;
+                            const int* npe, int nf = 0,
+                            bool piola = false) const;
 
   //! \brief Evaluates the projected solution field at all visualization points.
   //! \param[out] sField Solution field
@@ -582,7 +585,7 @@ public:
                             const RealArray* gpar, bool regular = true,
                             int deriv = 0, int nf = 0) const;
 
-  //! \brief Evaluates the primary solution field at the given points with Piola mapping.
+  //! \brief Evaluates the primary solution field with Piola mapping.
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector local to current patch
   //! \param[in] gpar Parameter values of the result sampling points
@@ -594,7 +597,7 @@ public:
   //! Otherwise, we assume that it contains the \a u, \a v and \a w parameters
   //! directly for each sampling point.
   virtual bool evalSolutionPiola(Matrix& sField, const Vector& locSol,
-                                 const RealArray* gpar, bool regular = true) const;
+                                 const RealArray* gpar, bool regular) const;
 
   //! \brief Evaluates and interpolates a field over a given geometry.
   //! \param[in] basis The basis of the field to evaluate
@@ -780,6 +783,13 @@ public:
                            int& gMaster, const Vec3& Xmaster,
                            bool extraPt = true);
 
+  //! \brief Adds MPCs representing a rigid coupling to this patch.
+  //! \param[in] gMaster Global node number of the master node
+  //! \param[in] slaveNodes Local node numbers of the slave nodes
+  //! \param[in] Xmaster Position of the master node
+  void addRigidCouplings(int gMaster, const Vec3& Xmaster,
+                         const IntVec& slaveNodes);
+
 protected:
 
   // Internal methods for preprocessing of boundary conditions
@@ -925,7 +935,7 @@ protected:
   unsigned char ndim;   //!< Number of parametric dimensions (1, 2 or 3)
   unsigned char nsd;    //!< Number of space dimensions (ndim <= nsd <= 3)
   unsigned char nf;     //!< Number of primary solution fields (1 or larger)
-  unsigned char nLag;   //!< Number of Lagrange multipliers per node
+  unsigned char nLag;   //!< Number of %Lagrange multipliers per node
   size_t        nel;    //!< Number of regular elements in this patch
   size_t        nnod;   //!< Number of regular nodes in this patch
 
@@ -973,8 +983,8 @@ protected:
   static int gNod; //!< Global node counter
 
 private:
-  std::vector<char> myLMTypes; //!< Type of Lagrange multiplier ('L' or 'G')
-  std::set<size_t>  myLMs;     //!< Nodal indices of the Lagrange multipliers
+  std::vector<char> myLMTypes; //!< Type of %Lagrange multiplier ('L' or 'G')
+  std::set<size_t>  myLMs;     //!< Nodal indices of the %Lagrange multipliers
 
 protected:
   typedef std::array<double,3> XYZ; //!< Convenience type definition
