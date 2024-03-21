@@ -860,9 +860,14 @@ double ASMs1D::findPoint (Vec3& X, double* param) const
 
   // Find the closest point on the spline curve
   double dist;
-  Go::Point Xpt(X.x,X.y,X.z), Xfound;
-  curv->ParamCurve::closestPoint(Xpt, *param, Xfound, dist);
-  for (int i = 0; i < curv->dimension(); i++) X[i] = Xfound[i];
+  Go::Point Xfound;
+  if (curv->dimension() == 3)
+    curv->ParamCurve::closestPoint(Go::Point(X.x,X.y,X.z), *param, Xfound, dist);
+  else
+    curv->ParamCurve::closestPoint(Go::Point(X.x,X.y), *param, Xfound, dist);
+  for (int i = 0; i < curv->dimension(); ++i)
+    X[i] = Xfound[i];
+
   return dist;
 }
 
@@ -912,8 +917,11 @@ std::pair<int,double> ASMs1D::findElement (const Vec3& X) const
   // Find the closest point on the spline curve
   int iknot, ielno;
   double param, dist;
-  Go::Point Xtarget(X.x,X.y,X.z), Xfound;
-  curv->ParamCurve::closestPoint(Xtarget,param,Xfound,dist);
+  Go::Point Xfound;
+  if (curv->dimension() == 3)
+    curv->ParamCurve::closestPoint(Go::Point(X.x,X.y,X.z),param,Xfound,dist);
+  else
+    curv->ParamCurve::closestPoint(Go::Point(X.x,X.y),param,Xfound,dist);
 
   // Check if point is inside parameter domain
   if (param <= curv->startparam() && dist > 0.0)
