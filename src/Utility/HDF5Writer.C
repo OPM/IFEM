@@ -347,8 +347,11 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
   auto&& extractProjection=[sim,&projOfs](ASMbase* pch, const Vector& glbVec,
                                           Matrix& field, bool isLastProj = false)
   {
-    Vector pchVec;
     size_t ncmp = sim->getProblem()->getNoFields(2);
+    if (ncmp == 0)
+      return;
+
+    Vector pchVec;
     if (sim->fieldProjections())
     {
       pchVec.resize(ncmp * pch->getNoProjectionNodes());
