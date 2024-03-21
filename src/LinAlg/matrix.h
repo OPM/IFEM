@@ -171,6 +171,8 @@ namespace utl //! General utility classes and functions.
           size_t off1 = 0, int inc1 = 1,
           size_t off2 = 0, int inc2 = 1) const
     {
+      if (this->empty() || v.empty())
+        return 0.0;
       return this->dot(&v.front(),v.size(),off1,inc1,off2,inc2);
     }
 
@@ -937,6 +939,8 @@ namespace utl //! General utility classes and functions.
     int n1 = i1 > 1 || i1 < -1 ? this->size()/abs(i1) : this->size()-o1;
     int n2 = i2 > 1 || i2 < -1 ? nv/abs(i2) : nv-o2;
     int n  = n1 < n2 ? n1 : n2;
+    if (n == 0)
+      return 0.0;
     return cblas_sdot(n,this->ptr()+o1,i1,v+o2,i2);
   }
 
@@ -947,6 +951,8 @@ namespace utl //! General utility classes and functions.
     int n1 = i1 > 1 || i1 < -1 ? this->size()/abs(i1) : this->size()-o1;
     int n2 = i2 > 1 || i2 < -1 ? nv/abs(i2) : nv-o2;
     int n  = n1 < n2 ? n1 : n2;
+    if (n == 0)
+      return 0.0;
     return cblas_ddot(n,this->ptr()+o1,i1,v+o2,i2);
   }
 
