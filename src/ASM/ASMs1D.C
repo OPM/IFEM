@@ -860,7 +860,9 @@ std::pair<size_t,double> ASMs1D::findClosestNode (const Vec3& X) const
 
   // Find the closest point on the spline curve
   double param, dist;
-  Go::Point Xtarget(X.x,X.y,X.z), Xfound;
+  Go::Point Xtarget = curv->dimension() == 3 ? Go::Point(X.x,X.y,X.z)
+                                             : Go::Point(X.x,X.y);
+  Go::Point Xfound;
   curv->ParamCurve::closestPoint(Xtarget,param,Xfound,dist);
 
   // Check if point is inside parameter domain
