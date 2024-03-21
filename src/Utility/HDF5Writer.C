@@ -359,8 +359,10 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
     else
       sim->extractPatchSolution(glbVec,pchVec,pch,ncmp,1);
 
-    field.resize(ncmp,pchVec.size()/ncmp);
-    field.fill(pchVec.ptr());
+    if (ncmp > 0) {
+      field.resize(ncmp,pchVec.size()/ncmp);
+      field.fill(pchVec.ptr());
+    }
   };
 
   for (int idx = 1; idx <= sim->getNoPatches(); idx++) {
