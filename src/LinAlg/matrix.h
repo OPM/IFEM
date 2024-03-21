@@ -1007,7 +1007,8 @@ namespace utl //! General utility classes and functions.
                                     unsigned int ofsy, int stridey)
   {
     size_t n = this->size() < X.size() ? this->size() : X.size();
-    cblas_saxpy(n,alfa,X.data()+ofsx,stridex,this->data()+ofsy,stridey);
+    if (n > 0)
+      cblas_saxpy(n,alfa,X.data()+ofsx,stridex,this->data()+ofsy,stridey);
     return *this;
   }
 
@@ -1018,7 +1019,8 @@ namespace utl //! General utility classes and functions.
                                       unsigned int ofsy, int stridey)
   {
     size_t n = this->size() < X.size() ? this->size() : X.size();
-    cblas_daxpy(n,alfa,X.data()+ofsx,stridex,this->data()+ofsy,stridey);
+    if (n > 0)
+      cblas_daxpy(n,alfa,X.data()+ofsx,stridex,this->data()+ofsy,stridey);
     return *this;
   }
 
@@ -1027,7 +1029,8 @@ namespace utl //! General utility classes and functions.
                                             const float& alfa)
   {
     size_t n = this->size() < A.size() ? this->size() : A.size();
-    cblas_saxpy(n,alfa,A.ptr(),1,this->ptr(),1);
+    if (n > 0)
+      cblas_saxpy(n,alfa,A.ptr(),1,this->ptr(),1);
     return *this;
   }
 
@@ -1036,7 +1039,8 @@ namespace utl //! General utility classes and functions.
                                               const double& alfa)
   {
     size_t n = this->size() < A.size() ? this->size() : A.size();
-    cblas_daxpy(n,alfa,A.ptr(),1,this->ptr(),1);
+    if (n > 0)
+      cblas_daxpy(n,alfa,A.ptr(),1,this->ptr(),1);
     return *this;
   }
 
@@ -1392,9 +1396,9 @@ namespace utl //! General utility classes and functions.
                             unsigned int ofsx, int stridex,
                             unsigned int ofsy, int stridey)
   {
-    T* p = this->data() + ofsy;
-    const T* q = X.data() + ofsx;
     size_t size = std::min(this->size() / stridey, X.size() / stridex);
+    T* p = this->elem.data() + ofsy;
+    const T* q = X.elem.data() + ofsx;
     for (size_t i = 0; i < size; ++i, p += stridey, q += stridex)
       *p += alfa*(*q);
     return *this;
@@ -1403,9 +1407,10 @@ namespace utl //! General utility classes and functions.
   template<class T> inline
   matrixBase<T>& matrixBase<T>::add(const matrixBase<T>& A, const T& alfa)
   {
-    T* p = this->ptr();
-    const T* q = A.ptr();
-    for (size_t i = 0; i < this->size() && i < A.size(); i++, p++, q++)
+    size_t size = std::min(this->size(),A.size());
+    T* p = this->elem.data();
+    const T* q = A.elem.data();
+    for (size_t i = 0; i < size; i++, p++, q++)
       *p += alfa*(*q);
     return *this;
   }
