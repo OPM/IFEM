@@ -35,7 +35,7 @@ bool Legendre::GL (RealArray& weights, RealArray& points, int n)
     A(n,n-1) = Real(n-1)/Real(2*n-1);
   }
 
-  RealArray eig_complex, evalpoints;
+  RealArray eig_complex(n), evalpoints(n);
   if (!A.solveEigNon(evalpoints,eig_complex)) return false;
   std::sort(evalpoints.begin(),evalpoints.end());
 
