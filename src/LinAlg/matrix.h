@@ -387,8 +387,8 @@ namespace utl //! General utility classes and functions.
         for (size_t r = 0; r < ncol; r++)
           for (size_t c = 0; c < nrow; c++)
             this->elem[c+nrow*r] = mat.elem[r+ncol*c];
-      else
-        this->elem.fill(mat.elem.ptr());
+      else if (!mat.elem.empty())
+        this->elem.fill(mat.elem.data());
     }
     //! \brief Empty destructor.
     virtual ~matrix() {}
