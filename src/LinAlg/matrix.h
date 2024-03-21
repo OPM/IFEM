@@ -1007,6 +1007,8 @@ namespace utl //! General utility classes and functions.
                                     unsigned int ofsy, int stridey)
   {
     size_t n = this->size() < X.size() ? this->size() : X.size();
+    if (n == 0)
+      return *this;
     cblas_saxpy(n,alfa,X.data()+ofsx,stridex,this->data()+ofsy,stridey);
     return *this;
   }
@@ -1018,6 +1020,8 @@ namespace utl //! General utility classes and functions.
                                       unsigned int ofsy, int stridey)
   {
     size_t n = this->size() < X.size() ? this->size() : X.size();
+    if (n == 0)
+      return *this;
     cblas_daxpy(n,alfa,X.data()+ofsx,stridex,this->data()+ofsy,stridey);
     return *this;
   }
@@ -1027,6 +1031,8 @@ namespace utl //! General utility classes and functions.
                                             const float& alfa)
   {
     size_t n = this->size() < A.size() ? this->size() : A.size();
+    if (n == 0)
+      return *this;
     cblas_saxpy(n,alfa,A.ptr(),1,this->ptr(),1);
     return *this;
   }
@@ -1036,6 +1042,8 @@ namespace utl //! General utility classes and functions.
                                               const double& alfa)
   {
     size_t n = this->size() < A.size() ? this->size() : A.size();
+    if (n == 0)
+      return *this;
     cblas_daxpy(n,alfa,A.ptr(),1,this->ptr(),1);
     return *this;
   }
@@ -1392,9 +1400,11 @@ namespace utl //! General utility classes and functions.
                             unsigned int ofsx, int stridex,
                             unsigned int ofsy, int stridey)
   {
+    size_t size = std::min(this->size() / stridey, X.size() / stridex);
+    if (size == 0)
+      return *this;
     T* p = this->data() + ofsy;
     const T* q = X.data() + ofsx;
-    size_t size = std::min(this->size() / stridey, X.size() / stridex);
     for (size_t i = 0; i < size; ++i, p += stridey, q += stridex)
       *p += alfa*(*q);
     return *this;
@@ -1403,9 +1413,12 @@ namespace utl //! General utility classes and functions.
   template<class T> inline
   matrixBase<T>& matrixBase<T>::add(const matrixBase<T>& A, const T& alfa)
   {
+    size_t size = std::min(this->size(),A.size());
+    if (size == 0)
+      return *this;
     T* p = this->ptr();
     const T* q = A.ptr();
-    for (size_t i = 0; i < this->size() && i < A.size(); i++, p++, q++)
+    for (size_t i = 0; i < size; i++, p++, q++)
       *p += alfa*(*q);
     return *this;
   }
