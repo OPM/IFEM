@@ -119,7 +119,7 @@ void LR::generateThreadGroups (ThreadGroups& threadGroups,
                  RealArray diff(midpoint.size());
                  for (size_t j = 0; j < midpoint.size(); ++j)
                    diff[j] = (el3->getParmax(j) - el3->getParmin(j)) / 4.0;
-                 if (lr->dimension() == 2)
+                 if (midpoint.size() == 2)
                    points = {{midpoint[0] + diff[0], midpoint[1] + diff[1]},
                              {midpoint[0] - diff[0], midpoint[1] - diff[1]},
                              {midpoint[0] - diff[0], midpoint[1] + diff[1]},
