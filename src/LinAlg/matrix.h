@@ -171,6 +171,8 @@ namespace utl //! General utility classes and functions.
           size_t off1 = 0, int inc1 = 1,
           size_t off2 = 0, int inc2 = 1) const
     {
+      if (this->empty() || v.empty())
+        return 0.0;
       return this->dot(&v.front(),v.size(),off1,inc1,off2,inc2);
     }
 
@@ -387,7 +389,7 @@ namespace utl //! General utility classes and functions.
         for (size_t r = 0; r < ncol; r++)
           for (size_t c = 0; c < nrow; c++)
             this->elem[c+nrow*r] = mat.elem[r+ncol*c];
-      else
+      else if (!mat.elem.empty())
         this->elem.fill(mat.elem.ptr());
     }
     //! \brief Empty destructor.
@@ -937,6 +939,8 @@ namespace utl //! General utility classes and functions.
     int n1 = i1 > 1 || i1 < -1 ? this->size()/abs(i1) : this->size()-o1;
     int n2 = i2 > 1 || i2 < -1 ? nv/abs(i2) : nv-o2;
     int n  = n1 < n2 ? n1 : n2;
+    if (n == 0)
+      return 0.0;
     return cblas_sdot(n,this->ptr()+o1,i1,v+o2,i2);
   }
 
@@ -947,6 +951,8 @@ namespace utl //! General utility classes and functions.
     int n1 = i1 > 1 || i1 < -1 ? this->size()/abs(i1) : this->size()-o1;
     int n2 = i2 > 1 || i2 < -1 ? nv/abs(i2) : nv-o2;
     int n  = n1 < n2 ? n1 : n2;
+    if (n == 0)
+      return 0.0;
     return cblas_ddot(n,this->ptr()+o1,i1,v+o2,i2);
   }
 
@@ -1007,6 +1013,8 @@ namespace utl //! General utility classes and functions.
                                     unsigned int ofsy, int stridey)
   {
     size_t n = this->size() < X.size() ? this->size() : X.size();
+    if (n == 0)
+      return *this;
     cblas_saxpy(n,alfa,X.data()+ofsx,stridex,this->data()+ofsy,stridey);
     return *this;
   }
@@ -1018,6 +1026,8 @@ namespace utl //! General utility classes and functions.
                                       unsigned int ofsy, int stridey)
   {
     size_t n = this->size() < X.size() ? this->size() : X.size();
+    if (n == 0)
+      return *this;
     cblas_daxpy(n,alfa,X.data()+ofsx,stridex,this->data()+ofsy,stridey);
     return *this;
   }
@@ -1027,6 +1037,8 @@ namespace utl //! General utility classes and functions.
                                             const float& alfa)
   {
     size_t n = this->size() < A.size() ? this->size() : A.size();
+    if (n == 0)
+      return *this;
     cblas_saxpy(n,alfa,A.ptr(),1,this->ptr(),1);
     return *this;
   }
@@ -1036,6 +1048,8 @@ namespace utl //! General utility classes and functions.
                                               const double& alfa)
   {
     size_t n = this->size() < A.size() ? this->size() : A.size();
+    if (n == 0)
+      return *this;
     cblas_daxpy(n,alfa,A.ptr(),1,this->ptr(),1);
     return *this;
   }
@@ -1392,9 +1406,11 @@ namespace utl //! General utility classes and functions.
                             unsigned int ofsx, int stridex,
                             unsigned int ofsy, int stridey)
   {
+    size_t size = std::min(this->size() / stridey, X.size() / stridex);
+    if (size == 0)
+      return *this;
     T* p = this->data() + ofsy;
     const T* q = X.data() + ofsx;
-    size_t size = std::min(this->size() / stridey, X.size() / stridex);
     for (size_t i = 0; i < size; ++i, p += stridey, q += stridex)
       *p += alfa*(*q);
     return *this;
@@ -1403,9 +1419,12 @@ namespace utl //! General utility classes and functions.
   template<class T> inline
   matrixBase<T>& matrixBase<T>::add(const matrixBase<T>& A, const T& alfa)
   {
+    size_t size = std::min(this->size(),A.size());
+    if (size == 0)
+      return *this;
     T* p = this->ptr();
     const T* q = A.ptr();
-    for (size_t i = 0; i < this->size() && i < A.size(); i++, p++, q++)
+    for (size_t i = 0; i < size; i++, p++, q++)
       *p += alfa*(*q);
     return *this;
   }

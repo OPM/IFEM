@@ -85,7 +85,12 @@ bool MxFiniteElement::Jacobian (Matrix& Jac, const Matrix& Xnod,
   if (separateGeometry)
     gBasis = bfs.size();
 
-  detJxW = utl::Jacobian(Jac, this->grad(gBasis), Xnod,
+  // Make sure we point to a valid matrix with separate geometry,
+  // even if it is not used
+  Matrix& dNdX = separateGeometry ? this->grad(1)
+                                  : this->grad(gBasis);
+
+  detJxW = utl::Jacobian(Jac, dNdX, Xnod,
                          bfs[gBasis-1]->dNdu,
                          !separateGeometry);
   if (detJxW == 0.0) return false; // singular point
