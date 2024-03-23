@@ -42,12 +42,12 @@ protected:
   virtual ~FieldFuncBase();
 
   //! \brief Sets the active patch.
-  bool setPatch(size_t pIdx);
+  bool setPatch(size_t pIdx) const;
 
 protected:
   std::vector<ASMbase*> patch; //!< The patches on which the field is defined
 
-  size_t pidx; //!< Current patch index
+  mutable size_t pidx; //!< Current patch index
   size_t npch; //!< Number of patches in the field
 };
 
@@ -170,7 +170,7 @@ public:
   virtual ~FieldFunction() {}
 
   //! \brief Sets the active patch.
-  virtual bool initPatch(size_t pIdx) { return this->setPatch(pIdx); }
+  virtual bool initPatch(size_t pIdx) const { return this->setPatch(pIdx); }
 
 protected:
   //! \brief Evaluates the scalar field function.
