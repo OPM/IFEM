@@ -552,9 +552,10 @@ public:
   //! \param[in] locSol Solution vector local to current patch
   //! \param[in] npe Number of visualization nodes over each knot span
   //! \param[in] nf If nonzero, mixed evaluates nf fields on first basis
-  //! \param[in] piola If true, use piola mapping
+  //! \param[in] piola If \e true, use piola mapping
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-                            const int* npe, int nf = 0, bool piola = false) const;
+                            const int* npe, int nf = 0,
+                            bool piola = false) const;
 
   //! \brief Evaluates the projected solution field at all visualization points.
   //! \param[out] sField Solution field
@@ -582,7 +583,7 @@ public:
                             const RealArray* gpar, bool regular = true,
                             int deriv = 0, int nf = 0) const;
 
-  //! \brief Evaluates the primary solution field at the given points with Piola mapping.
+  //! \brief Evaluates the primary solution field with Piola mapping.
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector local to current patch
   //! \param[in] gpar Parameter values of the result sampling points
@@ -594,7 +595,7 @@ public:
   //! Otherwise, we assume that it contains the \a u, \a v and \a w parameters
   //! directly for each sampling point.
   virtual bool evalSolutionPiola(Matrix& sField, const Vector& locSol,
-                                 const RealArray* gpar, bool regular = true) const;
+                                 const RealArray* gpar, bool regular) const;
 
   //! \brief Evaluates and interpolates a field over a given geometry.
   //! \param[in] basis The basis of the field to evaluate
@@ -779,6 +780,13 @@ public:
   virtual bool addRigidCpl(int lindx, int ldim, int basis,
                            int& gMaster, const Vec3& Xmaster,
                            bool extraPt = true);
+
+  //! \brief Adds MPCs representing a rigid coupling to this patch.
+  //! \param[in] gMaster Global node number of the master node
+  //! \param[in] slaveNodes Local node numbers of the slave nodes
+  //! \param[in] Xmaster Position of the master node
+  void addRigidCouplings(int gMaster, const Vec3& Xmaster,
+                         const IntVec& slaveNodes);
 
 protected:
 
