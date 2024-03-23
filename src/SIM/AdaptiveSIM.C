@@ -196,6 +196,13 @@ typedef std::pair<double,int> DblIdx;
 
 bool AdaptiveSIM::adaptMesh (int iStep, std::streamsize outPrec)
 {
+  Vectors dummy;
+  return this->adaptMesh(iStep,dummy,outPrec);
+}
+
+
+bool AdaptiveSIM::adaptMesh (int iStep, Vectors& sol, std::streamsize outPrec)
+{
   if (iStep < 2)
     return true; // No refinement in the first adaptive cycle
 
@@ -215,7 +222,7 @@ bool AdaptiveSIM::adaptMesh (int iStep, std::streamsize outPrec)
     return false;
 
   // Now refine the mesh and write out resulting grid
-  return model.refine(prm) && this->writeMesh(iStep);
+  return model.refine(prm,sol) && this->writeMesh(iStep);
 }
 
 
