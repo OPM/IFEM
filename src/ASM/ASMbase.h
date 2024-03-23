@@ -529,6 +529,11 @@ public:
   //! \param[in] param The parameters of the point in the knot-span domain
   //! \return Local element number within the patch that contains the point
   virtual int findElementContaining(const double* param) const = 0;
+  //! \brief Searches for the specified Cartesian point in the patch.
+  //! \param X The Cartesian coordinates of the point, updated on output
+  //! \param[out] param The parameters of the point in the knot-span domain
+  //! \return Distance from the point \a X to the found point
+  virtual double findPoint(Vec3& X, double* param) const = 0;
 
   //! \brief Creates a standard FE model of this patch for visualization.
   //! \param[out] grid The generated finite element grid

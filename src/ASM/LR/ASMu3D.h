@@ -394,6 +394,12 @@ public:
   //! \return Local element number within the patch that contains the point
   virtual int findElementContaining(const double* param) const;
 
+  //! \brief Searches for the specified Cartesian point in the patch.
+  //! \param X The Cartesian coordinates of the point, updated on output
+  //! \param[out] param The parameters of the point in the knot-span domain
+  //! \return Distance from the point \a X to the found point
+  virtual double findPoint(Vec3& X, double* param) const;
+
   //! \brief Calculates parameter values for visualization nodal points.
   //! \param[out] prm Parameter values in given direction for all points
   //! \param[in] dir Parameter direction (0,1,2)

@@ -854,14 +854,24 @@ void ASMs1D::getBoundaryNodes (int lIndex, IntVec& nodes,
 }
 
 
-std::pair<size_t,double> ASMs1D::findClosestNode (const Vec3& X) const
+double ASMs1D::findPoint (Vec3& X, double* param) const
 {
-  if (!curv) return std::make_pair(0,-1.0); // silently ignore empty patches
+  if (!curv) return -1.0; // silently ignore empty patches
 
   // Find the closest point on the spline curve
-  double param, dist;
-  Go::Point Xtarget(X.x,X.y,X.z), Xfound;
-  curv->ParamCurve::closestPoint(Xtarget,param,Xfound,dist);
+  double dist;
+  Go::Point Xpt(X.x,X.y,X.z), Xfound;
+  curv->ParamCurve::closestPoint(Xpt, *param, Xfound, dist);
+  for (int i = 0; i < curv->dimension(); i++) X[i] = Xfound[i];
+  return dist;
+}
+
+
+std::pair<size_t,double> ASMs1D::findClosestNode (const Vec3& X) const
+{
+  Vec3 Xfound(X);
+  double param = 0.0;
+  double dist = this->findPoint(Xfound,&param);
 
   // Check if point is inside parameter domain
   if (param <= curv->startparam())
@@ -878,7 +888,7 @@ std::pair<size_t,double> ASMs1D::findClosestNode (const Vec3& X) const
   for (size_t inod = mnod-curv->order(); inod < mnod; inod++)
   {
     RealArray::const_iterator p = curv->coefs_begin() + inod*curv->dimension();
-    double d2 = Go::Point(p,p+curv->dimension()).dist2(Xfound);
+    double d2 = (Xfound - Vec3(&(*p),curv->dimension())).length2();
     if (d2 < dmin || jnod == 0)
     {
       jnod = inod+1;
