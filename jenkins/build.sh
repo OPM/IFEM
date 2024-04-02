@@ -9,7 +9,9 @@ downstreams=(IFEM-AdvectionDiffusion
              IFEM-NavierStokes
              IFEM-Boussinesq
              IFEM-Elasticity
+             IFEM-BeamGeometry
              IFEM-BeamEx
+             IFEM-ShellEx
              IFEM-FiniteDeformation
              IFEM-ThermoElasticity
              IFEM-PoroElasticity
@@ -24,7 +26,9 @@ downstreams=(IFEM-AdvectionDiffusion
 declare -A downstreamRev
 downstreamRev[IFEM-Poisson]=master
 downstreamRev[IFEM-AdvectionDiffusion]=master
+downstreamRev[IFEM-BeamGeometry]=master
 downstreamRev[IFEM-BeamEx]=master
+downstreamRev[IFEM-ShellEx]=master
 downstreamRev[IFEM-Darcy]=master
 downstreamRev[IFEM-Elasticity]=master
 downstreamRev[IFEM-FiniteDeformation]=master

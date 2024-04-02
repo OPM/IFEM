@@ -3,6 +3,8 @@
 # Hacks due to not following standards
 declare -A MODULE_EXTRA_DIR
 MODULE_EXTRA_DIR[IFEM-BeamEx]=IFEM-Elasticity/
+MODULE_EXTRA_DIR[IFEM-ShellEx]=IFEM-Elasticity/
+MODULE_EXTRA_DIR[IFEM-BeamGeometry]=IFEM-Elasticity/
 MODULE_EXTRA_DIR[IFEM-FiniteDeformation]=IFEM-Elasticity/
 
 declare -A MODULE_APP_DIR
@@ -159,6 +161,8 @@ function clone_module {
   GH_USER[IFEM-HM]=akva2
   GH_USER[IFEM-CoSTA]=akva2
   GH_USER[IFEM-Burgers]=SintefMath
+  GH_USER[IFEM-BeamGeometry]=kmokstad
+  GH_USER[IFEM-ShellEx]=kmokstad
 
   if test -n "$GH_CREDENTIALS"
   then
