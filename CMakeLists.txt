@@ -162,7 +162,7 @@ else()
                          src/ASM/LocalIntegral.h src/ASM/SAMpatch.h
                          src/ASM/SplineField?D.h src/ASM/SplineFields?D.h
                          src/ASM/TimeDomain.h src/ASM/ASMs?D.h src/ASM/ASM?D.h
-                         src/ASM/ASMs?DLag.h src/ASM/ASMutils.h
+                         src/ASM/ASMs?DLag.h src/ASM/ASMu2DLag.h src/ASM/ASMutils.h
                          src/ASM/DomainDecomposition.h src/ASM/ItgPoint.h
                          src/ASM/ReactionsOnly.h
                          src/LinAlg/*.h src/SIM/*.h src/Utility/*.h
