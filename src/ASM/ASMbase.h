@@ -14,7 +14,6 @@
 #ifndef _ASM_BASE_H
 #define _ASM_BASE_H
 
-#include "ASMenums.h"
 #include "MatVec.h"
 #include "MPCLess.h"
 #include <map>
@@ -161,9 +160,6 @@ public:
 
   //! \brief Defines the numerical integration scheme \a nGauss in the patch.
   void setGauss(int ng) { nGauss = ng; }
-
-  //! \brief Defines the policy used for the basis function cache.
-  static void setCachePolicy(ASM::CachePolicy policy) { cachePolicy = policy; }
 
   //! \brief Defines the number of solution fields \a nf in the patch.
   //! \details This method is to be used by simulators where \a nf is not known
@@ -964,8 +960,6 @@ protected:
   //! If the value is set larger than 10, the number of quadrature points
   //! in each parameter direction is set to \a p+nGauss%10.
   int nGauss; //!< \sa getNoGaussPt
-
-  static ASM::CachePolicy cachePolicy; //!< Basis function cache policy
 
   size_t firstIp; //!< Global index to first interior integration point
 

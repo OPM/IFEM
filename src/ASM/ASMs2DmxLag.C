@@ -242,7 +242,7 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
   bool useElmVtx = integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS;
 
   if (myCache.empty()) {
-    myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this, cachePolicy, 1));
+    myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this));
     for (size_t b = 2; b <= this->getNoBasis(); ++b)
       myCache.emplace_back(std::make_unique<BasisFunctionCache>(*myCache.front(), b));
   }
@@ -605,10 +605,8 @@ bool ASMs2DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 }
 
 
-ASMs2DmxLag::BasisFunctionCache::BasisFunctionCache (const ASMs2DLag& pch,
-                                                     ASM::CachePolicy plcy,
-                                                     int b) :
-  ASMs2DLag::BasisFunctionCache(pch,plcy,b)
+ASMs2DmxLag::BasisFunctionCache::BasisFunctionCache (const ASMs2DLag& pch)
+  : ASMs2DLag::BasisFunctionCache(pch)
 {
 }
 

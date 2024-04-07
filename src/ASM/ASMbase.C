@@ -12,6 +12,7 @@
 //==============================================================================
 
 #include "ASMbase.h"
+#include "ASMenums.h"
 #include "ASM2D.h"
 #include "ASM3D.h"
 #include "IFEM.h"
@@ -28,7 +29,6 @@
 
 bool ASMbase::fixHomogeneousDirichlet = true;
 int  ASMbase::dbgElm = 0;
-ASM::CachePolicy ASMbase::cachePolicy = ASM::PRE_CACHE;
 
 //! This quantitiy is used to scale the characteristic element sizes which
 //! are used by residual error estimates, etc., such that they always are in
@@ -39,6 +39,8 @@ double ASMbase::modelSize = 1.0;
 int ASMbase::gEl = 0;
 int ASMbase::gNod = 0;
 std::map<int,int> ASMbase::xNode;
+
+ASM::CachePolicy ASM::cachePolicy = ASM::PRE_CACHE;
 
 
 /*!

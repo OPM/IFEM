@@ -313,8 +313,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
   const bool separateGeometry = this->getBasis(ASM::GEOMETRY_BASIS) != lrspline.get();
 
   if (myCache.empty()) {
-    myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this, cachePolicy, 1,
-                                                              ASMmxBase::Type != SUBGRID));
+    myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this, ASMmxBase::Type != SUBGRID));
     const BasisFunctionCache& c = static_cast<const BasisFunctionCache&>(*myCache.front());
     for (size_t b = 2; b <= this->getNoBasis(); ++b)
       myCache.emplace_back(std::make_unique<BasisFunctionCache>(c,b));

@@ -69,7 +69,6 @@ public:
 
 public:
   int nGauss[2]; //!< Gaussian quadrature rules
-  ASM::CachePolicy policy; //!< Cache policy
 
   ASM::Discretization discretization; //!< Spatial discretization option
   LinAlg::MatrixType  solver;         //!< The linear equation solver to use

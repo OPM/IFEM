@@ -327,7 +327,7 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
   const bool piolaMapping = integrand.getIntegrandType() & Integrand::PIOLA_MAPPING;
 
   if (myCache.empty()) {
-    myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this, cachePolicy, 1));
+    myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this, 1));
     const BasisFunctionCache& c = static_cast<const BasisFunctionCache&>(*myCache.front());
     for (size_t b = 2; b <= this->getNoBasis(); ++b)
       myCache.emplace_back(std::make_unique<BasisFunctionCache>(c,b));

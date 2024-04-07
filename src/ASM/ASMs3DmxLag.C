@@ -269,7 +269,7 @@ bool ASMs3DmxLag::integrate (Integrand& integrand,
   bool useElmVtx = integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS;
 
   if (myCache.empty()) {
-    myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this, cachePolicy, 1));
+    myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this));
     for (size_t b = 2; b <= this->getNoBasis(); ++b)
       myCache.emplace_back(std::make_unique<BasisFunctionCache>(*myCache.front(), b));
   }
@@ -676,10 +676,8 @@ bool ASMs3DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 }
 
 
-ASMs3DmxLag::BasisFunctionCache::BasisFunctionCache (const ASMs3DLag& pch,
-                                                     ASM::CachePolicy plcy,
-                                                     int b) :
-  ASMs3DLag::BasisFunctionCache(pch,plcy,b)
+ASMs3DmxLag::BasisFunctionCache::BasisFunctionCache (const ASMs3DLag& pch)
+  : ASMs3DLag::BasisFunctionCache(pch)
 {
 }
 

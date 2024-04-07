@@ -73,7 +73,7 @@ bool ASMu2DLag::generateFEMTopology ()
   gNod += nnod;
   gEl  += nel;
 
-  myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this, cachePolicy));
+  myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this));
 
   return true;
 }

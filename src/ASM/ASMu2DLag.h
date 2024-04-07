@@ -33,9 +33,8 @@ class ASMu2DLag : public ASMs2DLag
   public:
     //! \brief The constructor forwards to the parent class constructor.
     //! \param pch Patch the cache is for
-    //! \param plcy Cache policy to use
-    BasisFunctionCache(const ASMu2DLag& pch, ASM::CachePolicy plcy)
-      : ASMs2DLag::BasisFunctionCache(pch,plcy) {}
+    BasisFunctionCache(const ASMu2DLag& pch)
+      : ASMs2DLag::BasisFunctionCache(pch) {}
 
     //! \brief Empty destructor.
     virtual ~BasisFunctionCache() = default;

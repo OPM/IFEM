@@ -447,7 +447,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
   const bool piolaMapping = integrand.getIntegrandType() & Integrand::PIOLA_MAPPING;
 
   if (myCache.empty()) {
-    myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this, cachePolicy, 1));
+    myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this));
     for (size_t b = 2; b <= this->getNoBasis(); ++b)
       myCache.emplace_back(std::make_unique<BasisFunctionCache>(*myCache.front(), b));
     if (separateGeometry)

@@ -30,8 +30,8 @@ class Integrand;
 template<size_t Dim> class BasisFunctionCache
 {
 public:
-  //! \brief The constructor defines the caching policy.
-  BasisFunctionCache(ASM::CachePolicy plcy);
+  //! \brief Default constructor.
+  BasisFunctionCache();
 
   //! \brief Copy-constructor.
   BasisFunctionCache(const BasisFunctionCache& rhs);
@@ -130,7 +130,6 @@ protected:
   //! \param reduced If true, returns values for reduced integration scheme
   std::array<size_t,Dim> gpIndex(size_t gp, bool reduced) const;
 
-  ASM::CachePolicy policy; //!< Cache policy to use
   std::vector<BasisFunctionVals> values; //!< Cache for main quadrature
   std::vector<BasisFunctionVals> valuesRed; //!< Cache for reduced quadrature
   const Integrand* integrand = nullptr; //!< Integrand to use

@@ -1102,7 +1102,7 @@ bool ASMu2D::integrate (Integrand& integrand,
   bool use3rdDer = integrand.getIntegrandType() & Integrand::THIRD_DERIVATIVES;
 
   if (myCache.empty())
-    myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this, cachePolicy, 1));
+    myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this));
 
   BasisFunctionCache& cache = *myCache.front();
   cache.setIntegrand(&integrand);
@@ -3011,20 +3011,15 @@ void ASMu2D::storeMesh (const std::string& fName, int fType) const
 }
 
 
-ASMu2D::BasisFunctionCache::BasisFunctionCache (const ASMu2D& pch,
-                                                ASM::CachePolicy plcy,
-                                                int b) :
-  ::BasisFunctionCache<2>(plcy),
-  patch(pch)
+ASMu2D::BasisFunctionCache::BasisFunctionCache (const ASMu2D& pch) :
+  ::BasisFunctionCache<2>(), patch(pch)
 {
-  basis = b;
 }
 
 
 ASMu2D::BasisFunctionCache::BasisFunctionCache (const BasisFunctionCache& cache,
                                                 int b) :
-  ::BasisFunctionCache<2>(cache),
-  patch(cache.patch)
+  ::BasisFunctionCache<2>(cache), patch(cache.patch)
 {
   basis = b;
 }

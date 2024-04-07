@@ -317,7 +317,7 @@ bool ASMs2DLag::integrate (Integrand& integrand,
   if (this->empty()) return true; // silently ignore empty patches
 
   if (myCache.empty())
-    myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this, cachePolicy, 1));
+    myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this));
 
   ASMs2D::BasisFunctionCache& cache = *myCache.front();
   cache.setIntegrand(&integrand);
@@ -1002,10 +1002,8 @@ bool ASMs2DLag::assembleL2matrices (SparseMatrix& A, StdVector& B,
 }
 
 
-ASMs2DLag::BasisFunctionCache::BasisFunctionCache (const ASMs2DLag& pch,
-                                                   ASM::CachePolicy plcy,
-                                                   int b) :
-  ASMs2D::BasisFunctionCache(pch,plcy,b)
+ASMs2DLag::BasisFunctionCache::BasisFunctionCache (const ASMs2DLag& pch)
+  : ASMs2D::BasisFunctionCache(pch)
 {
   nel[0] = (pch.nx-1) / (pch.p1-1);
   nel[1] = (pch.ny-1) / (pch.p2-1);

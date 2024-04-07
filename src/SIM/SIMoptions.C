@@ -50,7 +50,6 @@ SIMoptions::SIMoptions ()
   restartStep = -1;
 
   nGauss[0] = nGauss[1] = 4;
-  policy = ASM::PRE_CACHE;
   nViz[0] = nViz[1] = nViz[2] = 2;
 
   printPid = 0;
@@ -95,7 +94,7 @@ bool SIMoptions::parseEigSolTag (const tinyxml2::XMLElement* elem)
 bool SIMoptions::parseDiscretizationTag (const tinyxml2::XMLElement* elem)
 {
   if (!strcasecmp(elem->Value(),"discretization")) {
-    std::string discr;
+    std::string discr, cpolicy;
     if (utl::getAttribute(elem,"type",discr,true)) {
       if (discr == "lagrange")
         discretization = ASM::Lagrange;
@@ -108,16 +107,20 @@ bool SIMoptions::parseDiscretizationTag (const tinyxml2::XMLElement* elem)
       else if (discr == "triangular")
         discretization = ASM::Triangle;
     }
-    std::string cpolicy;
-    utl::getAttribute(elem,"cache_policy",cpolicy);
-    if (cpolicy == "disable")
-      policy = ASM::NO_CACHE;
-    else if (cpolicy == "full")
-      policy = ASM::FULL_CACHE;
-    else if (cpolicy == "onthefly")
-      policy = ASM::ON_THE_FLY;
-    else if (cpolicy == "precalc")
-      policy = ASM::PRE_CACHE;
+    if (utl::getAttribute(elem,"cache_policy",cpolicy)) {
+      if (cpolicy == "disable")
+        ASM::cachePolicy = ASM::NO_CACHE;
+      else if (cpolicy == "full")
+        ASM::cachePolicy = ASM::FULL_CACHE;
+      else if (cpolicy == "onthefly")
+        ASM::cachePolicy = ASM::ON_THE_FLY;
+      else if (cpolicy == "precalc")
+        ASM::cachePolicy = ASM::PRE_CACHE;
+      else
+        cpolicy.clear();
+    }
+    if (cpolicy.empty() && discretization < ASM::Spline)
+      ASM::cachePolicy = ASM::NO_CACHE; // Default no cache for Lagrange
   }
 
   else if (!strcasecmp(elem->Value(),"geometry")) {
@@ -450,15 +453,14 @@ utl::LogStream& SIMoptions::print (utl::LogStream& os, bool addBlankLine) const
   default: break;
   }
 
-  switch (policy) {
-  case ASM::NO_CACHE:
-     os <<"\nBasis function cache is disabled"; break;
+  switch (ASM::cachePolicy) {
   case ASM::FULL_CACHE:
-      os <<"\nUsing pre-calculated basis function cache"; break;
+    os <<"\nUsing pre-calculated basis function cache"; break;
   case ASM::ON_THE_FLY:
-      os <<"\nBuilding basis function cache on-the-fly"; break;
+    os <<"\nBuilding basis function cache on-the-fly"; break;
   case ASM::PRE_CACHE:
-      os <<"\nBasis function values are precalculated but not cached"; break;
+    os <<"\nBasis function values are precalculated but not cached"; break;
+  default: break;
   }
 
   std::vector<std::string> projections;

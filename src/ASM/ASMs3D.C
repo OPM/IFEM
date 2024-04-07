@@ -2069,7 +2069,7 @@ bool ASMs3D::integrate (Integrand& integrand,
   bool useElmVtx = integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS;
 
   if (myCache.empty())
-    myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this, cachePolicy, 1));
+    myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this));
 
   BasisFunctionCache& cache = *myCache.front();
   cache.setIntegrand(&integrand);
@@ -3839,11 +3839,9 @@ bool ASMs3D::addRigidCpl (int lindx, int ldim, int basis,
 }
 
 
-ASMs3D::BasisFunctionCache::BasisFunctionCache (const ASMs3D& pch,
-                                                ASM::CachePolicy plcy, int b) :
-  ::BasisFunctionCache<3>(plcy), patch(pch)
+ASMs3D::BasisFunctionCache::BasisFunctionCache (const ASMs3D& pch) :
+  ::BasisFunctionCache<3>(), patch(pch)
 {
-  basis = b;
   for (size_t d = 0; d < 3 && patch.svol; ++d)
     nel[d] = patch.svol->numCoefs(d) - patch.svol->order(d) + 1;
 }

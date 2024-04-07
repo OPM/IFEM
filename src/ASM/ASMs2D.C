@@ -1716,7 +1716,7 @@ bool ASMs2D::integrate (Integrand& integrand,
   bool useElmVtx = integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS;
 
   if (myCache.empty())
-    myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this, cachePolicy, 1));
+    myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this));
 
   BasisFunctionCache& cache = *myCache.front();
   cache.setIntegrand(&integrand);
@@ -3297,11 +3297,9 @@ int ASMs2D::getLastItgElmNode () const
 }
 
 
-ASMs2D::BasisFunctionCache::BasisFunctionCache (const ASMs2D& pch,
-                                                ASM::CachePolicy plcy, int b) :
-  ::BasisFunctionCache<2>(plcy), patch(pch)
+ASMs2D::BasisFunctionCache::BasisFunctionCache (const ASMs2D& pch) :
+  ::BasisFunctionCache<2>(), patch(pch)
 {
-  basis = b;
   if (patch.surf)
   {
     nel[0] = patch.surf->numCoefs_u() - patch.surf->order_u() + 1;

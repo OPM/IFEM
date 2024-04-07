@@ -616,7 +616,6 @@ void SIMbase::setQuadratureRule (size_t ng, bool redimBuffers, bool printQP)
     if (!pch->empty())
     {
       pch->setGauss(ng);
-      pch->setCachePolicy(opt.policy);
       // Count the interior integration points
       pch->getNoIntPoints(nIntGP,nInterfaceGP);
     }

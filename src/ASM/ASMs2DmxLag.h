@@ -35,9 +35,7 @@ protected:
   public:
     //! \brief The constructor initializes the class.
     //! \param pch Patch the cache is for
-    //! \param plcy Cache policy to use
-    //! \param b Basis to use
-    BasisFunctionCache(const ASMs2DLag& pch, ASM::CachePolicy plcy, int b);
+    BasisFunctionCache(const ASMs2DLag& pch);
 
     //! \brief Constructor reusing quadrature info from another instance.
     //! \param cache Instance holding quadrature information

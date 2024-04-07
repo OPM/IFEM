@@ -19,19 +19,15 @@
 
 
 template<size_t Dim>
-BasisFunctionCache<Dim>::BasisFunctionCache (ASM::CachePolicy policy)
-  : policy(policy)
-  , mainQ(std::make_shared<Quadrature>())
-  , reducedQ(std::make_shared<Quadrature>())
+BasisFunctionCache<Dim>::BasisFunctionCache ()
+  : mainQ(std::make_shared<Quadrature>()),
+    reducedQ(std::make_shared<Quadrature>())
 {
 }
 
 template<size_t Dim>
 BasisFunctionCache<Dim>::BasisFunctionCache (const BasisFunctionCache<Dim>& rhs)
-  : basis(rhs.basis)
-  , policy(rhs.policy)
-  , mainQ(rhs.mainQ)
-  , reducedQ(rhs.reducedQ)
+  : basis(rhs.basis), mainQ(rhs.mainQ), reducedQ(rhs.reducedQ)
 {
 }
 
@@ -49,7 +45,7 @@ bool BasisFunctionCache<Dim>::init (int nd)
   if (!this->internalInit())
     return false;
 
-  if (policy == ASM::NO_CACHE) {
+  if (ASM::cachePolicy == ASM::NO_CACHE) {
 #ifdef USE_OPENMP
     size_t size = omp_get_max_threads();
 #else
@@ -63,7 +59,7 @@ bool BasisFunctionCache<Dim>::init (int nd)
   values.resize(nTotal);
   if (this->hasReduced())
     valuesRed.resize(nTotalRed);
-  if (policy != ASM::ON_THE_FLY)
+  if (ASM::cachePolicy != ASM::ON_THE_FLY)
     this->calculateAll();
 
   return true;
@@ -73,7 +69,7 @@ bool BasisFunctionCache<Dim>::init (int nd)
 template<size_t Dim>
 void BasisFunctionCache<Dim>::finalizeAssembly ()
 {
-  if (policy == ASM::PRE_CACHE) {
+  if (ASM::cachePolicy == ASM::PRE_CACHE) {
     values.clear();
     valuesRed.clear();
     internalCleanup();
@@ -86,7 +82,7 @@ const BasisFunctionVals& BasisFunctionCache<Dim>::
 getVals (size_t el, size_t gp, bool reduced)
 {
   std::vector<BasisFunctionVals>& vals = reduced ? valuesRed : values;
-  if (policy == ASM::NO_CACHE) {
+  if (ASM::cachePolicy == ASM::NO_CACHE) {
 #ifdef USE_OPENMP
     size_t idx = omp_get_thread_num();
 #else
@@ -97,7 +93,7 @@ getVals (size_t el, size_t gp, bool reduced)
   }
 
   size_t idx = this->index(el, gp, reduced);
-  if (policy == ASM::ON_THE_FLY && vals[idx].N.empty())
+  if (ASM::cachePolicy == ASM::ON_THE_FLY && vals[idx].N.empty())
     vals[idx] = this->calculatePt(el,gp,reduced);
 
   return vals[idx];

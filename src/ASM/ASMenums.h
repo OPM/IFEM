@@ -46,6 +46,8 @@ namespace ASM //! Assembly scope
     FULL_CACHE  //!< Cache basis function values up front
   };
 
+  extern CachePolicy cachePolicy; //!< Chosen basis function cache policy
+
   //! \brief Enumeration of different basis types.
   //! \details Entries should have non-positive values
   enum BasisType {

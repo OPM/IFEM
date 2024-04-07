@@ -910,7 +910,7 @@ bool ASMu3D::integrate (Integrand& integrand,
   bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
 
   if (myCache.empty())
-    myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this, cachePolicy, 1));
+    myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this));
 
   BasisFunctionCache& cache = *myCache.front();
   cache.setIntegrand(&integrand);
@@ -2402,22 +2402,15 @@ void ASMu3D::generateThreadGroupsFromElms (const IntVec& elms)
 }
 
 
-ASMu3D::BasisFunctionCache::BasisFunctionCache (const ASMu3D& pch,
-                                                ASM::CachePolicy plcy,
-                                                int b, bool useBezier) :
-  ::BasisFunctionCache<3>(plcy),
-  bezierEnabled(useBezier),
-  patch(pch)
+ASMu3D::BasisFunctionCache::BasisFunctionCache (const ASMu3D& pch, bool useBezier) :
+  ::BasisFunctionCache<3>(), bezierEnabled(useBezier), patch(pch)
 {
-  basis = b;
 }
 
 
 ASMu3D::BasisFunctionCache::BasisFunctionCache (const BasisFunctionCache& cache,
                                                 int b) :
-  ::BasisFunctionCache<3>(cache),
-  bezierEnabled(cache.bezierEnabled),
-  patch(cache.patch)
+  ::BasisFunctionCache<3>(cache), bezierEnabled(cache.bezierEnabled), patch(cache.patch)
 {
   basis = b;
 }
