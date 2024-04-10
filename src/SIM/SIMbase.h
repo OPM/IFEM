@@ -598,7 +598,7 @@ protected:
   //! \param[in] lndx Local index of the boundary item to receive the property
   //! \param[in] ldim Dimension of the boundary item to receive the property
   //! \param[in] dirs Which local DOFs to constrain
-  //! \param[in] code In-homegeneous Dirichlet condition property code
+  //! \param[in] code In-homogeneous Dirichlet condition property code
   //! \param ngnod Total number of global nodes in the model (might be updated)
   //! \param[in] basis Which basis to apply the constraint to (mixed methods)
   virtual bool addConstraint(int patch, int lndx, int ldim, int dirs, int code,
@@ -614,11 +614,11 @@ protected:
   virtual void preprocessResultPoints() = 0;
 
   //! \brief Renumbers the global node numbers after resolving patch topology.
+  //! \param[in] renumMNPC If \e true, also update element connectivity tables
   //! \return Total number of unique nodes in the model, negative on error
-  int renumberNodes();
-  //! \brief Renumbers all global node numbers if the model.
-  //! \param[in] nodeMap Mapping from old to new node number
-  virtual bool renumberNodes(const std::map<int,int>& nodeMap);
+  int renumberNodes(bool renumMNPC = false);
+  //! \brief Interface for renumbering of app-specific node number tables.
+  virtual bool renumberNodes(const std::map<int,int>&) { return true; }
 
   //! \brief Extracts all local solution vector(s) for a specified patch.
   //! \param[in] problem The integrand to receive patch-level solution vectors
@@ -837,8 +837,10 @@ protected:
   // Parallel computing attributes
   int               nGlPatches; //!< Number of global patches
   std::vector<int>  myPatches;  //!< Global patch numbers for current processor
+  std::vector<int>  myLoc2Glb;  //!< Local-to-global node number mapping
   std::map<int,int> myGlb2Loc;  //!< Global-to-local node number mapping
   const std::map<int,int>* g2l; //!< Pointer to global-to-local node mapping
+  std::map<int,int> myDegenElm; //!< Degenerated elements mapping
 
   // Equation solver attributes
   AlgEqSystem*  myEqSys;     //!< The actual linear equation system

@@ -270,7 +270,7 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
 #endif
 
   // Renumber the nodes to account for resolved patch topology
-  if (!nGlbNodes) nGlbNodes = this->renumberNodes();
+  if (!nGlbNodes) nGlbNodes = this->renumberNodes(fixDup);
   if (nGlbNodes < 0) return false;
 
   // Perform specialized preprocessing before the assembly initialization.
@@ -444,14 +444,14 @@ bool SIMbase::merge (SIMbase* that, const std::map<int,int>* old2new, int poff)
 
 /*!
   This method renumbers the nodes to account for overlapping nodes
-  for multi-patch models, erased patches, etc. In parallel simulations,
-  the resulting global-to-local node number mapping \ref myGlb2Loc will map
+  for multi-patch models, duplicated nodes, erased patches, etc.
+  In parallel simulations, the resulting mapping \ref myGlb2Loc will map
   the global node numbers to local node numbers on the current processor.
   In serial simulations, this mapping will be unity unless the original global
   node number sequence had "holes" due to duplicated nodes or erased patches.
 */
 
-int SIMbase::renumberNodes ()
+int SIMbase::renumberNodes (bool renumMNPC)
 {
   int ngnod = 0;
   int renum = 0;
@@ -466,19 +466,20 @@ int SIMbase::renumberNodes ()
   if (renum > 0)
     IFEM::cout <<"\nRenumbered "<< renum <<" nodes."<< std::endl;
 
+  // Compute the inverse node number mapping (new-to-old)
+  myLoc2Glb.resize(ngnod,0);
+  for (const std::pair<const int,int>& o2n : *g2l)
+    if (o2n.second > 0 && o2n.second <= ngnod)
+      myLoc2Glb[o2n.second-1] = o2n.first;
+
   // Apply the old-to-new node number mapping to all node tables in the model
-  return this->renumberNodes(*g2l) ? ngnod : -ngnod;
-}
-
-
-bool SIMbase::renumberNodes (const std::map<int,int>& nodeMap)
-{
-  bool ok = true;
+  myDegenElm.clear();
+  ASMs2DC1::renumberNodes(*g2l);
+  bool ok = this->renumberNodes(*g2l);
   for (ASMbase* pch : myModel)
-    ok &= pch->renumberNodes(nodeMap);
+    ok &= pch->renumberNodes(*g2l, myLoc2Glb, renumMNPC ? -1 : 0, &myDegenElm);
 
-  ASMs2DC1::renumberNodes(nodeMap);
-  return ok;
+  return ok ? ngnod : -ngnod;
 }
 
 

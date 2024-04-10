@@ -438,7 +438,7 @@ bool SAMpatch::merge (const SAM* other, const std::map<int,int>* old2new)
     pch->shiftGlobalElmNums(nel);
     pch->shiftGlobalNodeNums(nnod);
     if (old2new && !old2new->empty())
-      pch->renumberNodes(*old2new,2);
+      pch->renumberNodes(*old2new,{},2);
     model.push_back(pch);
   }
 

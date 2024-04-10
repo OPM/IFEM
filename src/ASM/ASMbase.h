@@ -406,8 +406,12 @@ public:
 
   //! \brief Renumbers the global node numbers referred by this patch.
   //! \param[in] old2new Old-to-new node number mapping
+  //! \param[in] new2old New-to-old node number mapping
   //! \param[in] renumGN Flag for renumbering the node number array \a MLGN
-  bool renumberNodes(const std::map<int,int>& old2new, char renumNodes = 0);
+  //! \param[out] degenElm Global node to degenerated element number mapping
+  bool renumberNodes(const std::map<int,int>& old2new,
+                     const std::vector<int>& new2old = {}, int renumGN = 0,
+                     std::map<int,int>* degenElm = nullptr);
 
   //! \brief Computes the set of all MPCs over the whole model.
   //! \param[in] model All spline patches in the model

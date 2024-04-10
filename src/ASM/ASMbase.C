@@ -1006,7 +1006,7 @@ void ASMbase::resolveMPCchains (const MPCSet& allMPCs,
         resolved = true;
       }
       else
-	i++;
+        i++;
     }
 
 #if SP_DEBUG > 1
@@ -1193,7 +1193,7 @@ bool ASMbase::mergeNodes (size_t inod, int globalNum, bool verbose)
   std::map<int,int> old2New;
   myMLGN[inod-1] = old2New[oldNum] = globalNum;
   for (ASMbase* pch : neighbors)
-    pch->renumberNodes(old2New,true);
+    pch->renumberNodes(old2New,{},1);
 
   return this->renumberNodes(old2New);
 }
@@ -1243,13 +1243,18 @@ int ASMbase::renumberNodes (std::map<int,int>& old2new, int& nNod)
   condition- and multi-point constraint equation objects in the patch,
   according to the provided mapping \a old2new.
 
-  The nodes themselves (in \a MLGN) are assumed already to be up to date,
-  unless \a renumGN is non-zero. If \a renumGN equals one, all node numbers
+  The nodes themselves (in \a MLGN) are assumed already to be up to date, unless
+  \a renumGN is greater than zero. If \a renumGN equals one, all node numbers
   are assumed present in the \a old2new mapping and an error is flagged if
   that is not the case.
+
+  If \a renumGN is less than zero, the element connectivities are also updated
+  such that that only the first instance of a duplicated node is referred.
 */
 
-bool ASMbase::renumberNodes (const std::map<int,int>& old2new, char renumGN)
+bool ASMbase::renumberNodes (const std::map<int,int>& old2new,
+                             const std::vector<int>& new2old, int renumGN,
+                             std::map<int,int>* degenElm)
 {
   bool renumAll = old2new.size() > 1 && renumGN < 2;
 #ifdef SP_DEBUG
@@ -1279,10 +1284,55 @@ bool ASMbase::renumberNodes (const std::map<int,int>& old2new, char renumGN)
   for (MPC* mpc : mpcs)
     invalid += mpc->renumberNodes(old2new,printInvalidNodes);
 
-  if (invalid == 0 || !renumAll) return true;
+  if (invalid > 0 && renumAll)
+  {
+    std::cerr <<" *** "<< invalid <<" invalid nodes found while renumbering\n";
+    return false;
+  }
+  else if (renumGN >= 0)
+    return true;
 
-  std::cerr <<" *** "<< invalid <<" invalid nodes found while renumbering\n";
-  return false;
+  for (size_t i = 0; i < MLGN.size(); i++)
+  {
+    int replaceEl = 0;
+    for (size_t j = i+1; j <= MLGN.size(); j++)
+      if (MLGN[j] == MLGN[i])
+
+        // Two nodes with common global node numbers is detected.
+        // Update the nodal point correspondance table for all elements
+        // referring to the second node (j), replacing it with (i).
+        for (size_t iel = 0; iel < myMNPC.size(); iel++)
+        {
+          IntVec& mnpc = myMNPC[iel];
+          for (size_t k = 0; k < mnpc.size(); k++)
+            if (mnpc[k] == static_cast<int>(j))
+            {
+              mnpc[k] = i;
+              replaceEl++;
+              int collapsed = 0;
+              if (mnpc.size() == 3) // Check for degenerated triangle
+                for (size_t l = k+1; l < k+3 && collapsed == 0; l++)
+                  if (mnpc[l%3] == mnpc[k]) collapsed = k+1;
+
+              if (collapsed)
+              {
+                IFEM::cout <<"  ** Collapsed triangular element "
+                           << myMLGE[iel] <<" (ignored)"<< std::endl;
+                if (degenElm) // Tag the other two element nodes with the
+                  // global number of the collapsed element, for visualisation
+                  for (int l = collapsed; l < collapsed+2; l++)
+                    degenElm->insert({MLGN[mnpc[l%3]],myMLGE[iel]});
+                myMLGE[iel] = 0;
+              }
+            }
+        }
+
+    if (replaceEl > 0)
+      IFEM::cout <<"   * Changed connectivity to node "<< new2old[MLGN[i]-1]
+                 <<" in "<< replaceEl <<" elements."<< std::endl;
+  }
+
+  return true;
 }
 
 
@@ -1609,14 +1659,14 @@ bool ASMbase::evalSolutionPiola (Matrix&, const Vector&,
 
 
 bool ASMbase::evalSolution (Matrix&, const IntegrandBase&,
-			    const int*, char) const
+                            const int*, char) const
 {
   return Aerror("evalSolution(Matrix&,const IntegrandBase&,const int*,char)");
 }
 
 
 bool ASMbase::evalSolution (Matrix&, const IntegrandBase&,
-			    const RealArray*, bool) const
+                            const RealArray*, bool) const
 {
   return Aerror("evalSolution(Matrix&,const IntegrandBase&,const RealArray*)");
 }
