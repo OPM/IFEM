@@ -236,6 +236,7 @@ bool ASMs1DLag::integrate (Integrand& integrand,
   for (size_t iel = 0; iel < nel && ok; iel++)
   {
     fe.iel = MLGE[iel];
+    if (fe.iel < 1) continue; // zero-length element
 
     // Set up nodal point coordinates for current element
     ok = this->getElementCoordinates(fe.Xn,1+iel);
@@ -364,6 +365,7 @@ bool ASMs1DLag::integrate (Integrand& integrand, int lIndex,
     }
 
   fe.iel = MLGE[iel];
+  if (fe.iel < 1) return true; // zero-length element
 
   // Set up nodal point coordinates for current element
   bool ok = this->getElementCoordinates(fe.Xn,1+iel);
@@ -511,7 +513,7 @@ bool ASMs1DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   size_t nPoints = coord.size();
   IntVec check(nPoints,0);
 
-  FiniteElement fe;
+  FiniteElement fe(p1);
   Vector        solPt;
   Vectors       globSolPt(nPoints);
   Matrix        dNdu, Jac;
@@ -519,6 +521,9 @@ bool ASMs1DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   // Evaluate the secondary solution field at each point
   for (size_t iel = 0; iel < nel; iel++)
   {
+    fe.iel = MLGE[iel];
+    if (fe.iel < 1) continue; // zero-length element
+
     const IntVec& mnpc = MNPC[iel];
     this->getElementCoordinates(fe.Xn,1+iel);
 

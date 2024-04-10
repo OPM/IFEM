@@ -122,7 +122,7 @@ bool ASMs3DmxLag::generateFEMTopology ()
   if (q1 < 2 || q2 < 2 || q3 < 2)
   {
     std::cerr <<" *** ASMs3DmxLag::generateFEMTopology: Too low order "<< q1
-	      <<","<< q2 <<","<< q3 <<" for the second basis."<< std::endl;
+              <<","<< q2 <<","<< q3 <<" for the second basis."<< std::endl;
     return false;
   }
 
@@ -286,7 +286,7 @@ bool ASMs3DmxLag::integrate (Integrand& integrand,
   const std::array<const double*,3>& xg = cache.coord();
   const std::array<const double*,3>& wg = cache.weight();
 
-  // Number of elements in each direction
+  // Number of elements in first two parameters directions
   const int nelx = cache.noElms()[0];
   const int nely = cache.noElms()[1];
 
@@ -297,38 +297,39 @@ bool ASMs3DmxLag::integrate (Integrand& integrand,
   for (size_t g = 0; g < threadGroupsVol.size() && ok; g++)
   {
 #pragma omp parallel for schedule(static)
-    for (size_t t = 0; t < threadGroupsVol[g].size(); t++)
+    for (const IntVec& group : threadGroupsVol[g])
     {
       MxFiniteElement fe(elem_size);
-      Matrices dNxdu;
       Matrix Xnod, Jac;
       Vec4   X(nullptr,time.t);
-      for (size_t l = 0; l < threadGroupsVol[g][t].size() && ok; l++)
+      for (size_t e = 0; e < group.size() && ok; e++)
       {
-        int iel = threadGroupsVol[g][t][l];
-        int i1  =  iel % nelx;
-        int i2  = (iel / nelx) % nely;
-        int i3  =  iel / (nelx*nely);
+        int iel = group[e];
+        fe.iel = MLGE[iel];
+        if (fe.iel < 1) continue; // zero-volume element
 
         // Set up control point coordinates for current element
-        if (!this->getElementCoordinates(Xnod,++iel))
-	{
+        if (!this->getElementCoordinates(Xnod,1+iel))
+        {
           ok = false;
           break;
         }
 
-        if (useElmVtx)
-          fe.h = this->getElementCorners(p1+i1-1,p2+i2-1,p3+i3-1,fe.XC);
-
         // Initialize element quantities
-        fe.iel = MLGE[iel-1];
         LocalIntegral* A = integrand.getLocalIntegral(elem_size,fe.iel,false);
-        if (!integrand.initElement(MNPC[iel-1], elem_size, nb, *A))
+        if (!integrand.initElement(MNPC[iel], elem_size, nb, *A))
         {
           A->destruct();
           ok = false;
           break;
         }
+
+        int i1 =  iel % nelx;
+        int i2 = (iel / nelx) % nely;
+        int i3 =  iel / (nelx*nely);
+
+        if (useElmVtx)
+          fe.h = this->getElementCorners(p1+i1-1,p2+i2-1,p3+i3-1,fe.XC);
 
 
         // --- Integration loop over all Gauss points in each direction --------
@@ -354,7 +355,7 @@ bool ASMs3DmxLag::integrate (Integrand& integrand,
               // Compute basis function derivatives at current integration point
               BasisValuesPtrs bfs(this->getNoBasis());
               for (size_t b = 0; b < this->getNoBasis(); ++b) {
-                bfs[b] = &myCache[b]->getVals(iel-1,ip);
+                bfs[b] = &myCache[b]->getVals(iel,ip);
                 fe.basis(b+1) = bfs[b]->N;
               }
 
@@ -425,13 +426,14 @@ bool ASMs3DmxLag::integrate (Integrand& integrand, int lIndex,
   std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex%10);
   size_t firstp = iit == firstBp.end() ? 0 : iit->second;
 
+
   // === Assembly loop over all elements on the patch face =====================
 
   bool ok = true;
   for (size_t g = 0; g < threadGrp.size() && ok; g++)
   {
 #pragma omp parallel for schedule(static)
-    for (size_t t = 0; t < threadGrp[g].size(); t++)
+    for (const IntVec& group : threadGrp[g])
     {
       MxFiniteElement fe(elem_size);
       BasisValues bfs(elem_size.size());
@@ -440,29 +442,31 @@ bool ASMs3DmxLag::integrate (Integrand& integrand, int lIndex,
       Vec3   normal;
       double xi[3];
 
-      for (size_t l = 0; l < threadGrp[g][t].size() && ok; l++)
+      for (size_t e = 0; e < group.size() && ok; e++)
       {
-        int iel = threadGrp[g][t][l];
-        int i1  =  iel % nel1;
-        int i2  = (iel / nel1) % nel2;
-        int i3  =  iel / (nel1*nel2);
+        int iel = group[e];
+        fe.iel = MLGE[iel];
+        if (fe.iel < 1) continue; // zero-volume element
 
-	// Set up control point coordinates for current element
-	if (!this->getElementCoordinates(Xnod,++iel))
+        // Set up control point coordinates for current element
+        if (!this->getElementCoordinates(Xnod,1+iel))
         {
           ok = false;
           break;
         }
 
-	// Initialize element quantities
-	fe.iel = MLGE[iel-1];
+        // Initialize element quantities
         LocalIntegral* A = integrand.getLocalIntegral(elem_size,fe.iel,true);
-	if (!integrand.initElementBou(MNPC[iel-1],elem_size,nb,*A))
+        if (!integrand.initElementBou(MNPC[iel],elem_size,nb,*A))
         {
           A->destruct();
           ok = false;
           break;
         }
+
+        int i1 =  iel % nel1;
+        int i2 = (iel / nel1) % nel2;
+        int i3 =  iel / (nel1*nel2);
 
         // Define some loop control variables depending on which face we are on
         int nf1, j1, j2;
@@ -475,7 +479,7 @@ bool ASMs3DmxLag::integrate (Integrand& integrand, int lIndex,
         }
 
 
-	// --- Integration loop over all Gauss points in each direction --------
+        // --- Integration loop over all Gauss points in each direction --------
 
         int jp = (j2*nf1 + j1)*nGauss*nGauss;
         fe.iGP = firstp + jp; // Global integration point counter
@@ -574,16 +578,16 @@ bool ASMs3DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   Matrix          Xnod, Jac;
 
   // Evaluate the secondary solution field at each point
-  for (size_t iel = 1; iel <= nel; iel++)
+  for (size_t iel = 0; iel < nel; iel++)
   {
-    IntVec::const_iterator f2start = itgBasis == 1? MNPC[iel-1].begin() :
-                                     MNPC[iel-1].begin() +
+    IntVec::const_iterator f2start = itgBasis == 1? MNPC[iel].begin() :
+                                     MNPC[iel].begin() +
                                      std::accumulate(elem_size.begin()+itgBasis-2,
                                                      elem_size.begin()+itgBasis-1, 0);
     IntVec::const_iterator f2end = f2start + elem_size[itgBasis-1];
     IntVec mnpc1(f2start,f2end);
 
-    this->getElementCoordinates(Xnod,iel);
+    this->getElementCoordinates(Xnod,1+iel);
 
     int i, j, k, loc = 0;
     for (k = 0; k < p3; k++)
@@ -605,12 +609,12 @@ bool ASMs3DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
           if (!fe.Jacobian(Jac,Xnod,itgBasis,bfs))
             continue; // skip singular points
 
-	  // Now evaluate the solution field
-      if (!integrand.evalSol(solPt,fe,Xnod*fe.basis(itgBasis),
-                                 MNPC[iel-1],elem_size,nb))
-	    return false;
-	  else if (sField.empty())
-	    sField.resize(solPt.size(),nPoints,true);
+          // Now evaluate the solution field
+          if (!integrand.evalSol(solPt,fe,Xnod*fe.basis(itgBasis),
+                                 MNPC[iel],elem_size,nb))
+            return false;
+          else if (sField.empty())
+            sField.resize(solPt.size(),nPoints,true);
 
 	  if (++check[mnpc1[loc]] == 1)
 	    globSolPt[mnpc1[loc]] = solPt;
@@ -640,11 +644,16 @@ bool ASMs3DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   BasisValues   bfs(nxx.size());
 
   // Evaluate the secondary solution field at each point
-  for (size_t i = 0; i < nPoints; ++i) {
+  for (size_t i = 0; i < nPoints; i++)
+  {
     const int iel = this->findElement(gpar[0][i], gpar[1][i], gpar[2][i],
                                       &fe.xi, &fe.eta, &fe.zeta);
 
-    this->getElementCoordinates(Xnod,iel);
+    if (!this->getElementCoordinates(Xnod,iel))
+      return false;
+
+    fe.iel = MLGE[iel-1];
+    if (fe.iel < 1) continue; // zero-volume element
 
     for (size_t b = 0; b < nxx.size(); ++b)
       if (!Lagrange::computeBasis(fe.basis(b+1),bfs[b].dNdu,
@@ -653,7 +662,6 @@ bool ASMs3DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
                                   elem_sizes[b][2],fe.zeta))
         return false;
 
-    fe.iel = MLGE[iel-1];
     fe.u = gpar[0][i];
     fe.v = gpar[1][i];
     fe.w = gpar[2][i];

@@ -342,16 +342,16 @@ bool ASMs2DLag::integrate (Integrand& integrand,
   for (size_t g = 0; g < threadGroups.size() && ok; g++)
   {
 #pragma omp parallel for schedule(static)
-    for (size_t t = 0; t < threadGroups[g].size(); t++)
+    for (const IntVec& group : threadGroups[g])
     {
       FiniteElement fe;
       Matrix Jac;
       Vec4 X(nullptr,time.t);
-      for (size_t e = 0; e < threadGroups[g][t].size() && ok; e++)
+      for (size_t e = 0; e < group.size() && ok; e++)
       {
-        int iel = threadGroups[g][t][e];
-        int i1  = nelx > 0 ? iel % nelx : 0;
-        int i2  = nelx > 0 ? iel / nelx : 0;
+        int iel = group[e];
+        fe.iel = MLGE[iel];
+        if (fe.iel < 1) continue; // zero-area element
 
         // Set up nodal point coordinates for current element
         if (!this->getElementCoordinates(fe.Xn,1+iel))
@@ -372,7 +372,6 @@ bool ASMs2DLag::integrate (Integrand& integrand,
         }
 
         // Initialize element quantities
-        fe.iel = MLGE[iel];
         LocalIntegral* A = integrand.getLocalIntegral(fe.Xn.cols(),fe.iel);
         const int nRed = fe.Xn.cols() < 4 ? 0 : cache.nGauss(true).front();
         if (!integrand.initElement(MNPC[iel],fe,X,nRed*nRed,*A))
@@ -381,6 +380,9 @@ bool ASMs2DLag::integrate (Integrand& integrand,
           ok = false;
           break;
         }
+
+        int i1 = nelx > 0 ? iel % nelx : 0;
+        int i2 = nelx > 0 ? iel / nelx : 0;
 
         if (xr)
         {
@@ -537,6 +539,9 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
   for (int i2 = 0; i2 < nely; i2++)
     for (int i1 = 0; i1 < nelx; i1++, iel++)
     {
+      fe.iel = abs(MLGE[doXelms+iel-1]);
+      if (fe.iel < 1) continue; // zero-area element
+
       // Skip elements that are not on current boundary edge
       bool skipMe = false;
       switch (edgeDir)
@@ -552,7 +557,6 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
       if (!this->getElementCoordinates(fe.Xn,iel)) return false;
 
       // Initialize element quantities
-      fe.iel = abs(MLGE[doXelms+iel-1]);
       LocalIntegral* A = integrand.getLocalIntegral(fe.Xn.cols(),fe.iel,true);
       bool ok = integrand.initElementBou(MNPC[doXelms+iel-1],*A);
 
@@ -756,11 +760,13 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   Matrix        dNdu, Jac;
 
   // Evaluate the secondary solution field at each point
-  const int nel = this->getNoElms(true);
-  for (int iel = 1; iel <= nel; iel++)
+  for (size_t iel = 0; iel < nel; iel++)
   {
-    const IntVec& mnpc = MNPC[iel-1];
-    this->getElementCoordinates(fe.Xn,iel);
+    fe.iel = MLGE[iel];
+    if (fe.iel < 1) continue; // zero-area element
+
+    const IntVec& mnpc = MNPC[iel];
+    this->getElementCoordinates(fe.Xn,1+iel);
 
     int i, j, loc = 0;
     for (j = 0; j < p2; j++)
@@ -770,8 +776,6 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
         fe.eta = -1.0 + j*incy;
         if (!Lagrange::computeBasis(fe.N,dNdu,p1,fe.xi,p2,fe.eta))
           return false;
-
-        fe.iel = MLGE[iel-1];
 
         // Compute the Jacobian inverse
         fe.detJxW = utl::Jacobian(Jac,fe.dNdX,fe.Xn,dNdu);
@@ -811,16 +815,18 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   Matrix        dNdu, Jac;
 
   // Evaluate the secondary solution field at each point
-  for (size_t i = 0; i < gpar[0].size(); ++i) {
+  for (size_t i = 0; i < nPoints; i++)
+  {
     const int iel = this->findElement(gpar[0][i], gpar[1][i], &fe.xi, &fe.eta);
 
     if (!this->getElementCoordinates(fe.Xn,iel))
       return false;
 
+    fe.iel = MLGE[iel-1];
+    if (fe.iel < 1) continue; // zero-area element
+
     if (!Lagrange::computeBasis(fe.N,dNdu,p1,fe.xi,p2,fe.eta))
       return false;
-
-    fe.iel = MLGE[iel-1];
 
     // Compute the Jacobian inverse
     fe.detJxW = utl::Jacobian(Jac,fe.dNdX,fe.Xn,dNdu);

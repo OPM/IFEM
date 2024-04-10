@@ -269,36 +269,39 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
   for (size_t g = 0; g < threadGroups.size() && ok; g++)
   {
 #pragma omp parallel for schedule(static)
-    for (size_t t = 0; t < threadGroups[g].size(); t++)
+    for (const IntVec& group : threadGroups[g])
     {
       MxFiniteElement fe(elem_size);
       Matrix Xnod, Jac;
       Vec4   X(nullptr,time.t);
-      for (size_t e = 0; e < threadGroups[g][t].size() && ok; ++e)
+      for (size_t e = 0; e < group.size() && ok; e++)
       {
-        int iel = threadGroups[g][t][e];
-        int i1  = iel % nelx;
-        int i2  = iel / nelx;
+        int iel = group[e];
+        fe.iel = MLGE[iel];
+        if (fe.iel < 1) continue; // zero-area element
 
         // Set up control point coordinates for current element
-        if (!this->getElementCoordinates(Xnod,++iel))
+        if (!this->getElementCoordinates(Xnod,1+iel))
         {
           ok = false;
           break;
         }
 
-        if (useElmVtx)
-          fe.h = this->getElementCorners(p1+i1-1,p2+i2-1,fe.XC);
-
         // Initialize element quantities
-        fe.iel = MLGE[iel-1];
         LocalIntegral* A = integrand.getLocalIntegral(elem_size,fe.iel,false);
-        if (!integrand.initElement(MNPC[iel-1],elem_size,nb,*A))
+        if (!integrand.initElement(MNPC[iel],elem_size,nb,*A))
         {
           A->destruct();
           ok = false;
           break;
         }
+
+        int i1 = iel % nelx;
+        int i2 = iel / nelx;
+
+        if (useElmVtx)
+          fe.h = this->getElementCorners(p1+i1-1,p2+i2-1,fe.XC);
+
 
         // --- Integration loop over all Gauss points in each direction --------
 
@@ -320,7 +323,7 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
             // Fetch basis function derivatives at current integration point
             BasisValuesPtrs bfs(this->getNoBasis());
             for (size_t b = 0; b < this->getNoBasis(); ++b) {
-              bfs[b] = &myCache[b]->getVals(iel-1,ip);
+              bfs[b] = &myCache[b]->getVals(iel,ip);
               fe.basis(b+1) = bfs[b]->N;
             }
 
@@ -395,6 +398,9 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
   for (int i2 = 0; i2 < nely; i2++)
     for (int i1 = 0; i1 < nelx; i1++, iel++)
     {
+      fe.iel = MLGE[iel-1];
+      if (fe.iel < 1) continue; // zero-area element
+
       // Skip elements that are not on current boundary edge
       bool skipMe = false;
       switch (edgeDir)
@@ -410,7 +416,6 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
       if (!this->getElementCoordinates(Xnod,iel)) return false;
 
       // Initialize element quantities
-      fe.iel = MLGE[iel-1];
       LocalIntegral* A = integrand.getLocalIntegral(elem_size,fe.iel,true);
       bool ok = integrand.initElementBou(MNPC[iel-1],elem_size,nb,*A);
 
@@ -509,16 +514,16 @@ bool ASMs2DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   Matrix          Xnod, Jac;
 
   // Evaluate the secondary solution field at each point
-  for (size_t iel = 1; iel <= nel; iel++)
+  for (size_t iel = 0; iel < nel; iel++)
   {
-    IntVec::const_iterator f2start = itgBasis == 1? MNPC[iel-1].begin() :
-                                     MNPC[iel-1].begin() +
+    IntVec::const_iterator f2start = itgBasis == 1? MNPC[iel].begin() :
+                                     MNPC[iel].begin() +
                                      std::accumulate(elem_size.begin()+itgBasis-2,
                                                      elem_size.begin()+itgBasis-1, 0);
     IntVec::const_iterator f2end = f2start + elem_size[itgBasis-1];
     IntVec mnpc1(f2start,f2end);
 
-    this->getElementCoordinates(Xnod,iel);
+    this->getElementCoordinates(Xnod,1+iel);
 
     int i, j, loc = 0;
     for (j = 0; j < p2; j++)
@@ -539,7 +544,7 @@ bool ASMs2DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
         // Now evaluate the solution field
         if (!integrand.evalSol(solPt,fe,Xnod*fe.basis(itgBasis),
-                               MNPC[iel-1],elem_size,nb))
+                               MNPC[iel],elem_size,nb))
           return false;
         else if (sField.empty())
           sField.resize(solPt.size(),nPoints,true);
@@ -566,16 +571,21 @@ bool ASMs2DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   size_t nPoints = gpar[0].size();
 
   MxFiniteElement fe(elem_size);
-  Vector        solPt;
-  Vectors       globSolPt(nPoints);
-  Matrix        Xnod, Jac;
-  BasisValues   bfs(nxx.size());
+  Vector          solPt;
+  Vectors         globSolPt(nPoints);
+  Matrix          Xnod, Jac;
+  BasisValues     bfs(nxx.size());
 
   // Evaluate the secondary solution field at each point
-  for (size_t i = 0; i < nPoints; ++i) {
+  for (size_t i = 0; i < nPoints; i++)
+  {
     const int iel = this->findElement(gpar[0][i], gpar[1][i], &fe.xi, &fe.eta);
 
-    this->getElementCoordinates(Xnod,iel);
+    if (!this->getElementCoordinates(Xnod,iel))
+      return false;
+
+    fe.iel = MLGE[iel-1];
+    if (fe.iel < 1) continue; // zero-area element
 
     for (size_t b = 0; b < nxx.size(); ++b)
       if (!Lagrange::computeBasis(fe.basis(b+1),bfs[b].dNdu,
@@ -583,7 +593,6 @@ bool ASMs2DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
                                   elem_sizes[b][1],fe.eta))
         return false;
 
-    fe.iel = MLGE[iel-1];
     fe.u = gpar[0][i];
     fe.v = gpar[1][i];
 

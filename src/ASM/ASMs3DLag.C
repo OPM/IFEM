@@ -381,17 +381,16 @@ bool ASMs3DLag::integrate (Integrand& integrand,
   for (size_t g = 0; g < threadGroupsVol.size() && ok; g++)
   {
 #pragma omp parallel for schedule(static)
-    for (size_t t = 0; t < threadGroupsVol[g].size(); t++)
+    for (const IntVec& group : threadGroupsVol[g])
     {
       FiniteElement fe;
       Matrix Jac;
       Vec4 X(nullptr,time.t);
-      for (size_t l = 0; l < threadGroupsVol[g][t].size() && ok; l++)
+      for (size_t e = 0; e < group.size() && ok; e++)
       {
-        int iel = threadGroupsVol[g][t][l];
-        int i1  = nel1*nel2 > 0 ?  iel % nel1         : 0;
-        int i2  = nel1*nel2 > 0 ? (iel / nel1) % nel2 : 0;
-        int i3  = nel1*nel2 > 0 ?  iel / (nel1*nel2)  : 0;
+        int iel = group[e];
+        fe.iel = MLGE[iel];
+        if (fe.iel < 1) continue; // zero-volume element
 
         // Set up nodal point coordinates for current element
         if (!this->getElementCoordinates(fe.Xn,1+iel))
@@ -412,7 +411,6 @@ bool ASMs3DLag::integrate (Integrand& integrand,
         }
 
         // Initialize element quantities
-        fe.iel = MLGE[iel];
         LocalIntegral* A = integrand.getLocalIntegral(fe.Xn.cols(),fe.iel);
         int nRed = cache.nGauss(true)[0];
         if (!integrand.initElement(MNPC[iel],fe,X,nRed*nRed*nRed,*A))
@@ -421,6 +419,10 @@ bool ASMs3DLag::integrate (Integrand& integrand,
           ok = false;
           break;
         }
+
+        int i1 = nel1*nel2 > 0 ?  iel % nel1         : 0;
+        int i2 = nel1*nel2 > 0 ? (iel / nel1) % nel2 : 0;
+        int i3 = nel1*nel2 > 0 ?  iel / (nel1*nel2)  : 0;
 
         if (xr)
         {
@@ -625,7 +627,7 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
   for (size_t g = 0; g < threadGrp.size() && ok; g++)
   {
 #pragma omp parallel for schedule(static)
-    for (size_t t = 0; t < threadGrp[g].size(); t++)
+    for (const IntVec& group : threadGrp[g])
     {
       FiniteElement fe;
       fe.u = upar.front();
@@ -638,29 +640,31 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
       Vec3   normal;
       double xi[3];
 
-      for (size_t l = 0; l < threadGrp[g][t].size() && ok; l++)
+      for (size_t e = 0; e < group.size() && ok; e++)
       {
-        int iel = threadGrp[g][t][l];
-        int i1  =  iel % nel1;
-        int i2  = (iel / nel1) % nel2;
-        int i3  =  iel / (nel1*nel2);
+        int iel = group[e];
+        fe.iel = abs(MLGE[doXelms+iel]);
+        if (fe.iel < 1) continue; // zero-volume element
 
         // Set up nodal point coordinates for current element
-        if (!this->getElementCoordinates(fe.Xn,++iel))
+        if (!this->getElementCoordinates(fe.Xn,1+iel))
         {
           ok = false;
           break;
         }
 
         // Initialize element quantities
-        fe.iel = abs(MLGE[doXelms+iel-1]);
         LocalIntegral* A = integrand.getLocalIntegral(fe.Xn.cols(),fe.iel,true);
-        if (!integrand.initElementBou(MNPC[doXelms+iel-1],*A))
+        if (!integrand.initElementBou(MNPC[doXelms+iel],*A))
         {
           A->destruct();
           ok = false;
           break;
         }
+
+        int i1 =  iel % nel1;
+        int i2 = (iel / nel1) % nel2;
+        int i3 =  iel / (nel1*nel2);
 
         // Define some loop control variables depending on which face we are on
         int nf1 = 0, j1 = 0, j2 = 0;
@@ -791,6 +795,9 @@ bool ASMs3DLag::integrateEdge (Integrand& integrand, int lEdge,
     for (int i2 = 0; i2 < nely; i2++)
       for (int i1 = 0; i1 < nelx; i1++, iel++)
       {
+        fe.iel = MLGE[iel-1];
+        if (fe.iel < 1) continue; // zero-volume element
+
         // Skip elements that are not on current boundary edge
         bool skipMe = false;
         switch (lEdge)
@@ -821,7 +828,6 @@ bool ASMs3DLag::integrateEdge (Integrand& integrand, int lEdge,
         if (!this->getElementCoordinates(fe.Xn,iel)) return false;
 
         // Initialize element quantities
-        fe.iel = MLGE[iel-1];
         LocalIntegral* A = integrand.getLocalIntegral(fe.Xn.cols(),fe.iel,true);
         bool ok = integrand.initElementBou(MNPC[iel-1],*A);
 
@@ -1058,12 +1064,13 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   Matrix        dNdu, Jac;
 
   // Evaluate the secondary solution field at each point
-  const int nel = this->getNoElms(true);
-  for (int iel = 1; iel <= nel; iel++)
+  for (size_t iel = 0; iel < nel; iel++)
   {
-    fe.iel = MLGE[iel-1];
-    const IntVec& mnpc = MNPC[iel-1];
-    this->getElementCoordinates(fe.Xn,iel);
+    fe.iel = MLGE[iel];
+    if (fe.iel < 1) continue; // zero-volume element
+
+    const IntVec& mnpc = MNPC[iel];
+    this->getElementCoordinates(fe.Xn,1+iel);
 
     int i, j, k, loc = 0;
     for (k = 0; k < p3; k++)
@@ -1113,17 +1120,19 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   Matrix        dNdu, Jac;
 
   // Evaluate the secondary solution field at each point
-  for (size_t i = 0; i < gpar[0].size(); ++i) {
+  for (size_t i = 0; i < nPoints; i++)
+  {
     const int iel = this->findElement(gpar[0][i], gpar[1][i], gpar[2][i],
                                       &fe.xi, &fe.eta, &fe.zeta);
 
     if (!this->getElementCoordinates(fe.Xn,iel))
       return false;
 
+    fe.iel = MLGE[iel-1];
+    if (fe.iel < 1) continue; // zero-volume element
+
     if (!Lagrange::computeBasis(fe.N,dNdu,p1,fe.xi,p2,fe.eta,p3,fe.zeta))
       return false;
-
-    fe.iel = MLGE[iel-1];
 
     // Compute the Jacobian inverse
     fe.detJxW = utl::Jacobian(Jac,fe.dNdX,fe.Xn,dNdu);

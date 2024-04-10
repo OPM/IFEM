@@ -59,7 +59,7 @@ protected:
 
     //! \brief Calculates basis function info in a single integration point.
     //! \param[in] gp Integration point on element (0-indexed)
-    //! \param[in] reduced If \e true, returns for reduced integration scheme
+    //! \param[in] red If \e true, returns for reduced integration scheme
     BasisFunctionVals calculatePt(size_t, size_t gp, bool red) const override;
 
     //! \brief Calculates basis function info in all integration points.
