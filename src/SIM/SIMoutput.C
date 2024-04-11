@@ -28,6 +28,7 @@
 #include <array>
 #include <fstream>
 #include <iomanip>
+#include <numeric>
 
 
 SIMoutput::SIMoutput (IntegrandBase* itg) : SIMinput(itg)
@@ -592,6 +593,28 @@ bool SIMoutput::writeGlvBC (int& nBlock, int iStep) const
 }
 
 
+bool SIMoutput::writeGlvNo (int& nBlock, int iStep, int idBlock) const
+{
+  Vector scl(this->getNoNodes());
+  std::iota(scl.begin(),scl.end(),1.0);
+  if (!this->writeGlvS(scl,"Global node numbers",iStep,nBlock,idBlock))
+    return false;
+
+  scl.clear();
+  for (int n : myLoc2Glb) scl.push_back(n);
+  if (!this->writeGlvS(scl,"Original node numbers",iStep,nBlock,idBlock+1))
+    return false;
+  else if (myDegenElm.empty())
+    return true;
+
+  scl.fill(0.0);
+  scl.resize(this->getNoNodes(),0.0);
+  for (const std::pair<const int,int>& degen : myDegenElm)
+    scl[degen.first-1] = degen.second;
+  return this->writeGlvS(scl,"Collapsed triangles",iStep,nBlock,idBlock+2);
+}
+
+
 bool SIMoutput::writeGlvT (int iStep, int& geoBlk, int& nBlock) const
 {
   if (myVtf && myProblem->hasTractionValues())
@@ -665,7 +688,8 @@ bool SIMoutput::writeGlvS (const Vector& scl, const char* fieldName,
     if (pch->empty()) continue; // skip empty patches
 
     if (msgLevel > 1)
-      IFEM::cout <<"Writing scalar field for patch "<< pch->idx+1 << std::endl;
+      IFEM::cout <<"Writing scalar field \""<< fieldName
+                 <<"\" for patch "<< pch->idx+1 << std::endl;
 
     int ncmp = scl.size() / this->getNoNodes(basis);
     this->extractPatchSolution(scl,lovec,pch,ncmp,basis);

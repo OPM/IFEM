@@ -75,14 +75,22 @@ public:
   virtual bool writeGlvG(int& nBlock, const char* inpFile, bool doClear = true);
 
   //! \brief Writes additional, problem-specific, results to the VTF-file.
-  //! \param nBlock Running result block counter
-  //! \param[in] iStep Load/time step identifier
-  virtual bool writeGlvA(int& nBlock, int iStep, int = 1) const { return true; }
+  virtual bool writeGlvA(int&, int, int = 1) const { return true; }
 
   //! \brief Writes boundary conditions as scalar fields to the VTF-file.
   //! \param nBlock Running result block counter
   //! \param[in] iStep Load/time step identifier
   bool writeGlvBC(int& nBlock, int iStep = 1) const;
+
+  //! \brief Writes global node numbers as scalar fields to the VTF-file.
+  //! \param nBlock Running result block counter
+  //! \param[in] iStep Load/time step identifier
+  //! \param[in] idBlock Result block ID number
+  //!
+  //! \details If you have a complex model with lots of nodal points,
+  //! this might be used as a tool to identify the location of the nodes
+  //! by visualizing their global number and the original node numbers.
+  bool writeGlvNo(int& nBlock, int iStep = 1, int idBlock = 4) const;
 
   //! \brief Writes boundary tractions for a given time step to the VTF-file.
   //! \param[in] iStep Load/time step identifier
@@ -264,11 +272,8 @@ public:
   bool dumpVector(const Vector& vsol, const char* fname,
                   utl::LogStream& os, std::streamsize precision = 3) const;
   //! \brief Dumps additional problem-specific results in ASCII format.
-  //! \param[in] time Load/time step parameter
-  //! \param os Output stream to write the solution data to
-  //! \param[in] precision Number of digits after the decimal point
-  virtual void dumpMoreResults(double time, utl::LogStream& os,
-                               std::streamsize precision = 3) const {}
+  virtual void dumpMoreResults(double, utl::LogStream&,
+                               std::streamsize = 3) const {}
 
   //! \brief Saves point results to output file for a given time step.
   //! \param[in] psol Primary solution vector
