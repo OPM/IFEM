@@ -107,7 +107,7 @@ protected:
   //! \param[in] lndx Local index of the boundary item to receive the property
   //! \param[in] ldim Dimension of the boundary item to receive the property
   //! \param[in] dirs Which local DOFs to constrain
-  //! \param[in] code In-homegeneous Dirichlet condition property code
+  //! \param[in] code In-homogeneous Dirichlet condition property code
   //! \param ngnod Total number of global nodes in the model (might be updated)
   //! \param[in] basis Which basis to apply the constraint to (mixed methods)
   virtual bool addConstraint(int patch, int lndx, int ldim,

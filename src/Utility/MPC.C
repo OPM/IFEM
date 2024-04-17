@@ -7,7 +7,7 @@
 //!
 //! \author Knut Morten Okstad / SINTEF
 //!
-//! \brief Representation of multi-point constraint (MPC) equations.
+//! \brief Representation of multi-point constraint (%MPC) equations.
 //!
 //==============================================================================
 

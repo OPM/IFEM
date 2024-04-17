@@ -63,6 +63,11 @@ protected:
   //! \param[in] elem The XML element to parse
   virtual bool parse(const tinyxml2::XMLElement* elem);
 
+  //! \brief Parses a data section from an input stream.
+  //! \param[in] keyWord Keyword of current data section to read
+  //! \param is The file stream to read from
+  virtual bool parse(char* keyWord, std::istream& is);
+
   //! \brief Parses a dimension-specific subelement of the \a geometry XML-tag.
   virtual bool parseGeometryDimTag(const tinyxml2::XMLElement* elem)
   {
@@ -72,11 +77,6 @@ protected:
   //! \brief Parses or generates app-specific explicit knots for refinement.
   virtual bool parseXi(const tinyxml2::XMLElement*, RealArray&) const
   { return false; }
-
-  //! \brief Parses a data section from an input stream.
-  //! \param[in] keyWord Keyword of current data section to read
-  //! \param is The file stream to read from
-  virtual bool parse(char* keyWord, std::istream& is);
 
   //! \brief Preprocesses a user-defined Dirichlet boundary property.
   //! \param[in] patch 1-based index of the patch to receive the property
@@ -101,8 +101,8 @@ protected:
                              const char* whiteSpace) const;
 
   //! \brief Connects two patches.
-  //! \param[in] interface Patch interface definition
-  virtual bool connectPatches(const ASM::Interface& interface, bool = true);
+  //! \param[in] ifc Patch interface definition
+  virtual bool connectPatches(const ASM::Interface& ifc, bool = true);
 
 protected:
   unsigned char nf; //!< Number of scalar fields
