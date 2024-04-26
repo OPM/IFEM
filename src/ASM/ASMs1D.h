@@ -378,7 +378,7 @@ protected:
 
   //! \brief Initializes the local element axes for a patch of beam elements.
   //! \param[in] Zaxis Vector defining a point in the local XZ-plane
-  bool initLocalElementAxes(const Vec3& Zaxis);
+  virtual bool initLocalElementAxes(const Vec3& Zaxis);
 
   //! \brief Connects matching nodes on two adjacent vertices.
   //! \param neighbor The neighbor patch
