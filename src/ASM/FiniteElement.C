@@ -32,13 +32,15 @@ std::ostream& FiniteElement::write (std::ostream& os) const
   if (!d3NdX3.empty()) os <<"d3NdX3: "<< d3NdX3;
   if (!G.empty())      os <<"G:"<< G;
   if (!H.empty())      os <<"H:"<< H;
+  if (!P.empty())      os <<"P:"<< P;
+  if (!dPdX.empty())   os <<"dPdX:"<< dPdX;
   if (!Navg.empty())   os <<"Navg:"<< Navg;
   if (!Xn.empty())     os <<"Xn:"<< Xn;
   if (!Te.isZero(0.0)) os <<"Te:\n"<< Te;
   for (size_t i = 0; i < Tn.size(); i++)
     os <<"Tn_"<< i+1 <<":\n"<< Tn[i];
-  if (!P.empty())     os << "P:\n"<< P;
-  if (!dPdX.empty())  os << "dPdX:\n"<< dPdX;
+  for (size_t j = 0; j < En.size(); j++)
+    os <<"En_"<< j+1 <<": "<< En[j] << std::endl;
   return os;
 }
 
