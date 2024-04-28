@@ -33,23 +33,20 @@ protected:
   //! \brief The destructor deletes the dynamically allocated members.
   virtual ~SIMmodal();
 
+  //! \brief Parses structural damping parameters from an XML element.
+  bool parseParams(const tinyxml2::XMLElement* elem);
+
   //! \brief Calculates the dynamic solution from the previous modal solution.
   //! \param[in] mSol Previous modal solution
-  //! \param[out] pSol Dynamic solution vectors
-  bool expandSolution(const Vectors& mSol, Vectors& pSol) const;
+  const Vectors& expandSolution(const Vectors& mSol);
 
   //! \brief Administers assembly of the modal equation system.
   //! \param[in] time Parameters for time-dependent simulations
   //! \param[in] mSol Previous modal solution
-  //! \param[in] Rhs Current right-hand-side load vector
   //! \param[in] beta Newmark time integration parameter
   //! \param[in] gamma Newmark time integration parameter
-  //! \param[in] alpha1 Mass-proportional damping factor
-  //! \param[in] alpha2 Stiffness-proportional damping factor
-  bool assembleModalSystem(const TimeDomain& time,
-                           const Vectors& mSol, const Vector& Rhs,
-                           double beta, double gamma,
-                           double alpha1 = 0.0, double alpha2 = 0.0);
+  bool assembleModalSystem(const TimeDomain& time, const Vectors& mSol,
+                           double beta, double gamma);
 
   //! \brief Swaps the modal equation system before/after load vector assembly.
   bool swapSystem(AlgEqSystem*& sys, SAM*& sam);
@@ -63,9 +60,10 @@ public:
   //! \brief Expands and returns the current dynamic solution.
   virtual const Vectors& expandSolution(const Vectors&, bool = false) = 0;
   //! \brief Returns the current expanded dynamic solution.
-  virtual const Vector& expandedSolution(int) const = 0;
+  //! \param[in] idx Solution vector index
+  const Vector& expandedSolution(int idx) const;
   //! \brief Returns the number of expanded dynamic solution vectors.
-  virtual size_t numExpSolution() const = 0;
+  size_t numExpSolution() const { return sol.size(); }
 
   //! \brief Projects the secondary solution associated with the eigenmodes.
   virtual bool projectModes(Matrices&, std::vector<std::string>&,
@@ -73,6 +71,13 @@ public:
 
 protected:
   std::vector<Mode>& myModes; //!< Array of eigenmodes
+
+  Vector  Rhs; //!< Current right-hand-side load vector of the dynamic system
+  Vectors sol; //!< Expanded solution vectors from the modal solution
+
+  bool   parsed; //!< Set to \e true after the model has been initialized
+  double alpha1; //!< Mass-proportional damping parameter
+  double alpha2; //!< Stiffness-proportional damping parameter
 
 private:
   AlgEqSystem* modalSys; //!< The modal equation system

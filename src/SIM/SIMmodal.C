@@ -15,6 +15,9 @@
 #include "AlgEqSystem.h"
 #include "NewmarkMats.h"
 #include "SAM.h"
+#include "Utilities.h"
+#include "IFEM.h"
+#include "tinyxml2.h"
 #include <numeric>
 #include <algorithm>
 #ifdef HAS_CEREAL
@@ -53,6 +56,9 @@ public:
 
 SIMmodal::SIMmodal (std::vector<Mode>& modes) : myModes(modes)
 {
+  parsed = false;
+  alpha1 = alpha2 = 0.0;
+
   modalSys = nullptr;
   modalSam = nullptr;
   myElmMat = nullptr;
@@ -67,6 +73,22 @@ SIMmodal::~SIMmodal ()
 }
 
 
+bool SIMmodal::parseParams (const tinyxml2::XMLElement* elem)
+{
+  if (parsed)
+    IFEM::cout <<"\t(skipped)"<< std::endl;
+  else if (elem && !strcasecmp(elem->Value(),"newmarksolver"))
+  {
+    utl::getAttribute(elem,"alpha1",alpha1);
+    utl::getAttribute(elem,"alpha2",alpha2);
+  }
+  else
+    return false;
+
+  return true;
+}
+
+
 bool SIMmodal::swapSystem (AlgEqSystem*& sys, SAM*& sam)
 {
   if (!modalSys || !sam)
@@ -78,46 +100,57 @@ bool SIMmodal::swapSystem (AlgEqSystem*& sys, SAM*& sam)
 }
 
 
-bool SIMmodal::expandSolution (const Vectors& mSol, Vectors& pSol) const
+const Vectors& SIMmodal::expandSolution (const Vectors& mSol)
 {
-  if (pSol.empty())
-    pSol.resize(mSol.size());
-  else if (pSol.size() != mSol.size())
+  if (sol.empty())
+    sol.resize(mSol.size());
+  else if (sol.size() != mSol.size())
   {
     std::cerr <<" *** SIMmodal::expandSolution: Invalid modal solution, "
-              <<" size(mSol) = "<< mSol.size() <<" ("<< pSol.size()
+              <<" size(mSol) = "<< mSol.size() <<" ("<< sol.size()
               <<" expected)."<< std::endl;
-    return false;
+    sol.clear();
   }
 
-  for (size_t i = 0; i < pSol.size(); i++)
+  for (size_t i = 0; i < sol.size(); i++)
     if (mSol[i].size() != myModes.size())
     {
       std::cerr <<" *** SIMmodal::expandSolution: Invalid dimension"
                 <<" on modal solution vector "<< i+1 <<": "<< mSol[i].size()
                 <<" != "<< myModes.size() << std::endl;
-      return false;
+      sol.clear();
     }
     else
     {
-      if (pSol[i].empty())
-        pSol[i].resize(myModes.front().eigVec.size());
-      else if (pSol[i].size() == myModes.front().eigVec.size())
-        pSol[i].fill(0.0);
+      if (sol[i].empty())
+        sol[i].resize(myModes.front().eigVec.size());
+      else if (sol[i].size() == myModes.front().eigVec.size())
+        sol[i].fill(0.0);
       else
       {
         std::cerr <<" *** SIMmodal::expandSolution: Logic error, "
-                  <<" size(pSol["<< i <<"]) = "<< pSol[i].size()
+                  <<" size(sol["<< i <<"]) = "<< sol[i].size()
                   <<" != size(eigVec) = "<< myModes.front().eigVec.size()
                   << std::endl;
-        return false;
+        sol.clear();
+        break;
       }
 
       for (size_t j = 0; j < myModes.size(); j++)
-        pSol[i].add(myModes[j].eigVec,mSol[i][j]);
+        sol[i].add(myModes[j].eigVec,mSol[i][j]);
     }
 
-  return true;
+  return sol;
+}
+
+
+const Vector& SIMmodal::expandedSolution (int idx) const
+{
+  if (idx >= 0 && idx < static_cast<int>(sol.size()))
+    return sol[idx];
+
+  static Vector empty;
+  return empty;
 }
 
 
@@ -129,10 +162,8 @@ bool SIMmodal::expandSolution (const Vectors& mSol, Vectors& pSol) const
   (i.e., the angular eigenfrequencies squared) enter the equation system.
 */
 
-bool SIMmodal::assembleModalSystem (const TimeDomain& time,
-                                    const Vectors& mSol, const Vector& Rhs,
-                                    double beta, double gamma,
-                                    double alpha1, double alpha2)
+bool SIMmodal::assembleModalSystem (const TimeDomain& time, const Vectors& mSol,
+                                    double beta, double gamma)
 {
   if (!modalSam)
     // Create a diagonal SAM object
