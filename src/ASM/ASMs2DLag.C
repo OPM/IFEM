@@ -405,6 +405,10 @@ bool ASMs2DLag::integrate (Integrand& integrand,
 
               // Compute Jacobian inverse and derivatives
               fe.detJxW = utl::Jacobian(Jac,fe.dNdX,fe.Xn,bfs.dNdu);
+              if (fe.detJxW == 0.0) continue; // skip singular points
+
+              // Store tangent vectors in fe.G for shells
+              if (nsd > 2) fe.G = Jac;
 
               // Cartesian coordinates of current integration point
               X.assign(fe.Xn * fe.N);
@@ -443,6 +447,9 @@ bool ASMs2DLag::integrate (Integrand& integrand,
             // Compute Jacobian inverse of coordinate mapping and derivatives
             fe.detJxW = utl::Jacobian(Jac,fe.dNdX,fe.Xn,bfs.dNdu);
             if (fe.detJxW == 0.0) continue; // skip singular points
+
+            // Store tangent vectors in fe.G for shells
+            if (nsd > 2) fe.G = Jac;
 
             // Cartesian coordinates of current integration point
             X.assign(fe.Xn * fe.N);
@@ -590,6 +597,9 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
         if (fe.detJxW == 0.0) continue; // skip singular points
 
         if (edgeDir < 0) normal *= -1.0;
+
+        // Store tangent vectors in fe.G for shells
+        if (nsd > 2) fe.G = Jac;
 
         // Cartesian coordinates of current integration point
         X.assign(fe.Xn * fe.N);
@@ -831,6 +841,9 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     // Compute the Jacobian inverse
     fe.detJxW = utl::Jacobian(Jac,fe.dNdX,fe.Xn,dNdu);
     if (fe.detJxW == 0.0) continue; // skip singular points
+
+    // Store tangent vectors in fe.G for shells
+    if (nsd > 2) fe.G = Jac;
 
     // Now evaluate the solution field
     if (!integrand.evalSol(solPt,fe,fe.Xn*fe.N,MNPC[iel-1]))
