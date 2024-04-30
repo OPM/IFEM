@@ -58,13 +58,6 @@ public:
     static void Gradient(std::vector<Matrix>& EM,
                          const FiniteElement& fe, double scale=1.0);
 
-    //! \brief Compute a gradient term.
-    //! \param[out] EV The element vector to add contribution to
-    //! \param[in] fe The finite element to evaluate for
-    //! \param[in] scale Scaling factor for contribution
-    static void Gradient(Vectors& EV, const FiniteElement& fe,
-                         double scale=1.0);
-
     //! \brief Compute a laplacian.
     //! \param[out] EM The element matrix to add contribution to
     //! \param[in] fe The finite element to evaluate for
@@ -111,6 +104,13 @@ public:
     static void Convection(Vectors& EV, const FiniteElement& fe,
                            const Vec3& U, const Tensor& dUdX, const Vec3& UC, double scale,
                            WeakOperators::ConvectionForm form=WeakOperators::CONVECTIVE);
+
+    //! \brief Compute a gradient term.
+    //! \param[out] EV The element vector to add contribution to
+    //! \param[in] fe The finite element to evaluate for
+    //! \param[in] scale Scaling factor for contribution
+    static void Gradient(Vectors& EV, const FiniteElement& fe,
+                         double scale=1.0);
 
     //! \brief Compute a laplacian term in a residual vector.
     //! \param[out] EV The element vector to add contribution to

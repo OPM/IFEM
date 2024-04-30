@@ -92,14 +92,6 @@ public:
     static void Gradient(Matrix& EM, const FiniteElement& fe,
                          double scale=1.0, int basis=1, int tbasis=1);
 
-    //! \brief Compute a gradient term.
-    //! \param[out] EV The element vector to add contribution to
-    //! \param[in] fe The finite element to evaluate for
-    //! \param[in] scale Scaling factor for contribution
-    //! \param[in] basis Basis to use
-    static void Gradient(Vector& EV, const FiniteElement& fe,
-                         double scale=1.0, int basis=1);
-
     //! \brief Compute a laplacian.
     //! \param[out] EM The element matrix to add contribution to
     //! \param[in] fe The finite element to evaluate for
@@ -183,6 +175,14 @@ public:
     static void Divergence(Vector& EV, const FiniteElement& fe,
                            const Tensor& dUdX, double scale=1.0,
                            size_t basis=1);
+
+    //! \brief Compute a gradient term.
+    //! \param[out] EV The element vector to add contribution to
+    //! \param[in] fe The finite element to evaluate for
+    //! \param[in] scale Scaling factor for contribution
+    //! \param[in] basis Basis to use
+    static void Gradient(Vector& EV, const FiniteElement& fe,
+                         double scale=1.0, int basis=1);
 
     //! \brief Compute a laplacian term in a residual vector.
     //! \param EV The element vector to add contribution to
