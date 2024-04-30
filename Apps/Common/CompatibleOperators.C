@@ -89,14 +89,6 @@ void CompatibleOperators::Weak::Gradient(std::vector<Matrix>& EM,
 }
 
 
-void CompatibleOperators::Weak::Gradient(Vectors& EV, const FiniteElement& fe,
-                                         double scale)
-{
-  for (size_t n = 1; n <= fe.grad(n).cols(); ++n)
-    EV[n].add(fe.grad(n).getColumn(n), scale*fe.detJxW);
-}
-
-
 void CompatibleOperators::Weak::Laplacian(std::vector<Matrix>& EM,
                                           const FiniteElement& fe,
                                           double scale, bool stress)
@@ -180,6 +172,14 @@ void CompatibleOperators::Residual::Convection(Vectors& EV, const FiniteElement&
         break;
     }
   }
+}
+
+
+void CompatibleOperators::Residual::Gradient (Vectors& EV, const FiniteElement& fe,
+                                              double scale)
+{
+  for (size_t n = 1; n <= fe.grad(n).cols(); ++n)
+    EV[n].add(fe.grad(n).getColumn(n), scale*fe.detJxW);
 }
 
 

@@ -160,16 +160,6 @@ void EqualOrderOperators::Weak::Divergence (Vector& EV,
 }
 
 
-void EqualOrderOperators::Weak::Gradient (Vector& EV,
-                                          const FiniteElement& fe,
-                                          double scale, int basis)
-{
-  size_t nsd = fe.grad(basis).cols();
-  for (size_t k = 1; k <= nsd; ++k)
-    EV.add(fe.grad(basis).getColumn(k), scale*fe.detJxW, 0, 1, k-1, nsd);
-}
-
-
 void EqualOrderOperators::Weak::Laplacian (Matrix& EM, const FiniteElement& fe,
                                            double scale, bool stress, int basis)
 {
@@ -286,6 +276,18 @@ void EqualOrderOperators::Residual::Divergence (Vector& EV,
 {
   EV.add(fe.basis(basis),-scale*dUdX.trace()*fe.detJxW);
 }
+
+
+void EqualOrderOperators::Residual::Gradient (Vector& EV,
+                                              const FiniteElement& fe,
+                                              double scale, int basis)
+{
+  size_t nsd = fe.grad(basis).cols();
+  for (size_t k = 1; k <= nsd; ++k)
+    EV.add(fe.grad(basis).getColumn(k), scale*fe.detJxW, 0, 1, k-1, nsd);
+}
+
+
 
 
 void EqualOrderOperators::Residual::Laplacian (Vector& EV,

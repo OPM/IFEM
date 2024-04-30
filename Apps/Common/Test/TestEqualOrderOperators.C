@@ -95,7 +95,7 @@ TEST(TestEqualOrderOperators, Gradient)
   check_matrix_equal(EM_scalar, EM_scalar_ref);
 
   Vector EV_scalar(4);
-  EqualOrderOperators::Weak::Gradient(EV_scalar, fe);
+  EqualOrderOperators::Residual::Gradient(EV_scalar, fe);
   ASSERT_NEAR(EV_scalar(1),  fe.dNdX(1,1), 1e-13);
   ASSERT_NEAR(EV_scalar(2),  fe.dNdX(1,2), 1e-13);
   ASSERT_NEAR(EV_scalar(3),  fe.dNdX(2,1), 1e-13);
