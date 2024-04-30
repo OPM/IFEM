@@ -16,6 +16,14 @@
 #include "Vec3.h"
 
 
+namespace {
+  //! \brief Block indices for velocity blocks.
+  static constexpr int vidx[3][3] = {{ 1,  7,  8},
+                                     {12,  2, 13},
+                                     {17, 18,  3}};
+}
+
+
 void CompatibleOperators::Weak::Advection(std::vector<Matrix>& EM,
                                           const FiniteElement& fe,
                                           const Vec3& AC, double scale,
@@ -46,9 +54,6 @@ void CompatibleOperators::Weak::Convection(std::vector<Matrix>& EM,
                                            double scale,
                                            WeakOperators::ConvectionForm form)
 {
-  static const double vidx[3][3] = {{ 1,  7,  8},
-                                    {12,  2, 13},
-                                    {17, 18,  3}};
   size_t nsd = fe.grad(1).cols();
   for (size_t k = 1; k <= nsd; ++k)
     for (size_t l = 1; l <= nsd; ++l) {
@@ -96,10 +101,6 @@ void CompatibleOperators::Weak::Laplacian(std::vector<Matrix>& EM,
   size_t nsd = fe.grad(1).cols();
   for (size_t n = 1; n <= nsd; ++n)
     EqualOrderOperators::Weak::Laplacian(EM[n], fe, scale, false, n);
-
-  static const double vidx[3][3] = {{ 1,  7,  8},
-                                    {12,  2, 13},
-                                    {17, 18,  3}};
 
   for (size_t m = 1; m <= nsd && stress; m++)
     for (size_t n = m; n <= nsd; n++) {
