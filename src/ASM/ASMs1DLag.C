@@ -26,8 +26,7 @@
 #include "Utilities.h"
 
 
-ASMs1DLag::ASMs1DLag (unsigned char n_s, unsigned char n_f)
-  : ASMs1D(n_s,n_f), coord(myCoord)
+ASMs1DLag::ASMs1DLag (unsigned char n_s, unsigned char n_f) : ASMs1D(n_s,n_f)
 {
   nx = 0;
   p1 = 0;
@@ -35,7 +34,7 @@ ASMs1DLag::ASMs1DLag (unsigned char n_s, unsigned char n_f)
 
 
 ASMs1DLag::ASMs1DLag (const ASMs1DLag& patch, unsigned char n_f)
-  : ASMs1D(patch,n_f), coord(patch.myCoord)
+  : ASMs1D(patch,n_f), ASMLagBase(patch,false)
 {
   nx = patch.nx;
   p1 = patch.p1;
@@ -43,7 +42,7 @@ ASMs1DLag::ASMs1DLag (const ASMs1DLag& patch, unsigned char n_f)
 
 
 ASMs1DLag::ASMs1DLag (const ASMs1DLag& patch)
-  : ASMs1D(patch), coord(myCoord), myCoord(patch.coord)
+  : ASMs1D(patch), ASMLagBase(patch)
 {
   nx = patch.nx;
   p1 = patch.p1;
@@ -482,24 +481,15 @@ bool ASMs1DLag::evalSolution (Matrix& sField, const Vector& locSol,
 bool ASMs1DLag::evalSolution (Matrix& sField, const Vector& locSol,
                               const RealArray*, bool, int, int) const
 {
-  size_t nPoints = coord.size();
-  size_t nComp = locSol.size() / nPoints;
-  if (nComp*nPoints != locSol.size())
-    return false;
-
-  sField.resize(nComp,nPoints);
-  const double* u = locSol.ptr();
-  for (size_t n = 1; n <= nPoints; n++, u += nComp)
-    sField.fillColumn(n,u);
-
-  return true;
+  // Direct nodal evaluation
+  return this->nodalField(sField,locSol,coord.size());
 }
 
 
 bool ASMs1DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 			      const int*, char) const
 {
-  return this->evalSolution(sField,integrand,(const RealArray*)nullptr,0);
+  return this->evalSolution(sField,integrand,nullptr,false);
 }
 
 

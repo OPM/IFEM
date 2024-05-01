@@ -29,8 +29,7 @@
 #include <array>
 
 
-ASMs2DLag::ASMs2DLag (unsigned char n_s, unsigned char n_f)
-  : ASMs2D(n_s,n_f), coord(myCoord)
+ASMs2DLag::ASMs2DLag (unsigned char n_s, unsigned char n_f) : ASMs2D(n_s,n_f)
 {
   nx = ny = 0;
   p1 = p2 = 0;
@@ -38,7 +37,7 @@ ASMs2DLag::ASMs2DLag (unsigned char n_s, unsigned char n_f)
 
 
 ASMs2DLag::ASMs2DLag (const ASMs2DLag& patch, unsigned char n_f)
-  : ASMs2D(patch,n_f), coord(patch.myCoord)
+  : ASMs2D(patch,n_f), ASMLagBase(patch,false)
 {
   nx = patch.nx;
   ny = patch.ny;
@@ -48,7 +47,7 @@ ASMs2DLag::ASMs2DLag (const ASMs2DLag& patch, unsigned char n_f)
 
 
 ASMs2DLag::ASMs2DLag (const ASMs2DLag& patch)
-  : ASMs2D(patch), coord(myCoord), myCoord(patch.coord)
+  : ASMs2D(patch), ASMLagBase(patch)
 {
   nx = patch.nx;
   ny = patch.ny;
@@ -691,62 +690,53 @@ void ASMs2DLag::constrainEdge (int dir, bool open, int dof, int code, char basis
 
 
 bool ASMs2DLag::evalSolution (Matrix& sField, const Vector& locSol,
-                              const int*, int nf, bool) const
+                              const int*, int n_f, bool) const
 {
-  return this->evalSolution(sField,locSol,nullptr,true,0,nf);
+  return this->evalSolution(sField,locSol,nullptr,false,0,n_f);
 }
 
 
 bool ASMs2DLag::evalSolution (Matrix& sField, const Vector& locSol,
-                              const RealArray* gpar, bool, int, int) const
+                              const RealArray* gpar, bool regular,
+                              int, int) const
 {
-  if (!gpar) {
-    size_t nPoints = coord.size();
-    size_t nNodes = this->getNoNodes(-1);
-    size_t nComp = locSol.size() / nNodes;
-    if (nNodes < nPoints || nComp*nNodes != locSol.size())
-      return false;
+  if (!gpar && !regular) // Direct nodal evaluation
+    return this->nodalField(sField,locSol,this->getNoNodes(-1));
 
-    sField.resize(nComp,nPoints);
-    const double* u = locSol.ptr();
-    for (size_t n = 1; n <= nPoints; n++, u += nComp)
-      sField.fillColumn(n,u);
+  size_t nCmp = locSol.size() / this->getNoNodes();
+  size_t ni   = gpar ? gpar[0].size() : nel;
+  size_t nj   = gpar ? gpar[1].size() : 1;
 
-    return true;
-  }
-
-  size_t nNodes = gpar[0].size()*gpar[1].size();
-  size_t nComp = locSol.size() / this->getNoNodes();
-
-  sField.resize(nComp, nNodes);
-
+  sField.resize(nCmp,ni*nj);
+  Matrix elmSol(nCmp,p1*p2);
   RealArray N(p1*p2);
-  double xi, eta;
 
-  size_t n = 1;
-  for (size_t j = 0; j < gpar[1].size(); ++j)
-    for (size_t i = 0; i < gpar[0].size(); ++i, ++n) {
-      const int iel = this->findElement(gpar[0][i], gpar[1][j], &xi, &eta);
-      if (iel < 1 || iel > int(MNPC.size()))
+  double xi = 0.0, eta = 0.0;
+  if (!gpar && !Lagrange::computeBasis(N,p1,xi,p2,eta))
+    return false;
+
+  size_t ip = 1;
+  int iel = 0;
+  for (size_t j = 0; j < nj; j++)
+    for (size_t i = 0; i < ni; i++, ip++)
+    {
+      if (gpar)
+        iel = this->findElement(gpar[0][i], gpar[1][j], &xi, &eta);
+      else
+        iel++;
+      if (iel < 1 || iel > static_cast<int>(nel))
         return false;
 
-      if (!Lagrange::computeBasis(N,p1,xi,p2,eta))
+      if (gpar && !Lagrange::computeBasis(N,p1,xi,p2,eta))
         return false;
-
-      Matrix elmSol(nComp, p1*p2);
-      const IntVec& mnpc = MNPC[iel-1];
 
       size_t idx = 1;
-      for (const int& m : mnpc) {
-        for (size_t c = 1; c <= nComp; ++c)
-          elmSol(c,idx) = locSol(m*nComp+c);
-        ++idx;
-      }
+      for (int inod : MNPC[iel-1])
+        elmSol.fillColumn(idx++,locSol.data()+inod*nCmp);
 
       Vector val;
-      elmSol.multiply(N, val);
-      for (size_t c = 1; c <= nComp; ++c)
-        sField(c,n) = val(c);
+      elmSol.multiply(N,val);
+      sField.fillColumn(ip,val);
     }
 
   return true;

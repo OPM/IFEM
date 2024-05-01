@@ -38,7 +38,7 @@ public:
   //! \brief Empty destructor.
   virtual ~NewmarkMats() {}
 
-  //! \brief Updates the time step size and the \a isPredictor flag.
+  //! \brief Updates the time step size and the \ref isPredictor flag.
   //! \param[in] dt New time step size
   //! \param[in] it Newton-Raphson iteration counter
   virtual void setStepSize(double dt, int it) { h = dt; isPredictor = it == 0; }

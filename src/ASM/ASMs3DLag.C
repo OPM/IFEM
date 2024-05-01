@@ -29,7 +29,7 @@
 #include <array>
 
 
-ASMs3DLag::ASMs3DLag (unsigned char n_f) : ASMs3D(n_f), coord(myCoord)
+ASMs3DLag::ASMs3DLag (unsigned char n_f) : ASMs3D(n_f)
 {
   nx = ny = nz = 0;
   p1 = p2 = p3 = 0;
@@ -37,7 +37,7 @@ ASMs3DLag::ASMs3DLag (unsigned char n_f) : ASMs3D(n_f), coord(myCoord)
 
 
 ASMs3DLag::ASMs3DLag (const ASMs3DLag& patch, unsigned char n_f)
-  : ASMs3D(patch,n_f), coord(patch.myCoord)
+  : ASMs3D(patch,n_f), ASMLagBase(patch,false)
 {
   nx = patch.nx;
   ny = patch.ny;
@@ -49,7 +49,7 @@ ASMs3DLag::ASMs3DLag (const ASMs3DLag& patch, unsigned char n_f)
 
 
 ASMs3DLag::ASMs3DLag (const ASMs3DLag& patch)
-  : ASMs3D(patch), coord(myCoord), myCoord(patch.coord)
+  : ASMs3D(patch), ASMLagBase(patch)
 {
   nx = patch.nx;
   ny = patch.ny;
@@ -939,9 +939,9 @@ bool ASMs3DLag::tesselate (ElementBlock& grid, const int* npe) const
 
 
 bool ASMs3DLag::evalSolution (Matrix& sField, const Vector& locSol,
-                              const int*, int nf, bool) const
+                              const int*, int n_f, bool) const
 {
-  return this->evalSolution(sField,locSol,nullptr,true,0,nf);
+  return this->evalSolution(sField,locSol,nullptr,false,0,n_f);
 }
 
 
@@ -990,56 +990,49 @@ int ASMs3DLag::findElement (double u, double v, double w,
 
 
 bool ASMs3DLag::evalSolution (Matrix& sField, const Vector& locSol,
-                              const RealArray* gpar, bool, int, int) const
+                              const RealArray* gpar, bool regular,
+                              int, int) const
 {
-  if (!gpar) {
-    size_t nPoints = coord.size();
-    size_t nNodes = this->getNoNodes(-1);
-    size_t nComp = locSol.size() / nNodes;
-    if (nNodes < nPoints || nComp*nNodes != locSol.size())
-      return false;
-    sField.resize(nComp,nPoints);
-    const double* u = locSol.ptr();
-    for (size_t n = 1; n <= nPoints; n++, u += nComp)
-      sField.fillColumn(n,u);
-    return true;
-  }
+  if (!gpar && !regular) // Direct nodal evaluation
+    return this->nodalField(sField,locSol,this->getNoNodes(-1));
 
-  size_t nNodes = gpar[0].size()*gpar[1].size()*gpar[2].size();
-  size_t nComp = locSol.size() / this->getNoNodes();
+  size_t nCmp = locSol.size() / this->getNoNodes();
+  size_t ni   = gpar ? gpar[0].size() : nel;
+  size_t nj   = gpar ? gpar[1].size() : 1;
+  size_t nk   = gpar ? gpar[2].size() : 1;
 
-  sField.resize(nComp, nNodes);
-
+  sField.resize(nCmp,ni*nj*nk);
+  Matrix elmSol(nCmp,p1*p2*p3);
   RealArray N(p1*p2*p3);
-  double xi, eta, zeta;
 
-  size_t n = 1;
-  for (size_t k = 0; k < gpar[2].size(); ++k)
-    for (size_t j = 0; j < gpar[1].size(); ++j)
-      for (size_t i = 0; i < gpar[0].size(); ++i, ++n) {
-        const int iel = this->findElement(gpar[0][i], gpar[1][j], gpar[2][k],
-                                          &xi, &eta, &zeta);
+  double xi = 0.0, eta = 0.0, zeta = 0.0;
+  if (!gpar && !Lagrange::computeBasis(N,p1,xi,p2,eta,p3,zeta))
+    return false;
 
-        if (iel < 1 || iel > int(MNPC.size()))
+  size_t ip = 1;
+  int iel = 0;
+  for (size_t k = 0; k < nk; k++)
+    for (size_t j = 0; j < nj; j++)
+      for (size_t i = 0; i < ni; i++, ip++)
+      {
+        if (gpar)
+          iel = this->findElement(gpar[0][i], gpar[1][j], gpar[2][k],
+                                  &xi, &eta, &zeta);
+        else
+          iel++;
+        if (iel < 1 || iel > static_cast<int>(nel))
           return false;
 
-        if (!Lagrange::computeBasis(N,p1,xi,p2,eta,p3,zeta))
+        if (gpar && !Lagrange::computeBasis(N,p1,xi,p2,eta,p3,zeta))
           return false;
-
-        Matrix elmSol(nComp, p1*p2*p3);
-        const IntVec& mnpc = MNPC[iel-1];
 
         size_t idx = 1;
-        for (const int& m : mnpc) {
-          for (size_t c = 1; c <= nComp; ++c)
-            elmSol(c,idx) = locSol(m*nComp+c);
-          ++idx;
-        }
+        for (int inod : MNPC[iel-1])
+          elmSol.fillColumn(idx++,locSol.data()+inod*nCmp);
 
         Vector val;
-        elmSol.multiply(N, val);
-        for (size_t c = 1; c <= nComp; ++c)
-          sField(c,n) = val(c);
+        elmSol.multiply(N,val);
+        sField.fillColumn(ip,val);
       }
 
   return true;

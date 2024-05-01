@@ -15,7 +15,7 @@
 #define _ASM_S1D_LAG_H
 
 #include "ASMs1D.h"
-#include "Vec3.h"
+#include "ASMLagBase.h"
 
 
 /*!
@@ -23,7 +23,7 @@
   \details This class contains methods for 1D %Lagrange patches.
 */
 
-class ASMs1DLag : public ASMs1D
+class ASMs1DLag : public ASMs1D, protected ASMLagBase
 {
 public:
   //! \brief Default constructor.
@@ -145,12 +145,6 @@ public:
 protected:
   size_t nx; //!< Number of nodes
   int    p1; //!< Polynomial order of the basis
-
-private:
-  const Vec3Vec& coord; //!< Nodal coordinates
-
-protected:
-  Vec3Vec myCoord; //!< The actual nodal coordinates
 };
 
 #endif

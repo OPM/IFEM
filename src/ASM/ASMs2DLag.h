@@ -15,7 +15,7 @@
 #define _ASM_S2D_LAG_H
 
 #include "ASMs2D.h"
-#include "Vec3.h"
+#include "ASMLagBase.h"
 
 
 /*!
@@ -23,7 +23,7 @@
   \details This class contains methods for structured 2D %Lagrange patches.
 */
 
-class ASMs2DLag : public ASMs2D
+class ASMs2DLag : public ASMs2D, protected ASMLagBase
 {
 protected:
   //! \brief Implementation of basis function cache.
@@ -201,19 +201,26 @@ public:
   //! \brief Evaluates the primary solution field at all visualization points.
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector in DOF-order
-  //! \param[in] nf If nonzero, mixed evaluates nf fields on first basis
+  //! \param[in] n_f If nonzero, mixed evaluates \a n_f fields on first basis
   //!
   //! \details The number of visualization points is the same as the order of
   //! the %Lagrange elements by default.
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-                            const int*, int nf, bool) const;
+                            const int*, int n_f, bool) const;
 
-  //! \brief Evaluates the primary solution field at the nodal points.
+  //! \brief Evaluates the primary solution field at the given points.
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector local to current patch
   //! \param[in] gpar Parameter values of the result sampling points
+  //! \param[in] regular Flag indicating how the sampling points are defined
+  //!
+  //! \details If \a gpar is null, the nodal point values for the solution are
+  //! returned if \a regular is \e false and the element center values are
+  //! returned if \a regular is \e true. If \a gpar is not null, we assume that
+  //! it contains the \a u and \a v parameters for each sampling point.
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-                            const RealArray* gpar, bool, int, int) const;
+                            const RealArray* gpar, bool regular,
+                            int, int) const;
 
   //! \brief Evaluates the secondary solution field at all visualization points.
   //! \param[out] sField Solution field
@@ -266,12 +273,6 @@ protected:
   size_t ny; //!< Number of nodes in second parameter direction
   int    p1; //!< Polynomial order in first parameter direction
   int    p2; //!< Polynomial order in second parameter direction
-
-private:
-  const Vec3Vec& coord; //!< Nodal coordinates
-
-protected:
-  Vec3Vec myCoord; //!< The actual nodal coordinates
 };
 
 #endif
