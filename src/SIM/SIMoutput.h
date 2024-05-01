@@ -24,9 +24,9 @@ class VTF;
 /*!
   \brief Sub-class with additional functionality for result output.
   \details This class extends the SIMbase class with some added functionalities
-  for dumping simulation results to VTF-file, and terminal printout. These items
-  are put in a separate sub-class here to hide them away from the SIMbase class,
-  which contains the main simulation driver.
+  for dumping simulation results to VTF and ASCII files, and terminal printout.
+  These items are put in a separate sub-class to hide them from the SIMbase
+  class, which contains the main simulation driver.
 */
 
 class SIMoutput : public SIMinput
@@ -317,7 +317,7 @@ public:
   virtual bool writeAddFuncs(int iStep, int& nBlock, int idBlock, double time);
 
 protected:
-  //! \brief Adds an additional function for VTF output.
+  //! \brief Adds an additional function for VTF-file output.
   void addAddFunc(const std::string& name, RealFunc* f);
 
 private:
@@ -338,14 +338,14 @@ protected:
   //! \brief Struct defining a result sampling point.
   struct ResultPoint
   {
-    unsigned char npar;  //!< Number of parameters
-    size_t        patch; //!< Patch index [1,nPatch]
-    int           inod;  //!< Local node number of the closest node
-    double        u[3];  //!< Parameters of the point (u,v,w)
-    Vec3          X;     //!< Spatial coordinates of the point
+    short int    npar;  //!< Number of parameters
+    unsigned int patch; //!< Patch index [1,nPatch]
+    int          inod;  //!< Local node number of the closest node
+    double       u[3];  //!< Parameters of the point (u,v,w)
+    Vec3         X;     //!< Spatial coordinates of the point
 
     //! \brief Default constructor.
-    ResultPoint() : npar(0), patch(1), inod(0) { u[0] = u[1] = u[2] = 0.0; }
+    ResultPoint() : npar(3), patch(1), inod(0) { u[0] = u[1] = u[2] = 0.0; }
   };
 
   //! \brief Result point container.
@@ -391,8 +391,8 @@ private:
   std::map<std::string,RealFunc*> myAddScalars; //!< Scalar functions to output
 
   int    myPrec;   //!< Output precision for result sampling
-  double myPtSize; //!< Size of result point visualization in VTF file
-  int    myGeomID; //!< VTF geometry block ID for the first patch
+  double myPtSize; //!< Size of result point visualization in VTF-file
+  int    myGeomID; //!< Geometry block ID for the first patch in the VTF-file
   VTF*   myVtf;    //!< VTF-file for result visualization
   bool   logRpMap; //!< If \e true, print out the result point mapping
   int    idxGrid;  //!< Index into \ref myPoints for grid result output

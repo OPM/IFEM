@@ -205,14 +205,21 @@ bool SIMoutput::parseOutputTag (const tinyxml2::XMLElement* elem)
     if (utl::getAttribute(grid,"patch",patch) && patch > 0)
       thePoint.patch = patch;
 
+    IFEM::cout <<"\tGrid "<< g <<": P"<< patch;
+
+    std::string gridType("parametric");
+    utl::getAttribute(grid,"type",gridType);
+
     // Get grid bounds
+    double u0[3], u1[3];
     Vec3 X0, X1;
     bool center = false;
-    bool cartesianGrid = (utl::getAttribute(grid,"X0",X0) &&
-                          utl::getAttribute(grid,"X1",X1));
-    double u0[3], u1[3];
-    if (cartesianGrid)
+    if (utl::getAttribute(grid,"X0",X0) &&
+        utl::getAttribute(grid,"X1",X1))
+    {
+      gridType = "cartesian";
       utl::getAttribute(grid,"center",center);
+    }
     else
     {
       if (!utl::getAttribute(grid,"u0",u0[0])) u0[0] = 0.0;
@@ -245,7 +252,19 @@ bool SIMoutput::parseOutputTag (const tinyxml2::XMLElement* elem)
       myPoints.push_back({"",{}});
     newGroup = false;
 
-    if (cartesianGrid)
+    if (gridType == "nodes")
+    {
+      thePoint.npar = 0;
+      myPoints.back().second.push_back(thePoint);
+      IFEM::cout <<" (all nodes)";
+    }
+    else if (gridType == "elements")
+    {
+      thePoint.npar = -1;
+      myPoints.back().second.push_back(thePoint);
+      IFEM::cout <<" (all elements)";
+    }
+    else if (gridType == "cartesian")
     {
       thePoint.inod = -npt[0];
       Vec3 dX = X1 - X0;
@@ -272,8 +291,7 @@ bool SIMoutput::parseOutputTag (const tinyxml2::XMLElement* elem)
         }
       }
 
-      IFEM::cout <<"\tGrid "<< g <<": P"<< thePoint.patch
-                 <<" npt = "<< npt[0]*npt[1]*npt[2] <<" X = "
+      IFEM::cout <<" npt = "<< npt[0]*npt[1]*npt[2] <<" X = "
                  << myPoints.back().second.front().X <<" - "
                  << myPoints.back().second.back().X;
     }
@@ -296,8 +314,7 @@ bool SIMoutput::parseOutputTag (const tinyxml2::XMLElement* elem)
         }
       }
 
-      IFEM::cout <<"\tGrid "<< g <<": P"<< thePoint.patch
-                 <<" npt = "<< npt[0]*npt[1]*npt[2] <<" xi =";
+      IFEM::cout <<" npt = "<< npt[0]*npt[1]*npt[2] <<" xi =";
       for (int d = 0; d < 3; d++)
       {
         IFEM::cout <<' '<< u0[d];
@@ -390,13 +407,18 @@ void SIMoutput::preprocessResPtGroup (std::string& ptFile, ResPointVec& points)
       else if (pit->inod < 0) // A spatial point is specified
         pointIsOK = fabs(pch->findPoint(pit->X,pit->u)) < 1.0e-3;
 
-      else // A parametric point is specified
+      else if (pit->npar > 0) // A parametric point is specified
         pointIsOK = (pit->inod = pch->evalPoint(pit->u,pit->u,pit->X)) >= 0;
+
+      else // We are using nodes or element centers as evaluation points
+        pointIsOK = true;
     }
 
     if (pointIsOK)
     {
-      (pit++)->npar = pch->getNoParamDim();
+      if (pit->npar > 0)
+        pit->npar = pch->getNoParamDim();
+      ++pit;
       ++iPoint;
       if (nX > 0)
         pointMap[iY][iX] = iPoint;
@@ -424,8 +446,8 @@ void SIMoutput::preprocessResPtGroup (std::string& ptFile, ResPointVec& points)
       case 2: IFEM::cout <<" (u,v)=("; break;
       case 3: IFEM::cout <<" (u,v,w)=("; break;
       }
-      IFEM::cout << pt.u[0];
-      for (unsigned char c = 1; c < pt.npar; c++)
+      if (pt.npar > 0) IFEM::cout << pt.u[0];
+      for (short int c = 1; c < pt.npar; c++)
         IFEM::cout <<','<< pt.u[c];
       if (pt.npar > 1) IFEM::cout <<')';
       if (pt.inod > 0) IFEM::cout <<", node #"<< pt.inod;
@@ -434,7 +456,12 @@ void SIMoutput::preprocessResPtGroup (std::string& ptFile, ResPointVec& points)
         ASMbase* pch = this->getPatch(pt.patch,true);
         IFEM::cout <<", global #"<< pch->getNodeID(pt.inod);
       }
-      IFEM::cout <<", X = "<< pt.X << std::endl;
+      if (pt.npar > 0)
+        IFEM::cout <<", X = "<< pt.X << std::endl;
+      else if (pt.npar < 0)
+        IFEM::cout <<", element centers will be used."<< std::endl;
+      else
+        IFEM::cout <<", nodal points will be used."<< std::endl;
     }
   }
 
@@ -465,7 +492,7 @@ void SIMoutput::preprocessResPtGroup (std::string& ptFile, ResPointVec& points)
   for (const ResultPoint& pt : points)
   {
     os << 0.0 <<" "; // dummy time
-    for (unsigned char k = 0; k < pt.npar; k++)
+    for (short int k = 0; k < pt.npar; k++)
       os << std::setw(flWidth) << pt.X[k];
     os << std::endl;
   }
@@ -1201,7 +1228,7 @@ bool SIMoutput::eval2ndSolution (const Vector& psol, double time, int psolComps)
 /*!
   If \a iStep is zero (or negative), this method only evaluates the projected
   solution at the visualization points and updates the \a maxVal array,
-  without writing data to the VTF file.
+  without writing data to the VTF-file.
 */
 
 bool SIMoutput::writeGlvP (const Vector& ssol, int iStep, int& nBlock,
@@ -1393,9 +1420,10 @@ bool SIMoutput::writeGlvM (const Mode& mode, bool freq, int& nBlock)
 /*!
   If \a dualPrefix is not null, it is assumed that the \a norms were
   computed from the dual solution and therefore labelled as such.
-  In addition to the \a norms, also the \a dualField function value is written
-  as a scalar field to the VTF-file in that case, evaluated at the centre of
-  each visualization element since this function is typically discontinuous.
+  In addition to the \a norms, also the SIMbase::dualField function value
+  is written as a scalar field to the VTF-file in that case. This function is
+  then evaluated at the centre of each visualization element since it typically
+  is a discontinuous function.
 */
 
 bool SIMoutput::writeGlvN (const Matrix& norms, int iStep, int& nBlock,
@@ -1830,7 +1858,7 @@ bool SIMoutput::evalResults (const Vector& psol, const ResPointVec& gPoints,
       if (opt.discretization >= ASM::Spline)
       {
         points.push_back(pt.inod > 0 ? pt.inod : -jPoint);
-        for (unsigned short int k = 0; k < pt.npar; k++)
+        for (short int k = 0; k < pt.npar; k++)
           params[k].push_back(pt.u[k]);
         if (mySol) Xp.push_back(pt.X);
       }
@@ -1839,10 +1867,23 @@ bool SIMoutput::evalResults (const Vector& psol, const ResPointVec& gPoints,
         points.push_back(pt.inod);
         if (mySol) Xp.push_back(pt.X);
       }
+      else if (pt.npar < 0)
+      {
+        jPoint = patch->getNoElms(); // Flag evaluation at all element centers
+        points.clear();
+        break;
+      }
+      else if (pt.npar == 0)
+      {
+        jPoint = patch->getNoElms(); // Flag evaluation at all nodes
+        points.resize(patch->getNoNodes());
+        std::iota(points.begin(),points.end(),1);
+        break;
+      }
     }
   }
 
-  if (points.empty())
+  if (points.empty() && jPoint < patch->getNoElms())
     return true; // no points in this patch
 
   // Extract patch-level control/nodal point values of the primary solution
@@ -1865,12 +1906,15 @@ bool SIMoutput::evalResults (const Vector& psol, const ResPointVec& gPoints,
 
   bool ok = true;
   Matrix tmp;
-  if (opt.discretization < ASM::Spline)
-    // Extract primary solution variables, for nodal points only
-    ok = patch->getSolution(tmp,myProblem->getSolution(),points);
-  else
+  if (opt.discretization >= ASM::Spline)
     // Evaluate the primary solution variables
     ok = patch->evalSolution(tmp,myProblem->getSolution(),params.data(),false);
+  else if (points.empty())
+    // Evaluate the primary solution variables at all element centers
+    ok = patch->evalSolution(tmp,myProblem->getSolution(),nullptr,true);
+  else
+    // Extract primary solution variables, for nodal points only
+    ok = patch->getSolution(tmp,myProblem->getSolution(),points);
 
   if (!ok || !augment(sol1,tmp))
     return false;
