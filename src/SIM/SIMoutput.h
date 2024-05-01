@@ -90,7 +90,7 @@ public:
   //! \details If you have a complex model with lots of nodal points,
   //! this might be used as a tool to identify the location of the nodes
   //! by visualizing their global number and the original node numbers.
-  bool writeGlvNo(int& nBlock, int iStep = 1, int idBlock = 4) const;
+  bool writeGlvNo(int& nBlock, int iStep = 1, int idBlock = 7) const;
 
   //! \brief Writes boundary tractions for a given time step to the VTF-file.
   //! \param[in] iStep Load/time step identifier

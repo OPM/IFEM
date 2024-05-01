@@ -531,7 +531,7 @@ bool SIMoutput::writeGlvBC (int& nBlock, int iStep) const
     return true;
 
   Matrix field;
-  std::array<IntVec,3> dID;
+  std::array<IntVec,6> dID;
 
   size_t j, n;
   int geomID = myGeomID;
@@ -545,17 +545,20 @@ bool SIMoutput::writeGlvBC (int& nBlock, int iStep) const
     for (n = 2; n <= pch->getNoBasis(); n++)
       nNodes -= pch->getNoNodes(n);
     Matrix bc(nbc,nNodes);
-    RealArray flag(3,0.0);
+    std::array<int,6> flag{0,0,0,0,0,0};
     ASMbase::BCVec::const_iterator bit;
     for (bit = pch->begin_BC(); bit != pch->end_BC(); ++bit)
       if ((n = pch->getNodeIndex(bit->node,true)) && n <= bc.cols())
       {
-        if (!bit->CX && nbc > 0) bc(1,n) = flag[0] = 1.0;
-        if (!bit->CY && nbc > 1) bc(2,n) = flag[1] = 1.0;
-        if (!bit->CZ && nbc > 2) bc(3,n) = flag[2] = 1.0;
+        if (!bit->CX && nbc > 0) bc(1,n) = flag[0] = 1;
+        if (!bit->CY && nbc > 1) bc(2,n) = flag[1] = 1;
+        if (!bit->CZ && nbc > 2) bc(3,n) = flag[2] = 1;
+        if (!bit->RX && nbc > 3) bc(4,n) = flag[3] = 1;
+        if (!bit->RY && nbc > 4) bc(5,n) = flag[4] = 1;
+        if (!bit->RZ && nbc > 5) bc(6,n) = flag[5] = 1;
       }
 
-    if (flag[0]+flag[1]+flag[2] == 0.0)
+    if (std::accumulate(flag.begin(),flag.end(),0) == 0)
       continue; // nothing on this patch
 
     if (msgLevel > 1)
@@ -567,24 +570,25 @@ bool SIMoutput::writeGlvBC (int& nBlock, int iStep) const
 
     // The BC fields should either be 0.0 or 1.0
     if (opt.nViz[0] > 2 || opt.nViz[1] > 2 || opt.nViz[2] > 2)
-      for (j = 1; j <= 3; j++)
-        if (flag[j-1] == 1.0)
+      for (j = 1; j <= 6; j++)
+        if (flag[j-1])
           for (n = 1; n <= field.cols(); n++)
             if (field(j,n) < 0.9999) field(j,n) = 0.0;
 
-    for (j = 0; j < 3; j++)
-      if (flag[j] == 1.0)
-        if (myVtf->writeNres(field.getRow(1+j),++nBlock,geomID))
-          dID[j].push_back(nBlock);
-        else
+    for (j = 0; j < 6; j++)
+      if (flag[j])
+      {
+        if (!myVtf->writeNres(field.getRow(1+j),++nBlock,geomID))
           return false;
+        dID[j].push_back(nBlock);
+      }
   }
 
-  const char* label[3] = {
-    "fix_X", "fix_Y", "fix_Z"
+  const char* label[6] = {
+    "fix_X", "fix_Y", "fix_Z", "fix_RX", "fix_RY", "fix_RZ"
   };
 
-  for (j = 0; j < 3; j++)
+  for (j = 0; j < 6; j++)
     if (!dID[j].empty())
       if (!myVtf->writeSblk(dID[j],label[j],1+j,iStep))
         return false;
@@ -878,8 +882,8 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
         ok = myVtf->writeDblk(vID[i],vname.c_str(),idBlock+i,iStep);
     }
 
-  if (idBlock <= static_cast<int>(this->getNoSpaceDim()))
-    idBlock = this->getNoSpaceDim()+1; // since we might have written BCs above
+  int nbc = this->getNoFields(1);
+  if (idBlock <= nbc) idBlock = nbc+1; // since we might have written BCs above
 
   std::vector<std::string> xname;
   if (haveXsol) xname.reserve(nf);
