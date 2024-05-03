@@ -20,11 +20,13 @@
 
 double ElementBlock::eps = 0.0;
 
+//! \brief List of supported number of element nodes.
+static const std::array<size_t,7> legalNENs = { 2, 3, 4, 6, 8, 9, 27 };
+
 
 ElementBlock::ElementBlock (size_t nenod)
 {
-  if (nenod != 2 && nenod != 3 && nenod != 4 && nenod != 6 && nenod != 9 &&
-      nenod != 8 && nenod != 27)
+  if (std::find(legalNENs.begin(),legalNENs.end(),nenod) == legalNENs.end())
   {
     std::cout <<"ElementBlock: Invalid number of element nodes "<< nenod
               <<" reset to 8"<< std::endl;
@@ -71,7 +73,7 @@ void ElementBlock::unStructResize (size_t nEL, size_t nPts, size_t nMNPC)
 
   coord.resize(nPts);
   param.resize(nPts);
-  MMNPC.resize(nen > 0 ? nMNPC : nMNPC+nEL);
+  MMNPC.resize(nen > 0 ? nMNPC : nMNPC+nEL, 0);
   MINEX.resize(nEL,0);
   std::iota(MINEX.begin(),MINEX.end(),1);
 }
@@ -122,6 +124,32 @@ bool ElementBlock::endOfElm (size_t& i)
     if (i >= MMNPC.size()) return false;
 
     MMNPC[i++] = -1;
+
+    if (i == MMNPC.size())
+    {
+      // Compute the internal element mapping due to that mixed element types
+      // are stored blockwise. Same logic as in the getElements() method.
+      elmIdx.resize(MINEX.size(),0);
+      size_t npc, iEx, iEl = 0;
+      for (size_t nenod : legalNENs)
+      {
+        npc = iEx = 0;
+        std::vector<int>::const_iterator it, itb = MMNPC.begin();
+        for (it = MMNPC.begin(); it != MMNPC.end(); ++it)
+          if (*it < 0)
+          {
+            if (npc == nenod)
+              elmIdx[iEx] = iEl++;
+            itb = it + 1;
+            npc = 0;
+            ++iEx;
+          }
+          else
+            ++npc;
+        if (iEl >= MINEX.size())
+          break;
+      }
+    }
   }
   return true;
 }

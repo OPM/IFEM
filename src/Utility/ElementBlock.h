@@ -69,6 +69,8 @@ public:
   void setElmId(size_t i, int iel) { MINEX[i-1] = iel; }
   //! \brief Returns the external id of an element.
   int getElmId(size_t i) const { return MINEX[i-1]; }
+  //! \brief Returns the internal index of an element in case of mixed types.
+  size_t getElmIndex(size_t i) const { return i < elmIdx.size() ? elmIdx[i]:i; }
 
   //! \brief Returns the total number of nodes in the block.
   size_t getNoNodes() const { return coord.size(); }
@@ -114,6 +116,9 @@ protected:
   std::vector<int>  MMNPC; //!< Matrix of Matrices of Nodal Point Correspondance
   std::vector<int>  MINEX; //!< Matrix of Internal to External element numbers
   size_t            nen;   //!< Number of Element Nodes
+
+private:
+  std::vector<size_t> elmIdx; //!< Internal element order in case of mixed types
 
 public:
   static double eps; //!< Element shrinkage factor

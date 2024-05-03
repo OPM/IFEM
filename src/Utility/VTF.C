@@ -366,7 +366,7 @@ bool VTF::writeEres (const std::vector<Real>& elementResult,
   // Cast to float
   std::vector<float> resVec(nres);
   for (size_t i = 0; i < nres; i++)
-    resVec[i] = elementResult[i];
+    resVec[grid->getElmIndex(i)] = elementResult[i];
 
 #if HAS_VTFAPI == 1
   VTFAResultBlock dBlock(idBlock,VTFA_DIM_SCALAR,VTFA_RESMAP_ELEMENT,0);
