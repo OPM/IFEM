@@ -722,9 +722,19 @@ public:
   // =============================
 
   //! \brief Extracts element results for this patch from a global vector.
+  //! \param[in] globRes Global vector of element results
+  //! \param[out] elmRes Element results for this patch
+  //! \param[in] internalOrder If \e true, the data in \a globRes are assumed to
+  //! be ordered w.r.t. the internal element ordering
+  void extractElmRes(const Vector& globRes, Vector& elmRes,
+                     bool internalOrder = false) const;
+  //! \brief Extracts element results for this patch from a global vector.
   //! \param[in] globRes Global matrix of element results
   //! \param[out] elmRes Element results for this patch
-  void extractElmRes(const Matrix& globRes, Matrix& elmRes) const;
+  //! \param[in] internalOrder If \e true, the data in \a globRes are assumed to
+  //! be ordered w.r.t. the internal element ordering
+  void extractElmRes(const Matrix& globRes, Matrix& elmRes,
+                     bool internalOrder = false) const;
 
   //! \brief Extracts nodal results for this patch from the global vector.
   //! \param[in] globVec Global solution vector in DOF-order

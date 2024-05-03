@@ -1356,14 +1356,36 @@ void ASMbase::shiftGlobalElmNums (int eshift)
 }
 
 
-void ASMbase::extractElmRes (const Matrix& globRes, Matrix& elmRes) const
+void ASMbase::extractElmRes (const Vector& globRes, Vector& elmRes,
+                             bool internalOrder) const
+{
+  elmRes.clear();
+  elmRes.reserve(MLGE.size());
+
+  size_t jel = 0;
+  for (int iel : MLGE)
+    if (iel > 0)
+    {
+      size_t idx = internalOrder ? jel++ : iel-1;
+      elmRes.push_back(idx < globRes.size() ? globRes[idx] : 0.0);
+    }
+}
+
+
+void ASMbase::extractElmRes (const Matrix& globRes, Matrix& elmRes,
+                             bool internalOrder) const
 {
   elmRes.resize(globRes.rows(),MLGE.size(),true);
 
-  size_t ivel = 0;
+  size_t ivel = 0, jel = 0;
   for (int iel : MLGE)
     if (iel > 0)
-      elmRes.fillColumn(++ivel,globRes.getColumn(iel));
+    {
+      ++ivel;
+      size_t icol = internalOrder ? ++jel : iel;
+      if (icol <= globRes.cols())
+        elmRes.fillColumn(ivel,globRes.getColumn(icol));
+    }
 
   elmRes.resize(globRes.rows(),ivel);
 }
