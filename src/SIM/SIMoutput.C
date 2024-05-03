@@ -599,14 +599,19 @@ bool SIMoutput::writeGlvBC (int& nBlock, int iStep) const
 
 bool SIMoutput::writeGlvNo (int& nBlock, int iStep, int idBlock) const
 {
+  Vector elm(this->getNoElms(false));
+  std::iota(elm.begin(),elm.end(),1.0);
+  if (!this->writeGlvE(elm,iStep,nBlock,"Global element numbers",idBlock++))
+    return false;
+
   Vector scl(this->getNoNodes());
   std::iota(scl.begin(),scl.end(),1.0);
-  if (!this->writeGlvS(scl,"Global node numbers",iStep,nBlock,idBlock))
+  if (!this->writeGlvS(scl,"Global node numbers",iStep,nBlock,idBlock++))
     return false;
 
   scl.clear();
   for (int n : myLoc2Glb) scl.push_back(n);
-  if (!this->writeGlvS(scl,"Original node numbers",iStep,nBlock,idBlock+1))
+  if (!this->writeGlvS(scl,"Original node numbers",iStep,nBlock,idBlock++))
     return false;
   else if (myDegenElm.empty())
     return true;
@@ -615,7 +620,7 @@ bool SIMoutput::writeGlvNo (int& nBlock, int iStep, int idBlock) const
   scl.resize(this->getNoNodes(),0.0);
   for (const std::pair<const int,int>& degen : myDegenElm)
     scl[degen.first-1] = degen.second;
-  return this->writeGlvS(scl,"Collapsed triangles",iStep,nBlock,idBlock+2);
+  return this->writeGlvS(scl,"Collapsed triangles",iStep,nBlock,idBlock);
 }
 
 
@@ -746,9 +751,10 @@ bool SIMoutput::writeGlvS (const Vector& psol, int iStep, int& nBlock,
 
   The scalar field components are labelled \a pvecName_(i)
   where (i) is in (x,y,z,rx,ry,rz), if \a pvecName is not null and
-  \a psolComps is positive or the \ref myProblem member is null,
-  otherwise their names are obtained by invoking the method
-  IntegrandBase::getField1Name() of the \ref myProblem member.
+  \a psolComps is positive or the \ref myProblem member is null.
+  Otherwise, their names are obtained by invoking the method
+  IntegrandBase::getField1Name() of the \ref myProblem member,
+  prefixed by \a pVecName if the latter is not null and \a psolComps < 0.
 */
 
 int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
@@ -891,7 +897,11 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
   for (i = 0; i < sID.size() && !sID[i].empty() && ok; i++)
   {
     if (myProblem && (!pvecName || psolComps <= 0))
+    {
       pname = myProblem->getField1Name(i);
+      if (pvecName && psolComps < 0)
+        pname = std::string(pvecName) + " " + pname;
+    }
     else if (i > 0 && nVcomp > 1 && i%nVcomp == 0)
     {
       pname.back() = 'r';
@@ -1387,14 +1397,13 @@ bool SIMoutput::writeGlvN (const Matrix& norms, int iStep, int& nBlock,
 
 
 bool SIMoutput::writeGlvE (const Vector& vec, int iStep, int& nBlock,
-                           const char* name)
+                           const char* name, int idBlock,
+                           bool internalOrder) const
 {
   if (!myVtf)
     return true;
 
-  Matrix infield(1,vec.size());
-  infield.fillRow(1,vec.ptr());
-  Matrix field;
+  Vector field;
   IntVec sID;
 
   int geomID = myGeomID;
@@ -1406,19 +1415,14 @@ bool SIMoutput::writeGlvE (const Vector& vec, int iStep, int& nBlock,
       IFEM::cout <<"Writing element field '"<< name <<"' for patch "
                  << pch->idx+1 << std::endl;
 
-    pch->extractElmRes(infield,field);
-
-    if (!myVtf->writeEres(field.getRow(1),++nBlock,++geomID))
+    pch->extractElmRes(vec,field,internalOrder);
+    if (!myVtf->writeEres(field,++nBlock,++geomID))
       return false;
 
     sID.push_back(nBlock);
   }
 
-  int idBlock = 300;
-  if (!myVtf->writeSblk(sID,name,++idBlock,iStep,true))
-    return false;
-
-  return true;
+  return myVtf->writeSblk(sID,name,idBlock,iStep,true);
 }
 
 

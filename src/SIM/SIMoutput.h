@@ -190,7 +190,12 @@ public:
   //! \param[in] iStep Load/time step identifier
   //! \param nBlock Running result block counter
   //! \param[in] name Name of field
-  bool writeGlvE(const Vector& field, int iStep, int& nBlock, const char* name);
+  //! \param[in] idBlock Starting value of result block numbering
+  //! \param[in] internalOrder If \e true, the data in \a field are assumed to
+  //! be ordered w.r.t. the internal element ordering
+  bool writeGlvE(const Vector& field, int iStep, int& nBlock,
+                 const char* name, int idBlock = 300,
+                 bool internalOrder = false) const;
 
   //! \brief Writes element norms for a given load/time step to the VTF-file.
   //! \param[in] norms The element norms to output
