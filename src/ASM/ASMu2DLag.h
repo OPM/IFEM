@@ -76,6 +76,13 @@ public:
   //! \brief Defines a node set by parsing a 3D bounding box.
   virtual int parseNodeBox(const std::string& setName, const char* bbox);
 
+  //! \brief Returns (1-based) index of a predefined element set in the patch.
+  virtual int getElementSetIdx(const std::string& setName) const;
+  //! \brief Returns an indexed pre-defined element set.
+  virtual const IntVec& getElementSet(int idx) const;
+  //! \brief Returns a named element set for update.
+  virtual IntVec& getElementSet(const std::string& setName, int& idx);
+
   //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
   //! \param[in] lIndex Local index of the boundary node set
   //! \param nodes Array of node numbers
@@ -101,6 +108,7 @@ protected:
 private:
   char                      fileType; //!< Mesh file format
   std::vector<ASM::NodeSet> nodeSets; //!< Node sets for Dirichlet BCs
+  std::vector<ASM::NodeSet> elemSets; //!< Element sets for properties
 };
 
 #endif

@@ -132,7 +132,7 @@ IntVec& ASMu2DLag::getNodeSet (const std::string& setName, int& idx)
     else if (idx)
       ++idx;
 
-  nodeSets.push_back(std::make_pair(setName,IntVec()));
+  nodeSets.emplace_back(setName,IntVec());
   return nodeSets.back().second;
 }
 
@@ -174,6 +174,44 @@ int ASMu2DLag::parseNodeBox (const std::string& setName, const char* data)
 
   nodeSets.push_back(std::make_pair(setName,nodes));
   return nodeSets.size();
+}
+
+
+int ASMu2DLag::getElementSetIdx (const std::string& setName) const
+{
+  int idx = 1;
+  for (const ASM::NodeSet& es : elemSets)
+    if (es.first == setName)
+      return idx;
+    else
+      ++idx;
+
+  return 0;
+}
+
+
+const IntVec& ASMu2DLag::getElementSet (int idx) const
+{
+  int count = 0;
+  for (const ASM::NodeSet& es : elemSets)
+    if (++count == idx)
+      return es.second;
+
+  return this->ASMbase::getElementSet(idx);
+}
+
+
+IntVec& ASMu2DLag::getElementSet (const std::string& setName, int& idx)
+{
+  idx = 1;
+  for (ASM::NodeSet& es : nodeSets)
+    if (es.first == setName)
+      return es.second;
+    else if (idx)
+      ++idx;
+
+  elemSets.push_back(std::make_pair(setName,IntVec()));
+  return elemSets.back().second;
 }
 
 
