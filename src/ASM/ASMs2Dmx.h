@@ -237,6 +237,9 @@ public:
   virtual void getBoundaryNodes(int lIndex, IntVec& nodes, int basis,
                                 int thick, int, bool local) const;
 
+  //! \brief Returns true if the last passed integrand used Piola mapping.
+  bool usePiola() const { return piola; }
+
 protected:
   //! \brief Returns 0-based index of first node on integration basis.
   virtual int getFirstItgElmNode() const;
