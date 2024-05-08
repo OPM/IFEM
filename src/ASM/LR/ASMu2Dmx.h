@@ -230,6 +230,9 @@ public:
   //! \brief Checks if a separate projection basis is used for this patch.
   virtual bool separateProjectionBasis() const;
 
+  //! \brief Returns true if the last passed integrand used Piola mapping.
+  bool usePiola() const { return piola; }
+
 private:
   //! \brief Finds the elements and associted sizes at given parametric point.
   //! \param[in] param Parametric point to find elements at

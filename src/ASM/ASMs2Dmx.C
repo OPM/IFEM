@@ -444,7 +444,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
   bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
   bool useElmVtx = integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS;
   const bool separateGeometry = this->getBasis(ASM::GEOMETRY_BASIS) != surf;
-  const bool piolaMapping = integrand.getIntegrandType() & Integrand::PIOLA_MAPPING;
+  const bool piolaMapping = piola = integrand.getIntegrandType() & Integrand::PIOLA_MAPPING;
 
   if (myCache.empty()) {
     myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this));

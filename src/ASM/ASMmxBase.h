@@ -78,6 +78,7 @@ public:
 
   static MixedType Type; //!< Type of mixed formulation used
   static char  itgBasis; //!< 1-based index of basis representing the integration elements
+  bool piola = false;    //!< True if last used integrand was Piola mapped
 
 protected:
   typedef std::vector<std::shared_ptr<Go::SplineSurface>> SurfaceVec; //!< Convenience type
