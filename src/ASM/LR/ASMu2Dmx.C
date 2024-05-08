@@ -908,18 +908,22 @@ bool ASMu2Dmx::evalSolutionPiola (Matrix& sField, const Vector& locSol,
   }
 
   size_t len = std::accumulate(nb.begin(),nb.end(),0u);
+  bool withPressure = len == locSol.size();
+  if (!withPressure)
+    len = nb[0] + nb[1];
   if (len != locSol.size()) {
     std::cerr << "*** ASMu2Dmx::evalSolution: Unexpected solution size ("
               << locSol.size() << "), expected " << len << std::endl;
     return false;
   }
+  const size_t nBasis = withPressure ? 3 : 2;
 
   const LR::LRSplineSurface* geo = this->getBasis(ASM::GEOMETRY_BASIS);
 
   Go::BasisPtsSf spline;
 
   // Evaluate the primary solution field at each point
-  sField.resize(3, nPoints);
+  sField.resize(nBasis, nPoints);
   for (size_t i = 0; i < nPoints; i++)
   {
     std::vector<int>    els;
@@ -928,7 +932,7 @@ bool ASMu2Dmx::evalSolutionPiola (Matrix& sField, const Vector& locSol,
     const double* locPtr = locSol.data();
     Vectors coefs(nsd+1);
     MxFiniteElement fe(elem_size);
-    for (size_t j = 0; j < m_basis.size(); ++j)
+    for (size_t j = 0; j < nBasis; ++j)
     {
       const LR::Element* el = m_basis[j]->getElement(els[j]-1);
 
@@ -955,7 +959,8 @@ bool ASMu2Dmx::evalSolutionPiola (Matrix& sField, const Vector& locSol,
     coefs[0].insert(coefs[0].end(), coefs[1].begin(), coefs[1].end());
     Vector Ytmp;
     fe.P.multiply(coefs[0], Ytmp);
-    Ytmp.push_back(coefs[nsd].dot(fe.basis(nsd+1)));
+    if (withPressure)
+      Ytmp.push_back(coefs[nsd].dot(fe.basis(nsd+1)));
     sField.fillColumn(1+i,Ytmp);
   }
 
