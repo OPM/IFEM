@@ -74,6 +74,14 @@ bool SplineFields2Dmx::valueFE (const ItgPoint& x, Vector& vals) const
   if (!surf) return false;
 
   vals.resize(2);
+  if (surf->usePiola()) {
+    Matrix tmp;
+    const RealArray gpar[2] = {RealArray{x.u}, RealArray{x.v}};
+    if (!surf->evalSolutionPiola(tmp, this->values, gpar, false))
+      return false;
+    vals = tmp;
+    return true;
+  }
 
   // Evaluate the basis functions at the given point
   auto vit = values.begin();
@@ -105,6 +113,11 @@ bool SplineFields2Dmx::valueFE (const ItgPoint& x, Vector& vals) const
 bool SplineFields2Dmx::gradFE (const ItgPoint& x, Matrix& grad) const
 {
   if (!surf) return false;
+
+  if (surf->usePiola()) { // TODO: implement if needed
+    std::cerr << "*** SplineFields2Dmx::gradFE: Not implemented with Piola" << std::endl;
+    return false;
+  }
 
   // Evaluate the basis functions at the given point
   Matrix Xnod, Jac, dNdX;
@@ -141,6 +154,11 @@ bool SplineFields2Dmx::gradFE (const ItgPoint& x, Matrix& grad) const
 bool SplineFields2Dmx::hessianFE (const ItgPoint& x, Matrix3D& H) const
 {
   if (!surf)  return false;
+
+  if (surf->usePiola()) { // TODO: implement if needed
+    std::cerr << "*** SplineFields2Dmx::hessianFE: Not implemented with Piola" << std::endl;
+    return false;
+  }
 
   // Evaluate the basis functions at the given point
   Matrix Xnod, Jac, dNdX;
