@@ -63,28 +63,26 @@ SystemVector& SystemVector::copy (const SystemVector& x)
 }
 
 
-void StdVector::dump (std::ostream& os, LinAlg::StorageFormat format, const char* label)
+void StdVector::dump (const utl::vector<Real>& x, const char* label,
+                      LinAlg::StorageFormat format, std::ostream& os)
 {
   switch (format)
-  {
+    {
     case LinAlg::MATLAB:
-      utl::writeMatlab(label,*this,os);
+      utl::writeMatlab(label,x,os);
       break;
 
     case LinAlg::MATRIX_MARKET:
-    {
-      os << "%%MatrixMarket matrix array real general\n" << this->size() << " 1";
-      int old = utl::nval_per_line;
-      utl::nval_per_line = 1;
-      os << *this;
-      utl::nval_per_line = old;
+      os <<"%%MatrixMarket matrix array real general\n"<< x.size() <<" 1";
+      for (Real v : x) os <<"\n"<< v;
+      os << std::endl;
       break;
-    }
 
     case LinAlg::FLAT:
-      if (label) os << label <<" =";
-      os << *this;
-  }
+      if (label)
+        os << label <<" =";
+      os << x;
+    }
 }
 
 

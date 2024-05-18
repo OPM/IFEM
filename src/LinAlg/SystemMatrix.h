@@ -181,7 +181,11 @@ public:
 
   //! \brief Dumps the system vector on a specified format.
   virtual void dump(std::ostream& os, LinAlg::StorageFormat format,
-                    const char* label);
+                    const char* label) { dump(*this,label,format,os); }
+
+  //! \brief Dumps a standard vector to given output stream on specified format.
+  static void dump(const utl::vector<Real>& x, const char* label,
+                   LinAlg::StorageFormat format, std::ostream& os);
 
 protected:
   //! \brief Writes the system vector to the given output stream.
