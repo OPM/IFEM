@@ -726,10 +726,8 @@ public:
 
   //! \brief Dumps left-hand-side matrix and right-hand-side vector to file.
   void dumpEqSys(bool initialBlankLine = false);
-  //! \brief Dumps a system vector to file.
-  void dumpSysVec(SystemVector& vec);
   //! \brief Dumps a solution vector to file.
-  void dumpSolVec(const RealArray& vec);
+  void dumpSolVec(const Vector& vec);
 
 protected:
   //! \brief Returns the multi-dimension simulator sequence flag.
@@ -820,11 +818,14 @@ protected:
     std::string   fname;  //!< File name
     LinAlg::StorageFormat format; //!< File format flag
     std::set<int> step;   //!< Dump step identifiers
+    bool          expand; //!< If \e true, dump expanded solution vectors
     int           count;  //!< Internal step counter, dump only when step==count
     double        eps;    //!< Zero tolerance for printing small values
 
     //! \brief Default constructor.
-    DumpData() : format(LinAlg::FLAT), count(0), eps(1.0e-6) { step.insert(1); }
+    DumpData() : format(LinAlg::FLAT), expand(false), count(0), eps(1.0e-6)
+    { step.insert(1); }
+
     //! \brief Checks if the matrix or vector should be dumped now.
     bool doDump() { return !fname.empty() && step.find(++count) != step.end(); }
   };

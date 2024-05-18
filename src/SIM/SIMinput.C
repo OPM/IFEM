@@ -66,7 +66,7 @@ std::istream* SIMinput::getPatchStream (const char* tag, const char* patch)
 
 bool SIMinput::readPatches (std::istream& isp, const char* whiteSpace)
 {
-  unsigned char maxSpaceDim = 0;
+  unsigned short int maxSpaceDim = 0;
   for (int pchInd = myModel.size(); isp.good(); pchInd++)
   {
     ASMbase* pch = this->readPatch(isp,pchInd,CharVec(),whiteSpace);
@@ -83,7 +83,7 @@ bool SIMinput::readPatches (std::istream& isp, const char* whiteSpace)
   // Reset number of space dimensions if all patches have less than nsd
   if (maxSpaceDim > 0 && maxSpaceDim < nsd)
   {
-    IFEM::cout <<"  Resetting number of space dimensions to "<< (int)maxSpaceDim
+    IFEM::cout <<"  Resetting number of space dimensions to "<< maxSpaceDim
                <<" to match patch file dimensionality."<< std::endl;
     nsd = maxSpaceDim;
   }
@@ -366,7 +366,7 @@ bool SIMinput::parsePeriodic (const tinyxml2::XMLElement* elem)
   if (patch < 1 || patch > nGlPatches)
   {
     std::cerr <<" *** SIMinput::parse: Invalid patch index "
-              << patch << std::endl;
+              << patch <<"."<< std::endl;
     return false;
   }
 
@@ -704,24 +704,35 @@ bool SIMinput::parseOutputTag (const tinyxml2::XMLElement* elem)
       dmp.format = LinAlg::MATLAB;
     else if (format == "matrix_market")
       dmp.format = LinAlg::MATRIX_MARKET;
-    else if (format != "flat" && format != "plain") {
-      std::cerr << "  ** SIMinput::parseOutputTag: Unknown matrix dump format \"" << format << "\", ignored" << std::endl;
+    else if (format != "flat" && format != "plain")
+    {
+      IFEM::cout <<"  ** SIMinput::parseOutputTag: Unknown dump format \""
+                 << format <<"\" (ignored)."<< std::endl;
       return true;
     }
     dmp.fname = elem->FirstChild()->Value();
     if (toupper(elem->Value()[5]) == 'R')
       rhsDump.push_back(dmp);
     else if (toupper(elem->Value()[5]) == 'L')
+    {
+      // Note: Using the expand flag here to request dump of MEQN
+      utl::getAttribute(elem,"meqn",dmp.expand);
       lhsDump.push_back(dmp);
+    }
     else
+    {
+      // Dump solution either in equation order (default) or expanded DOF-order
+      utl::getAttribute(elem,"expanded",dmp.expand);
       solDump.push_back(dmp);
+    }
   }
 
   return true;
 }
 
 
-FunctionBase* SIMinput::parseDualTag (const tinyxml2::XMLElement* elem, int ftype)
+FunctionBase* SIMinput::parseDualTag (const tinyxml2::XMLElement* elem,
+                                      int ftype)
 {
   IFEM::cout <<"  Parsing <"<< elem->Value() <<">";
 
@@ -854,9 +865,9 @@ bool SIMinput::parse (const tinyxml2::XMLElement* elem)
     {
       if (myModel.empty())
       {
-        const tinyxml2::XMLElement* part = elem->FirstChildElement("partitioning");
-        for (; part; part = part->NextSiblingElement("partitioning"))
-          result &= this->parseGeometryTag(part);
+        const tinyxml2::XMLElement* p = elem->FirstChildElement("partitioning");
+        for (; p; p = p->NextSiblingElement("partitioning"))
+          result &= this->parseGeometryTag(p);
       }
 
       myGen = this->getModelGenerator(elem);
@@ -980,7 +991,7 @@ bool SIMinput::parsePatchList (const tinyxml2::XMLElement* elem,
   if (lowpatch < 1 || uppatch > nGlPatches)
   {
     std::cerr <<" *** SIMinput::parsePatchList: Invalid patch indices, lower="
-              << lowpatch <<" upper="<< uppatch << std::endl;
+              << lowpatch <<" upper="<< uppatch <<"."<< std::endl;
     patches.clear();
     return false;
   }
@@ -1014,9 +1025,9 @@ bool SIMinput::readTopologyOnly (const std::string& fileName)
 
   for (elem = elem->FirstChildElement("geometry"); elem;
        elem = elem->NextSiblingElement("geometry"))
-    for (const tinyxml2::XMLElement* child = elem->FirstChildElement("topology"); child;
-         child = child->NextSiblingElement("topology"))
-      if (!this->parseGeometryDimTag(child))
+    for (const tinyxml2::XMLElement* top = elem->FirstChildElement("topology");
+         top; top = top->NextSiblingElement("topology"))
+      if (!this->parseGeometryDimTag(top))
         return false;
 
   return (nGlbNodes = this->renumberNodes()) > 0;
@@ -1207,7 +1218,7 @@ bool SIMinput::parse (char* keyWord, std::istream& is)
       if (patch < 1 || patch > (int)myModel.size())
       {
         std::cerr <<" *** SIMinput::parse: Invalid patch index "
-                  << patch << std::endl;
+                  << patch <<"."<< std::endl;
         return false;
       }
       IFEM::cout <<"\tPeriodic "<< char('H'+pedir) <<"-direction P"<< patch
@@ -1265,8 +1276,8 @@ bool SIMinput::parse (char* keyWord, std::istream& is)
   // Since the same input file might be parsed by several substep solvers,
   // warnings on ignored keywords are issued when compiled in debug mode only.
   else if (isalpha(keyWord[0]))
-    std::cerr <<"  ** SIMinput::parse: Unknown keyword \""
-              << keyWord <<"\"."<< std::endl;
+    IFEM::cout <<"  ** SIMinput::parse: Unknown keyword \""
+               << keyWord <<"\" (ignored)."<< std::endl;
 #endif
 
   return true;
@@ -1536,10 +1547,12 @@ bool SIMinput::refine (const LR::RefineData& prm, Vector& sol)
   if (sol.empty())
     return this->refine(prm);
 
-  Vectors svec(1,sol);
-  bool result = this->refine(prm,svec);
-  sol = svec.front();
-  return result;
+  Vectors svec = {sol};
+  if (!this->refine(prm,svec))
+    return false;
+
+  sol.swap(svec.front());
+  return true;
 }
 
 
@@ -1632,13 +1645,13 @@ bool SIMinput::refine (const LR::RefineData& prm, Vectors& sol)
 
     Vectors lsol(sol.size());
     for (size_t j = 0; j < sol.size(); j++)
-      this->extractPatchSolution(sol[j], lsol[j], myModel[i], sol[j].size() / this->getNoNodes());
+      this->extractPatchSolution(sol[j], lsol[j], myModel[i],
+                                 sol[j].size() / this->getNoNodes());
     if (!pch[i]->refine(prmloc,lsol))
       return false;
-    for (const Vector& s : lsol)
-      lsols.push_back(s);
+    lsols.insert(lsols.end(),lsol.begin(),lsol.end());
   }
-  sol = lsols;
+  sol.swap(lsols);
   ++isRefined;
   return true;
 }
@@ -1846,7 +1859,8 @@ int SIMinput::restartBasis (const std::string& restartFile, int restartStep)
 bool SIMinput::deSerialize (const SerializeMap&)
 {
   std::cerr <<" *** SIMinput::deSerialize: Must be implemented in sub-class.\n"
-            <<"     Restart not supported for "<< this->getName() << std::endl;
+            <<"     Restart not supported for \""<< this->getName() <<"\"."
+            << std::endl;
   return false;
 }
 

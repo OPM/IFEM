@@ -185,7 +185,7 @@ static void printNodalConnectivity (const ASMVec& model, std::ostream& os)
         os <<" P"<< n.first+1 <<","<< n.second;
     }
 
-  std::cout << std::endl;
+  os << std::endl;
 }
 #endif
 
@@ -320,16 +320,16 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
       }
 
   if (iwar > 0)
-    std::cerr <<"\n  ** SIMbase::preprocess: Warning: "<< iwar
-              <<" undefined property sets were detected.\n";
+    IFEM::cout <<"\n  ** SIMbase::preprocess: Warning: "<< iwar
+               <<" undefined property sets were detected.\n";
   if (ierr > 0)
     std::cerr <<"\n *** SIMbase::preprocess: Error: "<< ierr
               <<" invalid Dirichlet properties were detected.\n"
               <<"     Please check your model, execution aborts..."
               << std::endl;
   else if (iwar > 0)
-    std::cerr <<"     Please verify your model, execution continues..."
-              << std::endl;
+    IFEM::cout <<"     Please verify your model, execution continues..."
+               << std::endl;
 
   // Compute the set of all MPCs over the whole model. This will also merge
   // multiple constraint equations defined on interfaces between patches.
@@ -534,8 +534,8 @@ bool SIMbase::initSystem (LinAlg::MatrixType mType,
   // Workaround SuperLU bug for tiny systems
   if (mType == LinAlg::SPARSE && this->getNoElms(true) < 3)
   {
-    std::cerr <<"  ** System too small for SuperLU, falling back to Dense."
-              << std::endl;
+    IFEM::cout <<"  ** System too small for SuperLU, falling back to Dense."
+               << std::endl;
     mType = LinAlg::DENSE;
   }
 
@@ -605,8 +605,8 @@ void SIMbase::setIntegrationPrm (unsigned short int i, double prm)
   else if (myProblem)
     myProblem->setIntegrationPrm(i,prm);
   else
-    std::cerr <<"  ** SIMbase::setIntegrationPrm: myProblem not set yet."
-              << std::endl;
+    IFEM::cout <<"  ** SIMbase::setIntegrationPrm: myProblem not set yet."
+               << std::endl;
 }
 
 
@@ -1234,7 +1234,10 @@ bool SIMbase::solveEqSystem (Vector& solution, size_t idxRHS, double* rCond,
 
   // Dump solution vector to file, if requested
   if (printSol > 0)
-    this->dumpSysVec(*b);
+  {
+    StdVector* sol = dynamic_cast<StdVector*>(b);
+    this->dumpSolVec(*sol);
+  }
 
   // Expand solution vector from equation ordering to DOF-ordering
   if (status && mySam)
@@ -1634,7 +1637,7 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
   if (!norm)
   {
 #ifdef SP_DEBUG
-    std::cerr <<"  ** SIMbase::solutionNorms: No integrand."<< std::endl;
+    std::cout <<"  ** SIMbase::solutionNorms: No integrand."<< std::endl;
 #endif
     return true; // Silently ignore when no norm integrand is provided
   }
@@ -1954,7 +1957,7 @@ bool Mode::orthonormalize (const SystemMatrix& mat)
     return false;
   }
 
-  IFEM::cout <<"  * Mode shape "<< eigNo;
+  IFEM::cout <<"   * Mode shape "<< eigNo;
   if (fabs(scale-1.0) < 1.0e-16)
     IFEM::cout <<" is already orthonormal."<< std::endl;
   else
@@ -1975,7 +1978,7 @@ bool Mode::computeDamping (const SystemMatrix& mat)
     return false;
 
   damping = tmp.dot(eqnVec);
-  IFEM::cout <<"  * Mode "<< eigNo <<": damping = "<< damping << std::endl;
+  IFEM::cout <<"   * Mode "<< eigNo <<": damping = "<< damping << std::endl;
 
   return true;
 }
@@ -2158,7 +2161,7 @@ bool SIMbase::project (RealArray& values, const FunctionBase* f,
       if (myModel[j]->separateProjectionBasis())
       {
         if (myModel.size() > 1) {
-          std::cerr <<"  ** L2 projection of explicit functions onto a"
+          std::cerr <<" *** L2 projection of explicit functions onto a"
                     <<" separate basis is not available for multi-patch models."
                     << std::endl;
           return false;
@@ -2455,8 +2458,7 @@ void SIMbase::dumpEqSys (bool initialBlankLine)
     {
       if (initialBlankLine) IFEM::cout <<"\n";
       IFEM::cout <<"Dumping system matrix to file "<< dmp.fname << std::endl;
-      std::ofstream os(dmp.fname.c_str(),
-                       dmp.step.size() == 1 ? std::ios::out : std::ios::app);
+      std::ofstream os(dmp.fname, dmp.count==1 ? std::ios::out : std::ios::app);
       os << std::setprecision(17);
       double old_tol = utl::zero_print_tol;
       utl::zero_print_tol = dmp.eps;
@@ -2470,6 +2472,20 @@ void SIMbase::dumpEqSys (bool initialBlankLine)
         M->dump(os,dmp.format,matName); // label matrices as A,B,C,...
       utl::zero_print_tol = old_tol;
       initialBlankLine = false;
+
+      // Note: Using the expand flag here to request dump of MEQN
+      if (dmp.expand && dmp.count == 1)
+      {
+        size_t idot = dmp.fname.find_last_of('.');
+        std::ofstream osm(dmp.fname.substr(0,idot) + "_MEQN.txt");
+        for (int inod = 1; inod <= mySam->getNoNodes(); inod++)
+        {
+          IntVec mnen;
+          mySam->getNodeEqns(mnen,inod);
+          for (int ieq : mnen) osm <<" "<< ieq;
+          osm <<"\n";
+        }
+      }
     }
 
   if (myEqSys->getNoRHS() == 0)
@@ -2481,8 +2497,7 @@ void SIMbase::dumpEqSys (bool initialBlankLine)
     {
       if (initialBlankLine) IFEM::cout <<"\n";
       IFEM::cout <<"Dumping RHS vector to file "<< dmp.fname << std::endl;
-      std::ofstream os(dmp.fname.c_str(),
-                       dmp.step.size() == 1 ? std::ios::out : std::ios::app);
+      std::ofstream os(dmp.fname, dmp.count==1 ? std::ios::out : std::ios::app);
       os << std::setprecision(17);
       double old_tol = utl::zero_print_tol;
       utl::zero_print_tol = dmp.eps;
@@ -2500,15 +2515,14 @@ void SIMbase::dumpEqSys (bool initialBlankLine)
 }
 
 
-void SIMbase::dumpSysVec (SystemVector& vec)
+void SIMbase::dumpSolVec (const Vector& vec)
 {
   // Dump solution vector to file, if requested
   for (DumpData& dmp : solDump)
     if (dmp.doDump())
     {
       IFEM::cout <<"Dumping solution vector to file "<< dmp.fname << std::endl;
-      std::ofstream os(dmp.fname.c_str(),
-                       dmp.step.size() == 1 ? std::ios::out : std::ios::app);
+      std::ofstream os(dmp.fname, dmp.count==1 ? std::ios::out : std::ios::app);
       os << std::setprecision(17);
       double old_tol = utl::zero_print_tol;
       utl::zero_print_tol = dmp.eps;
@@ -2517,24 +2531,15 @@ void SIMbase::dumpSysVec (SystemVector& vec)
         strcpy(vecName,"x");
       else
         sprintf(vecName,"x%d",dmp.count);
-      vec.dump(os,dmp.format,vecName);
+      if (dmp.expand)
+        StdVector::dump(vec,vecName,dmp.format,os);
+      else if (mySam)
+      {
+        StdVector solVec;
+        if (mySam->getSolVec(solVec,vec))
+          StdVector::dump(solVec,vecName,dmp.format,os);
+      }
       utl::zero_print_tol = old_tol;
-    }
-}
-
-
-void SIMbase::dumpSolVec (const RealArray& vec)
-{
-  if (!mySam) return;
-
-  // Dump solution vector to file, if requested
-  for (DumpData& dmp : solDump)
-    if (!dmp.fname.empty() && dmp.step.find(dmp.count+1) != dmp.step.end())
-    {
-      StdVector solVec;
-      if (mySam->getSolVec(solVec,vec))
-        this->dumpSysVec(solVec);
-      return;
     }
 }
 
