@@ -12,6 +12,7 @@
 //==============================================================================
 
 #include "ExprFunctions.h"
+#include "Functions.h"
 #include "Vec3.h"
 #include "Tensor.h"
 #include "expreval.h"
@@ -683,6 +684,15 @@ EvalMultiFunction<ParentFunc,Ret,Scalar>::evalTimeDerivative (const Vec3& X) con
     result.push_back(f->timeDerivative(X));
 
   return result;
+}
+
+
+RealFunc* utl::parseExprRealFunc (const std::string& function, bool autodiff)
+{
+  if (autodiff)
+    return new EvalFuncSpatial<autodiff::var>(function.c_str());
+  else
+    return new EvalFunction(function.c_str());
 }
 
 

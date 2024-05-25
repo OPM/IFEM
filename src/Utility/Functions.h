@@ -640,6 +640,12 @@ namespace utl
                           const std::string& type = "expression",
                           bool print = true);
 
+  //! \brief Creates a scalar-valued expression function by parsing a character string.
+  //! \details Implementation is in ExprFunctions.C due to encapsulation of autodiff.
+  //! \param[in] function Function definition
+  //! \param[in] autodiff True to enable auto-differentiation
+  RealFunc* parseExprRealFunc(const std::string& function, bool autodiff);
+
   //! \brief Creates a vector-valued function by parsing a character string.
   //! \param[in] func Character string to parse function definition from
   //! \param[in] type Function definition type flag
