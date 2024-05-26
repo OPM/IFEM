@@ -727,7 +727,7 @@ public:
   //! \brief Dumps left-hand-side matrix and right-hand-side vector to file.
   void dumpEqSys(bool initialBlankLine = false);
   //! \brief Dumps a solution vector to file.
-  void dumpSolVec(const Vector& vec);
+  void dumpSolVec(const Vector& x,bool isExpanded = true, bool expOnly = false);
 
 protected:
   //! \brief Returns the multi-dimension simulator sequence flag.

@@ -1236,7 +1236,7 @@ bool SIMbase::solveEqSystem (Vector& solution, size_t idxRHS, double* rCond,
   if (printSol > 0)
   {
     StdVector* sol = dynamic_cast<StdVector*>(b);
-    this->dumpSolVec(*sol);
+    if (sol) this->dumpSolVec(*sol,false);
   }
 
   // Expand solution vector from equation ordering to DOF-ordering
@@ -1324,8 +1324,8 @@ void SIMbase::printSolutionSummary (const Vector& solution, int printSol,
   // Print entire solution vector if it is small enough
   if (mySam && mySam->getNoEquations() < printSol)
     mySam->printVector(adm.cout,solution,"Solution vector");
-  else if (printSol <= 0) // Dump solution vector to file, if requested
-    this->dumpSolVec(solution);
+  else // Dump solution vector to file in DOF-order, if requested
+    this->dumpSolVec(solution,true,true);
 }
 
 
@@ -2515,12 +2515,15 @@ void SIMbase::dumpEqSys (bool initialBlankLine)
 }
 
 
-void SIMbase::dumpSolVec (const Vector& vec)
+void SIMbase::dumpSolVec (const Vector& x, bool isExpanded, bool expOnly)
 {
-  // Dump solution vector to file, if requested
+  // Dump solution vector to file, if requested.
+  // Either in equation order, or in the expanded DOF order.
   for (DumpData& dmp : solDump)
-    if (dmp.doDump())
+    if ((dmp.expand == isExpanded) || (!dmp.expand && isExpanded && !expOnly))
     {
+      if (!dmp.doDump()) continue; // No dump requested for current step
+
       IFEM::cout <<"Dumping solution vector to file "<< dmp.fname << std::endl;
       std::ofstream os(dmp.fname, dmp.count==1 ? std::ios::out : std::ios::app);
       os << std::setprecision(17);
@@ -2531,12 +2534,12 @@ void SIMbase::dumpSolVec (const Vector& vec)
         strcpy(vecName,"x");
       else
         sprintf(vecName,"x%d",dmp.count);
-      if (dmp.expand)
-        StdVector::dump(vec,vecName,dmp.format,os);
+      if (dmp.expand == isExpanded)
+        StdVector::dump(x,vecName,dmp.format,os);
       else if (mySam)
       {
         StdVector solVec;
-        if (mySam->getSolVec(solVec,vec))
+        if (mySam->getSolVec(solVec,x))
           StdVector::dump(solVec,vecName,dmp.format,os);
       }
       utl::zero_print_tol = old_tol;
