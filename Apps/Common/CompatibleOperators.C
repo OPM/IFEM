@@ -89,8 +89,8 @@ void CompatibleOperators::Weak::Gradient(std::vector<Matrix>& EM,
 {
   size_t nsd = fe.grad(1).cols();
   for (size_t n = 1; n <= nsd; ++n)
-    EM[10+5*(n-1)].outer_product(fe.grad(n).getColumn(n), fe.basis(nsd+1),
-                                 true, -scale*fe.detJxW);
+    EM[9+5*(n-1)].outer_product(fe.grad(n).getColumn(n), fe.basis(nsd+1),
+                                true, -scale*fe.detJxW);
 }
 
 

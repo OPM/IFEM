@@ -93,7 +93,7 @@ void PiolaOperators::Weak::Gradient (Matrices& EM,
     size_t ofs = 0;
     for (size_t b = 1; b <= nsd; ++b) {
       for (size_t i = 1; i <= fe.basis(b).size(); ++i)
-        EM[10 + 5*(b-1)](i,j) -= D(i+ofs,j) * scale * fe.detJxW;
+        EM[9 + 5*(b-1)](i,j) -= D(i+ofs,j) * scale * fe.detJxW;
       ofs += fe.basis(b).size();
     }
   }
