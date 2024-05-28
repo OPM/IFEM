@@ -455,6 +455,17 @@ ScalarGradFieldFunction (const std::string& fileName,
 }
 
 
+ScalarGradFieldFunction::
+ScalarGradFieldFunction (const std::vector<Field*>& fields, int dim)
+  : VecFunc(dim)
+{
+  field = fields;
+  hasMultipleLevels = false;
+  lastLevel = currentLevel = 0;
+  npch = fields.size();
+}
+
+
 Vec3 ScalarGradFieldFunction::evaluate (const Vec3& X) const
 {
   const Vec4* x4 = dynamic_cast<const Vec4*>(&X);
@@ -462,7 +473,7 @@ Vec3 ScalarGradFieldFunction::evaluate (const Vec3& X) const
     return Vec3();
 
   Vector vals;
-  if (patch[pidx]->getNoSpaceDim() == 2)
+  if (ncmp == 2)
     field[pidx]->gradFE(ItgPoint(x4->u[0], x4->u[1]), vals);
   else
     field[pidx]->gradFE(ItgPoint(x4->u[0], x4->u[1], x4->u[2]), vals);
