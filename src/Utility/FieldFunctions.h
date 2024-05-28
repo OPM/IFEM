@@ -164,6 +164,7 @@ public:
                 int level = 0);
   //! \brief Wrap existing field.
   //! \param fields Field to evaluate
+  //!
   //! \details Takes ownership of given fields.
   FieldFunction(const std::vector<Field*>& fields);
   //! \brief Empty destructor.
@@ -272,6 +273,7 @@ public:
 
   //! \brief Wrap existing fields.
   //! \param fields Fields to evaluate
+  //!
   //! \details Takes ownership of given fields.
   VecFieldFunction(const std::vector<Fields*>& fields);
 
@@ -331,6 +333,14 @@ public:
                           const std::string& basisName,
                           const std::string& fieldName,
                           int level = 0);
+
+  //! \brief Wrap existing fields.
+  //! \param[in] fields Fields to evaluate
+  //! \param[in] dim Dimension of fields
+  //!
+  //! \details Takes ownership of given fields.
+  ScalarGradFieldFunction(const std::vector<Field*>& fields, int dim);
+
   //! \brief Empty destructor.
   virtual ~ScalarGradFieldFunction() {}
 
