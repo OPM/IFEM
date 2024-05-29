@@ -731,7 +731,7 @@ public:
                              int iel = -1);
 
 protected:
-  std::shared_ptr<LR::LRSplineSurface> lrspline; //!< Pointer to the LR-spline surface object
+  std::shared_ptr<LR::LRSplineSurface> lrspline; //!< The LR-spline surface object
 
   bool is_rational = false; //!< True if basis is rational
 

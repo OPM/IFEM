@@ -37,7 +37,7 @@ public:
   //! \brief Copy constructor.
   ASMs3Dmx(const ASMs3Dmx& patch, const CharVec& n_f = CharVec(2,0));
   //! \brief Empty Destructor.
-  virtual ~ASMs3Dmx();
+  virtual ~ASMs3Dmx() = default;
 
   //! \brief Returns the spline surface representing a basis of this patch.
   virtual const Go::SplineVolume* getBasis(int basis = 1) const;

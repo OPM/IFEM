@@ -43,7 +43,7 @@ public:
   virtual ~ASMs1D() {}
 
   //! \brief Returns the spline curve representing the geometry of this patch.
-  Go::SplineCurve* getCurve() const { return curv; }
+  Go::SplineCurve* getCurve() const { return curv.get(); }
 
 
   // Methods for model generation
@@ -466,8 +466,8 @@ public:
   virtual void getElmConnectivities(IntMat& neighs) const;
 
 protected:
-  Go::SplineCurve* curv; //!< Pointer to the actual spline curve object
-  Go::SplineCurve* proj; //!< Pointer to spline curve for projection basis
+  std::shared_ptr<Go::SplineCurve> curv; //!< The actual spline curve object
+  std::shared_ptr<Go::SplineCurve> proj; //!< Spline curve for projection basis
 
   std::map<size_t,size_t> xnMap; //!< Node index map used by getCoord()
   std::map<size_t,size_t> nxMap; //!< Node index map used by getNodeID()

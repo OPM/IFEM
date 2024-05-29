@@ -105,7 +105,6 @@ public:
     //! \param[out] EM The element matrix to add contribution to
     //! \param[in] fe The finite element to evaluate for
     //! \param[in] scale Scaling factor for contribution
-    //! \param[in] stress Whether to add extra stress formulation terms
     //! \param[in] basis Basis to use
     static void Stress(Matrix& EM, const FiniteElement& fe,
                        double scale=1.0, int basis=1);

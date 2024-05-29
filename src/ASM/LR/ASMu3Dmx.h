@@ -36,7 +36,7 @@ public:
   //! \brief Copy constructor.
   ASMu3Dmx(const ASMu3Dmx& patch, const CharVec& n_f = CharVec(3,0));
   //! \brief Empty destructor.
-  virtual ~ASMu3Dmx() {}
+  virtual ~ASMu3Dmx() = default;
 
   //! \brief Returns the spline volume representing a basis of this patch.
   virtual const LR::LRSplineVolume* getBasis(int basis = 1) const;
@@ -199,7 +199,7 @@ protected:
                             bool ignoreGlobalLM);
 
 private:
-  typedef std::shared_ptr<LR::LRSplineVolume> SplinePtr; //!< Pointer to spline
+  using SplinePtr = std::shared_ptr<LR::LRSplineVolume>; //!< Pointer to spline
 
   std::vector<SplinePtr> m_basis;      //!< All bases
   LR::LRSplineVolume*    threadBasis;  //!< Basis for thread groups

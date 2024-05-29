@@ -105,15 +105,15 @@ const Go::SplineSurface* ASMs2D::getBasis (int basis) const
 {
   switch (basis) {
     case ASM::GEOMETRY_BASIS:
-      return static_cast<const Go::SplineSurface*>(geomB);
+      return static_cast<const Go::SplineSurface*>(geomB.get());
     case ASM::PROJECTION_BASIS:
-      return static_cast<const Go::SplineSurface*>(projB);
+      return static_cast<const Go::SplineSurface*>(projB.get());
     case ASM::PROJECTION_BASIS_2:
-      return static_cast<const Go::SplineSurface*>(projB2);
+      return static_cast<const Go::SplineSurface*>(projB2.get());
     case ASM::REFINEMENT_BASIS:
       return nullptr;
     default:
-      return surf;
+      return surf.get();
   }
 }
 
@@ -137,10 +137,9 @@ void ASMs2D::copyParameterDomain (const ASMbase* other)
 bool ASMs2D::read (std::istream& is)
 {
   if (shareFE) return true;
-  if (surf) delete surf;
 
   Go::ObjectHeader head;
-  surf = new Go::SplineSurface;
+  surf = std::make_shared<Go::SplineSurface>();
   is >> head >> *surf;
 
   // Eat white-space characters to see if there is more data to read
@@ -155,16 +154,14 @@ bool ASMs2D::read (std::istream& is)
   if (!is.good() && !is.eof())
   {
     std::cerr <<" *** ASMs2D::read: Failure reading spline data"<< std::endl;
-    delete surf;
-    surf = nullptr;
+    surf.reset();
     return false;
   }
   else if (surf->dimension() < 2)
   {
     std::cerr <<" *** ASMs2D::read: Invalid spline surface patch, dim="
-	      << surf->dimension() << std::endl;
-    delete surf;
-    surf = nullptr;
+          << surf->dimension() << std::endl;
+    surf.reset();
     return false;
   }
   else if (surf->dimension() < nsd)
@@ -199,9 +196,9 @@ void ASMs2D::clear (bool retainGeometry)
   if (!retainGeometry)
   {
     // Erase spline data
-    if (projB != surf) delete projB;
-    if (surf && !shareFE) delete surf;
-    geomB = projB = surf = nullptr;
+    projB.reset();
+    geomB.reset();
+    surf.reset();
   }
 
   // Erase the FE data
@@ -480,10 +477,10 @@ bool ASMs2D::createProjectionBasis (bool init)
   if (!surf)
     return false;
   else if (init && !projB)
-    projB = surf->clone();
+    projB.reset(surf->clone());
 
   std::swap(geomB,projB);
-  surf = static_cast<Go::SplineSurface*>(geomB);
+  surf = std::static_pointer_cast<Go::SplineSurface>(geomB);
   return true;
 }
 
@@ -1364,10 +1361,10 @@ bool ASMs2D::getElementCoordinates (Matrix& X, int iel, bool forceItg) const
   }
 #endif
 
-  const Go::SplineSurface* geo = forceItg ? surf : this->getBasis(ASM::GEOMETRY_BASIS);
+  const Go::SplineSurface* geo = forceItg ? surf.get() : this->getBasis(ASM::GEOMETRY_BASIS);
 
   int lnod0 = this->getFirstItgElmNode();
-  if (geo != surf) {
+  if (geo != surf.get()) {
     const IJ& nIdx = nodeInd[MNPC[iel-1][lnod0]];
     double u = surf->basis_u().getKnots()[nIdx.I + surf->order_u() - 1];
     double v = surf->basis_v().getKnots()[nIdx.J + surf->order_v() - 1];
@@ -1432,7 +1429,7 @@ bool ASMs2D::getElementCoordinatesPrm (Matrix& X, double u, double v) const
 
 void ASMs2D::getNodalCoordinates (Matrix& X, bool geo) const
 {
-  const Go::SplineSurface* spline = geo ? this->getBasis(ASM::GEOMETRY_BASIS) : surf;
+  const Go::SplineSurface* spline = geo ? this->getBasis(ASM::GEOMETRY_BASIS) : surf.get();
   const int n1 = spline->numCoefs_u();
   const int n2 = spline->numCoefs_v();
   X.resize(nsd,n1*n2);
@@ -1596,7 +1593,7 @@ const Vector& ASMs2D::getGaussPointParameters (Matrix& uGP, int dir, int nGauss,
                                                const Go::SplineSurface* spline) const
 {
   if (!spline)
-    spline = surf;
+    spline = surf.get();
 
   int pm1 = (dir == 0 ? spline->order_u() : spline->order_v()) - 1;
   RealArray::const_iterator uit = spline->basis(dir).begin() + pm1;
@@ -1828,7 +1825,7 @@ bool ASMs2D::integrate (Integrand& integrand,
           // Compute the element center
           param[0] = 0.5*(cache.getParam(0,i1-p1,0) + cache.getParam(0,i1-p1,ng[0]-1));
           param[1] = 0.5*(cache.getParam(1,i2-p2,0) + cache.getParam(1,i2-p2,ng[1]-1));
-          SplineUtils::point(X,param[0],param[1],surf);
+          SplineUtils::point(X,param[0],param[1],surf.get());
           if (!useElmVtx)
           {
             // When element corner coordinates are not needed, store coordinates
@@ -3194,7 +3191,7 @@ int ASMs2D::getCorner (int I, int J, int basis) const
 Field* ASMs2D::getProjectedField (const Vector& coefs) const
 {
   if (this->getNoProjectionNodes() == coefs.size())
-    return new SplineField2D(static_cast<const Go::SplineSurface*>(projB),coefs);
+    return new SplineField2D(static_cast<const Go::SplineSurface*>(projB.get()),coefs);
 
   std::cerr <<" *** ASMs2D::getProjectedField: Non-matching coefficent array,"
             <<" size="<< coefs.size() <<" nnod="<< this->getNoProjectionNodes()
@@ -3205,12 +3202,12 @@ Field* ASMs2D::getProjectedField (const Vector& coefs) const
 
 Fields* ASMs2D::getProjectedFields (const Vector& coefs, size_t) const
 {
-  if (projB == this->getBasis(1) || this->getNoProjectionNodes() == 0)
+  if (projB.get() == this->getBasis(1) || this->getNoProjectionNodes() == 0)
     return nullptr;
 
   size_t ncmp = coefs.size() / this->getNoProjectionNodes();
   if (ncmp*this->getNoProjectionNodes() == coefs.size())
-    return new SplineFields2D(static_cast<const Go::SplineSurface*>(projB),coefs,ncmp);
+    return new SplineFields2D(static_cast<const Go::SplineSurface*>(projB.get()),coefs,ncmp);
 
   std::cerr <<" *** ASMs2D::getProjectedFields: Non-matching coefficent array,"
             <<" size="<< coefs.size() <<" nnod="<< this->getNoProjectionNodes()
@@ -3223,7 +3220,7 @@ size_t ASMs2D::getNoProjectionNodes () const
 {
   if (!projB) return 0;
 
-  const Go::SplineSurface* proj = static_cast<const Go::SplineSurface*>(projB);
+  const Go::SplineSurface* proj = static_cast<const Go::SplineSurface*>(projB.get());
 
   return proj->numCoefs_u() * proj->numCoefs_v();
 }

@@ -48,15 +48,6 @@ ASMs3Dmx::ASMs3Dmx (const ASMs3Dmx& patch, const CharVec& n_f)
 }
 
 
-ASMs3Dmx::~ASMs3Dmx ()
-{
-  // these are managed by shared ptrs, make sure base class do not delete them.
-  if (!this->separateProjectionBasis())
-    projB = nullptr;
-  geomB = svol = nullptr;
-}
-
-
 const Go::SplineVolume* ASMs3Dmx::getBasis (int basis) const
 {
   if (basis < 1)
@@ -209,36 +200,36 @@ bool ASMs3Dmx::generateFEMTopology ()
       std::cerr << "*** RT basis cannot use a linear geometry." << std::endl;
       return false;
     }
-    m_basis = ASMmxBase::establishBases(svol, ASMmxBase::Type);
+    m_basis = ASMmxBase::establishBases(svol.get(), ASMmxBase::Type);
 
     // we need to project on something that is not one of our bases
     if (!projB) {
       if (ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS1 ||
           ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS2)
-        projB = ASMmxBase::adjustBasis(*svol,{SplineUtils::AdjustOp::Raise,
-                                              SplineUtils::AdjustOp::Raise,
-                                              SplineUtils::AdjustOp::Raise});
+        projB.reset(ASMmxBase::adjustBasis(*svol,{SplineUtils::AdjustOp::Raise,
+                                                  SplineUtils::AdjustOp::Raise,
+                                                  SplineUtils::AdjustOp::Raise}));
       else if (ASMmxBase::Type == ASMmxBase::SUBGRID)
-        projB = m_basis.front().get();
+        projB = m_basis.front();
       else if (ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
-        projB = new Go::SplineVolume(*svol);
+        projB = std::make_shared<Go::SplineVolume>(*svol);
       else // FULL_CONT_RAISE_BASISx
-        projB = m_basis[2-itgBasis].get();
+        projB = m_basis[2-itgBasis];
     }
 
     if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
-      projB2 = ASMmxBase::adjustBasis(*svol,{SplineUtils::AdjustOp::Raise,
-                                             SplineUtils::AdjustOp::Raise,
-                                             SplineUtils::AdjustOp::Raise});
-      geomB = m_basis[1].get();
+      projB2.reset(ASMmxBase::adjustBasis(*svol,{SplineUtils::AdjustOp::Raise,
+                                                 SplineUtils::AdjustOp::Raise,
+                                                 SplineUtils::AdjustOp::Raise}));
+      geomB = m_basis[1];
     } else if (ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
       geomB = projB;
     else
-      geomB = m_basis[itgBasis-1].get();
+      geomB = m_basis[itgBasis-1];
 
-    delete svol;
+    svol.reset();
   }
-  svol = m_basis[itgBasis-1].get();
+  svol = m_basis[itgBasis-1];
 
   nb.clear();
   nb.reserve(m_basis.size());
@@ -467,7 +458,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
 
   bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
   bool useElmVtx = integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS;
-  const bool separateGeometry = this->getBasis(ASM::GEOMETRY_BASIS) != svol;
+  const bool separateGeometry = this->getBasis(ASM::GEOMETRY_BASIS) != svol.get();
 
   if (myCache.empty()) {
     myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this));
@@ -638,7 +629,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
   PROFILE2("ASMs3Dmx::integrate(B)");
 
   bool useElmVtx = integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS;
-  const bool separateGeometry = this->getBasis(ASM::GEOMETRY_BASIS) != svol;
+  const bool separateGeometry = this->getBasis(ASM::GEOMETRY_BASIS) != svol.get();
 
   std::map<char,ThreadGroups>::const_iterator tit;
   if ((tit = threadGroupsFace.find(lIndex%10)) == threadGroupsFace.end())
@@ -849,7 +840,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
                           const ASM::InterfaceChecker& iChk)
 {
   if (!svol) return true; // silently ignore empty patches
-  if (this->getBasis(ASM::GEOMETRY_BASIS) != svol) {
+  if (this->getBasis(ASM::GEOMETRY_BASIS) != svol.get()) {
     std::cerr <<"*** Jump integration not implemented for a separate geometry basis."
               << std::endl;
     return false;
@@ -1150,7 +1141,7 @@ bool ASMs3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   sField.resize(0,0);
 
   const Go::SplineVolume* geo = this->getBasis(ASM::GEOMETRY_BASIS);
-  const bool separateGeometry = geo != svol;
+  const bool separateGeometry = geo != svol.get();
 
   // Evaluate the basis functions and their derivatives at all points
   std::vector<std::vector<Go::BasisDerivs>> splinex(m_basis.size() + separateGeometry);
@@ -1283,5 +1274,5 @@ bool ASMs3Dmx::separateProjectionBasis () const
 {
   return std::none_of(m_basis.begin(), m_basis.end(),
                       [this](const std::shared_ptr<Go::SplineVolume>& entry)
-                      { return entry.get() == projB; });
+                      { return entry == projB; });
 }

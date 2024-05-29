@@ -84,15 +84,15 @@ const Go::SplineVolume* ASMs3D::getBasis (int basis) const
 {
   switch (basis) {
     case ASM::GEOMETRY_BASIS:
-      return static_cast<const Go::SplineVolume*>(geomB);
+      return static_cast<const Go::SplineVolume*>(geomB.get());
     case ASM::PROJECTION_BASIS:
-      return static_cast<const Go::SplineVolume*>(projB);
+      return static_cast<const Go::SplineVolume*>(projB.get());
     case ASM::PROJECTION_BASIS_2:
-      return static_cast<const Go::SplineVolume*>(projB2);
+      return static_cast<const Go::SplineVolume*>(projB2.get());
     case ASM::REFINEMENT_BASIS:
       return nullptr;
     default:
-      return svol;
+      return svol.get();
   }
 }
 
@@ -116,10 +116,9 @@ void ASMs3D::copyParameterDomain (const ASMbase* other)
 bool ASMs3D::read (std::istream& is)
 {
   if (shareFE) return true;
-  if (svol) delete svol;
 
   Go::ObjectHeader head;
-  svol = new Go::SplineVolume;
+  svol = std::make_shared<Go::SplineVolume>();
   is >> head >> *svol;
 
   // Eat white-space characters to see if there is more data to read
@@ -134,16 +133,14 @@ bool ASMs3D::read (std::istream& is)
   if (!is.good() && !is.eof())
   {
     std::cerr <<" *** ASMs3D::read: Failure reading spline data"<< std::endl;
-    delete svol;
-    svol = nullptr;
+    svol.reset();
     return false;
   }
   else if (svol->dimension() < 3)
   {
     std::cerr <<" *** ASMs3D::read: Invalid spline volume patch, dim="
               << svol->dimension() << std::endl;
-    delete svol;
-    svol = nullptr;
+    svol.reset();
     return false;
   }
 
@@ -170,9 +167,9 @@ void ASMs3D::clear (bool retainGeometry)
   if (!retainGeometry)
   {
     // Erase spline data
-    if (projB != svol) delete projB;
-    if (svol && !shareFE) delete svol;
-    geomB = projB = svol = nullptr;
+    projB.reset();
+    svol.reset();
+    geomB.reset();
   }
 
   // Erase the FE data
@@ -414,10 +411,10 @@ bool ASMs3D::createProjectionBasis (bool init)
   if (!svol)
     return false;
   else if (init && !projB)
-    projB = svol->clone();
+    projB.reset( svol->clone());
 
   std::swap(geomB,projB);
-  svol = static_cast<Go::SplineVolume*>(geomB);
+  svol = std::static_pointer_cast<Go::SplineVolume>(geomB);
   return true;
 }
 
@@ -1633,10 +1630,10 @@ bool ASMs3D::getElementCoordinates (Matrix& X, int iel, bool forceItg) const
   }
 #endif
 
-  const Go::SplineVolume* geo = forceItg ? svol : this->getBasis(ASM::GEOMETRY_BASIS);
+  const Go::SplineVolume* geo = forceItg ? svol.get() : this->getBasis(ASM::GEOMETRY_BASIS);
 
   int lnod0 = this->getFirstItgElmNode();
-  if (geo != svol) {
+  if (geo != svol.get()) {
     const IJK& nIdx = nodeInd[MNPC[iel-1][lnod0]];
     double u = *(svol->basis(0).begin() + nIdx.I + svol->order(0) - 1);
     double v = *(svol->basis(1).begin() + nIdx.J + svol->order(1) - 1);
@@ -1704,7 +1701,7 @@ bool ASMs3D::getElementCoordinatesPrm (Matrix& X, double u,
 
 void ASMs3D::getNodalCoordinates (Matrix& X, bool geo) const
 {
-  const Go::SplineVolume* spline = geo ? this->getBasis(ASM::GEOMETRY_BASIS) : svol;
+  const Go::SplineVolume* spline = geo ? this->getBasis(ASM::GEOMETRY_BASIS) : svol.get();
   const int n1 = spline->numCoefs(0);
   const int n2 = spline->numCoefs(1);
   const int n3 = spline->numCoefs(2);
@@ -1954,7 +1951,7 @@ const Vector& ASMs3D::getGaussPointParameters (Matrix& uGP, int dir, int nGauss,
                                                const Go::SplineVolume* spline) const
 {
   if (!spline)
-    spline = svol;
+    spline = svol.get();
 
   int pm1 = spline->order(dir) - 1;
   RealArray::const_iterator uit = spline->basis(dir).begin() + pm1;
@@ -2188,7 +2185,7 @@ bool ASMs3D::integrate (Integrand& integrand,
           param[0] = 0.5*(cache.getParam(0,i1-p1,0) + cache.getParam(0,i1-p1,ng[0]-1));
           param[1] = 0.5*(cache.getParam(1,i2-p2,0) + cache.getParam(1,i2-p2,ng[1]-1));
           param[2] = 0.5*(cache.getParam(2,i3-p3,0) + cache.getParam(2,i3-p3,ng[2]-1));
-          SplineUtils::point(X,param[0],param[1],param[2],svol);
+          SplineUtils::point(X,param[0],param[1],param[2],svol.get());
           if (!useElmVtx)
           {
             // When element corner coordinates are not needed, store coordinates
@@ -3720,7 +3717,7 @@ bool ASMs3D::getFaceSize (int& n1, int& n2, int basis, int face) const
 Field* ASMs3D::getProjectedField (const Vector& coefs) const
 {
   if (this->getNoProjectionNodes() == coefs.size())
-    return new SplineField3D(static_cast<const Go::SplineVolume*>(projB),coefs);
+    return new SplineField3D(static_cast<const Go::SplineVolume*>(projB.get()),coefs);
 
   std::cerr <<" *** ASMs3D::getProjectedField: Non-matching coefficent array,"
             <<" size="<< coefs.size() <<" nnod="<< this->getNoProjectionNodes()
@@ -3731,12 +3728,12 @@ Field* ASMs3D::getProjectedField (const Vector& coefs) const
 
 Fields* ASMs3D::getProjectedFields (const Vector& coefs, size_t) const
 {
-  if (projB == this->getBasis(1) || this->getNoProjectionNodes() == 0)
+  if (projB.get() == this->getBasis(1) || this->getNoProjectionNodes() == 0)
     return nullptr;
 
   size_t ncmp = coefs.size() / this->getNoProjectionNodes();
   if (ncmp*this->getNoProjectionNodes() == coefs.size())
-    return new SplineFields3D(static_cast<const Go::SplineVolume*>(projB),coefs,ncmp);
+    return new SplineFields3D(static_cast<const Go::SplineVolume*>(projB.get()),coefs,ncmp);
 
   std::cerr <<" *** ASMs3D::getProjectedFields: Non-matching coefficent array,"
             <<" size="<< coefs.size() <<" nnod="<< this->getNoProjectionNodes()
@@ -3749,7 +3746,7 @@ size_t ASMs3D::getNoProjectionNodes () const
 {
   if (!projB) return 0;
 
-  const Go::SplineVolume* proj = static_cast<const Go::SplineVolume*>(projB);
+  const Go::SplineVolume* proj = static_cast<const Go::SplineVolume*>(projB.get());
 
   return proj->numCoefs(0) * proj->numCoefs(1) * proj->numCoefs(2);
 }
