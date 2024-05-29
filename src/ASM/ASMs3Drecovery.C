@@ -465,5 +465,5 @@ Go::SplineVolume* ASMs3D::projectSolutionLocalApprox(const IntegrandBase& integr
     return nullptr;
 
   // Project onto the geometry basis
-  return VariationDiminishingSplineApproximation(svol,sValues,sValues.rows());
+  return VariationDiminishingSplineApproximation(svol.get(),sValues,sValues.rows());
 }

@@ -62,10 +62,9 @@ ASMs1D::ASMs1D (const ASMs1D& patch, unsigned char n_f)
 bool ASMs1D::read (std::istream& is)
 {
   if (shareFE) return true;
-  if (curv) delete curv;
 
   Go::ObjectHeader head;
-  curv = new Go::SplineCurve;
+  curv = std::make_shared<Go::SplineCurve>();
   is >> head >> *curv;
 
   // Eat white-space characters to see if there is more data to read
@@ -80,16 +79,14 @@ bool ASMs1D::read (std::istream& is)
   if (!is.good() && !is.eof())
   {
     std::cerr <<" *** ASMs1D::read: Failure reading spline data"<< std::endl;
-    delete curv;
-    curv = nullptr;
+    curv.reset();
     return false;
   }
   else if (curv->dimension() < 1)
   {
     std::cerr <<" *** ASMs1D::read: Invalid spline curve patch, dim="
 	      << curv->dimension() << std::endl;
-    delete curv;
-    curv = nullptr;
+    curv.reset();
     return false;
   }
   else if (curv->dimension() < nsd)
@@ -122,9 +119,10 @@ void ASMs1D::clear (bool retainGeometry)
   if (!retainGeometry)
   {
     // Erase spline data
-    if (proj && proj != curv) delete proj;
-    if (curv && !shareFE) delete curv;
-    geomB = projB = curv = proj = nullptr;
+    curv.reset();
+    proj.reset();
+    geomB.reset();
+    projB.reset();
   }
 
   // Erase the FE data
@@ -254,8 +252,10 @@ bool ASMs1D::createProjectionBasis (bool init)
 {
   if (!curv)
     return false;
-  else if (init && !proj)
-    projB = proj = curv->clone();
+  else if (init && !proj) {
+    proj.reset(curv->clone());
+    projB = proj;
+  }
 
   std::swap(geomB,projB);
   std::swap(curv,proj);
@@ -693,7 +693,7 @@ Tensor ASMs1D::getRotation (size_t inod) const
 
 bool ASMs1D::getElementCoordinates (Matrix& X, int iel, bool) const
 {
-  return this->getElementCoordinates(X,iel,MNPC,curv);
+  return this->getElementCoordinates(X,iel,MNPC,curv.get());
 }
 
 
@@ -830,7 +830,7 @@ Vec3 ASMs1D::getElementCenter (int iel) const
   {
     double u[2];
     this->getElementBorders(iel,u);
-    SplineUtils::point(X0,0.5*(u[0]+u[1]),curv);
+    SplineUtils::point(X0,0.5*(u[0]+u[1]),curv.get());
   }
   return X0;
 }
@@ -943,8 +943,8 @@ std::pair<int,double> ASMs1D::findElement (const Vec3& X) const
   if (dist != 0.0)
   {
     Vec3 X0, X1;
-    SplineUtils::point(X0,u0,curv);
-    SplineUtils::point(X1,u1,curv);
+    SplineUtils::point(X0,u0,curv.get());
+    SplineUtils::point(X1,u1,curv.get());
     param = (dist < 0.0 ? u0 : u1) + (u1-u0)*dist/(X1-X0).length();
   }
   double xi = 2.0*(param-u0)/(u1-u0) - 1.0;
@@ -1014,7 +1014,7 @@ const Vector& ASMs1D::getGaussPointParameters (Matrix& uGP, int nGauss,
                                                const Go::SplineCurve* crv,
                                                bool skipNullSpans) const
 {
-  if (!crv) crv = curv;
+  if (!crv) crv = curv.get();
 
   int pm1 = crv->order() - 1;
   RealArray::const_iterator uit = crv->basis().begin() + pm1;
@@ -1227,7 +1227,7 @@ bool ASMs1D::integrate (Integrand& integrand,
     {
       // Compute the element center
       param[0] = 0.5*(gpar(1,1+iel) + gpar(ng,1+iel));
-      SplineUtils::point(X,param[0],curv);
+      SplineUtils::point(X,param[0],curv.get());
     }
 
     // Initialize element matrices
@@ -1457,7 +1457,7 @@ int ASMs1D::evalPoint (const double* xi, double* param, Vec3& X) const
   if (!curv) return -1;
 
   param[0] = (1.0-xi[0])*curv->startparam() + xi[0]*curv->endparam();
-  SplineUtils::point(X,param[0],curv);
+  SplineUtils::point(X,param[0],curv.get());
 
   // Check if this point matches any of the control points (nodes)
   return this->searchCtrlPt(curv->coefs_begin(),curv->coefs_end(),
@@ -1870,7 +1870,7 @@ bool ASMs1D::assembleL2matrices (SparseMatrix& A, StdVector& B,
   // Compute parameter values of the Gauss points over the whole patch
   // and evaluate the secondary solution at all integration points
   Matrix gp, sField;
-  RealArray gpar = this->getGaussPointParameters(gp,ng,xg,proj,true);
+  RealArray gpar = this->getGaussPointParameters(gp,ng,xg,proj.get(),true);
   if (!integrand.evaluate(sField,&gpar))
   {
     std::cerr <<" *** ASMs1D::assembleL2matrices: Failed for patch "<< idx+1
@@ -1896,7 +1896,7 @@ bool ASMs1D::assembleL2matrices (SparseMatrix& A, StdVector& B,
     if (continuous)
     {
       // Set up control point (nodal) coordinates for current element
-      if (!this->getElementCoordinates(Xnod,1+iel,mnpc,proj))
+      if (!this->getElementCoordinates(Xnod,1+iel,mnpc,proj.get()))
         return false;
 
       int inod1 = mnpc[iel][proj->order()-1];
@@ -1956,7 +1956,7 @@ bool ASMs1D::getNoStructElms (int& n1, int& n2, int& n3) const
 bool ASMs1D::evaluate (const FunctionBase* func, RealArray& values,
                        int, double time) const
 {
-  Go::SplineCurve* scrv = SplineUtils::project(curv,*func,func->dim(),time);
+  std::unique_ptr<Go::SplineCurve> scrv(SplineUtils::project(curv.get(),*func,func->dim(),time));
   if (!scrv)
   {
     std::cerr <<" *** ASMs1D::evaluate: Projection failure."<< std::endl;
@@ -1964,7 +1964,6 @@ bool ASMs1D::evaluate (const FunctionBase* func, RealArray& values,
   }
 
   values.assign(scrv->coefs_begin(),scrv->coefs_end());
-  delete scrv;
 
   return true;
 }
@@ -1977,7 +1976,7 @@ Fields* ASMs1D::getProjectedFields (const Vector& coefs, size_t) const
 
   size_t ncmp = coefs.size() / this->getNoProjectionNodes();
   if (ncmp*this->getNoProjectionNodes() == coefs.size())
-    return new SplineFields1D(proj,coefs,ncmp);
+    return new SplineFields1D(proj.get(),coefs,ncmp);
 
   std::cerr <<" *** ASMs1D::getProjectedFields: Non-matching coefficent array,"
             <<" size="<< coefs.size() <<" nnod="<< this->getNoProjectionNodes()

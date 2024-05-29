@@ -252,7 +252,7 @@ protected:
                             bool ignoreGlobalLM);
 
 private:
-  typedef std::shared_ptr<LR::LRSplineSurface> SplinePtr; //!< Pointer to spline
+  using SplinePtr = std::shared_ptr<LR::LRSplineSurface>; //!< Pointer to spline
 
   std::vector<SplinePtr> m_basis;      //!< All bases
   LR::LRSplineSurface*   threadBasis;  //!< Basis for thread groups

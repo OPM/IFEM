@@ -892,8 +892,8 @@ private:
   bool getFaceSize(int& n1, int& n2, int basis, int face) const;
 
 protected:
-  Go::SplineVolume* svol;  //!< Pointer to the actual spline volume object
-  bool              swapW; //!< Has the w-parameter direction been swapped?
+  std::shared_ptr<Go::SplineVolume> svol;  //!< The actual spline volume object
+  bool                              swapW; //!< Has the w-parameter direction been swapped?
 
   const IndexVec& nodeInd; //!< IJK-triplets for the control points (nodes)
   IndexVec      myNodeInd; //!< The actual IJK-triplet container

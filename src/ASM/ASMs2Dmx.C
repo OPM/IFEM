@@ -45,15 +45,6 @@ ASMs2Dmx::ASMs2Dmx (const ASMs2Dmx& patch, const CharVec& n_f)
 }
 
 
-ASMs2Dmx::~ASMs2Dmx ()
-{
-  // these are managed by shared ptrs, make sure base class do not delete them.
-  if (!this->separateProjectionBasis())
-    projB = nullptr;
-  geomB = surf = nullptr;
-}
-
-
 const Go::SplineSurface* ASMs2Dmx::getBasis (int basis) const
 {
   if (basis < 1)
@@ -212,34 +203,34 @@ bool ASMs2Dmx::generateFEMTopology ()
       return false;
     }
 
-    m_basis = ASMmxBase::establishBases(surf, ASMmxBase::Type);
+    m_basis = ASMmxBase::establishBases(surf.get(), ASMmxBase::Type);
 
     // we need to project on something that is not one of our bases
     if (!projB) {
       if (ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS1 ||
           ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS2)
-        projB = ASMmxBase::adjustBasis(*surf,{SplineUtils::AdjustOp::Raise,
-                                              SplineUtils::AdjustOp::Raise});
+        projB.reset(ASMmxBase::adjustBasis(*surf,{SplineUtils::AdjustOp::Raise,
+                                                  SplineUtils::AdjustOp::Raise}));
       else if (ASMmxBase::Type == ASMmxBase::SUBGRID)
-        projB = m_basis.front().get();
+        projB = m_basis.front();
       else if (ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
-        projB = new Go::SplineSurface(*surf);
+        projB = std::make_shared<Go::SplineSurface>(*surf);
       else // FULL_CONT_RAISE_BASISx
-        projB = m_basis[2-itgBasis].get();
+        projB = m_basis[2-itgBasis];
     }
 
     if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
-      projB2 = ASMmxBase::adjustBasis(*surf,{SplineUtils::AdjustOp::Raise,
-                                             SplineUtils::AdjustOp::Raise});
-      geomB = m_basis[1].get();
+      projB2.reset(ASMmxBase::adjustBasis(*surf,{SplineUtils::AdjustOp::Raise,
+                                                 SplineUtils::AdjustOp::Raise}));
+      geomB = m_basis[1];
     } else if (ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
       geomB = projB;
     else
-      geomB = m_basis[itgBasis-1].get();
+      geomB = m_basis[itgBasis-1];
 
-    delete surf;
+    surf.reset();
   }
-  surf = m_basis[itgBasis-1].get();
+  surf = m_basis[itgBasis-1];
 
   nb.clear();
   nb.reserve(m_basis.size());
@@ -443,7 +434,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
 
   bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
   bool useElmVtx = integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS;
-  const bool separateGeometry = this->getBasis(ASM::GEOMETRY_BASIS) != surf;
+  const bool separateGeometry = this->getBasis(ASM::GEOMETRY_BASIS) != surf.get();
   const bool piolaMapping = piola = integrand.getIntegrandType() & Integrand::PIOLA_MAPPING;
 
   if (myCache.empty()) {
@@ -612,7 +603,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
   PROFILE2("ASMs2Dmx::integrate(B)");
 
   bool useElmVtx = integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS;
-  const bool separateGeometry = this->getBasis(ASM::GEOMETRY_BASIS) != surf;
+  const bool separateGeometry = this->getBasis(ASM::GEOMETRY_BASIS) != surf.get();
   const bool piolaMapping = integrand.getIntegrandType() & Integrand::PIOLA_MAPPING;
 
   // Get Gaussian quadrature points and weights
@@ -792,7 +783,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
                           const ASM::InterfaceChecker& iChk)
 {
   if (!surf) return true; // silently ignore empty patches
-  if (this->getBasis(ASM::GEOMETRY_BASIS) != surf)
+  if (this->getBasis(ASM::GEOMETRY_BASIS) != surf.get())
   {
     std::cerr <<" *** Jump integration not implemented for a separate geometry basis."
               << std::endl;
@@ -1143,7 +1134,7 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   sField.resize(0,0);
 
   const Go::SplineSurface* geo = this->getBasis(ASM::GEOMETRY_BASIS);
-  const bool separateGeometry = geo != surf;
+  const bool separateGeometry = geo != surf.get();
   const bool piolaMapping = integrand.getIntegrandType() & Integrand::PIOLA_MAPPING;
 
   // Evaluate the basis functions and their derivatives at all points
@@ -1305,5 +1296,5 @@ bool ASMs2Dmx::separateProjectionBasis () const
 {
   return std::none_of(m_basis.begin(), m_basis.end(),
                       [this](const std::shared_ptr<Go::SplineSurface>& entry)
-                      { return entry.get() == projB; });
+                      { return entry == projB; });
 }

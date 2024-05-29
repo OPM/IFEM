@@ -618,5 +618,5 @@ Go::SplineSurface* ASMs2D::projectSolutionLocalApprox (const IntegrandBase& inte
     return nullptr;
 
   // Project onto the geometry basis
-  return VariationDiminishingSplineApproximation(surf,sValues,sValues.rows());
+  return VariationDiminishingSplineApproximation(surf.get(),sValues,sValues.rows());
 }

@@ -802,7 +802,7 @@ private:
   int coeffInd(size_t inod) const;
 
 protected:
-  Go::SplineSurface* surf; //!< Pointer to the actual spline surface object
+  std::shared_ptr<Go::SplineSurface> surf; //!< The actual spline surface object
   Go::SplineCurve* bou[4]; //!< Pointers to the four boundary curves
   bool              swapV; //!< Has the v-parameter direction been swapped?
 

@@ -24,7 +24,6 @@
 ASMstruct::ASMstruct (unsigned char n_p, unsigned char n_s, unsigned char n_f)
   : ASMbase(n_p,n_s,n_f)
 {
-  geomB = projB = projB2 = nullptr;
 }
 
 
@@ -39,13 +38,9 @@ ASMstruct::ASMstruct (const ASMstruct& patch, unsigned char n_f)
 
 ASMstruct::~ASMstruct ()
 {
-  if (projB && projB != geomB)
-    delete projB;
-
-  delete projB2;
-
-  if (geomB && !shareFE)
-    delete geomB;
+  projB.reset();
+  projB2.reset();
+  geomB.reset();
 }
 
 
