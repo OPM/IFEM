@@ -23,6 +23,7 @@
 
 char ASMmxBase::itgBasis             = 2;
 ASMmxBase::MixedType ASMmxBase::Type = ASMmxBase::FULL_CONT_RAISE_BASIS1;
+bool ASMmxBase::includeExtra         = false;
 
 
 void ASMmxBase::initMx (const std::vector<int>& MLGN, const int* sysMadof)

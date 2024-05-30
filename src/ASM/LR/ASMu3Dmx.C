@@ -229,6 +229,19 @@ bool ASMu3Dmx::generateFEMTopology ()
       geomB = m_basis[itgBasis-1];
     }
 
+    if (ASMmxBase::includeExtra)
+      switch (ASMmxBase::Type) {
+        case ASMmxBase::DIV_COMPATIBLE:
+        case ASMmxBase::REDUCED_CONT_RAISE_BASIS1:
+        case ASMmxBase::REDUCED_CONT_RAISE_BASIS2:
+          m_basis.push_back(std::static_pointer_cast<LR::LRSplineVolume>(projB)); break;
+        case ASMmxBase::SUBGRID:
+          m_basis.push_back(std::static_pointer_cast<LR::LRSplineVolume>(projB2)); break;
+        case FULL_CONT_RAISE_BASIS1: m_basis.push_back(m_basis[0]); break;
+        case FULL_CONT_RAISE_BASIS2: m_basis.push_back(m_basis[1]); break;
+        case NONE: break;
+      }
+
     delete tensorspline;
     tensorspline = nullptr;
   }
@@ -933,12 +946,17 @@ void ASMu3Dmx::generateThreadGroups (const Integrand& integrand, bool silence,
 
   std::vector<LR::LRSpline*> secConstraint;
   if (ASMmxBase::Type == ASMmxBase::SUBGRID ||
-      ASMmxBase::Type == REDUCED_CONT_RAISE_BASIS1)
+      ASMmxBase::Type == REDUCED_CONT_RAISE_BASIS1) {
     secConstraint = {this->getBasis(2)};
-  if (ASMmxBase::Type == REDUCED_CONT_RAISE_BASIS2)
+    if (ASMmxBase::includeExtra)
+      secConstraint.push_back(this->getBasis(3));
+  } if (ASMmxBase::Type == REDUCED_CONT_RAISE_BASIS2)
     secConstraint = {this->getBasis(1)};
-  if (ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
+  if (ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE) {
     secConstraint = {this->getBasis(1),this->getBasis(2),this->getBasis(3)};
+    if (ASMmxBase::includeExtra)
+      secConstraint.push_back(this->getBasis(5));
+  }
 
   LR::generateThreadGroups(threadGroups,threadBasis,secConstraint);
   LR::generateThreadGroups(projThreadGroups,projB.get());
