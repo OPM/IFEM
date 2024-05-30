@@ -227,6 +227,19 @@ bool ASMs3Dmx::generateFEMTopology ()
     else
       geomB = m_basis[itgBasis-1];
 
+    if (ASMmxBase::includeExtra)
+      switch (ASMmxBase::Type) {
+        case ASMmxBase::DIV_COMPATIBLE:
+        case ASMmxBase::REDUCED_CONT_RAISE_BASIS1:
+        case ASMmxBase::REDUCED_CONT_RAISE_BASIS2:
+          m_basis.push_back(std::static_pointer_cast<Go::SplineVolume>(projB)); break;
+        case ASMmxBase::SUBGRID:
+          m_basis.push_back(std::static_pointer_cast<Go::SplineVolume>(projB2)); break;
+        case FULL_CONT_RAISE_BASIS1: m_basis.push_back(m_basis[0]); break;
+        case FULL_CONT_RAISE_BASIS2: m_basis.push_back(m_basis[1]); break;
+        case NONE: break;
+      }
+
     svol.reset();
   }
   svol = m_basis[itgBasis-1];
@@ -1239,8 +1252,11 @@ void ASMs3Dmx::generateThreadGroups (const Integrand& integrand, bool silence,
   int p[3] = { 0, 0, 0 };
   for (const auto& it : m_basis)
     for (size_t d = 0; d < 3; d++)
-      if (it->order(d) > p[d])
+      if (it->order(d) > p[d]) {
         p[d] = it->order(d);
+        if (ASMmxBase::includeExtra && ASMmxBase::Type == ASMmxBase::SUBGRID)
+          p[d] += 1 + (p[d] % 2);
+      }
 
   this->ASMs3D::generateThreadGroups(p[0]-1, p[1]-1, p[2]-1,
                                      silence, ignoreGlobalLM);

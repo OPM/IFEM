@@ -228,6 +228,19 @@ bool ASMs2Dmx::generateFEMTopology ()
     else
       geomB = m_basis[itgBasis-1];
 
+    if (ASMmxBase::includeExtra)
+      switch (ASMmxBase::Type) {
+        case ASMmxBase::DIV_COMPATIBLE:
+        case ASMmxBase::REDUCED_CONT_RAISE_BASIS1:
+        case ASMmxBase::REDUCED_CONT_RAISE_BASIS2:
+          m_basis.push_back(std::static_pointer_cast<Go::SplineSurface>(projB)); break;
+        case ASMmxBase::SUBGRID:
+          m_basis.push_back(std::static_pointer_cast<Go::SplineSurface>(projB2)); break;
+        case FULL_CONT_RAISE_BASIS1: m_basis.push_back(m_basis[0]); break;
+        case FULL_CONT_RAISE_BASIS2: m_basis.push_back(m_basis[1]); break;
+        case NONE: break;
+      }
+
     surf.reset();
   }
   surf = m_basis[itgBasis-1];
@@ -1271,6 +1284,13 @@ void ASMs2Dmx::generateThreadGroups (const Integrand& integrand, bool silence,
       p2 = it->order_v();
   }
 
+  // with subgrid we need to increase the strip size to avoid
+  // problems for basis 1 (which has half the element size)
+  if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
+    p1 += 1 + (p1 % 2);
+    p2 += 1 + (p2 % 2);
+  }
+
   this->ASMs2D::generateThreadGroups(p1-1, p2-1, silence, ignoreGlobalLM);
 }
 
@@ -1300,7 +1320,8 @@ int ASMs2Dmx::getLastItgElmNode () const
 
 bool ASMs2Dmx::separateProjectionBasis () const
 {
-  return std::none_of(m_basis.begin(), m_basis.end(),
+  return std::none_of(m_basis.begin(),
+                      includeExtra ? m_basis.end()-1 : m_basis.end(),
                       [this](const std::shared_ptr<Go::SplineSurface>& entry)
                       { return entry == projB; });
 }

@@ -243,6 +243,19 @@ bool ASMu2Dmx::generateFEMTopology ()
       geomB = m_basis[itgBasis-1];
     }
 
+    if (ASMmxBase::includeExtra)
+      switch (ASMmxBase::Type) {
+        case ASMmxBase::DIV_COMPATIBLE:
+        case ASMmxBase::REDUCED_CONT_RAISE_BASIS1:
+        case ASMmxBase::REDUCED_CONT_RAISE_BASIS2:
+          m_basis.push_back(std::static_pointer_cast<LR::LRSplineSurface>(projB)); break;
+        case ASMmxBase::SUBGRID:
+          m_basis.push_back(std::static_pointer_cast<LR::LRSplineSurface>(projB2)); break;
+        case FULL_CONT_RAISE_BASIS1: m_basis.push_back(m_basis[0]); break;
+        case FULL_CONT_RAISE_BASIS2: m_basis.push_back(m_basis[1]); break;
+        case NONE: break;
+      }
+
     is_rational = tensorspline->rational();
     delete tensorspline;
     tensorspline = nullptr;
@@ -1193,12 +1206,17 @@ void ASMu2Dmx::generateThreadGroups (const Integrand& integrand, bool silence,
 
   std::vector<LR::LRSpline*> secConstraint;
   if (ASMmxBase::Type == ASMmxBase::SUBGRID ||
-      ASMmxBase::Type == REDUCED_CONT_RAISE_BASIS1)
+      ASMmxBase::Type == REDUCED_CONT_RAISE_BASIS1) {
     secConstraint = {this->getBasis(2)};
-  if (ASMmxBase::Type == REDUCED_CONT_RAISE_BASIS2)
+    if (ASMmxBase::includeExtra)
+      secConstraint.push_back(this->getBasis(3));
+  } if (ASMmxBase::Type == REDUCED_CONT_RAISE_BASIS2)
     secConstraint = {this->getBasis(1)};
-  if (ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
+  if (ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE) {
     secConstraint = {this->getBasis(1), this->getBasis(2)};
+    if (ASMmxBase::includeExtra)
+      secConstraint.push_back(this->getBasis(4));
+  }
 
   LR::generateThreadGroups(threadGroups,threadBasis,secConstraint);
   LR::generateThreadGroups(projThreadGroups,projB.get());
@@ -1361,7 +1379,8 @@ void ASMu2Dmx::getElementsAt (const RealArray& param,
 
 bool ASMu2Dmx::separateProjectionBasis () const
 {
-  return std::none_of(m_basis.begin(), m_basis.end(),
+  return std::none_of(m_basis.begin(),
+                      includeExtra ? m_basis.end()-1 : m_basis.end(),
                       [this](const SplinePtr& entry)
                       { return entry == projB; });
 }
