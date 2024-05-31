@@ -1397,7 +1397,7 @@ size_t SIMinput::setPropertyType (int code, Property::Type ptype,
           // Let all analytical boundary condition properties receive the same
           // property code, because there can only be one analytical solution
           for (PropertyVec::iterator q = myProps.begin(); q != p; ++q)
-            if (ptype == q->pcode)
+            if (ptype == q->pcode && basis == q->basis)
             {
               p->pindx = abs(q->pindx);
               break;
