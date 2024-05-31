@@ -455,6 +455,8 @@ bool MultiPatchModelGenerator2D::createTopologySets (SIMinput& sim) const
   TopEntity& e2f = sim.topology("Edge2Patches");
   TopEntity& e3f = sim.topology("Edge3Patches");
   TopEntity& e4f = sim.topology("Edge4Patches");
+  TopEntity& xb  = sim.topology("BoundaryX");
+  TopEntity& yb  = sim.topology("BoundaryY");
 
   auto&& insertion = [&sim, &e5](TopEntity& e, TopEntity& ef, TopItem top)
   {
@@ -469,10 +471,19 @@ bool MultiPatchModelGenerator2D::createTopologySets (SIMinput& sim) const
     insertion(e1, e1f, TopItem(i*nx+1,1,1));
     insertion(e2, e2f, TopItem((i+1)*nx,2,1));
   }
+  for (const TopItem& e : e1)
+    xb.insert(e);
+  for (const TopItem& e : e2)
+    xb.insert(e);
+
   for (size_t i = 0; i < nx; ++i) {
     insertion(e3, e3f, TopItem(i+1,3,1));
     insertion(e4, e4f, TopItem(nx*(ny-1)+1+i,4,1));
   }
+  for (const TopItem& e : e3)
+    yb.insert(e);
+  for (const TopItem& e : e4)
+    yb.insert(e);
 
   TopEntity& c = sim.topology("Corners");
   auto&& insertionv = [&sim, &c](TopEntity& e, TopItem top)
@@ -847,6 +858,22 @@ bool MultiPatchModelGenerator3D::createTopologySets (SIMinput& sim) const
     for (size_t j = 0; j < ny; ++j)
       for (size_t i = 0; i < nx; ++i)
         insertion(TopItem(IJK2K(i,j,k),r,2), "Boundary", "Face");
+
+  TopEntity& bx  = sim.topology("BoundaryX");
+  TopEntity& by  = sim.topology("BoundaryY");
+  TopEntity& bz  = sim.topology("BoundaryZ");
+
+  auto&& side_insertion = [&sim](TopEntity& set, int start)
+  {
+    for (int i = start; i < start+2; ++i) {
+      for (const auto& entry : sim.topology("Face" + std::to_string(i)))
+        set.insert(entry);
+    }
+  };
+
+  side_insertion(bx, 1);
+  side_insertion(by, 3);
+  side_insertion(bz, 5);
 
   r = 1;
   for (size_t k = 0; k < 2; ++k)
