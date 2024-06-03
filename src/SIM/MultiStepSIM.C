@@ -92,6 +92,10 @@ bool MultiStepSIM::saveModel (int& gBlock, int& rBlock,
 {
   PROFILE1("MultiStepSIM::saveModel");
 
+  // Reset nViz to 1 if less than 3 parametric dimensions
+  for (unsigned short int i = model.getNoParamDim(); i < 3; i++)
+    model.opt.nViz[i] = 1;
+
   // Write VTF-file with model geometry
   if (!model.writeGlvG(gBlock,fileName,clearG))
     return false;
