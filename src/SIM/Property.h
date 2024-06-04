@@ -37,6 +37,7 @@ struct Property
     NEUMANN_ANASOL,
     NEUMANN_GENERIC,
     ROBIN,
+    ROBIN_ANASOL,
     RIGID,
     DIRICHLET,
     DIRICHLET_INHOM,

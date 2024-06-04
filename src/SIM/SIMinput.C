@@ -599,13 +599,18 @@ bool SIMinput::parseBCTag (const tinyxml2::XMLElement* elem)
     if (code == 0) utl::getAttribute(elem,"code",code);
 
     IFEM::cout <<"\tRobin code "<< code;
-    if (!type.empty())
-      IFEM::cout <<" ("<< type <<")";
-    this->setPropertyType(code,Property::ROBIN);
-    if (rval)
-      this->setNeumann(rval->Value(),type,direction,code);
+    if (type == "anasol")
+    {
+      IFEM::cout <<" (analytic)";
+      this->setPropertyType(code,Property::ROBIN_ANASOL);
+    }
     else
-      this->setNeumann(std::string(),type,direction,code);
+    {
+      if (!type.empty())
+        IFEM::cout <<" ("<< type <<")";
+      this->setPropertyType(code,Property::ROBIN);
+      this->setNeumann(rval ? rval->Value() : "",type,direction,code);
+    }
     IFEM::cout << std::endl;
   }
 
