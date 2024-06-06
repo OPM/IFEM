@@ -738,8 +738,8 @@ public:
   //! \param[out] elmRes Element results for this patch
   //! \param[in] internalOrder If \e true, the data in \a globRes are assumed to
   //! be ordered w.r.t. the internal element ordering
-  void extractElmRes(const Matrix& globRes, Matrix& elmRes,
-                     bool internalOrder = false) const;
+  virtual void extractElmRes(const Matrix& globRes, Matrix& elmRes,
+                             bool internalOrder = false) const;
 
   //! \brief Extracts nodal results for this patch from the global vector.
   //! \param[in] globVec Global solution vector in DOF-order

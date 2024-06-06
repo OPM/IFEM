@@ -1944,6 +1944,9 @@ bool ASMu2D::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) const
 {
   if (!lrspline) return false;
 
+  if (outputMaster)
+    return outputMaster->getGridParameters(prm, dir, nSegPerSpan);
+
   double eps = ElementBlock::eps;
 
   for (const LR::Element* el : lrspline->getAllElements())
@@ -3015,6 +3018,16 @@ void ASMu2D::storeMesh (const std::string& fName, int fType) const
     else
       lrspline->writePostscriptMeshWithControlPoints(meshFile);
   }
+}
+
+
+void ASMu2D::extractElmRes (const Matrix& globRes, Matrix& elmRes,
+                            bool internalOrder) const
+{
+  if (outputMaster)
+    outputMaster->extractElmRes(globRes, elmRes, internalOrder);
+  else
+    this->ASMbase::extractElmRes(globRes, elmRes, internalOrder);
 }
 
 
