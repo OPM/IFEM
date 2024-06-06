@@ -32,7 +32,7 @@ NonLinSIM::NonLinSIM (SIMbase& sim, CNORM n) : MultiStepSIM(sim), iteNorm(n)
   fromIni = iteNorm <= NONE;
   maxIncr = 2;
   maxit   = 20;
-  nupdat  = 20;
+  nupdat  = fromIni ? 0 : 20;
   prnSlow = 0;
   rTol    = 0.000001;
   aTol    = 0.0;
@@ -161,6 +161,9 @@ void NonLinSIM::initPrm ()
 {
   if (iteNorm <= NONE) // Flag to integrand that a linear solver is used
     model.setIntegrationPrm(3,1.0);
+
+  if (iteNorm <= NONE && nupdat < maxit)
+    model.initLHSbuffers(); // Cache the constant element matrices
 }
 
 

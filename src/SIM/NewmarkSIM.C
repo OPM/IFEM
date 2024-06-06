@@ -127,6 +127,13 @@ void NewmarkSIM::printProblem () const
 
   IFEM::cout <<"Newmark predictor/multicorrector: beta = "<< beta
              <<" gamma = "<< gamma;
+  if (nupdat <= 0)
+    IFEM::cout <<"\n- using constant coefficient matrices";
+  else if (nupdat == 1)
+    IFEM::cout <<"\n- updating coefficient matrices each time step";
+  else
+    IFEM::cout <<"\n- updating coefficient matrices in the first "<< nupdat
+               <<" iterations in each time step";
   switch (predictor) {
   case 'd': IFEM::cout <<"\n- using constant displacement predictor"; break;
   case 'v': IFEM::cout <<"\n- using constant velocity predictor"; break;
