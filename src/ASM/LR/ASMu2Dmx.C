@@ -1342,15 +1342,7 @@ void ASMu2Dmx::copyRefinement (LR::LRSplineSurface* basis,
                                int multiplicity) const
 {
   const LR::LRSplineSurface* ref = this->getBasis(ASM::REFINEMENT_BASIS);
-  for (const LR::Meshline* line : ref->getAllMeshlines()) {
-    int mult = line->multiplicity_ > 1 ? line->multiplicity_ : multiplicity;
-    if (line->span_u_line_)
-      basis->insert_const_v_edge(line->const_par_,
-                                 line->start_, line->stop_, mult);
-    else
-      basis->insert_const_u_edge(line->const_par_,
-                                 line->start_, line->stop_, mult);
-  }
+  LR::copyRefinement(ref, basis, multiplicity);
 }
 
 
