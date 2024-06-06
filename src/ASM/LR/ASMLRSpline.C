@@ -11,8 +11,9 @@
 //!
 //==============================================================================
 
-#include "LRSpline/LRSplineSurface.h"
 #include "LRSpline/Basisfunction.h"
+#include "LRSpline/LRSplineSurface.h"
+#include "LRSpline/LRSplineVolume.h"
 
 #include "ASMLRSpline.h"
 #include "Vec3.h"
@@ -21,7 +22,6 @@
 #include "Utilities.h"
 #include "Profiler.h"
 #include "IFEM.h"
-#include <fstream>
 
 #ifdef USE_OPENMP
 #include <omp.h>
@@ -180,6 +180,37 @@ void LR::generateThreadGroups (ThreadGroups& threadGroups,
 #endif
 
   threadGroups.oneGroup(nElement); // No threading, all elements in one group
+}
+
+
+void LR::copyRefinement (const LR::LRSplineSurface* from,
+                         LR::LRSplineSurface* to,
+                         int multiplicity)
+{
+  for (const LR::Meshline* line : from->getAllMeshlines()) {
+    int mult = line->multiplicity_ > 1 ? line->multiplicity_ : multiplicity;
+    if (line->span_u_line_)
+      to->insert_const_v_edge(line->const_par_,
+                              line->start_, line->stop_, mult);
+    else
+      to->insert_const_u_edge(line->const_par_,
+                              line->start_, line->stop_, mult);
+  }
+}
+
+
+void LR::copyRefinement (const LR::LRSplineVolume* from,
+                         LR::LRSplineVolume* to,
+                         int multiplicity)
+{
+  for (const LR::MeshRectangle* rect : from->getAllMeshRectangles()) {
+    int mult = rect->multiplicity_ > 1 ? to->order(rect->constDirection())
+                                       : multiplicity;
+    LR::MeshRectangle* newRect = rect->copy();
+    newRect->multiplicity_ = mult;
+
+    to->insert_line(newRect);
+  }
 }
 
 

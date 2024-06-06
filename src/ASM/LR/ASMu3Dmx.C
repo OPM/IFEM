@@ -1014,14 +1014,7 @@ void ASMu3Dmx::copyRefinement (LR::LRSplineVolume* basis,
                                int multiplicity) const
 {
   const LR::LRSplineVolume* ref = this->getBasis(ASM::REFINEMENT_BASIS);
-  for (const LR::MeshRectangle* rect : ref->getAllMeshRectangles()) {
-    int mult = rect->multiplicity_ > 1 ? basis->order(rect->constDirection())
-                                       : multiplicity;
-    LR::MeshRectangle* newRect = rect->copy();
-    newRect->multiplicity_ = mult;
-
-    basis->insert_line(newRect);
-  }
+  LR::copyRefinement(ref, basis, multiplicity);
 }
 
 
