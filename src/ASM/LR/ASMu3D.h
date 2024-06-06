@@ -470,6 +470,19 @@ public:
   //! \param[in] coefs The coefficients for the field
   virtual Fields* getProjectedFields(const Vector& coefs, size_t = 0) const;
 
+  //! \brief Set master patch for VTF output.
+  //! \param pch Master patch to use
+  void setOutputMaster(const ASMu3D* pch)
+  { outputMaster = pch; }
+
+  //! \brief Extracts element results for this patch from a global vector.
+  //! \param[in] globRes Global matrix of element results
+  //! \param[out] elmRes Element results for this patch
+  //! \param[in] internalOrder If \e true, the data in \a globRes are assumed to
+  //! be ordered w.r.t. the internal element ordering
+  virtual void extractElmRes(const Matrix& globRes, Matrix& elmRes,
+                             bool internalOrder = false) const;
+
 protected:
   //! \brief Struct representing an inhomogeneous Dirichlet boundary condition.
   struct DirichletFace
@@ -690,6 +703,8 @@ public:
 
 protected:
   std::shared_ptr<LR::LRSplineVolume> lrspline; //!< The LR-spline volume object
+
+  const ASMu3D* outputMaster = nullptr; //!< Master patch to use for VTF output
 
   Go::SplineVolume* tensorspline; //!< Pointer to original tensor spline object
   Go::SplineVolume* tensorPrjBas; //!< Pointer to tensor spline projection base

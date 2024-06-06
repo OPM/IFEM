@@ -246,6 +246,13 @@ public:
   //! \param[in] globalNum If \e true, \a elmId is global otherwise patch-local
   virtual bool checkElementSize(int elmId, bool globalNum = true) const;
 
+  //! \brief Extracts element results for this patch from a global vector.
+  //! \param[in] globRes Global matrix of element results
+  //! \param[out] elmRes Element results for this patch
+  //! \param[in] internalOrder If \e true, the data in \a globRes are assumed to
+  //! be ordered w.r.t. the internal element ordering
+  virtual void extractElmRes(const Matrix& globRes, Matrix& elmRes,
+                             bool internalOrder = false) const;
 
   // Various methods for preprocessing of boundary conditions and patch topology
   // ===========================================================================
@@ -465,6 +472,11 @@ public:
   //! \param[in] fName Prefix for file names
   //! \param[in] fType Flag telling which file type(s) to write
   virtual void storeMesh(const std::string& fName, int fType) const;
+
+  //! \brief Set master patch for VTF output.
+  //! \param pch Master patch to use
+  void setOutputMaster(const ASMu2D* pch)
+  { outputMaster = pch; }
 
 protected:
   //! \brief Struct representing an inhomogeneous Dirichlet boundary condition.
@@ -734,6 +746,8 @@ protected:
   std::shared_ptr<LR::LRSplineSurface> lrspline; //!< The LR-spline surface object
 
   bool is_rational = false; //!< True if basis is rational
+
+  const ASMu2D* outputMaster = nullptr; //!< Master patch to use for VTF output
 
   Go::SplineSurface* tensorspline; //!< Pointer to original tensor spline object
   Go::SplineSurface* tensorPrjBas; //!< Pointer to tensor spline projection base

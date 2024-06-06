@@ -1411,6 +1411,9 @@ bool ASMu3D::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) const
 {
   if (!lrspline) return false;
 
+  if (outputMaster)
+    return outputMaster->getGridParameters(prm, dir, nSegPerSpan);
+
   double eps = ElementBlock::eps;
 
   for (const LR::Element* el : lrspline->getAllElements())
@@ -2406,6 +2409,16 @@ void ASMu3D::generateThreadGroupsFromElms (const IntVec& elms)
     projThreadGroups = threadGroups;
 
   threadGroups = threadGroups.filter(myElms);
+}
+
+
+void ASMu3D::extractElmRes (const Matrix& globRes, Matrix& elmRes,
+                            bool internalOrder) const
+{
+  if (outputMaster)
+    outputMaster->extractElmRes(globRes, elmRes, internalOrder);
+  else
+    this->ASMbase::extractElmRes(globRes, elmRes, internalOrder);
 }
 
 
