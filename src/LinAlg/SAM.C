@@ -447,6 +447,9 @@ bool SAM::assembleSystem (SystemMatrix& sysK, SystemVector& sysRHS,
                           const Matrix& eK, int iel,
                           RealArray* reactionForces) const
 {
+  if (eK.empty())
+    return true; // silently ignore empty element matrices
+
   if (reactionForces)
   {
     Vector eS;
@@ -483,7 +486,7 @@ bool SAM::assembleSystem (SystemMatrix& sysK, SystemVector& sysRHS,
 bool SAM::assembleSystem (SystemMatrix& sysM,
 			  const Matrix& eM, int iel) const
 {
-  return sysM.assemble(eM,*this,iel);
+  return eM.empty() ? true : sysM.assemble(eM,*this,iel);
 }
 
 
@@ -491,6 +494,9 @@ bool SAM::assembleSystem (SystemVector& sysRHS,
                           const Matrix& eK, int iel,
                           RealArray* reactionForces) const
 {
+  if (eK.empty())
+    return true; // silently ignore empty element matrices
+
   IntVec meen;
   if (!this->getElmEqns(meen,iel,eK.rows()))
     return false;

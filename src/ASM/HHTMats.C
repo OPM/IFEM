@@ -35,11 +35,12 @@ const Matrix& HHTMats::getNewtonMatrix () const
   //   + (1+alpha)*gobh*C
   // where gobh = gamma/(beta*h)
 
-  N = A[2];
-  N.multiply(alphaPlus1*(1.0 + alpha2*gamma/(beta*h)));
+  N = A[1];
+  N.multiply((alphaPlus1*alpha1*gamma + 1.0/h)/(beta*h));
+  if (A.size() > 2)
+    N.add(A[2],alphaPlus1*(1.0 + alpha2*gamma/(beta*h)));
   if (A.size() > 3)
     N.add(A[3],alphaPlus1);
-  N.add(A[1],(alphaPlus1*alpha1*gamma + 1.0/h)/(beta*h));
   if (A.size() > 4)
     N.add(A[4],alphaPlus1*gamma/(beta*h));
 
@@ -49,7 +50,7 @@ const Matrix& HHTMats::getNewtonMatrix () const
   if (A.size() > 3)
     std::cout <<"Material stiffness matrix"<< A[2]
               <<"Geometric stiffness matrix"<< A[3];
-  else
+  else if (A.size() > 2)
     std::cout <<"Tangent stiffness matrix"<< A[2];
   if (A.size() > 4)
     std::cout <<"Element damping matrix"<< A[4];
@@ -73,6 +74,10 @@ const Vector& HHTMats::getRHSVector () const
   int ia = vec.size() - 1; // index to element acceleration vector (a)
   int iv = vec.size() - 2; // index to element velocity vector (v)
 
+  bool haveMass = A.size() > 1 && !A[1].empty();
+  bool haveStif = A.size() > 2 && !A[2].empty();
+  bool haveDamp = A.size() > 4 && !A[4].empty();
+
   if ((isPredictor || oldHHT) && b.size() > 1)
   {
     Vector& Fia = const_cast<Vector&>(b[1]);
@@ -82,11 +87,11 @@ const Vector& HHTMats::getRHSVector () const
     Fia = b.front(); // Fia = -Fs
     if (b.size() > 2)
       Fia.add(b[2]); // Fia = Fext - Fs
-    if (alpha1 > 0.0 && iv > 0 && A.size() > 1)
+    if (alpha1 > 0.0 && iv > 0 && haveMass)
       Fia.add(A[1]*vec[iv],-alpha1); // Fia -= alpha1*M*v
-    if (alpha2 > 0.0 && iv > 0 && A.size() > 2)
+    if (alpha2 > 0.0 && iv > 0 && haveStif)
       Fia.add(A[2]*vec[iv],-alpha2); // Fia -= alpha2*K*v
-    if (iv > 0 && A.size() > 4)
+    if (iv > 0 && haveDamp)
       Fia.add(A[4]*vec[iv],-1.0); // Fia -= C*v
 #if SP_DEBUG > 2
     std::cout <<"Element inertia force vector"<< Fia;
@@ -104,7 +109,7 @@ const Vector& HHTMats::getRHSVector () const
     std::cout <<"S_ext - S_int"<< b.front();
   if (b.size() > 3)
     std::cout <<"S_dmp"<< b[3];
-  if (A.size() > 1 && ia >= 0)
+  if (haveMass && ia >= 0)
     std::cout <<"S_inert = M*a"<< A[1]*vec[ia];
 #endif
 
@@ -116,24 +121,27 @@ const Vector& HHTMats::getRHSVector () const
   // the predictor step force vector after the element assembly.
   Vector& RHS = const_cast<Vector&>(b.front());
   double alphaPlus1 = 1.5 - gamma;
-  if (oldHHT && A.size() > 1 && ia >= 0)
+  if (haveMass && ia >= 0)
   {
-    RHS *= alphaPlus1; // RHS = -(1+alphaH)*S_int
-    RHS.add(A[1]*vec[ia], isPredictor ? 1.0 : -1.0); // RHS (+/-)= M*a
-  }
-  else if (isPredictor && A.size() > 1 && iv >= 1 && ia >= 0)
-  {
-    int pa = iv - 1; // index to predicted element acceleration vector (A)
-    A[1].multiply(vec[pa]-vec[ia],RHS); // RHS = M*(A-a)
-    iv -= 2; // index to predicted element velocity vector (V)
+    if (oldHHT)
+    {
+      RHS *= alphaPlus1; // RHS = -(1+alphaH)*S_int
+      RHS.add(A[1]*vec[ia], isPredictor ? 1.0 : -1.0); // RHS (+/-)= M*a
+    }
+    else if (isPredictor && iv >= 1)
+    {
+      // iv-1 = index to predicted element acceleration vector (A)
+      A[1].multiply(vec[iv-1]-vec[ia],RHS); // RHS = M*(A-a)
+      iv -= 2; // index to predicted element velocity vector (V)
 #if SP_DEBUG > 2
-    std::cout <<"S_inert = M*(A-a)"<< RHS;
+      std::cout <<"S_inert = M*(A-a)"<< RHS;
 #endif
-  }
-  else if (A.size() > 1 && ia >= 0)
-  {
-    RHS *= alphaPlus1; // RHS = -(1+alphaH)*S_int
-    RHS.add(A[1]*vec[ia],-1.0); // RHS -= M*a
+    }
+    else
+    {
+      RHS *= alphaPlus1; // RHS = -(1+alphaH)*S_int
+      RHS.add(A[1]*vec[ia],-1.0); // RHS -= M*a
+    }
   }
 
   if (oldHHT && b.size() > 2)
@@ -141,13 +149,13 @@ const Vector& HHTMats::getRHSVector () const
 
   if (!isPredictor) alphaPlus1 = -alphaPlus1;
 
-  if (alpha1 > 0.0 && A.size() > 1 && iv >= 0)
+  if (alpha1 > 0.0 && haveMass && iv >= 0)
     RHS.add(A[1]*vec[iv],alphaPlus1*alpha1); // RHS -= (1+alphaH)*alpha1*M*v
-  if (alpha2 > 0.0 && A.size() > 2 && iv >= 0)
+  if (alpha2 > 0.0 && haveStif && iv >= 0)
     RHS.add(A[2]*vec[iv],alphaPlus1*alpha2); // RHS -= (1+alphaH)*alpha2*K*v
   if (b.size() > 3)
     RHS.add(b[3]        ,alphaPlus1);        // RHS -= (1+alphaH)*Fd
-  else if (A.size() > 4 && iv >= 0)
+  else if (haveDamp && iv >= 0)
     RHS.add(A[4]*vec[iv],alphaPlus1);        // RHS -= (1+alphaH)*C*v
 
 #if SP_DEBUG > 2

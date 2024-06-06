@@ -49,14 +49,16 @@ const Matrix& NewmarkMats::getNewtonMatrix () const
 
   N = A[1];
   N.multiply(alpha_m + alpha_f*alpha1*gamma*h);
-  N.add(A[2],alpha_f*(alpha2*gamma + beta*h)*h);
+  if (A.size() > 2)
+    N.add(A[2],alpha_f*(alpha2*gamma + beta*h)*h);
   if (A.size() > 3)
     N.add(A[3],alpha_f*gamma*h);
   if (slvDisp)
     N.multiply(1.0/(beta*h*h));
 #if SP_DEBUG > 2
   std::cout <<"\nElement mass matrix"<< A[1];
-  std::cout <<"Element stiffness matrix"<< A[2];
+  if (A.size() > 2)
+    std::cout <<"Element stiffness matrix"<< A[2];
   if (A.size() > 3)
     std::cout <<"Element damping matrix"<< A[3];
   std::cout <<"Resulting Newton matrix"<< A[0];
@@ -76,6 +78,10 @@ const Vector& NewmarkMats::getRHSVector () const
   int ia = vec.size() - 1; // index to element acceleration vector (a)
   int iv = vec.size() - 2; // index to element velocity vector (v)
 
+  bool haveMass = A.size() > 1 && !A[1].empty();
+  bool haveStif = A.size() > 2 && !A[2].empty();
+  bool haveDamp = A.size() > 3 && !A[3].empty();
+
 #if SP_DEBUG > 2
   if (!vec.empty()) std::cout <<"\n";
   int iu = vec.size() - 3; // index to element displacement vector (u)
@@ -83,30 +89,30 @@ const Vector& NewmarkMats::getRHSVector () const
   if (iv >= 0) std::cout <<"v:"<< vec[iv];
   if (ia >= 0) std::cout <<"a:"<< vec[ia];
   std::cout <<"\nf_ext - f_s"<< dF;
-  if (A.size() > 1 && ia >= 0)
+  if (haveMass && ia >= 0)
     std::cout <<"f_i = M*a"<< A[1]*vec[ia];
   if (b.size() > 1)
     std::cout <<"f_d"<< b[1];
-  else if (A.size() > 3 && iv >= 0)
+  else if (haveDamp && iv >= 0)
     std::cout <<"f_d = C*v"<< A[3]*vec[iv];
-  if (alpha1 > 0.0 && A.size() > 1 && iv >= 0)
+  if (alpha1 > 0.0 && haveMass && iv >= 0)
     std::cout <<"f_d1/alpha1 = M*v (alpha1="<< alpha1 <<")"<< A[1]*vec[iv];
-  if (alpha2 > 0.0 && A.size() > 2 && iv >= 0)
+  if (alpha2 > 0.0 && haveStif && iv >= 0)
     std::cout <<"f_d2/alpha2 = K*v (alpha2="<< alpha2 <<")"<< A[2]*vec[iv];
 #endif
 
-  if (A.size() > 1 && ia >= 0)
+  if (haveMass && ia >= 0)
     dF.add(A[1]*vec[ia],-1.0);    // dF = Fext - M*a
 
   if (b.size() > 1)
     dF.add(b[1],-1.0);            // dF -= Fd
-  else if (A.size() > 3 && iv >= 0)
+  else if (haveDamp && iv >= 0)
     dF.add(A[3]*vec[iv],-1.0);    // dF -= C*v
 
-  if (alpha1 > 0.0 && A.size() > 1 && iv >= 0)
+  if (alpha1 > 0.0 && haveMass && iv >= 0)
     dF.add(A[1]*vec[iv],-alpha1); // dF -= alpha1*M*v
 
-  if (alpha2 > 0.0 && A.size() > 2 && iv >= 0)
+  if (alpha2 > 0.0 && haveStif && iv >= 0)
     dF.add(A[2]*vec[iv],-alpha2); // dF -= alpha2*K*v
 
 #if SP_DEBUG > 2

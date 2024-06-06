@@ -97,11 +97,9 @@ void ElmMats::printScl (std::ostream& os, size_t idx) const
 {
   if (idx >= c.size()) return;
 
-  os <<"Element scalar";
-  if (idx > 0) os <<" "<< idx;
-
+  os <<"Element scalar "<< idx+1;
   if (idx < Cname.size() && Cname[idx])
-    os <<" ("<< Cname[idx] <<"): ";
+    os <<" ("<< Cname[idx] <<")";
 
-  os << c[idx] << std::endl;
+  os <<": "<< c[idx] << std::endl;
 }
