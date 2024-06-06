@@ -563,8 +563,13 @@ bool SIMbase::initSystem (const SIMbase* that)
 
 void SIMbase::initLHSbuffers ()
 {
-  if (myProblem)
-    myProblem->initLHSbuffers(this->getNoElms());
+  if (!myProblem) return;
+
+  int nElms = 0;
+  for (ASMbase* pch : myModel)
+    nElms = std::max(nElms,pch->getMaxElmNo());
+
+  myProblem->initLHSbuffers(nElms);
 }
 
 

@@ -322,6 +322,8 @@ public:
   //! in the patch (contact and interface elements, but no zero-volume elements)
   size_t getNoElms(bool includeZeroVolElms = false,
                    bool includeXElms = false) const;
+  //! \brief Returns the highest external element number in this patch.
+  int getMaxElmNo() const;
   //! \brief Returns the number of elements on a boundary.
   virtual size_t getNoBoundaryElms(char, char) const { return 0; }
   //! \brief Returns the total number of multi-point constraint equations.

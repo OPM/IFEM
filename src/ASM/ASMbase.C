@@ -339,6 +339,12 @@ size_t ASMbase::getNoElms (bool includeZeroVolElms, bool includeXElms) const
 }
 
 
+int ASMbase::getMaxElmNo () const
+{
+  return MLGE.empty() ? 0 : *std::max_element(MLGE.begin(),MLGE.end());
+}
+
+
 void ASMbase::getNoIntPoints (size_t& nPt, size_t& nIPt)
 {
   size_t nGp = 1;
