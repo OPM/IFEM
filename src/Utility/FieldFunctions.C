@@ -36,7 +36,7 @@ FieldFuncBase::~FieldFuncBase ()
 }
 
 
-bool FieldFuncBase::setPatch (size_t pIdx)
+bool FieldFuncBase::setPatch (size_t pIdx) const
 {
   if (pIdx >= npch)
     return false;

@@ -2147,6 +2147,7 @@ bool SIMbase::project (RealArray& values, const FunctionBase* f,
   for (size_t j = 0; j < myModel.size() && ok; j++)
   {
     if (myModel[j]->empty()) continue; // skip empty patches
+    f->initPatch(j);
 
     Vector loc_values;
     switch (pMethod) {
