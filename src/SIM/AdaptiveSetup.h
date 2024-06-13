@@ -54,11 +54,13 @@ public:
   //! \param[in] iStep Refinement step counter
   //! \param[in] gNorm Global norms
   //! \param[in] refIn Element refinement indicators (element error norms)
+  //! \param[in] currDofs Current number of model DOFs. -1 to use SIMbase::getNoDOFs()
   //! \return Number of elements to be refined
   //! \return If zero, no refinement needed
   //! \return Negative value on error
   int calcRefinement(LR::RefineData& prm, int iStep,
-                     const Vectors& gNorm, const Vector& refIn) const;
+                     const Vectors& gNorm, const Vector& refIn,
+                     int currDofs = -1) const;
 
   //! \brief Parses a data section from an input stream.
   //! \param[in] keyWord Keyword of current data section to read

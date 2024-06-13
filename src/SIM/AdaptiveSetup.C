@@ -250,7 +250,7 @@ typedef std::pair<double,int> DblIdx;
 
 int AdaptiveSetup::calcRefinement (LR::RefineData& prm, int iStep,
                                    const Vectors& gNorm,
-                                   const Vector& refIn) const
+                                   const Vector& refIn, int currDofs) const
 {
   prm.clear();
 
@@ -273,13 +273,16 @@ int AdaptiveSetup::calcRefinement (LR::RefineData& prm, int iStep,
   else if (refNorm < epsZ)
     return 0; // Zero reference norm, probably no load on the model
 
+  if (currDofs == -1)
+    currDofs = model.getNoDOFs();
+
   // Check if further refinement is required
   if (iStep > maxStep)
   {
     IFEM::cout << "\n   * Stopping the adaptive cycles as max steps " << maxStep << " was reached." << std::endl;
     return 0;
   }
-  else if (model.getNoDOFs() > (size_t)maxDOFs)
+  else if (currDofs > maxDOFs)
   {
     IFEM::cout << "\n   * Stopping the adaptive cycles as max DOFs " << maxDOFs <<" was reached." << std::endl;
     return 0; // Refinement cycle or model size limit reached
