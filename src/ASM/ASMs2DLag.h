@@ -235,11 +235,14 @@ public:
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] gpar Parameter values of the result sampling points
+  //! \param[in] regular Flag indicating how the sampling points are defined
   //!
   //! \details We assume that the parameter value array \a gpar contains
   //! the \a u and \a v parameters directly for each sampling point.
+  //! If \a gpar is null or empty and \a regular is \e true,
+  //! the solution is instead evaluated at all element centers.
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
-                            const RealArray* gpar, bool) const;
+                            const RealArray* gpar, bool regular) const;
 
   //! \brief Evaluates and interpolates a field over a given geometry.
   //! \param[in] basis The basis of the field to evaluate

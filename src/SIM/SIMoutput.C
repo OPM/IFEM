@@ -1927,7 +1927,7 @@ bool SIMoutput::evalResults (const Vector& psol, const ResPointVec& gPoints,
     return false;
 
   // Evaluate the secondary solution variables
-  if (!patch->evalSolution(tmp,*myProblem,params.data(),false))
+  if (!patch->evalSolution(tmp,*myProblem,params.data(),points.empty()))
     return false;
 
   return augment(sol2,tmp);

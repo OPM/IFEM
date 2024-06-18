@@ -132,11 +132,13 @@ public:
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
                             const int*, char) const;
 
-  //! \brief Evaluates the secondary solution field at the nodal points.
+  //! \brief Evaluates the secondary solution field at the nodes/elements.
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
+  //! \param[in] regular If \e true, evaluate at all element centers.
+  //! Otherwise, evaluate at all nodal points.
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
-                            const RealArray*, bool) const;
+                            const RealArray*, bool regular) const;
 
   using ASMs1D::getSize;
   //! \brief Returns the number of nodal points in the patch.

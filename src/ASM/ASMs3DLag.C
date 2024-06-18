@@ -1101,28 +1101,33 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
 
 bool ASMs3DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
-                              const RealArray* gpar, bool) const
+                              const RealArray* gpar, bool regular) const
 {
   sField.resize(0,0);
 
-  size_t nPoints = gpar[0].size();
+  bool elCenters = gpar ? regular && gpar->empty() : true;
+  size_t nPoints = elCenters ? nel : gpar->size();
 
   FiniteElement fe(p1*p2*p3);
   Vector        solPt;
   Vectors       globSolPt(nPoints);
   Matrix        dNdu, Jac;
 
-  // Evaluate the secondary solution field at each point
+  // Evaluate the secondary solution field at each point or element center
+  int iel = 0;
   for (size_t i = 0; i < nPoints; i++)
   {
-    const int iel = this->findElement(gpar[0][i], gpar[1][i], gpar[2][i],
-                                      &fe.xi, &fe.eta, &fe.zeta);
-
-    if (!this->getElementCoordinates(fe.Xn,iel))
-      return false;
+    if (elCenters)
+      iel++;
+    else
+      iel = this->findElement(gpar[0][i], gpar[1][i], gpar[2][i],
+                              &fe.xi, &fe.eta, &fe.zeta);
 
     fe.iel = MLGE[iel-1];
     if (fe.iel < 1) continue; // zero-volume element
+
+    if (!this->getElementCoordinates(fe.Xn,iel))
+      return false;
 
     if (!Lagrange::computeBasis(fe.N,dNdu,p1,fe.xi,p2,fe.eta,p3,fe.zeta))
       return false;

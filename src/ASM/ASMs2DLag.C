@@ -803,27 +803,32 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
 
 bool ASMs2DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
-                              const RealArray* gpar, bool) const
+                              const RealArray* gpar, bool regular) const
 {
   sField.resize(0,0);
 
-  size_t nPoints = gpar[0].size();
+  bool elCenters = gpar ? regular && gpar->empty() : true;
+  size_t nPoints = elCenters ? nel : gpar->size();
 
   FiniteElement fe(p1*p2);
   Vector        solPt;
   Vectors       globSolPt(nPoints);
   Matrix        dNdu, Jac;
 
-  // Evaluate the secondary solution field at each point
+  // Evaluate the secondary solution field at each point or element center
+  int iel = 0;
   for (size_t i = 0; i < nPoints; i++)
   {
-    const int iel = this->findElement(gpar[0][i], gpar[1][i], &fe.xi, &fe.eta);
-
-    if (!this->getElementCoordinates(fe.Xn,iel))
-      return false;
+    if (elCenters)
+      iel++;
+    else
+      iel = this->findElement(gpar[0][i], gpar[1][i], &fe.xi, &fe.eta);
 
     fe.iel = MLGE[iel-1];
     if (fe.iel < 1) continue; // zero-area element
+
+    if (!this->getElementCoordinates(fe.Xn,iel))
+      return false;
 
     if (!Lagrange::computeBasis(fe.N,dNdu,p1,fe.xi,p2,fe.eta))
       return false;
@@ -841,7 +846,7 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     else if (sField.empty())
       sField.resize(solPt.size(),nPoints,true);
 
-    sField.fillColumn(1+i, solPt);
+    sField.fillColumn(1+i,solPt);
   }
 
   return true;

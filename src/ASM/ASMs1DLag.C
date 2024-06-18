@@ -134,7 +134,7 @@ bool ASMs1DLag::getElementCoordinates (Matrix& X, int iel, bool) const
   if (iel < 1 || static_cast<size_t>(iel) > MNPC.size())
   {
     std::cerr <<" *** ASMs1DLag::getElementCoordinates: Element index "<< iel
-	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
+              <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
     return false;
   }
 
@@ -261,10 +261,10 @@ bool ASMs1DLag::integrate (Integrand& integrand,
 
       for (int i = 0; i < nRed && ok; i++)
       {
-	// Local element coordinates of current integration point
-	fe.xi  = xr[i];
+        // Local element coordinates of current integration point
+        fe.xi  = xr[i];
 
-	// Parameter value of current integration point
+        // Parameter value of current integration point
         if (!gpar.empty())
           fe.u = 0.5*(gpar[iel]*(1.0-xr[i]) + gpar[iel+1]*(1.0+xr[i]));
 
@@ -276,13 +276,13 @@ bool ASMs1DLag::integrate (Integrand& integrand,
           ok = Lagrange::computeBasis(fe.N,dNdu,p1,xr[i]);
           // Compute Jacobian inverse and derivatives
           fe.detJxW = utl::Jacobian(Jac,fe.dNdX,fe.Xn,dNdu)*wr[i];
-	}
+        }
 
-	// Cartesian coordinates of current integration point
-	X.assign(fe.Xn * fe.N);
+        // Cartesian coordinates of current integration point
+        X.assign(fe.Xn * fe.N);
 
-	// Compute the reduced integration terms of the integrand
-	ok &= integrand.reducedInt(*A,fe,X);
+        // Compute the reduced integration terms of the integrand
+        ok &= integrand.reducedInt(*A,fe,X);
       }
     }
 
@@ -444,7 +444,7 @@ bool ASMs1DLag::tesselate (ElementBlock& grid, const int* npe) const
   if (p1 != npe[0])
   {
     std::cout <<"\nLagrange elements: The number of visualization points is "
-	      << p1 <<" by default\n"<< std::endl;
+              << p1 <<" by default\n"<< std::endl;
     const_cast<int*>(npe)[0] = p1;
   }
 
@@ -487,39 +487,40 @@ bool ASMs1DLag::evalSolution (Matrix& sField, const Vector& locSol,
 
 
 bool ASMs1DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
-			      const int*, char) const
+                              const int*, char) const
 {
   return this->evalSolution(sField,integrand,nullptr,false);
 }
 
 
 bool ASMs1DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
-			      const RealArray*, bool) const
+                              const RealArray*, bool regular) const
 {
   sField.resize(0,0);
 
   double incx = 2.0/double(p1-1);
-
-  size_t nPoints = coord.size();
-  IntVec check(nPoints,0);
+  int    nloc = regular ? 1 : p1;
+  size_t nPoints = regular ? nel : nnod;
+  IntVec check(regular ? 0 : nnod, 0);
 
   FiniteElement fe(p1);
   Vector        solPt;
   Vectors       globSolPt(nPoints);
   Matrix        dNdu, Jac;
 
-  // Evaluate the secondary solution field at each point
+  // Evaluate the secondary solution field at each element node or center
   for (size_t iel = 0; iel < nel; iel++)
   {
     fe.iel = MLGE[iel];
     if (fe.iel < 1) continue; // zero-length element
 
-    const IntVec& mnpc = MNPC[iel];
-    this->getElementCoordinates(fe.Xn,1+iel);
+    if (!this->getElementCoordinates(fe.Xn,1+iel))
+      return false;
 
-    for (int loc = 0; loc < p1; loc++)
+    const IntVec& mnpc = MNPC[iel];
+    for (int loc = 0; loc < nloc; loc++)
     {
-      fe.xi = -1.0 + loc*incx;
+      if (!regular) fe.xi = -1.0 + loc*incx;
       if (integrand.getIntegrandType() & Integrand::NO_DERIVATIVES)
       {
         if (!Lagrange::computeBasis(fe.N,p1,fe.xi))
@@ -536,19 +537,24 @@ bool ASMs1DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
       // Now evaluate the solution field
       if (!integrand.evalSol(solPt,fe,fe.Xn*fe.N,mnpc))
-	return false;
+        return false;
       else if (sField.empty())
-	sField.resize(solPt.size(),nPoints,true);
+        sField.resize(solPt.size(),nPoints,true);
 
-      if (++check[mnpc[loc]] == 1)
-	globSolPt[mnpc[loc]] = solPt;
+      if (regular)
+        globSolPt[iel] = solPt;
+      else if (++check[mnpc[loc]] == 1)
+        globSolPt[mnpc[loc]] = solPt;
       else
-	globSolPt[mnpc[loc]] += solPt;
+        globSolPt[mnpc[loc]] += solPt;
     }
   }
 
   for (size_t i = 0; i < nPoints; i++)
-    sField.fillColumn(1+i,globSolPt[i] /= check[i]);
+    if (regular || check[i] == 1)
+      sField.fillColumn(1+i, globSolPt[i]);
+    else if (check[i] > 1)
+      sField.fillColumn(1+i, globSolPt[i] /= check[i]);
 
   return true;
 }
