@@ -317,6 +317,54 @@ Real FieldFunction::evaluate (const Vec3& X) const
 }
 
 
+Vec3 FieldFunction::gradient (const Vec3& X) const
+{
+  if (pidx >= field.size() || !field[pidx])
+    return Vec3();
+
+  const Vec4* x4 = dynamic_cast<const Vec4*>(&X);
+  if (!x4)
+    return Vec3();
+
+  int level = this->findClosestLevel(x4->t);
+  if (level < 0) return Vec3();
+  if (level != currentLevel)
+    if (const_cast<FieldFunction*>(this)->load({fName},bName,level))
+      currentLevel = level;
+
+  Vector res;
+  field[pidx]->gradFE(ItgPoint(x4->u, x4->idx), res);
+  return res;
+}
+
+
+SymmTensor FieldFunction::hessian (const Vec3& X) const
+{
+  if (pidx >= field.size() || !field[pidx])
+    return SymmTensor(3);
+
+  const Vec4* x4 = dynamic_cast<const Vec4*>(&X);
+  if (!x4)
+    return SymmTensor(3);
+
+  int level = this->findClosestLevel(x4->t);
+  if (level < 0) return SymmTensor(3);
+  if (level != currentLevel)
+    if (const_cast<FieldFunction*>(this)->load({fName},bName,level))
+      currentLevel = level;
+
+  Matrix hess;
+  field[pidx]->hessianFE(ItgPoint(x4->u), hess);
+
+  SymmTensor result(hess.rows());
+  for (size_t d1 = 1; d1 <= hess.rows(); ++d1)
+    for (size_t d2 = d1; d2 <= hess.cols(); ++d2)
+      result(d1,d2) = hess(d1,d2);
+
+  return result;
+}
+
+
 FieldFuncStream::FieldFuncStream (const std::vector<ASMbase*>& patches,
                                   std::istream& istr)
 {
@@ -400,7 +448,7 @@ RealArray FieldsFuncBase::getValues (const Vec3& X)
   else
   {
     int level = this->findClosestLevel(x4->t);
-    if (level < 0) return std::move(vals);
+    if (level < 0) return vals;
     if (level != currentLevel)
       if (this->load(fName,bName,level))
         currentLevel = level;
@@ -411,7 +459,40 @@ RealArray FieldsFuncBase::getValues (const Vec3& X)
       field[pidx]->valueCoor(*x4,vals);
   }
 
-  return std::move(vals);
+  return vals;
+}
+
+
+std::vector<Real> FieldsFuncBase::getGradient (const Vec3& X) const
+{
+  const Vec4* x4 = dynamic_cast<const Vec4*>(&X);
+  int level = this->findClosestLevel(x4->t);
+  if (level < 0) return {};
+  if (level != currentLevel)
+    if (const_cast<FieldsFuncBase*>(this)->load(fName,bName,level))
+      currentLevel = level;
+
+  Matrix res;
+  field[pidx]->gradFE(ItgPoint(x4->u), res);
+  return res;
+}
+
+
+std::vector<Real> FieldsFuncBase::getHessian (const Vec3& X) const
+{
+  const Vec4* x4 = dynamic_cast<const Vec4*>(&X);
+  if (!x4)
+    return {};
+
+  int level = this->findClosestLevel(x4->t);
+  if (level < 0) return {};
+  if (level != currentLevel)
+    if (const_cast<FieldsFuncBase*>(this)->load(fName,bName,level))
+      currentLevel = level;
+
+  Matrix3D res;
+  field[pidx]->hessianFE(ItgPoint(x4->u), res);
+  return res;
 }
 
 

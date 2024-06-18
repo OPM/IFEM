@@ -171,11 +171,17 @@ public:
   virtual ~FieldFunction() {}
 
   //! \brief Sets the active patch.
-  virtual bool initPatch(size_t pIdx) { return this->setPatch(pIdx); }
+  bool initPatch(size_t pIdx) override { return this->setPatch(pIdx); }
+
+  //! \brief Evaluates first derivatives of the function.
+  Vec3 gradient(const Vec3& X) const override;
+
+  //! \brief Evaluates second derivatives of the function.
+  SymmTensor hessian(const Vec3& X) const override;
 
 protected:
   //! \brief Evaluates the scalar field function.
-  virtual Real evaluate(const Vec3& X) const;
+  Real evaluate(const Vec3& X) const override;
 };
 
 
@@ -243,6 +249,12 @@ protected:
   //! \brief Evaluates the field at the givent point \b X.
   std::vector<Real> getValues(const Vec3& X);
 
+  //! \brief Evaluates the field gradient at the givent point \b X.
+  std::vector<Real> getGradient(const Vec3& X) const;
+
+  //! \brief Evaluates the field gradient at the givent point \b X.
+  std::vector<Real> getHessian(const Vec3& X) const;
+
 private:
   mutable int currentLevel; //!< Current time level to evaluate at
 
@@ -281,11 +293,18 @@ public:
   virtual ~VecFieldFunction() {}
 
   //! \brief Sets the active patch.
-  virtual bool initPatch(size_t pIdx) { return this->setPatch(pIdx); }
+  bool initPatch(size_t pIdx) override { return this->setPatch(pIdx); }
 
 protected:
   //! \brief Evaluates the vectorial field function.
-  virtual Vec3 evaluate(const Vec3& X) const;
+  Vec3 evaluate(const Vec3& X) const override;
+
+  //! \brief Returns the gradient of the function as a 1D array.
+  std::vector<Real> evalGradient(const Vec3& X) const override
+  { return this->getGradient(X); }
+  //! \brief Returns the hessian of the function as a 1D array.
+  std::vector<Real> evalHessian(const Vec3& X) const override
+  { return this->getHessian(X); }
 };
 
 
