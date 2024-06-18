@@ -49,8 +49,10 @@ TEST(TestFieldFunctions, 2D1P)
   double scal = f2D_scalar(X);
   double x = 0.5, y = 0.5;
   EXPECT_NEAR(scal, x*x*y*y, 1e-14);
-
-  Vec3 sg = f2Dg_scalar(X);
+  Vec3 sg = f2D_scalar.gradient(X);
+  EXPECT_NEAR(sg[0], 2*x*y*y, 1e-14);
+  EXPECT_NEAR(sg[1], x*x*2*y, 1e-14);
+  sg = f2Dg_scalar(X);
   EXPECT_NEAR(sg[0], 2*x*y*y, 1e-14);
   EXPECT_NEAR(sg[1], x*x*2*y, 1e-14);
 
@@ -62,7 +64,12 @@ TEST(TestFieldFunctions, 2D1P)
   EXPECT_NEAR(slap[0], 2*y*y, 1e-14);
   EXPECT_NEAR(slap[1], 2*x*x, 1e-14);
 
-  Tensor vecg = f2Dg_vec(X);
+  Tensor vecg = f2D_vec.gradient(X);
+  EXPECT_NEAR(vecg(1,1), x*x*y*y, 1e-14);
+  EXPECT_NEAR(vecg(1,2), x*x*x*2.0*y/3.0, 1e-14);
+  EXPECT_NEAR(vecg(2,1), -2.0*x*y*y*y/3.0, 1e-14);
+  EXPECT_NEAR(vecg(2,2), -x*x*y*y, 1e-14);
+  vecg = f2Dg_vec(X);
   EXPECT_NEAR(vecg(1,1), x*x*y*y, 1e-14);
   EXPECT_NEAR(vecg(1,2), x*x*x*2.0*y/3.0, 1e-14);
   EXPECT_NEAR(vecg(2,1), -2.0*x*y*y*y/3.0, 1e-14);
@@ -113,8 +120,10 @@ TEST(TestFieldFunctions, 2D1Pmx)
   double scal = f2D_scalar(X);
   double x = 0.5, y = 0.5;
   EXPECT_NEAR(scal, x*x*y*y, 1e-12);
-
-  Vec3 sg = f2Dg_scalar(X);
+  Vec3 sg = f2D_scalar.gradient(X);
+  EXPECT_NEAR(sg[0], 2*x*y*y, 1e-12);
+  EXPECT_NEAR(sg[1], x*x*2*y, 1e-12);
+  sg = f2Dg_scalar(X);
   EXPECT_NEAR(sg[0], 2*x*y*y, 1e-12);
   EXPECT_NEAR(sg[1], x*x*2*y, 1e-12);
 
@@ -122,7 +131,13 @@ TEST(TestFieldFunctions, 2D1Pmx)
   EXPECT_NEAR(vec[0],  x*x*x*y*y/3.0, 1e-13);
   EXPECT_NEAR(vec[1], -x*x*y*y*y/3, 1e-13);
 
-  Tensor vecg = f2Dg_vec(X);
+  Tensor vecg = f2D_vec.gradient(X);
+  EXPECT_NEAR(vecg(1,1), x*x*y*y, 1e-13);
+  EXPECT_NEAR(vecg(1,2), x*x*x*2.0*y/3.0, 1e-13);
+  EXPECT_NEAR(vecg(2,1), -2.0*x*y*y*y/3.0, 1e-13);
+  EXPECT_NEAR(vecg(2,2), -x*x*y*y, 1e-13);
+
+  vecg = f2Dg_vec(X);
   EXPECT_NEAR(vecg(1,1), x*x*y*y, 1e-13);
   EXPECT_NEAR(vecg(1,2), x*x*x*2.0*y/3.0, 1e-13);
   EXPECT_NEAR(vecg(2,1), -2.0*x*y*y*y/3.0, 1e-13);
@@ -193,8 +208,12 @@ TEST(TestFieldFunctions, 3D1P)
   double scal = f3D_scalar(X);
   double x = 0.5, y = 0.5, z = 0.5;
   EXPECT_NEAR(scal, x*x*y*y*z*z, 1e-14);
+  Vec3 sg = f3D_scalar.gradient(X);
+  EXPECT_NEAR(sg[0], 2.0*x*y*y*z*z, 1e-13);
+  EXPECT_NEAR(sg[1], x*x*2.0*y*z*z, 1e-13);
+  EXPECT_NEAR(sg[2], x*x*y*y*2.0*z, 1e-13);
 
-  Vec3 sg = f3Dg_scalar(X);
+  sg = f3Dg_scalar(X);
   EXPECT_NEAR(sg[0], 2.0*x*y*y*z*z, 1e-13);
   EXPECT_NEAR(sg[1], x*x*2.0*y*z*z, 1e-13);
   EXPECT_NEAR(sg[2], x*x*y*y*2.0*z, 1e-13);
@@ -204,12 +223,23 @@ TEST(TestFieldFunctions, 3D1P)
   EXPECT_NEAR(vec[1], x*x*y*y*y*z*z/3.0, 1e-14);
   EXPECT_NEAR(vec[2], -2.0*x*x*y*y*z*z*z/3.0, 1e-14);
 
+  Tensor vecg = f3D_vec.gradient(X);
+  EXPECT_NEAR(vecg(1,1), x*x*y*y*z*z, 1e-14);
+  EXPECT_NEAR(vecg(1,2), x*x*x*2.0*y*z*z / 3.0, 1e-14);
+  EXPECT_NEAR(vecg(1,3), x*x*x*y*y*2.0*z / 3.0, 1e-14);
+  EXPECT_NEAR(vecg(2,1), 2.0*x*y*y*y*z*z / 3.0, 1e-14);
+  EXPECT_NEAR(vecg(2,2), x*x*y*y*z*z, 1e-14);
+  EXPECT_NEAR(vecg(2,3), x*x*y*y*y*2.0*z / 3.0, 1e-14);
+  EXPECT_NEAR(vecg(3,1), -2.0*2.0*x*y*y*z*z*z / 3.0, 1e-14);
+  EXPECT_NEAR(vecg(3,2), -2.0*x*x*2.0*y*z*z*z / 3.0, 1e-14);
+  EXPECT_NEAR(vecg(3,3), -2.0*x*x*y*y*z*z, 1e-14);
+
   Vec3 slap = f3Dl_scalar(X);
   EXPECT_NEAR(slap[0], 2.0*y*y*z*z, 1e-13);
   EXPECT_NEAR(slap[1], x*x*2.0*z*z, 1e-13);
   EXPECT_NEAR(slap[2], x*x*y*y*2.0, 1e-13);
 
-  Tensor vecg = f3Dg_vec(X);
+  vecg = f3Dg_vec(X);
   EXPECT_NEAR(vecg(1,1), x*x*y*y*z*z, 1e-14);
   EXPECT_NEAR(vecg(1,2), x*x*x*2.0*y*z*z / 3.0, 1e-14);
   EXPECT_NEAR(vecg(1,3), x*x*x*y*y*2.0*z / 3.0, 1e-14);
@@ -285,7 +315,12 @@ TEST(TestFieldFunctions, 3D1Pmx)
   double x = 0.5, y = 0.5, z = 0.5;
   EXPECT_NEAR(scal, x*x*y*y*z*z, 1e-14);
 
-  Vec3 sg = f3Dg_scalar(X);
+  Vec3 sg = f3D_scalar.gradient(X);
+  EXPECT_NEAR(sg[0], 2.0*x*y*y*z*z, 1e-13);
+  EXPECT_NEAR(sg[1], x*x*2.0*y*z*z, 1e-13);
+  EXPECT_NEAR(sg[2], x*x*y*y*2.0*z, 1e-13);
+
+  sg = f3Dg_scalar(X);
   EXPECT_NEAR(sg[0], 2.0*x*y*y*z*z, 1e-13);
   EXPECT_NEAR(sg[1], x*x*2.0*y*z*z, 1e-13);
   EXPECT_NEAR(sg[2], x*x*y*y*2.0*z, 1e-13);
@@ -295,12 +330,23 @@ TEST(TestFieldFunctions, 3D1Pmx)
   EXPECT_NEAR(vec[1], x*x*y*y*y*z*z/3.0, 1e-14);
   EXPECT_NEAR(vec[2], -2.0*x*x*y*y*z*z*z/3.0, 1e-14);
 
+  Tensor vecg = f3D_vec.gradient(X);
+  EXPECT_NEAR(vecg(1,1), x*x*y*y*z*z, 1e-14);
+  EXPECT_NEAR(vecg(1,2), x*x*x*2.0*y*z*z / 3.0, 1e-14);
+  EXPECT_NEAR(vecg(1,3), x*x*x*y*y*2.0*z / 3.0, 1e-14);
+  EXPECT_NEAR(vecg(2,1), 2.0*x*y*y*y*z*z / 3.0, 1e-14);
+  EXPECT_NEAR(vecg(2,2), x*x*y*y*z*z, 1e-14);
+  EXPECT_NEAR(vecg(2,3), x*x*y*y*y*2.0*z / 3.0, 1e-14);
+  EXPECT_NEAR(vecg(3,1), -2.0*2.0*x*y*y*z*z*z / 3.0, 1e-14);
+  EXPECT_NEAR(vecg(3,2), -2.0*x*x*2.0*y*z*z*z / 3.0, 1e-14);
+  EXPECT_NEAR(vecg(3,3), -2.0*x*x*y*y*z*z, 1e-14);
+
   Vec3 slap = f3Dl_scalar(X);
   EXPECT_NEAR(slap[0], 2.0*y*y*z*z, 1e-13);
   EXPECT_NEAR(slap[1], x*x*2.0*z*z, 1e-13);
   EXPECT_NEAR(slap[2], x*x*y*y*2.0, 1e-13);
 
-  Tensor vecg = f3Dg_vec(X);
+  vecg = f3Dg_vec(X);
   EXPECT_NEAR(vecg(1,1), x*x*y*y*z*z, 1e-14);
   EXPECT_NEAR(vecg(1,2), x*x*x*2.0*y*z*z / 3.0, 1e-14);
   EXPECT_NEAR(vecg(1,3), x*x*x*y*y*2.0*z / 3.0, 1e-14);
