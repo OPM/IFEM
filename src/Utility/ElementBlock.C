@@ -221,7 +221,7 @@ void ElementBlock::transform (const Matrix& Tlg)
 
 const Real* ElementBlock::getParam (size_t i) const
 {
-  return i < param.size() ? nullptr : param[i].data();
+  return i < param.size() ? param[i].data() : nullptr;
 }
 
 
