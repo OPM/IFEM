@@ -2464,9 +2464,6 @@ Field* ASMu2D::getProjectedField (const Vector& coefs) const
 
 Fields* ASMu2D::getProjectedFields (const Vector& coefs, size_t) const
 {
-  if (!this->separateProjectionBasis())
-    return nullptr;
-
   size_t ncmp = coefs.size() / this->getNoProjectionNodes();
   if (ncmp*this->getNoProjectionNodes() == coefs.size())
     return new LRSplineFields2D(this->getBasis(ASM::PROJECTION_BASIS),
