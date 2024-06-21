@@ -34,9 +34,21 @@ public:
     "[0, 1] x 1 (2)\n"
     "# Elements:\n"
     "0 [2] : (0, 0) x (1, 1)    {0, 1, 2, 3}\n";
-  explicit ASMuSquare(unsigned char n_f = 2) : ASMu2D(2,n_f)
+
+  explicit ASMuSquare(unsigned char n_f = 2,
+                      double xshift = 0.0,
+                      double yshift = 0.0)
+    : ASMu2D(2,n_f)
   {
-    std::stringstream geo("200 1 0 0\n2 0\n2 2\n0 0 1 1\n2 2\n0 0 1 1\n0 0\n1 0\n0 1\n1 1\n");
+    auto&& addLine = [](double x, double y)
+    {
+      return std::to_string(x) + " " + std::to_string(y) + '\n';
+    };
+    std::stringstream geo("200 1 0 0\n2 0\n2 2\n0 0 1 1\n2 2\n0 0 1 1\n" +
+                          addLine(xshift,     yshift) +
+                          addLine(xshift+1.0, yshift) +
+                          addLine(xshift,     yshift+1.0) +
+                          addLine(xshift+1.0, yshift+1.0));
     this->read(geo);
   }
   virtual ~ASMuSquare() {}
