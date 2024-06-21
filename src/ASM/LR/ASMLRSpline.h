@@ -108,6 +108,9 @@ public:
   //! \brief Returns parameter values and node numbers of the domain corners.
   virtual bool getParameterDomain(Real2DMat&, IntVec*) const;
 
+  //! \brief Returns a const pointer to refinement basis.
+  const LR::LRSpline* getRefinementBasis() const { return refB.get(); }
+
   //! \brief Refines the mesh adaptively.
   //! \param[in] prm Input data used to control the mesh refinement
   //! \param sol Control point results values that are transferred to new mesh

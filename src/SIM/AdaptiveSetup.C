@@ -21,7 +21,10 @@
 #include "IFEM.h"
 #include "tinyxml2.h"
 #ifdef HAS_LRSPLINE
+#include "ASMLRSpline.h"
+#include "GlobalNodes.h"
 #include <LRSpline/Basisfunction.h>
+#include <LRSpline/LRSplineSurface.h>
 #endif
 #include <fstream>
 #include <sstream>
@@ -331,16 +334,21 @@ int AdaptiveSetup::calcRefinement (LR::RefineData& prm, int iStep,
 
   if (scheme == ISOTROPIC_FUNCTION) // use errors per function
   {
-    if (thePatch->getNoRefineNodes() == thePatch->getNoNodes(1))
-      error.resize(model.getNoNodes(1),DblIdx(0.0,0));
-    else if (model.getNoPatches() == 1)
-      error.resize(thePatch->getNoRefineNodes(),DblIdx(0.0,0));
-    else
-    {
-      std::cerr <<" *** AdaptiveSetup::calcRefinement: Multi-patch refinement"
-                <<" is not available for mixed models."<< std::endl;
-      return -3;
-    }
+      size_t nNodes = 0;
+      if (model.getNoPatches() > 1) {
+#ifdef HAS_LRSPLINE
+        std::vector<const LR::LRSpline*> refBasis;
+        for (const ASMbase* pch : model.getFEModel())
+          refBasis.push_back(dynamic_cast<const ASMLRSpline*>(pch)->getRefinementBasis());
+
+        prm.MLGN = GlobalNodes::calcGlobalNodes(refBasis, model.getInterfaces());
+        nNodes = *std::max_element(prm.MLGN.back().begin(), prm.MLGN.back().end()) + 1;
+#endif
+      } else
+        nNodes = model.getPatch(1)->getNoRefineNodes();
+      error.reserve(nNodes);
+      for (i = 0; i < nNodes; i++)
+        error.push_back(DblIdx(0.0,i));
 
     for (i = 0; i < error.size(); i++)
       error[i].second = i;
@@ -359,7 +367,7 @@ int AdaptiveSetup::calcRefinement (LR::RefineData& prm, int iStep,
       // Insert into global error array
       for (i = 0; i < locErr.size(); i++)
         if (model.getNoPatches() > 1)
-          error[patch->getNodeID(i+1)-1].first += locErr[i];
+          error[prm.MLGN[patch->idx][i]].first += locErr[i];
         else
           error[i].first += locErr[i];
     }
