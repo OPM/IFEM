@@ -2369,6 +2369,11 @@ bool SIMbase::evalSecondarySolution (Matrix& field, int pindx) const
 
 bool SIMbase::fieldProjections () const
 {
+  // Forced for mixed multi-patch models as the nodal averaging
+  // in SIMbase::project() fails.
+  if (myModel.size() > 1 && myModel[0]->getNoBasis() > 1)
+    return true;
+
   for (const ASMbase* pch : myModel)
     if (pch->separateProjectionBasis())
       return true;
