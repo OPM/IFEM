@@ -43,14 +43,30 @@ public:
     "# Elements:\n"
     "0 [3] : (0, 0, 0) x (1, 1, 1)    {0, 1, 2, 3, 4, 5, 6, 7}\n";
 
-  explicit ASMuCube(unsigned char n_f = 3) : ASMu3D(n_f)
+  explicit ASMuCube(unsigned char n_f = 3,
+                    double xshift = 0.0,
+                    double yshift = 0.0,
+                    double zshift = 0.0)
+    : ASMu3D(n_f)
   {
+    auto&& addLine = [](double x, double y, double z)
+    {
+      return std::to_string(x) + " " +
+             std::to_string(y) + " " +
+             std::to_string(z) + '\n';
+    };
     std::stringstream geo("700 1 0 0\n3 0\n"
                           "2 2\n0 0 1 1\n"
                           "2 2\n0 0 1 1\n"
-                          "2 2\n0 0 1 1\n"
-                          "0 0 0\n1 0 0\n0 1 0\n1 1 0\n"
-                          "0 0 1\n1 0 1\n0 1 1\n1 1 1\n");
+                          "2 2\n0 0 1 1\n" +
+                          addLine(xshift,       yshift,       zshift) +
+                          addLine(xshift + 1.0, yshift,       zshift) +
+                          addLine(xshift,       yshift + 1.0, zshift) +
+                          addLine(xshift + 1.0, yshift + 1.0, zshift) +
+                          addLine(xshift,       yshift,       zshift + 1.0) +
+                          addLine(xshift + 1.0, yshift,       zshift + 1.0) +
+                          addLine(xshift,       yshift + 1.0, zshift + 1.0) +
+                          addLine(xshift + 1.0, yshift + 1.0, zshift + 1.0));
     this->read(geo);
   }
   virtual ~ASMuCube() {}
