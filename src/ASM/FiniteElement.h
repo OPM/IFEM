@@ -105,6 +105,7 @@ public:
   Matrix              Xn;   //!< Matrix of element nodal coordinates
   Tensor              Te;   //!< Local-to-global element transformation matrix
   std::vector<Tensor> Tn;   //!< Array of element nodal rotation matrices
+  Vec3Vec             En;   //!< Array of nodal eccentricity vectors
 };
 
 
