@@ -866,6 +866,8 @@ bool SIMoutput::writeGlvS (const Vector& psol, int iStep, int& nBlock,
     otherwise it is written as a named vector field (no deformation plot).
   - If the primary solution is a scalar field and \a pvecName is null,
     the field value is interpreted as a deformation along the global Z-axis.
+    Otherwise, or if \a psolComps is greater than 10, the scalar field is also
+    written out as a vector field with its scalar value as the Z-axis component.
   - If the primary solution is a vector field, each vector component is in
     addition written as a scalar field. If \a scalarOnly is \e true, it is only
     written as scalar field components (no deformation or vector field output).
@@ -874,8 +876,8 @@ bool SIMoutput::writeGlvS (const Vector& psol, int iStep, int& nBlock,
   where (i) is in (x,y,z,rx,ry,rz), if \a pvecName is not null and
   \a psolComps is positive or the \ref myProblem member is null.
   Otherwise, their names are obtained by invoking the method
-  IntegrandBase::getField1Name() of the \ref myProblem member,
-  prefixed by \a pVecName if the latter is not null and \a psolComps < 0.
+  IntegrandBase::getField1Name() of the \ref myProblem member prefixed by
+  \a pVecName, if the latter is not null and \a psolComps is negative.
 */
 
 int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
@@ -911,7 +913,7 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
   int geomID = myGeomID;
   for (const ASMbase* pch : myModel)
   {
-    if (!this->extractNodeVec(psol,lovec,pch,psolComps,empty))
+    if (!this->extractNodeVec(psol,lovec,pch,psolComps%10,empty))
       return false;
     else if (pch->empty())
       continue; // skip empty patches
@@ -927,7 +929,7 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
 
     pch->filterResults(field,myVtf->getBlock(++geomID));
 
-    if (!scalarOnly && (nVcomp > 1 || !pvecName))
+    if (!scalarOnly && (nVcomp > 1 || !pvecName || psolComps > 10))
     {
       // Output as vector field
       if (!myVtf->writeVres(field,++nBlock,geomID,nVcomp))
@@ -1762,7 +1764,7 @@ bool SIMoutput::dumpResults (const Vector& psol, double time,
     IntVec  points;
     Vec3Vec Xp;
     Matrix  sol1, sol2;
-    if (!this->evalResults(psol,gPoints,pch,points,Xp,sol1,sol2))
+    if (!this->evalResults({psol},gPoints,pch,points,Xp,sol1,sol2))
       return false;
     else if (points.empty())
       continue; // no result points for this patch
@@ -1838,7 +1840,7 @@ bool SIMoutput::dumpResults (const Vector& psol, double time,
 }
 
 
-bool SIMoutput::evalResults (const Vector& psol, const ResPointVec& gPoints,
+bool SIMoutput::evalResults (const Vectors& psol, const ResPointVec& gPoints,
                              const ASMbase* patch, IntVec& points, Vec3Vec& Xp,
                              Matrix& sol1, Matrix& sol2) const
 {
@@ -1887,7 +1889,8 @@ bool SIMoutput::evalResults (const Vector& psol, const ResPointVec& gPoints,
     return true; // no points in this patch
 
   // Extract patch-level control/nodal point values of the primary solution
-  patch->extractNodalVec(psol,myProblem->getSolution(),mySam->getMADOF(),-2);
+  patch->extractNodalVec(psol.front(),myProblem->getSolution(),
+                         mySam->getMADOF(),-2);
 
   // Lambda function augmenting two matrices with the same number of rows.
   auto&& augment = [](Matrix& A, const Matrix& B)
@@ -1918,6 +1921,21 @@ bool SIMoutput::evalResults (const Vector& psol, const ResPointVec& gPoints,
 
   if (!ok || !augment(sol1,tmp))
     return false;
+
+  if (psol.size() > 2 && (opt.discretization >= ASM::Spline || !points.empty()))
+  {
+    // Extract nodal point velocity and acceleration
+    Vector locVec;
+    for (size_t idx = psol.size()-2; idx < psol.size() && ok; idx++)
+    {
+      patch->extractNodalVec(psol[idx],locVec,mySam->getMADOF(),-2);
+      if (opt.discretization >= ASM::Spline)
+        ok = patch->evalSolution(tmp,locVec,params.data(),false);
+      else
+        ok = patch->getSolution(tmp,locVec,points);
+      if (ok) ok = sol1.augmentRows(tmp);
+    }
+  }
 
   if (myProblem->getNoFields(2) < 1)
     return true; // no secondary solution variables
@@ -2117,7 +2135,7 @@ bool SIMoutput::savePoints (const Vector& psol, double time, int step) const
 }
 
 
-bool SIMoutput::saveResults (const Vector& psol, double time, int step) const
+bool SIMoutput::saveResults (const Vectors& psol, double time, int step) const
 {
   if (idxGrid < 0 || step < 1 || psol.empty())
     return true;

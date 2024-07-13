@@ -287,10 +287,10 @@ public:
   bool savePoints(const Vector& psol, double time, int step) const;
 
   //! \brief Saves result components to output files for a given time step.
-  //! \param[in] psol Primary solution vector
+  //! \param[in] psol Primary solution vectors
   //! \param[in] time Load/time step parameter
   //! \param[in] step Load/time step counter
-  bool saveResults(const Vector& psol, double time, int step) const;
+  bool saveResults(const Vectors& psol, double time, int step) const;
 
   //! \brief Sets the file name for result point output.
   //! \param[in] filename The file name prefix (optionally with extension)
@@ -374,14 +374,14 @@ protected:
                    bool formatted, std::streamsize precision) const;
 
   //! \brief Evaluate solution results at specified points for a given patch.
-  //! \param[in] psol Primary solution vector to derive other quantities from
+  //! \param[in] psol Primary solution vectors to derive other quantities from
   //! \param[in] gPoints Result point definitions
   //! \param[in] patch The patch to evaluate result points for
   //! \param[out] points List of result points within this patch
   //! \param[out] Xp Coordinates of result points within this patch
   //! \param[out] sol1 Matrix of primary solution values at result points
   //! \param[out] sol2 Matrix of secondary solution values at result points
-  bool evalResults(const Vector& psol, const ResPointVec& gPoints,
+  bool evalResults(const Vectors& psol, const ResPointVec& gPoints,
                    const ASMbase* patch, std::vector<int>& points, Vec3Vec& Xp,
                    Matrix& sol1, Matrix& sol2) const;
 
