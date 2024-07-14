@@ -60,6 +60,8 @@ public:
   //! \brief Expands and returns the current dynamic solution.
   virtual const Vectors& expandSolution(const Vectors&, bool = false) = 0;
   //! \brief Returns the current expanded dynamic solution.
+  const Vectors& expandedSolution() const { return sol; }
+  //! \brief Returns the current expanded dynamic solution.
   //! \param[in] idx Solution vector index
   const Vector& expandedSolution(int idx) const;
   //! \brief Returns the number of expanded dynamic solution vectors.

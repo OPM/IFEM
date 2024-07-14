@@ -182,7 +182,7 @@ public:
   //! solution space during the response integration than the actual FE space.
   //! This method is then supposed to return the expanded solution vectors.
   //! The default implementation is the same as SIMsolution::theSolutions().
-  virtual const Vectors& realSolutions() { return solution; }
+  virtual const Vectors& realSolutions(bool = false) { return solution; }
 
   //! \brief Returns a pointer to the reference norm variable.
   double* theRefNorm() { return &refNorm; }
