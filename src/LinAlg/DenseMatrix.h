@@ -53,7 +53,10 @@ public:
 
   //! \brief Returns the dimension of the system matrix.
   //! \param[in] idim Which direction to return the dimension in
-  virtual size_t dim(int idim = 1) const;
+  virtual size_t dim(int idim) const
+  {
+    return idim > 0 && idim < 3 ? myMat.dim(idim) : myMat.size();
+  }
 
   //! \brief Access to the matrix itself.
   Matrix& getMat() { return myMat; }

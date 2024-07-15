@@ -79,7 +79,7 @@ bool DiagMatrix::assemble (const Matrix& eM, const SAM& sam, int e)
   }
 
   myMat(ieq) += eM(1,1);
-  return true;
+  return haveContributions = true;
 }
 
 
@@ -107,7 +107,7 @@ bool DiagMatrix::add (const SystemMatrix& B, Real alpha)
     return false;
 
   myMat.add(Bptr->myMat,alpha);
-  return true;
+  return haveContributions = true;
 }
 
 
@@ -115,7 +115,7 @@ bool DiagMatrix::add (Real sigma)
 {
   for (Real& v : myMat)
     v += sigma;
-  return true;
+  return haveContributions = true;
 }
 
 
@@ -125,8 +125,8 @@ bool DiagMatrix::multiply (const SystemVector& B, SystemVector& C) const
   const Real* b = B.getRef();
   Real*       c = C.getPtr();
 
-  for (size_t i = 0; i < C.size(); i++)
-    c[i] = i < B.size() && i < myMat.size() ? a[i]*b[i] : Real(0);
+  for (size_t i = 0; i < C.dim(); i++)
+    c[i] = i < B.dim() && i < myMat.size() ? a[i]*b[i] : Real(0);
 
   return true;
 }

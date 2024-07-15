@@ -152,6 +152,20 @@ SPRMatrix::~SPRMatrix ()
 }
 
 
+size_t SPRMatrix::dim (int idim) const
+{
+  switch (idim) {
+  case 1:
+  case 2:
+    return mpar[7];
+  case 3:
+    return mpar[7] * mpar[7];
+  default:
+    return mpar[7] + mpar[15];
+  }
+}
+
+
 /*!
   Must be called once before the element assembly loop.
   The SPR data structures are initialized and the all symbolic operations
@@ -280,7 +294,7 @@ bool SPRMatrix::assemble (const Matrix& eM, const SAM& sam, int e)
 	  sam.madof, sam.meqn, sam.mpmnpc, sam.mmnpc, sam.mpmceq, sam.mmceq,
 	  msica, mtrees, msifa, mvarnc, values, &Bdummy, &iWork.front(),
 	  e, eM.rows(), 6, 0, ierr);
-  if (!ierr) return true;
+  if (ierr == 0) return haveContributions = true;
 
   std::cerr <<"SAM::SPRADM: Failure "<< ierr << std::endl;
 #endif
@@ -300,7 +314,7 @@ bool SPRMatrix::assemble (const Matrix& eM, const SAM& sam,
 	  sam.madof, sam.meqn, sam.mpmnpc, sam.mmnpc, sam.mpmceq, sam.mmceq,
 	  msica, mtrees, msifa, mvarnc, values, B.getPtr(), &iWork.front(),
 	  e, eM.rows(), 6, 1, ierr);
-  if (!ierr) return true;
+  if (ierr == 0) return haveContributions = true;
 
   std::cerr <<"SAM::SPRADM: Failure "<< ierr << std::endl;
 #endif
@@ -322,10 +336,12 @@ bool SPRMatrix::add (const SystemMatrix& B, Real alpha)
 
   if (mpar[7] != Bptr->mpar[7] || mpar[15] != Bptr->mpar[15]) return false;
 
+  if (B.isZero()) return true;
+
   for (int i = 0; i < mpar[7]+mpar[15]; i++)
     values[i] += alpha*Bptr->values[i];
 
-  return true;
+  return haveContributions = true;
 }
 
 
@@ -334,7 +350,7 @@ bool SPRMatrix::add (Real sigma)
 #ifdef HAS_SPR
   int ierr;
   sprdad_(mpar, mtrees, msifa, values, sigma, 6, ierr);
-  if (!ierr) return true;
+  if (ierr == 0) return haveContributions = true;
 
   std::cerr <<"SAM::SPRDAD: Failure "<< ierr << std::endl;
 #endif

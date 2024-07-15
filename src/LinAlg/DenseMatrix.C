@@ -73,17 +73,6 @@ DenseMatrix::DenseMatrix (const Matrix& A, bool s) : myMat(A)
 }
 
 
-size_t DenseMatrix::dim (int idim) const
-{
-  if (idim == 1)
-    return myMat.rows();
-  else if (idim == 2)
-    return myMat.cols();
-  else
-    return myMat.size();
-}
-
-
 void DenseMatrix::initAssembly (const SAM& sam, bool)
 {
   myMat.resize(sam.neq,sam.neq,true);
@@ -229,7 +218,8 @@ bool DenseMatrix::assemble (const Matrix& eM, const SAM& sam, int e)
   else
     ierr = 1;
 #endif
-  return ierr == 0;
+  if (ierr != 0) return false;
+  return haveContributions = true;
 }
 
 
@@ -256,7 +246,8 @@ bool DenseMatrix::assemble (const Matrix& eM, const SAM& sam,
   else
     ierr = 1;
 #endif
-  return ierr == 0;
+  if (ierr != 0) return false;
+  return haveContributions = true;
 }
 
 
@@ -274,7 +265,7 @@ bool DenseMatrix::assemble (const Matrix& eM, const SAM& sam,
   if (!Bptr) return false;
 
   assemDense(eM,myMat,*Bptr,meen,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);
-  return true;
+  return haveContributions = true;
 #else
   return this->SystemMatrix::assemble(eM,sam,B,meen); // for error message
 #endif
@@ -357,12 +348,13 @@ bool DenseMatrix::add (const SystemMatrix& B, Real alpha)
 {
   const DenseMatrix* Bptr = dynamic_cast<const DenseMatrix*>(&B);
   if (!Bptr) return false;
+  if (B.isZero()) return true;
 
   if (myMat.rows() != Bptr->myMat.rows()) return false;
   if (myMat.cols() <  Bptr->myMat.cols()) return false;
 
   myMat.add(Bptr->myMat,alpha);
-  return true;
+  return haveContributions = true;
 }
 
 
@@ -372,7 +364,7 @@ bool DenseMatrix::add (Real sigma)
   size_t inc = myMat.rows()+1;
   for (size_t i = 0; i < myMat.size(); i += inc)
     v[i] += sigma;
-  return true;
+  return haveContributions = true;
 }
 
 

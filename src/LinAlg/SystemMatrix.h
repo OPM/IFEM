@@ -46,7 +46,7 @@ public:
   //! \brief Creates a copy of the system vector and returns a pointer to it.
   virtual SystemVector* copy() const = 0;
 
-  //! \brief Returns the dimension of the system vector.
+  //! \brief Returns the dimension/size of the system vector.
   virtual size_t dim() const = 0;
 
   //! \brief Sets the dimension of the system vector.
@@ -57,9 +57,6 @@ public:
 
   //! \brief Checks if the vector is empty.
   virtual bool empty() const { return this->dim() == 0; }
-
-  //! \brief Returns the size of the system vector.
-  size_t size() const { return this->dim(); }
 
   //! \brief Access through pointer.
   virtual Real* getPtr() = 0;
@@ -100,7 +97,7 @@ public:
 
   //! \brief Dumps the system vector on a specified format.
   virtual void dump(std::ostream&, LinAlg::StorageFormat,
-                    const char* = nullptr) {}
+                    const char* = nullptr) const {}
 
 protected:
   //! \brief Writes the system vector to the given output stream.
@@ -129,7 +126,9 @@ public:
   StdVector(const Real* values, size_t n) : utl::vector<Real>(values,n) {}
   //! \brief Overloaded copy constructor.
   explicit StdVector(const std::vector<Real>& vec)
-  { this->insert(this->end(),vec.begin(),vec.end()); }
+  {
+    this->insert(this->end(),vec.begin(),vec.end());
+  }
 
   //! \brief Returns the vector type.
   virtual LinAlg::MatrixType getType() const { return LinAlg::DENSE; }
@@ -143,9 +142,6 @@ public:
   //! \brief Returns the dimension of the system vector.
   virtual size_t dim() const { return this->std::vector<Real>::size(); }
 
-  //! \brief Returns the dimension of the system vector.
-  virtual size_t size() const { return this->std::vector<Real>::size(); }
-
   //! \brief Sets the dimension of the system vector.
   virtual void redim(size_t n) { this->std::vector<Real>::resize(n,Real(0)); }
 
@@ -153,7 +149,9 @@ public:
   //! \details Will erase the previous content, but only if the size changed,
   //! unless \a forceClear is \e true.
   virtual void resize(size_t n, bool forceClear = false)
-  { this->utl::vector<Real>::resize(n,forceClear); }
+  {
+    this->utl::vector<Real>::resize(n,forceClear);
+  }
 
   //! \brief Access through pointer.
   virtual Real* getPtr() { return this->ptr(); }
@@ -168,7 +166,9 @@ public:
 
   //! \brief Addition of another system vector to this one.
   virtual void add(const SystemVector& vec, Real scale)
-  { this->utl::vector<Real>::add(static_cast<const StdVector&>(vec),scale); }
+  {
+    this->utl::vector<Real>::add(static_cast<const StdVector&>(vec),scale);
+  }
 
   //! \brief L1-norm of the vector.
   virtual Real L1norm() const { return this->asum(); }
@@ -181,7 +181,7 @@ public:
 
   //! \brief Dumps the system vector on a specified format.
   virtual void dump(std::ostream& os, LinAlg::StorageFormat format,
-                    const char* label) { dump(*this,label,format,os); }
+                    const char* label) const { dump(*this,label,format,os); }
 
   //! \brief Dumps a standard vector to given output stream on specified format.
   static void dump(const utl::vector<Real>& x, const char* label,
@@ -190,7 +190,9 @@ public:
 protected:
   //! \brief Writes the system vector to the given output stream.
   virtual std::ostream& write(std::ostream& os) const
-  { return os << static_cast<const utl::vector<Real>&>(*this); }
+  {
+    return os << static_cast<const utl::vector<Real>&>(*this);
+  }
 };
 
 
@@ -214,7 +216,7 @@ public:
 
 protected:
   //! \brief Default constructor.
-  SystemMatrix() {}
+  SystemMatrix() : haveContributions(false) {}
 
 public:
   //! \brief Empty destructor.
@@ -231,6 +233,8 @@ public:
 
   //! \brief Checks if the matrix is empty.
   virtual bool empty() const { return this->dim(0) == 0; }
+  //! \brief Checks if the matrix have no non-zero contributions.
+  bool isZero() const { return !haveContributions && this->dim(1) > 0; }
 
   //! \brief Returns the dimension of the system matrix.
   virtual size_t dim(int idim = 1) const = 0;
@@ -295,7 +299,8 @@ public:
   virtual bool add(Real) { return false; }
 
   //! \brief Performs a matrix-vector multiplication.
-  virtual bool multiply(const SystemVector&, SystemVector&) const { return false; }
+  virtual bool multiply(const SystemVector&, SystemVector&) const
+  { return false; }
 
   //! \brief Solves the linear system of equations for a given right-hand-side.
   //! \param b Right-hand-side vector on input, solution vector on output
@@ -332,6 +337,8 @@ protected:
   {
     return A.write(os);
   }
+
+  bool haveContributions; //!< If \e true, the matrix have some non-zero terms
 };
 
 #endif

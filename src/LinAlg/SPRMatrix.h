@@ -44,7 +44,7 @@ public:
   virtual SystemMatrix* copy() const { return new SPRMatrix(*this); }
 
   //! \brief Returns the dimension of the system matrix.
-  virtual size_t dim(int) const { return mpar[7]; }
+  virtual size_t dim(int idim) const;
 
   //! \brief Initializes the element assembly process.
   //! \param[in] sam Auxiliary data describing the FE model topology, etc.

@@ -261,14 +261,12 @@ bool SparseMatrix::redim (size_t r, size_t c)
 
 size_t SparseMatrix::dim (int idim) const
 {
-  if (idim == 1)
-    return nrow;
-  else if (idim == 2)
-    return ncol;
-  else if (idim == 3)
-    return nrow*ncol;
-  else
-    return this->size();
+  switch (idim) {
+  case 1: return nrow;
+  case 2: return ncol;
+  case 3: return nrow*ncol;
+  default: return this->size();
+  }
 }
 
 
@@ -533,6 +531,7 @@ bool SparseMatrix::add (const SystemMatrix& B, Real alpha)
 {
   const SparseMatrix* Bptr = dynamic_cast<const SparseMatrix*>(&B);
   if (!Bptr) return false;
+  if (B.isZero()) return true;
 
   if (Bptr->nrow > nrow || Bptr->ncol > ncol) return false;
 
@@ -564,7 +563,7 @@ bool SparseMatrix::add (const SystemMatrix& B, Real alpha)
   else
     return false;
 
-  return true;
+  return haveContributions = true;
 }
 
 
@@ -573,7 +572,7 @@ bool SparseMatrix::add (Real sigma)
   for (size_t i = 1; i <= nrow && i <= ncol; i++)
     this->operator()(i,i) += sigma;
 
-  return true;
+  return haveContributions = true;
 }
 
 
@@ -819,7 +818,7 @@ bool SparseMatrix::assemble (const Matrix& eM, const SAM& sam, int e)
 
   Vector dummyB;
   assemSparse(eM,*this,dummyB,meen,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);
-  return true;
+  return haveContributions = true;
 }
 
 
@@ -834,7 +833,7 @@ bool SparseMatrix::assemble (const Matrix& eM, const SAM& sam,
     return false;
 
   assemSparse(eM,*this,*Bptr,meen,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);
-  return true;
+  return haveContributions = true;
 }
 
 
@@ -848,7 +847,7 @@ bool SparseMatrix::assemble (const Matrix& eM, const SAM& sam,
     return false;
 
   assemSparse(eM,*this,*Bptr,meen,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);
-  return true;
+  return haveContributions = true;
 }
 
 
@@ -861,7 +860,7 @@ bool SparseMatrix::assembleCol (const RealArray& V, const SAM& sam,
   if (!sam.getNodeEqns(mnen,n)) return false;
 
   assemSparse(V,*this,col,mnen,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);
-  return true;
+  return haveContributions = true;
 }
 
 
@@ -1017,7 +1016,7 @@ bool SparseMatrix::optimiseSLU (const std::vector<IntSet>& dofc)
 
 bool SparseMatrix::solve (SystemVector& B, Real* rc)
 {
-  if (this->size() < 1) return true; // No equations to solve
+  if (this->dim(1) < 1) return true; // No equations to solve
 
   StdVector* Bptr = dynamic_cast<StdVector*>(&B);
   if (!Bptr) return false;

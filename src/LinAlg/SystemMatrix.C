@@ -54,7 +54,7 @@ SystemVector* SystemVector::create (const ProcessAdm* adm,
 
 SystemVector& SystemVector::copy (const SystemVector& x)
 {
-  this->redim(x.size());
+  this->redim(x.dim());
   Real* vec = this->getPtr();
   memcpy(vec,x.getRef(),x.dim()*sizeof(Real));
   this->restore(vec);
