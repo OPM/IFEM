@@ -504,7 +504,6 @@ bool SAM::assembleSystem (SystemVector& sysRHS,
   // Add (appropriately weighted) terms corresponding to constrained
   // (dependent and prescribed) DOFs in eK into sysRHS and reactionForces
   Vector eS;
-  Real* sysrhsPtr = sysRHS.getPtr();
   for (size_t j = 1; j <= meen.size(); j++)
   {
     int jceq = -meen[j-1];
@@ -516,7 +515,7 @@ bool SAM::assembleSystem (SystemVector& sysRHS,
     for (size_t i = 1; i <= meen.size(); i++)
     {
       int ieq = meen[i-1];
-      this->assembleRHS(sysrhsPtr,-c0*eK(i,j),ieq);
+      this->assembleRHS(sysRHS.getPtr(),-c0*eK(i,j),ieq);
       if (reactionForces && ieq <= 0)
       {
         eS.resize(eK.rows());
@@ -525,7 +524,6 @@ bool SAM::assembleSystem (SystemVector& sysRHS,
     }
   }
 
-  sysRHS.restore(sysrhsPtr);
   if (reactionForces && !eS.empty())
     this->assembleReactions(*reactionForces,eS,iel);
 
@@ -537,22 +535,20 @@ bool SAM::assembleSystem (SystemVector& sysRHS,
                           const RealArray& eS, int iel,
                           RealArray* reactionForces) const
 {
-  Real* sysrhsPtr = sysRHS.getPtr();
   int ierr = 0;
 #ifdef USE_F77SAM
   int* work = new int[eS.size()];
   addev2_(&eS.front(), ttcc, mpar, madof, meqn, mpmnpc, mmnpc, mpmceq, mmceq,
-	  iel, eS.size(), 6, sysrhsPtr, work, ierr);
+	  iel, eS.size(), 6, sysRHS.getPtr(), work, ierr);
   delete[] work;
 #else
   IntVec meen;
   if (!this->getElmEqns(meen,iel,eS.size()))
     ierr = 1;
   else for (size_t i = 0; i < meen.size() && i < eS.size(); i++)
-    this->assembleRHS(sysrhsPtr,eS[i],meen[i]);
+    this->assembleRHS(sysRHS.getPtr(),eS[i],meen[i]);
 #endif
 
-  sysRHS.restore(sysrhsPtr);
   if (reactionForces)
     this->assembleReactions(*reactionForces,eS,iel);
 
@@ -567,10 +563,8 @@ bool SAM::assembleSystem (SystemVector& sysRHS, const Real* nS, int inod,
   if (!this->getNodeEqns(mnen,inod))
     return false;
 
-  Real* sysrhsPtr = sysRHS.getPtr();
   for (size_t i = 0; i < mnen.size(); i++)
-    this->assembleRHS(sysrhsPtr,nS[i],mnen[i]);
-  sysRHS.restore(sysrhsPtr);
+    this->assembleRHS(sysRHS.getPtr(),nS[i],mnen[i]);
 
   if (reactionForces)
   {
@@ -606,9 +600,7 @@ bool SAM::assembleSystem (SystemVector& sysRHS, Real S,
     return false;
   }
 
-  Real* sysrhsPtr = sysRHS.getPtr();
-  this->assembleRHS(sysrhsPtr,S,meqn[idof-1]);
-  sysRHS.restore(sysrhsPtr);
+  this->assembleRHS(sysRHS.getPtr(),S,meqn[idof-1]);
 
   return true;
 }
@@ -618,12 +610,8 @@ void SAM::addToRHS (SystemVector& sysRHS, const RealArray& S) const
 {
   if (ndof < 1 || S.empty()) return;
 
-  Real* sysrhsPtr = sysRHS.getPtr();
-
   for (size_t i = 0; i < S.size() && i < (size_t)ndof; i++)
-    this->assembleRHS(sysrhsPtr,S[i],meqn[i]);
-
-  sysRHS.restore(sysrhsPtr);
+    this->assembleRHS(sysRHS.getPtr(),S[i],meqn[i]);
 }
 
 

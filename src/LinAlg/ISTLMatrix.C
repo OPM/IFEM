@@ -24,17 +24,19 @@ ISTLVector::ISTLVector(const ProcessAdm& padm) : adm(padm)
 }
 
 
-ISTLVector::ISTLVector(const ProcessAdm& padm, size_t n) : adm(padm)
+ISTLVector::ISTLVector(const ProcessAdm& padm, size_t n)
+  : StdVector(n), adm(padm)
 {
   x.resize(n);
   LinAlgInit::increfs();
 }
 
 
-ISTLVector::ISTLVector(const ProcessAdm& padm, const Real* values, size_t n) : adm(padm)
+ISTLVector::ISTLVector(const ProcessAdm& padm, const Real* values, size_t n)
+  : StdVector(values,n), adm(padm)
 {
   x.resize(n);
-  this->restore(values);
+  this->endAssembly();
   LinAlgInit::increfs();
 }
 

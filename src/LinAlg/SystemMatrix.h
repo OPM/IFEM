@@ -63,12 +63,6 @@ public:
   //! \brief Reference through pointer.
   virtual const Real* getRef() const = 0;
 
-  //! \brief Restores the vector contents from an array.
-  //! \details This method must only be implemented by sub-classes for which the
-  //! getPtr() and getRef() methods do not return a pointer to the actual
-  //! internal memory segment containing the actual vector data.
-  virtual void restore(const Real*) {}
-
   //! \brief Initializes the vector assuming it is properly dimensioned.
   virtual void init(Real value = Real(0)) = 0;
 

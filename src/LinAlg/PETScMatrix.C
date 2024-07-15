@@ -27,26 +27,28 @@ PETScVector::PETScVector(const ProcessAdm& padm) : adm(padm)
 }
 
 
-PETScVector::PETScVector(const ProcessAdm& padm, size_t n) :
-  StdVector(n), adm(padm)
+PETScVector::PETScVector(const ProcessAdm& padm, size_t n)
+  : StdVector(n), adm(padm)
 {
-  VecCreate(*adm.getCommunicator(),&x);
   if (adm.isParallel())
-    VecSetSizes(x,adm.dd.getMaxEq()-adm.dd.getMinEq()+1,PETSC_DECIDE);
-  else
-    VecSetSizes(x,n,PETSC_DECIDE);
+    n = adm.dd.getMaxEq() - adm.dd.getMinEq() + 1;
+
+  VecCreate(*adm.getCommunicator(),&x);
+  VecSetSizes(x,n,PETSC_DECIDE);
   VecSetFromOptions(x);
   LinAlgInit::increfs();
 }
 
 
-PETScVector::PETScVector(const ProcessAdm& padm, const Real* values, size_t n) :
-  StdVector(values, n), adm(padm)
+PETScVector::PETScVector(const ProcessAdm& padm, const Real* values, size_t n)
+  : StdVector(values,n), adm(padm)
 {
+  if (adm.isParallel())
+    n = adm.dd.getMaxEq() - adm.dd.getMinEq() + 1;
+
   VecCreate(*adm.getCommunicator(),&x);
-  VecSetSizes(x,adm.dd.getMaxEq()-adm.dd.getMinEq() + 1,PETSC_DECIDE);
+  VecSetSizes(x,n,PETSC_DECIDE);
   VecSetFromOptions(x);
-  this->restore(values);
   LinAlgInit::increfs();
 }
 
