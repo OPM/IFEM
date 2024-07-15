@@ -1209,13 +1209,25 @@ bool SIMbase::applyDirichlet (Vector& glbVec) const
 bool SIMbase::solveEqSystem (Vector& solution, size_t idxRHS, double* rCond,
 			     int printSol, bool dumpEqSys, const char* compName)
 {
-  if (!myEqSys) return false;
+  if (!myEqSys)
+  {
+    std::cerr <<" *** SIMbase::solveEqSystem: No equation system."<< std::endl;
+    return false;
+  }
 
   SystemMatrix* A = myEqSys->getMatrix();
+  if (!A || A->isZero())
+  {
+    std::cerr <<" *** SIMbase::solveEqSystem: All-zero LHS matrix."<< std::endl;
+    return false;
+  }
+
   SystemVector* b = myEqSys->getVector(idxRHS);
-  if (!A) std::cerr <<" *** SIMbase::solveEqSystem: No LHS matrix."<< std::endl;
-  if (!b) std::cerr <<" *** SIMbase::solveEqSystem: No RHS vector."<< std::endl;
-  if (!A || !b) return false;
+  if (!b)
+  {
+    std::cerr <<" *** SIMbase::solveEqSystem: No RHS vector."<< std::endl;
+    return false;
+  }
 
   // Dump equation system to file(s) if requested
   if (dumpEqSys)
