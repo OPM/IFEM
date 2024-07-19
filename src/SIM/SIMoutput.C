@@ -1842,7 +1842,8 @@ bool SIMoutput::dumpResults (const Vector& psol, double time,
 
 bool SIMoutput::evalResults (const Vectors& psol, const ResPointVec& gPoints,
                              const ASMbase* patch, IntVec& points, Vec3Vec& Xp,
-                             Matrix& sol1, Matrix& sol2) const
+                             Matrix& sol1, Matrix& sol2,
+                             std::vector<std::string>* compNames) const
 {
   points.clear(); Xp.clear();
   if (gPoints.empty() || patch->empty())
@@ -1888,6 +1889,8 @@ bool SIMoutput::evalResults (const Vectors& psol, const ResPointVec& gPoints,
   if (points.empty() && jPoint < patch->getNoElms())
     return true; // no points in this patch
 
+  bool getNames = compNames && compNames->empty();
+
   // Extract patch-level control/nodal point values of the primary solution
   patch->extractNodalVec(psol.front(),myProblem->getSolution(),
                          mySam->getMADOF(),-2);
@@ -1922,11 +1925,16 @@ bool SIMoutput::evalResults (const Vectors& psol, const ResPointVec& gPoints,
   if (!ok || !augment(sol1,tmp))
     return false;
 
+  if (getNames)
+    for (size_t i = 0; i < myProblem->getNoFields(1); i++)
+      compNames->push_back(myProblem->getField1Name(i));
+
   if (psol.size() > 2 && (opt.discretization >= ASM::Spline || !points.empty()))
   {
     // Extract nodal point velocity and acceleration
     Vector locVec;
-    for (size_t idx = psol.size()-2; idx < psol.size() && ok; idx++)
+    size_t idxvel = psol.size() - 2;
+    for (size_t idx = idxvel; idx < psol.size() && ok; idx++)
     {
       patch->extractNodalVec(psol[idx],locVec,mySam->getMADOF(),-2);
       if (opt.discretization >= ASM::Spline)
@@ -1934,6 +1942,14 @@ bool SIMoutput::evalResults (const Vectors& psol, const ResPointVec& gPoints,
       else
         ok = patch->getSolution(tmp,locVec,points);
       if (ok) ok = sol1.augmentRows(tmp);
+      if (ok && getNames)
+      {
+        const char* velacc = idx == idxvel ? "velocity" : "acceleration";
+        if (tmp.rows() == 1)
+          compNames->push_back(velacc);
+        else for (size_t i = 0; i < tmp.rows(); i++)
+          compNames->push_back(std::string(velacc) + "_" + std::to_string(i+1));
+      }
     }
   }
 
@@ -1948,7 +1964,11 @@ bool SIMoutput::evalResults (const Vectors& psol, const ResPointVec& gPoints,
   if (!patch->evalSolution(tmp,*myProblem,params.data(),points.empty()))
     return false;
 
-  return augment(sol2,tmp);
+  if ((ok = augment(sol2,tmp)) && getNames)
+    for (size_t i = 0; i < myProblem->getNoFields(2); i++)
+      compNames->push_back(myProblem->getField2Name(i));
+
+  return ok;
 }
 
 
@@ -2157,8 +2177,10 @@ bool SIMoutput::saveResults (const Vectors& psol, double time, int step) const
   IntVec  points;
   Vec3Vec Xp;
   Matrix  sol, sol2;
+  std::vector<std::string> compNames;
+  std::vector<std::string>* cmpNames = step > 1 ? nullptr : &compNames;
   for (const ASMbase* pch : myModel)
-    if (!this->evalResults(psol,gridPts,pch,points,Xp,sol,sol2))
+    if (!this->evalResults(psol,gridPts,pch,points,Xp,sol,sol2,cmpNames))
       return false;
 
   if (!sol2.empty() && !sol.augmentRows(sol2))
@@ -2169,6 +2191,8 @@ bool SIMoutput::saveResults (const Vectors& psol, double time, int step) const
   {
     std::string fName = fileName + "_" + std::to_string(r) + fileExt;
     std::ofstream fs(fName,step > 1 ? std::ios::app : std::ios::out);
+    if (step == 1 && r <= compNames.size())
+      fs <<"# "<< compNames[r-1] << '\n';
     fs << time;
     for (size_t c = 1; c <= sol.cols(); c++)
       fs <<" "<< sol(r,c);

@@ -353,9 +353,12 @@ protected:
   //! \brief File name to result point group mapping.
   using ResPtPair = std::pair<std::string,ResPointVec>;
 
+  std::vector<ResPtPair> myPoints; //!< User-defined result sampling points
+
   //! \brief Preprocesses the result sampling points.
   virtual void preprocessResultPoints();
 
+private:
   //! \brief Preprocesses a result sampling point group.
   //! \param ptFile Name of file that these result points are dumped to
   //! \param points Group of result points that are dumped to the given file
@@ -373,7 +376,7 @@ protected:
                    utl::LogStream& os, const ResPointVec& gPoints,
                    bool formatted, std::streamsize precision) const;
 
-  //! \brief Evaluate solution results at specified points for a given patch.
+  //! \brief Evaluates solution results at specified points for a given patch.
   //! \param[in] psol Primary solution vectors to derive other quantities from
   //! \param[in] gPoints Result point definitions
   //! \param[in] patch The patch to evaluate result points for
@@ -381,13 +384,12 @@ protected:
   //! \param[out] Xp Coordinates of result points within this patch
   //! \param[out] sol1 Matrix of primary solution values at result points
   //! \param[out] sol2 Matrix of secondary solution values at result points
+  //! \param[out] compNames Names of solution components in \a sol1 and \a sol2
   bool evalResults(const Vectors& psol, const ResPointVec& gPoints,
                    const ASMbase* patch, std::vector<int>& points, Vec3Vec& Xp,
-                   Matrix& sol1, Matrix& sol2) const;
+                   Matrix& sol1, Matrix& sol2,
+                   std::vector<std::string>* compNames = nullptr) const;
 
-  std::vector<ResPtPair> myPoints; //!< User-defined result sampling points
-
-private:
   std::map<std::string,RealFunc*> myAddScalars; //!< Scalar functions to output
 
   int    myPrec;   //!< Output precision for result sampling
