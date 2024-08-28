@@ -38,7 +38,8 @@ double ASMbase::modelSize = 1.0;
 
 int ASMbase::gEl = 0;
 int ASMbase::gNod = 0;
-std::map<int,int> ASMbase::xNode;
+IntMap ASMbase::xNode;
+IntVec ASMbase::Empty;
 
 ASM::CachePolicy ASM::cachePolicy = ASM::PRE_CACHE;
 

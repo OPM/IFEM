@@ -13,6 +13,7 @@
 
 #include "ASMu2DLag.h"
 #include "ElementBlock.h"
+#include "Utilities.h"
 #include "Vec3Oper.h"
 #include "IFEM.h"
 #include <numeric>
@@ -139,7 +140,8 @@ IntVec& ASMu2DLag::getNodeSet (const std::string& setName, int& idx)
 
 int ASMu2DLag::parseNodeBox (const std::string& setName, const char* data)
 {
-  if (myCoord.empty()) return 0; // No nodes yet
+  if (myCoord.empty())
+    return 0; // No nodes yet
 
   Vec3 X0, X1;
   std::istringstream(data) >> X0 >> X1;
@@ -161,18 +163,21 @@ int ASMu2DLag::parseNodeBox (const std::string& setName, const char* data)
   IFEM::cout <<"\tBounding Box: "<< X0 <<" - "<< X1
              <<": "<< nodes.size() <<" nodes"<< std::endl;
 
-  if (nodes.empty()) return 0; // No nodes are within the given box
+  if (nodes.empty())
+    return 0; // No nodes are within the given box
 
-  size_t idx = 0;
-  while (idx < nodeSets.size())
+  for (size_t idx = 0; idx < nodeSets.size(); idx++)
     if (nodeSets[idx].first == setName)
     {
-      nodeSets[idx].second.insert(nodeSets[idx].second.end(),
-                                  nodes.begin(),nodes.end());
+      if (nodeSets[idx].second.empty())
+        nodeSets[idx].second.swap(nodes);
+      else for (int inod : nodes)
+        if (utl::findIndex(nodeSets[idx].second,inod) < 0)
+          nodeSets[idx].second.push_back(inod);
       return idx+1;
     }
 
-  nodeSets.push_back(std::make_pair(setName,nodes));
+  nodeSets.emplace_back(setName,nodes);
   return nodeSets.size();
 }
 
@@ -210,8 +215,57 @@ IntVec& ASMu2DLag::getElementSet (const std::string& setName, int& idx)
     else if (idx)
       ++idx;
 
-  elemSets.push_back(std::make_pair(setName,IntVec()));
+  elemSets.emplace_back(setName,IntVec());
   return elemSets.back().second;
+}
+
+
+int ASMu2DLag::parseElemBox (const std::string& setName, const char* data)
+{
+  Vec3 X0, X1;
+  std::istringstream(data) >> X0 >> X1;
+
+  // Lambda function for checking if an element is within the bounding box
+  auto&& isInside=[this,&X0,&X1](size_t iel)
+  {
+    double nelnod = MNPC[iel].size();
+    for (size_t j = 0; j < nsd; j++)
+    {
+      double X = 0.0;
+      for (int inod : MNPC[iel])
+        X += coord[inod][j];
+      X /= nelnod;
+      if (X < X0[j] || X > X1[j])
+        return false;
+    }
+    return true;
+  };
+
+  Matrix Xnod;
+  IntVec elems;
+  for (size_t iel = 0; iel < nel; iel++)
+    if (isInside(iel))
+      elems.push_back(1+iel);
+
+  IFEM::cout <<"\tBounding Box: "<< X0 <<" - "<< X1
+             <<": "<< elems.size() <<" elements"<< std::endl;
+
+  if (elems.empty())
+    return 0; // No elements are within the given box
+
+  for (size_t idx = 0; idx < elemSets.size(); idx++)
+    if (elemSets[idx].first == setName)
+    {
+      if (elemSets[idx].second.empty())
+        elemSets[idx].second.swap(elems);
+      else for (int iel : elems)
+        if (utl::findIndex(elemSets[idx].second,iel) < 0)
+          elemSets[idx].second.push_back(iel);
+      return idx+1;
+    }
+
+  elemSets.emplace_back(setName,elems);
+  return elemSets.size();
 }
 
 

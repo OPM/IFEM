@@ -162,8 +162,8 @@ public:
   void setGauss(int ng) { nGauss = ng; }
 
   //! \brief Defines the number of solution fields in the patch.
-  //! \details This method is to be used by simulators where \ref nf is not known
-  //! when the patch is constructed, e.g., it depends on the input file content.
+  //! \details This method is used by simulators where \ref nf is not known when
+  //! the patch is constructed, e.g., it depends on the input file content.
   //! It must be invoked only before SIMbase::preprocess() is invoked.
   void setNoFields(unsigned char n) { nf = n; }
 
@@ -270,20 +270,20 @@ public:
   //! \brief Returns (1-based) index of a predefined node set in the patch.
   virtual int getNodeSetIdx(const std::string&) const { return 0; }
   //! \brief Returns an indexed predefined node set.
-  virtual const IntVec& getNodeSet(int) const { static IntVec v; return v; }
+  virtual const IntVec& getNodeSet(int) const { return Empty; }
   //! \brief Returns a named node set for update.
-  virtual IntVec& getNodeSet(const std::string&, int&)
-  { static IntVec v; return v; }
+  virtual IntVec& getNodeSet(const std::string&, int&) { return Empty; }
   //! \brief Defines a node set by parsing a 3D bounding box.
   virtual int parseNodeBox(const std::string&, const char*) { return 0; }
 
   //! \brief Returns (1-based) index of a predefined element set in the patch.
   virtual int getElementSetIdx(const std::string&) const { return 0; }
   //! \brief Returns an indexed predefined element set.
-  virtual const IntVec& getElementSet(int) const { static IntVec v; return v; }
+  virtual const IntVec& getElementSet(int) const { return Empty; }
   //! \brief Returns a named element set for update.
-  virtual IntVec& getElementSet(const std::string&, int&)
-  { static IntVec v; return v; }
+  virtual IntVec& getElementSet(const std::string&, int&) { return Empty; }
+  //! \brief Defines an element set by parsing a 3D bounding box.
+  virtual int parseElemBox(const std::string&, const char*) { return 0; }
 
   //! \brief Finds the node that is closest to the given point.
   virtual std::pair<size_t,double> findClosestNode(const Vec3&) const
@@ -733,8 +733,8 @@ public:
   //! \param[out] elmRes Element results for this patch
   //! \param[in] internalOrder If \e true, the data in \a globRes are assumed to
   //! be ordered w.r.t. the internal element ordering
-  void extractElmRes(const Vector& globRes, Vector& elmRes,
-                     bool internalOrder = false) const;
+  virtual void extractElmRes(const Vector& globRes, Vector& elmRes,
+                             bool internalOrder = false) const;
   //! \brief Extracts element results for this patch from a global vector.
   //! \param[in] globRes Global matrix of element results
   //! \param[out] elmRes Element results for this patch
@@ -1000,6 +1000,8 @@ protected:
 private:
   std::vector<char> myLMTypes; //!< Type of %Lagrange multiplier ('L' or 'G')
   std::set<size_t>  myLMs;     //!< Nodal indices of the %Lagrange multipliers
+
+  static IntVec Empty; //!< Empty integer vector used when a reference is needed
 
 protected:
   typedef std::array<double,3> XYZ; //!< Convenience type definition

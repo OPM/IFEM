@@ -184,11 +184,10 @@ bool SIMinput::parseGeometryTag (const tinyxml2::XMLElement* elem)
       if (last > nGlPatches)
         nGlPatches = last;
 
-      if (proc == adm.getProcId())
+      if (proc == adm.getProcId() && first >= 0)
       {
-        myPatches.reserve(last-first+1);
-        for (int j = first; j <= last && j > -1; j++)
-          myPatches.push_back(j);
+        myPatches.resize(last-first+1);
+        std::iota(myPatches.begin(),myPatches.end(),first);
       }
       for (int i = first; i <= last; i++)
         adm.dd.setPatchOwner(i,proc);
@@ -197,8 +196,8 @@ bool SIMinput::parseGeometryTag (const tinyxml2::XMLElement* elem)
     // If equal number of blocks per processor
     if (myPatches.empty() && utl::getAttribute(elem,"nperproc",proc))
     {
-      for (int j = 1; j <= proc; j++)
-        myPatches.push_back(adm.getProcId()*proc+j);
+      myPatches.resize(proc);
+      std::iota(myPatches.begin(),myPatches.end(),adm.getProcId()*proc+1);
       nGlPatches = adm.getNoProcs()*proc;
       for (int i = 1; i <= nGlPatches; i++)
         adm.dd.setPatchOwner(i,(i-1)/proc);
@@ -266,6 +265,8 @@ bool SIMinput::parseGeometryTag (const tinyxml2::XMLElement* elem)
         const tinyxml2::XMLElement* item = set->FirstChildElement("item");
         for (; item; item = item->NextSiblingElement("item"))
         {
+          const tinyxml2::XMLNode* child = item->FirstChild();
+
           int pid = 0;
           IntVec patches;
           this->parsePatchList(item,patches);
@@ -275,39 +276,41 @@ bool SIMinput::parseGeometryTag (const tinyxml2::XMLElement* elem)
               int setIndex = 0;
               ASMbase* pch = myModel[pid-1];
               if (abs(idim) == (int)this->getNoParamDim())
-                top.insert(TopItem(pid,0,idim));
+                top.emplace(pid,0,idim);
               else if (idim == 4)
               {
-                if (item->FirstChild())
-                  utl::parseIntegers(pch->getNodeSet(name,setIndex),
-                                     item->FirstChild()->Value());
-                else
+                if (!child)
                   setIndex = pch->getNodeSetIdx(name);
+                else
+                  utl::parseIntegers(pch->getNodeSet(name,setIndex),
+                                     child->Value());
                 if (setIndex > 0)
-                  top.insert(TopItem(pid,setIndex,idim));
+                  top.emplace(pid,setIndex,idim);
               }
               else if (idim == 5)
               {
-                if (item->FirstChild())
-                  utl::parseIntegers(pch->getElementSet(name,setIndex),
-                                     item->FirstChild()->Value());
-                else
+                if (!child)
                   setIndex = pch->getElementSetIdx(name);
+                else if (utl::getAttribute(item,"type",type) && type == "bbox")
+                  setIndex = pch->parseElemBox(name,child->Value());
+                else
+                  utl::parseIntegers(pch->getElementSet(name,setIndex),
+                                     child->Value());
                 if (setIndex > 0)
-                  top.insert(TopItem(pid,setIndex,idim));
+                  top.emplace(pid,setIndex,idim);
               }
-              else if (idim == 6 && item->FirstChild())
+              else if (idim == 6 && child)
               {
-                setIndex = pch->parseNodeBox(name,item->FirstChild()->Value());
+                setIndex = pch->parseNodeBox(name,child->Value());
                 if (setIndex > 0)
-                  top.insert(TopItem(pid,setIndex,4));
+                  top.emplace(pid,setIndex,4);
               }
-              else if (item->FirstChild())
+              else if (child)
               {
                 IntVec items;
-                utl::parseIntegers(items,item->FirstChild()->Value());
+                utl::parseIntegers(items,child->Value());
                 for (int item : items)
-                  top.insert(TopItem(pid,item,idim));
+                  top.emplace(pid,item,idim);
               }
             }
         }
@@ -319,8 +322,8 @@ bool SIMinput::parseGeometryTag (const tinyxml2::XMLElement* elem)
             std::stringstream value(item->FirstChild()->Value());
             Vec3 Xpt;
             value >> Xpt;
-            top.insert(TopItem(0,myTopPts.size()));
-            myTopPts.push_back(std::make_pair(0,Xpt));
+            top.emplace(0,myTopPts.size());
+            myTopPts.emplace_back(0,Xpt);
           }
       }
 
@@ -1256,9 +1259,8 @@ bool SIMinput::parse (char* keyWord, std::istream& is)
 
       if (proc == myPid && last >= first)
       {
-        myPatches.reserve(last-first+1);
-        for (int j = first; j <= last; j++)
-          myPatches.push_back(j);
+        myPatches.resize(last-first+1);
+        std::iota(myPatches.begin(),myPatches.end(),first);
       }
     }
 
@@ -1364,8 +1366,7 @@ bool SIMinput::createPropertySet (const std::string& setName, int pc)
 
   // Create the actual property objects that are used during simulation
   for (const TopItem& top : tit->second)
-    myProps.push_back(Property(Property::UNDEFINED,pc,
-                               top.patch,top.idim,top.item));
+    myProps.emplace_back(Property::UNDEFINED,pc,top.patch,top.idim,top.item);
 
   return true;
 }

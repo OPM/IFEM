@@ -82,6 +82,8 @@ public:
   virtual const IntVec& getElementSet(int idx) const;
   //! \brief Returns a named element set for update.
   virtual IntVec& getElementSet(const std::string& setName, int& idx);
+  //! \brief Defines an element set by parsing a 3D bounding box.
+  virtual int parseElemBox(const std::string& setName, const char* bbox);
 
   //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
   //! \param[in] lIndex Local index of the boundary node set
