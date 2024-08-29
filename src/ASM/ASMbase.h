@@ -280,6 +280,8 @@ public:
   virtual int getElementSetIdx(const std::string&) const { return 0; }
   //! \brief Returns an indexed predefined element set.
   virtual const IntVec& getElementSet(int) const { return Empty; }
+  //! \brief Checks if an element is within a predefined element.
+  virtual bool isInElementSet(int, int) const { return false; }
   //! \brief Returns a named element set for update.
   virtual IntVec& getElementSet(const std::string&, int&) { return Empty; }
   //! \brief Defines an element set by parsing a 3D bounding box.
@@ -287,7 +289,7 @@ public:
 
   //! \brief Finds the node that is closest to the given point.
   virtual std::pair<size_t,double> findClosestNode(const Vec3&) const
-  { return std::make_pair(0,-1.0); }
+  { return { 0, -1 }; }
 
   //! \brief Prints out the nodal coordinates of this patch to the given stream.
   void printNodes(std::ostream& os) const;

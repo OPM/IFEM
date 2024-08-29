@@ -115,10 +115,8 @@ int ASMu2DLag::getNodeSetIdx (const std::string& setName) const
 
 const IntVec& ASMu2DLag::getNodeSet (int idx) const
 {
-  int count = 0;
-  for (const ASM::NodeSet& ns : nodeSets)
-    if (++count == idx)
-      return ns.second;
+  if (idx > 0 && idx <= static_cast<int>(nodeSets.size()))
+    return nodeSets[idx-1].second;
 
   return this->ASMbase::getNodeSet(idx);
 }
@@ -197,19 +195,26 @@ int ASMu2DLag::getElementSetIdx (const std::string& setName) const
 
 const IntVec& ASMu2DLag::getElementSet (int idx) const
 {
-  int count = 0;
-  for (const ASM::NodeSet& es : elemSets)
-    if (++count == idx)
-      return es.second;
+  if (idx > 0 && idx <= static_cast<int>(elemSets.size()))
+    return elemSets[idx-1].second;
 
   return this->ASMbase::getElementSet(idx);
+}
+
+
+bool ASMu2DLag::isInElementSet (int idx, int iel) const
+{
+  if (idx < 1 || idx > static_cast<int>(elemSets.size()))
+    return false;
+
+  return utl::findIndex(elemSets[idx-1].second,iel) >= 0;
 }
 
 
 IntVec& ASMu2DLag::getElementSet (const std::string& setName, int& idx)
 {
   idx = 1;
-  for (ASM::NodeSet& es : nodeSets)
+  for (ASM::NodeSet& es : elemSets)
     if (es.first == setName)
       return es.second;
     else if (idx)

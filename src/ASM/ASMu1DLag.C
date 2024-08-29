@@ -13,6 +13,7 @@
 
 #include "ASMu1DLag.h"
 #include "ElementBlock.h"
+#include "Utilities.h"
 #include <numeric>
 
 
@@ -115,25 +116,32 @@ int ASMu1DLag::getElementSetIdx (const std::string& setName) const
 
 const IntVec& ASMu1DLag::getElementSet (int idx) const
 {
-  int count = 0;
-  for (const ASM::NodeSet& es : elemSets)
-    if (++count == idx)
-      return es.second;
+  if (idx > 0 && idx <= static_cast<int>(elemSets.size()))
+    return elemSets[idx-1].second;
 
   return this->ASMbase::getElementSet(idx);
+}
+
+
+bool ASMu1DLag::isInElementSet (int idx, int iel) const
+{
+  if (idx < 1 || idx > static_cast<int>(elemSets.size()))
+    return false;
+
+  return utl::findIndex(elemSets[idx-1].second,iel) >= 0;
 }
 
 
 IntVec& ASMu1DLag::getElementSet (const std::string& setName, int& idx)
 {
   idx = 1;
-  for (ASM::NodeSet& es : nodeSets)
+  for (ASM::NodeSet& es : elemSets)
     if (es.first == setName)
       return es.second;
     else if (idx)
       ++idx;
 
-  elemSets.push_back(std::make_pair(setName,IntVec()));
+  elemSets.emplace_back(setName,IntVec());
   return elemSets.back().second;
 }
 
