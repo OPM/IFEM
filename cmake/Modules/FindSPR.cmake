@@ -4,23 +4,21 @@ ENDIF (SPR_LIBRARIES)
 
 FIND_LIBRARY(SPR_LIBRARIES
   NAMES SPR
-  PATHS $ENV{HOME}/lib
-  /sima/libs/SAM
+  PATHS $ENV{HOME}/lib $ENV{HOME}/.local/lib /usr/local/lib
 )
+
+MARK_AS_ADVANCED(SPR_LIBRARIES)
 
 IF (SPR_LIBRARIES)
   FIND_LIBRARY(ASM_LIBRARIES
-    NAMES ASM
-    PATHS $ENV{HOME}/lib
-    /sima/libs/SAM
+    NAMES ASM SAM
+    PATHS $ENV{HOME}/lib $ENV{HOME}/.local/lib /usr/local/lib
   )
   IF (ASM_LIBRARIES)
     SET (SPR_LIBRARIES ${SPR_LIBRARIES} ${ASM_LIBRARIES})
   ENDIF (ASM_LIBRARIES)
+  MARK_AS_ADVANCED(ASM_LIBRARIES)
 ENDIF (SPR_LIBRARIES)
 
 INCLUDE(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(SPR DEFAULT_MSG
-                                  SPR_LIBRARIES)
-
-MARK_AS_ADVANCED(SPR_LIBRARIES)
+find_package_handle_standard_args(SPR DEFAULT_MSG SPR_LIBRARIES)
