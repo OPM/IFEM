@@ -62,14 +62,15 @@ public:
   //! \return \e true on successful assembly, otherwise \e false
   virtual bool assemble(const Matrix& eM, const SAM& sam, int e);
   //! \brief Adds an element matrix into the associated system matrix.
-  //! \details When multi-point constraints are present, contributions from
-  //! these are also added into the system right-hand-side vector.
   //! \param[in] eM  The element matrix
   //! \param[in] sam Auxiliary data describing the FE model topology,
   //!                nodal DOF status and constraint equations
   //! \param     B   The system right-hand-side vector
   //! \param[in] e   Identifier for the element that \a eM belongs to
   //! \return \e true on successful assembly, otherwise \e false
+  //!
+  //! \details When multi-point constraints are present, this subroutine will
+  //! also add contributions from these into the system right-hand-side vector.
   virtual bool assemble(const Matrix& eM, const SAM& sam,
 			SystemVector& B, int e);
 
@@ -105,7 +106,20 @@ public:
   //! \brief Returns the L-infinity norm of the matrix.
   virtual Real Linfnorm() const;
 
+protected:
+  //! \brief Adds an element matrix into the associated system matrix.
+  //! \param[in] eM  The element matrix
+  //! \param[in] sam Auxiliary data describing the FE model topology,
+  //!                nodal DOF status and constraint equations
+  //! \param     B   Pointer to the system right-hand-side vector
+  //! \param[in] e   Identifier for the element that \a eM belongs to
+  //! \return \e true on successful assembly, otherwise \e false
+  bool assemble(int e, const Matrix& eM, const SAM& sam, Real* B = nullptr);
+  //! \brief Performs the matrix-vector multiplication \b c = \a *this * \b b.
+  bool multiply(size_t n, const Real* b, Real* c);
+
 private:
+  int ierr;     //!< Internal error flag
   int mpar[NS]; //!< Matrix of sparse PARameters
   int* msica;   //!< Matrix of Storage Information for CA
   int* msifa;   //!< Matrix of Storage Information for FA
@@ -114,6 +128,7 @@ private:
   Real* values; //!< The actual matrix VALUES
 
   std::vector<int>  iWork; //!< Integer work array
+  std::vector<int>* jWork; //!< Integer work arrays for multi-threaded assembly
   std::vector<Real> rWork; //!< Real work array
 };
 
