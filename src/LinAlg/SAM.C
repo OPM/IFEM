@@ -140,14 +140,15 @@ void SAM::print (std::ostream& os) const
   {
     os <<"\n\nElement --> Nodes";
     for (int e = 0; e < nel; e++)
-    {
-      os <<'\n'<< std::setw(4) << e+1 <<":";
-      for (int i = mpmnpc[e]; i < mpmnpc[e+1]; i++)
-        if (mmnpc[i-1] > 0)
-          os <<' '<< (minex ? minex[mmnpc[i-1]-1] : mmnpc[i-1]);
-        else if (mmnpc[i-1] < 0)
-          os <<' '<< (minex ? -minex[-mmnpc[i-1]-1] : mmnpc[i-1]);
-    }
+      if (mpmnpc[e+1] > mpmnpc[e])
+      {
+        os <<'\n'<< std::setw(4) << e+1 <<":";
+        for (int i = mpmnpc[e]; i < mpmnpc[e+1]; i++)
+          if (mmnpc[i-1] > 0)
+            os <<' '<< (minex ? minex[mmnpc[i-1]-1] : mmnpc[i-1]);
+          else if (mmnpc[i-1] < 0)
+            os <<' '<< (minex ? -minex[-mmnpc[i-1]-1] : mmnpc[i-1]);
+      }
     os << std::endl;
   }
 
@@ -468,7 +469,7 @@ bool SAM::assembleSystem (SystemMatrix& sysK, SystemVector& sysRHS,
       Real c0 = ttcc[jp-1];
 
       for (size_t i = 1; i <= meen.size(); i++)
-	if (meen[i-1] <= 0)
+	if (meen[i-1] < 1)
 	{
 	  eS.resize(eK.rows());
 	  eS(i) = -c0*eK(i,j);
@@ -516,7 +517,7 @@ bool SAM::assembleSystem (SystemVector& sysRHS,
     {
       int ieq = meen[i-1];
       this->assembleRHS(sysRHS.getPtr(),-c0*eK(i,j),ieq);
-      if (reactionForces && ieq <= 0)
+      if (reactionForces && ieq < 1)
       {
         eS.resize(eK.rows());
         eS(i) = -c0*eK(i,j);
@@ -535,6 +536,9 @@ bool SAM::assembleSystem (SystemVector& sysRHS,
                           const RealArray& eS, int iel,
                           RealArray* reactionForces) const
 {
+  if (eS.empty())
+    return true; // silently ignore empty element vectors
+
   int ierr = 0;
 #ifdef USE_F77SAM
   int* work = new int[eS.size()];
@@ -671,7 +675,7 @@ bool SAM::getElmNodes (IntVec& mnpc, int iel) const
 }
 
 
-bool SAM::getElmEqns (IntVec& meen, int iel, int nedof) const
+bool SAM::getElmEqns (IntVec& meen, int iel, size_t nedof) const
 {
   meen.clear();
   if (iel < 1 || iel > nel)
@@ -683,17 +687,18 @@ bool SAM::getElmEqns (IntVec& meen, int iel, int nedof) const
 
   int ip = mpmnpc[iel-1];
   int nenod = mpmnpc[iel] - ip;
-  if (nenod <= 0) return true;
-#ifndef USE_F77SAM
-  int oldof = nedof;
-#endif
-  if (nedof < 1) nedof = nenod*ndof/nnod;
-
+  if (nenod < 1) return true;
+  if (nedof == 0)
+    for (int i = 0; i < nenod; i++)
+    {
+      int node = abs(mmnpc[ip-1+i]);
+      nedof += madof[node] - madof[node-1];
+    }
 #ifdef USE_F77SAM
   int neldof, neslv, neprd;
   meen.resize(nedof,0);
   elmeq_(madof,mmnpc+ip-1,mpmceq,meqn,nenod,&meen.front(),neldof,neslv,neprd);
-  if (neldof == nedof) return true;
+  if (neldof < static_cast<int>(nedof)) meen.resize(neldof);
 #else
   meen.reserve(nedof);
   for (int i = 0; i < nenod; i++, ip++)
@@ -705,11 +710,12 @@ bool SAM::getElmEqns (IntVec& meen, int iel, int nedof) const
       meen.insert(meen.end(),madof[-node]-madof[-node-1],0);
   }
   int neldof = meen.size();
-  if (neldof == nedof || oldof < 1) return true;
 #endif
+  if (neldof == static_cast<int>(nedof)) return true;
 
   std::cerr <<" *** SAM::getElmEqns: Invalid element matrix dimension "
-            << nedof <<" (should have been "<< neldof <<")."<< std::endl;
+            << nedof <<" for element "<< iel
+            <<" (should have been "<< neldof <<")."<< std::endl;
   return false;
 }
 

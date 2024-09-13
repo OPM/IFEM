@@ -192,7 +192,7 @@ public:
   //! \param[in] iel Identifier for the element to get the equation numbers for
   //! \param[in] nedof Number of degrees of freedom in the element
   //! (used for internal consistency checking, unless zero)
-  bool getElmEqns(IntVec& meen, int iel, int nedof = 0) const;
+  bool getElmEqns(IntVec& meen, int iel, size_t nedof = 0) const;
   //! \brief Returns the number equations for an element.
   //! \param[in] iel Identifier for the element to get number of equations for
   size_t getNoElmEqns(int iel) const;

@@ -61,7 +61,7 @@ bool DiagMatrix::assemble (const Matrix& eM, const SAM& sam, int e)
     return false;
 
   std::vector<int> meen;
-  if (!sam.getElmEqns(meen,e))
+  if (!sam.getElmEqns(meen,e,eM.rows()))
     return false;
   else if (meen.size() != 1 || eM.size() != 1)
   {
