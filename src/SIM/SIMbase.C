@@ -1928,15 +1928,10 @@ bool SIMbase::systemModes (std::vector<Mode>& solution,
   IFEM::cout <<"\nSolving the eigenvalue problem ..."<< std::endl;
   SystemMatrix* A = myEqSys->getMatrix(iA);
   SystemMatrix* B = myEqSys->getMatrix(iB);
-#ifdef HAS_SLEPC
-  // To interface SLEPC another interface is used
-  bool ok = eig::solve(A,B,eigVal,eigVec,nev);
-#else
   bool ok = eig::solve(A,B,eigVal,eigVec,nev,ncv,iop,shift);
-#endif
 
   // Expand eigenvectors to DOF-ordering and print out eigenvalues
-  bool freq = iop == 3 || iop == 4 || iop == 6;
+  bool freq = iop == 3 || iop == 4 || iop == 6 || iop > 10;
   IFEM::cout <<"\n >>> Computed Eigenvalues <<<\n     Mode\t"
              << (freq ? "Frequency [Hz]" : "Eigenvalue");
   solution.resize(nev);

@@ -85,38 +85,37 @@ void eig_drv6_(const int& n, const int& nev, const int& ncv, const double& sig,
 	       double* d, double* v, double* work, int& ierr);
 }
 
-static SystemMatrix* K  = 0; //!< Pointer to coefficient matrix A
-static SystemMatrix* M  = 0; //!< Pointer to coefficient matrix B
-static SystemMatrix* AM = 0; //!< Pointer to the matrix to invert
+static SystemMatrix* K  = nullptr; //!< Pointer to coefficient matrix A
+static SystemMatrix* M  = nullptr; //!< Pointer to coefficient matrix B
+static SystemMatrix* AM = nullptr; //!< Pointer to the matrix to invert
 
 
-bool eig::solve (SystemMatrix* A, SystemMatrix* B,
-		 Vector& eigVal, Matrix& eigVec, int nev)
+int eig::solve (SystemMatrix* A, SystemMatrix* B,
+                Vector& eigVal, Matrix& eigVec, int nev, int iop, double shift)
 {
   DenseMatrix* dK = dynamic_cast<DenseMatrix*>(A);
   DenseMatrix* dM = dynamic_cast<DenseMatrix*>(B);
 
-  if (dK)
-    if (dM) // Try the LAPack solver DSYGVX
-      return dK->solveEig(*dM,eigVal,eigVec,nev);
-    else    // Try the LAPack solver DSYEVX
-      return dK->solveEig(eigVal,eigVec,nev);
+  if (dK && dM) // Try the LAPack solver DSYGVX
+    return dK->solveEig(*dM,eigVal,eigVec,nev);
+  else if (dK)  // Try the LAPack solver DSYEVX
+    return dK->solveEig(eigVal,eigVec,nev);
 
   SPRMatrix* sK = dynamic_cast<SPRMatrix*>(A);
   SPRMatrix* sM = dynamic_cast<SPRMatrix*>(B);
 
   if (sK && sM) // Try the Lanczos solver SPRLAN
-    return sK->solveEig(*sM,eigVal,eigVec,nev);
+    return sK->solveEig(*sM,eigVal,eigVec,nev,shift,iop);
 
 #ifdef HAS_SLEPC
-  PETScMatrix *pK = dynamic_cast<PETScMatrix*>(A);
-  PETScMatrix *pM = dynamic_cast<PETScMatrix*>(B);
+  PETScMatrix* pK = dynamic_cast<PETScMatrix*>(A);
+  PETScMatrix* pM = dynamic_cast<PETScMatrix*>(B);
 
   if (pK && pM) // Try the SLEPc solver EPSSolve
     return pK->solveEig(*pM,eigVal,eigVec,nev);
 #endif
 
-  return false;
+  return 2; // Fall back to ARPack eigensolver
 }
 
 
@@ -124,9 +123,11 @@ bool eig::solve (SystemMatrix* A, SystemMatrix* B,
 		 Vector& eigVal, Matrix& eigVec, int nev, int ncv,
 		 int mode, double shift)
 {
+  int ierr = mode > 10 ? eig::solve(A,B,eigVal,eigVec,nev,mode-10,shift) : 2;
+  if (ierr < 2) return ierr == 1;
+
   K = A;
   M = B;
-  int ierr = 1;
   int n = K->dim();
   int nwork = 4*n+ncv*(ncv+9);
   if (mode == 6) nwork += n;
@@ -177,34 +178,30 @@ bool eig::solve (SystemMatrix* A, SystemMatrix* B,
 	      <<"                 Check matrix type or dimensions."<< std::endl;
 
   delete[] work;
-  if (AM) delete AM;
-  AM = 0;
-  K = 0;
-  M = 0;
+  delete AM;
+  AM = K = M = nullptr;
+
   return ierr == 0;
 }
 
 
-//! \brief Performs the matrix-vector multiplication \b y = \b K * \b x.
-extern "C" void eig_av_(const double* x, double* y)
+//! \brief Performs the matrix-vector multiplication \b y = \b A * \b x.
+static void _eig_ax(const SystemMatrix* A, const double* x, double* y)
 {
-  if (!K) return;
+  if (!A) return;
 
   StdVector Y;
-  K->multiply(StdVector(x,K->dim()),Y);
-  memcpy(y,Y.ptr(),Y.dim()*sizeof(double));
+  A->multiply(StdVector(x,A->dim()),Y);
+  memcpy(y,Y.data(),Y.dim()*sizeof(double));
 }
+
+
+//! \brief Performs the matrix-vector multiplication \b y = \b K * \b x.
+extern "C" void eig_av_(const double* x, double* y) { _eig_ax(K,x,y); }
 
 
 //! \brief Performs the matrix-vector multiplication \b y = \b M * \b x.
-extern "C" void eig_mv_(const double* x, double* y)
-{
-  if (!M) return;
-
-  StdVector Y;
-  M->multiply(StdVector(x,M->dim()),Y);
-  memcpy(y,Y.ptr(),Y.dim()*sizeof(double));
-}
+extern "C" void eig_mv_(const double* x, double* y) { _eig_ax(M,x,y); }
 
 
 //! \brief Solves the linear system of equations \b AM \b y = \b x.
@@ -216,5 +213,5 @@ extern "C" void eig_sol_(const double* x, double* y, int& ierr)
 
   StdVector RHS(x,AM->dim());
   ierr = AM->solve(RHS) ? 0 : -1;
-  memcpy(y,RHS.ptr(),RHS.dim()*sizeof(double));
+  memcpy(y,RHS.data(),RHS.dim()*sizeof(double));
 }
