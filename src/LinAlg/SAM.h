@@ -53,11 +53,14 @@ public:
     if (heading)
       os <<"\n"<< heading <<":";
     for (int inod = 1; inod <= nnod; inod++)
-    {
-      os <<"\nNode "<< inod <<":";
-      for (int idof = madof[inod-1]; idof < madof[inod]; idof++)
-        os <<" "<< utl::trunc(vec[idof-1]);
-    }
+      for (int jdof = madof[inod-1]; jdof < madof[inod]; jdof++)
+        if (utl::trunc(vec[jdof-1]) != Real(0))
+        {
+          os <<"\nNode "<< inod <<":";
+          for (int idof = madof[inod-1]; idof < madof[inod]; idof++)
+            os <<" "<< utl::trunc(vec[idof-1]);
+          break;
+        }
     os << std::endl;
   }
 

@@ -118,11 +118,14 @@ std::ostream& operator<< (std::ostream& os, const std::pair<int,int>& p)
 void SAM::printCEQ (std::ostream& os, int iceq) const
 {
   int ip = mpmceq[iceq++]-1;
-  os << this->getNodeAndLocalDof(mmceq[ip]) <<" =";
+  std::pair<int,int> nodeDof = this->getNodeAndLocalDof(mmceq[ip]);
+  std::string indent(11+log10(nodeDof.first),' ');
+  os << nodeDof <<" =";
   if (ttcc[ip] || ip+2 >= mpmceq[iceq])
     os <<" "<< ttcc[ip];
   for (int jp = ip+1; jp < mpmceq[iceq]-1; jp++)
   {
+    if ((jp-ip)%10 == 1 && jp > ip+1) os <<"\n"<< indent;
     if (ttcc[ip] || jp > ip+1) os <<" +";
     os <<" "<< ttcc[jp] <<"*"<< this->getNodeAndLocalDof(mmceq[jp]);
   }
