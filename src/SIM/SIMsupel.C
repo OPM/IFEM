@@ -93,8 +93,7 @@ bool SIMsupel::parse (const tinyxml2::XMLElement* elem)
   if (result && !sup.MVP.empty())
     if ((result = myModel.back()->transform(sup.MVP)) && !supNodeSet.empty())
     {
-      int topIdx = 0;
-      myModel.back()->getNodeSet(supNodeSet,topIdx);
+      int topIdx = myModel.back()->parseNodeSet(supNodeSet,nullptr);
       if (topIdx > 0)
         myEntitys[supNodeSet].insert(TopItem(myModel.size(),topIdx,4));
     }

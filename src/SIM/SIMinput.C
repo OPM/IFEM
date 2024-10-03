@@ -282,8 +282,7 @@ bool SIMinput::parseGeometryTag (const tinyxml2::XMLElement* elem)
                 if (!child)
                   setIndex = pch->getNodeSetIdx(name);
                 else
-                  utl::parseIntegers(pch->getNodeSet(name,setIndex),
-                                     child->Value());
+                  setIndex = pch->parseNodeSet(name,child->Value());
                 if (setIndex > 0)
                   top.emplace(pid,setIndex,idim);
               }
@@ -294,8 +293,7 @@ bool SIMinput::parseGeometryTag (const tinyxml2::XMLElement* elem)
                 else if (utl::getAttribute(item,"type",type) && type == "bbox")
                   setIndex = pch->parseElemBox(name,child->Value());
                 else
-                  utl::parseIntegers(pch->getElementSet(name,setIndex),
-                                     child->Value());
+                  setIndex = pch->parseElemSet(name,child->Value());
                 if (setIndex > 0)
                   top.emplace(pid,setIndex,idim);
               }

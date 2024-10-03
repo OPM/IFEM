@@ -14,6 +14,7 @@
 #include "ASMu1DLag.h"
 #include "ElementBlock.h"
 #include "Utilities.h"
+#include "IFEM.h"
 #include <numeric>
 
 
@@ -132,17 +133,28 @@ bool ASMu1DLag::isInElementSet (int idx, int iel) const
 }
 
 
-IntVec& ASMu1DLag::getElementSet (const std::string& setName, int& idx)
+int ASMu1DLag::parseElemSet (const std::string& setName, const char* cset)
 {
-  idx = 1;
-  for (ASM::NodeSet& es : elemSets)
-    if (es.first == setName)
-      return es.second;
-    else if (idx)
-      ++idx;
+  int idx = this->getElementSetIdx(setName)-1;
+  if (idx < 0)
+  {
+    idx = elemSets.size();
+    elemSets.emplace_back(setName,IntVec());
+  }
 
-  elemSets.emplace_back(setName,IntVec());
-  return elemSets.back().second;
+  IntVec& mySet = elemSets[idx].second;
+  size_t ifirst = mySet.size();
+  utl::parseIntegers(mySet,cset);
+
+  int iel; // Transform to internal element indices
+  for (size_t i = ifirst; i < mySet.size(); i++)
+    if ((iel = this->getElmIndex(mySet[i])) > 0)
+      mySet[i] = iel;
+    else
+      IFEM::cout <<"  ** Warning: Non-existing element "<< mySet[i]
+                 <<" in element set \""<< setName <<"\""<< std::endl;
+
+  return 1+idx;
 }
 
 

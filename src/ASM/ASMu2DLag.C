@@ -122,17 +122,28 @@ const IntVec& ASMu2DLag::getNodeSet (int idx) const
 }
 
 
-IntVec& ASMu2DLag::getNodeSet (const std::string& setName, int& idx)
+int ASMu2DLag::parseNodeSet (const std::string& setName, const char* cset)
 {
-  idx = 1;
-  for (ASM::NodeSet& ns : nodeSets)
-    if (ns.first == setName)
-      return ns.second;
-    else if (idx)
-      ++idx;
+  int idx = this->getNodeSetIdx(setName)-1;
+  if (idx < 0)
+  {
+    idx = nodeSets.size();
+    nodeSets.emplace_back(setName,IntVec());
+  }
 
-  nodeSets.emplace_back(setName,IntVec());
-  return nodeSets.back().second;
+  IntVec& mySet = nodeSets[idx].second;
+  size_t ifirst = mySet.size();
+  utl::parseIntegers(mySet,cset);
+
+  int inod; // Transform to internal node indices
+  for (size_t i = ifirst; i < mySet.size(); i++)
+    if ((inod = this->getNodeIndex(mySet[i])) > 0)
+      mySet[i] = inod;
+    else
+      IFEM::cout <<"  ** Warning: Non-existing node "<< mySet[i]
+                 <<" in node set \""<< setName <<"\""<< std::endl;
+
+  return 1+idx;
 }
 
 
@@ -180,6 +191,16 @@ int ASMu2DLag::parseNodeBox (const std::string& setName, const char* data)
 }
 
 
+void ASMu2DLag::addToNodeSet (const std::string& setName, int inod)
+{
+  int idx = this->getNodeSetIdx(setName);
+  if (idx < 1)
+    nodeSets.emplace_back(setName,IntVec{inod});
+  else
+    nodeSets[idx-1].second.push_back(inod);
+}
+
+
 int ASMu2DLag::getElementSetIdx (const std::string& setName) const
 {
   int idx = 1;
@@ -211,17 +232,28 @@ bool ASMu2DLag::isInElementSet (int idx, int iel) const
 }
 
 
-IntVec& ASMu2DLag::getElementSet (const std::string& setName, int& idx)
+int ASMu2DLag::parseElemSet (const std::string& setName, const char* cset)
 {
-  idx = 1;
-  for (ASM::NodeSet& es : elemSets)
-    if (es.first == setName)
-      return es.second;
-    else if (idx)
-      ++idx;
+  int idx = this->getElementSetIdx(setName)-1;
+  if (idx < 0)
+  {
+    idx = elemSets.size();
+    elemSets.emplace_back(setName,IntVec());
+  }
 
-  elemSets.emplace_back(setName,IntVec());
-  return elemSets.back().second;
+  IntVec& mySet = elemSets[idx].second;
+  size_t ifirst = mySet.size();
+  utl::parseIntegers(mySet,cset);
+
+  int iel; // Transform to internal element indices
+  for (size_t i = ifirst; i < mySet.size(); i++)
+    if ((iel = this->getElmIndex(mySet[i])) > 0)
+      mySet[i] = iel;
+    else
+      IFEM::cout <<"  ** Warning: Non-existing element "<< mySet[i]
+                 <<" in element set \""<< setName <<"\""<< std::endl;
+
+  return 1+idx;
 }
 
 

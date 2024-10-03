@@ -271,8 +271,8 @@ public:
   virtual int getNodeSetIdx(const std::string&) const { return 0; }
   //! \brief Returns an indexed predefined node set.
   virtual const IntVec& getNodeSet(int) const { return Empty; }
-  //! \brief Returns a named node set for update.
-  virtual IntVec& getNodeSet(const std::string&, int&) { return Empty; }
+  //! \brief Defines a node set by parsing a list of node numbers.
+  virtual int parseNodeSet(const std::string&, const char*) { return 0; }
   //! \brief Defines a node set by parsing a 3D bounding box.
   virtual int parseNodeBox(const std::string&, const char*) { return 0; }
 
@@ -280,10 +280,10 @@ public:
   virtual int getElementSetIdx(const std::string&) const { return 0; }
   //! \brief Returns an indexed predefined element set.
   virtual const IntVec& getElementSet(int) const { return Empty; }
-  //! \brief Checks if an element is within a predefined element.
+  //! \brief Checks if an element is within a predefined element set.
   virtual bool isInElementSet(int, int) const { return false; }
-  //! \brief Returns a named element set for update.
-  virtual IntVec& getElementSet(const std::string&, int&) { return Empty; }
+  //! \brief Defines an element set by parsing a list of element numbers.
+  virtual int parseElemSet(const std::string&, const char*) { return 0; }
   //! \brief Defines an element set by parsing a 3D bounding box.
   virtual int parseElemBox(const std::string&, const char*) { return 0; }
 

@@ -14,6 +14,7 @@
 #include "ASMsupel.h"
 #include "GlobalIntegral.h"
 #include "ElementBlock.h"
+#include "Utilities.h"
 #include "Vec3Oper.h"
 #include <numeric>
 
@@ -144,17 +145,18 @@ const IntVec& ASMsupel::getNodeSet (int idx) const
 }
 
 
-IntVec& ASMsupel::getNodeSet (const std::string& setName, int& idx)
+int ASMsupel::parseNodeSet (const std::string& setName, const char* cset)
 {
-  idx = 1;
-  for (ASM::NodeSet& ns : nodeSets)
-    if (ns.first == setName)
-      return ns.second;
-    else if (idx)
-      ++idx;
+  int idx = this->getNodeSetIdx(setName)-1;
+  if (idx < 0)
+  {
+    idx = nodeSets.size();
+    nodeSets.emplace_back(setName,IntVec());
+  }
 
-  nodeSets.push_back(std::make_pair(setName,IntVec()));
-  return nodeSets.back().second;
+  utl::parseIntegers(nodeSets[idx].second,cset);
+
+  return 1+idx;
 }
 
 

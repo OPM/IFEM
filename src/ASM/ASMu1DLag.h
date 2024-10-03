@@ -56,8 +56,8 @@ public:
   virtual const IntVec& getElementSet(int idx) const;
   //! \brief Checks if element \e iel is within predefined element set \a idx.
   virtual bool isInElementSet(int idx, int iel) const;
-  //! \brief Returns a named element set for update.
-  virtual IntVec& getElementSet(const std::string& setName, int& idx);
+  //! \brief Defines an element set by parsing a list of element numbers.
+  virtual int parseElemSet(const std::string& setName, const char* cset);
 
   //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
   //! \param[in] lIndex Local index of the boundary node set

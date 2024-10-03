@@ -51,8 +51,8 @@ public:
   virtual int getNodeSetIdx(const std::string& setName) const;
   //! \brief Returns an indexed pre-defined node set.
   virtual const IntVec& getNodeSet(int idx) const;
-  //! \brief Returns a named node set for update.
-  virtual IntVec& getNodeSet(const std::string& setName, int& idx);
+  //! \brief Defines a node set by parsing a list of node numbers.
+  virtual int parseNodeSet(const std::string& setName, const char* cset);
 
   //! \brief Returns the global coordinates for the given node.
   //! \param[in] inod 1-based node index local to current patch.
