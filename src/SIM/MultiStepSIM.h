@@ -190,9 +190,10 @@ public:
   const double* getRefNorm() const { return &refNorm; }
 
 protected:
-  SIMoutput& model;    //!< The isogeometric FE model
-  Vector     residual; //!< Residual force vector
-  Vector     linsol;   //!< Linear solution vector
+  SIMoutput& model; //!< The isogeometric FE model
+  Vector loadVec;   //!< System load vector (for output to VTF)
+  Vector residual;  //!< Residual force vector
+  Vector linsol;    //!< Linear solution vector
 
   NormOp refNopt; //!< Reference norm option
   double refNorm; //!< Reference norm value used in convergence checks
