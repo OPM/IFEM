@@ -39,6 +39,7 @@ NonLinSIM::NonLinSIM (SIMbase& sim, CNORM n) : MultiStepSIM(sim), iteNorm(n)
   divgLim = 10.0;
   alpha   = alphaO = 1.0;
   eta     = 0.0;
+  saveExL = false;
 }
 
 
@@ -97,6 +98,13 @@ bool NonLinSIM::parse (char* keyWord, std::istream& is)
 
 bool NonLinSIM::parse (const tinyxml2::XMLElement* elem)
 {
+  if (!strcasecmp(elem->Value(),"postprocessing"))
+  {
+    const tinyxml2::XMLElement* child = elem->FirstChildElement();
+    for (; child && !saveExL; child = child->NextSiblingElement())
+      saveExL = !strcasecmp(child->Value(),"saveExtForce");
+  }
+
   if (strcasecmp(elem->Value(),inputContext))
     return model.parse(elem);
 
@@ -173,11 +181,8 @@ void NonLinSIM::init (size_t nSol, const RealArray& value)
   if (value.empty() || solution.empty())
     return;
 
-  size_t ndim = solution.front().size();
-  if (value.size() > ndim)
-    std::copy(value.begin(),value.begin()+ndim,solution.front().begin());
-  else
-    std::copy(value.begin(),value.end(),solution.front().begin());
+  size_t ndim = std::min(solution.front().size(),value.size());
+  std::copy(value.begin(),value.begin()+ndim,solution.front().begin());
 }
 
 
@@ -188,10 +193,10 @@ bool NonLinSIM::advanceStep (TimeStep& param, bool updateTime)
 }
 
 
-ConvStatus NonLinSIM::solve (double zero_tolerance, std::streamsize outPrec)
+ConvStatus NonLinSIM::solve (double zero_tol, std::streamsize outPrec)
 {
   TimeStep singleStep; // Solves the nonlinear equations in one single step
-  return this->solveStep(singleStep,STATIC,zero_tolerance,outPrec);
+  return this->solveStep(singleStep,STATIC,zero_tol,outPrec);
 }
 
 
@@ -233,8 +238,16 @@ ConvStatus NonLinSIM::solveStep (TimeStep& param, SolutionMode mode,
     return model.getProblem()->diverged() ? DIVERGED : FAILURE;
 
   if (iteNorm > NONE)
+  {
     if (!model.extractLoadVec(residual))
       return FAILURE;
+  }
+  else if (saveExL)
+  {
+    // Currently for linear multi-load-case analysis only
+    if (!model.extractLoadVec(loadVec))
+      return FAILURE;
+  }
 
   double* rCondPtr = rCond < 0.0 ? nullptr : &rCond;
   if (!model.solveEqSystem(linsol,0,rCondPtr,msgLevel-1,true))

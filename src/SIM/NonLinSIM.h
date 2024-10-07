@@ -60,10 +60,9 @@ public:
   virtual bool advanceStep(TimeStep& param, bool updateTime = true);
 
   //! \brief Solves the nonlinear equations by Newton-Raphson iterations.
-  //! \param[in] zero_toler Truncate norm values smaller than this to zero
+  //! \param[in] zero_tol Truncate norm values smaller than this to zero
   //! \param[in] outPrec Number of digits after the decimal point in norm print
-  SIM::ConvStatus solve(double zero_toler = 1.0e-8,
-                        std::streamsize outPrec = 0);
+  SIM::ConvStatus solve(double zero_tol = 1.0e-8, std::streamsize outPrec = 0);
 
   //! \brief Solves the nonlinear equations by Newton-Raphson iterations.
   //! \param param Time stepping parameters
@@ -129,6 +128,7 @@ protected:
   int    maxIncr; //!< Maximum number of iterations with increasing norm
   int    nupdat;  //!< Number of iterations with updated tangent
   int    prnSlow; //!< How many DOFs to print out on slow convergence
+  bool   saveExL; //!< If \e true, the external load vector will be saved to VTF
 
   std::map<int,int> slowNodes; //!< Nodes for which slow convergence is detected
 

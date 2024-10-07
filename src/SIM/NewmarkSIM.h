@@ -72,7 +72,7 @@ protected:
   //! \brief Updates configuration variables (solution vector) in an iteration.
   virtual bool correctStep(TimeStep& param, bool = false);
   //! \brief Finalizes the right-hand-side vector on the system level.
-  virtual void finalizeRHSvector(bool) {}
+  virtual void finalizeRHSvector(bool);
 
 public:
   //! \brief Returns a const reference to current velocity vector.

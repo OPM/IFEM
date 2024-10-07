@@ -48,6 +48,14 @@ NewmarkSIM::NewmarkSIM (SIMbase& sim) : MultiStepSIM(sim)
 
 bool NewmarkSIM::parse (const tinyxml2::XMLElement* elem)
 {
+  if (!strcasecmp(elem->Value(),"postprocessing"))
+  {
+    const tinyxml2::XMLElement* child = elem->FirstChildElement();
+    for (; child && nRHSvec < 2; child = child->NextSiblingElement())
+      if (!strcasecmp(child->Value(),"saveExtForce"))
+        nRHSvec = 3;
+  }
+
   if (strcasecmp(elem->Value(),inputContext))
     return model.parse(elem);
 
@@ -156,6 +164,8 @@ void NewmarkSIM::initPrm ()
   model.setIntegrationPrm(1,fabs(alpha2));
   model.setIntegrationPrm(2,solveDisp ? -beta : beta);
   model.setIntegrationPrm(3,gamma);
+  if (nRHSvec > 2) // Flag separate storage of external load vector
+    model.setIntegrationPrm(4,0.5);
   if (nupdat < maxit)
     model.initLHSbuffers();
 }
@@ -205,6 +215,14 @@ bool NewmarkSIM::initAcc (double zero_tolerance, std::streamsize outPrec)
   if (stdPrec > 0) cout.precision(stdPrec);
 
   return true;
+}
+
+
+void NewmarkSIM::finalizeRHSvector (bool)
+{
+  // Add external loads to the residual force vector, if stored separately
+  if (nRHSvec > 2)
+    model.addToRHSvector(0,*model.getRHSvector(nRHSvec-1));
 }
 
 
@@ -366,6 +384,9 @@ SIM::ConvStatus NewmarkSIM::solveStep (TimeStep& param, SIM::SolutionMode,
   this->finalizeRHSvector(!param.time.first);
 
   if (!model.extractLoadVec(residual))
+    return SIM::FAILURE;
+
+  if (nRHSvec > 2 && !model.extractLoadVec(loadVec,nRHSvec-1))
     return SIM::FAILURE;
 
   double* rCondPtr = rCond < 0.0 ? nullptr : &rCond;
