@@ -117,7 +117,6 @@ class TestSIMbase : public SIMdummy<SIMgeneric>
 public:
   TestSIMbase() : SIMdummy<SIMgeneric>(new Problem) {}
   virtual ~TestSIMbase() {}
-  virtual double getInitAcc(size_t = 0) const { return 0.0; }
 
 protected:
   bool assembleMass(double M, size_t ndof = 1)
@@ -142,7 +141,7 @@ public:
   SIM1DOF() { mySam = new SAM1DOF(); }
   virtual ~SIM1DOF() {}
 
-  virtual double getInitAcc(size_t) const { return F/M; }
+  double getInitAcc() const { return F/M; }
 
   virtual bool assembleSystem(const TimeDomain& time,
                               const Vectors& prevSol,
@@ -194,7 +193,7 @@ public:
   SIM2DOFdmp() { mySam = new SAM2DOF(); }
   virtual ~SIM2DOFdmp() {}
 
-  virtual double getInitAcc(size_t i) const { return (i == 0 ? Fx : Fy)/M; }
+  double getInitAcc(size_t i = 0) const { return (i == 0 ? Fx : Fy)/M; }
 
   virtual bool assembleSystem(const TimeDomain& time,
                               const Vectors& prevSol,
@@ -308,13 +307,14 @@ public:
 };
 
 
-void runSingleDof (SIMbase& model, NewmarkSIM& solver, double rtol = 0.5e-11)
+void runSingleDof (NewmarkSIM& solver, double rtol = 0.5e-11)
 {
   TimeStep tp;
   tp.time.dt = 0.01;
   tp.stopTime = 0.65;
+  solver.opt.solver = LinAlg::DENSE;
 
-  ASSERT_TRUE(model.initSystem(LinAlg::DENSE));
+  ASSERT_TRUE(solver.initEqSystem());
   ASSERT_TRUE(solver.initAcc());
   EXPECT_FLOAT_EQ(solver.getAcceleration().front(),0.1);
 
@@ -362,15 +362,15 @@ static void printVec (const char* name, const Vector& vec)
 }
 
 
-void runTwoDof (TestSIMbase& model, NewmarkSIM& solver, double rtol = 0.5e-11)
+void runTwoDof (NewmarkSIM& solver, double refAcc, double rtol = 0.5e-11)
 {
   TimeStep tp;
   tp.time.dt = 0.01;
   tp.stopTime = 0.65;
-
-  ASSERT_TRUE(model.initSystem(LinAlg::DENSE));
+  solver.opt.solver = LinAlg::DENSE;
+  ASSERT_TRUE(solver.initEqSystem());
   ASSERT_TRUE(solver.initAcc());
-  EXPECT_FLOAT_EQ(solver.getAcceleration().front(),model.getInitAcc());
+  EXPECT_FLOAT_EQ(solver.getAcceleration().front(),refAcc);
 
   while (solver.advanceStep(tp))
   {
@@ -382,13 +382,13 @@ void runTwoDof (TestSIMbase& model, NewmarkSIM& solver, double rtol = 0.5e-11)
 }
 
 
-void runPrescribed (SIMbase& model, NewmarkSIM& solver, double rtol = 0.5e-11)
+void runPrescribed (NewmarkSIM& solver, double rtol = 0.5e-11)
 {
   TimeStep tp;
   tp.time.dt = 0.01;
   tp.stopTime = 0.65;
-
-  ASSERT_TRUE(model.initSystem(LinAlg::DENSE));
+  solver.opt.solver = LinAlg::DENSE;
+  ASSERT_TRUE(solver.initEqSystem());
 
   //              at t=0.1         at t=0.25         at t=0.5
   double u[3] = {0.9312639435267, 0.3547915343361, -1.075289543029 };
@@ -426,21 +426,21 @@ TEST(TestNewmark, SingleDOFa)
 {
   SIM1DOF simulator;
   Newmark integrator(simulator,false);
-  runSingleDof(simulator,integrator);
+  runSingleDof(integrator);
 }
 
 TEST(TestGenAlpha, SingleDOFa)
 {
   SIM1DOF simulator;
   GenAlpha integrator(simulator,false);
-  runSingleDof(simulator,integrator,0.02);
+  runSingleDof(integrator,0.02);
 }
 
 TEST(TestNewmark, SingleDOFu)
 {
   SIM1DOF simulator;
   Newmark integrator(simulator,true,0);
-  runSingleDof(simulator,integrator);
+  runSingleDof(integrator);
 }
 
 TEST(TestHHT, SingleDOFu)
@@ -449,14 +449,14 @@ TEST(TestHHT, SingleDOFu)
   HHTSIM integrator(simulator);
   integrator.initPrm();
   integrator.initSol();
-  runSingleDof(simulator,integrator,0.9);
+  runSingleDof(integrator,0.9);
 }
 
 TEST(TestNewmark, Damped)
 {
   SIM2DOFdmp simulator;
   Newmark integrator(simulator,true);
-  runTwoDof(simulator,integrator);
+  runTwoDof(integrator,simulator.getInitAcc());
 }
 
 TEST(TestNewmarkNL, Damped)
@@ -465,7 +465,7 @@ TEST(TestNewmarkNL, Damped)
   NewmarkNLSIM integrator(simulator);
   integrator.initPrm();
   integrator.initSol();
-  runTwoDof(simulator,integrator);
+  runTwoDof(integrator,simulator.getInitAcc());
 }
 
 TEST(TestHHT, Damped)
@@ -474,14 +474,14 @@ TEST(TestHHT, Damped)
   HHTSIM integrator(simulator);
   integrator.initPrm();
   integrator.initSol();
-  runTwoDof(simulator,integrator);
+  runTwoDof(integrator,simulator.getInitAcc());
 }
 
 TEST(TestNewmark, Prescribed)
 {
   SIM2DOFprescr simulator;
   Newmark integrator(simulator,true);
-  runPrescribed(simulator,integrator);
+  runPrescribed(integrator);
 }
 
 /* does not work, yet
@@ -489,13 +489,13 @@ TEST(TestGenAlpha, SingleDOFu)
 {
   SIM1DOF simulator;
   GenAlpha integrator(simulator,true);
-  runSingleDof(simulator,integrator,0.02);
+  runSingleDof(integrator,0.02);
 }
 
 TEST(TestGenAlpha, Prescribed)
 {
   SIM2DOFprescr simulator;
   GenAlpha integrator(simulator,true);
-  runPrescribed(simulator,integrator,0.02);
+  runPrescribed(integrator,0.02);
 }
 */
