@@ -1467,6 +1467,14 @@ bool ASMs2D::updateCoords (const Vector& displ)
 }
 
 
+Vec3 ASMs2D::getElementCenter (int iel) const
+{
+  std::cerr <<" *** ASMs2D::getElementCenter("<< iel
+            <<"): Not implemented yet."<< std::endl;
+  return Vec3(); //TODO: Maybe later, if needed
+}
+
+
 void ASMs2D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
                                int thick, int, bool local) const
 {
@@ -1759,7 +1767,7 @@ bool ASMs2D::integrate (Integrand& integrand,
       {
         int iel = groups[g][t][e];
         fe.iel = MLGE[iel];
-        if (fe.iel < 1) continue; // zero-area element
+        if (!this->isElementActive(fe.iel)) continue; // zero-area element
 
 #ifdef SP_DEBUG
         if (dbgElm < 0 && 1+iel != -dbgElm)
@@ -2044,7 +2052,7 @@ bool ASMs2D::integrate (Integrand& integrand,
         if (itgPts[iel].empty()) continue; // no points in this element
 
         fe.iel = MLGE[iel];
-        if (fe.iel < 1) continue; // zero-area element
+        if (!this->isElementActive(fe.iel)) continue; // zero-area element
 
 #ifdef SP_DEBUG
         if (dbgElm < 0 && 1+iel != -dbgElm)
@@ -2220,7 +2228,7 @@ bool ASMs2D::integrate (Integrand& integrand,
       if (!hasInterfaceElms) jel = iel;
 
       fe.iel = abs(MLGE[jel]);
-      if (fe.iel < 1) continue; // zero-area element
+      if (!this->isElementActive(fe.iel)) continue; // zero-area element
 
       short int status = iChk.hasContribution(iel,i1,i2);
       if (!status) continue; // no interface contributions for this element
@@ -2429,7 +2437,7 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
     for (int i1 = p1; i1 <= n1; i1++, iel++)
     {
       fe.iel = abs(MLGE[doXelms+iel-1]);
-      if (fe.iel < 1) continue; // zero-area element
+      if (!this->isElementActive(fe.iel)) continue; // zero-area element
 
       if (!myElms.empty() && !glInt.threadSafe() &&
           std::find(myElms.begin(), myElms.end(), iel-1) == myElms.end())

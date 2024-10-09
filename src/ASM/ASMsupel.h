@@ -83,6 +83,8 @@ public:
   virtual void getElmConnectivities(IntMat&) const {}
   //! \brief Dummy method doing nothing.
   virtual bool updateCoords(const Vector&) { return false; }
+  //! \brief Dummy method doing nothing.
+  virtual Vec3 getElementCenter(int) const { return Vec3(); }
 
   //! \brief Evaluates an integral over the interior patch domain.
   //! \param integrand Object with problem-specific data and methods

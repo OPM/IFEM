@@ -123,9 +123,26 @@ bool ASMs1DLag::generateOrientedFEModel (const Vec3& Zaxis)
 
 Vec3 ASMs1DLag::getCoord (size_t inod) const
 {
-  if (inod < 1 || inod > coord.size()) return Vec3();
+  if (inod < 1 || inod > coord.size())
+    return Vec3();
 
   return coord[inod-1];
+}
+
+
+Vec3 ASMs1DLag::getElementCenter (int iel) const
+{
+  if (iel < 1 || static_cast<size_t>(iel) > MNPC.size())
+  {
+    std::cerr <<" *** ASMs1DLag::getElementCenter: Element index "<< iel
+              <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
+    return Vec3();
+  }
+
+  if (curv && p1 > 2)
+    return this->ASMs1D::getElementCenter(iel);
+
+  return this->getGeometricCenter(MNPC[--iel]);
 }
 
 
@@ -235,7 +252,7 @@ bool ASMs1DLag::integrate (Integrand& integrand,
   for (size_t iel = 0; iel < nel && ok; iel++)
   {
     fe.iel = MLGE[iel];
-    if (fe.iel < 1) continue; // zero-length element
+    if (!this->isElementActive(fe.iel)) continue; // zero-length element
 
     // Set up nodal point coordinates for current element
     ok = this->getElementCoordinates(fe.Xn,1+iel);
@@ -364,7 +381,7 @@ bool ASMs1DLag::integrate (Integrand& integrand, int lIndex,
     }
 
   fe.iel = MLGE[iel];
-  if (fe.iel < 1) return true; // zero-length element
+  if (!this->isElementActive(fe.iel)) return true; // zero-length element
 
   // Set up nodal point coordinates for current element
   bool ok = this->getElementCoordinates(fe.Xn,1+iel);

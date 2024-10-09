@@ -236,6 +236,8 @@ public:
   //! otherwise the geometry basis coordinates are returned
   virtual bool getElementCoordinates(Matrix& X, int iel,
                                      bool forceItg = false) const = 0;
+  //! \brief Returns the coordinates of the element center.
+  virtual Vec3 getElementCenter(int) const = 0;
 
   //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
   //! \param[in] lIndex Local index of the boundary face/edge
@@ -309,6 +311,11 @@ public:
   virtual void shiftGlobalElmNums(int eshift);
   //! \brief Returns the global element numbers of this patch.
   const IntVec& getGlobalElementNums() const { return MLGE; }
+
+  //! \brief Sets the list of active elements during assembly.
+  void setActiveElements(IntVec* active) { myActiveEls = active; }
+  //! \brief Returns \e true if element with global id \a elmId is active.
+  bool isElementActive(int elmId) const;
 
   //! \brief Returns the nodal point correspondance array for an element.
   //! \param[in] iel 1-based element index local to current patch
@@ -1003,6 +1010,7 @@ private:
   std::vector<char> myLMTypes; //!< Type of %Lagrange multiplier ('L' or 'G')
   std::set<size_t>  myLMs;     //!< Nodal indices of the %Lagrange multipliers
 
+  IntVec* myActiveEls; //!< List of active elements during element assembly
   static IntVec Empty; //!< Empty integer vector used when a reference is needed
 
 protected:
