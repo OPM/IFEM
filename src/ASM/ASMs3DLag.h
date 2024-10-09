@@ -119,6 +119,9 @@ public:
   //! \param[in] inod 1-based node index local to current patch
   virtual Vec3 getCoord(size_t inod) const;
 
+  //! \brief Returns the geometric center of an element.
+  virtual Vec3 getElementCenter(int iel) const;
+
   //! \brief Calculates parameter values for visualization nodal points.
   //! \param[out] prm Parameter values in given direction for all points
   //! \param[in] dir Parameter direction (0,1,2)
