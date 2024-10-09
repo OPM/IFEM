@@ -34,9 +34,18 @@ class AlgEqSystem : public GlobalIntegral
 public:
   //! \brief The constructor sets its reference to SAM and ProcessAdm objects.
   explicit AlgEqSystem(const SAM& s, const ProcessAdm* a = nullptr);
-
+  //! \brief Copy constructor.
+  AlgEqSystem(const AlgEqSystem& a) : sam(a.sam), adm(a.adm) { this->copy(a); }
   //! \brief The destructor frees the dynamically allocated objects.
   virtual ~AlgEqSystem() { this->clear(); }
+
+  //! \brief Assignment operator.
+  AlgEqSystem& operator=(const AlgEqSystem& s) { return this->copy(s); }
+
+  //! \brief Makes \a *this a copy of \a that.
+  AlgEqSystem& copy(const AlgEqSystem& that);
+  //! \brief Adds \a that to \a *this (assuming similar structure).
+  AlgEqSystem& add(const AlgEqSystem& that);
 
   //! \brief Allocates the system matrices of the specified format.
   //! \param[in] mtype The matrix format to use for all matrices

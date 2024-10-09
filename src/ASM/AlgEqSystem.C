@@ -84,6 +84,61 @@ bool AlgEqSystem::init (LinAlg::MatrixType mtype, const LinSolParams* spar,
 }
 
 
+AlgEqSystem& AlgEqSystem::copy (const AlgEqSystem& that)
+{
+  for (SysMatrixPair& a : A)
+    delete a._A;
+
+  for (SystemVector* v : b)
+    delete v;
+
+  A.resize(that.A.size());
+  b.resize(that.b.size(),nullptr);
+  c = that.c;
+  R = that.R;
+#ifdef USE_OPENMP
+  d = nullptr;
+#else
+  d = &c;
+#endif
+
+  size_t i;
+  for (i = 0; i < A.size(); i++)
+  {
+    A[i]._A = that.A[i]._A->copy();
+    A[i]._b = nullptr;
+  }
+
+  for (i = 0; i < b.size(); i++)
+    b[i] = that.b[i]->copy();
+
+  if (A.size() == 1 && !b.empty())
+    A.front()._b = b.front();
+
+  return *this;
+}
+
+
+AlgEqSystem& AlgEqSystem::add (const AlgEqSystem& that)
+{
+  size_t i;
+
+  for (i = 0; i < A.size() && i < that.A.size(); i++)
+    A[i]._A->add(*that.A[i]._A);
+
+  for (i = 0; i < b.size() && i < that.A.size(); i++)
+    b[i]->add(*that.b[i]);
+
+  for (i = 0; i < c.size() && i < that.c.size(); i++)
+    c[i] += that.c[i];
+
+  for (i = 0; i < b.size() && i < that.R.size(); i++)
+    R[i] += that.R[i];
+
+  return *this;
+}
+
+
 void AlgEqSystem::clear ()
 {
   size_t i;
@@ -256,7 +311,11 @@ bool AlgEqSystem::finalize (bool newLHS)
       return false;
 #if SP_DEBUG > 2
     else
-      std::cout <<"\nSystem right-hand-side vector:"<< *b[i];
+    {
+      Vector bVec;
+      sam.expandSolution(*b[i],bVec,0.0);
+      sam.printVector(std::cout,bVec,"\nSystem right-hand-side vector");
+    }
 #endif
 
   if (c.empty()) return true;
