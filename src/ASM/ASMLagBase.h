@@ -36,6 +36,9 @@ protected:
   //! \brief Direct nodal evaluation of a solution field.
   bool nodalField(Matrix& field, const Vector& sol, size_t nno) const;
 
+  //! \brief Returns the geometric center of an element.
+  Vec3 getGeometricCenter(const std::vector<int>& MNPC) const;
+
 protected:
   const Vec3Vec& coord; //!< Const reference to the nodal coordinate container
   Vec3Vec      myCoord; //!< Nodal coordinate container
