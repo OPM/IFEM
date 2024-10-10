@@ -44,7 +44,8 @@ DenseMatrix::DenseMatrix (size_t m, size_t n, bool s) : myMat(m,n)
 }
 
 
-DenseMatrix::DenseMatrix (const DenseMatrix& A) : myMat(A.myMat)
+DenseMatrix::DenseMatrix (const DenseMatrix& A)
+  : SystemMatrix(A), myMat(A.myMat)
 {
   ipiv = nullptr;
   symm = A.symm;
@@ -99,13 +100,14 @@ void DenseMatrix::dump (std::ostream& os, LinAlg::StorageFormat format,
       break;
 
     case LinAlg::MATRIX_MARKET:
-      os << "%%MatrixMarket matrix array real general\n";
+      os <<"%%MatrixMarket matrix array real general";
       if (label)
-        os << "% label = " << label << '\n';
-      os << myMat.rows() << ' ' << myMat.cols();
-      for (size_t j = 1; j <= myMat.rows(); ++j)
-        for (size_t i = 1; i <= myMat.cols(); ++i)
-          os << '\n' << myMat(i,j);
+        os <<"\n% label = "<< label;
+      os <<'\n' << myMat.rows() <<' '<< myMat.cols();
+      for (size_t j = 1; j <= myMat.rows(); j++)
+        for (size_t i = 1; i <= myMat.cols(); i++)
+          os <<'\n'<< myMat(i,j);
+      os << std::endl;
       break;
 
     case LinAlg::FLAT:

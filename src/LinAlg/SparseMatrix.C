@@ -167,8 +167,8 @@ SparseMatrix::SparseMatrix (size_t m, size_t n)
 }
 
 
-SparseMatrix::SparseMatrix (const SparseMatrix& B) :
-  elem(B.elem), IA(B.IA), JA(B.JA), A(B.A)
+SparseMatrix::SparseMatrix (const SparseMatrix& B)
+  : SystemMatrix(B), elem(B.elem), IA(B.IA), JA(B.JA), A(B.A)
 {
   editable = B.editable;
   factored = false;
@@ -395,8 +395,8 @@ void SparseMatrix::dump (std::ostream& os, LinAlg::StorageFormat format,
           os << end << i <<' '<< JA[j-1] <<' '<< A[i-1];
   }
 
-  if (format == LinAlg::MATLAB)
-    os <<"];\n";
+  if (format == LinAlg::MATLAB) os <<"]";
+  os << end;
 }
 
 
@@ -1215,11 +1215,13 @@ bool SparseMatrix::solveSLUx (Vector& B, Real* rcond)
   slu->opts->ConditionNumber = printSLUstat || rcond ? YES : NO;
   slu->opts->PivotGrowth = printSLUstat ? YES : NO;
 
-  void* work = 0;
+  void* work = nullptr;
   int  lwork = 0;
-  std::vector<Real> ferr(nrhs), berr(nrhs);
-  mem_usage_t mem_usage;
+  // Use stack allocation instead of VLAs
+  Real* ferr = (Real*)alloca(nrhs*sizeof(Real));
+  Real* berr = (Real*)alloca(nrhs*sizeof(Real));
 
+  mem_usage_t mem_usage;
   SuperLUStat_t stat;
   StatInit(&stat);
 
@@ -1228,11 +1230,11 @@ bool SparseMatrix::solveSLUx (Vector& B, Real* rcond)
   GlobalLU_t Glu;
   dgssvx(slu->opts, &slu->A, slu->perm_c, slu->perm_r, slu->etree, &slu->equed,
          slu->R, slu->C, &slu->L, &slu->U, work, lwork, &Bmat, &Xmat,
-         &slu->rpg, &slu->rcond, ferr.data(), berr.data(), &Glu, &mem_usage, &stat, &ierr);
+         &slu->rpg, &slu->rcond, ferr, berr, &Glu, &mem_usage, &stat, &ierr);
 #else
   dgssvx(slu->opts, &slu->A, slu->perm_c, slu->perm_r, slu->etree, &slu->equed,
          slu->R, slu->C, &slu->L, &slu->U, work, lwork, &Bmat, &Xmat,
-         &slu->rpg, &slu->rcond, ferr.data(), berr.data(), &mem_usage, &stat, &ierr);
+         &slu->rpg, &slu->rcond, ferr, berr, &mem_usage, &stat, &ierr);
 #endif
 
   B.swap(X);
@@ -1292,7 +1294,7 @@ bool SparseMatrix::solveUMF (Vector& B, Real* rcond)
       return false;
   }
 
-  void* numeric;
+  void* numeric = nullptr;
   umfpack_di_numeric(IA.data(), JA.data(), A.data(), umfSymbolic,
                      &numeric, nullptr, info);
   if (rcond)

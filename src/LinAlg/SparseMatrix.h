@@ -224,6 +224,12 @@ public:
   //! \param[out] col Extracted column data
   bool getColumn(size_t c, Vector& col) const;
 
+  //! \brief Returns the L-infinity norm of the matrix.
+  virtual Real Linfnorm() const;
+
+  //! \brief Returns whether the matrix has been factored or not.
+  bool isFactored() const { return factored; }
+
 protected:
   //! \brief Converts the matrix to an optimized row-oriented format.
   //! \details The optimized format is suitable for the SAMG equation solver.
@@ -261,9 +267,6 @@ protected:
 
   //! \brief Writes the system matrix to the given output stream.
   virtual std::ostream& write(std::ostream& os) const;
-
-  //! \brief Returns the L-infinity norm of the matrix.
-  virtual Real Linfnorm() const;
 
 public:
   static bool printSLUstat; //!< Print solution statistics for SuperLU?

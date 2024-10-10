@@ -27,7 +27,7 @@ public:
   //! \brief Default constructor.
   DiagMatrix(size_t m = 0) : myMat(m) {}
   //! \brief Copy constructor.
-  DiagMatrix(const DiagMatrix& A) : myMat(A.myMat) {}
+  DiagMatrix(const DiagMatrix& A) : SystemMatrix(A), myMat(A.myMat) {}
   //! \brief Special constructor taking data from a one-dimensional array.
   DiagMatrix(const RealArray& data, size_t nrows = 0);
   //! \brief Empty destructor.

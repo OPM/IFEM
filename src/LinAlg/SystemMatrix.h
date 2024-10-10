@@ -211,6 +211,8 @@ public:
 protected:
   //! \brief Default constructor.
   SystemMatrix() : haveContributions(false) {}
+  //! \brief Copy constructor.
+  SystemMatrix(const SystemMatrix& a) : haveContributions(a.haveContributions){}
 
 public:
   //! \brief Empty destructor.

@@ -139,7 +139,7 @@ SPRMatrix::SPRMatrix () : rWork(1)
 }
 
 
-SPRMatrix::SPRMatrix (const SPRMatrix& A) : rWork(1)
+SPRMatrix::SPRMatrix (const SPRMatrix& A) : SystemMatrix(A), rWork(1)
 {
   ierr   = 0;
   msica  = new int[A.mpar[1]];
