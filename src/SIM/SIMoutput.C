@@ -2159,13 +2159,20 @@ bool SIMoutput::saveResults (const Vectors& psol, double time, int step) const
 {
   if (idxGrid < 0 || step < 1 || psol.empty())
     return true;
-  else if (idxGrid > static_cast<int>(myPoints.size()))
+  else if (idxGrid >= static_cast<int>(myPoints.size()))
+  {
+    std::cerr <<" *** SIMoutput::saveResults: idxGrid="<< idxGrid
+              <<" out of range [0,"<< myPoints.size() <<">."<< std::endl;
     return false;
+  }
 
   const std::string& filName = myPoints[idxGrid].first;
   const ResPointVec& gridPts = myPoints[idxGrid].second;
   if (filName.empty() || gridPts.empty())
+  {
+    std::cerr <<" *** SIMoutput::saveResults: No file or points."<< std::endl;
     return false;
+  }
 
   size_t idot = filName.find_last_of('.');
   std::string fileName = filName.substr(0,idot);
@@ -2184,7 +2191,12 @@ bool SIMoutput::saveResults (const Vectors& psol, double time, int step) const
       return false;
 
   if (!sol2.empty() && !sol.augmentRows(sol2))
+  {
+    std::cerr <<" *** SIMoutput::saveResults: Can't augment secondary results ["
+              << sol2.rows() <<"x"<< sol2.cols() <<"] to primary results ["
+              << sol.rows() <<"x"<< sol.cols() <<"]."<< std::endl;
     return false;
+  }
 
   // Write one file for each result component
   for (size_t r = 1; r <= sol.rows(); r++)

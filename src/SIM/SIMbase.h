@@ -321,7 +321,7 @@ public:
                            const char* compName = "displacement",
                            size_t idxRHS = 0)
   {
-    return this->solveEqSystem(solution,idxRHS,nullptr,printSol,true,compName);
+    return this->solveEqSystem(solution,idxRHS,rCond,printSol,true,compName);
   }
 
   //! \brief Solves the assembled linear system of equations for a given load.
@@ -823,8 +823,7 @@ protected:
     double        eps;    //!< Zero tolerance for printing small values
 
     //! \brief Default constructor.
-    DumpData() : format(LinAlg::FLAT), expand(false), count(0), eps(1.0e-6)
-    { step.insert(1); }
+    DumpData() : format(LinAlg::FLAT), expand(false), count(0), eps(1.0e-6) {}
 
     //! \brief Checks if the matrix or vector should be dumped now.
     bool doDump() { return !fname.empty() && step.find(++count) != step.end(); }

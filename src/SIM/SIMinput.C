@@ -705,7 +705,6 @@ bool SIMinput::parseOutputTag (const tinyxml2::XMLElement* elem)
     utl::getAttribute(elem,"format",format);
     utl::getAttribute(elem,"step",steps);
     utl::getAttribute(elem,"eps",dmp.eps);
-    dmp.step.insert(steps.begin(),steps.end());
     if (format == "matlab")
       dmp.format = LinAlg::MATLAB;
     else if (format == "matrix_market")
@@ -717,6 +716,10 @@ bool SIMinput::parseOutputTag (const tinyxml2::XMLElement* elem)
       return true;
     }
     dmp.fname = elem->FirstChild()->Value();
+    if (steps.empty())
+      dmp.step.insert(1);
+    else
+      dmp.step.insert(steps.begin(),steps.end());
     if (toupper(elem->Value()[5]) == 'R')
       rhsDump.push_back(dmp);
     else if (toupper(elem->Value()[5]) == 'L')
