@@ -390,7 +390,7 @@ SIM::ConvStatus NewmarkSIM::solveStep (TimeStep& param, SIM::SolutionMode,
     return SIM::FAILURE;
 
   double* rCondPtr = rCond < 0.0 ? nullptr : &rCond;
-  if (!model.solveEqSystem(linsol,0,rCondPtr,msgLevel-1,true))
+  if (!model.solveSystem(linsol,msgLevel-1,rCondPtr))
     return SIM::FAILURE;
 
   while (param.iter <= maxit)

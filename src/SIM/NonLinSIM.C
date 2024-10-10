@@ -237,7 +237,7 @@ ConvStatus NonLinSIM::solveStep (TimeStep& param, SolutionMode mode,
       return FAILURE;
 
   double* rCondPtr = rCond < 0.0 ? nullptr : &rCond;
-  if (!model.solveEqSystem(linsol,0,rCondPtr,msgLevel-1,true))
+  if (!model.solveSystem(linsol,msgLevel-1,rCondPtr))
     return FAILURE;
 
   while (param.iter <= maxit)
