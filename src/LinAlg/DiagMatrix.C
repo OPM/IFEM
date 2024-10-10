@@ -40,12 +40,13 @@ void DiagMatrix::dump (std::ostream& os, LinAlg::StorageFormat format,
       break;
 
     case LinAlg::MATRIX_MARKET:
-      os << "%%MatrixMarket matrix coordinate real general\n";
+      os <<"%%MatrixMarket matrix coordinate real general";
       if (label)
-        os << "% label = " << label << '\n';
-      os << myMat.size() << ' ' << myMat.size() << ' ' << myMat.size();
-      for (size_t row = 1; row <= myMat.size(); ++row)
-        os << '\n' << row << ' ' << row << ' ' << myMat(row);
+        os <<"\n% label = "<< label;
+      os <<'\n'<< myMat.size() <<' '<< myMat.size() <<' '<< myMat.size();
+      for (size_t row = 1; row <= myMat.size(); row++)
+        os <<'\n'<< row <<' '<< row <<' '<< myMat(row);
+      os << std::endl;
       break;
 
     case LinAlg::FLAT:

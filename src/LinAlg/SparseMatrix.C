@@ -167,8 +167,8 @@ SparseMatrix::SparseMatrix (size_t m, size_t n)
 }
 
 
-SparseMatrix::SparseMatrix (const SparseMatrix& B) :
-  elem(B.elem), IA(B.IA), JA(B.JA), A(B.A)
+SparseMatrix::SparseMatrix (const SparseMatrix& B)
+  : SystemMatrix(B), elem(B.elem), IA(B.IA), JA(B.JA), A(B.A)
 {
   editable = B.editable;
   factored = false;
@@ -395,8 +395,8 @@ void SparseMatrix::dump (std::ostream& os, LinAlg::StorageFormat format,
           os << end << i <<' '<< JA[j-1] <<' '<< A[i-1];
   }
 
-  if (format == LinAlg::MATLAB)
-    os <<"];\n";
+  if (format == LinAlg::MATLAB) os <<"]";
+  os << end;
 }
 
 
