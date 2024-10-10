@@ -119,6 +119,9 @@ public:
   //! \param[in] inod 1-based node index local to current patch
   virtual Vec3 getCoord(size_t inod) const;
 
+  //! \brief Returns the geometric center of an element.
+  virtual Vec3 getElementCenter(int iel) const;
+
   //! \brief Constrains all DOFs on a given boundary edge.
   //! \param[in] dir Parameter direction defining the edge to constrain
   //! \param[in] open If \e true, exclude the end points of the edge

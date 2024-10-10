@@ -34,3 +34,15 @@ bool ASMLagBase::nodalField (Matrix& field, const Vector& sol, size_t nno) const
 
   return true;
 }
+
+
+Vec3 ASMLagBase::getGeometricCenter (const std::vector<int>& MNPC) const
+{
+  Vec3 X0;
+
+  for (int inod : MNPC)
+    X0 += coord[inod];
+  X0 *= 1.0 / static_cast<double>(MNPC.size());
+
+  return X0;
+}
