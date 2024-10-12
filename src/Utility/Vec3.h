@@ -209,9 +209,17 @@ public:
   int  idx; //!< Nodal point index
 
   //! \brief Default constructor creating a point at origin.
-  Vec4(const Real* par = nullptr, Real T = Real(0))
+  explicit Vec4(const Real* par = nullptr, Real T = Real(0))
   {
     u = par;
+    t = T;
+    idx = -1;
+  }
+
+  //! \brief Constructor creating a point at origin and time \a T.
+  explicit Vec4(Real T)
+  {
+    u = nullptr;
     t = T;
     idx = -1;
   }
