@@ -13,10 +13,8 @@
 #include "ExprFunctions.h"
 #include "TensorFunction.h"
 #include "Functions.h"
-#include "matrixnd.h"
 
-#include "gtest/gtest.h"
-
+#include <gtest/gtest.h>
 #include <autodiff/reverse/var.hpp>
 
 #include <cstdlib>
@@ -58,6 +56,39 @@ TEST(TestScalarFunc, ParseDerivative)
     EXPECT_FLOAT_EQ(f2->deriv(t),1.5*cos(1.5*t)*t+sin(1.5*t));
     EXPECT_FLOAT_EQ(f3.deriv(t),1.5*cos(1.5*t)*t+sin(1.5*t));
   }
+}
+
+
+TEST(TestScalarFunc, ParseFunction)
+{
+  std::cout <<"Parsing scalar function: ";
+  ScalarFunc* f1 = utl::parseTimeFunc("1.2 100.0","Dirac");
+  std::cout <<"Parsing scalar function: ";
+  ScalarFunc* f2 = utl::parseTimeFunc("5.0 100.0","Ramp");
+
+  EXPECT_FLOAT_EQ((*f1)(1.1),  0.0);
+  EXPECT_FLOAT_EQ((*f1)(1.2),100.0);
+  EXPECT_FLOAT_EQ((*f1)(1.3),  0.0);
+  EXPECT_FLOAT_EQ((*f2)(2.5), 50.0);
+  EXPECT_FLOAT_EQ((*f2)(5.0),100.0);
+  EXPECT_FLOAT_EQ((*f2)(7.0),100.0);
+}
+
+
+TEST(TestRealFunc, ParseFunction)
+{
+  std::cout <<"Parsing real function";
+  RealFunc* f1 = utl::parseRealFunc("100.0 1.2","Dirac");
+  std::cout <<"\nParsing real function";
+  RealFunc* f2 = utl::parseRealFunc("100.0 5.0","Ramp",false);
+  std::cout << std::endl;
+
+  EXPECT_FLOAT_EQ((*f1)(Vec4(1.1)),  0.0);
+  EXPECT_FLOAT_EQ((*f1)(Vec4(1.2)),100.0);
+  EXPECT_FLOAT_EQ((*f1)(Vec4(1.3)),  0.0);
+  EXPECT_FLOAT_EQ((*f2)(Vec4(2.5)), 50.0);
+  EXPECT_FLOAT_EQ((*f2)(Vec4(5.0)),100.0);
+  EXPECT_FLOAT_EQ((*f2)(Vec4(7.0)),100.0);
 }
 
 
@@ -290,8 +321,8 @@ TEST(TestVecFunction, Gradient3D)
                         sin(x)*cos(y)*sin(z), 2*x*x*y*z*z*z, 2*exp(-x)*exp(2*y)*exp(z*z),
                         sin(x)*sin(y)*cos(z), 3*x*x*y*y*z*z, 2*z*exp(-x)*exp(2*y)*exp(z*z)});
 
-      for (const VecFunc* fp : {static_cast<const VecFunc*>(&f1),
-                                static_cast<const VecFunc*>(&f2)}) {
+        for (const VecFunc* fp : {static_cast<const VecFunc*>(&f1),
+                                  static_cast<const VecFunc*>(&f2)}) {
           const Tensor grad = fp->gradient(X);
           for (size_t d = 1; d <= 3; ++d) {
             const Vec3 dx = fp->deriv(X,d);
@@ -424,7 +455,6 @@ TEST(TestVecFunction, Hessian3D)
                            sin(x)*cos(y)*cos(z), x*x*2*y*2*z, exp(x)*2*exp(2*y)*3*exp(3*z),
                           -sin(x)*sin(y)*sin(z), x*x*y*y*2,   exp(x)*exp(2*y)*9*exp(3*z)}.data());
 
-
         for (const VecFunc* fp : {static_cast<const VecFunc*>(&f1),
                                   static_cast<const VecFunc*>(&f2)}) {
           const utl::matrix3d<Real> hess = fp->hessian(X);
@@ -437,7 +467,7 @@ TEST(TestVecFunction, Hessian3D)
               }
             }
         }
-       }
+      }
  }
 
 
@@ -494,16 +524,16 @@ TEST(TestVecFuncExpr, TimeDerivativeFD)
 
   EXPECT_FALSE(f.isConstant());
 
-  for (double t : {0.1, 0.2, 0.3})
+  for (double t : {0.1, 0.2, 0.3}) {
+    const double tp = t + 0.5*eps;
+    const double tm = t - 0.5*eps;
     for (double x : {0.1, 0.2, 0.3})
       for (double y : {0.5, 0.6, 0.7})
         for (double z : {0.8, 0.9, 1.0}) {
           const Vec4 X(x,y,z,t);
-          const Vec4 Xp(x,y,z,t + 0.5*eps);
-          const Vec4 Xm(x,y,z,t - 0.5*eps);
-          Vec3 r(sin(x)*sin(y)*sin(z)*(sin(Xp.t) - sin(Xm.t)),
-                 x*x*y*y*z*(Xp.t*Xp.t - Xm.t*Xm.t),
-                 exp(-2*Xp.t) - exp(-2*Xm.t));
+          Vec3 r(sin(x)*sin(y)*sin(z)*(sin(tp) - sin(tm)),
+                 x*x*y*y*z*(tp*tp - tm*tm),
+                 exp(-2*tp) - exp(-2*tm));
           r *= 1.0 / eps;
 
           const Vec3 dt = f.timeDerivative(X);
@@ -511,6 +541,7 @@ TEST(TestVecFuncExpr, TimeDerivativeFD)
           EXPECT_NEAR(dt[1], r[1], 1e-8);
           EXPECT_NEAR(dt[2], r[2], 1e-8);
         }
+  }
 }
 
 
@@ -1303,7 +1334,6 @@ TEST(TestSTensorFunction, Hessian3D)
   const char* g_zz = "-sin(x)*sin(y)*sin(z) | exp(x)*exp(2*y)*exp(z) | x*x*y*y*2 |"
                      "0.0 | 0.0 | 0.0";
 
-
   STensorFuncExpr f1(g);
   f1.addDerivative(g_xx,"",1,1);
   f1.addDerivative(g_xy,"",1,2);
@@ -1408,15 +1438,15 @@ TEST(TestSTensorFunction, TimeDerivativeFD)
 
   EXPECT_FALSE(f.isConstant());
 
-  for (double t : {0.1, 0.2, 0.3})
+  for (double t : {0.1, 0.2, 0.3}) {
+    const double tp = t + 0.5*eps;
+    const double tm = t - 0.5*eps;
     for (double x : {0.1, 0.2, 0.3})
       for (double y : {0.5, 0.6, 0.7}) {
         const Vec4 X(x,y,0,t);
-        const Vec4 Xp(x,y,0,t + 0.5*eps);
-        const Vec4 Xm(x,y,0,t - 0.5*eps);
-        SymmTensor r({sin(x)*sin(y)*(sin(Xp.t) - sin(Xm.t)),
-                      exp(x)*exp(2*y)*(exp(-4*Xp.t) - exp(-4*Xm.t)),
-                      x*x*y*y*(Xp.t*Xp.t - Xm.t*Xm.t)});
+        SymmTensor r({sin(x)*sin(y)*(sin(tp) - sin(tm)),
+                      exp(x)*exp(2*y)*(exp(-4*tp) - exp(-4*tm)),
+                      x*x*y*y*(tp*tp - tm*tm)});
         r *= 1.0 / eps;
 
         const SymmTensor dt = f.timeDerivative(X);
@@ -1424,6 +1454,7 @@ TEST(TestSTensorFunction, TimeDerivativeFD)
           for (size_t j = 1; j <= 2; ++j)
             EXPECT_NEAR(dt(i,j), r(i,j), 1e-8);
       }
+  }
 }
 
 
@@ -1474,25 +1505,24 @@ TEST(TestEvalFunction, Derivatives)
   f.addDerivative(g_yz,"",2,3);
   f.addDerivative(g_zz,"",3,3);
 
-  const Vec4 X(1.0,2.0,3.0,4.0);
   for (const double t : {0.1, 0.2, 0.3})
     for (const double x : {0.4, 0.5, 0.6})
-        for (const double y : {0.7, 0.8, 0.9})
-          for (const double z : {1.0, 1.1, 1.2}) {
-            const Vec4 X(x,y,z,t);
-            EXPECT_DOUBLE_EQ(f(X), sin(x)*sin(y)*sin(z)*sin(t));
-            EXPECT_DOUBLE_EQ(f.deriv(X,1), cos(x)*sin(y)*sin(z)*sin(t));
-            EXPECT_DOUBLE_EQ(f.deriv(X,2), sin(x)*cos(y)*sin(z)*sin(t));
-            EXPECT_DOUBLE_EQ(f.deriv(X,3), sin(x)*sin(y)*cos(z)*sin(t));
-            EXPECT_DOUBLE_EQ(f.deriv(X,4), sin(x)*sin(y)*sin(z)*cos(t));
-            EXPECT_DOUBLE_EQ(f.dderiv(X,1,1), -sin(x)*sin(y)*sin(z)*sin(t));
-            EXPECT_DOUBLE_EQ(f.dderiv(X,1,2), cos(x)*cos(y)*sin(z)*sin(t));
-            EXPECT_DOUBLE_EQ(f.dderiv(X,1,3), cos(x)*sin(y)*cos(z)*sin(t));
-            EXPECT_DOUBLE_EQ(f.dderiv(X,2,1), cos(x)*cos(y)*sin(z)*sin(t));
-            EXPECT_DOUBLE_EQ(f.dderiv(X,2,2), -sin(x)*sin(y)*sin(z)*sin(t));
-            EXPECT_DOUBLE_EQ(f.dderiv(X,2,3), sin(x)*cos(y)*cos(z)*sin(t));
-            EXPECT_DOUBLE_EQ(f.dderiv(X,3,1), cos(x)*sin(y)*cos(z)*sin(t));
-            EXPECT_DOUBLE_EQ(f.dderiv(X,3,2), sin(x)*cos(y)*cos(z)*sin(t));
-            EXPECT_DOUBLE_EQ(f.dderiv(X,3,3), -sin(x)*sin(y)*sin(z)*sin(t));
-          }
+      for (const double y : {0.7, 0.8, 0.9})
+        for (const double z : {1.0, 1.1, 1.2}) {
+          const Vec4 X(x,y,z,t);
+          EXPECT_DOUBLE_EQ(f(X),             sin(x)*sin(y)*sin(z)*sin(t));
+          EXPECT_DOUBLE_EQ(f.deriv(X,1),     cos(x)*sin(y)*sin(z)*sin(t));
+          EXPECT_DOUBLE_EQ(f.deriv(X,2),     sin(x)*cos(y)*sin(z)*sin(t));
+          EXPECT_DOUBLE_EQ(f.deriv(X,3),     sin(x)*sin(y)*cos(z)*sin(t));
+          EXPECT_DOUBLE_EQ(f.deriv(X,4),     sin(x)*sin(y)*sin(z)*cos(t));
+          EXPECT_DOUBLE_EQ(f.dderiv(X,1,1), -sin(x)*sin(y)*sin(z)*sin(t));
+          EXPECT_DOUBLE_EQ(f.dderiv(X,1,2),  cos(x)*cos(y)*sin(z)*sin(t));
+          EXPECT_DOUBLE_EQ(f.dderiv(X,1,3),  cos(x)*sin(y)*cos(z)*sin(t));
+          EXPECT_DOUBLE_EQ(f.dderiv(X,2,1),  cos(x)*cos(y)*sin(z)*sin(t));
+          EXPECT_DOUBLE_EQ(f.dderiv(X,2,2), -sin(x)*sin(y)*sin(z)*sin(t));
+          EXPECT_DOUBLE_EQ(f.dderiv(X,2,3),  sin(x)*cos(y)*cos(z)*sin(t));
+          EXPECT_DOUBLE_EQ(f.dderiv(X,3,1),  cos(x)*sin(y)*cos(z)*sin(t));
+          EXPECT_DOUBLE_EQ(f.dderiv(X,3,2),  sin(x)*cos(y)*cos(z)*sin(t));
+          EXPECT_DOUBLE_EQ(f.dderiv(X,3,3), -sin(x)*sin(y)*sin(z)*sin(t));
+        }
 }

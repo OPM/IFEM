@@ -32,12 +32,13 @@ static const Real zTol = Real(1.0e-12); //!< Zero tolerance on function values
 
 //! \brief Creates a scalar function by parsing a character string.
 static const ScalarFunc* parseFunction(const char* type, char* cline,
-                                       Real C = Real(1));
+                                       Real C = Real(1), bool print = true,
+                                       bool parseConstant = true);
 
 
 PressureField::PressureField (Real p, int dir) : pdir(dir), pdfn(nullptr)
 {
-  pressure = fabs(p) > zTol ? new ConstFunc(p) : nullptr;
+  pressure = p > zTol || p < -zTol ? new ConstFunc(p) : nullptr;
 }
 
 
@@ -109,10 +110,10 @@ size_t LinearFunc::locate (Real x) const
 bool LinearFunc::isZero () const
 {
   for (const Point& v : fvals)
-    if (fabs(v.second) > zTol)
+    if (v.second > zTol || v.second < -zTol)
       return false;
 
-  return fabs(scale) <= zTol;
+  return scale <= zTol && scale >= -zTol;
 }
 
 
@@ -502,7 +503,7 @@ Real Interpolate1D::deriv (const Vec3& X, int ddir) const
 
   const Vec4* Xt = dynamic_cast<const Vec4*>(&X);
   if (Xt && time > Real(0) && Xt->t < time)
-    res *= (ddir < 4 ? Xt->t : 1.0)/time;
+    res *= (ddir < 4 ? Xt->t : Real(1))/time;
   else if (ddir > 3)
     res = Real(0);
 
@@ -518,6 +519,9 @@ Real Interpolate1D::deriv (const Vec3& X, int ddir) const
   of the spatial function \a g( \b X ) and then the time function \a h(t).
   Either of the two components may be omitted, for creating a space-function
   constant in time, or a time function constant in space.
+
+  \note This method invokes strtok() with nullptr as first argument,
+  assuming the initial call with a non-null string has been performed outside.
 */
 
 const RealFunc* utl::parseRealFunc (char* cline, Real A, bool print)
@@ -562,7 +566,10 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A, bool print)
 
   Real C = A;
   const RealFunc* f = nullptr;
-  if (linear > 0 && (cline = strtok(nullptr," ")))
+  if (linear+quadratic > 0)
+    cline = strtok(nullptr," "); // get first function parameter
+
+  if (linear > 0 && cline)
   {
     C = Real(1);
     if (print) {
@@ -675,7 +682,7 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A, bool print)
     if (cline && (linear != 7 || cline[0] == 't'))
       cline = strtok(nullptr," ");
   }
-  else if (quadratic > 0 && (cline = strtok(nullptr," ")))
+  else if (quadratic > 0 && cline)
   {
     C = Real(1);
     Real a = atof(cline);
@@ -711,7 +718,7 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A, bool print)
 
   if (print)
     IFEM::cout <<" * ";
-  const ScalarFunc* s = parseFunction(cline,nullptr,C);
+  const ScalarFunc* s = parseFunction(cline,nullptr,C,print,false);
 
   if (f)
     return new SpaceTimeFunc(f,s);
@@ -720,84 +727,114 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A, bool print)
 }
 
 
-static const ScalarFunc* parseFunction (const char* type, char* cline, Real C)
+static const ScalarFunc* parseFunction (const char* type, char* cline,
+                                        Real C, bool print, bool parseConstant)
 {
-  if (strncasecmp(type,"expr",4) == 0 && cline != nullptr)
+  if (strncasecmp(type,"expr",4) == 0)
   {
-    cline = strtok(cline,":");
-    IFEM::cout << cline;
-    EvalFuncScalar<Real>::numError = 0;
-    ScalarFunc* sf = new EvalFunc(cline,"t",C);
-    if (EvalFunc::numError > 0)
+    ScalarFunc* sf = nullptr;
+    if ((cline = strtok(cline,":")))
     {
-      delete sf;
-      sf = nullptr;
+      if (print)
+        IFEM::cout << cline;
+      EvalFuncScalar<Real>::numError = 0;
+      sf = new EvalFunc(cline,"t",C);
+      if (EvalFunc::numError > 0)
+      {
+        delete sf;
+        sf = nullptr;
+      }
     }
     // The derivative can be specified as a second expression after the colon
     if (sf && (cline = strtok(nullptr,":")))
     {
-      IFEM::cout <<" (derivative: "<< cline <<")";
+      if (print)
+        IFEM::cout <<" (derivative: "<< cline <<")";
       static_cast<EvalFunc*>(sf)->addDerivative(cline,"t");
     }
     return sf;
   }
-  else if (strncasecmp(type,"Ramp",4) == 0 || strcmp(type,"Tinit") == 0)
+
+  // Lambda function for extracting the constant from the strtok buffer.
+  auto&& getConstant = [&cline,print,parseConstant](Real c)
   {
-    Real xmax = atof(strtok(cline," "));
-    IFEM::cout <<"Ramp(t,"<< xmax <<")";
-    return new RampFunc(C,xmax);
+    if (parseConstant && (cline = strtok(nullptr," ")))
+      if ((c = atof(cline)) != Real(1) && print)
+        IFEM::cout << c <<"*";
+    return c;
+  };
+
+  if (strncasecmp(type,"Ramp",4) == 0 || strcmp(type,"Tinit") == 0)
+  {
+    Real xmax = (cline = strtok(cline," ")) ? atof(cline) : Real(1);
+    Real Cval = getConstant(C);
+    if (print)
+      IFEM::cout <<"Ramp(t,"<< xmax <<")";
+    return new RampFunc(Cval,xmax);
   }
   else if (strncasecmp(type,"Dirac",5) == 0)
   {
-    Real xmax = atof(strtok(cline," "));
-    IFEM::cout <<"Dirac(t,"<< xmax <<")";
-    return new DiracFunc(C,xmax);
+    Real xmax = (cline = strtok(cline," ")) ? atof(cline) : Real(1);
+    Real Cval = getConstant(C);
+    if (print)
+      IFEM::cout <<"Dirac(t,"<< xmax <<")";
+    return new DiracFunc(Cval,xmax);
   }
   else if (strncasecmp(type,"Step",4) == 0)
   {
-    Real xmax = atof(strtok(cline," "));
-    IFEM::cout <<"Step(t,"<< xmax <<")";
-    return new StepFunc(C,xmax);
+    Real xmax = (cline = strtok(cline," ")) ? atof(cline) : Real(1);
+    Real Cval = getConstant(C);
+    if (print)
+      IFEM::cout <<"Step(t,"<< xmax <<")";
+    return new StepFunc(Cval,xmax);
   }
   else if (strcasecmp(type,"sin") == 0)
   {
-    Real freq = atof(strtok(cline," "));
+    Real freq = (cline = strtok(cline," ")) ? atof(cline) : Real(1);
     if ((cline = strtok(nullptr," ")))
     {
       Real phase = atof(cline);
-      IFEM::cout <<"sin("<< freq <<"*t + "<< phase <<")";
-      return new SineFunc(C,freq,phase);
+      Real Cval  = getConstant(C);
+      if (print)
+        IFEM::cout <<"sin("<< freq <<"*t + "<< phase <<")";
+      return new SineFunc(Cval,freq,phase);
     }
     else
     {
-      IFEM::cout <<"sin("<< freq <<"*t)";
+      if (print && C != Real(1))
+        IFEM::cout << C <<"*";
+      if (print)
+        IFEM::cout <<"sin("<< freq <<"*t)";
       return new SineFunc(C,freq);
     }
   }
   else if (strncasecmp(type,"PiecewiseLin",12) == 0)
   {
     char* fname = strtok(cline," ");
-    int   colum = (cline = strtok(nullptr," ")) ? atoi(cline) : 2;
-    Real  scale = (cline = strtok(nullptr," ")) ? atof(cline) : 1.0;
-    IFEM::cout <<"PiecewiseLin(t,"<< fname <<","<< colum <<")";
-    if (cline) IFEM::cout <<"*"<< scale;
-    return new LinearFunc(fname,colum,scale);
+    if (!fname) return nullptr;
+    int colum = (cline = strtok(nullptr," ")) ? atoi(cline) : 2;
+    Real Cval = getConstant(C);
+    if (print)
+      IFEM::cout <<"PiecewiseLin(t,"<< fname <<","<< colum <<")";
+    return new LinearFunc(fname,colum,Cval);
   }
   else if (strncasecmp(type,"Constant",8) == 0 && cline)
   {
     Real value = atof(cline);
-    IFEM::cout << value;
+    if (print)
+      IFEM::cout << value;
     return new ConstantFunc(C*value);
   }
   else // linear in time
   {
     Real scale;
-    if (type && cline)
+    if (cline)
       scale = atof(strncasecmp(type,"Lin",3) == 0 ? cline : type);
     else
-      scale = 1.0;
+      scale = Real(1);
 
-    IFEM::cout << scale <<"*t";
+    if (print)
+      IFEM::cout << scale <<"*t";
     return new LinearFunc(C*scale);
   }
 }
@@ -1068,7 +1105,7 @@ TractionFunc* utl::parseTracFunc (const std::string& func,
 
 TractionFunc* utl::parseTracFunc (const tinyxml2::XMLElement* elem)
 {
-  Vec3 X0, Xaxis(1.0,0.0,0.0), Zaxis(0.0,0.0,1.0);
+  Vec3 X0, Xaxis(1,0,0), Zaxis(0,0,1);
   if (utl::getAttribute(elem,"X0",X0))
     IFEM::cout <<"\n\tX0    = "<< X0;
   if (utl::getAttribute(elem,"Xaxis",Xaxis))
