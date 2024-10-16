@@ -203,11 +203,6 @@ private:
   //! \param[in] iNodeBlockID Node block which the element block refers to
   bool writeElements(const char* partName, int partID,
                      int iBlockID, int iNodeBlockID);
-  //! \brief Prints an error message to \a std::cerr.
-  //! \param[in] msg The message to print
-  //! \param[in] ID If non-negative, the value is appended to the message
-  //! \return \e false (always)
-  static bool showError(const char* msg, int ID = -1);
 
 public:
   static Real vecOffset[3]; //!< Optional offset for vector attack points

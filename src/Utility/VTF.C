@@ -34,6 +34,24 @@
 Real VTF::vecOffset[3] = { 0.0, 0.0, 0.0 };
 
 
+/*!
+  \brief Static helper printing an error message to \a std::cerr.
+  \param[in] msg The message to print
+  \param[in] ID1 If non-negative, the value is appended to the message
+  \param[in] ID2 If non-negative, the value is appended to the message
+  \return \e false (always)
+*/
+
+static bool showError (const char* msg, int ID1 = -1, int ID2 = -2)
+{
+  std::cerr <<"VTF: "<< msg;
+  if (ID1 >= 0) std::cerr <<" "<< ID1;
+  if (ID2 >= 0) std::cerr <<" ("<< ID2 <<")";
+  std::cerr << std::endl;
+  return false;
+}
+
+
 VTF::VTF (const char* filename, int type)
 {
   myFile = nullptr;
@@ -307,7 +325,7 @@ bool VTF::writeVres (const std::vector<Real>& nodeResult,
   const size_t nres = nodeResult.size();
   const size_t ncmp = nres/(nnod > 0 ? nnod : 1);
   if (nres != ncmp*nnod)
-    return showError("Invalid size of result array",nres);
+    return showError("Invalid size of result array",nres,ncmp*nnod);
   else if (nvc < 1 || nvc > ncmp)
     nvc = ncmp;
 
@@ -357,10 +375,11 @@ bool VTF::writeEres (const std::vector<Real>& elementResult,
   if (!grid) return false;
 
   const size_t nres = elementResult.size();
-  if (nres > grid->getNoElms())
-    return showError("Invalid size of result array",nres);
-  else if (nres < grid->getNoElms())
-    showError("Warning: Fewer element results that anticipated",nres);
+  const size_t nels = grid->getNoElms();
+  if (nres > nels)
+    return showError("Invalid size of result array",nres,nels);
+  else if (nres < nels)
+    showError("Warning: Fewer element results that anticipated",nres,nels);
 
 #ifdef HAS_VTFAPI
   // Cast to float
@@ -400,7 +419,7 @@ bool VTF::writeNres (const std::vector<Real>& nodalResult,
 
   const size_t nres = nodalResult.size();
   if (nres != grid->getNoNodes())
-    return showError("Invalid size of result array",nres);
+    return showError("Invalid size of result array",nres,grid->getNoNodes());
 
 #ifdef HAS_VTFAPI
   // Cast to float
@@ -904,13 +923,4 @@ bool VTF::writeElements (const char* partName, int partID,
 #endif
 
   return ok;
-}
-
-
-bool VTF::showError (const char* msg, int ID)
-{
-  std::cerr <<"VTF: "<< msg;
-  if (ID >= 0) std::cerr <<" "<< ID;
-  std::cerr << std::endl;
-  return false;
 }
