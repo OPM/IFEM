@@ -207,7 +207,8 @@ bool ASMs2DLag::generateFEMTopology ()
 
 Vec3 ASMs2DLag::getCoord (size_t inod) const
 {
-  if (inod < 1 || inod > coord.size()) return Vec3();
+  if (inod < 1 || inod > coord.size())
+    return Vec3();
 
   return coord[inod-1];
 }
@@ -215,10 +216,26 @@ Vec3 ASMs2DLag::getCoord (size_t inod) const
 
 void ASMs2DLag::setCoord (size_t inod, const Vec3& Xnod)
 {
+  if (inod < 1)
+    return;
+
   if (inod > nnod)
     myCoord.resize(nnod = inod);
 
   myCoord[inod-1] = Xnod;
+}
+
+
+Vec3 ASMs2DLag::getElementCenter (int iel) const
+{
+  if (iel < 1 || static_cast<size_t>(iel) > MNPC.size())
+  {
+    std::cerr <<" *** ASMs2DLag::getElementCenter: Element index "<< iel
+              <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
+    return Vec3();
+  }
+
+  return this->getGeometricCenter(MNPC[--iel]);
 }
 
 
@@ -350,7 +367,7 @@ bool ASMs2DLag::integrate (Integrand& integrand,
       {
         int iel = group[e];
         fe.iel = MLGE[iel];
-        if (fe.iel < 1) continue; // zero-area element
+        if (!this->isElementActive(fe.iel)) continue; // zero-area element
 
         // Set up nodal point coordinates for current element
         if (!this->getElementCoordinates(fe.Xn,1+iel))
@@ -546,7 +563,7 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
     for (int i1 = 0; i1 < nelx; i1++, iel++)
     {
       fe.iel = abs(MLGE[doXelms+iel-1]);
-      if (fe.iel < 1) continue; // zero-area element
+      if (!this->isElementActive(fe.iel)) continue; // zero-area element
 
       // Skip elements that are not on current boundary edge
       bool skipMe = false;
@@ -936,6 +953,7 @@ bool ASMs2DLag::evaluate (const ASMbase* basis, const Vector& locVec,
   Matrix sValues;
   if (!basis->evalSolution(sValues,locVec,gpar.data()))
     return false;
+
   vec = sValues;
   return true;
 }

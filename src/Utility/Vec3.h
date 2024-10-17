@@ -155,10 +155,20 @@ public:
     for (int i = 2; i >= 0; i--)
       if (v[i]+tol < a.v[i])
         return true;
-      else if (v[i] > a.v[i]+tol)
+      else if (v[i]-tol > a.v[i])
         return false;
 
     return false;
+  }
+
+  //! \brief Check if a vector is inside the box defined by two other vectors.
+  bool inside(const Vec3& a, const Vec3& b, double tol = 1.0e-6) const
+  {
+    for (int i = 0; i < 3; i++)
+      if (v[i]+tol < a.v[i] || v[i]-tol > b.v[i])
+        return false;
+
+    return true;
   }
 
   //! \brief Print out a vector.

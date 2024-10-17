@@ -1741,6 +1741,14 @@ bool ASMs3D::updateCoords (const Vector& displ)
 }
 
 
+Vec3 ASMs3D::getElementCenter (int iel) const
+{
+  std::cerr <<" *** ASMs3D::getElementCenter("<< iel
+            <<"): Not implemented yet."<< std::endl;
+  return Vec3(); //TODO: Maybe later, if needed
+}
+
+
 void ASMs3D::getBoundaryNodes (int lIndex, IntVec& nodes,
                                int basis, int thick, int, bool local) const
 {
@@ -2114,7 +2122,7 @@ bool ASMs3D::integrate (Integrand& integrand,
       {
         int iel = groups[g][t][l];
         fe.iel = MLGE[iel];
-        if (fe.iel < 1) continue; // zero-volume element
+        if (!this->isElementActive(fe.iel)) continue; // zero-volume element
 
 #ifdef SP_DEBUG
         if (dbgElm < 0 && 1+iel != -dbgElm)
@@ -2388,7 +2396,7 @@ bool ASMs3D::integrate (Integrand& integrand,
         if (itgPts[iel].empty()) continue; // no points in this element
 
         fe.iel = MLGE[iel];
-        if (fe.iel < 1) continue; // zero-volume element
+        if (!this->isElementActive(fe.iel)) continue; // zero-volume element
 
 #ifdef SP_DEBUG
         if (dbgElm < 0 && 1+iel != -dbgElm)
@@ -2646,7 +2654,7 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
       {
         int iel = threadGrp[g][t][l];
         fe.iel = abs(MLGE[doXelms+iel]);
-        if (fe.iel < 1) continue; // zero-volume element
+        if (!this->isElementActive(fe.iel)) continue; // zero-volume element
 
 #ifdef SP_DEBUG
         if (dbgElm < 0 && 1+iel != -dbgElm)
@@ -2879,8 +2887,8 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
     for (int i2 = p2; i2 <= n2; i2++)
       for (int i1 = p1; i1 <= n1; i1++, iel++)
       {
-	fe.iel = MLGE[iel-1];
-	if (fe.iel < 1) continue; // zero-volume element
+        fe.iel = MLGE[iel-1];
+        if (!this->isElementActive(fe.iel)) continue; // zero-volume element
 
         if (!myElms.empty() &&
             std::find(myElms.begin(), myElms.end(), fe.iel-1) == myElms.end())

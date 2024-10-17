@@ -57,7 +57,7 @@ static bool Aerror (const char* name)
 
 
 ASMbase::ASMbase (unsigned char n_p, unsigned char n_s, unsigned char n_f)
-  : MLGE(myMLGE), MLGN(myMLGN), MNPC(myMNPC), shareFE(0)
+  : MLGE(myMLGE), MLGN(myMLGN), MNPC(myMNPC), shareFE(0), myActiveEls(nullptr)
 {
   nf = n_f;
   nsd = n_s > 3 ? 3 : n_s;
@@ -73,7 +73,7 @@ ASMbase::ASMbase (unsigned char n_p, unsigned char n_s, unsigned char n_f)
 ASMbase::ASMbase (const ASMbase& patch, unsigned char n_f)
   : MLGE(patch.MLGE), MLGN(patch.MLGN), MNPC(patch.MNPC), shareFE('F'),
     firstBp(patch.firstBp), myLMTypes(patch.myLMTypes), myLMs(patch.myLMs),
-    myRmaster(patch.myRmaster)
+    myActiveEls(nullptr), myRmaster(patch.myRmaster)
 {
   nf = n_f > 0 ? n_f : patch.nf;
   nsd = patch.nsd;
@@ -90,7 +90,7 @@ ASMbase::ASMbase (const ASMbase& patch, unsigned char n_f)
 
 ASMbase::ASMbase (const ASMbase& patch)
   : MLGE(myMLGE), MLGN(myMLGN), MNPC(myMNPC), shareFE('S'),
-    BCode(patch.BCode), firstBp(patch.firstBp)
+    BCode(patch.BCode), firstBp(patch.firstBp), myActiveEls(nullptr)
 {
   nf = patch.nf;
   nsd = patch.nsd;
@@ -178,6 +178,8 @@ void ASMbase::clear (bool retainGeometry)
   BCode.clear();
   dCode.clear();
   mpcs.clear();
+
+  myActiveEls = nullptr;
 }
 
 
@@ -1742,4 +1744,14 @@ void ASMbase::getBoundaryElms (int lIndex, IntVec& elms,
 
   for (int& elm : elms)
     elm = MLGE[elm]-1;
+}
+
+
+bool ASMbase::isElementActive (int elmId) const
+{
+  if (elmId < 1) return false;
+  if (!myActiveEls) return true;
+
+  return std::find(myActiveEls->begin(),
+                   myActiveEls->end(),elmId) != myActiveEls->end();
 }
