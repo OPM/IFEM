@@ -187,8 +187,10 @@ public:
   //! \param[in] basis Which basis to return the number of nodes for (0 = all)
   size_t getNoNodes(int basis = 0) const;
   //! \brief Returns the model size in terms of number of elements.
-  //! \param[in] includeXElms If \e true, include any extra-ordinary elements
-  size_t getNoElms(bool includeXElms = false) const;
+  //! \param[in] includeXelms If \e true, include any extra-ordinary elements
+  //! \param[in] includeZelms If \e true, count all regular elements,
+  //! including zero-volume elements due to multiple knots, etc.
+  size_t getNoElms(bool includeXelms = false, bool includeZelms = false) const;
   //! \brief Returns the number of solution vectors.
   size_t getNoSolutions() const;
   //! \brief Returns the total number of patches in the model.

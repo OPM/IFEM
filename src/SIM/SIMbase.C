@@ -750,14 +750,14 @@ size_t SIMbase::getNoNodes (int basis) const
 }
 
 
-size_t SIMbase::getNoElms (bool includeXelms) const
+size_t SIMbase::getNoElms (bool includeXelms, bool includeZelms) const
 {
   if (mySam && includeXelms)
     return mySam->getNoElms();
 
   size_t noElms = 0;
   for (ASMbase* pch : myModel)
-    noElms += pch->getNoElms(false,includeXelms);
+    noElms += pch->getNoElms(includeZelms,includeXelms);
 
   return noElms;
 }
