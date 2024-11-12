@@ -148,7 +148,7 @@ bool LinSolParams::BlockParams::read (const tinyxml2::XMLElement* elem,
   if (!this->hasValue("multigrid_finesmoother") && this->hasValue("multigrid_smoother"))
     this->addValue("multigrid_finesmoother", this->getStringValue("multigrid_smoother"));
 
-  if (!this->hasValue("multigrid_no_smooth") || this->getIntValue("multgrid_no_smooth") < 1)
+  if (!this->hasValue("multigrid_no_smooth") || this->getIntValue("multigrid_no_smooth") < 1)
     this->addValue("multigrid_no_smooth", "1");
 
   return true;
