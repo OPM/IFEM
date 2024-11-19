@@ -350,10 +350,10 @@ bool ASMLRSpline::doRefine (const LR::RefineData& prm, LR::LRSpline* lrspline)
 
 Go::BsplineBasis ASMLRSpline::getBezierBasis (int p, double start, double end)
 {
-  double knot[2*p];
-  std::fill(knot,   knot+p,   start);
-  std::fill(knot+p, knot+2*p, end);
-  return Go::BsplineBasis(p,p,knot);
+  std::vector<double> knot(2*p);
+  std::fill(knot.begin(),     knot.begin() + p,   start);
+  std::fill(knot.begin() + p, knot.begin() + 2*p, end);
+  return Go::BsplineBasis(p, p, knot.data());
 }
 
 

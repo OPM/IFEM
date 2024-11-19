@@ -92,7 +92,7 @@ bool utl::transform (Matrix& A, const Matrix& Tn, size_t K)
   if (M < A.cols() || N > Tn.cols()) return false;
   if (K < 1 || K+N-1 > M || N > 3) return false;
 
-  Real WA[N];
+  std::vector<Real> WA(N);
   size_t i, ii, j, jj, l, KN = K+N-1;
   for (jj = K; jj <= M; jj++)
   {
@@ -147,7 +147,7 @@ bool utl::transform (Vector& V, const Matrix& Tn, size_t K, bool transpose)
   if (N > Tn.cols()) return false;
   if (K < 1 || K+N-1 > M || N > 3) return false;
 
-  Real WA[N];
+  std::vector<Real> WA(N);
   size_t i, ii, j;
   if (transpose)
     for (i = 1; i <= N; i++)
