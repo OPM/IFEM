@@ -121,9 +121,9 @@ public:
       error -= this->solver.getSolution();
 
       const size_t nf = this->solver.getNoFields(1);
-      size_t iMax[nf];
-      double dMax[nf];
-      prevEst = this->solver.solutionNorms(error,dMax,iMax,nf);
+      std::vector<size_t> iMax(nf);
+      std::vector<double> dMax(nf);
+      prevEst = this->solver.solutionNorms(error, dMax.data(), iMax.data(), nf);
       this->solver.getProcessAdm().cout << "Error estimate: " << prevEst << std::endl;
       if (prevEst > errTol) {
         if (!tp.cutback())

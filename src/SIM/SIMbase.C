@@ -1298,9 +1298,9 @@ void SIMbase::printSolutionSummary (const Vector& solution, int printSol,
 {
   // Compute and print solution norms
   const size_t nf = this->getNoFields(1);
-  size_t iMax[nf > 0 ? nf : nsd];
-  double dMax[nf > 0 ? nf : nsd];
-  double dNorm = this->solutionNorms(solution,dMax,iMax,nf);
+  std::vector<size_t> iMax(nf > 0 ? nf : nsd);
+  std::vector<double> dMax(nf > 0 ? nf : nsd);
+  double dNorm = this->solutionNorms(solution, dMax.data(), iMax.data(), nf);
 
   int oldPrec = adm.cout.precision();
   if (outPrec > 0)

@@ -194,9 +194,9 @@ bool NewmarkSIM::initAcc (double zero_tolerance, std::streamsize outPrec)
     return true;
 
   size_t d, nf = model.getNoFields(1);
-  size_t kMax[nf];
-  double aMax[nf];
-  double accL2 = model.solutionNorms(accVec,aMax,kMax,nf);
+  std::vector<size_t> kMax(nf);
+  std::vector<double> aMax(nf);
+  double accL2 = model.solutionNorms(accVec, aMax.data(), kMax.data(), nf);
 
   utl::LogStream& cout = model.getProcessAdm().cout;
   std::streamsize stdPrec = outPrec > 0 ? cout.precision(outPrec) : 0;
@@ -571,11 +571,11 @@ bool NewmarkSIM::solutionNorms (const TimeDomain&,
   size_t v = newSol.size() > 2 ? newSol.size()-2 : 0;
 
   size_t d, nf = model.getNoFields(1);
-  size_t iMax[nf], jMax[nf], kMax[nf];
-  double dMax[nf], vMax[nf], aMax[nf];
-  double disL2 = model.solutionNorms(newSol.front(),dMax,iMax,nf);
-  double velL2 = v > 0 ? model.solutionNorms(newSol[v],vMax,jMax,nf) : 0.0;
-  double accL2 = a > 0 ? model.solutionNorms(newSol[a],aMax,kMax,nf) : 0.0;
+  std::vector<size_t> iMax(nf), jMax(nf), kMax(nf);
+  std::vector<double> dMax(nf), vMax(nf), aMax(nf);
+  double disL2 = model.solutionNorms(newSol.front(), dMax.data(), iMax.data(), nf);
+  double velL2 = v > 0 ? model.solutionNorms(newSol[v], vMax.data(), jMax.data(), nf) : 0.0;
+  double accL2 = a > 0 ? model.solutionNorms(newSol[a], aMax.data(), kMax.data(), nf) : 0.0;
 
   utl::LogStream& cout = model.getProcessAdm().cout;
   std::streamsize stdPrec = outPrec > 0 ? cout.precision(outPrec) : 0;

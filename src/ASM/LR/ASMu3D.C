@@ -1751,12 +1751,10 @@ bool ASMu3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     fe.v   = gpar[1][i];
     fe.w   = gpar[2][i];
 
-    double u[2*p1];
-    double v[2*p2];
-    double w[2*p3];
-    basis1.computeBasisValues(gpar[0][i], u, 1);
-    basis2.computeBasisValues(gpar[1][i], v, 1);
-    basis3.computeBasisValues(gpar[2][i], w, 1);
+    std::vector<double> u(2*p1), v(2*p2), w(2*p3);
+    basis1.computeBasisValues(gpar[0][i], u.data(), 1);
+    basis2.computeBasisValues(gpar[1][i], v.data(), 1);
+    basis3.computeBasisValues(gpar[2][i], w.data(), 1);
 
     size_t ib=1; // basis function iterator
     for(int kk=0; kk<p3; kk++) {
@@ -2448,7 +2446,7 @@ bool ASMu3D::BasisFunctionCache::internalInit ()
   auto&& extractBezier = [order](const Quadrature& q,
                                  BezierExtract& b)
   {
-    double u[2*order[0]], v[2*order[1]], w[2*order[2]];
+    std::vector<double> u(2*order[0]), v(2*order[1]), w(2*order[2]);
     Go::BsplineBasis basis1 = getBezierBasis(order[0]);
     Go::BsplineBasis basis2 = getBezierBasis(order[1]);
     Go::BsplineBasis basis3 = getBezierBasis(order[2]);
@@ -2462,9 +2460,9 @@ bool ASMu3D::BasisFunctionCache::internalInit ()
     for (int zeta = 0; zeta < q.ng[2]; zeta++)
       for (int eta = 0; eta < q.ng[1]; eta++)
         for (int xi = 0; xi < q.ng[0]; xi++, ig++) {
-          basis1.computeBasisValues(q.xg[0][xi],   u, 1);
-          basis2.computeBasisValues(q.xg[1][eta],  v, 1);
-          basis3.computeBasisValues(q.xg[2][zeta], w, 1);
+          basis1.computeBasisValues(q.xg[0][xi],   u.data(), 1);
+          basis2.computeBasisValues(q.xg[1][eta],  v.data(), 1);
+          basis3.computeBasisValues(q.xg[2][zeta], w.data(), 1);
           int ib = 1; // basis function iterator
           for (int k = 0; k < order[2]; k++)
             for (int j = 0; j < order[1]; j++)

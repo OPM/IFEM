@@ -1217,7 +1217,7 @@ bool SparseMatrix::solveSLUx (Vector& B, Real* rcond)
 
   void* work = 0;
   int  lwork = 0;
-  Real ferr[nrhs], berr[nrhs];
+  std::vector<Real> ferr(nrhs), berr(nrhs);
   mem_usage_t mem_usage;
 
   SuperLUStat_t stat;
@@ -1228,11 +1228,11 @@ bool SparseMatrix::solveSLUx (Vector& B, Real* rcond)
   GlobalLU_t Glu;
   dgssvx(slu->opts, &slu->A, slu->perm_c, slu->perm_r, slu->etree, &slu->equed,
          slu->R, slu->C, &slu->L, &slu->U, work, lwork, &Bmat, &Xmat,
-         &slu->rpg, &slu->rcond, ferr, berr, &Glu, &mem_usage, &stat, &ierr);
+         &slu->rpg, &slu->rcond, ferr.data(), berr.data(), &Glu, &mem_usage, &stat, &ierr);
 #else
   dgssvx(slu->opts, &slu->A, slu->perm_c, slu->perm_r, slu->etree, &slu->equed,
          slu->R, slu->C, &slu->L, &slu->U, work, lwork, &Bmat, &Xmat,
-         &slu->rpg, &slu->rcond, ferr, berr, &mem_usage, &stat, &ierr);
+         &slu->rpg, &slu->rcond, ferr.data(), berr.data(), &mem_usage, &stat, &ierr);
 #endif
 
   B.swap(X);
