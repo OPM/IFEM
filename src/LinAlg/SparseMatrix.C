@@ -1252,6 +1252,7 @@ bool SparseMatrix::solveSLUx (Vector& B, Real* rcond)
   std::cerr <<"SparseMatrix::solve: SuperLU solver not available"<< std::endl;
 #endif
 
+#if defined(HAS_SUPERLU) || defined(HAS_SUPERLU_MT)
   if (ierr == (int)ncol+1)
   {
     ierr = 0; // Accept near-singular matrices
@@ -1272,8 +1273,9 @@ bool SparseMatrix::solveSLUx (Vector& B, Real* rcond)
     if (rcond && slu)
       *rcond = slu->rcond;
   }
+#endif
 
-  return true;
+  return ierr == 0;
 }
 
 
