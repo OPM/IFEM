@@ -35,7 +35,7 @@ public:
     mpmnpc = new int[2]; mpmnpc[0] = 1; mpmnpc[1] = 2;
     madof  = new int[2]; madof[0] = 1; madof[1] = 2;
     msc    = new int[1]; msc[0] = 1;
-    mpmceq = new int[1]; mpmceq[1] = 0;
+    mpmceq = new int[1]; mpmceq[0] = 1;
     EXPECT_TRUE(this->initSystemEquations());
   }
   virtual ~SAM1DOF() {}
@@ -57,7 +57,7 @@ public:
     mpmnpc = new int[3]; mpmnpc[0] = 1; mpmnpc[1] = 3; mpmnpc[2] = 5;
     madof  = new int[4]; madof[0] = 1; madof[1] = 3; madof[2] = 5; madof[3] = 7;
     msc    = new int[6]; msc[0]=msc[1]=msc[4]=msc[5] = 0; msc[2]=msc[3] = 1;
-    mpmceq = new int[1]; mpmceq[1] = 0;
+    mpmceq = new int[1]; mpmceq[0] = 1;
     EXPECT_TRUE(this->initSystemEquations());
   }
   virtual ~SAM2DOF() {}
@@ -172,7 +172,7 @@ TEST(TestSPRMatrix, SingleDOF)
 #endif
   ASSERT_TRUE(simulator.assembleSystem());
   ASSERT_TRUE(simulator.solveSystem(solution,1));
-  std::cout <<"Solution vector:" << solution.front();
+  std::cout <<"Solution vector:"<< solution.front();
 }
 
 
@@ -187,5 +187,5 @@ TEST(TestSPRMatrix, TwoDOF)
 #endif
   ASSERT_TRUE(simulator.assembleSystem());
   ASSERT_TRUE(simulator.solveSystem(solution,1));
-  std::cout <<"Solution vector:" << solution.front();
+  std::cout <<"Solution vector:"<< solution.front();
 }
