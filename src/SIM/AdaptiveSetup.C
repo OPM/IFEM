@@ -431,7 +431,8 @@ int AdaptiveSetup::calcRefinement (LR::RefineData& prm, int iStep,
 
   if (!errPrefix.empty())
   {
-    char suffix[9];
+    // need to be atleast 17 chars to quell compiler warning for some reason..
+    char suffix[17] = {0};
     sprintf(suffix,"_%03d.txt",iStep-1);
     std::ofstream of(errPrefix+suffix);
     of.precision(16);
