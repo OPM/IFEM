@@ -86,7 +86,7 @@ PetscErrorCode PCPermDestroy(PC pc)
   //  ISDestroy(shell->order);
   if (shell->pc)
     PCDestroy(&(shell->pc));
-  PetscFree(shell);
+  PetscCall(PetscFree(shell));
 
   return 0;
 }
