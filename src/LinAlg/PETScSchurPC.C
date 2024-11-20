@@ -14,7 +14,6 @@
 #include "PETScSchurPC.h"
 #include "LinSolParams.h"
 #include "ProcessAdm.h"
-#include <tinyxml.h>
 
 
 PETScSchurPC::PETScSchurPC (PC& pc_init, const std::vector<Mat>& blocks,
