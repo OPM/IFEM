@@ -565,8 +565,9 @@ bool ASMu2D::edgeL2projection (const DirichletEdge& edge,
       if (edge.lr != geo)
       {
         // different lrspline instances enumerate elements differently
-        edge.lr->computeBasis(u,v,spline,edge.lr->getElementContaining(u,v));
-        SplineUtils::extractBasis(spline,N,dNdu);
+        Go::BasisPtsSf splineb;
+        edge.lr->computeBasis(u,v,splineb,edge.lr->getElementContaining(u,v));
+        N = splineb.basisValues;
       }
 
       // Assemble into matrix A and vector B
