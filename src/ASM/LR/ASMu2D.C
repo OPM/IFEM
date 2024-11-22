@@ -796,20 +796,16 @@ void ASMu2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
   de.MNPC.reserve(edgeElements.size());
   for (LR::Element* el : edgeElements)
   {
-    // for mixed FEM models, let MLGE point to the *geometry* index
+    // for mixed FEM models, let MLGE point to the integration basis index
     if (de.lr != this->lrspline.get())
-    {
-      double umid = (el->umax() + el->umin())/2.0;
-      double vmid = (el->vmax() + el->vmin())/2.0;
-      de.MLGE.push_back(lrspline->getElementContaining(umid,vmid));
-    }
+      de.MLGE.push_back(lrspline->getElementContaining(el->midpoint()));
     else
       de.MLGE.push_back(el->getId());
 
     IntVec mnpc; mnpc.reserve(el->support().size());
     for (LR::Basisfunction* b : el->support())
       mnpc.push_back(utl::findIndex(de.MLGN,b->getId()+offset));
-    de.MNPC.push_back(mnpc);
+    de.MNPC.emplace_back(std::move(mnpc));
   }
 
   dirich.push_back(de);
