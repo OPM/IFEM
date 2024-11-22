@@ -571,20 +571,19 @@ bool ASMu2D::edgeL2projection (const DirichletEdge& edge,
       }
 
       // Assemble into matrix A and vector B
-      for (size_t il = 0; il < edge.MNPC[i].size(); il++) { // local i-index
-        int ig;
-        if ((ig = 1+edge.MNPC[i][il]) > 0)         // global i-index
-        {
-          for (size_t jl = 0; jl < edge.MNPC[i].size(); jl++) { // local j-index
-            int jg;
-            if ((jg = 1+edge.MNPC[i][jl]) > 0)         // global j-index
-              A(ig,jg) += N[il]*N[jl]*detJxW;
-          }
+      Matrix lA;
+      lA.outer_product(N, N, false, detJxW);
+      const RealArray val = values.getValue(X);
 
-          RealArray val = values.getValue(X);
+      for (size_t il = 0; il < edge.MNPC[i].size(); ++il) {    // local i-index
+        if (int ig = 1 + edge.MNPC[i][il]; ig > 0) {           // global i-index
+          for (size_t jl = 0; jl < edge.MNPC[i].size(); ++jl)  // local j-index
+            if (int jg = 1 + edge.MNPC[i][jl]; jg > 0)         // global j-index
+              A(ig, jg) += lA(il+1, jl+1);
+
           for (size_t k = 0; k < m; k++)
-            B(ig+k*n) += N[il]*val[k]*detJxW;
-        } // end basis-function loop
+            B(ig+k*n) += N[il] * val[k] * detJxW;
+        }
       }
     } // end gauss-point loop
   } // end element loop
