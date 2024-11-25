@@ -1853,6 +1853,7 @@ bool SIMoutput::evalResults (const Vectors& psol, const ResPointVec& gPoints,
   std::array<RealArray,3> params;
 
   size_t jPoint = 0;
+  bool allElems = false;
   for (const ResultPoint& pt : gPoints)
   {
     ++jPoint;
@@ -1872,13 +1873,13 @@ bool SIMoutput::evalResults (const Vectors& psol, const ResPointVec& gPoints,
       }
       else if (pt.npar < 0)
       {
-        jPoint = patch->getNoElms(); // Flag evaluation at all element centers
+        allElems = true; // Evaluation at all element centers
         points.clear();
         break;
       }
       else if (pt.npar == 0)
       {
-        jPoint = patch->getNoElms(); // Flag evaluation at all nodes
+        // Evaluation at all nodes
         points.resize(patch->getNoNodes());
         std::iota(points.begin(),points.end(),1);
         break;
@@ -1886,7 +1887,7 @@ bool SIMoutput::evalResults (const Vectors& psol, const ResPointVec& gPoints,
     }
   }
 
-  if (points.empty() && jPoint < patch->getNoElms())
+  if (points.empty() && !allElems)
     return true; // no points in this patch
 
   bool getNames = compNames && compNames->empty();
