@@ -15,6 +15,7 @@ if(NOT IFEM_FOUND)
   set(HDF5_FOUND @HDF5_FOUND@)
   set(CEREAL_FOUND @CEREAL_FOUND@)
   set(VTFWRITER_FOUND @VTFWRITER_FOUND@)
+  set(SPR_FOUND @SPR_FOUND@)
 
   set(IFEM_REGTEST_SCRIPT ${IFEM_PATH}/scripts/regtest.sh.in)
   set(IFEM_CLANG_CHECK_TEST_SCRIPT ${IFEM_PATH}/scripts/clang-check-test.sh.in)
