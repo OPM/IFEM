@@ -114,7 +114,7 @@ namespace utl
       CHECK_INDEX("matrix3d::getColumn: Third index " ,i3,this->n[2]);
       if (this->n[1] < 2 && this->n[2] < 2) return this->elem;
       vector<T> col(this->n[0]);
-      memcpy(col.ptr(),this->ptr(i2-1+this->n[1]*(i3-1)),col.size()*sizeof(T));
+      memcpy(col.data(),this->ptr(i2-1+this->n[1]*(i3-1)),col.size()*sizeof(T));
       return col;
     }
 
@@ -124,7 +124,7 @@ namespace utl
       CHECK_INDEX("matrix3d::fillColumn: Second index ",i2,this->n[1]);
       CHECK_INDEX("matrix3d::fillColumn: Third index " ,i3,this->n[2]);
       size_t ndata = this->n[0] > data.size() ? data.size() : this->n[0];
-      memcpy(this->ptr(i2-1+this->n[1]*(i3-1)),&data.front(),ndata*sizeof(T));
+      memcpy(this->ptr(i2-1+this->n[1]*(i3-1)),data.data(),ndata*sizeof(T));
     }
 
     //! \brief Return the trace of the \a i1'th sub-matrix.
@@ -310,7 +310,7 @@ namespace utl
       CHECK_INDEX("matrix4d::getColumn: Fourth index ",i4,this->n[3]);
       if (this->n[1] < 2 && this->n[2] < 2 && this->n[3] < 2) return this->elem;
       vector<T> col(this->n[0]);
-      memcpy(col.ptr(),
+      memcpy(col.data(),
              this->ptr(i2-1 + this->n[1]*((i3-1) + this->n[2]*(i4-1))),
              col.size()*sizeof(T));
       return col;
@@ -324,7 +324,7 @@ namespace utl
       CHECK_INDEX("matrix4d::fillColumn: Fourth index ",i4,this->n[3]);
       size_t ndata = this->n[0] > data.size() ? data.size() : this->n[0];
       memcpy(this->ptr(i2-1 + this->n[1]*((i3-1)) + this->n[2]*(i4-1)),
-             &data.front(),ndata*sizeof(T));
+             data.data(),ndata*sizeof(T));
     }
 
   protected:

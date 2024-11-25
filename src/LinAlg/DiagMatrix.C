@@ -20,7 +20,7 @@ DiagMatrix::DiagMatrix (const RealArray& data, size_t nrows)
   if (nrows == 0) nrows = data.size();
 
   myMat.resize(nrows);
-  memcpy(myMat.ptr(),&data.front(),nrows*sizeof(Real));
+  memcpy(myMat.data(),data.data(),nrows*sizeof(Real));
 }
 
 

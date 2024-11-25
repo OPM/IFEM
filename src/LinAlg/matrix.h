@@ -76,9 +76,9 @@ namespace utl //! General utility classes and functions.
     }
 
     //! \brief Access through pointer.
-    T* ptr() { return &this->front(); }
+    T* ptr() { return this->empty() ? nullptr : this->data(); }
     //! \brief Reference through pointer.
-    const T* ptr() const { return &this->front(); }
+    const T* ptr() const { return this->empty() ? nullptr : this->data(); }
 
     //! \brief Index-1 based element access.
     T& operator()(size_t i)
@@ -100,7 +100,7 @@ namespace utl //! General utility classes and functions.
     void fill(const T* values, size_t n = 0)
     {
       if (n > this->size()) this->std::vector<T>::resize(n);
-      memcpy(&this->front(),values,this->size()*sizeof(T));
+      memcpy(this->data(),values,this->size()*sizeof(T));
     }
 
     //! \brief Multiplication with a scalar.
@@ -207,7 +207,7 @@ namespace utl //! General utility classes and functions.
       if (inc < 1 || this->empty())
         return xsum;
 
-      const T* v = this->ptr();
+      const T* v = this->data();
       for (size_t i = off; i < this->size(); i += inc)
         xsum += v[i];
       return xsum;
@@ -318,9 +318,15 @@ namespace utl //! General utility classes and functions.
     operator const vector<T>&() const { return elem; }
 
     //! \brief Access through pointer.
-    T* ptr(size_t c = 0) { return &elem[n[0]*c]; }
+    T* ptr(size_t c = 0)
+    {
+      return n[0]*c < elem.size() ? elem.data() + n[0]*c : nullptr;
+    }
     //! \brief Reference through pointer.
-    const T* ptr(size_t c = 0) const { return &elem[n[0]*c]; }
+    const T* ptr(size_t c = 0) const
+    {
+      return n[0]*c < elem.size() ? elem.data() + n[0]*c : nullptr;
+    }
 
     //! \brief Iterator to the start of the matrix elements.
     typename std::vector<T>::iterator begin() { return elem.begin(); }
@@ -529,7 +535,7 @@ namespace utl //! General utility classes and functions.
       CHECK_INDEX("matrix::getColumn: Column-index ",c,ncol);
       if (ncol < 2) return this->elem;
       vector<T> col(nrow);
-      memcpy(col.ptr(),this->ptr(c-1),nrow*sizeof(T));
+      memcpy(col.data(),this->ptr(c-1),nrow*sizeof(T));
       return col;
     }
 
@@ -538,7 +544,7 @@ namespace utl //! General utility classes and functions.
     {
       CHECK_INDEX("matrix::fillColumn: Column-index ",c,ncol);
       size_t ndata = nrow > data.size() ? data.size() : nrow;
-      memcpy(this->ptr(c-1),&data.front(),ndata*sizeof(T));
+      memcpy(this->ptr(c-1),data.data(),ndata*sizeof(T));
     }
 
     //! \brief Fill a column of the matrix.
@@ -919,14 +925,14 @@ namespace utl //! General utility classes and functions.
   template<> inline
   vector<float>& vector<float>::operator*=(float c)
   {
-    cblas_sscal(this->size(),c,this->ptr(),1);
+    cblas_sscal(this->size(),c,this->data(),1);
     return *this;
   }
 
   template<> inline
   vector<double>& vector<double>::operator*=(double c)
   {
-    cblas_dscal(this->size(),c,this->ptr(),1);
+    cblas_dscal(this->size(),c,this->data(),1);
     return *this;
   }
 
@@ -954,14 +960,14 @@ namespace utl //! General utility classes and functions.
   float vector<float>::norm2(size_t off, int inc) const
   {
     int n = inc > 1 || inc < -1 ? this->size()/abs(inc) : this->size()-off;
-    return cblas_snrm2(n,this->ptr()+off,inc);
+    return cblas_snrm2(n,this->data()+off,inc);
   }
 
   template<> inline
   double vector<double>::norm2(size_t off, int inc) const
   {
     int n = inc > 1 || inc < -1 ? this->size()/abs(inc) : this->size()-off;
-    return cblas_dnrm2(n,this->ptr()+off,inc);
+    return cblas_dnrm2(n,this->data()+off,inc);
   }
 
   template<> inline
@@ -970,7 +976,7 @@ namespace utl //! General utility classes and functions.
     if (inc < 1 || this->empty())
       return 0.0f;
 
-    const float* v = this->ptr() + off;
+    const float* v = this->data() + off;
     off = 1 + cblas_isamax(this->size()/inc,v,inc);
     return sign ? v[(off-1)*inc] : fabsf(v[(off-1)*inc]);
   }
@@ -981,7 +987,7 @@ namespace utl //! General utility classes and functions.
     if (inc < 1 || this->empty())
       return 0.0;
 
-    const double* v = this->ptr() + off;
+    const double* v = this->data() + off;
     off = 1 + cblas_idamax(this->size()/inc,v,inc);
     return sign ? v[(off-1)*inc] : fabs(v[(off-1)*inc]);
   }
@@ -990,14 +996,14 @@ namespace utl //! General utility classes and functions.
   float vector<float>::asum(size_t off, int inc) const
   {
     int n = inc > 1 || inc < -1 ? this->size()/abs(inc) : this->size()-off;
-    return cblas_sasum(n,this->ptr()+off,inc);
+    return cblas_sasum(n,this->data()+off,inc);
   }
 
   template<> inline
   double vector<double>::asum(size_t off, int inc) const
   {
     int n = inc > 1 || inc < -1 ? this->size()/abs(inc) : this->size()-off;
-    return cblas_dasum(n,this->ptr()+off,inc);
+    return cblas_dasum(n,this->data()+off,inc);
   }
 
   template<> inline
@@ -1070,8 +1076,8 @@ namespace utl //! General utility classes and functions.
                 transA ? CblasTrans : CblasNoTrans,
                 nrow, ncol, addTo < 0 ? -1.0f : 1.0f,
                 this->ptr(), nrow,
-                &X.front(), 1, addTo ? 1.0f : 0.0f,
-                &Y.front(), 1);
+                X.data(), 1, addTo ? 1.0f : 0.0f,
+                Y.data(), 1);
 
     return true;
   }
@@ -1088,8 +1094,8 @@ namespace utl //! General utility classes and functions.
                 transA ? CblasTrans : CblasNoTrans,
                 nrow, ncol, addTo < 0 ? -1.0 : 1.0,
                 this->ptr(), nrow,
-                &X.front(), 1, addTo ? 1.0 : 0.0,
-                &Y.front(), 1);
+                X.data(), 1, addTo ? 1.0 : 0.0,
+                Y.data(), 1);
 
     return true;
   }
@@ -1209,7 +1215,7 @@ namespace utl //! General utility classes and functions.
                 transA ? CblasTrans : CblasNoTrans, CblasNoTrans,
                 M, N, K, 1.0f,
                 A.ptr(), A.nrow,
-                &B.front(), K,
+                B.data(), K,
                 addTo ? 1.0f : 0.0f,
                 this->ptr(), nrow);
 
@@ -1229,7 +1235,7 @@ namespace utl //! General utility classes and functions.
                 transA ? CblasTrans : CblasNoTrans, CblasNoTrans,
                 M, N, K, 1.0,
                 A.ptr(), A.nrow,
-                &B.front(), K,
+                B.data(), K,
                 addTo ? 1.0 : 0.0,
                 this->ptr(), nrow);
 
@@ -1248,7 +1254,7 @@ namespace utl //! General utility classes and functions.
     cblas_sgemm(CblasColMajor,
                 CblasNoTrans, transB ? CblasTrans : CblasNoTrans,
                 M, N, K, 1.0f,
-                &A.front(), M,
+                A.data(), M,
                 B.ptr(), B.nrow,
                 addTo ? 1.0f : 0.0f,
                 this->ptr(), nrow);
@@ -1268,7 +1274,7 @@ namespace utl //! General utility classes and functions.
     cblas_dgemm(CblasColMajor,
                 CblasNoTrans, transB ? CblasTrans : CblasNoTrans,
                 M, N, K, 1.0,
-                &A.front(), M,
+                A.data(), M,
                 B.ptr(), B.nrow,
                 addTo ? 1.0 : 0.0,
                 this->ptr(), nrow);
@@ -1346,10 +1352,11 @@ namespace utl //! General utility classes and functions.
   T vector<T>::norm2(size_t off, int inc) const
   {
     double xsum = 0.0;
-    if (inc < 1) return xsum;
+    if (inc < 1 || this->size() <= off)
+      return xsum;
 
     // Warning: This might overflow or underflow for large/small values
-    const T* v = this->ptr();
+    const T* v = this->data();
     for (size_t i = off; i < this->size(); i += inc)
       xsum += v[i]*v[i];
     return sqrt(xsum);
@@ -1359,10 +1366,11 @@ namespace utl //! General utility classes and functions.
   T vector<T>::normInf(size_t& off, int inc, bool sign) const
   {
     T xmax = T(0);
-    if (inc < 1) return xmax;
+    if (inc < 1 || this->size() <= off)
+      return xmax;
 
     T amax = T(0);
-    const T* v = this->ptr();
+    const T* v = this->data();
     for (size_t i = off; i < this->size(); i += inc)
       if (v[i] > amax)
       {
@@ -1383,9 +1391,10 @@ namespace utl //! General utility classes and functions.
   T vector<T>::asum(size_t off, int inc) const
   {
     T xsum = T(0);
-    if (inc < 1) return xsum;
+    if (inc < 1 || this->size() <= off)
+      return xsum;
 
-    const T* v = this->ptr();
+    const T* v = this->data();
     for (size_t i = off; i < this->size(); i += inc)
       xsum += v[i] < T(0) ? -v[i] : v[i];
     return xsum;

@@ -1043,7 +1043,7 @@ bool SparseMatrix::solveSLU (Vector& B)
     // Create a new SuperLU matrix
     slu = new SuperLUdata(nrow,ncol);
     dCreate_CompCol_Matrix(&slu->A, nrow, ncol, this->size(),
-                           &A.front(), &JA.front(), &IA.front(),
+                           A.data(), JA.data(), IA.data(),
                            SLU_NC, SLU_D, SLU_GE);
   }
   else {
@@ -1051,7 +1051,7 @@ bool SparseMatrix::solveSLU (Vector& B)
     Destroy_SuperNode_Matrix(&slu->L);
     Destroy_CompCol_Matrix(&slu->U);
     dCreate_CompCol_Matrix(&slu->A, nrow, ncol, this->size(),
-                           &A.front(), &JA.front(), &IA.front(),
+                           A.data(), JA.data(), IA.data(),
                            SLU_NC, SLU_D, SLU_GE);
   }
 
@@ -1066,7 +1066,7 @@ bool SparseMatrix::solveSLU (Vector& B)
   // Create right-hand-side/solution vector(s)
   size_t nrhs = B.size() / nrow;
   SuperMatrix Bmat;
-  dCreate_Dense_Matrix(&Bmat, nrow, nrhs, B.ptr(), nrow,
+  dCreate_Dense_Matrix(&Bmat, nrow, nrhs, B.data(), nrow,
                        SLU_DN, SLU_D, SLU_GE);
 
   // Invoke the simple driver
@@ -1079,7 +1079,7 @@ bool SparseMatrix::solveSLU (Vector& B)
     // Create a new SuperLU matrix
     slu = new SuperLUdata(nrow,ncol,1);
     dCreate_CompCol_Matrix(&slu->A, nrow, ncol, this->size(),
-                           &A.front(), &JA.front(), &IA.front(),
+                           A.data(), JA.data(), IA.data(),
                            SLU_NC, SLU_D, SLU_GE);
   }
   else if (factored)
@@ -1089,14 +1089,14 @@ bool SparseMatrix::solveSLU (Vector& B)
     Destroy_SuperNode_Matrix(&slu->L);
     Destroy_CompCol_Matrix(&slu->U);
     dCreate_CompCol_Matrix(&slu->A, nrow, ncol, this->size(),
-                           &A.front(), &JA.front(), &IA.front(),
+                           A.data(), JA.data(), IA.data(),
                            SLU_NC, SLU_D, SLU_GE);
   }
 
   // Create right-hand-side/solution vector(s)
   size_t nrhs = B.size() / nrow;
   SuperMatrix Bmat;
-  dCreate_Dense_Matrix(&Bmat, nrow, nrhs, B.ptr(), nrow,
+  dCreate_Dense_Matrix(&Bmat, nrow, nrhs, B.data(), nrow,
                        SLU_DN, SLU_D, SLU_GE);
 
   SuperLUStat_t stat;
@@ -1142,7 +1142,7 @@ bool SparseMatrix::solveSLUx (Vector& B, Real* rcond)
     memset(slu->opts->part_super_h, 0, ncol*sizeof(int));
     memset(slu->opts->etree, 0, ncol*sizeof(int));
     dCreate_CompCol_Matrix(&slu->A, nrow, ncol, this->size(),
-                           &A.front(), &JA.front(), &IA.front(),
+                           A.data(), JA.data(), IA.data(),
                            SLU_NC, SLU_D, SLU_GE);
 
     // Get column permutation vector perm_c[], according to permc_spec:
@@ -1162,9 +1162,9 @@ bool SparseMatrix::solveSLUx (Vector& B, Real* rcond)
   Vector      X(B.size());
   SuperMatrix Bmat, Xmat;
   const size_t nrhs = B.size() / nrow;
-  dCreate_Dense_Matrix(&Bmat, nrow, nrhs, B.ptr(), nrow,
+  dCreate_Dense_Matrix(&Bmat, nrow, nrhs, B.data(), nrow,
                        SLU_DN, SLU_D, SLU_GE);
-  dCreate_Dense_Matrix(&Xmat, nrow, nrhs, X.ptr(), nrow,
+  dCreate_Dense_Matrix(&Xmat, nrow, nrhs, X.data(), nrow,
                        SLU_DN, SLU_D, SLU_GE);
 
   Real ferr[nrhs], berr[nrhs];
@@ -1188,7 +1188,7 @@ bool SparseMatrix::solveSLUx (Vector& B, Real* rcond)
     slu->C = new Real[ncol];
     slu->R = new Real[nrow];
     dCreate_CompCol_Matrix(&slu->A, nrow, ncol, this->size(),
-                           &A.front(), &JA.front(), &IA.front(),
+                           A.data(), JA.data(), IA.data(),
                            SLU_NC, SLU_D, SLU_GE);
   }
   else if (factored)
@@ -1198,7 +1198,7 @@ bool SparseMatrix::solveSLUx (Vector& B, Real* rcond)
     Destroy_SuperNode_Matrix(&slu->L);
     Destroy_CompCol_Matrix(&slu->U);
     dCreate_CompCol_Matrix(&slu->A, nrow, ncol, this->size(),
-                           &A.front(), &JA.front(), &IA.front(),
+                           A.data(), JA.data(), IA.data(),
                            SLU_NC, SLU_D, SLU_GE);
     slu->opts->Fact = SamePattern;
   }
@@ -1207,9 +1207,9 @@ bool SparseMatrix::solveSLUx (Vector& B, Real* rcond)
   Vector      X(B.size());
   SuperMatrix Bmat, Xmat;
   const  size_t nrhs = B.size() / nrow;
-  dCreate_Dense_Matrix(&Bmat, nrow, nrhs, B.ptr(), nrow,
+  dCreate_Dense_Matrix(&Bmat, nrow, nrhs, B.data(), nrow,
                        SLU_DN, SLU_D, SLU_GE);
-  dCreate_Dense_Matrix(&Xmat, nrow, nrhs, X.ptr(), nrow,
+  dCreate_Dense_Matrix(&Xmat, nrow, nrhs, X.data(), nrow,
                        SLU_DN, SLU_D, SLU_GE);
 
   slu->opts->ConditionNumber = printSLUstat || rcond ? YES : NO;
@@ -1360,7 +1360,7 @@ bool SparseMatrix::solveSAMG (Vector& B)
   Vector X(B.size());
 
   SAMG(&nnu, &nna, &nsys,
-       &IA.front(), &JA.front(), &A.front(), B.ptr(), X.ptr(),
+       IA.data(), JA.data(), A.data(), B.data(), X.data(),
        &iu, &ndiu, &ip, &ndip, &matrix, &iscale,
        &res_in, &res_out, &ncyc_done, &ierr,
        &nsolve, &ifirst, &eps, &ncyc, &iswitch,

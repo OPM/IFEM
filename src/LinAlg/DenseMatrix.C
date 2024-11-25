@@ -61,7 +61,7 @@ DenseMatrix::DenseMatrix (const RealArray& data, size_t nrows)
   size_t ncols = nrows ? ndata/nrows : 0;
 
   myMat.resize(nrows,ncols);
-  memcpy(myMat.ptr(),&data.front(),nrows*ncols*sizeof(Real));
+  memcpy(myMat.ptr(),data.data(),nrows*ncols*sizeof(Real));
   ipiv = nullptr;
   symm = false;
 }
@@ -231,19 +231,17 @@ bool DenseMatrix::assemble (const Matrix& eM, const SAM& sam,
   if (myMat.rows() != (size_t)sam.neq || myMat.cols() < (size_t)sam.neq)
     return false;
 
-  StdVector* Bptr = dynamic_cast<StdVector*>(&B);
-  if (!Bptr) return false;
-
   int ierr = 0;
 #ifdef USE_F77SAM
   int* work = new int[eM.rows()];
   addem2 (eM.ptr(), sam.ttcc, sam.mpar,
 	  sam.madof, sam.meqn, sam.mpmnpc, sam.mmnpc, sam.mpmceq, sam.mmceq,
-	  e, eM.rows(), sam.neq, 6, 1, myMat.ptr(), Bptr->ptr(), work, ierr);
+	  e, eM.rows(), sam.neq, 6, 1, myMat.ptr(), B.getPtr(), work, ierr);
   delete[] work;
 #else
+  StdVector* Bptr = dynamic_cast<StdVector*>(&B);
   std::vector<int> meen;
-  if (sam.getElmEqns(meen,e,eM.rows()))
+  if (Bptr && sam.getElmEqns(meen,e,eM.rows()))
     assemDense(eM,myMat,*Bptr,meen,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);
   else
     ierr = 1;
@@ -461,7 +459,7 @@ bool DenseMatrix::solveEig (RealArray& val, Matrix& vec, int nv)
   Real abstol = Real(0);
   // Invoke with Lwork = -1 to estimate work space size
   dsyevx_('V','I','U',n,myMat.ptr(),n,dummy,dummy,1,nv,
-          abstol,m,&val.front(),vec.ptr(),n,&dummy,-1,nullptr,nullptr,info);
+          abstol,m,val.data(),vec.ptr(),n,&dummy,-1,nullptr,nullptr,info);
 
   if (info == 0)
   {
@@ -473,7 +471,7 @@ bool DenseMatrix::solveEig (RealArray& val, Matrix& vec, int nv)
     vec.resize(n,nv);
     // Solve the eigenproblem
     dsyevx_('V','I','U',n,myMat.ptr(),n,dummy,dummy,1,nv,
-	    abstol,m,&val.front(),vec.ptr(),n,work,Lwork,Iwork+n,Iwork,info);
+	    abstol,m,val.data(),vec.ptr(),n,work,Lwork,Iwork+n,Iwork,info);
     delete[] work;
     delete[] Iwork;
     val.resize(nv);
@@ -506,7 +504,7 @@ bool DenseMatrix::solveEig (DenseMatrix& B, RealArray& val, Matrix& vec, int nv,
   Real abstol = Real(0);
   // Invoke with Lwork = -1 to estimate work space size
   dsygvx_(1,'V','I','U',n,myMat.ptr(),n,B.myMat.ptr(),n,
-          dummy,dummy,1,nv,abstol,m,&val.front(),vec.ptr(),n,
+          dummy,dummy,1,nv,abstol,m,val.data(),vec.ptr(),n,
           &dummy,-1,nullptr,nullptr,info);
 
   if (info == 0)
@@ -519,7 +517,7 @@ bool DenseMatrix::solveEig (DenseMatrix& B, RealArray& val, Matrix& vec, int nv,
     vec.resize(n,nv);
     // Solve the eigenproblem
     dsygvx_(1,'V','I','U',n,myMat.ptr(),n,B.myMat.ptr(),n,
-	    dummy,dummy,1,nv,abstol,m,&val.front(),vec.ptr(),n,
+	    dummy,dummy,1,nv,abstol,m,val.data(),vec.ptr(),n,
 	    work,Lwork,Iwork+n,Iwork,info);
     delete[] work;
     delete[] Iwork;
@@ -551,7 +549,7 @@ bool DenseMatrix::solveEigNon (RealArray& r_val, RealArray& c_val)
   int  info  = 0;
   Real dummy = Real(0);
   // Invoke with Lwork = -1 to estimate work space size
-  dgeev_('N','N',n,myMat.ptr(),n,&r_val.front(),&c_val.front(),
+  dgeev_('N','N',n,myMat.ptr(),n,r_val.data(),c_val.data(),
 	 &dummy,1,&dummy,1,&dummy,-1,info);
 
   if (info == 0)
@@ -562,7 +560,7 @@ bool DenseMatrix::solveEigNon (RealArray& r_val, RealArray& c_val)
     r_val.resize(n);
     c_val.resize(n);
     // Solve the eigenproblem
-    dgeev_('N','N',n,myMat.ptr(),n,&r_val.front(),&c_val.front(),
+    dgeev_('N','N',n,myMat.ptr(),n,r_val.data(),c_val.data(),
 	   &dummy,1,&dummy,1,work,Lwork,info);
     delete[] work;
     if (info == 0) return true;
