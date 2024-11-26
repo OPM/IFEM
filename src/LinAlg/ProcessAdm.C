@@ -123,7 +123,7 @@ void ProcessAdm::send(std::vector<int>& ivec, int dest) const
 {
 #ifdef HAVE_MPI
   int n = ivec.size();
-  if ((dest >= 0) && (dest < nProc))
+  if ((dest >= 0) && (dest < nProc) && n > 0)
     MPI_Send(&(ivec[0]),n,MPI_INT,dest,102,comm);
 #endif
 }
@@ -142,7 +142,7 @@ void ProcessAdm::send(std::vector<double>& rvec, int dest) const
 {
 #ifdef HAVE_MPI
   int n = rvec.size();
-  if ((dest >= 0) && (dest < nProc))
+  if ((dest >= 0) && (dest < nProc) && n > 0)
     MPI_Send(&(rvec[0]),n,MPI_DOUBLE,dest,104,comm);
 #endif
 }
@@ -164,7 +164,7 @@ void ProcessAdm::receive(std::vector<int>& ivec, int source) const
 #ifdef HAVE_MPI
   int n = ivec.size();
   MPI_Status status;
-  if ((source >= 0) && (source < nProc))
+  if ((source >= 0) && (source < nProc) && n > 0)
     MPI_Recv(&(ivec[0]),n,MPI_INT,source,102,comm,&status);
 #endif
 }
@@ -186,7 +186,7 @@ void ProcessAdm::receive(std::vector<double>& rvec, int source) const
 #ifdef HAVE_MPI
   int n = rvec.size();
   MPI_Status status;
-  if ((source >= 0) && (source < nProc))
+  if ((source >= 0) && (source < nProc) && n > 0)
     MPI_Recv(&(rvec[0]),n,MPI_DOUBLE,source,104,comm,&status);
 #endif
 }
@@ -207,6 +207,8 @@ int ProcessAdm::allReduce(int value, MPI_Op oper) const
 void ProcessAdm::allReduce(std::vector<int>& ivec, MPI_Op oper) const
 {
 #ifdef HAVE_MPI
+  if (ivec.empty())
+    return;
   int n = ivec.size();
   std::vector<int> tmp;
   tmp.resize(n);
@@ -230,6 +232,8 @@ double ProcessAdm::allReduce(double value, MPI_Op oper) const
 void ProcessAdm::allReduce(std::vector<double>& rvec, MPI_Op oper) const
 {
 #ifdef HAVE_MPI
+  if (rvec.empty())
+    return;
   int n = rvec.size();
   std::vector<double> tmp;
   tmp.resize(n);
