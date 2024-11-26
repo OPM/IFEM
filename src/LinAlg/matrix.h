@@ -61,11 +61,11 @@ namespace utl //! General utility classes and functions.
   {
   public:
     //! \brief Constructor creating an empty vector.
-    vector<T>() {}
+    vector() {}
     //! \brief Constructor creating a vector of length \a n.
-    explicit vector<T>(size_t n) { this->resize(n); }
+    explicit vector(size_t n) { this->resize(n); }
     //! \brief Constructor creating a vector from an array.
-    vector<T>(const T* values, size_t n) { this->fill(values,n); }
+    vector(const T* values, size_t n) { this->fill(values,n); }
 
     //! \brief Overloaded assignment operator.
     vector<T>& operator=(const std::vector<T>& X)
