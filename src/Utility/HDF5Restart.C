@@ -78,13 +78,13 @@ bool HDF5Restart::writeData (const SerializeData& data)
        int len, const void* data, hid_t type)
   {
 #ifdef HAVE_MPI
-    int lens[ptot], lens2[ptot];
-    std::fill(lens,lens+ptot,len);
-    MPI_Alltoall(lens,1,MPI_INT,lens2,1,MPI_INT,*m_adm.getCommunicator());
-    hsize_t siz   = (hsize_t)std::accumulate(lens2,lens2+ptot,0);
-    hsize_t start = (hsize_t)std::accumulate(lens2,lens2+pid,0);
+    std::vector<int> lens(ptot), lens2(ptot);
+    std::fill(lens.begin(), lens.end(),len);
+    MPI_Alltoall(lens.data(),1,MPI_INT,lens2.data(),1,MPI_INT,*m_adm.getCommunicator());
+    hsize_t siz   = std::accumulate(lens2.begin(), lens2.end(), hsize_t(0));
+    hsize_t start = std::accumulate(lens2.begin(), lens2.begin() + pid, hsize_t(0));
 #else
-    hsize_t siz   = (hsize_t)len;
+    hsize_t siz   = static_cast<hsize_t>(len);
     hsize_t start = 0;
 #endif
     hid_t space = H5Screate_simple(1,&siz,nullptr);

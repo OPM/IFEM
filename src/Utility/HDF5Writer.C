@@ -148,11 +148,11 @@ void HDF5Writer::writeArray(hid_t group, const std::string& name, int patch,
     siz = static_cast<hsize_t>(len);
     start = 0;
   } else {
-    int lens[m_size], lens2[m_size];
-    std::fill(lens,lens+m_size,len);
-    MPI_Alltoall(lens,1,MPI_INT,lens2,1,MPI_INT,*m_adm.getCommunicator());
-    siz   = (hsize_t)std::accumulate(lens2,lens2+m_size,0);
-    start = (hsize_t)std::accumulate(lens2,lens2+m_rank,0);
+    std::vector<int> lens(m_size), lens2(m_size);
+    std::fill(lens.begin(), lens.end(), len);
+    MPI_Alltoall(lens.data(),1,MPI_INT,lens2.data(),1,MPI_INT,*m_adm.getCommunicator());
+    siz   = std::accumulate(lens2.begin(), lens2.end(), hsize_t(0));
+    start = std::accumulate(lens2.begin(), lens2.begin() + m_rank, hsize_t(0));
   }
 #else
   hsize_t siz   = (hsize_t)len;
