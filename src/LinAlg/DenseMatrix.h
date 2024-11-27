@@ -70,7 +70,6 @@ public:
                     const char* label);
 
   //! \brief Initializes the element assembly process.
-  //! \details Must be called once before the element assembly loop.
   //! \param[in] sam Auxiliary data describing the FE model topology, etc.
   virtual void initAssembly(const SAM& sam, bool);
 
@@ -79,33 +78,33 @@ public:
 
   //! \brief Adds an element matrix into the associated system matrix.
   //! \param[in] eM  The element matrix
-  //! \param[in] sam Auxiliary data describing the FE model topology,
-  //!                nodal DOF status and constraint equations
+  //! \param[in] sam Auxiliary data for FE assembly management
   //! \param[in] e   Identifier for the element that \a eM belongs to
   //! \return \e true on successful assembly, otherwise \e false
   virtual bool assemble(const Matrix& eM, const SAM& sam, int e);
   //! \brief Adds an element matrix into the associated system matrix.
-  //! \details When multi-point constraints are present, contributions from
-  //! these are also added into the system right-hand-side vector.
   //! \param[in] eM  The element matrix
   //! \param[in] sam Auxiliary data describing the FE model topology,
   //!                nodal DOF status and constraint equations
   //! \param     B   The system right-hand-side vector
   //! \param[in] e   Identifier for the element that \a eM belongs to
   //! \return \e true on successful assembly, otherwise \e false
+  //!
+  //! \details When multi-point constraints are present, contributions from
+  //! these are also added into the system right-hand-side vector, \a B.
   virtual bool assemble(const Matrix& eM, const SAM& sam,
                         SystemVector& B, int e);
   //! \brief Adds an element matrix into the associated system matrix.
-  //! \details When multi-point constraints are present, contributions from
-  //! these are also added into the system right-hand-side vector.
-  //! \param[in] eM   The element matrix
-  //! \param[in] sam  Auxiliary data describing the FE model topology,
-  //!                 nodal DOF status and constraint equations
-  //! \param     B    The system right-hand-side vector
-  //! \param[in] meen Matrix of element equation numbers
+  //! \param[in] eM  The element matrix
+  //! \param[in] sam Auxiliary data for FE assembly management
+  //! \param     B   The system right-hand-side vector
+  //! \param[in] meq Matrix of element equation numbers
   //! \return \e true on successful assembly, otherwise \e false
+  //!
+  //! \details When multi-point constraints are present, contributions from
+  //! these are also added into the system right-hand-side vector, \a B.
   virtual bool assemble(const Matrix& eM, const SAM& sam,
-                        SystemVector& B, const std::vector<int>& meen);
+                        SystemVector& B, const std::vector<int>& meq);
 
   //! \brief Augments a similar matrix symmetrically to the current matrix.
   //! \param[in] B  The matrix to be augmented
@@ -137,37 +136,44 @@ public:
   bool solve(Matrix& B);
 
   //! \brief Solves a standard symmetric-definite eigenproblem.
-  //! \details The eigenproblem is assumed to be on the form
-  //! \b A \b x = &lambda; \b x where \b A ( = \a *this )
-  //! is assumed to be symmetric and positive definite.
-  //! The eigenproblem is solved by the LAPack library subroutine \a DSYEVX.
-  //! \sa LAPack library documentation.
   //! \param[out] eigVal Computed eigenvalues
   //! \param[out] eigVec Computed eigenvectors stored column by column
   //! \param[in] nev The number of eigenvalues and eigenvectors to compute
+  //!
+  //! \details The eigenproblem is assumed to be on the form
+  //! \b A \b x = &lambda; \b x where \b A ( = \a *this )
+  //! is assumed to be symmetric and positive definite.
+  //! The eigenproblem is solved by the LAPack library subroutine
+  //! <a href="https://www.netlib.org/lapack/explore-3.1.1-html/dsyevx.f.html">DSYEVX</a>.
+  //! \sa LAPack library documentation https://www.netlib.org/lapack/.
   bool solveEig(RealArray& eigVal, Matrix& eigVec, int nev);
 
   //! \brief Solves a non-symmetric eigenproblem.
-  //! \details The eigenproblem is assumed to be on the form
-  //! \b A \b x = &lambda; \b x where \b A ( = \a *this )
-  //! is a square non-symmetric matrix.
-  //! The eigenproblem is solved by the LAPack library subroutine \a DGEEV.
   //! \sa LAPack library documentation.
   //! \param[out] r_val Real part of the computed eigenvalues
   //! \param[out] c_val Complex part of the computed eigenvalues
+  //!
+  //! \details The eigenproblem is assumed to be on the form
+  //! \b A \b x = &lambda; \b x where \b A ( = \a *this )
+  //! is a square non-symmetric matrix.
+  //! The eigenproblem is solved by the LAPack library subroutine
+  //! <a href="https://www.netlib.org/lapack/explore-3.1.1-html/dgeev.f.html">DGEEV</a>.
+  //! \sa LAPack library documentation https://www.netlib.org/lapack/.
   bool solveEigNon(RealArray& r_val, RealArray& c_val);
 
   //! \brief Solves a generalized symmetric-definite eigenproblem.
-  //! \details The eigenproblem is assumed to be on the form
-  //! \b A \b x = &lambda; \b B \b x where \b A ( = \a *this ) and \b B
-  //! both are assumed to be symmetric and \b B also to be positive definite.
-  //! The eigenproblem is solved by the LAPack library subroutine \a DSYGVX.
-  //! \sa LAPack library documentation.
   //! \param B Symmetric and positive definite mass matrix.
   //! \param[out] eigVal Computed eigenvalues
   //! \param[out] eigVec Computed eigenvectors stored column by column
   //! \param[in] nev The number of eigenvalues and eigenvectors to compute
   //! \param[in] shift Eigenvalue shift (unused)
+  //!
+  //! \details The eigenproblem is assumed to be on the form
+  //! \b A \b x = &lambda; \b B \b x where \b A ( = \a *this ) and \b B
+  //! both are assumed to be symmetric and \b B also to be positive definite.
+  //! The eigenproblem is solved by the LAPack library subroutine
+  //! <a href="https://www.netlib.org/lapack/explore-3.1.1-html/dsygvx.f.html">DSYGVX</a>.
+  //! \sa LAPack library documentation https://www.netlib.org/lapack/.
   bool solveEig(DenseMatrix& B, RealArray& eigVal, Matrix& eigVec, int nev,
                 Real shift = Real(0));
 

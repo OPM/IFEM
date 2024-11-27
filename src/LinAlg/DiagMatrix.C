@@ -61,17 +61,23 @@ bool DiagMatrix::assemble (const Matrix& eM, const SAM& sam, int e)
   if (myMat.size() != (size_t)sam.neq)
     return false;
 
+  StdVector B;
   std::vector<int> meen;
-  if (!sam.getElmEqns(meen,e,eM.rows()))
-    return false;
-  else if (meen.size() != 1 || eM.size() != 1)
+  return sam.getElmEqns(meen,e,eM.rows()) && this->assemble(eM,sam,B,meen);
+}
+
+
+bool DiagMatrix::assemble (const Matrix& eM, const SAM& sam,
+                           SystemVector&, const std::vector<int>& meq)
+{
+  if (meq.size() != 1 || eM.size() != 1)
   {
     std::cerr <<" *** DiagMatrix::assemble: Only for one-dof elements, nedof = "
-              << meen.size() <<" size(eM) = " << eM.size() << std::endl;
+              << meq.size() <<" size(eM) = " << eM.size() << std::endl;
     return false;
   }
 
-  int ieq = meen.front();
+  int ieq = meq.front();
   if (ieq < 1 || ieq > sam.neq)
   {
     std::cerr <<" *** DiagMatrix::assemble: ieq="<< ieq <<" is out or range [1,"

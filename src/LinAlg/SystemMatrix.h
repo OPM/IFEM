@@ -236,9 +236,10 @@ public:
   virtual size_t dim(int idim = 1) const = 0;
 
   //! \brief Initializes the element assembly process.
-  //! \details Must be called once before the element assembly loop.
   //! \param[in] sam Auxiliary data describing the FE model topology, etc.
   //! \param[in] delayLocking If \e true, do not lock the sparsity pattern yet
+  //!
+  //! \details This method must be called once before the element assembly loop.
   virtual void initAssembly(const SAM& sam, bool delayLocking = false) = 0;
 
   //! \brief Initializes the matrix to zero assuming it is properly dimensioned.
@@ -251,33 +252,32 @@ public:
 
   //! \brief Adds an element matrix into the associated system matrix.
   //! \param[in] eM  The element matrix
-  //! \param[in] sam Auxiliary data describing the FE model topology,
-  //!                nodal DOF status and constraint equations
+  //! \param[in] sam Auxiliary data for FE assembly management
   //! \param[in] e   Identifier for the element that \a eM belongs to
   //! \return \e true on successful assembly, otherwise \e false
   virtual bool assemble(const Matrix& eM, const SAM& sam, int e) = 0;
   //! \brief Adds an element matrix into the associated system matrix.
-  //! \details When multi-point constraints are present, contributions from
-  //! these are also added into the system right-hand-side vector.
   //! \param[in] eM  The element matrix
-  //! \param[in] sam Auxiliary data describing the FE model topology,
-  //!                nodal DOF status and constraint equations
+  //! \param[in] sam Auxiliary data for FE assembly management
   //! \param     B   The system right-hand-side vector
   //! \param[in] e   Identifier for the element that \a eM belongs to
   //! \return \e true on successful assembly, otherwise \e false
+  //!
+  //! \details When multi-point constraints are present, contributions from
+  //! these are also added into the system right-hand-side vector, \a B.
   virtual bool assemble(const Matrix& eM, const SAM& sam,
                         SystemVector& B, int e) = 0;
   //! \brief Adds an element matrix into the associated system matrix.
-  //! \details When multi-point constraints are present, contributions from
-  //! these are also added into the system right-hand-side vector.
-  //! \param[in] eM   The element matrix
-  //! \param[in] sam  Auxiliary data describing the FE model topology,
-  //!                 nodal DOF status and constraint equations
-  //! \param     B    The system right-hand-side vector
-  //! \param[in] meen Matrix of element equation numbers
+  //! \param[in] eM  The element matrix
+  //! \param[in] sam Auxiliary data for FE assembly management
+  //! \param     B   The system right-hand-side vector
+  //! \param[in] meq Matrix of element equation numbers
   //! \return \e true on successful assembly, otherwise \e false
+  //!
+  //! \details When multi-point constraints are present, contributions from
+  //! these are also added into the system right-hand-side vector, \a B.
   virtual bool assemble(const Matrix& eM, const SAM& sam,
-                        SystemVector& B, const std::vector<int>& meen);
+                        SystemVector& B, const std::vector<int>& meq) = 0;
 
   //! \brief Augments a similar matrix symmetrically to the current matrix.
   virtual bool augment(const SystemMatrix&, size_t, size_t) { return false; }

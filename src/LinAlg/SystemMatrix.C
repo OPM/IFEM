@@ -155,16 +155,6 @@ SystemMatrix* SystemMatrix::create (const ProcessAdm* adm,
 }
 
 
-bool SystemMatrix::assemble (const Matrix&, const SAM&,
-                             SystemVector&, const std::vector<int>&)
-{
-  std::cerr <<"SystemMatrix::assemble(const Matrix&,const SAM&,"
-            <<"SystemVector&,const std::vector<int>&): "
-            <<"Not implemented for the chosen matrix type."<< std::endl;
-  return false;
-}
-
-
 StdVector SystemMatrix::operator* (const SystemVector& b) const
 {
   StdVector results;

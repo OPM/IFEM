@@ -328,7 +328,7 @@ void PETScMatrix::setupSparsityPartitioned (const SAM& sam)
       for (int j : meen)
         (*this)(i,j) = 0.0;
   }
-  this->optimiseSLU();
+  this->optimiseCols();
 }
 
 
@@ -520,7 +520,7 @@ void PETScMatrix::setupBlockSparsityPartitioned (const SAM& sam)
       for (int j : meen)
         (*this)(i,j) = 0.0;
   }
-  this->optimiseSLU();
+  this->optimiseCols();
 
   this->setupGlb2BlkPart(sam);
 
@@ -763,7 +763,7 @@ bool PETScMatrix::solveDirect(PETScVector& B)
 {
   // the sparsity pattern has been grown in-place, we need to init PETsc state.
   // this is currently only used for patch-global L2 systems.
-  if (A.empty() && !this->optimiseSLU())
+  if (A.empty() && !this->optimiseCols())
     return false;
 
   // Set correct number of rows and columns for matrix.

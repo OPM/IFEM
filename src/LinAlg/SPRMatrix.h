@@ -56,23 +56,32 @@ public:
   using SystemMatrix::assemble;
   //! \brief Adds an element matrix into the associated system matrix.
   //! \param[in] eM  The element matrix
-  //! \param[in] sam Auxiliary data describing the FE model topology,
-  //!                nodal DOF status and constraint equations
+  //! \param[in] sam Auxiliary data for FE assembly management
   //! \param[in] e   Identifier for the element that \a eM belongs to
   //! \return \e true on successful assembly, otherwise \e false
   virtual bool assemble(const Matrix& eM, const SAM& sam, int e);
   //! \brief Adds an element matrix into the associated system matrix.
   //! \param[in] eM  The element matrix
-  //! \param[in] sam Auxiliary data describing the FE model topology,
-  //!                nodal DOF status and constraint equations
+  //! \param[in] sam Auxiliary data for FE assembly management
   //! \param     B   The system right-hand-side vector
   //! \param[in] e   Identifier for the element that \a eM belongs to
   //! \return \e true on successful assembly, otherwise \e false
   //!
-  //! \details When multi-point constraints are present, this subroutine will
-  //! also add contributions from these into the system right-hand-side vector.
+  //! \details When multi-point constraints are present, contributions from
+  //! these are also added into the system right-hand-side vector, \a B.
   virtual bool assemble(const Matrix& eM, const SAM& sam,
 			SystemVector& B, int e);
+  //! \brief Adds an element matrix into the associated system matrix.
+  //! \param[in] eM  The element matrix
+  //! \param[in] sam Auxiliary data for FE assembly management
+  //! \param     B   The system right-hand-side vector
+  //! \param[in] meq Matrix of element equation numbers
+  //! \return \e true on successful assembly, otherwise \e false
+  //!
+  //! \details When multi-point constraints are present, contributions from
+  //! these are also added into the system right-hand-side vector, \a B.
+  virtual bool assemble(const Matrix& eM, const SAM& sam,
+                        SystemVector& B, const std::vector<int>& meq);
 
   //! \brief Multiplication with a scalar.
   virtual void mult(Real alpha);
@@ -109,8 +118,7 @@ public:
 protected:
   //! \brief Adds an element matrix into the associated system matrix.
   //! \param[in] eM  The element matrix
-  //! \param[in] sam Auxiliary data describing the FE model topology,
-  //!                nodal DOF status and constraint equations
+  //! \param[in] sam Auxiliary data for FE assembly management
   //! \param     B   Pointer to the system right-hand-side vector
   //! \param[in] e   Identifier for the element that \a eM belongs to
   //! \return \e true on successful assembly, otherwise \e false

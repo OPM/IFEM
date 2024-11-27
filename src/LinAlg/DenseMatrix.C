@@ -121,7 +121,7 @@ void DenseMatrix::dump (std::ostream& os, LinAlg::StorageFormat format,
   \brief This is a C++ version of the F77 subroutine ADDEM2 (SAM library).
   \details It performs exactly the same tasks, except that \a NRHS always is 1.
 */
-#ifndef USE_F77SAM
+
 static void assemDense (const Matrix& eM, Matrix& SM, Vector& SV,
 			const std::vector<int>& meen, const int* meqn,
 			const int* mpmceq, const int* mmceq, const Real* ttcc)
@@ -197,7 +197,7 @@ static void assemDense (const Matrix& eM, Matrix& SM, Vector& SV,
       }
   }
 }
-#endif
+
 
 bool DenseMatrix::assemble (const Matrix& eM, const SAM& sam, int e)
 {
@@ -252,23 +252,19 @@ bool DenseMatrix::assemble (const Matrix& eM, const SAM& sam,
 
 
 bool DenseMatrix::assemble (const Matrix& eM, const SAM& sam,
-			    SystemVector& B, const std::vector<int>& meen)
+                            SystemVector& B, const std::vector<int>& meq)
 {
-#ifndef USE_F77SAM
   if (myMat.rows() != (size_t)sam.neq || myMat.cols() < (size_t)sam.neq)
     return false;
 
-  if (eM.rows() < meen.size() || eM.cols() < meen.size())
+  if (eM.rows() < meq.size() || eM.cols() < meq.size())
     return false;
 
   StdVector* Bptr = dynamic_cast<StdVector*>(&B);
   if (!Bptr) return false;
 
-  assemDense(eM,myMat,*Bptr,meen,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);
+  assemDense(eM,myMat,*Bptr,meq,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);
   return haveContributions = true;
-#else
-  return this->SystemMatrix::assemble(eM,sam,B,meen); // for error message
-#endif
 }
 
 

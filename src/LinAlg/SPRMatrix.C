@@ -336,6 +336,16 @@ bool SPRMatrix::assemble (const Matrix& eM, const SAM& sam,
 }
 
 
+bool SPRMatrix::assemble (const Matrix&, const SAM&,
+                          SystemVector&, const std::vector<int>&)
+{
+  std::cerr <<"SPRMatrix::assemble(const Matrix&,const SAM&,"
+            <<"SystemVector&,const std::vector<int>&): Not implemented."
+            << std::endl;
+  return false;
+}
+
+
 bool SPRMatrix::assemble (int e, const Matrix& eM, const SAM& sam, Real* B)
 {
 #ifdef HAS_SPR
