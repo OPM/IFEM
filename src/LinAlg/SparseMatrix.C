@@ -764,12 +764,10 @@ void SparseMatrix::preAssemble (const SAM& sam, bool delayLocking)
   IFEM::cout <<"\nPre-computing sparsity pattern for system matrix ("
              << nrow <<"x"<< ncol <<"): "<< std::flush;
 
-  switch (solver) {
-  case UMFPACK:
-  case SUPERLU: this->optimiseSLU(dofc); break;
-  case S_A_M_G: this->optimiseSAMG(); break;
-  default: break;
-  }
+  if (solver == SUPERLU || solver == UMFPACK)
+    this->optimiseCols(dofc);
+  else if (solver == S_A_M_G)
+    this->optimiseRows();
 
   // The sparsity pattern is now permanently locked (until resize is invoked)
   IFEM::cout <<"nNZ = "<< this->size() << std::endl;
@@ -794,12 +792,10 @@ void SparseMatrix::preAssemble (const std::vector<IntVec>& MMNPC, size_t nel)
             (*this)(inod,jnod) = (*this)(jnod,inod) = 0.0;
       }
 
-  switch (solver) {
-  case UMFPACK:
-  case SUPERLU: this->optimiseSLU(); break;
-  case S_A_M_G: this->optimiseSAMG(); break;
-  default: break;
-  }
+  if (solver == SUPERLU || solver == UMFPACK)
+    this->optimiseCols();
+  else if (solver == S_A_M_G)
+    this->optimiseRows();
 #endif
 }
 
@@ -838,15 +834,15 @@ bool SparseMatrix::assemble (const Matrix& eM, const SAM& sam,
 
 
 bool SparseMatrix::assemble (const Matrix& eM, const SAM& sam,
-                             SystemVector& B, const IntVec& meen)
+                             SystemVector& B, const IntVec& meq)
 {
   StdVector* Bptr = dynamic_cast<StdVector*>(&B);
   if (!Bptr) return false;
 
-  if (eM.rows() < meen.size() || eM.cols() < meen.size())
+  if (eM.rows() < meq.size() || eM.cols() < meq.size())
     return false;
 
-  assemSparse(eM,*this,*Bptr,meen,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);
+  assemSparse(eM,*this,*Bptr,meq,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);
   return haveContributions = true;
 }
 
@@ -864,7 +860,7 @@ bool SparseMatrix::assembleCol (const RealArray& V, const SAM& sam,
 }
 
 
-bool SparseMatrix::optimiseSAMG (bool transposed)
+bool SparseMatrix::optimiseRows (bool transposed)
 {
   if (!editable) return false;
 
@@ -924,7 +920,7 @@ bool SparseMatrix::optimiseSAMG (bool transposed)
   This method is based on the function dreadtriple() from the SuperLU package.
 */
 
-bool SparseMatrix::optimiseSLU ()
+bool SparseMatrix::optimiseCols ()
 {
   if (!editable) return false;
 
@@ -972,7 +968,7 @@ bool SparseMatrix::optimiseSLU ()
   This method does not use the internal index-pair to value map \a elem.
 */
 
-bool SparseMatrix::optimiseSLU (const std::vector<IntSet>& dofc)
+bool SparseMatrix::optimiseCols (const std::vector<IntSet>& dofc)
 {
   if (!editable) return false;
 
@@ -1033,9 +1029,15 @@ bool SparseMatrix::solve (SystemVector& B, Real* rc)
 }
 
 
+/*!
+  This method uses the simple driver \a dgssv
+  or its multi-threaded equivalent \a pdgssv.
+*/
+
 bool SparseMatrix::solveSLU (Vector& B)
 {
-  if (!factored) this->optimiseSLU();
+  if (!factored)
+    this->optimiseCols();
 
   int ierr = -99;
 #ifdef HAS_SUPERLU_MT
@@ -1124,9 +1126,15 @@ bool SparseMatrix::solveSLU (Vector& B)
 }
 
 
+/*!
+  This method uses the expert driver \a dgssvx
+  or its multi-threaded equivalent \a pdgssvx.
+*/
+
 bool SparseMatrix::solveSLUx (Vector& B, Real* rcond)
 {
-  if (!factored) this->optimiseSLU();
+  if (!factored)
+    this->optimiseCols();
 
   int ierr = -99;
 #ifdef HAS_SUPERLU_MT
@@ -1283,7 +1291,8 @@ bool SparseMatrix::solveSLUx (Vector& B, Real* rcond)
 
 bool SparseMatrix::solveUMF (Vector& B, Real* rcond)
 {
-  if (!factored) this->optimiseSLU();
+  if (!factored)
+    this->optimiseCols();
 
 #ifdef HAS_UMFPACK
   double info[UMFPACK_INFO];
@@ -1322,7 +1331,8 @@ bool SparseMatrix::solveUMF (Vector& B, Real* rcond)
 
 bool SparseMatrix::solveSAMG (Vector& B)
 {
-  if (!factored) this->optimiseSAMG();
+  if (!factored)
+    this->optimiseRows();
 
 #ifdef HAS_SAMG
   // Setting up additional parameters

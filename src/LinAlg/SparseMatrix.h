@@ -104,7 +104,6 @@ public:
                     const char* label);
 
   //! \brief Initializes the element assembly process.
-  //! \details Must be called once before the element assembly loop.
   //! \param[in] sam Auxiliary data describing the FE model topology, etc.
   //! \param[in] delayLocking If \e true, do not lock the sparsity pattern yet
   virtual void initAssembly(const SAM& sam, bool delayLocking);
@@ -124,59 +123,56 @@ public:
 
   //! \brief Adds an element matrix into the associated system matrix.
   //! \param[in] eM  The element matrix
-  //! \param[in] sam Auxiliary data describing the FE model topology,
-  //!                nodal DOF status and constraint equations
+  //! \param[in] sam Auxiliary data for FE assembly management
   //! \param[in] e   Identifier for the element that \a eM belongs to
   //! \return \e true on successful assembly, otherwise \e false
   virtual bool assemble(const Matrix& eM, const SAM& sam, int e);
   //! \brief Adds an element matrix into the associated system matrix.
-  //! \details When multi-point constraints are present, contributions from
-  //! these are also added into the system right-hand-side vector.
   //! \param[in] eM  The element matrix
-  //! \param[in] sam Auxiliary data describing the FE model topology,
-  //!                nodal DOF status and constraint equations
+  //! \param[in] sam Auxiliary data for FE assembly management
   //! \param     B   The system right-hand-side vector
   //! \param[in] e   Identifier for the element that \a eM belongs to
   //! \return \e true on successful assembly, otherwise \e false
-  virtual bool assemble(const Matrix& eM, const SAM& sam,
-			SystemVector& B, int e);
-  //! \brief Adds an element matrix into the associated system matrix.
+  //!
   //! \details When multi-point constraints are present, contributions from
-  //! these are also added into the system right-hand-side vector.
-  //! \param[in] eM   The element matrix
-  //! \param[in] sam  Auxiliary data describing the FE model topology,
-  //!                 nodal DOF status and constraint equations
-  //! \param     B    The system right-hand-side vector
-  //! \param[in] meen Matrix of element equation numbers
-  //! \return \e true on successful assembly, otherwise \e false
+  //! these are also added into the system right-hand-side vector, \a B.
   virtual bool assemble(const Matrix& eM, const SAM& sam,
-			SystemVector& B, const IntVec& meen);
+                        SystemVector& B, int e);
+  //! \brief Adds an element matrix into the associated system matrix.
+  //! \param[in] eM  The element matrix
+  //! \param[in] sam Auxiliary data for FE assembly management
+  //! \param     B   The system right-hand-side vector
+  //! \param[in] meq Matrix of element equation numbers
+  //! \return \e true on successful assembly, otherwise \e false
+  //!
+  //! \details When multi-point constraints are present, contributions from
+  //! these are also added into the system right-hand-side vector, \a B.
+  virtual bool assemble(const Matrix& eM, const SAM& sam,
+                        SystemVector& B, const IntVec& meq);
 
   //! \brief Adds a nodal vector into columns of a non-symmetric sparse matrix.
   //! \param[in] V   The nodal vector
-  //! \param[in] sam Auxiliary data describing the FE model topology,
-  //!                nodal DOF status and constraint equations
+  //! \param[in] sam Auxiliary data for FE assembly management
   //! \param[in] n   Identifier for the node that \a V belongs to
   //! \param[in] col Index of first column which should receive contributions
   //! \return \e true on successful assembly, otherwise \e false
   //!
   //! \details This method can be used for rectangular matrices whose rows
-  //! correspond to the equation ordering og the provided \a sam object.
+  //! correspond to the equation ordering from the provided \a sam object.
   bool assembleCol(const RealArray& V, const SAM& sam, int n, size_t col);
 
   //! \brief Adds a scalar value into columns of a non-symmetric sparse matrix.
   //! \param[in] val The value to add for each DOF of the specified node
-  //! \param[in] sam Auxiliary data describing the FE model topology,
-  //!                nodal DOF status and constraint equations
+  //! \param[in] sam Auxiliary data for FE assembly management
   //! \param[in] n   Identifier for the node that \a val belongs to
   //! \param[in] col Index of first column which should receive contributions
   //! \return \e true on successful assembly, otherwise \e false
   //!
   //! \details This method can be used for rectangular matrices whose rows
-  //! correspond to the equation ordering og the provided \a sam object.
+  //! correspond to the equation ordering from the provided \a sam object.
   bool assembleCol(Real val, const SAM& sam, int n, size_t col)
   {
-    return this->assembleCol(RealArray(1,val),sam,n,col);
+    return this->assembleCol({val},sam,n,col);
   }
 
   //! \brief Augments a similar matrix symmetrically to the current matrix.
@@ -232,30 +228,24 @@ public:
 
 protected:
   //! \brief Converts the matrix to an optimized row-oriented format.
-  //! \details The optimized format is suitable for the SAMG equation solver.
-  bool optimiseSAMG(bool transposed = false);
+  bool optimiseRows(bool transposed = false);
 
   //! \brief Converts the matrix to an optimized column-oriented format.
-  //! \details The optimized format is suitable for the SuperLU equation solver.
-  bool optimiseSLU();
+  bool optimiseCols();
 
   //! \brief Converts the matrix to an optimized column-oriented format.
   //! \param[in] dofc Set of free DOFs coupled to each free DOF
-  //!
-  //! \details The optimized format is suitable for the SuperLU equation solver.
-  bool optimiseSLU(const std::vector< std::set<int> >& dofc);
+  bool optimiseCols(const std::vector< std::set<int> >& dofc);
 
   //! \brief Invokes the SAMG equation solver for a given right-hand-side.
   //! \param B Right-hand-side vector on input, solution vector on output
   bool solveSAMG(Vector& B);
 
   //! \brief Invokes the SuperLU equation solver for a given right-hand-side.
-  //! \details This method uses the simple driver \a dgssv.
   //! \param B Right-hand-side vector on input, solution vector on output
   bool solveSLU(Vector& B);
 
   //! \brief Invokes the SuperLU equation solver for a given right-hand-side.
-  //! \details This method uses the expert driver \a dgssvx.
   //! \param B Right-hand-side vector on input, solution vector on output
   //! \param[out] rcond Reciprocal condition number of the LHS-matrix (optional)
   bool solveSLUx(Vector& B, Real* rcond);
@@ -272,10 +262,10 @@ public:
   static bool printSLUstat; //!< Print solution statistics for SuperLU?
 
 private:
-  //! Flag for the editability of the matrix elements:
-  //!  'V' : Values may be edited but the pattern is temporarily locked
-  //!  'P' : Both values and pattern may be edited
-  //! '\0' : Values may be edited but the pattern is permanently locked
+  //! \brief Flag for the editability of the matrix elements.
+  //! -  'V' : Values may be edited but the pattern is temporarily locked
+  //! -  'P' : Both values and pattern may be edited
+  //! - '\0' : Values may be edited but the pattern is permanently locked
   char editable;
 
   size_t nrow; //!< Number of matrix rows
