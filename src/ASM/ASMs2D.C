@@ -2314,7 +2314,7 @@ bool ASMs2D::integrate (Integrand& integrand,
             if (edgeDir < 0) normal *= -1.0;
 
             // Store tangent vectors in fe.G for shells
-            if (nsd > 2) fe.G = Jac;
+            if (nsd > 2) fe.G = std::move(Jac);
 
             // Cartesian coordinates of current integration point
             X.assign(Xnod * fe.N);
@@ -3015,7 +3015,7 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
       utl::Hessian2(fe.d3NdX3,Jac,d3Ndu3);
 
     // Store tangent vectors in fe.G for shells
-    if (nsd > 2) fe.G = Jac;
+    if (nsd > 2) fe.G = std::move(Jac);
 
 #if SP_DEBUG > 4
     std::cout <<"\n"<< fe;
