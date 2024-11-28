@@ -129,7 +129,7 @@ void ASMs2D::copyParameterDomain (const ASMbase* other)
   const ASMs2D* o = dynamic_cast<const ASMs2D*>(other);
   if (!o) return;
 
-  Go::RectDomain pd = o->getBasis()->parameterDomain();
+  const Go::RectDomain& pd = o->getBasis()->parameterDomain();
   this->getBasis()->setParameterDomain(pd.umin(),pd.umax(),pd.vmin(),pd.vmax());
 }
 
