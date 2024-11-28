@@ -59,9 +59,9 @@ static void check_vector_double_near(const std::vector<double>& arr1,
 }
 
 
-static void check_point_near(const Go::Point p1,
-                             const Go::Point p2,
-                             const double tol=1e-12)
+static void check_point_near(const Go::Point& p1,
+                             const Go::Point& p2,
+                             const double tol = 1e-12)
 {
   ASSERT_EQ(p1.dimension(), p2.dimension());
   for (int i = 0; i < p1.dimension(); i++)
