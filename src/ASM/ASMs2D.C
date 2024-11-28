@@ -3361,7 +3361,7 @@ void ASMs2D::BasisFunctionCache::internalCleanup ()
 
 bool ASMs2D::BasisFunctionCache::setupQuadrature ()
 {
-  int p[3];
+  int p[3]{};
   patch.getOrder(p[0],p[1],p[2]);
 
   // Get Gaussian quadrature points and weights

@@ -3690,7 +3690,7 @@ bool ASMs3D::evaluate (const FunctionBase* func, RealArray& vec,
 
 int ASMs3D::getCorner (int I, int J, int K, int basis) const
 {
-  int n1, n2, n3;
+  int n1{}, n2{}, n3{};
   int node = this->findStartNode(n1,n2,n3,basis);
   if (node < 1) return -1;
 
@@ -3898,7 +3898,7 @@ void ASMs3D::BasisFunctionCache::internalCleanup ()
 
 bool ASMs3D::BasisFunctionCache::setupQuadrature ()
 {
-   int p[3];
+   int p[3]{};
    patch.getOrder(p[0],p[1],p[2]);
 
   // Get Gaussian quadrature points and weights

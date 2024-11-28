@@ -131,7 +131,7 @@ public:
   //! \copydoc NodalConstraintASMHelper::getCorner
   virtual int getCorner(int vertex, int basis) const
   {
-    int n1, n2, ofs = this->getStartNode(basis);
+    int n1{}, n2{}, ofs = this->getStartNode(basis);
     static_cast<ASMs2D*>(bpch)->getSize(n1,n2,basis);
     const IntVec idxs = { 1, n1, n1*(n2-1)+1, n1*n2 };
     return bpch->getNodeID(idxs[vertex-1]+ofs);
@@ -140,7 +140,7 @@ public:
   //! \copydoc NodalConstraintASMHelper::constrainEdge
   virtual void constrainEdge(int item, int comp, int basis, int idx)
   {
-    int n1, n2, node = 1 + this->getStartNode(basis);
+    int n1{}, n2{}, node = 1 + this->getStartNode(basis);
     static_cast<ASMs2D*>(bpch)->getSize(n1,n2,basis);
 
     switch (item) {
@@ -173,7 +173,7 @@ public:
   //! \copydoc NodalConstraintASMHelper::getCorner
   virtual int getCorner(int vertex, int basis) const
   {
-    int n1, n2, n3, ofs = this->getStartNode(basis);
+    int n1{}, n2{}, n3{}, ofs = this->getStartNode(basis);
     static_cast<ASMs3D*>(bpch)->getSize(n1,n2,n3,basis);
     int ofs_j = n1*(n2-1);
     int ofs_k = n1*n2*(n3-1);
@@ -188,7 +188,7 @@ public:
   //! \copydoc NodalConstraintASMHelper::constrainEdge
   virtual void constrainEdge(int item, int comp, int basis, int idx)
   {
-    int n1, n2, n3, node = 1 + this->getStartNode(basis);
+    int n1{}, n2{}, n3{}, node = 1 + this->getStartNode(basis);
     static_cast<ASMs3D*>(bpch)->getSize(n1,n2,n3,basis);
 
     int inc = 1;
@@ -233,7 +233,7 @@ public:
   //! \copydoc NodalConstraintASMHelper::constrainFace
   virtual void constrainFace(int item, int comp, int basis, int idx)
   {
-    int n1, n2, n3, node = 1 + this->getStartNode(basis);
+    int n1{}, n2{}, n3{}, node = 1 + this->getStartNode(basis);
     static_cast<ASMs3D*>(bpch)->getSize(n1,n2,n3,basis);
 
     const std::vector<int> faceDir = {-1, 1, -2, 2, -3, 3};

@@ -1461,7 +1461,7 @@ BasisFunctionVals ASMs3DLag::BasisFunctionCache::calculatePt (size_t, size_t gp,
   std::array<size_t,3> gpIdx = this->gpIndex(gp,red);
   const Quadrature& q = red ? *reducedQ : *mainQ;
 
-  int p1, p2, p3;
+  int p1{}, p2{}, p3{};
   patch.getOrder(p1,p2,p3);
 
   BasisFunctionVals result;
@@ -1475,7 +1475,7 @@ BasisFunctionVals ASMs3DLag::BasisFunctionCache::calculatePt (size_t, size_t gp,
 
 void ASMs3DLag::BasisFunctionCache::calculateAll ()
 {
-  int i, j, k, p1, p2, p3;
+  int i, j, k, p1{}, p2{}, p3{};
   patch.getOrder(p1,p2,p3);
 
   // Evaluate basis function values and derivatives at all integration points.
