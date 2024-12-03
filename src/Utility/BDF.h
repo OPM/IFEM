@@ -86,16 +86,16 @@ namespace TimeIntegration //! Utilities for time integration.
     virtual ~BDFD2() {}
 
     //! \brief Initializes the coefficients for the specified \a order.
-    virtual void setOrder(int order);
+    void setOrder(int order) override;
 
     //! \brief Returns the degree for the time derivative approximation.
-    virtual int getDegree() const { return 2; }
+    int getDegree() const override { return 2; }
 
     //! \brief Advances the time stepping scheme.
-    virtual void advanceStep(double = 0.0, double = 0.0) { ++step; }
+    void advanceStep(double = 0.0, double = 0.0) override { ++step; }
 
     //! \brief Returns the BDF coefficients.
-    virtual const std::vector<double>& getCoefs() const;
+    const std::vector<double>& getCoefs() const override;
 
   protected:
     std::vector<double> coefs2; //!< BDF coefficients for second time step

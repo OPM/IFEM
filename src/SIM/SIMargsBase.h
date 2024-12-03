@@ -32,7 +32,7 @@ public:
 
 protected:
   //! \brief Parses a data section from an XML element.
-  virtual bool parse(const tinyxml2::XMLElement* elem);
+  bool parse(const tinyxml2::XMLElement* elem) override;
 
 private:
   const char* context; //!< Application-specific context tag
