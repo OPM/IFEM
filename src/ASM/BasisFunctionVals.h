@@ -46,7 +46,7 @@ class BasisValues : public std::vector<BasisFunctionVals>
 {
 public:
   //! \brief Constructor resizing to a given size.
-  BasisValues(size_t size) : std::vector<BasisFunctionVals>(size)
+  explicit BasisValues(size_t size) : std::vector<BasisFunctionVals>(size)
   {
     pointers.reserve(this->size());
     for (const BasisFunctionVals& val : *this)

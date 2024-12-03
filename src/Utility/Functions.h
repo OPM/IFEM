@@ -128,7 +128,7 @@ class RampFunc : public ScalarFunc
 
 public:
   //! \brief Constructor initializing the function parameters.
-  RampFunc(Real f = Real(1), Real x = Real(1)) : fval(f), xmax(x) {}
+  explicit RampFunc(Real f = Real(1), Real x = Real(1)) : fval(f), xmax(x) {}
 
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return fval == Real(0); }
@@ -155,7 +155,7 @@ class DiracFunc : public ScalarFunc
 
 public:
   //! \brief Constructor initializing the function parameters.
-  DiracFunc(Real a = Real(1), Real x = Real(0)) : amp(a), xmax(x) {}
+  explicit DiracFunc(Real a = Real(1), Real x = Real(0)) : amp(a), xmax(x) {}
 
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return amp == Real(0); }
@@ -200,7 +200,7 @@ class SineFunc : public ScalarFunc
 
 public:
   //! \brief Constructor initializing the function parameters.
-  SineFunc(Real s = Real(1), Real f = Real(1), Real p = Real(0))
+  explicit SineFunc(Real s = Real(1), Real f = Real(1), Real p = Real(0))
     : scale(s), freq(f), phase(p) {}
 
   //! \brief Returns whether the function is identically zero or not.
