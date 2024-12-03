@@ -47,9 +47,6 @@ protected:
                                                  m_mode(SIM::INIT) {}
 
 public:
-  //! \brief Empty destructor.
-  virtual ~IntegrandBase() {}
-
   //! \brief Parses a data section from an XML element.
   virtual bool parse(const tinyxml2::XMLElement*) { return false; }
 

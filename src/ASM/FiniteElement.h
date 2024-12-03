@@ -32,9 +32,6 @@ public:
   explicit FiniteElement(size_t n = 0, size_t i = 0) : ItgPoint(i), N(n), Te(3)
   { p = q = r = 0; h = 0.0; detJxW = 1.0; }
 
-  //! \brief Empty destructor.
-  virtual ~FiniteElement() {}
-
   //! \brief Returns the number of bases.
   virtual size_t getNoBasis() const { return 1; }
 
@@ -118,9 +115,6 @@ class MxFiniteElement : public FiniteElement
 public:
   //! \brief The constructor initializes the size of each basis.
   explicit MxFiniteElement(const std::vector<size_t>& n, size_t ip = 0);
-
-  //! \brief Empty destructor.
-  virtual ~MxFiniteElement() {}
 
   //! \brief Returns the number of bases.
   virtual size_t getNoBasis() const { return 1+M.size(); }
