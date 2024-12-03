@@ -906,7 +906,7 @@ namespace utl //! General utility classes and functions.
 
   protected:
     //! \brief Clears the content if the number of rows changed.
-    virtual void clearIfNrowChanged(size_t n1, size_t, size_t)
+    void clearIfNrowChanged(size_t n1, size_t, size_t) override
     {
       if (n1 != nrow) this->elem.clear();
     }

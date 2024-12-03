@@ -184,10 +184,10 @@ protected:
 
 public:
   //! \brief Returns the function type flag.
-  virtual unsigned char getType() const { return 1; }
+  unsigned char getType() const override { return 1; }
 
   //! \brief Returns the function value as an array.
-  virtual std::vector<Real> getValue(const Vec3& X) const
+  std::vector<Real> getValue(const Vec3& X) const override
   {
     return std::vector<Real>(1,this->evaluate(X));
   }
@@ -214,7 +214,7 @@ public:
   }
 
   //! \brief Returns a representative scalar equivalent of the function value.
-  virtual Real getScalarValue(const Vec3& X) const { return this->evaluate(X); }
+  Real getScalarValue(const Vec3& X) const override { return this->evaluate(X); }
 
   //! \brief Returns the time derivative of the function.
   Real timeDerivative(const Vec3& X) const { return this->deriv(X,4); }
@@ -236,16 +236,16 @@ protected:
 
 public:
   //! \brief Returns the function type flag.
-  virtual unsigned char getType() const { return 2; }
+  unsigned char getType() const override { return 2; }
 
   //! \brief Returns the function value as an array.
-  virtual std::vector<Real> getValue(const Vec3& X) const
+  std::vector<Real> getValue(const Vec3& X) const override
   {
     return this->evaluate(X).vec(ncmp);
   }
 
   //! \brief Returns a representative scalar equivalent of the function value.
-  virtual Real getScalarValue(const Vec3& X) const
+  Real getScalarValue(const Vec3& X) const override
   {
     return this->evaluate(X).length();
   }
