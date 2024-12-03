@@ -38,11 +38,11 @@ public:
   explicit ConstantFunc(Real v) : fval(v) {}
 
   //! \brief Returns whether the function is identically zero or not.
-  virtual bool isZero() const { return fval == Real(0); }
+  bool isZero() const override { return fval == Real(0); }
 
 protected:
   //! \brief Evaluates the constant function.
-  virtual Real evaluate(const Real&) const { return fval; }
+  Real evaluate(const Real&) const override { return fval; }
 };
 
 
@@ -73,16 +73,16 @@ public:
   LinearFunc(const std::vector<Real>& x, const std::vector<Real>& y);
 
   //! \brief Returns whether the function is identically zero or not.
-  virtual bool isZero() const;
+  bool isZero() const override;
   //! \brief Returns whether the function is constant or not.
-  virtual bool isConstant() const { return fvals.size() == 1; }
+  bool isConstant() const override { return fvals.size() == 1; }
 
   //! \brief Returns the first-derivative of the function.
-  virtual Real deriv(Real x) const;
+  Real deriv(Real x) const override;
 
 protected:
   //! \brief Evaluates the function at \a x.
-  virtual Real evaluate(const Real& x) const;
+  Real evaluate(const Real& x) const override;
 
 private:
   //! \brief Retuns the index of the first point after \a x.
@@ -107,13 +107,13 @@ public:
   explicit LinVecFunc(const char* file, int c = 2);
 
   //! \brief Returns whether the function is identically zero or not.
-  virtual bool isZero() const;
+  bool isZero() const override;
   //! \brief Returns whether the function is constant or not.
-  virtual bool isConstant() const { return fvals.size() == 1; }
+  bool isConstant() const override { return fvals.size() == 1; }
 
 protected:
   //! \brief Evaluates the function at \a x.
-  virtual Vec3 evaluate(const Real& x) const;
+  Vec3 evaluate(const Real& x) const override;
 };
 
 
@@ -131,16 +131,16 @@ public:
   explicit RampFunc(Real f = Real(1), Real x = Real(1)) : fval(f), xmax(x) {}
 
   //! \brief Returns whether the function is identically zero or not.
-  virtual bool isZero() const { return fval == Real(0); }
+  bool isZero() const override { return fval == Real(0); }
   //! \brief Returns whether the function is time-independent or not.
-  virtual bool isConstant() const { return xmax <= Real(0); }
+  bool isConstant() const override { return xmax <= Real(0); }
 
   //! \brief Returns the first-derivative of the function.
-  virtual Real deriv(Real x) const;
+  Real deriv(Real x) const override;
 
 protected:
   //! \brief Evaluates the function at \a x.
-  virtual Real evaluate(const Real& x) const;
+  Real evaluate(const Real& x) const override;
 };
 
 
@@ -158,11 +158,11 @@ public:
   explicit DiracFunc(Real a = Real(1), Real x = Real(0)) : amp(a), xmax(x) {}
 
   //! \brief Returns whether the function is identically zero or not.
-  virtual bool isZero() const { return amp == Real(0); }
+  bool isZero() const override { return amp == Real(0); }
 
 protected:
   //! \brief Evaluates the function at \a x.
-  virtual Real evaluate(const Real& x) const;
+  Real evaluate(const Real& x) const override;
 };
 
 
@@ -180,11 +180,11 @@ public:
   explicit StepFunc(Real a, Real x = Real(0)) : amp(a), xmax(x) {}
 
   //! \brief Returns whether the function is identically zero or not.
-  virtual bool isZero() const { return amp == Real(0); }
+  bool isZero() const override { return amp == Real(0); }
 
 protected:
   //! \brief Evaluates the function at \a x.
-  virtual Real evaluate(const Real& x) const;
+  Real evaluate(const Real& x) const override;
 };
 
 
@@ -204,16 +204,16 @@ public:
     : scale(s), freq(f), phase(p) {}
 
   //! \brief Returns whether the function is identically zero or not.
-  virtual bool isZero() const { return scale == Real(0); }
+  bool isZero() const override { return scale == Real(0); }
   //! \brief Returns whether the function is time-independent or not.
-  virtual bool isConstant() const { return this->isZero(); }
+  bool isConstant() const override { return this->isZero(); }
 
   //! \brief Returns the first-derivative of the function.
-  virtual Real deriv(Real x) const;
+  Real deriv(Real x) const override;
 
 protected:
   //! \brief Evaluates the function at \a x.
-  virtual Real evaluate(const Real& x) const;
+  Real evaluate(const Real& x) const override;
 };
 
 
@@ -230,11 +230,11 @@ public:
   explicit ConstFunc(Real v) : fval(v) {}
 
   //! \brief Returns whether the function is identically zero or not.
-  virtual bool isZero() const { return fval == Real(0); }
+  bool isZero() const override { return fval == Real(0); }
 
 protected:
   //! \brief Evaluates the constant function.
-  virtual Real evaluate(const Vec3&) const { return fval; }
+  Real evaluate(const Vec3&) const override { return fval; }
 };
 
 
@@ -253,16 +253,16 @@ public:
   virtual ~ConstTimeFunc() { delete tfunc; }
 
   //! \brief Returns whether the function is identically zero or not.
-  virtual bool isZero() const { return tfunc->isZero(); }
+  bool isZero() const override { return tfunc->isZero(); }
   //! \brief Returns whether the function is time-independent or not.
-  virtual bool isConstant() const { return tfunc->isConstant(); }
+  bool isConstant() const override { return tfunc->isConstant(); }
 
   //! \brief Returns first-derivative of the function.
-  virtual Real deriv(const Vec3& X, int dir) const;
+  Real deriv(const Vec3& X, int dir) const override;
 
 protected:
   //! \brief Evaluates the time-varying function.
-  virtual Real evaluate(const Vec3& X) const;
+  Real evaluate(const Vec3& X) const override;
 };
 
 
@@ -284,18 +284,18 @@ public:
   virtual ~SpaceTimeFunc() { delete sfunc; delete tfunc; }
 
   //! \brief Returns whether the function is identically zero or not.
-  virtual bool isZero() const { return sfunc->isZero() || tfunc->isZero(); }
+  bool isZero() const override { return sfunc->isZero() || tfunc->isZero(); }
   //! \brief Returns whether the function is time-independent or not.
-  virtual bool isConstant() const { return tfunc->isConstant(); }
+  bool isConstant() const override { return tfunc->isConstant(); }
 
   //! \brief Returns first-derivative of the function.
-  virtual Real deriv(const Vec3& X, int dir) const;
+  Real deriv(const Vec3& X, int dir) const override;
   //! \brief Returns second-derivative of the function.
-  virtual Real dderiv(const Vec3& X, int dir1, int dir2) const;
+  Real dderiv(const Vec3& X, int dir1, int dir2) const override;
 
 protected:
   //! \brief Evaluates the space-time function.
-  virtual Real evaluate(const Vec3& X) const;
+  Real evaluate(const Vec3& X) const override;
 };
 
 
@@ -313,14 +313,14 @@ public:
   explicit LinearXFunc(Real A, Real B = Real(0)) : a(A), b(B) {}
 
   //! \brief Returns whether the function is identically zero or not.
-  virtual bool isZero() const { return a == Real(0) && b == Real(0); }
+  bool isZero() const override { return a == Real(0) && b == Real(0); }
 
   //! \brief Returns first-derivative of the function.
-  virtual Real deriv(const Vec3&, int dir) const;
+  Real deriv(const Vec3&, int dir) const override;
 
 protected:
   //! \brief Evaluates the linear function.
-  virtual Real evaluate(const Vec3& X) const;
+  Real evaluate(const Vec3& X) const override;
 };
 
 
@@ -338,14 +338,14 @@ public:
   explicit LinearYFunc(Real A, Real B = Real(0)) : a(A), b(B) {}
 
   //! \brief Returns whether the function is identically zero or not.
-  virtual bool isZero() const { return a == Real(0) && b == Real(0); }
+  bool isZero() const override { return a == Real(0) && b == Real(0); }
 
   //! \brief Returns first-derivative of the function.
-  virtual Real deriv(const Vec3&, int dir) const;
+  Real deriv(const Vec3&, int dir) const override;
 
 protected:
   //! \brief Evaluates the linear function.
-  virtual Real evaluate(const Vec3& X) const;
+  Real evaluate(const Vec3& X) const override;
 };
 
 
@@ -363,14 +363,14 @@ public:
   explicit LinearZFunc(Real A, Real B = Real(0)) : a(A), b(B) {}
 
   //! \brief Returns whether the function is identically zero or not.
-  virtual bool isZero() const { return a == Real(0) && b == Real(0); }
+  bool isZero() const override { return a == Real(0) && b == Real(0); }
 
   //! \brief Returns first-derivative of the function.
-  virtual Real deriv(const Vec3&, int dir) const;
+  Real deriv(const Vec3&, int dir) const override;
 
 protected:
   //! \brief Evaluates the linear function.
-  virtual Real evaluate(const Vec3& X) const;
+  Real evaluate(const Vec3& X) const override;
 };
 
 
@@ -389,16 +389,16 @@ public:
   QuadraticXFunc(Real MAX, Real A, Real B) : max(MAX), a(A), b(B) {}
 
   //! \brief Returns whether the function is identically zero or not.
-  virtual bool isZero() const { return max == Real(0); }
+  bool isZero() const override { return max == Real(0); }
 
   //! \brief Returns first-derivative of the function.
-  virtual Real deriv(const Vec3& X, int dir) const;
+  Real deriv(const Vec3& X, int dir) const override;
   //! \brief Returns second-derivative of the function.
-  virtual Real dderiv(const Vec3&, int dir1, int dir2) const;
+  Real dderiv(const Vec3&, int dir1, int dir2) const override;
 
 protected:
   //! \brief Evaluates the quadratic function.
-  virtual Real evaluate(const Vec3& X) const;
+  Real evaluate(const Vec3& X) const override;
 };
 
 
@@ -417,16 +417,16 @@ public:
   QuadraticYFunc(Real MAX, Real A, Real B) : max(MAX), a(A), b(B) {}
 
   //! \brief Returns whether the function is identically zero or not.
-  virtual bool isZero() const { return max == Real(0); }
+  bool isZero() const override { return max == Real(0); }
 
   //! \brief Returns first-derivative of the function.
-  virtual Real deriv(const Vec3& X, int dir) const;
+  Real deriv(const Vec3& X, int dir) const override;
   //! \brief Returns second-derivative of the function.
-  virtual Real dderiv(const Vec3&, int dir1, int dir2) const;
+  Real dderiv(const Vec3&, int dir1, int dir2) const override;
 
 protected:
   //! \brief Evaluates the quadratic function.
-  virtual Real evaluate(const Vec3& X) const;
+  Real evaluate(const Vec3& X) const override;
 };
 
 
@@ -445,16 +445,16 @@ public:
   QuadraticZFunc(Real MAX, Real A, Real B) : max(MAX), a(A), b(B) {}
 
   //! \brief Returns whether the function is identically zero or not.
-  virtual bool isZero() const { return max == Real(0); }
+  bool isZero() const override { return max == Real(0); }
 
   //! \brief Returns first-derivative of the function.
-  virtual Real deriv(const Vec3& X, int dir) const;
+  Real deriv(const Vec3& X, int dir) const override;
   //! \brief Returns second-derivative of the function.
-  virtual Real dderiv(const Vec3&, int dir1, int dir2) const;
+  Real dderiv(const Vec3&, int dir1, int dir2) const override;
 
 protected:
   //! \brief Evaluates the quadratic function.
-  virtual Real evaluate(const Vec3& X) const;
+  Real evaluate(const Vec3& X) const override;
 };
 
 
@@ -483,16 +483,16 @@ public:
     : rX(retX), A(a), x0(x_0), y0(y_0) {}
 
   //! \brief Returns whether the function is identically zero or not.
-  virtual bool isZero() const { return A == Real(0); }
+  bool isZero() const override { return A == Real(0); }
   //! \brief Returns whether the function is time-independent or not.
-  virtual bool isConstant() const { return this->isZero(); }
+  bool isConstant() const override { return this->isZero(); }
 
   //! \brief Returns first-derivative of the function.
-  virtual Real deriv(const Vec3&, int dir) const;
+  Real deriv(const Vec3&, int dir) const override;
 
 protected:
   //! \brief Evaluates the rotation function.
-  virtual Real evaluate(const Vec3& X) const;
+  Real evaluate(const Vec3& X) const override;
 };
 
 
@@ -513,11 +513,11 @@ public:
     : fv(v), x0(a), x1(b), d(dir) {}
 
   //! \brief Returns whether the function is identically zero or not.
-  virtual bool isZero() const { return fv == Real(0); }
+  bool isZero() const override { return fv == Real(0); }
 
 protected:
   //! \brief Evaluates the step function.
-  virtual Real evaluate(const Vec3& X) const;
+  Real evaluate(const Vec3& X) const override;
 };
 
 
@@ -541,11 +541,11 @@ public:
     : fv(v), x0(X0), y0(Y0), x1(X1), y1(Y1) {}
 
   //! \brief Returns whether the function is identically zero or not.
-  virtual bool isZero() const { return fv == Real(0); }
+  bool isZero() const override { return fv == Real(0); }
 
 protected:
   //! \brief Evaluates the step function.
-  virtual Real evaluate(const Vec3& X) const;
+  Real evaluate(const Vec3& X) const override;
 };
 
 
@@ -578,16 +578,16 @@ public:
     : lfunc(xVal,yVal), dir(dir_), time(ramp) {}
 
   //! \brief Returns whether the function is identically zero or not.
-  virtual bool isZero() const { return lfunc.isZero(); }
+  bool isZero() const override { return lfunc.isZero(); }
   //! \brief Returns whether the function is time-independent or not.
-  virtual bool isConstant() const { return time <= Real(0); }
+  bool isConstant() const override { return time <= Real(0); }
 
   //! \brief Returns first-derivative of the function.
-  virtual Real deriv(const Vec3&, int ddir) const;
+  Real deriv(const Vec3&, int ddir) const override;
 
 protected:
   //! \brief Evaluates the function by interpolation.
-  virtual Real evaluate(const Vec3& X) const;
+  Real evaluate(const Vec3& X) const override;
 };
 
 
@@ -604,11 +604,11 @@ public:
   explicit ConstVecFunc(const Vec3& v) : fval(v) {}
 
   //! \brief Returns whether the function is identically zero or not.
-  virtual bool isZero() const { return fval.isZero(0.0); }
+  bool isZero() const override { return fval.isZero(0.0); }
 
 protected:
   //! \brief Evaluates the constant function.
-  virtual Vec3 evaluate(const Vec3&) const { return fval; }
+  Vec3 evaluate(const Vec3&) const override { return fval; }
 };
 
 

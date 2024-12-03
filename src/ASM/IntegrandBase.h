@@ -98,8 +98,8 @@ public:
   //! \param[in] nen Number of nodes on element
   //! \param[in] iEl Global element number (1-based)
   //! \param[in] neumann Whether or not we are assembling Neumann BCs
-  virtual LocalIntegral* getLocalIntegral(size_t nen, size_t iEl,
-                                          bool neumann) const;
+  LocalIntegral* getLocalIntegral(size_t nen, size_t iEl,
+                                  bool neumann) const override;
 
   //! \brief Initializes the primary solution vector for current element.
   //! \param[in] MNPC Matrix of nodal point correspondance for current element
@@ -114,51 +114,51 @@ public:
   //! integration loop over the Gaussian quadrature points over an element.
   //! It is supposed to perform all the necessary internal initializations
   //! needed before the numerical integration is started for current element.
-  virtual bool initElement(const std::vector<int>& MNPC, LocalIntegral& elmInt);
+  bool initElement(const std::vector<int>& MNPC, LocalIntegral& elmInt) override;
   //! \brief Initializes current element for numerical integration.
   //! \param[in] MNPC Matrix of nodal point correspondance for current element
   //! \param[in] fe Nodal and integration point data for current element
   //! \param[in] X0 Cartesian coordinates of the element center
   //! \param[in] nPt Number of integration points in this element
   //! \param elmInt Local integral for element
-  virtual bool initElement(const std::vector<int>& MNPC,
-                           const FiniteElement& fe,
-                           const Vec3& X0, size_t nPt, LocalIntegral& elmInt);
+  bool initElement(const std::vector<int>& MNPC,
+                   const FiniteElement& fe,
+                   const Vec3& X0, size_t nPt, LocalIntegral& elmInt) override;
   //! \brief Initializes current element for numerical integration (mixed).
   //! \param[in] MNPC Matrix of nodal point correspondance for current element
   //! \param[in] elem_sizes Size of each basis on the element
   //! \param[in] basis_sizes Size of each basis on the patch
   //! \param elmInt Local integral for element
-  virtual bool initElement(const std::vector<int>& MNPC,
-                           const std::vector<size_t>& elem_sizes,
-                           const std::vector<size_t>& basis_sizes,
-                           LocalIntegral& elmInt);
+  bool initElement(const std::vector<int>& MNPC,
+                   const std::vector<size_t>& elem_sizes,
+                   const std::vector<size_t>& basis_sizes,
+                   LocalIntegral& elmInt) override;
   //! \brief Initializes current element for numerical integration (mixed).
   //! \param[in] MNPC Matrix of nodal point correspondance for current element
   //! \param[in] fe Nodal and integration point data for current element
   //! \param[in] elem_sizes Size of each basis on the element
   //! \param[in] basis_sizes Size of each basis on the patch
   //! \param elmInt Local integral for element
-  virtual bool initElement(const std::vector<int>& MNPC,
-                           const MxFiniteElement& fe,
-                           const std::vector<size_t>& elem_sizes,
-                           const std::vector<size_t>& basis_sizes,
-                           LocalIntegral& elmInt);
+  bool initElement(const std::vector<int>& MNPC,
+                   const MxFiniteElement& fe,
+                   const std::vector<size_t>& elem_sizes,
+                   const std::vector<size_t>& basis_sizes,
+                   LocalIntegral& elmInt) override;
 
   //! \brief Initializes current element for boundary integration.
   //! \param[in] MNPC Matrix of nodal point correspondance for current element
   //! \param elmInt Local integral for element
-  virtual bool initElementBou(const std::vector<int>& MNPC,
-                              LocalIntegral& elmInt);
+  bool initElementBou(const std::vector<int>& MNPC,
+                      LocalIntegral& elmInt) override;
   //! \brief Initializes current element for boundary integration (mixed).
   //! \param[in] MNPC Matrix of nodal point correspondance for current element
   //! \param[in] elem_sizes Size of each basis on the element
   //! \param[in] basis_sizes Size of each basis on the patch
   //! \param elmInt Local integral for element
-  virtual bool initElementBou(const std::vector<int>& MNPC,
-                              const std::vector<size_t>& elem_sizes,
-                              const std::vector<size_t>& basis_sizes,
-                              LocalIntegral& elmInt);
+  bool initElementBou(const std::vector<int>& MNPC,
+                      const std::vector<size_t>& elem_sizes,
+                      const std::vector<size_t>& basis_sizes,
+                      LocalIntegral& elmInt) override;
 
   //! \brief Returns whether this integrand has explicit interior contributions.
   virtual bool hasInteriorTerms() const { return true; }
@@ -359,36 +359,36 @@ public:
 
   using Integrand::getLocalIntegral;
   //! \brief Returns a local integral container for the element \a iEl.
-  virtual LocalIntegral* getLocalIntegral(size_t, size_t iEl, bool) const;
+  LocalIntegral* getLocalIntegral(size_t, size_t iEl, bool) const override;
 
   //! \brief Initializes current element for numerical integration.
-  virtual bool initElement(const std::vector<int>& MNPC, LocalIntegral& elmInt);
+  bool initElement(const std::vector<int>& MNPC, LocalIntegral& elmInt) override;
   //! \brief Initializes current element for numerical integration.
-  virtual bool initElement(const std::vector<int>& MNPC,
-                           const FiniteElement& fe,
-                           const Vec3& X0, size_t nPt, LocalIntegral& elmInt);
+  bool initElement(const std::vector<int>& MNPC,
+                   const FiniteElement& fe,
+                   const Vec3& X0, size_t nPt, LocalIntegral& elmInt) override;
   //! \brief Initializes current element for numerical integration (mixed).
-  virtual bool initElement(const std::vector<int>& MNPC,
-                           const std::vector<size_t>& elem_sizes,
-                           const std::vector<size_t>& basis_sizes,
-                           LocalIntegral& elmInt);
+  bool initElement(const std::vector<int>& MNPC,
+                   const std::vector<size_t>& elem_sizes,
+                   const std::vector<size_t>& basis_sizes,
+                   LocalIntegral& elmInt) override;
   //! \brief Initializes current element for numerical integration (mixed).
-  virtual bool initElement(const std::vector<int>& MNPC,
-                           const MxFiniteElement&,
-                           const std::vector<size_t>& elem_sizes,
-                           const std::vector<size_t>& basis_sizes,
-                           LocalIntegral& elmInt)
+  bool initElement(const std::vector<int>& MNPC,
+                   const MxFiniteElement&,
+                   const std::vector<size_t>& elem_sizes,
+                   const std::vector<size_t>& basis_sizes,
+                   LocalIntegral& elmInt) override
   { return this->initElement(MNPC,elem_sizes,basis_sizes,elmInt); }
 
 
   //! \brief Initializes current element for boundary integration.
-  virtual bool initElementBou(const std::vector<int>& MNPC,
-                              LocalIntegral& elmInt);
+  bool initElementBou(const std::vector<int>& MNPC,
+                      LocalIntegral& elmInt) override;
   //! \brief Initializes current element for boundary integration (mixed).
-  virtual bool initElementBou(const std::vector<int>& MNPC,
-                              const std::vector<size_t>& elem_sizes,
-                              const std::vector<size_t>& basis_sizes,
-                              LocalIntegral& elmInt);
+  bool initElementBou(const std::vector<int>& MNPC,
+                      const std::vector<size_t>& elem_sizes,
+                      const std::vector<size_t>& basis_sizes,
+                      LocalIntegral& elmInt) override;
 
   //! \brief Returns whether this norm has explicit boundary contributions.
   virtual bool hasBoundaryTerms() const { return false; }
@@ -427,16 +427,16 @@ public:
   ASM::FinalNormOp getFinalOperation() { return finalOp; }
 
   //! \brief Defines which FE quantities are needed by the integrand.
-  virtual int getIntegrandType() const;
+  int getIntegrandType() const override;
   //! \brief Returns the number of reduced-order integration points.
-  virtual int getReducedIntegration(int n) const;
+  int getReducedIntegration(int n) const override;
 
   //! \brief Evaluates reduced integration terms at an interior point.
   //! \param elmInt The local integral object to receive the contributions
   //! \param[in] fe Finite element data of current integration point
   //! \param[in] X Cartesian coordinates of current integration point
-  virtual bool reducedInt(LocalIntegral& elmInt,
-                          const FiniteElement& fe, const Vec3& X) const;
+  bool reducedInt(LocalIntegral& elmInt,
+                  const FiniteElement& fe, const Vec3& X) const override;
 
   //! \brief Returns whether projections are fed through external means.
   virtual bool hasExternalProjections() const { return false; }
@@ -491,41 +491,41 @@ public:
 
   using Integrand::getLocalIntegral;
   //! \brief Returns a local integral container for the element \a iEl.
-  virtual LocalIntegral* getLocalIntegral(size_t, size_t iEl,
-                                          bool = false) const;
+  LocalIntegral* getLocalIntegral(size_t, size_t iEl,
+                                  bool = false) const override;
 
   //! \brief Dummy implementation (only boundary integration is relevant).
-  virtual bool initElement(const std::vector<int>&, LocalIntegral&)
+  bool initElement(const std::vector<int>&, LocalIntegral&) override
   { return false; }
 
   //! \brief Dummy implementation (only boundary integration is relevant).
-  virtual bool initElement(const std::vector<int>&, const FiniteElement&,
-                           const Vec3&, size_t, LocalIntegral&)
+  bool initElement(const std::vector<int>&, const FiniteElement&,
+                   const Vec3&, size_t, LocalIntegral&) override
   { return false; }
 
   //! \brief Dummy implementation (only boundary integration is relevant).
-  virtual bool initElement(const std::vector<int>&,
-                           const std::vector<size_t>&,
-                           const std::vector<size_t>&,
-                           LocalIntegral&)
+  bool initElement(const std::vector<int>&,
+                   const std::vector<size_t>&,
+                   const std::vector<size_t>&,
+                   LocalIntegral&) override
   { return false; }
 
   //! \brief Dummy implementation (only boundary integration is relevant).
-  virtual bool initElement(const std::vector<int>&,
-                           const MxFiniteElement&,
-                           const std::vector<size_t>&,
-                           const std::vector<size_t>&,
-                           LocalIntegral&)
+  bool initElement(const std::vector<int>&,
+                   const MxFiniteElement&,
+                   const std::vector<size_t>&,
+                   const std::vector<size_t>&,
+                   LocalIntegral&) override
   { return false; }
 
   //! \brief Initializes current element for boundary integration.
-  virtual bool initElementBou(const std::vector<int>& MNPC,
-                              LocalIntegral& elmInt);
+  bool initElementBou(const std::vector<int>& MNPC,
+                      LocalIntegral& elmInt) override;
   //! \brief Initializes current element for boundary integration (mixed).
-  virtual bool initElementBou(const std::vector<int>& MNPC,
-                              const std::vector<size_t>& elem_sizes,
-                              const std::vector<size_t>& basis_sizes,
-                              LocalIntegral& elmInt);
+  bool initElementBou(const std::vector<int>& MNPC,
+                      const std::vector<size_t>& elem_sizes,
+                      const std::vector<size_t>& basis_sizes,
+                      LocalIntegral& elmInt) override;
 
   //! \brief Returns the number of force components.
   virtual size_t getNoComps() const = 0;
