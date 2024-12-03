@@ -192,7 +192,7 @@ protected:
   //! \details Symmetric 3D tensors are assumed stored with the following order:
   //! s11, s22, s33, s12, s23, s13. Symmetric 2D tensors have the order
   //! s11, s22, s12 and if the 33 component is included: s11, s22, s33, s12.
-  virtual t_ind index(t_ind i, t_ind j) const
+  t_ind index(t_ind i, t_ind j) const override
   {
     if (i == j)
       return i-1; // diagonal term
@@ -204,7 +204,7 @@ protected:
   }
 
   //! \brief Prints out the lower triangle of the tensor to an output stream.
-  virtual std::ostream& print(std::ostream& os) const;
+  std::ostream& print(std::ostream& os) const override;
 
 public:
   //! \brief Constructor creating a zero tensor.
@@ -228,23 +228,23 @@ public:
   void copy(const SymmTensor& T);
 
   //! \brief Query whether this tensor is symmetric or not.
-  virtual bool symmetric() const { return true; }
+  bool symmetric() const override { return true; }
 
   //! \brief Transposes the symmetric tensor (i.e., does nothing).
-  virtual Tensor& transpose() { return *this; }
+  Tensor& transpose() override { return *this; }
   //! \brief Makes the symmetric tensor symmetric (i.e., does nothing).
-  virtual Tensor& symmetrize() { return *this; }
+  Tensor& symmetrize() override { return *this; }
 
   //! \brief Returns the trace of the symmetric tensor.
-  virtual Real trace() const;
+  Real trace() const override;
 
   //! \brief Returns the determinant of the symmetric tensor.
-  virtual Real det() const;
+  Real det() const override;
 
   //! \brief Inverts the symmetric tensor.
   //! \param[in] tol Division by zero tolerance
   //! \return Determinant of the tensor
-  virtual Real inverse(Real tol = Real(0));
+  Real inverse(Real tol = Real(0)) override;
 
   //! \brief Congruence transformation of a symmetric tensor.
   SymmTensor& transform(const Tensor& T);

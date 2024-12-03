@@ -18,6 +18,7 @@
 #include "TensorFunction.h"
 
 #include <array>
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <vector>
@@ -206,7 +207,7 @@ class EvalMultiFunction : public ParentFunc, public EvalFunctions<Scalar>
 
 public:
   //! \brief The constructor parses the expression string for each component.
-  EvalMultiFunction(const std::string& functions,
+  explicit EvalMultiFunction(const std::string& functions,
                     const std::string& variables = "",
                     const Real epsX = 1e-8,
                     const Real epsT = 1e-12)
@@ -218,10 +219,9 @@ public:
   //! \brief Returns whether the function is time-independent or not.
   bool isConstant() const override
   {
-    for (const std::unique_ptr<FuncType>& func : this->p)
-      if (!func->isConstant())
-        return false;
-    return true;
+    return std::all_of(this->p.begin(), this->p.end(),
+                       [](const std::unique_ptr<FuncType>& func)
+                       { return func->isConstant(); });
   }
 
   //! \brief Returns the function type flag.
