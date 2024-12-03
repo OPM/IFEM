@@ -101,9 +101,6 @@ namespace utl
     explicit SpatialFunction(const Result& val) : zero(val) {}
 
   public:
-    //! \brief Empty destructor.
-    virtual ~SpatialFunction() {}
-
     //! \brief Returns a first-derivative of the function.
     virtual Result deriv(const Vec3&, int) const { return zero; }
     //! \brief Returns a second-derivative of the function.
@@ -133,9 +130,6 @@ protected:
   ScalarFunc() {}
 
 public:
-  //! \brief Empty destructor.
-  virtual ~ScalarFunc() {}
-
   //! \brief Returns the first-derivative of the function.
   virtual Real deriv(Real) const { return Real(0); }
 };
@@ -189,9 +183,6 @@ protected:
   RealFunc() : utl::SpatialFunction<Real>(Real(0)) {}
 
 public:
-  //! \brief Empty destructor.
-  virtual ~RealFunc() {}
-
   //! \brief Returns the function type flag.
   virtual unsigned char getType() const { return 1; }
 
@@ -244,9 +235,6 @@ protected:
   }
 
 public:
-  //! \brief Empty destructor.
-  virtual ~VecFunc() {}
-
   //! \brief Returns the function type flag.
   virtual unsigned char getType() const { return 2; }
 
