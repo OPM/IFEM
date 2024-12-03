@@ -81,7 +81,7 @@ namespace TimeIntegration //! Utilities for time integration.
     //! \brief Default constructor.
     //! \param[in] order The order of the BDF scheme
     //! \param[in] step_ Initial step position
-    BDFD2(int order = 2, int step_ = 0) { this->setOrder(order); step = step_; }
+    explicit BDFD2(int order = 2, int step_ = 0) { this->setOrder(order); step = step_; }
     //! \brief Empty destructor.
     virtual ~BDFD2() {}
 

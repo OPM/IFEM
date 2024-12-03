@@ -206,10 +206,10 @@ class EvalMultiFunction : public ParentFunc, public EvalFunctions<Scalar>
 
 public:
   //! \brief The constructor parses the expression string for each component.
-  EvalMultiFunction(const std::string& functions,
-                    const std::string& variables = "",
-                    const Real epsX = 1e-8,
-                    const Real epsT = 1e-12)
+  explicit EvalMultiFunction(const std::string& functions,
+                             const std::string& variables = "",
+                             const Real epsX = 1e-8,
+                             const Real epsT = 1e-12)
     : EvalFunctions<Scalar>(functions,variables,epsX,epsT), nsd(0) { this->setNoDims(); }
 
   //! \brief Empty destructor.
