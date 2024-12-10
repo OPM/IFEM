@@ -71,12 +71,16 @@ public:
   virtual int getNodeSetIdx(const std::string& setName) const;
   //! \brief Returns an indexed predefined node set.
   virtual const IntVec& getNodeSet(int idx) const;
+  //! \brief Checks if a node is within a predefined node set.
+  virtual bool isInNodeSet(int idx, int iel) const;
   //! \brief Defines a node set by parsing a list of node numbers.
   virtual int parseNodeSet(const std::string& setName, const char* cset);
   //! \brief Defines a node set by parsing a 3D bounding box.
   virtual int parseNodeBox(const std::string& setName, const char* bbox);
   //! \brief Adds nodal index \a inod to the node set named \a setName.
   void addToNodeSet(const std::string& setName, int inod);
+  //! \brief Returns the name of an indexed predefined node set.
+  bool getNodeSet(int idx, std::string& name) const;
 
   //! \brief Returns (1-based) index of a predefined element set in the patch.
   virtual int getElementSetIdx(const std::string& setName) const;
@@ -88,6 +92,10 @@ public:
   virtual int parseElemSet(const std::string& setName, const char* cset);
   //! \brief Defines an element set by parsing a 3D bounding box.
   virtual int parseElemBox(const std::string& setName, const char* bbox);
+  //! \brief Adds an element \a eId to the element set named \a setName.
+  void addToElemSet(const std::string& setName, int eId);
+  //! \brief Returns the name of an indexed predefined element set.
+  bool getElementSet(int idx, std::string& name) const;
 
   //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
   //! \param[in] lIndex Local index of the boundary node set

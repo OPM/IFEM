@@ -122,6 +122,27 @@ const IntVec& ASMu2DLag::getNodeSet (int idx) const
 }
 
 
+bool ASMu2DLag::getNodeSet (int idx, std::string& name) const
+{
+  if (idx < 0 || idx > static_cast<int>(nodeSets.size()))
+    return false;
+  else if (nodeSets[idx-1].second.empty())
+    return false;
+
+  name = nodeSets[idx-1].first;
+  return true;
+}
+
+
+bool ASMu2DLag::isInNodeSet (int idx, int inod) const
+{
+  if (idx < 1 || idx > static_cast<int>(nodeSets.size()))
+    return false;
+
+  return utl::findIndex(nodeSets[idx-1].second,inod) >= 0;
+}
+
+
 int ASMu2DLag::parseNodeSet (const std::string& setName, const char* cset)
 {
   int idx = this->getNodeSetIdx(setName)-1;
@@ -223,6 +244,18 @@ const IntVec& ASMu2DLag::getElementSet (int idx) const
 }
 
 
+bool ASMu2DLag::getElementSet (int idx, std::string& name) const
+{
+  if (idx < 0 || idx > static_cast<int>(elemSets.size()))
+    return false;
+  else if (elemSets[idx-1].second.empty())
+    return false;
+
+  name = elemSets[idx-1].first;
+  return true;
+}
+
+
 bool ASMu2DLag::isInElementSet (int idx, int iel) const
 {
   if (idx < 1 || idx > static_cast<int>(elemSets.size()))
@@ -303,6 +336,25 @@ int ASMu2DLag::parseElemBox (const std::string& setName, const char* data)
 
   elemSets.emplace_back(setName,elems);
   return elemSets.size();
+}
+
+
+void ASMu2DLag::addToElemSet (const std::string& setName, int eId)
+{
+  int idx = this->getElementSetIdx(setName)-1;
+  if (idx < 0)
+  {
+    idx = elemSets.size();
+    elemSets.emplace_back(setName,IntVec());
+  }
+
+  // Transform to internal element index
+  int iel = this->getElmIndex(eId);
+  if (iel > 0)
+    elemSets[idx].second.push_back(iel);
+  else
+    IFEM::cout <<"  ** Warning: Non-existing element "<< eId
+               <<" in element set \""<< setName <<"\""<< std::endl;
 }
 
 

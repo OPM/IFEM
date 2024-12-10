@@ -273,6 +273,8 @@ public:
   virtual int getNodeSetIdx(const std::string&) const { return 0; }
   //! \brief Returns an indexed predefined node set.
   virtual const IntVec& getNodeSet(int) const { return Empty; }
+  //! \brief Checks if a node is within a predefined node set.
+  virtual bool isInNodeSet(int, int) const { return false; }
   //! \brief Defines a node set by parsing a list of node numbers.
   virtual int parseNodeSet(const std::string&, const char*) { return 0; }
   //! \brief Defines a node set by parsing a 3D bounding box.
