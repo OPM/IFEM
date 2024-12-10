@@ -290,14 +290,20 @@ int ASMu2DLag::parseElemSet (const std::string& setName, const char* cset)
 }
 
 
-int ASMu2DLag::parseElemBox (const std::string& setName, const char* data)
+int ASMu2DLag::parseElemBox (const std::string& setName,
+                             const std::string& unionSet, const char* data)
 {
+  int iuSet = unionSet.empty() ? 0 : this->getElementSetIdx(unionSet);
+
   Vec3 X0, X1;
   std::istringstream(data) >> X0 >> X1;
 
   // Lambda function for checking if an element is within the bounding box
-  auto&& isInside=[this,&X0,&X1](size_t iel)
+  auto&& isInside=[this,iuSet,&X0,&X1](size_t iel)
   {
+    if (iuSet > 0 && !this->isInElementSet(iuSet,1+iel))
+      return false; // Filter out all elements not in the set unionSet
+
     double nelnod = MNPC[iel].size();
     for (size_t j = 0; j < nsd; j++)
     {

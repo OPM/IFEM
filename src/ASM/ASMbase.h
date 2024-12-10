@@ -289,7 +289,8 @@ public:
   //! \brief Defines an element set by parsing a list of element numbers.
   virtual int parseElemSet(const std::string&, const char*) { return 0; }
   //! \brief Defines an element set by parsing a 3D bounding box.
-  virtual int parseElemBox(const std::string&, const char*) { return 0; }
+  virtual int parseElemBox(const std::string&, const std::string&,
+                           const char*) { return 0; }
 
   //! \brief Finds the node that is closest to the given point.
   virtual std::pair<size_t,double> findClosestNode(const Vec3&) const

@@ -291,7 +291,11 @@ bool SIMinput::parseGeometryTag (const tinyxml2::XMLElement* elem)
                 if (!child)
                   setIndex = pch->getElementSetIdx(name);
                 else if (utl::getAttribute(item,"type",type) && type == "bbox")
-                  setIndex = pch->parseElemBox(name,child->Value());
+                {
+                  std::string unionSet;
+                  utl::getAttribute(item,"union",unionSet);
+                  setIndex = pch->parseElemBox(name,unionSet,child->Value());
+                }
                 else
                   setIndex = pch->parseElemSet(name,child->Value());
                 if (setIndex > 0)

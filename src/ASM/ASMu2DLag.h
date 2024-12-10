@@ -91,7 +91,8 @@ public:
   //! \brief Defines an element set by parsing a list of element numbers.
   virtual int parseElemSet(const std::string& setName, const char* cset);
   //! \brief Defines an element set by parsing a 3D bounding box.
-  virtual int parseElemBox(const std::string& setName, const char* bbox);
+  virtual int parseElemBox(const std::string& setName,
+                           const std::string& unionSet, const char* bbox);
   //! \brief Adds an element \a eId to the element set named \a setName.
   void addToElemSet(const std::string& setName, int eId);
   //! \brief Returns the name of an indexed predefined element set.
