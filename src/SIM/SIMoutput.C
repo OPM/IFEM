@@ -1923,6 +1923,9 @@ bool SIMoutput::evalResults (const Vectors& psol, const ResPointVec& gPoints,
     // Extract primary solution variables, for nodal points only
     ok = patch->getSolution(tmp,myProblem->getSolution(),points);
 
+  if (ok) // Compute application-specific primary solution quantities, if any
+    myProblem->primaryScalarFields(tmp);
+
   if (!ok || !augment(sol1,tmp))
     return false;
 
