@@ -130,7 +130,7 @@ endif()
 
 add_app(SIMRA-PostProc HAVE_POSTPROC)
 add_app(HM HAVE_HM)
-add_app(Costa HAVE_COSTA)
+add_app(CoSTA HAVE_COSTA)
 add_app(Burgers HAVE_BURGERS)
 
 # Add 'check' target which builds all test applications, then executes the tests
