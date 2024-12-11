@@ -101,9 +101,6 @@ namespace utl
     explicit SpatialFunction(const Result& val) : zero(val) {}
 
   public:
-    //! \brief Empty destructor.
-    virtual ~SpatialFunction() {}
-
     //! \brief Returns a first-derivative of the function.
     virtual Result deriv(const Vec3&, int) const { return zero; }
     //! \brief Returns a second-derivative of the function.
@@ -133,9 +130,6 @@ protected:
   ScalarFunc() {}
 
 public:
-  //! \brief Empty destructor.
-  virtual ~ScalarFunc() {}
-
   //! \brief Returns the first-derivative of the function.
   virtual Real deriv(Real) const { return Real(0); }
 };
@@ -189,14 +183,11 @@ protected:
   RealFunc() : utl::SpatialFunction<Real>(Real(0)) {}
 
 public:
-  //! \brief Empty destructor.
-  virtual ~RealFunc() {}
-
   //! \brief Returns the function type flag.
-  virtual unsigned char getType() const { return 1; }
+  unsigned char getType() const override { return 1; }
 
   //! \brief Returns the function value as an array.
-  virtual std::vector<Real> getValue(const Vec3& X) const
+  std::vector<Real> getValue(const Vec3& X) const override
   {
     return std::vector<Real>(1,this->evaluate(X));
   }
@@ -223,7 +214,7 @@ public:
   }
 
   //! \brief Returns a representative scalar equivalent of the function value.
-  virtual Real getScalarValue(const Vec3& X) const { return this->evaluate(X); }
+  Real getScalarValue(const Vec3& X) const override { return this->evaluate(X); }
 
   //! \brief Returns the time derivative of the function.
   Real timeDerivative(const Vec3& X) const { return this->deriv(X,4); }
@@ -244,20 +235,17 @@ protected:
   }
 
 public:
-  //! \brief Empty destructor.
-  virtual ~VecFunc() {}
-
   //! \brief Returns the function type flag.
-  virtual unsigned char getType() const { return 2; }
+  unsigned char getType() const override { return 2; }
 
   //! \brief Returns the function value as an array.
-  virtual std::vector<Real> getValue(const Vec3& X) const
+  std::vector<Real> getValue(const Vec3& X) const override
   {
     return this->evaluate(X).vec(ncmp);
   }
 
   //! \brief Returns a representative scalar equivalent of the function value.
-  virtual Real getScalarValue(const Vec3& X) const
+  Real getScalarValue(const Vec3& X) const override
   {
     return this->evaluate(X).length();
   }

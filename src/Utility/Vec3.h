@@ -289,7 +289,7 @@ public:
   }
 
   //! \brief Print out a vector.
-  virtual std::ostream& print(std::ostream& os, double tol = 1.0e-12) const
+  std::ostream& print(std::ostream& os, double tol = 1.0e-12) const override
   {
     if (idx >= 0) os <<"(idx="<< idx <<") ";
     this->Vec3::print(os,tol);

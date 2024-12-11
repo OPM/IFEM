@@ -129,7 +129,7 @@ void ASMs2D::copyParameterDomain (const ASMbase* other)
   const ASMs2D* o = dynamic_cast<const ASMs2D*>(other);
   if (!o) return;
 
-  Go::RectDomain pd = o->getBasis()->parameterDomain();
+  const Go::RectDomain& pd = o->getBasis()->parameterDomain();
   this->getBasis()->setParameterDomain(pd.umin(),pd.umax(),pd.vmin(),pd.vmax());
 }
 
@@ -2308,7 +2308,7 @@ bool ASMs2D::integrate (Integrand& integrand,
             if (edgeDir < 0) normal *= -1.0;
 
             // Store tangent vectors in fe.G for shells
-            if (nsd > 2) fe.G = Jac;
+            if (nsd > 2) fe.G = std::move(Jac);
 
             // Cartesian coordinates of current integration point
             X.assign(Xnod * fe.N);
@@ -3009,7 +3009,7 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
       utl::Hessian2(fe.d3NdX3,Jac,d3Ndu3);
 
     // Store tangent vectors in fe.G for shells
-    if (nsd > 2) fe.G = Jac;
+    if (nsd > 2) fe.G = std::move(Jac);
 
 #if SP_DEBUG > 4
     std::cout <<"\n"<< fe;
@@ -3361,7 +3361,7 @@ void ASMs2D::BasisFunctionCache::internalCleanup ()
 
 bool ASMs2D::BasisFunctionCache::setupQuadrature ()
 {
-  int p[3];
+  int p[3]{};
   patch.getOrder(p[0],p[1],p[2]);
 
   // Get Gaussian quadrature points and weights
