@@ -2409,12 +2409,12 @@ void ASMu3D::generateThreadGroupsFromElms (const IntVec& elms)
 
 
 void ASMu3D::extractElmRes (const Matrix& globRes, Matrix& elmRes,
-                            bool internalOrder) const
+                            size_t internalFirst) const
 {
   if (outputMaster)
-    outputMaster->extractElmRes(globRes, elmRes, internalOrder);
+    outputMaster->extractElmRes(globRes, elmRes, internalFirst);
   else
-    this->ASMbase::extractElmRes(globRes, elmRes, internalOrder);
+    this->ASMbase::extractElmRes(globRes, elmRes, internalFirst);
 }
 
 

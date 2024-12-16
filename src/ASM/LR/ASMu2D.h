@@ -249,10 +249,9 @@ public:
   //! \brief Extracts element results for this patch from a global vector.
   //! \param[in] globRes Global matrix of element results
   //! \param[out] elmRes Element results for this patch
-  //! \param[in] internalOrder If \e true, the data in \a globRes are assumed to
-  //! be ordered w.r.t. the internal element ordering
+  //! \param[in] internalFirst Global index of first element in the patch
   virtual void extractElmRes(const Matrix& globRes, Matrix& elmRes,
-                             bool internalOrder = false) const;
+                             size_t internalFirst) const;
 
   // Various methods for preprocessing of boundary conditions and patch topology
   // ===========================================================================

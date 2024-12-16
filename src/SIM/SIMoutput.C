@@ -720,9 +720,9 @@ bool SIMoutput::writeGlvBC (int& nBlock, int iStep) const
 
 bool SIMoutput::writeGlvNo (int& nBlock, int iStep, int idBlock) const
 {
-  Vector elm(this->getNoElms(false));
-  std::iota(elm.begin(),elm.end(),1.0);
-  if (!this->writeGlvE(elm,iStep,nBlock,"Global element numbers",idBlock++))
+  Vector e(this->getNoElms(false));
+  std::iota(e.begin(),e.end(),1.0);
+  if (!this->writeGlvE(e,iStep,nBlock,"Global element numbers",idBlock++,true))
     return false;
 
   Vector scl(this->getNoNodes());
@@ -1530,23 +1530,33 @@ bool SIMoutput::writeGlvE (const Vector& vec, int iStep, int& nBlock,
   Vector field;
   IntVec sID;
 
+  size_t firstIndex = internalOrder ? 1 : 0;
+
   int geomID = myGeomID;
   for (const ASMbase* pch : myModel)
   {
     if (pch->empty()) continue; // skip empty patches
 
+    ++geomID;
+    pch->extractElmRes(vec,field,firstIndex);
+    if (internalOrder)
+    {
+      firstIndex += pch->getNoElms(true);
+      if (field.norm2() < 1.0e-12)
+        continue; // skip patches without non-zero data
+    }
+
     if (msgLevel > 1)
       IFEM::cout <<"Writing element field '"<< name <<"' for patch "
                  << pch->idx+1 << std::endl;
 
-    pch->extractElmRes(vec,field,internalOrder);
-    if (!myVtf->writeEres(field,++nBlock,++geomID))
+    if (!myVtf->writeEres(field,++nBlock,geomID))
       return false;
 
     sID.push_back(nBlock);
   }
 
-  return myVtf->writeSblk(sID,name,idBlock,iStep,true);
+  return sID.empty() ? true : myVtf->writeSblk(sID,name,idBlock,iStep,true);
 }
 
 

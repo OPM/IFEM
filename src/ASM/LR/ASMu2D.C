@@ -3018,12 +3018,12 @@ void ASMu2D::storeMesh (const std::string& fName, int fType) const
 
 
 void ASMu2D::extractElmRes (const Matrix& globRes, Matrix& elmRes,
-                            bool internalOrder) const
+                            size_t internalFirst) const
 {
   if (outputMaster)
-    outputMaster->extractElmRes(globRes, elmRes, internalOrder);
+    outputMaster->extractElmRes(globRes, elmRes, internalFirst);
   else
-    this->ASMbase::extractElmRes(globRes, elmRes, internalOrder);
+    this->ASMbase::extractElmRes(globRes, elmRes, internalFirst);
 }
 
 
