@@ -1523,7 +1523,10 @@ void ASMs2D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
 
 bool ASMs2D::getOrder (int& p1, int& p2) const
 {
-  if (!surf) return false;
+  if (!surf) {
+    p1 = p2 = 0;
+    return false;
+  }
 
   p1 = surf->order_u();
   p2 = surf->order_v();
@@ -1547,7 +1550,10 @@ bool ASMs2D::getSize (int& n1, int& n2, int& n3, int basis) const
 
 bool ASMs2D::getSize (int& n1, int& n2, int) const
 {
-  if (!surf) return false;
+  if (!surf) {
+    n1 = n2 = 0;
+    return false;
+  }
 
   n1 = surf->numCoefs_u();
   n2 = surf->numCoefs_v();
