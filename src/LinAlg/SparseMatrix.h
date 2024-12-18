@@ -172,7 +172,7 @@ public:
   //! correspond to the equation ordering from the provided \a sam object.
   bool assembleCol(Real val, const SAM& sam, int n, size_t col)
   {
-    return this->assembleCol({val},sam,n,col);
+    return this->assembleCol(RealArray(1,val),sam,n,col);
   }
 
   //! \brief Augments a similar matrix symmetrically to the current matrix.
