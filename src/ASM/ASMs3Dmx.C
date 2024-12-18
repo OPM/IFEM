@@ -451,8 +451,10 @@ bool ASMs3Dmx::getSize (int& n1, int& n2, int& n3, int basis) const
   if (basis == 0)
     return this->ASMs3D::getSize(n1,n2,n3);
 
-  if (basis < 1 || basis > (int)m_basis.size())
+  if (basis < 1 || basis > static_cast<int>(m_basis.size())) {
+    n1 = n2 = n3 = 0;
     return false;
+  }
 
   n1 = m_basis[basis-1]->numCoefs(0);
   n2 = m_basis[basis-1]->numCoefs(1);

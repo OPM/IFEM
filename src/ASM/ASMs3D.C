@@ -1879,7 +1879,10 @@ void ASMs3D::getBoundary1Nodes (int lEdge, IntVec& nodes,
 
 bool ASMs3D::getOrder (int& p1, int& p2, int& p3) const
 {
-  if (!svol) return false;
+  if (!svol) {
+    p1 = p2 = p3 = 0;
+    return false;
+  }
 
   p1 = svol->order(0);
   p2 = svol->order(1);
@@ -1890,7 +1893,10 @@ bool ASMs3D::getOrder (int& p1, int& p2, int& p3) const
 
 bool ASMs3D::getSize (int& n1, int& n2, int& n3, int) const
 {
-  if (!svol) return false;
+  if (!svol) {
+    n1 = n2 = n3 = 0;
+    return false;
+  }
 
   n1 = svol->numCoefs(0);
   n2 = svol->numCoefs(1);
