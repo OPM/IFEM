@@ -13,6 +13,7 @@
 #ifndef SIM_EXPLICIT_RK_H_
 #define SIM_EXPLICIT_RK_H_
 
+#include "SIMadmin.h"
 #include "SIMenums.h"
 #include "TimeIntUtils.h"
 #include "TimeStep.h"
@@ -22,10 +23,10 @@ class DataExporter;
 
 namespace TimeIntegration {
 
-  //! \brief Explicit Runge-Kutta based time stepping for SIM classes
-  //! \details Template can be instanced over any SIM implementing ISolver,
-  //            and which derive from SIMbase.
-  template<class Solver>
+//! \brief Explicit Runge-Kutta based time stepping for SIM classes
+//! \details Template can be instanced over any SIM implementing ISolver,
+//!          and which derive from SIMbase.
+template<class Solver>
 class SIMExplicitRK
 {
 public:
