@@ -327,12 +327,12 @@ bool MultiPatchModelGenerator2D::createGeometry (SIMinput& sim) const
   const tinyxml2::XMLElement* sub = geo->FirstChildElement("subdivision")->FirstChildElement();
   for (; sub; sub = sub->NextSiblingElement())
     if (strcasecmp(sub->Value(),"raiseorder") == 0) {
-      int nu, nv;
+      int nu = 0, nv = 0;
       utl::getAttribute(sub,"u",nu);
       utl::getAttribute(sub,"v",nv);
       pch.raiseOrder(nu,nv);
     } else if (strcasecmp(sub->Value(),"refine") == 0) {
-      int nu, nv;
+      int nu = 0, nv = 0;
       utl::getAttribute(sub,"u",nu);
       utl::getAttribute(sub,"v",nv);
       pch.uniformRefine(0,nu);
@@ -645,13 +645,13 @@ bool MultiPatchModelGenerator3D::createGeometry (SIMinput& sim) const
   const tinyxml2::XMLElement* sub = geo->FirstChildElement("subdivision")->FirstChildElement();
   for (; sub; sub = sub->NextSiblingElement())
     if (strcasecmp(sub->Value(),"raiseorder") == 0) {
-      int nu, nv, nw;
+      int nu = 0, nv = 0, nw = 0;
       utl::getAttribute(sub,"u",nu);
       utl::getAttribute(sub,"v",nv);
       utl::getAttribute(sub,"w",nw);
       pch.raiseOrder(nu,nv,nw);
     } else if (strcasecmp(sub->Value(),"refine") == 0) {
-      int nu, nv, nw;
+      int nu = 0, nv = 0, nw = 0;
       utl::getAttribute(sub,"u",nu);
       utl::getAttribute(sub,"v",nv);
       utl::getAttribute(sub,"w",nw);

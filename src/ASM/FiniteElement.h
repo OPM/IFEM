@@ -32,9 +32,6 @@ public:
   explicit FiniteElement(size_t n = 0, size_t i = 0) : ItgPoint(i), N(n), Te(3)
   { p = q = r = 0; h = 0.0; detJxW = 1.0; }
 
-  //! \brief Empty destructor.
-  virtual ~FiniteElement() {}
-
   //! \brief Returns the number of bases.
   virtual size_t getNoBasis() const { return 1; }
 
@@ -119,23 +116,20 @@ public:
   //! \brief The constructor initializes the size of each basis.
   explicit MxFiniteElement(const std::vector<size_t>& n, size_t ip = 0);
 
-  //! \brief Empty destructor.
-  virtual ~MxFiniteElement() {}
-
   //! \brief Returns the number of bases.
-  virtual size_t getNoBasis() const { return 1+M.size(); }
+  size_t getNoBasis() const override { return 1+M.size(); }
 
   //! \brief Returns a const reference to the basis function values.
-  virtual const Vector& basis(char b) const { return b < 2 ? N : M[b-2]; }
+  const Vector& basis(char b) const override { return b < 2 ? N : M[b-2]; }
   //! \brief Returns a reference to the basis function values.
-  virtual Vector& basis(char b) { return b < 2 ? N : M[b-2]; }
+  Vector& basis(char b) override { return b < 2 ? N : M[b-2]; }
 
   //! \brief Returns a const reference to the basis function derivatives.
-  virtual const Matrix& grad(char b) const { return b < 2 ? dNdX : dMdX[b-2]; }
+  const Matrix& grad(char b) const override { return b < 2 ? dNdX : dMdX[b-2]; }
   //! \brief Returns a const reference to the basis function 2nd-derivatives.
-  virtual const Matrix3D& hess(char b) const { return b < 2 ? d2NdX2 : d2MdX2[b-2]; }
+  const Matrix3D& hess(char b) const override { return b < 2 ? d2NdX2 : d2MdX2[b-2]; }
   //! \brief Returns a const reference to the basis function 3rd-derivatives.
-  virtual const Matrix4D& hess2(char b) const { return b < 2 ? d3NdX3 : d3MdX3[b-2]; }
+  const Matrix4D& hess2(char b) const override { return b < 2 ? d3NdX3 : d3MdX3[b-2]; }
 
   //! \brief Sets up the Jacobian matrix of the coordinate mapping.
   //! \param[out] Jac The inverse of the Jacobian matrix
@@ -198,12 +192,12 @@ protected:
                      const Matrix& Xnod, const BasisValuesPtrs& bfs);
 
   //! \brief Returns a reference to the basis function derivatives.
-  virtual Matrix& grad(char b) { return b < 2 ? dNdX : dMdX[b-2]; }
+  Matrix& grad(char b) override { return b < 2 ? dNdX : dMdX[b-2]; }
   //! \brief Returns a reference to the basis function 2nd-derivatives.
-  virtual Matrix3D& hess(char b) { return b < 2 ? d2NdX2 : d2MdX2[b-2]; }
+  Matrix3D& hess(char b) override { return b < 2 ? d2NdX2 : d2MdX2[b-2]; }
 
   //! \brief Writes the finite element object to the given output stream.
-  virtual std::ostream& write(std::ostream& os) const;
+  std::ostream& write(std::ostream& os) const override;
 
 private:
   std::vector<Vector>     M;    //!< Basis function values

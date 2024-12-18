@@ -615,7 +615,7 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
         if (edgeDir < 0) normal *= -1.0;
 
         // Store tangent vectors in fe.G for shells
-        if (nsd > 2) fe.G = Jac;
+        if (nsd > 2) fe.G = std::move(Jac);
 
         // Cartesian coordinates of current integration point
         X.assign(fe.Xn * fe.N);
@@ -855,7 +855,7 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     if (fe.detJxW == 0.0) continue; // skip singular points
 
     // Store tangent vectors in fe.G for shells
-    if (nsd > 2) fe.G = Jac;
+    if (nsd > 2) fe.G = std::move(Jac);
 
     // Now evaluate the solution field
     if (!integrand.evalSol(solPt,fe,fe.Xn*fe.N,MNPC[iel-1]))

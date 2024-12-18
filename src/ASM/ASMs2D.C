@@ -129,7 +129,7 @@ void ASMs2D::copyParameterDomain (const ASMbase* other)
   const ASMs2D* o = dynamic_cast<const ASMs2D*>(other);
   if (!o) return;
 
-  Go::RectDomain pd = o->getBasis()->parameterDomain();
+  const Go::RectDomain& pd = o->getBasis()->parameterDomain();
   this->getBasis()->setParameterDomain(pd.umin(),pd.umax(),pd.vmin(),pd.vmax());
 }
 
@@ -1523,7 +1523,10 @@ void ASMs2D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
 
 bool ASMs2D::getOrder (int& p1, int& p2) const
 {
-  if (!surf) return false;
+  if (!surf) {
+    p1 = p2 = 0;
+    return false;
+  }
 
   p1 = surf->order_u();
   p2 = surf->order_v();
@@ -1547,7 +1550,10 @@ bool ASMs2D::getSize (int& n1, int& n2, int& n3, int basis) const
 
 bool ASMs2D::getSize (int& n1, int& n2, int) const
 {
-  if (!surf) return false;
+  if (!surf) {
+    n1 = n2 = 0;
+    return false;
+  }
 
   n1 = surf->numCoefs_u();
   n2 = surf->numCoefs_v();
@@ -2308,7 +2314,7 @@ bool ASMs2D::integrate (Integrand& integrand,
             if (edgeDir < 0) normal *= -1.0;
 
             // Store tangent vectors in fe.G for shells
-            if (nsd > 2) fe.G = Jac;
+            if (nsd > 2) fe.G = std::move(Jac);
 
             // Cartesian coordinates of current integration point
             X.assign(Xnod * fe.N);
@@ -3009,7 +3015,7 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
       utl::Hessian2(fe.d3NdX3,Jac,d3Ndu3);
 
     // Store tangent vectors in fe.G for shells
-    if (nsd > 2) fe.G = Jac;
+    if (nsd > 2) fe.G = std::move(Jac);
 
 #if SP_DEBUG > 4
     std::cout <<"\n"<< fe;
