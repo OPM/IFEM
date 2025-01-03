@@ -222,6 +222,17 @@ void EqualOrderOperators::Weak::Mass (Matrix& EM, const FiniteElement& fe,
 }
 
 
+void EqualOrderOperators::Weak::ItgConstraint (Matrix& EM, const FiniteElement& fe,
+                                               double scale, int basis)
+{
+  const size_t ncmp = EM.rows() / fe.basis(basis).size();
+  Matrix A(fe.basis(basis).size(), 1);
+  A = fe.basis(basis);
+  A *= scale*fe.detJxW;
+  addComponents(EM, A, ncmp, ncmp, 0);
+}
+
+
 void EqualOrderOperators::Weak::Source (Vector& EV,
                                         const FiniteElement& fe,
                                         double scale, int cmp, int basis)
