@@ -118,6 +118,14 @@ public:
     static void LaplacianCoeff(Matrix& EM, const Matrix& K, const FiniteElement& fe,
                                double scale=1.0, int basis=1);
 
+    //! \brief Compute an integration constraint.
+    //! \param[out] EM The element matrix to add contribution to
+    //! \param[in] fe The finite element to evaluate for
+    //! \param[in] scale Scaling factor for contribution
+    //! \param[in] basis Basis to use
+    static void ItgConstraint(Matrix& EM, const FiniteElement& fe,
+                              double scale = 1.0, int basis = 1);
+
     //! \brief Compute a mass term.
     //! \param[out] EM The element matrix to add contribution to
     //! \param[in] fe The finite element to evaluate for
