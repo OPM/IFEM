@@ -18,9 +18,9 @@
 namespace {
 
 //! \brief Block indices for velocity blocks.
-static constexpr int vidx[3][3] = {{ 1,  7,  8},
-                                     {12,  2, 13},
-                                     {17, 18,  3}};
+static constexpr int vidx[3][3] = {{ 1, 10, 11},
+                                   {18,  2, 19},
+                                   {26, 27,  3}};
 
 
 void AdvectionConvInt (Matrix& C,
@@ -93,7 +93,7 @@ void PiolaOperators::Weak::Gradient (Matrices& EM,
     size_t ofs = 0;
     for (size_t b = 1; b <= nsd; ++b) {
       for (size_t i = 1; i <= fe.basis(b).size(); ++i)
-        EM[9 + 5*(b-1)](i,j) -= D(i+ofs,j) * scale * fe.detJxW;
+        EM[12 + 8*(b-1)](i,j) -= D(i+ofs,j) * scale * fe.detJxW;
       ofs += fe.basis(b).size();
     }
   }
