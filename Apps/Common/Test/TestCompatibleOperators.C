@@ -149,9 +149,9 @@ TEST(TestCompatibleOperators, Laplacian)
   std::vector<Matrix> EM_stress(36);
 
   EM_stress[1].resize(6,6);
-  EM_stress[7].resize(6,6);
-  EM_stress[12].resize(6,6);
   EM_stress[2].resize(6,6);
+  EM_stress[10].resize(6,6);
+  EM_stress[18].resize(6,6);
 
   CompatibleOperators::Weak::Laplacian(EM_stress, fe, 1.0, true);
   std::cout << EM_stress[1] << std::endl;

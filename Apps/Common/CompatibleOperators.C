@@ -18,9 +18,9 @@
 
 namespace {
   //! \brief Block indices for velocity blocks.
-  static constexpr int vidx[3][3] = {{ 1,  7,  8},
-                                     {12,  2, 13},
-                                     {17, 18,  3}};
+  static constexpr int vidx[3][3] = {{ 1, 10, 11},
+                                     {18,  2, 19},
+                                     {26, 27,  3}};
 }
 
 
@@ -89,7 +89,7 @@ void CompatibleOperators::Weak::Gradient(std::vector<Matrix>& EM,
 {
   size_t nsd = fe.grad(1).cols();
   for (size_t n = 1; n <= nsd; ++n)
-    EM[9+5*(n-1)].outer_product(fe.grad(n).getColumn(n), fe.basis(nsd+1),
+    EM[12+8*(n-1)].outer_product(fe.grad(n).getColumn(n), fe.basis(nsd+1),
                                 true, -scale*fe.detJxW);
 }
 
