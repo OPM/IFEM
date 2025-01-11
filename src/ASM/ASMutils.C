@@ -132,7 +132,7 @@ bool ASM::readMatlab (std::istream& is, IntMat& MNPC, std::vector<Vec3>& nodes,
         std::cout << std::endl;
 #endif
         std::getline(is,cline);
-        nodeSets.push_back(std::make_pair(setname,nodes));
+        nodeSets.emplace_back(setname,nodes);
       }
     }
 
@@ -255,7 +255,7 @@ bool ASM::readXML (std::istream& is, IntMat& MNPC, std::vector<Vec3>& nodes,
         for (int n : nodes) std::cout <<" "<< n;
         std::cout << std::endl;
 #endif
-        nset->push_back(std::make_pair(name,nodes));
+        nset->emplace_back(name,nodes);
       }
     }
 
