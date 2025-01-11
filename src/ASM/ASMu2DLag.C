@@ -102,57 +102,57 @@ bool ASMu2DLag::generateFEMTopology ()
 
 int ASMu2DLag::getNodeSetIdx (const std::string& setName) const
 {
-  int idx = 1;
+  int iset = 1;
   for (const ASM::NodeSet& ns : nodeSets)
     if (ns.first == setName)
-      return idx;
+      return iset;
     else
-      ++idx;
+      ++iset;
 
   return 0;
 }
 
 
-const IntVec& ASMu2DLag::getNodeSet (int idx) const
+const IntVec& ASMu2DLag::getNodeSet (int iset) const
 {
-  if (idx > 0 && idx <= static_cast<int>(nodeSets.size()))
-    return nodeSets[idx-1].second;
+  if (iset > 0 && iset <= static_cast<int>(nodeSets.size()))
+    return nodeSets[iset-1].second;
 
-  return this->ASMbase::getNodeSet(idx);
+  return this->ASMbase::getNodeSet(iset);
 }
 
 
-bool ASMu2DLag::getNodeSet (int idx, std::string& name) const
+bool ASMu2DLag::getNodeSet (int iset, std::string& name) const
 {
-  if (idx < 0 || idx > static_cast<int>(nodeSets.size()))
+  if (iset < 0 || iset > static_cast<int>(nodeSets.size()))
     return false;
-  else if (nodeSets[idx-1].second.empty())
+  else if (nodeSets[iset-1].second.empty())
     return false;
 
-  name = nodeSets[idx-1].first;
+  name = nodeSets[iset-1].first;
   return true;
 }
 
 
-bool ASMu2DLag::isInNodeSet (int idx, int inod) const
+bool ASMu2DLag::isInNodeSet (int iset, int inod) const
 {
-  if (idx < 1 || idx > static_cast<int>(nodeSets.size()))
+  if (iset < 1 || iset > static_cast<int>(nodeSets.size()))
     return false;
 
-  return utl::findIndex(nodeSets[idx-1].second,inod) >= 0;
+  return utl::findIndex(nodeSets[iset-1].second,inod) >= 0;
 }
 
 
 int ASMu2DLag::parseNodeSet (const std::string& setName, const char* cset)
 {
-  int idx = this->getNodeSetIdx(setName)-1;
-  if (idx < 0)
+  int iset = this->getNodeSetIdx(setName)-1;
+  if (iset < 0)
   {
-    idx = nodeSets.size();
+    iset = nodeSets.size();
     nodeSets.emplace_back(setName,IntVec());
   }
 
-  IntVec& mySet = nodeSets[idx].second;
+  IntVec& mySet = nodeSets[iset].second;
   size_t ifirst = mySet.size();
   utl::parseIntegers(mySet,cset);
 
@@ -164,7 +164,7 @@ int ASMu2DLag::parseNodeSet (const std::string& setName, const char* cset)
       IFEM::cout <<"  ** Warning: Non-existing node "<< mySet[i]
                  <<" in node set \""<< setName <<"\""<< std::endl;
 
-  return 1+idx;
+  return 1+iset;
 }
 
 
@@ -196,15 +196,15 @@ int ASMu2DLag::parseNodeBox (const std::string& setName, const char* data)
   if (nodes.empty())
     return 0; // No nodes are within the given box
 
-  for (size_t idx = 0; idx < nodeSets.size(); idx++)
-    if (nodeSets[idx].first == setName)
+  for (size_t iset = 0; iset < nodeSets.size(); iset++)
+    if (nodeSets[iset].first == setName)
     {
-      if (nodeSets[idx].second.empty())
-        nodeSets[idx].second.swap(nodes);
+      if (nodeSets[iset].second.empty())
+        nodeSets[iset].second.swap(nodes);
       else for (int inod : nodes)
-        if (utl::findIndex(nodeSets[idx].second,inod) < 0)
-          nodeSets[idx].second.push_back(inod);
-      return idx+1;
+        if (utl::findIndex(nodeSets[iset].second,inod) < 0)
+          nodeSets[iset].second.push_back(inod);
+      return iset+1;
     }
 
   nodeSets.emplace_back(setName,nodes);
@@ -212,69 +212,85 @@ int ASMu2DLag::parseNodeBox (const std::string& setName, const char* data)
 }
 
 
-void ASMu2DLag::addToNodeSet (const std::string& setName, int inod)
+int ASMu2DLag::addToNodeSet (const std::string& setName, int inod, bool extId)
 {
-  int idx = this->getNodeSetIdx(setName);
-  if (idx < 1)
-    nodeSets.emplace_back(setName,IntVec{inod});
+  int iset = this->getNodeSetIdx(setName)-1;
+  if (iset < 0)
+  {
+    iset = nodeSets.size();
+    nodeSets.emplace_back(setName,IntVec());
+  }
+
+  int nId = inod;
+  if (extId) // Transform to internal node index
+    inod = this->getNodeIndex(inod);
+
+  if (inod > 0 && inod <= static_cast<int>(nnod))
+    nodeSets[iset].second.push_back(inod);
   else
-    nodeSets[idx-1].second.push_back(inod);
+  {
+    iset = -1;
+    IFEM::cout <<"  ** Warning: Non-existing node "<< nId
+               <<" in node set \""<< setName <<"\""<< std::endl;
+  }
+
+  return iset;
 }
 
 
 int ASMu2DLag::getElementSetIdx (const std::string& setName) const
 {
-  int idx = 1;
+  int iset = 1;
   for (const ASM::NodeSet& es : elemSets)
     if (es.first == setName)
-      return idx;
+      return iset;
     else
-      ++idx;
+      ++iset;
 
   return 0;
 }
 
 
-const IntVec& ASMu2DLag::getElementSet (int idx) const
+const IntVec& ASMu2DLag::getElementSet (int iset) const
 {
-  if (idx > 0 && idx <= static_cast<int>(elemSets.size()))
-    return elemSets[idx-1].second;
+  if (iset > 0 && iset <= static_cast<int>(elemSets.size()))
+    return elemSets[iset-1].second;
 
-  return this->ASMbase::getElementSet(idx);
+  return this->ASMbase::getElementSet(iset);
 }
 
 
-bool ASMu2DLag::getElementSet (int idx, std::string& name) const
+bool ASMu2DLag::getElementSet (int iset, std::string& name) const
 {
-  if (idx < 0 || idx > static_cast<int>(elemSets.size()))
+  if (iset < 0 || iset > static_cast<int>(elemSets.size()))
     return false;
-  else if (elemSets[idx-1].second.empty())
+  else if (elemSets[iset-1].second.empty())
     return false;
 
-  name = elemSets[idx-1].first;
+  name = elemSets[iset-1].first;
   return true;
 }
 
 
-bool ASMu2DLag::isInElementSet (int idx, int iel) const
+bool ASMu2DLag::isInElementSet (int iset, int iel) const
 {
-  if (idx < 1 || idx > static_cast<int>(elemSets.size()))
+  if (iset < 1 || iset > static_cast<int>(elemSets.size()))
     return false;
 
-  return utl::findIndex(elemSets[idx-1].second,iel) >= 0;
+  return utl::findIndex(elemSets[iset-1].second,iel) >= 0;
 }
 
 
 int ASMu2DLag::parseElemSet (const std::string& setName, const char* cset)
 {
-  int idx = this->getElementSetIdx(setName)-1;
-  if (idx < 0)
+  int iset = this->getElementSetIdx(setName)-1;
+  if (iset < 0)
   {
-    idx = elemSets.size();
+    iset = elemSets.size();
     elemSets.emplace_back(setName,IntVec());
   }
 
-  IntVec& mySet = elemSets[idx].second;
+  IntVec& mySet = elemSets[iset].second;
   size_t ifirst = mySet.size();
   utl::parseIntegers(mySet,cset);
 
@@ -286,7 +302,7 @@ int ASMu2DLag::parseElemSet (const std::string& setName, const char* cset)
       IFEM::cout <<"  ** Warning: Non-existing element "<< mySet[i]
                  <<" in element set \""<< setName <<"\""<< std::endl;
 
-  return 1+idx;
+  return 1+iset;
 }
 
 
@@ -329,15 +345,15 @@ int ASMu2DLag::parseElemBox (const std::string& setName,
   if (elems.empty())
     return 0; // No elements are within the given box
 
-  for (size_t idx = 0; idx < elemSets.size(); idx++)
-    if (elemSets[idx].first == setName)
+  for (size_t iset = 0; iset < elemSets.size(); iset++)
+    if (elemSets[iset].first == setName)
     {
-      if (elemSets[idx].second.empty())
-        elemSets[idx].second.swap(elems);
+      if (elemSets[iset].second.empty())
+        elemSets[iset].second.swap(elems);
       else for (int iel : elems)
-        if (utl::findIndex(elemSets[idx].second,iel) < 0)
-          elemSets[idx].second.push_back(iel);
-      return idx+1;
+        if (utl::findIndex(elemSets[iset].second,iel) < 0)
+          elemSets[iset].second.push_back(iel);
+      return iset+1;
     }
 
   elemSets.emplace_back(setName,elems);
@@ -345,22 +361,29 @@ int ASMu2DLag::parseElemBox (const std::string& setName,
 }
 
 
-void ASMu2DLag::addToElemSet (const std::string& setName, int eId)
+int ASMu2DLag::addToElemSet (const std::string& setName, int iel, bool extId)
 {
-  int idx = this->getElementSetIdx(setName)-1;
-  if (idx < 0)
+  int iset = this->getElementSetIdx(setName)-1;
+  if (iset < 0)
   {
-    idx = elemSets.size();
+    iset = elemSets.size();
     elemSets.emplace_back(setName,IntVec());
   }
 
-  // Transform to internal element index
-  int iel = this->getElmIndex(eId);
-  if (iel > 0)
-    elemSets[idx].second.push_back(iel);
+  int eId = iel;
+  if (extId) // Transform to internal element index
+    iel = this->getElmIndex(iel);
+
+  if (iel > 0 && iel <= static_cast<int>(nel))
+    elemSets[iset].second.push_back(iel);
   else
+  {
+    iset = -1;
     IFEM::cout <<"  ** Warning: Non-existing element "<< eId
                <<" in element set \""<< setName <<"\""<< std::endl;
+  }
+
+  return iset;
 }
 
 

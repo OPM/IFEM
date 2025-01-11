@@ -70,34 +70,45 @@ public:
   //! \brief Returns (1-based) index of a predefined node set in the patch.
   virtual int getNodeSetIdx(const std::string& setName) const;
   //! \brief Returns an indexed predefined node set.
-  virtual const IntVec& getNodeSet(int idx) const;
-  //! \brief Checks if a node is within a predefined node set.
-  virtual bool isInNodeSet(int idx, int iel) const;
+  virtual const IntVec& getNodeSet(int iset) const;
+  //! \brief Checks if node \a inod is within predefined node set \a iset.
+  virtual bool isInNodeSet(int iset, int inod) const;
   //! \brief Defines a node set by parsing a list of node numbers.
   virtual int parseNodeSet(const std::string& setName, const char* cset);
   //! \brief Defines a node set by parsing a 3D bounding box.
   virtual int parseNodeBox(const std::string& setName, const char* bbox);
-  //! \brief Adds nodal index \a inod to the node set named \a setName.
-  void addToNodeSet(const std::string& setName, int inod);
+  //! \brief Adds a node to a named node set.
+  //! \param[in] setName Name of the node set to receive the node
+  //! \param[in] inod Identifier of the node to add to the set
+  //! \param[in] extId If \e true, \a inod is the external node Id,
+  //! otherwise it is a one-based internal node index
+  //! \return Node set index associated with \a setName
+  int addToNodeSet(const std::string& setName, int inod, bool extId = false);
   //! \brief Returns the name of an indexed predefined node set.
-  bool getNodeSet(int idx, std::string& name) const;
+  bool getNodeSet(int iset, std::string& name) const;
 
   //! \brief Returns (1-based) index of a predefined element set in the patch.
   virtual int getElementSetIdx(const std::string& setName) const;
   //! \brief Returns an indexed predefined element set.
-  virtual const IntVec& getElementSet(int idx) const;
-  //! \brief Checks if element \e iel is within predefined element set \a idx.
-  virtual bool isInElementSet(int idx, int iel) const;
+  virtual const IntVec& getElementSet(int iset) const;
+  //! \brief Checks if element \a iel is within predefined element set \a iset.
+  virtual bool isInElementSet(int iset, int iel) const;
   //! \brief Defines an element set by parsing a list of element numbers.
   virtual int parseElemSet(const std::string& setName, const char* cset);
   //! \brief Defines an element set by parsing a 3D bounding box.
   virtual int parseElemBox(const std::string& setName,
                            const std::string& unionSet, const char* bbox);
-  //! \brief Adds an element \a eId to the element set named \a setName.
-  void addToElemSet(const std::string& setName, int eId);
+  //! \brief Adds an element to a named element set.
+  //! \param[in] setName Name of the element set to receive the element
+  //! \param[in] iel Identifier of the element to add to the set
+  //! \param[in] extId If \e true, \a iel is the external element Id,
+  //! otherwise it is a one-based internal element index
+  //! \return Element set index associated with \a setName
+  int addToElemSet(const std::string& setName, int iel, bool extId = false);
   //! \brief Returns the name of an indexed predefined element set.
-  bool getElementSet(int idx, std::string& name) const;
+  bool getElementSet(int iset, std::string& name) const;
 
+public:
   //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
   //! \param[in] lIndex Local index of the boundary node set
   //! \param nodes Array of node numbers
@@ -120,10 +131,11 @@ public:
 protected:
   bool swapNode34; //!< If \e true, element nodes 3 and 4 should be swapped
 
-private:
-  char                      fileType; //!< Mesh file format
   std::vector<ASM::NodeSet> nodeSets; //!< Node sets for Dirichlet BCs
   std::vector<ASM::NodeSet> elemSets; //!< Element sets for properties
+
+private:
+  char fileType; //!< Mesh file format
 };
 
 #endif
