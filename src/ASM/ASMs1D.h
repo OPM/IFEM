@@ -129,9 +129,7 @@ public:
   //! \brief Returns (1-based) index of a predefined node set in the patch.
   virtual int getNodeSetIdx(const std::string& setName) const;
   //! \brief Returns an indexed pre-defined node set.
-  virtual const IntVec& getNodeSet(int idx) const;
-  //! \brief Returns a named node set for update.
-  virtual IntVec& getNodeSet(const std::string& setName, int& idx);
+  virtual const IntVec& getNodeSet(int iset) const;
 
   //! \brief Finds the node that is closest to the given point.
   //! \param[in] X Global coordinates of point to search for

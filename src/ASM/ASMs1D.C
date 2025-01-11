@@ -437,39 +437,23 @@ bool ASMs1D::generateTwistedFEModel (const RealFunc& twist, const Vec3& Zaxis)
 
 int ASMs1D::getNodeSetIdx (const std::string& setName) const
 {
-  int idx = 1;
+  int iset = 1;
   for (const ASM::NodeSet& ns : nodeSets)
     if (ns.first == setName)
-      return idx;
+      return iset;
     else
-      ++idx;
+      ++iset;
 
   return 0;
 }
 
 
-const IntVec& ASMs1D::getNodeSet (int idx) const
+const IntVec& ASMs1D::getNodeSet (int iset) const
 {
-  int count = 0;
-  for (const ASM::NodeSet& ns : nodeSets)
-    if (++count == idx)
-      return ns.second;
+  if (iset > 0 && iset <= static_cast<int>(nodeSets.size()))
+    return nodeSets[iset-1].second;
 
-  return this->ASMbase::getNodeSet(idx);
-}
-
-
-IntVec& ASMs1D::getNodeSet (const std::string& setName, int& idx)
-{
-  idx = 1;
-  for (ASM::NodeSet& ns : nodeSets)
-    if (ns.first == setName)
-      return ns.second;
-    else
-      ++idx;
-
-  nodeSets.push_back(std::make_pair(setName,IntVec()));
-  return nodeSets.back().second;
+  return this->ASMbase::getNodeSet(iset);
 }
 
 
