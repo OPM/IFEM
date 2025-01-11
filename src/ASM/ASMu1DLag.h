@@ -53,9 +53,9 @@ public:
   //! \brief Returns (1-based) index of a predefined element set in the patch.
   virtual int getElementSetIdx(const std::string& setName) const;
   //! \brief Returns an indexed predefined element set.
-  virtual const IntVec& getElementSet(int idx) const;
-  //! \brief Checks if element \e iel is within predefined element set \a idx.
-  virtual bool isInElementSet(int idx, int iel) const;
+  virtual const IntVec& getElementSet(int iset) const;
+  //! \brief Checks if element \a iel is within predefined element set \a iset.
+  virtual bool isInElementSet(int iset, int iel) const;
   //! \brief Defines an element set by parsing a list of element numbers.
   virtual int parseElemSet(const std::string& setName, const char* cset);
 
@@ -74,9 +74,11 @@ public:
   //! \note The number of element nodes must be set in \a grid on input.
   virtual bool tesselate(ElementBlock& grid, const int*) const;
 
-private:
-  char                      fileType; //!< Mesh file format
+protected:
   std::vector<ASM::NodeSet> elemSets; //!< Element sets for properties
+
+private:
+  char fileType; //!< Mesh file format
 };
 
 #endif

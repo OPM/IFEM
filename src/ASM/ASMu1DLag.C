@@ -104,45 +104,45 @@ bool ASMu1DLag::generateOrientedFEModel (const Vec3& Zaxis)
 
 int ASMu1DLag::getElementSetIdx (const std::string& setName) const
 {
-  int idx = 1;
+  int iset = 1;
   for (const ASM::NodeSet& es : elemSets)
     if (es.first == setName)
-      return idx;
+      return iset;
     else
-      ++idx;
+      ++iset;
 
   return 0;
 }
 
 
-const IntVec& ASMu1DLag::getElementSet (int idx) const
+const IntVec& ASMu1DLag::getElementSet (int iset) const
 {
-  if (idx > 0 && idx <= static_cast<int>(elemSets.size()))
-    return elemSets[idx-1].second;
+  if (iset > 0 && iset <= static_cast<int>(elemSets.size()))
+    return elemSets[iset-1].second;
 
-  return this->ASMbase::getElementSet(idx);
+  return this->ASMbase::getElementSet(iset);
 }
 
 
-bool ASMu1DLag::isInElementSet (int idx, int iel) const
+bool ASMu1DLag::isInElementSet (int iset, int iel) const
 {
-  if (idx < 1 || idx > static_cast<int>(elemSets.size()))
+  if (iset < 1 || iset > static_cast<int>(elemSets.size()))
     return false;
 
-  return utl::findIndex(elemSets[idx-1].second,iel) >= 0;
+  return utl::findIndex(elemSets[iset-1].second,iel) >= 0;
 }
 
 
 int ASMu1DLag::parseElemSet (const std::string& setName, const char* cset)
 {
-  int idx = this->getElementSetIdx(setName)-1;
-  if (idx < 0)
+  int iset = this->getElementSetIdx(setName)-1;
+  if (iset < 0)
   {
-    idx = elemSets.size();
+    iset = elemSets.size();
     elemSets.emplace_back(setName,IntVec());
   }
 
-  IntVec& mySet = elemSets[idx].second;
+  IntVec& mySet = elemSets[iset].second;
   size_t ifirst = mySet.size();
   utl::parseIntegers(mySet,cset);
 
@@ -154,7 +154,7 @@ int ASMu1DLag::parseElemSet (const std::string& setName, const char* cset)
       IFEM::cout <<"  ** Warning: Non-existing element "<< mySet[i]
                  <<" in element set \""<< setName <<"\""<< std::endl;
 
-  return 1+idx;
+  return 1+iset;
 }
 
 
