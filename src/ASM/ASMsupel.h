@@ -50,7 +50,7 @@ public:
   //! \brief Returns (1-based) index of a predefined node set in the patch.
   virtual int getNodeSetIdx(const std::string& setName) const;
   //! \brief Returns an indexed pre-defined node set.
-  virtual const IntVec& getNodeSet(int idx) const;
+  virtual const IntVec& getNodeSet(int iset) const;
   //! \brief Defines a node set by parsing a list of node numbers.
   virtual int parseNodeSet(const std::string& setName, const char* cset);
 

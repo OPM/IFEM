@@ -123,40 +123,38 @@ bool ASMsupel::generateFEMTopology ()
 
 int ASMsupel::getNodeSetIdx (const std::string& setName) const
 {
-  int idx = 1;
+  int iset = 1;
   for (const ASM::NodeSet& ns : nodeSets)
     if (ns.first == setName)
-      return idx;
+      return iset;
     else
-      ++idx;
+      ++iset;
 
   return 0;
 }
 
 
-const IntVec& ASMsupel::getNodeSet (int idx) const
+const IntVec& ASMsupel::getNodeSet (int iset) const
 {
-  int count = 0;
-  for (const ASM::NodeSet& ns : nodeSets)
-    if (++count == idx)
-      return ns.second;
+  if (iset > 0 && iset <= static_cast<int>(nodeSets.size()))
+    return nodeSets[iset-1].second;
 
-  return this->ASMbase::getNodeSet(idx);
+  return this->ASMbase::getNodeSet(iset);
 }
 
 
 int ASMsupel::parseNodeSet (const std::string& setName, const char* cset)
 {
-  int idx = this->getNodeSetIdx(setName)-1;
-  if (idx < 0)
+  int iset = this->getNodeSetIdx(setName)-1;
+  if (iset < 0)
   {
-    idx = nodeSets.size();
+    iset = nodeSets.size();
     nodeSets.emplace_back(setName,IntVec());
   }
 
-  utl::parseIntegers(nodeSets[idx].second,cset);
+  utl::parseIntegers(nodeSets[iset].second,cset);
 
-  return 1+idx;
+  return 1+iset;
 }
 
 
