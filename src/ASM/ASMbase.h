@@ -159,7 +159,7 @@ public:
                                     unsigned char nnLag = 1);
 
   //! \brief Defines the numerical integration scheme \ref nGauss in the patch.
-  void setGauss(int ng) { nGauss = ng; }
+  virtual void setGauss(int ng) { nGauss = ng; }
 
   //! \brief Defines the number of solution fields in the patch.
   //! \details This method is used by simulators where \ref nf is not known when
