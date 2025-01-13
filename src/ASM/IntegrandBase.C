@@ -316,7 +316,9 @@ void IntegrandBase::resetSolution ()
 
 void IntegrandBase::printSolution (std::ostream& os, int pindx)
 {
-  if (primsol.empty()) return;
+  if (std::all_of(primsol.begin(), primsol.end(),
+                  [](const Vector& sol) { return sol.empty(); }))
+    return; // No solution, or all-empty
 
   int isol = 0;
   os <<"\nCurrent solution for Patch "<< pindx;
