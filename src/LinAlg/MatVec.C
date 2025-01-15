@@ -81,92 +81,68 @@ Matrix utl::operator* (const Matrix& A, const Matrix& B)
 /*!
   The following matrix multiplication is performed by this function:
   \f[ {\bf A} = {\bf T}{\bf A}{\bf T}^T \f]
-  where \b A is a full, symmetric matrix, and \b T is an identity matrix
-  with the nodal sub-matrix \b Tn inserted on the diagonal.
+  where \b A is a full, symmetric matrix, and the transformation matrix \b T
+  has the nodal sub-matrix \b Tn repeated on the diagonal and otherwise zero.
 */
 
-bool utl::transform (Matrix& A, const Matrix& Tn, size_t K)
+bool utl::transform (Matrix& A, const Matrix& Tn)
 {
   size_t M = A.rows();
   size_t N = Tn.rows();
-  if (M < A.cols() || N > Tn.cols()) return false;
-  if (K < 1 || K+N-1 > M || N > 3) return false;
+  if (M < A.cols() || Tn.cols() < N || M < N)
+    return false;
 
-  Real* WA = (Real*)alloca(N*sizeof(Real));
-  size_t i, ii, j, jj, l, KN = K+N-1;
-  for (jj = K; jj <= M; jj++)
-  {
-    for (i = 1; i <= N; i++)
+  Matrix B(N,N);
+  size_t i, j, k;
+  for (size_t K = 0; K < M; K += N)
+    for (size_t L = 0; L < M; L += N)
     {
-      WA[i-1] = Real(0);
-      for (l = 1, ii = K; l <= N; l++, ii++)
-        WA[i-1] += Tn(i,l)*A(ii,jj);
-    }
-    ii = K;
-    for (i = 1; i <= N; i++, ii++)
-    {
-      A(ii,jj) = WA[i-1];
-      if (jj > KN) A(jj,ii) = WA[i-1];
-    }
-  }
+      B.fill(Real(0));
 
-  for (ii = 1; ii <= KN; ii++)
-  {
-    size_t JS = ii > K ? ii-K+1 : 1;
-    for (j = JS; j <= N; j++)
-    {
-      WA[j-1] = Real(0);
-      for (l = 1, jj = K; l <= N; l++, jj++)
-        WA[j-1] += A(ii,jj)*Tn(j,l);
-    }
-    jj = ii > K ? ii : K;
-    for (j = JS; j <= N; j++, jj++)
-    {
-      A(ii,jj) = WA[j-1];
-      if (ii < K) A(jj,ii) = WA[j-1];
-    }
-  }
+      for (i = 1; i <= N; i++)
+        for (j = 1; j <= N; j++)
+          for (k = 1; k <= N; k++)
+            B(j,i) += Tn(j,k)*A(L+k,K+i);
 
-  for (ii = K; ii <= KN; ii++)
-    for (jj = ii; jj <= KN; jj++)
-      A(jj,ii) = A(ii,jj);
+      for (i = 1; i <= N; i++)
+        for (k = 1; k <= N; k++)
+          A(L+k,K+i) = Real(0);
+
+      for (i = 1; i <= N; i++)
+        for (k = 1; k <= N; k++)
+          for (j = 1; j <= N; j++)
+            A(L+k,K+i) += B(k,j)*Tn(i,j);
+    }
 
   return true;
 }
 
 
 /*!
-  The vector \b V is pre-multiplied with the transformation matrix \b T which is
-  the identity matrix with the nodal sub-matrix \b Tn inserted on the diagonal.
+  The vector \b V is pre-multiplied with the transformation matrix \b T which
+  has the nodal sub-matrix \b Tn (or its transpose) repeated on the diagonal
+  and otherwise zero.
 */
 
-bool utl::transform (Vector& V, const Matrix& Tn, size_t K, bool transpose)
+bool utl::transform (Vector& V, const Matrix& Tn, bool transpose)
 {
   size_t M = V.size();
   size_t N = Tn.rows();
-  if (N > Tn.cols()) return false;
-  if (K < 1 || K+N-1 > M || N > 3) return false;
+  if (Tn.cols() < N || M < N)
+    return false;
 
-  Real* WA = (Real*)alloca(N*sizeof(Real));
-  size_t i, ii, j;
-  if (transpose)
-    for (i = 1; i <= N; i++)
-    {
-      WA[i-1] = Real(0);
-      for (j = 1, ii = K; j <= N; j++, ii++)
-        WA[i-1] += Tn(j,i)*V(ii);
-    }
+  Vector WA(N);
+  for (size_t K = 0; K < M; K += N)
+  {
+    WA.fill(Real(0));
 
-  else
-    for (i = 1; i <= N; i++)
-    {
-      WA[i-1] = Real(0);
-      for (j = 1, ii = K; j <= N; j++, ii++)
-        WA[i-1] += Tn(i,j)*V(ii);
-    }
+    for (size_t i = 1; i <= N; i++)
+      for (size_t j = 1; j <= N; j++)
+        WA(i) += (transpose ? Tn(j,i) : Tn(i,j)) * V(K+j);
 
-  for (i = 0, ii = K; i < N; i++, ii++)
-    V(ii) = WA[i];
+    for (size_t j = 1; j <= N; j++)
+      V(K+j) = WA(j);
+  }
 
   return true;
 }

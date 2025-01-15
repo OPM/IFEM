@@ -251,7 +251,6 @@ bool ASMsupel::evalSolution (Matrix& sField, const Vector& locSol,
 }
 
 
-
 bool ASMsupel::transform (const Matrix& Tlg)
 {
   if (Tlg.rows() < 3 || Tlg.cols() < 3)
@@ -270,15 +269,13 @@ bool ASMsupel::transform (const Matrix& Tlg)
 
   // Transform the element matrices to global system
   for (Matrix& A : myElmMat.A)
-    for (size_t k = 1; k < A.cols(); k += 3)
-      if (!utl::transform(A,Tlg,k))
-        return false;
+    if (!utl::transform(A,Tlg))
+      return false;
 
   // Transform the element force vectors to global system
   for (Vector& b : myElmMat.b)
-    for (size_t k = 1; k < b.size(); k += 3)
-      if (!utl::transform(b,Tlg,k))
-        return false;
+    if (!utl::transform(b,Tlg))
+      return false;
 
   return true;
 }
