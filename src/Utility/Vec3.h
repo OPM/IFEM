@@ -97,6 +97,9 @@ public:
     return *this;
   }
 
+  //! \brief Negation operator.
+  Vec3 operator-() const { return Vec3(-x,-y,-z); }
+
   //! \brief Return the sum of the vector.
   Real sum() const { return x+y+z; }
 
