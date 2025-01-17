@@ -264,10 +264,12 @@ bool ASMs1DLag::integrate (Integrand& integrand,
       fe.h = getEndPoints(fe.Xn,fe.XC);
 
     if (integrand.getIntegrandType() & Integrand::NODAL_ROTATIONS)
-    {
       this->getElementNodalRotations(fe.Tn,iel);
-      if (!elmCS.empty()) fe.Te = elmCS[iel];
-    }
+
+    if (iel < elmCS.size())
+      fe.Te = elmCS[iel];
+    else
+      fe.Te.diag(1.0);
 
     // Initialize element quantities
     ok &= integrand.initElement(MNPC[iel],fe,X,nRed,*A);
@@ -393,10 +395,12 @@ bool ASMs1DLag::integrate (Integrand& integrand, int lIndex,
     fe.h = getEndPoints(fe.Xn,fe.XC);
 
   if (integrand.getIntegrandType() & Integrand::NODAL_ROTATIONS)
-  {
     this->getElementNodalRotations(fe.Tn,iel);
-    if (!elmCS.empty()) fe.Te = elmCS[iel];
-  }
+
+  if (iel < elmCS.size())
+    fe.Te = elmCS[iel];
+  else
+    fe.Te.diag(1.0);
 
   // Initialize element quantities
   std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex%10);

@@ -1210,10 +1210,12 @@ bool ASMs1D::integrate (Integrand& integrand,
       fe.h = this->getElementEnds(p1+iel,fe.XC);
 
     if (integrand.getIntegrandType() & Integrand::NODAL_ROTATIONS)
-    {
       this->getElementNodalRotations(fe.Tn,iel);
-      if (!elmCS.empty()) fe.Te = elmCS[iel];
-    }
+
+    if (iel < elmCS.size())
+      fe.Te = elmCS[iel];
+    else
+      fe.Te.diag(1.0);
 
     if (integrand.getIntegrandType() & Integrand::ELEMENT_CENTER)
     {
@@ -1396,10 +1398,12 @@ bool ASMs1D::integrate (Integrand& integrand, int lIndex,
     fe.h = this->getElementEnds(iel+curv->order(),fe.XC);
 
   if (integrand.getIntegrandType() & Integrand::NODAL_ROTATIONS)
-  {
     this->getElementNodalRotations(fe.Tn,iel);
-    if (!elmCS.empty()) fe.Te = elmCS[iel];
-  }
+
+  if (iel < elmCS.size())
+    fe.Te = elmCS[iel];
+  else
+    fe.Te.diag(1.0);
 
   // Initialize element matrices
   ok &= integrand.initElementBou(MNPC[iel],*A);
