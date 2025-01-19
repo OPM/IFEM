@@ -175,7 +175,7 @@ static void printNodalConnectivity (const ASMVec& model, std::ostream& os)
   for (ASMbase* pch : model)
     if (!pch->empty())
       for (size_t n = 1; n <= pch->getNoNodes(); n++)
-        nodeInfo[pch->getNodeID(n)].push_back(std::make_pair(pch->idx,n));
+        nodeInfo[pch->getNodeID(n)].emplace_back(pch->idx,n);
 
   for (const std::pair<const int,Ipairs>& node : nodeInfo)
     if (node.second.size() > 1)
@@ -969,7 +969,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
       return true;
 
     if (msgLevel > 1)
-      IFEM::cout <<"\nAssembling interior matrix terms for P"<< pidx
+      IFEM::cout <<"\nAssembling interior matrix terms for P"<< pch->idx+1
                  << std::endl;
 
     if (!this->initBodyLoad(pidx))
@@ -1053,6 +1053,8 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
                       <<" out of range [1,"<< myModel.size() <<"]."<< std::endl;
             ok = false;
           }
+          else if (pch->empty())
+            continue;
           else if (this->initMaterial(p->pindx))
           {
             if (p->ldim == 5)
@@ -1070,7 +1072,8 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
         // All patches refer to the same material, and we assume it has been
         // initialized during input processing (thus no initMaterial call here)
         for (lp = 0; lp < myModel.size() && ok; lp++)
-          ok = assembleInterior(it->second,sysQ,myModel[lp],1+lp);
+          if (!myModel[lp]->empty())
+            ok = assembleInterior(it->second,sysQ,myModel[lp],1+lp);
     }
 
     // Assemble contributions from the Neumann boundary conditions
@@ -1089,6 +1092,8 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
             ok = false;
             break;
           }
+          else if (pch->empty())
+            continue;
 
           it->second->initForPatch(pch);
 
@@ -1109,7 +1114,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
             {
               if (msgLevel > 1)
                 IFEM::cout <<"\nAssembling Neumann matrix terms for boundary "
-                           << p->lindx%10 <<" on P"<< p->patch << std::endl;
+                           << p->lindx%10 <<" on P"<< pch->idx+1 << std::endl;
               if (p->patch != lp)
                 ok &= this->extractPatchSolution(it->second,prevSol,p->patch-1);
               ok &= pch->integrate(*it->second,p->lindx,sysQ,time);
@@ -1125,7 +1130,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
             {
               if (msgLevel > 1)
                 IFEM::cout <<"\nAssembling Neumann matrix terms for edge "
-                           << (int)p->lindx <<" on P"<< p->patch << std::endl;
+                           << (int)p->lindx <<" on P"<< pch->idx+1 << std::endl;
               if (p->patch != lp)
                 ok &= this->extractPatchSolution(it->second,prevSol,p->patch-1);
               ok &= pch->integrateEdge(*it->second,p->lindx,sysQ,time);
@@ -1726,6 +1731,8 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
     if (p->pcode == Property::MATERIAL)
       if (!(pch = this->getPatch(p->patch)))
         ok = false;
+      else if (pch->empty())
+        continue;
       else if (this->initMaterial(p->pindx))
       {
         if (p->ldim == 5)
@@ -1742,13 +1749,16 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
     // All patches are referring to the same material, and we assume it has
     // been initialized during input processing (thus no initMaterial call here)
     for (lp = 0; lp < myModel.size() && ok; lp++)
-      ok = assembleNorms(norm,globalNorm,myModel[lp],1+lp);
+      if (!myModel[lp]->empty())
+        ok = assembleNorms(norm,globalNorm,myModel[lp],1+lp);
 
   if (norm->hasBoundaryTerms())
     for (p = myProps.begin(); p != myProps.end() && ok; ++p)
       if (p->pcode == Property::NEUMANN)
         if (!(pch = this->getPatch(p->patch)))
           ok = false;
+        else if (pch->empty())
+          continue;
         else if (abs(p->ldim)+1 == pch->getNoParamDim())
           if (this->initNeumann(p->pindx))
           {
