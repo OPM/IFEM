@@ -13,18 +13,20 @@
 #ifndef PIOLA_OPERATORS_H_
 #define PIOLA_OPERATORS_H_
 
-class FiniteElement;
-class Tensor;
-class Vec3;
-
 #include "MatVec.h"
 #include "EqualOrderOperators.h"
 
 #include <array>
 
-/*! \brief Common operators using Piola mapped discretizations.
- *  \details The operators use the block ordering used in the BlockElmMats class.
- */
+class FiniteElement;
+class Tensor;
+class Vec3;
+
+
+/*!
+  \brief Common operators using Piola mapped discretizations.
+  \details The operators use the block ordering used in the BlockElmMats class.
+*/
 
 class PiolaOperators
 {
@@ -169,7 +171,7 @@ public:
   static void Copy(Vectors& EV,
                    const FiniteElement& fe,
                    const std::array<int,3>& idx,
-                   const Vector& V);
+                   const RealArray& V);
 };
 
 #endif
