@@ -23,14 +23,15 @@ namespace MeshUtils
   //! \param[out] elmAspects The element aspect ratios
   //! \param[in] model The model holding the mesh
   //! \param[in] displacement A displacement to apply to mesh coordinates
-  bool computeAspectRatios(Vector& elmAspects, const SIMbase& model,
+  bool computeAspectRatios(std::vector<double>& elmAspects,
+                           const SIMbase& model,
                            const Vector& displacement=Vector());
 
   //! \brief Compute element skewness for a mesh
   //! \param[out] elmSkewness The element skewness values
   //! \param[in] model The model holding the mesh
   //! \param[in] displacement A displacement to apply to mesh coordinates
-  bool computeMeshSkewness(Vector& elmSkewness,
+  bool computeMeshSkewness(std::vector<double>& elmSkewness,
                            const SIMbase& model,
                            const Vector& displacement=Vector());
 }

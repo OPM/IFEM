@@ -22,7 +22,7 @@ TEST(TestMeshUtils, Aspect2D)
   ASSERT_TRUE(model.createDefaultModel());
   ASSERT_TRUE(model.createFEMmodel());
 
-  Vector aspect;
+  std::vector<double> aspect;
   MeshUtils::computeAspectRatios(aspect, model);
   ASSERT_FLOAT_EQ(aspect.front(), 1.0);
 
@@ -39,7 +39,7 @@ TEST(TestMeshUtils, Skewness2D)
   ASSERT_TRUE(model.createDefaultModel());
   ASSERT_TRUE(model.createFEMmodel());
 
-  Vector skewness;
+  std::vector<double> skewness;
   MeshUtils::computeMeshSkewness(skewness, model);
   ASSERT_FLOAT_EQ(skewness.front(), 0.0);
 

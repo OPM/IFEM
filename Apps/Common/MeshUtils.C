@@ -22,10 +22,10 @@ typedef double(*CellFunction)(const ASMbase& patch, int iel);
 
 
 //! \brief Function running over mesh cells calling the cellfunction for each element
-static bool compute(Vector& result, const SIMbase& model,
+static bool compute(std::vector<double>& result, const SIMbase& model,
                     const Vector& displacement, CellFunction func)
 {
-  result.resize(model.getNoElms());
+  result.resize(model.getNoElms(),0.0);
 
   for (int idx = 1; idx <= model.getNoPatches(); idx++) {
     ASMbase* pch = model.getPatch(idx,true);
@@ -40,8 +40,8 @@ static bool compute(Vector& result, const SIMbase& model,
     size_t nel = pch->getNoElms(true);
     for (size_t e = 1; e <= nel; e++) {
       int iel = pch->getElmID(e);
-      if (iel  > 0)
-        result(iel) = func(*pch,e);
+      if (iel > 0)
+        result[iel-1] = func(*pch,e);
     }
 
     if (!displacement.empty()) {
@@ -111,14 +111,14 @@ static double skewness(const ASMbase& patch, int iel)
 
 namespace MeshUtils
 {
-  bool computeAspectRatios(Vector& elmAspects, const SIMbase& model,
-                           const Vector& displacement)
+  bool computeAspectRatios(std::vector<double>& elmAspects,
+                           const SIMbase& model, const Vector& displacement)
   {
     return compute(elmAspects, model, displacement, aspectRatio);
   }
 
-  bool computeMeshSkewness(Vector& elmSkewness, const SIMbase& model,
-                           const Vector& displacement)
+  bool computeMeshSkewness(std::vector<double>& elmSkewness,
+                           const SIMbase& model, const Vector& displacement)
   {
     return compute(elmSkewness, model, displacement, skewness);
   }
