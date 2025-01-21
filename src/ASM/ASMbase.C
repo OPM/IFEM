@@ -1573,7 +1573,7 @@ bool ASMbase::getSolution (Matrix& sField, const Vector& locSol,
       sField.fillColumn(i+1,RealArray(nf,0.0));
     }
     else
-      sField.fillColumn(i+1,locSol.data()+nf*nodes[i]-nf);
+      sField.fillColumn(i+1,locSol.ptr()+nf*nodes[i]-nf);
 
   return true;
 }

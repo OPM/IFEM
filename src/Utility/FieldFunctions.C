@@ -334,7 +334,8 @@ Vec3 FieldFunction::gradient (const Vec3& X) const
 
   Vector res;
   field[pidx]->gradFE(ItgPoint(x4->u, x4->idx), res);
-  return res;
+
+  return Vec3(res.ptr(), res.size());
 }
 
 

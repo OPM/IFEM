@@ -41,7 +41,7 @@ bool SplineFields1D::valueFE (const ItgPoint& x, Vector& vals) const
   {
     // We are at an interpolatory point (with C^0 continuity)
     vals.resize(nf);
-    vals.fill(values.data()+nf*first,nf);
+    vals.fill(values.ptr()+nf*first,nf);
     return true;
   }
 

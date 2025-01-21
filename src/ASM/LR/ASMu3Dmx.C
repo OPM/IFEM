@@ -720,7 +720,7 @@ bool ASMu3Dmx::evalSolution (Matrix& sField, const Vector& locSol,
     std::vector<int> els;
     this->getElementsAt({gpar[0][i],gpar[1][i],gpar[2][i]},els);
     RealArray Ztmp;
-    const double* locPtr = locSol.data();
+    const double* locPtr = locSol.ptr();
     for (size_t j = 0; j < m_basis.size(); ++j) {
       if (nc[j] == 0)
         continue;

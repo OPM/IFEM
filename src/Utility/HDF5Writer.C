@@ -210,7 +210,7 @@ void HDF5Writer::writeVector(int level, const DataEntry& entry)
   if (entry.second.field == DataExporter::VECTOR) {
     Vector* dvec = (Vector*)entry.second.data;
     int len = !redundant || rank == 0 ? dvec->size() : 0;
-    this->writeArray(level,entry.first,1,len,dvec->data(),H5T_NATIVE_DOUBLE);
+    this->writeArray(level,entry.first,1,len,dvec->ptr(),H5T_NATIVE_DOUBLE);
   }
   else if (entry.second.field == DataExporter::INTVECTOR) {
     std::vector<int>* ivec = (std::vector<int>*)entry.second.data;
@@ -783,8 +783,8 @@ void HDF5Writer::writeNodalForces (int level, const DataEntry& entry)
         values[i*3+j] = val[j];
       }
     }
-    writeArray(group2,"values",-1,values.size(),values.data(),H5T_NATIVE_DOUBLE);
-    writeArray(group2,"coords",-1,coords.size(),coords.data(),H5T_NATIVE_DOUBLE);
+    writeArray(group2,"values",-1,values.size(),values.ptr(),H5T_NATIVE_DOUBLE);
+    writeArray(group2,"coords",-1,coords.size(),coords.ptr(),H5T_NATIVE_DOUBLE);
   } else {
     double dummy=0.0;
     writeArray(group2,"values",-1,0,&dummy,H5T_NATIVE_DOUBLE);

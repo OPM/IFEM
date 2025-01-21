@@ -1050,7 +1050,7 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const Vector& locSol,
           iel++;
 
         for (size_t a = 1; a <= nen; a++)
-          elmSol.fillColumn(a, locSol.data() + nCmp*MNPC[iel-1][a-1]);
+          elmSol.fillColumn(a, locSol.ptr() + nCmp*MNPC[iel-1][a-1]);
 
         elmSol.multiply(N,val);
         sField.fillColumn(ip,val);

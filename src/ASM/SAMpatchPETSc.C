@@ -45,15 +45,14 @@ SAMpatchPETSc::~SAMpatchPETSc ()
 Real SAMpatchPETSc::dot (const Vector& x, const Vector& y, char dofType) const
 {
 #ifdef HAVE_MPI
-  if (adm.isParallel()) {
-    if (adm.dd.isPartitioned())
-      return this->SAMpatch::dot(x,y,dofType);
-
+  if (adm.isParallel() && !adm.dd.isPartitioned())
+  {
     DofIS& dis = this->getIS(dofType);
 
     Vec lx, ly;
-    VecCreateSeqWithArray(PETSC_COMM_SELF, 1, x.size(), x.data(), &lx);
-    VecCreateSeqWithArray(PETSC_COMM_SELF, 1, y.size(), y.data(), &ly);
+    VecCreateSeqWithArray(PETSC_COMM_SELF, 1, x.size(), x.ptr(), &lx);
+    VecCreateSeqWithArray(PETSC_COMM_SELF, 1, y.size(), y.ptr(), &ly);
+
     Vec gx, gy;
     VecCreate(*adm.getCommunicator(), &gx);
     VecCreate(*adm.getCommunicator(), &gy);
@@ -61,6 +60,7 @@ Real SAMpatchPETSc::dot (const Vector& x, const Vector& y, char dofType) const
     VecSetSizes(gy, dis.nDofs, PETSC_DETERMINE);
     VecSetFromOptions(gx);
     VecSetFromOptions(gy);
+
     if (!dis.scatterCreated) {
       VecScatterCreate(lx, dis.local, gx, dis.global, &dis.ctx);
       dis.scatterCreated = true;
@@ -89,11 +89,13 @@ Real SAMpatchPETSc::dot (const Vector& x, const Vector& y, char dofType) const
 Real SAMpatchPETSc::normL2 (const Vector& x, char dofType) const
 {
 #ifdef HAVE_MPI
-  if (adm.isParallel() && !adm.dd.isPartitioned()) {
+  if (adm.isParallel() && !adm.dd.isPartitioned())
+  {
     DofIS& dis = this->getIS(dofType);
 
     Vec lx;
-    VecCreateSeqWithArray(PETSC_COMM_SELF, 1, x.size(), x.data(), &lx);
+    VecCreateSeqWithArray(PETSC_COMM_SELF, 1, x.size(), x.ptr(), &lx);
+
     Vec gx;
     VecCreate(*adm.getCommunicator(), &gx);
     VecSetSizes(gx, dis.nDofs, PETSC_DETERMINE);
@@ -108,6 +110,7 @@ Real SAMpatchPETSc::normL2 (const Vector& x, char dofType) const
 
     VecScatterBegin(dis.ctx, lx, gx, INSERT_VALUES, SCATTER_FORWARD);
     VecScatterEnd(dis.ctx, lx, gx, INSERT_VALUES, SCATTER_FORWARD);
+
     PetscReal d;
     VecNorm(gx, NORM_2, &d);
     VecDestroy(&lx);

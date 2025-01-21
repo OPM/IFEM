@@ -192,7 +192,7 @@ static void _eig_ax(const SystemMatrix* A, const double* x, double* y)
 
   StdVector Y;
   A->multiply(StdVector(x,A->dim()),Y);
-  memcpy(y,Y.data(),Y.dim()*sizeof(double));
+  memcpy(y,Y.ptr(),Y.dim()*sizeof(double));
 }
 
 
@@ -213,5 +213,5 @@ extern "C" void eig_sol_(const double* x, double* y, int& ierr)
 
   StdVector RHS(x,AM->dim());
   ierr = AM->solve(RHS) ? 0 : -1;
-  memcpy(y,RHS.data(),RHS.dim()*sizeof(double));
+  memcpy(y,RHS.ptr(),RHS.dim()*sizeof(double));
 }

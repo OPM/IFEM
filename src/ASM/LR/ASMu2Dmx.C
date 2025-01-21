@@ -878,7 +878,7 @@ bool ASMu2Dmx::evalSolution (Matrix& sField, const Vector& locSol,
     std::vector<int> els;
     this->getElementsAt({gpar[0][i],gpar[1][i]},els);
     RealArray Ztmp;
-    const double* locPtr = locSol.data();
+    const double* locPtr = locSol.ptr();
     for (size_t j = 0; j < m_basis.size(); ++j) {
       if (nc[j] == 0)
         continue;
@@ -946,7 +946,7 @@ bool ASMu2Dmx::evalSolutionPiola (Matrix& sField, const Vector& locSol,
     std::vector<int>    els;
     std::vector<size_t> elem_size;
     this->getElementsAt({gpar[0][i],gpar[1][i]},els,&elem_size);
-    const double* locPtr = locSol.data();
+    const double* locPtr = locSol.ptr();
     Vectors coefs(nfx.size());
     MxFiniteElement fe(elem_size);
     for (size_t j = 0; j < nBasis; ++j)

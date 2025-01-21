@@ -114,7 +114,7 @@ namespace utl
       CHECK_INDEX("matrix3d::getColumn: Third index " ,i3,this->n[2]);
       if (this->n[1] < 2 && this->n[2] < 2) return this->elem;
       vector<T> col(this->n[0]);
-      memcpy(col.data(),this->ptr(i2-1+this->n[1]*(i3-1)),col.size()*sizeof(T));
+      memcpy(col.ptr(),this->ptr(i2-1+this->n[1]*(i3-1)),col.size()*sizeof(T));
       return col;
     }
 
@@ -310,7 +310,7 @@ namespace utl
       CHECK_INDEX("matrix4d::getColumn: Fourth index ",i4,this->n[3]);
       if (this->n[1] < 2 && this->n[2] < 2 && this->n[3] < 2) return this->elem;
       vector<T> col(this->n[0]);
-      memcpy(col.data(),
+      memcpy(col.ptr(),
              this->ptr(i2-1 + this->n[1]*((i3-1) + this->n[2]*(i4-1))),
              col.size()*sizeof(T));
       return col;

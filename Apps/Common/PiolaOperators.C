@@ -22,10 +22,10 @@ void AdvectionConvInt (Matrix& C,
                        const Vec3& U, double scale)
 {
   Matrix G1(2, fe.dPdX.cols()), G2(2, fe.dPdX.cols());
-  G1.fillRow(1, fe.dPdX.getRow(1).data());
-  G1.fillRow(2, fe.dPdX.getRow(3).data());
-  G2.fillRow(1, fe.dPdX.getRow(2).data());
-  G2.fillRow(2, fe.dPdX.getRow(4).data());
+  G1.fillRow(1, fe.dPdX.getRow(1).ptr());
+  G1.fillRow(2, fe.dPdX.getRow(3).ptr());
+  G2.fillRow(1, fe.dPdX.getRow(2).ptr());
+  G2.fillRow(2, fe.dPdX.getRow(4).ptr());
   C.multiply(fe.P, G1, true, false, false, U[0] * scale * fe.detJxW);
   C.multiply(fe.P, G2, true, false, true,  U[1] * scale * fe.detJxW);
 }
