@@ -66,6 +66,8 @@ namespace utl //! General utility classes and functions.
     explicit vector(size_t n) { this->resize(n); }
     //! \brief Constructor creating a vector from an array.
     vector(const T* values, size_t n) { this->fill(values,n); }
+    //! \brief Overloaded copy constructor.
+    vector(const std::vector<T>& X) { *this = X; }
 
     //! \brief Overloaded assignment operator.
     vector<T>& operator=(const std::vector<T>& X)
