@@ -34,7 +34,8 @@ Real utl::Jacobian (matrix<Real>& J, matrix<Real>& dNdX,
     // Special treatment for one-parametric elements in multi-dimension space
     dNdX = dNdu;
     // Compute the length of the tangent vector {X},u
-    detJ = J.getColumn(1).norm2(); // |J| = sqrt(X,u*X,u + Y,u*Y,u + Z,u*Z,u)
+    Vec3 dXdu(J.getColumn(1));
+    detJ = dXdu.length(); // |J| = sqrt(X,u*X,u + Y,u*Y,u + Z,u*Z,u)
   }
   else if (J.cols() == 2 && J.rows() > 2)
   {
