@@ -110,7 +110,7 @@ const Vector& HHTMats::getRHSVector () const
   if (b.size() > 3)
     std::cout <<"S_dmp"<< b[3];
   if (haveMass && ia >= 0)
-    std::cout <<"S_inert = M*a"<< A[1]*vec[ia];
+    std::cout <<"S_inert = M*a"<< Vector(A[1]*vec[ia]);
 #endif
 
   // Calculate the right-hand-side force vector of the dynamic problem

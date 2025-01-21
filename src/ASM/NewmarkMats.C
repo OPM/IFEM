@@ -90,15 +90,17 @@ const Vector& NewmarkMats::getRHSVector () const
   if (ia >= 0) std::cout <<"a:"<< vec[ia];
   std::cout <<"\nf_ext - f_s"<< dF;
   if (haveMass && ia >= 0)
-    std::cout <<"f_i = M*a"<< A[1]*vec[ia];
+    std::cout <<"f_i = M*a"<< Vector(A[1]*vec[ia]);
   if (b.size() > 1)
     std::cout <<"f_d"<< b[1];
   else if (haveDamp && iv >= 0)
-    std::cout <<"f_d = C*v"<< A[3]*vec[iv];
+    std::cout <<"f_d = C*v"<< Vector(A[3]*vec[iv]);
   if (alpha1 > 0.0 && haveMass && iv >= 0)
-    std::cout <<"f_d1/alpha1 = M*v (alpha1="<< alpha1 <<")"<< A[1]*vec[iv];
+    std::cout <<"f_d1/alpha1 = M*v (alpha1="<< alpha1 <<")"
+              << Vector(A[1]*vec[iv]);
   if (alpha2 > 0.0 && haveStif && iv >= 0)
-    std::cout <<"f_d2/alpha2 = K*v (alpha2="<< alpha2 <<")"<< A[2]*vec[iv];
+    std::cout <<"f_d2/alpha2 = K*v (alpha2="<< alpha2 <<")"
+              << Vector(A[2]*vec[iv]);
 #endif
 
   if (haveMass && ia >= 0)

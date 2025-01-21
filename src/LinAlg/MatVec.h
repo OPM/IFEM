@@ -71,10 +71,10 @@ namespace utl
 
   //! \brief Multiplication of a matrix and a vector.
   //! \return \f$ {\bf Y} = {\bf A} {\bf X} \f$
-  Vector operator*(const Matrix& A, const Vector& X);
+  RealArray operator*(const Matrix& A, const Vector& X);
   //! \brief Multiplication of a vector and a matrix.
   //! \return \f$ {\bf Y} = {\bf A}^T {\bf X} \f$
-  Vector operator*(const Vector& X, const Matrix& A);
+  RealArray operator*(const Vector& X, const Matrix& A);
 
   //! \brief Multiplication of two matrices.
   //! \return \f$ {\bf C} = {\bf A} {\bf B} \f$

@@ -54,17 +54,17 @@ Matrix utl::operator* (const Matrix& A, Real c)
 }
 
 
-Vector utl::operator* (const Matrix& A, const Vector& X)
+RealArray utl::operator* (const Matrix& A, const Vector& X)
 {
-  Vector Y;
+  RealArray Y;
   A.multiply(X,Y);
   return Y;
 }
 
 
-Vector utl::operator* (const Vector& X, const Matrix& A)
+RealArray utl::operator* (const Vector& X, const Matrix& A)
 {
-  Vector Y;
+  RealArray Y;
   A.multiply(X,Y,true);
   return Y;
 }
