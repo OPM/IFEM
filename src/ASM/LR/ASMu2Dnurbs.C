@@ -48,7 +48,7 @@ bool ASMu2D::evaluateBasisNurbs (int iel, FiniteElement& fe,
   if (derivs < 1) {
     Matrix B;
     B.outer_product(Nu,Nv);
-    fe.N = C*static_cast<const Vector&>(B);
+    C.multiply(B,fe.N); // fe.N = C*B;
     double W = fe.N.dot(w);
     for (size_t i = 0; i < fe.N.size(); i++)
       fe.N[i] *= w[i]/W;
