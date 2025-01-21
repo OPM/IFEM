@@ -23,6 +23,7 @@
 #include "TriangleQuadrature.h"
 #include "GaussQuadrature.h"
 #include "ElementBlock.h"
+#include "Vec3Oper.h"
 #include <numeric>
 
 
@@ -356,6 +357,12 @@ bool ASMs2DTri::integrate (Integrand& integrand, int lIndex,
   Vec4   X(nullptr,time.t);
   Vec3   normal, v1, v2;
 
+  // Lambda function extracting an edge vector from element coordinates.
+  auto&& getEdge = [&Xnod](int i, int j)
+  {
+    return Vec3(Xnod.getColumn(j)) - Vec3(Xnod.getColumn(i));
+  };
+
 
   // === Assembly loop over all elements on the patch edge =====================
 
@@ -452,18 +459,18 @@ bool ASMs2DTri::integrate (Integrand& integrand, int lIndex,
         // This calculation is valid for linear triangles only.
         if (t1 == 2)
         {
-          v1 = Xnod.getColumn(2) - Xnod.getColumn(1);
-          normal = Xnod.getColumn(3) - Xnod.getColumn(1);
+          v1     = getEdge(1,2);
+          normal = getEdge(1,3);
         }
         else if (flipDiag)
         {
-          v1 = Xnod.getColumn(1) - Xnod.getColumn(3);
-          normal = Xnod.getColumn(2) - Xnod.getColumn(3);
+          v1     = getEdge(3,1);
+          normal = getEdge(3,2);
         }
         else
         {
-          v1 = Xnod.getColumn(3) - Xnod.getColumn(2);
-          normal = Xnod.getColumn(1) - Xnod.getColumn(2);
+          v1     = getEdge(2,3);
+          normal = getEdge(2,1);
         }
         v2.cross(v1,normal).normalize();
         fe.detJxW = 0.5*v1.normalize();
