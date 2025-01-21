@@ -560,9 +560,9 @@ bool ASMu3D::faceL2projection (const DirichletFace& face,
     // Set up control point coordinates for current element
     if (!this->getElementCoordinates(Xnod,iel)) return false;
 
-    double u = param[0] = gpar[0].front();
-    double v = param[1] = gpar[1].front();
-    double w = param[2] = gpar[2].front();
+    double u = param[0] = gpar[0][0];
+    double v = param[1] = gpar[1][0];
+    double w = param[2] = gpar[2][0];
 
     // --- Integration loop over all Gauss points over the face ----------------
 
@@ -578,9 +578,9 @@ bool ASMu3D::faceL2projection (const DirichletFace& face,
           case 3: k1 = i; k2 = j; k3 = 0; break;
           default: k1 = k2 = k3 = 0;
         }
-        if (gpar[0].size() > 1) u = param[0] = gpar[0](k1+1);
-        if (gpar[1].size() > 1) v = param[1] = gpar[1](k2+1);
-        if (gpar[2].size() > 1) w = param[2] = gpar[2](k3+1);
+        if (gpar[0].size() > 1) u = param[0] = gpar[0][k1];
+        if (gpar[1].size() > 1) v = param[1] = gpar[1][k2];
+        if (gpar[2].size() > 1) w = param[2] = gpar[2][k3];
 
         // Evaluate basis function derivatives at integration points
         this->evaluateBasis(ielG-1, u, v, w, N, dNdu, ASM::GEOMETRY_BASIS);

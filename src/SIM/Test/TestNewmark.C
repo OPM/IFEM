@@ -206,7 +206,7 @@ public:
       ok = this->assembleMass(M,2);
     else {
       NewmarkMats* elm;
-      double v = prevSol[prevSol.size()-2].front();
+      double v = prevSol[prevSol.size()-2][0];
       const double* intPrm = static_cast<Problem*>(myProblem)->getIntPrm();
       bool nlDyn = intPrm[3] <= 0.0;
       if (nlDyn)
@@ -261,7 +261,7 @@ public:
     elm.A[1].diag(M); // Mass matrix
     elm.A[2].diag(K); // Stiffness matrix
     elm.A[2](2,1) = elm.A[2](1,2) = -K;
-    elm.b[0] = elm.A[2]*prevSol.front(); // Elastic forces
+    elm.b[0] = elm.A[2]*prevSol[0]; // Elastic forces
     elm.b[0] *= -1.0;
     elm.vec = prevSol;
 
@@ -316,7 +316,7 @@ void runSingleDof (NewmarkSIM& solver, double rtol = 0.5e-11)
 
   ASSERT_TRUE(solver.initEqSystem());
   ASSERT_TRUE(solver.initAcc());
-  EXPECT_FLOAT_EQ(solver.getAcceleration().front(),0.1);
+  EXPECT_FLOAT_EQ(solver.getAcceleration()[0],0.1);
 
   //               at t=0.1           at t=0.25         at t=0.5
   double u[3] = { 0.000457484252515, 0.00178698471292, 0.000732016593476 };
@@ -326,9 +326,9 @@ void runSingleDof (NewmarkSIM& solver, double rtol = 0.5e-11)
   while (solver.advanceStep(tp))
   {
     ASSERT_TRUE(solver.solveStep(tp) == SIM::CONVERGED);
-    double dis = solver.getSolution().front();
-    double vel = solver.getVelocity().front();
-    double acc = solver.getAcceleration().front();
+    double dis = solver.getSolution()[0];
+    double vel = solver.getVelocity()[0];
+    double acc = solver.getAcceleration()[0];
 
     // Check the response at three randomly selected time steps
     if (tp.step == 10) {
@@ -370,7 +370,7 @@ void runTwoDof (NewmarkSIM& solver, double refAcc, double rtol = 0.5e-11)
   solver.opt.solver = LinAlg::DENSE;
   ASSERT_TRUE(solver.initEqSystem());
   ASSERT_TRUE(solver.initAcc());
-  EXPECT_FLOAT_EQ(solver.getAcceleration().front(),refAcc);
+  EXPECT_FLOAT_EQ(solver.getAcceleration()[0],refAcc);
 
   while (solver.advanceStep(tp))
   {
@@ -398,9 +398,9 @@ void runPrescribed (NewmarkSIM& solver, double rtol = 0.5e-11)
   while (solver.advanceStep(tp))
   {
     ASSERT_TRUE(solver.solveStep(tp) == SIM::CONVERGED);
-    double dis = solver.getSolution().front();
-    double vel = solver.getVelocity().front();
-    double acc = solver.getAcceleration().front();
+    double dis = solver.getSolution()[0];
+    double vel = solver.getVelocity()[0];
+    double acc = solver.getAcceleration()[0];
 
     // Check the response at three randomly selected time steps
     if (tp.step == 10) {

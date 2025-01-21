@@ -192,7 +192,7 @@ void SIMgeneric::printNorms (const Vectors& norms, size_t w) const
   if (norms.size() > 1+opt.project.size())
   {
     if (norms.back().size() == 1)
-      IFEM::cout <<"\nVol(D) : "<<  norms.back().front();
+      IFEM::cout <<"\nVol(D) : "<<  norms.back()[0];
     else for (i = 0; i < norms.back().size(); i++)
       IFEM::cout <<"\nVol(D"<< i+1 <<") : "<<  norms.back()[i];
   }

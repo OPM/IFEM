@@ -55,7 +55,7 @@ public:
     const double K = 26925.824035673; // Axial stiffness
     const double F = -200.0;          // External load (constant)
 
-    double u   = prevSol.front().front(); // Current deflection
+    double u   = prevSol.front()[0]; // Current deflection
     double L   = hypot(x,y+u); // Current length of the bar
     double L0  = hypot(x,y);   // Initial length of the bar
     double eps = L/L0 - 1.0;   // Axial strain
@@ -105,7 +105,7 @@ static void runSingleDof (NonLinSIM& solver, int& n, double& s)
   ASSERT_TRUE(solver.initSol());
   ASSERT_TRUE(solver.advanceStep(tp));
   ASSERT_EQ(solver.solveStep(tp),SIM::CONVERGED);
-  s = solver.getSolution().front(); n = tp.iter;
+  s = solver.getSolution()[0]; n = tp.iter;
   std::cout <<"  Solution "<< s <<" obtained in "<< n <<" iterations.\n";
 }
 

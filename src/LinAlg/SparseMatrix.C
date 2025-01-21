@@ -379,7 +379,7 @@ void SparseMatrix::dump (std::ostream& os, LinAlg::StorageFormat format,
   else if (solver == SUPERLU || solver == UMFPACK)
   {
     // Column-oriented format with 0-based indices
-    os << JA.front()+1 <<" 1 "<< A.front();
+    os << JA.front()+1 <<" 1 "<< A[0];
     for (size_t j = 1; j <= ncol; j++)
       for (int i = IA[j-1]; i < IA[j]; i++)
         if (j > 1 || i != IA.front())
@@ -388,7 +388,7 @@ void SparseMatrix::dump (std::ostream& os, LinAlg::StorageFormat format,
   else
   {
     // Row-oriented format with 1-based indices
-    os <<"1 "<< JA.front() <<' '<< A.front();
+    os <<"1 "<< JA.front() <<' '<< A[0];
     for (size_t i = 1; i <= nrow; i++)
       for (int j = IA[i-1]; j < IA[i]; j++)
         if (i > 1 || j != IA.front())
