@@ -982,9 +982,9 @@ bool ASMu2Dmx::evalSolutionPiola (Matrix& sField, const Vector& locSol,
     Matrix J;
     J.multiply(Xnod, bf.dNdu);
     fe.piolaBasis(J.det(), J);
-    coefs[0].insert(coefs[0].end(), coefs[1].begin(), coefs[1].end());
+    coefs.front().push_back(coefs[1].begin(), coefs[1].end());
     Vector Ytmp;
-    fe.P.multiply(coefs[0], Ytmp);
+    fe.P.multiply(coefs.front(), Ytmp);
     if (withPressure)
       for (size_t b = 2; b < nfx.size(); ++b)
         for (size_t n = 0; n < nfx[b]; ++n)

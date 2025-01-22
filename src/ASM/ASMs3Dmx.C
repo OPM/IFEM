@@ -1139,7 +1139,7 @@ bool ASMs3Dmx::evalSolution (Matrix& sField, const Vector& locSol,
         Xtmp.multiply(splinex[b][i].basisValues,Ytmp);
       else {
         Xtmp.multiply(splinex[b][i].basisValues,Ztmp);
-        Ytmp.insert(Ytmp.end(),Ztmp.begin(),Ztmp.end());
+        Ytmp.push_back(Ztmp.begin(),Ztmp.end());
       }
       comp += nc[b]*nb[b];
     }

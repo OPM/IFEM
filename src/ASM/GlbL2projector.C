@@ -351,7 +351,7 @@ bool GlbL2::evalInt (LocalIntegral& elmInt,
   else for (FunctionBase* func : functions)
   {
     RealArray funcPt = func->getValue(X);
-    solPt.insert(solPt.end(),funcPt.begin(),funcPt.end());
+    solPt.push_back(funcPt.begin(),funcPt.end());
   }
 
   gl2.A.front().outer_product(fe.N,fe.N,true,fe.detJxW);

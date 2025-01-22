@@ -1040,7 +1040,7 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const Vector& locSol,
         Xtmp.multiply(splinex[b][i].basisValues,Ytmp);
       else {
         Xtmp.multiply(splinex[b][i].basisValues,Ztmp);
-        Ytmp.insert(Ytmp.end(),Ztmp.begin(),Ztmp.end());
+        Ytmp.push_back(Ztmp.begin(),Ztmp.end());
       }
       comp += nc[b]*nb[b];
     }
@@ -1134,8 +1134,8 @@ bool ASMs2Dmx::evalSolutionPiola (Matrix& sField, const Vector& locSol,
     fe.basis(1) = splinex[0][i].basisValues;
     fe.basis(2) = splinex[1][i].basisValues;
     fe.piolaBasis(detJ, J);
-    coefs[0].insert(coefs[0].end(), coefs[1].begin(), coefs[1].end());
-    fe.P.multiply(coefs[0], Ytmp);
+    coefs.front().push_back(coefs[1].begin(), coefs[1].end());
+    fe.P.multiply(coefs.front(), Ytmp);
     if (withPressure)
       for (size_t b = 2; b < nfx.size(); ++b)
         for (size_t i = 0; i < nfx[b]; ++i)
