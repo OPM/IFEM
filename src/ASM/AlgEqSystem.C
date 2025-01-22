@@ -514,7 +514,8 @@ bool AlgEqSystem::readRecoveryMatrix (Matrix& Rmat, const char* recmatFile)
 bool AlgEqSystem::recoverInternals (const Matrix& Rmat, const IntVec& extNodes,
                                     const Vector& xe, Vector& xFull) const
 {
-  Vector x1, x2(xe);
+  Vector x1;
+  RealArray x2(xe);
   x2.insert(x2.begin(),1,1.0); // Assume first column of Rmat is load vector
   if (!Rmat.multiply(x2,x1))
     return false;

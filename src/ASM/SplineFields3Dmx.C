@@ -93,7 +93,7 @@ bool SplineFields3Dmx::valueFE (const ItgPoint& x, Vector& vals) const
 
     Matrix Vnod;
     utl::gather(ip,1,Vector(&*vit,svol->getNoNodes(b)),Vnod);
-    Vector val2;
+    RealArray val2;
     Vnod.multiply(spline.basisValues,val2); // vals = Vnod * basisValues
     *rit++ = val2.front();
     vit += svol->getNoNodes(b);
