@@ -28,18 +28,23 @@ LRSplineFields2Dmx::LRSplineFields2Dmx (const ASMu2Dmx* patch,
   : Fields(name), surf(patch), bases(utl::getDigits(basis))
 {
   nf = 2;
-  auto vit = v.begin();
-  size_t ofs = 0;
-  for (int i = 1; i < *bases.begin(); ++i)
-    ofs += patch->getNoNodes(i)*patch->getNoFields(i);
-  vit += ofs;
-  for (int b : bases) {
-    size_t nno = patch->getNoNodes(b)*patch->getNoFields(b);
-    RealArray::const_iterator end = v.size() > nno+ofs ? vit+nno : v.end();
-    std::copy(vit,end,std::back_inserter(values));
+
+  size_t ofs = 0, nno = 0;
+  for (int b = 1; b < *bases.begin(); b++)
+    ofs += patch->getNoNodes(b)*patch->getNoFields(b);
+  for (int b : bases)
+    nno += patch->getNoNodes(b)*patch->getNoFields(b);
+  values.resize(nno);
+
+  RealArray::const_iterator vit = v.begin() + ofs;
+  RealArray::iterator voit = values.begin();
+  for (int b : bases)
+  {
+    nno = patch->getNoNodes(b)*patch->getNoFields(b);
+    std::copy(vit, ofs+nno < v.size() ? vit+nno : v.end(), voit);
     vit += nno;
     ofs += nno;
-    values.resize(ofs);
+    voit += nno;
   }
 }
 
