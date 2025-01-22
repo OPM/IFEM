@@ -19,7 +19,7 @@
 
 
 ReactionsOnly::ReactionsOnly (const SAM* sam, const ProcessAdm& adm,
-                              Vector* rf, Vector* sf)
+                              RealArray* rf, Vector* sf)
   : mySam(sam), myAdm(adm), R(rf), S(sf)
 {
   mySam->initForAssembly(b,R);
@@ -30,7 +30,7 @@ void ReactionsOnly::initialize (bool)
 {
   b.init();
   if (R)
-    R->fill(0.0);
+    std::fill(R->begin(),R->end(),0.0);
 }
 
 
@@ -41,9 +41,9 @@ bool ReactionsOnly::finalize (bool)
     if (myAdm.dd.isPartitioned())
       myAdm.allReduceAsSum(*R);
 
-    (*R) *= -1.0;
+    for (double& r : *R) r *= -1.0;
 #if SP_DEBUG > 2
-    std::cout <<"\nReaction forces:"<< *R;
+    std::cout <<"\nReaction forces:"<< Vector(*R);
 #endif
   }
 

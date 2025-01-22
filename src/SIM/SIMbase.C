@@ -2575,7 +2575,7 @@ void SIMbase::dumpSolVec (const Vector& x, bool isExpanded, bool expOnly)
 
 
 bool SIMbase::assembleForces (const Vector& solution, double t0,
-                              Vector* R, Vector* S)
+                              RealArray* R, Vector* S)
 {
   if (!myProblem) return false;
 

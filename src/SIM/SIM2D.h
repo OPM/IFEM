@@ -57,6 +57,7 @@ public:
   virtual void clonePatches(const PatchVec& patches,
                             const std::map<int,int>& g2ln);
 
+  using SIMgeneric::getSolution;
   //! \brief Evaluates the primary solution at the given point.
   //! \param[in] psol Primary solution vector
   //! \param[in] u First parameter of the point to evaluate at
@@ -64,8 +65,8 @@ public:
   //! \param[in] deriv Derivative order of the solution
   //! \param[in] patch 1-based patch index contining the evaluation point
   //! \return Evaluated solution values
-  Vector getSolution(const Vector& psol, double u, double v,
-                     int deriv = 0, int patch = 1) const;
+  RealArray getSolution(const Vector& psol, double u, double v,
+                        int deriv = 0, int patch = 1) const;
 
 private:
   //! \brief Parses a subelement of the \a geometry XML-tag.

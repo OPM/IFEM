@@ -36,14 +36,16 @@ ASMbase* SIMgeneric::createDefaultModel ()
 }
 
 
-Vector SIMgeneric::getSolution (const Vector& psol, const double* par,
-                                int deriv, int patch) const
+RealArray SIMgeneric::getSolution (const Vector& psol, const double* par,
+                                   int deriv, int patch) const
 {
+  RealArray ptSol;
   if (psol.empty() || !par || opt.discretization < ASM::Spline)
-    return Vector();
+    return ptSol;
 
   ASMbase* pch = this->getPatch(patch,true);
-  if (!pch) return Vector();
+  if (!pch)
+    return ptSol;
 
   size_t ndim = pch->getNoParamDim();
   std::vector<RealArray> params(ndim);
@@ -58,15 +60,18 @@ Vector SIMgeneric::getSolution (const Vector& psol, const double* par,
     ok = pch->evalSolutionPiola(tmpVal,localVec,&params.front(),false);
   else
     ok = pch->evalSolution(tmpVal,localVec,&params.front(),false,deriv);
+  if (ok)
+    ptSol = tmpVal.getColumn(1);
 
-  return ok ? tmpVal.getColumn(1) : Vector();
+  return ptSol;
 }
 
 
-Vector SIMgeneric::getInterfaceForces (const Vector& sf,
-                                       const RealArray& weights, int code) const
+RealArray SIMgeneric::getInterfaceForces (const RealArray& sf,
+                                          const RealArray& weights,
+                                          int code) const
 {
-  Vector force(nsd);
+  RealArray force(nsd,0.0);
   if (!mySam)
     return force;
 
@@ -83,13 +88,13 @@ Vector SIMgeneric::getInterfaceForces (const Vector& sf,
     std::pair<int,int> dof = mySam->getNodeDOFs(inod);
 #if SP_DEBUG > 1
     std::cout <<"Node "<< inod <<":";
-    for (int j = dof.first; j <= dof.second; j++)
-      std::cout <<" "<< sf(j);
+    for (int j = dof.first-1; j < dof.second; j++)
+      std::cout <<" "<< sf[j];
     std::cout << std::endl;
 #endif
     for (unsigned char i = 0; i < nsd; i++, dof.first++)
       if (dof.first <= dof.second && dof.first < (int)sf.size())
-        force[i] += w*sf(dof.first);
+        force[i] += w*sf[dof.first-1];
       else
         break;
   }

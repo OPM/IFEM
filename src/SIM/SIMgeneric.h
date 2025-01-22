@@ -44,8 +44,8 @@ public:
   //! \param[in] deriv Derivative order of the solution
   //! \param[in] patch 1-based patch index containing the evaluation point
   //! \return Evaluated solution values
-  Vector getSolution(const Vector& psol, const double* par,
-                     int deriv = 0, int patch = 1) const;
+  RealArray getSolution(const Vector& psol, const double* par,
+                        int deriv = 0, int patch = 1) const;
 
   //! \brief Evaluates the mapping of the geometry at the given point.
   //! \param[in] xi Dimensionless parameters in range [0,1] of the point
@@ -62,8 +62,8 @@ public:
   //! \param[in] weights Nodal weights
   //! \param[in] code Code indentifying the interface to extract forces for
   //! \return The interface force resultant
-  Vector getInterfaceForces(const Vector& sf,
-                            const RealArray& weights, int code) const;
+  RealArray getInterfaceForces(const RealArray& sf,
+                               const RealArray& weights, int code) const;
 
   //! \brief Returns the element that contains a specified spatial point.
   //! \param[in] param The parameters of the point in the knot-span domain
@@ -74,7 +74,7 @@ public:
                             int patch = 1, bool global = false) const;
 
   //! \brief Calculates surface traction resultants.
-  virtual bool calcBouForces(Vectors&, const Vectors&) { return false; }
+  virtual bool calcBouForces(Real2DMat&, const Vectors&) { return false; }
 
   //! \brief Returns the norm index for the a VCP-recovered quantity.
   size_t getVCPindex(size_t idx = 1) const;

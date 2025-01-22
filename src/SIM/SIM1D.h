@@ -49,8 +49,8 @@ public:
   //! \param[in] deriv Derivative order of the solution
   //! \param[in] patch 1-based patch index contining the evaluation point
   //! \return Evaluated solution values
-  Vector getSolution(const Vector& psol, double u,
-                     int deriv = 0, int patch = 1) const;
+  RealArray getSolution(const Vector& psol, double u,
+                        int deriv = 0, int patch = 1) const;
 
 private:
   //! \brief Parses a subelement of the \a geometry XML-tag.

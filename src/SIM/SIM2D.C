@@ -873,8 +873,8 @@ ModelGenerator* SIM2D::getModelGenerator (const tinyxml2::XMLElement* geo) const
 }
 
 
-Vector SIM2D::getSolution (const Vector& psol, double u, double v,
-                           int deriv, int patch) const
+RealArray SIM2D::getSolution (const Vector& psol, double u, double v,
+                              int deriv, int patch) const
 {
   double par[2] = { u, v };
   return this->SIMgeneric::getSolution(psol,par,deriv,patch);

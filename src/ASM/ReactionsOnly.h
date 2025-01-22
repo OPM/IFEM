@@ -38,10 +38,10 @@ public:
   //! \brief The constructor initializes the data members.
   //! \param[in] sam Data for FE assembly management
   //! \param[in] adm Parallell processing administrator
-  //! \param[in] rf Reaction force vector to be assembled
+  //! \param[in] rf Reaction forces to be assembled
   //! \param[in] sf Internal force vector to be assembled
   ReactionsOnly(const SAM* sam, const ProcessAdm& adm,
-                Vector* rf = nullptr, Vector* sf = nullptr);
+                RealArray* rf = nullptr, Vector* sf = nullptr);
   //! \brief Empty destructor.
   virtual ~ReactionsOnly() {}
 
@@ -65,9 +65,9 @@ private:
   const SAM*        mySam; //!< Data for FE assembly management
   const ProcessAdm& myAdm; //!< Parallel processing administrator
 
-  StdVector b; //!< Internal right-hand-side vector used in the assembly process
-  Vector*   R; //!< Nodal reaction forces
-  Vector*   S; //!< Nodal internal forces
+  StdVector  b; //!< Internal right-hand-side vector used in the force assembly
+  RealArray* R; //!< Nodal reaction forces
+  Vector*    S; //!< Nodal internal forces
 };
 
 #endif

@@ -504,7 +504,7 @@ public:
   //! \param[out] R Nodal reaction force container
   //! \param[out] S Nodal interface force container
   bool assembleForces(const Vector& solution, double t0,
-                      Vector* R, Vector* S = nullptr);
+                      RealArray* R, Vector* S = nullptr);
 
 
   // Post-processing methods
