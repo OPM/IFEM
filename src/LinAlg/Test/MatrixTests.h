@@ -129,7 +129,7 @@ void multiplyTest()
   EXPECT_FLOAT_EQ(x.sum(),0.0);
   EXPECT_FLOAT_EQ(y.sum(),0.0);
 
-  u.std::template vector<Scalar>::resize(5);
+  u.resize(5,utl::RETAIN);
   ASSERT_TRUE(A.multiply(u,v));
   v *= 0.5;
 

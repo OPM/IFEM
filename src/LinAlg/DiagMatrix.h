@@ -41,7 +41,7 @@ public:
 
   //! \brief Resizes the matrix to dimension \f$r \times r\f$.
   //! \details Will preserve existing matrix content within the new dimension.
-  bool redim(size_t r);
+  bool redim(size_t r) { return myMat.resize(r,utl::RETAIN); }
 
   //! \brief Returns the dimension of the system matrix.
   virtual size_t dim(int) const { return myMat.size(); }

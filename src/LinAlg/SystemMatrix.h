@@ -56,7 +56,7 @@ public:
   virtual void resize(size_t n, bool = false) { this->redim(n); }
 
   //! \brief Checks if the vector is empty.
-  virtual bool empty() const { return this->dim() == 0; }
+  bool empty() const { return this->dim() == 0; }
 
   //! \brief Access through pointer.
   virtual Real* getPtr() = 0;
@@ -112,17 +112,12 @@ protected:
 class StdVector : public SystemVector, public utl::vector<Real>
 {
 public:
-  //! \brief Constructor creating an empty vector.
-  StdVector() {}
-  //! \brief Constructor creating a vector of length \a n.
-  explicit StdVector(size_t n) : utl::vector<Real>(n) {}
+  //! \brief Default constructor creating a vector of length \a n.
+  explicit StdVector(size_t n = 0) : utl::vector<Real>(n) {}
   //! \brief Constructor creating a vector from an array.
   StdVector(const Real* values, size_t n) : utl::vector<Real>(values,n) {}
   //! \brief Overloaded copy constructor.
-  explicit StdVector(const std::vector<Real>& vec)
-  {
-    this->insert(this->end(),vec.begin(),vec.end());
-  }
+  explicit StdVector(const std::vector<Real>& vec) : utl::vector<Real>(vec) {}
 
   //! \brief Returns the vector type.
   virtual LinAlg::MatrixType getType() const { return LinAlg::DENSE; }
@@ -130,14 +125,14 @@ public:
   //! \brief Creates a copy of the system vector and returns a pointer to it.
   virtual SystemVector* copy() const { return new StdVector(*this); }
 
-  //! \brief Checks if the vector is empty.
-  virtual bool empty() const { return this->std::vector<Real>::empty(); }
-
   //! \brief Returns the dimension of the system vector.
-  virtual size_t dim() const { return this->std::vector<Real>::size(); }
+  virtual size_t dim() const { return this->size(); }
 
-  //! \brief Sets the dimension of the system vector.
-  virtual void redim(size_t n) { this->std::vector<Real>::resize(n,Real(0)); }
+  //! \brief Sets the dimension of the system vector while retaining content.
+  virtual void redim(size_t n)
+  {
+    this->utl::vector<Real>::resize(n,utl::RETAIN);
+  }
 
   //! \brief Resizes the vector to length \a n.
   //! \details Will erase the previous content, but only if the size changed,

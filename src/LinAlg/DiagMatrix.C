@@ -97,16 +97,6 @@ bool DiagMatrix::assemble (const Matrix& eM, const SAM& sam,
 }
 
 
-bool DiagMatrix::redim (size_t r)
-{
-  if (r == myMat.size())
-    return false;
-
-  myMat.std::vector<Real>::resize(r);
-  return true;
-}
-
-
 bool DiagMatrix::add (const SystemMatrix& B, Real alpha)
 {
   const DiagMatrix* Bptr = dynamic_cast<const DiagMatrix*>(&B);

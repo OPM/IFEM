@@ -60,7 +60,7 @@ TEST(TestMatrixFallback, Norm)
 }
 
 
-TEST(TestMatrix, OuterProduct)
+TEST(TestMatrixFallback, OuterProduct)
 {
   outerProductTest<double>();
   outerProductTest<float>();

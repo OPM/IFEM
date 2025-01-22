@@ -595,8 +595,8 @@ bool ASMbase::globalL2projection (Matrix& sField,
   {
 #if SP_DEBUG > 1
     std::cout <<"Replacing end/corner-point values of projected field at node "
-              << corners[i] <<"\nfrom"<< sField.getColumn(corners[i])
-              <<"to"<< sCorner.getColumn(1+i);
+              << corners[i] <<"\nfrom"<< Vector(sField.getColumn(corners[i]))
+              <<"to"<< Vector(sCorner.getColumn(1+i));
 #endif
     sField.fillColumn(corners[i],sCorner.getColumn(1+i));
   }
