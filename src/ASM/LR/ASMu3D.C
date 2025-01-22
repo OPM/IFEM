@@ -2595,10 +2595,12 @@ calculatePrm (FiniteElement& fe,
       C.fill(extrMat.data(),extrMat.size());
       Matrix B(b.N.rows(), 4);
       B.fillColumn(1, b.N.getColumn(gp+1));
-      B.fillColumn(2, b.dNdu.getColumn(gp+1) / du[0]);
-      B.fillColumn(3, b.dNdv.getColumn(gp+1) / du[1]);
-      B.fillColumn(4, b.dNdw.getColumn(gp+1) / du[2]);
-
+      B.fillColumn(2, b.dNdu.getColumn(gp+1));
+      B.fillColumn(3, b.dNdv.getColumn(gp+1));
+      B.fillColumn(4, b.dNdw.getColumn(gp+1));
+      for (size_t col = 2; col <= 4; col++)
+        for (size_t r = 1; r <= B.rows(); r++)
+          B(r,col) /= du[col-2];
       patch.evaluateBasis(result.N, result.dNdu, C, B);
     } else
       patch.evaluateBasis(el, fe.u, fe.v, fe.w, result.N, result.dNdu, basis);
