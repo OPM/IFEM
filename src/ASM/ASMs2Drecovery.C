@@ -95,15 +95,12 @@ bool ASMs2D::evaluate (const ASMbase* basis, const Vector& locVec,
   if (surf->rational())
     surf->getWeights(weights);
 
-  const Vector& vec2 = sValues;
   Go::SplineSurface* surf_new =
     Go::SurfaceInterpolator::regularInterpolation(surf->basis(0),
 						  surf->basis(1),
 						  gpar[0], gpar[1],
-						  const_cast<Vector&>(vec2),
-						  sValues.rows(),
-						  surf->rational(),
-						  weights);
+						  sValues, sValues.rows(),
+						  surf->rational(), weights);
 
   vec.assign(surf_new->coefs_begin(),surf_new->coefs_end());
   delete surf_new;
@@ -142,12 +139,10 @@ Go::SplineSurface* ASMs2D::projectSolution (const IntegrandBase& integrnd) const
   if (psurf->rational())
     psurf->getWeights(weights);
 
-  const Vector& vec = sValues;
   return Go::SurfaceInterpolator::regularInterpolation(psurf->basis(0),
                                                        psurf->basis(1),
                                                        gpar[0], gpar[1],
-                                                       const_cast<Vector&>(vec),
-                                                       sValues.rows(),
+                                                       sValues, sValues.rows(),
                                                        psurf->rational(),
                                                        weights);
 }
@@ -467,12 +462,11 @@ Go::SplineSurface* ASMs2D::scRecovery (const IntegrandBase& integrand) const
   if (surf->rational())
     surf->getWeights(weights);
 
-  const Vector& vec = sValues;
   return Go::SurfaceInterpolator::regularInterpolation(surf->basis(0),
 						       surf->basis(1),
 						       gpar[0], gpar[1],
-						       const_cast<Vector&>(vec),
-						       nCmp, surf->rational(),
+						       sValues, nCmp,
+						       surf->rational(),
 						       weights);
 }
 

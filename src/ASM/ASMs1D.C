@@ -1001,10 +1001,10 @@ bool ASMs1D::getParameterDomain (Real2DMat& u, IntVec* corners) const
 }
 
 
-const Vector& ASMs1D::getGaussPointParameters (Matrix& uGP, int nGauss,
-                                               const double* xi,
-                                               const Go::SplineCurve* crv,
-                                               bool skipNullSpans) const
+const RealArray& ASMs1D::getGaussPointParameters (Matrix& uGP, int nGauss,
+                                                  const double* xi,
+                                                  const Go::SplineCurve* crv,
+                                                  bool skipNullSpans) const
 {
   if (!crv) crv = curv.get();
 
@@ -1697,9 +1697,8 @@ bool ASMs1D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 	if (c)
 	{
 	  // Evaluate the projected field at the result sampling points
-	  const Vector& svec = sField; // using utl::matrix cast operator
 	  sField.resize(c->dimension(),gpar.size());
-	  c->gridEvaluator(const_cast<Vector&>(svec),gpar);
+	  c->gridEvaluator(sField,gpar);
 	  delete c;
 	  return true;
 	}
@@ -1756,12 +1755,9 @@ Go::SplineCurve* ASMs1D::projectSolution (const IntegrandBase& integrand) const
   if (curv->rational())
     curv->getWeights(weights);
 
-  const Vector& vec = sValues;
   return Go::CurveInterpolator::regularInterpolation(curv->basis(), gpar,
-						     const_cast<Vector&>(vec),
-						     sValues.rows(),
-						     curv->rational(),
-						     weights);
+                                                     sValues, sValues.rows(),
+                                                     curv->rational(), weights);
 }
 
 

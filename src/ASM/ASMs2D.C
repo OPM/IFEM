@@ -1602,9 +1602,10 @@ bool ASMs2D::getParameterDomain (Real2DMat& u, IntVec* corners) const
 }
 
 
-const Vector& ASMs2D::getGaussPointParameters (Matrix& uGP, int dir, int nGauss,
-                                               const double* xi,
-                                               const Go::SplineSurface* spline) const
+const RealArray& ASMs2D::getGaussPointParameters (Matrix& uGP,
+                                                  int dir, int nGauss,
+                                                  const double* xi,
+                                                  const Go::SplineSurface* spline) const
 {
   if (!spline)
     spline = surf.get();
@@ -2876,9 +2877,8 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
       else if (s)
       {
         // Evaluate the projected field at the result sampling points
-        const Vector& svec = sField; // using utl::matrix cast operator
         sField.resize(s->dimension(),gpar[0].size()*gpar[1].size());
-        s->gridEvaluator(const_cast<Vector&>(svec),gpar[0],gpar[1]);
+        s->gridEvaluator(sField,gpar[0],gpar[1]);
         delete s;
         return true;
       }

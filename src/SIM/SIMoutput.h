@@ -105,7 +105,7 @@ public:
   //! \param nBlock Running result block counter
   //! \param[in] idBlock Result block ID number
   //! \param[in] ncmp Number of components in vector field
-  bool writeGlvV(const Vector& vec, const char* fieldName,
+  bool writeGlvV(const RealArray& vec, const char* fieldName,
                  int iStep, int& nBlock, int idBlock = 2, int ncmp = 0) const;
 
   //! \brief Writes a scalar field for a given load/time step to the VTF-file.
@@ -173,7 +173,7 @@ public:
   //! \param[in] idBlock Starting value of result block numbering
   //! \param[in] prefix Common prefix for the field components
   //! \param[in] maxVal Optional array of maximum values
-  bool writeGlvP(const Vector& ssol, int iStep, int& nBlock,
+  bool writeGlvP(const RealArray& ssol, int iStep, int& nBlock,
                  int idBlock = 100, const char* prefix = "Global projected",
                  std::vector<PointValues>* maxVal = nullptr);
 
@@ -325,7 +325,7 @@ private:
   bool initPatchForEvaluation(int patchNo) const;
 
   //! \brief Private helper to extract patch-level solution vectors.
-  bool extractNodeVec(const Vector& glbVec, Vector& locVec,
+  bool extractNodeVec(const RealArray& glbVec, Vector& locVec,
                       const ASMbase* patch, int nodalCmps,
                       bool& emptyPatches) const;
 

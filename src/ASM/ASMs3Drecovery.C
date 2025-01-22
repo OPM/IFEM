@@ -22,7 +22,6 @@
 #include "GlbL2projector.h"
 #include "SparseMatrix.h"
 #include "SplineUtils.h"
-#include "Utilities.h"
 #include "Profiler.h"
 #include <array>
 
@@ -94,16 +93,13 @@ bool ASMs3D::evaluate (const ASMbase* basis, const Vector& locVec,
   if (svol->rational())
     svol->getWeights(weights);
 
-  const Vector& vec2 = sValues;
   Go::SplineVolume* vol_new =
     Go::VolumeInterpolator::regularInterpolation(svol->basis(0),
                                                  svol->basis(1),
                                                  svol->basis(2),
                                                  gpar[0], gpar[1], gpar[2],
-                                                 const_cast<Vector&>(vec2),
-                                                 sValues.rows(),
-                                                 svol->rational(),
-                                                 weights);
+                                                 sValues, sValues.rows(),
+                                                 svol->rational(), weights);
 
   vec.assign(vol_new->coefs_begin(),vol_new->coefs_end());
   delete vol_new;
@@ -142,13 +138,11 @@ Go::SplineVolume* ASMs3D::projectSolution (const IntegrandBase& integrand) const
   if (pvol->rational())
     pvol->getWeights(weights);
 
-  const Vector& vec = sValues;
   return Go::VolumeInterpolator::regularInterpolation(pvol->basis(0),
                                                       pvol->basis(1),
                                                       pvol->basis(2),
                                                       gpar[0], gpar[1], gpar[2],
-                                                      const_cast<Vector&>(vec),
-                                                      sValues.rows(),
+                                                      sValues, sValues.rows(),
                                                       pvol->rational(),
                                                       weights);
 }

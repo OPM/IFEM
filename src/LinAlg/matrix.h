@@ -329,8 +329,12 @@ namespace utl //! General utility classes and functions.
     //! \brief Check if the matrix is empty.
     bool empty() const { return elem.empty(); }
 
-    //! \brief Type casting to a one-dimensional vector.
-    operator const vector<T>&() const { return elem; }
+    //! \brief Type casting to a one-dimensional utl::vector, for access.
+    const vector<T>& toVec() const { return elem; }
+    //! \brief Type casting to a one-dimensional std::vector, for access.
+    operator const std::vector<T>&() const { return elem; }
+    //! \brief Type casting to a one-dimensional vector, for update.
+    operator std::vector<T>&() { return elem; }
 
     //! \brief Access through pointer.
     T* ptr(size_t c = 0)

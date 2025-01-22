@@ -662,21 +662,22 @@ bool SIMoutput::writeGlvBC (int& nBlock, int iStep) const
 
     geomID++;
     size_t nbc = pch->getNoFields(1);
-    int nNodes = pch->getNoNodes(-1);
+    size_t nNodes = pch->getNoNodes(-1);
     for (n = 2; n <= pch->getNoBasis(); n++)
       nNodes -= pch->getNoNodes(n);
-    Matrix bc(nbc,nNodes);
+    Vector bc(nbc*nNodes);
     std::array<int,6> flag{0,0,0,0,0,0};
     ASMbase::BCVec::const_iterator bit;
     for (bit = pch->begin_BC(); bit != pch->end_BC(); ++bit)
-      if ((n = pch->getNodeIndex(bit->node,true)) && n <= bc.cols())
+      if ((n = pch->getNodeIndex(bit->node,true)) && n <= nNodes)
       {
-        if (!bit->CX && nbc > 0) bc(1,n) = flag[0] = 1;
-        if (!bit->CY && nbc > 1) bc(2,n) = flag[1] = 1;
-        if (!bit->CZ && nbc > 2) bc(3,n) = flag[2] = 1;
-        if (!bit->RX && nbc > 3) bc(4,n) = flag[3] = 1;
-        if (!bit->RY && nbc > 4) bc(5,n) = flag[4] = 1;
-        if (!bit->RZ && nbc > 5) bc(6,n) = flag[5] = 1;
+        size_t offs = nbc*(n-1);
+        if (!bit->CX && nbc > 0) bc[offs]   = flag[0] = 1;
+        if (!bit->CY && nbc > 1) bc[offs+1] = flag[1] = 1;
+        if (!bit->CZ && nbc > 2) bc[offs+2] = flag[2] = 1;
+        if (!bit->RX && nbc > 3) bc[offs+3] = flag[3] = 1;
+        if (!bit->RY && nbc > 4) bc[offs+4] = flag[4] = 1;
+        if (!bit->RZ && nbc > 5) bc[offs+5] = flag[5] = 1;
       }
 
     if (std::accumulate(flag.begin(),flag.end(),0) == 0)
@@ -758,7 +759,7 @@ bool SIMoutput::writeGlvT (int iStep, int& geoBlk, int& nBlock) const
 }
 
 
-bool SIMoutput::writeGlvV (const Vector& vec, const char* fieldName,
+bool SIMoutput::writeGlvV (const RealArray& vec, const char* fieldName,
                            int iStep, int& nBlock, int idBlock, int ncmp) const
 {
   if (vec.empty() || !myVtf)
@@ -1238,7 +1239,7 @@ bool SIMoutput::eval2ndSolution (const Vector& psol, double time, int psolComps)
   without writing data to the VTF-file.
 */
 
-bool SIMoutput::writeGlvP (const Vector& ssol, int iStep, int& nBlock,
+bool SIMoutput::writeGlvP (const RealArray& ssol, int iStep, int& nBlock,
                            int idBlock, const char* prefix,
                            std::vector<PointValues>* maxVal)
 {
@@ -1265,7 +1266,7 @@ bool SIMoutput::writeGlvP (const Vector& ssol, int iStep, int& nBlock,
   Matrix field;
   Vector lovec;
 
-  Vector::const_iterator ssolIt = ssol.begin();
+  RealArray::const_iterator ssolIt = ssol.begin();
   int geomID = myGeomID;
   for (const ASMbase* pch : myModel)
   {
@@ -2239,7 +2240,7 @@ bool SIMoutput::saveResults (const Vectors& psol, double time, int step) const
 }
 
 
-bool SIMoutput::extractNodeVec (const Vector& glbVec, Vector& locVec,
+bool SIMoutput::extractNodeVec (const RealArray& glbVec, Vector& locVec,
                                 const ASMbase* patch, int nodalCmps,
                                 bool& emptyPatches) const
 {
