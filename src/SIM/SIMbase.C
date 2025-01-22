@@ -1808,7 +1808,7 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
 
   if (!adm.dd.isPartitioned())
     for (Vector& glbNorm : gNorm)
-      adm.allReduceAsSum(glbNorm);
+      adm.allReduceAsSum(static_cast<RealArray&>(glbNorm));
 
   return ok && this->postProcessNorms(gNorm,eNorm);
 }
@@ -1845,8 +1845,8 @@ double SIMbase::externalEnergy (const Vectors& psol, const TimeDomain&) const
   RF[i] = \sum_{n=1}^{\rm nnod} f_n^i \quad\forall\quad i=1,\ldots,{\rm nsd}
   \f]
 
-  If \a psol representing the displacement field \a u is empty,
-  the first norm is omitted and the size of the output array \RF will be \a nsd.
+  If \a psol representing the displacement field \a u is empty, the first
+  norm is omitted and the size of the output array \a RF will be \a nsd.
 */
 
 bool SIMbase::getCurrentReactions (RealArray& RF,

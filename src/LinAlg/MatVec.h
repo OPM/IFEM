@@ -95,4 +95,22 @@ namespace utl
   bool invert(Matrix& A);
 }
 
+#if HAS_CEREAL
+namespace cereal
+{
+  //! \brief Specialization for utl::vector.
+  template<class Archive, class T>
+  void load(Archive& archive, utl::vector<T>& vec)
+  {
+    archive(static_cast<std::vector<T>&>(vec));
+  }
+
+  //! \brief Specialization for utl::vector.
+  template<class Archive, class T>
+  void save(Archive& archive, const utl::vector<T>& vec)
+  {
+    archive(static_cast<const std::vector<T>&>(vec));
+  }
+}
+#endif
 #endif
