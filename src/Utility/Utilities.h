@@ -169,7 +169,7 @@ namespace utl
   //! \param[in] offset_in Optional start offset for the \a in vector
   //! \param[in] nskip If nonzero, skip the last \a nskip entries in \a index
   int gather(const std::vector<int>& index, size_t nr,
-             const utl::vector<Real>& in, utl::matrix<Real>& out,
+             const std::vector<Real>& in, utl::matrix<Real>& out,
              size_t offset_in = 0, size_t nskip = 0);
 
   //! \brief Compresses a row of a 2D array based on given scatter indices.
