@@ -149,6 +149,17 @@ TEST(TestMatrix, AugmentCols)
 }
 
 
+TEST(TestMatrix, SumCols)
+{
+  utl::matrix<int> a(5,3);
+  std::iota(a.begin(),a.end(),1);
+  std::cout <<"A:"<< a;
+  EXPECT_EQ(a.sum(-1), 15);
+  EXPECT_EQ(a.sum(-2), 40);
+  EXPECT_EQ(a.sum(-3), 65);
+}
+
+
 TEST(TestMatrix, Multiply)
 {
   multiplyTest<double>();

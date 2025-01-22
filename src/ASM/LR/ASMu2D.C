@@ -503,12 +503,12 @@ bool ASMu2D::evaluateBasis (int iel, FiniteElement& fe, int derivs) const
   dNdu.fillColumn(2,C*Bv);
 
 #ifdef SP_DEBUG
-  if (fabs(dNdu.getColumn(1).sum()) > 1.0e-10) {
+  if (fabs(dNdu.sum(-1)) > 1.0e-10) {
     std::cerr <<"dNdu do not sum to zero at integration point #"
               << fe.iGP << std::endl;
     return false;
   }
-  else if (fabs(dNdu.getColumn(2).sum()) > 1.0e-10) {
+  else if (fabs(dNdu.sum(-2)) > 1.0e-10) {
     std::cerr <<"dNdv do not sums to zero at integration point #"
               << fe.iGP << std::endl;
     return false;

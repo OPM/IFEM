@@ -57,7 +57,7 @@ bool ASMu2D::evaluateBasisNurbs (int iel, FiniteElement& fe,
     if (fabs(fe.N.sum()-1.0) > 1.0e-10)
       std::cerr <<"fe.N do not sum to one at integration point #"
                 << fe.iGP << std::endl;
-    else if (fabs(static_cast<const Vector&>(B).sum()-1.0) > 1.0e-10)
+    else if (fabs(B.sum()-1.0) > 1.0e-10)
       std::cerr <<"Bezier basis do not sum to one at integration point #"
                 << fe.iGP << std::endl;
     else
@@ -107,10 +107,10 @@ bool ASMu2D::evaluateBasisNurbs (int iel, FiniteElement& fe,
     else if (fabs(B.sum()-1.0) > 1.0e-10)
       std::cerr <<"Bezier basis do not sum to one at integration point #"
                 << fe.iGP << std::endl;
-    else if (fabs(dNdu.getColumn(1).sum()) > 1.0e-10)
+    else if (fabs(dNdu.sum(-1)) > 1.0e-10)
       std::cerr <<"dNdu not sums to zero at integration point #"
                 << fe.iGP << std::endl;
-    else if (fabs(dNdu.getColumn(2).sum()) > 1.0e-10)
+    else if (fabs(dNdu.sum(-2)) > 1.0e-10)
       std::cerr <<"dNdv not sums to zero at integration point #"
                 << fe.iGP << std::endl;
     else if (fabs(Bu.sum()) > 1.0e-10 || fabs(Bv.sum()) > 1.0e-10)

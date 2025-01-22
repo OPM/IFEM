@@ -372,8 +372,21 @@ namespace utl //! General utility classes and functions.
     //! \param[in] inc Increment in the matrix element vector indices
     T asum(int inc = 1) const { return elem.asum(0,inc); }
     //! \brief Return the sum of the matrix elements.
-    //! \param[in] inc Increment in the matrix element vector indices
-    T sum(int inc = 1) const { return elem.sum(0,inc); }
+    //! \param[in] inc Increment in the matrix element vector indices.
+    //! If negative, the sum of matrix column \a -inc will be returned instead.
+    T sum(int inc = 1) const
+    {
+      if (inc > 0)
+        return elem.sum(0,inc);
+      else if (inc == 0 || -inc > static_cast<int>(n[1]))
+        return T(0);
+
+      T colsum = T(0);
+      size_t ofs = n[0]*(-inc-1);
+      for (size_t i = 0; i < n[0]; i++, ofs++)
+        colsum += elem[ofs];
+      return colsum;
+    }
 
   protected:
     size_t     n[4]; //!< Dimension of the matrix
