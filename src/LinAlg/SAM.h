@@ -305,9 +305,9 @@ public:
   //! \param[in] rf Reaction force container for the entire model
   //! \param[out] nrf Nodal reaction forces
   //! \return \e true if the specified node has reaction forces
-  bool getNodalReactions(int inod, const RealArray& rf, Vector& nrf) const;
+  bool getNodalReactions(int inod, const RealArray& rf, RealArray& nrf) const;
 
-  //! \brief Merges the assembly data from another %SIM with this.
+  //! \brief Merges the assembly data from another %SIM object with this.
   virtual bool merge(const SAM*, const std::map<int,int>*) { return false; }
 
 protected:

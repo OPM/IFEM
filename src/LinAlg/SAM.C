@@ -1032,7 +1032,8 @@ Real SAM::getReaction (int dir, const RealArray& rf, const IntVec* nodes) const
 }
 
 
-bool SAM::getNodalReactions (int inod, const RealArray& rf, Vector& nrf) const
+bool SAM::getNodalReactions (int inod, const RealArray& rf,
+                             RealArray& nrf) const
 {
   if (inod < 1 || inod > nnod)
   {
@@ -1043,13 +1044,15 @@ bool SAM::getNodalReactions (int inod, const RealArray& rf, Vector& nrf) const
 
   bool haveRF = false;
   int ip = madof[inod-1]-1;
-  nrf.resize(madof[inod]-1-ip,true);
+  nrf.resize(madof[inod]-1-ip);
   for (size_t i = 0; i < nrf.size(); i++, ip++)
     if (msc[ip] < 0 && -msc[ip] <= (int)rf.size())
     {
       haveRF = true;
       nrf[i] = rf[-msc[ip]-1];
     }
+    else
+      nrf[i] = 0.0;
 
   return haveRF;
 }
