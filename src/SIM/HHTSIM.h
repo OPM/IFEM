@@ -181,8 +181,8 @@ class HHTSIM : public NewmarkSIM
 public:
   //! \brief The constructor initializes default solution parameters.
   explicit HHTSIM(SIMbase& sim);
-  //! \brief Empty destructor.
-  virtual ~HHTSIM() {}
+  //! \brief The destructor deletes the \ref Finert and \ref Fext vectors.
+  virtual ~HHTSIM();
 
   using NewmarkSIM::parse;
   //! \brief Parses a data section from an XML document.

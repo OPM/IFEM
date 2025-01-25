@@ -33,6 +33,13 @@ HHTSIM::HHTSIM (SIMbase& sim) : NewmarkSIM(sim), Finert(nullptr), Fext(nullptr)
 }
 
 
+HHTSIM::~HHTSIM()
+{
+  delete Finert;
+  delete Fext;
+}
+
+
 bool HHTSIM::parse (const tinyxml2::XMLElement* elem)
 {
   bool ok = this->NewmarkSIM::parse(elem);
@@ -120,7 +127,7 @@ bool HHTSIM::advanceStep (TimeStep& param, bool updateTime)
 
   This method merges the nodal point loads into the right-hand-side vector of
   the linearized dynamic equilibrium equation, according to the HHT scheme.
-  It also adds the actual inertia force \e *Finert which has been computed
+  It also adds the actual inertia force \ref Finert which has been computed
   from the dynamic equilibrium equation.
 */
 
