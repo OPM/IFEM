@@ -464,11 +464,10 @@ public:
   //! \brief Computes the total reaction forces in the model.
   //! \param[out] RF Reaction force in each spatial direction + energy
   //! \param[in] psol Primary solution vector
-  bool getCurrentReactions(RealArray& RF, const Vector& psol) const;
-  //! \brief Computes the total reaction forces associated with a boundary.
-  //! \param[out] RF Reaction force in each spatial direction
-  //! \param[in] pcode Property code identifying the boundary
-  bool getCurrentReactions(RealArray& RF, int pcode) const;
+  //! \param[in] pcode Property code identifying the boundary for which the
+  //! reaction forces are computed (0 means the entire model, or all boundaries)
+  bool getCurrentReactions(RealArray& RF, const Vector& psol,
+                           int pcode = 0) const;
   //! \brief Checks for total reaction forces associated with a boundary.
   //! \param[in] pcode Property code identifying the boundary (0 = all)
   bool haveReactions(int pcode = 0) const;

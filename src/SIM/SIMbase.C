@@ -1844,54 +1844,49 @@ double SIMbase::externalEnergy (const Vectors& psol, const TimeDomain&) const
   \f[
   RF[i] = \sum_{n=1}^{\rm nnod} f_n^i \quad\forall\quad i=1,\ldots,{\rm nsd}
   \f]
+
+  If \a psol representing the displacement field \a u is empty,
+  the first norm is omitted and the size of the output array \RF will be \a nsd.
 */
 
-bool SIMbase::getCurrentReactions (RealArray& RF, const Vector& psol) const
+bool SIMbase::getCurrentReactions (RealArray& RF,
+                                   const Vector& psol, int pcode) const
 {
   const RealArray* reactionForces = this->getReactionForces();
   if (!reactionForces || !mySam) return false;
 
-  RF.resize(1+nsd);
-  RF.front() = mySam->normReact(psol,*reactionForces);
-  for (unsigned char dir = 1; dir <= nsd; dir++)
-    RF[dir] = mySam->getReaction(dir,*reactionForces);
-
-#if SP_DEBUG > 1
-  std::cout <<"\nHere are the nodal reaction forces:";
-  Vector nrf;
-  for (int inod = 1; inod <= mySam->getNoNodes(); inod++)
-    if (mySam->getNodalReactions(inod,*reactionForces,nrf))
-    {
-      std::cout <<"\nNode "<< inod <<":";
-      for (double f : nrf) IFEM::cout <<" "<< f;
-    }
-  std::cout << std::endl;
-#endif
-  return true;
-}
-
-
-bool SIMbase::getCurrentReactions (RealArray& RF, int pcode) const
-{
-  const RealArray* reactionForces = this->getReactionForces();
-  if (!reactionForces || !mySam) return false;
-
+  const IntVec* nodes = nullptr;
   IntVec glbNodes;
-  this->getBoundaryNodes(pcode,glbNodes);
+  if (pcode > 0)
+  {
+    nodes = &glbNodes;
+    this->getBoundaryNodes(pcode,glbNodes);
+  }
 
-  RF.resize(nsd);
+  RF.clear();
+  RF.reserve(psol.empty() ? nsd : 1+nsd);
+  if (!psol.empty())
+    RF.push_back(mySam->normReact(psol,*reactionForces));
   for (unsigned char dir = 1; dir <= nsd; dir++)
-    RF[dir-1] = mySam->getReaction(dir,*reactionForces,&glbNodes);
+    RF.push_back(mySam->getReaction(dir,*reactionForces,nodes));
 
 #if SP_DEBUG > 1
-  std::cout <<"\nReaction forces associated with property code "<< pcode;
+  int nnod = pcode > 0 ? glbNodes.size() : mySam->getNoNodes();
+  if (pcode > 0)
+    std::cout <<"\nReaction forces associated with property code "<< pcode;
+  else
+    std::cout <<"\nHere are the nodal reaction forces:";
+
   Vector nrf;
-  for (int inod : glbNodes)
+  for (int i = 0; i < nnod; i++)
+  {
+    int inod = pcode > 0 ? glbNodes[i] : i+1;
     if (mySam->getNodalReactions(inod,*reactionForces,nrf))
     {
       std::cout <<"\nNode "<< inod <<":";
       for (double f : nrf) IFEM::cout <<" "<< f;
     }
+  }
   std::cout << std::endl;
 #endif
   return true;
