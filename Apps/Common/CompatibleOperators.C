@@ -89,6 +89,15 @@ void CompatibleOperators::Weak::Gradient (std::vector<Matrix>& EM,
                                true, -scale*fe.detJxW);
 }
 
+void CompatibleOperators::Weak::ItgConstraint (std::vector<Matrix>& EM,
+                                               const FiniteElement& fe,
+                                              const std::array<int,3>& idx)
+{
+  const size_t nsd = fe.grad(1).cols();
+  for (size_t i = 1; i <= nsd; ++i)
+    EqualOrderOperators::Weak::ItgConstraint(EM[idx[i-1]], fe, 1.0, i);
+}
+
 
 void CompatibleOperators::Weak::Laplacian (std::vector<Matrix>& EM,
                                            const FiniteElement& fe,

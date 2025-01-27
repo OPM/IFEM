@@ -69,6 +69,14 @@ public:
                          const std::array<int,3>& idx,
                          double scale = 1.0);
 
+    //! \brief Compute an integration constraint.
+    //! \param[out] EM The element matrix to add contribution to
+    //! \param[in] idx Matrix block indices
+    //! \param[in] fe The finite element to evaluate for
+    static void ItgConstraint(std::vector<Matrix>& EM,
+                              const FiniteElement& fe,
+                              const std::array<int,3>& idx);
+
     //! \brief Compute a laplacian.
     //! \param[out] EM The element matrix to add contribution to
     //! \param[in] fe The finite element to evaluate for

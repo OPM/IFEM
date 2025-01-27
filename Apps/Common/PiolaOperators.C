@@ -99,6 +99,15 @@ void PiolaOperators::Weak::Gradient (Matrices& EM,
 }
 
 
+void PiolaOperators::Weak::ItgConstraint (std::vector<Matrix>&,
+                                          const FiniteElement&,
+                                          const std::array<int,3>&)
+{
+  std::cerr << "Integration constraint operator not implemented with piola" << std::endl;
+  exit(1);
+}
+
+
 void PiolaOperators::Weak::Laplacian (Matrices& EM,
                                       const FiniteElement& fe,
                                       const std::array<std::array<int,3>,3>& idx,
