@@ -10,12 +10,39 @@
 //!
 //==============================================================================
 
-#include "matrixnd.h"
+#include "MatrixTests.h"
 
-#include "gtest/gtest.h"
 #include <numeric>
 #include <iomanip>
 #include <fstream>
+
+
+TEST(TestVector, Add)
+{
+  vectorAddTest<double>();
+  vectorAddTest<float>();
+}
+
+
+TEST(TestVector, Dot)
+{
+  vectorDotTest<double>();
+  vectorDotTest<float>();
+}
+
+
+TEST(TestVector, Multiply)
+{
+  vectorMultiplyTest<double>();
+  vectorMultiplyTest<float>();
+}
+
+
+TEST(TestVector, Norm)
+{
+  vectorMultiplyTest<double>();
+  vectorMultiplyTest<float>();
+}
 
 
 TEST(TestMatrix, AddBlock)
@@ -124,52 +151,22 @@ TEST(TestMatrix, AugmentCols)
 
 TEST(TestMatrix, Multiply)
 {
-  utl::vector<double> u(14), v(9), x, y;
-  utl::matrix<double> A(3,5);
-
-  std::iota(u.begin(),u.end(),1.0);
-  std::iota(v.begin(),v.end(),1.0);
-  std::iota(A.begin(),A.end(),1.0);
-
-  ASSERT_TRUE(A.multiply(u,x,1.0,0.0,false,3,4,1,2));
-  ASSERT_TRUE(A.multiply(v,y,1.0,0.0,true,4,2));
-
-  EXPECT_FLOAT_EQ(x(3),370.0);
-  EXPECT_FLOAT_EQ(x(7),410.0);
-  EXPECT_FLOAT_EQ(x(11),450.0);
-  EXPECT_FLOAT_EQ(y(1),38.0);
-  EXPECT_FLOAT_EQ(y(3),83.0);
-  EXPECT_FLOAT_EQ(y(5),128.0);
-  EXPECT_FLOAT_EQ(y(7),173.0);
-  EXPECT_FLOAT_EQ(y(9),218.0);
-
-  ASSERT_TRUE(A.multiply(u,x,1.0,-1.0,false,3,4,1,2));
-  ASSERT_TRUE(A.multiply(v,y,1.0,-1.0,true,4,2));
-
-  EXPECT_FLOAT_EQ(x.sum(),0.0);
-  EXPECT_FLOAT_EQ(y.sum(),0.0);
-
-  u.std::vector<double>::resize(5);
-  ASSERT_TRUE(A.multiply(u,v));
-  v *= 0.5;
-
-  EXPECT_FLOAT_EQ(v(1),67.5);
-  EXPECT_FLOAT_EQ(v(2),75.0);
-  EXPECT_FLOAT_EQ(v(3),82.5);
+  multiplyTest<double>();
+  multiplyTest<float>();
 }
 
 
 TEST(TestMatrix, Norm)
 {
-  utl::matrix<double> a(4,5);
-  std::iota(a.begin(),a.end(),1.0);
-  std::cout <<"A:"<< a;
+  normTest<double>();
+  normTest<float>();
+}
 
-  EXPECT_FLOAT_EQ(a.sum(),210.0);
-  EXPECT_FLOAT_EQ(a.sum(5),34.0);
-  EXPECT_FLOAT_EQ(a.asum(5),34.0);
-  EXPECT_FLOAT_EQ(a.trace(),34.0);
-  EXPECT_NEAR(a.norm2(5),sqrt(414.0),1.0e-15);
+
+TEST(TestMatrix, OuterProduct)
+{
+  outerProductTest<double>();
+  outerProductTest<float>();
 }
 
 
@@ -306,18 +303,6 @@ TEST(TestMatrix3D, DumpRead)
 
 TEST(TestMatrix3D, Multiply)
 {
-  std::vector<double> a(10);
-  utl::matrix<double> A(2,5);
-  utl::matrix3d<double> B(5,4,3), C, D;
-
-  std::iota(a.begin(),a.end(),1.0);
-  std::iota(A.begin(),A.end(),1.0);
-  std::iota(B.begin(),B.end(),1.0);
-
-  C.multiply(A,B);
-  ASSERT_TRUE(D.multiplyMat(a,B));
-
-  std::vector<double>::const_iterator c = C.begin();
-  for (double d : D)
-    EXPECT_EQ(d,*(c++));
+  matrix3DMultiplyTest<double>();
+  matrix3DMultiplyTest<float>();
 }
