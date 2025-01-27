@@ -49,6 +49,10 @@ macro(IFEM_add_unittests IFEM_PATH)
                     IFEM 0
                     ${IFEM_LIBRARIES} ${IFEM_DEPLIBS})
 
+  IFEM_add_test_app("${IFEM_PATH}/src/LinAlg/Test/NoBlas/TestMatrixFallback.C"
+                    ${IFEM_PATH}
+                    IFEM_noblas 0 IFEM)
+
   # Parallel unit tests. These all run with 4 processes.
   if(MPI_FOUND)
     set(TEST_SRCS_MPI ${IFEM_PATH}/src/ASM/Test/MPI/TestDomainDecomposition.C)
