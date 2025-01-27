@@ -17,12 +17,6 @@
 
 namespace {
 
-//! \brief Block indices for velocity blocks.
-static constexpr int vidx[3][3] = {{ 1, 10, 11},
-                                   {18,  2, 19},
-                                   {26, 27,  3}};
-
-
 void AdvectionConvInt (Matrix& C,
                        const FiniteElement& fe,
                        const Vec3& U, double scale)
@@ -41,7 +35,9 @@ void AdvectionConvInt (Matrix& C,
 
 void PiolaOperators::Weak::Advection (Matrices& EM,
                                       const FiniteElement& fe,
-                                      const Vec3& AC, double scale,
+                                      const Vec3& AC,
+                                      const std::array<std::array<int,3>,3>& idx,
+                                      double scale,
                                       WeakOperators::ConvectionForm cnvForm)
 {
   if (cnvForm != WeakOperators::CONVECTIVE) {
@@ -51,14 +47,16 @@ void PiolaOperators::Weak::Advection (Matrices& EM,
 
   Matrix C;
   AdvectionConvInt(C, fe, AC, scale);
-  Copy(EM, fe, C);
+  Copy(EM, fe, idx, C);
 }
 
 
 void PiolaOperators::Weak::Convection (Matrices& EM,
                                        const FiniteElement& fe,
                                        const Vec3& U,
-                                       const Tensor& dUdX, double scale,
+                                       const Tensor& dUdX,
+                                       const std::array<std::array<int,3>,3>& idx,
+                                       double scale,
                                        WeakOperators::ConvectionForm form)
 {
   if (form != WeakOperators::CONVECTIVE) {
@@ -74,12 +72,13 @@ void PiolaOperators::Weak::Convection (Matrices& EM,
   C1.multiply(dudx, fe.P);
   AdvectionConvInt(C, fe, U, scale);
   C.multiply(fe.P, C1, true, false, true, scale*fe.detJxW);
-  Copy(EM, fe, C);
+  Copy(EM, fe, idx, C);
 }
 
 
 void PiolaOperators::Weak::Gradient (Matrices& EM,
                                      const FiniteElement& fe,
+                                     std::array<int,3>& idx,
                                      double scale)
 {
   const size_t nsd = fe.dNdX.cols();
@@ -93,7 +92,7 @@ void PiolaOperators::Weak::Gradient (Matrices& EM,
     size_t ofs = 0;
     for (size_t b = 1; b <= nsd; ++b) {
       for (size_t i = 1; i <= fe.basis(b).size(); ++i)
-        EM[12 + 8*(b-1)](i,j) -= D(i+ofs,j) * scale * fe.detJxW;
+        EM[idx[b-1]](i,j) -= D(i+ofs,j) * scale * fe.detJxW;
       ofs += fe.basis(b).size();
     }
   }
@@ -102,6 +101,7 @@ void PiolaOperators::Weak::Gradient (Matrices& EM,
 
 void PiolaOperators::Weak::Laplacian (Matrices& EM,
                                       const FiniteElement& fe,
+                                      const std::array<std::array<int,3>,3>& idx,
                                       double scale, bool stress)
 {
   if (stress) {
@@ -110,33 +110,37 @@ void PiolaOperators::Weak::Laplacian (Matrices& EM,
   }
   Matrix A;
   A.multiply(fe.dPdX, fe.dPdX, true, false, false, scale*fe.detJxW);
-  Copy(EM, fe, A);
+  Copy(EM, fe, idx, A);
 }
 
 
 void PiolaOperators::Weak::Mass (Matrices& EM,
-                                 const FiniteElement& fe, double scale)
+                                 const FiniteElement& fe,
+                                 const std::array<std::array<int,3>,3>& idx,
+                                 double scale)
 {
   Matrix M;
   M.multiply(fe.P, fe.P, true, false, false, scale*fe.detJxW);
-  Copy(EM, fe, M);
+  Copy(EM, fe, idx, M);
 }
 
 
 void PiolaOperators::Weak::Source (Vectors& EV, const FiniteElement& fe,
-                                   const Vec3& f, double scale)
+                                   const Vec3& f, const std::array<int,3>& idx,
+                                   double scale)
 {
   const size_t nsd = fe.dNdX.cols();
   Vector fV(f.ptr(), nsd);
   Vector Mv;
   fe.P.multiply(fV, Mv, scale * fe.detJxW, 0.0, true);
-  Copy(EV, fe, Mv);
+  Copy(EV, fe, idx, Mv);
 }
 
 
 void PiolaOperators::Residual::Convection (Vectors& EV, const FiniteElement& fe,
                                            const Vec3& U, const Tensor& dUdX,
-                                           const Vec3& UC, double scale,
+                                           const Vec3& UC,
+                                           const std::array<int,3>& idx, double scale,
                                            WeakOperators::ConvectionForm form)
 {
   if (form != WeakOperators::CONVECTIVE) {
@@ -149,13 +153,13 @@ void PiolaOperators::Residual::Convection (Vectors& EV, const FiniteElement& fe,
   C.fillColumn(1, (dUdX*UC).ptr());
   Matrix T;
   T.multiply(fe.P, C, true, false, false, -scale*fe.detJxW);
-  Copy(EV, fe, T);
+  Copy(EV, fe, idx, T);
 }
 
 
 void PiolaOperators::Residual::Gradient (Vectors& EV,
                                          const FiniteElement& fe,
-                                         double scale)
+                                         const std::array<int,3>& idx, double scale)
 {
   const size_t nsd = fe.dNdX.cols();
   Vector divVel(fe.dPdX.cols());
@@ -163,13 +167,14 @@ void PiolaOperators::Residual::Gradient (Vectors& EV,
     for (size_t d = 1; d <= nsd; ++d)
       divVel(i) += fe.dPdX(1+(d-1)*(nsd+1),i) * scale * fe.detJxW;
 
-  Copy(EV, fe, divVel);
+  Copy(EV, fe, idx, divVel);
 }
 
 
 void PiolaOperators::Residual::Laplacian (Vectors& EV,
                                           const FiniteElement& fe,
                                           const Tensor& dUdX,
+                                          const std::array<int,3>& idx,
                                           double scale, bool stress)
 {
   if (stress) {
@@ -179,12 +184,13 @@ void PiolaOperators::Residual::Laplacian (Vectors& EV,
   Vector diff;
   fe.dPdX.multiply(dUdX, diff, true);
   diff *= -scale*fe.detJxW;
-  Copy(EV, fe, diff);
+  Copy(EV, fe, idx, diff);
 }
 
 
 void PiolaOperators::Copy (Matrices& EM,
                            const FiniteElement& fe,
+                           const std::array<std::array<int,3>,3>& idx,
                            const Matrix& A)
 {
   const size_t nsd = fe.dNdX.cols();
@@ -194,8 +200,8 @@ void PiolaOperators::Copy (Matrices& EM,
   for (size_t b = 1; b <= nsd; ++b) {
     size_t ofs2 = ofs;
     for (size_t d = b; d <= nsd; ++d) {
-      if (!EM[vidx[b-1][d-1]].empty())
-        A.extractBlock(EM[vidx[b-1][d-1]], ofs, ofs2, true);
+      if (!EM[idx[b-1][d-1]].empty())
+        A.extractBlock(EM[idx[b-1][d-1]], ofs, ofs2, true);
       ofs2 += fe.basis(d).size();
     }
     ofs += fe.basis(b).size();
@@ -205,12 +211,13 @@ void PiolaOperators::Copy (Matrices& EM,
 
 void PiolaOperators::Copy (Vectors& EV,
                            const FiniteElement& fe,
+                           const std::array<int,3>& idx,
                            const Vector& V)
 {
   size_t ofs = 0;
   const size_t nsd = fe.dNdX.cols();
   for (size_t b = 1; b <= nsd; ++b) {
-    EV[b].add(V, 1.0, ofs);
+    EV[idx[b-1]].add(V, 1.0, ofs);
     ofs += fe.basis(b).size();
   }
 }

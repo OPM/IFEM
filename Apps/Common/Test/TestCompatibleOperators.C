@@ -31,9 +31,9 @@ public:
       this->grad(i).resize(6,2);
       this->basis(i).resize(6);
       for (size_t j = 1; j <= 6; ++j) {
-	this->grad(i)(j,1) = 1.0+12*(i-1)+2*(j-1);
-	this->grad(i)(j,2) = 2.0+12*(i-1)+2*(j-1);
-	this->basis(i)(j) = j + 6*(i-1);
+          this->grad(i)(j,1) = 1.0+12*(i-1)+2*(j-1);
+          this->grad(i)(j,2) = 2.0+12*(i-1)+2*(j-1);
+          this->basis(i)(j) = j + 6*(i-1);
       }
     }
 
@@ -121,11 +121,17 @@ TEST(TestCompatibleOperators, Laplacian)
 {
   MyFiniteElement fe;
 
-  std::vector<Matrix> EM(3);
+  std::vector<Matrix> EM(10);
   EM[1].resize(6,6);
   EM[2].resize(6,6);
 
-  CompatibleOperators::Weak::Laplacian(EM, fe);
+  static constexpr auto idx = std::array{
+      std::array{1, 4, 5},
+      std::array{6, 2, 7},
+      std::array{8, 9, 3},
+  };
+
+  CompatibleOperators::Weak::Laplacian(EM, fe, idx);
 
   const DoubleVec EM_1_ref = {{ 5.0, 11.0,  17.0,  23.0,  29.0,  35.0},
                               {11.0, 25.0,  39.0,  53.0,  67.0,  81.0},
@@ -146,14 +152,14 @@ TEST(TestCompatibleOperators, Laplacian)
   check_matrix_equal(EM[2], EM_2_ref);
 
   // stress formulation
-  std::vector<Matrix> EM_stress(36);
+  std::vector<Matrix> EM_stress(10);
 
   EM_stress[1].resize(6,6);
   EM_stress[2].resize(6,6);
-  EM_stress[10].resize(6,6);
-  EM_stress[18].resize(6,6);
+  EM_stress[4].resize(6,6);
+  EM_stress[6].resize(6,6);
 
-  CompatibleOperators::Weak::Laplacian(EM_stress, fe, 1.0, true);
+  CompatibleOperators::Weak::Laplacian(EM_stress, fe, idx, 1.0, true);
   std::cout << EM_stress[1] << std::endl;
   
 /*
@@ -177,11 +183,17 @@ TEST(TestCompatibleOperators, Mass)
 {
   MyFiniteElement fe;
 
-  std::vector<Matrix> EM_vec(3);
+  std::vector<Matrix> EM_vec(10);
   EM_vec[1].resize(6,6);
   EM_vec[2].resize(6,6);
 
-  CompatibleOperators::Weak::Mass(EM_vec, fe);
+  static constexpr auto idx = std::array{
+      std::array{1, 4, 5},
+      std::array{6, 2, 7},
+      std::array{8, 9, 3},
+  };
+
+  CompatibleOperators::Weak::Mass(EM_vec, fe, idx);
 
   const DoubleVec EM_1_ref = {{1.0,  2.0,  3.0,  4.0,  5.0,  6.0},
                               {2.0,  4.0,  6.0,  8.0, 10.0, 12.0},
@@ -207,11 +219,11 @@ TEST(TestCompatibleOperators, Source)
 {
   MyFiniteElement fe;
 
-  Vectors EV_scalar(3);
+  Vectors EV_scalar(4);
   EV_scalar[1].resize(6);
   EV_scalar[2].resize(6);
 
-  CompatibleOperators::Weak::Source(EV_scalar, fe, 2.0);
+  CompatibleOperators::Weak::Source(EV_scalar, fe, {1,2,3}, 2.0);
 
   for (size_t i = 1; i <= 6; ++i) {
     ASSERT_FLOAT_EQ(EV_scalar[1](i), 2.0*fe.basis(1)(i));
@@ -224,7 +236,7 @@ TEST(TestCompatibleOperators, Source)
   f[0] = 1.0;
   f[1] = 2.0;
 
-  CompatibleOperators::Weak::Source(EV_scalar, fe, f, 1.0);
+  CompatibleOperators::Weak::Source(EV_scalar, fe, f, {1,2,3}, 1.0);
   for (size_t i = 1; i <= 6; ++i) {
     ASSERT_FLOAT_EQ(EV_scalar[1](i), fe.basis(1)(i));
     ASSERT_FLOAT_EQ(EV_scalar[2](i), 2.0*fe.basis(2)(i));
@@ -232,7 +244,7 @@ TEST(TestCompatibleOperators, Source)
 
   EV_scalar[1].fill(0.0);
   EV_scalar[2].fill(0.0);
-  CompatibleOperators::Weak::Source(EV_scalar, fe, f, 2.0);
+  CompatibleOperators::Weak::Source(EV_scalar, fe, f, {1,2,3}, 2.0);
   for (size_t i = 1; i <= 6; ++i) {
     ASSERT_FLOAT_EQ(EV_scalar[1](i), 2.0*fe.basis(1)(i));
     ASSERT_FLOAT_EQ(EV_scalar[2](i), 4.0*fe.basis(2)(i));
