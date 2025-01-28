@@ -1408,8 +1408,8 @@ namespace utl //! General utility classes and functions.
                             unsigned int ofsy, int stridey)
   {
     size_t size = std::min(this->size() / stridey, X.size() / stridex);
-    T* p = this->elem.data() + ofsy;
-    const T* q = X.elem.data() + ofsx;
+    T* p = this->data() + ofsy;
+    const T* q = X.data() + ofsx;
     for (size_t i = 0; i < size; ++i, p += stridey, q += stridex)
       *p += alfa*(*q);
     return *this;
