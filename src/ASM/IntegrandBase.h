@@ -114,7 +114,8 @@ public:
   //! integration loop over the Gaussian quadrature points over an element.
   //! It is supposed to perform all the necessary internal initializations
   //! needed before the numerical integration is started for current element.
-  bool initElement(const std::vector<int>& MNPC, LocalIntegral& elmInt) override;
+  bool initElement(const std::vector<int>& MNPC,
+                   LocalIntegral& elmInt) override;
   //! \brief Initializes current element for numerical integration.
   //! \param[in] MNPC Matrix of nodal point correspondance for current element
   //! \param[in] fe Nodal and integration point data for current element
@@ -278,6 +279,8 @@ public:
   //! \param[in] idx Field component index
   //! \param[in] prefix Name prefix for all components
   virtual std::string getField2Name(size_t idx, const char* prefix = 0) const;
+  //! \brief Filters a result components for output.
+  virtual bool suppressOutput(size_t, ASM::ResultClass) const { return false; }
 
   //! \brief Returns the number of solution vectors.
   size_t getNoSolutions() const { return primsol.size(); }

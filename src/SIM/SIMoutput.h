@@ -7,7 +7,7 @@
 //!
 //! \author Knut Morten Okstad / SINTEF
 //!
-//! \brief Sub-class with functionality for result output to VTF and terminal.
+//! \brief Sub-class with functionality for result output to %VTF and terminal.
 //!
 //==============================================================================
 
@@ -24,7 +24,7 @@ class VTF;
 /*!
   \brief Sub-class with additional functionality for result output.
   \details This class extends the SIMbase class with some added functionalities
-  for dumping simulation results to VTF and ASCII files, and terminal printout.
+  for dumping simulation results to %VTF and ASCII files, and terminal printout.
   These items are put in a separate sub-class to hide them from the SIMbase
   class, which contains the main simulation driver.
 */
@@ -332,7 +332,8 @@ private:
   //! \brief Private helper to write out scalar fields to VTF-file.
   bool writeScalarFields(const Matrix& field, int geomID,
                          int& nBlock, std::vector< std::vector<int> >& sID,
-                         size_t* i = nullptr);
+                         size_t* nScl = nullptr,
+                         ASM::ResultClass resClass = ASM::PRIMARY);
 
 protected:
   //! \brief Struct defining a result sampling point.

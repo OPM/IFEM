@@ -57,6 +57,15 @@ namespace ASM //! Assembly scope
     REFINEMENT_BASIS   = -3, //!< Refinement basis
     INTEGRATION_BASIS  = -4, //!< Integration basis
   };
+
+  //! \brief Enum for cathegorization of result quantities.
+  enum ResultClass {
+    ANY       = 0,
+    PRIMARY   = 1,
+    SECONDARY = 2,
+    PROJECTED = 3,
+    ANALYTIC  = 4
+  };
 }
 
 #endif
