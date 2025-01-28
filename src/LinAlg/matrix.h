@@ -818,7 +818,7 @@ namespace utl //! General utility classes and functions.
       // Compute row sums
       vector<T> sums(nrow);
       for (size_t i = 0; i < nrow; i++)
-        sums[i] = this->elem.asum(i,ncol);
+        sums[i] = this->elem.asum(i,nrow);
       return *std::max_element(sums.begin(),sums.end());
     }
 
