@@ -46,16 +46,10 @@ bool BasisFunctionCache<Dim>::init (int nd)
     return false;
 
   if (ASM::cachePolicy == ASM::NO_CACHE) {
-#ifdef USE_OPENMP
-    size_t size = omp_get_max_threads();
-#else
-    size_t size = 1;
-#endif
-    values.resize(size);
-    if (this->hasReduced())
-      valuesRed.resize(size);
+    this->resizeThreadBuffers();
     return true;
   }
+
   values.resize(nTotal);
   if (this->hasReduced())
     valuesRed.resize(nTotalRed);
@@ -132,6 +126,22 @@ BasisFunctionCache<Dim>::gpIndex (size_t gp, bool reduced) const
     return { gp % q.ng[0], gp / q.ng[0] };
   else if constexpr (Dim == 3)
     return { gp % q.ng[0], (gp / q.ng[0]) % q.ng[1],  gp / (q.ng[0]*q.ng[1]) };
+}
+
+
+template<size_t Dim>
+void BasisFunctionCache<Dim>::resizeThreadBuffers ()
+{
+  if (ASM::cachePolicy == ASM::NO_CACHE) {
+#ifdef USE_OPENMP
+    size_t size = omp_get_max_threads();
+#else
+    size_t size = 1;
+#endif
+    values.resize(size);
+    if (this->hasReduced())
+      valuesRed.resize(size);
+  }
 }
 
 

@@ -84,6 +84,9 @@ public:
 
   int basis = 1; //!< Basis to use
 
+  //! \brief Called if application changes number of threads.
+  void resizeThreadBuffers();
+
 protected:
   //! \brief Template struct holding information about a quadrature.
   struct Quadrature {

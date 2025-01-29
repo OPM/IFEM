@@ -674,6 +674,9 @@ protected:
   //! \brief Generate element groups from a partition.
   virtual void generateThreadGroupsFromElms(const std::vector<int>& elms);
 
+  //! \brief Hook for changing number of threads.
+  virtual void changeNumThreads();
+
   //! \brief Remap element wise errors to basis functions.
   //! \param     errors The remapped errors
   //! \param[in] origErr The element wise errors on the geometry mesh

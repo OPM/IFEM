@@ -3531,6 +3531,13 @@ void ASMs3D::generateThreadGroups (size_t strip1, size_t strip2, size_t strip3,
 }
 
 
+void ASMs3D::changeNumThreads ()
+{
+  for (std::unique_ptr<BasisFunctionCache>& c : myCache)
+    c->resizeThreadBuffers();
+}
+
+
 void ASMs3D::generateThreadGroups (char lIndex, bool silence, bool)
 {
   std::map<char,ThreadGroups>::iterator tit = threadGroupsFace.find(lIndex);

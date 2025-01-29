@@ -3098,6 +3098,13 @@ void ASMs2D::generateThreadGroups (size_t strip1, size_t strip2,
 }
 
 
+void ASMs2D::changeNumThreads ()
+{
+  for (std::unique_ptr<BasisFunctionCache>& c : myCache)
+    c->resizeThreadBuffers();
+}
+
+
 bool ASMs2D::getNoStructElms (int& n1, int& n2, int& n3) const
 {
   n1 = surf->numCoefs_u() - surf->order_u() + 1;
