@@ -688,6 +688,9 @@ protected:
   virtual void generateThreadGroups(const Integrand& integrand, bool silence,
                                     bool ignoreGlobalLM);
 
+  //! \brief Hook for changing number of threads.
+  virtual void changeNumThreads();
+
   //! \brief Generates element groups for multi-threading of interior integrals.
   //! \param[in] strip1 Strip width in first direction
   //! \param[in] strip2 Strip width in second direction

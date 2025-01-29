@@ -2647,6 +2647,13 @@ void ASMu2D::generateThreadGroups (const Integrand& integrand, bool silence,
 }
 
 
+void ASMu2D::changeNumThreads ()
+{
+  for (std::unique_ptr<BasisFunctionCache>& c : myCache)
+    c->resizeThreadBuffers();
+}
+
+
 void ASMu2D::remapErrors (RealArray& errors,
                           const RealArray& origErr, bool elemErrors) const
 {

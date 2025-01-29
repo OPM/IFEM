@@ -758,6 +758,9 @@ protected:
   //! \param[in] silence If \e true, suppress threading group outprint
   void generateThreadGroups(const Property& p, bool silence = false);
 
+  //! \brief Called if number of threads changes.
+  void changeNumThreads();
+
   //! \brief Adds a MADOF with an extraordinary number of DOFs on a given basis.
   //! \param[in] basis The basis to specify number of DOFs for
   //! \param[in] nndof Number of nodal DOFs on the given basis

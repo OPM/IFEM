@@ -1914,6 +1914,13 @@ void ASMu3D::generateThreadGroups (const Integrand& integrand, bool silence,
 }
 
 
+void ASMu3D::changeNumThreads ()
+{
+  for (std::unique_ptr<BasisFunctionCache>& c : myCache)
+    c->resizeThreadBuffers();
+}
+
+
 bool ASMu3D::updateDirichlet (const std::map<int,RealFunc*>& func,
                               const std::map<int,VecFunc*>& vfunc, double time,
                               const std::map<int,int>* g2l)

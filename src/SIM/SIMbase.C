@@ -491,6 +491,14 @@ void SIMbase::generateThreadGroups (const Property& p, bool silence)
 }
 
 
+void SIMbase::changeNumThreads ()
+{
+  for (ASMbase* pch : myModel)
+    if (!pch->empty())
+      pch->changeNumThreads();
+}
+
+
 VecFunc* SIMbase::getVecFunc (size_t patch, Property::Type ptype) const
 {
   for (PropertyVec::const_iterator p = myProps.begin(); p != myProps.end(); ++p)

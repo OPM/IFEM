@@ -485,6 +485,8 @@ public:
   //! \brief Generate element-groups for multi-threading based on a partition.
   virtual void generateThreadGroupsFromElms(const IntVec&) {}
 
+  //! \brief Hook for changing number of threads.
+  virtual void changeNumThreads() {}
 
   // Methods for integration of finite element quantities.
   // These are the main computational methods of the ASM class hierarchy.
