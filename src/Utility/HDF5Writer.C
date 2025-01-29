@@ -396,8 +396,9 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
         else if (sim->mixedProblem())
           for (size_t b = 1; b <= sim->getNoBasis(); b++) {
             ndof1 = pch->getNoNodes(b)*pch->getNoFields(b);
-            this->writeArray(group[b-1], prefix+prob->getField1Name(10+b),
-                             idx, ndof1, data, H5T_NATIVE_DOUBLE);
+            if (!prob->suppressOutput(10+b,ASM::PRIMARY))
+              this->writeArray(group[b-1], prefix+prob->getField1Name(10+b),
+                               idx, ndof1, data, H5T_NATIVE_DOUBLE);
             data += ndof1;
           }
         else
@@ -407,14 +408,17 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
 
       if (results & DataExporter::SECONDARY && !sol->empty()) {
         Matrix field;
+        ASM::ResultClass rClass;
         hid_t gid = group.front();
         if (entry.second.description == "projected") {
+          rClass = ASM::PROJECTED;
           // The projected solution has been registered as a separate field
           extractProjection(pch, *sol, field);
           if (sim->fieldProjections())
             gid = group.back();
         }
         else {
+          rClass = ASM::SECONDARY;
           SIM::SolutionMode mode = prob->getMode();
           const_cast<SIMbase*>(sim)->setMode(SIM::RECOVERY);
           sim->extractPatchSolution({*sol},loc-1);
@@ -422,9 +426,10 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
           const_cast<SIMbase*>(sim)->setMode(mode);
         }
         for (size_t j = 0; j < field.rows(); j++)
-          this->writeArray(gid, prefix+prob->getField2Name(j),
-                           idx, field.cols(), field.getRow(j+1).ptr(),
-                           H5T_NATIVE_DOUBLE);
+          if (!prob->suppressOutput(j,rClass))
+            this->writeArray(gid, prefix+prob->getField2Name(j),
+                             idx, field.cols(), field.getRow(j+1).ptr(),
+                             H5T_NATIVE_DOUBLE);
       }
 
       if (proj) {
@@ -435,9 +440,10 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
             Matrix field;
             extractProjection(pch, proj->at(p), field, p+1 == proj->size());
             for (size_t j = 0; j < field.rows(); j++)
-              this->writeArray(gid, prob->getField2Name(j,projPfx[p]),
-                               idx, field.cols(), field.getRow(j+1).ptr(),
-                               H5T_NATIVE_DOUBLE);
+              if (!prob->suppressOutput(j,ASM::PROJECTED))
+                this->writeArray(gid, prob->getField2Name(j,projPfx[p]),
+                                 idx, field.cols(), field.getRow(j+1).ptr(),
+                                 H5T_NATIVE_DOUBLE);
           }
       }
 
@@ -496,9 +502,11 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
           writeArray(group.front(), entry.second.description,
                      idx, 0, &dummy, H5T_NATIVE_DOUBLE);
         else if (sim->mixedProblem())
-          for (size_t b = 1; b <= sim->getNoBasis(); b++)
-            writeArray(group[b-1], prefix+prob->getField1Name(10+b),
-                       idx, 0, &dummy, H5T_NATIVE_DOUBLE);
+          for (size_t b = 1; b <= sim->getNoBasis(); b++) {
+            if (!prob->suppressOutput(10+b,ASM::PRIMARY))
+              writeArray(group[b-1], prefix+prob->getField1Name(10+b),
+                         idx, 0, &dummy, H5T_NATIVE_DOUBLE);
+          }
         else
           writeArray(group.front(), prefix+prob->getField1Name(11),
                      idx, 0, &dummy, H5T_NATIVE_DOUBLE);
@@ -506,11 +514,16 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
 
       if (results & DataExporter::SECONDARY) {
         hid_t gid = group.front();
-        if (entry.second.description == "projected" && sim->fieldProjections())
-          gid = group.back();
+        ASM::ResultClass rClass = ASM::SECONDARY;
+        if (entry.second.description == "projected") {
+          rClass = ASM::PROJECTED;
+          if (sim->fieldProjections())
+            gid = group.back();
+        }
         for (size_t j = 0; j < prob->getNoFields(2); j++)
-          writeArray(gid, prefix+prob->getField2Name(j),
-                     idx, 0, &dummy,H5T_NATIVE_DOUBLE);
+          if (!prob->suppressOutput(j,rClass))
+            writeArray(gid, prefix+prob->getField2Name(j),
+                       idx, 0, &dummy,H5T_NATIVE_DOUBLE);
       }
 
       if (proj) {
@@ -518,8 +531,9 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
         for (size_t p = 0; p < proj->size(); p++)
           if (!proj->at(p).empty())
             for (size_t j = 0; j < prob->getNoFields(2); j++)
-              writeArray(gid, prob->getField2Name(j,projPfx[p]),
-                         idx, 0, &dummy,H5T_NATIVE_DOUBLE);
+              if (!prob->suppressOutput(j,ASM::PROJECTED))
+                writeArray(gid, prob->getField2Name(j,projPfx[p]),
+                           idx, 0, &dummy,H5T_NATIVE_DOUBLE);
       }
 
       if (norm)
