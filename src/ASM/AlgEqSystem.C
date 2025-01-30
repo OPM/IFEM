@@ -300,7 +300,7 @@ bool AlgEqSystem::finalize (bool newLHS)
       else if (!A[i]._A->endAssembly())
 	return false;
 #if SP_DEBUG > 2
-      else if (A[i]._A->dim() < 100)
+      else if (A[i]._A->dim() < 100*(SP_DEBUG-2))
 	std::cout <<"\nSystem coefficient matrix:"<< *A[i]._A;
 #endif
 
