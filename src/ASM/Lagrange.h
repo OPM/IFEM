@@ -7,7 +7,7 @@
 //!
 //! \author Einar Christensen / SINTEF
 //!
-//! \brief Evaluation of Lagrange basis functions.
+//! \brief Evaluation of %Lagrange basis functions.
 //!
 //==============================================================================
 
@@ -17,28 +17,8 @@
 #include "MatVec.h"
 
 
-/*!
-  \brief Evaluation of Lagrange basis functions.
-*/
-
-class Lagrange
+namespace Lagrange //! Evaluation of %Lagrange basis functions.
 {
-public:
-  //! \brief Constructor initializing the reference to natural coordinates.
-  //! \param[in] p Natural interpolation point coordinates in range [-1,1]
-  explicit Lagrange(const RealArray& p) : points(p) {}
-
-  //! \brief Evaluates a 1D Lagrange polynomial.
-  //! \param[in] polnum Which polynomial of the basis to evaluate
-  //! \param[in] xi Natural coordinate of the evaluation point
-  //! \param[out] retval The computed polynomial value
-  bool evalPol(int polnum, double xi, double& retval) const;
-  //! \brief Evaluates the first derivative of a 1D Lagrange polynomial.
-  //! \param[in] polnum Which polynomial of the basis to evaluate
-  //! \param[in] xi Natural coordinate of the evaluation point
-  //! \param[out] retval The computed polynomial derivative
-  bool evalDer(int polnum, double xi, double& retval) const;
-
   //! \brief Evaluates a 1D, 2D or 3D Lagrangian basis at a given point.
   //! \param[out] val Values of all basis functions
   //! \param[in] p1 Polynomial degree in first parameter direction
@@ -48,13 +28,12 @@ public:
   //! \param[in] p3 Polynomial degree in third parameter direction
   //! \param[in] x3 Natural coordinate in third parameter direction
   //!
-  //! \details If derval is a 0-pointer, the derivatives are not computed.
-  //! If \a p2 is zero, a 1D basis is assumed. Otherwise,
+  //! \details If \a p2 is zero, a 1D basis is assumed. Otherwise,
   //! if \a p3 is zero, a 2D basis is assumed. If \a p1, \a p2, and \a p3
   //! all are non-zero, a 3D basis is assumed.
-  static bool computeBasis (RealArray& val, int p1, double x1,
-			    int p2 = 0, double x2 = 0.0,
-			    int p3 = 0, double x3 = 0.0);
+  bool computeBasis(RealArray& val, int p1, double x1,
+                    int p2 = 0, double x2 = 0.0,
+                    int p3 = 0, double x3 = 0.0);
 
   //! \brief Evaluates a 1D, 2D or 3D Lagrangian basis at a given point.
   //! \param[out] val Values of all basis functions
@@ -69,9 +48,9 @@ public:
   //! \details If \a p2 is zero, a 1D basis is assumed. Otherwise,
   //! if \a p3 is zero, a 2D basis is assumed. If \a p1, \a p2, and \a p3
   //! all are non-zero, a 3D basis is assumed.
-  static bool computeBasis (RealArray& val, Matrix& derval, int p1, double x1,
-			    int p2 = 0, double x2 = 0.0,
-			    int p3 = 0, double x3 = 0.0);
+  bool computeBasis(RealArray& val, Matrix& derval, int p1, double x1,
+                    int p2 = 0, double x2 = 0.0,
+                    int p3 = 0, double x3 = 0.0);
 
   //! \brief Evaluates a 1D, 2D or 3D Lagrangian basis at a given point.
   //! \param[out] val Values of all basis functions
@@ -83,17 +62,14 @@ public:
   //! \param[in] p3 Natural point coordinates in third parameter direction
   //! \param[in] x3 Natural coordinate in third parameter direction
   //!
-  //! \details If derval is a 0-pointer, the derivatives are not computed.
+  //! \details If \a derval is a null pointer, the derivatives are not computed.
   //! If \a p2 is empty, a 1D basis is assumed. Otherwise,
   //! if \a p3 is empty, a 2D basis is assumed. If \a p1, \a p2, and \a p3
   //! all are non-empty, a 3D basis is assumed.
-  static bool computeBasis (RealArray& val, Matrix* derval,
-			    const RealArray& p1, double x1,
-			    const RealArray& p2 = RealArray(), double x2 = 0.0,
-			    const RealArray& p3 = RealArray(), double x3 = 0.0);
-
-private:
-  const RealArray& points; //!< Natural coordinates of the interpolation points
+  bool computeBasis(RealArray& val, Matrix* derval,
+                    const RealArray& p1, double x1,
+                    const RealArray& p2 = {}, double x2 = 0.0,
+                    const RealArray& p3 = {}, double x3 = 0.0);
 };
 
 #endif
