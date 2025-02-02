@@ -79,20 +79,24 @@ LocalIntegral* IntegrandBase::getLocalIntegral (size_t nen, size_t,
   This method can be used when only the first primary solution vector is needed.
   Thus, the returned \a elmVec array of element solution vectors will always
   have dimension 1.
+
+  The nodal point correspondance array \a MNPC may contain more nodal indices
+  than should be used in the extraction process. In that case, the number of
+  nodes to omit at the end needs to be specified through the \a nskip argument.
 */
 
 bool IntegrandBase::initElement1 (const std::vector<int>& MNPC,
-                                  Vectors& elmVec) const
+                                  Vectors& elmVec, size_t nskip) const
 {
   elmVec.resize(1);
   if (primsol.empty() || primsol.front().empty())
     return true; // No solution fields yet, return an empty vector
 
   // Extract the first primary solution vector for this element
-  int ierr = utl::gather(MNPC,npv,primsol.front(),elmVec.front());
+  int ierr = utl::gather(MNPC,npv,primsol.front(),elmVec.front(),0,nskip);
   if (ierr > 0)
   {
-    std::cerr <<" *** IntegrandBase::initElement: Detected "
+    std::cerr <<" *** IntegrandBase::initElement1: Detected "
               << ierr <<" node numbers out of range."<< std::endl;
     return false;
   }
@@ -105,9 +109,47 @@ bool IntegrandBase::initElement1 (const std::vector<int>& MNPC,
 
 
 /*!
-  The default implementation extracts element-level solution vectors,
+  This is the basic implementation of the element solution vector extraction.
+  The output array \a elmVec will contain one element-level solution vector
+  corresponding to each patch-level vector in \ref primsol.
+
+  The nodal point correspondance array \a MNPC may contain more nodal indices
+  than should be used in the extraction process. In that case, the number of
+  nodes to omit at the end needs to be specified through the \a nskip argument.
+*/
+
+bool IntegrandBase::initElement2 (const std::vector<int>& MNPC,
+                                  Vectors& elmVec, size_t nskip) const
+{
+  size_t nsol = primsol.size();
+  while (nsol > 1 && primsol[nsol-1].empty()) nsol--;
+  if (nsol <= 1) // Only one (or none) primary solution vector to extract
+    return this->initElement1(MNPC,elmVec,nskip);
+
+  // Extract all primary solution vectors for this element
+  int ierr = 0;
+  elmVec.resize(nsol);
+  for (size_t i = 0; i < nsol && ierr == 0; i++)
+    if (!primsol[i].empty())
+      ierr = utl::gather(MNPC,npv,primsol[i],elmVec[i],0,nskip);
+
+#if SP_DEBUG > 2
+  for (size_t j = 0; j < nsol; j++)
+    std::cout <<"Element solution vector "<< j+1 << elmVec[j];
+#endif
+
+  if (ierr == 0) return true;
+
+  std::cerr <<" *** IntegrandBase::initElement2: Detected "
+            << ierr <<" node numbers out of range."<< std::endl;
+  return false;
+}
+
+
+/*!
+  The default implementation extracts the element-level solution vectors,
   stored in the provided \a elmInt argument, corresponding to each of the
-  patch-wise solution vectors \a primsol.
+  patch-wise solution vectors in the member \ref primsol.
   Override this method if your integrand requires some additional or other
   element initializations.
 */
@@ -115,28 +157,7 @@ bool IntegrandBase::initElement1 (const std::vector<int>& MNPC,
 bool IntegrandBase::initElement (const std::vector<int>& MNPC,
                                  LocalIntegral& elmInt)
 {
-  // Extract all primary solution vectors for this element
-  size_t nsol = primsol.size();
-  while (nsol > 1 && primsol[nsol-1].empty()) nsol--;
-  if (nsol <= 1)
-    return this->initElement1(MNPC,elmInt.vec);
-
-  int ierr = 0;
-  elmInt.vec.resize(nsol);
-  for (size_t i = 0; i < nsol && ierr == 0; i++)
-    if (!primsol[i].empty())
-      ierr = utl::gather(MNPC,npv,primsol[i],elmInt.vec[i]);
-
-#if SP_DEBUG > 2
-  for (size_t j = 0; j < nsol; j++)
-    std::cout <<"Element solution vector "<< j+1 << elmInt.vec[j];
-#endif
-
-  if (ierr == 0) return true;
-
-  std::cerr <<" *** IntegrandBase::initElement: Detected "
-            << ierr <<" node numbers out of range."<< std::endl;
-  return false;
+  return this->initElement2(MNPC,elmInt.vec);
 }
 
 
@@ -219,7 +240,7 @@ bool IntegrandBase::initElementBou (const std::vector<int>& MNPC,
 */
 
 bool IntegrandBase::evalSol1 (Vector& s, const FiniteElement& fe, const Vec3& X,
-                              const std::vector<int>& MNPC) const
+                              const std::vector<int>& MNPC, size_t nskip) const
 {
   if (primsol.empty() || primsol.front().empty())
   {
@@ -229,7 +250,7 @@ bool IntegrandBase::evalSol1 (Vector& s, const FiniteElement& fe, const Vec3& X,
 
   // Extract the first primary solution vector for this element
   Vectors elmVec(1);
-  int ierr = utl::gather(MNPC,npv,primsol.front(),elmVec.front());
+  int ierr = utl::gather(MNPC,npv,primsol.front(),elmVec.front(),0,nskip);
   if (ierr > 0)
   {
     std::cerr <<" *** IntegrandBase::evalSol: Detected "
@@ -431,7 +452,7 @@ void NormBase::setProjectedFields (Fields* f, size_t idx)
 
 
 bool NormBase::initProjection (const std::vector<int>& MNPC,
-                               LocalIntegral& elmInt)
+                               LocalIntegral& elmInt, size_t nExtraNodes)
 {
   // Extract projected solution vectors for this element
   Vectors& psol = static_cast<ElmNorm&>(elmInt).psol;
@@ -440,7 +461,7 @@ bool NormBase::initProjection (const std::vector<int>& MNPC,
   int ierr = 0;
   for (size_t i = 0; i < prjsol.size() && ierr == 0; i++)
     if (!prjsol[i].empty())
-      ierr = utl::gather(MNPC,nrcmp,prjsol[i],psol[i]);
+      ierr = utl::gather(MNPC,nrcmp,prjsol[i],psol[i],0,nExtraNodes);
 
   if (ierr == 0) return true;
 
@@ -508,7 +529,7 @@ bool NormBase::initElement (const std::vector<int>& MNPC,
                             const Vec3& Xc, size_t nPt,
                             LocalIntegral& elmInt)
 {
-  return this->initProjection(MNPC,elmInt) &&
+  return this->initProjection(MNPC,elmInt,myProblem.getNoGLMs()) &&
          myProblem.initElement(MNPC,fe,Xc,nPt,elmInt);
 }
 
@@ -516,7 +537,7 @@ bool NormBase::initElement (const std::vector<int>& MNPC,
 bool NormBase::initElement (const std::vector<int>& MNPC,
                             LocalIntegral& elmInt)
 {
-  return this->initProjection(MNPC,elmInt) &&
+  return this->initProjection(MNPC,elmInt,myProblem.getNoGLMs()) &&
          myProblem.initElement(MNPC,elmInt);
 }
 
@@ -526,8 +547,8 @@ bool NormBase::initElement (const std::vector<int>& MNPC,
                             const std::vector<size_t>& basis_sizes,
                             LocalIntegral& elmInt)
 {
-  std::vector<int> MNPC1(MNPC.begin(), MNPC.begin()+elem_sizes.front());
-  return this->initProjection(MNPC1,elmInt) &&
+  size_t nExtraNodes = MNPC.size() - elem_sizes.front();
+  return this->initProjection(MNPC,elmInt,nExtraNodes) &&
          myProblem.initElement(MNPC,elem_sizes,basis_sizes,elmInt);
 }
 
@@ -535,7 +556,7 @@ bool NormBase::initElement (const std::vector<int>& MNPC,
 bool NormBase::initElementBou (const std::vector<int>& MNPC,
                                LocalIntegral& elmInt)
 {
-  if (projBou && !this->initProjection(MNPC,elmInt))
+  if (projBou && !this->initProjection(MNPC,elmInt,myProblem.getNoGLMs()))
     return false;
 
   return myProblem.initElementBou(MNPC,elmInt);
@@ -547,7 +568,8 @@ bool NormBase::initElementBou (const std::vector<int>& MNPC,
                                const std::vector<size_t>& basis_sizes,
                                LocalIntegral& elmInt)
 {
-  if (projBou && !this->initProjection(MNPC,elmInt))
+  size_t nExtraNodes = MNPC.size() - elem_sizes.front();
+  if (projBou && !this->initProjection(MNPC,elmInt,nExtraNodes))
     return false;
 
   return myProblem.initElementBou(MNPC,elem_sizes,basis_sizes,elmInt);

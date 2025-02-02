@@ -101,11 +101,21 @@ public:
   LocalIntegral* getLocalIntegral(size_t nen, size_t iEl,
                                   bool neumann) const override;
 
-  //! \brief Initializes the primary solution vector for current element.
+protected:
+  //! \brief Initializes the first primary solution vector for current element.
   //! \param[in] MNPC Matrix of nodal point correspondance for current element
   //! \param[out] elmVec Primary element solution vector
-  bool initElement1(const std::vector<int>& MNPC, Vectors& elmVec) const;
+  //! \param[in] nskip If nonzero, skip the last \a nskip nodes of \a MNPC
+  bool initElement1(const std::vector<int>& MNPC, Vectors& elmVec,
+                    size_t nskip = 0) const;
+  //! \brief Initializes all primary solution vectors for current element.
+  //! \param[in] MNPC Matrix of nodal point correspondance for current element
+  //! \param[out] elmVec Primary element solution vectors
+  //! \param[in] nskip If nonzero, skip the last \a nskip nodes of \a MNPC
+  bool initElement2(const std::vector<int>& MNPC, Vectors& elmVec,
+                    size_t nskip = 0) const;
 
+public:
   //! \brief Initializes current element for numerical integration.
   //! \param[in] MNPC Matrix of nodal point correspondance for current element
   //! \param elmInt Local integral for element
@@ -180,8 +190,9 @@ public:
   //! \param[in] fe Finite element data at current point
   //! \param[in] X Cartesian coordinates of current point
   //! \param[in] MNPC Nodal point correspondance for the basis function values
+  //! \param[in] nskip If nonzero, skip the last \a nskip nodes of \a MNPC
   bool evalSol1(Vector& s, const FiniteElement& fe, const Vec3& X,
-                const std::vector<int>& MNPC) const;
+                const std::vector<int>& MNPC, size_t nskip = 0) const;
 
   //! \brief Evaluates the secondary solution at a result point.
   //! \param[out] s The solution field values at current point
@@ -270,6 +281,8 @@ public:
   size_t getNoSpaceDim() const { return nsd; }
   //! \brief Returns the number of primary/secondary solution field components.
   virtual size_t getNoFields(int = 2) const { return 0; }
+  //! \brief Returns the number of global %Lagrange multipliers in the model.
+  virtual size_t getNoGLMs() const { return 0; }
 
   //! \brief Returns the name of a primary solution field component.
   //! \param[in] idx Field component index
@@ -335,7 +348,7 @@ protected:
 };
 
 
-typedef std::vector<LocalIntegral*> LintegralVec; //!< Local integral container
+using LintegralVec = std::vector<LocalIntegral*>; //!< Local integral container
 
 
 /*!
@@ -365,11 +378,12 @@ public:
   LocalIntegral* getLocalIntegral(size_t, size_t iEl, bool) const override;
 
   //! \brief Initializes current element for numerical integration.
-  bool initElement(const std::vector<int>& MNPC, LocalIntegral& elmInt) override;
+  bool initElement(const std::vector<int>& MNPC,
+                   LocalIntegral& elmInt) override;
   //! \brief Initializes current element for numerical integration.
   bool initElement(const std::vector<int>& MNPC,
-                   const FiniteElement& fe,
-                   const Vec3& X0, size_t nPt, LocalIntegral& elmInt) override;
+                   const FiniteElement& fe, const Vec3& X0, size_t nPt,
+                   LocalIntegral& elmInt) override;
   //! \brief Initializes current element for numerical integration (mixed).
   bool initElement(const std::vector<int>& MNPC,
                    const std::vector<size_t>& elem_sizes,
@@ -451,7 +465,8 @@ public:
 
 protected:
   //! \brief Initializes the projected fields for current element.
-  bool initProjection(const std::vector<int>& MNPC, LocalIntegral& elmInt);
+  bool initProjection(const std::vector<int>& MNPC, LocalIntegral& elmInt,
+                      size_t nExtraNodes = 0);
 
   //! \brief Applies the operation \a finalOp on the given \a value.
   double applyFinalOp(double value) const;
@@ -498,28 +513,26 @@ public:
                                   bool = false) const override;
 
   //! \brief Dummy implementation (only boundary integration is relevant).
-  bool initElement(const std::vector<int>&, LocalIntegral&) override
-  { return false; }
+  bool initElement(const std::vector<int>&,
+                   LocalIntegral&) override { return false; }
 
   //! \brief Dummy implementation (only boundary integration is relevant).
-  bool initElement(const std::vector<int>&, const FiniteElement&,
-                   const Vec3&, size_t, LocalIntegral&) override
-  { return false; }
+  bool initElement(const std::vector<int>&,
+                   const FiniteElement&, const Vec3&, size_t,
+                   LocalIntegral&) override { return false; }
 
   //! \brief Dummy implementation (only boundary integration is relevant).
   bool initElement(const std::vector<int>&,
                    const std::vector<size_t>&,
                    const std::vector<size_t>&,
-                   LocalIntegral&) override
-  { return false; }
+                   LocalIntegral&) override { return false; }
 
   //! \brief Dummy implementation (only boundary integration is relevant).
   bool initElement(const std::vector<int>&,
                    const MxFiniteElement&,
                    const std::vector<size_t>&,
                    const std::vector<size_t>&,
-                   LocalIntegral&) override
-  { return false; }
+                   LocalIntegral&) override { return false; }
 
   //! \brief Initializes current element for boundary integration.
   bool initElementBou(const std::vector<int>& MNPC,
