@@ -352,13 +352,14 @@ bool utl::renumber (int& num, const IntMap& old2new, bool msg)
 
 int utl::gather (const std::vector<int>& index, size_t nr,
                  const std::vector<Real>& in, std::vector<Real>& out,
-                 size_t offset_in)
+                 size_t offset_in, size_t nskip)
 {
   int outside = 0;
-  out.resize(nr*index.size());
+  size_t nout = nskip < index.size() ? index.size()-nskip : 0;
+  out.resize(nr*nout);
   const Real* data = &in.front() + offset_in;
   Real* outVec = &out.front();
-  for (size_t i = 0; i < index.size(); i++, outVec += nr)
+  for (size_t i = 0; i < nout; i++, outVec += nr)
     if (index[i] >= 0 && offset_in+nr*index[i] < in.size())
       memcpy(outVec,data+nr*index[i],nr*sizeof(Real));
     else if (index[i] >= 0)
@@ -370,12 +371,13 @@ int utl::gather (const std::vector<int>& index, size_t nr,
 
 int utl::gather (const std::vector<int>& index, size_t nr,
                  const utl::vector<Real>& in, utl::matrix<Real>& out,
-                 size_t offset_in)
+                 size_t offset_in, size_t nskip)
 {
   int outside = 0;
-  out.resize(nr,index.size());
+  size_t nout = nskip < index.size() ? index.size()-nskip : 0;
+  out.resize(nr,nout);
   const Real* data = &in.front() + offset_in;
-  for (size_t i = 0; i < index.size(); i++)
+  for (size_t i = 0; i < nout; i++)
     if (index[i] >= 0 && offset_in+nr*index[i] < in.size())
       out.fillColumn(1+i,data+nr*index[i]);
     else if (index[i] >= 0)
@@ -387,14 +389,15 @@ int utl::gather (const std::vector<int>& index, size_t nr,
 
 int utl::gather (const std::vector<int>& index, size_t ir, size_t nr,
                  const std::vector<Real>& in, std::vector<Real>& out,
-                 size_t offset_in, int shift_idx)
+                 size_t offset_in, int shift_idx, size_t nskip)
 {
   if (ir >= nr) return index.size();
 
   int outside = 0;
-  out.resize(index.size());
+  size_t nout = nskip < index.size() ? index.size()-nskip : 0;
+  out.resize(nout);
   offset_in += ir;
-  for (size_t i = 0; i < index.size(); i++)
+  for (size_t i = 0; i < nout; i++)
     if (index[i] >= shift_idx)
     {
       size_t ip = offset_in + nr*(index[i]-shift_idx);

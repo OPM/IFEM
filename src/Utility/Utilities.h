@@ -156,9 +156,10 @@ namespace utl
   //! \param[in] in The input array stored column-wise in a 1D array
   //! \param[out] out The output array stored column-wise in a 1D array
   //! \param[in] offset_in Optional start offset for the \a in vector
+  //! \param[in] nskip If nonzero, skip the last \a nskip entries in \a index
   int gather(const std::vector<int>& index, size_t nr,
              const std::vector<Real>& in, std::vector<Real>& out,
-             size_t offset_in = 0);
+             size_t offset_in = 0, size_t nskip = 0);
 
   //! \brief Compresses the rows of a 2D array based on given scatter indices.
   //! \param[in] index Scatter indices of the columns that should be retained
@@ -166,9 +167,10 @@ namespace utl
   //! \param[in] in The input array stored column-wise in a 1D array
   //! \param[out] out The output array stored as a 2D matrix
   //! \param[in] offset_in Optional start offset for the \a in vector
+  //! \param[in] nskip If nonzero, skip the last \a nskip entries in \a index
   int gather(const std::vector<int>& index, size_t nr,
              const utl::vector<Real>& in, utl::matrix<Real>& out,
-             size_t offset_in = 0);
+             size_t offset_in = 0, size_t nskip = 0);
 
   //! \brief Compresses a row of a 2D array based on given scatter indices.
   //! \param[in] index Scatter indices of the columns that should be retained
@@ -178,9 +180,10 @@ namespace utl
   //! \param[out] out The output array stored column-wise in a 1D array
   //! \param[in] offset_in Optional start offset for the \a in vector
   //! \param[in] shift_idx Optional constant shift in the scatter indices
+  //! \param[in] nskip If nonzero, skip the last \a nskip entries in \a index
   int gather(const std::vector<int>& index, size_t ir, size_t nr,
              const std::vector<Real>& in, std::vector<Real>& out,
-             size_t offset_in = 0, int shift_idx = 0);
+             size_t offset_in = 0, int shift_idx = 0, size_t nskip = 0);
 
   //! \brief Merges two arrays of nodal values into one array by interleaving.
   //! \param[in] v1 The first array
