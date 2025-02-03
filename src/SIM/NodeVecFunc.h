@@ -28,23 +28,22 @@ class NodeVecFunc : public VecFunc
 {
 public:
   //! \brief The constructor initializes the references.
-  NodeVecFunc(const SIMbase& m, const std::vector<double>* v = nullptr)
-    : idMap(dummy), model(m), value(v) {}
-  //! \brief This constructor provides a node number map in addition.
+  NodeVecFunc(const SIMbase& m, const std::vector<double>& v,
+              const std::map<int,int>* nodeIdMap = nullptr)
+    : idMap(nodeIdMap), model(m), value(&v) {}
+  //! \brief Alternative constructor providing the vector through a pointer.
   NodeVecFunc(const SIMbase& m, const std::vector<double>* v,
               const std::map<int,int>& nodeIdMap)
-    : idMap(nodeIdMap), model(m), value(v) {}
-  //! \brief This constructor provides a node number map in addition.
-  NodeVecFunc(const SIMbase& m, const std::vector<double>& v,
-              const std::map<int,int>& nodeIdMap)
-    : idMap(nodeIdMap), model(m), value(&v) {}
-  //! \brief Empty destructor.
-  virtual ~NodeVecFunc() {}
+    : idMap(&nodeIdMap), model(m), value(v) {}
+  //! \brief No default constructor.
+  NodeVecFunc() = delete;
+  //! \brief No copy constructor.
+  NodeVecFunc(const NodeVecFunc&) = delete;
 
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const;
 
-  //! \brief Returns whether the function is time-independent or not.
+  //! \brief Returns that this function is time-dependent and not constant.
   virtual bool isConstant() const { return false; }
 
 protected:
@@ -55,8 +54,7 @@ protected:
   std::pair<int,int> getPointIndex(const Vec3& Xp) const;
 
 private:
-  const std::map<int,int>    dummy; //!< Dummy empty map
-  const std::map<int,int>&   idMap; //!< Map of node indices
+  const std::map<int,int>*   idMap; //!< Map of node indices
   mutable std::map<Vec3,int> ptMap; //!< Map of evaluated nodal points
 
 protected:

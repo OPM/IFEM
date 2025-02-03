@@ -19,9 +19,7 @@
 
 bool NodeVecFunc::isZero () const
 {
-  if (value && value->empty()) return true;
-  if (&idMap != &dummy) return idMap.empty();
-  return false;
+  return (value && value->empty()) || (idMap && idMap->empty());
 }
 
 
@@ -38,7 +36,7 @@ Vec3 NodeVecFunc::evaluate (const Vec3& X) const
     return Vec3();
   }
 
-  return Vec3(&value->front()+nf*idx,nf);
+  return Vec3(value->data()+nf*idx,nf);
 }
 
 
@@ -48,12 +46,12 @@ std::pair<int,int> NodeVecFunc::getPointIndex (const Vec3& Xp) const
   const Vec4* x4 = dynamic_cast<const Vec4*>(&Xp);
   if (x4 && x4->idx > 0)
   {
-    if (idMap.empty())
-      return std::make_pair(x4->idx,x4->idx); // Assume 1:1 mapping
+    if (!idMap || idMap->empty())
+      return { x4->idx, x4->idx }; // Assume 1:1 mapping
     else
     {
-      std::map<int,int>::const_iterator it = idMap.find(x4->idx);
-      if (it != idMap.end()) return *it;
+      std::map<int,int>::const_iterator it = idMap->find(x4->idx);
+      if (it != idMap->end()) return *it;
 
       std::cerr <<" *** NodeVecFunc::getPointIndex: Point "<< Xp
                 <<" is not present in the index map."<< std::endl;
@@ -62,17 +60,16 @@ std::pair<int,int> NodeVecFunc::getPointIndex (const Vec3& Xp) const
 
   // Search among the earlier nodes found
   std::map<Vec3,int>::const_iterator it = ptMap.find(Xp);
-  if (it != ptMap.end()) return std::make_pair(x4 ? x4->idx : 0, it->second);
+  if (it != ptMap.end()) return { x4 ? x4->idx : 0, it->second };
 
   // Not found, search among all nodes in the model
   const ASMbase* pch = nullptr;
   for (size_t i = 1; (pch = model.getPatch(i)); i++)
     for (size_t inod = 1; inod <= pch->getNoNodes(); inod++)
       if (Xp.equal(pch->getCoord(inod)))
-        return std::make_pair(x4 ? x4->idx : 0,
-                              ptMap[Xp] = pch->getNodeID(inod));
+        return { x4 ? x4->idx : 0, (ptMap[Xp] = pch->getNodeID(inod)) };
 
   std::cerr <<" *** NodeVecFunc::getPointIndex: No nodes matches the point "
             << Xp << std::endl;
-  return std::make_pair(0,0);
+  return { 0, 0 };
 }
