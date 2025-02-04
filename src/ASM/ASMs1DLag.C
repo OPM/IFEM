@@ -255,7 +255,7 @@ bool ASMs1DLag::integrate (Integrand& integrand,
     if (!this->isElementActive(fe.iel)) continue; // zero-length element
 
     // Set up nodal point coordinates for current element
-    ok = this->getElementCoordinates(fe.Xn,1+iel);
+    this->getElementCoordinates(fe.Xn,1+iel);
 
     LocalIntegral* A = integrand.getLocalIntegral(fe.Xn.cols(),fe.iel);
     if (!A) continue; // no integrand contributions for this element
@@ -272,7 +272,7 @@ bool ASMs1DLag::integrate (Integrand& integrand,
       fe.Te.diag(1.0);
 
     // Initialize element quantities
-    ok &= integrand.initElement(MNPC[iel],fe,X,nRed,*A);
+    ok = integrand.initElement(MNPC[iel],fe,X,nRed,*A);
 
     if (xr)
     {
@@ -386,7 +386,7 @@ bool ASMs1DLag::integrate (Integrand& integrand, int lIndex,
   if (!this->isElementActive(fe.iel)) return true; // zero-length element
 
   // Set up nodal point coordinates for current element
-  bool ok = this->getElementCoordinates(fe.Xn,1+iel);
+  this->getElementCoordinates(fe.Xn,1+iel);
 
   LocalIntegral* A = integrand.getLocalIntegral(fe.Xn.cols(),fe.iel,true);
   if (!A) return true; // no integrand contributions for this element
@@ -405,7 +405,7 @@ bool ASMs1DLag::integrate (Integrand& integrand, int lIndex,
   // Initialize element quantities
   std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex%10);
   fe.iGP = iit == firstBp.end() ? 0 : iit->second;
-  ok &= integrand.initElementBou(MNPC[iel],*A);
+  bool ok = integrand.initElementBou(MNPC[iel],*A);
 
   // Evaluate basis functions and corresponding derivatives
   Vec3 normal;
@@ -521,6 +521,7 @@ bool ASMs1DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
   double incx = 2.0/double(p1-1);
   int    nloc = regular ? 1 : p1;
+
   size_t nPoints = regular ? nel : nnod;
   IntVec check(regular ? 0 : nnod, 0);
 
@@ -535,10 +536,9 @@ bool ASMs1DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     fe.iel = MLGE[iel];
     if (fe.iel < 1) continue; // zero-length element
 
-    if (!this->getElementCoordinates(fe.Xn,1+iel))
-      return false;
-
+    this->getElementCoordinates(fe.Xn,1+iel);
     const IntVec& mnpc = MNPC[iel];
+
     for (int loc = 0; loc < nloc; loc++)
     {
       if (!regular) fe.xi = -1.0 + loc*incx;
@@ -557,7 +557,8 @@ bool ASMs1DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
       }
 
       // Now evaluate the solution field
-      if (!integrand.evalSol(solPt,fe,fe.Xn*fe.N,mnpc))
+      utl::Point X4(fe.Xn*fe.N,{fe.u});
+      if (!integrand.evalSol(solPt,fe,X4,mnpc))
         return false;
       else if (sField.empty())
         sField.resize(solPt.size(),nPoints,true);

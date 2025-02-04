@@ -406,15 +406,17 @@ bool ASMs3DLag::integrate (Integrand& integrand,
       for (size_t e = 0; e < group.size() && ok; e++)
       {
         int iel = group[e];
-        fe.iel = MLGE[iel];
-        if (!this->isElementActive(fe.iel)) continue; // zero-volume element
-
-        // Set up nodal point coordinates for current element
-        if (!this->getElementCoordinates(fe.Xn,1+iel))
+        if (iel < 0 || iel >= static_cast<int>(nel))
         {
           ok = false;
           break;
         }
+
+        fe.iel = MLGE[iel];
+        if (!this->isElementActive(fe.iel)) continue; // zero-volume element
+
+        // Set up nodal point coordinates for current element
+        this->getElementCoordinates(fe.Xn,1+iel);
 
         if (integrand.getIntegrandType() & Integrand::ELEMENT_CENTER)
         {
@@ -660,15 +662,17 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
       for (size_t e = 0; e < group.size() && ok; e++)
       {
         int iel = group[e];
-        fe.iel = abs(MLGE[doXelms+iel]);
-        if (!this->isElementActive(fe.iel)) continue; // zero-volume element
-
-        // Set up nodal point coordinates for current element
-        if (!this->getElementCoordinates(fe.Xn,1+iel))
+        if (iel < 0 || iel >= static_cast<int>(nel))
         {
           ok = false;
           break;
         }
+
+        fe.iel = abs(MLGE[doXelms+iel]);
+        if (!this->isElementActive(fe.iel)) continue; // zero-volume element
+
+        // Set up nodal point coordinates for current element
+        this->getElementCoordinates(fe.Xn,1+iel);
 
         // Initialize element quantities
         LocalIntegral* A = integrand.getLocalIntegral(fe.Xn.cols(),fe.iel,true);
@@ -842,7 +846,7 @@ bool ASMs3DLag::integrateEdge (Integrand& integrand, int lEdge,
           ip = i3*ng;
 
         // Set up nodal point coordinates for current element
-        if (!this->getElementCoordinates(fe.Xn,iel)) return false;
+        this->getElementCoordinates(fe.Xn,iel);
 
         // Initialize element quantities
         LocalIntegral* A = integrand.getLocalIntegral(fe.Xn.cols(),fe.iel,true);
@@ -1017,10 +1021,11 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const Vector& locSol,
   size_t ni   = gpar ? gpar[0].size() : nel;
   size_t nj   = gpar ? gpar[1].size() : 1;
   size_t nk   = gpar ? gpar[2].size() : 1;
+  size_t nen  = p1*p2*p3;
 
   sField.resize(nCmp,ni*nj*nk);
-  Matrix elmSol(nCmp,p1*p2*p3);
-  RealArray N(p1*p2*p3);
+  Matrix elmSol(nCmp,nen);
+  RealArray N(nen), val;
 
   double xi = 0.0, eta = 0.0, zeta = 0.0;
   if (!gpar && !Lagrange::computeBasis(N,p1,xi,p2,eta,p3,zeta))
@@ -1033,21 +1038,20 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const Vector& locSol,
       for (size_t i = 0; i < ni; i++, ip++)
       {
         if (gpar)
+        {
           iel = this->findElement(gpar[0][i], gpar[1][j], gpar[2][k],
                                   &xi, &eta, &zeta);
+          if (iel < 1 || iel > static_cast<int>(nel))
+            return false;
+          if (!Lagrange::computeBasis(N,p1,xi,p2,eta,p3,zeta))
+            return false;
+        }
         else
           iel++;
-        if (iel < 1 || iel > static_cast<int>(nel))
-          return false;
 
-        if (gpar && !Lagrange::computeBasis(N,p1,xi,p2,eta,p3,zeta))
-          return false;
+        for (size_t a = 1; a <= nen; a++)
+          elmSol.fillColumn(a, locSol.data() + nCmp*MNPC[iel-1][a-1]);
 
-        size_t idx = 1;
-        for (int inod : MNPC[iel-1])
-          elmSol.fillColumn(idx++,locSol.data()+inod*nCmp);
-
-        Vector val;
         elmSol.multiply(N,val);
         sField.fillColumn(ip,val);
       }
@@ -1098,7 +1102,8 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
           if (fe.detJxW == 0.0) continue; // skip singular points
 
           // Now evaluate the solution field
-          if (!integrand.evalSol(solPt,fe,fe.Xn*fe.N,mnpc))
+          utl::Point X4(fe.Xn*fe.N,{fe.u,fe.v,fe.w});
+          if (!integrand.evalSol(solPt,fe,X4,mnpc))
             return false;
           else if (sField.empty())
             sField.resize(solPt.size(),nPoints,true);
@@ -1111,7 +1116,10 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   }
 
   for (size_t i = 0; i < nPoints; i++)
-    sField.fillColumn(1+i,globSolPt[i] /= check[i]);
+    if (check[i] == 1)
+      sField.fillColumn(1+i, globSolPt[i]);
+    else if (check[i] > 1)
+      sField.fillColumn(1+i, globSolPt[i] /= check[i]);
 
   return true;
 }
@@ -1137,14 +1145,17 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     if (elCenters)
       iel++;
     else
+    {
       iel = this->findElement(gpar[0][i], gpar[1][i], gpar[2][i],
                               &fe.xi, &fe.eta, &fe.zeta);
+      if (iel < 1 || iel > static_cast<int>(nel))
+        return false;
+    }
 
     fe.iel = MLGE[iel-1];
     if (fe.iel < 1) continue; // zero-volume element
 
-    if (!this->getElementCoordinates(fe.Xn,iel))
-      return false;
+    this->getElementCoordinates(fe.Xn,iel);
 
     if (!Lagrange::computeBasis(fe.N,dNdu,p1,fe.xi,p2,fe.eta,p3,fe.zeta))
       return false;
