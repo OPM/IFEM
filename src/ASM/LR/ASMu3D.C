@@ -659,15 +659,13 @@ void ASMu3D::constrainNode (double xi, double eta, double zeta,
 double ASMu3D::getParametricArea (int iel, int dir) const
 {
 #ifdef INDEX_CHECK
-  if (iel < 1 || (size_t)iel > MNPC.size())
+  if (iel < 1 || iel > lrspline->nElements())
   {
     std::cerr <<" *** ASMu3D::getParametricArea: Element index "<< iel
-        <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
+              <<" out of range [1,"<< lrspline->nElements() <<"]."<< std::endl;
     return DERR;
   }
 #endif
-  if (MNPC[iel-1].empty())
-    return 0.0;
 
   const LR::Element* el = lrspline->getElement(iel-1);
   double du = el->getParmax(0) - el->getParmin(0);
@@ -689,19 +687,20 @@ double ASMu3D::getParametricArea (int iel, int dir) const
 bool ASMu3D::getElementCoordinates (Matrix& X, int iel, bool forceItg) const
 {
 #ifdef INDEX_CHECK
-  if (iel < 1 || (size_t)iel > MNPC.size())
+  if (iel < 1 || iel > lrspline->nElements())
   {
     std::cerr <<" *** ASMu3D::getElementCoordinates: Element index "<< iel
-              <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
+              <<" out of range [1,"<< lrspline->nElements() <<"]."<< std::endl;
     return false;
   }
 #endif
-  const LR::LRSplineVolume* spline = this->getBasis(forceItg ? ASM::INTEGRATION_BASIS
-                                                             : ASM::GEOMETRY_BASIS);
-  if (spline != lrspline.get())
-    iel = spline->getElementContaining(lrspline->getElement(iel-1)->midpoint()) + 1;
 
-  const LR::Element* el = spline->getElement(iel-1);
+  int basis = forceItg ? ASM::INTEGRATION_BASIS : ASM::GEOMETRY_BASIS;
+  const LR::LRSplineVolume* spline = this->getBasis(basis);
+  const LR::Element* el = lrspline->getElement(iel-1);
+  if (spline != lrspline.get())
+    el = spline->getElement(spline->getElementContaining(el->midpoint()));
+
   X.resize(3,el->nBasisFunctions());
 
   int n = 1;
@@ -1558,10 +1557,9 @@ bool ASMu3D::evalSolution (Matrix& sField, const Vector& locSol,
                 << gpar[1][i] <<", "<< gpar[2][i] <<") not found."<< std::endl;
       return false;
     }
-    const LR::Element* el = lrspline->getElement(iel);
 
-    utl::gather({MNPC[iel].begin(),MNPC[iel].begin()+el->nBasisFunctions()},
-                nComp,locSol,eSol);
+    int nskip = MNPC[iel].size() - lrspline->getElement(iel)->nBasisFunctions();
+    utl::gather(MNPC[iel],nComp,locSol,eSol,0,nskip);
 
     if (iel != lel && deriv > 0)
     {

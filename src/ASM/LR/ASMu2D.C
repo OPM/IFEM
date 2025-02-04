@@ -898,10 +898,10 @@ double ASMu2D::getParametricLength (int iel, int dir) const
 
   const LR::Element* el = lrspline->getElement(iel-1);
   switch (dir)
-  {
-  case 1: return el->umax() - el->umin();
-  case 2: return el->vmax() - el->vmin();
-  }
+    {
+    case 1: return el->umax() - el->umin();
+    case 2: return el->vmax() - el->vmin();
+    }
 
   std::cerr <<" *** ASMu2D::getParametricLength: Invalid edge direction "
             << dir << std::endl;
@@ -968,16 +968,22 @@ bool ASMu2D::getElementCoordinates (Matrix& X, int iel, bool forceItg) const
     return false;
   }
 #endif
-  const LR::LRSplineSurface* spline = this->getBasis(forceItg ? ASM::INTEGRATION_BASIS
-                                                              : ASM::GEOMETRY_BASIS);
-  if (spline != lrspline.get())
-    iel = spline->getElementContaining(lrspline->getElement(iel-1)->midpoint()) + 1;
 
-  bool status = this->getCoordinates(X,nsd,*spline,iel);
+  bool stat;
+  int basis = forceItg ? ASM::INTEGRATION_BASIS : ASM::GEOMETRY_BASIS;
+  const LR::LRSplineSurface* spline = this->getBasis(basis);
+  if (spline != lrspline.get()) {
+    const LR::Element* el = lrspline->getElement(iel-1);
+    stat = this->getCoordinates(X,nsd,*spline,
+                                spline->getElementContaining(el->midpoint())+1);
+  }
+  else
+    stat = this->getCoordinates(X,nsd,*spline,iel);
+
 #if SP_DEBUG > 2
   std::cout <<"\nCoordinates for element "<< iel << X << std::endl;
 #endif
-  return status;
+  return stat;
 }
 
 
@@ -2082,12 +2088,10 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
         return false;
     }
 
-    const LR::Element* el = lrspline->getElement(iel);
-
     // Evaluate basis function values/derivatives at current parametric point
     // and multiply with control point values to get the point-wise solution
-    utl::gather({MNPC[iel].begin(), MNPC[iel].begin() + el->nBasisFunctions()},
-                nComp,locSol,eSol);
+    int nskip = MNPC[iel].size() - lrspline->getElement(iel)->nBasisFunctions();
+    utl::gather(MNPC[iel],nComp,locSol,eSol,0,nskip);
     switch (deriv)
     {
     case 0: // Evaluate the solution
