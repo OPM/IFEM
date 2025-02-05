@@ -1906,6 +1906,13 @@ int ASMu2D::evalPoint (const double* xi, double* param, Vec3& X) const
     u[1] = xi[1];
   }
 
+  if (nel == 0) // In case invoked before generateFEMTopology()
+  {
+    // The getElementContaining() call fails if the IDs haven't been generated
+    lrspline->generateIDs();
+    const_cast<ASMu2D*>(this)->nel = lrspline->nElements();
+  }
+
   int iel;
 #pragma omp critical
   iel = lrspline->getElementContaining(u[0],u[1]);
