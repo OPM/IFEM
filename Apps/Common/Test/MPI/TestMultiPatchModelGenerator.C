@@ -35,9 +35,16 @@ static void check_intvectors_equal (const std::vector<int>& A,
 };
 
 
+template<class Dim> class SIMMultiPatch : public SIMMultiPatchModelGen<Dim>
+{
+public:
+  explicit SIMMultiPatch(int n1) : SIMMultiPatchModelGen<Dim>(n1,false) {}
+};
+
+
 TEST(TestMultiPatchModelGenerator2D, SubdivisionsMPI)
 {
-  SIMMultiPatchModelGen<SIM2D> sim(1);
+  SIMMultiPatch<SIM2D> sim(1);
   ASSERT_TRUE(sim.read("Test/refdata/modelgen2d_subdivision.xinp"));
   ASSERT_TRUE(sim.preprocess());
   const ProcessAdm& adm = sim.getProcessAdm();
@@ -52,7 +59,7 @@ TEST(TestMultiPatchModelGenerator2D, SubdivisionsMPI)
 /*
 TES(TestMultiPatchModelGenerator3D, SubdivisionsMPI)
 {
-  SIMMultiPatchModelGen<SIM3D> sim;
+  SIMMultiPatch<SIM3D> sim(1);
   ASSERT_TRUE(sim.read("Test/refdata/modelgen3d_subdivision.xinp"));
   ASSERT_TRUE(sim.preprocess());
   const ProcessAdm& adm = sim.getProcessAdm();

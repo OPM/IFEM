@@ -11,7 +11,6 @@
 //!
 //==============================================================================
 
-#include "ModelGenerator.h"
 #include "SIMMultiPatchModelGen.h"
 #include "MultiPatchModelGenerator.h"
 #include "SIM1D.h"
@@ -21,30 +20,36 @@
 
 
 //! \brief Template specialization for 1D.
-//! \param[in] geo XML element containing geometry definition
 template<>
 ModelGenerator* SIMMultiPatchModelGen<SIM1D>::getModelGenerator(const tinyxml2::XMLElement* geo) const
 {
+  if (!useMultiPatchGen(geo))
+    return this->SIM1D::getModelGenerator(geo);
+
   IFEM::cout <<"  Using 1D multi-patch model generator."<< std::endl;
   return new MultiPatchModelGenerator1D(geo);
 }
 
 
 //! \brief Template specialization for 2D.
-//! \param[in] geo XML element containing geometry definition
 template<>
 ModelGenerator* SIMMultiPatchModelGen<SIM2D>::getModelGenerator(const tinyxml2::XMLElement* geo) const
 {
+  if (!useMultiPatchGen(geo))
+    return this->SIM2D::getModelGenerator(geo);
+
   IFEM::cout <<"  Using 2D multi-patch model generator."<< std::endl;
   return new MultiPatchModelGenerator2D(geo);
 }
 
 
 //! \brief Template specialization for 3D.
-//! \param[in] geo XML element containing geometry definition
 template<>
 ModelGenerator* SIMMultiPatchModelGen<SIM3D>::getModelGenerator(const tinyxml2::XMLElement* geo) const
 {
+  if (!useMultiPatchGen(geo))
+    return this->SIM3D::getModelGenerator(geo);
+
   IFEM::cout <<"  Using 3D multi-patch model generator."<< std::endl;
   return new MultiPatchModelGenerator3D(geo);
 }

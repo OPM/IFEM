@@ -144,9 +144,25 @@ TEST_P(TestMultiPatchModelGenerator2D, Generate)
 }
 
 
+class SIMMultiPatch2D : public SIMMultiPatchModelGen<SIM2D>
+{
+public:
+  explicit SIMMultiPatch2D(int n1) : SIMMultiPatchModelGen<SIM2D>(n1,false) {}
+  SIMMultiPatch2D(unsigned char n1, unsigned char n2)
+    : SIMMultiPatchModelGen<SIM2D>({n1,n2},false) {}
+};
+
+
+class SIMMultiPatch3D : public SIMMultiPatchModelGen<SIM3D>
+{
+public:
+  explicit SIMMultiPatch3D(int n1) : SIMMultiPatchModelGen<SIM3D>(n1,false) {}
+};
+
+
 TEST(TestMultiPatchModelGenerator2D, GenerateLR)
 {
-  SIMMultiPatchModelGen<SIM2D> sim(1);
+  SIMMultiPatch2D sim(1);
   sim.opt.discretization = ASM::LRSpline;
   ASSERT_TRUE(sim.read("refdata/modelgen2d_lr.xinp"));
   sim.preprocess();
@@ -156,7 +172,7 @@ TEST(TestMultiPatchModelGenerator2D, GenerateLR)
 
 TEST(TestMultiPatchModelGenerator2D, GenerateLRmx)
 {
-  SIMMultiPatchModelGen<SIM2D> sim({2,1});
+  SIMMultiPatch2D sim(2,1);
   sim.opt.discretization = ASM::LRSpline;
   ASSERT_TRUE(sim.read("refdata/modelgen2d_lr.xinp"));
   sim.preprocess();
@@ -166,7 +182,7 @@ TEST(TestMultiPatchModelGenerator2D, GenerateLRmx)
 
 TEST(TestMultiPatchModelGenerator2D, Subdivisions)
 {
-  SIMMultiPatchModelGen<SIM2D> sim(1);
+  SIMMultiPatch2D sim(1);
   ASSERT_TRUE(sim.read("refdata/modelgen2d_subdivision.xinp"));
 
   // check FEM topology
@@ -223,7 +239,7 @@ TEST_P(TestMultiPatchModelGenerator3D, Generate)
 
 TEST(TestMultiPatchModelGenerator3D, GenerateLR)
 {
-  SIMMultiPatchModelGen<SIM3D> sim(1);
+  SIMMultiPatch3D sim(1);
   sim.opt.discretization = ASM::LRSpline;
   ASSERT_TRUE(sim.read("refdata/modelgen3d_lr.xinp"));
   sim.preprocess();
@@ -233,7 +249,7 @@ TEST(TestMultiPatchModelGenerator3D, GenerateLR)
 
 TEST(TestMultiPatchModelGenerator3D, Subdivisions)
 {
-  SIMMultiPatchModelGen<SIM3D> sim(1);
+  SIMMultiPatch3D sim(1);
   ASSERT_TRUE(sim.read("refdata/modelgen3d_subdivision.xinp"));
 
   // check FEM topology
