@@ -28,29 +28,30 @@ std::string MultiPatchModelGenerator1D::createG2 (int nsd, bool rational) const
 {
   if (rational)
     IFEM::cout <<"\tRational basis.";
+
   double scale = 1.0;
   if (utl::getAttribute(geo,"scale",scale))
     IFEM::cout <<"\n\tScale: "<< scale;
 
   double Lx = 1.0;
-  if (utl::getAttribute(geo,"Lx",Lx))
+  if (utl::getAttribute(geo,"Lx",Lx) || utl::getAttribute(geo,"L",Lx))
     IFEM::cout <<"\n\tLength in X: "<< Lx << std::endl;
   Lx *= scale;
+
+  int nx_mp = 1;
+  if (!subdivision && nx > 1) {
+    IFEM::cout <<"\n\tSplit in X = "<< nx;
+
+    Lx /= nx;
+
+    nx_mp = nx;
+  }
 
   Vec3 X0;
   std::string corner;
   if (utl::getAttribute(geo,"X0",corner)) {
     std::stringstream str(corner); str >> X0;
     IFEM::cout <<"\n\tCorner: "<< X0;
-  }
-
-  int nx_mp = 1;
-  if (!subdivision) {
-    IFEM::cout <<"\n\tSplit in X = "<< nx;
-
-    Lx /= nx;
-
-    nx_mp = nx;
   }
 
   std::string g2;
@@ -239,6 +240,7 @@ std::string MultiPatchModelGenerator2D::createG2 (int nsd, bool rational) const
 {
   if (rational)
     IFEM::cout <<"\tRational basis.";
+
   double scale = 1.0;
   if (utl::getAttribute(geo,"scale",scale))
     IFEM::cout <<"\n\tScale = "<< scale;
@@ -251,15 +253,8 @@ std::string MultiPatchModelGenerator2D::createG2 (int nsd, bool rational) const
     IFEM::cout <<"\n\tLength in Y = "<< Ly;
   Ly *= scale;
 
-  Vec3 X0;
-  std::string corner;
-  if (utl::getAttribute(geo,"X0",corner)) {
-    std::stringstream str(corner); str >> X0;
-    IFEM::cout <<"\n\tCorner = "<< X0;
-  }
-
   int nx_mp = 1, ny_mp = 1;
-  if (!subdivision) {
+  if (!subdivision && nx*ny > 1) {
     IFEM::cout <<"\n\tSplit in X = "<< nx;
     IFEM::cout <<"\n\tSplit in Y = "<< ny;
 
@@ -268,6 +263,13 @@ std::string MultiPatchModelGenerator2D::createG2 (int nsd, bool rational) const
 
     nx_mp = nx;
     ny_mp = ny;
+  }
+
+  Vec3 X0;
+  std::string corner;
+  if (utl::getAttribute(geo,"X0",corner)) {
+    std::stringstream str(corner); str >> X0;
+    IFEM::cout <<"\n\tCorner = "<< X0;
   }
 
   std::string g2;
@@ -563,7 +565,7 @@ std::string MultiPatchModelGenerator3D::createG2 (int, bool rational) const
   Lz *= scale;
 
   int nx_mp = 1, ny_mp = 1, nz_mp = 1;
-  if (!subdivision) {
+  if (!subdivision && nx*ny*nz > 1) {
     IFEM::cout <<"\n\tSplit in X = "<< nx;
     IFEM::cout <<"\n\tSplit in Y = "<< ny;
     IFEM::cout <<"\n\tSplit in Z = "<< nz;
