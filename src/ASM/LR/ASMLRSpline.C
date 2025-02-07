@@ -12,8 +12,8 @@
 //==============================================================================
 
 #include "LRSpline/Basisfunction.h"
-#include "LRSpline/LRSplineSurface.h"
-#include "LRSpline/LRSplineVolume.h"
+#include "LRSpline/LRSpline.h"
+#include "LRSpline/Element.h"
 
 #include "ASMLRSpline.h"
 #include "GlobalNodes.h"
@@ -181,37 +181,6 @@ void LR::generateThreadGroups (ThreadGroups& threadGroups,
 #endif
 
   threadGroups.oneGroup(nElement); // No threading, all elements in one group
-}
-
-
-void LR::copyRefinement (const LR::LRSplineSurface* from,
-                         LR::LRSplineSurface* to,
-                         int multiplicity)
-{
-  for (const LR::Meshline* line : from->getAllMeshlines()) {
-    int mult = line->multiplicity_ > 1 ? line->multiplicity_ : multiplicity;
-    if (line->span_u_line_)
-      to->insert_const_v_edge(line->const_par_,
-                              line->start_, line->stop_, mult);
-    else
-      to->insert_const_u_edge(line->const_par_,
-                              line->start_, line->stop_, mult);
-  }
-}
-
-
-void LR::copyRefinement (const LR::LRSplineVolume* from,
-                         LR::LRSplineVolume* to,
-                         int multiplicity)
-{
-  for (const LR::MeshRectangle* rect : from->getAllMeshRectangles()) {
-    int mult = rect->multiplicity_ > 1 ? to->order(rect->constDirection())
-                                       : multiplicity;
-    LR::MeshRectangle* newRect = rect->copy();
-    newRect->multiplicity_ = mult;
-
-    to->insert_line(newRect);
-  }
 }
 
 
@@ -385,11 +354,11 @@ void ASMLRSpline::getFunctionsForElements (IntSet& functions,
 IntVec ASMLRSpline::getBoundaryCovered (const IntSet& nodes) const
 {
   IntSet result;
-  int numbEdges = (this->getNoParamDim() == 2) ? 4 : 6;
+  int numbEdges = this->getNoParamDim() * 2;
+  int boundrDim = this->getNoParamDim() - 1;
   for (int edge = 1; edge <= numbEdges; edge++)
   {
-    IntVec bnd = GlobalNodes::getBoundaryNodes(*refB,
-                                               this->getNoParamDim()-1, edge, 0);
+    IntVec bnd = GlobalNodes::getBoundaryNodes(*refB, boundrDim, edge, 0);
     for (const int i : nodes)
       for (const int j : bnd)
         if (refB->getBasisfunction(i)->contains(*refB->getBasisfunction(j)))

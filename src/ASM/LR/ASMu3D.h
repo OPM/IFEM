@@ -233,6 +233,11 @@ public:
   //! \param[in] globalNum If \e true, \a elmId is global otherwise patch-local
   virtual bool checkElementSize(int elmId, bool globalNum = true) const;
 
+  //! \brief Copies the refinement to another spline volume.
+  //! \param basis Volume to copy refinement to
+  //! \param[in] multiplicity Wanted multiplicity
+  void copyRefinement(LR::LRSplineVolume* basis, int multiplicity = 1) const;
+
 
   // Various methods for preprocessing of boundary conditions and patch topology
   // ===========================================================================

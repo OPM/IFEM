@@ -852,14 +852,13 @@ bool ASMu3Dmx::refine (const LR::RefineData& prm, Vectors& sol)
     }
 
   if (doRefine(prm, this->getBasis(ASM::REFINEMENT_BASIS))) {
+    size_t mult2b = m_basis.size();
+    if (ASMmxBase::Type == REDUCED_CONT_RAISE_BASIS1)
+      mult2b = 0;
+    else if (ASMmxBase::Type == REDUCED_CONT_RAISE_BASIS2)
+      mult2b = 1;
     for (size_t j = 0; j < m_basis.size(); ++j)
-      if (refB != m_basis[j]) {
-        if ((j == 0 && ASMmxBase::Type == REDUCED_CONT_RAISE_BASIS1) ||
-            (j == 1 && ASMmxBase::Type == REDUCED_CONT_RAISE_BASIS2))
-          this->copyRefinement(m_basis[j].get(), 2);
-        else
-          this->copyRefinement(m_basis[j].get(), 1);
-      }
+      this->copyRefinement(m_basis[j].get(), j == mult2b ? 2 : 1);
 
     // Uniformly refine to find basis 1
     if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
@@ -1007,14 +1006,6 @@ size_t ASMu3Dmx::getNoRefineNodes() const
 size_t ASMu3Dmx::getNoRefineElms() const
 {
   return refB->nElements();
-}
-
-
-void ASMu3Dmx::copyRefinement (LR::LRSplineVolume* basis,
-                               int multiplicity) const
-{
-  const LR::LRSplineVolume* ref = this->getBasis(ASM::REFINEMENT_BASIS);
-  LR::copyRefinement(ref, basis, multiplicity);
 }
 
 

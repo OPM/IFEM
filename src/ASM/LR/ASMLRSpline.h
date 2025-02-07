@@ -25,8 +25,6 @@ namespace LR //! Utilities for LR-splines.
 {
   class Basisfunction;
   class LRSpline;
-  class LRSplineSurface;
-  class LRSplineVolume;
 
   //! \brief Expands the basis coefficients of an LR-spline object.
   //! \param basis The spline object to extend
@@ -61,22 +59,6 @@ namespace LR //! Utilities for LR-splines.
   void generateThreadGroups(ThreadGroups& threadGroups,
                             const LRSpline* lr,
                             const std::vector<LRSpline*>& addConstraints = {});
-
-  //! \brief Copies the refinement to another surface.
-  //! \param from Surface to copy refinement from
-  //! \param to Surface to copy refinement to
-  //! \param[in] multiplicity Wanted multiplicity
-  void copyRefinement(const LR::LRSplineSurface* from,
-                      LR::LRSplineSurface* to,
-                      int multiplicity);
-
-  //! \brief Copies the refinement to another volume.
-  //! \param from Volume to copy refinement from
-  //! \param to Volume to copy refinement to
-  //! \param[in] multiplicity Wanted multiplicity
-  void copyRefinement(const LR::LRSplineVolume* from,
-                      LR::LRSplineVolume* to,
-                      int multiplicity);
 }
 
 

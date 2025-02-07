@@ -1111,14 +1111,14 @@ bool ASMu2Dmx::refine (const LR::RefineData& prm, Vectors& sol)
     }
 
   if (doRefine(prm, this->getBasis(ASM::REFINEMENT_BASIS))) {
+    size_t mult2b = m_basis.size();
+    if (ASMmxBase::Type == REDUCED_CONT_RAISE_BASIS1)
+      mult2b = 0;
+    else if (ASMmxBase::Type == REDUCED_CONT_RAISE_BASIS2)
+      mult2b = 1;
     for (size_t j = 0; j < m_basis.size(); ++j)
-      if (refB != m_basis[j]) {
-        if ((j == 0 && ASMmxBase::Type == REDUCED_CONT_RAISE_BASIS1) ||
-            (j == 1 && ASMmxBase::Type == REDUCED_CONT_RAISE_BASIS2))
-          this->copyRefinement(m_basis[j].get(), 2);
-        else
-          this->copyRefinement(m_basis[j].get(), 1);
-      }
+      if (refB != m_basis[j])
+        this->copyRefinement(m_basis[j].get(), j == mult2b ? 2 : 1);
 
     // Uniformly refine to find basis 1
     if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
@@ -1335,14 +1335,6 @@ void ASMu2Dmx::storeMesh (const std::string& fName, int fType) const
   }
   writeBasis(std::static_pointer_cast<LR::LRSplineSurface>(projB), "proj");
   writeBasis(std::static_pointer_cast<LR::LRSplineSurface>(refB), "ref");
-}
-
-
-void ASMu2Dmx::copyRefinement (LR::LRSplineSurface* basis,
-                               int multiplicity) const
-{
-  const LR::LRSplineSurface* ref = this->getBasis(ASM::REFINEMENT_BASIS);
-  LR::copyRefinement(ref, basis, multiplicity);
 }
 
 

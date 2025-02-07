@@ -222,11 +222,6 @@ public:
   virtual void remapErrors(RealArray& errors,
                            const RealArray& origErr, bool elemErrors) const;
 
-  //! \brief Copies the refinement to another surface.
-  //! \param basis Surface to copy refinement to
-  //! \param[in] multiplicity Wanted multiplicity
-  void copyRefinement(LR::LRSplineSurface* basis, int multiplicity) const;
-
   //! \brief Checks if a separate projection basis is used for this patch.
   virtual bool separateProjectionBasis() const;
 

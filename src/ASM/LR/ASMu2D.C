@@ -3045,6 +3045,22 @@ void ASMu2D::extractElmRes (const Matrix& globRes, Matrix& elmRes,
 }
 
 
+void ASMu2D::copyRefinement (LR::LRSplineSurface* basis, int multiplicity) const
+{
+  const LR::LRSplineSurface* from = this->getBasis(ASM::REFINEMENT_BASIS);
+  for (const LR::Meshline* line : from->getAllMeshlines())
+  {
+    int mult = line->multiplicity_ > 1 ? line->multiplicity_ : multiplicity;
+    if (line->span_u_line_)
+      basis->insert_const_v_edge(line->const_par_,
+                                 line->start_, line->stop_, mult);
+    else
+      basis->insert_const_u_edge(line->const_par_,
+                                 line->start_, line->stop_, mult);
+  }
+}
+
+
 ASMu2D::BasisFunctionCache::BasisFunctionCache (const ASMu2D& pch) :
   ::BasisFunctionCache<2>(), patch(pch)
 {

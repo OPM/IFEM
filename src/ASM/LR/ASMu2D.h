@@ -29,7 +29,6 @@ namespace utl {
 }
 
 namespace Go {
-  class SplineCurve;
   class SplineSurface;
   struct BasisPtsSf;
   struct BasisDerivsSf;
@@ -252,6 +251,12 @@ public:
   //! \param[in] internalFirst Global index of first element in the patch
   virtual void extractElmRes(const Matrix& globRes, Matrix& elmRes,
                              size_t internalFirst) const;
+
+  //! \brief Copies the refinement to another surface.
+  //! \param basis Surface to copy refinement to
+  //! \param[in] multiplicity Wanted multiplicity
+  void copyRefinement(LR::LRSplineSurface* basis, int multiplicity = 1) const;
+
 
   // Various methods for preprocessing of boundary conditions and patch topology
   // ===========================================================================

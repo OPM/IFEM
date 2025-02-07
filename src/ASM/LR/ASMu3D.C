@@ -2423,6 +2423,21 @@ void ASMu3D::extractElmRes (const Matrix& globRes, Matrix& elmRes,
 }
 
 
+void ASMu3D::copyRefinement (LR::LRSplineVolume* basis, int multiplicity) const
+{
+  const LR::LRSplineVolume* from = this->getBasis(ASM::REFINEMENT_BASIS);
+  for (const LR::MeshRectangle* rect : from->getAllMeshRectangles())
+  {
+    int mult = rect->multiplicity_ > 1 ? basis->order(rect->constDirection())
+                                       : multiplicity;
+    LR::MeshRectangle* newRect = rect->copy();
+    newRect->multiplicity_ = mult;
+
+    basis->insert_line(newRect);
+  }
+}
+
+
 ASMu3D::BasisFunctionCache::BasisFunctionCache (const ASMu3D& pch, bool useBezier) :
   ::BasisFunctionCache<3>(), bezierEnabled(useBezier), patch(pch)
 {
