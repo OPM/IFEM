@@ -160,6 +160,23 @@ TEST(TestMatrix, SumCols)
 }
 
 
+TEST(TestMatrix, Fill)
+{
+  utl::matrix<int> a;
+  std::vector<int> v(16);
+  std::iota(v.begin(),v.end(),1);
+  a.fill(v,3,4);
+  std::cout <<"a:"<< a;
+  EXPECT_EQ(a(3,1),3);
+  a.fill(v,4,4);
+  std::cout <<"a:"<< a;
+  EXPECT_EQ(a(4,1),4);
+  a.fill(v,5,4);
+  std::cout <<"a:"<< a;
+  EXPECT_EQ(a(5,1),0);
+}
+
+
 TEST(TestMatrix, Multiply)
 {
   multiplyTest<double>();

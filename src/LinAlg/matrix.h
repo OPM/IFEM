@@ -612,6 +612,24 @@ namespace utl //! General utility classes and functions.
       return col;
     }
 
+    using matrixBase<T>::fill;
+    //! \brief Fill the matrix with vector data.
+    void fill(const std::vector<T>& v, size_t n, size_t m = 0)
+    {
+      if (n == 0 || v.size() < n) return;
+      if (m == 0) m = v.size()/n;
+      this->resize(n,m,true);
+      if (n*m == v.size())
+        this->elem.fill(v.data());
+      else if ((n = v.size()/m) > nrow)
+        for (size_t c = 0; c < ncol; c++)
+          this->fillColumn(c+1,v.data()+c*n);
+      else // n < nrow
+        for (size_t c = 0; c < ncol; c++)
+          for (size_t r = 0; r < n; r++)
+            this->elem[r+c*nrow] = v[r+c*n];
+    }
+
     //! \brief Fill a column of the matrix.
     void fillColumn(size_t c, const std::vector<T>& data)
     {
