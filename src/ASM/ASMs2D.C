@@ -1863,7 +1863,7 @@ bool ASMs2D::integrate (Integrand& integrand,
 
         if (integrand.getIntegrandType() & Integrand::UPDATED_NODES)
           if (!time.first || time.it > 0)
-            if (!this->deformedConfig(Xnod,A->vec))
+            if (!deformedConfig(Xnod,A->vec))
             {
               A->destruct();
               ok = false;
@@ -2111,7 +2111,7 @@ bool ASMs2D::integrate (Integrand& integrand,
 
         if (integrand.getIntegrandType() & Integrand::UPDATED_NODES)
           if (!time.first || time.it > 0)
-            if (!this->deformedConfig(Xnod,A->vec))
+            if (!deformedConfig(Xnod,A->vec))
             {
               A->destruct();
               ok = false;
@@ -2950,7 +2950,7 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   if (integrand.getIntegrandType() & Integrand::UPDATED_NODES)
   {
     Vectors& eV = const_cast<IntegrandBase&>(integrand).getSolutions();
-    if (!this->deformedConfig(Xnod,eV,true))
+    if (!deformedConfig(Xnod,eV,true))
       return false;
   }
 
