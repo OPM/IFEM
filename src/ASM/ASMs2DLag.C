@@ -722,7 +722,7 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const Vector& locSol,
   if (!gpar && !regular) // Direct nodal evaluation
     return this->nodalField(sField,locSol,this->getNoNodes(-1));
 
-  size_t nCmp = locSol.size() / this->getNoNodes();
+  size_t nCmp = locSol.size() / this->getNoProjectionNodes();
   size_t ni   = gpar ? gpar[0].size() : nel;
   size_t nj   = gpar ? gpar[1].size() : 1;
   size_t nen  = p1*p2;
