@@ -939,12 +939,12 @@ protected:
   //! \brief Returns \e true if \a dirs constains all local DOFs in the patch.
   bool allDofs(int dirs) const;
 
-  //! \brief Calculated the deformed configuration for current element.
-  //! \param[in] Xnod Array of nodal point coordinates for current element
+  //! \brief Calculates the deformed configuration for current element.
+  //! \param[in] Xnod Matrix of nodal point coordinates for current element
   //! \param eVec Current element solution vectors
   //! \param[in] force2nd If \e true, put updated coordinates as the 2nd vector
-  bool deformedConfig(const RealArray& Xnod, Vectors& eVec,
-                      bool force2nd = false) const;
+  static bool deformedConfig(const Matrix& Xnod, Vectors& eVec,
+                             bool force2nd = false);
 
   //! \brief Collapses the given two nodes into one.
   //! \details The global node number of the node with the highest number

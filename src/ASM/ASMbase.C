@@ -1583,19 +1583,21 @@ bool ASMbase::getSolution (Matrix& sField, const Vector& locSol,
   This method calculates the updated (control point) coordinates of current
   element by adding the current displacement vector stored as the first vector
   in \a eVec to the nodal coordinates of the reference configuration.
-  The result is stored as the last vector in \a eVec.
+  The result is stored as the last vector in \a eVec, unless \a force2nd
+  is \e true and \a eVec already contains two or more vectors.
+  In that case the second vector will be overwritten
 */
 
-bool ASMbase::deformedConfig (const RealArray& Xnod,
-                              Vectors& eVec, bool force2nd) const
+bool ASMbase::deformedConfig (const Matrix& Xnod, Vectors& eVec, bool force2nd)
 {
   if (eVec.empty() || eVec.front().empty())
     return true; // No primary solution yet, silently OK
 
   const Vector& eV = eVec.front();
-  size_t nen = Xnod.size()/nsd;
+  size_t nsd = Xnod.rows();
+  size_t nen = Xnod.cols();
   size_t npv = nen > 0 ? eV.size()/nen : 0;
-  if (npv < nsd || npv*nen != eV.size() || nsd*nen != Xnod.size())
+  if (npv < nsd || npv*nen != eV.size())
   {
     std::cerr <<" *** ASMbase::deformedConfig: Inconsistent size of "
               <<" nodal coordinate and displacement arrays "
@@ -1603,25 +1605,23 @@ bool ASMbase::deformedConfig (const RealArray& Xnod,
     return false;
   }
 
-  Vector Xdef(Xnod.data(),Xnod.size());
+  Vector Xdef(Xnod);
   if (npv == nsd)
     Xdef.add(eV);
+  else for (size_t i = 0; i < nsd; i++)
+    Xdef.add(eV,1.0,i,nsd,i,nsd);
+
+  size_t iVec = 1;
+  if (force2nd && eVec.size() >= 2)
+    eVec[iVec].swap(Xdef);
   else
   {
-    size_t i, j;
-    for (i = j = 0; i < Xdef.size(); i++)
-    {
-      Xdef[i] += eV[j+i%nsd];
-      if ((i+1)%nsd == 0) j += npv;
-    }
+    iVec = eVec.size();
+    eVec.push_back(Xdef);
   }
 
-  if (force2nd && eVec.size() >= 2)
-    eVec[1].swap(Xdef);
-  else
-    eVec.push_back(Xdef);
 #if SP_DEBUG > 2
-  std::cout <<"Element solution vector "<< eVec.size() << eVec.back();
+  std::cout <<"Element solution vector "<< iVec+1 << eVec[iVec];
 #endif
   return true;
 }
