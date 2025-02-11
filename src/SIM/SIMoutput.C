@@ -1026,6 +1026,8 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
       if (pvecName && psolComps < 0)
         pname = std::string(pvecName) + " " + pname;
     }
+    else if (i == nf && i+1 == sID.size() && pvecName)
+      pname = pvecName;
     else if (i > 0 && nVcomp > 1 && i%nVcomp == 0)
     {
       pname.back() = 'r';
@@ -1762,9 +1764,12 @@ bool SIMoutput::dumpResults (const Vector& psol, double time,
                              bool formatted, std::streamsize precision) const
 {
   if (gPoints.empty())
-    return true;
-
-  if (adm.dd.isPartitioned() && adm.getProcId() != 0)
+    return true; // no evaluation points
+  else if (!myProblem)
+    return false; // no integrand (should not happen at this point)
+  else if (myProblem->getNoSolutions() < 1)
+    return true; // no patch-level primary solution, silently ignore
+  else if (adm.dd.isPartitioned() && adm.getProcId() != 0)
     return true; // dump only for procId=0 when domain decomposition
 
   const RealArray* reactionForces = this->getReactionForces();
@@ -2183,7 +2188,11 @@ bool SIMoutput::savePoints (const Vector& psol, double time, int step) const
 bool SIMoutput::saveResults (const Vectors& psol, double time, int step) const
 {
   if (idxGrid < 0 || step < 1 || psol.empty())
-    return true;
+    return true; // no evaluation grid, or no primary solution yet
+  else if (!myProblem)
+    return false; // no integrand (should not happen at this point)
+  else if (myProblem->getNoSolutions() < 1)
+    return true; // no patch-level primary solution, silently ignore
   else if (idxGrid >= static_cast<int>(myPoints.size()))
   {
     std::cerr <<" *** SIMoutput::saveResults: idxGrid="<< idxGrid
