@@ -210,8 +210,19 @@ public:
   void addDerivative(const std::string& functions,
                      const std::string& variables, int d1, int d2 = 0);
 
+  //! \brief Set an additional parameter in the function.
+  void setParam(const std::string& name, double value)
+  {
+    for (std::unique_ptr<FuncType>& func : this->p)
+      func->setParam(name, value);
+  }
+
+  //! \brief Returns number of spatial dimension.
+  size_t getNoSpaceDim() const { return nsd; }
+
 protected:
   std::vector<std::unique_ptr<FuncType>> p; //!< Array of component expressions
+  size_t nsd = 0; //!< Number of spatial dimensions
 };
 
 
@@ -223,7 +234,6 @@ protected:
 template <class ParentFunc, class Ret, class Scalar>
 class EvalMultiFunction : public ParentFunc, public EvalFunctions<Scalar>
 {
-  size_t nsd; //!< Number of spatial dimensions
   //! Type alias for the function
   using FuncType = typename EvalFunctions<Scalar>::FuncType;
 
@@ -233,7 +243,7 @@ public:
                              const std::string& variables = "",
                              const Real epsX = 1e-8,
                              const Real epsT = 1e-12)
-    : EvalFunctions<Scalar>(functions,variables,epsX,epsT), nsd(0)
+    : EvalFunctions<Scalar>(functions,variables,epsX,epsT)
   {
     this->setNoDims();
   }
@@ -257,18 +267,8 @@ public:
   //! \brief Returns second-derivative of the function.
   Ret dderiv(const Vec3& X, int dir1, int dir2) const override;
 
-  //! \brief Set an additional parameter in the function.
-  void setParam(const std::string& name, double value)
-  {
-    for (std::unique_ptr<FuncType>& func : this->p)
-      func->setParam(name, value);
-  }
-
   //! \brief Sets an additional parameter in the function.
   void setParameter(const char* n, double v) override { this->setParam(n,v); }
-
-  //! \brief Returns number of spatial dimension.
-  size_t getNoSpaceDim() const { return nsd; }
 
 protected:
   //! \brief Sets the number of spatial dimensions (default implementation).
