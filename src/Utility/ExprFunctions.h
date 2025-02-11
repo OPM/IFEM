@@ -37,13 +37,21 @@ namespace ExprEval {
 template<class Scalar>
 class EvalFuncScalar : public ScalarFunc
 {
-  using Expression = ExprEval::Expression<Scalar>;     //!< Type alias for expression tree
-  using FunctionList = ExprEval::FunctionList<Scalar>; //!< Type alias for function list
-  using ValueList = ExprEval::ValueList<Scalar>;       //!< Type alias for value list
-  using FuncType = EvalFuncScalar<Scalar>;             //!< Type alias for function
-  std::vector<std::unique_ptr<Expression>> expr; //!< Roots of the expression tree
-  std::vector<std::unique_ptr<FunctionList>>  f; //!< Lists of functions
-  std::vector<std::unique_ptr<ValueList>>     v; //!< Lists of variables and constants
+  //! Type alias for expression tree
+  using Expression = ExprEval::Expression<Scalar>;
+  //! Type alias for function list
+  using FunctionList = ExprEval::FunctionList<Scalar>;
+  //! Type alias for value list
+  using ValueList = ExprEval::ValueList<Scalar>;
+  //! Type alias for function
+  using FuncType = EvalFuncScalar<Scalar>;
+
+  //! Roots of the expression tree
+  std::vector< std::unique_ptr<Expression> > expr;
+  //! Lists of functions
+  std::vector< std::unique_ptr<FunctionList> >  f;
+  //! Lists of variables and constants
+  std::vector< std::unique_ptr<ValueList> >     v;
 
   std::vector<Scalar*> arg; //!< Function argument values
 
@@ -84,13 +92,21 @@ protected:
 template<class Scalar>
 class EvalFuncSpatial : public RealFunc
 {
-  using Expression = ExprEval::Expression<Scalar>;     //!< Type alias for expression tree
-  using FunctionList = ExprEval::FunctionList<Scalar>; //!< Type alias for function list
-  using ValueList = ExprEval::ValueList<Scalar>;       //!< Type alias for value list
-  using FuncType = EvalFuncSpatial<Scalar>;        //!< Type alias for function
-  std::vector<std::unique_ptr<Expression>> expr; //!< Roots of the expression tree
-  std::vector<std::unique_ptr<FunctionList>>  f; //!< Lists of functions
-  std::vector<std::unique_ptr<ValueList>>     v; //!< Lists of variables and constants
+  //! Type alias for expression tree
+  using Expression = ExprEval::Expression<Scalar>;
+  //! Type alias for function list
+  using FunctionList = ExprEval::FunctionList<Scalar>;
+  //! Type alias for value list
+  using ValueList = ExprEval::ValueList<Scalar>;
+  //! Type alias for function
+  using FuncType = EvalFuncSpatial<Scalar>;
+
+  //! Roots of the expression tree
+  std::vector< std::unique_ptr<Expression> > expr;
+  //! Lists of functions
+  std::vector< std::unique_ptr<FunctionList> >  f;
+  //! Lists of variables and constants
+  std::vector< std::unique_ptr<ValueList> >     v;
 
   //! \brief A struct representing a spatial function argument.
   struct Arg
@@ -116,8 +132,10 @@ class EvalFuncSpatial : public RealFunc
 
   std::vector<Arg> arg; //!< Function argument values
 
-  std::array<std::unique_ptr<FuncType>,4> derivative1; //!< First order derivative expressions
-  std::array<std::unique_ptr<FuncType>,6> derivative2; //!< Second order derivative expressions
+  //! First order derivative expressions
+  std::array<std::unique_ptr<FuncType>,4> derivative1;
+  //! Second order derivative expressions
+  std::array<std::unique_ptr<FuncType>,6> derivative2;
 
   bool IAmConstant; //!< Indicates whether the time coordinate is given or not
 
@@ -127,7 +145,7 @@ class EvalFuncSpatial : public RealFunc
 public:
   //! \brief The constructor parses the expression string.
   explicit EvalFuncSpatial(const char* function,
-                               Real epsX = Real(1.0e-8), Real epsT = Real(1.0e-12));
+                           Real epsX = Real(1.0e-8), Real epsT = Real(1.0e-12));
   //! \brief Defaulted destructor.
   //! \details The implementation needs to be in compile unit so we have the
   //!          definition for the types of the unique_ptr's.
@@ -147,6 +165,9 @@ public:
 
   //! \brief Set an additional parameter in the function.
   void setParam(const std::string& name, double value);
+
+  //! \brief Sets an additional parameter in the function.
+  void setParameter(const char* n, double v) override { this->setParam(n,v); }
 
   //! \brief Evaluates first derivatives of the function.
   Vec3 gradient(const Vec3& X) const override
@@ -203,7 +224,8 @@ template <class ParentFunc, class Ret, class Scalar>
 class EvalMultiFunction : public ParentFunc, public EvalFunctions<Scalar>
 {
   size_t nsd; //!< Number of spatial dimensions
-  using FuncType = typename EvalFunctions<Scalar>::FuncType; //!< Type alias for function
+  //! Type alias for the function
+  using FuncType = typename EvalFunctions<Scalar>::FuncType;
 
 public:
   //! \brief The constructor parses the expression string for each component.
@@ -211,7 +233,10 @@ public:
                              const std::string& variables = "",
                              const Real epsX = 1e-8,
                              const Real epsT = 1e-12)
-    : EvalFunctions<Scalar>(functions,variables,epsX,epsT), nsd(0) { this->setNoDims(); }
+    : EvalFunctions<Scalar>(functions,variables,epsX,epsT), nsd(0)
+  {
+    this->setNoDims();
+  }
 
   //! \brief Empty destructor.
   virtual ~EvalMultiFunction() {}
@@ -238,6 +263,9 @@ public:
     for (std::unique_ptr<FuncType>& func : this->p)
       func->setParam(name, value);
   }
+
+  //! \brief Sets an additional parameter in the function.
+  void setParameter(const char* n, double v) override { this->setParam(n,v); }
 
   //! \brief Returns number of spatial dimension.
   size_t getNoSpaceDim() const { return nsd; }
