@@ -30,19 +30,21 @@ typedef std::vector<int>           IntVec;      //!< Vector of integers
 typedef std::vector<size_t>        uIntVec;     //!< Vector of unsigned integers
 typedef std::vector<FunctionBase*> FunctionVec; //!< Vector of functions
 
+
 /*!
   \brief Abstract class for evaluating integrand or function.
 */
 
-class L2Integrand {
+class L2Integrand
+{
 public:
-  //! \brief Constructor.
-  //! \param patch ASM holding geometry to evaluate on
+  //! \brief The constructor initializes the patch reference.
+  //! \param[in] patch ASM holding geometry to evaluate on
   L2Integrand(const ASMbase& patch) : m_patch(patch) {}
 
   //! \brief Evaluates the entity in a set of points.
-  //! \param sField Matrix with results
-  //! \param gpar Points to evaluate in
+  //! \param[out] sField Matrix with results
+  //! \param[in] gpar Points to evaluate in
   virtual bool evaluate(Matrix& sField, const RealArray* gpar) const = 0;
 
   //! \brief Returns dimension of entity to evaluate.
@@ -52,20 +54,22 @@ protected:
   const ASMbase& m_patch; //!< Reference to ASM holding geometry
 };
 
+
 /*!
   \brief Evaluation class for secondary solutions of an integrand.
 */
 
-class L2ProbIntegrand : public L2Integrand {
+class L2ProbIntegrand : public L2Integrand
+{
 public:
-  //! \brief Constructor.
-  //! \param patch ASM holding geometry to evaluate on
-  //! \param itg Integrand to evaluate
+  //! \brief The constructor initializes the integrand reference.
+  //! \param[in] patch ASM holding geometry to evaluate on
+  //! \param[in] itg Integrand to evaluate
   L2ProbIntegrand(const ASMbase& patch, const IntegrandBase& itg);
 
   //! \brief Evaluates the secondary solutions in a set of points.
-  //! \param sField Matrix with results
-  //! \param gpar Points to evaluate in
+  //! \param[out] sField Matrix with results
+  //! \param[in] gpar Points to evaluate in
   bool evaluate(Matrix& sField, const RealArray* gpar) const override;
 
   //! \brief Returns number of secondary solutions.
@@ -80,16 +84,17 @@ private:
   \brief Evaluation class for functions.
 */
 
-class L2FuncIntegrand : public L2Integrand {
+class L2FuncIntegrand : public L2Integrand
+{
 public:
-  //! \brief Constructor.
-  //! \param patch ASM holding geometry to evaluate on
-  //! \param func Function to evaluate
+  //! \brief The constructor initializes the function reference.
+  //! \param[in] patch ASM holding geometry to evaluate on
+  //! \param[in] func Function to evaluate
   L2FuncIntegrand(const ASMbase& patch, const FunctionBase& func);
 
   //! \brief Evaluates the function in a set of points.
-  //! \param sField Matrix with results
-  //! \param gpar Points to evaluate in
+  //! \param[out] sField Matrix with results
+  //! \param[in] gpar Points to evaluate in
   bool evaluate(Matrix& sField, const RealArray* gpar) const override;
 
   //! \brief Returns number of function components.
@@ -125,6 +130,8 @@ public:
   //! \brief The destructor frees the system matrix and system vector.
   virtual ~GlbL2();
 
+  //! \brief Returns current solution mode.
+  virtual SIM::SolutionMode getMode() const { return SIM::RECOVERY; }
   //! \brief Defines which FE quantities are needed by the integrand.
   virtual int getIntegrandType() const;
 

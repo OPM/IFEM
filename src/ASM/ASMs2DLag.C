@@ -348,9 +348,10 @@ bool ASMs2DLag::integrate (Integrand& integrand,
   const double* xr = cache.coord(true)[0];
   const double* wr = cache.weight(true)[0];
 
+  const bool dynamics = integrand.getMode() == SIM::DYNAMIC;
+
   // Number of elements in first parameter direction
   const int nelx = (nx-1)/(p1-1);
-
 
   // === Assembly loop over all elements in the patch ==========================
 
@@ -361,7 +362,7 @@ bool ASMs2DLag::integrate (Integrand& integrand,
     for (const IntVec& group : threadGroups[g])
     {
       FiniteElement fe;
-      Matrix Jac;
+      Matrix Jac, Def, Vel;
       Vec4 X(nullptr,time.t);
       for (size_t e = 0; e < group.size() && ok; e++)
       {
@@ -399,6 +400,10 @@ bool ASMs2DLag::integrate (Integrand& integrand,
           break;
         }
 
+        if (integrand.getIntegrandType() & Integrand::POINT_DEFORMATION)
+          if (!time.first || time.it > 0)
+            A->getSolution(nsd, fe.Xn.cols(), &Def, dynamics ? &Vel : nullptr);
+
         int i1 = nelx > 0 ? iel % nelx : 0;
         int i2 = nelx > 0 ? iel / nelx : 0;
 
@@ -430,6 +435,8 @@ bool ASMs2DLag::integrate (Integrand& integrand,
 
               // Cartesian coordinates of current integration point
               X.assign(fe.Xn * fe.N);
+              if (!Def.empty()) integrand.setParam("u", Def * fe.N);
+              if (!Vel.empty()) integrand.setParam("v", Vel * fe.N);
 
               // Compute the reduced integration terms of the integrand
               fe.detJxW *= wr[i]*wr[j];
@@ -471,6 +478,8 @@ bool ASMs2DLag::integrate (Integrand& integrand,
 
             // Cartesian coordinates of current integration point
             X.assign(fe.Xn * fe.N);
+            if (!Def.empty()) integrand.setParam("u", Def * fe.N);
+            if (!Vel.empty()) integrand.setParam("v", Vel * fe.N);
 
             // Evaluate the integrand and accumulate element contributions
             fe.detJxW *= wg[0][i]*wg[1][j];
@@ -508,6 +517,8 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
   const double* xg = GaussQuadrature::getCoord(nGP);
   const double* wg = GaussQuadrature::getWeight(nGP);
   if (!xg || !wg) return false;
+
+  const bool dynamics = integrand.getMode() == SIM::DYNAMIC;
 
   // Find the parametric direction of the edge normal {-2,-1, 1, 2}
   const int edgeDir = (lIndex%10+1)/((lIndex%2) ? -2 : 2);
@@ -552,7 +563,7 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
   std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex%10);
   size_t firstp = iit == firstBp.end() ? 0 : iit->second;
 
-  Matrix dNdu, Jac;
+  Matrix dNdu, Jac, Def, Vel;
   Vec4   X(nullptr,time.t);
   Vec3   normal;
   double xi[2];
@@ -584,6 +595,10 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
       // Initialize element quantities
       LocalIntegral* A = integrand.getLocalIntegral(fe.Xn.cols(),fe.iel,true);
       bool ok = integrand.initElementBou(MNPC[doXelms+iel-1],*A);
+
+      if (integrand.getIntegrandType() & Integrand::POINT_DEFORMATION)
+        if (!time.first || time.it > 0)
+          A->getSolution(nsd, fe.Xn.cols(), &Def, dynamics ? &Vel : nullptr);
 
 
       // --- Integration loop over all Gauss points along the edge -------------
@@ -621,6 +636,8 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
 
         // Cartesian coordinates of current integration point
         X.assign(fe.Xn * fe.N);
+        if (!Def.empty()) integrand.setParam("u", Def * fe.N);
+        if (!Vel.empty()) integrand.setParam("v", Vel * fe.N);
 
         // Evaluate the integrand and accumulate element contributions
         fe.detJxW *= wg[i];
