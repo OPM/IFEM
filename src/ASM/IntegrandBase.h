@@ -15,7 +15,6 @@
 #define _INTEGRAND_BASE_H
 
 #include "Integrand.h"
-#include "SIMenums.h"
 #include "ASMenums.h"
 #include "LinAlgenums.h"
 #include "MatVec.h"
@@ -60,7 +59,7 @@ public:
   //! \brief Defines the solution mode before the element assembly is started.
   virtual void setMode(SIM::SolutionMode mode) { m_mode = mode; }
   //! \brief Returns current solution mode.
-  SIM::SolutionMode getMode() const { return m_mode; }
+  SIM::SolutionMode getMode() const override { return m_mode; }
   //! \brief Initializes an integration parameter for the integrand.
   virtual void setIntegrationPrm(unsigned short int, double) {}
   //! \brief Returns an integration parameter for the integrand.
@@ -463,6 +462,24 @@ public:
   //! \param[in] idx Projection index
   virtual void setProjectedFields(Fields* f, size_t idx);
 
+  //! \brief Assigns a parameter value to property functions of the integrand.
+  //! \param[in] name Parameter name
+  //! \param[in] value Parameter value
+  void setParam(const char* name, double value) override
+  {
+    myProblem.setParam(name,value);
+  }
+  //! \brief Assigns parameter values to property functions of the integrand.
+  //! \param[in] name Parameter name
+  //! \param[in] value Parameter value
+  void setParam(const char* name, const Vec3& value) override
+  {
+    myProblem.setParam(name,value);
+  }
+
+  //! \brief Returns current solution mode.
+  SIM::SolutionMode getMode() const override { return myProblem.getMode(); }
+
 protected:
   //! \brief Initializes the projected fields for current element.
   bool initProjection(const std::vector<int>& MNPC, LocalIntegral& elmInt,
@@ -550,6 +567,24 @@ public:
   virtual bool hasInteriorTerms() const { return false; }
   //! \brief Returns whether this integrand has explicit boundary contributions.
   virtual bool hasBoundaryTerms() const { return true; }
+
+  //! \brief Assigns a parameter value to property functions of the integrand.
+  //! \param[in] name Parameter name
+  //! \param[in] value Parameter value
+  void setParam(const char* name, double value) override
+  {
+    myProblem.setParam(name,value);
+  }
+  //! \brief Assigns parameter values to property functions of the integrand.
+  //! \param[in] name Parameter name
+  //! \param[in] value Parameter value
+  void setParam(const char* name, const Vec3& value) override
+  {
+    myProblem.setParam(name,value);
+  }
+
+  //! \brief Returns current solution mode.
+  SIM::SolutionMode getMode() const override { return myProblem.getMode(); }
 
 protected:
   //! \brief Clears out internal buffers.

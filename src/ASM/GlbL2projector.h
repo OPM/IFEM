@@ -198,6 +198,9 @@ public:
   //! \param[out] sField Nodal/control-point values of the projected results.
   bool solve(const std::vector<Matrix*>& sField);
 
+  //! \brief Returns current solution mode.
+  SIM::SolutionMode getMode() const override { return SIM::RECOVERY; }
+
 private:
   //! \brief Allocates the system L2-projection matrices.
   void allocate(size_t n);
