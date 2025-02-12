@@ -893,7 +893,7 @@ namespace utl //! General utility classes and functions.
     bool multiply(const std::vector<T>& X, std::vector<T>& Y,
                   const T& alpha, const T& beta = T(0),
                   bool transA = false, int stridex = 1, int stridey = 1,
-                  int ofsx = 0, int ofsy = 0) const;
+                  unsigned int ofsx = 0, unsigned int ofsy = 0) const;
 
     //! \brief Outer product between two vectors.
     bool outer_product(const std::vector<T>& X, const std::vector<T>& Y,
@@ -1103,7 +1103,9 @@ namespace utl //! General utility classes and functions.
                                     unsigned int ofsx, int stridex,
                                     unsigned int ofsy, int stridey)
   {
-    int n = myVec.size() < X.size() ? myVec.size() : X.size();
+    int nx = stridex == 0 ? 1 : 1 +     (X.size()-ofsx-1)/abs(stridex);
+    int ny = stridey == 0 ? 1 : 1 + (myVec.size()-ofsy-1)/abs(stridey);
+    int n = nx < ny ? (stridex == 0 ? ny : nx) : (stridey == 0 ? nx : ny);
     if (n > 0)
       cblas_saxpy(n,alfa,X.data()+ofsx,stridex,myVec.data()+ofsy,stridey);
     return *this;
@@ -1115,7 +1117,9 @@ namespace utl //! General utility classes and functions.
                                       unsigned int ofsx, int stridex,
                                       unsigned int ofsy, int stridey)
   {
-    int n = myVec.size() < X.size() ? myVec.size() : X.size();
+    int nx = stridex == 0 ? 1 : 1 +     (X.size()-ofsx-1)/abs(stridex);
+    int ny = stridey == 0 ? 1 : 1 + (myVec.size()-ofsy-1)/abs(stridey);
+    int n = nx < ny ? (stridex == 0 ? ny : nx) : (stridey == 0 ? nx : ny);
     if (n > 0)
       cblas_daxpy(n,alfa,X.data()+ofsx,stridex,myVec.data()+ofsy,stridey);
     return *this;
@@ -1196,23 +1200,31 @@ namespace utl //! General utility classes and functions.
                                std::vector<float>& Y,
                                const float& alpha, const float& beta,
                                bool transA, int stridex, int stridey,
-                               int ofsx, int ofsy) const
+                               unsigned int ofsx, unsigned int ofsy) const
   {
+    if (stridex == 0 || stridey == 0)
+    {
+      std::cerr <<"matrix::multiply: Stride must be non-zero ("
+                << stridex <<", "<< stridey <<")"<< std::endl;
+      ABORT_ON_INDEX_CHECK;
+      return false;
+    }
+
     if (ofsx == 0 && stridex == 1)
       if (!this->compatible(X,transA)) return false;
 
     if (beta == 0.0f)
     {
-      Y.resize(ofsy + 1 + ((transA ? ncol : nrow)-1)*stridey);
-      if (stridey > 0) std::fill(Y.begin(),Y.end(),0.0f);
+      Y.resize(ofsy + 1 + ((transA ? ncol : nrow)-1)*abs(stridey));
+      std::fill(Y.begin(),Y.end(),0.0f);
     }
 
     cblas_sgemv(CblasColMajor,
                 transA ? CblasTrans : CblasNoTrans,
                 nrow, ncol, alpha,
                 this->ptr(), nrow,
-                &X[ofsx], stridex, beta,
-                &Y[ofsy], stridey);
+                X.data()+ofsx, stridex, beta,
+                Y.data()+ofsy, stridey);
 
     return true;
   }
@@ -1222,23 +1234,31 @@ namespace utl //! General utility classes and functions.
                                 std::vector<double>& Y,
                                 const double& alpha, const double& beta,
                                 bool transA, int stridex, int stridey,
-                                int ofsx, int ofsy) const
+                                unsigned int ofsx, unsigned int ofsy) const
   {
+    if (stridex == 0 || stridey == 0)
+    {
+      std::cerr <<"matrix::multiply: Stride must be non-zero ("
+                << stridex <<", "<< stridey <<")"<< std::endl;
+      ABORT_ON_INDEX_CHECK;
+      return false;
+    }
+
     if (ofsx == 0 && stridex == 1)
       if (!this->compatible(X,transA)) return false;
 
     if (beta == 0.0)
     {
-      Y.resize(ofsy + 1 + ((transA ? ncol : nrow)-1)*stridey);
-      if (stridey > 0) std::fill(Y.begin(),Y.end(),0.0);
+      Y.resize(ofsy + 1 + ((transA ? ncol : nrow)-1)*abs(stridey));
+      std::fill(Y.begin(),Y.end(),0.0);
     }
 
     cblas_dgemv(CblasColMajor,
                 transA ? CblasTrans : CblasNoTrans,
                 nrow, ncol, alpha,
                 this->ptr(), nrow,
-                &X[ofsx], stridex, beta,
-                &Y[ofsy], stridey);
+                X.data()+ofsx, stridex, beta,
+                Y.data()+ofsy, stridey);
 
     return true;
   }
@@ -1493,10 +1513,17 @@ namespace utl //! General utility classes and functions.
                             unsigned int ofsx, int stridex,
                             unsigned int ofsy, int stridey)
   {
+    if (stridex < 0 || stridey < 0 || stridex+stridey == 0)
+    {
+      std::cerr <<"vector::add: Negative stride not supported ("
+                << stridex <<", "<< stridey <<")"<< std::endl;
+      ABORT_ON_INDEX_CHECK;
+      return *this;
+    }
+
     std::vector<T>& Y = myVec;
 
-    const size_t n = std::min(X.size() / stridex, Y.size() / stridey);
-    for (size_t i = 0; i < n; i++, ofsx += stridex, ofsy += stridey)
+    for (; ofsx < X.size() && ofsy < Y.size(); ofsx += stridex, ofsy += stridey)
       Y[ofsy] += alfa*X[ofsx];
     return *this;
   }
@@ -1507,8 +1534,7 @@ namespace utl //! General utility classes and functions.
     const vector<T>& X = A.elem;
     vector<T>& Y = this->elem;
 
-    const size_t n = std::min(this->size(),A.size());
-    for (size_t i = 0; i < n; i++)
+    for (size_t i = 0; i < X.size() && i < Y.size(); i++)
       Y[i] += alfa*X[i];
     return *this;
   }
@@ -1546,8 +1572,16 @@ namespace utl //! General utility classes and functions.
   bool matrix<T>::multiply(const std::vector<T>& X, std::vector<T>& Y,
                            const T& alpha, const T& beta,
                            bool transA, int stridex, int stridey,
-                           int ofsx, int ofsy) const
+                           unsigned int ofsx, unsigned int ofsy) const
   {
+    if (stridex <= 0 || stridey <= 0)
+    {
+      std::cerr <<"matrix::multiply: Non-positive stride not supported ("
+                << stridex <<", "<< stridey <<")"<< std::endl;
+      ABORT_ON_INDEX_CHECK;
+      return false;
+    }
+
     if (ofsx == 0 && stridex == 1)
       if (!this->compatible(X,transA)) return false;
 
