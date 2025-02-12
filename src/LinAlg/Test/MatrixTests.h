@@ -10,46 +10,54 @@
 //!
 //==============================================================================
 
-#include "MatVec.h"
+#include "matrixnd.h"
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include <limits>
 #include <numeric>
+
 
 namespace {
 
 template<class Scalar>
 void vectorAddTest()
 {
-  constexpr size_t size = 10;
-
-  utl::vector<Scalar> d(size);
-  std::iota(d.begin(), d.end(), 0.0);
+  utl::vector<Scalar> d(12);
+  std::iota(d.begin(), d.end(), 1.0);
 
   utl::vector<Scalar> d2(d);
   d2.add(d, 1.5);
+  std::cout <<"d2:"<< d2 << std::endl;
 
-  utl::vector<Scalar> d3(size / 2);
+  utl::vector<Scalar> d3(d.size() / 2);
   d3.add(d, 0.5, 1, 2);
+  std::cout <<"d3:"<< d3 << std::endl;
 
-  utl::vector<Scalar> d4(size);
+  utl::vector<Scalar> d4(d.size());
   d4.add(d3, 1.0, 0, 1, 0, 2);
   d4.add(d3, 1.0, 0, 1, 1, 2);
-  std::cout << d4 << std::endl;
+  std::cout <<"d4:"<< d4 << std::endl;
 
-  for (size_t i = 0; i < size; ++i) {
-    EXPECT_FLOAT_EQ(d2[i], 2.5*i);
+  for (size_t i = 0; i < d2.size(); ++i) {
+    EXPECT_FLOAT_EQ(d2[i], 2.5*(i+1));
     EXPECT_FLOAT_EQ(d4[i], d3[i/2]);
   }
-  for (size_t i = 0; i < size / 2; ++i)
-    EXPECT_FLOAT_EQ(d3[i], i + 0.5);
 
-  if constexpr (std::is_same_v<Scalar,Real>) {
-    utl::vector<Scalar> v = d + d;
-    for (size_t i = 0; i < size; ++i)
-      EXPECT_FLOAT_EQ(v[i], 2.0*i);
-  }
+  for (size_t i = 0; i < d3.size(); ++i)
+    EXPECT_FLOAT_EQ(d3[i], i+1);
+
+  d2.fill(0.0);
+  d2.add(d, 1.0, 0, 3, 0, 3);
+  d2.add(d, 1.0, 1, 3, 1, 3);
+  d2.add(d, 1.0, 2, 3, 2, 3);
+  std::cout <<"d5:"<< d2 << std::endl;
+  for (size_t i = 0; i < d.size(); ++i)
+    EXPECT_FLOAT_EQ(d[i], d2[i]);
+  d2.add(d, 1.0, 0, 1, 7, 3);
+  std::cout <<"d6:"<< d2 << std::endl;
+  for (size_t i = 7; i < d.size(); i += 3)
+    EXPECT_FLOAT_EQ(d2[i], d[i]+(i-4)/3);
 }
 
 
@@ -57,7 +65,7 @@ template<class Scalar>
 void vectorDotTest()
 {
   constexpr size_t size = 10;
-  constexpr Scalar max = Scalar(size-1) * Scalar(size) / 2.0;
+  constexpr Scalar max = Scalar((size-1)*size/2);
 
   utl::vector<Scalar> d(size);
   for (size_t i = 0; i < size; ++i)
@@ -149,18 +157,18 @@ void multiplyTest()
       EXPECT_FLOAT_EQ(B3(j,i), A(i,j));
     }
 
-  if constexpr (std::is_same_v<Scalar,Real>) {
-    utl::vector<Scalar> v2 = A * u;
-    EXPECT_FLOAT_EQ(v2(1),135.0);
-    EXPECT_FLOAT_EQ(v2(2),150.0);
-    EXPECT_FLOAT_EQ(v2(3),165.0);
-  }
+  ASSERT_TRUE(A.multiply(u,v));
+  EXPECT_FLOAT_EQ(v(1),135.0);
+  EXPECT_FLOAT_EQ(v(2),150.0);
+  EXPECT_FLOAT_EQ(v(3),165.0);
 }
 
 
 template<class Scalar>
 void normTest()
 {
+  constexpr Scalar eps = std::numeric_limits<Scalar>::epsilon()*10;
+
   utl::matrix<Scalar> a(4,5);
   std::iota(a.begin(),a.end(),1.0);
   std::cout <<"A:"<< a;
@@ -169,7 +177,7 @@ void normTest()
   EXPECT_FLOAT_EQ(a.sum(5),34.0);
   EXPECT_FLOAT_EQ(a.asum(5),34.0);
   EXPECT_FLOAT_EQ(a.trace(),34.0);
-  EXPECT_NEAR(a.norm2(5),sqrt(414.0),std::numeric_limits<Scalar>::epsilon()*10.0);
+  EXPECT_NEAR(a.norm2(5),sqrt(414.0),eps);
   EXPECT_FLOAT_EQ(a.normInf(),60.0);
 }
 

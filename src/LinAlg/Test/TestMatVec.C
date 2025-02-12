@@ -14,6 +14,34 @@
 
 #include <gtest/gtest.h>
 
+#include <numeric>
+
+
+TEST(TestMatVec, add)
+{
+  Vector d(10);
+  std::iota(d.begin(),d.end(),Real(0));
+
+  Vector v = d + d;
+  for (size_t i = 0; i < v.size(); i++)
+    EXPECT_FLOAT_EQ(v[i], 2*Real(i));
+}
+
+
+TEST(TestMatVec, multiply)
+{
+  Matrix A(3,5);
+  Vector u(5);
+
+  std::iota(A.begin(),A.end(),Real(1));
+  std::iota(u.begin(),u.end(),Real(1));
+
+  Vector v = A * u;
+  EXPECT_FLOAT_EQ(v(1),Real(135));
+  EXPECT_FLOAT_EQ(v(2),Real(150));
+  EXPECT_FLOAT_EQ(v(3),Real(165));
+}
+
 
 TEST(TestMatVec, transform)
 {
@@ -30,7 +58,7 @@ TEST(TestMatVec, transform)
 
   Matrix T(3,3), B(A);
   Vector w(v);
-  T(1,1) =  1.0;
+  T(1,1) =  Real(1);
   T(2,2) =  T(3,3) = cos(alpha);
   T(2,3) =  sin(alpha);
   T(3,2) = -T(2,3);
