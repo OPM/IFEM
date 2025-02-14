@@ -57,14 +57,17 @@ bool MultiStepSIM::preprocess (const std::vector<int>& ignored, bool fixDup)
 }
 
 
-bool MultiStepSIM::initSol (size_t nSol)
+void MultiStepSIM::initSol (size_t nSol, size_t nDof)
 {
   if (!solution.empty())
     nSol = solution.size();
   else if (nSol > 0 && nSol < model.getNoSolutions())
     nSol = model.getNoSolutions();
 
-  return this->initSolution(model.getNoDOFs(),nSol);
+  if (nDof == 0)
+    nDof = model.getNoDOFs();
+
+  this->initSolution(nDof,nSol);
 }
 
 

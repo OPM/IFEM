@@ -26,8 +26,6 @@ NewmarkNLSIM::NewmarkNLSIM (SIMbase& sim) : NewmarkSIM(sim), Finert(nullptr)
   gamma = 0.6;
 
   predictor = 'd'; // default predictor (constant displacement)
-
-  iD = iV = iA = 0;
 }
 
 
@@ -96,34 +94,15 @@ void NewmarkNLSIM::initPrm ()
 }
 
 
-bool NewmarkNLSIM::initSol (size_t nSol)
+void NewmarkNLSIM::initSol (size_t nSol, size_t nDof)
 {
-  size_t nDOFs = model.getNoDOFs();
-  incDis.resize(nDOFs,true);
-  predVel.resize(nDOFs,true);
-  predAcc.resize(nDOFs,true);
-  this->MultiStepSIM::initSol(nSol);
-  if (solution.size() < 3)
-  {
-    std::cerr <<" *** NewmarkNLSIM::initSol: Too few solution vectors "
-              << solution.size() << std::endl;
-    return false;
-  }
+  if (nSol < 3) nSol = 3;
+  this->NewmarkSIM::initSol(nSol,nDof);
 
-  iA = solution.size() - 1;
-  iV = solution.size() - 2;
-
-  return true;
-}
-
-
-bool NewmarkNLSIM::advanceStep (TimeStep& param, bool updateTime)
-{
-  // Update displacement solutions between time steps
-  if (solution.size() > 3)
-    this->pushSolution(solution.size()-2);
-
-  return this->NewmarkSIM::advanceStep(param,updateTime);
+  nDof = solution.front().size();
+  incDis.resize(nDof,true);
+  predVel.resize(nDof,true);
+  predAcc.resize(nDof,true);
 }
 
 
@@ -155,6 +134,8 @@ bool NewmarkNLSIM::predictStep (TimeStep& param)
 #ifdef SP_DEBUG
   std::cout <<"\nNewmarkNLSIM::predictStep";
 #endif
+  const unsigned short int iV = 1;
+  const unsigned short int iA = 2;
 
   // Predicted velocity, V_n = v_n-1*(gamma/beta-1) + a_n-1*dt*(gamma/beta-2)/2
   predVel = solution[iV];
@@ -198,6 +179,9 @@ bool NewmarkNLSIM::correctStep (TimeStep& param, bool converged)
   std::cout <<"\nNewmarkNLSIM::correctStep(iter="<< param.iter
             <<",converged="<< std::boolalpha << converged <<")";
 #endif
+  const unsigned short int iD = 0;
+  const unsigned short int iV = 1;
+  const unsigned short int iA = 2;
 
   // Update current displacement, velocity and acceleration solutions
   incDis.add(linsol,1.0);

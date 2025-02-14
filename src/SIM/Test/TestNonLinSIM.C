@@ -102,8 +102,8 @@ public:
 static void runSingleDof (NonLinSIM& solver, int& n, double& s)
 {
   TimeStep tp;
-  ASSERT_TRUE(solver.initSol());
-  ASSERT_TRUE(solver.advanceStep(tp));
+  solver.initSol();
+  solver.advanceStep(tp);
   ASSERT_EQ(solver.solveStep(tp),SIM::CONVERGED);
   s = solver.getSolution()[0]; n = tp.iter;
   std::cout <<"  Solution "<< s <<" obtained in "<< n <<" iterations.\n";

@@ -42,6 +42,9 @@ public:
   //! \brief Calculates initial accelerations.
   bool initAcc(double zero_tolerance = 1.0e-8, std::streamsize outPrec = 0);
 
+  //! \brief Advances the time step one step forward.
+  virtual bool advanceStep(TimeStep& param, bool updateTime = true);
+
   //! \brief Solves the dynamic equations by a predictor/multi-corrector method.
   //! \param param Time stepping parameters
   //! \param[in] zero_tolerance Truncate norm values smaller than this to zero
@@ -76,9 +79,9 @@ protected:
 
 public:
   //! \brief Returns a const reference to current velocity vector.
-  const Vector& getVelocity() const { return solution[solution.size()-2]; }
+  const Vector& getVelocity() const { return solution[1]; }
   //! \brief Returns a const reference to current velocity vector.
-  const Vector& getAcceleration() const { return solution[solution.size()-1]; }
+  const Vector& getAcceleration() const { return solution[2]; }
 
   //! \brief Dumps solution variables at user-defined points.
   //! \param[in] time Current time
