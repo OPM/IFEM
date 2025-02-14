@@ -70,52 +70,47 @@ const Matrix& NewmarkMats::getNewtonMatrix () const
 
 const Vector& NewmarkMats::getRHSVector () const
 {
-  if (b.empty())
+  if (b.empty() || vec.size() < 3)
     return this->ElmMats::getRHSVector();
 
-  Vector& dF = const_cast<Vector&>(b.front());
-
-  int ia = vec.size() - 1; // index to element acceleration vector (a)
-  int iv = vec.size() - 2; // index to element velocity vector (v)
+  Vector& dF = const_cast<Vector&>(b.front()); // current element residual
+  const Vector& vel = this->vel(); // current element velocity vector (v)
+  const Vector& acc = this->acc(); // current acceleration vector (a)
 
   bool haveMass = A.size() > 1 && !A[1].empty();
   bool haveStif = A.size() > 2 && !A[2].empty();
   bool haveDamp = A.size() > 3 && !A[3].empty();
 
 #if SP_DEBUG > 2
-  if (!vec.empty()) std::cout <<"\n";
-  int iu = vec.size() - 3; // index to element displacement vector (u)
-  if (iu >= 0) std::cout <<"u:"<< vec[iu];
-  if (iv >= 0) std::cout <<"v:"<< vec[iv];
-  if (ia >= 0) std::cout <<"a:"<< vec[ia];
+  std::cout <<"\nu:"<< this->dis();
+  std::cout <<"v:"<< vel;
+  std::cout <<"a:"<< acc;
   std::cout <<"\nf_ext - f_s"<< dF;
-  if (haveMass && ia >= 0)
-    std::cout <<"f_i = M*a"<< Vector(A[1]*vec[ia]);
+  if (haveMass)
+    std::cout <<"f_i = M*a"<< Vector(A[1]*acc);
   if (b.size() > 1)
     std::cout <<"f_d"<< b[1];
-  else if (haveDamp && iv >= 0)
-    std::cout <<"f_d = C*v"<< Vector(A[3]*vec[iv]);
-  if (alpha1 > 0.0 && haveMass && iv >= 0)
-    std::cout <<"f_d1/alpha1 = M*v (alpha1="<< alpha1 <<")"
-              << Vector(A[1]*vec[iv]);
-  if (alpha2 > 0.0 && haveStif && iv >= 0)
-    std::cout <<"f_d2/alpha2 = K*v (alpha2="<< alpha2 <<")"
-              << Vector(A[2]*vec[iv]);
+  else if (haveDamp)
+    std::cout <<"f_d = C*v"<< Vector(A[3]*vel);
+  if (alpha1 > 0.0 && haveMass)
+    std::cout <<"f_d1/alpha1 = M*v (alpha1="<< alpha1 <<")"<< Vector(A[1]*vel);
+  if (alpha2 > 0.0 && haveStif)
+    std::cout <<"f_d2/alpha2 = K*v (alpha2="<< alpha2 <<")"<< Vector(A[2]*vel);
 #endif
 
-  if (haveMass && ia >= 0)
-    dF.add(A[1]*vec[ia],-1.0);    // dF = Fext - M*a
+  if (haveMass)
+    dF.add(A[1]*acc,-1.0);     // dF = Fext - M*a
 
   if (b.size() > 1)
-    dF.add(b[1],-1.0);            // dF -= Fd
-  else if (haveDamp && iv >= 0)
-    dF.add(A[3]*vec[iv],-1.0);    // dF -= C*v
+    dF.add(b[1],-1.0);         // dF -= Fd
+  else if (haveDamp)
+    dF.add(A[3]*vel,-1.0);     // dF -= C*v
 
-  if (alpha1 > 0.0 && haveMass && iv >= 0)
-    dF.add(A[1]*vec[iv],-alpha1); // dF -= alpha1*M*v
+  if (alpha1 > 0.0 && haveMass)
+    dF.add(A[1]*vel,-alpha1);  // dF -= alpha1*M*v
 
-  if (alpha2 > 0.0 && haveStif && iv >= 0)
-    dF.add(A[2]*vec[iv],-alpha2); // dF -= alpha2*K*v
+  if (alpha2 > 0.0 && haveStif)
+    dF.add(A[2]*vel,-alpha2);  // dF -= alpha2*K*v
 
 #if SP_DEBUG > 2
   this->printVec(std::cout);
