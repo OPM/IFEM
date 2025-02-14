@@ -48,6 +48,13 @@ public:
   //! \brief Returns the element-level right-hand-side vector.
   virtual const Vector& getRHSVector() const;
 
+  //! \brief Returns a const reference to current/previous displacement vector.
+  const Vector& dis(bool prev = false) const { return vec[prev ? 3 : 0]; }
+  //! \brief Returns a const reference to current/previous velocity vector.
+  const Vector& vel(bool prev = false) const { return vec[prev ? 4 : 1]; }
+  //! \brief Returns a const reference to current/previous velocity vector.
+  const Vector& acc(bool prev = false) const { return vec[prev ? 5 : 2]; }
+
 protected:
   bool  isPredictor; //!< If \e true, we are in the predictor step
   double h;          //!< Time step size
