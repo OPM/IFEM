@@ -19,25 +19,24 @@
 #endif
 
 
-bool SIMsolution::initSolution (size_t ndof, size_t nsol)
+void SIMsolution::initSolution (size_t ndof, size_t nsol)
 {
   // Note: Always at least one vector at this point, even if nsol is zero
   solution.resize(nsol > 1 ? nsol : 1);
   for (Vector& sol : solution)
     sol.resize(ndof,true);
-  return true;
 }
 
 
-void SIMsolution::pushSolution (size_t nsol)
+void SIMsolution::pushSolution (unsigned short int nVecState)
 {
-  if (solution.empty())
-    return;
-  else if (nsol == 0 || nsol > solution.size())
-    nsol = solution.size();
+  short int nState = solution.size()/nVecState;
+  if (nState < 2) return;
 
-  for (size_t n = nsol-1; n > 0; n--)
-    std::copy(solution[n-1].begin(),solution[n-1].end(),solution[n].begin());
+  for (short int n = (nState-2)*nVecState; n >= 0; n -= nVecState)
+    for (unsigned short int i = 0; i < nVecState; i++)
+      std::copy(solution[n+i].begin(), solution[n+i].end(),
+                solution[n+i+nVecState].begin());
 }
 
 
@@ -51,7 +50,7 @@ bool SIMsolution::saveSolution (SerializeMap& data,
     for (const Vector& sol : this->getSolutions())
       archive(sol);
   }
-  data.insert(std::make_pair(name,str.str()));
+  data.insert({ name, str.str() });
   return true;
 #else
   return false;
