@@ -38,7 +38,7 @@ public:
   virtual void printProblem() const;
 
   //! \brief Initializes primary solution vectors.
-  virtual bool initSol(size_t nSol);
+  virtual void initSol(size_t nSol, size_t nDof);
 
   //! \brief Advances the time step one step forward.
   virtual bool advanceStep(TimeStep& param, bool updateTime = true);

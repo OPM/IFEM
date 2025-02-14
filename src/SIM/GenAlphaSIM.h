@@ -36,8 +36,7 @@ public:
   //! \brief Initializes time integration parameters for the integrand.
   virtual void initPrm();
   //! \brief Initializes primary solution vectors.
-  //! \param[in] nSol Number of consequtive solutions stored
-  virtual bool initSol(size_t nSol = 3);
+  virtual void initSol(size_t nSol, size_t nDof = 0);
 
   //! \brief Advances the time step one step forward.
   //! \param param Time stepping parameters

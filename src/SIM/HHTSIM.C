@@ -29,7 +29,7 @@ HHTSIM::HHTSIM (SIMbase& sim) : NewmarkSIM(sim), Finert(nullptr), Fext(nullptr)
 
   predictor = 'd'; // default predictor (constant displacement)
 
-  pV = pA = iD = iV = iA = 0;
+  pV = pA = 0;
 }
 
 
@@ -92,33 +92,14 @@ void HHTSIM::initPrm ()
 }
 
 
-bool HHTSIM::initSol (size_t nSol)
+void HHTSIM::initSol (size_t nSol, size_t nDof)
 {
-  incDis.resize(model.getNoDOFs(),true);
-  this->MultiStepSIM::initSol(nSol > 0 ? nSol+2 : 0);
-  if (solution.size() < 5)
-  {
-    std::cerr <<" *** HHTSIM::initSol: Too few solution vectors "
-              << solution.size() << std::endl;
-    return false;
-  }
+  if (nSol < 5) nSol = 5; // Account for predicted velocity and acceleration
+  this->NewmarkSIM::initSol(nSol,nDof);
 
-  iA = solution.size() - 1;
-  iV = solution.size() - 2;
-  pA = solution.size() - 3;
-  pV = solution.size() - 4;
-
-  return true;
-}
-
-
-bool HHTSIM::advanceStep (TimeStep& param, bool updateTime)
-{
-  // Update displacement solutions between time steps
-  if (solution.size() > 5)
-    this->pushSolution(solution.size()-4);
-
-  return this->NewmarkSIM::advanceStep(param,updateTime);
+  incDis.resize(solution.front().size(),true);
+  pA = solution.size() - 1;
+  pV = solution.size() - 2;
 }
 
 
@@ -186,6 +167,8 @@ bool HHTSIM::predictStep (TimeStep& param)
 #ifdef SP_DEBUG
   std::cout <<"\nHHTSIM::predictStep";
 #endif
+  const unsigned short int iV = 1;
+  const unsigned short int iA = 2;
 
   // Predicted velocity, V_n = v_n-1*gamma/beta + a_n-1*dt*(gamma/beta-2)/2
   solution[pV] = solution[iV];
@@ -223,6 +206,9 @@ bool HHTSIM::correctStep (TimeStep& param, bool converged)
   std::cout <<"\nHHTSIM::correctStep(iter="<< param.iter
             <<",converged="<< std::boolalpha << converged <<")";
 #endif
+  const unsigned short int iD = 0;
+  const unsigned short int iV = 1;
+  const unsigned short int iA = 2;
 
   if (param.iter == 1 && !converged)
   {

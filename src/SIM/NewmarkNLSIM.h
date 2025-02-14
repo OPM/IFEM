@@ -188,10 +188,7 @@ public:
   //! \brief Initializes time integration parameters for the integrand.
   virtual void initPrm();
   //! \brief Initializes the primary solution vectors.
-  virtual bool initSol(size_t nSol = 3);
-
-  //! \brief Advances the time step one step forward.
-  virtual bool advanceStep(TimeStep& param, bool updateTime = true);
+  virtual void initSol(size_t nSol, size_t nDof = 0);
 
   //! \brief Modifies the current solution vector (used by sub-iterations only).
   virtual void setSolution(const RealArray& newSol, int idx);
@@ -215,10 +212,6 @@ protected:
   virtual void finalizeRHSvector(bool);
 
 private:
-  unsigned short int iA; //!< Index to corrected acceleration vector
-  unsigned short int iV; //!< Index to corrected velocity vector
-  unsigned short int iD; //!< Index to corrected displacement vector
-
   Vector incDis;  //!< Incremental displacement vector
   Vector predVel; //!< Predicted velocity vector
   Vector predAcc; //!< Predicted acceleration vector

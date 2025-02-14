@@ -448,7 +448,7 @@ TEST(TestHHT, SingleDOFu)
   SIM1DOF simulator;
   HHTSIM integrator(simulator);
   integrator.initPrm();
-  integrator.initSol();
+  integrator.initSol(3);
   runSingleDof(integrator,0.9);
 }
 
@@ -464,7 +464,7 @@ TEST(TestNewmarkNL, Damped)
   SIM2DOFdmp simulator;
   NewmarkNLSIM integrator(simulator);
   integrator.initPrm();
-  integrator.initSol();
+  integrator.initSol(3);
   runTwoDof(integrator,simulator.getInitAcc());
 }
 
@@ -473,7 +473,7 @@ TEST(TestHHT, Damped)
   SIM2DOFdmp simulator;
   HHTSIM integrator(simulator);
   integrator.initPrm();
-  integrator.initSol();
+  integrator.initSol(3);
   runTwoDof(integrator,simulator.getInitAcc());
 }
 

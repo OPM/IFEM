@@ -83,22 +83,22 @@ void EigenModeSIM::printProblem () const
 }
 
 
-bool EigenModeSIM::initSol (size_t nSol)
+void EigenModeSIM::initSol (size_t nSol, size_t nDof)
 {
-  if (!this->MultiStepSIM::initSol(nSol))
-    return false;
-  else if (nSol > 0)
-    return true;
+  this->MultiStepSIM::initSol(nSol,nDof);
+  if (nSol > 0) return;
 
   // Solve the eigenvalue problem giving the natural eigenfrequencies
   model.setMode(SIM::VIBRATION);
   model.initSystem(opt.solver,2,0);
   model.setQuadratureRule(opt.nGauss[0],true);
-  if (!model.assembleSystem())
-    return false;
-
-  if (!model.systemModes(modes))
-    return false;
+  if (!model.assembleSystem() || !model.systemModes(modes))
+  {
+    solution.clear();
+    std::cerr <<" *** EigenModeSIM::initSol: No eigenvalue solution."
+              << std::endl;
+    return;
+  }
 
   // Scale all eigenvectors to have max amplitude equal to one,
   // and convert the eigenvalues back to angular frequency
@@ -113,8 +113,6 @@ bool EigenModeSIM::initSol (size_t nSol)
     std::cout <<"\nEigenvector #"<< i+1 <<":"<< modes[i].eigVec;
 #endif
   }
-
-  return true;
 }
 
 

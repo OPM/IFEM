@@ -171,9 +171,18 @@ void NewmarkSIM::initPrm ()
 }
 
 
+bool NewmarkSIM::advanceStep (TimeStep& param, bool updateTime)
+{
+  // Update solutions between time steps
+  this->pushSolution(3);
+
+  return this->MultiStepSIM::advanceStep(param,updateTime);
+}
+
+
 bool NewmarkSIM::initAcc (double zero_tolerance, std::streamsize outPrec)
 {
-  if (!model.setMode(SIM::MASS_ONLY))
+  if (solution.size() < 3 || !model.setMode(SIM::MASS_ONLY))
     return false;
 
   // Assemble mass matrix and external forces
@@ -187,7 +196,7 @@ bool NewmarkSIM::initAcc (double zero_tolerance, std::streamsize outPrec)
     model.addToRHSvector(0,*Rext);
 
   // Solve for the initial accelerations
-  Vector& accVec = solution.back();
+  Vector& accVec = solution[2];
   if (!model.solveEqSystem(accVec,0,nullptr,msgLevel-1,false,"acceleration"))
     return false;
   else if (msgLevel < 1)
@@ -251,10 +260,9 @@ bool NewmarkSIM::predictStep (TimeStep& param)
   }
 
   const double dt = param.time.dt;
-
-  size_t iD = 0;
-  size_t iA = solution.size() - 1;
-  size_t iV = solution.size() - 2;
+  const unsigned short int iD = 0;
+  const unsigned short int iV = 1;
+  const unsigned short int iA = 2;
   Vector oldSol(solution[iD]);
 
   switch (predictor) {
@@ -317,10 +325,9 @@ bool NewmarkSIM::predictStep (TimeStep& param)
 bool NewmarkSIM::correctStep (TimeStep& param, bool)
 {
   const double dt = param.time.dt;
-
-  size_t iD = 0;
-  size_t iA = solution.size() - 1;
-  size_t iV = solution.size() - 2;
+  const unsigned short int iD = 0;
+  const unsigned short int iV = 1;
+  const unsigned short int iA = 2;
 
   // Corrected displacement
   solution[iD].add(linsol, solveDisp ? 1.0 : beta*dt*dt);
@@ -566,16 +573,13 @@ bool NewmarkSIM::solutionNorms (const TimeDomain&,
   if (msgLevel < 0 || newSol.empty())
     return true;
 
-  // Cannot use the enums here because this method is inherited
-  size_t a = newSol.size() > 1 ? newSol.size()-1 : 0;
-  size_t v = newSol.size() > 2 ? newSol.size()-2 : 0;
-
   size_t d, nf = model.getNoFields(1);
-  std::vector<size_t> iMax(nf), jMax(nf), kMax(nf);
-  std::vector<double> dMax(nf), vMax(nf), aMax(nf);
-  double disL2 = model.solutionNorms(newSol.front(), dMax.data(), iMax.data(), nf);
-  double velL2 = v > 0 ? model.solutionNorms(newSol[v], vMax.data(), jMax.data(), nf) : 0.0;
-  double accL2 = a > 0 ? model.solutionNorms(newSol[a], aMax.data(), kMax.data(), nf) : 0.0;
+  size_t iMax[6], jMax[6], kMax[6];
+  double dMax[6], vMax[6], aMax[6];
+  double velL2 = -1.0, accL2 = -1.0;
+  double disL2 = model.solutionNorms(newSol.front(), dMax, iMax, nf);
+  if (newSol.size() > 1) velL2 = model.solutionNorms(newSol[1], vMax, jMax, nf);
+  if (newSol.size() > 2) accL2 = model.solutionNorms(newSol[2], aMax, kMax, nf);
 
   utl::LogStream& cout = model.getProcessAdm().cout;
   std::streamsize stdPrec = outPrec > 0 ? cout.precision(outPrec) : 0;
@@ -589,7 +593,7 @@ bool NewmarkSIM::solutionNorms (const TimeDomain&,
       cout <<"\n               Max "<< D
            <<"-displacement : "<< dMax[d] <<" node "<< iMax[d];
 
-  if (v)
+  if (velL2 >= 0.0)
   {
     cout <<"\n  Velocity L2-norm                : "<< utl::trunc(velL2);
     for (d = 0, D = 'X'; d < nf; d++, D=='Z' ? D='x' : D++)
@@ -597,10 +601,11 @@ bool NewmarkSIM::solutionNorms (const TimeDomain&,
         cout <<"\n               Max "<< D
              <<"-velocity     : "<< vMax[d] <<" node "<< jMax[d];
   }
-  if (a)
+
+  if (accL2 >= 0.0)
   {
     cout <<"\n  Acceleration L2-norm            : "<< utl::trunc(accL2);
-    for (d = 0, D = 'X'; d < nf && a; d++, D=='Z' ? D='x' : D++)
+    for (d = 0, D = 'X'; d < nf; d++, D=='Z' ? D='x' : D++)
       if (utl::trunc(aMax[d]) != 0.0)
         cout <<"\n               Max "<< D
              <<"-acceleration : "<< aMax[d] <<" node "<< kMax[d];
