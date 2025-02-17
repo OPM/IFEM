@@ -192,7 +192,7 @@ public:
   //! including zero-volume elements due to multiple knots, etc.
   size_t getNoElms(bool includeXelms = false, bool includeZelms = false) const;
   //! \brief Returns the number of solution vectors.
-  size_t getNoSolutions() const;
+  size_t getNoSolutions(bool allocated = true) const;
   //! \brief Returns the total number of patches in the model.
   int getNoPatches() const { return nGlPatches; }
   //! \brief Returns the number of unknowns in the linear equation system.

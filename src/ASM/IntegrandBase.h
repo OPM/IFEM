@@ -296,7 +296,7 @@ public:
   virtual bool suppressOutput(size_t, ASM::ResultClass) const { return false; }
 
   //! \brief Returns the number of solution vectors.
-  size_t getNoSolutions() const { return primsol.size(); }
+  virtual size_t getNoSolutions(bool = true) const { return primsol.size(); }
 
   //! \brief Returns the patch-wise extraction function field, if any.
   virtual Vector* getExtractionField(size_t = 1) { return nullptr; }
