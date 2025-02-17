@@ -787,9 +787,9 @@ bool SIMbase::getElmNodes (IntVec& mnpc, int iel) const
 }
 
 
-size_t SIMbase::getNoSolutions () const
+size_t SIMbase::getNoSolutions (bool allocated) const
 {
-  return myProblem ? myProblem->getNoSolutions() : 0;
+  return myProblem ? myProblem->getNoSolutions(allocated) : 0;
 }
 
 

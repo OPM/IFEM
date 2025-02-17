@@ -61,8 +61,8 @@ void MultiStepSIM::initSol (size_t nSol, size_t nDof)
 {
   if (!solution.empty())
     nSol = solution.size();
-  else if (nSol > 0 && nSol < model.getNoSolutions())
-    nSol = model.getNoSolutions();
+  else if (nSol > 0 && nSol < model.getNoSolutions(false))
+    nSol = model.getNoSolutions(false);
 
   if (nDof == 0)
     nDof = model.getNoDOFs();
