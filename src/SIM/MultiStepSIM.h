@@ -52,7 +52,8 @@ public:
   virtual void initPrm() {}
   //! \brief Initializes the primary solution vectors.
   //! \param[in] nSol Number of consequtive solutions stored in core
-  virtual bool initSol(size_t nSol = 1);
+  //! \param[in] nDof Number of degrees of freedom (solution vector length)
+  virtual void initSol(size_t nSol = 1, size_t nDof = 0);
 
   //! \brief Allocates the FE system matrices.
   //! \param[in] withRF Whether nodal reaction forces should be computed or not

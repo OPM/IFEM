@@ -66,36 +66,25 @@ void GenAlphaSIM::initPrm ()
 }
 
 
-bool GenAlphaSIM::initSol (size_t nSol)
+void GenAlphaSIM::initSol (size_t nSol, size_t nDof)
 {
-  this->MultiStepSIM::initSol(nSol);
+  if (nSol < 3) nSol = 3;
+  this->NewmarkSIM::initSol(nSol,nDof);
 
-  size_t nDOFs = model.getNoDOFs();
+  nDof = solution.front().size();
   for (size_t i = 0; i < 3; i++)
   {
-    prevSol[i].resize(nDOFs,true);
-    tempSol[i].resize(nDOFs,true);
+    prevSol[i].resize(nDof,true);
+    tempSol[i].resize(nDof,true);
   }
-
-  return true;
 }
 
 
 bool GenAlphaSIM::advanceStep (TimeStep& param, bool updateTime)
 {
-  // Update displacement solutions between time steps
-  if (solution.size() > 3)
-    this->pushSolution(solution.size()-2);
-
   // Update the previous solution
-  std::copy(solution.front().begin(),solution.front().end(),prevSol[0].begin());
-  if (solution.size() > 2)
-  {
-    size_t iA = solution.size() - 1;
-    size_t iV = solution.size() - 2;
-    std::copy(solution[iV].begin(),solution[iV].end(),prevSol[1].begin());
-    std::copy(solution[iA].begin(),solution[iA].end(),prevSol[2].begin());
-  }
+  for (unsigned short int i = 0; i < 3 && i < solution.size(); i++)
+    std::copy(solution[i].begin(),solution[i].end(),prevSol[i].begin());
 
   return this->NewmarkSIM::advanceStep(param,updateTime);
 }
@@ -106,18 +95,15 @@ bool GenAlphaSIM::predictStep (TimeStep& param)
   if (!this->NewmarkSIM::predictStep(param))
     return false;
 
-  size_t ipD = 0;
-  size_t ipA = solution.size() - 1;
-  size_t ipV = solution.size() - 2;
-  tempSol[0] = solution[ipD];
-  tempSol[1] = solution[ipV];
-  tempSol[2] = solution[ipA];
+  for (unsigned short int i = 0; i < 3 && i < solution.size(); i++)
+    std::copy(solution[i].begin(),solution[i].end(),tempSol[i].begin());
 
   // Compute the intermediate solution
   // {U}_(n+alpha) = (1-alpha)*{U}_n + alpha*{U}_(n+1)
-  solution[ipD].relax(alpha_f,prevSol[0]);
-  solution[ipV].relax(alpha_f,prevSol[1]);
-  solution[ipA].relax(alpha_m,prevSol[2]);
+  solution[0].relax(alpha_f,prevSol[0]);
+  solution[1].relax(alpha_f,prevSol[1]);
+  solution[2].relax(alpha_m,prevSol[2]);
+
   return true;
 }
 
@@ -136,10 +122,6 @@ bool GenAlphaSIM::correctStep (TimeStep& param, bool converged)
             << std::boolalpha << converged <<")";
 #endif
 
-  size_t ipD = 0;
-  size_t ipA = solution.size() - 1;
-  size_t ipV = solution.size() - 2;
-
   // Update current displacement, velocity and acceleration solutions
   double bdt = beta*param.time.dt;
   double bdt2 = bdt*param.time.dt;
@@ -147,31 +129,27 @@ bool GenAlphaSIM::correctStep (TimeStep& param, bool converged)
   tempSol[1].add(linsol, solveDisp ? gamma/bdt : gamma*param.time.dt);
   tempSol[2].add(linsol, solveDisp ? 1.0/bdt2 : 1.0);
 
-  if (converged)
-  {
-    // Converged solution
-    solution[ipD] = tempSol[0];
-    solution[ipV] = tempSol[1];
-    solution[ipA] = tempSol[2];
-  }
+  if (converged) // Converged solution
+    for (unsigned short int i = 0; i < 3 && i < solution.size(); i++)
+      std::copy(tempSol[i].begin(),tempSol[i].end(),solution[i].begin());
   else
   {
     // Compute new intermediate solution
     // {U}_(n+alpha) = (1-alpha)*{U}_n + alpha*{U}_(n+1)
-    solution[ipD].relax(alpha_f,prevSol[0],tempSol[0]);
-    solution[ipV].relax(alpha_f,prevSol[1],tempSol[1]);
-    solution[ipA].relax(alpha_m,prevSol[2],tempSol[2]);
+    solution[0].relax(alpha_f,prevSol[0],tempSol[0]);
+    solution[1].relax(alpha_f,prevSol[1],tempSol[1]);
+    solution[2].relax(alpha_m,prevSol[2],tempSol[2]);
   }
 
 #if SP_DEBUG > 1
-  std::cout <<"\nCorrected displacement:"<< solution[ipD]
-            <<"Corrected velocity:"<< solution[ipV]
-            <<"Corrected acceleration:"<< solution[ipA];
+  std::cout <<"\nCorrected displacement:"<< solution[0]
+            <<"Corrected velocity:"<< solution[1]
+            <<"Corrected acceleration:"<< solution[2];
 #elif defined(SP_DEBUG)
   if (converged)
-    std::cout <<"\nConverged displacement:"<< solution[ipD].max()
-              <<"\nConverged velocity:"<< solution[ipV].max()
-              <<"\nConverged acceleration:"<< solution[ipA].max() << std::endl;
+    std::cout <<"\nConverged displacement:"<< solution[0].max()
+              <<"\nConverged velocity:"<< solution[1].max()
+              <<"\nConverged acceleration:"<< solution[2].max() << std::endl;
 #endif
 
   model.updateRotations(linsol,alpha_f); // TODO: Look at this
@@ -181,10 +159,8 @@ bool GenAlphaSIM::correctStep (TimeStep& param, bool converged)
 
 void GenAlphaSIM::setSolution (const RealArray& newSol, int idx)
 {
-  solution[idx] = newSol;
-
   if (idx == 0)
     tempSol[0] = newSol;
-  else if (solution.size() > 2)
-    tempSol[solution.size()-3+idx] = newSol;
+
+  solution[idx] = newSol;
 }
