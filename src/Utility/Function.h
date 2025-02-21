@@ -137,7 +137,8 @@ public:
 
 /*!
   \brief Base class for unary spatial functions of arbitrary result type.
-  \details Includes an interface for returning the function value as an array.
+  \details Includes an interface for returning the function value as an array,
+  and for assigning additional state-dependent parameter values.
 */
 
 class FunctionBase
@@ -166,6 +167,17 @@ public:
 
   //! \brief Checks if a specified point is within the function domain.
   virtual bool inDomain(const Vec3&) const { return true; }
+
+  //! \brief Sets an additional parameter in the function.
+  virtual void setParameter(const char*, double) {}
+  //! \brief Sets additional parameter values in the function.
+  void setParameter(const char* name, const Vec3& value)
+  {
+    std::string v(name);
+    this->setParameter((v + "x").c_str(), value.x);
+    this->setParameter((v + "y").c_str(), value.y);
+    this->setParameter((v + "z").c_str(), value.z);
+  }
 
 protected:
   size_t ncmp; //!< Number of components in the return value

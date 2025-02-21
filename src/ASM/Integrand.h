@@ -14,6 +14,7 @@
 #ifndef _INTEGRAND_H
 #define _INTEGRAND_H
 
+#include "SIMenums.h"
 #include <vector>
 #include <cstddef>
 
@@ -171,8 +172,11 @@ public:
     NORMAL_DERIVS      = 1<<10, //!< Integrand uses p-order normal derivatives
     UPDATED_NODES      = 1<<11, //!< Integrand wants updated nodal coordinates
     PIOLA_MAPPING      = 1<<12, //!< Integrand wants Piola mapping
+    POINT_DEFORMATION  = 1<<13, //!< Integrand wants point-wise deformation
   };
 
+  //! \brief Returns current solution mode.
+  virtual SIM::SolutionMode getMode() const = 0;
   //! \brief Defines which FE quantities are needed by the integrand.
   virtual int getIntegrandType() const { return STANDARD; }
   //! \brief Returns the number of reduced-order integration points.
@@ -345,10 +349,10 @@ protected:
   //! \brief Evaluates the integrand at interior points for stationary problems.
   virtual bool evalIntMx(LocalIntegral&, const MxFiniteElement& fe,
 			 const Vec3&) const { return false; }
-  //! \brief Evaluates the integrand at interface points for stationary problems.
+  //! \brief Evaluates the integrand at interface points, stationary problems.
   virtual bool evalInt(LocalIntegral&, const FiniteElement& fe,
                        const Vec3&, const Vec3&) const { return false; }
-  //! \brief Evaluates the integrand at interface points for stationary problems.
+  //! \brief Evaluates the integrand at interface points, stationary problems.
   virtual bool evalIntMx(LocalIntegral&, const MxFiniteElement& fe,
                          const Vec3&, const Vec3&) const { return false; }
 
@@ -372,6 +376,12 @@ protected:
   //! \details Basic interface. Reimplement this method if no additional
   //! parameters are needed.
   virtual bool finalizeElement(LocalIntegral&) { return true; }
+
+public:
+  //! \brief Assigns a parameter value to property functions of the integrand.
+  virtual void setParam(const char*, double) {}
+  //! \brief Assigns parameter values to property functions of the integrand.
+  virtual void setParam(const char*, const Vec3&) {}
 };
 
 #endif

@@ -605,7 +605,7 @@ evaluate (const Vec3& X) const
 template <class ParentFunc, class Ret, class Scalar>
 void EvalMultiFunction<ParentFunc,Ret,Scalar>::setNoDims ()
 {
-  std::tie(nsd, this->ncmp) = getNoDims<Ret>(this->p.size());
+  std::tie(this->nsd, this->ncmp) = getNoDims<Ret>(this->p.size());
 }
 
 

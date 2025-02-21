@@ -68,11 +68,11 @@ const Vector& HHTMats::getRHSVector () const
             << (isPredictor ? "(predictor)" : "(corrector)") << std::endl;
 #endif
 
-  if (b.empty())
+  if (b.empty() || vec.size() < 3)
     return this->ElmMats::getRHSVector();
 
-  int ia = vec.size() - 1; // index to element acceleration vector (a)
-  int iv = vec.size() - 2; // index to element velocity vector (v)
+  const Vector& vel = this->vel(); // current element velocity vector (v)
+  const Vector& acc = this->acc(); // current acceleration vector (a)
 
   bool haveMass = A.size() > 1 && !A[1].empty();
   bool haveStif = A.size() > 2 && !A[2].empty();
@@ -87,30 +87,28 @@ const Vector& HHTMats::getRHSVector () const
     Fia = b.front(); // Fia = -Fs
     if (b.size() > 2)
       Fia.add(b[2]); // Fia = Fext - Fs
-    if (alpha1 > 0.0 && iv > 0 && haveMass)
-      Fia.add(A[1]*vec[iv],-alpha1); // Fia -= alpha1*M*v
-    if (alpha2 > 0.0 && iv > 0 && haveStif)
-      Fia.add(A[2]*vec[iv],-alpha2); // Fia -= alpha2*K*v
-    if (iv > 0 && haveDamp)
-      Fia.add(A[4]*vec[iv],-1.0); // Fia -= C*v
+    if (alpha1 > 0.0 && haveMass)
+      Fia.add(A[1]*vel,-alpha1); // Fia -= alpha1*M*v
+    if (alpha2 > 0.0 && haveStif)
+      Fia.add(A[2]*vel,-alpha2); // Fia -= alpha2*K*v
+    if (haveDamp)
+      Fia.add(A[4]*vel,-1.0);    // Fia -= C*v
 #if SP_DEBUG > 2
     std::cout <<"Element inertia force vector"<< Fia;
 #endif
   }
 
 #if SP_DEBUG > 2
-  if (iv >= 0)
-    std::cout <<"Element velocity vector"<< vec[iv];
-  if (ia >= 0)
-    std::cout <<"Element acceleration vector"<< vec[ia];
+  std::cout <<"Element velocity vector"<< vel;
+  std::cout <<"Element acceleration vector"<< acc;
   if (b.size() > 2)
     std::cout <<"S_ext"<< b[2] <<"-S_int"<< b.front();
   else
     std::cout <<"S_ext - S_int"<< b.front();
   if (b.size() > 3)
     std::cout <<"S_dmp"<< b[3];
-  if (haveMass && ia >= 0)
-    std::cout <<"S_inert = M*a"<< Vector(A[1]*vec[ia]);
+  if (haveMass)
+    std::cout <<"S_inert = M*a"<< Vector(A[1]*acc);
 #endif
 
   // Calculate the right-hand-side force vector of the dynamic problem
@@ -121,18 +119,19 @@ const Vector& HHTMats::getRHSVector () const
   // the predictor step force vector after the element assembly.
   Vector& RHS = const_cast<Vector&>(b.front());
   double alphaPlus1 = 1.5 - gamma;
-  if (haveMass && ia >= 0)
+  size_t pa = vec.size()-1; // index to predicted acceleration vector (A)
+  size_t iv = 1;            // index to current velocity vector (v)
+  if (haveMass)
   {
     if (oldHHT)
     {
       RHS *= alphaPlus1; // RHS = -(1+alphaH)*S_int
-      RHS.add(A[1]*vec[ia], isPredictor ? 1.0 : -1.0); // RHS (+/-)= M*a
+      RHS.add(A[1]*acc, isPredictor ? 1.0 : -1.0); // RHS (+/-)= M*a
     }
-    else if (isPredictor && iv >= 1)
+    else if (isPredictor && pa > 3*(vec.size()/3))
     {
-      // iv-1 = index to predicted element acceleration vector (A)
-      A[1].multiply(vec[iv-1]-vec[ia],RHS); // RHS = M*(A-a)
-      iv -= 2; // index to predicted element velocity vector (V)
+      A[1].multiply(vec[pa]-acc,RHS); // RHS = M*(A-a)
+      iv = pa-1; // index to predicted element velocity vector (V)
 #if SP_DEBUG > 2
       std::cout <<"S_inert = M*(A-a)"<< RHS;
 #endif
@@ -140,7 +139,7 @@ const Vector& HHTMats::getRHSVector () const
     else
     {
       RHS *= alphaPlus1; // RHS = -(1+alphaH)*S_int
-      RHS.add(A[1]*vec[ia],-1.0); // RHS -= M*a
+      RHS.add(A[1]*acc,-1.0); // RHS -= M*a
     }
   }
 
@@ -149,13 +148,13 @@ const Vector& HHTMats::getRHSVector () const
 
   if (!isPredictor) alphaPlus1 = -alphaPlus1;
 
-  if (alpha1 > 0.0 && haveMass && iv >= 0)
+  if (alpha1 > 0.0 && haveMass)
     RHS.add(A[1]*vec[iv],alphaPlus1*alpha1); // RHS -= (1+alphaH)*alpha1*M*v
-  if (alpha2 > 0.0 && haveStif && iv >= 0)
+  if (alpha2 > 0.0 && haveStif)
     RHS.add(A[2]*vec[iv],alphaPlus1*alpha2); // RHS -= (1+alphaH)*alpha2*K*v
   if (b.size() > 3)
     RHS.add(b[3]        ,alphaPlus1);        // RHS -= (1+alphaH)*Fd
-  else if (haveDamp && iv >= 0)
+  else if (haveDamp)
     RHS.add(A[4]*vec[iv],alphaPlus1);        // RHS -= (1+alphaH)*C*v
 
 #if SP_DEBUG > 2
