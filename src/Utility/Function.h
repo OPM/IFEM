@@ -169,14 +169,13 @@ public:
   virtual bool inDomain(const Vec3&) const { return true; }
 
   //! \brief Sets an additional parameter in the function.
-  virtual void setParameter(const char*, double) {}
+  virtual void setParam(const std::string&, double) {}
   //! \brief Sets additional parameter values in the function.
-  void setParameter(const char* name, const Vec3& value)
+  void setParam(const std::string& name, const Vec3& value)
   {
-    std::string v(name);
-    this->setParameter((v + "x").c_str(), value.x);
-    this->setParameter((v + "y").c_str(), value.y);
-    this->setParameter((v + "z").c_str(), value.z);
+    this->setParam(name + "x", value.x);
+    this->setParam(name + "y", value.y);
+    this->setParam(name + "z", value.z);
   }
 
 protected:

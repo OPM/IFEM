@@ -163,11 +163,8 @@ public:
   //! \brief Returns second-derivative of the function.
   Real dderiv(const Vec3& X, int dir1, int dir2) const override;
 
-  //! \brief Set an additional parameter in the function.
-  void setParam(const std::string& name, double value);
-
   //! \brief Sets an additional parameter in the function.
-  void setParameter(const char* n, double v) override { this->setParam(n,v); }
+  void setParam(const std::string& name, double value) override;
 
   //! \brief Evaluates first derivatives of the function.
   Vec3 gradient(const Vec3& X) const override
@@ -209,13 +206,6 @@ public:
   //! \brief Adds an expression function for a first or second derivative.
   void addDerivative(const std::string& functions,
                      const std::string& variables, int d1, int d2 = 0);
-
-  //! \brief Set an additional parameter in the function.
-  void setParam(const std::string& name, double value)
-  {
-    for (std::unique_ptr<FuncType>& func : this->p)
-      func->setParam(name, value);
-  }
 
   //! \brief Returns number of spatial dimension.
   size_t getNoSpaceDim() const { return nsd; }
@@ -268,7 +258,11 @@ public:
   Ret dderiv(const Vec3& X, int dir1, int dir2) const override;
 
   //! \brief Sets an additional parameter in the function.
-  void setParameter(const char* n, double v) override { this->setParam(n,v); }
+  void setParam(const std::string& name, double value) override
+  {
+    for (std::unique_ptr<FuncType>& func : this->p)
+      func->setParam(name,value);
+  }
 
 protected:
   //! \brief Sets the number of spatial dimensions (default implementation).

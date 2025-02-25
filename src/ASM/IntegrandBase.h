@@ -465,14 +465,14 @@ public:
   //! \brief Assigns a parameter value to property functions of the integrand.
   //! \param[in] name Parameter name
   //! \param[in] value Parameter value
-  void setParam(const char* name, double value) override
+  void setParam(const std::string& name, double value) override
   {
     myProblem.setParam(name,value);
   }
   //! \brief Assigns parameter values to property functions of the integrand.
   //! \param[in] name Parameter name
   //! \param[in] value Parameter value
-  void setParam(const char* name, const Vec3& value) override
+  void setParam(const std::string& name, const Vec3& value) override
   {
     myProblem.setParam(name,value);
   }
@@ -571,14 +571,14 @@ public:
   //! \brief Assigns a parameter value to property functions of the integrand.
   //! \param[in] name Parameter name
   //! \param[in] value Parameter value
-  void setParam(const char* name, double value) override
+  void setParam(const std::string& name, double value) override
   {
     myProblem.setParam(name,value);
   }
   //! \brief Assigns parameter values to property functions of the integrand.
   //! \param[in] name Parameter name
   //! \param[in] value Parameter value
-  void setParam(const char* name, const Vec3& value) override
+  void setParam(const std::string& name, const Vec3& value) override
   {
     myProblem.setParam(name,value);
   }

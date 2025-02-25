@@ -16,7 +16,7 @@
 
 #include "SIMenums.h"
 #include <vector>
-#include <cstddef>
+#include <string>
 
 struct TimeDomain;
 class LocalIntegral;
@@ -379,9 +379,9 @@ protected:
 
 public:
   //! \brief Assigns a parameter value to property functions of the integrand.
-  virtual void setParam(const char*, double) {}
+  virtual void setParam(const std::string&, double) {}
   //! \brief Assigns parameter values to property functions of the integrand.
-  virtual void setParam(const char*, const Vec3&) {}
+  virtual void setParam(const std::string&, const Vec3&) {}
 };
 
 #endif
