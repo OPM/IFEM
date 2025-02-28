@@ -476,11 +476,15 @@ utl::LogStream& SIMoptions::print (utl::LogStream& os, bool addBlankLine) const
       os <<"\n                       "<< projections[i];
   }
 
-  if (format >= 0) {
-    os <<"\nVTF file format: "<< (format ? "BINARY":"ASCII")
-       <<"\nNumber of visualization points: "<< nViz[0];
-    for (int j = 1; j < 3 && nViz[j] > 1; j++)
-      os <<" "<< nViz[j];
+  if (format >= 0)
+  {
+    os <<"\nVTF file format: "<< (format ? "BINARY":"ASCII");
+    if (discretization >= ASM::Spline)
+    {
+      os <<"\nNumber of visualization points: "<< nViz[0];
+      for (int j = 1; j < 3 && nViz[j] > 1; j++)
+        os <<" "<< nViz[j];
+    }
   }
 
   if (!hdf5.empty())

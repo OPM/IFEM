@@ -690,8 +690,10 @@ bool SIMoutput::writeGlvBC (int& nBlock, int iStep) const
     if (!pch->evalSolution(field,bc,opt.nViz,nbc))
       return false;
 
-    // The BC fields should either be 0.0 or 1.0
-    if (opt.nViz[0] > 2 || opt.nViz[1] > 2 || opt.nViz[2] > 2)
+    if (opt.discretization >= ASM::Spline)
+      // The BC field values should either be 0 or 1 but in case of extra
+      // visualization points for Splines, the extra points get interpolated
+      // values between 0 and 1. Reset these to 0 as they don't represent nodes.
       for (j = 1; j <= 6; j++)
         if (flag[j-1])
           for (n = 1; n <= field.cols(); n++)
@@ -818,12 +820,13 @@ bool SIMoutput::writeGlvS (const Vector& scl, const char* fieldName,
   {
     if (pch->empty()) continue; // skip empty patches
 
+    int ncmp = scl.size() / this->getNoNodes(basis);
+    this->extractPatchSolution(scl,lovec,pch,ncmp,basis);
+
     if (msgLevel > 1)
       IFEM::cout <<"Writing scalar field \""<< fieldName
                  <<"\" for patch "<< pch->idx+1 << std::endl;
 
-    int ncmp = scl.size() / this->getNoNodes(basis);
-    this->extractPatchSolution(scl,lovec,pch,ncmp,basis);
     if (!pch->evalSolution(field,lovec,opt.nViz,ncmp,piolaMapping))
       return false;
 
@@ -1097,15 +1100,15 @@ bool SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
     else if (pch->empty())
       continue; // skip empty patches
 
+    myProblem->initResultPoints(time,true); // include principal stresses
+    if (!this->initPatchForEvaluation(pch->idx+1))
+      return false;
+
     if (msgLevel > 1)
       IFEM::cout <<"Writing secondary solution for patch "
                  << pch->idx+1 << std::endl;
 
     // Direct evaluation of secondary solution variables
-
-    myProblem->initResultPoints(time,true); // include principal stresses
-    if (!this->initPatchForEvaluation(pch->idx+1))
-      return false;
 
     if (!pch->evalSolution(field,*myProblem,opt.nViz))
       return false;
@@ -1274,10 +1277,6 @@ bool SIMoutput::writeGlvP (const RealArray& ssol, int iStep, int& nBlock,
   {
     if (pch->empty()) continue; // skip empty patches
 
-    if (iStep > 0 && msgLevel > 1)
-      IFEM::cout <<"Writing projected solution for patch "
-                 << pch->idx+1 << std::endl;
-
     if (this->fieldProjections())
     {
       size_t nval = nComp*pch->getNoProjectionNodes();
@@ -1287,7 +1286,12 @@ bool SIMoutput::writeGlvP (const RealArray& ssol, int iStep, int& nBlock,
     else
       this->extractPatchSolution(ssol,lovec,pch,nComp,1);
 
-    // Evaluate the solution variables at the visualization points
+    if (iStep > 0 && msgLevel > 1)
+      IFEM::cout <<"Writing projected solution for patch "
+                 << pch->idx+1 << std::endl;
+
+    // Evaluate projected solution variables at the visualization points
+
     if (!pch->evalProjSolution(field,lovec,opt.nViz,nComp))
       return false;
 
