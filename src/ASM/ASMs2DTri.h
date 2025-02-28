@@ -83,8 +83,7 @@ public:
 
   //! \brief Creates a triangle element model of this patch for visualization.
   //! \param[out] grid The generated triangular grid
-  //! \param[in] npe Number of visualization nodes over each knot span
-  virtual bool tesselate(ElementBlock& grid, const int* npe) const;
+  virtual bool tesselate(ElementBlock& grid, const int*) const;
 
   using ASMs2DLag::evalSolution;
   //! \brief Evaluates the secondary solution field at the given points.
@@ -94,7 +93,7 @@ public:
                             const int*, char = 0) const;
 
   //! \brief Evaluates the secondary solution field at the given points.
-  virtual bool evalSolution(Matrix& , const IntegrandBase&,
+  virtual bool evalSolution(Matrix&, const IntegrandBase&,
                             const RealArray*, bool = false) const;
 
   using ASMs2DLag::generateThreadGroups;

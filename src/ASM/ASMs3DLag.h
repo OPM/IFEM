@@ -209,9 +209,8 @@ public:
 
   //! \brief Creates a hexahedron element model of this patch for visualization.
   //! \param[out] grid The generated hexahedron grid
-  //! \param[in] npe Number of visualization nodes over each knot span
   //! \note The number of element nodes must be set in \a grid on input.
-  virtual bool tesselate(ElementBlock& grid, const int* npe) const;
+  virtual bool tesselate(ElementBlock& grid, const int*) const;
 
   using ASMs3D::evalSolution;
   //! \brief Evaluates the primary solution field at all visualization points.
