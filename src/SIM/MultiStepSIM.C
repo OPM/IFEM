@@ -126,9 +126,10 @@ bool MultiStepSIM::saveStep (int iStep, double time, const char* vecName)
     if (!model.writeGlvT(iStep,geoBlk,nBlock))
       return false;
 
-  // Write load and residual force vectors,
-  // but only when no extra visualization points
-  if (opt.nViz[0] == 2 && opt.nViz[1] <= 2 && opt.nViz[2] <= 2)
+  // Write load and residual force vectors.
+  // Only for Lagrange, or for Splines with no extra visualization points.
+  if ((opt.discretization < ASM::Spline) ||
+      (opt.nViz[0] == 2 && opt.nViz[1] <= 2 && opt.nViz[2] <= 2))
   {
     if (loadVec.size() == model.getNoDOFs())
       if (!model.writeGlvV(loadVec,"Load vector",iStep,nBlock,2))
