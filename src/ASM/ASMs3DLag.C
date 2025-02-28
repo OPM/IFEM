@@ -920,18 +920,9 @@ int ASMs3DLag::evalPoint (const double* xi, double* param, Vec3& X) const
 }
 
 
-bool ASMs3DLag::tesselate (ElementBlock& grid, const int* npe) const
+bool ASMs3DLag::tesselate (ElementBlock& grid, const int*) const
 {
-  if (p1 != npe[0] || p2 != npe[1] || p2 != npe[2])
-  {
-    int* newnpe = const_cast<int*>(npe);
-    std::cout <<"\nLagrange elements: The number of visualization points are "
-              << p1 <<" "<< p2 <<" "<< p3 <<" by default\n"<< std::endl;
-    newnpe[0] = p1;
-    newnpe[1] = p2;
-    newnpe[2] = p3;
-  }
-
+  const int npe[3] = { p1, p2, p3 };
   if (!this->ASMs3D::tesselate(grid,npe))
     return false;
 

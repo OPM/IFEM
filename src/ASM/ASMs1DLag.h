@@ -106,9 +106,8 @@ public:
 
   //! \brief Creates a line element model of this patch for visualization.
   //! \param[out] grid The generated line grid
-  //! \param[in] npe Number of visualization nodes over each knot span
   //! \note The number of element nodes must be set in \a grid on input.
-  virtual bool tesselate(ElementBlock& grid, const int* npe) const;
+  virtual bool tesselate(ElementBlock& grid, const int*) const;
 
   using ASMs1D::evalSolution;
   //! \brief Evaluates the primary solution field at all visualization points.
