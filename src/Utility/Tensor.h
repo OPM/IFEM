@@ -27,7 +27,7 @@ class Vec3;
 class Tensor
 {
 protected:
-  typedef unsigned short int t_ind; //!< Tensor index type (for convenience)
+  using t_ind = unsigned short int; //!< Tensor index type (for convenience)
 
   const t_ind       n; //!< Number of spatial dimensions for the tensor
   std::vector<Real> v; //!< The actual tensor component values
@@ -55,8 +55,6 @@ public:
   Tensor(const Vec3& v1, const Vec3& v2, const Vec3& v3);
   //! \brief Constructor creating a transformation from three rotation angles.
   Tensor(Real a1, Real a2, Real a3);
-  //! \brief Constructor creating a rotation tensor about given coordinate axis.
-  Tensor(Real alpha, t_ind axis);
   //! \brief Copy constructor, optionally creating the transpose of \b T.
   Tensor(const Tensor& T, bool transpose = false);
   //! \brief Constructor copying its content from a one-dimensional array.
@@ -113,6 +111,8 @@ public:
   Tensor& postMult(const Tensor& B);
   //! \brief Pre-multiplication with another Tensor.
   Tensor& preMult(const Tensor& A);
+  //! \brief Rotates the tensor about given coordinate axis.
+  Tensor& rotate(Real alpha, t_ind axis);
 
   //! \brief Dyadic (outer) product between two vectors.
   Tensor& outerProd(const Vec3& a, const Vec3& b);
@@ -129,7 +129,10 @@ public:
   //! \brief Query whether this tensor is symmetric or not.
   virtual bool symmetric() const { return false; }
 
-  //! brief Query whether this tensor is zero within the given tolerance.
+  //! \brief Query whether this tensor equals another within given tolerance.
+  bool equal(const Tensor& T, Real tol = Real(1.0e-6)) const;
+
+  //! \brief Query whether this tensor is zero within given tolerance.
   bool isZero(Real tol = Real(1.0e-6)) const;
 
   //! \brief Transposes the tensor.

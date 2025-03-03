@@ -23,6 +23,9 @@
 #define epsZ 1.0e-16
 #endif
 
+//! \brief Alias for \a this->operator(i,j)
+#define THIS(i,j) v[this->index(i,j)]
+
 
 std::ostream& Tensor::print (std::ostream& os) const
 {
@@ -197,40 +200,6 @@ Tensor::Tensor (Real a1, Real a2, Real a3) : n(3)
 }
 
 
-Tensor::Tensor (Real alpha, t_ind axis) : n(3)
-{
-  v.resize(9,Real(0));
-  for (t_ind i = 0; i < 9; i += 4)
-    v[i] = Real(1);
-
-  double ca = cos(alpha);
-  double sa = sin(alpha);
-
-  switch (axis) {
-  case 1:
-    v[4] = v[8] = ca;
-    v[5] = sa;
-    v[7] = -sa;
-    break;
-
-  case 2:
-    v[0] = v[8] = ca;
-    v[2] = -sa;
-    v[6] = -sa;
-    break;
-
-  case 3:
-    v[0] = v[4] = ca;
-    v[1] = sa;
-    v[3] = -sa;
-    break;
-
-  default:
-    break;
-  }
-}
-
-
 Tensor::Tensor (const Tensor& T, bool transpose) : n(T.n)
 {
   v.resize(n*n);
@@ -306,7 +275,7 @@ Tensor& Tensor::operator= (const Tensor& T)
       ndim = n;
     for (t_ind i = 1; i <= ndim; i++)
       for (t_ind j = (this->symmetric() ? i : 1); j <= ndim; j++)
-        v[this->index(i,j)] = T(i,j);
+        THIS(i,j) = T(i,j);
 
     if (T.v.size() >= 4 && T.symmetric())
     {
@@ -424,7 +393,7 @@ Tensor& Tensor::postMult (const Tensor& B)
       Tensor A(*this);
       for (int i = 1; i <= 2; i++)
         for (int j = 1; j <= 2; j++)
-          v[this->index(i,j)] = A(i,1)*B(1,j) + A(i,2)*B(2,j);
+          THIS(i,j) = A(i,1)*B(1,j) + A(i,2)*B(2,j);
     }
     break;
 
@@ -433,7 +402,7 @@ Tensor& Tensor::postMult (const Tensor& B)
       Tensor A(*this);
       for (int i = 1; i <= 3; i++)
         for (int j = 1; j <= 3; j++)
-          v[this->index(i,j)] = A(i,1)*B(1,j) + A(i,2)*B(2,j) + A(i,3)*B(3,j);
+          THIS(i,j) = A(i,1)*B(1,j) + A(i,2)*B(2,j) + A(i,3)*B(3,j);
     }
     break;
 
@@ -457,7 +426,7 @@ Tensor& Tensor::preMult (const Tensor& A)
       Tensor B(*this);
       for (int i = 1; i <= 2; i++)
         for (int j = 1; j <= 2; j++)
-          v[this->index(i,j)] = A(i,1)*B(1,j) + A(i,2)*B(2,j);
+          THIS(i,j) = A(i,1)*B(1,j) + A(i,2)*B(2,j);
     }
     break;
 
@@ -466,7 +435,7 @@ Tensor& Tensor::preMult (const Tensor& A)
       Tensor B(*this);
       for (int i = 1; i <= 3; i++)
         for (int j = 1; j <= 3; j++)
-          v[this->index(i,j)] = A(i,1)*B(1,j) + A(i,2)*B(2,j) + A(i,3)*B(3,j);
+          THIS(i,j) = A(i,1)*B(1,j) + A(i,2)*B(2,j) + A(i,3)*B(3,j);
     }
     break;
 
@@ -478,11 +447,54 @@ Tensor& Tensor::preMult (const Tensor& A)
 }
 
 
+Tensor& Tensor::rotate (Real alpha, t_ind axis)
+{
+  if ((n == 3 && axis <= 3) || (n == 2 && axis == 3))
+  {
+    double ca = cos(alpha);
+    double sa = sin(alpha);
+    switch (axis) {
+    case 1:
+      for (t_ind c = 1; c <= n; c++)
+      {
+        double t2 = ca*THIS(c,2) + sa*THIS(c,3);
+        THIS(c,3) = ca*THIS(c,3) - sa*THIS(c,2);
+        THIS(c,2) = t2;
+      }
+      break;
+
+    case 2:
+      for (t_ind c = 1; c <= n; c++)
+      {
+        double t1 = ca*THIS(c,1) + sa*THIS(c,3);
+        THIS(c,3) = ca*THIS(c,3) - sa*THIS(c,1);
+        THIS(c,1) = t1;
+      }
+      break;
+
+    case 3:
+      for (t_ind c = 1; c <= n; c++)
+      {
+        double t1 = ca*THIS(c,1) + sa*THIS(c,2);
+        THIS(c,2) = ca*THIS(c,2) - sa*THIS(c,1);
+        THIS(c,1) = t1;
+      }
+      break;
+
+    default:
+      break;
+    }
+  }
+
+  return *this;
+}
+
+
 Tensor& Tensor::outerProd (const Vec3& a, const Vec3& b)
 {
   for (t_ind i = 1; i <= n; i++)
     for (t_ind j = 1; j <= n; j++)
-      v[this->index(i,j)] = a[i-1]*b[j-1];
+      THIS(i,j) = a[i-1]*b[j-1];
 
   return *this;
 }
@@ -500,7 +512,7 @@ Real Tensor::innerProd (const Tensor& T) const
     t_ind ndim = n < T.n ? n : T.n;
     for (t_ind i = 1; i <= ndim; i++)
       for (t_ind j = i; j <= ndim; j++)
-        value += v[this->index(i,j)]*T(i,j);
+        value += THIS(i,j)*T(i,j);
   }
   else if (n > 0 && T.n > 0)
     std::cerr <<"Tensor::innerProd(const Tensor&) const: "
@@ -510,10 +522,23 @@ Real Tensor::innerProd (const Tensor& T) const
 }
 
 
+bool Tensor::equal (const Tensor& T, Real tol) const
+{
+  if (this->symmetric() != T.symmetric() || v.size() > T.v.size())
+    return false;
+
+  for (t_ind i = 0; i < v.size(); i++)
+    if (fabs(v[i]-T.v[i]) > tol)
+      return false;
+
+  return true;
+}
+
+
 bool Tensor::isZero (Real tol) const
 {
   for (t_ind i = 0; i < v.size(); i++)
-    if (v[i] > tol || -v[i] > tol)
+    if (fabs(v[i]) > tol)
       return false;
 
   return true;
@@ -607,7 +632,7 @@ Vec3 Tensor::rotVec () const
   double R = 0.5*this->trace() - 0.5;
   double theta = R < 1.0 ? acos(R) : 0.0;
 
-  // Test if 1.0 = (1.0.-theta) in the computer
+  // Test if 1.0 = (1.0-theta) in the computer
   // (safe test to avoid division by zero)
   double sinth = sin(theta);
   if (1.0 > 1.0-fabs(sinth))
