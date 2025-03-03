@@ -63,10 +63,9 @@ public:
   //! \param[in] Zaxis Vector defining a point in the local XZ-plane
   virtual bool generateOrientedFEModel(const Vec3& Zaxis);
 
-  //! \brief Generates a twisted beam finite element model for the patch.
+  //! \brief Applies a twist angle to the beam transformation matrices.
   //! \param[in] twist Function describing the twist angle along the beam
-  //! \param[in] Zaxis Vector defining a point in the local XZ-plane
-  bool generateTwistedFEModel(const RealFunc& twist, const Vec3& Zaxis);
+  void applyTwist(const RealFunc& twist);
 
   //! \brief Clears the contents of the patch, making it empty.
   //! \param[in] retainGeometry If \e true, the spline geometry is not cleared.
@@ -80,25 +79,25 @@ public:
   //! \param[in] inod 1-based node index local to current patch
   virtual Vec3 getCoord(size_t inod) const;
 
-  //! \brief Returns the current rotation tensor the given node.
+  //! \brief Returns the current rotation tensor for the given node.
   //! \param[in] inod 1-based node index local to current patch
-  Tensor getRotation(size_t inod) const;
+  const Tensor& getRotation(size_t inod) const;
 
   //! \brief Returns a matrix with nodal coordinates for an element.
   //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
   //! in one element
-  //! \param[in] iel Element index
+  //! \param[in] iel 1-based element index local to current patch
   virtual bool getElementCoordinates(Matrix& X, int iel, bool = false) const;
 
+private:
   //! \brief Returns a matrix with nodal coordinates for an element.
   //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
-  //! in one element
-  //! \param[in] iel Element index
-  //! \param[in] mnpc Matrix of nodal point correspondence
-  //! \param[in] crv Underlying spline curve
-  bool getElementCoordinates(Matrix& X, int iel, const IntMat& mnpc,
+  //! \param[in] mnpc Matrix of nodal point correspondence for the element
+  //! \param[in] crv Underlying spline curve for current patch
+  bool getElementCoordinates(Matrix& X, const IntVec& mnpc,
                              const Go::SplineCurve* crv) const;
 
+public:
   //! \brief Returns a matrix with all nodal coordinates within the patch.
   //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
   //! in the patch
@@ -402,14 +401,14 @@ protected:
   bool getGrevilleParameters(RealArray& prm) const;
 
   //! \brief Returns the length in the parameter space for an element.
-  //! \param[in] iel Element index
+  //! \param[in] iel 1-based element index local to current patch
   double getParametricLength(int iel) const;
 
   //! \brief Returns the parametric length on the \a i'th knot-span.
   double getKnotSpan(int i) const;
 
   //! \brief Computes the element border parameters.
-  //! \param[in] iel 1-based element index
+  //! \param[in] iel 1-based element index local to current patch
   //! \param[out] u Parameter values of the element borders
   virtual void getElementBorders(int iel, double* u) const;
 
@@ -421,7 +420,7 @@ protected:
 
   //! \brief Returns nodal rotation matrices for an element, if any.
   //! \param[out] T Array of nodal rotation matrices
-  //! \param[in] iel 0-based element index
+  //! \param[in] iel 0-based element index local to current patch
   bool getElementNodalRotations(TensorVec& T, size_t iel) const;
 
   //! \brief Returns the local-to-global transformation at a parametric point.

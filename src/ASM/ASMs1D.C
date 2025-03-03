@@ -146,10 +146,15 @@ bool ASMs1D::refine (const LR::RefineData& prm, Vectors&)
 
   if (shareFE && !prm.refShare)
   {
+    // This patch shares spline object with another patch
+    // (in another simulator on the same mesh),
+    // and is assumed to have been refined already
     nnod = curv->numCoefs();
+    nel  = nnod - curv->order() + 1;
     return true;
   }
-  else if (prm.elements.empty())
+
+  if (prm.elements.empty())
     return true;
 
   RealArray extraKnots;
@@ -238,9 +243,9 @@ bool ASMs1D::raiseOrder (int ru)
 
 /*!
   This method is supposed to be invoked twice during the model generation.
-  In the first call, with \a init = \e true, the spline curve object \a *curv
-  is cloned into \a *proj and the two pointers are then swapped, such that
-  the subsequent refine and raiseOrder operations will apply to the projection
+  In the first call, with \a init = \e true, the spline curve object \ref curv
+  is cloned into \ref proj and the two pointers are then swapped, such that the
+  subsequent refine() and raiseOrder() operations will apply to the projection
   basis and not on the geometry basis.
   In the second call, the pointers are swapped back.
 
@@ -268,6 +273,14 @@ bool ASMs1D::generateFEMTopology ()
   return this->generateOrientedFEModel(Vec3());
 }
 
+
+/*!
+  This method will, in addition to the FE topology generation, set up
+  the local-to-global transformation tensor for each element in the patch,
+  if we are solving a 3D beam problem ( \ref nsd = 3 and \ref nf = 6 ).
+  These transformations are kept constant during the simulation. In addition,
+  nodal tensors for the updated rotation state are allocated.
+*/
 
 bool ASMs1D::generateOrientedFEModel (const Vec3& Zaxis)
 {
@@ -321,15 +334,16 @@ bool ASMs1D::generateOrientedFEModel (const Vec3& Zaxis)
   if (p1 <  1) return false;
   if (p1 > n1) return false;
 
-  myMLGE.resize(n1-p1+1,0);
+  nel = n1-p1+1;
+  myMLGE.resize(nel,0);
   myMLGN.resize(n1);
-  myMNPC.resize(myMLGE.size());
+  myMNPC.resize(nel);
   if (nsd == 3 && nf == 6)
   {
     // This is a 3D beam problem, allocate the element/nodal rotation tensors.
     // The nodal rotations are updated during the simulation according to the
     // deformation state, whereas the element tensors are kept constant.
-    myCS.resize(n1-p1+1,Tensor(3));
+    myCS.resize(nel,Tensor(3)); // Initialize element rotations to zero
     myT.resize(n1,Tensor(3,true)); // Initialize nodal rotations to unity
   }
 
@@ -348,7 +362,6 @@ bool ASMs1D::generateOrientedFEModel (const Vec3& Zaxis)
         for (int j1 = p1-1; j1 >= 0; j1--)
           myMNPC[nel][lnod++] = nnod - j1;
       }
-
       nel++;
     }
     myMLGN[nnod++] = ++gNod; // global node number over all patches
@@ -360,38 +373,40 @@ bool ASMs1D::generateOrientedFEModel (const Vec3& Zaxis)
     p1 = proj->order();
     projMLGE.resize(n1-p1+1,0);
     projMNPC.resize(projMLGE.size());
-    int nnod_p = 0, nel_p = 0;
-    for (int i1 = 1; i1 <= n1; i1++)
-    {
-      if (i1 >= p1)
+    for (int i1 = p1; i1 <= n1; i1++)
+      if (*(proj->basis().begin()+i1) > *(proj->basis().begin()+i1-1))
       {
-        if (*(proj->basis().begin()+i1) > *(proj->basis().begin()+i1-1))
-        {
-          projMLGE[nel_p] = ++pgEl;
-          projMNPC[nel_p].resize(p1,0);
+        int iel = i1 - p1;
+        projMLGE[iel] = ++pgEl;
+        projMNPC[iel].resize(p1,0);
 
-          int lnod = 0;
-          for (int j1 = p1-1; j1 >= 0; j1--)
-            projMNPC[nel_p][lnod++] = nnod_p - j1;
-        }
-
-        ++nel_p;
+        int lnod = 0;
+        for (int j1 = p1; j1 > 0; j1--)
+          projMNPC[iel][lnod++] = i1 - j1;
       }
-      ++nnod_p;
-    }
   }
 
 #ifdef SP_DEBUG
   std::cout <<"NEL = "<< nel <<" NNOD = "<< nnod << std::endl;
 #endif
 
+  // Calculate local element axes for the beam elements
   return myCS.empty() ? true : this->initLocalElementAxes(Zaxis);
 }
 
 
+/*!
+  This method calculates the local-to-global transformation for each 3D beam
+  element in the patch, assuming the local X-axis passes through the two end
+  nodes of the element and the local Y-axis is defined by the cross product
+  between the given vector \a Zaxis and the local X-axis. If no \a Zaxis is
+  given, the projection of either the global Y-axis or the global Z-axis
+  onto the local X-axis is used as the local Y- or Z-axis, respectively,
+  depending on which of these two global axes are closest to the local X-axis.
+*/
+
 bool ASMs1D::initLocalElementAxes (const Vec3& Zaxis)
 {
-  // Calculate local element axes for 3D beam elements
   for (size_t i = 0; i < myCS.size(); i++)
     if (MLGE[i] > 0)
     {
@@ -411,12 +426,8 @@ bool ASMs1D::initLocalElementAxes (const Vec3& Zaxis)
 }
 
 
-bool ASMs1D::generateTwistedFEModel (const RealFunc& twist, const Vec3& Zaxis)
+void ASMs1D::applyTwist (const RealFunc& twist)
 {
-  if (!this->generateOrientedFEModel(Zaxis))
-    return false;
-
-  // Update the local element axes for 3D beam elements
   Tensor rotX(3);
   for (size_t i = 0; i < myCS.size(); i++)
     if (MLGE[i] > 0)
@@ -424,14 +435,14 @@ bool ASMs1D::generateTwistedFEModel (const RealFunc& twist, const Vec3& Zaxis)
       Vec3 X1 = this->getCoord(1+MNPC[i].front());
       Vec3 X2 = this->getCoord(1+MNPC[i].back());
       double alpha = twist(0.5*(X1+X2)); // twist angle in the element mid-point
-      myCS[i] *= Tensor(alpha*M_PI/180.0,1); // rotate about local X-axis
+      myCS[i].rotate(alpha*M_PI/180.0,1); // rotate about local X-axis
 #ifdef SP_DEBUG
       std::cout <<"Twisted axes for beam element "<< MLGE[i]
-                <<", from "<< X1 <<" to "<< X2 <<":\n"<< myCS[i];
+                <<", from N"<< MLGN[MNPC[i].front()]
+                <<" to N"<< MLGN[MNPC[i].back()]
+                <<"  with alpha = "<< alpha <<":\n"<< myCS[i];
 #endif
     }
-
-  return true;
 }
 
 
@@ -665,52 +676,61 @@ Vec3 ASMs1D::getCoord (size_t inod) const
   int ip = (inod-1)*curv->dimension();
   if (ip < 0) return Vec3();
 
-  return Vec3(&(*(curv->coefs_begin()+ip)),nsd);
+  return Vec3(&*(curv->coefs_begin()+ip),nsd);
 }
 
 
-Tensor ASMs1D::getRotation (size_t inod) const
+const Tensor& ASMs1D::getRotation (size_t inod) const
 {
-  return inod < 1 || inod > nodalT.size() ? Tensor(nsd,true) : nodalT[inod-1];
+  if (inod > 0 && inod <= nodalT.size())
+    return nodalT[inod-1];
+
+  static Tensor identity(nsd,true);
+  return identity;
 }
 
 
 bool ASMs1D::getElementCoordinates (Matrix& X, int iel, bool) const
 {
-  return this->getElementCoordinates(X,iel,MNPC,curv.get());
-}
-
-
-bool ASMs1D::getElementCoordinates (Matrix& X, int iel, const IntMat& mnpc,
-                                    const Go::SplineCurve* crv) const
-{
 #ifdef INDEX_CHECK
-  if (iel < 1 || (size_t)iel > mnpc.size())
+  if (iel < 1 || (size_t)iel > MNPC.size())
   {
     std::cerr <<" *** ASMs1D::getElementCoordinates: Element index "<< iel
-	      <<" out of range [1,"<< mnpc.size() <<"]."<< std::endl;
+	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
     return false;
   }
 #endif
 
-  X.resize(nsd,crv->order());
-
-  RealArray::const_iterator cit = crv->coefs_begin();
-  for (size_t n = 0; n < X.cols(); n++)
-  {
-    int ip = mnpc[iel-1][n]*crv->dimension();
-    if (ip < 0) return false;
-
-    for (size_t i = 0; i < nsd; i++)
-      X(i+1,n+1) = *(cit+(ip+i));
-  }
+  bool ok = this->getElementCoordinates(X,MNPC[iel-1],curv.get());
 
 #if SP_DEBUG > 2
   std::cout <<"\nCoordinates for element "<< iel << X << std::endl;
 #endif
+  return ok;
+}
+
+
+bool ASMs1D::getElementCoordinates (Matrix& X, const IntVec& mnpc,
+                                    const Go::SplineCurve* crv) const
+{
+  X.resize(nsd,crv->order());
+
+  for (size_t n = 0; n < X.cols(); n++)
+  {
+    int ip = mnpc[n]*crv->dimension();
+    if (ip < 0) return false;
+
+    X.fillColumn(n+1,&*(crv->coefs_begin()+ip));
+  }
+
   return true;
 }
 
+
+/*!
+  This method extracts the updated rotation matrices for the element nodes,
+  transformed to the local axes of the element.
+*/
 
 bool ASMs1D::getElementNodalRotations (TensorVec& T, size_t iel) const
 {
@@ -727,12 +747,10 @@ bool ASMs1D::getElementNodalRotations (TensorVec& T, size_t iel) const
   if (nodalT.empty())
     return true;
 
-  const IntVec& mnpc = MNPC[iel];
-  Tensor Tgl(elmCS[iel],true);
-
-  T.reserve(mnpc.size());
-  for (size_t i = 0; i < mnpc.size(); i++)
-    T.push_back(Tgl*nodalT[mnpc[i]]);
+  Tensor Tgl(elmCS[iel],true); // global-to-local transformation
+  T.reserve(MNPC[iel].size());
+  for (int inod : MNPC[iel])
+    T.push_back(Tgl*nodalT[inod]);
 
   return true;
 }
@@ -740,17 +758,10 @@ bool ASMs1D::getElementNodalRotations (TensorVec& T, size_t iel) const
 
 void ASMs1D::getNodalCoordinates (Matrix& X, bool) const
 {
-  const int n1 = curv->numCoefs();
+  X.resize(nsd,curv->numCoefs());
 
-  X.resize(nsd,n1);
-
-  RealArray::const_iterator cit = curv->coefs_begin();
-  for (int inod = 0; inod < n1; inod++)
-  {
-    int ip = inod*curv->dimension();
-    for (size_t i = 0; i < nsd; i++)
-      X(i+1,inod+1) = *(cit+(ip+i));
-  }
+  for (size_t n = 0; n < X.cols(); n++)
+    X.fillColumn(n+1,&*(curv->coefs_begin()+n*curv->dimension()));
 }
 
 
@@ -877,7 +888,7 @@ std::pair<size_t,double> ASMs1D::findClosestNode (const Vec3& X) const
   for (size_t inod = mnod-curv->order(); inod < mnod; inod++)
   {
     RealArray::const_iterator p = curv->coefs_begin() + inod*curv->dimension();
-    double d2 = (Xfound - Vec3(&(*p),curv->dimension())).length2();
+    double d2 = (Xfound - Vec3(&*p,curv->dimension())).length2();
     if (d2 < dmin || jnod == 0)
     {
       jnod = inod+1;
@@ -1715,7 +1726,7 @@ bool ASMs1D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     {
       // Extract control point values from the spline object
       sField.resize(c->dimension(),c->numCoefs());
-      sField.fill(&(*c->coefs_begin()));
+      sField.fill(&*c->coefs_begin());
       delete c;
       return true;
     }
@@ -1888,7 +1899,7 @@ bool ASMs1D::assembleL2matrices (SparseMatrix& A, StdVector& B,
     if (continuous)
     {
       // Set up control point (nodal) coordinates for current element
-      if (!this->getElementCoordinates(Xnod,1+iel,mnpc,proj.get()))
+      if (!this->getElementCoordinates(Xnod,mnpc[iel],proj.get()))
         return false;
 
       int inod1 = mnpc[iel][proj->order()-1];
@@ -1948,14 +1959,15 @@ bool ASMs1D::getNoStructElms (int& n1, int& n2, int& n3) const
 bool ASMs1D::evaluate (const FunctionBase* func, RealArray& values,
                        int, double time) const
 {
-  std::unique_ptr<Go::SplineCurve> scrv(SplineUtils::project(curv.get(),*func,func->dim(),time));
-  if (!scrv)
+  Go::SplineCurve* sc = SplineUtils::project(curv.get(),*func,func->dim(),time);
+  if (!sc)
   {
     std::cerr <<" *** ASMs1D::evaluate: Projection failure."<< std::endl;
     return false;
   }
 
-  values.assign(scrv->coefs_begin(),scrv->coefs_end());
+  values.assign(sc->coefs_begin(),sc->coefs_end());
+  delete sc;
 
   return true;
 }
