@@ -309,3 +309,40 @@ TEST(TestTensor, Determinant)
     EXPECT_FLOAT_EQ(T3(3,i),0.0);
   }
 }
+
+
+TEST(TestTensor, Rotate)
+{
+  const double alpha = 0.5; // approx. 29 degrees
+
+  const double c = cos(alpha);
+  const double s = sin(alpha);
+  const double z = 0.0;
+
+  Vec3 a2( z, c, s);
+  Vec3 a3( z,-s, c);
+  Vec3 b1( c, z, s);
+  Vec3 b3(-s, z, c);
+  Vec3 c1( c, s, z);
+  Vec3 c2(-s, c, z);
+
+  Vec3 i1(1.0, z, z);
+  Vec3 i2(z, 1.0, z);
+  Vec3 i3(z, z, 1.0);
+
+  Tensor A(3,true), B(3,true);
+  A.rotate(alpha,1); B.postMult(Tensor(i1,a2,a3));
+  std::cout <<"A:\n"<< A <<"B:\n"<< B;
+  EXPECT_TRUE(A.equal(B,0.0));
+  A.rotate(alpha,2); B.postMult(Tensor(b1,i2,b3));
+  std::cout <<"A:\n"<< A <<"B:\n"<< B;
+  EXPECT_TRUE(A.equal(B,0.0));
+  A.rotate(alpha,3); B.postMult(Tensor(c1,c2,i3));
+  std::cout <<"A:\n"<< A <<"B:\n"<< B;
+  EXPECT_TRUE(A.equal(B,0.0));
+
+  Tensor C(2,true), D(2,true);
+  C.rotate(alpha,3); D.postMult(Tensor(c1,c2,i3));
+  std::cout <<"C:\n"<< C <<"D:\n"<< D;
+  EXPECT_TRUE(C.equal(D,0.0));
+}
