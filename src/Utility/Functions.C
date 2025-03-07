@@ -796,7 +796,14 @@ static const ScalarFunc* parseFunction (const char* type, char* cline,
       Real phase = atof(cline);
       Real Cval  = getConstant(C);
       if (print)
-        IFEM::cout <<"sin("<< freq <<"*t + "<< phase <<")";
+      {
+        IFEM::cout <<"sin("<< freq <<"*t";
+        if (phase > 1.0e-16)
+          IFEM::cout <<" + "<< phase;
+        else if (phase < -1.0-16)
+          IFEM::cout <<" - "<< -phase;
+        IFEM::cout <<")";
+      }
       return new SineFunc(Cval,freq,phase);
     }
     else

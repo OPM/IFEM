@@ -460,15 +460,8 @@ int ASMs1DLag::evalPoint (const double* xi, double* param, Vec3& X) const
 }
 
 
-bool ASMs1DLag::tesselate (ElementBlock& grid, const int* npe) const
+bool ASMs1DLag::tesselate (ElementBlock& grid, const int*) const
 {
-  if (p1 != npe[0])
-  {
-    std::cout <<"\nLagrange elements: The number of visualization points is "
-              << p1 <<" by default\n"<< std::endl;
-    const_cast<int*>(npe)[0] = p1;
-  }
-
   size_t i, l;
 
   grid.resize(nx);

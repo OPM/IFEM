@@ -502,16 +502,8 @@ bool ASMs2DTri::integrate (Integrand& integrand, int lIndex,
 }
 
 
-bool ASMs2DTri::tesselate (ElementBlock& grid, const int* npe) const
+bool ASMs2DTri::tesselate (ElementBlock& grid, const int*) const
 {
-  if (npe[0] != 2 || npe[1] != 2)
-  {
-    int* newnpe = const_cast<int*>(npe);
-    std::cout <<"\nTriangle elements: The number of visualization points are"
-              <<" 2 2 by default\n"<< std::endl;
-    newnpe[0] = newnpe[1] = 2;
-  }
-
   // Establish the block grid coordinates
   size_t i, j, ip;
   grid.setNoElmNodes(3);
