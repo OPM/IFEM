@@ -337,8 +337,7 @@ bool ASMs2DLag::integrate (Integrand& integrand,
 
   ASMs2D::BasisFunctionCache& cache = *myCache.front();
   cache.setIntegrand(&integrand);
-  if (!cache.init(1))
-    return false;
+  cache.init(integrand.getIntegrandType() & Integrand::NO_DERIVATIVES ? 0 : 1);
 
   // Get Gaussian quadrature points and weights
   const std::array<const double*,2>& xg = cache.coord();
@@ -352,6 +351,7 @@ bool ASMs2DLag::integrate (Integrand& integrand,
 
   // Number of elements in first parameter direction
   const int nelx = (nx-1)/(p1-1);
+
 
   // === Assembly loop over all elements in the patch ==========================
 
@@ -423,15 +423,20 @@ bool ASMs2DLag::integrate (Integrand& integrand,
               fe.u = cache.getParam(0,i1,i,true);
               fe.v = cache.getParam(1,i2,j,true);
 
-              const BasisFunctionVals& bfs = cache.getVals(iel,ip,true);
-              fe.N = bfs.N;
+              if (integrand.getIntegrandType() & Integrand::NO_DERIVATIVES)
+                fe.N = cache.getVals(iel,ip,true).N;
+              else
+              {
+                const BasisFunctionVals& bfs = cache.getVals(iel,ip,true);
+                fe.N = bfs.N;
 
-              // Compute Jacobian inverse and derivatives
-              fe.detJxW = utl::Jacobian(Jac,fe.dNdX,fe.Xn,bfs.dNdu);
-              if (fe.detJxW == 0.0) continue; // skip singular points
+                // Compute Jacobian inverse and derivatives
+                fe.detJxW = utl::Jacobian(Jac,fe.dNdX,fe.Xn,bfs.dNdu);
+                if (fe.detJxW == 0.0) continue; // skip singular points
 
-              // Store tangent vectors in fe.G for shells
-              if (nsd > 2) fe.G = Jac;
+                // Store tangent vectors in fe.G for shells
+                if (nsd > 2) fe.G = Jac;
+              }
 
               // Cartesian coordinates of current integration point
               X.assign(fe.Xn * fe.N);
@@ -466,15 +471,20 @@ bool ASMs2DLag::integrate (Integrand& integrand,
             fe.u = cache.getParam(0,i1,i);
             fe.v = cache.getParam(1,i2,j);
 
-            const BasisFunctionVals& bfs = cache.getVals(iel,ip);
-            fe.N = bfs.N;
+            if (integrand.getIntegrandType() & Integrand::NO_DERIVATIVES)
+              fe.N = cache.getVals(iel,ip).N;
+            else
+            {
+              const BasisFunctionVals& bfs = cache.getVals(iel,ip);
+              fe.N = bfs.N;
 
-            // Compute Jacobian inverse of coordinate mapping and derivatives
-            fe.detJxW = utl::Jacobian(Jac,fe.dNdX,fe.Xn,bfs.dNdu);
-            if (fe.detJxW == 0.0) continue; // skip singular points
+              // Compute Jacobian inverse of coordinate mapping + derivatives
+              fe.detJxW = utl::Jacobian(Jac,fe.dNdX,fe.Xn,bfs.dNdu);
+              if (fe.detJxW == 0.0) continue; // skip singular points
 
-            // Store tangent vectors in fe.G for shells
-            if (nsd > 2) fe.G = Jac;
+              // Store tangent vectors in fe.G for shells
+              if (nsd > 2) fe.G = Jac;
+            }
 
             // Cartesian coordinates of current integration point
             X.assign(fe.Xn * fe.N);
@@ -622,17 +632,21 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
 
         // Compute the basis functions and their derivatives, using
         // tensor product of one-dimensional Lagrange polynomials
-        if (!Lagrange::computeBasis(fe.N,dNdu,p1,xi[0],p2,xi[1]))
-          ok = false;
+        if (integrand.getIntegrandType() & Integrand::NO_DERIVATIVES)
+          ok = Lagrange::computeBasis(fe.N,p1,xi[0],p2,xi[1]);
+        else
+        {
+          ok = Lagrange::computeBasis(fe.N,dNdu,p1,xi[0],p2,xi[1]);
 
-        // Compute basis function derivatives and the edge normal
-        fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,fe.Xn,dNdu,t1,t2);
-        if (fe.detJxW == 0.0) continue; // skip singular points
+          // Compute basis function derivatives and the edge normal
+          fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,fe.Xn,dNdu,t1,t2);
+          if (fe.detJxW == 0.0) continue; // skip singular points
 
-        if (edgeDir < 0) normal *= -1.0;
+          if (edgeDir < 0) normal *= -1.0;
 
-        // Store tangent vectors in fe.G for shells
-        if (nsd > 2) fe.G = std::move(Jac);
+          // Store tangent vectors in fe.G for shells
+          if (nsd > 2) fe.G = std::move(Jac);
+        }
 
         // Cartesian coordinates of current integration point
         X.assign(fe.Xn * fe.N);
@@ -802,12 +816,16 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
       {
         fe.xi  = -1.0 + i*incx;
         fe.eta = -1.0 + j*incy;
-        if (!Lagrange::computeBasis(fe.N,dNdu,p1,fe.xi,p2,fe.eta))
-          return false;
+        if (integrand.getIntegrandType() & Integrand::NO_DERIVATIVES)
+          Lagrange::computeBasis(fe.N,p1,fe.xi,p2,fe.eta);
+        else
+        {
+          Lagrange::computeBasis(fe.N,dNdu,p1,fe.xi,p2,fe.eta);
 
-        // Compute the Jacobian inverse
-        fe.detJxW = utl::Jacobian(Jac,fe.dNdX,fe.Xn,dNdu);
-        if (fe.detJxW == 0.0) continue; // skip singular points
+          // Compute the Jacobian inverse
+          fe.detJxW = utl::Jacobian(Jac,fe.dNdX,fe.Xn,dNdu);
+          if (fe.detJxW == 0.0) continue; // skip singular points
+        }
 
         // Now evaluate the solution field
         utl::Point X4(fe.Xn*fe.N,{fe.u,fe.v});
@@ -988,8 +1006,7 @@ bool ASMs2DLag::assembleL2matrices (SparseMatrix& A, StdVector& B,
                                     bool continuous) const
 {
   ASMs2D::BasisFunctionCache& cache = *myCache.front();
-  if (!cache.init(1))
-    return false;
+  cache.init(1);
 
   const std::array<const double*,2>& wg = cache.weight();
   const std::array<int,2> nGP = cache.nGauss();
@@ -1108,16 +1125,20 @@ double ASMs2DLag::BasisFunctionCache::getParam (int dir, size_t el,
 BasisFunctionVals ASMs2DLag::BasisFunctionCache::calculatePt (size_t, size_t gp,
                                                               bool red) const
 {
-  std::array<size_t,2> gpIdx = this->gpIndex(gp,red);
   const Quadrature& q = red ? *reducedQ : *mainQ;
+  std::array<size_t,2> gpIdx = this->gpIndex(gp,red);
+  const size_t i = gpIdx[0];
+  const size_t j = gpIdx[1];
 
   int p1, p2, p3;
   patch.getOrder(p1,p2,p3);
 
   BasisFunctionVals result;
-  Lagrange::computeBasis(result.N,result.dNdu,
-                         p1,q.xg[0][gpIdx[0]],
-                         p2,q.xg[1][gpIdx[1]]);
+  if (integrand->getIntegrandType() & Integrand::NO_DERIVATIVES)
+    Lagrange::computeBasis(result.N,p1,q.xg[0][i], p2,q.xg[1][j]);
+  else
+    Lagrange::computeBasis(result.N,result.dNdu,p1,q.xg[0][i],p2,q.xg[1][j]);
+
   return result;
 }
 
@@ -1126,6 +1147,7 @@ void ASMs2DLag::BasisFunctionCache::calculateAll ()
 {
   int i, j, p1, p2;
   patch.getOrder(p1,p2,i);
+  bool noDerivs = integrand->getIntegrandType() & Integrand::NO_DERIVATIVES;
 
   // Evaluate basis function values and derivatives at all integration points.
   // They will be the same for all elements in the patch,
@@ -1133,12 +1155,19 @@ void ASMs2DLag::BasisFunctionCache::calculateAll ()
   std::vector<BasisFunctionVals>::iterator it = values.begin();
   for (j = 0; j < mainQ->ng[1]; j++)
     for (i = 0; i < mainQ->ng[0]; i++, ++it)
-      Lagrange::computeBasis(it->N, it->dNdu,
-                             p1, mainQ->xg[0][i], p2, mainQ->xg[1][j]);
+      if (noDerivs)
+        Lagrange::computeBasis(it->N, p1,mainQ->xg[0][i], p2,mainQ->xg[1][j]);
+      else
+        Lagrange::computeBasis(it->N, it->dNdu,
+                               p1,mainQ->xg[0][i], p2,mainQ->xg[1][j]);
 
   if (reducedQ->xg[0])
     for (j = 0, it = valuesRed.begin(); j < reducedQ->ng[1]; j++)
       for (i = 0; i < reducedQ->ng[0]; i++, ++it)
-        Lagrange::computeBasis(it->N, it->dNdu,
-                               p1, reducedQ->xg[0][i],  p2, reducedQ->xg[1][j]);
+        if (noDerivs)
+          Lagrange::computeBasis(it->N,
+                                 p1,reducedQ->xg[0][i], p2,reducedQ->xg[1][j]);
+        else
+          Lagrange::computeBasis(it->N, it->dNdu,
+                                 p1,reducedQ->xg[0][i], p2,reducedQ->xg[1][j]);
 }
