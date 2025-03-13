@@ -178,6 +178,29 @@ void SplineUtils::extractBasis (const Go::BasisDerivs2& spline,
 }
 
 
+void SplineUtils::getGaussParameters (RealArray& uGP, int nGP, const double* xi,
+                                      const Go::BsplineBasis& basis,
+                                      bool skipNullSpans)
+{
+  const int nSpan = basis.numCoefs() - (basis.order()-1);
+
+  uGP.clear();
+  uGP.reserve(nGP*nSpan);
+
+  RealArray::const_iterator uit = basis.begin() + (basis.order()-1);
+
+  double uprev = *(uit++);
+  for (int j = 1; j <= nSpan; ++uit, j++)
+  {
+    double ucurr = *uit;
+    if (!skipNullSpans || ucurr > uprev)
+      for (int i = 0; i < nGP; i++)
+        uGP.push_back(0.5*((ucurr-uprev)*xi[i] + ucurr+uprev));
+    uprev = ucurr;
+  }
+}
+
+
 Go::SplineCurve* SplineUtils::project (const Go::SplineCurve* curve,
                                        const FunctionBase& f,
                                        int nComp, Real time)

@@ -1960,29 +1960,11 @@ bool ASMs3D::getParameterDomain (Real2DMat& u, IntVec* corners) const
 }
 
 
-const RealArray& ASMs3D::getGaussPointParameters (Matrix& uGP, int dir,
-                                                  int nGauss, const double* xi,
-                                                  const Go::SplineVolume* spline) const
+void ASMs3D::getGaussPointParameters (RealArray& uGP, int dir,
+                                      int nGauss, const double* xi) const
 {
-  if (!spline)
-    spline = svol.get();
-
-  int pm1 = spline->order(dir) - 1;
-  RealArray::const_iterator uit = spline->basis(dir).begin() + pm1;
-
-  int nCol = spline->numCoefs(dir) - pm1;
-  uGP.resize(nGauss,nCol);
-
-  double uprev = *(uit++);
-  for (int j = 1; j <= nCol; ++uit, j++)
-  {
-    double ucurr = *uit;
-    for (int i = 1; i <= nGauss; i++)
-      uGP(i,j) = 0.5*((ucurr-uprev)*xi[i-1] + ucurr+uprev);
-    uprev = ucurr;
-  }
-
-  return uGP;
+  if (svol)
+    SplineUtils::getGaussParameters(uGP,nGauss,xi,svol->basis(dir));
 }
 
 
@@ -2566,23 +2548,21 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
   // and compute parameter values of the Gauss points over the whole patch face
   std::array<int,3> ng;
   std::array<const double*,3> xg, wg;
-  std::array<Matrix,3> gpar;
+  std::array<RealArray,3> gpar;
   for (int d = 0; d < 3; d++)
     if (-1-d == faceDir)
     {
       ng[d] = 1;
       xg[d] = nullptr;
       wg[d] = nullptr;
-      gpar[d].resize(1,1);
-      gpar[d].fill(svol->startparam(d));
+      gpar[d] = { svol->startparam(d) };
     }
     else if (1+d == faceDir)
     {
       ng[d] = 1;
       xg[d] = nullptr;
       wg[d] = nullptr;
-      gpar[d].resize(1,1);
-      gpar[d].fill(svol->endparam(d));
+      gpar[d] = { svol->endparam(d) };
     }
     else
     {
@@ -2591,7 +2571,7 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
       xg[d] = GaussQuadrature::getCoord(ng[d]);
       wg[d] = GaussQuadrature::getWeight(ng[d]);
       if (xg[d] && wg[d])
-        this->getGaussPointParameters(gpar[d],d,ng[d],xg[d]);
+        SplineUtils::getGaussParameters(gpar[d],ng[d],xg[d],svol->basis(d));
       else
         return false;
     }
@@ -2646,9 +2626,9 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
     {
       FiniteElement fe(p1*p2*p3);
       fe.xi = fe.eta = fe.zeta = faceDir < 0 ? -1.0 : 1.0;
-      fe.u = gpar[0](1,1);
-      fe.v = gpar[1](1,1);
-      fe.w = gpar[2](1,1);
+      fe.u = gpar[0].front();
+      fe.v = gpar[1].front();
+      fe.w = gpar[2].front();
 
       Matrix dNdu, Xnod, Jac;
       double param[3] = { fe.u, fe.v, fe.w };
@@ -2745,17 +2725,17 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
             if (xg[0])
             {
               fe.xi = xg[0][k1];
-              fe.u = param[0] = gpar[0](k1+1,i1-p1+1);
+              fe.u = param[0] = gpar[0][k1+ng[0]*(i1-p1)];
             }
             if (xg[1])
             {
               fe.eta = xg[1][k2];
-              fe.v = param[1] = gpar[1](k2+1,i2-p2+1);
+              fe.v = param[1] = gpar[1][k2+ng[1]*(i2-p2)];
             }
             if (xg[2])
             {
               fe.zeta = xg[2][k3];
-              fe.w = param[2] = gpar[2](k3+1,i3-p3+1);
+              fe.w = param[2] = gpar[2][k3+ng[2]*(i3-p3)];
             }
 
             // Fetch basis function derivatives at current integration point
@@ -2822,21 +2802,20 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
   if (!xg || !wg) return false;
 
   // Compute parameter values of the Gauss points along the whole patch edge
-  std::array<Matrix,3> gpar;
+  std::array<RealArray,3> gpar;
   for (int d = 0; d < 3; d++)
     if (lEdge < d*4+1 || lEdge >= d*4+5)
     {
-      gpar[d].resize(1,1);
       if (lEdge%4 == 1)
-	gpar[d].fill(svol->startparam(d));
+	gpar[d] = { svol->startparam(d) };
       else if (lEdge%4 == 0)
-	gpar[d].fill(svol->endparam(d));
+	gpar[d] = { svol->endparam(d) };
       else if (lEdge == 6 || lEdge == 10)
-	gpar[d].fill(d == 0 ? svol->endparam(d) : svol->startparam(d));
+	gpar[d] = { d == 0 ? svol->endparam(d) : svol->startparam(d) };
       else if (lEdge == 2 || lEdge == 11)
-	gpar[d].fill(d == 1 ? svol->endparam(d) : svol->startparam(d));
+	gpar[d] = { d == 1 ? svol->endparam(d) : svol->startparam(d) };
       else if (lEdge == 3 || lEdge == 7)
-	gpar[d].fill(d == 2 ? svol->endparam(d) : svol->startparam(d));
+	gpar[d] = { d == 2 ? svol->endparam(d) : svol->startparam(d) };
     }
     else
     {
@@ -2844,12 +2823,12 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
       RealArray::const_iterator uit = svol->basis(d).begin() + pm1;
       double uprev = *(uit++);
       int nCol = svol->numCoefs(d) - pm1;
-      gpar[d].resize(ng,nCol);
+      gpar[d].reserve(ng*nCol);
       for (int j = 1; j <= nCol; ++uit, j++)
       {
 	double ucurr = *uit;
-	for (int i = 1; i <= ng; i++)
-	  gpar[d](i,j) = 0.5*((ucurr-uprev)*xg[i-1] + ucurr+uprev);
+	for (int i = 0; i < ng; i++)
+	  gpar[d].push_back(0.5*((ucurr-uprev)*xg[i] + ucurr+uprev));
 	uprev = ucurr;
       }
     }
@@ -2873,9 +2852,9 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
   size_t firstp = iit == firstBp.end() ? 0 : iit->second;
 
   FiniteElement fe(p1*p2*p3);
-  fe.u = gpar[0](1,1);
-  fe.v = gpar[1](1,1);
-  fe.w = gpar[2](1,1);
+  fe.u = gpar[0].front();
+  fe.v = gpar[1].front();
+  fe.w = gpar[2].front();
   if (gpar[0].size() == 1) fe.xi = fe.u == svol->startparam(0) ? -1.0 : 1.0;
   if (gpar[1].size() == 1) fe.eta = fe.v == svol->startparam(1) ? -1.0 : 1.0;
   if (gpar[2].size() == 1) fe.zeta = fe.w == svol->startparam(2) ? -1.0 : 1.0;
@@ -2956,9 +2935,9 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
 	for (int i = 0; i < ng && ok; i++, ip++, fe.iGP++)
 	{
 	  // Parameter values of current integration point
-	  if (gpar[0].size() > 1) fe.u = param[0] = gpar[0](i+1,i1-p1+1);
-	  if (gpar[1].size() > 1) fe.v = param[1] = gpar[1](i+1,i2-p2+1);
-	  if (gpar[2].size() > 1) fe.w = param[2] = gpar[2](i+1,i3-p3+1);
+	  if (gpar[0].size() > 1) fe.u = param[0] = gpar[0][i+ng*(i1-p1)];
+	  if (gpar[1].size() > 1) fe.v = param[1] = gpar[1][i+ng*(i2-p2)];
+	  if (gpar[2].size() > 1) fe.w = param[2] = gpar[2][i+ng*(i3-p3)];
 
 	  // Fetch basis function derivatives at current integration point
 	  SplineUtils::extractBasis(spline[ip],fe.N,dNdu);
@@ -4000,9 +3979,9 @@ std::array<size_t, 3> ASMs3D::BasisFunctionCache::elmIndex (size_t el) const
 void ASMs3D::BasisFunctionCache::calculateAll ()
 {
   PROFILE2("Spline evaluation");
-  auto&& extract1 = [this](const Matrix& par1,
-                           const Matrix& par2,
-                           const Matrix& par3,
+  auto&& extract1 = [this](const RealArray& par1,
+                           const RealArray& par2,
+                           const RealArray& par3,
                            std::vector<BasisFunctionVals>& values)
   {
     std::vector<Go::BasisDerivs>  spline;

@@ -183,10 +183,9 @@ bool ASMs2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
   if (continuous && !wg) return false;
 
   // Compute parameter values of the Gauss points over the whole patch
-  Matrix gp;
   std::array<RealArray,2> gpar;
-  gpar[0] = this->getGaussPointParameters(gp,0,ng1,xg,proj);
-  gpar[1] = this->getGaussPointParameters(gp,1,ng2,yg,proj);
+  SplineUtils::getGaussParameters(gpar[0],ng1,xg,proj->basis_u());
+  SplineUtils::getGaussParameters(gpar[1],ng2,yg,proj->basis_v());
 
   // Evaluate basis functions at all integration points
   std::vector<Go::BasisPtsSf>    spl1;
@@ -336,10 +335,9 @@ Go::SplineSurface* ASMs2D::scRecovery (const IntegrandBase& integrand) const
   if (!xg || !yg) return nullptr;
 
   // Compute parameter values of the Gauss points over the whole patch
-  std::array<Matrix,2> gaussPt;
   std::array<RealArray,2> gpar;
-  gpar[0] = this->getGaussPointParameters(gaussPt[0],0,ng1,xg);
-  gpar[1] = this->getGaussPointParameters(gaussPt[1],1,ng2,yg);
+  SplineUtils::getGaussParameters(gpar[0],ng1,xg,surf->basis_u());
+  SplineUtils::getGaussParameters(gpar[1],ng2,yg,surf->basis_v());
 
 #if SP_DEBUG > 2
   for (size_t j = 0; j < gpar[1].size(); j++)
@@ -404,12 +402,12 @@ Go::SplineSurface* ASMs2D::scRecovery (const IntegrandBase& integrand) const
 	    {
 	      // Loop over the Gauss points in current knot-span
 	      int jp = ((js-p2+1)*ng1*nel1 + is-p1+1)*ng2 + 1;
-	      for (int j = 1; j <= ng2; j++, jp += ng1*(nel1-1))
-		for (int i = 1; i <= ng1; i++, jp++)
+	      for (int j = 0; j < ng2; j++, jp += ng1*(nel1-1))
+		for (int i = 0; i < ng1; i++, jp++)
 		{
 		  // Fetch parameter values of current integration point
-		  double u = gaussPt[0](i,is-p1+2);
-		  double v = gaussPt[1](j,js-p2+2);
+		  double u = gpar[0][i+ng1*(is-p1+1)];
+		  double v = gpar[1][j+ng2*(js-p2+1)];
 
 		  // Evaluate the polynomial expansion at current Gauss point
 		  surf->point(X,u,v);
@@ -528,15 +526,12 @@ Go::SplineSurface* ASMs2D::projectSolutionLeastSquare (const IntegrandBase& inte
   if (!xg || !wg) return nullptr;
 
   // Compute parameter values of the result sampling points (Gauss points)
-  std::array<Matrix,2> ggpar;
   std::array<RealArray,2> gpar, wgpar;
   for (int dir = 0; dir < 2; dir++)
   {
-    this->getGaussPointParameters(ggpar[dir],dir,ng,xg);
-    gpar[dir] = ggpar[dir];
-
-    // Gauss weights at parameter values
+    // Get Gauss parameter values and associated weights
     const Go::BsplineBasis& basis = surf->basis(dir);
+    SplineUtils::getGaussParameters(gpar[dir],ng,xg,basis);
     RealArray::const_iterator knotit = basis.begin();
     RealArray& tmp = wgpar[dir];
     tmp.reserve(ng*(basis.numCoefs()-basis.order()));

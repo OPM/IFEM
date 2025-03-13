@@ -568,23 +568,18 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
   // and compute parameter values of the Gauss points over the whole patch face
   std::array<int,3> ng;
   std::array<const double*,3> xg, wg;
-  std::array<Matrix,3> gpar;
   for (int d = 0; d < 3; d++)
     if (-1-d == faceDir)
     {
       ng[d] = 1;
       xg[d] = nullptr;
       wg[d] = nullptr;
-      gpar[d].resize(1,1);
-      gpar[d].fill(svol ? svol->startparam(d) : 0.0);
     }
     else if (1+d == faceDir)
     {
       ng[d] = 1;
       xg[d] = nullptr;
       wg[d] = nullptr;
-      gpar[d].resize(1,1);
-      gpar[d].fill(svol ? svol->endparam(d) : 1.0);
     }
     else
     {
@@ -592,10 +587,6 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
       ng[d] = integrand.getBouIntegrationPoints(n);
       xg[d] = GaussQuadrature::getCoord(ng[d]);
       wg[d] = GaussQuadrature::getWeight(ng[d]);
-      if (xg[d] && wg[d])
-        this->getGaussPointParameters(gpar[d],d,ng[d],xg[d]);
-      else
-        return false;
     }
 
   const int tt0 = t0-1;
@@ -1457,10 +1448,7 @@ void ASMs3DLag::BasisFunctionCache::setupParameters ()
 {
   // Compute parameter values of the Gauss points over the whole patch
   for (int d = 0; d < 3; d++) {
-    RealArray par;
-    patch.getGridParameters(par,d,1);
-    mainQ->gpar[d].resize(par.size(), 1);
-    mainQ->gpar[d].fillColumn(1,par.data());
+    patch.getGridParameters(mainQ->gpar[d],d,1);
     if (reducedQ->xg[0])
       reducedQ->gpar[d] = mainQ->gpar[d];
   }
@@ -1471,8 +1459,8 @@ double ASMs3DLag::BasisFunctionCache::getParam (int dir, size_t el,
                                                 size_t gp, bool reduced) const
 {
   const Quadrature& q = reduced ? *reducedQ : *mainQ;
-  return 0.5*(q.gpar[dir](el+1,1)*(1.0-q.xg[dir][gp]) +
-              q.gpar[dir](el+2,1)*(1.0+q.xg[dir][gp]));
+  return 0.5*(q.gpar[dir][el  ]*(1.0-q.xg[dir][gp]) +
+              q.gpar[dir][el+1]*(1.0+q.xg[dir][gp]));
 }
 
 

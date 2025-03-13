@@ -624,11 +624,8 @@ protected:
   //! \param[in] dir Parameter direction (0,1)
   //! \param[in] nGauss Number of Gauss points along a knot-span
   //! \param[in] xi Dimensionless Gauss point coordinates [-1,1]
-  //! \param[in] spline Spline surface with element structure
-  //! \return The parameter value matrix casted into a one-dimensional vector
-  const RealArray& getGaussPointParameters(Matrix& uGP, int dir,
-                                           int nGauss, const double* xi,
-                                           const Go::SplineSurface* spline = nullptr) const;
+  void getGaussPointParameters(RealArray& uGP, int dir,
+                               int nGauss, const double* xi) const;
 
   //! \brief Calculates parameter values for the Greville points.
   //! \param[out] prm Parameter values in given direction for all points

@@ -1012,40 +1012,6 @@ bool ASMs1D::getParameterDomain (Real2DMat& u, IntVec* corners) const
 }
 
 
-const RealArray& ASMs1D::getGaussPointParameters (Matrix& uGP, int nGauss,
-                                                  const double* xi,
-                                                  const Go::SplineCurve* crv,
-                                                  bool skipNullSpans) const
-{
-  if (!crv) crv = curv.get();
-
-  int pm1 = crv->order() - 1;
-  RealArray::const_iterator uit = crv->basis().begin() + pm1;
-
-  int nCol = crv->numCoefs() - pm1;
-  uGP.resize(nGauss,nCol);
-
-  int iel = 0;
-  double uprev = *(uit++);
-  for (int j = 1; j <= nCol; ++uit, j++)
-  {
-    double ucurr = *uit;
-    if (!skipNullSpans || ucurr > uprev)
-    {
-      ++iel;
-      for (int i = 1; i <= nGauss; i++)
-        uGP(i,iel) = 0.5*((ucurr-uprev)*xi[i-1] + ucurr+uprev);
-    }
-    uprev = ucurr;
-  }
-
-  if (iel < nCol)
-    uGP.resize(nGauss,iel);
-
-  return uGP;
-}
-
-
 void ASMs1D::getElementBorders (int iel, double* ub) const
 {
   RealArray::const_iterator uit = curv->basis().begin();
@@ -1177,10 +1143,10 @@ bool ASMs1D::integrate (Integrand& integrand,
     nRed = ng; // The integrand needs to know nGauss
 
   // Compute parameter values of the Gauss points over the whole patch
-  Matrix gpar, redpar;
-  this->getGaussPointParameters(gpar,ng,xg);
+  RealArray gpar, redpar;
+  SplineUtils::getGaussParameters(gpar,ng,xg,curv->basis());
   if (xr)
-    this->getGaussPointParameters(redpar,nRed,xr);
+    SplineUtils::getGaussParameters(redpar,nRed,xr,curv->basis());
 
   FiniteElement fe(p1);
   Matrix   dNdu, Jac;
@@ -1231,7 +1197,7 @@ bool ASMs1D::integrate (Integrand& integrand,
     if (integrand.getIntegrandType() & Integrand::ELEMENT_CENTER)
     {
       // Compute the element center
-      param[0] = 0.5*(gpar(1,1+iel) + gpar(ng,1+iel));
+      param[0] = 0.5*(gpar[ng*iel] + gpar[ng-1+ng*iel]);
       SplineUtils::point(X,param[0],curv.get());
     }
 
@@ -1248,7 +1214,7 @@ bool ASMs1D::integrate (Integrand& integrand,
 	fe.xi = xr[i];
 
         // Parameter values of current integration point
-        fe.u = param[0] = redpar(1+i,1+iel);
+        fe.u = param[0] = redpar[i+nRed*iel];
 
         if (integrand.getIntegrandType() & Integrand::NO_DERIVATIVES)
           this->extractBasis(fe.u,fe.N);
@@ -1282,7 +1248,7 @@ bool ASMs1D::integrate (Integrand& integrand,
       fe.xi = xg[i];
 
       // Parameter value of current integration point
-      fe.u = param[0] = gpar(1+i,1+iel);
+      fe.u = param[0] = gpar[i+ng*iel];
 
       // Compute basis functions and derivatives
       if (integrand.getIntegrandType() & Integrand::NO_DERIVATIVES)
@@ -1872,8 +1838,9 @@ bool ASMs1D::assembleL2matrices (SparseMatrix& A, StdVector& B,
 
   // Compute parameter values of the Gauss points over the whole patch
   // and evaluate the secondary solution at all integration points
-  Matrix gp, sField;
-  RealArray gpar = this->getGaussPointParameters(gp,ng,xg,proj.get(),true);
+  RealArray gpar;
+  Matrix sField;
+  SplineUtils::getGaussParameters(gpar,ng,xg,proj->basis(),true);
   if (!integrand.evaluate(sField,&gpar))
   {
     std::cerr <<" *** ASMs1D::assembleL2matrices: Failed for patch "<< idx+1

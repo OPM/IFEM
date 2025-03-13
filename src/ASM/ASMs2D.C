@@ -1602,30 +1602,11 @@ bool ASMs2D::getParameterDomain (Real2DMat& u, IntVec* corners) const
 }
 
 
-const RealArray& ASMs2D::getGaussPointParameters (Matrix& uGP,
-                                                  int dir, int nGauss,
-                                                  const double* xi,
-                                                  const Go::SplineSurface* spline) const
+void ASMs2D::getGaussPointParameters (RealArray& uGP, int dir,
+                                      int nGauss, const double* xi) const
 {
-  if (!spline)
-    spline = surf.get();
-
-  int pm1 = (dir == 0 ? spline->order_u() : spline->order_v()) - 1;
-  RealArray::const_iterator uit = spline->basis(dir).begin() + pm1;
-
-  int nCol = (dir == 0 ? spline->numCoefs_u() : spline->numCoefs_v()) - pm1;
-  uGP.resize(nGauss,nCol);
-
-  double uprev = *(uit++);
-  for (int j = 1; j <= nCol; ++uit, j++)
-  {
-    double ucurr = *uit;
-    for (int i = 1; i <= nGauss; i++)
-      uGP(i,j) = 0.5*((ucurr-uprev)*xi[i-1] + ucurr+uprev);
-    uprev = ucurr;
-  }
-
-  return uGP;
+  if (surf)
+    SplineUtils::getGaussParameters(uGP,nGauss,xi,surf->basis(dir));
 }
 
 
@@ -2385,20 +2366,14 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
   const int t2 = 3-abs(edgeDir); // Tangent direction along the patch edge
 
   // Compute parameter values of the Gauss points along the whole patch edge
-  std::array<Matrix,2> gpar;
+  std::array<RealArray,2> gpar;
   for (int d = 0; d < 2; d++)
     if (-1-d == edgeDir)
-    {
-      gpar[d].resize(1,1);
-      gpar[d].fill(d == 0 ? surf->startparam_u() : surf->startparam_v());
-    }
+      gpar[d] = { surf->startparam(d) };
     else if (1+d == edgeDir)
-    {
-      gpar[d].resize(1,1);
-      gpar[d].fill(d == 0 ? surf->endparam_u() : surf->endparam_v());
-    }
+      gpar[d] = { surf->endparam(d) };
     else
-      this->getGaussPointParameters(gpar[d],d,nGP,xg);
+      SplineUtils::getGaussParameters(gpar[d],nGP,xg,surf->basis(d));
 
   // Extract the Neumann order flag (1 or higher) for the integrand
   integrand.setNeumannOrder(1 + lIndex/10);
@@ -2427,8 +2402,8 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
   fe.p = p1 - 1;
   fe.q = p2 - 1;
   fe.xi = fe.eta = edgeDir < 0 ? -1.0 : 1.0;
-  fe.u = gpar[0](1,1);
-  fe.v = gpar[1](1,1);
+  fe.u = gpar[0].front();
+  fe.v = gpar[1].front();
   double param[3] = { fe.u, fe.v, 0.0 };
 
   Matrix dNdu, Xnod, Jac;
@@ -2500,12 +2475,12 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
 	if (gpar[0].size() > 1)
 	{
 	  fe.xi = xg[i];
-	  fe.u = param[0] = gpar[0](i+1,i1-p1+1);
+	  fe.u = param[0] = gpar[0][i+nGP*(i1-p1)];
 	}
 	if (gpar[1].size() > 1)
 	{
 	  fe.eta = xg[i];
-	  fe.v = param[1] = gpar[1](i+1,i2-p2+1);
+	  fe.v = param[1] = gpar[1][i+nGP*(i2-p2)];
 	}
 
 	// Fetch basis function derivatives at current integration point
@@ -3467,8 +3442,7 @@ std::array<size_t,2> ASMs2D::BasisFunctionCache::elmIndex (size_t el) const
 void ASMs2D::BasisFunctionCache::calculateAll ()
 {
   PROFILE2("Spline evaluation");
-  auto&& extract1 = [this](const Matrix& par1,
-                           const Matrix& par2,
+  auto&& extract1 = [this](const RealArray& par1, const RealArray& par2,
                            std::vector<BasisFunctionVals>& values)
   {
     std::vector<Go::BasisDerivsSf>  spline;

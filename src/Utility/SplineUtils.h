@@ -68,6 +68,16 @@ namespace SplineUtils //! Various utility functions on spline objects.
   void extractBasis(const Go::BasisDerivs2& spline,
                     Vector& N, Matrix& dNdu, Matrix3D& d2Ndu2);
 
+  //! \brief Extracts parameter values of the Gauss points for a spline basis.
+  //! \param[out] uGP Parameter values for all points
+  //! \param[in] nGP Number of Gauss points along a knot-span
+  //! \param[in] xi Dimensionless Gauss point coordinates [-1,1]
+  //! \param[in] basis Spline basis to calculate Gauss point parameters for
+  //! \param[in] skipNullSpans If \e true, consider non-zero knot spans only
+  void getGaussParameters(RealArray& uGP, int nGP, const double* xi,
+                          const Go::BsplineBasis& basis,
+                          bool skipNullSpans = false);
+
   //! \brief Projects a spatial function onto a spline curve.
   Go::SplineCurve* project(const Go::SplineCurve* curve,
                            const FunctionBase& f,

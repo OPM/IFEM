@@ -230,15 +230,22 @@ bool ASMs2Dmx::generateFEMTopology ()
 
     if (ASMmxBase::includeExtra)
       switch (ASMmxBase::Type) {
-        case ASMmxBase::DIV_COMPATIBLE:
-        case ASMmxBase::REDUCED_CONT_RAISE_BASIS1:
-        case ASMmxBase::REDUCED_CONT_RAISE_BASIS2:
-          m_basis.push_back(std::static_pointer_cast<Go::SplineSurface>(projB)); break;
-        case ASMmxBase::SUBGRID:
-          m_basis.push_back(std::static_pointer_cast<Go::SplineSurface>(projB2)); break;
-        case FULL_CONT_RAISE_BASIS1: m_basis.push_back(m_basis[0]); break;
-        case FULL_CONT_RAISE_BASIS2: m_basis.push_back(m_basis[1]); break;
-        case NONE: break;
+      case ASMmxBase::DIV_COMPATIBLE:
+      case ASMmxBase::REDUCED_CONT_RAISE_BASIS1:
+      case ASMmxBase::REDUCED_CONT_RAISE_BASIS2:
+        m_basis.push_back(std::static_pointer_cast<Go::SplineSurface>(projB));
+        break;
+      case ASMmxBase::SUBGRID:
+        m_basis.push_back(std::static_pointer_cast<Go::SplineSurface>(projB2));
+        break;
+      case FULL_CONT_RAISE_BASIS1:
+        m_basis.push_back(m_basis[0]);
+        break;
+      case FULL_CONT_RAISE_BASIS2:
+        m_basis.push_back(m_basis[1]);
+        break;
+      default:
+        break;
       }
 
     surf.reset();
@@ -306,7 +313,7 @@ bool ASMs2Dmx::generateFEMTopology ()
       }
 
   const size_t firstItgElmNode = this->getFirstItgElmNode();
-  const size_t nElmNode = std::accumulate(elem_size.begin(), elem_size.end(), 0);
+  const size_t nElmNode = std::accumulate(elem_size.begin(),elem_size.end(),0u);
 
   // Create nodal connectivities for bases
   auto&& enumerate_elem = [this,&iel](const Go::SplineSurface& spline,
@@ -445,10 +452,10 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
 
   PROFILE2("ASMs2Dmx::integrate(I)");
 
+  bool separateGeometry = this->getBasis(ASM::GEOMETRY_BASIS) != surf.get();
   bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
   bool useElmVtx = integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS;
-  const bool separateGeometry = this->getBasis(ASM::GEOMETRY_BASIS) != surf.get();
-  const bool piolaMapping = piola = integrand.getIntegrandType() & Integrand::PIOLA_MAPPING;
+  piola          = integrand.getIntegrandType() & Integrand::PIOLA_MAPPING;
 
   if (myCache.empty()) {
     myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this));
@@ -462,7 +469,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
   for (std::unique_ptr<BasisFunctionCache>& cache : myCache) {
     cache->setIntegrand(&integrand);
     cache->init(use2ndDer ||
-                (piolaMapping && cache->basis == ASM::GEOMETRY_BASIS) ? 2 : 1);
+                (piola && cache->basis == ASM::GEOMETRY_BASIS) ? 2 : 1);
   }
 
   BasisFunctionCache& cache = *myCache.front();
@@ -573,7 +580,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
             if (use2ndDer && !fe.Hessian(Hess,Jac,Xnod,itgBasis,bfs))
               ok = false;
 
-            if (piolaMapping)
+            if (piola)
               fe.piolaMapping(fe.detJxW, Jac, Xnod, bfs);
 
             // Compute G-matrix
@@ -615,9 +622,9 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
 
   PROFILE2("ASMs2Dmx::integrate(B)");
 
+  bool separateGeometry = this->getBasis(ASM::GEOMETRY_BASIS) != surf.get();
   bool useElmVtx = integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS;
-  const bool separateGeometry = this->getBasis(ASM::GEOMETRY_BASIS) != surf.get();
-  const bool piolaMapping = integrand.getIntegrandType() & Integrand::PIOLA_MAPPING;
+  bool usePiola  = integrand.getIntegrandType() & Integrand::PIOLA_MAPPING;
 
   // Get Gaussian quadrature points and weights
   const double* xg = GaussQuadrature::getCoord(nGauss);
@@ -631,20 +638,14 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
   const int t2 = 3-abs(edgeDir); // Tangent direction along the patch edge
 
   // Compute parameter values of the Gauss points along the whole patch edge
-  std::array<Matrix,2> gpar;
+  std::array<RealArray,2> gpar;
   for (int d = 0; d < 2; d++)
     if (-1-d == edgeDir)
-    {
-      gpar[d].resize(1,1);
-      gpar[d].fill(d == 0 ? surf->startparam_u() : surf->startparam_v());
-    }
+      gpar[d] = { surf->startparam(d) };
     else if (1+d == edgeDir)
-    {
-      gpar[d].resize(1,1);
-      gpar[d].fill(d == 0 ? surf->endparam_u() : surf->endparam_v());
-    }
+      gpar[d] = { surf->endparam(d) };
     else
-      this->getGaussPointParameters(gpar[d],d,nGauss,xg);
+      SplineUtils::getGaussParameters(gpar[d],nGauss,xg,surf->basis(d));
 
   // Extract the Neumann order flag (1 or higher) for the integrand
   integrand.setNeumannOrder(1 + lIndex/10);
@@ -658,7 +659,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
   std::vector<Go::BasisDerivsSf> splineg1(m_basis.size());
   std::vector<Go::BasisDerivsSf2> splineg2(m_basis.size());
   if (separateGeometry) {
-    if (piolaMapping)
+    if (usePiola)
       this->getBasis(ASM::GEOMETRY_BASIS)->computeBasisGrid(gpar[0],gpar[1],splineg2);
     else
       this->getBasis(ASM::GEOMETRY_BASIS)->computeBasisGrid(gpar[0],gpar[1],splineg1);
@@ -674,8 +675,8 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
 
   MxFiniteElement fe(elem_size);
   fe.xi = fe.eta = edgeDir < 0 ? -1.0 : 1.0;
-  fe.u = gpar[0](1,1);
-  fe.v = gpar[1](1,1);
+  fe.u = gpar[0].front();
+  fe.v = gpar[1].front();
   double param[3] = { fe.u, fe.v, 0.0 };
 
   BasisValues bfs(splinex.size() + separateGeometry);
@@ -730,21 +731,21 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
 
       for (int i = 0; i < nGauss && ok; i++, ip++, fe.iGP++)
       {
-          // Local element coordinates and parameter values
+        // Local element coordinates and parameter values
         // of current integration point
         if (gpar[0].size() > 1)
         {
           fe.xi = xg[i];
-          fe.u = param[0] = gpar[0](i+1,i1-p1+1);
+          fe.u = param[0] = gpar[0][i+nGauss*(i1-p1)];
         }
         if (gpar[1].size() > 1)
         {
           fe.eta = xg[i];
-          fe.v = param[1] = gpar[1](i+1,i2-p2+1);
+          fe.v = param[1] = gpar[1][i+nGauss*(i2-p2)];
         }
 
         if (separateGeometry) {
-          if (piolaMapping)
+          if (usePiola)
             SplineUtils::extractBasis(splineg2[ip],bfs.back().N,
                                       bfs.back().dNdu,bfs.back().d2Ndu2);
           else
@@ -762,7 +763,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
 
         if (edgeDir < 0) normal *= -1.0;
 
-        if (piolaMapping)
+        if (usePiola)
           fe.piolaMapping(fe.detJxW, Jac, Xnod, bfs);
 
         // Cartesian coordinates of current integration point
@@ -1023,7 +1024,7 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const Vector& locSol,
 
   // Evaluate the primary solution field at each point
   size_t nPoints = splinex.front().size();
-  sField.resize(std::accumulate(nc.begin(), nc.end(), 0),nPoints);
+  sField.resize(std::accumulate(nc.begin(),nc.end(),0u),nPoints);
   for (size_t i = 0; i < nPoints; i++)
   {
     size_t comp = 0;
@@ -1154,7 +1155,7 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
   const Go::SplineSurface* geo = this->getBasis(ASM::GEOMETRY_BASIS);
   const bool separateGeometry = geo != surf.get();
-  const bool piolaMapping = integrand.getIntegrandType() & Integrand::PIOLA_MAPPING;
+  const bool usePiola = integrand.getIntegrandType() & Integrand::PIOLA_MAPPING;
 
   // Evaluate the basis functions and their derivatives at all points
   std::vector<std::vector<Go::BasisDerivsSf>> splinex(m_basis.size());
@@ -1165,7 +1166,7 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     for (size_t b = 0; b < m_basis.size(); ++b)
       m_basis[b]->computeBasisGrid(gpar[0],gpar[1],splinex[b]);
     if (separateGeometry) {
-      if (piolaMapping)
+      if (usePiola)
         geo->computeBasisGrid(gpar[0],gpar[1],splineg2);
       else
         geo->computeBasisGrid(gpar[0],gpar[1],splineg1);
@@ -1179,12 +1180,12 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
         m_basis[b]->computeBasis(gpar[0][i],gpar[1][i],splinex[b][i]);
     }
     if (separateGeometry) {
-      if (piolaMapping)
+      if (usePiola)
         splineg2.resize(gpar[0].size());
       else
         splineg1.resize(gpar[0].size());
       for (size_t i = 0; i < gpar[0].size(); i++)
-        if (piolaMapping)
+        if (usePiola)
           geo->computeBasis(gpar[0][i],gpar[1][i],splineg2[i]);
         else
           geo->computeBasis(gpar[0][i],gpar[1][i],splineg1[i]);
@@ -1225,8 +1226,8 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
       ip.front().clear();
       scatterInd(geo->numCoefs_u(),geo->numCoefs_v(),
                  geo->order_u(),geo->order_v(),
-                 piolaMapping ? splineg2[i].left_idx
-                              : splineg1[i].left_idx,ip.front());
+                 usePiola ? splineg2[i].left_idx : splineg1[i].left_idx,
+                 ip.front());
 
       utl::gather(ip.front(), nsd, Xnod, Xtmp);
     }
@@ -1241,7 +1242,7 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
                                 bfs[b].dNdu);
 
     if (separateGeometry) {
-      if (piolaMapping)
+      if (usePiola)
         SplineUtils::extractBasis(splineg2[i],bfs.back().N,
                                   bfs.back().dNdu,bfs.back().d2Ndu2);
       else
@@ -1253,7 +1254,7 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     if (!fe.Jacobian(Jac,Xtmp,itgBasis,bfs))
       continue; // skip singular points
 
-    if (piolaMapping)
+    if (usePiola)
       fe.piolaMapping(fe.detJxW, Jac, Xtmp, bfs);
 
     // Cartesian coordinates of current integration point

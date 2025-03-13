@@ -312,7 +312,7 @@ bool ASMs3Dmx::generateFEMTopology ()
         }
 
   const int firstItgElmNode = this->getFirstItgElmNode();
-  const size_t nElmNode = std::accumulate(elem_size.begin(), elem_size.end(), 0);
+  const size_t nElmNode = std::accumulate(elem_size.begin(),elem_size.end(),0u);
 
   // Create nodal connectivities for bases
   auto&& enumerate_elem = [this,&iel](const Go::SplineVolume& spline,
@@ -471,9 +471,9 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
 
   PROFILE2("ASMs3Dmx::integrate(I)");
 
+  bool separateGeometry = this->getBasis(ASM::GEOMETRY_BASIS) != svol.get();
   bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
   bool useElmVtx = integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS;
-  const bool separateGeometry = this->getBasis(ASM::GEOMETRY_BASIS) != svol.get();
 
   if (myCache.empty()) {
     myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this));
@@ -643,8 +643,8 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
 
   PROFILE2("ASMs3Dmx::integrate(B)");
 
+  bool separateGeometry = this->getBasis(ASM::GEOMETRY_BASIS) != svol.get();
   bool useElmVtx = integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS;
-  const bool separateGeometry = this->getBasis(ASM::GEOMETRY_BASIS) != svol.get();
 
   std::map<char,ThreadGroups>::const_iterator tit;
   if ((tit = threadGroupsFace.find(lIndex%10)) == threadGroupsFace.end())
@@ -667,20 +667,14 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
   const int t2 = 1 + t1%3;           // second tangent direction
 
   // Compute parameter values of the Gauss points over the whole patch face
-  std::array<Matrix,3> gpar;
+  std::array<RealArray,3> gpar;
   for (int d = 0; d < 3; d++)
     if (-1-d == faceDir)
-    {
-      gpar[d].resize(1,1);
-      gpar[d].fill(svol->startparam(d));
-    }
+      gpar[d] = { svol->startparam(d) };
     else if (1+d == faceDir)
-    {
-      gpar[d].resize(1,1);
-      gpar[d].fill(svol->endparam(d));
-    }
+      gpar[d] = { svol->endparam(d) };
     else
-      this->getGaussPointParameters(gpar[d],d,nGauss,xg);
+      SplineUtils::getGaussParameters(gpar[d],nGauss,xg,svol->basis(d));
 
   // Extract the Neumann order flag (1 or higher) for the integrand
   integrand.setNeumannOrder(1 + lIndex/10);
@@ -718,9 +712,9 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
     {
       MxFiniteElement fe(elem_size);
       fe.xi = fe.eta = fe.zeta = faceDir < 0 ? -1.0 : 1.0;
-      fe.u = gpar[0](1,1);
-      fe.v = gpar[1](1,1);
-      fe.w = gpar[2](1,1);
+      fe.u = gpar[0].front();
+      fe.v = gpar[1].front();
+      fe.w = gpar[2].front();
 
       BasisValues bfs(splinex.size());
       Matrix Xnod, Jac;
@@ -797,17 +791,17 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
             if (gpar[0].size() > 1)
             {
               fe.xi = xg[k1];
-              fe.u = param[0] = gpar[0](k1+1,i1-p1+1);
+              fe.u = param[0] = gpar[0][k1+nGauss*(i1-p1)];
             }
             if (gpar[1].size() > 1)
             {
               fe.eta = xg[k2];
-              fe.v = param[1] = gpar[1](k2+1,i2-p2+1);
+              fe.v = param[1] = gpar[1][k2+nGauss*(i2-p2)];
             }
             if (gpar[2].size() > 1)
             {
               fe.zeta = xg[k3];
-              fe.w = param[2] = gpar[2](k3+1,i3-p3+1);
+              fe.w = param[2] = gpar[2][k3+nGauss*(i3-p3)];
             }
 
             if (separateGeometry)
@@ -1122,7 +1116,7 @@ bool ASMs3Dmx::evalSolution (Matrix& sField, const Vector& locSol,
 
   // Evaluate the primary solution field at each point
   size_t nPoints = splinex.front().size();
-  sField.resize(std::accumulate(nc.begin(), nc.end(), 0),nPoints);
+  sField.resize(std::accumulate(nc.begin(),nc.end(),0u),nPoints);
   for (size_t i = 0; i < nPoints; i++)
   {
     size_t comp = 0;

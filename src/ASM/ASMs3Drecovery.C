@@ -189,11 +189,10 @@ bool ASMs3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
   if (continuous && !wg) return false;
 
   // Compute parameter values of the Gauss points over the whole patch
-  Matrix gp;
   std::array<RealArray,3> gpar;
-  gpar[0] = this->getGaussPointParameters(gp,0,ng1,xg,proj);
-  gpar[1] = this->getGaussPointParameters(gp,1,ng2,yg,proj);
-  gpar[2] = this->getGaussPointParameters(gp,2,ng3,zg,proj);
+  SplineUtils::getGaussParameters(gpar[0],ng1,xg,proj->basis(0));
+  SplineUtils::getGaussParameters(gpar[1],ng2,yg,proj->basis(1));
+  SplineUtils::getGaussParameters(gpar[2],ng3,zg,proj->basis(2));
 
   // Evaluate basis functions at all integration points
   std::vector<Go::BasisPts>    spl1;
@@ -372,15 +371,12 @@ Go::SplineVolume* ASMs3D::projectSolutionLeastSquare (const IntegrandBase& integ
   const double* wg = GaussQuadrature::getWeight(ng);
   if (!xg || !wg) return nullptr;
 
-  std::array<Matrix,3> ggpar;
   std::array<RealArray,3> gpar, wgpar;
   for (int dir = 0; dir < 3; dir++)
   {
-    this->getGaussPointParameters(ggpar[dir],dir,ng,xg);
-    gpar[dir] = ggpar[dir];
-
-    // Gauss weights at parameter values
+    // Get Gauss parameter values and associated weights
     const Go::BsplineBasis& basis = svol->basis(dir);
+    SplineUtils::getGaussParameters(gpar[dir],ng,xg,basis);
     RealArray::const_iterator knotit = basis.begin();
     RealArray& tmp = wgpar[dir];
     tmp.reserve(ng*(basis.numCoefs()-basis.order()));

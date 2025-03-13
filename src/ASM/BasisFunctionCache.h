@@ -90,19 +90,18 @@ public:
 protected:
   //! \brief Template struct holding information about a quadrature.
   struct Quadrature {
-    std::array<Matrix,Dim> gpar; //!< Array with global integration point parameters
     std::array<int,Dim> ng; //!< Number of integration point in each dimension
-    std::array<const double*,Dim> wg; //!< Integration scheme weights in each dimension
-    std::array<const double*,Dim> xg; //!< Integration scheme nodes in each dimension
+    std::array<const double*,Dim> xg; //!< Integration scheme nodes
+    std::array<const double*,Dim> wg; //!< Integration scheme weights
+    std::array<RealArray,Dim> gpar; //!< Global integration point parameters
 
     //! \brief Clears out configured quadrature.
     void reset()
     {
-      for (Matrix& g : gpar)
-        g.clear();
       ng.fill(0);
       xg.fill(nullptr);
       wg.fill(nullptr);
+      gpar.fill({});
     }
   };
 

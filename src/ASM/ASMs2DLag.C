@@ -1103,10 +1103,7 @@ void ASMs2DLag::BasisFunctionCache::setupParameters ()
 {
   // Compute parameter values of the Gauss points over the whole patch
   for (int d = 0; d < 2; d++) {
-    RealArray par;
-    patch.getGridParameters(par,d,1);
-    mainQ->gpar[d].resize(par.size(), 1);
-    mainQ->gpar[d].fillColumn(1,par.data());
+    patch.getGridParameters(mainQ->gpar[d],d,1);
     if (reducedQ->xg[0])
       reducedQ->gpar[d] = mainQ->gpar[d];
   }
@@ -1117,8 +1114,8 @@ double ASMs2DLag::BasisFunctionCache::getParam (int dir, size_t el,
                                                 size_t gp, bool reduced) const
 {
   const Quadrature& q = reduced ? *reducedQ : *mainQ;
-  return 0.5*(q.gpar[dir](el+1,1)*(1.0-q.xg[dir][gp]) +
-              q.gpar[dir](el+2,1)*(1.0+q.xg[dir][gp]));
+  return 0.5*(q.gpar[dir][el  ]*(1.0-q.xg[dir][gp]) +
+              q.gpar[dir][el+1]*(1.0+q.xg[dir][gp]));
 }
 
 

@@ -3124,28 +3124,29 @@ bool ASMu2D::BasisFunctionCache::setupQuadrature ()
   reducedQ->ng[0] = reducedQ->ng[1] = nRed;
 
   // Compute parameter values of the Gauss points over the whole patch
-  mainQ->gpar[0].resize(mainQ->ng[0],patch.nel);
-  mainQ->gpar[1].resize(mainQ->ng[1],patch.nel);
-  if (reducedQ->xg[0]) {
-    reducedQ->gpar[0].resize(reducedQ->ng[0],patch.nel);
-    reducedQ->gpar[1].resize(reducedQ->ng[1],patch.nel);
-  }
-  for (size_t iel = 1; iel <= patch.nel; ++iel)
+  for (int d = 0; d < 2; d++)
   {
-    RealArray u, v;
-    patch.getGaussPointParameters(u,0,mainQ->ng[0],iel,mainQ->xg[0]);
-    patch.getGaussPointParameters(v,1,mainQ->ng[1],iel,mainQ->xg[1]);
-    mainQ->gpar[0].fillColumn(iel,u.data());
-    mainQ->gpar[1].fillColumn(iel,v.data());
-
-    if (reducedQ->xg[0])
-    {
-      patch.getGaussPointParameters(u,0,reducedQ->ng[0],iel,reducedQ->xg[0]);
-      patch.getGaussPointParameters(v,1,reducedQ->ng[1],iel,reducedQ->xg[0]);
-      reducedQ->gpar[0].fillColumn(iel,u.data());
-      reducedQ->gpar[1].fillColumn(iel,v.data());
+    mainQ->gpar[d].clear();
+    mainQ->gpar[d].reserve(mainQ->ng[d]*patch.nel);
+    if (reducedQ->xg[0]) {
+      reducedQ->gpar[d].clear();
+      reducedQ->gpar[d].reserve(reducedQ->ng[d]*patch.nel);
     }
   }
+
+  RealArray u;
+  for (size_t iel = 1; iel <= patch.nel; ++iel)
+    for (int d = 0; d < 2; d++)
+    {
+      patch.getGaussPointParameters(u,d,mainQ->ng[d],iel,mainQ->xg[d]);
+      mainQ->gpar[d].insert(mainQ->gpar[d].end(),u.begin(),u.end());
+      if (reducedQ->xg[0])
+      {
+        patch.getGaussPointParameters(u,d,reducedQ->ng[d],iel,reducedQ->xg[d]);
+        reducedQ->gpar[d].insert(reducedQ->gpar[d].end(),u.begin(),u.end());
+      }
+    }
+
   return true;
 }
 

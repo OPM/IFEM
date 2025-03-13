@@ -99,7 +99,8 @@ double BasisFunctionCache<Dim>::getParam (int dir, size_t el,
                                           size_t gp, bool reduced) const
 {
   const Quadrature& q = reduced ? *reducedQ : *mainQ;
-  return q.gpar[dir](gp+1,el+1);
+
+  return q.gpar[dir][gp+q.ng[dir]*el];
 }
 
 
