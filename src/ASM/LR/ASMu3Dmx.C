@@ -503,8 +503,10 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
       A->destruct();
     }
 
-  for (std::unique_ptr<ASMu3D::BasisFunctionCache>& cache : myCache)
-    cache->finalizeAssembly();
+  if (ASM::cachePolicy == ASM::PRE_CACHE)
+    for (std::unique_ptr<ASMu3D::BasisFunctionCache>& cache : myCache)
+      cache->clear();
+
   return ok;
 }
 

@@ -484,8 +484,10 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
       A->destruct();
     }
 
-  for (std::unique_ptr<ASMu2D::BasisFunctionCache>& cache : myCache)
-    cache->finalizeAssembly();
+  if (ASM::cachePolicy == ASM::PRE_CACHE)
+    for (std::unique_ptr<ASMu2D::BasisFunctionCache>& cache : myCache)
+      cache->clear();
+
   return ok;
 }
 

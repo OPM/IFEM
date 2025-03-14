@@ -65,9 +65,6 @@ protected:
     //! \brief Implementation specific initialization.
     bool internalInit() override;
 
-    //! \brief Implementation specific cleanup.
-    void internalCleanup() override;
-
     //! \brief Calculates basis function info in a single integration point.
     //! \param el Element of integration point (0-indexed)
     //! \param gp Integration point on element (0-indexed)

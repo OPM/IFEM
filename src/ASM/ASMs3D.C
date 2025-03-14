@@ -2308,7 +2308,9 @@ bool ASMs3D::integrate (Integrand& integrand,
       }
     }
 
-  cache.finalizeAssembly();
+  if (ASM::cachePolicy == ASM::PRE_CACHE)
+    cache.clear();
+
   return ok;
 }
 
@@ -3875,15 +3877,6 @@ bool ASMs3D::BasisFunctionCache::internalInit ()
     nTotalRed = patch.nel * reducedQ->ng[0]*reducedQ->ng[1]*reducedQ->ng[2];
 
   return true;
-}
-
-
-void ASMs3D::BasisFunctionCache::internalCleanup ()
-{
-  if (basis == 1) {
-    mainQ->reset();
-    reducedQ->reset();
-  }
 }
 
 

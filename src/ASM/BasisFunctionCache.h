@@ -39,9 +39,8 @@ public:
   //! \brief Empty destructor.
   virtual ~BasisFunctionCache() = default;
 
-  //! \brief Should be called after assembly is finished.
-  //! \details This clears up the cache according to policy.
-  void finalizeAssembly();
+  //! \brief Clears the basis function cache.
+  void clear();
 
   //! \brief Initialize the basis function cache according to policy.
   //! \param nd Number of derivatives
@@ -107,9 +106,6 @@ protected:
 
   //! \brief Class-specified initialization.
   virtual bool internalInit() = 0;
-
-  //! \brief Class-specified cleanup.
-  virtual void internalCleanup() = 0;
 
   //! \brief Calculates basis function info in a single integration point.
   //! \param el Element of integration point (0-indexed)

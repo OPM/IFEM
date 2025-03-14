@@ -1361,7 +1361,9 @@ bool ASMu2D::integrate (Integrand& integrand,
 #endif
     }
 
-  cache.finalizeAssembly();
+  if (ASM::cachePolicy == ASM::PRE_CACHE)
+    cache.clear();
+
   return ok;
 }
 
@@ -3085,15 +3087,6 @@ bool ASMu2D::BasisFunctionCache::internalInit ()
     nTotalRed = patch.nel*reducedQ->ng[0]*reducedQ->ng[1];
 
   return true;
-}
-
-
-void ASMu2D::BasisFunctionCache::internalCleanup ()
-{
-  if (basis == 1) {
-    mainQ->reset();
-    reducedQ->reset();
-  }
 }
 
 

@@ -608,8 +608,10 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
       }
     }
 
-  for (std::unique_ptr<BasisFunctionCache>& cache : myCache)
-    cache->finalizeAssembly();
+  if (ASM::cachePolicy == ASM::PRE_CACHE)
+    for (std::unique_ptr<BasisFunctionCache>& cache : myCache)
+      cache->clear();
+
   return ok;
 }
 

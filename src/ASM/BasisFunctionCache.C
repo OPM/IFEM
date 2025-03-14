@@ -38,10 +38,8 @@ bool BasisFunctionCache<Dim>::init (int nd)
   if (!values.empty() && nd <= nderiv)
     return true;
 
-  values.clear();
-  valuesRed.clear();
-  this->internalCleanup();
   nderiv = nd;
+  this->clear();
   if (!this->internalInit())
     return false;
 
@@ -61,12 +59,14 @@ bool BasisFunctionCache<Dim>::init (int nd)
 
 
 template<size_t Dim>
-void BasisFunctionCache<Dim>::finalizeAssembly ()
+void BasisFunctionCache<Dim>::clear ()
 {
-  if (ASM::cachePolicy == ASM::PRE_CACHE) {
-    values.clear();
-    valuesRed.clear();
-    internalCleanup();
+  values.clear();
+  valuesRed.clear();
+  if (basis == 1)
+  {
+    mainQ->reset();
+    reducedQ->reset();
   }
 }
 

@@ -510,7 +510,9 @@ bool ASMs2DLag::integrate (Integrand& integrand,
     }
   }
 
-  cache.finalizeAssembly();
+  if (ASM::cachePolicy == ASM::PRE_CACHE)
+    cache.clear();
+
   return ok;
 }
 
