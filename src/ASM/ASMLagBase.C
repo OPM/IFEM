@@ -46,3 +46,31 @@ Vec3 ASMLagBase::getGeometricCenter (const std::vector<int>& MNPC) const
 
   return X0;
 }
+
+
+bool ASMLagBase::updateCoords (const Vector& displ, unsigned char nsd)
+{
+  if (displ.size() != nsd*coord.size())
+  {
+    std::cerr <<" *** ASMLagBase::updateCoords: Invalid dimension "
+              << displ.size() <<" on displ, should be "
+              << nsd*coord.size() << std::endl;
+    return false;
+  }
+
+  const double* dpt = displ.ptr();
+  for (Vec3& XYZ : myCoord)
+  {
+    XYZ += RealArray(dpt,dpt+nsd);
+    dpt += nsd;
+  }
+
+  return true;
+}
+
+
+void ASMLagBase::updateOrigin (const Vec3& origin)
+{
+  for (Vec3& XYZ : myCoord)
+    XYZ += origin;
+}

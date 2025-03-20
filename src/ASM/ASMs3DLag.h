@@ -72,6 +72,8 @@ protected:
 public:
   //! \brief Default constructor.
   explicit ASMs3DLag(unsigned char n_f = 3);
+  //! \brief Special constructor creating a Lagrang patch from a Spline patch,
+  ASMs3DLag(const ASMs3D& patch, unsigned char n_f);
   //! \brief Special copy constructor for sharing of FE data.
   ASMs3DLag(const ASMs3DLag& patch, unsigned char n_f);
   //! \brief Default copy constructor copying everything.
@@ -167,6 +169,8 @@ public:
   //! \brief Updates the nodal coordinates for this patch.
   //! \param[in] displ Incremental displacements to update the coordinates with
   virtual bool updateCoords(const Vector& displ);
+
+  using ASMLagBase::updateOrigin;
 
 
   // Methods for integration of finite element quantities.
@@ -287,10 +291,6 @@ public:
 
   //! \brief Returns the number of elements on a boundary.
   virtual size_t getNoBoundaryElms(char lIndex, char ldim) const;
-
-  //! \brief Update patch origin by adding a constant to all nodes.
-  //! \param origin The new origin
-  void updateOrigin(const Vec3& origin);
 
   //! \brief Returns the number of projection nodes for this patch.
   virtual size_t getNoProjectionNodes() const;

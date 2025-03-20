@@ -125,7 +125,7 @@ bool ASMs2DLag::addXElms (short int dim, short int item, size_t nXn,
       for (size_t i = 0; i < nXn; i++)
         mnpc.push_back(MLGN.size()-nXn+i);
 
-      myMLGE[nel+iel] = -(++gEl); // Flag extraordinary element by negative sign
+      myMLGE[nel+iel] = -(++gEl); // Extraordinary element ==> negative sign
     }
 
   return true;
@@ -270,21 +270,7 @@ void ASMs2DLag::getNodalCoordinates (Matrix& X, bool) const
 
 bool ASMs2DLag::updateCoords (const Vector& displ)
 {
-  if (shareFE) return true;
-
-  if (displ.size() != nsd*coord.size())
-  {
-    std::cerr <<" *** ASMs2DLag::updateCoords: Invalid dimension "
-              << displ.size() <<" on displ, should be "
-              << nsd*coord.size() << std::endl;
-    return false;
-  }
-
-  const double* u = displ.ptr();
-  for (size_t inod = 0; inod < coord.size(); inod++, u += nsd)
-    myCoord[inod] += RealArray(u,u+nsd);
-
-  return true;
+  return shareFE ? true : this->ASMLagBase::updateCoords(displ,nsd);
 }
 
 

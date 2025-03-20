@@ -177,21 +177,7 @@ void ASMs1DLag::getNodalCoordinates (Matrix& X, bool) const
 
 bool ASMs1DLag::updateCoords (const Vector& displ)
 {
-  if (shareFE) return true;
-
-  if (displ.size() != nsd*coord.size())
-  {
-    std::cerr <<" *** ASMs1DLag::updateCoords: Invalid dimension "
-	      << displ.size() <<" on displ, should be "
-	      << nsd*coord.size() << std::endl;
-    return false;
-  }
-
-  const double* u = displ.ptr();
-  for (size_t inod = 0; inod < myCoord.size(); inod++, u += nsd)
-    myCoord[inod] += RealArray(u,u+nsd);
-
-  return true;
+  return shareFE ? true : this->ASMLagBase::updateCoords(displ,nsd);
 }
 
 

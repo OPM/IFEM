@@ -296,21 +296,7 @@ void ASMs3DLag::getNodalCoordinates (Matrix& X, bool) const
 
 bool ASMs3DLag::updateCoords (const Vector& displ)
 {
-  if (shareFE) return true;
-
-  if (displ.size() != 3*coord.size())
-  {
-    std::cerr <<" *** ASMs3DLag::updateCoords: Invalid dimension "
-              << displ.size() <<" on displ, should be "
-              << 3*coord.size() << std::endl;
-    return false;
-  }
-
-  const double* u = displ.ptr();
-  for (size_t inod = 0; inod < myCoord.size(); inod++, u += 3)
-    myCoord[inod] += RealArray(u,u+3);
-
-  return true;
+  return shareFE ? true : this->ASMLagBase::updateCoords(displ,3);
 }
 
 
@@ -430,7 +416,7 @@ bool ASMs3DLag::integrate (Integrand& integrand,
 
         // Initialize element quantities
         LocalIntegral* A = integrand.getLocalIntegral(fe.Xn.cols(),fe.iel);
-        int nRed = cache.nGauss(true)[0];
+        const int nRed = cache.nGauss(true).front();
         if (!integrand.initElement(MNPC[iel],fe,X,nRed*nRed*nRed,*A))
         {
           A->destruct();
@@ -1323,13 +1309,6 @@ void ASMs3DLag::constrainEdge (int lEdge, bool open, int dof,
                                int code, char basis)
 {
   this->ASMs3D::constrainEdge(lEdge, open, dof, code > 0 ? -code : code, basis);
-}
-
-
-void ASMs3DLag::updateOrigin (const Vec3& origin)
-{
-  for (Vec3& c : myCoord)
-    c += origin;
 }
 
 

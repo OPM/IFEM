@@ -39,6 +39,16 @@ protected:
   //! \brief Returns the geometric center of an element.
   Vec3 getGeometricCenter(const std::vector<int>& MNPC) const;
 
+  //! \brief Updates the nodal coordinates for this patch.
+  //! \param[in] displ Incremental displacements to update the coordinates with
+  //! \param[in] nsd Number of space dimensions
+  bool updateCoords(const Vector& displ, unsigned char nsd);
+
+public:
+  //! \brief Updates patch origin by adding a constant to all nodes.
+  //! \param[in] origin The new origin of the patch
+  void updateOrigin(const Vec3& origin);
+
 protected:
   const Vec3Vec& coord; //!< Const reference to the nodal coordinate container
   Vec3Vec      myCoord; //!< Nodal coordinate container
