@@ -315,3 +315,61 @@ CubeBlock::CubeBlock (const Vec3& X0, double dX) : ElementBlock(8)
     this->setNode(i,i);
   this->setElmId(1,1);
 }
+
+
+SphereBlock::SphereBlock (const Vec3& X0, double R, size_t nTheta, size_t nPhi)
+{
+  nen = 4;
+  this->unStructResize(nPhi*nTheta,2+(nPhi-1)*nTheta);
+
+  size_t m, n, ip = 2;
+
+  this->setCoor(0,X0.x,X0.y,X0.z+R);
+  this->setCoor(1,X0.x,X0.y,X0.z-R);
+  for (n = 0; n < nTheta; n++)
+  {
+    double theta = M_PI*n*2.0/static_cast<double>(nTheta);
+    double Rct = R*cos(theta);
+    double Rst = R*sin(theta);
+    for (m = 1; m < nPhi; m++, ip++)
+    {
+      double phi = M_PI*m/static_cast<double>(nPhi);
+      this->setCoor(ip,X0.x+Rct*sin(phi),X0.y+Rst*sin(phi),X0.z+R*cos(phi));
+    }
+  }
+
+  for (n = ip = 0; n+1 < nTheta; n++)
+  {
+    this->setNode(ip++,0);
+    this->setNode(ip++,nPhi* n   -n+2);
+    this->setNode(ip++,nPhi*(n+1)-n+1);
+    this->setNode(ip++,0);
+    for (m = 1; m+1 < nPhi; m++)
+    {
+      this->setNode(ip++,nPhi* n   -n+m+1);
+      this->setNode(ip++,nPhi* n   -n+m+2);
+      this->setNode(ip++,nPhi*(n+1)-n+m+1);
+      this->setNode(ip++,nPhi*(n+1)-n+m);
+    }
+    this->setNode(ip++,nPhi*(n+1)-n);
+    this->setNode(ip++,1);
+    this->setNode(ip++,1);
+    this->setNode(ip++,nPhi*(n+2)-n-1);
+  }
+
+  this->setNode(ip++,0);
+  this->setNode(ip++,(nPhi-1)*(nTheta-1)+2);
+  this->setNode(ip++,2);
+  this->setNode(ip++,0);
+  for (m = 1; m+1 < nPhi; m++)
+  {
+    this->setNode(ip++,(nPhi-1)*(nTheta-1)+m+1);
+    this->setNode(ip++,(nPhi-1)*(nTheta-1)+m+2);
+    this->setNode(ip++,m+2);
+    this->setNode(ip++,m+1);
+  }
+  this->setNode(ip++,(nPhi-1)*nTheta+1);
+  this->setNode(ip++,1);
+  this->setNode(ip++,1);
+  this->setNode(ip++,nPhi);
+}

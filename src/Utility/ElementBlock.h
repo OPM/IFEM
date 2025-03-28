@@ -29,7 +29,7 @@ public:
   //! \brief The constructor defines the number of nodes per element \a nenod.
   explicit ElementBlock(size_t nenod = 8);
   //! \brief Empty destructor.
-  virtual ~ElementBlock() {}
+  virtual ~ElementBlock() = default;
 
   //! \brief Reallocates the internal arrays to fit a structured grid.
   //! \param[in] nI Number of nodes in I-direction
@@ -58,9 +58,9 @@ public:
   //! \brief Marks the end of current element for unstructured grids.
   bool endOfElm(size_t& i);
 
-  //! \brief Adds a line element to the grid, assuming \a nen is equal to two.
+  //! \brief Adds a line element to the grid, assuming \ref nen is equal to two.
   bool addLine(Real x1, Real y1, Real z1, Real x2, Real y2, Real z2);
-  //! \brief Adds a line element to the grid, assuming \a nen is equal to two.
+  //! \brief Adds a line element to the grid, assuming \ref nen is equal to two.
   //! \param[in] i1 Index of existing node to use as start point
   //! \param[in] X2 Coordinates of new node to use as end point
   size_t addLine(size_t i1, const Vec3& X2);
@@ -109,7 +109,7 @@ public:
   utl::Point getCenter(size_t i) const;
 
 protected:
-  typedef std::array<Real,3> Prm3; //!< Convenience type
+  using Prm3 = std::array<Real,3>; //!< Convenience type
 
   std::vector<Vec3> coord; //!< Vector of nodal coordinates
   std::vector<Prm3> param; //!< Vector of parameter values of the nodal points
@@ -138,8 +138,24 @@ public:
   //! \param[in] X0 Center of the cube
   //! \param[in] dX Length of each cube edge
   CubeBlock(const Vec3& X0, double dX);
-  //! \brief Empty destructor.
-  virtual ~CubeBlock() {}
+};
+
+
+/*!
+  \brief Class for sphere geometries.
+  \details This class is used to create sphere shapes in the model,
+  for visualization of single-points elements, etc.
+*/
+
+class SphereBlock : public ElementBlock
+{
+public:
+  //! \brief The constructor defines a sphere centred at specified point.
+  //! \param[in] X0 Center of the sphere
+  //! \param[in] R Sphere diameter
+  //! \param[in] nTheta Number of elements around equator
+  //! \param[in] nPhi Number of elements from pole to pole
+  SphereBlock(const Vec3& X0, double R, size_t nTheta = 180, size_t nPhi = 60);
 };
 
 #endif
