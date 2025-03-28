@@ -53,7 +53,7 @@ public:
   virtual bool setGeometry(RealFunc* f, double power, double threshold);
 
   //! \brief Returns an additional geometry to visualize (immersed boundaries).
-  virtual ElementBlock* immersedGeometry() const;
+  virtual ElementBlock* immersedGeometry(char* name) const;
 
   //! \brief Computes the total number of integration points in this patch.
   virtual void getNoIntPoints(size_t& nPt, size_t& nIPt);
