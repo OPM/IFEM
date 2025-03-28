@@ -97,9 +97,14 @@ bool ASMu2DIB::setGeometry (RealFunc* f, double power, double threshold)
 }
 
 
-ElementBlock* ASMu2DIB::immersedGeometry () const
+ElementBlock* ASMu2DIB::immersedGeometry (char* name) const
 {
-  return myGeometry ? myGeometry->tesselate() : nullptr;
+  if (!myGeometry) return nullptr;
+
+  if (name)
+    sprintf(name,"Immersed boundary %zu",idx+1);
+
+  return myGeometry->tesselate();
 }
 
 

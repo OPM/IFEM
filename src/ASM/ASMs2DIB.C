@@ -99,7 +99,7 @@ bool ASMs2DIB::setGeometry (RealFunc* f, double power, double threshold)
 }
 
 
-ElementBlock* ASMs2DIB::immersedGeometry () const
+ElementBlock* ASMs2DIB::immersedGeometry (char* name) const
 {
   if (!myGeometry) return nullptr;
 
@@ -112,6 +112,9 @@ ElementBlock* ASMs2DIB::immersedGeometry () const
   }
   else if (myLines)
     geo = new ElementBlock(*myLines);
+
+  if (name)
+    sprintf(name,"Immersed boundary %zu",idx+1);
 
   return geo;
 }

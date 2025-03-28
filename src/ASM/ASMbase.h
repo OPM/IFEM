@@ -559,7 +559,7 @@ public:
   //! \note The number of element nodes must be set in \a grid on input.
   virtual bool tesselate(ElementBlock& grid, const int* npe) const = 0;
   //! \brief Returns an additional geometry to visualize (immersed boundaries).
-  virtual ElementBlock* immersedGeometry() const { return nullptr; }
+  virtual ElementBlock* immersedGeometry(char*) const { return nullptr; }
   //! \brief Filters out result point values that are outside physical domain.
   virtual void filterResults(Matrix&, const ElementBlock*) const {}
 

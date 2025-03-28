@@ -586,7 +586,7 @@ bool SIMoutput::writeGlvG (int& nBlock, const char* inpFile, bool doClear)
     myVtf->clearGeometryBlocks();
 
   ElementBlock* lvb;
-  char pname[32];
+  char pname[64];
 
   // Convert and write model geometry
   size_t pidx = 0;
@@ -610,12 +610,9 @@ bool SIMoutput::writeGlvG (int& nBlock, const char* inpFile, bool doClear)
 
   // Additional geometry for immersed boundaries
   for (const ASMbase* pch : myModel)
-    if ((lvb = pch->immersedGeometry()))
-    {
-      sprintf(pname,"Immersed boundary %zu",pch->idx+1);
+    if ((lvb = pch->immersedGeometry(pname)))
       if (!myVtf->writeGrid(lvb,pname,++nBlock))
         return false;
-    }
 
   // Additional geometry for result point visualization
   if (myPtSize > 0.0 && !myPoints.empty())
