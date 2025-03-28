@@ -13,7 +13,7 @@
 
 #include "ElementBlock.h"
 #include "Vec3Oper.h"
-#include "Point.h"
+#include "Tensor.h"
 #include <algorithm>
 #include <numeric>
 
@@ -299,6 +299,20 @@ utl::Point ElementBlock::getCenter (size_t i) const
 }
 
 
+PlaneBlock::PlaneBlock (const Vec3& X0, const Vec3& X1,
+                        const Vec3& X2) : ElementBlock(4)
+{
+  this->resize(2,2);
+  this->setCoor(0,X0);
+  this->setCoor(1,X1);
+  this->setCoor(2,X1+X2-X0);
+  this->setCoor(3,X2);
+  for (int i = 0; i < 4; i++)
+    this->setNode(i,i);
+  this->setElmId(1,1);
+}
+
+
 CubeBlock::CubeBlock (const Vec3& X0, double dX) : ElementBlock(8)
 {
   dX *= 0.5;
@@ -314,4 +328,117 @@ CubeBlock::CubeBlock (const Vec3& X0, double dX) : ElementBlock(8)
   for (int i = 0; i < 8; i++)
     this->setNode(i,i);
   this->setElmId(1,1);
+}
+
+
+SphereBlock::SphereBlock (const Vec3& X0, double R,
+                          size_t nTheta, size_t nPhi) : ElementBlock(4)
+{
+  this->unStructResize(nPhi*nTheta,2+(nPhi-1)*nTheta);
+
+  const double dTheta = M_PI*2.0/static_cast<double>(nTheta);
+  const double dPhi   = M_PI/static_cast<double>(nPhi);
+
+  double theta, phi;
+  size_t m, n, ip = 2;
+
+  this->setCoor(0,X0.x,X0.y,X0.z+R);
+  this->setCoor(1,X0.x,X0.y,X0.z-R);
+  for (theta = 0.0, n = 0; n < nTheta; n++, theta += dTheta)
+  {
+    double Rct = R*cos(theta);
+    double Rst = R*sin(theta);
+    for (phi = dPhi, m = 1; m < nPhi; m++, ip++, phi += dPhi)
+      this->setCoor(ip,X0.x+Rct*sin(phi),X0.y+Rst*sin(phi),X0.z+R*cos(phi));
+  }
+
+  for (n = ip = 0; n+1 < nTheta; n++)
+  {
+    this->setNode(ip++,0);
+    this->setNode(ip++,nPhi* n   -n+2);
+    this->setNode(ip++,nPhi*(n+1)-n+1);
+    this->setNode(ip++,0);
+    for (m = 1; m+1 < nPhi; m++)
+    {
+      this->setNode(ip++,nPhi* n   -n+m+1);
+      this->setNode(ip++,nPhi* n   -n+m+2);
+      this->setNode(ip++,nPhi*(n+1)-n+m+1);
+      this->setNode(ip++,nPhi*(n+1)-n+m);
+    }
+    this->setNode(ip++,nPhi*(n+1)-n);
+    this->setNode(ip++,1);
+    this->setNode(ip++,1);
+    this->setNode(ip++,nPhi*(n+2)-n-1);
+  }
+
+  this->setNode(ip++,0);
+  this->setNode(ip++,(nPhi-1)*(nTheta-1)+2);
+  this->setNode(ip++,2);
+  this->setNode(ip++,0);
+  for (m = 1; m+1 < nPhi; m++)
+  {
+    this->setNode(ip++,(nPhi-1)*(nTheta-1)+m+1);
+    this->setNode(ip++,(nPhi-1)*(nTheta-1)+m+2);
+    this->setNode(ip++,m+2);
+    this->setNode(ip++,m+1);
+  }
+  this->setNode(ip++,(nPhi-1)*nTheta+1);
+  this->setNode(ip++,1);
+  this->setNode(ip++,1);
+  this->setNode(ip++,nPhi);
+}
+
+
+CylinderBlock::CylinderBlock (const Vec3& X0, const Vec3& X1,
+                              double R, size_t nTheta) : ElementBlock(4)
+{
+  this->unStructResize(3*nTheta,2+2*nTheta);
+
+  const double dTheta = M_PI*2.0/static_cast<double>(nTheta);
+
+  double theta;
+  size_t n, ip;
+  Tensor Tlg(X1-X0);
+
+  this->setCoor(0,X0);
+  this->setCoor(1+nTheta,X1);
+  for (theta = 0.0, n = 0; n < nTheta; n++, theta += dTheta)
+  {
+    Vec3 X(R*cos(theta),R*sin(theta),0.0);
+    this->setCoor(1+n,X0+Tlg*X);
+    this->setCoor(2+nTheta+n,X1+Tlg*X);
+  }
+
+  for (n = ip = 0; n+1 < nTheta; n++)
+  {
+    this->setNode(ip++,0);
+    this->setNode(ip++,2+n);
+    this->setNode(ip++,1+n);
+    this->setNode(ip++,0);
+
+    this->setNode(ip++,2+n);
+    this->setNode(ip++,1+n);
+    this->setNode(ip++,2+nTheta+n);
+    this->setNode(ip++,3+nTheta+n);
+
+    this->setNode(ip++,1+nTheta);
+    this->setNode(ip++,2+nTheta+n);
+    this->setNode(ip++,3+nTheta+n);
+    this->setNode(ip++,1+nTheta);
+  }
+
+  this->setNode(ip++,0);
+  this->setNode(ip++,1);
+  this->setNode(ip++,nTheta);
+  this->setNode(ip++,0);
+
+  this->setNode(ip++,1);
+  this->setNode(ip++,nTheta);
+  this->setNode(ip++,1+nTheta+nTheta);
+  this->setNode(ip++,2+nTheta);
+
+  this->setNode(ip++,1+nTheta);
+  this->setNode(ip++,1+nTheta+nTheta);
+  this->setNode(ip++,2+nTheta);
+  this->setNode(ip++,1+nTheta);
 }

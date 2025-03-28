@@ -29,7 +29,7 @@ public:
   //! \brief The constructor defines the number of nodes per element \a nenod.
   explicit ElementBlock(size_t nenod = 8);
   //! \brief Empty destructor.
-  virtual ~ElementBlock() {}
+  virtual ~ElementBlock() = default;
 
   //! \brief Reallocates the internal arrays to fit a structured grid.
   //! \param[in] nI Number of nodes in I-direction
@@ -58,9 +58,9 @@ public:
   //! \brief Marks the end of current element for unstructured grids.
   bool endOfElm(size_t& i);
 
-  //! \brief Adds a line element to the grid, assuming \a nen is equal to two.
+  //! \brief Adds a line element to the grid, assuming \ref nen is equal to two.
   bool addLine(Real x1, Real y1, Real z1, Real x2, Real y2, Real z2);
-  //! \brief Adds a line element to the grid, assuming \a nen is equal to two.
+  //! \brief Adds a line element to the grid, assuming \ref nen is equal to two.
   //! \param[in] i1 Index of existing node to use as start point
   //! \param[in] X2 Coordinates of new node to use as end point
   size_t addLine(size_t i1, const Vec3& X2);
@@ -109,7 +109,7 @@ public:
   utl::Point getCenter(size_t i) const;
 
 protected:
-  typedef std::array<Real,3> Prm3; //!< Convenience type
+  using Prm3 = std::array<Real,3>; //!< Convenience type
 
   std::vector<Vec3> coord; //!< Vector of nodal coordinates
   std::vector<Prm3> param; //!< Vector of parameter values of the nodal points
@@ -126,6 +126,22 @@ public:
 
 
 /*!
+  \brief Class for single-element plane geometries.
+  \details This class is used to create visualization of rigid contact planes.
+*/
+
+class PlaneBlock : public ElementBlock
+{
+public:
+  //! \brief Constructor defining a plane from three points.
+  //! \param[in] X0 First corner
+  //! \param[in] X1 Second corner
+  //! \param[in] X2 Third corner
+  PlaneBlock(const Vec3& X0, const Vec3& X1, const Vec3& X2);
+};
+
+
+/*!
   \brief Class for single-element cube geometries.
   \details This class is used to create small cube shapes in the model,
   mainly for visualization of result points, etc.
@@ -138,8 +154,43 @@ public:
   //! \param[in] X0 Center of the cube
   //! \param[in] dX Length of each cube edge
   CubeBlock(const Vec3& X0, double dX);
-  //! \brief Empty destructor.
-  virtual ~CubeBlock() {}
+};
+
+
+/*!
+  \brief Class for sphere geometries.
+  \details This class is used to create sphere shapes in the model,
+  for visualization of single-point elements, rigid contact objects, etc.
+*/
+
+class SphereBlock : public ElementBlock
+{
+public:
+  //! \brief The constructor defines a sphere centred at specified point.
+  //! \param[in] X0 Center of the sphere
+  //! \param[in] R Sphere diameter
+  //! \param[in] nTheta Number of elements around equator
+  //! \param[in] nPhi Number of elements from pole to pole
+  SphereBlock(const Vec3& X0, double R, size_t nTheta = 180, size_t nPhi = 60);
+};
+
+
+/*!
+  \brief Class for cylinder geometries.
+  \details This class is used to create cylinder shapes in the model,
+  for visualization of rigid contect objects, etc.
+*/
+
+class CylinderBlock : public ElementBlock
+{
+public:
+  //! \brief The constructor defines a sphere centred at specified point.
+  //! \param[in] X0 First end point
+  //! \param[in] X1 Second end point
+  //! \param[in] R Cylinder diameter
+  //! \param[in] nTheta Number of elements in circular direction
+  CylinderBlock(const Vec3& X0, const Vec3& X1,
+                double R, size_t nTheta = 180);
 };
 
 #endif
