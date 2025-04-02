@@ -152,6 +152,12 @@ SIM::ConvStatus EigenModeSIM::solveStep (TimeStep& param, SIM::SolutionMode,
                                          double zero_tolerance,
                                          std::streamsize outPrec)
 {
+  if (solution.empty())
+    return SIM::FAILURE;
+
+  if (msgLevel >= 0)
+    this->printStep(param);
+
   if (myStart < 0.0)
     myStart = param.time.t - param.time.dt;
 

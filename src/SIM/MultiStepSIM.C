@@ -243,6 +243,22 @@ bool MultiStepSIM::savePoints (double time, int step) const
 }
 
 
+void MultiStepSIM::printStep (const TimeStep& param) const
+{
+  double digits = log10(param.time.t) - log10(param.time.dt);
+  if (digits > 6.0)
+  {
+    // Increase precision on physical time for larger time series
+    utl::LogStream& cout = model.getProcessAdm().cout;
+    std::streamsize prec = cout.precision(ceil(digits));
+    model.printStep(param.step,param.time);
+    cout.precision(prec);
+  }
+  else
+    model.printStep(param.step,param.time);
+}
+
+
 bool MultiStepSIM::advanceStep (TimeStep& param, bool updateTime)
 {
   if (param.step > 0 && rotUpd == 't')

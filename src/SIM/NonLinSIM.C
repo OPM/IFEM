@@ -209,18 +209,7 @@ ConvStatus NonLinSIM::solveStep (TimeStep& param, SolutionMode mode,
     return FAILURE;
 
   if (msgLevel >= 0)
-  {
-    double digits = log10(param.time.t) - log10(param.time.dt);
-    if (digits > 6.0)
-    {
-      utl::LogStream& cout = model.getProcessAdm().cout;
-      std::streamsize oldPrec = cout.precision(ceil(digits));
-      model.printStep(param.step,param.time);
-      cout.precision(oldPrec);
-    }
-    else
-      model.printStep(param.step,param.time);
-  }
+    this->printStep(param);
 
   param.iter = 0;
   alpha = alphaO = 1.0;

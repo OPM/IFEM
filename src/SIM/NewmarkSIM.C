@@ -359,19 +359,11 @@ SIM::ConvStatus NewmarkSIM::solveStep (TimeStep& param, SIM::SolutionMode,
 {
   PROFILE1("NewmarkSIM::solveStep");
 
+  if (solution.empty())
+    return SIM::FAILURE;
+
   if (msgLevel >= 0)
-  {
-    double digits = log10(param.time.t) - log10(param.time.dt);
-    if (digits > 6.0)
-    {
-      utl::LogStream& cout = model.getProcessAdm().cout;
-      std::streamsize oldPrec = cout.precision(ceil(digits));
-      model.printStep(param.step,param.time);
-      cout.precision(oldPrec);
-    }
-    else
-      model.printStep(param.step,param.time);
-  }
+    this->printStep(param);
 
   if (subiter&FIRST && !model.updateDirichlet(param.time.t,&solution.front()))
     return SIM::FAILURE;

@@ -75,6 +75,10 @@ public:
                                     std::streamsize outPrec = 0) = 0;
 
 protected:
+  //! \brief Prints out time/load step identification.
+  //! \param param[in] Time stepping parameters
+  void printStep(const TimeStep& param) const;
+
   //! \brief Computes and prints some solution norm quantities.
   //! \param[in] zero_tolerance Truncate norm values smaller than this to zero
   //! \param[in] outPrec Number of digits after the decimal point in norm print
