@@ -32,29 +32,52 @@ bool EigenModeSIM::parse (const tinyxml2::XMLElement* elem)
   if (strcasecmp(elem->Value(),"eigenmodes"))
     return model.parse(elem);
 
-  size_t imode = 0;
-  double freq = 0.0;
   const tinyxml2::XMLElement* child = elem->FirstChildElement();
-  for (; child; child = child->NextSiblingElement()) {
-    const char* value = nullptr;
-    if ((value = utl::getValue(child,"mode")))
-      if (utl::getAttribute(child,"number",imode) && imode > 0)
+  for (; child; child = child->NextSiblingElement())
+  {
+    size_t imode = 0;
+    double freq = 0.0;
+    utl::getAttribute(child,"frequency",freq);
+    const char* value = utl::getValue(child,"mode");
+    if (value && utl::getAttribute(child,"number",imode) && imode > 0)
+    {
+      if (imode > amplitude.size())
+        amplitude.resize(imode,0.0);
+      amplitude[imode-1] = atof(value);
+
+      if (freq > epsZ)
       {
-        if (imode > amplitude.size())
-          amplitude.resize(imode,0.0);
-        amplitude[imode-1] = atof(value);
-        if (utl::getAttribute(child,"frequency",freq) && freq > 0.0)
-        {
-          if (imode > omega.size())
-            omega.resize(imode,0.0);
-          omega[imode-1] = 2.0*M_PI*freq;
-        }
+        if (imode > omega.size())
+          omega.resize(imode,0.0);
+        omega[imode-1] = 2.0*M_PI*freq;
       }
+    }
+    else if ((value = utl::getValue(child,"modes")))
+    {
+      double scale = 1.0;
+      std::vector<int> modes;
+      utl::parseIntegers(modes,value);
+      utl::getAttribute(child,"scale",scale);
+      std::sort(modes.begin(),modes.end());
+      imode = modes.back();
+      if (imode > amplitude.size())
+        amplitude.resize(imode,0.0);
+      if (freq > epsZ && imode > omega.size())
+        omega.resize(imode,0.0);
+      for (int mode : modes)
+      {
+        amplitude[mode-1] = scale;
+        if (freq > epsZ)
+          omega[imode-1] = 2.0*M_PI*freq;
+      }
+    }
   }
 
-  opt.nev = amplitude.size();
-  if (opt.ncv < opt.nev*2)
-    opt.ncv = opt.nev*2;
+  if (opt.nev < static_cast<int>(amplitude.size()))
+    opt.nev = amplitude.size();
+  int mincv = opt.nev < 10 ? opt.nev*2 : opt.nev+10;
+  if (opt.ncv < mincv)
+    opt.ncv = mincv;
 
   return true;
 }
@@ -65,13 +88,15 @@ void EigenModeSIM::printProblem () const
   model.printProblem();
 
   bool multiModes = false;
-  IFEM::cout <<"EigenMode combination: u(x,t) =";
+  IFEM::cout <<"Eigenmode combination: u(x,t) =";
   for (size_t i = 0; i < amplitude.size(); i++)
-    if (amplitude[i] != 0.0)
+    if (amplitude[i] > epsZ)
     {
-      IFEM::cout << (multiModes ? "\n                              + ":" ")
-                 << amplitude[i] <<"*v"<< i+1 <<"(x)*sin(";
-      if (i < omega.size() && omega[i] > 0.0)
+      IFEM::cout << (multiModes ? "\n                              + ":" ");
+      if (fabs(amplitude[i]-1.0) > epsZ)
+        IFEM::cout << amplitude[i] <<"*";
+      IFEM::cout <<"v"<< i+1 <<"(x)*sin(";
+      if (i < omega.size() && omega[i] > epsZ)
         IFEM::cout << omega[i];
       else
         IFEM::cout <<"omega"<< i+1;
@@ -105,7 +130,7 @@ void EigenModeSIM::initSol (size_t nSol, size_t nDof)
   for (size_t i = 0; i < modes.size(); i++)
   {
     modes[i].eigVec /= modes[i].eigVec.normInf();
-    if (i < omega.size() && omega[i] > 0.0)
+    if (i < omega.size() && omega[i] > epsZ)
       modes[i].eigVal = omega[i];
     else
       modes[i].eigVal *= 2.0*M_PI;
@@ -127,14 +152,16 @@ SIM::ConvStatus EigenModeSIM::solveStep (TimeStep& param, SIM::SolutionMode,
                                          double zero_tolerance,
                                          std::streamsize outPrec)
 {
-  if (myStart < 0.0) myStart = param.time.t - param.time.dt;
+  if (myStart < 0.0)
+    myStart = param.time.t - param.time.dt;
+
   double t = param.time.t - myStart; // Time since the start of this simulator
 
   solution.front().fill(0.0);
   for (size_t i = 0; i < amplitude.size() && i < modes.size(); i++)
-    solution.front().add(modes[i].eigVec,amplitude[i]*sin(modes[i].eigVal*t));
+    if (amplitude[i] > epsZ)
+      solution.front().add(modes[i].eigVec,amplitude[i]*sin(modes[i].eigVal*t));
 
-  if (msgLevel >= 0) model.getProcessAdm().cout << std::endl;
   return this->solutionNorms(param.time,zero_tolerance,outPrec) ?
     SIM::CONVERGED : SIM::FAILURE;
 }
