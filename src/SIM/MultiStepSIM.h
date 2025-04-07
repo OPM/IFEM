@@ -76,7 +76,7 @@ public:
 
 protected:
   //! \brief Prints out time/load step identification.
-  //! \param param[in] Time stepping parameters
+  //! \param[in] param Time stepping parameters
   void printStep(const TimeStep& param) const;
 
   //! \brief Computes and prints some solution norm quantities.
