@@ -560,6 +560,8 @@ public:
   virtual bool tesselate(ElementBlock& grid, const int* npe) const = 0;
   //! \brief Returns an additional geometry to visualize (immersed boundaries).
   virtual ElementBlock* immersedGeometry(char*) const { return nullptr; }
+  //! \brief Returns an additional geometry to visualize (spiders, etc.).
+  virtual ElementBlock* extraGeometry(char*) const { return nullptr; }
   //! \brief Filters out result point values that are outside physical domain.
   virtual void filterResults(Matrix&, const ElementBlock*) const {}
 
@@ -579,6 +581,11 @@ public:
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
                             const int* npe, int n_f = 0,
                             bool piola = false) const;
+
+  //! \brief Evaluates the primary solution at the immersed geometry points.
+  virtual bool immersedSolution(Matrix&, const Vector&) const { return false; }
+  //! \brief Evaluates the primary solution at the extra geometry points.
+  virtual bool extraSolution(Matrix&, const Vector&) const { return false; }
 
   //! \brief Evaluates the projected solution field at all visualization points.
   //! \param[out] sField Solution field

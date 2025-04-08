@@ -396,6 +396,8 @@ private:
   int    myPrec;   //!< Output precision for result sampling
   double myPtSize; //!< Size of result point visualization in VTF-file
   int    myGeomID; //!< Geometry block ID for the first patch in the VTF-file
+  int    myGeofs1; //!< Geometry block ID offset for immersed geometry in the VTF-file
+  int    myGeofs2; //!< Geometry block ID offset for extra geometry in the VTF-file
   VTF*   myVtf;    //!< VTF-file for result visualization
   bool   logRpMap; //!< If \e true, print out the result point mapping
   int    idxGrid;  //!< Index into \ref myPoints for grid result output

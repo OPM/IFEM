@@ -35,7 +35,7 @@ SIMoutput::SIMoutput (IntegrandBase* itg) : SIMinput(itg)
 {
   myPrec = 3;
   myPtSize = 0.0;
-  myGeomID = 0;
+  myGeomID = myGeofs1 = myGeofs2 = 0;
   myVtf = nullptr;
   logRpMap = false;
   idxGrid = -1;
@@ -608,9 +608,17 @@ bool SIMoutput::writeGlvG (int& nBlock, const char* inpFile, bool doClear)
       return false;
   }
 
-  // Additional geometry for immersed boundaries
+  // Additional geometry for immersed boundaries, etc.
+  myGeofs1 = nBlock;
   for (const ASMbase* pch : myModel)
     if ((lvb = pch->immersedGeometry(pname)))
+      if (!myVtf->writeGrid(lvb,pname,++nBlock))
+        return false;
+
+  // Additional geometry for spider visualization, etc.
+  myGeofs2 = nBlock;
+  for (const ASMbase* pch : myModel)
+    if ((lvb = pch->extraGeometry(pname)))
       if (!myVtf->writeGrid(lvb,pname,++nBlock))
         return false;
 
@@ -655,9 +663,10 @@ bool SIMoutput::writeGlvBC (int& nBlock, int iStep) const
   int geomID = myGeomID;
   for (const ASMbase* pch : myModel)
   {
-    if (pch->empty()) continue; // skip empty patches
+    if (pch->empty())
+      continue; // skip empty patches
 
-    geomID++;
+    ++geomID;
     size_t nbc = pch->getNoFields(1);
     size_t nNodes = pch->getNoNodes(-1);
     for (n = 2; n <= pch->getNoBasis(); n++)
@@ -815,7 +824,8 @@ bool SIMoutput::writeGlvS (const Vector& scl, const char* fieldName,
   int geomID = myGeomID;
   for (const ASMbase* pch : myModel)
   {
-    if (pch->empty()) continue; // skip empty patches
+    if (pch->empty())
+      continue; // skip empty patches
 
     int ncmp = scl.size() / this->getNoNodes(basis);
     this->extractPatchSolution(scl,lovec,pch,ncmp,basis);
@@ -912,6 +922,8 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
 
   bool empty = false;
   int geomID = myGeomID;
+  int geoID1 = myGeofs1;
+  int geoID2 = myGeofs2;
   for (const ASMbase* pch : myModel)
   {
     if (!this->extractNodeVec(psol,lovec,pch,psolComps%10,empty))
@@ -994,6 +1006,24 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
 
       if (!this->writeScalarFields(field,geomID,nBlock,xID))
         return -3;
+    }
+
+    // Get solution for the immersed geometry nodes
+    if (pch->immersedSolution(field,lovec))
+    {
+      if (!myVtf->writeVres(field,++nBlock,++geoID1))
+        return false;
+
+      vID[0].push_back(nBlock);
+    }
+
+    // Get solution for the extra geometry nodes
+    if (pch->extraSolution(field,lovec))
+    {
+      if (!myVtf->writeVres(field,++nBlock,++geoID2))
+        return false;
+
+      vID[0].push_back(nBlock);
     }
   }
 
@@ -1272,7 +1302,8 @@ bool SIMoutput::writeGlvP (const RealArray& ssol, int iStep, int& nBlock,
   int geomID = myGeomID;
   for (const ASMbase* pch : myModel)
   {
-    if (pch->empty()) continue; // skip empty patches
+    if (pch->empty())
+      continue; // skip empty patches
 
     if (this->fieldProjections())
     {
@@ -1357,7 +1388,8 @@ bool SIMoutput::writeGlvF (const RealFunc& f, const char* fname,
   int geomID = myGeomID;
   for (const ASMbase* pch : myModel)
   {
-    if (pch->empty()) continue; // skip empty patches
+    if (pch->empty())
+      continue; // skip empty patches
 
     if (msgLevel > 1)
       IFEM::cout <<"Writing function '"<< fname <<"' for patch "
@@ -1403,6 +1435,8 @@ bool SIMoutput::writeGlvM (const Mode& mode, bool freq, int& nBlock)
 
   bool empty = false;
   int geomID = myGeomID;
+  int geoID1 = myGeofs1;
+  int geoID2 = myGeofs2;
   for (const ASMbase* pch : myModel)
   {
     if (!this->extractNodeVec(mode.eigVec,displ,pch,0,empty))
@@ -1410,7 +1444,7 @@ bool SIMoutput::writeGlvM (const Mode& mode, bool freq, int& nBlock)
     else if (pch->empty())
       continue; // skip empty patches
 
-    if (myModel.size() > 1 && msgLevel > 1)
+    if (myModel.size() > 2 && msgLevel > 1)
       IFEM::cout <<"."<< std::flush;
 
     if (!pch->evalSolution(field,displ,opt.nViz))
@@ -1420,8 +1454,27 @@ bool SIMoutput::writeGlvM (const Mode& mode, bool freq, int& nBlock)
       return false;
 
     vID.push_back(nBlock);
+
+    // Get solution for the immersed geometry nodes
+    if (pch->immersedSolution(field,displ))
+    {
+      if (!myVtf->writeVres(field,++nBlock,++geoID1))
+        return false;
+
+      vID.push_back(nBlock);
+    }
+
+    // Get solution for the extra geometry nodes
+    if (pch->extraSolution(field,displ))
+    {
+      if (!myVtf->writeVres(field,++nBlock,++geoID2))
+        return false;
+
+      vID.push_back(nBlock);
+    }
   }
-  if (myModel.size() > 1 && msgLevel > 1)
+
+  if (myModel.size() > 2 && msgLevel > 1)
     IFEM::cout << std::endl;
 
   int idBlock = 10;
@@ -1470,7 +1523,8 @@ bool SIMoutput::writeGlvN (const Matrix& norms, int iStep, int& nBlock,
   int geomID = myGeomID;
   for (const ASMbase* pch : myModel)
   {
-    if (pch->empty()) continue; // skip empty patches
+    if (pch->empty())
+      continue; // skip empty patches
 
     if (msgLevel > 1)
       IFEM::cout <<"Writing element norms for patch "
@@ -1549,7 +1603,8 @@ bool SIMoutput::writeGlvE (const Vector& vec, int iStep, int& nBlock,
   int geomID = myGeomID;
   for (const ASMbase* pch : myModel)
   {
-    if (pch->empty()) continue; // skip empty patches
+    if (pch->empty())
+      continue; // skip empty patches
 
     ++geomID;
     pch->extractElmRes(vec,field,firstIndex);
@@ -1675,7 +1730,8 @@ void SIMoutput::dumpPrimSol (const Vector& psol, utl::LogStream& os,
 
   for (const ASMbase* pch : myModel)
   {
-    if (pch->empty()) continue; // skip empty patches
+    if (pch->empty())
+      continue; // skip empty patches
 
     Vector patchSol;
     pch->extractNodalVec(psol,patchSol,mySam->getMADOF());
@@ -1718,7 +1774,8 @@ bool SIMoutput::dumpSolution (const Vector& psol, utl::LogStream& os) const
 
   for (const ASMbase* pch : myModel)
   {
-    if (pch->empty()) continue; // skip empty patches
+    if (pch->empty())
+      continue; // skip empty patches
 
     if (myModel.size() > 1)
       os <<"\n# Patch: "<< pch->idx+1;
@@ -2060,7 +2117,8 @@ bool SIMoutput::dumpVector (const Vector& vsol, const char* fname,
     int iPoint = 1;
     for (const ASMbase* pch : myModel)
     {
-      if (pch->empty()) continue; // skip empty patches
+      if (pch->empty())
+        continue; // skip empty patches
 
       // Find all evaluation points within this patch, if any
       std::array<RealArray,3> params;
