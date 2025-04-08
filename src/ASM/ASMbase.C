@@ -1372,10 +1372,10 @@ void ASMbase::extractElmRes (const Vector& globRes, Vector& elmRes,
   elmRes.reserve(MLGE.size());
 
   size_t jel = internalFirst;
-  for (int iel : MLGE)
-    if (iel > 0)
+  for (size_t i = 0; i < MLGE.size(); i++)
+    if (MLGE[i] > 0 && MNPC[i].size() > 1)
     {
-      size_t idx = internalFirst ? jel++ : iel;
+      size_t idx = internalFirst ? jel++ : MLGE[i];
       elmRes.push_back(idx <= globRes.size() ? globRes(idx) : 0.0);
     }
 }
@@ -1387,11 +1387,11 @@ void ASMbase::extractElmRes (const Matrix& globRes, Matrix& elmRes,
   elmRes.resize(globRes.rows(),MLGE.size(),true);
 
   size_t ivel = 0, jel = internalFirst;
-  for (int iel : MLGE)
-    if (iel > 0)
+  for (size_t i = 0; i < MLGE.size(); i++)
+    if (MLGE[i] > 0 && MNPC[i].size() > 1)
     {
       ++ivel;
-      size_t icol = internalFirst ? jel++ : iel;
+      size_t icol = internalFirst ? jel++ : MLGE[i];
       if (icol <= globRes.cols())
         elmRes.fillColumn(ivel,globRes.getColumn(icol));
     }

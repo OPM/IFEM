@@ -407,22 +407,28 @@ void ASMu2DLag::generateThreadGroups (const Integrand&, bool, bool)
 bool ASMu2DLag::tesselate (ElementBlock& grid, const int*) const
 {
   size_t nmnpc = 0;
+  size_t nelms = nel;
   for (const IntVec& mnpc : MNPC)
-    nmnpc += mnpc.size();
-  grid.unStructResize(nel,nnod,nmnpc);
+    if (mnpc.size() > 1) // ignore 1-noded elements (point masses, etc.)
+      nmnpc += mnpc.size();
+    else
+      --nelms;
+  grid.unStructResize(nelms,nnod,nmnpc);
 
   size_t i, j, k;
   for (i = 0; i < nnod; i++)
     grid.setCoor(i,this->getCoord(1+i));
 
   for (i = k = 0; i < nel; i++)
-  {
-    for (j = 0; j < MNPC[i].size(); j++)
-      if (j > 1 && swapNode34 && MNPC[i].size() == 4)
-        grid.setNode(k++,MNPC[i][5-j]);
-      else
-        grid.setNode(k++,MNPC[i][j]);
-    grid.endOfElm(k);
-  }
+    if (MNPC[i].size() > 1) // ignore 1-noded elements
+    {
+      for (j = 0; j < MNPC[i].size(); j++)
+        if (j > 1 && swapNode34 && MNPC[i].size() == 4)
+          grid.setNode(k++,MNPC[i][5-j]);
+        else
+          grid.setNode(k++,MNPC[i][j]);
+      grid.endOfElm(k);
+    }
+
   return true;
 }
