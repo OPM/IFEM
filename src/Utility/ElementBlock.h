@@ -63,7 +63,8 @@ public:
   //! \brief Adds a line element to the grid, assuming \ref nen is equal to two.
   //! \param[in] i1 Index of existing node to use as start point
   //! \param[in] X2 Coordinates of new node to use as end point
-  size_t addLine(size_t i1, const Vec3& X2);
+  //! \param[in] elmId External element ID (generate if negative)
+  size_t addLine(size_t i1, const Vec3& X2, int elmId = -1);
 
   //! \brief Assigns an external id to an element.
   void setElmId(size_t i, int iel) { MINEX[i-1] = iel; }
