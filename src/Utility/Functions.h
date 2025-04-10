@@ -15,14 +15,12 @@
 #define _FUNCTIONS_H
 
 #include "Function.h"
-#include <string>
-
-typedef utl::Function<Real,Vec3> VecTimeFunc; //!< Convenience type
 
 class TensorFunc;
 namespace tinyxml2 { class XMLElement; }
 
-typedef utl::Function<Real,Vec3> VecTimeFunc; //!< Convenience type
+using VecTimeFunc = utl::Function<Real,Vec3>; //!< Vector-valued real function
+using IntFunc     = utl::Function<int,Real>;  //!< Real-valued integer function
 
 
 /*!
@@ -52,7 +50,7 @@ protected:
 
 class LinearFunc : public ScalarFunc
 {
-  typedef std::pair<Real,Real> Point; //!< Convenience type
+  using Point = std::pair<Real,Real>; //!< Convenience type
 
   std::vector<Point> fvals; //!< Values for piece-wise linear function
   Real               scale; //!< Scaling factor
@@ -94,9 +92,9 @@ private:
   \brief A vector-valued linear function.
 */
 
-class LinVecFunc : public utl::Function<Real,Vec3>
+class LinVecFunc : public VecTimeFunc
 {
-  typedef std::pair<Real,Vec3> Point; //!< Convenience type
+  using Point = std::pair<Real,Vec3>; //!< Convenience type
 
   std::vector<Point> fvals; //!< Values for piece-wise linear function
 
@@ -124,7 +122,7 @@ protected:
 class RampFunc : public ScalarFunc
 {
   Real fval; //!< Max function value
-  Real xmax; //!< Function is linear from \a x = 0 to \a x = \a xmax
+  Real xmax; //!< The function is linear from \a x = 0 to \a x = \a xmax
 
 public:
   //! \brief Constructor initializing the function parameters.
@@ -503,8 +501,8 @@ protected:
 class StepXFunc : public RealFunc
 {
   Real fv; //!< The non-zero function value
-  Real x0; //!< Function is zero for \a x < \a x0
-  Real x1; //!< Function is zero for \a x > \a x1
+  Real x0; //!< The function is zero for \a x < \a x0
+  Real x1; //!< The function is zero for \a x > \a x1
   char d;  //!< Coordinate to step in (default X).
 
 public:
@@ -528,16 +526,16 @@ protected:
 class StepXYFunc : public RealFunc
 {
   Real fv; //!< The non-zero function value
-  Real x0; //!< Function is zero for \a x < \a x0
-  Real y0; //!< Function is zero for \a y < \a y0
-  Real x1; //!< Function is zero for \a x > \a x1
-  Real y1; //!< Function is zero for \a y > \a y1
+  Real x0; //!< The function is zero for \a x < \a x0
+  Real y0; //!< The function is zero for \a y < \a y0
+  Real x1; //!< The function is zero for \a x > \a x1
+  Real y1; //!< The function is zero for \a y > \a y1
 
 public:
   //! \brief Constructor initializing the function parameters.
   explicit StepXYFunc(Real v,
-             Real X1 = Real(1), Real Y1 = Real(1),
-             Real X0 = Real(-1), Real Y0 = Real(-1))
+                      Real X1 = Real( 1), Real Y1 = Real( 1),
+                      Real X0 = Real(-1), Real Y0 = Real(-1))
     : fv(v), x0(X0), y0(Y0), x1(X1), y1(Y1) {}
 
   //! \brief Returns whether the function is identically zero or not.
@@ -620,7 +618,7 @@ namespace utl
 
   //! \brief Creates a time function by parsing a character string.
   //! \param[in] func Character string to parse function definition from
-  //! \param[in] type Function definition type flag
+  //! \param[in] type %Function definition type flag
   //! \param[in] eps Domain increment for calculation of numerical derivative
   ScalarFunc* parseTimeFunc(const char* func,
                             const std::string& type = "expression",
@@ -628,27 +626,35 @@ namespace utl
 
   //! \brief Creates a vector-valued time function by parsing a char string.
   //! \param[in] func Character string to parse function definition from
-  //! \param[in] type Function definition type flag
+  //! \param[in] type %Function definition type flag
   VecTimeFunc* parseVecTimeFunc(const char* func,
                                 const std::string& type);
 
   //! \brief Creates a scalar-valued function by parsing a character string.
   //! \param[in] func Character string to parse function definition from
-  //! \param[in] type Function definition type flag
+  //! \param[in] type %Function definition type flag
   //! \param[in] print If \e true, print function definition
   RealFunc* parseRealFunc(const std::string& func,
                           const std::string& type = "expression",
                           bool print = true);
 
-  //! \brief Creates a scalar-valued expression function by parsing a character string.
-  //! \details Implementation is in ExprFunctions.C due to encapsulation of autodiff.
-  //! \param[in] function Function definition
-  //! \param[in] autodiff True to enable auto-differentiation
+  //! \brief Creates a scalar-valued function by parsing a character string.
+  //! \param[in] function %Function expression
+  //! \param[in] autodiff if \e true, auto-differentiation is enabled
+  //!
+  //! \details The implementation of this method is in the file ExprFunctions.C
+  //! for encapsulation of the autodiff package.
   RealFunc* parseExprRealFunc(const std::string& function, bool autodiff);
+
+  //! \brief Creates a scalar-valued int function by parsing a character string.
+  //! \param[in] func Character string to parse function definition from
+  //! \param[in] type %Function definition type flag
+  IntFunc* parseIntFunc(const std::string& func,
+                        const std::string& type = "expression");
 
   //! \brief Creates a vector-valued function by parsing a character string.
   //! \param[in] func Character string to parse function definition from
-  //! \param[in] type Function definition type flag
+  //! \param[in] type %Function definition type flag
   //! \param[in] variables Optional variable definition for expression functions
   VecFunc* parseVecFunc(const std::string& func,
                         const std::string& type = "expression",
@@ -656,13 +662,13 @@ namespace utl
 
   //! \brief Creates a tensor-valued function by parsing a character string.
   //! \param[in] func Character string to parse function definition from
-  //! \param[in] type Function definition type flag
+  //! \param[in] type %Function definition type flag
   TensorFunc* parseTensorFunc(const std::string& func,
                               const std::string& type);
 
   //! \brief Creates a vector-valued function defining a surface traction.
   //! \param[in] func Character string to parse function definition from
-  //! \param[in] type Function definition type flag
+  //! \param[in] type %Function definition type flag
   //! \param[in] dir Coordinate direction of the traction (0=normal direction)
   TractionFunc* parseTracFunc(const std::string& func,
                               const std::string& type = "expression",

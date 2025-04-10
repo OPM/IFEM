@@ -847,6 +847,65 @@ static const ScalarFunc* parseFunction (const char* type, char* cline,
 }
 
 
+IntFunc* utl::parseIntFunc (const std::string& func, const std::string& type)
+{
+  class Identity : public IntFunc
+  {
+    Real s; // Scaling factor
+
+  public:
+    Identity(Real sf) : s(sf) {}
+
+  protected:
+    Real evaluate(const int& x) const override { return s*Real(x > 1 ? x : 0); }
+  };
+
+  // This class can be used as an element activation function, where a bunch of
+  // elements (nv) is activated in the first parameter direction, assuming the
+  // number of elements in the first direction is nu.
+  class Parametric : public IntFunc
+  {
+    int nu; // Number of elements in first parameter direction
+    int nv; // Number of elements to activate instantly
+    Real s; // Scaling factor
+
+  public:
+    Parametric(int u, int v, Real sf) : nu(u), nv(v), s(sf) {}
+
+  protected:
+    Real evaluate(const int& x) const override
+    {
+      int ix = 1+(x-1)%nu;
+      int nx = 1+(x-1)/nu;
+      return s*Real(ix > 1 || nx > nv ? ix + nu*((nx-1)/nv) : 0);
+    }
+  };
+
+  if (type == "parametric" && !func.empty())
+  {
+    char* prms = strdup(func.c_str());
+    char* s = NULL;
+    int neu = atoi(strtok(prms," "));
+    int nev = (s = strtok(NULL," ")) ? atoi(s) : 1;
+    Real sf = (s = strtok(NULL," ")) ? atof(s) : Real(1);
+    free(prms);
+    return new Parametric(neu,nev,sf);
+  }
+
+  Real scaling(1);
+  if (func.empty())
+    IFEM::cout <<"  ** utl::parseIntFunc: \""<< type
+               <<"\" not implemented - returning identity"<< std::endl;
+  else
+  {
+    char* prms = strdup(func.c_str());
+    scaling = atof(strtok(prms," "));
+    free(prms);
+  }
+  return new Identity(scaling);
+}
+
+
 ScalarFunc* utl::parseTimeFunc (const char* func, const std::string& type,
                                 Real eps)
 {
