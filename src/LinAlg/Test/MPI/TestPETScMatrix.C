@@ -35,7 +35,6 @@ TEST(TestPETScMatrix, AssembleMPI)
   for (int iel = 1; iel <= sim.getSAM()->getNoElms(); ++iel)
     myMat->assemble(stencil, *sim.getSAM(), iel);
 
-  myMat->beginAssembly();
   myMat->endAssembly();
 
   // now inspect the matrix
@@ -95,7 +94,6 @@ TEST(TestPETScMatrix, AssembleBasisBlocksMPI)
   for (int iel = 1; iel <= sim.getSAM()->getNoElms(); ++iel)
     myMat->assemble(stencil, *sim.getSAM(), iel);
 
-  myMat->beginAssembly();
   myMat->endAssembly();
 
   // now inspect the matrix blocks
@@ -162,7 +160,6 @@ TEST(TestPETScMatrix, AssembleComponentBlocksMPI)
   for (int iel = 1; iel <= sim.getSAM()->getNoElms(); ++iel)
     myMat->assemble(stencil, *sim.getSAM(), iel);
 
-  myMat->beginAssembly();
   myMat->endAssembly();
 
   // now inspect the matrix blocks

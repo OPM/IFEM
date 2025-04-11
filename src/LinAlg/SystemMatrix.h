@@ -69,9 +69,7 @@ public:
   //! \brief Copies entries from input vector \b x into \a *this.
   SystemVector& copy(const SystemVector& x);
 
-  //! \brief Begins communication step needed in parallel vector assembly.
-  virtual bool beginAssembly() { return true; }
-  //! \brief Ends communication step needed in parallel vector assembly.
+  //! \brief Finalizes the system vector assembly.
   virtual bool endAssembly() { return true; }
 
   //! \brief Multiplication with a scalar.
@@ -246,9 +244,7 @@ public:
   //! \brief Flags the non-zero equations from \a B as non-zero pivots in this.
   bool flagNonZeroEqs(const SystemMatrix& B);
 
-  //! \brief Begins communication step needed in parallel matrix assembly.
-  virtual bool beginAssembly() { return true; }
-  //! \brief Ends communication step needed in parallel matrix assembly.
+  //! \brief Finalizes the system matrix assembly.
   virtual bool endAssembly();
 
   //! \brief Adds an element matrix into the associated system matrix.

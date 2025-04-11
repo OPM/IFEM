@@ -53,7 +53,6 @@ TEST(TestISTLMatrix, Assemble)
   for (int iel = 1; iel <= sim.getSAM()->getNoElms(); ++iel)
     myMat->assemble(stencil, *sim.getSAM(), iel);
 
-  myMat->beginAssembly();
   myMat->endAssembly();
 
   // now inspect the matrix
@@ -87,7 +86,6 @@ TEST(TestISTLMatrix, AssembleBasisBlocks)
   for (int iel = 1; iel <= sim.getSAM()->getNoElms(); ++iel)
     myMat->assemble(stencil, *sim.getSAM(), iel);
 
-  myMat->beginAssembly();
   myMat->endAssembly();
 
   ISTL::Mat& A = myMat->getMatrix();
@@ -141,7 +139,6 @@ TEST(TestISTLMatrix, AssembleComponentBlocks)
   for (int iel = 1; iel <= sim.getSAM()->getNoElms(); ++iel)
     myMat->assemble(stencil, *sim.getSAM(), iel);
 
-  myMat->beginAssembly();
   myMat->endAssembly();
 
   ISTL::Mat& A = myMat->getMatrix();
