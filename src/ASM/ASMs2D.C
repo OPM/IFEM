@@ -1755,7 +1755,8 @@ bool ASMs2D::integrate (Integrand& integrand,
       {
         int iel = groups[g][t][e];
         fe.iel = MLGE[iel];
-        if (!this->isElementActive(fe.iel)) continue; // zero-area element
+        if (!this->isElementActive(fe.iel,time.t))
+          continue; // zero-area or inactive element
 
 #ifdef SP_DEBUG
         if (dbgElm < 0 && 1+iel != -dbgElm)
@@ -2039,10 +2040,12 @@ bool ASMs2D::integrate (Integrand& integrand,
       for (size_t e = 0; e < groups[g][t].size() && ok; e++)
       {
         int iel = groups[g][t][e];
-        if (itgPts[iel].empty()) continue; // no points in this element
+        if (itgPts[iel].empty())
+          continue; // no points in this element
 
         fe.iel = MLGE[iel];
-        if (!this->isElementActive(fe.iel)) continue; // zero-area element
+        if (!this->isElementActive(fe.iel,time.t))
+          continue; // zero-area or inactive element
 
 #ifdef SP_DEBUG
         if (dbgElm < 0 && 1+iel != -dbgElm)
@@ -2218,7 +2221,8 @@ bool ASMs2D::integrate (Integrand& integrand,
       if (!hasInterfaceElms) jel = iel;
 
       fe.iel = abs(MLGE[jel]);
-      if (!this->isElementActive(fe.iel)) continue; // zero-area element
+      if (!this->isElementActive(fe.iel,time.t))
+        continue; // zero-area element
 
       short int status = iChk.hasContribution(iel,i1,i2);
       if (!status) continue; // no interface contributions for this element
@@ -2421,7 +2425,8 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
     for (int i1 = p1; i1 <= n1; i1++, iel++)
     {
       fe.iel = abs(MLGE[doXelms+iel-1]);
-      if (!this->isElementActive(fe.iel)) continue; // zero-area element
+      if (!this->isElementActive(fe.iel,time.t))
+        continue; // zero-area element
 
       if (!myElms.empty() && !glInt.threadSafe() &&
           std::find(myElms.begin(), myElms.end(), iel-1) == myElms.end())

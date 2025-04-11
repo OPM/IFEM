@@ -349,6 +349,28 @@ bool SIMinput::parseGeometryTag (const tinyxml2::XMLElement* elem)
     }
   }
 
+  else if (!strcasecmp(elem->Value(),"activation") && elem->FirstChild())
+  {
+    int patch = 0;
+    std::string type("expression");
+    utl::getAttribute(elem,"patch",patch);
+    utl::getAttribute(elem,"type",type,true);
+    if (patch < 1 || patch > nGlPatches)
+    {
+      std::cerr <<" *** SIMinput::parse: Invalid patch index "
+                << patch <<"."<< std::endl;
+      return false;
+    }
+    ASMbase* pch = this->getPatch(patch,true);
+    if (pch)
+    {
+      const char* funcdef = elem->FirstChild()->Value();
+      IFEM::cout <<"\tActivation function for P"<< patch
+                 <<": "<< funcdef << std::endl;
+      pch->setElementActivator(utl::parseIntFunc(funcdef,type));
+    }
+  }
+
   return true;
 }
 
@@ -685,8 +707,11 @@ bool SIMinput::parseICTag (const tinyxml2::XMLElement* elem)
 bool SIMinput::parseLinSolTag (const tinyxml2::XMLElement* elem)
 {
   if (!strcasecmp(elem->Value(),"class"))
+  {
     if (elem->FirstChild())
       opt.setLinearSolver(elem->FirstChild()->Value());
+    utl::getAttribute(elem,"fixzeros",fixZeros);
+  }
 
   return true;
 }
