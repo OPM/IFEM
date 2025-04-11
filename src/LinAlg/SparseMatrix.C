@@ -563,16 +563,23 @@ bool SparseMatrix::add (const SystemMatrix& B, Real alpha)
   else
     return false;
 
-  return haveContributions = true;
+  return this->flagNonZeroEqs(B);
 }
 
 
-bool SparseMatrix::add (Real sigma)
+bool SparseMatrix::add (Real sigma, int ieq)
 {
-  for (size_t i = 1; i <= nrow && i <= ncol; i++)
+  if (ieq > static_cast<int>(nrow))
+    return false;
+  else if (ieq > 0)
+    this->operator()(ieq,ieq) += sigma;
+  else for (size_t i = 1; i <= nrow && i <= ncol; i++)
     this->operator()(i,i) += sigma;
 
-  return haveContributions = true;
+  if (ieq > 0)
+    return this->flagNonZeroEqs({ieq});
+  else
+    return this->flagNonZeroEqs();
 }
 
 
@@ -814,7 +821,8 @@ bool SparseMatrix::assemble (const Matrix& eM, const SAM& sam, int e)
 
   Vector dummyB;
   assemSparse(eM,*this,dummyB,meen,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);
-  return haveContributions = true;
+
+  return this->flagNonZeroEqs(meen);
 }
 
 
@@ -829,7 +837,8 @@ bool SparseMatrix::assemble (const Matrix& eM, const SAM& sam,
     return false;
 
   assemSparse(eM,*this,*Bptr,meen,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);
-  return haveContributions = true;
+
+  return this->flagNonZeroEqs(meen);
 }
 
 
@@ -843,7 +852,8 @@ bool SparseMatrix::assemble (const Matrix& eM, const SAM& sam,
     return false;
 
   assemSparse(eM,*this,*Bptr,meq,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);
-  return haveContributions = true;
+
+  return this->flagNonZeroEqs(meq);
 }
 
 
@@ -856,7 +866,8 @@ bool SparseMatrix::assembleCol (const RealArray& V, const SAM& sam,
   if (!sam.getNodeEqns(mnen,n)) return false;
 
   assemSparse(V,*this,col,mnen,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);
-  return haveContributions = true;
+
+  return this->flagNonZeroEqs(mnen);
 }
 
 
