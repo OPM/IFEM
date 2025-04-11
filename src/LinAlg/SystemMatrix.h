@@ -205,9 +205,9 @@ public:
 
 protected:
   //! \brief Default constructor.
-  SystemMatrix() : haveContributions(false) {}
+  SystemMatrix() : nonZeroEqs({false}) {}
   //! \brief Copy constructor.
-  SystemMatrix(const SystemMatrix& a) : haveContributions(a.haveContributions){}
+  SystemMatrix(const SystemMatrix& a) : nonZeroEqs(a.nonZeroEqs) {}
 
 public:
   //! \brief Empty destructor.
@@ -225,7 +225,7 @@ public:
   //! \brief Checks if the matrix is empty.
   virtual bool empty() const { return this->dim(0) == 0; }
   //! \brief Checks if the matrix have no non-zero contributions.
-  bool isZero() const { return !haveContributions && this->dim(1) > 0; }
+  bool isZero() const;
 
   //! \brief Returns the dimension of the system matrix.
   virtual size_t dim(int idim = 1) const = 0;
@@ -240,10 +240,17 @@ public:
   //! \brief Initializes the matrix to zero assuming it is properly dimensioned.
   virtual void init() = 0;
 
+  //! \brief Initializes the \ref nonZeroEqs flags.
+  void initNonZeroEqs();
+  //! \brief Flags the equations \a meq as pivots with non-zero contributions.
+  bool flagNonZeroEqs(const std::vector<int>& meq = {});
+  //! \brief Flags the non-zero equations from \a B as non-zero pivots in this.
+  bool flagNonZeroEqs(const SystemMatrix& B);
+
   //! \brief Begins communication step needed in parallel matrix assembly.
   virtual bool beginAssembly() { return true; }
   //! \brief Ends communication step needed in parallel matrix assembly.
-  virtual bool endAssembly() { return true; }
+  virtual bool endAssembly();
 
   //! \brief Adds an element matrix into the associated system matrix.
   //! \param[in] eM  The element matrix
@@ -286,8 +293,8 @@ public:
   //! \brief Adds a matrix with similar structure to the current matrix.
   virtual bool add(const SystemMatrix&, Real = Real(1)) { return false; }
 
-  //! \brief Adds a constant diagonal matrix to the current matrix.
-  virtual bool add(Real) { return false; }
+  //! \brief Adds a constant to the diagonal of current matrix.
+  virtual bool add(Real, int = 0) { return false; }
 
   //! \brief Performs a matrix-vector multiplication.
   virtual bool multiply(const SystemVector&, SystemVector&) const
@@ -329,7 +336,8 @@ protected:
     return A.write(os);
   }
 
-  bool haveContributions; //!< If \e true, the matrix have some non-zero terms
+private:
+  std::vector<bool> nonZeroEqs; //!< Flags equations with non-zero contributions
 };
 
 #endif

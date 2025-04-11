@@ -359,7 +359,8 @@ bool SPRMatrix::assemble (int e, const Matrix& eM, const SAM& sam, Real* B)
           sam.madof, sam.meqn, sam.mpmnpc, sam.mmnpc, sam.mpmceq, sam.mmceq,
           msica, mtrees, msifa, mvarnc, values, B ? B : rWork.data(),
           IWORK.data(), e, eM.rows(), 6, B ? 1 : 0, ierr);
-  if (ierr == 0) return haveContributions = true;
+  if (ierr == 0)
+    return this->flagNonZeroEqs({IWORK.begin(),IWORK.begin()+eM.rows()});
 
   std::cerr <<"SAM::SPRADM: Failure "<< ierr << std::endl;
 #endif
@@ -384,18 +385,23 @@ bool SPRMatrix::add (const SystemMatrix& B, Real alpha)
 
   cblas_daxpy(mpar[7]+mpar[15], alpha, Bptr->values, 1, values, 1);
 
-  return haveContributions = true;
+  return this->flagNonZeroEqs(B);
 }
 
 
-bool SPRMatrix::add (Real sigma)
+bool SPRMatrix::add (Real sigma, int ieq)
 {
 #ifdef HAS_SPR
-  sprdad_(mpar, mtrees, msifa, values, sigma, 6, ierr);
-  if (ierr == 0) return haveContributions = true;
+  if (ieq > 0)
+    ierr = -999; // Not implemented yet
+  else
+    sprdad_(mpar, mtrees, msifa, values, sigma, 6, ierr);
+  if (ierr == 0)
+    return this->flagNonZeroEqs();
 
   std::cerr <<"SAM::SPRDAD: Failure "<< ierr << std::endl;
 #endif
+
   return false;
 }
 

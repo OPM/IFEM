@@ -153,7 +153,7 @@ bool ISTLMatrix::endAssembly()
     for (int i = IA[j]; i < IA[j+1]; ++i)
       iA[JA[i]][j] = A[i];
 
-  return true;
+  return this->SparseMatrix::endAssembly();
 }
 
 

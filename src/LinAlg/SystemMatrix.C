@@ -155,6 +155,74 @@ SystemMatrix* SystemMatrix::create (const ProcessAdm* adm,
 }
 
 
+void SystemMatrix::initNonZeroEqs ()
+{
+  nonZeroEqs.clear();
+  nonZeroEqs.resize(this->dim(1),false);
+}
+
+
+bool SystemMatrix::flagNonZeroEqs (const IntVec& meq)
+{
+  if (meq.empty() || nonZeroEqs.size() == 1)
+    std::fill(nonZeroEqs.begin(),nonZeroEqs.end(),true);
+  else
+  {
+    for (int ieq : meq)
+      if (ieq < 0 || ieq > static_cast<int>(nonZeroEqs.size()))
+        return false; //TODO: for ieq < 0, find the actual master dofs
+      else if (ieq > 0)
+        nonZeroEqs[ieq-1] = true;
+  }
+
+  return true;
+}
+
+
+bool SystemMatrix::flagNonZeroEqs (const SystemMatrix& B)
+{
+  if (nonZeroEqs.size() == 1)
+    nonZeroEqs.front() = true;
+  else
+  {
+    for (size_t i = 0; i < nonZeroEqs.size(); i++)
+      if (i >= B.nonZeroEqs.size())
+        break;
+      else if (B.nonZeroEqs[i])
+        nonZeroEqs[i] = true;
+  }
+
+  return true;
+}
+
+
+bool SystemMatrix::isZero () const
+{
+  if (this->dim(1) < 1)
+    return false;
+
+  return std::none_of(nonZeroEqs.begin(),nonZeroEqs.end(),
+                      [](bool nz){ return nz; });
+}
+
+
+/*!
+  This method will insert 1.0e9 on the diagonal, for all equations without
+  contributions, such that the remaining equations can be solved for,
+  if the method initNonZeroEqs() was invoked before the assembly started.
+*/
+
+bool SystemMatrix::endAssembly ()
+{
+  if (nonZeroEqs.size() > 1 && !this->isZero())
+    for (size_t ieq = 1; ieq <= nonZeroEqs.size(); ieq++)
+      if (!nonZeroEqs[ieq-1] && !this->add(1.0e9,ieq))
+        return false;
+
+  return true;
+}
+
+
 StdVector SystemMatrix::operator* (const SystemVector& b) const
 {
   StdVector results;

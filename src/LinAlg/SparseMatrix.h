@@ -193,8 +193,8 @@ public:
   //! \param[in] alpha Scale factor for matrix \b B
   virtual bool add(const SystemMatrix& B, Real alpha);
 
-  //! \brief Adds the diagonal matrix &sigma;\b I to the current matrix.
-  virtual bool add(Real sigma);
+  //! \brief Adds the constant &sigma; to the diagonal of this matrix.
+  virtual bool add(Real sigma, int ieq);
 
   //! \brief Performs the matrix-vector multiplication \b C = \a *this * \b B.
   virtual bool multiply(const SystemVector& B, SystemVector& C) const;

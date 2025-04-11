@@ -601,30 +601,31 @@ void PETScMatrix::setupBlockSparsitySerial (const SAM& sam)
 
 bool PETScMatrix::beginAssembly()
 {
-  if (matvec.empty()) {
-    for (size_t j = 0; j < cols(); ++j)
-      for (int i = IA[j]; i < IA[j+1]; ++i)
-        MatSetValue(pA, adm.dd.getGlobalEq(JA[i]+1)-1,
-                    adm.dd.getGlobalEq(j+1)-1, A[i], ADD_VALUES);
-  } else {
-    for (size_t j = 0; j < cols(); ++j) {
-      for (int i = IA[j]; i < IA[j+1]; ++i) {
-        if (adm.dd.isPartitioned())
-          MatSetValue(matvec[glb2Blk[i][0]],
-                      glb2Blk[i][1],
-                      glb2Blk[i][2],
-                      A[i], ADD_VALUES);
-        else {
-          int rblock = glb2Blk[i][0] / adm.dd.getNoBlocks() + 1;
-          int cblock = glb2Blk[i][0] % adm.dd.getNoBlocks() + 1;
-          MatSetValue(matvec[glb2Blk[i][0]],
-                      adm.dd.getGlobalEq(glb2Blk[i][1]+1, rblock)-1,
-                      adm.dd.getGlobalEq(glb2Blk[i][2]+1, cblock)-1,
-                      A[i], ADD_VALUES);
-        }
+  if (!this->SparseMatrix::endAssembly())
+    return false;
+
+  for (size_t j = 0; j < cols(); ++j)
+    for (int i = IA[j]; i < IA[j+1]; ++i)
+      if (matvec.empty())
+        MatSetValue(pA,
+                    adm.dd.getGlobalEq(JA[i]+1)-1,
+                    adm.dd.getGlobalEq(j+1)-1,
+                    A[i], ADD_VALUES);
+      else if (adm.dd.isPartitioned())
+        MatSetValue(matvec[glb2Blk[i][0]],
+                    glb2Blk[i][1],
+                    glb2Blk[i][2],
+                    A[i], ADD_VALUES);
+      else
+      {
+        int rblock = glb2Blk[i][0] / adm.dd.getNoBlocks() + 1;
+        int cblock = glb2Blk[i][0] % adm.dd.getNoBlocks() + 1;
+        MatSetValue(matvec[glb2Blk[i][0]],
+                    adm.dd.getGlobalEq(glb2Blk[i][1]+1, rblock)-1,
+                    adm.dd.getGlobalEq(glb2Blk[i][2]+1, cblock)-1,
+                    A[i], ADD_VALUES);
       }
-    }
-  }
+
   MatAssemblyBegin(pA,MAT_FINAL_ASSEMBLY);
 
   return true;
