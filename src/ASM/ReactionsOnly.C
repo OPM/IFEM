@@ -26,7 +26,7 @@ ReactionsOnly::ReactionsOnly (const SAM* sam, const ProcessAdm& adm,
 }
 
 
-void ReactionsOnly::initialize (bool)
+void ReactionsOnly::initialize (char)
 {
   b.init();
   if (R)
@@ -49,7 +49,7 @@ bool ReactionsOnly::finalize (bool)
 
   if (!S)
     return true;
-  else if (!b.beginAssembly() || !b.endAssembly())
+  else if (!b.endAssembly())
     return false;
   else if (!mySam->expandSolution(b,*S,0.0))
     return false;
