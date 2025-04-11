@@ -55,7 +55,7 @@ SIMbase::SIMbase (IntegrandBase* itg) : g2l(&myGlb2Loc)
   mySolParams = nullptr;
   myGl2Params = nullptr;
   dualField = nullptr;
-  isRefined = lagMTOK = false;
+  isRefined = lagMTOK = fixZeros = false;
   nGlbNodes = nGlPatches = 0;
   nIntGP = nBouGP = 0;
   nDofS = 0;
@@ -1021,10 +1021,11 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
   };
 
   bool ok = true;
+  char initLHS = !newLHSmatrix ? 0 : (fixZeros ? 2 : 1);
   bool isAssembling = (myProblem->getMode() > SIM::INIT &&
                        myProblem->getMode() < SIM::RECOVERY);
   if (isAssembling && myEqSys && mdFlag <= 1)
-    myEqSys->initialize(newLHSmatrix);
+    myEqSys->initialize(initLHS);
 
   // Loop over the integrands
   IntegrandMap::const_iterator it;
@@ -1036,10 +1037,10 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
 
     GlobalIntegral& sysQ = it->second->getGlobalInt(myEqSys);
     if (&sysQ != myEqSys && isAssembling && mdFlag <= 1)
-      sysQ.initialize(newLHSmatrix);
+      sysQ.initialize(initLHS);
 
     if (isAssembling && mdFlag <= 1)
-      it->second->initLHSbuffers(newLHSmatrix);
+      it->second->initLHSbuffers(initLHS);
 
     if (!prevSol.empty())
       it->second->initIntegration(time,prevSol.front(),poorConvg);
