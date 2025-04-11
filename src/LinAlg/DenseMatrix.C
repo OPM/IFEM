@@ -123,7 +123,7 @@ void DenseMatrix::dump (std::ostream& os, LinAlg::StorageFormat format,
 */
 
 static void assemDense (const Matrix& eM, Matrix& SM, Vector& SV,
-			const std::vector<int>& meen, const int* meqn,
+			const IntVec& meen, const int* meqn,
 			const int* mpmceq, const int* mmceq, const Real* ttcc)
 {
   // Add elements corresponding to free dofs in eM into SM
@@ -211,17 +211,21 @@ bool DenseMatrix::assemble (const Matrix& eM, const SAM& sam, int e)
   addem2 (eM.ptr(), sam.ttcc, sam.mpar,
 	  sam.madof, sam.meqn, sam.mpmnpc, sam.mmnpc, sam.mpmceq, sam.mmceq,
 	  e, eM.rows(), sam.neq, 6, 0, myMat.ptr(), &dummyRHS, work, ierr);
+  if (ierr == 0 && !this->flagNonZeroEqs({work,work+eM.rows()}))
+    ierr = 2;
   delete[] work;
 #else
   Vector dummyB;
-  std::vector<int> meen;
+  IntVec meen;
   if (sam.getElmEqns(meen,e,eM.rows()))
+  {
     assemDense(eM,myMat,dummyB,meen,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);
+    if (!this->flagNonZeroEqs(meen)) ierr = 2;
+  }
   else
     ierr = 1;
 #endif
-  if (ierr != 0) return false;
-  return haveContributions = true;
+  return ierr == 0;
 }
 
 
@@ -237,22 +241,26 @@ bool DenseMatrix::assemble (const Matrix& eM, const SAM& sam,
   addem2 (eM.ptr(), sam.ttcc, sam.mpar,
 	  sam.madof, sam.meqn, sam.mpmnpc, sam.mmnpc, sam.mpmceq, sam.mmceq,
 	  e, eM.rows(), sam.neq, 6, 1, myMat.ptr(), B.getPtr(), work, ierr);
+  if (ierr == 0 && !this->flagNonZeroEqs({work,work+eM.rows()}))
+    ierr = 2;
   delete[] work;
 #else
   StdVector* Bptr = dynamic_cast<StdVector*>(&B);
-  std::vector<int> meen;
+  IntVec meen;
   if (Bptr && sam.getElmEqns(meen,e,eM.rows()))
+  {
     assemDense(eM,myMat,*Bptr,meen,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);
+    if (!this->flagNonZeroEqs(meen)) ierr = 2;
+  }
   else
     ierr = 1;
 #endif
-  if (ierr != 0) return false;
-  return haveContributions = true;
+  return ierr == 0;
 }
 
 
 bool DenseMatrix::assemble (const Matrix& eM, const SAM& sam,
-                            SystemVector& B, const std::vector<int>& meq)
+                            SystemVector& B, const IntVec& meq)
 {
   if (myMat.rows() != (size_t)sam.neq || myMat.cols() < (size_t)sam.neq)
     return false;
@@ -264,7 +272,8 @@ bool DenseMatrix::assemble (const Matrix& eM, const SAM& sam,
   if (!Bptr) return false;
 
   assemDense(eM,myMat,*Bptr,meq,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);
-  return haveContributions = true;
+
+  return this->flagNonZeroEqs(meq);
 }
 
 
@@ -350,17 +359,24 @@ bool DenseMatrix::add (const SystemMatrix& B, Real alpha)
   if (myMat.cols() <  Bptr->myMat.cols()) return false;
 
   myMat.add(Bptr->myMat,alpha);
-  return haveContributions = true;
+
+  return this->flagNonZeroEqs(B);
 }
 
 
-bool DenseMatrix::add (Real sigma)
+bool DenseMatrix::add (Real sigma, int ieq)
 {
-  Real* v = myMat.ptr();
-  size_t inc = myMat.rows()+1;
-  for (size_t i = 0; i < myMat.size(); i += inc)
-    v[i] += sigma;
-  return haveContributions = true;
+  if (ieq > static_cast<int>(myMat.rows()))
+    return false;
+  else if (ieq > 0)
+    myMat(ieq,ieq) += sigma;
+  else
+    cblas_daxpy(myMat.rows(),sigma,&sigma,0,myMat.ptr(),myMat.rows()+1);
+
+  if (ieq == 0)
+    return this->flagNonZeroEqs();
+  else
+    return this->flagNonZeroEqs({ieq});
 }
 
 
