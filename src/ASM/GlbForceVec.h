@@ -41,7 +41,7 @@ public:
   bool initNodeMap(const std::vector<int>& globalNodes, size_t nfc);
 
   //! \brief Initializes the global nodal force vector to zero.
-  virtual void initialize(bool = false);
+  virtual void initialize(char = 0);
   //! \brief Finalizes the global nodal force vector after element assembly.
   virtual bool finalize(bool = false);
 

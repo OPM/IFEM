@@ -171,11 +171,15 @@ bool AlgEqSystem::setAssociatedVector (size_t imat, size_t ivec)
 }
 
 
-void AlgEqSystem::initialize (bool initLHS)
+void AlgEqSystem::initialize (char initLHS)
 {
   if (initLHS)
     for (SysMatrixPair& m : A)
+    {
       m._A->init();
+      if (initLHS == 2)
+        m._A->initNonZeroEqs();
+    }
 
   for (SystemVector* v : b)
     v->init();
