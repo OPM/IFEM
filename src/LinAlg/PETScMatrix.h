@@ -56,14 +56,7 @@ public:
   //! \brief Sets the dimension of the system vector.
   void redim(size_t n) override;
 
-  //! \brief Begins communication step needed in parallel vector assembly.
-  //! \details Must be called together with endAssembly after vector assembly
-  //! is completed on each processor and before the linear system is solved.
-  bool beginAssembly() override;
-
-  //! \brief Ends communication step needed in parallel vector assembly.
-  //! \details Must be called together with beginAssembly after vector assembly
-  //! is completed on each processor and before the linear system is solved.
+  //! \brief Finalizes the system vector assembly.
   bool endAssembly() override;
 
   //! \brief L1-norm of vector.
@@ -117,13 +110,7 @@ public:
   //! \brief Initializes the matrix to zero assuming it is properly dimensioned.
   void init() override;
 
-  //! \brief Begins communication step needed in parallel matrix assembly.
-  //! \details Must be called together with endAssembly after matrix assembly
-  //! is completed on each processor and before the linear system is solved.
-  bool beginAssembly() override;
-  //! \brief Ends communication step needed in parallel matrix assembly.
-  //! \details Must be called together with beginAssembly after matrix assembly
-  //! is completed on each processor and before the linear system is solved.
+  //! \brief Finalizes the system matrix assembly.
   bool endAssembly() override;
 
   //! \brief Performs the matrix-vector multiplication \b C = \a *this * \b B.
