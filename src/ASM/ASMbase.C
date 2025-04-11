@@ -67,6 +67,7 @@ ASMbase::ASMbase (unsigned char n_p, unsigned char n_s, unsigned char n_f)
   nel = nnod = 0;
   idx = 0;
   firstIp = 0;
+  myElActive = nullptr;
 }
 
 
@@ -85,6 +86,7 @@ ASMbase::ASMbase (const ASMbase& patch, unsigned char n_f)
   idx = patch.idx;
   firstIp = patch.firstIp;
   // Note: Properties are _not_ copied
+  myElActive = nullptr; // Element activation function is not copied
 }
 
 
@@ -123,6 +125,7 @@ ASMbase::ASMbase (const ASMbase& patch)
     std::cerr <<"  ** ASMbase copy constructor: The copied patch has"
               <<" multi-point constraints, these are not copied.\n";
 
+  myElActive = nullptr; // Element activation function is not copied
   nLag = 0; // Lagrange multipliers are not copied
 }
 
@@ -131,6 +134,7 @@ ASMbase::~ASMbase ()
 {
   for (MPC* mpc : mpcs)
     delete mpc;
+  delete myElActive;
 }
 
 
@@ -1747,10 +1751,16 @@ void ASMbase::getBoundaryElms (int lIndex, IntVec& elms,
 }
 
 
-bool ASMbase::isElementActive (int elmId) const
+bool ASMbase::isElementActive (int elmId, double time) const
 {
-  if (elmId < 1) return false;
-  if (!myActiveEls) return true;
+  if (elmId < 1)
+    return false; // element with zero extension
+
+  if (myElActive && time < (*myElActive)(elmId))
+    return false; // element not activated yet
+
+  if (!myActiveEls)
+    return true; // all elements are active
 
   return std::find(myActiveEls->begin(),
                    myActiveEls->end(),elmId) != myActiveEls->end();

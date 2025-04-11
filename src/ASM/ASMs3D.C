@@ -2110,7 +2110,8 @@ bool ASMs3D::integrate (Integrand& integrand,
       {
         int iel = groups[g][t][l];
         fe.iel = MLGE[iel];
-        if (!this->isElementActive(fe.iel)) continue; // zero-volume element
+        if (!this->isElementActive(fe.iel,time.t))
+          continue; // zero-volume or inactive element
 
 #ifdef SP_DEBUG
         if (dbgElm < 0 && 1+iel != -dbgElm)
@@ -2383,10 +2384,12 @@ bool ASMs3D::integrate (Integrand& integrand,
       for (size_t e = 0; e < groups[g][t].size() && ok; e++)
       {
         int iel = groups[g][t][e];
-        if (itgPts[iel].empty()) continue; // no points in this element
+        if (itgPts[iel].empty())
+          continue; // no integration points in this element
 
         fe.iel = MLGE[iel];
-        if (!this->isElementActive(fe.iel)) continue; // zero-volume element
+        if (!this->isElementActive(fe.iel,time.t))
+          continue; // zero-volume or inactive element
 
 #ifdef SP_DEBUG
         if (dbgElm < 0 && 1+iel != -dbgElm)
@@ -2642,7 +2645,8 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
       {
         int iel = threadGrp[g][t][l];
         fe.iel = abs(MLGE[doXelms+iel]);
-        if (!this->isElementActive(fe.iel)) continue; // zero-volume element
+        if (!this->isElementActive(fe.iel,time.t))
+          continue; // zero-volume or inactive element
 
 #ifdef SP_DEBUG
         if (dbgElm < 0 && 1+iel != -dbgElm)
@@ -2875,7 +2879,8 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
       for (int i1 = p1; i1 <= n1; i1++, iel++)
       {
         fe.iel = MLGE[iel-1];
-        if (!this->isElementActive(fe.iel)) continue; // zero-volume element
+        if (!this->isElementActive(fe.iel,time.t))
+          continue; // zero-volume or inactive element
 
         if (!myElms.empty() &&
             std::find(myElms.begin(), myElms.end(), fe.iel-1) == myElms.end())

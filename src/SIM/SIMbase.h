@@ -267,6 +267,9 @@ public:
   //! \brief Returns current refinement status.
   int getRefined() const { return isRefined; }
 
+  //! \brief Returns \e true if an element activation function is specified.
+  bool hasElementActivator() const;
+
 
   // Computational methods
   // =====================

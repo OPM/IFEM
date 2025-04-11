@@ -256,7 +256,7 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
 	  Vec3 X(pch->getCoord(node));
 	  std::map<Vec3,int>::const_iterator xit = globalNodes.find(X);
 	  if (xit == globalNodes.end())
-	    globalNodes.insert(std::make_pair(X,pch->getNodeID(node)));
+	    globalNodes.emplace(X,pch->getNodeID(node));
 	  else if (pch->mergeNodes(node,xit->second))
 	    nDupl++;
 	}
@@ -590,7 +590,7 @@ bool SIMbase::setAssociatedRHS (size_t iMat, size_t iVec)
 bool SIMbase::setMode (int mode, bool needIntegr, bool resetSol)
 {
   if (myInts.empty() && (myProblem || needIntegr))
-    myInts.insert(std::make_pair(0,myProblem));
+    myInts.emplace(0,myProblem);
 
   for (IntegrandMap::iterator it = myInts.begin(); it != myInts.end(); ++it)
     if (it->second)
@@ -881,6 +881,13 @@ bool SIMbase::updateGrid (const std::string& field)
   std::cerr <<" *** SIMbase::updateGrid: No such field \""<< field
 	    <<"\" registered for \""<< this->getName() <<"\"."<< std::endl;
   return false;
+}
+
+
+bool SIMbase::hasElementActivator () const
+{
+  return std::any_of(myModel.begin(), myModel.end(),
+                     [](const ASMbase* p){ return p->getElementActivator(); });
 }
 
 
@@ -1371,11 +1378,11 @@ void SIMbase::getWorstDofs (const Vector& u, const Vector& r,
   // Compute the energy at each DOF and insert into a map sorted on the energy
   for (i = 0; i < u.size() && i < r.size(); i++)
     if (iteNorm == 1) // L2-norm of residual
-      energy.insert(std::make_pair(fabs(r[i]),i+1));
+      energy.emplace(fabs(r[i]),i+1);
     else if (iteNorm == 2) // L2-norm of solution correction
-      energy.insert(std::make_pair(fabs(u[i]),i+1));
+      energy.emplace(fabs(u[i]),i+1);
     else // Energy norm
-      energy.insert(std::make_pair(fabs(u[i]*r[i]),i+1));
+      energy.emplace(fabs(u[i]*r[i]),i+1);
 
   // Pick the nWorst highest energies from the back of the map
   std::multimap<double,size_t>::reverse_iterator rit = energy.rbegin();
