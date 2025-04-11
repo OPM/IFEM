@@ -815,6 +815,7 @@ protected:
   int  nGlbNodes; //!< This value will be equal to SAM::getNoNodes('A').
   int  isRefined; //!< Indicates if the model is adaptively refined
   bool lagMTOK;   //!< Indicates if global multipliers is OK with multithreading
+  bool fixZeros;  //!< If \e true, constrain zero pivots before solving
 
   //! \brief A struct with data for system matrix/vector dumps.
   struct DumpData

@@ -171,31 +171,31 @@ bool AlgEqSystem::setAssociatedVector (size_t imat, size_t ivec)
 }
 
 
-void AlgEqSystem::initialize (bool initLHS)
+void AlgEqSystem::initialize (char initLHS)
 {
-  size_t i;
-
   if (initLHS)
-    for (i = 0; i < A.size(); i++)
-      A[i]._A->init();
+    for (SysMatrixPair& m : A)
+    {
+      m._A->init();
+      if (initLHS == 2)
+        m._A->initNonZeroEqs();
+    }
 
-  for (i = 0; i < b.size(); i++)
-    b[i]->init();
+  for (SystemVector* v : b)
+    v->init();
 
-  for (i = 0; i < c.size(); i++)
-    c[i] = 0.0;
+  std::fill(c.begin(),c.end(),0.0);
+  std::fill(R.begin(),R.end(),0.0);
 
 #ifdef USE_OPENMP
   size_t nthread = omp_get_max_threads();
   if (nthread > 1 && !c.empty())
   {
     d = new std::vector<double>[nthread];
-    for (i = 0; i < nthread; i++)
+    for (size_t i = 0; i < nthread; i++)
       d[i].resize(c.size(),0.0);
   }
 #endif
-
-  std::fill(R.begin(),R.end(),0.0);
 }
 
 

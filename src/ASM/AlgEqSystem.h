@@ -74,7 +74,7 @@ public:
 
   //! \brief Initializes the system matrices to zero.
   //! \param[in] initLHS If \e false, only initialize right-hand-side vectors
-  virtual void initialize(bool initLHS);
+  virtual void initialize(char initLHS);
   //! \brief Finalizes the system matrices after element assembly.
   //! \param[in] newLHS If \e false, only right-hand-side vectors was assembled
   virtual bool finalize(bool newLHS);

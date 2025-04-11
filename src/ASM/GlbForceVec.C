@@ -42,7 +42,7 @@ bool GlbForceVec::initNodeMap (const std::vector<int>& globalNodes, size_t nfc)
 }
 
 
-void GlbForceVec::initialize (bool)
+void GlbForceVec::initialize (char)
 {
   F.fill(0.0);
 }

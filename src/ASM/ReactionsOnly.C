@@ -26,7 +26,7 @@ ReactionsOnly::ReactionsOnly (const SAM* sam, const ProcessAdm& adm,
 }
 
 
-void ReactionsOnly::initialize (bool)
+void ReactionsOnly::initialize (char)
 {
   b.init();
   if (R)

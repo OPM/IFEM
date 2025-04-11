@@ -34,7 +34,7 @@ public:
   virtual ~GlobalIntegral() {}
 
   //! \brief Initializes the integrated quantity to zero.
-  virtual void initialize(bool) {}
+  virtual void initialize(char) {}
   //! \brief Finalizes the integrated quantity after element assembly.
   virtual bool finalize(bool) { return true; }
 
