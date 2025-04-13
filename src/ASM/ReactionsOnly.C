@@ -22,7 +22,9 @@ ReactionsOnly::ReactionsOnly (const SAM* sam, const ProcessAdm& adm,
                               RealArray* rf, Vector* sf)
   : mySam(sam), myAdm(adm), R(rf), S(sf)
 {
-  mySam->initForAssembly(b,R);
+  b.redim(sam->getNoEquations());
+  if (R)
+    R->resize(sam->getNoSpecifiedDOFs());
 }
 
 
