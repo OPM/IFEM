@@ -71,7 +71,7 @@ public:
 
   //! \brief Initializes the element assembly process.
   //! \param[in] sam Auxiliary data describing the FE model topology, etc.
-  virtual void initAssembly(const SAM& sam, bool);
+  virtual void initAssembly(const SAM& sam, char);
 
   //! \brief Initializes the matrix to zero assuming it is properly dimensioned.
   virtual void init();

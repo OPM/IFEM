@@ -58,9 +58,8 @@ public:
                     const char* label);
 
   //! \brief Initializes the element assembly process.
-  //! \details Must be called once before the element assembly loop.
   //! \param[in] sam Auxiliary data describing the FE model topology, etc.
-  virtual void initAssembly(const SAM& sam, bool);
+  virtual void initAssembly(const SAM& sam, char);
 
   //! \brief Initializes the matrix to zero assuming it is properly dimensioned.
   virtual void init() { myMat.fill(Real(0)); }

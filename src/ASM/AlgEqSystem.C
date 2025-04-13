@@ -31,10 +31,15 @@ AlgEqSystem::AlgEqSystem (const SAM& s, const ProcessAdm* a) : sam(s), adm(a)
 
 bool AlgEqSystem::init (LinAlg::MatrixType mtype, const LinSolParams* spar,
                         size_t nmat, size_t nvec, size_t nscl,
-                        bool withReactions, int num_threads_SLU)
+                        bool reactions, int num_threads_SLU, bool forcePreAss)
 {
-  // Using the sign of the num_threads_SLU argument to flag this (convenience)
-  bool dontLockSparsityPattern = num_threads_SLU < 0;
+  // Use the sign of the num_threads_SLU argument to flag
+  // delayed locking of the sparsity pattern (convenience)
+  char preAssemblyFlag;
+  if (forcePreAss)
+    preAssemblyFlag = num_threads_SLU < 0 ? 'f' : 'F';
+  else
+    preAssemblyFlag = num_threads_SLU < 0 ? 'd' : 0;
 
   size_t i;
   for (i = nmat; i < A.size(); i++)
@@ -59,7 +64,7 @@ bool AlgEqSystem::init (LinAlg::MatrixType mtype, const LinSolParams* spar,
       if (!A[i]._A) return false;
     }
 
-    A[i]._A->initAssembly(sam,dontLockSparsityPattern);
+    A[i]._A->initAssembly(sam,preAssemblyFlag);
     A[i]._b = nullptr;
   }
 
@@ -77,7 +82,7 @@ bool AlgEqSystem::init (LinAlg::MatrixType mtype, const LinSolParams* spar,
   {
     A.front()._b = b.front();
     b.front()->redim(sam.getNoEquations());
-    if (withReactions)
+    if (reactions)
       R.resize(sam.getNoSpecifiedDOFs());
   }
 

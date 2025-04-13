@@ -232,10 +232,9 @@ public:
 
   //! \brief Initializes the element assembly process.
   //! \param[in] sam Auxiliary data describing the FE model topology, etc.
-  //! \param[in] delayLocking If \e true, do not lock the sparsity pattern yet
   //!
   //! \details This method must be called once before the element assembly loop.
-  virtual void initAssembly(const SAM& sam, bool delayLocking = false) = 0;
+  virtual void initAssembly(const SAM& sam, char = 0) = 0;
 
   //! \brief Initializes the matrix to zero assuming it is properly dimensioned.
   virtual void init() = 0;

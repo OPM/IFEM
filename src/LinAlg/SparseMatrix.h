@@ -105,8 +105,13 @@ public:
 
   //! \brief Initializes the element assembly process.
   //! \param[in] sam Auxiliary data describing the FE model topology, etc.
-  //! \param[in] delayLocking If \e true, do not lock the sparsity pattern yet
-  virtual void initAssembly(const SAM& sam, bool delayLocking);
+  //! \param[in] preAssembly Flag for doing preassembly
+  //! - F : Force preassembly always, and lock the sparsity pattern
+  //! - f : Force preassembly always, but delay locking the sparsity pattern
+  //! - d : Do preassembly only if multi-threaded assembly,
+  //!       but delay locking the sparsity pattern
+  //! - 0 : Do preassembly if multi-threading, and lock parsity pattern
+  virtual void initAssembly(const SAM& sam, char preAssembly);
 
   //! \brief Initializes the element sparsity pattern based on node connections.
   //! \param[in] sam Auxiliary data describing the FE model topology, etc.
@@ -275,10 +280,7 @@ private:
   SparseSolver solver; //!< Which equation solver to use
   SuperLUdata*    slu; //!< Matrix data for the SuperLU equation solver
   int      numThreads; //!< Number of threads to use for the SuperLU_MT solver
-
-#ifdef HAS_UMFPACK
-  void* umfSymbolic; //!< Symbolically factored matrix for UMFPACK
-#endif
+  void*   umfSymbolic; //!< Symbolically factored matrix for UMFPACK
 
 protected:
   bool factored; //!< Set to \e true when the matrix is factorized

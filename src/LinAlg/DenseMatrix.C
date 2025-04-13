@@ -74,7 +74,7 @@ DenseMatrix::DenseMatrix (const Matrix& A, bool s) : myMat(A)
 }
 
 
-void DenseMatrix::initAssembly (const SAM& sam, bool)
+void DenseMatrix::initAssembly (const SAM& sam, char)
 {
   myMat.resize(sam.neq,sam.neq,true);
 }
