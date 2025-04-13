@@ -169,14 +169,11 @@ PETScMatrix::~PETScMatrix ()
 }
 
 
-void PETScMatrix::initAssembly (const SAM& sam, bool delayLocking)
+void PETScMatrix::initAssembly (const SAM& sam, char)
 {
-  if (adm.dd.isPartitioned())
-    this->resize(sam.neq,sam.neq);
-  else {
-    this->SparseMatrix::initAssembly(sam, delayLocking);
-    this->SparseMatrix::preAssemble(sam, delayLocking);
-  }
+  this->resize(sam.neq,sam.neq);
+  if (!adm.dd.isPartitioned())
+    this->preAssemble(sam,false);
 
   // Get number of local equations in linear system
   PetscInt neq = adm.dd.getMaxEq() - adm.dd.getMinEq() + 1;
@@ -220,7 +217,7 @@ void PETScMatrix::initAssembly (const SAM& sam, bool delayLocking)
     isvec.resize(adm.dd.getNoBlocks());
     // index sets
     for (size_t i = 0; i < isvec.size(); ++i) {
-      std::vector<int> blockEq;
+      IntVec blockEq;
       blockEq.reserve(adm.dd.getMaxEq(i+1)-adm.dd.getMinEq(i+1)+1);
       for (int leq : adm.dd.getBlockEqs(i)) {
         int eq = adm.dd.getGlobalEq(leq);

@@ -117,18 +117,18 @@ ISTLMatrix::~ISTLMatrix ()
 }
 
 
-void ISTLMatrix::initAssembly (const SAM& sam, bool delayLocking)
+void ISTLMatrix::initAssembly (const SAM& sam, char)
 {
-  SparseMatrix::initAssembly(sam, delayLocking);
-  SparseMatrix::preAssemble(sam, delayLocking);
+  this->resize(sam.getNoEquations());
+  this->preAssemble(sam,false);
 
-  std::vector<std::set<int>> dofc;
+  std::vector<IntSet> dofc;
   sam.getDofCouplings(dofc);
 
   // Set correct number of rows and columns for matrix.
   size_t sum = 0;
-  for (const auto& it : dofc)
-    sum += it.size();
+  for (const IntSet& dofs : dofc)
+    sum += dofs.size();
 
   iA.setSize(rows(), cols(), sum);
   iA.setBuildMode(ISTL::Mat::random);
@@ -138,8 +138,8 @@ void ISTLMatrix::initAssembly (const SAM& sam, bool delayLocking)
   iA.endrowsizes();
 
   for (size_t i = 0; i < dofc.size(); ++i)
-    for (const auto& it : dofc[i])
-      iA.addindex(i, it-1);
+    for (int dof : dofc[i])
+      iA.addindex(i,dof-1);
 
   iA.endindices();
 
@@ -159,7 +159,7 @@ bool ISTLMatrix::endAssembly()
 
 void ISTLMatrix::init ()
 {
-  SparseMatrix::init();
+  this->SparseMatrix::init();
 
   // Set all matrix elements to zero
   iA = 0;

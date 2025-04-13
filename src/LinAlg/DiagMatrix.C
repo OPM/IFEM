@@ -24,7 +24,7 @@ DiagMatrix::DiagMatrix (const RealArray& data, size_t nrows)
 }
 
 
-void DiagMatrix::initAssembly (const SAM& sam, bool)
+void DiagMatrix::initAssembly (const SAM& sam, char)
 {
   myMat.resize(sam.neq,true);
 }

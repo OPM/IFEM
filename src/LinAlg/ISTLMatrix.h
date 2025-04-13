@@ -102,12 +102,9 @@ public:
   SystemMatrix* copy() const override { return new ISTLMatrix(*this); }
 
   //! \brief Initializes the element assembly process.
-  //! \details Must be called once before the element assembly loop.
-  //! The PETSc data structures are initialized and the all symbolic operations
   //! that are needed before the actual assembly can start are performed.
   //! \param[in] sam Auxiliary data describing the FE model topology, etc.
-  //! \param[in] delayLocking If \e true, do not lock the sparsity pattern yet
-  void initAssembly(const SAM& sam, bool delayLocking) override;
+  void initAssembly(const SAM& sam, char) override;
 
   //! \brief Initializes the matrix to zero assuming it is properly dimensioned.
   void init() override;

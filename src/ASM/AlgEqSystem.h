@@ -53,11 +53,13 @@ public:
   //! \param[in] nmat Number of system matrices to allocate
   //! \param[in] nvec Number of system vectors to allocate
   //! \param[in] nscl Number of scalar quantities to allocate
-  //! \param[in] withReactions If \e false, no reaction forces will be computed
+  //! \param[in] reactions If \e false, no reaction forces will be computed
   //! \param[in] num_threads_SLU Number of threads for SuperLU_MT
+  //! \param[in] forcePreAss If \e true, force preassembly for sparse matrices
   bool init(LinAlg::MatrixType mtype, const LinSolParams* spar = nullptr,
             size_t nmat = 1, size_t nvec = 1, size_t nscl = 0,
-            bool withReactions = false, int num_threads_SLU = 1);
+            bool reactions = false, int num_threads_SLU = 1,
+            bool forcePreAss = false);
 
   //! \brief Erases the system matrices and frees dynamically allocated storage.
   void clear();

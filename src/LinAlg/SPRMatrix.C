@@ -196,7 +196,7 @@ size_t SPRMatrix::dim (int idim) const
   that are need before the actual assembly can start are performed.
 */
 
-void SPRMatrix::initAssembly (const SAM& sam, bool)
+void SPRMatrix::initAssembly (const SAM& sam, char)
 {
   memset(mpar,0,NS*sizeof(int));
   msica = msifa = mtrees = mvarnc = nullptr;

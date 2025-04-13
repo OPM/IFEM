@@ -547,8 +547,15 @@ bool SIMbase::initSystem (LinAlg::MatrixType mType,
     mType = LinAlg::DENSE;
   }
 
+  bool forcePA = false;
+  // Force pre-assembly of sparse matrices if not all elements are active at the
+  // start of the simulation to ensure the final sparsity pattern is established
+  if (mType == LinAlg::SPARSE)
+    forcePA = std::any_of(myModel.begin(), myModel.end(),
+                          [](ASMbase* p){ return p->getElementActivator(); });
+
   return myEqSys->init(mType, mySolParams, nMats, nVec, nScl,
-                       withRF, opt.num_threads_SLU);
+                       withRF, opt.num_threads_SLU, forcePA);
 }
 
 
