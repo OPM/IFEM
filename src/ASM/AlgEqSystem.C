@@ -70,17 +70,21 @@ bool AlgEqSystem::init (LinAlg::MatrixType mtype, const LinSolParams* spar,
       if (!b[i]) return false;
     }
 
-  bool ok = true;
+  if (sam.getNoEquations() < 0)
+    return false;
+
   if (A.size() == 1 && !b.empty())
   {
     A.front()._b = b.front();
-    ok = sam.initForAssembly(*b.front(), withReactions ? &R : nullptr);
+    b.front()->redim(sam.getNoEquations());
+    if (withReactions)
+      R.resize(sam.getNoSpecifiedDOFs());
   }
 
   for (i = 0; i < b.size(); i++)
     b[i]->redim(sam.getNoEquations());
 
-  return ok;
+  return true;
 }
 
 

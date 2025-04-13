@@ -21,8 +21,8 @@
 class SystemMatrix;
 class SystemVector;
 
-typedef std::vector<int> IntVec; //!< General integer vector
-typedef std::set<int>    IntSet; //!< General integer set
+using IntVec = std::vector<int>; //!< General integer vector
+using IntSet = std::set<int>;    //!< General integer set
 
 
 /*!
@@ -71,6 +71,8 @@ public:
   int getNoNodes(char dofType = 'A') const;
   //! \brief Returns the total number of DOFs in the model.
   int getNoDOFs() const { return ndof; }
+  //! \brief Returns the number of specified DOFs in the model.
+  int getNoSpecifiedDOFs() const { return nspdof; }
   //! \brief Returns the total number of constraint equations in the model.
   int getNoConstraints() const { return nceq; }
   //! \brief Returns the number of equations (free DOFs) in the model.
@@ -87,37 +89,9 @@ public:
   //! \brief Computes the sparse structure (DOF couplings) in the system matrix.
   //! \param[out] irow start index for each row in jcol
   //! \param[out] jcol column indices for non-zero entries
-  bool getDofCouplings(IntVec& irow, IntVec& jcol) const;
+  void getDofCouplings(IntVec& irow, IntVec& jcol) const;
   //! \brief Finds the set of free DOFs coupled to each free DOF.
-  bool getDofCouplings(std::vector<IntSet>& dofc) const;
-
-  //! \brief Initializes the system matrices prior to the element assembly.
-  //! \param sysK   The system left-hand-side matrix to be initialized
-  //! \param sysRHS The system right-hand-side load vector to be initialized
-  //! \param reactionForces Pointer to vector of nodal reaction forces
-  //! \param[in] dontLockSP If \e true, do not lock the matrix sparsity pattern
-  //! \return \e false if no free DOFs in the system, otherwise \e true
-  //!
-  //! \details This method must be called once before the first call to
-  //! assembleSystem() for a given load case or time step.
-  bool initForAssembly(SystemMatrix& sysK, SystemVector& sysRHS,
-                       RealArray* reactionForces = nullptr,
-                       bool dontLockSP = false) const;
-
-  //! \brief Initializes a system matrix prior to the element assembly.
-  //! \param sysM The system left-hand-side matrix to be initialized
-  //! \return \e false if no free DOFs in the system, otherwise \e true
-  //!
-  //! \details This method must be called once before the first call to
-  //! assembleSystem() for a given load case or time step.
-  bool initForAssembly(SystemMatrix& sysM) const;
-
-  //! \brief Initializes the system load vector prior to the element assembly.
-  //! \param sysRHS The system right-hand-side load vector to be initialized
-  //! \param reactionForces Pointer to vector of nodal reaction forces
-  //! \return \e false if no free DOFs in the system, otherwise \e true
-  bool initForAssembly(SystemVector& sysRHS,
-                       RealArray* reactionForces = nullptr) const;
+  void getDofCouplings(std::vector<IntSet>& dofc) const;
 
   //! \brief Adds an element stiffness matrix into the system stiffness matrix.
   //! \param sysK    The left-hand-side system stiffness matrix
@@ -196,13 +170,10 @@ public:
   //! \param[in] nedof Number of degrees of freedom in the element
   //! (used for internal consistency checking, unless zero)
   bool getElmEqns(IntVec& meen, int iel, size_t nedof = 0) const;
-  //! \brief Returns the number equations for an element.
-  //! \param[in] iel Identifier for the element to get number of equations for
-  size_t getNoElmEqns(int iel) const;
   //! \brief Finds the set of unique equation numbers for an element.
   //! \param[out] meen Matrix of unique element equation numbers
   //! \param[in] iel Identifier for the element to get equation numbers for
-  bool getUniqueEqns(IntSet& meen, int iel) const;
+  void getUniqueEqns(IntSet& meen, int iel) const;
 
   //! \brief Finds the matrix of equation numbers for a node.
   //! \param[out] mnen Matrix of node equation numbers
