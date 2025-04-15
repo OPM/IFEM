@@ -24,7 +24,7 @@ DiagMatrix::DiagMatrix (const RealArray& data, size_t nrows)
 }
 
 
-void DiagMatrix::initAssembly (const SAM& sam, bool)
+void DiagMatrix::initAssembly (const SAM& sam, char)
 {
   myMat.resize(sam.neq,true);
 }
@@ -86,7 +86,8 @@ bool DiagMatrix::assemble (const Matrix& eM, const SAM& sam,
   }
 
   myMat(ieq) += eM(1,1);
-  return haveContributions = true;
+
+  return this->flagNonZeroEqs(meq);
 }
 
 
@@ -104,15 +105,24 @@ bool DiagMatrix::add (const SystemMatrix& B, Real alpha)
     return false;
 
   myMat.add(Bptr->myMat,alpha);
-  return haveContributions = true;
+
+  return this->flagNonZeroEqs(B);
 }
 
 
-bool DiagMatrix::add (Real sigma)
+bool DiagMatrix::add (Real sigma, int ieq)
 {
-  for (Real& v : myMat)
+  if (ieq > static_cast<int>(myMat.size()))
+    return false;
+  else if (ieq > 0)
+    myMat[ieq-1] += sigma;
+  else for (Real& v : myMat)
     v += sigma;
-  return haveContributions = true;
+
+  if (ieq == 0)
+    return this->flagNonZeroEqs();
+  else
+    return this->flagNonZeroEqs({ieq});
 }
 
 

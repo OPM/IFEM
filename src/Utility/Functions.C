@@ -847,6 +847,21 @@ static const ScalarFunc* parseFunction (const char* type, char* cline,
 }
 
 
+IntFunc* utl::parseIntFunc (const std::string& func, const std::string& type)
+{
+  //TODO: replace this by some expression function later
+  class Identity : public IntFunc
+  {
+  protected:
+    Real evaluate(const int& arg) const override { return arg; }
+  };
+
+  IFEM::cout <<"  ** utl::parseIntFunc: Not implemented - returning identity"
+             << std::endl;
+  return new Identity();
+}
+
+
 ScalarFunc* utl::parseTimeFunc (const char* func, const std::string& type,
                                 Real eps)
 {

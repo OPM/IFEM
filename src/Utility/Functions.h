@@ -15,14 +15,12 @@
 #define _FUNCTIONS_H
 
 #include "Function.h"
-#include <string>
-
-typedef utl::Function<Real,Vec3> VecTimeFunc; //!< Convenience type
 
 class TensorFunc;
 namespace tinyxml2 { class XMLElement; }
 
-typedef utl::Function<Real,Vec3> VecTimeFunc; //!< Convenience type
+using VecTimeFunc = utl::Function<Real,Vec3>; //!< Vector-valued real function
+using IntFunc     = utl::Function<int,Real>;  //!< Real-valued integer function
 
 
 /*!
@@ -52,7 +50,7 @@ protected:
 
 class LinearFunc : public ScalarFunc
 {
-  typedef std::pair<Real,Real> Point; //!< Convenience type
+  using Point = std::pair<Real,Real>; //!< Convenience type
 
   std::vector<Point> fvals; //!< Values for piece-wise linear function
   Real               scale; //!< Scaling factor
@@ -94,9 +92,9 @@ private:
   \brief A vector-valued linear function.
 */
 
-class LinVecFunc : public utl::Function<Real,Vec3>
+class LinVecFunc : public VecTimeFunc
 {
-  typedef std::pair<Real,Vec3> Point; //!< Convenience type
+  using Point = std::pair<Real,Vec3>; //!< Convenience type
 
   std::vector<Point> fvals; //!< Values for piece-wise linear function
 
@@ -640,11 +638,19 @@ namespace utl
                           const std::string& type = "expression",
                           bool print = true);
 
-  //! \brief Creates a scalar-valued expression function by parsing a character string.
-  //! \details Implementation is in ExprFunctions.C due to encapsulation of autodiff.
-  //! \param[in] function Function definition
-  //! \param[in] autodiff True to enable auto-differentiation
+  //! \brief Creates a scalar-valued function by parsing a character string.
+  //! \param[in] function Function expression
+  //! \param[in] autodiff if \e true, auto-differentiation is enabled
+  //!
+  //! \details The implementation of this method is in the file ExprFunctions.C
+  //! for encapsulation of the autodiff package.
   RealFunc* parseExprRealFunc(const std::string& function, bool autodiff);
+
+  //! \brief Creates a scalar-valued int function by parsing a character string.
+  //! \param[in] func Character string to parse function definition from
+  //! \param[in] type Function definition type flag
+  IntFunc* parseIntFunc(const std::string& func,
+                        const std::string& type = "expression");
 
   //! \brief Creates a vector-valued function by parsing a character string.
   //! \param[in] func Character string to parse function definition from

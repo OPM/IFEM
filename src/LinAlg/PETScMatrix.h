@@ -56,14 +56,7 @@ public:
   //! \brief Sets the dimension of the system vector.
   void redim(size_t n) override;
 
-  //! \brief Begins communication step needed in parallel vector assembly.
-  //! \details Must be called together with endAssembly after vector assembly
-  //! is completed on each processor and before the linear system is solved.
-  bool beginAssembly() override;
-
-  //! \brief Ends communication step needed in parallel vector assembly.
-  //! \details Must be called together with beginAssembly after vector assembly
-  //! is completed on each processor and before the linear system is solved.
+  //! \brief Finalizes the system vector assembly.
   bool endAssembly() override;
 
   //! \brief L1-norm of vector.
@@ -107,23 +100,17 @@ public:
   LinAlg::MatrixType getType() const override { return LinAlg::PETSC; }
 
   //! \brief Initializes the element assembly process.
+  //! \param[in] sam Auxiliary data describing the FE model topology, etc.
+  //!
   //! \details Must be called once before the element assembly loop.
   //! The PETSc data structures are initialized and the all symbolic operations
   //! that are needed before the actual assembly can start are performed.
-  //! \param[in] sam Auxiliary data describing the FE model topology, etc.
-  //! \param[in] delayLocking If \e true, do not lock the sparsity pattern yet
-  void initAssembly(const SAM& sam, bool delayLocking) override;
+  void initAssembly(const SAM& sam, char) override;
 
   //! \brief Initializes the matrix to zero assuming it is properly dimensioned.
   void init() override;
 
-  //! \brief Begins communication step needed in parallel matrix assembly.
-  //! \details Must be called together with endAssembly after matrix assembly
-  //! is completed on each processor and before the linear system is solved.
-  bool beginAssembly() override;
-  //! \brief Ends communication step needed in parallel matrix assembly.
-  //! \details Must be called together with beginAssembly after matrix assembly
-  //! is completed on each processor and before the linear system is solved.
+  //! \brief Finalizes the system matrix assembly.
   bool endAssembly() override;
 
   //! \brief Performs the matrix-vector multiplication \b C = \a *this * \b B.

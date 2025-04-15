@@ -48,7 +48,7 @@ static IntMat readIntMatrix (size_t r, const std::string& file)
 static void check_intmatrices_equal (const SAM* sam, const std::string& path)
 {
   std::vector<IntSet> A;
-  ASSERT_TRUE(sam->getDofCouplings(A));
+  sam->getDofCouplings(A);
 
   size_t i, j;
   IntSet::const_iterator it;

@@ -145,10 +145,8 @@ SparseMatrix::SparseMatrix (SparseSolver eqSolver, int nt)
   nrow = ncol = 0;
   solver = eqSolver;
   numThreads = nt;
-#ifdef HAS_UMFPACK
-  umfSymbolic = nullptr;
-#endif
   slu = nullptr;
+  umfSymbolic = nullptr;
 }
 
 
@@ -161,9 +159,7 @@ SparseMatrix::SparseMatrix (size_t m, size_t n)
   solver = NONE;
   numThreads = 0;
   slu = nullptr;
-#ifdef HAS_UMFPACK
   umfSymbolic = nullptr;
-#endif
 }
 
 
@@ -177,9 +173,7 @@ SparseMatrix::SparseMatrix (const SparseMatrix& B)
   solver = B.solver;
   numThreads = B.numThreads;
   slu = nullptr; // The SuperLU data (if any) is not copied
-#ifdef HAS_UMFPACK
-  umfSymbolic = nullptr;
-#endif
+  umfSymbolic = nullptr; // The UMFPACK data (if any) is not copied
 }
 
 
@@ -210,6 +204,7 @@ bool SparseMatrix::lockPattern (bool doLock)
 void SparseMatrix::resize (size_t r, size_t c, bool forceEditable)
 {
   factored = false;
+  if (c == 0) c = r;
   if (r == nrow && c == ncol && !forceEditable)
   {
     // Clear the matrix content but retain its sparsity pattern
@@ -227,15 +222,14 @@ void SparseMatrix::resize (size_t r, size_t c, bool forceEditable)
   A.clear();
 
   nrow = r;
-  ncol = c > 0 ? c : r;
+  ncol = c;
 
   delete slu;
   slu = nullptr;
 #ifdef HAS_UMFPACK
-  if (umfSymbolic) {
+  if (umfSymbolic)
     umfpack_di_free_symbolic(&umfSymbolic);
-    umfSymbolic = nullptr;
-  }
+  umfSymbolic = nullptr;
 #endif
 }
 
@@ -477,8 +471,8 @@ bool SparseMatrix::augment (const SystemMatrix& B, size_t r0, size_t c0)
 
   for (const ValueMap::value_type& val : Bptr->elem)
   {
-    elem[std::make_pair(r0+val.first.first,c0+val.first.second)] += val.second;
-    elem[std::make_pair(c0+val.first.second,r0+val.first.first)] += val.second;
+    elem[{ r0+val.first.first,  c0+val.first.second }] += val.second;
+    elem[{ c0+val.first.second, r0+val.first.first  }] += val.second;
   }
 
   return true;
@@ -563,16 +557,23 @@ bool SparseMatrix::add (const SystemMatrix& B, Real alpha)
   else
     return false;
 
-  return haveContributions = true;
+  return this->flagNonZeroEqs(B);
 }
 
 
-bool SparseMatrix::add (Real sigma)
+bool SparseMatrix::add (Real sigma, int ieq)
 {
-  for (size_t i = 1; i <= nrow && i <= ncol; i++)
+  if (ieq > static_cast<int>(nrow))
+    return false;
+  else if (ieq > 0)
+    this->operator()(ieq,ieq) += sigma;
+  else for (size_t i = 1; i <= nrow && i <= ncol; i++)
     this->operator()(i,i) += sigma;
 
-  return haveContributions = true;
+  if (ieq > 0)
+    return this->flagNonZeroEqs({ieq});
+  else
+    return this->flagNonZeroEqs();
 }
 
 
@@ -729,12 +730,16 @@ static void assemSparse (const RealArray& V, SparseMatrix& SM, size_t col,
 }
 
 
-void SparseMatrix::initAssembly (const SAM& sam, bool delayLocking)
+void SparseMatrix::initAssembly (const SAM& sam, char preAssembly)
 {
   this->resize(sam.neq,sam.neq);
+  if (preAssembly == 'F')
+    this->preAssemble(sam,false);
+  else if (preAssembly == 'f')
+    this->preAssemble(sam,true);
 #ifdef USE_OPENMP
-  if (omp_get_max_threads() > 1)
-    this->preAssemble(sam,delayLocking);
+  else if (omp_get_max_threads() > 1)
+    this->preAssemble(sam,preAssembly=='d');
 #endif
 }
 
@@ -746,12 +751,11 @@ void SparseMatrix::preAssemble (const SAM& sam, bool delayLocking)
 
   // Compute the sparsity pattern
   std::vector<IntSet> dofc;
-  if (!sam.getDofCouplings(dofc))
-    return;
+  sam.getDofCouplings(dofc);
 
   // If we are not locking the sparsity pattern yet, the index pair map over
   // the non-zero matrix elements needs to be initialized before the assembly.
-  // This is used when SAM::getDofCouplings does not return all connectivities
+  // This is used when SAM::getDofCouplings() does not return all connectivities
   if (delayLocking) // that will exist in the final matrix.
     for (size_t i = 0; i < dofc.size(); i++)
       for (int j : dofc[i])
@@ -814,7 +818,8 @@ bool SparseMatrix::assemble (const Matrix& eM, const SAM& sam, int e)
 
   Vector dummyB;
   assemSparse(eM,*this,dummyB,meen,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);
-  return haveContributions = true;
+
+  return this->flagNonZeroEqs(meen);
 }
 
 
@@ -829,7 +834,8 @@ bool SparseMatrix::assemble (const Matrix& eM, const SAM& sam,
     return false;
 
   assemSparse(eM,*this,*Bptr,meen,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);
-  return haveContributions = true;
+
+  return this->flagNonZeroEqs(meen);
 }
 
 
@@ -843,7 +849,8 @@ bool SparseMatrix::assemble (const Matrix& eM, const SAM& sam,
     return false;
 
   assemSparse(eM,*this,*Bptr,meq,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);
-  return haveContributions = true;
+
+  return this->flagNonZeroEqs(meq);
 }
 
 
@@ -856,7 +863,8 @@ bool SparseMatrix::assembleCol (const RealArray& V, const SAM& sam,
   if (!sam.getNodeEqns(mnen,n)) return false;
 
   assemSparse(V,*this,col,mnen,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);
-  return haveContributions = true;
+
+  return this->flagNonZeroEqs(mnen);
 }
 
 

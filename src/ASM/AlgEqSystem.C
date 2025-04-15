@@ -31,10 +31,15 @@ AlgEqSystem::AlgEqSystem (const SAM& s, const ProcessAdm* a) : sam(s), adm(a)
 
 bool AlgEqSystem::init (LinAlg::MatrixType mtype, const LinSolParams* spar,
                         size_t nmat, size_t nvec, size_t nscl,
-                        bool withReactions, int num_threads_SLU)
+                        bool reactions, int num_threads_SLU, bool forcePreAss)
 {
-  // Using the sign of the num_threads_SLU argument to flag this (convenience)
-  bool dontLockSparsityPattern = num_threads_SLU < 0;
+  // Use the sign of the num_threads_SLU argument to flag
+  // delayed locking of the sparsity pattern (convenience)
+  char preAssemblyFlag;
+  if (forcePreAss)
+    preAssemblyFlag = num_threads_SLU < 0 ? 'f' : 'F';
+  else
+    preAssemblyFlag = num_threads_SLU < 0 ? 'd' : 0;
 
   size_t i;
   for (i = nmat; i < A.size(); i++)
@@ -59,7 +64,7 @@ bool AlgEqSystem::init (LinAlg::MatrixType mtype, const LinSolParams* spar,
       if (!A[i]._A) return false;
     }
 
-    A[i]._A->initAssembly(sam,dontLockSparsityPattern);
+    A[i]._A->initAssembly(sam,preAssemblyFlag);
     A[i]._b = nullptr;
   }
 
@@ -70,17 +75,21 @@ bool AlgEqSystem::init (LinAlg::MatrixType mtype, const LinSolParams* spar,
       if (!b[i]) return false;
     }
 
-  bool ok = true;
+  if (sam.getNoEquations() < 0)
+    return false;
+
   if (A.size() == 1 && !b.empty())
   {
     A.front()._b = b.front();
-    ok = sam.initForAssembly(*b.front(), withReactions ? &R : nullptr);
+    b.front()->redim(sam.getNoEquations());
+    if (reactions)
+      R.resize(sam.getNoSpecifiedDOFs());
   }
 
   for (i = 0; i < b.size(); i++)
     b[i]->redim(sam.getNoEquations());
 
-  return ok;
+  return true;
 }
 
 
@@ -171,31 +180,31 @@ bool AlgEqSystem::setAssociatedVector (size_t imat, size_t ivec)
 }
 
 
-void AlgEqSystem::initialize (bool initLHS)
+void AlgEqSystem::initialize (char initLHS)
 {
-  size_t i;
-
   if (initLHS)
-    for (i = 0; i < A.size(); i++)
-      A[i]._A->init();
+    for (SysMatrixPair& m : A)
+    {
+      m._A->init();
+      if (initLHS == 2)
+        m._A->initNonZeroEqs();
+    }
 
-  for (i = 0; i < b.size(); i++)
-    b[i]->init();
+  for (SystemVector* v : b)
+    v->init();
 
-  for (i = 0; i < c.size(); i++)
-    c[i] = 0.0;
+  std::fill(c.begin(),c.end(),0.0);
+  std::fill(R.begin(),R.end(),0.0);
 
 #ifdef USE_OPENMP
   size_t nthread = omp_get_max_threads();
   if (nthread > 1 && !c.empty())
   {
     d = new std::vector<double>[nthread];
-    for (i = 0; i < nthread; i++)
+    for (size_t i = 0; i < nthread; i++)
       d[i].resize(c.size(),0.0);
   }
 #endif
-
-  std::fill(R.begin(),R.end(),0.0);
 }
 
 
@@ -292,33 +301,29 @@ bool AlgEqSystem::assemble (const LocalIntegral* elmObj, int elmId)
 
 bool AlgEqSystem::finalize (bool newLHS)
 {
-  // Communication of matrix and vector assembly (for PETSc matrices only)
+  bool ok = true;
   if (newLHS)
-    for (size_t i = 0; i < A.size(); i++)
-      if (!A[i]._A->beginAssembly())
-	return false;
-      else if (!A[i]._A->endAssembly())
-	return false;
-#if SP_DEBUG > 2
-      else if (A[i]._A->dim() < 100*(SP_DEBUG-2))
-	std::cout <<"\nSystem coefficient matrix:"<< *A[i]._A;
-#endif
-
-  for (size_t i = 0; i < b.size(); i++)
-    if (!b[i]->beginAssembly())
-      return false;
-    else if (!b[i]->endAssembly())
-      return false;
-#if SP_DEBUG > 2
-    else
+    for (SysMatrixPair& m : A)
     {
-      Vector bVec;
-      sam.expandSolution(*b[i],bVec,0.0);
-      sam.printVector(std::cout,bVec,"\nSystem right-hand-side vector");
-    }
+      ok &= m._A->endAssembly();
+#if SP_DEBUG > 2
+      if (m._A->dim() < 100*(SP_DEBUG-2))
+        std::cout <<"\nSystem coefficient matrix:"<< *m._A;
 #endif
+    }
 
-  if (c.empty()) return true;
+  for (SystemVector* v : b)
+  {
+    ok &= v->endAssembly();
+#if SP_DEBUG > 2
+    Vector bVec;
+    sam.expandSolution(*v,bVec,0.0);
+    sam.printVector(std::cout,bVec,"\nSystem right-hand-side vector");
+#endif
+  }
+
+  if (c.empty())
+    return ok;
 
 #ifdef USE_OPENMP
   size_t nthread = omp_get_max_threads();
@@ -334,12 +339,11 @@ bool AlgEqSystem::finalize (bool newLHS)
 #endif
 #if SP_DEBUG > 2
   std::cout <<"\nScalar quantities:";
-  for (size_t i = 0; i < c.size(); i++)
-    std::cout <<" "<< c[i];
+  for (double v : c) std::cout <<" "<< v;
   std::cout << std::endl;
 #endif
 
-  return true;
+  return ok;
 }
 
 
@@ -389,7 +393,7 @@ bool AlgEqSystem::staticCondensation (Matrix& Ared, Vector& bred,
   Vector    R2(neq2); // External (retained) DOFs
   size_t ieq, ip2, ieq1 = 0, ieq2 = 0;
   for (ieq = ip2 = 0; ieq < neq0; ieq++)
-    if ((int)ieq+1 < meqn2[ip2])
+    if (static_cast<int>(ieq)+1 < meqn2[ip2])
       R1(++ieq1) = Rvec[ieq];
     else
     {

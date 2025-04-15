@@ -21,11 +21,12 @@
 #include <array>
 #include <string>
 
-typedef std::vector<int>       IntVec;  //!< General integer vector
-typedef std::vector<IntVec>    IntMat;  //!< General 2D integer matrix
-typedef std::map<MPC*,int,MPCLess> MPCMap; //!< MPC-to-function code mapping
-typedef std::set<MPC*,MPCLess> MPCSet;  //!< Sorted set of MPC-equations
-typedef MPCSet::const_iterator MPCIter; //!< Iterator over an MPC-equation set
+using IntVec = std::vector<int>;    //!< General integer vector
+using IntMat = std::vector<IntVec>; //!< General 2D integer matrix
+
+using MPCMap  = std::map<MPC*,int,MPCLess>; //!< MPC-to-function code mapping
+using MPCSet  = std::set<MPC*,MPCLess>; //!< Sorted set of MPC-equations
+using MPCIter = MPCSet::const_iterator; //!< Iterator over an MPC-equation set
 
 struct TimeDomain;
 class ElementBlock;
@@ -43,9 +44,12 @@ class RealFunc;
 class VecFunc;
 class Vec3;
 class Tensor;
-namespace ASM { class InterfaceChecker; }
 
-typedef std::vector<ASMbase*> ASMVec; //!< Spline patch container
+namespace ASM { class InterfaceChecker; }
+namespace utl { template<class Arg, class Result> class Function; }
+
+using ASMVec  = std::vector<ASMbase*>;     //!< Spline patch container type
+using IntFunc = utl::Function<int,double>; //!< Real-valued integer function
 
 
 /*!
@@ -78,7 +82,7 @@ public:
     explicit BC(int n) : node(n), CX(1), CY(1), CZ(1), RX(1), RY(1), RZ(1) {}
   };
 
-  typedef std::vector<BC> BCVec; //!< Nodal boundary condition container
+  using BCVec = std::vector<BC>; //!< Nodal boundary condition container
 
 protected:
   //! \brief The constructor sets the number of space dimensions and fields.
@@ -166,6 +170,11 @@ public:
   //! the patch is constructed, e.g., it depends on the input file content.
   //! It must be invoked only before SIMbase::preprocess() is invoked.
   void setNoFields(unsigned char n) { nf = n; }
+
+  //! \brief Sets the element activation function.
+  void setElementActivator(IntFunc* efunc) { myElActive = efunc; }
+  //! \brief Returns a pointer to the element activation function.
+  const IntFunc* getElementActivator() const { return myElActive; }
 
   //! \brief Sets the minimum element size for adaptive refinement.
   virtual void setMinimumSize(double) {}
@@ -318,7 +327,7 @@ public:
   //! \brief Sets the list of active elements during assembly.
   void setActiveElements(IntVec* active) { myActiveEls = active; }
   //! \brief Returns \e true if element with global id \a elmId is active.
-  bool isElementActive(int elmId) const;
+  bool isElementActive(int elmId, double time = -1.0) const;
 
   //! \brief Returns the nodal point correspondance array for an element.
   //! \param[in] iel 1-based element index local to current patch
@@ -1024,11 +1033,12 @@ private:
   std::vector<char> myLMTypes; //!< Type of %Lagrange multiplier ('L' or 'G')
   std::set<size_t>  myLMs;     //!< Nodal indices of the %Lagrange multipliers
 
+  IntFunc* myElActive; //!< Function returning activatiation time of element
   IntVec* myActiveEls; //!< List of active elements during element assembly
   static IntVec Empty; //!< Empty integer vector used when a reference is needed
 
 protected:
-  typedef std::array<double,3> XYZ; //!< Convenience type definition
+  using XYZ = std::array<double,3>; //!< Convenience type definition
   std::map<size_t,XYZ>   myRmaster; //!< Rigid master nodal points
 };
 

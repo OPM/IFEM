@@ -22,11 +22,13 @@ ReactionsOnly::ReactionsOnly (const SAM* sam, const ProcessAdm& adm,
                               RealArray* rf, Vector* sf)
   : mySam(sam), myAdm(adm), R(rf), S(sf)
 {
-  mySam->initForAssembly(b,R);
+  b.redim(sam->getNoEquations());
+  if (R)
+    R->resize(sam->getNoSpecifiedDOFs());
 }
 
 
-void ReactionsOnly::initialize (bool)
+void ReactionsOnly::initialize (char)
 {
   b.init();
   if (R)
@@ -49,7 +51,7 @@ bool ReactionsOnly::finalize (bool)
 
   if (!S)
     return true;
-  else if (!b.beginAssembly() || !b.endAssembly())
+  else if (!b.endAssembly())
     return false;
   else if (!mySam->expandSolution(b,*S,0.0))
     return false;
