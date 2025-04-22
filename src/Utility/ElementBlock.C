@@ -299,6 +299,32 @@ utl::Point ElementBlock::getCenter (size_t i) const
 }
 
 
+void ElementBlock::removeElement (size_t i)
+{
+  if (i < 1 || i > MINEX.size())
+    return;
+
+  std::vector<int>::iterator it1 = MMNPC.end(), it2 = MMNPC.end();
+  if (nen > 0)
+  {
+    it2 = MMNPC.begin()+nen*i;
+    it1 = it2 - nen;
+  }
+  else
+  {
+    size_t elm = 0;
+    for (size_t ip = 0; ip < MMNPC.size() && it2 == MMNPC.end(); ip++)
+      if (MMNPC[ip] < 0 && ++elm == i)
+        it2 = MMNPC.begin() + ip+1;
+      else if (elm == i-1 && it1 == MMNPC.end())
+        it1 = MMNPC.begin() + ip;
+  }
+
+  MMNPC.erase(it1,it2);
+  MINEX.erase(MINEX.begin()+i-1);
+}
+
+
 PlaneBlock::PlaneBlock (const Vec3& X0, const Vec3& X1,
                         const Vec3& X2) : ElementBlock(4)
 {

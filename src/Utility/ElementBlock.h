@@ -106,8 +106,10 @@ public:
   //! \brief Get element connectivity array for elements with \a nenod nodes.
   bool getElements(std::vector<int>& mnpc, size_t nenod) const;
 
-  //! \brief Returns the coordinates of the center of the given elemment.
+  //! \brief Returns the coordinates of the center of the given element.
   utl::Point getCenter(size_t i) const;
+  //! \brief Removes the given element.
+  void removeElement(size_t i);
 
 protected:
   using Prm3 = std::array<Real,3>; //!< Convenience type
