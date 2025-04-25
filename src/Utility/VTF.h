@@ -22,8 +22,9 @@ class RealFunc;
 class Tensor;
 class Vec3;
 
-typedef std::pair<int,const ElementBlock*> GridBlock; //!< Convenience type
-typedef std::pair<Vec3,Vec3>               Vec3Pair;  //!< Convenience type
+using Vec3Pair  = std::pair<Vec3,Vec3>; //!< Convenience type
+using IntPair   = std::pair<int,int>;   //!< Convenience type
+using GridBlock = std::pair<IntPair,const ElementBlock*>; //!< Convenience type
 
 class VTFAFile;
 class VTFAStateInfoBlock;
@@ -68,8 +69,10 @@ public:
   //! \brief Writes the FE geometry to the VTF-file.
   //! \param[in] block The FE grid that all results written are referred to
   //! \param[in] gName Name of the geometry being written
-  //! \param[in] geomID Geometry block identifier
-  bool writeGrid(const ElementBlock* block, const char* gName, int geomID);
+  //! \param[in] elemID Element block identifier
+  //! \param[in] nodeID Optional node block identifier (equal to \a elemID if 0)
+  bool writeGrid(const ElementBlock* block, const char* gName,
+                 int elemID, int nodeID = 0);
 
   //! \brief Writes a transformation matrix to the VTF-file.
   //! \param[in] X Position part of the transformation
@@ -184,6 +187,8 @@ public:
 
   //! \brief Returns the pointer to a geometry block.
   const ElementBlock* getBlock(int geomID) const;
+  //! \brief Returns the node block ID associated with a geometry block.
+  int getNodeBlock(int geomID) const;
 
   //! \brief Adds the current FE geometry blocks to the description block.
   void writeGeometryBlocks(int iStep);
