@@ -74,6 +74,13 @@ public:
   //! by the other \a writeGlv* methods.
   virtual bool writeGlvG(int& nBlock, const char* inpFile, bool doClear = true);
 
+  //! \brief Writes current model geometry to the currently open VTF-file.
+  //! \param nBlock Running result block counter
+  //! \param[in] time The time from which this (new) geometry applies,
+  //! in case of time-evolution. If negative, the current geometry is appended
+  //! to the already existing geometry blocks.
+  bool writeGlvG(int& nBlock, double time);
+
   //! \brief Writes additional, problem-specific, results to the VTF-file.
   virtual bool writeGlvA(int&, int, int = 1) const { return true; }
 

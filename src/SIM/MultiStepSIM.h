@@ -109,6 +109,12 @@ public:
   bool saveModel(int& gBlock, int& rBlock, const char* fileName = nullptr,
                  bool clearG = true);
 
+  //! \brief Writes the model geometry and BCs to an already opened VTF-file.
+  //! \param gBlock Running geometry block counter
+  //! \param rBlock Running result block counter
+  //! \param[in] time Time parameter for evolving grids
+  bool saveModel(int& gBlock, int& rBlock, double time);
+
   //! \brief Saves the converged results to VTF file of a given time/load step.
   //! \param[in] iStep Time/load step identifier
   //! \param[in] time Current time/load parameter

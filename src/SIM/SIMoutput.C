@@ -576,20 +576,40 @@ bool SIMoutput::writeGlvG (int& nBlock, const char* inpFile, bool doClear)
     myVtf = new VTF(fName,opt.format);
     delete[] fName;
   }
-  else if (!myVtf)
+
+  return this->writeGlvG(nBlock, doClear ? 0.0 : -1.0);
+}
+
+
+/*!
+  When \a time &gt; 0 and there already exist some geometry blocks in the VTF,
+  this method assumes that the new geometry blocks are based on the same set of
+  nodes such that new node blocks are not required to be written.
+*/
+
+bool SIMoutput::writeGlvG (int& nBlock, double time)
+{
+  if (!myVtf)
   {
     std::cerr <<" *** SIMoutput::writeGlvG: Logic error,"
               <<" VTF file is not opened yet."<< std::endl;
     return false;
   }
-  else if (doClear)
+
+  // Get the ID list of current node blocks, if any
+  IntVec nodeBlocks;
+  int i, nodeBlock;
+  if (time > 0.0)
+    for (i = 1; (nodeBlock = myVtf->getNodeBlock(i)); i++)
+      nodeBlocks.push_back(nodeBlock);
+  if (time >= 0.0)
     myVtf->clearGeometryBlocks();
 
   ElementBlock* lvb;
   char pname[64];
 
   // Convert and write model geometry
-  size_t pidx = 0;
+  size_t pidx = i = 0;
   for (const ASMbase* pch : myModel)
   {
     ++pidx;
@@ -599,12 +619,20 @@ bool SIMoutput::writeGlvG (int& nBlock, const char* inpFile, bool doClear)
     if (!(lvb = this->tesselatePatch(pidx-1)))
       return false;
 
+    if (pch->getElementActivator())
+      // Remove the elements not yet activated
+      for (int iel = pch->getNoElms(); iel > 0; --iel)
+        if (!pch->isElementActive(iel,time))
+          lvb->removeElement(iel);
+
     if (msgLevel > 1)
       IFEM::cout <<"Writing geometry for patch "
                  << pch->idx+1 <<" ("<< lvb->getNoNodes() <<")"<< std::endl;
 
     sprintf(pname,"Patch %zu",pch->idx+1);
-    if (!myVtf->writeGrid(lvb,pname,++nBlock))
+    // Reuse the existing node block when time > 0.0
+    nodeBlock = i < static_cast<int>(nodeBlocks.size()) ? nodeBlocks[i++] : 0;
+    if (!myVtf->writeGrid(lvb,pname,++nBlock,nodeBlock))
       return false;
   }
 
@@ -940,7 +968,8 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
     if (!pch->evalSolution(field,lovec,opt.nViz,0,piolaMapping))
       return -1;
 
-    pch->filterResults(field,myVtf->getBlock(++geomID));
+    const ElementBlock* grid = myVtf->getBlock(++geomID);
+    pch->filterResults(field,grid);
 
     if (!scalarOnly && (nVcomp > 1 || !pvecName || psolComps > 10))
     {
@@ -957,7 +986,7 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
     if (!this->writeScalarFields(field,geomID,nBlock,sID))
       return -3;
 
-    if (haveXsol)
+    if (haveXsol && grid)
     {
       if (msgLevel > 1)
         IFEM::cout <<"Writing exact solution for patch "
@@ -967,7 +996,6 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
 
       // Evaluate exact primary solution
 
-      const ElementBlock* grid = myVtf->getBlock(geomID);
       Vec3Vec::const_iterator cit = grid->begin_XYZ();
       field.fill(0.0);
       if (nf == 1) // Scalar solution
@@ -1140,8 +1168,10 @@ bool SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
     if (!pch->evalSolution(field,*myProblem,opt.nViz))
       return false;
 
+    const ElementBlock* grid = myVtf->getBlock(++geomID);
+    pch->filterResults(field,grid);
+
     size_t k = 0;
-    pch->filterResults(field,myVtf->getBlock(++geomID));
     if (!this->writeScalarFields(field,geomID,nBlock,sID,&k,ASM::SECONDARY))
       return false;
 
@@ -1150,7 +1180,7 @@ bool SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
     size_t nPoints = field.cols();
     for (j = 0; j < 2 && myProblem->getPrincipalDir(pdir,nPoints,j+1); j++)
     {
-      pch->filterResults(pdir,myVtf->getBlock(geomID));
+      pch->filterResults(pdir,grid);
       if (!myVtf->writeVres(pdir,++nBlock,geomID,this->getNoSpaceDim()))
         return -2;
 
@@ -1165,12 +1195,12 @@ bool SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
       if (!pch->evalSolution(field,*myProblem,opt.nViz,'D'))
         return false;
 
-      pch->filterResults(field,myVtf->getBlock(geomID));
+      pch->filterResults(field,grid);
       if (!this->writeScalarFields(field,geomID,nBlock,sID,&k,ASM::PROJECTED))
         return false;
     }
 
-    if (haveAsol)
+    if (haveAsol && grid)
     {
       if (msgLevel > 1)
         IFEM::cout <<"Writing exact solution for patch "
@@ -1180,7 +1210,6 @@ bool SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
 
       // Evaluate analytical solution variables
 
-      const ElementBlock* grid = myVtf->getBlock(geomID);
       Vec3Vec::const_iterator cit = grid->begin_XYZ();
       for (j = 1; cit != grid->end_XYZ() && haveAsol; j++, ++cit)
       {
@@ -1323,18 +1352,17 @@ bool SIMoutput::writeGlvP (const RealArray& ssol, int iStep, int& nBlock,
     if (!pch->evalProjSolution(field,lovec,opt.nViz,nComp))
       return false;
 
+    const ElementBlock* grid = myVtf->getBlock(++geomID);
     size_t j = 0;
-    ++geomID;
 
     // Write out to VTF-file as scalar fields
     if (iStep > 0)
       if (!this->writeScalarFields(field,geomID,nBlock,sID,&j,ASM::PROJECTED))
         return false;
 
-    if (maxVal)
+    if (maxVal && grid)
     {
       // Update extremal values
-      const ElementBlock* grid = myVtf->getBlock(geomID);
       for (j = 0; j < maxVal->size() && j < field.rows(); j++)
       {
         size_t indx = 0;
@@ -1533,10 +1561,10 @@ bool SIMoutput::writeGlvN (const Matrix& norms, int iStep, int& nBlock,
     const ElementBlock* grid = myVtf->getBlock(++geomID);
     pch->extractElmRes(norms,field);
 
-    size_t ncol = grid->getNoElms();
-    if (ncol > field.cols() || nrow > field.rows())
+    size_t ncol = grid ? grid->getNoElms() : 0;
+    if (ncol != field.cols() || nrow > field.rows())
     {
-      // Expand the element result array
+      // Expand/compress the element result array to match current grid block
       Matrix efield(field);
       field.resize(nrow,ncol);
       for (j = 1; j <= ncol; j++)

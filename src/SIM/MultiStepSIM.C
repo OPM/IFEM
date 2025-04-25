@@ -108,6 +108,15 @@ bool MultiStepSIM::saveModel (int& gBlock, int& rBlock,
 }
 
 
+bool MultiStepSIM::saveModel (int& gBlock, int& rBlock, double time)
+{
+  PROFILE1("MultiStepSIM::saveModel");
+
+  // Write model geometry and BCs to already opened VTF-file
+  return model.writeGlvG(gBlock,time) && model.writeGlvBC(rBlock);
+}
+
+
 bool MultiStepSIM::saveStep (int iStep, double time, const char* vecName)
 {
   if (abs(iStep) <= lastSt) return true; // We have already saved this step

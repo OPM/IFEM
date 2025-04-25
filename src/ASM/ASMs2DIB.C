@@ -291,7 +291,7 @@ bool ASMs2DIB::integrate (Integrand& integrand,
 
 void ASMs2DIB::filterResults (Matrix& field, const ElementBlock* grid) const
 {
-  if (!myGeometry) return;
+  if (!myGeometry || !grid) return;
 
   for (size_t n = 0; n < field.cols() && n < grid->getNoNodes(); n++)
     if (myGeometry->Alpha(Vec4(grid->getCoord(n),0.0,grid->getParam(n))) < 1.0)
