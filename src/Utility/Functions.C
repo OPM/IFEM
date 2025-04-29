@@ -909,21 +909,15 @@ IntFunc* utl::parseIntFunc (const std::string& func, const std::string& type)
 ScalarFunc* utl::parseTimeFunc (const char* func, const std::string& type,
                                 Real eps)
 {
-  char* cstr = nullptr;
+  char* cstr = func ? strdup(func) : nullptr;
   const ScalarFunc* sf = nullptr;
   if (type == "expression")
   {
     IFEM::cout <<"(expression) ";
-    if (func) cstr = strdup(func);
     sf = parseFunction("expression",cstr,eps);
   }
-  else if (type.find("inear") == 1 || type.find("onstant") == 1)
-    sf = parseFunction(type.c_str(),const_cast<char*>(func));
   else
-  {
-    if (func) cstr = strdup(func);
     sf = parseFunction(type.c_str(),cstr);
-  }
   IFEM::cout << std::endl;
   if (cstr) free(cstr);
 
@@ -959,171 +953,142 @@ RealFunc* utl::parseRealFunc (const std::string& func,
 
   if (print)
     IFEM::cout <<": ";
+
+  const RealFunc* f = nullptr;
   if (type == "expression")
   {
     if (print)
       IFEM::cout << func;
     EvalFunc::numError = 0;
-    RealFunc* rf = new EvalFunction(func.c_str());
+    f = new EvalFunction(func.c_str());
     if (EvalFunc::numError > 0)
     {
-      delete rf;
-      rf = nullptr;
+      delete f;
+      f = nullptr;
     }
-    return rf;
   }
   else if (type == "linear")
   {
     p = atof(func.c_str());
     if (print)
       IFEM::cout << p <<"*t";
-    return new ConstTimeFunc(new LinearFunc(p));
+    f = new ConstTimeFunc(new LinearFunc(p));
   }
   else if (type == "chebyshev")
   {
     if (print)
       IFEM::cout << func;
-    return new ChebyshevFunc(func, true);
+    f = new ChebyshevFunc(func, true);
   }
   else if (type == "constant" || func.find_first_of("\t ") == std::string::npos)
   {
     p = atof(func.c_str());
     if (print)
       IFEM::cout << p;
-    return new ConstFunc(p);
+    f = new ConstFunc(p);
+  }
+  else
+  {
+    char* funcType = strdup(type.c_str());
+    char* funcBody = strdup(func.c_str());
+    p = atof(strtok(funcBody," "));
+    f = parseRealFunc(funcType,p,print);
+    free(funcBody);
+    free(funcType);
   }
 
-  std::string tmp(func);
-  p = atof(strtok(const_cast<char*>(tmp.c_str())," "));
-  char* funcType = const_cast<char*>(type.c_str());
-  return const_cast<RealFunc*>(parseRealFunc(funcType,p,print));
+  return const_cast<RealFunc*>(f);
 }
 
 
 VecFunc* utl::parseVecFunc (const std::string& func, const std::string& type,
                             const std::string& variables)
 {
-  if (func.empty())
-    return new ConstVecFunc(Vec3());
+  VecFunc* f = nullptr;
 
-  if (type == "expression")
+  if (func.empty())
+    f = new ConstVecFunc(Vec3());
+
+  else if (type == "expression")
   {
     IFEM::cout <<": "<< func;
     EvalFunc::numError = 0;
-    VecFunc* vf = new VecFuncExpr(func,variables);
+    f = new VecFuncExpr(func,variables);
     if (EvalFunc::numError > 0)
     {
-      delete vf;
-      vf = nullptr;
+      delete f;
+      f = nullptr;
     }
-    return vf;
   }
   else if (type == "constant")
   {
     Vec3 v;
-    std::string tmp(func);
-    char* s = strtok(const_cast<char*>(tmp.c_str())," ");
-    for (int i = 0; i < 3 && s; i++, s = strtok(nullptr," "))
-      v[i] = atof(s);
+    char* ff = strdup(func.c_str());
+    char* ss = strtok(ff," ");
+    for (int i = 0; i < 3 && ss; i++, ss = strtok(nullptr," "))
+      v[i] = atof(ss);
+    free(ff);
     IFEM::cout <<": "<< v;
-    return new ConstVecFunc(v);
+    f = new ConstVecFunc(v);
   }
   else if (type == "chebyshev")
+    f = new ChebyshevVecFunc(splitString(func),true);
+
+  else if (type.substr(0,5) == "field")
   {
-    const std::vector<std::string> files = splitString(func);
-    if (files.size() < 2) {
-      std::cerr <<"*** ChebyshevVecFunc: Minimum two files must be given"
-                << std::endl;
-      return nullptr;
+    std::vector<std::string> prms = splitString(func);
+    if (prms.size() > 2)
+    {
+      int level = 0;
+      if (prms.size() > 3)
+      {
+        if (prms[3].find('f') != std::string::npos)
+          level = FieldFuncBase::FIXED_LEVEL;
+        else
+          level = atoi(prms[3].c_str());
+      }
+      if (type == "fieldgrad")
+        f = new ScalarGradFieldFunction(prms[0],prms[1],prms[2],level);
+      else if (type == "fieldlaplacian")
+        f = new ScalarLaplacianFieldFunction(prms[0],prms[1],prms[2],level);
+      else
+        f = new VecFieldFunction(prms[0],prms[1],prms[2],level);
     }
-    return new ChebyshevVecFunc(files, true);
-  }
-  else if (type == "field")
-  {
-    std::vector<std::string> params = splitString(func);
-    int level = 0;
-    if (params.size() < 3)
-      return nullptr;
-    else if (params.size() > 3) {
-      level = atoi(params[3].c_str());
-      if (params[3].find('f' != std::string::npos))
-        level |= FieldFuncBase::FIXED_LEVEL;
-    }
-    return new VecFieldFunction(params[0],params[1],params[2],level);
-  }
-  else if (type == "fieldgrad")
-  {
-    std::vector<std::string> params = splitString(func);
-    int level = 0;
-    if (params.size() < 3)
-      return nullptr;
-    else if (params.size() > 3) {
-      level = atoi(params[3].c_str());
-      if (params[3].find('f' != std::string::npos))
-        level |= FieldFuncBase::FIXED_LEVEL;
-    }
-    return new ScalarGradFieldFunction(params[0],params[1],params[2],level);
-  }
-  else if (type == "fieldlaplacian")
-  {
-    std::vector<std::string> params = splitString(func);
-    int level = 0;
-    if (params.size() < 3)
-      return nullptr;
-    else if (params.size() > 3) {
-      level = atoi(params[3].c_str());
-      if (params[3].find('f' != std::string::npos))
-        level |= FieldFuncBase::FIXED_LEVEL;
-    }
-    return new ScalarLaplacianFieldFunction(params[0],params[1],params[2],level);
   }
 
-  return nullptr;
+  return f;
 }
 
 
 TensorFunc* utl::parseTensorFunc (const std::string& func,
                                   const std::string& type)
 {
+  TensorFunc* f = nullptr;
 
-  if (type == "chebyshev")
+  if (type == "chebyshev" && !func.empty())
+    f = new ChebyshevTensorFunc(splitString(func),true);
+
+  else if (type.substr(0,5) == "field")
   {
-    std::vector<std::string> files = splitString(func);
-    if (files.size() != 4 && files.size() != 9) {
-      std::cerr <<"*** ChebyshevTensorFunc: Either 4 or 9 files must be given"
-                << std::endl;
-      return nullptr;
+    std::vector<std::string> prms = splitString(func);
+    if (prms.size() > 2)
+    {
+      int level = 0;
+      if (prms.size() > 3)
+      {
+        if (prms[3].find('f') != std::string::npos)
+          level = FieldFuncBase::FIXED_LEVEL;
+        else
+          level = atoi(prms[3].c_str());
+      }
+      if (type == "fieldgrad")
+        f = new VecGradFieldFunction(prms[0],prms[1],prms[2],level);
+      else if (type == "fieldlaplacian")
+        f = new VecLaplacianFieldFunction(prms[0],prms[1],prms[2],level);
     }
-    return new ChebyshevTensorFunc(files, true);
-  }
-  else if (type == "fieldgrad")
-  {
-    std::vector<std::string> params = splitString(func);
-    int level = 0;
-    if (params.size() < 3)
-      return nullptr;
-    else if (params.size() > 3) {
-      level = atoi(params[3].c_str());
-      if (params[3].find('f' != std::string::npos))
-        level |= FieldFuncBase::FIXED_LEVEL;
-    }
-    return new VecGradFieldFunction(params[0],params[1],params[2],level);
-  }
-  else if (type == "fieldlaplacian")
-  {
-    std::vector<std::string> params = splitString(func);
-    int level = 0;
-    if (params.size() < 3)
-      return nullptr;
-    else if (params.size() > 3) {
-      level = atoi(params[3].c_str());
-      if (params[3].find('f' != std::string::npos))
-        level |= FieldFuncBase::FIXED_LEVEL;
-    }
-    return new VecLaplacianFieldFunction(params[0],params[1],params[2],level);
   }
 
-  return nullptr;
+  return f;
 }
 
 
@@ -1131,38 +1096,13 @@ TractionFunc* utl::parseTracFunc (const std::string& func,
                                   const std::string& type, int dir)
 {
   Real p = Real(0);
-  if (func.empty())
-    return new PressureField(p,dir);
-
-  IFEM::cout <<": ";
-  const RealFunc* f = nullptr;
-  if (type == "expression")
+  RealFunc* f = nullptr;
+  if (!func.empty())
   {
-    IFEM::cout << func;
-    EvalFunc::numError = 0;
-    f = new EvalFunction(func.c_str());
-    if (EvalFunc::numError > 0)
-    {
-      delete f;
-      return nullptr;
-    }
-  }
-  else if (type == "linear")
-  {
-    p = atof(func.c_str());
-    f = new ConstTimeFunc(new LinearFunc(p));
-    IFEM::cout << p <<"*t";
-  }
-  else if (type == "constant" || func.find_first_of("\t ") == std::string::npos)
-  {
-    p = atof(func.c_str());
-    IFEM::cout << p;
-  }
-  else
-  {
-    std::string tmp(func);
-    p = atof(strtok(const_cast<char*>(tmp.c_str())," "));
-    f = parseRealFunc(const_cast<char*>(type.c_str()),p);
+    if (type == "constant" || func.find_first_of("\t ") == std::string::npos)
+      IFEM::cout <<": "<< (p = atof(func.c_str()));
+    else
+      f = parseRealFunc(func,type);
   }
 
   return f ? new PressureField(f,dir) : new PressureField(p,dir);

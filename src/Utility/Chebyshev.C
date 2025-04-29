@@ -23,7 +23,7 @@ Real Chebyshev::evalPol1 (int polnum, Real xi)
 {
   if (polnum <= 0)
     return 1.0;
-  if (polnum == 1)
+  else if (polnum == 1)
     return xi;
 
   return 2.0*xi*evalPol1(polnum-1, xi) - evalPol1(polnum-2, xi);
@@ -34,7 +34,7 @@ Real Chebyshev::evalPol2 (int polnum, Real xi)
 {
   if (polnum <= 0)
     return 1.0;
-  if (polnum == 1)
+  else if (polnum == 1)
     return 2.0*xi;
 
   return 2.0*xi*evalPol2(polnum-1, xi) - evalPol2(polnum-2, xi);
@@ -52,7 +52,7 @@ Real Chebyshev::evalDer1 (int polnum, Real xi)
 
 Real Chebyshev::evalDer2 (int polnum, Real xi)
 {
-  return ((polnum + 1)*evalPol1(polnum + 1, xi) - xi*evalPol2(polnum, xi)) / (xi*xi - 1.0);
+  return ((polnum+1)*evalPol1(polnum+1, xi) - xi*evalPol2(polnum, xi)) / (xi*xi - 1.0);
 }
 
 
@@ -61,10 +61,10 @@ Real Chebyshev::eval2Der1 (int polnum, Real xi)
   if (polnum < 2)
     return 0.0;
 
-  if (std::abs(xi-1.0) < 1e-6)
-    return (pow(polnum,4) - pow(polnum, 2)) / 3.0;
-  else if (std::abs(1.0+xi) < 1e-6)
-    return pow(-1, polnum) * (pow(polnum,4) - pow(polnum, 2)) / 3.0;
+  if (std::abs(xi-1.0) < 1.0e-6)
+    return (pow(polnum,4.0) - pow(polnum,2.0)) / 3.0;
+  else if (std::abs(1.0+xi) < 1.0e-6)
+    return pow(-1.0,polnum) * (pow(polnum,4.0) - pow(polnum,2.0)) / 3.0;
 
   return polnum * ((polnum+1)*evalPol1(polnum, xi) - evalPol2(polnum, xi)) / (xi*xi - 1.0);
 }
@@ -74,11 +74,10 @@ ChebyshevFunc::ChebyshevFunc (const std::string& input, bool file)
 {
   if (file) {
     std::ifstream in(input);
-    if (!in.good()) {
+    if (in.good())
+      this->read(in);
+    else
       n[0] = n[1] = n[2] = 0;
-      return;
-    }
-    read(in);
   } else {
     std::stringstream in;
     in.str(input);
@@ -174,21 +173,18 @@ Real ChebyshevFunc::dderiv (const Vec3& X, int c1, int c2) const
 
 
 ChebyshevVecFunc::ChebyshevVecFunc (const std::vector<std::string>& input,
-                                    bool file)
+                                    bool file) : VecFunc(input.size())
 {
-  f[0] = std::make_unique<ChebyshevFunc>(input[0], file);
-  if (input.size() > 1)
-    f[1] = std::make_unique<ChebyshevFunc>(input[1], file);
-  if (input.size() > 2)
-    f[2] = std::make_unique<ChebyshevFunc>(input[2], file);
-  if (f[0]->getSize()[2] == 1)
+  for (size_t i = 0; i < input.size() && i < 3; i++)
+    f[i] = std::make_unique<ChebyshevFunc>(input[i], file);
+  if (f.front()->getSize()[2] == 1)
     ncmp = 2;
 }
 
 
 Vec3 ChebyshevVecFunc::evaluate (const Vec3& X) const
 {
-  return Vec3((*f[0])(X), (*f[1])(X), f[2] ? (*f[2])(X) : 0.0);
+  return Vec3((*f[0])(X), f[1] ? (*f[1])(X) : 0.0, f[2] ? (*f[2])(X) : 0.0);
 }
 
 
@@ -219,17 +215,17 @@ std::vector<Real> ChebyshevVecFunc::evalHessian (const Vec3& X) const
 
 ChebyshevTensorFunc::ChebyshevTensorFunc (const std::vector<std::string>& input,
                                           bool file)
+  : TensorFunc(sqrt(input.size()))
 {
-  f.resize(input.size());
-  for (size_t i = 0; i < input.size(); ++i)
-    f[i] = std::make_unique<ChebyshevFunc>(input[i], file);
-  ncmp = input.size();
+  f.reserve(input.size());
+  for (const std::string& inp : input)
+    f.push_back(std::make_unique<ChebyshevFunc>(inp,file));
 }
 
 
 Tensor ChebyshevTensorFunc::evaluate (const Vec3& X) const
 {
-  const size_t nsd = sqrt(ncmp);
+  const size_t nsd = zero.dim();
   Tensor result(nsd);
   size_t c = 0;
   for (size_t j = 1; j <= nsd; ++j)
@@ -242,7 +238,7 @@ Tensor ChebyshevTensorFunc::evaluate (const Vec3& X) const
 
 std::vector<Real> ChebyshevTensorFunc::evalGradient (const Vec3& X) const
 {
-  const size_t nsd = sqrt(ncmp);
+  const size_t nsd = zero.dim();
   std::vector<Real> result;
   result.reserve(ncmp*nsd);
   for (size_t d = 1; d <= nsd; ++d)
@@ -255,7 +251,7 @@ std::vector<Real> ChebyshevTensorFunc::evalGradient (const Vec3& X) const
 
 std::vector<Real> ChebyshevTensorFunc::evalHessian (const Vec3& X) const
 {
-  const size_t nsd = sqrt(ncmp);
+  const size_t nsd = zero.dim();
   std::vector<Real> result;
   result.reserve(ncmp*nsd*nsd);
   for (size_t d2 = 1; d2 <= nsd; ++d2)
