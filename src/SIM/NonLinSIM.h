@@ -129,6 +129,7 @@ protected:
   int    nupdat;  //!< Number of iterations with updated tangent
   int    prnSlow; //!< How many DOFs to print out on slow convergence
   bool   saveExL; //!< If \e true, the external load vector will be saved to VTF
+  bool   updNewN; //!< If \e true, update newly activated nodes before new step
 
   std::map<int,int> slowNodes; //!< Nodes for which slow convergence is detected
 

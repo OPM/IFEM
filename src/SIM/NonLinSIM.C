@@ -39,7 +39,7 @@ NonLinSIM::NonLinSIM (SIMbase& sim, CNORM n) : MultiStepSIM(sim), iteNorm(n)
   divgLim = 10.0;
   alpha   = alphaO = 1.0;
   eta     = 0.0;
-  saveExL = false;
+  saveExL = updNewN = false;
 }
 
 
@@ -110,7 +110,7 @@ bool NonLinSIM::parse (const tinyxml2::XMLElement* elem)
 
   std::string rotUpdate;
   if (utl::getAttribute(elem,"rotation",rotUpdate,true) && !rotUpdate.empty())
-    rotUpd = rotUpdate[0];
+    rotUpd = rotUpdate.front();
 
   const tinyxml2::XMLElement* child = elem->FirstChildElement();
   for (; child; child = child->NextSiblingElement()) {
@@ -154,6 +154,8 @@ bool NonLinSIM::parse (const tinyxml2::XMLElement* elem)
     }
     else if (!strcasecmp(child->Value(),"fromZero"))
       fromIni = true;
+    else if (!strcasecmp(child->Value(),"updateNewNodes"))
+      updNewN = true;
     else if (!strcasecmp(child->Value(),"printCond"))
       rCond = 0.0; // Compute and report condition number in the iteration log
   }
@@ -188,8 +190,11 @@ void NonLinSIM::init (size_t nSol, const RealArray& value)
 
 bool NonLinSIM::advanceStep (TimeStep& param, bool updateTime)
 {
+  bool status = this->MultiStepSIM::advanceStep(param,updateTime);
+  if (status && updateTime && updNewN && model.hasElementActivator())
+    model.updateForNewElements(solution.front(),param.time);
   this->pushSolution(); // Update solution vectors between time steps
-  return this->MultiStepSIM::advanceStep(param,updateTime);
+  return status;
 }
 
 
@@ -502,7 +507,7 @@ void NonLinSIM::printWorst (utl::LogStream& os, double eps)
        <<"\tdu = "<< wd.second[1] <<"\tres = "<< wd.second[2];
     std::map<int,int>::iterator nit = slowNodes.find(wd.first.first);
     if (nit == slowNodes.end())
-      slowNodes.insert(std::make_pair(wd.first.first,1));
+      slowNodes.emplace(wd.first.first,1);
     else
       ++nit->second;
   }

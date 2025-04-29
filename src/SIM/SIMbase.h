@@ -270,6 +270,11 @@ public:
   //! \brief Returns \e true if an element activation function is specified.
   bool hasElementActivator() const;
 
+  //! \brief Modifies the current solution vector when activating elements.
+  //! \param solution Current primary solution vector
+  //! \param[in] time Parameters for nonlinear/time-dependent simulations
+  void updateForNewElements(Vector& solution, const TimeDomain& time) const;
+
 
   // Computational methods
   // =====================

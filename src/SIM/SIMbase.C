@@ -886,7 +886,7 @@ bool SIMbase::updateGrid (const std::string& field)
   if (displ) return this->updateGrid(*displ);
 
   std::cerr <<" *** SIMbase::updateGrid: No such field \""<< field
-	    <<"\" registered for \""<< this->getName() <<"\"."<< std::endl;
+            <<"\" registered for \""<< this->getName() <<"\"."<< std::endl;
   return false;
 }
 
@@ -895,6 +895,75 @@ bool SIMbase::hasElementActivator () const
 {
   return std::any_of(myModel.begin(), myModel.end(),
                      [](const ASMbase* p){ return p->getElementActivator(); });
+}
+
+
+void SIMbase::updateForNewElements (Vector& solution,
+                                    const TimeDomain& time) const
+{
+  // Find all elements and nodes that were active in the previous time step
+  IntSet oldElms, oldNodes;
+  for (ASMbase* pch : myModel)
+    if (pch->getElementActivator())
+      for (size_t iel = 1; iel <= pch->getNoElms(true); iel++)
+        if (pch->isElementActive(pch->getElmID(iel),time.t-time.dt))
+        {
+          oldElms.insert(pch->getElmID(iel));
+          for (int inod : pch->getElementNodes(iel))
+            oldNodes.insert(pch->getNodeID(1+inod));
+        }
+
+  // Find the newly activated elements and assign solution values to
+  // the nodes of those elements that were inactive in the previous step
+  for (ASMbase* pch : myModel)
+    if (pch->getElementActivator())
+    {
+      RealArray pchSol;
+      pch->extractNodeVec(solution,pchSol);
+      const size_t nf = pch->getNoFields();
+      for (size_t iel = 1; iel <= pch->getNoElms(true); iel++)
+        if (pch->isElementActive(pch->getElmID(iel),time.t) &&
+            oldElms.find(pch->getElmID(iel)) == oldElms.end())
+        {
+          // This element is activated in current time step.
+          // Find (average) solution of the element nodes
+          // which were active in the previous step,
+          size_t count = 0;
+          Vector oldSol(nf);
+          const IntVec& elmNodes = pch->getElementNodes(iel);
+          for (int inod : elmNodes)
+            if (oldNodes.find(pch->getNodeID(1+inod)) != oldNodes.end())
+              if (++count == 1)
+                oldSol.fill(solution.ptr()+nf*inod);
+              else
+                oldSol.add(Vector(solution.ptr()+nf*inod,nf));
+          if (count > 1) oldSol /= static_cast<double>(count);
+#ifdef SP_DEBUG
+          std::cout <<"\nAverage solution of new active element "
+                    << pch->getElmID(iel) <<":";
+          for (double v : oldSol) std::cout <<" "<< v;
+#endif
+
+          // Assign this solution to the newly activated nodes
+          for (int inod : elmNodes)
+          {
+            int nodeId = pch->getNodeID(1+inod);
+            if (oldNodes.find(nodeId) == oldNodes.end())
+            {
+#ifdef SP_DEBUG
+              std::cout <<"\n\tAssigned to new node "<< nodeId;
+#endif
+              double* ptr = solution.ptr() + nf*(nodeId-1);
+              for (size_t i = 0; i < nf; i++, ptr++)
+                if (mySam->getEquation(nodeId,i+1) > 0)
+                  *ptr = oldSol[i];
+            }
+          }
+#ifdef SP_DEBUG
+          std::cout << std::endl;
+#endif
+        }
+    }
 }
 
 
