@@ -35,7 +35,7 @@ public:
   virtual bool parse(const tinyxml2::XMLElement* elem);
 
   //! \brief Prints out problem-specific data to the log stream.
-  virtual void printProblem() const;
+  virtual void printProblem(bool stopInputTimer = false) const;
 
   //! \brief Initializes primary solution vectors.
   virtual void initSol(size_t nSol, size_t nDof);

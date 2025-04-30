@@ -189,7 +189,8 @@ public:
   virtual bool parse(const tinyxml2::XMLElement* elem);
 
   //! \brief Prints out problem-specific data to the log stream.
-  virtual void printProblem() const;
+  //! \param[in] stopInputTimer If \e true, stop file input timer before print
+  virtual void printProblem(bool stopInputTimer = false) const;
 
   //! \brief Initializes time integration parameters for the integrand.
   virtual void initPrm();

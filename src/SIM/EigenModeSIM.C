@@ -83,9 +83,9 @@ bool EigenModeSIM::parse (const tinyxml2::XMLElement* elem)
 }
 
 
-void EigenModeSIM::printProblem () const
+void EigenModeSIM::printProblem (bool stopInputTimer) const
 {
-  model.printProblem();
+  this->MultiStepSIM::printProblem(stopInputTimer);
 
   bool multiModes = false;
   IFEM::cout <<"Eigenmode combination: u(x,t) =";

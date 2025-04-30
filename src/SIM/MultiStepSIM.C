@@ -39,8 +39,11 @@ MultiStepSIM::MultiStepSIM (SIMbase& sim)
 }
 
 
-void MultiStepSIM::printProblem () const
+void MultiStepSIM::printProblem (bool stopInputTimer) const
 {
+  if (stopInputTimer)
+    utl::profiler->stop("Model input");
+
   model.printProblem();
 }
 

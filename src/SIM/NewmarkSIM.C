@@ -123,15 +123,9 @@ bool NewmarkSIM::parse (const tinyxml2::XMLElement* elem)
 }
 
 
-void NewmarkSIM::printProblem () const
+void NewmarkSIM::printProblem (bool stopInputTimer) const
 {
-  model.printProblem();
-
-  if (solution.size() == 1)
-  {
-    IFEM::cout <<"Quasi-static linear analysis."<< std::endl;
-    return;
-  }
+  this->MultiStepSIM::printProblem(stopInputTimer);
 
   IFEM::cout <<"Newmark predictor/multicorrector: beta = "<< beta
              <<" gamma = "<< gamma;

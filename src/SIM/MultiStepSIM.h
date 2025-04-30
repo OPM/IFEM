@@ -43,7 +43,8 @@ public:
   virtual ~MultiStepSIM() {}
 
   //! \brief Prints out problem-specific data to the log stream.
-  virtual void printProblem() const;
+  //! \param[in] stopInputTimer If \e true, stop file input timer before print
+  virtual void printProblem(bool stopInputTimer = false) const;
 
   //! \brief Returns a list of prioritized XML-tags.
   virtual const char** getPrioritizedTags() const;

@@ -65,9 +65,9 @@ bool HHTSIM::parse (const tinyxml2::XMLElement* elem)
 }
 
 
-void HHTSIM::printProblem () const
+void HHTSIM::printProblem (bool stopInputTimer) const
 {
-  this->NewmarkSIM::printProblem();
+  this->NewmarkSIM::printProblem(stopInputTimer);
 
   if (alpha2 > 0.0)
     IFEM::cout <<"- based on the tangential stiffness matrix\n";
