@@ -392,14 +392,14 @@ bool SPRMatrix::add (const SystemMatrix& B, Real alpha)
 bool SPRMatrix::add (Real sigma, int ieq)
 {
 #ifdef HAS_SPR
-  if (ieq > 0)
-    ierr = -999; // Not implemented yet
+  ierr = ieq > 0 ? ieq : 0;
+  sprdad_(mpar, mtrees, msifa, values, sigma, 6, ierr);
+  if (ierr < 0)
+    std::cerr <<"SAM::SPRDAD: Failure "<< ierr << std::endl;
+  else if (ieq > 0)
+    return this->flagNonZeroEqs({ieq});
   else
-    sprdad_(mpar, mtrees, msifa, values, sigma, 6, ierr);
-  if (ierr == 0)
     return this->flagNonZeroEqs();
-
-  std::cerr <<"SAM::SPRDAD: Failure "<< ierr << std::endl;
 #endif
 
   return false;
