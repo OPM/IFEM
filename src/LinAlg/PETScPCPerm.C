@@ -11,9 +11,12 @@
 //!
 //==============================================================================
 
-
 #include "PETScPCPerm.h"
 #include <iostream>
+#ifndef PetscCall
+//! \brief Workaround for nonexisting macro in older PETSc versions.
+#define PetscCall(x) if (x) std::cerr <<"PetscFree failed "<< x << std::endl;
+#endif
 
 
 PetscErrorCode PCPermCreate(PCPerm **pcperm)
@@ -64,8 +67,8 @@ PetscErrorCode PCPermSetUp(PC pc, IS *perm, Mat A, const char* type)
 
 PetscErrorCode PCPermApply(PC pc, Vec x, Vec y)
 {
-
   PCPerm *shell;
+
   PCShellGetContext(pc,(void**)&shell);
   if (!shell->identity)
     VecPermute(x,*(shell->order),PETSC_FALSE);
