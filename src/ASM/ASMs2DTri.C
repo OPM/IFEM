@@ -505,16 +505,19 @@ bool ASMs2DTri::integrate (Integrand& integrand, int lIndex,
 bool ASMs2DTri::tesselate (ElementBlock& grid, const int*) const
 {
   // Establish the block grid coordinates
-  size_t i, j, ip;
+  size_t i, k;
   grid.setNoElmNodes(3);
   grid.resize(nx,ny);
   for (i = 0; i < grid.getNoNodes(); i++)
     grid.setCoor(i,this->getCoord(1+i));
 
   // Establish the block grid topology
-  for (i = ip = 0; i < MNPC.size(); i++)
-    for (j = 0; j < 3; j++, ip++)
-      grid.setNode(ip,MNPC[i][j]);
+  for (i = k = 0; i < MNPC.size(); i++)
+  {
+    for (int j : MNPC[i])
+      grid.setNode(k++,j);
+    grid.setElmId(1+i,MLGE[i]);
+  }
 
   return true;
 }

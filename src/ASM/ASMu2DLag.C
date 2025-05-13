@@ -415,11 +415,11 @@ bool ASMu2DLag::tesselate (ElementBlock& grid, const int*) const
       --nelms;
   grid.unStructResize(nelms,nnod,nmnpc);
 
-  size_t i, j, k;
+  size_t i, j, k, e;
   for (i = 0; i < nnod; i++)
     grid.setCoor(i,this->getCoord(1+i));
 
-  for (i = k = 0; i < nel; i++)
+  for (i = k = e = 0; i < nel; i++)
     if (MNPC[i].size() > 1) // ignore 1-noded elements
     {
       for (j = 0; j < MNPC[i].size(); j++)
@@ -428,6 +428,7 @@ bool ASMu2DLag::tesselate (ElementBlock& grid, const int*) const
         else
           grid.setNode(k++,MNPC[i][j]);
       grid.endOfElm(k);
+      grid.setElmId(++e,MLGE[i]);
     }
 
   return true;
