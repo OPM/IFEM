@@ -862,34 +862,42 @@ IntFunc* utl::parseIntFunc (const std::string& func, const std::string& type)
 
   // This class can be used as an element activation function, where a bunch of
   // elements (nv) is activated in the first parameter direction, assuming the
-  // number of elements in the first direction is nu.
+  // number of elements in the first direction is nu. If nw equals 1, all nv
+  // elements in the u-w parameter plane are activated instantly in one step.
+  // Otherwise, the nv elements are divided into nw groups, each consisting
+  // of nv/nw elements, which then are activated one by one.
   class Parametric : public IntFunc
   {
     int nu; // Number of elements in first parameter direction
-    int nv; // Number of elements to activate instantly
+    int nv; // Number of elements to activate in v-w plane before advancing in u
+    int nw; // Number of element divisions per layer in w-direction
     Real s; // Scaling factor
 
   public:
-    Parametric(int u, int v, Real sf) : nu(u), nv(v), s(sf) {}
+    Parametric(int u, int v, int w, Real sf) : nu(u), nv(v), nw(w), s(sf) {}
 
   protected:
     Real evaluate(const int& x) const override
     {
-      int ix = 1+(x-1)%nu;
-      int nx = 1+(x-1)/nu;
-      return s*Real(ix > 1 || nx > nv ? ix + nu*((nx-1)/nv) : 0);
+      int ix = (x-1)%nu;
+      int nx = (x-1)/nu;
+      if (ix < 1 && nx < nv) return Real(0);
+
+      Real delta = nw > 1 && nw < nv ? Real(1+nx/(nv/nw))/Real(nw) : Real(0);
+      return s*(Real(ix + nu*(nx/nv)) + delta);
     }
   };
 
   if (type == "parametric" && !func.empty())
   {
     char* prms = strdup(func.c_str());
-    char* s = NULL;
-    int neu = atoi(strtok(prms," "));
-    int nev = (s = strtok(NULL," ")) ? atoi(s) : 1;
-    Real sf = (s = strtok(NULL," ")) ? atof(s) : Real(1);
+    char* s = nullptr;
+    int ne1 = atoi(strtok(prms," "));
+    int ne2 = (s = strtok(nullptr," ")) ? atoi(s) : 1;
+    int ne3 = (s = strtok(nullptr," ")) ? atoi(s) : 1;
+    Real sf = (s = strtok(nullptr," ")) ? atof(s) : Real(1);
     free(prms);
-    return new Parametric(neu,nev,sf);
+    return new Parametric(ne1,ne2,ne3,sf);
   }
 
   Real scaling(1);
