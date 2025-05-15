@@ -672,13 +672,13 @@ void SIMbase::setQuadratureRule (size_t ng, bool redimBuffers, bool printQP)
 }
 
 
-void SIMbase::printProblem () const
+bool SIMbase::printProblem () const
 {
-  if (myProblem)
-  {
-    IFEM::cout <<"\nProblem definition:"<< std::endl;
-    myProblem->printLog();
-  }
+  if (!myProblem)
+    return false;
+
+  IFEM::cout <<"\nProblem definition:"<< std::endl;
+  myProblem->printLog();
 
 #if SP_DEBUG > 1
   std::cout <<"\nProperty mapping:\n";
@@ -726,6 +726,7 @@ void SIMbase::printProblem () const
               <<" "<< (int)p.ldim <<"D"<< std::endl;
   }
 #endif
+  return true;
 }
 
 
