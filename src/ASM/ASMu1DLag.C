@@ -187,8 +187,11 @@ bool ASMu1DLag::tesselate (ElementBlock& grid, const int*) const
     grid.setCoor(i,this->getCoord(1+i));
 
   for (i = k = 0; i < nel; i++)
+  {
     for (int j : MNPC[i])
       grid.setNode(k++,j);
+    grid.setElmId(1+i,MLGE[i]);
+  }
 
   return true;
 }

@@ -374,6 +374,11 @@ bool VTF::writeVres (const std::vector<Real>& nodeResult,
 }
 
 
+/*!
+  If \a elementResult is empty, the external element numbers will instead
+  define the scalar field to be written.
+*/
+
 bool VTF::writeEres (const std::vector<Real>& elementResult,
                      int idBlock, int geomID)
 {
@@ -382,18 +387,23 @@ bool VTF::writeEres (const std::vector<Real>& elementResult,
   const ElementBlock* grid = this->getBlock(geomID);
   if (!grid) return false;
 
-  const size_t nres = elementResult.size();
-  const size_t nels = grid->getNoElms();
+  size_t nels = grid->getNoElms();
+  size_t nres = elementResult.size();
   if (nres > nels)
     return showError("Invalid size of result array",nres,nels);
-  else if (nres < nels)
+  else if (nres > 0 && nres < nels)
     showError("Warning: Fewer element results that anticipated",nres,nels);
+  else // write the external element numbers
+    nres = nels;
 
 #ifdef HAS_VTFAPI
   // Cast to float
   std::vector<float> resVec(nres);
   for (size_t i = 0; i < nres; i++)
-    resVec[grid->getElmIndex(i)] = elementResult[i];
+  {
+    size_t j = grid->getElmIndex(i);
+    resVec[j] = elementResult.empty() ? grid->getElmId(1+i) : elementResult[i];
+  }
 
 #if HAS_VTFAPI == 1
   VTFAResultBlock dBlock(idBlock,VTFA_DIM_SCALAR,VTFA_RESMAP_ELEMENT,0);

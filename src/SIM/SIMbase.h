@@ -149,7 +149,7 @@ public:
                          bool printQP = false);
 
   //! \brief Prints out problem-specific data to the log stream.
-  virtual void printProblem() const;
+  virtual bool printProblem() const;
 
   //! \brief Returns a pointer to the problem-specific data object.
   const IntegrandBase* getProblem() const { return myProblem; }

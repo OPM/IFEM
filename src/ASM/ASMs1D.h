@@ -20,7 +20,7 @@
 #include "ASMutils.h"
 #include "Tensor.h"
 
-typedef std::vector<Tensor> TensorVec; //!< An array of non-symmetric tensors
+using TensorVec = std::vector<Tensor>; //!< An array of non-symmetric tensors
 
 namespace Go {
   class SplineCurve;
@@ -129,6 +129,10 @@ public:
   virtual int getNodeSetIdx(const std::string& setName) const;
   //! \brief Returns an indexed pre-defined node set.
   virtual const IntVec& getNodeSet(int iset) const;
+  //! \brief Checks if node \a inod is within predefined node set \a iset.
+  virtual bool isInNodeSet(int iset, int inod) const;
+  //! \brief Defines a node set by parsing a list of node numbers.
+  virtual int parseNodeSet(const std::string& setName, const char* cset);
 
   //! \brief Finds the node that is closest to the given point.
   //! \param[in] X Global coordinates of point to search for

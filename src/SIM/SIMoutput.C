@@ -68,7 +68,7 @@ void SIMoutput::setPointResultFile (const std::string& filename, bool dumpCoord)
   if (!myPoints.empty() && myPoints.back().first.empty())
     myPoints.back().first = filename; // points have already been defined
   else
-    myPoints.push_back(std::make_pair(filename,ResPointVec()));
+    myPoints.emplace_back(filename,ResPointVec());
   std::string& myPtFile = myPoints.back().first;
 
   // Append extension .dat if nothing yet
@@ -762,6 +762,9 @@ bool SIMoutput::writeGlvNo (int& nBlock, int iStep, int idBlock) const
   if (!this->writeGlvE(e,iStep,nBlock,"Global element numbers",idBlock++,true))
     return false;
 
+  if (!this->writeGlvE({},iStep,nBlock,"Original element numbers",idBlock++))
+    return false;
+
   Vector scl(this->getNoNodes());
   std::iota(scl.begin(),scl.end(),1.0);
   if (!this->writeGlvS(scl,"Global node numbers",iStep,nBlock,idBlock++))
@@ -1317,7 +1320,7 @@ bool SIMoutput::writeGlvP (const RealArray& ssol, int iStep, int& nBlock,
       return; // patch index out of range
 
     if (fabs(res) > fabs(maxVal[pidx].second))
-      maxVal[pidx] = std::make_pair(Xpt,res);
+      maxVal[pidx] = { Xpt, res };
   };
 
   std::vector<IntVec> sID;
@@ -1616,14 +1619,19 @@ bool SIMoutput::writeGlvN (const Matrix& norms, int iStep, int& nBlock,
 }
 
 
-bool SIMoutput::writeGlvE (const Vector& vec, int iStep, int& nBlock,
+/*!
+  If \a field is empty, the patch-level external element numbers will instead
+  define the scalar field to be written.
+*/
+
+bool SIMoutput::writeGlvE (const Vector& field, int iStep, int& nBlock,
                            const char* name, int idBlock,
                            bool internalOrder) const
 {
   if (!myVtf)
     return true;
 
-  Vector field;
+  Vector lVec;
   IntVec sID;
 
   size_t firstIndex = internalOrder ? 1 : 0;
@@ -1635,19 +1643,22 @@ bool SIMoutput::writeGlvE (const Vector& vec, int iStep, int& nBlock,
       continue; // skip empty patches
 
     ++geomID;
-    pch->extractElmRes(vec,field,firstIndex);
-    if (internalOrder)
+    if (!field.empty())
     {
-      firstIndex += pch->getNoElms(true);
-      if (field.norm2() < 1.0e-12)
-        continue; // skip patches without non-zero data
+      pch->extractElmRes(field,lVec,firstIndex);
+      if (internalOrder)
+      {
+        firstIndex += pch->getNoElms(true);
+        if (lVec.norm2() < 1.0e-12)
+          continue; // skip patches without non-zero data
+      }
     }
 
     if (msgLevel > 1)
       IFEM::cout <<"Writing element field '"<< name <<"' for patch "
                  << pch->idx+1 << std::endl;
 
-    if (!myVtf->writeEres(field,++nBlock,geomID))
+    if (!myVtf->writeEres(lVec,++nBlock,geomID))
       return false;
 
     sID.push_back(nBlock);
