@@ -468,6 +468,40 @@ const IntVec& ASMs1D::getNodeSet (int iset) const
 }
 
 
+bool ASMs1D::isInNodeSet (int iset, int inod) const
+{
+  if (iset < 1 || iset > static_cast<int>(nodeSets.size()))
+    return false;
+
+  return utl::findIndex(nodeSets[iset-1].second,inod) >= 0;
+}
+
+
+int ASMs1D::parseNodeSet (const std::string& setName, const char* cset)
+{
+  int iset = this->getNodeSetIdx(setName)-1;
+  if (iset < 0)
+  {
+    iset = nodeSets.size();
+    nodeSets.emplace_back(setName,IntVec());
+  }
+
+  IntVec& mySet = nodeSets[iset].second;
+  size_t ifirst = mySet.size();
+  utl::parseIntegers(mySet,cset);
+
+  int inod; // Transform to internal node indices
+  for (size_t i = ifirst; i < mySet.size(); i++)
+    if ((inod = this->getNodeIndex(mySet[i])) > 0)
+      mySet[i] = inod;
+    else
+      IFEM::cout <<"  ** Warning: Non-existing node "<< mySet[i]
+                 <<" in node set \""<< setName <<"\""<< std::endl;
+
+  return 1+iset;
+}
+
+
 bool ASMs1D::connectPatch (int vertex, ASM1D& neighbor, int nvertex, int thick)
 {
   ASMs1D* neighS = dynamic_cast<ASMs1D*>(&neighbor);
