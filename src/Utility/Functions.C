@@ -863,7 +863,7 @@ IntFunc* utl::parseIntFunc (const std::string& func, const std::string& type)
   // This class can be used as an element activation function, where a bunch of
   // elements (nv) is activated in the first parameter direction, assuming the
   // number of elements in the first direction is nu. If nw equals 1, all nv
-  // elements in the u-w parameter plane are activated instantly in one step.
+  // elements in the v-w parameter plane are activated instantly in one step.
   // Otherwise, the nv elements are divided into nw groups, each consisting
   // of nv/nw elements, which then are activated one by one.
   class Parametric : public IntFunc

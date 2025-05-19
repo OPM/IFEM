@@ -880,6 +880,7 @@ bool SIMinput::parse (const tinyxml2::XMLElement* elem)
     std::string solver;
     if (utl::getAttribute(elem,"class",solver,true))
       opt.setLinearSolver(solver);
+    utl::getAttribute(elem,"fixzeros",fixZeros);
     if (utl::getAttribute(elem,"l2class",solver,true))
     {
       if (solver == "petsc")
