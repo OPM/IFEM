@@ -48,9 +48,11 @@ public:
   { return std::vector<std::vector<int>>(); }
 protected:
   //! \brief Parses a dimension-specific subelement of the \a geometry XML-tag.
-  virtual bool parseGeometryDimTag(const tinyxml2::XMLElement*) { return false; }
+  virtual bool parseGeometryDimTag(const tinyxml2::XMLElement*)
+  { return false; }
   //! \brief Preprocesses a user-defined Dirichlet boundary property.
-  virtual bool addConstraint(int,int,int,int,int,int&,char) { return false; }
+  virtual bool addConstraint(int,int,int,int,int,int&,char,bool)
+  { return false; }
   //! \brief Preprocesses the result sampling points.
   virtual void preprocessResultPoints() {}
   //! \brief Creates a model generator.

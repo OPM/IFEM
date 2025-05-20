@@ -293,10 +293,14 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
         nprop++;
         code = p.pindx;
         dofs = abs(code%1000000);
+        bool overrideDirichlet = false;
         switch (p.pcode) {
         case Property::DIRICHLET:
           code = 0;
         case Property::DIRICHLET_INHOM:
+          break;
+        case Property::DIRICHLET_OVERRIDE:
+          overrideDirichlet = true;
           break;
 
         case Property::UNDEFINED:
@@ -312,11 +316,13 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
         }
 
         if (dofs > 0)
+        {
           if (this->addConstraint(p.patch,p.lindx,p.ldim,dofs,code,nGlbNodes,
-                                  p.basis))
+                                  p.basis,overrideDirichlet))
             IFEM::cout << std::endl;
           else
             ++ierr;
+        }
       }
 
   if (iwar > 0)
@@ -710,6 +716,7 @@ bool SIMbase::printProblem () const
       std::cout <<"DIRICHLET       : ";
       break;
     case Property::DIRICHLET_INHOM:
+    case Property::DIRICHLET_OVERRIDE:
       std::cout <<"DIRICHLET_INHOM : ";
       break;
     case Property::DIRICHLET_ANASOL:
@@ -2095,7 +2102,7 @@ bool Mode::computeDamping (const SystemMatrix& mat)
 
 
 bool SIMbase::project (Matrix& ssol, const Vector& psol,
-		       SIMoptions::ProjectionMethod pMethod,
+		       SIMoptions::ProjectionMethod method,
 		       const TimeDomain& time) const
 {
   PROFILE1("Solution projection");
@@ -2115,9 +2122,9 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
       if (!pch->empty())
         ngNodes += pch->getNoProjectionNodes();
 
-  if (pMethod == SIMoptions::DGL2 || pMethod == SIMoptions::CGL2)
+  if (method == SIMoptions::DGL2 || method == SIMoptions::CGL2)
     const_cast<SIMbase*>(this)->setQuadratureRule(opt.nGauss[1]);
-  else if (pMethod == SIMoptions::CGL2_INT)
+  else if (method == SIMoptions::CGL2_INT)
   {
     // Reinitialize the integration point buffers within the integrands (if any)
     // Note: We here use the same integration scheme as for the main problem
@@ -2147,7 +2154,7 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
 
     // Project the secondary solution and retrieve control point values
     bool ok = false;
-    switch (pMethod) {
+    switch (method) {
     case SIMoptions::GLOBAL:
       if (msgLevel > 1 && i == 0)
         IFEM::cout <<"\tGreville point projection"<< std::endl;
@@ -2199,7 +2206,7 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
       break;
 
     default:
-      std::cerr <<" *** SIMbase::project: Projection method "<< pMethod
+      std::cerr <<" *** SIMbase::project: Projection method "<< method
                 <<" not implemented."<< std::endl;
     }
 
@@ -2251,7 +2258,7 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
 
 bool SIMbase::project (RealArray& values, const FunctionBase* f,
                        int basis, int iField, int nFields,
-                       SIMoptions::ProjectionMethod pMethod, double time) const
+                       SIMoptions::ProjectionMethod method, double time) const
 {
   bool ok = true;
   for (size_t j = 0; j < myModel.size() && ok; j++)
@@ -2259,7 +2266,7 @@ bool SIMbase::project (RealArray& values, const FunctionBase* f,
     if (myModel[j]->empty()) continue; // skip empty patches
 
     Vector loc_values;
-    switch (pMethod) {
+    switch (method) {
     case SIMoptions::GLOBAL:
       // Greville point projection
       ok = myModel[j]->evaluate(f,loc_values,basis,time);
@@ -2289,7 +2296,7 @@ bool SIMbase::project (RealArray& values, const FunctionBase* f,
       break;
 
     default:
-      std::cerr <<" *** SIMbase::project: Projection method "<< pMethod
+      std::cerr <<" *** SIMbase::project: Projection method "<< method
                 <<" not implemented for functions."<< std::endl;
       return false;
     }
@@ -2343,23 +2350,23 @@ bool SIMbase::extractPatchSolution (IntegrandBase* problem,
 
 
 bool SIMbase::project (Vector& ssol, const Vector& psol,
-                       SIMoptions::ProjectionMethod pMethod, size_t iComp) const
+                       SIMoptions::ProjectionMethod method, size_t iComp) const
 {
   if (iComp > 0)
   {
     Matrix stmp;
-    bool ok = this->project(stmp,psol,pMethod);
+    bool ok = this->project(stmp,psol,method);
     ssol = stmp.getRow(iComp);
     return ok;
   }
 
   Matrix stmp(ssol);
-  return this->project(stmp,psol,pMethod);
+  return this->project(stmp,psol,method);
 }
 
 
 bool SIMbase::projectAnaSol (Vector& ssol,
-                             SIMoptions::ProjectionMethod pMethod) const
+                             SIMoptions::ProjectionMethod method) const
 {
   if (!mySol) return false;
 
@@ -2367,21 +2374,21 @@ bool SIMbase::projectAnaSol (Vector& ssol,
   if (f)
   {
     ssol.resize(f->dim()*this->getNoNodes());
-    return this->project(ssol,f,0,0,0,pMethod);
+    return this->project(ssol,f,0,0,0,method);
   }
 
   f = mySol->getVectorSecSol();
   if (f)
   {
     ssol.resize(f->dim()*this->getNoNodes());
-    return this->project(ssol,f,0,0,0,pMethod);
+    return this->project(ssol,f,0,0,0,method);
   }
 
   f = mySol->getStressSol();
   if (f)
   {
     ssol.resize(f->dim()*this->getNoNodes());
-    return this->project(ssol,f,0,0,0,pMethod);
+    return this->project(ssol,f,0,0,0,method);
   }
 
   return false;

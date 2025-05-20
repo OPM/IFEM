@@ -112,8 +112,9 @@ protected:
   //! \param[in] code In-homogeneous Dirichlet condition property code
   //! \param ngnod Total number of global nodes in the model (might be updated)
   //! \param[in] basis Which basis to apply the constraint to (mixed methods)
-  virtual bool addConstraint(int patch, int lndx, int ldim,
-                             int dirs, int code, int& ngnod, char basis = 1);
+  //! \param[in] ovrD If \e true, override conflicting Dirichlet conditions
+  virtual bool addConstraint(int patch, int lndx, int ldim, int dirs, int code,
+                             int& ngnod, char basis = 1, bool ovrD = false);
 
   //! \brief Constrains a parametric line on a boundary face.
   //! \param[in] patch 1-based index of the patch to receive the property
