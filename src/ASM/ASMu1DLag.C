@@ -124,6 +124,18 @@ const IntVec& ASMu1DLag::getElementSet (int iset) const
 }
 
 
+bool ASMu1DLag::getElementSet (int iset, std::string& name) const
+{
+  if (iset < 1 || iset > static_cast<int>(elemSets.size()))
+    return false;
+  else if (elemSets[iset-1].second.empty())
+    return false;
+
+  name = elemSets[iset-1].first;
+  return true;
+}
+
+
 /*!
   If \a iel is negative, the absolute value is taken as the external element ID.
   Otherwise, it is taken as the 1-based internal element index within the patch.

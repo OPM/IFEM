@@ -270,7 +270,7 @@ const IntVec& ASMu2DLag::getElementSet (int iset) const
 
 bool ASMu2DLag::getElementSet (int iset, std::string& name) const
 {
-  if (iset < 0 || iset > static_cast<int>(elemSets.size()))
+  if (iset < 1 || iset > static_cast<int>(elemSets.size()))
     return false;
   else if (elemSets[iset-1].second.empty())
     return false;

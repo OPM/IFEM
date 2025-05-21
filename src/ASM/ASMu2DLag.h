@@ -91,6 +91,8 @@ public:
   virtual int getElementSetIdx(const std::string& setName) const;
   //! \brief Returns an indexed predefined element set.
   virtual const IntVec& getElementSet(int iset) const;
+  //! \brief Returns the name of an indexed predefined element set.
+  virtual bool getElementSet(int iset, std::string& name) const;
   //! \brief Checks if element \a iel is within predefined element set \a iset.
   virtual bool isInElementSet(int iset, int iel) const;
   //! \brief Defines an element set by parsing a list of element numbers.
@@ -105,8 +107,6 @@ public:
   //! otherwise it is a one-based internal element index
   //! \return Element set index associated with \a setName
   int addToElemSet(const std::string& setName, int iel, bool extId = false);
-  //! \brief Returns the name of an indexed predefined element set.
-  bool getElementSet(int iset, std::string& name) const;
 
 public:
   //! \brief Finds the global (or patch-local) node numbers on a patch boundary.

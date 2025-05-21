@@ -298,6 +298,8 @@ public:
   virtual int getElementSetIdx(const std::string&) const { return 0; }
   //! \brief Returns an indexed predefined element set.
   virtual const IntVec& getElementSet(int) const { return Empty; }
+  //! \brief Returns the name of an indexed predefined element set.
+  virtual bool getElementSet(int, std::string&) const { return false; }
   //! \brief Checks if an element is within a predefined element set.
   virtual bool isInElementSet(int, int) const { return false; }
   //! \brief Defines an element set by parsing a list of element numbers.
