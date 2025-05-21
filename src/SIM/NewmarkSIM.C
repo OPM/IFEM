@@ -161,7 +161,8 @@ void NewmarkSIM::initPrm ()
   if (nRHSvec > 2) // Flag separate storage of external load vector
     model.setIntegrationPrm(4,0.5);
   if (nupdat < maxit)
-    model.initLHSbuffers();
+    model.initLHSbuffers(); // Cache the constant element matrices
+  model.initForMultiStep();
 }
 
 

@@ -50,7 +50,7 @@ public:
   virtual const char** getPrioritizedTags() const;
 
   //! \brief Initializes time integration parameters for the integrand.
-  virtual void initPrm() {}
+  virtual void initPrm();
   //! \brief Initializes the primary solution vectors.
   //! \param[in] nSol Number of consequtive solutions stored in core
   //! \param[in] nDof Number of degrees of freedom (solution vector length)
@@ -86,7 +86,7 @@ protected:
   virtual bool solutionNorms(const TimeDomain&, double zero_tolerance = 1.0e-8,
                              std::streamsize outPrec = 0);
 
-  //! \brief Returns the last step that was save to VTF
+  //! \brief Returns the last step that was saved to VTF.
   int getLastSavedStep() const { return lastSt; }
 
 public:

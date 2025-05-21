@@ -91,6 +91,7 @@ void NewmarkNLSIM::initPrm ()
   model.setIntegrationPrm(2,0.5-gamma);
   if (alpha2 < 0.0) // Flag that stiffness-proportional damping should depend
     model.setIntegrationPrm(3,-1.0); // on the material stiffness matrix only
+  model.initForMultiStep();
 }
 
 
