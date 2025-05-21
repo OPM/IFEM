@@ -998,20 +998,23 @@ void SIMbase::getBoundaryNodes (int pcode, IntVec& glbNodes, Vec3Vec* XYZ) const
         for (size_t node = 1; node <= pch->getNoNodes(); node++)
           glbNodes.push_back(pch->getNodeID(node));
       else if (prop.ldim == 4)
+      {
         // The boundary nodes are stored explicitly
         nodes = pch->getNodeSet(prop.lindx);
+        for (int& n : nodes) n = pch->getNodeID(n);
+      }
       else
         continue; // Silently ignore other/invalid dimension specification
 
       // Ensure the global node numbers are unique if more than one patch
-      for (int n : nodes)
-        if (std::find(glbNodes.begin(),glbNodes.end(),n) == glbNodes.end())
+      for (int nodeId : nodes)
+        if (std::find(glbNodes.begin(),glbNodes.end(),nodeId) == glbNodes.end())
         {
-          glbNodes.push_back(n);
+          glbNodes.push_back(nodeId);
           if (XYZ)
           {
-            size_t node = pch->getNodeIndex(n,true);
-            XYZ->push_back(node ? pch->getCoord(node) : Vec3());
+            size_t inod = pch->getNodeIndex(nodeId,true);
+            XYZ->push_back(inod ? pch->getCoord(inod) : Vec3());
           }
         }
     }
@@ -1024,6 +1027,25 @@ void SIMbase::getBoundaryNodes (int pcode, IntVec& glbNodes, Vec3Vec* XYZ) const
     std::cout << (i%10 ? " " : "\n") << glbNodes[i];
   std::cout << std::endl;
 #endif
+}
+
+
+IntVec SIMbase::getNodeSet (const std::string& setName) const
+{
+  IntVec glbNodes;
+  for (const ASMbase* pch : myModel)
+  {
+    const IntVec& nodes = pch->getNodeSet(pch->getNodeSetIdx(setName));
+    for (int inod : nodes)
+    {
+      int nodeId = pch->getNodeID(inod);
+      if (std::find(glbNodes.begin(),glbNodes.end(),nodeId) == glbNodes.end())
+        glbNodes.push_back(nodeId);
+    }
+  }
+
+  std::sort(glbNodes.begin(),glbNodes.end());
+  return glbNodes;
 }
 
 
@@ -1971,23 +1993,11 @@ bool SIMbase::getCurrentReactions (RealArray& RF,
     RF.push_back(mySam->getReaction(dir,*reactionForces,nodes));
 
 #if SP_DEBUG > 1
-  int nnod = pcode > 0 ? glbNodes.size() : mySam->getNoNodes();
   if (pcode > 0)
-    std::cout <<"\nReaction forces associated with property code "<< pcode;
+    IFEM::cout <<"\nReaction forces associated with property code "<< pcode;
   else
-    std::cout <<"\nHere are the nodal reaction forces:";
-
-  Vector nrf;
-  for (int i = 0; i < nnod; i++)
-  {
-    int inod = pcode > 0 ? glbNodes[i] : i+1;
-    if (mySam->getNodalReactions(inod,*reactionForces,nrf))
-    {
-      std::cout <<"\nNode "<< inod <<":";
-      for (double f : nrf) IFEM::cout <<" "<< f;
-    }
-  }
-  std::cout << std::endl;
+    IFEM::cout <<"\nHere are the nodal reaction forces:";
+  this->printNRforces(glbNodes);
 #endif
   return true;
 }

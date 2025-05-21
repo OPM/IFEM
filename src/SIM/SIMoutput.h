@@ -299,14 +299,14 @@ public:
   //! \param[in] step Load/time step counter
   bool saveResults(const Vectors& psol, double time, int step) const;
 
+  //! \brief Checks whether result points have been defined or not.
+  bool hasResultPoints() const { return !myPoints.empty(); }
+  //! \brief Checks whether point result files have been defined or not.
+  bool hasPointResultFile() const;
   //! \brief Sets the file name for result point output.
   //! \param[in] filename The file name prefix (optionally with extension)
   //! \param[in] dumpCoord If \e true, write point coordinates to separate file
   void setPointResultFile(const std::string& filename, bool dumpCoord = false);
-  //! \brief Checks whether point result files have been defined or not.
-  bool hasPointResultFile() const;
-  //! \brief Checks whether result points have been defined or not.
-  bool hasResultPoints() const { return !myPoints.empty(); }
 
   //! \brief Serialization support.
   virtual bool serialize(std::map<std::string,std::string>&) const;
@@ -317,8 +317,10 @@ public:
   virtual double getEffectivityIndex(const Vectors&, size_t, size_t) const = 0;
   //! \brief Prints integrated solution norms to the log stream.
   virtual void printNorms(const Vectors&, size_t = 36) const = 0;
-  //! \brief Prints out interface force resultants to log stream.
+  //! \brief Prints out interface force resultants to the log stream.
   virtual void printIFforces(const Vector&, RealArray&) {}
+  //! \brief Prints out the nodal reaction forces to the log stream.
+  virtual int printNRforces(const std::vector<int>& glbNodes = {}) const;
 
   //! \brief Writes out the additional functions to VTF-file.
   virtual bool writeAddFuncs(int iStep, int& nBlock, int idBlock, double time);

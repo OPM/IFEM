@@ -61,6 +61,16 @@ void SIMoutput::clearProperties ()
 }
 
 
+bool SIMoutput::hasPointResultFile () const
+{
+  for (const ResPtPair& rptp : myPoints)
+    if (!rptp.first.empty())
+      return true;
+
+  return false;
+}
+
+
 void SIMoutput::setPointResultFile (const std::string& filename, bool dumpCoord)
 {
   if (filename.empty()) return;
@@ -2347,6 +2357,38 @@ bool SIMoutput::saveResults (const Vectors& psol, double time, int step) const
 }
 
 
+int SIMoutput::printNRforces (const IntVec& glbNodes) const
+{
+  const RealArray* reactionForces = this->getReactionForces();
+  if (!reactionForces || !mySam) return 0;
+
+  const int nnod = glbNodes.empty() ? mySam->getNoNodes() : glbNodes.size();
+
+  RealArray nrf;
+  int rCount = 0;
+  for (int i = 0; i < nnod; i++)
+  {
+    int inod = glbNodes.empty() ? 1+i : glbNodes[i];
+    if (mySam->getNodalReactions(inod,*reactionForces,nrf))
+    {
+      rCount++;
+      IFEM::cout <<"\nNode"<< std::setw(7) << inod;
+      if (inod <= static_cast<int>(myLoc2Glb.size()))
+        IFEM::cout << std::setw(9) << myLoc2Glb[inod-1];
+      else
+        IFEM::cout << std::string(9,' ');
+      IFEM::cout <<" :";
+      for (double f : nrf)
+	IFEM::cout << std::setw(15) << utl::trunc(f);
+    }
+  }
+  if (rCount > 0)
+    IFEM::cout << std::endl;
+
+  return rCount;
+}
+
+
 bool SIMoutput::extractNodeVec (const RealArray& glbVec, Vector& locVec,
                                 const ASMbase* patch, int nodalCmps,
                                 bool& emptyPatches) const
@@ -2375,16 +2417,6 @@ bool SIMoutput::extractNodeVec (const RealArray& glbVec, Vector& locVec,
   std::cout <<"\nSolution vector for patch "<< patch->idx+1 << locVec;
 #endif
   return true;
-}
-
-
-bool SIMoutput::hasPointResultFile () const
-{
-  for (const ResPtPair& rptp : myPoints)
-    if (!rptp.first.empty())
-      return true;
-
-  return false;
 }
 
 
