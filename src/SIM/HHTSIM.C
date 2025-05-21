@@ -89,6 +89,7 @@ void HHTSIM::initPrm ()
     model.setIntegrationPrm(3,-1.0); // on the material stiffness matrix only
   // Flag to the integrand that the Hilber-Hughes-Taylor algorithm is used
   model.setIntegrationPrm(4,1.0);
+  model.initForMultiStep();
 }
 
 

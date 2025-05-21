@@ -94,6 +94,11 @@ public:
   //! the input file in the refinement step of an adaptive simulation.
   virtual void clearProperties();
 
+  //! \brief Interface for app-specific single-step simulation initialisation.
+  virtual void initForSingleStep() {}
+  //! \brief Interface for app-specific multi-step simulation initialisation.
+  virtual void initForMultiStep() {}
+
   //! \brief Performs some pre-processing tasks on the FE model.
   //! \param[in] ignored Indices of patches to ignore in the analysis
   //! \param[in] fixDup Merge duplicated FE nodes on patch interfaces?
@@ -371,7 +376,7 @@ public:
   virtual void iterationNorms(const Vector& x, const Vector& r, double& eNorm,
                               double& rNorm, double& dNorm) const;
 
-  //! \brief Evaluates some norms of the primary solution vector
+  //! \brief Evaluates some norms of the primary solution vector.
   //! \param[in] x Global primary solution vector
   //! \param[out] inf Infinity norms in each spatial direction
   //! \param[out] ind Global index of the node corresponding to the inf-value
@@ -592,7 +597,7 @@ public:
   //! out of scope.
   ForceBase* getNodalForceIntegrand() const;
 
-  //! \brief Returns the SAM object for this SIM
+  //! \brief Returns a const pointer to the SAM object of this simulator.
   const SAM* getSAM() const { return mySam; }
 
 protected:
