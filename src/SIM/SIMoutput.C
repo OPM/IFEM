@@ -61,6 +61,16 @@ void SIMoutput::clearProperties ()
 }
 
 
+bool SIMoutput::hasPointResultFile () const
+{
+  for (const ResPtPair& rptp : myPoints)
+    if (!rptp.first.empty())
+      return true;
+
+  return false;
+}
+
+
 void SIMoutput::setPointResultFile (const std::string& filename, bool dumpCoord)
 {
   if (filename.empty()) return;
@@ -541,6 +551,35 @@ ElementBlock* SIMoutput::tesselatePatch (size_t pidx) const
 }
 
 
+/*!
+  This method returns an array of length equal to the total number of elements
+  in the model, containing either 1.0 or 0.0 depending on whether the element
+  identified by the corresponding array index is in the set \a iset or not.
+  This array can then be used as a scalar field to visualize the element set,
+  using the writeGlvE() method.
+*/
+
+bool SIMoutput::getElementSet (int iset, std::string& name,
+                               RealArray& elSet) const
+{
+  elSet.clear();
+  elSet.reserve(this->getNoElms(false,true));
+
+  for (const ASMbase* pch : myModel)
+    if (pch->getElementSet(iset,name))
+    {
+      for (size_t iel = 1; iel <= pch->getNoElms(true); iel++)
+        if (pch->getElementNodes(iel).size() > 1) // skip 1-noded mass elements
+          elSet.push_back(pch->getElmID(iel) > 0 &&
+                          pch->isInElementSet(iset,iel) ? 1.0 : 0.0);
+    }
+    else
+      elSet.insert(elSet.end(),pch->getNoElms(true),0);
+
+  return !elSet.empty();
+}
+
+
 bool SIMoutput::writeGlvG (int& nBlock, const char* inpFile, bool doClear)
 {
   if (adm.dd.isPartitioned() && adm.getProcId() != 0)
@@ -755,9 +794,10 @@ bool SIMoutput::writeGlvBC (int& nBlock, int iStep) const
 }
 
 
-bool SIMoutput::writeGlvNo (int& nBlock, int iStep, int idBlock) const
+bool SIMoutput::writeGlvNo (int& nBlock, int& idBlock,
+                            int maxBlock, int iStep) const
 {
-  Vector e(this->getNoElms(false));
+  Vector e(this->getNoElms(false,true));
   std::iota(e.begin(),e.end(),1.0);
   if (!this->writeGlvE(e,iStep,nBlock,"Global element numbers",idBlock++,true))
     return false;
@@ -774,7 +814,15 @@ bool SIMoutput::writeGlvNo (int& nBlock, int iStep, int idBlock) const
   for (int n : myLoc2Glb) scl.push_back(n);
   if (!this->writeGlvS(scl,"Original node numbers",iStep,nBlock,idBlock++))
     return false;
-  else if (myDegenElm.empty())
+
+  // Write element sets as scalar fields
+  int iset = 0;
+  std::string setName;
+  while (idBlock < maxBlock && this->getElementSet(++iset,setName,e))
+    if (!this->writeGlvE(e,iStep,nBlock,setName.c_str(),idBlock++,true))
+      return false;
+
+  if (myDegenElm.empty())
     return true;
 
   scl.fill(0.0);
@@ -2347,6 +2395,38 @@ bool SIMoutput::saveResults (const Vectors& psol, double time, int step) const
 }
 
 
+int SIMoutput::printNRforces (const IntVec& glbNodes) const
+{
+  const RealArray* reactionForces = this->getReactionForces();
+  if (!reactionForces || !mySam) return 0;
+
+  const int nnod = glbNodes.empty() ? mySam->getNoNodes() : glbNodes.size();
+
+  RealArray nrf;
+  int rCount = 0;
+  for (int i = 0; i < nnod; i++)
+  {
+    int inod = glbNodes.empty() ? 1+i : glbNodes[i];
+    if (mySam->getNodalReactions(inod,*reactionForces,nrf))
+    {
+      rCount++;
+      IFEM::cout <<"\nNode"<< std::setw(7) << inod;
+      if (inod <= static_cast<int>(myLoc2Glb.size()))
+        IFEM::cout << std::setw(9) << myLoc2Glb[inod-1];
+      else
+        IFEM::cout << std::string(9,' ');
+      IFEM::cout <<" :";
+      for (double f : nrf)
+	IFEM::cout << std::setw(15) << utl::trunc(f);
+    }
+  }
+  if (rCount > 0)
+    IFEM::cout << std::endl;
+
+  return rCount;
+}
+
+
 bool SIMoutput::extractNodeVec (const RealArray& glbVec, Vector& locVec,
                                 const ASMbase* patch, int nodalCmps,
                                 bool& emptyPatches) const
@@ -2375,16 +2455,6 @@ bool SIMoutput::extractNodeVec (const RealArray& glbVec, Vector& locVec,
   std::cout <<"\nSolution vector for patch "<< patch->idx+1 << locVec;
 #endif
   return true;
-}
-
-
-bool SIMoutput::hasPointResultFile () const
-{
-  for (const ResPtPair& rptp : myPoints)
-    if (!rptp.first.empty())
-      return true;
-
-  return false;
 }
 
 

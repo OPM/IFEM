@@ -54,6 +54,13 @@ public:
   //! \param[in] poff Global patch index offset
   virtual bool merge(SIMbase* that, const std::map<int,int>* old2new, int poff);
 
+  //! \brief Retrieves the specified element set as a scalar field.
+  //! \param[in] iset 1-based index of the element set to retrieve
+  //! \param[out] name Name of the retrieved element set
+  //! \param[out] elSet 1-based element index array indicating the set members
+  //! \return \e false if the \a iset index is out of range, otherwise \e true
+  bool getElementSet(int iset, std::string& name, RealArray& elSet) const;
+
 protected:
   //! \brief Parses a subelement of the \a resultoutput XML-tag.
   virtual bool parseOutputTag(const tinyxml2::XMLElement* elem);
@@ -91,13 +98,15 @@ public:
 
   //! \brief Writes global node numbers as scalar fields to the VTF-file.
   //! \param nBlock Running result block counter
+  //! \param idBlock Result block ID number
+  //! \param[in] maxBlock Highest block ID number
   //! \param[in] iStep Load/time step identifier
-  //! \param[in] idBlock Result block ID number
   //!
   //! \details If you have a complex model with lots of nodal points,
   //! this might be used as a tool to identify the location of the nodes
   //! by visualizing their global number and the original node numbers.
-  bool writeGlvNo(int& nBlock, int iStep = 1, int idBlock = 7) const;
+  bool writeGlvNo(int& nBlock, int& idBlock,
+                  int maxBlock = 20, int iStep = 1) const;
 
   //! \brief Writes boundary tractions for a given time step to the VTF-file.
   //! \param[in] iStep Load/time step identifier
@@ -299,14 +308,14 @@ public:
   //! \param[in] step Load/time step counter
   bool saveResults(const Vectors& psol, double time, int step) const;
 
+  //! \brief Checks whether result points have been defined or not.
+  bool hasResultPoints() const { return !myPoints.empty(); }
+  //! \brief Checks whether point result files have been defined or not.
+  bool hasPointResultFile() const;
   //! \brief Sets the file name for result point output.
   //! \param[in] filename The file name prefix (optionally with extension)
   //! \param[in] dumpCoord If \e true, write point coordinates to separate file
   void setPointResultFile(const std::string& filename, bool dumpCoord = false);
-  //! \brief Checks whether point result files have been defined or not.
-  bool hasPointResultFile() const;
-  //! \brief Checks whether result points have been defined or not.
-  bool hasResultPoints() const { return !myPoints.empty(); }
 
   //! \brief Serialization support.
   virtual bool serialize(std::map<std::string,std::string>&) const;
@@ -317,8 +326,10 @@ public:
   virtual double getEffectivityIndex(const Vectors&, size_t, size_t) const = 0;
   //! \brief Prints integrated solution norms to the log stream.
   virtual void printNorms(const Vectors&, size_t = 36) const = 0;
-  //! \brief Prints out interface force resultants to log stream.
+  //! \brief Prints out interface force resultants to the log stream.
   virtual void printIFforces(const Vector&, RealArray&) {}
+  //! \brief Prints out the nodal reaction forces to the log stream.
+  virtual int printNRforces(const std::vector<int>& glbNodes = {}) const;
 
   //! \brief Writes out the additional functions to VTF-file.
   virtual bool writeAddFuncs(int iStep, int& nBlock, int idBlock, double time);

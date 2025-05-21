@@ -234,6 +234,9 @@ public:
   //! \brief Finds the node that is closest to the given point \b X.
   int findClosestNode(const Vec3&) const;
 
+  //! \brief Returns a predefined node set.
+  std::vector<int> getNodeSet(const std::string& setName) const;
+
   //! \brief Initializes time-dependent in-homogeneous Dirichlet coefficients.
   //! \param[in] time Current time
   bool initDirichlet(double time = 0.0);
@@ -742,6 +745,9 @@ public:
   void dumpEqSys(bool initialBlankLine = false);
   //! \brief Dumps a solution vector to file.
   void dumpSolVec(const Vector& x,bool isExpanded = true, bool expOnly = false);
+
+  //! \brief Prints out nodal reaction forces to the log stream.
+  virtual int printNRforces(const std::vector<int>& = {}) const { return 0; }
 
 protected:
   //! \brief Returns the multi-dimension simulator sequence flag.
