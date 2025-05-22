@@ -20,6 +20,10 @@
 #include <map>
 #include <ctime>
 
+#ifdef HAS_TRACY
+#define TRACY_ENABLE 1
+#include <tracy/Tracy.hpp>
+#endif
 
 /*!
   \brief Simple class for profiling of computational tasks.
@@ -115,9 +119,13 @@ namespace utl
   };
 }
 
-
+#ifdef HAS_TRACY
+//! \brief Macro to add profiling of the local scope.
+#define PROFILE(label) ZoneNamedN(_prof, #label, true)
+#else
 //! \brief Macro to add profiling of the local scope.
 #define PROFILE(label) utl::prof _prof(label)
+#endif
 
 #if PROFILE_LEVEL >= 1
 #define PROFILE1(label) PROFILE(label)
