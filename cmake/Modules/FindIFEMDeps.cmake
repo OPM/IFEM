@@ -255,6 +255,19 @@ if(IFEM_USE_ZOLTAN)
   endif()
 endif()
 
+# Tracy
+if(IFEM_USE_TRACY)
+  find_package(Tracy)
+  if(Tracy_FOUND)
+    get_target_property(TRACY_LIBRARIES Tracy::TracyClient IMPORTED_LOCATION_RELEASE)
+    list(APPEND IFEM_DEPLIBS ${TRACY_LIBRARIES})
+    list(APPEND IFEM_DEFINITIONS -DHAS_TRACY=1)
+    get_target_property(TRACY_INCLUDE_DIR Tracy::TracyClient INTERFACE_INCLUDE_DIRECTORIES)
+    list(APPEND IFEM_DEPINCLUDES ${TRACY_INCLUDE_DIR})
+    message(STATUS "Tracy support enabled")
+  endif()
+endif()
+
 # Portability issues
 include(CheckFunctionExists)
 set(CMAKE_REQUIRED_DEFINITIONS)
