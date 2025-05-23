@@ -1,0 +1,8 @@
+Kx  12 12 src/ASM/Test/refdata/CQUAD04_
+Mx  12 12 src/ASM/Test/refdata/CQUAD04_
+gx  12  3 src/ASM/Test/refdata/CQUAD04_
+Bx 126 12 src/ASM/Test/refdata/CQUAD04_
+Sx        src/ASM/Test/refdata/CQUAD04_
+G 2
+0.0 0.0 -1.0
+0.0 0.0  0.0
