@@ -80,6 +80,11 @@ public:
 
     //! \brief Constructor initializing a BC instance.
     explicit BC(int n) : node(n), CX(1), CY(1), CZ(1), RX(1), RY(1), RZ(1) {}
+
+    //! \brief Fixes local dof \a dof.
+    int fix(int dof);
+    //! \brief Removes the fixation in local dof \a dof.
+    int free(int dof);
   };
 
   using BCVec = std::vector<BC>; //!< Nodal boundary condition container
@@ -818,7 +823,9 @@ public:
   //! \param mpc Pointer to an MPC object
   //! \param[in] code Identifier for inhomogeneous Dirichlet condition field
   //! \param[in] verbose If \e true, print out added constraint (debug build)
-  bool addMPC(MPC*& mpc, int code = 0, bool verbose = false);
+  //! \param[in] overrideD If \e true, override current Dirichlet conditions
+  bool addMPC(MPC*& mpc, int code = 0,
+              bool verbose = false, bool overrideD = false);
 
   //! \brief Adds MPC-equations representing a rigid coupling to this patch.
   //! \param[in] lindx Local index of the boundary item that should be rigid
@@ -920,17 +927,19 @@ public:
 
   //! \brief Constrains all nodes in the patch.
   //! \param[in] dof Which DOFs to constrain at each node in the patch
-  //! \param[in] code Inhomogeneous dirichlet condition code
+  //! \param[in] code Inhomogeneous Dirichlet condition code
   void constrainPatch(int dof, int code = 0);
   //! \brief Constrains a list of nodes in the patch.
   //! \param[in] nodes 1-based list of nodes to constrain
   //! \param[in] dof Which DOFs to constrain at each node
-  //! \param[in] code Inhomogeneous dirichlet condition code
-  void constrainNodes(const IntVec& nodes, int dof, int code = 0);
+  //! \param[in] code Inhomogeneous Dirichlet condition code
+  //! \param[in] overrideD If \e true, override current Dirichlet conditions
+  void constrainNodes(const IntVec& nodes, int dof, int code = 0,
+                      bool overrideD = false);
   //! \brief Constrains an extraordinary node in the patch.
   //! \param[in] node Global node number of the node to constrain
   //! \param[in] dof Which DOFs to constrain at the node
-  //! \param[in] code Inhomogeneous dirichlet condition code
+  //! \param[in] code Inhomogeneous Dirichlet condition code
   //! \return \e true if \a node is a rigid master point in the patch,
   //! otherwise \e false
   bool constrainXnode(int node, int dof, int code = 0);
@@ -938,8 +947,9 @@ public:
   //! \param[in] inod 1-based node index local to current patch
   //! \param[in] dirs Which local DOFs to constrain (1, 2, 3, 12, 23, 123)
   //! \param[in] code Identifier for inhomogeneous Dirichlet condition field
+  //! \param[in] overrideD If \e true, override current Dirichlet conditions
   //! \return Invalid local DOFs, or DOFs that already are constrained
-  int prescribe(size_t inod, int dirs, int code);
+  int prescribe(size_t inod, int dirs, int code, bool overrideD = false);
   //! \brief Constrains DOFs in the given node to zero.
   //! \param[in] inod 1-based node index local to current patch
   //! \param[in] dirs Which local DOFs to constrain (1, 2, 3, 12, 23, 123)

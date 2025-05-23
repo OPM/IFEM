@@ -543,10 +543,12 @@ bool SIMinput::parseBCTag (const tinyxml2::XMLElement* elem)
   {
     const tinyxml2::XMLNode* dval = nullptr;
     int comp = 0, symm = 0, basis = 1;
+    bool override = false;
     std::string set, type, axes;
     utl::getAttribute(elem,"set",set);
     utl::getAttribute(elem,"type",type,true);
     utl::getAttribute(elem,"basis",basis);
+    utl::getAttribute(elem,"override",override);
     // Handle some predefined property codes for symmtry-conditions (C1-patches)
     if (type == "symmxy" || type == "symmyx")
       comp = symm = 12000;
@@ -590,7 +592,10 @@ bool SIMinput::parseBCTag (const tinyxml2::XMLElement* elem)
     {
       if (!type.empty())
         IFEM::cout <<" ("<< type <<")";
-      this->setPropertyType(code,Property::DIRICHLET_INHOM,comp,basis);
+      if (override)
+        this->setPropertyType(code,Property::DIRICHLET_OVERRIDE,comp,basis);
+      else
+        this->setPropertyType(code,Property::DIRICHLET_INHOM,comp,basis);
       RealFunc* f = utl::parseRealFunc(dval->Value(),type);
       if (!f)
         return false;

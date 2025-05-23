@@ -134,10 +134,18 @@ bool ASMu2DLag::getNodeSet (int iset, std::string& name) const
 }
 
 
+/*!
+  If \a inod is negative, the absolute value is taken as the external node ID.
+  Otherwise, it is taken as the 1-based internal node index within the patch.
+*/
+
 bool ASMu2DLag::isInNodeSet (int iset, int inod) const
 {
   if (iset < 1 || iset > static_cast<int>(nodeSets.size()))
     return false;
+
+  if (inod < 0)
+    inod = this->getNodeIndex(-inod);
 
   return utl::findIndex(nodeSets[iset-1].second,inod) >= 0;
 }
@@ -272,10 +280,18 @@ bool ASMu2DLag::getElementSet (int iset, std::string& name) const
 }
 
 
+/*!
+  If \a iel is negative, the absolute value is taken as the external element ID.
+  Otherwise, it is taken as the 1-based internal element index within the patch.
+*/
+
 bool ASMu2DLag::isInElementSet (int iset, int iel) const
 {
   if (iset < 1 || iset > static_cast<int>(elemSets.size()))
     return false;
+
+  if (iel < 0)
+    iel = this->getElmIndex(-iel);
 
   return utl::findIndex(elemSets[iset-1].second,iel) >= 0;
 }

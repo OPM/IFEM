@@ -94,6 +94,9 @@ public:
   //! the input file in the refinement step of an adaptive simulation.
   virtual void clearProperties();
 
+  //! \brief Interface for app-specific multi-step simulation initialisation.
+  virtual void initForMultiStep() {}
+
   //! \brief Performs some pre-processing tasks on the FE model.
   //! \param[in] ignored Indices of patches to ignore in the analysis
   //! \param[in] fixDup Merge duplicated FE nodes on patch interfaces?
@@ -228,6 +231,9 @@ public:
 
   //! \brief Finds the node that is closest to the given point \b X.
   int findClosestNode(const Vec3&) const;
+
+  //! \brief Returns a predefined node set.
+  std::vector<int> getNodeSet(const std::string& setName) const;
 
   //! \brief Initializes time-dependent in-homogeneous Dirichlet coefficients.
   //! \param[in] time Current time
@@ -371,7 +377,7 @@ public:
   virtual void iterationNorms(const Vector& x, const Vector& r, double& eNorm,
                               double& rNorm, double& dNorm) const;
 
-  //! \brief Evaluates some norms of the primary solution vector
+  //! \brief Evaluates some norms of the primary solution vector.
   //! \param[in] x Global primary solution vector
   //! \param[out] inf Infinity norms in each spatial direction
   //! \param[out] ind Global index of the node corresponding to the inf-value
@@ -520,31 +526,30 @@ public:
   //! \brief Projects the secondary solution associated with a primary solution.
   //! \param[out] ssol Control point values of the secondary solution
   //! \param[in] psol Control point values of the primary solution
-  //! \param[in] pMethod Projection method to use
+  //! \param[in] method Projection method to use
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
   //!
   //! \details The secondary solution, defined through the Integrand object,
   //! corresponding to the primary solution \a psol is projected onto the
   //! spline basis to obtain the control point values of the secondary solution.
   virtual bool project(Matrix& ssol, const Vector& psol,
-                       SIMoptions::ProjectionMethod pMethod = SIMoptions::GLOBAL,
+                       SIMoptions::ProjectionMethod method = SIMoptions::GLOBAL,
                        const TimeDomain& time = TimeDomain()) const;
   //! \brief Projects the secondary solution associated with a primary solution.
   //! \param[out] ssol Vector of control point values of the secondary solution
   //! \param[in] psol Vector of control point values of the primary solution
-  //! \param[in] pMethod Projection method to use
+  //! \param[in] method Projection method to use
   //! \param[in] iComp One-based index of the component to return (0 = all)
   //!
   //! \details Convenience overload, for stationary problems only.
   bool project(Vector& ssol, const Vector& psol,
-               SIMoptions::ProjectionMethod pMethod = SIMoptions::GLOBAL,
+               SIMoptions::ProjectionMethod method = SIMoptions::GLOBAL,
                size_t iComp = 0) const;
 
   //! \brief Projects the analytical secondary solution, if any.
   //! \param[out] ssol Vector of control point values of the secondary solution
-  //! \param[in] pMethod Projection method to use
-  bool projectAnaSol(Vector& ssol,
-                     SIMoptions::ProjectionMethod pMethod) const;
+  //! \param[in] method Projection method to use
+  bool projectAnaSol(Vector& ssol, SIMoptions::ProjectionMethod method) const;
 
   //! \brief Projects a function onto the specified basis.
   //! \param[out] values Resulting control point values
@@ -552,11 +557,11 @@ public:
   //! \param[in] basis Which basis to consider
   //! \param[in] iField Field component offset in values vector
   //! \param[in] nFields Number of field components in values vector
-  //! \param[in] pMethod Projection method to use
+  //! \param[in] method Projection method to use
   //! \param[in] time Current time
   bool project(RealArray& values, const FunctionBase* f,
                int basis = 1, int iField = 0, int nFields = 1,
-               SIMoptions::ProjectionMethod pMethod = SIMoptions::GLOBAL,
+               SIMoptions::ProjectionMethod method = SIMoptions::GLOBAL,
                double time = 0.0) const;
 
   //! \brief Evaluates the secondary solution field for specified patch.
@@ -593,7 +598,7 @@ public:
   //! out of scope.
   ForceBase* getNodalForceIntegrand() const;
 
-  //! \brief Returns the SAM object for this SIM
+  //! \brief Returns a const pointer to the SAM object of this simulator.
   const SAM* getSAM() const { return mySam; }
 
 protected:
@@ -610,8 +615,9 @@ protected:
   //! \param[in] code In-homogeneous Dirichlet condition property code
   //! \param ngnod Total number of global nodes in the model (might be updated)
   //! \param[in] basis Which basis to apply the constraint to (mixed methods)
+  //! \param[in] ovrD If \e true, override conflicting Dirichlet conditions
   virtual bool addConstraint(int patch, int lndx, int ldim, int dirs, int code,
-                             int& ngnod, char basis = 1) = 0;
+                             int& ngnod, char basis = 1, bool ovrD = false) = 0;
 
   //! \brief Preprocessing performed before the FEM model generation.
   virtual void preprocessA() {}
@@ -737,6 +743,9 @@ public:
   void dumpEqSys(bool initialBlankLine = false);
   //! \brief Dumps a solution vector to file.
   void dumpSolVec(const Vector& x,bool isExpanded = true, bool expOnly = false);
+
+  //! \brief Prints out nodal reaction forces to the log stream.
+  virtual int printNRforces(const std::vector<int>& = {}) const { return 0; }
 
 protected:
   //! \brief Returns the multi-dimension simulator sequence flag.

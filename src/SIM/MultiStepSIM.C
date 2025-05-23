@@ -60,6 +60,12 @@ bool MultiStepSIM::preprocess (const std::vector<int>& ignored, bool fixDup)
 }
 
 
+void MultiStepSIM::initPrm ()
+{
+  model.initForMultiStep();
+}
+
+
 void MultiStepSIM::initSol (size_t nSol, size_t nDof)
 {
   if (!solution.empty())

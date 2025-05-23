@@ -468,10 +468,18 @@ const IntVec& ASMs1D::getNodeSet (int iset) const
 }
 
 
+/*!
+  If \a inod is negative, the absolute value is taken as the external node ID.
+  Otherwise, it is taken as the 1-based internal node index within the patch.
+*/
+
 bool ASMs1D::isInNodeSet (int iset, int inod) const
 {
   if (iset < 1 || iset > static_cast<int>(nodeSets.size()))
     return false;
+
+  if (inod < 0)
+    inod = this->getNodeIndex(-inod);
 
   return utl::findIndex(nodeSets[iset-1].second,inod) >= 0;
 }

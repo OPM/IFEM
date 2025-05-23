@@ -63,6 +63,7 @@ void GenAlphaSIM::initPrm ()
   model.setIntegrationPrm(2,solveDisp ? -alpha_m : alpha_m);
   model.setIntegrationPrm(3,alpha_f);
   model.setIntegrationPrm(4,2.0);
+  model.initForMultiStep();
 }
 
 

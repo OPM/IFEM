@@ -296,7 +296,7 @@ int ASMbase::getElmID (size_t iel) const
 
 const IntVec& ASMbase::getElementNodes (int iel) const
 {
-  if (iel > 0 && (size_t)iel <= MNPC.size())
+  if (iel > 0 && iel <= static_cast<int>(MNPC.size()))
     return MNPC[iel-1];
 
   static IntVec empty;
@@ -446,7 +446,7 @@ void ASMbase::printElements (std::ostream& os) const
 
 
 /*!
-  \brief A helper class used by ASMbase::isFixed.
+  \brief A helper class used by ASMbase::isFixed().
   \details The class is just an unary function that checks whether a DOF object
   matches the fixed status of a given BC object.
 */
@@ -491,16 +491,26 @@ bool ASMbase::isFixed (int node, int dof, bool all) const
 }
 
 
-bool ASMbase::addMPC (MPC*& mpc, int code, bool verbose)
+bool ASMbase::addMPC (MPC*& mpc, int code, bool verbose, bool overrideD)
 {
   if (!mpc) return true;
 
-  if (this->isFixed(mpc->getSlave().node,mpc->getSlave().dof))
+  int sdof = mpc->getSlave().dof;
+  BCVec::iterator bit = std::find_if(BCode.begin(),BCode.end(),
+                                     fixed(mpc->getSlave().node,sdof));
+  if (bit != BCode.end())
   {
-    // Silently ignore MPCs on DOFs that already are marked as FIXED
-    delete mpc;
-    mpc = nullptr;
-    return true;
+    if (!overrideD)
+    {
+      // Silently ignore MPCs on DOFs that already are marked as FIXED
+      delete mpc;
+      mpc = nullptr;
+      return true;
+    }
+
+    // Override the homogeneous Dirichlet condition for this DOF
+    if (bit->free(sdof) == 6)
+      BCode.erase(bit); // All DOFs in this node are free (or prescribed)
   }
 
   std::pair<MPCIter,bool> mit = mpcs.insert(mpc);
@@ -509,6 +519,20 @@ bool ASMbase::addMPC (MPC*& mpc, int code, bool verbose)
 #if SP_DEBUG > 1
     if (verbose) std::cout <<"Added constraint: "<< *mpc;
 #endif
+    if (code > 0) dCode[mpc] = code;
+    return true;
+  }
+  else if (overrideD && (*mit.first)->getNoMaster() == 0)
+  {
+    // Override the existing Dirichlet condition for this DOF
+#ifdef SP_DEBUG
+    if (verbose)
+      std::cout <<"Replacing constraint "<< **mit.first <<" by "<< *mpc;
+#endif
+    dCode.erase(*mit.first);
+    mpcs.erase(mit.first);
+    delete *mit.first;
+    mpcs.insert(mpc);
     if (code > 0) dCode[mpc] = code;
     return true;
   }
@@ -760,17 +784,18 @@ void ASMbase::constrainPatch (int dof, int code)
 }
 
 
-void ASMbase::constrainNodes (const IntVec& nodes, int dof, int code)
+void ASMbase::constrainNodes (const IntVec& nodes, int dof, int code,
+                              bool overrideD)
 {
   if (code < 0) code = -code;
 
+  int maxNod = this->getNoNodes(1);
   for (int node : nodes)
-    if (node > 0 && node <= (int)this->getNoNodes(1))
-      this->prescribe(node,dof,code);
+    if (node > 0 && node <= maxNod)
+      this->prescribe(node,dof,code,overrideD);
     else
       std::cerr <<"  ** ASMbase::constrainNodes: Node "<< node
-                <<" is out of range [1,"<< this->getNoNodes(1)
-                <<"]."<< std::endl;
+                <<" is out of range [1,"<< maxNod <<"]."<< std::endl;
 }
 
 
@@ -787,7 +812,7 @@ bool ASMbase::constrainXnode (int node, int dof, int code)
 }
 
 
-int ASMbase::prescribe (size_t inod, int dirs, int code)
+int ASMbase::prescribe (size_t inod, int dirs, int code, bool overrideD)
 {
   if (code == 0 && fixHomogeneousDirichlet)
     return this->fix(inod,dirs);
@@ -800,7 +825,7 @@ int ASMbase::prescribe (size_t inod, int dirs, int code)
     if (dof <= nf)
     {
       MPC* mpc = new MPC(node,dof,1.0);
-      if (!this->addMPC(mpc,code,true))
+      if (!this->addMPC(mpc,code,true,overrideD))
         ignoredDirs = 10*ignoredDirs + dof;
     }
     else
@@ -836,6 +861,36 @@ bool operator== (const ASMbase::BC& rhs, const int& lhs)
 }
 
 
+int ASMbase::BC::free (int dof)
+{
+  switch (dof) {
+  case 1: CX = 1; break;
+  case 2: CY = 1; break;
+  case 3: CZ = 1; break;
+  case 4: RX = 1; break;
+  case 5: RY = 1; break;
+  case 6: RZ = 1; break;
+  }
+
+  return (CX + CY + CZ + RX + RY + RZ);
+}
+
+
+int ASMbase::BC::fix (int dof)
+{
+  switch (dof) {
+  case 1: CX = 0; break;
+  case 2: CY = 0; break;
+  case 3: CZ = 0; break;
+  case 4: RX = 0; break;
+  case 5: RY = 0; break;
+  case 6: RZ = 0; break;
+  }
+
+  return 6 - (CX + CY + CZ + RX + RY + RZ);
+}
+
+
 int ASMbase::fix (size_t inod, int dirs)
 {
   int node = this->getNodeID(inod);
@@ -855,14 +910,7 @@ int ASMbase::fix (size_t inod, int dirs)
   int invalidDOFs = 0;
   for (int dof : utl::getDigits(dirs))
     if (dof <= nf)
-      switch (dof) {
-      case 1: bit->CX = 0; break;
-      case 2: bit->CY = 0; break;
-      case 3: bit->CZ = 0; break;
-      case 4: bit->RX = 0; break;
-      case 5: bit->RY = 0; break;
-      case 6: bit->RZ = 0; break;
-      }
+      bit->fix(dof);
     else
     {
       invalidDOFs = 10*invalidDOFs + dof;
@@ -1169,8 +1217,8 @@ void ASMbase::addNeighbor (ASMbase* pch)
 
 bool ASMbase::collapseNodes (ASMbase& pch1, int node1, ASMbase& pch2, int node2)
 {
-  if (node1 < 1 || (size_t)node1 > pch1.myMLGN.size()) return false;
-  if (node2 < 1 || (size_t)node2 > pch2.myMLGN.size()) return false;
+  if (node1 < 1 || node1 > static_cast<int>(pch1.myMLGN.size())) return false;
+  if (node2 < 1 || node2 > static_cast<int>(pch2.myMLGN.size())) return false;
 
   if (pch1.myMLGN[node1-1] > pch2.myMLGN[node2-1])
     pch1.mergeNodes(node1,pch2.myMLGN[node2-1],false);
@@ -1414,6 +1462,9 @@ bool ASMbase::extractNodalVec (const RealArray& globRes, RealArray& nodeVec,
     return false;
   }
 
+#ifdef INDEX_CHECK
+  int maxDof = globRes.size();
+#endif
   size_t nPchNod = ngnod == -2 ? nnod : MLGN.size();
   nodeVec.reserve(nf*nPchNod);
   for (size_t i = 0; i < nPchNod; i++)
@@ -1435,11 +1486,11 @@ bool ASMbase::extractNodalVec (const RealArray& globRes, RealArray& nodeVec,
     if (idof == jdof)
       continue; // DOF-less node
 #ifdef INDEX_CHECK
-    else if (idof < 0 || idof > jdof || jdof > (int)globRes.size())
+    else if (idof < 0 || idof > jdof || jdof > maxDof)
     {
       std::cerr <<" *** ASMbase::extractNodalVec: Global DOFs "
                 << idof+1 <<" "<< jdof
-                <<" out of range [1,"<< globRes.size() <<"]."<< std::endl;
+                <<" out of range [1,"<< maxDof <<"]."<< std::endl;
       return false;
     }
 #endif
@@ -1459,16 +1510,20 @@ bool ASMbase::injectNodalVec (const RealArray& nodeVec, RealArray& globVec,
     return false;
   }
 
+#ifdef INDEX_CHECK
+  int maxNod = madof.size();
+  int maxDof = globVec.size();
+#endif
   size_t i = 0, ldof = 0;
   char bType = basis == 1 ? 'D' : 'P'+basis-2;
   for (int inod : MLGN)
     if (basis == 0 || this->getNodeType(++i) == bType)
     {
 #ifdef INDEX_CHECK
-      if (inod < 1 || inod > (int)madof.size())
+      if (inod < 1 || inod > maxNod)
       {
         std::cerr <<" *** ASMbase::injectNodalVec: Node "<< inod
-                  <<" is out of range [1,"<< madof.size() <<"]."<< std::endl;
+                  <<" is out of range [1,"<< maxNod <<"]."<< std::endl;
         return false;
       }
 #endif
@@ -1483,10 +1538,10 @@ bool ASMbase::injectNodalVec (const RealArray& nodeVec, RealArray& globVec,
                   <<" is out of range [1,"<< nodeVec.size() <<"]"<< std::endl;
         return false;
       }
-      else if (idof+ndof > (int)globVec.size())
+      else if (idof+ndof > maxDof)
       {
         std::cerr <<" *** ASMbase::injectNodalVec: Global DOF "<< idof+ndof
-                  <<" is out of range [1,"<< globVec.size() <<"]"<< std::endl;
+                  <<" is out of range [1,"<< maxDof <<"]"<< std::endl;
         return false;
       }
 #endif
@@ -1507,6 +1562,9 @@ void ASMbase::extractNodeVec (const RealArray& globRes, RealArray& nodeVec,
   // Don't extract the Lagrange multipliers, if any
   size_t nNod = myLMs.empty() ? MLGN.size() : *myLMs.begin()-1;
 
+#ifdef INDEX_CHECK
+  int maxDof = globRes.size();
+#endif
   nodeVec.resize(nndof*nNod);
   double* nodeP = nodeVec.data();
   for (size_t i = 1; i <= nNod; i++, nodeP += nndof)
@@ -1516,13 +1574,14 @@ void ASMbase::extractNodeVec (const RealArray& globRes, RealArray& nodeVec,
     // assumed not to have entries in the globRes vector. In that case, we use
     // the "real" node at that location instead (see, e.g., ASMs2D::getNodeID).
     // The same is assumed if basis < 0 on input (for vector fields) HACK!
-    int n = this->getNodeID(i, nndof == 1 || basis < 0) - 1;
+    int n = this->getNodeID(i, nndof == 1 || basis < 0);
+    int lastDof = nndof*n;
 #ifdef INDEX_CHECK
-    if (n < 0 || nndof*(size_t)(n+1) > globRes.size())
-      std::cerr <<" *** ASMbase::extractNodeVec: Global DOF "<< nndof*(n+1)
-                <<" is out of range [1,"<< globRes.size() <<"]."<< std::endl;
+    if (n < 1 || lastDof > maxDof)
+      std::cerr <<" *** ASMbase::extractNodeVec: Global DOF "<< lastDof
+                <<" is out of range [1,"<< maxDof <<"]."<< std::endl;
 #endif
-    memcpy(nodeP,globRes.data()+nndof*n,nndof*sizeof(double));
+    memcpy(nodeP,globRes.data()+lastDof-nndof,nndof*sizeof(double));
   }
 }
 
@@ -1534,6 +1593,7 @@ bool ASMbase::injectNodeVec (const RealArray& nodeVec, RealArray& globRes,
 
   // Don't inject the Lagrange multipliers, if any
   size_t nNod = myLMs.empty() ? MLGN.size() : *myLMs.begin()-1;
+  int maxDof = globRes.size();
 
   if (nodeVec.size() != nNod*nndof)
   {
@@ -1546,12 +1606,13 @@ bool ASMbase::injectNodeVec (const RealArray& nodeVec, RealArray& globRes,
   for (size_t i = 0; i < nNod; i++, nodeP += nndof)
   {
     int n = MLGN[i];
-    if (n > 0 && nndof*(size_t)n <= globRes.size())
-      memcpy(globRes.data()+nndof*(n-1),nodeP,nndof*sizeof(double));
+    int lastDof = nndof*n;
+    if (n > 0 && lastDof <= maxDof)
+      memcpy(globRes.data()+lastDof-nndof,nodeP,nndof*sizeof(double));
 #ifdef SP_DEBUG
     else // This is most likely OK, print message only in debug mode
-      std::cerr <<" *** ASMbase::injectNodeVec: Global DOF "<< nndof*n
-                <<" is out of range [1,"<< globRes.size() <<"]."<< std::endl;
+      std::cerr <<" *** ASMbase::injectNodeVec: Global DOF "<< lastDof
+                <<" is out of range [1,"<< maxDof <<"]."<< std::endl;
 #endif
   }
 
@@ -1562,12 +1623,13 @@ bool ASMbase::injectNodeVec (const RealArray& nodeVec, RealArray& globRes,
 bool ASMbase::getSolution (Matrix& sField, const Vector& locSol,
                            const IntVec& nodes) const
 {
+  int maxNod = MLGN.size();
   sField.resize(nf,nodes.size());
   for (size_t i = 0; i < nodes.size(); i++)
-    if (nodes[i] < 1 || (size_t)nodes[i] > MLGN.size())
+    if (nodes[i] < 1 || nodes[i] > maxNod)
     {
       std::cerr <<" *** ASMbase::getSolution: Node #"<< nodes[i]
-		<<" is out of range [1,"<< MLGN.size() <<"]."<< std::endl;
+		<<" is out of range [1,"<< maxNod <<"]."<< std::endl;
       return false;
     }
     else if (this->isLMn(nodes[i]))

@@ -124,10 +124,18 @@ const IntVec& ASMu1DLag::getElementSet (int iset) const
 }
 
 
+/*!
+  If \a iel is negative, the absolute value is taken as the external element ID.
+  Otherwise, it is taken as the 1-based internal element index within the patch.
+*/
+
 bool ASMu1DLag::isInElementSet (int iset, int iel) const
 {
   if (iset < 1 || iset > static_cast<int>(elemSets.size()))
     return false;
+
+  if (iel < 0)
+    iel = this->getElmIndex(-iel);
 
   return utl::findIndex(elemSets[iset-1].second,iel) >= 0;
 }

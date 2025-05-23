@@ -565,11 +565,12 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
 
 
 bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
-                           int& ngnod, char basis)
+                           int& ngnod, char basis, bool ovrD)
 {
   // Lambda function for error message generation
-  auto&& error = [](const char* message, int idx)
+  auto&& error = [](const char* message, int idx, bool coutNL = false)
   {
+    if (coutNL) IFEM::cout << std::endl;
     std::cerr <<" *** SIM3D::addConstraint: Invalid "
               << message <<" ("<< idx <<")."<< std::endl;
     return false;
@@ -612,9 +613,7 @@ bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
         case 6: pch->constrainCorner( 1,-1, 1,dirs,abs(code),basis); break;
         case 7: pch->constrainCorner(-1, 1, 1,dirs,abs(code),basis); break;
         case 8: pch->constrainCorner( 1, 1, 1,dirs,abs(code),basis); break;
-        default:
-          IFEM::cout << std::endl;
-          return error("vertex index",lndx);
+        default: return error("vertex index",lndx,true);
         }
       break;
 
@@ -622,10 +621,7 @@ bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
       if (lndx > 0 && lndx <= 12)
         pch->constrainEdge(lndx,open,dirs,code,basis);
       else
-      {
-        IFEM::cout << std::endl;
-        return error("edge index",lndx);
-      }
+        return error("edge index",lndx,true);
       break;
 
     case 2: // Face constraints
@@ -656,8 +652,7 @@ bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
           ngnod += pch->constrainFaceLocal( 3,open,dirs,code,project,ldim);
           break;
         default:
-          IFEM::cout << std::endl;
-          return error("face index",lndx);
+          return error("face index",lndx,true);
         }
       break;
 
@@ -667,12 +662,11 @@ bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
 
     case 4: // Explicit nodal constraints
       myModel[patch-1]->constrainNodes(myModel[patch-1]->getNodeSet(lndx),
-                                       dirs,code);
+                                       dirs,code,ovrD);
       break;
 
     default:
-      IFEM::cout << std::endl;
-      return error("local dimension switch",ldim);
+      return error("local dimension switch",ldim,true);
     }
 
   return true;

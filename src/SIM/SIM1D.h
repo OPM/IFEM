@@ -85,8 +85,9 @@ protected:
   //! \param[in] dirs Which local DOFs to constrain
   //! \param[in] code In-homogeneous Dirichlet condition property code
   //! \param ngnod Total number of global nodes in the model (might be updated)
-  virtual bool addConstraint(int patch, int lndx, int ldim,
-                             int dirs, int code, int& ngnod, char = 1);
+  //! \param[in] ovrD If \e true, override conflicting Dirichlet conditions
+  virtual bool addConstraint(int patch, int lndx, int ldim, int dirs, int code,
+                             int& ngnod, char = 1, bool ovrD = false);
 
   //! \brief Returns a FEM model generator for a default single-patch model.
   //! \param[in] geo XML element containing geometry definition

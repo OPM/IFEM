@@ -41,6 +41,7 @@ struct Property
     RIGID,
     DIRICHLET,
     DIRICHLET_INHOM,
+    DIRICHLET_OVERRIDE,
     DIRICHLET_ANASOL,
     OTHER
   };
@@ -60,6 +61,6 @@ struct Property
     pcode(t), pindx(px), patch(p), lindx(lx), ldim(ld), basis(b) {}
 };
 
-typedef std::vector<Property> PropertyVec; //!< Vector of properties
+using PropertyVec = std::vector<Property>; //!< Vector of properties
 
 #endif
