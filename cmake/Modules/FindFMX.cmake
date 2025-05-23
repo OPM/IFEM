@@ -1,0 +1,12 @@
+IF(FMX_LIBRARY)
+  SET(FMX_FIND_QUIETLY TRUE)
+ENDIF(FMX_LIBRARY)
+
+FIND_LIBRARY(FMX_LIBRARY NAMES fmxWriter
+  PATHS $ENV{HOME}/lib $ENV{HOME}/.local/lib /usr/local/lib
+)
+
+MARK_AS_ADVANCED(FMX_LIBRARY)
+
+INCLUDE(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(FMX DEFAULT_MSG FMX_LIBRARY)
