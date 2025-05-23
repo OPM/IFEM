@@ -19,6 +19,19 @@
 #include "Vec3Oper.h"
 #include <numeric>
 
+#ifdef HAS_FMXREADER
+extern "C" {
+  void initfmx_();
+  int  readfmx_(const char* fname, const int* itype,
+                double* data, const int* nval, const int nchar);
+  int  readfsm_(const char* fname,
+                int* ndof, int* ndof1, int* ndof2, int* nceq, int* nmmceq,
+                int* meqn, int* meqn1, int* meqn2,
+                int* mmceq, int* mpmceq, double* ttcc,
+                const int nchar = 0);
+}
+#endif
+
 
 bool ASMsupel::read (std::istream& is)
 {
@@ -31,55 +44,243 @@ bool ASMsupel::read (std::istream& is)
     for (Vec3& Xn : Xsup) is >> Xn;
   };
 
-  myElmMat.resize(1,1);
+  // Lambda function for reading a FEDEM superelement matrix file.
+  auto&& readFMX = [&is](Matrix& M, int itype) -> int
+  {
+    int m, n, ierr = -99;
+    std::string fileName;
+    is >> m >> n >> fileName;
+    M.resize(m,n);
+#ifdef HAS_FMXREADER
+    initfmx_();
+    int ndim = m*n;
+    ierr = readfmx_(fileName.c_str(),&itype,M.ptr(),&ndim,fileName.size());
+#endif
+    if (ierr < 0)
+      std::cerr <<" *** readFMX: Failed to read matrix file \""
+                << fileName <<"\" of type "<< itype
+                <<" (ierr = "<< ierr <<")" << std::endl;
 
-  char c;
-  int readMat = 0;
-  while (readMat < 7 && is.get(c))
+    return ierr;
+  };
+
+  // Lambda function for reading a SAM data file from FEDEM.
+  auto&& readFSM = [&is](MiniSAM& sam) -> int
+  {
+    int ierr = -99;
+    std::string fileName;
+    is >> fileName;
+#ifdef HAS_FMXREADER
+    initfmx_();
+    double dummy = 0.0;
+    int ndof, ndof1, ndof2, nceq, nmmceq;
+    ierr = readfsm_(fileName.c_str(),&ndof,&ndof1,&ndof2,&nceq,&nmmceq,
+                    &ierr,&ierr,&ierr,&ierr,&ierr,&dummy,fileName.size());
+    if (ierr >= 0)
+    {
+      sam.meqn.resize(ndof);
+      sam.meqn1.resize(ndof1);
+      sam.meqn2.resize(ndof2);
+      sam.ttcc.resize(nmmceq);
+      sam.mmceq.resize(nmmceq);
+      sam.mpmceq.resize(nceq+1);
+      ierr = readfsm_("",&ndof,&ndof1,&ndof2,&nceq,&nmmceq,
+                      sam.meqn.data(),sam.meqn1.data(),sam.meqn2.data(),
+                      sam.mmceq.data(),sam.mpmceq.data(),sam.ttcc.data());
+    }
+#endif
+    if (ierr < 0)
+      std::cerr <<" *** readFSM: Failed to read SAM arrays from file \""
+                << fileName <<"\" (ierr = "<< ierr <<")" << std::endl;
+    else
+      sam.findDofP2();
+
+    return ierr;
+  };
+
+  // Lambda function checking if myElmMat needs to be allocated,
+  // and whether we are reading a binary file or not.
+  auto&& checkMatrix = [&is,this](bool fmx = false) -> bool
+  {
+    if (myElmMat.empty())
+      myElmMat.resize(2,1,3);
+    if (fmx)
+    {
+      char c = 0;
+      if (is.get(c) && c == 'x')
+        return true;
+      else if (is)
+        is.putback(c);
+    }
+    return false;
+  };
+
+  char c = 0;
+  Matrix tmpMat;
+  std::string comment;
+  int readMat = 0, ierr = 0;
+  while (readMat < 7 && is.get(c) && ierr >= 0)
     switch (c) {
     case 'K':
     case 'k':
-      is >> myElmMat.A.front();
-      if (c == 'K') // assume stored column-wise
-        myElmMat.A.front().transpose();
+      // Read stiffness matrix file
+      if (checkMatrix(true))
+        ierr = readFMX(myElmMat.A.front(),1);
+      else
+      {
+        is >> myElmMat.A.front();
+        if (c == 'K') // assume stored column-wise
+          myElmMat.A.front().transpose();
+      }
       readMat |= 1;
       break;
+
+    case 'M':
+    case 'm':
+      // Read mass matrix file
+      if (checkMatrix(true))
+        ierr = readFMX(myElmMat.A.back(),2);
+      else
+      {
+        is >> myElmMat.A.back();
+        if (c == 'M') // assume stored column-wise
+          myElmMat.A.back().transpose();
+      }
+      readMat |= 1;
+      break;
+
+    case 'B':
+      // Read recovery matrix file (binary only)
+      if (is.get(c) && c == 'x')
+        ierr = readFMX(myRecMat,4);
+      else if (is)
+        is.putback(c);
+      break;
+
+    case 'S':
+      // Read SAM matrix file (binary only)
+      if (is.get(c) && c == 'x')
+        ierr = readFSM(mySAM);
+      else if (is)
+        is.putback(c);
+      break;
+
+    case 'g':
+      // Read gravity forces file (binary only)
+      if (checkMatrix(true))
+      {
+        if ((ierr = readFMX(tmpMat,3)) >= 0 && !gravity.isZero())
+          if (!tmpMat.multiply(gravity.vec(),myElmMat.b.front()))
+            return false;
+        readMat |= 2;
+      }
+      break;
+
     case 'R':
+      // Read right-hand-side vector
+      checkMatrix();
       is >> myElmMat.b.front();
       readMat |= 2;
       break;
+
     case 'L':
-      {
-        // The load vector is stored as a ndof x 1 matrix and not a vector
-        Matrix tmpMat;
-        is >> tmpMat;
-        myElmMat.b.front() = tmpMat.getColumn(1);
-      }
+      // Read load vector.
+      // It is assumed stored as a ndof x 1 matrix and not a vector.
+      checkMatrix();
+      is >> tmpMat;
+      myElmMat.b.front() = tmpMat.getColumn(1);
       readMat |= 2;
       break;
+
     case 'G':
+      // Read supernode coordinates
       readCoord(myNodes);
       readMat |= 4;
       break;
-    case '\n':
+
+    case '#':
+      // Comment line - print and ignore
+      if (std::getline(is,comment))
+        std::cout << comment << std::endl;
       break;
+
+    case '\n':
+      // Blank line - skip
+      break;
+
     default:
       is.putback(c);
       if (readMat)
       {
-        std::cerr <<" *** ASMsupel::read: Unknown label "<< c << std::endl;
+        std::cerr <<" *** ASMsupel::read: Unknown label "<< c
+                  <<" ("<< static_cast<int>(c) <<")"<< std::endl;
         return false;
       }
       else
       {
         // Assuming the order G, K, L but without the labels
+        checkMatrix();
         readCoord(myNodes);
         is >> myElmMat.A.front() >> myElmMat.b.front();
         readMat = 7;
       }
     }
 
-  return readMat == 7 && is.good();
+  // Calculate the total external force
+  for (size_t i = 0; i < myElmMat.c.size() && i < 3; i++)
+    myElmMat.c[i] = myElmMat.b.front().sum(i,nf);
+
+  return readMat == 7 && is.good() && ierr >= 0;
+}
+
+
+void ASMsupel::MiniSAM::findDofP2 ()
+{
+  dofP2.clear();
+  dofP2.reserve(meqn2.size());
+
+  int ipos = 0;
+  for (int ieq : meqn)
+    if ((ipos = utl::findIndex(meqn2,ieq)) >= 0)
+      dofP2.push_back(ipos+1);
+}
+
+
+void ASMsupel::MiniSAM::print (std::ostream& os) const
+{
+  if (meqn.empty())
+    return;
+
+  if (mpmceq.size() > 1)
+  {
+    os <<"\nSAM constraints:";
+    for (size_t iceq = 1; iceq < mpmceq.size(); iceq++)
+    {
+      int ip = mpmceq[iceq-1];
+      if (ip < mpmceq[iceq])
+      {
+        os <<"\n"<< iceq <<": "<< mmceq[ip-1];
+        if (fabs(ttcc[ip-1]) > 1.0e-15)
+          os <<"*("<< ttcc[ip-1] <<")";
+        while (++ip < mpmceq[iceq])
+          os <<" "<< mmceq[ip-1] <<"*("<< ttcc[ip-1] <<")";
+      }
+    }
+  }
+
+  os <<"\nSAM meqn:";
+  for (size_t idof = 0; idof < meqn.size(); idof++)
+    os << (idof%6 ? " " : "\n") << meqn[idof];
+  os <<"\nSAM meqn1:";
+  for (size_t i1 = 0; i1 < meqn1.size(); i1++)
+    os << (i1%6 ? " " : "\n") << meqn1[i1];
+  os <<"\nSAM meqn2:";
+  for (size_t i2 = 0; i2 < meqn2.size(); i2++)
+    os << (i2%6 ? " " : "\n") << meqn2[i2];
+  os <<"\nSAM dofP2:";
+  for (size_t i = 0; i < dofP2.size(); i++)
+    os << (i%6 ? " " : "\n") << dofP2[i];
+  os << std::endl;
 }
 
 
@@ -141,6 +342,15 @@ const IntVec& ASMsupel::getNodeSet (int iset) const
     return nodeSets[iset-1].second;
 
   return this->ASMbase::getNodeSet(iset);
+}
+
+
+bool ASMsupel::isInNodeSet (int iset, int inod) const
+{
+  if (iset < 1 || iset > static_cast<int>(nodeSets.size()))
+    return false;
+
+  return utl::findIndex(nodeSets[iset-1].second,inod) >= 0;
 }
 
 
@@ -279,5 +489,60 @@ bool ASMsupel::transform (const Matrix& Tlg)
     if (!utl::transform(b,Tlg))
       return false;
 
+  return true;
+}
+
+
+bool ASMsupel::recoverInternals (const Vector& supSol, Vector& fullSol) const
+{
+#if SP_DEBUG > 2
+  mySAM.print(std::cout);
+#endif
+
+  // Reorder supSol to match the expected ordering of the recovery matrix
+  Vector ve(mySAM.meqn2.size()), vi;
+  for (size_t i = 1; i <= mySAM.dofP2.size(); i++)
+    ve(mySAM.dofP2[i-1]) = supSol(i);
+
+  // Calculate the internal DOFs; vi = myRecMat * ve
+  if (!myRecMat.multiply(ve,vi))
+    return false;
+
+  // Establish the total equation-order solution vector, svec
+  int nceq = mySAM.mpmceq.size()-1;
+  int ndof = mySAM.meqn.size();
+  int neq = *std::max_element(mySAM.meqn.begin(),mySAM.meqn.end());
+  Vector sveq(neq);
+  for (size_t i1 = 1; i1 <= mySAM.meqn1.size(); i1++)
+    sveq(mySAM.meqn1[i1-1]) = vi(i1);
+  for (size_t i2 = 1; i2 <= mySAM.meqn2.size(); i2++)
+    sveq(mySAM.meqn2[i2-1]) = ve(i2);
+
+#if SP_DEBUG > 2
+  std::cout <<"ve:"<< std::scientific << ve;
+  std::cout.unsetf(std::ios_base::floatfield);
+  std::cout <<"vi:"<< vi <<"sveq:"<< sveq;
+#endif
+
+  // Expand to DOF-order while accounting for constraint equations
+  fullSol.resize(ndof,true);
+  for (int idof = 1; idof <= ndof; idof++)
+  {
+    int ieq  = mySAM.meqn[idof-1];
+    int iceq = -ieq;
+    int jdof = 0;
+    if (ieq > 0 && ieq <= neq)
+      fullSol(idof) = sveq(ieq);
+    else if (iceq > 0 && iceq <= nceq)
+      for (int ip = mySAM.mpmceq[iceq-1]; ip < mySAM.mpmceq[iceq]-1; ip++)
+        if ((jdof = mySAM.mmceq[ip]) > 0 && jdof <= ndof)
+          if ((ieq = mySAM.meqn[jdof-1]) > 0 && ieq <= neq)
+            fullSol(idof) += mySAM.ttcc[ip]*sveq[ieq-1];
+  }
+
+#ifdef SP_DEBUG
+  std::cout <<"\nExpanded solution vector for substructure "<< idx+1
+            << fullSol;
+#endif
   return true;
 }
