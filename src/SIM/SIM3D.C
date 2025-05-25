@@ -580,21 +580,13 @@ bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
     return error("patch index",patch);
 
   int aldim = abs(ldim);
+  if (this->SIMbase::addConstraint(patch,lndx,aldim,dirs,code,ngnod,basis,ovrD))
+    return true;
+
   bool open = ldim < 0; // open means without face edges or edge ends
   bool project = lndx < -10;
   if (project) lndx += 10;
   if (lndx < 0 && aldim > 3) aldim = 2; // local tangent direction is indicated
-
-  IFEM::cout <<"\tConstraining P"<< patch;
-  if (aldim < 3)
-    IFEM::cout << (ldim == 0 ? " V" : (aldim == 1 ? " E" : " F")) << lndx;
-  IFEM::cout <<" in direction(s) "<< dirs;
-  if (lndx < 0) IFEM::cout << (project ? " (local projected)" : " (local)");
-  if (code != 0) IFEM::cout <<" code = "<< abs(code);
-  if (basis > 1) IFEM::cout <<" basis = "<< (int)basis;
-#if SP_DEBUG > 1
-  std::cout << std::endl;
-#endif
 
   // Must dynamic cast here, since ASM3D is not derived from ASMbase
   ASM3D* pch = dynamic_cast<ASM3D*>(myModel[patch-1]);
@@ -654,15 +646,6 @@ bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
         default:
           return error("face index",lndx,true);
         }
-      break;
-
-    case 3: // Volume constraints
-      myModel[patch-1]->constrainPatch(dirs,code);
-      break;
-
-    case 4: // Explicit nodal constraints
-      myModel[patch-1]->constrainNodes(myModel[patch-1]->getNodeSet(lndx),
-                                       dirs,code,ovrD);
       break;
 
     default:

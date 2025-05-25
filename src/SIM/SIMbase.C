@@ -414,6 +414,45 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
 }
 
 
+bool SIMbase::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
+                             int& ngnod, char basis, bool ovrD)
+{
+  if (patch < 1 || patch > static_cast<int>(myModel.size()))
+  {
+    std::cerr <<" *** SIMbase::addConstraint: Invalid patch index ("<< patch
+              <<")."<< std::endl;
+    return false;
+  }
+
+  const int numdim = this->getNoParamDim();
+  const bool doProject = lndx < -10;
+  if (doProject) lndx += 10;
+  if (lndx < 0 && numdim == 3 && ldim > 3)
+    ldim = 2; // local tangent direction is indicated
+
+  IFEM::cout <<"\tConstraining P"<< patch;
+  if (ldim >= 0 && ldim < numdim)
+    IFEM::cout << (ldim == 0 ? " V" : (ldim == 1 ? " E" : " F")) << abs(lndx);
+  IFEM::cout <<" in direction(s) "<< dirs;
+  if (lndx < 0)  IFEM::cout << (doProject ? " (local projected)" : " (local)");
+  if (code != 0) IFEM::cout <<" code = "<< abs(code);
+  if (basis > 1) IFEM::cout <<" basis = "<< static_cast<int>(basis);
+#if SP_DEBUG > 1
+  std::cout << std::endl;
+#endif
+
+  if (ldim == numdim) // Constrain the whole patch (all control/nodal points)
+    myModel[patch-1]->constrainPatch(dirs,code);
+  else if (ldim == 4) // Explicit nodal constraints
+    myModel[patch-1]->constrainNodes(myModel[patch-1]->getNodeSet(lndx),
+                                     dirs,code,ovrD);
+  else
+    return false;
+
+  return true;
+}
+
+
 bool SIMbase::merge (SIMbase* that, const std::map<int,int>* old2new, int poff)
 {
   if (this == that)
