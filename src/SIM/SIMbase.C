@@ -99,7 +99,7 @@ SIMbase::~SIMbase ()
 
 
 /*!
-  Adds profiling to the virtual read() method.
+  This method adds profiling to the virtual read() method.
 */
 
 bool SIMbase::readModel (const char* fileName)
@@ -167,7 +167,8 @@ ASMbase* SIMbase::getPatch (int idx, bool glbIndex) const
 
 
 #if SP_DEBUG > 2
-static void printNodalConnectivity (const ASMVec& model, std::ostream& os)
+namespace {
+void printNodalConnectivity (const ASMVec& model, std::ostream& os)
 {
   typedef std::pair<int,int> Ipair;
   typedef std::vector<Ipair> Ipairs;
@@ -186,6 +187,7 @@ static void printNodalConnectivity (const ASMVec& model, std::ostream& os)
     }
 
   os << std::endl;
+}
 }
 #endif
 
@@ -414,6 +416,52 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
 }
 
 
+/*!
+  This method only deals with constraints assigned directly to some (or all)
+  FE nodes of the specified patch. The method needs to be overridden by
+  the dimension-specific sub-classes to handle constraints on other
+  topological entities, such as boundary edges and faces.
+*/
+
+bool SIMbase::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
+                             int& ngnod, char basis, bool ovrD)
+{
+  if (patch < 1 || patch > static_cast<int>(myModel.size()))
+  {
+    std::cerr <<" *** SIMbase::addConstraint: Invalid patch index ("<< patch
+              <<")."<< std::endl;
+    return false;
+  }
+
+  const int numdim = this->getNoParamDim();
+  const bool doProject = lndx < -10;
+  if (doProject) lndx += 10;
+  if (lndx < 0 && numdim == 3 && ldim > 3)
+    ldim = 2; // local tangent direction is indicated
+
+  IFEM::cout <<"\tConstraining P"<< patch;
+  if (ldim >= 0 && ldim < numdim)
+    IFEM::cout << (ldim == 0 ? " V" : (ldim == 1 ? " E" : " F")) << abs(lndx);
+  IFEM::cout <<" in direction(s) "<< dirs;
+  if (lndx < 0)  IFEM::cout << (doProject ? " (local projected)" : " (local)");
+  if (code != 0) IFEM::cout <<" code = "<< abs(code);
+  if (basis > 1) IFEM::cout <<" basis = "<< static_cast<int>(basis);
+#if SP_DEBUG > 1
+  std::cout << std::endl;
+#endif
+
+  if (ldim == numdim) // Constrain the whole patch (all control/nodal points)
+    myModel[patch-1]->constrainPatch(dirs,code);
+  else if (ldim == 4) // Explicit nodal constraints
+    myModel[patch-1]->constrainNodes(myModel[patch-1]->getNodeSet(lndx),
+                                     dirs,code,ovrD);
+  else
+    return false;
+
+  return true;
+}
+
+
 bool SIMbase::merge (SIMbase* that, const std::map<int,int>* old2new, int poff)
 {
   if (this == that)
@@ -532,6 +580,8 @@ bool SIMbase::initSystem (LinAlg::MatrixType mType,
   if (!mySam) return true; // Silently ignore when no algebraic system
 
 #if SP_DEBUG > 2
+  std::cout <<"\n\nHere is the SAM data for the simulator \""
+            << this->getName() <<"\":";
   mySam->print(std::cout);
   for (ASMbase* pch : myModel)
     if (!pch->empty())
@@ -855,6 +905,23 @@ bool SIMbase::initDirichlet (double time)
 }
 
 
+/*!
+  This method needs to be invoked in the beginning of each time/load step
+  if the problem constains time-dependent in-homogeneous Dirchlet conditions.
+
+  If \a prevSol points to an empty vector, the coefficients of the MPC objects
+  representing the in-homogeneous Dirichlet conditions are set to the current
+  (updated) value of the SpatialFunction defining the Dirichlet condition
+  (used for the initial time step), otherwise they are set to the difference
+  between the new values from the function, and the previous value which is
+  stored in the provided \a prevSol vector.
+
+  If \a prevSol is null, the Dirichlet coefficients are set to zero.
+  This is used when doing equilibrium iterations on a fixed time level.
+
+  \sa ASMbase::updateDirichlet() and SAMpatch::updateConstraintEqs().
+*/
+
 bool SIMbase::updateDirichlet (double time, const Vector* prevSol)
 {
   if (prevSol)
@@ -1030,6 +1097,13 @@ void SIMbase::getBoundaryNodes (int pcode, IntVec& glbNodes, Vec3Vec* XYZ) const
 }
 
 
+/*!
+  This method extracts the global node numbers of the named set.
+  The sets are defined on the patch level, and in case the set
+  is defined on more than one patch, the union of the patch-wise
+  nodal sets is returned.
+*/
+
 IntVec SIMbase::getNodeSet (const std::string& setName) const
 {
   IntVec glbNodes;
@@ -1075,6 +1149,18 @@ int SIMbase::findClosestNode (const Vec3& X) const
   return closestPch->getNodeID(closest.first);
 }
 
+
+/*!
+  This method constitutes the main core of the element assembly process,
+  to establish the global linear system of equations to be solved at
+  each time/load step (or iteration if nonlinear problem).
+
+  The method loops over all the Integrand objects defining the problem
+  to be solved, and for each Integrand it loops over the ASMbase patches
+  defining the FE model for doing the numerical integration.
+  It also has separate loops for handling the boundary integrals
+  (for Neumann and Robin type boundary conditions).
+*/
 
 bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
 			      bool newLHSmatrix, bool poorConvg)
@@ -1679,6 +1765,17 @@ ForceBase* SIMbase::getNodalForceIntegrand () const
   return myProblem->getForceIntegrand();
 }
 
+
+/*!
+  This method has a similar loop structure as the assembleSystem() method,
+  but the resulting integrals are now element norms (and global equivalents)
+  instead of a global equation system.
+
+  If an analytical solution is provided, norms of the exact error in the
+  solution are also computed. If projected secondary solutions are provided
+  (i.e., \a ssol is not empty), norms of the difference between these solutions
+   and the directly evaluated secondary solution are computed as well.
+*/
 
 bool SIMbase::solutionNorms (const TimeDomain& time,
 			     const Vectors& psol, const Vectors& ssol,
@@ -2471,6 +2568,13 @@ bool SIMbase::injectPatchSolution (RealArray& sol, const RealArray& vec,
     return pch->injectNodeVec(vec,sol,nndof,basis);
 }
 
+
+/*!
+  The secondary solution is derived from the primary solution,
+  which is assumed to be stored within the Integrand object \ref myProblem.
+  The solution is evaluated at the Greville points and then projected onto
+  the spline basis to obtain the control point values.
+*/
 
 bool SIMbase::evalSecondarySolution (Matrix& field, int pindx) const
 {

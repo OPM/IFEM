@@ -489,49 +489,30 @@ bool SIM1D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
 
   if (lndx < -10) lndx += 10; // no projection in 1D
 
-  IFEM::cout <<"\tConstraining P"<< patch;
-  if (ldim == 0)
-    IFEM::cout << " V"<< abs(lndx);
-  IFEM::cout <<" in direction(s) "<< dirs;
-  if (code != 0) IFEM::cout <<" code = "<< code;
-#if SP_DEBUG > 1
-  std::cout << std::endl;
-#endif
+  if (this->SIMbase::addConstraint(patch,lndx,ldim,dirs,code,ngnod,1,ovrD))
+    return true;
 
   // Must dynamic cast here, since ASM1D is not derived from ASMbase
   ASM1D* pch = dynamic_cast<ASM1D*>(myModel[patch-1]);
   if (!pch) return error("1D patch",patch);
 
-  switch (ldim)
-    {
-    case 0: // Vertex constraints
-      switch (lndx)
-        {
-        case  1: pch->constrainNode(0.0,dirs,code); break;
-        case  2: pch->constrainNode(1.0,dirs,code); break;
-        case -1:
-          ngnod += pch->constrainEndLocal(0,dirs,code);
-          break;
-        case -2:
-          ngnod += pch->constrainEndLocal(1,dirs,code);
-          break;
-        default:
-          return error("vertex index",lndx,true);
-        }
-      break;
+  if (ldim == 0) // Vertex constraints
+    switch (lndx)
+      {
+      case  1: pch->constrainNode(0.0,dirs,code); break;
+      case  2: pch->constrainNode(1.0,dirs,code); break;
+      case -1:
+        ngnod += pch->constrainEndLocal(0,dirs,code);
+        break;
+      case -2:
+        ngnod += pch->constrainEndLocal(1,dirs,code);
+        break;
+      default:
+        return error("vertex index",lndx,true);
+      }
 
-    case 1: // Curve constraint
-      myModel[patch-1]->constrainPatch(dirs,code);
-      break;
-
-    case 4: // Explicit nodal constraints
-      myModel[patch-1]->constrainNodes(myModel[patch-1]->getNodeSet(lndx),
-                                       dirs,code,ovrD);
-      break;
-
-    default:
-      return error("local dimension switch",ldim,true);
-    }
+  else
+    return error("local dimension switch",ldim,true);
 
   return true;
 }

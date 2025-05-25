@@ -86,8 +86,7 @@ public:
   bool readModel(const char* fileName);
 
   //! \brief Creates the computational FEM model from the spline patches.
-  //! \param[in] resetNumb If \e 'y', start element and node numbers from zero
-  virtual bool createFEMmodel(char resetNumb = 'y') = 0;
+  virtual bool createFEMmodel(char resetNumb) = 0;
 
   //! \brief Initializes the property containers of the model.
   //! \details Use this method to clear the model before re-reading
@@ -169,7 +168,7 @@ public:
   void clearProblem() { myProblem = nullptr; }
 
   //! \brief Returns the name of this simulator.
-  //! \details This method is typically reimplemented in sub-classes that are
+  //! \details This method is typically overridden by sub-classes that are
   //! parts of a partitioned solution method and are used to identify the basis
   //! for the result fields associated with each simulator in the HDF5 output.
   virtual std::string getName() const { return "SIMbase"; }
@@ -246,14 +245,6 @@ public:
   //! \brief Updates the time-dependent in-homogeneous Dirichlet coefficients.
   //! \param[in] time Current time
   //! \param[in] prevSol Pointer to previous primary solution in DOF-order
-  //!
-  //! \details If \a prevSol is null, the Dirichlet coefficients are set to
-  //! zero (used when doing equilibrium iterations on a fixed time level).
-  //! If \a prevSol points to an empty vector, the coefficients are set to the
-  //! current (updated) values of the functions defining the Dirichlet condition
-  //! (used for the initial time step), otherwise they are set to the difference
-  //! between the new values from the Dirichlet functions, and the previous
-  //! values stored in the provided \a prevSol vector.
   virtual bool updateDirichlet(double time = 0.0,
                                const Vector* prevSol = nullptr);
 
@@ -289,10 +280,10 @@ public:
 
   //! \brief Administers assembly of the linear equation system.
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
-  //! \param[in] pSol Previous primary solution vectors in DOF-order
+  //! \param[in] prevSol Previous primary solution vectors in DOF-order
   //! \param[in] newLHSmatrix If \e false, only integrate the RHS vector
   //! \param[in] poorConvg If \e true, the nonlinear driver is converging poorly
-  virtual bool assembleSystem(const TimeDomain& time, const Vectors& pSol,
+  virtual bool assembleSystem(const TimeDomain& time, const Vectors& prevSol,
                               bool newLHSmatrix = true, bool poorConvg = false);
 
   //! \brief Administers assembly of the linear equation system.
@@ -397,12 +388,6 @@ public:
   //! \param[out] gNorm Global norm quantities
   //! \param[out] eNorm Element-wise norm quantities
   //! \param[in] name Name of solution being the source of calculation
-  //!
-  //! \details If an analytical solution is provided, norms of the exact
-  //! error in the solution are computed as well. If projected secondary
-  //! solutions are provided (i.e., \a ssol is not empty), norms of the
-  //! difference between these solutions and the directly evaluated secondary
-  //! solution are computed as well.
   bool solutionNorms(const TimeDomain& time,
                      const Vectors& psol, const Vectors& ssol,
                      Vectors& gNorm, Matrix* eNorm = nullptr,
@@ -569,11 +554,6 @@ public:
   //! \brief Evaluates the secondary solution field for specified patch.
   //! \param[out] field Control point values of the secondary solution field
   //! \param[in] pindx Local patch index to evaluate solution field for
-  //!
-  //! \details The secondary solution is derived from the primary solution,
-  //! which is assumed to be stored within the Integrand object.
-  //! The solution is evaluated at the Greville points and then projected onto
-  //! the spline basis to obtain the control point values.
   bool evalSecondarySolution(Matrix& field, int pindx) const;
 
   //! \brief Returns whether projections must be handled through fields or not.
@@ -619,7 +599,7 @@ protected:
   //! \param[in] basis Which basis to apply the constraint to (mixed methods)
   //! \param[in] ovrD If \e true, override conflicting Dirichlet conditions
   virtual bool addConstraint(int patch, int lndx, int ldim, int dirs, int code,
-                             int& ngnod, char basis = 1, bool ovrD = false) = 0;
+                             int& ngnod, char basis = 1, bool ovrD = false);
 
   //! \brief Preprocessing performed before the FEM model generation.
   virtual void preprocessA() {}
