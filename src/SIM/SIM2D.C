@@ -704,20 +704,13 @@ bool SIM2D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
   if (patch < 1 || patch > (int)myModel.size())
     return error("patch index",patch);
 
+  if (this->SIMbase::addConstraint(patch,lndx,abs(ldim),dirs,code,
+                                   ngnod,basis,ovrD))
+    return true;
+
   bool open = ldim < 0; // open means without its end points
   bool project = lndx < -10;
   if (project) lndx += 10;
-
-  IFEM::cout <<"\tConstraining P"<< patch;
-  if (abs(ldim) < 2)
-    IFEM::cout << (ldim == 0 ? " V" : " E") << abs(lndx);
-  IFEM::cout <<" in direction(s) "<< dirs;
-  if (lndx < 0) IFEM::cout << (project ? " (local projected)" : " (local)");
-  if (code != 0) IFEM::cout <<" code = "<< abs(code);
-  if (basis > 1) IFEM::cout <<" basis = "<< (int)basis;
-#if SP_DEBUG > 1
-  std::cout << std::endl;
-#endif
 
   // Must dynamic cast here, since ASM2D is not derived from ASMbase
   ASM2D* pch = dynamic_cast<ASM2D*>(myModel[patch-1]);
@@ -758,15 +751,6 @@ bool SIM2D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
 	default:
 	  return error("edge index",lndx,true);
 	}
-      break;
-
-    case 2: // Face constraints
-      myModel[patch-1]->constrainPatch(dirs,code);
-      break;
-
-    case 4: // Explicit nodal constraints
-      myModel[patch-1]->constrainNodes(myModel[patch-1]->getNodeSet(lndx),
-				       dirs,code,ovrD);
       break;
 
     default:
