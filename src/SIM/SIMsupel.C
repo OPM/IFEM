@@ -12,7 +12,7 @@
 //==============================================================================
 
 #include "SIMsupel.h"
-#include "ASMbase.h"
+#include "ASMsupel.h"
 #include "ASM3D.h"
 #include "IntegrandBase.h"
 #include "Utilities.h"
@@ -20,23 +20,16 @@
 #include "tinyxml2.h"
 
 
-/*!
-  \brief Empty integrand class for superelement analysis.
-*/
-
-class NoProblem : public IntegrandBase
+SIMsupel::SIMsupel (const char* hd, char nf) : ncmp(abs(nf))
 {
-public:
-  //! \brief The constructor forwards to the parent class constructor,
-  explicit NoProblem(unsigned char n) : IntegrandBase(n) {}
-  //! \brief Empty destructor,
-  virtual ~NoProblem() {}
-};
+  // Empty integrand class for superelement analysis.
+  class NoProblem : public IntegrandBase
+  {
+  public:
+    explicit NoProblem(unsigned char n) : IntegrandBase(n) {}
+  };
 
-
-SIMsupel::SIMsupel (const char* hd, unsigned char nf) : ncmp(nf)
-{
-  myProblem = new NoProblem(nf);
+  if (nf > 0) myProblem = new NoProblem(nf);
   if (hd) myHeading = hd;
 }
 
@@ -111,6 +104,8 @@ ASMbase* SIMsupel::readPatch (std::istream& isp, int pchInd, const CharVec&,
   ASMbase* pch = ASM3D::create(ASM::SuperElm,ncmp);
   if (pch)
   {
+    if (!gravity.isZero())
+      static_cast<ASMsupel*>(pch)->setGravity(gravity);
     if (!pch->read(isp) || this->getLocalPatchIndex(pchInd+1) < 1)
     {
       delete pch;

@@ -18,6 +18,14 @@
 #include "Vec3Oper.h"
 #include <numeric>
 
+#ifdef HAS_FMXREADER
+extern "C" {
+  void initfmx_();
+  int  readfmx_(const char* fname, const int* itype,
+                double* data, const int* nval, const int nchar);
+}
+#endif
+
 
 bool ASMsupel::read (std::istream& is)
 {
@@ -30,38 +38,122 @@ bool ASMsupel::read (std::istream& is)
     for (Vec3& Xn : Xsup) is >> Xn;
   };
 
-  myElmMat.resize(1,1);
+  // Lambda function for reading a FEDEM superelement matrix file.
+  auto&& readFMX = [&is](Matrix& M, int itype) -> int
+  {
+    int m, n, ierr = -99;
+    std::string fileName;
+    is >> m >> n >> fileName;
+    M.resize(m,n);
+#ifdef HAS_FMXREADER
+    static bool first = true;
+    if (first) initfmx_();
+    first = false;
+    int ndim = m*n;
+    ierr = readfmx_(fileName.c_str(),&itype,M.ptr(),&ndim,fileName.size());
+#endif
+    if (ierr < 0)
+      std::cerr <<" *** readFMX: Failed to read matrix file \""
+                << fileName <<"\" of type "<< itype
+                <<" (ierr = "<< ierr <<")" << std::endl;
+    return ierr;
+  };
 
-  char c;
-  int readMat = 0;
-  while (readMat < 7 && is.get(c))
+  // Lambda function checking if myElmMat needs to be allocated,
+  // and whether we are reading a binary file or not.
+  auto&& checkMatrix = [&is,this](bool fmx = false) -> bool
+  {
+    if (myElmMat.empty())
+      myElmMat.resize(2,1);
+    if (fmx)
+    {
+      char c = 0;
+      if (is.get(c) && c == 'x')
+        return true;
+      else if (is)
+        is.putback(c);
+    }
+    return false;
+  };
+
+  char c = 0;
+  Matrix tmpMat;
+  int readMat = 0, ierr = 0;
+  while (readMat < 7 && is.get(c) && ierr >= 0)
     switch (c) {
     case 'K':
     case 'k':
-      is >> myElmMat.A.front();
-      if (c == 'K') // assume stored column-wise
-        myElmMat.A.front().transpose();
+      // Read stiffness matrix file
+      if (checkMatrix(true))
+        ierr = readFMX(myElmMat.A.front(),1);
+      else
+      {
+        is >> myElmMat.A.front();
+        if (c == 'K') // assume stored column-wise
+          myElmMat.A.front().transpose();
+      }
       readMat |= 1;
       break;
+
+    case 'M':
+    case 'm':
+      // Read mass matrix file
+      if (checkMatrix(true))
+        ierr = readFMX(myElmMat.A.back(),2);
+      else
+      {
+        is >> myElmMat.A.back();
+        if (c == 'M') // assume stored column-wise
+          myElmMat.A.back().transpose();
+      }
+      readMat |= 1;
+      break;
+
+    case 'B':
+      // Read recovery matrix file (binary only)
+      if (is.get(c) && c == 'x')
+        ierr = readFMX(myRecMat,4);
+      else if (is)
+        is.putback(c);
+      break;
+
+    case 'g':
+      // Read gravity forces file (binary only)
+      if (checkMatrix(true))
+      {
+        if ((ierr = readFMX(tmpMat,3)) >= 0 && !gravity.isZero())
+          if (!tmpMat.multiply(gravity.vec(),myElmMat.b.front()))
+            return false;
+        readMat |= 2;
+      }
+      break;
+
     case 'R':
+      // Read right-hand-side vector
+      checkMatrix();
       is >> myElmMat.b.front();
       readMat |= 2;
       break;
+
     case 'L':
-      {
-        // The load vector is stored as a ndof x 1 matrix and not a vector
-        Matrix tmpMat;
-        is >> tmpMat;
-        myElmMat.b.front() = tmpMat.getColumn(1);
-      }
+      // Read load vector.
+      // It is assumed stored as a ndof x 1 matrix and not a vector.
+      checkMatrix();
+      is >> tmpMat;
+      myElmMat.b.front() = tmpMat.getColumn(1);
       readMat |= 2;
       break;
+
     case 'G':
+      // Read supernode coordinates
       readCoord(myNodes);
       readMat |= 4;
       break;
+
     case '\n':
+      // Blank line - skip
       break;
+
     default:
       is.putback(c);
       if (readMat)
@@ -72,13 +164,14 @@ bool ASMsupel::read (std::istream& is)
       else
       {
         // Assuming the order G, K, L but without the labels
+        checkMatrix();
         readCoord(myNodes);
         is >> myElmMat.A.front() >> myElmMat.b.front();
         readMat = 7;
       }
     }
 
-  return readMat == 7 && is.good();
+  return readMat == 7 && is.good() && ierr >= 0;
 }
 
 
@@ -140,6 +233,15 @@ const IntVec& ASMsupel::getNodeSet (int iset) const
     return nodeSets[iset-1].second;
 
   return this->ASMbase::getNodeSet(iset);
+}
+
+
+bool ASMsupel::isInNodeSet (int iset, int inod) const
+{
+  if (iset < 1 || iset > static_cast<int>(nodeSets.size()))
+    return false;
+
+  return utl::findIndex(nodeSets[iset-1].second,inod) >= 0;
 }
 
 

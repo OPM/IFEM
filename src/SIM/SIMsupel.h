@@ -31,12 +31,9 @@ public:
   //! \brief Default constructor.
   //! \param[in] hd Sub-simulator heading
   //! \param[in] nf Dimension of the primary solution field
-  explicit SIMsupel(const char* hd = nullptr, unsigned char nf = 6);
-  //! \brief Empty destructor.
-  virtual ~SIMsupel() {}
+  explicit SIMsupel(const char* hd = nullptr, char nf = 6);
 
-  //! \brief Creates the computational FEM model from the spline patches.
-  //! \param[in] resetNumb If \e 'y', start element and node numbers from zero
+  //! \brief Creates the FE topology of the superelement patches.
   virtual bool createFEMmodel(char resetNumb);
 
   //! \brief Returns the name of this simulator.
@@ -64,14 +61,14 @@ protected:
   {
     std::string id;  //!< Superelement id
     Matrix      MVP; //!< Local-to-global transformation matrix
-    SIMgeneric* sim; //!< Pointer to underlying FE model of superelement|
     Vector      sol; //!< Recovered primary solution on underlying FE model
 
-    //! \brief Default constructor.
-    SuperElm() : sim(nullptr) {}
+    SIMgeneric* sim = nullptr; //!< Pointer to underlying FE model
   };
 
   std::vector<SuperElm> mySups; //!< Superelement data container
+
+  Vec3 gravity; //!< Gravitation vector (for calculation of g-force load vector)
 };
 
 #endif

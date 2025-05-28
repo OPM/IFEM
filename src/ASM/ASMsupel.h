@@ -24,6 +24,7 @@
   \brief Driver for assembly of general superelements.
   \details This class contains methods for assembly of superelements
   resulting from static condensation or reduced order modeling.
+  It also supports reading superelement matrix files from FEDEM (fmx-files).
 */
 
 class ASMsupel : public ASMbase
@@ -35,8 +36,6 @@ public:
   ASMsupel(const ASMsupel& patch, unsigned char n_f) : ASMbase(patch,n_f) {}
   //! \brief Default copy constructor copying everything.
   ASMsupel(const ASMsupel& patch) : ASMbase(patch) {}
-  //! \brief Empty destructor.
-  virtual ~ASMsupel() {}
 
   //! \brief Creates an instance by reading the given input stream.
   virtual bool read(std::istream& is);
@@ -51,6 +50,8 @@ public:
   virtual int getNodeSetIdx(const std::string& setName) const;
   //! \brief Returns an indexed pre-defined node set.
   virtual const IntVec& getNodeSet(int iset) const;
+  //! \brief Checks if node \a inod is within predefined node set \a iset.
+  virtual bool isInNodeSet(int iset, int inod) const;
   //! \brief Defines a node set by parsing a list of node numbers.
   virtual int parseNodeSet(const std::string& setName, const char* cset);
 
@@ -117,11 +118,17 @@ public:
   //! \brief Applies a transformation matrix from local to global system.
   virtual bool transform(const Matrix& Tlg);
 
+  //! \brief Assigns the acceleration vector of gravity.
+  void setGravity(const Vec3& g) { gravity = g; }
+
 private:
   Vec3Vec myNodes;  //!< Supernode coordinates
-  ElmMats myElmMat; //!< Duperelement matrices
+  ElmMats myElmMat; //!< Superelement matrices
+  Matrix  myRecMat; //!< Recovery matrix
 
   std::vector<ASM::NodeSet> nodeSets; //!< Node sets for Dirichlet BCs
+
+  Vec3 gravity; //!< Gravitation vector (for calculation of g-force load vector)
 };
 
 #endif

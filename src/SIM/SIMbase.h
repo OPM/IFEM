@@ -86,8 +86,7 @@ public:
   bool readModel(const char* fileName);
 
   //! \brief Creates the computational FEM model from the spline patches.
-  //! \param[in] resetNumb If \e 'y', start element and node numbers from zero
-  virtual bool createFEMmodel(char resetNumb = 'y') = 0;
+  virtual bool createFEMmodel(char resetNumb) = 0;
 
   //! \brief Initializes the property containers of the model.
   //! \details Use this method to clear the model before re-reading
@@ -619,7 +618,7 @@ protected:
   //! \param[in] basis Which basis to apply the constraint to (mixed methods)
   //! \param[in] ovrD If \e true, override conflicting Dirichlet conditions
   virtual bool addConstraint(int patch, int lndx, int ldim, int dirs, int code,
-                             int& ngnod, char basis = 1, bool ovrD = false) = 0;
+                             int& ngnod, char basis = 1, bool ovrD = false);
 
   //! \brief Preprocessing performed before the FEM model generation.
   virtual void preprocessA() {}
