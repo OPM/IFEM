@@ -157,7 +157,7 @@ else()
                          src/ASM/Field.h src/ASM/Fields.h src/ASM/GlbForceVec.h
                          src/ASM/FiniteElement.h src/ASM/GlbNorm.h
                          src/ASM/GlbL2projector.h src/ASM/GlobalIntegral.h
-                         src/ASM/IntegrandBase.h
+                         src/ASM/IntegrandBase.h src/ASM/HasGravityBase.h
                          src/ASM/ImmersedBoundaries.h src/ASM/Interface.h
                          src/ASM/Integrand.h src/ASM/Lagrange.h
                          src/ASM/LocalIntegral.h src/ASM/SAMpatch.h
