@@ -15,28 +15,22 @@
 #include "ASMbase.h"
 #include "ASM3D.h"
 #include "IntegrandBase.h"
+#include "SAM.h"
 #include "Utilities.h"
 #include "IFEM.h"
 #include "tinyxml2.h"
 
 
-/*!
-  \brief Empty integrand class for superelement analysis.
-*/
-
-class NoProblem : public IntegrandBase
+SIMsupel::SIMsupel (const char* hd, char nf) : ncmp(abs(nf))
 {
-public:
-  //! \brief The constructor forwards to the parent class constructor,
-  explicit NoProblem(unsigned char n) : IntegrandBase(n) {}
-  //! \brief Empty destructor,
-  virtual ~NoProblem() {}
-};
+  // Empty integrand class for superelement analysis.
+  class NoProblem : public IntegrandBase
+  {
+  public:
+    explicit NoProblem(unsigned char n) : IntegrandBase(n) {}
+  };
 
-
-SIMsupel::SIMsupel (const char* hd, unsigned char nf) : ncmp(nf)
-{
-  myProblem = new NoProblem(nf);
+  if (nf > 0) myProblem = new NoProblem(nf);
   if (hd) myHeading = hd;
 }
 
@@ -131,4 +125,51 @@ ASMbase* SIMsupel::readPatch (std::istream& isp, int pchInd, const CharVec&,
 bool SIMsupel::createFEMmodel (char resetNumb)
 {
   return this->SIMgeneric::createFEMmodel(resetNumb);
+}
+
+
+bool SIMsupel::recoverInternalDOFs (const Vector& glbSol)
+{
+  size_t pidx = 0;
+  for (SuperElm& sup : mySups)
+  {
+    // Extract superelement solution vector from the global solution vector
+    Vector supSol;
+    int pchIdx = myModel[pidx]->idx + 1;
+    myModel[pidx++]->extractNodalVec(glbSol, supSol, mySam->getMADOF());
+#if SP_DEBUG > 2
+    std::cout <<"\nSolution vector for superelement "<< pchIdx << supSol;
+#endif
+
+    if (sup.sim)
+    {
+      // Transform to local superelement axes
+      bool ok = sup.MVP.empty() ? true : utl::transform(supSol,sup.MVP,true);
+
+      // Recover the internal state of the superelement
+      ok &= this->recoverInternalDOFs(myModel[pidx-1], sup, supSol);
+
+      if (!sup.MVP.empty() && ok) // Transform back to global axes
+        ok = utl::transform(sup.sol,sup.MVP);
+
+      if (!ok)
+      {
+        std::cerr <<"\n *** SIMsupel::recoverInternalDOFs: Failed to"
+                  <<" recover internal solution for superelement "<< pchIdx
+                  << std::endl;
+        return false;
+      }
+    }
+    else // No substructure FE model - just use the superelement solution
+      sup.sol = supSol;
+  }
+
+  return true;
+}
+
+
+bool SIMsupel::recoverInternalDOFs (const ASMbase*, SuperElm& sup,
+                                    const Vector& supSol) const
+{
+  return sup.sim->recoverInternals(supSol,sup.sol);
 }
