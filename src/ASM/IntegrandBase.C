@@ -26,6 +26,20 @@
 
 
 /*!
+  The default implementation of this method allocates for one solution vector
+  in \ref primsol when the \a mode is set to SIM::RECOVERY or SIM::NORMS,
+  but only if the vector is empty.
+  This is sufficient for most linear problems with a single right-hand side.
+*/
+
+void IntegrandBase::setMode (SIM::SolutionMode mode)
+{
+  if ((m_mode = mode) >= SIM::RECOVERY && primsol.empty())
+    primsol.resize(1);
+}
+
+
+/*!
   Override this method if the integrand needs some patch-specific data
   to be initialized before performing the numerical integration.
   The default version only passes the patch index to the initPatch() method.

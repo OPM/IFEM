@@ -57,7 +57,7 @@ public:
   // ===============================
 
   //! \brief Defines the solution mode before the element assembly is started.
-  virtual void setMode(SIM::SolutionMode mode) { m_mode = mode; }
+  virtual void setMode(SIM::SolutionMode mode);
   //! \brief Returns current solution mode.
   SIM::SolutionMode getMode() const override { return m_mode; }
   //! \brief Initializes an integration parameter for the integrand.
