@@ -50,6 +50,9 @@ public:
   //! \brief Returns the vector type.
   LinAlg::MatrixType getType() const override { return LinAlg::PETSC; }
 
+  //! \brief Creates a copy of the system vector and returns a pointer to it.
+  SystemVector* copy() const override { return new PETScVector(*this); }
+
   //! \brief Initializes the vector to a given scalar value.
   void init(Real value) override;
 

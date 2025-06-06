@@ -243,3 +243,33 @@ TEST(TestPETScMatrix, Copy)
       EXPECT_FLOAT_EQ(orig(r,c), a);
     }
 }
+
+
+TEST(TestPETScVector, Copy)
+{
+  ProcessAdm adm;
+  PETScVector orig(adm, 5);
+
+  for (size_t i = 1; i <= orig.dim(); ++i)
+    orig(i) = i;
+
+  std::unique_ptr<PETScVector> copy1(static_cast<PETScVector*>(orig.copy()));
+
+  EXPECT_EQ(orig.dim(), copy1->dim());
+  PetscScalar* cv;
+  VecGetArray(copy1->getVector(), &cv);
+  for (size_t i = 1; i <= orig.dim(); ++i) {
+      EXPECT_EQ((*copy1)(i), orig(i));
+      EXPECT_EQ(cv[i-1], 0.0);
+  }
+
+  orig.endAssembly();
+  std::unique_ptr<PETScVector> copy2(static_cast<PETScVector*>(orig.copy()));
+
+  EXPECT_EQ(orig.dim(), copy2->dim());
+  VecGetArray(copy2->getVector(), &cv);
+  for (size_t i = 1; i <= orig.dim(); ++i) {
+      EXPECT_EQ((*copy2)(i), orig(i));
+      EXPECT_EQ(cv[i-1], orig(i));
+  }
+}
