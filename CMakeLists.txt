@@ -76,6 +76,7 @@ file(GLOB IFEM_SRCS ${PROJECT_SOURCE_DIR}/src/IFEM.C
                     ${PROJECT_SOURCE_DIR}/src/Utility/*.C
                     ${PROJECT_SOURCE_DIR}/src/ASM/*.f
                     ${PROJECT_SOURCE_DIR}/src/Eig/*.f
+                    ${PROJECT_SOURCE_DIR}/src/Utility/*.f
                     ${PROJECT_SOURCE_DIR}/3rdparty/expreval/*.cpp)
 string(REGEX REPLACE "${PROJECT_SOURCE_DIR}/src/ASM/ASMs.DInterpolate.C" "" IFEM_SRCS "${IFEM_SRCS}")
 

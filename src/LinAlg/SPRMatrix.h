@@ -16,9 +16,15 @@
 #define _SPR_MATRIX_H
 
 #include "SystemMatrix.h"
-
-//! \brief Size of the MSPAR array.
+//! \cond DO_NOT_DOCUMENT
+#ifdef USE_INT64
+#include <cstdint>
+#define Int_ std::int64_t
+#else
+#define Int_ int
+#endif
 #define NS 60
+//! \endcond
 
 
 /*!
@@ -115,6 +121,9 @@ public:
   //! \brief Returns the L-infinity norm of the matrix.
   virtual Real Linfnorm() const;
 
+  //! \brief Converts to a dense matrix.
+  bool convert(Matrix& fullMat) const;
+
 protected:
   //! \brief Adds an element matrix into the associated system matrix.
   //! \param[in] eM  The element matrix
@@ -126,18 +135,43 @@ protected:
   //! \brief Performs the matrix-vector multiplication \b c = \a *this * \b b.
   bool multiply(size_t n, const Real* b, Real* c);
 
-private:
-  int ierr;     //!< Internal error flag
-  int mpar[NS]; //!< Matrix of sparse PARameters
-  int* msica;   //!< Matrix of Storage Information for CA
-  int* msifa;   //!< Matrix of Storage Information for FA
-  int* mtrees;  //!< Matrix of elimination assembly TREES
-  int* mvarnc;  //!< Matrix of VARiable to Node Correspondence
-  Real* values; //!< The actual matrix VALUES
+  //! \brief Writes the system matrix to the given output stream.
+  virtual std::ostream& write(std::ostream& os) const;
 
-  std::vector<int>  iWork; //!< Integer work array
-  std::vector<int>* jWork; //!< Integer work arrays for multi-threaded assembly
-  std::vector<Real> rWork; //!< Real work array
+private:
+  Int_ ierr;     //!< Internal error flag
+  Int_ mpar[NS]; //!< Matrix of sparse PARameters
+  Int_* msica;   //!< Matrix of Storage Information for CA
+  Int_* msifa;   //!< Matrix of Storage Information for FA
+  Int_* mtrees;  //!< Matrix of elimination assembly TREES
+  Int_* mvarnc;  //!< Matrix of VARiable to Node Correspondence
+  Real* values;  //!< The actual matrix VALUES
+
+  std::vector<Int_>  iWork; //!< Integer work array
+  std::vector<Int_>* jWork; //!< Integer work arrays for multi-threaded assembly
+  std::vector<Real>  rWork; //!< Real work array
+
+#ifdef USE_INT64
+  //! \brief Struct with SAM arrays needed in the matrix assembly process.
+  struct SAM64
+  {
+    Int_* mpar;   //!< Matrix of parameters
+    Int_* mpmnpc; //!< Matrix of pointers to MNPCs in MMNPC
+    Int_* mmnpc;  //!< Matrix of matrices of nodal point correspondances
+    Int_* madof;  //!< Matrix of accumulated DOFs
+    Int_* mpmceq; //!< Matrix of pointers to MCEQs in MMCEQ
+    Int_* mmceq;  //!< Matrix of matrices of constraint equation definitions
+    Int_* meqn;   //!< Matrix of equation numbers
+
+    //! \brief The constructor copies the 32-bit arrays into 64-bit versions.
+    SAM64(const SAM& sam);
+    //! \brief The destructor frees the dynamically allocated arrays.
+    ~SAM64();
+  };
+#else
+  using SAM64 = SAM; //!< Convenience alias when using 32-bit int version
+#endif
+  SAM64* mySam; //!< Possibly 64-bit integer version of SAM arrays
 };
 
 #endif
