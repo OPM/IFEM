@@ -99,6 +99,9 @@ public:
   //! \brief Returns the matrix type.
   LinAlg::MatrixType getType() const override { return LinAlg::PETSC; }
 
+  //! \brief Creates a copy of the system matrix and returns a pointer to it.
+  SystemMatrix* copy() const override;
+
   //! \brief Initializes the element assembly process.
   //! \param[in] sam Auxiliary data describing the FE model topology, etc.
   //!
@@ -176,6 +179,11 @@ protected:
 
   //! \brief Disabled copy constructor.
   PETScMatrix(const PETScMatrix& A) = delete;
+
+  //! \brief Clone sparse matrix data.
+  PETScMatrix(const ProcessAdm& padm,
+              const PETScSolParams& spar,
+              const SparseMatrix& A);
 
   //! \brief Setup sparsity pattern for a DD partitioned model.
   //! \param[in] sam Auxiliary data describing the FE model topology, etc.

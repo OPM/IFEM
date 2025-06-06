@@ -156,6 +156,22 @@ PETScMatrix::PETScMatrix (const ProcessAdm& padm, const LinSolParams& spar)
 }
 
 
+PETScMatrix::PETScMatrix(const ProcessAdm& padm, const PETScSolParams& spar,
+                         const SparseMatrix& A)
+    : SparseMatrix(A), nsp(nullptr), adm(padm), solParams(spar)
+{
+  // Create linear solver object
+  KSPCreate(*adm.getCommunicator(),&ksp);
+
+  LinAlgInit::increfs();
+
+  setParams = true;
+  ISsize = 0;
+  nLinSolves = 0;
+  assembled = false;
+}
+
+
 PETScMatrix::~PETScMatrix ()
 {
   // Deallocation of linear solver object.
@@ -171,6 +187,18 @@ PETScMatrix::~PETScMatrix ()
     ISDestroy(&v);
 
   matvec.clear();
+}
+
+
+SystemMatrix* PETScMatrix::copy() const
+{
+  PETScMatrix* result = new PETScMatrix(this->adm, this->solParams,
+                                        static_cast<const SparseMatrix&>(*this));
+  if (this->assembled) {
+    MatDuplicate(this->pA, MAT_COPY_VALUES, &result->pA);
+    result->assembled = true;
+  }
+  return result;
 }
 
 
