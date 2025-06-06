@@ -14,7 +14,7 @@
 #include "EigSolver.h"
 #include "DenseMatrix.h"
 #include "SPRMatrix.h"
-#ifdef HAS_SLEPC
+#ifdef HAS_PETSC
 #include "PETScMatrix.h"
 #endif
 
@@ -190,6 +190,20 @@ static void _eig_ax(const SystemMatrix* A, const double* x, double* y)
 {
   if (!A) return;
 
+#if HAS_PETSC
+  const PETScMatrix* pA = dynamic_cast<const PETScMatrix*>(A);
+  if (pA) {
+      PETScVector X(pA->getAdm(), x, A->dim());
+      X.endAssembly();
+      PETScVector Y(pA->getAdm(), A->dim());
+      pA->multiply(X, Y);
+      PetscScalar* yv;
+      VecGetArray(Y.getVector(), &yv);
+      memcpy(y,yv,Y.dim()*sizeof(double));
+      return;
+  }
+#endif
+
   StdVector Y;
   A->multiply(StdVector(x,A->dim()),Y);
   memcpy(y,Y.ptr(),Y.dim()*sizeof(double));
@@ -210,6 +224,19 @@ extern "C" void eig_sol_(const double* x, double* y, int& ierr)
 {
   ierr = -99;
   if (!AM) return;
+
+#ifdef HAS_PETSC
+  const PETScMatrix* pA = dynamic_cast<const PETScMatrix*>(AM);
+  if (pA) {
+    PETScVector RHS(pA->getAdm(), x, AM->dim());
+    RHS.endAssembly();
+    ierr = AM->solve(RHS) ? 0 : -1;
+    PetscScalar* yv;
+    VecGetArray(RHS.getVector(), &yv);
+    memcpy(y,yv,RHS.dim()*sizeof(double));
+    return;
+  }
+#endif
 
   StdVector RHS(x,AM->dim());
   ierr = AM->solve(RHS) ? 0 : -1;
