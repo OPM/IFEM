@@ -686,7 +686,7 @@ bool PETScMatrix::solve (SystemVector& B, Real*)
   if (!Bptr)
     return false;
 
-  if (A.empty() || !assembled)
+  if (!A.empty() && !assembled)
     return this->solveDirect(*Bptr);
 
   Vec x;
@@ -771,17 +771,26 @@ bool PETScMatrix::solve (const Vec& b, Vec& x, bool knoll)
 
 bool PETScMatrix::assembleDirect()
 {
-  MatSetSizes(pA, this->dim(1), this->dim(2),
-              PETSC_DETERMINE, PETSC_DETERMINE);
+  MatSetSizes(pA, PETSC_DETERMINE, PETSC_DETERMINE, this->dim(1), this->dim(2));
 
-  IntVec iA, jA;
-  this->calcCSR(iA,jA);
-  MatMPIAIJSetPreallocationCSR(pA, iA.data(), jA.data(), nullptr);
-  MatSetOption(pA, MAT_NEW_NONZERO_LOCATION_ERR, PETSC_TRUE);
+  if (this->adm.isParallel()) {
+    MatSetOption(pA, MAT_NEW_NONZERO_LOCATION_ERR, PETSC_FALSE);
+  } else {
+    IntVec iA, jA;
+    this->calcCSR(iA,jA);
+    MatSeqAIJSetPreallocationCSR(pA, iA.data(), jA.data(), nullptr);
+    MatSetOption(pA, MAT_NEW_NONZERO_LOCATION_ERR, PETSC_TRUE);
+  }
+
   MatSetUp(pA);
+  PetscInt low, high;
+
+  MatGetOwnershipRange(pA, &low, &high);
 
   for (const auto& e : this->getValues())
-    MatSetValue(pA, e.first.first-1, e.first.second-1, e.second, INSERT_VALUES);
+    if (static_cast<PetscInt>(e.first.first-1) >= low &&
+        static_cast<PetscInt>(e.first.first-1) < high)
+      MatSetValue(pA, e.first.first-1, e.first.second-1, e.second, INSERT_VALUES);
 
   MatAssemblyBegin(pA,MAT_FINAL_ASSEMBLY);
   MatAssemblyEnd(pA,MAT_FINAL_ASSEMBLY);
@@ -828,22 +837,25 @@ bool PETScMatrix::solveDirect(PETScVector& B)
   VecSetFromOptions(B1);
   VecSetFromOptions(x);
 
-  forcedKSPType = "gmres";
   size_t nrhs = B.dim() / nrow;
+  PetscScalar* bv;
+  VecGetArray(B.getVector(), &bv);
   for (size_t i = 0; i < nrhs; ++i) {
     for (size_t j = 0; j < nrow; ++j)
-      VecSetValue(B1, j, B(i*nrow+j+1), INSERT_VALUES);
+      VecSetValue(B1, j, bv[j*nrow+i], INSERT_VALUES);
 
     VecAssemblyBegin(B1);
     VecAssemblyEnd(B1);
-    if (!this->solve(B1, x, true))
+
+    if (!this->solve(B1, x, false))
       return false;
     PetscScalar* aa;
     VecGetArray(x, &aa);
     std::copy(aa, aa+nrow, B.getPtr()+i*nrow);
+    std::copy(aa, aa+nrow, bv+i*nrow);
     VecRestoreArray(x, &aa);
   }
-  forcedKSPType.clear();
+  VecRestoreArray(B.getVector(), &bv);
 
   VecDestroy(&x);
   VecDestroy(&B1);

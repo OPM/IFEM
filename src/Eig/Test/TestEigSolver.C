@@ -14,6 +14,12 @@
 #include "DenseMatrix.h"
 #include "SparseMatrix.h"
 
+#ifdef HAS_PETSC
+#include "ProcessAdm.h"
+#include "PETScMatrix.h"
+#include <tinyxml2.h>
+#endif
+
 #include "gtest/gtest.h"
 
 
@@ -65,6 +71,39 @@ TEST_P(TestEigSolver, Arpack)
   for (size_t i = 1; i <= 3; ++i)
     EXPECT_FLOAT_EQ(eigs(i), i + (GetParam() == 3 ? 1 : 0));
 }
+
+
+#ifdef HAS_PETSC
+TEST_P(TestEigSolver, ArpackPETSc)
+{
+  LinSolParams spar;
+  tinyxml2::XMLDocument doc;
+  EXPECT_EQ(doc.Parse(R"(<linearsolver>
+                           <type>preonly</type>
+                           <pc>lu</pc>
+                        </linearsolver>)"), tinyxml2::XML_SUCCESS);
+  spar.read(doc.RootElement());
+  ProcessAdm adm;
+  PETScMatrix A(adm, spar), B(adm, spar);
+  A.redim(4,4);
+  B.redim(4,4);
+
+  for (size_t i = 1; i <= 4; ++i) {
+    A(i,i) = i;
+    B(i,i) = 1.0;
+  }
+
+  A.endAssembly();
+  B.endAssembly();
+
+  Vector eigs;
+  Matrix eigVec;
+  eig::solve(&A, &B, eigs, eigVec, 3, 4, GetParam());
+
+  for (size_t i = 1; i <= 3; ++i)
+    EXPECT_FLOAT_EQ(eigs(i), i + (GetParam() == 3 ? 1 : 0));
+}
+#endif
 
 
 const std::vector<int> modes = {1,2,3,4};

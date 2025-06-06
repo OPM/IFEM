@@ -166,8 +166,11 @@ public:
   //! \return True on success
   bool setParameters(PETScMatrix* P = nullptr, PETScVector* Pb = nullptr);
 
+  //! \brief Returns a const-ref to process administrator.
+  const ProcessAdm& getAdm() const { return adm; }
+
 protected:
-  //! \brief Solve a linear system
+  //! \brief Solve a linear system.
   bool solve(const Vec& b, Vec& x, bool knoll);
 
   //! \brief Solve system stored in the elem map.

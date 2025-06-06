@@ -14,7 +14,9 @@
 #include "EigSolver.h"
 #include "DenseMatrix.h"
 #include "SPRMatrix.h"
-#ifdef HAS_SLEPC
+
+#ifdef HAS_PETSC
+#include "ProcessAdm.h"
 #include "PETScMatrix.h"
 #endif
 
@@ -190,6 +192,40 @@ static void _eig_ax(const SystemMatrix* A, const double* x, double* y)
 {
   if (!A) return;
 
+#if HAS_PETSC
+  const PETScMatrix* pA = dynamic_cast<const PETScMatrix*>(A);
+  if (pA) {
+    Vec pX, pY;
+    MatCreateVecs(pA->getMatrix(), &pY, &pX);
+    PetscInt low, high;
+    VecGetOwnershipRange(pX, &low, &high);
+    for (PetscInt i = low; i < high; ++i)
+      VecSetValue(pX, i, *(x+i), INSERT_VALUES);
+    VecAssemblyBegin(pX);
+    VecAssemblyEnd(pX);
+    MatMult(pA->getMatrix(),pX,pY);
+    Vec py;
+    PetscScalar* yv;
+    if (pA->getAdm().isParallel()) {
+      VecScatter scatter;
+      VecScatterCreateToAll(pY, &scatter, &py);
+      VecScatterBegin(scatter, pY, py, INSERT_VALUES, SCATTER_FORWARD);
+      VecScatterEnd(scatter, pY, py, INSERT_VALUES, SCATTER_FORWARD);
+      VecGetArray(py, &yv);
+      VecScatterDestroy(&scatter);
+    } else
+      VecGetArray(pY, &yv);
+    memcpy(y,yv,pA->dim()*sizeof(double));
+
+    if (pA->getAdm().isParallel())
+      VecDestroy(&py);
+
+    VecDestroy(&pX);
+    VecDestroy(&pY);
+    return;
+  }
+#endif
+
   StdVector Y;
   A->multiply(StdVector(x,A->dim()),Y);
   memcpy(y,Y.ptr(),Y.dim()*sizeof(double));
@@ -210,6 +246,40 @@ extern "C" void eig_sol_(const double* x, double* y, int& ierr)
 {
   ierr = -99;
   if (!AM) return;
+
+#ifdef HAS_PETSC
+  const PETScMatrix* pA = dynamic_cast<const PETScMatrix*>(AM);
+  if (pA) {
+    PETScVector RHS(pA->getAdm());
+    VecDestroy(&RHS.getVector());
+    MatCreateVecs(pA->getMatrix(), nullptr, &RHS.getVector());
+    PetscInt low, high;
+    VecGetOwnershipRange(RHS.getVector(), &low, &high);
+    for (PetscInt i = low; i < high; ++i)
+      VecSetValue(RHS.getVector(), i, *(x+i), INSERT_VALUES);
+    VecAssemblyBegin(RHS.getVector());
+    VecAssemblyEnd(RHS.getVector());
+    ierr = AM->solve(RHS) ? 0 : -1;
+    PetscScalar* yv;
+    Vec rhs;
+    if (pA->getAdm().isParallel()) {
+      VecScatter scatter;
+      VecScatterCreateToAll(RHS.getVector(), &scatter, &rhs);
+      VecScatterBegin(scatter, RHS.getVector(), rhs, INSERT_VALUES, SCATTER_FORWARD);
+      VecScatterEnd(scatter, RHS.getVector(), rhs, INSERT_VALUES, SCATTER_FORWARD);
+      VecGetArray(rhs, &yv);
+      VecScatterDestroy(&scatter);
+    } else
+      VecGetArray(RHS.getVector(), &yv);
+
+    memcpy(y,yv,pA->dim()*sizeof(double));
+
+    if (pA->getAdm().isParallel())
+      VecDestroy(&rhs);
+
+    return;
+  }
+#endif
 
   StdVector RHS(x,AM->dim());
   ierr = AM->solve(RHS) ? 0 : -1;
