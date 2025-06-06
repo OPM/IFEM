@@ -18,6 +18,8 @@
 
 #include "gtest/gtest.h"
 
+#include <memory>
+
 
 TEST(TestPETScMatrix, Assemble)
 {
@@ -205,4 +207,39 @@ TEST(TestPETScMatrix, AssembleComponentBlocks)
       MatRestoreRow(mat[b], r, &ncols, &cols, &vals);
     }
   }
+}
+
+
+TEST(TestPETScMatrix, Copy)
+{
+  ProcessAdm adm;
+  LinSolParams spar;
+  PETScMatrix orig(adm, spar);
+
+  orig.redim(8, 8);
+  for (size_t r = 1; r <= orig.dim(1); ++r)
+    for (size_t c = std::max(r - 1, size_t{1}); c <= std::min(r + 1, orig.dim(2)); ++c)
+      orig(r,c) = r == c ? 1.0 : -2.0;
+
+  std::unique_ptr<PETScMatrix> copy1(static_cast<PETScMatrix*>(orig.copy()));
+  EXPECT_EQ(orig.dim(1), copy1->dim(1));
+  EXPECT_EQ(orig.dim(2), copy1->dim(2));
+  for (size_t r = 1; r <= orig.dim(1); ++r)
+    for (size_t c = std::max(r - 1, size_t{1}); c <= std::min(r + 1, orig.dim(2)); ++c)
+      EXPECT_FLOAT_EQ(orig(r,c), (*copy1)(r,c));
+
+  EXPECT_EQ(copy1->getMatrix(), nullptr);
+
+  orig.endAssembly();
+
+  std::unique_ptr<PETScMatrix> copy2(static_cast<PETScMatrix*>(orig.copy()));
+  EXPECT_EQ(orig.dim(1), copy2->dim(1));
+  EXPECT_EQ(orig.dim(2), copy2->dim(2));
+  for (size_t r = 1; r <= orig.dim(1); ++r)
+    for (size_t c = std::max(r - 1, size_t{1}); c <= std::min(r + 1, orig.dim(2)); ++c) {
+      EXPECT_FLOAT_EQ(orig(r,c), (*copy2)(r,c));
+      PetscScalar a;
+      MatGetValue(copy2->getMatrix(), r-1, c-1, &a);
+      EXPECT_FLOAT_EQ(orig(r,c), a);
+    }
 }

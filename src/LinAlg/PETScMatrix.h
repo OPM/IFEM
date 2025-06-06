@@ -173,6 +173,10 @@ protected:
   //! \param B Vector with right-hand-sides to solve for
   bool solveDirect(PETScVector& B);
 
+  //! \brief Assemble matrix directly from sparse matrix values.
+  //! !\details Assumes no DD, ie, do not use in parallel
+  bool assembleDirect();
+
   //! \brief Disabled copy constructor.
   PETScMatrix(const PETScMatrix& A) = delete;
 
