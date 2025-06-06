@@ -88,8 +88,13 @@ void PETScVector::redim(size_t n)
 
 bool PETScVector::endAssembly()
 {
-  for (size_t i = 0; i < this->size(); ++i)
-    VecSetValue(x, adm.dd.getGlobalEq(i+1)-1, (*this)[i], ADD_VALUES);
+  // Poor man's assembleDirect
+  if (!adm.isParallel() && adm.dd.getMaxDOF() == 0)
+    for (size_t i = 0; i < this->size(); ++i)
+      VecSetValue(x, i, (*this)[i], ADD_VALUES);
+  else
+    for (size_t i = 0; i < this->size(); ++i)
+      VecSetValue(x, adm.dd.getGlobalEq(i+1)-1, (*this)[i], ADD_VALUES);
 
   VecAssemblyBegin(x);
   VecAssemblyEnd(x);
@@ -549,8 +554,8 @@ void PETScMatrix::setupBlockSparsityPartitioned (const SAM& sam)
       MatSetUp(*it);
     }
 
-  for (Mat& it : prealloc)
-    MatDestroy(&it);
+  for (Mat& pmat : prealloc)
+    MatDestroy(&pmat);
 }
 
 
@@ -585,6 +590,9 @@ bool PETScMatrix::endAssembly ()
 {
   if (!this->SparseMatrix::endAssembly())
     return false;
+
+  if (IA.empty() && !assembled)
+    return this->assembleDirect();
 
   for (size_t j = 0; j < cols(); ++j)
     for (int i = IA[j]; i < IA[j+1]; ++i)
@@ -728,6 +736,28 @@ bool PETScMatrix::solve (const Vec& b, Vec& x, bool knoll)
   }
   nLinSolves++;
   factored = true;
+
+  return true;
+}
+
+
+bool PETScMatrix::assembleDirect()
+{
+  MatSetSizes(pA, this->dim(1), this->dim(2),
+              PETSC_DETERMINE, PETSC_DETERMINE);
+
+  IntVec iA, jA;
+  this->calcCSR(iA,jA);
+  MatMPIAIJSetPreallocationCSR(pA, iA.data(), jA.data(), nullptr);
+  MatSetOption(pA, MAT_NEW_NONZERO_LOCATION_ERR, PETSC_TRUE);
+  MatSetUp(pA);
+
+  for (const auto& e : this->getValues())
+    MatSetValue(pA, e.first.first-1, e.first.second-1, e.second, INSERT_VALUES);
+
+  MatAssemblyBegin(pA,MAT_FINAL_ASSEMBLY);
+  MatAssemblyEnd(pA,MAT_FINAL_ASSEMBLY);
+  this->assembled = true;
 
   return true;
 }
