@@ -14,6 +14,7 @@
 #include "SPRMatrix.h"
 #include "SAM.h"
 #include <numeric>
+#include <fstream>
 
 #ifdef USE_OPENMP
 #include <omp.h>
@@ -31,6 +32,10 @@
 #define sprprm_ SPRPRM
 #define sprsol_ SPRSOL
 #define sprlax_ SPRLAX
+#define sprprn_ SPRPRN
+#define sprcnv_ SPRCNV
+#define openftnfile_ OPENFTNFILE
+#define closeftnfile_ CLOSEFTNFILE
 #elif defined(_AIX)
 #define sprprp_ sprprp
 #define sprsas_ sprsas
@@ -43,123 +48,148 @@
 #define sprprm_ sprprm
 #define sprsol_ sprsol
 #define sprlax_ sprlax
+#define sprprn_ sprprn
+#define sprcnv_ sprcnv
+#define openftnfile_ openftnfile
+#define closeftnfile_ closeftnfile
 #endif
 
 extern "C" {
 //! \brief Prepares the control information for the sparse assembly process.
 //! \details This is a FORTRAN-77 subroutine in the SAM library.
 //! \sa SAM library documentation.
-void sprprp_(const int* madof, const int* minex,  const int* mpmnpc,
-             const int* mmnpc, const int* mpmceq, const int* mmceq,
-             const int* msc,   const int& nspar,  const int& lpu,
-             const int* mpar,  int* mspar,
-             const int* meqn,  int* iWork, int& ierr);
+void sprprp_(const Int_* madof, const Int_* minex,  const Int_* mpmnpc,
+             const Int_* mmnpc, const Int_* mpmceq, const Int_* mmceq,
+             const Int_* msc,   const Int_& nspar,  const Int_& lpu,
+             const Int_* mpar,  Int_* mspar,
+             const Int_* meqn,  Int_* iWork, Int_& ierr);
 //! \brief Computes the SPR-version of the connectivity array \a mmnpc.
 //! \details This is a FORTRAN-77 subroutine in the SAM library.
 //! \sa SAM library documentation.
-void sprsas_(const int* mpar,  const int* mpmnpc, const int* mmnpc,
-             const int* madof, const int* msc,    const int* mpmceq,
-             const int* mmceq, const int* meqn,
-             int* mspar, int* msica, int* iWork,
-             const int& nspar, const int& lpu, int& ierr);
+void sprsas_(const Int_* mpar,  const Int_* mpmnpc, const Int_* mmnpc,
+             const Int_* madof, const Int_* msc,    const Int_* mpmceq,
+             const Int_* mmceq, const Int_* meqn,
+             Int_* mspar, Int_* msica, Int_* iWork,
+             const Int_& nspar, const Int_& lpu, Int_& ierr);
 //! \brief Reorders the equations by means of the SPR-node partition.
 //! \details This is a FORTRAN-77 subroutine in the SAM library.
 //! \sa SAM library documentation.
-void sprrnm_(int* mspar, int* msica, int* iWork, const int& lpu, int& ierr);
+void sprrnm_(Int_* mspar, Int_* msica, Int_* iWork,
+             const Int_& lpu, Int_& ierr);
 //! \brief Analyses the sparsity pattern of the system matrix.
 //! \details This is a FORTRAN-77 subroutine in the SAM library.
 //! \sa SAM library documentation.
-void sprtrs_(int* mspar, int* msica, int* mtrees, const int* meqn,
-             const int& nspar, const int& nmsica, const int& ntrees,
-             const int& ndof, const int& niwork, int* iWork, Real* rinfo,
-             const int& lpu, int& ierr);
+void sprtrs_(Int_* mspar, Int_* msica, Int_* mtrees, const Int_* meqn,
+             const Int_& nspar, const Int_& nmsica, const Int_& ntrees,
+             const Int_& ndof, const Int_& niwork, Int_* iWork, Real* rinfo,
+             const Int_& lpu, Int_& ierr);
 //! \brief Performs the symbolic factorization of the system matrix.
 //! \details This is a FORTRAN-77 subroutine in the SAM library.
 //! \sa SAM library documentation.
-void sprsmb_(int* mspar, int* msica, int* mtrees, int* msifa,
-             const int* meqn, int* iWork, const int& lpu, int& ierr);
+void sprsmb_(Int_* mspar, Int_* msica, Int_* mtrees, Int_* msifa,
+             const Int_* meqn, Int_* iWork, const Int_& lpu, Int_& ierr);
 //! \brief Finalizes the SPR control arrays \a msica, \a mtrees and \a msifa.
 //! \details This is a FORTRAN-77 subroutine in the SAM library.
 //! \sa SAM library documentation.
-void sprpmp_(const int* msica, const int* mtrees, const int* meqn,
-             const int* mpar, int* mspar, int* mvarnc);
+void sprpmp_(const Int_* msica, const Int_* mtrees, const Int_* meqn,
+             const Int_* mpar, Int_* mspar, Int_* mvarnc);
 //! \brief Assembles an element matrix \a EM into the system matrix \a SM.
 //! \details This is a FORTRAN-77 subroutine in the SAM library.
 //! \sa SAM library documentation.
-void spradm_(const Real* eK, const Real* ttcc, const int* mpar,
-             const int* mspar, const int* madof, const int* meqn,
-             const int* mpmnpc, const int* mmnpc, const int* mpmceq,
-             const int* mmceq, const int* msica, const int* mtrees,
-             const int* msifa, const int* mvarnc, Real* values, Real* sysRHS,
-             int* work, const int& iel, const int& nedof, const int& lpu,
-             const int& nrhs, int& ierr);
+void spradm_(const Real* eK, const Real* ttcc, const Int_* mpar,
+             const Int_* mspar, const Int_* madof, const Int_* meqn,
+             const Int_* mpmnpc, const Int_* mmnpc, const Int_* mpmceq,
+             const Int_* mmceq, const Int_* msica, const Int_* mtrees,
+             const Int_* msifa, const Int_* mvarnc, Real* values, Real* sysRHS,
+             Int_* work, const Int_& iel, const Int_& nedof, const Int_& lpu,
+             const Int_& nrhs, Int_& ierr);
 //! \brief Adds a scalar value into the diagonal of the system matrix.
 //! \details This is a FORTRAN-77 subroutine in the SAM library.
 //! \sa SAM library documentation.
-void sprdad_(const int* mpar, const int* mtrees, const int* msifa,
-             Real* values, const Real& sigma, const int& lpu, int& ierr);
+void sprdad_(const Int_* mpar, const Int_* mtrees, const Int_* msifa,
+             Real* values, const Real& sigma, const Int_& lpu, Int_& ierr);
 //! \brief Performs a matrix-matrix multiplication.
 //! \details This is a FORTRAN-77 subroutine in the SAM library.
 //! \sa SAM library documentation.
 void sprprm_(const Real* A, const Real* B, Real* C, Real* rWork,
-             const int* mspar, const int* mtrees, const int* msifa,
-             const int& m, const int& n, const int& ksa, const int& iflag,
-             const int& lpu, int& ierr);
+             const Int_* mspar, const Int_* mtrees, const Int_* msifa,
+             const Int_& m, const Int_& n, const Int_& ksa, const Int_& iflag,
+             const Int_& lpu, Int_& ierr);
 //! \brief Solves the linear equation system \a Ax=b.
 //! \details This is a FORTRAN-77 subroutine in the SAM library.
 //! \sa SAM library documentation.
-void sprsol_(const int& iop, const int* mspar, const int* mtrees,
-             const int* msifa, Real* value, Real* B,
-             const int& ldB, const int& nrhs, Real* tol,
-             int* iWork, Real* rWork, const int& lpu, int& ierr);
+void sprsol_(const Int_& iop, const Int_* mspar, const Int_* mtrees,
+             const Int_* msifa, Real* value, Real* B,
+             const Int_& ldB, const Int_& nrhs, Real* tol,
+             Int_* iWork, Real* rWork, const Int_& lpu, Int_& ierr);
 //! \brief Solves the generalized eigenproblem \a Ax=&lambda;Bx.
 //! \details This is a FORTRAN-77 subroutine in the SAM library.
 //! \sa SAM library documentation.
 void sprlax_(Real* A, Real* B, const Real* tol,
-             const int* mparA, const int* mtreeA, const int* msifA,
-             const int* mparB, const int* mtreeB, const int* msifB,
-             const int& iop, Real* val, Real* vec, Real* rWork, int* iWork,
-             const Real& shift, const int& n, const int& nv, const int& maxlan,
-             const int& lpu, const int& ipsw, int& ierr);
+             const Int_* mparA, const Int_* mtreeA, const Int_* msifA,
+             const Int_* mparB, const Int_* mtreeB, const Int_* msifB,
+             const Int_& iop, Real* val, Real* vec, Real* rWork, Int_* iWork,
+             const Real& shift, const Int_& n, const Int_& nv, const Int_& maxl,
+             const Int_& lpu, const Int_& ipsw, Int_& ierr);
+//! \brief Prints the matrix content to the specified Fortran unit number.
+//! \details This is a FORTRAN-77 subroutine in the SAM library.
+//! \sa SAM library documentation.
+void sprprn_(const Real* L,
+             const Int_* mspar, const Int_* mtrees, const Int_* msifa,
+             const Int_& lpu, Int_& ierr);
+//! \brief Converts the matrix to a full matrix.
+//! \details This is a FORTRAN-77 subroutine in the SAM library.
+//! \sa SAM library documentation.
+void sprcnv_(const Real* L, Real* A,
+             const Int_* mspar, const Int_* mtrees, const Int_* msifa,
+             const Int_& m, const Int_& ksa, const Int_& lpu, Int_& ierr);
+//! \brief Opens a temporary file for Fortran print.
+int openftnfile_(const char* fname, const int nchar);
+//! \brief Closes a Fortran file.
+void closeftnfile_(const int& iunit);
 }
 
 
 SPRMatrix::SPRMatrix () : rWork(1)
 {
   ierr = 0;
-  memset(mpar,0,NS*sizeof(int));
+  memset(mpar,0,sizeof(mpar));
   msica = msifa = mtrees = mvarnc = nullptr;
   values = nullptr;
 
 #ifdef USE_OPENMP
-  jWork = new std::vector<int>[omp_get_max_threads()];
+  jWork = new std::vector<Int_>[omp_get_max_threads()];
 #else
   jWork = &iWork;
 #endif
+  mySam = nullptr;
 }
 
 
 SPRMatrix::SPRMatrix (const SPRMatrix& A) : SystemMatrix(A), rWork(1)
 {
-  ierr   = 0;
-  msica  = new int[A.mpar[1]];
-  msifa  = new int[A.mpar[2]];
-  mtrees = new int[A.mpar[35]];
-  mvarnc = new int[2*A.mpar[7]];
-  values = new Real[A.mpar[7] + A.mpar[15]];
+  // Lambda function copying an array.
+  auto&& copyArr = []<typename T>(const T* array, int n)
+  {
+    T* newarr = new T[n];
+    memcpy(newarr,array,n*sizeof(T));
+    return newarr;
+  };
 
-  memcpy(mpar  ,A.mpar  ,NS*sizeof(int));
-  memcpy(msica ,A.msica ,A.mpar[1]*sizeof(int));
-  memcpy(msifa ,A.msifa ,A.mpar[2]*sizeof(int));
-  memcpy(mtrees,A.mtrees,A.mpar[35]*sizeof(int));
-  memcpy(mvarnc,A.mvarnc,2*A.mpar[7]*sizeof(int));
-  memcpy(values,A.values,(A.mpar[7]+A.mpar[15])*sizeof(Real));
+  ierr   = 0;
+  memcpy(mpar,A.mpar,sizeof(A.mpar));
+  msica  = copyArr(A.msica,A.mpar[1]);
+  msifa  = copyArr(A.msifa,A.mpar[2]);
+  mtrees = copyArr(A.mtrees,A.mpar[35]);
+  mvarnc = copyArr(A.mvarnc,A.mpar[7]*2);
+  values = copyArr(A.values,A.mpar[7]+A.mpar[15]);
 
 #ifdef USE_OPENMP
-  jWork = new std::vector<int>[omp_get_max_threads()];
+  jWork = new std::vector<Int_>[omp_get_max_threads()];
 #else
   jWork = &iWork;
 #endif
+  mySam = nullptr;
 }
 
 
@@ -173,7 +203,44 @@ SPRMatrix::~SPRMatrix ()
 #ifdef USE_OPENMP
   delete[] jWork;
 #endif
+#ifdef USE_INT64
+  delete mySam;
+#endif
 }
+
+
+#ifdef USE_INT64
+SPRMatrix::SAM64::SAM64 (const SAM& sam)
+{
+  // Lambda function making a 64-bit version of a (32-bit) int array.
+  auto&& copyTo64 = [](const int* array, int n)
+  {
+    Int_* array64 = new Int_[n];
+    std::copy(array,array+n,array64);
+    return array64;
+  };
+
+  mpar   = copyTo64(sam.mpar,sizeof(sam.mpar)/sizeof(int));
+  mpmnpc = copyTo64(sam.mpmnpc,sam.nel+1);
+  mmnpc  = copyTo64(sam.mmnpc,sam.nmmnpc);
+  madof  = copyTo64(sam.madof,sam.nnod+1);
+  mpmceq = copyTo64(sam.mpmceq,sam.nceq+1);
+  mmceq  = copyTo64(sam.mmceq,sam.nmmceq);
+  meqn   = copyTo64(sam.meqn,sam.ndof);
+}
+
+
+SPRMatrix::SAM64::~SAM64 ()
+{
+  delete[] mpar;
+  delete[] mpmnpc;
+  delete[] mmnpc;
+  delete[] madof;
+  delete[] mpmceq;
+  delete[] mmceq;
+  delete[] meqn;
+}
+#endif
 
 
 size_t SPRMatrix::dim (int idim) const
@@ -198,7 +265,7 @@ size_t SPRMatrix::dim (int idim) const
 
 void SPRMatrix::initAssembly (const SAM& sam, char)
 {
-  memset(mpar,0,NS*sizeof(int));
+  memset(mpar,0,sizeof(mpar));
   msica = msifa = mtrees = mvarnc = nullptr;
   values = nullptr;
 
@@ -210,49 +277,74 @@ void SPRMatrix::initAssembly (const SAM& sam, char)
   }
 
   iWork.resize(2*sam.nnod + 2*sam.ndof);
+#ifdef USE_INT64
+  Int_* minex = nullptr;
+#else
   int* minex = sam.minex;
+#endif
   if (!minex)
   {
-    // External node numbers are not provided - generate an identity array
     minex = iWork.data();
-    std::iota(minex,minex+sam.nnod,1);
+    if (sam.minex)
+      std::copy(sam.minex,sam.minex+sam.nnod,minex);
+    else // External node numbers are not provided - generate an identity array
+      std::iota(minex,minex+sam.nnod,1);
   }
 
+#ifdef USE_INT64
+  // Make 64-bit versions of the SAM arrays
+  mySam = new SAM64(sam);
+  Int_* msc = new Int_[sam.ndof];
+  std::copy(sam.msc,sam.msc+sam.ndof,msc);
+#else
+  mySam = const_cast<SAM*>(&sam);
   int* msc = sam.msc;
+#endif
   for (int idof = 0; idof < sam.ndof; idof++)
     if (msc[idof] < 0)
     {
       // Make a temporary copy of msc with non-negative values only
+#ifndef USE_INT64
       if (msc == sam.msc)
       {
-        msc = new int[sam.ndof];
-        memcpy(msc,sam.msc,sam.ndof*sizeof(int));
+        msc = new Int_[sam.ndof];
+        std::copy(sam.msc,sam.msc+sam.ndof,msc);
       }
+#endif
       msc[idof] = 0;
     }
 
-  sprprp_(sam.madof, minex, sam.mpmnpc, sam.mmnpc,
-          sam.mpmceq, sam.mmceq, msc, NS, 6, sam.mpar,
-          mpar, sam.meqn, iWork.data()+sam.nnod, ierr);
-  if (msc != sam.msc) delete[] msc;
+  bool finished = true;
+  sprprp_(mySam->madof, minex, mySam->mpmnpc, mySam->mmnpc,
+          mySam->mpmceq, mySam->mmceq, msc, NS, 6, mySam->mpar,
+          mpar, mySam->meqn, iWork.data()+sam.nnod, ierr);
   if (ierr < 0)
-  {
     std::cerr <<"SAM::SPRPRM: Failure "<< ierr << std::endl;
-    return;
-  }
   else if (sam.neq != mpar[7])
-  {
     std::cerr <<"SAM::SPRPRM: Internal error, NEQ = "<< sam.neq
               <<" != "<< mpar[7] << std::endl;
-    return;
-  }
-  else if (mpar[7] < 1)
-    return; // No equations to solve
+  else if (mpar[7] > 0)
+    finished = false;
+
+#ifdef USE_INT64
+  std::copy(mySam->meqn,mySam->meqn+sam.ndof,sam.meqn);
+#else
+  if (msc != sam.msc) delete[] msc;
+#endif
+  if (finished) return;
+
+  // Restore the original msc
+#ifdef USE_INT64
+  std::copy(sam.msc,sam.msc+sam.ndof,msc);
+#else
+  msc = sam.msc;
+#endif
 
   // Perform symbolic assembly
-  std::vector<int> itemp(mpar[34]);
-  sprsas_(sam.mpar, sam.mpmnpc, sam.mmnpc, sam.madof, sam.msc, sam.mpmceq,
-          sam.mmceq, sam.meqn, mpar, itemp.data(), iWork.data(), NS, 6, ierr);
+  std::vector<Int_> itemp(mpar[34]);
+  sprsas_(mySam->mpar, mySam->mpmnpc, mySam->mmnpc, mySam->madof, msc,
+          mySam->mpmceq, mySam->mmceq, mySam->meqn, mpar,
+          itemp.data(), iWork.data(), NS, 6, ierr);
   if (ierr < 0)
   {
     std::cerr <<"SAM::SPRSAS: Failure "<< ierr << std::endl;
@@ -260,8 +352,8 @@ void SPRMatrix::initAssembly (const SAM& sam, char)
   }
 
   // Reallocation of msica with the correct size
-  msica = new int[mpar[1]];
-  memcpy(msica,itemp.data(),mpar[1]*sizeof(int));
+  msica = new Int_[mpar[1]];
+  memcpy(msica,itemp.data(),mpar[1]*sizeof(Int_));
 
   // Perform nodal reordering
   iWork.resize(mpar[36]);
@@ -273,21 +365,24 @@ void SPRMatrix::initAssembly (const SAM& sam, char)
   }
 
   // Analyze the sparsity pattern
-  mtrees = new int[mpar[35]];
+  mtrees = new Int_[mpar[35]];
   iWork.resize(mpar[37]);
   Real rinfo[4];
-  sprtrs_(mpar, msica, mtrees, sam.meqn, NS, mpar[1], mpar[35], sam.ndof,
+  sprtrs_(mpar, msica, mtrees, mySam->meqn, NS, mpar[1], mpar[35], sam.ndof,
           mpar[37], iWork.data(), rinfo, 6, ierr);
   if (ierr < 0)
   {
     std::cerr <<"SAM::SPRTRS: Failure "<< ierr << std::endl;
     return;
   }
+#ifdef USE_INT64
+  std::copy(mySam->meqn,mySam->meqn+sam.ndof,sam.meqn);
+#endif
 
   // Perform symbolic factorization
   itemp.resize(mpar[2]);
   iWork.resize(3*mpar[5] + 2*mpar[7] + 1);
-  sprsmb_(mpar, msica, mtrees, itemp.data(), sam.meqn,
+  sprsmb_(mpar, msica, mtrees, itemp.data(), mySam->meqn,
           iWork.data(), 6, ierr);
   if (ierr < 0)
   {
@@ -296,12 +391,12 @@ void SPRMatrix::initAssembly (const SAM& sam, char)
   }
 
   // Reallocation of msifa with the correct size
-  msifa = new int[mpar[2]];
-  memcpy(msifa,itemp.data(),mpar[2]*sizeof(int));
+  msifa = new Int_[mpar[2]];
+  memcpy(msifa,itemp.data(),mpar[2]*sizeof(Int_));
 
   // Finalize the SPR datastructure
-  mvarnc = new int[2*mpar[7]];
-  sprpmp_(msica, mtrees, sam.meqn, sam.mpar, mpar, mvarnc);
+  mvarnc = new Int_[2*mpar[7]];
+  sprpmp_(msica, mtrees, mySam->meqn, mySam->mpar, mpar, mvarnc);
 
   // Allocate space for the matrix itself
   values = new Real[mpar[7] + mpar[15]];
@@ -350,13 +445,13 @@ bool SPRMatrix::assemble (int e, const Matrix& eM, const SAM& sam, Real* B)
 {
 #ifdef HAS_SPR
 #ifdef USE_OPENMP
-  std::vector<int>& IWORK = jWork[omp_in_parallel() ? omp_get_thread_num() : 0];
+  std::vector<Int_>& IWORK = jWork[omp_in_parallel() ? omp_get_thread_num() : 0];
 #else
-  std::vector<int>& IWORK = *jWork;
+  std::vector<Int_>& IWORK = *jWork;
 #endif
   IWORK.resize(mpar[38]);
-  spradm_(eM.ptr(), sam.ttcc, sam.mpar, mpar,
-          sam.madof, sam.meqn, sam.mpmnpc, sam.mmnpc, sam.mpmceq, sam.mmceq,
+  spradm_(eM.ptr(), sam.ttcc, mySam->mpar, mpar, mySam->madof, mySam->meqn,
+          mySam->mpmnpc, mySam->mmnpc, mySam->mpmceq, mySam->mmceq,
           msica, mtrees, msifa, mvarnc, values, B ? B : rWork.data(),
           IWORK.data(), e, eM.rows(), 6, B ? 1 : 0, ierr);
   if (ierr == 0)
@@ -442,7 +537,7 @@ bool SPRMatrix::solve (SystemVector& B, Real*)
   Real tol[3] = { Real(1.0e-12), Real(0), Real(0) };
   iWork.resize(std::max(mpar[12],mpar[13]+1));
   rWork.resize(std::max(mpar[16],mpar[13]));
-  int iop = mpar[0] < 5 ? 3 : 4;
+  Int_ iop = mpar[0] < 5 ? 3 : 4;
   sprsol_(iop, mpar, mtrees, msifa, values, B.getPtr(),
           B.dim(), 1, tol, iWork.data(), rWork.data(), 6, ierr);
   if (!ierr) return true;
@@ -464,22 +559,27 @@ bool SPRMatrix::solve (SystemVector& B, Real*)
 bool SPRMatrix::solveEig (SPRMatrix& B, RealArray& val, Matrix& vec, int nev,
                           Real shift, int iop)
 {
-  const int n = mpar[7];
+  const Int_ n = mpar[7];
   if (n < 1 || nev == 0) return true; // No equations to solve
   if (n != B.mpar[7]) return false; // Incompatible matrices
 
 #ifdef USE_F77SAM
+#ifdef SP_DEBUG
+  const int ipsw = SP_DEBUG;
+#else
+  const int ipsw = 0;
+#endif
   const Real tol[3] = { Real(1.0e-8), Real(1.0e-12), Real(1.0e-8) };
-  int maxlan = 3*nev+12;
+  Int_ maxlan = 3*nev+12;
   if (maxlan > n) maxlan = n;
-  int nrWork = std::max(maxlan*(maxlan+7), std::max(mpar[13],mpar[16]));
+  Int_ nrWork = std::max(maxlan*(maxlan+7), std::max(mpar[13],mpar[16]));
   val.resize(n);
   vec.resize(n,maxlan);
   iWork.resize(std::max(2*maxlan+mpar[12],n));
   rWork.resize(maxlan + 2*n + nrWork);
   sprlax_(values, B.values, tol, mpar, mtrees, msifa, B.mpar, B.mtrees, B.msifa,
           iop, val.data(), vec.ptr(), rWork.data(), iWork.data(),
-          shift, n, nev, maxlan, 6, 0, ierr);
+          shift, n, nev, maxlan, 6, ipsw, ierr);
   val.resize(nev);
   vec.resize(n,nev);
   if (!ierr) return true;
@@ -499,4 +599,48 @@ Real SPRMatrix::Linfnorm () const
     return *std::max_element(C.begin(),C.end());
 
   return Real(0);
+}
+
+
+//! \cond DO_NOT_DOCUMENT
+namespace SPR { bool printAsFull = false; }
+//! \endcond
+
+std::ostream& SPRMatrix::write (std::ostream& os) const
+{
+  if (SPR::printAsFull)
+  {
+    Matrix fullMat;
+    if (this->convert(fullMat))
+      return os << fullMat;
+  }
+
+#ifdef HAS_SPR
+  // Open a temporary file for the Fortran output
+  const char* tmpfile = "/tmp/spr.tmp";
+  Int_ lpu = openftnfile_(tmpfile,strlen(tmpfile)), lerr;
+  if (lpu <= 0) return os;
+  // Write to the temporary file
+  const Int_ n = mpar[7];
+  sprprn_(values+n, mpar, mtrees, msifa, lpu, lerr);
+  closeftnfile_(static_cast<int>(lpu));
+  // Copy temporary file to output stream
+  char c;
+  std::ifstream is(tmpfile);
+  while (is.get(c))
+    os.put(c);
+#endif
+  return os;
+}
+
+
+bool SPRMatrix::convert (Matrix& fullMat) const
+{
+  const Int_ n = mpar[7];
+  Int_ lerr = -99;
+  fullMat.resize(n,n);
+#ifdef HAS_SPR
+  sprcnv_(values+n, fullMat.ptr(), mpar, mtrees, msifa, n, 1, 6, lerr);
+#endif
+  return lerr == 0;
 }

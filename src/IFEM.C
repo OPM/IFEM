@@ -84,21 +84,21 @@ int IFEM::Init (int arg_c, char** arg_v, const char* title)
                                 << IFEM_VERSION_PATCH <<" initialized =====";
 
   IFEM::cout <<"\n       HDF5 support: ";
-#if HAS_HDF5
+#ifdef HAS_HDF5
   IFEM::cout <<"enabled";
 #else
   IFEM::cout <<"disabled";
 #endif
 
   IFEM::cout <<"\n  LR spline support: ";
-#if HAS_LRSPLINE
+#ifdef HAS_LRSPLINE
   IFEM::cout <<"enabled";
 #else
   IFEM::cout <<"disabled";
 #endif
 
   IFEM::cout <<"\n     OpenMP support: ";
-#if USE_OPENMP
+#ifdef USE_OPENMP
   IFEM::cout <<"enabled";
 #else
   IFEM::cout <<"disabled";
@@ -112,7 +112,7 @@ int IFEM::Init (int arg_c, char** arg_v, const char* title)
 #endif
 
   IFEM::cout <<"\n      PETSc support: ";
-#if HAS_PETSC
+#ifdef HAS_PETSC
   IFEM::cout <<"enabled (v"<< PETSC_VERSION_MAJOR <<"."
                            << PETSC_VERSION_MINOR <<"."
                            << PETSC_VERSION_SUBMINOR <<")";
@@ -121,25 +121,33 @@ int IFEM::Init (int arg_c, char** arg_v, const char* title)
 #endif
 
   IFEM::cout <<"\n    SuperLU support: ";
-#if HAS_SUPERLU
+#ifdef HAS_SUPERLU
   IFEM::cout <<"enabled (serial)";
-#elif HAS_SUPERLU_MT
+#elif defined(HAS_SUPERLU_MT)
   IFEM::cout <<"enabled (multi-threaded)";
 #else
   IFEM::cout <<"disabled";
 #endif
   IFEM::cout <<"\n    UMFPack support: ";
-#if HAS_UMFPACK
+#ifdef HAS_UMFPACK
   IFEM::cout <<"enabled (v" << UMFPACK_MAIN_VERSION <<"."
                             << UMFPACK_SUB_VERSION <<"."
                             << UMFPACK_SUBSUB_VERSION << ")";
 #else
   IFEM::cout <<"disabled";
 #endif
-
   IFEM::cout <<"\n       ISTL support: ";
-#if HAS_ISTL
+#ifdef HAS_ISTL
   IFEM::cout <<"enabled (v"<< ISTL_VERSION <<")";
+#else
+  IFEM::cout <<"disabled";
+#endif
+  IFEM::cout <<"\n       SPR support: ";
+#ifdef HAS_SPR
+  IFEM::cout <<"enabled";
+#ifdef USE_INT64
+  IFEM::cout <<" (int64 version)";
+#endif
 #else
   IFEM::cout <<"disabled";
 #endif
