@@ -114,7 +114,7 @@ int eig::solve (SystemMatrix* A, SystemMatrix* B,
   PETScMatrix* pM = dynamic_cast<PETScMatrix*>(B);
 
   if (pK && pM) // Try the SLEPc solver EPSSolve
-    return pK->solveEig(*pM,eigVal,eigVec,nev);
+    return pK->solveEig(*pM,eigVal,eigVec,nev,shift,iop);
 #endif
 
   return 2; // Fall back to ARPack eigensolver

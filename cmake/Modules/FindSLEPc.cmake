@@ -21,21 +21,16 @@
 #  License along with this library; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #
-find_path (SLEPC_DIR include/slepc.h
-  HINTS ENV SLEPC_DIR
-  PATHS
-  /usr/lib/slepcdir/3.0.0 # Debian
-  $ENV{HOME}/slepc
-  DOC "SLEPc Directory")
+set(OLD_PKG $ENV{PKG_CONFIG_PATH})
+set(ENV{PKG_CONFIG_PATH} "$ENV{SLEPC_DIR}/$ENV{PETSC_ARCH}/lib/pkgconfig:$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib/pkgconfig")
+set(OLD_ALLOW $ENV{PKG_CONFIG_ALLOW_SYSTEM_CFLAGS})
+set(ENV{PKG_CONFIG_ALLOW_SYSTEM_CFLAGS} 1)
+pkg_check_modules(SLEPC SLEPc>=3.6.3)
+set(ENV{PKG_CONFIG_PATH} ${OLD_PKG})
+set(ENV{PKG_CONFIG_ALLOW_SYSTEM_CFLAGS} ${OLD_ALLOW})
 
-SET(SLEPC_INCLUDE_DIR "${SLEPC_DIR}/include/")
-CHECK_INCLUDE_FILES( ${SLEPC_INCLUDE_DIR}/slepc.h HAVE_SLEPC_H )
-FIND_LIBRARY(SLEPC_LIB_SLEPC     slepc )
-SET(SLEPC_LIBRARIES ${SLEPC_LIB_SLEPC} CACHE STRING "SLEPc libraries" FORCE)
-# message( "*** SLEPc directory : ${SLEPC_DIR}" )
-if (HAVE_SLEPC_H AND SLEPC_DIR AND SLEPC_LIBRARIES )
-  set(HAVE_SLEPC 1)
-  set(SLEPC_FOUND ON)
-endif()
-set(SLEPC_INCLUDES ${SLEPC_INCLUDE_DIR} CACHE STRING "SLEPc include path" FORCE)
-MARK_AS_ADVANCED( SLEPC_DIR SLEPC_LIB_SLEPC SLEPC_INCLUDES SLEPC_LIBRARIES )
+set(SLEPC_LIBRARIES ${SLEPC_STATIC_LDFLAGS})
+
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(SLEPc DEFAULT_MSG
+                                  SLEPC_INCLUDE_DIRS SLEPC_LIBRARIES)

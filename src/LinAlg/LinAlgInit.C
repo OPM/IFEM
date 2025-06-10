@@ -34,7 +34,7 @@ LinAlgInit& LinAlgInit::Init (int argc, char** argv)
 LinAlgInit::LinAlgInit (int argc, char** argv)
 {
 #if defined(HAS_SLEPC)
-  SlepcInitialize(&argc,&argv,(char*)0,PETSC_NULL);
+  SlepcInitialize(&argc,&argv,(char*)0,PETSC_NULLPTR);
 #elif defined(HAS_PETSC)
   PetscInitialize(&argc,&argv,(char*)0,PETSC_NULLPTR);
 #endif
