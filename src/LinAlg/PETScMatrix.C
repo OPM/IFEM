@@ -88,8 +88,13 @@ void PETScVector::redim(size_t n)
 
 bool PETScVector::endAssembly()
 {
-  for (size_t i = 0; i < this->size(); ++i)
-    VecSetValue(x, adm.dd.getGlobalEq(i+1)-1, (*this)[i], ADD_VALUES);
+  // Poor man's assembleDirect
+  if (!adm.isParallel() && adm.dd.getMaxDOF() == 0)
+    for (size_t i = 0; i < this->size(); ++i)
+      VecSetValue(x, i, (*this)[i], ADD_VALUES);
+  else
+    for (size_t i = 0; i < this->size(); ++i)
+      VecSetValue(x, adm.dd.getGlobalEq(i+1)-1, (*this)[i], ADD_VALUES);
 
   VecAssemblyBegin(x);
   VecAssemblyEnd(x);
@@ -151,6 +156,20 @@ PETScMatrix::PETScMatrix (const ProcessAdm& padm, const LinSolParams& spar)
 }
 
 
+PETScMatrix::PETScMatrix(const ProcessAdm& padm, const PETScSolParams& spar,
+                         const SparseMatrix& A)
+    : SparseMatrix(A), nsp(nullptr), adm(padm), solParams(spar)
+{
+  // Create linear solver object
+  KSPCreate(*adm.getCommunicator(),&ksp);
+
+  setParams = true;
+  ISsize = 0;
+  nLinSolves = 0;
+  assembled = false;
+}
+
+
 PETScMatrix::~PETScMatrix ()
 {
   // Deallocation of linear solver object.
@@ -166,6 +185,18 @@ PETScMatrix::~PETScMatrix ()
     ISDestroy(&v);
 
   matvec.clear();
+}
+
+
+SystemMatrix* PETScMatrix::copy() const
+{
+  PETScMatrix* result = new PETScMatrix(this->adm, this->solParams,
+                                        static_cast<const SparseMatrix&>(*this));
+  if (this->assembled) {
+    MatDuplicate(this->pA, MAT_COPY_VALUES, &result->pA);
+    result->assembled = true;
+  }
+  return result;
 }
 
 
@@ -549,8 +580,8 @@ void PETScMatrix::setupBlockSparsityPartitioned (const SAM& sam)
       MatSetUp(*it);
     }
 
-  for (Mat& it : prealloc)
-    MatDestroy(&it);
+  for (Mat& pmat : prealloc)
+    MatDestroy(&pmat);
 }
 
 
@@ -585,6 +616,11 @@ bool PETScMatrix::endAssembly ()
 {
   if (!this->SparseMatrix::endAssembly())
     return false;
+
+  if (IA.empty() && !assembled) {
+    this->optimiseCols();
+    return this->assembleDirect();
+  }
 
   for (size_t j = 0; j < cols(); ++j)
     for (int i = IA[j]; i < IA[j+1]; ++i)
@@ -733,6 +769,27 @@ bool PETScMatrix::solve (const Vec& b, Vec& x, bool knoll)
 }
 
 
+bool PETScMatrix::assembleDirect()
+{
+  MatSetSizes(pA, this->dim(1), this->dim(2),
+              PETSC_DETERMINE, PETSC_DETERMINE);
+
+  MatSeqAIJSetPreallocation(pA, 10, nullptr);
+  MatSetOption(pA, MAT_NEW_NONZERO_LOCATION_ERR, PETSC_FALSE);
+  MatSetUp(pA);
+
+  for (size_t j = 0; j < cols(); ++j)
+    for (int i = IA[j]; i < IA[j+1]; ++i)
+      MatSetValue(pA, JA[i], j, A[i], INSERT_VALUES);
+
+  MatAssemblyBegin(pA,MAT_FINAL_ASSEMBLY);
+  MatAssemblyEnd(pA,MAT_FINAL_ASSEMBLY);
+  this->assembled = true;
+
+  return true;
+}
+
+
 bool PETScMatrix::solveDirect(PETScVector& B)
 {
   // the sparsity pattern has been grown in-place, we need to init PETsc state.
@@ -770,22 +827,25 @@ bool PETScMatrix::solveDirect(PETScVector& B)
   VecSetFromOptions(B1);
   VecSetFromOptions(x);
 
-  forcedKSPType = "gmres";
   size_t nrhs = B.dim() / nrow;
+  PetscScalar* bv;
+  VecGetArray(B.getVector(), &bv);
   for (size_t i = 0; i < nrhs; ++i) {
     for (size_t j = 0; j < nrow; ++j)
-      VecSetValue(B1, j, B(i*nrow+j+1), INSERT_VALUES);
+      VecSetValue(B1, j, bv[j*nrow+i], INSERT_VALUES);
 
     VecAssemblyBegin(B1);
     VecAssemblyEnd(B1);
-    if (!this->solve(B1, x, true))
+
+    if (!this->solve(B1, x, false))
       return false;
     PetscScalar* aa;
     VecGetArray(x, &aa);
     std::copy(aa, aa+nrow, B.getPtr()+i*nrow);
+    std::copy(aa, aa+nrow, bv+i*nrow);
     VecRestoreArray(x, &aa);
   }
-  forcedKSPType.clear();
+  VecRestoreArray(B.getVector(), &bv);
 
   VecDestroy(&x);
   VecDestroy(&B1);
@@ -818,7 +878,7 @@ bool PETScMatrix::solveEig (PETScMatrix& B, RealArray& val,
   EPSSetWhichEigenpairs(eps,EPS_SMALLEST_MAGNITUDE);
   EPSGetST(eps,&st);
   STSetShift(st,shift);
-  EPSSetDimensions(eps,nv,4*nv,PETSC_NULL);
+  EPSSetDimensions(eps,nv,4*nv,PETSC_DETERMINE);
   EPSSetFromOptions(eps);
   EPSSolve(eps);
   EPSGetConverged(eps,&nconv);

@@ -50,6 +50,9 @@ public:
   //! \brief Returns the vector type.
   LinAlg::MatrixType getType() const override { return LinAlg::PETSC; }
 
+  //! \brief Creates a copy of the system vector and returns a pointer to it.
+  SystemVector* copy() const override { return new PETScVector(*this); }
+
   //! \brief Initializes the vector to a given scalar value.
   void init(Real value) override;
 
@@ -98,6 +101,9 @@ public:
 
   //! \brief Returns the matrix type.
   LinAlg::MatrixType getType() const override { return LinAlg::PETSC; }
+
+  //! \brief Creates a copy of the system matrix and returns a pointer to it.
+  SystemMatrix* copy() const override;
 
   //! \brief Initializes the element assembly process.
   //! \param[in] sam Auxiliary data describing the FE model topology, etc.
@@ -160,8 +166,11 @@ public:
   //! \return True on success
   bool setParameters(PETScMatrix* P = nullptr, PETScVector* Pb = nullptr);
 
+  //! \brief Returns a const-ref to process administrator.
+  const ProcessAdm& getAdm() const { return adm; }
+
 protected:
-  //! \brief Solve a linear system
+  //! \brief Solve a linear system.
   bool solve(const Vec& b, Vec& x, bool knoll);
 
   //! \brief Solve system stored in the elem map.
@@ -170,8 +179,17 @@ protected:
   //! \param B Vector with right-hand-sides to solve for
   bool solveDirect(PETScVector& B);
 
+  //! \brief Assemble matrix directly from sparse matrix values.
+  //! !\details Assumes no DD, ie, do not use in parallel
+  bool assembleDirect();
+
   //! \brief Disabled copy constructor.
   PETScMatrix(const PETScMatrix& A) = delete;
+
+  //! \brief Clone sparse matrix data.
+  PETScMatrix(const ProcessAdm& padm,
+              const PETScSolParams& spar,
+              const SparseMatrix& A);
 
   //! \brief Setup sparsity pattern for a DD partitioned model.
   //! \param[in] sam Auxiliary data describing the FE model topology, etc.
