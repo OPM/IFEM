@@ -878,7 +878,7 @@ bool PETScMatrix::solveEig (PETScMatrix& B, RealArray& val,
   EPSSetWhichEigenpairs(eps,EPS_SMALLEST_MAGNITUDE);
   EPSGetST(eps,&st);
   STSetShift(st,shift);
-  EPSSetDimensions(eps,nv,4*nv,PETSC_NULL);
+  EPSSetDimensions(eps,nv,4*nv,PETSC_DETERMINE);
   EPSSetFromOptions(eps);
   EPSSolve(eps);
   EPSGetConverged(eps,&nconv);
