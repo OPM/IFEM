@@ -193,14 +193,14 @@ static void _eig_ax(const SystemMatrix* A, const double* x, double* y)
 #if HAS_PETSC
   const PETScMatrix* pA = dynamic_cast<const PETScMatrix*>(A);
   if (pA) {
-      PETScVector X(pA->getAdm(), x, A->dim());
-      X.endAssembly();
-      PETScVector Y(pA->getAdm(), A->dim());
-      pA->multiply(X, Y);
-      PetscScalar* yv;
-      VecGetArray(Y.getVector(), &yv);
-      memcpy(y,yv,Y.dim()*sizeof(double));
-      return;
+    PETScVector X(pA->getAdm(), x, A->dim());
+    X.endAssembly();
+    PETScVector Y(pA->getAdm(), A->dim());
+    pA->multiply(X, Y);
+    PetscScalar* yv;
+    VecGetArray(Y.getVector(), &yv);
+    memcpy(y,yv,Y.dim()*sizeof(double));
+    return;
   }
 #endif
 

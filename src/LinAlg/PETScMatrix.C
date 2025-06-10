@@ -827,22 +827,25 @@ bool PETScMatrix::solveDirect(PETScVector& B)
   VecSetFromOptions(B1);
   VecSetFromOptions(x);
 
-  forcedKSPType = "gmres";
   size_t nrhs = B.dim() / nrow;
+  PetscScalar* bv;
+  VecGetArray(B.getVector(), &bv);
   for (size_t i = 0; i < nrhs; ++i) {
     for (size_t j = 0; j < nrow; ++j)
-      VecSetValue(B1, j, B(i*nrow+j+1), INSERT_VALUES);
+      VecSetValue(B1, j, bv[j*nrow+i], INSERT_VALUES);
 
     VecAssemblyBegin(B1);
     VecAssemblyEnd(B1);
-    if (!this->solve(B1, x, true))
+
+    if (!this->solve(B1, x, false))
       return false;
     PetscScalar* aa;
     VecGetArray(x, &aa);
     std::copy(aa, aa+nrow, B.getPtr()+i*nrow);
+    std::copy(aa, aa+nrow, bv+i*nrow);
     VecRestoreArray(x, &aa);
   }
-  forcedKSPType.clear();
+  VecRestoreArray(B.getVector(), &bv);
 
   VecDestroy(&x);
   VecDestroy(&B1);
