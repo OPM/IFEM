@@ -88,6 +88,8 @@ public:
 
   //! \brief Returns the number of right-hand-side vectors allocated.
   size_t getNoRHS() const { return b.size(); }
+  //! \brief Returns a const reference to the SAM object.
+  const SAM& getSAM() const { return sam; }
 
   //! \brief Returns the \a i'th matrix of the equation system.
   SystemMatrix* getMatrix(size_t i = 0) { return i < A.size() ? A[i]._A : 0; }
