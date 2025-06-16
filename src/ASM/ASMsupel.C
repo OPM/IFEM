@@ -12,6 +12,7 @@
 //==============================================================================
 
 #include "ASMsupel.h"
+#include "Integrand.h"
 #include "GlobalIntegral.h"
 #include "ElementBlock.h"
 #include "Utilities.h"
@@ -210,6 +211,7 @@ bool ASMsupel::getElementCoordinates (Matrix& X, int iel, bool) const
 bool ASMsupel::integrate (Integrand& integrand, GlobalIntegral& glbInt,
                           const TimeDomain&)
 {
+  myElmMat.rhsOnly = integrand.getMode() >= SIM::RHS_ONLY;
   return glbInt.assemble(&myElmMat,MLGE.front());
 }
 
