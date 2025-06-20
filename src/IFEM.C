@@ -142,7 +142,7 @@ int IFEM::Init (int arg_c, char** arg_v, const char* title)
 #else
   IFEM::cout <<"disabled";
 #endif
-  IFEM::cout <<"\n       SPR support: ";
+  IFEM::cout <<"\n        SPR support: ";
 #ifdef HAS_SPR
   IFEM::cout <<"enabled";
 #ifdef USE_INT64
