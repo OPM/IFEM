@@ -165,7 +165,7 @@ else()
                          src/ASM/TimeDomain.h src/ASM/ASMs?D.h src/ASM/ASM?D.h
                          src/ASM/ASM??DLag.h src/ASM/ASMLagBase.h src/ASM/ASMutils.h
                          src/ASM/DomainDecomposition.h src/ASM/ItgPoint.h
-                         src/ASM/ReactionsOnly.h
+                         src/ASM/ReactionsOnly.h src/ASM/ASMsupel.h
                          src/LinAlg/*.h src/SIM/*.h src/Utility/*.h
                          3rdparty/*.h
                          ${CMAKE_BINARY_DIR}/IFEM.h)
