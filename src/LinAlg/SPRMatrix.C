@@ -150,6 +150,18 @@ void closeftnfile_(const int& iunit);
 }
 
 
+/*!
+  \brief Generic function for copying a C-array.
+*/
+
+template<class T> T* copyArr(const T* array, int n)
+{
+  T* newarr = new T[n];
+  memcpy(newarr,array,n*sizeof(T));
+  return newarr;
+}
+
+
 SPRMatrix::SPRMatrix () : rWork(1)
 {
   ierr = 0;
@@ -168,14 +180,6 @@ SPRMatrix::SPRMatrix () : rWork(1)
 
 SPRMatrix::SPRMatrix (const SPRMatrix& A) : SystemMatrix(A), rWork(1)
 {
-  // Lambda function copying an array.
-  auto&& copyArr = []<typename T>(const T* array, int n)
-  {
-    T* newarr = new T[n];
-    memcpy(newarr,array,n*sizeof(T));
-    return newarr;
-  };
-
   ierr   = 0;
   memcpy(mpar,A.mpar,sizeof(A.mpar));
   msica  = copyArr(A.msica,A.mpar[1]);
