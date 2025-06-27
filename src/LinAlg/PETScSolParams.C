@@ -20,7 +20,8 @@
 void PETScSolParams::setupPC(PC& pc,
                              size_t block,
                              const std::string& prefix,
-                             const std::set<int>& blockEqs)
+                             const std::set<int>& blockEqs,
+                             bool setup)
 {
   // Set preconditioner
   std::string prec = params.getBlock(block).getStringValue("pc");
@@ -59,14 +60,13 @@ void PETScSolParams::setupPC(PC& pc,
 //  }
 
   if (prec == "asm" || prec == "gasm" || prec == "asmlu")
-    setupAdditiveSchwarz(pc, block, prec == "asmlu", false, blockEqs);
+    setupAdditiveSchwarz(pc, block, prec == "asmlu", false, blockEqs, setup);
   else if (prec == "ml")
     setMLOptions(prefix, params.getBlock(block));
   else if (prec == "gamg")
     setGAMGOptions(prefix, params.getBlock(block));
   else if (prec == "ilu")
     PCFactorSetLevels(pc,params.getBlock(block).getIntValue("ilu_fill_level"));
-
 
   std::string package = params.getBlock(block).getStringValue("package");
   if (!package.empty()) {
@@ -78,14 +78,15 @@ void PETScSolParams::setupPC(PC& pc,
   }
 
   PCSetFromOptions(pc);
-  PCSetUp(pc);
+  if (setup)
+    PCSetUp(pc);
 
   // Settings for coarse solver
   if ((prec == "ml" || prec == "gamg")) {
     if (params.getBlock(block).hasValue("multigrid_coarse_solver"))
       setupCoarseSolver(pc, prefix, params.getBlock(block));
     // TODO: dir smoothers
-    setupSmoothers(pc, block, ISMat(), blockEqs);
+    setupSmoothers(pc, block, ISMat(), blockEqs, setup);
   }
 }
 
@@ -266,7 +267,8 @@ void PETScSolParams::setupCoarseSolver(PC& pc, const std::string& prefix, const 
 
 void PETScSolParams::setupSmoothers(PC& pc, size_t iBlock,
                                     const ISMat& dirIndexSet,
-                                    const std::set<int>& blockEqs)
+                                    const std::set<int>& blockEqs,
+                                    bool setup)
 {
   PetscInt n;
   PCMGGetLevels(pc,&n);
@@ -317,7 +319,7 @@ void PETScSolParams::setupSmoothers(PC& pc, size_t iBlock,
     KSPGetPC(preksp,&prepc);
 
     if (smoother == "asm" || smoother == "asmlu")
-      setupAdditiveSchwarz(prepc, iBlock, smoother == "asmlu", true, blockEqs);
+      setupAdditiveSchwarz(prepc, iBlock, smoother == "asmlu", true, blockEqs, setup);
     else if (smoother == "compositedir" && (i==n-1)) {
       Mat mat;
       Mat Pmat;
@@ -343,7 +345,8 @@ void PETScSolParams::setupSmoothers(PC& pc, size_t iBlock,
 void PETScSolParams::setupAdditiveSchwarz(PC& pc, size_t block,
                                           bool asmlu,
                                           bool smoother,
-                                          const std::set<int>& blockEqs)
+                                          const std::set<int>& blockEqs,
+                                          bool setup)
 {
   int overlap = params.getBlock(block).getIntValue("asm_overlap");
   int nx = params.getBlock(block).getIntValue("asm_nx");
@@ -383,20 +386,22 @@ void PETScSolParams::setupAdditiveSchwarz(PC& pc, size_t block,
   }
 
   PCSetFromOptions(pc);
-  PCSetUp(pc);
+  if (setup) {
+    PCSetUp(pc);
 
-  KSP* subksp;
-  PC   subpc;
-  PetscInt first, nlocal;
-  PCASMGetSubKSP(pc,&nlocal,&first,&subksp);
+    KSP* subksp;
+    PC   subpc;
+    PetscInt first, nlocal;
+    PCASMGetSubKSP(pc,&nlocal,&first,&subksp);
 
-  int fill_level = params.getBlock(block).getIntValue("ilu_fill_level");
-  for (int i = 0; i < nlocal; i++) {
-    KSPGetPC(subksp[i],&subpc);
-    if (asmlu) {
-      PCSetType(subpc,PCLU);
-      KSPSetType(subksp[i],KSPPREONLY);
-    } else
-      PCFactorSetLevels(subpc,fill_level);
+    int fill_level = params.getBlock(block).getIntValue("ilu_fill_level");
+    for (int i = 0; i < nlocal; i++) {
+      KSPGetPC(subksp[i],&subpc);
+      if (asmlu) {
+        PCSetType(subpc,PCLU);
+        KSPSetType(subksp[i],KSPPREONLY);
+      } else
+        PCFactorSetLevels(subpc,fill_level);
+    }
   }
 }

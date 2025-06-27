@@ -739,7 +739,7 @@ bool PETScMatrix::solve (const Vec& b, Vec& x, bool knoll)
     KSPSetOperators(ksp,pA,pA);
     KSPSetReusePreconditioner(ksp, factored ? PETSC_TRUE : PETSC_FALSE);
 #endif
-    if (!setParameters())
+    if (!setParameters(true))
       return false;
     setParams = false;
   }
@@ -930,7 +930,7 @@ Real PETScMatrix::Linfnorm () const
 }
 
 
-bool PETScMatrix::setParameters(PETScMatrix* P, PETScVector* Pb)
+bool PETScMatrix::setParameters (bool setup)
 {
   // Set linear solver method
   KSPSetType(ksp,
@@ -944,7 +944,7 @@ bool PETScMatrix::setParameters(PETScMatrix* P, PETScVector* Pb)
   KSPGetPC(ksp,&pc);
 
   if (matvec.empty())
-    solParams.setupPC(pc, 0, "", IntSet());
+    solParams.setupPC(pc, 0, "", IntSet(), setup);
   else if (matvec.size() > 4) {
     std::cerr << "** PETSCMatrix ** Only two blocks supported for now." << std::endl;
     return false;
@@ -970,7 +970,8 @@ bool PETScMatrix::setParameters(PETScMatrix* P, PETScVector* Pb)
     PCFieldSplitSetSchurPre(pc,PC_FIELDSPLIT_SCHUR_PRE_SELFP,nullptr);
 
     PCSetFromOptions(pc);
-    PCSetUp(pc);
+    if (setup)
+      PCSetUp(pc);
     PCFieldSplitGetSubKSP(pc,&nsplit,&subksp);
 
     // Preconditioner for blocks
@@ -990,14 +991,15 @@ bool PETScMatrix::setParameters(PETScMatrix* P, PETScVector* Pb)
       if (solParams.getBlock(m).getStringValue("pc") == "schur")
         new PETScSchurPC(subpc[m], matvec, solParams.getBlock(m), adm);
       else
-        solParams.setupPC(subpc[m], m, prefix, adm.dd.getBlockEqs(m));
+        solParams.setupPC(subpc[m], m, prefix, adm.dd.getBlockEqs(m), setup);
     }
   }
 
   KSPSetFromOptions(ksp);
-  KSPSetUp(ksp);
+  if (setup)
+    KSPSetUp(ksp);
 
-  if (solParams.getIntValue("verbosity") >= 1)
+  if (setup && solParams.getIntValue("verbosity") >= 1)
     KSPView(ksp, PETSC_VIEWER_STDOUT_(*adm.getCommunicator()));
 
   return true;

@@ -63,9 +63,11 @@ public:
   //! \param block Block this preconditioner applies to
   //! \param prefix PETsc param prefix for block
   //! \param blockEqs The local equations belonging to block
+  //! \param setup True to setup preconditioner
   void setupPC(PC& pc, size_t block,
                const std::string& prefix,
-               const std::set<int>& blockEqs);
+               const std::set<int>& blockEqs,
+               bool setup);
 
   //! \brief Obtain number of blocks
   size_t getNoBlocks() const { return params.getNoBlocks(); }
@@ -123,9 +125,11 @@ protected:
   //! \param[in] iBlock The index of the  block to set parameters for
   //! \param[in] dirIndexSet The index set for direction smoothers
   //! \param blockEqs The local equations belonging to block
+  //! \param setup True to setup preconditioner
   void setupSmoothers(PC& pc, size_t iBlock,
                       const ISMat& dirIndexSet,
-                      const std::set<int>& blockEqs);
+                      const std::set<int>& blockEqs,
+                      bool setup);
 
   //! \brief Setup an additive Schwarz preconditioner
   //! \param pc The preconditioner to set coarse solver for
@@ -133,9 +137,11 @@ protected:
   //! \param[in] asmlu True to use LU subdomain solvers
   //! \param[in] smoother True if this is a smoother in multigrid
   //! \param blockEqs The local equations belonging to block
+  //! \param setup True to setup preconditioner
   void setupAdditiveSchwarz(PC& pc, size_t block,
                             bool asmlu, bool smoother,
-                            const std::set<int>& blockEqs);
+                            const std::set<int>& blockEqs,
+                            bool setup);
 
   const LinSolParams& params; //!< Reference to linear solver parameters.
   const ProcessAdm& adm;      //!< Reference to process administrator.
