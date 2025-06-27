@@ -161,10 +161,9 @@ public:
   const std::vector<IS>& getIS() const { return isvec; }
 
   //! \brief Set the linear solver parameters (solver type, preconditioner, tolerances).
-  //! \param[in] P Preconditioner  matrix (ignored here)
-  //! \param[in] Pb Preconditioner vector (ignored here)
+  //! \param[in] setup True to setup KSP/PC
   //! \return True on success
-  bool setParameters(PETScMatrix* P = nullptr, PETScVector* Pb = nullptr);
+  bool setParameters(bool setup);
 
   //! \brief Returns a const-ref to process administrator.
   const ProcessAdm& getAdm() const { return adm; }

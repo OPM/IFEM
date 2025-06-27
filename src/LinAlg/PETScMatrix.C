@@ -739,7 +739,7 @@ bool PETScMatrix::solve (const Vec& b, Vec& x, bool knoll)
     KSPSetOperators(ksp,pA,pA);
     KSPSetReusePreconditioner(ksp, factored ? PETSC_TRUE : PETSC_FALSE);
 #endif
-    if (!setParameters())
+    if (!setParameters(true))
       return false;
     setParams = false;
   }
@@ -778,7 +778,7 @@ bool PETScMatrix::assembleDirect()
   } else {
     IntVec iA, jA;
     this->calcCSR(iA,jA);
-    MatSeqAIJSetPreallocationCSR(pA, iA.data(), jA.data(), nullptr);
+    MatMPIAIJSetPreallocationCSR(pA, iA.data(), jA.data(), nullptr);
     MatSetOption(pA, MAT_NEW_NONZERO_LOCATION_ERR, PETSC_TRUE);
   }
 
@@ -868,57 +868,86 @@ bool PETScMatrix::solveEig (PETScMatrix& B, RealArray& val,
                             Matrix& vec, int nv, Real shift, int iop)
 {
 #ifdef HAS_SLEPC
-  ST          st;
-  PetscInt    m, n, nconv;
-  PetscScalar kr, ki;
-  PetscScalar *xrarr;
-  Vec         xr, xi;
-
   EPS eps;
   EPSCreate(*adm.getCommunicator(),&eps);
 
-  MatAssemblyBegin(pA,MAT_FINAL_ASSEMBLY);
-  MatAssemblyEnd(pA,MAT_FINAL_ASSEMBLY);
-  MatAssemblyBegin(B.pA,MAT_FINAL_ASSEMBLY);
-  MatAssemblyEnd(B.pA,MAT_FINAL_ASSEMBLY);
+  const auto slepc_mode = std::array{EPS_HEP, EPS_NHEP, EPS_GHEP, EPS_GNHEP};
+  EPSSetOperators(eps, pA, iop > 2 ? B.pA : nullptr);
+  EPSSetProblemType(eps, slepc_mode[iop-1]);
 
-  EPSSetOperators(eps,pA,B.pA);
-  EPSSetProblemType(eps,EPS_GHEP);
-  EPSSetType(eps,EPSKRYLOVSCHUR);
-  EPSSetWhichEigenpairs(eps,EPS_SMALLEST_MAGNITUDE);
-  EPSGetST(eps,&st);
-  STSetShift(st,shift);
-  EPSSetDimensions(eps,nv,4*nv,PETSC_NULL);
+  EPSSetWhichEigenpairs(eps, EPS_SMALLEST_MAGNITUDE);
+  EPSSetDimensions(eps, nv, PETSC_DETERMINE, PETSC_DETERMINE);
   EPSSetFromOptions(eps);
+
+  ST st;
+  EPSGetST(eps, &st);
+  STSetShift(st, shift);
+
+  KSP oldKsp = ksp;
+  STGetKSP(st, &ksp);
+  this->setParameters(false);
+  ksp = oldKsp;
+
+  if (solParams.getIntValue("verbosity") > 0)
+    EPSView(eps, PETSC_VIEWER_STDOUT_WORLD);
+
   EPSSolve(eps);
-  EPSGetConverged(eps,&nconv);
 
-  MatGetSize(pA,&m,&n);
-  if (m != n) return false;
+  PetscInt nconv;
+  EPSGetConverged(eps, &nconv);
 
-  VecCreate(*adm.getCommunicator(),&xr);
-  VecSetSizes(xr,n,PETSC_DETERMINE);
-  VecSetFromOptions(xr);
-  VecDuplicate(xr,&xi);
+  PetscInt m, n;
+  MatGetSize(pA, &m, &n);
+  if (m != n)
+    return false;
+
+  Vec xr, xi;
+  MatCreateVecs(pA, nullptr, &xr);
+  VecDuplicate(xr, &xi);
 
   val.resize(nv);
-  vec.resize(n,nv);
-  for (int i = 0; i < nv; i++) {
-    EPSGetEigenpair(eps,i,&kr,&ki,xr,xi);
-    VecGetArray(xr,&xrarr);
+  vec.resize(n, nv);
+
+  Vec gr;
+  VecScatter ctx;
+  if (adm.isParallel())
+    VecScatterCreateToAll(xr, &ctx, &gr);
+
+  for (int i = 0; i < std::min(nv, nconv); ++i) {
+    PetscScalar kr, ki;
+    EPSGetEigenpair(eps, i, &kr, &ki, xr, xi);
     val[i] = kr;
-    vec.fillColumn(i+1,xrarr);
-    VecRestoreArray(xr,&xrarr);
+    if (adm.isParallel()) {
+      VecScatterBegin(ctx, xr, gr, INSERT_VALUES, SCATTER_FORWARD);
+      VecScatterEnd(ctx, xr, gr, INSERT_VALUES, SCATTER_FORWARD);
+      PetscScalar* grarr;
+      VecGetArray(gr, &grarr);
+      if (adm.dd.isPartitioned())
+        for (const auto& it : adm.dd.getG2LEQ(0))
+          vec(it.second,i+1) = grarr[it.first-1];
+      VecRestoreArray(gr, &grarr);
+    } else {
+      PetscScalar* xrarr;
+      VecGetArray(xr, &xrarr);
+      vec.fillColumn(i+1,xrarr);
+      VecRestoreArray(xr, &xrarr);
+    }
   }
 
   VecDestroy(&xi);
   VecDestroy(&xr);
 
+  if (adm.isParallel()) {
+    VecDestroy(&gr);
+    VecScatterDestroy(&ctx);
+  }
+
   EPSDestroy(&eps);
 
   return true;
-#endif
+#else
   return false;
+#endif
 }
 
 
@@ -930,7 +959,7 @@ Real PETScMatrix::Linfnorm () const
 }
 
 
-bool PETScMatrix::setParameters(PETScMatrix* P, PETScVector* Pb)
+bool PETScMatrix::setParameters (bool setup)
 {
   // Set linear solver method
   KSPSetType(ksp,
@@ -944,7 +973,7 @@ bool PETScMatrix::setParameters(PETScMatrix* P, PETScVector* Pb)
   KSPGetPC(ksp,&pc);
 
   if (matvec.empty())
-    solParams.setupPC(pc, 0, "", IntSet());
+    solParams.setupPC(pc, 0, "", IntSet(), setup);
   else if (matvec.size() > 4) {
     std::cerr << "** PETSCMatrix ** Only two blocks supported for now." << std::endl;
     return false;
@@ -970,7 +999,8 @@ bool PETScMatrix::setParameters(PETScMatrix* P, PETScVector* Pb)
     PCFieldSplitSetSchurPre(pc,PC_FIELDSPLIT_SCHUR_PRE_SELFP,nullptr);
 
     PCSetFromOptions(pc);
-    PCSetUp(pc);
+    if (setup)
+      PCSetUp(pc);
     PCFieldSplitGetSubKSP(pc,&nsplit,&subksp);
 
     // Preconditioner for blocks
@@ -990,14 +1020,15 @@ bool PETScMatrix::setParameters(PETScMatrix* P, PETScVector* Pb)
       if (solParams.getBlock(m).getStringValue("pc") == "schur")
         new PETScSchurPC(subpc[m], matvec, solParams.getBlock(m), adm);
       else
-        solParams.setupPC(subpc[m], m, prefix, adm.dd.getBlockEqs(m));
+        solParams.setupPC(subpc[m], m, prefix, adm.dd.getBlockEqs(m), setup);
     }
   }
 
   KSPSetFromOptions(ksp);
-  KSPSetUp(ksp);
+  if (setup)
+    KSPSetUp(ksp);
 
-  if (solParams.getIntValue("verbosity") >= 1)
+  if (setup && solParams.getIntValue("verbosity") >= 1)
     KSPView(ksp, PETSC_VIEWER_STDOUT_(*adm.getCommunicator()));
 
   return true;
