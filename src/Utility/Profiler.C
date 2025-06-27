@@ -13,6 +13,7 @@
 
 #include "Profiler.h"
 #include "IFEM.h"
+#include "LinAlgInit.h"
 #ifdef HAVE_MPI
 #include <mpi.h>
 #endif
@@ -39,6 +40,7 @@ Profiler::Profiler (const std::string& name, bool autoReport) : myName(name), au
   // Update pointer to current profiler (it should only be one at any time)
   if (utl::profiler) delete utl::profiler;
   utl::profiler = this;
+  LinAlgInit::increfs();
 }
 
 
@@ -48,6 +50,7 @@ Profiler::~Profiler ()
   if (autoReport)
     this->report(std::cout);
 
+  LinAlgInit::decrefs();
   IFEM::Close();
 }
 
