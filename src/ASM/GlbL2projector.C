@@ -511,7 +511,7 @@ bool ASMbase::globalL2projection (Matrix& sField,
   // Assemble the projection matrices
   size_t i, nnod = this->getNoProjectionNodes();
   size_t j, ncomp = integrand.dim();
-  SparseMatrix* A;
+  SystemMatrix* A;
   StdVector* B;
   switch (GlbL2::MatrixType) {
   case LinAlg::UMFPACK:
@@ -528,10 +528,9 @@ bool ASMbase::globalL2projection (Matrix& sField,
     }
 #endif
   default:
-    A = new SparseMatrix(SparseMatrix::SUPERLU);
+    A = new SparseMatrix(nnod,nnod,SparseMatrix::SUPERLU);
     B = new StdVector(nnod*ncomp);
   }
-  A->redim(nnod,nnod);
 
   if (!this->assembleL2matrices(*A,*B,integrand,continuous))
   {
