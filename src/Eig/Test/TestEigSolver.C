@@ -85,12 +85,20 @@ TEST_P(TestEigSolver, ArpackPETSc)
   spar.read(doc.RootElement());
   ProcessAdm adm;
   PETScMatrix A(adm, spar), B(adm, spar);
-  A.redim(4,4);
-  B.redim(4,4);
+  const IntMat elms {
+      {0}, {1}, {2}, {3},
+  };
+  A.init(4);
+  B.init(4);
 
-  for (size_t i = 1; i <= 4; ++i) {
-    A(i,i) = i;
-    B(i,i) = 1.0;
+  Matrix eA(1,1);
+  Matrix eB(1,1);
+  eB(1,1) = 1.0;
+
+  for (int iel = 0; iel < 4; ++iel) {
+    eA(1,1) = iel + 1;
+    A.assemble(eA, elms[iel]);
+    B.assemble(eB, elms[iel]);
   }
 
   A.endAssembly();
@@ -118,12 +126,20 @@ TEST_P(TestEigSolver, SLEPc)
   spar.read(doc.RootElement());
   ProcessAdm adm;
   PETScMatrix A(adm, spar), B(adm, spar);
-  A.redim(4,4);
-  B.redim(4,4);
+  const IntMat elms {
+      {0}, {1}, {2}, {3},
+  };
+  A.init(4);
+  B.init(4);
 
-  for (size_t i = 1; i <= 4; ++i) {
-    A(i,i) = i;
-    B(i,i) = 1.0;
+  Matrix eA(1,1);
+  Matrix eB(1,1);
+  eB(1,1) = 1.0;
+
+  for (int iel = 0; iel < 4; ++iel) {
+    eA(1,1) = iel + 1;
+    A.assemble(eA, elms[iel]);
+    B.assemble(eB, elms[iel]);
   }
 
   A.endAssembly();

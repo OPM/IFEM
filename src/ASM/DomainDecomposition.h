@@ -119,6 +119,10 @@ public:
   //! \param[in] meqn Matrix of element equation numbers
   bool setup(const ProcessAdm& adm, const IntMat& neighs, const IntMat& meqn);
 
+  //! \brief Setup single-process domain decomposition.
+  //! \brief neq Number of equations
+  void setup(const int neq);
+
   //! \brief Obtain local subdomains for an equation block.
   //! \param nx Number of domains in x
   //! \param ny Number of domains in y
