@@ -197,10 +197,13 @@ static void _eig_ax(const SystemMatrix* A, const double* x, double* y)
   if (pA) {
     Vec pX, pY;
     MatCreateVecs(pA->getMatrix(), &pY, &pX);
+    const DomainDecomposition& dd = pA->getDD();
     PetscInt low, high;
     VecGetOwnershipRange(pX, &low, &high);
-    for (PetscInt i = low; i < high; ++i)
-      VecSetValue(pX, i, *(x+i), INSERT_VALUES);
+    for (PetscInt i = low; i < high; ++i) {
+      const int ofs = dd.isPartitioned() ? dd.getG2LEQ(0).at(i+1)-1 : i;
+      VecSetValue(pX, i, *(x+ofs), INSERT_VALUES);
+    }
     VecAssemblyBegin(pX);
     VecAssemblyEnd(pX);
     MatMult(pA->getMatrix(),pX,pY);
@@ -212,10 +215,13 @@ static void _eig_ax(const SystemMatrix* A, const double* x, double* y)
       VecScatterBegin(scatter, pY, py, INSERT_VALUES, SCATTER_FORWARD);
       VecScatterEnd(scatter, pY, py, INSERT_VALUES, SCATTER_FORWARD);
       VecGetArray(py, &yv);
+      for (size_t i = 0; i < pA->dim(); ++i)
+        y[i] = yv[dd.getGlobalEq(i+1)-1];
       VecScatterDestroy(&scatter);
-    } else
+    } else {
       VecGetArray(pY, &yv);
-    memcpy(y,yv,pA->dim()*sizeof(double));
+      memcpy(y,yv,pA->dim()*sizeof(double));
+    }
 
     if (pA->getAdm().isParallel())
       VecDestroy(&py);
@@ -253,10 +259,13 @@ extern "C" void eig_sol_(const double* x, double* y, int& ierr)
     PETScVector RHS(pA->getAdm());
     VecDestroy(&RHS.getVector());
     MatCreateVecs(pA->getMatrix(), nullptr, &RHS.getVector());
+    const DomainDecomposition& dd = pA->getDD();
     PetscInt low, high;
     VecGetOwnershipRange(RHS.getVector(), &low, &high);
-    for (PetscInt i = low; i < high; ++i)
-      VecSetValue(RHS.getVector(), i, *(x+i), INSERT_VALUES);
+    for (PetscInt i = low; i < high; ++i) {
+      const int ofs = dd.isPartitioned() ? dd.getG2LEQ(0).at(i+1)-1 : i;
+      VecSetValue(RHS.getVector(), i, *(x+ofs), INSERT_VALUES);
+    }
     VecAssemblyBegin(RHS.getVector());
     VecAssemblyEnd(RHS.getVector());
     ierr = AM->solve(RHS) ? 0 : -1;
@@ -269,13 +278,13 @@ extern "C" void eig_sol_(const double* x, double* y, int& ierr)
       VecScatterEnd(scatter, RHS.getVector(), rhs, INSERT_VALUES, SCATTER_FORWARD);
       VecGetArray(rhs, &yv);
       VecScatterDestroy(&scatter);
-    } else
-      VecGetArray(RHS.getVector(), &yv);
-
-    memcpy(y,yv,pA->dim()*sizeof(double));
-
-    if (pA->getAdm().isParallel())
+      for (size_t i = 0; i < pA->dim(); ++i)
+        y[i] = yv[dd.getGlobalEq(i+1)-1];
       VecDestroy(&rhs);
+    } else {
+      VecGetArray(RHS.getVector(), &yv);
+      memcpy(y,yv,pA->dim()*sizeof(double));
+    }
 
     return;
   }

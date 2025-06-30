@@ -1318,6 +1318,13 @@ bool DomainDecomposition::setup (const ProcessAdm& adm,
 }
 
 
+void DomainDecomposition::setup (const int neq)
+{
+  blocks[0].minEq = 1;
+  blocks[0].maxEq = neq;
+}
+
+
 int DomainDecomposition::getPatchOwner (size_t p) const
 {
   auto it = patchOwner.find(p);
