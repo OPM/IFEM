@@ -16,7 +16,115 @@
 #include "ProcessAdm.h"
 #include "LinAlgInit.h"
 #include "SAM.h"
-#include <cassert>
+
+#include <algorithm>
+#include <numeric>
+
+
+namespace {
+
+/*!
+  \brief This is a C++ version of the F77 subroutine ADDEM2 (SAM library).
+  \details It performs exactly the same tasks, except that \a NRHS always is 1
+           and that the system matrix \a SM here is an instance of the
+           PETScMatrix class.
+*/
+void assemPETSc (const Matrix& eM, PETScMatrix& SM, StdVector* SV,
+                 const DomainDecomposition& dd,
+                 const std::vector<std::array<int,2>>& glb2Blk,
+                 const IntVec& meen, const int* meqn,
+                 const int* mpmceq, const int* mmceq, const Real* ttcc)
+{
+  // Get block for equation
+  auto getBlk = [&glb2Blk, nBlock = dd.getNoBlocks()](const int ieq, const int jeq)
+  {
+    if (nBlock > 1)
+      return glb2Blk[ieq-1][0] * nBlock + glb2Blk[jeq-1][0];
+    else
+      return size_t{0};
+  };
+
+  // Get equation number in block
+  auto getEq = [&glb2Blk, &dd](const int ieq)
+  {
+    if (dd.getNoBlocks() < 2)
+      return dd.getGlobalEq(ieq) - 1;
+    else
+      return glb2Blk[ieq-1][1] - 1;
+  };
+
+  int nedof = meen.size();
+  auto A = SM.getBlockMatrices();
+  if (A.empty())
+    A.push_back(SM.getMatrix());
+  for (int j = 1; j <= nedof; ++j) {
+    int jeq = meen[j-1];
+    if (jeq < 1)
+      continue;
+
+    MatSetValue(A[getBlk(jeq, jeq)], getEq(jeq), getEq(jeq), eM(j,j), ADD_VALUES);
+
+    for (int i = 1; i < j; ++i) {
+      int ieq = meen[i-1];
+      if (ieq < 1)
+        continue;
+
+      MatSetValue(A[getBlk(ieq, jeq)], getEq(ieq), getEq(jeq), eM(i,j), ADD_VALUES);
+      MatSetValue(A[getBlk(jeq, ieq)], getEq(jeq), getEq(ieq), eM(j,i), ADD_VALUES);
+    }
+  }
+
+  // Add (appropriately weighted) elements corresponding to constrained
+  // (dependent and prescribed) dofs in eM into SM and/or SV
+  for (int j = 1; j <= nedof; ++j) {
+    int jceq = -meen[j-1];
+    if (jceq < 1)
+      continue;
+
+    int jp = mpmceq[jceq-1];
+    Real c0 = ttcc[jp-1];
+
+    // Add contributions to SV (right-hand-side)
+    if (SV)
+      for (int i = 1; i <= nedof; ++i) {
+        int ieq = meen[i-1];
+        int iceq = -ieq;
+        if (ieq > 0)
+          (*SV)(ieq) -= c0*eM(i,j);
+        else if (iceq > 0)
+          for (int ip = mpmceq[iceq-1]; ip < mpmceq[iceq]-1; ++ip)
+            if (mmceq[ip] > 0) {
+              ieq = meqn[mmceq[ip]-1];
+              (*SV)(ieq) -= c0*ttcc[ip]*eM(i,j);
+            }
+      }
+
+    // Add contributions to SM
+    for (jp = mpmceq[jceq-1]; jp < mpmceq[jceq]-1; ++jp)
+      if (mmceq[jp] > 0) {
+        int jeq = meqn[mmceq[jp]-1];
+        for (int i = 1; i <= nedof; ++i) {
+          int ieq = meen[i-1];
+          int iceq = -ieq;
+          if (ieq > 0) {
+            MatSetValue(A[getBlk(ieq, jeq)], getEq(ieq), getEq(jeq),
+                        ttcc[jp]*eM(i,j), ADD_VALUES);
+            MatSetValue(A[getBlk(jeq, ieq)], getEq(jeq), getEq(ieq),
+                        ttcc[jp]*eM(j,i), ADD_VALUES);
+          }
+          else if (iceq > 0)
+            for (int ip = mpmceq[iceq-1]; ip < mpmceq[iceq]-1; ++ip)
+              if (mmceq[ip] > 0) {
+                ieq = meqn[mmceq[ip]-1];
+                MatSetValue(A[getBlk(ieq, jeq)], getEq(ieq), getEq(jeq),
+                            ttcc[ip]*ttcc[jp]*eM(i,j), ADD_VALUES);
+              }
+        }
+      }
+  }
+}
+
+}
 
 
 PETScVector::PETScVector (const ProcessAdm& padm) : adm(padm)
@@ -88,13 +196,8 @@ void PETScVector::redim (size_t n)
 
 bool PETScVector::endAssembly ()
 {
-  // Poor man's assembleDirect
-  if (!adm.isParallel() && adm.dd.getMaxDOF() == 0)
-    for (size_t i = 0; i < this->size(); ++i)
-      VecSetValue(x, i, (*this)[i], ADD_VALUES);
-  else
-    for (size_t i = 0; i < this->size(); ++i)
-      VecSetValue(x, adm.dd.getGlobalEq(i+1)-1, (*this)[i], ADD_VALUES);
+  for (size_t i = 0; i < this->size(); ++i)
+    VecSetValue(x, adm.dd.getGlobalEq(i+1)-1, (*this)[i], ADD_VALUES);
 
   VecAssemblyBegin(x);
   VecAssemblyEnd(x);
@@ -130,15 +233,15 @@ Real PETScVector::Linfnorm () const
 }
 
 
-PETScVectors::PETScVectors (Mat A, int size) :
-  myA(A)
+PETScVectors::PETScVectors (const PETScMatrix& A, int size)
+  : myA(A)
 {
   PetscInt r, c;
-  MatGetSize(A, &r, &c);
+  MatGetSize(A.getMatrix(), &r, &c);
   myDim = c;
   vectors.resize(size);
   for (int i = 0; i < size; ++i)
-    MatCreateVecs(A, nullptr, &vectors[i]);
+    MatCreateVecs(A.getMatrix(), nullptr, &vectors[i]);
 }
 
 
@@ -152,15 +255,17 @@ PETScVectors::~PETScVectors ()
 void PETScVectors::assemble (const Vectors& vecs,
                              const IntVec& meqn, int)
 {
+  const DomainDecomposition& dd = myA.getDD();
 #pragma omp critical
   for (size_t i = 0; i < meqn.size(); ++i)
     for (size_t r = 0; r < vecs.size(); r++)
-      VecSetValue(vectors[r], meqn[i], vecs[r](1+i), ADD_VALUES);
+      VecSetValue(vectors[r], dd.getGlobalEq(meqn[i]+1)-1,
+                  vecs[r](1+i), ADD_VALUES);
 }
 
 
 PETScMatrix::PETScMatrix (const ProcessAdm& padm, const LinSolParams& spar)
-  : SparseMatrix(SUPERLU, 1), nsp(nullptr), adm(padm), solParams(spar, adm)
+  : nrow(0), ncol(0), nsp(nullptr), adm(padm), solParams(spar, adm)
 {
   // Create matrix object, by default the matrix type is AIJ
   MatCreate(*adm.getCommunicator(),&pA);
@@ -182,12 +287,12 @@ PETScMatrix::PETScMatrix (const ProcessAdm& padm, const LinSolParams& spar)
   ISsize = 0;
   nLinSolves = 0;
   assembled = false;
+  factored = false;
 }
 
 
-PETScMatrix::PETScMatrix (const ProcessAdm& padm, const PETScSolParams& spar,
-                          const SparseMatrix& A)
-  : SparseMatrix(A), nsp(nullptr), adm(padm), solParams(spar)
+PETScMatrix::PETScMatrix (const ProcessAdm& padm, const PETScSolParams& spar)
+  : nrow(0), ncol(0), nsp(nullptr), adm(padm), solParams(spar)
 {
   // Create linear solver object
   KSPCreate(*adm.getCommunicator(),&ksp);
@@ -198,6 +303,7 @@ PETScMatrix::PETScMatrix (const ProcessAdm& padm, const PETScSolParams& spar,
   ISsize = 0;
   nLinSolves = 0;
   assembled = false;
+  factored = false;
 }
 
 
@@ -221,42 +327,96 @@ PETScMatrix::~PETScMatrix ()
 
 SystemMatrix* PETScMatrix::copy () const
 {
-  PETScMatrix* result = new PETScMatrix(this->adm, this->solParams,
-                                        static_cast<const SparseMatrix&>(*this));
-  if (this->assembled) {
-    MatDuplicate(this->pA, MAT_COPY_VALUES, &result->pA);
-    result->assembled = true;
-  }
+  PETScMatrix* result = new PETScMatrix(this->adm, this->solParams);
+  if (m_dd)
+    result->m_dd = std::make_unique<DomainDecomposition>(*m_dd);
+  MatDuplicate(this->pA, assembled ? MAT_COPY_VALUES : MAT_DO_NOT_COPY_VALUES, &result->pA);
+  result->assembled = assembled;
+  result->nrow = nrow;
+  result->ncol = ncol;
   return result;
+}
+
+
+size_t PETScMatrix::dim (int idim) const
+{
+  switch (idim) {
+  case 1: return nrow;
+  case 2: return ncol;
+  case 3: return nrow*ncol;
+  default: return 0;
+  }
+}
+
+
+void PETScMatrix::preAssemble (const std::vector<IntVec>& MMNPC, size_t nel)
+{
+  int neq = nrow;
+  if (m_dd && m_dd->isPartitioned())
+    neq = m_dd->getMaxEq() - m_dd->getMinEq() + 1;
+
+  Mat prealloc = preAllocator(neq);
+
+  std::swap(pA, prealloc);
+  // Compute the nodal sparsity pattern
+  int inod, jnod;
+  if (m_dd && m_dd->isPartitioned()) {
+    for (int iel : m_dd->getElms())
+      for (size_t j = 0; iel > -1 && j < MMNPC[iel].size(); j++)
+        if ((jnod = MMNPC[iel][j]+1) > 0)
+        {
+          const int gjnod = m_dd->getGlobalEq(jnod) - 1;
+          MatSetValue(pA, gjnod, gjnod, 0.0, INSERT_VALUES);
+          for (size_t i = 0; i < j; i++)
+            if ((inod = MMNPC[iel][i]+1) > 0) {
+              const int ginod = m_dd->getGlobalEq(inod) - 1;
+              MatSetValue(pA, ginod, gjnod, 0.0, INSERT_VALUES);
+              MatSetValue(pA, gjnod, ginod, 0.0, INSERT_VALUES);
+            }
+        }
+    this->endAssembly();
+  } else {
+    for (size_t iel = 0; iel < nel; iel++)
+      for (size_t j = 0; j < MMNPC[iel].size(); j++)
+        if ((jnod = MMNPC[iel][j]+1) > 0)
+        {
+          MatSetValue(pA, jnod-1, jnod-1, 0.0 ,INSERT_VALUES);
+          for (size_t i = 0; i < j; i++)
+            if ((inod = MMNPC[iel][i]+1) > 0) {
+              MatSetValue(pA, inod-1, jnod-1, 0.0, INSERT_VALUES);
+              MatSetValue(pA, jnod-1, inod-1, 0.0, INSERT_VALUES);
+            }
+        }
+  }
+  std::swap(pA, prealloc);
+
+  MatPreallocatorPreallocate(prealloc, PETSC_TRUE, pA);
+
+  MatDestroy(&prealloc);
+  MatSetOption(pA, MAT_NEW_NONZERO_LOCATION_ERR, PETSC_TRUE);
+  MatSetOption(pA, MAT_KEEP_NONZERO_PATTERN, PETSC_TRUE);
 }
 
 
 void PETScMatrix::initAssembly (const SAM& sam, char)
 {
-  this->resize(sam.neq,sam.neq);
-  if (!adm.dd.isPartitioned())
-    this->preAssemble(sam,false);
-
   // Get number of local equations in linear system
   PetscInt neq = adm.dd.getMaxEq() - adm.dd.getMinEq() + 1;
   // Set correct number of rows and columns for matrix.
   MatSetSizes(pA,neq,neq,PETSC_DETERMINE,PETSC_DETERMINE);
 
   // Allocate sparsity pattern
-  std::vector<IntSet> dofc;
-  if (!adm.dd.isPartitioned())
-    sam.getDofCouplings(dofc);
-
   if (matvec.empty()) {
     MatSetFromOptions(pA);
 
     // Allocate sparsity pattern
-    if (adm.isParallel() && !adm.dd.isPartitioned())
-      this->setupSparsityDD(sam);
-    else if (adm.dd.isPartitioned())
-      this->setupSparsityPartitioned(sam);
-    else
-      this->setupSparsitySerial(sam);
+    if (adm.dd.isPartitioned())
+      this->setupSparsity(adm.dd.getElms(), sam);
+    else {
+      std::vector<int> elms(sam.nel);
+      std::iota(elms.begin(), elms.end(), 0);
+      this->setupSparsity(elms, sam);
+    }
 
     MatSetUp(pA);
 
@@ -280,7 +440,7 @@ void PETScMatrix::initAssembly (const SAM& sam, char)
     // index sets
     for (size_t i = 0; i < isvec.size(); ++i) {
       IntVec blockEq;
-      blockEq.reserve(adm.dd.getMaxEq(i+1)-adm.dd.getMinEq(i+1)+1);
+      blockEq.reserve(adm.dd.getMaxEq(i+1) - adm.dd.getMinEq(i+1) + 1);
       for (int leq : adm.dd.getBlockEqs(i)) {
         int eq = adm.dd.getGlobalEq(leq);
         if (eq >= adm.dd.getMinEq() && eq <= adm.dd.getMaxEq())
@@ -293,12 +453,13 @@ void PETScMatrix::initAssembly (const SAM& sam, char)
                       blockEq.data(),PETSC_COPY_VALUES,&isvec[i]);
     }
 
-    if (adm.isParallel() && !adm.dd.isPartitioned())
-      this->setupBlockSparsityDD(sam);
-    else if (adm.dd.isPartitioned())
-      this->setupBlockSparsityPartitioned(sam);
-    else
-      this->setupBlockSparsitySerial(sam);
+    if (adm.dd.isPartitioned())
+      this->setupBlockSparsity(adm.dd.getElms(), sam);
+    else {
+      std::vector<int> elms(sam.nel);
+      std::iota(elms.begin(), elms.end(), 0);
+      this->setupBlockSparsity(elms, sam);
+    }
 
     MatCreateNest(*adm.getCommunicator(),solParams.getNoBlocks(),isvec.data(),
                   solParams.getNoBlocks(),isvec.data(),matvec.data(),&pA);
@@ -310,372 +471,222 @@ void PETScMatrix::initAssembly (const SAM& sam, char)
  #endif
   }
 
+  MatGetSize(pA, &nrow, &ncol);
   assembled = false;
 }
 
 
-void PETScMatrix::setupSparsityDD (const SAM& sam)
+bool PETScMatrix::init (int maxEq,
+                        const IntMat* elms,
+                        const IntMat* neighs,
+                        const IntVec* part)
 {
-  // Allocate sparsity pattern
-  std::vector<IntSet> dofc;
-  sam.getDofCouplings(dofc);
+  int neq = maxEq;
+  m_dd = std::make_unique<DomainDecomposition>();
+  if (adm.dd.isPartitioned()) {
+    if (part)
+      m_dd->setElms(*part, "");
+    m_dd->setup(adm,*neighs,*elms);
+    neq = m_dd->getMaxEq() - m_dd->getMinEq() + 1;
+  } else
+    m_dd->setup(maxEq);
 
-  int ifirst = adm.dd.getMinEq();
-  int ilast  = adm.dd.getMaxEq();
-  PetscInt neq = ilast - ifirst + 1;
-  PetscIntVec d_nnz(neq, 0);
-  IntVec o_nnz_g(adm.dd.getNoGlbEqs(), 0);
-  for (int i = 0; i < sam.neq; ++i) {
-    int eq = adm.dd.getGlobalEq(i+1);
-    if (eq >= adm.dd.getMinEq() && eq <= adm.dd.getMaxEq())
-      for (int leq : dofc[i]) {
-        int g = adm.dd.getGlobalEq(leq);
-        if (g >= adm.dd.getMinEq() && g <= adm.dd.getMaxEq())
-          ++d_nnz[eq-adm.dd.getMinEq()];
-        else if (g > 0)
-          ++o_nnz_g[eq-1];
-      }
-    else
-      o_nnz_g[eq-1] += dofc[i].size();
-  }
+  MatSetFromOptions(pA);
+  MatSetSizes(pA, neq, neq, PETSC_DETERMINE, PETSC_DETERMINE);
+  MatSetUp(pA);
+  MatGetSize(pA, &nrow, &ncol);
 
-  adm.allReduceAsSum(o_nnz_g);
-
-  PetscIntVec o_nnz(o_nnz_g.begin()+ifirst-1, o_nnz_g.begin()+ilast);
-
-  // TODO: multiplier cause big overallocation due to no multiplicity handling
-  for (PetscInt& nnz : o_nnz)
-    nnz = std::min(nnz, adm.dd.getNoGlbEqs());
-
-  MatMPIAIJSetPreallocation(pA,PETSC_DEFAULT,d_nnz.data(),
-                            PETSC_DEFAULT,o_nnz.data());
+  return true;
 }
 
 
-void PETScMatrix::setupSparsityPartitioned (const SAM& sam)
+Mat PETScMatrix::preAllocator (const int nrows, const int ncols) const
 {
-  // Setup sparsity pattern for global matrix
-  PetscInt neq = adm.dd.getMaxEq() - adm.dd.getMinEq() + 1;
-  SparseMatrix* lA = new SparseMatrix(neq, sam.neq);
-  int iMin = adm.dd.getMinEq(0);
-  int iMax = adm.dd.getMaxEq(0);
-  for (int elm = 1; elm <= sam.nel; ++elm) {
-    IntSet meen;
-    sam.getUniqueEqns(meen,elm);
-    for (int i : meen)
-      if (adm.dd.getGlobalEq(i) >= iMin && adm.dd.getGlobalEq(i) <= iMax)
-        for (int j : meen)
-          (*lA)(adm.dd.getGlobalEq(i)-iMin+1,adm.dd.getGlobalEq(j)) = 0.0;
-  }
-  IntVec iA, jA;
-  lA->calcCSR(iA,jA);
-  delete lA;
-  MatMPIAIJSetPreallocationCSR(pA, iA.data(), jA.data(), nullptr);
+  Mat prealloc;
+  MatCreate(*adm.getCommunicator(), &prealloc);
+  MatSetType(prealloc, MATPREALLOCATOR);
+  MatSetSizes(prealloc, nrows, ncols > 0 ? ncols : nrows,
+              PETSC_DETERMINE, PETSC_DETERMINE);
+  MatSetUp(prealloc);
 
-  // Setup sparsity pattern for local matrix
-  for (int elm : adm.dd.getElms()) {
-    IntSet meen;
-    sam.getUniqueEqns(meen,elm+1);
-    for (int i : meen)
-      for (int j : meen)
-        (*this)(i,j) = 0.0;
-  }
-  this->optimiseCols();
+  return prealloc;
 }
 
 
-void PETScMatrix::setupSparsitySerial (const SAM& sam)
+std::vector<Mat>
+PETScMatrix::preAllocators () const
 {
-  std::vector<IntSet> dofc;
-  sam.getDofCouplings(dofc);
-  PetscIntVec Nnz;
-  for (const IntSet& dofs : dofc)
-    Nnz.push_back(dofs.size());
-
-  MatSeqAIJSetPreallocation(pA,PETSC_DEFAULT,Nnz.data());
-
-  PetscIntVec col;
-  for (const IntSet& dofs : dofc)
-    for (int dof : dofs)
-      col.push_back(dof-1);
-
-  MatSeqAIJSetColumnIndices(pA,&col[0]);
-  MatSetOption(pA, MAT_NEW_NONZERO_LOCATION_ERR, PETSC_TRUE);
-  MatSetOption(pA, MAT_KEEP_NONZERO_PATTERN, PETSC_TRUE);
-}
-
-
-std::vector<std::array<int,2>> PETScMatrix::setupGlb2Blk (const SAM& sam)
-{
-  // map from sparse matrix indices to block matrix indices
-  glb2Blk.resize(A.size());
-  size_t blocks = solParams.getNoBlocks();
-  const DomainDecomposition& dd = adm.dd;
-  std::vector<std::array<int,2>> eq2b(sam.neq, {{-1, 0}}); // cache
-
-  for (size_t j = 0; j < cols(); ++j)
-    for (int i = IA[j]; i < IA[j+1]; ++i) {
-      int iblk = -1;
-      int jblk = -1;
-      if (eq2b[JA[i]][0] != -1) {
-        iblk = eq2b[JA[i]][0];
-        glb2Blk[i][1] = eq2b[JA[i]][1];
-      } if (eq2b[j][0] != -1) {
-        jblk = eq2b[j][0];
-        glb2Blk[i][2] = eq2b[j][1];
-      }
-
-      for (size_t b = 0; b < blocks && (iblk == -1 || jblk == -1); ++b) {
-        std::map<int,int>::const_iterator it;
-        if (iblk == -1 && (it = dd.getG2LEQ(b+1).find(JA[i]+1)) != dd.getG2LEQ(b+1).end()) {
-          iblk = b;
-          eq2b[JA[i]][0] = b;
-          eq2b[JA[i]][1] = glb2Blk[i][1] = it->second-1;
-        }
-
-        if (jblk == -1 && (it = dd.getG2LEQ(b+1).find(j+1)) != dd.getG2LEQ(b+1).end()) {
-          jblk = b;
-          eq2b[j][0] = b;
-          eq2b[j][1] = glb2Blk[i][2] = it->second-1;
-        }
-      }
-      if (iblk == -1 || jblk == -1) {
-        std::cerr << "Failed to map (" << JA[i]+1 << ", " << j+1 << ") " << std::endl;
-        std::cerr << "iblk: " << iblk << ", jblk: " << jblk << std::endl;
-        assert(0);
-      }
-      glb2Blk[i][0] = iblk*solParams.getNoBlocks() + jblk;
-    }
-
-  return eq2b;
-}
-
-
-void PETScMatrix::setupGlb2BlkPart (const SAM& sam)
-{
-  // map from sparse matrix indices to block matrix indices
-  glb2Blk.resize(A.size());
-  size_t blocks = solParams.getNoBlocks();
-  const DomainDecomposition& dd = adm.dd;
-  std::vector<std::array<int,2>> eq2b(sam.neq, {{-1, 0}}); // cache
-
-  for (size_t j = 0; j < cols(); ++j)
-    for (int i = IA[j]; i < IA[j+1]; ++i) {
-      int iblk = -1;
-      int jblk = -1;
-      if (eq2b[JA[i]][0] != -1) {
-        iblk = eq2b[JA[i]][0];
-        glb2Blk[i][1] = eq2b[JA[i]][1];
-      } if (eq2b[j][0] != -1) {
-        jblk = eq2b[j][0];
-        glb2Blk[i][2] = eq2b[j][1];
-      }
-
-      for (size_t b = 0; b < blocks && (iblk == -1 || jblk == -1); ++b) {
-        if (iblk == -1 && dd.getBlockEqs(b).find(JA[i]+1) != dd.getBlockEqs(b).end()) {
-          iblk = b;
-          eq2b[JA[i]][0] = b;
-          eq2b[JA[i]][1] = glb2Blk[i][1] = dd.getMLGEQ(b+1)[JA[i]]-1;
-        }
-
-        if (jblk == -1 && dd.getBlockEqs(b).find(j+1) != dd.getBlockEqs(b).end()) {
-          jblk = b;
-          eq2b[j][0] = b;
-          eq2b[j][1] = glb2Blk[i][2] = dd.getMLGEQ(b+1)[j]-1;
-        }
-      }
-      if (iblk == -1 || jblk == -1) {
-        std::cerr << "Failed to map (" << JA[i]+1 << ", " << j+1 << ") " << std::endl;
-        std::cerr << "iblk: " << iblk << ", jblk: " << jblk << std::endl;
-        assert(0);
-      }
-      glb2Blk[i][0] = iblk*solParams.getNoBlocks() + jblk;
-    }
-}
-
-
-void PETScMatrix::setupBlockSparsityDD (const SAM& sam)
-{
-  size_t blocks = solParams.getNoBlocks();
-  const DomainDecomposition& dd = adm.dd;
-  std::vector<IntSet> dofc;
-  sam.getDofCouplings(dofc);
-  std::vector<std::array<int,2>> eq2b = this->setupGlb2Blk(sam);
-
-  std::vector<PetscIntVec> d_nnz(blocks*blocks);
-  std::vector<IntVec> o_nnz_g(blocks*blocks);
-  size_t k = 0;
-  for (size_t i = 0; i < blocks; ++i)
-    for (size_t j = 0; j < blocks; ++j, ++k) {
-      d_nnz[k].resize(dd.getMaxEq(i+1)-dd.getMinEq(i+1)+1);
-      o_nnz_g[k].resize(dd.getNoGlbEqs(i+1));
-    }
-
-  for (int i = 0; i < sam.neq; ++i) {
-    int blk = eq2b[i][0]+1;
-    int row = eq2b[i][1]+1;
-    int grow = dd.getGlobalEq(row, blk);
-
-    if (grow >= dd.getMinEq(blk) && grow <= dd.getMaxEq(blk))
-      for (int dof : dofc[i]) {
-        int cblk = eq2b[dof-1][0]+1;
-        int col = eq2b[dof-1][1]+1;
-        int gcol = dd.getGlobalEq(col, cblk);
-        if (gcol >= dd.getMinEq(cblk) && gcol <= dd.getMaxEq(cblk))
-          ++d_nnz[(blk-1)*blocks + cblk-1][grow-dd.getMinEq(blk)];
-        else
-          ++o_nnz_g[(blk-1)*blocks + cblk-1][grow-1];
-      }
-    else
-      for (int dof : dofc[i]) {
-        int cblk = eq2b[dof-1][0]+1;
-        ++o_nnz_g[(blk-1)*blocks+cblk-1][grow-1];
-      }
-  }
-
-  for (size_t i = k = 0; i < blocks; ++i)
-    for (size_t j = 0; j < blocks; ++j, ++k) {
-      int nrows = dd.getMaxEq(i+1)-dd.getMinEq(i+1)+1;
-      int ncols = dd.getMaxEq(j+1)-dd.getMinEq(j+1)+1;
-      MatSetSizes(matvec[k], nrows, ncols,
-                  PETSC_DETERMINE, PETSC_DETERMINE);
-      MatSetFromOptions(matvec[k]);
-      adm.allReduceAsSum(o_nnz_g[k]);
-      PetscIntVec o_nnz(o_nnz_g[k].begin()+dd.getMinEq(i+1)-1, o_nnz_g[k].begin()+dd.getMaxEq(i+1));
-
-      // TODO: multiplier cause big overallocation due to no multiplicity handling
-      for (PetscInt& nnz : o_nnz)
-        nnz = std::min(nnz, dd.getNoGlbEqs(j+1));
-
-      MatMPIAIJSetPreallocation(matvec[k],PETSC_DEFAULT,d_nnz[k].data(),
-                                PETSC_DEFAULT,o_nnz.data());
-      MatSetUp(matvec[k]);
-    }
-}
-
-
-void PETScMatrix::setupBlockSparsityPartitioned (const SAM& sam)
-{
-  size_t blocks = solParams.getNoBlocks();
-  const DomainDecomposition& dd = adm.dd;
-
-  // Setup sparsity pattern for local matrix
-  for (int elm : adm.dd.getElms()) {
-    IntSet meen;
-    sam.getUniqueEqns(meen,elm+1);
-    for (int i : meen)
-      for (int j : meen)
-        (*this)(i,j) = 0.0;
-  }
-  this->optimiseCols();
-
-  this->setupGlb2BlkPart(sam);
-
+  const size_t blocks = solParams.getNoBlocks();
   std::vector<Mat> prealloc;
   prealloc.resize(blocks*blocks);
   auto itPre = prealloc.begin();
   for (size_t i = 0; i < blocks; ++i)
     for (size_t j = 0; j < blocks; ++j, ++itPre) {
-      MatCreate(*adm.getCommunicator(), &(*itPre));
-      MatSetType(*itPre, MATPREALLOCATOR);
-      int nrows = dd.getMaxEq(i+1)-dd.getMinEq(i+1)+1;
-      int ncols = dd.getMaxEq(j+1)-dd.getMinEq(j+1)+1;
-      MatSetSizes(*itPre, nrows, ncols,
-                  PETSC_DETERMINE, PETSC_DETERMINE);
-      MatSetUp(*itPre);
+      const int nrows = adm.dd.getMaxEq(i+1) - adm.dd.getMinEq(i+1) + 1;
+      const int ncols = adm.dd.getMaxEq(j+1) - adm.dd.getMinEq(j+1) + 1;
+      *itPre = preAllocator(nrows, ncols);
     }
 
-  Mat pBlock;
-  MatCreate(*adm.getCommunicator(), &pBlock);
-  MatCreateNest(*adm.getCommunicator(),solParams.getNoBlocks(),isvec.data(),
-                solParams.getNoBlocks(),isvec.data(),prealloc.data(),&pBlock);
-
-  std::swap(matvec, prealloc);
-  std::swap(pBlock, pA);
-  this->endAssembly();
-  std::swap(pBlock, pA);
-  std::swap(matvec, prealloc);
-  MatDestroy(&pBlock);
-
-  auto it = matvec.begin();
-  itPre = prealloc.begin();
-  for (size_t i = 0; i < blocks; ++i)
-    for (size_t j = 0; j < blocks; ++j, ++it, ++itPre) {
-      int nrows = dd.getMaxEq(i+1)-dd.getMinEq(i+1)+1;
-      int ncols = dd.getMaxEq(j+1)-dd.getMinEq(j+1)+1;
-      MatSetSizes(*it, nrows, ncols,
-                  PETSC_DETERMINE, PETSC_DETERMINE);
-
-      MatPreallocatorPreallocate(*itPre, PETSC_TRUE, *it);
-
-      MatSetUp(*it);
-    }
-
-  for (Mat& pmat : prealloc)
-    MatDestroy(&pmat);
+  return prealloc;
 }
 
 
-void PETScMatrix::setupBlockSparsitySerial (const SAM& sam)
+void PETScMatrix::setupSparsity (const IntVec& elms,
+                                 const SAM& sam)
 {
-  size_t blocks = solParams.getNoBlocks();
-  const DomainDecomposition& dd = adm.dd;
-  std::vector<IntSet> dofc;
-  sam.getDofCouplings(dofc);
+  PetscInt neq = adm.dd.getMaxEq() - adm.dd.getMinEq() + 1;
+  Mat prealloc = preAllocator(neq);
+
+  std::swap(pA, prealloc);
+  std::for_each(elms.begin(), elms.end(),
+                [this, &sam](const int elm)
+                {
+                  IntVec meen;
+                  sam.getElmEqns(meen, elm+1);
+                  this->assemble(Matrix(meen.size(), meen.size()), sam, elm+1);
+                });
+  this->endAssembly();
+  std::swap(pA, prealloc);
+
+  MatPreallocatorPreallocate(prealloc, PETSC_TRUE, pA);
+
+  MatDestroy(&prealloc);
+  MatSetOption(pA, MAT_NEW_NONZERO_LOCATION_ERR, PETSC_TRUE);
+  MatSetOption(pA, MAT_KEEP_NONZERO_PATTERN, PETSC_TRUE);
+}
+
+
+void PETScMatrix::setupBlockSparsity (const IntVec& elms,
+                                      const SAM& sam)
+{
+  auto prealloc = preAllocators();
   this->setupGlb2Blk(sam);
 
-  auto it = matvec.begin();
-  for (size_t i = 0; i < blocks; ++i)
-    for (size_t j = 0; j < blocks; ++j, ++it) {
-      std::vector<PetscInt> nnz;
-      nnz.reserve(dd.getBlockEqs(i).size());
-      for (int leq : dd.getBlockEqs(i))
-        nnz.push_back(std::min(dofc[leq-1].size(), dd.getBlockEqs(j).size()));
+  std::swap(matvec, prealloc);
+  std::for_each(elms.begin(), elms.end(),
+                [this, &sam](const int elm)
+                {
+                  IntVec meen;
+                  sam.getElmEqns(meen, elm+1);
+                  this->assemble(Matrix(meen.size(), meen.size()), sam, elm+1);
+                });
+  std::swap(matvec, prealloc);
 
-      int nrows = dd.getMaxEq(i+1)-dd.getMinEq(i+1)+1;
-      int ncols = dd.getMaxEq(j+1)-dd.getMinEq(j+1)+1;
+  for (Mat& pmat : prealloc) {
+    MatAssemblyBegin(pmat, MAT_FINAL_ASSEMBLY);
+    MatAssemblyEnd(pmat, MAT_FINAL_ASSEMBLY);
+  }
+
+  const size_t blocks = solParams.getNoBlocks();
+
+  auto it = matvec.begin();
+  auto itPre = prealloc.begin();
+  for (size_t i = 0; i < blocks; ++i)
+    for (size_t j = 0; j < blocks; ++j, ++it, ++itPre) {
+      const int nrows = adm.dd.getMaxEq(i+1) - adm.dd.getMinEq(i+1) + 1;
+      const int ncols = adm.dd.getMaxEq(j+1) - adm.dd.getMinEq(j+1) + 1;
       MatSetSizes(*it, nrows, ncols,
                   PETSC_DETERMINE, PETSC_DETERMINE);
-
-      MatSeqAIJSetPreallocation(*it, PETSC_DEFAULT, nnz.data());
+      MatPreallocatorPreallocate(*itPre, PETSC_TRUE, *it);
       MatSetUp(*it);
+
+      MatDestroy(&*itPre);
+      MatSetOption(*it, MAT_NEW_NONZERO_LOCATION_ERR, PETSC_TRUE);
+      MatSetOption(*it, MAT_KEEP_NONZERO_PATTERN, PETSC_TRUE);
     }
+}
+
+
+void PETScMatrix::setupGlb2Blk (const SAM& sam)
+{
+  // map from SAM indices to block matrix indices
+  size_t blocks = solParams.getNoBlocks();
+  glb2Blk.resize(sam.neq, {});
+  const DomainDecomposition& dd = adm.dd;
+
+  for (int ieq = 1; ieq <= sam.neq; ++ieq)
+    for (size_t b = 0; b < blocks; ++b) {
+      if (const auto it = dd.getG2LEQ(b+1).find(ieq);
+          it != dd.getG2LEQ(b+1).end())
+      {
+        glb2Blk[ieq-1][0] = b;
+        if (adm.isParallel())
+          glb2Blk[ieq-1][1] = adm.dd.isPartitioned()
+                                  ? adm.dd.getGlobalEq(ieq, b+1)
+                                  : adm.dd.getGlobalEq(it->second, b+1);
+        else
+          glb2Blk[ieq-1][1] = it->second;
+        break;
+      }
+    }
+}
+
+
+bool PETScMatrix::assemble (const Matrix& eM, const SAM& sam, int e)
+{
+  IntVec meen;
+  if (!sam.getElmEqns(meen,e,eM.rows()))
+    return false;
+
+#pragma omp critical
+  assemPETSc(eM,*this,nullptr,adm.dd,glb2Blk,meen,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);
+
+  return this->flagNonZeroEqs(meen);
+}
+
+
+bool PETScMatrix::assemble (const Matrix& eM, const SAM& sam,
+                            SystemVector& B, int e)
+{
+  StdVector* Bptr = dynamic_cast<StdVector*>(&B);
+  if (!Bptr) return false;
+
+  IntVec meen;
+  if (!sam.getElmEqns(meen,e,eM.rows()))
+    return false;
+
+#pragma omp critical
+  assemPETSc(eM,*this,Bptr,adm.dd,glb2Blk,meen,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);
+
+  return this->flagNonZeroEqs(meen);
+}
+
+
+bool PETScMatrix::assemble (const Matrix& eM, const SAM& sam,
+                            SystemVector& B, const IntVec& meq)
+{
+  PETScVector* Bptr = dynamic_cast<PETScVector*>(&B);
+  if (!Bptr) return false;
+
+  if (eM.rows() < meq.size() || eM.cols() < meq.size())
+    return false;
+
+#pragma omp critical
+  assemPETSc(eM,*this,Bptr,adm.dd,glb2Blk,meq,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);
+
+  return this->flagNonZeroEqs(meq);
+}
+
+
+bool PETScMatrix::assemble (const Matrix& eM, const IntVec& meq)
+{
+#pragma omp critical
+  for (size_t i = 0; i < meq.size(); ++i)
+    for (size_t j = 0; j < meq.size(); ++j)
+      if (m_dd)
+        MatSetValue(pA, m_dd->getGlobalEq(meq[i]+1)-1,
+                     m_dd->getGlobalEq(meq[j]+1)-1, eM(i+1, j+1), ADD_VALUES);
+      else
+        MatSetValue(pA, meq[i], meq[j], eM(i+1, j+1), ADD_VALUES);
+
+  return true;
 }
 
 
 bool PETScMatrix::endAssembly ()
 {
-  if (!this->SparseMatrix::endAssembly())
-    return false;
-
-  if (IA.empty() && !assembled)
-    return this->assembleDirect();
-
-  for (size_t j = 0; j < cols(); ++j)
-    for (int i = IA[j]; i < IA[j+1]; ++i)
-      if (matvec.empty())
-        MatSetValue(pA,
-                    adm.dd.getGlobalEq(JA[i]+1)-1,
-                    adm.dd.getGlobalEq(j+1)-1,
-                    A[i], ADD_VALUES);
-      else if (adm.dd.isPartitioned())
-        MatSetValue(matvec[glb2Blk[i][0]],
-                    glb2Blk[i][1],
-                    glb2Blk[i][2],
-                    A[i], ADD_VALUES);
-      else
-      {
-        int rblock = glb2Blk[i][0] / adm.dd.getNoBlocks() + 1;
-        int cblock = glb2Blk[i][0] % adm.dd.getNoBlocks() + 1;
-        MatSetValue(matvec[glb2Blk[i][0]],
-                    adm.dd.getGlobalEq(glb2Blk[i][1]+1, rblock)-1,
-                    adm.dd.getGlobalEq(glb2Blk[i][2]+1, cblock)-1,
-                    A[i], ADD_VALUES);
-      }
-
   MatAssemblyBegin(pA,MAT_FINAL_ASSEMBLY);
   MatAssemblyEnd(pA,MAT_FINAL_ASSEMBLY);
-
   assembled = true;
 
   return true;
@@ -684,8 +695,6 @@ bool PETScMatrix::endAssembly ()
 
 void PETScMatrix::init ()
 {
-  this->SparseMatrix::init();
-
   // Set all matrix elements to zero
   if (matvec.empty())
     MatZeroEntries(pA);
@@ -693,6 +702,12 @@ void PETScMatrix::init ()
     MatZeroEntries(m);
 
   assembled = false;
+}
+
+
+void PETScMatrix::mult (Real alpha)
+{
+  MatScale(pA, alpha);
 }
 
 
@@ -714,9 +729,6 @@ bool PETScMatrix::solve (SystemVector& B, Real*)
   PETScVector* Bptr = dynamic_cast<PETScVector*>(&B);
   if (!Bptr)
     return false;
-
-  if (!A.empty() && !assembled)
-    return this->solveDirect(*Bptr);
 
   Vec x;
   VecDuplicate(Bptr->getVector(),&x);
@@ -798,96 +810,47 @@ bool PETScMatrix::solve (const Vec& b, Vec& x, bool knoll)
 }
 
 
-bool PETScMatrix::assembleDirect ()
+bool PETScMatrix::solveMultipleRhs (PETScVectors& B, Matrix& sField)
 {
-  MatSetSizes(pA, PETSC_DETERMINE, PETSC_DETERMINE, this->dim(1), this->dim(2));
+  Vec xg;
+  VecScatter ctx;
+  if (m_dd && m_dd->isPartitioned())
+    VecScatterCreateToAll(B.get(0), &ctx, &xg);
 
-  if (this->adm.isParallel()) {
-    MatSetOption(pA, MAT_NEW_NONZERO_LOCATION_ERR, PETSC_FALSE);
-  } else {
-    IntVec iA, jA;
-    this->calcCSR(iA,jA);
-    MatMPIAIJSetPreallocationCSR(pA, iA.data(), jA.data(), nullptr);
-    MatSetOption(pA, MAT_NEW_NONZERO_LOCATION_ERR, PETSC_TRUE);
-  }
+  Vec x;
+  VecDuplicate(B.get(0), &x);
 
-  MatSetUp(pA);
-  PetscInt low, high;
+  for (size_t i = 0; i < B.size(); ++i) {
+    VecAssemblyBegin(B.get(i));
+    VecAssemblyEnd(B.get(i));
 
-  MatGetOwnershipRange(pA, &low, &high);
-
-  for (const auto& e : this->getValues())
-    if (static_cast<PetscInt>(e.first.first-1) >= low &&
-        static_cast<PetscInt>(e.first.first-1) < high)
-      MatSetValue(pA, e.first.first-1, e.first.second-1, e.second, INSERT_VALUES);
-
-  MatAssemblyBegin(pA,MAT_FINAL_ASSEMBLY);
-  MatAssemblyEnd(pA,MAT_FINAL_ASSEMBLY);
-  this->assembled = true;
-
-  return true;
-}
-
-
-bool PETScMatrix::solveDirect (PETScVector& B)
-{
-  // the sparsity pattern has been grown in-place, we need to init PETsc state.
-  // this is currently only used for patch-global L2 systems.
-  if (A.empty() && !this->optimiseCols())
-    return false;
-
-  // Set correct number of rows and columns for matrix.
-  size_t nrow = IA.size()-1;
-  if (nrow == 0 || IA.empty())
-    return false;
-
-  MatSetSizes(pA, nrow, nrow, PETSC_DECIDE, PETSC_DECIDE);
-  MatSetFromOptions(pA);
-  PetscInt max = 0;
-  for (size_t i = 0; i < nrow; ++i) // symmetric so row/column sizes should be the same
-    if (IA[i+1]-IA[i] > max)
-      max = IA[i+1]-IA[i];
-  MatSeqAIJSetPreallocation(pA, max, nullptr);
-  MatSetOption(pA, MAT_NEW_NONZERO_LOCATION_ERR, PETSC_FALSE);
-  MatSetUp(pA);
-
-  for (size_t j = 0; j < nrow; ++j)
-    for (int i = IA[j]; i < IA[j+1]; ++i)
-      MatSetValue(pA, JA[i], j, A[i], INSERT_VALUES);
-
-  MatAssemblyBegin(pA,MAT_FINAL_ASSEMBLY);
-  MatAssemblyEnd(pA,MAT_FINAL_ASSEMBLY);
-
-  Vec B1, x;
-  VecCreate(PETSC_COMM_SELF, &B1);
-  VecCreate(PETSC_COMM_SELF, &x);
-  VecSetSizes(B1, nrow, PETSC_DECIDE);
-  VecSetSizes(x, nrow, PETSC_DECIDE);
-  VecSetFromOptions(B1);
-  VecSetFromOptions(x);
-
-  size_t nrhs = B.dim() / nrow;
-  PetscScalar* bv;
-  VecGetArray(B.getVector(), &bv);
-  for (size_t i = 0; i < nrhs; ++i) {
-    for (size_t j = 0; j < nrow; ++j)
-      VecSetValue(B1, j, bv[j*nrow+i], INSERT_VALUES);
-
-    VecAssemblyBegin(B1);
-    VecAssemblyEnd(B1);
-
-    if (!this->solve(B1, x, false))
+    if (!this->solve(B.get(i), x, false))
       return false;
-    PetscScalar* aa;
-    VecGetArray(x, &aa);
-    std::copy(aa, aa+nrow, B.getPtr()+i*nrow);
-    std::copy(aa, aa+nrow, bv+i*nrow);
-    VecRestoreArray(x, &aa);
+
+    if (m_dd && m_dd->isPartitioned()) {
+      VecScatterBegin(ctx, x, xg, INSERT_VALUES, SCATTER_FORWARD);
+      VecScatterEnd(ctx, x, xg, INSERT_VALUES, SCATTER_FORWARD);
+      PetscScalar* ga;
+      VecGetArray(xg, &ga);
+      const auto& g2leq = m_dd->getG2LEQ(0);
+      for (const auto& it : g2leq)
+        sField(i+1, it.second) = ga[it.first-1];
+      VecRestoreArray(xg, &ga);
+    } else {
+      PetscScalar* xa;
+      VecGetArray(x, &xa);
+      for (size_t eq = 0; eq < B.dim(); ++eq)
+        sField(i+1, eq+1) = xa[eq];
+      VecRestoreArray(x, &xa);
+    }
   }
-  VecRestoreArray(B.getVector(), &bv);
 
   VecDestroy(&x);
-  VecDestroy(&B1);
+
+  if (m_dd && m_dd->isPartitioned()) {
+    VecDestroy(&xg);
+    VecScatterDestroy(&ctx);
+  }
 
   return true;
 }
@@ -939,14 +902,14 @@ bool PETScMatrix::solveEig (PETScMatrix& B, RealArray& val,
 
   Vec gr;
   VecScatter ctx;
-  if (adm.isParallel())
+  if (adm.dd.isPartitioned())
     VecScatterCreateToAll(xr, &ctx, &gr);
 
   for (int i = 0; i < std::min(nv, nconv); ++i) {
     PetscScalar kr, ki;
     EPSGetEigenpair(eps, i, &kr, &ki, xr, xi);
     val[i] = kr;
-    if (adm.isParallel()) {
+    if (adm.dd.isPartitioned()) {
       VecScatterBegin(ctx, xr, gr, INSERT_VALUES, SCATTER_FORWARD);
       VecScatterEnd(ctx, xr, gr, INSERT_VALUES, SCATTER_FORWARD);
       PetscScalar* grarr;
@@ -966,7 +929,7 @@ bool PETScMatrix::solveEig (PETScMatrix& B, RealArray& val,
   VecDestroy(&xi);
   VecDestroy(&xr);
 
-  if (adm.isParallel()) {
+  if (adm.dd.isPartitioned()) {
     VecDestroy(&gr);
     VecScatterDestroy(&ctx);
   }
@@ -1010,8 +973,8 @@ bool PETScMatrix::setParameters (bool setup)
   else {
     PCSetType(pc,PCFIELDSPLIT);
     PetscInt nsplit;
-    KSP  *subksp;
-    PC   subpc[2];
+    KSP* subksp;
+    std::array<PC,2> subpc;
 
     PCFieldSplitSetIS(pc,"u",isvec[0]);
     PCFieldSplitSetIS(pc,"p",isvec[1]);
@@ -1033,8 +996,8 @@ bool PETScMatrix::setParameters (bool setup)
     PCFieldSplitGetSubKSP(pc,&nsplit,&subksp);
 
     // Preconditioner for blocks
-    char pchar='1';
-    for (PetscInt m = 0; m < nsplit; m++, pchar++) {
+    char pchar = '1';
+    for (PetscInt m = 0; m < nsplit; ++m, ++pchar) {
       std::string prefix;
       if (nsplit == 2) {
         if (m == 0)
@@ -1064,7 +1027,13 @@ bool PETScMatrix::setParameters (bool setup)
 }
 
 
-PETScVector operator*(const SystemMatrix& A, const PETScVector& b)
+const DomainDecomposition& PETScMatrix::getDD () const
+{
+  return m_dd ? *m_dd : adm.dd;
+}
+
+
+PETScVector operator* (const SystemMatrix& A, const PETScVector& b)
 {
   PETScVector results(b.getAdm());
   A.multiply(b, results);
@@ -1072,7 +1041,7 @@ PETScVector operator*(const SystemMatrix& A, const PETScVector& b)
 }
 
 
-PETScVector operator/(SystemMatrix& A, const PETScVector& b)
+PETScVector operator/ (SystemMatrix& A, const PETScVector& b)
 {
   PETScVector results(b.getAdm());
   A.solve(b, results);
