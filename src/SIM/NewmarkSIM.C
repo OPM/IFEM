@@ -306,7 +306,8 @@ bool NewmarkSIM::predictStep (TimeStep& param)
   std::cout <<"Predicted acceleration:"<< solution[iA];
 #endif
 
-  if (predictor == 'd') return true;
+  if (predictor == 'd')
+    return true;
 
   if (rotUpd == 't')
     model.updateRotations(solution[iD]);
@@ -367,12 +368,12 @@ SIM::ConvStatus NewmarkSIM::solveStep (TimeStep& param, SIM::SolutionMode,
   if (subiter&FIRST && !this->predictStep(param))
     return SIM::FAILURE;
 
-  if (!model.setMode(SIM::DYNAMIC))
+  bool newTangent = param.time.first || nupdat > 0;
+  if (!model.setMode(newTangent ? SIM::DYNAMIC : SIM::RHS_ONLY, false))
     return SIM::FAILURE;
 
   model.setQuadratureRule(opt.nGauss[0],true);
-  if (!model.assembleSystem(param.time, solution,
-                            param.time.first || nupdat > 0))
+  if (!model.assembleSystem(param.time,solution,newTangent))
     return SIM::FAILURE;
 
   this->finalizeRHSvector(!param.time.first);
@@ -410,7 +411,9 @@ SIM::ConvStatus NewmarkSIM::solveStep (TimeStep& param, SIM::SolutionMode,
         return SIM::DIVERGED;
 
       default:
-        param.iter++;
+        if (++param.iter > nupdat)
+          newTangent = false;
+
         if (!this->correctStep(param))
           return SIM::FAILURE;
 
@@ -419,14 +422,15 @@ SIM::ConvStatus NewmarkSIM::solveStep (TimeStep& param, SIM::SolutionMode,
           double time = param.time.t + (param.time.dt*param.iter)/maxit;
           if (!this->saveStep(this->getLastSavedStep()+1,time))
             return SIM::FAILURE;
-          else if (!model.setMode(SIM::DYNAMIC))
-            return SIM::FAILURE;
         }
 
         if (subiter&FIRST && param.iter == 1 && !model.updateDirichlet())
           return SIM::FAILURE;
 
-        if (!model.assembleSystem(param.time, solution, param.iter < nupdat))
+        if (!model.setMode(newTangent ? SIM::DYNAMIC : SIM::RHS_ONLY))
+          return SIM::FAILURE;
+
+        if (!model.assembleSystem(param.time,solution,newTangent))
           return SIM::FAILURE;
 
         this->finalizeRHSvector(false);
@@ -459,10 +463,11 @@ SIM::ConvStatus NewmarkSIM::solveIteration (TimeStep& param)
   if (!ok)
     return SIM::FAILURE;
 
-  if (!model.setMode(SIM::DYNAMIC))
+  bool newTangent = param.iter <= nupdat;
+  if (!model.setMode(newTangent ? SIM::DYNAMIC : SIM::RHS_ONLY))
     return SIM::FAILURE;
 
-  if (!model.assembleSystem(param.time, solution, param.iter < nupdat))
+  if (!model.assembleSystem(param.time,solution,newTangent))
     return SIM::FAILURE;
 
   this->finalizeRHSvector(!param.time.first && param.iter == 0);
