@@ -24,7 +24,8 @@
 const char* NonLinSIM::inputContext = "nonlinearsolver";
 
 
-NonLinSIM::NonLinSIM (SIMbase& sim, CNORM n) : MultiStepSIM(sim), iteNorm(n)
+NonLinSIM::NonLinSIM (SIMbase& sim, CNORM n, SIM::SolutionMode mode)
+  : MultiStepSIM(sim), iteNorm(n), tanMode(mode)
 {
   // Default solution parameters
   fromIni = iteNorm <= NONE;
@@ -212,12 +213,11 @@ bool NonLinSIM::advanceStep (TimeStep& param, bool updateTime)
 SIM::ConvStatus NonLinSIM::solve (double zero_tol, std::streamsize outPrec)
 {
   TimeStep singleStep; // Solves the nonlinear equations in one single step
-  return this->solveStep(singleStep,SIM::STATIC,zero_tol,outPrec);
+  return this->solveStep(singleStep,zero_tol,outPrec);
 }
 
 
 SIM::ConvStatus NonLinSIM::solveStep (TimeStep& param,
-                                      SIM::SolutionMode mode,
                                       double zero_tolerance,
                                       std::streamsize outPrec)
 {
@@ -226,7 +226,7 @@ SIM::ConvStatus NonLinSIM::solveStep (TimeStep& param,
   using namespace SIM;
 
   if (solution.empty())
-    return FAILURE;
+    return SIM::FAILURE;
 
   if (msgLevel >= 0)
     this->printStep(param);
@@ -237,84 +237,84 @@ SIM::ConvStatus NonLinSIM::solveStep (TimeStep& param,
     solution.front().fill(0.0);
 
   if (subiter&FIRST && !model.updateDirichlet(param.time.t,&solution.front()))
-    return FAILURE;
+    return SIM::FAILURE;
 
   if (nLinIt > 0 && iteNorm > NONE) // Flag initial linear iteration
     model.setIntegrationPrm(3,1.0); // without stress-stiffening
 
   bool poorConvg = false;
   bool newTangent = param.time.first || iteNorm != NONE;
-  model.setMode(newTangent ? mode : RHS_ONLY, false);
+  model.setMode(newTangent ? tanMode : SIM::RHS_ONLY, false);
   model.setQuadratureRule(opt.nGauss[0],true);
   if (!this->assembleSystem(param.time,solution,newTangent))
-    return model.getProblem()->diverged() ? DIVERGED : FAILURE;
+    return model.getProblem()->diverged() ? SIM::DIVERGED : SIM::FAILURE;
 
   if (iteNorm > NONE)
   {
     if (!model.extractLoadVec(residual))
-      return FAILURE;
+      return SIM::FAILURE;
   }
   else if (saveExL)
   {
     // Currently for linear multi-load-case analysis only
     if (!model.extractLoadVec(loadVec))
-      return FAILURE;
+      return SIM::FAILURE;
   }
 
   double* rCondPtr = rCond < 0.0 ? nullptr : &rCond;
   if (!model.solveSystem(linsol,msgLevel-1,rCondPtr))
-    return FAILURE;
+    return SIM::FAILURE;
 
   while (param.iter <= maxit)
     switch (this->checkConvergence(param))
       {
-      case CONVERGED:
+      case SIM::CONVERGED:
         if (!this->updateConfiguration(param))
-          return FAILURE;
+          return SIM::FAILURE;
 
         if (!this->solutionNorms(param.time,zero_tolerance,outPrec))
-          return FAILURE;
+          return SIM::FAILURE;
 
         model.dumpSolVec(solution.front());
         param.time.first = false;
-        return CONVERGED;
+        return SIM::CONVERGED;
 
-      case DIVERGED:
-        return DIVERGED;
+      case SIM::DIVERGED:
+        return SIM::DIVERGED;
 
-      case SLOW:
+      case SIM::SLOW:
         poorConvg = true;
 
       default:
         param.iter++;
         if (!this->updateConfiguration(param))
-          return FAILURE;
+          return SIM::FAILURE;
 
         if (subiter&FIRST && param.iter == 1 && !model.updateDirichlet())
-          return FAILURE;
+          return SIM::FAILURE;
 
         if (param.iter == nLinIt)
           model.setIntegrationPrm(3,0.0);
         if (param.iter > nupdat)
           newTangent = false;
 
-        model.setMode(newTangent ? mode : RHS_ONLY, false);
+        model.setMode(newTangent ? tanMode : SIM::RHS_ONLY, false);
         if (!this->assembleSystem(param.time,solution,newTangent,poorConvg))
-          return model.getProblem()->diverged() ? DIVERGED : FAILURE;
+          return model.getProblem()->diverged() ? SIM::DIVERGED : SIM::FAILURE;
 
         if (!model.extractLoadVec(residual))
-          return FAILURE;
+          return SIM::FAILURE;
 
         if (!model.solveEqSystem(linsol,0,rCondPtr,msgLevel-1))
-          return FAILURE;
+          return SIM::FAILURE;
 
         if (!this->lineSearch(param))
-          return FAILURE;
+          return SIM::FAILURE;
 
         poorConvg = false;
       }
 
-  return DIVERGED;
+  return SIM::DIVERGED;
 }
 
 
@@ -326,7 +326,7 @@ SIM::ConvStatus NonLinSIM::solveIteration (TimeStep& param)
     return SIM::FAILURE;
 
   bool newTangent = param.iter <= nupdat;
-  model.setMode(newTangent ? SIM::STATIC : SIM::RHS_ONLY, false);
+  model.setMode(newTangent ? tanMode : SIM::RHS_ONLY, false);
   if (!this->assembleSystem(param.time,solution,newTangent))
     return SIM::FAILURE;
 
@@ -429,13 +429,13 @@ SIM::ConvStatus NonLinSIM::checkConvergence (TimeStep& param)
   using namespace SIM;
 
   if (iteNorm <= NONE)
-    return CONVERGED; // No iterations, we are solving a linear problem
+    return SIM::CONVERGED; // No iterations, we are solving a linear problem
 
   static double convTol   = 0.0;
   static double prevNorm  = 0.0;
   static int    nIncrease = 0;
 
-  ConvStatus status = OK;
+  SIM::ConvStatus status = SIM::OK;
   double enorm, resNorm, linsolNorm;
   model.iterationNorms(linsol,residual,enorm,resNorm,linsolNorm);
   double norm = iteNorm == ENERGY ? enorm : resNorm;
@@ -444,7 +444,7 @@ SIM::ConvStatus NonLinSIM::checkConvergence (TimeStep& param)
   if (param.iter == 0)
   {
     if (linsolNorm == 0.0)
-      return CONVERGED; // No load on this step
+      return SIM::CONVERGED; // No load on this step
 
     if ((subiter&FIRST && refNopt == ALL) || fabs(norm) > refNorm)
       refNorm = fabs(norm);
@@ -466,7 +466,7 @@ SIM::ConvStatus NonLinSIM::checkConvergence (TimeStep& param)
 
   // Check for slow convergence
   if (param.iter > 1 && prevNorm > 0.0 && fabs(norm) > prevNorm*0.1)
-    status = SLOW;
+    status = SIM::SLOW;
 
   if (msgLevel > 0 || msgLevel == -1)
   {
@@ -486,7 +486,7 @@ SIM::ConvStatus NonLinSIM::checkConvergence (TimeStep& param)
     cout << std::endl;
 
     // Find and print out the worst DOF(s) when detecting slow convergence
-    if (status == SLOW && prnSlow > 0)
+    if (status == SIM::SLOW && prnSlow > 0)
       this->printWorst(cout,convTol*refNorm);
 
     cout.flags(oldFlags);
@@ -495,13 +495,13 @@ SIM::ConvStatus NonLinSIM::checkConvergence (TimeStep& param)
 
   // Check for convergence or divergence
   if (fabs(norm) < convTol && (param.iter > 0 || refNopt == ALL))
-    status = CONVERGED;
+    status = SIM::CONVERGED;
   else if (std::isnan(linsolNorm))
-    status = DIVERGED;
+    status = SIM::DIVERGED;
   else if (fabs(norm) <= fabs(prevNorm))
     nIncrease = 0;
   else if (++nIncrease > maxIncr || fabs(norm) > divgLim)
-    status = DIVERGED;
+    status = SIM::DIVERGED;
 
   prevNorm = norm;
   return status;

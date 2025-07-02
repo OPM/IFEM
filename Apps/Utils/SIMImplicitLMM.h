@@ -38,7 +38,7 @@ public:
   //! \param solField Name of primary solution fields (for ICs)
   SIMImplicitLMM(Solver& solv, Method type, bool = false,
                  const std::string& solField = "") :
-    solver(solv), nSim(solver,loads), fieldName(solField)
+    solver(solv), nSim(solver,loads), hasICs(false), fieldName(solField)
   {
     if (type == AM2)
       order = 2;
@@ -81,14 +81,14 @@ public:
     nSim.theSolutions()[0] = solver.getSolution();
     nSim.theSolutions()[1] = solver.getSolution();
     solver.setTimeScale(AM_coefs[c_order].back()*tp.time.dt);
-    if (nSim.solveStep(tp, SIM::DYNAMIC) != SIM::CONVERGED)
+    if (nSim.solveStep(tp) != SIM::CONVERGED)
       return false;
 
     solver.getSolution() = nSim.getSolution(0);
 
     solver.setMode(SIM::RHS_ONLY);
     solver.setTimeScale(1.0);
-    if (!solver.assembleSystem(tp.time, Vectors(1, solver.getSolution()), false))
+    if (!solver.assembleSystem(tp.time, {solver.getSolution()}, false))
       return false;
 
     loads[0] = solver.getRHSvector(0, true);
@@ -164,9 +164,9 @@ protected:
     //! \param sim Pointer to the spline FE model
     //! \param load Vector of system load vectors
     LMMNonLinSIM(SIMbase& sim, std::vector<SystemVector*>& load)
-      : NonLinSIM(sim), loads(load) {}
+      : NonLinSIM(sim,ENERGY,SIM::DYNAMIC), loads(load) {}
 
-    //! \brief Set scaling coefficients
+    //! \brief Sets the scaling coefficients.
     void setCoefs(const std::vector<double>& coef) { coefs = coef; }
 
   protected:
@@ -174,9 +174,9 @@ protected:
     //! \param[in] time Parameters for nonlinear/time-dependent simulations
     //! \param[in] pSol Previous primary solution vectors in DOF-order
     //! \param[in] newLHSmatrix If \e false, only integrate the RHS vector
-    //! \param[in] poorConvg If \e true, the nonlinear driver is converging poorly
+    //! \param[in] poorConvg If \e true, the solution is converging poorly
     bool assembleSystem(const TimeDomain& time, const Vectors& pSol,
-                        bool newLHSmatrix = true, bool poorConvg = false)
+                        bool newLHSmatrix, bool poorConvg) override
     {
       if (!model.assembleSystem(time, pSol, newLHSmatrix, poorConvg))
         return false;
@@ -196,8 +196,8 @@ protected:
   LMMNonLinSIM nSim; //!< Nonlinear solver
   std::vector<SystemVector*> loads; //!< Unscaled load vectors
   int order; //!< Order of method
-  const std::string fieldName; //!< Name of primary solution fields (for ICs)
-  bool hasICs = false; //!< If true, start with full order
+  bool hasICs; //!< If \e true, start with full order
+  std::string fieldName; //!< Name of primary solution fields (for ICs)
 };
 
 }

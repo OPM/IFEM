@@ -49,7 +49,6 @@ public:
   //! \param[in] zero_tolerance Truncate norm values smaller than this to zero
   //! \param[in] outPrec Number of digits after the decimal point in norm print
   virtual SIM::ConvStatus solveStep(TimeStep& param,
-                                    SIM::SolutionMode = SIM::STATIC,
                                     double zero_tolerance = 1.0e-8,
                                     std::streamsize outPrec = 0);
 

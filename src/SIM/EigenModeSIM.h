@@ -27,8 +27,6 @@ class EigenModeSIM : public MultiStepSIM
 public:
   //! \brief The constructor initializes the FE model reference.
   explicit EigenModeSIM(SIMbase& sim);
-  //! \brief Empty destructor.
-  virtual ~EigenModeSIM() {}
 
   using MultiStepSIM::parse;
   //! \brief Parses a data section from an XML document.
@@ -47,7 +45,7 @@ public:
   //! \param param Time stepping parameters
   //! \param[in] zero_tolerance Truncate norm values smaller than this to zero
   //! \param[in] outPrec Number of digits after the decimal point in norm print
-  virtual SIM::ConvStatus solveStep(TimeStep& param, SIM::SolutionMode,
+  virtual SIM::ConvStatus solveStep(TimeStep& param,
                                     double zero_tolerance,
                                     std::streamsize outPrec);
 

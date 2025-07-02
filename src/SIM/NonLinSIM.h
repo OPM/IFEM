@@ -28,7 +28,7 @@ class NonLinSIM : public MultiStepSIM
 {
 public:
   //! \brief Enum describing the norm used for convergence checks.
-  //! \details The value \a NONE imples no checking at all and is used to
+  //! \details The value \a NONE implies no checking at all and is used to
   //! conduct a pure linear analysis without equilibrium iterations.
   //! The value \a NONE_UPTAN value implies the same as \a NONE, but with
   //! recalculation of the tangent matrix at each step. This is needed for
@@ -39,7 +39,9 @@ public:
   //! \brief The constructor initializes default solution parameters.
   //! \param sim Pointer to the spline FE model
   //! \param[in] n Which type of iteration norm to use in convergence checks
-  explicit NonLinSIM(SIMbase& sim, CNORM n = ENERGY);
+  //! \param[in] mode Solution mode to use for tangent calculation
+  explicit NonLinSIM(SIMbase& sim, CNORM n = ENERGY,
+                     SIM::SolutionMode mode = SIM::STATIC);
   //! \brief The destructor prints out the slow-converging nodes, if any.
   virtual ~NonLinSIM();
 
@@ -66,11 +68,9 @@ public:
 
   //! \brief Solves the nonlinear equations by Newton-Raphson iterations.
   //! \param param Time stepping parameters
-  //! \param[in] mode Solution mode to use for this step
   //! \param[in] zero_tolerance Truncate norm values smaller than this to zero
   //! \param[in] outPrec Number of digits after the decimal point in norm print
   virtual SIM::ConvStatus solveStep(TimeStep& param,
-                                    SIM::SolutionMode mode = SIM::STATIC,
                                     double zero_tolerance = 1.0e-8,
                                     std::streamsize outPrec = 0);
 
@@ -132,6 +132,7 @@ protected:
   char   updNewN; //!< If &gt; 0, update newly activated nodes before new step
   int    nLinIt;  //!< Number of initial linear iterations (no geometric stiff.)
 
+  SIM::SolutionMode tanMode;   //!< Solution mode to use for tangent evaluation
   std::map<int,int> slowNodes; //!< Nodes for which slow convergence is detected
 
 public:

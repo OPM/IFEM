@@ -68,7 +68,7 @@ const char** MultiStepSIM::getPrioritizedTags () const
 }
 
 
-bool MultiStepSIM::preprocess (const std::vector<int>& ignored, bool fixDup)
+bool MultiStepSIM::preprocess (const IntVec& ignored, bool fixDup)
 {
   return model.preprocess(ignored,fixDup);
 }

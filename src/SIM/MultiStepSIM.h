@@ -74,7 +74,6 @@ public:
   //! \param[in] zero_tolerance Truncate norm values smaller than this to zero
   //! \param[in] outPrec Number of digits after the decimal point in norm print
   virtual SIM::ConvStatus solveStep(TimeStep& param,
-                                    SIM::SolutionMode = SIM::STATIC,
                                     double zero_tolerance = 1.0e-8,
                                     std::streamsize outPrec = 0) = 0;
 
@@ -96,7 +95,7 @@ public:
   //! \brief Performs some pre-processing tasks on the FE model.
   //! \param[in] ignored Indices of patches to ignore in the analysis
   //! \param[in] fixDup Merge duplicated FE nodes on patch interfaces?
-  virtual bool preprocess(const std::vector<int>& ignored, bool fixDup);
+  virtual bool preprocess(const IntVec& ignored, bool fixDup);
 
   //! \brief Initializes the geometry block counter.
   void setStartGeo(int gID);

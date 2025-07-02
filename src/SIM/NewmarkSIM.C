@@ -382,7 +382,7 @@ bool NewmarkSIM::correctStep (TimeStep& param, bool)
 }
 
 
-SIM::ConvStatus NewmarkSIM::solveStep (TimeStep& param, SIM::SolutionMode,
+SIM::ConvStatus NewmarkSIM::solveStep (TimeStep& param,
                                        double zero_tolerance,
                                        std::streamsize outPrec)
 {

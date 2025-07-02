@@ -150,7 +150,7 @@ bool EigenModeSIM::advanceStep (TimeStep& param, bool updateTime)
 }
 
 
-SIM::ConvStatus EigenModeSIM::solveStep (TimeStep& param, SIM::SolutionMode,
+SIM::ConvStatus EigenModeSIM::solveStep (TimeStep& param,
                                          double zero_tolerance,
                                          std::streamsize outPrec)
 {
