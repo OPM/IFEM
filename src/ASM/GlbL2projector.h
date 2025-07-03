@@ -131,7 +131,7 @@ public:
   virtual ~GlbL2();
 
   //! \brief Returns current solution mode.
-  virtual SIM::SolutionMode getMode() const { return SIM::RECOVERY; }
+  virtual SIM::SolutionMode getMode(bool) const { return SIM::RECOVERY; }
   //! \brief Defines which FE quantities are needed by the integrand.
   virtual int getIntegrandType() const;
 

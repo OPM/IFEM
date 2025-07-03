@@ -59,7 +59,7 @@ public:
   //! \brief Defines the solution mode before the element assembly is started.
   virtual void setMode(SIM::SolutionMode mode);
   //! \brief Returns current solution mode.
-  SIM::SolutionMode getMode() const override { return m_mode; }
+  SIM::SolutionMode getMode(bool = false) const override { return m_mode; }
   //! \brief Initializes an integration parameter for the integrand.
   virtual void setIntegrationPrm(unsigned short int, double) {}
   //! \brief Returns an integration parameter for the integrand.
@@ -478,7 +478,7 @@ public:
   }
 
   //! \brief Returns current solution mode.
-  SIM::SolutionMode getMode() const override { return myProblem.getMode(); }
+  SIM::SolutionMode getMode(bool) const override { return myProblem.getMode(); }
 
 protected:
   //! \brief Initializes the projected fields for current element.
@@ -584,7 +584,7 @@ public:
   }
 
   //! \brief Returns current solution mode.
-  SIM::SolutionMode getMode() const override { return myProblem.getMode(); }
+  SIM::SolutionMode getMode(bool) const override { return myProblem.getMode(); }
 
 protected:
   //! \brief Clears out internal buffers.

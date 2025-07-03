@@ -333,7 +333,7 @@ bool ASMs2DLag::integrate (Integrand& integrand,
   const double* xr = cache.coord(true)[0];
   const double* wr = cache.weight(true)[0];
 
-  const bool dynamics = integrand.getMode() == SIM::DYNAMIC;
+  const bool dynamics = integrand.getMode(true) == SIM::DYNAMIC;
 
   // Number of elements in first parameter direction
   const int nelx = (nx-1)/(p1-1);
@@ -516,7 +516,7 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
   const double* wg = GaussQuadrature::getWeight(nGP);
   if (!xg || !wg) return false;
 
-  const bool dynamics = integrand.getMode() == SIM::DYNAMIC;
+  const bool dynamics = integrand.getMode(true) == SIM::DYNAMIC;
 
   // Find the parametric direction of the edge normal {-2,-1, 1, 2}
   const int edgeDir = (lIndex%10+1)/((lIndex%2) ? -2 : 2);

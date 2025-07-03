@@ -176,7 +176,7 @@ public:
   };
 
   //! \brief Returns current solution mode.
-  virtual SIM::SolutionMode getMode() const = 0;
+  virtual SIM::SolutionMode getMode(bool = false) const = 0;
   //! \brief Defines which FE quantities are needed by the integrand.
   virtual int getIntegrandType() const { return STANDARD; }
   //! \brief Returns the number of reduced-order integration points.
