@@ -976,7 +976,7 @@ int DomainDecomposition::getGlobalEq(int lEq, size_t idx) const
     return lEq;
   }
 
-  if (!blocks[idx].MLGEQ.empty() && lEq > (int)blocks[idx].MLGEQ.size())
+  if (blocks[idx].MLGEQ.empty() || lEq > (int)blocks[idx].MLGEQ.size())
     return 0;
 
   return blocks[idx].MLGEQ[lEq-1];
