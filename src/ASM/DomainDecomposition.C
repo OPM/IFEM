@@ -67,7 +67,7 @@ OrientIterator::OrientIterator (const ASMbase* pch,
     if (dim == 1) {
       if (lIdx <= 4)
         nodes.resize(n1);
-      else if (lIdx >= 5 && lIdx <= 8)
+      else if (lIdx <= 8)
         nodes.resize(n2);
       else
         nodes.resize(n3);
