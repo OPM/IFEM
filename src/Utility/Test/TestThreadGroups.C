@@ -467,3 +467,33 @@ TEST(TestThreadGroups, Groups3D)
     EXPECT_EQ(groups2[0][0][i], i);
 #endif
 }
+
+
+TEST(TestThreadGroups, OneStripe)
+{
+  ThreadGroups all_elms;
+  ThreadGroups selected_elms;
+
+  constexpr size_t nel = 13;
+
+  all_elms.oneStripe(nel);
+  std::vector<int> elms;
+  for (size_t i = 0; i < nel; i += 2)
+    elms.push_back(i);
+
+  selected_elms.oneStripe(elms);
+
+  ASSERT_EQ(all_elms.size(), 1);
+  ASSERT_EQ(all_elms[0].size(), nel);
+  for (size_t i = 0; i < nel; ++i) {
+    ASSERT_EQ(all_elms[0][i].size(), 1);
+    EXPECT_EQ(all_elms[0][i][0], i);
+  }
+
+  ASSERT_EQ(selected_elms.size(), 1);
+  ASSERT_EQ(selected_elms[0].size(), elms.size());
+  for (size_t i = 0; i < elms.size(); ++i) {
+    ASSERT_EQ(selected_elms[0][i].size(), 1);
+    EXPECT_EQ(selected_elms[0][i][0], 2*i);
+  }
+}
