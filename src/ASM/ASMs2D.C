@@ -3229,7 +3229,7 @@ size_t ASMs2D::getNoProjectionNodes () const
 }
 
 
-void ASMs2D::getElmConnectivities (IntMat& neigh) const
+void ASMs2D::getElmConnectivities (IntMat& neigh, bool local) const
 {
   const int n1 = surf->numCoefs_u();
   const int n2 = surf->numCoefs_v();
@@ -3237,21 +3237,24 @@ void ASMs2D::getElmConnectivities (IntMat& neigh) const
   const int p2 = surf->order_v();
   const int N1 = n1 - p1 + 1;
 
+  auto&& index = [&mlge = MLGE, local](int idx)
+                 { return local ? idx : mlge[idx]-1; };
+
   size_t iel = 0;
   for (int i2 = p2; i2 <= n2; i2++)
     for (int i1 = p1; i1 <= n1; i1++, iel++)
-      if (MLGE[iel] > 0)
+      if (local || MLGE[iel] > 0)
       {
-        int idx = MLGE[iel]-1;
+        const int idx = index(iel);
         neigh[idx].resize(4,-1);
         if (i1 > p1)
-          neigh[idx][0] = MLGE[iel-1]-1;
+          neigh[idx][0] = index(iel-1);
         if (i1 < n1)
-          neigh[idx][1] = MLGE[iel+1]-1;
+          neigh[idx][1] = index(iel+1);
         if (i2 > p2)
-          neigh[idx][2] = MLGE[iel-N1]-1;
+          neigh[idx][2] = index(iel-N1);
         if (i2 < n2)
-          neigh[idx][3] = MLGE[iel+N1]-1;
+          neigh[idx][3] = index(iel+N1);
       }
 }
 

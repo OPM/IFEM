@@ -393,7 +393,7 @@ public:
                                   IntVec* corners = nullptr) const = 0;
 
   //! \brief Obtain element neighbours.
-  virtual void getElmConnectivities(IntMat& neighs) const = 0;
+  virtual void getElmConnectivities(IntMat& neighs, bool local = false) const = 0;
 
   // Various preprocessing methods
   // =============================
