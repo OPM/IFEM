@@ -37,8 +37,8 @@
 
 
 DomainDecomposition::
-OrientIterator::OrientIterator(const ASMbase* pch,
-                               int orient, int lIdx, int basis, int dim)
+OrientIterator::OrientIterator (const ASMbase* pch,
+                                int orient, int lIdx, int basis, int dim)
 {
   if (dim == 0) {
     nodes.resize(1,0);
@@ -122,7 +122,7 @@ OrientIterator::OrientIterator(const ASMbase* pch,
 
 
 DomainDecomposition::
-OrientIterator::OrientIterator(const ASMbase* pch, int orient, int lIdx)
+OrientIterator::OrientIterator (const ASMbase* pch, int orient, int lIdx)
 {
   if (!pch)
     return;
@@ -181,7 +181,7 @@ OrientIterator::OrientIterator(const ASMbase* pch, int orient, int lIdx)
 
 
 #ifdef HAS_ZOLTAN
-static int getNumElements(void* mesh, int* err)
+static int getNumElements (void* mesh, int* err)
 {
   *err = ZOLTAN_OK;
   IntMat& neigh = *static_cast<IntMat*>(mesh);
@@ -189,10 +189,10 @@ static int getNumElements(void* mesh, int* err)
 }
 
 
-static void getElementList(void* mesh, int numGlobalEntries,
-                           int, ZOLTAN_ID_PTR gids,
-                           ZOLTAN_ID_PTR lids, int,
-                           float*, int* err)
+static void getElementList (void* mesh, int numGlobalEntries,
+                            int, ZOLTAN_ID_PTR gids,
+                            ZOLTAN_ID_PTR lids, int,
+                            float*, int* err)
 {
   IntMat& neigh = *static_cast<IntMat*>(mesh);
   std::iota(gids, gids+neigh.size(), 0);
@@ -201,9 +201,9 @@ static void getElementList(void* mesh, int numGlobalEntries,
 }
 
 
-static void getNumEdges(void* mesh, int sizeGID, int sizeLID,
-                        int numCells, ZOLTAN_ID_PTR globalID,
-                        ZOLTAN_ID_PTR localID, int* numEdges, int* err)
+static void getNumEdges (void* mesh, int sizeGID, int sizeLID,
+                         int numCells, ZOLTAN_ID_PTR globalID,
+                         ZOLTAN_ID_PTR localID, int* numEdges, int* err)
 {
   const IntMat& neigh = *static_cast<const IntMat*>(mesh);
   int* ne = numEdges;
@@ -218,10 +218,10 @@ static void getNumEdges(void* mesh, int sizeGID, int sizeLID,
 }
 
 
-static void getEdges(void* mesh, int sizeGID, int sizeLID, int numCells,
-                     ZOLTAN_ID_PTR globalID, ZOLTAN_ID_PTR localID,
-                     int* numEdges, ZOLTAN_ID_PTR nborGID, int* nborProc,
-                     int wgtDim, float* egts, int* err)
+static void getEdges (void* mesh, int sizeGID, int sizeLID, int numCells,
+                      ZOLTAN_ID_PTR globalID, ZOLTAN_ID_PTR localID,
+                      int* numEdges, ZOLTAN_ID_PTR nborGID, int* nborProc,
+                      int wgtDim, float* egts, int* err)
 {
   const IntMat& neigh = *static_cast<const IntMat*>(mesh);
 
@@ -235,42 +235,43 @@ static void getEdges(void* mesh, int sizeGID, int sizeLID, int numCells,
 }
 
 
-static int getNullElements(void*, int* err)
+static int getNullElements (void*, int* err)
 {
   *err = ZOLTAN_OK;
   return 0;
 }
 
 
-static void getNullList(void*, int,
-                        int, ZOLTAN_ID_PTR,
-                        ZOLTAN_ID_PTR, int,
-                        float*, int* err)
+static void getNullList (void*, int,
+                         int, ZOLTAN_ID_PTR,
+                         ZOLTAN_ID_PTR, int,
+                         float*, int* err)
 {
   *err = ZOLTAN_OK;
 }
 
 
-static void getNumNullEdges(void*, int, int, int,
-                            ZOLTAN_ID_PTR, ZOLTAN_ID_PTR,
-                            int*, int* err)
+static void getNumNullEdges (void*, int, int, int,
+                             ZOLTAN_ID_PTR, ZOLTAN_ID_PTR,
+                             int*, int* err)
 {
   *err = ZOLTAN_OK;
 }
 
 
-static void getNullEdges(void*, int, int, int,
-                         ZOLTAN_ID_PTR, ZOLTAN_ID_PTR,
-                         int*, ZOLTAN_ID_PTR, int*,
-                         int, float*, int* err)
+static void getNullEdges (void*, int, int, int,
+                          ZOLTAN_ID_PTR, ZOLTAN_ID_PTR,
+                          int*, ZOLTAN_ID_PTR, int*,
+                          int, float*, int* err)
 {
   *err = ZOLTAN_OK;
 }
 #endif
 
 
-std::vector<std::set<int>> DomainDecomposition::getSubdomains(int nx, int ny, int nz,
-                                                              int overlap, size_t block) const
+std::vector<std::set<int>>
+DomainDecomposition::getSubdomains (int nx, int ny, int nz,
+                                    int overlap, size_t block) const
 {
   std::vector<IntSet> result(nx*(ny?ny:1)*(nz?nz:1)*getSAM()->getNoPatches());
   size_t d = 0;
@@ -320,8 +321,9 @@ std::vector<std::set<int>> DomainDecomposition::getSubdomains(int nx, int ny, in
 }
 
 
-std::vector<std::vector<int>> DomainDecomposition::calcSubdomains(size_t nel1, size_t nel2, size_t nel3,
-                                                                  size_t g1, size_t g2, size_t g3, size_t overlap)
+std::vector<std::vector<int>>
+DomainDecomposition::calcSubdomains (size_t nel1, size_t nel2, size_t nel3,
+                                     size_t g1, size_t g2, size_t g3, size_t overlap)
 {
   if (nel3 > 0)
     return calcSubdomains3D(nel1, nel2, nel3, g1, g2, g3, overlap);
@@ -332,7 +334,8 @@ std::vector<std::vector<int>> DomainDecomposition::calcSubdomains(size_t nel1, s
 }
 
 
-std::vector<IntVec> DomainDecomposition::calcSubdomains1D(size_t nel1, size_t g1, size_t overlap)
+std::vector<IntVec>
+DomainDecomposition::calcSubdomains1D (size_t nel1, size_t g1, size_t overlap)
 {
   std::vector<IntVec> subdomains;
 
@@ -361,8 +364,9 @@ std::vector<IntVec> DomainDecomposition::calcSubdomains1D(size_t nel1, size_t g1
 }
 
 
-std::vector<IntVec> DomainDecomposition::calcSubdomains2D(size_t nel1, size_t nel2,
-                                                          size_t g1, size_t g2, size_t overlap)
+std::vector<IntVec>
+DomainDecomposition::calcSubdomains2D (size_t nel1, size_t nel2,
+                                       size_t g1, size_t g2, size_t overlap)
 {
   std::vector<IntVec> subdomains;
 
@@ -401,8 +405,9 @@ std::vector<IntVec> DomainDecomposition::calcSubdomains2D(size_t nel1, size_t ne
 }
 
 
-std::vector<IntVec> DomainDecomposition::calcSubdomains3D(size_t nel1, size_t nel2, size_t nel3,
-                                                          size_t g1, size_t g2, size_t g3, size_t overlap)
+std::vector<IntVec>
+DomainDecomposition::calcSubdomains3D (size_t nel1, size_t nel2, size_t nel3,
+                                       size_t g1, size_t g2, size_t g3, size_t overlap)
 {
   std::vector<IntVec> subdomains;
 
@@ -449,10 +454,10 @@ std::vector<IntVec> DomainDecomposition::calcSubdomains3D(size_t nel1, size_t ne
 
 
 #ifdef HAVE_MPI
-void DomainDecomposition::setupNodeNumbers(int basis, IntVec& lNodes,
-                                           std::set<int>& cbasis,
-                                           const ASMbase* pch,
-                                           int dim, int lidx, int thick, int orient)
+void DomainDecomposition::setupNodeNumbers (int basis, IntVec& lNodes,
+                                            std::set<int>& cbasis,
+                                            const ASMbase* pch,
+                                            int dim, int lidx, int thick, int orient)
 {
   if (!pch)
     return;
@@ -499,8 +504,8 @@ void DomainDecomposition::setupNodeNumbers(int basis, IntVec& lNodes,
 #endif
 
 
-bool DomainDecomposition::calcGlobalNodeNumbers(const ProcessAdm& adm,
-                                                const SIMbase& sim)
+bool DomainDecomposition::calcGlobalNodeNumbers (const ProcessAdm& adm,
+                                                 const SIMbase& sim)
 {
   minDof = minNode = 1;
   maxDof = sim.getSAM()->getNoDOFs();
@@ -634,10 +639,11 @@ bool DomainDecomposition::calcGlobalNodeNumbers(const ProcessAdm& adm,
 
 
 #ifdef HAVE_MPI
-std::vector<int> DomainDecomposition::setupEquationNumbers(const SIMbase& sim,
-                                                           int pidx, int lidx,
-                                                           const std::set<int>& cbasis,
-                                                           int dim, int thick, int orient)
+std::vector<int>
+DomainDecomposition::setupEquationNumbers (const SIMbase& sim,
+                                           int pidx, int lidx,
+                                           const std::set<int>& cbasis,
+                                           int dim, int thick, int orient)
 {
   std::vector<IntVec> lNodes(sim.getPatch(pidx)->getNoBasis());
   std::vector<int> result;
@@ -688,8 +694,8 @@ std::vector<int> DomainDecomposition::setupEquationNumbers(const SIMbase& sim,
 #endif
 
 
-bool DomainDecomposition::calcGlobalEqNumbers(const ProcessAdm& adm,
-                                              const SIMbase& sim)
+bool DomainDecomposition::calcGlobalEqNumbers (const ProcessAdm& adm,
+                                               const SIMbase& sim)
 {
   // defaults in serial and non-parallel runs with MPI enabled builds.
   blocks[0].minEq = 1;
@@ -953,18 +959,19 @@ bool DomainDecomposition::calcGlobalEqNumbersPart(const ProcessAdm& adm,
   }
 
   for (size_t b = 0; b < blocks.size(); ++b) {
-    MPI_Bcast(&blocks[b].MLGEQ[0], blocks[b].MLGEQ.size(), MPI_INT,
+    MPI_Bcast(blocks[b].MLGEQ.data(), blocks[b].MLGEQ.size(), MPI_INT,
               adm.getNoProcs()-1, *adm.getCommunicator());
   }
   for (size_t i = 0; i < blocks[0].MLGEQ.size(); ++i)
-    blocks[0].G2LEQ[blocks[0].MLGEQ[i]] = i+1;
+    if (blocks[0].MLGEQ[i] != -1)
+      blocks[0].G2LEQ[blocks[0].MLGEQ[i]] = i+1;
 #endif
 
   return true;
 }
 
 
-int DomainDecomposition::getGlobalEq(int lEq, size_t idx) const
+int DomainDecomposition::getGlobalEq (int lEq, size_t idx) const
 {
   if (lEq < 1 || idx >= blocks.size())
     return 0;
@@ -983,7 +990,7 @@ int DomainDecomposition::getGlobalEq(int lEq, size_t idx) const
 }
 
 
-bool DomainDecomposition::sanityCheckCorners(const SIMbase& sim)
+bool DomainDecomposition::sanityCheckCorners (const SIMbase& sim)
 {
 #ifdef HAVE_MPI
   const ProcessAdm& adm = sim.getProcessAdm();
@@ -1069,7 +1076,7 @@ bool DomainDecomposition::sanityCheckCorners(const SIMbase& sim)
 }
 
 
-bool DomainDecomposition::setup(const ProcessAdm& adm, const SIMbase& sim)
+bool DomainDecomposition::setup (const ProcessAdm& adm, const SIMbase& sim)
 {
 #ifdef HAVE_MPI
   if (adm.isParallel())
@@ -1231,7 +1238,7 @@ bool DomainDecomposition::setup(const ProcessAdm& adm, const SIMbase& sim)
 }
 
 
-int DomainDecomposition::getPatchOwner(size_t p) const
+int DomainDecomposition::getPatchOwner (size_t p) const
 {
   auto it = patchOwner.find(p);
   if (it == patchOwner.end())
@@ -1241,7 +1248,8 @@ int DomainDecomposition::getPatchOwner(size_t p) const
 }
 
 
-bool DomainDecomposition::graphPartition(const ProcessAdm& adm, const SIMbase& sim)
+bool DomainDecomposition::graphPartition (const ProcessAdm& adm,
+                                          const SIMbase& sim)
 {
   if (!myElms.empty())
     return true; // Use existing partitioning
@@ -1285,19 +1293,19 @@ bool DomainDecomposition::graphPartition(const ProcessAdm& adm, const SIMbase& s
   ZOLTAN_ID_PTR importGlobalGids, importLocalGids, exportGlobalGids, exportLocalGids;
   int* importProcs, *importToPart, *exportProcs, *exportToPart;
   Zoltan_LB_Partition(zz, /* input (all remaining fields are output) */
-                           &changes,        /* 1 if partitioning was changed, 0 otherwise */
-                           &numGidEntries,  /* Number of integers used for a global ID */
-                           &numLidEntries,  /* Number of integers used for a local ID */
-                           &numImport,      /* Number of vertices to be sent to me */
-                           &importGlobalGids,  /* Global IDs of vertices to be sent to me */
-                           &importLocalGids,   /* Local IDs of vertices to be sent to me */
-                           &importProcs,    /* Process rank for source of each incoming vertex */
-                           &importToPart,   /* New partition for each incoming vertex */
-                           &numExport,      /* Number of vertices I must send to other processes*/
-                           &exportGlobalGids,  /* Global IDs of the vertices I must send */
-                           &exportLocalGids,   /* Local IDs of the vertices I must send */
-                           &exportProcs,    /* Process to which I send each of the vertices */
-                           &exportToPart);  /* Partition to which each vertex will belong */
+                      &changes,        /* 1 if partitioning was changed, 0 otherwise */
+                      &numGidEntries,  /* Number of integers used for a global ID */
+                      &numLidEntries,  /* Number of integers used for a local ID */
+                      &numImport,      /* Number of vertices to be sent to me */
+                      &importGlobalGids,  /* Global IDs of vertices to be sent to me */
+                      &importLocalGids,   /* Local IDs of vertices to be sent to me */
+                      &importProcs,    /* Process rank for source of each incoming vertex */
+                      &importToPart,   /* New partition for each incoming vertex */
+                      &numExport,      /* Number of vertices I must send to other processes*/
+                      &exportGlobalGids,  /* Global IDs of the vertices I must send */
+                      &exportLocalGids,   /* Local IDs of the vertices I must send */
+                      &exportProcs,    /* Process to which I send each of the vertices */
+                      &exportToPart);  /* Partition to which each vertex will belong */
 
   if (sim.getProcessAdm().getProcId() == 0) {
     std::vector<bool> offProc(sim.getNoElms(), false);
