@@ -2920,10 +2920,10 @@ void ASMu2D::computeBasis (double u, double v, Go::BasisDerivsSf3& bas,
 }
 
 
-void ASMu2D::getElmConnectivities (IntMat& neigh) const
+void ASMu2D::getElmConnectivities (IntMat& neigh, bool local) const
 {
   const double epsilon = 1.0e-6;
-  const LR::LRSplineSurface* lr = this->getBasis(1);
+  const LR::LRSplineSurface* lr = this->getBasis(ASM::INTEGRATION_BASIS);
 
   for (LR::Meshline* m : lr->getAllMeshlines()) {
     RealArray isectpts(1,0.0);
@@ -2953,8 +2953,8 @@ void ASMu2D::getElmConnectivities (IntMat& neigh) const
       int el1 = lr->getElementContaining(parval_left);
       int el2 = lr->getElementContaining(parval_right);
       if (el1 > -1 && el2 > -1) {
-        neigh[MLGE[el1]-1].push_back(MLGE[el2]-1);
-        neigh[MLGE[el2]-1].push_back(MLGE[el1]-1);
+        neigh[local ? el1 : MLGE[el1]-1].push_back(local ? el2 : MLGE[el2]-1);
+        neigh[local ? el2 : MLGE[el2]-1].push_back(local ? el1 : MLGE[el1]-1);
       }
     }
   }

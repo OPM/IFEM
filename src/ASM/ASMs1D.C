@@ -1998,12 +1998,15 @@ Fields* ASMs1D::getProjectedFields (const Vector& coefs, size_t) const
 }
 
 
-void ASMs1D::getElmConnectivities (IntMat& neigh) const
+void ASMs1D::getElmConnectivities (IntMat& neigh, bool local) const
 {
-  neigh[MLGE[    0]-1] = { -1, MLGE[1]-1 };
-  neigh[MLGE[nel-1]-1] = { MLGE[nel-2]-1, -1 };
+  auto&& index = [&mlge = MLGE, local](int idx)
+                 { return local ? idx : mlge[idx]-1; };
+
+  neigh[index(0)] = {-1, index(1)};
+  neigh[index(nel-1)] = {index(nel-2), -1};
   for (size_t i = 1; i+1 < nel; i++)
-    neigh[MLGE[i]-1] = { MLGE[i-1]-1, MLGE[i+1]-1 };
+    neigh[index(i)] = {index(i-1), index(i+1)};
 }
 
 

@@ -270,17 +270,24 @@ TEST(TestASMu2D, ElementConnectivities)
   ASSERT_TRUE(pch1.uniformRefine(1,1));
   ASSERT_TRUE(pch1.generateFEMTopology());
   pch1.getBasis(1)->generateIDs();
-  IntMat neigh(4);
-  pch1.getElmConnectivities(neigh);
+  const int nel = pch1.getNoElms();
+  pch1.shiftElemNumbers(nel);
+  IntMat neighGlb(2*nel), neighLoc(nel);
+  pch1.getElmConnectivities(neighGlb);
+  pch1.getElmConnectivities(neighLoc, true);
   const std::array<std::vector<int>,4> ref = {{{1, 2},
                                                {0, 3},
                                                {3, 0},
                                                {2, 1}}};
-  ASSERT_EQ(neigh.size(), 4U);
-  for (size_t n = 0; n < neigh.size(); ++n) {
-    ASSERT_EQ(neigh[n].size(), ref[n].size());
-    for (size_t i = 0; i < neigh[n].size(); ++i)
-      EXPECT_EQ(neigh[n][i], ref[n][i]);
+  ASSERT_EQ(neighLoc.size(), nel);
+  ASSERT_EQ(neighGlb.size(), 2*nel);
+  for (size_t n = 0; n < neighLoc.size(); ++n) {
+    ASSERT_EQ(neighLoc[n].size(), ref[n].size());
+    ASSERT_EQ(neighGlb[n+nel].size(), ref[n].size());
+    for (size_t i = 0; i < neighLoc[n].size(); ++i) {
+      EXPECT_EQ(neighLoc[n][i], ref[n][i]);
+      EXPECT_EQ(neighGlb[n+nel][i], ref[n][i] > -1 ? ref[n][i] + nel : -1);
+    }
   }
 }
 
