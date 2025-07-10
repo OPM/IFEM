@@ -29,6 +29,13 @@ public:
     EXPECT_TRUE(this->uniformRefine(extraKnots));
     EXPECT_TRUE(this->generateFEMTopology());
   }
+
+  void shiftElmNumbers(int shift)
+  {
+    for (int& e : myMLGE)
+      e += (e == -1 ? 0 : shift);
+  }
+
   virtual ~ASMLine() {}
 };
 
@@ -138,16 +145,23 @@ TEST(TestASMs1D, findElement)
 TEST(TestASMs1D, ElementConnectivities)
 {
   ASMbase::resetNumbering();
-  const std::array<IntVec,3> ref = {{{-1, 1}, {0, 2}, {1, -1}}};
+  const std::array<IntVec,3> refLoc = {{{-1, 1}, {0, 2}, {1, -1}}};
 
   ASMLine pch1(2);
-  IntMat neigh(3);
-  pch1.getElmConnectivities(neigh);
-  ASSERT_EQ(neigh.size(), 3U);
-  for (size_t n = 0; n < neigh.size(); ++n) {
-    ASSERT_EQ(neigh[n].size(), ref[n].size());
-    for (size_t i = 0; i < neigh[n].size(); ++i)
-      EXPECT_EQ(neigh[n][i], ref[n][i]);
+  const size_t nel = pch1.getNoElms();
+  pch1.shiftElmNumbers(nel);
+  IntMat neighGlb(nel*2), neighLoc(nel);
+  pch1.getElmConnectivities(neighGlb);
+  pch1.getElmConnectivities(neighLoc, true);
+  ASSERT_EQ(neighLoc.size(), nel);
+  ASSERT_EQ(neighGlb.size(), 2*nel);
+  for (size_t n = 0; n < neighLoc.size(); ++n) {
+    ASSERT_EQ(neighLoc[n].size(), refLoc[n].size());
+    ASSERT_EQ(neighGlb[n+nel].size(), refLoc[n].size());
+    for (size_t i = 0; i < neighLoc[n].size(); ++i) {
+      EXPECT_EQ(neighLoc[n][i], refLoc[n][i]);
+      EXPECT_EQ(neighGlb[n+nel][i], refLoc[n][i] > -1 ? refLoc[n][i] + nel : -1);
+    }
   }
 }
 

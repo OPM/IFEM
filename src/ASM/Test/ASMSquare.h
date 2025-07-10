@@ -37,6 +37,12 @@ public:
     this->read(geo);
   }
   virtual ~ASMSquare() {}
+
+  void shiftElemNumbers(int shift)
+  {
+    for (int& e : myMLGE)
+      e += (e == -1 ? 0 : shift);
+  }
 };
 
 
@@ -48,6 +54,7 @@ public:
     std::stringstream geo(ASMSquare::square);
     this->read(geo);
   }
+
   virtual ~ASMmxSquare() {}
 };
 

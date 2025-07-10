@@ -51,6 +51,13 @@ public:
                           addLine(xshift+1.0, yshift+1.0));
     this->read(geo);
   }
+
+  void shiftElemNumbers(int shift)
+  {
+    for (int& e : myMLGE)
+      e += (e == -1 ? 0 : shift);
+  }
+
   virtual ~ASMuSquare() {}
 };
 
