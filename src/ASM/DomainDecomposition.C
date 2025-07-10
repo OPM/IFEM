@@ -1072,7 +1072,7 @@ bool DomainDecomposition::sanityCheckCorners(const SIMbase& sim)
 bool DomainDecomposition::setup(const ProcessAdm& adm, const SIMbase& sim)
 {
 #ifdef HAVE_MPI
-  if (!adm.isParallel())
+  if (adm.isParallel())
     IFEM::cout << "Establishing domain decomposition" << std::endl;
 
 #if SP_DEBUG > 1
