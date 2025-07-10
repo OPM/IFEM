@@ -1293,19 +1293,19 @@ bool DomainDecomposition::graphPartition (const ProcessAdm& adm,
   ZOLTAN_ID_PTR importGlobalGids, importLocalGids, exportGlobalGids, exportLocalGids;
   int* importProcs, *importToPart, *exportProcs, *exportToPart;
   Zoltan_LB_Partition(zz, /* input (all remaining fields are output) */
-                           &changes,        /* 1 if partitioning was changed, 0 otherwise */
-                           &numGidEntries,  /* Number of integers used for a global ID */
-                           &numLidEntries,  /* Number of integers used for a local ID */
-                           &numImport,      /* Number of vertices to be sent to me */
-                           &importGlobalGids,  /* Global IDs of vertices to be sent to me */
-                           &importLocalGids,   /* Local IDs of vertices to be sent to me */
-                           &importProcs,    /* Process rank for source of each incoming vertex */
-                           &importToPart,   /* New partition for each incoming vertex */
-                           &numExport,      /* Number of vertices I must send to other processes*/
-                           &exportGlobalGids,  /* Global IDs of the vertices I must send */
-                           &exportLocalGids,   /* Local IDs of the vertices I must send */
-                           &exportProcs,    /* Process to which I send each of the vertices */
-                           &exportToPart);  /* Partition to which each vertex will belong */
+                      &changes,        /* 1 if partitioning was changed, 0 otherwise */
+                      &numGidEntries,  /* Number of integers used for a global ID */
+                      &numLidEntries,  /* Number of integers used for a local ID */
+                      &numImport,      /* Number of vertices to be sent to me */
+                      &importGlobalGids,  /* Global IDs of vertices to be sent to me */
+                      &importLocalGids,   /* Local IDs of vertices to be sent to me */
+                      &importProcs,    /* Process rank for source of each incoming vertex */
+                      &importToPart,   /* New partition for each incoming vertex */
+                      &numExport,      /* Number of vertices I must send to other processes*/
+                      &exportGlobalGids,  /* Global IDs of the vertices I must send */
+                      &exportLocalGids,   /* Local IDs of the vertices I must send */
+                      &exportProcs,    /* Process to which I send each of the vertices */
+                      &exportToPart);  /* Partition to which each vertex will belong */
 
   if (sim.getProcessAdm().getProcId() == 0) {
     std::vector<bool> offProc(sim.getNoElms(), false);
