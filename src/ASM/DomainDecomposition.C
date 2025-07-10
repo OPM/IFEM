@@ -766,7 +766,7 @@ bool DomainDecomposition::calcGlobalEqNumbers(const ProcessAdm& adm,
     int leq = blocks[0].MLGEQ[seq-1];
     old2new[0][leq] = it;
     o2nu[0][leq-nEqs[0]-1] = true;
-    if (blocks.size() > 1 && !blkLMs.empty()) {
+    if (blocks.size() > 2 && !blkLMs.empty()) {
       int lleq = blocks[2].MLGEQ[blocks[2].G2LEQ[seq]-1];
       old2new[2][lleq] = *blockIt;
       o2nu[2][lleq-nEqs[2]-1] = true;
