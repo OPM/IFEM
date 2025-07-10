@@ -2349,16 +2349,16 @@ bool ASMu3D::refine (const LR::RefineData& prm, Vectors& sol)
 }
 
 
-void ASMu3D::getElmConnectivities (IntMat& neigh) const
+void ASMu3D::getElmConnectivities (IntMat& neigh, bool local) const
 {
-  const LR::LRSplineVolume* lr = this->getBasis(1);
+  const LR::LRSplineVolume* lr = this->getBasis(ASM::INTEGRATION_BASIS);
   for (const LR::Element* m : lr->getAllElements()) {
     int iel = m->getId();
-    IntVec& neighbor = neigh[MLGE[iel]-1];
+    IntVec& neighbor = local ? neigh[iel] : neigh[MLGE[iel]-1];
     for (int face = 1; face <= 6; face++) {
       std::set<int> elms = lr->getElementNeighbours(iel,getFaceEnum(face));
       for (int elm : elms)
-        neighbor.push_back(MLGE[elm]-1);
+        neighbor.push_back(local ? elm : MLGE[elm]-1);
     }
   }
 }

@@ -452,7 +452,7 @@ public:
   virtual bool getParameterDomain(Real2DMat& u, IntVec* corners) const;
 
   //! \brief Obtain element neighbours.
-  virtual void getElmConnectivities(IntMat& neighs) const;
+  virtual void getElmConnectivities(IntMat& neigh, bool local = false) const;
 
 protected:
   std::shared_ptr<Go::SplineCurve> curv; //!< The actual spline curve object
