@@ -121,7 +121,7 @@ public:
   //! \brief Initializes the element sparsity pattern based on node connections.
   //! \param[in] MMNPC Matrix of matrices of nodal point correspondances
   //! \param[in] nel Number of elements
-  void preAssemble(const std::vector<IntVec>& MMNPC, size_t nel);
+  virtual void preAssemble(const std::vector<IntVec>& MMNPC, size_t nel);
 
   //! \brief Initializes the matrix to zero assuming it is properly dimensioned.
   virtual void init();
