@@ -27,6 +27,7 @@
 #include "ElementBlock.h"
 #include "Utilities.h"
 #include <array>
+#include <numeric>
 
 
 ASMs3DLag::ASMs3DLag (unsigned char n_f) : ASMs3D(n_f)
@@ -191,42 +192,12 @@ bool ASMs3DLag::generateFEMTopology ()
 
   // Number of elements in patch
   nel = nelx*nely*nelz;
-  // Number of nodes per element
-  const int nen = p1*p2*p3;
-  // Number of nodes in a xy-surface of an element
-  const int ct  = p1*p2;
 
   // Connectivity array: local --> global node relation
+  myMNPC = this->getElmNodes(1);
   myMLGE.resize(nel);
-  myMNPC.resize(nel);
-
-  int i, j, k, a, b, c, iel = 0;
-  for (k = 0; k < nelz; k++)
-    for (j = 0; j < nely; j++)
-      for (i = 0; i < nelx; i++, iel++)
-      {
-        myMLGE[iel] = ++gEl;
-        myMNPC[iel].resize(nen);
-        // First node in current element
-        int corner = (p3-1)*(nx*ny)*k + (p2-1)*nx*j + (p1-1)*i;
-
-        for (c = 0; c < p3; c++)
-        {
-          int cornod = ct*c;
-          myMNPC[iel][cornod] = corner + c*nx*ny;
-          for (b = 1; b < p2; b++)
-          {
-            int facenod = cornod + b*p1;
-            myMNPC[iel][facenod] = myMNPC[iel][cornod] + b*nx;
-            for (a = 1; a < p1; a++)
-            {
-              myMNPC[iel][facenod+a] = myMNPC[iel][facenod] + a;
-              myMNPC[iel][cornod+a]  = myMNPC[iel][cornod] + a;
-            }
-          }
-        }
-      }
-
+  std::iota(myMLGE.begin(), myMLGE.end(), gEl+1);
+  gEl += nel;
   return true;
 }
 
@@ -1196,6 +1167,56 @@ void ASMs3DLag::generateThreadGroups (char lIndex, bool, bool)
   this->findBoundaryElms(map,lIndex);
 
   fGrp.applyMap(map);
+}
+
+
+IntMat ASMs3DLag::getElmNodes (int basis) const
+{
+  IntMat result;
+  result.resize(nel);
+
+  const Go::SplineVolume* svol = this->getBasis(basis);
+
+  // Order of basis in the two parametric directions (order = degree + 1)
+  const int p1 = svol->order(0);
+  const int p2 = svol->order(1);
+  const int p3 = svol->order(2);
+  const int nelx = (nx-1) / (p1-1);
+  const int nely = (ny-1) / (p2-1);
+  const int nelz = (nz-1) / (p3-1);
+
+  // Number of nodes per element
+  const int nen = p1*p2*p3;
+  // Number of nodes in a xy-surface of an element
+  const int ct  = p1*p2;
+
+  int iel = 0;
+  for (int k = 0; k < nelz; k++)
+    for (int j = 0; j < nely; j++)
+      for (int i = 0; i < nelx; i++, iel++)
+      {
+        result[iel].resize(nen);
+        // First node in current element
+        int corner = (p3-1)*(nx*ny)*k + (p2-1)*nx*j + (p1-1)*i;
+
+        for (int c = 0; c < p3; c++)
+        {
+          int cornod = ct*c;
+          result[iel][cornod] = corner + c*nx*ny;
+          for (int b = 1; b < p2; b++)
+          {
+            int facenod = cornod + b*p1;
+            result[iel][facenod] = result[iel][cornod] + b*nx;
+            for (int a = 1; a < p1; a++)
+            {
+              result[iel][facenod+a] = result[iel][facenod] + a;
+              result[iel][cornod+a]  = result[iel][cornod] + a;
+            }
+          }
+        }
+      }
+
+  return result;
 }
 
 
