@@ -59,6 +59,10 @@ namespace LR //! Utilities for LR-splines.
   void generateThreadGroups(ThreadGroups& threadGroups,
                             const LRSpline* lr,
                             const std::vector<LRSpline*>& addConstraints = {});
+
+  //! \brief Get element nodes for a spline.
+  //! \param basis Spline to get element nodes for
+  IntMat getElmNodes (const LR::LRSpline* basis);
 }
 
 

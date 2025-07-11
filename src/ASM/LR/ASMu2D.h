@@ -160,6 +160,9 @@ public:
   //! \brief Obtain element neighbours.
   virtual void getElmConnectivities(IntMat& neighs) const;
 
+  //! \brief Get MNPC for a given basis.
+  virtual IntMat getElmNodes(int basis) const;
+
   //! \brief Returns a matrix with all nodal coordinates within the patch.
   //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
   //! in the patch
