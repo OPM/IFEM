@@ -277,6 +277,16 @@ bool DenseMatrix::assemble (const Matrix& eM, const SAM& sam,
 }
 
 
+bool DenseMatrix::assemble (const Matrix& eM, const IntVec& meq)
+{
+  for (size_t i = 0; i < meq.size(); ++i)
+    for (size_t j = 0; j < meq.size(); ++j)
+      (*this)(meq[i]+1, meq[j]+1) += eM(i+1, j+1);
+
+  return true;
+}
+
+
 bool DenseMatrix::augment (const SystemMatrix& B, size_t r0, size_t c0)
 {
   const SparseMatrix* sB = dynamic_cast<const SparseMatrix*>(&B);
