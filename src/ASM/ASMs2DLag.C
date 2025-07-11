@@ -27,6 +27,7 @@
 #include "ElementBlock.h"
 #include "Utilities.h"
 #include <array>
+#include <numeric>
 
 
 ASMs2DLag::ASMs2DLag (unsigned char n_s, unsigned char n_f) : ASMs2D(n_s,n_f)
@@ -158,48 +159,30 @@ bool ASMs2DLag::generateFEMTopology ()
   // Number of elements in each direction
   const int nelx = (nx-1)/(p1-1);
   const int nely = (ny-1)/(p2-1);
-
-  // Evaluate the nodal coordinates in the physical space
-  RealArray XYZ(surf->dimension()*nnod);
-  surf->gridEvaluator(XYZ,gpar1,gpar2);
-
-  size_t i1, j1;
-  myMLGN.resize(nnod);
-  myCoord.resize(nnod);
-  for (i1 = j1 = 0; i1 < myCoord.size(); i1++)
-  {
-    myMLGN[i1] = ++gNod;
-    for (size_t d = 0; d < nsd; d++)
-      myCoord[i1][d] = XYZ[j1+d];
-    j1 += surf->dimension();
-  }
-
   // Number of elements in patch
   nel = nelx*nely;
-  // Number of nodes per element
-  const int nen = p1*p2;
+
+  // Global node numbers
+  myMLGN.resize(nnod);
+  std::iota(myMLGN.begin(), myMLGN.end(), gNod+1);
+  gNod += nnod;
+
+  // Evaluate the nodal coordinates in the physical space
+  size_t i1, j1;
+  myCoord.resize(nnod);
+  RealArray XYZ(surf->dimension()*nnod);
+  surf->gridEvaluator(XYZ,gpar1,gpar2);
+  for (i1 = j1 = 0; i1 < myCoord.size(); i1++, j1 += surf->dimension())
+    for (size_t d = 0; d < nsd; d++)
+      myCoord[i1][d] = XYZ[j1+d];
+
+  // Global element numbers
+  myMLGE.resize(nel);
+  std::iota(myMLGE.begin(), myMLGE.end(), gEl+1);
+  gEl += nel;
 
   // Connectivity array: local --> global node relation
-  myMLGE.resize(nel);
-  myMNPC.resize(nel);
-
-  int i, j, a, b, iel = 0;
-  for (j = 0; j < nely; j++)
-    for (i = 0; i < nelx; i++, iel++)
-    {
-      myMLGE[iel] = ++gEl;
-      myMNPC[iel].resize(nen);
-      // First node in current element
-      int corner = (p2-1)*nx*j + (p1-1)*i;
-
-      for (b = 0; b < p2; b++)
-      {
-        int facenod = b*p1;
-        myMNPC[iel][facenod] = corner + b*nx;
-        for (a = 1; a < p1; a++)
-          myMNPC[iel][facenod+a] = myMNPC[iel][facenod] + a;
-      }
-    }
+  ASMs2DLag::createMNPC(nx,ny,p1,p2,myMNPC);
 
   return true;
 }
@@ -696,12 +679,12 @@ bool ASMs2DLag::tesselate (ElementBlock& grid, const int*) const
     return false;
 
   // Adjust the element Id since each Lagrange element covers several knot-spans
-  int i, ie, nse1 = p1-1;
-  int j, je, nse2 = p2-1;
+  int ie, nse1 = p1-1;
+  int je, nse2 = p2-1;
   int nelx = (nx-1)/nse1;
-  for (j = je = 1; j < (int)ny; j++)
+  for (size_t j = je = 1; j < ny; j++)
   {
-    for (i = ie = 1; i < (int)nx; i++)
+    for (size_t i = ie = 1; i < nx; i++)
     {
       grid.setElmId((j-1)*(nx-1)+i,(je-1)*nelx+ie);
       if (i%nse1 == 0) ie++;
@@ -897,6 +880,61 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 void ASMs2DLag::generateThreadGroups (const Integrand&, bool, bool)
 {
   threadGroups.calcGroups((nx-1)/(p1-1),(ny-1)/(p2-1),1);
+}
+
+
+IntMat ASMs2DLag::getElmNodes (int basis) const
+{
+  const Go::SplineSurface* srf = this->getBasis(basis);
+
+  // Find number of nodes in each parameter direction,
+  // accounting for possible zero-length knot-spans
+  // (see ASMs2D::getGridParameters())
+  int nx[2] = { 0, 0 };
+  RealArray::const_iterator uit, uend;
+  for (int d = 0; d < 2; d++)
+  {
+    uit  = srf->basis(d).begin() + srf->basis(d).order()-1;
+    uend = srf->basis(d).begin() + srf->basis(d).numCoefs()+1;
+    for (double uprev = *(uit++); uit != uend; ++uit)
+    {
+      if (*uit > uprev)
+        nx[d] += srf->basis(d).order()-1;
+      uprev = *uit;
+    }
+    if (srf->basis(d).order() > 2)
+      nx[d]++;
+  }
+
+  IntMat result;
+  ASMs2DLag::createMNPC(nx[0],nx[1],srf->order_u(),srf->order_v(),result);
+  return result;
+}
+
+
+void ASMs2DLag::createMNPC (size_t nx, size_t ny,
+                            int p1, int p2, IntMat& result)
+{
+  const int nelx = (nx-1) / (p1-1);
+  const int nely = (ny-1) / (p2-1);
+  result.resize(nelx*nely);
+
+  int iel = 0;
+  for (int j = 0; j < nely; j++)
+    for (int i = 0; i < nelx; i++, iel++)
+    {
+      result[iel].resize(p1*p2);
+      // First node in current element
+      int corner = (p2-1)*nx*j + (p1-1)*i;
+
+      for (int b = 0; b < p2; b++)
+      {
+        int facenod = b*p1;
+        result[iel][facenod] = corner + b*nx;
+        for (int a = 1; a < p1; a++)
+          result[iel][facenod+a] = result[iel][facenod] + a;
+      }
+    }
 }
 
 

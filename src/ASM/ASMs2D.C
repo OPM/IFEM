@@ -498,7 +498,7 @@ bool ASMs2D::generateFEMTopology ()
   if (!nodeInd.empty())
   {
     nnod = n1*n2;
-    if (nodeInd.size() != (size_t)nnod)
+    if (nodeInd.size() != nnod)
     {
       std::cerr <<" *** ASMs2D::generateFEMTopology: Inconsistency between the"
                 <<" number of FE nodes "<< nodeInd.size()
@@ -537,7 +537,6 @@ bool ASMs2D::generateFEMTopology ()
 
   myMLGE.resize((n1-p1+1)*(n2-p2+1),0);
   myMLGN.resize(n1*n2);
-  myMNPC.resize(myMLGE.size());
   myNodeInd.resize(myMLGN.size());
 
   nnod = nel = 0;
@@ -550,20 +549,14 @@ bool ASMs2D::generateFEMTopology ()
       {
         if (surf->knotSpan(0,i1-1) > 0.0)
           if (surf->knotSpan(1,i2-1) > 0.0)
-          {
             myMLGE[nel] = ++gEl; // global element number over all patches
-            myMNPC[nel].resize(p1*p2,0);
-
-            int lnod = 0;
-            for (int j2 = p2-1; j2 >= 0; j2--)
-              for (int j1 = p1-1; j1 >= 0; j1--)
-                myMNPC[nel][lnod++] = nnod - n1*j2 - j1;
-          }
 
         nel++;
       }
       myMLGN[nnod++] = ++gNod; // global node number over all patches
     }
+
+  ASMs2D::createMNPC(surf.get(),myMNPC);
 
 #ifdef SP_DEBUG
   std::cout <<"NEL = "<< nel <<" NNOD = "<< nnod << std::endl;
@@ -609,7 +602,8 @@ bool ASMs2D::assignNodeNumbers (BlockNodes& nodes, int basis)
     if (!this->getSize(m1,m2,3-basis))
       return false;
 
-  if (MLGN.size() != (size_t)(n1*n2+m1*m2)) return false;
+  if (MLGN.size() != static_cast<size_t>(n1*n2+m1*m2))
+    return false;
 
   nodes.nnodI = n1;
 
@@ -1250,7 +1244,7 @@ bool ASMs2D::updateDirichlet (const std::map<int,RealFunc*>& func,
 double ASMs2D::getParametricArea (int iel) const
 {
 #ifdef INDEX_CHECK
-  if (iel < 1 || (size_t)iel > MNPC.size())
+  if (iel < 1 || static_cast<size_t>(iel) > MNPC.size())
   {
     std::cerr <<" *** ASMs2D::getParametricArea: Element index "<< iel
 	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
@@ -1262,7 +1256,7 @@ double ASMs2D::getParametricArea (int iel) const
 
   int inod1 = MNPC[iel-1][this->getLastItgElmNode()];
 #ifdef INDEX_CHECK
-  if (inod1 < 0 || (size_t)inod1 >= nnod)
+  if (inod1 < 0 || static_cast<size_t>(inod1) >= nnod)
   {
     std::cerr <<" *** ASMs2D::getParametricArea: Node index "<< inod1
 	      <<" out of range [0,"<< nnod <<">."<< std::endl;
@@ -1280,7 +1274,7 @@ double ASMs2D::getParametricArea (int iel) const
 double ASMs2D::getParametricLength (int iel, int dir) const
 {
 #ifdef INDEX_CHECK
-  if (iel < 1 || (size_t)iel > MNPC.size())
+  if (iel < 1 || static_cast<size_t>(iel) > MNPC.size())
   {
     std::cerr <<" *** ASMs2D::getParametricLength: Element index "<< iel
 	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
@@ -1292,7 +1286,7 @@ double ASMs2D::getParametricLength (int iel, int dir) const
 
   int inod1 = MNPC[iel-1][this->getLastItgElmNode()];
 #ifdef INDEX_CHECK
-  if (inod1 < 0 || (size_t)inod1 >= nnod)
+  if (inod1 < 0 || static_cast<size_t>(inod1) >= nnod)
   {
     std::cerr <<" *** ASMs2D::getParametricLength: Node index "<< inod1
 	      <<" out of range [0,"<< nnod <<">."<< std::endl;
@@ -1353,7 +1347,7 @@ Vec3 ASMs2D::getCoord (size_t inod) const
 bool ASMs2D::getElementCoordinates (Matrix& X, int iel, bool forceItg) const
 {
 #ifdef INDEX_CHECK
-  if (iel < 1 || (size_t)iel > MNPC.size())
+  if (iel < 1 || static_cast<size_t>(iel) > MNPC.size())
   {
     std::cerr <<" *** ASMs2D::getElementCoordinates: Element index "<< iel
               <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
@@ -3255,6 +3249,36 @@ void ASMs2D::getElmConnectivities (IntMat& neigh, bool local) const
           neigh[idx][2] = index(iel-N1);
         if (i2 < n2)
           neigh[idx][3] = index(iel+N1);
+      }
+}
+
+
+IntMat ASMs2D::getElmNodes (int basis) const
+{
+  IntMat result;
+  ASMs2D::createMNPC(this->getBasis(basis),result);
+  return result;
+}
+
+
+void ASMs2D::createMNPC (const Go::SplineSurface* srf, IntMat& result)
+{
+  const int p1 = srf->order_u();
+  const int p2 = srf->order_v();
+  const int n1 = srf->numCoefs_u();
+  const int n2 = srf->numCoefs_v();
+
+  result.resize((n1-p1+1)*(n2-p2+1));
+  int iel = 0;
+  for (int i2 = p2; i2 <= n2; i2++)
+    for (int i1 = p1; i1 <= n1; i1++, iel++)
+      if (srf->knotSpan(0,i1-1) > 0.0 && srf->knotSpan(1,i2-1) > 0.0)
+      {
+        int inod = (i2-1)*n1 + i1-1;
+        result[iel].reserve(p1*p2);
+        for (int j2 = p2-1; j2 >= 0; j2--)
+          for (int j1 = p1-1; j1 >= 0; j1--)
+            result[iel].push_back(inod - n1*j2 - j1);
       }
 }
 

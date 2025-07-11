@@ -451,8 +451,17 @@ public:
   //! \param[out] corners 1-based indices of the corner nodes (optional)
   virtual bool getParameterDomain(Real2DMat& u, IntVec* corners) const;
 
-  //! \brief Obtain element neighbours.
+  //! \brief Calculates the matrix of element neighbour connectivities.
+  //! \param[out] neigh List of element neighbors for each element
+  //! \param[in] local If \e true, return the local (patch-wise) element indices
   virtual void getElmConnectivities(IntMat& neigh, bool local = false) const;
+
+  //! \brief Returns the matrix of nodal point correspondance for given basis.
+  virtual IntMat getElmNodes(int basis) const;
+
+private:
+  //! \brief Creates matrix of nodal point correspondance for a spline curve.
+  static void createMNPC(const Go::SplineCurve* crv, IntMat& MNPC);
 
 protected:
   std::shared_ptr<Go::SplineCurve> curv; //!< The actual spline curve object

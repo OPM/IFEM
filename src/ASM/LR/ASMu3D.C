@@ -39,6 +39,7 @@
 #include "Point.h"
 #include "IFEM.h"
 #include <array>
+#include <numeric>
 #include <utility>
 
 
@@ -286,6 +287,7 @@ bool ASMu3D::generateFEMTopology ()
   if (tensorPrjBas)
   {
     projB.reset(new LR::LRSplineVolume(tensorPrjBas));
+    projB->generateIDs();
     delete tensorPrjBas;
     tensorPrjBas = nullptr;
   }
@@ -315,35 +317,34 @@ bool ASMu3D::generateFEMTopology ()
   const int p2 = lrspline->order(1);
   const int p3 = lrspline->order(2);
 
-  myMLGN.resize(nnod);
-  myMLGE.resize(nel);
-  myMNPC.resize(nel);
-
   myBezierExtract.resize(nel);
   lrspline->generateIDs();
   // force cache creation
   lrspline->getElementContaining(lrspline->getElement(0)->midpoint());
 
+  // Global node numbers
+  myMLGN.resize(nnod);
+  std::iota(myMLGN.begin(), myMLGN.end(), gNod+1);
+  gNod += nnod;
+
+  // Global element numbers
+  myMLGE.resize(nel);
+  std::iota(myMLGE.begin(), myMLGE.end(), gEl+1);
+  gEl += nel;
+
+  // Connectivity array: local --> global node relation
+  LR::createMNPC(lrspline.get(),myMNPC);
+
+  // Get bezier extraction matrices
   size_t iel = 0;
   RealArray extrMat;
   for (const LR::Element* elm : lrspline->getAllElements())
   {
-    myMLGE[iel] = ++gEl; // global element number over all patches
-    myMNPC[iel].resize(elm->nBasisFunctions());
-
-    int lnod = 0;
-    for (LR::Basisfunction* b : elm->support())
-      myMNPC[iel][lnod++] = b->getId();
-
-    // Get bezier extraction matrix
     PROFILE("Bezier extraction");
     lrspline->getBezierExtraction(iel,extrMat);
     myBezierExtract[iel].resize(elm->nBasisFunctions(),p1*p2*p3);
     myBezierExtract[iel++].fill(extrMat.data(),extrMat.size());
   }
-
-  for (size_t inod = 0; inod < nnod; inod++)
-    myMLGN[inod] = ++gNod;
 
   return true;
 }
@@ -2361,6 +2362,14 @@ void ASMu3D::getElmConnectivities (IntMat& neigh, bool local) const
         neighbor.push_back(local ? elm : MLGE[elm]-1);
     }
   }
+}
+
+
+IntMat ASMu3D::getElmNodes (int basis) const
+{
+  IntMat result;
+  LR::createMNPC(this->getBasis(basis),result);
+  return result;
 }
 
 

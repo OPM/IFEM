@@ -59,6 +59,11 @@ namespace LR //! Utilities for LR-splines.
   void generateThreadGroups(ThreadGroups& threadGroups,
                             const LRSpline* lr,
                             const std::vector<LRSpline*>& addConstraints = {});
+
+  //! \brief Createss the matrix of nodal point correspondance for a LR-spline.
+  //! \param[in] basis LR-spline to get nodal point correspondance for
+  //! \param[out] result Matrix of nodal point correspondance for the elements
+  void createMNPC(const LR::LRSpline* basis, IntMat& result);
 }
 
 

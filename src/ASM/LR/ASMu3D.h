@@ -140,10 +140,16 @@ public:
   //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
   //! in one element
   //! \param[in] forceItg If true return integration basis element coordinates
-  virtual bool getElementCoordinates(Matrix& X, int iel, bool forceItg = false) const;
+  virtual bool getElementCoordinates(Matrix& X, int iel,
+                                     bool forceItg = false) const;
 
-  //! \brief Obtain element neighbours.
+  //! \brief Calculates the matrix of element neighbour connectivities.
+  //! \param[out] neighs List of element neighbors for each element
+  //! \param[in] local If \e true, return the local (patch-wise) element indices
   virtual void getElmConnectivities(IntMat& neighs, bool local = false) const;
+
+  //! \brief Returns the matrix of nodal point correspondance for given basis.
+  virtual IntMat getElmNodes(int basis) const;
 
   //! \brief Returns a matrix with all nodal coordinates within the patch.
   //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes

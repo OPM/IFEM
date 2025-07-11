@@ -20,8 +20,6 @@
 #include "Interface.h"
 #include "ThreadGroups.h"
 
-#include <memory>
-
 namespace utl {
   class Point;
 }
@@ -235,7 +233,8 @@ public:
   //! \param[in] iel 1-based element index local to current patch
   //! \param[in] forceItg If \e true, return the integration basis coordinates
   //! otherwise the geometry basis coordinates are returned
-  virtual bool getElementCoordinates(Matrix& X, int iel, bool forceItg = false) const;
+  virtual bool getElementCoordinates(Matrix& X, int iel,
+                                     bool forceItg = false) const;
 
   //! \brief Returns a matrix with all nodal coordinates within the patch.
   //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
@@ -738,8 +737,13 @@ public:
   //! \param[out] n3 Number of nodes in third (w) direction
   virtual bool getNoStructElms(int& n1, int& n2, int& n3) const;
 
-  //! \brief Obtain element neighbours.
+  //! \brief Calculates the matrix of element neighbour connectivities.
+  //! \param[out] neigh List of element neighbors for each element
+  //! \param[in] local If \e true, return the local (patch-wise) element indices
   virtual void getElmConnectivities(IntMat& neigh, bool local = false) const;
+
+  //! \brief Returns the matrix of nodal point correspondance for given basis.
+  virtual IntMat getElmNodes(int basis) const;
 
   //! \brief Returns the number of elements on a boundary.
   virtual size_t getNoBoundaryElms(char lIndex, char ldim) const;
@@ -800,6 +804,9 @@ private:
   //! \brief Returns an index into the internal coefficient array for a node.
   //! \param[in] inod 0-based node index local to current patch
   int coeffInd(size_t inod) const;
+
+  //! \brief Creates matrix of nodal point correspondance for a spline surface.
+  static void createMNPC(const Go::SplineSurface* srf, IntMat& MNPC);
 
 protected:
   std::shared_ptr<Go::SplineSurface> surf; //!< The actual spline surface object

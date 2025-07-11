@@ -146,6 +146,13 @@ public:
   //! \brief Returns the number of nodal points in the patch.
   virtual int getSize(int = 0) const { return nx; }
 
+  //! \brief Returns the matrix of nodal point correspondance.
+  virtual IntMat getElmNodes(int) const;
+
+private:
+  //! \brief Creates matrix of nodal point correspondance for a structured grid.
+  static void createMNPC(size_t nel, int p1, IntMat& MNPC);
+
 protected:
   size_t nx; //!< Number of nodes
   int    p1; //!< Polynomial order of the basis

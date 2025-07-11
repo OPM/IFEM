@@ -270,8 +270,15 @@ public:
   //! \brief Generates element groups for multi-threading of interior integrals.
   virtual void generateThreadGroups(const Integrand&, bool, bool);
 
+  //! \brief Returns the matrix of nodal point correspondance for given basis.
+  virtual IntMat getElmNodes(int basis) const;
+
   //! \brief Returns the number of elements on a boundary.
   virtual size_t getNoBoundaryElms(char lIndex, char ldim) const;
+
+private:
+  //! \brief Returns matrix of nodal point correspondance for a structured grid.
+  static void createMNPC(size_t nx, size_t ny, int p1, int p2, IntMat& MNPC);
 
 protected:
   size_t nx; //!< Number of nodes in first parameter direction

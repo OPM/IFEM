@@ -434,7 +434,7 @@ bool ASMs3D::generateFEMTopology ()
   if (!nodeInd.empty())
   {
     nnod = n1*n2*n3;
-    if (nodeInd.size() != (size_t)nnod)
+    if (nodeInd.size() != nnod)
     {
       std::cerr <<" *** ASMs3D::generateFEMTopology: Inconsistency between the"
                 <<" number of FE nodes "<< nodeInd.size()
@@ -473,7 +473,6 @@ bool ASMs3D::generateFEMTopology ()
 
   myMLGE.resize((n1-p1+1)*(n2-p2+1)*(n3-p3+1),0);
   myMLGN.resize(n1*n2*n3);
-  myMNPC.resize(myMLGE.size());
   myNodeInd.resize(myMLGN.size());
 
   nnod = nel = 0;
@@ -486,24 +485,17 @@ bool ASMs3D::generateFEMTopology ()
         myNodeInd[nnod].K = i3-1;
         if (i1 >= p1 && i2 >= p2 && i3 >= p3)
         {
-          if (svol->knotSpan(0,i1-1) > 0.0)
-            if (svol->knotSpan(1,i2-1) > 0.0)
-              if (svol->knotSpan(2,i3-1) > 0.0)
-              {
-                myMLGE[nel] = ++gEl; // global element number over all patches
-                myMNPC[nel].resize(p1*p2*p3,0);
-
-                int lnod = 0;
-                for (int j3 = p3-1; j3 >= 0; j3--)
-                  for (int j2 = p2-1; j2 >= 0; j2--)
-                    for (int j1 = p1-1; j1 >= 0; j1--)
-                      myMNPC[nel][lnod++] = nnod - n1*n2*j3 - n1*j2 - j1;
-              }
+          if (svol->knotSpan(0,i1-1) > 0.0 &&
+              svol->knotSpan(1,i2-1) > 0.0 &&
+              svol->knotSpan(2,i3-1) > 0.0)
+            myMLGE[nel] = ++gEl; // global element number over all patches
 
           nel++;
         }
         myMLGN[nnod++] = ++gNod; // global node number over all patches
       }
+
+  ASMs3D::createMNPC(svol.get(),myMNPC);
 
 #ifdef SP_DEBUG
   std::cout <<"NEL = "<< nel <<" NNOD = "<< nnod << std::endl;
@@ -569,7 +561,8 @@ bool ASMs3D::assignNodeNumbers (BlockNodes& nodes, int basis)
     if (!this->getSize(m1,m2,m3,3-basis))
       return false;
 
-  if (MLGN.size() != (size_t)(n1*n2*n3+m1*m2*m3)) return false;
+  if (MLGN.size() != static_cast<size_t>(n1*n2*n3+m1*m2*m3))
+    return false;
 
   nodes.faces[0].nnodI = nodes.faces[1].nnodI = n2;
   nodes.faces[2].nnodI = nodes.faces[3].nnodI = n1;
@@ -1513,7 +1506,7 @@ bool ASMs3D::updateDirichlet (const std::map<int,RealFunc*>& func,
 double ASMs3D::getParametricVolume (int iel) const
 {
 #ifdef INDEX_CHECK
-  if (iel < 1 || (size_t)iel > MNPC.size())
+  if (iel < 1 || static_cast<size_t>(iel) > MNPC.size())
   {
     std::cerr <<" *** ASMs3D::getParametricVolume: Element index "<< iel
 	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
@@ -1525,7 +1518,7 @@ double ASMs3D::getParametricVolume (int iel) const
 
   int inod1 = MNPC[iel-1][this->getLastItgElmNode()];
 #ifdef INDEX_CHECK
-  if (inod1 < 0 || (size_t)inod1 >= nnod)
+  if (inod1 < 0 || static_cast<size_t>(inod1) >= nnod)
   {
     std::cerr <<" *** ASMs3D::getParametricVolume: Node index "<< inod1
 	      <<" out of range [0,"<< nnod <<">."<< std::endl;
@@ -1543,7 +1536,7 @@ double ASMs3D::getParametricVolume (int iel) const
 double ASMs3D::getParametricArea (int iel, int dir) const
 {
 #ifdef INDEX_CHECK
-  if (iel < 1 || (size_t)iel > MNPC.size())
+  if (iel < 1 || static_cast<size_t>(iel) > MNPC.size())
   {
     std::cerr <<" *** ASMs3D::getParametricArea: Element index "<< iel
 	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
@@ -1555,7 +1548,7 @@ double ASMs3D::getParametricArea (int iel, int dir) const
 
   int inod1 = MNPC[iel-1][this->getLastItgElmNode()];
 #ifdef INDEX_CHECK
-  if (inod1 < 0 || (size_t)inod1 >= nnod)
+  if (inod1 < 0 || static_cast<size_t>(inod1) >= nnod)
   {
     std::cerr <<" *** ASMs3D::getParametricArea: Node index "<< inod1
 	      <<" out of range [0,"<< nnod <<">."<< std::endl;
@@ -1622,7 +1615,7 @@ Vec3 ASMs3D::getCoord (size_t inod) const
 bool ASMs3D::getElementCoordinates (Matrix& X, int iel, bool forceItg) const
 {
 #ifdef INDEX_CHECK
-  if (iel < 1 || (size_t)iel > MNPC.size())
+  if (iel < 1 || static_cast<size_t>(iel) > MNPC.size())
   {
     std::cerr <<" *** ASMs3D::getElementCoordinates: Element index "<< iel
               <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
@@ -2909,7 +2902,8 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
 	double dS = 0.0;
 	int ip = MNPC[iel-1][svol->order(0)*svol->order(1)*svol->order(2)-1];
 #ifdef INDEX_CHECK
-	if (ip < 0 || (size_t)ip >= nnod) return false;
+        if (ip < 0 || static_cast<size_t>(ip) >= nnod)
+          return false;
 #endif
 	if (lEdge < 5)
 	{
@@ -3792,6 +3786,42 @@ void ASMs3D::getElmConnectivities (IntMat& neigh, bool local) const
             neigh[idx][4] = index(iel-N1*N2);
           if (i3 < n3)
             neigh[idx][5] = index(iel+N1*N2);
+        }
+}
+
+
+IntMat ASMs3D::getElmNodes (int basis) const
+{
+  IntMat result;
+  ASMs3D::createMNPC(this->getBasis(basis),result);
+  return result;
+}
+
+
+void ASMs3D::createMNPC (const Go::SplineVolume* svol, IntMat& result)
+{
+  const int p1 = svol->order(0);
+  const int p2 = svol->order(1);
+  const int p3 = svol->order(2);
+  const int n1 = svol->numCoefs(0);
+  const int n2 = svol->numCoefs(1);
+  const int n3 = svol->numCoefs(2);
+
+  result.resize((n1-p1+1)*(n2-p2+1)*(n3-p3+1));
+  int iel = 0;
+  for (int i3 = p3; i3 <= n3; i3++)
+    for (int i2 = p2; i2 <= n2; i2++)
+      for (int i1 = p1; i1 <= n1; i1++, iel++)
+        if (svol->knotSpan(0,i1-1) > 0.0 &&
+            svol->knotSpan(1,i2-1) > 0.0 &&
+            svol->knotSpan(2,i3-1) > 0.0)
+        {
+          int inod = ((i3-1)*n2 + (i2-1))*n1 + i1-1;
+          result[iel].reserve(p1*p2*p3);
+          for (int j3 = p3-1; j3 >= 0; j3--)
+            for (int j2 = p2-1; j2 >= 0; j2--)
+              for (int j1 = p1-1; j1 >= 0; j1--)
+                result[iel].push_back(inod - n1*n2*j3 - n1*j2 - j1);
         }
 }
 

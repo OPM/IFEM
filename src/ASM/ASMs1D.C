@@ -307,7 +307,7 @@ bool ASMs1D::generateOrientedFEModel (const Vec3& Zaxis)
   if (!MLGN.empty())
   {
     nnod = n1;
-    if (MLGN.size() != (size_t)nnod)
+    if (MLGN.size() != nnod)
     {
       std::cerr <<" *** ASMs1D::generateFEMTopology: Inconsistency between the"
                 <<" number of FE nodes "<< MLGN.size()
@@ -335,55 +335,36 @@ bool ASMs1D::generateOrientedFEModel (const Vec3& Zaxis)
   if (p1 > n1) return false;
 
   nel = n1-p1+1;
+  nnod = n1;
   myMLGE.resize(nel,0);
-  myMLGN.resize(n1);
-  myMNPC.resize(nel);
+  myMLGN.resize(nnod);
   if (nsd == 3 && nf == 6)
   {
     // This is a 3D beam problem, allocate the element/nodal rotation tensors.
     // The nodal rotations are updated during the simulation according to the
     // deformation state, whereas the element tensors are kept constant.
     myCS.resize(nel,Tensor(3)); // Initialize element rotations to zero
-    myT.resize(n1,Tensor(3,true)); // Initialize nodal rotations to unity
+    myT.resize(nnod,Tensor(3,true)); // Initialize nodal rotations to unity
   }
 
   int pgEl = gEl;
-  nnod = nel = 0;
   for (int i1 = 1; i1 <= n1; i1++)
   {
-    if (i1 >= p1)
-    {
-      if (this->getKnotSpan(i1-1) > 0.0)
-      {
-        myMLGE[nel] = ++gEl; // global element number over all patches
-        myMNPC[nel].resize(p1,0);
-
-        int lnod = 0;
-        for (int j1 = p1-1; j1 >= 0; j1--)
-          myMNPC[nel][lnod++] = nnod - j1;
-      }
-      nel++;
-    }
-    myMLGN[nnod++] = ++gNod; // global node number over all patches
+    if (i1 >= p1 && this->getKnotSpan(i1-1) > 0.0)
+      myMLGE[i1-p1] = ++gEl; // global element number over all patches
+    myMLGN[i1-1] = ++gNod; // global node number over all patches
   }
+  ASMs1D::createMNPC(curv.get(),myMNPC);
 
   if (proj != curv)
   {
     n1 = proj->numCoefs();
     p1 = proj->order();
     projMLGE.resize(n1-p1+1,0);
-    projMNPC.resize(projMLGE.size());
     for (int i1 = p1; i1 <= n1; i1++)
       if (*(proj->basis().begin()+i1) > *(proj->basis().begin()+i1-1))
-      {
-        int iel = i1 - p1;
-        projMLGE[iel] = ++pgEl;
-        projMNPC[iel].resize(p1,0);
-
-        int lnod = 0;
-        for (int j1 = p1; j1 > 0; j1--)
-          projMNPC[iel][lnod++] = i1 - j1;
-      }
+        projMLGE[i1-p1] = ++pgEl;
+    ASMs1D::createMNPC(proj.get(),projMNPC);
   }
 
 #ifdef SP_DEBUG
@@ -674,7 +655,7 @@ Tensor ASMs1D::getLocal2Global (double u) const
 double ASMs1D::getParametricLength (int iel) const
 {
 #ifdef INDEX_CHECK
-  if (iel < 1 || (size_t)iel > MNPC.size())
+  if (iel < 1 || static_cast<size_t>(iel) > MNPC.size())
   {
     std::cerr <<" *** ASMs1D::getParametricLength: Element index "<< iel
 	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
@@ -686,7 +667,7 @@ double ASMs1D::getParametricLength (int iel) const
 
   int inod1 = MNPC[iel-1][curv->order()-1];
 #ifdef INDEX_CHECK
-  if (inod1 < 0 || (size_t)inod1 >= MLGN.size())
+  if (inod1 < 0 || static_cast<size_t>(inod1) >= MLGN.size())
   {
     std::cerr <<" *** ASMs1D::getParametricLength: Node index "<< inod1
 	      <<" out of range [0,"<< MLGN.size() <<">."<< std::endl;
@@ -735,7 +716,7 @@ const Tensor& ASMs1D::getRotation (size_t inod) const
 bool ASMs1D::getElementCoordinates (Matrix& X, int iel, bool) const
 {
 #ifdef INDEX_CHECK
-  if (iel < 1 || (size_t)iel > MNPC.size())
+  if (iel < 1 || static_cast<size_t>(iel) > MNPC.size())
   {
     std::cerr <<" *** ASMs1D::getElementCoordinates: Element index "<< iel
 	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
@@ -1588,7 +1569,7 @@ bool ASMs1D::getSolution (Matrix& sField, const Vector& locSol,
 
   // Extract the total angular rotations as components 4-6
   for (size_t i = 0; i < nodes.size(); i++)
-    if (nodes[i] > 0 && (size_t)nodes[i] <= nodalT.size())
+    if (nodes[i] > 0 && static_cast<size_t>(nodes[i]) <= nodalT.size())
     {
       Vec3 rot = nodalT[nodes[i]-1].rotVec();
       sField(4,1+i) = rot.x;
@@ -2013,4 +1994,30 @@ void ASMs1D::getElmConnectivities (IntMat& neigh, bool local) const
 void ASMs1D::findBoundaryElms (IntVec& elms, int lIndex, int) const
 {
   elms = { lIndex == 1 ? 0 : static_cast<int>(nel)-1 };
+}
+
+
+IntMat ASMs1D::getElmNodes (int basis) const
+{
+  IntMat result;
+  createMNPC(basis == ASM::PROJECTION_BASIS ? proj.get() : curv.get(), result);
+  return result;
+}
+
+
+void ASMs1D::createMNPC (const Go::SplineCurve* crv, IntMat& result)
+{
+  const int n1 = crv->numCoefs();
+  const int p1 = crv->order();
+
+  result.resize(n1-p1+1);
+  int iel = 0;
+  for (int i1 = p1; i1 <= n1; i1++, iel++)
+    if (*(crv->basis().begin()+i1) > *(crv->basis().begin()+i1-1))
+    {
+      int inod = i1-1;
+      result[iel].reserve(p1);
+      for (int j1 = p1-1; j1 >= 0; j1--)
+        result[iel].push_back(inod - j1);
+    }
 }
