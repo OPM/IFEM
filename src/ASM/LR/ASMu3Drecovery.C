@@ -104,7 +104,7 @@ LR::LRSpline* ASMu3D::evalSolution (const IntegrandBase& integrand) const
 }
 
 
-bool ASMu3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
+bool ASMu3D::assembleL2matrices (SystemMatrix& A, SystemVector& B,
                                  const L2Integrand& integrand,
                                  bool continuous) const
 {
@@ -227,14 +227,8 @@ bool ASMu3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
               eB[r-1].add(phi,sField(r,ip+1)*dJw);
           }
 
-      for (size_t i = 0; i < eA.rows(); ++i) {
-        for (size_t j = 0; j < eA.cols(); ++j)
-          A(mnpc[i]+1, mnpc[j]+1) += eA(i+1,j+1);
-
-        int jp = mnpc[i]+1;
-        for (size_t r = 0; r < sField.rows(); r++, jp += nnod)
-          B(jp) += eB[r](1+i);
-      }
+      A.assemble(eA, mnpc);
+      B.assemble(eB, mnpc, nnod);
     }
 
   return ok;

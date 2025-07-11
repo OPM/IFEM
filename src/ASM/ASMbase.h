@@ -37,8 +37,8 @@ class IntegrandBase;
 class Integrand;
 class L2Integrand;
 class ASMbase;
-class SparseMatrix;
-class StdVector;
+class SystemMatrix;
+class SystemVector;
 class FunctionBase;
 class RealFunc;
 class VecFunc;
@@ -925,7 +925,7 @@ protected:
   //! \param[out] B Right-hand-side vectors
   //! \param[in] obj Wrapper object for integrand/function
   //! \param[in] continuous If \e false, a discrete L2-projection is used
-  virtual bool assembleL2matrices(SparseMatrix& A, StdVector& B,
+  virtual bool assembleL2matrices(SystemMatrix& A, SystemVector& B,
                                   const L2Integrand& obj,
                                   bool continuous) const { return false; }
 
