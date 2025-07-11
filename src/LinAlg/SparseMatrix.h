@@ -121,7 +121,7 @@ public:
   //! \brief Initializes the element sparsity pattern based on node connections.
   //! \param[in] MMNPC Matrix of matrices of nodal point correspondances
   //! \param[in] nel Number of elements
-  void preAssemble(const std::vector<IntVec>& MMNPC, size_t nel);
+  virtual void preAssemble(const std::vector<IntVec>& MMNPC, size_t nel);
 
   //! \brief Initializes the matrix to zero assuming it is properly dimensioned.
   virtual void init();
@@ -154,6 +154,12 @@ public:
   //! these are also added into the system right-hand-side vector, \a B.
   virtual bool assemble(const Matrix& eM, const SAM& sam,
                         SystemVector& B, const IntVec& meq);
+
+  //! \brief Adds an element matrix into the associated system matrix.
+  //! \param[in] eM  The element matrix
+  //! \param[in] meq Matrix of element equation numbers
+  //! \return \e true on successful assembly, otherwise \e false
+  virtual bool assemble(const Matrix& eM, const std::vector<int>& meq);
 
   //! \brief Adds a nodal vector into columns of a non-symmetric sparse matrix.
   //! \param[in] V   The nodal vector
