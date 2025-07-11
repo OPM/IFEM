@@ -855,6 +855,16 @@ bool SparseMatrix::assemble (const Matrix& eM, const SAM& sam,
 }
 
 
+bool SparseMatrix::assemble (const Matrix& eM, const IntVec& meq)
+{
+  for (size_t i = 0; i < eM.rows(); ++i)
+    for (size_t j = 0; j < eM.cols(); ++j)
+      (*this)(meq[i]+1, meq[j]+1) += eM(i+1, j+1);
+
+  return true;
+}
+
+
 bool SparseMatrix::assembleCol (const RealArray& V, const SAM& sam,
                                 int n, size_t col)
 {

@@ -436,10 +436,17 @@ bool SPRMatrix::assemble (const Matrix& eM, const SAM& sam,
 
 
 bool SPRMatrix::assemble (const Matrix&, const SAM&,
-                          SystemVector&, const std::vector<int>&)
+                          SystemVector&, const IntVec&)
 {
   std::cerr <<"SPRMatrix::assemble(const Matrix&,const SAM&,"
-            <<"SystemVector&,const std::vector<int>&): Not implemented."
+            <<"SystemVector&,const IntVec&): Not implemented."
+            << std::endl;
+  return false;
+}
+
+bool SPRMatrix::assemble (const Matrix&, const IntVec&)
+{
+  std::cerr <<"SPRMatrix::assemble(const Matrix&,const IntVec&): Not implemented."
             << std::endl;
   return false;
 }

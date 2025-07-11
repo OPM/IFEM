@@ -62,13 +62,13 @@ bool DiagMatrix::assemble (const Matrix& eM, const SAM& sam, int e)
     return false;
 
   StdVector B;
-  std::vector<int> meen;
+  IntVec meen;
   return sam.getElmEqns(meen,e,eM.rows()) && this->assemble(eM,sam,B,meen);
 }
 
 
 bool DiagMatrix::assemble (const Matrix& eM, const SAM& sam,
-                           SystemVector&, const std::vector<int>& meq)
+                           SystemVector&, const IntVec& meq)
 {
   if (meq.size() != 1 || eM.size() != 1)
   {
@@ -95,6 +95,15 @@ bool DiagMatrix::assemble (const Matrix& eM, const SAM& sam,
                            SystemVector&, int e)
 {
   return this->assemble(eM,sam,e);
+}
+
+
+bool DiagMatrix::assemble (const Matrix& eM, const IntVec& meq)
+{
+  for (size_t i = 0; i < meq.size(); ++i)
+    (*this)(meq[i]+1) += eM(i+1, i+1);
+
+  return true;
 }
 
 
