@@ -71,6 +71,15 @@ public:
   //! \brief Copies entries from input vector \b x into \a *this.
   SystemVector& copy(const SystemVector& x);
 
+  //! \brief Adds element vectors into the system vector.
+  //! \param[in] vecs The element vectors
+  //! \param[in] meqn Matrix of element equation numbers (0 based)
+  //! \param[in] neq Number of equations for (each) load vector
+  //!
+  //! \details This assembles for multiple RHS
+  virtual void assemble(const Vectors& vecs,
+                        const IntVec& meqn, int neq) = 0;
+
   //! \brief Finalizes the system vector assembly.
   virtual bool endAssembly() { return true; }
 
@@ -124,6 +133,16 @@ public:
 
   //! \brief Creates a copy of the system vector and returns a pointer to it.
   virtual SystemVector* copy() const { return new StdVector(*this); }
+
+  //! \brief Adds element vectors into the system vector.
+  //! \param[in] vecs The element vectors
+  //! \param[in] meqn Matrix of element equation numbers (0 based)
+  //! \param[in] neq Number of equations for (each) load vector
+  //!
+  //! \details This assembles for multiple RHS
+  virtual void assemble(const Vectors& vecs,
+                        const IntVec& meqn,
+                        int neq);
 
   //! \brief Returns the dimension of the system vector.
   virtual size_t dim() const { return this->size(); }

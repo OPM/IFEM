@@ -60,6 +60,19 @@ SystemVector& SystemVector::copy (const SystemVector& x)
 }
 
 
+void StdVector::assemble (const Vectors& vecs,
+                          const IntVec& meqn,
+                          const int neq)
+{
+  size_t ofs = 0;
+  for (const Vector& v : vecs) {
+    for (size_t i = 0; i < v.size(); ++i)
+      (*this)(ofs+meqn[i]+1) += v[i];
+    ofs += neq;
+  }
+}
+
+
 void StdVector::dump (const utl::vector<Real>& x, const char* label,
                       LinAlg::StorageFormat format, std::ostream& os)
 {
