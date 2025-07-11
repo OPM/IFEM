@@ -98,6 +98,15 @@ bool DiagMatrix::assemble (const Matrix& eM, const SAM& sam,
 }
 
 
+bool DiagMatrix::assemble (const Matrix& eM, const IntVec& meq)
+{
+  for (size_t i = 0; i < meq.size(); ++i)
+    (*this)(meq[i]+1) += eM(i+1, i+1);
+
+  return true;
+}
+
+
 bool DiagMatrix::add (const SystemMatrix& B, Real alpha)
 {
   const DiagMatrix* Bptr = dynamic_cast<const DiagMatrix*>(&B);

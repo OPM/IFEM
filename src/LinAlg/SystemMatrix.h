@@ -276,6 +276,13 @@ public:
   virtual bool assemble(const Matrix& eM, const SAM& sam,
                         SystemVector& B, const std::vector<int>& meq) = 0;
 
+  //! \brief Adds an element matrix into the associated system matrix.
+  //! \param[in] eM  The element matrix
+  //! \param[in] meq Matrix of element equation numbers
+  //! \return \e true on successful assembly, otherwise \e false
+  //! \details To be used when there is no underlying SAM
+  virtual bool assemble(const Matrix& eM, const std::vector<int>& meq) = 0;
+
   //! \brief Augments a similar matrix symmetrically to the current matrix.
   virtual bool augment(const SystemMatrix&, size_t, size_t) { return false; }
 
