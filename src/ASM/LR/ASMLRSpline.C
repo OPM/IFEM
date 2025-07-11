@@ -184,6 +184,24 @@ void LR::generateThreadGroups (ThreadGroups& threadGroups,
 }
 
 
+IntMat LR::getElmNodes (const LR::LRSpline* basis)
+{
+  IntMat result;
+  result.resize(basis->nElements());
+  size_t iel = 0;
+  for (const LR::Element* elm : basis->getAllElements())
+  {
+    result[iel].resize(elm->nBasisFunctions());
+    std::transform(elm->support().begin(), elm->support().end(),
+                   result[iel].begin(),
+                   [](const LR::Basisfunction* b) { return b->getId(); });
+    ++iel;
+  }
+
+  return result;
+}
+
+
 ASMLRSpline::ASMLRSpline (unsigned char n_p, unsigned char n_s,
                           unsigned char n_f)
   : ASMbase(n_p,n_s,n_f)

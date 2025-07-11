@@ -2656,6 +2656,12 @@ void ASMu2D::generateThreadGroups (const Integrand& integrand, bool silence,
 }
 
 
+IntMat ASMu2D::getElmNodes (int basis) const
+{
+  return LR::getElmNodes(this->getBasis(basis));
+}
+
+
 void ASMu2D::changeNumThreads ()
 {
   for (std::unique_ptr<BasisFunctionCache>& c : myCache)

@@ -397,3 +397,58 @@ TEST(TestASMs3D, FaceIntegrate)
     ASSERT_TRUE(patch.integrate(prb,lIndex,dummy,TimeDomain()));
   }
 }
+
+
+TEST(TestASMs3D, ElmNodes)
+{
+  ASMbase::resetNumbering();
+
+  ASMCube pch1;
+  pch1.createProjectionBasis(true);
+  pch1.raiseOrder(1,1,1);
+  pch1.uniformRefine(0,1);
+  pch1.uniformRefine(1,1);
+  pch1.uniformRefine(2,1);
+  pch1.createProjectionBasis(false);
+  ASSERT_TRUE(pch1.uniformRefine(0,1));
+  ASSERT_TRUE(pch1.uniformRefine(1,1));
+  ASSERT_TRUE(pch1.uniformRefine(2,1));
+  ASSERT_TRUE(pch1.generateFEMTopology());
+
+  const IntMat mnpc = pch1.getElmNodes(1);
+
+  const auto ref = std::array{
+      std::array{0,1,3,4,9,10,12,13},
+      std::array{1,2,4,5,10,11,13,14},
+      std::array{3,4,6,7,12,13,15,16},
+      std::array{4,5,7,8,13,14,16,17},
+      std::array{9,10,12,13,18,19,21,22},
+      std::array{10,11,13,14,19,20,22,23},
+      std::array{12,13,15,16,21,22,24,25},
+      std::array{13,14,16,17,22,23,25,26},
+  };
+  ASSERT_EQ(mnpc.size(), ref.size());
+  for (size_t i = 0; i < mnpc.size(); ++i) {
+    EXPECT_EQ(mnpc[i].size(), ref[i].size());
+    for (size_t j = 0; j < mnpc[i].size(); ++j)
+      EXPECT_EQ(mnpc[i][j], ref[i][j]);
+  }
+
+  const auto ref_proj = std::array{
+      std::array{0,1,2,4,5,6,8,9,10,16,17,18,20,21,22,24,25,26,32,33,34,36,37,38,40,41,42},
+      std::array{1,2,3,5,6,7,9,10,11,17,18,19,21,22,23,25,26,27,33,34,35,37,38,39,41,42,43},
+      std::array{4,5,6,8,9,10,12,13,14,20,21,22,24,25,26,28,29,30,36,37,38,40,41,42,44,45,46},
+      std::array{5,6,7,9,10,11,13,14,15,21,22,23,25,26,27,29,30,31,37,38,39,41,42,43,45,46,47},
+      std::array{16,17,18,20,21,22,24,25,26,32,33,34,36,37,38,40,41,42,48,49,50,52,53,54,56,57,58},
+      std::array{17,18,19,21,22,23,25,26,27,33,34,35,37,38,39,41,42,43,49,50,51,53,54,55,57,58,59},
+      std::array{20,21,22,24,25,26,28,29,30,36,37,38,40,41,42,44,45,46,52,53,54,56,57,58,60,61,62},
+      std::array{21,22,23,25,26,27,29,30,31,37,38,39,41,42,43,45,46,47,53,54,55,57,58,59,61,62,63},
+  };
+  const IntMat mnpc_proj = pch1.getElmNodes(ASM::PROJECTION_BASIS);
+  ASSERT_EQ(mnpc_proj.size(), ref_proj.size());
+  for (size_t i = 0; i < mnpc_proj.size(); ++i) {
+    EXPECT_EQ(mnpc_proj[i].size(), ref_proj[i].size());
+    for (size_t j = 0; j < mnpc_proj[i].size(); ++j)
+      EXPECT_EQ(mnpc_proj[i][j], ref_proj[i][j]);
+  }
+}

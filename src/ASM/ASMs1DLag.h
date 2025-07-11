@@ -146,6 +146,9 @@ public:
   //! \brief Returns the number of nodal points in the patch.
   virtual int getSize(int = 0) const { return nx; }
 
+  //! \brief Get MNPC for a given basis.
+  virtual IntMat getElmNodes(int basis) const;
+
 protected:
   size_t nx; //!< Number of nodes
   int    p1; //!< Polynomial order of the basis
