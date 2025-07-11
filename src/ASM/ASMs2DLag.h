@@ -270,6 +270,9 @@ public:
   //! \brief Generates element groups for multi-threading of interior integrals.
   virtual void generateThreadGroups(const Integrand&, bool, bool);
 
+  //! \brief Get MNPC for a given basis.
+  virtual IntMat getElmNodes(int basis) const;
+
   //! \brief Returns the number of elements on a boundary.
   virtual size_t getNoBoundaryElms(char lIndex, char ldim) const;
 
