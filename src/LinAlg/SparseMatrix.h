@@ -155,6 +155,12 @@ public:
   virtual bool assemble(const Matrix& eM, const SAM& sam,
                         SystemVector& B, const IntVec& meq);
 
+  //! \brief Adds an element matrix into the associated system matrix.
+  //! \param[in] eM  The element matrix
+  //! \param[in] meq Matrix of element equation numbers
+  //! \return \e true on successful assembly, otherwise \e false
+  virtual bool assemble(const Matrix& eM, const std::vector<int>& meq);
+
   //! \brief Adds a nodal vector into columns of a non-symmetric sparse matrix.
   //! \param[in] V   The nodal vector
   //! \param[in] sam Auxiliary data for FE assembly management
