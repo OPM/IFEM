@@ -1918,17 +1918,24 @@ bool ASMs1D::assembleL2matrices (SparseMatrix& A, StdVector& B,
         if (dJw == 0.0) continue; // skip singular points
       }
 
-      // Integrate the linear system A*x=B
+      Matrix eA;
+      eA.outer_product(phi, phi, false, dJw);
+
+      // Integrate the rhs vector B
+      Vectors eB(sField.rows(), Vector(phi.size()));
+      for (size_t r = 1; r <= sField.rows(); r++)
+        eB[r-1].add(phi,sField(r,ip+1)*dJw);
+
       for (size_t ii = 0; ii < phi.size(); ii++)
       {
         int inod = mnpc[iel][ii]+1;
         for (size_t jj = 0; jj < phi.size(); jj++)
         {
           int jnod = mnpc[iel][jj]+1;
-          A(inod,jnod) += phi[ii]*phi[jj]*dJw;
+          A(inod,jnod) += eA(ii+1,jj+1);
         }
         for (size_t r = 1; r <= sField.rows(); r++)
-          B(inod+(r-1)*nnod) += phi[ii]*sField(r,ip+1)*dJw;
+          B(inod+(r-1)*nnod) += eB[r-1](ii+1);
       }
     }
   }
