@@ -261,6 +261,13 @@ public:
   //! \brief Flags the non-zero equations from \a B as non-zero pivots in this.
   bool flagNonZeroEqs(const SystemMatrix& B);
 
+  //! \brief Initializes the element sparsity pattern based on node connections.
+  //! \param[in] MMNPC Matrix of matrices of nodal point correspondances
+  //! \param[in] nel Number of elements
+  virtual void preAssemble(const std::vector<std::vector<int>>& MMNPC,
+                           size_t nel)
+  {}
+
   //! \brief Finalizes the system matrix assembly.
   virtual bool endAssembly();
 
