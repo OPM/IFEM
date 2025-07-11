@@ -537,7 +537,7 @@ bool ASMs2D::generateFEMTopology ()
 
   myMLGE.resize((n1-p1+1)*(n2-p2+1),0);
   myMLGN.resize(n1*n2);
-  myMNPC.resize(myMLGE.size());
+  myMNPC = this->getElmNodes(1);
   myNodeInd.resize(myMLGN.size());
 
   nnod = nel = 0;
@@ -550,15 +550,7 @@ bool ASMs2D::generateFEMTopology ()
       {
         if (surf->knotSpan(0,i1-1) > 0.0)
           if (surf->knotSpan(1,i2-1) > 0.0)
-          {
             myMLGE[nel] = ++gEl; // global element number over all patches
-            myMNPC[nel].resize(p1*p2,0);
-
-            int lnod = 0;
-            for (int j2 = p2-1; j2 >= 0; j2--)
-              for (int j1 = p1-1; j1 >= 0; j1--)
-                myMNPC[nel][lnod++] = nnod - n1*j2 - j1;
-          }
 
         nel++;
       }
@@ -3253,6 +3245,34 @@ void ASMs2D::getElmConnectivities (IntMat& neigh) const
         if (i2 < n2)
           neigh[idx][3] = MLGE[iel+N1]-1;
       }
+}
+
+
+IntMat ASMs2D::getElmNodes (int basis) const
+{
+  int iel = 0;
+  const Go::SplineSurface* srf = this->getBasis(basis);
+  const int p1 = srf->order_u();
+  const int p2 = srf->order_v();
+  const int n1 = srf->numCoefs_u();
+  int nel1 = srf->numCoefs_u() - p1 + 1;
+  int nel2 = srf->numCoefs_v() - p2 + 1;
+
+  IntMat result;
+  result.resize(nel1*nel2);
+  for (int i2 = 0; i2 < nel2; i2++)
+    for (int i1 = 0; i1 < nel1; i1++, iel++)
+      if (srf->knotSpan(0,i1+p1-1) > 0.0 && srf->knotSpan(1,i2+p2-1) > 0.0)
+      {
+        // Establish nodal point correspondance for the projection element
+        result[iel].reserve(p1*p2);
+        int vidx = i2 * n1 + i1;
+        for (int j = 0; j < p2; j++, vidx += n1)
+          for (int i = 0; i < p1; i++)
+            result[iel].push_back(vidx+i);
+      }
+
+  return result;
 }
 
 
