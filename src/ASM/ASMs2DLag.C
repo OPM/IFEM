@@ -27,6 +27,7 @@
 #include "ElementBlock.h"
 #include "Utilities.h"
 #include <array>
+#include <numeric>
 
 
 ASMs2DLag::ASMs2DLag (unsigned char n_s, unsigned char n_f) : ASMs2D(n_s,n_f)
@@ -176,30 +177,12 @@ bool ASMs2DLag::generateFEMTopology ()
 
   // Number of elements in patch
   nel = nelx*nely;
-  // Number of nodes per element
-  const int nen = p1*p2;
 
   // Connectivity array: local --> global node relation
   myMLGE.resize(nel);
-  myMNPC.resize(nel);
-
-  int i, j, a, b, iel = 0;
-  for (j = 0; j < nely; j++)
-    for (i = 0; i < nelx; i++, iel++)
-    {
-      myMLGE[iel] = ++gEl;
-      myMNPC[iel].resize(nen);
-      // First node in current element
-      int corner = (p2-1)*nx*j + (p1-1)*i;
-
-      for (b = 0; b < p2; b++)
-      {
-        int facenod = b*p1;
-        myMNPC[iel][facenod] = corner + b*nx;
-        for (a = 1; a < p1; a++)
-          myMNPC[iel][facenod+a] = myMNPC[iel][facenod] + a;
-      }
-    }
+  std::iota(myMLGE.begin(), myMLGE.end(), gEl+1);
+  gEl += myMLGE.size();
+  myMNPC = this->getElmNodes(1);
 
   return true;
 }
@@ -897,6 +880,40 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 void ASMs2DLag::generateThreadGroups (const Integrand&, bool, bool)
 {
   threadGroups.calcGroups((nx-1)/(p1-1),(ny-1)/(p2-1),1);
+}
+
+
+IntMat ASMs2DLag::getElmNodes (int basis) const
+{
+  IntMat result;
+  result.resize(nel);
+
+  const Go::SplineSurface* srf = this->getBasis(basis);
+
+  // Order of basis in the two parametric directions (order = degree + 1)
+  const int p1 = srf->order_u();
+  const int p2 = srf->order_v();
+  const int nelx = (nx-1) / (p1-1);
+  const int nely = (ny-1) / (p2-1);
+
+  int iel = 0;
+  for (int j = 0; j < nely; j++)
+    for (int i = 0; i < nelx; i++, iel++)
+    {
+      result[iel].resize(p1*p2);
+      // First node in current element
+      int corner = (p2-1)*nx*j + (p1-1)*i;
+
+      for (int b = 0; b < p2; b++)
+      {
+        int facenod = b*p1;
+        result[iel][facenod] = corner + b*nx;
+        for (int a = 1; a < p1; a++)
+          result[iel][facenod+a] = result[iel][facenod] + a;
+      }
+    }
+
+  return result;
 }
 
 
