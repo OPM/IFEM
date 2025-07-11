@@ -303,7 +303,7 @@ public:
   //! \param[out] B Right-hand-side vectors
   //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] continuous If \e false, a discrete L2-projection is used
-  virtual bool assembleL2matrices(SparseMatrix& A, StdVector& B,
+  virtual bool assembleL2matrices(SystemMatrix& A, SystemVector& B,
                                   const L2Integrand& integrand,
                                   bool continuous) const;
 

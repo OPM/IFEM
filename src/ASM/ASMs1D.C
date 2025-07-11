@@ -1845,7 +1845,7 @@ bool ASMs1D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 }
 
 
-bool ASMs1D::assembleL2matrices (SparseMatrix& A, StdVector& B,
+bool ASMs1D::assembleL2matrices (SystemMatrix& A, SystemVector& B,
                                  const L2Integrand& integrand,
                                  bool continuous) const
 {
@@ -1926,17 +1926,8 @@ bool ASMs1D::assembleL2matrices (SparseMatrix& A, StdVector& B,
       for (size_t r = 1; r <= sField.rows(); r++)
         eB[r-1].add(phi,sField(r,ip+1)*dJw);
 
-      for (size_t ii = 0; ii < phi.size(); ii++)
-      {
-        int inod = mnpc[iel][ii]+1;
-        for (size_t jj = 0; jj < phi.size(); jj++)
-        {
-          int jnod = mnpc[iel][jj]+1;
-          A(inod,jnod) += eA(ii+1,jj+1);
-        }
-        for (size_t r = 1; r <= sField.rows(); r++)
-          B(inod+(r-1)*nnod) += eB[r-1](ii+1);
-      }
+      A.assemble(eA, mnpc[iel]);
+      B.assemble(eB, mnpc[iel], nnod);
     }
   }
 
