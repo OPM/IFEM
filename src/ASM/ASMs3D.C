@@ -434,7 +434,7 @@ bool ASMs3D::generateFEMTopology ()
   if (!nodeInd.empty())
   {
     nnod = n1*n2*n3;
-    if (nodeInd.size() != (size_t)nnod)
+    if (nodeInd.size() != static_cast<size_t>(nnod))
     {
       std::cerr <<" *** ASMs3D::generateFEMTopology: Inconsistency between the"
                 <<" number of FE nodes "<< nodeInd.size()
@@ -473,7 +473,7 @@ bool ASMs3D::generateFEMTopology ()
 
   myMLGE.resize((n1-p1+1)*(n2-p2+1)*(n3-p3+1),0);
   myMLGN.resize(n1*n2*n3);
-  myMNPC.resize(myMLGE.size());
+  myMNPC = this->getElmNodes(1);
   myNodeInd.resize(myMLGN.size());
 
   nnod = nel = 0;
@@ -486,19 +486,10 @@ bool ASMs3D::generateFEMTopology ()
         myNodeInd[nnod].K = i3-1;
         if (i1 >= p1 && i2 >= p2 && i3 >= p3)
         {
-          if (svol->knotSpan(0,i1-1) > 0.0)
-            if (svol->knotSpan(1,i2-1) > 0.0)
-              if (svol->knotSpan(2,i3-1) > 0.0)
-              {
-                myMLGE[nel] = ++gEl; // global element number over all patches
-                myMNPC[nel].resize(p1*p2*p3,0);
-
-                int lnod = 0;
-                for (int j3 = p3-1; j3 >= 0; j3--)
-                  for (int j2 = p2-1; j2 >= 0; j2--)
-                    for (int j1 = p1-1; j1 >= 0; j1--)
-                      myMNPC[nel][lnod++] = nnod - n1*n2*j3 - n1*j2 - j1;
-              }
+          if (svol->knotSpan(0,i1-1) > 0.0 &&
+              svol->knotSpan(1,i2-1) > 0.0 &&
+              svol->knotSpan(2,i3-1) > 0.0)
+            myMLGE[nel] = ++gEl; // global element number over all patches
 
           nel++;
         }
@@ -3790,6 +3781,51 @@ void ASMs3D::getElmConnectivities (IntMat& neigh) const
           if (i3 < n3)
             neigh[idx][5] = MLGE[iel+N1*N2]-1;
         }
+}
+
+
+IntMat ASMs3D::getElmNodes (int basis) const
+{
+  const Go::SplineVolume* svol = this->getBasis(basis);
+  const int p1 = svol->order(0);
+  const int p2 = svol->order(1);
+  const int p3 = svol->order(2);
+  const int n1 = svol->numCoefs(0);
+  const int n2 = svol->numCoefs(1);
+  const int n3 = svol->numCoefs(2);
+
+  const int nel1 = n1 - p1 + 1;
+  const int nel2 = n2 - p2 + 1;
+  const int nel3 = n3 - p3 + 1;
+
+  IntMat result;
+  result.resize(nel1*nel2*nel3);
+
+  int iel = 0, nnod = 0;
+  for (int i3 = 1; i3 <= n3; i3++)
+    for (int i2 = 1; i2 <= n2; i2++)
+      for (int i1 = 1; i1 <= n1; i1++)
+      {
+        if (i1 >= p1 && i2 >= p2 && i3 >= p3)
+        {
+          if (svol->knotSpan(0,i1-1) > 0.0 &&
+              svol->knotSpan(1,i2-1) > 0.0 &&
+              svol->knotSpan(2,i3-1) > 0.0)
+          {
+            result[iel].resize(p1*p2*p3,0);
+
+            int lnod = 0;
+            for (int j3 = p3-1; j3 >= 0; j3--)
+              for (int j2 = p2-1; j2 >= 0; j2--)
+                for (int j1 = p1-1; j1 >= 0; j1--)
+                  result[iel][lnod++] = nnod - n1*n2*j3 - n1*j2 - j1;
+          }
+          ++iel;
+        }
+        ++nnod;
+      }
+
+  return result;
 }
 
 

@@ -812,6 +812,9 @@ public:
   //! \brief Obtain element neighbours.
   virtual void getElmConnectivities(IntMat& neigh) const;
 
+  //! \brief Get MNPC for a given basis.
+  virtual IntMat getElmNodes(int basis) const;
+
   //! \brief Returns the number of elements on a boundary.
   virtual size_t getNoBoundaryElms(char lIndex, char ldim) const;
 
