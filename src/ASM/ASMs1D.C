@@ -337,7 +337,7 @@ bool ASMs1D::generateOrientedFEModel (const Vec3& Zaxis)
   nel = n1-p1+1;
   myMLGE.resize(nel,0);
   myMLGN.resize(n1);
-  myMNPC.resize(nel);
+  myMNPC = this->getElmNodes(1);
   if (nsd == 3 && nf == 6)
   {
     // This is a 3D beam problem, allocate the element/nodal rotation tensors.
@@ -354,14 +354,7 @@ bool ASMs1D::generateOrientedFEModel (const Vec3& Zaxis)
     if (i1 >= p1)
     {
       if (this->getKnotSpan(i1-1) > 0.0)
-      {
         myMLGE[nel] = ++gEl; // global element number over all patches
-        myMNPC[nel].resize(p1,0);
-
-        int lnod = 0;
-        for (int j1 = p1-1; j1 >= 0; j1--)
-          myMNPC[nel][lnod++] = nnod - j1;
-      }
       nel++;
     }
     myMLGN[nnod++] = ++gNod; // global node number over all patches
@@ -369,20 +362,15 @@ bool ASMs1D::generateOrientedFEModel (const Vec3& Zaxis)
 
   if (proj != curv)
   {
+    projMNPC = this->getElmNodes(ASM::PROJECTION_BASIS);
     n1 = proj->numCoefs();
     p1 = proj->order();
     projMLGE.resize(n1-p1+1,0);
-    projMNPC.resize(projMLGE.size());
     for (int i1 = p1; i1 <= n1; i1++)
       if (*(proj->basis().begin()+i1) > *(proj->basis().begin()+i1-1))
       {
         int iel = i1 - p1;
         projMLGE[iel] = ++pgEl;
-        projMNPC[iel].resize(p1,0);
-
-        int lnod = 0;
-        for (int j1 = p1; j1 > 0; j1--)
-          projMNPC[iel][lnod++] = i1 - j1;
       }
   }
 
@@ -2010,4 +1998,30 @@ void ASMs1D::getElmConnectivities (IntMat& neigh) const
 void ASMs1D::findBoundaryElms (IntVec& elms, int lIndex, int) const
 {
   elms = { lIndex == 1 ? 0 : static_cast<int>(nel)-1 };
+}
+
+
+IntMat ASMs1D::getElmNodes (int basis) const
+{
+  const Go::SplineCurve* crv = basis == ASM::PROJECTION_BASIS ? proj.get() : curv.get();
+  const int n1 = crv->numCoefs();
+  const int p1 = crv->order();
+  const int ne = n1-p1+1;
+  IntMat result(ne);
+  int nnod = 0, iel = 0;
+  for (int i1 = 1; i1 <= n1; i1++) {
+    if (i1 >= p1) {
+      if (*(crv->basis().begin()+i1) > *(crv->basis().begin()+i1-1)) {
+        result[iel].resize(p1,0);
+
+        int lnod = 0;
+        for (int j1 = p1-1; j1 >= 0; j1--)
+          result[iel][lnod++] = nnod - j1;
+      }
+      ++iel;
+    }
+    ++nnod;
+  }
+
+  return result;
 }

@@ -454,6 +454,9 @@ public:
   //! \brief Obtain element neighbours.
   virtual void getElmConnectivities(IntMat& neighs) const;
 
+  //! \brief Get MNPC for a given basis.
+  virtual IntMat getElmNodes(int basis) const;
+
 protected:
   std::shared_ptr<Go::SplineCurve> curv; //!< The actual spline curve object
   std::shared_ptr<Go::SplineCurve> proj; //!< Spline curve for projection basis
