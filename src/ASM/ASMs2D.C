@@ -1695,6 +1695,7 @@ bool ASMs2D::integrate (Integrand& integrand,
 			const TimeDomain& time)
 {
   if (!surf) return true; // silently ignore empty patches
+  if (!glInt.threadSafe() && !myElms.empty() && myElms.front() == -1) return true;
 
   PROFILE2("ASMs2D::integrate(I)");
 
@@ -2040,6 +2041,8 @@ bool ASMs2D::integrate (Integrand& integrand,
         fe.iel = MLGE[iel];
         if (!this->isElementActive(fe.iel,time.t))
           continue; // zero-area or inactive element
+        if (!this->isElementInPartition(iel))
+          continue;
 
 #ifdef SP_DEBUG
         if (dbgElm < 0 && 1+iel != -dbgElm)
@@ -2422,8 +2425,7 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
       if (!this->isElementActive(fe.iel,time.t))
         continue; // zero-area element
 
-      if (!myElms.empty() && !glInt.threadSafe() &&
-          std::find(myElms.begin(), myElms.end(), iel-1) == myElms.end())
+      if (!glInt.threadSafe() && !this->isElementInPartition(iel-1))
         continue;
 
 #ifdef SP_DEBUG

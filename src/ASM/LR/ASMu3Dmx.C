@@ -310,8 +310,8 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
                           GlobalIntegral& glInt,
                           const TimeDomain& time)
 {
-  if (m_basis.empty())
-    return true; // silently ignore empty patches
+  if (m_basis.empty()) return true; // silently ignore empty patches
+  if (!glInt.threadSafe() && !myElms.empty() && myElms.front() == -1) return true;
 
   PROFILE2("ASMu3Dmx::integrate(I)");
 
@@ -515,8 +515,8 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
                           GlobalIntegral& glInt,
                           const TimeDomain& time)
 {
-  if (m_basis.empty())
-    return true; // silently ignore empty patches
+  if (m_basis.empty()) return true; // silently ignore empty patches
+  if (!glInt.threadSafe() && !myElms.empty() && myElms.front() == -1) return true;
 
   PROFILE2("ASMu3Dmx::integrate(B)");
 
@@ -561,8 +561,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
   for (LR::Element* el : edgeElms)
   {
     int iEl = el->getId();
-    if (!myElms.empty() && !glInt.threadSafe() &&
-        std::find(myElms.begin(), myElms.end(), iEl) == myElms.end())
+    if (!glInt.threadSafe() && !this->isElementInPartition(iEl))
       continue;
 
     std::vector<int>    els;

@@ -496,8 +496,8 @@ bool ASMu2Dmx::integrate (Integrand& integrand, int lIndex,
                           GlobalIntegral& glInt,
                           const TimeDomain& time)
 {
-  if (m_basis.empty())
-    return true; // silently ignore empty patches
+  if (m_basis.empty()) return true; // silently ignore empty patches
+  if (!glInt.threadSafe() && !myElms.empty() && myElms.front() == -1) return true;
 
   PROFILE2("ASMu2Dmx::integrate(B)");
 
@@ -549,6 +549,10 @@ bool ASMu2Dmx::integrate (Integrand& integrand, int lIndex,
   for (const LR::Element* el1 : m_basis[itgBasis-1]->getAllElements())
   {
     ++iel;
+    if (!myElms.empty() && !glInt.threadSafe() &&
+        std::find(myElms.begin(), myElms.end(), iel-1) == myElms.end())
+      continue;
+
 
     // Skip elements that are not on current boundary edge
     bool skipMe = false;
@@ -560,10 +564,6 @@ bool ASMu2Dmx::integrate (Integrand& integrand, int lIndex,
       case  2: if (el1->vmax() != m_basis[itgBasis-1]->endparam(1)  ) skipMe = true; break;
     }
     if (skipMe) continue;
-
-    if (!myElms.empty() && !glInt.threadSafe() &&
-        std::find(myElms.begin(), myElms.end(), iel-1) == myElms.end())
-      continue;
 
     std::vector<int>    els;
     std::vector<size_t> elem_sizes;
@@ -668,8 +668,8 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
                           const TimeDomain& time,
                           const ASM::InterfaceChecker& iChkgen)
 {
-  if (m_basis.empty())
-    return true; // silently ignore empty patches
+  if (m_basis.empty()) return true; // silently ignore empty patches
+  if (!glInt.threadSafe() && !myElms.empty() && myElms.front() == -1) return true;
 
   if (!(integrand.getIntegrandType() & Integrand::INTERFACE_TERMS))
     return true; // No interface terms
