@@ -57,7 +57,7 @@ public:
   void stop(const std::string& funcName);
 
   //! \brief Prints a profiling report for all tasks that have been measured.
-  void report(std::ostream& os) const;
+  template<class Stream> void report(Stream& os) const;
   //! \brief Clears the profiler.
   void clear() { myTimers.clear(); allCPU = allWall = 0.0; nRunners = 0; }
 
