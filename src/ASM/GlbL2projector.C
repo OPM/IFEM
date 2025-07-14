@@ -251,28 +251,14 @@ GlbL2::~GlbL2()
 {
   delete pA;
   delete pB;
-#ifdef HAS_PETSC
-  delete adm;
-#endif
 }
 
 
 void GlbL2::allocate (size_t n)
 {
-#ifdef HAS_PETSC
-  adm = nullptr;
-  if (GlbL2::MatrixType == LinAlg::PETSC && GlbL2::SolverParams)
-  {
-    adm = new ProcessAdm();
-    pA = new PETScMatrix(*adm,*GlbL2::SolverParams);
-    pB = new PETScVector(*adm,n*nrhs);
-  }
-  else
-#endif
-  {
-    pA = new SparseMatrix(SparseMatrix::SUPERLU);
-    pB = new StdVector(n*nrhs);
-  }
+  pA = new SparseMatrix(SparseMatrix::SUPERLU);
+  pB = new StdVector(n*nrhs);
+  static_cast<SparseMatrix*>(pA)->redim(n,n);
 
   pA->redim(n,n);
 }
