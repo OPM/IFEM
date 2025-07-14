@@ -355,6 +355,7 @@ bool ASMs3DLag::integrate (Integrand& integrand,
                            const TimeDomain& time)
 {
   if (this->empty()) return true; // silently ignore empty patches
+  if (!myElms.empty() && myElms.front() == -1) return true;
 
   if (myCache.empty())
     myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this));
@@ -533,6 +534,7 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
                            const TimeDomain& time)
 {
   if (this->empty()) return true; // silently ignore empty patches
+  if (!myElms.empty() && myElms.front() == -1) return true;
 
   std::map<char,ThreadGroups>::const_iterator tit;
   if ((tit = threadGroupsFace.find(lIndex%10)) == threadGroupsFace.end())
@@ -807,6 +809,9 @@ bool ASMs3DLag::integrateEdge (Integrand& integrand, int lEdge,
       {
         fe.iel = MLGE[iel-1];
         if (!this->isElementActive(fe.iel)) continue; // zero-volume element
+        if (!myElms.empty() &&
+            std::find(myElms.begin(), myElms.end(),iel) == myElms.end())
+          continue;
 
         // Skip elements that are not on current boundary edge
         bool skipMe = false;

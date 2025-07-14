@@ -317,6 +317,7 @@ bool ASMs2DLag::integrate (Integrand& integrand,
                            const TimeDomain& time)
 {
   if (this->empty()) return true; // silently ignore empty patches
+  if (!myElms.empty() && myElms.front() == -1) return true;
 
   if (myCache.empty())
     myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this));
@@ -508,6 +509,7 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
                            const TimeDomain& time)
 {
   if (this->empty()) return true; // silently ignore empty patches
+  if (!myElms.empty() && myElms.front() == -1) return true;
 
   // Get Gaussian quadrature points and weights
   int nG1 = this->getNoGaussPt(lIndex%10 < 3 ? p2 : p1, true);
@@ -575,6 +577,10 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
     {
       fe.iel = abs(MLGE[doXelms+iel-1]);
       if (!this->isElementActive(fe.iel)) continue; // zero-area element
+
+      if (!myElms.empty() &&
+          std::find(myElms.begin(), myElms.end(), iel-1) == myElms.end())
+        continue;
 
       // Skip elements that are not on current boundary edge
       bool skipMe = false;

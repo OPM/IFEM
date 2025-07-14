@@ -449,6 +449,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
                           const TimeDomain& time)
 {
   if (!surf) return true; // silently ignore empty patches
+  if (!myElms.empty() && myElms.front() == -1) return true;
 
   PROFILE2("ASMs2Dmx::integrate(I)");
 
@@ -621,6 +622,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
                           const TimeDomain& time)
 {
   if (!surf) return true; // silently ignore empty patches
+  if (!myElms.empty() && myElms.front() == -1) return true;
 
   PROFILE2("ASMs2Dmx::integrate(B)");
 
@@ -799,6 +801,8 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
                           const ASM::InterfaceChecker& iChk)
 {
   if (!surf) return true; // silently ignore empty patches
+  if (!myElms.empty() && myElms.front() == -1) return true;
+
   if (this->getBasis(ASM::GEOMETRY_BASIS) != surf.get())
   {
     std::cerr <<" *** Jump integration not implemented for a separate geometry basis."
