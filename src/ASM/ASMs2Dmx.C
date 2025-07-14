@@ -449,6 +449,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
                           const TimeDomain& time)
 {
   if (!surf) return true; // silently ignore empty patches
+  if (!glInt.threadSafe() && !myElms.empty() && myElms.front() == -1) return true;
 
   PROFILE2("ASMs2Dmx::integrate(I)");
 
@@ -621,6 +622,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
                           const TimeDomain& time)
 {
   if (!surf) return true; // silently ignore empty patches
+  if (!glInt.threadSafe() && !myElms.empty() && myElms.front() == -1) return true;
 
   PROFILE2("ASMs2Dmx::integrate(B)");
 
@@ -696,8 +698,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
       fe.iel = MLGE[iel-1];
       if (fe.iel < 1) continue; // zero-area element
 
-      if (!myElms.empty() && !glInt.threadSafe() &&
-          std::find(myElms.begin(), myElms.end(), iel-1) == myElms.end())
+      if (!glInt.threadSafe() && !this->isElementInPartition(iel-1))
         continue;
 
       // Skip elements that are not on current boundary edge
@@ -799,6 +800,8 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
                           const ASM::InterfaceChecker& iChk)
 {
   if (!surf) return true; // silently ignore empty patches
+  if (!glInt.threadSafe() && !myElms.empty() && myElms.front() == -1) return true;
+
   if (this->getBasis(ASM::GEOMETRY_BASIS) != surf.get())
   {
     std::cerr <<" *** Jump integration not implemented for a separate geometry basis."
@@ -851,8 +854,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
       fe.iel = abs(MLGE[iel]);
       if (fe.iel < 1) continue; // zero-area element
 
-      if (!myElms.empty() && !glInt.threadSafe() &&
-          std::find(myElms.begin(), myElms.end(), iel-1) == myElms.end())
+      if (!glInt.threadSafe() && !this->isElementInPartition(iel))
         continue;
 
       short int status = iChk.hasContribution(iel,i1,i2);

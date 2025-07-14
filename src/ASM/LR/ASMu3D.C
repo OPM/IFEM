@@ -904,6 +904,7 @@ bool ASMu3D::integrate (Integrand& integrand,
                         const TimeDomain& time)
 {
   if (!lrspline) return true; // silently ignore empty patches
+  if (!glInt.threadSafe() && !myElms.empty() && myElms.front() == -1) return true;
 
   PROFILE2("ASMu3D::integrate(I)");
 
@@ -1148,6 +1149,7 @@ bool ASMu3D::integrate (Integrand& integrand, int lIndex,
                         const TimeDomain& time)
 {
   if (!lrspline) return true; // silently ignore empty patches
+  if (!glInt.threadSafe() && !myElms.empty() && myElms.front() == -1) return true;
 
   PROFILE2("ASMu3D::integrate(B)");
 
@@ -1187,8 +1189,7 @@ bool ASMu3D::integrate (Integrand& integrand, int lIndex,
     if (dbgElm < 0 && iEl+1 != -dbgElm)
       continue; // Skipping all elements, except for -dbgElm
 #endif
-    if (!myElms.empty() && !glInt.threadSafe() &&
-        std::find(myElms.begin(), myElms.end(), iEl) == myElms.end())
+    if (!glInt.threadSafe() && !this->isElementInPartition(iEl))
      continue;
 
     FiniteElement fe;

@@ -468,6 +468,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
                           const TimeDomain& time)
 {
   if (!svol) return true; // silently ignore empty patches
+  if (!glInt.threadSafe() && !myElms.empty() && myElms.front() == -1) return true;
 
   PROFILE2("ASMs3Dmx::integrate(I)");
 
@@ -642,6 +643,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
                           const TimeDomain& time)
 {
   if (!svol) return true; // silently ignore empty patches
+  if (!glInt.threadSafe() && !myElms.empty() && myElms.front() == -1) return true;
 
   PROFILE2("ASMs3Dmx::integrate(B)");
 
@@ -851,6 +853,8 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
                           const ASM::InterfaceChecker& iChk)
 {
   if (!svol) return true; // silently ignore empty patches
+  if (!glInt.threadSafe() && !myElms.empty() && myElms.front() == -1) return true;
+
   if (this->getBasis(ASM::GEOMETRY_BASIS) != svol.get()) {
     std::cerr <<"*** Jump integration not implemented for a separate geometry basis."
               << std::endl;
@@ -905,6 +909,8 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
     for (int i2 = p2; i2 <= n2; i2++)
       for (int i1 = p1; i1 <= n1; i1++, iel++)
       {
+        if (!this->isElementInPartition(iel))
+          continue;
         fe.iel = abs(MLGE[iel]);
         if (fe.iel < 1) continue; // zero-area element
 

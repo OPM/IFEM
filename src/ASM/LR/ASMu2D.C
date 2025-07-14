@@ -1095,6 +1095,7 @@ bool ASMu2D::integrate (Integrand& integrand,
                         const TimeDomain& time)
 {
   if (!lrspline) return true; // silently ignore empty patches
+  if (!glInt.threadSafe() && !myElms.empty() && myElms.front() == -1) return true;
 
   PROFILE2("ASMu2D::integrate(I)");
 
@@ -1369,6 +1370,7 @@ bool ASMu2D::integrate (Integrand& integrand,
                         const Real3DMat& itgPts)
 {
   if (!lrspline) return true; // silently ignore empty patches
+  if (!glInt.threadSafe() && !myElms.empty() && myElms.front() == -1) return true;
 
   if (integrand.getReducedIntegration(2) != 0)
   {
@@ -1559,6 +1561,7 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
                         const TimeDomain& time)
 {
   if (!lrspline) return true; // silently ignore empty patches
+  if (!glInt.threadSafe() && !myElms.empty() && myElms.front() == -1) return true;
 
   PROFILE2("ASMu2D::integrate(B)");
 
@@ -1613,13 +1616,11 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
   int iel = 0;
   for (const LR::Element* el : lrspline->getAllElements())
   {
-    if (!myElms.empty() && !glInt.threadSafe() &&
-        std::find(myElms.begin(), myElms.end(), iel) == myElms.end()) {
-        ++iel;
+    ++iel;
+    if (!glInt.threadSafe() && !this->isElementInPartition(iel-1))
       continue;
-    }
 
-    fe.iel = MLGE[iel++];
+    fe.iel = MLGE[iel-1];
 #ifdef SP_DEBUG
     if (dbgElm < 0 && iel != -dbgElm)
       continue; // Skipping all elements, except for -dbgElm
@@ -1729,6 +1730,7 @@ bool ASMu2D::integrate (Integrand& integrand,
 {
   if (!geomB) return true; // silently ignore empty patches
   if (!(integrand.getIntegrandType() & Integrand::INTERFACE_TERMS)) return true;
+  if (!glInt.threadSafe() && !myElms.empty() && myElms.front() == -1) return true;
 
   PROFILE2("ASMu2D::integrate(J)");
 
@@ -1749,8 +1751,12 @@ bool ASMu2D::integrate (Integrand& integrand,
   int iel = 0;
   for (const LR::Element* elm : lrspline->getAllElements())
   {
-    fe.iel = abs(MLGE[iel]);
-    short int status = iChk.hasContribution(++iel);
+    ++iel;
+    if (!this->isElementInPartition(iel-1))
+      continue;
+
+    fe.iel = abs(MLGE[iel-1]);
+    short int status = iChk.hasContribution(iel);
     if (!status) continue; // no interface contributions for this element
 
     status &= iChk.elmBorderMask(elm->umin(),elm->umax(),
