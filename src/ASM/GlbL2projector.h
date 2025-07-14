@@ -217,9 +217,6 @@ private:
   IntegrandBase* problem; //!< The main problem integrand
   FunctionVec  functions; //!< Explicit functions to L2-project
   size_t            nrhs; //!< Number of right-hand-size vectors
-#ifdef HAS_PETSC
-  ProcessAdm* adm; //!< Process administrator for PETSc
-#endif
 };
 
 #endif
