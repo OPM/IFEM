@@ -48,7 +48,7 @@ Profiler::~Profiler ()
 {
   this->stop("Total");
   if (autoReport)
-    this->report(std::cout);
+    this->report(IFEM::cout);
 
   LinAlgInit::decrefs();
   IFEM::Close();
@@ -163,7 +163,8 @@ std::ostream& operator<< (std::ostream& os, const Profiler::Profile& p)
 }
 
 
-void Profiler::report (std::ostream& os) const
+template<class Stream>
+void Profiler::report (Stream& os) const
 {
   if (myTimers.empty()) return;
 
