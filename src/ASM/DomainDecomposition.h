@@ -257,7 +257,8 @@ private:
   bool sanityCheckCorners(const SIMbase& sim);
 
   //! \brief Setup domain decomposition based on graph partitioning.
-  bool graphPartition(const ProcessAdm& adm, const SIMbase& sim);
+  bool graphPartition(const ProcessAdm& adm,
+                      const std::vector<std::vector<int>>& neigh);
 
   std::map<int,int> patchOwner; //!< Process that owns a particular patch
 
