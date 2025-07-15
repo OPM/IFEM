@@ -86,6 +86,75 @@ protected:
 
 
 /*!
+  \brief Class for representing a set of system vectors in PETSc format.
+  \details Used for solving systems with multiple RHS vectors.
+*/
+class PETScVectors : public SystemVector
+{
+public:
+  //! \brief Constructor creating a set of system vectors.
+  //! \param A Matrix with vector layout to use
+  //! \param nvec Number of RHS vectors
+  PETScVectors(Mat A, int nvec);
+
+  //! \brief Destructor frees up the dynamically allocated vectors.
+  ~PETScVectors();
+
+  //! \brief Returns the vector type.
+  LinAlg::MatrixType getType() const override { return LinAlg::PETSC; }
+
+  //! \brief Creates a copy of the system vector and returns a pointer to it.
+  SystemVector* copy() const override { return nullptr; }
+
+  //! \brief Returns the dimension of the system vector.
+  size_t dim() const override { return myDim; }
+
+  //! \brief Sets the dimension of the system vector.
+  void redim(size_t n) override {}
+
+  //! \brief Access through pointer.
+  Real* getPtr() override { return nullptr; }
+  //! \brief Reference through pointer.
+  const Real* getRef() const override { return nullptr; }
+
+  //! \brief Initializes the vector to a given scalar value.
+  void init(Real value) override {}
+
+  //! \brief Multiplication with a scalar.
+  void mult(Real alpha) override {}
+
+  //! \brief Addition of another system vector to this one.
+  void add(const SystemVector& vec, Real scale) override {}
+
+  //! \brief L1-norm of the vector.
+  Real L1norm() const override { return 0.0; }
+
+  //! \brief L2-norm of the vector.
+  Real L2norm() const override { return 0.0; }
+
+  //! \brief Linfinity-norm of the vector.
+  Real Linfnorm() const override { return 0.0; }
+
+  //! \brief Adds element vectors into the system vector.
+  //! \param[in] vecs The element vectors
+  //! \param[in] meqn Matrix of element equation numbers (0 based)
+  void assemble(const Vectors& vecs, const IntVec& meqn, int = 0) override;
+
+  //! \brief Returns a particular vector.
+  //! \param idx Index of vector to return
+  Vec get(size_t idx) { return vectors[idx]; }
+
+  //! \brief Returns number of vectors.
+  size_t size() const { return vectors.size(); }
+
+private:
+  size_t myDim; //!< Global dimension of vectors
+  std::vector<Vec> vectors; //!< Array of vectors
+  Mat myA; //!< Reference to matrix vectors are associated with
+};
+
+
+/*!
   \brief Class for representing the system matrix in PETSc format.
   \details It is an interface to PETSc modules for assembling and solving
   linear systems of equations.

@@ -130,6 +130,35 @@ Real PETScVector::Linfnorm() const
 }
 
 
+PETScVectors::PETScVectors(Mat A, int size) :
+  myA(A)
+{
+  PetscInt r, c;
+  MatGetSize(A, &r, &c);
+  myDim = c;
+  vectors.resize(size);
+  for (int i = 0; i < size; ++i)
+    MatCreateVecs(A, nullptr, &vectors[i]);
+}
+
+
+PETScVectors::~PETScVectors()
+{
+  for (Vec& v : vectors)
+    VecDestroy(&v);
+}
+
+
+void PETScVectors::assemble (const Vectors& vecs,
+                             const IntVec& meqn, int)
+{
+#pragma omp critical
+  for (size_t i = 0; i < meqn.size(); ++i)
+    for (size_t r = 0; r < vecs.size(); r++)
+      VecSetValue(vectors[r], meqn[i], vecs[r](1+i), ADD_VALUES);
+}
+
+
 PETScMatrix::PETScMatrix (const ProcessAdm& padm, const LinSolParams& spar)
   : SparseMatrix(SUPERLU, 1), nsp(nullptr), adm(padm), solParams(spar, adm)
 {
