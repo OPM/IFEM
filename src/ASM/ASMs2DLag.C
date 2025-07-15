@@ -300,7 +300,7 @@ bool ASMs2DLag::integrate (Integrand& integrand,
                            const TimeDomain& time)
 {
   if (this->empty()) return true; // silently ignore empty patches
-  if (!glInt.threadSafe() && !myElms.empty() && myElms.front() == -1) return true;
+  if (!myElms.empty() && myElms.front() == -1) return true;
 
   if (myCache.empty())
     myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this));
@@ -322,14 +322,18 @@ bool ASMs2DLag::integrate (Integrand& integrand,
   // Number of elements in first parameter direction
   const int nelx = (nx-1)/(p1-1);
 
+  ThreadGroups oneGroup;
+  if (glInt.threadSafe())
+    oneGroup.oneStripe(nel, myElms);
+  const ThreadGroups& groups = glInt.threadSafe() ? oneGroup : threadGroups;
 
   // === Assembly loop over all elements in the patch ==========================
 
   bool ok = true;
-  for (size_t g = 0; g < threadGroups.size() && ok; g++)
+  for (size_t g = 0; g < groups.size() && ok; g++)
   {
 #pragma omp parallel for schedule(static)
-    for (const IntVec& group : threadGroups[g])
+    for (const IntVec& group : groups[g])
     {
       FiniteElement fe;
       Matrix Jac, Def, Vel;
@@ -492,7 +496,7 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
                            const TimeDomain& time)
 {
   if (this->empty()) return true; // silently ignore empty patches
-  if (!glInt.threadSafe() && !myElms.empty() && myElms.front() == -1) return true;
+  if (!myElms.empty() && myElms.front() == -1) return true;
 
   // Get Gaussian quadrature points and weights
   int nG1 = this->getNoGaussPt(lIndex%10 < 3 ? p2 : p1, true);

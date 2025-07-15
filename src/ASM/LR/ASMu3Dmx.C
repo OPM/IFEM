@@ -311,7 +311,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
                           const TimeDomain& time)
 {
   if (m_basis.empty()) return true; // silently ignore empty patches
-  if (!glInt.threadSafe() && !myElms.empty() && myElms.front() == -1) return true;
+  if (!myElms.empty() && myElms.front() == -1) return true;
 
   PROFILE2("ASMu3Dmx::integrate(I)");
 
@@ -346,23 +346,23 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
   const std::array<const double*,3>& wg = cache.weight();
 
   ThreadGroups oneGroup;
-  if (glInt.threadSafe()) oneGroup.oneGroup(nel);
-  const IntMat& groups = glInt.threadSafe() ? oneGroup[0] : threadGroups[0];
-
+  if (glInt.threadSafe())
+    oneGroup.oneGroup(nel, myElms);
+  const IntMat& group = glInt.threadSafe() ? oneGroup[0] : threadGroups[0];
 
   // === Assembly loop over all elements in the patch ==========================
 
   bool ok = true;
-  for (size_t t = 0; t < groups.size() && ok; t++)
+  for (size_t t = 0; t < group.size() && ok; t++)
 #pragma omp parallel for schedule(static)
-    for (size_t e = 0; e < groups[t].size(); e++)
+    for (size_t e = 0; e < group[t].size(); e++)
     {
       if (!ok)
         continue;
 
       std::vector<int>    els;
       std::vector<size_t> elem_sizes;
-      this->getElementsAt(threadBasis->getElement(groups[t][e])->midpoint(),els,&elem_sizes);
+      this->getElementsAt(threadBasis->getElement(group[t][e])->midpoint(),els,&elem_sizes);
 
       MxFiniteElement fe(elem_sizes);
       Matrix   Xnod, Jac;
@@ -516,7 +516,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
                           const TimeDomain& time)
 {
   if (m_basis.empty()) return true; // silently ignore empty patches
-  if (!glInt.threadSafe() && !myElms.empty() && myElms.front() == -1) return true;
+  if (!myElms.empty() && myElms.front() == -1) return true;
 
   PROFILE2("ASMu3Dmx::integrate(B)");
 
@@ -561,8 +561,10 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
   for (LR::Element* el : edgeElms)
   {
     int iEl = el->getId();
-    if (!glInt.threadSafe() && !this->isElementInPartition(iEl))
+    if (!this->isElementInPartition(iEl)) {
+      firstp += nGP*nGP;
       continue;
+    }
 
     std::vector<int>    els;
     std::vector<size_t> elem_sizes;

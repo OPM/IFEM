@@ -468,7 +468,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
                           const TimeDomain& time)
 {
   if (!svol) return true; // silently ignore empty patches
-  if (!glInt.threadSafe() && !myElms.empty() && myElms.front() == -1) return true;
+  if (!myElms.empty() && myElms.front() == -1) return true;
 
   PROFILE2("ASMs3Dmx::integrate(I)");
 
@@ -505,9 +505,9 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
   const int nel2 = n2 - p2 + 1;
 
   ThreadGroups oneGroup;
-  if (glInt.threadSafe()) oneGroup.oneStripe(nel);
+  if (glInt.threadSafe())
+    oneGroup.oneStripe(nel, myElms);
   const ThreadGroups& groups = glInt.threadSafe() ? oneGroup : threadGroupsVol;
-
 
   // === Assembly loop over all elements in the patch ==========================
 
@@ -643,7 +643,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
                           const TimeDomain& time)
 {
   if (!svol) return true; // silently ignore empty patches
-  if (!glInt.threadSafe() && !myElms.empty() && myElms.front() == -1) return true;
+  if (!myElms.empty() && myElms.front() == -1) return true;
 
   PROFILE2("ASMs3Dmx::integrate(B)");
 
@@ -853,7 +853,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
                           const ASM::InterfaceChecker& iChk)
 {
   if (!svol) return true; // silently ignore empty patches
-  if (!glInt.threadSafe() && !myElms.empty() && myElms.front() == -1) return true;
+  if (!myElms.empty() && myElms.front() == -1) return true;
 
   if (this->getBasis(ASM::GEOMETRY_BASIS) != svol.get()) {
     std::cerr <<"*** Jump integration not implemented for a separate geometry basis."
@@ -913,6 +913,9 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
           continue;
         fe.iel = abs(MLGE[iel]);
         if (fe.iel < 1) continue; // zero-area element
+
+        if (!this->isElementInPartition(iel))
+          continue;
 
         short int status = iChk.hasContribution(iel,i1,i2,i3);
         if (!status) continue; // no interface contributions for this element
