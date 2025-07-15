@@ -1093,9 +1093,10 @@ bool DomainDecomposition::setup (const ProcessAdm& adm, const SIMbase& sim)
 #endif
 #endif
 
-  if (ghostConnections.empty() && adm.getNoProcs() > 1)
-    if (!this->graphPartition(adm, sim))
+  if (ghostConnections.empty() && adm.getNoProcs() > 1) {
+    if (!this->graphPartition(adm, sim.getElmConnectivities()))
       return false;
+  }
 
   sam = dynamic_cast<const SAMpatch*>(sim.getSAM());
 
@@ -1249,7 +1250,7 @@ int DomainDecomposition::getPatchOwner (size_t p) const
 
 
 bool DomainDecomposition::graphPartition (const ProcessAdm& adm,
-                                          const SIMbase& sim)
+                                          const IntMat& neigh)
 {
   if (!myElms.empty())
     return true; // Use existing partitioning
@@ -1264,13 +1265,12 @@ bool DomainDecomposition::graphPartition (const ProcessAdm& adm,
     inited = true;
   }
   struct Zoltan_Struct* zz = Zoltan_Create(*adm.getCommunicator());
-  IntMat neigh;
   if (adm.getProcId() == 0) {
-    neigh = sim.getElmConnectivities();
-    Zoltan_Set_Num_Obj_Fn(zz, getNumElements, &neigh);
-    Zoltan_Set_Obj_List_Fn(zz, getElementList, &neigh);
-    Zoltan_Set_Num_Edges_Multi_Fn(zz, getNumEdges, &neigh);
-    Zoltan_Set_Edge_List_Multi_Fn(zz, getEdges, &neigh);
+    void* ctx = const_cast<void*>(reinterpret_cast<const void*>(&neigh));
+    Zoltan_Set_Num_Obj_Fn(zz, getNumElements, ctx);
+    Zoltan_Set_Obj_List_Fn(zz, getElementList, ctx);
+    Zoltan_Set_Num_Edges_Multi_Fn(zz, getNumEdges, ctx);
+    Zoltan_Set_Edge_List_Multi_Fn(zz, getEdges, ctx);
   } else {
     Zoltan_Set_Num_Obj_Fn(zz, getNullElements, nullptr);
     Zoltan_Set_Obj_List_Fn(zz, getNullList, nullptr);
@@ -1307,14 +1307,14 @@ bool DomainDecomposition::graphPartition (const ProcessAdm& adm,
                       &exportProcs,    /* Process to which I send each of the vertices */
                       &exportToPart);  /* Partition to which each vertex will belong */
 
-  if (sim.getProcessAdm().getProcId() == 0) {
-    std::vector<bool> offProc(sim.getNoElms(), false);
+  if (adm.getProcId() == 0) {
+    std::vector<bool> offProc(neigh.size(), false);
     for (int i = 0; i < numExport; ++i) {
       int gid = exportGlobalGids[i];
       offProc[gid] = true;
     }
     myElms.reserve(numExport);
-    for (size_t i = 0; i < sim.getNoElms(); ++i)
+    for (size_t i = 0; i < neigh.size(); ++i)
       if (!offProc[i])
         myElms.push_back(i);
   }
