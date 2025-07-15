@@ -504,7 +504,14 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
   const int nel2 = n2 - p2 + 1;
 
   ThreadGroups oneGroup;
-  if (glInt.threadSafe()) oneGroup.oneStripe(nel);
+  if (glInt.threadSafe()) {
+    if (myElms.empty())
+      oneGroup.oneStripe(nel);
+    else if (myElms.front() == -1)
+      oneGroup[0].resize(1);
+    else
+      oneGroup.oneStripe(myElms);
+  }
   const ThreadGroups& groups = glInt.threadSafe() ? oneGroup : threadGroupsVol;
 
 

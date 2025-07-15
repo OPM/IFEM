@@ -1126,7 +1126,14 @@ bool ASMu2D::integrate (Integrand& integrand,
   const int p2 = lrspline->order(1);
 
   ThreadGroups oneGroup;
-  if (glInt.threadSafe()) oneGroup.oneGroup(nel);
+  if (glInt.threadSafe()) {
+    if (myElms.empty())
+      oneGroup.oneGroup(nel);
+    else if (myElms.front() == -1)
+      oneGroup[0].resize(1);
+    else
+      oneGroup[0].resize(1, myElms);
+  }
   const IntMat& group = glInt.threadSafe() ? oneGroup[0] : threadGroups[0];
 
 
@@ -1618,9 +1625,10 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
   int iel = 0;
   for (const LR::Element* el : lrspline->getAllElements())
   {
-    if (!myElms.empty() && !glInt.threadSafe() &&
+    if (!myElms.empty() &&
         std::find(myElms.begin(), myElms.end(), iel) == myElms.end()) {
-        ++iel;
+      ++iel;
+      firstp += nGP;
       continue;
     }
 
