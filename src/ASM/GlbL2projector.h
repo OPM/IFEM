@@ -195,8 +195,7 @@ public:
 
   //! \brief Pre-computes the sparsity pattern of the projection matrix \b A.
   //! \param[in] MMNPC Matrix of matrices of nodal point correspondances
-  //! \param[in] nel Number of elements
-  void preAssemble(const std::vector<IntVec>& MMNPC, size_t nel);
+  void preAssemble(const std::vector<IntVec>& MMNPC);
 
   //! \brief Solves the projection equation system and evaluates nodal values.
   //! \param[out] sField Nodal/control-point values of the projected results.

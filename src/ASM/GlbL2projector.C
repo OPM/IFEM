@@ -385,9 +385,9 @@ bool GlbL2::evalIntMx (LocalIntegral& elmInt,
 }
 
 
-void GlbL2::preAssemble (const IntMat& MMNPC, size_t nel)
+void GlbL2::preAssemble (const IntMat& MMNPC)
 {
-  pA->preAssemble(MMNPC,nel);
+  pA->preAssemble(MMNPC);
 }
 
 
@@ -478,7 +478,7 @@ bool ASMbase::L2projection (Matrix& sField,
   GlbL2 gl2(integrand,this->getNoNodes(1));
   L2GlobalInt dummy(*gl2.pA,*gl2.pB);
 
-  gl2.preAssemble(MNPC,this->getNoElms(true));
+  gl2.preAssemble(MNPC);
   return this->integrate(gl2,dummy,time) && gl2.solve(sField);
 }
 
@@ -491,7 +491,7 @@ bool ASMbase::L2projection (Matrix& sField, FunctionBase* function, double t)
   L2GlobalInt dummy(*gl2.pA,*gl2.pB);
   TimeDomain time; time.t = t;
 
-  gl2.preAssemble(MNPC,this->getNoElms(true));
+  gl2.preAssemble(MNPC);
   return this->integrate(gl2,dummy,time) && gl2.solve(sField);
 }
 
@@ -505,7 +505,7 @@ bool ASMbase::L2projection (const std::vector<Matrix*>& sField,
   L2GlobalInt dummy(*gl2.pA,*gl2.pB);
   TimeDomain time; time.t = t;
 
-  gl2.preAssemble(MNPC,this->getNoElms(true));
+  gl2.preAssemble(MNPC);
   return this->integrate(gl2,dummy,time) && gl2.solve(sField);
 }
 
