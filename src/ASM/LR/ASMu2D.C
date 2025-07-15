@@ -1095,7 +1095,7 @@ bool ASMu2D::integrate (Integrand& integrand,
                         const TimeDomain& time)
 {
   if (!lrspline) return true; // silently ignore empty patches
-  if (!glInt.threadSafe() && !myElms.empty() && myElms.front() == -1) return true;
+  if (!myElms.empty() && myElms.front() == -1) return true;
 
   PROFILE2("ASMu2D::integrate(I)");
 
@@ -1122,9 +1122,9 @@ bool ASMu2D::integrate (Integrand& integrand,
   const int p2 = lrspline->order(1);
 
   ThreadGroups oneGroup;
-  if (glInt.threadSafe()) oneGroup.oneGroup(nel);
+  if (glInt.threadSafe())
+    oneGroup.oneGroup(nel, myElms);
   const IntMat& group = glInt.threadSafe() ? oneGroup[0] : threadGroups[0];
-
 
   // === Assembly loop over all elements in the patch ==========================
 
@@ -1370,7 +1370,7 @@ bool ASMu2D::integrate (Integrand& integrand,
                         const Real3DMat& itgPts)
 {
   if (!lrspline) return true; // silently ignore empty patches
-  if (!glInt.threadSafe() && !myElms.empty() && myElms.front() == -1) return true;
+  if (!myElms.empty() && myElms.front() == -1) return true;
 
   if (integrand.getReducedIntegration(2) != 0)
   {
@@ -1410,9 +1410,9 @@ bool ASMu2D::integrate (Integrand& integrand,
     }
 
   ThreadGroups oneGroup;
-  if (glInt.threadSafe()) oneGroup.oneGroup(nel);
+  if (glInt.threadSafe())
+    oneGroup.oneGroup(nel, myElms);
   const IntMat& group = glInt.threadSafe() ? oneGroup[0] : threadGroups[0];
-
 
   // === Assembly loop over all elements in the patch ==========================
 
@@ -1429,6 +1429,9 @@ bool ASMu2D::integrate (Integrand& integrand,
       if (dbgElm < 0 && iel != -dbgElm)
         continue; // Skipping all elements, except for -dbgElm
 #endif
+
+      if (!this->isElementInPartition(iel))
+        continue;
 
       FiniteElement fe;
       fe.iel = MLGE[iel-1];
@@ -1561,7 +1564,7 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
                         const TimeDomain& time)
 {
   if (!lrspline) return true; // silently ignore empty patches
-  if (!glInt.threadSafe() && !myElms.empty() && myElms.front() == -1) return true;
+  if (!myElms.empty() && myElms.front() == -1) return true;
 
   PROFILE2("ASMu2D::integrate(B)");
 
@@ -1617,8 +1620,10 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
   for (const LR::Element* el : lrspline->getAllElements())
   {
     ++iel;
-    if (!glInt.threadSafe() && !this->isElementInPartition(iel-1))
+    if (!this->isElementInPartition(iel-1)) {
+      firstp += nGP;
       continue;
+    }
 
     fe.iel = MLGE[iel-1];
 #ifdef SP_DEBUG
@@ -1730,7 +1735,7 @@ bool ASMu2D::integrate (Integrand& integrand,
 {
   if (!geomB) return true; // silently ignore empty patches
   if (!(integrand.getIntegrandType() & Integrand::INTERFACE_TERMS)) return true;
-  if (!glInt.threadSafe() && !myElms.empty() && myElms.front() == -1) return true;
+  if (!myElms.empty() && myElms.front() == -1) return true;
 
   PROFILE2("ASMu2D::integrate(J)");
 

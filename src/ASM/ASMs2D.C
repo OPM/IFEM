@@ -1695,7 +1695,7 @@ bool ASMs2D::integrate (Integrand& integrand,
 			const TimeDomain& time)
 {
   if (!surf) return true; // silently ignore empty patches
-  if (!glInt.threadSafe() && !myElms.empty() && myElms.front() == -1) return true;
+  if (!myElms.empty() && myElms.front() == -1) return true;
 
   PROFILE2("ASMs2D::integrate(I)");
 
@@ -1727,9 +1727,9 @@ bool ASMs2D::integrate (Integrand& integrand,
   const int nel1 = n1 - p1 + 1;
 
   ThreadGroups oneGroup;
-  if (glInt.threadSafe()) oneGroup.oneStripe(nel);
+  if (glInt.threadSafe())
+    oneGroup.oneStripe(nel, myElms);
   const ThreadGroups& groups = glInt.threadSafe() ? oneGroup : threadGroups;
-
 
   // === Assembly loop over all elements in the patch ==========================
 
@@ -1975,6 +1975,7 @@ bool ASMs2D::integrate (Integrand& integrand,
                         const Real3DMat& itgPts)
 {
   if (!surf) return true; // silently ignore empty patches
+  if (!myElms.empty() && myElms.front() == -1) return true;
 
   if (integrand.getReducedIntegration(2) != 0)
   {
@@ -2349,6 +2350,7 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
 			const TimeDomain& time)
 {
   if (!surf) return true; // silently ignore empty patches
+  if (!myElms.empty() && myElms.front() == -1) return true;
 
   PROFILE2("ASMs2D::integrate(B)");
 
@@ -2425,7 +2427,7 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
       if (!this->isElementActive(fe.iel,time.t))
         continue; // zero-area element
 
-      if (!glInt.threadSafe() && !this->isElementInPartition(iel-1))
+      if (!this->isElementInPartition(iel-1))
         continue;
 
 #ifdef SP_DEBUG

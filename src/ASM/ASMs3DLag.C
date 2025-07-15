@@ -327,7 +327,7 @@ bool ASMs3DLag::integrate (Integrand& integrand,
                            const TimeDomain& time)
 {
   if (this->empty()) return true; // silently ignore empty patches
-  if (!glInt.threadSafe() && !myElms.empty() && myElms.front() == -1) return true;
+  if (!myElms.empty() && myElms.front() == -1) return true;
 
   if (myCache.empty())
     myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this));
@@ -349,14 +349,18 @@ bool ASMs3DLag::integrate (Integrand& integrand,
   const int nel1 = cache.noElms()[0];
   const int nel2 = cache.noElms()[1];
 
+  ThreadGroups oneGroup;
+  if (glInt.threadSafe())
+    oneGroup.oneStripe(nel, myElms);
+  const ThreadGroups& groups = glInt.threadSafe() ? oneGroup : threadGroupsVol;
 
   // === Assembly loop over all elements in the patch ==========================
 
   bool ok = true;
-  for (size_t g = 0; g < threadGroupsVol.size() && ok; g++)
+  for (size_t g = 0; g < groups.size() && ok; g++)
   {
 #pragma omp parallel for schedule(static)
-    for (const IntVec& group : threadGroupsVol[g])
+    for (const IntVec& group : groups[g])
     {
       FiniteElement fe;
       Matrix Jac;
@@ -506,7 +510,7 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
                            const TimeDomain& time)
 {
   if (this->empty()) return true; // silently ignore empty patches
-  if (!glInt.threadSafe() && !myElms.empty() && myElms.front() == -1) return true;
+  if (!myElms.empty() && myElms.front() == -1) return true;
 
   std::map<char,ThreadGroups>::const_iterator tit;
   if ((tit = threadGroupsFace.find(lIndex%10)) == threadGroupsFace.end())
@@ -630,6 +634,9 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
         fe.iel = abs(MLGE[doXelms+iel]);
         if (!this->isElementActive(fe.iel)) continue; // zero-volume element
 
+        if (!this->isElementInPartition(iel))
+          continue;
+
         // Set up nodal point coordinates for current element
         this->getElementCoordinates(fe.Xn,1+iel);
 
@@ -731,6 +738,7 @@ bool ASMs3DLag::integrateEdge (Integrand& integrand, int lEdge,
                                const TimeDomain& time)
 {
   if (this->empty()) return true; // silently ignore empty patches
+  if (!myElms.empty() && myElms.front() == -1) return true;
 
   // Parametric direction of the edge {0, 1, 2}
   const int lDir = (lEdge-1)/4;

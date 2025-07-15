@@ -2048,7 +2048,7 @@ bool ASMs3D::integrate (Integrand& integrand,
 			const TimeDomain& time)
 {
   if (!svol) return true; // silently ignore empty patches
-  if (!glInt.threadSafe() && !myElms.empty() && myElms.front() == -1) return true;
+  if (!myElms.empty() && myElms.front() == -1) return true;
 
   PROFILE2("ASMs3D::integrate(I)");
 
@@ -2083,9 +2083,9 @@ bool ASMs3D::integrate (Integrand& integrand,
   const int nel2 = n2 - p2 + 1;
 
   ThreadGroups oneGroup;
-  if (glInt.threadSafe()) oneGroup.oneStripe(nel);
+  if (glInt.threadSafe())
+    oneGroup.oneStripe(nel, myElms);
   const ThreadGroups& groups = glInt.threadSafe() ? oneGroup : threadGroupsVol;
-
 
   // === Assembly loop over all elements in the patch ==========================
 
@@ -2316,7 +2316,7 @@ bool ASMs3D::integrate (Integrand& integrand,
                         const Real3DMat& itgPts)
 {
   if (!svol) return true; // silently ignore empty patches
-  if (!glInt.threadSafe() && !myElms.empty() && myElms.front() == -1) return true;
+  if (!myElms.empty() && myElms.front() == -1) return true;
 
   if (integrand.getReducedIntegration(2) != 0)
   {
@@ -2385,6 +2385,9 @@ bool ASMs3D::integrate (Integrand& integrand,
         fe.iel = MLGE[iel];
         if (!this->isElementActive(fe.iel,time.t))
           continue; // zero-volume or inactive element
+
+        if (!this->isElementInPartition(iel))
+          continue;
 
 #ifdef SP_DEBUG
         if (dbgElm < 0 && 1+iel != -dbgElm)
@@ -2526,7 +2529,7 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
 			const TimeDomain& time)
 {
   if (!svol) return true; // silently ignore empty patches
-  if (!glInt.threadSafe() && !myElms.empty() && myElms.front() == -1) return true;
+  if (!myElms.empty() && myElms.front() == -1) return true;
 
   PROFILE2("ASMs3D::integrate(B)");
 
@@ -2643,6 +2646,9 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
         fe.iel = abs(MLGE[doXelms+iel]);
         if (!this->isElementActive(fe.iel,time.t))
           continue; // zero-volume or inactive element
+
+        if (!this->isElementInPartition(iel))
+          continue;
 
 #ifdef SP_DEBUG
         if (dbgElm < 0 && 1+iel != -dbgElm)
@@ -2794,7 +2800,7 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
 			    const TimeDomain& time)
 {
   if (!svol) return true; // silently ignore empty patches
-  if (!glInt.threadSafe() && !myElms.empty() && myElms.front() == -1) return true;
+  if (!myElms.empty() && myElms.front() == -1) return true;
 
   PROFILE2("ASMs3D::integrate(E)");
 
@@ -2879,7 +2885,7 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
         if (!this->isElementActive(fe.iel,time.t))
           continue; // zero-volume or inactive element
 
-        if (!this->isElementInPartition(fe.iel-1))
+        if (!this->isElementInPartition(iel-1))
           continue;
 
 	// Skip elements that are not on current boundary edge

@@ -2008,6 +2008,10 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
 
   if (!ok) std::cerr <<" *** SIMbase::solutionNorms: Failure.\n"<< std::endl;
 
+  // Grab element norms calculated on other processes
+  if (eNorm && adm.dd.isPartitioned())
+    adm.allReduceAsSum(static_cast<RealArray&>(*eNorm));
+
   // Clean up the dynamically allocated norm objects. This will also perform
   // the actual global norm assembly, in case the element norms are stored,
   // and always when multi-threading is used.
@@ -2025,6 +2029,7 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
 
   delete norm;
 
+  // This gathers results for patches we do not own in case of DD model.
   if (!adm.dd.isPartitioned())
     for (Vector& glbNorm : gNorm)
       adm.allReduceAsSum(static_cast<RealArray&>(glbNorm));

@@ -323,8 +323,8 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
                           GlobalIntegral& glInt,
                           const TimeDomain& time)
 {
-  if (m_basis.empty())
-    return true; // silently ignore empty patches
+  if (m_basis.empty()) return true; // silently ignore empty patches
+  if (!myElms.empty() && myElms.front() == -1) return true;
 
   PROFILE2("ASMu2Dmx::integrate(I)");
 
@@ -361,9 +361,9 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
   const std::array<const double*,2>& wg = cache.weight();
 
   ThreadGroups oneGroup;
-  if (glInt.threadSafe()) oneGroup.oneGroup(nel);
+  if (glInt.threadSafe())
+    oneGroup.oneGroup(nel, myElms);
   const IntMat& groups = glInt.threadSafe() ? oneGroup[0] : threadGroups[0];
-
 
   // === Assembly loop over all elements in the patch ==========================
 
@@ -497,7 +497,7 @@ bool ASMu2Dmx::integrate (Integrand& integrand, int lIndex,
                           const TimeDomain& time)
 {
   if (m_basis.empty()) return true; // silently ignore empty patches
-  if (!glInt.threadSafe() && !myElms.empty() && myElms.front() == -1) return true;
+  if (!myElms.empty() && myElms.front() == -1) return true;
 
   PROFILE2("ASMu2Dmx::integrate(B)");
 
@@ -549,10 +549,8 @@ bool ASMu2Dmx::integrate (Integrand& integrand, int lIndex,
   for (const LR::Element* el1 : m_basis[itgBasis-1]->getAllElements())
   {
     ++iel;
-    if (!myElms.empty() && !glInt.threadSafe() &&
-        std::find(myElms.begin(), myElms.end(), iel-1) == myElms.end())
+    if (!this->isElementInPartition(iel-1))
       continue;
-
 
     // Skip elements that are not on current boundary edge
     bool skipMe = false;
@@ -669,7 +667,7 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
                           const ASM::InterfaceChecker& iChkgen)
 {
   if (m_basis.empty()) return true; // silently ignore empty patches
-  if (!glInt.threadSafe() && !myElms.empty() && myElms.front() == -1) return true;
+  if (!myElms.empty() && myElms.front() == -1) return true;
 
   if (!(integrand.getIntegrandType() & Integrand::INTERFACE_TERMS))
     return true; // No interface terms
@@ -703,8 +701,7 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
     short int status = iChk.hasContribution(++iel);
     if (!status) continue; // no interface contributions for this element
 
-    if (!myElms.empty() && !glInt.threadSafe() &&
-        std::find(myElms.begin(), myElms.end(), iel-1) == myElms.end())
+    if (!this->isElementInPartition(iel-1))
       continue;
 
     std::vector<int>    els;

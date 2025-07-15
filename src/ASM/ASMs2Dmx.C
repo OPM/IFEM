@@ -449,7 +449,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
                           const TimeDomain& time)
 {
   if (!surf) return true; // silently ignore empty patches
-  if (!glInt.threadSafe() && !myElms.empty() && myElms.front() == -1) return true;
+  if (!myElms.empty() && myElms.front() == -1) return true;
 
   PROFILE2("ASMs2Dmx::integrate(I)");
 
@@ -486,9 +486,9 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
   const int nel1 = n1 - p1 + 1;
 
   ThreadGroups oneGroup;
-  if (glInt.threadSafe()) oneGroup.oneStripe(nel);
+  if (glInt.threadSafe())
+    oneGroup.oneStripe(nel, myElms);
   const ThreadGroups& groups = glInt.threadSafe() ? oneGroup : threadGroups;
-
 
   // === Assembly loop over all elements in the patch ==========================
 
@@ -622,7 +622,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
                           const TimeDomain& time)
 {
   if (!surf) return true; // silently ignore empty patches
-  if (!glInt.threadSafe() && !myElms.empty() && myElms.front() == -1) return true;
+  if (!myElms.empty() && myElms.front() == -1) return true;
 
   PROFILE2("ASMs2Dmx::integrate(B)");
 
@@ -698,7 +698,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
       fe.iel = MLGE[iel-1];
       if (fe.iel < 1) continue; // zero-area element
 
-      if (!glInt.threadSafe() && !this->isElementInPartition(iel-1))
+      if (!this->isElementInPartition(iel-1))
         continue;
 
       // Skip elements that are not on current boundary edge
@@ -800,7 +800,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
                           const ASM::InterfaceChecker& iChk)
 {
   if (!surf) return true; // silently ignore empty patches
-  if (!glInt.threadSafe() && !myElms.empty() && myElms.front() == -1) return true;
+  if (!myElms.empty() && myElms.front() == -1) return true;
 
   if (this->getBasis(ASM::GEOMETRY_BASIS) != surf.get())
   {
@@ -854,7 +854,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
       fe.iel = abs(MLGE[iel]);
       if (fe.iel < 1) continue; // zero-area element
 
-      if (!glInt.threadSafe() && !this->isElementInPartition(iel))
+      if (!this->isElementInPartition(iel))
         continue;
 
       short int status = iChk.hasContribution(iel,i1,i2);
