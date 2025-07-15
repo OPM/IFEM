@@ -10,6 +10,7 @@
 //!
 //==============================================================================
 
+#include "ASMbase.h"
 #include "PETScMatrix.h"
 #include "SIM2D.h"
 #include "ASMmxBase.h"
@@ -19,6 +20,7 @@
 #include "gtest/gtest.h"
 
 #include <memory>
+#include <numeric>
 
 
 TEST(TestPETScMatrix, Assemble)
@@ -271,5 +273,41 @@ TEST(TestPETScVector, Copy)
   for (size_t i = 1; i <= orig.dim(); ++i) {
       EXPECT_EQ((*copy2)(i), orig(i));
       EXPECT_EQ(cv[i-1], orig(i));
+  }
+}
+
+
+TEST(TestPETScVectors, Assemble)
+{
+  SIM2D sim(1);
+  sim.read("src/LinAlg/Test/refdata/petsc_test.xinp");
+  sim.opt.solver = LinAlg::PETSC;
+  ASSERT_TRUE(sim.preprocess());
+  ASSERT_TRUE(sim.initSystem(sim.opt.solver));
+
+  PETScMatrix* myMat = dynamic_cast<PETScMatrix*>(sim.getLHSmatrix());
+  ASSERT_TRUE(myMat != nullptr);
+
+  myMat->init();
+  PETScVectors v(myMat->getMatrix(), 2);
+
+  IntMat mnpc(sim.getPatch(1)->begin_elm(), sim.getPatch(1)->end_elm());
+  Vectors el_data(2, Vector(mnpc[0].size()));
+  std::iota(el_data[0].begin(), el_data[0].end(), 1.0);
+  std::iota(el_data[1].begin(), el_data[1].end(), 5.0);
+
+  v.assemble(el_data, mnpc[0]);
+  for (int c = 0; c < 2; ++c) {
+    VecAssemblyBegin(v.get(c));
+    VecAssemblyEnd(v.get(c));
+    for (PetscInt i = 0; i < static_cast<PetscInt>(v.dim()); ++i) {
+      PetscScalar a;
+      VecGetValues(v.get(c), 1, &i, &a);
+      const auto it = std::find(mnpc[0].begin(), mnpc[0].end(), i);
+      if (it == mnpc[0].end())
+        EXPECT_DOUBLE_EQ(a, 0.0);
+      else
+        EXPECT_DOUBLE_EQ(a, 1 + 4*c + std::distance(mnpc[0].begin(), it));
+    }
   }
 }

@@ -1864,7 +1864,7 @@ bool ASMs1D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 }
 
 
-bool ASMs1D::assembleL2matrices (SparseMatrix& A, StdVector& B,
+bool ASMs1D::assembleL2matrices (SystemMatrix& A, SystemVector& B,
                                  const L2Integrand& integrand,
                                  bool continuous) const
 {
@@ -1937,18 +1937,16 @@ bool ASMs1D::assembleL2matrices (SparseMatrix& A, StdVector& B,
         if (dJw == 0.0) continue; // skip singular points
       }
 
-      // Integrate the linear system A*x=B
-      for (size_t ii = 0; ii < phi.size(); ii++)
-      {
-        int inod = mnpc[iel][ii]+1;
-        for (size_t jj = 0; jj < phi.size(); jj++)
-        {
-          int jnod = mnpc[iel][jj]+1;
-          A(inod,jnod) += phi[ii]*phi[jj]*dJw;
-        }
-        for (size_t r = 1; r <= sField.rows(); r++)
-          B(inod+(r-1)*nnod) += phi[ii]*sField(r,ip+1)*dJw;
-      }
+      Matrix eA;
+      eA.outer_product(phi, phi, false, dJw);
+
+      // Integrate the rhs vector B
+      Vectors eB(sField.rows(), Vector(phi.size()));
+      for (size_t r = 1; r <= sField.rows(); r++)
+        eB[r-1].add(phi,sField(r,ip+1)*dJw);
+
+      A.assemble(eA, mnpc[iel]);
+      B.assemble(eB, mnpc[iel], nnod);
     }
   }
 
