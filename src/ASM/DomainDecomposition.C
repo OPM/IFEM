@@ -1348,3 +1348,14 @@ bool DomainDecomposition::graphPartition (const ProcessAdm& adm,
              <<" elements in partition."<< std::endl;
   return true;
 }
+
+
+void DomainDecomposition::clear ()
+{
+  patchOwner.clear();
+  myElms.clear();
+  blocks.clear();
+  blocks.resize(1);
+  MLGN.clear();
+  sam = nullptr;
+}

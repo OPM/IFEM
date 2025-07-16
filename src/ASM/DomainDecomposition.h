@@ -185,6 +185,9 @@ public:
   void setElms(const std::vector<int>& elms, const std::string& save)
   { myElms = elms; savePart = save; }
 
+  //! \brief Clear out partitioning information.
+  void clear();
+
 private:
   //! \brief Calculates a 1D partitioning with a given overlap.
   //! \param[in] nel1 Number of knot-spans in first parameter direction.
