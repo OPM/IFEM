@@ -984,10 +984,11 @@ int ASMs2DLag::findElement (double u, double v, double* xi, double* eta) const
     return -1;
   }
 
-  int ku = surf->basis(0).knotInterval(u);
-  int kv = surf->basis(1).knotInterval(v);
-  int elmx = ku - (p1 - 1);
-  int elmy = kv - (p2 - 1);
+  const int ku = surf->basis(0).knotInterval(u);
+  const int kv = surf->basis(1).knotInterval(v);
+
+  const int elmx = ku - (p1 - 1);
+  const int elmy = kv - (p2 - 1);
 
   if (xi) {
     const double knot_1 = *(surf->basis(0).begin() + ku);
@@ -1047,56 +1048,69 @@ bool ASMs2DLag::assembleL2matrices (SystemMatrix& A, SystemVector& B,
   const std::array<const double*,2>& wg = cache.weight();
   const std::array<int,2> nGP = cache.nGauss();
 
-  Matrix dNdX, Xnod, J;
+  const IntMat gmnpc = this->getElmNodes(ASM::PROJECTION_BASIS);
+  A.preAssemble(gmnpc, gmnpc.size());
+
+  const Go::SplineSurface* srf = this->getBasis(ASM::PROJECTION_BASIS);
+  const int p1 = srf->order_u();
+  const int p2 = srf->order_v();
+  const int nelx = (nx-1) / (p1-1);
 
   const size_t nnod = this->getNoProjectionNodes();
 
   // === Assembly loop over all elements in the patch ==========================
-
-  int iel = 0;
-  for (size_t i2 = 0; i2 < cache.noElms()[1]; ++i2)
-    for (size_t i1 = 0; i1 < cache.noElms()[0]; ++i1, ++iel)
+  bool ok = true;
+  for (size_t g = 0; g < projThreadGroups.size() && ok; g++)
+#pragma omp parallel for schedule(static)
+    for (const IntVec& group : projThreadGroups[g])
     {
-      if (!this->getElementCoordinates(Xnod,1+iel))
-        return false;
-
-      std::array<RealArray,2> GP;
-      GP[0].reserve(nGP[0]*nGP[1]);
-      GP[1].reserve(nGP[0]*nGP[1]);
-      for (int j = 0; j < nGP[1]; ++j)
-        for (int i = 0; i < nGP[0]; ++i) {
-          GP[0].push_back(cache.getParam(0, i1, i));
-          GP[1].push_back(cache.getParam(1, i2, j));
+      Matrix dNdX, Xnod, J;
+      for (int iel : group) {
+        if (!this->getElementCoordinates(Xnod,1+iel)) {
+          ok = false;
+          continue;
         }
 
-      Matrix sField;
-      integrand.evaluate(sField, GP.data());
+        const int i1 = nelx > 0 ? iel % nelx : 0;
+        const int i2 = nelx > 0 ? iel / nelx : 0;
+        std::array<RealArray,2> GP;
+        GP[0].reserve(nGP[0]*nGP[1]);
+        GP[1].reserve(nGP[0]*nGP[1]);
+        for (int j = 0; j < nGP[1]; ++j)
+          for (int i = 0; i < nGP[0]; ++i) {
+            GP[0].push_back(cache.getParam(0, i1, i));
+            GP[1].push_back(cache.getParam(1, i2, j));
+          }
 
-      // --- Integration loop over all Gauss points in each direction ----------
+        Matrix sField;
+        integrand.evaluate(sField, GP.data());
 
-      Matrix eA(p1*p2, p1*p2);
-      Vectors eB(sField.rows(), Vector(p1*p2));
-      size_t ip = 0;
-      for (int j = 0; j < nGP[1]; ++j)
-        for (int i = 0; i < nGP[0]; ++i, ++ip) {
-          const BasisFunctionVals& bfs = cache.getVals(iel,ip);
+        // --- Integration loop over all Gauss points in each direction ----------
 
-          double dJw = wg[0][i]*wg[1][j]*utl::Jacobian(J,dNdX,Xnod,bfs.dNdu);
+        Matrix eA(p1*p2, p1*p2);
+        Vectors eB(sField.rows(), Vector(p1*p2));
+        size_t ip = 0;
+        for (int j = 0; j < nGP[1]; ++j)
+          for (int i = 0; i < nGP[0]; ++i, ++ip) {
+            const BasisFunctionVals& bfs = cache.getVals(iel,ip);
 
-          // Integrate the mass matrix
-          eA.outer_product(bfs.N, bfs.N, true, dJw);
+            double dJw = wg[0][i]*wg[1][j]*utl::Jacobian(J,dNdX,Xnod,bfs.dNdu);
 
-          // Integrate the rhs vector B
-          for (size_t r = 1; r <= sField.rows(); r++)
-            eB[r-1].add(bfs.N,sField(r,ip+1)*dJw);
-        }
+            // Integrate the mass matrix
+            eA.outer_product(bfs.N, bfs.N, true, dJw);
 
-      const IntVec& mnpc = MNPC[iel];
-      A.assemble(eA, mnpc);
-      B.assemble(eB, mnpc, nnod);
+            // Integrate the rhs vector B
+            for (size_t r = 1; r <= sField.rows(); r++)
+              eB[r-1].add(bfs.N,sField(r,ip+1)*dJw);
+          }
+
+        const IntVec& mnpc = gmnpc[iel];
+        A.assemble(eA, mnpc);
+        B.assemble(eB, mnpc, nnod);
+      }
     }
 
-  return true;
+  return ok;
 }
 
 
