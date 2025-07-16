@@ -3018,33 +3018,52 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 void ASMs2D::generateThreadGroups (const Integrand& integrand, bool silence,
                                    bool ignoreGlobalLM)
 {
-  if (threadGroups.stripDir == ThreadGroups::NONE)
+  if (threadGroups.stripDir == ThreadGroups::NONE) {
     threadGroups.oneGroup(nel);
-  else
+    projThreadGroups.oneGroup(nel);
+    if (this->getBasis(ASM::PROJECTION_BASIS_2)) {
+      const Go::SplineSurface* prj = this->getBasis(ASM::PROJECTION_BASIS_2);
+      const int n1 = prj->numCoefs_u();
+      const int n2 = prj->numCoefs_v();
+      const int p1 = prj->order_u();
+      const int p2 = prj->order_v();
+      const int nelp = (n1-p1+1)*(n2-p2+1);
+      proj2ThreadGroups.oneGroup(nelp);
+    }
+  } else
     this->generateThreadGroups(surf->order_u()-1, surf->order_v()-1,
                                silence, ignoreGlobalLM);
 }
 
-
 void ASMs2D::generateThreadGroups (size_t strip1, size_t strip2,
                                    bool silence, bool ignoreGlobalLM)
 {
-  const int n1 = surf->numCoefs_u();
-  const int n2 = surf->numCoefs_v();
-  const int p1 = surf->order_u() - 1;
-  const int p2 = surf->order_v() - 1;
+  //! \brief Lamba for setting up thread groups for basis.
+  auto&& genThreadGroups = [strip1, strip2](ThreadGroups& tg,
+                                            const Go::SplineSurface* surf)
+  {
+    const int n1 = surf->numCoefs_u();
+    const int n2 = surf->numCoefs_v();
+    const int p1 = surf->order_u() - 1;
+    const int p2 = surf->order_v() - 1;
 
-  std::vector<bool> el1, el2;
-  el1.reserve(n1 - p1);
-  el2.reserve(n2 - p2);
+    std::vector<bool> el1, el2;
+    el1.reserve(n1 - p1);
+    el2.reserve(n2 - p2);
 
-  int ii;
-  for (ii = p1; ii < n1; ii++)
-    el1.push_back(surf->knotSpan(0,ii) > 0.0);
-  for (ii = p2; ii < n2; ii++)
-    el2.push_back(surf->knotSpan(1,ii) > 0.0);
+    int ii;
+    for (ii = p1; ii < n1; ii++)
+      el1.push_back(surf->knotSpan(0,ii) > 0.0);
+    for (ii = p2; ii < n2; ii++)
+      el2.push_back(surf->knotSpan(1,ii) > 0.0);
 
-  threadGroups.calcGroups(el1,el2,strip1,strip2);
+    tg.calcGroups(el1,el2,strip1,strip2);
+  };
+
+  genThreadGroups(threadGroups, surf.get());
+  genThreadGroups(projThreadGroups, this->getBasis(ASM::PROJECTION_BASIS));
+  if (this->getBasis(ASM::PROJECTION_BASIS_2))
+    genThreadGroups(proj2ThreadGroups, this->getBasis(ASM::PROJECTION_BASIS_2));
   if (silence || threadGroups.size() < 2) return;
 
   IFEM::cout <<"\nMultiple threads are utilized during element assembly.";

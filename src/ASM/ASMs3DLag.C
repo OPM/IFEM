@@ -1153,6 +1153,7 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 void ASMs3DLag::generateThreadGroups (const Integrand&, bool, bool)
 {
   threadGroupsVol.calcGroups((nx-1)/(p1-1),(ny-1)/(p2-1),(nz-1)/(p3-1),1);
+  projThreadGroups = threadGroupsVol;
 }
 
 

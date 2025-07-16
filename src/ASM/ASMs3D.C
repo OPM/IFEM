@@ -3454,9 +3454,21 @@ bool ASMs3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 void ASMs3D::generateThreadGroups (const Integrand& integrand, bool silence,
                                    bool ignoreGlobalLM)
 {
-  if (threadGroupsVol.stripDir == ThreadGroups::NONE)
+  if (threadGroupsVol.stripDir == ThreadGroups::NONE) {
     threadGroupsVol.oneGroup(nel);
-  else
+    projThreadGroups.oneGroup(nel);
+    if (this->getBasis(ASM::PROJECTION_BASIS_2)) {
+      const Go::SplineVolume* prj = this->getBasis(ASM::PROJECTION_BASIS_2);
+      const int n1 = prj->numCoefs(0);
+      const int n2 = prj->numCoefs(1);
+      const int n3 = prj->numCoefs(2);
+      const int p1 = prj->order(0);
+      const int p2 = prj->order(1);
+      const int p3 = prj->order(2);
+      const int nelp = (n1-p1+1)*(n2-p2+1)*(n3-p3+1);
+      proj2ThreadGroups.oneGroup(nelp);
+    }
+  } else
     this->generateThreadGroups(svol->order(0)-1, svol->order(1)-1,
                                svol->order(2)-1, silence, ignoreGlobalLM);
 }
@@ -3465,27 +3477,37 @@ void ASMs3D::generateThreadGroups (const Integrand& integrand, bool silence,
 void ASMs3D::generateThreadGroups (size_t strip1, size_t strip2, size_t strip3,
                                    bool silence, bool ignoreGlobalLM)
 {
-  const int p1 = svol->order(0) - 1;
-  const int p2 = svol->order(1) - 1;
-  const int p3 = svol->order(2) - 1;
-  const int n1 = svol->numCoefs(0);
-  const int n2 = svol->numCoefs(1);
-  const int n3 = svol->numCoefs(2);
+  //! \brief Lamda for setting up thread groups for a basis.
+  auto&& genThreadGroups = [strip1, strip2, strip3](ThreadGroups& tg,
+                                                    const Go::SplineVolume* svol)
+  {
+    const int p1 = svol->order(0) - 1;
+    const int p2 = svol->order(1) - 1;
+    const int p3 = svol->order(2) - 1;
+    const int n1 = svol->numCoefs(0);
+    const int n2 = svol->numCoefs(1);
+    const int n3 = svol->numCoefs(2);
 
-  std::vector<bool> el1, el2, el3;
-  el1.reserve(n1 - p1);
-  el2.reserve(n2 - p2);
-  el3.reserve(n3 - p3);
+    std::vector<bool> el1, el2, el3;
+    el1.reserve(n1 - p1);
+    el2.reserve(n2 - p2);
+    el3.reserve(n3 - p3);
 
-  int ii;
-  for (ii = p1; ii < n1; ii++)
-    el1.push_back(svol->knotSpan(0,ii) > 0.0);
-  for (ii = p2; ii < n2; ii++)
-    el2.push_back(svol->knotSpan(1,ii) > 0.0);
-  for (ii = p3; ii < n3; ii++)
-    el3.push_back(svol->knotSpan(2,ii) > 0.0);
+    int ii;
+    for (ii = p1; ii < n1; ii++)
+      el1.push_back(svol->knotSpan(0,ii) > 0.0);
+    for (ii = p2; ii < n2; ii++)
+      el2.push_back(svol->knotSpan(1,ii) > 0.0);
+    for (ii = p3; ii < n3; ii++)
+      el3.push_back(svol->knotSpan(2,ii) > 0.0);
 
-  threadGroupsVol.calcGroups(el1,el2,el3,strip1,strip2,strip3);
+    tg.calcGroups(el1,el2,el3,strip1,strip2,strip3);
+  };
+
+  genThreadGroups(threadGroupsVol, svol.get());
+  genThreadGroups(projThreadGroups, this->getBasis(ASM::PROJECTION_BASIS));
+  if (this->getBasis(ASM::PROJECTION_BASIS_2))
+    genThreadGroups(proj2ThreadGroups, this->getBasis(ASM::PROJECTION_BASIS_2));
   if (silence || threadGroupsVol.size() < 2) return;
 
   IFEM::cout <<"\nMultiple threads are utilized during element assembly.";
