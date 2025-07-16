@@ -15,6 +15,7 @@
 #define _ASM_STRUCT_H
 
 #include "ASMbase.h"
+#include "ThreadGroups.h"
 
 #include <memory>
 
@@ -115,6 +116,9 @@ protected:
   std::shared_ptr<Go::GeomObject> geomB; //!< Pointer to spline object of the geometry basis
   std::shared_ptr<Go::GeomObject> projB; //!< Pointer to spline object of the projection basis
   std::shared_ptr<Go::GeomObject> projB2; //!< Pointer to spline object of the secondary projection basis
+
+  ThreadGroups projThreadGroups; //!< Element groups for multi-threaded assembly - projection basis
+  ThreadGroups proj2ThreadGroups; //!< Element groups for multi-threaded assembly - second projection basis
 };
 
 #endif
