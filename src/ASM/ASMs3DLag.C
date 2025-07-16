@@ -1384,19 +1384,30 @@ bool ASMs3DLag::assembleL2matrices (SystemMatrix& A, SystemVector& B,
   const std::array<const double*,3>& wg = cache.weight();
   const std::array<int,3> nGP = cache.nGauss();
 
-  Matrix dNdX, Xnod, J;
+  const IntMat gmnpc = this->getElmNodes(ASM::PROJECTION_BASIS);
+  A.preAssemble(gmnpc, gmnpc.size());
 
   const size_t nnod = this->getNoProjectionNodes();
 
-  // === Assembly loop over all elements in the patch ==========================
+  const int nel1 = (nx-1)/(p1-1);
+  const int nel2 = (ny-1)/(p2-1);
 
-  int iel = 0;
-  for (size_t i3 = 0; i3 < cache.noElms()[2]; ++i3)
-    for (size_t i2 = 0; i2 < cache.noElms()[1]; ++i2)
-      for (size_t i1 = 0; i1 < cache.noElms()[0]; ++i1, ++iel)
-      {
-        if (!this->getElementCoordinates(Xnod,1+iel))
-          return false;
+  // === Assembly loop over all elements in the patch ==========================
+  bool ok = true;
+  for (size_t g = 0; g < projThreadGroups.size() && ok; g++)
+#pragma omp parallel for schedule(static)
+    for (const IntVec& group : projThreadGroups[g])
+    {
+      Matrix dNdX, Xnod, J;
+      for (int iel : group) {
+        if (!this->getElementCoordinates(Xnod,1+iel)) {
+          ok = false;
+          continue;
+        }
+
+        int i1 = nel1*nel2 > 0 ?  iel % nel1         : 0;
+        int i2 = nel1*nel2 > 0 ? (iel / nel1) % nel2 : 0;
+        int i3 = nel1*nel2 > 0 ?  iel / (nel1*nel2)  : 0;
 
         std::array<RealArray,3> GP;
         GP[0].reserve(nGP[0]*nGP[1]*nGP[2]);
@@ -1434,12 +1445,13 @@ bool ASMs3DLag::assembleL2matrices (SystemMatrix& A, SystemVector& B,
                 eB[r-1].add(bfs.N,sField(r,ip+1)*dJw);
             }
 
-        const IntVec& mnpc = MNPC[iel];
+        const IntVec& mnpc = gmnpc[iel];
         A.assemble(eA, mnpc);
         B.assemble(eB, mnpc, nnod);
       }
+    }
 
-  return true;
+  return ok;
 }
 
 
