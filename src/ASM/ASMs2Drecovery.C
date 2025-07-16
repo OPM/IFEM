@@ -169,7 +169,6 @@ bool ASMs2D::assembleL2matrices (SystemMatrix& A, SystemVector& B,
   const int p2 = proj->order_v();
   const int n1 = proj->numCoefs_u();
   int nel1 = proj->numCoefs_u() - p1 + 1;
-  int nel2 = proj->numCoefs_v() - p2 + 1;
 
   const int pmax = p1 > p2 ? p1 : p2;
 
@@ -205,91 +204,89 @@ bool ASMs2D::assembleL2matrices (SystemMatrix& A, SystemVector& B,
     return false;
   }
 
-  double dA = 1.0;
-  Vector phi(p1*p2);
-  Matrix dNdu, Xnod, J;
-
+  const IntMat gmnpc = this->getElmNodes(ASM::PROJECTION_BASIS);
+  A.preAssemble(gmnpc, gmnpc.size());
 
   // === Assembly loop over all elements in the patch ==========================
 
-  int iel = 0;
-  for (int i2 = 0; i2 < nel2; i2++)
-    for (int i1 = 0; i1 < nel1; i1++, iel++)
+  bool ok = true;
+  for (size_t g = 0; g < projThreadGroups.size() && ok; g++)
+#pragma omp parallel for schedule(static)
+    for (size_t t = 0; t < projThreadGroups[g].size(); t++)
     {
-      int ip = (i2*ng1*nel1 + i1)*ng2;
-      IntVec lmnpc;
-      if (!singleBasis && proj->knotSpan(0,i1+p1-1) > 0.0
-                       && proj->knotSpan(1,i2+p2-1) > 0.0)
+      double dA = 1.0;
+      Vector phi(p1*p2);
+      Matrix dNdu, Xnod, J;
+      for (int iel : projThreadGroups[g][t])
       {
-        // Establish nodal point correspondance for the projection element
-        int vidx;
-        lmnpc.reserve(phi.size());
-        if (separateProjBasis)
-          vidx = (spl1[ip].left_idx[1]-p1+1)*n1 + (spl1[ip].left_idx[0]-p1+1);
-        else
-          vidx = (spl2[ip].left_idx[1]-p1+1)*n1 + (spl2[ip].left_idx[0]-p1+1);
-        for (int j = 0; j < p2; j++, vidx += n1)
-          for (int i = 0; i < p1; i++)
-            lmnpc.push_back(vidx+i);
-      }
-      const IntVec& mnpc = singleBasis ? MNPC[iel] : lmnpc;
-      if (mnpc.empty())
-        continue;
+        int i1 = iel % nel1;
+        int i2 = iel / nel1;
+        int ip = (i2*ng1*nel1 + i1)*ng2;
+        const IntVec& mnpc = gmnpc[iel];
+        if (mnpc.empty())
+          continue;
 
-      if (continuous)
-      {
-        // Set up control point (nodal) coordinates for current element
-        if (singleBasis)
+        if (continuous)
         {
-          if (!this->getElementCoordinates(Xnod,1+iel))
-            return false;
-          else if ((dA = this->getParametricArea(1+iel)) < 0.0)
-            return false; // topology error (probably logic error)
-        }
-        else
-        {
-          if (!this->getElementCoordinatesPrm(Xnod,gpar[0][i1*ng1],gpar[1][i2*ng2]))
-            return false;
-          else if ((dA = 0.25 * proj->knotSpan(0,mnpc.back() % n1)
-                              * proj->knotSpan(1,mnpc.back() / n1)) < 0.0)
-            return false; // topology error (probably logic error)
-        }
-      }
-
-      // --- Integration loop over all Gauss points in each direction ----------
-
-      Matrix eA(p1*p2, p1*p2);
-      Vectors eB(sField.rows(), Vector(p1*p2));
-      for (int j = 0; j < ng2; j++, ip += ng1*(nel1-1))
-        for (int i = 0; i < ng1; i++, ip++)
-        {
-          if (continuous)
-            SplineUtils::extractBasis(spl2[ip],phi,dNdu);
-
-          if (!continuous || separateProjBasis)
-            phi = spl1[ip].basisValues;
-
-          // Compute the Jacobian inverse and derivatives
-          double dJw = 1.0;
-          if (continuous)
+          // Set up control point (nodal) coordinates for current element
+          if (singleBasis)
           {
-            dJw = dA*wg[i]*wg[j]*utl::Jacobian(J,dNdu,Xnod,dNdu,false);
-            if (dJw == 0.0) continue; // skip singular points
+            if (!this->getElementCoordinates(Xnod,1+iel)) {
+              ok = false;
+              continue;
+            } else if ((dA = this->getParametricArea(1+iel)) < 0.0) {
+              ok = false;
+              continue;
+            }
+          }
+          else
+          {
+            if (!this->getElementCoordinatesPrm(Xnod,gpar[0][i1*ng1],gpar[1][i2*ng2])) {
+              ok = false;
+              continue;
+            } else if ((dA = 0.25 * proj->knotSpan(0,mnpc.back() % n1)
+                                  * proj->knotSpan(1,mnpc.back() / n1)) < 0.0) {
+              ok = false;
+              continue; // topology error (probably logic error)
+            }
+          }
+        }
+
+        // --- Integration loop over all Gauss points in each direction ----------
+
+        Matrix eA(p1*p2, p1*p2);
+        Vectors eB(sField.rows(), Vector(p1*p2));
+        for (int j = 0; j < ng2; j++, ip += ng1*(nel1-1))
+          for (int i = 0; i < ng1; i++, ip++)
+          {
+            if (continuous)
+              SplineUtils::extractBasis(spl2[ip],phi,dNdu);
+
+            if (!continuous || separateProjBasis)
+              phi = spl1[ip].basisValues;
+
+            // Compute the Jacobian inverse and derivatives
+            double dJw = 1.0;
+            if (continuous)
+            {
+              dJw = dA*wg[i]*wg[j]*utl::Jacobian(J,dNdu,Xnod,dNdu,false);
+              if (dJw == 0.0) continue; // skip singular points
+            }
+
+            // Integrate the mass matrix
+            eA.outer_product(phi, phi, true, dJw);
+
+            // Integrate the rhs vector B
+            for (size_t r = 1; r <= sField.rows(); r++)
+              eB[r-1].add(phi,sField(r,ip+1)*dJw);
           }
 
-          // Integrate the mass matrix
-          eA.outer_product(phi, phi, true, dJw);
-
-          // Integrate the rhs vector B
-          for (size_t r = 1; r <= sField.rows(); r++)
-            eB[r-1].add(phi,sField(r,ip+1)*dJw);
-        }
-
-      A.assemble(eA, mnpc);
-      B.assemble(eB, mnpc, nnod);
+        A.assemble(eA, mnpc);
+        B.assemble(eB, mnpc, nnod);
+      }
     }
 
-  return true;
+  return ok;
 }
 
 
