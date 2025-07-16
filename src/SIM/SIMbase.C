@@ -136,7 +136,7 @@ void SIMbase::clearProperties ()
   myInts.clear();
   extrFunc.clear();
   extraMADOFs.clear();
-  adm.dd.setElms({},"");
+  adm.dd.clear();
 }
 
 
