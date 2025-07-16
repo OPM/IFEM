@@ -177,6 +177,8 @@ bool ASMstruct::diracPoint (Integrand& integr, GlobalIntegral& glInt,
 
 void ASMstruct::swapProjectionBasis ()
 {
-  if (projB2)
+  if (projB2) {
     std::swap(projB, projB2);
+    std::swap(projThreadGroups, proj2ThreadGroups);
+  }
 }
