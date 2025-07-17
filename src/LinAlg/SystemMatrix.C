@@ -60,6 +60,18 @@ SystemVector& SystemVector::copy (const SystemVector& x)
 }
 
 
+void StdVector::assemble (const Vectors& vecs,
+                          const std::vector<int>& meqn,
+                          const int nnod)
+{
+  for (size_t i = 0; i < vecs[0].size(); ++i) {
+    int jp = meqn[i]+1;
+    for (size_t r = 0; r < vecs.size(); r++, jp += nnod)
+      (*this)(jp) += vecs[r](1+i);
+  }
+}
+
+
 void StdVector::dump (const utl::vector<Real>& x, const char* label,
                       LinAlg::StorageFormat format, std::ostream& os)
 {

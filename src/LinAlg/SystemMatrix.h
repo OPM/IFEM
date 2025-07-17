@@ -69,6 +69,14 @@ public:
   //! \brief Copies entries from input vector \b x into \a *this.
   SystemVector& copy(const SystemVector& x);
 
+  //! \brief Adds element vectors into the system vector.
+  //! \param[in] vecs The element vectors
+  //! \param[in] meqn Matrix of element equation numbers
+  //! \param[in] nnod Number of nodes for (each) load vector
+  //! \details This assembles for multiple RHS
+  virtual void assemble(const Vectors& vecs,
+                        const std::vector<int>& meqn, int nnod) = 0;
+
   //! \brief Finalizes the system vector assembly.
   virtual bool endAssembly() { return true; }
 
@@ -122,6 +130,15 @@ public:
 
   //! \brief Creates a copy of the system vector and returns a pointer to it.
   virtual SystemVector* copy() const { return new StdVector(*this); }
+
+  //! \brief Adds element vectors into the system vector.
+  //! \param[in] vecs The element vectors
+  //! \param[in] meqn Matrix of element equation numbers
+  //! \param[in] nnod Number of nodes for (each) load vector
+  //! \details This assembles for multiple RHS
+  virtual void assemble(const Vectors& vecs,
+                        const std::vector<int>& meqn,
+                        int nnod);
 
   //! \brief Returns the dimension of the system vector.
   virtual size_t dim() const { return this->size(); }
@@ -244,6 +261,13 @@ public:
   //! \brief Flags the non-zero equations from \a B as non-zero pivots in this.
   bool flagNonZeroEqs(const SystemMatrix& B);
 
+  //! \brief Initializes the element sparsity pattern based on node connections.
+  //! \param[in] MMNPC Matrix of matrices of nodal point correspondances
+  //! \param[in] nel Number of elements
+  virtual void preAssemble(const std::vector<std::vector<int>>& MMNPC,
+                           size_t nel)
+  {}
+
   //! \brief Finalizes the system matrix assembly.
   virtual bool endAssembly();
 
@@ -275,6 +299,13 @@ public:
   //! these are also added into the system right-hand-side vector, \a B.
   virtual bool assemble(const Matrix& eM, const SAM& sam,
                         SystemVector& B, const std::vector<int>& meq) = 0;
+
+  //! \brief Adds an element matrix into the associated system matrix.
+  //! \param[in] eM  The element matrix
+  //! \param[in] meq Matrix of element equation numbers
+  //! \return \e true on successful assembly, otherwise \e false
+  //! \details To be used when there is no underlying SAM
+  virtual bool assemble(const Matrix& eM, const std::vector<int>& meq) = 0;
 
   //! \brief Augments a similar matrix symmetrically to the current matrix.
   virtual bool augment(const SystemMatrix&, size_t, size_t) { return false; }

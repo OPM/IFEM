@@ -104,7 +104,7 @@ LR::LRSpline* ASMu3D::evalSolution (const IntegrandBase& integrand) const
 }
 
 
-bool ASMu3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
+bool ASMu3D::assembleL2matrices (SystemMatrix& A, SystemVector& B,
                                  const L2Integrand& integrand,
                                  bool continuous) const
 {
@@ -113,8 +113,6 @@ bool ASMu3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
   const LR::LRSplineVolume* geo = this->getBasis(ASM::GEOMETRY_BASIS);
   const LR::LRSplineVolume* proj = this->getBasis(ASM::PROJECTION_BASIS);
   const bool separateProjBasis = proj != geo;
-  const bool useModelMNPC = !separateProjBasis && this->getNoBasis() == 1 &&
-                            this->getNoNodes(0) == this->getNoNodes(1);
 
   const int p1 = proj->order(0);
   const int p2 = proj->order(1);
@@ -132,31 +130,20 @@ bool ASMu3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
   if (!xg || !yg || !zg) return false;
   if (continuous && !wg) return false;
 
-  IntMat lmnpc;
-  if (!useModelMNPC) {
-    lmnpc.resize(proj->nElements());
-    for (const LR::Element* elm : proj->getAllElements()) {
-      lmnpc[elm->getId()].reserve(elm->nBasisFunctions());
-      for (const LR::Basisfunction* f : elm->support())
-        lmnpc[elm->getId()].push_back(f->getId());
-    }
-  }
-  const IntMat& gmnpc = useModelMNPC ? MNPC : lmnpc;
+  const IntMat gmnpc = this->getElmNodes(ASM::PROJECTION_BASIS);
   A.preAssemble(gmnpc, gmnpc.size());
 
   // === Assembly loop over all elements in the patch ==========================
   bool ok = true;
-  const IntMat& group = projThreadGroups.empty() ? threadGroups[0] : projThreadGroups[0];
-  for (size_t t = 0; t < group.size() && ok; t++)
+  for (size_t t = 0; t < projThreadGroups[0].size() && ok; t++)
 #pragma omp parallel for schedule(static)
-    for (size_t e = 0; e < group[t].size(); e++)
+    for (int ielp : projThreadGroups[0][t])
     {
       double dV = 0.0;
       Vector phi;
       Matrix dNdu, Xnod, Jac;
       Go::BasisPts    spl1;
       Go::BasisDerivs spl2;
-      int ielp = group[t][e];
       const LR::Element* elm = proj->getElement(ielp);
       int iel = lrspline->getElementContaining(elm->midpoint()) + 1;
       int ielG = geo->getElementContaining(elm->midpoint()) + 1;
@@ -189,7 +176,6 @@ bool ASMu3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
 
       // Set up basis function size (for extractBasis subroutine)
       size_t nbf = elm->nBasisFunctions();
-      const IntVec& mnpc = useModelMNPC ? gmnpc[iel-1] : gmnpc[ielp];
 
       // --- Integration loop over all Gauss points in each direction ------------
 
@@ -228,14 +214,8 @@ bool ASMu3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
               eB[r-1].add(phi,sField(r,ip+1)*dJw);
           }
 
-      for (size_t i = 0; i < eA.rows(); ++i) {
-        for (size_t j = 0; j < eA.cols(); ++j)
-          A(mnpc[i]+1, mnpc[j]+1) += eA(i+1,j+1);
-
-        int jp = mnpc[i]+1;
-        for (size_t r = 0; r < sField.rows(); r++, jp += nnod)
-          B(jp) += eB[r](1+i);
-      }
+      A.assemble(eA, gmnpc[ielp]);
+      B.assemble(eB, gmnpc[ielp], nnod);
     }
 
   return true;

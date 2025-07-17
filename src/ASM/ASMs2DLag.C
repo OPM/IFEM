@@ -27,6 +27,7 @@
 #include "ElementBlock.h"
 #include "Utilities.h"
 #include <array>
+#include <numeric>
 
 
 ASMs2DLag::ASMs2DLag (unsigned char n_s, unsigned char n_f) : ASMs2D(n_s,n_f)
@@ -176,30 +177,12 @@ bool ASMs2DLag::generateFEMTopology ()
 
   // Number of elements in patch
   nel = nelx*nely;
-  // Number of nodes per element
-  const int nen = p1*p2;
 
   // Connectivity array: local --> global node relation
   myMLGE.resize(nel);
-  myMNPC.resize(nel);
-
-  int i, j, a, b, iel = 0;
-  for (j = 0; j < nely; j++)
-    for (i = 0; i < nelx; i++, iel++)
-    {
-      myMLGE[iel] = ++gEl;
-      myMNPC[iel].resize(nen);
-      // First node in current element
-      int corner = (p2-1)*nx*j + (p1-1)*i;
-
-      for (b = 0; b < p2; b++)
-      {
-        int facenod = b*p1;
-        myMNPC[iel][facenod] = corner + b*nx;
-        for (a = 1; a < p1; a++)
-          myMNPC[iel][facenod+a] = myMNPC[iel][facenod] + a;
-      }
-    }
+  std::iota(myMLGE.begin(), myMLGE.end(), gEl+1);
+  gEl += myMLGE.size();
+  myMNPC = this->getElmNodes(1);
 
   return true;
 }
@@ -897,6 +880,41 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 void ASMs2DLag::generateThreadGroups (const Integrand&, bool, bool)
 {
   threadGroups.calcGroups((nx-1)/(p1-1),(ny-1)/(p2-1),1);
+  projThreadGroups = threadGroups;
+}
+
+
+IntMat ASMs2DLag::getElmNodes (int basis) const
+{
+  IntMat result;
+  result.resize(nel);
+
+  const Go::SplineSurface* srf = this->getBasis(basis);
+
+  // Order of basis in the two parametric directions (order = degree + 1)
+  const int p1 = srf->order_u();
+  const int p2 = srf->order_v();
+  const int nelx = (nx-1) / (p1-1);
+  const int nely = (ny-1) / (p2-1);
+
+  int iel = 0;
+  for (int j = 0; j < nely; j++)
+    for (int i = 0; i < nelx; i++, iel++)
+    {
+      result[iel].resize(p1*p2);
+      // First node in current element
+      int corner = (p2-1)*nx*j + (p1-1)*i;
+
+      for (int b = 0; b < p2; b++)
+      {
+        int facenod = b*p1;
+        result[iel][facenod] = corner + b*nx;
+        for (int a = 1; a < p1; a++)
+          result[iel][facenod+a] = result[iel][facenod] + a;
+      }
+    }
+
+  return result;
 }
 
 
@@ -936,10 +954,11 @@ int ASMs2DLag::findElement (double u, double v, double* xi, double* eta) const
     return -1;
   }
 
-  int ku = surf->basis(0).knotInterval(u);
-  int kv = surf->basis(1).knotInterval(v);
-  int elmx = ku - (p1 - 1);
-  int elmy = kv - (p2 - 1);
+  const int ku = surf->basis(0).knotInterval(u);
+  const int kv = surf->basis(1).knotInterval(v);
+
+  const int elmx = ku - (p1 - 1);
+  const int elmy = kv - (p2 - 1);
 
   if (xi) {
     const double knot_1 = *(surf->basis(0).begin() + ku);
@@ -989,7 +1008,7 @@ size_t ASMs2DLag::getNoProjectionNodes () const
 }
 
 
-bool ASMs2DLag::assembleL2matrices (SparseMatrix& A, StdVector& B,
+bool ASMs2DLag::assembleL2matrices (SystemMatrix& A, SystemVector& B,
                                     const L2Integrand& integrand,
                                     bool continuous) const
 {
@@ -999,63 +1018,69 @@ bool ASMs2DLag::assembleL2matrices (SparseMatrix& A, StdVector& B,
   const std::array<const double*,2>& wg = cache.weight();
   const std::array<int,2> nGP = cache.nGauss();
 
-  Matrix dNdX, Xnod, J;
+  const IntMat gmnpc = this->getElmNodes(ASM::PROJECTION_BASIS);
+  A.preAssemble(gmnpc, gmnpc.size());
+
+  const Go::SplineSurface* srf = this->getBasis(ASM::PROJECTION_BASIS);
+  const int p1 = srf->order_u();
+  const int p2 = srf->order_v();
+  const int nelx = (nx-1) / (p1-1);
 
   const size_t nnod = this->getNoProjectionNodes();
 
   // === Assembly loop over all elements in the patch ==========================
-
-  int iel = 0;
-  for (size_t i2 = 0; i2 < cache.noElms()[1]; ++i2)
-    for (size_t i1 = 0; i1 < cache.noElms()[0]; ++i1, ++iel)
+  bool ok = true;
+  for (size_t g = 0; g < projThreadGroups.size() && ok; g++)
+#pragma omp parallel for schedule(static)
+    for (const IntVec& group : projThreadGroups[g])
     {
-      if (!this->getElementCoordinates(Xnod,1+iel))
-        return false;
-
-      std::array<RealArray,2> GP;
-      GP[0].reserve(nGP[0]*nGP[1]);
-      GP[1].reserve(nGP[0]*nGP[1]);
-      for (int j = 0; j < nGP[1]; ++j)
-        for (int i = 0; i < nGP[0]; ++i) {
-          GP[0].push_back(cache.getParam(0, i1, i));
-          GP[1].push_back(cache.getParam(1, i2, j));
+      Matrix dNdX, Xnod, J;
+      for (int iel : group) {
+        if (!this->getElementCoordinates(Xnod,1+iel)) {
+          ok = false;
+          continue;
         }
 
-      Matrix sField;
-      integrand.evaluate(sField, GP.data());
+        const int i1 = nelx > 0 ? iel % nelx : 0;
+        const int i2 = nelx > 0 ? iel / nelx : 0;
+        std::array<RealArray,2> GP;
+        GP[0].reserve(nGP[0]*nGP[1]);
+        GP[1].reserve(nGP[0]*nGP[1]);
+        for (int j = 0; j < nGP[1]; ++j)
+          for (int i = 0; i < nGP[0]; ++i) {
+            GP[0].push_back(cache.getParam(0, i1, i));
+            GP[1].push_back(cache.getParam(1, i2, j));
+          }
 
-      // --- Integration loop over all Gauss points in each direction ----------
+        Matrix sField;
+        integrand.evaluate(sField, GP.data());
 
-      Matrix eA(p1*p2, p1*p2);
-      Vectors eB(sField.rows(), Vector(p1*p2));
-      size_t ip = 0;
-      for (int j = 0; j < nGP[1]; ++j)
-        for (int i = 0; i < nGP[0]; ++i, ++ip) {
-          const BasisFunctionVals& bfs = cache.getVals(iel,ip);
+        // --- Integration loop over all Gauss points in each direction ----------
 
-          double dJw = wg[0][i]*wg[1][j]*utl::Jacobian(J,dNdX,Xnod,bfs.dNdu);
+        Matrix eA(p1*p2, p1*p2);
+        Vectors eB(sField.rows(), Vector(p1*p2));
+        size_t ip = 0;
+        for (int j = 0; j < nGP[1]; ++j)
+          for (int i = 0; i < nGP[0]; ++i, ++ip) {
+            const BasisFunctionVals& bfs = cache.getVals(iel,ip);
 
-          // Integrate the mass matrix
-          eA.outer_product(bfs.N, bfs.N, true, dJw);
+            double dJw = wg[0][i]*wg[1][j]*utl::Jacobian(J,dNdX,Xnod,bfs.dNdu);
 
-          // Integrate the rhs vector B
-          for (size_t r = 1; r <= sField.rows(); r++)
-            eB[r-1].add(bfs.N,sField(r,ip+1)*dJw);
-        }
+            // Integrate the mass matrix
+            eA.outer_product(bfs.N, bfs.N, true, dJw);
 
-      const IntVec& mnpc = MNPC[iel];
+            // Integrate the rhs vector B
+            for (size_t r = 1; r <= sField.rows(); r++)
+              eB[r-1].add(bfs.N,sField(r,ip+1)*dJw);
+          }
 
-      for (int i = 0; i < p1*p2; ++i) {
-        for (int j = 0; j < p1*p2; ++j)
-          A(mnpc[i]+1, mnpc[j]+1) += eA(i+1, j+1);
-
-        int jp = mnpc[i]+1;
-        for (size_t r = 0; r < sField.rows(); r++, jp += nnod)
-          B(jp) += eB[r](1+i);
+        const IntVec& mnpc = gmnpc[iel];
+        A.assemble(eA, mnpc);
+        B.assemble(eB, mnpc, nnod);
       }
     }
 
-  return true;
+  return ok;
 }
 
 

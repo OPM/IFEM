@@ -41,6 +41,34 @@
 #include <utility>
 
 
+namespace {
+
+//! \brief Static helper for setting up thread groups for basis.
+void genThreadGroups (ThreadGroups& tg,
+                      size_t strip1, size_t strip2,
+                      const Go::SplineSurface* surf)
+{
+  const int n1 = surf->numCoefs_u();
+  const int n2 = surf->numCoefs_v();
+  const int p1 = surf->order_u() - 1;
+  const int p2 = surf->order_v() - 1;
+
+  std::vector<bool> el1, el2;
+  el1.reserve(n1 - p1);
+  el2.reserve(n2 - p2);
+
+  int ii;
+  for (ii = p1; ii < n1; ii++)
+    el1.push_back(surf->knotSpan(0,ii) > 0.0);
+  for (ii = p2; ii < n2; ii++)
+    el2.push_back(surf->knotSpan(1,ii) > 0.0);
+
+  tg.calcGroups(el1,el2,strip1,strip2);
+}
+
+}
+
+
 ASMs2D::ASMs2D (unsigned char n_s, unsigned char n_f)
   : ASMstruct(2,n_s,n_f), nodeInd(myNodeInd)
 {
@@ -537,7 +565,7 @@ bool ASMs2D::generateFEMTopology ()
 
   myMLGE.resize((n1-p1+1)*(n2-p2+1),0);
   myMLGN.resize(n1*n2);
-  myMNPC.resize(myMLGE.size());
+  myMNPC = this->getElmNodes(1);
   myNodeInd.resize(myMLGN.size());
 
   nnod = nel = 0;
@@ -550,15 +578,7 @@ bool ASMs2D::generateFEMTopology ()
       {
         if (surf->knotSpan(0,i1-1) > 0.0)
           if (surf->knotSpan(1,i2-1) > 0.0)
-          {
             myMLGE[nel] = ++gEl; // global element number over all patches
-            myMNPC[nel].resize(p1*p2,0);
-
-            int lnod = 0;
-            for (int j2 = p2-1; j2 >= 0; j2--)
-              for (int j1 = p1-1; j1 >= 0; j1--)
-                myMNPC[nel][lnod++] = nnod - n1*j2 - j1;
-          }
 
         nel++;
       }
@@ -3020,33 +3040,30 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 void ASMs2D::generateThreadGroups (const Integrand& integrand, bool silence,
                                    bool ignoreGlobalLM)
 {
-  if (threadGroups.stripDir == ThreadGroups::NONE)
+  if (threadGroups.stripDir == ThreadGroups::NONE) {
     threadGroups.oneGroup(nel);
-  else
+    projThreadGroups.oneGroup(nel);
+    if (this->getBasis(ASM::PROJECTION_BASIS_2)) {
+      const Go::SplineSurface* prj = this->getBasis(ASM::PROJECTION_BASIS_2);
+      const int n1 = prj->numCoefs_u();
+      const int n2 = prj->numCoefs_v();
+      const int p1 = prj->order_u();
+      const int p2 = prj->order_v();
+      const int nelp = (n1-p1+1)*(n2-p2+1);
+      proj2ThreadGroups.oneGroup(nelp);
+    }
+  } else
     this->generateThreadGroups(surf->order_u()-1, surf->order_v()-1,
                                silence, ignoreGlobalLM);
 }
 
-
 void ASMs2D::generateThreadGroups (size_t strip1, size_t strip2,
                                    bool silence, bool ignoreGlobalLM)
 {
-  const int n1 = surf->numCoefs_u();
-  const int n2 = surf->numCoefs_v();
-  const int p1 = surf->order_u() - 1;
-  const int p2 = surf->order_v() - 1;
-
-  std::vector<bool> el1, el2;
-  el1.reserve(n1 - p1);
-  el2.reserve(n2 - p2);
-
-  int ii;
-  for (ii = p1; ii < n1; ii++)
-    el1.push_back(surf->knotSpan(0,ii) > 0.0);
-  for (ii = p2; ii < n2; ii++)
-    el2.push_back(surf->knotSpan(1,ii) > 0.0);
-
-  threadGroups.calcGroups(el1,el2,strip1,strip2);
+  genThreadGroups(threadGroups, strip1, strip2, surf.get());
+  genThreadGroups(projThreadGroups, strip1, strip2, this->getBasis(ASM::PROJECTION_BASIS));
+  if (this->getBasis(ASM::PROJECTION_BASIS_2))
+    genThreadGroups(proj2ThreadGroups, strip1, strip2, this->getBasis(ASM::PROJECTION_BASIS_2));
   if (silence || threadGroups.size() < 2) return;
 
   IFEM::cout <<"\nMultiple threads are utilized during element assembly.";
@@ -3256,6 +3273,34 @@ void ASMs2D::getElmConnectivities (IntMat& neigh, bool local) const
         if (i2 < n2)
           neigh[idx][3] = index(iel+N1);
       }
+}
+
+
+IntMat ASMs2D::getElmNodes (int basis) const
+{
+  int iel = 0;
+  const Go::SplineSurface* srf = this->getBasis(basis);
+  const int p1 = srf->order_u();
+  const int p2 = srf->order_v();
+  const int n1 = srf->numCoefs_u();
+  int nel1 = srf->numCoefs_u() - p1 + 1;
+  int nel2 = srf->numCoefs_v() - p2 + 1;
+
+  IntMat result;
+  result.resize(nel1*nel2);
+  for (int i2 = 0; i2 < nel2; i2++)
+    for (int i1 = 0; i1 < nel1; i1++, iel++)
+      if (srf->knotSpan(0,i1+p1-1) > 0.0 && srf->knotSpan(1,i2+p2-1) > 0.0)
+      {
+        // Establish nodal point correspondance for the projection element
+        result[iel].reserve(p1*p2);
+        int vidx = i2 * n1 + i1;
+        for (int j = 0; j < p2; j++, vidx += n1)
+          for (int i = 0; i < p1; i++)
+            result[iel].push_back(vidx+i);
+      }
+
+  return result;
 }
 
 
