@@ -917,13 +917,14 @@ bool DomainDecomposition::calcGlobalEqNumbers (const ProcessAdm& adm,
 }
 
 
-bool DomainDecomposition::calcGlobalEqNumbersPart(const ProcessAdm& adm,
-                                                  const SIMbase& sim)
+template<class Callback>
+bool DomainDecomposition::calcGlobalEqNumbersPart (const ProcessAdm& adm,
+                                                   const Callback& cb)
 {
 #ifdef HAVE_MPI
   for (size_t b = 0; b < blocks.size(); ++b) {
     blocks[b].MLGEQ.clear();
-    blocks[b].MLGEQ.resize(sim.getSAM()->getNoEquations(), -1);
+    blocks[b].MLGEQ.resize(cb.getNoEquations(), -1);
 
     blocks[b].minEq = 1;
     blocks[b].maxEq = 0;
@@ -932,13 +933,13 @@ bool DomainDecomposition::calcGlobalEqNumbersPart(const ProcessAdm& adm,
       adm.receive(blocks[b].MLGEQ, adm.getProcId()-1);
       adm.receive(blocks[b].minEq, adm.getProcId()-1);
       blocks[b].maxEq = blocks[b].minEq;
-      blocks[b].minEq++;
+      ++blocks[b].minEq;
     }
   }
 
   for (size_t i = 0; i < myElms.size(); ++i) {
     IntVec meen;
-    sim.getSAM()->getElmEqns(meen, myElms[i]+1);
+    cb.getElmEqns(meen, myElms[i]+1);
     for (int eq : meen) {
       for (size_t b = 0; b < blocks.size(); ++b) {
         int beq = eq;
@@ -1183,7 +1184,7 @@ bool DomainDecomposition::setup (const ProcessAdm& adm, const SIMbase& sim)
 
   // Establish global equation numbers for all blocks.
   if (!myElms.empty()) {
-    if (!calcGlobalEqNumbersPart(adm, sim))
+    if (!calcGlobalEqNumbersPart(adm, *sim.getSAM()))
       return false;
   } else if (!calcGlobalEqNumbers(adm, sim))
 #ifdef HAVE_MPI
