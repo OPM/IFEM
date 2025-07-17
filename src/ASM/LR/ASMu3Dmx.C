@@ -310,8 +310,8 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
                           GlobalIntegral& glInt,
                           const TimeDomain& time)
 {
-  if (m_basis.empty())
-    return true; // silently ignore empty patches
+  if (m_basis.empty()) return true; // silently ignore empty patches
+  if (!myElms.empty() && myElms.front() == -1) return true;
 
   PROFILE2("ASMu3Dmx::integrate(I)");
 
@@ -515,8 +515,8 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
                           GlobalIntegral& glInt,
                           const TimeDomain& time)
 {
-  if (m_basis.empty())
-    return true; // silently ignore empty patches
+  if (m_basis.empty()) return true; // silently ignore empty patches
+  if (!myElms.empty() && myElms.front() == -1) return true;
 
   PROFILE2("ASMu3Dmx::integrate(B)");
 
