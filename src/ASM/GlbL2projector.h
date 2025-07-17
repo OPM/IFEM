@@ -40,7 +40,9 @@ class L2Integrand
 public:
   //! \brief The constructor initializes the patch reference.
   //! \param[in] patch ASM holding geometry to evaluate on
-  L2Integrand(const ASMbase& patch) : m_patch(patch) {}
+  //! \param[in] adm Process administrator
+  L2Integrand(const ASMbase& patch, const ProcessAdm& adm)
+    : m_patch(patch), m_adm(adm) {}
 
   //! \brief Evaluates the entity in a set of points.
   //! \param[out] sField Matrix with results
@@ -50,8 +52,12 @@ public:
   //! \brief Returns dimension of entity to evaluate.
   virtual size_t dim() const = 0;
 
+  //! \brief Returns a const-ref to associated process administrator.
+  const ProcessAdm& getAdm() const { return m_adm; }
+
 protected:
   const ASMbase& m_patch; //!< Reference to ASM holding geometry
+  const ProcessAdm& m_adm; //!< Reference to process administrator
 };
 
 
@@ -65,7 +71,10 @@ public:
   //! \brief The constructor initializes the integrand reference.
   //! \param[in] patch ASM holding geometry to evaluate on
   //! \param[in] itg Integrand to evaluate
-  L2ProbIntegrand(const ASMbase& patch, const IntegrandBase& itg);
+  //! \param[in] adm Process administrator
+  L2ProbIntegrand(const ASMbase& patch,
+                  const IntegrandBase& itg,
+                  const ProcessAdm& adm);
 
   //! \brief Evaluates the secondary solutions in a set of points.
   //! \param[out] sField Matrix with results
@@ -90,7 +99,10 @@ public:
   //! \brief The constructor initializes the function reference.
   //! \param[in] patch ASM holding geometry to evaluate on
   //! \param[in] func Function to evaluate
-  L2FuncIntegrand(const ASMbase& patch, const FunctionBase& func);
+  //! \param[in] adm Process administrator
+  L2FuncIntegrand(const ASMbase& patch,
+                  const FunctionBase& func,
+                  const ProcessAdm& adm);
 
   //! \brief Evaluates the function in a set of points.
   //! \param[out] sField Matrix with results
