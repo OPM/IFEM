@@ -90,8 +90,10 @@ static const RealArray* expandTensorGrid3 (const RealArray* in, RealArray* out)
 }
 
 
-L2ProbIntegrand::L2ProbIntegrand (const ASMbase& patch, const IntegrandBase& itg) :
-  L2Integrand(patch), m_itg(itg)
+L2ProbIntegrand::L2ProbIntegrand (const ASMbase& patch,
+                                  const IntegrandBase& itg,
+                                  const ProcessAdm& adm) :
+  L2Integrand(patch, adm), m_itg(itg)
 {
 }
 
@@ -108,8 +110,10 @@ size_t L2ProbIntegrand::dim () const
 }
 
 
-L2FuncIntegrand::L2FuncIntegrand (const ASMbase& patch, const FunctionBase& func) :
-  L2Integrand(patch), m_func(func)
+L2FuncIntegrand::L2FuncIntegrand (const ASMbase& patch,
+                                  const FunctionBase& func,
+                                  const ProcessAdm& adm) :
+  L2Integrand(patch, adm), m_func(func)
 {
 }
 

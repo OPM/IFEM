@@ -2276,14 +2276,14 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
     case SIMoptions::DGL2:
       if (msgLevel > 1 && i == 0)
         IFEM::cout <<"\tDiscrete global L2-projection"<< std::endl;
-      ok = myModel[i]->globalL2projection(values,L2ProbIntegrand(*myModel[i], *myProblem));
+      ok = myModel[i]->globalL2projection(values,L2ProbIntegrand(*myModel[i],*myProblem,adm));
       break;
 
     case SIMoptions::CGL2:
       if (msgLevel > 1 && i == 0)
         IFEM::cout <<"\tContinuous global L2-projection"<< std::endl;
       GlbL2::SolverParams = myGl2Params;
-      ok = myModel[i]->globalL2projection(values,L2ProbIntegrand(*myModel[i], *myProblem),true);
+      ok = myModel[i]->globalL2projection(values,L2ProbIntegrand(*myModel[i],*myProblem,adm),true);
       break;
 
     case SIMoptions::CGL2_INT:
@@ -2396,7 +2396,7 @@ bool SIMbase::project (RealArray& values, const FunctionBase* f,
           return false;
         }
         Matrix ftmp(loc_values);
-        ok = myModel[j]->globalL2projection(ftmp,L2FuncIntegrand(*myModel[j], *f),true);
+        ok = myModel[j]->globalL2projection(ftmp,L2FuncIntegrand(*myModel[j],*f,adm),true);
         values = loc_values;
         return ok;
       }
