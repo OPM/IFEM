@@ -395,6 +395,10 @@ public:
   //! \brief Obtain element neighbours.
   virtual void getElmConnectivities(IntMat& neighs, bool local = false) const = 0;
 
+  //! \brief Get MNPC for a given basis.
+  virtual IntMat getElmNodes(int basis) const
+  { return MNPC; }
+
   // Various preprocessing methods
   // =============================
 

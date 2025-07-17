@@ -286,6 +286,7 @@ bool ASMu3D::generateFEMTopology ()
   if (tensorPrjBas)
   {
     projB.reset(new LR::LRSplineVolume(tensorPrjBas));
+    projB->generateIDs();
     delete tensorPrjBas;
     tensorPrjBas = nullptr;
   }
@@ -2361,6 +2362,12 @@ void ASMu3D::getElmConnectivities (IntMat& neigh, bool local) const
         neighbor.push_back(local ? elm : MLGE[elm]-1);
     }
   }
+}
+
+
+IntMat ASMu3D::getElmNodes (int basis) const
+{
+  return LR::getElmNodes(this->getBasis(basis));
 }
 
 

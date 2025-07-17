@@ -25,6 +25,8 @@
 #include "ElementBlock.h"
 #include "Utilities.h"
 
+#include <numeric>
+
 
 ASMs1DLag::ASMs1DLag (unsigned char n_s, unsigned char n_f) : ASMs1D(n_s,n_f)
 {
@@ -103,19 +105,9 @@ bool ASMs1DLag::generateOrientedFEModel (const Vec3& Zaxis)
 
   // Connectivity array: local --> global node relation
   myMLGE.resize(nel);
-  myMNPC.resize(nel);
-
-  for (size_t iel = 0; iel < nel; iel++)
-  {
-    myMLGE[iel] = ++gEl;
-    // Element array
-    myMNPC[iel].resize(p1);
-    // First node in current element
-    myMNPC[iel].front() = (p1-1)*iel;
-
-    for (int a = 1; a < p1; a++)
-      myMNPC[iel][a] = myMNPC[iel][a-1] + 1;
-  }
+  myMNPC = this->getElmNodes(1);
+  std::iota(myMLGE.begin(), myMLGE.end(), gEl+1);
+  gEl += myMLGE.size();
 
   return myCS.empty() ? true : this->initLocalElementAxes(Zaxis);
 }
@@ -564,4 +556,22 @@ bool ASMs1DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 bool ASMs1DLag::write (std::ostream& os, int) const
 {
   return this->writeLagBasis(os,"line");
+}
+
+
+IntMat ASMs1DLag::getElmNodes (int basis) const
+{
+  IntMat result(nel);
+  for (size_t iel = 0; iel < nel; iel++)
+  {
+    // Element array
+    result[iel].resize(p1);
+    // First node in current element
+    result[iel].front() = (p1-1)*iel;
+
+    for (int a = 1; a < p1; a++)
+      result[iel][a] = result[iel][a-1] + 1;
+  }
+
+  return result;
 }
