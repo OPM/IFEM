@@ -778,7 +778,7 @@ void SparseMatrix::preAssemble (const SAM& sam, bool delayLocking)
 }
 
 
-void SparseMatrix::preAssemble (const std::vector<IntVec>& MMNPC, size_t nel)
+void SparseMatrix::preAssemble (const std::vector<IntVec>& MMNPC)
 {
 #ifdef USE_OPENMP
   if (omp_get_max_threads() < 2)
@@ -786,7 +786,7 @@ void SparseMatrix::preAssemble (const std::vector<IntVec>& MMNPC, size_t nel)
 
   // Compute the nodal sparsity pattern
   int inod, jnod;
-  for (size_t iel = 0; iel < nel; iel++)
+  for (size_t iel = 0; iel < MMNPC.size(); iel++)
     for (size_t j = 0; j < MMNPC[iel].size(); j++)
       if ((jnod = MMNPC[iel][j]+1) > 0)
       {

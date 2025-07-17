@@ -234,6 +234,10 @@ public:
   //! \details This method must be called once before the element assembly loop.
   virtual void initAssembly(const SAM& sam, char = 0) = 0;
 
+  //! \brief Initializes the element sparsity pattern based on node connections.
+  //! \param[in] MMNPC Matrix of matrices of nodal point correspondances
+  virtual void preAssemble(const std::vector<std::vector<int>>& MMNPC) {}
+
   //! \brief Initializes the matrix to zero assuming it is properly dimensioned.
   virtual void init() = 0;
 

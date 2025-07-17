@@ -142,7 +142,7 @@ bool ASMu3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
     }
   }
   const IntMat& gmnpc = useModelMNPC ? MNPC : lmnpc;
-  A.preAssemble(gmnpc, gmnpc.size());
+  A.preAssemble(gmnpc);
 
   // === Assembly loop over all elements in the patch ==========================
   bool ok = true;
