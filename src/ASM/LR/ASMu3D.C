@@ -930,9 +930,15 @@ bool ASMu3D::integrate (Integrand& integrand,
   const int p3 = lrspline->order(2);
 
   ThreadGroups oneGroup;
-  if (glInt.threadSafe()) oneGroup.oneGroup(nel);
+  if (glInt.threadSafe()) {
+    if (myElms.empty())
+      oneGroup.oneGroup(nel);
+    else if (myElms.front() == -1)
+      oneGroup[0].resize(1);
+    else
+      oneGroup[0].resize(1, myElms);
+  }
   const IntMat& group = glInt.threadSafe() ? oneGroup[0] : threadGroups[0];
-
 
   // === Assembly loop over all elements in the patch ==========================
 
@@ -1186,9 +1192,12 @@ bool ASMu3D::integrate (Integrand& integrand, int lIndex,
     if (dbgElm < 0 && iEl+1 != -dbgElm)
       continue; // Skipping all elements, except for -dbgElm
 #endif
-    if (!myElms.empty() && !glInt.threadSafe() &&
+    if (!myElms.empty() &&
         std::find(myElms.begin(), myElms.end(), iEl) == myElms.end())
-     continue;
+    {
+      firstp += nGP*nGP;
+      continue;
+    }
 
     FiniteElement fe;
     fe.iel = MLGE[iEl];

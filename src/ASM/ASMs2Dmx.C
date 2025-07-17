@@ -485,9 +485,15 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
   const int nel1 = n1 - p1 + 1;
 
   ThreadGroups oneGroup;
-  if (glInt.threadSafe()) oneGroup.oneStripe(nel);
+  if (glInt.threadSafe()) {
+    if (myElms.empty())
+      oneGroup.oneStripe(nel);
+    else if (myElms.front() == -1)
+      oneGroup[0].resize(1);
+    else
+      oneGroup.oneStripe(myElms);
+  }
   const ThreadGroups& groups = glInt.threadSafe() ? oneGroup : threadGroups;
-
 
   // === Assembly loop over all elements in the patch ==========================
 
@@ -696,7 +702,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
       fe.iel = MLGE[iel-1];
       if (fe.iel < 1) continue; // zero-area element
 
-      if (!myElms.empty() && !glInt.threadSafe() &&
+      if (!myElms.empty() &&
           std::find(myElms.begin(), myElms.end(), iel-1) == myElms.end())
         continue;
 

@@ -376,14 +376,25 @@ bool ASMs3DLag::integrate (Integrand& integrand,
   const int nel1 = cache.noElms()[0];
   const int nel2 = cache.noElms()[1];
 
+  ThreadGroups oneGroup;
+  if (glInt.threadSafe()) {
+    if (myElms.empty())
+      oneGroup.oneStripe(nel);
+    else if (myElms.front() == -1)
+      oneGroup[0].resize(1);
+    else
+      oneGroup.oneStripe(myElms);
+  }
+  const ThreadGroups& groups = glInt.threadSafe() ? oneGroup : threadGroupsVol;
+
 
   // === Assembly loop over all elements in the patch ==========================
 
   bool ok = true;
-  for (size_t g = 0; g < threadGroupsVol.size() && ok; g++)
+  for (size_t g = 0; g < groups.size() && ok; g++)
   {
 #pragma omp parallel for schedule(static)
-    for (const IntVec& group : threadGroupsVol[g])
+    for (const IntVec& group : groups[g])
     {
       FiniteElement fe;
       Matrix Jac;
