@@ -249,7 +249,8 @@ private:
   bool calcGlobalEqNumbers(const ProcessAdm& adm, const SIMbase& sim);
 
   //! \brief Calculate the global equation numbers for a partitioned model.
-  bool calcGlobalEqNumbersPart(const ProcessAdm& adm, const SIMbase& sim);
+  template<class Callback>
+  bool calcGlobalEqNumbersPart(const ProcessAdm& adm, const Callback& cb);
 
   //! \brief Sanity check model.
   //! \details Collects the corners of all patches in the model and make sure nodes

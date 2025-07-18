@@ -1900,8 +1900,10 @@ void ASMu3D::generateThreadGroups (const Integrand& integrand, bool silence,
                                    bool ignoreGlobalLM)
 {
   LR::generateThreadGroups(threadGroups, this->getBasis(1));
-  if (this->separateProjectionBasis())
-    LR::generateThreadGroups(projThreadGroups, projB.get());
+  LR::generateThreadGroups(projThreadGroups, this->getBasis(ASM::PROJECTION_BASIS));
+  if (this->getBasis(ASM::PROJECTION_BASIS_2))
+    LR::generateThreadGroups(projThreadGroups, this->getBasis(ASM::PROJECTION_BASIS_2));
+
   if (silence || threadGroups[0].size() < 2) return;
 
   IFEM::cout <<"\nMultiple threads are utilized during element assembly.";
@@ -2412,6 +2414,12 @@ void ASMu3D::generateThreadGroupsFromElms (const IntVec& elms)
     projThreadGroups = threadGroups;
 
   threadGroups = threadGroups.filter(myElms);
+}
+
+
+void ASMu3D::generateProjThreadGroupsFromElms (const IntVec& elms)
+{
+  projThreadGroups = projThreadGroups.filter(elms);
 }
 
 
