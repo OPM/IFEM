@@ -680,7 +680,10 @@ protected:
                             bool ignoreGlobalLM);
 
   //! \brief Generate element groups from a partition.
-  virtual void generateThreadGroupsFromElms(const std::vector<int>& elms);
+  virtual void generateThreadGroupsFromElms(const IntVec& elms);
+
+  //! \brief Generate element groups from a partition.
+  virtual void generateProjThreadGroupsFromElms(const IntVec& elms);
 
   //! \brief Hook for changing number of threads.
   virtual void changeNumThreads();

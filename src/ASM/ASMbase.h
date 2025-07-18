@@ -510,6 +510,8 @@ public:
   virtual void generateThreadGroups(char, bool, bool) {}
   //! \brief Generate element-groups for multi-threading based on a partition.
   virtual void generateThreadGroupsFromElms(const IntVec&) {}
+  //! \brief Generate element-groups for multi-threading based on a partition.
+  virtual void generateProjThreadGroupsFromElms(const IntVec&) {}
 
   //! \brief Hook for changing number of threads.
   virtual void changeNumThreads() {}
