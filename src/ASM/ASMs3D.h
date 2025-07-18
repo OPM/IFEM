@@ -794,6 +794,9 @@ public:
   //! \brief Generates element groups from a partition.
   virtual void generateThreadGroupsFromElms(const IntVec& elms);
 
+  //! \brief Generate element groups from a partition.
+  virtual void generateProjThreadGroupsFromElms(const IntVec& elms);
+
   //! \brief Auxilliary function for computation of basis function indices.
   static void scatterInd(int n1, int n2, int n3, int p1, int p2, int p3,
 			 const int* start, IntVec& index);

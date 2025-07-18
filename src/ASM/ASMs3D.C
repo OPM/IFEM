@@ -3914,6 +3914,12 @@ void ASMs3D::generateThreadGroupsFromElms (const IntVec& elms)
 }
 
 
+void ASMs3D::generateProjThreadGroupsFromElms (const IntVec& elms)
+{
+  projThreadGroups = projThreadGroups.filter(elms);
+}
+
+
 bool ASMs3D::addRigidCpl (int lindx, int ldim, int basis,
                           int& gMaster, const Vec3& Xmaster, bool extraPt)
 {
