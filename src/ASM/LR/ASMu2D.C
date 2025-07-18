@@ -3004,6 +3004,12 @@ void ASMu2D::generateThreadGroupsFromElms (const IntVec& elms)
 }
 
 
+void ASMu2D::generateProjThreadGroupsFromElms (const IntVec& elms)
+{
+  projThreadGroups = projThreadGroups.filter(elms);
+}
+
+
 void ASMu2D::storeMesh (const std::string& fName, int fType) const
 {
   if (fType%2)

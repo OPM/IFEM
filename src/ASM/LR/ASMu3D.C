@@ -2417,6 +2417,12 @@ void ASMu3D::generateThreadGroupsFromElms (const IntVec& elms)
 }
 
 
+void ASMu3D::generateProjThreadGroupsFromElms (const IntVec& elms)
+{
+  projThreadGroups = projThreadGroups.filter(elms);
+}
+
+
 void ASMu3D::extractElmRes (const Matrix& globRes, Matrix& elmRes,
                             size_t internalFirst) const
 {

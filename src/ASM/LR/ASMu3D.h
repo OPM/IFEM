@@ -682,6 +682,9 @@ protected:
   //! \brief Generate element groups from a partition.
   virtual void generateThreadGroupsFromElms(const std::vector<int>& elms);
 
+  //! \brief Generate element groups from a partition.
+  virtual void generateProjThreadGroupsFromElms(const std::vector<int>& elms);
+
   //! \brief Hook for changing number of threads.
   virtual void changeNumThreads();
 
