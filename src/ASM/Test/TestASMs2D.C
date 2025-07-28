@@ -161,3 +161,48 @@ TEST(TestASMs2D, Collapse)
     EXPECT_TRUE(pch.collapseEdge(iedge));
   }
 }
+
+
+TEST(TestASMs2D, ElmNodes)
+{
+  ASMbase::resetNumbering();
+
+  ASMSquare pch1;
+  pch1.createProjectionBasis(true);
+  pch1.raiseOrder(1,1);
+  pch1.uniformRefine(0,1);
+  pch1.uniformRefine(1,1);
+  pch1.createProjectionBasis(false);
+  ASSERT_TRUE(pch1.uniformRefine(0,1));
+  ASSERT_TRUE(pch1.uniformRefine(1,1));
+  ASSERT_TRUE(pch1.generateFEMTopology());
+
+  const IntMat mnpc = pch1.getElmNodes(1);
+
+  const auto ref = std::array{
+      std::array{0,1,3,4},
+      std::array{1,2,4,5},
+      std::array{3,4,6,7},
+      std::array{4,5,7,8},
+  };
+  ASSERT_EQ(mnpc.size(), ref.size());
+  for (size_t i = 0; i < mnpc.size(); ++i) {
+    EXPECT_EQ(mnpc[i].size(), ref[i].size());
+    for (size_t j = 0; j < mnpc[i].size(); ++j)
+      EXPECT_EQ(mnpc[i][j], ref[i][j]);
+  }
+
+  const auto ref_proj = std::array{
+      std::array{0,1,2,4,5,6,8,9,10},
+      std::array{1,2,3,5,6,7,9,10,11},
+      std::array{4,5,6,8,9,10,12,13,14},
+      std::array{5,6,7,9,10,11,13,14,15},
+  };
+  const IntMat mnpc_proj = pch1.getElmNodes(ASM::PROJECTION_BASIS);
+  ASSERT_EQ(mnpc_proj.size(), ref_proj.size());
+  for (size_t i = 0; i < mnpc_proj.size(); ++i) {
+    EXPECT_EQ(mnpc_proj[i].size(), ref_proj[i].size());
+    for (size_t j = 0; j < mnpc_proj[i].size(); ++j)
+      EXPECT_EQ(mnpc_proj[i][j], ref_proj[i][j]);
+  }
+}

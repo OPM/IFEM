@@ -392,8 +392,15 @@ public:
   virtual bool getParameterDomain(Real2DMat& u,
                                   IntVec* corners = nullptr) const = 0;
 
-  //! \brief Obtain element neighbours.
-  virtual void getElmConnectivities(IntMat& neighs, bool local = false) const = 0;
+  //! \brief Calculates the matrix of element neighbour connectivities.
+  //! \param[out] neighs List of element neighbors for each element
+  //! \param[in] local If \e true, return the local (patch-wise) element indices
+  virtual void getElmConnectivities(IntMat& neighs,
+                                    bool local = false) const = 0;
+
+  //! \brief Returns the matrix of nodal point correspondance for given basis.
+  virtual IntMat getElmNodes(int) const { return MNPC; }
+
 
   // Various preprocessing methods
   // =============================

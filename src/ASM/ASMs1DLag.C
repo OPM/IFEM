@@ -24,6 +24,7 @@
 #include "GaussQuadrature.h"
 #include "ElementBlock.h"
 #include "Utilities.h"
+#include <numeric>
 
 
 ASMs1DLag::ASMs1DLag (unsigned char n_s, unsigned char n_f) : ASMs1D(n_s,n_f)
@@ -80,8 +81,21 @@ bool ASMs1DLag::generateOrientedFEModel (const Vec3& Zaxis)
   // Number of elements in the patch
   nel = (nx-1)/(p1-1);
 
+  // Global node numbers
   myMLGN.resize(nnod);
+  std::iota(myMLGN.begin(), myMLGN.end(), gNod+1);
+  gNod += nnod;
+
+  // Evaluate the nodal coordinates
   myCoord.resize(nnod);
+  Go::Point pt;
+  for (size_t i = 0; i < nnod; i++)
+  {
+    curv->point(pt,gpar[i]);
+    for (int k = 0; k < pt.size(); k++)
+      myCoord[i][k] = pt[k];
+  }
+
   if (nsd == 3 && nf == 6)
   {
     // This is a 3D beam problem, allocate the nodal/element rotation tensors.
@@ -91,31 +105,13 @@ bool ASMs1DLag::generateOrientedFEModel (const Vec3& Zaxis)
     myT.resize(nnod,Tensor(3,true)); // Initialize nodal rotations to unity
   }
 
-  // Evaluate the nodal coordinates
-  Go::Point pt;
-  for (size_t i = 0; i < nnod; i++)
-  {
-    curv->point(pt,gpar[i]);
-    for (int k = 0; k < pt.size(); k++)
-      myCoord[i][k] = pt[k];
-    myMLGN[i] = ++gNod;
-  }
+  // Global element numbers
+  myMLGE.resize(nel);
+  std::iota(myMLGE.begin(), myMLGE.end(), gEl+1);
+  gEl += nel;
 
   // Connectivity array: local --> global node relation
-  myMLGE.resize(nel);
-  myMNPC.resize(nel);
-
-  for (size_t iel = 0; iel < nel; iel++)
-  {
-    myMLGE[iel] = ++gEl;
-    // Element array
-    myMNPC[iel].resize(p1);
-    // First node in current element
-    myMNPC[iel].front() = (p1-1)*iel;
-
-    for (int a = 1; a < p1; a++)
-      myMNPC[iel][a] = myMNPC[iel][a-1] + 1;
-  }
+  ASMs1DLag::createMNPC(nel,p1,myMNPC);
 
   return myCS.empty() ? true : this->initLocalElementAxes(Zaxis);
 }
@@ -564,4 +560,27 @@ bool ASMs1DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 bool ASMs1DLag::write (std::ostream& os, int) const
 {
   return this->writeLagBasis(os,"line");
+}
+
+
+IntMat ASMs1DLag::getElmNodes (int) const
+{
+  IntMat result(nel);
+  ASMs1DLag::createMNPC(nel,p1,result);
+  return result;
+}
+
+
+void ASMs1DLag::createMNPC (size_t nel, int p1, IntMat& result)
+{
+  result.resize(nel);
+  for (size_t iel = 0; iel < nel; iel++)
+  {
+    result[iel].resize(p1);
+    // First node in current element
+    result[iel].front() = (p1-1)*iel;
+
+    for (int a = 1; a < p1; a++)
+      result[iel][a] = result[iel][a-1] + 1;
+  }
 }
