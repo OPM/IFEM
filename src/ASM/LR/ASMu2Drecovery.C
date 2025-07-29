@@ -128,18 +128,17 @@ bool ASMu2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
   if (continuous && !wg) return false;
 
   IntMat lmnpc;
-  if (!useModelMNPC) {
-    lmnpc.resize(proj->nElements());
-    for (const LR::Element* elm : proj->getAllElements()) {
-      lmnpc[elm->getId()].reserve(elm->nBasisFunctions());
-      for (const LR::Basisfunction* f : elm->support())
-        lmnpc[elm->getId()].push_back(f->getId());
-    }
+  if (useModelMNPC)
+    A.preAssemble(MNPC,this->getNoElms(true));
+  else
+  {
+    LR::createMNPC(proj,lmnpc);
+    A.preAssemble(lmnpc);
   }
-  const IntMat& gmnpc = useModelMNPC ? MNPC : lmnpc;
-  A.preAssemble(gmnpc, gmnpc.size());
+
 
   // === Assembly loop over all elements in the patch ==========================
+
   bool ok = true;
   const IntMat& group = projThreadGroups.empty() ? threadGroups[0] : projThreadGroups[0];
   for (size_t t = 0; t < group.size() && ok; t++)
@@ -183,9 +182,9 @@ bool ASMu2D::assembleL2matrices (SparseMatrix& A, StdVector& B,
 
       // Set up basis function size (for extractBasis subroutine)
       size_t nbf = elm->nBasisFunctions();
+      const IntVec& mnpc = useModelMNPC ? MNPC[iel-1] : lmnpc[ielp];
 
-      const IntVec& mnpc = useModelMNPC ? gmnpc[iel-1] : gmnpc[ielp];
-      // --- Integration loop over all Gauss points in each direction ------------
+      // --- Integration loop over all Gauss points in each direction ----------
 
       Matrix eA(nbf, nbf);
       Vectors eB(sField.rows(), Vector(nbf));
@@ -285,7 +284,7 @@ LR::LRSplineSurface* ASMu2D::scRecovery (const IntegrandBase& integrand) const
   Go::Point X, G;
 
   // Loop over all Greville points (one for each basis function)
-  size_t k, l, ip = 0;
+  size_t ip = 0;
   std::vector<LR::Element*>::const_iterator elStart, elEnd, el;
   std::vector<LR::Element*> supportElements;
   for (LR::Basisfunction* b : lrspline->getAllBasisfunctions())
@@ -365,15 +364,15 @@ LR::LRSplineSurface* ASMu2D::scRecovery (const IntegrandBase& integrand) const
                     <<"\nP-matrix:"<< P <<"--------------------\n"<< std::endl;
 #endif
 
-          for (k = 1; k <= nPol; k++)
+          for (size_t ii = 1; ii <= nPol; ii++)
           {
             // Accumulate the projection matrix, A += P^t * P
-            for (l = 1; l <= nPol; l++)
-              A(k,l) += P(k)*P(l);
+            for (size_t jj = 1; jj <= nPol; jj++)
+              A(ii,jj) += P(ii)*P(jj);
 
             // Accumulate the right-hand-side matrix, B += P^t * sigma
-            for (l = 1; l <= nCmp; l++)
-              B(k,l) += P(k)*sField(l,ig);
+            for (size_t jj = 1; jj <= nCmp; jj++)
+              B(ii,jj) += P(ii)*sField(jj,ig);
           }
         }
     }
@@ -390,13 +389,13 @@ LR::LRSplineSurface* ASMu2D::scRecovery (const IntegrandBase& integrand) const
 
     // Evaluate the projected field at current Greville point (first row of B)
     ip++;
-    for (l = 1; l <= nCmp; l++)
+    for (size_t l = 1; l <= nCmp; l++)
       sValues(l,ip) = B(1,l);
 
 #if SP_DEBUG > 1
     std::cout <<"Greville point "<< ip <<" (u,v) = "
               << gpar[0][ip-1] <<" "<< gpar[1][ip-1] <<" :";
-    for (k = 1; k <= nCmp; k++)
+    for (size_t k = 1; k <= nCmp; k++)
       std::cout <<" "<< sValues(k,ip);
     std::cout << std::endl;
 #endif
@@ -538,8 +537,11 @@ bool ASMu2D::edgeL2projection (const DirichletEdge& edge,
     // Get integration gauss points over this element
     this->getGaussPointParameters(gpar[t2-1],t2-1,nGP,iel,xg);
 
+    const IntVec& eMNPC = edge.MNPC[i];
+
     // --- Integration loop over all Gauss points along the edge ---------------
 
+    int ig, jg;
     for (int j = 0; j < nGP; j++)
     {
       // Parameter values of current integration point
@@ -575,16 +577,16 @@ bool ASMu2D::edgeL2projection (const DirichletEdge& edge,
       lA.outer_product(N, N, false, detJxW);
       const RealArray val = values.getValue(X);
 
-      for (size_t il = 0; il < edge.MNPC[i].size(); ++il) {    // local i-index
-        if (int ig = 1 + edge.MNPC[i][il]; ig > 0) {           // global i-index
-          for (size_t jl = 0; jl < edge.MNPC[i].size(); ++jl)  // local j-index
-            if (int jg = 1 + edge.MNPC[i][jl]; jg > 0)         // global j-index
+      for (size_t il = 0; il < eMNPC.size(); il++) // local i-index
+        if ((ig = 1+eMNPC[il]) > 0) {             // global i-index
+          for (size_t jl = 0; jl < eMNPC.size(); jl++) // local j-index
+            if ((jg = 1+eMNPC[jl]) > 0)               // global j-index
               A(ig, jg) += lA(il+1, jl+1);
 
           for (size_t k = 0; k < m; k++)
-            B(ig+k*n) += N[il] * val[k] * detJxW;
-        }
-      }
+            B(ig+k*n) += N[il]*val[k] * detJxW;
+        } // end basis-function loop
+
     } // end gauss-point loop
   } // end element loop
 
