@@ -133,18 +133,17 @@ bool ASMu3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
   if (continuous && !wg) return false;
 
   IntMat lmnpc;
-  if (!useModelMNPC) {
-    lmnpc.resize(proj->nElements());
-    for (const LR::Element* elm : proj->getAllElements()) {
-      lmnpc[elm->getId()].reserve(elm->nBasisFunctions());
-      for (const LR::Basisfunction* f : elm->support())
-        lmnpc[elm->getId()].push_back(f->getId());
-    }
+  if (useModelMNPC)
+    A.preAssemble(MNPC,this->getNoElms(true));
+  else
+  {
+    LR::createMNPC(proj,lmnpc);
+    A.preAssemble(lmnpc);
   }
-  const IntMat& gmnpc = useModelMNPC ? MNPC : lmnpc;
-  A.preAssemble(gmnpc, gmnpc.size());
+
 
   // === Assembly loop over all elements in the patch ==========================
+
   bool ok = true;
   const IntMat& group = projThreadGroups.empty() ? threadGroups[0] : projThreadGroups[0];
   for (size_t t = 0; t < group.size() && ok; t++)
@@ -189,9 +188,9 @@ bool ASMu3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
 
       // Set up basis function size (for extractBasis subroutine)
       size_t nbf = elm->nBasisFunctions();
-      const IntVec& mnpc = useModelMNPC ? gmnpc[iel-1] : gmnpc[ielp];
+      const IntVec& mnpc = useModelMNPC ? MNPC[iel-1] : lmnpc[ielp];
 
-      // --- Integration loop over all Gauss points in each direction ------------
+      // --- Integration loop over all Gauss points in each direction ----------
 
       Matrix eA(nbf, nbf);
       Vectors eB(sField.rows(), Vector(nbf));
@@ -238,7 +237,7 @@ bool ASMu3D::assembleL2matrices (SparseMatrix& A, StdVector& B,
       }
     }
 
-  return true;
+  return ok;
 }
 
 
@@ -353,7 +352,7 @@ LR::LRSplineVolume* ASMu3D::scRecovery (const IntegrandBase& integrand) const
       std::cout <<"Element "<< **el << std::endl;
 #endif
 
-      // evaluate all gauss points for this element
+      // Compute parameter values of the Gauss points over this element
       std::array<RealArray,3> gaussPt, unstrGauss;
       this->getGaussPointParameters(gaussPt[0],0,ng1,iel,xg);
       this->getGaussPointParameters(gaussPt[1],1,ng2,iel,yg);
@@ -563,14 +562,15 @@ bool ASMu3D::faceL2projection (const DirichletFace& face,
     double u = param[0] = gpar[0][0];
     double v = param[1] = gpar[1][0];
     double w = param[2] = gpar[2][0];
+    const IntVec& fMNPC = face.MNPC[ie];
 
     // --- Integration loop over all Gauss points over the face ----------------
 
+    int k1, k2, k3, ig, jg;
     for (int j = 0; j < nGP; j++)
       for (int i = 0; i < nGP; i++)
       {
         // Parameter values of current integration point
-        int k1, k2, k3;
         switch (abs(faceDir))
         {
           case 1: k2 = i; k3 = j; k1 = 0; break;
@@ -603,22 +603,20 @@ bool ASMu3D::faceL2projection (const DirichletFace& face,
           SplineUtils::extractBasis(spline,N,dNdu);
         }
 
-        // Assemble into matrix A and vector B
-        for (size_t il = 0; il < face.MNPC[ie].size(); il++) { // local i-index
-          int ig;
-          if ((ig = 1+face.MNPC[ie][il]) > 0)         // global i-index
-          {
-            for (size_t jl = 0; jl < face.MNPC[ie].size(); jl++) { // local j-index
-              int jg;
-              if ((jg = 1+face.MNPC[ie][jl]) > 0)         // global j-index
-                A(ig,jg) += N[il]*N[jl]*dJxW;
-            }
+        const RealArray val = values.getValue(X);
 
-            RealArray val = values.getValue(X);
+        // Assemble into matrix A and vector B
+        for (size_t il = 0; il < fMNPC.size(); il++) // local i-index
+          if ((ig = 1+fMNPC[il]) > 0)               // global i-index
+          {
+            for (size_t jl = 0; jl < fMNPC.size(); jl++) // local j-index
+              if ((jg = 1+fMNPC[jl]) > 0)               // global j-index
+                A(ig,jg) += N[il]*N[jl] * dJxW;
+
             for (size_t k = 0; k < m; k++)
-              B(ig+k*n) += N[il]*val[k]*dJxW;
+              B(ig+k*n) += N[il]*val[k] * dJxW;
           } // end basis-function loop
-        }
+
       } // end gauss-point loop
   } // end element loop
 
