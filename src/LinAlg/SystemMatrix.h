@@ -21,6 +21,8 @@ class SAM;
 class LinSolParams;
 class ProcessAdm;
 
+using IntVec = std::vector<int>; //!< General integer vector
+
 
 /*!
   \brief Base class for representing a system vector on different formats.
@@ -107,15 +109,15 @@ protected:
   \brief Standard system vector stored as a single continuous array.
 */
 
-class StdVector : public SystemVector, public utl::vector<Real>
+class StdVector : public SystemVector, public Vector
 {
 public:
   //! \brief Default constructor creating a vector of length \a n.
-  explicit StdVector(size_t n = 0) : utl::vector<Real>(n) {}
+  explicit StdVector(size_t n = 0) : Vector(n) {}
   //! \brief Constructor creating a vector from an array.
-  StdVector(const Real* values, size_t n) : utl::vector<Real>(values,n) {}
+  StdVector(const Real* values, size_t n) : Vector(values,n) {}
   //! \brief Overloaded copy constructor.
-  explicit StdVector(const std::vector<Real>& vec) : utl::vector<Real>(vec) {}
+  explicit StdVector(const std::vector<Real>& vec) : Vector(vec) {}
 
   //! \brief Returns the vector type.
   virtual LinAlg::MatrixType getType() const { return LinAlg::DENSE; }
@@ -129,7 +131,7 @@ public:
   //! \brief Sets the dimension of the system vector while retaining content.
   virtual void redim(size_t n)
   {
-    this->utl::vector<Real>::resize(n,utl::RETAIN);
+    this->Vector::resize(n,utl::RETAIN);
   }
 
   //! \brief Resizes the vector to length \a n.
@@ -137,7 +139,7 @@ public:
   //! unless \a forceClear is \e true.
   virtual void resize(size_t n, bool forceClear = false)
   {
-    this->utl::vector<Real>::resize(n,forceClear);
+    this->Vector::resize(n,forceClear);
   }
 
   //! \brief Access through pointer.
@@ -154,7 +156,7 @@ public:
   //! \brief Addition of another system vector to this one.
   virtual void add(const SystemVector& vec, Real scale)
   {
-    this->utl::vector<Real>::add(static_cast<const StdVector&>(vec),scale);
+    this->Vector::add(static_cast<const StdVector&>(vec),scale);
   }
 
   //! \brief L1-norm of the vector.
@@ -171,14 +173,14 @@ public:
                     const char* label) const { dump(*this,label,format,os); }
 
   //! \brief Dumps a standard vector to given output stream on specified format.
-  static void dump(const utl::vector<Real>& x, const char* label,
+  static void dump(const Vector& x, const char* label,
                    LinAlg::StorageFormat format, std::ostream& os);
 
 protected:
   //! \brief Writes the system vector to the given output stream.
   virtual std::ostream& write(std::ostream& os) const
   {
-    return os << static_cast<const utl::vector<Real>&>(*this);
+    return os << static_cast<const Vector&>(*this);
   }
 };
 
@@ -234,13 +236,16 @@ public:
   //! \details This method must be called once before the element assembly loop.
   virtual void initAssembly(const SAM& sam, char = 0) = 0;
 
+  //! \brief Initializes the element sparsity pattern based on node connections.
+  virtual void preAssemble(const std::vector<IntVec>&, size_t = 0) {}
+
   //! \brief Initializes the matrix to zero assuming it is properly dimensioned.
   virtual void init() = 0;
 
   //! \brief Initializes the \ref nonZeroEqs flags.
   void initNonZeroEqs();
   //! \brief Flags the equations \a meq as pivots with non-zero contributions.
-  bool flagNonZeroEqs(const std::vector<int>& meq = {});
+  bool flagNonZeroEqs(const IntVec& meq = {});
   //! \brief Flags the non-zero equations from \a B as non-zero pivots in this.
   bool flagNonZeroEqs(const SystemMatrix& B);
 
@@ -274,7 +279,7 @@ public:
   //! \details When multi-point constraints are present, contributions from
   //! these are also added into the system right-hand-side vector, \a B.
   virtual bool assemble(const Matrix& eM, const SAM& sam,
-                        SystemVector& B, const std::vector<int>& meq) = 0;
+                        SystemVector& B, const IntVec& meq) = 0;
 
   //! \brief Augments a similar matrix symmetrically to the current matrix.
   virtual bool augment(const SystemMatrix&, size_t, size_t) { return false; }

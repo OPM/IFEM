@@ -19,7 +19,6 @@
 #include <set>
 #include <array>
 
-typedef std::vector<int>         IntVec;    //!< General integer vector
 typedef std::pair<size_t,size_t> IJPair;    //!< 1-based matrix indices
 typedef std::map<IJPair,Real>    ValueMap;  //!< Index to matrix value mapping
 typedef ValueMap::const_iterator ValueIter; //!< Iterator over matrix elements
@@ -120,8 +119,8 @@ public:
 
   //! \brief Initializes the element sparsity pattern based on node connections.
   //! \param[in] MMNPC Matrix of matrices of nodal point correspondances
-  //! \param[in] nel Number of elements
-  void preAssemble(const std::vector<IntVec>& MMNPC, size_t nel);
+  //! \param[in] nel Number of elements to consider (if zero use MMNPC.size())
+  virtual void preAssemble(const std::vector<IntVec>& MMNPC, size_t nel = 0);
 
   //! \brief Initializes the matrix to zero assuming it is properly dimensioned.
   virtual void init();
