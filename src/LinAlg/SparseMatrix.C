@@ -786,6 +786,7 @@ void SparseMatrix::preAssemble (const std::vector<IntVec>& MMNPC, size_t nel)
 
   // Compute the nodal sparsity pattern
   int inod, jnod;
+  if (nel == 0) nel = MMNPC.size();
   for (size_t iel = 0; iel < nel; iel++)
     for (size_t j = 0; j < MMNPC[iel].size(); j++)
       if ((jnod = MMNPC[iel][j]+1) > 0)
