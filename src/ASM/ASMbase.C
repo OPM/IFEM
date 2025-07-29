@@ -1356,10 +1356,10 @@ bool ASMbase::renumberNodes (const std::map<int,int>& old2new,
   for (size_t i = 0; i < MLGN.size(); i++)
   {
     int replaceEl = 0;
-    for (size_t j = i+1; j <= MLGN.size(); j++)
+    for (size_t j = i+1; j < MLGN.size(); j++)
       if (MLGN[j] == MLGN[i])
 
-        // Two nodes with common global node numbers is detected.
+        // Two nodes with common global node numbers are detected.
         // Update the nodal point correspondance table for all elements
         // referring to the second node (j), replacing it with (i).
         for (size_t iel = 0; iel < myMNPC.size(); iel++)
