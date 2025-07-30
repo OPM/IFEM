@@ -289,6 +289,9 @@ public:
   //! \param[in] lIndex Local index [1,6] of the boundary face
   virtual void generateThreadGroups(char lIndex, bool, bool);
 
+  //! \brief Returns the matrix of nodal point correspondance for given basis.
+  virtual IntMat getElmNodes(int basis) const;
+
   //! \brief Returns the number of elements on a boundary.
   virtual size_t getNoBoundaryElms(char lIndex, char ldim) const;
 
@@ -303,6 +306,11 @@ public:
   virtual bool assembleL2matrices(SparseMatrix& A, StdVector& B,
                                   const L2Integrand& integrand,
                                   bool continuous) const;
+
+private:
+  //! \brief Creates matrix of nodal point correspondance for a structured grid.
+  static void createMNPC(size_t nx, size_t ny, size_t nz,
+                         int p1, int p2, int p3, IntMat& MNPC);
 
 protected:
   size_t nx; //!< Number of nodes in first parameter direction

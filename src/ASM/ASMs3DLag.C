@@ -27,6 +27,7 @@
 #include "ElementBlock.h"
 #include "Utilities.h"
 #include <array>
+#include <numeric>
 
 
 ASMs3DLag::ASMs3DLag (unsigned char n_f) : ASMs3D(n_f)
@@ -173,59 +174,30 @@ bool ASMs3DLag::generateFEMTopology ()
   const int nelx = (nx-1)/(p1-1);
   const int nely = (ny-1)/(p2-1);
   const int nelz = (nz-1)/(p3-1);
-
-  // Evaluate the nodal coordinates in the physical space
-  RealArray XYZ(svol->dimension()*nnod);
-  svol->gridEvaluator(gpar1,gpar2,gpar3,XYZ);
-
-  size_t i1, j1;
-  myMLGN.resize(nnod);
-  myCoord.resize(nnod);
-  for (i1 = j1 = 0; i1 < coord.size(); i1++)
-  {
-    myMLGN[i1] = ++gNod;
-    myCoord[i1][0] = XYZ[j1++];
-    myCoord[i1][1] = XYZ[j1++];
-    myCoord[i1][2] = XYZ[j1++];
-  }
-
   // Number of elements in patch
   nel = nelx*nely*nelz;
-  // Number of nodes per element
-  const int nen = p1*p2*p3;
-  // Number of nodes in a xy-surface of an element
-  const int ct  = p1*p2;
+
+  // Global node numbers
+  myMLGN.resize(nnod);
+  std::iota(myMLGN.begin(), myMLGN.end(), gNod+1);
+  gNod += nnod;
+
+  // Evaluate the nodal coordinates in the physical space
+  size_t i1, j1;
+  myCoord.resize(nnod);
+  RealArray XYZ(svol->dimension()*nnod);
+  svol->gridEvaluator(gpar1,gpar2,gpar3,XYZ);
+  for (i1 = j1 = 0; i1 < myCoord.size(); i1++)
+    for (int d = 0; d < 3; d++, j1++)
+      myCoord[i1][d] = XYZ[j1];
+
+  // Global element numbers
+  myMLGE.resize(nel);
+  std::iota(myMLGE.begin(), myMLGE.end(), gEl+1);
+  gEl += nel;
 
   // Connectivity array: local --> global node relation
-  myMLGE.resize(nel);
-  myMNPC.resize(nel);
-
-  int i, j, k, a, b, c, iel = 0;
-  for (k = 0; k < nelz; k++)
-    for (j = 0; j < nely; j++)
-      for (i = 0; i < nelx; i++, iel++)
-      {
-        myMLGE[iel] = ++gEl;
-        myMNPC[iel].resize(nen);
-        // First node in current element
-        int corner = (p3-1)*(nx*ny)*k + (p2-1)*nx*j + (p1-1)*i;
-
-        for (c = 0; c < p3; c++)
-        {
-          int cornod = ct*c;
-          myMNPC[iel][cornod] = corner + c*nx*ny;
-          for (b = 1; b < p2; b++)
-          {
-            int facenod = cornod + b*p1;
-            myMNPC[iel][facenod] = myMNPC[iel][cornod] + b*nx;
-            for (a = 1; a < p1; a++)
-            {
-              myMNPC[iel][facenod+a] = myMNPC[iel][facenod] + a;
-              myMNPC[iel][cornod+a]  = myMNPC[iel][cornod] + a;
-            }
-          }
-        }
-      }
+  ASMs3DLag::createMNPC(nx,ny,nz,p1,p2,p3,myMNPC);
 
   return true;
 }
@@ -920,16 +892,16 @@ bool ASMs3DLag::tesselate (ElementBlock& grid, const int*) const
     return false;
 
   // Adjust the element Id since each Lagrange element covers several knot-spans
-  int i, ie, nse1 = p1-1;
-  int j, je, nse2 = p2-1;
-  int k, ke, nse3 = p3-1;
+  int ie, nse1 = p1-1;
+  int je, nse2 = p2-1;
+  int ke, nse3 = p3-1;
   int nelx = (nx-1)/nse1;
   int nely = (ny-1)/nse1;
-  for (k = ke = 1; k < (int)nz; k++)
+  for (size_t k = ke = 1; k < nz; k++)
   {
-    for (j = je = 1; j < (int)ny; j++)
+    for (size_t j = je = 1; j < ny; j++)
     {
-      for (i = ie = 1; i < (int)nx; i++)
+      for (size_t i = ie = 1; i < nx; i++)
       {
         grid.setElmId(((k-1)*(ny-1)+j-1)*(nx-1)+i,((ke-1)*nely+je-1)*nelx+ie);
         if (i%nse1 == 0) ie++;
@@ -1196,6 +1168,77 @@ void ASMs3DLag::generateThreadGroups (char lIndex, bool, bool)
   this->findBoundaryElms(map,lIndex);
 
   fGrp.applyMap(map);
+}
+
+
+IntMat ASMs3DLag::getElmNodes (int basis) const
+{
+  const Go::SplineVolume* sv = this->getBasis(basis);
+
+  // Find number of nodes in each parameter direction,
+  // accounting for possible zero-length knot-spans
+  // (see ASMs3D::getGridParameters())
+  int nx[3] = { 0, 0, 3 };
+  RealArray::const_iterator uit, uend;
+  for (int d = 0; d < 3; d++)
+  {
+    uit  = sv->basis(d).begin() + sv->basis(d).order()-1;
+    uend = sv->basis(d).begin() + sv->basis(d).numCoefs()+1;
+    for (double uprev = *(uit++); uit != uend; ++uit)
+    {
+      if (*uit > uprev)
+        nx[d] += sv->basis(d).order()-1;
+      uprev = *uit;
+    }
+    if (sv->basis(d).order() > 2)
+      nx[d]++;
+  }
+
+  IntMat result;
+  ASMs3DLag::createMNPC(nx[0],nx[1],nx[2],
+                        sv->order(0),sv->order(1),sv->order(2), result);
+  return result;
+}
+
+
+void ASMs3DLag::createMNPC (size_t nx, size_t ny, size_t nz,
+                            int p1, int p2, int p3, IntMat& result)
+{
+  const int nelx = (nx-1) / (p1-1);
+  const int nely = (ny-1) / (p2-1);
+  const int nelz = (nz-1) / (p3-1);
+  result.resize(nelx*nely*nelz);
+
+  // Number of nodes per element
+  const int nen = p1*p2*p3;
+  // Number of nodes in a xy-surface of an element
+  const int ct  = p1*p2;
+
+  int iel = 0;
+  for (int k = 0; k < nelz; k++)
+    for (int j = 0; j < nely; j++)
+      for (int i = 0; i < nelx; i++, iel++)
+      {
+        result[iel].resize(nen);
+        // First node in current element
+        int corner = (p3-1)*(nx*ny)*k + (p2-1)*nx*j + (p1-1)*i;
+
+        for (int c = 0; c < p3; c++)
+        {
+          int cornod = ct*c;
+          result[iel][cornod] = corner + c*nx*ny;
+          for (int b = 1; b < p2; b++)
+          {
+            int facenod = cornod + b*p1;
+            result[iel][facenod] = result[iel][cornod] + b*nx;
+            for (int a = 1; a < p1; a++)
+            {
+              result[iel][facenod+a] = result[iel][facenod] + a;
+              result[iel][cornod+a]  = result[iel][cornod] + a;
+            }
+          }
+        }
+      }
 }
 
 

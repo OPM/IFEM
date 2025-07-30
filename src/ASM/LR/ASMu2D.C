@@ -40,6 +40,7 @@
 #include "IFEM.h"
 #include <array>
 #include <fstream>
+#include <numeric>
 #include <utility>
 
 
@@ -614,26 +615,20 @@ bool ASMu2D::generateFEMTopology ()
 
   if (shareFE) return true;
 
-  myMLGN.resize(nnod);
-  myMLGE.resize(nel);
-  myMNPC.resize(nel);
-
   lrspline->generateIDs();
 
-  size_t iel = 0;
-  for (const LR::Element* elm : lrspline->getAllElements())
-  {
-    myMLGE[iel] = ++gEl; // global element number over all patches
-    myMNPC[iel].resize(elm->nBasisFunctions());
+  // Global node numbers
+  myMLGN.resize(nnod);
+  std::iota(myMLGN.begin(), myMLGN.end(), gNod+1);
+  gNod += nnod;
 
-    int lnod = 0;
-    for (LR::Basisfunction* b : elm->support())
-      myMNPC[iel][lnod++] = b->getId();
-    ++iel;
-  }
+  // Global element numbers
+  myMLGE.resize(nel);
+  std::iota(myMLGE.begin(), myMLGE.end(), gEl+1);
+  gEl += nel;
 
-  for (size_t inod = 0; inod < nnod; inod++)
-    myMLGN[inod] = ++gNod;
+  // Connectivity array: local --> global node relation
+  LR::createMNPC(lrspline.get(),myMNPC);
 
   this->generateBezierExtraction();
 
@@ -2653,6 +2648,14 @@ void ASMu2D::generateThreadGroups (const Integrand& integrand, bool silence,
 #else
   this->analyzeThreadGroups(threadGroups[0]);
 #endif
+}
+
+
+IntMat ASMu2D::getElmNodes (int basis) const
+{
+  IntMat result;
+  LR::createMNPC(this->getBasis(basis),result);
+  return result;
 }
 
 
