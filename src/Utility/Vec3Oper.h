@@ -44,8 +44,14 @@ Real operator*(const Vec3& a, const Vec3& b);
 //! \brief Summation of two vectors.
 Vec3 operator+(const Vec3& a, const Vec3& b);
 
-//! \brief Subraction of two vectors.
+//! \brief Subtraction of two vectors.
 Vec3 operator-(const Vec3& a, const Vec3& b);
+
+//! \brief Summation of vector and a scalar.
+Vec3 operator+(const Vec3& a, Real value);
+
+//! \brief Subtraction of a vector and a scalar.
+Vec3 operator-(const Vec3& a, Real value);
 
 //! \brief Equality operator.
 bool operator==(const Vec3& a, const Vec3& b);

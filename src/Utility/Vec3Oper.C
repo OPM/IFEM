@@ -107,6 +107,18 @@ Vec3 operator- (const Vec3& a, const Vec3& b)
 }
 
 
+Vec3 operator+ (const Vec3& a, Real value)
+{
+  return Vec3(a.x+value, a.y+value, a.z+value);
+}
+
+
+Vec3 operator- (const Vec3& a, Real value)
+{
+  return Vec3(a.x-value, a.y-value, a.z-value);
+}
+
+
 bool operator== (const Vec3& a, const Vec3& b)
 {
   return a.equal(b,Vec3::comparisonTolerance);
