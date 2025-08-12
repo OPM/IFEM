@@ -100,8 +100,10 @@ public:
   //! \brief Negation operator.
   Vec3 operator-() const { return Vec3(-x,-y,-z); }
 
-  //! \brief Return the sum of the vector.
+  //! \brief Return the sum of the vector components.
   Real sum() const { return x+y+z; }
+  //! \brief Return the sum of absolute values of the vector components.
+  Real asum() const { return std::fabs(x) + std::fabs(y) + std::fabs(z); }
 
   //! \brief Return the square of the length of the vector.
   Real length2() const { return x*x+y*y+z*z; }
@@ -312,7 +314,7 @@ public:
 
 
 using Vec3Pair    = std::pair<Vec3,Vec3>;    //!< A pair of two point vectors
-using PointValue  = std::pair<Vec3,double>;  //!< A point with associated value
+using PointValue  = std::pair<Vec3,Real>;    //!< A point with associated value
 using Vec3Vec     = std::vector<Vec3>;       //!< An array of point vectors
 using PointValues = std::vector<PointValue>; //!< An array of point values
 
