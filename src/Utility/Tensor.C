@@ -72,7 +72,7 @@ Tensor::Tensor (const Vec3& vn, bool vnIsX) : n(3)
 
   if (vnIsX)
   {
-    if (fabs(v3.y) < fabs(v3.z))
+    if (std::fabs(v3.y) < std::fabs(v3.z))
     {
       // Define the Y-axis by projecting the global Y-axis
       // onto the normal plane of v3
@@ -98,7 +98,7 @@ Tensor::Tensor (const Vec3& vn, bool vnIsX) : n(3)
   }
   else
   {
-    if (fabs(v3.y) < fabs(v3.x))
+    if (std::fabs(v3.y) < std::fabs(v3.x))
     {
       // Define the Y-axis by projecting global Y-axis
       // onto the normal plane of v3
@@ -528,7 +528,7 @@ bool Tensor::equal (const Tensor& T, Real tol) const
     return false;
 
   for (t_ind i = 0; i < v.size(); i++)
-    if (fabs(v[i]-T.v[i]) > tol)
+    if (std::fabs(v[i]-T.v[i]) > tol)
       return false;
 
   return true;
@@ -538,7 +538,7 @@ bool Tensor::equal (const Tensor& T, Real tol) const
 bool Tensor::isZero (Real tol) const
 {
   for (t_ind i = 0; i < v.size(); i++)
-    if (fabs(v[i]) > tol)
+    if (std::fabs(v[i]) > tol)
       return false;
 
   return true;
@@ -1118,7 +1118,7 @@ Real SymmTensor::vonMises (bool doSqrt) const
 }
 
 
-bool SymmTensor::principal (Vec3& p) const
+bool SymmTensor::principal (Vec3& p, bool sorted) const
 {
   if (n < 2) return false;
 
@@ -1130,7 +1130,7 @@ bool SymmTensor::principal (Vec3& p) const
     Real P = C*C - Real(4)*D;
     if (P > Real(0))
     {
-      double Q = sqrt(P);
+      Real Q = Real(sqrt(P));
       p.x = (C+Q)/Real(2);
       p.y = (C-Q)/Real(2);
     }
@@ -1173,20 +1173,120 @@ bool SymmTensor::principal (Vec3& p) const
   c1 = Real(2)*sqrt(b2/Real(3));
   c2 = Real(4)*b3;
   c3 = c1*c1*c1;
-  Real al = atan2(sqrt(fabs(c3*c3-c2*c2)),c2)/Real(3);
-  Real pi23 = M_PI*Real(2)/Real(3);
+  double al = atan2(sqrt(fabs(c3*c3-c2*c2)),c2)/3.0;
+  double pi23 = M_PI*2.0/3.0;
 
   // Set principal values
 
-  p.x = b1 + c1*cos(al);
-  p.y = b1 + c1*cos(al-pi23);
-  p.z = b1 + c1*cos(al+pi23);
+  p.x = b1 + c1*Real(cos(al));
+  p.y = b1 + c1*Real(cos(al-pi23));
+  p.z = b1 + c1*Real(cos(al+pi23));
 
-  // Ensure that p.x >= p.y >= p.z
+  if (sorted)
+  {
+    // Ensure that p.x >= p.y >= p.z
+    if (p.x < p.y) std::swap(p.x,p.y);
+    if (p.y < p.z) std::swap(p.y,p.z);
+    if (p.x < p.y) std::swap(p.x,p.y);
+  }
 
-  if (p.x < p.y) std::swap(p.x,p.y);
-  if (p.y < p.z) std::swap(p.y,p.z);
-  if (p.x < p.y) std::swap(p.x,p.y);
+  return true;
+}
+
+
+/*!
+  This version is only for 3D tensors. It is a re-implementation of the
+  Fortran-77 subroutine EIGS3D from FENRIS by Kjell Magne Mathisen (2010).
+  The eigenvectors are stored as columns of the Tensor object \a pdir.
+  \note The computed eigenvalues are not necessarily sorted from largest
+  to the smallest (like for the LAPACK version).
+*/
+
+bool SymmTensor::principal (Vec3& p, Tensor& pdir) const
+{
+  if (n != 3) return false;
+
+  Vec3 d(v.data());   // Diagonal terms --> the eigenvalues
+  Vec3 a(v.data()+3); // Off-diagonal terms --> zeros
+  p = d;              // Initialize the eigenvalues
+  pdir.diag(Real(1)); // Initialize the eigenvectors to unity
+
+  // Check for the case of a diagonal tensor (no iterations necessary)
+
+  const int maxit = a.asum() < d.asum()*Real(1.0e-13) ? 0 : 50;
+
+  for (int iter = 0; iter < maxit; iter++)
+  {
+    // Set convergence test and threshold
+
+    Real sm = a.asum();
+    if (sm < Real(epsZ)) break;
+
+    Real thres = iter < 4 ? Real(0.011)*sm : Real(0);
+
+    // Perform sweeps for rotations
+
+    Vec3 z;
+    for (int i = 1; i < 3; i++)
+    {
+      int j = i%3 + 1;
+      int k = j%3 + 1;
+      Real aij = a(i);
+      Real g   = Real(100)*std::fabs(aij);
+
+      if (std::fabs(d(i))+g == std::fabs(d(i)) &&
+          std::fabs(d(j))+g == std::fabs(d(j)))
+
+        a(i) = Real(0);
+
+      else if (std::fabs(aij) > thres)
+      {
+        a(i) = Real(0);
+        Real h = d(j) - d(i);
+        double t = h / aij;
+        if (std::fabs(h)+g != std::fabs(h))
+          t = copysign(2.0,t)/(fabs(t) + sqrt(4.0+t*t));
+        else
+          t = 1.0/t;
+
+        // Set rotation parameters
+
+        double c = 1.0/sqrt(1.0+t*t);
+        Real s   = Real(t*c);
+        Real tau = s/Real(1.0+c);
+
+        // Rotate diagonal terms
+
+        h = Real(t)*aij;
+        z(i) -= h;
+        z(j) += h;
+        d(i) -= h;
+        d(j) += h;
+
+        // Rotate off-diagonal terms
+
+        h    = a(j);
+        g    = a(k);
+        a(j) = h + s*(g - h*tau);
+        a(k) = g - s*(h + g*tau);
+
+        // Rotate eigenvectors
+
+        for (k = 1; k <= 3; k++)
+        {
+          g = pdir(k,i);
+          h = pdir(k,j);
+          pdir(k,i) = g - s*(h + g*tau);
+          pdir(k,j) = h + s*(g - h*tau);
+        }
+      }
+    }
+
+    // Update diagonal terms
+
+    d = (p += z);
+  }
+
   return true;
 }
 

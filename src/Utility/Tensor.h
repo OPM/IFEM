@@ -263,7 +263,9 @@ public:
   //! \brief Returns the von Mises value of the symmetric tensor.
   Real vonMises(bool doSqrt = true) const;
   //! \brief Computes the principal values of the symmetric tensor.
-  bool principal(Vec3& p) const;
+  bool principal(Vec3& p, bool sorted = true) const;
+  //! \brief Computes the principal values and associated principal directions.
+  bool principal(Vec3& p, Tensor& pdir) const;
   //! \brief Computes the principal values and associated principal directions.
   bool principal(Vec3& p, Vec3* pdir, int ndir = 0) const;
   //! \brief Computes the principal values and associated principal directions.
