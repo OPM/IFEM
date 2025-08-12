@@ -130,6 +130,8 @@ protected:
   ScalarFunc() {}
 
 public:
+  //! \brief Returns the function value for the argument \a x.
+  Real eval(Real x) const { return this->evaluate(x); }
   //! \brief Returns the first-derivative of the function.
   virtual Real deriv(Real) const { return Real(0); }
 };
