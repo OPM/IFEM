@@ -93,6 +93,8 @@ namespace utl
 
   //! \brief Inverts the square matrix \b A.
   bool invert(Matrix& A);
+  //! \brief Solves the linear system of equations \f$ {\bf A x} = {\bf b} \f$.
+  bool solve(Matrix& A, RealArray& b, std::vector<int>* iPivot = nullptr);
 }
 
 #if HAS_CEREAL

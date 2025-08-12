@@ -182,3 +182,54 @@ bool utl::invert (Matrix& A)
 #endif
   return false;
 }
+
+
+/*!
+  If \a iPivot is null, the equation system is solved directly using DGESV
+  from LAPACK. Otherwise, the matrix \b A is first LU-factorized using DGETRF
+  (if iPivot[0] is zero), and then the equation system is solved using DGETRS.
+  Therefore, it is possible to invoke this method several times to solve for
+  more right-hand sides, if \b A and \a iPivot are retained between each call.
+*/
+
+bool utl::solve (Matrix& A, RealArray& b, std::vector<int>* iPivot)
+{
+#ifdef HAS_BLAS
+  if (sizeof(Real) != sizeof(double))
+  {
+    std::cerr <<" *** utl::solve: Available for double precision matrices"
+              <<" only."<< std::endl;
+    return false;
+  }
+
+  int N = A.rows(), M = A.cols();
+  int NRHS = b.size() / N;
+  if (N < 1 || NRHS < 1) return true; // Nothing to solve
+  if (N > M) return false; // More equations that unknowns
+
+  int INFO = 0;
+  if (iPivot)
+  {
+    if (iPivot->size() < A.rows()) return false; // Too small iPivot array
+    if (iPivot->front() == 0)
+      dgetrf_(N,M,A.ptr(),N,iPivot->data(),INFO);
+    if (INFO == 0)
+      dgetrs_('N',N,NRHS,A.ptr(),N,iPivot->data(),b.data(),N,INFO);
+  }
+  else
+  {
+    int* IPIV = (int*)alloca(N*sizeof(int));
+    dgesv_(N,NRHS,A.ptr(),N,IPIV,b.data(),N,INFO);
+  }
+  if (INFO == 0) return true;
+  std::cerr <<"LAPACK::DGETRF: ";
+  if (INFO < 0)
+    std::cerr <<"Invalid argument #"<< -INFO << std::endl;
+  else
+    std::cerr <<"Singular matrix, pivot "<< INFO
+              <<" (of total "<< N <<") is zero."<< std::endl;
+#else
+  std::cerr <<"DGETRS not available - linked without LAPack/BLAS"<< std::endl;
+#endif
+  return false;
+}
