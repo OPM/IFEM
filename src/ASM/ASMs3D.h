@@ -761,6 +761,15 @@ protected:
   void generateThreadGroups(size_t strip1, size_t strip2, size_t strip3,
                             bool silence, bool ignoreGlobalLM);
 
+  //! \brief Generates element groups for multi-threading of boundary integrals.
+  //! \param[in] strip1 Strip width in first direction
+  //! \param[in] strip2 Strip width in second direction
+  //! \param[in] strip3 Strip width in third direction
+  //! \param[in] lIndex Local index [1,6] of the boundary face
+  //! \param[in] silence If \e true, suppress threading group outprint
+  void generateThreadGroups(size_t strip1, size_t strip2, size_t strip3,
+                            char lIndex, bool silence, bool);
+
   //! \brief Hook for changing number of threads.
   virtual void changeNumThreads();
 
