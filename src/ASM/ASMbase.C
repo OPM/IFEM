@@ -1827,3 +1827,10 @@ bool ASMbase::isElementActive (int elmId, double time) const
   return std::find(myActiveEls->begin(),
                    myActiveEls->end(),elmId) != myActiveEls->end();
 }
+
+
+bool ASMbase::isElementInPartition (int iel) const
+{
+  return myElms.empty() ||
+         std::find(myElms.begin(), myElms.end(), iel) != myElms.end();
+}
