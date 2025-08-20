@@ -1271,17 +1271,31 @@ std::array<int,3> ASMs3Dmx::getMaxSplineOrder () const
 void ASMs3Dmx::generateThreadGroups (const Integrand& integrand, bool silence,
                                      bool ignoreGlobalLM)
 {
-  const std::array<int,3> p = getMaxSplineOrder();
-  this->ASMs3D::generateThreadGroups(p[0]-1, p[1]-1, p[2]-1,
-                                     silence, ignoreGlobalLM);
+  if (threadGroupsVol.stripDir == ThreadGroups::NONE)
+    threadGroupsVol.oneGroup(nel);
+  else
+  {
+    const std::array<int,3> p = this->getMaxSplineOrder();
+    this->ASMs3D::generateThreadGroups(p[0]-1, p[1]-1, p[2]-1,
+                                       silence, ignoreGlobalLM);
+  }
 }
 
 
 void ASMs3Dmx::generateThreadGroups (char lIndex, bool silence, bool)
 {
-  const std::array<int,3> p = getMaxSplineOrder();
-  this->ASMs3D::generateThreadGroups(p[0]-1, p[1]-1, p[2]-1,
-                                     lIndex,silence,false);
+  std::map<char,ThreadGroups>::iterator tit = threadGroupsFace.find(lIndex);
+  if (tit != threadGroupsFace.end())
+  {
+    if (tit->second.stripDir == ThreadGroups::NONE)
+      tit->second.oneGroup(nel);
+  }
+  else
+  {
+    const std::array<int,3> p = this->getMaxSplineOrder();
+    this->ASMs3D::generateThreadGroups(p[0]-1, p[1]-1, p[2]-1,
+                                       lIndex,silence,false);
+  }
 }
 
 

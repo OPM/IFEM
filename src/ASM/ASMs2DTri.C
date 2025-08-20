@@ -577,7 +577,11 @@ bool ASMs2DTri::evalSolution (Matrix&, const IntegrandBase&,
 
 void ASMs2DTri::generateThreadGroups (const Integrand&, bool, bool)
 {
-  threadGroups.calcGroups(nx-1,ny-1,1);
+  if (threadGroups.stripDir == ThreadGroups::NONE)
+    threadGroups.oneGroup(nel);
+  else
+    threadGroups.calcGroups(nx-1,ny-1,1);
+
 #if defined(USE_OPENMP) && SP_DEBUG > 1
   std::cout <<"\nThreading groups after triangularization:"<< std::endl;
 #endif

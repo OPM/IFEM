@@ -343,6 +343,8 @@ bool ASMs2DLag::integrate (Integrand& integrand,
         int iel = group[e];
         if (iel < 0 || iel >= static_cast<int>(nel))
         {
+          std::cerr <<" *** ASMs2DLag::integrate: Element index "<< iel
+                    <<" out of range [0,"<< nel <<">."<< std::endl;
           ok = false;
           break;
         }
@@ -369,6 +371,8 @@ bool ASMs2DLag::integrate (Integrand& integrand,
         const int nRed = fe.Xn.cols() < 4 ? 0 : cache.nGauss(true).front();
         if (!integrand.initElement(MNPC[iel],fe,X,nRed*nRed,*A))
         {
+          std::cerr <<" *** ASMs2DLag::integrate: Failed to initialize element "
+                    << iel <<" "<< fe.iel << std::endl;
           A->destruct();
           ok = false;
           break;
@@ -888,7 +892,11 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
 void ASMs2DLag::generateThreadGroups (const Integrand&, bool, bool)
 {
-  threadGroups.calcGroups((nx-1)/(p1-1),(ny-1)/(p2-1),1);
+  if (threadGroups.stripDir == ThreadGroups::NONE)
+    threadGroups.oneGroup(nel);
+  else
+    threadGroups.calcGroups((nx-1)/(p1-1),(ny-1)/(p2-1),1);
+
   projThreadGroups = threadGroups;
 }
 

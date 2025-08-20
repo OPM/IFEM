@@ -98,7 +98,7 @@ void LR::generateThreadGroups (ThreadGroups& threadGroups,
 {
   int nElement = lr->nElements();
 #ifdef USE_OPENMP
-  if (omp_get_max_threads() > 1)
+  if (omp_get_max_threads() > 1 && threadGroups.stripDir != ThreadGroups::NONE)
   {
     threadGroups[0].clear();
     threadGroups[1].clear();

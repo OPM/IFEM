@@ -370,6 +370,8 @@ bool ASMs3DLag::integrate (Integrand& integrand,
         int iel = group[e];
         if (iel < 0 || iel >= static_cast<int>(nel))
         {
+          std::cerr <<" *** ASMs3DLag::integrate: Element index "<< iel
+                    <<" out of range [0,"<< nel <<">."<< std::endl;
           ok = false;
           break;
         }
@@ -396,6 +398,8 @@ bool ASMs3DLag::integrate (Integrand& integrand,
         const int nRed = cache.nGauss(true).front();
         if (!integrand.initElement(MNPC[iel],fe,X,nRed*nRed*nRed,*A))
         {
+          std::cerr <<" *** ASMs3DLag::integrate: Failed to initialize element "
+                    << iel <<" "<< fe.iel << std::endl;
           A->destruct();
           ok = false;
           break;
@@ -1152,14 +1156,24 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
 void ASMs3DLag::generateThreadGroups (const Integrand&, bool, bool)
 {
-  threadGroupsVol.calcGroups((nx-1)/(p1-1),(ny-1)/(p2-1),(nz-1)/(p3-1),1);
+  if (threadGroupsVol.stripDir == ThreadGroups::NONE)
+    threadGroupsVol.oneGroup(nel);
+  else
+    threadGroupsVol.calcGroups((nx-1)/(p1-1),(ny-1)/(p2-1),(nz-1)/(p3-1),1);
+
   projThreadGroups = threadGroupsVol;
 }
 
 
 void ASMs3DLag::generateThreadGroups (char lIndex, bool, bool)
 {
-  if (threadGroupsFace.find(lIndex) != threadGroupsFace.end()) return;
+  std::map<char,ThreadGroups>::iterator tit = threadGroupsFace.find(lIndex);
+  if (tit != threadGroupsFace.end())
+  {
+    if (tit->second.stripDir == ThreadGroups::NONE)
+      tit->second.oneGroup(nel);
+    return;
+  }
 
   ThreadGroups& fGrp = threadGroupsFace[lIndex];
   switch (lIndex)

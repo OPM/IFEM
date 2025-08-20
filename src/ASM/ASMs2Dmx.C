@@ -1281,6 +1281,12 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 void ASMs2Dmx::generateThreadGroups (const Integrand& integrand, bool silence,
                                      bool ignoreGlobalLM)
 {
+  if (threadGroups.stripDir == ThreadGroups::NONE)
+  {
+    threadGroups.oneGroup(nel);
+    return;
+  }
+
   int p1 = 0, p2 = 0;
   for (const auto& it : m_basis) {
     if (it->order_u() > p1)
