@@ -1244,10 +1244,9 @@ bool ASMs3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 }
 
 
-void ASMs3Dmx::generateThreadGroups (const Integrand& integrand, bool silence,
-                                     bool ignoreGlobalLM)
+std::array<int,3> ASMs3Dmx::getMaxSplineOrder () const
 {
-  int p[3] = { 0, 0, 0 };
+  std::array<int,3> p{};
   for (const auto& it : m_basis)
     for (size_t d = 0; d < 3; d++)
       if (it->order(d) > p[d]) {
@@ -1256,8 +1255,24 @@ void ASMs3Dmx::generateThreadGroups (const Integrand& integrand, bool silence,
           p[d] += 1 + (p[d] % 2);
       }
 
+  return p;
+}
+
+
+void ASMs3Dmx::generateThreadGroups (const Integrand& integrand, bool silence,
+                                     bool ignoreGlobalLM)
+{
+  const std::array<int,3> p = getMaxSplineOrder();
   this->ASMs3D::generateThreadGroups(p[0]-1, p[1]-1, p[2]-1,
                                      silence, ignoreGlobalLM);
+}
+
+
+void ASMs3Dmx::generateThreadGroups (char lIndex, bool silence, bool)
+{
+  const std::array<int,3> p = getMaxSplineOrder();
+  this->ASMs3D::generateThreadGroups(p[0]-1, p[1]-1, p[2]-1,
+                                     lIndex,silence,false);
 }
 
 

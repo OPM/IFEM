@@ -3524,9 +3524,16 @@ void ASMs3D::generateThreadGroups (char lIndex, bool silence, bool)
   {
     if (tit->second.stripDir == ThreadGroups::NONE)
       tit->second.oneGroup(nel);
-    return;
   }
+  else
+    this->generateThreadGroups(svol->order(0)-1, svol->order(1)-1,
+                               svol->order(2)-1, lIndex, silence, false);
+}
 
+
+void ASMs3D::generateThreadGroups (size_t strip1, size_t strip2, size_t strip3,
+                                   char lIndex, bool silence, bool)
+{
   const int p1 = svol->order(0) - 1;
   const int p2 = svol->order(1) - 1;
   const int p3 = svol->order(2) - 1;
@@ -3557,14 +3564,14 @@ void ASMs3D::generateThreadGroups (char lIndex, bool silence, bool)
     {
     case 1:
     case 2:
-      fGrp.calcGroups(el2,el3,p2,p3);
+      fGrp.calcGroups(el2,el3,strip2,strip3);
       break;
     case 3:
     case 4:
-      fGrp.calcGroups(el1,el3,p1,p3);
+      fGrp.calcGroups(el1,el3,strip1,strip3);
       break;
     default:
-      fGrp.calcGroups(el1,el2,p1,p2);
+      fGrp.calcGroups(el1,el2,strip1,strip2);
     }
 
   // Find elements that are on the boundary face 'lIndex'

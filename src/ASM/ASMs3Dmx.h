@@ -204,6 +204,11 @@ public:
   virtual void generateThreadGroups(const Integrand& integrand, bool silence,
                                     bool ignoreGlobalLM);
 
+  //! \brief Generates element groups for multi-threading of boundary integrals.
+  //! \param[in] lIndex Local index [1,6] of the boundary face
+  //! \param[in] silence If \e true, suppress threading group outprint
+  virtual void generateThreadGroups(char lIndex, bool silence, bool);
+
   //! \brief Returns the number of nodal points in each parameter direction.
   //! \param[out] n1 Number of nodes in first (u) direction
   //! \param[out] n2 Number of nodes in second (v) direction
@@ -225,6 +230,9 @@ protected:
   //! \param[in] local If \e true return patch-local node numbers
   virtual void getBoundaryNodes(int lIndex, IntVec& nodes, int basis,
                                 int thick, int, bool local) const;
+
+  //! \brief Returns the maximum spline orders for thread groups calculations.
+  std::array<int,3> getMaxSplineOrder() const;
 
   std::vector<std::shared_ptr<Go::SplineVolume>> m_basis; //!< Vector of bases
 };
