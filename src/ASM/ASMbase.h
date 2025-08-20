@@ -335,6 +335,9 @@ public:
   void setActiveElements(IntVec* active) { myActiveEls = active; }
   //! \brief Returns \e true if element with global id \a elmId is active.
   bool isElementActive(int elmId, double time = -1.0) const;
+  //! \brief Returns \e true if element is in process partition.
+  //! \param iel Element id (0 based)
+  bool isElementInPartition(int iel) const;
 
   //! \brief Returns the nodal point correspondance array for an element.
   //! \param[in] iel 1-based element index local to current patch
