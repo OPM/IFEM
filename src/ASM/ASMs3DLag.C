@@ -987,7 +987,7 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const Vector& locSol,
                               int, int) const
 {
   if (!gpar && !regular) // Direct nodal evaluation
-    return this->nodalField(sField,locSol,this->getNoNodes(-1));
+    return this->nodalField(sField,locSol,nnod);
 
   size_t nCmp = locSol.size() / this->getNoProjectionNodes();
   size_t ni   = gpar ? gpar[0].size() : nel;

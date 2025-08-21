@@ -478,7 +478,7 @@ bool ASMs1DLag::evalSolution (Matrix& sField, const Vector& locSol,
                               const RealArray*, bool, int, int) const
 {
   // Direct nodal evaluation
-  return this->nodalField(sField,locSol,coord.size());
+  return this->nodalField(sField,locSol,nnod);
 }
 
 

@@ -725,6 +725,7 @@ bool SIMoutput::writeGlvBC (int& nBlock, int iStep) const
 
   Matrix field;
   std::array<IntVec,6> dID;
+  std::array<int,6> flag{};
 
   size_t j, n;
   int geomID = myGeomID;
@@ -735,14 +736,12 @@ bool SIMoutput::writeGlvBC (int& nBlock, int iStep) const
 
     ++geomID;
     size_t nbc = pch->getNoFields(1);
-    size_t nNodes = pch->getNoNodes(-1);
-    for (n = 2; n <= pch->getNoBasis(); n++)
-      nNodes -= pch->getNoNodes(n);
-    Vector bc(nbc*nNodes);
-    std::array<int,6> flag{0,0,0,0,0,0};
+    size_t nNod = pch->getNoNodes(1);
+    Vector bc(nbc*nNod);
+    flag.fill(0);
     ASMbase::BCVec::const_iterator bit;
     for (bit = pch->begin_BC(); bit != pch->end_BC(); ++bit)
-      if ((n = pch->getNodeIndex(bit->node,true)) && n <= nNodes)
+      if ((n = pch->getNodeIndex(bit->node,true)) && n <= nNod)
       {
         size_t offs = nbc*(n-1);
         if (!bit->CX && nbc > 0) bc[offs]   = flag[0] = 1;
