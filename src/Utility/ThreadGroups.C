@@ -38,12 +38,17 @@ void ThreadGroups::oneStripe (size_t nel)
 }
 
 
-void ThreadGroups::oneStripe (const std::vector<int>& elms)
+void ThreadGroups::oneStripe (size_t nel, const IntVec& elms)
 {
-  tg[0].resize(elms.size());
-  tg[1].resize(0);
-  for (size_t iel = 0; iel < elms.size(); ++iel)
-    tg[0][iel].resize(1,elms[iel]);
+  if (elms.empty())
+    this->oneStripe(nel);
+  else {
+    tg[0].resize(elms.size());
+    tg[1].resize(0);
+    if (elms.front() >= 0)
+      for (size_t iel = 0; iel < elms.size(); ++iel)
+        tg[0][iel].resize(1,elms[iel]);
+  }
 }
 
 

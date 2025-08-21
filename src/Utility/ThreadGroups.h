@@ -70,8 +70,9 @@ public:
   //! \param[in] nel Total number of elements
   void oneStripe(size_t nel);
   //! \brief Initializes the threading groups in case of a single stripe.
+  //! \param[in] nel Number of elements
   //! \param[in] elms Elements to include in stripe
-  void oneStripe(const std::vector<int>& elms);
+  void oneStripe(size_t nel, const IntVec& elms);
 
   //! \brief Maps a partitioning through a map.
   //! \details The original entry \a n in the group is mapped onto \a map[n].
