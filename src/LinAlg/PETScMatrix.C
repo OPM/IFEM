@@ -19,7 +19,7 @@
 #include <cassert>
 
 
-PETScVector::PETScVector(const ProcessAdm& padm) : adm(padm)
+PETScVector::PETScVector (const ProcessAdm& padm) : adm(padm)
 {
   VecCreate(*padm.getCommunicator(),&x);
   VecSetFromOptions(x);
@@ -27,7 +27,7 @@ PETScVector::PETScVector(const ProcessAdm& padm) : adm(padm)
 }
 
 
-PETScVector::PETScVector(const ProcessAdm& padm, size_t n)
+PETScVector::PETScVector (const ProcessAdm& padm, size_t n)
   : StdVector(n), adm(padm)
 {
   if (adm.isParallel())
@@ -40,7 +40,7 @@ PETScVector::PETScVector(const ProcessAdm& padm, size_t n)
 }
 
 
-PETScVector::PETScVector(const ProcessAdm& padm, const Real* values, size_t n)
+PETScVector::PETScVector (const ProcessAdm& padm, const Real* values, size_t n)
   : StdVector(values,n), adm(padm)
 {
   if (adm.isParallel())
@@ -53,7 +53,7 @@ PETScVector::PETScVector(const ProcessAdm& padm, const Real* values, size_t n)
 }
 
 
-PETScVector::PETScVector(const PETScVector& vec) :
+PETScVector::PETScVector (const PETScVector& vec) :
   StdVector(vec), adm(vec.adm)
 {
   VecDuplicate(vec.x,&x);
@@ -62,21 +62,21 @@ PETScVector::PETScVector(const PETScVector& vec) :
 }
 
 
-PETScVector::~PETScVector()
+PETScVector::~PETScVector ()
 {
   VecDestroy(&x);
   LinAlgInit::decrefs();
 }
 
 
-void PETScVector::init(Real value)
+void PETScVector::init (Real value)
 {
   StdVector::init(value);
   VecSet(x,value);
 }
 
 
-void PETScVector::redim(size_t n)
+void PETScVector::redim (size_t n)
 {
   VecDestroy(&x);
   VecCreate(*adm.getCommunicator(),&x);
@@ -86,7 +86,7 @@ void PETScVector::redim(size_t n)
 }
 
 
-bool PETScVector::endAssembly()
+bool PETScVector::endAssembly ()
 {
   // Poor man's assembleDirect
   if (!adm.isParallel() && adm.dd.getMaxDOF() == 0)
@@ -103,7 +103,7 @@ bool PETScVector::endAssembly()
 }
 
 
-Real PETScVector::L1norm() const
+Real PETScVector::L1norm () const
 {
   PetscReal val;
 
@@ -112,7 +112,7 @@ Real PETScVector::L1norm() const
 }
 
 
-Real PETScVector::L2norm() const
+Real PETScVector::L2norm () const
 {
   PetscReal val;
 
@@ -121,7 +121,7 @@ Real PETScVector::L2norm() const
 }
 
 
-Real PETScVector::Linfnorm() const
+Real PETScVector::Linfnorm () const
 {
   PetscReal val;
 
@@ -130,7 +130,7 @@ Real PETScVector::Linfnorm() const
 }
 
 
-PETScVectors::PETScVectors(Mat A, int size) :
+PETScVectors::PETScVectors (Mat A, int size) :
   myA(A)
 {
   PetscInt r, c;
@@ -142,7 +142,7 @@ PETScVectors::PETScVectors(Mat A, int size) :
 }
 
 
-PETScVectors::~PETScVectors()
+PETScVectors::~PETScVectors ()
 {
   for (Vec& v : vectors)
     VecDestroy(&v);
@@ -185,9 +185,9 @@ PETScMatrix::PETScMatrix (const ProcessAdm& padm, const LinSolParams& spar)
 }
 
 
-PETScMatrix::PETScMatrix(const ProcessAdm& padm, const PETScSolParams& spar,
-                         const SparseMatrix& A)
-    : SparseMatrix(A), nsp(nullptr), adm(padm), solParams(spar)
+PETScMatrix::PETScMatrix (const ProcessAdm& padm, const PETScSolParams& spar,
+                          const SparseMatrix& A)
+  : SparseMatrix(A), nsp(nullptr), adm(padm), solParams(spar)
 {
   // Create linear solver object
   KSPCreate(*adm.getCommunicator(),&ksp);
@@ -219,7 +219,7 @@ PETScMatrix::~PETScMatrix ()
 }
 
 
-SystemMatrix* PETScMatrix::copy() const
+SystemMatrix* PETScMatrix::copy () const
 {
   PETScMatrix* result = new PETScMatrix(this->adm, this->solParams,
                                         static_cast<const SparseMatrix&>(*this));
@@ -798,7 +798,7 @@ bool PETScMatrix::solve (const Vec& b, Vec& x, bool knoll)
 }
 
 
-bool PETScMatrix::assembleDirect()
+bool PETScMatrix::assembleDirect ()
 {
   MatSetSizes(pA, PETSC_DETERMINE, PETSC_DETERMINE, this->dim(1), this->dim(2));
 
@@ -829,7 +829,7 @@ bool PETScMatrix::assembleDirect()
 }
 
 
-bool PETScMatrix::solveDirect(PETScVector& B)
+bool PETScMatrix::solveDirect (PETScVector& B)
 {
   // the sparsity pattern has been grown in-place, we need to init PETsc state.
   // this is currently only used for patch-global L2 systems.
