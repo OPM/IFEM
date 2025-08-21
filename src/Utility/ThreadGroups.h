@@ -66,6 +66,10 @@ public:
   //! \brief Initializes the threading groups in case of no multi-threading.
   //! \param[in] nel Total number of elements
   void oneGroup(size_t nel);
+  //! \brief Initializes the threading groups for threadsafe integrands.
+  //! \param[in] nel Number of elements
+  //! \param[in] elms Elements to include in stripe
+  void oneGroup(size_t nel, const IntVec& elms);
   //! \brief Initializes the threading groups in case of a single stripe.
   //! \param[in] nel Total number of elements
   void oneStripe(size_t nel);

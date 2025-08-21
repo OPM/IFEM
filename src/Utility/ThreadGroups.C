@@ -29,6 +29,17 @@ void ThreadGroups::oneGroup (size_t nel)
 }
 
 
+void ThreadGroups::oneGroup (size_t nel, const IntVec& elms)
+{
+  if (elms.empty())
+    this->oneGroup(nel);
+  else {
+    tg[0].resize(1, elms.front() >= 0 ? elms : IntVec{});
+    tg[1].resize(0);
+  }
+}
+
+
 void ThreadGroups::oneStripe (size_t nel)
 {
   tg[0].resize(nel);
