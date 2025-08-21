@@ -481,7 +481,7 @@ TEST(TestThreadGroups, OneStripe)
   for (size_t i = 0; i < nel; i += 2)
     elms.push_back(i);
 
-  selected_elms.oneStripe(elms);
+  selected_elms.oneStripe(nel, elms);
 
   ASSERT_EQ(all_elms.size(), 1);
   ASSERT_EQ(all_elms[0].size(), nel);
