@@ -108,6 +108,11 @@ public:
   //! \brief Setup domain decomposition.
   bool setup(const ProcessAdm& adm, const SIMbase& sim);
 
+  //! \brief Setup domain decomposition.
+  bool setup(const ProcessAdm& adm,
+             const std::vector<std::vector<int>>& neighs,
+             const std::vector<std::vector<int>>& meqn);
+
   //! \brief Obtain local subdomains for an equation block.
   //! \param nx Number of domains in x
   //! \param ny Number of domains in y
