@@ -1232,7 +1232,83 @@ bool DomainDecomposition::setup (const ProcessAdm& adm, const SIMbase& sim)
 
   if (ok < adm.getNoProcs())
     return false;
+#endif
 
+  return true;
+}
+
+
+namespace {
+
+//! \brief Wrapper class used to perform partitioning of a matrix without a SAM.
+class SAMCB
+{
+public:
+  //! \brief Constructor.
+  //! \param meqn Matrix of element equations
+  explicit SAMCB(const IntMat& meqn) : m_meqn(meqn) {}
+
+  //! \brief Returns the maximum number of equations.
+  size_t getNoEquations() const
+  {
+    return std::accumulate(m_meqn.begin(), m_meqn.end(), 0,
+                          [](const int acc, const IntVec& meen)
+                          {
+                            const int max = *std::max_element(meen.begin(), meen.end());
+                            return std::max(acc, max);
+                          }) + 1;
+  }
+
+  //! \brief Finds the matrix of equation numbers for an element.
+  //! \param[out] meen Matrix of element equation numbers
+  //! \param[in] iel Identifier for the element to get the equation numbers for
+  //! \param[in] nedof Number of degrees of freedom in the element
+  //! (used for internal consistency checking, unless zero)
+  bool getElmEqns(IntVec& meen, int iel, size_t = 0) const
+  {
+    meen.resize(m_meqn[iel-1].size());
+    std::transform(m_meqn[iel-1].begin(), m_meqn[iel-1].end(), meen.begin(),
+                   [](const int i) { return i + 1; });
+    return true;
+  }
+
+private:
+  const IntMat& m_meqn; //!< Matrix of element equation numbers
+};
+
+}
+
+
+bool DomainDecomposition::setup (const ProcessAdm& adm,
+                                 const IntMat& neighs,
+                                 const IntMat& meqn)
+{
+  if (!this->graphPartition(adm, neighs))
+    return false;
+
+  calcGlobalEqNumbersPart(adm, SAMCB(meqn));
+
+#ifdef HAVE_MPI
+  if (!adm.isParallel())
+    return true;
+
+  std::vector<int> nEqs(blocks.size());
+  if (adm.getProcId() == adm.getNoProcs()-1)
+    for (size_t i = 0; i < blocks.size(); ++i)
+      nEqs[i] = getMaxEq(i);
+
+  MPI_Bcast(&nEqs[0], nEqs.size(), MPI_INT, adm.getNoProcs()-1,
+            *adm.getCommunicator());
+
+  for (size_t i = 0; i < blocks.size(); ++i)
+    blocks[i].nGlbEqs = nEqs[i];
+
+  IFEM::cout << "\n >>> Domain decomposition summary <<<"
+             << "\nNumber of domains     " << adm.getNoProcs();
+  IFEM::cout << "\nNumber of equations   " << nEqs[0] << " (" << getMaxEq()-getMinEq()+1 << " on process)";
+  for (size_t i = 1; i < blocks.size(); ++i)
+    IFEM::cout << "\n  Block " << i << "             " << nEqs[i]  << " (" << getMaxEq(i)-getMinEq(i)+1 << " on process)";
+  IFEM::cout << std::endl;
 #endif
 
   return true;
@@ -1339,6 +1415,7 @@ bool DomainDecomposition::graphPartition (const ProcessAdm& adm,
   Zoltan_Destroy(&zz);
 #else
   std::cerr << "*** DomainDecompositon::graphPartition: Compiled without Zoltan support. No partitioning available." << std::endl;
+  return false;
 #endif
 
   if (myElms.empty())
