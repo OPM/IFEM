@@ -160,8 +160,9 @@ public:
 
   //! \brief Calculates the matrix of element neighbour connectivities.
   //! \param[out] neighs List of element neighbors for each element
-  //! \param[in] local If \e true, return the local (patch-wise) element indices
-  virtual void getElmConnectivities(IntMat& neighs, bool local = false) const;
+  //! \param[in] basis Basis to obtain connectivities for
+  virtual void getElmConnectivities(IntMat& neighs,
+                                    int basis = ASM::INTEGRATION_BASIS) const;
 
   //! \brief Returns the matrix of nodal point correspondance for given basis.
   virtual IntMat getElmNodes(int basis) const;

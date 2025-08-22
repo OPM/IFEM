@@ -31,7 +31,7 @@ TEST(TestASMs3D, ElementConnectivities)
   pch1.shiftElemNumbers(nel);
   IntMat neighGlb(2*nel), neighLoc(nel);
   pch1.getElmConnectivities(neighGlb);
-  pch1.getElmConnectivities(neighLoc, true);
+  pch1.getElmConnectivities(neighLoc, ASM::GEOMETRY_BASIS);
   const std::array<std::vector<int>,8> ref = {{{-1,  1, -1,  2, -1,  4},
                                                { 0, -1, -1,  3, -1,  5},
                                                {-1,  3,  0, -1, -1,  6},

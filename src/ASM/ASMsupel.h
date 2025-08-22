@@ -80,7 +80,7 @@ public:
   //! \brief Dummy method doing nothing.
   virtual bool getParameterDomain(Real2DMat&, IntVec*) const { return false; }
   //! \brief Dummy method doing nothing.
-  virtual void getElmConnectivities(IntMat&, bool = false) const {}
+  virtual void getElmConnectivities(IntMat&, int) const {}
   //! \brief Dummy method doing nothing.
   virtual bool updateCoords(const Vector&) { return false; }
   //! \brief Dummy method doing nothing.

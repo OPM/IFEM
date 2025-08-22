@@ -3790,17 +3790,19 @@ size_t ASMs3D::getNoProjectionNodes () const
 }
 
 
-void ASMs3D::getElmConnectivities (IntMat& neigh, bool local) const
+void ASMs3D::getElmConnectivities (IntMat& neigh, int basis) const
 {
-  const int n1 = svol->numCoefs(0);
-  const int n2 = svol->numCoefs(1);
-  const int n3 = svol->numCoefs(2);
-  const int p1 = svol->order(0);
-  const int p2 = svol->order(1);
-  const int p3 = svol->order(2);
+  const Go::SplineVolume* vol = this->getBasis(basis);
+  const int n1 = vol->numCoefs(0);
+  const int n2 = vol->numCoefs(1);
+  const int n3 = vol->numCoefs(2);
+  const int p1 = vol->order(0);
+  const int p2 = vol->order(1);
+  const int p3 = vol->order(2);
   const int N1 = n1 - p1 + 1;
   const int N2 = n2 - p2 + 1;
 
+  const bool local = basis != ASM::INTEGRATION_BASIS;
   auto&& index = [&mlge = MLGE, local](int idx)
                  { return local ? idx : mlge[idx]-1; };
 
