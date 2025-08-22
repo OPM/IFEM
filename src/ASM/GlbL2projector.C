@@ -263,8 +263,6 @@ void GlbL2::allocate (size_t n)
   pA = new SparseMatrix(SparseMatrix::SUPERLU);
   pB = new StdVector(n*nrhs);
   static_cast<SparseMatrix*>(pA)->redim(n,n);
-
-  pA->redim(n,n);
 }
 
 
@@ -383,8 +381,8 @@ void GlbL2::preAssemble (const IntMat& MMNPC, size_t nel)
 
 bool GlbL2::solve (Matrix& sField)
 {
-  SparseMatrix& A = *pA;
-  StdVector&    B = *pB;
+  SparseMatrix& A = static_cast<SparseMatrix&>(*pA);
+  StdVector&    B = static_cast<StdVector&>(*pB);
 
   // Insert a 1.0 value on the diagonal for equations with no contributions.
   // Needed in immersed boundary calculations with "totally outside" elements.
@@ -508,28 +506,48 @@ bool ASMbase::globalL2projection (Matrix& sField,
 
   PROFILE2("ASMbase::globalL2");
 
+#ifdef HAS_PETSC
+  ProcessAdm singleAdm;
+  const bool isPart = integrand.getAdm().dd.isPartitioned();
+  const ProcessAdm& adm = isPart ? integrand.getAdm() : singleAdm;
+#endif
+
   // Assemble the projection matrices
-  size_t i, nnod = this->getNoProjectionNodes();
+  size_t i, npnod = this->getNoProjectionNodes();
   size_t j, ncomp = integrand.dim();
   SystemMatrix* A;
-  StdVector* B;
+  SystemVector* B;
   switch (GlbL2::MatrixType) {
   case LinAlg::UMFPACK:
-    A = new SparseMatrix(SparseMatrix::UMFPACK);
-    B = new StdVector(nnod*ncomp);
+    A = new SparseMatrix(npnod,npnod,SparseMatrix::UMFPACK);
+    B = new StdVector(npnod*ncomp);
     break;
 #ifdef HAS_PETSC
   case LinAlg::PETSC:
     if (GlbL2::SolverParams)
     {
-      A = new PETScMatrix(ProcessAdm(), *GlbL2::SolverParams);
-      B = new PETScVector(ProcessAdm(), nnod*ncomp);
+      PETScMatrix* Ap;
+      A = Ap = new PETScMatrix(adm, *GlbL2::SolverParams);
+
+      const IntMat nodes = this->getElmNodes(ASM::PROJECTION_BASIS);
+      const bool useAdmPart = this->neighbors.empty() &&
+                              nodes.size() == nel;
+
+      IntMat neighs;
+      if (adm.dd.isPartitioned() && !useAdmPart && adm.getProcId() == 0) {
+        neighs.resize(nodes.size());
+        this->getElmConnectivities(neighs, ASM::PROJECTION_BASIS);
+      }
+      Ap->init(npnod, &nodes, &neighs, useAdmPart ? &adm.dd.getElms() : nullptr);
+      if (adm.dd.isPartitioned())
+        const_cast<ASMbase*>(this)->generateProjThreadGroupsFromElms(Ap->getDD().getElms());
+      B = new PETScVectors(static_cast<PETScMatrix&>(*A), ncomp);
       break;
     }
 #endif
   default:
-    A = new SparseMatrix(nnod,nnod,SparseMatrix::SUPERLU);
-    B = new StdVector(nnod*ncomp);
+    A = new SparseMatrix(npnod,npnod,SparseMatrix::SUPERLU);
+    B = new StdVector(npnod*ncomp);
   }
 
   if (!this->assembleL2matrices(*A,*B,integrand,continuous))
@@ -539,6 +557,9 @@ bool ASMbase::globalL2projection (Matrix& sField,
     return false;
   }
 
+  A->endAssembly();
+  B->endAssembly();
+
 #if SP_DEBUG > 1
   std::cout <<"---- Matrix A -----\n"<< *A
             <<"-------------------"<< std::endl;
@@ -546,19 +567,36 @@ bool ASMbase::globalL2projection (Matrix& sField,
             <<"-------------------"<< std::endl;
 #endif
 
-  // Solve the patch-global equation system
-  if (!A->solve(*B))
-  {
-    delete A;
-    delete B;
-    return false;
-  }
 
-  // Store the control-point values of the projected field
-  sField.resize(ncomp,nnod);
-  for (i = 1; i <= nnod; i++)
-    for (j = 1; j <= ncomp; j++)
-      sField(j,i) = (*B)(i+(j-1)*nnod);
+#ifdef HAS_PETSC
+  if (GlbL2::MatrixType == LinAlg::PETSC) {
+    PETScVectors& Bp = static_cast<PETScVectors&>(*B);
+    sField.resize(ncomp, npnod);
+    if (!static_cast<PETScMatrix*>(A)->solveMultipleRhs(Bp, sField))
+    {
+      delete A;
+      delete B;
+      return false;
+    }
+  }
+  else
+#endif
+  {
+    // Solve the patch-global equation system
+    if (!A->solve(*B))
+    {
+      delete A;
+      delete B;
+      return false;
+    }
+
+    // Store the control-point values of the projected field
+    const StdVector& stdB = dynamic_cast<const StdVector&>(*B);
+    sField.resize(ncomp,npnod);
+    for (i = 1; i <= npnod; i++)
+      for (j = 1; j <= ncomp; j++)
+        sField(j,i) = stdB(i+(j-1)*npnod);
+  }
 
 #if SP_DEBUG > 1
   std::cout <<"- Solution Vector -"<< sField
