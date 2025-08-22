@@ -14,6 +14,7 @@
 #ifndef _ASM_BASE_H
 #define _ASM_BASE_H
 
+#include "ASMenums.h"
 #include "MatVec.h"
 #include "MPCLess.h"
 #include <map>
@@ -397,9 +398,9 @@ public:
 
   //! \brief Calculates the matrix of element neighbour connectivities.
   //! \param[out] neighs List of element neighbors for each element
-  //! \param[in] local If \e true, return the local (patch-wise) element indices
+  //! \param[in] basis Basis to get connectivities for
   virtual void getElmConnectivities(IntMat& neighs,
-                                    bool local = false) const = 0;
+                                    int basis = ASM::INTEGRATION_BASIS) const = 0;
 
   //! \brief Returns the matrix of nodal point correspondance for given basis.
   virtual IntMat getElmNodes(int) const { return MNPC; }

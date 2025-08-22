@@ -2355,9 +2355,10 @@ bool ASMu3D::refine (const LR::RefineData& prm, Vectors& sol)
 }
 
 
-void ASMu3D::getElmConnectivities (IntMat& neigh, bool local) const
+void ASMu3D::getElmConnectivities (IntMat& neigh, int basis) const
 {
-  const LR::LRSplineVolume* lr = this->getBasis(ASM::INTEGRATION_BASIS);
+  const LR::LRSplineVolume* lr = this->getBasis(basis);
+  const bool local = basis != ASM::INTEGRATION_BASIS;
   for (const LR::Element* m : lr->getAllElements()) {
     int iel = m->getId();
     IntVec& neighbor = local ? neigh[iel] : neigh[MLGE[iel]-1];

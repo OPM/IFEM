@@ -274,7 +274,7 @@ TEST(TestASMu2D, ElementConnectivities)
   pch1.shiftElemNumbers(nel);
   IntMat neighGlb(2*nel), neighLoc(nel);
   pch1.getElmConnectivities(neighGlb);
-  pch1.getElmConnectivities(neighLoc, true);
+  pch1.getElmConnectivities(neighLoc, ASM::GEOMETRY_BASIS);
   const std::array<std::vector<int>,4> ref = {{{1, 2},
                                                {0, 3},
                                                {3, 0},

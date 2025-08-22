@@ -1977,8 +1977,9 @@ Fields* ASMs1D::getProjectedFields (const Vector& coefs, size_t) const
 }
 
 
-void ASMs1D::getElmConnectivities (IntMat& neigh, bool local) const
+void ASMs1D::getElmConnectivities (IntMat& neigh, int basis) const
 {
+  const bool local = basis != ASM::INTEGRATION_BASIS;
   auto&& index = [&mlge = MLGE, local](int idx)
                  { return local ? idx : mlge[idx]-1; };
 

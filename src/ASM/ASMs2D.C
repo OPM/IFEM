@@ -3246,13 +3246,16 @@ size_t ASMs2D::getNoProjectionNodes () const
 }
 
 
-void ASMs2D::getElmConnectivities (IntMat& neigh, bool local) const
+void ASMs2D::getElmConnectivities (IntMat& neigh, int basis) const
 {
-  const int n1 = surf->numCoefs_u();
-  const int n2 = surf->numCoefs_v();
-  const int p1 = surf->order_u();
-  const int p2 = surf->order_v();
+  const Go::SplineSurface* srf = this->getBasis(basis);
+  const int n1 = srf->numCoefs_u();
+  const int n2 = srf->numCoefs_v();
+  const int p1 = srf->order_u();
+  const int p2 = srf->order_v();
   const int N1 = n1 - p1 + 1;
+
+  const bool local = basis != ASM::INTEGRATION_BASIS;
 
   auto&& index = [&mlge = MLGE, local](int idx)
                  { return local ? idx : mlge[idx]-1; };

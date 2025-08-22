@@ -154,7 +154,7 @@ TEST(TestASMs1D, ElementConnectivities)
   pch1.shiftElmNumbers(nel);
   IntMat neighGlb(nel*2), neighLoc(nel);
   pch1.getElmConnectivities(neighGlb);
-  pch1.getElmConnectivities(neighLoc, true);
+  pch1.getElmConnectivities(neighLoc, ASM::GEOMETRY_BASIS);
   ASSERT_EQ(neighLoc.size(), nel);
   ASSERT_EQ(neighGlb.size(), 2*nel);
   for (size_t n = 0; n < neighLoc.size(); ++n) {
