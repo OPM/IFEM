@@ -89,7 +89,7 @@ OrientIterator::OrientIterator (const ASMbase* pch,
       dim1 = n1, dim2 = n2;
 
     nodes.resize(dim1*dim2);
-    typedef std::function<std::pair<int,int>(int dim1, int dim2, int n)> NodeOrder;
+    using NodeOrder = std::function<std::pair<int,int>(int dim1, int dim2, int n)>;
 #define PAIR(x, y) [](int dim1, int dim2, int n) { return std::make_pair(x,y); }
     const std::vector<NodeOrder> orders  = {PAIR(n*dim1,              1),  // 0 1 2 3 4 5 6 7 8
                                             PAIR((dim2-n-1)*dim1,     1),  // 6 7 8 3 4 5 0 1 2
@@ -148,7 +148,7 @@ OrientIterator::OrientIterator (const ASMbase* pch, int orient, int lIdx)
       dim1 = n1, dim2 = n2;
 
     nodes.resize(dim1*dim2);
-    typedef std::function<std::pair<int,int>(int dim1, int dim2, int n)> NodeOrder;
+    using NodeOrder = std::function<std::pair<int,int>(int dim1, int dim2, int n)>;
 #define PAIR(x, y) [](int dim1, int dim2, int n) { return std::make_pair(x,y); }
     const std::vector<NodeOrder> orders  = {PAIR(n*dim1,              1),  // 0 1 2 3 4 5 6 7 8
                                             PAIR((dim2-n-1)*dim1,     1),  // 6 7 8 3 4 5 0 1 2
@@ -206,7 +206,7 @@ static void getNumEdges (void* mesh, int sizeGID, int sizeLID,
 {
   const IntMat& neigh = *static_cast<const IntMat*>(mesh);
   int* ne = numEdges;
-  for (const std::vector<int>& n : neigh)
+  for (const IntVec& n : neigh)
     *ne++ = std::accumulate(n.begin(), n.end(), 0,
                             [](const int& a, const int& b)
                             {
@@ -225,7 +225,7 @@ static void getEdges (void* mesh, int sizeGID, int sizeLID, int numCells,
   const IntMat& neigh = *static_cast<const IntMat*>(mesh);
 
   memset(nborProc, 0, numCells*sizeof(int));
-  for (const std::vector<int>& elm : neigh)
+  for (const IntVec& elm : neigh)
     for (int n : elm)
       if (n != -1)
         *nborGID++ = n;
@@ -320,9 +320,10 @@ DomainDecomposition::getSubdomains (int nx, int ny, int nz,
 }
 
 
-std::vector<std::vector<int>>
-DomainDecomposition::calcSubdomains (size_t nel1, size_t nel2, size_t nel3,
-                                     size_t g1, size_t g2, size_t g3, size_t overlap)
+IntMat
+DomainDecomposition::calcSubdomains(size_t nel1, size_t nel2, size_t nel3,
+                                    size_t g1, size_t g2, size_t g3,
+                                    size_t overlap)
 {
   if (nel3 > 0)
     return calcSubdomains3D(nel1, nel2, nel3, g1, g2, g3, overlap);
@@ -333,10 +334,10 @@ DomainDecomposition::calcSubdomains (size_t nel1, size_t nel2, size_t nel3,
 }
 
 
-std::vector<IntVec>
+IntMat
 DomainDecomposition::calcSubdomains1D (size_t nel1, size_t g1, size_t overlap)
 {
-  std::vector<IntVec> subdomains;
+  IntMat subdomains;
 
   if (g1 == 1)
   {
@@ -363,11 +364,11 @@ DomainDecomposition::calcSubdomains1D (size_t nel1, size_t g1, size_t overlap)
 }
 
 
-std::vector<IntVec>
+IntMat
 DomainDecomposition::calcSubdomains2D (size_t nel1, size_t nel2,
                                        size_t g1, size_t g2, size_t overlap)
 {
-  std::vector<IntVec> subdomains;
+  IntMat subdomains;
 
   if (g1*g2 == 1)
   {
@@ -404,11 +405,12 @@ DomainDecomposition::calcSubdomains2D (size_t nel1, size_t nel2,
 }
 
 
-std::vector<IntVec>
+IntMat
 DomainDecomposition::calcSubdomains3D (size_t nel1, size_t nel2, size_t nel3,
-                                       size_t g1, size_t g2, size_t g3, size_t overlap)
+                                       size_t g1, size_t g2, size_t g3,
+                                       size_t overlap)
 {
-  std::vector<IntVec> subdomains;
+  IntMat subdomains;
 
   if (g1*g2*g3 == 1)
   {
@@ -456,7 +458,8 @@ DomainDecomposition::calcSubdomains3D (size_t nel1, size_t nel2, size_t nel3,
 void DomainDecomposition::setupNodeNumbers (int basis, IntVec& lNodes,
                                             std::set<int>& cbasis,
                                             const ASMbase* pch,
-                                            int dim, int lidx, int thick, int orient)
+                                            int dim, int lidx,
+                                            int thick, int orient)
 {
   if (!pch)
     return;
@@ -516,7 +519,7 @@ bool DomainDecomposition::calcGlobalNodeNumbers (const ProcessAdm& adm,
 
   IFEM::cout << "\tEstablishing global node numbers" << std::endl;
 
-  std::vector<int> locLMs, glbLMs;
+  IntVec locLMs, glbLMs;
   for (size_t n = 1; n <= sim.getPatch(1)->getNoNodes(); ++n) {
     if (sim.getPatch(1)->getLMType(n) == 'G')
       locLMs.push_back(n);
@@ -621,7 +624,7 @@ bool DomainDecomposition::calcGlobalNodeNumbers (const ProcessAdm& adm,
       continue;
 
     std::set<int> cbasis;
-    std::vector<int> glbNodes;
+    IntVec glbNodes;
     setupNodeNumbers(it.basis, glbNodes, cbasis, sim.getPatch(midx),
                      it.dim, it.midx, it.thick, it.orient);
 
@@ -638,14 +641,14 @@ bool DomainDecomposition::calcGlobalNodeNumbers (const ProcessAdm& adm,
 
 
 #ifdef HAVE_MPI
-std::vector<int>
+IntVec
 DomainDecomposition::setupEquationNumbers (const SIMbase& sim,
                                            int pidx, int lidx,
                                            const std::set<int>& cbasis,
                                            int dim, int thick, int orient)
 {
-  std::vector<IntVec> lNodes(sim.getPatch(pidx)->getNoBasis());
-  std::vector<int> result;
+  IntMat lNodes(sim.getPatch(pidx)->getNoBasis());
+  IntVec result;
 
   for (size_t block = 0; block < blocks.size(); ++block) {
     std::set<int> bases;
@@ -711,14 +714,14 @@ bool DomainDecomposition::calcGlobalEqNumbers (const ProcessAdm& adm,
 
   IFEM::cout << "\tEstablishing global equation numbers" << std::endl;
 
-  std::vector<int> locLMs;
+  IntVec locLMs;
   for (size_t n = 1; n <= sim.getPatch(1)->getNoNodes(); ++n) {
     if (sim.getPatch(1)->getLMType(n) == 'G')
       locLMs.push_back(n);
   }
-  std::vector<int> glbLMs;
-  std::vector<int> blkLMs;
-  std::vector<int> nEqs(blocks.size());
+  IntVec glbLMs;
+  IntVec blkLMs;
+  IntVec nEqs(blocks.size());
   if (adm.getProcId() > 0) {
     adm.receive(nEqs, adm.getProcId()-1);
     int nLMs;
@@ -870,13 +873,13 @@ bool DomainDecomposition::calcGlobalEqNumbers (const ProcessAdm& adm,
   }
 
   if (adm.getProcId() < adm.getNoProcs()-1) {
-    std::vector<int> maxEqs;
+    IntVec maxEqs;
     for (auto& it : blocks)
       maxEqs.push_back(it.maxEq);
 
     adm.send(maxEqs, adm.getProcId()+1);
 
-    std::vector<int> LM;
+    IntVec LM;
     size_t nMult = 0;
     for (int node : locLMs) {
       // TODO: > 1 dof for multipliers
@@ -997,16 +1000,16 @@ bool DomainDecomposition::sanityCheckCorners (const SIMbase& sim)
   if (!adm.isParallel())
     return true;
 
-  std::vector<int> sizes(adm.getNoProcs());
+  IntVec sizes(adm.getNoProcs());
   for (int i = 1; i <= sim.getNoPatches(); ++i)
     sizes[adm.dd.getPatchOwner(i)] += 5*sim.getPatch(1)->getNoBasis() *
                                       pow(2,sim.getNoSpaceDim());
 
-  std::vector<int> displ(adm.getNoProcs());
+  IntVec displ(adm.getNoProcs());
   for (int i = 1; i < adm.getNoProcs(); ++i)
     displ[i] = displ[i-1] + sizes[i-1];
 
-  std::vector<double> loc_data;
+  RealArray loc_data;
   for (int i = 1; i <= sim.getNoPatches(); ++i) {
     int pIdx;
     if ((pIdx=sim.getLocalPatchIndex(i)) > 0) {
@@ -1040,7 +1043,7 @@ bool DomainDecomposition::sanityCheckCorners (const SIMbase& sim)
     }
   }
 
-  std::vector<double> glob_data(displ.back()+sizes.back());
+  RealArray glob_data(displ.back()+sizes.back());
   MPI_Allgatherv(loc_data.data(), loc_data.size(), MPI_DOUBLE,
                  glob_data.data(), sizes.data(), displ.data(), MPI_DOUBLE,
                  *adm.getCommunicator());
@@ -1197,7 +1200,7 @@ bool DomainDecomposition::setup (const ProcessAdm& adm, const SIMbase& sim)
   if (!adm.isParallel())
     return true;
 
-  std::vector<int> nEqs(blocks.size());
+  IntVec nEqs(blocks.size());
   if (adm.getProcId() == adm.getNoProcs()-1)
     for (size_t i = 0; i < blocks.size(); ++i)
       nEqs[i] = getMaxEq(i);
@@ -1292,7 +1295,7 @@ bool DomainDecomposition::setup (const ProcessAdm& adm,
   if (!adm.isParallel())
     return true;
 
-  std::vector<int> nEqs(blocks.size());
+  IntVec nEqs(blocks.size());
   if (adm.getProcId() == adm.getNoProcs()-1)
     for (size_t i = 0; i < blocks.size(); ++i)
       nEqs[i] = getMaxEq(i);
