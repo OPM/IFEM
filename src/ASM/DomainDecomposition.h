@@ -26,6 +26,9 @@ class ProcessAdm;
 class SAMpatch;
 class SIMbase;
 
+using IntVec = std::vector<int>; //!< Convenience type alias
+using IntMat = std::vector<IntVec>; //!< Convenience type alias
+
 
 /*!
   \brief Class containing domain decomposition related partitioning.
@@ -52,15 +55,15 @@ public:
     OrientIterator(const ASMbase* pch, int orient, int lIdx);
 
     //! \brief Obtain start of node numbers.
-    std::vector<int>::const_iterator begin() { return nodes.begin(); }
+    IntVec::const_iterator begin() { return nodes.begin(); }
     //! \brief Obtain end of node numbers.
-    std::vector<int>::const_iterator end() { return nodes.end(); }
+    IntVec::const_iterator end() { return nodes.end(); }
     //! \brief Obtain number of nodes
     size_t size() const { return nodes.size(); }
 
   protected:
     //! \brief Node number on boundary.
-    std::vector<int> nodes;
+    IntVec nodes;
   };
 
   //! \brief Functor to order ghost connections.
@@ -100,18 +103,21 @@ public:
       const DomainDecomposition& dd; //!< Domain decomposition holding patch owner data
   };
 
-  std::set<ASM::Interface, SlaveOrder> ghostConnections; //!< Connections to other processes.
+  std::set<ASM::Interface, SlaveOrder> ghostConnections; //!< Connections to other processes
 
   //! \brief Default constructor.
   DomainDecomposition() : ghostConnections(SlaveOrder(*this)), blocks(1) {}
 
   //! \brief Setup domain decomposition.
+  //! \param[in] adm Process administrator to setup dd across
+  //! \param[in] sim Simulator with model to partition
   bool setup(const ProcessAdm& adm, const SIMbase& sim);
 
   //! \brief Setup domain decomposition.
-  bool setup(const ProcessAdm& adm,
-             const std::vector<std::vector<int>>& neighs,
-             const std::vector<std::vector<int>>& meqn);
+  //! \param[in] adm Process administrator to setup dd across
+  //! \param[in] neighs Element connection graph for model
+  //! \param[in] meqn Matrix of element equation numbers
+  bool setup(const ProcessAdm& adm, const IntMat& neighs, const IntMat& meqn);
 
   //! \brief Obtain local subdomains for an equation block.
   //! \param nx Number of domains in x
@@ -120,7 +126,8 @@ public:
   //! \param overlap Overlap
   //! \param block Block to obtain equations for
   //! \return Vector with equations on each subdomain
-  std::vector<std::set<int>> getSubdomains(int nx, int ny, int nz, int overlap, size_t block) const;
+  std::vector<std::set<int>>
+  getSubdomains(int nx, int ny, int nz, int overlap, size_t block) const;
 
   //! \brief Calculates subdomains with a given overlap.
   //! \param[in] nel1 Number of knot-spans in first parameter direction.
@@ -131,8 +138,8 @@ public:
   //! \param[in] g3 Number of subdomains in third parameter direction.
   //! \param[in] overlap Overlap of subdomains.
   //! \details nel values determine the dimensionality.
-  static std::vector<std::vector<int>> calcSubdomains(size_t nel1, size_t nel2, size_t nel3,
-                                                      size_t g1, size_t g2, size_t g3, size_t overlap);
+  static IntMat calcSubdomains(size_t nel1, size_t nel2, size_t nel3,
+                               size_t g1, size_t g2, size_t g3, size_t overlap);
 
   //! \brief Get first equation owned by this process.
   int getMinEq(size_t idx = 0) const { return blocks[idx].minEq; }
@@ -161,18 +168,21 @@ public:
   int getGlobalEq(int lEq, size_t idx=0) const;
 
   //! \brief Obtain local-to-global equation mapping.
-  const std::vector<int>& getMLGEQ(size_t idx = 0) const { return blocks[idx].MLGEQ; }
+  const IntVec& getMLGEQ(size_t idx = 0) const
+  { return blocks[idx].MLGEQ; }
 
   //! \brief Obtain local-to-global equation mapping.
   //! \param idx Block equation index (global block not included).
-  const std::set<int>& getBlockEqs(size_t idx) const { return blocks[idx+1].localEqs; }
+  const std::set<int>& getBlockEqs(size_t idx) const
+  { return blocks[idx+1].localEqs; }
 
   //! \brief Obtain global-to-local equation mapping.
   //! \param idx Block equation index
-  const std::map<int,int>& getG2LEQ(size_t idx) const { return blocks[idx].G2LEQ; }
+  const std::map<int,int>& getG2LEQ(size_t idx) const
+  { return blocks[idx].G2LEQ; }
 
   //! \brief Obtain local-to-global node mapping.
-  const std::vector<int>& getMLGN() const { return MLGN; }
+  const IntVec& getMLGN() const { return MLGN; }
 
   //! \brief Returns associated SAM
   const SAMpatch* getSAM() const { return sam; }
@@ -184,10 +194,10 @@ public:
   bool isPartitioned() const { return !myElms.empty(); }
 
   //! \brief Returns elements in partition.
-  const std::vector<int>& getElms() const { return myElms; }
+  const IntVec& getElms() const { return myElms; }
 
   //! \brief Set elements in partition.
-  void setElms(const std::vector<int>& elms, const std::string& save)
+  void setElms(const IntVec& elms, const std::string& save)
   { myElms = elms; savePart = save; }
 
   //! \brief Clear out partitioning information.
@@ -198,7 +208,7 @@ private:
   //! \param[in] nel1 Number of knot-spans in first parameter direction.
   //! \param[in] g1 Number of subdomains in first parameter direction.
   //! \param[in] overlap Overlap of subdomains.
-  static std::vector<std::vector<int>> calcSubdomains1D(size_t nel1, size_t g1, size_t overlap);
+ static IntMat calcSubdomains1D(size_t nel1, size_t g1, size_t overlap);
 
   //! \brief Calculates 2D subdomains with a given overlap.
   //! \param[in] nel1 Number of knot-spans in first parameter direction.
@@ -206,8 +216,8 @@ private:
   //! \param[in] g1 Number of subdomains in first parameter direction.
   //! \param[in] g2 Number of subdomains in second parameter direction.
   //! \param[in] overlap Overlap of subdomains.
-  static std::vector<std::vector<int>> calcSubdomains2D(size_t nel1, size_t nel2,
-                                                        size_t g1, size_t g2, size_t overlap);
+  static IntMat calcSubdomains2D(size_t nel1, size_t nel2,
+                                 size_t g1, size_t g2, size_t overlap);
 
   //! \brief Calculates 3D subdomains with a given overlap.
   //! \param[in] nel1 Number of knot-spans in first parameter direction.
@@ -217,9 +227,9 @@ private:
   //! \param[in] g2 Number of subdomains in second parameter direction.
   //! \param[in] g3 Number of subdomains in third parameter direction.
   //! \param[in] overlap Overlap of subdomains.
-  static std::vector<std::vector<int>> calcSubdomains3D(size_t nel1, size_t nel2, size_t nel3,
-                                                        size_t g1, size_t g2, size_t g3, size_t overlap);
-
+  static IntMat calcSubdomains3D(size_t nel1, size_t nel2, size_t nel3,
+                                 size_t g1, size_t g2, size_t g3,
+                                 size_t overlap);
 
 #ifdef HAVE_MPI
   //! \brief Setup equation numbers for all blocks on a boundary.
@@ -230,10 +240,10 @@ private:
   //! \param dim Dimension of boundary
   //! \param thick Thickness of connection (subdivisions)
   //! \param orient Orientation of boundary (needed for unstructured)
-  std::vector<int> setupEquationNumbers(const SIMbase& sim,
-                                        int pidx, int lidx,
-                                        const std::set<int>& cbasis,
-                                        int dim, int thick, int orient = 0);
+  IntVec setupEquationNumbers(const SIMbase& sim,
+                              int pidx, int lidx,
+                              const std::set<int>& cbasis,
+                              int dim, int thick, int orient = 0);
 
   //! \brief Setup node numbers for all bases on a boundary.
   //! \param basis Bases to grab nodes for
@@ -244,7 +254,7 @@ private:
   //! \param lidx Local index of boundary to obtain nodes for
   //! \param thick Thickness of connection (subdivisions)
   //! \param orient Orientation of boundary (needed for unstructured)
-  void setupNodeNumbers(int basis, std::vector<int>& lNodes,
+  void setupNodeNumbers(int basis, IntVec& lNodes,
                         std::set<int>& cbasis,
                         const ASMbase* pch,
                         int dim, int lidx, int thick, int orient = 0);
@@ -253,7 +263,7 @@ private:
   //! \brief Calculate the global node numbers for given finite element model.
   bool calcGlobalNodeNumbers(const ProcessAdm& adm, const SIMbase& sim);
 
-  //! \brief Calculate the global equation numbers for given finite element model.
+  //! \brief Calculate the global equation numbers for an element model.
   bool calcGlobalEqNumbers(const ProcessAdm& adm, const SIMbase& sim);
 
   //! \brief Calculate the global equation numbers for a partitioned model.
@@ -266,8 +276,7 @@ private:
   bool sanityCheckCorners(const SIMbase& sim);
 
   //! \brief Setup domain decomposition based on graph partitioning.
-  bool graphPartition(const ProcessAdm& adm,
-                      const std::vector<std::vector<int>>& neigh);
+  bool graphPartition(const ProcessAdm& adm, const IntMat& neigh);
 
   std::map<int,int> patchOwner; //!< Process that owns a particular patch
 
@@ -275,7 +284,7 @@ private:
   struct BlockInfo {
     int basis;      //!< Bases for block
     int components; //!< Components in block
-    std::vector<int> MLGEQ; //!< Process-local-to-global equation numbers for block.
+    IntVec MLGEQ; //!< Process-local-to-global equation numbers for block.
     int minEq; //!< First equation we own in block.
     int maxEq; //!< Last equation we own in block.
     int nGlbEqs; //!< Total matrix size
@@ -283,9 +292,9 @@ private:
     std::map<int,int> G2LEQ; //!< Maps from local total matrix index to local block index
   };
 
-  std::vector<int> MLGN; //!< Process-local-to-global node numbers
+  IntVec MLGN; //!< Process-local-to-global node numbers
   std::vector<BlockInfo> blocks; //!< Equation mappings for all matrix blocks.
-  std::vector<int> myElms; //!< Elements in partition
+  IntVec myElms; //!< Elements in partition
   int minDof = 0; //!< First DOF we own
   int maxDof = 0; //!< Last DOF we own
   int minNode = 0; //!< First node we own
@@ -293,7 +302,7 @@ private:
 
   const SAMpatch* sam = nullptr; //!< The assembly handler the DD is constructed for.
 
-  std::string savePart; //!< \e true to save partitioning to file
+  std::string savePart; //!< Non-empty to save partitioning to file
 };
 
 #endif
