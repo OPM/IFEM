@@ -14,6 +14,8 @@
 #include "SIMoptions.h"
 #include "Utilities.h"
 #include "IFEM.h"
+#include "GlbL2projector.h"
+
 #include "tinyxml2.h"
 #ifdef HAVE_MPI
 #include <mpi.h>
@@ -409,6 +411,8 @@ utl::LogStream& SIMoptions::print (utl::LogStream& os, bool addBlankLine) const
   if (addBlankLine) os <<"\n";
 
   os <<"\nEquation solver: "<< solver;
+  if (GlbL2::MatrixType != LinAlg::SPARSE)
+    os <<"\nL2 projection equation solver: "<< GlbL2::MatrixType;
 
   if (eig > 0)
     os <<"\nEigenproblem solver: "<< eig
