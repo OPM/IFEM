@@ -150,13 +150,13 @@ SparseMatrix::SparseMatrix (SparseSolver eqSolver, int nt)
 }
 
 
-SparseMatrix::SparseMatrix (size_t m, size_t n)
+SparseMatrix::SparseMatrix (size_t m, size_t n, SparseSolver eqSolver)
 {
   editable = 'P';
   factored = false;
   nrow = m;
   ncol = n > 0 ? n : m;
-  solver = NONE;
+  solver = eqSolver;
   numThreads = 0;
   slu = nullptr;
   umfSymbolic = nullptr;
