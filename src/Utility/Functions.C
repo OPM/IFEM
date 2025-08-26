@@ -1107,7 +1107,10 @@ TractionFunc* utl::parseTracFunc (const std::string& func,
   RealFunc* f = nullptr;
   if (!func.empty())
   {
-    if (type == "constant" || func.find_first_of("\t ") == std::string::npos)
+    if (type == "linear")
+      f = parseRealFunc(func,type);
+    else if (type == "constant" ||
+             func.find_first_of("\t ") == std::string::npos)
       IFEM::cout <<": "<< (p = atof(func.c_str()));
     else
       f = parseRealFunc(func,type);
