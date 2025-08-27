@@ -86,14 +86,14 @@ bool SIMmultiCpl::parseConnection (const tinyxml2::XMLElement* elem)
 }
 
 
-bool SIMmultiCpl::preprocess (const std::vector<int>& ignored, bool fixDup)
+bool SIMmultiCpl::preprocessC (const IntVec& ignored, bool fixDup, double time0)
 {
   // Preprocess the FE model of each sub-simulator
-  std::vector<int> empty;
+  IntVec empty;
   int nOffset = 0, pOffset = 0;
   std::map<SIMinput*,int> nSubNodes, nSubPatch;
   for (SIMoutput* sim : mySims)
-    if (sim->preprocess(nOffset == 0 ? ignored : empty, fixDup))
+    if (sim->preprocessC(nOffset == 0 ? ignored : empty, fixDup, time0))
     {
       nSubNodes[sim] = nOffset;
       nSubPatch[sim] = pOffset;
@@ -111,7 +111,7 @@ bool SIMmultiCpl::preprocess (const std::vector<int>& ignored, bool fixDup)
   std::map<int,int> cplNodes;
   for (const SIMcoupling& cpl : myCpl)
   {
-    std::vector<int> mNodes, sNodes;
+    IntVec mNodes, sNodes;
     cpl.mstSim->getTopItemNodes(*cpl.master,mNodes);
     cpl.slvSim->getTopItemNodes(*cpl.slave,sNodes);
     for (int& n : mNodes) n += nSubNodes[cpl.mstSim];

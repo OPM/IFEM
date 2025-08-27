@@ -101,9 +101,8 @@ public:
   //! \brief Performs some pre-processing tasks on the FE model.
   //! \param[in] ignored Indices of patches to ignore in the analysis
   //! \param[in] fixDup Merge duplicated FE nodes on patch interfaces?
-  //! \return Total number of unique FE nodes in the model
-  virtual bool preprocess(const std::vector<int>& ignored = std::vector<int>(),
-                          bool fixDup = false);
+  //! \param[in] time0 Initial time for time-dependent dirichlet conditions
+  virtual bool preprocessC(const IntVec& ignored, bool fixDup, double time0);
 
   //! \brief Merges the global equation system of \a that simulator with this.
   //! \param that The simulator whose equation system is to be merged
@@ -219,22 +218,22 @@ public:
   //! \brief Returns the process-local node number from a global node number.
   int getLocalNode(int node) const;
   //! \brief Finds the Matrix of Nodal Point Correspondance for element \a iel.
-  bool getElmNodes(std::vector<int>& mnpc, int iel) const;
+  bool getElmNodes(IntVec& mnpc, int iel) const;
   //! \brief Obtain element-element connectivities
-  virtual std::vector<std::vector<int>> getElmConnectivities() const = 0;
+  virtual std::vector<IntVec> getElmConnectivities() const = 0;
 
   //! \brief Finds the list of global nodes associated with a boundary.
   //! \param[in] pcode Property code identifying the boundary
   //! \param[out] glbNodes Global node numbers on the boundary
   //! \param[out] XYZ Spatial coordinates of the boundary nodes (optional)
-  void getBoundaryNodes(int pcode, std::vector<int>& glbNodes,
+  void getBoundaryNodes(int pcode, IntVec& glbNodes,
                         std::vector<Vec3>* XYZ = nullptr) const;
 
   //! \brief Finds the node that is closest to the given point \b X.
   int findClosestNode(const Vec3&) const;
 
   //! \brief Returns a predefined node set.
-  std::vector<int> getNodeSet(const std::string& setName) const;
+  IntVec getNodeSet(const std::string& setName) const;
 
   //! \brief Initializes time-dependent in-homogeneous Dirichlet coefficients.
   //! \param[in] time Current time
@@ -727,7 +726,7 @@ public:
   void dumpSolVec(const Vector& x,bool isExpanded = true, bool expOnly = false);
 
   //! \brief Prints out nodal reaction forces to the log stream.
-  virtual int printNRforces(const std::vector<int>& = {}) const { return 0; }
+  virtual int printNRforces(const IntVec& = {}) const { return 0; }
 
 protected:
   //! \brief Returns the multi-dimension simulator sequence flag.
@@ -775,8 +774,7 @@ private:
   //! \brief Returns an extraordinary MADOF array.
   //! \param[in] basis The basis to specify number of DOFs for
   //! \param[in] nndof Number of nodal DOFs on the given basis
-  const std::vector<int>& getMADOF(unsigned char basis,
-                                   unsigned char nndof) const;
+  const IntVec& getMADOF(unsigned char basis, unsigned char nndof) const;
 
 public:
   static bool ignoreDirichlet; //!< Set to \e true for free vibration analysis
@@ -840,8 +838,8 @@ protected:
 
   // Parallel computing attributes
   int               nGlPatches; //!< Number of global patches
-  std::vector<int>  myPatches;  //!< Global patch numbers for current processor
-  std::vector<int>  myLoc2Glb;  //!< Local-to-global node number mapping
+  IntVec            myPatches;  //!< Global patch numbers for current processor
+  IntVec            myLoc2Glb;  //!< Local-to-global node number mapping
   std::map<int,int> myGlb2Loc;  //!< Global-to-local node number mapping
   const std::map<int,int>* g2l; //!< Pointer to global-to-local node mapping
   std::map<int,int> myDegenElm; //!< Degenerated elements mapping
@@ -859,7 +857,7 @@ private:
   char   mdFlag; //!< Sequence flag for multi-dimensional simulators
 
   //! Additional MADOF arrays with varying DOF counts per node
-  mutable std::map<int,std::vector<int>> extraMADOFs;
+  mutable std::map<int,IntVec> extraMADOFs;
 
   mutable double extEnergy;  //!< Path integral of external forces
   mutable Vector prevForces; //!< Reaction forces of previous time step

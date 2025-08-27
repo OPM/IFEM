@@ -80,9 +80,9 @@ public:
   virtual bool parse(const tinyxml2::XMLElement* elem);
 
   //! \brief Performs some pre-processing tasks on the FE model.
-  //! \param[in] ignored Indices of patches to ignore in the analysis
+  //! \param[in] ignored Indices of patches to be ignored in the analysis
   //! \param[in] fixDup Merge duplicated FE nodes on patch interfaces?
-  virtual bool preprocess(const std::vector<int>& ignored, bool fixDup);
+  virtual bool preprocessC(const IntVec& ignored, bool fixDup, double time0);
 
 protected:
   //! \brief Assembles and solves the linear FE equation system.
