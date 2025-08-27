@@ -192,7 +192,7 @@ void printNodalConnectivity (const ASMVec& model, std::ostream& os)
 #endif
 
 
-bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
+bool SIMbase::preprocessC (const IntVec& ignored, bool fixDup, double time0)
 {
   if (myModel.empty())
     return true; // Empty simulator, nothing to preprocess
@@ -359,7 +359,7 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
     ASMbase::resolveMPCchains(allMPCs,myModel,timeDependent);
 
   // Set initial values for the inhomogeneous dirichlet conditions, if any
-  if (timeDependent && !this->initDirichlet())
+  if (timeDependent && !this->initDirichlet(time0))
     return false;
 
   // Generate element groups for multi-threading

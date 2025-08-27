@@ -38,9 +38,9 @@ bool AdaptiveSIM::parse (char* keyWord, std::istream& is)
 }
 
 
-bool AdaptiveSIM::preprocess (const std::vector<int>& ignored, bool fixDup)
+bool AdaptiveSIM::preprocessC (const IntVec& ignored, bool fixDup, double time0)
 {
-  return model.preprocess(ignored,fixDup);
+  return model.preprocessC(ignored,fixDup,time0);
 }
 
 

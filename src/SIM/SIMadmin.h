@@ -31,6 +31,8 @@
 class SIMadmin : public XMLInputBase
 {
 protected:
+  using IntVec = std::vector<int>; //!< Convenience alias
+
   //! \brief The default constructor initializes the process administrator.
   explicit SIMadmin(const char* heading = nullptr);
   //! \brief Copy constructor.
@@ -49,7 +51,13 @@ public:
   virtual bool parse(const tinyxml2::XMLElement* elem);
 
   //! \brief Performs some pre-processing tasks on the FE model.
-  virtual bool preprocess(const std::vector<int>&, bool) { return false; }
+  virtual bool preprocess(const IntVec& ignored = {}, bool fixDup = false)
+  {
+    return this->preprocessC(ignored,fixDup);
+  }
+
+  //! \brief Performs some pre-processing tasks on the FE model.
+  virtual bool preprocessC(const IntVec&, bool, double = 0.0) { return false; }
 
   //! \brief Returns the parallel process administrator.
   const ProcessAdm& getProcessAdm() const { return adm; }
