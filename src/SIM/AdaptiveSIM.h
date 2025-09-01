@@ -82,6 +82,7 @@ public:
   //! \brief Performs some pre-processing tasks on the FE model.
   //! \param[in] ignored Indices of patches to be ignored in the analysis
   //! \param[in] fixDup Merge duplicated FE nodes on patch interfaces?
+  //! \param[in] time0 Initial time for time-dependent dirichlet conditions
   virtual bool preprocessC(const IntVec& ignored, bool fixDup, double time0);
 
 protected:
