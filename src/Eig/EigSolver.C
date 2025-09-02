@@ -14,11 +14,12 @@
 #include "EigSolver.h"
 #include "DenseMatrix.h"
 #include "SPRMatrix.h"
-
 #ifdef HAS_PETSC
 #include "ProcessAdm.h"
 #include "PETScMatrix.h"
 #endif
+#include "Profiler.h"
+#include "IFEM.h"
 
 #if defined(_WIN32) && !defined(__MINGW32__) && !defined(__MINGW64__)
 #define eig_av_   EIG_AV
@@ -91,6 +92,14 @@ static SystemMatrix* K  = nullptr; //!< Pointer to coefficient matrix A
 static SystemMatrix* M  = nullptr; //!< Pointer to coefficient matrix B
 static SystemMatrix* AM = nullptr; //!< Pointer to the matrix to invert
 
+static int iverb = -1; //!< Arnoldi iteration counter (for verbose print)
+
+
+namespace eig
+{
+  bool verbose = false; //!< If \e true, print out some Arnoldi iteration info
+}
+
 
 int eig::solve (SystemMatrix* A, SystemMatrix* B,
                 Vector& eigVal, Matrix& eigVec, int nev, int iop, double shift)
@@ -136,6 +145,8 @@ bool eig::solve (SystemMatrix* A, SystemMatrix* B,
   eigVal.resize(2*ncv);
   eigVec.resize(n,ncv);
   double* work = new double[nwork];
+
+  iverb = verbose ? 0 : -1;
 
   switch (mode) {
   case 1:
@@ -192,6 +203,11 @@ static void _eig_ax(const SystemMatrix* A, const double* x, double* y)
 {
   if (!A) return;
 
+  PROFILE1("eig::y=A*x");
+
+  if (iverb >= 0)
+    IFEM::cout <<"  ** Arnoldi iteration "<< ++iverb <<": y = A*x"<< std::endl;
+
 #if HAS_PETSC
   const PETScMatrix* pA = dynamic_cast<const PETScMatrix*>(A);
   if (pA) {
@@ -225,9 +241,9 @@ static void _eig_ax(const SystemMatrix* A, const double* x, double* y)
 
     if (pA->getAdm().isParallel())
       VecDestroy(&py);
-
     VecDestroy(&pX);
     VecDestroy(&pY);
+
     return;
   }
 #endif
@@ -252,6 +268,12 @@ extern "C" void eig_sol_(const double* x, double* y, int& ierr)
 {
   ierr = -99;
   if (!AM) return;
+
+  PROFILE1("eig::solve(A*y=x)");
+
+  if (iverb >= 0)
+    IFEM::cout <<"  ** Arnoldi iteration "<< ++iverb
+               <<": Solving A*y = x"<< std::endl;
 
 #ifdef HAS_PETSC
   const PETScMatrix* pA = dynamic_cast<const PETScMatrix*>(AM);

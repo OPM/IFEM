@@ -26,6 +26,8 @@
 #include <fstream>
 #include <functional>
 
+namespace eig { extern bool verbose; }
+
 
 SIMoptions::SIMoptions ()
 {
@@ -354,7 +356,11 @@ bool SIMoptions::parseOldOptions (int argc, char** argv, int& i)
   else if (!strcmp(argv[i],"-restartInc") && i < argc-1)
     restartInc = atoi(argv[++i]);
   else if (!strcmp(argv[i],"-eig") && i < argc-1)
+  {
     eig = atoi(argv[++i]);
+    if (i < argc-1 && (eig::verbose = !strcmp(argv[i+1],"verbose")))
+      ++i;
+  }
   else if (!strcmp(argv[i],"-nev") && i < argc-1)
     nev = atoi(argv[++i]);
   else if (!strcmp(argv[i],"-ncv") && i < argc-1)
