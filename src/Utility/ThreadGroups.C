@@ -12,11 +12,33 @@
 //==============================================================================
 
 #include "ThreadGroups.h"
+#include "IFEM.h"
+
 #include <algorithm>
+#include <limits>
 #include <numeric>
 #include <iostream>
 #ifdef USE_OPENMP
 #include <omp.h>
+#endif
+
+
+#if defined(USE_OPENMP) && SP_DEBUG > 1
+namespace
+{
+  //! \brief Prints out a threading group definition.
+  void printGroup (const std::vector< std::vector<int> >& group, int g)
+  {
+    std::cout <<"group "<< g;
+    for (size_t t = 0; t < group.size(); t++)
+    {
+      std::cout <<"\n\t thread "<< t <<" ("<< group[t].size() <<"):";
+      for (int e : group[t])
+        std::cout <<" "<< e;
+    }
+    std::cout << std::endl;
+  }
+}
 #endif
 
 
@@ -465,18 +487,6 @@ void ThreadGroups::applyMap (const IntVec& map)
 }
 
 
-void ThreadGroups::printGroup (const IntMat& group, int g)
-{
-  std::cout <<"group "<< g;
-  for (size_t t = 0; t < group.size(); t++)
-  {
-    std::cout <<"\n\t thread "<< t <<" ("<< group[t].size() <<"):";
-    for (int e : group[t]) std::cout <<" "<< e;
-  }
-  std::cout << std::endl;
-}
-
-
 ThreadGroups ThreadGroups::filter (const IntVec& elmList) const
 {
   ThreadGroups filtered;
@@ -491,4 +501,30 @@ ThreadGroups ThreadGroups::filter (const IntVec& elmList) const
   }
 
   return filtered;
+}
+
+
+void ThreadGroups::analyzeUnstruct (bool listAllSizes) const
+{
+  size_t num = tg[0].size();
+  size_t min = std::numeric_limits<size_t>::max() - 1;
+  size_t max = 0;
+  std::vector<size_t> sizes;
+  sizes.reserve(num);
+  for (const IntVec& group : tg[0]) {
+    min = std::min(group.size(),min);
+    max = std::max(group.size(),max);
+    sizes.push_back(group.size());
+  }
+  size_t half = num / 2;
+  size_t totl = std::accumulate(sizes.begin(), sizes.end(), 0u);
+  std::nth_element(sizes.begin(), sizes.begin()+half, sizes.end());
+  IFEM::cout <<"\nElements are divided into "<< num <<" colors "
+             <<"(min = "<< min <<", max = "<< max
+             <<", avg = "<< static_cast<double>(totl) / static_cast<double>(num)
+             <<", med = "<< sizes[half] <<").";
+  if (listAllSizes)
+    for (size_t i = 0; i < tg[0].size(); i++)
+      IFEM::cout << (i%10 ? ' ' : '\n') << tg[0][i].size();
+  IFEM::cout << std::endl;
 }

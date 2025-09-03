@@ -2661,7 +2661,7 @@ void ASMu2D::generateThreadGroups (const Integrand& integrand, bool silence,
                << threadGroups[0][i].size() <<" elements";
   IFEM::cout << std::endl;
 #else
-  this->analyzeThreadGroups(threadGroups[0]);
+  threadGroups.analyzeUnstruct();
 #endif
 }
 

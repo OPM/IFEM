@@ -94,6 +94,9 @@ public:
   //! \brief Filters current threading groups through a white-list of elements.
   ThreadGroups filter(const IntVec& elmList) const;
 
+  //! \brief Analyze and print thread group statistics for unstructured ASMs.
+  void analyzeUnstruct(bool listAllSizes = false) const;
+
 protected:
   //! \brief Calculates the parameter direction of the treading stripes in 2D.
   static StripDirection getStripDirection(int nel1, int nel2,
@@ -101,9 +104,6 @@ protected:
   //! \brief Calculates the parameter direction of the treading stripes in 3D.
   static StripDirection getStripDirection(int nel1, int nel2, int nel3,
                                           int parts);
-
-  //! \brief Prints out a threading group definition.
-  static void printGroup(const IntMat& group, int g);
 
 public:
   StripDirection stripDir; //!< Actual direction to split elements
