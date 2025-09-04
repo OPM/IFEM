@@ -3478,8 +3478,11 @@ void ASMs3D::generateThreadGroups (size_t strip1, size_t strip2, size_t strip3,
                                    bool silence, bool ignoreGlobalLM)
 {
   //! \brief Lamda for setting up thread groups for a basis.
-  auto&& genThreadGroups = [strip1, strip2, strip3](ThreadGroups& tg,
-                                                    const Go::SplineVolume* svol)
+  auto&& genThreadGroups = [](ThreadGroups& tg,
+                              const Go::SplineVolume* svol,
+                              const size_t strip1,
+                              const size_t strip2,
+                              const size_t strip3)
   {
     const int p1 = svol->order(0) - 1;
     const int p2 = svol->order(1) - 1;
@@ -3504,10 +3507,19 @@ void ASMs3D::generateThreadGroups (size_t strip1, size_t strip2, size_t strip3,
     tg.calcGroups(el1,el2,el3,strip1,strip2,strip3);
   };
 
-  genThreadGroups(threadGroupsVol, svol.get());
-  genThreadGroups(projThreadGroups, this->getBasis(ASM::PROJECTION_BASIS));
-  if (this->getBasis(ASM::PROJECTION_BASIS_2))
-    genThreadGroups(proj2ThreadGroups, this->getBasis(ASM::PROJECTION_BASIS_2));
+  genThreadGroups(threadGroupsVol, svol.get(), strip1, strip2, strip3);
+  if (this->separateProjectionBasis()) {
+    const Go::SplineVolume* vol = this->getBasis(ASM::PROJECTION_BASIS);
+    genThreadGroups(projThreadGroups, vol,
+                    vol->order(0)-1, vol->order(1)-1, vol->order(2)-1);
+  } else {
+    projThreadGroups = threadGroupsVol;
+  }
+  if (this->getBasis(ASM::PROJECTION_BASIS_2)) {
+    const Go::SplineVolume* vol = this->getBasis(ASM::PROJECTION_BASIS_2);
+    genThreadGroups(proj2ThreadGroups, vol,
+                    vol->order(0)-1, vol->order(1)-1, vol->order(2)-1);
+  }
   if (silence || threadGroupsVol.size() < 2) return;
 
   IFEM::cout <<"\nMultiple threads are utilized during element assembly.";
