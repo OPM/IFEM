@@ -14,6 +14,33 @@
 
 #include "gtest/gtest.h"
 
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
+
+namespace {
+
+class SparseMatrixTest : public SparseMatrix
+{
+public:
+  explicit SparseMatrixTest(size_t m, size_t n = 0, SparseSolver eqsolver = NONE)
+    : SparseMatrix(m, n, eqsolver), sol(eqsolver)
+  {}
+
+  void optimize()
+  {
+    if (sol == SUPERLU || sol == UMFPACK)
+      this->optimiseCols();
+    else if (sol == S_A_M_G)
+      this->optimiseRows();
+  }
+
+private:
+  SparseSolver sol; //!< Which equation solver to use
+};
+
+}
+
 
 TEST(TestSparseMatrix, CalcCSR)
 {
@@ -108,3 +135,54 @@ TEST(TestSparseMatrix, split)
   EXPECT_EQ(aVec(6),0.0);
   EXPECT_EQ(aVec(7),0.0);
 }
+
+class TestSparseMatrix : public testing::Test,
+                         public testing::WithParamInterface<SparseMatrix::SparseSolver>
+{
+};
+
+
+TEST_P(TestSparseMatrix, MxV)
+{
+  constexpr size_t size = 10;
+  SparseMatrixTest A(size, size, GetParam());
+  StdVector x(size);
+  StdVector y(size);
+
+  for (size_t i = 1; i <= size; ++i) {
+    if (i > 1)
+      A(i, i-1) = 1.0;
+    A(i, i) = -4.0;
+    if (i < size)
+      A(i, i+1) = 2.0;
+    x(i) = i;
+  }
+
+  auto checkVec = [&y]()
+  {
+    for (size_t i = 1; i <= size; ++i)
+      EXPECT_DOUBLE_EQ(y(i), (i > 1 ? i-1 : 0.0) -
+                             (4.0 * i) +
+                             (i < size ? 2.0*(i+1) : 0.0));
+  };
+
+  A.multiply(x, y);
+  checkVec();
+
+  A.optimize();
+
+#ifdef USE_OPENMP
+  omp_set_num_threads(1);
+#endif
+  A.multiply(x, y);
+  checkVec();
+
+#ifdef USE_OPENMP
+  omp_set_num_threads(2);
+  A.multiply(x, y);
+  checkVec();
+#endif
+}
+
+INSTANTIATE_TEST_SUITE_P(TestSparseMatrix, TestSparseMatrix,
+                         testing::Values(SparseMatrix::SUPERLU, SparseMatrix::S_A_M_G));
