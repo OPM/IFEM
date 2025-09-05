@@ -41,15 +41,6 @@ public:
   //! \brief Creates topology sets for geometry.
   virtual bool createTopologySets(SIMinput& sim) const;
 
-  //! \brief Generates knot vectors for subdivision.
-  //! \param[in] cur Univariate patch to extract subpatch from
-  //! \param[in] startu Index in source knot vector
-  //! \param[in] numcoefsu Number of DOFs (include overlap DOFs)
-  //! \param[in] orderu Polynomial order ("p+1")
-  static Go::SplineCurve getSubPatch(const Go::SplineCurve* cur,
-                                     const size_t startu,
-                                     const size_t numcoefsu, const int orderu);
-
 protected:
   //! \brief Generates the G2 description of the geometry.
   virtual std::string createG2(int nsd, bool rational = false) const;
@@ -57,7 +48,6 @@ protected:
 private:
   size_t nx; //!< Number of blocks in x
   int periodic_x; //!< If non-zero, make model periodic in x for given bases
-  bool subdivision; //!< Use patch-subdivision and not multiple blocks.
 };
 
 
@@ -82,16 +72,6 @@ public:
   //! \brief Creates topology sets for geometry.
   virtual bool createTopologySets(SIMinput& sim) const;
 
-  //! \brief Generates knot vectors for subdivision.
-  //! \param[in] srf Bivariate patch to extract subpatch from
-  //! \param[in] start Index in source knot vectors
-  //! \param[in] numcoefs Number of DOFs
-  //! \param[in] order Polynomial order
-  static Go::SplineSurface getSubPatch(const Go::SplineSurface* srf,
-                                       const std::array<size_t,2>& start,
-                                       const std::array<size_t,2>& numcoefs,
-                                       const std::array<size_t,2>& order);
-
 protected:
   //! \brief Generates the G2 description of the geometry.
   virtual std::string createG2(int nsd, bool rational = false) const;
@@ -101,7 +81,6 @@ private:
   size_t ny; //!< Number of blocks in y
   int periodic_x; //!< If non-zero, make model periodic in x for given bases
   int periodic_y; //!< If non-zero, make model periodic in y for given bases
-  bool subdivision; //!< Use patch-subdivision and not multiple blocks.
 };
 
 
@@ -126,16 +105,6 @@ public:
   //! \brief Creates topology sets for geometry.
   virtual bool createTopologySets(SIMinput& sim) const;
 
-  //! \brief Generates knot vectors for subdivision.
-  //! \param[in] vol Trivariate patch to extract subpatch from
-  //! \param[in] start Index in source knot vector in each direction
-  //! \param[in] numcoefs Number of DOFs in each direction (include overlap DOFs)
-  //! \param[in] order Polynomial order in each direction ("p+1")
-  static Go::SplineVolume getSubPatch(const Go::SplineVolume* vol,
-                                      const std::array<size_t,3>& start,
-                                      const std::array<size_t,3>& numcoefs,
-                                      const std::array<size_t,3>& order);
-
 protected:
   //! \brief Generates the G2 description of the geometry.
   virtual std::string createG2(int, bool rational = false) const;
@@ -147,7 +116,6 @@ private:
   int periodic_x; //!< If non-zero, make model periodic in x for given bases
   int periodic_y; //!< If non-zero, make model periodic in y for given bases
   int periodic_z; //!< If non-zero, make model periodic in z for given bases
-  bool subdivision; //!< Use patch-subdivision and not multiple blocks.
 };
 
 #endif

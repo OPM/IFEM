@@ -36,12 +36,6 @@ IFEM_add_test_app("${APPCOMMON_TEST_SRCS}"
                   ${PROJECT_SOURCE_DIR}/Test
                   AppCommon 0
                   IFEMAppCommon ${IFEM_LIBRARIES})
-if(MPI_FOUND)
-  set(TEST_SRCS_MPI ${PROJECT_SOURCE_DIR}/Test/MPI/TestMultiPatchModelGenerator.C)
-  ifem_add_test_app(${TEST_SRCS_MPI} ${IFEM_PATH}/Apps/Common AppCommon-MPI 4
-                    IFEMAppCommon ${IFEM_LIBRARIES} ${IFEM_DEPLIBS})
-  list(APPEND TEST_APPS AppCommon-MPI-test)
-endif()
 
 set(TEST_APPS ${TEST_APPS} PARENT_SCOPE)
 set(UNIT_TEST_NUMBER ${UNIT_TEST_NUMBER} PARENT_SCOPE)

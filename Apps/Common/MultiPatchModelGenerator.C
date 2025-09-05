@@ -39,7 +39,7 @@ std::string MultiPatchModelGenerator1D::createG2 (int nsd, bool rational) const
   Lx *= scale;
 
   int nx_mp = 1;
-  if (!subdivision && nx > 1) {
+  if (nx > 1) {
     IFEM::cout <<"\n\tSplit in X = "<< nx;
 
     Lx /= nx;
@@ -86,65 +86,7 @@ bool MultiPatchModelGenerator1D::createGeometry (SIMinput& sim) const
   utl::getAttribute(geo,"rational",rational);
   std::istringstream line(this->createG2(sim.getNoSpaceDim(),rational));
 
-  if (!subdivision)
-    return sim.readPatches(line,"\t");
-
-  // for now this consists of a single patch. do refine / raiseorder
-  // to obtain knot vector, then split in pieces. written this way
-  // so code can be used with .g2 files.
-
-  IFEM::cout << "  Subdivision in X: " << nx << std::endl;
-  ASMs1D pch;
-  pch.read(line);
-
-  // Parse XML input
-  const tinyxml2::XMLElement* sub = geo->FirstChildElement("subdivision")->FirstChildElement();
-  for (; sub; sub = sub->NextSiblingElement())
-    if (strcasecmp(sub->Value(),"raiseorder") == 0) {
-      int nu;
-      utl::getAttribute(sub,"u",nu);
-      pch.raiseOrder(nu);
-    } else if (strcasecmp(sub->Value(),"refine") == 0) {
-      int nu;
-      utl::getAttribute(sub,"u",nu);
-      pch.uniformRefine(nu);
-    }
-
-  // Compute parameters
-  const Go::SplineCurve* cur = pch.getCurve();
-  size_t p = cur->order() - 1;
-  size_t nelems = cur->numCoefs() - p;
-  size_t nelems_sub = nelems / nx;
-  size_t nelems_rem = nelems % nx;
-  std::string header = "100 1 0 0\n";
-
-  // Extract subpatches
-  std::stringstream str;
-  for (size_t i = 0; i < nx; ++i) {
-    size_t ni = nelems_sub + (i < nelems_rem ? 1 : 0);
-    size_t i0 = ni*i + (i < nelems_rem ? 0 : nelems_rem);
-    size_t di = ni + p;
-
-    Go::SplineCurve subcur = getSubPatch(cur, i0, di, p+1);
-    IFEM::cout << "  Number of knot spans in patch " << i << ": "
-               << subcur.numCoefs()-subcur.order()+1 << std::endl;
-    str << header << subcur;
-  }
-
-  return sim.readPatches(str,"\t");
-}
-
-
-Go::SplineCurve
-MultiPatchModelGenerator1D::getSubPatch(const Go::SplineCurve* cur,
-                                        const size_t startu,
-                                        const size_t numcoefsu, const int orderu)
-{
-  size_t d = cur->dimension() + (cur->rational()?1:0); // #coefs per control point
-  bool rat = cur->rational();
-  std::vector<double>::const_iterator i0 = cur->basis().begin() + startu;
-  std::vector<double>::const_iterator j0 = rat ? cur->rcoefs_begin() : cur->coefs_begin();
-  return Go::SplineCurve(numcoefsu, orderu, i0, j0 + d*startu, cur->dimension(), rat);
+  return sim.readPatches(line,"\t");
 }
 
 
@@ -153,16 +95,9 @@ MultiPatchModelGenerator1D::MultiPatchModelGenerator1D (const tinyxml2::XMLEleme
 {
   nx = 1;
   periodic_x = 0;
-  subdivision = false;
   if (!geo) return;
   utl::getAttribute(geo,"nx",nx);
-  utl::getAttribute(geo,"subdivision",subdivision);
   utl::getAttribute(geo,"periodic_x", periodic_x);
-  const tinyxml2::XMLElement* subd = geo->FirstChildElement("subdivision");
-  if (subd) {
-    subdivision = true;
-    utl::getAttribute(subd,"nx",nx);
-  }
 }
 
 
@@ -172,8 +107,6 @@ bool MultiPatchModelGenerator1D::createTopology (SIMinput& sim) const
     return false;
 
   int p1=2;
-  if (subdivision)
-    sim.getPatch(1)->getOrder(p1,p1,p1);
 
   for (size_t i = 0; i < nx-1; ++i)
     if (!sim.addConnection(i+1, i+2, 2, 1, true, 0, p1-1))
@@ -220,19 +153,11 @@ MultiPatchModelGenerator2D::MultiPatchModelGenerator2D (const tinyxml2::XMLEleme
 {
   nx = ny = 1;
   periodic_x = periodic_y = 0;
-  subdivision = false;
   if (!geo) return;
   utl::getAttribute(geo,"nx",nx);
   utl::getAttribute(geo,"ny",ny);
-  utl::getAttribute(geo,"subdivision",subdivision);
   utl::getAttribute(geo,"periodic_x", periodic_x);
   utl::getAttribute(geo,"periodic_y", periodic_y);
-  const tinyxml2::XMLElement* subd = geo->FirstChildElement("subdivision");
-  if (subd) {
-    subdivision = true;
-    utl::getAttribute(subd,"nx",nx);
-    utl::getAttribute(subd,"ny",ny);
-  }
 }
 
 
@@ -254,7 +179,7 @@ std::string MultiPatchModelGenerator2D::createG2 (int nsd, bool rational) const
   Ly *= scale;
 
   int nx_mp = 1, ny_mp = 1;
-  if (!subdivision && nx*ny > 1) {
+  if (nx*ny > 1) {
     IFEM::cout <<"\n\tSplit in X = "<< nx;
     IFEM::cout <<"\n\tSplit in Y = "<< ny;
 
@@ -314,89 +239,7 @@ bool MultiPatchModelGenerator2D::createGeometry (SIMinput& sim) const
   bool rational = false;
   utl::getAttribute(geo,"rational",rational);
   std::istringstream rect(this->createG2(sim.getNoSpaceDim(),rational));
-  if (!subdivision)
-    return sim.readPatches(rect,"\t");
-
-  // for now this consists of a single patch. do refine / raiseorder
-  // to obtain knot vector, then split in pieces. written this way
-  // so code can be used with .g2 files.
-  IFEM::cout << "  Subdivision in X: " << nx << std::endl;
-  IFEM::cout << "  Subdivision in Y: " << ny << std::endl;
-  ASMs2D pch;
-  pch.read(rect);
-
-  // Parse XML input
-  const tinyxml2::XMLElement* sub = geo->FirstChildElement("subdivision")->FirstChildElement();
-  for (; sub; sub = sub->NextSiblingElement())
-    if (strcasecmp(sub->Value(),"raiseorder") == 0) {
-      int nu = 0, nv = 0;
-      utl::getAttribute(sub,"u",nu);
-      utl::getAttribute(sub,"v",nv);
-      pch.raiseOrder(nu,nv);
-    } else if (strcasecmp(sub->Value(),"refine") == 0) {
-      int nu = 0, nv = 0;
-      utl::getAttribute(sub,"u",nu);
-      utl::getAttribute(sub,"v",nv);
-      pch.uniformRefine(0,nu);
-      pch.uniformRefine(1,nv);
-    }
-
-  // Compute parameters
-  const Go::SplineSurface* srf = pch.getBasis(ASM::GEOMETRY_BASIS);
-  size_t px = srf->order_u()-1;
-  size_t py = srf->order_v()-1;
-  size_t nelemsx = srf->numCoefs_u() - px;
-  size_t nelemsy = srf->numCoefs_v() - py;
-  size_t nelemsx_sub = nelemsx / nx;
-  size_t nelemsy_sub = nelemsy / ny;
-  size_t nelemsx_rem = nelemsx % nx;
-  size_t nelemsy_rem = nelemsy % ny;
-  std::string header = "200 1 0 0\n";
-
-  // Extract subpatches
-  std::stringstream str;
-  for (size_t j = 0; j < ny; ++j) {
-    size_t nj = nelemsy_sub + (j < nelemsy_rem ? 1 : 0);
-    size_t j0 = nj*j + (j < nelemsy_rem ? 0 : nelemsy_rem);
-    size_t dj = nj + py;
-    for (size_t i = 0; i < nx; ++i) {
-      size_t ni = nelemsx_sub + (i < nelemsx_rem ? 1 : 0);
-      size_t i0 = ni*i + (i < nelemsx_rem ? 0 : nelemsx_rem);
-      size_t di = ni + px;
-
-      Go::SplineSurface subsrf = this->getSubPatch(srf, {{i0, j0}}, {{di, dj}},
-                                                   {{px+1, py+1}});
-      IFEM::cout << "  Number of knot spans in patch (" << i << ", " << j << "): "
-                 << subsrf.numCoefs_u()-subsrf.order_u()+1 << "x"
-                 << subsrf.numCoefs_v()-subsrf.order_v()+1 << std::endl;
-      str << header << subsrf;
-    }
-  }
-
-  return sim.readPatches(str,"\t");
-}
-
-
-Go::SplineSurface
-MultiPatchModelGenerator2D::getSubPatch(const Go::SplineSurface* srf,
-                                        const std::array<size_t,2>& start,
-                                        const std::array<size_t,2>& numcoefs,
-                                        const std::array<size_t,2>& order)
-{
-  size_t d = srf->dimension() + (srf->rational()?1:0); // #coefs per control point
-  bool rat = srf->rational();
-  size_t I = srf->numCoefs_u();
-  std::vector<double>::const_iterator i0 = srf->basis_u().begin() + start[0];
-  std::vector<double>::const_iterator j0 = srf->basis_v().begin() + start[1];
-  std::vector<double>::const_iterator k0 = rat ? srf->rcoefs_begin() : srf->coefs_begin();
-
-  std::vector<double> subcoefs;
-  for (size_t j = start[1]; j != start[1] + numcoefs[1]; j++)
-    for (size_t i = start[0]; i != start[0] + numcoefs[0]; i++)
-      for (size_t k = 0;  k != d; k++)
-        subcoefs.push_back(*(k0 + k + d*i + d*I*j));
-  return Go::SplineSurface(numcoefs[0], numcoefs[1], order[0], order[1], i0, j0,
-                           subcoefs.begin(), srf->dimension(), rat);
+  return sim.readPatches(rect,"\t");
 }
 
 
@@ -408,8 +251,6 @@ bool MultiPatchModelGenerator2D::createTopology (SIMinput& sim) const
   auto&& IJ = [this](int i, int j) { return 1 + j*nx + i; };
 
   int p1=2, p2=2;
-  if (subdivision)
-    sim.getPatch(1)->getOrder(p1,p2,p2);
 
   for (size_t j = 0; j < ny; ++j)
     for (size_t i = 0; i < nx-1; ++i)
@@ -525,7 +366,6 @@ MultiPatchModelGenerator3D::MultiPatchModelGenerator3D (const tinyxml2::XMLEleme
 {
   nx = ny = nz = 1;
   periodic_x = periodic_y = periodic_z = 0;
-  subdivision = false;
   if (!geo) return;
   utl::getAttribute(geo,"nx",nx);
   utl::getAttribute(geo,"ny",ny);
@@ -533,14 +373,6 @@ MultiPatchModelGenerator3D::MultiPatchModelGenerator3D (const tinyxml2::XMLEleme
   utl::getAttribute(geo,"periodic_x", periodic_x);
   utl::getAttribute(geo,"periodic_y", periodic_y);
   utl::getAttribute(geo,"periodic_z", periodic_z);
-  utl::getAttribute(geo,"subdivision", subdivision);
-  const tinyxml2::XMLElement* subd = geo->FirstChildElement("subdivision");
-  if (subd) {
-    subdivision = true;
-    utl::getAttribute(subd,"nx",nx);
-    utl::getAttribute(subd,"ny",ny);
-    utl::getAttribute(subd,"nz",nz);
-  }
 }
 
 
@@ -565,7 +397,7 @@ std::string MultiPatchModelGenerator3D::createG2 (int, bool rational) const
   Lz *= scale;
 
   int nx_mp = 1, ny_mp = 1, nz_mp = 1;
-  if (!subdivision && nx*ny*nz > 1) {
+  if (nx*ny*nz > 1) {
     IFEM::cout <<"\n\tSplit in X = "<< nx;
     IFEM::cout <<"\n\tSplit in Y = "<< ny;
     IFEM::cout <<"\n\tSplit in Z = "<< nz;
@@ -631,109 +463,7 @@ bool MultiPatchModelGenerator3D::createGeometry (SIMinput& sim) const
   bool rational = false;
   utl::getAttribute(geo,"rational",rational);
   std::istringstream cube(this->createG2(sim.getNoSpaceDim(),rational));
-  if (!subdivision)
-    return sim.readPatches(cube,"\t");
-
-  // for now this consists of a single patch. do refine / raiseorder
-  // to obtain knot vector, then split in pieces. written this way
-  // so code can be used with .g2 files.
-  IFEM::cout << "  Subdivision in X: " << nx << std::endl;
-  IFEM::cout << "  Subdivision in Y: " << ny << std::endl;
-  IFEM::cout << "  Subdivision in Z: " << nz << std::endl;
-  ASMs3D pch;
-  pch.read(cube);
-
-  // Parse XML input
-  const tinyxml2::XMLElement* sub = geo->FirstChildElement("subdivision")->FirstChildElement();
-  for (; sub; sub = sub->NextSiblingElement())
-    if (strcasecmp(sub->Value(),"raiseorder") == 0) {
-      int nu = 0, nv = 0, nw = 0;
-      utl::getAttribute(sub,"u",nu);
-      utl::getAttribute(sub,"v",nv);
-      utl::getAttribute(sub,"w",nw);
-      pch.raiseOrder(nu,nv,nw);
-    } else if (strcasecmp(sub->Value(),"refine") == 0) {
-      int nu = 0, nv = 0, nw = 0;
-      utl::getAttribute(sub,"u",nu);
-      utl::getAttribute(sub,"v",nv);
-      utl::getAttribute(sub,"w",nw);
-      pch.uniformRefine(0,nu);
-      pch.uniformRefine(1,nv);
-      pch.uniformRefine(2,nw);
-    }
-
-  // Compute parameters
-  const Go::SplineVolume* vol = pch.getBasis(ASM::GEOMETRY_BASIS);
-  size_t px = vol->order(0)-1;
-  size_t py = vol->order(1)-1;
-  size_t pz = vol->order(2)-1;
-  size_t nelemsx = vol->numCoefs(0) - px;
-  size_t nelemsy = vol->numCoefs(1) - py;
-  size_t nelemsz = vol->numCoefs(2) - pz;
-  size_t nelemsx_sub = nelemsx / nx;
-  size_t nelemsy_sub = nelemsy / ny;
-  size_t nelemsz_sub = nelemsz / nz;
-  size_t nelemsx_rem = nelemsx % nx;
-  size_t nelemsy_rem = nelemsy % ny;
-  size_t nelemsz_rem = nelemsz % nz;
-  std::string header = "700 1 0 0\n";
-
-  // Extract subpatches
-  std::stringstream str;
-  for (size_t k = 0; k < nz; ++k) {
-    size_t nk = nelemsz_sub + (k < nelemsz_rem ? 1 : 0);
-    size_t k0 = nk*k + (k < nelemsz_rem ? 0 : nelemsz_rem);
-    size_t dk = nk + pz;
-    for (size_t j = 0; j < ny; ++j) {
-      size_t nj = nelemsy_sub + (j < nelemsy_rem ? 1 : 0);
-      size_t j0 = nj*j + (j < nelemsy_rem ? 0 : nelemsy_rem);
-      size_t dj = nj + py;
-      for (size_t i = 0; i < nx; ++i) {
-        size_t ni = nelemsx_sub + (i < nelemsx_rem ? 1 : 0);
-        size_t i0 = ni*i + (i < nelemsx_rem ? 0 : nelemsx_rem);
-        size_t di = ni + px;
-
-        Go::SplineVolume subvol = getSubPatch(vol, {{i0, j0, k0}},
-                                              {{di, dj, dk}},
-                                              {{px+1, py+1, pz+1}});
-        IFEM::cout << "  Number of knot spans in patch (" << i << ", " << j << ", " << k << "): "
-                   << subvol.numCoefs(0)-subvol.order(0)+1 << "x"
-                   << subvol.numCoefs(1)-subvol.order(1)+1 << "x"
-                   << subvol.numCoefs(2)-subvol.order(2)+1 << std::endl;
-        str << header << subvol;
-      }
-    }
-  }
-
-  return sim.readPatches(str,"\t");
-}
-
-
-Go::SplineVolume
-MultiPatchModelGenerator3D::getSubPatch(const Go::SplineVolume* vol,
-                                        const std::array<size_t,3>& start,
-                                        const std::array<size_t,3>& numcoefs,
-                                        const std::array<size_t,3>& order)
-{
-  bool rat = vol->rational();
-  size_t I = vol->numCoefs(0);
-  size_t J = vol->numCoefs(1);
-  size_t N = vol->dimension() + (rat?1:0); // #coefs per control point
-  std::vector<double>::const_iterator i0 = vol->basis(0).begin() + start[0];
-  std::vector<double>::const_iterator j0 = vol->basis(1).begin() + start[1];
-  std::vector<double>::const_iterator k0 = vol->basis(2).begin() + start[2];
-  std::vector<double>::const_iterator n0 = rat ? vol->rcoefs_begin() : vol->coefs_begin();
-
-  std::vector<double> subcoefs;
-  for (size_t k = start[2]; k != start[2] + numcoefs[2]; k++)
-    for (size_t j = start[1]; j != start[1] + numcoefs[1]; j++)
-      for (size_t i = start[0]; i != start[0] + numcoefs[0]; i++)
-        for (size_t n=0; n!=N; n++)
-          subcoefs.push_back(*(n0 + n + N*i + N*I*j + N*I*J*k));
-
-  return Go::SplineVolume(numcoefs[0], numcoefs[1], numcoefs[2],
-                          order[0], order[1], order[2],
-                          i0, j0, k0, subcoefs.begin(), vol->dimension(), rat);
+  return sim.readPatches(cube,"\t");
 }
 
 
@@ -745,8 +475,6 @@ bool MultiPatchModelGenerator3D::createTopology (SIMinput& sim) const
   auto&& IJK = [this](int i, int j, int k) { return 1 + (k*ny+j)*nx + i; };
 
   int p1=2, p2=2, p3=2;
-  if (subdivision)
-    sim.getPatch(1)->getOrder(p1,p2,p3);
 
   for (size_t k = 0; k < nz; ++k)
     for (size_t j = 0; j < ny; ++j)
