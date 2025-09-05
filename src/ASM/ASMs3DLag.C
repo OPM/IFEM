@@ -947,11 +947,13 @@ int ASMs3DLag::findElement (double u, double v, double w,
     return -1;
   }
 
-  const std::array<std::pair<double,int>,3> knot {{
-    {u, svol->basis(0).knotInterval(u)},
-    {v, svol->basis(1).knotInterval(v)},
-    {w, svol->basis(2).knotInterval(w)}
-  }};
+  std::array<std::pair<double,int>,3> knot;
+#pragma omp critical
+  {
+    knot[0] = {u, svol->basis(0).knotInterval(u)};
+    knot[1] = {v, svol->basis(1).knotInterval(v)};
+    knot[2] = {w, svol->basis(2).knotInterval(w)};
+  }
 
   const std::array<int,3> elm {
     knot[0].second - (p1 - 1),

@@ -992,8 +992,12 @@ int ASMs2DLag::findElement (double u, double v, double* xi, double* eta) const
     return -1;
   }
 
-  const int ku = surf->basis(0).knotInterval(u);
-  const int kv = surf->basis(1).knotInterval(v);
+  int ku, kv;
+#pragma omp critical
+  {
+    ku = surf->basis(0).knotInterval(u);
+    kv = surf->basis(1).knotInterval(v);
+  }
 
   const int elmx = ku - (p1 - 1);
   const int elmy = kv - (p2 - 1);
