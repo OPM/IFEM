@@ -122,6 +122,9 @@ public:
   //! \param[in] nel Number of elements to consider (if zero use MMNPC.size())
   virtual void preAssemble(const std::vector<IntVec>& MMNPC, size_t nel = 0);
 
+  //! \brief Compresses the sparsity pattern.
+  virtual void compressPattern();
+
   //! \brief Initializes the matrix to zero assuming it is properly dimensioned.
   virtual void init();
 

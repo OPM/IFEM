@@ -258,6 +258,9 @@ public:
   //! \brief Initializes the element sparsity pattern based on node connections.
   virtual void preAssemble(const std::vector<IntVec>&, size_t = 0) {}
 
+  //! \brief Compresses the sparsity pattern.
+  virtual void compressPattern() {}
+
   //! \brief Initializes the matrix to zero assuming it is properly dimensioned.
   virtual void init() = 0;
 

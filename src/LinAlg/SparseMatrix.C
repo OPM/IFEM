@@ -62,7 +62,7 @@ struct SuperLUdata
   Real      rpg; //!< Reciprocal pivot growth
 
   //! \brief The constructor initializes the default input options.
-  SuperLUdata(size_t nrow, size_t ncol, int numThreads = 0) :  A{}, L{}, U{}
+  SuperLUdata(size_t nrow, size_t ncol, int numThreads = 0) : A{}, L{}, U{}
   {
     R = C = nullptr;
     perm_r = new int[nrow];
@@ -271,13 +271,12 @@ Real& SparseMatrix::operator () (size_t r, size_t c)
               << r <<","<< c <<") out of range "
               << nrow <<"x"<< ncol << std::endl;
   else if (editable) {
-    IJPair index(r,c);
-    ValueMap::iterator vit = elem.find(index);
+    ValueMap::iterator vit = elem.find({ r, c });
     if (vit != elem.end())
       return vit->second; // This non-zero term already exists
     else if (editable == 'P') {
       // Editable pattern, insert a new non-zero entry
-      Real& value = elem[index] = Real(0);
+      Real& value = elem[{ r, c }] = Real(0);
       return value;
     }
   }
@@ -315,7 +314,7 @@ const Real& SparseMatrix::operator () (size_t r, size_t c) const
               << r <<","<< c <<") out of range "
               << nrow <<"x"<< ncol << std::endl;
   else if (editable) {
-    ValueIter vit = elem.find(IJPair(r,c));
+    ValueIter vit = elem.find({ r, c });
     if (vit != elem.end()) return vit->second;
   }
   else if (solver == SUPERLU || solver == UMFPACK) {
@@ -427,7 +426,7 @@ void SparseMatrix::printSparsity (std::ostream& os) const
     os << r <<'\t';
     for (c = 1; c <= ncol; c++)
       if (editable)
-        os << (elem.find(IJPair(r,c)) == elem.end() ? '.' : 'X');
+        os << (elem.find({ r, c }) == elem.end() ? '.' : 'X');
       else if (solver == SUPERLU || solver == UMFPACK) {
         // Column-oriented format with 0-based indices
         IntVec::const_iterator begin = JA.begin() + IA[c-1];
@@ -547,12 +546,12 @@ bool SparseMatrix::add (const SystemMatrix& B, Real alpha)
       // Column-oriented format with 0-based indices
       for (size_t j = 1; j <= Bptr->ncol; j++)
         for (int i = Bptr->IA[j-1]; i < Bptr->IA[j]; i++)
-          elem[IJPair(Bptr->JA[i]+1,j)] += alpha*Bptr->A[i];
+          elem[{ Bptr->JA[i]+1, j }] += alpha*Bptr->A[i];
     else
       // Row-oriented format with 1-based indices
       for (size_t i = 1; i <= Bptr->nrow; i++)
         for (int j = Bptr->IA[i-1]; j < Bptr->IA[i]; j++)
-          elem[IJPair(i,Bptr->JA[j-1])] += alpha*Bptr->A[j-1];
+          elem[{ i, Bptr->JA[j-1] }] += alpha*Bptr->A[j-1];
   }
   else
     return false;
@@ -797,11 +796,17 @@ void SparseMatrix::preAssemble (const std::vector<IntVec>& MMNPC, size_t nel)
             (*this)(inod,jnod) = (*this)(jnod,inod) = 0.0;
       }
 
+  this->compressPattern();
+#endif
+}
+
+
+void SparseMatrix::compressPattern ()
+{
   if (solver == SUPERLU || solver == UMFPACK)
     this->optimiseCols();
   else if (solver == S_A_M_G)
     this->optimiseRows();
-#endif
 }
 
 
@@ -888,7 +893,7 @@ bool SparseMatrix::optimiseRows (bool transposed)
 
   if (transposed) {
     for (const ValueMap::value_type& val : elem)
-      trans[IJPair(val.first.second,val.first.first)] = val.second;
+      trans[{ val.first.second, val.first.first }] = val.second;
     begin = trans.begin();
     end = trans.end();
     std::swap(nrow,ncol);

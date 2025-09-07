@@ -137,6 +137,9 @@ bool eig::solve (SystemMatrix* A, SystemMatrix* B,
   int ierr = mode > 10 ? eig::solve(A,B,eigVal,eigVec,nev,mode-10,shift) : 2;
   if (ierr < 2) return ierr == 1;
 
+  A->compressPattern();
+  B->compressPattern();
+
   K = A;
   M = B;
   int n = K->dim();
