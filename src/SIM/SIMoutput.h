@@ -89,7 +89,7 @@ public:
   bool writeGlvG(int& nBlock, double time);
 
   //! \brief Writes additional, problem-specific, results to the VTF-file.
-  virtual bool writeGlvA(int&, int, int = 1) const { return true; }
+  virtual bool writeGlvA(int&, int, double, int = 1) const { return true; }
 
   //! \brief Writes boundary conditions as scalar fields to the VTF-file.
   //! \param nBlock Running result block counter
@@ -354,6 +354,8 @@ private:
                          ASM::ResultClass resClass = ASM::PRIMARY);
 
 protected:
+  std::map<int,int> addDisBlk; //!< Additional displacement block mapping
+
   //! \brief Struct defining a result sampling point.
   struct ResultPoint
   {

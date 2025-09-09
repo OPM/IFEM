@@ -158,14 +158,14 @@ bool MultiStepSIM::saveStep (int iStep, double time, const char* vecName)
         return false;
   }
 
+  // Write any problem-specific data (rigid body transformations, etc.)
+  if (!model.writeGlvA(nBlock,iStep,time))
+    return false;
+
   // Write solution fields
   if (this->numSolution())
     if (!model.writeGlvS(this->realSolution(),iStep,nBlock,time,vecName))
       return false;
-
-  // Write any problem-specific data (rigid body transformations, etc.)
-  if (!model.writeGlvA(nBlock,iStep))
-    return false;
 
   // Write time step information
   return model.writeGlvStep(iStep,time);

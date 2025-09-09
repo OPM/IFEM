@@ -995,6 +995,11 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
   sID.reserve(nf);
   if (haveXsol) xID.reserve(nf);
 
+  // Any app-dependent vector field (from writeGlvA)?
+  for (const auto& [geo, dis] : addDisBlk)
+    if (myVtf->getBlock(geo))
+      vID[0].push_back(dis);
+
   Matrix field;
   Vector lovec;
 
