@@ -636,6 +636,8 @@ void SIMbase::initLHSbuffers ()
 {
   if (!myProblem) return;
 
+  PROFILE1("Allocate element cache");
+
   int nElms = 0;
   for (ASMbase* pch : myModel)
     nElms = std::max(nElms,pch->getMaxElmNo());

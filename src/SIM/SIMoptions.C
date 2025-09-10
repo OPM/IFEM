@@ -13,6 +13,7 @@
 
 #include "SIMoptions.h"
 #include "Utilities.h"
+#include "Profiler.h"
 #include "IFEM.h"
 #include "GlbL2projector.h"
 
@@ -369,6 +370,8 @@ bool SIMoptions::parseOldOptions (int argc, char** argv, int& i)
     ncv = atoi(argv[++i]);
   else if (!strcmp(argv[i],"-shift") && i < argc-1)
     shift = atof(argv[++i]);
+  else if (!strncasecmp(argv[i],"-indentprof",11))
+    Profiler::indentReport = true;
   else if (!strcasecmp(argv[i],"-controller"))
     return true; // Silently ignore here, processed by IFEM::Init()
   else if (argv[i][0] == '-')

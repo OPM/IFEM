@@ -25,9 +25,11 @@
 
 
 Profiler* utl::profiler = nullptr;
+bool Profiler::indentReport = false;
 
 
-Profiler::Profiler (const std::string& name, bool autoReport) : myName(name), autoReport(autoReport), nRunners(0)
+Profiler::Profiler (const std::string& name, bool doReport)
+  : myName(name), autoReport(doReport), nRunners(0)
 {
 #ifdef USE_OPENMP
   myMTimers.resize(omp_get_max_threads());
@@ -87,10 +89,16 @@ void Profiler::start (const std::string& funcName)
   Profile& p = tID < 0 ? myTimers[funcName] : myMTimers[tID][funcName];
   if (p.running) return;
 
-#ifdef USE_OPENMP
   if (tID < 0)
-#endif
+  {
+    if (p.level < 0)
+      p.level = nRunners;
+    else if (p.level != nRunners && indentReport)
+      std::cerr <<"  ** Warning: Profiler task \""<< funcName
+                <<"\" invoked on different levels, may yield inaccurate report"
+                << std::endl;
     nRunners++;
+  }
 
   p.running = true;
   p.nCalls++;
@@ -211,10 +219,17 @@ void Profiler::report (Stream& os) const
   for (it = myTimers.begin(); it != myTimers.end(); ++it)
     if (it != tit && it->second.haveTime())
     {
-      if (it->first.size() >= 22)
-        os << it->first.substr(0,22);
+      int indent = indentReport ? it->second.level - 1 : 0;
+      size_t nch = 22;
+      if (indent > 0)
+      {
+        nch -= indent;
+        os << std::string(indent,' ');
+      }
+      if (it->first.size() >= nch)
+        os << it->first.substr(0,nch);
       else
-        os << it->first << std::string(22-it->first.size(),' ');
+        os << it->first << std::string(nch-it->first.size(),' ');
       os <<'|'<< it->second << std::endl;
     }
 

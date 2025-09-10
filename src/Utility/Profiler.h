@@ -25,6 +25,7 @@
 #include <tracy/Tracy.hpp>
 #endif
 
+
 /*!
   \brief Simple class for profiling of computational tasks.
 
@@ -41,14 +42,15 @@ class Profiler
 {
 public:
   //! \brief The constructor initializes the profiler object.
-  //! \param[in] name Program name to be printed in the profiling report header.
-  //! \param[in] autoReport Automatically report results on program exit.
+  //! \param[in] name Program name to be printed in the profiling report header
+  //! \param[in] doReport Automatically report results on program exit
   //!
   //! \details The constructor also updates the global static pointer
   //! utl::profiler to point to \a *this, deleting any already pointed-to
   //! object first. This means, only one Profiler object can exist at any time.
-  explicit Profiler(const std::string& name, bool autoReport = true);
-  //! \brief The destructor prints the profiling report to the console if requested.
+  explicit Profiler(const std::string& name, bool doReport = true);
+  //! \brief The destructor prints the profiling report to the console,
+  //! if \ref autoReport is \e true.
   ~Profiler();
 
   //! \brief Starts profiling of task \a funcName and increments \a nRunners.
@@ -61,6 +63,8 @@ public:
   //! \brief Clears the profiler.
   void clear() { myTimers.clear(); allCPU = allWall = 0.0; nRunners = 0; }
 
+  static bool indentReport; //!< If \e true, indicate task level by indent
+
 private:
   //! \brief Stores profiling data for one computational task.
   struct Profile
@@ -71,9 +75,10 @@ private:
     double  totalWall; //!< Total wall clock time consumed by this task so far
     size_t  nCalls;    //!< Number of invokations of this task
     bool    running;   //!< Flag indicating if this task is currently running
+    int     level;     //!< Task level (used for indent in profiling report)
 
     //! \brief The constructor initializes the total times to zero.
-    Profile() : nCalls(0), running(false)
+    Profile() : nCalls(0), running(false), level(-1)
     { startWall = totalCPU = totalWall = 0.0; startCPU = 0; }
     //! \brief Checks if this profile item have any timing to report.
     bool haveTime() const { return totalCPU >= 0.005 || totalWall >= 0.005; }
@@ -83,9 +88,9 @@ private:
   friend std::ostream& operator<<(std::ostream& os, const Profile& p);
 
   std::string myName; //!< Name of this profiler
-  bool autoReport;    //!< Whether to report results on program exit
+  bool autoReport;    //!< Whether or not to report results on program exit
 
-  typedef std::map<std::string,Profile> ProfileMap; //!< Map of profilers
+  using ProfileMap = std::map<std::string,Profile>; //!< Map of profilers
 
   ProfileMap              myTimers;  //!< The task profiles with names
   std::vector<ProfileMap> myMTimers; //!< Task profiles with names and thread iD
@@ -99,7 +104,7 @@ private:
   //! all tasks that are not being measured. When \a nRunners is 3 or larger,
   //! the measured task is already included in another "main" task,
   //! and therefore its time is not included when calculating the "other" times.
-  size_t nRunners; //!< Number of tasks currently running
+  int nRunners; //!< Number of tasks currently running
 };
 
 
@@ -113,11 +118,13 @@ namespace utl
     const char* name; //!< Name tag on the local scope to profile
   public:
     //! \brief The constructor starts the profiling of the named task.
-    explicit prof(const char* tag) : name(tag) { if (profiler) profiler->start(name); }
+    explicit prof(const char* tag) : name(tag)
+    { if (profiler) profiler->start(name); }
     //! \brief The destructor stops the profiling.
     ~prof() { if (profiler) profiler->stop(name); }
   };
 }
+
 
 #ifdef HAS_TRACY
 //! \brief Macro to add profiling of the local scope.
