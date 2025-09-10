@@ -50,6 +50,9 @@ public:
   //! \brief Returns the name of this simulator.
   virtual std::string getName() const { return "SIMsupel"; }
 
+  //! \brief Overridden to not write BC codes for superelement models.
+  virtual bool writeGlvBC(int&, int) const { return true; }
+
   //! \brief Performs recovery of the internal DOFs for superelements.
   //! \param[in] glbSol Global solution vector
   bool recoverInternalDOFs(const Vector& glbSol);
