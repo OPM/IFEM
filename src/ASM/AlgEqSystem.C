@@ -15,6 +15,7 @@
 #include "SparseMatrix.h"
 #include "ElmMats.h"
 #include "SAM.h"
+#include "Profiler.h"
 #include "IFEM.h"
 #include <cstdio>
 #include <cstdlib>
@@ -64,6 +65,7 @@ bool AlgEqSystem::init (LinAlg::MatrixType mtype, const LinSolParams* spar,
       if (!A[i]._A) return false;
     }
 
+    PROFILE("Pre-assembly");
     A[i]._A->initAssembly(sam,preAssemblyFlag);
     A[i]._b = nullptr;
   }
