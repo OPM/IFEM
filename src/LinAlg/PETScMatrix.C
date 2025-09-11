@@ -702,6 +702,7 @@ void PETScMatrix::init ()
     MatZeroEntries(m);
 
   assembled = false;
+  factored = false;
 }
 
 
@@ -787,17 +788,19 @@ bool PETScMatrix::solve (const Vec& b, Vec& x, bool knoll)
     }
   }
 
-  if (setParams) {
 #if PETSC_VERSION_MINOR < 5
     KSPSetOperators(ksp,pA,pA, factored ? SAME_PRECONDITIONER : SAME_NONZERO_PATTERN);
 #else
     KSPSetOperators(ksp,pA,pA);
     KSPSetReusePreconditioner(ksp, factored ? PETSC_TRUE : PETSC_FALSE);
 #endif
+
+  if (setParams) {
     if (!setParameters(true))
       return false;
     setParams = false;
   }
+
   if (knoll)
     KSPSetInitialGuessKnoll(ksp,PETSC_TRUE);
   else
