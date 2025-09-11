@@ -711,6 +711,20 @@ void PETScMatrix::mult (Real alpha)
 }
 
 
+bool PETScMatrix::add (Real sigma, int ieq)
+{
+  if (ieq > static_cast<int>(nrow))
+    return false;
+  else if (ieq > 0) {
+    const int eq = adm.dd.getGlobalEq(ieq) - 1;
+    MatSetValue(pA, eq, eq, sigma, ADD_VALUES);
+  } else
+    MatShift(pA, sigma);
+
+  return true;
+}
+
+
 bool PETScMatrix::multiply (const SystemVector& B, SystemVector& C) const
 {
   const PETScVector* Bptr = dynamic_cast<const PETScVector*>(&B);
