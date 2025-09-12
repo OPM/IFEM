@@ -539,6 +539,7 @@ bool ASMs2D::generateFEMTopology ()
   myMLGN.resize(n1*n2);
   myNodeInd.resize(myMLGN.size());
 
+  firstEl = gEl;
   nnod = nel = 0;
   for (int i2 = 1; i2 <= n2; i2++)
     for (int i1 = 1; i1 <= n1; i1++)
@@ -1749,14 +1750,15 @@ bool ASMs2D::integrate (Integrand& integrand,
       for (size_t e = 0; e < groups[g][t].size() && ok; e++)
       {
         int iel = groups[g][t][e];
-        fe.iel = MLGE[iel];
-        if (!this->isElementActive(fe.iel,time.t))
-          continue; // zero-area or inactive element
-
 #ifdef SP_DEBUG
         if (dbgElm < 0 && 1+iel != -dbgElm)
           continue; // Skipping all elements, except for -dbgElm
 #endif
+
+        fe.idx = firstEl + iel;
+        fe.iel = MLGE[iel];
+        if (!this->isElementActive(fe.iel,time.t))
+          continue; // zero-area or inactive element
 
         int i1 = p1 + iel % nel1;
         int i2 = p2 + iel / nel1;
@@ -1991,22 +1993,22 @@ bool ASMs2D::integrate (Integrand& integrand,
   bool useElmVtx = integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS;
 
   // Evaluate basis function derivatives at all integration points
-  size_t i, j, k;
   std::vector<size_t> MPitg(itgPts.size()+1,0);
-  for (i = MPitg.front() = 0; i < itgPts.size(); i++)
+  for (size_t i = MPitg.front() = 0; i < itgPts.size(); i++)
     MPitg[i+1] = MPitg[i] + itgPts[i].size();
   size_t nPoints = MPitg.back();
   std::vector<Go::BasisDerivsSf>  spline(use2ndDer ? 0 : nPoints);
   std::vector<Go::BasisDerivsSf2> spline2(!use2ndDer ? 0 : nPoints);
-  for (i = k = 0; i < itgPts.size(); i++)
-    for (j = 0; j < itgPts[i].size(); j++, k++)
+  size_t k = 0;
+  for (const Real2DMat& elmPts : itgPts)
+    for (const RealArray& itgPt : elmPts)
       if (use2ndDer)
-        surf->computeBasis(itgPts[i][j][0],itgPts[i][j][1],spline2[k]);
+        surf->computeBasis(itgPt[0],itgPt[1],spline2[k++]);
       else
-        surf->computeBasis(itgPts[i][j][0],itgPts[i][j][1],spline[k]);
+        surf->computeBasis(itgPt[0],itgPt[1],spline[k++]);
 
 #if SP_DEBUG > 4
-  for (i = 0; i < spline.size(); i++)
+  for (size_t i = 0; i < spline.size(); i++)
     std::cout <<"\nBasis functions at integration point "<< 1+i << spline[i];
 #endif
 
@@ -2036,19 +2038,17 @@ bool ASMs2D::integrate (Integrand& integrand,
       for (size_t e = 0; e < groups[g][t].size() && ok; e++)
       {
         int iel = groups[g][t][e];
-        if (itgPts[iel].empty())
-          continue; // no points in this element
-
-        fe.iel = MLGE[iel];
-        if (!this->isElementActive(fe.iel,time.t))
-          continue; // zero-area or inactive element
-        if (!this->isElementInPartition(iel))
-          continue;
-
 #ifdef SP_DEBUG
         if (dbgElm < 0 && 1+iel != -dbgElm)
           continue; // Skipping all elements, except for -dbgElm
 #endif
+        if (itgPts[iel].empty())
+          continue; // no integration points in this element
+
+        fe.idx = firstEl + iel;
+        fe.iel = MLGE[iel];
+        if (!this->isElementActive(fe.iel,time.t))
+          continue; // zero-area or inactive element
 
         int i1 = p1 + iel % nel1;
         int i2 = p2 + iel / nel1;
@@ -2106,20 +2106,21 @@ bool ASMs2D::integrate (Integrand& integrand,
         // --- Integration loop over all quadrature points in this element -----
 
         size_t jp = MPitg[iel-1]; // Patch-wise integration point counter
-        fe.iGP = firstIp + jp;    // Global integration point counter
+        fe.iGP = firstIp + jp-1;  // Global integration point counter
 
-        const Real2DMat& elmPts = itgPts[iel-1]; // points for current element
-        for (size_t ip = 0; ip < elmPts.size(); ip++, jp++, fe.iGP++)
+        for (const RealArray& itgPt : itgPts[iel-1])
         {
+          fe.iGP++;
+
           // Parameter values of current integration point
-          fe.u = elmPts[ip][0];
-          fe.v = elmPts[ip][1];
+          fe.u = itgPt[0];
+          fe.v = itgPt[1];
 
           // Fetch basis function derivatives at current integration point
           if (use2ndDer)
-            SplineUtils::extractBasis(spline2[jp],fe.N,dNdu,d2Ndu2);
+            SplineUtils::extractBasis(spline2[jp++],fe.N,dNdu,d2Ndu2);
           else
-            SplineUtils::extractBasis(spline[jp],fe.N,dNdu);
+            SplineUtils::extractBasis(spline[jp++],fe.N,dNdu);
 
           // Compute Jacobian inverse of coordinate mapping and derivatives
           fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
@@ -2147,10 +2148,10 @@ bool ASMs2D::integrate (Integrand& integrand,
 
           // Cartesian coordinates of current integration point
           X.assign(Xnod * fe.N);
-          X.u = elmPts[ip].data();
+          X.u = itgPt.data();
 
           // Evaluate the integrand and accumulate element contributions
-          fe.detJxW *= dA*elmPts[ip][2];
+          fe.detJxW *= dA*itgPt[2];
 #ifndef USE_OPENMP
           PROFILE3("Integrand::evalInt");
 #endif
@@ -2218,6 +2219,7 @@ bool ASMs2D::integrate (Integrand& integrand,
     {
       if (!hasInterfaceElms) jel = iel;
 
+      fe.idx = firstEl + jel;
       fe.iel = abs(MLGE[jel]);
       if (!this->isElementActive(fe.iel,time.t))
         continue; // zero-area element
@@ -2419,21 +2421,22 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
 
   // === Assembly loop over all elements on the patch edge =====================
 
-  int iel = 1;
+  int iel = 0;
   for (int i2 = p2; i2 <= n2; i2++)
     for (int i1 = p1; i1 <= n1; i1++, iel++)
     {
-      fe.iel = abs(MLGE[doXelms+iel-1]);
-      if (!this->isElementActive(fe.iel,time.t))
-        continue; // zero-area element
-
-      if (!this->isElementInPartition(iel-1))
-        continue;
-
-#ifdef SP_DEBUG
-      if (dbgElm < 0 && iel != -dbgElm)
+ #ifdef SP_DEBUG
+      int ielm = 1+iel;
+      if (dbgElm < 0 && ielm != -dbgElm)
         continue; // Skipping all elements, except for -dbgElm
 #endif
+      if (!this->isElementInPartition(iel))
+        continue; // this element is in the partition of another process
+
+      fe.idx = firstEl + doXelms+iel;
+      fe.iel = abs(MLGE[doXelms+iel]);
+      if (!this->isElementActive(fe.iel,time.t))
+        continue; // zero-area element
 
       // Skip elements that are not on current boundary edge
       bool skipMe = false;
@@ -2447,11 +2450,11 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
       if (skipMe) continue;
 
       // Get element edge length in the parameter space
-      double dS = 0.5*this->getParametricLength(iel,t2);
+      double dS = 0.5*this->getParametricLength(1+iel,t2);
       if (dS < 0.0) return false; // topology error (probably logic error)
 
       // Set up control point coordinates for current element
-      if (!this->getElementCoordinates(Xnod,iel)) return false;
+      if (!this->getElementCoordinates(Xnod,1+iel)) return false;
 
       if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
         fe.h = this->getElementCorners(i1-1,i2-1,fe.XC);
@@ -2465,7 +2468,7 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
 
       // Initialize element quantities
       LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
-      bool ok = integrand.initElementBou(MNPC[doXelms+iel-1],*A);
+      bool ok = integrand.initElementBou(MNPC[doXelms+iel],*A);
 
 
       // --- Integration loop over all Gauss points along the edge -------------
@@ -2504,7 +2507,7 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
           fe.G = Jac; // Store tangent vectors in fe.G for shells
 
 #if SP_DEBUG > 4
-        if (iel == dbgElm || iel == -dbgElm || dbgElm == 0)
+        if (ielm == dbgElm || ielm == -dbgElm || dbgElm == 0)
           std::cout <<"\n"<< fe;
 #endif
 
@@ -2529,7 +2532,7 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
       if (!ok) return false;
 
 #ifdef SP_DEBUG
-      if (dbgElm < 0 && iel == -dbgElm)
+      if (dbgElm < 0 && ielm == -dbgElm)
         break; // Skipping all elements, except for -dbgElm
 #endif
     }

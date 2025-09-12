@@ -292,6 +292,8 @@ bool ASMs2Dmx::generateFEMTopology ()
   }
 #endif
 
+  firstEl = gEl;
+
   const Go::SplineSurface* itg = this->getBasis(ASM::INTEGRATION_BASIS);
 
   nel = (itg->numCoefs_u() - itg->order_u() + 1) *
@@ -506,6 +508,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
       for (size_t l = 0; l < groups[g][t].size() && ok; l++)
       {
         int iel = groups[g][t][l];
+        fe.idx = firstEl + iel;
         fe.iel = MLGE[iel];
         if (fe.iel < 1) continue; // zero-area element
 
@@ -513,7 +516,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
         int i2 = p2 + iel / nel1;
 
         // Get element area in the parameter space
-        double dA = 0.25*this->getParametricArea(++iel);
+        double dA = 0.25*this->getParametricArea(1+iel);
         if (dA < 0.0) // topology error (probably logic error)
         {
           ok = false;
@@ -521,7 +524,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
         }
 
         // Set up control point (nodal) coordinates for current element
-        if (!this->getElementCoordinates(Xnod,iel))
+        if (!this->getElementCoordinates(Xnod,1+iel))
         {
           ok = false;
           break;
@@ -539,7 +542,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
 
         // Initialize element quantities
         LocalIntegral* A = integrand.getLocalIntegral(elem_size,fe.iel,false);
-        if (!integrand.initElement(MNPC[iel-1],fe,elem_size,nb,*A))
+        if (!integrand.initElement(MNPC[iel],fe,elem_size,nb,*A))
         {
           A->destruct();
           ok = false;
@@ -567,7 +570,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
             // Fetch basis function derivatives at current integration point
             BasisValuesPtrs bfs(myCache.size());
             for (size_t b = 0; b < myCache.size(); ++b) {
-              bfs[b] = &myCache[b]->getVals(iel-1, ip);
+              bfs[b] = &myCache[b]->getVals(iel,ip);
               if (b < m_basis.size())
                 fe.basis(b+1) = bfs[b]->N;
             }
@@ -691,15 +694,16 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
 
   // === Assembly loop over all elements on the patch edge =====================
 
-  int iel = 1;
+  int iel = 0;
   for (int i2 = p2; i2 <= n2; i2++)
     for (int i1 = p1; i1 <= n1; i1++, iel++)
     {
-      fe.iel = MLGE[iel-1];
-      if (fe.iel < 1) continue; // zero-area element
+      if (!this->isElementInPartition(iel))
+        continue; // this element is in the partition of another process
 
-      if (!this->isElementInPartition(iel-1))
-        continue;
+      fe.idx = firstEl + iel;
+      fe.iel = MLGE[iel];
+      if (fe.iel < 1) continue; // zero-area element
 
       // Skip elements that are not on current boundary edge
       bool skipMe = false;
@@ -713,18 +717,18 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
       if (skipMe) continue;
 
       // Get element edge length in the parameter space
-      double dS = 0.5*this->getParametricLength(iel,t2);
+      double dS = 0.5*this->getParametricLength(1+iel,t2);
       if (dS < 0.0) return false; // topology error (probably logic error)
 
       // Set up control point coordinates for current element
-      if (!this->getElementCoordinates(Xnod,iel)) return false;
+      if (!this->getElementCoordinates(Xnod,1+iel)) return false;
 
       if (useElmVtx)
         fe.h = this->getElementCorners(i1-1,i2-1,fe.XC);
 
       // Initialize element quantities
       LocalIntegral* A = integrand.getLocalIntegral(elem_size,fe.iel,true);
-      bool ok = integrand.initElementBou(MNPC[iel-1],elem_size,nb,*A);
+      bool ok = integrand.initElementBou(MNPC[iel],elem_size,nb,*A);
 
 
       // --- Integration loop over all Gauss points along the edge -------------
@@ -845,17 +849,19 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
   Vec3          normal;
   double        u[2], v[2];
 
+
   // === Assembly loop over all elements in the patch ==========================
 
   int iel = 0;
   for (int i2 = p2; i2 <= n2; i2++)
     for (int i1 = p1; i1 <= n1; i1++, iel++)
     {
+      if (!this->isElementInPartition(iel))
+        continue; // this element is in the partition of another process
+
+      fe.idx = firstEl + iel;
       fe.iel = abs(MLGE[iel]);
       if (fe.iel < 1) continue; // zero-area element
-
-      if (!this->isElementInPartition(iel))
-        continue;
 
       short int status = iChk.hasContribution(iel,i1,i2);
       if (!status) continue; // no interface contributions for this element

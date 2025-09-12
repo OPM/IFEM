@@ -615,6 +615,8 @@ bool ASMu2D::generateFEMTopology ()
 
   if (shareFE) return true;
 
+  firstEl = gEl;
+
   lrspline->generateIDs();
 
   // Global node numbers
@@ -1136,14 +1138,16 @@ bool ASMu2D::integrate (Integrand& integrand,
       if (!ok)
         continue;
 
-      int iel = group[t][e] + 1;
+      int iel = group[t][e];
 #if defined(SP_DEBUG) && !defined(USE_OPENMP)
-      if (dbgElm < 0 && iel != -dbgElm)
+      int ielm = 1+iel;
+      if (dbgElm < 0 && ielm != -dbgElm)
         continue; // Skipping all elements, except for -dbgElm
 #endif
 
       FiniteElement fe;
-      fe.iel = MLGE[iel-1];
+      fe.idx = firstEl + iel;
+      fe.iel = MLGE[iel];
       fe.p   = p1 - 1;
       fe.q   = p2 - 1;
       Matrix   Xnod, Jac;
@@ -1152,7 +1156,7 @@ bool ASMu2D::integrate (Integrand& integrand,
       double   param[3] = { 0.0, 0.0, 0.0 };
       Vec4     X(param,time.t);
 
-      const LR::Element* el = lrspline->getElement(iel-1);
+      const LR::Element* el = lrspline->getElement(iel);
 
       // Get element area in the parameter space
       double dA = 0.25*el->area();
@@ -1163,21 +1167,21 @@ bool ASMu2D::integrate (Integrand& integrand,
       }
 
       // Set up control point (nodal) coordinates for current element
-      if (!this->getElementCoordinates(Xnod,iel))
+      if (!this->getElementCoordinates(Xnod,1+iel))
       {
         ok = false;
         continue;
       }
 
       if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-        fe.h = this->getElementCorners(iel,fe.XC);
+        fe.h = this->getElementCorners(1+iel,fe.XC);
 
       if (integrand.getIntegrandType() & Integrand::ELEMENT_CENTER)
       {
         // Compute the element center
-        param[0] = 0.5*(cache.getParam(0,iel-1,0)+cache.getParam(0,iel-1,ng[0]-1));
-        param[1] = 0.5*(cache.getParam(1,iel-1,0)+cache.getParam(1,iel-1,ng[1]-1));
-        if (this->evalPoint(iel-1,param,X) < 0)
+        param[0] = 0.5*(cache.getParam(0,iel,0)+cache.getParam(0,iel,ng[0]-1));
+        param[1] = 0.5*(cache.getParam(1,iel,0)+cache.getParam(1,iel,ng[1]-1));
+        if (this->evalPoint(iel,param,X) < 0)
           ok = false;
       }
 
@@ -1199,7 +1203,7 @@ bool ASMu2D::integrate (Integrand& integrand,
         for (int j = 0; j < ng[1]; j++)
           for (int i = 0; i < ng[0]; i++, ip++)
           {
-            const BasisFunctionVals& bfs = cache.getVals(iel-1,ip);
+            const BasisFunctionVals& bfs = cache.getVals(iel,ip);
 
             // Compute Jacobian determinant of coordinate mapping
             // and multiply by weight of current integration point
@@ -1218,7 +1222,7 @@ bool ASMu2D::integrate (Integrand& integrand,
       // Initialize element quantities
       LocalIntegral* A = integrand.getLocalIntegral(nen,fe.iel);
       int nRed = cache.nGauss(true)[0];
-      if (!integrand.initElement(MNPC[iel-1],fe,X,nRed*nRed,*A))
+      if (!integrand.initElement(MNPC[iel],fe,X,nRed*nRed,*A))
       {
         A->destruct();
         ok = false;
@@ -1247,10 +1251,10 @@ bool ASMu2D::integrate (Integrand& integrand,
             fe.eta = xr[j];
 
             // Parameter values of current integration point
-            fe.u = param[0] = cache.getParam(0,iel-1,i,true);
-            fe.v = param[1] = cache.getParam(1,iel-1,j,true);
+            fe.u = param[0] = cache.getParam(0,iel,i,true);
+            fe.v = param[1] = cache.getParam(1,iel,j,true);
 
-            const BasisFunctionVals& bfs = cache.getVals(iel-1,ip,true);
+            const BasisFunctionVals& bfs = cache.getVals(iel,ip,true);
             fe.N = bfs.N;
 
             // Compute Jacobian inverse and derivatives
@@ -1274,7 +1278,7 @@ bool ASMu2D::integrate (Integrand& integrand,
       // --- Integration loop over all Gauss points in each direction ----------
 
       size_t ip = 0;
-      fe.iGP = firstIp + (iel-1)*ng[0]*ng[1]; // Global integration point counter
+      fe.iGP = firstIp + iel*ng[0]*ng[1]; // Global integration point counter
 
       for (int j = 0; j < ng[1]; j++)
         for (int i = 0; i < ng[0]; i++, fe.iGP++, ++ip)
@@ -1284,13 +1288,13 @@ bool ASMu2D::integrate (Integrand& integrand,
           fe.eta = xg[1][j];
 
           // Parameter values of current integration point
-          fe.u = param[0] = cache.getParam(0,iel-1,i);
-          fe.v = param[1] = cache.getParam(1,iel-1,j);
+          fe.u = param[0] = cache.getParam(0,iel,i);
+          fe.v = param[1] = cache.getParam(1,iel,j);
 
-          const BasisFunctionVals& bfs = cache.getVals(iel-1,ip);
+          const BasisFunctionVals& bfs = cache.getVals(iel,ip);
           fe.N = bfs.N;
 #if SP_DEBUG > 4
-          if (iel == dbgElm || iel == -dbgElm || dbgElm == 0)
+          if (ielm == dbgElm || ielm == -dbgElm || dbgElm == 0)
           {
             std::cout <<"\nBasis functions at a integration point "
                       <<" : (u,v) = "<< fe.u <<" "<< fe.v;
@@ -1325,7 +1329,7 @@ bool ASMu2D::integrate (Integrand& integrand,
             fe.G = Jac; // Store tangent vectors in fe.G for shells
 
 #if SP_DEBUG > 4
-          if (iel == dbgElm || iel == -dbgElm || dbgElm == 0)
+          if (ielm == dbgElm || ielm == -dbgElm || dbgElm == 0)
             std::cout <<"\n"<< fe;
 #endif
 
@@ -1342,7 +1346,7 @@ bool ASMu2D::integrate (Integrand& integrand,
         }
 
       // Finalize the element quantities
-      if (ok && !integrand.finalizeElement(*A,fe,time,firstIp+(iel-1)*ng[0]*ng[1]))
+      if (ok && !integrand.finalizeElement(*A,fe,time,firstIp+iel*ng[0]*ng[1]))
         ok = false;
 
       // Assembly of global system integral
@@ -1352,7 +1356,7 @@ bool ASMu2D::integrate (Integrand& integrand,
       A->destruct();
 
 #if defined(SP_DEBUG) && !defined(USE_OPENMP)
-      if (iel == -dbgElm)
+      if (ielm == -dbgElm)
         break; // Skipping all elements, except for -dbgElm
 #endif
     }
@@ -1424,24 +1428,23 @@ bool ASMu2D::integrate (Integrand& integrand,
       if (!ok)
         continue;
 
-      int iel = group[t][e] + 1;
+      int iel = group[t][e];
 #if defined(SP_DEBUG) && !defined(USE_OPENMP)
-      if (dbgElm < 0 && iel != -dbgElm)
+      int ielm = 1+iel;
+      if (dbgElm < 0 && ielm != -dbgElm)
         continue; // Skipping all elements, except for -dbgElm
 #endif
 
-      if (!this->isElementInPartition(iel))
-        continue;
-
       FiniteElement fe;
-      fe.iel = MLGE[iel-1];
+      fe.idx = firstEl + iel;
+      fe.iel = MLGE[iel];
       fe.p   = lrspline->order(0) - 1;
       fe.q   = lrspline->order(1) - 1;
       Matrix   dNdu, Xnod, Jac;
       Matrix3D d2Ndu2, Hess;
       Vec4     X(nullptr,time.t);
 
-      const LR::Element* el = lrspline->getElement(iel-1);
+      const LR::Element* el = lrspline->getElement(iel);
 
       // Get element area in the parameter space
       double dA = 0.25*el->area();
@@ -1452,26 +1455,26 @@ bool ASMu2D::integrate (Integrand& integrand,
       }
 
       // Set up control point (nodal) coordinates for current element
-      if (!this->getElementCoordinates(Xnod,iel))
+      if (!this->getElementCoordinates(Xnod,1+iel))
       {
         ok = false;
         continue;
       }
 
       if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-        fe.h = this->getElementCorners(iel,fe.XC);
+        fe.h = this->getElementCorners(1+iel,fe.XC);
 
       if (integrand.getIntegrandType() & Integrand::ELEMENT_CENTER)
       {
         // Compute the element center
-        fe.h = this->getElementCorners(iel,fe.XC);
+        fe.h = this->getElementCorners(1+iel,fe.XC);
         X.assign(0.25*(fe.XC[0]+fe.XC[1]+fe.XC[2]+fe.XC[3]));
       }
 
       // Initialize element quantities
-      size_t nen = lrspline->getElement(iel-1)->support().size();
+      size_t nen = lrspline->getElement(iel)->support().size();
       LocalIntegral* A = integrand.getLocalIntegral(nen,fe.iel);
-      if (!integrand.initElement(MNPC[iel-1],fe,X,0,*A))
+      if (!integrand.initElement(MNPC[iel],fe,X,0,*A))
       {
         A->destruct();
         ok = false;
@@ -1489,10 +1492,10 @@ bool ASMu2D::integrate (Integrand& integrand,
 
       // --- Integration loop over all quadrature points in this element -------
 
-      size_t jp = MPitg[iel-1]; // Patch-wise integration point counter
-      fe.iGP = firstIp + jp;    // Global integration point counter
+      size_t jp = MPitg[iel]; // Patch-wise integration point counter
+      fe.iGP = firstIp + jp;  // Global integration point counter
 
-      const Real2DMat& elmPts = itgPts[iel-1]; // points for current element
+      const Real2DMat& elmPts = itgPts[iel]; // points for current element
       for (size_t ip = 0; ip < elmPts.size(); ip++, jp++, fe.iGP++)
       {
         // Parameter values of current integration point
@@ -1522,7 +1525,7 @@ bool ASMu2D::integrate (Integrand& integrand,
         if (nsd > 2) fe.G = Jac;
 
 #if SP_DEBUG > 4
-        if (iel == dbgElm || iel == -dbgElm || dbgElm == 0)
+        if (ielm == dbgElm || ielm == -dbgElm || dbgElm == 0)
           std::cout <<"\n"<< fe;
 #endif
 
@@ -1540,7 +1543,7 @@ bool ASMu2D::integrate (Integrand& integrand,
       }
 
       // Finalize the element quantities
-      if (ok && !integrand.finalizeElement(*A,fe,time,firstIp+MPitg[iel]))
+      if (ok && !integrand.finalizeElement(*A,fe,time,firstIp+MPitg[1+iel]))
         ok = false;
 
       // Assembly of global system integral
@@ -1550,7 +1553,7 @@ bool ASMu2D::integrate (Integrand& integrand,
       A->destruct();
 
 #if defined(SP_DEBUG) && !defined(USE_OPENMP)
-      if (iel == -dbgElm)
+      if (ielm == -dbgElm)
         break; // Skipping all elements, except for -dbgElm
 #endif
     }
@@ -1620,16 +1623,6 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
   for (const LR::Element* el : lrspline->getAllElements())
   {
     ++iel;
-    if (!this->isElementInPartition(iel-1)) {
-      firstp += nGP;
-      continue;
-    }
-
-    fe.iel = MLGE[iel-1];
-#ifdef SP_DEBUG
-    if (dbgElm < 0 && iel != -dbgElm)
-      continue; // Skipping all elements, except for -dbgElm
-#endif
 
     // Skip elements that are not on current boundary edge
     bool skipMe = false;
@@ -1641,6 +1634,18 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
     case  2: if (el->vmax() != lrspline->endparam(1)  ) skipMe = true; break;
     }
     if (skipMe) continue;
+
+    fe.idx = firstEl + iel-1;
+    fe.iel = MLGE[iel-1];
+    fe.iGP = firstp; // Global integration point counter
+    firstp += nGP; // Update before skipping due to debug or partitioning
+
+#ifdef SP_DEBUG
+    if (dbgElm < 0 && iel != -dbgElm)
+      continue; // Skipping all elements, except for -dbgElm
+#endif
+    if (!this->isElementInPartition(iel-1))
+      continue;
 
     // Get element edge length in the parameter space
     double dS = 0.5*this->getParametricLength(iel,t2);
@@ -1662,9 +1667,6 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
 
 
     // --- Integration loop over all Gauss points along the edge ---------------
-
-    fe.iGP = firstp; // Global integration point counter
-    firstp += nGP;
 
     for (int i = 0; i < nGP && ok; i++, fe.iGP++)
     {
@@ -1756,10 +1758,10 @@ bool ASMu2D::integrate (Integrand& integrand,
   int iel = 0;
   for (const LR::Element* elm : lrspline->getAllElements())
   {
-    ++iel;
-    if (!this->isElementInPartition(iel-1))
+    if (!this->isElementInPartition(iel++))
       continue;
 
+    fe.idx = firstEl + iel-1;
     fe.iel = abs(MLGE[iel-1]);
     short int status = iChk.hasContribution(iel);
     if (!status) continue; // no interface contributions for this element
@@ -1879,6 +1881,7 @@ bool ASMu2D::diracPoint (Integrand& integrand, GlobalIntegral& glInt,
   int iel = lrspline->getElementContaining(param[0],param[1]);
 
   FiniteElement fe;
+  fe.idx = firstEl + iel;
   fe.iel = MLGE[iel];
   fe.u   = param[0];
   fe.v   = param[1];

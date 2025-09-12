@@ -78,6 +78,8 @@ bool ASMs1DLag::generateOrientedFEModel (const Vec3& Zaxis)
   if (!coord.empty())
     return coord.size() == nnod;
 
+  firstEl = gEl;
+
   // Number of elements in the patch
   nel = (nx-1)/(p1-1);
 
@@ -233,6 +235,7 @@ bool ASMs1DLag::integrate (Integrand& integrand,
   bool ok = true;
   for (size_t iel = 0; iel < nel && ok; iel++)
   {
+    fe.idx = firstEl + iel;
     fe.iel = MLGE[iel];
     if (!this->isElementActive(fe.iel)) continue; // zero-length element
 
@@ -340,9 +343,6 @@ bool ASMs1DLag::integrate (Integrand& integrand, int lIndex,
 {
   if (this->empty()) return true; // silently ignore empty patches
 
-  // Extract the Neumann order flag (1 or higher) for the integrand
-  integrand.setNeumannOrder(1 + lIndex/10);
-
   // Integration of boundary point
 
   FiniteElement fe;
@@ -364,8 +364,12 @@ bool ASMs1DLag::integrate (Integrand& integrand, int lIndex,
       return false;
     }
 
+  fe.idx = firstEl + iel;
   fe.iel = MLGE[iel];
   if (!this->isElementActive(fe.iel)) return true; // zero-length element
+
+  // Extract the Neumann order flag (1 or higher) for the integrand
+  integrand.setNeumannOrder(1 + lIndex/10);
 
   // Set up nodal point coordinates for current element
   this->getElementCoordinates(fe.Xn,1+iel);
@@ -508,6 +512,7 @@ bool ASMs1DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   // Evaluate the secondary solution field at each element node or center
   for (size_t iel = 0; iel < nel; iel++)
   {
+    fe.idx = firstEl + iel;
     fe.iel = MLGE[iel];
     if (fe.iel < 1) continue; // zero-length element
 

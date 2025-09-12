@@ -170,6 +170,8 @@ bool ASMs3DLag::generateFEMTopology ()
   if (!coord.empty())
     return coord.size() == nnod;
 
+  firstEl = gEl;
+
   // Number of elements in each direction
   const int nelx = (nx-1)/(p1-1);
   const int nely = (ny-1)/(p2-1);
@@ -376,8 +378,10 @@ bool ASMs3DLag::integrate (Integrand& integrand,
           break;
         }
 
+        fe.idx = firstEl + iel;
         fe.iel = MLGE[iel];
-        if (!this->isElementActive(fe.iel)) continue; // zero-volume element
+        if (!this->isElementActive(fe.iel))
+          continue; // zero-volume element
 
         // Set up nodal point coordinates for current element
         this->getElementCoordinates(fe.Xn,1+iel);
@@ -631,15 +635,16 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
         int iel = group[e];
         if (iel < 0 || iel >= static_cast<int>(nel))
         {
+          std::cerr <<" *** ASMs3DLag::integrate: Element index "<< iel
+                    <<" out of range [0,"<< nel <<">."<< std::endl;
           ok = false;
           break;
         }
 
+        fe.idx = firstEl + doXelms+iel;
         fe.iel = abs(MLGE[doXelms+iel]);
-        if (!this->isElementActive(fe.iel)) continue; // zero-volume element
-
-        if (!this->isElementInPartition(iel))
-          continue;
+        if (!this->isElementActive(fe.iel))
+          continue; // zero-volume element
 
         // Set up nodal point coordinates for current element
         this->getElementCoordinates(fe.Xn,1+iel);
@@ -786,15 +791,18 @@ bool ASMs3DLag::integrateEdge (Integrand& integrand, int lEdge,
 
   // === Assembly loop over all elements on the patch edge =====================
 
-  int ip, iel = 1;
+  int ip, iel = 0;
   for (int i3 = 0; i3 < nelz; i3++)
     for (int i2 = 0; i2 < nely; i2++)
       for (int i1 = 0; i1 < nelx; i1++, iel++)
       {
-        fe.iel = MLGE[iel-1];
-        if (!this->isElementActive(fe.iel)) continue; // zero-volume element
-        if (!this->isElementInPartition(iel-1))
-          continue;
+        if (!this->isElementInPartition(iel))
+          continue; // this element is in the partition of another process
+
+        fe.idx = firstEl + iel;
+        fe.iel = MLGE[iel];
+        if (!this->isElementActive(fe.iel))
+          continue; // zero-volume element
 
         // Skip elements that are not on current boundary edge
         bool skipMe = false;
@@ -823,11 +831,11 @@ bool ASMs3DLag::integrateEdge (Integrand& integrand, int lEdge,
           ip = i3*ng;
 
         // Set up nodal point coordinates for current element
-        this->getElementCoordinates(fe.Xn,iel);
+        this->getElementCoordinates(fe.Xn,1+iel);
 
         // Initialize element quantities
         LocalIntegral* A = integrand.getLocalIntegral(fe.Xn.cols(),fe.iel,true);
-        bool ok = integrand.initElementBou(MNPC[iel-1],*A);
+        bool ok = integrand.initElementBou(MNPC[iel],*A);
 
 
         // --- Integration loop over all Gauss points along the edge -----------
@@ -949,11 +957,9 @@ int ASMs3DLag::findElement (double u, double v, double w,
 
   std::array<std::pair<double,int>,3> knot;
 #pragma omp critical
-  {
-    knot[0] = {u, svol->basis(0).knotInterval(u)};
-    knot[1] = {v, svol->basis(1).knotInterval(v)};
-    knot[2] = {w, svol->basis(2).knotInterval(w)};
-  }
+  knot = { std::make_pair(u,svol->basis(0).knotInterval(u)),
+           std::make_pair(v,svol->basis(1).knotInterval(v)),
+           std::make_pair(w,svol->basis(2).knotInterval(w)) };
 
   const std::array<int,3> elm {
     knot[0].second - (p1 - 1),
@@ -1054,6 +1060,7 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   // Evaluate the secondary solution field at each point
   for (size_t iel = 0; iel < nel; iel++)
   {
+    fe.idx = firstEl + iel;
     fe.iel = MLGE[iel];
     if (fe.iel < 1) continue; // zero-volume element
 
@@ -1130,6 +1137,7 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
         return false;
     }
 
+    fe.idx = firstEl + iel-1;
     fe.iel = MLGE[iel-1];
     if (fe.iel < 1) continue; // zero-volume element
 

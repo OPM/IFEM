@@ -288,6 +288,8 @@ bool ASMs3Dmx::generateFEMTopology ()
   }
 #endif
 
+  firstEl = gEl;
+
   const Go::SplineVolume* itg = this->getBasis(ASM::INTEGRATION_BASIS);
 
   nel = (itg->numCoefs(0) - itg->order(0) + 1) *
@@ -525,6 +527,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
       for (size_t l = 0; l < groups[g][t].size() && ok; l++)
       {
         int iel = groups[g][t][l];
+        fe.idx = firstEl + iel;
         fe.iel = MLGE[iel];
         if (fe.iel < 1) continue; // zero-volume element
 
@@ -533,7 +536,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
         int i3 = p3 + iel / (nel1*nel2);
 
         // Get element volume in the parameter space
-        double dV = 0.125*this->getParametricVolume(++iel);
+        double dV = 0.125*this->getParametricVolume(1+iel);
         if (dV < 0.0) // topology error (probably logic error)
         {
           ok = false;
@@ -541,7 +544,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
         }
 
         // Set up control point (nodal) coordinates for current element
-        if (!this->getElementCoordinates(Xnod,iel))
+        if (!this->getElementCoordinates(Xnod,1+iel))
         {
           ok = false;
           break;
@@ -560,7 +563,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
 
         // Initialize element quantities
         LocalIntegral* A = integrand.getLocalIntegral(elem_size,fe.iel,false);
-        if (!integrand.initElement(MNPC[iel-1],fe,elem_size,nb,*A))
+        if (!integrand.initElement(MNPC[iel],fe,elem_size,nb,*A))
         {
           A->destruct();
           ok = false;
@@ -591,7 +594,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
               // Fetch basis function derivatives at current integration point
               BasisValuesPtrs bfs(myCache.size());
               for (size_t b = 0; b < myCache.size(); ++b) {
-                bfs[b] = &myCache[b]->getVals(iel-1, ip);
+                bfs[b] = &myCache[b]->getVals(iel,ip);
                 if (b < m_basis.size())
                   fe.basis(b+1) = bfs[b]->N;
               }
@@ -728,6 +731,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
       for (size_t l = 0; l < threadGrp[g][t].size() && ok; ++l)
       {
         int iel = threadGrp[g][t][l];
+        fe.idx = firstEl + iel;
         fe.iel = MLGE[iel];
         if (fe.iel < 1) continue; // zero-volume element
 
@@ -736,7 +740,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
         int i3 = p3 + iel / (nel1*nel2);
 
         // Get element face area in the parameter space
-        double dA = 0.25*this->getParametricArea(++iel,abs(faceDir));
+        double dA = 0.25*this->getParametricArea(1+iel,abs(faceDir));
         if (dA < 0.0) // topology error (probably logic error)
         {
           ok = false;
@@ -744,7 +748,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
         }
 
         // Set up control point coordinates for current element
-        if (!this->getElementCoordinates(Xnod,iel))
+        if (!this->getElementCoordinates(Xnod,1+iel))
         {
           ok = false;
           break;
@@ -755,7 +759,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
 
         // Initialize element quantities
         LocalIntegral* A = integrand.getLocalIntegral(elem_size,fe.iel,true);
-        if (!integrand.initElementBou(MNPC[iel-1],elem_size,nb,*A))
+        if (!integrand.initElementBou(MNPC[iel],elem_size,nb,*A))
         {
           A->destruct();
           ok = false;
@@ -902,6 +906,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
   Vec3          normal;
   double        u[2], v[2], w[2];
 
+
   // === Assembly loop over all elements in the patch ==========================
 
   int iel = 0;
@@ -910,12 +915,11 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
       for (int i1 = p1; i1 <= n1; i1++, iel++)
       {
         if (!this->isElementInPartition(iel))
-          continue;
+          continue; // this element is in the partition of another process
+
+        fe.idx = firstEl + iel;
         fe.iel = abs(MLGE[iel]);
         if (fe.iel < 1) continue; // zero-area element
-
-        if (!this->isElementInPartition(iel))
-          continue;
 
         short int status = iChk.hasContribution(iel,i1,i2,i3);
         if (!status) continue; // no interface contributions for this element

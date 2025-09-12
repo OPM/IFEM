@@ -66,7 +66,7 @@ ASMbase::ASMbase (unsigned char n_p, unsigned char n_s, unsigned char n_f)
   nGauss = 0;
   nel = nnod = 0;
   idx = 0;
-  firstIp = 0;
+  firstEl = firstIp = 0;
   myElActive = nullptr;
 }
 
@@ -84,6 +84,7 @@ ASMbase::ASMbase (const ASMbase& patch, unsigned char n_f)
   nel = patch.nel;
   nnod = patch.nnod;
   idx = patch.idx;
+  firstEl = patch.firstEl;
   firstIp = patch.firstIp;
   // Note: Properties are _not_ copied
   myElActive = nullptr; // Element activation function is not copied
@@ -101,6 +102,7 @@ ASMbase::ASMbase (const ASMbase& patch)
   nel = patch.nel;
   nnod = patch.nnod;
   idx = patch.idx;
+  firstEl = patch.firstEl;
   firstIp = patch.firstIp;
 
   // Only copy the regular part of the FE data, leave out any extraordinaries
@@ -1831,6 +1833,5 @@ bool ASMbase::isElementActive (int elmId, double time) const
 
 bool ASMbase::isElementInPartition (int iel) const
 {
-  return myElms.empty() ||
-         std::find(myElms.begin(), myElms.end(), iel) != myElms.end();
+  return myElms.empty() || utl::findIndex(myElms,iel) >= 0;
 }

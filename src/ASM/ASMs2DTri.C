@@ -43,6 +43,8 @@ bool ASMs2DTri::generateFEMTopology ()
     return false;
   }
 
+  firstEl = gEl;
+
   // Double the number of elements in the patch
   IntMat qMNPC(myMNPC);
   size_t nquad = nel;
@@ -221,6 +223,7 @@ bool ASMs2DTri::integrate (Integrand& integrand,
         }
 
         // Initialize element quantities
+        fe.idx = firstEl + iel;
         fe.iel = MLGE[iel];
         LocalIntegral* A = integrand.getLocalIntegral(nen,fe.iel);
         if (!integrand.initElement(MNPC[iel],fe,X,nRed*nRed,*A))
@@ -404,6 +407,7 @@ bool ASMs2DTri::integrate (Integrand& integrand, int lIndex,
       if (!this->getElementCoordinates(Xnod,1+jel)) return false;
 
       // Initialize element quantities
+      fe.idx = firstEl + doXelms+jel;
       fe.iel = abs(MLGE[doXelms+jel]);
       LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
       bool ok = integrand.initElementBou(MNPC[doXelms+jel],*A);

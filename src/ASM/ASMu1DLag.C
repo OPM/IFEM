@@ -57,6 +57,8 @@ bool ASMu1DLag::generateOrientedFEModel (const Vec3& Zaxis)
 {
   p1 = 2; // So far only linear elements supported
 
+  firstEl = gEl;
+
   nnod = myCoord.size();
   nel  = myMNPC.size();
 

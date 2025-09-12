@@ -313,6 +313,8 @@ bool ASMu3D::generateFEMTopology ()
 
   if (shareFE) return true;
 
+  firstEl = gEl;
+
   const int p1 = lrspline->order(0);
   const int p2 = lrspline->order(1);
   const int p3 = lrspline->order(2);
@@ -946,14 +948,16 @@ bool ASMu3D::integrate (Integrand& integrand,
       if (!ok)
         continue;
 
-      int iel = group[t][e] + 1;
+      int iel = group[t][e];
 #if defined(SP_DEBUG) && !defined(USE_OPENMP)
-      if (dbgElm < 0 && iel != -dbgElm)
+      int ielm = iel+1;
+      if (dbgElm < 0 && ielm != -dbgElm)
         continue; // Skipping all elements, except for -dbgElm
 #endif
 
       FiniteElement fe;
-      fe.iel = MLGE[iel-1];
+      fe.idx = firstEl + iel;
+      fe.iel = MLGE[iel];
       fe.p   = p1 - 1;
       fe.q   = p2 - 1;
       fe.r   = p3 - 1;
@@ -964,18 +968,18 @@ bool ASMu3D::integrate (Integrand& integrand,
       Vec4     X(param,time.t);
 
       // Get element volume in the parameter space
-      const LR::Element* el = lrspline->getElement(iel-1);
+      const LR::Element* el = lrspline->getElement(iel);
       double dV = 0.125*el->volume();
 
       // Set up control point (nodal) coordinates for current element
-      if (!this->getElementCoordinates(Xnod,iel))
+      if (!this->getElementCoordinates(Xnod,1+iel))
       {
         ok = false;
         continue;
       }
 
       if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-        fe.h = this->getElementCorners(iel,fe.XC);
+        fe.h = this->getElementCorners(1+iel,fe.XC);
 
       if (integrand.getIntegrandType() & Integrand::ELEMENT_CENTER)
       {
@@ -985,7 +989,7 @@ bool ASMu3D::integrate (Integrand& integrand,
         double v0 = 0.5*(el->getParmin(1) + el->getParmax(1));
         double w0 = 0.5*(el->getParmin(2) + el->getParmax(2));
 #pragma omp critical
-        lrspline->point(X0,u0,v0,w0,iel-1);
+        lrspline->point(X0,u0,v0,w0,iel);
         X.assign(SplineUtils::toVec3(X0));
       }
 
@@ -999,7 +1003,7 @@ bool ASMu3D::integrate (Integrand& integrand,
       {
         // --- Compute average value of basis functions over the element -----
 
-        int ip = (iel-1)*ng[0]*ng[1]*ng[2] + firstIp;
+        int ip = iel*ng[0]*ng[1]*ng[2] + firstIp;
         fe.Navg.resize(nen,true);
         double vol = 0.0;
         int ig = 0;
@@ -1007,7 +1011,7 @@ bool ASMu3D::integrate (Integrand& integrand,
           for (int j = 0; j < ng[1]; j++)
             for (int i = 0; i < ng[0]; i++, ++ip, ++ig)
             {
-              const BasisFunctionVals& bfs = cache.getVals(iel-1,ig);
+              const BasisFunctionVals& bfs = cache.getVals(iel,ig);
 
               // Compute Jacobian determinant of coordinate mapping
               // and multiply by weight of current integration point
@@ -1026,7 +1030,7 @@ bool ASMu3D::integrate (Integrand& integrand,
       // Initialize element quantities
       LocalIntegral* A = integrand.getLocalIntegral(nen,fe.iel);
       int nRed = cache.nGauss(true)[0];
-      if (!integrand.initElement(MNPC[iel-1],fe,X,nRed*nRed*nRed,*A))
+      if (!integrand.initElement(MNPC[iel],fe,X,nRed*nRed*nRed,*A))
       {
         A->destruct();
         ok = false;
@@ -1048,11 +1052,11 @@ bool ASMu3D::integrate (Integrand& integrand,
               fe.zeta = xr[k];
 
               // Parameter values of current integration point
-              fe.u = param[0] = cache.getParam(0,iel-1,i,true);
-              fe.v = param[1] = cache.getParam(1,iel-1,j,true);
-              fe.w = param[2] = cache.getParam(2,iel-1,k,true);
+              fe.u = param[0] = cache.getParam(0,iel,i,true);
+              fe.v = param[1] = cache.getParam(1,iel,j,true);
+              fe.w = param[2] = cache.getParam(2,iel,k,true);
 
-              const BasisFunctionVals& bfs = cache.getVals(iel-1,ig,true);
+              const BasisFunctionVals& bfs = cache.getVals(iel,ig,true);
               fe.N = bfs.N;
 
               // Compute Jacobian inverse and derivatives
@@ -1073,7 +1077,7 @@ bool ASMu3D::integrate (Integrand& integrand,
       // --- Integration loop over all Gauss points in each direction ----------
 
       int ig = 0;
-      int jp = (iel-1)*ng[0]*ng[1]*ng[2];
+      int jp = iel*ng[0]*ng[1]*ng[2];
       fe.iGP = firstIp + jp; // Global integration point counter
 
       for (int k = 0; k < ng[2]; k++)
@@ -1086,11 +1090,11 @@ bool ASMu3D::integrate (Integrand& integrand,
             fe.zeta = xg[2][k];
 
             // Parameter values of current integration point
-            fe.u = param[0] = cache.getParam(0,iel-1,i);
-            fe.v = param[1] = cache.getParam(1,iel-1,j);
-            fe.w = param[2] = cache.getParam(2,iel-1,k);
+            fe.u = param[0] = cache.getParam(0,iel,i);
+            fe.v = param[1] = cache.getParam(1,iel,j);
+            fe.w = param[2] = cache.getParam(2,iel,k);
 
-            const BasisFunctionVals& bfs = cache.getVals(iel-1,ig);
+            const BasisFunctionVals& bfs = cache.getVals(iel,ig);
             fe.N = bfs.N;
 
             // Compute Jacobian inverse of coordinate mapping and derivatives
@@ -1107,7 +1111,7 @@ bool ASMu3D::integrate (Integrand& integrand,
               utl::getGmat(Jac,dXidu,fe.G);
 
 #if SP_DEBUG > 4
-            if (iel == dbgElm || iel == -dbgElm || dbgElm == 0)
+            if (ielm == dbgElm || ielm == -dbgElm || dbgElm == 0)
               std::cout <<"\n"<< fe;
 #endif
 
@@ -1132,7 +1136,7 @@ bool ASMu3D::integrate (Integrand& integrand,
       A->destruct();
 
 #if defined(SP_DEBUG) && !defined(USE_OPENMP)
-      if (iel == -dbgElm)
+      if (ielm == -dbgElm)
         break; // Skipping all elements, except for -dbgElm
 #endif
     }
@@ -1185,20 +1189,23 @@ bool ASMu3D::integrate (Integrand& integrand, int lIndex,
   for (LR::Element* el : edgeElms)
   {
     int iEl = el->getId();
+
+    FiniteElement fe;
+    fe.idx = firstEl + iEl;
+    fe.iel = MLGE[iEl];
+    fe.iGP = firstp; // Global integration point counter
+    firstp += nGP*nGP; // Update before skipping due to debug or partitioning
+
 #ifdef SP_DEBUG
     if (dbgElm < 0 && iEl+1 != -dbgElm)
       continue; // Skipping all elements, except for -dbgElm
 #endif
-    if (!this->isElementInPartition(iEl)) {
-      firstp += nGP*nGP;
+    if (!this->isElementInPartition(iEl))
       continue;
-    }
 
-    FiniteElement fe;
-    fe.iel = MLGE[iEl];
-    fe.p   = lrspline->order(0) - 1;
-    fe.q   = lrspline->order(1) - 1;
-    fe.r   = lrspline->order(2) - 1;
+    fe.p = lrspline->order(0) - 1;
+    fe.q = lrspline->order(1) - 1;
+    fe.r = lrspline->order(2) - 1;
 
     // Compute parameter values of the Gauss points over the whole element
     std::array<Vector,3> gpar;
@@ -1261,9 +1268,6 @@ bool ASMu3D::integrate (Integrand& integrand, int lIndex,
     }
 
     // --- Integration loop over all Gauss points in each direction ------------
-
-    fe.iGP = firstp; // Global integration point counter
-    firstp += nGP*nGP;
 
     for (int j = 0; j < nGP; j++)
       for (int i = 0; i < nGP; i++, fe.iGP++)
@@ -1358,6 +1362,7 @@ bool ASMu3D::diracPoint (Integrand& integrand, GlobalIntegral& glInt,
   int iel = lrspline->getElementContaining(param[0],param[1],param[2]);
 
   FiniteElement fe;
+  fe.idx = firstEl + iel;
   fe.iel = MLGE[iel];
   fe.u   = param[0];
   fe.v   = param[1];

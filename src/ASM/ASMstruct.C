@@ -91,7 +91,7 @@ bool ASMstruct::addXNodes (unsigned short int dim, size_t nXn, IntVec& nodes)
 bool ASMstruct::checkThreadGroups (const std::vector<std::set<int>>& nodes,
                                    int group, bool ignoreGlobalLM)
 {
-  if (group < 0 || group >= (int)nodes.size())
+  if (group < 0 || group >= static_cast<int>(nodes.size()))
     return false;
 
 #if SP_DEBUG > 1
@@ -105,7 +105,8 @@ bool ASMstruct::checkThreadGroups (const std::vector<std::set<int>>& nodes,
   for (int k = 0; k < group; k++)
     for (int node : nodes[group])
       if ((this->getLMType(node+1) != 'G' || !ignoreGlobalLM) &&
-          nodes[k].find(node) != nodes[k].end()) {
+          nodes[k].find(node) != nodes[k].end())
+      {
         std::cout <<"\n  ** Warning: Node "<< node <<" is present on both"
                   <<" thread "<< k+1 <<" and thread "<< group+1;
         ok = false;
@@ -120,7 +121,7 @@ bool ASMstruct::diracPoint (Integrand& integr, GlobalIntegral& glInt,
                             const double* u, const Vec3& pval)
 {
   int iel = this->findElementContaining(u);
-  if (iel < 1 || iel > (int)nel)
+  if (iel < 1 || iel > static_cast<int>(nel))
   {
     std::cerr <<" *** ASMstruct::diracPoint: The point";
     for (unsigned char i = 0; i < ndim; i++) std::cerr <<" "<< u[i];
@@ -159,13 +160,14 @@ bool ASMstruct::diracPoint (Integrand& integr, GlobalIntegral& glInt,
 #endif
 
   FiniteElement fe;
-  fe.iel = MLGE[iel-1];
+  fe.idx = firstEl + (--iel);
+  fe.iel = MLGE[iel];
   if (ndim > 0) fe.u = u[0];
   if (ndim > 1) fe.v = u[1];
   if (ndim > 2) fe.w = u[2];
   this->evaluateBasis(fe.u,fe.v,fe.w,fe.N);
 
-  LocalIntegral* A = integr.getLocalIntegral(MNPC[iel-1].size(),fe.iel,true);
+  LocalIntegral* A = integr.getLocalIntegral(MNPC[iel].size(),fe.iel,true);
   bool ok = (integr.evalPoint(*A,fe,pval) &&
              integr.finalizeElement(*A,fe,TimeDomain(),0) &&
              glInt.assemble(A,fe.iel));

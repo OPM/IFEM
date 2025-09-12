@@ -184,7 +184,7 @@ bool ASMs2DmxLag::generateFEMTopology ()
         int facenod = nen1 + b*q1;
         myMNPC[iel][facenod] = corner + b*nxx[1];
         for (size_t a = 1; a < q1; a++)
-            myMNPC[iel][facenod+a] = myMNPC[iel][facenod] + a;
+          myMNPC[iel][facenod+a] = myMNPC[iel][facenod] + a;
       }
     }
 
@@ -277,6 +277,7 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
       for (size_t e = 0; e < group.size() && ok; e++)
       {
         int iel = group[e];
+        fe.idx = firstEl + iel;
         fe.iel = MLGE[iel];
         if (fe.iel < 1) continue; // zero-area element
 
@@ -394,11 +395,15 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
 
   // === Assembly loop over all elements on the patch edge =====================
 
-  int iel = 1;
+  int iel = 0;
   for (int i2 = 0; i2 < nely; i2++)
     for (int i1 = 0; i1 < nelx; i1++, iel++)
     {
-      fe.iel = MLGE[iel-1];
+      if (!this->isElementInPartition(iel))
+        continue; // this element is in the partition of another process
+
+      fe.idx = firstEl + iel;
+      fe.iel = MLGE[iel];
       if (fe.iel < 1) continue; // zero-area element
 
       // Skip elements that are not on current boundary edge
@@ -413,11 +418,11 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
       if (skipMe) continue;
 
       // Set up control point coordinates for current element
-      if (!this->getElementCoordinates(Xnod,iel)) return false;
+      if (!this->getElementCoordinates(Xnod,1+iel)) return false;
 
       // Initialize element quantities
       LocalIntegral* A = integrand.getLocalIntegral(elem_size,fe.iel,true);
-      bool ok = integrand.initElementBou(MNPC[iel-1],elem_size,nb,*A);
+      bool ok = integrand.initElementBou(MNPC[iel],elem_size,nb,*A);
 
       // --- Integration loop over all Gauss points along the edge -------------
 
@@ -579,12 +584,13 @@ bool ASMs2DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   // Evaluate the secondary solution field at each point
   for (size_t i = 0; i < nPoints; i++)
   {
-    const int iel = this->findElement(gpar[0][i], gpar[1][i], &fe.xi, &fe.eta);
+    int iel = this->findElement(gpar[0][i], gpar[1][i], &fe.xi, &fe.eta);
 
     if (!this->getElementCoordinates(Xnod,iel))
       return false;
 
-    fe.iel = MLGE[iel-1];
+    fe.idx = firstEl + (--iel);
+    fe.iel = MLGE[iel];
     if (fe.iel < 1) continue; // zero-area element
 
     for (size_t b = 0; b < nxx.size(); ++b)
@@ -602,7 +608,7 @@ bool ASMs2DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
     // Now evaluate the solution field
     utl::Point X4(Xnod*fe.basis(itgBasis),{fe.u,fe.v});
-    if (!integrand.evalSol(solPt,fe,X4,MNPC[iel-1],elem_size,nb))
+    if (!integrand.evalSol(solPt,fe,X4,MNPC[iel],elem_size,nb))
       return false;
     else if (sField.empty())
       sField.resize(solPt.size(),nPoints,true);

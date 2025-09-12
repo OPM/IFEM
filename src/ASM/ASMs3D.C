@@ -475,6 +475,7 @@ bool ASMs3D::generateFEMTopology ()
   myMLGN.resize(n1*n2*n3);
   myNodeInd.resize(myMLGN.size());
 
+  firstEl = gEl;
   nnod = nel = 0;
   for (int i3 = 1; i3 <= n3; i3++)
     for (int i2 = 1; i2 <= n2; i2++)
@@ -2103,14 +2104,15 @@ bool ASMs3D::integrate (Integrand& integrand,
       for (size_t l = 0; l < groups[g][t].size() && ok; l++)
       {
         int iel = groups[g][t][l];
-        fe.iel = MLGE[iel];
-        if (!this->isElementActive(fe.iel,time.t))
-          continue; // zero-volume or inactive element
-
-#ifdef SP_DEBUG
+ #ifdef SP_DEBUG
         if (dbgElm < 0 && 1+iel != -dbgElm)
           continue; // Skipping all elements, except for -dbgElm
 #endif
+
+        fe.idx = firstEl + iel;
+        fe.iel = MLGE[iel];
+        if (!this->isElementActive(fe.iel,time.t))
+          continue; // zero-volume or inactive element
 
         int i1 = p1 + iel % nel1;
         int i2 = p2 + (iel / nel1) % nel2;
@@ -2118,9 +2120,9 @@ bool ASMs3D::integrate (Integrand& integrand,
 
         // Get element volume in the parameter space
         double dV = 0.125*this->getParametricVolume(++iel);
-        if (dV < 0.0)
+        if (dV < 0.0) // topology error (probably logic error)
         {
-          ok = false; // topology error (probably logic error)
+          ok = false;
           break;
         }
 
@@ -2332,22 +2334,19 @@ bool ASMs3D::integrate (Integrand& integrand,
   bool useElmVtx = integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS;
 
   // Evaluate basis function derivatives at all integration points
-  size_t i, j, k;
   std::vector<size_t> MPitg(itgPts.size()+1,0);
-  for (i = MPitg.front() = 0; i < itgPts.size(); i++)
+  for (size_t i = MPitg.front() = 0; i < itgPts.size(); i++)
     MPitg[i+1] = MPitg[i] + itgPts[i].size();
   size_t nPoints = MPitg.back();
   std::vector<Go::BasisDerivs>  spline(use2ndDer ? 0 : nPoints);
   std::vector<Go::BasisDerivs2> spline2(!use2ndDer ? 0 : nPoints);
-  for (i = k = 0; i < itgPts.size(); i++)
-    for (j = 0; j < itgPts[i].size(); j++, k++)
-    {
-      const RealArray& itgPt = itgPts[i][j];
+  size_t k = 0;
+  for (const Real2DMat& elmPts : itgPts)
+    for (const RealArray& itgPt : elmPts)
       if (use2ndDer)
-        svol->computeBasis(itgPt[0],itgPt[1],itgPt[2],spline2[k]);
+        svol->computeBasis(itgPt[0],itgPt[1],itgPt[2],spline2[k++]);
       else
-        svol->computeBasis(itgPt[0],itgPt[1],itgPt[2],spline[k]);
-    }
+        svol->computeBasis(itgPt[0],itgPt[1],itgPt[2],spline[k++]);
 
   const int n1 = svol->numCoefs(0);
   const int n2 = svol->numCoefs(1);
@@ -2379,20 +2378,17 @@ bool ASMs3D::integrate (Integrand& integrand,
       for (size_t e = 0; e < groups[g][t].size() && ok; e++)
       {
         int iel = groups[g][t][e];
-        if (itgPts[iel].empty())
-          continue; // no integration points in this element
-
-        fe.iel = MLGE[iel];
-        if (!this->isElementActive(fe.iel,time.t))
-          continue; // zero-volume or inactive element
-
-        if (!this->isElementInPartition(iel))
-          continue;
-
 #ifdef SP_DEBUG
         if (dbgElm < 0 && 1+iel != -dbgElm)
           continue; // Skipping all elements, except for -dbgElm
 #endif
+        if (itgPts[iel].empty())
+          continue; // no integration points in this element
+
+        fe.idx = firstEl + iel;
+        fe.iel = MLGE[iel];
+        if (!this->isElementActive(fe.iel,time.t))
+          continue; // zero-volume or inactive element
 
         int i1 = p1 + iel % nel1;
         int i2 = p2 + (iel / nel1) % nel2;
@@ -2400,9 +2396,9 @@ bool ASMs3D::integrate (Integrand& integrand,
 
         // Get element volume in the parameter space
         double dV = 0.125*this->getParametricVolume(++iel);
-        if (dV < 0.0)
+        if (dV < 0.0) // topology error (probably logic error)
         {
-          ok = false; // topology error (probably logic error)
+          ok = false;
           break;
         }
 
@@ -2417,8 +2413,8 @@ bool ASMs3D::integrate (Integrand& integrand,
         {
           // Compute the element center
           fe.h = this->getElementCorners(i1-1,i2-1,i3-1,fe.XC);
-	  X = 0.125*(fe.XC[0]+fe.XC[1]+fe.XC[2]+fe.XC[3]+
-		     fe.XC[4]+fe.XC[5]+fe.XC[6]+fe.XC[7]);
+          X.assign(0.125*(fe.XC[0]+fe.XC[1]+fe.XC[2]+fe.XC[3]+
+                          fe.XC[4]+fe.XC[5]+fe.XC[6]+fe.XC[7]));
         }
         else if (useElmVtx)
           fe.h = this->getElementCorners(i1-1,i2-1,i3-1,fe.XC);
@@ -2443,21 +2439,23 @@ bool ASMs3D::integrate (Integrand& integrand,
 
         // --- Integration loop over all quadrature points in this element -----
 
-        size_t jp = MPitg[iel]; // Patch-wise integration point counter
-        fe.iGP = firstIp + jp;  // Global integration point counter
+        size_t jp = MPitg[iel-1]; // Patch-wise integration point counter
+        fe.iGP = firstIp + jp-1;  // Global integration point counter
 
-        for (size_t ip = 0; ip < itgPts[iel].size(); ip++, jp++, fe.iGP++)
+        for (const RealArray& itgPt : itgPts[iel-1])
         {
+          fe.iGP++;
+
           // Parameter values of current integration point
-          fe.u = itgPts[iel][ip][0];
-          fe.v = itgPts[iel][ip][1];
-          fe.w = itgPts[iel][ip][2];
+          fe.u = itgPt[0];
+          fe.v = itgPt[1];
+          fe.w = itgPt[2];
 
           // Fetch basis function derivatives at current integration point
           if (use2ndDer)
-            SplineUtils::extractBasis(spline2[jp],fe.N,dNdu,d2Ndu2);
+            SplineUtils::extractBasis(spline2[jp++],fe.N,dNdu,d2Ndu2);
           else
-            SplineUtils::extractBasis(spline[jp],fe.N,dNdu);
+            SplineUtils::extractBasis(spline[jp++],fe.N,dNdu);
 
           // Compute Jacobian inverse of coordinate mapping and derivatives
           fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
@@ -2479,10 +2477,10 @@ bool ASMs3D::integrate (Integrand& integrand,
 
           // Cartesian coordinates of current integration point
           X.assign(Xnod * fe.N);
-          X.u = itgPts[iel][ip].data();
+          X.u = itgPt.data();
 
           // Evaluate the integrand and accumulate element contributions
-          fe.detJxW *= dV*itgPts[iel][ip][3];
+          fe.detJxW *= dV*itgPt[3];
 #ifndef USE_OPENMP
           PROFILE3("Integrand::evalInt");
 #endif
@@ -2643,17 +2641,15 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
       for (size_t l = 0; l < threadGrp[g][t].size() && ok; l++)
       {
         int iel = threadGrp[g][t][l];
-        fe.iel = abs(MLGE[doXelms+iel]);
-        if (!this->isElementActive(fe.iel,time.t))
-          continue; // zero-volume or inactive element
-
-        if (!this->isElementInPartition(iel))
-          continue;
-
 #ifdef SP_DEBUG
         if (dbgElm < 0 && 1+iel != -dbgElm)
           continue; // Skipping all elements, except for -dbgElm
 #endif
+
+        fe.idx = firstEl + doXelms+iel;
+        fe.iel = abs(MLGE[doXelms+iel]);
+        if (!this->isElementActive(fe.iel,time.t))
+          continue; // zero-volume or inactive element
 
         int i1 = p1 + iel % nel1;
         int i2 = p2 + (iel / nel1) % nel2;
@@ -2876,17 +2872,18 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
 
   // === Assembly loop over all elements on the patch edge =====================
 
-  int iel = 1;
+  int iel = 0;
   for (int i3 = p3; i3 <= n3; i3++)
     for (int i2 = p2; i2 <= n2; i2++)
       for (int i1 = p1; i1 <= n1; i1++, iel++)
       {
-        fe.iel = MLGE[iel-1];
+        if (!this->isElementInPartition(iel))
+          continue; // this element is in the partition of another process
+
+        fe.idx = firstEl + iel;
+        fe.iel = MLGE[iel];
         if (!this->isElementActive(fe.iel,time.t))
           continue; // zero-volume or inactive element
-
-        if (!this->isElementInPartition(iel-1))
-          continue;
 
 	// Skip elements that are not on current boundary edge
 	bool skipMe = false;
@@ -2909,7 +2906,7 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
 
 	// Get element edge length in the parameter space
 	double dS = 0.0;
-	int ip = MNPC[iel-1][svol->order(0)*svol->order(1)*svol->order(2)-1];
+	int ip = MNPC[iel][svol->order(0)*svol->order(1)*svol->order(2)-1];
 #ifdef INDEX_CHECK
         if (ip < 0 || static_cast<size_t>(ip) >= nnod)
           return false;
@@ -2931,11 +2928,11 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
 	}
 
 	// Set up control point coordinates for current element
-	if (!this->getElementCoordinates(Xnod,iel)) return false;
+	if (!this->getElementCoordinates(Xnod,1+iel)) return false;
 
 	// Initialize element quantities
         LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
-        bool ok = integrand.initElementBou(MNPC[iel-1],*A);
+        bool ok = integrand.initElementBou(MNPC[iel],*A);
 
 
 	// --- Integration loop over all Gauss points along the edge -----------

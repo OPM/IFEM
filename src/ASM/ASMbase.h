@@ -337,7 +337,7 @@ public:
   //! \brief Returns \e true if element with global id \a elmId is active.
   bool isElementActive(int elmId, double time = -1.0) const;
   //! \brief Returns \e true if element is in process partition.
-  //! \param iel Element id (0 based)
+  //! \param[in] iel 0-based element index local to current patch
   bool isElementInPartition(int iel) const;
 
   //! \brief Returns the nodal point correspondance array for an element.
@@ -509,9 +509,9 @@ public:
   virtual void generateThreadGroups(const Integrand&, bool, bool) {}
   //! \brief Generates element groups for multi-threading of boundary integrals.
   virtual void generateThreadGroups(char, bool, bool) {}
-  //! \brief Generate element-groups for multi-threading based on a partition.
+  //! \brief Generates element groups for multi-threading based on a partition.
   virtual void generateThreadGroupsFromElms(const IntVec&) {}
-  //! \brief Generate element-groups for multi-threading based on a partition.
+  //! \brief Generates element groups for multi-threading based on a partition.
   virtual void generateProjThreadGroupsFromElms(const IntVec&) {}
 
   //! \brief Hook for changing number of threads.
@@ -1041,6 +1041,7 @@ protected:
   //! in each parameter direction is set to \a p+nGauss%10.
   int nGauss; //!< \sa getNoGaussPt
 
+  size_t firstEl; //!< Global index to first element within this patch
   size_t firstIp; //!< Global index to first interior integration point
 
   //! Global indices to first integration point for the Neumann boundaries

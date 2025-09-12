@@ -277,6 +277,8 @@ bool ASMu2Dmx::generateFEMTopology ()
 
   if (shareFE == 'F') return true;
 
+  firstEl = gEl;
+
   nel = m_basis[itgBasis-1]->nElements();
   nnod = std::accumulate(nb.begin(), nb.end(), 0);
 
@@ -386,11 +388,12 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
       double   param[3] = { 0.0, 0.0, 0.0 };
       Vec4     X(param,time.t);
 
-      int geoEl = els[itgBasis-1];
-      fe.iel = MLGE[geoEl-1];
+      int geoEl = els[itgBasis-1]-1;
+      fe.idx = firstEl + geoEl;
+      fe.iel = MLGE[geoEl];
 
       // Get element area in the parameter space
-      const LR::Element* el = lrspline->getElement(geoEl-1);
+      const LR::Element* el = lrspline->getElement(geoEl);
       double dA = 0.25*el->area();
       if (dA < 0.0)
       {
@@ -399,14 +402,14 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
       }
 
       // Set up control point (nodal) coordinates for current element
-      if (!this->getElementCoordinates(Xnod,geoEl))
+      if (!this->getElementCoordinates(Xnod,1+geoEl))
       {
         ok = false;
         continue;
       }
 
       if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-        fe.h = this->getElementCorners(geoEl,fe.XC);
+        fe.h = this->getElementCorners(1+geoEl,fe.XC);
 
       if (integrand.getIntegrandType() & Integrand::G_MATRIX)
       {
@@ -417,7 +420,7 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
 
       // Initialize element quantities
       LocalIntegral* A = integrand.getLocalIntegral(elem_sizes,fe.iel);
-      if (!integrand.initElement(MNPC[geoEl-1],fe,elem_sizes,nb,*A))
+      if (!integrand.initElement(MNPC[geoEl],fe,elem_sizes,nb,*A))
       {
         A->destruct();
         ok = false;
@@ -426,7 +429,7 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
 
       // --- Integration loop over all Gauss points in each direction ----------
 
-      int jp = (geoEl-1)*ng[0]*ng[1];
+      int jp = geoEl*ng[0]*ng[1];
       fe.iGP = firstIp + jp; // Global integration point counter
 
       size_t ig = 0;
@@ -438,12 +441,12 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
           fe.eta = xg[1][j];
 
           // Parameter values of current integration point
-          fe.u = param[0] = cache.getParam(0,geoEl-1,i);
-          fe.v = param[1] = cache.getParam(1,geoEl-1,j);
+          fe.u = param[0] = cache.getParam(0,geoEl,i);
+          fe.v = param[1] = cache.getParam(1,geoEl,j);
 
           BasisValuesPtrs bfs(myCache.size());
           for (size_t b = 0; b < bfs.size(); ++b) {
-            bfs[b] = &myCache[b]->getVals(geoEl-1,ig);
+            bfs[b] = &myCache[b]->getVals(geoEl,ig);
             if (b < m_basis.size())
               fe.basis(b+1) = bfs[b]->N;
           }
@@ -549,6 +552,7 @@ bool ASMu2Dmx::integrate (Integrand& integrand, int lIndex,
   for (const LR::Element* el1 : m_basis[itgBasis-1]->getAllElements())
   {
     ++iel;
+
     if (!this->isElementInPartition(iel-1))
       continue;
 
@@ -568,28 +572,30 @@ bool ASMu2Dmx::integrate (Integrand& integrand, int lIndex,
     this->getElementsAt(el1->midpoint(),els,&elem_sizes);
 
     MxFiniteElement fe(elem_sizes,firstp);
-    int geoEl = els[itgBasis-1];
-    fe.iel = MLGE[geoEl-1];
+
+    int geoEl = els[itgBasis-1]-1;
+    fe.idx = firstEl + geoEl;
+    fe.iel = MLGE[geoEl];
     fe.xi = fe.eta = edgeDir < 0 ? -1.0 : 1.0;
     firstp += nGP; // Global integration point counter
 
     // Get element edge length in the parameter space
-    double dS = 0.5*this->getParametricLength(geoEl,t2);
+    double dS = 0.5*this->getParametricLength(1+geoEl,t2);
     if (dS < 0.0) return false; // topology error (probably logic error)
 
     // Set up control point coordinates for current element
-    if (!this->getElementCoordinates(Xnod,geoEl))
+    if (!this->getElementCoordinates(Xnod,1+geoEl))
       return false;
 
     if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-      fe.h = this->getElementCorners(iel,fe.XC);
+      fe.h = this->getElementCorners(1+geoEl,fe.XC);
 
     // Initialize element quantities
     LocalIntegral* A = integrand.getLocalIntegral(elem_sizes,fe.iel,true);
-    bool ok = integrand.initElementBou(MNPC[geoEl-1],elem_sizes,nb,*A);
+    bool ok = integrand.initElementBou(MNPC[geoEl],elem_sizes,nb,*A);
 
     // Get integration gauss points over this element
-    this->getGaussPointParameters(gpar[t2-1],t2-1,nGP,geoEl,xg);
+    this->getGaussPointParameters(gpar[t2-1],t2-1,nGP,1+geoEl,xg);
 
 
     // --- Integration loop over all Gauss points along the edge ---------------

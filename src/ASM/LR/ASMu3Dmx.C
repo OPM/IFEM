@@ -267,6 +267,8 @@ bool ASMu3Dmx::generateFEMTopology ()
 
   if (shareFE == 'F') return true;
 
+  firstEl = gEl;
+
   nel = m_basis[itgBasis-1]->nElements();
   nnod = std::accumulate(nb.begin(), nb.end(), 0);
 
@@ -372,6 +374,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
       Vec4     X(param,time.t);
 
       int iEl = els[itgBasis-1]-1;
+      fe.idx = firstEl + iEl;
       fe.iel = MLGE[iEl];
 
       const LR::Element* el = lrspline->getElement(iEl);

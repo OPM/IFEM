@@ -305,6 +305,7 @@ bool ASMs3DmxLag::integrate (Integrand& integrand,
       for (size_t e = 0; e < group.size() && ok; e++)
       {
         int iel = group[e];
+        fe.idx = firstEl + iel;
         fe.iel = MLGE[iel];
         if (fe.iel < 1) continue; // zero-volume element
 
@@ -445,6 +446,7 @@ bool ASMs3DmxLag::integrate (Integrand& integrand, int lIndex,
       for (size_t e = 0; e < group.size() && ok; e++)
       {
         int iel = group[e];
+        fe.idx = firstEl + iel;
         fe.iel = MLGE[iel];
         if (fe.iel < 1) continue; // zero-volume element
 
@@ -646,13 +648,14 @@ bool ASMs3DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   // Evaluate the secondary solution field at each point
   for (size_t i = 0; i < nPoints; i++)
   {
-    const int iel = this->findElement(gpar[0][i], gpar[1][i], gpar[2][i],
-                                      &fe.xi, &fe.eta, &fe.zeta);
+    int iel = this->findElement(gpar[0][i], gpar[1][i], gpar[2][i],
+                                &fe.xi, &fe.eta, &fe.zeta);
 
     if (!this->getElementCoordinates(Xnod,iel))
       return false;
 
-    fe.iel = MLGE[iel-1];
+    fe.idx = firstEl + (--iel);
+    fe.iel = MLGE[iel];
     if (fe.iel < 1) continue; // zero-volume element
 
     for (size_t b = 0; b < nxx.size(); ++b)
@@ -672,7 +675,7 @@ bool ASMs3DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
     // Now evaluate the solution field
     utl::Point X4(Xnod*fe.basis(itgBasis),{fe.u,fe.v,fe.w});
-    if (!integrand.evalSol(solPt,fe,X4,MNPC[iel-1],elem_size,nb))
+    if (!integrand.evalSol(solPt,fe,X4,MNPC[iel],elem_size,nb))
       return false;
     else if (sField.empty())
       sField.resize(solPt.size(),nPoints,true);
