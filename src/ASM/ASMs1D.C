@@ -347,7 +347,7 @@ bool ASMs1D::generateOrientedFEModel (const Vec3& Zaxis)
     myT.resize(nnod,Tensor(3,true)); // Initialize nodal rotations to unity
   }
 
-  int pgEl = gEl;
+  int pgEl = firstEl = gEl;
   for (int i1 = 1; i1 <= n1; i1++)
   {
     if (i1 >= p1 && this->getKnotSpan(i1-1) > 0.0)
@@ -1187,14 +1187,15 @@ bool ASMs1D::integrate (Integrand& integrand,
   bool ok = true;
   for (size_t iel = 0; iel < nel && ok; iel++)
   {
-    fe.iel = MLGE[iel];
-    if (fe.iel < 1) continue; // zero-length element
-
 #ifdef SP_DEBUG
     int ielm = 1+iel;
     if (dbgElm < 0 && ielm != -dbgElm)
       continue; // Skipping all elements, except for -dbgElm
 #endif
+
+    fe.idx = firstEl + iel;
+    fe.iel = MLGE[iel];
+    if (fe.iel < 1) continue; // zero-length element
 
     LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
     if (!A) continue; // no integrand contributions for this element
@@ -1352,9 +1353,6 @@ bool ASMs1D::integrate (Integrand& integrand, int lIndex,
 {
   if (!curv) return true; // silently ignore empty patches
 
-  // Extract the Neumann order flag (1 or higher) for the integrand
-  integrand.setNeumannOrder(1 + lIndex/10);
-
   // Integration of boundary point
 
   FiniteElement fe(curv->order());
@@ -1382,8 +1380,12 @@ bool ASMs1D::integrate (Integrand& integrand, int lIndex,
     return true; // Skipping all elements, except for -dbgElm
 #endif
 
+  fe.idx = firstEl + iel;
   fe.iel = MLGE[iel];
   if (fe.iel < 1) return true; // zero-length element
+
+  // Extract the Neumann order flag (1 or higher) for the integrand
+  integrand.setNeumannOrder(1 + lIndex/10);
 
   LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
   if (!A) return true; // no integrand contributions for this element

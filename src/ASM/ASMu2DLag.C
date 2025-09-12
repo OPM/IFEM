@@ -65,6 +65,8 @@ bool ASMu2DLag::generateFEMTopology ()
 {
   p1 = p2 = 2; // So far only linear elements supported
 
+  firstEl = gEl;
+
   nnod = myCoord.size();
   nel  = myMNPC.size();
 
