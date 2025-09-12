@@ -307,6 +307,9 @@ public:
   //! \brief Returns a const-ref to domain decompositioning.
   const DomainDecomposition& getDD() const;
 
+  //! \brief Adds the constant &sigma; to the diagonal of this matrix.
+  bool add(Real sigma, int ieq) override;
+
 protected:
   //! \brief Solve a linear system.
   bool solve(const Vec& b, Vec& x, bool knoll);

@@ -702,12 +702,27 @@ void PETScMatrix::init ()
     MatZeroEntries(m);
 
   assembled = false;
+  factored = false;
 }
 
 
 void PETScMatrix::mult (Real alpha)
 {
   MatScale(pA, alpha);
+}
+
+
+bool PETScMatrix::add (Real sigma, int ieq)
+{
+  if (ieq > static_cast<int>(nrow))
+    return false;
+  else if (ieq > 0) {
+    const int eq = adm.dd.getGlobalEq(ieq) - 1;
+    MatSetValue(pA, eq, eq, sigma, ADD_VALUES);
+  } else
+    MatShift(pA, sigma);
+
+  return true;
 }
 
 
@@ -773,17 +788,19 @@ bool PETScMatrix::solve (const Vec& b, Vec& x, bool knoll)
     }
   }
 
-  if (setParams) {
 #if PETSC_VERSION_MINOR < 5
     KSPSetOperators(ksp,pA,pA, factored ? SAME_PRECONDITIONER : SAME_NONZERO_PATTERN);
 #else
     KSPSetOperators(ksp,pA,pA);
     KSPSetReusePreconditioner(ksp, factored ? PETSC_TRUE : PETSC_FALSE);
 #endif
+
+  if (setParams) {
     if (!setParameters(true))
       return false;
     setParams = false;
   }
+
   if (knoll)
     KSPSetInitialGuessKnoll(ksp,PETSC_TRUE);
   else
