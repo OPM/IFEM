@@ -2449,8 +2449,10 @@ bool SIMbase::project (RealArray& values, const FunctionBase* f,
 bool SIMbase::extractPatchSolution (IntegrandBase* problem,
                                     const Vectors& sol, size_t pindx) const
 {
+  if (!problem || !mySam) return false;
+
   ASMbase* pch = this->getPatch(pindx+1);
-  if (!pch || !mySam) return false;
+  if (!pch) return false;
 
   problem->initNodeMap(pch->getGlobalNodeNums());
   for (size_t i = 0; i < problem->getNoSolutions(); i++)
