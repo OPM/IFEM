@@ -337,7 +337,7 @@ size_t ASMbase::getNoNodes (int basis) const
 size_t ASMbase::getNoElms (bool includeZeroVolElms, bool includeXElms) const
 {
   if (includeZeroVolElms)
-    return nel;
+    return includeXElms ? MLGE.size() : nel;
 
   size_t numels = 0;
   for (int iel : MLGE)

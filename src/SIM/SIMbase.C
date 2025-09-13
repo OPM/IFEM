@@ -642,7 +642,7 @@ void SIMbase::initLHSbuffers ()
   for (ASMbase* pch : myModel)
     nElms = std::max(nElms,pch->getMaxElmNo());
 
-  myProblem->initLHSbuffers(nElms);
+  myProblem->initMatrixBuffers(this->getNoElms(true,true),nElms);
 }
 
 
@@ -827,7 +827,7 @@ size_t SIMbase::getNoNodes (int basis) const
 
 size_t SIMbase::getNoElms (bool includeXelms, bool includeZelms) const
 {
-  if (mySam && includeXelms)
+  if (mySam && includeXelms && !includeZelms)
     return mySam->getNoElms();
 
   size_t noElms = 0;
@@ -1241,7 +1241,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
       sysQ.initialize(initLHS);
 
     if (isAssembling && mdFlag <= 1)
-      it->second->initLHSbuffers(initLHS);
+      it->second->initLHSbuffers(newLHSmatrix);
 
     if (!prevSol.empty())
       it->second->initIntegration(time,prevSol.front(),poorConvg);
@@ -2449,8 +2449,10 @@ bool SIMbase::project (RealArray& values, const FunctionBase* f,
 bool SIMbase::extractPatchSolution (IntegrandBase* problem,
                                     const Vectors& sol, size_t pindx) const
 {
+  if (!problem || !mySam) return false;
+
   ASMbase* pch = this->getPatch(pindx+1);
-  if (!pch || !mySam) return false;
+  if (!pch) return false;
 
   problem->initNodeMap(pch->getGlobalNodeNums());
   for (size_t i = 0; i < problem->getNoSolutions(); i++)
