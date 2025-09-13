@@ -156,6 +156,8 @@ bool ASMs2DLag::generateFEMTopology ()
   if (!coord.empty())
     return coord.size() == nnod;
 
+  firstEl = gEl;
+
   // Number of elements in each direction
   const int nelx = (nx-1)/(p1-1);
   const int nely = (ny-1)/(p2-1);
@@ -323,9 +325,9 @@ bool ASMs2DLag::integrate (Integrand& integrand,
   const int nelx = (nx-1)/(p1-1);
 
   ThreadGroups oneGroup;
-  if (glInt.threadSafe())
-    oneGroup.oneStripe(nel, myElms);
+  if (glInt.threadSafe()) oneGroup.oneStripe(nel, myElms);
   const ThreadGroups& groups = glInt.threadSafe() ? oneGroup : threadGroups;
+
 
   // === Assembly loop over all elements in the patch ==========================
 
@@ -349,8 +351,13 @@ bool ASMs2DLag::integrate (Integrand& integrand,
           break;
         }
 
+        if (!this->isElementInPartition(iel))
+          continue; // this element is in the partition of another process
+
+        fe.idx = firstEl + iel;
         fe.iel = MLGE[iel];
-        if (!this->isElementActive(fe.iel)) continue; // zero-area element
+        if (!this->isElementActive(fe.iel))
+          continue; // zero-area element
 
         // Set up nodal point coordinates for current element
         this->getElementCoordinates(fe.Xn,1+iel);
@@ -562,15 +569,17 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
 
   // === Assembly loop over all elements on the patch edge =====================
 
-  int iel = 1;
+  int iel = 0;
   for (int i2 = 0; i2 < nely; i2++)
     for (int i1 = 0; i1 < nelx; i1++, iel++)
     {
-      fe.iel = abs(MLGE[doXelms+iel-1]);
-      if (!this->isElementActive(fe.iel)) continue; // zero-area element
+      if (!this->isElementInPartition(iel))
+        continue; // this element is in the partition of another process
 
-      if (!this->isElementInPartition(iel-1))
-        continue;
+      fe.idx = firstEl + iel;
+      fe.iel = abs(MLGE[doXelms+iel]);
+      if (!this->isElementActive(fe.iel))
+	continue; // zero-area element
 
       // Skip elements that are not on current boundary edge
       bool skipMe = false;
@@ -584,11 +593,11 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
       if (skipMe) continue;
 
       // Set up nodal point coordinates for current element
-      this->getElementCoordinates(fe.Xn,iel);
+      this->getElementCoordinates(fe.Xn,1+iel);
 
       // Initialize element quantities
       LocalIntegral* A = integrand.getLocalIntegral(fe.Xn.cols(),fe.iel,true);
-      bool ok = integrand.initElementBou(MNPC[doXelms+iel-1],*A);
+      bool ok = integrand.initElementBou(MNPC[doXelms+iel],*A);
 
       if (integrand.getIntegrandType() & Integrand::POINT_DEFORMATION)
         if (!time.first || time.it > 0)
@@ -788,6 +797,7 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   // Evaluate the secondary solution field at each point
   for (size_t iel = 0; iel < nel; iel++)
   {
+    fe.idx = firstEl + iel;
     fe.iel = MLGE[iel];
     if (fe.iel < 1) continue; // zero-area element
 
@@ -861,6 +871,7 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
         return false;
     }
 
+    fe.idx = firstEl + iel-1;
     fe.iel = MLGE[iel-1];
     if (fe.iel < 1) continue; // zero-area element
 
@@ -994,10 +1005,8 @@ int ASMs2DLag::findElement (double u, double v, double* xi, double* eta) const
 
   int ku, kv;
 #pragma omp critical
-  {
-    ku = surf->basis(0).knotInterval(u);
-    kv = surf->basis(1).knotInterval(v);
-  }
+  std::tie(ku,kv) = std::make_pair(surf->basis(0).knotInterval(u),
+                                   surf->basis(1).knotInterval(v));
 
   const int elmx = ku - (p1 - 1);
   const int elmy = kv - (p2 - 1);

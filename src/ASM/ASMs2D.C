@@ -539,6 +539,7 @@ bool ASMs2D::generateFEMTopology ()
   myMLGN.resize(n1*n2);
   myNodeInd.resize(myMLGN.size());
 
+  firstEl = gEl;
   nnod = nel = 0;
   for (int i2 = 1; i2 <= n2; i2++)
     for (int i1 = 1; i1 <= n1; i1++)
@@ -1727,9 +1728,9 @@ bool ASMs2D::integrate (Integrand& integrand,
   const int nel1 = n1 - p1 + 1;
 
   ThreadGroups oneGroup;
-  if (glInt.threadSafe())
-    oneGroup.oneStripe(nel, myElms);
+  if (glInt.threadSafe()) oneGroup.oneStripe(nel,myElms);
   const ThreadGroups& groups = glInt.threadSafe() ? oneGroup : threadGroups;
+
 
   // === Assembly loop over all elements in the patch ==========================
 
@@ -1749,14 +1750,18 @@ bool ASMs2D::integrate (Integrand& integrand,
       for (size_t e = 0; e < groups[g][t].size() && ok; e++)
       {
         int iel = groups[g][t][e];
-        fe.iel = MLGE[iel];
-        if (!this->isElementActive(fe.iel,time.t))
-          continue; // zero-area or inactive element
-
 #ifdef SP_DEBUG
         if (dbgElm < 0 && 1+iel != -dbgElm)
           continue; // Skipping all elements, except for -dbgElm
 #endif
+
+        if (!this->isElementInPartition(iel))
+          continue; // this element is in the partition of another process
+
+        fe.idx = firstEl + iel;
+        fe.iel = MLGE[iel];
+        if (!this->isElementActive(fe.iel,time.t))
+          continue; // zero-area or inactive element
 
         int i1 = p1 + iel % nel1;
         int i2 = p2 + iel / nel1;
@@ -2036,19 +2041,20 @@ bool ASMs2D::integrate (Integrand& integrand,
       for (size_t e = 0; e < groups[g][t].size() && ok; e++)
       {
         int iel = groups[g][t][e];
+#ifdef SP_DEBUG
+        if (dbgElm < 0 && 1+iel != -dbgElm)
+          continue; // skipping all elements, except for -dbgElm
+#endif
+
         if (itgPts[iel].empty())
           continue; // no points in this element
+        if (!this->isElementInPartition(iel))
+          continue; // this element is in the partition of another process
 
+        fe.iel = firstEl + iel;
         fe.iel = MLGE[iel];
         if (!this->isElementActive(fe.iel,time.t))
           continue; // zero-area or inactive element
-        if (!this->isElementInPartition(iel))
-          continue;
-
-#ifdef SP_DEBUG
-        if (dbgElm < 0 && 1+iel != -dbgElm)
-          continue; // Skipping all elements, except for -dbgElm
-#endif
 
         int i1 = p1 + iel % nel1;
         int i2 = p2 + iel / nel1;
@@ -2218,6 +2224,7 @@ bool ASMs2D::integrate (Integrand& integrand,
     {
       if (!hasInterfaceElms) jel = iel;
 
+      fe.idx = firstEl + iel;
       fe.iel = abs(MLGE[jel]);
       if (!this->isElementActive(fe.iel,time.t))
         continue; // zero-area element
@@ -2419,21 +2426,23 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
 
   // === Assembly loop over all elements on the patch edge =====================
 
-  int iel = 1;
+  int iel = 0;
   for (int i2 = p2; i2 <= n2; i2++)
     for (int i1 = p1; i1 <= n1; i1++, iel++)
     {
-      fe.iel = abs(MLGE[doXelms+iel-1]);
+ #ifdef SP_DEBUG
+      int ielm = 1+iel;
+      if (dbgElm < 0 && ielm != -dbgElm)
+        continue; // skipping all elements, except for -dbgElm
+#endif
+
+      if (!this->isElementInPartition(iel))
+        continue; // this element is in the partition of another process
+
+      fe.idx = firstEl + iel;
+      fe.iel = abs(MLGE[doXelms+iel]);
       if (!this->isElementActive(fe.iel,time.t))
         continue; // zero-area element
-
-      if (!this->isElementInPartition(iel-1))
-        continue;
-
-#ifdef SP_DEBUG
-      if (dbgElm < 0 && iel != -dbgElm)
-        continue; // Skipping all elements, except for -dbgElm
-#endif
 
       // Skip elements that are not on current boundary edge
       bool skipMe = false;
@@ -2447,11 +2456,11 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
       if (skipMe) continue;
 
       // Get element edge length in the parameter space
-      double dS = 0.5*this->getParametricLength(iel,t2);
+      double dS = 0.5*this->getParametricLength(1+iel,t2);
       if (dS < 0.0) return false; // topology error (probably logic error)
 
       // Set up control point coordinates for current element
-      if (!this->getElementCoordinates(Xnod,iel)) return false;
+      if (!this->getElementCoordinates(Xnod,1+iel)) return false;
 
       if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
         fe.h = this->getElementCorners(i1-1,i2-1,fe.XC);
@@ -2465,7 +2474,7 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
 
       // Initialize element quantities
       LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
-      bool ok = integrand.initElementBou(MNPC[doXelms+iel-1],*A);
+      bool ok = integrand.initElementBou(MNPC[doXelms+iel],*A);
 
 
       // --- Integration loop over all Gauss points along the edge -------------
@@ -2504,7 +2513,7 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
           fe.G = Jac; // Store tangent vectors in fe.G for shells
 
 #if SP_DEBUG > 4
-        if (iel == dbgElm || iel == -dbgElm || dbgElm == 0)
+        if (ielm == dbgElm || ielm == -dbgElm || dbgElm == 0)
           std::cout <<"\n"<< fe;
 #endif
 
@@ -2529,7 +2538,7 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
       if (!ok) return false;
 
 #ifdef SP_DEBUG
-      if (dbgElm < 0 && iel == -dbgElm)
+      if (dbgElm < 0 && ielm == -dbgElm)
         break; // Skipping all elements, except for -dbgElm
 #endif
     }

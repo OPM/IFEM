@@ -475,6 +475,7 @@ bool ASMs3D::generateFEMTopology ()
   myMLGN.resize(n1*n2*n3);
   myNodeInd.resize(myMLGN.size());
 
+  firstEl = gEl;
   nnod = nel = 0;
   for (int i3 = 1; i3 <= n3; i3++)
     for (int i2 = 1; i2 <= n2; i2++)
@@ -2083,9 +2084,9 @@ bool ASMs3D::integrate (Integrand& integrand,
   const int nel2 = n2 - p2 + 1;
 
   ThreadGroups oneGroup;
-  if (glInt.threadSafe())
-    oneGroup.oneStripe(nel, myElms);
+  if (glInt.threadSafe()) oneGroup.oneStripe(nel,myElms);
   const ThreadGroups& groups = glInt.threadSafe() ? oneGroup : threadGroupsVol;
+
 
   // === Assembly loop over all elements in the patch ==========================
 
@@ -2103,14 +2104,18 @@ bool ASMs3D::integrate (Integrand& integrand,
       for (size_t l = 0; l < groups[g][t].size() && ok; l++)
       {
         int iel = groups[g][t][l];
+ #ifdef SP_DEBUG
+        if (dbgElm < 0 && 1+iel != -dbgElm)
+          continue; // skipping all elements, except for -dbgElm
+#endif
+
+        if (!this->isElementInPartition(iel))
+          continue; // this element is in the partition of another process
+
+        fe.idx = firstEl + iel;
         fe.iel = MLGE[iel];
         if (!this->isElementActive(fe.iel,time.t))
           continue; // zero-volume or inactive element
-
-#ifdef SP_DEBUG
-        if (dbgElm < 0 && 1+iel != -dbgElm)
-          continue; // Skipping all elements, except for -dbgElm
-#endif
 
         int i1 = p1 + iel % nel1;
         int i2 = p2 + (iel / nel1) % nel2;
@@ -2379,20 +2384,20 @@ bool ASMs3D::integrate (Integrand& integrand,
       for (size_t e = 0; e < groups[g][t].size() && ok; e++)
       {
         int iel = groups[g][t][e];
+#ifdef SP_DEBUG
+        if (dbgElm < 0 && 1+iel != -dbgElm)
+          continue; // skipping all elements, except for -dbgElm
+#endif
+
         if (itgPts[iel].empty())
           continue; // no integration points in this element
+        if (!this->isElementInPartition(iel))
+          continue; // this element is in the partition of another process
 
+        fe.idx = firstEl + iel;
         fe.iel = MLGE[iel];
         if (!this->isElementActive(fe.iel,time.t))
           continue; // zero-volume or inactive element
-
-        if (!this->isElementInPartition(iel))
-          continue;
-
-#ifdef SP_DEBUG
-        if (dbgElm < 0 && 1+iel != -dbgElm)
-          continue; // Skipping all elements, except for -dbgElm
-#endif
 
         int i1 = p1 + iel % nel1;
         int i2 = p2 + (iel / nel1) % nel2;
@@ -2643,17 +2648,18 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
       for (size_t l = 0; l < threadGrp[g][t].size() && ok; l++)
       {
         int iel = threadGrp[g][t][l];
+#ifdef SP_DEBUG
+        if (dbgElm < 0 && 1+iel != -dbgElm)
+          continue; // skipping all elements, except for -dbgElm
+#endif
+
+        if (!this->isElementInPartition(iel))
+          continue; // this element is in the partition of another process
+
+        fe.idx = firstEl + iel;
         fe.iel = abs(MLGE[doXelms+iel]);
         if (!this->isElementActive(fe.iel,time.t))
           continue; // zero-volume or inactive element
-
-        if (!this->isElementInPartition(iel))
-          continue;
-
-#ifdef SP_DEBUG
-        if (dbgElm < 0 && 1+iel != -dbgElm)
-          continue; // Skipping all elements, except for -dbgElm
-#endif
 
         int i1 = p1 + iel % nel1;
         int i2 = p2 + (iel / nel1) % nel2;
@@ -2876,17 +2882,18 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
 
   // === Assembly loop over all elements on the patch edge =====================
 
-  int iel = 1;
+  int iel = 0;
   for (int i3 = p3; i3 <= n3; i3++)
     for (int i2 = p2; i2 <= n2; i2++)
       for (int i1 = p1; i1 <= n1; i1++, iel++)
       {
-        fe.iel = MLGE[iel-1];
+        if (!this->isElementInPartition(iel))
+          continue; // this element is in the partition of another process
+
+        fe.iel = firstEl + iel;
+        fe.iel = MLGE[iel];
         if (!this->isElementActive(fe.iel,time.t))
           continue; // zero-volume or inactive element
-
-        if (!this->isElementInPartition(iel-1))
-          continue;
 
 	// Skip elements that are not on current boundary edge
 	bool skipMe = false;
@@ -2909,7 +2916,7 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
 
 	// Get element edge length in the parameter space
 	double dS = 0.0;
-	int ip = MNPC[iel-1][svol->order(0)*svol->order(1)*svol->order(2)-1];
+	int ip = MNPC[iel][svol->order(0)*svol->order(1)*svol->order(2)-1];
 #ifdef INDEX_CHECK
         if (ip < 0 || static_cast<size_t>(ip) >= nnod)
           return false;
@@ -2931,11 +2938,11 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
 	}
 
 	// Set up control point coordinates for current element
-	if (!this->getElementCoordinates(Xnod,iel)) return false;
+	if (!this->getElementCoordinates(Xnod,1+iel)) return false;
 
 	// Initialize element quantities
         LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
-        bool ok = integrand.initElementBou(MNPC[iel-1],*A);
+        bool ok = integrand.initElementBou(MNPC[iel],*A);
 
 
 	// --- Integration loop over all Gauss points along the edge -----------

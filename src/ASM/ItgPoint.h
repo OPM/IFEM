@@ -29,6 +29,7 @@ public:
   {
     iGP = i;
     iel = -1;
+    idx = 0;
     u = v = w = xi = eta = zeta = 0.0;
   }
 
@@ -40,6 +41,7 @@ public:
     w = c;
 
     iGP = i;
+    idx = 0;
     iel = -1;
     xi = eta = zeta = 0.0;
   }
@@ -52,6 +54,7 @@ public:
     w = par[2];
 
     iGP = i;
+    idx = 0;
     iel = -1;
     xi = eta = zeta = 0.0;
   }
@@ -66,6 +69,7 @@ public:
   double w; //!< Third spline parameter of the point
 
   int    iel;  //!< Identifier of the element containing this point
+  size_t idx;  //!< Global index (0-based) of the element containing this point
   double xi;   //!< First local coordinate within current element
   double eta;  //!< Second local coordinate within current element
   double zeta; //!< Third local coordinate within current element
