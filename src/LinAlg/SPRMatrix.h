@@ -49,6 +49,9 @@ public:
   //! \brief Creates a copy of the system matrix and returns a pointer to it.
   virtual SystemMatrix* copy() const { return new SPRMatrix(*this); }
 
+  //! \brief This class is not copyable.
+  SPRMatrix& operator=(const SPRMatrix&) = delete;
+
   //! \brief Returns the dimension of the system matrix.
   virtual size_t dim(int idim) const;
 
