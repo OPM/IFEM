@@ -54,19 +54,22 @@ bool AlgEqSystem::init (LinAlg::MatrixType mtype, const LinSolParams* spar,
   c.resize(nscl,0.0);
   R.clear();
 
-  for (i = 0; i < A.size(); i++)
-  {
-    if (!A[i]._A)
-    {
-      if (spar)
-        A[i]._A = SystemMatrix::create(adm,mtype,*spar);
-      else
-        A[i]._A = SystemMatrix::create(adm,mtype,abs(num_threads_SLU));
-      if (!A[i]._A) return false;
-    }
+  // Note: We here assume that all system matrices have the same
+  // sparsity pattern. If this changes, this code needs to be restructured.
 
+  if (!A.empty()) {
+    if (spar)
+      A[0]._A = SystemMatrix::create(adm,mtype,*spar);
+    else
+      A[0]._A = SystemMatrix::create(adm,mtype,abs(num_threads_SLU));
+    if (!A[0]._A) return false;
     PROFILE("Pre-assembly");
-    A[i]._A->initAssembly(sam,preAssemblyFlag);
+    A[0]._A->initAssembly(sam,preAssemblyFlag);
+    A[0]._b = nullptr;
+  }
+
+  for (i = 1; i < A.size(); i++) {
+    A[i]._A = A[0]._A->copy();
     A[i]._b = nullptr;
   }
 
