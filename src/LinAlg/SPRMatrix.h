@@ -176,6 +176,8 @@ private:
     //! \brief The destructor frees the dynamically allocated arrays.
     ~SAM64();
   };
+
+  bool sharedSam = false; //!< True if SAM object is shared with another matrix
 #else
   using SAM64 = SAM; //!< Convenience alias when using 32-bit int version
 #endif

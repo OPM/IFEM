@@ -193,7 +193,10 @@ SPRMatrix::SPRMatrix (const SPRMatrix& A) : SystemMatrix(A), rWork(1)
 #else
   jWork = &iWork;
 #endif
-  mySam = nullptr;
+  mySam = A.mySam;
+#ifdef USE_INT64
+  sharedSam = true;
+#endif
 }
 
 
@@ -208,7 +211,8 @@ SPRMatrix::~SPRMatrix ()
   delete[] jWork;
 #endif
 #ifdef USE_INT64
-  delete mySam;
+  if (!sharedSam)
+    delete mySam;
 #endif
 }
 
