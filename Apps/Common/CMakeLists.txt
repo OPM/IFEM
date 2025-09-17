@@ -32,10 +32,10 @@ if(LRSpline_FOUND)
   list(APPEND APPCOMMON_TEST_SRCS ${PROJECT_SOURCE_DIR}/Test/LR/TestMultiPatchLRRefine.C)
 endif()
 
-IFEM_add_test_app("${APPCOMMON_TEST_SRCS}"
-                  ${PROJECT_SOURCE_DIR}/Test
-                  AppCommon 0
-                  IFEMAppCommon ${IFEM_LIBRARIES})
+IFEM_add_test_app(SOURCES ${APPCOMMON_TEST_SRCS}
+                  WORKDIR ${PROJECT_SOURCE_DIR}/Test
+                  NAME AppCommon
+                  LIBRARIES IFEMAppCommon ${IFEM_LIBRARIES})
 
 set(TEST_APPS ${TEST_APPS} PARENT_SCOPE)
 set(UNIT_TEST_NUMBER ${UNIT_TEST_NUMBER} PARENT_SCOPE)
