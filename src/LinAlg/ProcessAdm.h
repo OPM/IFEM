@@ -74,6 +74,11 @@ public:
   //! \param root Node to broadcast from
   void broadcast(std::vector<double>& vec, int root) const;
 
+  //! \brief Broadcast for an integer vector.
+  //! \param vec Integer array to broadcast
+  //! \param root Node to broadcast from
+  void broadcast(std::vector<int>& vec, int root) const;
+
 #if defined(HAS_PETSC) || defined(HAVE_MPI)
   //! \brief Return MPI communicator
   MPI_Comm* getCommunicator() { return &comm; }
