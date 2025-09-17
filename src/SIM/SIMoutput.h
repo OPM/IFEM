@@ -94,7 +94,7 @@ public:
   //! \brief Writes boundary conditions as scalar fields to the VTF-file.
   //! \param nBlock Running result block counter
   //! \param[in] iStep Load/time step identifier
-  bool writeGlvBC(int& nBlock, int iStep = 1) const;
+  virtual bool writeGlvBC(int& nBlock, int iStep = 1) const;
 
   //! \brief Writes global node numbers as scalar fields to the VTF-file.
   //! \param nBlock Running result block counter
