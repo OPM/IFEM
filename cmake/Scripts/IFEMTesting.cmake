@@ -1,26 +1,38 @@
-macro(IFEM_add_test_app path workdir name parallel)
-  if("${path}" MATCHES "\\*")
-    file(GLOB TEST_SRCS ${path})
-  else()
-    set(TEST_SRCS ${path})
-  endif()
+function(IFEM_add_test_app)
+  set(oneValueArgs WORKDIR NAME PARALLEL)
+  set(multiValueArgs SOURCES LIBRARIES)
+  cmake_parse_arguments(PARAM "$" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+  foreach(source ${PARAM_SOURCES})
+    if(source MATCHES "\\*")
+      file(GLOB TEST_SRCS ${source})
+      list(APPEND test_sources ${TEST_SRCS})
+    else()
+      list(APPEND test_sources ${source})
+    endif()
+  endforeach()
   if(IFEM_BUILD_TESTING)
     set(EXCL_ALL)
   else()
     set(EXCL_ALL EXCLUDE_FROM_ALL)
   endif()
-  add_executable(${name}-test ${EXCL_ALL} ${IFEM_PATH}/src/IFEM-test.C ${TEST_SRCS})
-  if(${parallel} GREATER 0)
-    set_property(TARGET ${name}-test PROPERTY
-                 CROSSCOMPILING_EMULATOR '${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${parallel}')
-  endif()
+  add_executable(${PARAM_NAME}-test ${EXCL_ALL} ${IFEM_PATH}/src/IFEM-test.C ${test_sources})
   include(GoogleTest)
-  gtest_discover_tests(${name}-test
-                       WORKING_DIRECTORY ${workdir}
-                       NO_PRETTY_VALUES)
-  list(APPEND TEST_APPS ${name}-test)
-  target_link_libraries(${name}-test GTest::GTest ${ARGN})
-endmacro()
+  if(PARAM_PARALLEL GREATER 0)
+    set_property(TARGET ${PARAM_NAME}-test PROPERTY
+                 CROSSCOMPILING_EMULATOR '${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${PARAM_PARALLEL}')
+    gtest_discover_tests(${PARAM_NAME}-test
+                         WORKING_DIRECTORY ${PARAM_WORKDIR}
+                         PROPERTIES PROCESSORS ${PARAM_PARALLEL}
+                         NO_PRETTY_VALUES)
+  else()
+    gtest_discover_tests(${PARAM_NAME}-test
+                         WORKING_DIRECTORY ${PARAM_WORKDIR}
+                         NO_PRETTY_VALUES)
+  endif()
+  list(APPEND TEST_APPS ${PARAM_NAME}-test)
+  target_link_libraries(${PARAM_NAME}-test GTest::GTest ${PARAM_LIBRARIES})
+  set(TEST_APPS ${TEST_APPS} PARENT_SCOPE)
+endfunction()
 
 macro(IFEM_add_unittests IFEM_PATH)
   file(GLOB TEST_SOURCES ${IFEM_PATH}/src/Utility/Test/*.C;${IFEM_PATH}/src/ASM/Test/*.C;${IFEM_PATH}/src/LinAlg/Test/*.C;${IFEM_PATH}/src/SIM/Test/*.C;${IFEM_PATH}/src/Eig/Test/*.C)
@@ -44,14 +56,16 @@ macro(IFEM_add_unittests IFEM_PATH)
     list(REMOVE_ITEM TEST_SOURCES ${IFEM_PATH}/src/Utility/Test/TestFieldFunctionsLR.C)
   endif()
 
-  IFEM_add_test_app("${TEST_SOURCES}"
-                    ${IFEM_PATH}
-                    IFEM 0
-                    ${IFEM_LIBRARIES} ${IFEM_DEPLIBS})
+  IFEM_add_test_app(SOURCES ${TEST_SOURCES}
+                    WORKDIR ${IFEM_PATH}
+                    NAME IFEM
+                    PARALLEL 0
+                    LIBRARIES ${IFEM_LIBRARIES} ${IFEM_DEPLIBS})
 
-  IFEM_add_test_app("${IFEM_PATH}/src/LinAlg/Test/NoBlas/TestMatrixFallback.C"
-                    ${IFEM_PATH}
-                    IFEM_noblas 0 IFEM)
+  IFEM_add_test_app(SOURCES ${IFEM_PATH}/src/LinAlg/Test/NoBlas/TestMatrixFallback.C
+                    WORKDIR ${IFEM_PATH}
+                    NAME IFEM_noblas
+                    LIBRARIES IFEM)
 
   # Parallel unit tests. These all run with 4 processes.
   if(MPI_FOUND)
@@ -65,7 +79,11 @@ macro(IFEM_add_unittests IFEM_PATH)
     if(ISTL_FOUND)
       list(APPEND TEST_SRCS_MPI ${IFEM_PATH}/src/LinAlg/Test/MPI/TestISTLMatrix.C)
     endif()
-    IFEM_add_test_app("${TEST_SRCS_MPI}" ${IFEM_PATH} IFEM-MPI 4 ${IFEM_LIBRARIES} ${IFEM_DEPLIBS})
+    IFEM_add_test_app(SOURCES ${TEST_SRCS_MPI}
+                      WORKDIR ${IFEM_PATH}
+                      NAME IFEM-MPI
+                      PARALLEL 4
+                      LIBRARIES ${IFEM_LIBRARIES} ${IFEM_DEPLIBS})
     list(APPEND TEST_APPS IFEM-MPI-test)
   endif()
 endmacro()
