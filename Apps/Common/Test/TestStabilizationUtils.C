@@ -13,9 +13,13 @@
 #include "StabilizationUtils.h"
 #include "CoordinateMapping.h"
 
-#include "gtest/gtest.h"
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-TEST(TestStabilizationUtils, GetElementSize)
+using Catch::Matchers::WithinRel;
+
+
+TEST_CASE("TestStabilizationUtils.GetElementSize")
 {
   std::vector<Vec3> XC;
   XC.push_back(Vec3(0.0, 0.0, 0.0));
@@ -35,11 +39,11 @@ TEST(TestStabilizationUtils, GetElementSize)
   XC.push_back(Vec3(0.2, 1.0, 0.35));
   double result2 = StabilizationUtils::getElementSize(XC, 3);
 
-  ASSERT_FLOAT_EQ(result1, 0.45);
-  ASSERT_FLOAT_EQ(result2, 0.1);
+  REQUIRE_THAT(result1, WithinRel(0.45));
+  REQUIRE_THAT(result2, WithinRel(0.1));
 }
 
-TEST(TestStabilizationUtils, GetTauPt)
+TEST_CASE("TestStabilizationUtils.GetTauPt")
 {
   Vector U(3);
   U.fill(1.0);
@@ -50,11 +54,12 @@ TEST(TestStabilizationUtils, GetTauPt)
 
   Matrix G;
   utl::getGmat(J, &du[0], G);
-  ASSERT_FLOAT_EQ(StabilizationUtils::getTauPt(0.1, 0.3, U, G, 4.0, 5.0),
-                  0.032328788);
+  REQUIRE_THAT(StabilizationUtils::getTauPt(0.1, 0.3, U, G, 4.0, 5.0),
+               WithinRel(0.032328788, 1e-7));
 }
 
-TEST(TestStabilizationUtils, GetTauNSPt)
+
+TEST_CASE("TestStabilizationUtils.GetTauNSPt")
 {
   Vector U(3);
   U.fill(1.0);
@@ -68,11 +73,12 @@ TEST(TestStabilizationUtils, GetTauNSPt)
 
   double tauM, tauC;
   std::tie(tauM,tauC) = StabilizationUtils::getTauNSPt(0.1, 0.3, U, G);
-  ASSERT_FLOAT_EQ(tauM, 0.016634906);
-  ASSERT_FLOAT_EQ(tauC, 1.87858);
+  REQUIRE_THAT(tauM, WithinRel(0.016634906, 1e-7));
+  REQUIRE_THAT(tauC, WithinRel(1.87858, 1e-7));
 }
 
-TEST(TestStabilizationUtils, GetTauNSALEPt)
+
+TEST_CASE("TestStabilizationUtils.GetTauNSALEPt")
 {
   Vector U(3);
   U.fill(1.0);
@@ -86,6 +92,6 @@ TEST(TestStabilizationUtils, GetTauNSALEPt)
 
   double tauM, tauC;
   std::tie(tauM,tauC) = StabilizationUtils::getTauNSALEPt(0.1, 0.3, U, G);
-  ASSERT_FLOAT_EQ(tauM, 0.016634906);
-  ASSERT_FLOAT_EQ(tauC, 0.049904719);
+  REQUIRE_THAT(tauM, WithinRel(0.016634906, 1e-7));
+  REQUIRE_THAT(tauC, WithinRel(0.049904719, 1e-7));
 }

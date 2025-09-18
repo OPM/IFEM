@@ -13,147 +13,166 @@
 #include "Vec3.h"
 #include "Vec3Oper.h"
 
-#include "gtest/gtest.h"
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-TEST(TestVec3Oper, GetAndSet)
+#include <sstream>
+
+using Catch::Matchers::WithinAbs;
+using Catch::Matchers::WithinRel;
+
+
+TEST_CASE("TestVec3Oper.GetAndSet")
 {
   Vec3 a(1.0,2.0,3.0);
-  EXPECT_FLOAT_EQ(a[0], 1.0);
-  EXPECT_FLOAT_EQ(a[1], 2.0);
-  EXPECT_FLOAT_EQ(a[2], 3.0);
-  EXPECT_FLOAT_EQ(a(1), 1.0);
-  EXPECT_FLOAT_EQ(a(2), 2.0);
-  EXPECT_FLOAT_EQ(a(3), 3.0);
-  EXPECT_FLOAT_EQ(a.x , 1.0);
-  EXPECT_FLOAT_EQ(a.y , 2.0);
-  EXPECT_FLOAT_EQ(a.z , 3.0);
+  REQUIRE_THAT(a[0], WithinRel(1.0));
+  REQUIRE_THAT(a[1], WithinRel(2.0));
+  REQUIRE_THAT(a[2], WithinRel(3.0));
+  REQUIRE_THAT(a(1), WithinRel(1.0));
+  REQUIRE_THAT(a(2), WithinRel(2.0));
+  REQUIRE_THAT(a(3), WithinRel(3.0));
+  REQUIRE_THAT(a.x,  WithinRel(1.0));
+  REQUIRE_THAT(a.y,  WithinRel(2.0));
+  REQUIRE_THAT(a.z,  WithinRel(3.0));
   a[0] = 4.0;
   a(2) = 5.0;
   a.z  = 6.0;
-  EXPECT_FLOAT_EQ(a[0], 4.0);
-  EXPECT_FLOAT_EQ(a[1], 5.0);
-  EXPECT_FLOAT_EQ(a[2], 6.0);
+  REQUIRE_THAT(a[0], WithinRel(4.0));
+  REQUIRE_THAT(a[1], WithinRel(5.0));
+  REQUIRE_THAT(a[2], WithinRel(6.0));
 }
 
-TEST(TestVec3Oper, MxV)
+
+TEST_CASE("TestVec3Oper.MxV")
 {
   const double data[9] = { 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0 };
   utl::matrix<Real> A(3,3); A.fill(data);
   std::vector<Real> x(data, data+3);
   Vec3 result = A * x;
 
-  EXPECT_FLOAT_EQ(result.x, 30.0);
-  EXPECT_FLOAT_EQ(result.y, 36.0);
-  EXPECT_FLOAT_EQ(result.z, 42.0);
+  REQUIRE_THAT(result.x, WithinRel(30.0));
+  REQUIRE_THAT(result.y, WithinRel(36.0));
+  REQUIRE_THAT(result.z, WithinRel(42.0));
 }
 
-TEST(TestVec3Oper, MultiplyScalar)
+
+TEST_CASE("TestVec3Oper.MultiplyScalar")
 {
   Vec3 a(1.0,2.0,3.0);
   Vec3 result = a*10.0;
   Vec3 result2 = 10.0*a;
 
-  EXPECT_TRUE(result == result2);
-  EXPECT_FLOAT_EQ(result.x, 10.0);
-  EXPECT_FLOAT_EQ(result.y, 20.0);
-  EXPECT_FLOAT_EQ(result.z, 30.0);
+  REQUIRE(result == result2);
+  REQUIRE_THAT(result.x, WithinRel(10.0));
+  REQUIRE_THAT(result.y, WithinRel(20.0));
+  REQUIRE_THAT(result.z, WithinRel(30.0));
 }
 
-TEST(TestVec3Oper, DivideScalar)
+
+TEST_CASE("TestVec3Oper.DivideScalar")
 {
   Vec3 a(1.0,2.0,3.0);
   Vec3 result = a/10.0;
 
-  EXPECT_FLOAT_EQ(result.x, 0.1);
-  EXPECT_FLOAT_EQ(result.y, 0.2);
-  EXPECT_FLOAT_EQ(result.z, 0.3);
+  REQUIRE_THAT(result.x, WithinRel(0.1));
+  REQUIRE_THAT(result.y, WithinRel(0.2));
+  REQUIRE_THAT(result.z, WithinRel(0.3));
 }
 
-TEST(TestVec3Oper, Dot)
+
+TEST_CASE("TestVec3Oper.Dot")
 {
   Vec3 a(1.0,2.0,3.0);
   Vec3 b(4.0,5.0,6.0);
   Real result = a * b;
 
-  EXPECT_FLOAT_EQ(result, 32.0);
+  REQUIRE_THAT(result, WithinRel(32.0));
 }
 
-TEST(TestVec3Oper, Addition)
+
+TEST_CASE("TestVec3Oper.Addition")
 {
   Vec3 a(1.0,2.0,3.0);
   Vec3 b(4.0,5.0,6.0);
   Vec3 result = a + b;
 
-  EXPECT_FLOAT_EQ(result.x, 5.0);
-  EXPECT_FLOAT_EQ(result.y, 7.0);
-  EXPECT_FLOAT_EQ(result.z, 9.0);
+  REQUIRE_THAT(result.x, WithinRel(5.0));
+  REQUIRE_THAT(result.y, WithinRel(7.0));
+  REQUIRE_THAT(result.z, WithinRel(9.0));
 }
 
-TEST(TestVec3Oper, Subtraction)
+
+TEST_CASE("TestVec3Oper.Subtraction")
 {
   Vec3 a(1.0,2.0,3.0);
   Vec3 b(4.0,5.0,6.0);
   Vec3 result = a - b;
 
-  EXPECT_FLOAT_EQ(result.x, -3.0);
-  EXPECT_FLOAT_EQ(result.y, -3.0);
-  EXPECT_FLOAT_EQ(result.z, -3.0);
+  REQUIRE_THAT(result.x, WithinRel(-3.0));
+  REQUIRE_THAT(result.y, WithinRel(-3.0));
+  REQUIRE_THAT(result.z, WithinRel(-3.0));
 }
 
-TEST(TestVec3Oper, Length)
+
+TEST_CASE("TestVec3Oper.Length")
 {
   Vec3 a(1.0,2.0,3.0);
   double alen = sqrt(14.0);
 
-  EXPECT_FLOAT_EQ(a.length(), alen);
+  REQUIRE_THAT(a.length(), WithinRel(alen));
 }
 
-TEST(TestVec3Oper, Equality)
+
+TEST_CASE("TestVec3Oper.Equality")
 {
   Vec3 a(1.0,2.0,3.0);
   Vec3 b(4.0,5.0,6.0);
   Vec3 c(1.0,2.0,3.0);
 
-  EXPECT_TRUE (a == c);
-  EXPECT_FALSE(a == b);
+  REQUIRE(a == c);
+  REQUIRE(!(a == b));
 }
 
-TEST(TestVec3Oper, InEquality)
+
+TEST_CASE("TestVec3Oper.InEquality")
 {
   Vec3 a(1.0,2.0,3.0);
   Vec3 b(4.0,5.0,6.0);
   Vec3 c(1.0,2.0,3.0);
 
-  EXPECT_TRUE (a != b);
-  EXPECT_FALSE(a != c);
+  REQUIRE(a != b);
+  REQUIRE(!(a != c));
 }
 
-TEST(TestVec3Oper, Less)
+
+TEST_CASE("TestVec3Oper.Less")
 {
   Vec3 a(1.0,2.0,3.0);
   Vec3 b(4.0,5.0,6.0);
 
-  EXPECT_TRUE (a < b);
-  EXPECT_FALSE(b < a);
+  REQUIRE(a < b);
+  REQUIRE(!(b < a));
 }
 
-TEST(TestVec3Oper, StreamOut)
+
+TEST_CASE("TestVec3Oper.StreamOut")
 {
   Vec3 a(1.0,2.0,3.0);
   std::stringstream str;
   str << a;
 
-  EXPECT_STREQ(str.str().c_str(), "1 2 3");
+  REQUIRE(str.str() == "1 2 3");
 }
 
-TEST(TestVec3Oper, StreamIn)
+
+TEST_CASE("TestVec3Oper.StreamIn")
 {
   std::stringstream str;
   str << "1.0 2.0 3.0";
   Vec3 result;
   str >> result;
 
-  EXPECT_FLOAT_EQ(result.x, 1.0);
-  EXPECT_FLOAT_EQ(result.y, 2.0);
-  EXPECT_FLOAT_EQ(result.z, 3.0);
+  REQUIRE_THAT(result.x, WithinRel(1.0));
+  REQUIRE_THAT(result.y, WithinRel(2.0));
+  REQUIRE_THAT(result.z, WithinRel(3.0));
 }

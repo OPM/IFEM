@@ -13,13 +13,17 @@
 #include "Functions.h"
 #include "Vec3Oper.h"
 
-#include "gtest/gtest.h"
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-TEST(TestLinearFunc, Evaluate)
+using Catch::Matchers::WithinAbs;
+using Catch::Matchers::WithinRel;
+
+TEST_CASE("TestLinearFunc.Evaluate")
 {
   LinearFunc f1("src/Utility/Test/refdata/func.dat",2);
-  EXPECT_EQ(f1(0.15), 2.5);
-  EXPECT_EQ(f1(0.4),  2.5);
+  REQUIRE(f1(0.15) == 2.5);
+  REQUIRE(f1(0.4) == 2.5);
 
   LinVecFunc f2("src/Utility/Test/refdata/func.dat",3);
   Vec3 v1 = f2(0.15);
@@ -28,9 +32,9 @@ TEST(TestLinearFunc, Evaluate)
   std::cout <<"v1 = "<< v1 << std::endl;
   std::cout <<"v2 = "<< v2 << std::endl;
   std::cout <<"v3 = "<< v3 << std::endl;
-  EXPECT_EQ(v1.y, 1.2);
-  EXPECT_EQ(v2.x, 1.6);
-  EXPECT_EQ(v3.z, 1.3);
+  REQUIRE(v1.y == 1.2);
+  REQUIRE(v2.x == 1.6);
+  REQUIRE(v3.z == 1.3);
 
   std::cout <<"Parsing time function: ";
   ScalarFunc* f3 = utl::parseTimeFunc("src/Utility/Test/refdata/func.dat",
@@ -41,13 +45,13 @@ TEST(TestLinearFunc, Evaluate)
   std::cout <<"Parsing vector-valued time function: ";
   VecTimeFunc* f5 = utl::parseVecTimeFunc("src/Utility/Test/refdata/func.dat 3",
                                           "PiecewiseLinear");
-  ASSERT_FALSE(f3 == nullptr);
-  EXPECT_NEAR((*f3)(0.12),2.2,1.0e-15);
-  ASSERT_FALSE(f4 == nullptr);
-  EXPECT_NEAR((*f4)(0.35),4.3,1.0e-15);
-  EXPECT_EQ((*f5)(0.15),v1);
-  EXPECT_EQ((*f5)(0.20),v2);
-  EXPECT_EQ((*f5)(0.00),v3);
+  REQUIRE(f3 != nullptr);
+  REQUIRE_THAT((*f3)(0.12), WithinRel(2.2,1.0e-15));
+  REQUIRE(f4 != nullptr);
+  REQUIRE_THAT((*f4)(0.35), WithinRel(4.3,1.0e-15));
+  REQUIRE((*f5)(0.15) == v1);
+  REQUIRE((*f5)(0.20) == v2);
+  REQUIRE((*f5)(0.00) == v3);
   delete f3;
   delete f4;
   delete f5;

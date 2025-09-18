@@ -12,23 +12,26 @@
 
 #include "MatVec.h"
 
-#include <gtest/gtest.h>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <numeric>
 
+using Catch::Matchers::WithinRel;
 
-TEST(TestMatVec, add)
+
+TEST_CASE("TestMatVec.Add")
 {
   Vector d(10);
   std::iota(d.begin(),d.end(),Real(0));
 
   Vector v = d + d;
   for (size_t i = 0; i < v.size(); i++)
-    EXPECT_FLOAT_EQ(v[i], 2*Real(i));
+    REQUIRE_THAT(v[i], WithinRel(2*Real(i)));
 }
 
 
-TEST(TestMatVec, multiply)
+TEST_CASE("TestMatVec.Multiply")
 {
   Matrix A(3,5);
   Vector u(5);
@@ -37,13 +40,13 @@ TEST(TestMatVec, multiply)
   std::iota(u.begin(),u.end(),Real(1));
 
   Vector v = A * u;
-  EXPECT_FLOAT_EQ(v(1),Real(135));
-  EXPECT_FLOAT_EQ(v(2),Real(150));
-  EXPECT_FLOAT_EQ(v(3),Real(165));
+  REQUIRE_THAT(v(1), WithinRel(Real(135)));
+  REQUIRE_THAT(v(2), WithinRel(Real(150)));
+  REQUIRE_THAT(v(3), WithinRel(Real(165)));
 }
 
 
-TEST(TestMatVec, transform)
+TEST_CASE("TestMatVec.Transform")
 {
   Matrix A(12,12);
   Vector v(12);
@@ -63,9 +66,9 @@ TEST(TestMatVec, transform)
   T(2,3) =  sin(alpha);
   T(3,2) = -T(2,3);
   std::cout <<"T:"<< T <<"A:"<< A <<"v:"<< v;
-  ASSERT_TRUE(utl::transform(A,T));
+  REQUIRE(utl::transform(A,T));
   std::cout <<"A transformed:"<< A;
-  ASSERT_TRUE(utl::transform(v,T));
+  REQUIRE(utl::transform(v,T));
   std::cout <<"v transformed:"<< v;
 
   Matrix P(12,12);
@@ -79,13 +82,13 @@ TEST(TestMatVec, transform)
   Vector u;
   B.multiply(C.multiply(P,B),P,false,true);
   std::cout <<"B:"<< B;
-  ASSERT_TRUE(P.multiply(w,u));
+  REQUIRE(P.multiply(w,u));
   std::cout <<"u:"<< u;
 
   for (size_t i = 1; i <= A.rows(); i++)
     for (size_t j = 1; j <= A.cols(); j++)
-      EXPECT_FLOAT_EQ(A(i,j), B(i,j));
+      REQUIRE_THAT(A(i,j), WithinRel(B(i,j)));
 
   for (size_t i = 1; i <= v.size(); i++)
-    EXPECT_FLOAT_EQ(v(i), u(i));
+    REQUIRE_THAT(v(i), WithinRel(u(i)));
 }

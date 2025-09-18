@@ -15,12 +15,16 @@
 #include "ASMSquare.h"
 #include "ASMCube.h"
 
-#include "gtest/gtest.h"
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+
 #include <array>
 #include <memory>
 
+using Catch::Matchers::WithinRel;
 
-TEST(TestSplineField, Value2D)
+
+TEST_CASE("TestSplineField.Value2D")
 {
   ASMSquare patch(1);
   std::vector<double> sc = {0.0, 1.0, 1.0, 2.0}; // x + y
@@ -30,10 +34,11 @@ TEST(TestSplineField, Value2D)
                                                             {{0.0, 1.0, 1.0}},
                                                             {{1.0, 1.0, 2.0}}}};
   for (const auto& it : tests_scalar)
-    EXPECT_FLOAT_EQ(fscalar->valueFE(ItgPoint(it[0],it[1])),it[2]);
+    REQUIRE_THAT(fscalar->valueFE(ItgPoint(it[0],it[1])), WithinRel(it[2]));
 }
 
-TEST(TestSplineField, Grad2D)
+
+TEST_CASE("TestSplineField.Grad2D")
 {
   ASMSquare patch(1);
   std::vector<double> sc = {0.0, 1.0, 1.0, 2.0}; // x + y
@@ -44,14 +49,14 @@ TEST(TestSplineField, Grad2D)
                                                             {{1.0, 1.0}}}};
   for (const auto& it : tests_scalar) {
     Vector v(2);
-    ASSERT_TRUE(fscalar->gradFE(ItgPoint(it[0],it[1]),v));
-    EXPECT_FLOAT_EQ(v(1),1.0);
-    EXPECT_FLOAT_EQ(v(2),1.0);
+    REQUIRE(fscalar->gradFE(ItgPoint(it[0],it[1]),v));
+    REQUIRE_THAT(v(1), WithinRel(1.0));
+    REQUIRE_THAT(v(2), WithinRel(1.0));
   }
 }
 
 
-TEST(TestSplineField, Value3D)
+TEST_CASE("TestSplineField.Value3D")
 {
   ASMCube patch(1);
   std::vector<double> sc = {0.0, 1.0, 1.0, 2.0, 1.0, 2.0, 2.0, 3.0}; // x + y + z
@@ -66,10 +71,11 @@ TEST(TestSplineField, Value3D)
                                                             {{0.0, 1.0, 1.0, 2.0}},
                                                             {{1.0, 1.0, 1.0, 3.0}}}};
   for (const auto& it : tests_scalar)
-    EXPECT_FLOAT_EQ(fscalar->valueFE(ItgPoint(it[0],it[1],it[2])),it[3]);
+    REQUIRE_THAT(fscalar->valueFE(ItgPoint(it[0],it[1],it[2])), WithinRel(it[3]));
 }
 
-TEST(TestSplineField, Grad3D)
+
+TEST_CASE("TestSplineField.Grad3D")
 {
   ASMCube patch(1);
   std::vector<double> sc = {0.0, 1.0, 1.0, 2.0, 1.0, 2.0, 2.0, 3.0}; // x + y + z
@@ -85,9 +91,9 @@ TEST(TestSplineField, Grad3D)
                                                             {{1.0, 1.0, 1.0}}}};
   for (const auto& it : tests_scalar) {
     Vector v(3);
-    ASSERT_TRUE(fscalar->gradFE(ItgPoint(it[0],it[1],it[2]),v));
-    EXPECT_FLOAT_EQ(v(1),1.0);
-    EXPECT_FLOAT_EQ(v(2),1.0);
-    EXPECT_FLOAT_EQ(v(3),1.0);
+    REQUIRE(fscalar->gradFE(ItgPoint(it[0],it[1],it[2]),v));
+    REQUIRE_THAT(v(1), WithinRel(1.0));
+    REQUIRE_THAT(v(2), WithinRel(1.0));
+    REQUIRE_THAT(v(3), WithinRel(1.0));
   }
 }

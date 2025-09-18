@@ -12,10 +12,12 @@
 
 #include "ScopedLogger.h"
 
-#include "gtest/gtest.h"
+#include <catch2/catch_test_macros.hpp>
+
+#include <sstream>
 
 
-TEST(TestScopedLogger, General)
+TEST_CASE("TestScopedLogger.General")
 {
   std::stringstream str;
   auto&& MockFunction = [&str]() { ScopedLogger log("MockFunction",str); };
@@ -25,15 +27,15 @@ TEST(TestScopedLogger, General)
   str.getline(tmp, 1024);
   std::cout << tmp << std::endl;
 #ifdef HAVE_MPI
-  ASSERT_STREQ(tmp, "[0]: Entering \"MockFunction\"");
+  REQUIRE(!strcmp(tmp, "[0]: Entering \"MockFunction\""));
 #else
-  ASSERT_STREQ(tmp, "Entering \"MockFunction\"");
+  REQUIRE(!strcmp(tmp, "Entering \"MockFunction\""));
 #endif
   str.getline(tmp, 1024);
   std::cout << tmp << std::endl;
 #ifdef HAVE_MPI
-  ASSERT_STREQ(tmp, "[0]: Exiting \"MockFunction\"");
+  REQUIRE(!strcmp(tmp, "[0]: Exiting \"MockFunction\""));
 #else
-  ASSERT_STREQ(tmp, "Exiting \"MockFunction\"");
+  REQUIRE(!strcmp(tmp, "Exiting \"MockFunction\""));
 #endif
 }

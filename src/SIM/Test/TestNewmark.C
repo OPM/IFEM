@@ -23,8 +23,12 @@
 #include "AlgEqSystem.h"
 #include "TimeStep.h"
 
-#include "gtest/gtest.h"
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+
 #include <numeric>
+
+using Catch::Matchers::WithinRel;
 
 
 // SAM class representing a single-DOF system.
@@ -38,7 +42,7 @@ public:
     mpmnpc = new int[2]; std::iota(mpmnpc,mpmnpc+2,1);
     madof  = new int[2]; std::iota(madof,madof+2,1);
     msc    = new int[1]; msc[0] = 1;
-    EXPECT_TRUE(this->initSystemEquations());
+    REQUIRE(this->initSystemEquations());
   }
   virtual ~SAM1DOF() {}
 };
@@ -56,7 +60,7 @@ public:
     mpmnpc = new int[2]; std::iota(mpmnpc,mpmnpc+2,1);
     madof  = new int[2]; madof[0] = 1; madof[1] = 3;
     msc    = new int[2]; msc[0] = msc[1] = 1;
-    EXPECT_TRUE(this->initSystemEquations());
+    REQUIRE(this->initSystemEquations());
   }
   virtual ~SAM2DOF() {}
 };
@@ -77,7 +81,7 @@ public:
     mmceq  = new int[1]; mmceq[0] = 2;
     mpmceq = new int[2]; std::iota(mpmceq,mpmceq+2,1);
     ttcc   = new double[1]; ttcc[0] = 0.0;
-    EXPECT_TRUE(this->initSystemEquations());
+    REQUIRE(this->initSystemEquations());
   }
   virtual ~SAM2DOFprescr() {}
 
@@ -314,9 +318,9 @@ void runSingleDof (NewmarkSIM& solver, double rtol = 0.5e-11)
   tp.stopTime = 0.65;
   solver.opt.solver = LinAlg::DENSE;
 
-  ASSERT_TRUE(solver.initEqSystem());
-  ASSERT_TRUE(solver.initAcc());
-  EXPECT_FLOAT_EQ(solver.getAcceleration()[0],0.1);
+  REQUIRE(solver.initEqSystem());
+  REQUIRE(solver.initAcc());
+  REQUIRE_THAT(solver.getAcceleration()[0], WithinRel(0.1));
 
   //               at t=0.1           at t=0.25         at t=0.5
   double u[3] = { 0.000457484252515, 0.00178698471292, 0.000732016593476 };
@@ -325,26 +329,26 @@ void runSingleDof (NewmarkSIM& solver, double rtol = 0.5e-11)
 
   while (solver.advanceStep(tp))
   {
-    ASSERT_TRUE(solver.solveStep(tp) == SIM::CONVERGED);
+    REQUIRE(solver.solveStep(tp) == SIM::CONVERGED);
     double dis = solver.getSolution()[0];
     double vel = solver.getVelocity()[0];
     double acc = solver.getAcceleration()[0];
 
     // Check the response at three randomly selected time steps
     if (tp.step == 10) {
-      EXPECT_NEAR(dis,u[0], (dis+u[0])*rtol);
-      EXPECT_NEAR(vel,v[0], (vel+v[0])*rtol);
-      EXPECT_NEAR(acc,a[0], (acc+a[0])*rtol);
+      REQUIRE_THAT(dis, WithinRel(u[0], rtol));
+      REQUIRE_THAT(vel, WithinRel(v[0], rtol));
+      REQUIRE_THAT(acc, WithinRel(a[0], rtol));
     }
     else if (tp.step == 25) {
-      EXPECT_NEAR(dis,u[1], (dis+u[1])*rtol);
-      EXPECT_NEAR(vel,v[1], (vel+v[1])*rtol);
-      EXPECT_NEAR(acc,a[1],-(acc+a[1])*rtol);
+      REQUIRE_THAT(dis, WithinRel(u[1], rtol));
+      REQUIRE_THAT(vel, WithinRel(v[1], rtol));
+      REQUIRE_THAT(acc, WithinRel(a[1], rtol));
     }
     else if (tp.step == 50) {
-      EXPECT_NEAR(dis,u[2], (dis+u[2])*rtol);
-      EXPECT_NEAR(vel,v[2],-(vel+v[2])*rtol);
-      EXPECT_NEAR(acc,a[2], (acc+a[2])*rtol);
+      REQUIRE_THAT(dis, WithinRel(u[2], rtol));
+      REQUIRE_THAT(vel, WithinRel(v[2], rtol));
+      REQUIRE_THAT(acc, WithinRel(a[2], rtol));
     }
   }
 }
@@ -368,13 +372,13 @@ void runTwoDof (NewmarkSIM& solver, double refAcc, double rtol = 0.5e-11)
   tp.time.dt = 0.01;
   tp.stopTime = 0.65;
   solver.opt.solver = LinAlg::DENSE;
-  ASSERT_TRUE(solver.initEqSystem());
-  ASSERT_TRUE(solver.initAcc());
-  EXPECT_FLOAT_EQ(solver.getAcceleration()[0],refAcc);
+  REQUIRE(solver.initEqSystem());
+  REQUIRE(solver.initAcc());
+  REQUIRE_THAT(solver.getAcceleration()[0], WithinRel(refAcc));
 
   while (solver.advanceStep(tp))
   {
-    ASSERT_TRUE(solver.solveStep(tp) == SIM::CONVERGED);
+    REQUIRE(solver.solveStep(tp) == SIM::CONVERGED);
     printVec("u",solver.getSolution());
     printVec("v",solver.getVelocity());
     printVec("a",solver.getAcceleration());
@@ -388,7 +392,7 @@ void runPrescribed (NewmarkSIM& solver, double rtol = 0.5e-11)
   tp.time.dt = 0.01;
   tp.stopTime = 0.65;
   solver.opt.solver = LinAlg::DENSE;
-  ASSERT_TRUE(solver.initEqSystem());
+  REQUIRE(solver.initEqSystem());
 
   //              at t=0.1         at t=0.25         at t=0.5
   double u[3] = {0.9312639435267, 0.3547915343361, -1.075289543029 };
@@ -397,53 +401,56 @@ void runPrescribed (NewmarkSIM& solver, double rtol = 0.5e-11)
 
   while (solver.advanceStep(tp))
   {
-    ASSERT_TRUE(solver.solveStep(tp) == SIM::CONVERGED);
+    REQUIRE(solver.solveStep(tp) == SIM::CONVERGED);
     double dis = solver.getSolution()[0];
     double vel = solver.getVelocity()[0];
     double acc = solver.getAcceleration()[0];
 
     // Check the response at three randomly selected time steps
     if (tp.step == 10) {
-      EXPECT_NEAR(dis,u[0], (dis+u[0])*rtol);
-      EXPECT_NEAR(vel,v[0], (vel+v[0])*rtol);
-      EXPECT_NEAR(acc,a[0],-(acc+a[0])*rtol);
+      REQUIRE_THAT(dis, WithinRel(u[0], rtol));
+      REQUIRE_THAT(vel, WithinRel(v[0], rtol));
+      REQUIRE_THAT(acc, WithinRel(a[0], rtol));
     }
     else if (tp.step == 25) {
-      EXPECT_NEAR(dis,u[1], (dis+u[1])*rtol);
-      EXPECT_NEAR(vel,v[1],-(vel+v[1])*rtol);
-      EXPECT_NEAR(acc,a[1], (acc+a[1])*rtol);
+      REQUIRE_THAT(dis, WithinRel(u[1], rtol));
+      REQUIRE_THAT(vel, WithinRel(v[1], rtol));
+      REQUIRE_THAT(acc, WithinRel(a[1], rtol));
     }
     else if (tp.step == 50) {
-      EXPECT_NEAR(dis,u[2],-(dis+u[2])*rtol);
-      EXPECT_NEAR(vel,v[2], (vel+v[2])*rtol);
-      EXPECT_NEAR(acc,a[2], (acc+a[2])*rtol);
+      REQUIRE_THAT(dis, WithinRel(u[2], rtol));
+      REQUIRE_THAT(vel, WithinRel(v[2], rtol));
+      REQUIRE_THAT(acc, WithinRel(a[2], rtol));
     }
   }
 }
 
 
-TEST(TestNewmark, SingleDOFa)
+TEST_CASE("TestNewmark.SingleDOFa")
 {
   SIM1DOF simulator;
   Newmark integrator(simulator,false);
   runSingleDof(integrator);
 }
 
-TEST(TestGenAlpha, SingleDOFa)
+
+TEST_CASE("TestGenAlpha.SingleDOFa")
 {
   SIM1DOF simulator;
   GenAlpha integrator(simulator,false);
-  runSingleDof(integrator,0.02);
+  runSingleDof(integrator,0.025);
 }
 
-TEST(TestNewmark, SingleDOFu)
+
+TEST_CASE("TestNewmark.SingleDOFu")
 {
   SIM1DOF simulator;
   Newmark integrator(simulator,true,0);
   runSingleDof(integrator);
 }
 
-TEST(TestHHT, SingleDOFu)
+
+TEST_CASE("TestHHT.SingleDOFu")
 {
   SIM1DOF simulator;
   HHTSIM integrator(simulator);
@@ -452,14 +459,16 @@ TEST(TestHHT, SingleDOFu)
   runSingleDof(integrator,0.9);
 }
 
-TEST(TestNewmark, Damped)
+
+TEST_CASE("TestNewmark.Damped")
 {
   SIM2DOFdmp simulator;
   Newmark integrator(simulator,true);
   runTwoDof(integrator,simulator.getInitAcc());
 }
 
-TEST(TestNewmarkNL, Damped)
+
+TEST_CASE("TestNewmarkNL.Damped")
 {
   SIM2DOFdmp simulator;
   NewmarkNLSIM integrator(simulator);
@@ -468,7 +477,8 @@ TEST(TestNewmarkNL, Damped)
   runTwoDof(integrator,simulator.getInitAcc());
 }
 
-TEST(TestHHT, Damped)
+
+TEST_CASE("TestHHT.Damped")
 {
   SIM2DOFdmp simulator;
   HHTSIM integrator(simulator);
@@ -477,7 +487,8 @@ TEST(TestHHT, Damped)
   runTwoDof(integrator,simulator.getInitAcc());
 }
 
-TEST(TestNewmark, Prescribed)
+
+TEST_CASE("TestNewmark.Prescribed")
 {
   SIM2DOFprescr simulator;
   Newmark integrator(simulator,true);
@@ -485,14 +496,15 @@ TEST(TestNewmark, Prescribed)
 }
 
 /* does not work, yet
-TEST(TestGenAlpha, SingleDOFu)
+TEST_CASE("TestGenAlpha.SingleDOFu")
 {
   SIM1DOF simulator;
   GenAlpha integrator(simulator,true);
   runSingleDof(integrator,0.02);
 }
 
-TEST(TestGenAlpha, Prescribed)
+
+TEST_CASE("TestGenAlpha.Prescribed")
 {
   SIM2DOFprescr simulator;
   GenAlpha integrator(simulator,true);

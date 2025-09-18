@@ -14,11 +14,16 @@
 #include "TensorFunction.h"
 #include "Functions.h"
 
-#include <gtest/gtest.h>
 #include <autodiff/reverse/var.hpp>
 
 #include <cstdlib>
 #include <cmath>
+
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+
+using Catch::Matchers::WithinAbs;
+using Catch::Matchers::WithinRel;
 
 
 using EvalFuncAd = EvalFuncScalar<autodiff::var>;
@@ -28,7 +33,7 @@ using TensorFuncExprAd = EvalMultiFunction<TensorFunc,Tensor,autodiff::var>;
 using STensorFuncExprAd = EvalMultiFunction<STensorFunc,SymmTensor,autodiff::var>;
 
 
-TEST(TestScalarFunc, ParseDerivative)
+TEST_CASE("TestScalarFunc.ParseDerivative")
 {
   const char* func1 = "sin(1.5*t)*t";
   const char* func2 = "sin(1.5*t)*t:1.5*cos(1.5*t)*t+sin(1.5*t)";
@@ -38,11 +43,11 @@ TEST(TestScalarFunc, ParseDerivative)
 
   EvalFuncAd f3(func1,"t");
 
-  ASSERT_TRUE(f1 != nullptr);
-  ASSERT_TRUE(f2 != nullptr);
+  REQUIRE(f1 != nullptr);
+  REQUIRE(f2 != nullptr);
 
-  EXPECT_FALSE(f1->isConstant());
-  EXPECT_FALSE(f2->isConstant());
+  REQUIRE(!f1->isConstant());
+  REQUIRE(!f2->isConstant());
 
   double t = 0.0;
   for (int i = 0; i < 20; i++)
@@ -50,32 +55,32 @@ TEST(TestScalarFunc, ParseDerivative)
     t += 0.314*(double)random()/(double)RAND_MAX;
     std::cout <<"f("<< t <<") = "<< (*f1)(t)
               <<"  f'("<< t <<") = "<< f1->deriv(t) << std::endl;
-    EXPECT_FLOAT_EQ((*f1)(t),sin(1.5*t)*t);
-    EXPECT_FLOAT_EQ((*f2)(t),sin(1.5*t)*t);
-    EXPECT_FLOAT_EQ(f1->deriv(t),1.5*cos(1.5*t)*t+sin(1.5*t));
-    EXPECT_FLOAT_EQ(f2->deriv(t),1.5*cos(1.5*t)*t+sin(1.5*t));
-    EXPECT_FLOAT_EQ(f3.deriv(t),1.5*cos(1.5*t)*t+sin(1.5*t));
+    REQUIRE_THAT((*f1)(t), WithinRel(sin(1.5*t)*t));
+    REQUIRE_THAT((*f2)(t), WithinRel(sin(1.5*t)*t));
+    REQUIRE_THAT(f1->deriv(t), WithinRel(1.5*cos(1.5*t)*t+sin(1.5*t), 1e-6));
+    REQUIRE_THAT(f2->deriv(t), WithinRel(1.5*cos(1.5*t)*t+sin(1.5*t)));
+    REQUIRE_THAT(f3.deriv(t), WithinRel(1.5*cos(1.5*t)*t+sin(1.5*t)));
   }
 }
 
 
-TEST(TestScalarFunc, ParseFunction)
+TEST_CASE("TestScalarFunc.ParseFunction")
 {
   std::cout <<"Parsing scalar function: ";
   ScalarFunc* f1 = utl::parseTimeFunc("1.2 100.0","Dirac");
   std::cout <<"Parsing scalar function: ";
   ScalarFunc* f2 = utl::parseTimeFunc("5.0 100.0","Ramp");
 
-  EXPECT_FLOAT_EQ((*f1)(1.1),  0.0);
-  EXPECT_FLOAT_EQ((*f1)(1.2),100.0);
-  EXPECT_FLOAT_EQ((*f1)(1.3),  0.0);
-  EXPECT_FLOAT_EQ((*f2)(2.5), 50.0);
-  EXPECT_FLOAT_EQ((*f2)(5.0),100.0);
-  EXPECT_FLOAT_EQ((*f2)(7.0),100.0);
+  REQUIRE_THAT((*f1)(1.1), WithinAbs(0.0, 1e-12));
+  REQUIRE_THAT((*f1)(1.2), WithinRel(100.0));
+  REQUIRE_THAT((*f1)(1.3), WithinAbs(0.0, 1e-12));
+  REQUIRE_THAT((*f2)(2.5), WithinRel(50.0));
+  REQUIRE_THAT((*f2)(5.0), WithinRel(100.0));
+  REQUIRE_THAT((*f2)(7.0), WithinRel(100.0));
 }
 
 
-TEST(TestRealFunc, ParseFunction)
+TEST_CASE("TestRealFunc.ParseFunction")
 {
   std::cout <<"Parsing real function";
   RealFunc* f1 = utl::parseRealFunc("100.0 1.2","Dirac");
@@ -83,16 +88,16 @@ TEST(TestRealFunc, ParseFunction)
   RealFunc* f2 = utl::parseRealFunc("100.0 5.0","Ramp",false);
   std::cout << std::endl;
 
-  EXPECT_FLOAT_EQ((*f1)(Vec4(1.1)),  0.0);
-  EXPECT_FLOAT_EQ((*f1)(Vec4(1.2)),100.0);
-  EXPECT_FLOAT_EQ((*f1)(Vec4(1.3)),  0.0);
-  EXPECT_FLOAT_EQ((*f2)(Vec4(2.5)), 50.0);
-  EXPECT_FLOAT_EQ((*f2)(Vec4(5.0)),100.0);
-  EXPECT_FLOAT_EQ((*f2)(Vec4(7.0)),100.0);
+  REQUIRE_THAT((*f1)(Vec4(1.1)), WithinAbs(0.0, 1e-12));
+  REQUIRE_THAT((*f1)(Vec4(1.2)), WithinRel(100.0));
+  REQUIRE_THAT((*f1)(Vec4(1.3)), WithinAbs(0.0, 1e-12));
+  REQUIRE_THAT((*f2)(Vec4(2.5)), WithinRel(50.0));
+  REQUIRE_THAT((*f2)(Vec4(5.0)), WithinRel(100.0));
+  REQUIRE_THAT((*f2)(Vec4(7.0)), WithinRel(100.0));
 }
 
 
-TEST(TestRealFunc, Gradient)
+TEST_CASE("TestRealFunc.Gradient")
 {
   const char* g   = "sin(x)*sin(y)*sin(z)";
   const char* g_x = "cos(x)*sin(y)*sin(z)";
@@ -106,8 +111,8 @@ TEST(TestRealFunc, Gradient)
 
   EvalFunctionAd f2(g);
 
-  EXPECT_TRUE(f1.isConstant());
-  EXPECT_TRUE(f2.isConstant());
+  REQUIRE(f1.isConstant());
+  REQUIRE(f2.isConstant());
 
   for (double x : {0.1, 0.2, 0.3})
     for (double y : {0.5, 0.6, 0.7})
@@ -121,15 +126,15 @@ TEST(TestRealFunc, Gradient)
                                    static_cast<const RealFunc*>(&f2)}) {
           const Vec3 grad = fp->gradient(X);
           for (size_t i = 1; i <= 3; ++i) {
-            EXPECT_DOUBLE_EQ(fp->deriv(X, i), r[i-1]);
-            EXPECT_DOUBLE_EQ(grad[i-1], r[i-1]);
+            REQUIRE_THAT(fp->deriv(X, i), WithinRel(r[i-1]));
+            REQUIRE_THAT(grad[i-1], WithinRel(r[i-1]));
           }
         }
       }
 }
 
 
-TEST(TestRealFunc, GradientFD)
+TEST_CASE("TestRealFunc.GradientFD")
 {
   const char* f1 = "sin(x)*sin(y)*sin(z)";
 
@@ -137,7 +142,7 @@ TEST(TestRealFunc, GradientFD)
 
   EvalFunction f(f1, eps);
 
-  EXPECT_TRUE(f.isConstant());
+  REQUIRE(f.isConstant());
 
   for (double x : {0.1, 0.2, 0.3})
     for (double y : {0.5, 0.6, 0.7})
@@ -151,14 +156,14 @@ TEST(TestRealFunc, GradientFD)
 
         const Vec3 grad = f.gradient(X);
         for (size_t i = 1; i <= 3; ++i) {
-          EXPECT_NEAR(f.deriv(X, i), r[i-1], 1e-8);
-          EXPECT_NEAR(grad[i-1], r[i-1], 1e-8);
+          REQUIRE_THAT(f.deriv(X, i), WithinRel(r[i-1], 1e-8));
+          REQUIRE_THAT(grad[i-1], WithinRel(r[i-1], 1e-8));
         }
       }
 }
 
 
-TEST(TestRealFunc, Hessian)
+TEST_CASE("TestRealFunc.Hessian")
 {
   const char* g    = "sin(x)*sin(y)*sin(z)";
   const char* g_xx = "-sin(x)*sin(y)*sin(z)";
@@ -178,8 +183,8 @@ TEST(TestRealFunc, Hessian)
 
   EvalFunctionAd f2(g);
 
-  EXPECT_TRUE(f1.isConstant());
-  EXPECT_TRUE(f2.isConstant());
+  REQUIRE(f1.isConstant());
+  REQUIRE(f2.isConstant());
 
   for (double x : {0.1, 0.2, 0.3})
     for (double y : {0.5, 0.6, 0.7})
@@ -197,15 +202,15 @@ TEST(TestRealFunc, Hessian)
           const SymmTensor hess = fp->hessian(X);
           for (size_t i = 1; i <= 3; ++i)
             for (size_t j = 1; j <= 3; ++j) {
-              EXPECT_DOUBLE_EQ(fp->dderiv(X,i,j), r(i,j));
-              EXPECT_DOUBLE_EQ(hess(i,j), r(i,j));
+              REQUIRE_THAT(fp->dderiv(X,i,j), WithinRel(r(i,j)));
+              REQUIRE_THAT(hess(i,j), WithinRel(r(i,j)));
             }
           }
       }
 }
 
 
-TEST(TestVecFunc, Evaluate)
+TEST_CASE("TestVecFunc.Evaluate")
 {
   const char* func = "sin(x) | cos (y) | exp(z)";
 
@@ -220,15 +225,15 @@ TEST(TestVecFunc, Evaluate)
         for (const VecFunc* fp : {static_cast<const VecFunc*>(&f1),
                                   static_cast<const VecFunc*>(&f2)}) {
           const Vec3 fx = (*fp)(X);
-          EXPECT_DOUBLE_EQ(fx.x, r.x);
-          EXPECT_DOUBLE_EQ(fx.y, r.y);
-          EXPECT_DOUBLE_EQ(fx.z, r.z);
+          REQUIRE_THAT(fx.x, WithinRel(r.x));
+          REQUIRE_THAT(fx.y, WithinRel(r.y));
+          REQUIRE_THAT(fx.z, WithinRel(r.z));
         }
       }
 }
 
 
-TEST(TestVecFunction, Gradient2D)
+TEST_CASE("TestVecFunction.Gradient2D")
 {
   const char* g   = "sin(x)*sin(y) | x*x*y*y";
   const char* g_x = "cos(x)*sin(y) | 2*x*y*y";
@@ -240,8 +245,8 @@ TEST(TestVecFunction, Gradient2D)
 
   VecFuncExprAd f2(g);
 
-  EXPECT_TRUE(f1.isConstant());
-  EXPECT_TRUE(f2.isConstant());
+  REQUIRE(f1.isConstant());
+  REQUIRE(f2.isConstant());
 
   for (double x : {0.1, 0.2, 0.3})
     for (double y : {0.5, 0.6, 0.7}) {
@@ -255,8 +260,8 @@ TEST(TestVecFunction, Gradient2D)
         for (size_t d = 1; d <= 2; ++d) {
           const Vec3 dx = fp->deriv(X,d);
           for (size_t i = 1; i <= 2; ++i) {
-            EXPECT_DOUBLE_EQ(dx[i-1], r(i,d));
-            EXPECT_DOUBLE_EQ(grad(i,d), r(i,d));
+            REQUIRE_THAT(dx[i-1], WithinRel(r(i,d)));
+            REQUIRE_THAT(grad(i,d), WithinRel(r(i,d)));
           }
         }
       }
@@ -264,7 +269,7 @@ TEST(TestVecFunction, Gradient2D)
 }
 
 
-TEST(TestVecFunction, Gradient2DFD)
+TEST_CASE("TestVecFunction.Gradient2DFD")
 {
   const char* g = "sin(x)*sin(y) | x*x*y*y";
 
@@ -272,7 +277,7 @@ TEST(TestVecFunction, Gradient2DFD)
 
   VecFuncExpr f(g,"",eps);
 
-  EXPECT_TRUE(f.isConstant());
+  REQUIRE(f.isConstant());
 
   for (double x : {0.1, 0.2, 0.3})
     for (double y : {0.5, 0.6, 0.7}) {
@@ -288,15 +293,15 @@ TEST(TestVecFunction, Gradient2DFD)
       for (size_t d = 1; d <= 2; ++d) {
         const Vec3 dx = f.deriv(X,d);
         for (size_t i = 1; i <= 2; ++i) {
-          EXPECT_NEAR(dx[i-1], r(i,d), 1e-8);
-          EXPECT_NEAR(grad(i,d), r(i,d), 1e-8);
+          REQUIRE_THAT(dx[i-1], WithinRel(r(i,d), 1e-8));
+          REQUIRE_THAT(grad(i,d), WithinRel(r(i,d), 1e-8));
         }
       }
     }
 }
 
 
-TEST(TestVecFunction, Gradient3D)
+TEST_CASE("TestVecFunction.Gradient3D")
 {
   const char* g   = "sin(x)*sin(y)*sin(z) | x*x*y*y*z*z*z | exp(-x)*exp(2*y)*exp(z*z)";
   const char* g_x = "cos(x)*sin(y)*sin(z) | 2*x*y*y*z*z*z | -exp(-x)*exp(2*y)*exp(z*z)";
@@ -310,8 +315,8 @@ TEST(TestVecFunction, Gradient3D)
 
   VecFuncExprAd f2(g);
 
-  EXPECT_TRUE(f1.isConstant());
-  EXPECT_TRUE(f2.isConstant());
+  REQUIRE(f1.isConstant());
+  REQUIRE(f2.isConstant());
 
   for (double x : {0.1, 0.2, 0.3})
     for (double y : {0.5, 0.6, 0.7})
@@ -327,8 +332,8 @@ TEST(TestVecFunction, Gradient3D)
           for (size_t d = 1; d <= 3; ++d) {
             const Vec3 dx = fp->deriv(X,d);
             for (size_t i = 1; i <= 3; ++i) {
-              EXPECT_DOUBLE_EQ(dx[i-1], r(i,d));
-              EXPECT_DOUBLE_EQ(grad(i,d), r(i,d));
+              REQUIRE_THAT(dx[i-1], WithinRel(r(i,d)));
+              REQUIRE_THAT(grad(i,d), WithinRel(r(i,d)));
             }
           }
         }
@@ -336,14 +341,14 @@ TEST(TestVecFunction, Gradient3D)
 }
 
 
-TEST(TestVecFunction, Gradient3DFD)
+TEST_CASE("TestVecFunction.Gradient3DFD")
 {
   const char* g   = "sin(x)*sin(y)*sin(z) | x*x*y*y*z*z*z | exp(-x)*exp(2*y)*exp(z*z)";
 
   const double eps = 1e-6;
   VecFuncExpr f(g,"",eps);
 
-  EXPECT_TRUE(f.isConstant());
+  REQUIRE(f.isConstant());
 
   for (double x : {0.1, 0.2, 0.3})
     for (double y : {0.5, 0.6, 0.7})
@@ -365,15 +370,15 @@ TEST(TestVecFunction, Gradient3DFD)
         for (size_t d = 1; d <= 3; ++d) {
           const Vec3 dx = f.deriv(X,d);
           for (size_t i = 1; i <= 3; ++i) {
-            EXPECT_NEAR(dx[i-1], r(i,d), 1e-8);
-            EXPECT_NEAR(grad(i,d), r(i,d), 1e-8);
+            REQUIRE_THAT(dx[i-1], WithinRel(r(i,d), 1e-8));
+            REQUIRE_THAT(grad(i,d), WithinRel(r(i,d), 1e-8));
           }
         }
       }
 }
 
 
-TEST(TestVecFunction, Hessian2D)
+TEST_CASE("TestVecFunction.Hessian2D")
 {
   const char* g    = "sin(x)*sin(y)  | x*x*y*y";
   const char* g_xx = "-sin(x)*sin(y) | 2*y*y";
@@ -387,8 +392,8 @@ TEST(TestVecFunction, Hessian2D)
 
   VecFuncExprAd f2(g);
 
-  EXPECT_TRUE(f1.isConstant());
-  EXPECT_TRUE(f2.isConstant());
+  REQUIRE(f1.isConstant());
+  REQUIRE(f2.isConstant());
 
   for (double x : {0.1, 0.2, 0.3})
     for (double y : {0.5, 0.6, 0.7}) {
@@ -406,8 +411,8 @@ TEST(TestVecFunction, Hessian2D)
           for (size_t d2 = 1; d2 <= 2; ++d2) {
             const Vec3 d2x = fp->dderiv(X,d1,d2);
             for (size_t i = 1; i <= 2; ++i) {
-              EXPECT_DOUBLE_EQ(hess(i,d1,d2), r(i,d1,d2));
-              EXPECT_DOUBLE_EQ(d2x[i-1], r(i,d1,d2));
+              REQUIRE_THAT(hess(i,d1,d2), WithinRel(r(i,d1,d2)));
+              REQUIRE_THAT(d2x[i-1], WithinRel(r(i,d1,d2)));
             }
           }
       }
@@ -415,7 +420,7 @@ TEST(TestVecFunction, Hessian2D)
 }
 
 
-TEST(TestVecFunction, Hessian3D)
+TEST_CASE("TestVecFunction.Hessian3D")
 {
   const char* g    = "sin(x)*sin(y)*sin(z)  | x*x*y*y*z*z | exp(x)*exp(2*y)*exp(3*z)";
   const char* g_xx = "-sin(x)*sin(y)*sin(z) | 2*y*y*z*z   | exp(x)*exp(2*y)*exp(3*z)";
@@ -435,8 +440,8 @@ TEST(TestVecFunction, Hessian3D)
 
   VecFuncExprAd f2(g);
 
-  EXPECT_TRUE(f1.isConstant());
-  EXPECT_TRUE(f2.isConstant());
+  REQUIRE(f1.isConstant());
+  REQUIRE(f2.isConstant());
 
   for (double x : {0.1, 0.2, 0.3})
     for (double y : {0.5, 0.6, 0.7})
@@ -462,8 +467,8 @@ TEST(TestVecFunction, Hessian3D)
             for (size_t d2 = 1; d2 <= 3; ++d2) {
               const Vec3 d2x = fp->dderiv(X,d1,d2);
               for (size_t i = 1; i <= 3; ++i) {
-                EXPECT_DOUBLE_EQ(d2x[i-1], r(i,d1,d2));
-                EXPECT_DOUBLE_EQ(hess(i,d1,d2), r(i,d1,d2));
+                REQUIRE_THAT(d2x[i-1], WithinRel(r(i,d1,d2)));
+                REQUIRE_THAT(hess(i,d1,d2), WithinRel(r(i,d1,d2)));
               }
             }
         }
@@ -471,25 +476,25 @@ TEST(TestVecFunction, Hessian3D)
  }
 
 
-TEST(TestVecFuncExpr, NumDimensions)
+TEST_CASE("TestVecFuncExpr.NumDimensions")
 {
   const char* func1 = "x";
   const char* func2 = "x | y";
   const char* func3 = "x | y | z";
 
   VecFuncExpr f1(func1);
-  EXPECT_EQ(f1.getNoSpaceDim(), 1);
-  EXPECT_EQ(f1.dim(), 1);
+  REQUIRE(f1.getNoSpaceDim() == 1);
+  REQUIRE(f1.dim() ==  1);
   VecFuncExpr f2(func2);
-  EXPECT_EQ(f2.getNoSpaceDim(), 2);
-  EXPECT_EQ(f2.dim(), 2);
+  REQUIRE(f2.getNoSpaceDim() == 2);
+  REQUIRE(f2.dim() == 2);
   VecFuncExpr f3(func3);
-  EXPECT_EQ(f3.getNoSpaceDim(), 3);
-  EXPECT_EQ(f3.dim(), 3);
+  REQUIRE(f3.getNoSpaceDim() == 3);
+  REQUIRE(f3.dim() == 3);
 }
 
 
-TEST(TestVecFuncExpr, TimeDerivative)
+TEST_CASE("TestVecFuncExpr.TimeDerivative")
 {
   const char* g   = "sin(x)*sin(y)*sin(z)*sin(t) | x*x*y*y*z*t*t | exp(-2*t)";
   const char* g_t = "sin(x)*sin(y)*sin(z)*cos(t) | x*x*y*y*z*2*t | -2*exp(-2*t)";
@@ -497,7 +502,7 @@ TEST(TestVecFuncExpr, TimeDerivative)
   VecFuncExpr f(g);
   f.addDerivative(g_t,"",4);
 
-  EXPECT_FALSE(f.isConstant());
+  REQUIRE(!f.isConstant());
 
   for (double t : {0.1, 0.2, 0.3})
     for (double x : {0.1, 0.2, 0.3})
@@ -508,21 +513,21 @@ TEST(TestVecFuncExpr, TimeDerivative)
                        x*x*y*y*z*2*t,
                        -2*exp(-2*t));
           const Vec3 dt = f.timeDerivative(X);
-          EXPECT_DOUBLE_EQ(dt[0], r[0]);
-          EXPECT_DOUBLE_EQ(dt[1], r[1]);
-          EXPECT_DOUBLE_EQ(dt[2], r[2]);
+          REQUIRE_THAT(dt[0], WithinRel(r[0]));
+          REQUIRE_THAT(dt[1], WithinRel(r[1]));
+          REQUIRE_THAT(dt[2], WithinRel(r[2]));
         }
 }
 
 
-TEST(TestVecFuncExpr, TimeDerivativeFD)
+TEST_CASE("TestVecFuncExpr.TimeDerivativeFD")
 {
   const char* g   = "sin(x)*sin(y)*sin(z)*sin(t) | x*x*y*y*z*t*t | exp(-2*t)";
 
   const double eps = 1e-6;
   VecFuncExpr f(g,"",1e-8,eps);
 
-  EXPECT_FALSE(f.isConstant());
+  REQUIRE(!f.isConstant());
 
   for (double t : {0.1, 0.2, 0.3}) {
     const double tp = t + 0.5*eps;
@@ -537,15 +542,15 @@ TEST(TestVecFuncExpr, TimeDerivativeFD)
           r *= 1.0 / eps;
 
           const Vec3 dt = f.timeDerivative(X);
-          EXPECT_NEAR(dt[0], r[0], 1e-8);
-          EXPECT_NEAR(dt[1], r[1], 1e-8);
-          EXPECT_NEAR(dt[2], r[2], 1e-8);
+          REQUIRE_THAT(dt[0], WithinRel(r[0], 1e-8));
+          REQUIRE_THAT(dt[1], WithinRel(r[1], 1e-8));
+          REQUIRE_THAT(dt[2], WithinRel(r[2], 1e-8));
         }
   }
 }
 
 
-TEST(TestTensorFunc, Evaluate)
+TEST_CASE("TestTensorFunc.Evaluate")
 {
   const char* func = "sin(x) | cos (y) | exp(z) | sin(x)*cos(y)";
 
@@ -563,13 +568,13 @@ TEST(TestTensorFunc, Evaluate)
           const Tensor fx = (*fp)(X);
           for (size_t i = 1; i <= 2; ++i)
             for (size_t j = 1; j <= 2; ++j)
-              EXPECT_DOUBLE_EQ(fx(i,j), r(i,j));
+              REQUIRE_THAT(fx(i,j), WithinRel(r(i,j)));
         }
       }
 }
 
 
-TEST(TestTensorFunction, Gradient2D)
+TEST_CASE("TestTensorFunction.Gradient2D")
 {
   const char* g   = "sin(x)*sin(y) | x*x*y*y | exp(x)*exp(2*y)   | exp(-2*x)*exp(y)";
   const char* g_x = "cos(x)*sin(y) | 2*x*y*y | exp(x)*exp(2*y)   | -2*exp(-2*x)*exp(y)";
@@ -581,7 +586,7 @@ TEST(TestTensorFunction, Gradient2D)
 
   TensorFuncExprAd f2(g);
 
-  EXPECT_TRUE(f1.isConstant());
+  REQUIRE(f1.isConstant());
 
   for (double x : {0.1, 0.2, 0.3})
     for (double y : {0.5, 0.6, 0.7}) {
@@ -596,8 +601,8 @@ TEST(TestTensorFunction, Gradient2D)
           const Tensor dx = fp->deriv(X,d);
           for (size_t i = 1; i <= 2; ++i)
             for (size_t j = 1; j <= 2; ++j) {
-              EXPECT_DOUBLE_EQ(dx(i,j), r(i,j,d));
-              EXPECT_DOUBLE_EQ(grad(i,j,d), r(i,j,d));
+              REQUIRE_THAT(dx(i,j), WithinRel(r(i,j,d)));
+              REQUIRE_THAT(grad(i,j,d), WithinRel(r(i,j,d)));
             }
         }
       }
@@ -605,14 +610,14 @@ TEST(TestTensorFunction, Gradient2D)
 }
 
 
-TEST(TestTensorFunction, Gradient2DFD)
+TEST_CASE("TestTensorFunction.Gradient2DFD")
 {
   const char* g   = "sin(x)*sin(y) | x*x*y*y | exp(x)*exp(2*y) | exp(-2*x)*exp(y)";
 
   const double eps = 1e-6;
   TensorFuncExpr f(g,"",eps);
 
-  EXPECT_TRUE(f.isConstant());
+  REQUIRE(f.isConstant());
 
   for (double x : {0.1, 0.2, 0.3})
     for (double y : {0.5, 0.6, 0.7}) {
@@ -635,15 +640,15 @@ TEST(TestTensorFunction, Gradient2DFD)
         const Tensor dx = f.deriv(X,d);
         for (size_t i = 1; i <= 2; ++i)
           for (size_t j = 1; j <= 2; ++j) {
-            EXPECT_NEAR(dx(i,j), r(i,j,d), 1e-8);
-            EXPECT_NEAR(grad(i,j,d), r(i,j,d), 1e-8);
+            REQUIRE_THAT(dx(i,j), WithinRel(r(i,j,d), 1e-8));
+            REQUIRE_THAT(grad(i,j,d), WithinRel(r(i,j,d), 1e-8));
           }
       }
     }
 }
 
 
-TEST(TestTensorFunction, Gradient3D)
+TEST_CASE("TestTensorFunction.Gradient3D")
 {
   const char* g   = "sin(x)*sin(y)*sin(z)  | x*x*y*y*z | exp(x)*exp(2*y)*z*z |"
                     "exp(-2*x)*exp(y)*z    | x*y*z     | x*y*z*z |"
@@ -665,8 +670,8 @@ TEST(TestTensorFunction, Gradient3D)
 
   TensorFuncExprAd f2(g);
 
-  EXPECT_TRUE(f1.isConstant());
-  EXPECT_TRUE(f2.isConstant());
+  REQUIRE(f1.isConstant());
+  REQUIRE(f2.isConstant());
 
   for (double x : {0.1, 0.2, 0.3})
     for (double y : {0.5, 0.6, 0.7})
@@ -692,8 +697,8 @@ TEST(TestTensorFunction, Gradient3D)
             const Tensor dx = fp->deriv(X,d);
             for (size_t i = 1; i <= 3; ++i)
               for (size_t j = 1; j <= 3; ++j) {
-                EXPECT_DOUBLE_EQ(dx(i,j), r(i,j,d));
-                EXPECT_DOUBLE_EQ(grad(i,j,d), r(i,j,d));
+                REQUIRE_THAT(dx(i,j), WithinRel(r(i,j,d)));
+                REQUIRE_THAT(grad(i,j,d), WithinRel(r(i,j,d)));
               }
           }
         }
@@ -701,7 +706,7 @@ TEST(TestTensorFunction, Gradient3D)
 }
 
 
-TEST(TestTensorFunction, Gradient3DFD)
+TEST_CASE("TestTensorFunction.Gradient3DFD")
 {
   const char* g   = "sin(x)*sin(y)*sin(z)  | x*x*y*y*z | exp(x)*exp(2*y)*z*z |"
                     "exp(-2*x)*exp(y)*z    | x*y*z     | x*y*z*z |"
@@ -710,7 +715,7 @@ TEST(TestTensorFunction, Gradient3DFD)
   const double eps = 1e-6;
   TensorFuncExpr f(g,"",eps);
 
-  EXPECT_TRUE(f.isConstant());
+  REQUIRE(f.isConstant());
 
   for (double x : {0.1, 0.2, 0.3})
     for (double y : {0.5, 0.6, 0.7})
@@ -753,15 +758,15 @@ TEST(TestTensorFunction, Gradient3DFD)
           const Tensor dx = f.deriv(X,d);
           for (size_t i = 1; i <= 3; ++i)
             for (size_t j = 1; j <= 3; ++j) {
-              EXPECT_NEAR(dx(i,j), r(i,j,d), 1e-8);
-              EXPECT_NEAR(grad(i,j,d), r(i,j,d), 1e-8);
+              REQUIRE_THAT(dx(i,j), WithinRel(r(i,j,d), 1e-8));
+              REQUIRE_THAT(grad(i,j,d), WithinRel(r(i,j,d), 1e-8));
             }
         }
     }
 }
 
 
-TEST(TestTensorFunction, Hessian2D)
+TEST_CASE("TestTensorFunction.Hessian2D")
 {
   const char* g    = "sin(x)*sin(y)   | x*x*y*y | exp(x)*exp(2*y)   | exp(-2*x)*exp(y)";
   const char* g_xx = "-sin(x)*sin(y) | 2*y*y   | exp(x)*exp(2*y)   | 4*exp(-2*x)*exp(y)";
@@ -775,8 +780,8 @@ TEST(TestTensorFunction, Hessian2D)
 
   TensorFuncExprAd f2(g);
 
-  EXPECT_TRUE(f1.isConstant());
-  EXPECT_TRUE(f2.isConstant());
+  REQUIRE(f1.isConstant());
+  REQUIRE(f2.isConstant());
 
   for (double x : {0.1, 0.2, 0.3})
     for (double y : {0.5, 0.6, 0.7}) {
@@ -803,8 +808,8 @@ TEST(TestTensorFunction, Hessian2D)
             const Tensor dx = fp->dderiv(X,d1,d2);
             for (size_t i = 1; i <= 2; ++i)
               for (size_t j = 1; j <= 2; ++j) {
-                EXPECT_DOUBLE_EQ(dx(i,j), r(i,j,d1,d2));
-                EXPECT_DOUBLE_EQ(hess(i,j,d1,d2), r(i,j,d1,d2));
+                REQUIRE_THAT(dx(i,j), WithinRel(r(i,j,d1,d2)));
+                REQUIRE_THAT(hess(i,j,d1,d2), WithinRel(r(i,j,d1,d2)));
               }
           }
       }
@@ -812,7 +817,7 @@ TEST(TestTensorFunction, Hessian2D)
 }
 
 
-TEST(TestTensorFunction, Hessian3D)
+TEST_CASE("TestTensorFunction.Hessian3D")
 {
   const char* g    = "sin(x)*sin(y)*sin(z)  | x*x*y*y*z | exp(x)*exp(2*y)*z*z |"
                      "exp(-2*x)*exp(y)*z     | x*y*z     | x*y*z*z |"
@@ -846,8 +851,8 @@ TEST(TestTensorFunction, Hessian3D)
 
   TensorFuncExprAd f2(g);
 
-  EXPECT_TRUE(f1.isConstant());
-  EXPECT_TRUE(f2.isConstant());
+  REQUIRE(f1.isConstant());
+  REQUIRE(f2.isConstant());
 
   for (double x : {0.1, 0.2, 0.3})
     for (double y : {0.5, 0.6, 0.7})
@@ -898,8 +903,8 @@ TEST(TestTensorFunction, Hessian3D)
               const Tensor dx = fp->dderiv(X,d1,d2);
               for (size_t i = 1; i <= 3; ++i)
                 for (size_t j = 1; j <= 3; ++j) {
-                  EXPECT_DOUBLE_EQ(dx(i,j), r(i,j,d1,d2));
-                  EXPECT_DOUBLE_EQ(hess(i,j,d1,d2), r(i,j,d1,d2));
+                  REQUIRE_THAT(dx(i,j), WithinRel(r(i,j,d1,d2)));
+                  REQUIRE_THAT(hess(i,j,d1,d2), WithinRel(r(i,j,d1,d2)));
                 }
             }
         }
@@ -907,7 +912,7 @@ TEST(TestTensorFunction, Hessian3D)
 }
 
 
-TEST(TestTensorFunction, TimeDerivative)
+TEST_CASE("TestTensorFunction.TimeDerivative")
 {
   const char* g   = "sin(x)*sin(y)*sin(z)*sin(t)  | x*x*y*y*z*t*t | exp(x)*exp(2*y)*z*z*t |"
                     "exp(-2*x)*exp(y)*z*sin(t)    | x*y*z*t*t     | x*y*z*z*t |"
@@ -919,7 +924,7 @@ TEST(TestTensorFunction, TimeDerivative)
   TensorFuncExpr f(g);
   f.addDerivative(g_t,"",4);
 
-  EXPECT_FALSE(f.isConstant());
+  REQUIRE(!f.isConstant());
 
   for (double t : {0.1, 0.2, 0.3})
     for (double x : {0.1, 0.2, 0.3})
@@ -933,38 +938,38 @@ TEST(TestTensorFunction, TimeDerivative)
           const Tensor dt = f.timeDerivative(X);
           for (size_t i = 1; i <= 3; ++i)
             for (size_t j = 1; j <= 3; ++j)
-              EXPECT_DOUBLE_EQ(dt(i,j), r(i,j));
+              REQUIRE_THAT(dt(i,j), WithinRel(r(i,j)));
       }
 }
 
 
-TEST(TestTensorFuncExpr, NumDimensions)
+TEST_CASE("TestTensorFuncExpr.NumDimensions")
 {
   const char* func1 = "x";
   const char* func2 = "x | y | z | x";
   const char* func3 = "x | y | z | x | y | z | x | y | z";
 
   TensorFuncExpr f1(func1);
-  EXPECT_EQ(f1.getNoSpaceDim(), 1);
-  EXPECT_EQ(f1.dim(), 1);
+  REQUIRE(f1.getNoSpaceDim() == 1);
+  REQUIRE(f1.dim() == 1);
   TensorFuncExpr f2(func2);
-  EXPECT_EQ(f2.getNoSpaceDim(), 2);
-  EXPECT_EQ(f2.dim(), 4);
+  REQUIRE(f2.getNoSpaceDim() == 2);
+  REQUIRE(f2.dim() == 4);
   TensorFuncExpr f3(func3);
-  EXPECT_EQ(f3.getNoSpaceDim(), 3);
-  EXPECT_EQ(f3.dim(), 9);
+  REQUIRE(f3.getNoSpaceDim() == 3);
+  REQUIRE(f3.dim() == 9);
 }
 
 
-TEST(TestSTensorFunc, Evaluate2D)
+TEST_CASE("TestSTensorFunc.Evaluate2D")
 {
   const char* func = "sin(x) | cos (y) | exp(z)";
 
   STensorFuncExpr f1(func);
   STensorFuncExprAd f2(func);
 
-  EXPECT_TRUE(f1.isConstant());
-  EXPECT_TRUE(f2.isConstant());
+  REQUIRE(f1.isConstant());
+  REQUIRE(f2.isConstant());
 
   for (double x : {0.1, 0.2, 0.3})
     for (double y : {0.5, 0.6, 0.7})
@@ -976,13 +981,13 @@ TEST(TestSTensorFunc, Evaluate2D)
           const SymmTensor fx = (*fp)(X);
           for (size_t i = 1; i <= 2; ++i)
             for (size_t j = 1; j <= 2; ++j)
-              EXPECT_DOUBLE_EQ(fx(i,j), r(i,j));
+              REQUIRE_THAT(fx(i,j), WithinRel(r(i,j)));
         }
       }
 }
 
 
-TEST(TestSTensorFunc, Evaluate2Dzz)
+TEST_CASE("TestSTensorFunc.Evaluate2Dzz")
 {
   const char* func = "sin(x) | cos (y) | sin(x)*cos(y) | exp(z)";
 
@@ -996,13 +1001,13 @@ TEST(TestSTensorFunc, Evaluate2Dzz)
         const Tensor r({sin(x), exp(z), exp(z), cos(y)});
         for (size_t i = 1; i <= 2; ++i)
           for (size_t j = 1; j <= 2; ++j)
-            EXPECT_DOUBLE_EQ(fx(i,j), r(i,j));
-        EXPECT_DOUBLE_EQ(fx(3,3), sin(x)*cos(y));
+            REQUIRE_THAT(fx(i,j), WithinRel(r(i,j)));
+        REQUIRE_THAT(fx(3,3), WithinRel(sin(x)*cos(y)));
       }
 }
 
 
-TEST(TestSTensorFunc, Evaluate3D)
+TEST_CASE("TestSTensorFunc.Evaluate3D")
 {
   const char* func = "sin(x) | cos (y) | exp(z) |"
                      "sin(x)*sin(y) | sin(x)*cos(y) | exp(x)*exp(y)";
@@ -1022,13 +1027,13 @@ TEST(TestSTensorFunc, Evaluate3D)
           const SymmTensor fx = (*fp)(X);
           for (size_t i = 1; i <= 3; ++i)
             for (size_t j = 1; j <= 3; ++j)
-              EXPECT_DOUBLE_EQ(fx(i,j), r(i,j));
+              REQUIRE_THAT(fx(i,j), WithinRel(r(i,j)));
         }
       }
 }
 
 
-TEST(TestSTensorFunction, Gradient2D)
+TEST_CASE("TestSTensorFunction.Gradient2D")
 {
   const char* g   = "sin(x)*sin(y) | exp(x)*exp(2*y) | x*x*y*y";
   const char* g_x = "cos(x)*sin(y) | exp(x)*exp(2*y) | 2*x*y*y";
@@ -1040,8 +1045,8 @@ TEST(TestSTensorFunction, Gradient2D)
 
   STensorFuncExprAd f2(g);
 
-  EXPECT_TRUE(f1.isConstant());
-  EXPECT_TRUE(f2.isConstant());
+  REQUIRE(f1.isConstant());
+  REQUIRE(f2.isConstant());
 
   for (double x : {0.1, 0.2, 0.3})
     for (double y : {0.5, 0.6, 0.7}) {
@@ -1057,8 +1062,8 @@ TEST(TestSTensorFunction, Gradient2D)
           const SymmTensor dx = fp->deriv(X,d);
           for (size_t i = 1; i <= 2; ++i)
             for (size_t j = 1; j <= 2; ++j) {
-              EXPECT_DOUBLE_EQ(dx(i,j), r(i,j,d));
-              EXPECT_DOUBLE_EQ(grad(i,j,d), r(i,j,d));
+              REQUIRE_THAT(dx(i,j), WithinRel(r(i,j,d)));
+              REQUIRE_THAT(grad(i,j,d), WithinRel(r(i,j,d)));
             }
         }
       }
@@ -1066,7 +1071,7 @@ TEST(TestSTensorFunction, Gradient2D)
 }
 
 
-TEST(TestSTensorFunction, Gradient2Dzz)
+TEST_CASE("TestSTensorFunction.Gradient2Dzz")
 {
   const char* g   = "sin(x)*sin(y) | exp(x)*exp(2*y) | sin(x)*sin(y) | x*x*y*y";
   const char* g_x = "cos(x)*sin(y) | exp(x)*exp(2*y) | cos(x)*sin(y) | 2*x*y*y";
@@ -1076,7 +1081,7 @@ TEST(TestSTensorFunction, Gradient2Dzz)
   f.addDerivative(g_x,"",1);
   f.addDerivative(g_y,"",2);
 
-  EXPECT_TRUE(f.isConstant());
+  REQUIRE(f.isConstant());
 
   for (double x : {0.1, 0.2, 0.3})
     for (double y : {0.5, 0.6, 0.7}) {
@@ -1089,21 +1094,21 @@ TEST(TestSTensorFunction, Gradient2Dzz)
         const SymmTensor dx = f.deriv(X,d);
         for (size_t i = 1; i <= 2; ++i)
           for (size_t j = 1; j <= 2; ++j)
-            EXPECT_NEAR(dx(i,j), r(i,j,d), 1e-12);
-        EXPECT_NEAR(dx(3,3), (d == 1 ? cos(x) : sin(x)) * (d == 2 ? cos(y) : sin(y)), 1e-12);
+            REQUIRE_THAT(dx(i,j), WithinRel(r(i,j,d), 1e-12));
+        REQUIRE_THAT(dx(3,3), WithinRel((d == 1 ? cos(x) : sin(x)) * (d == 2 ? cos(y) : sin(y)), 1e-12));
       }
     }
 }
 
 
-TEST(TestSTensorFunction, Gradient2DFD)
+TEST_CASE("TestSTensorFunction.Gradient2DFD")
 {
   const char* g   = "sin(x)*sin(y) | exp(x)*exp(2*y) | x*x*y*y";
 
   const double eps = 1e-6;
   STensorFuncExpr f(g,"",eps);
 
-  EXPECT_TRUE(f.isConstant());
+  REQUIRE(f.isConstant());
 
   for (double x : {0.1, 0.2, 0.3})
     for (double y : {0.5, 0.6, 0.7}) {
@@ -1126,15 +1131,15 @@ TEST(TestSTensorFunction, Gradient2DFD)
         const SymmTensor dx = f.deriv(X,d);
         for (size_t i = 1; i <= 2; ++i)
           for (size_t j = 1; j <= 2; ++j) {
-            EXPECT_NEAR(dx(i,j), r(i,j,d), 1e-8);
-            EXPECT_NEAR(grad(i,j,d), r(i,j,d), 1e-8);
+            REQUIRE_THAT(dx(i,j), WithinRel(r(i,j,d), 1e-8));
+            REQUIRE_THAT(grad(i,j,d), WithinRel(r(i,j,d), 1e-8));
           }
       }
     }
 }
 
 
-TEST(TestSTensorFunction, Gradient3D)
+TEST_CASE("TestSTensorFunction.Gradient3D")
 {
   const char* g   = "sin(x)*sin(y)*sin(z) | exp(x)*exp(2*y)*exp(z) | x*x*y*y*z*z |"
                     "x*y*z | x*x*y*z | z";
@@ -1152,8 +1157,8 @@ TEST(TestSTensorFunction, Gradient3D)
 
   STensorFuncExprAd f2(g);
 
-  EXPECT_TRUE(f1.isConstant());
-  EXPECT_TRUE(f2.isConstant());
+  REQUIRE(f1.isConstant());
+  REQUIRE(f2.isConstant());
 
   for (double x : {0.1, 0.2, 0.3})
     for (double y : {0.5, 0.6, 0.7})
@@ -1179,8 +1184,8 @@ TEST(TestSTensorFunction, Gradient3D)
             const SymmTensor dx = fp->deriv(X,d);
             for (size_t i = 1; i <= 3; ++i)
               for (size_t j = 1; j <= 3; ++j) {
-                EXPECT_DOUBLE_EQ(dx(i,j), r(i,j,d));
-                EXPECT_DOUBLE_EQ(grad(i,j,d), r(i,j,d));
+                REQUIRE_THAT(dx(i,j), WithinRel(r(i,j,d)));
+                REQUIRE_THAT(grad(i,j,d), WithinRel(r(i,j,d)));
               }
           }
         }
@@ -1188,7 +1193,7 @@ TEST(TestSTensorFunction, Gradient3D)
 }
 
 
-TEST(TestSTensorFunction, Gradient3DFD)
+TEST_CASE("TestSTensorFunction.Gradient3DFD")
 {
   const char* g   = "sin(x)*sin(y)*sin(z) | exp(x)*exp(2*y)*exp(z) | x*x*y*y*z*z |"
                     "x*y*z | x*x*y*z | z";
@@ -1196,7 +1201,7 @@ TEST(TestSTensorFunction, Gradient3DFD)
   const double eps = 1e-6;
   STensorFuncExpr f(g,"",eps);
 
-  EXPECT_TRUE(f.isConstant());
+  REQUIRE(f.isConstant());
 
   for (double x : {0.1, 0.2, 0.3})
     for (double y : {0.5, 0.6, 0.7})
@@ -1241,33 +1246,33 @@ TEST(TestSTensorFunction, Gradient3DFD)
           const SymmTensor dx = f.deriv(X,d);
           for (size_t i = 1; i <= 3; ++i)
             for (size_t j = 1; j <= 3; ++j) {
-              EXPECT_NEAR(dx(i,j), r(i,j,d), 1e-8);
-              EXPECT_NEAR(grad(i,j,d), r(i,j,d), 1e-8);
+              REQUIRE_THAT(dx(i,j), WithinRel(r(i,j,d), 1e-8));
+              REQUIRE_THAT(grad(i,j,d), WithinRel(r(i,j,d), 1e-8));
             }
         }
       }
 }
 
 
-TEST(TestSTensorFuncExpr, NumDimensions)
+TEST_CASE("TestSTensorFuncExpr.NumDimensions")
 {
   const char* func1 = "x";
   const char* func2 = "x | y | z";
   const char* func3 = "x | y | z | x | y | z";
 
   STensorFuncExpr f1(func1);
-  EXPECT_EQ(f1.getNoSpaceDim(), 1);
-  EXPECT_EQ(f1.dim(), 1);
+  REQUIRE(f1.getNoSpaceDim() == 1);
+  REQUIRE(f1.dim() == 1);
   STensorFuncExpr f2(func2);
-  EXPECT_EQ(f2.getNoSpaceDim(), 2);
-  EXPECT_EQ(f2.dim(), 3);
+  REQUIRE(f2.getNoSpaceDim() == 2);
+  REQUIRE(f2.dim() == 3);
   STensorFuncExpr f3(func3);
-  EXPECT_EQ(f3.getNoSpaceDim(), 3);
-  EXPECT_EQ(f3.dim(), 6);
+  REQUIRE(f3.getNoSpaceDim() == 3);
+  REQUIRE(f3.dim() == 6);
 }
 
 
-TEST(TestSTensorFunction, Hessian2D)
+TEST_CASE("TestSTensorFunction.Hessian2D")
 {
   const char* g    = "sin(x)*sin(y) | exp(x)*exp(2*y) | x*x*y*y";
   const char* g_xx = "-sin(x)*sin(y) | exp(x)*exp(2*y) | 2*y*y";
@@ -1281,8 +1286,8 @@ TEST(TestSTensorFunction, Hessian2D)
 
   STensorFuncExprAd f2(g);
 
-  EXPECT_TRUE(f1.isConstant());
-  EXPECT_TRUE(f2.isConstant());
+  REQUIRE(f1.isConstant());
+  REQUIRE(f2.isConstant());
 
   for (double x : {0.1, 0.2, 0.3})
     for (double y : {0.5, 0.6, 0.7}) {
@@ -1308,8 +1313,8 @@ TEST(TestSTensorFunction, Hessian2D)
             const SymmTensor dx = fp->dderiv(X,d1,d2);
             for (size_t i = 1; i <= 2; ++i)
               for (size_t j = 1; j <= 2; ++j) {
-                EXPECT_DOUBLE_EQ(dx(i,j), r(i,j,d1,d2));
-                EXPECT_DOUBLE_EQ(hess(i,j,d1,d2), r(i,j,d1,d2));
+                REQUIRE_THAT(dx(i,j), WithinRel(r(i,j,d1,d2)));
+                REQUIRE_THAT(hess(i,j,d1,d2), WithinRel(r(i,j,d1,d2)));
               }
           }
       }
@@ -1317,7 +1322,7 @@ TEST(TestSTensorFunction, Hessian2D)
 }
 
 
-TEST(TestSTensorFunction, Hessian3D)
+TEST_CASE("TestSTensorFunction.Hessian3D")
 {
   const char* g    = "sin(x)*sin(y)*sin(z) | exp(x)*exp(2*y)*exp(z) | x*x*y*y*z*z |"
                      "x*y*z | x*x*y*z | z";
@@ -1344,8 +1349,8 @@ TEST(TestSTensorFunction, Hessian3D)
 
   STensorFuncExprAd f2(g);
 
-  EXPECT_TRUE(f1.isConstant());
-  EXPECT_TRUE(f2.isConstant());
+  REQUIRE(f1.isConstant());
+  REQUIRE(f2.isConstant());
 
   for (double x : {0.1, 0.2, 0.3})
     for (double y : {0.5, 0.6, 0.7})
@@ -1396,8 +1401,8 @@ TEST(TestSTensorFunction, Hessian3D)
               const SymmTensor dx = fp->dderiv(X,d1,d2);
               for (size_t i = 1; i <= 3; ++i)
                 for (size_t j = 1; j <= 3; ++j) {
-                  EXPECT_DOUBLE_EQ(dx(i,j), r(i,j,d1,d2));
-                  EXPECT_DOUBLE_EQ(hess(i,j,d1,d2), r(i,j,d1,d2));
+                  REQUIRE_THAT(dx(i,j), WithinRel(r(i,j,d1,d2)));
+                  REQUIRE_THAT(hess(i,j,d1,d2), WithinRel(r(i,j,d1,d2)));
                 }
             }
         }
@@ -1405,7 +1410,7 @@ TEST(TestSTensorFunction, Hessian3D)
  }
 
 
-TEST(TestSTensorFunction, TimeDerivative)
+TEST_CASE("TestSTensorFunction.TimeDerivative")
 {
   const char* g   = "sin(x)*sin(y)*sin(t) | exp(x)*exp(2*y)*exp(-4*t) | x*x*y*y*t*t";
   const char* g_t = "sin(x)*sin(y)*cos(t) | exp(x)*exp(2*y)*-4*exp(-4*t) | x*x*y*y*2*t";
@@ -1413,7 +1418,7 @@ TEST(TestSTensorFunction, TimeDerivative)
   STensorFuncExpr f(g);
   f.addDerivative(g_t,"",4);
 
-  EXPECT_FALSE(f.isConstant());
+  REQUIRE(!f.isConstant());
 
   for (double t : {0.1, 0.2, 0.3})
     for (double x : {0.1, 0.2, 0.3})
@@ -1424,19 +1429,19 @@ TEST(TestSTensorFunction, TimeDerivative)
         const SymmTensor dt = f.timeDerivative(X);
         for (size_t i = 1; i <= 2; ++i)
           for (size_t j = 1; j <= 2; ++j)
-            EXPECT_DOUBLE_EQ(dt(i,j), r(i,j));
+            REQUIRE_THAT(dt(i,j), WithinRel(r(i,j)));
       }
 }
 
 
-TEST(TestSTensorFunction, TimeDerivativeFD)
+TEST_CASE("TestSTensorFunction.TimeDerivativeFD")
 {
   const char* g   = "sin(x)*sin(y)*sin(t) | exp(x)*exp(2*y)*exp(-4*t) | x*x*y*y*t*t";
 
   const double eps = 1e-6;
   STensorFuncExpr f(g,"",1e-8,eps);
 
-  EXPECT_FALSE(f.isConstant());
+  REQUIRE(!f.isConstant());
 
   for (double t : {0.1, 0.2, 0.3}) {
     const double tp = t + 0.5*eps;
@@ -1452,34 +1457,34 @@ TEST(TestSTensorFunction, TimeDerivativeFD)
         const SymmTensor dt = f.timeDerivative(X);
         for (size_t i = 1; i <= 2; ++i)
           for (size_t j = 1; j <= 2; ++j)
-            EXPECT_NEAR(dt(i,j), r(i,j), 1e-8);
+            REQUIRE_THAT(dt(i,j), WithinRel(r(i,j), 1e-8));
       }
   }
 }
 
 
-TEST(TestEvalFunction, ExtraParam)
+TEST_CASE("TestEvalFunction.ExtraParam")
 {
   EvalFunction f("x*foo");
   f.setParam("foo", 2.0);
   Vec3 X(1.0,0.0,0.0);
-  EXPECT_FLOAT_EQ(f(X), 2.0);
+  REQUIRE_THAT(f(X), WithinRel(2.0));
   X.x = 0.5;
   f.setParam("foo", 4.0);
-  EXPECT_FLOAT_EQ(f(X), 2.0);
+  REQUIRE_THAT(f(X), WithinRel(2.0));
 }
 
 
-TEST(TestEvalFunction, isConstant)
+TEST_CASE("TestEvalFunction.isConstant")
 {
-  EXPECT_TRUE (EvalFunction("2.0*x*y").isConstant());
-  EXPECT_FALSE(EvalFunction("2.0*x*t").isConstant());
-  EXPECT_TRUE (EvalFunction("1.8*tan(x)*x").isConstant());
-  EXPECT_FALSE(EvalFunction("2.0*x*tan(t*3)+y").isConstant());
+  REQUIRE(EvalFunction("2.0*x*y").isConstant());
+  REQUIRE(!EvalFunction("2.0*x*t").isConstant());
+  REQUIRE(EvalFunction("1.8*tan(x)*x").isConstant());
+  REQUIRE(!EvalFunction("2.0*x*tan(t*3)+y").isConstant());
 }
 
 
-TEST(TestEvalFunction, Derivatives)
+TEST_CASE("TestEvalFunction.Derivatives")
 {
   const char* g    = "sin(x)*sin(y)*sin(z)*sin(t)";
   const char* g_x  = "cos(x)*sin(y)*sin(z)*sin(t)";
@@ -1510,19 +1515,19 @@ TEST(TestEvalFunction, Derivatives)
       for (const double y : {0.7, 0.8, 0.9})
         for (const double z : {1.0, 1.1, 1.2}) {
           const Vec4 X(x,y,z,t);
-          EXPECT_DOUBLE_EQ(f(X),             sin(x)*sin(y)*sin(z)*sin(t));
-          EXPECT_DOUBLE_EQ(f.deriv(X,1),     cos(x)*sin(y)*sin(z)*sin(t));
-          EXPECT_DOUBLE_EQ(f.deriv(X,2),     sin(x)*cos(y)*sin(z)*sin(t));
-          EXPECT_DOUBLE_EQ(f.deriv(X,3),     sin(x)*sin(y)*cos(z)*sin(t));
-          EXPECT_DOUBLE_EQ(f.deriv(X,4),     sin(x)*sin(y)*sin(z)*cos(t));
-          EXPECT_DOUBLE_EQ(f.dderiv(X,1,1), -sin(x)*sin(y)*sin(z)*sin(t));
-          EXPECT_DOUBLE_EQ(f.dderiv(X,1,2),  cos(x)*cos(y)*sin(z)*sin(t));
-          EXPECT_DOUBLE_EQ(f.dderiv(X,1,3),  cos(x)*sin(y)*cos(z)*sin(t));
-          EXPECT_DOUBLE_EQ(f.dderiv(X,2,1),  cos(x)*cos(y)*sin(z)*sin(t));
-          EXPECT_DOUBLE_EQ(f.dderiv(X,2,2), -sin(x)*sin(y)*sin(z)*sin(t));
-          EXPECT_DOUBLE_EQ(f.dderiv(X,2,3),  sin(x)*cos(y)*cos(z)*sin(t));
-          EXPECT_DOUBLE_EQ(f.dderiv(X,3,1),  cos(x)*sin(y)*cos(z)*sin(t));
-          EXPECT_DOUBLE_EQ(f.dderiv(X,3,2),  sin(x)*cos(y)*cos(z)*sin(t));
-          EXPECT_DOUBLE_EQ(f.dderiv(X,3,3), -sin(x)*sin(y)*sin(z)*sin(t));
+          REQUIRE_THAT(f(X),            WithinRel(sin(x)*sin(y)*sin(z)*sin(t)));
+          REQUIRE_THAT(f.deriv(X,1),    WithinRel(cos(x)*sin(y)*sin(z)*sin(t)));
+          REQUIRE_THAT(f.deriv(X,2),    WithinRel(sin(x)*cos(y)*sin(z)*sin(t)));
+          REQUIRE_THAT(f.deriv(X,3),    WithinRel(sin(x)*sin(y)*cos(z)*sin(t)));
+          REQUIRE_THAT(f.deriv(X,4),    WithinRel( sin(x)*sin(y)*sin(z)*cos(t)));
+          REQUIRE_THAT(f.dderiv(X,1,1), WithinRel(-sin(x)*sin(y)*sin(z)*sin(t)));
+          REQUIRE_THAT(f.dderiv(X,1,2), WithinRel(cos(x)*cos(y)*sin(z)*sin(t)));
+          REQUIRE_THAT(f.dderiv(X,1,3), WithinRel(cos(x)*sin(y)*cos(z)*sin(t)));
+          REQUIRE_THAT(f.dderiv(X,2,1), WithinRel(cos(x)*cos(y)*sin(z)*sin(t)));
+          REQUIRE_THAT(f.dderiv(X,2,2), WithinRel(-sin(x)*sin(y)*sin(z)*sin(t)));
+          REQUIRE_THAT(f.dderiv(X,2,3), WithinRel(sin(x)*cos(y)*cos(z)*sin(t)));
+          REQUIRE_THAT(f.dderiv(X,3,1), WithinRel(cos(x)*sin(y)*cos(z)*sin(t)));
+          REQUIRE_THAT(f.dderiv(X,3,2), WithinRel( sin(x)*cos(y)*cos(z)*sin(t)));
+          REQUIRE_THAT(f.dderiv(X,3,3), WithinRel(-sin(x)*sin(y)*sin(z)*sin(t)));
         }
 }

@@ -15,11 +15,10 @@
 #include "SIMgeneric.h"
 #include "SIMdummy.h"
 
-#include "SPRMatrix.h"
 #include "ElmMats.h"
 #include "AlgEqSystem.h"
 
-#include "gtest/gtest.h"
+#include <catch2/catch_test_macros.hpp>
 
 namespace // To avoid conflicting names with other tests
 {
@@ -36,7 +35,7 @@ public:
     madof  = new int[2]; madof[0] = 1; madof[1] = 2;
     msc    = new int[1]; msc[0] = 1;
     mpmceq = new int[1]; mpmceq[0] = 1;
-    EXPECT_TRUE(this->initSystemEquations());
+    REQUIRE(this->initSystemEquations());
   }
   virtual ~SAM1DOF() {}
 };
@@ -58,7 +57,7 @@ public:
     madof  = new int[4]; madof[0] = 1; madof[1] = 3; madof[2] = 5; madof[3] = 7;
     msc    = new int[6]; msc[0]=msc[1]=msc[4]=msc[5] = 0; msc[2]=msc[3] = 1;
     mpmceq = new int[1]; mpmceq[0] = 1;
-    EXPECT_TRUE(this->initSystemEquations());
+    REQUIRE(this->initSystemEquations());
   }
   virtual ~SAM2DOF() {}
 };
@@ -161,31 +160,31 @@ public:
 }
 
 
-TEST(TestSPRMatrix, SingleDOF)
+TEST_CASE("TestSPRMatrix.SingleDOF")
 {
   Bar1DOF simulator;
   Vectors solution(1);
 #ifdef HAS_SPR
-  ASSERT_TRUE(simulator.initSystem(LinAlg::SPR));
+  REQUIRE(simulator.initSystem(LinAlg::SPR));
 #else
-  ASSERT_TRUE(simulator.initSystem(LinAlg::DENSE));
+  REQUIRE(simulator.initSystem(LinAlg::DENSE));
 #endif
-  ASSERT_TRUE(simulator.assembleSystem());
-  ASSERT_TRUE(simulator.solveSystem(solution,1));
+  REQUIRE(simulator.assembleSystem());
+  REQUIRE(simulator.solveSystem(solution,1));
   std::cout <<"Solution vector:"<< solution.front();
 }
 
 
-TEST(TestSPRMatrix, TwoDOF)
+TEST_CASE("TestSPRMatrix.TwoDOF")
 {
   Bar2DOF simulator;
   Vectors solution(1);
 #ifdef HAS_SPR
-  ASSERT_TRUE(simulator.initSystem(LinAlg::SPR));
+  REQUIRE(simulator.initSystem(LinAlg::SPR));
 #else
-  ASSERT_TRUE(simulator.initSystem(LinAlg::DENSE));
+  REQUIRE(simulator.initSystem(LinAlg::DENSE));
 #endif
-  ASSERT_TRUE(simulator.assembleSystem());
-  ASSERT_TRUE(simulator.solveSystem(solution,1));
+  REQUIRE(simulator.assembleSystem());
+  REQUIRE(simulator.solveSystem(solution,1));
   std::cout <<"Solution vector:"<< solution.front();
 }

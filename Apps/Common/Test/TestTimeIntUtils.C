@@ -12,26 +12,28 @@
 
 #include "TimeIntUtils.h"
 
-#include "gtest/gtest.h"
+#include <catch2/catch_test_macros.hpp>
 
 using namespace TimeIntegration;
 
-TEST(TestTimeIntUtils, Order)
+
+TEST_CASE("TestTimeIntUtils.Order")
 {
-  EXPECT_EQ(Order(EULER), 1);
-  EXPECT_EQ(Order(BE),    1);
-  EXPECT_EQ(Order(HEUN),  2);
-  EXPECT_EQ(Order(BDF2),  2);
-  EXPECT_EQ(Order(RK3),   3);
-  EXPECT_EQ(Order(RK4),   4);
+  REQUIRE(Order(EULER) == 1);
+  REQUIRE(Order(BE) ==    1);
+  REQUIRE(Order(HEUN) ==  2);
+  REQUIRE(Order(BDF2) ==  2);
+  REQUIRE(Order(RK3) ==   3);
+  REQUIRE(Order(RK4) ==   4);
 }
 
-TEST(TestTimeIntUtils, Steps)
+
+TEST_CASE("TestTimeIntUtils.Steps")
 {
-  EXPECT_EQ(Steps(EULER), 1);
-  EXPECT_EQ(Steps(BE),    1);
-  EXPECT_EQ(Steps(HEUN),  1);
-  EXPECT_EQ(Steps(BDF2),  2);
-  EXPECT_EQ(Steps(RK3),   1);
-  EXPECT_EQ(Steps(RK4),   1);
+  REQUIRE(Steps(EULER) == 1);
+  REQUIRE(Steps(BE) ==    1);
+  REQUIRE(Steps(HEUN) ==  1);
+  REQUIRE(Steps(BDF2) ==  2);
+  REQUIRE(Steps(RK3) ==   1);
+  REQUIRE(Steps(RK4) ==   1);
 }

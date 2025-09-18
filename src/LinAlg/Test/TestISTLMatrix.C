@@ -17,7 +17,11 @@
 #include "readIntVec.h"
 #include <dune/istl/io.hh>
 
-#include "gtest/gtest.h"
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+
+using Catch::Matchers::WithinAbs;
+using Catch::Matchers::WithinRel;
 
 
 class InspectBlockPreconditioner : public ISTL::BlockPreconditioner {
@@ -36,16 +40,16 @@ public:
 };
 
 
-TEST(TestISTLMatrix, Assemble)
+TEST_CASE("TestISTLMatrix.Assemble")
 {
   SIM2D sim(1);
   sim.read("src/LinAlg/Test/refdata/petsc_test.xinp");
   sim.opt.solver = LinAlg::ISTL;
-  ASSERT_TRUE(sim.preprocess());
-  ASSERT_TRUE(sim.initSystem(sim.opt.solver));
+  REQUIRE(sim.preprocess());
+  REQUIRE(sim.initSystem(sim.opt.solver));
 
   ISTLMatrix* myMat = dynamic_cast<ISTLMatrix*>(sim.getLHSmatrix());
-  ASSERT_TRUE(myMat != nullptr);
+  REQUIRE(myMat != nullptr);
 
   Matrix stencil(4,4);
   stencil.diag(1.0);
@@ -59,24 +63,24 @@ TEST(TestISTLMatrix, Assemble)
   ISTL::Mat& A = myMat->getMatrix();
   IntVec v = readIntVector("src/LinAlg/Test/refdata/petsc_matrix_diagonal.ref");
 
-  ASSERT_EQ(A.N(), v.size());
+  REQUIRE(A.N() == v.size());
   for (size_t i = 0; i < v.size(); ++i)
-    EXPECT_FLOAT_EQ(double(v[i]), A[i][i]);
+    REQUIRE_THAT(double(v[i]), WithinRel(A[i][i]));
 }
 
 
-TEST(TestISTLMatrix, AssembleBasisBlocks)
+TEST_CASE("TestISTLMatrix.AssembleBasisBlocks")
 {
   ASMmxBase::Type = ASMmxBase::FULL_CONT_RAISE_BASIS1;
   ASMmxBase::itgBasis = 2;
   SIM2D sim({1,1});
   sim.read("src/LinAlg/Test/refdata/petsc_test_blocks_basis.xinp");
   sim.opt.solver = LinAlg::ISTL;
-  ASSERT_TRUE(sim.preprocess());
-  ASSERT_TRUE(sim.initSystem(sim.opt.solver));
+  REQUIRE(sim.preprocess());
+  REQUIRE(sim.initSystem(sim.opt.solver));
 
   ISTLMatrix* myMat = dynamic_cast<ISTLMatrix*>(sim.getLHSmatrix());
-  ASSERT_TRUE(myMat != nullptr);
+  REQUIRE(myMat != nullptr);
 
   Matrix stencil(13,13);
   stencil.diag(1.0);
@@ -105,30 +109,30 @@ TEST(TestISTLMatrix, AssembleBasisBlocks)
       std::stringstream str;
       str << "src/LinAlg/Test/refdata/petsc_matrix_diagonal_basis_block" << std::min(b/2 + 1, 2ul) << ".ref";
       IntVec v = readIntVector(str.str());
-      ASSERT_EQ(v.size(), mat[b].N());
+      REQUIRE(v.size() == mat[b].N());
       for (size_t i = 0; i < v.size(); ++i)
-        EXPECT_FLOAT_EQ(double(v[i]), mat[b][i][i]);
+        REQUIRE_THAT(double(v[i]), WithinRel(mat[b][i][i]));
     }
 
     // check that no values outside the diagonal are != 0
     for (auto r = mat[b].begin(); r != mat[b].end(); ++r)
       for (auto it = r->begin(); it != r->end(); ++it)
         if (r.index() != it.index())
-          EXPECT_FLOAT_EQ(*it, 0.0);
+          REQUIRE_THAT(*it, WithinAbs(0.0, 1e-14));
   }
 }
 
 
-TEST(TestISTLMatrix, AssembleComponentBlocks)
+TEST_CASE("TestISTLMatrix.AssembleComponentBlocks")
 {
   SIM2D sim(2);
   sim.read("src/LinAlg/Test/refdata/petsc_test_blocks_components.xinp");
   sim.opt.solver = LinAlg::ISTL;
-  ASSERT_TRUE(sim.preprocess());
-  ASSERT_TRUE(sim.initSystem(sim.opt.solver));
+  REQUIRE(sim.preprocess());
+  REQUIRE(sim.initSystem(sim.opt.solver));
 
   ISTLMatrix* myMat = dynamic_cast<ISTLMatrix*>(sim.getLHSmatrix());
-  ASSERT_TRUE(myMat != nullptr);
+  REQUIRE(myMat != nullptr);
 
   Matrix stencil(4*2,4*2);
   for (size_t i = 1; i<= 4; ++i) {
@@ -158,15 +162,15 @@ TEST(TestISTLMatrix, AssembleComponentBlocks)
       std::stringstream str;
       str << "src/LinAlg/Test/refdata/petsc_matrix_diagonal_components_block" << std::min(b/2 + 1, 2ul) << ".ref";
       IntVec v = readIntVector(str.str());
-      ASSERT_EQ(v.size(), mat[b].N());
+      REQUIRE(v.size() == mat[b].N());
       for (size_t i = 0; i < v.size(); ++i)
-        EXPECT_FLOAT_EQ(double(v[i]), mat[b][i][i]);
+        REQUIRE_THAT(double(v[i]), WithinRel(mat[b][i][i]));
     }
 
     // check that no values outside the diagonal are != 0
     for (auto r = mat[b].begin(); r != mat[b].end(); ++r)
       for (auto it = r->begin(); it != r->end(); ++it)
         if (r.index() != it.index())
-          EXPECT_FLOAT_EQ(*it, 0.0);
+          REQUIRE_THAT(*it, WithinAbs(0.0, 1e-14));
   }
 }

@@ -13,38 +13,42 @@
 #include "MeshUtils.h"
 #include "SIM2D.h"
 
-#include "gtest/gtest.h"
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+
+using Catch::Matchers::WithinAbs;
+using Catch::Matchers::WithinRel;
 
 
-TEST(TestMeshUtils, Aspect2D)
+TEST_CASE("TestMeshUtils.Aspect2D")
 {
   SIM2D model;
-  ASSERT_TRUE(model.createDefaultModel());
-  ASSERT_TRUE(model.createFEMmodel());
+  REQUIRE(model.createDefaultModel());
+  REQUIRE(model.createFEMmodel());
 
   std::vector<double> aspect;
   MeshUtils::computeAspectRatios(aspect, model);
-  ASSERT_FLOAT_EQ(aspect.front(), 1.0);
+  REQUIRE_THAT(aspect.front(), WithinRel(1.0));
 
   Vector tmp(2*model.getNoNodes());
   tmp(2) = -1.0;
   MeshUtils::computeAspectRatios(aspect, model, tmp);
-  ASSERT_FLOAT_EQ(aspect.front(), 2.0);
+  REQUIRE_THAT(aspect.front(), WithinRel(2.0));
 }
 
 
-TEST(TestMeshUtils, Skewness2D)
+TEST_CASE("TestMeshUtils.Skewness2D")
 {
   SIM2D model;
-  ASSERT_TRUE(model.createDefaultModel());
-  ASSERT_TRUE(model.createFEMmodel());
+  REQUIRE(model.createDefaultModel());
+  REQUIRE(model.createFEMmodel());
 
   std::vector<double> skewness;
   MeshUtils::computeMeshSkewness(skewness, model);
-  ASSERT_FLOAT_EQ(skewness.front(), 0.0);
+  REQUIRE_THAT(skewness.front(), WithinAbs(0.0, 1e-13));
 
   Vector tmp(2*model.getNoNodes());
   tmp(1) = -1.0;
   MeshUtils::computeMeshSkewness(skewness, model, tmp);
-  ASSERT_FLOAT_EQ(skewness.front(), 0.5);
+  REQUIRE_THAT(skewness.front(), WithinRel(0.5));
 }
