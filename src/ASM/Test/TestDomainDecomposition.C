@@ -14,40 +14,43 @@
 #include "SAM.h"
 #include "SIM2D.h"
 
-#include "gtest/gtest.h"
+#include <catch2/catch_test_macros.hpp>
+
+#include <array>
+#include <vector>
 
 
-TEST(TestDomainDecomposition, LocalGroups1DO1)
+TEST_CASE("TestDomainDecomposition.LocalGroups1DO1")
 {
   auto domains = DomainDecomposition::calcSubdomains(7, 0, 0, 3, 0, 0, 1);
   const int ref[3][3] = {{0, 1, 2},
                          {2, 3, 4},
                          {4, 5, 6}};
-  ASSERT_EQ(domains.size(), 3U);
+  REQUIRE(domains.size() == 3);
   for (size_t i = 0; i < 3; ++i) {
-    ASSERT_EQ(domains[i].size(), 3U);
+    REQUIRE(domains[i].size() == 3);
     for (size_t j = 0; j < 3; ++j)
-      EXPECT_EQ(domains[i][j], ref[i][j]);
+      REQUIRE(domains[i][j] == ref[i][j]);
   }
 }
 
 
-TEST(TestDomainDecomposition, LocalGroups1DO2)
+TEST_CASE("TestDomainDecomposition.LocalGroups1DO2")
 {
   auto domains = DomainDecomposition::calcSubdomains(7, 0, 0, 3, 0, 0, 2);
   const std::array<std::vector<int>, 3> ref = {{{0, 1, 2},
                                                 {1, 2, 3},
                                                 {2, 3, 4, 5, 6}}};
-  ASSERT_EQ(domains.size(), 3U);
+  REQUIRE(domains.size() == 3);
   for (size_t i = 0; i < 3; ++i) {
-    ASSERT_EQ(domains[i].size(), ref[i].size());
+    REQUIRE(domains[i].size() == ref[i].size());
     for (size_t j = 0; j < ref[i].size(); ++j)
-      EXPECT_EQ(domains[i][j], ref[i][j]);
+      REQUIRE(domains[i][j] == ref[i][j]);
   }
 }
 
 
-TEST(TestDomainDecomposition, LocalGroups2DO1)
+TEST_CASE("TestDomainDecomposition.LocalGroups2DO1")
 {
   auto domains = DomainDecomposition::calcSubdomains(7, 7, 0, 3, 3, 0, 1);
   const int ref[9][9] = {{ 0,  1,  2,  7,  8,  9, 14, 15, 16},
@@ -59,16 +62,16 @@ TEST(TestDomainDecomposition, LocalGroups2DO1)
                          {28, 29, 30, 35, 36, 37, 42, 43, 44},
                          {30, 31, 32, 37, 38, 39, 44, 45, 46},
                          {32, 33, 34, 39, 40, 41, 46, 47, 48}};
-  ASSERT_EQ(domains.size(), 9U);
+  REQUIRE(domains.size() == 9);
   for (size_t i = 0; i < 9; ++i) {
-    ASSERT_EQ(domains[i].size(), 9U);
+    REQUIRE(domains[i].size() == 9);
     for (size_t j = 0; j < 9; ++j)
-      EXPECT_EQ(domains[i][j], ref[i][j]);
+      REQUIRE(domains[i][j] == ref[i][j]);
   }
 }
 
 
-TEST(TestDomainDecomposition, LocalGroups2DO2)
+TEST_CASE("TestDomainDecomposition.LocalGroups2DO2")
 {
   auto domains = DomainDecomposition::calcSubdomains(7, 7, 0, 3, 3, 0, 2);
   const std::array<std::vector<int>, 9> ref =
@@ -82,16 +85,16 @@ TEST(TestDomainDecomposition, LocalGroups2DO2)
         {15, 16, 17, 22, 23, 24, 29, 30, 31, 36, 37, 38, 43, 44, 45},
         {16, 17, 18, 19, 20, 23, 24, 25, 26, 27, 30, 31, 32, 33, 34,
          37, 38, 39, 40, 41, 44, 45, 46, 47, 48}}};
-  ASSERT_EQ(domains.size(), 9U);
+  REQUIRE(domains.size() == 9);
   for (size_t i = 0; i < 9; ++i) {
-    ASSERT_EQ(domains[i].size(), ref[i].size());
+    REQUIRE(domains[i].size() == ref[i].size());
     for (size_t j = 0; j < ref[i].size(); ++j)
-      EXPECT_EQ(domains[i][j], ref[i][j]);
+      REQUIRE(domains[i][j] == ref[i][j]);
   }
 }
 
 
-TEST(TestDomainDecomposition, LocalGroups3DO1)
+TEST_CASE("TestDomainDecomposition.LocalGroups3DO1")
 {
   auto domains = DomainDecomposition::calcSubdomains(7, 7, 7, 3, 3, 3, 1);
   const int ref[27][27] =
@@ -123,16 +126,16 @@ TEST(TestDomainDecomposition, LocalGroups3DO1)
      {226, 227, 228, 233, 234, 235, 240, 241, 242, 275, 276, 277, 282, 283, 284, 289, 290, 291, 324, 325, 326, 331, 332, 333, 338, 339, 340},
      {228, 229, 230, 235, 236, 237, 242, 243, 244, 277, 278, 279, 284, 285, 286, 291, 292, 293, 326, 327, 328, 333, 334, 335, 340, 341, 342}};
 
-  ASSERT_EQ(domains.size(), 27U);
+  REQUIRE(domains.size() == 27);
   for (size_t i = 0; i < 27; ++i) {
-    ASSERT_EQ(domains[i].size(), 27U);
+    REQUIRE(domains[i].size() == 27);
     for (size_t j = 0; j < 27; ++j)
-      EXPECT_EQ(domains[i][j], ref[i][j]);
+      REQUIRE(domains[i][j] == ref[i][j]);
   }
 }
 
 
-TEST(TestDomainDecomposition, LocalGroups3DO2)
+TEST_CASE("TestDomainDecomposition.LocalGroups3DO2")
 {
   auto domains = DomainDecomposition::calcSubdomains(7, 7, 7, 3, 3, 3, 2);
   const std::array<std::vector<int>, 27> ref =
@@ -164,37 +167,37 @@ TEST(TestDomainDecomposition, LocalGroups3DO2)
       {113, 114, 115, 120, 121, 122, 127, 128, 129, 134, 135, 136, 141, 142, 143, 162, 163, 164, 169, 170, 171, 176, 177, 178, 183, 184, 185, 190, 191, 192, 211, 212, 213, 218, 219, 220, 225, 226, 227, 232, 233, 234, 239, 240, 241, 260, 261, 262, 267, 268, 269, 274, 275, 276, 281, 282, 283, 288, 289, 290, 309, 310, 311, 316, 317, 318, 323, 324, 325, 330, 331, 332, 337, 338, 339},
       {114, 115, 116, 117, 118, 121, 122, 123, 124, 125, 128, 129, 130, 131, 132, 135, 136, 137, 138, 139, 142, 143, 144, 145, 146, 163, 164, 165, 166, 167, 170, 171, 172, 173, 174, 177, 178, 179, 180, 181, 184, 185, 186, 187, 188, 191, 192, 193, 194, 195, 212, 213, 214, 215, 216, 219, 220, 221, 222, 223, 226, 227, 228, 229, 230, 233, 234, 235, 236, 237, 240, 241, 242, 243, 244, 261, 262, 263, 264, 265, 268, 269, 270, 271, 272, 275, 276, 277, 278, 279, 282, 283, 284, 285, 286, 289, 290, 291, 292, 293, 310, 311, 312, 313, 314, 317, 318, 319, 320, 321, 324, 325, 326, 327, 328, 331, 332, 333, 334, 335, 338, 339, 340, 341, 342}}};
 
-  ASSERT_EQ(domains.size(), 27U);
+  REQUIRE(domains.size() == 27);
   for (size_t i = 0; i < 27; ++i) {
-    ASSERT_EQ(domains[i].size(), ref[i].size());
+    REQUIRE(domains[i].size() == ref[i].size());
     for (size_t j = 0; j < ref[i].size(); ++j)
-      EXPECT_EQ(domains[i][j], ref[i][j]);
+      REQUIRE(domains[i][j] == ref[i][j]);
   }
 }
 
 
-TEST(TestDomainDecomposition, Setup)
+TEST_CASE("TestDomainDecomposition.Setup")
 {
   SIM2D sim;
-  ASSERT_TRUE(sim.read("src/ASM/Test/refdata/DomainDecomposition_2D_1P.xinp"));
-  ASSERT_TRUE(sim.preprocess());
+  REQUIRE(sim.read("src/ASM/Test/refdata/DomainDecomposition_2D_1P.xinp"));
+  REQUIRE(sim.preprocess());
 
   const DomainDecomposition& dd = sim.getProcessAdm().dd;
   const SAM* sam = sim.getSAM();
 
-  ASSERT_EQ(dd.getMinEq(), 1);
-  ASSERT_EQ(dd.getMaxEq(), sam->getNoEquations());
-  ASSERT_EQ(dd.getMinNode(), 1);
-  ASSERT_EQ(dd.getMaxNode(), sam->getNoNodes());
-  ASSERT_EQ(dd.getMinDOF(), 1);
-  ASSERT_EQ(dd.getMaxDOF(), sam->getNoDOFs());
+  REQUIRE(dd.getMinEq() == 1);
+  REQUIRE(dd.getMaxEq() == sam->getNoEquations());
+  REQUIRE(dd.getMinNode() == 1);
+  REQUIRE(dd.getMaxNode() == sam->getNoNodes());
+  REQUIRE(dd.getMinDOF() == 1);
+  REQUIRE(dd.getMaxDOF() == sam->getNoDOFs());
   for (int i = 1; i <= sam->getNoEquations(); ++i)
-    ASSERT_EQ(dd.getGlobalEq(i), i);
-  ASSERT_EQ(dd.getGlobalEq(sam->getNoEquations()+1), 0);
+    REQUIRE(dd.getGlobalEq(i) == i);
+  REQUIRE(dd.getGlobalEq(sam->getNoEquations()+1) == 0);
 
-  ASSERT_EQ(dd.getPatchOwner(1), 0);
-  ASSERT_EQ(dd.getPatchOwner(2), -1);
+  REQUIRE(dd.getPatchOwner(1) == 0);
+  REQUIRE(dd.getPatchOwner(2) == -1);
 
-  ASSERT_TRUE(dd.getMLGEQ().empty());
-  ASSERT_TRUE(dd.getMLGN().empty());
+  REQUIRE(dd.getMLGEQ().empty());
+  REQUIRE(dd.getMLGN().empty());
 }

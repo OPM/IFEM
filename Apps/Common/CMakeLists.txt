@@ -29,7 +29,8 @@ install(FILES scripts/regtest.sh.in
 # Unit tests
 file(GLOB APPCOMMON_TEST_SRCS ${PROJECT_SOURCE_DIR}/Test/*.C)
 if(LRSpline_FOUND)
-  list(APPEND APPCOMMON_TEST_SRCS ${PROJECT_SOURCE_DIR}/Test/LR/TestMultiPatchLRRefine.C)
+  list(APPEND APPCOMMON_TEST_SRCS ${PROJECT_SOURCE_DIR}/Test/LR/TestMultiPatchLRRefine.C
+                                  ${PROJECT_SOURCE_DIR}/Test/LR/TestSIMNodalConstraint.C)
 endif()
 
 IFEM_add_test_app(SOURCES ${APPCOMMON_TEST_SRCS}

@@ -15,19 +15,23 @@
 #include "SAM.h"
 #include "readIntVec.h"
 
-#include "gtest/gtest.h"
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+
+using Catch::Matchers::WithinAbs;
+using Catch::Matchers::WithinRel;
 
 
-TEST(TestPETScMatrix, AssembleMPI)
+TEST_CASE("TestPETScMatrix.AssembleMPI")
 {
   SIM2D sim(1);
   sim.read("src/LinAlg/Test/refdata/petsc_test.xinp");
   sim.opt.solver = LinAlg::PETSC;
-  ASSERT_TRUE(sim.preprocess());
-  ASSERT_TRUE(sim.initSystem(sim.opt.solver));
+  REQUIRE(sim.preprocess());
+  REQUIRE(sim.initSystem(sim.opt.solver));
 
   PETScMatrix* myMat = dynamic_cast<PETScMatrix*>(sim.getLHSmatrix());
-  ASSERT_TRUE(myMat != nullptr);
+  REQUIRE(myMat != nullptr);
 
   Matrix stencil(4,4);
   stencil.diag(1.0);
@@ -56,7 +60,7 @@ TEST(TestPETScMatrix, AssembleMPI)
 
   // check that we have the correct diagonal values
   for (int i = r; i < c; ++i)
-    EXPECT_FLOAT_EQ(v[i], a[i-r]);
+    REQUIRE_THAT(v[i], WithinRel(a[i-r]));
 
   VecRestoreArray(vec, &a);
   VecDestroy(&vec);
@@ -69,22 +73,22 @@ TEST(TestPETScMatrix, AssembleMPI)
     MatGetRow(mat, r, &ncols, &cols, &vals);
     for (PetscInt i = 0; i < ncols; ++i)
       if (cols[i] != r)
-        EXPECT_FLOAT_EQ(vals[i], 0.0);
+        REQUIRE_THAT(vals[i], WithinAbs(0.0, 1e-14));
     MatRestoreRow(mat, r, &ncols, &cols, &vals);
   }
 }
 
 
-TEST(TestPETScMatrix, AssembleBasisBlocksMPI)
+TEST_CASE("TestPETScMatrix.AssembleBasisBlocksMPI")
 {
   SIM2D sim({1,1});
   sim.read("src/LinAlg/Test/refdata/petsc_test_blocks_basis.xinp");
   sim.opt.solver = LinAlg::PETSC;
-  ASSERT_TRUE(sim.preprocess());
-  ASSERT_TRUE(sim.initSystem(sim.opt.solver));
+  REQUIRE(sim.preprocess());
+  REQUIRE(sim.initSystem(sim.opt.solver));
 
   PETScMatrix* myMat = dynamic_cast<PETScMatrix*>(sim.getLHSmatrix());
-  ASSERT_TRUE(myMat != nullptr);
+  REQUIRE(myMat != nullptr);
 
   Matrix stencil(13,13);
   stencil.diag(1.0);
@@ -119,7 +123,7 @@ TEST(TestPETScMatrix, AssembleBasisBlocksMPI)
       PetscInt r,c;
       VecGetOwnershipRange(vec, &r, &c);
       for (int i = r; i < c; ++i)
-        EXPECT_FLOAT_EQ(v[i], a[i-r]);
+        REQUIRE_THAT(v[i], WithinRel(a[i-r]));
 
       VecRestoreArray(vec, &a);
       VecDestroy(&vec);
@@ -133,23 +137,23 @@ TEST(TestPETScMatrix, AssembleBasisBlocksMPI)
       MatGetRow(mat[b], r+adm.dd.getMinEq(b/2+1)-1, &ncols, &cols, &vals);
       for (PetscInt i = 0; i < ncols; ++i)
         if (cols[i] != r+adm.dd.getMinEq(b/2+1)-1)
-          EXPECT_FLOAT_EQ(vals[i], 0.0);
+          REQUIRE_THAT(vals[i], WithinAbs(0.0, 1e-14));
       MatRestoreRow(mat[b], r+adm.dd.getMinEq(b/2+1)-1, &ncols, &cols, &vals);
     }
   }
 }
 
 
-TEST(TestPETScMatrix, AssembleComponentBlocksMPI)
+TEST_CASE("TestPETScMatrix.AssembleComponentBlocksMPI")
 {
   SIM2D sim(2);
   sim.read("src/LinAlg/Test/refdata/petsc_test_blocks_components.xinp");
   sim.opt.solver = LinAlg::PETSC;
-  ASSERT_TRUE(sim.preprocess());
-  ASSERT_TRUE(sim.initSystem(sim.opt.solver));
+  REQUIRE(sim.preprocess());
+  REQUIRE(sim.initSystem(sim.opt.solver));
 
   PETScMatrix* myMat = dynamic_cast<PETScMatrix*>(sim.getLHSmatrix());
-  ASSERT_TRUE(myMat != nullptr);
+  REQUIRE(myMat != nullptr);
 
   Matrix stencil(4*2,4*2);
   for (size_t i = 1; i<= 4; ++i) {
@@ -185,7 +189,7 @@ TEST(TestPETScMatrix, AssembleComponentBlocksMPI)
       PetscInt r,c;
       VecGetOwnershipRange(vec, &r, &c);
       for (int i = r; i < c; ++i)
-        EXPECT_FLOAT_EQ(v[i], a[i-r]);
+        REQUIRE_THAT(v[i], WithinRel(a[i-r]));
 
       VecRestoreArray(vec, &a);
       VecDestroy(&vec);
@@ -199,7 +203,7 @@ TEST(TestPETScMatrix, AssembleComponentBlocksMPI)
       MatGetRow(mat[b], r+adm.dd.getMinEq(b/2+1)-1, &ncols, &cols, &vals);
       for (PetscInt i = 0; i < ncols; ++i)
         if (cols[i] != r+adm.dd.getMinEq(b/2+1)-1)
-          EXPECT_FLOAT_EQ(vals[i], 0.0);
+          REQUIRE_THAT(vals[i], WithinAbs(0.0, 1e-14));
       MatRestoreRow(mat[b], r+adm.dd.getMinEq(b/2+1)-1, &ncols, &cols, &vals);
     }
   }

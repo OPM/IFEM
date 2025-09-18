@@ -14,7 +14,7 @@
 #include "Functions.h"
 #include "Vec3Oper.h"
 
-#include "gtest/gtest.h"
+#include <catch2/catch_test_macros.hpp>
 
 
 /*!
@@ -38,7 +38,7 @@ public:
 };
 
 
-TEST(TestForceDirField, Evaluate)
+TEST_CASE("TestForceDirField.Evaluate")
 {
   const Real A = 10, freq = 0.5;        // load magnitude and frequency
   const Real a = 3.2, b = 7.4, c = 2.1; // load orientation angles (in degrees)
@@ -64,12 +64,12 @@ TEST(TestForceDirField, Evaluate)
   Vec3 Zero, nVec(1,0,0);
 
   // Verify that all functions evaluate to zero at (X,t) = ({0,0,0},0)
-  EXPECT_EQ(f0(Zero,nVec), Zero);
-  EXPECT_EQ(fx(Zero,nVec), Zero);
-  EXPECT_EQ(fy(Zero,nVec), Zero);
-  EXPECT_EQ(fz(Zero,nVec), Zero);
-  EXPECT_EQ(fa(Zero,nVec), Zero);
-  EXPECT_EQ(fY(Zero,nVec), Zero);
+  REQUIRE(f0(Zero,nVec) == Zero);
+  REQUIRE(fx(Zero,nVec) == Zero);
+  REQUIRE(fy(Zero,nVec) == Zero);
+  REQUIRE(fz(Zero,nVec) == Zero);
+  REQUIRE(fa(Zero,nVec) == Zero);
+  REQUIRE(fY(Zero,nVec) == Zero);
 
   // Check function evaluation at origin but with nonzero time (t=0.8)
   Vec4 X(nullptr,0.8);
@@ -79,25 +79,25 @@ TEST(TestForceDirField, Evaluate)
   Real beta  = b*X.t*Rad;
   Real gamma = c*X.t*Rad;
   Vec3 Frot  = Tensor(alpha,beta,gamma)*Fvec;
-  EXPECT_EQ(A*sin(freq*X.t), Fmax);
-  EXPECT_EQ(f0(X,nVec), Fvec);
-  EXPECT_EQ(fx(X,nVec), Vec3( 0, Fmax*cos(alpha), Fmax*sin(alpha) ));
-  EXPECT_EQ(fy(X,nVec), Fvec);
-  EXPECT_EQ(fz(X,nVec), Vec3(-Fmax*sin(gamma), Fmax*cos(gamma), 0 ));
-  EXPECT_EQ(fa(X,nVec), Frot);
-  EXPECT_EQ(fY(X,nVec), Fvec);
+  REQUIRE(A*sin(freq*X.t) ==  Fmax);
+  REQUIRE(f0(X,nVec) ==  Fvec);
+  REQUIRE(fx(X,nVec) == Vec3( 0, Fmax*cos(alpha), Fmax*sin(alpha) ));
+  REQUIRE(fy(X,nVec) == Fvec);
+  REQUIRE(fz(X,nVec) == Vec3(-Fmax*sin(gamma), Fmax*cos(gamma), 0 ));
+  REQUIRE(fa(X,nVec) == Frot);
+  REQUIRE(fY(X,nVec) == Fvec);
 
   // Check function evaluation at x=0.5*L ==> a scaling by 0.75
   Real x = 0.5*L;
   X.assign(Vec3(x,0,0));
   Fmax *= 0.75;
-  EXPECT_EQ(shape(X),0.75);
-  EXPECT_EQ(f0(X,nVec), Fvec * 0.75 );
-  EXPECT_EQ(fx(X,nVec), Vec3( 0, Fmax*cos(alpha), Fmax*sin(alpha) ));
-  EXPECT_EQ(fy(X,nVec), Fvec * Shape(x*cos(beta)) );
+  REQUIRE(shape(X) == 0.75);
+  REQUIRE(f0(X,nVec) == Fvec * 0.75 );
+  REQUIRE(fx(X,nVec) == Vec3( 0, Fmax*cos(alpha), Fmax*sin(alpha) ));
+  REQUIRE(fy(X,nVec) == Fvec * Shape(x*cos(beta)) );
   Fmax *= Shape(x*cos(gamma))/0.75;
-  EXPECT_EQ(fz(X,nVec), Vec3(-Fmax*sin(gamma), Fmax*cos(gamma), 0 ));
+  REQUIRE(fz(X,nVec) == Vec3(-Fmax*sin(gamma), Fmax*cos(gamma), 0 ));
   Frot *= Shape(x*cos(beta)*cos(gamma));
-  EXPECT_EQ(fa(X,nVec), Frot);
-  EXPECT_EQ(fY(X,nVec), Fvec * Shape(x*cos(beta)) );
+  REQUIRE(fa(X,nVec) == Frot);
+  REQUIRE(fY(X,nVec) == Fvec * Shape(x*cos(beta)) );
 }

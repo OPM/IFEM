@@ -12,34 +12,32 @@
 
 #include "GaussQuadrature.h"
 
-#include "gtest/gtest.h"
 #include <cmath>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-class TestGaussQuadrature : public testing::Test,
-                            public testing::WithParamInterface<int>
+using Catch::Matchers::WithinRel;
+
+
+TEST_CASE("TestGaussQuadrature.Integrate")
 {
-};
+  auto param = GENERATE(1,2,3,4,5,6,7,8,9,10);
 
+  SECTION("points =  " + std::to_string(param)) {
+    const double* xi = GaussQuadrature::getCoord(param);
+    const double* wi = GaussQuadrature::getWeight(param);
 
-TEST_P(TestGaussQuadrature, Integrate)
-{
-  const double* xi = GaussQuadrature::getCoord(GetParam());
-  const double* wi = GaussQuadrature::getWeight(GetParam());
+    double res = 0.0;
+    for (int i = 0; i < param; ++i)
+      for (int p = 0; p < param; ++p)
+        res += wi[i]*pow(xi[i], p); // 1+x+x^2+x^3+..
 
-  double res = 0.0;
-  for (int i = 0; i < GetParam(); ++i)
-    for (int p = 0; p < GetParam(); ++p)
-      res += wi[i]*pow(xi[i], p); // 1+x+x^2+x^3+..
+    double exa = 0.0;
+    for (int p = 0; p < param; ++p)
+      exa += 1.0/(p+1) * (pow(1.0, p+1) - pow(-1.0, p+1));
 
-  double exa = 0.0;
-  for (int p = 0; p < GetParam(); ++p)
-    exa += 1.0/(p+1) * (pow(1.0, p+1) - pow(-1.0, p+1));
-
-  EXPECT_FLOAT_EQ(res, exa);
+    REQUIRE_THAT(res, WithinRel(exa, param == 10 ? 1e-7 : 1e-14));
+  }
 }
-
-
-INSTANTIATE_TEST_SUITE_P(TestGaussQuadrature,
-                         TestGaussQuadrature,
-                         testing::Values(1, 2, 3, 4, 5, 6, 7, 8, 9, 10));

@@ -17,58 +17,52 @@
 
 #include "../MatrixTests.h"
 
+#include <catch2/catch_template_test_macros.hpp>
 
-TEST(TestVectorFallback, Add)
+
+TEMPLATE_TEST_CASE("TestVectorFallback.Add", "", float, double)
 {
-  vectorAddTest<double>();
-  vectorAddTest<float>();
+  vectorAddTest<TestType>();
 }
 
 
-TEST(TestVectorFallback, Dot)
+TEMPLATE_TEST_CASE("TestVectorFallback.Dot", "", float, double)
 {
-  vectorDotTest<double>();
-  vectorDotTest<float>();
+  vectorDotTest<TestType>();
 }
 
 
-TEST(TestVectorFallback, Multiply)
+TEMPLATE_TEST_CASE("TestVectorFallback.Multiply", "", float, double)
 {
-  vectorMultiplyTest<double>();
-  vectorMultiplyTest<float>();
+  vectorMultiplyTest<TestType>();
 }
 
 
-TEST(TestVectorFallback, Norm)
+TEMPLATE_TEST_CASE("TestVectorFallback.Norm", "", float, double)
 {
-  vectorNormTest<double>();
-  vectorNormTest<float>();
+  vectorNormTest<TestType>();
 }
 
 
-TEST(TestMatrixFallback, Multiply)
+TEMPLATE_TEST_CASE("TestMatrixFallback.Multiply", "", float, double)
 {
-  multiplyTest<double>();
-  multiplyTest<float>();
+  multiplyTest<TestType>();
 }
 
 
-TEST(TestMatrixFallback, Norm)
+TEMPLATE_TEST_CASE("TestMatrixFallback.Norm", "", float, double)
 {
-  normTest<double>();
-  normTest<float>();
+  normTest<TestType>();
 }
 
 
-TEST(TestMatrixFallback, OuterProduct)
+TEMPLATE_TEST_CASE("TestMatrixFallback.OuterProduct", "", float, double)
 {
-  outerProductTest<double>();
-  outerProductTest<float>();
+  outerProductTest<TestType>();
 }
 
 
-TEST(TestMatrix3DFallback, Multiply)
+TEMPLATE_TEST_CASE("TestMatrix3DFallback.Multiply", "", float, double)
 {
-  matrix3DMultiplyTest<double>();
-  matrix3DMultiplyTest<float>();
+  matrix3DMultiplyTest<TestType>();
 }

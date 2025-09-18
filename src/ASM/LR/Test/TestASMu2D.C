@@ -16,10 +16,17 @@
 #include "SIM2D.h"
 #include "LRSpline/LRSplineSurface.h"
 
-#include "gtest/gtest.h"
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+
 #include <fstream>
 #include <numeric>
 
+using Catch::Matchers::WithinRel;
+
+
+namespace {
 
 struct EdgeTest
 {
@@ -30,76 +37,79 @@ struct EdgeTest
 };
 
 
-class TestASMu2D : public testing::Test,
-                   public testing::WithParamInterface<EdgeTest>
-{
-};
-
-
 class TestuSIM2D : public SIM2D
 {
 public:
   TestuSIM2D() : SIM2D(1)
   {
     opt.discretization = ASM::LRSpline;
-    EXPECT_TRUE(this->read("src/ASM/LR/Test/refdata/boundary_nodes.xinp"));
-    EXPECT_TRUE(this->createFEMmodel());
+    REQUIRE(this->read("src/ASM/LR/Test/refdata/boundary_nodes.xinp"));
+    REQUIRE(this->createFEMmodel());
   }
   virtual ~TestuSIM2D() {}
 };
 
-
-TEST_P(TestASMu2D, ConstrainEdge)
-{
-  TestuSIM2D sim;
-  ASMu2D* pch = static_cast<ASMu2D*>(sim.getPatch(1));
-  ASSERT_TRUE(pch != nullptr);
-
-  pch->constrainEdge(GetParam().edgeIdx, false, 1, 1, 1);
-
-  std::vector<int> glbNodes;
-  pch->getBoundaryNodes(GetParam().edge, glbNodes, 1);
-
-  for (int node : glbNodes)
-    EXPECT_TRUE(pch->findMPC(node,1) != nullptr);
 }
 
 
-TEST_P(TestASMu2D, ConstrainEdgeOpen)
+TEST_CASE("TestASMu2D.ConstrainEdge")
 {
-  TestuSIM2D sim;
-  ASMu2D* pch = static_cast<ASMu2D*>(sim.getPatch(1));
-  ASSERT_TRUE(pch != nullptr);
+  const EdgeTest param = GENERATE(
+    EdgeTest{1, -1, {{-1, -1}}, {{-1 , 1}}},
+    EdgeTest{2,  1, {{ 1, -1}}, {{ 1 , 1}}},
+    EdgeTest{3, -2, {{-1, -1}}, {{ 1, -1}}},
+    EdgeTest{4,  2, {{-1,  1}}, {{ 1,  1}}}
+  );
 
-  pch->constrainEdge(GetParam().edgeIdx, true, 1, 1, 1);
+  SECTION("Edge" + std::to_string(param.edge)) {
+    TestuSIM2D sim;
+    ASMu2D* pch = static_cast<ASMu2D*>(sim.getPatch(1));
+    REQUIRE(pch != nullptr);
 
-  std::vector<int> glbNodes;
-  pch->getBoundaryNodes(GetParam().edge, glbNodes, 1);
+    pch->constrainEdge(param.edgeIdx, false, 1, 1, 1);
 
-  int crn = pch->getCorner(GetParam().c1[0], GetParam().c1[1], 1);
-  EXPECT_TRUE(pch->findMPC(crn,1) == nullptr);
-  glbNodes.erase(std::find(glbNodes.begin(), glbNodes.end(), crn));
-  crn = pch->getCorner(GetParam().c2[0], GetParam().c2[1], 1);
-  EXPECT_TRUE(pch->findMPC(crn,1) == nullptr);
-  glbNodes.erase(std::find(glbNodes.begin(), glbNodes.end(), crn));
+    std::vector<int> glbNodes;
+    pch->getBoundaryNodes(param.edge, glbNodes, 1);
 
-  for (int node : glbNodes)
-    EXPECT_TRUE(pch->findMPC(node,1) != nullptr);
+    for (int node : glbNodes)
+      REQUIRE(pch->findMPC(node,1) != nullptr);
+  }
 }
 
 
-static const std::vector<EdgeTest> edgeTestData =
-        {{{1, -1, {{-1, -1}}, {{-1 , 1}}},
-          {2,  1, {{ 1, -1}}, {{ 1 , 1}}},
-          {3, -2, {{-1, -1}}, {{ 1, -1}}},
-          {4,  2, {{-1,  1}}, {{ 1,  1}}}}};
+TEST_CASE("TestASMu2D.ConstrainEdgeOpen")
+{
+  const EdgeTest param = GENERATE(
+    EdgeTest{1, -1, {{-1, -1}}, {{-1 , 1}}},
+    EdgeTest{2,  1, {{ 1, -1}}, {{ 1 , 1}}},
+    EdgeTest{3, -2, {{-1, -1}}, {{ 1, -1}}},
+    EdgeTest{4,  2, {{-1,  1}}, {{ 1,  1}}}
+  );
+
+  SECTION("Edge" + std::to_string(param.edge)) {
+    TestuSIM2D sim;
+    ASMu2D* pch = static_cast<ASMu2D*>(sim.getPatch(1));
+    REQUIRE(pch != nullptr);
+
+    pch->constrainEdge(param.edgeIdx, true, 1, 1, 1);
+
+    std::vector<int> glbNodes;
+    pch->getBoundaryNodes(param.edge, glbNodes, 1);
+
+    int crn = pch->getCorner(param.c1[0], param.c1[1], 1);
+    REQUIRE(pch->findMPC(crn,1) == nullptr);
+    glbNodes.erase(std::find(glbNodes.begin(), glbNodes.end(), crn));
+    crn = pch->getCorner(param.c2[0], param.c2[1], 1);
+    REQUIRE(pch->findMPC(crn,1) == nullptr);
+    glbNodes.erase(std::find(glbNodes.begin(), glbNodes.end(), crn));
+
+    for (int node : glbNodes)
+      REQUIRE(pch->findMPC(node,1) != nullptr);
+  }
+}
 
 
-INSTANTIATE_TEST_SUITE_P(TestASMu2D, TestASMu2D,
-                         testing::ValuesIn(edgeTestData));
-
-
-TEST(TestASMu2D, InterfaceChecker)
+TEST_CASE("TestASMu2D.InterfaceChecker")
 {
   SIM2D sim(1);
   sim.opt.discretization = ASM::LRSpline;
@@ -112,7 +122,7 @@ TEST(TestASMu2D, InterfaceChecker)
   lr->insert_const_v_edge(0.125, 0.5, 1, 2);
   lr->insert_const_v_edge(0.25,  0.5, 1, 2);
   lr->insert_const_v_edge(0.875, 0.5, 1, 1);
-  EXPECT_TRUE(sim.createFEMmodel());
+  REQUIRE(sim.createFEMmodel());
 
   static std::vector<int> elem_flags = {{10, 11, 11,  9,
                                          14, 15, 15, 13,
@@ -165,26 +175,26 @@ TEST(TestASMu2D, InterfaceChecker)
    {{  {1.0},         {1.0}, {0.75},     {}}},
    {{  {1.0},            {},  {1.0},     {}}}}};
 
-  EXPECT_EQ(elem_flags.size(), pch->getNoElms());
-  EXPECT_EQ(elem_pts.size(), pch->getNoElms());
+  REQUIRE(elem_flags.size() == pch->getNoElms());
+  REQUIRE(elem_pts.size() == pch->getNoElms());
   ASMu2D::InterfaceChecker iChk(*pch);
   for (size_t i = 0; i < pch->getNoElms(); ++i) {
-    EXPECT_EQ(iChk.hasContribution(i+1), elem_flags[i]);
+    REQUIRE(iChk.hasContribution(i+1) == elem_flags[i]);
     for (size_t edge = 1; edge <= 4; ++edge) {
       if (elem_flags[i] & (1 << (edge-1))) {
         int continuity;
         auto val = iChk.getIntersections(i+1, edge, &continuity);
-        EXPECT_EQ(line_cont[i][edge-1], continuity);
-        EXPECT_EQ(val.size(), elem_pts[i][edge-1].size());
+        REQUIRE(line_cont[i][edge-1] == continuity);
+        REQUIRE(val.size() == elem_pts[i][edge-1].size());
         for (size_t j = 0; j < val.size(); ++j)
-          EXPECT_FLOAT_EQ(val[j], elem_pts[i][edge-1][j]);
+          REQUIRE_THAT(val[j], WithinRel(elem_pts[i][edge-1][j]));
       }
     }
   }
 }
 
 
-TEST(TestASMu2D, TransferGaussPtVars)
+TEST_CASE("TestASMu2D.TransferGaussPtVars")
 {
   SIM2D sim(1);
   sim.opt.discretization = ASM::LRSpline;
@@ -202,7 +212,7 @@ TEST(TestASMu2D, TransferGaussPtVars)
     ASMu2D* pchNew = static_cast<ASMu2D*>(simNew.createDefaultModel());
     pchNew->uniformRefine(idx, 1);
     LR::LRSplineSurface* lrNew = pchNew->getBasis(1);
-    ASSERT_TRUE(lrNew != nullptr);
+    REQUIRE(lrNew != nullptr);
     lrNew->generateIDs();
     for (id[1] = 0; id[1] < 3; ++id[1])
       for (id[0] = 0; id[0] < 3; ++id[0])
@@ -212,12 +222,12 @@ TEST(TestASMu2D, TransferGaussPtVars)
     for (size_t iEl = 0; iEl < 2; ++iEl)
       for (id[1] = 0; id[1] < 3; ++id[1])
         for (id[0] = 0; id[0] < 3; ++id[0], ++k)
-          EXPECT_FLOAT_EQ(newAr[k], 0.5*iEl + 0.5*(xi[id[idx]] + 1.0) / 2.0);
+          REQUIRE_THAT(newAr[k], WithinRel(0.5*iEl + 0.5*(xi[id[idx]] + 1.0) / 2.0));
   }
 }
 
 
-TEST(TestASMu2D, TransferGaussPtVarsN)
+TEST_CASE("TestASMu2D.TransferGaussPtVarsN")
 {
   SIM2D sim(1), sim2(1);
   sim.opt.discretization = sim2.opt.discretization = ASM::LRSpline;
@@ -229,7 +239,7 @@ TEST(TestASMu2D, TransferGaussPtVarsN)
   ASMu2D* pchNew = static_cast<ASMu2D*>(sim2.createDefaultModel());
   pchNew->uniformRefine(0, 1);
   LR::LRSplineSurface* lrNew = pchNew->getBasis(1);
-  ASSERT_TRUE(lrNew != nullptr);
+  REQUIRE(lrNew != nullptr);
   lrNew->generateIDs();
 
   RealArray oldAr(9), newAr;
@@ -242,35 +252,34 @@ TEST(TestASMu2D, TransferGaussPtVarsN)
                              2.0, 3.0, 3.0,
                              5.0, 6.0, 6.0,
                              8.0, 9.0, 9.0}};
-  EXPECT_EQ(refAr.size(), newAr.size());
+  REQUIRE(refAr.size() == newAr.size());
   for (size_t i = 0; i < refAr.size(); ++i)
-    EXPECT_FLOAT_EQ(refAr[i], newAr[i]);
+    REQUIRE_THAT(refAr[i], WithinRel(newAr[i]));
 }
 
 
-TEST(TestASMu2D, Connect)
+TEST_CASE("TestASMu2D.Connect")
 {
-  SIM2D sim(1);
-  sim.opt.discretization = ASM::LRSpline;
-  ASSERT_TRUE(sim.read("src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_orient0.xinp"));
-  ASSERT_TRUE(sim.createFEMmodel());
-
-  SIM2D sim2(1);
-  sim2.opt.discretization = ASM::LRSpline;
-  ASSERT_TRUE(sim2.read("src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_orient1.xinp"));
-  ASSERT_TRUE(sim2.createFEMmodel());
+  const int param = GENERATE(0,1);
+  SECTION("Orient " + std::to_string(param)) {
+    SIM2D sim(1);
+    sim.opt.discretization = ASM::LRSpline;
+    REQUIRE(sim.read(("src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_orient" +
+                      std::to_string(param) + ".xinp").c_str()));
+    REQUIRE(sim.createFEMmodel());
+  }
 }
 
 
-TEST(TestASMu2D, ElementConnectivities)
+TEST_CASE("TestASMu2D.ElementConnectivities")
 {
   ASMuSquare pch1;
   ASMbase::resetNumbering();
-  ASSERT_TRUE(pch1.uniformRefine(0,1));
-  ASSERT_TRUE(pch1.uniformRefine(1,1));
-  ASSERT_TRUE(pch1.generateFEMTopology());
+  REQUIRE(pch1.uniformRefine(0,1));
+  REQUIRE(pch1.uniformRefine(1,1));
+  REQUIRE(pch1.generateFEMTopology());
   pch1.getBasis(1)->generateIDs();
-  const int nel = pch1.getNoElms();
+  const size_t nel = pch1.getNoElms();
   pch1.shiftElemNumbers(nel);
   IntMat neighGlb(2*nel), neighLoc(nel);
   pch1.getElmConnectivities(neighGlb);
@@ -279,74 +288,76 @@ TEST(TestASMu2D, ElementConnectivities)
                                                {0, 3},
                                                {3, 0},
                                                {2, 1}}};
-  ASSERT_EQ(neighLoc.size(), nel);
-  ASSERT_EQ(neighGlb.size(), 2*nel);
+  REQUIRE(neighLoc.size() == nel);
+  REQUIRE(neighGlb.size() == 2*nel);
   for (size_t n = 0; n < neighLoc.size(); ++n) {
-    ASSERT_EQ(neighLoc[n].size(), ref[n].size());
-    ASSERT_EQ(neighGlb[n+nel].size(), ref[n].size());
+    REQUIRE(neighLoc[n].size() == ref[n].size());
+    REQUIRE(neighGlb[n+nel].size() == ref[n].size());
     for (size_t i = 0; i < neighLoc[n].size(); ++i) {
-      EXPECT_EQ(neighLoc[n][i], ref[n][i]);
-      EXPECT_EQ(neighGlb[n+nel][i], ref[n][i] > -1 ? ref[n][i] + nel : -1);
+      REQUIRE(neighLoc[n][i] == ref[n][i]);
+      REQUIRE(neighGlb[n+nel][i] == (ref[n][i] > -1 ?
+                                      ref[n][i] + static_cast<int>(nel) : -1));
     }
   }
 }
 
-TEST(TestASMu2D, EvalPointNurbs)
+
+TEST_CASE("TestASMu2D.EvalPointNurbs")
 {
   ASMu2D u2Dpch(2, 1);
   std::ifstream g2file("src/ASM/LR/Test/refdata/hole2D.g2");
   std::ifstream g2file2("src/ASM/LR/Test/refdata/hole2D.g2");
   ASMs2D s2Dpch(2,1);
-  ASSERT_TRUE(u2Dpch.read(g2file));
-  ASSERT_TRUE(s2Dpch.read(g2file2));
-  ASSERT_TRUE(u2Dpch.generateFEMTopology());
-  ASSERT_TRUE(s2Dpch.generateFEMTopology());
+  REQUIRE(u2Dpch.read(g2file));
+  REQUIRE(s2Dpch.read(g2file2));
+  REQUIRE(u2Dpch.generateFEMTopology());
+  REQUIRE(s2Dpch.generateFEMTopology());
 
   double xi[2] = {0.1, 0.1};
   double param1[2], param2[2];
   Vec3 x1, x2;
   s2Dpch.evalPoint(xi,param1,x1);
   u2Dpch.evalPoint(xi,param2,x2);
-  EXPECT_FLOAT_EQ(param1[0], param2[0]);
-  EXPECT_FLOAT_EQ(param1[1], param2[1]);
-  EXPECT_FLOAT_EQ(x1[0], x2[0]);
-  EXPECT_FLOAT_EQ(x1[1], x2[1]);
+  REQUIRE_THAT(param1[0], WithinRel(param2[0]));
+  REQUIRE_THAT(param1[1], WithinRel(param2[1]));
+  REQUIRE_THAT(x1[0], WithinRel(x2[0]));
+  REQUIRE_THAT(x1[1], WithinRel(x2[1]));
 }
 
 
-TEST(TestASMu2D, Write)
+TEST_CASE("TestASMu2D.Write")
 {
   ASMbase::resetNumbering();
   ASMuSquare pch1;
-  EXPECT_TRUE(pch1.generateFEMTopology());
+  REQUIRE(pch1.generateFEMTopology());
 
   std::stringstream str;
-  EXPECT_TRUE(pch1.write(str, 1));
-  EXPECT_EQ(str.str(), ASMuSquare::square);
+  REQUIRE(pch1.write(str, 1));
+  REQUIRE(str.str() == ASMuSquare::square);
 
-  EXPECT_FALSE(pch1.write(str, 2));
-
-  str.str("");
-  EXPECT_TRUE(pch1.write(str, ASM::GEOMETRY_BASIS));
-  EXPECT_EQ(str.str(), ASMuSquare::square);
+  REQUIRE(!pch1.write(str, 2));
 
   str.str("");
-  EXPECT_TRUE(pch1.write(str, ASM::PROJECTION_BASIS));
-  EXPECT_EQ(str.str(), ASMuSquare::square);
-
-  EXPECT_FALSE(pch1.write(str, ASM::PROJECTION_BASIS_2));
+  REQUIRE(pch1.write(str, ASM::GEOMETRY_BASIS));
+  REQUIRE(str.str() == ASMuSquare::square);
 
   str.str("");
-  EXPECT_TRUE(pch1.write(str, ASM::REFINEMENT_BASIS));
-  EXPECT_EQ(str.str(), ASMuSquare::square);
+  REQUIRE(pch1.write(str, ASM::PROJECTION_BASIS));
+  REQUIRE(str.str() == ASMuSquare::square);
+
+  REQUIRE(!pch1.write(str, ASM::PROJECTION_BASIS_2));
 
   str.str("");
-  EXPECT_TRUE(pch1.write(str, ASM::INTEGRATION_BASIS));
-  EXPECT_EQ(str.str(), ASMuSquare::square);
+  REQUIRE(pch1.write(str, ASM::REFINEMENT_BASIS));
+  REQUIRE(str.str() == ASMuSquare::square);
+
+  str.str("");
+  REQUIRE(pch1.write(str, ASM::INTEGRATION_BASIS));
+  REQUIRE(str.str() == ASMuSquare::square);
 }
 
 
-TEST(TestASMu2D, ElmNodes)
+TEST_CASE("TestASMu2D.ElmNodes")
 {
   ASMbase::resetNumbering();
 
@@ -356,9 +367,9 @@ TEST(TestASMu2D, ElmNodes)
   pch1.uniformRefine(0,1);
   pch1.uniformRefine(1,1);
   pch1.createProjectionBasis(false);
-  ASSERT_TRUE(pch1.uniformRefine(0,1));
-  ASSERT_TRUE(pch1.uniformRefine(1,1));
-  ASSERT_TRUE(pch1.generateFEMTopology());
+  REQUIRE(pch1.uniformRefine(0,1));
+  REQUIRE(pch1.uniformRefine(1,1));
+  REQUIRE(pch1.generateFEMTopology());
 
   const IntMat mnpc = pch1.getElmNodes(1);
 
@@ -368,11 +379,11 @@ TEST(TestASMu2D, ElmNodes)
       std::array{3,5,6,8},
       std::array{4,5,7,8},
   };
-  ASSERT_EQ(mnpc.size(), ref.size());
+  REQUIRE(mnpc.size() == ref.size());
   for (size_t i = 0; i < mnpc.size(); ++i) {
-    EXPECT_EQ(mnpc[i].size(), ref[i].size());
+    REQUIRE(mnpc[i].size() == ref[i].size());
     for (size_t j = 0; j < mnpc[i].size(); ++j)
-      EXPECT_EQ(mnpc[i][j], ref[i][j]);
+      REQUIRE(mnpc[i][j] == ref[i][j]);
   }
 
   const auto ref_proj = std::array{
@@ -382,10 +393,10 @@ TEST(TestASMu2D, ElmNodes)
       std::array{5,6,7,9,10,11,13,14,15},
   };
   const IntMat mnpc_proj = pch1.getElmNodes(ASM::PROJECTION_BASIS);
-  ASSERT_EQ(mnpc_proj.size(), ref_proj.size());
+  REQUIRE(mnpc_proj.size() == ref_proj.size());
   for (size_t i = 0; i < mnpc_proj.size(); ++i) {
-    EXPECT_EQ(mnpc_proj[i].size(), ref_proj[i].size());
+    REQUIRE(mnpc_proj[i].size() == ref_proj[i].size());
     for (size_t j = 0; j < mnpc_proj[i].size(); ++j)
-      EXPECT_EQ(mnpc_proj[i][j], ref_proj[i][j]);
+      REQUIRE(mnpc_proj[i][j] == ref_proj[i][j]);
   }
 }

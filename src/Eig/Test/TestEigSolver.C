@@ -20,16 +20,16 @@
 #include <tinyxml2.h>
 #endif
 
-#include "gtest/gtest.h"
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+
+#include <string>
+
+using Catch::Matchers::WithinRel;
 
 
-class TestEigSolver : public testing::Test,
-                      public testing::WithParamInterface<int>
-{
-};
-
-
-TEST(TestEigSolver, Lapack)
+TEST_CASE("TestEigSolver.Lapack")
 {
   DenseMatrix A, B;
   A.redim(3,3);
@@ -45,116 +45,121 @@ TEST(TestEigSolver, Lapack)
   eig::solve(&A, &B, eigs, eigVec, 3);
 
   for (size_t i = 1; i <= 3; ++i)
-    EXPECT_FLOAT_EQ(eigs(i), i);
+    REQUIRE(eigs(i) == i);
 
   for (size_t i = 1; i <= 3; ++i)
     for (size_t j = 1; j <= 3; ++j)
-      EXPECT_FLOAT_EQ(eigVec(i,j), i==j ? 1.0 : 0.0);
+      REQUIRE(eigVec(i,j) == (i==j ? 1.0 : 0.0));
 }
 
 
-TEST_P(TestEigSolver, Arpack)
+TEST_CASE("TestEigSolver.Arpack")
 {
-  SparseMatrix A(SparseMatrix::SUPERLU), B(SparseMatrix::SUPERLU);
-  A.redim(4,4);
-  B.redim(4,4);
+  const int param = GENERATE(1,2,3,4);
+  SECTION("Mode " + std::to_string(param)) {
+    SparseMatrix A(SparseMatrix::SUPERLU), B(SparseMatrix::SUPERLU);
+    A.redim(4,4);
+    B.redim(4,4);
 
-  for (size_t i = 1; i <= 4; ++i) {
-    A(i,i) = i;
-    B(i,i) = 1.0;
+    for (size_t i = 1; i <= 4; ++i) {
+      A(i,i) = i;
+      B(i,i) = 1.0;
+    }
+
+    Vector eigs;
+    Matrix eigVec;
+    eig::solve(&A, &B, eigs, eigVec, 3, 4, param);
+
+    for (size_t i = 1; i <= 3; ++i)
+      REQUIRE_THAT(eigs(i), WithinRel(i + (param == 3 ? 1.0 : 0.0)));
   }
-
-  Vector eigs;
-  Matrix eigVec;
-  eig::solve(&A, &B, eigs, eigVec, 3, 4, GetParam());
-
-  for (size_t i = 1; i <= 3; ++i)
-    EXPECT_FLOAT_EQ(eigs(i), i + (GetParam() == 3 ? 1 : 0));
 }
 
 
 #ifdef HAS_PETSC
-TEST_P(TestEigSolver, ArpackPETSc)
+TEST_CASE("TestEigSolver.ArpackPETSc")
 {
-  LinSolParams spar;
-  tinyxml2::XMLDocument doc;
-  EXPECT_EQ(doc.Parse(R"(<linearsolver>
-                           <type>preonly</type>
-                           <pc>lu</pc>
-                        </linearsolver>)"), tinyxml2::XML_SUCCESS);
-  spar.read(doc.RootElement());
-  ProcessAdm adm;
-  PETScMatrix A(adm, spar), B(adm, spar);
-  const IntMat elms {
-      {0}, {1}, {2}, {3},
-  };
-  A.init(4);
-  B.init(4);
+  const int param = GENERATE(1,2,3,4);
+  SECTION("Mode " + std::to_string(param)) {
+    LinSolParams spar;
+    tinyxml2::XMLDocument doc;
+    REQUIRE(doc.Parse(R"(<linearsolver>
+                             <type>preonly</type>
+                             <pc>lu</pc>
+                          </linearsolver>)") == tinyxml2::XML_SUCCESS);
+    spar.read(doc.RootElement());
+    ProcessAdm adm;
+    PETScMatrix A(adm, spar), B(adm, spar);
+    const IntMat elms {
+        {0}, {1}, {2}, {3},
+    };
+    A.init(4);
+    B.init(4);
 
-  Matrix eA(1,1);
-  Matrix eB(1,1);
-  eB(1,1) = 1.0;
+    Matrix eA(1,1);
+    Matrix eB(1,1);
+    eB(1,1) = 1.0;
 
-  for (int iel = 0; iel < 4; ++iel) {
-    eA(1,1) = iel + 1;
-    A.assemble(eA, elms[iel]);
-    B.assemble(eB, elms[iel]);
+    for (int iel = 0; iel < 4; ++iel) {
+      eA(1,1) = iel + 1;
+      A.assemble(eA, elms[iel]);
+      B.assemble(eB, elms[iel]);
+    }
+
+    A.endAssembly();
+    B.endAssembly();
+
+    Vector eigs;
+    Matrix eigVec;
+    eig::solve(&A, &B, eigs, eigVec, 3, 4, param);
+
+    for (size_t i = 1; i <= 3; ++i)
+      REQUIRE_THAT(eigs(i), WithinRel(i + (param == 3 ? 1.0 : 0.0)));
   }
-
-  A.endAssembly();
-  B.endAssembly();
-
-  Vector eigs;
-  Matrix eigVec;
-  eig::solve(&A, &B, eigs, eigVec, 3, 4, GetParam());
-
-  for (size_t i = 1; i <= 3; ++i)
-    EXPECT_FLOAT_EQ(eigs(i), i + (GetParam() == 3 ? 1 : 0));
 }
 #endif
 
 
 #ifdef HAS_SLEPC
-TEST_P(TestEigSolver, SLEPc)
+TEST_CASE("TestEigSolver.SLEPc")
 {
-  LinSolParams spar;
-  tinyxml2::XMLDocument doc;
-  EXPECT_EQ(doc.Parse(R"(<linearsolver>
-                           <type>preonly</type>
-                           <pc>lu</pc>
-                        </linearsolver>)"), tinyxml2::XML_SUCCESS);
-  spar.read(doc.RootElement());
-  ProcessAdm adm;
-  PETScMatrix A(adm, spar), B(adm, spar);
-  const IntMat elms {
-      {0}, {1}, {2}, {3},
-  };
-  A.init(4);
-  B.init(4);
+  const int param = GENERATE(1,2,3,4);
+  SECTION("Mode " + std::to_string(param)) {
+    LinSolParams spar;
+    tinyxml2::XMLDocument doc;
+    REQUIRE(doc.Parse(R"(<linearsolver>
+                             <type>preonly</type>
+                             <pc>lu</pc>
+                          </linearsolver>)") == tinyxml2::XML_SUCCESS);
+    spar.read(doc.RootElement());
+    ProcessAdm adm;
+    PETScMatrix A(adm, spar), B(adm, spar);
+    const IntMat elms {
+        {0}, {1}, {2}, {3},
+    };
+    A.init(4);
+    B.init(4);
 
-  Matrix eA(1,1);
-  Matrix eB(1,1);
-  eB(1,1) = 1.0;
+    Matrix eA(1,1);
+    Matrix eB(1,1);
+    eB(1,1) = 1.0;
 
-  for (int iel = 0; iel < 4; ++iel) {
-    eA(1,1) = iel + 1;
-    A.assemble(eA, elms[iel]);
-    B.assemble(eB, elms[iel]);
+    for (int iel = 0; iel < 4; ++iel) {
+      eA(1,1) = iel + 1;
+      A.assemble(eA, elms[iel]);
+      B.assemble(eB, elms[iel]);
+    }
+
+    A.endAssembly();
+    B.endAssembly();
+
+    Vector eigs;
+    Matrix eigVec;
+    eig::solve(&A, &B, eigs, eigVec, 3, 4, param + 10);
+    REQUIRE(eigs.size() == 3);
+
+    for (size_t i = 1; i <= 3; ++i)
+      REQUIRE_THAT(eigs(i), WithinRel(static_cast<double>(i)));
   }
-
-  A.endAssembly();
-  B.endAssembly();
-
-  Vector eigs;
-  Matrix eigVec;
-  eig::solve(&A, &B, eigs, eigVec, 3, 4, GetParam() + 10);
-  EXPECT_EQ(eigs.size(), 3);
-
-  for (size_t i = 1; i <= 3; ++i)
-    EXPECT_FLOAT_EQ(eigs(i), i);
 }
 #endif
-
-
-const std::vector<int> modes = {1,2,3,4};
-INSTANTIATE_TEST_SUITE_P(TestEigSolver, TestEigSolver, testing::ValuesIn(modes));

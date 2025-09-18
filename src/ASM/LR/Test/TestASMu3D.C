@@ -15,86 +15,87 @@
 #include "GaussQuadrature.h"
 #include "LRSpline/LRSplineVolume.h"
 
-#include "gtest/gtest.h"
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+
 #include <numeric>
+#include <sstream>
 
-class TestASMu3D : public testing::Test,
-                   public testing::WithParamInterface<int>
+using Catch::Matchers::WithinRel;
+
+
+TEST_CASE("TestASMu3D.BoundaryNodes")
 {
-};
+  const int param = GENERATE(1,2,3,4,5,6);
 
+  SECTION("Face " + std::to_string(param)) {
+    SIM3D sim(1);
+    sim.opt.discretization = ASM::LRSpline;
+    REQUIRE(sim.read("src/ASM/LR/Test/refdata/boundary_nodes_3d.xinp"));
+    REQUIRE(sim.createFEMmodel());
 
-TEST_P(TestASMu3D, BoundaryNodes)
-{
-  if (GetParam() < 1 || GetParam() > 6)
-    return;
-
-  SIM3D sim(1);
-  sim.opt.discretization = ASM::LRSpline;
-  ASSERT_TRUE(sim.read("src/ASM/LR/Test/refdata/boundary_nodes_3d.xinp"));
-  ASSERT_TRUE(sim.createFEMmodel());
-
-  std::stringstream str;
-  str << "Face" << GetParam();
-  int bcode = sim.getUniquePropertyCode(str.str(),0);
-  std::vector<int> vec;
-  sim.getBoundaryNodes(bcode,vec);
-  ASSERT_EQ(vec.size(), 16U);
-  int i, j, k = 0;
-  for (i = 0; i < 4; ++i)
-    for (j = 0; j < 4; ++j, ++k)
-      switch (GetParam()) {
-      case 1: EXPECT_EQ(vec[k], 1+4*(4*i+j)); break;
-      case 2: EXPECT_EQ(vec[k], 2+4*(4*i+j)); break;
-      case 3: EXPECT_EQ(vec[k], 16*i+j+1); break;
-      case 4: EXPECT_EQ(vec[k], 5+16*i+j); break;
-      case 5: EXPECT_EQ(vec[k], 4*i+j+1); break;
-      case 6: EXPECT_EQ(vec[k], 17+4*i+j); break;
-      }
+    std::stringstream str;
+    str << "Face" << param;
+    int bcode = sim.getUniquePropertyCode(str.str(),0);
+    std::vector<int> vec;
+    sim.getBoundaryNodes(bcode,vec);
+    REQUIRE(vec.size() == 16);
+    int i, j, k = 0;
+    for (i = 0; i < 4; ++i)
+      for (j = 0; j < 4; ++j, ++k)
+        switch (param) {
+        case 1: REQUIRE(vec[k] == 1+4*(4*i+j)); break;
+        case 2: REQUIRE(vec[k] == 2+4*(4*i+j)); break;
+        case 3: REQUIRE(vec[k] == 16*i+j+1); break;
+        case 4: REQUIRE(vec[k] == 5+16*i+j); break;
+        case 5: REQUIRE(vec[k] == 4*i+j+1); break;
+        case 6: REQUIRE(vec[k] == 17+4*i+j); break;
+        }
+    }
 }
 
 
-TEST_P(TestASMu3D, Connect)
+TEST_CASE("TestASMu3D.Connect")
 {
-  if (GetParam() > 7)
-    return;
+  const int param = GENERATE(0,1,2,3,4,5,6,7);
 
-  SIM3D sim(3);
-  sim.opt.discretization = ASM::LRSpline;
-  std::stringstream str;
-  str << "src/ASM/Test/refdata/DomainDecomposition_MPI_3D_4_orient";
-  str << GetParam() << ".xinp";
-  ASSERT_TRUE(sim.read(str.str().c_str()));
-  ASSERT_TRUE(sim.createFEMmodel());
+  SECTION("Orient " + std::to_string(param)) {
+    SIM3D sim(3);
+    sim.opt.discretization = ASM::LRSpline;
+    std::stringstream str;
+    str << "src/ASM/Test/refdata/DomainDecomposition_MPI_3D_4_orient";
+    str << param << ".xinp";
+    REQUIRE(sim.read(str.str().c_str()));
+    REQUIRE(sim.createFEMmodel());
+  }
 }
 
 
-TEST_P(TestASMu3D, ConnectUneven)
+TEST_CASE("TestASMu3D.ConnectUneven")
 {
-  SIM3D sim(1);
-  sim.opt.discretization = ASM::LRSpline;
-  std::stringstream str;
-  str << "src/ASM/Test/refdata/3d_uneven";
-  int idx = GetParam()-1;
-  if (idx >= 0)
-    str << "_" << idx/3 << idx%3;
-  str << ".xinp";
-  ASSERT_TRUE(sim.read(str.str().c_str()));
-  ASSERT_TRUE(sim.createFEMmodel());
+  const int param = GENERATE(0,1,2,3,4,5,6,7,8,9,10,11,12);
+
+  SECTION("Uneven " + std::to_string(param)) {
+    SIM3D sim(1);
+    sim.opt.discretization = ASM::LRSpline;
+    std::stringstream str;
+    str << "src/ASM/Test/refdata/3d_uneven";
+    int idx = param-1;
+    if (idx >= 0)
+      str << "_" << idx/3 << idx%3;
+    str << ".xinp";
+    REQUIRE(sim.read(str.str().c_str()));
+    REQUIRE(sim.createFEMmodel());
+  }
 }
 
 
-const std::vector<int> tests = {0,1,2,3,4,5,6,7,8,9,10,11,12};
-INSTANTIATE_TEST_SUITE_P(TestASMu3D,
-                         TestASMu3D,
-                         testing::ValuesIn(tests));
-
-
-TEST(TestASMu3D, TransferGaussPtVars)
+TEST_CASE("TestASMu3D.TransferGaussPtVars")
 {
   ASMuCube pch;
   LR::LRSplineVolume* lr = pch.getBasis(1);
-  ASSERT_TRUE(lr != nullptr);
+  REQUIRE(lr != nullptr);
   lr->generateIDs();
 
   RealArray oldAr(3*3*3), newAr;
@@ -114,16 +115,16 @@ TEST(TestASMu3D, TransferGaussPtVars)
       for (id[2] = 0; id[2] < 3; ++id[2])
         for (id[1] = 0; id[1] < 3; ++id[1])
           for (id[0] = 0; id[0] < 3; ++id[0], ++k)
-            EXPECT_FLOAT_EQ(newAr[k], 0.5*iEl + 0.5*(xi[id[idx]] + 1.0) / 2.0);
+            REQUIRE_THAT(newAr[k], WithinRel(0.5*iEl + 0.5*(xi[id[idx]] + 1.0) / 2.0));
   }
 }
 
 
-TEST(TestASMu3D, TransferGaussPtVarsN)
+TEST_CASE("TestASMu3D.TransferGaussPtVarsN")
 {
   ASMuCube pch, pchNew;
   LR::LRSplineVolume* lr = pch.getBasis(1);
-  ASSERT_TRUE(lr != nullptr);
+  REQUIRE(lr != nullptr);
   lr->generateIDs();
 
   pchNew.uniformRefine(0,1);
@@ -151,20 +152,20 @@ TEST(TestASMu3D, TransferGaussPtVarsN)
                              20.0, 21.0, 21.0,
                              23.0, 24.0, 24.0,
                              26.0, 27.0, 27.0}};
-  ASSERT_EQ(refAr.size(), newAr.size());
+  REQUIRE(refAr.size() == newAr.size());
   for (size_t i = 0; i < refAr.size(); ++i)
-    EXPECT_FLOAT_EQ(refAr[i], newAr[i]);
+    REQUIRE_THAT(refAr[i], WithinRel(newAr[i]));
 }
 
 
-TEST(TestASMu3D, ElementConnectivities)
+TEST_CASE("TestASMu3D.ElementConnectivities")
 {
   ASMuCube pch1;
   ASMbase::resetNumbering();
-  ASSERT_TRUE(pch1.uniformRefine(0,1));
-  ASSERT_TRUE(pch1.uniformRefine(1,1));
-  ASSERT_TRUE(pch1.uniformRefine(2,1));
-  ASSERT_TRUE(pch1.generateFEMTopology());
+  REQUIRE(pch1.uniformRefine(0,1));
+  REQUIRE(pch1.uniformRefine(1,1));
+  REQUIRE(pch1.uniformRefine(2,1));
+  REQUIRE(pch1.generateFEMTopology());
   const size_t nel = pch1.getNoElms();
   IntMat neighGlb(2*nel), neighLoc(nel);
   pch1.shiftElemNumbers(nel);
@@ -178,14 +179,15 @@ TEST(TestASMu3D, ElementConnectivities)
                                                {4, 7, 1},
                                                {7, 4, 2},
                                                {6, 5, 3}}};
-  ASSERT_EQ(neighLoc.size(), nel);
-  ASSERT_EQ(neighGlb.size(), 2*nel);
+  REQUIRE(neighLoc.size() == nel);
+  REQUIRE(neighGlb.size() == 2*nel);
   for (size_t n = 0; n < neighLoc.size(); ++n) {
-    ASSERT_EQ(neighLoc[n].size(), ref[n].size());
-    ASSERT_EQ(neighGlb[n+nel].size(), ref[n].size());
+    REQUIRE(neighLoc[n].size() == ref[n].size());
+    REQUIRE(neighGlb[n+nel].size() == ref[n].size());
     for (size_t i = 0; i < neighLoc[n].size(); ++i) {
-      EXPECT_EQ(neighLoc[n][i], ref[n][i]);
-      EXPECT_EQ(neighGlb[n+nel][i], ref[n][i] > -1 ? ref[n][i] + nel : -1);
+      REQUIRE(neighLoc[n][i] == ref[n][i]);
+      REQUIRE(neighGlb[n+nel][i] == (ref[n][i] > -1 ?
+                                       ref[n][i] + static_cast<int>(nel) : -1));
     }
   }
 }
@@ -203,11 +205,11 @@ public:
 };
 
 
-TEST(TestASMu3D, DirichletFace)
+TEST_CASE("TestASMu3D.DirichletFace")
 {
   ASMu3DTest pch1;
   ASMbase::resetNumbering();
-  ASSERT_TRUE(pch1.generateFEMTopology());
+  REQUIRE(pch1.generateFEMTopology());
 
   const std::array<std::array<int,4>,7> refArr = {{
       {{ 1, 2, 3, 4 }}, // Bottom
@@ -223,44 +225,44 @@ TEST(TestASMu3D, DirichletFace)
   for (int dir = -3; dir <= 3; dir++)
   {
     pch1.getFaceCorners(corners,dir);
-    EXPECT_EQ(corners,refArr[dir+3]);
+    REQUIRE(corners == refArr[dir+3]);
   }
 }
 
 
-TEST(TestASMu3D, Write)
+TEST_CASE("TestASMu3D.Write")
 {
   ASMbase::resetNumbering();
   ASMuCube pch1;
-  EXPECT_TRUE(pch1.generateFEMTopology());
+  REQUIRE(pch1.generateFEMTopology());
 
   std::stringstream str;
-  EXPECT_TRUE(pch1.write(str, 1));
-  EXPECT_EQ(str.str(), ASMuCube::cube);
+  REQUIRE(pch1.write(str, 1));
+  REQUIRE(str.str() == ASMuCube::cube);
 
-  EXPECT_FALSE(pch1.write(str, 2));
-
-  str.str("");
-  EXPECT_TRUE(pch1.write(str, ASM::GEOMETRY_BASIS));
-  EXPECT_EQ(str.str(), ASMuCube::cube);
+  REQUIRE(!pch1.write(str, 2));
 
   str.str("");
-  EXPECT_TRUE(pch1.write(str, ASM::PROJECTION_BASIS));
-  EXPECT_EQ(str.str(), ASMuCube::cube);
-
-  EXPECT_FALSE(pch1.write(str, ASM::PROJECTION_BASIS_2));
+  REQUIRE(pch1.write(str, ASM::GEOMETRY_BASIS));
+  REQUIRE(str.str() == ASMuCube::cube);
 
   str.str("");
-  EXPECT_TRUE(pch1.write(str, ASM::REFINEMENT_BASIS));
-  EXPECT_EQ(str.str(), ASMuCube::cube);
+  REQUIRE(pch1.write(str, ASM::PROJECTION_BASIS));
+  REQUIRE(str.str() == ASMuCube::cube);
+
+  REQUIRE(!pch1.write(str, ASM::PROJECTION_BASIS_2));
 
   str.str("");
-  EXPECT_TRUE(pch1.write(str, ASM::INTEGRATION_BASIS));
-  EXPECT_EQ(str.str(), ASMuCube::cube);
+  REQUIRE(pch1.write(str, ASM::REFINEMENT_BASIS));
+  REQUIRE(str.str() == ASMuCube::cube);
+
+  str.str("");
+  REQUIRE(pch1.write(str, ASM::INTEGRATION_BASIS));
+  REQUIRE(str.str() == ASMuCube::cube);
 }
 
 
-TEST(TestASMu3D, ElmNodes)
+TEST_CASE("TestASMu3D.ElmNodes")
 {
   ASMbase::resetNumbering();
 
@@ -271,10 +273,10 @@ TEST(TestASMu3D, ElmNodes)
   pch1.uniformRefine(1,1);
   pch1.uniformRefine(2,1);
   pch1.createProjectionBasis(false);
-  ASSERT_TRUE(pch1.uniformRefine(0,1));
-  ASSERT_TRUE(pch1.uniformRefine(1,1));
-  ASSERT_TRUE(pch1.uniformRefine(2,1));
-  ASSERT_TRUE(pch1.generateFEMTopology());
+  REQUIRE(pch1.uniformRefine(0,1));
+  REQUIRE(pch1.uniformRefine(1,1));
+  REQUIRE(pch1.uniformRefine(2,1));
+  REQUIRE(pch1.generateFEMTopology());
 
   const IntMat mnpc = pch1.getElmNodes(1);
 
@@ -288,11 +290,11 @@ TEST(TestASMu3D, ElmNodes)
       std::array{12,14,15,17,21,23,24,26},
       std::array{13,14,16,17,22,23,25,26},
   };
-  ASSERT_EQ(mnpc.size(), ref.size());
+  REQUIRE(mnpc.size() == ref.size());
   for (size_t i = 0; i < mnpc.size(); ++i) {
-    EXPECT_EQ(mnpc[i].size(), ref[i].size());
+    REQUIRE(mnpc[i].size() == ref[i].size());
     for (size_t j = 0; j < mnpc[i].size(); ++j)
-      EXPECT_EQ(mnpc[i][j], ref[i][j]);
+      REQUIRE(mnpc[i][j] == ref[i][j]);
   }
 
   const auto ref_proj = std::array{
@@ -306,10 +308,10 @@ TEST(TestASMu3D, ElmNodes)
       std::array{21,22,23,25,26,27,29,30,31,37,38,39,41,42,43,45,46,47,53,54,55,57,58,59,61,62,63},
   };
   const IntMat mnpc_proj = pch1.getElmNodes(ASM::PROJECTION_BASIS);
-  ASSERT_EQ(mnpc_proj.size(), ref_proj.size());
+  REQUIRE(mnpc_proj.size() == ref_proj.size());
   for (size_t i = 0; i < mnpc_proj.size(); ++i) {
-    EXPECT_EQ(mnpc_proj[i].size(), ref_proj[i].size());
+    REQUIRE(mnpc_proj[i].size() == ref_proj[i].size());
     for (size_t j = 0; j < mnpc_proj[i].size(); ++j)
-      EXPECT_EQ(mnpc_proj[i][j], ref_proj[i][j]);
+      REQUIRE(mnpc_proj[i][j] == ref_proj[i][j]);
   }
 }

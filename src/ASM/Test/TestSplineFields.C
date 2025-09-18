@@ -16,12 +16,17 @@
 #include "ASMSquare.h"
 #include "ASMCube.h"
 
-#include "gtest/gtest.h"
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+
 #include <array>
 #include <memory>
 
 
-TEST(TestSplineFields, Value2D)
+using Catch::Matchers::WithinRel;
+
+
+TEST_CASE("TestSplineFields.Value2D")
 {
   ASMSquare patch;
 
@@ -40,20 +45,20 @@ TEST(TestSplineFields, Value2D)
   for (const auto& it : tests_vector) {
     ItgPoint fe(it[0],it[1]);
     Vector v(2);
-    ASSERT_TRUE(fvector->valueFE(fe,v));
-    EXPECT_FLOAT_EQ(v(1), it[2]);
-    EXPECT_FLOAT_EQ(v(2), it[3]);
-    EXPECT_FLOAT_EQ(fscalar->valueFE(fe), it[3]);
+    REQUIRE(fvector->valueFE(fe,v));
+    REQUIRE_THAT(v(1), WithinRel(it[2]));
+    REQUIRE_THAT(v(2), WithinRel(it[3]));
+    REQUIRE_THAT(fscalar->valueFE(fe), WithinRel(it[3]));
   }
 }
 
 
-TEST(TestSplineFields, Value2Dmx)
+TEST_CASE("TestSplineFields.Value2Dmx")
 {
   ASMmxBase::Type = ASMmxBase::DIV_COMPATIBLE;
   ASMmxSquare patch({1,1,1});
   patch.raiseOrder(1,1);
-  EXPECT_TRUE(patch.generateFEMTopology());
+  REQUIRE(patch.generateFEMTopology());
 
   // {x+y+x*y, x-y+x*y}
   std::vector<double> vc = {0.0,
@@ -81,15 +86,15 @@ TEST(TestSplineFields, Value2Dmx)
   for (const auto& it : tests_vector) {
     Vector v(2);
     ItgPoint fe(it[0],it[1]);
-    ASSERT_TRUE(fvector->valueFE(fe,v));
-    EXPECT_FLOAT_EQ(v(1), it[2]);
-    EXPECT_FLOAT_EQ(v(2), it[3]);
-    EXPECT_FLOAT_EQ(fscalar->valueFE(fe), it[4]);
+    REQUIRE(fvector->valueFE(fe,v));
+    REQUIRE_THAT(v(1), WithinRel(it[2]));
+    REQUIRE_THAT(v(2), WithinRel(it[3]));
+    REQUIRE_THAT(fscalar->valueFE(fe), WithinRel(it[4]));
   }
 }
 
 
-TEST(TestSplineFields, Grad2D)
+TEST_CASE("TestSplineFields.Grad2D")
 {
   ASMSquare patch;
 
@@ -103,16 +108,16 @@ TEST(TestSplineFields, Grad2D)
           {{1.0, 1.0, 2.0, 2.0, 2.0, 0.0}}}};
   for (const auto& it : tests_vector) {
     Matrix gradu(2,2);
-    ASSERT_TRUE(fvector->gradFE(ItgPoint(it[0],it[1]),gradu));
-    EXPECT_FLOAT_EQ(gradu(1,1), it[2]);
-    EXPECT_FLOAT_EQ(gradu(1,2), it[3]);
-    EXPECT_FLOAT_EQ(gradu(2,1), it[4]);
-    EXPECT_FLOAT_EQ(gradu(2,2), it[5]);
+    REQUIRE(fvector->gradFE(ItgPoint(it[0],it[1]),gradu));
+    REQUIRE_THAT(gradu(1,1), WithinRel(it[2]));
+    REQUIRE_THAT(gradu(1,2), WithinRel(it[3]));
+    REQUIRE_THAT(gradu(2,1), WithinRel(it[4]));
+    REQUIRE_THAT(gradu(2,2), WithinRel(it[5]));
   }
 }
 
 
-TEST(TestSplineFields, Value3D)
+TEST_CASE("TestSplineFields.Value3D")
 {
   ASMCube patch;
 
@@ -140,16 +145,16 @@ TEST(TestSplineFields, Value3D)
   for (const auto& it : tests_scalar) {
     ItgPoint fe(it.data());
     Vector v(3);
-    ASSERT_TRUE(fvector->valueFE(fe,v));
-    EXPECT_FLOAT_EQ(v(1), it[3]);
-    EXPECT_FLOAT_EQ(v(2), it[4]);
-    EXPECT_FLOAT_EQ(v(3), it[5]);
-    EXPECT_FLOAT_EQ(fscalar->valueFE(fe), it[4]);
+    REQUIRE(fvector->valueFE(fe,v));
+    REQUIRE_THAT(v(1), WithinRel(it[3]));
+    REQUIRE_THAT(v(2), WithinRel(it[4]));
+    REQUIRE_THAT(v(3), WithinRel(it[5]));
+    REQUIRE_THAT(fscalar->valueFE(fe), WithinRel(it[4]));
   }
 }
 
 
-TEST(TestSplineFields, Grad3D)
+TEST_CASE("TestSplineFields.Grad3D")
 {
   ASMCube patch;
 
@@ -194,20 +199,20 @@ TEST(TestSplineFields, Grad3D)
                             2.0,  0.0,  2.0}}}}};
   for (const auto& it : tests_vector) {
     Matrix gradu(3,3);
-    ASSERT_TRUE(fvector->gradFE(ItgPoint(it.first.data()),gradu));
+    REQUIRE(fvector->gradFE(ItgPoint(it.first.data()),gradu));
     for (size_t i = 0; i < 3; ++i)
       for (size_t j = 0; j <3; ++j)
-        EXPECT_FLOAT_EQ(gradu(i+1,j+1), it.second[i*3+j]);
+        REQUIRE_THAT(gradu(i+1,j+1), WithinRel(it.second[i*3+j]));
   }
 }
 
 
-TEST(TestSplineFields, Value3Dmx)
+TEST_CASE("TestSplineFields.Value3Dmx")
 {
   ASMmxBase::Type = ASMmxBase::DIV_COMPATIBLE;
   ASMmxCube patch({1,1,1,1});
   patch.raiseOrder(1,1,1);
-  EXPECT_TRUE(patch.generateFEMTopology());
+  REQUIRE(patch.generateFEMTopology());
 
   // {x+y+z+x*y*z, x+y-z+x*y*z, x-y+z+x*y*z}
   std::vector<double> vc = {0.0, 0.5, 1.0,
@@ -245,10 +250,10 @@ TEST(TestSplineFields, Value3Dmx)
   for (const auto& it : tests_vector) {
     ItgPoint fe(it.data());
     Vector v(3);
-    ASSERT_TRUE(fvector->valueFE(fe,v));
-    EXPECT_FLOAT_EQ(v(1), it[3]);
-    EXPECT_FLOAT_EQ(v(2), it[4]);
-    EXPECT_FLOAT_EQ(v(3), it[5]);
-    EXPECT_FLOAT_EQ(fscalar->valueFE(fe), it[6]);
+    REQUIRE(fvector->valueFE(fe,v));
+    REQUIRE_THAT(v(1), WithinRel(it[3]));
+    REQUIRE_THAT(v(2), WithinRel(it[4]));
+    REQUIRE_THAT(v(3), WithinRel(it[5]));
+    REQUIRE_THAT(fscalar->valueFE(fe), WithinRel(it[6]));
   }
 }

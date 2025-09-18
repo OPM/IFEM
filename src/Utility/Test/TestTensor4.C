@@ -12,10 +12,14 @@
 
 #include "Tensor4.h"
 
-#include "gtest/gtest.h"
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+
+using Catch::Matchers::WithinAbs;
+using Catch::Matchers::WithinRel;
 
 
-TEST(TestTensor4, Constructor)
+TEST_CASE("TestTensor4.Constructor")
 {
   unsigned short int i, j, k, l, n;
   for (n = 1; n <= 3; n++)
@@ -29,24 +33,24 @@ TEST(TestTensor4, Constructor)
           {
             if (i == j && j == k && k == l)
             {
-              ASSERT_FLOAT_EQ( I(i,j,k,l), 1.0);
-              ASSERT_FLOAT_EQ(Is(i,j,k,l), 1.0);
+              REQUIRE_THAT( I(i,j,k,l), WithinRel(1.0));
+              REQUIRE_THAT(Is(i,j,k,l), WithinRel(1.0));
             }
             else
             {
-              ASSERT_FLOAT_EQ( I(i,j,k,l), 0.0);
-              ASSERT_FLOAT_EQ(Is(i,j,k,l), 0.0);
+              REQUIRE_THAT( I(i,j,k,l), WithinAbs(0.0, 1e-14));
+              REQUIRE_THAT(Is(i,j,k,l), WithinAbs(0.0, 1e-14));
             }
 
             if (i == j && k == l)
             {
-              ASSERT_FLOAT_EQ( J(i,j,k,l), 1.0);
-              ASSERT_FLOAT_EQ(Js(i,j,k,l), 1.2);
+              REQUIRE_THAT( J(i,j,k,l), WithinRel(1.0));
+              REQUIRE_THAT(Js(i,j,k,l), WithinRel(1.2));
             }
             else
             {
-              ASSERT_FLOAT_EQ( J(i,j,k,l), 0.0);
-              ASSERT_FLOAT_EQ(Js(i,j,k,l), 0.0);
+              REQUIRE_THAT( J(i,j,k,l), WithinAbs(0.0, 1e-14));
+              REQUIRE_THAT(Js(i,j,k,l), WithinAbs(0.0, 1e-14));
             }
           }
   }

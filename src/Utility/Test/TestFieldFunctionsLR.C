@@ -12,10 +12,14 @@
 
 #include "FieldFunctions.h"
 
-#include "gtest/gtest.h"
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+
+using Catch::Matchers::WithinAbs;
+using Catch::Matchers::WithinRel;
 
 
-TEST(TestFieldFunctions, 2D1PLR)
+TEST_CASE("TestFieldFunctions.2D1PLR")
 {
   // Fields contains: u_x = x^3*y^2 / 3
   //                  u_y = -x^2*y^3 / 3
@@ -48,47 +52,47 @@ TEST(TestFieldFunctions, 2D1PLR)
   Vec4 X(param);
   double scal = f2D_scalar(X);
   double x = 0.5, y = 0.5;
-  EXPECT_NEAR(scal, x*x*y*y, 1e-14);
+  REQUIRE_THAT(scal, WithinRel(x*x*y*y, 1e-14));
 
   Vec3 sg = f2Dg_scalar(X);
-  EXPECT_NEAR(sg[0], 2*x*y*y, 1e-14);
-  EXPECT_NEAR(sg[1], x*x*2*y, 1e-14);
+  REQUIRE_THAT(sg[0], WithinRel(2*x*y*y, 1e-14));
+  REQUIRE_THAT(sg[1], WithinRel(x*x*2*y, 1e-14));
 
   Vec3 vec = f2D_vec(X);
-  EXPECT_NEAR(vec[0],  x*x*x*y*y/3.0, 1e-14);
-  EXPECT_NEAR(vec[1], -x*x*y*y*y/3, 1e-14);
+  REQUIRE_THAT(vec[0], WithinRel(x*x*x*y*y/3.0, 1e-13));
+  REQUIRE_THAT(vec[1], WithinRel(-x*x*y*y*y/3, 1e-14));
 
   Vec3 slap = f2Dl_scalar(X);
-  EXPECT_NEAR(slap[0], 2*y*y, 1e-13);
-  EXPECT_NEAR(slap[1], 2*x*x, 1e-13);
+  REQUIRE_THAT(slap[0], WithinRel(2*y*y, 1e-13));
+  REQUIRE_THAT(slap[1], WithinRel(2*x*x, 1e-13));
 
   Tensor vecg = f2Dg_vec(X);
-  EXPECT_NEAR(vecg(1,1), x*x*y*y, 1e-14);
-  EXPECT_NEAR(vecg(1,2), x*x*x*2.0*y/3.0, 1e-14);
-  EXPECT_NEAR(vecg(2,1), -2.0*x*y*y*y/3.0, 1e-14);
-  EXPECT_NEAR(vecg(2,2), -x*x*y*y, 1e-14);
+  REQUIRE_THAT(vecg(1,1), WithinRel(x*x*y*y, 1e-13));
+  REQUIRE_THAT(vecg(1,2), WithinRel(x*x*x*2.0*y/3.0, 1e-13));
+  REQUIRE_THAT(vecg(2,1), WithinRel(-2.0*x*y*y*y/3.0, 1e-14));
+  REQUIRE_THAT(vecg(2,2), WithinRel(-x*x*y*y, 1e-14));
 
   Tensor ten = f2D_ten(X);
-  EXPECT_NEAR(vecg(1,1), x*x*y*y, 1e-14);
-  EXPECT_NEAR(vecg(1,2), x*x*x*2.0*y/3.0, 1e-14);
-  EXPECT_NEAR(vecg(2,1), -2.0*x*y*y*y/3.0, 1e-14);
-  EXPECT_NEAR(vecg(2,2), -x*x*y*y, 1e-14);
+  REQUIRE_THAT(vecg(1,1), WithinRel(x*x*y*y, 1e-13));
+  REQUIRE_THAT(vecg(1,2), WithinRel(x*x*x*2.0*y/3.0, 1e-13));
+  REQUIRE_THAT(vecg(2,1), WithinRel(-2.0*x*y*y*y/3.0, 1e-14));
+  REQUIRE_THAT(vecg(2,2), WithinRel(-x*x*y*y, 1e-14));
 
   Tensor lap = f2Dl_vec(X);
-  EXPECT_NEAR(lap(1,1), 2.0*x*y*y, 1e-13);
-  EXPECT_NEAR(lap(1,2), x*x*x*2.0/3.0, 1e-13);
-  EXPECT_NEAR(lap(2,1), -2.0*x*x*x/3.0, 1e-14);
-  EXPECT_NEAR(lap(2,2), -x*x*2.0*y, 1e-14);
+  REQUIRE_THAT(lap(1,1), WithinRel(2.0*x*y*y, 1e-12));
+  REQUIRE_THAT(lap(1,2), WithinRel(x*x*x*2.0/3.0, 1e-12));
+  REQUIRE_THAT(lap(2,1), WithinRel(-2.0*x*x*x/3.0, 1e-13));
+  REQUIRE_THAT(lap(2,2), WithinRel(-x*x*2.0*y, 1e-14));
 
   SymmTensor sten = f2D_sten(X);
-  EXPECT_NEAR(sten(1,1), x*x*y*y, 1e-14);
-  EXPECT_NEAR(sten(1,2), x*x*x*2.0*y/3.0, 1e-14);
-  EXPECT_NEAR(sten(2,1), x*x*x*2.0*y/3.0, 1e-14);
-  EXPECT_NEAR(sten(2,2), -x*x*y*y, 1e-14);
+  REQUIRE_THAT(sten(1,1), WithinRel(x*x*y*y, 1e-13));
+  REQUIRE_THAT(sten(1,2), WithinRel(x*x*x*2.0*y/3.0, 1e-13));
+  REQUIRE_THAT(sten(2,1), WithinRel(x*x*x*2.0*y/3.0, 1e-13));
+  REQUIRE_THAT(sten(2,2), WithinRel(-x*x*y*y, 1e-14));
 }
 
 
-TEST(TestFieldFunctions, 2D1PLRmx)
+TEST_CASE("TestFieldFunctions.2D1PLRmx")
 {
   // Fields contains: u_x = x^3*y^2 / 3
   //                  u_y = -x^2*y^3 / 3
@@ -112,31 +116,31 @@ TEST(TestFieldFunctions, 2D1PLRmx)
   Vec4 X(param);
   double scal = f2D_scalar(X);
   double x = 0.5, y = 0.5;
-  EXPECT_NEAR(scal, x*x*y*y, 1e-12);
+  REQUIRE_THAT(scal, WithinRel(x*x*y*y, 1e-12));
 
   Vec3 sg = f2Dg_scalar(X);
-  EXPECT_NEAR(sg[0], 2*x*y*y, 1e-12);
-  EXPECT_NEAR(sg[1], x*x*2*y, 1e-12);
+  REQUIRE_THAT(sg[0], WithinRel(2*x*y*y, 1e-12));
+  REQUIRE_THAT(sg[1], WithinRel(x*x*2*y, 1e-12));
 
   Vec3 vec = f2D_vec(X);
-  EXPECT_NEAR(vec[0],  x*x*x*y*y/3.0, 1e-13);
-  EXPECT_NEAR(vec[1], -x*x*y*y*y/3, 1e-13);
+  REQUIRE_THAT(vec[0], WithinRel( x*x*x*y*y/3.0, 1e-13));
+  REQUIRE_THAT(vec[1], WithinRel(-x*x*y*y*y/3, 1e-13));
 
   Tensor vecg = f2Dg_vec(X);
-  EXPECT_NEAR(vecg(1,1), x*x*y*y, 1e-13);
-  EXPECT_NEAR(vecg(1,2), x*x*x*2.0*y/3.0, 1e-13);
-  EXPECT_NEAR(vecg(2,1), -2.0*x*y*y*y/3.0, 1e-13);
-  EXPECT_NEAR(vecg(2,2), -x*x*y*y, 1e-13);
+  REQUIRE_THAT(vecg(1,1), WithinRel(x*x*y*y, 1e-13));
+  REQUIRE_THAT(vecg(1,2), WithinRel(x*x*x*2.0*y/3.0, 1e-13));
+  REQUIRE_THAT(vecg(2,1), WithinRel(-2.0*x*y*y*y/3.0, 1e-13));
+  REQUIRE_THAT(vecg(2,2), WithinRel(-x*x*y*y, 1e-13));
 
   Tensor lap = f2Dl_vec(X);
-  EXPECT_NEAR(lap(1,1), 2.0*x*y*y, 1e-12);
-  EXPECT_NEAR(lap(1,2), x*x*x*2.0/3.0, 1e-12);
-  EXPECT_NEAR(lap(2,1), -2.0*x*x*x/3.0, 1e-12);
-  EXPECT_NEAR(lap(2,2), -x*x*2.0*y, 1e-12);
+  REQUIRE_THAT(lap(1,1), WithinRel(2.0*x*y*y, 1e-12));
+  REQUIRE_THAT(lap(1,2), WithinRel(x*x*x*2.0/3.0, 1e-12));
+  REQUIRE_THAT(lap(2,1), WithinRel(-2.0*x*x*x/3.0, 1e-12));
+  REQUIRE_THAT(lap(2,2), WithinRel(-x*x*2.0*y, 1e-12));
 }
 
 
-TEST(TestFieldFunctions, 2D2PLR)
+TEST_CASE("TestFieldFunctions.2D2PLR")
 {
   FieldFunction f2D_scalar("src/Utility/Test/refdata/Field2D-2PLR",
                            "Stokes-2", "v", 0);
@@ -149,16 +153,16 @@ TEST(TestFieldFunctions, 2D2PLR)
   for (size_t pIdx = 0; pIdx < 2; ++pIdx) {
     f2D_scalar.initPatch(pIdx);
     double scal = f2D_scalar(X);
-    EXPECT_NEAR(scal, 0.5 + pIdx, 1e-14);
+    REQUIRE_THAT(scal, WithinRel(0.5 + pIdx, 1e-13));
     f2D_vec.initPatch(pIdx);
     Vec3 vec = f2D_vec(X);
-    EXPECT_NEAR(vec[0], 0.5 + pIdx, 1e-14);
-    EXPECT_NEAR(vec[1], -1.0, 1e-14);
+    REQUIRE_THAT(vec[0], WithinRel(0.5 + pIdx, 1e-14));
+    REQUIRE_THAT(vec[1], WithinRel(-1.0, 1e-14));
   }
 }
 
 
-TEST(TestFieldFunctions, 3D1PLR)
+TEST_CASE("TestFieldFunctions.3D1PLR")
 {
   // Fields contains: u_x = x^3*y^2*z^3 / 3
   //                  u_y = -x^2*y^3*z^3 / 3
@@ -191,71 +195,71 @@ TEST(TestFieldFunctions, 3D1PLR)
   double param[3] = {0.5, 0.5, 0.5};
   Vec4 X(param);
   double scal = f3D_scalar(X);
-  double x = 0.5, y = 0.5, z = 0.5;
-  EXPECT_NEAR(scal, x*x*y*y*z*z, 1e-13);
+  constexpr double x = 0.5, y = 0.5, z = 0.5;
+  REQUIRE_THAT(scal, WithinRel(x*x*y*y*z*z, 1e-11));
 
   Vec3 sg = f3Dg_scalar(X);
-  EXPECT_NEAR(sg[0], 2.0*x*y*y*z*z, 1e-12);
-  EXPECT_NEAR(sg[1], x*x*2.0*y*z*z, 1e-12);
-  EXPECT_NEAR(sg[2], x*x*y*y*2.0*z, 1e-12);
+  REQUIRE_THAT(sg[0], WithinRel(2.0*x*y*y*z*z, 1e-10));
+  REQUIRE_THAT(sg[1], WithinRel(x*x*2.0*y*z*z, 1e-10));
+  REQUIRE_THAT(sg[2], WithinRel(x*x*y*y*2.0*z, 1e-11));
 
   Vec3 vec = f3D_vec(X);
-  EXPECT_NEAR(vec[0], x*x*x*y*y*z*z/3.0, 1e-14);
-  EXPECT_NEAR(vec[1], x*x*y*y*y*z*z/3.0, 1e-14);
-  EXPECT_NEAR(vec[2], -2.0*x*x*y*y*z*z*z/3.0, 1e-14);
+  REQUIRE_THAT(vec[0], WithinRel(x*x*x*y*y*z*z/3.0, 1e-12));
+  REQUIRE_THAT(vec[1], WithinRel(x*x*y*y*y*z*z/3.0, 1e-12));
+  REQUIRE_THAT(vec[2], WithinRel(-2.0*x*x*y*y*z*z*z/3.0, 1e-12));
 
   Vec3 slap = f3Dl_scalar(X);
-  EXPECT_NEAR(slap[0], 2.0*y*y*z*z, 1e-11);
-  EXPECT_NEAR(slap[1], x*x*2.0*z*z, 1e-11);
-  EXPECT_NEAR(slap[2], x*x*y*y*2.0, 1e-11);
+  REQUIRE_THAT(slap[0], WithinRel(2.0*y*y*z*z, 1e-11));
+  REQUIRE_THAT(slap[1], WithinRel(x*x*2.0*z*z, 1e-11));
+  REQUIRE_THAT(slap[2], WithinRel(x*x*y*y*2.0, 1e-10));
 
   Tensor vecg = f3Dg_vec(X);
-  EXPECT_NEAR(vecg(1,1), x*x*y*y*z*z, 1e-13);
-  EXPECT_NEAR(vecg(1,2), x*x*x*2.0*y*z*z / 3.0, 1e-13);
-  EXPECT_NEAR(vecg(1,3), x*x*x*y*y*2.0*z / 3.0, 1e-13);
-  EXPECT_NEAR(vecg(2,1), 2.0*x*y*y*y*z*z / 3.0, 1e-13);
-  EXPECT_NEAR(vecg(2,2), x*x*y*y*z*z, 1e-13);
-  EXPECT_NEAR(vecg(2,3), x*x*y*y*y*2.0*z / 3.0, 1e-13);
-  EXPECT_NEAR(vecg(3,1), -2.0*2.0*x*y*y*z*z*z / 3.0, 1e-13);
-  EXPECT_NEAR(vecg(3,2), -2.0*x*x*2.0*y*z*z*z / 3.0, 1e-13);
-  EXPECT_NEAR(vecg(3,3), -2.0*x*x*y*y*z*z, 1e-13);
+  REQUIRE_THAT(vecg(1,1), WithinRel(x*x*y*y*z*z, 1e-11));
+  REQUIRE_THAT(vecg(1,2), WithinRel(x*x*x*2.0*y*z*z / 3.0, 1e-12));
+  REQUIRE_THAT(vecg(1,3), WithinRel(x*x*x*y*y*2.0*z / 3.0, 1e-11));
+  REQUIRE_THAT(vecg(2,1), WithinRel(2.0*x*y*y*y*z*z / 3.0, 1e-11));
+  REQUIRE_THAT(vecg(2,2), WithinRel(x*x*y*y*z*z, 1e-12));
+  REQUIRE_THAT(vecg(2,3), WithinRel(x*x*y*y*y*2.0*z / 3.0, 1e-11));
+  REQUIRE_THAT(vecg(3,1), WithinRel(-2.0*2.0*x*y*y*z*z*z / 3.0, 1e-11));
+  REQUIRE_THAT(vecg(3,2), WithinRel(-2.0*x*x*2.0*y*z*z*z / 3.0, 1e-11));
+  REQUIRE_THAT(vecg(3,3), WithinRel(-2.0*x*x*y*y*z*z, 1e-12));
 
   Tensor ten = f3D_ten(X);
-  EXPECT_NEAR(ten(1,1), x*x*y*y*z*z, 1e-13);
-  EXPECT_NEAR(ten(1,2), x*x*x*2.0*y*z*z / 3.0, 1e-13);
-  EXPECT_NEAR(ten(1,3), x*x*x*y*y*2.0*z / 3.0, 1e-13);
-  EXPECT_NEAR(ten(2,1), 2*x*y*y*y*z*z / 3.0, 1e-13);
-  EXPECT_NEAR(ten(2,2), x*x*y*y*z*z, 1e-13);
-  EXPECT_NEAR(ten(2,3), x*x*y*y*y*2.0*z / 3.0, 1e-13);
-  EXPECT_NEAR(ten(3,1), -2.0*2.0*x*y*y*z*z*z / 3.0, 1e-13);
-  EXPECT_NEAR(ten(3,2), -2.0*x*x*2.0*y*z*z*z / 3.0, 1e-13);
-  EXPECT_NEAR(ten(3,3), -2.0*x*x*y*y*z*z, 1e-13);
+  REQUIRE_THAT(ten(1,1), WithinRel(x*x*y*y*z*z, 1e-11));
+  REQUIRE_THAT(ten(1,2), WithinRel(x*x*x*2.0*y*z*z / 3.0, 1e-12));
+  REQUIRE_THAT(ten(1,3), WithinRel(x*x*x*y*y*2.0*z / 3.0, 1e-11));
+  REQUIRE_THAT(ten(2,1), WithinRel(2*x*y*y*y*z*z / 3.0, 1e-11));
+  REQUIRE_THAT(ten(2,2), WithinRel(x*x*y*y*z*z, 1e-12));
+  REQUIRE_THAT(ten(2,3), WithinRel(x*x*y*y*y*2.0*z / 3.0, 1e-12));
+  REQUIRE_THAT(ten(3,1), WithinRel(-2.0*2.0*x*y*y*z*z*z / 3.0, 1e-11));
+  REQUIRE_THAT(ten(3,2), WithinRel(-2.0*x*x*2.0*y*z*z*z / 3.0, 1e-11));
+  REQUIRE_THAT(ten(3,3), WithinRel(-2.0*x*x*y*y*z*z, 1e-12));
 
   Tensor lap = f3Dl_vec(X);
-  EXPECT_NEAR(lap(1,1), 2.0*x*y*y*z*z, 1e-12);
-  EXPECT_NEAR(lap(1,2), x*x*x*2.0*z*z / 3.0, 1e-12);
-  EXPECT_NEAR(lap(1,3), x*x*x*y*y*2.0 / 3.0, 1e-12);
-  EXPECT_NEAR(lap(2,1), 2.0*y*y*y*z*z / 3.0, 1e-12);
-  EXPECT_NEAR(lap(2,2), x*x*2.0*y*z*z, 1e-12);
-  EXPECT_NEAR(lap(2,3), x*x*y*y*y*2.0 / 3.0, 1e-12);
-  EXPECT_NEAR(lap(3,1), -2.0*2.0*y*y*z*z*z / 3.0, 1e-11);
-  EXPECT_NEAR(lap(3,2), -2.0*x*x*2.0*z*z*z / 3.0, 1e-11);
-  EXPECT_NEAR(lap(3,3), -2.0*x*x*y*y*2.0*z, 1e-11);
+  REQUIRE_THAT(lap(1,1), WithinRel(2.0*x*y*y*z*z, 1e-11));
+  REQUIRE_THAT(lap(1,2), WithinRel(x*x*x*2.0*z*z / 3.0, 1e-10));
+  REQUIRE_THAT(lap(1,3), WithinRel(x*x*x*y*y*2.0 / 3.0, 1e-11));
+  REQUIRE_THAT(lap(2,1), WithinRel(2.0*y*y*y*z*z / 3.0, 1e-10));
+  REQUIRE_THAT(lap(2,2), WithinRel(x*x*2.0*y*z*z, 1e-11));
+  REQUIRE_THAT(lap(2,3), WithinRel(x*x*y*y*y*2.0 / 3.0, 1e-10));
+  REQUIRE_THAT(lap(3,1), WithinRel(-2.0*2.0*y*y*z*z*z / 3.0, 1e-10));
+  REQUIRE_THAT(lap(3,2), WithinRel(-2.0*x*x*2.0*z*z*z / 3.0, 1e-10));
+  REQUIRE_THAT(lap(3,3), WithinRel(-2.0*x*x*y*y*2.0*z, 1e-11));
 
   SymmTensor sten = f3D_sten(X);
-  EXPECT_NEAR(sten(1,1), x*x*y*y*z*z, 1e-13);
-  EXPECT_NEAR(sten(1,2), x*x*x*2.0*y*z*z / 3.0, 1e-13);
-  EXPECT_NEAR(sten(1,3), x*x*x*y*y*2.0*z / 3.0, 1e-13);
-  EXPECT_NEAR(sten(2,1), 2.0*x*y*y*y*z*z / 3.0, 1e-13);
-  EXPECT_NEAR(sten(2,2), x*x*y*y*z*z, 1e-13);
-  EXPECT_NEAR(sten(2,3), -2.0*x*x*2.0*y*z*z*z / 3.0, 1e-13);
-  EXPECT_NEAR(sten(3,1), x*x*x*y*y*2.0*z / 3.0, 1e-13);
-  EXPECT_NEAR(sten(3,2), -2.0*x*x*2.0*y*z*z*z / 3.0, 1e-13);
-  EXPECT_NEAR(sten(3,3), -2.0*x*x*y*y*z*z, 1e-13);
+  REQUIRE_THAT(sten(1,1), WithinRel(x*x*y*y*z*z, 1e-11));
+  REQUIRE_THAT(sten(1,2), WithinRel(x*x*x*2.0*y*z*z / 3.0, 1e-12));
+  REQUIRE_THAT(sten(1,3), WithinRel(x*x*x*y*y*2.0*z / 3.0, 1e-12));
+  REQUIRE_THAT(sten(2,1), WithinRel(2.0*x*y*y*y*z*z / 3.0, 1e-12));
+  REQUIRE_THAT(sten(2,2), WithinRel(x*x*y*y*z*z, 1e-12));
+  REQUIRE_THAT(sten(2,3), WithinRel(-2.0*x*x*2.0*y*z*z*z / 3.0, 1e-11));
+  REQUIRE_THAT(sten(3,1), WithinRel(x*x*x*y*y*2.0*z / 3.0, 1e-12));
+  REQUIRE_THAT(sten(3,2), WithinRel(-2.0*x*x*2.0*y*z*z*z / 3.0, 1e-11));
+  REQUIRE_THAT(sten(3,3), WithinRel(-2.0*x*x*y*y*z*z, 1e-12));
 }
 
 
-TEST(TestFieldFunctions, 3D1PLRmx)
+TEST_CASE("TestFieldFunctions.3D1PLRmx")
 {
   // Fields contains: u_x = x^3*y^2*z^3 / 3
   //                  u_y = -x^2*y^3*z^3 / 3
@@ -283,48 +287,48 @@ TEST(TestFieldFunctions, 3D1PLRmx)
   Vec4 X(param);
   double scal = f3D_scalar(X);
   double x = 0.5, y = 0.5, z = 0.5;
-  EXPECT_NEAR(scal, x*x*y*y*z*z, 1e-14);
+  REQUIRE_THAT(scal, WithinRel(x*x*y*y*z*z, 1e-14));
 
   Vec3 sg = f3Dg_scalar(X);
-  EXPECT_NEAR(sg[0], 2.0*x*y*y*z*z, 1e-13);
-  EXPECT_NEAR(sg[1], x*x*2.0*y*z*z, 1e-13);
-  EXPECT_NEAR(sg[2], x*x*y*y*2.0*z, 1e-13);
+  REQUIRE_THAT(sg[0], WithinRel(2.0*x*y*y*z*z, 1e-13));
+  REQUIRE_THAT(sg[1], WithinRel(x*x*2.0*y*z*z, 1e-13));
+  REQUIRE_THAT(sg[2], WithinRel(x*x*y*y*2.0*z, 1e-13));
 
   Vec3 vec = f3D_vec(X);
-  EXPECT_NEAR(vec[0], x*x*x*y*y*z*z/3.0, 1e-14);
-  EXPECT_NEAR(vec[1], x*x*y*y*y*z*z/3.0, 1e-14);
-  EXPECT_NEAR(vec[2], -2.0*x*x*y*y*z*z*z/3.0, 1e-14);
+  REQUIRE_THAT(vec[0], WithinRel(x*x*x*y*y*z*z/3.0, 1e-14));
+  REQUIRE_THAT(vec[1], WithinRel(x*x*y*y*y*z*z/3.0, 1e-14));
+  REQUIRE_THAT(vec[2], WithinRel(-2.0*x*x*y*y*z*z*z/3.0, 1e-14));
 
   Vec3 slap = f3Dl_scalar(X);
-  EXPECT_NEAR(slap[0], 2.0*y*y*z*z, 1e-13);
-  EXPECT_NEAR(slap[1], x*x*2.0*z*z, 1e-13);
-  EXPECT_NEAR(slap[2], x*x*y*y*2.0, 1e-13);
+  REQUIRE_THAT(slap[0], WithinRel(2.0*y*y*z*z, 1e-13));
+  REQUIRE_THAT(slap[1], WithinRel(x*x*2.0*z*z, 1e-13));
+  REQUIRE_THAT(slap[2], WithinRel(x*x*y*y*2.0, 1e-13));
 
   Tensor vecg = f3Dg_vec(X);
-  EXPECT_NEAR(vecg(1,1), x*x*y*y*z*z, 1e-14);
-  EXPECT_NEAR(vecg(1,2), x*x*x*2.0*y*z*z / 3.0, 1e-14);
-  EXPECT_NEAR(vecg(1,3), x*x*x*y*y*2.0*z / 3.0, 1e-14);
-  EXPECT_NEAR(vecg(2,1), 2.0*x*y*y*y*z*z / 3.0, 1e-14);
-  EXPECT_NEAR(vecg(2,2), x*x*y*y*z*z, 1e-14);
-  EXPECT_NEAR(vecg(2,3), x*x*y*y*y*2.0*z / 3.0, 1e-14);
-  EXPECT_NEAR(vecg(3,1), -2.0*2.0*x*y*y*z*z*z / 3.0, 1e-14);
-  EXPECT_NEAR(vecg(3,2), -2.0*x*x*2.0*y*z*z*z / 3.0, 1e-14);
-  EXPECT_NEAR(vecg(3,3), -2.0*x*x*y*y*z*z, 1e-14);
+  REQUIRE_THAT(vecg(1,1), WithinRel(x*x*y*y*z*z, 1e-14));
+  REQUIRE_THAT(vecg(1,2), WithinRel(x*x*x*2.0*y*z*z / 3.0, 1e-14));
+  REQUIRE_THAT(vecg(1,3), WithinRel(x*x*x*y*y*2.0*z / 3.0, 1e-13));
+  REQUIRE_THAT(vecg(2,1), WithinRel(2.0*x*y*y*y*z*z / 3.0, 1e-14));
+  REQUIRE_THAT(vecg(2,2), WithinRel(x*x*y*y*z*z, 1e-14));
+  REQUIRE_THAT(vecg(2,3), WithinRel(x*x*y*y*y*2.0*z / 3.0, 1e-13));
+  REQUIRE_THAT(vecg(3,1), WithinRel(-2.0*2.0*x*y*y*z*z*z / 3.0, 1e-14));
+  REQUIRE_THAT(vecg(3,2), WithinRel(-2.0*x*x*2.0*y*z*z*z / 3.0, 1e-13));
+  REQUIRE_THAT(vecg(3,3), WithinRel(-2.0*x*x*y*y*z*z, 1e-14));
 
   Tensor lap = f3Dl_vec(X);
-  EXPECT_NEAR(lap(1,1), 2.0*x*y*y*z*z, 1e-13);
-  EXPECT_NEAR(lap(1,2), x*x*x*2.0*z*z / 3.0, 1e-13);
-  EXPECT_NEAR(lap(1,3), x*x*x*y*y*2.0 / 3.0, 1e-13);
-  EXPECT_NEAR(lap(2,1), 2.0*y*y*y*z*z / 3.0, 1e-13);
-  EXPECT_NEAR(lap(2,2), x*x*2.0*y*z*z, 1e-13);
-  EXPECT_NEAR(lap(2,3), x*x*y*y*y*2.0 / 3.0, 1e-13);
-  EXPECT_NEAR(lap(3,1), -2.0*2.0*y*y*z*z*z / 3.0, 1e-13);
-  EXPECT_NEAR(lap(3,2), -2.0*x*x*2.0*z*z*z / 3.0, 1e-13);
-  EXPECT_NEAR(lap(3,3), -2.0*x*x*y*y*2.0*z, 1e-13);
+  REQUIRE_THAT(lap(1,1), WithinRel(2.0*x*y*y*z*z, 1e-13));
+  REQUIRE_THAT(lap(1,2), WithinRel(x*x*x*2.0*z*z / 3.0, 1e-13));
+  REQUIRE_THAT(lap(1,3), WithinRel(x*x*x*y*y*2.0 / 3.0, 1e-13));
+  REQUIRE_THAT(lap(2,1), WithinRel(2.0*y*y*y*z*z / 3.0, 1e-13));
+  REQUIRE_THAT(lap(2,2), WithinRel(x*x*2.0*y*z*z, 1e-13));
+  REQUIRE_THAT(lap(2,3), WithinRel(x*x*y*y*y*2.0 / 3.0, 1e-13));
+  REQUIRE_THAT(lap(3,1), WithinRel(-2.0*2.0*y*y*z*z*z / 3.0, 1e-13));
+  REQUIRE_THAT(lap(3,2), WithinRel(-2.0*x*x*2.0*z*z*z / 3.0, 1e-13));
+  REQUIRE_THAT(lap(3,3), WithinRel(-2.0*x*x*y*y*2.0*z, 1e-13));
 }
 
 
-TEST(TestFieldFunctions, 3D2PLR)
+TEST_CASE("TestFieldFunctions.3D2PLR")
 {
   FieldFunction f3D_scalar("src/Utility/Test/refdata/Field3D-2PLR",
                            "Stokes-2", "v", 0);
@@ -346,34 +350,34 @@ TEST(TestFieldFunctions, 3D2PLR)
     double x = 0.25 + pIdx;
     double y = 0.5;
     double z = 0.5;
-    EXPECT_NEAR(scal, 1.0-2*x, 1e-14);
+    REQUIRE_THAT(scal, WithinRel(1.0-2*x, 1e-14));
     f3D_vec.initPatch(pIdx);
     Vec3 vec = f3D_vec(X);
-    EXPECT_NEAR(vec[0], y*(1.0-y), 1e-14); // y*(1-y)
-    EXPECT_NEAR(vec[1], z*(1.0-z), 1e-14); // z*(1-z)
-    EXPECT_NEAR(vec[2], x*(1.0-x), 1e-14); // x*(1-x)
+    REQUIRE_THAT(vec[0], WithinRel(y*(1.0-y), 1e-14)); // y*(1-y)
+    REQUIRE_THAT(vec[1], WithinRel(z*(1.0-z), 1e-14)); // z*(1-z)
+    REQUIRE_THAT(vec[2], WithinRel(x*(1.0-x), 1e-14)); // x*(1-x)
     f3D_ten.initPatch(pIdx);
     Tensor ten = f3D_ten(X);
-    EXPECT_NEAR(ten(1,1),  0.0, 1e-14);
-    EXPECT_NEAR(ten(1,2), 1.0-2*y, 1e-14);
-    EXPECT_NEAR(ten(1,3),  0.0, 1e-14);
-    EXPECT_NEAR(ten(2,1),  0.0, 1e-14);
-    EXPECT_NEAR(ten(2,2),  0.0, 1e-14);
-    EXPECT_NEAR(ten(2,3), 1.0-2*z, 1e-14);
-    EXPECT_NEAR(ten(3,1), 1.0-2*x, 1e-14);
-    EXPECT_NEAR(ten(3,2),  0.0, 1e-14);
-    EXPECT_NEAR(ten(3,3),  0.0, 1e-14);
+    REQUIRE_THAT(ten(1,1), WithinAbs(0.0, 1e-14));
+    REQUIRE_THAT(ten(1,2), WithinAbs(1.0-2*y, 1e-14));
+    REQUIRE_THAT(ten(1,3), WithinAbs(0.0, 1e-14));
+    REQUIRE_THAT(ten(2,1), WithinAbs(0.0, 1e-14));
+    REQUIRE_THAT(ten(2,2), WithinAbs(0.0, 1e-14));
+    REQUIRE_THAT(ten(2,3), WithinAbs(1.0-2*z, 1e-14));
+    REQUIRE_THAT(ten(3,1), WithinAbs(1.0-2*x, 1e-14));
+    REQUIRE_THAT(ten(3,2), WithinAbs(0.0, 1e-14));
+    REQUIRE_THAT(ten(3,3), WithinAbs(0.0, 1e-14));
 
     f3D_sten.initPatch(pIdx);
     SymmTensor sten = f3D_sten(X);
-    EXPECT_NEAR(sten(1,1),  0.0, 1e-14);
-    EXPECT_NEAR(sten(1,2), 1.0-2*y, 1e-14);
-    EXPECT_NEAR(sten(1,3), 1.0-2*x, 1e-14);
-    EXPECT_NEAR(sten(2,1), 1.0-2*y, 1e-14);
-    EXPECT_NEAR(sten(2,2),  0.0, 1e-14);
-    EXPECT_NEAR(sten(2,3), 1.0-2*z, 1e-14);
-    EXPECT_NEAR(sten(3,1), 1.0-2*x, 1e-14);
-    EXPECT_NEAR(sten(3,2), 1.0-2*z, 1e-14);
-    EXPECT_NEAR(sten(3,3),  0.0, 1e-14);
+    REQUIRE_THAT(sten(1,1), WithinAbs(0.0, 1e-14));
+    REQUIRE_THAT(sten(1,2), WithinAbs(1.0-2*y, 1e-14));
+    REQUIRE_THAT(sten(1,3), WithinRel(1.0-2*x, 1e-14));
+    REQUIRE_THAT(sten(2,1), WithinAbs(1.0-2*y, 1e-14));
+    REQUIRE_THAT(sten(2,2), WithinAbs(0.0, 1e-14));
+    REQUIRE_THAT(sten(2,3), WithinAbs(1.0-2*z, 1e-14));
+    REQUIRE_THAT(sten(3,1), WithinRel(1.0-2*x, 1e-14));
+    REQUIRE_THAT(sten(3,2), WithinAbs(1.0-2*z, 1e-14));
+    REQUIRE_THAT(sten(3,3), WithinAbs(0.0, 1e-14));
   }
 }

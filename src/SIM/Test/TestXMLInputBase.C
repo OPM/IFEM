@@ -12,7 +12,7 @@
 
 #include "XMLInputBase.h"
 
-#include "gtest/gtest.h"
+#include <catch2/catch_test_macros.hpp>
 
 #include <string>
 #include <vector>
@@ -52,7 +52,7 @@ public:
 }
 
 
-TEST(TestXMLInputBase, IncludeFiles)
+TEST_CASE("TestXMLInputBase.IncludeFiles")
 {
   TestXMLInputBase x;
   x.readXML("src/SIM/Test/with_include.xml");
@@ -65,5 +65,5 @@ TEST(TestXMLInputBase, IncludeFiles)
     "someothertag", "is_here"
   };
 
-  EXPECT_EQ(x.strings, ref);
+  REQUIRE(x.strings == ref);
 }

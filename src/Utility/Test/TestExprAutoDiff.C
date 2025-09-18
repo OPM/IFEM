@@ -15,9 +15,11 @@
 #include <autodiff/reverse/var.hpp>
 #include <expreval.h>
 
-#include <iostream>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include "gtest/gtest.h"
+using Catch::Matchers::WithinRel;
 
 struct ExprAutoDiffImpl {
   using Type = autodiff::var;
@@ -54,39 +56,17 @@ struct TestDef {
   std::array<double, 6> vals;
 };
 
-class TestExprAutoDiff : public testing::Test,
-                         public testing::WithParamInterface<TestDef>
+
+TEST_CASE("TestExprAutoDiff.Derivatives")
 {
-};
-
-
-TEST_P(TestExprAutoDiff, Derivatives)
-{
-  ExprAutoDiffImpl e(GetParam().func, GetParam().x, GetParam().y);
-
-  auto val = e.expr.Evaluate();
-  auto [ux, uy] = derivativesx(val, wrt(*e.xval, *e.yval));
-  auto [uxx, uxy] = derivativesx(ux, wrt(*e.xval, *e.yval));
-  auto [uyx, uyy] = derivativesx(uy, wrt(*e.xval, *e.yval));
-  EXPECT_DOUBLE_EQ(val.expr->val, GetParam().vals[0]);
-  EXPECT_DOUBLE_EQ(ux.expr->val, GetParam().vals[1]);
-  EXPECT_DOUBLE_EQ(uy.expr->val, GetParam().vals[2]);
-  EXPECT_DOUBLE_EQ(uxx.expr->val, GetParam().vals[3]);
-  EXPECT_DOUBLE_EQ(uxy.expr->val, GetParam().vals[4]);
-  EXPECT_DOUBLE_EQ(uyx.expr->val, GetParam().vals[4]);
-  EXPECT_DOUBLE_EQ(uyy.expr->val, GetParam().vals[5]);
-}
-
-INSTANTIATE_TEST_SUITE_P(TestExprAutoDiff, TestExprAutoDiff,
-                         testing::Values(
-                             TestDef{"Abs", "abs(x) + abs(y)", 1.0, -2.0,
+  auto param = GENERATE(TestDef{"Abs", "abs(x) + abs(y)", 1.0, -2.0,
                                      {1.0 + 2.0,
                                       1.0,
                                       -2.0 / 2.0,
                                       0.0,
                                       0.0,
                                       0.0}},
-                             TestDef{"ACos", "acos(rad(x)) + acos(y)", 45.0, M_PI / 4.0,
+                         TestDef{"ACos", "acos(rad(x)) + acos(y)", 45.0, M_PI / 4.0,
                                      {acos(45.0 * M_PI / 180.0) + acos(M_PI / 4.0),
                                       -M_PI / sqrt(32400 - M_PI * M_PI * 45 * 45),
                                       -1.0 / sqrt(1.0 - M_PI / 4.0 * M_PI / 4.0),
@@ -212,7 +192,21 @@ INSTANTIATE_TEST_SUITE_P(TestExprAutoDiff, TestExprAutoDiff,
                                       -2.0 * 2.0 * 2.0 * sinh(2.0 * 1.0) / pow(cosh(2.0 * 1.0), 3.0) * tanh(2.0),
                                       2.0 / pow(cosh(2.0 * 1.0), 2.0) * 1.0 / pow(cosh(2.0), 2.0),
                                       tanh(2.0 * 1.0) * -2.0 * sinh(2.0) / pow(cosh(2.0), 3.0)}}
-                         ), [](const testing::TestParamInfo<TestDef>& info)
-                            {
-                                return info.param.name;
-                            });
+                       );
+
+  SECTION(param.name) {
+    ExprAutoDiffImpl e(param.func, param.x, param.y);
+
+    auto val = e.expr.Evaluate();
+    auto [ux, uy] = derivativesx(val, wrt(*e.xval, *e.yval));
+    auto [uxx, uxy] = derivativesx(ux, wrt(*e.xval, *e.yval));
+    auto [uyx, uyy] = derivativesx(uy, wrt(*e.xval, *e.yval));
+    REQUIRE_THAT(val.expr->val, WithinRel(param.vals[0]));
+    REQUIRE_THAT(ux.expr->val,  WithinRel(param.vals[1]));
+    REQUIRE_THAT(uy.expr->val,  WithinRel(param.vals[2]));
+    REQUIRE_THAT(uxx.expr->val, WithinRel(param.vals[3]));
+    REQUIRE_THAT(uxy.expr->val, WithinRel(param.vals[4]));
+    REQUIRE_THAT(uyx.expr->val, WithinRel(param.vals[4]));
+    REQUIRE_THAT(uyy.expr->val, WithinRel(param.vals[5]));
+  }
+}

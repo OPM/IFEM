@@ -14,10 +14,17 @@
 #include "Vec3.h"
 #include "tinyxml2.h"
 
-#include "gtest/gtest.h"
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+
+#include <sstream>
+#include <string>
+
+using Catch::Matchers::WithinAbs;
+using Catch::Matchers::WithinRel;
 
 
-TEST(TestUtilities, ParseIntegers)
+TEST_CASE("TestUtilities.ParseIntegers")
 {
   const char* simple = "1";
   const char* ranged = "1:5";
@@ -28,68 +35,74 @@ TEST(TestUtilities, ParseIntegers)
   utl::parseIntegers(values3, multip);
 
   int i;
-  ASSERT_EQ(values1.size(), 1U);
-  ASSERT_EQ(values2.size(), 5U);
-  ASSERT_EQ(values3.size(), 7U);
-  EXPECT_EQ(values1.front(), 1);
+  REQUIRE(values1.size() == 1);
+  REQUIRE(values2.size() == 5);
+  REQUIRE(values3.size() == 7);
+  REQUIRE(values1.front() == 1);
   for (i = 0; i < 5; i++)
-    EXPECT_EQ(values2[i], 1+i);
+    REQUIRE(values2[i] == 1+i);
   for (i = 0; i < 3; i++)
-    EXPECT_EQ(values3[i], 1+2*i);
+    REQUIRE(values3[i] == 1+2*i);
   for (i = 2; i < 6; i++)
-    EXPECT_EQ(values3[i], 3+i);
-  EXPECT_EQ(values3[6], 10);
+    REQUIRE(values3[i] == 3+i);
+  REQUIRE(values3[6] == 10);
 }
 
-TEST(TestUtilities, ParseKnots)
+
+TEST_CASE("TestUtilities.ParseKnots")
 {
   std::string simple("xi 0 0.5 0.9 1.0");
   strtok(const_cast<char*>(simple.c_str())," ");
   std::vector<double> xi;
   utl::parseKnots(xi);
-  ASSERT_EQ(xi.size(), 4U);
-  EXPECT_FLOAT_EQ(xi[0], 0.0);
-  EXPECT_FLOAT_EQ(xi[1], 0.5);
-  EXPECT_FLOAT_EQ(xi[2], 0.9);
-  EXPECT_FLOAT_EQ(xi[3], 1.0);
+  REQUIRE(xi.size() == 4);
+  REQUIRE_THAT(xi[0], WithinAbs(0.0, 1e-14));
+  REQUIRE_THAT(xi[1], WithinRel(0.5));
+  REQUIRE_THAT(xi[2], WithinRel(0.9));
+  REQUIRE_THAT(xi[3], WithinRel(1.0));
 
   std::string graded5("xi C5 79 0.01 2.0");
   strtok(const_cast<char*>(graded5.c_str())," ");
   xi.clear();
   utl::parseKnots(xi);
-  ASSERT_EQ(xi.size(), 79U);
-  EXPECT_FLOAT_EQ(xi[39], 0.5);
-  EXPECT_FLOAT_EQ(xi.front()+xi.back(), 1.0);
+  REQUIRE(xi.size() == 79);
+  REQUIRE_THAT(xi[39], WithinRel(0.5));
+  REQUIRE_THAT(xi.front()+xi.back(), WithinRel(1.0));
 
   for (size_t i = 0; i < xi.size(); i++)
     std::cout <<"xi["<< i <<"] = "<< xi[i] << std::endl;
 }
 
-TEST(TestUtilities, ReadLine)
+
+TEST_CASE("TestUtilities.ReadLine")
 {
+  using namespace std::string_literals;
   std::stringstream str;
   str << "Blah blah\n"
       << "# Commented line\n"
       << "Blah bluh\n";
-  EXPECT_STREQ(utl::readLine(str), "Blah blah");
-  EXPECT_STREQ(utl::readLine(str), "Blah bluh");
+  REQUIRE(utl::readLine(str) == "Blah blah"s);
+  REQUIRE(utl::readLine(str) == "Blah bluh"s);
 }
 
-TEST(TestUtilities, IgnoreComments)
+
+TEST_CASE("TestUtilities.IgnoreComments")
 {
+  using namespace std::string_literals;
   std::stringstream str;
   str << "Blah blah\n"
       << "# Commented line\n"
       << "Blah bluh\n";
   char tmp[1024];
   str.getline(tmp,1024);
-  EXPECT_STREQ(tmp, "Blah blah");
+  REQUIRE(tmp == "Blah blah"s);
   utl::ignoreComments(str);
   str.getline(tmp,1024);
-  EXPECT_STREQ(tmp, "Blah bluh");
+  REQUIRE(tmp == "Blah bluh"s);
 }
 
-TEST(TestUtilities, GetAttribute)
+
+TEST_CASE("TestUtilities.GetAttribute")
 {
   const char* input = "<xml>"
     "  <booltrue bar=\"true\"/>"
@@ -109,7 +122,7 @@ TEST(TestUtilities, GetAttribute)
 
   tinyxml2::XMLDocument doc;
   doc.Parse(input);
-  ASSERT_TRUE(doc.RootElement() != nullptr);
+  REQUIRE(doc.RootElement() != nullptr);
 
   const char* bTrue[4]  = { "booltrue" , "boolone" , "boolon" , "boolyes" };
   const char* bFalse[4] = { "boolfalse", "boolzero", "booloff", "boolno"  };
@@ -117,91 +130,92 @@ TEST(TestUtilities, GetAttribute)
   int i;
   for (i = 0; i < 4; i++) {
     const tinyxml2::XMLElement* elem = doc.RootElement()->FirstChildElement(bTrue[i]);
-    ASSERT_TRUE(elem != nullptr);
+    REQUIRE(elem != nullptr);
     bool b = false;
-    EXPECT_TRUE(utl::getAttribute(elem, "bar", b));
-    EXPECT_TRUE(b);
+    REQUIRE(utl::getAttribute(elem, "bar", b));
+    REQUIRE(b);
   }
 
   for (i = 0; i < 4; i++) {
     const tinyxml2::XMLElement* elem = doc.RootElement()->FirstChildElement(bFalse[i]);
-    ASSERT_TRUE(elem != nullptr);
+    REQUIRE(elem != nullptr);
     bool b = false;
-    EXPECT_TRUE(utl::getAttribute(elem, "bar", b));
-    EXPECT_FALSE(b);
+    REQUIRE(utl::getAttribute(elem, "bar", b));
+    REQUIRE(!b);
   }
 
   const tinyxml2::XMLElement* elem = doc.RootElement()->FirstChildElement("intval");
-  ASSERT_TRUE(elem != nullptr);
+  REQUIRE(elem != nullptr);
   int val1 = 0;
-  EXPECT_TRUE(utl::getAttribute(elem, "bar", val1));
-  EXPECT_EQ(val1, 1);
+  REQUIRE(utl::getAttribute(elem, "bar", val1));
+  REQUIRE(val1 == 1);
   size_t val2 = 0;
-  EXPECT_TRUE(utl::getAttribute(elem, "bar", val2));
-  EXPECT_EQ(val2, 1U);
+  REQUIRE(utl::getAttribute(elem, "bar", val2));
+  REQUIRE(val2 == 1);
 
   elem = doc.RootElement()->FirstChildElement("realval");
-  ASSERT_TRUE(elem != nullptr);
+  REQUIRE(elem != nullptr);
   double val3 = 0.0;
-  EXPECT_TRUE(utl::getAttribute(elem, "bar", val3));
-  EXPECT_FLOAT_EQ(val3, 2.01);
+  REQUIRE(utl::getAttribute(elem, "bar", val3));
+  REQUIRE_THAT(val3, WithinRel(2.01));
 
   elem = doc.RootElement()->FirstChildElement("vecval1");
-  ASSERT_TRUE(elem != nullptr);
+  REQUIRE(elem != nullptr);
   Vec3 val4;
-  EXPECT_TRUE(utl::getAttribute(elem, "bar", val4));
-  EXPECT_FLOAT_EQ(val4.x, 1.2);
-  EXPECT_FLOAT_EQ(val4.y, 0.0);
-  EXPECT_FLOAT_EQ(val4.z, 0.0);
-  EXPECT_TRUE(utl::getAttribute(elem, "bar", val4, 2));
-  EXPECT_FLOAT_EQ(val4.x, 1.2);
-  EXPECT_FLOAT_EQ(val4.y, 1.2);
-  EXPECT_FLOAT_EQ(val4.z, 0.0);
-  EXPECT_TRUE(utl::getAttribute(elem, "bar", val4, 3));
-  EXPECT_FLOAT_EQ(val4.x, 1.2);
-  EXPECT_FLOAT_EQ(val4.y, 1.2);
-  EXPECT_FLOAT_EQ(val4.z, 1.2);
+  REQUIRE(utl::getAttribute(elem, "bar", val4));
+  REQUIRE_THAT(val4.x, WithinRel(1.2));
+  REQUIRE_THAT(val4.y, WithinAbs(0.0, 1e-14));
+  REQUIRE_THAT(val4.z, WithinAbs(0.0, 1e-14));
+  REQUIRE(utl::getAttribute(elem, "bar", val4, 2));
+  REQUIRE_THAT(val4.x, WithinRel(1.2));
+  REQUIRE_THAT(val4.y, WithinRel(1.2));
+  REQUIRE_THAT(val4.z, WithinAbs(0.0, 1e-14));
+  REQUIRE(utl::getAttribute(elem, "bar", val4, 3));
+  REQUIRE_THAT(val4.x, WithinRel(1.2));
+  REQUIRE_THAT(val4.y, WithinRel(1.2));
+  REQUIRE_THAT(val4.z, WithinRel(1.2));
 
   elem = doc.RootElement()->FirstChildElement("vecval2");
-  ASSERT_TRUE(elem != nullptr);
-  EXPECT_TRUE(utl::getAttribute(elem, "bar", val4));
-  EXPECT_FLOAT_EQ(val4.x, 1.2);
-  EXPECT_FLOAT_EQ(val4.y, 3.4);
-  EXPECT_FLOAT_EQ(val4.z, 0.0);
-  EXPECT_TRUE(utl::getAttribute(elem, "bar", val4, 2));
-  EXPECT_FLOAT_EQ(val4.x, 1.2);
-  EXPECT_FLOAT_EQ(val4.y, 3.4);
-  EXPECT_FLOAT_EQ(val4.z, 0.0);
-  EXPECT_TRUE(utl::getAttribute(elem, "bar", val4, 3));
-  EXPECT_FLOAT_EQ(val4.x, 1.2);
-  EXPECT_FLOAT_EQ(val4.y, 3.4);
-  EXPECT_FLOAT_EQ(val4.z, 3.4);
+  REQUIRE(elem != nullptr);
+  REQUIRE(utl::getAttribute(elem, "bar", val4));
+  REQUIRE_THAT(val4.x, WithinRel(1.2));
+  REQUIRE_THAT(val4.y, WithinRel(3.4));
+  REQUIRE_THAT(val4.z, WithinAbs(0.0, 1e-14));
+  REQUIRE(utl::getAttribute(elem, "bar", val4, 2));
+  REQUIRE_THAT(val4.x, WithinRel(1.2));
+  REQUIRE_THAT(val4.y, WithinRel(3.4));
+  REQUIRE_THAT(val4.z, WithinAbs(0.0, 1e-14));
+  REQUIRE(utl::getAttribute(elem, "bar", val4, 3));
+  REQUIRE_THAT(val4.x, WithinRel(1.2));
+  REQUIRE_THAT(val4.y, WithinRel(3.4));
+  REQUIRE_THAT(val4.z, WithinRel(3.4));
 
   elem = doc.RootElement()->FirstChildElement("vecval3");
-  ASSERT_TRUE(elem != nullptr);
-  EXPECT_TRUE(utl::getAttribute(elem, "bar", val4));
-  EXPECT_FLOAT_EQ(val4.x, 1.2);
-  EXPECT_FLOAT_EQ(val4.y, 3.4);
-  EXPECT_FLOAT_EQ(val4.z, 5.6);
-  EXPECT_TRUE(utl::getAttribute(elem, "bar", val4, 2));
-  EXPECT_FLOAT_EQ(val4.x, 1.2);
-  EXPECT_FLOAT_EQ(val4.y, 3.4);
-  EXPECT_FLOAT_EQ(val4.z, 0.0);
-  EXPECT_TRUE(utl::getAttribute(elem, "bar", val4, 3));
-  EXPECT_FLOAT_EQ(val4.x, 1.2);
-  EXPECT_FLOAT_EQ(val4.y, 3.4);
-  EXPECT_FLOAT_EQ(val4.z, 5.6);
+  REQUIRE(elem != nullptr);
+  REQUIRE(utl::getAttribute(elem, "bar", val4));
+  REQUIRE_THAT(val4.x, WithinRel(1.2));
+  REQUIRE_THAT(val4.y, WithinRel(3.4));
+  REQUIRE_THAT(val4.z, WithinRel(5.6));
+  REQUIRE(utl::getAttribute(elem, "bar", val4, 2));
+  REQUIRE_THAT(val4.x, WithinRel(1.2));
+  REQUIRE_THAT(val4.y, WithinRel(3.4));
+  REQUIRE_THAT(val4.z, WithinAbs(0.0, 1e-14));
+  REQUIRE(utl::getAttribute(elem, "bar", val4, 3));
+  REQUIRE_THAT(val4.x, WithinRel(1.2));
+  REQUIRE_THAT(val4.y, WithinRel(3.4));
+  REQUIRE_THAT(val4.z, WithinRel(5.6));
 }
 
-TEST(TestUtilities, getDirs)
+
+TEST_CASE("TestUtilities.GetDirs")
 {
   int cmp1 = utl::getDirs(1);
   int cmp2 = utl::getDirs(2);
   int cmp3 = utl::getDirs(3);
   int cmp4 = utl::getDirs(4);
 
-  EXPECT_EQ(cmp1, 1);
-  EXPECT_EQ(cmp2, 12);
-  EXPECT_EQ(cmp3, 123);
-  EXPECT_EQ(cmp4, 1234);
+  REQUIRE(cmp1 == 1);
+  REQUIRE(cmp2 == 12);
+  REQUIRE(cmp3 == 123);
+  REQUIRE(cmp4 == 1234);
 }

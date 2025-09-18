@@ -15,11 +15,11 @@
 #include "ASMbase.h"
 #include "ASMmxBase.h"
 
-#include "gtest/gtest.h"
+#include <catch2/catch_test_macros.hpp>
 
 #include <fstream>
 
-typedef std::vector<IntVec> IntMat;
+using IntMat = std::vector<IntVec>;
 
 
 static std::istream& operator>> (std::istream& is, IntVec& v)
@@ -55,11 +55,11 @@ static void check_intmatrices_equal (const SAM* sam, const std::string& path)
   IntMat B = readIntMatrix(A.size(), path);
   for (i = 0; i < A.size(); i++)
     for (it = A[i].begin(), j = 0; it != A[i].end(); ++it, j++)
-      ASSERT_EQ(*it, B[i][j]);
+      REQUIRE(*it == B[i][j]);
 };
 
 
-TEST(TestSAM, SingleBasis1P)
+TEST_CASE("TestSAM.SingleBasis1P")
 {
   SIM2D sim(1);
   sim.read("src/LinAlg/Test/refdata/sam_2D_1P.xinp");
@@ -69,11 +69,11 @@ TEST(TestSAM, SingleBasis1P)
   check_intmatrices_equal(sam, "src/LinAlg/Test/refdata/sam_2D_singlebasis_1P.ref");
 
   for (int i = 1; i <= sam->getNoNodes(); ++i)
-    ASSERT_EQ(sam->getEquation(i, 1), i);
+    REQUIRE(sam->getEquation(i, 1) == i);
 }
 
 
-TEST(TestSAM, SingleBasisDirichlet1P)
+TEST_CASE("TestSAM.SingleBasisDirichlet1P")
 {
   SIM2D sim(1);
   sim.read("src/LinAlg/Test/refdata/sam_2D_dir_1P.xinp");
@@ -84,14 +84,14 @@ TEST(TestSAM, SingleBasisDirichlet1P)
 
   int i, eq = 1;
   for (i = 1; i <= 3; ++i) {
-    ASSERT_EQ(sam->getEquation(3*(i-1)+1, 1), eq++);
-    ASSERT_EQ(sam->getEquation(3*(i-1)+2, 1), eq++);
-    ASSERT_EQ(sam->getEquation(3*(i-1)+3, 1), 0);
+    REQUIRE(sam->getEquation(3*(i-1)+1, 1) == eq++);
+    REQUIRE(sam->getEquation(3*(i-1)+2, 1) == eq++);
+    REQUIRE(sam->getEquation(3*(i-1)+3, 1) == 0);
   }
 }
 
 
-TEST(TestSAM, MixedBasis1P)
+TEST_CASE("TestSAM.MixedBasis1P")
 {
   ASMmxBase::Type = ASMmxBase::FULL_CONT_RAISE_BASIS1;
   ASMmxBase::itgBasis = 2;
@@ -104,11 +104,11 @@ TEST(TestSAM, MixedBasis1P)
   check_intmatrices_equal(sam, "src/LinAlg/Test/refdata/sam_2D_mixedbasis_1P.ref");
 
   for (int i = 1; i <= sam->getNoNodes(); ++i)
-    ASSERT_EQ(sam->getEquation(i, 1), i);
+    REQUIRE(sam->getEquation(i, 1) == i);
 }
 
 
-TEST(TestSAM, MixedBasisDirichlet1P)
+TEST_CASE("TestSAM.MixedBasisDirichlet1P")
 {
   SIM2D sim({1,1});
   sim.read("src/LinAlg/Test/refdata/sam_2D_dir_1P.xinp");
@@ -119,18 +119,18 @@ TEST(TestSAM, MixedBasisDirichlet1P)
 
   int i, eq = 1;
   for (i = 1; i <= 4; ++i) {
-    ASSERT_EQ(sam->getEquation(4*(i-1)+1, 1), eq++);
-    ASSERT_EQ(sam->getEquation(4*(i-1)+2, 1), eq++);
-    ASSERT_EQ(sam->getEquation(4*(i-1)+3, 1), eq++);
-    ASSERT_EQ(sam->getEquation(4*(i-1)+4, 1), 0);
+    REQUIRE(sam->getEquation(4*(i-1)+1, 1) == eq++);
+    REQUIRE(sam->getEquation(4*(i-1)+2, 1) == eq++);
+    REQUIRE(sam->getEquation(4*(i-1)+3, 1) == eq++);
+    REQUIRE(sam->getEquation(4*(i-1)+4, 1) == 0);
   }
 
   for (i = 17; i <= 25; ++i)
-    ASSERT_EQ(sam->getEquation(i, 1), eq++);
+    REQUIRE(sam->getEquation(i, 1) == eq++);
 }
 
 
-TEST(TestSAM, SingleBasis2P)
+TEST_CASE("TestSAM.SingleBasis2P")
 {
   SIM2D sim(1);
   sim.read("src/LinAlg/Test/refdata/sam_2D_2P.xinp");
@@ -140,11 +140,11 @@ TEST(TestSAM, SingleBasis2P)
   check_intmatrices_equal(sam, "src/LinAlg/Test/refdata/sam_2D_singlebasis_2P.ref");
 
   for (int i = 1; i <= sam->getNoNodes(); ++i)
-    ASSERT_EQ(sam->getEquation(i, 1), i);
+    REQUIRE(sam->getEquation(i, 1) == i);
 }
 
 
-TEST(TestSAM, MixedBasis2P)
+TEST_CASE("TestSAM.MixedBasis2P")
 {
   SIM2D sim({1,1});
   sim.read("src/LinAlg/Test/refdata/sam_2D_2P.xinp");
@@ -154,11 +154,11 @@ TEST(TestSAM, MixedBasis2P)
   check_intmatrices_equal(sam, "src/LinAlg/Test/refdata/sam_2D_mixedbasis_2P.ref");
 
   for (int i = 1; i <= sam->getNoNodes(); ++i)
-    ASSERT_EQ(sam->getEquation(i, 1), i);
+    REQUIRE(sam->getEquation(i, 1) == i);
 }
 
 
-TEST(TestSAM, SingleBasisDirichlet2P)
+TEST_CASE("TestSAM.SingleBasisDirichlet2P")
 {
   SIM2D sim(1);
   sim.read("src/LinAlg/Test/refdata/sam_2D_dir_2P.xinp");
@@ -167,16 +167,16 @@ TEST(TestSAM, SingleBasisDirichlet2P)
   const SAM* sam = sim.getSAM();
   check_intmatrices_equal(sam, "src/LinAlg/Test/refdata/sam_2D_singlebasis_dir_2P.ref");
 
-  ASSERT_EQ(sam->getEquation(1, 1), 1);
-  ASSERT_EQ(sam->getEquation(2, 1), 2);
-  ASSERT_EQ(sam->getEquation(3, 1), 3);
-  ASSERT_EQ(sam->getEquation(4, 1), 4);
-  ASSERT_EQ(sam->getEquation(5, 1), 0);
-  ASSERT_EQ(sam->getEquation(6, 1), 0);
+  REQUIRE(sam->getEquation(1, 1) == 1);
+  REQUIRE(sam->getEquation(2, 1) == 2);
+  REQUIRE(sam->getEquation(3, 1) == 3);
+  REQUIRE(sam->getEquation(4, 1) == 4);
+  REQUIRE(sam->getEquation(5, 1) == 0);
+  REQUIRE(sam->getEquation(6, 1) == 0);
 }
 
 
-TEST(TestSAM, MixedBasisDirichlet2P)
+TEST_CASE("TestSAM.MixedBasisDirichlet2P")
 {
   SIM2D sim({1,1});
   sim.read("src/LinAlg/Test/refdata/sam_2D_dir_2P.xinp");
@@ -187,13 +187,13 @@ TEST(TestSAM, MixedBasisDirichlet2P)
 
   int i, eq = 1;
   for (i = 1; i <= 13; ++i)
-    ASSERT_EQ(sam->getEquation(i, 1), eq++);
+    REQUIRE(sam->getEquation(i, 1) == eq++);
 
   const ASMbase* pch = sim.getPatch(2);
   for (i = 1; i <= 3; ++i) {
-    ASSERT_EQ(sam->getEquation(pch->getNodeID((i-1)*3+2), 1), eq++);
-    ASSERT_EQ(sam->getEquation(pch->getNodeID((i-1)*3+3), 1), 0);
+    REQUIRE(sam->getEquation(pch->getNodeID((i-1)*3+2), 1) == eq++);
+    REQUIRE(sam->getEquation(pch->getNodeID((i-1)*3+3), 1) == 0);
   }
-  ASSERT_EQ(sam->getEquation(20, 1), eq++);
-  ASSERT_EQ(sam->getEquation(21, 1), eq++);
+  REQUIRE(sam->getEquation(20, 1) == eq++);
+  REQUIRE(sam->getEquation(21, 1) == eq++);
 }

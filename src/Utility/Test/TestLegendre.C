@@ -11,83 +11,86 @@
 //==============================================================================
 
 #include "Legendre.h"
-#include <fstream>
 
-#include "gtest/gtest.h"
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+
+using Catch::Matchers::WithinAbs;
+using Catch::Matchers::WithinRel;
 
 
 #ifdef HAS_BLAS
-TEST(TestLegendre, GL)
+TEST_CASE("TestLegendre.GL")
 {
   std::vector<Real> w, p;
-  ASSERT_TRUE(Legendre::GL(w, p, 3));
-  ASSERT_FLOAT_EQ(w[0], 0.5555555555555561);
-  ASSERT_FLOAT_EQ(w[1], 0.8888888888888888);
-  ASSERT_FLOAT_EQ(w[2], 0.5555555555555561);
-  ASSERT_FLOAT_EQ(p[0], -0.7745966692414832);
-  ASSERT_NEAR(p[1], 0.0, 1e-14);
-  ASSERT_FLOAT_EQ(p[2], 0.7745966692414832);
+  REQUIRE(Legendre::GL(w, p, 3));
+  REQUIRE_THAT(w[0], WithinRel(0.5555555555555561));
+  REQUIRE_THAT(w[1], WithinRel(0.8888888888888888));
+  REQUIRE_THAT(w[2], WithinRel(0.5555555555555561));
+  REQUIRE_THAT(p[0], WithinRel(-0.7745966692414832));
+  REQUIRE_THAT(p[1], WithinAbs(0.0, 1e-14));
+  REQUIRE_THAT(p[2], WithinRel(0.7745966692414832));
 
-  ASSERT_TRUE(Legendre::GL(w, p, 4));
-  ASSERT_FLOAT_EQ(w[0], 0.3478548451374518);
-  ASSERT_FLOAT_EQ(w[1], 0.6521451548625461);
-  ASSERT_FLOAT_EQ(w[2], 0.6521451548625461);
-  ASSERT_FLOAT_EQ(w[3], 0.3478548451374518);
-  ASSERT_FLOAT_EQ(p[0],-0.8611363115940535);
-  ASSERT_FLOAT_EQ(p[1],-0.3399810435848561);
-  ASSERT_FLOAT_EQ(p[2], 0.3399810435848561);
-  ASSERT_FLOAT_EQ(p[3], 0.8611363115940535);
+  REQUIRE(Legendre::GL(w, p, 4));
+  REQUIRE_THAT(w[0], WithinRel(0.3478548451374518));
+  REQUIRE_THAT(w[1], WithinRel(0.6521451548625461));
+  REQUIRE_THAT(w[2], WithinRel(0.6521451548625461));
+  REQUIRE_THAT(w[3], WithinRel(0.3478548451374518));
+  REQUIRE_THAT(p[0], WithinRel(-0.8611363115940535));
+  REQUIRE_THAT(p[1], WithinRel(-0.3399810435848561));
+  REQUIRE_THAT(p[2], WithinRel(0.3399810435848561));
+  REQUIRE_THAT(p[3], WithinRel(0.8611363115940535));
 }
 
 
-TEST(TestLegendre, GLL)
+TEST_CASE("TestLegendre.GLL")
 {
   std::vector<Real> w, p;
-  ASSERT_TRUE(Legendre::GLL(w, p, 3));
-  ASSERT_FLOAT_EQ(w[0], 0.3333333333333333);
-  ASSERT_FLOAT_EQ(w[1], 1.333333333333333);
-  ASSERT_FLOAT_EQ(w[2], 0.3333333333333333);
-  ASSERT_FLOAT_EQ(p[0], -1.0);
-  ASSERT_FLOAT_EQ(p[1], 0.0);
-  ASSERT_FLOAT_EQ(p[2], 1.0);
+  REQUIRE(Legendre::GLL(w, p, 3));
+  REQUIRE_THAT(w[0], WithinRel(0.3333333333333333));
+  REQUIRE_THAT(w[1], WithinRel(1.333333333333333));
+  REQUIRE_THAT(w[2], WithinRel(0.3333333333333333));
+  REQUIRE_THAT(p[0], WithinRel(-1.0));
+  REQUIRE_THAT(p[1], WithinAbs(0.0, 1e-14));
+  REQUIRE_THAT(p[2], WithinRel(1.0));
 
-  ASSERT_TRUE(Legendre::GLL(w, p, 4));
-  ASSERT_FLOAT_EQ(w[0], 0.1666666666666667);
-  ASSERT_FLOAT_EQ(w[1], 0.8333333333333335);
-  ASSERT_FLOAT_EQ(w[2], 0.8333333333333335);
-  ASSERT_FLOAT_EQ(w[3], 0.1666666666666667);
-  ASSERT_FLOAT_EQ(p[0],-1.0);
-  ASSERT_FLOAT_EQ(p[1],-0.447213595499958);
-  ASSERT_FLOAT_EQ(p[2], 0.447213595499958);
-  ASSERT_FLOAT_EQ(p[3], 1.0);
+  REQUIRE(Legendre::GLL(w, p, 4));
+  REQUIRE_THAT(w[0], WithinRel(0.1666666666666667));
+  REQUIRE_THAT(w[1], WithinRel(0.8333333333333335));
+  REQUIRE_THAT(w[2], WithinRel(0.8333333333333335));
+  REQUIRE_THAT(w[3], WithinRel(0.1666666666666667));
+  REQUIRE_THAT(p[0], WithinRel(-1.0));
+  REQUIRE_THAT(p[1], WithinRel(-0.447213595499958));
+  REQUIRE_THAT(p[2], WithinRel(0.447213595499958));
+  REQUIRE_THAT(p[3], WithinRel(1.0));
 }
 #endif
 
 
-TEST(TestLegendre, Eval)
+TEST_CASE("TestLegendre.Eval")
 {
   Real result1, result2;
 
   Legendre::eval(3, 0.3, result1);
   Legendre::eval(5, 0.7, result2);
-  ASSERT_FLOAT_EQ(result1, -0.3825);
-  ASSERT_FLOAT_EQ(result2, -0.3651987499999999);
+  REQUIRE_THAT(result1, WithinRel(-0.3825));
+  REQUIRE_THAT(result2, WithinRel(-0.3651987499999999));
 }
 
 
-TEST(TestLegendre, Derivative)
+TEST_CASE("TestLegendre.Derivative")
 {
   Real result1, result2;
 
   Legendre::derEval(3, 0.3, result1);
   Legendre::derEval(5, 0.7, result2);
-  ASSERT_FLOAT_EQ(result1, -0.8250000000000001);
-  ASSERT_FLOAT_EQ(result2, -1.5335625);
+  REQUIRE_THAT(result1, WithinRel(-0.8250000000000001));
+  REQUIRE_THAT(result2, WithinRel(-1.5335625));
 }
 
 
 #ifdef HAS_BLAS
-TEST(TestLegendre, BasisDerivatives)
+TEST_CASE("TestLegendre.BasisDerivatives")
 {
   utl::matrix<Real> result1, result2;
 
@@ -98,7 +101,7 @@ TEST(TestLegendre, BasisDerivatives)
 
   for (size_t i = 0; i < 3; ++i)
     for (size_t j = 0; j < 3; ++j)
-      EXPECT_FLOAT_EQ(result1(i+1, j+1), ref3[i][j]);
+      REQUIRE_THAT(result1(i+1, j+1), WithinRel(ref3[i][j]));
 
   Legendre::basisDerivatives(10, result2);
 
@@ -137,6 +140,6 @@ TEST(TestLegendre, BasisDerivatives)
 
   for (size_t i = 0; i < 10; ++i)
     for (size_t j = 0; j < 10; ++j)
-      EXPECT_FLOAT_EQ(result2(i+1, j+1), ref10[i][j]);
+      REQUIRE_THAT(result2(i+1, j+1), WithinRel(ref10[i][j]));
 }
 #endif
