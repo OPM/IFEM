@@ -12,80 +12,78 @@
 
 #include "MatrixTests.h"
 
-#include <numeric>
+#include <catch2/catch_template_test_macros.hpp>
+
 #include <iomanip>
+#include <numeric>
 #include <fstream>
 
 
-TEST(TestVector, Add)
+TEMPLATE_TEST_CASE("TestVector.Add", "", float, double)
 {
-  vectorAddTest<double>();
-  vectorAddTest<float>();
+  vectorAddTest<TestType>();
 }
 
 
-TEST(TestVector, Dot)
+TEMPLATE_TEST_CASE("TestVector.Dot", "", float, double)
 {
-  vectorDotTest<double>();
-  vectorDotTest<float>();
+  vectorDotTest<TestType>();
 }
 
 
-TEST(TestVector, Multiply)
+TEMPLATE_TEST_CASE("TestVector.Multiply", "", float, double)
 {
-  vectorMultiplyTest<double>();
-  vectorMultiplyTest<float>();
+  vectorMultiplyTest<TestType>();
 }
 
 
-TEST(TestVector, Norm)
+TEMPLATE_TEST_CASE("TestVector.Norm", "", float, double)
 {
-  vectorNormTest<double>();
-  vectorNormTest<float>();
+  vectorNormTest<TestType>();
 }
 
 
-TEST(TestMatrix, AddBlock)
+TEST_CASE("TestMatrix.AddBlock")
 {
   utl::matrix<int> a(3,3),b(2,2);
   std::iota(a.begin(),a.end(),1);
   std::iota(b.begin(),b.end(),1);
 
   a.addBlock(b, 2, 2, 2, false);
-  EXPECT_EQ(a(2,2), 7);
-  EXPECT_EQ(a(3,2), 10);
-  EXPECT_EQ(a(2,3), 14);
-  EXPECT_EQ(a(3,3), 17);
+  REQUIRE(a(2,2) == 7);
+  REQUIRE(a(3,2) == 10);
+  REQUIRE(a(2,3) == 14);
+  REQUIRE(a(3,3) == 17);
 
   a.addBlock(b, 1, 1, 1, true);
-  EXPECT_EQ(a(1,1), 2);
-  EXPECT_EQ(a(2,1), 5);
-  EXPECT_EQ(a(1,2), 6);
-  EXPECT_EQ(a(2,2), 11);
+  REQUIRE(a(1,1) == 2);
+  REQUIRE(a(2,1) == 5);
+  REQUIRE(a(1,2) == 6);
+  REQUIRE(a(2,2) == 11);
 }
 
 
-TEST(TestMatrix, ExtractBlock)
+TEST_CASE("TestMatrix.ExtractBlock")
 {
   utl::matrix<int> a(3,3), b(2,2);
 
   std::iota(a.begin(), a.end(), 1);
 
   a.extractBlock(b,1,1);
-  EXPECT_EQ(b(1,1), 1);
-  EXPECT_EQ(b(2,1), 2);
-  EXPECT_EQ(b(1,2), 4);
-  EXPECT_EQ(b(2,2), 5);
+  REQUIRE(b(1,1) == 1);
+  REQUIRE(b(2,1) == 2);
+  REQUIRE(b(1,2) == 4);
+  REQUIRE(b(2,2) == 5);
 
   a.extractBlock(b,2,2,true);
-  EXPECT_EQ(b(1,1), 1+5);
-  EXPECT_EQ(b(2,1), 2+6);
-  EXPECT_EQ(b(1,2), 4+8);
-  EXPECT_EQ(b(2,2), 5+9);
+  REQUIRE(b(1,1) == 1+5);
+  REQUIRE(b(2,1) == 2+6);
+  REQUIRE(b(1,2) == 4+8);
+  REQUIRE(b(2,2) == 5+9);
 }
 
 
-TEST(TestMatrix, AddRows)
+TEST_CASE("TestMatrix.AddRows")
 {
   utl::matrix<int> a(3,5);
   std::iota(a.begin(),a.end(),1);
@@ -97,8 +95,8 @@ TEST(TestMatrix, AddRows)
   for (size_t j = 1; j <= a.cols(); j++)
   {
     for (size_t i = 1; i <= 3; i++, fasit++)
-      EXPECT_EQ(a(i,j), fasit);
-    EXPECT_EQ(a(4,j), 0);
+      REQUIRE(a(i,j) == fasit);
+    REQUIRE(a(4,j) == 0);
   }
 
   a.expandRows(-2);
@@ -106,11 +104,11 @@ TEST(TestMatrix, AddRows)
   fasit = 1;
   for (size_t j = 1; j <= a.cols(); j++, fasit++)
     for (size_t i = 1; i <= 2; i++, fasit++)
-      EXPECT_EQ(a(i,j), fasit);
+      REQUIRE(a(i,j) == fasit);
 }
 
 
-TEST(TestMatrix, AugmentRows)
+TEST_CASE("TestMatrix.AugmentRows")
 {
   utl::matrix<int> a(5,3), b(4,3), c(3,2);
   std::iota(a.begin(),a.end(),1);
@@ -120,94 +118,92 @@ TEST(TestMatrix, AugmentRows)
   size_t nA = a.size();
   size_t na = a.rows();
   size_t nb = b.rows();
-  ASSERT_TRUE(a.augmentRows(b));
-  ASSERT_FALSE(a.augmentRows(c));
+  REQUIRE(a.augmentRows(b));
+  REQUIRE(!a.augmentRows(c));
   std::cout <<"C:"<< a;
   for (size_t j = 1; j <= a.cols(); j++)
     for (size_t i = 1; i <= a.rows(); i++)
       if (i <= na)
-        EXPECT_EQ(a(i,j), i+na*(j-1));
+        REQUIRE(a(i,j) == static_cast<int>(i+na*(j-1)));
       else
-        EXPECT_EQ(a(i,j), nA-na+i+nb*(j-1));
+        REQUIRE(a(i,j) == static_cast<int>(nA-na+i+nb*(j-1)));
 }
 
 
-TEST(TestMatrix, AugmentCols)
+TEST_CASE("TestMatrix.AugmentCols")
 {
   utl::matrix<int> a(3,5), b(3,4), c(2,3);
   std::iota(a.begin(),a.end(),1);
   std::iota(b.begin(),b.end(),16);
   std::cout <<"A:"<< a;
   std::cout <<"B:"<< b;
-  ASSERT_TRUE(a.augmentCols(b));
-  ASSERT_FALSE(a.augmentCols(c));
+  REQUIRE(a.augmentCols(b));
+  REQUIRE(!a.augmentCols(c));
   std::cout <<"C:"<< a;
   int fasit = 1;
   for (size_t j = 1; j <= a.cols(); j++)
     for (size_t i = 1; i <= a.rows(); i++, fasit++)
-      EXPECT_EQ(a(i,j), fasit);
+      REQUIRE(a(i,j) == fasit);
 }
 
 
-TEST(TestMatrix, SumCols)
+TEST_CASE("TestMatrix.SumCols")
 {
   utl::matrix<int> a(5,3);
   std::iota(a.begin(),a.end(),1);
   std::cout <<"A:"<< a;
-  EXPECT_EQ(a.sum(-1), 15);
-  EXPECT_EQ(a.sum(-2), 40);
-  EXPECT_EQ(a.sum(-3), 65);
+  REQUIRE(a.sum(-1) == 15);
+  REQUIRE(a.sum(-2) == 40);
+  REQUIRE(a.sum(-3) == 65);
 }
 
 
-TEST(TestMatrix, Fill)
+TEST_CASE("TestMatrix.Fill")
 {
   utl::matrix<int> a;
   std::vector<int> v(16);
   std::iota(v.begin(),v.end(),1);
   a.fill(v,3,4);
   std::cout <<"a:"<< a;
-  EXPECT_EQ(a(3,1),3);
+  REQUIRE(a(3,1) == 3);
   a.fill(v,4,4);
   std::cout <<"a:"<< a;
-  EXPECT_EQ(a(4,1),4);
+  REQUIRE(a(4,1) == 4);
   a.fill(v,5,4);
   std::cout <<"a:"<< a;
-  EXPECT_EQ(a(5,1),0);
+  REQUIRE(a(5,1) == 0);
 }
 
 
-TEST(TestMatrix, Zero)
+TEST_CASE("TestMatrix.Zero")
 {
   utl::matrix<double> A(4,5);
-  EXPECT_TRUE(A.zero());
+  REQUIRE(A.zero());
   A(1,2) = 1.0e-8;
-  EXPECT_FALSE(A.zero());
-  EXPECT_TRUE(A.zero(1.0e-6));
+  REQUIRE(!A.zero());
+  REQUIRE(A.zero(1.0e-6));
 }
 
-TEST(TestMatrix, Multiply)
+
+TEMPLATE_TEST_CASE("TestMatrix.Multiply", "", float, double)
 {
-  multiplyTest<double>();
-  multiplyTest<float>();
+  multiplyTest<TestType>();
 }
 
 
-TEST(TestMatrix, Norm)
+TEMPLATE_TEST_CASE("TestMatrix.Norm", "", float, double)
 {
-  normTest<double>();
-  normTest<float>();
+  normTest<TestType>();
 }
 
 
-TEST(TestMatrix, OuterProduct)
+TEMPLATE_TEST_CASE("TestMatrix.OuterProduct", "", float, double)
 {
-  outerProductTest<double>();
-  outerProductTest<float>();
+  outerProductTest<TestType>();
 }
 
 
-TEST(TestMatrix, Read)
+TEST_CASE("TestMatrix.Read")
 {
   utl::vector<double> a(26);
   utl::matrix<double> A(2,3);
@@ -222,9 +218,9 @@ TEST(TestMatrix, Read)
     utl::vector<double> b;
     is >> b;
     std::cout <<"b:"<< b;
-    ASSERT_EQ(a.size(),b.size());
+    REQUIRE(a.size() == b.size());
     for (size_t i = 1; i <= a.size(); i++)
-      EXPECT_NEAR(a(i), b(i), 1.0e-13);
+      REQUIRE_THAT(a(i), WithinRel(b(i), 1.0e-13));
   };
 
   auto&& checkMatrix = [&A](const char* fname)
@@ -233,11 +229,11 @@ TEST(TestMatrix, Read)
     utl::matrix<double> B;
     is >> B;
     std::cout <<"B:"<< B;
-    ASSERT_EQ(A.rows(),B.rows());
-    ASSERT_EQ(A.cols(),B.cols());
+    REQUIRE(A.rows() == B.rows());
+    REQUIRE(A.cols() == B.cols());
     for (size_t i = 1; i <= A.rows(); i++)
       for (size_t j = 1; j <= A.cols(); j++)
-        EXPECT_NEAR(A(i,j), B(i,j), 1.0e-13);
+        REQUIRE_THAT(A(i,j), WithinRel(B(i,j), 1.0e-13));
   };
 
   const char* fname0 = "/tmp/testVector.dat";
@@ -291,18 +287,18 @@ TEST(TestMatrix, Read)
 }
 
 
-TEST(TestMatrix3D, Trace)
+TEST_CASE("TestMatrix3D.Trace")
 {
   utl::matrix3d<double> a(4,3,3);
   std::iota(a.begin(),a.end(),1.0);
   std::cout <<"A:"<< a;
 
   for (size_t i = 1; i <= 4; i++)
-    EXPECT_FLOAT_EQ(a.trace(i),3.0*i+48.0);
+    REQUIRE_THAT(a.trace(i), WithinRel(3.0*i+48.0));
 }
 
 
-TEST(TestMatrix3D, GetColumn)
+TEST_CASE("TestMatrix3D.GetColumn")
 {
   utl::matrix3d<int> A(4,3,2);
   std::iota(A.begin(),A.end(),1);
@@ -313,16 +309,16 @@ TEST(TestMatrix3D, GetColumn)
     for (size_t r = 1; r <= A.dim(2); r++)
     {
       utl::vector<int> column = A.getColumn(r,c);
-      EXPECT_EQ(column.size(), A.dim(1));
+      REQUIRE(column.size() == A.dim(1));
       for (size_t i = 0; i < column.size(); i++, value++)
-        EXPECT_EQ(value, column[i]);
+        REQUIRE(value == column[i]);
     }
 
-  EXPECT_EQ(value, 1+(int)A.size());
+  REQUIRE(value == static_cast<int>(1+A.size()));
 }
 
 
-TEST(TestMatrix3D, DumpRead)
+TEST_CASE("TestMatrix3D.DumpRead")
 {
   int i = 0;
   utl::matrix3d<double> A(2,3,4);
@@ -334,12 +330,11 @@ TEST(TestMatrix3D, DumpRead)
   std::ifstream is(fname,std::ios::in);
   utl::matrix3d<double> B(is);
   B -= A;
-  ASSERT_NEAR(B.norm2(), 0.0, 1.0e-13);
+  REQUIRE_THAT(B.norm2(), WithinAbs(0.0, 1.0e-13));
 }
 
 
-TEST(TestMatrix3D, Multiply)
+TEMPLATE_TEST_CASE("TestMatrix3D.Multiply", "", float, double)
 {
-  matrix3DMultiplyTest<double>();
-  matrix3DMultiplyTest<float>();
+  matrix3DMultiplyTest<TestType>();
 }

@@ -12,24 +12,30 @@
 
 #include "TriangleQuadrature.h"
 
-#include "gtest/gtest.h"
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+
+using Catch::Matchers::WithinRel;
+
 #include <numeric>
 
 
-TEST(TestTriangleQuadrature, Sanity)
+TEST_CASE("TestTriangleQuadrature.Sanity")
 {
   // Quadratures that are intended to not exist
   for (int i : {-1,2,5}) {
-    EXPECT_EQ(TriangleQuadrature::getCoord(i), nullptr);
-    EXPECT_EQ(TriangleQuadrature::getWeight(i), nullptr);
+    REQUIRE(TriangleQuadrature::getCoord(i) == nullptr);
+    REQUIRE(TriangleQuadrature::getWeight(i) == nullptr);
   }
 
   for (int i : {1,3,4}) {
     const double* c = TriangleQuadrature::getCoord(i);
     const double* w = TriangleQuadrature::getWeight(i);
     double sum = std::accumulate(w, w+i, 0.0);
-    EXPECT_FLOAT_EQ(sum, 1.0);
-    for (int j = 0; j < i; ++j)
-      EXPECT_TRUE(c[j] >= 0.0 && c[j] <= 1.0);
+    REQUIRE_THAT(sum, WithinRel(1.0));
+    for (int j = 0; j < i; ++j){
+      REQUIRE(c[j] >= 0.0);
+      REQUIRE(c[j] <= 1.0);
+    }
   }
 }

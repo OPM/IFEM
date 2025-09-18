@@ -20,66 +20,70 @@
 #include "GoTools/trivariate/SphereVolume.h"
 #include "GoTools/trivariate/SplineVolume.h"
 #include "ExprFunctions.h"
-#include <fstream>
 
-#include "gtest/gtest.h"
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+
+using Catch::Matchers::WithinAbs;
+using Catch::Matchers::WithinRel;
 
 
-TEST(TestSplineUtils, ToVec3)
+TEST_CASE("TestSplineUtils.ToVec3")
 {
   Go::Point X(1.0, 2.0, 3.0);
   Vec3 result1 = SplineUtils::toVec3(X,2);
   Vec3 result2 = SplineUtils::toVec3(X,3);
   Vec3 result3 = SplineUtils::toVec3(X);
-  EXPECT_FLOAT_EQ(result1.x, 1.0);
-  EXPECT_FLOAT_EQ(result1.y, 2.0);
-  EXPECT_FLOAT_EQ(result2.x, 1.0);
-  EXPECT_FLOAT_EQ(result2.y, 2.0);
-  EXPECT_FLOAT_EQ(result2.z, 3.0);
-  EXPECT_FLOAT_EQ(result3.x, 1.0);
-  EXPECT_FLOAT_EQ(result3.y, 2.0);
-  EXPECT_FLOAT_EQ(result3.z, 3.0);
+  REQUIRE_THAT(result1.x, WithinRel(1.0));
+  REQUIRE_THAT(result1.y, WithinRel(2.0));
+  REQUIRE_THAT(result2.x, WithinRel(1.0));
+  REQUIRE_THAT(result2.y, WithinRel(2.0));
+  REQUIRE_THAT(result2.z, WithinRel(3.0));
+  REQUIRE_THAT(result3.x, WithinRel(1.0));
+  REQUIRE_THAT(result3.y, WithinRel(2.0));
+  REQUIRE_THAT(result3.z, WithinRel(3.0));
 }
 
 
-TEST(TestSplineUtils, ToVec4)
+TEST_CASE("TestSplineUtils.ToVec4")
 {
   Go::Point X(1.0, 2.0, 3.0);
   Vec4 result = SplineUtils::toVec4(X,4.0);
-  EXPECT_FLOAT_EQ(result.x, 1.0);
-  EXPECT_FLOAT_EQ(result.y, 2.0);
-  EXPECT_FLOAT_EQ(result.z, 3.0);
-  EXPECT_FLOAT_EQ(result.t, 4.0);
+  REQUIRE_THAT(result.x, WithinRel(1.0));
+  REQUIRE_THAT(result.y, WithinRel(2.0));
+  REQUIRE_THAT(result.z, WithinRel(3.0));
+  REQUIRE_THAT(result.t, WithinRel(4.0));
 }
 
 
-TEST(TestSplineUtils, PointCurve)
+TEST_CASE("TestSplineUtils.PointCurve")
 {
   Go::Line line(Go::Point(0.0, 0.0, 0.0), Go::Point(1.0, 0.0, 0.0));
   Go::SplineCurve* crv = line.createSplineCurve();
 
   Vec3 result;
   SplineUtils::point(result, 0.3, crv);
-  EXPECT_FLOAT_EQ(result.x, 0.3);
-  EXPECT_FLOAT_EQ(result.y, 0.0);
-  EXPECT_FLOAT_EQ(result.z, 0.0);
+  REQUIRE_THAT(result.x, WithinRel(0.3, 1e-7));
+  REQUIRE_THAT(result.y, WithinAbs(0.0, 1e-14));
+  REQUIRE_THAT(result.z, WithinAbs(0.0, 1e-14));
 }
 
 
-TEST(TestSplineUtils, PointSurface)
+TEST_CASE("TestSplineUtils.PointSurface")
 {
   Go::Plane plane(Go::Point(0.0, 0.0, 0.0), Go::Point(1.0, 0.0, 0.0));
   Go::SplineSurface* srf = plane.createSplineSurface();
 
   Vec3 result;
   SplineUtils::point(result, 0.3, 0.3, srf);
-  EXPECT_FLOAT_EQ(result.x, 0.0);
-  EXPECT_FLOAT_EQ(result.y, 0.3);
-  EXPECT_FLOAT_EQ(result.z, 0.3);
+  REQUIRE_THAT(result.x, WithinAbs(0.0, 1e-14));
+  REQUIRE_THAT(result.y, WithinRel(0.3, 1e-7));
+  REQUIRE_THAT(result.z, WithinRel(0.3, 1e-7));
 }
 
 
-TEST(TestSplineUtils, PointVolume)
+TEST_CASE("TestSplineUtils.PointVolume")
 {
   Go::SphereVolume sphere(1.0, Go::Point(0.0, 0.0, 0.0),
                           Go::Point(0.0, 0.0, 1.0), Go::Point(1.0, 0.0, 0.0));
@@ -87,13 +91,13 @@ TEST(TestSplineUtils, PointVolume)
 
   Vec3 result;
   SplineUtils::point(result, 0.3, 0.3, 0.3, vol);
-  EXPECT_FLOAT_EQ(result.x, 0.2392104875250847);
-  EXPECT_FLOAT_EQ(result.y, 0.1603249784385625);
-  EXPECT_FLOAT_EQ(result.z, 0.08410852481577462);
+  REQUIRE_THAT(result.x, WithinRel(0.2392104875250847));
+  REQUIRE_THAT(result.y, WithinRel(0.1603249784385625));
+  REQUIRE_THAT(result.z, WithinRel(0.08410852481577462));
 }
 
 
-TEST(TestSplineUtils, ExtractBasisSurface)
+TEST_CASE("TestSplineUtils.ExtractBasisSurface")
 {
   Go::Plane plane(Go::Point(0.0, 0.0, 0.0), Go::Point(0.0, 0.0, 1.0),
                   Go::Point(sqrt(2.0), sqrt(2.0), 0.0));
@@ -119,7 +123,7 @@ TEST(TestSplineUtils, ExtractBasisSurface)
                          0.09000000000000002};
 
   for (size_t i = 0; i < 4; ++i)
-    EXPECT_FLOAT_EQ(N[i], Nref[i]);
+    REQUIRE_THAT(N[i], WithinRel(Nref[i]));
 
   const double dNdUref[4][2] = {{-0.7, -0.7},
                                 { 0.7, -0.3},
@@ -128,7 +132,7 @@ TEST(TestSplineUtils, ExtractBasisSurface)
 
   for (size_t i = 0; i < 4; ++i)
     for (size_t j = 0; j < 2; ++j)
-      EXPECT_FLOAT_EQ(dNdU(i+1, j+1), dNdUref[i][j]);
+      REQUIRE_THAT(dNdU(i+1, j+1), WithinRel(dNdUref[i][j]));
 
   SplineUtils::extractBasis(spline2[0],N,dNdU,d2NdU2);
 
@@ -156,11 +160,11 @@ TEST(TestSplineUtils, ExtractBasisSurface)
   for (size_t i = 0; i < 2; ++i)
     for (size_t j = 0; j < 9; ++j)
       for (size_t k = 0; k < 2; ++k)
-        EXPECT_FLOAT_EQ(d2NdU2(j+1, i+1, k+1), d2NdU2ref[i][j][k]);
+        REQUIRE_THAT(d2NdU2(j+1, i+1, k+1), WithinRel(d2NdU2ref[i][j][k]));
 }
 
 
-TEST(TestSplineUtils, ExtractBasisVolume)
+TEST_CASE("TestSplineUtils.ExtractBasisVolume")
 {
   Go::SphereVolume sphere(1.0, Go::Point(0.0, 0.0, 0.0),
                           Go::Point(0.0, 0.0, 1.0), Go::Point(1.0, 0.0, 0.0));
@@ -200,7 +204,7 @@ TEST(TestSplineUtils, ExtractBasisVolume)
                          0.005546552238969353};
 
   for (size_t i = 0; i < 18; ++i)
-    EXPECT_FLOAT_EQ(N[i], Nref[i]);
+    REQUIRE_THAT(N[i], WithinRel(Nref[i]));
 
   const double dNdUref[18][3] =
       {{-0.131473830849644,    -0.7775496595279607, -0.9454088359081324 },
@@ -224,7 +228,7 @@ TEST(TestSplineUtils, ExtractBasisVolume)
 
   for (size_t i = 0; i < 18; ++i)
     for (size_t j = 0; j < 3; ++j)
-      EXPECT_FLOAT_EQ(dNdU(i+1, j+1), dNdUref[i][j]);
+      REQUIRE_THAT(dNdU(i+1, j+1), WithinRel(dNdUref[i][j]));
 
   const double d2NdU2ref[3][48][3] =
   {{{0.08414325174377223,    0.7921331632010978,   0.8995630360844077},
@@ -378,11 +382,11 @@ TEST(TestSplineUtils, ExtractBasisVolume)
   for (size_t i = 0; i < 3; ++i)
     for (size_t j = 0; j < 48; ++j)
       for (size_t k = 0; k < 3; ++k)
-        EXPECT_FLOAT_EQ(d2NdU2(j+1, k+1, i+1), d2NdU2ref[i][j][k]);
+        REQUIRE_THAT(d2NdU2(j+1, k+1, i+1), WithinRel(d2NdU2ref[i][j][k]));
 }
 
 
-TEST(TestSplineUtils, ProjectCurve)
+TEST_CASE("TestSplineUtils.ProjectCurve")
 {
   Go::Line line(Go::Point(0.0, 0.0, 0.0), Go::Point(1.0, 0.0, 0.0));
   Go::SplineCurve* crv = line.createSplineCurve();
@@ -399,16 +403,16 @@ TEST(TestSplineUtils, ProjectCurve)
   SplineUtils::point(result3, 0.5, prjCrv2);
   SplineUtils::point(result4, 0.8, prjCrv2);
 
-  EXPECT_FLOAT_EQ(result1.x, -0.0783364);
-  EXPECT_FLOAT_EQ(result2.x, -0.0694399);
-  EXPECT_FLOAT_EQ(result3.x, -0.0783364);
-  EXPECT_FLOAT_EQ(result3.y, -0.0363385);
-  EXPECT_FLOAT_EQ(result4.x, -0.0694399);
-  EXPECT_FLOAT_EQ(result4.y, -0.0363385);
+  REQUIRE_THAT(result1.x, WithinRel(-0.0783364, 1e-6));
+  REQUIRE_THAT(result2.x, WithinRel(-0.0694399, 1e-6));
+  REQUIRE_THAT(result3.x, WithinRel(-0.0783364, 1e-6));
+  REQUIRE_THAT(result3.y, WithinRel(-0.0363385, 1e-6));
+  REQUIRE_THAT(result4.x, WithinRel(-0.0694399, 1e-6));
+  REQUIRE_THAT(result4.y, WithinRel(-0.0363385, 1e-6));
 }
 
 
-TEST(TestSplineUtils, ProjectSurface)
+TEST_CASE("TestSplineUtils.ProjectSurface")
 {
   Go::Disc disc(Go::Point(0.0, 0.0, 0.0), 1.0,
                 Go::Point(1.0/sqrt(2.0), 1.0/sqrt(2.0), 0.0),
@@ -426,16 +430,16 @@ TEST(TestSplineUtils, ProjectSurface)
   SplineUtils::point(result2, 0.8, 0.8, prjSrf);
   SplineUtils::point(result3, 0.5, 0.5, prjSrf2);
   SplineUtils::point(result4, 0.8, 0.8, prjSrf2);
-  EXPECT_FLOAT_EQ(result1.x,  0.02110140763086564);
-  EXPECT_FLOAT_EQ(result2.x, -0.02189938149140131);
-  EXPECT_FLOAT_EQ(result3.x,  0.02110140763086564);
-  EXPECT_FLOAT_EQ(result3.y,  0.07889859236913437);
-  EXPECT_FLOAT_EQ(result4.x, -0.02189938149140131);
-  EXPECT_FLOAT_EQ(result4.y,  0.06514225417205573);
+  REQUIRE_THAT(result1.x, WithinRel(0.02110140763086564));
+  REQUIRE_THAT(result2.x, WithinRel(-0.02189938149140131));
+  REQUIRE_THAT(result3.x, WithinRel(0.02110140763086564));
+  REQUIRE_THAT(result3.y, WithinRel(0.07889859236913437));
+  REQUIRE_THAT(result4.x, WithinRel(-0.02189938149140131));
+  REQUIRE_THAT(result4.y, WithinRel(0.06514225417205573));
 }
 
 
-TEST(TestSplineUtils, BuildKnotVector)
+TEST_CASE("TestSplineUtils.BuildKnotVector")
 {
   const std::vector<double>& ref = {0.0, 0.0, 0.0, 0.0,
                                     1.0,
@@ -447,15 +451,16 @@ TEST(TestSplineUtils, BuildKnotVector)
                                                         {0.0, 1.0, 2.0, 3.0, 4.0, 5.0},
                                                         {-1, 2, 2, 1, 2, -1});
 
-  EXPECT_EQ(ref.size(), res.size());
+  REQUIRE(ref.size() == res.size());
   for (size_t i = 0; i < ref.size(); ++i)
-    EXPECT_FLOAT_EQ(ref[i], res[i]);
+    REQUIRE_THAT(ref[i], WithinRel(res[i]));
 }
 
 
 namespace {
 
 struct AdjustBasisTest {
+  const char* name;
   int order_in;
   std::vector<double> knots_in;
   SplineUtils::AdjustOp op;
@@ -464,62 +469,64 @@ struct AdjustBasisTest {
 
 using Op = SplineUtils::AdjustOp;
 
-const std::vector<AdjustBasisTest> tests = {
-  // p1 -> p1
-  {2, {0.0, 0.0, 1.0, 1.0}, Op::Original,
-      {0.0, 0.0, 1.0, 1.0}},
-
-  // p1 -> p2
-  {2, {0.0, 0.0, 1.0, 1.0}, Op::Raise,
-      {0.0, 0.0, 0.0, 1.0, 1.0, 1.0}},
-  // p1 -> p2, extra knot
-  {2, {0.0, 0.0, 0.5, 1.0, 1.0}, Op::Raise,
-      {0.0, 0.0, 0.0, 0.5, 1.0, 1.0, 1.0}},
-  // p2 -> p3, extra knot
-  {3, {0.0, 0.0, 0.0, 0.5, 1.0, 1.0, 1.0}, Op::Raise,
-      {0.0, 0.0, 0.0, 0.0, 0.5, 1.0, 1.0, 1.0, 1.0}},
-  // p2 -> p3, reduced cont
-  {3, {0.0, 0.0, 0.0, 0.5, 0.5, 1.0, 1.0, 1.0}, Op::Raise,
-      {0.0, 0.0, 0.0, 0.0, 0.5, 0.5, 0.5, 1.0, 1.0, 1.0, 1.0}},
-  //p3 -> p4
-  {4, {0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0}, Op::Raise,
-      {0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0}},
-  //p3 -> p4, reduced cont
-  {4, {0.0, 0.0, 0.0, 0.0, 0.5, 0.5, 1.0, 1.0, 1.0, 1.0}, Op::Raise,
-      {0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.5, 0.5, 1.0, 1.0, 1.0, 1.0, 1.0}},
-
-  //p2 -> p1
-  {3, {0.0, 0.0, 0.0, 1.0, 1.0, 1.0}, Op::Lower,
-      {0.0, 0.0, 1.0, 1.0}},
-  //p2 -> p1, extra knot
-  {3, {0.0, 0.0, 0.0, 0.5, 1.0, 1.0, 1.0}, Op::Lower,
-      {0.0, 0.0, 0.5, 1.0, 1.0}},
-  //p3 -> p2, reduced cont
-  {4, {0.0, 0.0, 0.0, 0.0, 0.5, 0.5, 1.0, 1.0, 1.0, 1.0}, Op::Lower,
-      {0.0, 0.0, 0.0, 0.5, 0.5, 1.0, 1.0, 1.0}},
-  //p4 -> p3
-  {5, {0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0}, Op::Lower,
-      {0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0}},
-};
-
-}
-
-class TestSplineUtils : public testing::Test,
-                        public testing::WithParamInterface<AdjustBasisTest>
-{
-};
-
-
-TEST_P(TestSplineUtils, AdjustBasis)
-{
-  Go::BsplineBasis basis_in(GetParam().order_in,
-                            GetParam().knots_in.begin(),
-                            GetParam().knots_in.end());
-
-  const Go::BsplineBasis res = SplineUtils::adjustBasis(basis_in,GetParam().op);
-  const std::vector<double> out{res.begin(), res.end()};
-  EXPECT_EQ(out, GetParam().knots_out);
 }
 
 
-INSTANTIATE_TEST_SUITE_P(TestSplineUtils, TestSplineUtils, testing::ValuesIn(tests));
+TEST_CASE("TestSplineUtils.AdjustBasis")
+{
+  const auto param = GENERATE(
+      AdjustBasisTest{"p1 -> p1",
+                      2, {0.0, 0.0, 1.0, 1.0}, Op::Original,
+                         {0.0, 0.0, 1.0, 1.0}},
+
+      AdjustBasisTest{"p1 -> p2",
+                      2, {0.0, 0.0, 1.0, 1.0}, Op::Raise,
+                         {0.0, 0.0, 0.0, 1.0, 1.0, 1.0}},
+
+      AdjustBasisTest{"p1 -> p2, extra knot",
+                      2, {0.0, 0.0, 0.5, 1.0, 1.0}, Op::Raise,
+                         {0.0, 0.0, 0.0, 0.5, 1.0, 1.0, 1.0}},
+
+      AdjustBasisTest{"p2 -> p3, extra knot",
+                      3, {0.0, 0.0, 0.0, 0.5, 1.0, 1.0, 1.0}, Op::Raise,
+                         {0.0, 0.0, 0.0, 0.0, 0.5, 1.0, 1.0, 1.0, 1.0}},
+
+      AdjustBasisTest{"p2 -> p3, reduced cont",
+                      3, {0.0, 0.0, 0.0, 0.5, 0.5, 1.0, 1.0, 1.0}, Op::Raise,
+                         {0.0, 0.0, 0.0, 0.0, 0.5, 0.5, 0.5, 1.0, 1.0, 1.0, 1.0}},
+
+      AdjustBasisTest{"p3 -> p4",
+                      4, {0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0}, Op::Raise,
+                         {0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0}},
+
+      AdjustBasisTest{"p3 -> p4, reduced cont",
+                      4, {0.0, 0.0, 0.0, 0.0, 0.5, 0.5, 1.0, 1.0, 1.0, 1.0}, Op::Raise,
+                         {0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.5, 0.5, 1.0, 1.0, 1.0, 1.0, 1.0}},
+
+      AdjustBasisTest{"p2 -> p1",
+                      3, {0.0, 0.0, 0.0, 1.0, 1.0, 1.0}, Op::Lower,
+                         {0.0, 0.0, 1.0, 1.0}},
+
+      AdjustBasisTest{"p2 ->p1, extra knot",
+                      3, {0.0, 0.0, 0.0, 0.5, 1.0, 1.0, 1.0}, Op::Lower,
+                         {0.0, 0.0, 0.5, 1.0, 1.0}},
+
+      AdjustBasisTest{"p3 -> p2, reduced cont",
+                      4, {0.0, 0.0, 0.0, 0.0, 0.5, 0.5, 1.0, 1.0, 1.0, 1.0}, Op::Lower,
+                         {0.0, 0.0, 0.0, 0.5, 0.5, 1.0, 1.0, 1.0}},
+
+      AdjustBasisTest{"p4 -> p3",
+                      5, {0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0}, Op::Lower,
+                         {0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0}}
+  );
+
+  SECTION(param.name) {
+    Go::BsplineBasis basis_in(param.order_in,
+                              param.knots_in.begin(),
+                              param.knots_in.end());
+
+    const Go::BsplineBasis res = SplineUtils::adjustBasis(basis_in,param.op);
+    const std::vector<double> out{res.begin(), res.end()};
+    REQUIRE(out == param.knots_out);
+  }
+}

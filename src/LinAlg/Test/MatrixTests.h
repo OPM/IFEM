@@ -12,10 +12,15 @@
 
 #include "matrixnd.h"
 
-#include <gtest/gtest.h>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/internal/catch_assertion_handler.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <limits>
 #include <numeric>
+
+using Catch::Matchers::WithinAbs;
+using Catch::Matchers::WithinRel;
 
 
 namespace {
@@ -40,12 +45,12 @@ void vectorAddTest()
   std::cout <<"d4:"<< d4 << std::endl;
 
   for (size_t i = 0; i < d2.size(); ++i) {
-    EXPECT_FLOAT_EQ(d2[i], 2.5*(i+1));
-    EXPECT_FLOAT_EQ(d4[i], d3[i/2]);
+    REQUIRE_THAT(d2[i], WithinRel(2.5*(i+1)));
+    REQUIRE_THAT(d4[i], WithinRel(d3[i/2]));
   }
 
   for (size_t i = 0; i < d3.size(); ++i)
-    EXPECT_FLOAT_EQ(d3[i], i+1);
+    REQUIRE_THAT(d3[i], WithinRel(i + 1.0));
 
   d2.fill(0.0);
   d2.add(d, 1.0, 0, 3, 0, 3);
@@ -53,11 +58,11 @@ void vectorAddTest()
   d2.add(d, 1.0, 2, 3, 2, 3);
   std::cout <<"d5:"<< d2 << std::endl;
   for (size_t i = 0; i < d.size(); ++i)
-    EXPECT_FLOAT_EQ(d[i], d2[i]);
+    REQUIRE_THAT(d[i], WithinRel(d2[i]));
   d2.add(d, 1.0, 0, 1, 7, 3);
   std::cout <<"d6:"<< d2 << std::endl;
   for (size_t i = 7; i < d.size(); i += 3)
-    EXPECT_FLOAT_EQ(d2[i], d[i]+(i-4)/3);
+    REQUIRE_THAT(d2[i], WithinRel(d[i]+(i-4)/3));
 }
 
 
@@ -71,7 +76,7 @@ void vectorDotTest()
   for (size_t i = 0; i < size; ++i)
     d[i] = std::sqrt(i);
 
-  EXPECT_FLOAT_EQ(d.dot(d), max);
+  REQUIRE_THAT(d.dot(d), WithinRel(max));
 }
 
 
@@ -85,7 +90,7 @@ void vectorMultiplyTest()
   d *= 2.0;
 
   for (size_t i = 0; i < size; ++i)
-    EXPECT_FLOAT_EQ(d[i], 2.0 * i);
+    REQUIRE_THAT(d[i], WithinRel(2.0 * i));
 }
 
 
@@ -98,8 +103,8 @@ void vectorNormTest()
   utl::vector<Scalar> d(size);
   std::iota(d.begin(), d.end(), 1.0);
 
-  EXPECT_FLOAT_EQ(d.normInf(), size);
-  EXPECT_FLOAT_EQ(d.norm2(), max);
+  REQUIRE_THAT(d.normInf(), WithinRel(static_cast<Scalar>(size)));
+  REQUIRE_THAT(d.norm2(), WithinRel(max));
 }
 
 
@@ -119,48 +124,48 @@ void multiplyTest()
   for (size_t i = 1; i <= 3; ++i)
     I2(i,i) = 1.0;
 
-  ASSERT_TRUE(A.multiply(u,x,1.0,0.0,false,3,4,1,2));
-  ASSERT_TRUE(A.multiply(v,y,1.0,0.0,true,4,2));
+  REQUIRE(A.multiply(u,x,1.0,0.0,false,3,4,1,2));
+  REQUIRE(A.multiply(v,y,1.0,0.0,true,4,2));
 
-  EXPECT_FLOAT_EQ(x(3),370.0);
-  EXPECT_FLOAT_EQ(x(7),410.0);
-  EXPECT_FLOAT_EQ(x(11),450.0);
-  EXPECT_FLOAT_EQ(y(1),38.0);
-  EXPECT_FLOAT_EQ(y(3),83.0);
-  EXPECT_FLOAT_EQ(y(5),128.0);
-  EXPECT_FLOAT_EQ(y(7),173.0);
-  EXPECT_FLOAT_EQ(y(9),218.0);
+  REQUIRE_THAT(x(3),  WithinRel(370.0));
+  REQUIRE_THAT(x(7),  WithinRel(410.0));
+  REQUIRE_THAT(x(11), WithinRel(450.0));
+  REQUIRE_THAT(y(1),  WithinRel(38.0));
+  REQUIRE_THAT(y(3),  WithinRel(83.0));
+  REQUIRE_THAT(y(5),  WithinRel(128.0));
+  REQUIRE_THAT(y(7),  WithinRel(173.0));
+  REQUIRE_THAT(y(9),  WithinRel(218.0));
 
-  ASSERT_TRUE(A.multiply(u,x,1.0,-1.0,false,3,4,1,2));
-  ASSERT_TRUE(A.multiply(v,y,1.0,-1.0,true,4,2));
+  REQUIRE(A.multiply(u,x,1.0,-1.0,false,3,4,1,2));
+  REQUIRE(A.multiply(v,y,1.0,-1.0,true,4,2));
 
-  EXPECT_FLOAT_EQ(x.sum(),0.0);
-  EXPECT_FLOAT_EQ(y.sum(),0.0);
+  REQUIRE_THAT(x.sum(), WithinAbs(0.0, 1e-14));
+  REQUIRE_THAT(y.sum(), WithinAbs(0.0, 1e-14));
 
   u.resize(5,utl::RETAIN);
-  ASSERT_TRUE(A.multiply(u,v));
+  REQUIRE(A.multiply(u,v));
   v *= 0.5;
 
-  EXPECT_FLOAT_EQ(v(1),67.5);
-  EXPECT_FLOAT_EQ(v(2),75.0);
-  EXPECT_FLOAT_EQ(v(3),82.5);
+  REQUIRE_THAT(v(1), WithinRel(67.5));
+  REQUIRE_THAT(v(2), WithinRel(75.0));
+  REQUIRE_THAT(v(3), WithinRel(82.5));
 
   B.multiplyMat(A, static_cast<const std::vector<Scalar>&>(I));
   B2.multiplyMat(A, static_cast<const std::vector<Scalar>&>(I), false, true);
   B3.multiplyMat(A, static_cast<const std::vector<Scalar>&>(I2), true, false);
-  EXPECT_EQ(B.rows(), A.rows());
-  EXPECT_EQ(B.cols(), A.cols());
+  REQUIRE(B.rows() == A.rows());
+  REQUIRE(B.cols() == A.cols());
   for (size_t i = 1; i <= 3; ++i)
     for (size_t j = 1; j <= 5; ++j) {
-      EXPECT_FLOAT_EQ(B(i,j), A(i,j));
-      EXPECT_FLOAT_EQ(B2(i,j), 2.0*A(i,j));
-      EXPECT_FLOAT_EQ(B3(j,i), A(i,j));
+      REQUIRE_THAT(B(i,j), WithinRel(A(i,j)));
+      REQUIRE_THAT(B2(i,j), WithinRel(2.0*A(i,j)));
+      REQUIRE_THAT(B3(j,i), WithinRel(A(i,j)));
     }
 
-  ASSERT_TRUE(A.multiply(u,v));
-  EXPECT_FLOAT_EQ(v(1),135.0);
-  EXPECT_FLOAT_EQ(v(2),150.0);
-  EXPECT_FLOAT_EQ(v(3),165.0);
+  REQUIRE(A.multiply(u,v));
+  REQUIRE_THAT(v(1), WithinRel(135.0));
+  REQUIRE_THAT(v(2), WithinRel(150.0));
+  REQUIRE_THAT(v(3), WithinRel(165.0));
 }
 
 
@@ -173,12 +178,12 @@ void normTest()
   std::iota(a.begin(),a.end(),1.0);
   std::cout <<"A:"<< a;
 
-  EXPECT_FLOAT_EQ(a.sum(),210.0);
-  EXPECT_FLOAT_EQ(a.sum(5),34.0);
-  EXPECT_FLOAT_EQ(a.asum(5),34.0);
-  EXPECT_FLOAT_EQ(a.trace(),34.0);
-  EXPECT_NEAR(a.norm2(5),sqrt(414.0),eps);
-  EXPECT_FLOAT_EQ(a.normInf(),60.0);
+  REQUIRE_THAT(a.sum(),     WithinRel(210.0));
+  REQUIRE_THAT(a.sum(5),    WithinRel(34.0));
+  REQUIRE_THAT(a.asum(5),   WithinRel(34.0));
+  REQUIRE_THAT(a.trace(),   WithinRel(34.0));
+  REQUIRE_THAT(a.norm2(5),  WithinAbs(sqrt(414.0), eps));
+  REQUIRE_THAT(a.normInf(), WithinRel(60.0));
 }
 
 
@@ -199,13 +204,13 @@ void outerProductTest()
   utl::matrix<Scalar> A2(A);
   A2.outer_product(u, v, true, 2.0);
 
-  EXPECT_EQ(A.rows(), size1);
-  EXPECT_EQ(A.cols(), size2);
+  REQUIRE(A.rows() == size1);
+  REQUIRE(A.cols() == size2);
 
   for (size_t i = 1; i <= size1; ++i)
     for (size_t j = 1; j <= size2; ++j) {
-      EXPECT_FLOAT_EQ(A(i,j), u(i)*v(j));
-      EXPECT_FLOAT_EQ(A2(i,j), 3.0*u(i)*v(j));
+      REQUIRE_THAT(A(i,j), WithinRel(u(i)*v(j)));
+      REQUIRE_THAT(A2(i,j), WithinRel(3.0*u(i)*v(j)));
     }
 }
 
@@ -222,11 +227,11 @@ void matrix3DMultiplyTest()
   std::iota(B.begin(),B.end(),1.0);
 
   C.multiply(A,B);
-  ASSERT_TRUE(D.multiplyMat(a,B));
+  REQUIRE(D.multiplyMat(a,B));
 
   typename std::vector<Scalar>::const_iterator c = C.begin();
   for (const Scalar d : D)
-    EXPECT_FLOAT_EQ(d,*(c++));
+    REQUIRE_THAT(d, WithinRel(*(c++)));
 }
 
 }

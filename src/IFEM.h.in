@@ -40,7 +40,7 @@ class ControlCallback;
 class IFEM
 {
 public:
-  //! \brief Initializes the IFEM library.
+   //! \brief Initializes the IFEM library.
   //! \param[in] arg_c The number of command-line arguments
   //! \param[in] arg_v The command-line arguments
   //! \param[in] title The title of the IFEM simulator

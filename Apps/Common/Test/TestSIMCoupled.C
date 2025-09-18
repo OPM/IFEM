@@ -17,8 +17,9 @@
 #include "matrix.h"
 #include "SIMCoupled.h"
 
-#include "gtest/gtest.h"
+#include <catch2/catch_test_macros.hpp>
 
+namespace {
 
 class SIMMockCoupled {
 public:
@@ -77,10 +78,10 @@ public:
   utl::vector<double>* getField(const std::string& name)
   {
     getfield_called = true;
-    return NULL;
+    return nullptr;
   }
   void setVTF(VTF* vtf) { setvtf_called = true; }
-  VTF* getVTF() { getvtf_called = true; return NULL; }
+  VTF* getVTF() { getvtf_called = true; return nullptr; }
 
   bool preprocess_called;
   bool advancestep_called;
@@ -101,7 +102,9 @@ public:
   bool getvtf_called;
 };
 
-TEST(TestSIMCoupled, Override)
+}
+
+TEST_CASE("TestSIMCoupled.Override")
 {
   SIMMockCoupled ovr1, ovr2;
   SIMCoupled<SIMMockCoupled,SIMMockCoupled> sim(ovr1,ovr2);
@@ -113,48 +116,48 @@ TEST(TestSIMCoupled, Override)
   sim.advanceStep(tp);
   sim.solveStep(tp);
   sim.saveStep(tp, nBlock);
-  sim.saveModel((char*)"", geoBlk, nBlock);
+  sim.saveModel(const_cast<char*>(""), geoBlk, nBlock);
   sim.init(tp);
-  sim.registerDependency(NULL, "", 2, std::vector<ASMbase*>());
-  sim.registerDependency(NULL, "", 2);
+  sim.registerDependency(nullptr, "", 2, std::vector<ASMbase*>());
+  sim.registerDependency(nullptr, "", 2);
   sim.getUniquePropertyCode("", 0);
   sim.createPropertySet("", 0);
-  sim.setVecProperty(0, Property::MATERIAL, NULL, -1);
+  sim.setVecProperty(0, Property::MATERIAL, nullptr, -1);
   sim.registerFields(exporter);
   sim.setInitialConditions();
   sim.hasIC("");
   sim.getField("");
   sim.getVTF();
 
-  ASSERT_TRUE(ovr1.preprocess_called);
-  ASSERT_TRUE(ovr2.preprocess_called);
-  ASSERT_TRUE(ovr1.advancestep_called);
-  ASSERT_TRUE(ovr2.advancestep_called);
-  ASSERT_TRUE(ovr1.solvestep_called);
-  ASSERT_TRUE(ovr2.solvestep_called);
-  ASSERT_TRUE(ovr1.savemodel_called);
-  ASSERT_TRUE(ovr1.init_called);
-  ASSERT_TRUE(ovr2.init_called);
-  ASSERT_TRUE(ovr1.registerdependency1_called);
-  ASSERT_TRUE(ovr2.registerdependency1_called);
-  ASSERT_TRUE(ovr1.registerdependency2_called);
-  ASSERT_TRUE(ovr2.registerdependency2_called);
-  ASSERT_TRUE(ovr1.getuniquepropertycode_called);
-  ASSERT_FALSE(ovr2.getuniquepropertycode_called);
-  ASSERT_TRUE(ovr1.createpropertyset_called);
-  ASSERT_FALSE(ovr2.createpropertyset_called);
-  ASSERT_TRUE(ovr1.setvecproperty_called);
-  ASSERT_FALSE(ovr2.setvecproperty_called);
-  ASSERT_TRUE(ovr1.registerfields_called);
-  ASSERT_TRUE(ovr2.registerfields_called);
-  ASSERT_TRUE(ovr1.setinitialconditions_called);
-  ASSERT_TRUE(ovr2.setinitialconditions_called);
-  ASSERT_TRUE(ovr1.hasic_called);
-  ASSERT_TRUE(ovr2.hasic_called);
-  ASSERT_TRUE(ovr1.getfield_called);
-  ASSERT_TRUE(ovr2.getfield_called);
-  ASSERT_TRUE(ovr1.getvtf_called);
-  ASSERT_FALSE(ovr2.getvtf_called);
-  ASSERT_FALSE(ovr1.setvtf_called);
-  ASSERT_TRUE(ovr2.setvtf_called);
+  REQUIRE(ovr1.preprocess_called);
+  REQUIRE(ovr2.preprocess_called);
+  REQUIRE(ovr1.advancestep_called);
+  REQUIRE(ovr2.advancestep_called);
+  REQUIRE(ovr1.solvestep_called);
+  REQUIRE(ovr2.solvestep_called);
+  REQUIRE(ovr1.savemodel_called);
+  REQUIRE(ovr1.init_called);
+  REQUIRE(ovr2.init_called);
+  REQUIRE(ovr1.registerdependency1_called);
+  REQUIRE(ovr2.registerdependency1_called);
+  REQUIRE(ovr1.registerdependency2_called);
+  REQUIRE(ovr2.registerdependency2_called);
+  REQUIRE(ovr1.getuniquepropertycode_called);
+  REQUIRE(!ovr2.getuniquepropertycode_called);
+  REQUIRE(ovr1.createpropertyset_called);
+  REQUIRE(!ovr2.createpropertyset_called);
+  REQUIRE(ovr1.setvecproperty_called);
+  REQUIRE(!ovr2.setvecproperty_called);
+  REQUIRE(ovr1.registerfields_called);
+  REQUIRE(ovr2.registerfields_called);
+  REQUIRE(ovr1.setinitialconditions_called);
+  REQUIRE(ovr2.setinitialconditions_called);
+  REQUIRE(ovr1.hasic_called);
+  REQUIRE(ovr2.hasic_called);
+  REQUIRE(ovr1.getfield_called);
+  REQUIRE(ovr2.getfield_called);
+  REQUIRE(ovr1.getvtf_called);
+  REQUIRE(!ovr2.getvtf_called);
+  REQUIRE(!ovr1.setvtf_called);
+  REQUIRE(ovr2.setvtf_called);
 }

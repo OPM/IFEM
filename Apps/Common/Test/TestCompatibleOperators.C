@@ -12,14 +12,19 @@
 
 #include "CompatibleOperators.h"
 #include "FiniteElement.h"
-#include "gtest/gtest.h"
 
-typedef std::vector<std::vector<double>> DoubleVec;
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+
+using Catch::Matchers::WithinRel;
+
+
+using DoubleVec = std::vector<std::vector<double>>;
 const auto check_matrix_equal = [](const Matrix& A, const DoubleVec& B)
                                 {
                                   for (size_t i=1;i<=A.rows();++i)
                                     for (size_t j=1;j<=A.cols();++j)
-                                      ASSERT_NEAR(A(i,j), B[i-1][j-1], 1e-13);
+                                      REQUIRE_THAT(A(i,j), WithinRel(B[i-1][j-1]));
                                 };
 
 class MyFiniteElement : public MxFiniteElement
@@ -117,7 +122,7 @@ TESTI(TestEqualOrderOperators, Gradient)
 */
 
 
-TEST(TestCompatibleOperators, Laplacian)
+TEST_CASE("TestCompatibleOperators.Laplacian")
 {
   MyFiniteElement fe;
 
@@ -161,7 +166,7 @@ TEST(TestCompatibleOperators, Laplacian)
 
   CompatibleOperators::Weak::Laplacian(EM_stress, fe, idx, 1.0, true);
   std::cout << EM_stress[1] << std::endl;
-  
+
 /*
   const DoubleVec EM_stress_ref = {{11.0,  3.0, 16.0,  6.0},
                                    { 3.0, 19.0,  4.0, 26.0},
@@ -179,7 +184,7 @@ TEST(TestCompatibleOperators, Laplacian)
 }
 
 
-TEST(TestCompatibleOperators, Mass)
+TEST_CASE("TestCompatibleOperators.Mass")
 {
   MyFiniteElement fe;
 
@@ -215,7 +220,7 @@ TEST(TestCompatibleOperators, Mass)
 }
 
 
-TEST(TestCompatibleOperators, Source)
+TEST_CASE("TestCompatibleOperators.Source")
 {
   MyFiniteElement fe;
 
@@ -226,8 +231,8 @@ TEST(TestCompatibleOperators, Source)
   CompatibleOperators::Weak::Source(EV_scalar, fe, {1,2,3}, 2.0);
 
   for (size_t i = 1; i <= 6; ++i) {
-    ASSERT_FLOAT_EQ(EV_scalar[1](i), 2.0*fe.basis(1)(i));
-    ASSERT_FLOAT_EQ(EV_scalar[2](i), 2.0*fe.basis(2)(i));
+    REQUIRE_THAT(EV_scalar[1](i), WithinRel(2.0*fe.basis(1)(i)));
+    REQUIRE_THAT(EV_scalar[2](i), WithinRel(2.0*fe.basis(2)(i)));
   }
 
   EV_scalar[1].fill(0.0);
@@ -238,15 +243,15 @@ TEST(TestCompatibleOperators, Source)
 
   CompatibleOperators::Weak::Source(EV_scalar, fe, f, {1,2,3}, 1.0);
   for (size_t i = 1; i <= 6; ++i) {
-    ASSERT_FLOAT_EQ(EV_scalar[1](i), fe.basis(1)(i));
-    ASSERT_FLOAT_EQ(EV_scalar[2](i), 2.0*fe.basis(2)(i));
+    REQUIRE_THAT(EV_scalar[1](i), WithinRel(fe.basis(1)(i)));
+    REQUIRE_THAT(EV_scalar[2](i), WithinRel(2.0*fe.basis(2)(i)));
   }
 
   EV_scalar[1].fill(0.0);
   EV_scalar[2].fill(0.0);
   CompatibleOperators::Weak::Source(EV_scalar, fe, f, {1,2,3}, 2.0);
   for (size_t i = 1; i <= 6; ++i) {
-    ASSERT_FLOAT_EQ(EV_scalar[1](i), 2.0*fe.basis(1)(i));
-    ASSERT_FLOAT_EQ(EV_scalar[2](i), 4.0*fe.basis(2)(i));
+    REQUIRE_THAT(EV_scalar[1](i), WithinRel(2.0*fe.basis(1)(i)));
+    REQUIRE_THAT(EV_scalar[2](i), WithinRel(4.0*fe.basis(2)(i)));
   }
 }

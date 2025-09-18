@@ -22,7 +22,11 @@
 #include <sstream>
 #include <array>
 
-#include "gtest/gtest.h"
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+
+using Catch::Matchers::WithinAbs;
+using Catch::Matchers::WithinRel;
 
 
 static const char* spline1D = "100 1 0 0\n1 0\n2 2 0 0 1 1\n0 1\n";
@@ -38,14 +42,14 @@ static const char* spline3D = "700 1 0 0\n3 0\n"
   "0 0 1 1 0 1 0 1 1 1 1 1\n";
 
 
-TEST(TestCoordinateMapping, Jacobian1D)
+TEST_CASE("TestCoordinateMapping.Jacobian1D")
 {
   ASMs1D p;
   std::stringstream g2(spline1D);
 
-  ASSERT_TRUE(p.read(g2));
-  ASSERT_TRUE(p.uniformRefine(3));
-  ASSERT_TRUE(p.generateFEMTopology());
+  REQUIRE(p.read(g2));
+  REQUIRE(p.uniformRefine(3));
+  REQUIRE(p.generateFEMTopology());
 
   Vector N;
   Matrix X, dNdU;
@@ -55,24 +59,24 @@ TEST(TestCoordinateMapping, Jacobian1D)
   Matrix J, dNdX;
   double det = utl::Jacobian(J, dNdX, X, dNdU, true);
 
-  EXPECT_FLOAT_EQ(det, 1.0);
-  EXPECT_FLOAT_EQ(J(1,1), 1.0);
-  EXPECT_EQ(dNdX.rows(), 2U);
-  EXPECT_EQ(dNdX.cols(), 1U);
-  EXPECT_FLOAT_EQ(dNdX(1,1),-4.0);
-  EXPECT_FLOAT_EQ(dNdX(2,1), 4.0);
+  REQUIRE_THAT(det, WithinRel(1.0));
+  REQUIRE_THAT(J(1,1), WithinRel(1.0));
+  REQUIRE(dNdX.rows() == 2);
+  REQUIRE(dNdX.cols() == 1);
+  REQUIRE_THAT(dNdX(1,1), WithinRel(-4.0));
+  REQUIRE_THAT(dNdX(2,1), WithinRel(4.0));
 }
 
 
-TEST(TestCoordinateMapping, Hessian1D)
+TEST_CASE("TestCoordinateMapping.Hessian1D")
 {
   ASMs1D p;
   std::stringstream g2(spline1D);
 
-  ASSERT_TRUE(p.read(g2));
-  ASSERT_TRUE(p.raiseOrder(2));
-  ASSERT_TRUE(p.uniformRefine(3));
-  ASSERT_TRUE(p.generateFEMTopology());
+  REQUIRE(p.read(g2));
+  REQUIRE(p.raiseOrder(2));
+  REQUIRE(p.uniformRefine(3));
+  REQUIRE(p.generateFEMTopology());
 
   Vector N;
   Matrix X, dNdU;
@@ -93,34 +97,34 @@ TEST(TestCoordinateMapping, Hessian1D)
     24.0,-40.0, 16.0, 0.0
   };
 
-  EXPECT_FLOAT_EQ(det, 1.0);
-  EXPECT_FLOAT_EQ(J(1,1), 1.0);
-  EXPECT_NEAR(H(1,1,1), 0.0, 1.0e-13);
+  REQUIRE_THAT(det, WithinRel(1.0));
+  REQUIRE_THAT(J(1,1), WithinRel(1.0));
+  REQUIRE_THAT(H(1,1,1), WithinAbs(0.0, 1.0e-13));
 
   size_t i = 0;
-  EXPECT_EQ(dNdX.rows(), 4U);
-  EXPECT_EQ(dNdX.cols(), 1U);
+  REQUIRE(dNdX.rows() == 4);
+  REQUIRE(dNdX.cols() == 1);
   for (double v : dNdX)
-    EXPECT_FLOAT_EQ(dndx[i++], v);
+    REQUIRE_THAT(dndx[i++], WithinRel(v));
 
   i = 0;
-  EXPECT_EQ(d2NdX2.dim(1), 4U);
-  EXPECT_EQ(d2NdX2.dim(2), 1U);
-  EXPECT_EQ(d2NdX2.dim(3), 1U);
+  REQUIRE(d2NdX2.dim(1) == 4);
+  REQUIRE(d2NdX2.dim(2) == 1);
+  REQUIRE(d2NdX2.dim(3) == 1);
   for (double v : d2NdX2)
-    EXPECT_FLOAT_EQ(d2ndx2[i++], v);
+    REQUIRE_THAT(d2ndx2[i++], WithinRel(v));
 }
 
 
-TEST(TestCoordinateMapping, Jacobian2D)
+TEST_CASE("TestCoordinateMapping.Jacobian2D")
 {
   ASMs2D p;
   std::stringstream g2(spline2D);
 
-  ASSERT_TRUE(p.read(g2));
-  ASSERT_TRUE(p.uniformRefine(0,3));
-  ASSERT_TRUE(p.uniformRefine(1,3));
-  ASSERT_TRUE(p.generateFEMTopology());
+  REQUIRE(p.read(g2));
+  REQUIRE(p.uniformRefine(0,3));
+  REQUIRE(p.uniformRefine(1,3));
+  REQUIRE(p.generateFEMTopology());
 
   Vector N;
   Matrix X, dNdU;
@@ -135,29 +139,29 @@ TEST(TestCoordinateMapping, Jacobian2D)
     -4.0, 0.0, 4.0, 0.0
   };
 
-  EXPECT_FLOAT_EQ(det, 1.0);
+  REQUIRE_THAT(det, WithinRel(1.0));
   for (size_t i = 1; i <= J.rows(); i++)
     for (size_t j = 1; j <= J.rows(); j++)
-      EXPECT_FLOAT_EQ(J(i,j), i == j ? 1.0 : 0.0);
+      REQUIRE_THAT(J(i,j), WithinRel(i == j ? 1.0 : 0.0));
 
   size_t i = 0;
-  EXPECT_EQ(dNdX.rows(), 4U);
-  EXPECT_EQ(dNdX.cols(), 2U);
+  REQUIRE(dNdX.rows() == 4);
+  REQUIRE(dNdX.cols() == 2);
   for (double v : dNdX)
-    EXPECT_FLOAT_EQ(dndx[i++], v);
+    REQUIRE_THAT(dndx[i++], WithinRel(v));
 }
 
 
-TEST(TestCoordinateMapping, Hessian2D)
+TEST_CASE("TestCoordinateMapping.Hessian2D")
 {
   ASMs2D p;
   std::stringstream g2(spline2D);
 
-  ASSERT_TRUE(p.read(g2));
-  ASSERT_TRUE(p.raiseOrder(2,2));
-  ASSERT_TRUE(p.uniformRefine(0,3));
-  ASSERT_TRUE(p.uniformRefine(1,3));
-  ASSERT_TRUE(p.generateFEMTopology());
+  REQUIRE(p.read(g2));
+  REQUIRE(p.raiseOrder(2,2));
+  REQUIRE(p.uniformRefine(0,3));
+  REQUIRE(p.uniformRefine(1,3));
+  REQUIRE(p.generateFEMTopology());
 
   Vector N;
   Matrix X, dNdU;
@@ -197,42 +201,45 @@ TEST(TestCoordinateMapping, Hessian2D)
     10.075801749271, 23.510204081632, 6.717201166181, 0.0,  0.0, 0.0, 0.0, 0.0
   };
 
-  EXPECT_FLOAT_EQ(det, 7.0/12.0);
-  EXPECT_NEAR(J(1,1), 1.0, 1.0e-13);
-  EXPECT_NEAR(J(2,2), 1.7142857142857, 1.0e-13);
-  EXPECT_NEAR(J(1,2), 0.0, 1.0e-13);
-  EXPECT_NEAR(J(2,1), 0.0, 1.0e-13);
+  REQUIRE_THAT(det, WithinRel(7.0/12.0));
+  REQUIRE_THAT(J(1,1), WithinRel(1.0, 1.0e-13));
+  REQUIRE_THAT(J(2,2), WithinRel(1.7142857142857, 1.0e-13));
+  REQUIRE_THAT(J(1,2), WithinAbs(0.0, 1.0e-13));
+  REQUIRE_THAT(J(2,1), WithinAbs(0.0, 1.0e-13));
 
   for (size_t i = 1; i <= H.dim(1); i++)
     for (size_t j = 1; j <= H.dim(2); j++)
       for (size_t k = 1; k <= H.dim(3); k++)
-        EXPECT_NEAR(H(i,j,k), i==j && j==k && k==2 ? 2.0/3.0 : 0.0, 1.0e-13);
+        if (i == j && j == k && k == 2)
+          REQUIRE_THAT(H(i,j,k), WithinRel(2.0/3.0));
+        else
+          REQUIRE_THAT(H(i,j,k), WithinAbs(0.0, 1e-13));
 
   size_t i = 0;
-  EXPECT_EQ(dNdX.rows(), 16U);
-  EXPECT_EQ(dNdX.cols(), 2U);
+  REQUIRE(dNdX.rows() == 16);
+  REQUIRE(dNdX.cols() == 2);
   for (double v : dNdX)
-    EXPECT_NEAR(dndx[i++], v, 1.0e-13);
+    REQUIRE_THAT(dndx[i++], WithinRel(v, 1.0e-12));
 
   i = 0;
-  EXPECT_EQ(d2NdX2.dim(1), 16U);
-  EXPECT_EQ(d2NdX2.dim(2), 2U);
-  EXPECT_EQ(d2NdX2.dim(3), 2U);
+  REQUIRE(d2NdX2.dim(1) == 16);
+  REQUIRE(d2NdX2.dim(2) == 2);
+  REQUIRE(d2NdX2.dim(3) == 2);
   for (double v : d2NdX2)
-    EXPECT_NEAR(d2ndx2[i++], v, 1.0e-12);
+    REQUIRE_THAT(d2ndx2[i++], WithinRel(v, 1.0e-12));
 }
 
 
-TEST(TestCoordinateMapping, JacobianShell)
+TEST_CASE("TestCoordinateMapping.JacobianShell")
 {
   ASMs2D p(3);
   std::stringstream g2(spline2D);
 
-  ASSERT_TRUE(p.read(g2));
-  ASSERT_TRUE(p.raiseOrder(1,1));
-  ASSERT_TRUE(p.uniformRefine(0,3));
-  ASSERT_TRUE(p.uniformRefine(1,3));
-  ASSERT_TRUE(p.generateFEMTopology());
+  REQUIRE(p.read(g2));
+  REQUIRE(p.raiseOrder(1,1));
+  REQUIRE(p.uniformRefine(0,3));
+  REQUIRE(p.uniformRefine(1,3));
+  REQUIRE(p.generateFEMTopology());
 
   Vector N;
   Matrix X, dNdU;
@@ -262,35 +269,35 @@ TEST(TestCoordinateMapping, JacobianShell)
     -2.0,-2.0, 0.0, 2.0, 2.0, 0.0, 0.0, 0.0, 0.0
   };
 
-  EXPECT_FLOAT_EQ(det, 0.5);
+  REQUIRE_THAT(det, WithinRel(0.5));
 
   size_t i = 0;
-  EXPECT_EQ(J.rows(), 3U);
-  EXPECT_EQ(J.cols(), 2U);
+  REQUIRE(J.rows() == 3);
+  REQUIRE(J.cols() == 2);
   for (double v : J)
-    EXPECT_FLOAT_EQ(j[i++], v);
+    REQUIRE_THAT(j[i++], WithinRel(v));
 
   i = 0;
-  EXPECT_EQ(dNdX.rows(), 9U);
-  EXPECT_EQ(dNdX.cols(), 2U);
+  REQUIRE(dNdX.rows() == 9);
+  REQUIRE(dNdX.cols() == 2);
   for (double v : dNdX)
-    EXPECT_FLOAT_EQ(dndx[i++], v);
+    REQUIRE_THAT(dndx[i++], WithinRel(v));
 
   i = 0;
-  EXPECT_EQ(Hs.rows(), 3U);
-  EXPECT_EQ(Hs.cols(), 3U);
+  REQUIRE(Hs.rows() == 3);
+  REQUIRE(Hs.cols() == 3);
   for (double v : Hs)
-    EXPECT_FLOAT_EQ(h[i++], v);
+    REQUIRE_THAT(h[i++], WithinRel(v));
 }
 
 
-TEST(TestCoordinateMapping, Hessian2D_mixed)
+TEST_CASE("TestCoordinateMapping.Hessian2D_mixed")
 {
   ASMs2Dmx p(2,{1,1});
   std::stringstream g2(spline2D);
 
-  ASSERT_TRUE(p.read(g2));
-  ASSERT_TRUE(p.generateFEMTopology());
+  REQUIRE(p.read(g2));
+  REQUIRE(p.generateFEMTopology());
 
   std::array<std::vector<Go::BasisDerivsSf2>, 2> splinex2;
   p.getBasis(1)->computeBasisGrid({0.5}, {0.5}, splinex2[0]);
@@ -338,29 +345,29 @@ TEST(TestCoordinateMapping, Hessian2D_mixed)
     const double* h = hess[b].ptr();
     i = 0;
     for (double v : d2Nxdu2[b])
-      EXPECT_FLOAT_EQ(h[i++], v);
+      REQUIRE_THAT(h[i++], WithinRel(v));
   }
 
   i = 0;
   for (double v : hess[0])
-    EXPECT_FLOAT_EQ(Hess_basis1[i++],v);
+    REQUIRE_THAT(Hess_basis1[i++], WithinRel(v));
 
   i = 0;
   for (double v : hess[1])
-    EXPECT_FLOAT_EQ(Hess_basis2[i++],v);
+    REQUIRE_THAT(Hess_basis2[i++], WithinRel(v));
 }
 
 
-TEST(TestCoordinateMapping, Jacobian3D)
+TEST_CASE("TestCoordinateMapping.Jacobian3D")
 {
   ASMs3D p;
   std::stringstream g2(spline3D);
 
-  ASSERT_TRUE(p.read(g2));
-  ASSERT_TRUE(p.uniformRefine(0,3));
-  ASSERT_TRUE(p.uniformRefine(1,3));
-  ASSERT_TRUE(p.uniformRefine(2,3));
-  ASSERT_TRUE(p.generateFEMTopology());
+  REQUIRE(p.read(g2));
+  REQUIRE(p.uniformRefine(0,3));
+  REQUIRE(p.uniformRefine(1,3));
+  REQUIRE(p.uniformRefine(2,3));
+  REQUIRE(p.generateFEMTopology());
 
   Vector N;
   Matrix X, dNdU;
@@ -376,30 +383,30 @@ TEST(TestCoordinateMapping, Jacobian3D)
     -4.0, 0.0, 0.0, 0.0, 4.0, 0.0, 0.0, 0.0
   };
 
-  EXPECT_FLOAT_EQ(det, 1.0);
+  REQUIRE_THAT(det, WithinRel(1.0));
   for (size_t i = 1; i <= J.rows(); i++)
     for (size_t j = 1; j <= J.rows(); j++)
-      EXPECT_FLOAT_EQ(J(i,j), i == j ? 1.0 : 0.0);
+      REQUIRE_THAT(J(i,j), WithinRel(i == j ? 1.0 : 0.0));
 
   size_t i = 0;
-  EXPECT_EQ(dNdX.rows(), 8U);
-  EXPECT_EQ(dNdX.cols(), 3U);
+  REQUIRE(dNdX.rows() == 8);
+  REQUIRE(dNdX.cols() == 3);
   for (double v : dNdX)
-    EXPECT_FLOAT_EQ(dndx[i++], v);
+    REQUIRE_THAT(dndx[i++], WithinRel(v));
 }
 
 
-TEST(TestCoordinateMapping, Hessian3D)
+TEST_CASE("TestCoordinateMapping.Hessian3D")
 {
   ASMs3D p;
   std::stringstream g2(spline3D);
 
-  ASSERT_TRUE(p.read(g2));
-  ASSERT_TRUE(p.raiseOrder(2,2,2));
-  ASSERT_TRUE(p.uniformRefine(0,3));
-  ASSERT_TRUE(p.uniformRefine(1,3));
-  ASSERT_TRUE(p.uniformRefine(2,3));
-  ASSERT_TRUE(p.generateFEMTopology());
+  REQUIRE(p.read(g2));
+  REQUIRE(p.raiseOrder(2,2,2));
+  REQUIRE(p.uniformRefine(0,3));
+  REQUIRE(p.uniformRefine(1,3));
+  REQUIRE(p.uniformRefine(2,3));
+  REQUIRE(p.generateFEMTopology());
 
   Vector N;
   Matrix X, dNdU;
@@ -413,13 +420,15 @@ TEST(TestCoordinateMapping, Hessian3D)
   utl::Hessian(H, d2NdX2, J, X, d2Ndu2, dNdX);
 
   size_t i, j, k;
-  EXPECT_FLOAT_EQ(det, 0.34027779);
+  REQUIRE_THAT(det, WithinAbs(0.34027779, 1e-7));
   for (i = 1; i <= J.rows(); i++)
     for (j = 1; j <= J.rows(); j++)
       if (i == 1 && j == 1)
-        EXPECT_FLOAT_EQ(J(i,j), 1.0);
+        REQUIRE_THAT(J(i,j), WithinRel(1.0));
+      else if (i == j)
+        REQUIRE_THAT(J(i,j), WithinRel(1.7142857142857, 1.0e-13));
       else
-        EXPECT_NEAR(J(i,j), i == j ? 1.7142857142857 : 0.0, 1.0e-13);
+        REQUIRE_THAT(J(i,j), WithinAbs(0.0, 1.0e-13));
 
   const double dndx[] = {
     -0.1875, 0.0625, 0.125, 0, -0.4375, 0.1458333333333,
@@ -570,23 +579,23 @@ TEST(TestCoordinateMapping, Hessian3D)
   };
 
   i = 0;
-  EXPECT_EQ(dNdX.rows(), 64U);
-  EXPECT_EQ(dNdX.cols(), 3U);
+  REQUIRE(dNdX.rows() == 64);
+  REQUIRE(dNdX.cols() == 3);
   for (double v : dNdX)
-    EXPECT_NEAR(dndx[i++], v, 1.0e-13);
+    REQUIRE_THAT(dndx[i++], WithinRel(v, 1.0e-12));
 
   i = 0;
-  EXPECT_EQ(d2NdX2.dim(1), 64U);
-  EXPECT_EQ(d2NdX2.dim(2), 3U);
-  EXPECT_EQ(d2NdX2.dim(3), 3U);
+  REQUIRE(d2NdX2.dim(1) == 64);
+  REQUIRE(d2NdX2.dim(2) == 3);
+  REQUIRE(d2NdX2.dim(3) == 3);
   for (double v : d2NdX2)
-    EXPECT_NEAR(d2ndx2[i++], v, 1.0e-12);
+    REQUIRE_THAT(d2ndx2[i++], WithinRel(v, 1.0e-12));
 
   for (i = 1; i <= H.dim(1); i++)
     for (j = 1; j <= H.dim(2); j++)
       for (k = 1; k <= H.dim(3); k++)
         if (k > 1 && j > 1 && i == j && i == k)
-          EXPECT_NEAR(H(i,j,k), 2.0/3.0, 1.0e-13);
+          REQUIRE_THAT(H(i,j,k), WithinRel(2.0/3.0, 1.0e-13));
         else
-          EXPECT_NEAR(H(i,j,k), 0.0, 1.0e-13);
+          REQUIRE_THAT(H(i,j,k), WithinAbs(0.0, 1.0e-13));
 }

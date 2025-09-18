@@ -12,25 +12,26 @@
 
 #include "StringUtils.h"
 
-#include "gtest/gtest.h"
+#include <catch2/catch_test_macros.hpp>
 
-TEST(TestStringUtils, ReplaceAll)
+TEST_CASE("TestStringUtils.ReplaceAll")
 {
   std::string test1("abababab");
   replaceAll(test1, "ab", "ba");
 
-  EXPECT_STREQ(test1.c_str(), "babababa");
+  REQUIRE(test1 == "babababa");
 }
 
-TEST(TestStringUtils, SplitString)
+
+TEST_CASE("TestStringUtils.SplitString")
 {
   std::string test1("ab ba ba\tab");
   std::vector<std::string> s = splitString(test1);
 
-  EXPECT_EQ(s.size(), 4u);
+  REQUIRE(s.size() == 4);
 
-  EXPECT_STREQ(s[0].c_str(), "ab");
-  EXPECT_STREQ(s[1].c_str(), "ba");
-  EXPECT_STREQ(s[2].c_str(), "ba");
-  EXPECT_STREQ(s[3].c_str(), "ab");
+  REQUIRE(s[0] == "ab");
+  REQUIRE(s[1] == "ba");
+  REQUIRE(s[2] == "ba");
+  REQUIRE(s[3] == "ab");
 }

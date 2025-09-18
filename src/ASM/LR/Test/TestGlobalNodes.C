@@ -16,10 +16,10 @@
 
 #include "LRSpline/LRSplineVolume.h"
 
-#include "gtest/gtest.h"
+#include <catch2/catch_test_macros.hpp>
 
 
-TEST(TestGlobalNodes, 2D)
+TEST_CASE("TestGlobalNodes.2D")
 {
   ASMuSquare pch1;
   pch1.generateFEMTopology();
@@ -42,11 +42,11 @@ TEST(TestGlobalNodes, 2D)
     GlobalNodes::IntVec{3, 5, 6, 7},
   };
 
-  EXPECT_EQ(nodes, ref);
+  REQUIRE(nodes == ref);
 }
 
 
-TEST(TestGlobalNodes, 3D)
+TEST_CASE("TestGlobalNodes.3D")
 {
   ASMuCube pch1;
   pch1.generateFEMTopology();
@@ -70,5 +70,5 @@ TEST(TestGlobalNodes, 3D)
     GlobalNodes::IntVec{5, 10, 7, 11, 12, 13, 14, 15},
   };
 
-  EXPECT_EQ(nodes, ref);
+  REQUIRE(nodes == ref);
 }

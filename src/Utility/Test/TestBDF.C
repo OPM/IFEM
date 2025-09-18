@@ -12,73 +12,80 @@
 
 #include "BDF.h"
 
-#include "gtest/gtest.h"
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-TEST(TestBDF, BDF_1)
+using Catch::Matchers::WithinRel;
+
+
+TEST_CASE("TestBDF.BDF_1")
 {
   TimeIntegration::BDF bdf(1);
 
   bdf.advanceStep();
-  ASSERT_EQ(bdf.getOrder(), 1);
-  ASSERT_EQ(bdf.getActualOrder(), 1);
-  ASSERT_FLOAT_EQ(bdf[0], 1.0);
-  ASSERT_FLOAT_EQ(bdf[1], -1.0);
+  REQUIRE(bdf.getOrder() == 1);
+  REQUIRE(bdf.getActualOrder() == 1);
+  REQUIRE_THAT(bdf[0], WithinRel(1.0));
+  REQUIRE_THAT(bdf[1], WithinRel(-1.0));
   bdf.advanceStep();
-  ASSERT_EQ(bdf.getOrder(), 1);
-  ASSERT_FLOAT_EQ(bdf[0], 1.0);
-  ASSERT_FLOAT_EQ(bdf[1], -1.0);
+  REQUIRE(bdf.getOrder() == 1);
+  REQUIRE_THAT(bdf[0], WithinRel(1.0));
+  REQUIRE_THAT(bdf[1], WithinRel(-1.0));
 }
 
-TEST(TestBDF, BDF_2)
+
+TEST_CASE("TestBDF.BDF_2")
 {
   TimeIntegration::BDF bdf(2);
 
   bdf.advanceStep();
-  ASSERT_EQ(bdf.getOrder(), 1);
-  ASSERT_EQ(bdf.getActualOrder(), 2);
-  ASSERT_FLOAT_EQ(bdf[0], 1.0);
-  ASSERT_FLOAT_EQ(bdf[1], -1.0);
+  REQUIRE(bdf.getOrder() == 1);
+  REQUIRE(bdf.getActualOrder() == 2);
+  REQUIRE_THAT(bdf[0], WithinRel(1.0));
+  REQUIRE_THAT(bdf[1], WithinRel(-1.0));
   bdf.advanceStep();
-  ASSERT_EQ(bdf.getOrder(), 2);
-  ASSERT_FLOAT_EQ(bdf[0], 1.5);
-  ASSERT_FLOAT_EQ(bdf[1], -2.0);
-  ASSERT_FLOAT_EQ(bdf[2], 0.5);
+  REQUIRE(bdf.getOrder() == 2);
+  REQUIRE_THAT(bdf[0], WithinRel(1.5));
+  REQUIRE_THAT(bdf[1], WithinRel(-2.0));
+  REQUIRE_THAT(bdf[2], WithinRel(0.5));
 }
 
-TEST(TestBDF, BDFD2_1)
+
+TEST_CASE("TestBDF.BDFD2_1")
 {
   TimeIntegration::BDFD2 bdf(1);
 
   bdf.advanceStep(0.1, 0.1);
-  ASSERT_EQ(bdf.getOrder(), 1);
-  ASSERT_EQ(bdf.getActualOrder(), 1);
-  ASSERT_FLOAT_EQ(bdf[0], 2.0);
-  ASSERT_FLOAT_EQ(bdf[1], -2.0);
+  REQUIRE(bdf.getOrder() == 1);
+  REQUIRE(bdf.getActualOrder() == 1);
+  REQUIRE_THAT(bdf[0], WithinRel(2.0));
+  REQUIRE_THAT(bdf[1], WithinRel(-2.0));
   bdf.advanceStep(0.1, 0.1);
-  ASSERT_EQ(bdf.getOrder(), 1);
-  ASSERT_FLOAT_EQ(bdf[0], 1.0);
-  ASSERT_FLOAT_EQ(bdf[1], -2.0);
-  ASSERT_FLOAT_EQ(bdf[2], 1.0);
+  REQUIRE(bdf.getOrder() == 1);
+  REQUIRE_THAT(bdf[0], WithinRel(1.0));
+  REQUIRE_THAT(bdf[1], WithinRel(-2.0));
+  REQUIRE_THAT(bdf[2], WithinRel(1.0));
 }
 
-TEST(TestBDF, BDFD2_2)
+
+TEST_CASE("TestBDF.BDFD2_2")
 {
   TimeIntegration::BDFD2 bdf(2);
 
   bdf.advanceStep(0.1, 0.1);
-  ASSERT_EQ(bdf.getOrder(), 1);
-  ASSERT_EQ(bdf.getActualOrder(), 2);
-  ASSERT_FLOAT_EQ(bdf[0], 2.0);
-  ASSERT_FLOAT_EQ(bdf[1], -2.0);
+  REQUIRE(bdf.getOrder() == 1);
+  REQUIRE(bdf.getActualOrder() == 2);
+  REQUIRE_THAT(bdf[0], WithinRel(2.0));
+  REQUIRE_THAT(bdf[1], WithinRel(-2.0));
   bdf.advanceStep(0.1, 0.1);
-  ASSERT_EQ(bdf.getOrder(), 1);
-  ASSERT_FLOAT_EQ(bdf[0], 2.5);
-  ASSERT_FLOAT_EQ(bdf[1], -8.0);
-  ASSERT_FLOAT_EQ(bdf[2], 5.5);
+  REQUIRE(bdf.getOrder() == 1);
+  REQUIRE_THAT(bdf[0], WithinRel(2.5));
+  REQUIRE_THAT(bdf[1], WithinRel(-8.0));
+  REQUIRE_THAT(bdf[2], WithinRel(5.5));
   bdf.advanceStep(0.1, 0.1);
-  ASSERT_EQ(bdf.getOrder(), 2);
-  ASSERT_FLOAT_EQ(bdf[0], 2.0);
-  ASSERT_FLOAT_EQ(bdf[1], -5.0);
-  ASSERT_FLOAT_EQ(bdf[2], 4.0);
-  ASSERT_FLOAT_EQ(bdf[3], -1.0);
+  REQUIRE(bdf.getOrder() == 2);
+  REQUIRE_THAT(bdf[0], WithinRel(2.0));
+  REQUIRE_THAT(bdf[1], WithinRel(-5.0));
+  REQUIRE_THAT(bdf[2], WithinRel(4.0));
+  REQUIRE_THAT(bdf[3], WithinRel(-1.0));
 }

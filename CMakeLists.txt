@@ -183,7 +183,6 @@ else()
   configure_file(cmake/Templates/IFEMConfig.cmake.in IFEMConfig.cmake @ONLY)
   install(FILES ${CMAKE_BINARY_DIR}/IFEMConfigVersion.cmake
                 ${CMAKE_BINARY_DIR}/IFEMConfig.cmake
-                cmake/Modules/FindTestLib.cmake
                 cmake/Scripts/CheckCommits.cmake
                 cmake/Scripts/DownloadGTest.cmake
                 cmake/Scripts/UseMultiArch.cmake

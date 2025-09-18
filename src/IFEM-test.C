@@ -10,7 +10,8 @@
 //!
 //==============================================================================
 
-#include "gtest/gtest.h"
+#define CATCH_CONFIG_RUNNER
+#include <catch2/catch_session.hpp>
 
 #include "IFEM.h"
 #include "Profiler.h"
@@ -31,10 +32,9 @@ int main (int argc, char** argv)
   const bool list_tests =
         std::any_of(argv+1, argv + argc,
                     [](const char* arg)
-                    { return !strcmp(arg, "--gtest_list_tests"); });
+                    { return !strcmp(arg, "--list-tests"); });
 
-  testing::InitGoogleTest(&argc, argv);
-  IFEM::Init(argc, argv, nullptr, list_tests);
+  IFEM::Init(1, argv, nullptr, list_tests);
   Profiler prof(argv[0], false);
 
 #ifdef HAVE_MPI
@@ -46,5 +46,5 @@ int main (int argc, char** argv)
   }
 #endif
 
-  return RUN_ALL_TESTS();
+  return Catch::Session().run(argc, argv);
 }

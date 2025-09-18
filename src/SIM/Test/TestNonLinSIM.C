@@ -20,8 +20,12 @@
 #include "AlgEqSystem.h"
 #include "TimeStep.h"
 
-#include "gtest/gtest.h"
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+
 #include <numeric>
+
+using Catch::Matchers::WithinRel;
 
 
 // SAM class representing a single-DOF system.
@@ -35,7 +39,7 @@ public:
     mpmnpc = new int[2]; std::iota(mpmnpc,mpmnpc+2,1);
     madof  = new int[2]; std::iota(madof,madof+2,1);
     msc    = new int[1]; msc[0] = 1;
-    EXPECT_TRUE(this->initSystemEquations());
+    REQUIRE(this->initSystemEquations());
   }
   virtual ~SAM1DOF() {}
 };
@@ -104,16 +108,16 @@ static void runSingleDof (NonLinSIM& solver, int& n, double& s)
   TimeStep tp;
   solver.initSol();
   solver.advanceStep(tp);
-  ASSERT_EQ(solver.solveStep(tp),SIM::CONVERGED);
+  REQUIRE(solver.solveStep(tp) == SIM::CONVERGED);
   s = solver.getSolution()[0]; n = tp.iter;
   std::cout <<"  Solution "<< s <<" obtained in "<< n <<" iterations.\n";
 }
 
 
-TEST(TestNonLinSIM, SingleDOF)
+TEST_CASE("TestNonLinSIM.SingleDOF")
 {
   Bar1DOF simulator;
-  ASSERT_TRUE(simulator.initSystem(LinAlg::DENSE));
+  REQUIRE(simulator.initSystem(LinAlg::DENSE));
 
   TestNonLinSIM integrator1(simulator);
   TestNonLinSIM integrator2(simulator,0.0001);
@@ -123,7 +127,7 @@ TEST(TestNonLinSIM, SingleDOF)
   runSingleDof(integrator1,n1,s1);
   runSingleDof(integrator2,n2,s2);
 
-  EXPECT_FLOAT_EQ(s1,s2);
-  EXPECT_EQ(n1,5);
-  EXPECT_EQ(n2,3);
+  REQUIRE_THAT(s1, WithinRel(s2));
+  REQUIRE(n1 == 5);
+  REQUIRE(n2 == 3);
 }

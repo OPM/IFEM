@@ -17,16 +17,21 @@
 #include "ASMuCube.h"
 #include "ASMuSquare.h"
 
-#include "gtest/gtest.h"
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+
 #include <array>
 #include <memory>
 #include <vector>
 
+using Catch::Matchers::WithinAbs;
+using Catch::Matchers::WithinRel;
 
-TEST(TestLRSplineFields, Value2D)
+
+TEST_CASE("TestLRSplineFields.Value2D")
 {
   ASMuSquare patch;
-  EXPECT_TRUE(patch.generateFEMTopology());
+  REQUIRE(patch.generateFEMTopology());
 
   // {x+y+x*y, x-y+x*y}
   std::vector<double> vc = {0.0,  0.0,
@@ -46,19 +51,19 @@ TEST(TestLRSplineFields, Value2D)
     fe.v = it[1];
     Vector v(2);
     fvector->valueFE(fe, v);
-    EXPECT_FLOAT_EQ(v(1), it[2]);
-    EXPECT_FLOAT_EQ(v(2), it[3]);
-    EXPECT_FLOAT_EQ(fscalar->valueFE(fe), it[3]);
+    REQUIRE_THAT(v(1), WithinRel(it[2]));
+    REQUIRE_THAT(v(2), WithinRel(it[3]));
+    REQUIRE_THAT(fscalar->valueFE(fe), WithinRel(it[3]));
   }
 }
 
 
-TEST(TestLRSplineFields, Value2Dmx)
+TEST_CASE("TestLRSplineFields.Value2Dmx")
 {
   ASMmxBase::Type = ASMmxBase::DIV_COMPATIBLE;
   ASMmxuSquare patch({1,1,1});
   patch.raiseOrder(1,1);
-  EXPECT_TRUE(patch.generateFEMTopology());
+  REQUIRE(patch.generateFEMTopology());
 
   // {x+y+x*y, x-y+x*y}
   std::vector<double> vc = {0.0,
@@ -89,17 +94,17 @@ TEST(TestLRSplineFields, Value2Dmx)
     fe.v = it[1];
     Vector v(2);
     fvector->valueFE(fe, v);
-    EXPECT_FLOAT_EQ(v(1), it[2]);
-    EXPECT_FLOAT_EQ(v(2), it[3]);
-    EXPECT_FLOAT_EQ(fscalar->valueFE(fe), it[4]);
+    REQUIRE_THAT(v(1), WithinRel(it[2]));
+    REQUIRE_THAT(v(2), WithinRel(it[3]));
+    REQUIRE_THAT(fscalar->valueFE(fe), WithinRel(it[4]));
   }
 }
 
 
-TEST(TestLRSplineFields, Grad2D)
+TEST_CASE("TestLRSplineFields.Grad2D")
 {
   ASMuSquare patch;
-  EXPECT_TRUE(patch.generateFEMTopology());
+  REQUIRE(patch.generateFEMTopology());
 
   // {x+y+x*y, x-y+x*y}
   std::vector<double> vc = {0.0, 0.0, 1.0, 1.0, 1.0, -1.0, 3.0, 1.0};
@@ -115,18 +120,18 @@ TEST(TestLRSplineFields, Grad2D)
     fe.v = it[1];
     Matrix gradu(2,2);
     fvector->gradFE(fe, gradu);
-    EXPECT_FLOAT_EQ(gradu(1,1), it[2]);
-    EXPECT_FLOAT_EQ(gradu(1,2), it[3]);
-    EXPECT_FLOAT_EQ(gradu(2,1), it[4]);
-    EXPECT_FLOAT_EQ(gradu(2,2), it[5]);
+    REQUIRE_THAT(gradu(1,1), WithinRel(it[2]));
+    REQUIRE_THAT(gradu(1,2), WithinRel(it[3]));
+    REQUIRE_THAT(gradu(2,1), WithinRel(it[4]));
+    REQUIRE_THAT(gradu(2,2), WithinRel(it[5]));
   }
 }
 
 
-TEST(TestLRSplineFields, Value3D)
+TEST_CASE("TestLRSplineFields.Value3D")
 {
   ASMuCube patch;
-  EXPECT_TRUE(patch.generateFEMTopology());
+  REQUIRE(patch.generateFEMTopology());
 
   // {x+y+z, x+y-z, x-y+z}
   std::vector<double> vc = {0.0,  0.0,  0.0,
@@ -156,18 +161,18 @@ TEST(TestLRSplineFields, Value3D)
     fe.w = it[2];
     Vector v(3);
     fvector->valueFE(fe, v);
-    EXPECT_FLOAT_EQ(v(1), it[3]);
-    EXPECT_FLOAT_EQ(v(2), it[4]);
-    EXPECT_FLOAT_EQ(v(3), it[5]);
-    EXPECT_FLOAT_EQ(fscalar->valueFE(fe), it[4]);
+    REQUIRE_THAT(v(1), WithinRel(it[3]));
+    REQUIRE_THAT(v(2), WithinRel(it[4]));
+    REQUIRE_THAT(v(3), WithinRel(it[5]));
+    REQUIRE_THAT(fscalar->valueFE(fe), WithinRel(it[4]));
   }
 }
 
 
-TEST(TestLRSplineFields, Grad3D)
+TEST_CASE("TestLRSplineFields.Grad3D")
 {
   ASMuCube patch;
-  EXPECT_TRUE(patch.generateFEMTopology());
+  REQUIRE(patch.generateFEMTopology());
 
   // {x+y+z+x*y*z, x+y-z+x*y*z, x-y+z+x*y*z}
   std::vector<double> vc = {0.0,  0.0,  0.0,
@@ -217,17 +222,17 @@ TEST(TestLRSplineFields, Grad3D)
     fvector->gradFE(fe, gradu);
     for (size_t i = 0; i < 3; ++i)
       for (size_t j = 0; j <3; ++j)
-        EXPECT_FLOAT_EQ(gradu(i+1,j+1), it.second[i*3+j]);
+        REQUIRE_THAT(gradu(i+1,j+1), WithinRel(it.second[i*3+j]));
   }
 }
 
 
-TEST(TestLRSplineFields, Value3Dmx)
+TEST_CASE("TestLRSplineFields.Value3Dmx")
 {
   ASMmxBase::Type = ASMmxBase::DIV_COMPATIBLE;
   ASMmxuCube patch({1,1,1,1});
   patch.raiseOrder(1,1,1,false);
-  ASSERT_TRUE(patch.generateFEMTopology());
+  REQUIRE(patch.generateFEMTopology());
 
   // {x+y+z+x*y*z, x+y-z+x*y*z, x-y+z+x*y*z}
   std::vector<double> vc = {0.0, 0.5, 1.0,
@@ -269,9 +274,9 @@ TEST(TestLRSplineFields, Value3Dmx)
     fe.w = it[2];
     Vector v(3);
     fvector->valueFE(fe, v);
-    EXPECT_FLOAT_EQ(v(1), it[3]);
-    EXPECT_FLOAT_EQ(v(2), it[4]);
-    EXPECT_FLOAT_EQ(v(3), it[5]);
-    EXPECT_FLOAT_EQ(fscalar->valueFE(fe), it[6]);
+    REQUIRE_THAT(v(1), WithinRel(it[3]));
+    REQUIRE_THAT(v(2), WithinRel(it[4]));
+    REQUIRE_THAT(v(3), WithinRel(it[5]));
+    REQUIRE_THAT(fscalar->valueFE(fe), WithinRel(it[6]));
   }
 }

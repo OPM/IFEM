@@ -13,7 +13,8 @@
 #include "ASMmxBase.h"
 #include "ASMuSquare.h"
 
-#include "gtest/gtest.h"
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 
 
 namespace {
@@ -185,167 +186,174 @@ const char* squareRT_2 =
 }
 
 
-class TestASMu2Dmx : public testing::Test,
-                     public testing::WithParamInterface<int>
+TEST_CASE("TestASMu2Dmx.WriteFRTH")
 {
-};
+  const ASMmxBase::MixedType param = GENERATE(
+    ASMmxBase::FULL_CONT_RAISE_BASIS1,
+    ASMmxBase::FULL_CONT_RAISE_BASIS2
+  );
 
+  const int basis = param == ASMmxBase::FULL_CONT_RAISE_BASIS1 ? 1 : 2;
+  SECTION(basis == 1 ? "Raise basis 1" : "Raise basis 2") {
+    ASMmxBase::Type = param;
+    ASMbase::resetNumbering();
+    ASMmxuSquare pch1({1,1});
+    REQUIRE(pch1.generateFEMTopology());
 
-TEST_P(TestASMu2Dmx, WriteFRTH)
-{
-    ASMmxBase::Type = GetParam() == 0 ? ASMmxBase::FULL_CONT_RAISE_BASIS1
-                                      : ASMmxBase::FULL_CONT_RAISE_BASIS2;
-  ASMbase::resetNumbering();
-  ASMmxuSquare pch1({1,1});
-  EXPECT_TRUE(pch1.generateFEMTopology());
+    std::stringstream str;
+    REQUIRE(pch1.write(str, 1));
+    REQUIRE(str.str() == (basis == 1 ? squareFRTH_1 : ASMuSquare::square));
 
-  std::stringstream str;
-  EXPECT_TRUE(pch1.write(str, 1));
-  EXPECT_EQ(str.str(), GetParam() == 0 ? squareFRTH_1 : ASMuSquare::square);
+    str.str("");
+    REQUIRE(pch1.write(str, 2));
+    REQUIRE(str.str() == (basis == 2 ? squareFRTH_1 : ASMuSquare::square));
 
-  str.str("");
-  EXPECT_TRUE(pch1.write(str, 2));
-  EXPECT_EQ(str.str(), GetParam() == 1 ? squareFRTH_1 : ASMuSquare::square);
+    REQUIRE(!pch1.write(str, 3));
 
-  EXPECT_FALSE(pch1.write(str, 3));
+    str.str("");
+    REQUIRE(pch1.write(str, ASM::GEOMETRY_BASIS));
+    REQUIRE(str.str() == ASMuSquare::square);
 
-  str.str("");
-  EXPECT_TRUE(pch1.write(str, ASM::GEOMETRY_BASIS));
-  EXPECT_EQ(str.str(), ASMuSquare::square);
+    str.str("");
+    REQUIRE(pch1.write(str, ASM::PROJECTION_BASIS));
+    REQUIRE(str.str() == squareFRTH_1);
 
-  str.str("");
-  EXPECT_TRUE(pch1.write(str, ASM::PROJECTION_BASIS));
-  EXPECT_EQ(str.str(), squareFRTH_1);
+    REQUIRE(!pch1.write(str, ASM::PROJECTION_BASIS_2));
 
-  EXPECT_FALSE(pch1.write(str, ASM::PROJECTION_BASIS_2));
+    str.str("");
+    REQUIRE(pch1.write(str, ASM::REFINEMENT_BASIS));
+    REQUIRE(str.str() == squareFRTH_1);
 
-  str.str("");
-  EXPECT_TRUE(pch1.write(str, ASM::REFINEMENT_BASIS));
-  EXPECT_EQ(str.str(), squareFRTH_1);
-
-  str.str("");
-  EXPECT_TRUE(pch1.write(str, ASM::INTEGRATION_BASIS));
-  EXPECT_EQ(str.str(), ASMuSquare::square);
+    str.str("");
+    REQUIRE(pch1.write(str, ASM::INTEGRATION_BASIS));
+    REQUIRE(str.str() == ASMuSquare::square);
+  }
 }
 
-TEST(TestASMu2Dmx, WriteRT)
+
+TEST_CASE("TestASMu2Dmx.WriteRT")
 {
   ASMmxBase::Type = ASMmxBase::DIV_COMPATIBLE;
   ASMbase::resetNumbering();
   ASMmxuSquare pch1({1,1,1});
   pch1.raiseOrder(1,1);
-  EXPECT_TRUE(pch1.generateFEMTopology());
+  REQUIRE(pch1.generateFEMTopology());
 
   std::stringstream str;
-  EXPECT_TRUE(pch1.write(str, 1));
-  EXPECT_EQ(str.str(), squareRT_1);
+  REQUIRE(pch1.write(str, 1));
+  REQUIRE(str.str() == squareRT_1);
 
   str.str("");
-  EXPECT_TRUE(pch1.write(str, 2));
-  EXPECT_EQ(str.str(), squareRT_2);
+  REQUIRE(pch1.write(str, 2));
+  REQUIRE(str.str() == squareRT_2);
 
   str.str("");
-  EXPECT_TRUE(pch1.write(str, 3));
-  EXPECT_EQ(str.str(), ASMuSquare::square);
+  REQUIRE(pch1.write(str, 3));
+  REQUIRE(str.str() == ASMuSquare::square);
 
-  EXPECT_FALSE(pch1.write(str, 4));
-
-  str.str("");
-  EXPECT_TRUE(pch1.write(str, ASM::GEOMETRY_BASIS));
-  EXPECT_EQ(str.str(), squareFRTH_1);
+  REQUIRE(!pch1.write(str, 4));
 
   str.str("");
-  EXPECT_TRUE(pch1.write(str, ASM::PROJECTION_BASIS));
-  EXPECT_EQ(str.str(), squareFRTH_1);
-
-  EXPECT_FALSE(pch1.write(str, ASM::PROJECTION_BASIS_2));
+  REQUIRE(pch1.write(str, ASM::GEOMETRY_BASIS));
+  REQUIRE(str.str() == squareFRTH_1);
 
   str.str("");
-  EXPECT_TRUE(pch1.write(str, ASM::REFINEMENT_BASIS));
-  EXPECT_EQ(str.str(), squareFRTH_1);
+  REQUIRE(pch1.write(str, ASM::PROJECTION_BASIS));
+  REQUIRE(str.str() == squareFRTH_1);
+
+  REQUIRE(!pch1.write(str, ASM::PROJECTION_BASIS_2));
 
   str.str("");
-  EXPECT_TRUE(pch1.write(str, ASM::INTEGRATION_BASIS));
-  EXPECT_EQ(str.str(), ASMuSquare::square);
+  REQUIRE(pch1.write(str, ASM::REFINEMENT_BASIS));
+  REQUIRE(str.str() == squareFRTH_1);
+
+  str.str("");
+  REQUIRE(pch1.write(str, ASM::INTEGRATION_BASIS));
+  REQUIRE(str.str() == ASMuSquare::square);
 }
 
-TEST(TestASMu2Dmx, WriteSG)
+
+TEST_CASE("TestASMu2Dmx.WriteSG")
 {
   ASMmxBase::Type = ASMmxBase::SUBGRID;
   ASMbase::resetNumbering();
   ASMmxuSquare pch1({1,1});
-  EXPECT_TRUE(pch1.generateFEMTopology());
+  REQUIRE(pch1.generateFEMTopology());
 
   std::stringstream str;
-  EXPECT_TRUE(pch1.write(str, 1));
-  EXPECT_EQ(str.str(), squareTH_p);
+  REQUIRE(pch1.write(str, 1));
+  REQUIRE(str.str() == squareTH_p);
 
   str.str("");
-  EXPECT_TRUE(pch1.write(str, 2));
-  EXPECT_EQ(str.str(), ASMuSquare::square);
+  REQUIRE(pch1.write(str, 2));
+  REQUIRE(str.str() == ASMuSquare::square);
 
-  EXPECT_FALSE(pch1.write(str, 3));
-
-  str.str("");
-  EXPECT_TRUE(pch1.write(str, ASM::GEOMETRY_BASIS));
-  EXPECT_EQ(str.str(), ASMuSquare::square);
+  REQUIRE(!pch1.write(str, 3));
 
   str.str("");
-  EXPECT_TRUE(pch1.write(str, ASM::PROJECTION_BASIS));
-  EXPECT_EQ(str.str(), squareTH_p);
+  REQUIRE(pch1.write(str, ASM::GEOMETRY_BASIS));
+  REQUIRE(str.str() == ASMuSquare::square);
 
   str.str("");
-  EXPECT_TRUE(pch1.write(str, ASM::PROJECTION_BASIS_2));
-  EXPECT_EQ(str.str(), squareFRTH_1);
+  REQUIRE(pch1.write(str, ASM::PROJECTION_BASIS));
+  REQUIRE(str.str() == squareTH_p);
 
   str.str("");
-  EXPECT_TRUE(pch1.write(str, ASM::REFINEMENT_BASIS));
-  EXPECT_EQ(str.str(), squareFRTH_1);
+  REQUIRE(pch1.write(str, ASM::PROJECTION_BASIS_2));
+  REQUIRE(str.str() == squareFRTH_1);
 
   str.str("");
-  EXPECT_TRUE(pch1.write(str, ASM::INTEGRATION_BASIS));
-  EXPECT_EQ(str.str(), squareTH_p);
+  REQUIRE(pch1.write(str, ASM::REFINEMENT_BASIS));
+  REQUIRE(str.str() == squareFRTH_1);
+
+  str.str("");
+  REQUIRE(pch1.write(str, ASM::INTEGRATION_BASIS));
+  REQUIRE(str.str() == squareTH_p);
 }
 
 
-TEST_P(TestASMu2Dmx, WriteTH)
+TEST_CASE("TestASMu2Dmx.WriteTH")
 {
-  ASMmxBase::Type = GetParam() == 0 ? ASMmxBase::REDUCED_CONT_RAISE_BASIS1
-                                    : ASMmxBase::REDUCED_CONT_RAISE_BASIS2;
-  ASMbase::resetNumbering();
-  ASMmxuSquare pch1({1,1});
-  EXPECT_TRUE(pch1.uniformRefine(0, 1));
-  EXPECT_TRUE(pch1.uniformRefine(1, 1));
-  EXPECT_TRUE(pch1.generateFEMTopology());
+  const ASMmxBase::MixedType param = GENERATE(
+    ASMmxBase::REDUCED_CONT_RAISE_BASIS1,
+    ASMmxBase::REDUCED_CONT_RAISE_BASIS2
+  );
 
-  std::stringstream str;
-  EXPECT_TRUE(pch1.write(str, 1));
-  EXPECT_EQ(str.str(), GetParam() == 0 ? squareTH_1 : squareTH_2);
+  const int basis = param == ASMmxBase::REDUCED_CONT_RAISE_BASIS1 ? 1 : 2;
+  SECTION(basis == 1 ? "Raise basis 1" : "Raise basis 2") {
+    ASMmxBase::Type = param;
+    ASMbase::resetNumbering();
+    ASMmxuSquare pch1({1,1});
+    REQUIRE(pch1.uniformRefine(0, 1));
+    REQUIRE(pch1.uniformRefine(1, 1));
+    REQUIRE(pch1.generateFEMTopology());
 
-  str.str("");
-  EXPECT_TRUE(pch1.write(str, 2));
-  EXPECT_EQ(str.str(), GetParam() == 1 ? squareTH_1 : squareTH_2);
+    std::stringstream str;
+    REQUIRE(pch1.write(str, 1));
+    REQUIRE(str.str() ==  (basis == 1 ? squareTH_1 : squareTH_2));
 
-  EXPECT_FALSE(pch1.write(str, 3));
+    str.str("");
+    REQUIRE(pch1.write(str, 2));
+    REQUIRE(str.str() == (basis == 2 ? squareTH_1 : squareTH_2));
 
-  str.str("");
-  EXPECT_TRUE(pch1.write(str, ASM::GEOMETRY_BASIS));
-  EXPECT_EQ(str.str(), squareTH_2);
+    REQUIRE(!pch1.write(str, 3));
 
-  str.str("");
-  EXPECT_TRUE(pch1.write(str, ASM::PROJECTION_BASIS));
-  EXPECT_EQ(str.str(), squareTH_p);
+    str.str("");
+    REQUIRE(pch1.write(str, ASM::GEOMETRY_BASIS));
+    REQUIRE(str.str() == squareTH_2);
 
-  EXPECT_FALSE(pch1.write(str, ASM::PROJECTION_BASIS_2));
+    str.str("");
+    REQUIRE(pch1.write(str, ASM::PROJECTION_BASIS));
+    REQUIRE(str.str() == squareTH_p);
 
-  str.str("");
-  EXPECT_TRUE(pch1.write(str, ASM::REFINEMENT_BASIS));
-  EXPECT_EQ(str.str(), squareTH_p);
+    REQUIRE(!pch1.write(str, ASM::PROJECTION_BASIS_2));
 
-  str.str("");
-  EXPECT_TRUE(pch1.write(str, ASM::INTEGRATION_BASIS));
-  EXPECT_EQ(str.str(), squareTH_2);
+    str.str("");
+    REQUIRE(pch1.write(str, ASM::REFINEMENT_BASIS));
+    REQUIRE(str.str() == squareTH_p);
+
+    str.str("");
+    REQUIRE(pch1.write(str, ASM::INTEGRATION_BASIS));
+    REQUIRE(str.str() == squareTH_2);
+  }
 }
-
-
-INSTANTIATE_TEST_SUITE_P(TestASMu2Dmx, TestASMu2Dmx, testing::Values(0,1));

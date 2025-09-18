@@ -13,16 +13,17 @@
 #include "ASMSquare.h"
 #include "SIM2D.h"
 
-#include "gtest/gtest.h"
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 
 
-TEST(TestASMs2D, ElementConnectivities)
+TEST_CASE("TestASMs2D.ElementConnectivities")
 {
   ASMSquare pch1;
   ASMbase::resetNumbering();
-  ASSERT_TRUE(pch1.uniformRefine(0,1));
-  ASSERT_TRUE(pch1.uniformRefine(1,1));
-  ASSERT_TRUE(pch1.generateFEMTopology());
+  REQUIRE(pch1.uniformRefine(0,1));
+  REQUIRE(pch1.uniformRefine(1,1));
+  REQUIRE(pch1.generateFEMTopology());
   const size_t nel = pch1.getNoElms();
   pch1.shiftElemNumbers(nel);
   IntMat neighGlb(2*nel), neighLoc(nel);
@@ -32,86 +33,81 @@ TEST(TestASMs2D, ElementConnectivities)
                                                { 0, -1, -1,  3},
                                                {-1,  3,  0, -1},
                                                { 2, -1,  1, -1}}};
-  ASSERT_EQ(neighLoc.size(), nel);
-  ASSERT_EQ(neighGlb.size(), 2*nel);
+  REQUIRE(neighLoc.size() == nel);
+  REQUIRE(neighGlb.size() == 2*nel);
   for (size_t n = 0; n < neighLoc.size(); ++n) {
-    ASSERT_EQ(neighLoc[n].size(), ref[n].size());
-    ASSERT_EQ(neighGlb[n+nel].size(), ref[n].size());
+    REQUIRE(neighLoc[n].size() == ref[n].size());
+    REQUIRE(neighGlb[n+nel].size() == ref[n].size());
     for (size_t i = 0; i < neighLoc[n].size(); ++i) {
-      EXPECT_EQ(neighLoc[n][i], ref[n][i]);
-      EXPECT_EQ(neighGlb[n+nel][i], ref[n][i] > -1 ? ref[n][i] + nel : -1);
+      REQUIRE(neighLoc[n][i] == ref[n][i]);
+      REQUIRE(neighGlb[n+nel][i] == (ref[n][i] > -1 ?
+                                      ref[n][i] + static_cast<int>(nel) : -1));
     }
   }
 }
 
 
-TEST(TestASMs2D, BoundaryElements)
+TEST_CASE("TestASMs2D.BoundaryElements")
 {
   ASMSquare pch1;
   ASMbase::resetNumbering();
-  ASSERT_TRUE(pch1.uniformRefine(0,1));
-  ASSERT_TRUE(pch1.uniformRefine(1,1));
-  ASSERT_TRUE(pch1.generateFEMTopology());
+  REQUIRE(pch1.uniformRefine(0,1));
+  REQUIRE(pch1.uniformRefine(1,1));
+  REQUIRE(pch1.generateFEMTopology());
 
   const std::array<std::array<int,2>,4> ref = {{{{0, 2}}, {{1, 3}}, {{0, 1}}, {{2, 3}}}};
 
   std::array<IntVec,4> n;
   for (size_t i = 1; i <= 4; ++i) {
     pch1.getBoundaryElms(i, n[i-1]);
-    ASSERT_EQ(n[i-1].size(), ref[i-1].size());
+    REQUIRE(n[i-1].size() == ref[i-1].size());
     for (size_t j = 0; j < ref[i-1].size(); ++j)
-      EXPECT_EQ(n[i-1][j], ref[i-1][j]);
+      REQUIRE(n[i-1][j] == ref[i-1][j]);
   }
 }
 
 
-TEST(TestASMs2D, Write)
+TEST_CASE("TestASMs2D.Write")
 {
   ASMbase::resetNumbering();
   ASMSquare pch1;
-  EXPECT_TRUE(pch1.generateFEMTopology());
+  REQUIRE(pch1.generateFEMTopology());
 
   std::stringstream str;
-  EXPECT_TRUE(pch1.write(str, 1));
-  EXPECT_EQ(str.str(), ASMSquare::square);
+  REQUIRE(pch1.write(str, 1));
+  REQUIRE(str.str() == ASMSquare::square);
 
-  EXPECT_FALSE(pch1.write(str, 2));
-
-  str.str("");
-  EXPECT_TRUE(pch1.write(str, ASM::GEOMETRY_BASIS));
-  EXPECT_EQ(str.str(), ASMSquare::square);
+  REQUIRE(!pch1.write(str, 2));
 
   str.str("");
-  EXPECT_TRUE(pch1.write(str, ASM::PROJECTION_BASIS));
-  EXPECT_EQ(str.str(), ASMSquare::square);
-
-  EXPECT_FALSE(pch1.write(str, ASM::PROJECTION_BASIS_2));
-  EXPECT_FALSE(pch1.write(str, ASM::REFINEMENT_BASIS));
+  REQUIRE(pch1.write(str, ASM::GEOMETRY_BASIS));
+  REQUIRE(str.str() == ASMSquare::square);
 
   str.str("");
-  EXPECT_TRUE(pch1.write(str, ASM::INTEGRATION_BASIS));
-  EXPECT_EQ(str.str(), ASMSquare::square);
+  REQUIRE(pch1.write(str, ASM::PROJECTION_BASIS));
+  REQUIRE(str.str() == ASMSquare::square);
+
+  REQUIRE(!pch1.write(str, ASM::PROJECTION_BASIS_2));
+  REQUIRE(!pch1.write(str, ASM::REFINEMENT_BASIS));
+
+  str.str("");
+  REQUIRE(pch1.write(str, ASM::INTEGRATION_BASIS));
+  REQUIRE(str.str() == ASMSquare::square);
 }
 
 
-class TestASMs2D : public testing::Test,
-                   public testing::WithParamInterface<int>
+TEST_CASE("TestASMs2D.Connect")
 {
-};
-
-
-TEST_P(TestASMs2D, Connect)
-{
-  SIM2D sim(1);
-  std::stringstream str;
-  str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_orient";
-  str << GetParam() << ".xinp";
-  ASSERT_TRUE(sim.read(str.str().c_str()));
-  ASSERT_TRUE(sim.createFEMmodel());
+  const int param = GENERATE(0,1);
+  SECTION("Orient " + std::to_string(param)) {
+    SIM2D sim(1);
+    std::stringstream str;
+    str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_orient";
+    str << param << ".xinp";
+    REQUIRE(sim.read(str.str().c_str()));
+    REQUIRE(sim.createFEMmodel());
+  }
 }
-
-
-INSTANTIATE_TEST_SUITE_P(TestASMs2D, TestASMs2D, testing::Values(0,1));
 
 
 class ASMdegenerate2D : public ASMs2D
@@ -139,31 +135,31 @@ public:
       geo <<"3 0 0 1 3 1\n";
       break;
     }
-    EXPECT_TRUE(this->read(geo));
+    REQUIRE(this->read(geo));
   }
   virtual ~ASMdegenerate2D() {}
 };
 
 
-TEST(TestASMs2D, Collapse)
+TEST_CASE("TestASMs2D.Collapse")
 {
   for (int iedge = 1; iedge <= 4; iedge++)
   {
     ASMbase::resetNumbering();
     ASMdegenerate2D pch(iedge);
-    ASSERT_TRUE(pch.uniformRefine(0,2));
-    ASSERT_TRUE(pch.uniformRefine(1,1));
-    ASSERT_TRUE(pch.generateFEMTopology());
+    REQUIRE(pch.uniformRefine(0,2));
+    REQUIRE(pch.uniformRefine(1,1));
+    REQUIRE(pch.generateFEMTopology());
     std::cout <<"Degenerating E"<< iedge << std::endl;
 #ifdef SP_DEBUG
     pch.write(std::cout,0);
 #endif
-    EXPECT_TRUE(pch.collapseEdge(iedge));
+    REQUIRE(pch.collapseEdge(iedge));
   }
 }
 
 
-TEST(TestASMs2D, ElmNodes)
+TEST_CASE("TestASMs2D.ElmNodes")
 {
   ASMbase::resetNumbering();
 
@@ -173,9 +169,9 @@ TEST(TestASMs2D, ElmNodes)
   pch1.uniformRefine(0,1);
   pch1.uniformRefine(1,1);
   pch1.createProjectionBasis(false);
-  ASSERT_TRUE(pch1.uniformRefine(0,1));
-  ASSERT_TRUE(pch1.uniformRefine(1,1));
-  ASSERT_TRUE(pch1.generateFEMTopology());
+  REQUIRE(pch1.uniformRefine(0,1));
+  REQUIRE(pch1.uniformRefine(1,1));
+  REQUIRE(pch1.generateFEMTopology());
 
   const IntMat mnpc = pch1.getElmNodes(1);
 
@@ -185,11 +181,11 @@ TEST(TestASMs2D, ElmNodes)
       std::array{3,4,6,7},
       std::array{4,5,7,8},
   };
-  ASSERT_EQ(mnpc.size(), ref.size());
+  REQUIRE(mnpc.size() == ref.size());
   for (size_t i = 0; i < mnpc.size(); ++i) {
-    EXPECT_EQ(mnpc[i].size(), ref[i].size());
+    REQUIRE(mnpc[i].size() == ref[i].size());
     for (size_t j = 0; j < mnpc[i].size(); ++j)
-      EXPECT_EQ(mnpc[i][j], ref[i][j]);
+      REQUIRE(mnpc[i][j] == ref[i][j]);
   }
 
   const auto ref_proj = std::array{
@@ -199,10 +195,10 @@ TEST(TestASMs2D, ElmNodes)
       std::array{5,6,7,9,10,11,13,14,15},
   };
   const IntMat mnpc_proj = pch1.getElmNodes(ASM::PROJECTION_BASIS);
-  ASSERT_EQ(mnpc_proj.size(), ref_proj.size());
+  REQUIRE(mnpc_proj.size() == ref_proj.size());
   for (size_t i = 0; i < mnpc_proj.size(); ++i) {
-    EXPECT_EQ(mnpc_proj[i].size(), ref_proj[i].size());
+    REQUIRE(mnpc_proj[i].size() == ref_proj[i].size());
     for (size_t j = 0; j < mnpc_proj[i].size(); ++j)
-      EXPECT_EQ(mnpc_proj[i][j], ref_proj[i][j]);
+      REQUIRE(mnpc_proj[i][j] == ref_proj[i][j]);
   }
 }

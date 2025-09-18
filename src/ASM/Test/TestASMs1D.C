@@ -15,7 +15,7 @@
 #include "Vec3Oper.h"
 #include <sstream>
 
-#include "gtest/gtest.h"
+#include <catch2/catch_test_macros.hpp>
 
 
 class ASMLine : public ASMs1D
@@ -24,12 +24,12 @@ public:
   explicit ASMLine(int extraKnots = 0, int extraOrder = 0, bool init = true)
   {
     std::stringstream geo("100 1 0 0\n2 0\n2 2\n0 0 1 1\n0 0\n1 0\n");
-    EXPECT_TRUE(this->read(geo));
-    EXPECT_TRUE(this->raiseOrder(extraOrder));
+    REQUIRE(this->read(geo));
+    REQUIRE(this->raiseOrder(extraOrder));
     if (extraKnots > 0)
-      EXPECT_TRUE(this->uniformRefine(extraKnots));
+      REQUIRE(this->uniformRefine(extraKnots));
     if (init)
-      EXPECT_TRUE(this->generateFEMTopology());
+      REQUIRE(this->generateFEMTopology());
   }
 
   void shiftElmNumbers(int shift)
@@ -54,23 +54,23 @@ public:
                           "17 0 0 1\n"
                           "0 2.171071412473507 0 0.9918115419161011\n"
                           "-17 0 0 1\n");
-    EXPECT_TRUE(this->read(geo));
-    EXPECT_TRUE(this->raiseOrder(extraOrder));
-    EXPECT_TRUE(this->uniformRefine(extraKnots));
-    EXPECT_TRUE(this->generateFEMTopology());
+    REQUIRE(this->read(geo));
+    REQUIRE(this->raiseOrder(extraOrder));
+    REQUIRE(this->uniformRefine(extraKnots));
+    REQUIRE(this->generateFEMTopology());
   }
   virtual ~ASMArch() {}
 };
 
 
-TEST(TestASMs1D, findClosestNode)
+TEST_CASE("TestASMs1D.FindClosestNode")
 {
   ASMbase::resetNumbering();
 
   ASMLine pch1(7);
   std::cout <<"\nTesting a linear patch: ";
-  EXPECT_TRUE(pch1.write(std::cout));
-  EXPECT_EQ  (pch1.getNoNodes(),9u);
+  REQUIRE(pch1.write(std::cout));
+  REQUIRE(pch1.getNoNodes() == 9);
 
   Vec3 X;
   double x0  = 0.001;
@@ -83,13 +83,13 @@ TEST(TestASMs1D, findClosestNode)
 
   std::pair<size_t,double> cnod = pch1.findClosestNode(X);
   std::cout <<"Closest node "<< cnod.first <<" distance="<< cnod.second << std::endl;
-  EXPECT_EQ(cnod.first,5u);
+  REQUIRE(cnod.first == 5);
 
   pch1.evalPoint(&x0,&u,X);
-  EXPECT_EQ(pch1.findClosestNode(X).first,1u);
+  REQUIRE(pch1.findClosestNode(X).first == 1);
 
   pch1.evalPoint(&x1,&u,X);
-  EXPECT_EQ(pch1.findClosestNode(X).first,9u);
+  REQUIRE(pch1.findClosestNode(X).first == 9);
 
   int p = 2;
   const char* order[] = { "quadratic","cubic","quartic","quintic","sextic","septic", nullptr };
@@ -97,8 +97,8 @@ TEST(TestASMs1D, findClosestNode)
   {
     ASMArch pch(p-2,8-p);
     std::cout <<"\nTesting a "<< *q <<" patch: ";
-    EXPECT_TRUE(pch.write(std::cout));
-    EXPECT_EQ  (pch.getNoNodes(),9u);
+    REQUIRE(pch.write(std::cout));
+    REQUIRE(pch.getNoNodes() == 9);
 
     ipoint = pch.evalPoint(&xin,&u,X);
     std::cout <<"u = "<< u <<" --> X = "<< X;
@@ -107,44 +107,44 @@ TEST(TestASMs1D, findClosestNode)
 
     cnod = pch.findClosestNode(X);
     std::cout <<"Closest node "<< cnod.first <<" distance="<< cnod.second << std::endl;
-    EXPECT_EQ(cnod.first,5u);
+    REQUIRE(cnod.first == 5);
 
     pch.evalPoint(&x0,&u,X);
-    EXPECT_EQ(pch.findClosestNode(X).first,1u);
+    REQUIRE(pch.findClosestNode(X).first == 1);
 
     pch.evalPoint(&x1,&u,X);
-    EXPECT_EQ(pch.findClosestNode(X).first,9u);
+    REQUIRE(pch.findClosestNode(X).first == 9);
   }
 }
 
 
-TEST(TestASMs1D, findElement)
+TEST_CASE("TestASMs1D.FindElement")
 {
   ASMbase::resetNumbering();
 
   ASMLine pch1(9);
   std::cout <<"\nTesting a linear patch: ";
-  EXPECT_TRUE(pch1.write(std::cout));
-  EXPECT_EQ(pch1.getNoNodes(),11u);
-  EXPECT_EQ(pch1.findElement({-0.03,0.0,0.0}).first,1);
-  EXPECT_EQ(pch1.findElement({ 0.02,0.0,0.0}).first,1);
-  EXPECT_EQ(pch1.findElement({ 0.43,0.0,0.0}).first,5);
-  EXPECT_EQ(pch1.findElement({ 0.96,0.0,0.0}).first,10);
-  EXPECT_EQ(pch1.findElement({ 1.16,0.0,0.0}).first,10);
+  REQUIRE(pch1.write(std::cout));
+  REQUIRE(pch1.getNoNodes() == 11);
+  REQUIRE(pch1.findElement({-0.03,0.0,0.0}).first == 1);
+  REQUIRE(pch1.findElement({ 0.02,0.0,0.0}).first == 1);
+  REQUIRE(pch1.findElement({ 0.43,0.0,0.0}).first == 5);
+  REQUIRE(pch1.findElement({ 0.96,0.0,0.0}).first == 10);
+  REQUIRE(pch1.findElement({ 1.16,0.0,0.0}).first == 10);
 
   ASMLine pch2(9,1);
   std::cout <<"\nTesting a quadratic patch: ";
-  EXPECT_TRUE(pch2.write(std::cout));
-  EXPECT_EQ(pch2.getNoNodes(),12u);
-  EXPECT_EQ(pch2.findElement({-0.03,0.0,0.0}).first,1);
-  EXPECT_EQ(pch2.findElement({ 0.02,0.0,0.0}).first,1);
-  EXPECT_EQ(pch2.findElement({ 0.43,0.0,0.0}).first,5);
-  EXPECT_EQ(pch2.findElement({ 0.96,0.0,0.0}).first,10);
-  EXPECT_EQ(pch2.findElement({ 1.16,0.0,0.0}).first,10);
+  REQUIRE(pch2.write(std::cout));
+  REQUIRE(pch2.getNoNodes() == 12);
+  REQUIRE(pch2.findElement({-0.03,0.0,0.0}).first == 1);
+  REQUIRE(pch2.findElement({ 0.02,0.0,0.0}).first == 1);
+  REQUIRE(pch2.findElement({ 0.43,0.0,0.0}).first == 5);
+  REQUIRE(pch2.findElement({ 0.96,0.0,0.0}).first == 10);
+  REQUIRE(pch2.findElement({ 1.16,0.0,0.0}).first == 10);
 }
 
 
-TEST(TestASMs1D, ElementConnectivities)
+TEST_CASE("TestASMs1D.ElementConnectivities")
 {
   ASMbase::resetNumbering();
   const std::array<IntVec,3> refLoc = {{{-1, 1}, {0, 2}, {1, -1}}};
@@ -155,20 +155,21 @@ TEST(TestASMs1D, ElementConnectivities)
   IntMat neighGlb(nel*2), neighLoc(nel);
   pch1.getElmConnectivities(neighGlb);
   pch1.getElmConnectivities(neighLoc, ASM::GEOMETRY_BASIS);
-  ASSERT_EQ(neighLoc.size(), nel);
-  ASSERT_EQ(neighGlb.size(), 2*nel);
+  REQUIRE(neighLoc.size() == nel);
+  REQUIRE(neighGlb.size() == 2*nel);
   for (size_t n = 0; n < neighLoc.size(); ++n) {
-    ASSERT_EQ(neighLoc[n].size(), refLoc[n].size());
-    ASSERT_EQ(neighGlb[n+nel].size(), refLoc[n].size());
+    REQUIRE(neighLoc[n].size() == refLoc[n].size());
+    REQUIRE(neighGlb[n+nel].size() == refLoc[n].size());
     for (size_t i = 0; i < neighLoc[n].size(); ++i) {
-      EXPECT_EQ(neighLoc[n][i], refLoc[n][i]);
-      EXPECT_EQ(neighGlb[n+nel][i], refLoc[n][i] > -1 ? refLoc[n][i] + nel : -1);
+      REQUIRE(neighLoc[n][i] == refLoc[n][i]);
+      REQUIRE(neighGlb[n+nel][i] == (refLoc[n][i] > -1 ?
+                                     refLoc[n][i] + static_cast<int>(nel) : -1));
     }
   }
 }
 
 
-TEST(TestASMs1D, BoundaryElements)
+TEST_CASE("TestASMs1D.BoundaryElements")
 {
   ASMbase::resetNumbering();
 
@@ -176,13 +177,13 @@ TEST(TestASMs1D, BoundaryElements)
   for (size_t i = 1; i <= 2; ++i) {
     IntVec nodes;
     pch1.getBoundaryElms(i, nodes);
-    ASSERT_EQ(nodes.size(), 1u);
-    EXPECT_EQ(nodes.front(), i == 1 ? 0 : 2);
+    REQUIRE(nodes.size() == 1);
+    REQUIRE(nodes.front() == (i == 1 ? 0 : 2));
   }
 }
 
 
-TEST(TestASMs1D, ElmNodes)
+TEST_CASE("TestASMs1D.ElmNodes")
 {
   ASMbase::resetNumbering();
 
@@ -192,7 +193,7 @@ TEST(TestASMs1D, ElmNodes)
   pch1.uniformRefine(2);
   pch1.createProjectionBasis(false);
   pch1.uniformRefine(2);
-  EXPECT_TRUE(pch1.generateFEMTopology());
+  REQUIRE(pch1.generateFEMTopology());
   const IntMat mnpc = pch1.getElmNodes(1);
 
   const auto ref = std::array{
@@ -200,11 +201,11 @@ TEST(TestASMs1D, ElmNodes)
       std::array{1,2},
       std::array{2,3},
   };
-  ASSERT_EQ(mnpc.size(), ref.size());
+  REQUIRE(mnpc.size() == ref.size());
   for (size_t i = 0; i < mnpc.size(); ++i) {
-    EXPECT_EQ(mnpc[i].size(), ref[i].size());
+    REQUIRE(mnpc[i].size() == ref[i].size());
     for (size_t j = 0; j < mnpc[i].size(); ++j)
-      EXPECT_EQ(mnpc[i][j], ref[i][j]);
+      REQUIRE(mnpc[i][j] == ref[i][j]);
   }
 
   const auto ref_proj = std::array{
@@ -213,10 +214,10 @@ TEST(TestASMs1D, ElmNodes)
       std::array{2,3,4},
   };
   const IntMat mnpc_proj = pch1.getElmNodes(ASM::PROJECTION_BASIS);
-  ASSERT_EQ(mnpc_proj.size(), ref_proj.size());
+  REQUIRE(mnpc_proj.size() == ref_proj.size());
   for (size_t i = 0; i < mnpc_proj.size(); ++i) {
-    EXPECT_EQ(mnpc_proj[i].size(), ref_proj[i].size());
+    REQUIRE(mnpc_proj[i].size() == ref_proj[i].size());
     for (size_t j = 0; j < mnpc_proj[i].size(); ++j)
-      EXPECT_EQ(mnpc_proj[i][j], ref_proj[i][j]);
+      REQUIRE(mnpc_proj[i][j] == ref_proj[i][j]);
   }
 }

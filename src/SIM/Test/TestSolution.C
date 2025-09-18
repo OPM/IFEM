@@ -13,7 +13,7 @@
 
 #include "SIMsolution.h"
 
-#include <gtest/gtest.h>
+#include <catch2/catch_test_macros.hpp>
 
 
 class DummySIM : public SIMsolution
@@ -43,27 +43,27 @@ public:
 };
 
 
-TEST(SIMsolution, Push)
+TEST_CASE("TestSIMsolution.Push")
 {
   DummySIM s1(2,1);
   s1.printMe();
   s1.push();
   s1.printMe();
-  EXPECT_EQ(s1.getSolution(0)[0],0);
-  EXPECT_EQ(s1.getSolution(1)[0],1);
+  REQUIRE(s1.getSolution(0)[0] == 0);
+  REQUIRE(s1.getSolution(1)[0] == 1);
 
   DummySIM s2(4,3);
   s2.printMe();
   s2.push();
   s2.printMe();
-  EXPECT_EQ(s2.getSolution(2)[0],0);
-  EXPECT_EQ(s2.getSolution(5)[0],3);
-  EXPECT_EQ(s2.getSolution(8)[0],6);
-  EXPECT_EQ(s2.getSolution(9)[0],7);
+  REQUIRE(s2.getSolution(2)[0] == 0);
+  REQUIRE(s2.getSolution(5)[0] == 3);
+  REQUIRE(s2.getSolution(8)[0] == 6);
+  REQUIRE(s2.getSolution(9)[0] == 7);
   s2.push();
   s2.printMe();
-  EXPECT_EQ(s2.getSolution(2)[0],0);
-  EXPECT_EQ(s2.getSolution(5)[0],0);
-  EXPECT_EQ(s2.getSolution(8)[0],3);
-  EXPECT_EQ(s2.getSolution(9)[0],4);
+  REQUIRE(s2.getSolution(2)[0] == 0);
+  REQUIRE(s2.getSolution(5)[0] == 0);
+  REQUIRE(s2.getSolution(8)[0] == 3);
+  REQUIRE(s2.getSolution(9)[0] == 4);
 }

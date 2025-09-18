@@ -12,16 +12,20 @@
 
 #include "BlockElmMats.h"
 
-#include "gtest/gtest.h"
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+
+using Catch::Matchers::WithinAbs;
+using Catch::Matchers::WithinRel;
 
 
-TEST(TestBlockElmMats, 1Basis2BlocksDiag)
+TEST_CASE("TestBlockElmMats.1Basis2BlocksDiag")
 {
   BlockElmMats mats(2, 1);
 
   mats.resize(3, 3);
-  ASSERT_TRUE(mats.redim(1, 2, 1));
-  ASSERT_TRUE(mats.redim(2, 2, 1));
+  REQUIRE(mats.redim(1, 2, 1));
+  REQUIRE(mats.redim(2, 2, 1));
   mats.finalize();
 
   mats.A[1].fill(1);
@@ -31,25 +35,26 @@ TEST(TestBlockElmMats, 1Basis2BlocksDiag)
   for (size_t b = 1; b <= 2; ++b)
     for (size_t i = 1; i <= 2; ++i)
       for (size_t j = 1; j <= 2 ; ++j)
-        ASSERT_FLOAT_EQ(N(b+2*(i-1), b + 2*(j-1)), b);
+        REQUIRE_THAT(N(b+2*(i-1), b + 2*(j-1)),
+                     WithinRel(static_cast<Real>(b)));
 
   // check off-diagonal blocks
   for (size_t i = 1; i <= 2; ++i)
     for (size_t j = 1; j <= 2 ; ++j) {
-      ASSERT_FLOAT_EQ(N(2*(i-1)+1, 2*j), 0.0);
-      ASSERT_FLOAT_EQ(N(2*j, 2*(i-1)+1), 0.0);
+      REQUIRE_THAT(N(2*(i-1)+1, 2*j), WithinAbs(0.0, 1e-14));
+      REQUIRE_THAT(N(2*j, 2*(i-1)+1), WithinAbs(0.0, 1e-14));
     }
 }
 
 
-TEST(TestBlockElmMats, 1Basis2BlocksSymmetric)
+TEST_CASE("TestBlockElmMats.1Basis2BlocksSymmetric")
 {
   BlockElmMats mats(2, 1);
 
   mats.resize(4, 3);
-  ASSERT_TRUE(mats.redim(1, 2, 1));
-  ASSERT_TRUE(mats.redim(2, 2, 1));
-  ASSERT_TRUE(mats.redimOffDiag(3, 1));
+  REQUIRE(mats.redim(1, 2, 1));
+  REQUIRE(mats.redim(2, 2, 1));
+  REQUIRE(mats.redimOffDiag(3, 1));
   mats.finalize();
 
   mats.A[1].fill(1);
@@ -62,26 +67,26 @@ TEST(TestBlockElmMats, 1Basis2BlocksSymmetric)
   for (size_t b = 1; b <= 2; ++b)
     for (size_t i = 1; i <= 2; ++i)
       for (size_t j = 1; j <= 2 ; ++j)
-        ASSERT_FLOAT_EQ(N(b+2*(i-1), b + 2*(j-1)), b);
+        REQUIRE_THAT(N(b+2*(i-1), b + 2*(j-1)),
+                     WithinRel(static_cast<Real>(b)));
 
   // check off-diagonal blocks and symmetry
   for (size_t i = 1; i <= 2; ++i)
     for (size_t j = 1; j <= 2 ; ++j) {
-      ASSERT_FLOAT_EQ(N(2*(i-1)+1, 2*j), 3);
-      ASSERT_FLOAT_EQ(N(2*j, 2*(i-1)+1),
-                      N(2*(i-1)+1, 2*j));
+      REQUIRE_THAT(N(2*(i-1)+1, 2*j), WithinRel(3.0));
+      REQUIRE_THAT(N(2*j, 2*(i-1)+1), WithinRel(N(2*(i-1)+1, 2*j)));
     }
 }
 
 
-TEST(TestBlockElmMats, 1Basis2BlocksSkewSymmetric)
+TEST_CASE("TestBlockElmMats.1Basis2BlocksSkewSymmetric")
 {
   BlockElmMats mats(2, 1);
 
   mats.resize(4, 3);
-  ASSERT_TRUE(mats.redim(1, 2, 1));
-  ASSERT_TRUE(mats.redim(2, 2, 1));
-  ASSERT_TRUE(mats.redimOffDiag(3, -1));
+  REQUIRE(mats.redim(1, 2, 1));
+  REQUIRE(mats.redim(2, 2, 1));
+  REQUIRE(mats.redimOffDiag(3, -1));
   mats.finalize();
 
   mats.A[1].fill(1);
@@ -94,27 +99,28 @@ TEST(TestBlockElmMats, 1Basis2BlocksSkewSymmetric)
   for (size_t b = 1; b <= 2; ++b)
     for (size_t i = 1; i <= 2; ++i)
       for (size_t j = 1; j <= 2 ; ++j)
-        ASSERT_FLOAT_EQ(N(b+2*(i-1), b + 2*(j-1)), b);
+        REQUIRE_THAT(N(b+2*(i-1), b + 2*(j-1)),
+                     WithinRel(static_cast<Real>(b)));
 
   // check off-diagonal blocks and symmetry
   for (size_t i = 1; i <= 2; ++i)
     for (size_t j = 1; j <= 2 ; ++j) {
-      ASSERT_FLOAT_EQ(N(2*(i-1)+1, 2*j), 3);
-      ASSERT_FLOAT_EQ(N(2*j, 2*(i-1)+1),
-                      -N(2*(i-1)+1, 2*j));
+      REQUIRE_THAT(N(2*(i-1)+1, 2*j), WithinRel(3.0));
+      REQUIRE_THAT(N(2*j, 2*(i-1)+1),
+                   WithinRel(-N(2*(i-1)+1, 2*j)));
     }
 }
 
 
-TEST(TestBlockElmMats, 1Basis2BlocksFull)
+TEST_CASE("TestBlockElmMats.1Basis2BlocksFull")
 {
   BlockElmMats mats(2, 1);
 
   mats.resize(5, 3);
-  ASSERT_TRUE(mats.redim(1, 2, 1));
-  ASSERT_TRUE(mats.redim(2, 2, 1));
-  ASSERT_TRUE(mats.redimOffDiag(3, 0));
-  ASSERT_TRUE(mats.redimOffDiag(4, 0));
+  REQUIRE(mats.redim(1, 2, 1));
+  REQUIRE(mats.redim(2, 2, 1));
+  REQUIRE(mats.redimOffDiag(3, 0));
+  REQUIRE(mats.redimOffDiag(4, 0));
   mats.finalize();
 
   mats.A[1].fill(1);
@@ -128,24 +134,25 @@ TEST(TestBlockElmMats, 1Basis2BlocksFull)
   for (size_t b = 1; b <= 2; ++b)
     for (size_t i = 1; i <= 2; ++i)
       for (size_t j = 1; j <= 2 ; ++j)
-        ASSERT_FLOAT_EQ(N(b+2*(i-1), b + 2*(j-1)), b);
+        REQUIRE_THAT(N(b+2*(i-1), b + 2*(j-1)),
+                     WithinRel(static_cast<Real>(b)));
 
   // check off-diagonal blocks
   for (size_t i = 1; i <= 2; ++i)
     for (size_t j = 1; j <= 2 ; ++j) {
-      ASSERT_FLOAT_EQ(N(2*(i-1)+1, 2*j), 3);
-      ASSERT_FLOAT_EQ(N(2*j, 2*(i-1)+1), 4);
+      REQUIRE_THAT(N(2*(i-1)+1, 2*j), WithinRel(3.0));
+      REQUIRE_THAT(N(2*j, 2*(i-1)+1), WithinRel(4.0));
     }
 }
 
 
-TEST(TestBlockElmMats, 2Basis2BlocksDiag)
+TEST_CASE("TestBlockElmMats.2Basis2BlocksDiag")
 {
   BlockElmMats mats(2, 2);
 
   mats.resize(3, 3);
-  ASSERT_TRUE(mats.redim(1, 2, 2, 1));
-  ASSERT_TRUE(mats.redim(2, 2, 1, 2));
+  REQUIRE(mats.redim(1, 2, 2, 1));
+  REQUIRE(mats.redim(2, 2, 1, 2));
   mats.finalize();
 
   mats.A[1].fill(1);
@@ -156,23 +163,29 @@ TEST(TestBlockElmMats, 2Basis2BlocksDiag)
   // check first basis blocks
   for (size_t i = 1; i <= 4; ++i)
     for (size_t j = 1; j <= 6; ++j)
-      ASSERT_FLOAT_EQ(N(i,j), (j <= 4 ? 1.0 : 0.0));
+      if (j <= 4)
+        REQUIRE_THAT(N(i,j), WithinRel(1.0));
+      else
+        REQUIRE_THAT(N(i,j), WithinAbs(0.0, 1e-14));
 
   // check second basis blocks
   for (size_t i = 5; i <= 6; ++i)
     for (size_t j = 1; j <= 6; ++j)
-      ASSERT_FLOAT_EQ(N(i,j), (j <= 4 ? 0.0 : 2.0));
+      if (j <= 4)
+        REQUIRE_THAT(N(i,j), WithinAbs(0.0, 1e-14));
+      else
+        REQUIRE_THAT(N(i,j), WithinRel(2.0));
 }
 
 
-TEST(TestBlockElmMats, 2Basis2BlocksSymmetric)
+TEST_CASE("TestBlockElmMats.2Basis2BlocksSymmetric")
 {
   BlockElmMats mats(2, 2);
 
   mats.resize(4, 3);
-  ASSERT_TRUE(mats.redim(1, 2, 2, 1));
-  ASSERT_TRUE(mats.redim(2, 2, 1, 2));
-  ASSERT_TRUE(mats.redimOffDiag(3, 1));
+  REQUIRE(mats.redim(1, 2, 2, 1));
+  REQUIRE(mats.redim(2, 2, 1, 2));
+  REQUIRE(mats.redimOffDiag(3, 1));
   mats.finalize();
 
   mats.A[1].fill(1);
@@ -184,23 +197,23 @@ TEST(TestBlockElmMats, 2Basis2BlocksSymmetric)
   // check first basis blocks
   for (size_t i = 1; i <= 4; ++i)
     for (size_t j = 1; j <= 6; ++j)
-      ASSERT_FLOAT_EQ(N(i,j), (j <= 4 ? 1.0 : 3.0));
+      REQUIRE_THAT(N(i,j), WithinRel(j <= 4 ? 1.0 : 3.0));
 
   // check second basis blocks
   for (size_t i = 5; i <= 6; ++i)
     for (size_t j = 1; j <= 6; ++j)
-      ASSERT_FLOAT_EQ(N(i,j), (j <= 4 ? 3.0 : 2.0));
+      REQUIRE_THAT(N(i,j), WithinRel(j <= 4 ? 3.0 : 2.0));
 }
 
 
-TEST(TestBlockElmMats, 2Basis2BlocksSkewSymmetric)
+TEST_CASE("TestBlockElmMats.2Basis2BlocksSkewSymmetric")
 {
   BlockElmMats mats(2, 2);
 
   mats.resize(4, 3);
-  ASSERT_TRUE(mats.redim(1, 2, 2, 1));
-  ASSERT_TRUE(mats.redim(2, 2, 1, 2));
-  ASSERT_TRUE(mats.redimOffDiag(3, -1));
+  REQUIRE(mats.redim(1, 2, 2, 1));
+  REQUIRE(mats.redim(2, 2, 1, 2));
+  REQUIRE(mats.redimOffDiag(3, -1));
   mats.finalize();
 
   mats.A[1].fill(1);
@@ -212,24 +225,24 @@ TEST(TestBlockElmMats, 2Basis2BlocksSkewSymmetric)
   // check first basis blocks
   for (size_t i = 1; i <= 4; ++i)
     for (size_t j = 1; j <= 6; ++j)
-      ASSERT_FLOAT_EQ(N(i,j), (j <= 4 ? 1.0 : 3.0));
+      REQUIRE_THAT(N(i,j), WithinRel(j <= 4 ? 1.0 : 3.0));
 
   // check second basis blocks
   for (size_t i = 5; i <= 6; ++i)
     for (size_t j = 1; j <= 6; ++j)
-      ASSERT_FLOAT_EQ(N(i,j), (j <= 4 ? -3.0 : 2.0));
+      REQUIRE_THAT(N(i,j), WithinRel(j <= 4 ? -3.0 : 2.0));
 }
 
 
-TEST(TestBlockElmMats, 2Basis2BlocksFull)
+TEST_CASE("TestBlockElmMats.2Basis2BlocksFull")
 {
   BlockElmMats mats(2, 2);
 
   mats.resize(5, 3);
-  ASSERT_TRUE(mats.redim(1, 2, 2, 1));
-  ASSERT_TRUE(mats.redim(2, 2, 1, 2));
-  ASSERT_TRUE(mats.redimOffDiag(3, 0));
-  ASSERT_TRUE(mats.redimOffDiag(4, 0));
+  REQUIRE(mats.redim(1, 2, 2, 1));
+  REQUIRE(mats.redim(2, 2, 1, 2));
+  REQUIRE(mats.redimOffDiag(3, 0));
+  REQUIRE(mats.redimOffDiag(4, 0));
   mats.finalize();
 
   mats.A[1].fill(1);
@@ -242,10 +255,10 @@ TEST(TestBlockElmMats, 2Basis2BlocksFull)
   // check first basis blocks
   for (size_t i = 1; i <= 4; ++i)
     for (size_t j = 1; j <= 6; ++j)
-      ASSERT_FLOAT_EQ(N(i,j), (j <= 4 ? 1.0 : 3.0));
+      REQUIRE_THAT(N(i,j), WithinRel(j <= 4 ? 1.0 : 3.0));
 
   // check second basis blocks
   for (size_t i = 5; i <= 6; ++i)
     for (size_t j = 1; j <= 6; ++j)
-      ASSERT_FLOAT_EQ(N(i,j), (j <= 4 ? 4.0 : 2.0));
+      REQUIRE_THAT(N(i,j), WithinRel(j <= 4 ? 4.0 : 2.0));
 }

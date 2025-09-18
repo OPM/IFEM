@@ -16,17 +16,18 @@
 #include "SIM3D.h"
 #include <array>
 
-#include "gtest/gtest.h"
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 
 
-TEST(TestASMs3D, ElementConnectivities)
+TEST_CASE("TestASMs3D.ElementConnectivities")
 {
   ASMCube pch1;
   ASMbase::resetNumbering();
-  ASSERT_TRUE(pch1.uniformRefine(0,1));
-  ASSERT_TRUE(pch1.uniformRefine(1,1));
-  ASSERT_TRUE(pch1.uniformRefine(2,1));
-  ASSERT_TRUE(pch1.generateFEMTopology());
+  REQUIRE(pch1.uniformRefine(0,1));
+  REQUIRE(pch1.uniformRefine(1,1));
+  REQUIRE(pch1.uniformRefine(2,1));
+  REQUIRE(pch1.generateFEMTopology());
   const size_t nel = pch1.getNoElms();
   pch1.shiftElemNumbers(nel);
   IntMat neighGlb(2*nel), neighLoc(nel);
@@ -40,27 +41,28 @@ TEST(TestASMs3D, ElementConnectivities)
                                                { 4, -1, -1,  7,  1, -1},
                                                {-1,  7,  4, -1,  2, -1},
                                                { 6, -1,  5, -1,  3, -1}}};
-  ASSERT_EQ(neighGlb.size(), 2*nel);
-  ASSERT_EQ(neighLoc.size(), nel);
+  REQUIRE(neighGlb.size() == 2*nel);
+  REQUIRE(neighLoc.size() == nel);
   for (size_t n = 0; n < neighLoc.size(); ++n) {
-    ASSERT_EQ(neighLoc[n].size(), ref[n].size());
-    ASSERT_EQ(neighGlb[n+nel].size(), ref[n].size());
+    REQUIRE(neighLoc[n].size() == ref[n].size());
+    REQUIRE(neighGlb[n+nel].size() == ref[n].size());
     for (size_t i = 0; i < neighLoc[n].size(); ++i) {
-      EXPECT_EQ(neighLoc[n][i], ref[n][i]);
-      EXPECT_EQ(neighGlb[n+nel][i], ref[n][i] > -1 ? ref[n][i] + nel : -1);
+      REQUIRE(neighLoc[n][i] == ref[n][i]);
+      REQUIRE(neighGlb[n+nel][i] == (ref[n][i] > -1 ?
+                                      ref[n][i] + static_cast<int>(nel) : -1));
     }
   }
 }
 
 
-TEST(TestASMs3D, BoundaryElements)
+TEST_CASE("TestASMs3D.BoundaryElements")
 {
   ASMCube pch1;
   ASMbase::resetNumbering();
-  ASSERT_TRUE(pch1.uniformRefine(0,1));
-  ASSERT_TRUE(pch1.uniformRefine(1,1));
-  ASSERT_TRUE(pch1.uniformRefine(2,1));
-  ASSERT_TRUE(pch1.generateFEMTopology());
+  REQUIRE(pch1.uniformRefine(0,1));
+  REQUIRE(pch1.uniformRefine(1,1));
+  REQUIRE(pch1.uniformRefine(2,1));
+  REQUIRE(pch1.generateFEMTopology());
 
   const std::array<std::array<int,4>,6> ref = {{{{0, 2, 4, 6}},
                                                 {{1, 3, 5, 7}},
@@ -72,77 +74,71 @@ TEST(TestASMs3D, BoundaryElements)
   std::array<IntVec,6> n;
   for (size_t i = 1; i <= 6; ++i) {
     pch1.getBoundaryElms(i, n[i-1]);
-    ASSERT_EQ(n[i-1].size(), ref[i-1].size());
+    REQUIRE(n[i-1].size() == ref[i-1].size());
     for (size_t j = 0; j < ref[i-1].size(); ++j)
-      EXPECT_EQ(n[i-1][j], ref[i-1][j]);
+      REQUIRE(n[i-1][j] == ref[i-1][j]);
   }
 }
 
 
-TEST(TestASMs3D, Write)
+TEST_CASE("TestASMs3D.Write")
 {
   ASMbase::resetNumbering();
   ASMCube pch1;
-  EXPECT_TRUE(pch1.generateFEMTopology());
+  REQUIRE(pch1.generateFEMTopology());
 
   std::stringstream str;
-  EXPECT_TRUE(pch1.write(str, 1));
-  EXPECT_EQ(str.str(), ASMCube::cube);
+  REQUIRE(pch1.write(str, 1));
+  REQUIRE(str.str() == ASMCube::cube);
 
-  EXPECT_FALSE(pch1.write(str, 2));
-
-  str.str("");
-  EXPECT_TRUE(pch1.write(str, ASM::GEOMETRY_BASIS));
-  EXPECT_EQ(str.str(), ASMCube::cube);
+  REQUIRE(!pch1.write(str, 2));
 
   str.str("");
-  EXPECT_TRUE(pch1.write(str, ASM::PROJECTION_BASIS));
-  EXPECT_EQ(str.str(), ASMCube::cube);
-
-  EXPECT_FALSE(pch1.write(str, ASM::PROJECTION_BASIS_2));
-  EXPECT_FALSE(pch1.write(str, ASM::REFINEMENT_BASIS));
+  REQUIRE(pch1.write(str, ASM::GEOMETRY_BASIS));
+  REQUIRE(str.str() == ASMCube::cube);
 
   str.str("");
-  EXPECT_TRUE(pch1.write(str, ASM::INTEGRATION_BASIS));
-  EXPECT_EQ(str.str(), ASMCube::cube);
+  REQUIRE(pch1.write(str, ASM::PROJECTION_BASIS));
+  REQUIRE(str.str() == ASMCube::cube);
+
+  REQUIRE(!pch1.write(str, ASM::PROJECTION_BASIS_2));
+  REQUIRE(!pch1.write(str, ASM::REFINEMENT_BASIS));
+
+  str.str("");
+  REQUIRE(pch1.write(str, ASM::INTEGRATION_BASIS));
+  REQUIRE(str.str() == ASMCube::cube);
 }
 
 
-class TestASMs3D : public testing::Test,
-                   public testing::WithParamInterface<int>
+TEST_CASE("TestASMs3D.Connect")
 {
-};
+  const int param = GENERATE(0,1,2,3,4,5,6,7);
 
-
-TEST_P(TestASMs3D, Connect)
-{
-  if (GetParam() > 7)
-    return;
-
-  SIM3D sim(3);
-  std::stringstream str;
-  str << "src/ASM/Test/refdata/DomainDecomposition_MPI_3D_4_orient";
-  str << GetParam() << ".xinp";
-  ASSERT_TRUE(sim.read(str.str().c_str()));
-  ASSERT_TRUE(sim.createFEMmodel());
+  SECTION("Orient " + std::to_string(param)) {
+    SIM3D sim(3);
+    std::stringstream str;
+    str << "src/ASM/Test/refdata/DomainDecomposition_MPI_3D_4_orient";
+    str << param << ".xinp";
+    REQUIRE(sim.read(str.str().c_str()));
+    REQUIRE(sim.createFEMmodel());
+  }
 }
 
 
-TEST_P(TestASMs3D, ConnectUneven)
+TEST_CASE("TestASMs3D.ConnectUneven")
 {
-  SIM3D sim(1);
-  std::stringstream str;
-  str << "src/ASM/Test/refdata/3d_uneven";
-  if (GetParam() > 0)
-    str << "_" << (GetParam()-1)/3 << (GetParam()-1) % 3;
-  str << ".xinp";
-  ASSERT_TRUE(sim.read(str.str().c_str()));
-  ASSERT_TRUE(sim.createFEMmodel());
+  const int param = GENERATE(0,1,2,3,4,5,6,7,8,9,10,11,12);
+  SECTION("Uneven " + std::to_string(param)) {
+    SIM3D sim(1);
+    std::stringstream str;
+    str << "src/ASM/Test/refdata/3d_uneven";
+    if (param > 0)
+      str << "_" << (param-1)/3 << (param-1) % 3;
+    str << ".xinp";
+    REQUIRE(sim.read(str.str().c_str()));
+    REQUIRE(sim.createFEMmodel());
+  }
 }
-
-
-INSTANTIATE_TEST_SUITE_P(TestASMs3D, TestASMs3D,
-                         testing::Values(0,1,2,3,5,6,7,8,9,10,11,12));
 
 
 class ASMdegenerate3D : public ASMs3D
@@ -326,13 +322,13 @@ public:
       defaultGeo();
       break;
     }
-    EXPECT_TRUE(this->read(geo));
+    REQUIRE(this->read(geo));
   }
   virtual ~ASMdegenerate3D() {}
 };
 
 
-TEST(TestASMs3D, Collapse)
+TEST_CASE("TestASMs3D.Collapse")
 {
   // Face-to-edge topology, see
   // https://github.com/OPM/IFEM/blob/master/doc/sim-input.pdf Figures 2 and 3.
@@ -349,21 +345,22 @@ TEST(TestASMs3D, Collapse)
     {
       ASMbase::resetNumbering();
       ASMdegenerate3D pch(iface,iedge);
-      ASSERT_TRUE(pch.uniformRefine(0,4));
-      ASSERT_TRUE(pch.uniformRefine(1,1));
-      ASSERT_TRUE(pch.uniformRefine(2,3));
-      ASSERT_TRUE(pch.generateFEMTopology());
+      REQUIRE(pch.uniformRefine(0,4));
+      REQUIRE(pch.uniformRefine(1,1));
+      REQUIRE(pch.uniformRefine(2,3));
+      REQUIRE(pch.generateFEMTopology());
       std::cout <<"Degenerating F"<< iface <<" onto E"<< iedge << std::endl;
 #ifdef SP_DEBUG
       pch.write(std::cout,0);
 #endif
       const std::array<int,4>& face = faceTop[iface-1];
       if (iedge == 0 || std::find(face.begin(),face.end(),iedge) != face.end())
-        EXPECT_TRUE(pch.collapseFace(iface,iedge));
+        REQUIRE(pch.collapseFace(iface,iedge));
       else
-        EXPECT_FALSE(pch.collapseFace(iface,iedge));
+        REQUIRE(!pch.collapseFace(iface,iedge));
     }
 }
+
 
 class NoProblem : public IntegrandBase
 {
@@ -376,37 +373,37 @@ protected:
 };
 
 
-TEST(TestASMs3D, FaceIntegrate)
+TEST_CASE("TestASMs3D.FaceIntegrate")
 {
   GlobalIntegral dummy;
   NoProblem prb;
   ASMCube patch;
   ASMbase::resetNumbering();
 
-  ASSERT_TRUE(patch.raiseOrder(2,1,0));
-  ASSERT_TRUE(patch.generateFEMTopology());
+  REQUIRE(patch.raiseOrder(2,1,0));
+  REQUIRE(patch.generateFEMTopology());
   for (int lIndex = 1; lIndex <= 6; lIndex++)
   {
     patch.generateThreadGroups(lIndex,false,false);
-    ASSERT_TRUE(patch.integrate(prb,lIndex,dummy,TimeDomain()));
+    REQUIRE(patch.integrate(prb,lIndex,dummy,TimeDomain()));
   }
 
   patch.clear(true);
   ASMbase::resetNumbering();
 
-  ASSERT_TRUE(patch.uniformRefine(0,3));
-  ASSERT_TRUE(patch.uniformRefine(1,2));
-  ASSERT_TRUE(patch.uniformRefine(2,1));
-  ASSERT_TRUE(patch.generateFEMTopology());
+  REQUIRE(patch.uniformRefine(0,3));
+  REQUIRE(patch.uniformRefine(1,2));
+  REQUIRE(patch.uniformRefine(2,1));
+  REQUIRE(patch.generateFEMTopology());
   for (int lIndex = 1; lIndex <= 6; lIndex++)
   {
     patch.generateThreadGroups(lIndex,false,false);
-    ASSERT_TRUE(patch.integrate(prb,lIndex,dummy,TimeDomain()));
+    REQUIRE(patch.integrate(prb,lIndex,dummy,TimeDomain()));
   }
 }
 
 
-TEST(TestASMs3D, ElmNodes)
+TEST_CASE("TestASMs3D.ElmNodes")
 {
   ASMbase::resetNumbering();
 
@@ -417,10 +414,10 @@ TEST(TestASMs3D, ElmNodes)
   pch1.uniformRefine(1,1);
   pch1.uniformRefine(2,1);
   pch1.createProjectionBasis(false);
-  ASSERT_TRUE(pch1.uniformRefine(0,1));
-  ASSERT_TRUE(pch1.uniformRefine(1,1));
-  ASSERT_TRUE(pch1.uniformRefine(2,1));
-  ASSERT_TRUE(pch1.generateFEMTopology());
+  REQUIRE(pch1.uniformRefine(0,1));
+  REQUIRE(pch1.uniformRefine(1,1));
+  REQUIRE(pch1.uniformRefine(2,1));
+  REQUIRE(pch1.generateFEMTopology());
 
   const IntMat mnpc = pch1.getElmNodes(1);
 
@@ -434,11 +431,11 @@ TEST(TestASMs3D, ElmNodes)
       std::array{12,13,15,16,21,22,24,25},
       std::array{13,14,16,17,22,23,25,26},
   };
-  ASSERT_EQ(mnpc.size(), ref.size());
+  REQUIRE(mnpc.size() == ref.size());
   for (size_t i = 0; i < mnpc.size(); ++i) {
-    EXPECT_EQ(mnpc[i].size(), ref[i].size());
+    REQUIRE(mnpc[i].size() == ref[i].size());
     for (size_t j = 0; j < mnpc[i].size(); ++j)
-      EXPECT_EQ(mnpc[i][j], ref[i][j]);
+      REQUIRE(mnpc[i][j] == ref[i][j]);
   }
 
   const auto ref_proj = std::array{
@@ -452,10 +449,10 @@ TEST(TestASMs3D, ElmNodes)
       std::array{21,22,23,25,26,27,29,30,31,37,38,39,41,42,43,45,46,47,53,54,55,57,58,59,61,62,63},
   };
   const IntMat mnpc_proj = pch1.getElmNodes(ASM::PROJECTION_BASIS);
-  ASSERT_EQ(mnpc_proj.size(), ref_proj.size());
+  REQUIRE(mnpc_proj.size() == ref_proj.size());
   for (size_t i = 0; i < mnpc_proj.size(); ++i) {
-    EXPECT_EQ(mnpc_proj[i].size(), ref_proj[i].size());
+    REQUIRE(mnpc_proj[i].size() == ref_proj[i].size());
     for (size_t j = 0; j < mnpc_proj[i].size(); ++j)
-      EXPECT_EQ(mnpc_proj[i][j], ref_proj[i][j]);
+      REQUIRE(mnpc_proj[i][j] == ref_proj[i][j]);
   }
 }
