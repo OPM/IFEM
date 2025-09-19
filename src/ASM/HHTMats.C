@@ -28,21 +28,27 @@ const Matrix& HHTMats::getNewtonMatrix () const
     return this->ElmMats::getNewtonMatrix();
 
   Matrix& N = const_cast<Matrix&>(A.front());
-  double alphaPlus1 = 1.5 - gamma; // = 1.0 + alpha
+  const double alphaPlus1 = 1.5 - gamma; // = 1.0 + alpha
+  const double gammaObh   = gamma/(beta*h);
 
   // Calculate the Newton matrix of the dynamic problem
   // N = (1+alpha)(1+alpha2*gobh)*K + (1/(beta*h^2)+(1+alpha)*alpha1*gobh)*M
   //   + (1+alpha)*gobh*C
   // where gobh = gamma/(beta*h)
 
-  N = A[1];
-  N.multiply((alphaPlus1*alpha1*gamma + 1.0/h)/(beta*h));
+  if (A[1].empty())
+    N.fill(0.0);
+  else
+  {
+    N = A[1];
+    N.multiply(1.0/(beta*h*h) + alphaPlus1*alpha1*gammaObh);
+  }
   if (A.size() > 2)
-    N.add(A[2],alphaPlus1*(1.0 + alpha2*gamma/(beta*h)));
+    N.add(A[2],alphaPlus1 + alphaPlus1*alpha2*gammaObh);
   if (A.size() > 3)
     N.add(A[3],alphaPlus1);
   if (A.size() > 4)
-    N.add(A[4],alphaPlus1*gamma/(beta*h));
+    N.add(A[4],alphaPlus1*gammaObh);
 
 #if SP_DEBUG > 2
   std::cout <<"\nHHTMats::getNewtonMatrix";
@@ -54,7 +60,12 @@ const Matrix& HHTMats::getNewtonMatrix () const
     std::cout <<"Tangent stiffness matrix"<< A[2];
   if (A.size() > 4)
     std::cout <<"Element damping matrix"<< A[4];
-  std::cout <<"Resulting Newton matrix"<< A[0];
+  std::cout <<"scale(M) = "<< 1.0/(beta*h*h) + alphaPlus1*alpha1*gammaObh;
+  if (A.size() > 4)
+    std::cout <<"  scale(C) = "<< alphaPlus1*gammaObh;
+  if (A.size() > 2)
+    std::cout <<"  scale(K) = "<< alphaPlus1 + alphaPlus1*alpha2*gammaObh;
+  std::cout <<"\nResulting Newton matrix"<< A[0];
 #endif
 
   return A.front();
