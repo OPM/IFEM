@@ -28,7 +28,7 @@ namespace tinyxml2 {
 
 class Vec3;
 
-typedef std::map<int,int> IntMap; //!< Convenience type
+using IntMap = std::map<int,int>; //!< Convenience type alias
 
 
 namespace utl
@@ -87,7 +87,8 @@ namespace utl
   //! \param[out] val The attribute value
   //! \return \e true if the attribute \a att is found in \a xml,
   //! otherwise \e false
-  int getAttribute(const tinyxml2::XMLElement* xml, const char* att, size_t& val);
+  int getAttribute(const tinyxml2::XMLElement* xml, const char* att,
+                   size_t& val);
   //! \brief Extracts a real attribute value from the specified XML-element.
   //! \param[in] xml Pointer to XML-element to extract from
   //! \param[in] att The attribute tag
@@ -230,6 +231,9 @@ namespace utl
   //! The values of \a a2 not already in \a a1 are appended to \a a1.
   void merge(std::vector<Real>& a1, const std::vector<Real>& a2,
              const std::vector<int>& k1, const std::vector<int>& k2);
+
+  //! \brief Rounds off \a value down to \a pr significant digits.
+  Real round(Real value, int pr);
 }
 
 #endif
