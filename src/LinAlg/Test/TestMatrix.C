@@ -40,8 +40,8 @@ TEST(TestVector, Multiply)
 
 TEST(TestVector, Norm)
 {
-  vectorMultiplyTest<double>();
-  vectorMultiplyTest<float>();
+  vectorNormTest<double>();
+  vectorNormTest<float>();
 }
 
 
