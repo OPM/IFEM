@@ -44,8 +44,10 @@ public:
   //! \param[in] arg_c The number of command-line arguments
   //! \param[in] arg_v The command-line arguments
   //! \param[in] title The title of the IFEM simulator
+  //! \param[in] silent True to suppress output
   //! \return The MPI process ID
-  static int Init(int arg_c, char** arg_v, const char* title = nullptr);
+  static int Init(int arg_c, char** arg_v,
+                  const char* title = nullptr, bool silent = false);
   //! \brief Closes the IFEM library.
   static void Close();
 
