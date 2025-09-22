@@ -93,12 +93,12 @@ template<class Scalar>
 void vectorNormTest()
 {
   constexpr size_t size = 10;
-  constexpr Scalar max = Scalar(size-1) * Scalar(size) / 2.0;
+  const Scalar max = sqrt(size*(size+1)*(2*size+1) / 6);
 
   utl::vector<Scalar> d(size);
-  std::iota(d.begin(), d.end(), 0.0);
+  std::iota(d.begin(), d.end(), 1.0);
 
-  EXPECT_FLOAT_EQ(d.normInf(), size - 1.0);
+  EXPECT_FLOAT_EQ(d.normInf(), size);
   EXPECT_FLOAT_EQ(d.norm2(), max);
 }
 
