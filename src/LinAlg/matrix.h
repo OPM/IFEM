@@ -88,6 +88,12 @@ namespace utl //! General utility classes and functions.
     size_t size() const { return myVec.size(); }
     //! \brief Is the vector empty (zero size)?
     bool empty() const { return myVec.empty(); }
+    //! \brief Is the vector elements all zero?
+    bool zero(T tol = T(0)) const
+    {
+      return std::all_of(myVec.begin(), myVec.end(),
+                         [tol](T v) { return std::fabs(v) <= tol; });
+    }
 
     //! \brief Convenience alias for const iterators.
     using ConstVecIter = typename std::vector<T>::const_iterator;
@@ -369,6 +375,8 @@ namespace utl //! General utility classes and functions.
     size_t size() const { return n[0]*n[1]*n[2]*n[3]; }
     //! \brief Check if the matrix is empty.
     bool empty() const { return elem.empty(); }
+    //! \brief Check if the matrix elements are all zero.
+    bool zero(T tol = T(0)) const { return elem.zero(tol); }
 
     //! \brief Type casting to a one-dimensional utl::vector, for access.
     const vector<T>& toVec() const { return elem; }
