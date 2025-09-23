@@ -65,39 +65,48 @@ const Vector& ElmMats::getRHSVector () const
 }
 
 
-void ElmMats::printMat (std::ostream& os, size_t idx) const
+void ElmMats::printMat (std::ostream& os, size_t idx,
+                        const char* prefix) const
 {
   if (idx >= A.size()) return;
 
-  os <<"\nElement coefficient matrix";
+  os << (prefix ? prefix : "\nElement coefficient matrix");
   if (idx > 0) os <<" "<< idx;
 
   if (idx < Aname.size() && Aname[idx])
     os <<" ("<< Aname[idx] <<")";
 
-  os << A[idx];
+  if (!A[idx].empty() && A[idx].zero(utl::zero_print_tol))
+    os <<" (all "<< A[idx].size() <<" components are zero)"<< std::endl;
+  else
+    os << A[idx];
 }
 
 
-void ElmMats::printVec (std::ostream& os, size_t idx) const
+void ElmMats::printVec (std::ostream& os, size_t idx,
+                        const char* prefix) const
 {
   if (idx >= b.size()) return;
 
-  os <<"\nElement right-hand-side vector";
+  os << (prefix ? prefix : "\nElement right-hand-side vector");
   if (idx > 0) os <<" "<< idx;
 
   if (idx < Bname.size() && Bname[idx])
     os <<" ("<< Bname[idx] <<")";
 
-  os << b[idx];
+  if (!b[idx].empty() && b[idx].zero(utl::zero_print_tol))
+    os <<" (all "<< b[idx].size() <<" components are zero)"<< std::endl;
+  else
+    os << b[idx];
 }
 
 
-void ElmMats::printScl (std::ostream& os, size_t idx) const
+void ElmMats::printScl (std::ostream& os, size_t idx,
+                        const char* prefix) const
 {
   if (idx >= c.size()) return;
 
-  os <<"Element scalar "<< idx+1;
+  os << (prefix ? prefix : "Element scalar") <<" "<< idx+1;
   if (idx < Cname.size() && Cname[idx])
     os <<" ("<< Cname[idx] <<")";
 
