@@ -38,6 +38,7 @@ add_app(AdvectionDiffusion HAVE_ADVDIFF)
 add_app(Darcy HAVE_DARCY)
 
 set(HAVE_BEAMEX FALSE)
+set(HAVE_BEAMGEO FALSE)
 set(HAVE_FINITEDEF FALSE)
 if(EXISTS ${PROJECT_SOURCE_DIR}/IFEM-Elasticity)
   set(ELASTICITY_SRC IFEM-Elasticity)
@@ -63,6 +64,7 @@ if(EXISTS ${PROJECT_SOURCE_DIR}/${ELASTICITY_SRC})
     add_subdirectory(${BEAMGEO_SRC})
     include_directories(${PROJECT_SOURCE_DIR}/${BEAMGEO_SRC})
     string(APPEND CMAKE_CXX_FLAGS " -DHAS_GEOMETRY")
+    set(HAVE_BEAMGEO TRUE)
   endif()
 
   message(STATUS "Including ${PROJECT_SOURCE_DIR}/${ELASTICITY_SRC}/Linear")
@@ -87,7 +89,21 @@ if(EXISTS ${PROJECT_SOURCE_DIR}/${ELASTICITY_SRC})
   endif()
   if (EXISTS ${PROJECT_SOURCE_DIR}/${SHELLEX_SRC})
     message(STATUS "Including ${PROJECT_SOURCE_DIR}/${SHELLEX_SRC}")
+    if (HAVE_BEAMGEO)
+      # Remove the BeamGeometry stuff from includes and defines
+      # to avoid issues due to duplicated files
+      get_property(OLD_INCLUDES DIRECTORY PROPERTY INCLUDE_DIRECTORIES)
+      set(NEW_INCLUDES ${OLD_INCLUDES})
+      list(REMOVE_ITEM NEW_INCLUDES "${PROJECT_SOURCE_DIR}/${BEAMGEO_SRC}")
+      set_property(DIRECTORY PROPERTY INCLUDE_DIRECTORIES ${NEW_INCLUDES})
+      string(REPLACE "-DHAS_GEOMETRY" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    endif()
     add_subdirectory(${SHELLEX_SRC})
+    if (HAVE_BEAMGEO)
+      # Restore the old includes and defines settings (for FSI below)
+      set_property(DIRECTORY PROPERTY INCLUDE_DIRECTORIES ${OLD_INCLUDES})
+      string(APPEND CMAKE_CXX_FLAGS " -DHAS_GEOMETRY")
+    endif()
   endif()
 
   if(EXISTS ${PROJECT_SOURCE_DIR}/${ELASTICITY_SRC}/IFEM-FiniteDeformation)
@@ -133,5 +149,6 @@ add_app(HM HAVE_HM)
 add_app(CoSTA HAVE_COSTA)
 add_app(Burgers HAVE_BURGERS)
 
-# Add 'check' target which builds all test applications, then executes the tests
+# Add 'check' target which builds all test applications,
+# then executes all the tests
 add_check_target()
