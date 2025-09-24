@@ -95,6 +95,9 @@ namespace utl
   bool invert(Matrix& A);
   //! \brief Solves the linear system of equations \f$ {\bf A x} = {\bf b} \f$.
   bool solve(Matrix& A, RealArray& b, std::vector<int>* iPivot = nullptr);
+
+  //! \brief Debug print of given vector \b V, if \a SP_DEBUG &ge; \a level.
+  void debugPrint(const char* label, const Vector& V, int level = 2);
 }
 
 #if HAS_CEREAL
