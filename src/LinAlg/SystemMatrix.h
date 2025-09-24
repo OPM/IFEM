@@ -64,6 +64,8 @@ public:
   virtual Real* getPtr() = 0;
   //! \brief Reference through pointer.
   virtual const Real* getRef() const = 0;
+  //! \brief Reference to underlying utl::vector, if any.
+  virtual const Vector& vec() const = 0;
 
   //! \brief Initializes the vector assuming it is properly dimensioned.
   virtual void init(Real value = Real(0)) = 0;
@@ -165,6 +167,8 @@ public:
   virtual Real* getPtr() { return this->ptr(); }
   //! \brief Reference through pointer.
   virtual const Real* getRef() const { return this->ptr(); }
+  //! \brief Reference to underlying utl::vector.
+  virtual const Vector& vec() const { return *this; }
 
   //! \brief Initializes the vector to a given scalar value.
   virtual void init(Real value = Real(0)) { this->fill(value); }

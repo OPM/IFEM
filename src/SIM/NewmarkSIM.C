@@ -300,11 +300,9 @@ bool NewmarkSIM::predictStep (TimeStep& param)
     return false;
   }
 
-#if SP_DEBUG > 1
-  std::cout <<"Predicted displacement:"<< solution[iD];
-  std::cout <<"Predicted velocity:"<< solution[iV];
-  std::cout <<"Predicted acceleration:"<< solution[iA];
-#endif
+  utl::debugPrint("Predicted displacement:", solution[iD]);
+  utl::debugPrint("Predicted velocity:",     solution[iV]);
+  utl::debugPrint("Predicted acceleration:", solution[iA]);
 
   if (predictor == 'd')
     return true;
@@ -334,11 +332,9 @@ bool NewmarkSIM::correctStep (TimeStep& param, bool)
   // Corrected acceleration
   solution[iA].add(linsol, solveDisp ? 1.0/(beta*dt*dt) : 1.0);
 
-#if SP_DEBUG > 1
-  std::cout <<"Corrected displacement:"<< solution[iD];
-  std::cout <<"Corrected velocity:"<< solution[iV];
-  std::cout <<"Corrected acceleration:"<< solution[iA];
-#endif
+  utl::debugPrint("Corrected displacement:", solution[iD]);
+  utl::debugPrint("Corrected velocity:",     solution[iV]);
+  utl::debugPrint("Corrected acceleration:", solution[iA]);
 
   if (rotUpd == 't')
     model.updateRotations(solution[iD]);
