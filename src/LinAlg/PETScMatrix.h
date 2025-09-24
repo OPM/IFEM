@@ -94,6 +94,7 @@ class PETScMatrix;
   \brief Class for representing a set of system vectors in PETSc format.
   \details Used for solving systems with multiple RHS vectors.
 */
+
 class PETScVectors : public SystemVector
 {
 public:
@@ -115,21 +116,23 @@ public:
   size_t dim() const override { return myDim; }
 
   //! \brief Sets the dimension of the system vector.
-  void redim(size_t n) override {}
+  void redim(size_t) override {}
 
   //! \brief Access through pointer.
   Real* getPtr() override { return nullptr; }
   //! \brief Reference through pointer.
   const Real* getRef() const override { return nullptr; }
+  //! \brief Reference to underlying utl::vector.
+  const Vector& vec() const override { static Vector empty; return empty; }
 
   //! \brief Initializes the vector to a given scalar value.
-  void init(Real value) override {}
+  void init(Real) override {}
 
   //! \brief Multiplication with a scalar.
-  void mult(Real alpha) override {}
+  void mult(Real) override {}
 
   //! \brief Addition of another system vector to this one.
-  void add(const SystemVector& vec, Real scale) override {}
+  void add(const SystemVector&, Real) override {}
 
   //! \brief L1-norm of the vector.
   Real L1norm() const override { return 0.0; }

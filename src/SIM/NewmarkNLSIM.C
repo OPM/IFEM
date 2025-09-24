@@ -151,13 +151,13 @@ bool NewmarkNLSIM::predictStep (TimeStep& param)
 #ifdef SP_DEBUG
   std::cout <<"\nPredicted velocity:";
 #if SP_DEBUG > 1
-  std::cout << predVel;
+  utl::debugPrint(nullptr,predVel);
 #else
   std::cout << predVel.max() <<"\n";
 #endif
   std::cout <<"Predicted acceleration:";
 #if SP_DEBUG > 1
-  std::cout << predAcc;
+  utl::debugPrint(nullptr,predAcc);
 #else
   std::cout << predAcc.max() << std::endl;
 #endif
@@ -200,16 +200,16 @@ bool NewmarkNLSIM::correctStep (TimeStep& param, bool converged)
   }
 
 #if SP_DEBUG > 1
-  std::cout <<"\nDisplacement increment:"<< incDis
-            <<"Corrected displacement:"<< solution[iD]
-            <<"Corrected velocity:"<< solution[iV]
-            <<"Corrected acceleration:"<< solution[iA];
+  utl::debugPrint("\nDisplacement increment:", incDis);
+  utl::debugPrint("Corrected displacement:", solution[iD]);
+  utl::debugPrint("Corrected velocity:",     solution[iV]);
+  utl::debugPrint("Corrected acceleration:", solution[iA]);
   if (converged && Finert)
-    std::cout <<"Actual inertia force:"<< *Finert;
+    utl::debugPrint("Actual inertia force:", Finert->vec());
 #elif defined(SP_DEBUG)
   if (converged)
     std::cout <<"\nConverged displacement:"<< solution[iD].max()
-              <<"\nConverged velocity:"<< solution[iV].max()
+              <<"\nConverged velocity:"    << solution[iV].max()
               <<"\nConverged acceleration:"<< solution[iA].max() << std::endl;
 #endif
 
