@@ -4,7 +4,7 @@
 # NOTE: This file is _not_ used by the Jenkins build system on github.
 # Therefore, make sure to test any changes locally before merging.
 
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.22)
 
 project(IFEM_Apps)
 
@@ -24,20 +24,16 @@ endmacro(add_app)
 
 # Add local modules
 set(IFEM_COMMON_APP_BUILD 1)
-set(IFEM_PATH ${PROJECT_SOURCE_DIR}/..)
-list(APPEND CMAKE_MODULE_PATH ${IFEM_PATH}/cmake/Modules)
 
-find_package(IFEM REQUIRED)
-
-enable_testing()
-
-include_directories(${IFEM_INCLUDES})
-
-string(APPEND CMAKE_CXX_FLAGS " ${IFEM_CXX_FLAGS}")
-if(NOT IFEM_AS_SUBMODULE)
-  string(APPEND CMAKE_CXX_FLAGS " -DPROFILE_LEVEL=2")
+if(IFEM_AS_SUBMODULE)
+  add_subdirectory(.. IFEM)
+  set(IFEM_PATH ${PROJECT_SOURCE_DIR}/..)
+else()
+  get_filename_component(BUILD_DIR ${PROJECT_BINARY_DIR} NAME)
+  set(IFEM_DIR ${PROJECT_SOURCE_DIR}/../${BUILD_DIR})
+  find_package(IFEM REQUIRED)
 endif()
-set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
+enable_testing()
 
 add_app(Poisson HAVE_POISSON)
 add_app(AdvectionDiffusion HAVE_ADVDIFF)
@@ -68,9 +64,6 @@ if(EXISTS ${PROJECT_SOURCE_DIR}/${ELASTICITY_SRC})
   if (EXISTS ${PROJECT_SOURCE_DIR}/${BEAMGEO_SRC})
     message(STATUS "Including ${PROJECT_SOURCE_DIR}/${BEAMGEO_SRC}")
     add_subdirectory(${BEAMGEO_SRC})
-    include_directories(${PROJECT_SOURCE_DIR}/${BEAMGEO_SRC})
-    string(APPEND CMAKE_CXX_FLAGS " -DHAS_GEOMETRY")
-    set(HAVE_BEAMGEO TRUE)
   endif()
 
   message(STATUS "Including ${PROJECT_SOURCE_DIR}/${ELASTICITY_SRC}/Linear")
@@ -78,7 +71,7 @@ if(EXISTS ${PROJECT_SOURCE_DIR}/${ELASTICITY_SRC})
 
   if(EXISTS ${PROJECT_SOURCE_DIR}/${ELASTICITY_SRC}/IFEM-BeamEx)
     set(BEAMEX_SRC ${ELASTICITY_SRC}/IFEM-BeamEx)
-  else()
+ else()
     set(BEAMEX_SRC ${ELASTICITY_SRC}/BeamEx)
   endif()
   if (EXISTS ${PROJECT_SOURCE_DIR}/${BEAMEX_SRC})
@@ -134,27 +127,26 @@ if(EXISTS ${PROJECT_SOURCE_DIR}/${ELASTICITY_SRC})
     message(STATUS "Including ${PROJECT_SOURCE_DIR}/FractureDynamics")
     add_subdirectory(FractureDynamics)
   endif()
-
 endif()
 
 add_app(Stokes HAVE_STOKES)
 if(HAVE_STOKES)
   add_app(NavierStokes HAVE_NAVIERSTOKES)
-  if(HAVE_NAVIERSTOKES)
-    if (HAVE_ADVDIFF)
-      add_app(Boussinesq HAVE_BOUSSINESQ)
-    endif()
-    if (HAVE_BEAMEX AND HAVE_FINITEDEF)
-      add_app(FSI HAVE_FSI)
-    endif()
-  endif()
+   if(HAVE_NAVIERSTOKES)
+     if (HAVE_ADVDIFF)
+       add_app(Boussinesq HAVE_BOUSSINESQ)
+     endif()
+     if (HAVE_BEAMEX AND HAVE_FINITEDEF)
+       add_app(FSI HAVE_FSI)
+     endif()
+   endif()
 endif()
 
-add_app(SIMRA-PostProc HAVE_POSTPROC)
-add_app(HM HAVE_HM)
-add_app(CoSTA HAVE_COSTA)
-add_app(Burgers HAVE_BURGERS)
+ add_app(SIMRA-PostProc HAVE_POSTPROC)
+ add_app(HM HAVE_HM)
+ add_app(CoSTA HAVE_COSTA)
+ add_app(Burgers HAVE_BURGERS)
 
 # Add 'check' target which builds all test applications,
 # then executes all the tests
-add_check_target()
+ifem_add_check_target()

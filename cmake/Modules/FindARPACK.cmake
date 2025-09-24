@@ -1,17 +1,18 @@
-IF (ARPACK_LIBRARIES)
-  SET(ARPACK_FIND_QUIETLY TRUE)
-ENDIF (ARPACK_LIBRARIES)
-
-FIND_LIBRARY(ARPACK_LIBRARIES
-  NAMES arpack
-  PATHS $ENV{HOME}/lib
-  /sima/libs/ARPACK
- # For kongull until they get their act together
-  /share/apps/modulessoftware/arpack/96/lib
+find_library(
+  ARPACK_LIBRARIES
+  NAMES
+    arpack
+  PATHS
+    $ENV{HOME}/lib
 )
 
-INCLUDE(FindPackageHandleStandardArgs)
+include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(ARPACK DEFAULT_MSG
                                   ARPACK_LIBRARIES)
 
-MARK_AS_ADVANCED(ARPACK_LIBRARIES)
+if(ARPACK_FOUND)
+  add_library(ARPACK::ARPACK UNKNOWN IMPORTED)
+  set_target_properties(ARPACK::ARPACK PROPERTIES IMPORTED_LOCATION ${ARPACK_LIBRARIES})
+endif()
+
+mark_as_advanced(ARPACK_LIBRARIES)

@@ -294,11 +294,10 @@ if(SuiteSparse_FOUND)
     string (TOUPPER ${_module} _MODULE)
     if(SuiteSparse_${_MODULE}_FOUND)
       if(NOT TARGET SuiteSparse::${_module})
-	message(STATUS "Creating target SuiteSparse::${_module}")
 	add_library(SuiteSparse::${_module} UNKNOWN IMPORTED GLOBAL)
 	set_target_properties(SuiteSparse::${_module} PROPERTIES
 	  IMPORTED_LOCATION ${${_MODULE}_LIBRARY}
-	  INCLUDE_DIRECTORIES ${${_MODULE}_INCLUDE_DIRS}
+	  INTERFACE_INCLUDE_DIRECTORIES ${${_MODULE}_INCLUDE_DIRS}
 	  INTERFACE_LINK_LIBRARIES "${config_LIBRARY}")
 	target_link_libraries(SuiteSparse::SuiteSparse
           INTERFACE SuiteSparse::${_module})

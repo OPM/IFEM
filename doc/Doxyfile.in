@@ -570,7 +570,6 @@ INPUT                  = @IFEM_PATH@/src @IFEM_H_PATH@ \
                          @IFEM_PATH@/src/Eig @IFEM_PATH@/src/LinAlg \
                          @IFEM_PATH@/src/Utility \
                          @IFEM_PATH@/Apps/Common \
-                         @PROJECT_BINARY_DIR@ \
                          @EXTRA_DOXY_PATHS@
 
 # This tag can be used to specify the character encoding of the source files 
