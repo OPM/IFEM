@@ -60,12 +60,6 @@ then
   exit 0
 fi
 
-# remove cmake rule so apps do not get confused
-mv $WORKSPACE/cmake/Modules/FindIFEM.cmake $WORKSPACE
-
 build_downstreams IFEM
-
-# move cmake rule back in place
-mv $WORKSPACE/FindIFEM.cmake $WORKSPACE/cmake/Modules
 
 test $? -eq 0 || exit 1

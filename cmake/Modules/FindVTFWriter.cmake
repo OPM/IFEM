@@ -1,63 +1,69 @@
-IF(VTFWRITER_INCLUDES AND VTFWRITER_LIBRARIES)
-  SET(VTFWRITER_FIND_QUIETLY TRUE)
-ENDIF(VTFWRITER_INCLUDES AND VTFWRITER_LIBRARIES)
+find_path(
+  VTFXWRITER_INCLUDE_DIRS
+  NAMES
+    VTFXAPI.h
+  PATHS
+    $ENV{HOME}/include
+    $ENV{HOME}/.local/include
+)
 
-UNSET(VTFWRITER_INCLUDES CACHE)
-UNSET(VTFWRITER_LIBRARIES CACHE)
+find_path(
+  VTFWRITER_INCLUDE_DIRS
+  NAMES
+   VTFAPI.h
+  PATHS
+    $ENV{HOME}/include
+    $ENV{HOME}/.local/include
+)
 
-IF (NOT VTFAPI OR VTFAPI GREATER 1)
-  FIND_PATH(VTFWRITER_INCLUDES
-    NAMES VTFXAPI.h
-    PATHS $ENV{HOME}/include
-    /usr/local/include
-    /sima/libs/VTFx/include
-  )
-  IF(VTFWRITER_INCLUDES)
-    SET(VTFAPI 2)
-  ENDIF(VTFWRITER_INCLUDES)
-ENDIF (NOT VTFAPI OR VTFAPI GREATER 1)
 
-IF (NOT VTFWRITER_INCLUDES)
-  FIND_PATH(VTFWRITER_INCLUDES
-    NAMES VTFAPI.h
-    PATHS $ENV{HOME}/include
-    /usr/local/include
-    /sima/libs/GLviewExpressWriter/include
-  )
-  IF(VTFWRITER_INCLUDES)
-    SET(VTFAPI 1)
-  ENDIF(VTFWRITER_INCLUDES)
-ENDIF(NOT VTFWRITER_INCLUDES)
+find_library(
+  VTFWRITER_LIBRARIES
+  NAMES
+    VTFExpressAPI
+  PATHS
+    $ENV{HOME}/lib
+    $ENV{HOME}/.local/lib
+)
 
-IF(VTFWRITER_INCLUDES)
-  IF (${VTFAPI} LESS 2)
-    FIND_LIBRARY(VTFWRITER_LIBRARIES
-      NAMES VTFExpressAPI
-      PATHS $ENV{HOME}/lib
-      /usr/local/lib
-      /sima/libs/GLviewExpressWriter/lib
-    )
-    MESSAGE(STATUS "Using VTF libraries")
-  ELSE(${VTFAPI} LESS 2)
-    FIND_LIBRARY(VTFWRITER_LIBRARIES
-      NAMES GLviewExpressWriter2d
-      PATHS $ENV{HOME}/lib
-      /usr/local/lib
-      /sima/libs/VTFx/lib
-    )
-    FIND_LIBRARY(ZIP_LIBRARIES
-      NAMES ziparch
-      PATHS $ENV{HOME}/lib
-      /usr/local/lib
-      /sima/libs/VTFx/lib
-    )
-    SET(VTFWRITER_LIBRARIES ${VTFWRITER_LIBRARIES} ${ZIP_LIBRARIES})
-    MESSAGE(STATUS "Using VTFx libraries")
-  ENDIF(${VTFAPI} LESS 2)
-ENDIF(VTFWRITER_INCLUDES)
+find_library(
+  VTFXWRITER_LIBRARIES
+  NAMES
+    GLviewExpressWriter2d
+  PATHS
+    $ENV{HOME}/lib
+    $ENV{HOME}/.local/lib
+)
 
-INCLUDE(FindPackageHandleStandardArgs)
+find_library(
+  ZIP_LIBRARIES
+  NAMES
+    ziparch
+  PATHS
+    $ENV{HOME}/lib
+    $ENV{HOME}/.local/lib
+)
+
+if(VTFWRITER_INCLUDE_DIRS AND VTFWRITER_LIBRARIES)
+  add_library(VTFWriter::VTF UNKNOWN IMPORTED)
+  set_target_properties(VTFWriter::VTF PROPERTIES IMPORTED_LOCATION ${VTFWRITER_LIBRARIES})
+  target_include_directories(VTFWriter::VTF INTERFACE ${VTFWRITER_INCLUDE_DIRS})
+  target_compile_definitions(VTFWriter::VTF INTERFACE HAS_VTFAPI=1)
+endif()
+
+if(VTFXWRITER_INCLUDE_DIRS AND VTFXWRITER_LIBRARIES AND ZIP_LIBRARIES)
+  add_library(VTFWriter::VTFx UNKNOWN IMPORTED)
+  set_target_properties(VTFWriter::VTFx PROPERTIES IMPORTED_LOCATION ${VTFXWRITER_LIBRARIES})
+  target_include_directories(VTFWriter::VTFx INTERFACE ${VTFXWRITER_INCLUDE_DIRS})
+  target_link_libraries(VTFWriter::VTFx INTERFACE ${ZIP_LIBRARIES})
+  target_compile_definitions(VTFWriter::VTFx INTERFACE HAS_VTFAPI=2)
+  set(VTFWRITER_INCLUDE_DIRS ${VTFXWRITER_INCLUDE_DIRS})
+  set(VTFWRITER_LIBRARIES ${VTFXWRITER_LIBRARIES})
+endif()
+
+include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(VTFWriter DEFAULT_MSG
-                                  VTFWRITER_INCLUDES VTFWRITER_LIBRARIES)
+                                  VTFWRITER_INCLUDE_DIRS VTFWRITER_LIBRARIES)
 
-MARK_AS_ADVANCED(VTFAPI VTFWRITER_INCLUDES VTFWRITER_LIBRARIES)
+mark_as_advanced(VTFWRITER_INCLUDE_DIRS VTFWRITER_LIBRARIES
+                 VTFXWRITER_INCLUDE_DIRS VTFXWRITER_LIBRARIES ZIP_LIBRARIES)
