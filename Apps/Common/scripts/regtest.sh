@@ -6,9 +6,10 @@
 #
 # Parameters: -a = Application binary
 #             -r = Regression test file
+#             -d = Binary directory
 # Optional parameters:
 #             -v = Valgrind binary
-#             -m = Number of MPI nodes
+#             -m = Number of MPI procs
 #             -s = Restart step
 # A regression test file is of the format:
 # parameters to application
@@ -19,7 +20,7 @@ function atomic_log {
 (
 flock -x 200
 
-  echo "$1" >> @CMAKE_BINARY_DIR@/failed.log
+  echo "$1" >> $BINARY_DIR/failed.log
 
 ) 200>/var/lock/ifemloglock
 }
@@ -27,20 +28,21 @@ flock -x 200
 function atomic_log_file {
 (
   flock -x 200
-  cat $1 >> @CMAKE_BINARY_DIR@/failed.log
+  cat $1 >> $BINARY_DIR/failed.log
 
 ) 200>/var/lock/ifemloglock
 }
 
 OPTIND=1
-while getopts "a:r:m:v:s:" OPT
+while getopts "a:r:m:v:s:d:" OPT
 do
   case "${OPT}" in
     a) MYSIM=${OPTARG} ;;
     r) REG_FILE=${OPTARG} ;;
-    m) MPI_NODES=${OPTARG} ;;
+    m) MPI_PROCS=${OPTARG} ;;
     v) VALGRIND=${OPTARG} ;;
     s) RSTEP=${OPTARG};;
+    d) BINARY_DIR=${OPTARG};;
   esac
 done
 
@@ -71,7 +73,7 @@ then
   vallog=`mktemp -t ifemvallogXXXXXX`
   MYSIM="${VALGRIND} --log-file=${vallog} ${MYSIM}"
 fi
-test -n "${MPI_NODES}" && MYSIM="mpirun -n ${MPI_NODES} ${MYSIM}"
+test -n "${MPI_PROCS}" && MYSIM="mpirun -n ${MPI_PROCS} ${MYSIM}"
 
 ${MYSIM} ${hdf5} ${MAPFILE} 2>&1 | tee ${tmplog}
 retcode=$?

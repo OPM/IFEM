@@ -283,12 +283,9 @@ function build_module_and_upstreams {
       pushd .
       mkdir -p ${BTYPES_ARRAY[$BTYPE]}/build-IFEM
       cd ${BTYPES_ARRAY[$BTYPE]}/build-IFEM
-      build_module "-DCMAKE_INSTALL_PREFIX=$WORKSPACE/${BTYPES_ARRAY[$BTYPE]}/install -DCMAKE_TOOLCHAIN_FILE=${TOOLCHAINS[$BTYPE]} -DINSTALL_DOXY=0" 0 $WORKSPACE/deps/IFEM
+      build_module "-DCMAKE_INSTALL_PREFIX=$WORKSPACE/${BTYPES_ARRAY[$BTYPE]}/install -DCMAKE_TOOLCHAIN_FILE=${TOOLCHAINS[$BTYPE]}" 0 $WORKSPACE/deps/IFEM
       test $? -eq 0 || exit 1
       popd
-
-      # remove FindIFEM.cmake - causes problems
-      rm -f ${WORKSPACE}/deps/IFEM/cmake/Modules/FindIFEM.cmake
     fi
 
     CMAKE_TOOLCHAIN_FILE=${TOOLCHAINS[$BTYPE]}

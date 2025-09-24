@@ -1,0 +1,27 @@
+find_package(PkgConfig)
+
+set(OLD_PKG $ENV{PKG_CONFIG_PATH})
+set(ENV{PKG_CONFIG_PATH} $ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib/pkgconfig)
+set(OLD_ALLOW $ENV{PKG_CONFIG_ALLOW_SYSTEM_CFLAGS})
+set(ENV{PKG_CONFIG_ALLOW_SYSTEM_CFLAGS} 1)
+pkg_check_modules(PETSC PETSc>=3.6.3)
+set(ENV{PKG_CONFIG_PATH} ${OLD_PKG})
+set(ENV{PKG_CONFIG_ALLOW_SYSTEM_CFLAGS} ${OLD_ALLOW})
+
+set(PETSC_LIBRARIES ${PETSC_STATIC_LDFLAGS})
+
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(PETSc DEFAULT_MSG
+                                  PETSC_INCLUDE_DIRS PETSC_LIBRARIES)
+
+if(PETSc_FOUND)
+  add_library(PETSc::PETSc INTERFACE IMPORTED)
+  set(PETSC_LIBRARY_DIRS ${PETSC_LIBRARIES})
+  list(FILTER PETSC_LIBRARY_DIRS INCLUDE REGEX -L.*)
+  list(TRANSFORM PETSC_LIBRARY_DIRS REPLACE "-L" "")
+  list(FILTER PETSC_LIBRARIES EXCLUDE REGEX -L.*)
+  target_link_libraries(PETSc::PETSc INTERFACE ${PETSC_LIBRARIES})
+  target_include_directories(PETSc::PETSc INTERFACE ${PETSC_INCLUDE_DIRS})
+  target_compile_definitions(PETSc::PETSc INTERFACE HAS_PETSC=1)
+  target_link_directories(PETSc::PETSc INTERFACE ${PETSC_LIBRARY_DIRS})
+endif()

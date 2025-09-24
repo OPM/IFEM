@@ -6,12 +6,14 @@
 #
 # Parameters: $1 = Application binary
 #             $2 = Source file to process
+#             $3 = Binary directory
 
 clangcheck_cmd=$1
 source_file=$2
+bin_dir=$3
 
 tmpfil=`mktemp`
-$clangcheck_cmd -p @CMAKE_BINARY_DIR@ -analyze $source_file &> $tmpfil
+$clangcheck_cmd -p $bin_dir -analyze $source_file &> $tmpfil
 cat $tmpfil
 if test -s $tmpfil
 then

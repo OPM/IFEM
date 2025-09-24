@@ -1,4 +1,4 @@
-@PACKAGE_INIT@G
+@PACKAGE_INIT@
 
 set(IFEM_USE_OPENMP @IFEM_USE_OPENMP@)
 set(IFEM_USE_LRSPLINES @IFEM_USE_LRSPLINES@)
@@ -16,13 +16,16 @@ set(IFEM_USE_ZOLTAN @IFEM_USE_ZOLTAN@)
 set(IFEM_USE_TRACY @IFEM_USE_TRACY@)
 set(IFEM_USE_SPR @IFEM_USE_SPR@)
 
-set(IFEM_PATH @IFEM_PATH@)
+set(IFEM_PATH @CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_DATAROOTDIR@/IFEM)
+set(IFEM_REGTEST_PATH ${IFEM_PATH}/scripts/regtest.sh)
+set(IFEM_CLANG_CHECK_PATH ${IFEM_PATH}/scripts/clang-check-test.sh)
+set(IFEM_IOTEST_PATH ${IFEM_PATH}/scripts/iotest.sh)
 
-list(APPEND CMAKE_MODULE_PATH ${IFEM_PATH}/cmake ${IFEM_PATH}/cmake/Modules)
-include(IFEMSetupVariables)
-include(IFEMFindDependencies)
-include(IFEMAddTargets)
-include(IFEMOptionsDownstream)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR})
+
+include("${CMAKE_CURRENT_LIST_DIR}/IFEMFindDependencies.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/IFEMOptionsDownstream.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/IFEMTargets.cmake")
-include(IFEMDoxy)
-include(IFEMTesting)
+include("${CMAKE_CURRENT_LIST_DIR}/IFEMAddTargets.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/IFEMTesting.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/IFEMDoxy.cmake")

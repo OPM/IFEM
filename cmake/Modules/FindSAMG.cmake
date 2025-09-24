@@ -1,19 +1,27 @@
-IF (SAMG_LIBRARIES)
-  SET(SAMG_FIND_QUIETLY TRUE)
-ENDIF(SAMG_LIBRARIES)
-
-FIND_PATH(SAMG_INCLUDES
-  NAMES samg.h
-  PATHS $ENV{HOME}/include
+find_path(
+  SAMG_INCLUDES
+  NAMES
+    samg.h
+  PATHS
+    $ENV{HOME}/include
 )
 
-FIND_LIBRARY(SAMG_LIBRARIES
-  NAMES amg_coo
-  PATHS $ENV{HOME}/lib
+find_library(
+  SAMG_LIBRARIES
+  NAMES
+    amg_coo
+  PATHS
+    $ENV{HOME}/lib
 )
 
-INCLUDE(FindPackageHandleStandardArgs)
+include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(SAMG DEFAULT_MSG
                                   SAMG_INCLUDES SAMG_LIBRARIES)
 
-MARK_AS_ADVANCED(SAMG_INCLUDES SAMG_LIBRARIES)
+mark_as_advanced(SAMG_INCLUDES SAMG_LIBRARIES)
+
+if(SAMG_FOUND)
+  add_library(SAMG::SAMG UNKNOWN IMPORTED)
+  set_target_properties(SAMG::SAMG PROPERTIES IMPORTED_LOCATION ${SAMG_LIBRARIES})
+  target_include_directories(SAMG::SAMG INTERFACE ${SAMG_INCLUDES})
+endif()
