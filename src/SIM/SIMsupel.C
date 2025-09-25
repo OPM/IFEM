@@ -12,9 +12,9 @@
 //==============================================================================
 
 #include "SIMsupel.h"
-#include "ASMbase.h"
+#include "ASMsupel.h"
 #include "ASM3D.h"
-#include "IntegrandBase.h"
+#include "HasGravityBase.h"
 #include "SAM.h"
 #include "Utilities.h"
 #include "IFEM.h"
@@ -105,6 +105,10 @@ ASMbase* SIMsupel::readPatch (std::istream& isp, int pchInd, const CharVec&,
   ASMbase* pch = ASM3D::create(ASM::SuperElm,ncmp);
   if (pch)
   {
+    // Need to assign gravity vector before parsing superelement data
+    HasGravityBase* itgr = dynamic_cast<HasGravityBase*>(myProblem);
+    if (itgr && !itgr->getGravity().isZero())
+      static_cast<ASMsupel*>(pch)->setGravity(itgr->getGravity());
     if (!pch->read(isp) || this->getLocalPatchIndex(pchInd+1) < 1)
     {
       delete pch;
