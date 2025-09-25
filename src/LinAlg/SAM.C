@@ -755,6 +755,16 @@ int SAM::getEquation (int inod, int ldof) const
 }
 
 
+Real SAM::getDofVal (const RealArray& dofVec, int inod, int ldof) const
+{
+  if (inod < 1 || inod > nnod || ldof < 1) return Real(0);
+
+  int idof = madof[inod-1] + ldof-1;
+  int ndof = static_cast<int>(dofVec.size());
+  return idof < madof[inod] && idof < ndof ? dofVec[idof-1] : Real(0);
+}
+
+
 bool SAM::expandSolution (const SystemVector& solVec, Vector& dofVec,
 			  Real scaleSD) const
 {
