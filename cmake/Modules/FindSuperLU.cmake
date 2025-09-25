@@ -36,27 +36,5 @@ IF(SuperLU_MT_LIBRARIES)
                                     SuperLU_MT_INCLUDES SuperLU_MT_LIBRARIES)
 ENDIF(SuperLU_MT_LIBRARIES)
 
-include(CheckCXXSourceCompiles)
-set(CMAKE_REQUIRED_LIBRARIES ${SuperLU_LIBRARIES} ${CBLAS_LIBRARIES})
-set(CMAKE_REQUIRED_INCLUDES ${SuperLU_INCLUDES} ${CBLAS_INCLUDES})
-check_cxx_source_compiles("
-    #include <slu_ddefs.h>
-
-      int main()
-      {
-        dgssvx(NULL, NULL, NULL, NULL, NULL,
-               NULL, NULL, NULL, NULL, NULL,
-               NULL, 1, NULL, NULL, NULL,
-               NULL, NULL, NULL, NULL,
-               NULL, NULL, NULL);
-      }
-" HAVE_SUPERLU_5)
-
-if(HAVE_SUPERLU_5)
-  set(SuperLU_DEFINITIONS -DSUPERLU_VERSION=5)
-else()
-  set(SuperLU_DEFINITIONS -DSUPERLU_VERSION=4)
-endif()
-
-MARK_AS_ADVANCED(SuperLU_INCLUDES SuperLU_LIBRARIES SUPERLU_DEFINITIONS
+MARK_AS_ADVANCED(SuperLU_INCLUDES SuperLU_LIBRARIES
                  SuperLU_MT_INCLUDES SuperLU_MT_LIBRARIES)
