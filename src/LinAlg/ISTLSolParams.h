@@ -48,16 +48,9 @@ namespace ISTL {
 
 class BlockPreconditioner : public Preconditioner {
 public:
-#if DUNE_VERSION_NEWER(DUNE_ISTL, 2, 6)
+  //! \brief The category the preconditioner is part of.
   Dune::SolverCategory::Category category() const
   { return Dune::SolverCategory::sequential; }
-#else
-  // define the category
-  enum {
-    //! \brief The category the preconditioner is part of.
-    category=Dune::SolverCategory::sequential
-  };
-#endif
 
   //! \brief Constructor
   //! \param[in] A The system matrix
@@ -67,19 +60,19 @@ public:
                       const std::string& schurType);
 
   //! \brief Destructor
-  virtual ~BlockPreconditioner()
+  ~BlockPreconditioner() override
   {}
 
   //! \brief Preprocess preconditioner
-  virtual void pre(ISTL::Vec& x, ISTL::Vec& b);
+  void pre(ISTL::Vec& x, ISTL::Vec& b) override;
 
   //! \brief Applies the preconditioner
   //! \param[out] v The resulting vector
   //! \param[in] d The vector to apply the preconditioner to
-  virtual void apply(ISTL::Vec& v, const ISTL::Vec& d);
+  void apply(ISTL::Vec& v, const ISTL::Vec& d) override;
 
   //! \brief Post-process function
-  virtual void post(ISTL::Vec& x);
+  void post(ISTL::Vec& x) override;
 
   //! \brief Obtain reference to a block preconditioner
   std::unique_ptr<ISTL::Preconditioner>& getBlockPre(size_t block)
@@ -150,35 +143,28 @@ public:
   //!
   //! E.g. BCRSMatrix or another matrix type fulfilling the
   //! matrix interface of ISTL
-  typedef M matrix_type;
+  using matrix_type = M;
   //! \brief The type of the domain.
   //!
   //! E.g. BlockVector or another type fulfilling the ISTL
   //! vector interface.
-  typedef X domain_type;
+  using domain_type = X;
   //! \brief The type of the range.
   //!
   //! E.g. BlockVector or another type fulfilling the ISTL
   //! vector interface.
-  typedef Y range_type;
+  using range_type = Y;
   //! \brief The field type of the range
-  typedef typename X::field_type field_type;
+  using field_type = typename X::field_type;
   //! \brief The type of the communication object.
   //!
   //! This must either be OwnerOverlapCopyCommunication or a type
   //! implementing the same interface.
-  typedef C communication_type;
+  using communication_type = C;
 
-#if DUNE_VERSION_NEWER(DUNE_ISTL, 2, 6)
+  //! \brief The category the preconditioner is part of.
   Dune::SolverCategory::Category category() const
   { return Dune::SolverCategory::sequential; }
-#else
-  // define the category
-  enum {
-    //! \brief The category the preconditioner is part of.
-    category=Dune::SolverCategory::sequential
-  };
-#endif
 
   /**
    * @brief constructor: just store a reference to a matrix.
@@ -192,7 +178,7 @@ public:
   {}
 
   //! apply operator to x:  \f$ y = A(x) \f$
-  virtual void apply (const X& x, Y& y) const
+  void apply (const X& x, Y& y) const override
   {
 //    Y y2(y.size());
     _A_.umv(x,y);
@@ -200,7 +186,7 @@ public:
   }
 
   //! apply operator to x, scale and add:  \f$ y = y + \alpha A(x) \f$
-  virtual void applyscaleadd (field_type alpha, const X& x, Y& y) const
+  void applyscaleadd (field_type alpha, const X& x, Y& y) const override
   {
     Y y2(y.size());
     _A_.usmv(alpha, x, y2);
@@ -209,7 +195,7 @@ public:
   }
 
   //! get the sequential assembled linear operator.
-  virtual const matrix_type& getmat () const
+  const matrix_type& getmat () const override
   {
     return _A_;
   }
@@ -219,7 +205,11 @@ private:
   const communication_type& communication;
 };
 
-typedef OverlappingSchwarzOperator<ISTL::Mat,ISTL::Vec,ISTL::Vec,Dune::OwnerOverlapCopyCommunication<int,int>> ParMatrixAdapter;
+using ParMatrixAdapter =
+  OverlappingSchwarzOperator<ISTL::Mat,
+                             ISTL::Vec,
+                             ISTL::Vec,
+                             Dune::OwnerOverlapCopyCommunication<int,int>>;
 #endif
 
 }
