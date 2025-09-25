@@ -18,10 +18,8 @@
 #include <dune/istl/paamg/amg.hh>
 #include <dune/istl/matrixmatrix.hh>
 #include <dune/common/version.hh>
-#if DUNE_VERSION_NEWER(DUNE_ISTL, 2, 3)
 #include <dune/istl/paamg/fastamg.hh>
 #include <dune/istl/paamg/twolevelmethod.hh>
-#endif
 
 
 namespace ISTL {
@@ -278,7 +276,6 @@ static ISTL::Preconditioner* setupAMG(const LinSolParams& params,
 }
 
 
-#if DUNE_VERSION_NEWER(DUNE_ISTL, 2, 3)
 /*! \brief Helper template for setting up a AMG preconditioner
  *!        with fine smoother differing from the other levels */
 
@@ -314,11 +311,7 @@ static ISTL::Preconditioner* setupAMG2_full(const LinSolParams& params, size_t b
 
   CoarsePolicy coarsePolicy(args, crit);
   TransferPolicy policy(crit);
-#if DUNE_VERSION_NEWER(DUNE_ISTL, 2, 5)
   std::shared_ptr<FineSmoother> fsp(fsmooth);
-#else
-  Dune::shared_ptr<FineSmoother> fsp(fsmooth);
-#endif
   auto result = new AMG2(op, fsp, policy, coarsePolicy);
   if (solver)
     solver->reset(setupWithPreType(params, op, *result));
@@ -326,7 +319,7 @@ static ISTL::Preconditioner* setupAMG2_full(const LinSolParams& params, size_t b
   return result;
 }
 
-
+//! \brief Helper template for setting up a AMG preconditioner smoother
 template<class FineSmoother>
 static ISTL::Preconditioner* setupAMG2_smoother(const LinSolParams& params, size_t block,
                                                 ISTL::Operator& op,
@@ -335,11 +328,7 @@ static ISTL::Preconditioner* setupAMG2_smoother(const LinSolParams& params, size
 {
   std::string smoother = params.getBlock(block).getStringValue("multigrid_smoother");
   if (smoother == "ilu")
-#if DUNE_VERSION_NEWER(DUNE_ISTL, 2, 7)
     return setupAMG2_full<ISTL::ILU>(params, block, op, solver, fsmooth);
-#else
-    return setupAMG2_full<ISTL::ILU0>(params, block, op, solver, fsmooth);
-#endif
   else if (smoother == "sor")
     return setupAMG2_full<ISTL::SOR>(params, block, op, solver, fsmooth);
   else if (smoother == "ssor")
@@ -354,16 +343,14 @@ static ISTL::Preconditioner* setupAMG2_smoother(const LinSolParams& params, size
 }
 
 
+//! \brief Helper template for setting up a AMG2 preconditioner
+
 static ISTL::Preconditioner* setupAMG2(const LinSolParams& params, size_t block,
                                        ISTL::Operator& op, std::unique_ptr<ISTL::InverseOperator>* solver)
 {
   std::string smoother = params.getBlock(block).getStringValue("multigrid_finesmoother");
   if (params.getBlock(block).getStringValue("multigrid_finesmoother") == "ilu") {
-#if DUNE_VERSION_NEWER(DUNE_ISTL, 2, 7)
     auto fsmooth = new ISTL::ILU(op.getmat(), 1.0);
-#else
-    auto fsmooth = new ISTL::ILU0(op.getmat(), 1.0);
-#endif
     return setupAMG2_smoother(params, block, op, solver, fsmooth);
   } else  if (params.getBlock(block).getStringValue("multigrid_finesmoother") == "sor") {
     auto fsmooth = new ISTL::SOR(op.getmat(), 1, 1.0);
@@ -379,10 +366,9 @@ static ISTL::Preconditioner* setupAMG2(const LinSolParams& params, size_t block,
     return nullptr;
   }
 }
-#endif
 
 
-/*! \brief Conditionally setup a KSP */
+//! \brief Conditionally setup a KSP
 template<class Type>
 static ISTL::Preconditioner*
 setupSolver(Type* pre,
@@ -407,19 +393,10 @@ ISTL::Preconditioner* ISTLSolParams::setupPCInternal(ISTL::Mat& A,
   if (prec == "ilu") {
     int fill_level = solParams.getBlock(block).getIntValue("ilu_fill_level");
     if (fill_level == 0)
-#if DUNE_VERSION_NEWER(DUNE_ISTL, 2, 7)
       return setupSolver(new ISTL::ILU(A, 1.0), op, solParams, solver);
-#else
-      return setupSolver(new ISTL::ILU0(A, 1.0), op, solParams, solver);
-#endif
     else
-#if DUNE_VERSION_NEWER(DUNE_ISTL, 2, 7)
       return setupSolver(new ISTL::ILU(A, fill_level, 1.0),
                          op, solParams, solver);
-#else
-      return setupSolver(new ISTL::ILUn(A, fill_level, 1.0),
-                         op, solParams, solver);
-#endif
   } else if (prec == "lu")
     return setupSolver(new ISTL::LU(new ISTL::LUType(A)),
                        op, solParams, solver);
@@ -461,12 +438,7 @@ ISTL::Preconditioner* ISTLSolParams::setupPCInternal(ISTL::Mat& A,
   } else if (prec == "amg" || prec == "gamg") {
     if (solParams.getBlock(block).getStringValue("multigrid_smoother") !=
         solParams.getBlock(block).getStringValue("multigrid_finesmoother")) {
-#if DUNE_VERSION_NEWER(DUNE_ISTL, 2, 3)
       return setupAMG2(solParams, block, op, solver);
-#else
-      std::cerr << "** ISTLSolParams ** Separate fine smoother not implemented." << std::endl;
-      return nullptr;
-#endif
     } else {
       std::string smoother = solParams.getBlock(block).getStringValue("multigrid_smoother");
       if (smoother.empty()) {
@@ -474,11 +446,7 @@ ISTL::Preconditioner* ISTLSolParams::setupPCInternal(ISTL::Mat& A,
         smoother = "ilu";
       }
       if (smoother == "ilu")
-#if DUNE_VERSION_NEWER(DUNE_ISTL, 2, 7)
         return setupAMG<ISTL::ILU>(solParams, block, op, solver);
-#else
-        return setupAMG<ISTL::ILU0>(solParams, block, op, solver);
-#endif
       else if (smoother == "sor")
         return setupAMG<ISTL::SOR>(solParams, block, op, solver);
       else if (smoother == "ssor")

@@ -33,48 +33,48 @@
 
 namespace ISTL
 {
-  typedef Dune::BCRSMatrix<Dune::FieldMatrix<double,1,1>> Mat; //!< A sparse system matrix
-  typedef Dune::BlockVector<Dune::FieldVector<double,1>> Vec;  //!< A vector
-  typedef Dune::MatrixAdapter<Mat,Vec,Vec> Operator;      //!< A serial matrix operator
-  typedef Dune::InverseOperator<Vec, Vec> InverseOperator;     //!< Linear system inversion abstraction
-  typedef Dune::Preconditioner<Vec,Vec> Preconditioner;        //!< Preconditioner abstraction
+  using Mat = Dune::BCRSMatrix<Dune::FieldMatrix<double,1,1>>; //!< A sparse system matrix
+  using Vec = Dune::BlockVector<Dune::FieldVector<double,1>>;  //!< A vector
+  using Operator = Dune::MatrixAdapter<Mat,Vec,Vec>;           //!< A serial matrix operator
+  using InverseOperator = Dune::InverseOperator<Vec, Vec>;     //!< Linear system inversion abstraction
+  using Preconditioner = Dune::Preconditioner<Vec,Vec>;        //!< Preconditioner abstraction
 
   /*! \brief Wrapper template to avoid memory leaks */
   template<template<class M> class Pre>
-  class IOp2Pre : public Dune::InverseOperator2Preconditioner<Pre<ISTL::Mat>, Dune::SolverCategory::sequential> {
-    typedef Dune::InverseOperator2Preconditioner<Pre<ISTL::Mat>, Dune::SolverCategory::sequential> SolverType;
+  class IOp2Pre : public Dune::InverseOperator2Preconditioner<Pre<ISTL::Mat>,
+                                                              Dune::SolverCategory::sequential>
+  {
+    using SolverType = Dune::InverseOperator2Preconditioner<Pre<ISTL::Mat>,
+                                                            Dune::SolverCategory::sequential>;
+
   public:
     explicit IOp2Pre(Pre<ISTL::Mat>* iop) : SolverType(*iop)
     {
       m_op.reset(iop);
     }
+
   protected:
     std::unique_ptr<Pre<ISTL::Mat>> m_op;
   };
 
 #if defined(HAVE_UMFPACK)
-  typedef Dune::UMFPack<ISTL::Mat> LUType;
-  typedef IOp2Pre<Dune::UMFPack> LU;
+  using LUType = Dune::UMFPack<ISTL::Mat>;
+  using LU = IOp2Pre<Dune::UMFPack>;
 #elif defined(HAVE_SUPERLU)
-  typedef Dune::SuperLU<ISTL::Mat> LUType;
-  typedef IOp2Pre<Dune::SuperLU> LU;
+  using LUType = Dune::SuperLU<ISTL::Mat>;
+  using LU = IOp2Pre<Dune::SuperLU>;
 #endif
 
   // Preconditioner types
-#if DUNE_VERSION_NEWER(DUNE_ISTL, 2, 7)
-  using ILU = Dune::SeqILU<Mat, Vec, Vec>; //!< Sequential ILU
-#else
-  typedef Dune::SeqILU0<Mat, Vec, Vec> ILU0; //!< Sequential ILU(0)
-  typedef Dune::SeqILUn<Mat, Vec, Vec> ILUn; //!< Sequential ILU(n)
-#endif
-  typedef  Dune::SeqSOR<Mat, Vec, Vec>  SOR; //!< Sequential SOR
-  typedef Dune::SeqSSOR<Mat, Vec,Vec> SSOR; //!< Sequential SSOR
-  typedef  Dune::SeqJac<Mat, Vec, Vec>    GJ; //!< Sequential Gauss-Jacobi
-  typedef   Dune::SeqGS<Mat, Vec, Vec>     GS; //!< Sequential Gauss-Seidel
-  typedef Dune::SeqOverlappingSchwarz<Mat, Vec,
-                                 Dune::AdditiveSchwarzMode,
-                                 LUType> ASMLU; //!< Sequential additive Schwarz w/ LU subdomain solvers
-  typedef Dune::SeqOverlappingSchwarz<Mat, Vec> ASM; //!< Sequential additive Schwarz w/ ILU subdomain solvers
+  using ILU = Dune::SeqILU<Mat, Vec, Vec>;  //!< Sequential ILU
+  using SOR = Dune::SeqSOR<Mat, Vec, Vec>;  //!< Sequential SOR
+  using SSOR = Dune::SeqSSOR<Mat, Vec,Vec>; //!< Sequential SSOR
+  using GJ = Dune::SeqJac<Mat, Vec, Vec>;   //!< Sequential Gauss-Jacobi
+  using GS = Dune::SeqGS<Mat, Vec, Vec>;    //!< Sequential Gauss-Seidel
+  using ASMLU = Dune::SeqOverlappingSchwarz<Mat, Vec,
+                                            Dune::AdditiveSchwarzMode,
+                                            LUType>; //!< Sequential additive Schwarz w/ LU subdomain solvers
+  using ASM = Dune::SeqOverlappingSchwarz<Mat, Vec>; //!< Sequential additive Schwarz w/ ILU subdomain solvers
 }
 #endif
 
