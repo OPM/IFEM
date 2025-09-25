@@ -1,3 +1,9 @@
+# This is a top-level CMakeLists.txt which will build all IFEM apps
+# which exist as a local clone in sub-directories.
+#
+# NOTE: This file is _not_ used by the Jenkins build system on github.
+# Therefore, make sure to test any changes locally before merging.
+
 cmake_minimum_required(VERSION 3.5)
 
 project(IFEM_Apps)
