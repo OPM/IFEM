@@ -1351,7 +1351,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
           }
         }
 
-    if (ok) ok = this->assembleDiscreteTerms(it->second,time);
+    if (ok) ok = this->assembleDiscreteItems(it->second,time,prevSol);
     if (ok && msgLevel > 1) IFEM::cout <<"\nDone."<< std::endl;
     if (ok && &sysQ != myEqSys && isAssembling && mdFlag%2 == 0)
       ok = sysQ.finalize(newLHSmatrix);

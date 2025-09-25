@@ -744,6 +744,13 @@ protected:
   //! \brief Assembles problem-dependent discrete terms, if any.
   virtual bool assembleDiscreteTerms(const IntegrandBase*,
                                      const TimeDomain&) { return true; }
+  //! \brief Assembles problem-dependent discrete terms, if any.
+  //! \details Override this method if the discrete terms also depend on
+  //! current solution state. By default it forwards to the state-less method
+  //! assembleDiscreteTerms() which can be overridden if no state-dependency.
+  virtual bool assembleDiscreteItems(const IntegrandBase* itg,
+                                     const TimeDomain& time, const Vectors&)
+  { return this->assembleDiscreteTerms(itg,time); }
 
   //! \brief Computes (possibly problem-dependent) external energy contribution.
   virtual double externalEnergy(const Vectors& psol, const TimeDomain&) const;
