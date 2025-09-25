@@ -166,13 +166,19 @@ int ASMu2DLag::parseNodeSet (const std::string& setName, const char* cset)
   size_t ifirst = mySet.size();
   utl::parseIntegers(mySet,cset);
 
-  int inod; // Transform to internal node indices
+  // Transform to internal node indices
   for (size_t i = ifirst; i < mySet.size(); i++)
-    if ((inod = this->getNodeIndex(mySet[i])) > 0)
-      mySet[i] = inod;
-    else
-      IFEM::cout <<"  ** Warning: Non-existing node "<< mySet[i]
-                 <<" in node set \""<< setName <<"\""<< std::endl;
+    if (mySet[i] > 0)
+    {
+      if (int inod = this->getNodeIndex(mySet[i]); inod > 0)
+        mySet[ifirst++] = inod;
+      else
+        IFEM::cout <<"  ** Warning: Non-existing node "<< mySet[i]
+                   <<" in the set \""<< setName <<"\" (ignored)."<< std::endl;
+    }
+
+  if (ifirst < mySet.size())
+    mySet.resize(ifirst);
 
   return 1+iset;
 }
@@ -312,13 +318,19 @@ int ASMu2DLag::parseElemSet (const std::string& setName, const char* cset)
   size_t ifirst = mySet.size();
   utl::parseIntegers(mySet,cset);
 
-  int iel; // Transform to internal element indices
+  // Transform to internal element indices
   for (size_t i = ifirst; i < mySet.size(); i++)
-    if ((iel = this->getElmIndex(mySet[i])) > 0)
-      mySet[i] = iel;
-    else
-      IFEM::cout <<"  ** Warning: Non-existing element "<< mySet[i]
-                 <<" in element set \""<< setName <<"\""<< std::endl;
+    if (mySet[i] > 0)
+    {
+      if (int iel = this->getElmIndex(mySet[i]); iel > 0)
+        mySet[ifirst++] = iel;
+      else
+        IFEM::cout <<"  ** Warning: Non-existing element "<< mySet[i]
+                   <<" in the set \""<< setName <<"\" (ignored)."<< std::endl;
+    }
+
+  if (ifirst < mySet.size())
+    mySet.resize(ifirst);
 
   return 1+iset;
 }
