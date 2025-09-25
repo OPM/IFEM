@@ -41,8 +41,8 @@ TEST(TestVectorFallback, Multiply)
 
 TEST(TestVectorFallback, Norm)
 {
-  vectorMultiplyTest<double>();
-  vectorMultiplyTest<float>();
+  vectorNormTest<double>();
+  vectorNormTest<float>();
 }
 
 
