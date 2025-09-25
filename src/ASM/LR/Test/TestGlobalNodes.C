@@ -10,7 +10,7 @@
 //!
 //==============================================================================
 
-#include "GlobalNodes.h"
+#include "LR/GlobalNodes.h"
 #include "ASMuCube.h"
 #include "ASMuSquare.h"
 

@@ -13,7 +13,7 @@
 #ifndef _ASM_UCUBE_H
 #define _ASM_UCUBE_H
 
-#include "ASMu3Dmx.h"
+#include "LR/ASMu3Dmx.h"
 #include <sstream>
 
 class ASMuCube : public ASMu3D

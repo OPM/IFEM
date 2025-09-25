@@ -22,7 +22,7 @@
 #include "Utilities.h"
 
 #ifdef HAS_LRSPLINE
-#include "ASMu2D.h"
+#include "LR/ASMu2D.h"
 #endif
 
 #include <tinyxml2.h>

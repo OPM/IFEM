@@ -21,8 +21,8 @@
 #include "IFEM.h"
 #include "tinyxml2.h"
 #ifdef HAS_LRSPLINE
-#include "ASMLRSpline.h"
-#include "GlobalNodes.h"
+#include "LR/ASMLRSpline.h"
+#include "LR/GlobalNodes.h"
 #include <LRSpline/Basisfunction.h>
 #include <LRSpline/LRSplineSurface.h>
 #endif

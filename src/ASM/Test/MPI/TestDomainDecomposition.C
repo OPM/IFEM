@@ -15,7 +15,7 @@
 #include "ASMbase.h"
 #include "SIM2D.h"
 #include "SIM3D.h"
-#include "../../LinAlg/readIntVec.h"
+#include "readIntVec.h"
 
 #include "gtest/gtest.h"
 

@@ -13,7 +13,7 @@
 #ifndef ASM_USQUARE_H
 #define ASM_USQUARE_H
 
-#include "ASMu2Dmx.h"
+#include "LR/ASMu2Dmx.h"
 #include <sstream>
 
 class ASMuSquare : public ASMu2D

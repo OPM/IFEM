@@ -38,11 +38,6 @@ endif()
 add_definitions(${IFEM_DEFINITIONS})
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${IFEM_BUILD_CXX_FLAGS}")
 
-if(LRSpline_LIBRARIES AND LRSpline_INCLUDE_DIRS)
-  set(IFEM_INCLUDES ${IFEM_INCLUDES}
-                    ${PROJECT_SOURCE_DIR}/src/ASM/LR)
-endif()
-
 # Required include directories
 set(IFEM_INCLUDES
     ${IFEM_INCLUDES}
@@ -176,7 +171,6 @@ else()
   if(LRSpline_FOUND)
     file(GLOB IFEM_LR_HEADERS src/ASM/LR/*.h)
     install(FILES ${IFEM_LR_HEADERS} DESTINATION include/IFEM/LR)
-    list(APPEND IFEM_INCLUDE_DIRS ${CMAKE_INSTALL_PREFIX}/include/IFEM/LR)
   endif()
 
   # cmake modules
