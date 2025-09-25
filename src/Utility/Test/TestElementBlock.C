@@ -12,14 +12,15 @@
 
 #include "ElementBlock.h"
 
-#include "gtest/gtest.h"
+#include <catch2/catch_test_macros.hpp>
 
-TEST(TestElementBlock, Resize)
+
+TEST_CASE("TestElementBlock.Resize")
 {
   ElementBlock block(8);
   block.resize(3, 3, 3);
-  EXPECT_EQ(block.getNoNodes(), 27U);
+  REQUIRE(block.getNoNodes() == 27);
 
   block.unStructResize(3, 8);
-  EXPECT_EQ(block.getNoNodes(), 8U);
+  REQUIRE(block.getNoNodes() == 8);
 }

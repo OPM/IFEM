@@ -12,9 +12,12 @@
 
 #include "ControlFIFO.h"
 
-#include "gtest/gtest.h"
+#include <catch2/catch_test_macros.hpp>
+
 #include "tinyxml2.h"
 #include <fcntl.h>
+#include <unistd.h>
+
 
 class MockCallback : public ControlCallback
 {
@@ -38,7 +41,7 @@ class MockCallback : public ControlCallback
   bool callback2;
 };
 
-TEST(TestControlFIFO, General)
+TEST_CASE("TestControlFIFO.General")
 {
   ControlFIFO fifo;
   MockCallback callback;
@@ -48,16 +51,16 @@ TEST(TestControlFIFO, General)
   int f = ::open("/tmp/ifem-control", O_WRONLY);
   std::string data;
   data = "<callback><test><callback1/></test></callback>";
-  if (write(f, data.c_str(), data.size()+1) != (int)data.size()+1)
-    ASSERT_TRUE(false);
+  if (write(f, data.c_str(), data.size() + 1) != static_cast<int>(data.size() + 1))
+    REQUIRE(false);
 
   fifo.poll();
   data = "<callback><test><callback2/></test></callback>";
-  if (write(f, data.c_str(), data.size()+1) != (int)data.size()+1)
-    ASSERT_TRUE(false);
+  if (write(f, data.c_str(), data.size() + 1) != static_cast<int>(data.size() + 1))
+    REQUIRE(false);
   fifo.poll();
   close(f);
 
-  ASSERT_TRUE(callback.callback1);
-  ASSERT_TRUE(callback.callback2);
+  REQUIRE(callback.callback1);
+  REQUIRE(callback.callback2);
 }

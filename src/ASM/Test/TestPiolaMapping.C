@@ -20,12 +20,18 @@
 #include "SplineUtils.h"
 #include "Vec3.h"
 
-#include "gtest/gtest.h"
-
 #include "GoTools/geometry/SplineSurface.h"
 #include "GoTools/trivariate/SplineVolume.h"
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+
+#include <array>
+#include <functional>
 #include <sstream>
+
+using Catch::Matchers::WithinAbs;
+using Catch::Matchers::WithinRel;
 
 
 namespace utl
@@ -239,19 +245,19 @@ static const char* spline3D_basis = R"(700 1 0 0
 )";
 
 
-TEST(TestPiolaMapping2D, Basis)
+TEST_CASE("TestPiolaMapping.Basis2D")
 {
   ASMs2D p;
   std::stringstream g2(spline2D);
 
-  ASSERT_TRUE(p.read(g2));
-  ASSERT_TRUE(p.generateFEMTopology());
+  REQUIRE(p.read(g2));
+  REQUIRE(p.generateFEMTopology());
 
   ASMs2Dmx b(2, {1,1,1});
   ASMmxBase::Type = ASMmxBase::DIV_COMPATIBLE;
   std::stringstream basis(spline2D_basis);
-  ASSERT_TRUE(b.read(basis));
-  ASSERT_TRUE(b.generateFEMTopology());
+  REQUIRE(b.read(basis));
+  REQUIRE(b.generateFEMTopology());
 
   constexpr double u = 0.1;
   constexpr double v = 0.1;
@@ -289,31 +295,31 @@ TEST(TestPiolaMapping2D, Basis)
   size_t k = 1;
   for (size_t j = 0; j < 3; ++j)
     for (size_t i = 0; i < 4; ++i, ++k) {
-      EXPECT_NEAR(fe.P(1,k), (3.0*v + 4.0) * c[i](u) * q[j](v) / detJ, 1e-13);
-      EXPECT_NEAR(fe.P(2,k),    (-v - 1.0) * c[i](u) * q[j](v) / detJ, 1e-13);
+      REQUIRE_THAT(fe.P(1,k), WithinRel((3.0*v + 4.0) * c[i](u) * q[j](v) / detJ));
+      REQUIRE_THAT(fe.P(2,k), WithinRel(   (-v - 1.0) * c[i](u) * q[j](v) / detJ));
     }
 
   for (size_t j = 0; j < 4; ++j)
     for (size_t i = 0; i < 3; ++i, ++k) {
-      EXPECT_NEAR(fe.P(1,k), (3.0*v - 1.0) * q[i](u) * c[j](v) / detJ, 1e-13);
-      EXPECT_NEAR(fe.P(2,k),    (-u + 5.0) * q[i](u) * c[j](v) / detJ, 1e-13);
+      REQUIRE_THAT(fe.P(1,k), WithinRel((3.0*v - 1.0) * q[i](u) * c[j](v) / detJ));
+      REQUIRE_THAT(fe.P(2,k),  WithinRel(  (-u + 5.0) * q[i](u) * c[j](v) / detJ));
     }
 }
 
 
-TEST(TestPiolaMapping2D, Gradient)
+TEST_CASE("TestPiolaMapping.Gradient2D")
 {
   ASMs2D p;
   std::stringstream g2(spline2D);
 
-  ASSERT_TRUE(p.read(g2));
-  ASSERT_TRUE(p.generateFEMTopology());
+  REQUIRE(p.read(g2));
+  REQUIRE(p.generateFEMTopology());
 
   ASMs2Dmx b(2, {1,1,1});
   ASMmxBase::Type = ASMmxBase::DIV_COMPATIBLE;
   std::stringstream basis(spline2D_basis);
-  ASSERT_TRUE(b.read(basis));
-  ASSERT_TRUE(b.generateFEMTopology());
+  REQUIRE(b.read(basis));
+  REQUIRE(b.generateFEMTopology());
 
   constexpr double u = 0.1;
   constexpr double v = 0.1;
@@ -370,38 +376,38 @@ TEST(TestPiolaMapping2D, Gradient)
     for (size_t i = 0; i < 4; ++i, ++k)
       for (size_t d1 = 1; d1 <= 2; ++d1)
         for (size_t d2 = 1; d2 <= 2; ++d2)
-              EXPECT_NEAR(fe.dPdX((d1 + 2 * (d2 - 1)),k),
-                          (-det[d2-1] / (detJ * detJ) * J(d1,1) +
+              REQUIRE_THAT(fe.dPdX((d1 + 2 * (d2 - 1)),k),
+                           WithinRel((-det[d2-1] / (detJ * detJ) * J(d1,1) +
                            dJdX[d2-1](d1,1) / detJ) * c[i](u)*q[j](v) +
                            J(d1,1) * (cd[i](u) * q[j](v) * Ji(1,d2) +
-                                      c[i](u) * qd[j](v) * Ji(2,d2)) / detJ, 1e-13);
+                                      c[i](u) * qd[j](v) * Ji(2,d2)) / detJ));
 
   for (size_t j = 0; j < 4; ++j)
     for (size_t i = 0; i < 3; ++i, ++k)
       for (size_t d1 = 1; d1 <= 2; ++d1)
         for (size_t d2 = 1; d2 <= 2; ++d2)
-              EXPECT_NEAR(fe.dPdX(d1 + 2 * (d2 - 1),k),
-                          (-det[d2-1] / (detJ * detJ) * J(d1,2) +
+              REQUIRE_THAT(fe.dPdX(d1 + 2 * (d2 - 1),k),
+                          WithinRel((-det[d2-1] / (detJ * detJ) * J(d1,2) +
                           dJdX[d2-1](d1,2) / detJ) * q[i](u) * c[j](v) +
                           J(d1,2) * (qd[i](u) * c[j](v) * Ji(1,d2) +
-                                     q[i](u) * cd[j](v) * Ji(2,d2)) / detJ, 1e-13);
+                                     q[i](u) * cd[j](v) * Ji(2,d2)) / detJ));
 }
 
 
-TEST(TestPiolaMapping2D, GradJ)
+TEST_CASE("TestPiolaMapping.GradJ2D")
 {
   ASMs2D p;
   std::stringstream g2(spline2D);
 
-  ASSERT_TRUE(p.read(g2));
-  ASSERT_TRUE(p.generateFEMTopology());
+  REQUIRE(p.read(g2));
+  REQUIRE(p.generateFEMTopology());
 
   Vec3 Xp;
   double u = 0.1;
   double v = 0.1;
   SplineUtils::point(Xp, u, v, p.getBasis());
-  EXPECT_DOUBLE_EQ(Xp[0],  3.0*u*v + 4.0*u - v);
-  EXPECT_DOUBLE_EQ(Xp[1], -1.0*u*v - u + 5.0 * v);
+  REQUIRE_THAT(Xp[0],  WithinRel(3.0*u*v + 4.0*u - v));
+  REQUIRE_THAT(Xp[1], WithinRel(-1.0*u*v - u + 5.0 * v));
 
   Vector N;
   Matrix X, dNdu;
@@ -413,49 +419,49 @@ TEST(TestPiolaMapping2D, GradJ)
   H.multiply(X,d2Ndu2);
   J.multiply(X,dNdu); // J = X * dNdu
 
-  EXPECT_DOUBLE_EQ(detJ, -3.0*u*v - 4.0*u + 3.0*v*v + 17*v + 19);
+  REQUIRE_THAT(detJ, WithinRel(-3.0*u*v - 4.0*u + 3.0*v*v + 17*v + 19));
 
-  EXPECT_DOUBLE_EQ(J(1,1), 3.0*v + 4.0);
-  EXPECT_DOUBLE_EQ(J(1,2), 3.0*v - 1.0);
-  EXPECT_DOUBLE_EQ(J(2,1), -v - 1.0);
-  EXPECT_DOUBLE_EQ(J(2,2), -u + 5.0);
+  REQUIRE_THAT(J(1,1), WithinRel(3.0*v + 4.0));
+  REQUIRE_THAT(J(1,2), WithinRel(3.0*v - 1.0));
+  REQUIRE_THAT(J(2,1), WithinRel(-v - 1.0));
+  REQUIRE_THAT(J(2,2), WithinRel(-u + 5.0));
 
-  EXPECT_DOUBLE_EQ(Ji(1,1), J(2,2) / detJ);
-  EXPECT_DOUBLE_EQ(Ji(1,2), -J(1,2) / detJ);
-  EXPECT_DOUBLE_EQ(Ji(2,1), -J(2,1) / detJ);
-  EXPECT_DOUBLE_EQ(Ji(2,2), J(1,1) / detJ);
+  REQUIRE_THAT(Ji(1,1), WithinRel(J(2,2) / detJ));
+  REQUIRE_THAT(Ji(1,2), WithinRel(-J(1,2) / detJ));
+  REQUIRE_THAT(Ji(2,1), WithinRel(-J(2,1) / detJ));
+  REQUIRE_THAT(Ji(2,2), WithinRel(J(1,1) / detJ));
 
-  EXPECT_NEAR(H(1,1,1), 0.0, 1e-13);
-  EXPECT_NEAR(H(1,1,2), 3.0, 1e-13);
-  EXPECT_NEAR(H(1,2,1), 3.0, 1e-13);
-  EXPECT_NEAR(H(1,2,2), 0.0, 1e-13);
+  REQUIRE_THAT(H(1,1,1), WithinAbs(0.0, 1e-13));
+  REQUIRE_THAT(H(1,1,2), WithinRel(3.0));
+  REQUIRE_THAT(H(1,2,1), WithinRel(3.0));
+  REQUIRE_THAT(H(1,2,2), WithinAbs(0.0, 1e-13));
 
-  EXPECT_NEAR(H(2,1,1),  0.0, 1e-13);
-  EXPECT_NEAR(H(2,1,2), -1.0, 1e-13);
-  EXPECT_NEAR(H(2,2,1), -1.0, 1e-13);
-  EXPECT_NEAR(H(2,2,2),  0.0, 1e-13);
+  REQUIRE_THAT(H(2,1,1), WithinAbs(0.0, 1e-13));
+  REQUIRE_THAT(H(2,1,2), WithinRel(-1.0));
+  REQUIRE_THAT(H(2,2,1), WithinRel(-1.0));
+  REQUIRE_THAT(H(2,2,2), WithinAbs(0.0, 1e-13));
 
   Matrices dJdX = utl::jacobianGradient(Ji, H);
 
-  EXPECT_DOUBLE_EQ(dJdX[0](1,1), H(1,1,1)*Ji(1,1) + H(1,1,2)*Ji(2,1));
-  EXPECT_DOUBLE_EQ(dJdX[0](1,2), H(1,1,2)*Ji(1,1) + H(1,2,2)*Ji(2,1));
-  EXPECT_DOUBLE_EQ(dJdX[0](2,1), H(2,1,1)*Ji(1,1) + H(2,1,2)*Ji(2,1));
-  EXPECT_DOUBLE_EQ(dJdX[0](2,2), H(2,1,2)*Ji(1,1) + H(2,2,2)*Ji(2,1));
+  REQUIRE_THAT(dJdX[0](1,1), WithinRel(H(1,1,1)*Ji(1,1) + H(1,1,2)*Ji(2,1)));
+  REQUIRE_THAT(dJdX[0](1,2), WithinRel(H(1,1,2)*Ji(1,1) + H(1,2,2)*Ji(2,1)));
+  REQUIRE_THAT(dJdX[0](2,1), WithinRel(H(2,1,1)*Ji(1,1) + H(2,1,2)*Ji(2,1)));
+  REQUIRE_THAT(dJdX[0](2,2), WithinRel(H(2,1,2)*Ji(1,1) + H(2,2,2)*Ji(2,1)));
 
-  EXPECT_DOUBLE_EQ(dJdX[1](1,1), H(1,1,1)*Ji(1,2) + H(1,1,2)*Ji(2,2));
-  EXPECT_DOUBLE_EQ(dJdX[1](1,2), H(1,1,2)*Ji(1,2) + H(1,2,2)*Ji(2,2));
-  EXPECT_DOUBLE_EQ(dJdX[1](2,1), H(2,1,1)*Ji(1,2) + H(2,1,2)*Ji(2,2));
-  EXPECT_DOUBLE_EQ(dJdX[1](2,2), H(2,1,2)*Ji(1,2) + H(2,2,2)*Ji(2,2));
+  REQUIRE_THAT(dJdX[1](1,1), WithinRel(H(1,1,1)*Ji(1,2) + H(1,1,2)*Ji(2,2)));
+  REQUIRE_THAT(dJdX[1](1,2), WithinRel(H(1,1,2)*Ji(1,2) + H(1,2,2)*Ji(2,2)));
+  REQUIRE_THAT(dJdX[1](2,1), WithinRel(H(2,1,1)*Ji(1,2) + H(2,1,2)*Ji(2,2)));
+  REQUIRE_THAT(dJdX[1](2,2), WithinRel(H(2,1,2)*Ji(1,2) + H(2,2,2)*Ji(2,2)));
 }
 
 
-TEST(TestPiolaMapping2D, GradDetJ)
+TEST_CASE("TestPiolaMapping.GradDetJ2D")
 {
   ASMs2D p;
   std::stringstream g2(spline2D);
 
-  ASSERT_TRUE(p.read(g2));
-  ASSERT_TRUE(p.generateFEMTopology());
+  REQUIRE(p.read(g2));
+  REQUIRE(p.generateFEMTopology());
 
   double u = 0.1;
   double v = 0.1;
@@ -475,24 +481,24 @@ TEST(TestPiolaMapping2D, GradDetJ)
   double Ju = -1.0;
   double Jv =  3.0 * (v - u) + 14.0;
 
-  EXPECT_NEAR(det[0], Ju * Ji(1,1) + Jv * Ji(2,1), 1e-13);
-  EXPECT_NEAR(det[1], Ju * Ji(1,2) + Jv * Ji(2,2), 1e-13);
+  REQUIRE_THAT(det[0], WithinRel(Ju * Ji(1,1) + Jv * Ji(2,1)));
+  REQUIRE_THAT(det[1], WithinRel(Ju * Ji(1,2) + Jv * Ji(2,2)));
 }
 
 
-TEST(TestPiolaMapping3D, Basis)
+TEST_CASE("TestPiolaMapping.Basis3D")
 {
   ASMs3D p;
   std::stringstream g2(spline3D);
 
-  ASSERT_TRUE(p.read(g2));
-  ASSERT_TRUE(p.generateFEMTopology());
+  REQUIRE(p.read(g2));
+  REQUIRE(p.generateFEMTopology());
 
   ASMs3Dmx b({1,1,1});
   ASMmxBase::Type = ASMmxBase::DIV_COMPATIBLE;
   std::stringstream basis(spline3D_basis);
-  ASSERT_TRUE(b.read(basis));
-  ASSERT_TRUE(b.generateFEMTopology());
+  REQUIRE(b.read(basis));
+  REQUIRE(b.generateFEMTopology());
 
   constexpr double u = 0.1;
   constexpr double v = 0.1;
@@ -535,42 +541,42 @@ TEST(TestPiolaMapping3D, Basis)
   for (size_t k = 0; k < 3; ++k)
     for (size_t j = 0; j < 3; ++j)
       for (size_t i = 0; i < 4; ++i, ++n) {
-        EXPECT_NEAR(fe.P(1,n), 2.0 * u * c[i](u) * q[j](v) * q[k](w) / detJ, 1e-13);
-        EXPECT_NEAR(fe.P(2,n),     0.0 * c[i](u) * q[j](v) * q[k](w) / detJ, 1e-13);
-        EXPECT_NEAR(fe.P(3,n), 2.0 * u * c[i](u) * q[j](v) * q[k](w) / detJ, 1e-13);
+        REQUIRE_THAT(fe.P(1,n), WithinRel(2.0 * u * c[i](u) * q[j](v) * q[k](w) / detJ));
+        REQUIRE_THAT(fe.P(2,n), WithinAbs(0.0 * c[i](u) * q[j](v) * q[k](w) / detJ, 1e-13));
+        REQUIRE_THAT(fe.P(3,n), WithinRel(2.0 * u * c[i](u) * q[j](v) * q[k](w) / detJ));
       }
 
   for (size_t k = 0; k < 3; ++k)
     for (size_t j = 0; j < 4; ++j)
       for (size_t i = 0; i < 3; ++i, ++n) {
-        EXPECT_NEAR(fe.P(1,n), 2.0 * v * w * q[i](u) * c[j](v) * q[k](w) / detJ, 1e-13);
-        EXPECT_NEAR(fe.P(2,n),         2.0 * q[i](u) * c[j](v) * q[k](w) / detJ, 1e-13);
-        EXPECT_NEAR(fe.P(3,n),         0.0 * q[i](u) * c[j](v) * q[k](w) / detJ, 1e-13);
+        REQUIRE_THAT(fe.P(1,n), WithinRel(2.0 * v * w * q[i](u) * c[j](v) * q[k](w) / detJ));
+        REQUIRE_THAT(fe.P(2,n), WithinRel(        2.0 * q[i](u) * c[j](v) * q[k](w) / detJ));
+        REQUIRE_THAT(fe.P(3,n), WithinAbs(        0.0 * q[i](u) * c[j](v) * q[k](w) / detJ, 1e-13));
       }
 
   for (size_t k = 0; k < 4; ++k)
     for (size_t j = 0; j < 3; ++j)
       for (size_t i = 0; i < 3; ++i, ++n) {
-        EXPECT_NEAR(fe.P(1,n),       v * v * q[i](u) * q[j](v) * c[k](w) / detJ, 1e-13);
-        EXPECT_NEAR(fe.P(2,n), 3.0 * w * w * q[i](u) * q[j](v) * c[k](w) / detJ, 1e-13);
-        EXPECT_NEAR(fe.P(3,n),         3.0 * q[i](u) * q[j](v) * c[k](w) / detJ, 1e-13);
+        REQUIRE_THAT(fe.P(1,n), WithinRel(      v * v * q[i](u) * q[j](v) * c[k](w) / detJ));
+        REQUIRE_THAT(fe.P(2,n), WithinRel(3.0 * w * w * q[i](u) * q[j](v) * c[k](w) / detJ));
+        REQUIRE_THAT(fe.P(3,n), WithinRel(        3.0 * q[i](u) * q[j](v) * c[k](w) / detJ));
       }
 }
 
 
-TEST(TestPiolaMapping3D, Gradient)
+TEST_CASE("TestPiolaMapping.Gradient3D")
 {
   ASMs3D p;
   std::stringstream g2(spline3D);
 
-  ASSERT_TRUE(p.read(g2));
-  ASSERT_TRUE(p.generateFEMTopology());
+  REQUIRE(p.read(g2));
+  REQUIRE(p.generateFEMTopology());
 
   ASMs3Dmx b({1,1,1});
   ASMmxBase::Type = ASMmxBase::DIV_COMPATIBLE;
   std::stringstream basis(spline3D_basis);
-  ASSERT_TRUE(b.read(basis));
-  ASSERT_TRUE(b.generateFEMTopology());
+  REQUIRE(b.read(basis));
+  REQUIRE(b.generateFEMTopology());
 
   constexpr double u = 0.1;
   constexpr double v = 0.1;
@@ -633,55 +639,55 @@ TEST(TestPiolaMapping3D, Gradient)
       for (size_t i = 0; i < 4; ++i, ++n)
         for (size_t d1 = 1; d1 <= 3; ++d1)
           for (size_t d2 = 1; d2 <= 3; ++d2)
-            EXPECT_NEAR(fe.dPdX(d1 + 3 * (d2-1),n),
-                         (-det[d2-1] / (detJ * detJ) * J(d1,1) +
+            REQUIRE_THAT(fe.dPdX(d1 + 3 * (d2-1),n),
+                         WithinRel((-det[d2-1] / (detJ * detJ) * J(d1,1) +
                          dJdX[d2-1](d1,1) / detJ) * c[i](u) * q[j](v) * q[k](w) +
                          J(d1,1) * (cd[i](u) * q[j](v) * q[k](w) * Ji(1,d2) +
                                     c[i](u) * qd[j](v) * q[k](w) * Ji(2,d2) +
-                                    c[i](u) * q[j](v) * qd[k](w) * Ji(3,d2)) / detJ, 1e-13);
+                                    c[i](u) * q[j](v) * qd[k](w) * Ji(3,d2)) / detJ));
 
   for (size_t k = 0; k < 3; ++k)
     for (size_t j = 0; j < 4; ++j)
       for (size_t i = 0; i < 3; ++i, ++n)
         for (size_t d1 = 1; d1 <= 3; ++d1)
           for (size_t d2 = 1; d2 <= 3; ++d2)
-            EXPECT_NEAR(fe.dPdX(d1 + 3 * (d2-1),n),
-                         (-det[d2-1] / (detJ * detJ) * J(d1,2) +
+            REQUIRE_THAT(fe.dPdX(d1 + 3 * (d2-1),n),
+                         WithinAbs((-det[d2-1] / (detJ * detJ) * J(d1,2) +
                          dJdX[d2-1](d1,2) / detJ) * q[i](u) * c[j](v) * q[k](w) +
                          J(d1,2) * (qd[i](u) * c[j](v) * q[k](w) * Ji(1,d2) +
                                     q[i](u) * cd[j](v) * q[k](w) * Ji(2,d2) +
-                                    q[i](u) * c[j](v) * qd[k](w) * Ji(3,d2)) / detJ, 1e-13);
+                                    q[i](u) * c[j](v) * qd[k](w) * Ji(3,d2)) / detJ, 1e-13));
 
   for (size_t k = 0; k < 4; ++k)
     for (size_t j = 0; j < 3; ++j)
       for (size_t i = 0; i < 3; ++i, ++n)
         for (size_t d1 = 1; d1 <= 3; ++d1)
           for (size_t d2 = 1; d2 <= 3; ++d2)
-            EXPECT_NEAR(fe.dPdX(d1 + 3 * (d2-1),n),
-                         (-det[d2-1] / (detJ * detJ) * J(d1,3) +
+            REQUIRE_THAT(fe.dPdX(d1 + 3 * (d2-1),n),
+                         WithinRel((-det[d2-1] / (detJ * detJ) * J(d1,3) +
                          dJdX[d2-1](d1,3) / detJ) * q[i](u) * q[j](v) * c[k](w) +
                          J(d1,3) * (qd[i](u) * q[j](v) * c[k](w) * Ji(1,d2) +
                                     q[i](u) * qd[j](v) * c[k](w) * Ji(2,d2) +
-                                    q[i](u) * q[j](v) * cd[k](w) * Ji(3,d2)) / detJ, 1e-13);
+                                    q[i](u) * q[j](v) * cd[k](w) * Ji(3,d2)) / detJ));
 }
 
 
-TEST(TestPiolaMapping3D, GradJ)
+TEST_CASE("TestPiolaMapping.GradJ3D")
 {
   ASMs3D p;
   std::stringstream g2(spline3D);
 
-  ASSERT_TRUE(p.read(g2));
-  ASSERT_TRUE(p.generateFEMTopology());
+  REQUIRE(p.read(g2));
+  REQUIRE(p.generateFEMTopology());
 
   Vec3 Xp;
   double u = 0.1;
   double v = 0.1;
   double w = 0.1;
   SplineUtils::point(Xp, u, v, w, p.getBasis());
-  EXPECT_DOUBLE_EQ(Xp[0], u * u + v * v * w);
-  EXPECT_DOUBLE_EQ(Xp[1], 2.0 * v + w * w * w);
-  EXPECT_DOUBLE_EQ(Xp[2], 3.0 * w + u * u);
+  REQUIRE_THAT(Xp[0], WithinRel(u * u + v * v * w));
+  REQUIRE_THAT(Xp[1], WithinRel(2.0 * v + w * w * w));
+  REQUIRE_THAT(Xp[2], WithinRel(3.0 * w + u * u));
 
   Vector N;
   Matrix X, dNdu;
@@ -693,15 +699,15 @@ TEST(TestPiolaMapping3D, GradJ)
   H.multiply(X,d2Ndu2);
   J.multiply(X,dNdu); // J = X * dNdu
 
-  EXPECT_NEAR(J(1,1), 2.0 * u, 1e-13);
-  EXPECT_NEAR(J(1,2), 2.0 * v * w, 1e-13);
-  EXPECT_NEAR(J(1,3), v * v, 1e-13);
-  EXPECT_NEAR(J(2,1), 0.0, 1e-13);
-  EXPECT_NEAR(J(2,2), 2.0, 1e-13);
-  EXPECT_NEAR(J(2,3), 3.0 * w * w, 1e-13);
-  EXPECT_NEAR(J(3,1), 2.0 * u, 1e-13);
-  EXPECT_NEAR(J(3,2), 0.0, 1e-13);
-  EXPECT_NEAR(J(3,3), 3.0, 1e-13);
+  REQUIRE_THAT(J(1,1), WithinRel(2.0 * u));
+  REQUIRE_THAT(J(1,2), WithinRel(2.0 * v * w));
+  REQUIRE_THAT(J(1,3), WithinRel(v * v));
+  REQUIRE_THAT(J(2,1), WithinAbs(0.0, 1e-13));
+  REQUIRE_THAT(J(2,2), WithinRel(2.0));
+  REQUIRE_THAT(J(2,3), WithinRel(3.0 * w * w));
+  REQUIRE_THAT(J(3,1), WithinRel(2.0 * u));
+  REQUIRE_THAT(J(3,2), WithinAbs(0.0, 1e-13));
+  REQUIRE_THAT(J(3,3), WithinRel(3.0));
 
   auto det = [](const double a,
                 const double b,
@@ -715,89 +721,89 @@ TEST(TestPiolaMapping3D, GradJ)
                   - J(1,2) * det(J(2,1), J(2,3), J(3,1), J(3,3))
                   + J(1,3) * det(J(2,1), J(2,2), J(3,1), J(3,2));
 
-  EXPECT_NEAR(detRef, detJ, 1e-13);
+  REQUIRE_THAT(detRef, WithinRel(detJ));
 
-  EXPECT_DOUBLE_EQ(Ji(1,1),  det(J(2,2), J(1,3), J(3,2), J(3,3)) / detJ);
-  EXPECT_DOUBLE_EQ(Ji(1,2), -det(J(1,2), J(1,3), J(3,2), J(3,3)) / detJ);
-  EXPECT_DOUBLE_EQ(Ji(1,3),  det(J(1,2), J(2,2), J(1,3), J(2,3)) / detJ);
-  EXPECT_DOUBLE_EQ(Ji(2,1), -det(J(2,1), J(2,3), J(3,1), J(3,3)) / detJ);
-  EXPECT_DOUBLE_EQ(Ji(2,2),  det(J(1,1), J(1,3), J(3,1), J(3,3)) / detJ);
-  EXPECT_DOUBLE_EQ(Ji(2,3), -det(J(1,1), J(1,3), J(2,1), J(2,3)) / detJ);
-  EXPECT_DOUBLE_EQ(Ji(3,1),  det(J(2,1), J(2,2), J(3,1), J(3,2)) / detJ);
-  EXPECT_DOUBLE_EQ(Ji(3,2), -det(J(1,1), J(1,2), J(3,1), J(3,2)) / detJ);
-  EXPECT_DOUBLE_EQ(Ji(3,3),  det(J(1,1), J(1,2), J(2,1), J(2,2)) / detJ);
+  REQUIRE_THAT(Ji(1,1), WithinRel( det(J(2,2), J(1,3), J(3,2), J(3,3)) / detJ));
+  REQUIRE_THAT(Ji(1,2), WithinRel(-det(J(1,2), J(1,3), J(3,2), J(3,3)) / detJ));
+  REQUIRE_THAT(Ji(1,3), WithinRel( det(J(1,2), J(2,2), J(1,3), J(2,3)) / detJ));
+  REQUIRE_THAT(Ji(2,1), WithinRel(-det(J(2,1), J(2,3), J(3,1), J(3,3)) / detJ));
+  REQUIRE_THAT(Ji(2,2), WithinRel( det(J(1,1), J(1,3), J(3,1), J(3,3)) / detJ));
+  REQUIRE_THAT(Ji(2,3), WithinRel(-det(J(1,1), J(1,3), J(2,1), J(2,3)) / detJ));
+  REQUIRE_THAT(Ji(3,1), WithinRel( det(J(2,1), J(2,2), J(3,1), J(3,2)) / detJ));
+  REQUIRE_THAT(Ji(3,2), WithinRel(-det(J(1,1), J(1,2), J(3,1), J(3,2)) / detJ));
+  REQUIRE_THAT(Ji(3,3), WithinRel( det(J(1,1), J(1,2), J(2,1), J(2,2)) / detJ));
 
-  EXPECT_NEAR(H(1,1,1),   2.0, 1e-13);
-  EXPECT_NEAR(H(1,1,2),   0.0, 1e-13);
-  EXPECT_NEAR(H(1,1,3),   0.0, 1e-13);
-  EXPECT_NEAR(H(1,2,1),   0.0, 1e-13);
-  EXPECT_NEAR(H(1,2,2), 2.0*w, 1e-13);
-  EXPECT_NEAR(H(1,2,3), 2.0*v, 1e-13);
-  EXPECT_NEAR(H(1,3,1),   0.0, 1e-13);
-  EXPECT_NEAR(H(1,3,2), 2.0*v, 1e-13);
-  EXPECT_NEAR(H(1,3,3),   0.0, 1e-13);
+  REQUIRE_THAT(H(1,1,1), WithinRel(2.0));
+  REQUIRE_THAT(H(1,1,2), WithinAbs(0.0, 1e-13));
+  REQUIRE_THAT(H(1,1,3), WithinAbs(0.0, 1e-13));
+  REQUIRE_THAT(H(1,2,1), WithinAbs(0.0, 1e-13));
+  REQUIRE_THAT(H(1,2,2), WithinRel(2.0*w));
+  REQUIRE_THAT(H(1,2,3), WithinRel(2.0*v));
+  REQUIRE_THAT(H(1,3,1), WithinAbs(0.0, 1e-13));
+  REQUIRE_THAT(H(1,3,2), WithinRel(2.0*v));
+  REQUIRE_THAT(H(1,3,3), WithinAbs(0.0, 1e-13));
 
-  EXPECT_NEAR(H(2,1,1),   0.0, 1e-13);
-  EXPECT_NEAR(H(2,1,2),   0.0, 1e-13);
-  EXPECT_NEAR(H(2,1,3),   0.0, 1e-13);
-  EXPECT_NEAR(H(2,2,1),   0.0, 1e-13);
-  EXPECT_NEAR(H(2,2,2),   0.0, 1e-13);
-  EXPECT_NEAR(H(2,2,3),   0.0, 1e-13);
-  EXPECT_NEAR(H(2,3,1),   0.0, 1e-13);
-  EXPECT_NEAR(H(2,3,2),   0.0, 1e-13);
-  EXPECT_NEAR(H(2,3,3), 6.0*w, 1e-13);
+  REQUIRE_THAT(H(2,1,1), WithinAbs(0.0, 1e-13));
+  REQUIRE_THAT(H(2,1,2), WithinAbs(0.0, 1e-13));
+  REQUIRE_THAT(H(2,1,3), WithinAbs(0.0, 1e-13));
+  REQUIRE_THAT(H(2,2,1), WithinAbs(0.0, 1e-13));
+  REQUIRE_THAT(H(2,2,2), WithinAbs(0.0, 1e-13));
+  REQUIRE_THAT(H(2,2,3), WithinAbs(0.0, 1e-13));
+  REQUIRE_THAT(H(2,3,1), WithinAbs(0.0, 1e-13));
+  REQUIRE_THAT(H(2,3,2), WithinAbs(0.0, 1e-13));
+  REQUIRE_THAT(H(2,3,3), WithinRel(6.0*w));
 
-  EXPECT_NEAR(H(3,1,1), 2.0, 1e-13);
-  EXPECT_NEAR(H(3,1,2), 0.0, 1e-13);
-  EXPECT_NEAR(H(3,1,3), 0.0, 1e-13);
-  EXPECT_NEAR(H(3,2,1), 0.0, 1e-13);
-  EXPECT_NEAR(H(3,2,2), 0.0, 1e-13);
-  EXPECT_NEAR(H(3,2,3), 0.0, 1e-13);
-  EXPECT_NEAR(H(3,3,1), 0.0, 1e-13);
-  EXPECT_NEAR(H(3,3,2), 0.0, 1e-13);
-  EXPECT_NEAR(H(3,3,3), 0.0, 1e-13);
+  REQUIRE_THAT(H(3,1,1), WithinRel(2.0));
+  REQUIRE_THAT(H(3,1,2), WithinAbs(0.0, 1e-13));
+  REQUIRE_THAT(H(3,1,3), WithinAbs(0.0, 1e-13));
+  REQUIRE_THAT(H(3,2,1), WithinAbs(0.0, 1e-13));
+  REQUIRE_THAT(H(3,2,2), WithinAbs(0.0, 1e-13));
+  REQUIRE_THAT(H(3,2,3), WithinAbs(0.0, 1e-13));
+  REQUIRE_THAT(H(3,3,1), WithinAbs(0.0, 1e-13));
+  REQUIRE_THAT(H(3,3,2), WithinAbs(0.0, 1e-13));
+  REQUIRE_THAT(H(3,3,3), WithinAbs(0.0, 1e-13));
 
   Matrices dJdX = utl::jacobianGradient(Ji, H);
 
-  EXPECT_DOUBLE_EQ(dJdX[0](1,1), H(1,1,1)*Ji(1,1) + H(1,1,2)*Ji(2,1) + H(1,1,3)*Ji(3,1));
-  EXPECT_DOUBLE_EQ(dJdX[0](1,2), H(1,1,2)*Ji(1,1) + H(1,2,2)*Ji(2,1) + H(1,2,3)*Ji(3,1));
-  EXPECT_DOUBLE_EQ(dJdX[0](1,3), H(1,1,3)*Ji(1,1) + H(1,2,3)*Ji(2,1) + H(1,3,3)*Ji(3,1));
-  EXPECT_DOUBLE_EQ(dJdX[0](2,1), H(2,1,1)*Ji(1,1) + H(2,1,2)*Ji(2,1) + H(2,1,3)*Ji(3,1));
-  EXPECT_DOUBLE_EQ(dJdX[0](2,2), H(2,1,2)*Ji(1,1) + H(2,2,2)*Ji(2,1) + H(2,2,3)*Ji(3,1));
-  EXPECT_DOUBLE_EQ(dJdX[0](2,3), H(2,1,3)*Ji(1,1) + H(2,2,3)*Ji(2,1) + H(2,3,3)*Ji(3,1));
-  EXPECT_DOUBLE_EQ(dJdX[0](3,1), H(3,1,1)*Ji(1,1) + H(3,1,2)*Ji(2,1) + H(3,1,3)*Ji(3,1));
-  EXPECT_DOUBLE_EQ(dJdX[0](3,2), H(3,1,2)*Ji(1,1) + H(3,2,2)*Ji(2,1) + H(3,2,3)*Ji(3,1));
-  EXPECT_DOUBLE_EQ(dJdX[0](3,3), H(3,1,3)*Ji(1,1) + H(3,2,3)*Ji(2,1) + H(3,3,3)*Ji(3,1));
+  REQUIRE_THAT(dJdX[0](1,1), WithinRel(H(1,1,1)*Ji(1,1) + H(1,1,2)*Ji(2,1) + H(1,1,3)*Ji(3,1)));
+  REQUIRE_THAT(dJdX[0](1,2), WithinRel(H(1,1,2)*Ji(1,1) + H(1,2,2)*Ji(2,1) + H(1,2,3)*Ji(3,1)));
+  REQUIRE_THAT(dJdX[0](1,3), WithinRel(H(1,1,3)*Ji(1,1) + H(1,2,3)*Ji(2,1) + H(1,3,3)*Ji(3,1)));
+  REQUIRE_THAT(dJdX[0](2,1), WithinRel(H(2,1,1)*Ji(1,1) + H(2,1,2)*Ji(2,1) + H(2,1,3)*Ji(3,1)));
+  REQUIRE_THAT(dJdX[0](2,2), WithinRel(H(2,1,2)*Ji(1,1) + H(2,2,2)*Ji(2,1) + H(2,2,3)*Ji(3,1)));
+  REQUIRE_THAT(dJdX[0](2,3), WithinRel(H(2,1,3)*Ji(1,1) + H(2,2,3)*Ji(2,1) + H(2,3,3)*Ji(3,1)));
+  REQUIRE_THAT(dJdX[0](3,1), WithinRel(H(3,1,1)*Ji(1,1) + H(3,1,2)*Ji(2,1) + H(3,1,3)*Ji(3,1)));
+  REQUIRE_THAT(dJdX[0](3,2), WithinRel(H(3,1,2)*Ji(1,1) + H(3,2,2)*Ji(2,1) + H(3,2,3)*Ji(3,1)));
+  REQUIRE_THAT(dJdX[0](3,3), WithinRel(H(3,1,3)*Ji(1,1) + H(3,2,3)*Ji(2,1) + H(3,3,3)*Ji(3,1)));
 
-  EXPECT_DOUBLE_EQ(dJdX[1](1,1), H(1,1,1)*Ji(1,2) + H(1,1,2)*Ji(2,2) + H(1,1,3)*Ji(3,2));
-  EXPECT_DOUBLE_EQ(dJdX[1](1,2), H(1,1,2)*Ji(1,2) + H(1,2,2)*Ji(2,2) + H(1,2,3)*Ji(3,2));
-  EXPECT_DOUBLE_EQ(dJdX[1](1,3), H(1,1,3)*Ji(1,2) + H(1,2,3)*Ji(2,2) + H(1,3,3)*Ji(3,2));
-  EXPECT_DOUBLE_EQ(dJdX[1](2,1), H(2,1,1)*Ji(1,2) + H(2,1,2)*Ji(2,2) + H(2,1,3)*Ji(3,2));
-  EXPECT_DOUBLE_EQ(dJdX[1](2,2), H(2,1,2)*Ji(1,2) + H(2,2,2)*Ji(2,2) + H(2,2,3)*Ji(3,2));
-  EXPECT_DOUBLE_EQ(dJdX[1](2,3), H(2,1,3)*Ji(1,2) + H(2,2,3)*Ji(2,2) + H(2,3,3)*Ji(3,2));
-  EXPECT_DOUBLE_EQ(dJdX[1](3,1), H(3,1,1)*Ji(1,2) + H(3,1,2)*Ji(2,2) + H(3,1,3)*Ji(3,2));
-  EXPECT_DOUBLE_EQ(dJdX[1](3,2), H(3,1,2)*Ji(1,2) + H(3,2,2)*Ji(2,2) + H(3,2,3)*Ji(3,2));
-  EXPECT_DOUBLE_EQ(dJdX[1](3,3), H(3,1,3)*Ji(1,2) + H(3,2,3)*Ji(2,2) + H(3,3,3)*Ji(3,2));
+  REQUIRE_THAT(dJdX[1](1,1), WithinRel(H(1,1,1)*Ji(1,2) + H(1,1,2)*Ji(2,2) + H(1,1,3)*Ji(3,2)));
+  REQUIRE_THAT(dJdX[1](1,2), WithinRel(H(1,1,2)*Ji(1,2) + H(1,2,2)*Ji(2,2) + H(1,2,3)*Ji(3,2)));
+  REQUIRE_THAT(dJdX[1](1,3), WithinRel(H(1,1,3)*Ji(1,2) + H(1,2,3)*Ji(2,2) + H(1,3,3)*Ji(3,2)));
+  REQUIRE_THAT(dJdX[1](2,1), WithinRel(H(2,1,1)*Ji(1,2) + H(2,1,2)*Ji(2,2) + H(2,1,3)*Ji(3,2)));
+  REQUIRE_THAT(dJdX[1](2,2), WithinRel(H(2,1,2)*Ji(1,2) + H(2,2,2)*Ji(2,2) + H(2,2,3)*Ji(3,2)));
+  REQUIRE_THAT(dJdX[1](2,3), WithinRel(H(2,1,3)*Ji(1,2) + H(2,2,3)*Ji(2,2) + H(2,3,3)*Ji(3,2)));
+  REQUIRE_THAT(dJdX[1](3,1), WithinRel(H(3,1,1)*Ji(1,2) + H(3,1,2)*Ji(2,2) + H(3,1,3)*Ji(3,2)));
+  REQUIRE_THAT(dJdX[1](3,2), WithinRel(H(3,1,2)*Ji(1,2) + H(3,2,2)*Ji(2,2) + H(3,2,3)*Ji(3,2)));
+  REQUIRE_THAT(dJdX[1](3,3), WithinRel(H(3,1,3)*Ji(1,2) + H(3,2,3)*Ji(2,2) + H(3,3,3)*Ji(3,2)));
 
-  EXPECT_DOUBLE_EQ(dJdX[2](1,1), H(1,1,1)*Ji(1,3) + H(1,1,2)*Ji(2,3) + H(1,1,3)*Ji(3,3));
-  EXPECT_DOUBLE_EQ(dJdX[2](1,2), H(1,1,2)*Ji(1,3) + H(1,2,2)*Ji(2,3) + H(1,2,3)*Ji(3,3));
-  EXPECT_DOUBLE_EQ(dJdX[2](1,3), H(1,1,3)*Ji(1,3) + H(1,2,3)*Ji(2,3) + H(1,3,3)*Ji(3,3));
-  EXPECT_DOUBLE_EQ(dJdX[2](2,1), H(2,1,1)*Ji(1,3) + H(2,1,2)*Ji(2,3) + H(2,1,3)*Ji(3,3));
-  EXPECT_DOUBLE_EQ(dJdX[2](2,2), H(2,1,2)*Ji(1,3) + H(2,2,2)*Ji(2,3) + H(2,2,3)*Ji(3,3));
-  EXPECT_DOUBLE_EQ(dJdX[2](2,3), H(2,1,3)*Ji(1,3) + H(2,2,3)*Ji(2,3) + H(2,3,3)*Ji(3,3));
-  EXPECT_DOUBLE_EQ(dJdX[2](3,1), H(3,1,1)*Ji(1,3) + H(3,1,2)*Ji(2,3) + H(3,1,3)*Ji(3,3));
-  EXPECT_DOUBLE_EQ(dJdX[2](3,2), H(3,1,2)*Ji(1,3) + H(3,2,2)*Ji(2,3) + H(3,2,3)*Ji(3,3));
-  EXPECT_DOUBLE_EQ(dJdX[2](3,3), H(3,1,3)*Ji(1,3) + H(3,2,3)*Ji(2,3) + H(3,3,3)*Ji(3,3));
+  REQUIRE_THAT(dJdX[2](1,1), WithinRel(H(1,1,1)*Ji(1,3) + H(1,1,2)*Ji(2,3) + H(1,1,3)*Ji(3,3)));
+  REQUIRE_THAT(dJdX[2](1,2), WithinRel(H(1,1,2)*Ji(1,3) + H(1,2,2)*Ji(2,3) + H(1,2,3)*Ji(3,3)));
+  REQUIRE_THAT(dJdX[2](1,3), WithinRel(H(1,1,3)*Ji(1,3) + H(1,2,3)*Ji(2,3) + H(1,3,3)*Ji(3,3)));
+  REQUIRE_THAT(dJdX[2](2,1), WithinRel(H(2,1,1)*Ji(1,3) + H(2,1,2)*Ji(2,3) + H(2,1,3)*Ji(3,3)));
+  REQUIRE_THAT(dJdX[2](2,2), WithinRel(H(2,1,2)*Ji(1,3) + H(2,2,2)*Ji(2,3) + H(2,2,3)*Ji(3,3)));
+  REQUIRE_THAT(dJdX[2](2,3), WithinRel(H(2,1,3)*Ji(1,3) + H(2,2,3)*Ji(2,3) + H(2,3,3)*Ji(3,3)));
+  REQUIRE_THAT(dJdX[2](3,1), WithinRel(H(3,1,1)*Ji(1,3) + H(3,1,2)*Ji(2,3) + H(3,1,3)*Ji(3,3)));
+  REQUIRE_THAT(dJdX[2](3,2), WithinRel(H(3,1,2)*Ji(1,3) + H(3,2,2)*Ji(2,3) + H(3,2,3)*Ji(3,3)));
+  REQUIRE_THAT(dJdX[2](3,3), WithinRel(H(3,1,3)*Ji(1,3) + H(3,2,3)*Ji(2,3) + H(3,3,3)*Ji(3,3)));
 }
 
 
-TEST(TestPiolaMapping3D, GradDetJ)
+TEST_CASE("TestPiolaMapping.GradDetJ3D")
 {
   ASMs3D p;
   std::stringstream g2(spline3D);
 
-  ASSERT_TRUE(p.read(g2));
-  ASSERT_TRUE(p.generateFEMTopology());
+  REQUIRE(p.read(g2));
+  REQUIRE(p.generateFEMTopology());
 
   double u = 0.1;
   double v = 0.1;
@@ -844,7 +850,7 @@ TEST(TestPiolaMapping3D, GradDetJ)
             + J(1,3) * (  H(2,1,3)*J(3,2) + J(2,1)*H(3,2,3)
                         - H(2,2,3)*J(3,1) - J(2,2)*H(3,1,3));
 
-  EXPECT_NEAR(ddet(1), ddetu(1) * Ji(1,1) + ddetu(2) * Ji(2,1) + ddetu(3) * Ji(3,1), 1e-13);
-  EXPECT_NEAR(ddet(2), ddetu(1) * Ji(1,2) + ddetu(2) * Ji(2,2) + ddetu(3) * Ji(3,2), 1e-13);
-  EXPECT_NEAR(ddet(3), ddetu(1) * Ji(1,3) + ddetu(2) * Ji(2,3) + ddetu(3) * Ji(3,3), 1e-13);
+  REQUIRE_THAT(ddet(1), WithinRel(ddetu(1) * Ji(1,1) + ddetu(2) * Ji(2,1) + ddetu(3) * Ji(3,1)));
+  REQUIRE_THAT(ddet(2), WithinRel(ddetu(1) * Ji(1,2) + ddetu(2) * Ji(2,2) + ddetu(3) * Ji(3,2)));
+  REQUIRE_THAT(ddet(3), WithinRel(ddetu(1) * Ji(1,3) + ddetu(2) * Ji(2,3) + ddetu(3) * Ji(3,3)));
 }

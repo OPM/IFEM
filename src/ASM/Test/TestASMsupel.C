@@ -13,8 +13,11 @@
 #include "ASMsupel.h"
 #include <fstream>
 
-#include "gtest/gtest.h"
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 
+
+namespace {
 
 struct TestCase
 {
@@ -22,29 +25,24 @@ struct TestCase
   size_t      nsup;
 };
 
-
-class TestASMsup : public testing::Test,
-                   public testing::WithParamInterface<TestCase>
-{
-};
-
-
-TEST_P(TestASMsup, Read)
-{
-  ASMsupel pch;
-  ASMbase::resetNumbering();
-  std::cout <<"Checking "<< GetParam().file << std::endl;
-  std::ifstream is(GetParam().file);
-  ASSERT_TRUE(pch.read(is));
-  ASSERT_FALSE(pch.empty());
-  ASSERT_TRUE(pch.generateFEMTopology());
-  EXPECT_EQ(pch.getNoNodes(),GetParam().nsup);
 }
 
 
-const std::vector<TestCase> testFiles = {
-  { "src/ASM/Test/refdata/Supel.dat", 2U },
-  { "src/ASM/Test/refdata/kjoint.dat", 4U }};
+TEST_CASE("TestASMsup.Read")
+{
+  const TestCase param = GENERATE(
+    TestCase{"src/ASM/Test/refdata/Supel.dat", 2U},
+    TestCase{"src/ASM/Test/refdata/kjoint.dat", 4U}
+  );
 
-
-INSTANTIATE_TEST_SUITE_P(TestASMsup, TestASMsup, testing::ValuesIn(testFiles));
+  SECTION(param.file) {
+    ASMsupel pch;
+    ASMbase::resetNumbering();
+    std::cout <<"Checking "<< param.file << std::endl;
+    std::ifstream is(param.file);
+    REQUIRE(pch.read(is));
+    REQUIRE(!pch.empty());
+    REQUIRE(pch.generateFEMTopology());
+    REQUIRE(pch.getNoNodes() == param.nsup);
+  }
+}

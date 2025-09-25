@@ -15,19 +15,23 @@
 #include "SAM.h"
 #include "readIntVec.h"
 
-#include "gtest/gtest.h"
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+
+using Catch::Matchers::WithinAbs;
+using Catch::Matchers::WithinRel;
 
 
-TEST(TestISTLMatrix, AssembleMPI)
+TEST_CASE("TestISTLMatrix.AssembleMPI")
 {
   SIM2D sim(1);
   sim.read("src/LinAlg/Test/refdata/petsc_test.xinp");
   sim.opt.solver = LinAlg::ISTL;
-  ASSERT_TRUE(sim.preprocess());
-  ASSERT_TRUE(sim.initSystem(sim.opt.solver));
+  REQUIRE(sim.preprocess());
+  REQUIRE(sim.initSystem(sim.opt.solver));
 
   ISTLMatrix* myMat = dynamic_cast<ISTLMatrix*>(sim.getLHSmatrix());
-  ASSERT_TRUE(myMat != nullptr);
+  REQUIRE(myMat != nullptr);
 
   Matrix stencil(4,4);
   stencil.diag(1.0);
@@ -62,10 +66,10 @@ TEST(TestISTLMatrix, AssembleMPI)
     op.apply(b, b2);
   } catch (Dune::ISTLError& e) {
     std::cerr << e << std::endl;
-    ASSERT_TRUE(false);
+    REQUIRE(false);
   }
 
   IntVec v = readIntVector("src/LinAlg/Test/refdata/petsc_matrix_diagonal.ref");
   for (size_t i = 1; i <= adm.dd.getMLGEQ().size(); ++i)
-    EXPECT_FLOAT_EQ(v[adm.dd.getGlobalEq(i)-1], b2[i-1]);
+    REQUIRE_THAT(v[adm.dd.getGlobalEq(i)-1], WithinRel(b2[i-1]));
 }

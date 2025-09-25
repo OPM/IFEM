@@ -14,9 +14,13 @@
 #include "DiagMatrix.h"
 #include "SAM.h"
 
-#include "gtest/gtest.h"
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+
 #include <numeric>
 #include <algorithm>
+
+using Catch::Matchers::WithinRel;
 
 
 /*!
@@ -38,7 +42,7 @@ public:
     std::iota(mmnpc ,mmnpc +n  ,1);
     std::iota(madof ,madof +n+1,1);
     std::fill(msc   ,msc   +n  ,1);
-    EXPECT_TRUE(this->initSystemEquations());
+    REQUIRE(this->initSystemEquations());
   }
 
   //! \brief Empty destructor.
@@ -46,7 +50,7 @@ public:
 };
 
 
-TEST(TestDiagMatrix, AssembleAndSolve)
+TEST_CASE("TestDiagMatrix.AssembleAndSolve")
 {
   const int n = 6;
 
@@ -62,15 +66,15 @@ TEST(TestDiagMatrix, AssembleAndSolve)
   for (int e = 1; e <= n; e++)
   {
     eM(1,1) = (double)e;
-    EXPECT_TRUE(A.assemble(eM,sam,e));
-    EXPECT_TRUE(sam.assembleSystem(b,{(double)2*e*e},e));
+    REQUIRE(A.assemble(eM,sam,e));
+    REQUIRE(sam.assembleSystem(b,{(double)2*e*e},e));
   }
-  ASSERT_TRUE(A.solve(b,x));
+  REQUIRE(A.solve(b,x));
 
   std::cout <<"A = "<< A;
   std::cout <<"b = "<< b;
   std::cout <<"x = "<< x;
 
   for (int i = 1; i <= n; i++)
-    EXPECT_FLOAT_EQ(x(i),(double)2*i);
+    REQUIRE_THAT(x(i), WithinRel(static_cast<double>(2*i)));
 }

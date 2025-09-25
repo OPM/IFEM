@@ -12,7 +12,8 @@
 
 #include "ASMCube.h"
 
-#include "gtest/gtest.h"
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 
 
 namespace {
@@ -369,162 +370,167 @@ const char* cubeRT_3 =
 }
 
 
-class TestASMs3Dmx : public testing::Test,
-                     public testing::WithParamInterface<int>
+TEST_CASE("TestASMs3Dmx.WriteFRTH")
 {
-};
+  const ASMmxBase::MixedType param = GENERATE(
+    ASMmxBase::FULL_CONT_RAISE_BASIS1,
+    ASMmxBase::FULL_CONT_RAISE_BASIS2
+  );
+  const int basis = param == ASMmxBase::FULL_CONT_RAISE_BASIS1 ? 1 : 2;
+  SECTION(basis == 1 ? "Raise basis 1" : "Raise basis 2") {
+    ASMmxBase::Type = param;
 
+    ASMbase::resetNumbering();
+    ASMmxCube pch1({1,1});
+    REQUIRE(pch1.generateFEMTopology());
 
-TEST_P(TestASMs3Dmx, WriteFRTH)
-{
-  ASMmxBase::Type = GetParam() == 0 ? ASMmxBase::FULL_CONT_RAISE_BASIS1
-                                    : ASMmxBase::FULL_CONT_RAISE_BASIS2;
-  ASMbase::resetNumbering();
-  ASMmxCube pch1({1,1});
-  EXPECT_TRUE(pch1.generateFEMTopology());
+    std::stringstream str;
+    REQUIRE(pch1.write(str, 1));
+    REQUIRE(str.str() == (basis == 1 ? cubeFRTH_1 : ASMCube::cube));
 
-  std::stringstream str;
-  EXPECT_TRUE(pch1.write(str, 1));
-  EXPECT_EQ(str.str(), GetParam() == 0 ? cubeFRTH_1 : ASMCube::cube);
+    str.str("");
+    REQUIRE(pch1.write(str, 2));
+    REQUIRE(str.str() ==  (basis == 2 ? cubeFRTH_1 : ASMCube::cube));
 
-  str.str("");
-  EXPECT_TRUE(pch1.write(str, 2));
-  EXPECT_EQ(str.str(), GetParam() == 1 ? cubeFRTH_1 : ASMCube::cube);
+    REQUIRE(!pch1.write(str, 3));
 
-  EXPECT_FALSE(pch1.write(str, 3));
+    str.str("");
+    REQUIRE(pch1.write(str, ASM::GEOMETRY_BASIS));
+    REQUIRE(str.str() == ASMCube::cube);
 
-  str.str("");
-  EXPECT_TRUE(pch1.write(str, ASM::GEOMETRY_BASIS));
-  EXPECT_EQ(str.str(), ASMCube::cube);
+    str.str("");
+    REQUIRE(pch1.write(str, ASM::PROJECTION_BASIS));
+    REQUIRE(str.str() == cubeFRTH_1);
 
-  str.str("");
-  EXPECT_TRUE(pch1.write(str, ASM::PROJECTION_BASIS));
-  EXPECT_EQ(str.str(), cubeFRTH_1);
+    REQUIRE(!pch1.write(str, ASM::PROJECTION_BASIS_2));
+    REQUIRE(!pch1.write(str, ASM::REFINEMENT_BASIS));
 
-  EXPECT_FALSE(pch1.write(str, ASM::PROJECTION_BASIS_2));
-  EXPECT_FALSE(pch1.write(str, ASM::REFINEMENT_BASIS));
-
-  str.str("");
-  EXPECT_TRUE(pch1.write(str, ASM::INTEGRATION_BASIS));
-  EXPECT_EQ(str.str(), ASMCube::cube);
+    str.str("");
+    REQUIRE(pch1.write(str, ASM::INTEGRATION_BASIS));
+    REQUIRE(str.str() == ASMCube::cube);
+  }
 }
 
 
-TEST(TestASMs3Dmx, WriteRT)
+TEST_CASE("TestASMs3Dmx.WriteRT")
 {
   ASMmxBase::Type = ASMmxBase::DIV_COMPATIBLE;
   ASMbase::resetNumbering();
   ASMmxCube pch1({1,1,1});
   pch1.raiseOrder(1,1,1);
-  EXPECT_TRUE(pch1.generateFEMTopology());
+  REQUIRE(pch1.generateFEMTopology());
 
   std::stringstream str;
-  EXPECT_TRUE(pch1.write(str, 1));
-  EXPECT_EQ(str.str(), cubeRT_1);
+  REQUIRE(pch1.write(str, 1));
+  REQUIRE(str.str() == cubeRT_1);
 
   str.str("");
-  EXPECT_TRUE(pch1.write(str, 2));
-  EXPECT_EQ(str.str(), cubeRT_2);
+  REQUIRE(pch1.write(str, 2));
+  REQUIRE(str.str() == cubeRT_2);
 
   str.str("");
-  EXPECT_TRUE(pch1.write(str, 3));
-  EXPECT_EQ(str.str(), cubeRT_3);
+  REQUIRE(pch1.write(str, 3));
+  REQUIRE(str.str() == cubeRT_3);
 
   str.str("");
-  EXPECT_TRUE(pch1.write(str, 4));
-  EXPECT_EQ(str.str(), ASMCube::cube);
+  REQUIRE(pch1.write(str, 4));
+  REQUIRE(str.str() == ASMCube::cube);
 
-  EXPECT_FALSE(pch1.write(str, 5));
-
-  str.str("");
-  EXPECT_TRUE(pch1.write(str, ASM::GEOMETRY_BASIS));
-  EXPECT_EQ(str.str(), cubeFRTH_1);
+  REQUIRE(!pch1.write(str, 5));
 
   str.str("");
-  EXPECT_TRUE(pch1.write(str, ASM::PROJECTION_BASIS));
-  EXPECT_EQ(str.str(), cubeFRTH_1);
-
-  EXPECT_FALSE(pch1.write(str, ASM::PROJECTION_BASIS_2));
-  EXPECT_FALSE(pch1.write(str, ASM::REFINEMENT_BASIS));
+  REQUIRE(pch1.write(str, ASM::GEOMETRY_BASIS));
+  REQUIRE(str.str() == cubeFRTH_1);
 
   str.str("");
-  EXPECT_TRUE(pch1.write(str, ASM::INTEGRATION_BASIS));
-  EXPECT_EQ(str.str(), ASMCube::cube);
+  REQUIRE(pch1.write(str, ASM::PROJECTION_BASIS));
+  REQUIRE(str.str() == cubeFRTH_1);
+
+  REQUIRE(!pch1.write(str, ASM::PROJECTION_BASIS_2));
+  REQUIRE(!pch1.write(str, ASM::REFINEMENT_BASIS));
+
+  str.str("");
+  REQUIRE(pch1.write(str, ASM::INTEGRATION_BASIS));
+  REQUIRE(str.str() == ASMCube::cube);
 }
 
 
-TEST(TestASMs3Dmx, WriteSG)
+TEST_CASE("TestASMs3Dmx.WriteSG")
 {
   ASMmxBase::Type = ASMmxBase::SUBGRID;
   ASMbase::resetNumbering();
   ASMmxCube pch1({1,1});
-  EXPECT_TRUE(pch1.generateFEMTopology());
+  REQUIRE(pch1.generateFEMTopology());
 
   std::stringstream str;
-  EXPECT_TRUE(pch1.write(str, 1));
-  EXPECT_EQ(str.str(), cubeTH_p);
+  REQUIRE(pch1.write(str, 1));
+  REQUIRE(str.str() == cubeTH_p);
 
   str.str("");
-  EXPECT_TRUE(pch1.write(str, 2));
-  EXPECT_EQ(str.str(), ASMCube::cube);
+  REQUIRE(pch1.write(str, 2));
+  REQUIRE(str.str() == ASMCube::cube);
 
-  EXPECT_FALSE(pch1.write(str, 3));
-
-  str.str("");
-  EXPECT_TRUE(pch1.write(str, ASM::GEOMETRY_BASIS));
-  EXPECT_EQ(str.str(), ASMCube::cube);
+  REQUIRE(!pch1.write(str, 3));
 
   str.str("");
-  EXPECT_TRUE(pch1.write(str, ASM::PROJECTION_BASIS));
-  EXPECT_EQ(str.str(), cubeTH_p);
+  REQUIRE(pch1.write(str, ASM::GEOMETRY_BASIS));
+  REQUIRE(str.str() == ASMCube::cube);
 
   str.str("");
-  EXPECT_TRUE(pch1.write(str, ASM::PROJECTION_BASIS_2));
-  EXPECT_EQ(str.str(), cubeFRTH_1);
-
-  EXPECT_FALSE(pch1.write(str, ASM::REFINEMENT_BASIS));
+  REQUIRE(pch1.write(str, ASM::PROJECTION_BASIS));
+  REQUIRE(str.str() == cubeTH_p);
 
   str.str("");
-  EXPECT_TRUE(pch1.write(str, ASM::INTEGRATION_BASIS));
-  EXPECT_EQ(str.str(), cubeTH_p);
+  REQUIRE(pch1.write(str, ASM::PROJECTION_BASIS_2));
+  REQUIRE(str.str() == cubeFRTH_1);
+
+  REQUIRE(!pch1.write(str, ASM::REFINEMENT_BASIS));
+
+  str.str("");
+  REQUIRE(pch1.write(str, ASM::INTEGRATION_BASIS));
+  REQUIRE(str.str() == cubeTH_p);
 }
 
 
-TEST_P(TestASMs3Dmx, WriteTH)
+TEST_CASE("TestASMs3Dmx.WriteTH")
 {
-  ASMmxBase::Type = GetParam() == 0 ? ASMmxBase::REDUCED_CONT_RAISE_BASIS1
-                                    : ASMmxBase::REDUCED_CONT_RAISE_BASIS2;
-  ASMbase::resetNumbering();
-  ASMmxCube pch1({1,1});
-  EXPECT_TRUE(pch1.uniformRefine(0, 1));
-  EXPECT_TRUE(pch1.uniformRefine(1, 1));
-  EXPECT_TRUE(pch1.uniformRefine(2, 1));
-  EXPECT_TRUE(pch1.generateFEMTopology());
+  const ASMmxBase::MixedType param = GENERATE(
+    ASMmxBase::REDUCED_CONT_RAISE_BASIS1,
+    ASMmxBase::REDUCED_CONT_RAISE_BASIS2
+  );
+  const int basis = param == ASMmxBase::REDUCED_CONT_RAISE_BASIS1 ? 1 : 2;
+  SECTION(basis == 1 ? "Raise basis 1" : "Raise basis 2") {
+    ASMmxBase::Type = param;
+    ASMbase::resetNumbering();
+    ASMmxCube pch1({1,1});
+    REQUIRE(pch1.uniformRefine(0, 1));
+    REQUIRE(pch1.uniformRefine(1, 1));
+    REQUIRE(pch1.uniformRefine(2, 1));
+    REQUIRE(pch1.generateFEMTopology());
 
-  std::stringstream str;
-  EXPECT_TRUE(pch1.write(str, 1));
-  EXPECT_EQ(str.str(), GetParam() == 0 ? cubeTH_1 : cubeTH_2);
+    std::stringstream str;
+    REQUIRE(pch1.write(str, 1));
+    REQUIRE(str.str() == (basis == 1 ? cubeTH_1 : cubeTH_2));
 
-  str.str("");
-  EXPECT_TRUE(pch1.write(str, 2));
-  EXPECT_EQ(str.str(), GetParam() == 1 ? cubeTH_1 : cubeTH_2);
+    str.str("");
+    REQUIRE(pch1.write(str, 2));
+    REQUIRE(str.str() == (basis == 2 ? cubeTH_1 : cubeTH_2));
 
-  EXPECT_FALSE(pch1.write(str, 3));
+    REQUIRE(!pch1.write(str, 3));
 
-  str.str("");
-  EXPECT_TRUE(pch1.write(str, ASM::GEOMETRY_BASIS));
-  EXPECT_EQ(str.str(), cubeTH_2);
+    str.str("");
+    REQUIRE(pch1.write(str, ASM::GEOMETRY_BASIS));
+    REQUIRE(str.str() == cubeTH_2);
 
-  str.str("");
-  EXPECT_TRUE(pch1.write(str, ASM::PROJECTION_BASIS));
-  EXPECT_EQ(str.str(), cubeTH_p);
+    str.str("");
+    REQUIRE(pch1.write(str, ASM::PROJECTION_BASIS));
+    REQUIRE(str.str() == cubeTH_p);
 
-  EXPECT_FALSE(pch1.write(str, ASM::PROJECTION_BASIS_2));
-  EXPECT_FALSE(pch1.write(str, ASM::REFINEMENT_BASIS));
+    REQUIRE(!pch1.write(str, ASM::PROJECTION_BASIS_2));
+    REQUIRE(!pch1.write(str, ASM::REFINEMENT_BASIS));
 
-  str.str("");
-  EXPECT_TRUE(pch1.write(str, ASM::INTEGRATION_BASIS));
-  EXPECT_EQ(str.str(), cubeTH_2);
+    str.str("");
+    REQUIRE(pch1.write(str, ASM::INTEGRATION_BASIS));
+    REQUIRE(str.str() == cubeTH_2);
+  }
 }
-
-INSTANTIATE_TEST_SUITE_P(TestASMs3Dmx, TestASMs3Dmx, testing::Values(0,1));

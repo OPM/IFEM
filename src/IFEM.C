@@ -38,7 +38,7 @@ utl::LogStream IFEM::cout(std::cout);
 std::shared_ptr<std::ostringstream> IFEM::memoryLog;
 
 
-int IFEM::Init (int arg_c, char** arg_v, const char* title)
+int IFEM::Init (int arg_c, char** arg_v, const char* title, bool silent)
 {
   argc = arg_c;
   argv = arg_v;
@@ -52,7 +52,7 @@ int IFEM::Init (int arg_c, char** arg_v, const char* title)
     else
       cmdOptions.parseOldOptions(argc,argv,i);
 
-  cout.setPIDs(0,linalg.myPid);
+  cout.setPIDs(silent ? -1 : 0,linalg.myPid);
   memoryLog = std::make_shared<std::ostringstream>();
   cout.addExtraLog(memoryLog);
 

@@ -15,15 +15,19 @@
 #include "ASMuCube.h"
 #include "ASMuSquare.h"
 
-#include "gtest/gtest.h"
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <memory>
 
+using Catch::Matchers::WithinAbs;
+using Catch::Matchers::WithinRel;
 
-TEST(TestLRSplineField, Value2D)
+
+TEST_CASE("TestLRSplineField.Value2D")
 {
   ASMuSquare patch(1);
-  EXPECT_TRUE(patch.generateFEMTopology());
+  REQUIRE(patch.generateFEMTopology());
 
   std::vector<double> sc = {0.0, 1.0, 1.0, 2.0}; // x + y
   std::unique_ptr<Field> fscalar(Field::create(&patch, sc));
@@ -35,15 +39,15 @@ TEST(TestLRSplineField, Value2D)
     FiniteElement fe;
     fe.u = it[0];
     fe.v = it[1];
-    ASSERT_FLOAT_EQ(fscalar->valueFE(fe), it[2]);
+    REQUIRE_THAT(fscalar->valueFE(fe), WithinRel(it[2]));
   }
 }
 
 
-TEST(TestLRSplineField, Grad2D)
+TEST_CASE("TestLRSplineField.Grad2D")
 {
   ASMuSquare patch(1);
-  EXPECT_TRUE(patch.generateFEMTopology());
+  REQUIRE(patch.generateFEMTopology());
 
   std::vector<double> sc = {0.0, 1.0, 1.0, 2.0}; // x + y
   std::unique_ptr<Field> fscalar(Field::create(&patch, sc));
@@ -57,16 +61,16 @@ TEST(TestLRSplineField, Grad2D)
     fe.v = it[1];
     Vector v(2);
     fscalar->gradFE(fe, v);
-    ASSERT_FLOAT_EQ(v(1), 1.0);
-    ASSERT_FLOAT_EQ(v(2), 1.0);
+    REQUIRE_THAT(v(1), WithinRel(1.0));
+    REQUIRE_THAT(v(2), WithinRel(1.0));
   }
 }
 
 
-TEST(TestLRSplineField, Value3D)
+TEST_CASE("TestLRSplineField.Value3D")
 {
   ASMuCube patch(1);
-  EXPECT_TRUE(patch.generateFEMTopology());
+  REQUIRE(patch.generateFEMTopology());
 
   std::vector<double> sc = {0.0, 1.0, 1.0, 2.0, 1.0, 2.0, 2.0, 3.0}; // x + y + z
   std::unique_ptr<Field> fscalar(Field::create(&patch, sc));
@@ -84,15 +88,15 @@ TEST(TestLRSplineField, Value3D)
     fe.u = it[0];
     fe.v = it[1];
     fe.w = it[2];
-    ASSERT_FLOAT_EQ(fscalar->valueFE(fe), it[3]);
+    REQUIRE_THAT(fscalar->valueFE(fe), WithinRel(it[3]));
   }
 }
 
 
-TEST(TestLRSplineField, Grad3D)
+TEST_CASE("TestLRSplineField.Grad3D")
 {
   ASMuCube patch(1);
-  EXPECT_TRUE(patch.generateFEMTopology());
+  REQUIRE(patch.generateFEMTopology());
 
   std::vector<double> sc = {0.0, 1.0, 1.0, 2.0, 1.0, 2.0, 2.0, 3.0}; // x + y + z
   std::unique_ptr<Field> fscalar(Field::create(&patch, sc));
@@ -112,8 +116,8 @@ TEST(TestLRSplineField, Grad3D)
     fe.w = it[2];
     Vector v(3);
     fscalar->gradFE(fe, v);
-    ASSERT_FLOAT_EQ(v(1), 1.0);
-    ASSERT_FLOAT_EQ(v(2), 1.0);
-    ASSERT_FLOAT_EQ(v(3), 1.0);
+    REQUIRE_THAT(v(1), WithinRel(1.0));
+    REQUIRE_THAT(v(2), WithinRel(1.0));
+    REQUIRE_THAT(v(3), WithinRel(1.0));
   }
 }

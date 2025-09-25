@@ -11,15 +11,20 @@
 //==============================================================================
 
 #include "EqualOrderOperators.h"
-#include "gtest/gtest.h"
 #include "FiniteElement.h"
 
-typedef std::vector<std::vector<double>> DoubleVec;
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+
+using Catch::Matchers::WithinAbs;
+using Catch::Matchers::WithinRel;
+
+using DoubleVec = std::vector<std::vector<double>>;
 const auto check_matrix_equal = [](const Matrix& A, const DoubleVec& B)
                                 {
                                   for (size_t i=1;i<=A.rows();++i)
                                     for (size_t j=1;j<=A.cols();++j)
-                                      ASSERT_NEAR(A(i,j), B[i-1][j-1], 1e-13);
+                                      REQUIRE_THAT(A(i,j), WithinRel(B[i-1][j-1]));
                                 };
 
 static FiniteElement getFE()
@@ -36,7 +41,7 @@ static FiniteElement getFE()
   return fe;
 }
 
-TEST(TestEqualOrderOperators, Advection)
+TEST_CASE("TestEqualOrderOperators.Advection")
 {
   FiniteElement fe = getFE();
 
@@ -60,7 +65,7 @@ TEST(TestEqualOrderOperators, Advection)
 }
 
 
-TEST(TestEqualOrderOperators, Divergence)
+TEST_CASE("TestEqualOrderOperators.Divergence")
 {
   FiniteElement fe = getFE();
 
@@ -74,14 +79,14 @@ TEST(TestEqualOrderOperators, Divergence)
   Vec3 D;
   D[0] = 1.0; D[1] = 2.0;
   EqualOrderOperators::Weak::Divergence(EV_scalar, fe, D, 1.0);
-  ASSERT_NEAR(EV_scalar(1),  7.0, 1e-13);
-  ASSERT_NEAR(EV_scalar(2), 10.0, 1e-13);
-  ASSERT_NEAR(EV_scalar(3),  0.0, 1e-13);
-  ASSERT_NEAR(EV_scalar(4),  0.0, 1e-13);
+  REQUIRE_THAT(EV_scalar(1), WithinRel(7.0));
+  REQUIRE_THAT(EV_scalar(2), WithinRel(10.0));
+  REQUIRE_THAT(EV_scalar(3), WithinAbs(0.0, 1e-13));
+  REQUIRE_THAT(EV_scalar(4), WithinAbs(0.0, 1e-13));
 }
 
 
-TEST(TestEqualOrderOperators, Gradient)
+TEST_CASE("TestEqualOrderOperators.Gradient")
 {
   FiniteElement fe = getFE();
 
@@ -96,14 +101,14 @@ TEST(TestEqualOrderOperators, Gradient)
 
   Vector EV_scalar(4);
   EqualOrderOperators::Residual::Gradient(EV_scalar, fe);
-  ASSERT_NEAR(EV_scalar(1),  fe.dNdX(1,1), 1e-13);
-  ASSERT_NEAR(EV_scalar(2),  fe.dNdX(1,2), 1e-13);
-  ASSERT_NEAR(EV_scalar(3),  fe.dNdX(2,1), 1e-13);
-  ASSERT_NEAR(EV_scalar(4),  fe.dNdX(2,2), 1e-13);
+  REQUIRE_THAT(EV_scalar(1), WithinRel(fe.dNdX(1,1)));
+  REQUIRE_THAT(EV_scalar(2), WithinRel(fe.dNdX(1,2)));
+  REQUIRE_THAT(EV_scalar(3), WithinRel(fe.dNdX(2,1)));
+  REQUIRE_THAT(EV_scalar(4), WithinRel(fe.dNdX(2,2)));
 }
 
 
-TEST(TestEqualOrderOperators, Laplacian)
+TEST_CASE("TestEqualOrderOperators.Laplacian")
 {
   FiniteElement fe = getFE();
 
@@ -145,7 +150,7 @@ TEST(TestEqualOrderOperators, Laplacian)
 }
 
 
-TEST(TestEqualOrderOperators, Mass)
+TEST_CASE("TestEqualOrderOperators.Mass")
 {
   FiniteElement fe = getFE();
 
@@ -166,39 +171,39 @@ TEST(TestEqualOrderOperators, Mass)
 }
 
 
-TEST(TestEqualOrderOperators, Source)
+TEST_CASE("TestEqualOrderOperators.Source")
 {
   FiniteElement fe = getFE();
 
   Vector EV_scalar(2);
   EqualOrderOperators::Weak::Source(EV_scalar, fe, 2.0);
-  ASSERT_NEAR(EV_scalar(1),  2.0, 1e-13);
-  ASSERT_NEAR(EV_scalar(2),  4.0, 1e-13);
+  REQUIRE_THAT(EV_scalar(1), WithinRel(2.0));
+  REQUIRE_THAT(EV_scalar(2), WithinRel(4.0));
 
   Vector EV_vec(4);
   Vec3 f;
   f[0] = 1.0; f[1] = 2.0;
   EqualOrderOperators::Weak::Source(EV_vec, fe, f, 1.0);
-  ASSERT_NEAR(EV_vec(1),  1.0, 1e-13);
-  ASSERT_NEAR(EV_vec(2),  2.0, 1e-13);
-  ASSERT_NEAR(EV_vec(3),  2.0, 1e-13);
-  ASSERT_NEAR(EV_vec(4),  4.0, 1e-13);
+  REQUIRE_THAT(EV_vec(1), WithinRel(1.0));
+  REQUIRE_THAT(EV_vec(2), WithinRel(2.0));
+  REQUIRE_THAT(EV_vec(3), WithinRel(2.0));
+  REQUIRE_THAT(EV_vec(4), WithinRel(4.0));
   EV_vec.fill(0.0);
   EqualOrderOperators::Weak::Source(EV_vec, fe, 2.0, 0);
-  ASSERT_NEAR(EV_vec(1),  2.0, 1e-13);
-  ASSERT_NEAR(EV_vec(2),  2.0, 1e-13);
-  ASSERT_NEAR(EV_vec(3),  4.0, 1e-13);
-  ASSERT_NEAR(EV_vec(4),  4.0, 1e-13);
+  REQUIRE_THAT(EV_vec(1), WithinRel(2.0));
+  REQUIRE_THAT(EV_vec(2), WithinRel(2.0));
+  REQUIRE_THAT(EV_vec(3), WithinRel(4.0));
+  REQUIRE_THAT(EV_vec(4), WithinRel(4.0));
   EV_vec.fill(0.0);
   EqualOrderOperators::Weak::Source(EV_vec, fe, 2.0, 1);
-  ASSERT_NEAR(EV_vec(1),  2.0, 1e-13);
-  ASSERT_NEAR(EV_vec(2),  0.0, 1e-13);
-  ASSERT_NEAR(EV_vec(3),  4.0, 1e-13);
-  ASSERT_NEAR(EV_vec(4),  0.0, 1e-13);
+  REQUIRE_THAT(EV_vec(1), WithinRel(2.0));
+  REQUIRE_THAT(EV_vec(2), WithinAbs(0.0, 1e-13));
+  REQUIRE_THAT(EV_vec(3), WithinRel(4.0));
+  REQUIRE_THAT(EV_vec(4), WithinAbs(0.0, 1e-13));
   EV_vec.fill(0.0);
   EqualOrderOperators::Weak::Source(EV_vec, fe, 2.0, 2);
-  ASSERT_NEAR(EV_vec(1),  0.0, 1e-13);
-  ASSERT_NEAR(EV_vec(2),  2.0, 1e-13);
-  ASSERT_NEAR(EV_vec(3),  0.0, 1e-13);
-  ASSERT_NEAR(EV_vec(4),  4.0, 1e-13);
+  REQUIRE_THAT(EV_vec(1), WithinAbs(0.0, 1e-13));
+  REQUIRE_THAT(EV_vec(2), WithinRel(2.0));
+  REQUIRE_THAT(EV_vec(3), WithinAbs(0.0, 1e-13));
+  REQUIRE_THAT(EV_vec(4), WithinRel(4.0));
 }

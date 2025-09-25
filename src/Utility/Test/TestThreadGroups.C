@@ -14,12 +14,14 @@
 #ifdef USE_OPENMP
 #include <omp.h>
 #endif
-#include <fstream>
 
-#include "gtest/gtest.h"
+#include <catch2/catch_test_macros.hpp>
+
+#include <array>
+#include <vector>
 
 
-TEST(TestThreadGroups, Groups2D)
+TEST_CASE("TestThreadGroups.Groups2D")
 {
   ThreadGroups groups;
 #ifdef USE_OPENMP
@@ -29,13 +31,13 @@ TEST(TestThreadGroups, Groups2D)
   groups.calcGroups(8, 8, 2);
 
 #ifdef USE_OPENMP
-  ASSERT_EQ(groups.size(), 2U);
-  ASSERT_EQ(groups[0].size(), 2U);
-  ASSERT_EQ(groups[0][0].size(), 16U);
-  ASSERT_EQ(groups[0][1].size(), 16U);
-  ASSERT_EQ(groups[1].size(), 2U);
-  ASSERT_EQ(groups[1][0].size(), 16U);
-  ASSERT_EQ(groups[1][1].size(), 16U);
+  REQUIRE(groups.size() == 2);
+  REQUIRE(groups[0].size() == 2);
+  REQUIRE(groups[0][0].size() == 16);
+  REQUIRE(groups[0][1].size() == 16);
+  REQUIRE(groups[1].size() == 2);
+  REQUIRE(groups[1][0].size() == 16);
+  REQUIRE(groups[1][1].size() == 16);
 
   const int ref2D[2][2][16] =
     {{{ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15},
@@ -46,13 +48,13 @@ TEST(TestThreadGroups, Groups2D)
   for (size_t i = 0; i < 2; ++i)
     for (size_t j = 0; j < 2; ++j)
       for (size_t k = 0; k < 16; ++k)
-        EXPECT_EQ(groups[i][j][k], ref2D[i][j][k]);
+        REQUIRE(groups[i][j][k] == ref2D[i][j][k]);
 #else
-  ASSERT_EQ(groups.size(), 1U);
-  ASSERT_EQ(groups[0].size(), 1U);
-  ASSERT_EQ(groups[0][0].size(), 64U);
+  REQUIRE(groups.size() == 1);
+  REQUIRE(groups[0].size() == 1);
+  REQUIRE(groups[0][0].size() == 64);
   for (int i = 0; i < 64; ++i)
-    EXPECT_EQ(groups[0][0][i], i);
+    REQUIRE(groups[0][0][i] == i);
 #endif
 
   std::vector<bool> b14(4, true);
@@ -68,25 +70,25 @@ TEST(TestThreadGroups, Groups2D)
     const int ref2[4][4] = {{1,5,9,13}, { 3, 7,11,15},
                             {4,5,6, 7}, {12,13,14,15}};
 
-    ASSERT_EQ(group.size(), 2U);
-    ASSERT_EQ(group[0].size(), 2U);
-    ASSERT_EQ(group[1].size(), 2U);
-    ASSERT_EQ(group[0][0].size(), 4U);
-    ASSERT_EQ(group[0][1].size(), 4U);
-    ASSERT_EQ(group[1][0].size(), 4U);
-    ASSERT_EQ(group[1][1].size(), 4U);
+    REQUIRE(group.size() == 2);
+    REQUIRE(group[0].size() == 2);
+    REQUIRE(group[1].size() == 2);
+    REQUIRE(group[0][0].size() == 4);
+    REQUIRE(group[0][1].size() == 4);
+    REQUIRE(group[1][0].size() == 4);
+    REQUIRE(group[1][1].size() == 4);
     for (size_t j = 0; j < 4; ++j) {
-      ASSERT_EQ(group[0][0][j], ref1[i*2][j]);
-      ASSERT_EQ(group[0][1][j], ref1[i*2+1][j]);
-      ASSERT_EQ(group[1][0][j], ref2[i*2][j]);
-      ASSERT_EQ(group[1][1][j], ref2[i*2+1][j]);
+      REQUIRE(group[0][0][j] == ref1[i*2][j]);
+      REQUIRE(group[0][1][j] == ref1[i*2+1][j]);
+      REQUIRE(group[1][0][j] == ref2[i*2][j]);
+      REQUIRE(group[1][1][j] == ref2[i*2+1][j]);
     }
 #else
-    ASSERT_EQ(group.size(), 1U);
-    ASSERT_EQ(group[0].size(), 1U);
-    ASSERT_EQ(group[0][0].size(), 16U);
+    REQUIRE(group.size() == 1);
+    REQUIRE(group[0].size() == 1);
+    REQUIRE(group[0][0].size() == 16);
     for (int j = 0; j < 16; ++j)
-      ASSERT_EQ(group[0][0][j], j);
+      REQUIRE(group[0][0][j] == j);
 #endif
   }
 
@@ -114,27 +116,28 @@ TEST(TestThreadGroups, Groups2D)
       {120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134,
        135, 136, 137, 138, 139, 140, 141, 142, 143}}};
 
-  ASSERT_EQ(groups2.size(), 2U);
-  ASSERT_EQ(groups2[0].size(), 3U);
-  ASSERT_EQ(groups2[1].size(), 3U);
+  REQUIRE(groups2.size() == 2);
+  REQUIRE(groups2[0].size() == 3);
+  REQUIRE(groups2[1].size() == 3);
   for (size_t i = 0; i < 2; ++i)
     for (size_t j = 0; j < 3; ++j)
-      ASSERT_EQ(groups2[i][j].size(), 24U);
+      REQUIRE(groups2[i][j].size() == 24);
 
   for (size_t i = 0; i < 2; ++i)
     for (size_t j = 0; j < 3; ++j)
       for (size_t k = 0; k < 24; ++k)
-        EXPECT_EQ(groups2[i][j][k], ref2De[i][j][k]);
+        REQUIRE(groups2[i][j][k] == ref2De[i][j][k]);
 #else
-  ASSERT_EQ(groups2.size(), 1U);
-  ASSERT_EQ(groups2[0].size(), 1U);
-  ASSERT_EQ(groups2[0][0].size(), 144U);
+  REQUIRE(groups2.size() == 1);
+  REQUIRE(groups2[0].size() == 1);
+  REQUIRE(groups2[0][0].size() == 144);
   for (int i = 0; i < 144; ++i)
-    EXPECT_EQ(groups2[0][0][i], i);
+    REQUIRE(groups2[0][0][i] ==  i);
 #endif
 }
 
-TEST(TestThreadGroups, Groups3D)
+
+TEST_CASE("TestThreadGroups.Groups3D")
 {
   ThreadGroups groups;
 #ifdef USE_OPENMP
@@ -144,7 +147,7 @@ TEST(TestThreadGroups, Groups3D)
   groups.calcGroups(8, 8, 8, 2);
 
 #ifdef USE_OPENMP
-  ASSERT_EQ(groups.size(), 2U);
+  REQUIRE(groups.size() == 2);
 
   const int ref3D[2][2][128] =
     {{{  0,   1,   8,   9,  16,  17,  24,  25,  32,  33,  40,  41,  48,  49,  56,
@@ -184,24 +187,24 @@ TEST(TestThreadGroups, Groups3D)
        423, 430, 431, 438, 439, 446, 447, 454, 455, 462, 463, 470, 471, 478, 479,
        486, 487, 494, 495, 502, 503, 510, 511}}};
 
-  ASSERT_EQ(groups.size(), 2U);
-  ASSERT_EQ(groups[0].size(), 2U);
-  ASSERT_EQ(groups[0][0].size(), 128U);
-  ASSERT_EQ(groups[0][1].size(), 128U);
-  ASSERT_EQ(groups[1].size(), 2U);
-  ASSERT_EQ(groups[1][0].size(), 128U);
-  ASSERT_EQ(groups[1][1].size(), 128U);
+  REQUIRE(groups.size() == 2);
+  REQUIRE(groups[0].size() == 2);
+  REQUIRE(groups[0][0].size() == 128);
+  REQUIRE(groups[0][1].size() == 128);
+  REQUIRE(groups[1].size() == 2);
+  REQUIRE(groups[1][0].size() == 128);
+  REQUIRE(groups[1][1].size() == 128);
 
   for (size_t i = 0; i < 2; ++i)
     for (size_t j = 0; j < 2; ++j)
       for (size_t k = 0; k < 128; ++k)
-        EXPECT_EQ(groups[i][j][k], ref3D[i][j][k]);
+        REQUIRE(groups[i][j][k] == ref3D[i][j][k]);
 #else
-  ASSERT_EQ(groups.size(), 1U);
-  ASSERT_EQ(groups[0].size(), 1U);
-  ASSERT_EQ(groups[0][0].size(), 512U);
+  REQUIRE(groups.size() == 1);
+  REQUIRE(groups[0].size() == 1);
+  REQUIRE(groups[0][0].size() == 512);
   for (int i = 0; i < 512; ++i)
-    EXPECT_EQ(groups[0][0][i], i);
+    REQUIRE(groups[0][0][i] == i);
 #endif
 
 #ifdef USE_OPENMP
@@ -217,7 +220,7 @@ TEST(TestThreadGroups, Groups3D)
   groups2.calcGroups(b1, b2, b3, 2, 2, 2);
 
 #ifdef USE_OPENMP
-  ASSERT_EQ(groups.size(), 2U);
+  REQUIRE(groups.size() == 2);
   const int ref3De1[3][392] =
     {{    0,    1,   14,   15,   28,   29,   42,   43,   56,   57,   70,   71,
          84,   85,   98,   99,  112,  113,  126,  127,  140,  141,  154,  155,
@@ -454,22 +457,22 @@ TEST(TestThreadGroups, Groups3D)
 
   for (size_t i = 0; i < 3; ++i)
     for (size_t j = 0; j < 392; ++j)
-      EXPECT_EQ(groups2[0][i][j], ref3De1[i][j]);
+      REQUIRE(groups2[0][i][j] == ref3De1[i][j]);
 
   for (size_t i = 0; i < ref3De2.size(); ++i)
     for (size_t j = 0; j < ref3De2[i].size(); ++j)
-      EXPECT_EQ(groups2[1][i][j], ref3De2[i][j]);
+      REQUIRE(groups2[1][i][j] == ref3De2[i][j]);
 #else
-  ASSERT_EQ(groups2.size(), 1U);
-  ASSERT_EQ(groups2[0].size(), 1U);
-  ASSERT_EQ(groups2[0][0].size(), 2744U);
+  REQUIRE(groups2.size() == 1);
+  REQUIRE(groups2[0].size() == 1);
+  REQUIRE(groups2[0][0].size() == 2744);
   for (int i = 0; i < 2744; ++i)
-    EXPECT_EQ(groups2[0][0][i], i);
+    REQUIRE(groups2[0][0][i] == i);
 #endif
 }
 
 
-TEST(TestThreadGroups, OneStripe)
+TEST_CASE("TestThreadGroups.OneStripe")
 {
   ThreadGroups all_elms;
   ThreadGroups selected_elms;
@@ -483,17 +486,17 @@ TEST(TestThreadGroups, OneStripe)
 
   selected_elms.oneStripe(nel, elms);
 
-  ASSERT_EQ(all_elms.size(), 1);
-  ASSERT_EQ(all_elms[0].size(), nel);
+  REQUIRE(all_elms.size() == 1);
+  REQUIRE(all_elms[0].size() == nel);
   for (size_t i = 0; i < nel; ++i) {
-    ASSERT_EQ(all_elms[0][i].size(), 1);
-    EXPECT_EQ(all_elms[0][i][0], i);
+    REQUIRE(all_elms[0][i].size() == 1);
+    REQUIRE(all_elms[0][i][0] == static_cast<int>(i));
   }
 
-  ASSERT_EQ(selected_elms.size(), 1);
-  ASSERT_EQ(selected_elms[0].size(), elms.size());
+  REQUIRE(selected_elms.size() == 1);
+  REQUIRE(selected_elms[0].size() == elms.size());
   for (size_t i = 0; i < elms.size(); ++i) {
-    ASSERT_EQ(selected_elms[0][i].size(), 1);
-    EXPECT_EQ(selected_elms[0][i][0], 2*i);
+    REQUIRE(selected_elms[0][i].size() == 1);
+    REQUIRE(selected_elms[0][i][0] == static_cast<int>(2*i));
   }
 }
