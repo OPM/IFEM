@@ -15,8 +15,9 @@
 #include "IFEM.h"
 #include "Profiler.h"
 
-#ifdef HAVE_MPI
 #include <algorithm>
+
+#ifdef HAVE_MPI
 #include <mpi.h>
 #endif
 
@@ -27,14 +28,13 @@
 
 int main (int argc, char** argv)
 {
-#ifdef HAVE_MPI
   const bool list_tests =
         std::any_of(argv+1, argv + argc,
                     [](const char* arg)
                     { return !strcmp(arg, "--gtest_list_tests"); });
-#endif
+
   testing::InitGoogleTest(&argc, argv);
-  IFEM::Init(argc, argv);
+  IFEM::Init(argc, argv, nullptr, list_tests);
   Profiler prof(argv[0], false);
 
 #ifdef HAVE_MPI
