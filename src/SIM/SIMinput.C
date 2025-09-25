@@ -17,7 +17,7 @@
 #include "ASMbase.h"
 #include "ASMunstruct.h"
 #ifdef HAS_LRSPLINE
-#include "ASMLRSpline.h"
+#include "LR/ASMLRSpline.h"
 #endif
 #include "IntegrandBase.h"
 #include "GlbL2projector.h"
