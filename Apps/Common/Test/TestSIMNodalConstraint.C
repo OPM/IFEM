@@ -22,7 +22,7 @@
 #include "SIM3D.h"
 
 #ifdef HAS_LRSPLINE
-#include "ASMu2D.h"
+#include "LR/ASMu2D.h"
 #endif
 
 #include "gtest/gtest.h"
