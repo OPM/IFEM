@@ -60,11 +60,14 @@ public:
   virtual const Vector& getRHSVector() const;
 
   //! \brief Prints element matrix \a idx to output stream \a os.
-  void printMat(std::ostream& os, size_t idx = 0) const;
+  void printMat(std::ostream& os, size_t idx = 0,
+                const char* prefix = nullptr) const;
   //! \brief Prints element vector \a idx to output stream \a os.
-  void printVec(std::ostream& os, size_t idx = 0) const;
+  void printVec(std::ostream& os, size_t idx = 0,
+                const char* prefix = nullptr) const;
   //! \brief Prints element scalar \a idx to output stream \a os.
-  void printScl(std::ostream& os, size_t idx = 0) const;
+  void printScl(std::ostream& os, size_t idx = 0,
+                const char* prefix = nullptr) const;
 
   std::vector<Matrix> A; //!< The element coefficient matrices
   std::vector<Vector> b; //!< The element right-hand-side vectors

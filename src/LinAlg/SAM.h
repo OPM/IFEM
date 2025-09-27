@@ -201,6 +201,13 @@ public:
   //! \return Equation number, or zero if the DOF is fixed or constrained
   int getEquation(int inod, int ldof) const;
 
+  //! \brief Returns specified solution component from a global solution vector.
+  //! \param[in] dofVec Solution vector in DOF order
+  //! \param[in] inod Identifier for the node to get solution component for
+  //! \param[in] ldof Local index of the DOF within node \a inod
+  //! \return The DOF value, or zero if \a inod or \a ldof is out of range
+  Real getDofVal(const RealArray& dofVec, int inod, int ldof) const;
+
   //! \brief Expands a solution vector from equation-ordering to DOF-ordering.
   //! \param[in] solVec Solution vector, length = NEQ
   //! \param[out] dofVec Degrees of freedom vector, length = NDOF

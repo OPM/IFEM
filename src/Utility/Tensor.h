@@ -36,9 +36,6 @@ protected:
   //! \details Assuming column-wise storage for non-symmetric tensors.
   virtual t_ind index(t_ind i, t_ind j) const { return i-1 + n*(j-1); }
 
-  //! \brief Prints out the tensor to an output stream.
-  virtual std::ostream& print(std::ostream& os) const;
-
 private:
   //! \brief Creates a 3D transformation from three unit vectors.
   void define3Dtransform(const Vec3& v1, const Vec3& v2, const Vec3& v3);
@@ -156,6 +153,9 @@ public:
   //! \brief Returns the rotation angles corresponding to the tensor.
   Vec3 rotVec() const;
 
+  //! \brief Prints out the tensor to an output stream.
+  virtual std::ostream& print(std::ostream& os, int prec = 0) const;
+
   // Global operators
 
   //! \brief Multiplication between a tensor and a point vector.
@@ -205,9 +205,6 @@ protected:
     if (i == j+1 || i+2 == j) std::swap(i,j);
     return i+2; // upper triangular term (3D)
   }
-
-  //! \brief Prints out the lower triangle of the tensor to an output stream.
-  std::ostream& print(std::ostream& os) const override;
 
 public:
   //! \brief Constructor creating a zero tensor.
@@ -270,6 +267,9 @@ public:
   bool principal(Vec3& p, Vec3* pdir, int ndir = 0) const;
   //! \brief Computes the principal values and associated principal directions.
   bool principal(Vec3& p, SymmTensor* M) const;
+
+  //! \brief Prints out the lower triangle of the tensor to an output stream.
+  std::ostream& print(std::ostream& os, int prec = 0) const override;
 
   // Global operators
 

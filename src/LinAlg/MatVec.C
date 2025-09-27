@@ -233,3 +233,25 @@ bool utl::solve (Matrix& A, RealArray& b, std::vector<int>* iPivot)
 #endif
   return false;
 }
+
+
+#ifdef SP_DEBUG
+/*!
+  The vector is printed only if at least one vector component is non-zero,
+  to avoid long printout of zeroes in debug logs.
+*/
+
+void utl::debugPrint (const char* label, const Vector& V, int level)
+{
+  if (SP_DEBUG < level) return;
+
+  if (label) std::cout << label;
+
+  if (!V.empty() && V.zero(utl::zero_print_tol))
+    std::cout <<" (all "<< V.size() <<" components are zero)"<< std::endl;
+  else
+    std::cout << V;
+}
+#else
+void utl::debugPrint (const char*, const Vector&, int) {}
+#endif

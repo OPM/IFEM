@@ -177,6 +177,15 @@ TEST(TestMatrix, Fill)
 }
 
 
+TEST(TestMatrix, Zero)
+{
+  utl::matrix<double> A(4,5);
+  EXPECT_TRUE(A.zero());
+  A(1,2) = 1.0e-8;
+  EXPECT_FALSE(A.zero());
+  EXPECT_TRUE(A.zero(1.0e-6));
+}
+
 TEST(TestMatrix, Multiply)
 {
   multiplyTest<double>();

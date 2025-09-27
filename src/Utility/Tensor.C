@@ -27,24 +27,6 @@
 #define THIS(i,j) v[this->index(i,j)]
 
 
-std::ostream& Tensor::print (std::ostream& os) const
-{
-  switch (n) {
-  case 1:
-    return os << v[0] << std::endl;
-  case 2:
-    return os << v[0] <<' '<< v[2] <<'\n'
-              << v[1] <<' '<< v[3] << std::endl;
-  case 3:
-    return os << v[0] <<' '<< v[3] <<' '<< v[6] <<'\n'
-              << v[1] <<' '<< v[4] <<' '<< v[7] <<'\n'
-              << v[2] <<' '<< v[5] <<' '<< v[8] << std::endl;
-  default:
-    return os;
-  }
-}
-
-
 Tensor::Tensor (const t_ind nsd, bool identity) : n(nsd)
 {
   v.resize(n*n,Real(0));
@@ -705,6 +687,30 @@ Real Tensor::inverse (Real tol)
 }
 
 
+std::ostream& Tensor::print (std::ostream& os, int prec) const
+{
+  std::streamsize oldPrec = prec > 0 ? os.precision(prec) : 0;
+
+  switch (n) {
+  case 1:
+    os << v[0];
+    break;
+  case 2:
+    os << v[0] <<' '<< v[2] <<'\n'
+       << v[1] <<' '<< v[3];
+    break;
+  case 3:
+    os << v[0] <<' '<< v[3] <<' '<< v[6] <<'\n'
+       << v[1] <<' '<< v[4] <<' '<< v[7] <<'\n'
+       << v[2] <<' '<< v[5] <<' '<< v[8];
+    break;
+  }
+
+  if (prec > 0) os.precision(oldPrec);
+  return os << std::endl;
+}
+
+
 /*!
   \brief Multiplication between a Tensor and a point vector.
 */
@@ -790,25 +796,6 @@ Tensor operator* (Real a, const Tensor& T)
 {
   Tensor C(T);
   return C *= a;
-}
-
-
-std::ostream& SymmTensor::print (std::ostream& os) const
-{
-  switch (n) {
-  case 1:
-    return os << v.front() << std::endl;
-  case 2:
-    os << v.front() <<'\n'<< v.back() <<' '<< v[1];
-    if (v.size() == 4) os <<"\n0 0 "<< v[2];
-    return os << std::endl;
-  case 3:
-    return os << v[0] <<'\n'
-              << v[3] <<' '<< v[1] <<'\n'
-              << v[5] <<' '<< v[4] <<' '<< v[2] << std::endl;
-  default:
-    return os;
-  }
 }
 
 
@@ -1398,6 +1385,30 @@ bool SymmTensor::principal (Vec3& p, SymmTensor* M) const
     M[a].outerProd(pdir[a]);
 
   return true;
+}
+
+
+std::ostream& SymmTensor::print (std::ostream& os, int prec) const
+{
+  std::streamsize oldPrec = prec > 0 ? os.precision(prec) : 0;
+
+  switch (n) {
+  case 1:
+    os << v.front();
+    break;
+  case 2:
+    os << v.front() <<'\n'<< v.back() <<' '<< v[1];
+    if (v.size() == 4) os <<"\n0 0 "<< v[2];
+    break;
+  case 3:
+    os << v[0] <<'\n'
+       << v[3] <<' '<< v[1] <<'\n'
+       << v[5] <<' '<< v[4] <<' '<< v[2];
+    break;
+  }
+
+  if (prec > 0) os.precision(oldPrec);
+  return os << std::endl;
 }
 
 

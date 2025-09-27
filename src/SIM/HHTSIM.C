@@ -122,10 +122,8 @@ void HHTSIM::finalizeRHSvector (bool predicting)
 
     delete Finert;
     Finert = model.getRHSvector(1,true);
-#if SP_DEBUG > 1
     if (Finert)
-      std::cout <<"\nActual inertia force:"<< *Finert;
-#endif
+      utl::debugPrint("\nActual inertia force:", Finert->vec());
   }
 
   // Add in the actual inertia force, computed from the equilibrium equation
@@ -135,16 +133,15 @@ void HHTSIM::finalizeRHSvector (bool predicting)
   // Add in the external nodal loads, if any
   SystemVector* Rext = model.getRHSvector(2);
   if (Rext && Rext->L1norm() > 0.0)
+  {
+    utl::debugPrint("\nExternal nodal loads, this time step:", Rext->vec());
     model.addToRHSvector(0, *Rext, 1.5-gamma); // RHS += (1+alphaH)*R_ext,n
+  }
   if (Fext && predicting && Fext->L1norm() > 0.0)
+  {
+    utl::debugPrint("\nExternal nodal loads, last time step:", Fext->vec());
     model.addToRHSvector(0, *Fext, gamma-1.5); // RHS -= (1+alphaH)*R_ext,n-1
-
-#if SP_DEBUG > 1
-  if (Rext && predicting && Rext->L1norm() > 0.0)
-    std::cout <<"\nExternal nodal loads, this time step:"<< *Rext;
-  if (Fext && predicting && Fext->L1norm() > 0.0)
-    std::cout <<"\nExternal nodal loads, last time step:"<< *Fext;
-#endif
+  }
 }
 
 
@@ -184,13 +181,13 @@ bool HHTSIM::predictStep (TimeStep& param)
 #ifdef SP_DEBUG
   std::cout <<"\nPredicted velocity:";
 #if SP_DEBUG > 1
-  std::cout << solution[pV];
+  utl::debugPrint(nullptr,solution[pV]);
 #else
   std::cout << solution[pV].max() <<"\n";
 #endif
   std::cout <<"Predicted acceleration:";
 #if SP_DEBUG > 1
-  std::cout << solution[pA];
+  utl::debugPrint(nullptr,solution[pA]);
 #else
   std::cout << solution[pA].max() << std::endl;
 #endif
@@ -240,16 +237,16 @@ bool HHTSIM::correctStep (TimeStep& param, bool converged)
   }
 
 #if SP_DEBUG > 1
-  std::cout <<"\nDisplacement increment:"<< incDis
-            <<"Corrected displacement:"<< solution[iD]
-            <<"Corrected velocity:"<< solution[iV]
-            <<"Corrected acceleration:"<< solution[iA];
+  utl::debugPrint("\nDisplacement increment:", incDis);
+  utl::debugPrint("Corrected displacement:", solution[iD]);
+  utl::debugPrint("Corrected velocity:",     solution[iV]);
+  utl::debugPrint("Corrected acceleration:", solution[iA]);
   if (converged && Fext)
-    std::cout <<"External force vector:"<< *Fext;
+    utl::debugPrint("External force vector:", Fext->vec());
 #elif defined(SP_DEBUG)
   if (converged)
     std::cout <<"\nConverged displacement:"<< solution[iD].max()
-              <<"\nConverged velocity:"<< solution[iV].max()
+              <<"\nConverged velocity:"    << solution[iV].max()
               <<"\nConverged acceleration:"<< solution[iA].max() << std::endl;
 #endif
 

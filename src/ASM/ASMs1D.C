@@ -421,7 +421,8 @@ void ASMs1D::applyTwist (const RealFunc& twist)
       std::cout <<"Twisted axes for beam element "<< MLGE[i]
                 <<", from N"<< MLGN[MNPC[i].front()]
                 <<" to N"<< MLGN[MNPC[i].back()]
-                <<"  with alpha = "<< alpha <<":\n"<< myCS[i];
+                <<"  with alpha = "<< alpha <<":\n";
+      myCS[i].print(std::cout,15);
 #endif
     }
 }
@@ -479,13 +480,19 @@ int ASMs1D::parseNodeSet (const std::string& setName, const char* cset)
   size_t ifirst = mySet.size();
   utl::parseIntegers(mySet,cset);
 
-  int inod; // Transform to internal node indices
+  // Transform to internal node indices
   for (size_t i = ifirst; i < mySet.size(); i++)
-    if ((inod = this->getNodeIndex(mySet[i])) > 0)
-      mySet[i] = inod;
-    else
-      IFEM::cout <<"  ** Warning: Non-existing node "<< mySet[i]
-                 <<" in node set \""<< setName <<"\""<< std::endl;
+    if (mySet[i] > 0)
+    {
+      if (int inod = this->getNodeIndex(mySet[i]); inod > 0)
+        mySet[ifirst++] = inod;
+      else
+        IFEM::cout <<"  ** Warning: Non-existing node "<< mySet[i]
+                   <<" in the set \""<< setName <<"\" (ignored)."<< std::endl;
+    }
+
+  if (ifirst < mySet.size())
+    mySet.resize(ifirst);
 
   return 1+iset;
 }

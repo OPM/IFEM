@@ -167,7 +167,8 @@ bool utl::ignoreComments (std::istream& is)
 }
 
 
-int utl::getAttribute (const tinyxml2::XMLElement* xml, const char* att, bool& val)
+int utl::getAttribute (const tinyxml2::XMLElement* xml, const char* att,
+                       bool& val)
 {
   if (!xml || !xml->Attribute(att))
     return false;
@@ -188,7 +189,8 @@ int utl::getAttribute (const tinyxml2::XMLElement* xml, const char* att, bool& v
 }
 
 
-int utl::getAttribute (const tinyxml2::XMLElement* xml, const char* att, int& val)
+int utl::getAttribute (const tinyxml2::XMLElement* xml, const char* att,
+                       int& val)
 {
   if (xml && xml->Attribute(att))
     val = atoi(xml->Attribute(att));
@@ -199,8 +201,8 @@ int utl::getAttribute (const tinyxml2::XMLElement* xml, const char* att, int& va
 }
 
 
-int utl::getAttribute (const tinyxml2::XMLElement* xml, const char* att, char& val,
-                       bool useIntValue)
+int utl::getAttribute (const tinyxml2::XMLElement* xml, const char* att,
+                       char& val, bool useIntValue)
 {
   if (xml && xml->Attribute(att))
     val = useIntValue ? atoi(xml->Attribute(att)) : xml->Attribute(att)[0];
@@ -211,7 +213,8 @@ int utl::getAttribute (const tinyxml2::XMLElement* xml, const char* att, char& v
 }
 
 
-int utl::getAttribute (const tinyxml2::XMLElement* xml, const char* att, size_t& val)
+int utl::getAttribute (const tinyxml2::XMLElement* xml, const char* att,
+                       size_t& val)
 {
   if (xml && xml->Attribute(att))
     val = atoi(xml->Attribute(att));
@@ -222,7 +225,8 @@ int utl::getAttribute (const tinyxml2::XMLElement* xml, const char* att, size_t&
 }
 
 
-int utl::getAttribute (const tinyxml2::XMLElement* xml, const char* att, Real& val)
+int utl::getAttribute (const tinyxml2::XMLElement* xml, const char* att,
+                       Real& val)
 {
   if (xml && xml->Attribute(att))
     val = atof(xml->Attribute(att));
@@ -298,7 +302,8 @@ const char* utl::getValue (const tinyxml2::XMLNode* xml, const char* tag)
 {
   if (xml->Value() && !strcasecmp(xml->Value(),tag))
   {
-    const tinyxml2::XMLElement* elm = dynamic_cast<const tinyxml2::XMLElement*>(xml);
+    const tinyxml2::XMLElement* elm;
+    elm = dynamic_cast<const tinyxml2::XMLElement*>(xml);
     if (elm && elm->Attribute("value"))
       return elm->Attribute("value");
     else if (xml->FirstChild())
@@ -526,4 +531,13 @@ void utl::interleave (const std::vector<Real>& v1, const std::vector<Real>& v2,
     std::copy(it_v1, it_v1+n1, it_out);
     std::copy(it_v2, it_v2+n2, it_out+n1);
   }
+}
+
+
+Real utl::round (Real value, int pr)
+{
+  Real aval = std::fabs(value);
+  int expon = static_cast<int>(std::log10(aval)) - (aval < Real(1) ? pr : pr-1);
+  Real dnom = std::pow(Real(10),Real(expon));
+  return std::round(value/dnom)*dnom;
 }
