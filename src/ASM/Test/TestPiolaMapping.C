@@ -23,8 +23,7 @@
 #include "GoTools/geometry/SplineSurface.h"
 #include "GoTools/trivariate/SplineVolume.h"
 
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include "Catch2Support.h"
 
 #include <array>
 #include <functional>

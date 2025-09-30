@@ -13,11 +13,8 @@
 #include "EqualOrderOperators.h"
 #include "FiniteElement.h"
 
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include "Catch2Support.h"
 
-using Catch::Matchers::WithinAbs;
-using Catch::Matchers::WithinRel;
 
 using DoubleVec = std::vector<std::vector<double>>;
 const auto check_matrix_equal = [](const Matrix& A, const DoubleVec& B)

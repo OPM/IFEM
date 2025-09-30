@@ -12,7 +12,7 @@
 
 #include "ControlFIFO.h"
 
-#include <catch2/catch_test_macros.hpp>
+#include "Catch2Support.h"
 
 #include "tinyxml2.h"
 #include <fcntl.h>

@@ -18,7 +18,8 @@
 #include "ElmMats.h"
 #include "AlgEqSystem.h"
 
-#include <catch2/catch_test_macros.hpp>
+#include "Catch2Support.h"
+
 
 namespace // To avoid conflicting names with other tests
 {

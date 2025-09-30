@@ -29,8 +29,9 @@ function(IFEM_add_test_app)
                          NO_PRETTY_VALUES)
   endif()
   list(APPEND TEST_APPS ${PARAM_NAME}-test)
-  find_package(Catch2 3 REQUIRED)
+  find_package(Catch2 REQUIRED)
   target_link_libraries(${PARAM_NAME}-test Catch2::Catch2 ${PARAM_LIBRARIES})
+  target_compile_definitions(${PARAM_NAME}-test PRIVATE CATCH2_VERSION_MAJOR=${Catch2_VERSION_MAJOR})
   set(TEST_APPS ${TEST_APPS} PARENT_SCOPE)
 endfunction()
 
@@ -210,7 +211,7 @@ include(CTest)
 find_program(VTFLS_COMMAND vtfls)
 find_program(H5LS_COMMAND h5ls)
 
-find_package(Catch2 3 REQUIRED)
+find_package(Catch2 REQUIRED)
 include(Catch)
 
 # Generate regtest script with correct paths

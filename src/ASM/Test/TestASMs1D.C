@@ -15,7 +15,7 @@
 #include "Vec3Oper.h"
 #include <sstream>
 
-#include <catch2/catch_test_macros.hpp>
+#include "Catch2Support.h"
 
 
 class ASMLine : public ASMs1D

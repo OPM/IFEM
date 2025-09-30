@@ -23,8 +23,8 @@
 #include <GoTools/geometry/SplineSurface.h>
 #include <GoTools/utils/Point.h>
 
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/generators/catch_generators.hpp>
+#include "Catch2Support.h"
+
 
 namespace {
 

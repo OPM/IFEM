@@ -19,10 +19,10 @@
 #include "SIM3D.h"
 #include "tinyxml2.h"
 
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/generators/catch_generators.hpp>
+#include "Catch2Support.h"
 
 #include <sstream>
+
 
 namespace {
 
