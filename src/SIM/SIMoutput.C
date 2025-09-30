@@ -932,14 +932,12 @@ bool SIMoutput::writeGlvS (const Vector& psol, int iStep, int& nBlock,
   idBlock = this->writeGlvS1(psol,iStep,nBlock,time,
                              pvecName,idBlock,psolComps);
 
-  if (idBlock < 0)
-    return false;
-  else if (!this->writeAddFuncs(iStep,nBlock,50,time))
-    return false;
-  else if (idBlock == 0 || opt.pSolOnly)
-    return true;
+  if (idBlock > 0 && !opt.pSolOnly)
+    idBlock = this->writeGlvS2(psol,iStep,nBlock,time,idBlock,psolComps);
 
-  return this->writeGlvS2(psol,iStep,nBlock,time,idBlock,psolComps);
+  if (idBlock < 0) return false;
+
+  return this->writeAddFuncs(nBlock,idBlock,psol,iStep,time);
 }
 
 
@@ -974,7 +972,7 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
                            int idBlock, int psolComps, bool scalarOnly)
 {
   if (psol.empty() || !myVtf)
-    return 0; // no primary solution
+    return 0; // no primary solution (silently ignore)
 
   const bool piolaMapping = myProblem ?
     myProblem->getIntegrandType() & Integrand::PIOLA_MAPPING : false;
@@ -1010,7 +1008,7 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
   for (const ASMbase* pch : myModel)
   {
     if (!this->extractNodeVec(psol,lovec,pch,psolComps%10,empty))
-      return false;
+      return -1;
     else if (pch->empty())
       continue; // skip empty patches
 
@@ -1095,7 +1093,7 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
     if (pch->immersedSolution(field,lovec))
     {
       if (!myVtf->writeVres(field,++nBlock,++geoID1))
-        return false;
+        return -2;
 
       vID[0].push_back(nBlock);
     }
@@ -1104,7 +1102,7 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
     if (pch->extraSolution(field,lovec))
     {
       if (!myVtf->writeVres(field,++nBlock,++geoID2))
-        return false;
+        return -2;
 
       vID[0].push_back(nBlock);
     }
@@ -1166,18 +1164,16 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
   If analytical solution fields are available, those fields are written as well.
 */
 
-bool SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
-                            double time, int idBlock, int psolComps)
+int SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
+                           double time, int idBlock, int psolComps)
 {
   if (psol.empty() || !myVtf)
-    return true; // no primary solution
+    return 0; // no primary solution (silently ignore)
   else if (!myProblem)
-    return false; // no integrand (should not happen at this point)
-  else if (myProblem->getNoSolutions() < 1)
-    return true; // no patch-level primary solution
+    return -99; // no integrand (should not happen at this point)
 
-  size_t nf = myProblem->getNoFields(2);
-  if (nf < 1) return true; // no secondary solution
+  size_t nf = myProblem->getNoSolutions() > 0 ? myProblem->getNoFields(2) : 0;
+  if (nf < 1) return idBlock; // no secondary solution
 
   bool haveAsol = false;
   if (mySol)
@@ -1206,13 +1202,13 @@ bool SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
   {
     if (!this->extractNodeVec(psol,myProblem->getSolution(),
                               pch,psolComps,empty))
-      return false;
+      return -1;
     else if (pch->empty())
       continue; // skip empty patches
 
     myProblem->initResultPoints(time,true); // include principal stresses
     if (!this->initPatchForEvaluation(pch->idx+1))
-      return false;
+      return -2;
 
     if (msgLevel > 1)
       IFEM::cout <<"Writing secondary solution for patch "
@@ -1221,14 +1217,14 @@ bool SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
     // Direct evaluation of secondary solution variables
 
     if (!pch->evalSolution(field,*myProblem,opt.nViz))
-      return false;
+      return -1;
 
     const ElementBlock* grid = myVtf->getBlock(++geomID);
     pch->filterResults(field,grid);
 
     size_t k = 0;
     if (!this->writeScalarFields(field,geomID,nBlock,sID,&k,ASM::SECONDARY))
-      return false;
+      return -4;
 
     // Write principal directions, if any, as vector fields
 
@@ -1237,7 +1233,7 @@ bool SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
     {
       pch->filterResults(pdir,grid);
       if (!myVtf->writeVres(pdir,++nBlock,geomID,this->getNoSpaceDim()))
-        return -2;
+        return -3;
 
       vID[j].push_back(nBlock);
     }
@@ -1248,11 +1244,11 @@ bool SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
 
       myProblem->initResultPoints(time);
       if (!pch->evalSolution(field,*myProblem,opt.nViz,'D'))
-        return false;
+        return -1;
 
       pch->filterResults(field,grid);
       if (!this->writeScalarFields(field,geomID,nBlock,sID,&k,ASM::PROJECTED))
-        return false;
+        return -4;
     }
 
     if (haveAsol && grid)
@@ -1283,7 +1279,7 @@ bool SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
 
       if (haveAsol)
         if (!this->writeScalarFields(field,geomID,nBlock,sID,&k,ASM::ANALYTIC))
-          return false;
+          return -4;
     }
   }
 
@@ -1315,7 +1311,7 @@ bool SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
                               myProblem->getField2Name(i,"Exact").c_str(),
                               idBlock++,iStep);
 
-  return ok;
+  return ok ? idBlock : -5;
 }
 
 
@@ -1461,24 +1457,43 @@ bool SIMoutput::writeScalarFields (const Matrix& field, int geomID,
 
 
 bool SIMoutput::writeGlvF (const RealFunc& f, const char* fname,
-                           int iStep, int& nBlock, int idBlock, double time)
+                           int iStep, int& nBlock, const Vector* state,
+                           int idBlock, double time, const ASMbase* patch)
 {
   if (!myVtf)
     return true;
 
-  IntVec sID;
+  const bool piolaMapping = state && myProblem ?
+    myProblem->getIntegrandType() & Integrand::PIOLA_MAPPING : false;
 
+  IntVec sID;
+  Vector lovec;
+
+  bool empty = false;
   int geomID = myGeomID;
   for (const ASMbase* pch : myModel)
   {
-    if (pch->empty())
+    if (state && !this->extractNodeVec(*state,lovec,pch,0,empty))
+      return false;
+    else if (pch->empty())
       continue; // skip empty patches
+
+    ++geomID;
+    if (patch && pch != patch) continue; // skip all except patch
+
+    Matrix u; // Evaluate the solution state variables, if specified
+    if (state && pch->evalSolution(u,lovec,opt.nViz,0,piolaMapping))
+    {
+      pch->filterResults(u,myVtf->getBlock(geomID));
+      if (u.rows() < 3)
+        u.expandRows(3-u.rows());
+    }
 
     if (msgLevel > 1)
       IFEM::cout <<"Writing function '"<< fname <<"' for patch "
                  << pch->idx+1 << std::endl;
 
-    if (!myVtf->writeNfunc(f,time,++nBlock,++geomID))
+    if (!myVtf->writeNfunc(f,u.ptr(),time,++nBlock,geomID))
       return false;
 
     sID.push_back(nBlock);
@@ -2470,18 +2485,13 @@ bool SIMoutput::serialize (std::map<std::string,std::string>&) const
 }
 
 
-bool SIMoutput::writeAddFuncs (int iStep, int& nBlock, int idBlock, double time)
+bool SIMoutput::writeAddFuncs (int& nBlock, int& idBlock, const Vector& psol,
+                               int iStep, double time)
 {
   for (const std::pair<const std::string,RealFunc*>& func : myAddScalars)
-    if (!this->writeGlvF(*func.second, func.first.c_str(), iStep,
-                         nBlock, idBlock++, time))
+    if (!this->writeGlvF(*func.second, func.first.c_str(), iStep, nBlock,
+                         &psol, idBlock++, time))
       return false;
 
   return true;
-}
-
-
-void SIMoutput::addAddFunc (const std::string& name, RealFunc* f)
-{
-  myAddScalars[name] = f;
 }

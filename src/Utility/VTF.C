@@ -467,7 +467,8 @@ bool VTF::writeNres (const std::vector<Real>& nodalResult,
 }
 
 
-bool VTF::writeNfunc (const RealFunc& f, Real time, int idBlock, int geomID)
+bool VTF::writeNfunc (const RealFunc& f, const Real* u,
+                      Real time, int idBlock, int geomID)
 {
   if (!myFile) return true;
 
@@ -479,8 +480,13 @@ bool VTF::writeNfunc (const RealFunc& f, Real time, int idBlock, int geomID)
 
   // Evaluate the function at the grid points
   std::vector<float> resVec(nres);
-  for (size_t i = 0; i < nres; i++)
+  size_t i, ip;
+  for (i = ip = 0; i < nres; i++, ip += 3)
+  {
+    if (u) // Update solution state parameters
+      const_cast<RealFunc*>(&f)->setParam("u",Vec3(u+ip));
     resVec[i] = f(Vec4(grid->getCoord(i),time,grid->getParam(i)));
+  }
 
 #if HAS_VTFAPI == 1
   VTFAResultBlock dBlock(idBlock,VTFA_DIM_SCALAR,VTFA_RESMAP_NODE,0);

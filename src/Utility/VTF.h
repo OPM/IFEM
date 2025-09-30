@@ -105,11 +105,12 @@ public:
                  int idBlock = 1, int geomID = 1, size_t nvc = 0);
   //! \brief Writes a block of scalar nodal function values to the VTF-file.
   //! \param[in] f The scalar function to evaluate at the grid points
+  //! \param[in] u Pointer to array of solution state values
   //! \param[in] time Current time
   //! \param[in] idBlock Result block identifier
   //! \param[in] gID Geometry block identifier
-  bool writeNfunc(const RealFunc& f, Real time = Real(0),
-                  int idBlock = 1, int gID = 1);
+  bool writeNfunc(const RealFunc& f, const Real* u = nullptr,
+                  Real time = Real(0), int idBlock = 1, int gID = 1);
   //! \brief Writes a block of point vector results to the VTF-file.
   //! \param[in] pntResult A set of result vectors with associated attack points
   //! \param gID Running geometry block identifier

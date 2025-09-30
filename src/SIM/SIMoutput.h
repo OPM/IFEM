@@ -166,9 +166,9 @@ public:
   //! \param[in] time Load/time step parameter
   //! \param[in] idBlock Starting value of result block numbering
   //! \param[in] psolComps Optional number of primary solution components
-  virtual bool writeGlvS2(const Vector& psol, int iStep, int& nBlock,
-                          double time = 0.0, int idBlock = 20,
-                          int psolComps = 0);
+  virtual int writeGlvS2(const Vector& psol, int iStep, int& nBlock,
+                         double time = 0.0, int idBlock = 20,
+                         int psolComps = 0);
 
   //! \brief Evaluates the secondary solution for a given load/time step.
   //! \param[in] psol Primary solution vector
@@ -229,10 +229,14 @@ public:
   //! \param[in] fname Name of the function
   //! \param[in] iStep Load/time step identifier
   //! \param nBlock Running result block counter
+  //! \param[in] state Optional state vector (for state-dependent functions)
   //! \param[in] idBlock Starting value of result block numbering
   //! \param[in] time Load/time step parameter
-  bool writeGlvF(const RealFunc& f, const char* fname,
-                 int iStep, int& nBlock, int idBlock = 50, double time = 0.0);
+  //! \param[in] patch If specified, only evalulate for this patch
+  bool writeGlvF(const RealFunc& f, const char* fname, int iStep, int& nBlock,
+                 const Vector* state = nullptr,
+                 int idBlock = 50, double time = 0.0,
+                 const ASMbase* patch = nullptr);
 
   //! \brief Writes load/time step info to the VTF-file.
   //! \param[in] iStep Load/time step identifier
@@ -331,12 +335,20 @@ public:
   //! \brief Prints out the nodal reaction forces to the log stream.
   virtual int printNRforces(const std::vector<int>& glbNodes = {}) const;
 
-  //! \brief Writes out the additional functions to VTF-file.
-  virtual bool writeAddFuncs(int iStep, int& nBlock, int idBlock, double time);
-
 protected:
-  //! \brief Adds an additional function for VTF-file output.
-  void addAddFunc(const std::string& name, RealFunc* f);
+  //! \brief Adds a function for additional VTF-file output.
+  //! \param[in] fn Function name (appears as the scalar name in the VTF-file)
+  //! \param[in] f Pointer to a scalar-valued spatial function.
+  void addAddFunc(const std::string& fn, RealFunc* f) { myAddScalars[fn] = f; }
+
+  //! \brief Writes out the additional functions to VTF-file.
+  //! \param nBlock Running result block counter
+  //! \param idBlock Running scalar identification block numbering
+  //! \param[in] psol Primary solution vector (for state-dependent functions)
+  //! \param[in] iStep Load/time step identifier
+  //! \param[in] time Load/time step parameter
+  virtual bool writeAddFuncs(int& nBlock, int& idBlock, const Vector& psol,
+                             int iStep, double time);
 
 private:
   //! \brief Private helper to initialize patch for solution evaluation.
