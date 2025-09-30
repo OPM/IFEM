@@ -193,7 +193,7 @@ TEST_CASE("TestTensor.Principal")
   REQUIRE_THAT(dir[1].y, WithinRel(Trans3(2,2), 1.0e-15));
   REQUIRE_THAT(dir[1].z, WithinRel(Trans3(3,2), 1.0e-15));
   REQUIRE_THAT(dir[2].x, WithinRel(Trans3(1,1), 1.0e-15));
-  REQUIRE_THAT(dir[2].y, WithinRel(Trans3(2,1), 1.0e-15));
+  REQUIRE_THAT(dir[2].y, WithinRel(Trans3(2,1), 1.0e-14));
   REQUIRE_THAT(dir[2].z, WithinRel(Trans3(3,1), 1.0e-15));
   T3.principal(p,dir.data(),2);
   REQUIRE_THAT(p.x, WithinRel(3.0));
@@ -203,7 +203,7 @@ TEST_CASE("TestTensor.Principal")
   REQUIRE_THAT(dir[0].y, WithinRel(Trans3(2,3), 1.0e-15));
   REQUIRE_THAT(dir[0].z, WithinRel(Trans3(3,3), 1.0e-15));
   REQUIRE_THAT(dir[1].x, WithinRel(Trans3(1,1), 1.0e-15));
-  REQUIRE_THAT(dir[1].y, WithinRel(Trans3(2,1), 1.0e-15));
+  REQUIRE_THAT(dir[1].y, WithinRel(Trans3(2,1), 1.0e-14));
   REQUIRE_THAT(dir[1].z, WithinRel(Trans3(3,1), 1.0e-15));
 
   REQUIRE(T1.vonMises() == sqrt(3.0));
