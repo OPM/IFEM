@@ -17,7 +17,7 @@
 
 #include "../MatrixTests.h"
 
-#include <catch2/catch_template_test_macros.hpp>
+#include "Catch2Support.h"
 
 
 TEMPLATE_TEST_CASE("TestVectorFallback.Add", "", float, double)

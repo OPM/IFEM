@@ -14,7 +14,7 @@
 #include "SAM.h"
 #include "SIM2D.h"
 
-#include <catch2/catch_test_macros.hpp>
+#include "Catch2Support.h"
 
 #include <array>
 #include <vector>

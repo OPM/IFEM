@@ -22,11 +22,7 @@
 #include <sstream>
 #include <array>
 
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers_floating_point.hpp>
-
-using Catch::Matchers::WithinAbs;
-using Catch::Matchers::WithinRel;
+#include "Catch2Support.h"
 
 
 static const char* spline1D = "100 1 0 0\n1 0\n2 2 0 0 1 1\n0 1\n";

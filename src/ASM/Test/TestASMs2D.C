@@ -13,8 +13,7 @@
 #include "ASMSquare.h"
 #include "SIM2D.h"
 
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/generators/catch_generators.hpp>
+#include "Catch2Support.h"
 
 
 TEST_CASE("TestASMs2D.ElementConnectivities")

@@ -13,7 +13,7 @@
 #include "SIM2D.h"
 #include "Function.h"
 
-#include <catch2/catch_test_macros.hpp>
+#include "Catch2Support.h"
 
 
 class TestSIM : public SIM2D

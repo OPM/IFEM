@@ -11,7 +11,11 @@
 //==============================================================================
 
 #define CATCH_CONFIG_RUNNER
+#if CATCH2_VERSION_MAJOR > 2
 #include <catch2/catch_session.hpp>
+#else
+#include <catch2/catch.hpp>
+#endif
 
 #include "IFEM.h"
 #include "Profiler.h"
@@ -32,7 +36,7 @@ int main (int argc, char** argv)
   const bool list_tests =
         std::any_of(argv+1, argv + argc,
                     [](const char* arg)
-                    { return !strcmp(arg, "--list-tests"); });
+                    { return strstr(arg, "--list-test"); });
 
   IFEM::Init(1, argv, nullptr, list_tests);
   Profiler prof(argv[0], false);

@@ -13,7 +13,7 @@
 #include "ASMbase.h"
 #include "SIM1D.h"
 
-#include <catch2/catch_test_macros.hpp>
+#include "Catch2Support.h"
 
 
 TEST_CASE("TestASMu1D.Read")

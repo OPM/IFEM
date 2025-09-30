@@ -12,7 +12,7 @@
 
 #include "TimeIntUtils.h"
 
-#include <catch2/catch_test_macros.hpp>
+#include "Catch2Support.h"
 
 using namespace TimeIntegration;
 

@@ -18,7 +18,7 @@
 #include "tinyxml2.h"
 #include <fstream>
 
-#include <catch2/catch_test_macros.hpp>
+#include "Catch2Support.h"
 
 
 class SIM1D_default : public SIM1D
