@@ -303,34 +303,38 @@ bool SIM2D::parseGeometryTag (const tinyxml2::XMLElement* elem)
 
         if (type == "file")
         {
-          IFEM::cout <<" \""<< val <<"\""<< std::endl;
+          IFEM::cout <<" \""<< val <<"\"";
           std::ifstream ibs(val);
           if (ibs.good())
             lfunc = new FieldFuncStream({pch},ibs);
           else
+          {
+            IFEM::cout << std::endl;
             std::cerr <<" *** SIM2D::parse: Failed to open file \""<< val
                       <<"\""<< std::endl;
+            return false;
+	  }
         }
         else
-        {
           lfunc = utl::parseRealFunc(val,type);
-          IFEM::cout << std::endl;
-        }
 
         if (!pch->setGeometry(lfunc,power,threshold))
         {
+          IFEM::cout <<" (ignored).";
           delete lfunc;
-          return false;
         }
 
-        if (type == "file")
-          myAddScalars[val] = lfunc;
+        // Add this function to set of additional functions to visualize.
+        // Note that the parent class destructor will then destroy it.
+        else if (type == "file")
+          this->addAddFunc(val,lfunc);
         else
         {
           static std::string fname = "level_set0";
-          ++fname[9];
-          myAddScalars[fname] = lfunc;
+          ++fname.back();
+          this->addAddFunc(fname,lfunc);
         }
+        IFEM::cout << std::endl;
       }
   }
 
@@ -859,15 +863,4 @@ RealArray SIM2D::getSolution (const Vector& psol, double u, double v,
 {
   double par[2] = { u, v };
   return this->SIMgeneric::getSolution(psol,par,deriv,patch);
-}
-
-
-bool SIM2D::writeAddFuncs (int iStep, int& nBlock, int idBlock, double time)
-{
-  for (const std::pair<const std::string,RealFunc*>& func : myAddScalars)
-    if (!this->writeGlvF(*func.second, func.first.c_str(), iStep,
-                         nBlock, idBlock++, time))
-      return false;
-
-  return this->SIMgeneric::writeAddFuncs(iStep,nBlock,idBlock,time);
 }

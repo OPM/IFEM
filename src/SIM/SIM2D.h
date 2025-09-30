@@ -133,12 +133,6 @@ protected:
   virtual bool connectPatches(const ASM::Interface& ifc,
                               bool coordCheck = true);
 
-  //! \brief Writes out the additional functions to VTF-file.
-  virtual bool writeAddFuncs(int iStep, int& nBlock, int idBlock, double time);
-
-private:
-  std::map<std::string,RealFunc*> myAddScalars; //!< Scalar functions to output
-
 protected:
   CharVec nf;         //!< Number of scalar fields
   bool    checkRHSys; //!< Check if all patches are in a right-hand system

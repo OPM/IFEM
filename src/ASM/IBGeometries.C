@@ -170,12 +170,6 @@ GeoFunc2D::GeoFunc2D (RealFunc* f, double p, double eps)
 }
 
 
-GeoFunc2D::~GeoFunc2D ()
-{
-  delete myAlpha;
-}
-
-
 double GeoFunc2D::Alpha (const Vec3& X) const
 {
   double value = myAlpha ? pow((*myAlpha)(X),myExponent) : 0.0;

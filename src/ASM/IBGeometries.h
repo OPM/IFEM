@@ -39,8 +39,6 @@ class Hole2D : public Immersed::Geometry
 public:
   //! \brief Default constructor initializing the radius and center of the hole.
   Hole2D(double r = 1.0, double x = 0.0, double y = 0.0) : R(r), Xc(x), Yc(y) {}
-  //! \brief Empty destructor.
-  virtual ~Hole2D() {}
 
   //! \brief Performs the inside-outside test for the perforated plate object.
   //! \details Alpha is used as an indicator here:
@@ -68,8 +66,6 @@ class Oval2D : public Hole2D
 public:
   //! \brief Default constructor initializing the radius and center of the hole.
   Oval2D(double r, double x0, double y0, double x1, double y1);
-  //! \brief Empty destructor.
-  virtual ~Oval2D() {}
 
   //! \brief Performs the inside-outside test for the perforated plate object.
   virtual double Alpha(double X, double Y, double) const;
@@ -124,15 +120,13 @@ class GeoFunc2D : public Immersed::Geometry
 public:
   //! \brief Default constructor.
   explicit GeoFunc2D(RealFunc* f = nullptr, double p = 1.0, double eps = 0.5);
-  //! \brief The destructor deletes the function.
-  virtual ~GeoFunc2D();
 
   //! \brief Performs the inside-outside test for the geometric object.
   virtual double Alpha(const Vec3& X) const;
 
 private:
   RealFunc* myAlpha; //!< Function describing the inside-outside state
-  double myExponent; //!< The exponent to apply on the \a myAlpha function
+  double myExponent; //!< The exponent to apply on the \ref myAlpha function
   double  threshold; //!< Inside/outside threshold
 };
 
