@@ -26,8 +26,6 @@ class NewmarkSIM : public MultiStepSIM
 public:
   //! \brief The constructor initializes default solution parameters.
   explicit NewmarkSIM(SIMbase& sim);
-  //! \brief Empty destructor.
-  virtual ~NewmarkSIM() {}
 
   using MultiStepSIM::parse;
   //! \brief Parses a data section from an XML document.
@@ -61,6 +59,9 @@ public:
 
   //! \brief Returns the maximum number of iterations.
   int getMaxit() const { return maxit; }
+
+  //! \brief Returns whether this is a dynamic solution driver or not.
+  virtual bool isDynamic() const { return true; }
 
 protected:
   //! \brief Computes and prints some solution norm quantities.

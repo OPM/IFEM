@@ -39,9 +39,6 @@ protected:
   explicit MultiStepSIM(SIMbase& sim);
 
 public:
-  //! \brief Empty destructor.
-  virtual ~MultiStepSIM() {}
-
   //! \brief Prints out problem-specific data to the log stream.
   //! \param[in] stopInputTimer If \e true, stop file input timer before print
   virtual void printProblem(bool stopInputTimer = false) const;
@@ -51,8 +48,9 @@ public:
 
   //! \brief Initializes time integration parameters for the integrand.
   virtual void initPrm();
+
   //! \brief Initializes the primary solution vectors.
-  //! \param[in] nSol Number of consequtive solutions stored in core
+  //! \param[in] nSol Number of consecutive solutions stored in core
   //! \param[in] nDof Number of degrees of freedom (solution vector length)
   virtual void initSol(size_t nSol = 1, size_t nDof = 0);
 
@@ -169,6 +167,8 @@ public:
 
   //! \brief Returns whether this solution driver is linear or not.
   virtual bool isLinear() const { return true; }
+  //! \brief Returns whether this is a dynamic solution driver or not.
+  virtual bool isDynamic() const { return false; }
 
   //! \brief Returns a const reference to the FE model.
   const SIMoutput& getModel() const { return model; }
