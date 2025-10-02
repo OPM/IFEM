@@ -38,6 +38,7 @@ function(ifem_add_library)
     ARCHIVE_OUTPUT_DIRECTORY
       ${CMAKE_BINARY_DIR}/lib
   )
+  ifem_lto(TARGET ${PARAM_NAME})
   ifem_add_sca_tests(TARGET ${PARAM_NAME})
 endfunction()
 
@@ -68,6 +69,7 @@ function(ifem_add_application)
     RUNTIME_OUTPUT_DIRECTORY
       ${CMAKE_BINARY_DIR}/bin
   )
+  ifem_lto(TARGET ${PARAM_NAME})
   ifem_add_sca_tests(TARGET ${PARAM_NAME})
   list(APPEND TEST_APPS ${PARAM_NAME})
   set(TEST_APPS ${TEST_APPS} PARENT_SCOPE)

@@ -26,6 +26,7 @@ list(APPEND CMAKE_MODULE_PATH
 
 include(IFEMOptions)
 include(IFEMBuildTypes)
+include(IFEMLTO)
 
 add_library(IFEM)
 
@@ -38,6 +39,7 @@ set_target_properties(
     SOVERSION
       ${IFEM_ABI_VERSION}
 )
+ifem_lto(TARGET IFEM)
 
 target_compile_definitions(IFEM PUBLIC $<$<CONFIG:Debug>:INDEX_CHECK=2>)
 if(VERBOSE_DEBUG GREATER 0)
@@ -718,6 +720,7 @@ install(
     cmake/IFEMAddTargets.cmake
     cmake/IFEMDoxy.cmake
     cmake/IFEMFindDependencies.cmake
+    cmake/IFEMLTO.cmake
     cmake/IFEMOptionsDownstream.cmake
     cmake/IFEMTesting.cmake
     cmake/Modules/FindARPACK.cmake

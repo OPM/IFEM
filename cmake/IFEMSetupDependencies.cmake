@@ -12,6 +12,8 @@ target_link_libraries(IFEM PUBLIC
   ${CMAKE_Fortran_IMPLICIT_LINK_LIBRARIES}
 )
 
+target_link_directories(IFEM PUBLIC ${CMAKE_Fortran_IMPLICIT_LINK_DIRECTORIES})
+
 if(IFEM_USE_SUPERLU OR IFEM_USE_SUPERLU_MT)
   if(IFEM_USE_SUPERLU_MT AND TARGET SuperLU::SuperLUMT)
     target_link_libraries(IFEM PUBLIC SuperLU::SuperLUMT)

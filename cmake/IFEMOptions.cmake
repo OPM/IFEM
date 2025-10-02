@@ -15,6 +15,7 @@ option(IFEM_USE_UMFPACK        "Compile with UMFPACK support?"        ON)
 option(IFEM_USE_CEREAL         "Compile with cereal support?"         ON)
 option(IFEM_USE_ZOLTAN         "Compile with zoltan support?"         OFF)
 option(IFEM_USE_TRACY          "Enable tracer profiler?"              OFF)
+option(IFEM_USE_LTO            "Enable link-time optimizoation?"      OFF)
 
 set(IFEM_USE_SPR "OFF" CACHE STRING "Compile with SPR support?")
 set_property(CACHE IFEM_USE_SPR PROPERTY STRINGS ON I32 I64 OFF)
