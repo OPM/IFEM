@@ -140,7 +140,7 @@ bool MultiStepSIM::saveStep (int iStep, double time, const char* vecName)
   lastSt = iStep;
 
   // Write boundary tractions, if any
-  if (!opt.pSolOnly || opt.saveTrac)
+  if (opt.saveTrac)
     if (!model.writeGlvT(iStep,geoBlk,nBlock))
       return false;
 
@@ -176,7 +176,7 @@ bool MultiStepSIM::saveStep (int iStep, double time, const char* vecName)
   Use this method when other simulators write results to the same VTF-file.
   The internal result block counter \a nBlock is syncronized with the
   argument \a rBlock before the results of this simulator are written,
-  to avoid that multiple result blocks recieve the same result block ID.
+  to avoid that multiple result blocks receive the same result block ID.
 */
 
 bool MultiStepSIM::saveStep (int iStep, int& rBlock, double time,
