@@ -114,12 +114,12 @@ public:
   //! \param[in] time Time parameter for evolving grids
   bool saveModel(int& gBlock, int& rBlock, double time);
 
-  //! \brief Saves the converged results to VTF file of a given time/load step.
+  //! \brief Saves the converged solution to VTF file of a given time/load step.
   //! \param[in] iStep Time/load step identifier
   //! \param[in] time Current time/load parameter
   //! \param[in] vecName Optional name of primary solution vector field
   bool saveStep(int iStep, double time, const char* vecName = nullptr);
-  //! \brief Saves the converged results to VTF file of a given time/load step.
+  //! \brief Saves the converged solution to VTF file of a given time/load step.
   //! \param[in] iStep Time/load step identifier
   //! \param rBlock Running result block counter
   //! \param[in] time Current time/load parameter
@@ -132,13 +132,13 @@ public:
   //! \param[in] vecName Name of primary solution vector field
   bool saveStep(int iStep, int& rBlock, const char* vecName);
 
-  //! \brief Serialize solution vectors for restarting purposes.
+  //! \brief Serializes the solution vectors for restarting purposes.
   //! \param data Container for serialized data
   virtual bool serialize(SerializeMap& data) const;
-  //! \brief Set solution vectors from a serialized state.
+  //! \brief Restores the solution vectors from a serialized state.
   //! \param[in] data Container for serialized data
   virtual bool deSerialize(const SerializeMap& data);
-  //! \brief Restores solution state from serialized data in case of restart.
+  //! \brief Restores the solution from a serialized state in case of restart.
   bool checkForRestart();
 
   //! \brief Dumps the primary solution for inspection.

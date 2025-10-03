@@ -85,6 +85,12 @@ public:
   //! \brief Returns a const reference to current velocity vector.
   const Vector& getAcceleration() const { return solution[2]; }
 
+  using MultiStepSIM::saveStep;
+  //! \brief Saves the converged solution to VTF file for a given time step.
+  //! \param[in] iStep Time step identifier
+  //! \param[in] param Time stepping parameters
+  bool saveStep(int iStep, TimeStep& param);
+
   //! \brief Dumps solution variables at user-defined points.
   //! \param[in] time Current time
   //! \param[in] os The output stream to write the solution to
@@ -108,6 +114,7 @@ protected:
   int    maxIncr;   //!< Maximum number of iterations with increasing norm
   int    nupdat;    //!< Number of iterations with updated tangent
   int    saveIts;   //!< Time step for which iteration result should be saved
+  bool   saveVelAc; //!< If \e true, save velocity and acceleration to VTF
   double rTol;      //!< Relative convergence tolerance
   double aTol;      //!< Absolute convergence tolerance
   double divgLim;   //!< Relative divergence limit

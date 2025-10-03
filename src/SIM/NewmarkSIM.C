@@ -32,6 +32,7 @@ NewmarkSIM::NewmarkSIM (SIMbase& sim) : MultiStepSIM(sim)
   alpha2 = 0.0;
 
   solveDisp = false; // default use acceleration as primary variables
+  saveVelAc = false; // default save only displacement primary variables
   predictor = 'a'; // default predictor (zero acceleration)
   cNorm = 1; // default convergence check, force residual
 
@@ -51,9 +52,11 @@ bool NewmarkSIM::parse (const tinyxml2::XMLElement* elem)
   if (!strcasecmp(elem->Value(),"postprocessing"))
   {
     const tinyxml2::XMLElement* child = elem->FirstChildElement();
-    for (; child && nRHSvec < 2; child = child->NextSiblingElement())
-      if (!strcasecmp(child->Value(),"saveExtForce"))
-        nRHSvec = 3;
+    for (; child; child = child->NextSiblingElement())
+      if (!strcasecmp(child->Value(),"saveVelAcc"))
+        saveVelAc = true;
+      else if (!strcasecmp(child->Value(),"saveExtForce"))
+        if (nRHSvec < 2) nRHSvec = 3;
   }
 
   if (strcasecmp(elem->Value(),inputContext))
@@ -415,8 +418,9 @@ SIM::ConvStatus NewmarkSIM::solveStep (TimeStep& param, SIM::SolutionMode,
 
         if (param.step == saveIts)
         {
-          double time = param.time.t + (param.time.dt*param.iter)/maxit;
-          if (!this->saveStep(this->getLastSavedStep()+1,time))
+          TimeStep tmp(param);
+          tmp.time.t += (param.time.dt*param.iter)/maxit;
+          if (!this->saveStep(this->getLastSavedStep()+1,tmp))
             return SIM::FAILURE;
         }
 
@@ -604,6 +608,24 @@ bool NewmarkSIM::solutionNorms (const TimeDomain&,
   if (stdPrec > 0) cout.precision(stdPrec);
 
   return true;
+}
+
+
+bool NewmarkSIM::saveStep (int iStep, TimeStep& param)
+{
+  if (!this->saveStep(iStep,param.time.t))
+    return false;
+  else if (!saveVelAc)
+    return true;
+
+  int iVec = this->numSolution() - 2;
+  if (iVec < 1) return true;
+
+  int nCmp = 10 + model.getNoFields();
+  return (model.writeGlvS1(this->realSolution(iVec),
+                           iStep,nBlock,param.time.t,"velocity",40,nCmp) &&
+          model.writeGlvS1(this->realSolution(iVec+1),
+                           iStep,nBlock,param.time.t,"acceleration",50,nCmp));
 }
 
 
