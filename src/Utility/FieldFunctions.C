@@ -260,7 +260,7 @@ FieldFuncScalarBase (const std::string& fileName,
 }
 
 
-void FieldFuncScalarBase::clearField ()
+void FieldFuncScalarBase::clearFieldInt ()
 {
   for (Field* f : field) delete f;
   field.clear();
