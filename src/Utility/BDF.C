@@ -14,7 +14,7 @@
 #include "BDF.h"
 
 
-void TimeIntegration::BDF::setOrder (int order)
+void TimeIntegration::BDF::setOrderInt (int order)
 {
   if (order >= 1)
     coefs1.resize(2,-1.0);
@@ -57,7 +57,7 @@ const std::vector<double>& TimeIntegration::BDF::getCoefs () const
 }
 
 
-void TimeIntegration::BDFD2::setOrder (int order)
+void TimeIntegration::BDFD2::setOrderInt (int order)
 {
   if (order >= 1) {
     // Assume zero time derivative at t = 0

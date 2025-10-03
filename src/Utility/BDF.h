@@ -29,12 +29,12 @@ namespace TimeIntegration //! Utilities for time integration.
   public:
     //! \brief Default constructor.
     //! \param[in] order The order of the BDF scheme
-    explicit BDF(int order = 0) : step(0), coefs1(1,1.0) { this->setOrder(order); }
+    explicit BDF(int order = 0) : step(0), coefs1(1,1.0) { this->setOrderInt(order); }
     //! \brief Empty destructor.
     virtual ~BDF() {}
 
     //! \brief Initializes the coefficients for the specified \a order.
-    virtual void setOrder(int order);
+    virtual void setOrder(int order) { this->setOrderInt(order); }
 
     //! \brief Returns the order to be used for current time step.
     int getOrder() const;
@@ -66,6 +66,10 @@ namespace TimeIntegration //! Utilities for time integration.
     }
 
   protected:
+    //! \brief Initializes the coefficients for the specified \a order.
+    //! \details Separate method to avoid virtual dispatch in constructor.
+    void setOrderInt(int order);
+
     int                 step;   //!< Time step counter
     std::vector<double> coefs;  //!< The BDF coefficients
     std::vector<double> coefs1; //!< BDF coefficients for first time step
@@ -81,12 +85,12 @@ namespace TimeIntegration //! Utilities for time integration.
     //! \brief Default constructor.
     //! \param[in] order The order of the BDF scheme
     //! \param[in] step_ Initial step position
-    explicit BDFD2(int order = 2, int step_ = 0) { this->setOrder(order); step = step_; }
+    explicit BDFD2(int order = 2, int step_ = 0) { this->setOrderInt(order); step = step_; }
     //! \brief Empty destructor.
     virtual ~BDFD2() {}
 
     //! \brief Initializes the coefficients for the specified \a order.
-    void setOrder(int order) override;
+    void setOrder(int order) override { this->setOrderInt(order); }
 
     //! \brief Returns the degree for the time derivative approximation.
     int getDegree() const override { return 2; }
@@ -98,6 +102,10 @@ namespace TimeIntegration //! Utilities for time integration.
     const std::vector<double>& getCoefs() const override;
 
   protected:
+    //! \brief Initializes the coefficients for the specified \a order.
+    //! \details Separate method to avoid virtual dispatch in constructor.
+    void setOrderInt(int order);
+
     std::vector<double> coefs2; //!< BDF coefficients for second time step
   };
 }
