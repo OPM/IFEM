@@ -122,7 +122,7 @@ public:
                       const std::string& fieldName,
                       int level = 0);
   //! \brief The destructor deletes the scalar fields.
-  virtual ~FieldFuncScalarBase() { this->clearField(); }
+  virtual ~FieldFuncScalarBase() { this->clearFieldInt(); }
 
 protected:
   //! \brief Default constructor
@@ -135,7 +135,10 @@ protected:
                              const std::vector<Real>& coefs,
                              int, int);
   //! \brief Clears the field container.
-  virtual void clearField();
+  virtual void clearField() { this->clearFieldInt(); }
+
+  //! \brief Non-virtual actual implementation of clearField()
+  void clearFieldInt();
 
   mutable int currentLevel; //!< Current time level to evaluate at
 
