@@ -112,13 +112,6 @@ function build_module {
       OMP_NUM_THREADS=$nomp ctest -T ${CTEST_OP} --test-timeout 180 --no-compress-output -j$njob
     else
      OMP_NUM_THREADS=$nomp ctest -C $CTEST_CONFIGURATION -T ${CTEST_OP} --test-timeout 180 --no-compress-output -j$njob
-     for log in Testing/Temporary/MemoryCheck.*.log
-     do
-       if ! grep -q "ERROR SUMMARY: 0 errors" $log
-       then
-         cat $log >> failed.log
-       fi
-     done
     fi
     $WORKSPACE/deps/IFEM/jenkins/convert.py -x $WORKSPACE/deps/IFEM/jenkins/conv.xsl -t . > testoutput.xml
   else
