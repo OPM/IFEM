@@ -1485,8 +1485,7 @@ bool SIMoutput::writeGlvF (const RealFunc& f, const char* fname,
     if (state && pch->evalSolution(u,lovec,opt.nViz,0,piolaMapping))
     {
       pch->filterResults(u,myVtf->getBlock(geomID));
-      if (u.rows() < 3)
-        u.expandRows(3-u.rows());
+      u.expandRows(3-u.rows()); // drop the rotational DOFs, if any
     }
 
     if (msgLevel > 1)
