@@ -202,11 +202,11 @@ void AlgEqSystem::initialize (char initLHS)
   std::fill(R.begin(),R.end(),0.0);
 
 #ifdef USE_OPENMP
-  size_t nthread = omp_get_max_threads();
+  int nthread = omp_get_max_threads();
   if (nthread > 1 && !c.empty())
   {
     d = new std::vector<double>[nthread];
-    for (size_t i = 0; i < nthread; i++)
+    for (int i = 0; i < nthread; i++)
       d[i].resize(c.size(),0.0);
   }
 #endif
