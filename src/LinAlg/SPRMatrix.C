@@ -144,7 +144,7 @@ void sprcnv_(const Real* L, Real* A,
              const Int_* mspar, const Int_* mtrees, const Int_* msifa,
              const Int_& m, const Int_& ksa, const Int_& lpu, Int_& ierr);
 //! \brief Opens a temporary file for Fortran print.
-int openftnfile_(const char* fname, const int nchar);
+int openftnfile_(const char* fname, const ssize_t nchar);
 //! \brief Closes a Fortran file.
 void closeftnfile_(const int& iunit);
 }
