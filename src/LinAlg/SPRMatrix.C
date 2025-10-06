@@ -170,7 +170,8 @@ SPRMatrix::SPRMatrix () : rWork(1)
   values = nullptr;
 
 #ifdef USE_OPENMP
-  jWork = new std::vector<Int_>[omp_get_max_threads()];
+  if (int nt = omp_get_max_threads(); nt > 0)
+    jWork = new std::vector<Int_>[nt];
 #else
   jWork = &iWork;
 #endif
@@ -189,7 +190,8 @@ SPRMatrix::SPRMatrix (const SPRMatrix& A) : SystemMatrix(A), rWork(1)
   values = copyArr(A.values,A.mpar[7]+A.mpar[15]);
 
 #ifdef USE_OPENMP
-  jWork = new std::vector<Int_>[omp_get_max_threads()];
+  if (int nt = omp_get_max_threads(); nt > 0)
+    jWork = new std::vector<Int_>[nt];
 #else
   jWork = &iWork;
 #endif
