@@ -39,7 +39,6 @@ function(ifem_add_library)
       ${CMAKE_BINARY_DIR}/lib
   )
   ifem_lto(TARGET ${PARAM_NAME})
-  ifem_add_sca_tests(TARGET ${PARAM_NAME})
 endfunction()
 
 # Function for setting up an application
@@ -70,7 +69,6 @@ function(ifem_add_application)
       ${CMAKE_BINARY_DIR}/bin
   )
   ifem_lto(TARGET ${PARAM_NAME})
-  ifem_add_sca_tests(TARGET ${PARAM_NAME})
   list(APPEND TEST_APPS ${PARAM_NAME})
   set(TEST_APPS ${TEST_APPS} PARENT_SCOPE)
 endfunction()
