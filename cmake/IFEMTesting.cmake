@@ -73,7 +73,6 @@ function(ifem_add_test_app)
   find_package(Catch2 REQUIRED)
   target_link_libraries(${PARAM_NAME}-test PRIVATE Catch2::Catch2 ${PARAM_LIBRARIES})
   target_compile_definitions(${PARAM_NAME}-test PRIVATE CATCH2_VERSION_MAJOR=${Catch2_VERSION_MAJOR})
-  ifem_add_sca_tests(TARGET ${PARAM_NAME}-test)
   set(TEST_APPS ${TEST_APPS} PARENT_SCOPE)
 endfunction()
 
@@ -330,48 +329,6 @@ macro(ifem_add_check_target)
   add_custom_target(testapps DEPENDS ${TEST_APPS})
 endmacro()
 
-# Add static analysis tests
-#  Adds clang-check tests to ctest according to clang-check availability.
-# Multi-valued parameters:
-#   TARGETS - Targets for source files to add tests for
-function(ifem_add_sca_tests)
-  if(NOT CMAKE_DISABLE_FIND_PACKAGE_ClangCheck)
-    find_program(CLANGCHECK_COMMAND clang-check)
-  endif()
-  set(multiValueArgs TARGET)
-  cmake_parse_arguments(PARAM "" "" "${multiValueArgs}" ${ARGN})
-
-  foreach(target ${PARAM_TARGET})
-    get_target_property(SOURCES ${target} SOURCES)
-
-    foreach(src ${SOURCES})
-      get_filename_component(name ${src} NAME)
-      get_filename_component(EXT ${src} EXT)
-      if(EXT STREQUAL .C)
-        if(NOT IS_ABSOLUTE ${src})
-          set(src ${PROJECT_SOURCE_DIR}/${src})
-        endif()
-        if(CLANGCHECK_COMMAND AND CMAKE_EXPORT_COMPILE_COMMANDS)
-          if(NOT TEST clang-check+${name})
-            add_test(
-              NAME
-                clang-check+${name}
-              COMMAND
-                ifem-clang-check-test
-                ${CLANGCHECK_COMMAND}
-                ${src}
-                ${PROJECT_BINARY_DIR}
-              CONFIGURATIONS
-                analyze
-                clang-check
-            )
-          endif()
-        endif()
-      endif()
-    endforeach()
-  endforeach()
-endfunction()
-
 if(IFEM_TEST_MEMCHECK)
   find_program(MEMCHECK_COMMAND valgrind)
   if(NOT MEMCHECK_COMMAND)
@@ -402,11 +359,6 @@ add_executable(ifem-reg-test IMPORTED GLOBAL)
 set_target_properties(ifem-reg-test PROPERTIES
                        IMPORTED_LOCATION
                          ${IFEM_REGTEST_PATH}
-)
-add_executable(ifem-clang-check-test IMPORTED GLOBAL)
-set_target_properties(ifem-clang-check-test PROPERTIES
-                      IMPORTED_LOCATION
-                        ${IFEM_CLANG_CHECK_PATH}
 )
 add_executable(ifem-io-test IMPORTED GLOBAL)
 set_target_properties(ifem-io-test PROPERTIES

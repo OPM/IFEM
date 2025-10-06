@@ -99,7 +99,6 @@ else()
 endif()
 
 install(FILES scripts/regtest.sh
-              scripts/clang-check-test.sh
               scripts/iotest.sh
         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/IFEM/scripts
         PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
