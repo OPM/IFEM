@@ -17,8 +17,6 @@
 # blank line
 # output from listing application
 
-set -e
-
 function atomic_log_file {
 (
   flock -x 200
