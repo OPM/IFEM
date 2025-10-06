@@ -338,7 +338,7 @@ bool ASMs2DLag::integrate (Integrand& integrand,
     for (const IntVec& group : groups[g])
     {
       FiniteElement fe;
-      Matrix Jac, Def, Vel;
+      Matrix Def, Vel;
       Vec4 X(nullptr,time.t);
       for (size_t e = 0; e < group.size() && ok; e++)
       {
@@ -413,11 +413,12 @@ bool ASMs2DLag::integrate (Integrand& integrand,
                 fe.N = bfs.N;
 
                 // Compute Jacobian inverse and derivatives
-                fe.detJxW = utl::Jacobian(Jac,fe.dNdX,fe.Xn,bfs.dNdu);
+                fe.detJxW = utl::Jacobian(fe.G,fe.dNdX,fe.Xn,bfs.dNdu);
                 if (fe.detJxW == 0.0) continue; // skip singular points
 
-                // Store tangent vectors in fe.G for shells
-                if (nsd > 2) fe.G = Jac;
+                // Compute the deformed surface tangent vectors for shells
+                if (nsd > 2 && !Def.empty()) // fe.G += Def * dNdu
+                  fe.G.multiply(Def,bfs.dNdu,false,false,true);
               }
 
               // Cartesian coordinates of current integration point
@@ -461,11 +462,12 @@ bool ASMs2DLag::integrate (Integrand& integrand,
               fe.N = bfs.N;
 
               // Compute Jacobian inverse of coordinate mapping + derivatives
-              fe.detJxW = utl::Jacobian(Jac,fe.dNdX,fe.Xn,bfs.dNdu);
+              fe.detJxW = utl::Jacobian(fe.G,fe.dNdX,fe.Xn,bfs.dNdu);
               if (fe.detJxW == 0.0) continue; // skip singular points
 
-              // Store tangent vectors in fe.G for shells
-              if (nsd > 2) fe.G = Jac;
+              // Compute the deformed surface tangent vectors for shells
+              if (nsd > 2 && !Def.empty()) // fe.G += Def * dNdu
+                fe.G.multiply(Def,bfs.dNdu,false,false,true);
             }
 
             // Cartesian coordinates of current integration point
@@ -558,7 +560,7 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
   std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex%10);
   size_t firstp = iit == firstBp.end() ? 0 : iit->second;
 
-  Matrix dNdu, Jac, Def, Vel;
+  Matrix dNdu, Def, Vel;
   Vec4   X(nullptr,time.t);
   Vec3   normal;
   double xi[2];
@@ -629,13 +631,14 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
           ok = Lagrange::computeBasis(fe.N,dNdu,p1,xi[0],p2,xi[1]);
 
           // Compute basis function derivatives and the edge normal
-          fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,fe.Xn,dNdu,t1,t2);
+          fe.detJxW = utl::Jacobian(fe.G,normal,fe.dNdX,fe.Xn,dNdu,t1,t2);
           if (fe.detJxW == 0.0) continue; // skip singular points
 
           if (edgeDir < 0) normal *= -1.0;
 
-          // Store tangent vectors in fe.G for shells
-          if (nsd > 2) fe.G = std::move(Jac);
+          // Compute the deformed surface tangent vectors for shells
+          if (nsd > 2 && !Def.empty()) // fe.G += Def * dNdu
+            fe.G.multiply(Def,dNdu,false,false,true);
         }
 
         // Cartesian coordinates of current integration point
@@ -789,7 +792,7 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   FiniteElement fe(p1*p2);
   Vector        solPt;
   Vectors       globSolPt(nPoints);
-  Matrix        dNdu, Jac;
+  Matrix        dNdu;
 
   // Evaluate the secondary solution field at each point
   for (size_t iel = 0; iel < nel; iel++)
@@ -814,7 +817,7 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
           Lagrange::computeBasis(fe.N,dNdu,p1,fe.xi,p2,fe.eta);
 
           // Compute the Jacobian inverse
-          fe.detJxW = utl::Jacobian(Jac,fe.dNdX,fe.Xn,dNdu);
+          fe.detJxW = utl::Jacobian(fe.G,fe.dNdX,fe.Xn,dNdu);
           if (fe.detJxW == 0.0) continue; // skip singular points
         }
 
@@ -853,7 +856,7 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   FiniteElement fe(p1*p2);
   Vector        solPt;
   Vectors       globSolPt(nPoints);
-  Matrix        dNdu, Jac;
+  Matrix        dNdu;
 
   // Evaluate the secondary solution field at each point or element center
   int iel = 0;
@@ -878,11 +881,8 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
       return false;
 
     // Compute the Jacobian inverse
-    fe.detJxW = utl::Jacobian(Jac,fe.dNdX,fe.Xn,dNdu);
+    fe.detJxW = utl::Jacobian(fe.G,fe.dNdX,fe.Xn,dNdu);
     if (fe.detJxW == 0.0) continue; // skip singular points
-
-    // Store tangent vectors in fe.G for shells
-    if (nsd > 2) fe.G = std::move(Jac);
 
     // Now evaluate the solution field
     utl::Point X4(fe.Xn*fe.N,{fe.u,fe.v});
@@ -1076,7 +1076,9 @@ bool ASMs2DLag::assembleL2matrices (SystemMatrix& A, SystemVector& B,
 
   const size_t nnod = this->getNoProjectionNodes();
 
+
   // === Assembly loop over all elements in the patch ==========================
+
   bool ok = true;
   for (size_t g = 0; g < projThreadGroups.size() && ok; g++)
 #pragma omp parallel for schedule(static)
@@ -1103,7 +1105,7 @@ bool ASMs2DLag::assembleL2matrices (SystemMatrix& A, SystemVector& B,
         Matrix sField;
         integrand.evaluate(sField, GP.data());
 
-        // --- Integration loop over all Gauss points in each direction ----------
+        // --- Integration loop over all Gauss points in each direction --------
 
         Matrix eA(p1*p2, p1*p2);
         Vectors eB(sField.rows(), Vector(p1*p2));
@@ -1112,7 +1114,10 @@ bool ASMs2DLag::assembleL2matrices (SystemMatrix& A, SystemVector& B,
           for (int i = 0; i < nGP[0]; ++i, ++ip) {
             const BasisFunctionVals& bfs = cache.getVals(iel,ip);
 
-            double dJw = wg[0][i]*wg[1][j]*utl::Jacobian(J,dNdX,Xnod,bfs.dNdu);
+            double dJw = utl::Jacobian(J,dNdX,Xnod,bfs.dNdu,false);
+            if (dJw == 0.0) continue; // skip singular points
+
+            dJw *= wg[0][i]*wg[1][j];
 
             // Integrate the mass matrix
             eA.outer_product(bfs.N, bfs.N, true, dJw);
@@ -1122,9 +1127,8 @@ bool ASMs2DLag::assembleL2matrices (SystemMatrix& A, SystemVector& B,
               eB[r-1].add(bfs.N,sField(r,ip+1)*dJw);
           }
 
-        const IntVec& mnpc = gmnpc[iel];
-        A.assemble(eA, mnpc);
-        B.assemble(eB, mnpc, nnod);
+        A.assemble(eA, gmnpc[iel]);
+        B.assemble(eB, gmnpc[iel], nnod);
       }
     }
 

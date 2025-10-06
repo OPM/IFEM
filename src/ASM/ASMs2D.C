@@ -1703,6 +1703,7 @@ bool ASMs2D::integrate (Integrand& integrand,
   bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
   bool use3rdDer = integrand.getIntegrandType() & Integrand::THIRD_DERIVATIVES;
   bool useElmVtx = integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS;
+  bool useGmat   = integrand.getIntegrandType() & Integrand::G_MATRIX;
 
   if (myCache.empty())
     myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this));
@@ -1742,7 +1743,8 @@ bool ASMs2D::integrate (Integrand& integrand,
       FiniteElement fe(p1*p2);
       fe.p = p1 - 1;
       fe.q = p2 - 1;
-      Matrix   Xnod, Jac;
+      Matrix   Xnod, tmp;
+      Matrix&  Jac = useGmat || nsd <= 2 ? tmp : fe.G;
       Matrix3D Hess;
       double   dXidu[2];
       double   param[3] = { 0.0, 0.0, 0.0 };
@@ -1872,9 +1874,6 @@ bool ASMs2D::integrate (Integrand& integrand,
               fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,bfs.dNdu);
               if (fe.detJxW == 0.0) continue; // skip singular points
 
-              // Store tangent vectors in fe.G for shells
-              if (nsd > 2) fe.G = Jac;
-
               // Cartesian coordinates of current integration point
               X.assign(Xnod * fe.N);
 
@@ -1925,10 +1924,8 @@ bool ASMs2D::integrate (Integrand& integrand,
               ok &= utl::Hessian2(fe.d3NdX3,Jac,bfs.d3Ndu3);
 
             // Compute G-matrix
-            if (integrand.getIntegrandType() & Integrand::G_MATRIX)
+            if (useGmat)
               utl::getGmat(Jac,dXidu,fe.G);
-            else if (nsd > 2)
-              fe.G = Jac; // Store tangent vectors in fe.G for shells
 
 #if SP_DEBUG > 4
             if (iel == dbgElm || iel == -dbgElm || dbgElm == 0)
@@ -1991,6 +1988,7 @@ bool ASMs2D::integrate (Integrand& integrand,
 
   bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
   bool useElmVtx = integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS;
+  bool useGmat   = integrand.getIntegrandType() & Integrand::G_MATRIX;
 
   // Evaluate basis function derivatives at all integration points
   std::vector<size_t> MPitg(itgPts.size()+1,0);
@@ -2031,7 +2029,8 @@ bool ASMs2D::integrate (Integrand& integrand,
       FiniteElement fe(p1*p2);
       fe.p = p1 - 1;
       fe.q = p2 - 1;
-      Matrix   dNdu, Xnod, Jac;
+      Matrix   dNdu, Xnod, tmp;
+      Matrix&  Jac = useGmat || nsd <= 2 ? tmp : fe.G;
       Matrix3D d2Ndu2, Hess;
       double   dXidu[2];
       Vec4     X(nullptr,time.t);
@@ -2136,10 +2135,8 @@ bool ASMs2D::integrate (Integrand& integrand,
           }
 
           // Compute G-matrix
-          if (integrand.getIntegrandType() & Integrand::G_MATRIX)
+          if (useGmat)
             utl::getGmat(Jac,dXidu,fe.G);
-          else if (nsd > 2)
-            fe.G = Jac; // Store tangent vectors in fe.G for shells
 
 #if SP_DEBUG > 4
           if (iel == dbgElm || iel == -dbgElm || dbgElm == 0)
@@ -2301,9 +2298,6 @@ bool ASMs2D::integrate (Integrand& integrand,
 
             if (edgeDir < 0) normal *= -1.0;
 
-            // Store tangent vectors in fe.G for shells
-            if (nsd > 2) fe.G = std::move(Jac);
-
             // Cartesian coordinates of current integration point
             X.assign(Xnod * fe.N);
 
@@ -2355,6 +2349,8 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
   if (!myElms.empty() && myElms.front() == -1) return true;
 
   PROFILE2("ASMs2D::integrate(B)");
+
+  const bool useGmat = integrand.getIntegrandType() & Integrand::G_MATRIX;
 
   const int p1 = surf->order_u();
   const int p2 = surf->order_v();
@@ -2413,10 +2409,11 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
   fe.v = gpar[1].front();
   double param[3] = { fe.u, fe.v, 0.0 };
 
-  Matrix dNdu, Xnod, Jac;
-  Vec4   X(param,time.t);
-  Vec3   normal;
-  double dXidu[2];
+  Matrix  dNdu, Xnod, tmp;
+  Matrix& Jac = useGmat || nsd <= 2 ? tmp : fe.G;
+  Vec4    X(param,time.t);
+  Vec3    normal;
+  double  dXidu[2];
 
 
   // === Assembly loop over all elements on the patch edge =====================
@@ -2459,7 +2456,7 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
       if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
         fe.h = this->getElementCorners(i1-1,i2-1,fe.XC);
 
-      if (integrand.getIntegrandType() & Integrand::G_MATRIX)
+      if (useGmat)
       {
         // Element size in parametric space
         dXidu[0] = surf->knotSpan(0,i1-1);
@@ -2501,10 +2498,8 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
 	if (edgeDir < 0) normal *= -1.0;
 
 	// Compute G-matrix
-	if (integrand.getIntegrandType() & Integrand::G_MATRIX)
+	if (useGmat)
 	  utl::getGmat(Jac,dXidu,fe.G);
-        else if (nsd > 2)
-          fe.G = Jac; // Store tangent vectors in fe.G for shells
 
 #if SP_DEBUG > 4
         if (ielm == dbgElm || ielm == -dbgElm || dbgElm == 0)
@@ -2941,7 +2936,7 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   fe.p = p1 - 1;
   fe.q = p2 - 1;
   Vector   solPt;
-  Matrix   dNdu, Jac;
+  Matrix   dNdu;
   Matrix3D d2Ndu2, Hess;
   Matrix4D d3Ndu3;
 
@@ -2981,13 +2976,13 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
       SplineUtils::extractBasis(spline1[i],fe.N,dNdu);
 
     // Compute the Jacobian inverse and derivatives
-    fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xtmp,dNdu);
+    fe.detJxW = utl::Jacobian(fe.G,fe.dNdX,Xtmp,dNdu);
     if (fe.detJxW == 0.0) continue; // skip singular points
 
     // Compute Hessian of coordinate mapping and 2nd order derivatives
     if (use2ndDer)
     {
-      if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xtmp,d2Ndu2,fe.dNdX))
+      if (!utl::Hessian(Hess,fe.d2NdX2,fe.G,Xtmp,d2Ndu2,fe.dNdX))
         continue;
       else if (nsd > 2)
         utl::Hessian(Hess,fe.H);
@@ -2995,10 +2990,7 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
     // Compute 3rd order derivatives
     if (use3rdDer)
-      utl::Hessian2(fe.d3NdX3,Jac,d3Ndu3);
-
-    // Store tangent vectors in fe.G for shells
-    if (nsd > 2) fe.G = std::move(Jac);
+      utl::Hessian2(fe.d3NdX3,fe.G,d3Ndu3);
 
 #if SP_DEBUG > 4
     std::cout <<"\n"<< fe;
