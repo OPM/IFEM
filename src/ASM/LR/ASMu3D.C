@@ -1110,7 +1110,7 @@ bool ASMu3D::integrate (Integrand& integrand,
             if (integrand.getIntegrandType() & Integrand::G_MATRIX)
               utl::getGmat(Jac,dXidu,fe.G);
 
-#if SP_DEBUG > 4
+#if SP_DEBUG > 4 && !defined(USE_OPENMP)
             if (ielm == dbgElm || ielm == -dbgElm || dbgElm == 0)
               std::cout <<"\n"<< fe;
 #endif

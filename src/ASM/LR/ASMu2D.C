@@ -1293,7 +1293,7 @@ bool ASMu2D::integrate (Integrand& integrand,
 
           const BasisFunctionVals& bfs = cache.getVals(iel,ip);
           fe.N = bfs.N;
-#if SP_DEBUG > 4
+#if SP_DEBUG > 4 && !defined(USE_OPENMP)
           if (ielm == dbgElm || ielm == -dbgElm || dbgElm == 0)
           {
             std::cout <<"\nBasis functions at a integration point "
@@ -1328,7 +1328,7 @@ bool ASMu2D::integrate (Integrand& integrand,
           else if (nsd > 2)
             fe.G = Jac; // Store tangent vectors in fe.G for shells
 
-#if SP_DEBUG > 4
+#if SP_DEBUG > 4 && !defined(USE_OPENMP)
           if (ielm == dbgElm || ielm == -dbgElm || dbgElm == 0)
             std::cout <<"\n"<< fe;
 #endif
@@ -1524,7 +1524,7 @@ bool ASMu2D::integrate (Integrand& integrand,
         // Store tangent vectors in fe.G for shells
         if (nsd > 2) fe.G = Jac;
 
-#if SP_DEBUG > 4
+#if SP_DEBUG > 4 && !defined(USE_OPENMP)
         if (ielm == dbgElm || ielm == -dbgElm || dbgElm == 0)
           std::cout <<"\n"<< fe;
 #endif
