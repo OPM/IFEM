@@ -43,7 +43,8 @@ ifem_lto(TARGET IFEM)
 
 target_compile_definitions(IFEM PUBLIC $<$<CONFIG:Debug>:INDEX_CHECK=2>)
 if(VERBOSE_DEBUG GREATER 0)
-  target_compile_definitions(IFEM PUBLIC $<$<CONFIG:Debug>:SP_DEBUG=${VERBOSE_DEBUG}>)
+  target_compile_definitions(IFEM PRIVATE $<$<CONFIG:Debug>:SP_DEBUG=${VERBOSE_DEBUG}>)
+  target_compile_definitions(IFEM INTERFACE $<$<CONFIG:Debug>:INT_DEBUG=${VERBOSE_DEBUG}>)
 endif()
 
 include(IFEMAddTargets)
