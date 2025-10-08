@@ -15,6 +15,8 @@
 #include "SparseMatrix.h"
 #include "SAM.h"
 #include "LAPack.h"
+#include <fstream>
+#include <sstream>
 
 #ifdef USE_F77SAM
 #if defined(_WIN32) && !defined(__MINGW32__) && !defined(__MINGW64__)
@@ -111,9 +113,76 @@ void DenseMatrix::dump (std::ostream& os, LinAlg::StorageFormat format,
       break;
 
     case LinAlg::FLAT:
-      if (label) os << label <<" =";
-      os << myMat;
+      if (label)
+        os << label <<" = ";
+      os << myMat.rows() <<' '<< myMat.cols() <<' '
+         << (ipiv ? (symm ? 2 : 1) : 0);
+      if (myMat.cols() > 0)
+        for (size_t i = 1; i <= myMat.rows(); i++)
+        {
+          os <<'\n'<< myMat(i,1);
+          for (size_t j = 2; j <= myMat.cols(); j++)
+            os <<' '<< myMat(i,j);
+        }
+      if (ipiv && !symm)
+      {
+        os <<'\n'<< ipiv[0];
+        for (size_t i = 1; i < myMat.rows(); i++)
+          os <<' '<< ipiv[i];
+      }
+      os << std::endl;
+      break;
   }
+}
+
+
+bool DenseMatrix::load (const char* fileName)
+{
+  std::ifstream is(fileName);
+
+  // Assuming the FLAT format for now
+  char header[128];
+  if (!is.getline(header,128))
+  {
+    std::cerr <<" *** DenseMatrix::load: Failed to read file "<< fileName
+              << std::endl;
+    return false;
+  }
+
+  char* cdim = strstr(header,"=");
+  std::stringstream sdim(cdim ? cdim : header);
+  size_t nrow, ncol, iflag;
+  sdim >> nrow >> ncol >> iflag;
+  if (nrow != myMat.rows() || ncol != myMat.cols())
+  {
+    std::cerr <<" *** DenseMatrix::load: Invalid matrix file "<< fileName
+              <<"\n   nrow = "<< nrow <<" ncol = "<< ncol
+              <<" (expected "<< myMat.rows() <<", "<< myMat.cols()
+              <<")."<< std::endl;
+
+    return false;
+  }
+
+  for (size_t i = 1; i <= nrow && is; i++)
+    for (size_t j = 1; j <= ncol && is; j++)
+      is >> myMat(i,j);
+
+  delete[] ipiv;
+  if (iflag == 1)
+  {
+    ipiv = new int[nrow];
+    for (size_t i = 0; i < nrow && is; i++)
+      is >> ipiv[i];
+  }
+  else if (iflag == 2)
+  {
+    ipiv = new int[1];
+    symm = true;
+  }
+  else
+    ipiv = nullptr;
+
+  return is.good() && this->flagNonZeroEqs();
 }
 
 

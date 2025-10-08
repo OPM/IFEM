@@ -188,6 +188,9 @@ public:
   //! \brief Returns the L-infinity norm of the matrix.
   virtual Real Linfnorm() const { return myMat.normInf(); }
 
+  //! \brief Loads the system matrix from specified file.
+  virtual bool load(const char* fileName);
+
 protected:
   //! \brief Augments a dense matrix symmetrically to the current matrix.
   //! \param[in] B  The matrix to be augmented
