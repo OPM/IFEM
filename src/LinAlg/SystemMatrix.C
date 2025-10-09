@@ -23,6 +23,7 @@
 #include "ISTLMatrix.h"
 #endif
 #include "LinSolParams.h"
+#include <fstream>
 
 
 SystemVector* SystemVector::create (const ProcessAdm* adm,
@@ -249,4 +250,14 @@ StdVector SystemMatrix::operator/ (const SystemVector& b)
   StdVector results;
   this->solve(b,results);
   return results;
+}
+
+
+void SystemMatrix::dump (const char* fileName, std::streamsize precision,
+                         LinAlg::StorageFormat format)
+{
+  std::ofstream fs(fileName);
+  if (precision > 0)
+    fs.precision(precision);
+  this->dump(fs,format);
 }

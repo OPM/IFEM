@@ -44,19 +44,29 @@ NewmarkSIM::NewmarkSIM (SIMbase& sim) : MultiStepSIM(sim)
   aTol    = 0.0;
   divgLim = 10.0;
   saveIts = 0;
+
+  write_factor = read_factor = false;
 }
 
 
 bool NewmarkSIM::parse (const tinyxml2::XMLElement* elem)
 {
-  if (!strcasecmp(elem->Value(),"postprocessing"))
+  if (!strcasecmp(elem->Value(),"linearsolver"))
   {
-    const tinyxml2::XMLElement* child = elem->FirstChildElement();
-    for (; child; child = child->NextSiblingElement())
-      if (!strcasecmp(child->Value(),"saveVelAcc"))
-        saveVelAc = true;
-      else if (!strcasecmp(child->Value(),"saveExtForce"))
-        if (nRHSvec < 2) nRHSvec = 3;
+    const tinyxml2::XMLElement* child = elem->FirstChildElement("storeFactor");
+    if (child && child->FirstChild())
+    {
+      factor_file = child->FirstChild()->Value();
+      if (!utl::getAttribute(child,"write",write_factor) || !write_factor)
+        read_factor = true;
+    }
+  }
+  else if (!strcasecmp(elem->Value(),"postprocessing"))
+  {
+    if (elem->FirstChildElement("saveVelAcc"))
+      saveVelAc = true;
+    if (elem->FirstChildElement("saveExtForce") && nRHSvec < 2)
+      nRHSvec = 3;
   }
 
   if (strcasecmp(elem->Value(),inputContext))
@@ -367,9 +377,17 @@ SIM::ConvStatus NewmarkSIM::solveStep (TimeStep& param, SIM::SolutionMode,
   if (subiter&FIRST && !this->predictStep(param))
     return SIM::FAILURE;
 
-  bool newTangent = param.time.first || nupdat > 0;
+  bool newTangent = (param.time.first || nupdat > 0) && !read_factor;
   if (!model.setMode(newTangent ? SIM::DYNAMIC : SIM::RHS_ONLY, false))
     return SIM::FAILURE;
+
+  if (param.time.first && read_factor)
+  {
+    IFEM::cout <<"   * Reading factorized Newton matrix from file "
+               << factor_file << std::endl;
+    if (!model.getLHSmatrix()->load(factor_file.c_str()))
+      return SIM::FAILURE;
+  }
 
   model.setQuadratureRule(opt.nGauss[0],true);
   if (!model.assembleSystem(param.time,solution,newTangent))
@@ -386,6 +404,14 @@ SIM::ConvStatus NewmarkSIM::solveStep (TimeStep& param, SIM::SolutionMode,
   double* rCondPtr = rCond < 0.0 ? nullptr : &rCond;
   if (!model.solveSystem(linsol,msgLevel-1,rCondPtr))
     return SIM::FAILURE;
+
+  if (write_factor && newTangent)
+  {
+    IFEM::cout <<"   * Writing factorized Newton matrix to file "
+               << factor_file << std::endl;
+    model.getLHSmatrix()->dump(factor_file.c_str(),15);
+    write_factor = false;
+  }
 
   while (param.iter <= maxit)
     switch (this->checkConvergence(param))
