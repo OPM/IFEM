@@ -135,6 +135,11 @@ public:
   //! \brief Converts to a dense matrix.
   bool convert(Matrix& fullMat) const;
 
+  //! \brief Dumps the system matrix on a specified format.
+  virtual void dump(std::ostream& os, LinAlg::StorageFormat, const char*);
+  //! \brief Loads the system matrix from specified file.
+  virtual bool load(const char* fileName);
+
 protected:
   //! \brief Adds an element matrix into the associated system matrix.
   //! \param[in] eM  The element matrix

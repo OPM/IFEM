@@ -149,6 +149,8 @@ int openftnfile_(const char* fname, const ssize_t nchar);
 void closeftnfile_(const int& iunit);
 }
 
+using Int_Vec = std::vector<Int_>; //!< Convenience type alias
+
 
 /*!
   \brief Generic function for copying a C-array.
@@ -171,7 +173,7 @@ SPRMatrix::SPRMatrix () : rWork(1)
 
 #ifdef USE_OPENMP
   if (int nt = omp_get_max_threads(); nt > 0)
-    jWork = new std::vector<Int_>[nt];
+    jWork = new Int_Vec[nt];
 #else
   jWork = &iWork;
 #endif
@@ -191,7 +193,7 @@ SPRMatrix::SPRMatrix (const SPRMatrix& A) : SystemMatrix(A), rWork(1)
 
 #ifdef USE_OPENMP
   if (int nt = omp_get_max_threads(); nt > 0)
-    jWork = new std::vector<Int_>[nt];
+    jWork = new Int_Vec[nt];
 #else
   jWork = &iWork;
 #endif
@@ -351,7 +353,7 @@ void SPRMatrix::initAssembly (const SAM& sam, char)
 #endif
 
   // Perform symbolic assembly
-  std::vector<Int_> itemp(mpar[34]);
+  Int_Vec itemp(mpar[34]);
   sprsas_(mySam->mpar, mySam->mpmnpc, mySam->mmnpc, mySam->madof, msc,
           mySam->mpmceq, mySam->mmceq, mySam->meqn, mpar,
           itemp.data(), iWork.data(), NS, 6, ierr);
@@ -426,6 +428,85 @@ void SPRMatrix::init ()
 }
 
 
+void SPRMatrix::dump (std::ostream& os, LinAlg::StorageFormat, const char*)
+{
+  os << mpar[0];
+  for (int i = 1; i < NS; i++)
+    os <<' '<< mpar[i];
+
+  if (msica && mpar[1] > 0)
+  {
+    os <<'\n'<< msica[0];
+    for (int i = 1; i < mpar[1]; i++)
+      os <<' '<< msica[i];
+  }
+
+  if (msifa && mpar[2] > 0)
+  {
+    os <<'\n'<< msifa[0];
+    for (int i = 1; i < mpar[2]; i++)
+      os <<' '<< msifa[i];
+  }
+
+  if (mtrees && mpar[35] > 0)
+  {
+    os <<'\n'<< mtrees[0];
+    for (int i = 1; i < mpar[35]; i++)
+      os <<' '<< mtrees[i];
+  }
+
+  if (mvarnc && mpar[7] > 0)
+  {
+    os <<'\n'<< mvarnc[0];
+    for (int i = 1; i < 2*mpar[7]; i++)
+      os <<' '<< mvarnc[i];
+  }
+
+  if (values && mpar[7]+mpar[15] > 0)
+    for (int i = 0; i < mpar[7]+mpar[15]; i++)
+      os << (i%100 ? ' ' : '\n') << values[i];
+
+  os << std::endl;
+}
+
+
+bool SPRMatrix::load (const char* fileName)
+{
+  std::ifstream is(fileName);
+  if (!is)
+  {
+    std::cerr <<" *** SPRMatrix::load: Failed to read file "<< fileName
+              << std::endl;
+    return false;
+  }
+
+  for (int i = 0; i < NS && is; i++)
+    is >> mpar[i];
+
+  if (msica)
+    for (int i = 0; i < mpar[1] && is; i++)
+      is >> msica[i];
+
+  if (msifa)
+    for (int i = 0; i < mpar[2] && is; i++)
+      is >> msifa[i];
+
+  if (mtrees)
+    for (int i = 0; i < mpar[35] && is; i++)
+      is >> mtrees[i];
+
+  if (mvarnc)
+    for (int i = 0; i < 2*mpar[7] && is; i++)
+      is >> mvarnc[i];
+
+  if (values)
+    for (int i = 0; i < mpar[7]+mpar[15] && is; i++)
+      is >> values[i];
+
+  return is.good() && this->flagNonZeroEqs();
+}
+
+
 bool SPRMatrix::assemble (const Matrix& eM, const SAM& sam, int e)
 {
   return this->assemble(e,eM,sam);
@@ -450,10 +531,11 @@ bool SPRMatrix::assemble (const Matrix&, const SAM&,
   return false;
 }
 
+
 bool SPRMatrix::assemble (const Matrix&, const IntVec&)
 {
-  std::cerr <<"SPRMatrix::assemble(const Matrix&,const IntVec&): Not implemented."
-            << std::endl;
+  std::cerr <<"SPRMatrix::assemble(const Matrix&,const IntVec&):"
+            <<" Not implemented."<< std::endl;
   return false;
 }
 
@@ -462,9 +544,9 @@ bool SPRMatrix::assemble (int e, const Matrix& eM, const SAM& sam, Real* B)
 {
 #ifdef HAS_SPR
 #ifdef USE_OPENMP
-  std::vector<Int_>& IWORK = jWork[omp_in_parallel() ? omp_get_thread_num() : 0];
+  Int_Vec& IWORK = jWork[omp_in_parallel() ? omp_get_thread_num() : 0];
 #else
-  std::vector<Int_>& IWORK = *jWork;
+  Int_Vec& IWORK = *jWork;
 #endif
   IWORK.resize(mpar[38]);
   spradm_(eM.ptr(), sam.ttcc, mySam->mpar, mpar, mySam->madof, mySam->meqn,
