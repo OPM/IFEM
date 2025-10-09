@@ -19,6 +19,7 @@ set(IFEM_USE_SPR @IFEM_USE_SPR@)
 set(IFEM_PATH @IFEM_PATH@)
 
 list(APPEND CMAKE_MODULE_PATH ${IFEM_PATH}/cmake ${IFEM_PATH}/cmake/Modules)
+include(IFEMBuildTypes)
 include(IFEMSetupVariables)
 include(IFEMFindDependencies)
 include(IFEMLTO)
