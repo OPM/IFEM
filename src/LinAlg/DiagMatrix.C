@@ -52,6 +52,10 @@ void DiagMatrix::dump (std::ostream& os, LinAlg::StorageFormat format,
     case LinAlg::FLAT:
       if (label) os << label <<" =";
       os << myMat;
+      break;
+
+    default:
+      break;
   }
 }
 

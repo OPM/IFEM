@@ -362,6 +362,8 @@ void SparseMatrix::dump (std::ostream& os, LinAlg::StorageFormat format,
       if (label) os << label <<" = [\n";
       this->write(os);
       if (label) os <<"]\n";
+
+    default:
       return;
     }
 

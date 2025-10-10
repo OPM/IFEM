@@ -358,7 +358,7 @@ public:
   virtual void dump(const char* fileName, std::streamsize precision = 0,
                     LinAlg::StorageFormat format = LinAlg::FLAT);
   //! \brief Loads the system matrix from specified file.
-  virtual bool load(const char*) { return false; }
+  virtual bool load(const char*, bool = false) { return false; }
 
   //! \brief Calculates a matrix-vector product.
   StdVector operator*(const SystemVector& b) const;

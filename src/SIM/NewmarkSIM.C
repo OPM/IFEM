@@ -45,7 +45,9 @@ NewmarkSIM::NewmarkSIM (SIMbase& sim) : MultiStepSIM(sim)
   divgLim = 10.0;
   saveIts = 0;
 
-  write_factor = read_factor = false;
+  // Factorized Newton matrix storage options
+  read_factor = write_factor = false;
+  fmt = LinAlg::FLAT;
 }
 
 
@@ -57,6 +59,9 @@ bool NewmarkSIM::parse (const tinyxml2::XMLElement* elem)
     if (child && child->FirstChild())
     {
       factor_file = child->FirstChild()->Value();
+      std::string format;
+      if (utl::getAttribute(child,"format",format,true) && format == "binary")
+        fmt = LinAlg::BINARY;
       if (!utl::getAttribute(child,"write",write_factor) || !write_factor)
         read_factor = true;
     }
@@ -383,9 +388,11 @@ SIM::ConvStatus NewmarkSIM::solveStep (TimeStep& param, SIM::SolutionMode,
 
   if (param.time.first && read_factor)
   {
+    PROFILE1("Read factorized Nmat");
     IFEM::cout <<"   * Reading factorized Newton matrix from file "
                << factor_file << std::endl;
-    if (!model.getLHSmatrix()->load(factor_file.c_str()))
+    if (!model.getLHSmatrix()->load(factor_file.c_str(),
+                                    fmt == LinAlg::BINARY))
       return SIM::FAILURE;
   }
 
@@ -407,9 +414,10 @@ SIM::ConvStatus NewmarkSIM::solveStep (TimeStep& param, SIM::SolutionMode,
 
   if (write_factor && newTangent)
   {
+    PROFILE1("Write factorized Nmat");
     IFEM::cout <<"   * Writing factorized Newton matrix to file "
                << factor_file << std::endl;
-    model.getLHSmatrix()->dump(factor_file.c_str(),15);
+    model.getLHSmatrix()->dump(factor_file.c_str(),15,fmt);
     write_factor = false;
   }
 

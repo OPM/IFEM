@@ -189,7 +189,7 @@ public:
   virtual Real Linfnorm() const { return myMat.normInf(); }
 
   //! \brief Loads the system matrix from specified file.
-  virtual bool load(const char* fileName);
+  virtual bool load(const char* fileName, bool binary);
 
 protected:
   //! \brief Augments a dense matrix symmetrically to the current matrix.

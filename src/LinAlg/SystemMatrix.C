@@ -93,6 +93,10 @@ void StdVector::dump (const utl::vector<Real>& x, const char* label,
       if (label)
         os << label <<" =";
       os << x;
+      break;
+
+    default:
+      break;
     }
 }
 
@@ -256,8 +260,16 @@ StdVector SystemMatrix::operator/ (const SystemVector& b)
 void SystemMatrix::dump (const char* fileName, std::streamsize precision,
                          LinAlg::StorageFormat format)
 {
-  std::ofstream fs(fileName);
-  if (precision > 0)
-    fs.precision(precision);
-  this->dump(fs,format);
+  if (format == LinAlg::BINARY)
+  {
+    std::ofstream fs(fileName,std::ofstream::binary);
+    this->dump(fs,format);
+  }
+  else
+  {
+    std::ofstream fs(fileName);
+    if (precision > 0)
+      fs.precision(precision);
+    this->dump(fs,format);
+  }
 }

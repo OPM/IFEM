@@ -428,51 +428,65 @@ void SPRMatrix::init ()
 }
 
 
-void SPRMatrix::dump (std::ostream& os, LinAlg::StorageFormat, const char*)
+void SPRMatrix::dump (std::ostream& os, LinAlg::StorageFormat fmt, const char*)
 {
-  os << mpar[0];
-  for (int i = 1; i < NS; i++)
-    os <<' '<< mpar[i];
-
-  if (msica && mpar[1] > 0)
+  if (fmt == LinAlg::BINARY)
   {
-    os <<'\n'<< msica[0];
-    for (int i = 1; i < mpar[1]; i++)
-      os <<' '<< msica[i];
+    os.write("#binary:",8);
+    os.write((const char*)mpar,sizeof(mpar));
+    os.write((const char*)msica,mpar[1]*sizeof(Int_));
+    os.write((const char*)msifa,mpar[2]*sizeof(Int_));
+    os.write((const char*)mtrees,mpar[35]*sizeof(Int_));
+    os.write((const char*)mvarnc,2*mpar[7]*sizeof(Int_));
+    os.write((const char*)values,(mpar[7]+mpar[15])*sizeof(Real));
   }
-
-  if (msifa && mpar[2] > 0)
+  else
   {
-    os <<'\n'<< msifa[0];
-    for (int i = 1; i < mpar[2]; i++)
-      os <<' '<< msifa[i];
+    os << mpar[0];
+    for (int i = 1; i < NS; i++)
+      os <<' '<< mpar[i];
+
+    if (msica && mpar[1] > 0)
+    {
+      os <<'\n'<< msica[0];
+      for (int i = 1; i < mpar[1]; i++)
+        os <<' '<< msica[i];
+    }
+
+    if (msifa && mpar[2] > 0)
+    {
+      os <<'\n'<< msifa[0];
+      for (int i = 1; i < mpar[2]; i++)
+        os <<' '<< msifa[i];
+    }
+
+    if (mtrees && mpar[35] > 0)
+    {
+      os <<'\n'<< mtrees[0];
+      for (int i = 1; i < mpar[35]; i++)
+        os <<' '<< mtrees[i];
+    }
+
+    if (mvarnc && mpar[7] > 0)
+    {
+      os <<'\n'<< mvarnc[0];
+      for (int i = 1; i < 2*mpar[7]; i++)
+        os <<' '<< mvarnc[i];
+    }
+
+    if (values && mpar[7]+mpar[15] > 0)
+      for (int i = 0; i < mpar[7]+mpar[15]; i++)
+        os << (i%100 ? ' ' : '\n') << values[i];
+
+    os << std::endl;
   }
-
-  if (mtrees && mpar[35] > 0)
-  {
-    os <<'\n'<< mtrees[0];
-    for (int i = 1; i < mpar[35]; i++)
-      os <<' '<< mtrees[i];
-  }
-
-  if (mvarnc && mpar[7] > 0)
-  {
-    os <<'\n'<< mvarnc[0];
-    for (int i = 1; i < 2*mpar[7]; i++)
-      os <<' '<< mvarnc[i];
-  }
-
-  if (values && mpar[7]+mpar[15] > 0)
-    for (int i = 0; i < mpar[7]+mpar[15]; i++)
-      os << (i%100 ? ' ' : '\n') << values[i];
-
-  os << std::endl;
 }
 
 
-bool SPRMatrix::load (const char* fileName)
+bool SPRMatrix::load (const char* fileName, bool binary)
 {
-  std::ifstream is(fileName);
+  std::ifstream is(fileName,
+                   binary ? std::ifstream::binary : std::ifstream::in);
   if (!is)
   {
     std::cerr <<" *** SPRMatrix::load: Failed to read file "<< fileName
@@ -480,28 +494,52 @@ bool SPRMatrix::load (const char* fileName)
     return false;
   }
 
-  for (int i = 0; i < NS && is; i++)
-    is >> mpar[i];
+  if (binary)
+  {
+    if (char header[8]; !is.read(header,8) || strncmp(header,"#binary:",8))
+    {
+      std::cerr <<" *** SPRMatrix::load: Invalid binary matrix file "
+                << fileName <<" ("<< std::string(header,8)
+                <<")."<< std::endl;
+      return false;
+    }
+    is.read((char*)mpar,sizeof(mpar));
+    if (msica)
+      is.read((char*)msica,mpar[1]*sizeof(Int_));
+    if (msifa)
+      is.read((char*)msifa,mpar[2]*sizeof(Int_));
+    if (mtrees)
+      is.read((char*)mtrees,mpar[35]*sizeof(Int_));
+    if (mvarnc)
+      is.read((char*)mvarnc,2*mpar[7]*sizeof(Int_));
+    if (values)
+      is.read((char*)values,(mpar[7]+mpar[15])*sizeof(Real));
+  }
+  else
+  {
+    for (int i = 0; i < NS && is; i++)
+      is >> mpar[i];
 
-  if (msica)
-    for (int i = 0; i < mpar[1] && is; i++)
-      is >> msica[i];
+    if (msica)
+      for (int i = 0; i < mpar[1] && is; i++)
+        is >> msica[i];
 
-  if (msifa)
-    for (int i = 0; i < mpar[2] && is; i++)
-      is >> msifa[i];
+    if (msifa)
+      for (int i = 0; i < mpar[2] && is; i++)
+        is >> msifa[i];
 
-  if (mtrees)
-    for (int i = 0; i < mpar[35] && is; i++)
-      is >> mtrees[i];
+    if (mtrees)
+      for (int i = 0; i < mpar[35] && is; i++)
+        is >> mtrees[i];
 
-  if (mvarnc)
-    for (int i = 0; i < 2*mpar[7] && is; i++)
-      is >> mvarnc[i];
+    if (mvarnc)
+      for (int i = 0; i < 2*mpar[7] && is; i++)
+        is >> mvarnc[i];
 
-  if (values)
-    for (int i = 0; i < mpar[7]+mpar[15] && is; i++)
-      is >> values[i];
+    if (values)
+      for (int i = 0; i < mpar[7]+mpar[15] && is; i++)
+        is >> values[i];
+  }
 
   return is.good() && this->flagNonZeroEqs();
 }

@@ -132,27 +132,62 @@ void DenseMatrix::dump (std::ostream& os, LinAlg::StorageFormat format,
       }
       os << std::endl;
       break;
+
+    case LinAlg::BINARY:
+      if (os.write("#binary:",8))
+      {
+        size_t head[3] = { myMat.rows(), myMat.cols(),
+                           size_t(ipiv ? (symm ? 2 : 1) : 0) };
+        os.write((const char*)head,sizeof(head));
+        os.write((const char*)myMat.ptr(),myMat.size()*sizeof(Real));
+        if (ipiv && !symm)
+          os.write((const char*)ipiv,myMat.rows()*sizeof(int));
+      }
+      break;
   }
 }
 
 
-bool DenseMatrix::load (const char* fileName)
+bool DenseMatrix::load (const char* fileName, bool binary)
 {
-  std::ifstream is(fileName);
+  std::ifstream is(fileName,
+                   binary ? std::ifstream::binary : std::ifstream::in);
 
-  // Assuming the FLAT format for now
+  // Assuming either BINARY or FLAT format for now
   char header[128];
-  if (!is.getline(header,128))
+  if (binary)
+    is.read(header,8);
+  else
+    is.getline(header,128);
+  if (!is)
   {
     std::cerr <<" *** DenseMatrix::load: Failed to read file "<< fileName
               << std::endl;
     return false;
   }
+  else if (binary && strncmp(header,"#binary:",8))
+  {
+    std::cerr <<" *** DenseMatrix::load: Invalid binary matrix file "
+              << fileName <<" ("<< std::string(header,8)
+              <<")."<< std::endl;
+    return false;
+  }
 
-  char* cdim = strstr(header,"=");
-  std::stringstream sdim(cdim ? cdim : header);
-  size_t nrow, ncol, iflag;
-  sdim >> nrow >> ncol >> iflag;
+  size_t nrow, ncol, flag;
+  if (binary)
+  {
+    size_t head[3];
+    is.read((char*)head,sizeof(head));
+    nrow = head[0];
+    ncol = head[1];
+    flag = head[2];
+  }
+  else
+  {
+    char* cdim = strstr(header,"=");
+    std::stringstream sdim(cdim ? cdim : header);
+    sdim >> nrow >> ncol >> flag;
+  }
   if (nrow != myMat.rows() || ncol != myMat.cols())
   {
     std::cerr <<" *** DenseMatrix::load: Invalid matrix file "<< fileName
@@ -163,18 +198,24 @@ bool DenseMatrix::load (const char* fileName)
     return false;
   }
 
-  for (size_t i = 1; i <= nrow && is; i++)
-    for (size_t j = 1; j <= ncol && is; j++)
-      is >> myMat(i,j);
+  if (binary)
+    is.read((char*)myMat.ptr(),nrow*ncol*sizeof(Real));
+  else
+    for (size_t i = 1; i <= nrow && is; i++)
+      for (size_t j = 1; j <= ncol && is; j++)
+        is >> myMat(i,j);
 
   delete[] ipiv;
-  if (iflag == 1)
+  if (flag == 1)
   {
     ipiv = new int[nrow];
-    for (size_t i = 0; i < nrow && is; i++)
-      is >> ipiv[i];
+    if (binary)
+      is.read((char*)ipiv,nrow*sizeof(int));
+    else
+      for (size_t i = 0; i < nrow && is; i++)
+        is >> ipiv[i];
   }
-  else if (iflag == 2)
+  else if (flag == 2)
   {
     ipiv = new int[1];
     symm = true;

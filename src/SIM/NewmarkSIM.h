@@ -121,9 +121,10 @@ protected:
 
   unsigned short int cNorm; //!< Option for which convergence norm to use
 
-  std::string factor_file; //!< File for storage of factorized Newton matrix
-  bool write_factor;       //!< If \e true, write new factorized Newton matrix
-  bool read_factor;        //!< If \e true, read factorized Newton matrix
+  std::string factor_file;   //!< File for storage of factorized Newton matrix
+  bool write_factor;         //!< If \e true, write new factorized Newton matrix
+  bool read_factor;          //!< If \e true, read factorized Newton matrix
+  LinAlg::StorageFormat fmt; //!< Factorized Newton matrix storage format
 
 public:
   static const char* inputContext; //!< Input file context for solver parameters

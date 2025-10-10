@@ -136,9 +136,9 @@ public:
   bool convert(Matrix& fullMat) const;
 
   //! \brief Dumps the system matrix on a specified format.
-  virtual void dump(std::ostream& os, LinAlg::StorageFormat, const char*);
+  virtual void dump(std::ostream& os, LinAlg::StorageFormat fmt, const char*);
   //! \brief Loads the system matrix from specified file.
-  virtual bool load(const char* fileName);
+  virtual bool load(const char* fileName, bool binary);
 
 protected:
   //! \brief Adds an element matrix into the associated system matrix.
