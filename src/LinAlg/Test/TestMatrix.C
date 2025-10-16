@@ -155,6 +155,14 @@ TEST_CASE("TestMatrix.SumCols")
   REQUIRE(a.sum(-1) == 15);
   REQUIRE(a.sum(-2) == 40);
   REQUIRE(a.sum(-3) == 65);
+
+  int fasit = 15;
+  for (size_t i = 1; i <= a.cols(); i++, fasit += 25)
+    REQUIRE(a.colsum(i) == fasit);
+
+  fasit = 18;
+  for (size_t i = 1; i <= a.rows(); i++, fasit += a.cols())
+    REQUIRE(a.rowsum(i) == fasit);
 }
 
 

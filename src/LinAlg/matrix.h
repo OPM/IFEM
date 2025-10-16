@@ -256,13 +256,16 @@ namespace utl //! General utility classes and functions.
     //! \brief Return the sum of the vector elements.
     //! \param[in] off Index offset relative to the first vector component
     //! \param[in] inc Increment in the vector component indices
-    T sum(size_t off = 0, int inc = 1) const
+    //! \param[in] max Index after last vector component to sum
+    T sum(size_t off = 0, int inc = 1, size_t max = 0) const
     {
       T xsum = T(0);
       if (inc < 1 || myVec.empty())
         return xsum;
 
-      for (size_t i = off; i < myVec.size(); i += inc)
+      if (max == 0 || max > myVec.size())
+        max = myVec.size();
+      for (size_t i = off; i < max; i += inc)
         xsum += myVec[i];
       return xsum;
     }
@@ -427,14 +430,10 @@ namespace utl //! General utility classes and functions.
     {
       if (inc > 0)
         return elem.sum(0,inc);
-      else if (inc == 0 || -inc > static_cast<int>(n[1]))
+      else if (inc == 0 || (inc *= -1) > static_cast<int>(n[1]))
         return T(0);
-
-      T colsum = T(0);
-      size_t ofs = n[0]*(-inc-1);
-      for (size_t i = 0; i < n[0]; i++, ofs++)
-        colsum += elem[ofs];
-      return colsum;
+      else
+        return elem.sum((inc-1)*n[0],1,inc*n[0]);
     }
 
   protected:
@@ -735,6 +734,10 @@ namespace utl //! General utility classes and functions.
 
     //! \brief Return the trace of the matrix (sum of its diagonal elements).
     T trace() const { return this->elem.sum(0,nrow+1); }
+    //! \brief Return the sum of a matrix row.
+    T rowsum(size_t r) const { return this->elem.sum(r-1,nrow); }
+    //! \brief Return the sum of a matrix column.
+    T colsum(size_t c) const { return this->elem.sum(nrow*(c-1),1,nrow*c); }
 
 #define THIS(i,j) this->operator()(i,j)
 
