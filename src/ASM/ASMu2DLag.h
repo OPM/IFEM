@@ -108,13 +108,20 @@ public:
   //! \return Element set index associated with \a setName
   int addToElemSet(const std::string& setName, int iel, bool extId = false);
 
-public:
   //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
   //! \param[in] lIndex Local index of the boundary node set
   //! \param nodes Array of node numbers
   //! \param[in] local If \e true, return patch-local numbers
   virtual void getBoundaryNodes(int lIndex, IntVec& nodes,
                                 int, int, int, bool local) const;
+
+  using ASMs2DLag::integrate;
+  //! \brief Evaluates an integral over the interior patch domain.
+  //! \param integrand Object with problem-specific data and methods
+  //! \param glbInt The integrated quantity
+  //! \param[in] time Parameters for nonlinear/time-dependent simulations
+  virtual bool integrate(Integrand& integrand,
+                         GlobalIntegral& glbInt, const TimeDomain& time);
 
   using ASMs2DLag::generateThreadGroups;
   //! \brief Generates element groups for multi-threading of interior integrals.

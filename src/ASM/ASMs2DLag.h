@@ -158,6 +158,15 @@ protected:
   int findElement(double u, double v,
                   double* xi = nullptr, double* eta = nullptr) const;
 
+  //! \brief Evaluates an integral over an interior element domain.
+  //! \param integrand Object with problem-specific data and methods
+  //! \param glbInt The integrated quantity
+  //! \param[in] iel Element index
+  //! \param cache Basis function cache associated with the element
+  //! \param[in] time Parameters for nonlinear/time-dependent simulations
+  bool integrateElm(Integrand& integrand, GlobalIntegral& glbInt, int iel,
+                    ASMs2D::BasisFunctionCache& cache, const TimeDomain& time);
+
 public:
   //! \brief Updates the nodal coordinates for this patch.
   //! \param[in] displ Incremental displacements to update the coordinates with

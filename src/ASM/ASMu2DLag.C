@@ -13,11 +13,17 @@
 
 #include "ASMu2DLag.h"
 #include "ElementBlock.h"
+#include "GlobalIntegral.h"
+#include "Integrand.h"
 #include "Utilities.h"
 #include "Vec3Oper.h"
 #include "IFEM.h"
 #include <numeric>
 #include <sstream>
+
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
 
 
 ASMu2DLag::ASMu2DLag (unsigned char n_s,
@@ -350,16 +356,13 @@ int ASMu2DLag::parseElemBox (const std::string& setName,
     if (iuSet > 0 && !this->isInElementSet(iuSet,1+iel))
       return false; // Filter out all elements not in the set unionSet
 
-    double nelnod = MNPC[iel].size();
+    Vec3 XC = std::accumulate(MNPC[iel].begin(), MNPC[iel].end(), Vec3(),
+                              [&c = coord](const Vec3& X, int inod)
+                              { return X + c[inod]; }) / MNPC[iel].size();
     for (size_t j = 0; j < nsd; j++)
-    {
-      double X = 0.0;
-      for (int inod : MNPC[iel])
-        X += coord[inod][j];
-      X /= nelnod;
-      if (X < X0[j] || X > X1[j])
+      if (XC[j] < X0[j] || XC[j] > X1[j])
         return false;
-    }
+
     return true;
   };
 
@@ -429,8 +432,53 @@ void ASMu2DLag::getBoundaryNodes (int lIndex, IntVec& nodes,
 
 void ASMu2DLag::generateThreadGroups (const Integrand&, bool, bool)
 {
-  // TODO: Add some coloring scheme later
-  threadGroups.oneGroup(nel);
+#ifdef USE_OPENMP
+  if (omp_get_max_threads() > 1 && threadGroups.stripDir != ThreadGroups::NONE)
+  {
+    // Set up the node-to-element connectivity
+    using IntSet = std::set<int>;
+    std::vector<IntSet> nodeConn(nnod);
+    for (size_t iel = 0; iel < nel; iel++)
+      for (int node : MNPC[iel])
+        nodeConn[node].insert(iel);
+
+    // -1 is unusable for current color, 0 is available,
+    // any other value is the assigned color
+
+    IntVec status(nel,0); // status vector for elements:
+    size_t fixedElements = 0;
+    threadGroups[1].clear();
+    threadGroups[0].clear();
+
+    for (size_t nColors = 0; fixedElements < nel; ++nColors)
+    {
+      // Reset un-assigned element tags
+      std::for_each(status.begin(), status.end(),
+                    [](int& s) { if (s < 0) s = 0; });
+
+      // Look for available elements
+      IntVec thisColor;
+      for (size_t i = 0; i < nel; ++i)
+        if (status[i] == 0)
+        {
+          status[i] = nColors + 1;
+          thisColor.push_back(i);
+          ++fixedElements;
+
+          for (int node : MNPC[i])
+            for (int j : nodeConn[node])
+              if (status[j] == 0) // if not assigned a color yet
+                status[j] = -1;   // set as unavailable (with current color)
+        }
+
+      threadGroups[0].push_back(thisColor);
+    }
+
+    threadGroups.analyzeUnstruct();
+    return;
+  }
+#endif
+  threadGroups.oneGroup(nel); // No threading, all elements in one group
 }
 
 
@@ -462,4 +510,40 @@ bool ASMu2DLag::tesselate (ElementBlock& grid, const int*) const
     }
 
   return true;
+}
+
+
+bool ASMu2DLag::integrate (Integrand& integrand,
+                           GlobalIntegral& glInt,
+                           const TimeDomain& time)
+{
+  if (this->empty()) return true; // silently ignore empty patches
+  if (!myElms.empty() && myElms.front() == -1) return true;
+
+  if (myCache.empty())
+    myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this));
+  ASMs2D::BasisFunctionCache& cache = *myCache.front();
+
+  cache.setIntegrand(&integrand);
+  cache.init(integrand.getIntegrandType() & Integrand::NO_DERIVATIVES ? 0 : 1);
+
+  ThreadGroups oneGroup;
+  if (glInt.threadSafe())
+    oneGroup.oneStripe(nel, myElms);
+  const IntMat& group = glInt.threadSafe() ? oneGroup[0] : threadGroups[0];
+
+
+  // === Assembly loop over all elements in the patch ==========================
+
+  bool ok = true;
+  for (size_t t = 0; t < group.size() && ok; t++)
+#pragma omp parallel for schedule(static)
+    for (int iel : group[t])
+      if (ok)
+        ok = this->integrateElm(integrand,glInt,iel,cache,time);
+
+  if (ASM::cachePolicy == ASM::PRE_CACHE)
+    cache.clear();
+
+  return ok;
 }

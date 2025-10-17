@@ -297,19 +297,52 @@ size_t ASMs2DLag::getNoBoundaryElms (char lIndex, char ldim) const
 }
 
 
-bool ASMs2DLag::integrate (Integrand& integrand,
-                           GlobalIntegral& glInt,
-                           const TimeDomain& time)
+bool ASMs2DLag::integrateElm (Integrand& integrand, GlobalIntegral& glInt,
+                              int iel, ASMs2D::BasisFunctionCache& cache,
+                              const TimeDomain& time)
 {
-  if (this->empty()) return true; // silently ignore empty patches
-  if (!myElms.empty() && myElms.front() == -1) return true;
+  if (iel < 0 || iel >= static_cast<int>(nel))
+  {
+    std::cerr <<" *** ASMs2DLag::integrateElm: Element index "<< iel
+              <<" out of range [0,"<< nel <<">."<< std::endl;
+    return false;
+  }
 
-  if (myCache.empty())
-    myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this));
+  if (!this->isElementActive(MLGE[iel]))
+    return true; // zero-area or de-activated element, silently ignore
 
-  ASMs2D::BasisFunctionCache& cache = *myCache.front();
-  cache.setIntegrand(&integrand);
-  cache.init(integrand.getIntegrandType() & Integrand::NO_DERIVATIVES ? 0 : 1);
+  FiniteElement fe;
+  Matrix Def, Vel;
+  Vec4 X(nullptr,time.t);
+
+  // Set up nodal point coordinates for current element
+  this->getElementCoordinates(fe.Xn,1+iel);
+  const size_t nen = fe.Xn.cols();
+
+  // Compute the element center (average of element node coordinates) if needed
+  if (integrand.getIntegrandType() & Integrand::ELEMENT_CENTER)
+    for (size_t i = 1; i <= nsd; i++)
+      X[i-1] = fe.Xn.rowsum(i) / static_cast<double>(nen);
+
+  // Initialize element quantities
+  fe.iel = MLGE[iel];
+  fe.idx = firstEl + iel;
+  LocalIntegral* A = integrand.getLocalIntegral(nen,fe.iel);
+  const int nRed = nen < 4 ? 0 : cache.nGauss(true).front();
+  if (!integrand.initElement(MNPC[iel],fe,X,nRed*nRed,*A))
+  {
+    std::cerr <<" *** ASMs2DLag::integrateElm: Failed to initialize element "
+              << iel <<" "<< fe.iel << std::endl;
+    A->destruct();
+    return false;
+  }
+
+  const bool dynamics = integrand.getMode(true) == SIM::DYNAMIC;
+
+  // Evaluate the primary solution at the element nodes if needed
+  if (integrand.getIntegrandType() & Integrand::POINT_DEFORMATION)
+    if (!time.first || time.it > 0)
+      A->getSolution(nsd, nen, &Def, dynamics ? &Vel : nullptr);
 
   // Get Gaussian quadrature points and weights
   const std::array<const double*,2>& xg = cache.coord();
@@ -319,180 +352,147 @@ bool ASMs2DLag::integrate (Integrand& integrand,
   const double* xr = cache.coord(true)[0];
   const double* wr = cache.weight(true)[0];
 
-  const bool dynamics = integrand.getMode(true) == SIM::DYNAMIC;
-
   // Number of elements in first parameter direction
   const int nelx = (nx-1)/(p1-1);
+  // Structured element indices (always zero for unstructured grids)
+  const int iel1 = nelx > 0 ? iel % nelx : 0;
+  const int iel2 = nelx > 0 ? iel / nelx : 0;
+
+  bool ok = true;
+
+
+  if (xr && wr)
+  {
+    // --- Selective reduced integration loop ----------------------------------
+
+    size_t ip = 0;
+    for (int j = 0; j < nRed; j++)
+      for (int i = 0; i < nRed; i++, ++ip)
+      {
+        // Local element coordinates of current integration point
+        fe.xi  = xr[i];
+        fe.eta = xr[j];
+
+        // Parameter value of current integration point
+        fe.u = cache.getParam(0,iel1,i,true);
+        fe.v = cache.getParam(1,iel2,j,true);
+
+        if (integrand.getIntegrandType() & Integrand::NO_DERIVATIVES)
+          fe.N = cache.getVals(iel,ip,true).N;
+        else
+        {
+          const BasisFunctionVals& bfs = cache.getVals(iel,ip,true);
+          fe.N = bfs.N;
+
+          // Compute Jacobian inverse and derivatives
+          fe.detJxW = utl::Jacobian(fe.G,fe.dNdX,fe.Xn,bfs.dNdu);
+          if (fe.detJxW == 0.0) continue; // skip singular points
+
+          // Compute the deformed surface tangent vectors for shells
+          if (nsd > 2 && !Def.empty()) // fe.G += Def * dNdu
+            fe.G.multiply(Def,bfs.dNdu,false,false,true);
+        }
+
+        // Cartesian coordinates of current integration point
+        X.assign(fe.Xn * fe.N);
+        if (!Def.empty()) integrand.setParam("u", Def * fe.N);
+        if (!Vel.empty()) integrand.setParam("v", Vel * fe.N);
+
+        // Compute the reduced integration terms of the integrand
+        fe.detJxW *= wr[i]*wr[j];
+        ok &= integrand.reducedInt(*A,fe,X);
+      }
+  }
+
+
+  // --- Integration loop over all Gauss points in each direction --------------
+
+  const int ng1 = nen < 4 ? 0 : cache.nGauss().front();
+  const int ng2 = nen < 4 ? 0 : cache.nGauss().back();
+
+  size_t ip = 0;
+  int jp = iel*ng1*ng2;
+  fe.iGP = firstIp + jp; // Global integration point counter
+
+  for (int j = 0; j < ng2; j++)
+    for (int i = 0; i < ng1; i++, fe.iGP++, ++ip)
+    {
+      // Local element coordinates of current integration point
+      fe.xi  = xg[0][i];
+      fe.eta = xg[1][j];
+
+      // Parameter value of current integration point
+      fe.u = cache.getParam(0,iel1,i);
+      fe.v = cache.getParam(1,iel2,j);
+
+      if (integrand.getIntegrandType() & Integrand::NO_DERIVATIVES)
+	fe.N = cache.getVals(iel,ip).N;
+      else
+      {
+        const BasisFunctionVals& bfs = cache.getVals(iel,ip);
+        fe.N = bfs.N;
+
+        // Compute Jacobian inverse of coordinate mapping + derivatives
+        fe.detJxW = utl::Jacobian(fe.G,fe.dNdX,fe.Xn,bfs.dNdu);
+        if (fe.detJxW == 0.0) continue; // skip singular points
+
+        // Compute the deformed surface tangent vectors for shells
+        if (nsd > 2 && !Def.empty()) // fe.G += Def * dNdu
+          fe.G.multiply(Def,bfs.dNdu,false,false,true);
+      }
+
+      // Cartesian coordinates of current integration point
+      X.assign(fe.Xn * fe.N);
+      if (!Def.empty()) integrand.setParam("u", Def * fe.N);
+      if (!Vel.empty()) integrand.setParam("v", Vel * fe.N);
+
+      // Evaluate the integrand and accumulate element contributions
+      fe.detJxW *= wg[0][i]*wg[1][j];
+      ok &= integrand.evalInt(*A,fe,time,X);
+    }
+
+  // Finalize the element quantities
+  if (ok && !integrand.finalizeElement(*A,fe,time,firstIp+jp))
+    ok = false;
+
+  // Assembly of global system integral
+  if (ok && !glInt.assemble(A->ref(),fe.iel))
+    ok = false;
+
+  A->destruct();
+  return ok;
+}
+
+
+bool ASMs2DLag::integrate (Integrand& integrand,
+                           GlobalIntegral& glInt,
+                           const TimeDomain& time)
+{
+  if (this->empty()) return true; // silently ignore empty patches
+  if (!myElms.empty() && myElms.front() == -1) return true;
+
+  if (myCache.empty())
+    myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this));
+  ASMs2D::BasisFunctionCache& cache = *myCache.front();
+
+  cache.setIntegrand(&integrand);
+  cache.init(integrand.getIntegrandType() & Integrand::NO_DERIVATIVES ? 0 : 1);
 
   ThreadGroups oneGroup;
   if (glInt.threadSafe())
     oneGroup.oneStripe(nel, myElms);
   const ThreadGroups& groups = glInt.threadSafe() ? oneGroup : threadGroups;
 
+
   // === Assembly loop over all elements in the patch ==========================
 
   bool ok = true;
   for (size_t g = 0; g < groups.size() && ok; g++)
-  {
 #pragma omp parallel for schedule(static)
     for (const IntVec& group : groups[g])
-    {
-      FiniteElement fe;
-      Matrix Def, Vel;
-      Vec4 X(nullptr,time.t);
-      for (size_t e = 0; e < group.size() && ok; e++)
-      {
-        int iel = group[e];
-        if (iel < 0 || iel >= static_cast<int>(nel))
-        {
-          std::cerr <<" *** ASMs2DLag::integrate: Element index "<< iel
-                    <<" out of range [0,"<< nel <<">."<< std::endl;
-          ok = false;
+      for (int iel : group)
+        if (!(ok = this->integrateElm(integrand,glInt,iel,cache,time)))
           break;
-        }
-
-        fe.idx = firstEl + iel;
-        fe.iel = MLGE[iel];
-        if (!this->isElementActive(fe.iel))
-          continue; // zero-area element
-
-        // Set up nodal point coordinates for current element
-        this->getElementCoordinates(fe.Xn,1+iel);
-
-        if (integrand.getIntegrandType() & Integrand::ELEMENT_CENTER)
-        {
-          // Compute the element "center" (average of element node coordinates)
-          X = 0.0;
-          for (size_t i = 1; i <= nsd; i++)
-            for (size_t j = 1; j <= fe.Xn.cols(); j++)
-              X[i-1] += fe.Xn(i,j);
-
-          X *= 1.0 / static_cast<double>(fe.Xn.cols());
-        }
-
-        // Initialize element quantities
-        LocalIntegral* A = integrand.getLocalIntegral(fe.Xn.cols(),fe.iel);
-        const int nRed = fe.Xn.cols() < 4 ? 0 : cache.nGauss(true).front();
-        if (!integrand.initElement(MNPC[iel],fe,X,nRed*nRed,*A))
-        {
-          std::cerr <<" *** ASMs2DLag::integrate: Failed to initialize element "
-                    << iel <<" "<< fe.iel << std::endl;
-          A->destruct();
-          ok = false;
-          break;
-        }
-
-        if (integrand.getIntegrandType() & Integrand::POINT_DEFORMATION)
-          if (!time.first || time.it > 0)
-            A->getSolution(nsd, fe.Xn.cols(), &Def, dynamics ? &Vel : nullptr);
-
-        int i1 = nelx > 0 ? iel % nelx : 0;
-        int i2 = nelx > 0 ? iel / nelx : 0;
-
-        if (xr)
-        {
-          // --- Selective reduced integration loop ----------------------------
-
-          size_t ip = 0;
-          for (int j = 0; j < nRed; j++)
-            for (int i = 0; i < nRed; i++, ++ip)
-            {
-              // Local element coordinates of current integration point
-              fe.xi  = xr[i];
-              fe.eta = xr[j];
-
-              // Parameter value of current integration point
-              fe.u = cache.getParam(0,i1,i,true);
-              fe.v = cache.getParam(1,i2,j,true);
-
-              if (integrand.getIntegrandType() & Integrand::NO_DERIVATIVES)
-                fe.N = cache.getVals(iel,ip,true).N;
-              else
-              {
-                const BasisFunctionVals& bfs = cache.getVals(iel,ip,true);
-                fe.N = bfs.N;
-
-                // Compute Jacobian inverse and derivatives
-                fe.detJxW = utl::Jacobian(fe.G,fe.dNdX,fe.Xn,bfs.dNdu);
-                if (fe.detJxW == 0.0) continue; // skip singular points
-
-                // Compute the deformed surface tangent vectors for shells
-                if (nsd > 2 && !Def.empty()) // fe.G += Def * dNdu
-                  fe.G.multiply(Def,bfs.dNdu,false,false,true);
-              }
-
-              // Cartesian coordinates of current integration point
-              X.assign(fe.Xn * fe.N);
-              if (!Def.empty()) integrand.setParam("u", Def * fe.N);
-              if (!Vel.empty()) integrand.setParam("v", Vel * fe.N);
-
-              // Compute the reduced integration terms of the integrand
-              fe.detJxW *= wr[i]*wr[j];
-              if (!integrand.reducedInt(*A,fe,X))
-                ok = false;
-            }
-        }
-
-
-        // --- Integration loop over all Gauss points in each direction --------
-
-        const int ng1 = fe.Xn.cols() < 4 ? 0 : cache.nGauss().front();
-        const int ng2 = fe.Xn.cols() < 4 ? 0 : cache.nGauss().back();
-
-        size_t ip = 0;
-        int jp = iel*ng1*ng2;
-        fe.iGP = firstIp + jp; // Global integration point counter
-
-        for (int j = 0; j < ng2; j++)
-          for (int i = 0; i < ng1; i++, fe.iGP++, ++ip)
-          {
-            // Local element coordinates of current integration point
-            fe.xi  = xg[0][i];
-            fe.eta = xg[1][j];
-
-            // Parameter value of current integration point
-            fe.u = cache.getParam(0,i1,i);
-            fe.v = cache.getParam(1,i2,j);
-
-            if (integrand.getIntegrandType() & Integrand::NO_DERIVATIVES)
-              fe.N = cache.getVals(iel,ip).N;
-            else
-            {
-              const BasisFunctionVals& bfs = cache.getVals(iel,ip);
-              fe.N = bfs.N;
-
-              // Compute Jacobian inverse of coordinate mapping + derivatives
-              fe.detJxW = utl::Jacobian(fe.G,fe.dNdX,fe.Xn,bfs.dNdu);
-              if (fe.detJxW == 0.0) continue; // skip singular points
-
-              // Compute the deformed surface tangent vectors for shells
-              if (nsd > 2 && !Def.empty()) // fe.G += Def * dNdu
-                fe.G.multiply(Def,bfs.dNdu,false,false,true);
-            }
-
-            // Cartesian coordinates of current integration point
-            X.assign(fe.Xn * fe.N);
-            if (!Def.empty()) integrand.setParam("u", Def * fe.N);
-            if (!Vel.empty()) integrand.setParam("v", Vel * fe.N);
-
-            // Evaluate the integrand and accumulate element contributions
-            fe.detJxW *= wg[0][i]*wg[1][j];
-            if (!integrand.evalInt(*A,fe,time,X))
-              ok = false;
-          }
-
-        // Finalize the element quantities
-        if (ok && !integrand.finalizeElement(*A,fe,time,firstIp+jp))
-          ok = false;
-
-        // Assembly of global system integral
-        if (ok && !glInt.assemble(A->ref(),fe.iel))
-          ok = false;
-
-        A->destruct();
-      }
-    }
-  }
 
   if (ASM::cachePolicy == ASM::PRE_CACHE)
     cache.clear();
