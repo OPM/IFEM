@@ -16,17 +16,17 @@
 #include "Vec3.h"
 #include "Tensor.h"
 #include "expreval.h"
+#include <autodiff/reverse/var.hpp>
 #ifdef USE_OPENMP
 #include <omp.h>
 #endif
-
-#include <autodiff/reverse/var.hpp>
 
 
 template<> int EvalFuncScalar<Real>::numError = 0; //!< Explicit instantiation
 
 
-namespace {
+namespace
+{
 
 /*!
   Prints an error message with the exception occured to std::cerr.
@@ -179,6 +179,7 @@ std::pair<size_t,size_t> getNoDims<SymmTensor> (size_t psize)
   return {nsd, psize == 4 ? 4 : (nsd+1)*nsd/2};
 }
 
+
 /*!
   \brief Helper to obtain Voigt index.
 */
@@ -202,14 +203,15 @@ int voigtIdx (int d1, int d2)
 
 
 template<class Scalar>
-EvalFuncScalar<Scalar>::EvalFuncScalar (const char* function, const char* x, Real eps)
+EvalFuncScalar<Scalar>::EvalFuncScalar (const char* function,
+                                        const char* x, Real eps)
   : dx(eps)
 {
   try {
 #ifdef USE_OPENMP
-    size_t nalloc = omp_get_max_threads();
+    const size_t nalloc = omp_get_max_threads();
 #else
-    size_t nalloc = 1;
+    const size_t nalloc = 1;
 #endif
     expr.resize(nalloc);
     f.resize(nalloc);
@@ -240,7 +242,8 @@ EvalFuncScalar<Scalar>::~EvalFuncScalar () = default;
 
 
 template<class Scalar>
-void EvalFuncScalar<Scalar>::addDerivative (const std::string& function, const char* x)
+void EvalFuncScalar<Scalar>::addDerivative (const std::string& function,
+                                            const char* x)
 {
   if (!gradient)
     gradient = std::make_unique<FuncType>(function.c_str(),x);
@@ -251,12 +254,14 @@ template<class Scalar>
 Real EvalFuncScalar<Scalar>::evaluate (const Real& x) const
 {
   Real result = Real(0);
-  size_t i = 0;
 #ifdef USE_OPENMP
-  i = omp_get_thread_num();
+  const size_t i = omp_get_thread_num();
+#else
+  const size_t i = 0;
 #endif
   if (i >= arg.size())
     return result;
+
   try {
     *arg[i] = x;
     if constexpr (std::is_same_v<Scalar,Real>)
@@ -289,10 +294,14 @@ Real EvalFuncScalar<autodiff::var>::deriv (Real x) const
   if (gradient)
     return gradient->evaluate(x);
 
-  size_t i = 0;
 #ifdef USE_OPENMP
-  i = omp_get_thread_num();
+  const size_t i = omp_get_thread_num();
+#else
+  const size_t i = 0;
 #endif
+  if (i >= arg.size())
+    return Real(0);
+
   try {
     *arg[i] = x;
     return derivativesx(expr[i]->Evaluate(),
@@ -302,13 +311,13 @@ Real EvalFuncScalar<autodiff::var>::deriv (Real x) const
     ExprException(e,"evaluating expression");
   }
 
-  return 0.0;
+  return Real(0);
 }
 
 
 template<class Scalar>
-EvalFuncSpatial<Scalar>::
-EvalFuncSpatial (const char* function, Real epsX, Real epsT)
+EvalFuncSpatial<Scalar>::EvalFuncSpatial (const char* function,
+                                          Real epsX, Real epsT)
   : dx(epsX), dt(epsT)
 {
   try {
@@ -345,14 +354,15 @@ EvalFuncSpatial (const char* function, Real epsX, Real epsT)
     ExprException(e,"parsing",function);
   }
 
-  // Checking if the expression is time-independent
-  // by searching for the occurance of 't' where the next character is not a letter
+  // Check if the expression is time-independent by searching for
+  // the occurance of 't' where the next character is not a letter
   IAmConstant = true;
   std::string expr(function);
-  for (size_t i = expr.find_first_of('t'); IAmConstant; i = expr.find_first_of('t',i+1))
-    if (i >= expr.size())
-      return;
-    else if (i+1 == expr.size() || !isalpha(expr[i+1]))
+  size_t i = expr.find_first_of('t');
+  while (i < expr.size() && IAmConstant)
+    if (i+1 < expr.size() && isalpha(expr[i+1]))
+      i = expr.find_first_of('t',i+1);
+    else
       IAmConstant = false;
 }
 
@@ -362,18 +372,19 @@ EvalFuncSpatial<Scalar>::~EvalFuncSpatial () = default;
 
 
 template<class Scalar>
-void EvalFuncSpatial<Scalar>::
-addDerivative (const std::string& function,
-               const std::string& variables,
-               int d1, int d2)
+void EvalFuncSpatial<Scalar>::addDerivative (const std::string& function,
+                                             const std::string& variables,
+                                             int d1, int d2)
 {
-  if (d1 > 0 && d1 <= 4 && d2 < 1) // A first order derivative is specified
+  if (d1 > 0 && d1 <= 4 && d2 < 1)
   {
+    // A first order derivative is specified
     if (!derivative1[--d1])
       derivative1[d1] = std::make_unique<FuncType>((variables+function).c_str());
   }
-  else if ((d1 = voigtIdx(d1,d2)) >= 0) // A second order derivative is specified
+  else if ((d1 = voigtIdx(d1,d2)) >= 0)
   {
+    // A second order derivative is specified
     if (!derivative2[d1])
       derivative2[d1] = std::make_unique<FuncType>((variables+function).c_str());
   }
@@ -383,16 +394,17 @@ addDerivative (const std::string& function,
 template<class Scalar>
 Real EvalFuncSpatial<Scalar>::evaluate (const Vec3& X) const
 {
-  const Vec4* Xt = dynamic_cast<const Vec4*>(&X);
   Real result = Real(0);
-  try {
-    size_t i = 0;
 #ifdef USE_OPENMP
-    i = omp_get_thread_num();
+  const size_t i = omp_get_thread_num();
+#else
+  const size_t i = 0;
 #endif
-    if (i >= arg.size())
-      return result;
+  if (i >= arg.size())
+    return result;
 
+  try {
+    const Vec4* Xt = dynamic_cast<const Vec4*>(&X);
     *arg[i].x = X.x;
     *arg[i].y = X.y;
     *arg[i].z = X.z;
@@ -448,10 +460,13 @@ Real EvalFuncSpatial<autodiff::var>::deriv (const Vec3& X, int dir) const
   if (dir < 1 || dir > 4)
     return Real(0);
 
-  size_t i = 0;
 #ifdef USE_OPENMP
-  i = omp_get_thread_num();
+  const size_t i = omp_get_thread_num();
+#else
+  const size_t i = 0;
 #endif
+  if (i >= arg.size())
+    return Real(0);
 
   const Vec4* Xt = dynamic_cast<const Vec4*>(&X);
   *arg[i].x = X.x;
@@ -482,10 +497,13 @@ Real EvalFuncSpatial<autodiff::var>::dderiv (const Vec3& X, int d1, int d2) cons
       d2 < 1 || d2 > 3)
     return Real(0);
 
-  size_t i = 0;
 #ifdef USE_OPENMP
-  i = omp_get_thread_num();
+  const size_t i = omp_get_thread_num();
+#else
+  const size_t i = 0;
 #endif
+  if (i >= arg.size())
+    return Real(0);
 
   const Vec4* Xt = dynamic_cast<const Vec4*>(&X);
   *arg[i].x = X.x;
@@ -502,32 +520,37 @@ Real EvalFuncSpatial<autodiff::var>::dderiv (const Vec3& X, int d1, int d2) cons
 template<>
 Vec3 EvalFuncSpatial<autodiff::var>::gradient (const Vec3& X) const
 {
-  size_t i = 0;
 #ifdef USE_OPENMP
-  i = omp_get_thread_num();
+  const size_t i = omp_get_thread_num();
+#else
+  const size_t i = 0;
 #endif
+  if (i >= arg.size())
+    return Vec3();
 
   const Vec4* Xt = dynamic_cast<const Vec4*>(&X);
-  double t;
   *arg[i].x = X.x;
   *arg[i].y = X.y;
   *arg[i].z = X.z;
-  *arg[i].t = t = Xt ? Xt->t : Real(0);
+  *arg[i].t = Xt ? Xt->t : Real(0);
 
   const auto dx = derivativesx(expr[i]->Evaluate(),
                                autodiff::wrt(*arg[i].x, *arg[i].y, *arg[i].z));
 
-  return Vec4(dx[0].expr->val, dx[1].expr->val, dx[2].expr->val, t);
+  return Vec3(dx[0].expr->val, dx[1].expr->val, dx[2].expr->val);
 }
 
 
 template<>
 SymmTensor EvalFuncSpatial<autodiff::var>::hessian (const Vec3& X) const
 {
-  size_t i = 0;
 #ifdef USE_OPENMP
-  i = omp_get_thread_num();
+  const size_t i = omp_get_thread_num();
+#else
+  const size_t i = 0;
 #endif
+  if (i >= arg.size())
+    return SymmTensor(3);
 
   const Vec4* Xt = dynamic_cast<const Vec4*>(&X);
   *arg[i].x = X.x;
@@ -555,13 +578,22 @@ SymmTensor EvalFuncSpatial<autodiff::var>::hessian (const Vec3& X) const
 template<class Scalar>
 void EvalFuncSpatial<Scalar>::setParam (const std::string& name, double value)
 {
-  for (std::unique_ptr<ValueList>& v1 : v) {
-    Scalar* address = v1->GetAddress(name);
+  auto setVal = [&name,value](ValueList& v)
+  {
+    Scalar* address = v.GetAddress(name);
     if (!address)
-      v1->Add(name,value,false);
+      v.Add(name,value,false);
     else
       *address = value;
-  }
+  };
+
+#ifdef USE_OPENMP
+  if (omp_in_parallel())
+    setVal(*v[omp_get_thread_num()]);
+  else
+#endif
+    for (std::unique_ptr<ValueList>& v1 : v)
+      setVal(*v1);
 }
 
 
