@@ -430,27 +430,38 @@ void ASMu2DLag::getBoundaryNodes (int lIndex, IntVec& nodes,
 }
 
 
-void ASMu2DLag::generateThreadGroups (const Integrand&, bool, bool)
+void ASMu2DLag::generateThreadGroups (const Integrand&, bool,
+                                      bool separateGroup1noded)
 {
 #ifdef USE_OPENMP
   if (omp_get_max_threads() > 1 && threadGroups.stripDir != ThreadGroups::NONE)
   {
-    // Set up the node-to-element connectivity
-    using IntSet = std::set<int>;
-    std::vector<IntSet> nodeConn(nnod);
-    for (size_t iel = 0; iel < nel; iel++)
-      for (int node : MNPC[iel])
-        nodeConn[node].insert(iel);
-
-    // -1 is unusable for current color, 0 is available,
-    // any other value is the assigned color
-
-    IntVec status(nel,0); // status vector for elements:
-    size_t fixedElements = 0;
     threadGroups[1].clear();
     threadGroups[0].clear();
 
-    for (size_t nColors = 0; fixedElements < nel; ++nColors)
+    // Status vector for the elements:
+    // -1 is unusable for current color, 0 is available,
+    // any other value is the assigned color
+    IntVec status(nel,0);
+
+    using IntSet = std::set<int>;
+    std::vector<IntSet> nodeConn(nnod); // node-to-element connectivity
+
+    size_t fixedElements = 0;
+    for (size_t iel = 0; iel < nel; iel++)
+      if (separateGroup1noded && MNPC[iel].size() == 1)
+      {
+        status[iel] = 1; // Separate group for all single-noded elements
+        if (++fixedElements == 1)
+          threadGroups[0].resize(1, { static_cast<int>(iel) });
+        else
+          threadGroups[0].front().push_back(iel);
+      }
+      else
+        for (int node : MNPC[iel])
+          nodeConn[node].insert(iel);
+
+    for (size_t nColors = fixedElements > 0; fixedElements < nel; ++nColors)
     {
       // Reset un-assigned element tags
       std::for_each(status.begin(), status.end(),
@@ -471,10 +482,10 @@ void ASMu2DLag::generateThreadGroups (const Integrand&, bool, bool)
                 status[j] = -1;   // set as unavailable (with current color)
         }
 
-      threadGroups[0].push_back(thisColor);
+      threadGroups[0].emplace_back(thisColor);
     }
 
-    threadGroups.analyzeUnstruct();
+    threadGroups.analyzeUnstruct(true);
     return;
   }
 #endif
