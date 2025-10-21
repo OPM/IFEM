@@ -15,6 +15,7 @@
 #include "ElementBlock.h"
 #include "GlobalIntegral.h"
 #include "Integrand.h"
+#include "MPC.h"
 #include "Utilities.h"
 #include "Vec3Oper.h"
 #include "IFEM.h"
@@ -446,6 +447,13 @@ void ASMu2DLag::generateThreadGroups (const Integrand&, bool,
 
     using IntSet = std::set<int>;
     std::vector<IntSet> nodeConn(nnod); // node-to-element connectivity
+    std::vector<IntSet> nodeNode(nnod); // node-to-node connectivity via MPCs
+
+    for (const MPC* mpc : mpcs)
+      if (int slave = this->getNodeIndex(mpc->getSlave().node); slave > 0)
+        for (size_t i = 0; i < mpc->getNoMaster(); i++)
+          if (int mastr = this->getNodeIndex(mpc->getMaster(i).node); mastr > 0)
+            nodeNode[slave-1].insert(mastr-1);
 
     size_t fixedElements = 0;
     for (size_t iel = 0; iel < nel; iel++)
@@ -459,7 +467,11 @@ void ASMu2DLag::generateThreadGroups (const Integrand&, bool,
       }
       else
         for (int node : MNPC[iel])
+        {
           nodeConn[node].insert(iel);
+          for (int master : nodeNode[node])
+            nodeConn[master].insert(iel);
+        }
 
     for (size_t nColors = fixedElements > 0; fixedElements < nel; ++nColors)
     {
