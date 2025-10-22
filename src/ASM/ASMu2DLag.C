@@ -431,7 +431,7 @@ void ASMu2DLag::getBoundaryNodes (int lIndex, IntVec& nodes,
 }
 
 
-void ASMu2DLag::generateThreadGroups (const Integrand&, bool,
+void ASMu2DLag::generateThreadGroups (const Integrand&, bool silence,
                                       bool separateGroup1noded)
 {
 #ifdef USE_OPENMP
@@ -497,7 +497,8 @@ void ASMu2DLag::generateThreadGroups (const Integrand&, bool,
       threadGroups[0].emplace_back(thisColor);
     }
 
-    threadGroups.analyzeUnstruct(true);
+    if (!silence)
+      threadGroups.analyzeUnstruct(true);
     return;
   }
 #endif
