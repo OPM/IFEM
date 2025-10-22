@@ -824,11 +824,11 @@ bool SIMoutput::writeGlvNo (int& nBlock, int& idBlock,
   if (myDegenElm.empty())
     return true;
 
+  // Write a field highlighting degenerated triangles (or their connected nodes)
   scl.fill(0.0);
-  scl.resize(this->getNoNodes(),0.0);
   for (const std::pair<const int,int>& degen : myDegenElm)
     scl[degen.first-1] = degen.second;
-  return this->writeGlvS(scl,"Collapsed triangles",iStep,nBlock,idBlock);
+  return this->writeGlvS(scl,"Collapsed triangles",iStep,nBlock,idBlock++);
 }
 
 
@@ -929,10 +929,11 @@ bool SIMoutput::writeGlvS (const Vector& psol, int iStep, int& nBlock,
                            double time, const char* pvecName,
                            int idBlock, int psolComps)
 {
+  int jBl = idBlock;
   idBlock = this->writeGlvS1(psol,iStep,nBlock,time,
                              pvecName,idBlock,psolComps);
 
-  if (idBlock > 0 && !opt.pSolOnly)
+  if (idBlock > jBl && !opt.pSolOnly)
     idBlock = this->writeGlvS2(psol,iStep,nBlock,time,idBlock,psolComps);
 
   if (idBlock < 0) return false;
@@ -972,7 +973,7 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
                            int idBlock, int psolComps, bool scalarOnly)
 {
   if (psol.empty() || !myVtf)
-    return 0; // no primary solution (silently ignore)
+    return idBlock; // no primary solution (silently ignore)
 
   const bool piolaMapping = myProblem ?
     myProblem->getIntegrandType() & Integrand::PIOLA_MAPPING : false;
@@ -1168,7 +1169,7 @@ int SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
                            double time, int idBlock, int psolComps)
 {
   if (psol.empty() || !myVtf)
-    return 0; // no primary solution (silently ignore)
+    return idBlock; // no primary solution (silently ignore)
   else if (!myProblem)
     return -99; // no integrand (should not happen at this point)
 
@@ -2489,7 +2490,7 @@ bool SIMoutput::writeAddFuncs (int& nBlock, int& idBlock, const Vector& psol,
 {
   for (const std::pair<const std::string,RealFunc*>& func : myAddScalars)
     if (!this->writeGlvF(*func.second, func.first.c_str(), iStep, nBlock,
-                         &psol, idBlock++, time))
+                         psol.empty() ? nullptr : &psol, idBlock++, time))
       return false;
 
   return true;
