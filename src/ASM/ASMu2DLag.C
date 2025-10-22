@@ -462,8 +462,10 @@ void ASMu2DLag::generateThreadGroupsMultiColored (bool silence,
   for (const MPC* mpc : mpcs)
     if (int slave = this->getNodeIndex(mpc->getSlave().node); slave > 0)
       for (size_t i = 0; i < mpc->getNoMaster(); i++)
-        if (int mastr = this->getNodeIndex(mpc->getMaster(i).node); mastr > 0)
+        if (int mastr = this->getNodeIndex(mpc->getMaster(i).node); mastr > 0) {
           nodeNode[slave-1].insert(mastr-1);
+          nodeNode[mastr-1].insert(slave-1);
+        }
 
   size_t fixedElements = 0;
   for (size_t iel = 0; iel < nel; iel++)
