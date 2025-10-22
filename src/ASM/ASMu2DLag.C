@@ -435,12 +435,11 @@ void ASMu2DLag::generateThreadGroups (const Integrand&, bool silence,
                                       bool separateGroup1noded)
 {
 #ifdef USE_OPENMP
-  if (omp_get_max_threads() > 1 && threadGroups.stripDir != ThreadGroups::NONE) {
+  if (omp_get_max_threads() > 1 && threadGroups.stripDir != ThreadGroups::NONE)
     this->generateThreadGroupsMultiColored(silence, separateGroup1noded);
-    return;
-  }
+  else
 #endif
-  threadGroups.oneGroup(nel); // No threading, all elements in one group
+    threadGroups.oneGroup(nel); // No threading, all elements in one group
 }
 
 
@@ -462,7 +461,8 @@ void ASMu2DLag::generateThreadGroupsMultiColored (bool silence,
   for (const MPC* mpc : mpcs)
     if (int slave = this->getNodeIndex(mpc->getSlave().node); slave > 0)
       for (size_t i = 0; i < mpc->getNoMaster(); i++)
-        if (int mastr = this->getNodeIndex(mpc->getMaster(i).node); mastr > 0) {
+        if (int mastr = this->getNodeIndex(mpc->getMaster(i).node); mastr > 0)
+        {
           nodeNode[slave-1].insert(mastr-1);
           nodeNode[mastr-1].insert(slave-1);
         }
@@ -517,21 +517,21 @@ void ASMu2DLag::generateThreadGroupsMultiColored (bool silence,
 
 bool ASMu2DLag::tesselate (ElementBlock& grid, const int*) const
 {
-  size_t nmnpc = 0;
-  size_t nelms = nel;
-  for (const IntVec& mnpc : MNPC)
-    if (mnpc.size() > 1) // ignore 1-noded elements (point masses, etc.)
-      nmnpc += mnpc.size();
-    else
+  size_t i, nmnpc = 0, nelms = nel;
+  for (i = 0; i < nel; i++)
+    if (MNPC[i].size() > 1 && MLGE[i] > 0)
+      nmnpc += MNPC[i].size();
+    else // ignore 1-noded elements (point masses, etc.) and collapsed elements
       --nelms;
+
   grid.unStructResize(nelms,nnod,nmnpc);
 
-  size_t i, j, k, e;
   for (i = 0; i < nnod; i++)
     grid.setCoor(i,this->getCoord(1+i));
 
+  size_t j, k, e;
   for (i = k = e = 0; i < nel; i++)
-    if (MNPC[i].size() > 1) // ignore 1-noded elements
+    if (MNPC[i].size() > 1 && MLGE[i] > 0)
     {
       for (j = 0; j < MNPC[i].size(); j++)
         if (j > 1 && swapNode34 && MNPC[i].size() == 4)
