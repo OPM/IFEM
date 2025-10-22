@@ -435,74 +435,80 @@ void ASMu2DLag::generateThreadGroups (const Integrand&, bool silence,
                                       bool separateGroup1noded)
 {
 #ifdef USE_OPENMP
-  if (omp_get_max_threads() > 1 && threadGroups.stripDir != ThreadGroups::NONE)
-  {
-    threadGroups[1].clear();
-    threadGroups[0].clear();
-
-    // Status vector for the elements:
-    // -1 is unusable for current color, 0 is available,
-    // any other value is the assigned color
-    IntVec status(nel,0);
-
-    using IntSet = std::set<int>;
-    std::vector<IntSet> nodeConn(nnod); // node-to-element connectivity
-    std::vector<IntSet> nodeNode(nnod); // node-to-node connectivity via MPCs
-
-    for (const MPC* mpc : mpcs)
-      if (int slave = this->getNodeIndex(mpc->getSlave().node); slave > 0)
-        for (size_t i = 0; i < mpc->getNoMaster(); i++)
-          if (int mastr = this->getNodeIndex(mpc->getMaster(i).node); mastr > 0)
-            nodeNode[slave-1].insert(mastr-1);
-
-    size_t fixedElements = 0;
-    for (size_t iel = 0; iel < nel; iel++)
-      if (separateGroup1noded && MNPC[iel].size() == 1)
-      {
-        status[iel] = 1; // Separate group for all single-noded elements
-        if (++fixedElements == 1)
-          threadGroups[0].resize(1, { static_cast<int>(iel) });
-        else
-          threadGroups[0].front().push_back(iel);
-      }
-      else
-        for (int node : MNPC[iel])
-        {
-          nodeConn[node].insert(iel);
-          for (int master : nodeNode[node])
-            nodeConn[master].insert(iel);
-        }
-
-    for (size_t nColors = fixedElements > 0; fixedElements < nel; ++nColors)
-    {
-      // Reset un-assigned element tags
-      std::for_each(status.begin(), status.end(),
-                    [](int& s) { if (s < 0) s = 0; });
-
-      // Look for available elements
-      IntVec thisColor;
-      for (size_t i = 0; i < nel; ++i)
-        if (status[i] == 0)
-        {
-          status[i] = nColors + 1;
-          thisColor.push_back(i);
-          ++fixedElements;
-
-          for (int node : MNPC[i])
-            for (int j : nodeConn[node])
-              if (status[j] == 0) // if not assigned a color yet
-                status[j] = -1;   // set as unavailable (with current color)
-        }
-
-      threadGroups[0].emplace_back(thisColor);
-    }
-
-    if (!silence)
-      threadGroups.analyzeUnstruct(true);
+  if (omp_get_max_threads() > 1 && threadGroups.stripDir != ThreadGroups::NONE) {
+    this->generateThreadGroupsMultiColored(silence, separateGroup1noded);
     return;
   }
 #endif
   threadGroups.oneGroup(nel); // No threading, all elements in one group
+}
+
+
+void ASMu2DLag::generateThreadGroupsMultiColored (bool silence,
+                                                  bool separateGroup1noded)
+{
+  threadGroups[1].clear();
+  threadGroups[0].clear();
+
+  // Status vector for the elements:
+  // -1 is unusable for current color, 0 is available,
+  // any other value is the assigned color
+  IntVec status(nel,0);
+
+  using IntSet = std::set<int>;
+  std::vector<IntSet> nodeConn(nnod); // node-to-element connectivity
+  std::vector<IntSet> nodeNode(nnod); // node-to-node connectivity via MPCs
+
+  for (const MPC* mpc : mpcs)
+    if (int slave = this->getNodeIndex(mpc->getSlave().node); slave > 0)
+      for (size_t i = 0; i < mpc->getNoMaster(); i++)
+        if (int mastr = this->getNodeIndex(mpc->getMaster(i).node); mastr > 0)
+          nodeNode[slave-1].insert(mastr-1);
+
+  size_t fixedElements = 0;
+  for (size_t iel = 0; iel < nel; iel++)
+    if (separateGroup1noded && MNPC[iel].size() == 1)
+    {
+      status[iel] = 1; // Separate group for all single-noded elements
+      if (++fixedElements == 1)
+        threadGroups[0].resize(1, { static_cast<int>(iel) });
+      else
+        threadGroups[0].front().push_back(iel);
+    }
+    else
+      for (int node : MNPC[iel])
+      {
+        nodeConn[node].insert(iel);
+        for (int master : nodeNode[node])
+          nodeConn[master].insert(iel);
+      }
+
+  for (size_t nColors = fixedElements > 0; fixedElements < nel; ++nColors)
+  {
+    // Reset un-assigned element tags
+    std::for_each(status.begin(), status.end(),
+                  [](int& s) { if (s < 0) s = 0; });
+
+    // Look for available elements
+    IntVec thisColor;
+    for (size_t i = 0; i < nel; ++i)
+      if (status[i] == 0)
+      {
+        status[i] = nColors + 1;
+        thisColor.push_back(i);
+        ++fixedElements;
+
+        for (int node : MNPC[i])
+          for (int j : nodeConn[node])
+            if (status[j] == 0) // if not assigned a color yet
+              status[j] = -1;   // set as unavailable (with current color)
+      }
+
+    threadGroups[0].emplace_back(thisColor);
+  }
+
+  if (!silence)
+    threadGroups.analyzeUnstruct(true);
 }
 
 

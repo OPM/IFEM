@@ -137,6 +137,9 @@ public:
   virtual bool tesselate(ElementBlock& grid, const int*) const;
 
 protected:
+  //! \brief Generate thread groups using multi-coloring.
+  void generateThreadGroupsMultiColored(bool silence, bool separateGroup1Noded);
+
   bool swapNode34; //!< If \e true, element nodes 3 and 4 should be swapped
 
   std::vector<ASM::NodeSet> nodeSets; //!< Node sets for Dirichlet BCs
