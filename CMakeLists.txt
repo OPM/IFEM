@@ -546,6 +546,7 @@ IFEM_add_test_app(
       src/ASM/Test/TestASMs3Dmx.C
       src/ASM/Test/TestASMsupel.C
       src/ASM/Test/TestASMu1D.C
+      src/ASM/Test/TestASMu2DLag.C
       src/ASM/Test/TestBlockElmMats.C
       src/ASM/Test/TestDomainDecomposition.C
       src/ASM/Test/TestFiniteElement.C
