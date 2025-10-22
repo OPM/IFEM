@@ -469,7 +469,8 @@ void ASMu2DLag::generateThreadGroupsMultiColored (bool silence,
 
   size_t fixedElements = 0;
   for (size_t iel = 0; iel < nel; iel++)
-    if (separateGroup1noded && MNPC[iel].size() == 1)
+    if (separateGroup1noded && MNPC[iel].size() == 1 &&
+        nodeNode[MNPC[iel].front()].empty())
     {
       status[iel] = 1; // Separate group for all single-noded elements
       if (++fixedElements == 1)
