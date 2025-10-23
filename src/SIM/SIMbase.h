@@ -850,6 +850,7 @@ protected:
   std::map<int,int> myGlb2Loc;  //!< Global-to-local node number mapping
   const std::map<int,int>* g2l; //!< Pointer to global-to-local node mapping
   std::map<int,int> myDegenElm; //!< Degenerated elements mapping
+  std::set<int>     myDupNodes; //!< Set of duplicated nodes
 
   // Equation solver attributes
   AlgEqSystem*  myEqSys;     //!< The actual linear equation system

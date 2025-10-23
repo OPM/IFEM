@@ -821,6 +821,16 @@ bool SIMoutput::writeGlvNo (int& nBlock, int& idBlock,
     if (!this->writeGlvE(e,iStep,nBlock,setName.c_str(),idBlock++,true))
       return false;
 
+  if (!myDupNodes.empty())
+  {
+    // Write a field highlighting the duplicated nodes
+    scl.fill(0.0);
+    for (int node : myDupNodes)
+      scl[node-1] = node;
+    if (!this->writeGlvS(scl,"Duplicated nodes",iStep,nBlock,idBlock++))
+      return false;
+  }
+
   if (myDegenElm.empty())
     return true;
 
@@ -1752,14 +1762,13 @@ bool SIMoutput::dumpMatlabGrid (std::ostream& os, const std::string& name,
   os <<"]="<< name << std::endl;
 
   // Write out nodes for the specified topology sets
-  ASMbase* pch;
   TopologySet::const_iterator tit;
   for (const std::string& setname : sets)
   {
     std::set<int> nodeSet;
     if ((tit = myEntitys.find(setname)) != myEntitys.end())
       for (const TopItem& top : tit->second)
-        if ((pch = this->getPatch(top.patch)))
+        if (ASMbase* pch = this->getPatch(top.patch); pch)
           if (top.idim+1 == pch->getNoParamDim())
           {
             IntVec nodes;
@@ -2424,9 +2433,8 @@ int SIMoutput::printNRforces (const IntVec& glbNodes) const
   RealArray nrf;
   int rCount = 0;
   for (int i = 0; i < nnod; i++)
-  {
-    int inod = glbNodes.empty() ? 1+i : glbNodes[i];
-    if (mySam->getNodalReactions(inod,*reactionForces,nrf))
+    if (int inod = glbNodes.empty() ? 1+i : glbNodes[i];
+        mySam->getNodalReactions(inod,*reactionForces,nrf))
     {
       rCount++;
       IFEM::cout <<"\nNode"<< std::setw(7) << inod;
@@ -2438,7 +2446,6 @@ int SIMoutput::printNRforces (const IntVec& glbNodes) const
       for (double f : nrf)
 	IFEM::cout << std::setw(15) << utl::trunc(f);
     }
-  }
   if (rCount > 0)
     IFEM::cout << std::endl;
 

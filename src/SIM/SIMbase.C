@@ -232,11 +232,8 @@ bool SIMbase::preprocessC (const IntVec& ignored, bool fixDup, double time0)
   PatchVec patches;
   for (const Property& p : myProps)
     if (p.pcode == Property::MATERIAL)
-    {
-      ASMbase* pch = this->getPatch(p.patch);
-      if (pch && !pch->empty())
+      if (ASMbase* pch = this->getPatch(p.patch); pch && !pch->empty())
         patches.push_back(pch);
-    }
 
   if (!patches.empty())
     for (size_t i = 0; i < myModel.size(); i++)
@@ -252,16 +249,19 @@ bool SIMbase::preprocessC (const IntVec& ignored, bool fixDup, double time0)
     for (ASMbase* pch : myModel)
       if (!pch->empty())
       {
-	IFEM::cout <<"   * Checking Patch "<< pch->idx+1 << std::endl;
-	for (size_t node = 1; node <= pch->getNoNodes(); node++)
-	{
-	  Vec3 X(pch->getCoord(node));
-	  std::map<Vec3,int>::const_iterator xit = globalNodes.find(X);
-	  if (xit == globalNodes.end())
-	    globalNodes.emplace(X,pch->getNodeID(node));
-	  else if (pch->mergeNodes(node,xit->second))
-	    nDupl++;
-	}
+        IFEM::cout <<"   * Checking Patch "<< pch->idx+1 << std::endl;
+        for (size_t node = 1; node <= pch->getNoNodes(); node++)
+        {
+          Vec3 X(pch->getCoord(node));
+          std::map<Vec3,int>::const_iterator xit = globalNodes.find(X);
+          if (xit == globalNodes.end())
+            globalNodes.emplace(X,pch->getNodeID(node));
+          else if (pch->mergeNodes(node,xit->second))
+          {
+            nDupl++;
+            myDupNodes.insert(xit->second);
+          }
+        }
       }
     if (nDupl > 0)
       IFEM::cout <<"   * "<< nDupl <<" duplicated nodes merged."<< std::endl;
@@ -558,10 +558,9 @@ VecFunc* SIMbase::getVecFunc (size_t patch, Property::Type ptype) const
   for (PropertyVec::const_iterator p = myProps.begin(); p != myProps.end(); ++p)
     if (p->patch == patch)
       if (p->pcode == ptype || ptype == Property::UNDEFINED)
-      {
-        VecFuncMap::const_iterator it = myVectors.find(p->pindx);
-        if (it != myVectors.end()) return it->second;
-      }
+        if (VecFuncMap::const_iterator it = myVectors.find(p->pindx);
+            it != myVectors.end())
+          return it->second;
 
   return nullptr;
 }
@@ -959,8 +958,8 @@ bool SIMbase::updateGrid (const RealArray& displ)
 
 bool SIMbase::updateGrid (const std::string& field)
 {
-  const RealArray* displ = this->getDependentField(field);
-  if (displ) return this->updateGrid(*displ);
+  if (const RealArray* displ = this->getDependentField(field); displ)
+    return this->updateGrid(*displ);
 
   std::cerr <<" *** SIMbase::updateGrid: No such field \""<< field
             <<"\" registered for \""<< this->getName() <<"\"."<< std::endl;
@@ -1023,9 +1022,8 @@ void SIMbase::updateForNewElements (Vector& solution,
 
           // Assign this solution to the newly activated nodes
           for (int inod : elmNodes)
-          {
-            int nodeId = pch->getNodeID(1+inod);
-            if (oldNodes.find(nodeId) == oldNodes.end())
+            if (int nodeId = pch->getNodeID(1+inod);
+                oldNodes.find(nodeId) == oldNodes.end())
             {
 #ifdef SP_DEBUG
               std::cout <<"\n\tAssigned to new node "<< nodeId;
@@ -1035,7 +1033,6 @@ void SIMbase::updateForNewElements (Vector& solution,
                 if (mySam->getEquation(nodeId,i+1) > 0)
                   *ptr = oldSol[i];
             }
-          }
 #ifdef SP_DEBUG
           std::cout << std::endl;
 #endif
@@ -1113,11 +1110,9 @@ IntVec SIMbase::getNodeSet (const std::string& setName) const
   {
     const IntVec& nodes = pch->getNodeSet(pch->getNodeSetIdx(setName));
     for (int inod : nodes)
-    {
-      int nodeId = pch->getNodeID(inod);
-      if (std::find(glbNodes.begin(),glbNodes.end(),nodeId) == glbNodes.end())
+      if (int nodeId = pch->getNodeID(inod);
+          std::find(glbNodes.begin(),glbNodes.end(),nodeId) == glbNodes.end())
         glbNodes.push_back(nodeId);
-    }
   }
 
   std::sort(glbNodes.begin(),glbNodes.end());
@@ -1132,14 +1127,12 @@ int SIMbase::findClosestNode (const Vec3& X) const
   ASMbase* closestPch = nullptr;
   std::pair<size_t,double> closest(0,1.0e99);
   for (ASMbase* pch : myModel)
-  {
-    std::pair<size_t,double> node = pch->findClosestNode(X);
-    if (node.first > 0 && node.second < closest.second)
+    if (std::pair<size_t,double> node = pch->findClosestNode(X);
+        node.first > 0 && node.second < closest.second)
     {
       closest = node;
       closestPch = pch;
     }
-  }
   if (!closestPch) return -2;
 
 #ifdef SP_DEBUG
@@ -1249,7 +1242,6 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
     // Loop over the different material regions, integrating interior
     // coefficient matrix terms for the patch associated with each material
     size_t lp = 0;
-    ASMbase* pch = nullptr;
     PropertyVec::const_iterator p, p2;
     if (it->second->hasInteriorTerms())
     {
@@ -1257,7 +1249,8 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
         if (p->pcode == Property::MATERIAL &&
             (it->first == 0 || it->first == p->pindx))
         {
-          if (!(pch = this->getPatch(p->patch)))
+          ASMbase* pch = this->getPatch(p->patch);
+          if (!pch)
           {
             std::cerr <<" *** SIMbase::assembleSystem: Patch index "<< p->patch
                       <<" out of range [1,"<< myModel.size() <<"]."<< std::endl;
@@ -1295,7 +1288,8 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
             ((p->pcode == Property::NEUMANN_GENERIC ||
               p->pcode == Property::ROBIN) && it->first == p->pindx))
         {
-          if (!(pch = this->getPatch(p->patch)))
+          ASMbase* pch = this->getPatch(p->patch);
+          if (!pch)
           {
             std::cerr <<" *** SIMbase::assembleSystem: Patch index "<< p->patch
                       <<" out of range [1,"<< myModel.size() <<"]."<< std::endl;
@@ -1601,16 +1595,13 @@ Vec4 SIMbase::getNodeCoord (int inod) const
 {
   Vec4 Xnod;
   for (ASMbase* pch : myModel)
-  {
-    size_t node = pch->getNodeIndex(inod,true);
-    if (node > 0)
+    if (size_t node = pch->getNodeIndex(inod,true); node > 0)
     {
       Xnod = pch->getCoord(node);
       if (nGlPatches > 1)
         Xnod.idx = pch->idx; // Store patch index, if multi-patch model
       break;
     }
-  }
 
   return Xnod;
 }
@@ -1619,11 +1610,8 @@ Vec4 SIMbase::getNodeCoord (int inod) const
 bool SIMbase::isFixed (int inod, int dof) const
 {
   for (ASMbase* pch : myModel)
-  {
-    size_t node = pch->getNodeIndex(inod,true);
-    if (node > 0)
+    if (size_t node = pch->getNodeIndex(inod,true); node > 0)
       return pch->isFixed(node,dof,true);
-  }
 
   return true;
 }
@@ -2336,7 +2324,6 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
     if (this->fieldProjections()) {
       if (ssol.empty())
         ssol.resize(myProblem->getNoFields(2),ngNodes);
-
       ssol.fillBlock(values, 1, ofs+1);
       ofs += myModel[i]->getNoProjectionNodes();
     } else {
@@ -2645,9 +2632,7 @@ bool SIMbase::addMADOF (unsigned char basis, unsigned char nndof, bool other)
   char nType = basis <= 1 ? 'D' : 'P' + basis-2;
   for (const ASMbase* pch : myModel)
     for (size_t inod = 1; inod <= pch->getNoNodes(); inod++)
-    {
-      int node = pch->getNodeID(inod);
-      if (node > 0)
+      if (int node = pch->getNodeID(inod); node > 0)
       {
         int nndofs = 0;
         if (pch->getNodeType(inod) == nType)
@@ -2659,7 +2644,6 @@ bool SIMbase::addMADOF (unsigned char basis, unsigned char nndof, bool other)
         else if (madof[node] != nndofs)
           ierr++;
       }
-    }
 
   madof[0] = 1;
   for (size_t n = 1; n < madof.size(); n++)
