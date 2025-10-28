@@ -710,6 +710,18 @@ public:
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
 			    const RealArray* gpar, bool regular = true) const;
 
+  //! \brief Evaluates the secondary solution field at element centers.
+  //! \param[out] sField Solution field
+  //! \param[in] integrand Object with problem-specific data and methods
+  //! \param[in] elements List of elements to evaluate for (all if empty)
+  //!
+  //! \details The secondary solution is derived from the primary solution,
+  //! which is assumed to be stored within the \a integrand for current patch.
+  //! This method evaluates the secondary solution at the center of the
+  //! provided list of \a elements, or for all if the list is empty.
+  virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
+                            const IntVec& elements) const;
+
   //! \brief Projects the secondary solution using a (discrete) global L2-fit.
   //! \param[out] sField Secondary solution field control point values
   //! \param[in] integrand Object with problem-specific data and methods

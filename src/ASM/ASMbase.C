@@ -1771,6 +1771,16 @@ bool ASMbase::evalSolution (Matrix&, const IntegrandBase&,
 }
 
 
+bool ASMbase::evalSolution (Matrix& sField, const IntegrandBase& integrand,
+                            const IntVec& elements) const
+{
+  if (elements.empty())
+    return this->evalSolution(sField,integrand,nullptr,true);
+
+  return Aerror("evalSolution(Matrix&,const IntegrandBase&,const IntVec&)");
+}
+
+
 bool ASMbase::evaluate (const ASMbase*, const Vector&, RealArray&, int) const
 {
   return Aerror("evaluate(const ASMbase*,const Vector&,RealArray&,int)");
