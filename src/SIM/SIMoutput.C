@@ -126,16 +126,27 @@ bool SIMoutput::parseOutputTag (const tinyxml2::XMLElement* elem)
   else if (strcasecmp(elem->Value(),"resultpoints"))
     return this->SIMinput::parseOutputTag(elem);
 
+  bool newGroup = true;
+  // Lambda function for adding a new result point to the myPoints container.
+  auto&& addPoint = [&newGroup,&points=myPoints](const ResultPoint& newPoint)
+  {
+    if (newGroup)
+    {
+      newGroup = false;
+      points.emplace_back("",ResPointVec());
+    }
+    points.back().second.emplace_back(newPoint);
+  };
+
   // Parse the result point specifications.
   // Can either be explicit points, lines or a grid.
-  bool newGroup = true;
   const tinyxml2::XMLElement* point = elem->FirstChildElement("point");
   for (int i = 1; point; i++, point = point->NextSiblingElement())
   {
-    int patch = 0;
-    ResultPoint thePoint;
-    if (utl::getAttribute(point,"patch",patch) && patch > 0)
+    ResultPoint thePoint(3);
+    if (int patch = 0; utl::getAttribute(point,"patch",patch) && patch > 0)
       thePoint.patch = patch;
+
     IFEM::cout <<"\tPoint "<< i <<": P"<< thePoint.patch;
     if (utl::getAttribute(point,"node",thePoint.inod) && thePoint.inod > 0)
       IFEM::cout <<" node = "<< thePoint.inod;
@@ -148,19 +159,15 @@ bool SIMoutput::parseOutputTag (const tinyxml2::XMLElement* elem)
     if (utl::getAttribute(point,"w",thePoint.u[2]))
       IFEM::cout <<' '<< thePoint.u[2];
     IFEM::cout << std::endl;
-    if (newGroup)
-      myPoints.push_back({"",{thePoint}});
-    else
-      myPoints.back().second.push_back(thePoint);
-    newGroup = false;
+
+    addPoint(thePoint);
   }
 
   const tinyxml2::XMLElement* line = elem->FirstChildElement("line");
   for (int j = 1; line; j++, line = line->NextSiblingElement())
   {
-    int patch = 0;
-    ResultPoint thePoint;
-    if (utl::getAttribute(line,"patch",patch) && patch > 0)
+    ResultPoint thePoint(3);
+    if (int patch = 0; utl::getAttribute(line,"patch",patch) && patch > 0)
       thePoint.patch = patch;
 
     double u0[3], u1[3];
@@ -174,22 +181,18 @@ bool SIMoutput::parseOutputTag (const tinyxml2::XMLElement* elem)
     if (u0[0] == u1[0] && u0[1] == u1[1] && u0[2] == u1[2]) npt = 1;
 
     memcpy(thePoint.u,u0,3*sizeof(double));
-    if (newGroup)
-      myPoints.push_back({"",{thePoint}});
-    else
-      myPoints.back().second.push_back(thePoint);
-    newGroup = false;
+    addPoint(thePoint);
 
     for (int i = 1; i < npt-1; i++)
     {
       double xi = double(i)/double(npt-1);
       for (int d = 0; d < 3; d++)
         thePoint.u[d] = u0[d]*(1.0-xi) + u1[d]*xi;
-      myPoints.back().second.push_back(thePoint);
+      addPoint(thePoint);
     }
 
     memcpy(thePoint.u,u1,3*sizeof(double));
-    myPoints.back().second.push_back(thePoint);
+    addPoint(thePoint);
 
     IFEM::cout <<"\tLine "<< j <<": P"<< thePoint.patch
                <<" npt = "<< npt <<" xi =";
@@ -202,6 +205,31 @@ bool SIMoutput::parseOutputTag (const tinyxml2::XMLElement* elem)
     IFEM::cout << std::endl;
   }
 
+  for (const tinyxml2::XMLElement* child = elem->FirstChildElement("elements");
+       child; child = child->NextSiblingElement())
+    if (const tinyxml2::XMLNode* elist = child->FirstChild(); elist)
+    {
+      ResultPoint thePoint;
+      if (int patch = 0; utl::getAttribute(child,"patch",patch) && patch > 0)
+        thePoint.patch = patch;
+
+      IntVec elements;
+      utl::parseIntegers(elements,elist->Value());
+      for (int iel : elements)
+      {
+        thePoint.iel = iel;
+        addPoint(thePoint);
+      }
+
+      if (!elements.empty())
+      {
+        IFEM::cout <<"\tElement center output: P"<< thePoint.patch <<" (";
+        for (const ResultPoint& rp : myPoints.back().second)
+          IFEM::cout <<" "<< rp.iel;
+        IFEM::cout <<" )"<< std::endl;
+      }
+    }
+
   const tinyxml2::XMLElement* grid = elem->FirstChildElement("grid");
   if (!newGroup)
     grid = nullptr; // Don't mix grid output with other lines or points
@@ -210,12 +238,11 @@ bool SIMoutput::parseOutputTag (const tinyxml2::XMLElement* elem)
 
   for (int g = 1; grid; g++, grid = grid->NextSiblingElement())
   {
-    int patch = 0;
     ResultPoint thePoint;
-    if (utl::getAttribute(grid,"patch",patch) && patch > 0)
+    if (int patch = 0; utl::getAttribute(grid,"patch",patch) && patch > 0)
       thePoint.patch = patch;
 
-    IFEM::cout <<"\tGrid "<< g <<": P"<< patch;
+    IFEM::cout <<"\tGrid "<< g <<": P"<< thePoint.patch;
 
     std::string gridType("parametric");
     utl::getAttribute(grid,"type",gridType);
@@ -258,24 +285,20 @@ bool SIMoutput::parseOutputTag (const tinyxml2::XMLElement* elem)
       free(sval);
     }
 
-    if (newGroup)
-      myPoints.push_back({"",{}});
-    newGroup = false;
-
     if (gridType == "nodes")
     {
-      thePoint.npar = 0;
-      myPoints.back().second.push_back(thePoint);
+      addPoint(thePoint);
       IFEM::cout <<" (all nodes)";
     }
     else if (gridType == "elements")
     {
       thePoint.npar = -1;
-      myPoints.back().second.push_back(thePoint);
+      addPoint(thePoint);
       IFEM::cout <<" (all elements)";
     }
     else if (gridType == "cartesian")
     {
+      thePoint.npar = 3;
       thePoint.inod = -npt[0];
       Vec3 dX = X1 - X0;
       for (int d = 0; d < 3; d++)
@@ -296,7 +319,7 @@ bool SIMoutput::parseOutputTag (const tinyxml2::XMLElement* elem)
           for (int i = 0; i < npt[0]; i++)
           {
             thePoint.X.x = X0.x + dX.x*i;
-            myPoints.back().second.push_back(thePoint);
+            addPoint(thePoint);
           }
         }
       }
@@ -307,6 +330,7 @@ bool SIMoutput::parseOutputTag (const tinyxml2::XMLElement* elem)
     }
     else
     {
+      thePoint.npar = 3;
       for (int k = 0; k < npt[2]; k++)
       {
         double zeta = npt[2] > 1 ? double(k)/double(npt[2]-1) : 0.0;
@@ -319,7 +343,7 @@ bool SIMoutput::parseOutputTag (const tinyxml2::XMLElement* elem)
           {
             double xi = npt[0] > 1 ? double(i)/double(npt[0]-1) : 0.0;
             thePoint.u[0] = u0[0]*(1.0-xi) + u1[0]*xi;
-            myPoints.back().second.push_back(thePoint);
+            addPoint(thePoint);
           }
         }
       }
@@ -339,8 +363,7 @@ bool SIMoutput::parseOutputTag (const tinyxml2::XMLElement* elem)
   utl::getAttribute(elem,"precision",myPrec);
   utl::getAttribute(elem,"vtfsize",myPtSize);
 
-  std::string fname;
-  if (utl::getAttribute(elem,"file",fname))
+  if (std::string fname; utl::getAttribute(elem,"file",fname))
     this->setPointResultFile(fname,elem->FirstChildElement("dump_coordinates"));
 
   return true;
@@ -361,7 +384,7 @@ bool SIMoutput::parse (char* keyWord, std::istream& is)
       this->setPointResultFile(cline);
   }
 
-  myPoints = {{"",ResPointVec(nres)}};
+  myPoints = {{"",ResPointVec(nres,ResultPoint(3))}};
   for (int i = 0; i < nres && (cline = utl::readLine(is)); i++)
   {
     ResultPoint& thePoint = myPoints.back().second[i];
@@ -420,8 +443,14 @@ void SIMoutput::preprocessResPtGroup (std::string& ptFile, ResPointVec& points)
       else if (pit->npar > 0) // A parametric point is specified
         pointIsOK = (pit->inod = pch->evalPoint(pit->u,pit->u,pit->X)) >= 0;
 
-      else // We are using nodes or element centers as evaluation points
+      else if (pit->iel < 1) // All nodes or element centers
         pointIsOK = true;
+
+      else if ((pit->iel = pch->getElmIndex(pit->iel)) > 0)
+      {
+        pointIsOK = true; // An element center is specified
+        pit->X = pch->getElementCenter(pit->iel);
+      }
     }
 
     if (pointIsOK)
@@ -434,7 +463,12 @@ void SIMoutput::preprocessResPtGroup (std::string& ptFile, ResPointVec& points)
         pointMap[iY][iX] = iPoint;
     }
     else
+    {
+      IFEM::cout <<"  ** Ignoring invalid result point specification:"
+                 <<" patch="<< pit->patch <<" npar="<< pit->npar
+                 <<" inod="<< pit->inod <<" iel="<< pit->iel << std::endl;
       pit = points.erase(pit);
+    }
 
     if (++iX == nX)
     {
@@ -460,13 +494,16 @@ void SIMoutput::preprocessResPtGroup (std::string& ptFile, ResPointVec& points)
       for (short int c = 1; c < pt.npar; c++)
         IFEM::cout <<','<< pt.u[c];
       if (pt.npar > 1) IFEM::cout <<')';
-      if (pt.inod > 0) IFEM::cout <<", node #"<< pt.inod;
+      if (pt.inod > 0)
+        IFEM::cout <<", node #"<< pt.inod;
+      else if (pt.iel > 0)
+        IFEM::cout <<", element #"<< pt.iel;
       if (pt.inod > 0 && myModel.size() > 1)
       {
         ASMbase* pch = this->getPatch(pt.patch,true);
         IFEM::cout <<", global #"<< pch->getNodeID(pt.inod);
       }
-      if (pt.npar > 0)
+      if (pt.npar > 0 || pt.iel > 0)
         IFEM::cout <<", X = "<< pt.X << std::endl;
       else if (pt.npar < 0)
         IFEM::cout <<", element centers will be used."<< std::endl;
@@ -1422,9 +1459,7 @@ bool SIMoutput::writeGlvP (const RealArray& ssol, int iStep, int& nBlock,
       if (!this->writeScalarFields(field,geomID,nBlock,sID,&j,ASM::PROJECTED))
         return false;
 
-    if (maxVal && grid)
-    {
-      // Update extremal values
+    if (maxVal && grid) // Update extremal values
       for (j = 0; j < maxVal->size() && j < field.rows(); j++)
       {
         size_t indx = 0;
@@ -1432,7 +1467,6 @@ bool SIMoutput::writeGlvP (const RealArray& ssol, int iStep, int& nBlock,
         if (indx > 0 && indx <= grid->getNoNodes())
           updateMaxVal((*maxVal)[j],cmax,pch->idx,grid->getCoord(indx-1));
       }
-    }
   }
 
   // Write result block identifications
@@ -1447,9 +1481,9 @@ bool SIMoutput::writeGlvP (const RealArray& ssol, int iStep, int& nBlock,
 }
 
 
-bool SIMoutput::writeScalarFields (const Matrix& field, int geomID,
-                                   int& nBlock, std::vector<IntVec>& sID,
-                                   size_t* nScl, ASM::ResultClass resClass)
+bool SIMoutput::writeScalarFields (const Matrix& field, int geomID, int& nBlock,
+                                   std::vector<IntVec>& sID, size_t* nScl,
+                                   ASM::ResultClass resClass)
 {
   size_t nS = 0;
   size_t& k = nScl ? *nScl : nS;
@@ -1960,53 +1994,67 @@ bool SIMoutput::dumpResults (const Vector& psol, double time,
 
   for (const ASMbase* pch : myModel)
   {
-    IntVec  points;
+    IntVec  points, elms;
     Vec3Vec Xp;
     Matrix  sol1, sol2;
-    if (!this->evalResults({psol},gPoints,pch,points,Xp,sol1,sol2))
+    if (!this->evalResults({psol},gPoints,pch,points,elms,Xp,sol1,sol2))
       return false;
-    else if (points.empty())
+    else if (points.empty() && elms.empty())
       continue; // no result points for this patch
 
     // Formatted output, use scientific notation with fixed field width
     std::streamsize flWidth = 8 + precision;
     std::streamsize oldPrec = os.precision(precision);
     std::ios::fmtflags oldF = os.flags(std::ios::scientific | std::ios::right);
-    for (size_t j = 0; j < points.size(); j++)
+    for (size_t j = 0; j < points.size()+elms.size(); j++)
     {
       if (!formatted)
         os << time <<" ";
+      else if (j >= points.size())
+        os <<"  Element #"<< elms[j-points.size()];
       else if (points[j] < 0)
-        os <<"  Point #"<< -points[j] <<":\tsol1 =";
+        os <<"  Point #"<< -points[j];
       else
       {
         points[j] = pch->getNodeID(points[j]);
-        os <<"  Node #"<< points[j] <<":\tsol1 =";
+        os <<"  Node #"<< points[j];
       }
 
+      bool newLine = false;
+      // Convenience lambda returning proper newline character before identifier.
+      auto&& newLineChr = [&newLine]() { return newLine ? "\n\t\t" : ":\t"; };
+
+      if (formatted && !sol1.empty())
+        os << newLineChr() <<"sol1 =";
       for (size_t i = 1; i <= sol1.rows(); i++)
         os << std::setw(flWidth) << utl::trunc(sol1(i,j+1));
+      if (!sol1.empty()) newLine = true;
 
-      Vec3 sol4;
-      if (psolScl)
-        sol4.x = (*psolScl)(Vec4(Xp[j],time));
-      else if (psolVec)
-        sol4 = (*psolVec)(Vec4(Xp[j],time));
-      if (formatted && nxsol > 0)
-        os <<"\n\t\texact1";
-      for (size_t k = 0; k < nxsol; k++)
-        os << std::setw(flWidth) << utl::trunc(sol4[k]);
-
-      if (opt.discretization >= ASM::Spline)
+      if (j < Xp.size())
       {
-        int isol = 1;
-        for (size_t i = 1; i <= sol2.rows(); i++)
-        {
-          if (formatted && i%myProblem->getNo2ndSolPerLine() == 1)
-            os <<"\n\t\tsol"<< ++isol <<" =";
-          os << std::setw(flWidth) << utl::trunc(sol2(i,j+1));
-        }
+        Vec3 sol4;
+        if (psolScl)
+          sol4.x = (*psolScl)(Vec4(Xp[j],time));
+        else if (psolVec)
+          sol4 = (*psolVec)(Vec4(Xp[j],time));
+        if (formatted && nxsol > 0)
+          os << newLineChr() <<"exact1";
+        for (size_t k = 0; k < nxsol; k++)
+          os << std::setw(flWidth) << utl::trunc(sol4[k]);
+        if (nxsol > 0) newLine = true;
+      }
 
+      int isol = 1;
+      for (size_t i = 1; i <= sol2.rows(); i++)
+      {
+        if (formatted && i%myProblem->getNo2ndSolPerLine() == 1)
+          os << newLineChr() <<"sol"<< ++isol <<" =";
+        os << std::setw(flWidth) << utl::trunc(sol2(i,j+1));
+        newLine = true;
+      }
+
+      if (j < Xp.size())
+      {
         Vector sol3;
         if (ssolScl)
           sol3 = (*ssolScl)(Vec4(Xp[j],time)).vec(this->getNoSpaceDim());
@@ -2015,8 +2063,9 @@ bool SIMoutput::dumpResults (const Vector& psol, double time,
         else if (ssolStr)
           sol3 = (*ssolStr)(Vec4(Xp[j],time));
         if (formatted && !sol3.empty())
-          os <<"\n\t\texact2";
+          os << newLineChr() <<"exact2";
         for (double s : sol3) os << std::setw(flWidth) << utl::trunc(s);
+        if (!sol3.empty()) newLine = true;
       }
 
       if (reactionForces && points[j] > 0)
@@ -2025,7 +2074,7 @@ bool SIMoutput::dumpResults (const Vector& psol, double time,
         if (mySam->getNodalReactions(points[j],*reactionForces,rf))
         {
           if (formatted)
-            os <<"\n\t\treac =";
+            os << newLineChr() <<"reac =";
           for (double f : rf) os << std::setw(flWidth) << utl::trunc(f);
         }
       }
@@ -2040,11 +2089,13 @@ bool SIMoutput::dumpResults (const Vector& psol, double time,
 
 
 bool SIMoutput::evalResults (const Vectors& psol, const ResPointVec& gPoints,
-                             const ASMbase* patch, IntVec& points, Vec3Vec& Xp,
-                             Matrix& sol1, Matrix& sol2,
+                             const ASMbase* patch, IntVec& points, IntVec& elms,
+                             Vec3Vec& Xp, Matrix& sol1, Matrix& sol2,
                              std::vector<std::string>* compNames) const
 {
-  points.clear(); Xp.clear();
+  points.clear();
+  elms.clear();
+  Xp.clear();
   if (gPoints.empty() || patch->empty())
     return true;
 
@@ -2063,12 +2114,16 @@ bool SIMoutput::evalResults (const Vectors& psol, const ResPointVec& gPoints,
         points.push_back(pt.inod > 0 ? pt.inod : -jPoint);
         for (short int k = 0; k < pt.npar; k++)
           params[k].push_back(pt.u[k]);
-        if (mySol) Xp.push_back(pt.X);
+        if (mySol) Xp.emplace_back(pt.X);
       }
       else if (pt.inod > 0)
       {
         points.push_back(pt.inod);
-        if (mySol) Xp.push_back(pt.X);
+        if (mySol) Xp.emplace_back(pt.X);
+      }
+      else if (pt.iel > 0)
+      {
+        elms.push_back(pt.iel);
       }
       else if (pt.npar < 0)
       {
@@ -2086,7 +2141,7 @@ bool SIMoutput::evalResults (const Vectors& psol, const ResPointVec& gPoints,
     }
   }
 
-  if (points.empty() && !allElems)
+  if (points.empty() && elms.empty() && !allElems)
     return true; // no points in this patch
 
   bool getNames = compNames && compNames->empty();
@@ -2098,7 +2153,9 @@ bool SIMoutput::evalResults (const Vectors& psol, const ResPointVec& gPoints,
   // Lambda function augmenting two matrices with the same number of rows.
   auto&& augment = [](Matrix& A, const Matrix& B)
   {
-    if (A.empty())
+    if (B.empty())
+      return true;
+    else if (A.empty())
       A = B;
     else if (!A.augmentCols(B))
     {
@@ -2110,11 +2167,13 @@ bool SIMoutput::evalResults (const Vectors& psol, const ResPointVec& gPoints,
     return true;
   };
 
-  bool ok = true;
+  bool ok = false;
   Matrix tmp;
   if (opt.discretization >= ASM::Spline)
     // Evaluate the primary solution variables
     ok = patch->evalSolution(tmp,myProblem->getSolution(),params.data(),false);
+  else if (!elms.empty())
+    ok = true; // Skip element center primary solution evaluation for now
   else if (points.empty())
     // Evaluate the primary solution variables at all element centers
     ok = patch->evalSolution(tmp,myProblem->getSolution(),nullptr,true);
@@ -2128,7 +2187,7 @@ bool SIMoutput::evalResults (const Vectors& psol, const ResPointVec& gPoints,
   if (!ok || !augment(sol1,tmp))
     return false;
 
-  if (getNames)
+  if (getNames && !tmp.empty())
     for (size_t i = 0; i < myProblem->getNoFields(1); i++)
       compNames->push_back(myProblem->getField1Name(i));
 
@@ -2156,18 +2215,20 @@ bool SIMoutput::evalResults (const Vectors& psol, const ResPointVec& gPoints,
     }
   }
 
-  if (myProblem->getNoFields(2) < 1)
-    return true; // no secondary solution variables
+  if (myProblem->getNoFields(2) < 1 || !ok)
+    return ok; // no secondary solution variables
 
   // Initialize patch for secondary solution evaluation
   if (!this->initPatchForEvaluation(patch->idx+1))
     return false;
 
   // Evaluate the secondary solution variables
-  if (!patch->evalSolution(tmp,*myProblem,params.data(),points.empty()))
-    return false;
+  if (elms.empty())
+    ok = patch->evalSolution(tmp,*myProblem,params.data(),points.empty());
+  else // evaluate at specified elements
+    ok = patch->evalSolution(tmp,*myProblem,elms);
 
-  if ((ok = augment(sol2,tmp)) && getNames)
+  if ((ok &= augment(sol2,tmp)) && getNames)
     for (size_t i = 0; i < myProblem->getNoFields(2); i++)
       compNames->push_back(myProblem->getField2Name(i));
 
@@ -2389,13 +2450,13 @@ bool SIMoutput::saveResults (const Vectors& psol, double time, int step) const
   myProblem->initResultPoints(time);
 
   // Evaluate the solution variables in all grid points
-  IntVec  points;
+  IntVec  points, elms;
   Vec3Vec Xp;
   Matrix  sol, sol2;
   std::vector<std::string> compNames;
   std::vector<std::string>* cmpNames = step > 1 ? nullptr : &compNames;
   for (const ASMbase* pch : myModel)
-    if (!this->evalResults(psol,gridPts,pch,points,Xp,sol,sol2,cmpNames))
+    if (!this->evalResults(psol,gridPts,pch,points,elms,Xp,sol,sol2,cmpNames))
       return false;
 
   if (!sol2.empty() && !sol.augmentRows(sol2))
@@ -2444,8 +2505,9 @@ int SIMoutput::printNRforces (const IntVec& glbNodes) const
         IFEM::cout << std::string(9,' ');
       IFEM::cout <<" :";
       for (double f : nrf)
-	IFEM::cout << std::setw(15) << utl::trunc(f);
+        IFEM::cout << std::setw(15) << utl::trunc(f);
     }
+
   if (rCount > 0)
     IFEM::cout << std::endl;
 

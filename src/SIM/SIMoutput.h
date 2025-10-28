@@ -333,7 +333,7 @@ public:
   //! \brief Prints out interface force resultants to the log stream.
   virtual void printIFforces(const Vector&, RealArray&) {}
   //! \brief Prints out the nodal reaction forces to the log stream.
-  virtual int printNRforces(const std::vector<int>& glbNodes = {}) const;
+  virtual int printNRforces(const IntVec& glbNodes = {}) const;
 
 protected:
   //! \brief Adds a function for additional VTF-file output.
@@ -360,9 +360,8 @@ private:
                       bool& emptyPatches) const;
 
   //! \brief Private helper to write out scalar fields to VTF-file.
-  bool writeScalarFields(const Matrix& field, int geomID,
-                         int& nBlock, std::vector< std::vector<int> >& sID,
-                         size_t* nScl = nullptr,
+  bool writeScalarFields(const Matrix& field, int geomID, int& nBlock,
+                         std::vector<IntVec>& sID, size_t* nScl = nullptr,
                          ASM::ResultClass resClass = ASM::PRIMARY);
 
 protected:
@@ -373,12 +372,15 @@ protected:
   {
     short int    npar;  //!< Number of parameters
     unsigned int patch; //!< Patch index [1,nPatch]
-    int          inod;  //!< Local node number of the closest node
     double       u[3];  //!< Parameters of the point (u,v,w)
     Vec3         X;     //!< Spatial coordinates of the point
 
+    int inod; //!< Local (1-based) index of the closest node
+    int iel;  //!< If non-zero, this point is the center of element \a iel
+
     //! \brief Default constructor.
-    ResultPoint() : npar(3), patch(1), inod(0) { u[0] = u[1] = u[2] = 0.0; }
+    ResultPoint(short int n = 0) : npar(n), patch(1), inod(0), iel(0)
+    { u[0] = u[1] = u[2] = 0.0; }
   };
 
   //! \brief Result point container.
@@ -414,13 +416,14 @@ private:
   //! \param[in] gPoints Result point definitions
   //! \param[in] patch The patch to evaluate result points for
   //! \param[out] points List of result points within this patch
+  //! \param[out] elms List of element center points within this patch
   //! \param[out] Xp Coordinates of result points within this patch
   //! \param[out] sol1 Matrix of primary solution values at result points
   //! \param[out] sol2 Matrix of secondary solution values at result points
   //! \param[out] compNames Names of solution components in \a sol1 and \a sol2
   bool evalResults(const Vectors& psol, const ResPointVec& gPoints,
-                   const ASMbase* patch, std::vector<int>& points, Vec3Vec& Xp,
-                   Matrix& sol1, Matrix& sol2,
+                   const ASMbase* patch, IntVec& points, IntVec& elms,
+                   Vec3Vec& Xp, Matrix& sol1, Matrix& sol2,
                    std::vector<std::string>* compNames = nullptr) const;
 
   std::map<std::string,RealFunc*> myAddScalars; //!< Scalar functions to output
