@@ -28,12 +28,132 @@
 #include <algorithm>
 
 
-static const Real zTol = Real(1.0e-12); //!< Zero tolerance on function values
+namespace
+{
+  const Real zTol = Real(1.0e-12); //!< Zero tolerance on function values
 
-//! \brief Creates a scalar function by parsing a character string.
-static const ScalarFunc* parseFunction(const char* type, char* cline,
-                                       Real C = Real(1), bool print = true,
-                                       bool parseConstant = true);
+  //! \brief Creates a scalar function by parsing a character string.
+  const ScalarFunc* parseFunction (const char* type, char* cline,
+                                   Real C = Real(1), bool print = true,
+                                   bool parseConstant = true)
+  {
+    if (strncasecmp(type,"expr",4) == 0)
+    {
+      ScalarFunc* sf = nullptr;
+      if ((cline = strtok(cline,":")))
+      {
+        if (print)
+          IFEM::cout << cline;
+        EvalFuncScalar<Real>::numError = 0;
+        sf = new EvalFunc(cline,"t",C);
+        if (EvalFunc::numError > 0)
+        {
+          delete sf;
+          sf = nullptr;
+        }
+      }
+
+      // The derivative can be specified as a second expression after the colon
+      if (sf && (cline = strtok(nullptr,":")))
+      {
+        if (print)
+          IFEM::cout <<" (derivative: "<< cline <<")";
+        static_cast<EvalFunc*>(sf)->addDerivative(cline,"t");
+      }
+      return sf;
+    }
+
+    // Lambda function for extracting the constant from the strtok buffer.
+    auto&& getConstant = [&cline,print,parseConstant](Real c)
+    {
+      if (parseConstant && (cline = strtok(nullptr," ")))
+        if ((c = atof(cline)) != Real(1) && print)
+          IFEM::cout << c <<"*";
+      return c;
+    };
+
+    if (strncasecmp(type,"Ramp",4) == 0 || strcmp(type,"Tinit") == 0)
+    {
+      Real xmax = (cline = strtok(cline," ")) ? atof(cline) : Real(1);
+      Real Cval = getConstant(C);
+      if (print)
+        IFEM::cout <<"Ramp(t,"<< xmax <<")";
+      return new RampFunc(Cval,xmax);
+    }
+    else if (strncasecmp(type,"Dirac",5) == 0)
+    {
+      Real xmax = (cline = strtok(cline," ")) ? atof(cline) : Real(1);
+      Real Cval = getConstant(C);
+      if (print)
+        IFEM::cout <<"Dirac(t,"<< xmax <<")";
+      return new DiracFunc(Cval,xmax);
+    }
+    else if (strncasecmp(type,"Step",4) == 0)
+    {
+      Real xmax = (cline = strtok(cline," ")) ? atof(cline) : Real(1);
+      Real Cval = getConstant(C);
+      if (print)
+        IFEM::cout <<"Step(t,"<< xmax <<")";
+      return new StepFunc(Cval,xmax);
+    }
+    else if (strcasecmp(type,"sin") == 0)
+    {
+      Real freq = (cline = strtok(cline," ")) ? atof(cline) : Real(1);
+      if ((cline = strtok(nullptr," ")))
+      {
+        Real phase = atof(cline);
+        Real Cval  = getConstant(C);
+        if (print)
+        {
+          IFEM::cout <<"sin("<< freq <<"*t";
+          if (phase > 1.0e-16)
+            IFEM::cout <<" + "<< phase;
+          else if (phase < -1.0-16)
+            IFEM::cout <<" - "<< -phase;
+          IFEM::cout <<")";
+        }
+        return new SineFunc(Cval,freq,phase);
+      }
+      else
+      {
+        if (print && C != Real(1))
+          IFEM::cout << C <<"*";
+        if (print)
+          IFEM::cout <<"sin("<< freq <<"*t)";
+        return new SineFunc(C,freq);
+      }
+    }
+    else if (strncasecmp(type,"PiecewiseLin",12) == 0)
+    {
+      char* fname = strtok(cline," ");
+      if (!fname) return nullptr;
+      int colum = (cline = strtok(nullptr," ")) ? atoi(cline) : 2;
+      Real Cval = getConstant(C);
+      if (print)
+        IFEM::cout <<"PiecewiseLin(t,"<< fname <<","<< colum <<")";
+      return new LinearFunc(fname,colum,Cval);
+    }
+    else if (strncasecmp(type,"Constant",8) == 0 && cline)
+    {
+      Real value = atof(cline);
+      if (print)
+        IFEM::cout << value;
+      return new ConstantFunc(C*value);
+    }
+    else // linear in time
+    {
+      Real scale;
+      if (cline)
+        scale = atof(strncasecmp(type,"Lin",3) == 0 ? cline : type);
+      else
+        scale = Real(1);
+
+      if (print)
+        IFEM::cout << scale <<"*t";
+      return new LinearFunc(C*scale);
+    }
+  }
+}
 
 
 PressureField::PressureField (Real p, int dir) : pdir(dir), pdfn(nullptr)
@@ -724,126 +844,6 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A, bool print)
     return new SpaceTimeFunc(f,s);
   else
     return new ConstTimeFunc(s);
-}
-
-
-static const ScalarFunc* parseFunction (const char* type, char* cline,
-                                        Real C, bool print, bool parseConstant)
-{
-  if (strncasecmp(type,"expr",4) == 0)
-  {
-    ScalarFunc* sf = nullptr;
-    if ((cline = strtok(cline,":")))
-    {
-      if (print)
-        IFEM::cout << cline;
-      EvalFuncScalar<Real>::numError = 0;
-      sf = new EvalFunc(cline,"t",C);
-      if (EvalFunc::numError > 0)
-      {
-        delete sf;
-        sf = nullptr;
-      }
-    }
-    // The derivative can be specified as a second expression after the colon
-    if (sf && (cline = strtok(nullptr,":")))
-    {
-      if (print)
-        IFEM::cout <<" (derivative: "<< cline <<")";
-      static_cast<EvalFunc*>(sf)->addDerivative(cline,"t");
-    }
-    return sf;
-  }
-
-  // Lambda function for extracting the constant from the strtok buffer.
-  auto&& getConstant = [&cline,print,parseConstant](Real c)
-  {
-    if (parseConstant && (cline = strtok(nullptr," ")))
-      if ((c = atof(cline)) != Real(1) && print)
-        IFEM::cout << c <<"*";
-    return c;
-  };
-
-  if (strncasecmp(type,"Ramp",4) == 0 || strcmp(type,"Tinit") == 0)
-  {
-    Real xmax = (cline = strtok(cline," ")) ? atof(cline) : Real(1);
-    Real Cval = getConstant(C);
-    if (print)
-      IFEM::cout <<"Ramp(t,"<< xmax <<")";
-    return new RampFunc(Cval,xmax);
-  }
-  else if (strncasecmp(type,"Dirac",5) == 0)
-  {
-    Real xmax = (cline = strtok(cline," ")) ? atof(cline) : Real(1);
-    Real Cval = getConstant(C);
-    if (print)
-      IFEM::cout <<"Dirac(t,"<< xmax <<")";
-    return new DiracFunc(Cval,xmax);
-  }
-  else if (strncasecmp(type,"Step",4) == 0)
-  {
-    Real xmax = (cline = strtok(cline," ")) ? atof(cline) : Real(1);
-    Real Cval = getConstant(C);
-    if (print)
-      IFEM::cout <<"Step(t,"<< xmax <<")";
-    return new StepFunc(Cval,xmax);
-  }
-  else if (strcasecmp(type,"sin") == 0)
-  {
-    Real freq = (cline = strtok(cline," ")) ? atof(cline) : Real(1);
-    if ((cline = strtok(nullptr," ")))
-    {
-      Real phase = atof(cline);
-      Real Cval  = getConstant(C);
-      if (print)
-      {
-        IFEM::cout <<"sin("<< freq <<"*t";
-        if (phase > 1.0e-16)
-          IFEM::cout <<" + "<< phase;
-        else if (phase < -1.0-16)
-          IFEM::cout <<" - "<< -phase;
-        IFEM::cout <<")";
-      }
-      return new SineFunc(Cval,freq,phase);
-    }
-    else
-    {
-      if (print && C != Real(1))
-        IFEM::cout << C <<"*";
-      if (print)
-        IFEM::cout <<"sin("<< freq <<"*t)";
-      return new SineFunc(C,freq);
-    }
-  }
-  else if (strncasecmp(type,"PiecewiseLin",12) == 0)
-  {
-    char* fname = strtok(cline," ");
-    if (!fname) return nullptr;
-    int colum = (cline = strtok(nullptr," ")) ? atoi(cline) : 2;
-    Real Cval = getConstant(C);
-    if (print)
-      IFEM::cout <<"PiecewiseLin(t,"<< fname <<","<< colum <<")";
-    return new LinearFunc(fname,colum,Cval);
-  }
-  else if (strncasecmp(type,"Constant",8) == 0 && cline)
-  {
-    Real value = atof(cline);
-    if (print)
-      IFEM::cout << value;
-    return new ConstantFunc(C*value);
-  }
-  else // linear in time
-  {
-    Real scale;
-    if (cline)
-      scale = atof(strncasecmp(type,"Lin",3) == 0 ? cline : type);
-    else
-      scale = Real(1);
-
-    if (print)
-      IFEM::cout << scale <<"*t";
-    return new LinearFunc(C*scale);
-  }
 }
 
 

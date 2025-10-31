@@ -576,7 +576,7 @@ SymmTensor EvalFuncSpatial<autodiff::var>::hessian (const Vec3& X) const
 
 
 template<class Scalar>
-void EvalFuncSpatial<Scalar>::setParam (const std::string& name, double value)
+void EvalFuncSpatial<Scalar>::setParam (const std::string& name, Real value)
 {
   auto setVal = [&name,value](ValueList& v)
   {

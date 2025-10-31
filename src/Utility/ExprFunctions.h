@@ -164,7 +164,7 @@ public:
   Real dderiv(const Vec3& X, int dir1, int dir2) const override;
 
   //! \brief Sets an additional parameter in the function.
-  void setParam(const std::string& name, double value) override;
+  void setParam(const std::string& name, Real value) override;
 
   //! \brief Evaluates first derivatives of the function.
   Vec3 gradient(const Vec3& X) const override
@@ -258,7 +258,7 @@ public:
   Ret dderiv(const Vec3& X, int dir1, int dir2) const override;
 
   //! \brief Sets an additional parameter in the function.
-  void setParam(const std::string& name, double value) override
+  void setParam(const std::string& name, Real value) override
   {
     for (std::unique_ptr<FuncType>& func : this->p)
       func->setParam(name,value);

@@ -171,7 +171,7 @@ public:
   virtual bool inDomain(const Vec3&) const { return true; }
 
   //! \brief Sets an additional parameter in the function.
-  virtual void setParam(const std::string&, double) {}
+  virtual void setParam(const std::string&, Real) {}
   //! \brief Sets additional parameter values in the function.
   void setParam(const std::string& name, const Vec3& value)
   {
