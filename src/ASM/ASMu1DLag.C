@@ -165,6 +165,13 @@ int ASMu1DLag::parseElemSet (const std::string& setName, const char* cset)
   }
 
   IntVec& mySet = elemSets[iset].second;
+  if (!strcmp(cset,"all"))
+  {
+    mySet.resize(nel);
+    std::iota(mySet.begin(),mySet.end(),1);
+    return 1+iset;
+  }
+
   size_t ifirst = mySet.size();
   utl::parseIntegers(mySet,cset);
 
