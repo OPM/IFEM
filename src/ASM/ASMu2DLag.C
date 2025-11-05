@@ -21,6 +21,7 @@
 #include "IFEM.h"
 #include <numeric>
 #include <sstream>
+#include <fstream>
 
 #ifdef USE_OPENMP
 #include <omp.h>
@@ -586,4 +587,35 @@ bool ASMu2DLag::integrate (Integrand& integrand,
     cache.clear();
 
   return ok;
+}
+
+
+bool ASMu2DLag::writeXML (const char* fname) const
+{
+  std::ofstream os(fname);
+  if (!os) return false;
+
+  os <<"<patch>\n  <nodes>";
+  for (const Vec3& X : coord)
+    os <<"\n    "<< X;
+  os <<"\n  </nodes>";
+  for (size_t nen = 1; nen <= 4; nen++)
+  {
+    bool haveElms = false;
+    for (const IntVec& mnpc : MNPC)
+      if (mnpc.size() == nen)
+      {
+        if (!haveElms)
+          os <<"\n  <elements nenod=\""<< nen <<"\">";
+        os <<"\n   ";
+        for (int inod : mnpc)
+          os <<" "<< inod;
+        haveElms = true;
+      }
+    if (haveElms)
+      os <<"\n  </elements>";
+  }
+  os <<"\n</patch>\n";
+
+  return true;
 }

@@ -136,6 +136,9 @@ public:
   //! \note The number of element nodes must be set in \a grid on input.
   virtual bool tesselate(ElementBlock& grid, const int*) const;
 
+  //! \brief Dumps the mesh to the specified XML-file.
+  bool writeXML(const char* fname) const;
+
 protected:
   //! \brief Generate thread groups using multi-coloring.
   void generateThreadGroupsMultiColored(bool silence, bool separateGroup1Noded);
