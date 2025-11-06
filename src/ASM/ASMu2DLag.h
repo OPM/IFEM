@@ -136,12 +136,22 @@ public:
   //! \note The number of element nodes must be set in \a grid on input.
   virtual bool tesselate(ElementBlock& grid, const int*) const;
 
+  using ParamsVec = std::vector<PointParams>; //!< Convenience type alias
+
+  //! \brief Finds elements and local coordinates matching spatial points.
+  //! \param points List of spatial point coordinates
+  //! \param[out] locs List of matching element and local coordinates
+  virtual bool findPoints(Vec3Vec& points, ParamsVec& locs) const;
+
   //! \brief Dumps the mesh to the specified XML-file.
   bool writeXML(const char* fname) const;
 
 protected:
   //! \brief Generate thread groups using multi-coloring.
   void generateThreadGroupsMultiColored(bool silence, bool separateGroup1Noded);
+
+  //! \brief Performs parametric inversion for an element.
+  bool paramInvert(Vec3& X, PointParams& elm) const;
 
   bool swapNode34; //!< If \e true, element nodes 3 and 4 should be swapped
 

@@ -582,6 +582,23 @@ public:
   //! \return Distance from the point \a X to the found point
   virtual double findPoint(Vec3& X, double* param) const = 0;
 
+  //! \brief A struct with element and associated local coordinates of a point.
+  struct PointParams
+  {
+    size_t iel;  //!< 1-based element index
+    double u[3]; //!< Parametric coordinates w.r.t. element or patch
+    double dist; //!< Distance to spatial point
+
+    //! \brief Default constructor.
+    explicit PointParams(size_t e = 0) : iel(e), u{0.0,0.0,0.0}, dist(-1.0) {}
+  };
+
+  //! \brief Finds elements and local coordinates matching spatial points.
+  //! \param points List of spatial point coordinates
+  //! \param[out] locs List of matching elements and/or parametric coordinates
+  virtual bool findPoints(std::vector<Vec3>& points,
+                          std::vector<PointParams>& locs) const;
+
   //! \brief Creates a standard FE model of this patch for visualization.
   //! \param[out] grid The generated finite element grid
   //! \param[in] npe Number of visualization nodes over each knot span

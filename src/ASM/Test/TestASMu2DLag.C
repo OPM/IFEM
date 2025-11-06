@@ -13,7 +13,9 @@
 #include "Catch2Support.h"
 #include "ASMu2DLag.h"
 #include "MPC.h"
+#include "Vec3Oper.h"
 
+#include <fstream>
 #include <sstream>
 
 
@@ -222,5 +224,76 @@ TEST_CASE("TestASMu2DLag.GenerateThreadGroups3x3OneNodeSPC")
       REQUIRE(group[i].size() == ref[i].size());
       REQUIRE(group[i] == ref[i]);
     }
+  }
+}
+
+
+TEST_CASE("TestASMu2DLag.findPoints")
+{
+  struct TestCase
+  {
+    const char* fname = nullptr;
+    int nX = 0;
+    int nY = 0;
+    size_t npt = 0;
+    Vec3 X;
+  };
+
+  const TestCase param =
+    GENERATE(TestCase{ "5x4 mesh", 5, 4, 3, Vec3(0.123,0.345,0.0) },
+             TestCase{ "src/ASM/Test/refdata/Fine2Dmesh.xinp", 0, 0, 17,
+                 Vec3(0.1,0.0,0.0) }
+             );
+
+  SECTION(param.fname)
+  {
+    std::cout <<"\nTesting "<< param.fname;
+    if (param.nX > 0) std::cout <<" "<< param.nX <<"x"<< param.nY;
+    std::cout <<" "<< param.npt << std::endl;
+
+    ASMbase::resetNumbering();
+    ASMu2DLag pch(3,3,'x');
+    if (param.nX > 0 && param.nY > 0)
+    {
+      // Generate a simple mesh on the bi-unit square
+      std::stringstream str;
+      REQUIRE(pch.read(generateXMLModel(str,1.0,1.0,param.nX,param.nY)));
+    }
+    else
+    {
+      // Read mesh from file
+      std::ifstream fs(param.fname);
+      REQUIRE(pch.read(fs));
+    }
+    REQUIRE(pch.generateFEMTopology());
+
+    // Pick some random elements and search for their center points
+    const size_t nel = pch.getNoElms();
+    const size_t npt = param.npt;
+    std::vector<size_t> elements; elements.reserve(npt);
+    std::vector<Vec3> points; points.reserve(npt);
+    for (size_t iel = 1+nel/(2*npt); iel <= nel; iel += nel/npt)
+    {
+      elements.push_back(iel);
+      points.emplace_back(pch.getElementCenter(iel));
+      std::cout <<"Element "<< iel <<": "<< points.back() << std::endl;
+    }
+    points.emplace_back(param.X);
+
+    std::vector<ASMbase::PointParams> elms;
+    REQUIRE(pch.findPoints(points,elms));
+
+    size_t ipt = 0;
+    std::cout <<"Search results:";
+    for (const ASMbase::PointParams& elm : elms)
+    {
+      std::cout <<"\nPoint "<< ++ipt <<": iel = "<< elm.iel
+                <<" xi,eta = "<< elm.u[0] <<","<< elm.u[1]
+                <<" dist = "<< elm.dist;
+      if (ipt-1 < elements.size())
+        REQUIRE(elements[ipt-1] == elm.iel);
+      REQUIRE(elm.dist <= 1.0e-12);
+    }
+    std::cout << std::endl;
   }
 }
