@@ -3,8 +3,8 @@
 C
 C     DNORM3 : Calculate  |v|  and  1/|v| * {v}
 C
-      DOUBLE PRECISION   ZERO        , EPS         , ONE
-      PARAMETER        ( ZERO = 0.0D0, EPS = 1.0D-8, ONE = 1.0D0 )
+      DOUBLE PRECISION   ZERO        , EPS          , ONE
+      PARAMETER        ( ZERO = 0.0D0, EPS = 1.0D-15, ONE = 1.0D0 )
 C
       DV = SQRT(V(1)*V(1) + V(2)*V(2) + V(3)*V(3))
       IF (DV .LT. EPS) THEN

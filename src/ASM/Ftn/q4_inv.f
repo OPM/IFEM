@@ -123,8 +123,8 @@ C                                      * The element is not parallel
 C                                        to the global XY-plane, need
 C                                        to calculate local coordinates
          DO 2000 j = 1,NDIM
-            X1(j)  = TENC(j,3) - TENC(j,1)
-            X2(j)  = TENC(j,4) - TENC(j,2)
+            X1(j)  = TENC(j,2) - TENC(j,1)
+            X2(j)  = TENC(j,3) - TENC(j,1)
  2000    CONTINUE
          CALL SHLTRI (2,X1,X2,TGL,IPSW,IWR,IERRL)
          IF (IERRL .LT. 0)                       GOTO 7100

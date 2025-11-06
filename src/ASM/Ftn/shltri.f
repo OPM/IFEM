@@ -81,7 +81,7 @@ C
       IF (IPSW .GE. 6)                           WRITE(IWR,9900)
       IF (IPSW .GE. 7)                           THEN
          WRITE(IWR,9920) IOP,V3
-         IF (IOP .EQ. 1)                         WRITE(IWR,9921) VX
+         IF (IOP .EQ. 1 .OR. IOP .EQ. 2)         WRITE(IWR,9921) VX
       ENDIF
 C
 C
@@ -106,13 +106,17 @@ C                                        onto the plane, then V2 = V3 x V1
 C
       ELSE IF (IOP .EQ. 2)                       THEN
 C
-C                                      * Define V2 as V1 x V3,
-C                                        then V3 = V1 x V2
+         V1(1) = VX(1)
+         V1(2) = VX(2)
+         V1(3) = VX(3)
+C
+C                                      * Define V3 as V1 x V3,
+C                                        then V2 = V3 x V1
          CALL DCROS3 (V1,V3,V2)
          V3(1) = V2(1)
          V3(2) = V2(2)
          V3(3) = V2(3)
-         CALL DCROS3 (V1,V2,V3)
+         CALL DCROS3 (V3,V1,V2)
          IF (DNORM3(V3) .LE. ZERO)               GOTO 7200
 C
       ELSE IF (ABS(V3(2)) .GT. EPS .OR. ABS(V3(3)) .GT. EPS) THEN
