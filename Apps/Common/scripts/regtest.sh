@@ -30,8 +30,10 @@ function atomic_log_file {
   flock -x 200
   cat $1 >> $BINARY_DIR/failed.log
 
-) 200>/var/lock/ifemloglock
+) 200>$LOCKFILE
 }
+
+LOCKFILE=/var/lock/ifemloglock-$USER
 
 OPTIND=1
 while getopts "a:r:m:v:s:d:" OPT
