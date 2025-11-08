@@ -15,11 +15,9 @@
 #define _UTILITIES_H
 
 #include "matrix.h"
-#include <string>
-#include <iostream>
-#include <vector>
 #include <map>
 #include <set>
+#include <string>
 
 namespace tinyxml2 {
   class XMLElement;
@@ -38,7 +36,12 @@ namespace utl
   //! \param[in] argv Character string with integer data
   //!
   //! \details An integer range is recognised through the syntax \a i:j.
-  void parseIntegers(std::vector<int>& values, const char* argv);
+  bool parseIntegers(std::vector<int>& values, const char* argv);
+
+  //! \brief Parses a character string into a point vector.
+  //! \param[out] value The parsed point vector
+  //! \param[in] argv Character string with data
+  bool parseVec(Vec3& value, const char* argv);
 
   //! \brief Parses a (possibly graded) sequence of knot values.
   //! \param xi The knot value(s) is/are appended to this vector
