@@ -233,6 +233,20 @@ public:
                             const RealArray* gpar, bool regular,
                             int, int) const;
 
+  //! \brief Evaluates the primary solution field at the given points.
+  //! \param sField Solution field
+  //! \param[in] locSol Solution vector local to current patch
+  //! \param[in] elms List of elements to evaluate at
+  //! \param[in] lpar Local parameter values of the result sampling points
+  //!
+  //! \details If \a lpar is null, the solution is evaluated at the center of
+  //! each element. Otherwise, it is assumed to contain the local &xi; and &eta;
+  //! parameters of the evaluation points, w.r.t. the provided elements.
+  //! \note The resuls are appended as extra columns to output matrix \a sField.
+  //! Therefore, any existing results is preserved.
+  bool evalSolution(Matrix& sField, const Vector& locSol,
+                    const IntVec& elms, const RealArray* lpar = nullptr) const;
+
   //! \brief Evaluates the secondary solution field at all visualization points.
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
@@ -288,6 +302,10 @@ public:
 private:
   //! \brief Returns matrix of nodal point correspondance for a structured grid.
   static void createMNPC(size_t nx, size_t ny, int p1, int p2, IntMat& MNPC);
+
+  //! \brief Evaluates a nodal solution field at specified point in an element.
+  bool evalSolPt(int iel, double xi, double eta, size_t nCmp,
+                 const Vector& pchSol, RealArray& ptSol, RealArray& N) const;
 
 protected:
   size_t nx; //!< Number of nodes in first parameter direction

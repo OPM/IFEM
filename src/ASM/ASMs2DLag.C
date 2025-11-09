@@ -718,7 +718,8 @@ bool ASMs2DLag::tesselate (ElementBlock& grid, const int*) const
 }
 
 
-void ASMs2DLag::constrainEdge (int dir, bool open, int dof, int code, char basis)
+void ASMs2DLag::constrainEdge (int dir, bool open, int dof, int code,
+                               char basis)
 {
   this->ASMs2D::constrainEdge(dir, open, dof, code > 0 ? -code : code, basis);
 }
@@ -741,11 +742,9 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const Vector& locSol,
   size_t nCmp = locSol.size() / this->getNoProjectionNodes();
   size_t ni   = gpar ? gpar[0].size() : nel;
   size_t nj   = gpar ? gpar[1].size() : 1;
-  size_t nen  = p1*p2;
 
   sField.resize(nCmp,ni*nj);
-  Matrix elmSol(nCmp,nen);
-  RealArray N(nen), val;
+  RealArray N, val;
 
   double xi = 0.0, eta = 0.0;
   if (!gpar && !Lagrange::computeBasis(N,p1,xi,p2,eta))
@@ -757,22 +756,62 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const Vector& locSol,
     for (size_t i = 0; i < ni; i++, ip++)
     {
       if (gpar)
-      {
         iel = this->findElement(gpar[0][i], gpar[1][j], &xi, &eta);
-        if (iel < 1 || iel > static_cast<int>(nel))
-          return false;
-        if (!Lagrange::computeBasis(N,p1,xi,p2,eta))
-          return false;
-      }
-      else
-        iel++;
+      else // evaluate at element centers
+        --iel;
+      if (!this->evalSolPt(iel,xi,eta,nCmp,locSol,val,N))
+        return false;
 
-      for (size_t a = 1; a <= nen; a++)
-        elmSol.fillColumn(a, locSol.ptr() + nCmp*MNPC[iel-1][a-1]);
-
-      elmSol.multiply(N,val);
       sField.fillColumn(ip,val);
     }
+
+  return true;
+}
+
+
+bool ASMs2DLag::evalSolution (Matrix& sField, const Vector& locSol,
+                              const IntVec& elms, const RealArray* lpar) const
+{
+  const size_t nCmp = locSol.size() / this->getNoProjectionNodes();
+  const size_t nPts = lpar ? lpar[0].size() : elms.size();
+  const size_t iPts = sField.cols();
+  sField.resize(nCmp,iPts+nPts);
+
+  RealArray N, ptSol;
+  for (size_t i = 0; i < nPts; i++)
+  {
+    double xi  = lpar ? lpar[0][i] : 0.0;
+    double eta = lpar ? lpar[1][i] : 0.0;
+    if (!this->evalSolPt(elms[i],xi,eta,nCmp,locSol,ptSol,N))
+      return false;
+
+    sField.fillColumn(iPts+i+1,ptSol);
+  }
+
+  return true;
+}
+
+
+bool ASMs2DLag::evalSolPt (int iel, double xi, double eta, size_t nCmp,
+                           const Vector& pchSol, RealArray& ptSol,
+                           RealArray& N) const
+{
+  if (iel < 0 && -iel <= static_cast<int>(nel)) // assume N is already evaluated
+    iel = -iel-1;
+  else if (iel < 1 || iel > static_cast<int>(nel))
+    return false;
+  else if (MNPC[--iel].size() == 3)
+    N = { xi, eta, 1.0-xi-eta }; // special for linear triangles
+  else if (!Lagrange::computeBasis(N,p1,xi,p2,eta))
+    return false;
+
+  ptSol.assign(nCmp,0.0);
+  for (size_t a = 0; a < N.size(); a++)
+  {
+    size_t ip = nCmp*MNPC[iel][a];
+    for (size_t i = 0; i < nCmp; i++)
+      ptSol[i] += N[a]*pchSol[ip++];
+  }
 
   return true;
 }
@@ -997,7 +1036,7 @@ int ASMs2DLag::findElement (double u, double v, double* xi, double* eta) const
   if (!surf)
   {
     std::cerr <<" *** ASMs2DLag::findElement: No spline geometry"<< std::endl;
-    return -1;
+    return 0;
   }
 
   int ku, kv;

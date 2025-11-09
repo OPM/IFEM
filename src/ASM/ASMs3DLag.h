@@ -312,6 +312,10 @@ private:
   static void createMNPC(size_t nx, size_t ny, size_t nz,
                          int p1, int p2, int p3, IntMat& MNPC);
 
+  //! \brief Evaluates a nodal solution field at specified point in an element.
+  bool evalSolPt(int iel, double xi, double eta, double zeta, size_t nCmp,
+                 const Vector& pchSol, RealArray& ptSol, RealArray& N) const;
+
 protected:
   size_t nx; //!< Number of nodes in first parameter direction
   size_t ny; //!< Number of nodes in second parameter direction
