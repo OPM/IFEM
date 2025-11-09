@@ -148,7 +148,7 @@ bool SIM1D::parseGeometryTag (const tinyxml2::XMLElement* elem)
     utl::getAttribute(elem,"offset",offset);
 
     const tinyxml2::XMLElement* child = elem->FirstChildElement("connection");
-    for (; child; child = child->NextSiblingElement())
+    for (; child; child = child->NextSiblingElement("connection"))
     {
       ASM::Interface ifc;
       if (utl::getAttribute(child,"master",ifc.master))

@@ -106,8 +106,7 @@ bool SIMoutput::parseOutputTag (const tinyxml2::XMLElement* elem)
 {
   IFEM::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
 
-  const char* funcval = utl::getValue(elem,"function");
-  if (funcval)
+  if (const char* funcval = utl::getValue(elem,"function"); funcval)
   {
     std::string name;
     utl::getAttribute(elem,"name",name);
@@ -141,7 +140,7 @@ bool SIMoutput::parseOutputTag (const tinyxml2::XMLElement* elem)
   // Parse the result point specifications.
   // Can either be explicit points, lines or a grid.
   const tinyxml2::XMLElement* point = elem->FirstChildElement("point");
-  for (int i = 1; point; i++, point = point->NextSiblingElement())
+  for (int i = 1; point; i++, point = point->NextSiblingElement("point"))
   {
     ResultPoint thePoint(3);
     if (int patch = 0; utl::getAttribute(point,"patch",patch) && patch > 0)
@@ -151,20 +150,22 @@ bool SIMoutput::parseOutputTag (const tinyxml2::XMLElement* elem)
     if (utl::getAttribute(point,"node",thePoint.inod) && thePoint.inod > 0)
       IFEM::cout <<" node = "<< thePoint.inod;
     else
+    {
       IFEM::cout <<" xi =";
-    if (utl::getAttribute(point,"u",thePoint.u[0]))
-      IFEM::cout <<' '<< thePoint.u[0];
-    if (utl::getAttribute(point,"v",thePoint.u[1]))
-      IFEM::cout <<' '<< thePoint.u[1];
-    if (utl::getAttribute(point,"w",thePoint.u[2]))
-      IFEM::cout <<' '<< thePoint.u[2];
+      if (utl::getAttribute(point,"u",thePoint.u[0]))
+        IFEM::cout <<' '<< thePoint.u[0];
+      if (utl::getAttribute(point,"v",thePoint.u[1]))
+        IFEM::cout <<' '<< thePoint.u[1];
+      if (utl::getAttribute(point,"w",thePoint.u[2]))
+        IFEM::cout <<' '<< thePoint.u[2];
+    }
     IFEM::cout << std::endl;
 
     addPoint(thePoint);
   }
 
   const tinyxml2::XMLElement* line = elem->FirstChildElement("line");
-  for (int j = 1; line; j++, line = line->NextSiblingElement())
+  for (int j = 1; line; j++, line = line->NextSiblingElement("line"))
   {
     ResultPoint thePoint(3);
     if (int patch = 0; utl::getAttribute(line,"patch",patch) && patch > 0)
@@ -206,26 +207,22 @@ bool SIMoutput::parseOutputTag (const tinyxml2::XMLElement* elem)
   }
 
   for (const tinyxml2::XMLElement* child = elem->FirstChildElement("elements");
-       child; child = child->NextSiblingElement())
+       child; child = child->NextSiblingElement("elements"))
     if (const tinyxml2::XMLNode* elist = child->FirstChild(); elist)
     {
       ResultPoint thePoint;
       if (int patch = 0; utl::getAttribute(child,"patch",patch) && patch > 0)
         thePoint.patch = patch;
 
-      IntVec elements;
-      utl::parseIntegers(elements,elist->Value());
-      for (int iel : elements)
-      {
-        thePoint.iel = iel;
-        addPoint(thePoint);
-      }
-
-      if (!elements.empty())
+      if (IntVec elements; utl::parseIntegers(elements,elist->Value()))
       {
         IFEM::cout <<"\tElement center output: P"<< thePoint.patch <<" (";
-        for (const ResultPoint& rp : myPoints.back().second)
-          IFEM::cout <<" "<< rp.iel;
+        for (int iel : elements)
+        {
+          IFEM::cout <<" "<< iel;
+          thePoint.iel = iel;
+          addPoint(thePoint);
+        }
         IFEM::cout <<" )"<< std::endl;
       }
     }
@@ -236,7 +233,7 @@ bool SIMoutput::parseOutputTag (const tinyxml2::XMLElement* elem)
   else if (grid)
     idxGrid = myPoints.size();
 
-  for (int g = 1; grid; g++, grid = grid->NextSiblingElement())
+  for (int g = 1; grid; g++, grid = grid->NextSiblingElement("grid"))
   {
     ResultPoint thePoint;
     if (int patch = 0; utl::getAttribute(grid,"patch",patch) && patch > 0)
@@ -413,7 +410,7 @@ void SIMoutput::preprocessResPtGroup (std::string& ptFile, ResPointVec& points)
 {
   if (points.empty()) return;
 
-  // Check if we have Cartesian grid input
+  // Check if we have a regular Cartesian grid input
   size_t nX = 0;
   IntMat pointMap;
   if (points.front().inod < 0 && points.back().inod < 0)
@@ -431,8 +428,7 @@ void SIMoutput::preprocessResPtGroup (std::string& ptFile, ResPointVec& points)
   for (ResPointVec::iterator pit = points.begin(); pit != points.end();)
   {
     bool pointIsOK = false;
-    ASMbase* pch = this->getPatch(pit->patch,true);
-    if (pch && !pch->empty())
+    if (ASMbase* pch = this->getPatch(pit->patch,true); pch && !pch->empty())
     {
       if ((pointIsOK = pit->inod > 0)) // A nodal number is specified
         pit->X = pch->getCoord(pit->inod);
@@ -441,8 +437,10 @@ void SIMoutput::preprocessResPtGroup (std::string& ptFile, ResPointVec& points)
         pointIsOK = fabs(pch->findPoint(pit->X,pit->u)) < 1.0e-3;
 
       else if (pit->npar > 0) // A parametric point is specified
+      {
+        pit->npar = pch->getNoParamDim();
         pointIsOK = (pit->inod = pch->evalPoint(pit->u,pit->u,pit->X)) >= 0;
-
+      }
       else if (pit->iel < 1) // All nodes or element centers
         pointIsOK = true;
 
@@ -455,8 +453,6 @@ void SIMoutput::preprocessResPtGroup (std::string& ptFile, ResPointVec& points)
 
     if (pointIsOK)
     {
-      if (pit->npar > 0)
-        pit->npar = pch->getNoParamDim();
       ++pit;
       ++iPoint;
       if (nX > 0)
@@ -498,10 +494,24 @@ void SIMoutput::preprocessResPtGroup (std::string& ptFile, ResPointVec& points)
         IFEM::cout <<", node #"<< pt.inod;
       else if (pt.iel > 0)
         IFEM::cout <<", element #"<< pt.iel;
-      if (pt.inod > 0 && myModel.size() > 1)
+      ASMbase* pch = this->getPatch(pt.patch,true);
+      if (pch)
       {
-        ASMbase* pch = this->getPatch(pt.patch,true);
-        IFEM::cout <<", global #"<< pch->getNodeID(pt.inod);
+        int globalId = 0;
+        if (pt.inod > 0)
+        {
+          if (int nodeId = pch->getNodeID(pt.inod);
+              nodeId != pt.inod || myModel.size() > 1)
+            globalId = nodeId;
+        }
+        else if (pt.iel > 0)
+        {
+          if (int elmId = pch->getElmID(pt.iel);
+              elmId != pt.iel || myModel.size() > 1)
+            globalId = elmId;
+        }
+        if (globalId > 0)
+          IFEM::cout <<", global #"<< globalId;
       }
       if (pt.npar > 0 || pt.iel > 0)
         IFEM::cout <<", X = "<< pt.X << std::endl;
@@ -541,7 +551,7 @@ void SIMoutput::preprocessResPtGroup (std::string& ptFile, ResPointVec& points)
   for (const ResultPoint& pt : points)
   {
     os << 0.0 <<" "; // dummy time
-    for (short int k = 0; k < pt.npar; k++)
+    for (short int k = 0; k < nsd; k++)
       os << std::setw(flWidth) << pt.X[k];
     os << std::endl;
   }
@@ -563,8 +573,7 @@ bool SIMoutput::merge (SIMbase* that, const std::map<int,int>* old2new,
     for (ResultPoint& rp : rptp.second)
     {
       if (++iPoint == 1) IFEM::cout <<'\n';
-      ASMbase* pch = that->getPatch(rp.patch,true);
-      if (pch && rp.inod > 0)
+      if (ASMbase* pch = that->getPatch(rp.patch,true); pch && rp.inod > 0)
         IFEM::cout <<"Result point #"<< iPoint <<": patch #"<< rp.patch
                    <<",  local node "<< rp.inod
                    <<"  global node "<< pch->getNodeID(rp.inod) << std::endl;
@@ -1798,11 +1807,11 @@ bool SIMoutput::dumpMatlabGrid (std::ostream& os, const std::string& name,
   os <<"]="<< name << std::endl;
 
   // Write out nodes for the specified topology sets
-  TopologySet::const_iterator tit;
   for (const std::string& setname : sets)
   {
     std::set<int> nodeSet;
-    if ((tit = myEntitys.find(setname)) != myEntitys.end())
+    if (TopologySet::const_iterator tit = myEntitys.find(setname);
+        tit != myEntitys.end())
       for (const TopItem& top : tit->second)
         if (ASMbase* pch = this->getPatch(top.patch); pch)
           if (top.idim+1 == pch->getNoParamDim())
@@ -2023,7 +2032,7 @@ bool SIMoutput::dumpResults (const Vector& psol, double time,
       }
 
       bool newLine = false;
-      // Convenience lambda returning proper newline character before identifier.
+      // Convenience lambda returning proper newline char before identifier.
       auto&& newLineChr = [&newLine]() { return newLine ? "\n\t\t" : ":\t"; };
 
       if (formatted && !sol1.empty())
