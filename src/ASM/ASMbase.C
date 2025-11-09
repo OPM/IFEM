@@ -1785,7 +1785,7 @@ bool ASMbase::evalSolution (Matrix&, const IntegrandBase&,
 
 
 bool ASMbase::evalSolution (Matrix& sField, const IntegrandBase& integrand,
-                            const IntVec& elements) const
+                            const IntVec& elements, const RealArray*) const
 {
   if (elements.empty())
     return this->evalSolution(sField,integrand,nullptr,true);

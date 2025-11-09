@@ -317,6 +317,8 @@ public:
   void printNodes(std::ostream& os) const;
   //! \brief Prints out element connections of this patch to the given stream.
   void printElements(std::ostream& os) const;
+  //! \brief Prints out additional app-dependent element information.
+  virtual void printElmInfo(int, const IntegrandBase*) const {}
 
   //! \brief Increase all global node numbers by \a nshift.
   virtual void shiftGlobalNodeNums(int nshift);
@@ -731,13 +733,17 @@ public:
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] elements List of elements to evaluate for (all if empty)
+  //! \param[in] lpar Local parameter values of the result sampling points
   //!
   //! \details The secondary solution is derived from the primary solution,
   //! which is assumed to be stored within the \a integrand for current patch.
   //! This method evaluates the secondary solution at the center of the
   //! provided list of \a elements, or for all if the list is empty.
+  //! If \a lpar is specified, it is assumed to contain the local parameters
+  //! (w.r.t. the elements) of the evaluation points
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
-                            const IntVec& elements) const;
+                            const IntVec& elements,
+                            const RealArray* lpar = nullptr) const;
 
   //! \brief Projects the secondary solution using a (discrete) global L2-fit.
   //! \param[out] sField Secondary solution field control point values
