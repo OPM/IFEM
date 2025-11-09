@@ -509,6 +509,8 @@ void SIMoutput::preprocessResPtGroup (std::string& ptFile, ResPointVec& points)
         IFEM::cout <<", element centers will be used."<< std::endl;
       else
         IFEM::cout <<", nodal points will be used."<< std::endl;
+      if (pch && pt.iel > 0)
+        pch->printElmInfo(pt.iel,myProblem);
     }
   }
 

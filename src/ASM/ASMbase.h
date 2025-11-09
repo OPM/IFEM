@@ -317,6 +317,8 @@ public:
   void printNodes(std::ostream& os) const;
   //! \brief Prints out element connections of this patch to the given stream.
   void printElements(std::ostream& os) const;
+  //! \brief Prints out additional app-dependent element information.
+  virtual void printElmInfo(int, const IntegrandBase*) const {}
 
   //! \brief Increase all global node numbers by \a nshift.
   virtual void shiftGlobalNodeNums(int nshift);
