@@ -303,11 +303,12 @@ private:
   //! \brief Returns matrix of nodal point correspondance for a structured grid.
   static void createMNPC(size_t nx, size_t ny, int p1, int p2, IntMat& MNPC);
 
-  //! \brief Evaluates a nodal solution field at specified point in an element.
-  bool evalSolPt(int iel, double xi, double eta, size_t nCmp,
-                 const Vector& pchSol, RealArray& ptSol, RealArray& N) const;
-
 protected:
+  //! \brief Evaluates a nodal solution field at specified point in an element.
+  virtual bool evalSolPt(int iel, double xi, double eta, size_t nCmp,
+                         const Vector& pchSol, RealArray& ptSol,
+                         RealArray& N) const;
+
   size_t nx; //!< Number of nodes in first parameter direction
   size_t ny; //!< Number of nodes in second parameter direction
   int    p1; //!< Polynomial order in first parameter direction

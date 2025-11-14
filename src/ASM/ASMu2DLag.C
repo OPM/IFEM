@@ -608,6 +608,26 @@ bool ASMu2DLag::integrate (Integrand& integrand,
 }
 
 
+bool ASMu2DLag::evalSolPt (int iel, double xi, double eta, size_t nCmp,
+                           const Vector& pchSol, RealArray& ptSol,
+                           RealArray& N) const
+{
+  ptSol.clear();
+  size_t jel = iel > 0 ? iel : -iel;
+  if (jel < 1 || jel > MNPC.size())
+    return false;
+  else if (MNPC[--jel].size() > 3) // 4-noded 2D element
+    return this->ASMs2DLag::evalSolPt(iel,xi,eta,nCmp,pchSol,ptSol,N);
+  else if (MNPC[jel].size() < 3)
+    return true; // no results for 0D and 1D elements
+
+  // This element is a linear triangle
+  RealArray N3(3,1.0/3.0);
+  if (iel > 0) N3 = { xi, eta, 1.0-xi-eta };
+  return this->ASMs2DLag::evalSolPt(-1-jel,xi,eta,nCmp,pchSol,ptSol,N3);
+}
+
+
 bool ASMu2DLag::writeXML (const char* fname) const
 {
   std::ofstream os(fname);

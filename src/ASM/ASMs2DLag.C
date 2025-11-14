@@ -750,21 +750,23 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const Vector& locSol,
   if (!gpar && !Lagrange::computeBasis(N,p1,xi,p2,eta))
     return false;
 
-  size_t ip = 1;
+  size_t ip = 0;
   int iel = 0;
   for (size_t j = 0; j < nj; j++)
-    for (size_t i = 0; i < ni; i++, ip++)
+    for (size_t i = 0; i < ni; i++)
     {
       if (gpar)
         iel = this->findElement(gpar[0][i], gpar[1][j], &xi, &eta);
       else // evaluate at element centers
         --iel;
+
       if (!this->evalSolPt(iel,xi,eta,nCmp,locSol,val,N))
         return false;
-
-      sField.fillColumn(ip,val);
+      else if (!val.empty()) // skip elements with no results
+        sField.fillColumn(++ip,val);
     }
 
+  sField.resize(nCmp,ip);
   return true;
 }
 
@@ -800,10 +802,10 @@ bool ASMs2DLag::evalSolPt (int iel, double xi, double eta, size_t nCmp,
     iel = -iel-1;
   else if (iel < 1 || iel > static_cast<int>(nel))
     return false;
-  else if (MNPC[--iel].size() == 3)
-    N = { xi, eta, 1.0-xi-eta }; // special for linear triangles
   else if (!Lagrange::computeBasis(N,p1,xi,p2,eta))
     return false;
+  else
+    --iel;
 
   ptSol.assign(nCmp,0.0);
   for (size_t a = 0; a < N.size(); a++)

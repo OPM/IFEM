@@ -147,6 +147,11 @@ public:
   bool writeXML(const char* fname) const;
 
 protected:
+  //! \brief Evaluates a nodal solution field at specified point in an element.
+  virtual bool evalSolPt(int iel, double xi, double eta, size_t nCmp,
+                         const Vector& pchSol, RealArray& ptSol,
+                         RealArray& N) const;
+
   //! \brief Generate thread groups using multi-coloring.
   void generateThreadGroupsMultiColored(bool silence, bool separateGroup1Noded);
 
