@@ -140,6 +140,18 @@ public:
   bool writeXML(const char* fname) const;
 
 protected:
+  //! \brief Evaluates a nodal solution field at specified point in an element.
+  //! \param[in] iel 1-based element index local to current patch
+  //! \param[in] xi First parametric coordinate in range [-1,1]
+  //! \param[in] eta Second parametric coordinate in range [-1,1]
+  //! \param[in] nCmp Number of solution components
+  //! \param[in] pchSol Nodal values of the field to evaluate
+  //! \param[out] ptSol Solution field values at the specified point
+  //! \param[out] N Basis function values at the sepcified point
+  virtual bool evalSolPt(int iel, double xi, double eta,
+                         size_t nCmp, const Vector& pchSol,
+                         RealArray& ptSol, RealArray& N) const;
+
   //! \brief Generate thread groups using multi-coloring.
   void generateThreadGroupsMultiColored(bool silence, bool separateGroup1Noded);
 

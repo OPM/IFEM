@@ -290,6 +290,18 @@ private:
   static void createMNPC(size_t nx, size_t ny, int p1, int p2, IntMat& MNPC);
 
 protected:
+  //! \brief Evaluates a nodal solution field at specified point in an element.
+  //! \param[in] iel 1-based element index local to current patch
+  //! \param[in] xi First parametric coordinate, &xi; &isin; [-1,1]
+  //! \param[in] eta Second parametric coordinate, &eta; &isin; [-1,1]
+  //! \param[in] nCmp Number of solution components
+  //! \param[in] pchSol Nodal values of the field to evaluate
+  //! \param[out] ptSol Solution field values at the specified point
+  //! \param[out] N Basis function values at the sepcified point
+  virtual bool evalSolPt(int iel, double xi, double eta,
+                         size_t nCmp, const Vector& pchSol,
+                         RealArray& ptSol, RealArray& N) const;
+
   size_t nx; //!< Number of nodes in first parameter direction
   size_t ny; //!< Number of nodes in second parameter direction
   int    p1; //!< Polynomial order in first parameter direction
