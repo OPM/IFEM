@@ -428,6 +428,8 @@ private:
 
   std::map<std::string,RealFunc*> myAddScalars; //!< Scalar functions to output
 
+  std::set<std::string> wantComps; //!< Component names for grid output
+
   int    myPrec;   //!< Output precision for result sampling
   double myPtSize; //!< Size of result point visualization in VTF-file
   int    myGeomID; //!< Geometry block ID for the first patch in the VTF-file

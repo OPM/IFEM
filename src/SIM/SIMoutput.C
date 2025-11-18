@@ -360,6 +360,21 @@ bool SIMoutput::parseOutputTag (const tinyxml2::XMLElement* elem)
   utl::getAttribute(elem,"precision",myPrec);
   utl::getAttribute(elem,"vtfsize",myPtSize);
 
+  const tinyxml2::XMLElement* comps = elem->FirstChildElement("components");
+  if (comps && comps->FirstChild())
+  {
+    char* scmp = strdup(comps->FirstChild()->Value());
+    for (char* ccmp = strtok(scmp,"|"); ccmp; ccmp = strtok(nullptr,"|"))
+      wantComps.insert(ccmp);
+    free(scmp);
+    if (!wantComps.empty())
+    {
+      IFEM::cout <<"\tSolution components to output:";
+      for (const std::string& s : wantComps) IFEM::cout <<" \""<< s <<"\"";
+      IFEM::cout << std::endl;
+    }
+  }
+
   if (std::string fname; utl::getAttribute(elem,"file",fname))
     this->setPointResultFile(fname,elem->FirstChildElement("dump_coordinates"));
 
@@ -403,6 +418,13 @@ void SIMoutput::preprocessResultPoints ()
 {
   for (ResPtPair& rptp : myPoints)
     this->preprocessResPtGroup(rptp.first,rptp.second);
+
+  if (myProblem && !myPoints.empty())
+  {
+    IFEM::cout <<"\nSecondary solution components (sol2):";
+    for (size_t i = 0; i < myProblem->getNoFields(2); i++)
+      IFEM::cout <<" \""<< myProblem->getField2Name(i) <<"\"";
+  }
 }
 
 
@@ -892,7 +914,7 @@ bool SIMoutput::writeGlvNo (int& nBlock, int& idBlock,
 
 bool SIMoutput::writeGlvT (int iStep, int& geoBlk, int& nBlock) const
 {
-  if (myVtf && myProblem->hasTractionValues())
+  if (myVtf && myProblem && myProblem->hasTractionValues())
   {
     if (msgLevel > 1)
       IFEM::cout <<"Writing boundary tractions"<< std::endl;
@@ -2464,10 +2486,10 @@ bool SIMoutput::saveResults (const Vectors& psol, double time, int step) const
   IntVec  points, elms;
   Vec3Vec Xp;
   Matrix  sol, sol2;
-  std::vector<std::string> compNames;
-  std::vector<std::string>* cmpNames = step > 1 ? nullptr : &compNames;
+  std::vector<std::string> cmpNames;
   for (const ASMbase* pch : myModel)
-    if (!this->evalResults(psol,gridPts,pch,points,elms,Xp,sol,sol2,cmpNames))
+    if (!this->evalResults(psol,gridPts,pch,points,elms,Xp,sol,sol2,
+                           step > 1 && wantComps.empty() ? nullptr : &cmpNames))
       return false;
 
   if (!sol2.empty() && !sol.augmentRows(sol2))
@@ -2481,10 +2503,14 @@ bool SIMoutput::saveResults (const Vectors& psol, double time, int step) const
   // Write one file for each result component
   for (size_t r = 1; r <= sol.rows(); r++)
   {
+    // Check if only a subset of the result components are wanted
+    if (!wantComps.empty() && r <= cmpNames.size() &&
+        wantComps.find(cmpNames[r-1]) == wantComps.end()) continue;
+
     std::string fName = fileName + "_" + std::to_string(r) + fileExt;
     std::ofstream fs(fName,step > 1 ? std::ios::app : std::ios::out);
-    if (step == 1 && r <= compNames.size())
-      fs <<"# "<< compNames[r-1] << '\n';
+    if (step == 1 && r <= cmpNames.size())
+      fs <<"# "<< cmpNames[r-1] << '\n';
     fs << time;
     for (size_t c = 1; c <= sol.cols(); c++)
       fs <<" "<< sol(r,c);
