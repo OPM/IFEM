@@ -13,6 +13,7 @@
 #ifndef ASM_USQUARE_H
 #define ASM_USQUARE_H
 
+#include "Test/ASMSquare.h"
 #include "LR/ASMu2Dmx.h"
 #include <sstream>
 
@@ -34,6 +35,9 @@ public:
     "[0, 1] x 1 (2)\n"
     "# Elements:\n"
     "0 [2] : (0, 0) x (1, 1)    {0, 1, 2, 3}\n";
+
+  static constexpr auto quad = ASMSquare::quad;
+  static constexpr auto quadv = ASMSquare::quadv;
 
   explicit ASMuSquare(unsigned char n_f = 2,
                       double xshift = 0.0,
@@ -57,20 +61,19 @@ public:
     for (int& e : myMLGE)
       e += (e == -1 ? 0 : shift);
   }
-
-  virtual ~ASMuSquare() {}
 };
 
 
 class ASMmxuSquare : public ASMu2Dmx
 {
 public:
+  static constexpr auto quadv = ASMmxSquare::quadv;
+
   explicit ASMmxuSquare(const CharVec& n_f) : ASMu2Dmx(2,n_f)
   {
-    std::stringstream geo("200 1 0 0\n2 0\n2 2\n0 0 1 1\n2 2\n0 0 1 1\n0 0\n1 0\n0 1\n1 1\n");
+    std::stringstream geo(ASMSquare::square);
     this->read(geo);
   }
-  virtual ~ASMmxuSquare() {}
 };
 
 #endif

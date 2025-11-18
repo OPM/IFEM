@@ -14,6 +14,7 @@
 #define _ASM_UCUBE_H
 
 #include "LR/ASMu3Dmx.h"
+#include "Test/ASMCube.h"
 #include <sstream>
 
 class ASMuCube : public ASMu3D
@@ -42,6 +43,9 @@ public:
     "[0, 1] x [0, 1] x [1, 1] (2)\n"
     "# Elements:\n"
     "0 [3] : (0, 0, 0) x (1, 1, 1)    {0, 1, 2, 3, 4, 5, 6, 7}\n";
+
+  static constexpr auto quad = ASMCube::quad;
+  static constexpr auto quadv = ASMCube::quadv;
 
   explicit ASMuCube(unsigned char n_f = 3,
                     double xshift = 0.0,
@@ -75,25 +79,18 @@ public:
     for (int& e : myMLGE)
       e += (e == -1 ? 0 : shift);
   }
-
-  virtual ~ASMuCube() {}
 };
 
 
 class ASMmxuCube : public ASMu3Dmx
 {
 public:
+  static constexpr auto quadv = ASMmxCube::quadv;
   explicit ASMmxuCube(const CharVec& n_f) : ASMu3Dmx(n_f)
   {
-    std::stringstream geo("700 1 0 0\n3 0\n"
-                          "2 2\n0 0 1 1\n"
-                          "2 2\n0 0 1 1\n"
-                          "2 2\n0 0 1 1\n"
-                          "0 0 0\n1 0 0\n0 1 0\n1 1 0\n"
-                          "0 0 1\n1 0 1\n0 1 1\n1 1 1\n");
+    std::stringstream geo(ASMCube::cube);
     this->read(geo);
   }
-  virtual ~ASMmxuCube() {}
 };
 
 #endif

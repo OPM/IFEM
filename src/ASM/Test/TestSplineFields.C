@@ -10,246 +10,104 @@
 //!
 //==============================================================================
 
-#include "Field.h"
-#include "Fields.h"
-#include "ItgPoint.h"
 #include "ASMSquare.h"
 #include "ASMCube.h"
-
-#include "Catch2Support.h"
-
-#include <array>
-#include <memory>
+#include "Test/FieldTests.h"
 
 
 TEST_CASE("TestSplineFields.Value2D")
 {
-  ASMSquare patch;
-
-  // {x+y+x*y, x-y+x*y}
-  std::vector<double> vc = {0.0,  0.0,
-                            1.0,  1.0,
-                            1.0, -1.0,
-                            3.0, 1.0};
-  std::unique_ptr<Fields> fvector(Fields::create(&patch,vc));
-  std::unique_ptr<Field> fscalar(Field::create(&patch,vc,1,2));
-  static std::vector<std::array<double,4>> tests_vector =
-        {{{{0.5, 0.5, 1.25, 0.25}},
-          {{1.0, 0.0, 1.0,  1.0}},
-          {{0.0, 1.0, 1.0, -1.0}},
-          {{1.0, 1.0, 3.0,  1.0}}}};
-  for (const auto& it : tests_vector) {
-    ItgPoint fe(it[0],it[1]);
-    Vector v(2);
-    REQUIRE(fvector->valueFE(fe,v));
-    REQUIRE_THAT(v(1), WithinRel(it[2]));
-    REQUIRE_THAT(v(2), WithinRel(it[3]));
-    REQUIRE_THAT(fscalar->valueFE(fe), WithinRel(it[3]));
-  }
-}
-
-
-TEST_CASE("TestSplineFields.Value2Dmx")
-{
-  ASMmxBase::Type = ASMmxBase::DIV_COMPATIBLE;
-  ASMmxSquare patch({1,1,1});
-  patch.raiseOrder(1,1);
-  REQUIRE(patch.generateFEMTopology());
-
-  // {x+y+x*y, x-y+x*y}
-  std::vector<double> vc = {0.0,
-                            0.5,
-                            1.0,
-                            1.0,
-                            2.0,
-                            3.0,
-                            // y
-                            0.0,
-                            1.0,
-                           -0.5,
-                            1.0,
-                           -1.0,
-                            1.0,
-                            // p
-                            0.0, 1.0, 1.0, 2.0}; // x + y
-  std::unique_ptr<Fields> fvector(Fields::create(&patch,vc,12));
-  std::unique_ptr<Field> fscalar(Field::create(&patch,vc,3,1));
-  static std::vector<std::array<double,5>> tests_vector =
-                          {{{{0.5, 0.5, 1.25, 0.25, 1.0}},
-                            {{1.0, 0.0, 1.0,  1.0,  1.0}},
-                            {{0.0, 1.0, 1.0, -1.0,  1.0}},
-                            {{1.0, 1.0, 3.0,  1.0,  2.0}}}};
-  for (const auto& it : tests_vector) {
-    Vector v(2);
-    ItgPoint fe(it[0],it[1]);
-    REQUIRE(fvector->valueFE(fe,v));
-    REQUIRE_THAT(v(1), WithinRel(it[2]));
-    REQUIRE_THAT(v(2), WithinRel(it[3]));
-    REQUIRE_THAT(fscalar->valueFE(fe), WithinRel(it[4]));
-  }
+  Fields2DTests<ASMSquare>::Value();
+  Fields2DTests<ASMSquare>::ValueQuad();
 }
 
 
 TEST_CASE("TestSplineFields.Grad2D")
 {
-  ASMSquare patch;
+  Fields2DTests<ASMSquare>::Grad();
+}
 
-  // {x+y+x*y, x-y+x*y}
-  std::vector<double> vc = {0.0, 0.0, 1.0, 1.0, 1.0, -1.0, 3.0, 1.0};
-  std::unique_ptr<Fields> fvector(Fields::create(&patch,vc));
-  static std::vector<std::array<double,6>> tests_vector =
-        {{{{0.5, 0.5, 1.5, 1.5, 1.5, -0.5}},
-          {{1.0, 0.0, 1.0, 2.0, 1.0, 0.0}},
-          {{0.0, 1.0, 2.0, 1.0, 2.0, -1.0}},
-          {{1.0, 1.0, 2.0, 2.0, 2.0, 0.0}}}};
-  for (const auto& it : tests_vector) {
-    Matrix gradu(2,2);
-    REQUIRE(fvector->gradFE(ItgPoint(it[0],it[1]),gradu));
-    REQUIRE_THAT(gradu(1,1), WithinRel(it[2]));
-    REQUIRE_THAT(gradu(1,2), WithinRel(it[3]));
-    REQUIRE_THAT(gradu(2,1), WithinRel(it[4]));
-    REQUIRE_THAT(gradu(2,2), WithinRel(it[5]));
-  }
+
+TEST_CASE("TestSplineFields.GradSepGeom2D")
+{
+  Fields2DTests<ASMSquare>::Grad();
+}
+
+
+TEST_CASE("TestSplineFields.Hessian2D")
+{
+  Fields2DTests<ASMSquare>::Hessian();
+}
+
+
+TEST_CASE("TestSplineFields.HessianSepGeom2D")
+{
+  Fields2DTests<ASMSquare>::Hessian();
+}
+
+
+TEST_CASE("TestSplineFields.Value2Dmx")
+{
+  Fields2DTests<ASMmxSquare>::Valuemx();
+}
+
+
+TEST_CASE("TestSplineFields.Grad2Dmx")
+{
+  Fields2DTests<ASMmxSquare>::Gradmx();
+}
+
+
+TEST_CASE("TestSplineFields.Hessian2Dmx")
+{
+  Fields2DTests<ASMmxSquare>::Hessianmx();
 }
 
 
 TEST_CASE("TestSplineFields.Value3D")
 {
-  ASMCube patch;
-
-  // {x+y+z, x+y-z, x-y+z}
-  std::vector<double> vc = {0.0,  0.0,  0.0,
-                            1.0,  1.0,  1.0,
-                            1.0,  1.0, -1.0,
-                            2.0,  2.0,  0.0,
-                            1.0, -1.0,  1.0,
-                            2.0,  0.0,  2.0,
-                            2.0,  0.0,  0.0,
-                            3.0,  1.0,  1.0};
-  std::unique_ptr<Fields> fvector(Fields::create(&patch,vc));
-  std::unique_ptr<Field> fscalar(Field::create(&patch,vc,1,2));
-  static std::vector<std::array<double,6>> tests_scalar =
-      {{{{0.5, 0.5, 0.5, 1.5,  0.5,  0.5}},
-        {{0.0, 0.0, 0.0, 0.0,  0.0,  0.0}},
-        {{1.0, 0.0, 0.0, 1.0,  1.0,  1.0}},
-        {{0.0, 1.0, 0.0, 1.0,  1.0, -1.0}},
-        {{1.0, 1.0, 0.0, 2.0,  2.0,  0.0}},
-        {{0.0, 0.0, 1.0, 1.0, -1.0,  1.0}},
-        {{1.0, 0.0, 1.0, 2.0,  0.0,  2.0}},
-        {{0.0, 1.0, 1.0, 2.0,  0.0,  0.0}},
-        {{1.0, 1.0, 1.0, 3.0,  1.0,  1.0}}}};
-  for (const auto& it : tests_scalar) {
-    ItgPoint fe(it.data());
-    Vector v(3);
-    REQUIRE(fvector->valueFE(fe,v));
-    REQUIRE_THAT(v(1), WithinRel(it[3]));
-    REQUIRE_THAT(v(2), WithinRel(it[4]));
-    REQUIRE_THAT(v(3), WithinRel(it[5]));
-    REQUIRE_THAT(fscalar->valueFE(fe), WithinRel(it[4]));
-  }
+  Fields3DTests<ASMCube>::Value();
+  Fields3DTests<ASMCube>::ValueQuad();
 }
 
 
 TEST_CASE("TestSplineFields.Grad3D")
 {
-  ASMCube patch;
+  Fields3DTests<ASMCube>::Grad();
+}
 
-  // {x+y+z+x*y*z, x+y-z+x*y*z, x-y+z+x*y*z}
-  std::vector<double> vc = {0.0,  0.0,  0.0,
-                            1.0,  1.0,  1.0,
-                            1.0,  1.0, -1.0,
-                            2.0,  2.0,  0.0,
-                            1.0, -1.0,  1.0,
-                            2.0,  0.0,  2.0,
-                            2.0,  0.0,  0.0,
-                            4.0,  2.0,  2.0};
-  std::unique_ptr<Fields> fvector(Fields::create(&patch,vc));
-  static std::vector<std::pair<std::array<double,3>,
-                               std::array<double,9>>> tests_vector =
-    {{{{{0.5, 0.5, 0.5}}, {{1.25,  1.25,  1.25,
-                            1.25,  1.25, -0.75,
-                            1.25, -0.75,  1.25}}},
-      {{{0.0, 0.0, 0.0}}, {{1.0,  1.0,  1.0,
-                            1.0,  1.0, -1.0,
-                            1.0, -1.0,  1.0}}},
-      {{{1.0, 0.0, 0.0}}, {{1.0,  1.0,  1.0,
-                            1.0,  1.0, -1.0,
-                            1.0, -1.0,  1.0}}},
-      {{{0.0, 1.0, 0.0}}, {{1.0,  1.0,  1.0,
-                            1.0,  1.0, -1.0,
-                            1.0, -1.0,  1.0}}},
-      {{{1.0, 1.0, 0.0}}, {{1.0,  1.0,  2.0,
-                            1.0,  1.0,  0.0,
-                            1.0, -1.0,  2.0}}},
-      {{{0.0, 0.0, 1.0}}, {{1.0,  1.0,  1.0,
-                            1.0,  1.0, -1.0,
-                            1.0, -1.0,  1.0}}},
-      {{{1.0, 0.0, 1.0}}, {{1.0,  2.0,  1.0,
-                            1.0,  2.0, -1.0,
-                            1.0,  0.0,  1.0}}},
-      {{{0.0, 1.0, 1.0}}, {{2.0,  1.0,  1.0,
-                            2.0,  1.0, -1.0,
-                            2.0, -1.0,  1.0}}},
-      {{{1.0, 1.0, 1.0}}, {{2.0,  2.0,  2.0,
-                            2.0,  2.0,  0.0,
-                            2.0,  0.0,  2.0}}}}};
-  for (const auto& it : tests_vector) {
-    Matrix gradu(3,3);
-    REQUIRE(fvector->gradFE(ItgPoint(it.first.data()),gradu));
-    for (size_t i = 0; i < 3; ++i)
-      for (size_t j = 0; j <3; ++j)
-        REQUIRE_THAT(gradu(i+1,j+1), WithinRel(it.second[i*3+j]));
-  }
+
+TEST_CASE("TestSplineFields.GradSepGeom3D")
+{
+  Fields3DTests<ASMCube>::GradSepGeom();
+}
+
+
+TEST_CASE("TestSplineFields.Hessian3D")
+{
+  Fields3DTests<ASMCube>::Hessian();
+}
+
+
+TEST_CASE("TestSplineFields.HessianSepGeom3D")
+{
+  Fields3DTests<ASMCube>::HessianSepGeom();
 }
 
 
 TEST_CASE("TestSplineFields.Value3Dmx")
 {
-  ASMmxBase::Type = ASMmxBase::DIV_COMPATIBLE;
-  ASMmxCube patch({1,1,1,1});
-  patch.raiseOrder(1,1,1);
-  REQUIRE(patch.generateFEMTopology());
+  Fields3DTests<ASMmxCube>::Valuemx();
+}
 
-  // {x+y+z+x*y*z, x+y-z+x*y*z, x-y+z+x*y*z}
-  std::vector<double> vc = {0.0, 0.5, 1.0,
-                            1.0, 1.5, 2.0,
-                            1.0, 1.5, 2.0,
-                            2.0, 3.0, 4.0,
-                            // y
-                            0.0, 1.0,
-                            0.5, 1.5,
-                            1.0, 2.0,
-                           -1.0, 0.0,
-                           -0.5, 1.0,
-                            0.0, 2.0,
-                            // z
-                            0.0, 1.0,
-                           -1.0, 0.0,
-                            0.5, 1.5,
-                           -0.5, 1.0,
-                            1.0, 2.0,
-                            0.0, 2.0,
-                            // p
-                            0.0, 1.0, 1.0, 2.0, 1.0, 2.0, 2.0, 3.0};
-  std::unique_ptr<Fields> fvector(Fields::create(&patch,vc,123));
-  std::unique_ptr<Field> fscalar(Field::create(&patch,vc,4,1));
-  static std::vector<std::array<double,7>> tests_vector =
-                         {{{{0.5, 0.5, 0.5, 1.625, 0.625, 0.625, 1.5}},
-                           {{0.0, 0.0, 0.0,   0.0,   0.0,   0.0, 0.0}},
-                           {{1.0, 0.0, 0.0,   1.0,   1.0,   1.0, 1.0}},
-                           {{0.0, 1.0, 0.0,   1.0,   1.0,  -1.0, 1.0}},
-                           {{1.0, 1.0, 0.0,   2.0,   2.0,   0.0, 2.0}},
-                           {{0.0, 0.0, 1.0,   1.0,  -1.0,   1.0, 1.0}},
-                           {{1.0, 0.0, 1.0,   2.0,   0.0,   2.0, 2.0}},
-                           {{0.0, 1.0, 1.0,   2.0,   0.0,   0.0, 2.0}},
-                           {{1.0, 1.0, 1.0,   4.0,   2.0,   2.0, 3.0}}}};
-  for (const auto& it : tests_vector) {
-    ItgPoint fe(it.data());
-    Vector v(3);
-    REQUIRE(fvector->valueFE(fe,v));
-    REQUIRE_THAT(v(1), WithinRel(it[3]));
-    REQUIRE_THAT(v(2), WithinRel(it[4]));
-    REQUIRE_THAT(v(3), WithinRel(it[5]));
-    REQUIRE_THAT(fscalar->valueFE(fe), WithinRel(it[6]));
-  }
+
+TEST_CASE("TestSplineFields.Grad3Dmx")
+{
+  Fields3DTests<ASMmxCube>::Gradmx();
+}
+
+
+TEST_CASE("TestSplineFields.Hessian3Dmx")
+{
+  Fields3DTests<ASMmxCube>::Hessianmx();
 }
