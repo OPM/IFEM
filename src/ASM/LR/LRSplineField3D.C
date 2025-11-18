@@ -133,7 +133,7 @@ bool LRSplineField3D::hessianFE (const ItgPoint& x, Matrix& H) const
     return false;
 
   if (vol != basis)
-    if (!LRSplineField::evalBasis(*vol,x,elm,Xnod,Jac,dNdX,&d2NdX2,&Hess))
+    if (!LRSplineField::evalBasis(*basis,x,elm,Xnod,Jac,dNdX,&d2NdX2,&Hess))
       return false;
 
   Matrix Vnod(1,elm->nBasisFunctions());
