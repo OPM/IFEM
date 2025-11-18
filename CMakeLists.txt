@@ -550,6 +550,8 @@ IFEM_add_test_app(
       src/ASM/Test/TestBlockElmMats.C
       src/ASM/Test/TestDomainDecomposition.C
       src/ASM/Test/TestFiniteElement.C
+      src/ASM/Test/TestLagrangeField.C
+      src/ASM/Test/TestLagrangeFields.C
       src/ASM/Test/TestMatlabPatch.C
       src/ASM/Test/TestPiolaMapping.C
       src/ASM/Test/TestSplineField.C
@@ -610,6 +612,19 @@ if(TARGET IFEM-test)
       src/SIM
       src/Utility
   )
+  if(CMAKE_VERSION GREATER_EQUAL 3.23)
+    target_sources(
+      IFEM-test
+      PRIVATE
+      FILE_SET
+        HEADERS
+      FILES
+        src/ASM/Test/ASMCube.h
+        src/ASM/Test/ASMSquare.h
+        src/ASM/Test/FieldTests.h
+        src/LinAlg/Test/MatrixTests.h
+    )
+  endif()
 
   if(PETSc_FOUND)
     target_sources(IFEM-test PRIVATE src/LinAlg/Test/TestPETScMatrix.C)
@@ -635,6 +650,17 @@ if(TARGET IFEM-test)
         src/ASM/LR/Test/TestLRSplineField.C
         src/ASM/LR/Test/TestLRSplineFields.C
     )
+    if(CMAKE_VERSION GREATER_EQUAL 3.23)
+      target_sources(
+        IFEM-test
+        PRIVATE
+        FILE_SET
+          HEADERS
+        FILES
+          src/ASM/LR/Test/ASMuCube.h
+          src/ASM/LR/Test/ASMuSquare.h
+      )
+    endif()
   endif()
 
   if(HDF5_FOUND)

@@ -10,87 +10,68 @@
 //!
 //==============================================================================
 
-#include "Field.h"
-#include "ItgPoint.h"
 #include "ASMSquare.h"
 #include "ASMCube.h"
-
-#include "Catch2Support.h"
-
-#include <array>
-#include <memory>
+#include "FieldTests.h"
 
 
 TEST_CASE("TestSplineField.Value2D")
 {
-  ASMSquare patch(1);
-  std::vector<double> sc = {0.0, 1.0, 1.0, 2.0}; // x + y
-  std::unique_ptr<Field>fscalar(Field::create(&patch,sc));
-  static std::vector<std::array<double,3>> tests_scalar = {{{{0.5, 0.5, 1.0}},
-                                                            {{1.0, 0.0, 1.0}},
-                                                            {{0.0, 1.0, 1.0}},
-                                                            {{1.0, 1.0, 2.0}}}};
-  for (const auto& it : tests_scalar)
-    REQUIRE_THAT(fscalar->valueFE(ItgPoint(it[0],it[1])), WithinRel(it[2]));
+  Field2DTests<ASMSquare>::Value();
+  Field2DTests<ASMSquare>::ValueQuad();
 }
 
 
 TEST_CASE("TestSplineField.Grad2D")
 {
-  ASMSquare patch(1);
-  std::vector<double> sc = {0.0, 1.0, 1.0, 2.0}; // x + y
-  std::unique_ptr<Field> fscalar(Field::create(&patch,sc));
-  static std::vector<std::array<double,2>> tests_scalar = {{{{0.5, 0.5}},
-                                                            {{1.0, 0.0}},
-                                                            {{0.0, 1.0}},
-                                                            {{1.0, 1.0}}}};
-  for (const auto& it : tests_scalar) {
-    Vector v(2);
-    REQUIRE(fscalar->gradFE(ItgPoint(it[0],it[1]),v));
-    REQUIRE_THAT(v(1), WithinRel(1.0));
-    REQUIRE_THAT(v(2), WithinRel(1.0));
-  }
+  Field2DTests<ASMSquare>::Grad();
+}
+
+
+TEST_CASE("TestSplineField.GradSepGeom2D")
+{
+  Field2DTests<ASMSquare>::GradSepGeom();
+}
+
+
+TEST_CASE("TestSplineField.Hessian2D")
+{
+  Field2DTests<ASMSquare>::Hessian();
+}
+
+
+TEST_CASE("TestSplineField.HessianSepGeom2D")
+{
+  Field2DTests<ASMSquare>::HessianSepGeom();
 }
 
 
 TEST_CASE("TestSplineField.Value3D")
 {
-  ASMCube patch(1);
-  std::vector<double> sc = {0.0, 1.0, 1.0, 2.0, 1.0, 2.0, 2.0, 3.0}; // x + y + z
-  std::unique_ptr<Field> fscalar(Field::create(&patch,sc));
-  static std::vector<std::array<double,4>> tests_scalar = {{{{0.5, 0.5, 0.5, 1.5}},
-                                                            {{0.0, 0.0, 0.0, 0.0}},
-                                                            {{1.0, 0.0, 0.0, 1.0}},
-                                                            {{0.0, 1.0, 0.0, 1.0}},
-                                                            {{1.0, 1.0, 0.0, 2.0}},
-                                                            {{0.0, 0.0, 1.0, 1.0}},
-                                                            {{1.0, 0.0, 1.0, 2.0}},
-                                                            {{0.0, 1.0, 1.0, 2.0}},
-                                                            {{1.0, 1.0, 1.0, 3.0}}}};
-  for (const auto& it : tests_scalar)
-    REQUIRE_THAT(fscalar->valueFE(ItgPoint(it[0],it[1],it[2])), WithinRel(it[3]));
+  Field3DTests<ASMCube>::Value();
+  Field3DTests<ASMCube>::ValueQuad();
 }
 
 
 TEST_CASE("TestSplineField.Grad3D")
 {
-  ASMCube patch(1);
-  std::vector<double> sc = {0.0, 1.0, 1.0, 2.0, 1.0, 2.0, 2.0, 3.0}; // x + y + z
-  std::unique_ptr<Field> fscalar(Field::create(&patch,sc));
-  static std::vector<std::array<double,3>> tests_scalar = {{{{0.5, 0.5, 0.5}},
-                                                            {{0.0, 0.0, 0.0}},
-                                                            {{1.0, 0.0, 0.0}},
-                                                            {{0.0, 1.0, 0.0}},
-                                                            {{1.0, 1.0, 0.0}},
-                                                            {{0.0, 0.0, 1.0}},
-                                                            {{1.0, 0.0, 1.0}},
-                                                            {{0.0, 1.0, 1.0}},
-                                                            {{1.0, 1.0, 1.0}}}};
-  for (const auto& it : tests_scalar) {
-    Vector v(3);
-    REQUIRE(fscalar->gradFE(ItgPoint(it[0],it[1],it[2]),v));
-    REQUIRE_THAT(v(1), WithinRel(1.0));
-    REQUIRE_THAT(v(2), WithinRel(1.0));
-    REQUIRE_THAT(v(3), WithinRel(1.0));
-  }
+  Field3DTests<ASMCube>::Grad();
+}
+
+
+TEST_CASE("TestSplineField.GradSepGeom3D")
+{
+  Field3DTests<ASMCube>::GradSepGeom();
+}
+
+
+TEST_CASE("TestSplineField.Hessian3D")
+{
+  Field3DTests<ASMCube>::Hessian();
+}
+
+
+TEST_CASE("TestSplineField.HessianSepGeom3D")
+{
+  Field3DTests<ASMCube>::HessianSepGeom();
 }

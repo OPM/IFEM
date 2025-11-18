@@ -10,110 +10,68 @@
 //!
 //==============================================================================
 
-#include "Field.h"
-#include "FiniteElement.h"
 #include "ASMuCube.h"
 #include "ASMuSquare.h"
-
-#include "Catch2Support.h"
-
-#include <memory>
+#include "Test/FieldTests.h"
 
 
 TEST_CASE("TestLRSplineField.Value2D")
 {
-  ASMuSquare patch(1);
-  REQUIRE(patch.generateFEMTopology());
-
-  std::vector<double> sc = {0.0, 1.0, 1.0, 2.0}; // x + y
-  std::unique_ptr<Field> fscalar(Field::create(&patch, sc));
-  static std::vector<std::array<double,3>> tests_scalar = {{{0.5, 0.5, 1.0}},
-                                                           {{1.0, 0.0, 1.0}},
-                                                           {{0.0, 1.0, 1.0}},
-                                                           {{1.0, 1.0, 2.0}}};
-  for (const auto& it : tests_scalar) {
-    FiniteElement fe;
-    fe.u = it[0];
-    fe.v = it[1];
-    REQUIRE_THAT(fscalar->valueFE(fe), WithinRel(it[2]));
-  }
+  Field2DTests<ASMuSquare>::Value();
+  Field2DTests<ASMuSquare>::ValueQuad();
 }
 
 
 TEST_CASE("TestLRSplineField.Grad2D")
 {
-  ASMuSquare patch(1);
-  REQUIRE(patch.generateFEMTopology());
+  Field2DTests<ASMuSquare>::Grad();
+}
 
-  std::vector<double> sc = {0.0, 1.0, 1.0, 2.0}; // x + y
-  std::unique_ptr<Field> fscalar(Field::create(&patch, sc));
-  static std::vector<std::array<double,2>> tests_scalar = {{{0.5, 0.5}},
-                                                           {{1.0, 0.0}},
-                                                           {{0.0, 1.0}},
-                                                           {{1.0, 1.0}}};
-  for (const auto& it : tests_scalar) {
-    FiniteElement fe;
-    fe.u = it[0];
-    fe.v = it[1];
-    Vector v(2);
-    fscalar->gradFE(fe, v);
-    REQUIRE_THAT(v(1), WithinRel(1.0));
-    REQUIRE_THAT(v(2), WithinRel(1.0));
-  }
+
+TEST_CASE("TestLRSplineField.GradSepGeom2D")
+{
+  Field2DTests<ASMuSquare>::GradSepGeom();
+}
+
+
+TEST_CASE("TestLRSplineField.Hessian2D")
+{
+  Field2DTests<ASMuSquare>::Hessian();
+}
+
+
+TEST_CASE("TestLRSplineField.HessianSepGeom2D")
+{
+  Field2DTests<ASMuSquare>::HessianSepGeom();
 }
 
 
 TEST_CASE("TestLRSplineField.Value3D")
 {
-  ASMuCube patch(1);
-  REQUIRE(patch.generateFEMTopology());
-
-  std::vector<double> sc = {0.0, 1.0, 1.0, 2.0, 1.0, 2.0, 2.0, 3.0}; // x + y + z
-  std::unique_ptr<Field> fscalar(Field::create(&patch, sc));
-  static std::vector<std::array<double,4>> tests_scalar = {{{0.5, 0.5, 0.5, 1.5}},
-                                                           {{0.0, 0.0, 0.0, 0.0}},
-                                                           {{1.0, 0.0, 0.0, 1.0}},
-                                                           {{0.0, 1.0, 0.0, 1.0}},
-                                                           {{1.0, 1.0, 0.0, 2.0}},
-                                                           {{0.0, 0.0, 1.0, 1.0}},
-                                                           {{1.0, 0.0, 1.0, 2.0}},
-                                                           {{0.0, 1.0, 1.0, 2.0}},
-                                                           {{1.0, 1.0, 1.0, 3.0}}};
-  for (const auto& it : tests_scalar) {
-    FiniteElement fe;
-    fe.u = it[0];
-    fe.v = it[1];
-    fe.w = it[2];
-    REQUIRE_THAT(fscalar->valueFE(fe), WithinRel(it[3]));
-  }
+  Field3DTests<ASMuCube>::Value();
+  Field3DTests<ASMuCube>::ValueQuad();
 }
 
 
 TEST_CASE("TestLRSplineField.Grad3D")
 {
-  ASMuCube patch(1);
-  REQUIRE(patch.generateFEMTopology());
+  Field3DTests<ASMuCube>::Grad();
+}
 
-  std::vector<double> sc = {0.0, 1.0, 1.0, 2.0, 1.0, 2.0, 2.0, 3.0}; // x + y + z
-  std::unique_ptr<Field> fscalar(Field::create(&patch, sc));
-  static std::vector<std::array<double,3>> tests_scalar = {{{0.5, 0.5, 0.5}},
-                                                           {{0.0, 0.0, 0.0}},
-                                                           {{1.0, 0.0, 0.0}},
-                                                           {{0.0, 1.0, 0.0}},
-                                                           {{1.0, 1.0, 0.0}},
-                                                           {{0.0, 0.0, 1.0}},
-                                                           {{1.0, 0.0, 1.0}},
-                                                           {{0.0, 1.0, 1.0}},
-                                                           {{1.0, 1.0, 1.0}}};
-  for (const auto& it : tests_scalar) {
-    FiniteElement fe;
-    fe.u = it[0];
-    fe.v = it[1];
-    fe.w = it[2];
-    Vector v(3);
-    fscalar->gradFE(fe, v);
-    REQUIRE_THAT(v(1), WithinRel(1.0));
-    REQUIRE_THAT(v(2), WithinRel(1.0));
-    REQUIRE_THAT(v(3), WithinRel(1.0));
-  }
+
+TEST_CASE("TestLRSplineField.GradSepGeom3D")
+{
+  Field3DTests<ASMuCube>::GradSepGeom();
+}
+
+
+TEST_CASE("TestLRSplineField.Hessian3D")
+{
+  Field3DTests<ASMuCube>::Hessian();
+}
+
+
+TEST_CASE("TestLRSplineField.HessianSepGeom3D")
+{
+  Field3DTests<ASMuCube>::HessianSepGeom();
 }
