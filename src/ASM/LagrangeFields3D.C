@@ -20,13 +20,13 @@
 
 LagrangeFields3D::LagrangeFields3D (const ASMs3DLag* patch,
                                     const RealArray& v, char,
-                                    const char* name) : Fields(name)
+                                    const char* name)
+  : Fields(name), mnpc(patch->getElmNodes(1))
 {
   patch->getNodalCoordinates(coord);
-  patch->getSize(n1,n2,n3);
   patch->getOrder(p1,p2,p3);
-  nno = n1*n2*n3;
-  nelm = (n1-1)*(n2-1)*(n3-1)/(p1*p2*p3);
+  nno = patch->getNoNodes();
+  nelm = patch->getNoElms();
   nf = v.size()/nno;
 
   // Ensure the values array has compatible length, pad with zeros if necessary
@@ -50,7 +50,7 @@ bool LagrangeFields3D::valueNode (size_t node, Vector& vals) const
 bool LagrangeFields3D::valueFE (const ItgPoint& x, Vector& vals) const
 {
   vals.resize(nf,true);
-  if (x.iel < 1 || (size_t)x.iel > nelm)
+  if (x.iel < 1 || static_cast<size_t>(x.iel) > nelm)
   {
     std::cerr <<" *** LagrangeFields3D::valueFE: Element index "<< x.iel
               <<" out of range [1,"<< nelm <<"]."<< std::endl;
@@ -61,29 +61,12 @@ bool LagrangeFields3D::valueFE (const ItgPoint& x, Vector& vals) const
   if (!Lagrange::computeBasis(N,p1,x.xi,p2,x.eta,p3,x.zeta))
     return false;
 
-  const int nel1 = (n1-1)/p1;
-  const int nel2 = (n2-1)/p2;
-
-  div_t divresult = div(x.iel,nel1*nel2);
-  int iel2 = divresult.rem;
-  int iel3 = divresult.quot;
-  divresult = div(iel2,nel1);
-  int iel1 = divresult.rem;
-  iel2 = divresult.quot;
-  const int node1 = p1*iel1-1;
-  const int node2 = p2*iel2-1;
-  const int node3 = p3*iel3-1;
-
   int locNode = 1;
-  for (int k = node3; k <= node3+p3; k++)
-    for (int j = node2; j <= node2+p2; j++)
-      for (int i = node1; i <= node1+p1; i++, locNode++)
-      {
-	int dof = nf*(n1*(n2*(k-1) + j-1) + i-1) + 1;
-	double value = N(locNode);
-	for (int l = 1; l <= nf; l++, dof++)
-	  vals(l) += values(dof)*value;
-      }
+  for (const int node : mnpc[x.iel-1]) {
+    for (int i = 1; i <= nf; ++i)
+      vals(i) +=  values(node*nf + i)* N(locNode);
+    ++locNode;
+  }
 
   return true;
 }
@@ -104,35 +87,20 @@ bool LagrangeFields3D::gradFE (const ItgPoint& x, Matrix& grad) const
   if (!Lagrange::computeBasis(N,dNdu,p1,x.xi,p2,x.eta,p3,x.zeta))
     return false;
 
-  const int nel1 = (n1-1)/p1;
-  const int nel2 = (n2-1)/p2;
-
-  div_t divresult = div(x.iel,nel1*nel2);
-  int iel2 = divresult.rem;
-  int iel3 = divresult.quot;
-  divresult = div(iel2,nel1);
-  int iel1 = divresult.rem;
-  iel2 = divresult.quot;
-  const int node1 = p1*iel1-1;
-  const int node2 = p2*iel2-1;
-  const int node3 = p3*iel3-1;
-
-  const int nen = (p1+1)*(p2+1)*(p3+1);
-  Matrix Xnod(3,nen), Vnod(nf,nen);
+  Matrix Xnod(3,mnpc[x.iel-1].size()), Vnod(nf,mnpc[x.iel-1].size());
 
   int locNode = 1;
-  for (int k = node3; k <= node3+p3; k++)
-    for (int j = node2; j <= node2+p2; j++)
-      for (int i = node1; i <= node1+p1; i++, locNode++)
-      {
-	int node = (k-1)*n1*n2 + (j-1)*n1 + i;
-	Xnod.fillColumn(locNode,coord.getColumn(node));
-	Vnod.fillColumn(locNode,values.ptr()+nf*(node-1));
-      }
+  for (const int node : mnpc[x.iel-1]) {
+    for (int i = 1; i <= nf; ++i) {
+      Xnod.fillColumn(locNode,coord.getColumn(node+1));
+      Vnod.fillColumn(locNode,values.ptr()+nf*node);
+    }
+    ++locNode;
+  }
 
   Matrix Jac, dNdX;
   if (!utl::Jacobian(Jac,dNdX,Xnod,dNdu))
     return false; // Singular Jacobian
 
-  return !grad.multiply(Vnod,dNdX).empty();
+  return !grad.multiply(Vnod,dNdX).empty(); // grad = Vnod * dNdX
 }

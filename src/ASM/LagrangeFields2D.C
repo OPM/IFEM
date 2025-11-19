@@ -20,13 +20,14 @@
 
 LagrangeFields2D::LagrangeFields2D (const ASMs2DLag* patch,
                                     const RealArray& v, char,
-                                    const char* name) : Fields(name)
+                                    const char* name)
+  : Fields(name), mnpc(patch->getElmNodes(1))
 {
   patch->getNodalCoordinates(coord);
-  patch->getOrder(p1,p2,n2);
-  patch->getSize(n1,n2);
-  nelm = (n1-1)*(n2-1)/(p1*p2);
-  nno = n1*n2;
+  int dummy;
+  patch->getOrder(p1,p2,dummy);
+  nelm = patch->getNoElms();
+  nno = patch->getNoNodes();
   nf = v.size()/nno;
 
   // Ensure the values array has compatible length, pad with zeros if necessary
@@ -61,21 +62,12 @@ bool LagrangeFields2D::valueFE (const ItgPoint& x, Vector& vals) const
   if (!Lagrange::computeBasis(N,p1,x.xi,p2,x.eta))
     return false;
 
-  div_t divresult = div(x.iel,(n1-1)/p1);
-  int iel1 = divresult.rem;
-  int iel2 = divresult.quot;
-  const int node1 = p1*iel1-1;
-  const int node2 = p2*iel2-1;
-
   int locNode = 1;
-  for (int j = node2; j <= node2+p2; j++)
-    for (int i = node1; i <= node1+p1; i++, locNode++)
-    {
-      int dof = nf*(n1*(j-1) + i-1) + 1;
-      double value = N(locNode);
-      for (int k = 1; k <= nf; k++, dof++)
-        vals(k) += values(dof)*value;
-    }
+  for (const int node : mnpc[x.iel-1]) {
+    for (int i = 1; i <= nf; ++i)
+      vals(i) +=  values(node*nf + i)* N(locNode);
+    ++locNode;
+  }
 
   return true;
 }
@@ -96,27 +88,20 @@ bool LagrangeFields2D::gradFE (const ItgPoint& x, Matrix& grad) const
   if (!Lagrange::computeBasis(N,dNdu,p1,x.xi,p2,x.eta))
     return false;
 
-  div_t divresult = div(x.iel,(n1-1)/p1);
-  int iel1 = divresult.rem;
-  int iel2 = divresult.quot;
-  const int node1 = p1*iel1-1;
-  const int node2 = p2*iel2-1;
-
-  const int nen = (p1+1)*(p2+1);
-  Matrix Xnod(2,nen), Vnod(nf,nen);
+  Matrix Xnod(2,mnpc[x.iel-1].size()), Vnod(nf,mnpc[x.iel-1].size());
 
   int locNode = 1;
-  for (int j = node2; j <= node2+p2; j++)
-    for (int i = node1; i <= node1+p1; i++, locNode++)
-    {
-      int node = (j-1)*n1 + i;
-      Xnod.fillColumn(locNode,coord.getColumn(node));
-      Vnod.fillColumn(locNode,values.ptr()+nf*(node-1));
+  for (const int node : mnpc[x.iel-1]) {
+    for (int i = 1; i <= nf; ++i) {
+      Xnod.fillColumn(locNode,coord.getColumn(node+1));
+      Vnod.fillColumn(locNode,values.ptr()+nf*node);
     }
+    ++locNode;
+  }
 
   Matrix Jac, dNdX;
   if (!utl::Jacobian(Jac,dNdX,Xnod,dNdu))
     return false; // Singular Jacobian
 
-  return !grad.multiply(Vnod,dNdX).empty();
+  return !grad.multiply(Vnod,dNdX).empty(); // grad = Vnod * dNdX
 }

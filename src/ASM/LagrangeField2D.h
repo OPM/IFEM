@@ -45,21 +45,21 @@ public:
 
   //! \brief Computes the value in a given node/control point.
   //! \param[in] node Node number
-  double valueNode(size_t node) const;
+  double valueNode(size_t node) const override;
 
   //! \brief Computes the value at a given local coordinate.
   //! \param[in] x Local coordinate of evaluation point
-  double valueFE(const ItgPoint& x) const;
+  double valueFE(const ItgPoint& x) const override;
 
   //! \brief Computes the gradient for a given local coordinate.
   //! \param[in] x Local coordinate of evaluation point
   //! \param[out] grad Gradient of solution in a given local coordinate
-  bool gradFE(const ItgPoint& x, Vector& grad) const;
+  bool gradFE(const ItgPoint& x, Vector& grad) const override;
 
 protected:
   Matrix coord; //!< Matrix of nodal coordinates
-  int n1; //!< Number of nodes in first parameter direction
-  int n2; //!< Number of nodes in second parameter direction
+  using IntMat = std::vector<std::vector<int>>; //!< Convenience type
+  IntMat mnpc; //!< Matrix of element nodes
   int p1; //!< Element order in first parameter direction
   int p2; //!< Element order in second parameter direction
 };
