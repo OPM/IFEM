@@ -58,10 +58,9 @@ public:
   bool gradFE(const ItgPoint& x, Matrix& grad) const;
 
 protected:
+  using IntMat = std::vector<std::vector<int>>; //!< Convenience type
   Matrix coord; //!< Matrix of nodel coordinates
-  int n1; //!< Number of nodes in first parameter direction
-  int n2; //!< Number of nodes in second parameter direction
-  int n3; //!< Number of nodes in third parameter direction
+  IntMat mnpc; //!< Matrix of element nodes
   int p1; //!< Element order in first parameter direction
   int p2; //!< Element order in second parameter direction
   int p3; //!< Element order in third parameter direction
