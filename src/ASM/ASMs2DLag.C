@@ -916,7 +916,7 @@ IntMat ASMs2DLag::getElmNodes (int basis) const
   // Find number of nodes in each parameter direction,
   // accounting for possible zero-length knot-spans
   // (see ASMs2D::getGridParameters())
-  int nx[2] = { 0, 0 };
+  int nx[2] = { 1, 1 };
   RealArray::const_iterator uit, uend;
   for (int d = 0; d < 2; d++)
   {
@@ -928,8 +928,6 @@ IntMat ASMs2DLag::getElmNodes (int basis) const
         nx[d] += srf->basis(d).order()-1;
       uprev = *uit;
     }
-    if (srf->basis(d).order() > 2)
-      nx[d]++;
   }
 
   IntMat result;
