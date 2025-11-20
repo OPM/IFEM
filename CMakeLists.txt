@@ -619,6 +619,7 @@ if(TARGET IFEM-test)
       FILE_SET
         HEADERS
       FILES
+        src/ASM/Test/ASM2DTests.h
         src/ASM/Test/ASMCube.h
         src/ASM/Test/ASMSquare.h
         src/ASM/Test/ASMTrap.h
