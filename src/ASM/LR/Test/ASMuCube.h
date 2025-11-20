@@ -79,6 +79,14 @@ public:
     for (int& e : myMLGE)
       e += (e == -1 ? 0 : shift);
   }
+
+  std::array<int,4> getFaceCorners(int dir)
+  {
+    DirichletFace df(this->getBasis(),dir);
+    std::array<int,4> corners;
+    std::copy(df.corners, df.corners + 4, corners.begin());
+    return corners;
+  }
 };
 
 
