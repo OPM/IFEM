@@ -1385,11 +1385,19 @@ int ASMu3D::evalPoint (const double* xi, double* param, Vec3& X) const
   const LR::LRSplineVolume* geo = this->getBasis(ASM::GEOMETRY_BASIS);
   if (!geo) return -3;
 
-  for (int i = 0; i < 3; i++)
-    param[i] = (1.0-xi[i])*geo->startparam(i) + xi[i]*geo->endparam(i);
+  double u[3];
+  if (param)
+    for (int i = 0; i < 3; i++)
+      u[i] = param[i] = (1.0-xi[i])*geo->startparam(i) + xi[i]*geo->endparam(i);
+  else
+  {
+    u[0] = xi[0];
+    u[1] = xi[1];
+    u[2] = xi[2];
+  }
 
-  int iel = 0;
-  return this->evalPoint(iel,param,X);
+  int iel = geo->getElementContaining(u[0], u[1], u[2]);
+  return this->evalPoint(iel,u,X);
 }
 
 
