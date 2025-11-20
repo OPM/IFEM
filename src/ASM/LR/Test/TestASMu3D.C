@@ -90,22 +90,20 @@ TEST_CASE("TestASMu3D.ConnectUneven")
 TEST_CASE("TestASMu3D.TransferGaussPtVars")
 {
   ASMuCube pch;
-  LR::LRSplineVolume* lr = pch.getBasis(1);
-  REQUIRE(lr != nullptr);
-  lr->generateIDs();
+  REQUIRE(pch.generateFEMTopology());
 
   RealArray oldAr(3*3*3), newAr;
   const double* xi = GaussQuadrature::getCoord(3);
   size_t id[3];
   for (size_t idx = 0; idx < 3; ++idx) {
     ASMuCube pchNew;
-    pchNew.uniformRefine(idx,1);
-    pchNew.getBasis(1)->generateIDs();
+    REQUIRE(pchNew.uniformRefine(idx,1));
+    REQUIRE(pchNew.generateFEMTopology());
     for (id[2] = 0; id[2] < 3; ++id[2])
       for (id[1] = 0; id[1] < 3; ++id[1])
         for (id[0] = 0; id[0] < 3; ++id[0])
           oldAr[id[0]+(id[1]+id[2]*3)*3] = (1.0 + xi[id[idx]]) / 2.0;
-    pchNew.transferGaussPtVars(lr, oldAr, newAr, 3);
+    pchNew.transferGaussPtVars(pch.getBasis(1), oldAr, newAr, 3);
     size_t k = 0;
     for (size_t iEl = 0; iEl < 2; ++iEl)
       for (id[2] = 0; id[2] < 3; ++id[2])
@@ -118,36 +116,36 @@ TEST_CASE("TestASMu3D.TransferGaussPtVars")
 
 TEST_CASE("TestASMu3D.TransferGaussPtVarsN")
 {
-  ASMuCube pch, pchNew;
-  LR::LRSplineVolume* lr = pch.getBasis(1);
-  REQUIRE(lr != nullptr);
-  lr->generateIDs();
+  const auto refAr = std::array{
+    1.0,  1.0,  2.0,
+    4.0,  4.0,  5.0,
+    7.0,  7.0,  8.0,
+    10.0, 10.0, 11.0,
+    13.0, 13.0, 14.0,
+    16.0, 16.0, 17.0,
+    19.0, 19.0, 20.0,
+    22.0, 22.0, 23.0,
+    25.0, 25.0, 26.0,
+    2.0,  3.0,  3.0,
+    5.0,  6.0,  6.0,
+    8.0,  9.0,  9.0,
+    11.0, 12.0, 12.0,
+    14.0, 15.0, 15.0,
+    17.0, 18.0, 18.0,
+    20.0, 21.0, 21.0,
+    23.0, 24.0, 24.0,
+    26.0, 27.0, 27.0,
+  };
 
-  pchNew.uniformRefine(0,1);
-  pchNew.getBasis(1)->generateIDs();
+  ASMuCube pch, pchNew;
+  REQUIRE(pch.generateFEMTopology());
+  REQUIRE(pchNew.uniformRefine(0,1));
+  REQUIRE(pchNew.generateFEMTopology());
 
   RealArray oldAr(3*3*3), newAr;
   std::iota(oldAr.begin(), oldAr.end(), 1);
 
-  pchNew.transferGaussPtVarsN(lr, oldAr, newAr, 3);
-  static RealArray refAr = {{ 1.0,  1.0,  2.0,
-                              4.0,  4.0,  5.0,
-                              7.0,  7.0,  8.0,
-                             10.0, 10.0, 11.0,
-                             13.0, 13.0, 14.0,
-                             16.0, 16.0, 17.0,
-                             19.0, 19.0, 20.0,
-                             22.0, 22.0, 23.0,
-                             25.0, 25.0, 26.0,
-                              2.0,  3.0,  3.0,
-                              5.0,  6.0,  6.0,
-                              8.0,  9.0,  9.0,
-                             11.0, 12.0, 12.0,
-                             14.0, 15.0, 15.0,
-                             17.0, 18.0, 18.0,
-                             20.0, 21.0, 21.0,
-                             23.0, 24.0, 24.0,
-                             26.0, 27.0, 27.0}};
+  REQUIRE(pchNew.transferGaussPtVarsN(pch.getBasis(1), oldAr, newAr, 3));
   REQUIRE(refAr.size() == newAr.size());
   for (size_t i = 0; i < refAr.size(); ++i)
     REQUIRE_THAT(refAr[i], WithinRel(newAr[i]));
@@ -156,12 +154,8 @@ TEST_CASE("TestASMu3D.TransferGaussPtVarsN")
 
 TEST_CASE("TestASMu3D.TransferCtrlPtVars")
 {
-  ASMuCube pch;
-
-  REQUIRE(pch.generateFEMTopology());
-
   // x*y*z + 0.5
-  const RealArray orig_scalar {
+  const auto orig_scalar = std::vector{
     0.0 * 0.0 * 0.0 + 0.5,
     1.0 * 0.0 * 0.0 + 0.5,
     0.0 * 1.0 * 0.0 + 0.5,
@@ -173,7 +167,7 @@ TEST_CASE("TestASMu3D.TransferCtrlPtVars")
   };
 
   // x*y*z + 0.5, x*y*z - 0.5
-  const RealArray orig_vec {
+  const auto orig_vec = std::vector{
     0.0 * 0.0 * 0.0 + 0.5,
     0.0 * 0.0 * 0.0 - 0.5,
     1.0 * 0.0 * 0.0 + 0.5,
@@ -192,14 +186,17 @@ TEST_CASE("TestASMu3D.TransferCtrlPtVars")
     1.0 * 1.0 * 1.0 - 0.5,
   };
 
+  ASMuCube pch;
+  REQUIRE(pch.generateFEMTopology());
+
   const Real*  xi = GaussQuadrature::getCoord(2);
   for (size_t idx = 0; idx < 3; ++idx) {
     ASMuCube pchNew;
-    pchNew.uniformRefine(idx, 2);
+    REQUIRE(pchNew.uniformRefine(idx, 2));
     REQUIRE(pchNew.generateFEMTopology());
     RealArray new_scalar, new_vec;
-    pchNew.transferCntrlPtVars(pch.getBasis(), orig_scalar, new_scalar, 2, 1);
-    pchNew.transferCntrlPtVars(pch.getBasis(), orig_vec, new_vec, 2, 2);
+    REQUIRE(pchNew.transferCntrlPtVars(pch.getBasis(), orig_scalar, new_scalar, 2, 1));
+    REQUIRE(pchNew.transferCntrlPtVars(pch.getBasis(), orig_vec, new_vec, 2, 2));
     REQUIRE(new_scalar.size() == pchNew.getNoElms() * 8);
     REQUIRE(new_vec.size() == pchNew.getNoElms() * 8 * 2);
 
@@ -226,6 +223,17 @@ TEST_CASE("TestASMu3D.TransferCtrlPtVars")
 
 TEST_CASE("TestASMu3D.ElementConnectivities")
 {
+  const auto ref = std::array{
+    std::array{1, 2, 4},
+    std::array{0, 3, 5},
+    std::array{3, 0, 6},
+    std::array{2, 1, 7},
+    std::array{5, 6, 0},
+    std::array{4, 7, 1},
+    std::array{7, 4, 2},
+    std::array{6, 5, 3},
+  };
+
   ASMuCube pch1;
   ASMbase::resetNumbering();
   REQUIRE(pch1.uniformRefine(0,1));
@@ -237,14 +245,6 @@ TEST_CASE("TestASMu3D.ElementConnectivities")
   pch1.shiftElemNumbers(nel);
   pch1.getElmConnectivities(neighGlb);
   pch1.getElmConnectivities(neighLoc, ASM::GEOMETRY_BASIS);
-  const std::array<std::vector<int>,8> ref = {{{1, 2, 4},
-                                               {0, 3, 5},
-                                               {3, 0, 6},
-                                               {2, 1, 7},
-                                               {5, 6, 0},
-                                               {4, 7, 1},
-                                               {7, 4, 2},
-                                               {6, 5, 3}}};
   REQUIRE(neighLoc.size() == nel);
   REQUIRE(neighGlb.size() == 2*nel);
   for (size_t n = 0; n < neighLoc.size(); ++n) {
@@ -273,19 +273,19 @@ public:
 
 TEST_CASE("TestASMu3D.DirichletFace")
 {
+  const auto refArr = std::array{
+    std::array{1, 2, 3, 4}, // Bottom
+    std::array{1, 2, 5, 6}, // South
+    std::array{1, 3, 5, 7}, // West
+    std::array{0, 0, 0, 0}, // None
+    std::array{2, 4, 6, 8}, // East
+    std::array{3, 4, 7, 8}, // North
+    std::array{5, 6, 7, 8},  // Top
+  };
+
   ASMu3DTest pch1;
   ASMbase::resetNumbering();
   REQUIRE(pch1.generateFEMTopology());
-
-  const std::array<std::array<int,4>,7> refArr = {{
-      {{ 1, 2, 3, 4 }}, // Bottom
-      {{ 1, 2, 5, 6 }}, // South
-      {{ 1, 3, 5, 7 }}, // West
-      {{ 0, 0, 0, 0 }}, // None
-      {{ 2, 4, 6, 8 }}, // East
-      {{ 3, 4, 7, 8 }}, // North
-      {{ 5, 6, 7, 8 }}  // Top
-    }};
 
   std::array<int,4> corners;
   for (int dir = -3; dir <= 3; dir++)
@@ -330,6 +330,27 @@ TEST_CASE("TestASMu3D.Write")
 
 TEST_CASE("TestASMu3D.ElmNodes")
 {
+  const auto ref = std::array{
+    std::array{0,2,6,8,18,20,24,26},
+    std::array{1,2,7,8,19,20,25,26},
+    std::array{3,5,6,8,21,23,24,26},
+    std::array{4,5,7,8,22,23,25,26},
+    std::array{9,11,15,17,18,20,24,26},
+    std::array{10,11,16,17,19,20,25,26},
+    std::array{12,14,15,17,21,23,24,26},
+    std::array{13,14,16,17,22,23,25,26},
+  };
+  const auto ref_proj = std::array{
+    std::array{0,1,2,4,5,6,8,9,10,16,17,18,20,21,22,24,25,26,32,33,34,36,37,38,40,41,42},
+    std::array{1,2,3,5,6,7,9,10,11,17,18,19,21,22,23,25,26,27,33,34,35,37,38,39,41,42,43},
+    std::array{4,5,6,8,9,10,12,13,14,20,21,22,24,25,26,28,29,30,36,37,38,40,41,42,44,45,46},
+    std::array{5,6,7,9,10,11,13,14,15,21,22,23,25,26,27,29,30,31,37,38,39,41,42,43,45,46,47},
+    std::array{16,17,18,20,21,22,24,25,26,32,33,34,36,37,38,40,41,42,48,49,50,52,53,54,56,57,58},
+    std::array{17,18,19,21,22,23,25,26,27,33,34,35,37,38,39,41,42,43,49,50,51,53,54,55,57,58,59},
+    std::array{20,21,22,24,25,26,28,29,30,36,37,38,40,41,42,44,45,46,52,53,54,56,57,58,60,61,62},
+    std::array{21,22,23,25,26,27,29,30,31,37,38,39,41,42,43,45,46,47,53,54,55,57,58,59,61,62,63},
+  };
+
   ASMbase::resetNumbering();
 
   ASMuCube pch1;
@@ -346,16 +367,6 @@ TEST_CASE("TestASMu3D.ElmNodes")
 
   const IntMat mnpc = pch1.getElmNodes(1);
 
-  const auto ref = std::array{
-      std::array{0,2,6,8,18,20,24,26},
-      std::array{1,2,7,8,19,20,25,26},
-      std::array{3,5,6,8,21,23,24,26},
-      std::array{4,5,7,8,22,23,25,26},
-      std::array{9,11,15,17,18,20,24,26},
-      std::array{10,11,16,17,19,20,25,26},
-      std::array{12,14,15,17,21,23,24,26},
-      std::array{13,14,16,17,22,23,25,26},
-  };
   REQUIRE(mnpc.size() == ref.size());
   for (size_t i = 0; i < mnpc.size(); ++i) {
     REQUIRE(mnpc[i].size() == ref[i].size());
@@ -363,16 +374,6 @@ TEST_CASE("TestASMu3D.ElmNodes")
       REQUIRE(mnpc[i][j] == ref[i][j]);
   }
 
-  const auto ref_proj = std::array{
-      std::array{0,1,2,4,5,6,8,9,10,16,17,18,20,21,22,24,25,26,32,33,34,36,37,38,40,41,42},
-      std::array{1,2,3,5,6,7,9,10,11,17,18,19,21,22,23,25,26,27,33,34,35,37,38,39,41,42,43},
-      std::array{4,5,6,8,9,10,12,13,14,20,21,22,24,25,26,28,29,30,36,37,38,40,41,42,44,45,46},
-      std::array{5,6,7,9,10,11,13,14,15,21,22,23,25,26,27,29,30,31,37,38,39,41,42,43,45,46,47},
-      std::array{16,17,18,20,21,22,24,25,26,32,33,34,36,37,38,40,41,42,48,49,50,52,53,54,56,57,58},
-      std::array{17,18,19,21,22,23,25,26,27,33,34,35,37,38,39,41,42,43,49,50,51,53,54,55,57,58,59},
-      std::array{20,21,22,24,25,26,28,29,30,36,37,38,40,41,42,44,45,46,52,53,54,56,57,58,60,61,62},
-      std::array{21,22,23,25,26,27,29,30,31,37,38,39,41,42,43,45,46,47,53,54,55,57,58,59,61,62,63},
-  };
   const IntMat mnpc_proj = pch1.getElmNodes(ASM::PROJECTION_BASIS);
   REQUIRE(mnpc_proj.size() == ref_proj.size());
   for (size_t i = 0; i < mnpc_proj.size(); ++i) {
