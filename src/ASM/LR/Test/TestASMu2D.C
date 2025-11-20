@@ -254,6 +254,61 @@ TEST_CASE("TestASMu2D.TransferGaussPtVarsN")
 }
 
 
+TEST_CASE("TestASMu2D.TransferCtrlPtVars")
+{
+  // x*y + 0.5
+  const RealArray orig_scalar{
+    0.0 * 0.0 + 0.5,
+    1.0 * 0.0 + 0.5,
+    0.0 * 1.0 + 0.5,
+    1.0 * 1.0 + 0.5,
+  };
+
+  // x*y + 0.5, x*y - 0.5
+  const RealArray orig_vec{
+    0.0 * 0.0 + 0.5,
+    0.0 * 0.0 - 0.5,
+    1.0 * 0.0 + 0.5,
+    1.0 * 0.0 - 0.5,
+    0.0 * 1.0 + 0.5,
+    0.0 * 1.0 - 0.5,
+    1.0 * 1.0 + 0.5,
+    1.0 * 1.0 - 0.5,
+  };
+
+  ASMuSquare pch;
+  REQUIRE(pch.generateFEMTopology());
+
+  const Real*  xi = GaussQuadrature::getCoord(2);
+  for (size_t idx = 0; idx < 2; ++idx) {
+    ASMuSquare pchNew;
+    REQUIRE(pchNew.uniformRefine(idx, 2));
+    REQUIRE(pchNew.generateFEMTopology());
+    RealArray new_scalar, new_vec;
+    pchNew.transferCntrlPtVars(pch.getBasis(), orig_scalar, new_scalar, 2, 1);
+    pchNew.transferCntrlPtVars(pch.getBasis(), orig_vec, new_vec, 2, 2);
+    REQUIRE(new_scalar.size() == pchNew.getNoElms() * 4);
+    REQUIRE(new_vec.size() == pchNew.getNoElms() * 4 * 2);
+
+    size_t pt = 0;
+    for (size_t iel = 1; iel <= pchNew.getNoElms(); ++iel) {
+      std::array<RealArray, 2> uGP;
+      LR::getGaussPointParameters(pchNew.getBasis(), uGP[0], 0, 2, iel, xi);
+      LR::getGaussPointParameters(pchNew.getBasis(), uGP[1], 1, 2, iel, xi);
+      for (size_t j = 0; j < 2; ++j)
+        for (size_t i = 0; i < 2; ++i, ++pt) {
+          double prm[2] = {uGP[0][i], uGP[1][j]};
+          Vec3 pos;
+          pchNew.evalPoint(prm, nullptr, pos);
+          REQUIRE_THAT(new_scalar[pt], WithinRel(pos.x * pos.y + 0.5));
+          REQUIRE_THAT(new_vec[2*pt], WithinRel(pos.x * pos.y + 0.5));
+          REQUIRE_THAT(new_vec[2*pt+1], WithinRel(pos.x * pos.y - 0.5));
+        }
+    }
+  }
+}
+
+
 TEST_CASE("TestASMu2D.Connect")
 {
   const int param = GENERATE(0,1);

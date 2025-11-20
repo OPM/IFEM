@@ -154,6 +154,76 @@ TEST_CASE("TestASMu3D.TransferGaussPtVarsN")
 }
 
 
+TEST_CASE("TestASMu3D.TransferCtrlPtVars")
+{
+  ASMuCube pch;
+
+  REQUIRE(pch.generateFEMTopology());
+
+  // x*y*z + 0.5
+  const RealArray orig_scalar {
+    0.0 * 0.0 * 0.0 + 0.5,
+    1.0 * 0.0 * 0.0 + 0.5,
+    0.0 * 1.0 * 0.0 + 0.5,
+    1.0 * 1.0 * 0.0 + 0.5,
+    0.0 * 0.0 * 1.0 + 0.5,
+    1.0 * 0.0 * 1.0 + 0.5,
+    0.0 * 1.0 * 1.0 + 0.5,
+    1.0 * 1.0 * 1.0 + 0.5,
+  };
+
+  // x*y*z + 0.5, x*y*z - 0.5
+  const RealArray orig_vec {
+    0.0 * 0.0 * 0.0 + 0.5,
+    0.0 * 0.0 * 0.0 - 0.5,
+    1.0 * 0.0 * 0.0 + 0.5,
+    1.0 * 0.0 * 0.0 - 0.5,
+    0.0 * 1.0 * 0.0 + 0.5,
+    0.0 * 1.0 * 0.0 - 0.5,
+    1.0 * 1.0 * 0.0 + 0.5,
+    1.0 * 1.0 * 0.0 - 0.5,
+    0.0 * 0.0 * 1.0 + 0.5,
+    0.0 * 0.0 * 1.0 - 0.5,
+    1.0 * 0.0 * 1.0 + 0.5,
+    1.0 * 0.0 * 1.0 - 0.5,
+    0.0 * 1.0 * 1.0 + 0.5,
+    0.0 * 1.0 * 1.0 - 0.5,
+    1.0 * 1.0 * 1.0 + 0.5,
+    1.0 * 1.0 * 1.0 - 0.5,
+  };
+
+  const Real*  xi = GaussQuadrature::getCoord(2);
+  for (size_t idx = 0; idx < 3; ++idx) {
+    ASMuCube pchNew;
+    pchNew.uniformRefine(idx, 2);
+    REQUIRE(pchNew.generateFEMTopology());
+    RealArray new_scalar, new_vec;
+    pchNew.transferCntrlPtVars(pch.getBasis(), orig_scalar, new_scalar, 2, 1);
+    pchNew.transferCntrlPtVars(pch.getBasis(), orig_vec, new_vec, 2, 2);
+    REQUIRE(new_scalar.size() == pchNew.getNoElms() * 8);
+    REQUIRE(new_vec.size() == pchNew.getNoElms() * 8 * 2);
+
+    size_t pt = 0;
+    for (size_t iel = 1; iel <= pchNew.getNoElms(); ++iel) {
+      std::array<RealArray, 3> uGP;
+      LR::getGaussPointParameters(pchNew.getBasis(), uGP[0], 0, 2, iel, xi);
+      LR::getGaussPointParameters(pchNew.getBasis(), uGP[1], 1, 2, iel, xi);
+      LR::getGaussPointParameters(pchNew.getBasis(), uGP[2], 2, 2, iel, xi);
+      for (size_t k = 0; k < 2; ++k)
+        for (size_t j = 0; j < 2; ++j)
+          for (size_t i = 0; i < 2; ++i, ++pt) {
+            double prm[3] = {uGP[0][i], uGP[1][j], uGP[2][k]};
+            Vec3 pos;
+            pchNew.evalPoint(prm, nullptr, pos);
+            REQUIRE_THAT(new_scalar[pt],  WithinRel(pos.x * pos.y * pos.z + 0.5));
+            REQUIRE_THAT(new_vec[2*pt],   WithinRel(pos.x * pos.y * pos.z + 0.5));
+            REQUIRE_THAT(new_vec[2*pt+1], WithinRel(pos.x * pos.y * pos.z - 0.5));
+        }
+    }
+  }
+}
+
+
 TEST_CASE("TestASMu3D.ElementConnectivities")
 {
   ASMuCube pch1;

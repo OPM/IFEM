@@ -2630,13 +2630,15 @@ bool ASMu2D::transferCntrlPtVars (const LR::LRSpline* old_basis,
 
   for (int iel = 1; iel <= newBasis->nElements(); iel++)
   {
+    const LR::Element* newEl = newBasis->getElement(iel-1);
+    int iold = oldBasis->getElementContaining(newEl->midpoint());
     RealArray U, V, ptVar;
     LR::getGaussPointParameters(newBasis, U, 0, nGauss, iel, xi);
     LR::getGaussPointParameters(newBasis, V, 1, nGauss, iel, xi);
     for (int j = 0; j < nGauss; j++)
       for (int i = 0; i < nGauss; i++)
       {
-        oldBasis->point(ptVar,U[i],V[j],iel-1);
+        oldBasis->point(ptVar,U[i],V[j],iold);
         newVars.insert(newVars.end(),ptVar.begin(),ptVar.end());
       }
   }
