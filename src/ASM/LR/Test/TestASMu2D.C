@@ -107,18 +107,16 @@ TEST_CASE("TestASMu2D.ConstrainEdgeOpen")
 
 TEST_CASE("TestASMu2D.InterfaceChecker")
 {
-  SIM2D sim(1);
-  sim.opt.discretization = ASM::LRSpline;
-  ASMu2D* pch = static_cast<ASMu2D*>(sim.createDefaultModel());
-  pch->raiseOrder(1,1);
-  pch->uniformRefine(0, 3);
-  pch->uniformRefine(1, 3);
-  LR::LRSplineSurface* lr = pch->getBasis();
+  ASMuSquare pch;
+  REQUIRE(pch.raiseOrder(1,1));
+  REQUIRE(pch.uniformRefine(0, 3));
+  REQUIRE(pch.uniformRefine(1, 3));
+  LR::LRSplineSurface* lr = pch.getBasis();
   lr->insert_const_u_edge(0.5,   0, 1, 2);
   lr->insert_const_v_edge(0.125, 0.5, 1, 2);
   lr->insert_const_v_edge(0.25,  0.5, 1, 2);
   lr->insert_const_v_edge(0.875, 0.5, 1, 1);
-  REQUIRE(sim.createFEMmodel());
+  REQUIRE(pch.generateFEMTopology());
 
   static std::vector<int> elem_flags = {{10, 11, 11,  9,
                                          14, 15, 15, 13,
@@ -171,10 +169,10 @@ TEST_CASE("TestASMu2D.InterfaceChecker")
    {{  {1.0},         {1.0}, {0.75},     {}}},
    {{  {1.0},            {},  {1.0},     {}}}}};
 
-  REQUIRE(elem_flags.size() == pch->getNoElms());
-  REQUIRE(elem_pts.size() == pch->getNoElms());
-  ASMu2D::InterfaceChecker iChk(*pch);
-  for (size_t i = 0; i < pch->getNoElms(); ++i) {
+  REQUIRE(elem_flags.size() == pch.getNoElms());
+  REQUIRE(elem_pts.size() == pch.getNoElms());
+  ASMu2D::InterfaceChecker iChk(pch);
+  for (size_t i = 0; i < pch.getNoElms(); ++i) {
     REQUIRE(iChk.hasContribution(i+1) == elem_flags[i]);
     for (size_t edge = 1; edge <= 4; ++edge) {
       if (elem_flags[i] & (1 << (edge-1))) {
@@ -192,28 +190,20 @@ TEST_CASE("TestASMu2D.InterfaceChecker")
 
 TEST_CASE("TestASMu2D.TransferGaussPtVars")
 {
-  SIM2D sim(1);
-  sim.opt.discretization = ASM::LRSpline;
-
-  ASMu2D* pch = static_cast<ASMu2D*>(sim.createDefaultModel());
-  LR::LRSplineSurface* lr = pch->getBasis(1);
-  lr->generateIDs();
+  ASMuSquare pch;
+  REQUIRE(pch.generateFEMTopology());
 
   RealArray oldAr(9), newAr;
   const double* xi = GaussQuadrature::getCoord(3);
   size_t id[2];
   for (size_t idx = 0; idx < 2; ++idx) {
-    SIM2D simNew(1);
-    simNew.opt.discretization = ASM::LRSpline;
-    ASMu2D* pchNew = static_cast<ASMu2D*>(simNew.createDefaultModel());
-    pchNew->uniformRefine(idx, 1);
-    LR::LRSplineSurface* lrNew = pchNew->getBasis(1);
-    REQUIRE(lrNew != nullptr);
-    lrNew->generateIDs();
+    ASMuSquare pchNew;
+    REQUIRE(pchNew.uniformRefine(idx, 1));
+    REQUIRE(pchNew.generateFEMTopology());
     for (id[1] = 0; id[1] < 3; ++id[1])
       for (id[0] = 0; id[0] < 3; ++id[0])
         oldAr[id[0]+id[1]*3] = (1.0 + xi[id[idx]]) / 2.0;
-    pchNew->transferGaussPtVars(lr, oldAr, newAr, 3);
+    pchNew.transferGaussPtVars(pch.getBasis(1), oldAr, newAr, 3);
     size_t k = 0;
     for (size_t iEl = 0; iEl < 2; ++iEl)
       for (id[1] = 0; id[1] < 3; ++id[1])
@@ -225,23 +215,15 @@ TEST_CASE("TestASMu2D.TransferGaussPtVars")
 
 TEST_CASE("TestASMu2D.TransferGaussPtVarsN")
 {
-  SIM2D sim(1), sim2(1);
-  sim.opt.discretization = sim2.opt.discretization = ASM::LRSpline;
-
-  ASMu2D* pch = static_cast<ASMu2D*>(sim.createDefaultModel());
-  LR::LRSplineSurface* lr = pch->getBasis(1);
-  lr->generateIDs();
-
-  ASMu2D* pchNew = static_cast<ASMu2D*>(sim2.createDefaultModel());
-  pchNew->uniformRefine(0, 1);
-  LR::LRSplineSurface* lrNew = pchNew->getBasis(1);
-  REQUIRE(lrNew != nullptr);
-  lrNew->generateIDs();
+  ASMuSquare pch, pchNew;
+  REQUIRE(pch.generateFEMTopology());
+  REQUIRE(pchNew.uniformRefine(0,1));
+  REQUIRE(pchNew.generateFEMTopology());
 
   RealArray oldAr(9), newAr;
   std::iota(oldAr.begin(), oldAr.end(), 1);
 
-  pchNew->transferGaussPtVarsN(lr, oldAr, newAr, 3);
+  pchNew.transferGaussPtVarsN(pch.getBasis(1), oldAr, newAr, 3);
   static RealArray refAr = {{1.0, 1.0, 2.0,
                              4.0, 4.0, 5.0,
                              7.0, 7.0, 8.0,
