@@ -1075,7 +1075,7 @@ double ASMu2D::getElementCorners (int iel, Vec3Vec& XC, RealArray* uC) const
     }
   }
 
-  return getElementSize(XC);
+  return this->getElementSize(XC);
 }
 
 

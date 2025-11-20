@@ -11,9 +11,12 @@
 //==============================================================================
 
 #include "ASMSquare.h"
+#include "ASMTrap.h"
 #include "SIM2D.h"
+#include "Vec3Oper.h"
 
 #include "Catch2Support.h"
+#include <catch2/matchers/catch_matchers_range_equals.hpp>
 
 
 TEST_CASE("TestASMs2D.ElementConnectivities")
@@ -199,5 +202,66 @@ TEST_CASE("TestASMs2D.ElmNodes")
     REQUIRE(mnpc_proj[i].size() == ref_proj[i].size());
     for (size_t j = 0; j < mnpc_proj[i].size(); ++j)
       REQUIRE(mnpc_proj[i][j] == ref_proj[i][j]);
+  }
+}
+
+
+TEST_CASE("TestASMs2D.GetElementCorners")
+{
+  ASMTrap<ASMs2D> pch;
+  REQUIRE(pch.raiseOrder(1,1));
+  REQUIRE(pch.uniformRefine(0, 1));
+  REQUIRE(pch.uniformRefine(1, 1));
+  REQUIRE(pch.generateFEMTopology());
+
+  struct Ref {
+    int iel, c1, c2;
+    std::array<double, 2> u, v;
+    std::array<Vec3,4> XC;
+  };
+
+  auto makePtArray = [](const std::array<double,2>& u,
+                        const std::array<double,2>& v)
+  {
+    return std::array{
+      u[0], v[0],
+      u[1], v[0],
+      u[0], v[1],
+      u[1], v[1]
+    };
+  };
+
+  const Ref param = GENERATE(
+    Ref{
+      1, 4, 1,
+      {0.0, 0.5}, {0.0, 0.5},
+      {Vec3{0.0, 0.0}, Vec3{3.0, 0.0}, Vec3{0.5, 1.5}, Vec3{2.75, 1.5}},
+    },
+    Ref{
+      2, 3, 2,
+      {0.5, 1.0}, {0.0, 0.5},
+      {Vec3{3.0, 0.0}, Vec3{6.0, 0.0}, Vec3{2.75, 1.5}, Vec3{5.0, 1.5}},
+    },
+    Ref{
+      3, 4, 1,
+      {0.0, 0.5}, {0.5, 1.0},
+      {Vec3{0.5, 1.5}, Vec3{2.75, 1.5}, Vec3{1.0, 3.0}, Vec3{2.5, 3.0}},
+    },
+    Ref{
+      4, 3, 2,
+      {0.5, 1.0}, {0.5, 1.0},
+      {Vec3{2.75, 1.5}, Vec3{5.0, 1.5}, Vec3{2.5, 3.0}, Vec3{4.0, 3.0}},
+    }
+  );
+
+  SECTION("Elem " + std::to_string(param.iel))
+  {
+    const auto& [size, XC, prm] = pch.getElementCorners(param.iel);
+    REQUIRE(XC.size() == 4);
+    REQUIRE(prm.size() == 8);
+    using Catch::Matchers::RangeEquals;
+    REQUIRE_THAT(size, WithinRel((XC[param.c1-1] - XC[param.c2-1]).length()));
+    REQUIRE_THAT(prm, RangeEquals(makePtArray(param.u, param.v)));
+    REQUIRE_THAT(XC, RangeEquals(param.XC));
   }
 }
