@@ -23,6 +23,16 @@
 #include <numeric>
 #include <sstream>
 
+namespace {
+
+struct FaceTest
+{
+  int face;
+  int dir;
+};
+
+}
+
 
 TEST_CASE("TestASMu3D.BoundaryNodes")
 {
@@ -86,6 +96,39 @@ TEST_CASE("TestASMu3D.ConnectUneven")
     str << ".xinp";
     REQUIRE(sim.read(str.str().c_str()));
     REQUIRE(sim.createFEMmodel());
+  }
+}
+
+
+TEST_CASE("TestASMu3D.ConstrainFace")
+{
+  const FaceTest param = GENERATE(
+    FaceTest{1, -1},
+    FaceTest{2,  1},
+    FaceTest{3, -2},
+    FaceTest{4,  2},
+    FaceTest{5, -3},
+    FaceTest{6,  3}
+  );
+
+  MPCLess::compareSlaveDofOnly = true;
+
+  SECTION("Face" + std::to_string(param.face))
+  {
+    ASMbase::resetNumbering();
+    ASMuCube pch;
+    REQUIRE(pch.uniformRefine(0, 2));
+    REQUIRE(pch.uniformRefine(1, 2));
+    REQUIRE(pch.uniformRefine(2, 2));
+    REQUIRE(pch.generateFEMTopology());
+
+    pch.constrainFace(param.dir, false, 1, 1, 1);
+
+    std::vector<int> glbNodes;
+    pch.getBoundaryNodes(param.face, glbNodes, 1, 1, false, false);
+
+    for (int node : glbNodes)
+      REQUIRE(pch.findMPC(node,1) != nullptr);
   }
 }
 
