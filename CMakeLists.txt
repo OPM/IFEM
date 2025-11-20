@@ -621,6 +621,8 @@ if(TARGET IFEM-test)
       FILES
         src/ASM/Test/ASMCube.h
         src/ASM/Test/ASMSquare.h
+        src/ASM/Test/ASMTrap.h
+        src/ASM/Test/ASMTrap3.h
         src/ASM/Test/FieldTests.h
         src/LinAlg/Test/MatrixTests.h
     )
@@ -659,6 +661,8 @@ if(TARGET IFEM-test)
         FILES
           src/ASM/LR/Test/ASMuCube.h
           src/ASM/LR/Test/ASMuSquare.h
+          src/ASM/LR/Test/ASMuTrap.h
+          src/ASM/LR/Test/ASMuTrap3.h
       )
     endif()
   endif()

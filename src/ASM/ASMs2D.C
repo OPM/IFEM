@@ -1661,7 +1661,7 @@ double ASMs2D::getElementCorners (int i1, int i2, Vec3Vec& XC,
       }
     }
 
-  return getElementSize(XC);
+  return this->getElementSize(XC);
 }
 
 
