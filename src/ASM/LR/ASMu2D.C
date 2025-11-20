@@ -2513,9 +2513,7 @@ bool ASMu2D::transferGaussPtVars (const LR::LRSpline* old_basis,
   int iEl = 0;
   for (const LR::Element* newEl : newBasis->getAllElements())
   {
-    double u_center = 0.5*(newEl->umin() + newEl->umax());
-    double v_center = 0.5*(newEl->vmin() + newEl->vmax());
-    int iOld = oldBasis->getElementContaining(u_center,v_center);
+    int iOld = oldBasis->getElementContaining(newEl->midpoint());
     if (iOld < 0)
     {
       std::cerr <<" *** ASMu2D: Failed to locate element "<< newEl->getId()
@@ -2569,9 +2567,7 @@ bool ASMu2D::transferGaussPtVarsN (const LR::LRSpline* old_basis,
   const double* xi = GaussQuadrature::getCoord(nGauss);
   for (const LR::Element* newEl : newBasis->getAllElements())
   {
-    double u_center = 0.5*(newEl->umin() + newEl->umax());
-    double v_center = 0.5*(newEl->vmin() + newEl->vmax());
-    int iOld = oldBasis->getElementContaining(u_center,v_center);
+    int iOld = oldBasis->getElementContaining(newEl->midpoint());
     if (iOld < 0)
     {
       std::cerr <<" *** ASMu2D: Failed to locate element "<< newEl->getId()
