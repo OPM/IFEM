@@ -166,8 +166,8 @@ TEST_CASE("TestSplineUtils.ExtractBasisVolume")
   Go::SplineVolume* vol = sphere.geometryVolume();
   vol->setParameterDomain(0.0, 1.0, 0.0, 1.0, 0.0, 1.0);
 
-  std::vector<Go::BasisDerivs> spline;
-  std::vector<Go::BasisDerivs2> spline2;
+  std::vector<GoBasisDerivsVol> spline;
+  std::vector<GoBasisDerivsVol2> spline2;
   Matrix gpar(1, 1);
   gpar(1,1) = 0.3;
   vol->computeBasisGrid(gpar,gpar,gpar,spline);

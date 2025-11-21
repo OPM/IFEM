@@ -62,7 +62,7 @@ SplineField3D::SplineField3D (const ASMs3D* patch,
 
 SplineField3D::SplineField3D (const Go::SplineVolume* svol,
                               const RealArray& v, const char* name)
-  : FieldBase(name), basis(svol), vol(svol)
+  : FieldBase(name), basis(svol), vol(svol), nsd(3)
 {
   values = v;
 }
@@ -79,7 +79,7 @@ double SplineField3D::valueFE (const ItgPoint& x) const
   if (!basis) return false;
 
   // Evaluate the basis functions at the given point
-  Go::BasisPts spline;
+  GoBasisPtsVol spline;
 #pragma omp critical
   basis->computeBasis(x.u,x.v,x.w,spline);
 
@@ -148,7 +148,7 @@ bool SplineField3D::valueGrid (RealArray& val, const int* npe) const
     for (double v : gpar[1])
       for (double u : gpar[0])
       {
-        Go::BasisPts spline;
+        GoBasisPtsVol spline;
 #pragma omp critical
         basis->computeBasis(u,v,w,spline);
 

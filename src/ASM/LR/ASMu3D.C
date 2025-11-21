@@ -1367,7 +1367,7 @@ bool ASMu3D::diracPoint (Integrand& integrand, GlobalIntegral& glInt,
   fe.u   = param[0];
   fe.v   = param[1];
   fe.w   = param[2];
-  Go::BasisPts pt;
+  GoBasisPtsVol pt;
   this->getBasis()->computeBasis(fe.u, fe.v, fe.w, pt, iel);
   fe.N = pt.basisValues;
 
@@ -1559,9 +1559,9 @@ bool ASMu3D::evalSolution (Matrix& sField, const Vector& locSol,
   Matrix   dNdu, dNdX, Jac, Xnod, eSol, ptDer;
   Matrix3D d2Ndu2, d2NdX2, Hess, ptDer2;
 
-  Go::BasisPts     spline0;
-  Go::BasisDerivs  spline1;
-  Go::BasisDerivs2 spline2;
+  GoBasisPtsVol     spline0;
+  GoBasisDerivsVol  spline1;
+  GoBasisDerivsVol2 spline2;
   int lel = -1;
 
   // Evaluate the primary solution field at each point

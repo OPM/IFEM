@@ -82,7 +82,7 @@ bool LRSplineFields3Dmx::valueFE (const ItgPoint& x, Vector& vals) const
 
     int iel = basis->getElementContaining(x.u,x.v,x.w);
     const LR::Element* elm = basis->getElement(iel);
-    Go::BasisPts spline;
+    GoBasisPtsVol spline;
     basis->computeBasis(x.u,x.v,x.w,spline,iel);
 
     // Evaluate the solution field at the given point
