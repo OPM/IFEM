@@ -581,6 +581,14 @@ public:
   virtual bool transferCntrlPtVars(const LR::LRSpline* old_basis,
                                    RealArray& newVar, int nGauss) const;
 
+  using ASMLRSpline::generateThreadGroups;
+  //! \brief Generates element groups for multi-threading of interior integrals.
+  //! \param[in] integrand Object with problem-specific data and methods
+  //! \param[in] silence If \e true, suppress threading group outprint
+  //! \param[in] ignoreGlobalLM If \e true ignore global multipliers in sanity check
+  virtual void generateThreadGroups(const Integrand& integrand, bool silence,
+                                    bool ignoreGlobalLM);
+
 protected:
 
   // Internal utility methods
@@ -677,14 +685,6 @@ protected:
   //! \return Local node number within the patch that matches the point, if any
   //! \return 0 if no node (control point) matches this point
   virtual int evalPoint(int iel, const double* param, Vec3& X) const;
-
-  using ASMLRSpline::generateThreadGroups;
-  //! \brief Generates element groups for multi-threading of interior integrals.
-  //! \param[in] integrand Object with problem-specific data and methods
-  //! \param[in] silence If \e true, suppress threading group outprint
-  //! \param[in] ignoreGlobalLM If \e true ignore global multipliers in sanity check
-  void generateThreadGroups(const Integrand& integrand, bool silence,
-                            bool ignoreGlobalLM);
 
   //! \brief Generate element groups from a partition.
   virtual void generateThreadGroupsFromElms(const IntVec& elms);
