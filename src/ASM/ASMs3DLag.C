@@ -952,7 +952,7 @@ int ASMs3DLag::findElement (double u, double v, double w,
   if (!svol)
   {
     std::cerr <<" *** ASMs3DLag::findElement: No spline geometry"<< std::endl;
-    return -1;
+    return 0;
   }
 
   std::array<std::pair<double,int>,3> knot;
@@ -1001,11 +1001,9 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const Vector& locSol,
   size_t ni   = gpar ? gpar[0].size() : nel;
   size_t nj   = gpar ? gpar[1].size() : 1;
   size_t nk   = gpar ? gpar[2].size() : 1;
-  size_t nen  = p1*p2*p3;
 
   sField.resize(nCmp,ni*nj*nk);
-  Matrix elmSol(nCmp,nen);
-  RealArray N(nen), val;
+  RealArray N, val;
 
   double xi = 0.0, eta = 0.0, zeta = 0.0;
   if (!gpar && !Lagrange::computeBasis(N,p1,xi,p2,eta,p3,zeta))
@@ -1018,23 +1016,40 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const Vector& locSol,
       for (size_t i = 0; i < ni; i++, ip++)
       {
         if (gpar)
-        {
           iel = this->findElement(gpar[0][i], gpar[1][j], gpar[2][k],
                                   &xi, &eta, &zeta);
-          if (iel < 1 || iel > static_cast<int>(nel))
-            return false;
-          if (!Lagrange::computeBasis(N,p1,xi,p2,eta,p3,zeta))
-            return false;
-        }
-        else
-          iel++;
+        else // evaluate at element centers
+          --iel;
+        if (!this->evalSolPt(iel,xi,eta,zeta,nCmp,locSol,val,N))
+          return false;
 
-        for (size_t a = 1; a <= nen; a++)
-          elmSol.fillColumn(a, locSol.ptr() + nCmp*MNPC[iel-1][a-1]);
-
-        elmSol.multiply(N,val);
         sField.fillColumn(ip,val);
       }
+
+  return true;
+}
+
+
+bool ASMs3DLag::evalSolPt (int iel, double xi, double eta, double zeta,
+                           size_t nCmp, const Vector& pchSol, RealArray& ptSol,
+                           RealArray& N) const
+{
+  if (iel < 0 && -iel <= static_cast<int>(nel)) // assume N is already evaluated
+    iel = -iel-1;
+  else if (iel < 1 || iel > static_cast<int>(nel))
+    return false;
+  else if (!Lagrange::computeBasis(N,p1,xi,p2,eta,p3,zeta))
+    return false;
+  else
+    --iel;
+
+  ptSol.assign(nCmp,0.0);
+  for (size_t a = 0; a < N.size(); a++)
+  {
+    size_t ip = nCmp*MNPC[iel][a];
+    for (size_t i = 0; i < nCmp; i++)
+      ptSol[i] += N[a]*pchSol[ip++];
+  }
 
   return true;
 }

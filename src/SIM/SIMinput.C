@@ -451,7 +451,7 @@ bool SIMinput::parseBCTag (const tinyxml2::XMLElement* elem)
   else if (!strcasecmp(elem->Value(),"propertycodes"))
   {
     const tinyxml2::XMLElement* code = elem->FirstChildElement("code");
-    for (; code; code = code->NextSiblingElement())
+    for (; code; code = code->NextSiblingElement("code"))
     {
       int icode = 0;
       utl::getAttribute(code,"value",icode);

@@ -100,8 +100,17 @@ target_sources(
     src/ASM/BDFMats.C
     src/ASM/BlockElmMats.C
     src/ASM/DomainDecomposition.C
-    src/ASM/dslbln.f
-    src/ASM/dsolv3.f
+    src/ASM/Ftn/dcros3.f
+    src/ASM/Ftn/dmuax3.f
+    src/ASM/Ftn/dnorm3.f
+    src/ASM/Ftn/dprint.f
+    src/ASM/Ftn/dslbln.f
+    src/ASM/Ftn/dsolv3.f
+    src/ASM/Ftn/errmsg.f
+    src/ASM/Ftn/q4_inv.f
+    src/ASM/Ftn/shape2.f
+    src/ASM/Ftn/shltri.f
+    src/ASM/Ftn/t3_inv.f
     src/ASM/DualField.C
     src/ASM/ElmMats.C
     src/ASM/Field.C

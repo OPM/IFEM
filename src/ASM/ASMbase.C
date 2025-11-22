@@ -1622,6 +1622,19 @@ bool ASMbase::injectNodeVec (const RealArray& nodeVec, RealArray& globRes,
 }
 
 
+bool ASMbase::findPoints (std::vector<Vec3>& points,
+                          std::vector<PointParams>& locs) const
+{
+  size_t nFound = 0;
+  locs.resize(points.size());
+  for (size_t i = 0; i < points.size(); i++)
+    if ((locs[i].dist = this->findPoint(points[i],locs[i].u)) >= 0.0)
+      ++nFound;
+
+  return nFound == points.size();
+}
+
+
 bool ASMbase::getSolution (Matrix& sField, const Vector& locSol,
                            const IntVec& nodes) const
 {
@@ -1772,7 +1785,7 @@ bool ASMbase::evalSolution (Matrix&, const IntegrandBase&,
 
 
 bool ASMbase::evalSolution (Matrix& sField, const IntegrandBase& integrand,
-                            const IntVec& elements) const
+                            const IntVec& elements, const RealArray*) const
 {
   if (elements.empty())
     return this->evalSolution(sField,integrand,nullptr,true);

@@ -118,7 +118,7 @@ bool TimeStep::parse (const tinyxml2::XMLElement* elem)
   if (f2 > 1.0) f2 = 1.0;
 
   const tinyxml2::XMLElement* child = elem->FirstChildElement("step");
-  for (; child; child = child->NextSiblingElement())
+  for (; child; child = child->NextSiblingElement("step"))
   {
     double start = 0.0, end = 0.0;
     utl::getAttribute(child,"start",start);

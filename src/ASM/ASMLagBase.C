@@ -12,6 +12,7 @@
 //==============================================================================
 
 #include "ASMLagBase.h"
+#include "Vec3Oper.h"
 
 
 ASMLagBase::ASMLagBase (const ASMLagBase& patch, bool cpCoord) : coord(myCoord)
@@ -20,7 +21,8 @@ ASMLagBase::ASMLagBase (const ASMLagBase& patch, bool cpCoord) : coord(myCoord)
 }
 
 
-bool ASMLagBase::nodalField (Matrix& field, const Vector& sol, size_t nno) const
+bool ASMLagBase::nodalField (Matrix& field,
+                             const RealArray& sol, size_t nno) const
 {
   size_t nPnts = coord.size();
   size_t nComp = sol.size() / nno;
@@ -28,7 +30,7 @@ bool ASMLagBase::nodalField (Matrix& field, const Vector& sol, size_t nno) const
     return false;
 
   field.resize(nComp,nPnts);
-  const double* u = sol.ptr();
+  const double* u = sol.data();
   for (size_t iPt = 1; iPt <= nPnts; iPt++, u += nComp)
     field.fillColumn(iPt,u);
 
@@ -48,7 +50,22 @@ Vec3 ASMLagBase::getGeometricCenter (const std::vector<int>& MNPC) const
 }
 
 
-bool ASMLagBase::updateCoords (const Vector& displ, unsigned char nsd)
+double ASMLagBase::getBoundingBox (const std::vector<int>& MNPC,
+                                   Vec3Pair& bbox) const
+{
+  bbox.first = bbox.second = coord[MNPC.front()];
+  for (size_t n = 1; n < MNPC.size(); n++)
+    for (int i = 0; i < 3; i++)
+      if (double x = coord[MNPC[n]][i]; x < bbox.first[i])
+        bbox.first[i] = x;
+      else if (x > bbox.second[i])
+        bbox.second[i] = x;
+
+  return (bbox.second - bbox.first).length();
+}
+
+
+bool ASMLagBase::updateCoords (const RealArray& displ, unsigned char nsd)
 {
   if (displ.size() != nsd*coord.size())
   {
@@ -58,7 +75,7 @@ bool ASMLagBase::updateCoords (const Vector& displ, unsigned char nsd)
     return false;
   }
 
-  const double* dpt = displ.ptr();
+  const double* dpt = displ.data();
   for (Vec3& XYZ : myCoord)
   {
     XYZ += RealArray(dpt,dpt+nsd);

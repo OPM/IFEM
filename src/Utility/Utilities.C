@@ -14,15 +14,16 @@
 #include "Utilities.h"
 #include "Vec3.h"
 #include "tinyxml2.h"
+#include <algorithm>
 #include <cstdlib>
 #include <cstring>
-#include <algorithm>
 
 
-void utl::parseIntegers (std::vector<int>& values, const char* argv)
+bool utl::parseIntegers (std::vector<int>& values, const char* argv)
 {
-  if (!argv) return;
+  if (!argv) return false;
 
+  size_t old = values.size();
   char* endp = const_cast<char*>(argv);
   while (endp && strlen(endp) > 0)
   {
@@ -34,6 +35,23 @@ void utl::parseIntegers (std::vector<int>& values, const char* argv)
         values.push_back(values.back()+1);
     }
   }
+
+  return values.size() > old;
+}
+
+
+bool utl::parseVec (Vec3& value, const char* argv)
+{
+  if (!argv) return false;
+
+  char* endp = const_cast<char*>(argv);
+  for (int i = 0; i < 3; i++)
+    if (endp && strlen(endp) > 0)
+      value[i] = strtod(endp,&endp);
+    else
+      value[i] = Real(0);
+
+  return true;
 }
 
 

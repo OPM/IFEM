@@ -21,10 +21,29 @@
 #include "IFEM.h"
 #include <numeric>
 #include <sstream>
+#include <fstream>
 
 #ifdef USE_OPENMP
 #include <omp.h>
 #endif
+
+extern "C" {
+  //! \brief Parametric inversion for a linear triangle.
+  void t3_inv_(const int& nsd, const double& tol, const double& eps,
+               const double* X, const double* Xn, double* xi,
+               const int& ipsw, const int& iwr, int& ierr);
+  //! \brief Parametric inversion for a bilinear quadrilateral.
+  void q4_inv_(const int& nsd, const double& tol, const double& eps,
+               const double* X, const double* Xn, double* xi,
+               const int& ipsw, const int& iwr, int& ierr);
+  //! \brief Evaluate the bilinear shape functions.
+  void shape2_(const int& iop, const int& nenod, const double* xi,
+               double* shp, const int& ipsw, const int& iwr, int& ierr);
+  //! \brief Opens a temporary file for Fortran print.
+  int openftnfile_(const char* fname, const ssize_t nchar);
+  //! \brief Closes a Fortran file.
+  void closeftnfile_(const int& iunit);
+}
 
 
 ASMu2DLag::ASMu2DLag (unsigned char n_s,
@@ -586,4 +605,230 @@ bool ASMu2DLag::integrate (Integrand& integrand,
     cache.clear();
 
   return ok;
+}
+
+
+bool ASMu2DLag::evalSolPt (int iel, double xi, double eta, size_t nCmp,
+                           const Vector& pchSol, RealArray& ptSol,
+                           RealArray& N) const
+{
+  ptSol.clear();
+  size_t jel = iel > 0 ? iel : -iel;
+  if (jel < 1 || jel > MNPC.size())
+    return false;
+  else if (MNPC[--jel].size() > 3) // 4-noded 2D element
+    return this->ASMs2DLag::evalSolPt(iel,xi,eta,nCmp,pchSol,ptSol,N);
+  else if (MNPC[jel].size() < 3)
+    return true; // no results for 0D and 1D elements
+
+  // This element is a linear triangle
+  RealArray N3(3,1.0/3.0);
+  if (iel > 0) N3 = { xi, eta, 1.0-xi-eta };
+  return this->ASMs2DLag::evalSolPt(-1-jel,xi,eta,nCmp,pchSol,ptSol,N3);
+}
+
+
+bool ASMu2DLag::writeXML (const char* fname) const
+{
+  std::ofstream os(fname);
+  if (!os) return false;
+
+  os <<"<patch>\n  <nodes>";
+  for (const Vec3& X : coord)
+    os <<"\n    "<< X;
+  os <<"\n  </nodes>";
+  for (size_t nen = 1; nen <= 4; nen++)
+  {
+    bool haveElms = false;
+    for (const IntVec& mnpc : MNPC)
+      if (mnpc.size() == nen)
+      {
+        if (!haveElms)
+          os <<"\n  <elements nenod=\""<< nen <<"\">";
+        os <<"\n   ";
+        for (int inod : mnpc)
+          os <<" "<< inod;
+        haveElms = true;
+      }
+    if (haveElms)
+      os <<"\n  </elements>";
+  }
+  os <<"\n</patch>\n";
+
+  return true;
+}
+
+
+bool ASMu2DLag::findPoints (Vec3Vec& points, ParamsVec& locs) const
+{
+  // Calculate the bounding box for all (shell) elements
+  size_t nonshell = 0;
+  std::vector<Vec3Pair> bbox(nel);
+  for (size_t iel = 0; iel < nel; iel++)
+    if (MNPC[iel].size() == 3 || MNPC[iel].size() == 4)
+      this->getBoundingBox(MNPC[iel],bbox[iel]);
+    else
+    {
+      nonshell++; // make sure any other elements are sorted last
+      bbox[iel].first = bbox[iel].second = Vec3(1.0e99,1.0e99,1.0e99);
+    }
+
+  std::array<std::vector<size_t>,3> eIdx;
+  std::vector<size_t>::iterator it;
+
+  // Index sort the elements in each spatial direction w.r.t. the max coordinate
+  for (int i = 0; i < 3; i++)
+  {
+    eIdx[i].resize(nel);
+    std::iota(eIdx[i].begin(), eIdx[i].end(), 0);
+    std::sort(eIdx[i].begin(), eIdx[i].end(), [i,&bbox](size_t a, size_t b)
+              { return bbox[a].second[i] < bbox[b].second[i]; });
+    if (nonshell > 0)
+      eIdx[i].resize(nel-nonshell); // Remove the non-shell elements
+#if SP_DEBUG > 2
+    std::cout <<"\nElement order in "<< char('X'+i) <<"-direction:";
+    for (size_t iel = 0; iel < nel-nonshell; iel++)
+      std::cout << (iel%10 ? ' ' : '\n') << MLGE[eIdx[i][iel]]
+                <<" ("<< bbox[eIdx[i][iel]].second[i] <<")";
+    std::cout << std::endl;
+#endif
+  }
+
+  Vec3Pair BBox; // Bounding box for the whole patch
+  double maxDim = 0.0;
+  for (int i = 0; i < 3; i++)
+  {
+    BBox.first[i]  = bbox[eIdx[i].front()].first[i];
+    BBox.second[i] = bbox[eIdx[i].back()].second[i];
+    if (double dim = BBox.second[i] - BBox.first[i]; dim > maxDim)
+      maxDim = dim;
+  }
+#if SP_DEBUG > 1
+  std::cout <<"\nDomain bounding box: [ "
+            << BBox.first <<" , "<< BBox.second
+            <<" ] maxDim = "<< maxDim << std::endl;
+#endif
+  const double tol = maxDim*1.0e-8;
+  BBox.second += Vec3(RealArray(3,-tol));
+
+  size_t nFound = 0;
+  locs.clear();
+  locs.reserve(points.size());
+  for (Vec3& X : points)
+  {
+    // Do a binary search in each coordinate direction
+    // to find the range of elements to check in more detail
+    std::set<size_t> nearElms;
+    for (int i = 0; i < 3; i++)
+      if (BBox.second[i] > BBox.first[i]) // skip the flat dimension
+      {
+        it = std::upper_bound(eIdx[i].begin(), eIdx[i].end(), X[i],
+                              [i,&bbox](double x, size_t a)
+                              { return x < bbox[a].second[i]; });
+        if (nearElms.empty())
+          nearElms.insert(it,eIdx[i].end());
+        else
+        {
+          std::set<size_t> tmp1(it,eIdx[i].end()), tmp2;
+          nearElms.swap(tmp2);
+          std::set_intersection(tmp1.begin(), tmp1.end(),
+                                tmp2.begin(), tmp2.end(),
+                                std::inserter(nearElms,nearElms.begin()));
+        }
+      }
+
+    // Lambda function doing the Y < X comparison for two Vec3 objects
+    auto&& below = [&X,tol](const Vec3& Y)
+    {
+      for (int i = 0; i < 3; i++)
+        if (Y[i] > X[i]+tol)
+          return false;
+      return true;
+    };
+
+#if SP_DEBUG > 1
+    std::cout <<"\nSearching spatial point "<< X <<" (max "<< nearElms.size()
+              <<" elements to check)."<< std::endl;
+#endif
+    bool found = false;
+    for (size_t iel : nearElms)
+      if (below(bbox[iel].first))
+      {
+#if SP_DEBUG > 1
+        std::cout <<"Checking element "<< MLGE[iel] <<" in [ "<< bbox[iel].first
+                  <<" - "<< bbox[iel].second <<" ]"<< std::endl;
+#endif
+        // Perform parametric inversion to see if this point
+        // really is within current element
+        if (PointParams elem(1+iel); this->paramInvert(X,elem))
+        {
+          locs.emplace_back(elem);
+          found = true;
+          break;
+        }
+      }
+
+    if (found)
+      nFound++;
+    else
+    {
+      locs.emplace_back(PointParams());
+      IFEM::cout <<"  ** Warning: No element matches the point "<< X
+                 << std::endl;
+    }
+  }
+
+  return nFound == points.size();
+}
+
+
+bool ASMu2DLag::paramInvert (Vec3& X, PointParams& elm) const
+{
+  Matrix Xn;
+  if (!this->getElementCoordinates(Xn,elm.iel))
+    return false;
+
+  const int nelnod = Xn.cols();
+  if (nelnod == 4) // swap element node 3 and 4
+    for (size_t r = 1; r <= Xn.rows(); r++)
+      std::swap(Xn(r,3),Xn(r,4));
+
+  const double eps = 1.0e-15;
+  const double tol = 1.0e-3;
+#if SP_DEBUG > 2
+  int ipsw = SP_DEBUG;
+#else
+  int ipsw = 0;
+#endif
+  // Open a temporary file for the Fortran output
+  std::string tmpfile = "/tmp/" + std::string(getenv("USER")) + ".ftn";
+  const int iwr = openftnfile_(tmpfile.c_str(),tmpfile.size());
+  if (iwr <= 0) ipsw = -1; // suppress all output
+  int ierr = 0;
+  if (nelnod == 3)
+    t3_inv_(nsd,tol,eps,X.ptr(),Xn.ptr(),elm.u,ipsw,iwr,ierr);
+  else if (nelnod == 4)
+    q4_inv_(nsd,tol,eps,X.ptr(),Xn.ptr(),elm.u,ipsw,iwr,ierr);
+  else
+    ierr = -99;
+  if (iwr > 0 && ipsw >= 0)
+  {
+    // Copy fortran output to IFEM::cout
+    closeftnfile_(iwr);
+    std::string cline;
+    std::ifstream is(tmpfile);
+    while (std::getline(is,cline))
+      IFEM::cout << cline << std::endl;
+  }
+  if (ierr != 0 && ierr != 2)
+    return false;
+
+  // Calculate the distance to the projected point
+  Vector N(nelnod);
+  shape2_(0,nelnod,elm.u,N.ptr(),ipsw,iwr,ierr);
+  Vec3 X0(Xn * N);
+  elm.dist = (X0-X).length();
+
+  X = X0; // update the spatial coordinates
+  return true;
 }

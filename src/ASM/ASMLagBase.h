@@ -34,15 +34,17 @@ protected:
   virtual ~ASMLagBase() {}
 
   //! \brief Direct nodal evaluation of a solution field.
-  bool nodalField(Matrix& field, const Vector& sol, size_t nno) const;
+  bool nodalField(Matrix& field, const RealArray& sol, size_t nno) const;
 
   //! \brief Returns the geometric center of an element.
   Vec3 getGeometricCenter(const std::vector<int>& MNPC) const;
+  //! \brief Returns the bounding box and diameter of an element.
+  double getBoundingBox(const std::vector<int>& MNPC, Vec3Pair& bbox) const;
 
   //! \brief Updates the nodal coordinates for this patch.
   //! \param[in] displ Incremental displacements to update the coordinates with
   //! \param[in] nsd Number of space dimensions
-  bool updateCoords(const Vector& displ, unsigned char nsd);
+  bool updateCoords(const RealArray& displ, unsigned char nsd);
 
 public:
   //! \brief Updates patch origin by adding a constant to all nodes.

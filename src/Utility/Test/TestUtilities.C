@@ -10,38 +10,45 @@
 //!
 //==============================================================================
 
+#include "Catch2Support.h"
 #include "Utilities.h"
 #include "Vec3.h"
 #include "tinyxml2.h"
 
-#include "Catch2Support.h"
-
 #include <sstream>
-#include <string>
 
 
 TEST_CASE("TestUtilities.ParseIntegers")
 {
-  const char* simple = "1";
-  const char* ranged = "1:5";
-  const char* multip = "1 3 5:8 10";
   std::vector<int> values1, values2, values3;
-  utl::parseIntegers(values1, simple);
-  utl::parseIntegers(values2, ranged);
-  utl::parseIntegers(values3, multip);
+  REQUIRE(utl::parseIntegers(values1,"1"));
+  REQUIRE(utl::parseIntegers(values2,"1:5"));
+  REQUIRE(utl::parseIntegers(values3,"1 3 5:8 10"));
 
-  int i;
   REQUIRE(values1.size() == 1);
   REQUIRE(values2.size() == 5);
   REQUIRE(values3.size() == 7);
   REQUIRE(values1.front() == 1);
-  for (i = 0; i < 5; i++)
-    REQUIRE(values2[i] == 1+i);
-  for (i = 0; i < 3; i++)
+  for (size_t i = 0; i < values2.size(); i++)
+    REQUIRE(values2[i] == 1+static_cast<int>(i));
+  for (int i = 0; i < 3; i++)
     REQUIRE(values3[i] == 1+2*i);
-  for (i = 2; i < 6; i++)
+  for (int i = 2; i < 6; i++)
     REQUIRE(values3[i] == 3+i);
-  REQUIRE(values3[6] == 10);
+  REQUIRE(values3.back() == 10);
+}
+
+
+TEST_CASE("TestUtilities.ParseVec3")
+{
+  Vec3 v1, v2, v3;
+  REQUIRE(utl::parseVec(v1,"1.2"));
+  REQUIRE(utl::parseVec(v2,"1 2"));
+  REQUIRE(utl::parseVec(v3,"1.2 3.4 5.6"));
+
+  REQUIRE(v1.equal({1.2,0.0,0.0},0.0));
+  REQUIRE(v2.equal({1.0,2.0,0.0},0.0));
+  REQUIRE(v3.equal({1.2,3.4,5.6},0.0));
 }
 
 
@@ -50,7 +57,7 @@ TEST_CASE("TestUtilities.ParseKnots")
   std::string simple("xi 0 0.5 0.9 1.0");
   strtok(const_cast<char*>(simple.c_str())," ");
   std::vector<double> xi;
-  utl::parseKnots(xi);
+  REQUIRE(utl::parseKnots(xi));
   REQUIRE(xi.size() == 4);
   REQUIRE_THAT(xi[0], WithinAbs(0.0, 1e-14));
   REQUIRE_THAT(xi[1], WithinRel(0.5));
@@ -60,7 +67,7 @@ TEST_CASE("TestUtilities.ParseKnots")
   std::string graded5("xi C5 79 0.01 2.0");
   strtok(const_cast<char*>(graded5.c_str())," ");
   xi.clear();
-  utl::parseKnots(xi);
+  REQUIRE(utl::parseKnots(xi));
   REQUIRE(xi.size() == 79);
   REQUIRE_THAT(xi[39], WithinRel(0.5));
   REQUIRE_THAT(xi.front()+xi.back(), WithinRel(1.0));
@@ -118,29 +125,30 @@ TEST_CASE("TestUtilities.GetAttribute")
 
   tinyxml2::XMLDocument doc;
   doc.Parse(input);
-  REQUIRE(doc.RootElement() != nullptr);
 
-  const char* bTrue[4]  = { "booltrue" , "boolone" , "boolon" , "boolyes" };
-  const char* bFalse[4] = { "boolfalse", "boolzero", "booloff", "boolno"  };
+  const tinyxml2::XMLElement* root = doc.RootElement();
+  REQUIRE(root != nullptr);
 
-  int i;
-  for (i = 0; i < 4; i++) {
-    const tinyxml2::XMLElement* elem = doc.RootElement()->FirstChildElement(bTrue[i]);
+  const tinyxml2::XMLElement* elem;
+  for (const char* bTrue : { "booltrue", "boolone", "boolon", "boolyes" })
+  {
+    elem = root->FirstChildElement(bTrue);
     REQUIRE(elem != nullptr);
     bool b = false;
     REQUIRE(utl::getAttribute(elem, "bar", b));
     REQUIRE(b);
   }
 
-  for (i = 0; i < 4; i++) {
-    const tinyxml2::XMLElement* elem = doc.RootElement()->FirstChildElement(bFalse[i]);
+  for (const char* bFalse : { "boolfalse", "boolzero", "booloff", "boolno" })
+  {
+    elem = root->FirstChildElement(bFalse);
     REQUIRE(elem != nullptr);
     bool b = false;
     REQUIRE(utl::getAttribute(elem, "bar", b));
     REQUIRE(!b);
   }
 
-  const tinyxml2::XMLElement* elem = doc.RootElement()->FirstChildElement("intval");
+  elem = root->FirstChildElement("intval");
   REQUIRE(elem != nullptr);
   int val1 = 0;
   REQUIRE(utl::getAttribute(elem, "bar", val1));
@@ -149,13 +157,13 @@ TEST_CASE("TestUtilities.GetAttribute")
   REQUIRE(utl::getAttribute(elem, "bar", val2));
   REQUIRE(val2 == 1);
 
-  elem = doc.RootElement()->FirstChildElement("realval");
+  elem = root->FirstChildElement("realval");
   REQUIRE(elem != nullptr);
   double val3 = 0.0;
   REQUIRE(utl::getAttribute(elem, "bar", val3));
   REQUIRE_THAT(val3, WithinRel(2.01));
 
-  elem = doc.RootElement()->FirstChildElement("vecval1");
+  elem = root->FirstChildElement("vecval1");
   REQUIRE(elem != nullptr);
   Vec3 val4;
   REQUIRE(utl::getAttribute(elem, "bar", val4));
@@ -171,7 +179,7 @@ TEST_CASE("TestUtilities.GetAttribute")
   REQUIRE_THAT(val4.y, WithinRel(1.2));
   REQUIRE_THAT(val4.z, WithinRel(1.2));
 
-  elem = doc.RootElement()->FirstChildElement("vecval2");
+  elem = root->FirstChildElement("vecval2");
   REQUIRE(elem != nullptr);
   REQUIRE(utl::getAttribute(elem, "bar", val4));
   REQUIRE_THAT(val4.x, WithinRel(1.2));
@@ -186,7 +194,7 @@ TEST_CASE("TestUtilities.GetAttribute")
   REQUIRE_THAT(val4.y, WithinRel(3.4));
   REQUIRE_THAT(val4.z, WithinRel(3.4));
 
-  elem = doc.RootElement()->FirstChildElement("vecval3");
+  elem = root->FirstChildElement("vecval3");
   REQUIRE(elem != nullptr);
   REQUIRE(utl::getAttribute(elem, "bar", val4));
   REQUIRE_THAT(val4.x, WithinRel(1.2));
@@ -205,13 +213,8 @@ TEST_CASE("TestUtilities.GetAttribute")
 
 TEST_CASE("TestUtilities.GetDirs")
 {
-  int cmp1 = utl::getDirs(1);
-  int cmp2 = utl::getDirs(2);
-  int cmp3 = utl::getDirs(3);
-  int cmp4 = utl::getDirs(4);
-
-  REQUIRE(cmp1 == 1);
-  REQUIRE(cmp2 == 12);
-  REQUIRE(cmp3 == 123);
-  REQUIRE(cmp4 == 1234);
+  REQUIRE(utl::getDirs(1) == 1);
+  REQUIRE(utl::getDirs(2) == 12);
+  REQUIRE(utl::getDirs(3) == 123);
+  REQUIRE(utl::getDirs(4) == 1234);
 }
