@@ -17,7 +17,6 @@
 #include "ItgPoint.h"
 
 #include "Catch2Support.h"
-#include <catch2/generators/catch_generators_range.hpp>
 
 #include <array>
 #include <memory>

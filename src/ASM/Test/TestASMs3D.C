@@ -18,7 +18,6 @@
 #include "Vec3Oper.h"
 
 #include "Catch2Support.h"
-#include <catch2/matchers/catch_matchers_range_equals.hpp>
 
 #include <array>
 
@@ -564,9 +563,12 @@ TEST_CASE("TestASMs3D.GetElementCorners")
     const auto& [size, XC, prm] = pch.getElementCorners(param.iel);
     REQUIRE(XC.size() == 8);
     REQUIRE(prm.size() == 24);
-    using Catch::Matchers::RangeEquals;
-    REQUIRE_THAT(size, WithinRel((XC[param.c2-1] - XC[param.c1-1]).length()));
-    REQUIRE_THAT(prm, RangeEquals(makePtArray(param.u, param.v, param.w)));
-    REQUIRE_THAT(XC, RangeEquals(param.XC));
+    const std::array<double,24> ref_prm = makePtArray(param.u, param.v, param.w);
+    REQUIRE(prm.size() == ref_prm.size());
+    for (size_t i = 0; i < prm.size(); ++i)
+      REQUIRE_THAT(prm[i], WithinRel(ref_prm[i]));
+    REQUIRE(XC.size() == param.XC.size());
+    for (size_t i = 0; i < XC.size(); ++i)
+      REQUIRE(XC[i] == param.XC[i]);
   }
 }
