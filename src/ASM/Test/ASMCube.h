@@ -96,6 +96,25 @@ public:
     for (int& e : this->myMLGE)
       e += (e == -1 ? 0 : shift);
   }
+
+  std::array<int,4> getFaceCorners(int dir)
+  {
+    switch (dir) {
+      case -1: return {this->getCorner(-1,-1,-1,1), this->getCorner(-1,1,-1,1),
+                       this->getCorner(-1,-1,1,1),  this->getCorner(-1,1,1,1)};
+      case  1: return {this->getCorner(1,-1,-1,1),  this->getCorner(1,1,-1,1),
+                       this->getCorner(1,-1,1,1),   this->getCorner(1,1,1,1)};
+      case -2: return {this->getCorner(-1,-1,-1,1), this->getCorner(1,-1,-1,1),
+                       this->getCorner(-1,-1,1,1),   this->getCorner(1,-1,1,1)};
+      case  2: return {this->getCorner(-1,1,-1,1),  this->getCorner(1,1,-1,1),
+                       this->getCorner(-1,1,1,1),    this->getCorner(1,1,1,1)};
+      case -3: return {this->getCorner(-1,-1,-1,1),  this->getCorner(1,-1,-1,1),
+                       this->getCorner(-1,1,-1,1),    this->getCorner(1,1,-1,1)};
+      case  3: return {this->getCorner(-1,-1,1,1),  this->getCorner(1,-1,1,1),
+                       this->getCorner(-1,1,1,1),    this->getCorner(1,1,1,1)};
+      default: return {};
+    }
+  }
 };
 
 using ASMCube = ASMCubeBase<ASMs3D>;
@@ -161,7 +180,6 @@ public:
     std::stringstream geo(ASMCube::cube);
     this->read(geo);
   }
-  virtual ~ASMmxCube() {}
 };
 
 
