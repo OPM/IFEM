@@ -711,7 +711,7 @@ bool ASMu3Dmx::evalSolution (Matrix& sField, const Vector& locSol,
   if (nPoints != gpar[1].size() || nPoints != gpar[2].size())
     return false;
 
-  Go::BasisPts spline;
+  GoBasisPtsVol spline;
 
   std::vector<size_t> nc(nfx.size(), 0);
   if (nf)
@@ -790,7 +790,7 @@ bool ASMu3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     Matrix3D Hess;
     if (use2ndDer)
       for (size_t b = 0; b < bfs.size(); ++b) {
-        Go::BasisDerivs2 spline;
+        GoBasisDerivsVol2 spline;
         const LR::LRSplineVolume* sv = b < m_basis.size() ? m_basis[b].get() : geo;
         sv->computeBasis(gpar[0][i],gpar[1][i],gpar[2][i],spline,els[b]-1);
         SplineUtils::extractBasis(spline,
@@ -799,7 +799,7 @@ bool ASMu3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
       }
     else
       for (size_t b = 0; b < bfs.size(); ++b) {
-        Go::BasisDerivs spline;
+        GoBasisDerivsVol spline;
         const LR::LRSplineVolume* sv = b < m_basis.size() ? m_basis[b].get() : geo;
         sv->computeBasis(gpar[0][i],gpar[1][i],gpar[2][i],spline,els[b]-1);
         SplineUtils::extractBasis(spline,

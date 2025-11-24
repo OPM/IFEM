@@ -511,7 +511,7 @@ TEST_CASE("TestPiolaMapping.Basis3D")
   double detJ = utl::Jacobian(Ji, dNdX, X, dNdu, true);
   J.multiply(X,dNdu); // J = X * dNdu
 
-  Go::BasisPts spline1, spline2, spline3;
+  GoBasisPtsVol spline1, spline2, spline3;
   b.getBasis(1)->computeBasis(u,v,w,spline1);
   b.getBasis(2)->computeBasis(u,v,w,spline2);
   b.getBasis(3)->computeBasis(u,v,w,spline3);
@@ -591,7 +591,7 @@ TEST_CASE("TestPiolaMapping.Gradient3D")
   H.multiply(X,bfs.back().d2Ndu2);
   J.multiply(X,bfs.back().dNdu); // J = X * dNdu
 
-  Go::BasisDerivs spline1, spline2, spline3;
+  GoBasisDerivsVol spline1, spline2, spline3;
   b.getBasis(1)->computeBasis(u,v,w,spline1);
   b.getBasis(2)->computeBasis(u,v,w,spline2);
   b.getBasis(3)->computeBasis(u,v,w,spline3);
