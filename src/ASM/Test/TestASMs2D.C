@@ -16,7 +16,6 @@
 #include "Vec3Oper.h"
 
 #include "Catch2Support.h"
-#include <catch2/matchers/catch_matchers_range_equals.hpp>
 
 
 TEST_CASE("TestASMs2D.ElementConnectivities")
@@ -259,9 +258,13 @@ TEST_CASE("TestASMs2D.GetElementCorners")
     const auto& [size, XC, prm] = pch.getElementCorners(param.iel);
     REQUIRE(XC.size() == 4);
     REQUIRE(prm.size() == 8);
-    using Catch::Matchers::RangeEquals;
     REQUIRE_THAT(size, WithinRel((XC[param.c1-1] - XC[param.c2-1]).length()));
-    REQUIRE_THAT(prm, RangeEquals(makePtArray(param.u, param.v)));
-    REQUIRE_THAT(XC, RangeEquals(param.XC));
+    const std::array<double,8> ref_prm = makePtArray(param.u, param.v);
+    REQUIRE(prm.size() == ref_prm.size());
+    for (size_t i = 0; i < prm.size(); ++i)
+      REQUIRE_THAT(prm[i], WithinRel(ref_prm[i]));
+    REQUIRE(XC.size() == param.XC.size());
+    for (size_t i = 0; i < XC.size(); ++i)
+      REQUIRE(XC[i] == param.XC[i]);
   }
 }
