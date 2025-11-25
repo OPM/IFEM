@@ -101,6 +101,14 @@ public:
   //! \details To be used when there is no underlying SAM
   virtual bool assemble(const Matrix& eM, const IntVec& meq);
 
+  //! \brief Assembles a validation matrix assuming unit element contributions.
+  //! \param[in] val Value identifying current threading group
+  //! \param[in] sam Auxiliary data for FE assembly management
+  //! \param[in] meq Matrix of element equation numbers
+  //!
+  //! \details For validation of threading groups.
+  bool assembleStruct(int val, const SAM& sam, const IntVec& meq);
+
   //! \brief Multiplication with a scalar.
   virtual void mult(Real alpha) { myMat *= alpha; }
 

@@ -62,7 +62,7 @@ void DiagMatrix::dump (std::ostream& os, LinAlg::StorageFormat format,
 
 bool DiagMatrix::assemble (const Matrix& eM, const SAM& sam, int e)
 {
-  if (myMat.size() != (size_t)sam.neq)
+  if (static_cast<int>(myMat.size()) != sam.neq)
     return false;
 
   StdVector B;
@@ -74,22 +74,67 @@ bool DiagMatrix::assemble (const Matrix& eM, const SAM& sam, int e)
 bool DiagMatrix::assemble (const Matrix& eM, const SAM& sam,
                            SystemVector&, const IntVec& meq)
 {
-  if (meq.size() != 1 || eM.size() != 1)
+  const size_t nedof = meq.size();
+  if (eM.rows() < nedof || eM.cols() < nedof)
   {
-    std::cerr <<" *** DiagMatrix::assemble: Only for one-dof elements, nedof = "
-              << meq.size() <<" size(eM) = " << eM.size() << std::endl;
+    std::cerr <<" *** DiagMatrix::assemble: Invalid element matrix, nedof = "
+              << nedof <<" size(eM) = "<< eM.rows() <<","<< eM.cols()
+              << std::endl;
     return false;
   }
 
-  int ieq = meq.front();
-  if (ieq < 1 || ieq > sam.neq)
-  {
-    std::cerr <<" *** DiagMatrix::assemble: ieq="<< ieq <<" is out or range [1,"
-              << sam.neq <<"]"<< std::endl;
-    return false;
-  }
+  // Add elements corresponding to free dofs in eM,
+  // and (appropriately weighted) elements corresponding to constrained dofs,
+  // into the diagonal system matrix
+  for (size_t j = 1; j <= nedof; j++)
+    if (int jeq = meq[j-1]; jeq > 0)
+      myMat(jeq) += eM(j,j);
+    else if (int jceq = -meq[j-1]; jceq > 0)
+      for (int jp = sam.mpmceq[jceq-1]; jp < sam.mpmceq[jceq]-1; jp++)
+        if (int jeq = sam.mmceq[jp] > 0 ? sam.meqn[sam.mmceq[jp]-1]:0; jeq > 0)
+          for (size_t i = 1; i <= nedof; i++)
+            if (meq[i-1] == jeq)
+              myMat(jeq) += sam.ttcc[jp]*(eM(i,j) + eM(j,i));
+            else if (int iceq = -meq[i-1]; iceq > 0)
+              for (int ip = sam.mpmceq[iceq-1]; ip < sam.mpmceq[iceq]-1; ip++)
+                if (sam.mmceq[ip] > 0 && sam.meqn[sam.mmceq[ip]-1] == jeq)
+                  myMat(jeq) += sam.ttcc[ip]*sam.ttcc[jp]*eM(i,j);
 
-  myMat(ieq) += eM(1,1);
+  return this->flagNonZeroEqs(meq);
+}
+
+
+/*!
+  This method is doing the same as the above assemble() method,
+  but where all element matrices are assumed identity matrices.
+  The purpose is to verify that each equation only gets a single contribution
+  within each threading group.
+*/
+
+bool DiagMatrix::assembleStruct (int val, const SAM& sam, const IntVec& meq)
+{
+  // Lambda function marking matrix contributions due to linear couplings.
+  auto&& addEq = [&diag=myMat,val](int ieq)
+  {
+    int current = diag(ieq)/1000.0;
+    if (current != val)
+      diag(ieq) += 1000.0*val;
+  };
+
+  const size_t nedof = meq.size();
+  for (size_t j = 1; j <= nedof; j++)
+    if (int jeq = meq[j-1]; jeq > 0)
+      myMat(jeq) += 1.0;
+    else if (int jceq = -meq[j-1]; jceq > 0)
+      for (int jp = sam.mpmceq[jceq-1]; jp < sam.mpmceq[jceq]-1; jp++)
+        if (int jeq = sam.mmceq[jp] > 0 ? sam.meqn[sam.mmceq[jp]-1]:0; jeq > 0)
+          for (size_t i = 1; i <= nedof; i++)
+            if (meq[i-1] == jeq)
+              addEq(jeq);
+            else if (int iceq = -meq[i-1]; iceq > 0)
+              for (int ip = sam.mpmceq[iceq-1]; ip < sam.mpmceq[iceq]-1; ip++)
+                if (sam.mmceq[ip] > 0 && sam.meqn[sam.mmceq[ip]-1] == jeq)
+                  addEq(jeq);
 
   return this->flagNonZeroEqs(meq);
 }
