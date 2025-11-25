@@ -362,18 +362,6 @@ bool SIMbase::preprocessC (const IntVec& ignored, bool fixDup, double time0)
   if (timeDependent && !this->initDirichlet(time0))
     return false;
 
-  // Generate element groups for multi-threading
-  bool silence = msgLevel < 1 || (msgLevel < 3 && nGlPatches > 1);
-  for (ASMbase* pch : myModel)
-    if (!pch->empty())
-      pch->generateThreadGroups(*myProblem,silence,lagMTOK);
-
-  for (const Property& p : myProps)
-    if (p.pcode == Property::NEUMANN ||
-        p.pcode == Property::NEUMANN_GENERIC ||
-        p.pcode == Property::ROBIN)
-      this->generateThreadGroups(p,silence);
-
   // Preprocess the result points
   this->preprocessResultPoints();
 
@@ -401,6 +389,26 @@ bool SIMbase::preprocessC (const IntVec& ignored, bool fixDup, double time0)
 #endif
     return false;
   }
+
+  // Generate element groups for multi-threading
+  bool silence = msgLevel < 1 || (msgLevel < 3 && nGlPatches > 1);
+  if (opt.validateGroups) silence = false;
+  for (ASMbase* pch : myModel)
+    if (!pch->empty())
+      pch->generateThreadGroups(*myProblem,silence,lagMTOK);
+
+  for (const Property& p : myProps)
+    if (p.pcode == Property::NEUMANN ||
+        p.pcode == Property::NEUMANN_GENERIC ||
+        p.pcode == Property::ROBIN)
+      if (ASMbase* pch = this->getPatch(p.patch); pch && !pch->empty())
+        if (abs(p.ldim)+1 == pch->getNoParamDim())
+          pch->generateThreadGroups(p.lindx%10,silence,lagMTOK);
+
+  if (opt.validateGroups)
+    for (ASMbase* pch : myModel)
+      if (!pch->empty() && !pch->validateThreadGroups(mySam))
+        return false;
 
   if (mdFlag > 0)
     nDofS = mySam->getNoDOFs();
