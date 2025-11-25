@@ -73,6 +73,7 @@ public:
   ASM::Discretization discretization; //!< Spatial discretization option
   LinAlg::MatrixType  solver;         //!< The linear equation solver to use
 
+  bool validateGroups; //!< Flag validation of the generated threading groups
   int num_threads_SLU; //!< Number of threads for SuperLU_MT
 
   // Eigenvalue solver options
@@ -106,7 +107,7 @@ public:
   enum ProjectionMethod { NONE, GLOBAL, VDSA, QUASI, LEASTSQ,
                           DGL2, CGL2, CGL2_INT, SCR };
   //! \brief Projection method name mapping.
-  typedef std::map<ProjectionMethod,std::string> ProjectionMap;
+  using ProjectionMap = std::map<ProjectionMethod,std::string>;
 
   ProjectionMap project; //!< The projection methods to use
 };

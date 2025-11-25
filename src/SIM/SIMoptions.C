@@ -41,6 +41,7 @@ SIMoptions::SIMoptions ()
 #else
   num_threads_SLU = 1;
 #endif
+  validateGroups = false;
 
   eig = 0;
   nev = 10;
@@ -129,17 +130,15 @@ bool SIMoptions::parseDiscretizationTag (const tinyxml2::XMLElement* elem)
   }
 
   else if (!strcasecmp(elem->Value(),"geometry")) {
-    std::string type;
     const tinyxml2::XMLElement* child = elem->FirstChildElement();
     for (; child; child = child->NextSiblingElement())
       if (!strcasecmp(child->Value(),"patchfile"))
-        if (utl::getAttribute(child,"type",type) && type == "lrspline")
-          discretization = ASM::LRSpline;
+        if (std::string type; utl::getAttribute(child,"type",type))
+          if (type == "lrspline") discretization = ASM::LRSpline;
   }
 
   else if (!strcasecmp(elem->Value(),"nGauss")) {
-    int defaultG = 0;
-    if (utl::getAttribute(elem,"default",defaultG))
+    if (int defaultG = 0; utl::getAttribute(elem,"default",defaultG))
       nGauss[0] = nGauss[1] = defaultG > 0 ? 10+defaultG : defaultG;
     else if (elem->FirstChild()) {
       std::string value(elem->FirstChild()->Value());
@@ -316,6 +315,8 @@ bool SIMoptions::parseOldOptions (int argc, char** argv, int& i)
     solver = LinAlg::PETSC;
   else if (!strcmp(argv[i],"-istl"))
     solver = LinAlg::ISTL;
+  else if (!strcmp(argv[i],"-validateGroups"))
+    validateGroups = true;
   else if (!strncmp(argv[i],"-lag",4))
     discretization = ASM::Lagrange;
   else if (!strncmp(argv[i],"-tri",4))
