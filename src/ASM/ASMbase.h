@@ -45,6 +45,7 @@ class RealFunc;
 class VecFunc;
 class Vec3;
 class Tensor;
+class SAM;
 
 namespace ASM { class InterfaceChecker; }
 namespace utl { template<class Arg, class Result> class Function; }
@@ -515,9 +516,12 @@ public:
   virtual void generateThreadGroupsFromElms(const IntVec&) {}
   //! \brief Generates element groups for multi-threading based on a partition.
   virtual void generateProjThreadGroupsFromElms(const IntVec&) {}
+  //! \brief Validates the threading groups based on the assembly data in %SAM.
+  virtual bool validateThreadGroups(const SAM*) const { return true; }
 
   //! \brief Hook for changing number of threads.
   virtual void changeNumThreads() {}
+
 
   // Methods for integration of finite element quantities.
   // These are the main computational methods of the ASM class hierarchy.

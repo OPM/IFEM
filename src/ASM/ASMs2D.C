@@ -36,6 +36,8 @@
 #include "Point.h"
 #include "Tensor.h"
 #include "MPC.h"
+#include "SAM.h"
+#include "DiagMatrix.h"
 #include "IFEM.h"
 #include <array>
 #include <utility>
@@ -3353,6 +3355,48 @@ void ASMs2D::generateThreadGroupsFromElms (const IntVec& elms)
 void ASMs2D::generateProjThreadGroupsFromElms (const IntVec& elms)
 {
   projThreadGroups = projThreadGroups.filter(elms);
+}
+
+
+bool ASMs2D::validateThreadGroups (const SAM* sam) const
+{
+  IFEM::cout <<"\nValidating element groups for multi-threaded assembly."
+             << std::endl;
+
+  if (threadGroups[0].size() == 1)
+    return true; // Only one group (no multi-threading)
+
+  size_t nErr = 0;
+  int iTGroup = 0;
+  for (size_t g = 0; g < threadGroups.size(); g++)
+    for (const IntVec& group : threadGroups[g])
+    {
+      ++iTGroup;
+      size_t lErr = nErr;
+      DiagMatrix sysMat(sam->getNoEquations());
+      for (int iel : group)
+        if (IntVec meen; !sam->getElmEqns(meen,MLGE[iel]))
+          ++nErr;
+        else if (!sysMat.assembleStruct(iTGroup,*sam,meen))
+          ++nErr;
+
+      for (size_t ieq = 1; ieq <= sysMat.dim(0); ieq++)
+        if (int count = sysMat(ieq); count > 1 && count/1000 != iTGroup)
+        {
+          std::cerr <<" *** Threading group "<< iTGroup <<" has "<< count
+                    <<" contributors to equation "<< ieq;
+          std::pair<int,int> dof = sam->getNodeAndLocalDof(ieq,true);
+          std::cerr <<" (node "<< dof.first <<" local dof "<< dof.second <<")"
+                    << std::endl;
+          nErr += count;
+        }
+
+      if (lErr == nErr)
+        IFEM::cout <<"   * Thread group "<< iTGroup <<" (size "<< group.size()
+                   <<") is OK"<< std::endl;
+    }
+
+  return nErr == 0;
 }
 
 

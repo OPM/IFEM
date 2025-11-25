@@ -698,6 +698,9 @@ protected:
   //! \brief Generate element groups from a partition.
   virtual void generateProjThreadGroupsFromElms(const IntVec& elms);
 
+  //! \brief Validates the threading groups based on the assembly data in %SAM.
+  virtual bool validateThreadGroups(const SAM* sam) const;
+
   //! \brief Returns 0-based index of first node on integration basis.
   virtual int getFirstItgElmNode() const { return 0; }
   //! \brief Returns 0-based index of last node on integration basis.
